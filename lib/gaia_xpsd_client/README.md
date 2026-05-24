@@ -16,7 +16,7 @@
 
 本客户端需要 PixInsight 的 Gaia DR3 离线星表文件（`.xpsd` 格式）。
 
-**数据下载（仅保留百度网盘）：**
+**数据下载：**
 - 百度网盘：https://pan.baidu.com/s/1u8CCMtecsaiz2nVjLsThRg?pwd=fujz
   提取码：fujz
 
