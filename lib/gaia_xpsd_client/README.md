@@ -16,7 +16,11 @@
 
 本客户端需要 PixInsight 的 Gaia DR3 离线星表文件（`.xpsd` 格式）。
 
-请从 PixInsight 软件中下载 Gaia 数据库（通过 PixInsight 的 **Format Search Paths** 或资源管理器获取 GaiaDR3SP 数据包）。将所有 `.xpsd` 文件放在同一目录下，客户端会自动扫描并加载。
+**数据下载（仅保留百度网盘）：**
+- 百度网盘：https://pan.baidu.com/s/1u8CCMtecsaiz2nVjLsThRg?pwd=fujz
+  提取码：fujz
+
+将所有 `.xpsd` 文件放在同一目录下，客户端会自动扫描并加载。
 
 ## 编译
 
