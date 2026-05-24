@@ -1,0 +1,51 @@
+#ifndef GAIA_CLIENT_H
+#define GAIA_CLIENT_H
+
+#include <stddef.h>
+#include <stdint.h>
+
+#ifdef _WIN32
+#define GAIA_EXPORT __declspec(dllexport)
+#else
+#define GAIA_EXPORT __attribute__((visibility("default")))
+#endif
+
+typedef struct {
+    double ra;
+    double dec;
+    double magG;
+    double magBP;
+    double magRP;
+    float parallax;
+    float pmra;
+    float pmdec;
+    int64_t source_id;
+} GaiaStar;
+
+typedef struct GaiaClient GaiaClient;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+GAIA_EXPORT GaiaClient *gaia_client_create(const char *data_dir);
+GAIA_EXPORT void gaia_client_destroy(GaiaClient *client);
+
+GAIA_EXPORT int gaia_client_cone_search(
+    GaiaClient *client,
+    double ra, double dec, double radius_deg,
+    double mag_low, double mag_high,
+    GaiaStar **out_stars, int *out_count);
+
+GAIA_EXPORT int gaia_client_cone_search_for_solver(
+    GaiaClient *client,
+    double ra, double dec, double radius_deg,
+    double mag_high,
+    double **out_ra, double **out_dec, float **out_mag,
+    int *out_count);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
