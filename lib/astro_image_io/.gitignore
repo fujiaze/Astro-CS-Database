@@ -1,7 +1,8 @@
+*.dll
+*.o
+*.obj
+logs/
 __pycache__/
 *.pyc
-*.pyo
-*.egg-info/
-dist/
-build/
-.eggs/
+test_output.fits
+test_roundtrip.fits
