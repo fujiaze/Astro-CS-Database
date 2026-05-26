@@ -2,6 +2,12 @@
 
 从16bit天文图像中检测星点坐标，集成PSF拟合过滤、FWHM剪裁和圆度过滤，输出通过所有过滤的真实星点坐标列表。
 
+## 检测效果示例
+
+![检测效果示例](test_output/example.jpg)
+
+*红色十字标记为检测到的星点位置（直方图拉伸后显示）*
+
 ## 特性
 
 - **16bit原生输入**：直接接收uint16图像数据，适配业余天文相机ADC
@@ -43,7 +49,7 @@
 | iterativeClipSigma | float | 9.0 | 迭代sigma-clip阈值倍数 |
 | iterativeMaxRounds | int | 5 | sigma-clip最大迭代轮数 |
 | medianFilterDetail | int | 1 | 是否对细节层做3×3中值滤波去噪 |
-| maxStars | int | 10000 | 最大输出星点数 |
+| maxStars | int | 0 | 最大输出星点数，0=不限制 |
 | fitRadius | int | 8 | PSF拟合采样区半径 |
 | fwhmClipSigma | float | 3.0 | FWHM剪裁sigma倍数 |
 | maxAxisRatio | float | 2.0 | 最大轴比（长轴/短轴） |
