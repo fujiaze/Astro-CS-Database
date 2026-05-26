@@ -348,8 +348,8 @@ int sdet_moffat4_fit(const float* image, int width, int height,
     double final_params[7] = { B, A, x0, y0, sx, sy, theta };
     double mad = sdet_compute_trimmed_mad(samples.data(), m, final_params);
 
-    double img_cx = x0 + (rect_x0 + rect_x1) / 2.0;
-    double img_cy = y0 + (rect_y0 + rect_y1) / 2.0;
+    double img_cx = x0 + cx;
+    double img_cy = y0 + cy;
 
     result->status = lm_status;
     result->B = B;
@@ -382,7 +382,7 @@ SDET_EXPORT StarDetectorHandle sdet_create(const SDetParams *params)
         defaults.iterativeClipSigma = 9.0f;
         defaults.iterativeMaxRounds = 5;
         defaults.medianFilterDetail = 1;
-        defaults.maxStars = 10000;
+        defaults.maxStars = 0;
         defaults.fitRadius = 8;
         defaults.fwhmClipSigma = 3.0f;
         defaults.maxAxisRatio = 2.0f;
@@ -492,7 +492,7 @@ SDET_EXPORT int sdet_detect(StarDetectorHandle handle,
         }
     }
 
-    if ((int)candidates.size() > params.maxStars * 2) {
+    if (params.maxStars > 0 && (int)candidates.size() > params.maxStars * 2) {
         std::sort(candidates.begin(), candidates.end(),
                   [](const Candidate &a, const Candidate &b) { return a.img_val > b.img_val; });
         candidates.resize(params.maxStars * 2);
@@ -570,14 +570,15 @@ SDET_EXPORT int sdet_detect(StarDetectorHandle handle,
     int auto_min = sdet_compute_auto_min_structure_size(stars.data(), filtered_count);
     int final_count = sdet_deduplicate_stars(stars.data(), filtered_count, auto_min);
 
-    if (final_count > params.maxStars) {
-        std::sort(stars.data(), stars.data() + final_count, [](const DetectedStarInternal &a, const DetectedStarInternal &b) {
-            return a.flux > b.flux;
-        });
+    std::sort(stars.data(), stars.data() + final_count, [](const DetectedStarInternal &a, const DetectedStarInternal &b) {
+        return a.flux > b.flux;
+    });
+
+    if (params.maxStars > 0 && final_count > params.maxStars) {
         final_count = params.maxStars;
     }
 
-    sdet_log(SDET_LOG_INFO, "SDET", "Detection phase: %d stars after dedup", final_count);
+    sdet_log(SDET_LOG_INFO, "SDET", "Detection phase: %d stars after dedup (sorted by flux)", final_count);
 
     if (final_count == 0) {
         *out_x = nullptr;
@@ -704,4 +705,256 @@ SDET_EXPORT int sdet_detect(StarDetectorHandle handle,
 SDET_EXPORT void sdet_free_coords(double *coords)
 {
     free(coords);
+}
+
+SDET_EXPORT int sdet_detect_debug(StarDetectorHandle handle,
+                                    const uint16_t *image, int width, int height,
+                                    double **out_x, double **out_y, int *out_count,
+                                    float **out_detail, float **out_smap, float **out_binary)
+{
+    if (!handle || !image || !out_x || !out_y || !out_count) return -1;
+
+    const SDetParams &params = handle->internal.params;
+    size_t n = (size_t)width * height;
+
+    std::vector<float> fimg(n);
+    for (size_t i = 0; i < n; i++) {
+        fimg[i] = static_cast<float>(image[i]);
+    }
+
+    sdet_log(SDET_LOG_INFO, "SDET", "sdet_detect_debug start: %dx%d", width, height);
+
+    handle->internal.width = width;
+    handle->internal.height = height;
+
+    std::vector<float> map(n);
+    sdet_get_structure_map(&handle->internal, fimg.data(), width, height, map.data());
+
+    float *raw_detail = handle->internal.raw_detail;
+    handle->internal.raw_detail = nullptr;
+
+    float *detail_out = (float *)malloc(n * sizeof(float));
+    float *smap_out = (float *)malloc(n * sizeof(float));
+    float *binary_out = (float *)calloc(n, sizeof(float));
+
+    if (raw_detail) {
+        std::memcpy(detail_out, raw_detail, n * sizeof(float));
+    } else {
+        std::memset(detail_out, 0, n * sizeof(float));
+    }
+    std::memcpy(smap_out, map.data(), n * sizeof(float));
+
+    float *raw_med_filtered = nullptr;
+    if (params.medianFilterDetail && raw_detail) {
+        raw_med_filtered = new float[n];
+        sdet_median_filter_3x3(raw_detail, raw_med_filtered, width, height);
+    }
+
+    std::vector<float> med_filtered(n);
+    float *work_map = map.data();
+    if (params.medianFilterDetail) {
+        sdet_median_filter_3x3(map.data(), med_filtered.data(), width, height);
+        work_map = med_filtered.data();
+    }
+
+    std::vector<float> maxima(n, 0.0f);
+    sdet_local_maxima_map(fimg.data(), maxima.data(), width, height, 3, 1e30f);
+
+    float map_threshold;
+    const float *threshold_map = nullptr;
+    {
+        const float *raw_for_thresh = raw_med_filtered ? raw_med_filtered : raw_detail;
+        if (raw_for_thresh) {
+            float bg_med, bg_mad;
+            sdet_iterative_sigma_clip(raw_for_thresh, (int)n, params.iterativeClipSigma,
+                                      params.iterativeMaxRounds, &bg_med, &bg_mad);
+            map_threshold = bg_med + params.iterativeClipSigma * bg_mad;
+            if (map_threshold <= bg_med) map_threshold = bg_med + 1e-6f;
+            threshold_map = raw_for_thresh;
+            sdet_log(SDET_LOG_INFO, "SDET", "Debug: bg_med=%.6f bg_mad=%.6f threshold=%.6f",
+                     bg_med, bg_mad, map_threshold);
+        } else {
+            float med = sdet_robust_median(work_map, (int)n);
+            float mad = sdet_robust_mad(work_map, (int)n);
+            map_threshold = med + params.iterativeClipSigma * mad;
+            if (map_threshold <= med) map_threshold = med + 1e-6f;
+            threshold_map = work_map;
+        }
+    }
+
+    float img_med = sdet_robust_median(fimg.data(), (int)n);
+    float img_mad = sdet_robust_mad(fimg.data(), (int)n);
+    float img_threshold = img_med + 5.0f * img_mad;
+    if (img_threshold <= img_med) img_threshold = img_med + 1e-4f;
+
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            int idx = y * width + x;
+            if (maxima[idx] > 0.0f && threshold_map[idx] >= map_threshold && fimg[idx] >= img_threshold) {
+                binary_out[idx] = 1.0f;
+            }
+        }
+    }
+
+    *out_detail = detail_out;
+    *out_smap = smap_out;
+    *out_binary = binary_out;
+
+    struct Candidate { int x, y; float img_val; float map_val; };
+    std::vector<Candidate> candidates;
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            int idx = y * width + x;
+            if (maxima[idx] > 0.0f && threshold_map[idx] >= map_threshold && fimg[idx] >= img_threshold) {
+                candidates.push_back({x, y, fimg[idx], threshold_map[idx]});
+            }
+        }
+    }
+
+    if (params.maxStars > 0 && (int)candidates.size() > params.maxStars * 2) {
+        std::sort(candidates.begin(), candidates.end(),
+                  [](const Candidate &a, const Candidate &b) { return a.img_val > b.img_val; });
+        candidates.resize(params.maxStars * 2);
+    }
+
+    sdet_log(SDET_LOG_INFO, "SDET", "Debug candidates: %d, img_t=%.6f, map_t=%.6f",
+             (int)candidates.size(), img_threshold, map_threshold);
+
+    delete[] raw_detail;
+    delete[] raw_med_filtered;
+
+    if (candidates.empty()) {
+        *out_x = nullptr; *out_y = nullptr; *out_count = 0;
+        return 0;
+    }
+
+    int half_win = 8;
+    int cc_count = (int)candidates.size();
+    std::vector<DetectedStarInternal> stars(cc_count);
+
+    for (int i = 0; i < cc_count; i++) {
+        int cx = candidates[i].x;
+        int cy = candidates[i].y;
+        int x0 = std::max(0, cx - half_win);
+        int y0 = std::max(0, cy - half_win);
+        int x1 = std::min(width, cx + half_win + 1);
+        int y1 = std::min(height, cy + half_win + 1);
+        ConnectedComponent cc;
+        cc.x0 = x0; cc.y0 = y0; cc.x1 = x1; cc.y1 = y1;
+        cc.count = 0;
+        float bkg = 0, sigma = 0;
+        {
+            std::vector<float> vals;
+            for (int py = y0; py < y1; py++)
+                for (int px = x0; px < x1; px++)
+                    vals.push_back(fimg[py * width + px]);
+            bkg = sdet_robust_median(vals.data(), (int)vals.size());
+            sigma = sdet_robust_mad(vals.data(), (int)vals.size());
+        }
+        float star_threshold = bkg + 1.5f * sigma;
+        for (int py = y0; py < y1; py++)
+            for (int px = x0; px < x1; px++)
+                if (fimg[py * width + px] > star_threshold) {
+                    cc.px.push_back(px); cc.py.push_back(py); cc.count++;
+                }
+        if (cc.count > 0) {
+            int min_x = x1, max_x = x0, min_y = y1, max_y = y0;
+            for (int j = 0; j < cc.count; j++) {
+                if (cc.px[j] < min_x) min_x = cc.px[j];
+                if (cc.px[j] > max_x) max_x = cc.px[j];
+                if (cc.py[j] < min_y) min_y = cc.py[j];
+                if (cc.py[j] > max_y) max_y = cc.py[j];
+            }
+            cc.x0 = min_x; cc.y0 = min_y; cc.x1 = max_x + 1; cc.y1 = max_y + 1;
+        }
+        sdet_get_star_parameters(fimg.data(), width, height, &cc, &stars[i]);
+    }
+
+    int filtered_count = sdet_apply_filters(stars.data(), cc_count, width, height);
+    int auto_min = sdet_compute_auto_min_structure_size(stars.data(), filtered_count);
+    int final_count = sdet_deduplicate_stars(stars.data(), filtered_count, auto_min);
+
+    std::sort(stars.data(), stars.data() + final_count, [](const DetectedStarInternal &a, const DetectedStarInternal &b) {
+        return a.flux > b.flux;
+    });
+
+    if (params.maxStars > 0 && final_count > params.maxStars) {
+        final_count = params.maxStars;
+    }
+
+    sdet_log(SDET_LOG_INFO, "SDET", "Debug detection phase: %d stars after dedup (sorted by flux)", final_count);
+
+    if (final_count == 0) {
+        *out_x = nullptr; *out_y = nullptr; *out_count = 0;
+        return 0;
+    }
+
+    std::vector<InternalFitResult> fit_results(final_count);
+    int fit_radius = params.fitRadius;
+    #pragma omp parallel for schedule(dynamic) num_threads(16)
+    for (int i = 0; i < final_count; i++) {
+        int rx0 = std::max(0, (int)stars[i].cx - fit_radius);
+        int ry0 = std::max(0, (int)stars[i].cy - fit_radius);
+        int rx1 = std::min(width, (int)stars[i].cx + fit_radius + 1);
+        int ry1 = std::min(height, (int)stars[i].cy + fit_radius + 1);
+        sdet_moffat4_fit(fimg.data(), width, height, stars[i].cx, stars[i].cy,
+                         rx0, ry0, rx1, ry1, &fit_results[i]);
+    }
+
+    std::vector<float> fwhm_values;
+    for (int i = 0; i < final_count; i++)
+        if (fit_results[i].status == SDET_FIT_OK)
+            fwhm_values.push_back((float)((fit_results[i].fwhm_x + fit_results[i].fwhm_y) / 2.0));
+    float fwhm_med = 0, fwhm_mad_val = 0;
+    if (!fwhm_values.empty()) {
+        fwhm_med = sdet_robust_median(fwhm_values.data(), (int)fwhm_values.size());
+        fwhm_mad_val = sdet_robust_mad(fwhm_values.data(), (int)fwhm_values.size());
+    }
+
+    sdet_log(SDET_LOG_INFO, "SDET", "Debug FWHM: med=%.4f mad=%.4f (%d fitted)",
+             fwhm_med, fwhm_mad_val, (int)fwhm_values.size());
+
+    int result_count = 0;
+    std::vector<int> keep(final_count, 0);
+    for (int i = 0; i < final_count; i++) {
+        if (fit_results[i].status != SDET_FIT_OK) continue;
+        float avg_fwhm = (float)((fit_results[i].fwhm_x + fit_results[i].fwhm_y) / 2.0);
+        if (fwhm_mad_val > 0) {
+            float lo = fwhm_med - params.fwhmClipSigma * fwhm_mad_val;
+            float hi = fwhm_med + params.fwhmClipSigma * fwhm_mad_val;
+            if (avg_fwhm < lo || avg_fwhm > hi) continue;
+        }
+        float ar = (float)(std::max(fit_results[i].sx, fit_results[i].sy) /
+                            std::max(std::min(fit_results[i].sx, fit_results[i].sy), 0.001));
+        if (ar > params.maxAxisRatio) continue;
+        keep[i] = 1;
+        result_count++;
+    }
+
+    if (result_count == 0) {
+        *out_x = nullptr; *out_y = nullptr; *out_count = 0;
+        return 0;
+    }
+
+    double *x_coords = (double *)malloc(result_count * sizeof(double));
+    double *y_coords = (double *)malloc(result_count * sizeof(double));
+    int j = 0;
+    for (int i = 0; i < final_count; i++) {
+        if (keep[i]) {
+            x_coords[j] = fit_results[i].cx;
+            y_coords[j] = fit_results[i].cy;
+            j++;
+        }
+    }
+    *out_x = x_coords;
+    *out_y = y_coords;
+    *out_count = result_count;
+
+    sdet_log(SDET_LOG_INFO, "SDET", "sdet_detect_debug done: %d stars", result_count);
+    return 0;
+}
+
+SDET_EXPORT void sdet_free_debug_maps(float *maps)
+{
+    free(maps);
 }

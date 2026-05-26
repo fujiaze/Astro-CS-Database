@@ -429,3 +429,63 @@ void sdet_extract_lowfreq_atrous(const float* src, float* dst, int w, int h, int
         sdet_upsample_bilinear(c1.data(), dw, dh, dst, w, h);
     }
 }
+
+void sdet_atrous_linear3_filter(const float* src, float* dst, int w, int h, int scale) {
+    static const float lin3[3] = {0.25f, 0.5f, 0.25f};
+    int step = 1 << scale;
+
+    std::vector<float> tmp((size_t)w * h);
+
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+            double val = 0.0;
+            for (int k = -1; k <= 1; k++) {
+                int sx = x + k * step;
+                val += (double)sdet_mirror_fetch(src, w, h, sx, y) * lin3[k + 1];
+            }
+            tmp[y * w + x] = (float)val;
+        }
+    }
+
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+            double val = 0.0;
+            for (int k = -1; k <= 1; k++) {
+                int sy = y + k * step;
+                val += (double)sdet_mirror_fetch(tmp.data(), w, h, x, sy) * lin3[k + 1];
+            }
+            dst[y * w + x] = (float)val;
+        }
+    }
+}
+
+void sdet_atrous_decompose_layer2(const float* src, float* dst, int w, int h, int n_layers) {
+    size_t n = (size_t)w * h;
+
+    std::vector<float> c0(src, src + n);
+    std::vector<float> c1(n), c2(n), c3(n), c4(n);
+
+    float* layers[5] = { c0.data(), c1.data(), c2.data(), c3.data(), c4.data() };
+
+    sdet_atrous_linear3_filter(layers[0], layers[1], w, h, 0);
+    sdet_log(SDET_LOG_DEBUG, "ATROUS", "Layer 0->1 done (scale=1)");
+
+    sdet_atrous_linear3_filter(layers[1], layers[2], w, h, 1);
+    sdet_log(SDET_LOG_DEBUG, "ATROUS", "Layer 1->2 done (scale=2)");
+
+    if (n_layers >= 3) {
+        sdet_atrous_linear3_filter(layers[2], layers[3], w, h, 2);
+        sdet_log(SDET_LOG_DEBUG, "ATROUS", "Layer 2->3 done (scale=4)");
+    }
+
+    if (n_layers >= 4) {
+        sdet_atrous_linear3_filter(layers[3], layers[4], w, h, 3);
+        sdet_log(SDET_LOG_DEBUG, "ATROUS", "Layer 3->4 done (scale=8)");
+    }
+
+    for (size_t i = 0; i < n; i++) {
+        dst[i] = layers[1][i] - layers[2][i];
+    }
+
+    sdet_log(SDET_LOG_INFO, "ATROUS", "ATrous Linear3 decompose: %d layers, output=w1-w2 (layer 2 detail)", n_layers);
+}

@@ -37,6 +37,13 @@ SDET_EXPORT int sdet_detect(StarDetectorHandle handle,
 
 SDET_EXPORT void sdet_free_coords(double *coords);
 
+SDET_EXPORT int sdet_detect_debug(StarDetectorHandle handle,
+                                   const uint16_t *image, int width, int height,
+                                   double **out_x, double **out_y, int *out_count,
+                                   float **out_detail, float **out_smap, float **out_binary);
+
+SDET_EXPORT void sdet_free_debug_maps(float *maps);
+
 #ifdef __cplusplus
 }
 #endif

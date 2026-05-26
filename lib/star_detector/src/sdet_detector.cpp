@@ -16,7 +16,7 @@ void sdet_get_structure_map(StarDetectorInternal* sd, const float* image, int w,
     int n = w * h;
     const auto& P = sd->params;
 
-    std::vector<float> buf1(n), buf2(n), lowfreq(n), smap(n);
+    std::vector<float> buf1(n), smap(n);
 
     const float* s1 = image;
     if (P.hotPixelFilterRadius > 0) {
@@ -28,21 +28,16 @@ void sdet_get_structure_map(StarDetectorInternal* sd, const float* image, int w,
                std::chrono::duration<double, std::milli>(t1 - t0).count());
     }
 
-    double struct_sigma = 1.0 + (1 << P.structureLayers);
-    sdet_extract_lowfreq_atrous(s1, lowfreq.data(), w, h, 32, 2);
-
-    float max_val = -1e30f;
-    float min_val = 1e30f;
-    for (int i = 0; i < n; i++) {
-        smap[i] = s1[i] - lowfreq[i];
-        if (smap[i] > max_val) max_val = smap[i];
-        if (smap[i] < min_val) min_val = smap[i];
-    }
+    sdet_atrous_decompose_layer2(s1, smap.data(), w, h, 4);
 
     delete[] sd->raw_detail;
     sd->raw_detail = new float[n];
     std::memcpy(sd->raw_detail, smap.data(), n * sizeof(float));
 
+    float max_val = -1e30f;
+    for (int i = 0; i < n; i++) {
+        if (smap[i] > max_val) max_val = smap[i];
+    }
     for (int i = 0; i < n; i++) {
         if (smap[i] < 0.0f) smap[i] = 0.0f;
     }
@@ -51,8 +46,7 @@ void sdet_get_structure_map(StarDetectorInternal* sd, const float* image, int w,
 
     {
         auto t3 = std::chrono::high_resolution_clock::now();
-        sdet_log(SDET_LOG_DEBUG, "DETECTOR", "High-pass filter (sigma=%.1f): %.1f ms",
-               struct_sigma,
+        sdet_log(SDET_LOG_DEBUG, "DETECTOR", "ATrous Linear3 layer2 detail: %.1f ms",
                std::chrono::duration<double, std::milli>(t3 - t0).count());
     }
 

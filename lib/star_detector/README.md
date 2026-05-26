@@ -164,6 +164,26 @@ make all
 - [Dynamic-PSF](https://github.com/fujiaze/Dynamic-PSF) — Moffat4 PSF拟合引擎（算法同源，Star Detector内联了Moffat4拟合代码，编译时无需链接Dynamic-PSF）
 - [Astro-Image-Io](https://github.com/fujiaze/Astro-Image-Io) — FITS/XISF图像读取（Python端可选）
 
+## 参考文献
+
+本模块算法参考以下开源项目：
+
+- **[SExtractor](https://github.com/astromatic/sextractor)** (Emmanuel Bertin, CEA/AIM/UParisSaclay)
+  - 网格化背景估计（mesh-based background estimation）
+  - 直方图模式估计（histogram mode estimation）
+  - 迭代sigma-clip背景计算
+  - 中值滤波平滑背景图
+  - Lutz算法连通域分析
+  - 许可证：GPL v3
+
+- **[PSFEx](https://github.com/astromatic/psfex)** (Emmanuel Bertin, IAP/CNRS/UPMC)
+  - chi²筛选机制
+  - 椭圆度/拉长度过滤
+  - FWHM范围过滤
+  - 许可证：GPL v3
+
+核心算法已根据MIT许可重新实现，参考了SExtractor/PSFEx的设计思路但代码完全独立。
+
 ## 许可
 
 MIT License
