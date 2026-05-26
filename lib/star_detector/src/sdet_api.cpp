@@ -1,3 +1,13 @@
+/**
+ * @file sdet_api.cpp
+ * @brief Star Detector API实现
+ * 
+ * 主要功能：
+ * 1. Moffat4 PSF拟合（Levenberg-Marquardt优化）
+ * 2. 星点检测流水线
+ * 3. FWHM/圆度过滤
+ */
+
 #include "../include/star_detector.h"
 #include "sdet_detector.h"
 #include "sdet_image.h"
@@ -225,6 +235,26 @@ double sdet_compute_trimmed_mad(const SamplePixel* samples, int m, const double*
     return sum / (hi - lo);
 }
 
+/**
+ * @brief Moffat4 PSF拟合
+ * @param image 输入图像(float32)
+ * @param width 图像宽度
+ * @param height 图像高度
+ * @param cx 初始x坐标（质心）
+ * @param cy 初始y坐标（质心）
+ * @param rect_x0, rect_y0, rect_x1, rect_y1 拟合窗口
+ * @param result 输出拟合结果
+ * @return 拟合状态码
+ * 
+ * Moffat4模型: I(x,y) = B + A / (1 + ((x-x0)²/sx² + (y-y0)²/sy²))^4
+ * 
+ * 拟合参数: [B, A, x0, y0, sx, sy, theta]
+ * - B: 背景电平
+ * - A: 振幅
+ * - x0, y0: 质心偏移（相对于cx, cy）
+ * - sx, sy: x/y方向尺度参数
+ * - theta: 旋转角度
+ */
 int sdet_moffat4_fit(const float* image, int width, int height,
                      double cx, double cy,
                      int rect_x0, int rect_y0, int rect_x1, int rect_y1,

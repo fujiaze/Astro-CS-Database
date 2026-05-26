@@ -1,3 +1,15 @@
+/**
+ * @file sdet_background.cpp
+ * @brief SExtractor风格的背景估计模块
+ * 
+ * 实现网格化背景估计算法，参考SExtractor的设计：
+ * 1. 将图像划分为网格(mesh)
+ * 2. 每个网格内计算背景统计量
+ * 3. 通过直方图迭代估计背景模式(mode)
+ * 4. 中值滤波平滑背景图
+ * 5. 双线性插值获取任意位置背景值
+ */
+
 #include "sdet_background.h"
 #include "sdet_log.h"
 #include <algorithm>
@@ -11,6 +23,12 @@
 #define SEX_QUANTIF_AMIN 4
 #define SEX_BACK_MINGOODFRAC 0.5f
 
+/**
+ * @brief 快速中值计算（部分排序）
+ * @param data 数据数组（会被修改）
+ * @param n 数据长度
+ * @return 中值
+ */
 static float sex_fast_median(float* data, int n) {
     if (n <= 0) return 0.0f;
     std::nth_element(data, data + n / 2, data + n);
@@ -22,6 +40,20 @@ static float sex_fast_median(float* data, int n) {
     return data[n / 2];
 }
 
+/**
+ * @brief 计算单个网格的背景统计量
+ * @param mesh 输出的网格统计结构
+ * @param buf 网格内像素数据
+ * @param bufsize 缓冲区大小
+ * @param w 图像宽度
+ * @param bw 网格宽度
+ * 
+ * 步骤：
+ * 1. 计算全网格mean/sigma
+ * 2. 用mean±2σ裁剪去除异常值
+ * 3. 重新计算裁剪后的mean/sigma
+ * 4. 设置直方图量化参数
+ */
 void sex_backstat(BackMesh* mesh, const float* buf, int bufsize, int w, int bw) {
     int h = bufsize / w;
     double mean = 0.0, sigma = 0.0;
@@ -78,6 +110,14 @@ void sex_backstat(BackMesh* mesh, const float* buf, int bufsize, int w, int bw) 
     mesh->qzero = (float)mean - SEX_QUANTIF_NSIGMA * (float)sigma;
 }
 
+/**
+ * @brief 构建直方图
+ * @param mesh 网格统计结构
+ * @param buf 像素数据
+ * @param bufsize 缓冲区大小
+ * @param w 图像宽度
+ * @param bw 网格宽度
+ */
 void sex_backhisto(BackMesh* mesh, const float* buf, int bufsize, int w, int bw) {
     if (mesh->mean <= -SEX_BIG) return;
     
@@ -97,6 +137,18 @@ void sex_backhisto(BackMesh* mesh, const float* buf, int bufsize, int w, int bw)
     }
 }
 
+/**
+ * @brief 从直方图迭代估计背景模式(mode)
+ * @param mesh 网格统计结构
+ * @param mean 输出背景均值
+ * @param sigma 输出背景标准差
+ * @return 背景模式值
+ * 
+ * 使用迭代方法估计背景分布的mode：
+ * 1. 计算直方图的median/mean/sigma
+ * 2. 用median±3σ裁剪直方图范围
+ * 3. 重复直到收敛
+ */
 float sex_backguess(BackMesh* mesh, float* mean, float* sigma) {
 #define EPS 1e-4
     if (mesh->mean <= -SEX_BIG) {
@@ -155,6 +207,12 @@ float sex_backguess(BackMesh* mesh, float* mean, float* sigma) {
 #undef EPS
 }
 
+/**
+ * @brief 中值滤波平滑背景图
+ * @param bmap 背景图结构
+ * 
+ * 对每个网格点，取3x3邻域的中值作为平滑后的值
+ */
 void sex_filterback(BackMap* bmap) {
     int nx = bmap->nx;
     int ny = bmap->ny;
@@ -198,6 +256,14 @@ void sex_filterback(BackMap* bmap) {
     bmap->backsig = sex_fast_median(tmp_sigma.data(), np);
 }
 
+/**
+ * @brief 计算整幅图像的背景图
+ * @param image 输入图像(float32)
+ * @param w 图像宽度
+ * @param h 图像高度
+ * @param mesh_size 网格尺寸
+ * @param bmap 输出背景图结构
+ */
 void sex_makeback(const float* image, int w, int h, int mesh_size, BackMap* bmap) {
     bmap->width = w;
     bmap->height = h;
@@ -255,6 +321,13 @@ void sex_makeback(const float* image, int w, int h, int mesh_size, BackMap* bmap
              bmap->backmean, bmap->backsig);
 }
 
+/**
+ * @brief 双线性插值获取任意位置的背景值
+ * @param bmap 背景图结构
+ * @param x x坐标
+ * @param y y坐标
+ * @return 插值后的背景值
+ */
 float sex_get_back(const BackMap* bmap, int x, int y) {
     int nx = bmap->nx;
     int ny = bmap->ny;
@@ -284,6 +357,9 @@ float sex_get_back(const BackMap* bmap, int x, int y) {
     return (float)((1.0 - dy) * (cdx * b0 + dx * b1) + dy * (dx * b2 + cdx * b3));
 }
 
+/**
+ * @brief 双线性插值获取任意位置的背景sigma
+ */
 float sex_get_sigma(const BackMap* bmap, int x, int y) {
     int nx = bmap->nx;
     int ny = bmap->ny;
