@@ -1,7 +1,7 @@
 CFLAGS = -O2 -march=native -Wall
 SRC = src/gaia_client.c
 
-.PHONY: all clean
+.PHONY: all clean dll
 
 all: libgaia_client.a gaia_client_demo
 
@@ -13,6 +13,9 @@ gaia_client.dll: $(SRC)
 
 gaia_client_demo: example/demo.c libgaia_client.a
 	gcc $(CFLAGS) -o $@ $^ -Isrc -lz -fopenmp -lm
+
+dll: $(SRC)
+	gcc $(CFLAGS) -shared -o gaia_client.dll $^ -Isrc -lz -fopenmp
 
 clean:
 	rm -f libgaia_client.a gaia_client.dll gaia_client_demo

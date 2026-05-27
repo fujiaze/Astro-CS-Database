@@ -1,11 +1,12 @@
 # Gaia DR3 XPSD Client
 
-轻量级 Gaia DR3 本地星表 C 客户端，直接读取 PixInsight XPSD 格式离线星表文件，支持锥形搜索（cone search）。
+轻量级 Gaia DR3 本地星表 C 客户端，直接读取 PixInsight XPSD 格式离线星表文件，支持锥形搜索（cone search）和多数据库选择。
 
 ## 特性
 
 - **零网络依赖**：纯本地文件读取，无需在线 API，离线可用
-- **XPSD 格式原生解析**：完整解析 PixInsight GaiaDR3SP `.xpsd` 文件格式（四叉树空间索引 + LZ4/Zlib 压缩数据块）
+- **XPSD 格式原生解析**：完整解析 PixInsight GaiaDR3/GaiaDR3SP `.xpsd` 文件格式（四叉树空间索引 + LZ4/Zlib 压缩数据块）
+- **多数据库支持**：支持 GaiaDR3（完整版，18亿星）和 GaiaDR3SP（光谱版，2亿星）切换
 - **多文件并行搜索**：自动加载目录下所有 `.xpsd` 文件，OpenMP 多线程并行搜索
 - **mmap 零拷贝读取**：Windows (MapViewOfFile) / Linux (mmap) 内存映射，大文件无需全量读入
 - **投影反变换支持**：内置 Equirectangular / Azimuthal Equidistant 投影反变换
@@ -16,7 +17,14 @@
 
 本客户端需要 PixInsight 的 Gaia DR3 离线星表文件（`.xpsd` 格式）。
 
-请从 PixInsight 软件中下载 Gaia 数据库（通过 PixInsight 的 **Format Search Paths** 或资源管理器获取 GaiaDR3SP 数据包）。将所有 `.xpsd` 文件放在同一目录下，客户端会自动扫描并加载。
+**GaiaDR3（完整版）**：约18亿颗星，32字节/星，LZ4压缩
+**GaiaDR3SP（光谱版）**：约2亿颗星（有光谱数据），Zlib压缩
+
+**数据下载：**
+- 百度网盘：https://pan.baidu.com/s/1u8CCMtecsaiz2nVjLsThRg?pwd=fujz
+  提取码：fujz
+
+将所有 `.xpsd` 文件放在同一目录下，客户端会自动扫描并加载。
 
 ## 编译
 
@@ -48,17 +56,36 @@ ar rcs libgaia_client.a src/gaia_client.o
 
 ## API 参考
 
+### 数据库类型枚举
+
+```c
+typedef enum {
+    GAIA_DB_AUTO = 0,   // 自动检测（默认）
+    GAIA_DB_DR3 = 1,    // GaiaDR3 完整版
+    GAIA_DB_DR3SP = 2   // GaiaDR3SP 光谱版
+} GaiaDbType;
+```
+
 ### 创建 / 销毁客户端
 
 ```c
 #include "gaia_client.h"
 
-/* 创建客户端，扫描目录下所有 .xpsd 文件并加载索引 */
+/* 创建客户端（自动检测数据库类型） */
 GaiaClient *client = gaia_client_create("/path/to/GaiaDR3SP");
+
+/* 创建客户端（指定数据库类型） */
+GaiaClient *client = gaia_client_create_ex("/path/to/GaiaDR3", GAIA_DB_DR3);
+
 if (!client) {
     fprintf(stderr, "Failed to load XPSD files\n");
     return -1;
 }
+
+/* 获取客户端信息 */
+int db_type = gaia_client_get_db_type(client);      // 返回 GAIA_DB_DR3 或 GAIA_DB_DR3SP
+int file_count = gaia_client_get_file_count(client); // 加载的文件数
+int total_sources = gaia_client_get_total_sources(client); // 总星数
 
 /* 销毁客户端，释放所有资源（包括 mmap 映射） */
 gaia_client_destroy(client);
@@ -136,10 +163,21 @@ XPSD File
 
 | 操作 | 条件 | 耗时 |
 |------|------|------|
-| 加载 20 个 XPSD 文件 (~5GB) | SSD, 16线程 | ~3s |
+| 加载 16 个 DR3 XPSD 文件 | SSD, 16线程 | ~3s |
+| 加载 20 个 DR3SP XPSD 文件 | SSD, 16线程 | ~2s |
 | 锥形搜索 (1° 半径, mag<14.6) | 16线程 | ~0.5s |
 | 锥形搜索 (0.5° 半径, mag<13.0) | 16线程 | ~0.2s |
-| 内存占用 | 20个文件 | 仅 mmap 映射，无额外缓存 |
+| 内存占用 | 16个DR3文件 | 仅 mmap 映射，无额外缓存 |
+
+## 数据库对比
+
+| 属性 | GaiaDR3 | GaiaDR3SP |
+|------|---------|-----------|
+| 总星数 | ~18亿 | ~2亿 |
+| 条目大小 | 32 bytes | 可变 |
+| 压缩方式 | LZ4-HC + shuffle | Zlib + shuffle |
+| 光谱数据 | 无 | 有 |
+| 适用场景 | Plate solving | 光谱分析 |
 
 ## 依赖
 
@@ -155,6 +193,9 @@ gaia_xpsd_client/
 ├── src/
 │   ├── gaia_client.h    # 公共 API 头文件
 │   └── gaia_client.c    # 完整实现
+├── python/
+│   ├── verify_dr3.py    # DR3格式验证脚本
+│   └── test_multi_db.py # 多数据库测试脚本
 ├── example/
 │   └── demo.c           # 使用示例
 ├── Makefile             # 编译脚本

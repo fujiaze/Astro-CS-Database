@@ -74,6 +74,8 @@ typedef struct {
 struct GaiaClient {
     XPSDFileInternal files[MAX_FILES];
     int file_count;
+    GaiaDbType db_type;
+    int db_type_detected;
 };
 
 static const char *find_tag(const char *xml, const char *tag) {
@@ -559,9 +561,24 @@ static void search_recursive(XPSDFileInternal *xf, TreeInfo *tree, int node_idx,
     }
 }
 
+static int file_matches_db_type(XPSDFileInternal *xf, GaiaDbType db_type) {
+    if (db_type == GAIA_DB_AUTO) return 1;
+    int is_dr3sp = (strstr(xf->db_identifier, "GaiaDR3SP") != NULL);
+    int is_dr3 = (strstr(xf->db_identifier, "GaiaDR3") != NULL) && !is_dr3sp;
+    if (db_type == GAIA_DB_DR3SP) return is_dr3sp;
+    if (db_type == GAIA_DB_DR3) return is_dr3;
+    return 0;
+}
+
 GaiaClient *gaia_client_create(const char *data_dir) {
+    return gaia_client_create_ex(data_dir, GAIA_DB_AUTO);
+}
+
+GaiaClient *gaia_client_create_ex(const char *data_dir, GaiaDbType db_type) {
     GaiaClient *client = (GaiaClient *)calloc(1, sizeof(GaiaClient));
     if (!client) return NULL;
+    client->db_type = db_type;
+    client->db_type_detected = 0;
 
 #ifdef _WIN32
     char pattern[1024];
@@ -573,8 +590,13 @@ GaiaClient *gaia_client_create(const char *data_dir) {
         if (client->file_count >= MAX_FILES) break;
         char fullpath[1024];
         snprintf(fullpath, sizeof(fullpath), "%s\\%s", data_dir, fd.cFileName);
-        if (load_xpsd_file(&client->files[client->file_count], fullpath) == 0)
-            client->file_count++;
+        if (load_xpsd_file(&client->files[client->file_count], fullpath) == 0) {
+            if (file_matches_db_type(&client->files[client->file_count], db_type)) {
+                client->file_count++;
+            } else {
+                close_xpsd_file(&client->files[client->file_count]);
+            }
+        }
     } while (FindNextFileA(hFind, &fd));
     FindClose(hFind);
 #else
@@ -585,13 +607,23 @@ GaiaClient *gaia_client_create(const char *data_dir) {
         size_t len = strlen(ent->d_name);
         if (len > 5 && strcmp(ent->d_name + len - 5, ".xpsd") == 0) {
             char fullpath[1024];
-            snprintf(fullpath, sizeof(fullpath), "%s/%s", data_dir, ent->d_name);
-            if (load_xpsd_file(&client->files[client->file_count], fullpath) == 0)
-                client->file_count++;
+            snprintf(fullpath, sizeof(fullpath), "%s/%s", ent->d_name);
+            if (load_xpsd_file(&client->files[client->file_count], fullpath) == 0) {
+                if (file_matches_db_type(&client->files[client->file_count], db_type)) {
+                    client->file_count++;
+                } else {
+                    close_xpsd_file(&client->files[client->file_count]);
+                }
+            }
         }
     }
     closedir(dir);
 #endif
+
+    if (client->file_count > 0) {
+        int is_dr3sp = (strstr(client->files[0].db_identifier, "GaiaDR3SP") != NULL);
+        client->db_type_detected = is_dr3sp ? GAIA_DB_DR3SP : GAIA_DB_DR3;
+    }
 
     return client;
 }
@@ -688,4 +720,23 @@ int gaia_client_cone_search_for_solver(GaiaClient *client, double ra, double dec
     }
     free(stars);
     return 0;
+}
+
+int gaia_client_get_db_type(GaiaClient *client) {
+    if (!client) return GAIA_DB_AUTO;
+    return client->db_type_detected;
+}
+
+int gaia_client_get_file_count(GaiaClient *client) {
+    if (!client) return 0;
+    return client->file_count;
+}
+
+int gaia_client_get_total_sources(GaiaClient *client) {
+    if (!client) return 0;
+    int total = 0;
+    for (int i = 0; i < client->file_count; i++) {
+        total += client->files[i].total_sources;
+    }
+    return total;
 }

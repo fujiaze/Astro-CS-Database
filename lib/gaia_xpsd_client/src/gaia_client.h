@@ -10,6 +10,12 @@
 #define GAIA_EXPORT __attribute__((visibility("default")))
 #endif
 
+typedef enum {
+    GAIA_DB_AUTO = 0,
+    GAIA_DB_DR3 = 1,
+    GAIA_DB_DR3SP = 2
+} GaiaDbType;
+
 typedef struct {
     double ra;
     double dec;
@@ -29,6 +35,7 @@ extern "C" {
 #endif
 
 GAIA_EXPORT GaiaClient *gaia_client_create(const char *data_dir);
+GAIA_EXPORT GaiaClient *gaia_client_create_ex(const char *data_dir, GaiaDbType db_type);
 GAIA_EXPORT void gaia_client_destroy(GaiaClient *client);
 
 GAIA_EXPORT int gaia_client_cone_search(
@@ -43,6 +50,10 @@ GAIA_EXPORT int gaia_client_cone_search_for_solver(
     double mag_high,
     double **out_ra, double **out_dec, float **out_mag,
     int *out_count);
+
+GAIA_EXPORT int gaia_client_get_db_type(GaiaClient *client);
+GAIA_EXPORT int gaia_client_get_file_count(GaiaClient *client);
+GAIA_EXPORT int gaia_client_get_total_sources(GaiaClient *client);
 
 #ifdef __cplusplus
 }
