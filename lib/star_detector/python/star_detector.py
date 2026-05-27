@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
+from PIL import Image, ImageDraw
 
 
 @dataclass
@@ -84,6 +85,14 @@ def _load_dll(dll_path: str):
     dll.sdet_detect.restype = c_int
     dll.sdet_free_coords.argtypes = [POINTER(c_double)]
     dll.sdet_free_coords.restype = None
+    dll.sdet_detect_ex.argtypes = [
+        c_void_p, POINTER(c_uint16), c_int, c_int,
+        POINTER(POINTER(c_double)), POINTER(POINTER(c_double)),
+        POINTER(POINTER(c_float)), POINTER(POINTER(c_int)), POINTER(c_int),
+    ]
+    dll.sdet_detect_ex.restype = c_int
+    dll.sdet_free_detect_ex.argtypes = [POINTER(c_double), POINTER(c_double), POINTER(c_float), POINTER(c_int)]
+    dll.sdet_free_detect_ex.restype = None
     return dll
 
 
@@ -127,6 +136,59 @@ class StarDetector:
             self._dll.sdet_free_coords(out_x)
             self._dll.sdet_free_coords(out_y)
         return coords
+
+    def detect_ex(self, image: np.ndarray) -> tuple[list[tuple[float, float]], list[float], list[int]]:
+        if image.ndim != 2:
+            raise ValueError(f"image 必须为2D数组, 当前 ndim={image.ndim}")
+        if image.dtype == np.uint16:
+            img = np.ascontiguousarray(image, dtype=np.uint16)
+        else:
+            img = np.ascontiguousarray(np.clip(image, 0, 65535).astype(np.uint16), dtype=np.uint16)
+        height, width = img.shape
+        data_ptr = img.ctypes.data_as(POINTER(c_uint16))
+        out_x = POINTER(c_double)()
+        out_y = POINTER(c_double)()
+        out_flux = POINTER(c_float)()
+        out_saturated = POINTER(c_int)()
+        out_count = c_int(0)
+        ret = self._dll.sdet_detect_ex(
+            self._handle, data_ptr, width, height,
+            byref(out_x), byref(out_y), byref(out_flux), byref(out_saturated), byref(out_count),
+        )
+        if ret != 0:
+            raise RuntimeError(f"sdet_detect_ex 返回错误码: {ret}")
+        count = out_count.value
+        coords = []
+        fluxes = []
+        saturated = []
+        if count > 0 and out_x and out_y:
+            for i in range(count):
+                coords.append((out_x[i], out_y[i]))
+                fluxes.append(out_flux[i])
+                saturated.append(out_saturated[i])
+            self._dll.sdet_free_detect_ex(out_x, out_y, out_flux, out_saturated)
+        return coords, fluxes, saturated
+
+    def detect_debug_image(self, image: np.ndarray, output_path: str) -> dict:
+        coords, fluxes, saturated = self.detect_ex(image)
+        p_low, p_high = np.percentile(image, [0.5, 99.5])
+        stretched = np.clip((image - p_low) / (p_high - p_low), 0, 1)
+        rgb = (stretched * 255).astype(np.uint8)
+        rgb = np.stack([rgb, rgb, rgb], axis=-1)
+        img_pil = Image.fromarray(rgb)
+        draw = ImageDraw.Draw(img_pil)
+        for i, ((x, y), sat) in enumerate(zip(coords, saturated)):
+            ix, iy = int(x), int(y)
+            if sat == 0:
+                draw.line([(ix - 5, iy), (ix + 5, iy)], fill=(0, 255, 0), width=1)
+                draw.line([(ix, iy - 5), (ix, iy + 5)], fill=(0, 255, 0), width=1)
+        for i, ((x, y), sat) in enumerate(zip(coords, saturated)):
+            if sat == 1:
+                ix, iy = int(x), int(y)
+                r = 8
+                draw.ellipse([(ix - r, iy - r), (ix + r, iy + r)], outline=(255, 0, 0), width=2)
+        img_pil.save(output_path)
+        return {"coords": coords, "fluxes": fluxes, "saturated": saturated}
 
     def close(self) -> None:
         if not self._closed and self._handle:
