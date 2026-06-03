@@ -40,15 +40,18 @@ SDET_EXPORT void sdet_free_coords(double *coords);
 SDET_EXPORT int sdet_detect_debug(StarDetectorHandle handle,
                                    const uint16_t *image, int width, int height,
                                    double **out_x, double **out_y, int *out_count,
-                                   float **out_detail, float **out_smap, float **out_binary);
+                                   float **out_detail, float **out_smap, float **out_binary,
+                                   const char **extra_names, int extra_count, float ***out_extras);
 
 SDET_EXPORT void sdet_free_debug_maps(float *maps);
 
 SDET_EXPORT int sdet_detect_ex(StarDetectorHandle handle,
                                 const uint16_t *image, int width, int height,
-                                double **out_x, double **out_y, float **out_flux, int **out_saturated, int *out_count);
+                                double **out_x, double **out_y, float **out_flux, int **out_saturated, int *out_count,
+                                const char **extra_names, int extra_count, float ***out_extras);
 
-SDET_EXPORT void sdet_free_detect_ex(double *x, double *y, float *flux, int *saturated);
+SDET_EXPORT void sdet_free_detect_ex(double *x, double *y, float *flux, int *saturated,
+                                       float **extras, int extra_count);
 
 #ifdef __cplusplus
 }

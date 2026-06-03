@@ -33,3 +33,4 @@ void sdet_get_star_parameters(const float* image, int w, int h, ConnectedCompone
 int sdet_apply_filters(DetectedStarInternal* stars, int count, int w, int h);
 int sdet_compute_auto_min_structure_size(DetectedStarInternal* stars, int count);
 int sdet_deduplicate_stars(DetectedStarInternal* stars, int count, int min_size);
+void sdet_free_connected_components(ConnectedComponent* components, int count);

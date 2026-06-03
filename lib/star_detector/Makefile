@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -O2 -march=native -Wall -std=c++17 -fopenmp
+CXXFLAGS = -O3 -march=native -Wall -std=c++17 -fopenmp
 LDFLAGS = -static-libgcc -static-libstdc++ -shared -fopenmp -lm
 
 SRCDIR = src

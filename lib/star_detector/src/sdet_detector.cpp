@@ -28,7 +28,7 @@ void sdet_get_structure_map(StarDetectorInternal* sd, const float* image, int w,
                std::chrono::duration<double, std::milli>(t1 - t0).count());
     }
 
-    sdet_atrous_decompose_layer2(s1, smap.data(), w, h, 4);
+    sdet_dynamic_regional_background(s1, smap.data(), w, h, 100, 20, 20, 4, 3.0f, 3, 16);
 
     delete[] sd->raw_detail;
     sd->raw_detail = new float[n];
@@ -46,17 +46,11 @@ void sdet_get_structure_map(StarDetectorInternal* sd, const float* image, int w,
 
     {
         auto t3 = std::chrono::high_resolution_clock::now();
-        sdet_log(SDET_LOG_DEBUG, "DETECTOR", "ATrous Linear3 layer2 detail: %.1f ms",
+        sdet_log(SDET_LOG_DEBUG, "DETECTOR", "Dynamic regional background detail: %.1f ms",
                std::chrono::duration<double, std::milli>(t3 - t0).count());
     }
 
-    sdet_dilate_box(smap.data(), buf1.data(), w, h, 1);
-    {
-        auto t4 = std::chrono::high_resolution_clock::now();
-        sdet_log(SDET_LOG_DEBUG, "DETECTOR", "Dilate (3x3): %.1f ms",
-               std::chrono::duration<double, std::milli>(t4 - t0).count());
-    }
-
+    // 膨胀操作已移除（遗留代码，buf1未被使用）
     std::memcpy(out_map, smap.data(), n * sizeof(float));
 
     auto tf = std::chrono::high_resolution_clock::now();
@@ -162,6 +156,14 @@ int sdet_find_connected_components(const float* binary_map, int w, int h,
            *out_count, std::chrono::duration<double, std::milli>(tf - t0).count());
 
     return *out_count;
+}
+
+void sdet_free_connected_components(ConnectedComponent* components, int count) {
+    if (!components) return;
+    for (int i = 0; i < count; i++) {
+        components[i].~ConnectedComponent();
+    }
+    free(components);
 }
 
 void sdet_get_star_parameters(const float* image, int w, int h, ConnectedComponent* cc, DetectedStarInternal* star) {
