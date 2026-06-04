@@ -275,6 +275,14 @@ int sdet_lm_solve(int m, int n, double* x, void* userdata,
     double cost = 0;
     for (int i = 0; i < m; i++) cost += fvec_ptr[i] * fvec_ptr[i];
 
+    // 提前失败检测：初始cost太大说明初始参数完全不匹配
+    if (cost > 1e10 * m) {
+        return SDET_FIT_NO_CONVERGENCE;
+    }
+
+    double cost_prev = cost;
+    int stall_count = 0;
+
     for (int iter = 0; iter < max_iter; iter++) {
         for (int i = 0; i < n; i++)
             for (int j = 0; j < n; j++) {
@@ -327,6 +335,17 @@ int sdet_lm_solve(int m, int n, double* x, void* userdata,
             cost = 0;
             for (int i = 0; i < m; i++) cost += fvec_ptr[i] * fvec_ptr[i];
             lambda *= 0.1;
+
+            // 提前终止：cost下降<1%时累计stall计数
+            if (cost_prev > 0 && (cost_prev - cost) / cost_prev < 0.01) {
+                stall_count++;
+                if (stall_count >= 20) {
+                    return SDET_FIT_NO_CONVERGENCE;
+                }
+            } else {
+                stall_count = 0;
+            }
+            cost_prev = cost;
         } else {
             lambda *= 10.0;
         }
@@ -446,7 +465,7 @@ int sdet_moffat4_fit(const float* image, int width, int height,
     double params[7] = { bkg0, A0, 0.0, 0.0, sx0, sx0, 0.0 };
 
     int lm_status = sdet_lm_solve(m, NPARAMS, params, static_cast<void*>(samples.data()),
-                                   sdet_moffat4_residual_and_jacobian, 1e-8, 200, ws);
+                                   sdet_moffat4_residual_and_jacobian, 1e-8, 100, ws);
 
     double B = params[0], A = params[1], x0 = params[2], y0 = params[3];
     double sx = params[4], sy = params[5], theta = params[6];
@@ -555,7 +574,7 @@ void sdet_detect_saturated_stars(const float* fimg, int width, int height,
         if (bw < 2 || bh < 2) continue;
         // 长宽比>3丢弃
         float ar = (float)std::max(bw, bh) / std::max(std::min(bw, bh), 1);
-        if (ar > 3.0f) continue;
+        if (ar > 2.0f) continue;
 
         double sum_wx = 0, sum_wy = 0, sum_w = 0;
         for (int j = 0; j < components[i].count; j++) {
@@ -756,7 +775,7 @@ SDET_EXPORT StarDetectorHandle sdet_create(const SDetParams *params)
         defaults.iterativeMaxRounds = 5;
         defaults.medianFilterDetail = 1;
         defaults.maxStars = 0;
-        defaults.fitRadius = 8;
+        defaults.fitRadius = 6;
         defaults.fwhmClipSigma = 3.0f;
         defaults.maxAxisRatio = 2.0f;
         sd->internal.params = defaults;
@@ -826,7 +845,7 @@ SDET_EXPORT int sdet_detect(StarDetectorHandle handle,
         int bh = components[i].y1 - components[i].y0 + 1;
         if (bw < 2 || bh < 2) continue;
         float ar = (float)std::max(bw, bh) / std::max(std::min(bw, bh), 1);
-        if (ar > 3.0f) continue;
+        if (ar > 2.0f) continue;
         double sum_wx = 0, sum_wy = 0, sum_w = 0;
         for (int j = 0; j < components[i].count; j++) {
             float val = fimg[components[i].py[j] * width + components[i].px[j]];
@@ -850,6 +869,29 @@ SDET_EXPORT int sdet_detect(StarDetectorHandle handle,
         return 0;
     }
 
+    // 自适应fitRadius：基于连通域像素数中位数估算FWHM
+    std::vector<int> pixel_counts;
+    for (const auto& c : candidates) pixel_counts.push_back(c.pixel_count);
+    int med_pixel_count = 0;
+    if (!pixel_counts.empty()) {
+        std::sort(pixel_counts.begin(), pixel_counts.end());
+        int mid = pixel_counts.size() / 2;
+        med_pixel_count = pixel_counts[mid];
+    }
+    
+    // FWHM估算：连通域像素数 -> 等效半径 -> FWHM (Moffat4因子0.87)
+    float fwhm_est = sqrt((float)med_pixel_count / 3.14159265f) * 0.87f;
+    int auto_fit_radius = (int)(3.0f * fwhm_est);
+    auto_fit_radius = std::max(6, std::min(20, auto_fit_radius));
+    
+    int actual_fit_radius = params.fitRadius;
+    if (params.fitRadius <= 0) { // fitRadius=0表示自动模式
+        actual_fit_radius = auto_fit_radius;
+    }
+    
+    sdet_log(SDET_LOG_INFO, "SDET", "Auto fitRadius: med_pixels=%d fwhm_est=%.2f auto_radius=%d actual=%d",
+             med_pixel_count, fwhm_est, auto_fit_radius, actual_fit_radius);
+
     if (params.maxStars > 0 && (int)candidates.size() > params.maxStars * 2) {
         std::sort(candidates.begin(), candidates.end(),
                   [](const Candidate &a, const Candidate &b) { return a.brightness > b.brightness; });
@@ -865,10 +907,10 @@ SDET_EXPORT int sdet_detect(StarDetectorHandle handle,
         LMWorkspace ws;
         #pragma omp for schedule(dynamic) reduction(+:fit_ok_count)
         for (int i = 0; i < cc_count; i++) {
-            int rx0 = std::max(0, (int)candidates[i].cx - params.fitRadius);
-            int ry0 = std::max(0, (int)candidates[i].cy - params.fitRadius);
-            int rx1 = std::min(width, (int)candidates[i].cx + params.fitRadius + 1);
-            int ry1 = std::min(height, (int)candidates[i].cy + params.fitRadius + 1);
+            int rx0 = std::max(0, (int)candidates[i].cx - actual_fit_radius);
+            int ry0 = std::max(0, (int)candidates[i].cy - actual_fit_radius);
+            int rx1 = std::min(width, (int)candidates[i].cx + actual_fit_radius + 1);
+            int ry1 = std::min(height, (int)candidates[i].cy + actual_fit_radius + 1);
 
             sdet_moffat4_fit(fimg.data(), width, height,
                              candidates[i].cx, candidates[i].cy,
@@ -878,6 +920,42 @@ SDET_EXPORT int sdet_detect(StarDetectorHandle handle,
     }
 
     sdet_log(SDET_LOG_INFO, "SDET", "Moffat4 fit: %d/%d OK", fit_ok_count, cc_count);
+
+    // 拟合统计：按像素数分段统计成功率
+    {
+        struct SizeBin { int lo, hi; int total, ok, fail_invalid, fail_noconv, fail_iter; };
+        SizeBin bins[] = {
+            {5, 9, 0, 0, 0, 0, 0},
+            {10, 19, 0, 0, 0, 0, 0},
+            {20, 49, 0, 0, 0, 0, 0},
+            {50, 99, 0, 0, 0, 0, 0},
+            {100, 299, 0, 0, 0, 0, 0},
+            {300, 999, 0, 0, 0, 0, 0},
+            {1000, 99999, 0, 0, 0, 0, 0},
+        };
+        int n_bins = 7;
+        for (int i = 0; i < cc_count; i++) {
+            int px = candidates[i].pixel_count;
+            for (int b = 0; b < n_bins; b++) {
+                if (px >= bins[b].lo && px < bins[b].hi) {
+                    bins[b].total++;
+                    if (fit_results[i].status == SDET_FIT_OK) bins[b].ok++;
+                    else if (fit_results[i].status == SDET_FIT_INVALID_PARAMS) bins[b].fail_invalid++;
+                    else if (fit_results[i].status == SDET_FIT_NO_CONVERGENCE) bins[b].fail_noconv++;
+                    else if (fit_results[i].status == SDET_FIT_ITERATION_LIMIT) bins[b].fail_iter++;
+                    break;
+                }
+            }
+        }
+        sdet_log(SDET_LOG_INFO, "SDET", "=== Fit statistics by pixel count ===");
+        for (int b = 0; b < n_bins; b++) {
+            if (bins[b].total == 0) continue;
+            float rate = (float)bins[b].ok / bins[b].total * 100.0f;
+            sdet_log(SDET_LOG_INFO, "SDET", "  px[%d-%d]: total=%d ok=%d(%.1f%%) invalid=%d noconv=%d iterlimit=%d",
+                     bins[b].lo, bins[b].hi, bins[b].total, bins[b].ok, rate,
+                     bins[b].fail_invalid, bins[b].fail_noconv, bins[b].fail_iter);
+        }
+    }
 
     std::vector<float> fwhm_values;
     for (int i = 0; i < cc_count; i++) {
@@ -1072,7 +1150,7 @@ SDET_EXPORT int sdet_detect_debug(StarDetectorHandle handle,
         int bh = components[i].y1 - components[i].y0 + 1;
         if (bw < 2 || bh < 2) continue;
         float ar = (float)std::max(bw, bh) / std::max(std::min(bw, bh), 1);
-        if (ar > 3.0f) continue;
+        if (ar > 2.0f) continue;
         double sum_wx = 0, sum_wy = 0, sum_w = 0;
         for (int j = 0; j < components[i].count; j++) {
             float val = fimg[components[i].py[j] * width + components[i].px[j]];
@@ -1097,6 +1175,26 @@ SDET_EXPORT int sdet_detect_debug(StarDetectorHandle handle,
         return 0;
     }
 
+    // 自适应fitRadius：基于连通域像素数中位数估算FWHM
+    std::vector<int> pixel_counts;
+    for (const auto& c : candidates) pixel_counts.push_back(c.pixel_count);
+    int med_pixel_count = 0;
+    if (!pixel_counts.empty()) {
+        std::sort(pixel_counts.begin(), pixel_counts.end());
+        int mid = pixel_counts.size() / 2;
+        med_pixel_count = pixel_counts[mid];
+    }
+    
+    float fwhm_est = sqrt((float)med_pixel_count / 3.14159265f) * 0.87f;
+    int auto_fit_radius = (int)(3.0f * fwhm_est);
+    auto_fit_radius = std::max(6, std::min(20, auto_fit_radius));
+    
+    int actual_fit_radius = params.fitRadius;
+    if (params.fitRadius <= 0) actual_fit_radius = auto_fit_radius;
+    
+    sdet_log(SDET_LOG_INFO, "SDET", "Auto fitRadius: med_pixels=%d fwhm_est=%.2f auto_radius=%d actual=%d",
+             med_pixel_count, fwhm_est, auto_fit_radius, actual_fit_radius);
+
     if (params.maxStars > 0 && (int)candidates.size() > params.maxStars * 2) {
         std::sort(candidates.begin(), candidates.end(),
                   [](const Candidate &a, const Candidate &b) { return a.brightness > b.brightness; });
@@ -1112,10 +1210,10 @@ SDET_EXPORT int sdet_detect_debug(StarDetectorHandle handle,
         LMWorkspace ws;
         #pragma omp for schedule(dynamic) reduction(+:fit_ok_count)
         for (int i = 0; i < cc_count; i++) {
-            int rx0 = std::max(0, (int)candidates[i].cx - params.fitRadius);
-            int ry0 = std::max(0, (int)candidates[i].cy - params.fitRadius);
-            int rx1 = std::min(width, (int)candidates[i].cx + params.fitRadius + 1);
-            int ry1 = std::min(height, (int)candidates[i].cy + params.fitRadius + 1);
+            int rx0 = std::max(0, (int)candidates[i].cx - actual_fit_radius);
+            int ry0 = std::max(0, (int)candidates[i].cy - actual_fit_radius);
+            int rx1 = std::min(width, (int)candidates[i].cx + actual_fit_radius + 1);
+            int ry1 = std::min(height, (int)candidates[i].cy + actual_fit_radius + 1);
             sdet_moffat4_fit(fimg.data(), width, height,
                              candidates[i].cx, candidates[i].cy,
                              rx0, ry0, rx1, ry1, &fit_results[i], &ws);
@@ -1320,7 +1418,7 @@ SDET_EXPORT int sdet_detect_ex(StarDetectorHandle handle,
         int bh = components[i].y1 - components[i].y0 + 1;
         if (bw < 2 || bh < 2) continue;
         float ar = (float)std::max(bw, bh) / std::max(std::min(bw, bh), 1);
-        if (ar > 3.0f) continue;
+        if (ar > 2.0f) continue;
         double sum_wx = 0, sum_wy = 0, sum_w = 0;
         for (int j = 0; j < components[i].count; j++) {
             float val = fimg[components[i].py[j] * width + components[i].px[j]];
@@ -1351,6 +1449,26 @@ SDET_EXPORT int sdet_detect_ex(StarDetectorHandle handle,
         return 0;
     }
 
+    // 自适应fitRadius：基于连通域像素数中位数估算FWHM
+    std::vector<int> pixel_counts;
+    for (const auto& c : candidates) pixel_counts.push_back(c.pixel_count);
+    int med_pixel_count = 0;
+    if (!pixel_counts.empty()) {
+        std::sort(pixel_counts.begin(), pixel_counts.end());
+        int mid = pixel_counts.size() / 2;
+        med_pixel_count = pixel_counts[mid];
+    }
+    
+    float fwhm_est = sqrt((float)med_pixel_count / 3.14159265f) * 0.87f;
+    int auto_fit_radius = (int)(3.0f * fwhm_est);
+    auto_fit_radius = std::max(6, std::min(20, auto_fit_radius));
+    
+    int actual_fit_radius = params.fitRadius;
+    if (params.fitRadius <= 0) actual_fit_radius = auto_fit_radius;
+    
+    sdet_log(SDET_LOG_INFO, "SDET", "Auto fitRadius: med_pixels=%d fwhm_est=%.2f auto_radius=%d actual=%d",
+             med_pixel_count, fwhm_est, auto_fit_radius, actual_fit_radius);
+
     if (params.maxStars > 0 && (int)candidates.size() > params.maxStars * 2) {
         std::sort(candidates.begin(), candidates.end(),
                   [](const Candidate &a, const Candidate &b) { return a.brightness > b.brightness; });
@@ -1367,10 +1485,10 @@ SDET_EXPORT int sdet_detect_ex(StarDetectorHandle handle,
         LMWorkspace ws;
         #pragma omp for schedule(dynamic) reduction(+:fit_ok_count)
         for (int i = 0; i < cc_count; i++) {
-            int rx0 = std::max(0, (int)candidates[i].cx - params.fitRadius);
-            int ry0 = std::max(0, (int)candidates[i].cy - params.fitRadius);
-            int rx1 = std::min(width, (int)candidates[i].cx + params.fitRadius + 1);
-            int ry1 = std::min(height, (int)candidates[i].cy + params.fitRadius + 1);
+            int rx0 = std::max(0, (int)candidates[i].cx - actual_fit_radius);
+            int ry0 = std::max(0, (int)candidates[i].cy - actual_fit_radius);
+            int rx1 = std::min(width, (int)candidates[i].cx + actual_fit_radius + 1);
+            int ry1 = std::min(height, (int)candidates[i].cy + actual_fit_radius + 1);
 
             sdet_moffat4_fit(fimg.data(), width, height,
                              candidates[i].cx, candidates[i].cy,
@@ -1384,6 +1502,42 @@ SDET_EXPORT int sdet_detect_ex(StarDetectorHandle handle,
     t_last = t6;
 
     sdet_log(SDET_LOG_INFO, "SDET", "Moffat4 fit: %d/%d OK", fit_ok_count, cc_count);
+
+    // 拟合统计：按像素数分段统计成功率
+    {
+        struct SizeBin { int lo, hi; int total, ok, fail_invalid, fail_noconv, fail_iter; };
+        SizeBin bins[] = {
+            {5, 9, 0, 0, 0, 0, 0},
+            {10, 19, 0, 0, 0, 0, 0},
+            {20, 49, 0, 0, 0, 0, 0},
+            {50, 99, 0, 0, 0, 0, 0},
+            {100, 299, 0, 0, 0, 0, 0},
+            {300, 999, 0, 0, 0, 0, 0},
+            {1000, 99999, 0, 0, 0, 0, 0},
+        };
+        int n_bins = 7;
+        for (int i = 0; i < cc_count; i++) {
+            int px = candidates[i].pixel_count;
+            for (int b = 0; b < n_bins; b++) {
+                if (px >= bins[b].lo && px < bins[b].hi) {
+                    bins[b].total++;
+                    if (fit_results[i].status == SDET_FIT_OK) bins[b].ok++;
+                    else if (fit_results[i].status == SDET_FIT_INVALID_PARAMS) bins[b].fail_invalid++;
+                    else if (fit_results[i].status == SDET_FIT_NO_CONVERGENCE) bins[b].fail_noconv++;
+                    else if (fit_results[i].status == SDET_FIT_ITERATION_LIMIT) bins[b].fail_iter++;
+                    break;
+                }
+            }
+        }
+        sdet_log(SDET_LOG_INFO, "SDET", "=== Fit statistics by pixel count ===");
+        for (int b = 0; b < n_bins; b++) {
+            if (bins[b].total == 0) continue;
+            float rate = (float)bins[b].ok / bins[b].total * 100.0f;
+            sdet_log(SDET_LOG_INFO, "SDET", "  px[%d-%d]: total=%d ok=%d(%.1f%%) invalid=%d noconv=%d iterlimit=%d",
+                     bins[b].lo, bins[b].hi, bins[b].total, bins[b].ok, rate,
+                     bins[b].fail_invalid, bins[b].fail_noconv, bins[b].fail_iter);
+        }
+    }
 
     // 阶段7: FWHM统计+过滤
     std::vector<float> fwhm_values;

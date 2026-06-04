@@ -27,7 +27,7 @@ class SDetParamsPy:
     iterativeMaxRounds: int = 5
     medianFilterDetail: int = 1
     maxStars: int = 0
-    fitRadius: int = 8
+    fitRadius: int = 6
     fwhmClipSigma: float = 3.0
     maxAxisRatio: float = 2.0
 
