@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -13,6 +14,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <pthread.h>
 #endif
 
 #include <zlib.h>
@@ -31,6 +33,21 @@
 #define DEG2RAD (M_PI / 180.0)
 #define RAD2DEG (180.0 / M_PI)
 
+/* ===== 缓存配置 ===== */
+#define BLOCK_CACHE_CAPACITY  8192   /* 解压块缓存哈希表大小 (2的幂) */
+#define BLOCK_CACHE_MASK       (BLOCK_CACHE_CAPACITY - 1)
+#define QUERY_CACHE_CAPACITY   64     /* 查询结果缓存最大条目数 */
+#define QUERY_CACHE_TTL_SEC    60     /* 查询结果缓存TTL (秒) */
+#define QUERY_CACHE_RA_ROUND   0.001  /* RA舍入精度 (度) */
+#define QUERY_CACHE_DEC_ROUND  0.001  /* Dec舍入精度 (度) */
+#define QUERY_CACHE_RAD_ROUND  0.01   /* 半径舍入精度 (度) */
+#define QUERY_CACHE_MAG_ROUND  0.01   /* 星等舍入精度 */
+#define BLOCK_CACHE_MAX_MEMORY (4ULL * 1024 * 1024 * 1024) /* 解压块缓存最大4GB */
+#define MEMORY_PRESSURE_THRESHOLD (4ULL * 1024 * 1024 * 1024) /* 可用内存<4GB时触发释放 */
+#ifndef TIME_MAX
+#define TIME_MAX ((time_t)-1 < 0 ? (time_t)((1ULL << (8 * sizeof(time_t) - 1)) - 1) : (time_t)(-1))
+#endif
+
 typedef struct {
     double x0, y0, x1, y1;
     int is_leaf;
@@ -47,6 +64,38 @@ typedef struct {
     int node_count;
     uint32_t max_block_size;
 } TreeInfo;
+
+/* ===== 解压块缓存 ===== */
+typedef struct {
+    uint64_t block_offset;  /* 键: 0=空槽 */
+    uint8_t *data;          /* 解压后的数据 */
+    uint32_t data_size;     /* 数据大小 */
+    time_t last_access;     /* 最后访问时间 (LRU) */
+} BlockCacheEntry;
+
+typedef struct {
+    BlockCacheEntry *entries;
+    int capacity;
+    int count;
+    size_t total_memory;
+} BlockCache;
+
+/* ===== 查询结果缓存 ===== */
+typedef struct {
+    double ra, dec, radius, mag_high;  /* 舍入后的查询参数 */
+    double *out_ra;                    /* 缓存的RA数组 */
+    double *out_dec;                   /* 缓存的Dec数组 */
+    float *out_mag;                    /* 缓存的Mag数组 */
+    int out_count;                     /* 星数 */
+    time_t timestamp;                  /* 缓存创建时间 */
+    int valid;                         /* 是否有效 */
+} QueryCacheEntry;
+
+typedef struct {
+    QueryCacheEntry entries[QUERY_CACHE_CAPACITY];
+    int count;
+    size_t total_memory;
+} QueryCache;
 
 typedef struct {
     char filepath[1024];
@@ -69,6 +118,7 @@ typedef struct {
 #endif
     uint8_t *mmap_data;
     size_t mmap_size;
+    BlockCache block_cache;  /* 解压块缓存 (保留到关闭) */
 } XPSDFileInternal;
 
 struct GaiaClient {
@@ -76,7 +126,346 @@ struct GaiaClient {
     int file_count;
     GaiaDbType db_type;
     int db_type_detected;
+    QueryCache query_cache;  /* 查询结果缓存 (60s TTL) */
+#ifdef _WIN32
+    CRITICAL_SECTION cache_lock;
+#else
+    pthread_mutex_t cache_lock;
+#endif
+    int cache_lock_initialized;
 };
+
+/* ===== 简单星结构 ===== */
+typedef struct {
+    double ra, dec, magG;
+} SimpleStar;
+
+typedef struct {
+    SimpleStar *stars;
+    int count;
+    int capacity;
+} StarCollector;
+
+/* ===== 缓存辅助函数 ===== */
+
+static void cache_lock(GaiaClient *client) {
+    if (client->cache_lock_initialized) {
+#ifdef _WIN32
+        EnterCriticalSection(&client->cache_lock);
+#else
+        pthread_mutex_lock(&client->cache_lock);
+#endif
+    }
+}
+
+static void cache_unlock(GaiaClient *client) {
+    if (client->cache_lock_initialized) {
+#ifdef _WIN32
+        LeaveCriticalSection(&client->cache_lock);
+#else
+        pthread_mutex_unlock(&client->cache_lock);
+#endif
+    }
+}
+
+/* 检查内存压力: 可用物理内存 < 阈值时返回1 */
+static int check_memory_pressure(void) {
+#ifdef _WIN32
+    MEMORYSTATUSEX ms;
+    ms.dwLength = sizeof(ms);
+    if (GlobalMemoryStatusEx(&ms)) {
+        return (ms.ullAvailPhys < MEMORY_PRESSURE_THRESHOLD) ? 1 : 0;
+    }
+#else
+    /* Linux: 读取 /proc/meminfo */
+    FILE *f = fopen("/proc/meminfo", "r");
+    if (f) {
+        char line[256];
+        unsigned long mem_available = 0;
+        while (fgets(line, sizeof(line), f)) {
+            if (sscanf(line, "MemAvailable: %lu kB", &mem_available) == 1) {
+                break;
+            }
+        }
+        fclose(f);
+        if (mem_available > 0 && mem_available * 1024 < MEMORY_PRESSURE_THRESHOLD)
+            return 1;
+    }
+#endif
+    return 0;
+}
+
+/* ===== 解压块缓存函数 ===== */
+
+static void block_cache_init(BlockCache *bc) {
+    bc->entries = (BlockCacheEntry *)calloc(BLOCK_CACHE_CAPACITY, sizeof(BlockCacheEntry));
+    bc->capacity = BLOCK_CACHE_CAPACITY;
+    bc->count = 0;
+    bc->total_memory = 0;
+}
+
+static void block_cache_free(BlockCache *bc) {
+    if (!bc->entries) return;
+    for (int i = 0; i < bc->capacity; i++) {
+        if (bc->entries[i].data) {
+            free(bc->entries[i].data);
+            bc->entries[i].data = NULL;
+        }
+    }
+    free(bc->entries);
+    bc->entries = NULL;
+    bc->count = 0;
+    bc->total_memory = 0;
+}
+
+/* 哈希函数: murmur3 finalizer */
+static uint32_t block_hash(uint64_t key) {
+    uint64_t h = key;
+    h ^= h >> 33;
+    h *= 0xff51afd7ed558ccdULL;
+    h ^= h >> 33;
+    h *= 0xc4ceb9fe1a85ec53ULL;
+    h ^= h >> 33;
+    return (uint32_t)(h & BLOCK_CACHE_MASK);
+}
+
+/* 查找解压块缓存, 命中返回指针, 未命中返回NULL */
+static uint8_t *block_cache_lookup(BlockCache *bc, uint64_t block_offset, uint32_t *data_size) {
+    if (!bc->entries) return NULL;
+    uint32_t idx = block_hash(block_offset);
+    for (int probe = 0; probe < bc->capacity; probe++) {
+        uint32_t i = (idx + probe) & BLOCK_CACHE_MASK;
+        if (bc->entries[i].block_offset == 0) return NULL;  /* 空槽, 未命中 */
+        if (bc->entries[i].block_offset == block_offset) {
+            bc->entries[i].last_access = time(NULL);
+            *data_size = bc->entries[i].data_size;
+            return bc->entries[i].data;  /* 命中 */
+        }
+    }
+    return NULL;
+}
+
+/* 插入解压块缓存 */
+static void block_cache_insert(BlockCache *bc, uint64_t block_offset,
+                                const uint8_t *data, uint32_t data_size) {
+    if (!bc->entries || data_size == 0) return;
+
+    /* 内存压力检查: 超限则淘汰最旧的1/4 */
+    if (bc->total_memory + data_size > BLOCK_CACHE_MAX_MEMORY || check_memory_pressure()) {
+        /* 按last_access排序, 淘汰最旧的1/4条目 */
+        int to_evict = bc->count / 4 + 1;
+        /* 简单策略: 扫描找最旧的条目淘汰 */
+        for (int e = 0; e < to_evict && bc->count > 0; e++) {
+            time_t oldest = TIME_MAX;
+            int oldest_idx = -1;
+            for (int i = 0; i < bc->capacity; i++) {
+                if (bc->entries[i].block_offset != 0 &&
+                    bc->entries[i].last_access < oldest) {
+                    oldest = bc->entries[i].last_access;
+                    oldest_idx = i;
+                }
+            }
+            if (oldest_idx >= 0) {
+                free(bc->entries[oldest_idx].data);
+                bc->total_memory -= bc->entries[oldest_idx].data_size;
+                bc->entries[oldest_idx].data = NULL;
+                bc->entries[oldest_idx].block_offset = 0;
+                bc->count--;
+            }
+        }
+    }
+
+    /* 开放寻址插入 */
+    uint32_t idx = block_hash(block_offset);
+    for (int probe = 0; probe < bc->capacity; probe++) {
+        uint32_t i = (idx + probe) & BLOCK_CACHE_MASK;
+        if (bc->entries[i].block_offset == 0) {
+            /* 空槽, 插入 */
+            uint8_t *copy = (uint8_t *)malloc(data_size);
+            if (!copy) return;
+            memcpy(copy, data, data_size);
+            bc->entries[i].block_offset = block_offset;
+            bc->entries[i].data = copy;
+            bc->entries[i].data_size = data_size;
+            bc->entries[i].last_access = time(NULL);
+            bc->count++;
+            bc->total_memory += data_size;
+            return;
+        }
+        if (bc->entries[i].block_offset == block_offset) {
+            /* 已存在, 更新 */
+            if (bc->entries[i].data_size == data_size) {
+                memcpy(bc->entries[i].data, data, data_size);
+                bc->entries[i].last_access = time(NULL);
+                return;
+            }
+            /* 大小不同, 替换 */
+            free(bc->entries[i].data);
+            uint8_t *copy = (uint8_t *)malloc(data_size);
+            if (!copy) {
+                bc->entries[i].block_offset = 0;
+                bc->count--;
+                return;
+            }
+            memcpy(copy, data, data_size);
+            bc->total_memory -= bc->entries[i].data_size;
+            bc->entries[i].data = copy;
+            bc->entries[i].data_size = data_size;
+            bc->entries[i].last_access = time(NULL);
+            bc->total_memory += data_size;
+            return;
+        }
+    }
+    /* 哈希表满, 不插入 */
+}
+
+/* ===== 查询结果缓存函数 ===== */
+
+static void query_cache_init(QueryCache *qc) {
+    memset(qc->entries, 0, sizeof(qc->entries));
+    qc->count = 0;
+    qc->total_memory = 0;
+}
+
+static void query_cache_free(QueryCache *qc) {
+    for (int i = 0; i < QUERY_CACHE_CAPACITY; i++) {
+        if (qc->entries[i].valid) {
+            free(qc->entries[i].out_ra);
+            free(qc->entries[i].out_dec);
+            free(qc->entries[i].out_mag);
+            qc->entries[i].valid = 0;
+        }
+    }
+    qc->count = 0;
+    qc->total_memory = 0;
+}
+
+/* 清理过期条目 */
+static void query_cache_evict_expired(QueryCache *qc) {
+    time_t now = time(NULL);
+    for (int i = 0; i < QUERY_CACHE_CAPACITY; i++) {
+        if (qc->entries[i].valid && (now - qc->entries[i].timestamp) > QUERY_CACHE_TTL_SEC) {
+            free(qc->entries[i].out_ra);
+            free(qc->entries[i].out_dec);
+            free(qc->entries[i].out_mag);
+            qc->entries[i].valid = 0;
+            qc->count--;
+        }
+    }
+}
+
+/* 舍入查询参数用于缓存键 */
+static double round_to(double val, double precision) {
+    return round(val / precision) * precision;
+}
+
+/* 查找查询结果缓存 */
+static int query_cache_lookup(GaiaClient *client, double ra, double dec,
+                               double radius, double mag_high,
+                               double **out_ra, double **out_dec,
+                               float **out_mag, int *out_count) {
+    QueryCache *qc = &client->query_cache;
+    time_t now = time(NULL);
+
+    double r_ra = round_to(ra, QUERY_CACHE_RA_ROUND);
+    double r_dec = round_to(dec, QUERY_CACHE_DEC_ROUND);
+    double r_radius = round_to(radius, QUERY_CACHE_RAD_ROUND);
+    double r_mag = round_to(mag_high, QUERY_CACHE_MAG_ROUND);
+
+    for (int i = 0; i < QUERY_CACHE_CAPACITY; i++) {
+        if (!qc->entries[i].valid) continue;
+        if ((now - qc->entries[i].timestamp) > QUERY_CACHE_TTL_SEC) {
+            /* 过期, 清理 */
+            free(qc->entries[i].out_ra);
+            free(qc->entries[i].out_dec);
+            free(qc->entries[i].out_mag);
+            qc->entries[i].valid = 0;
+            qc->count--;
+            continue;
+        }
+        if (qc->entries[i].ra == r_ra &&
+            qc->entries[i].dec == r_dec &&
+            qc->entries[i].radius == r_radius &&
+            qc->entries[i].mag_high == r_mag) {
+            /* 命中 */
+            *out_ra = qc->entries[i].out_ra;
+            *out_dec = qc->entries[i].out_dec;
+            *out_mag = qc->entries[i].out_mag;
+            *out_count = qc->entries[i].out_count;
+            return 1;  /* 缓存命中 */
+        }
+    }
+    return 0;  /* 未命中 */
+}
+
+/* 插入查询结果缓存 */
+static void query_cache_insert(GaiaClient *client, double ra, double dec,
+                                double radius, double mag_high,
+                                double *out_ra, double *out_dec,
+                                float *out_mag, int out_count) {
+    QueryCache *qc = &client->query_cache;
+
+    /* 内存压力检查 */
+    if (check_memory_pressure()) {
+        query_cache_evict_expired(qc);
+        if (check_memory_pressure()) return;  /* 仍然压力大, 不缓存 */
+    }
+
+    /* 找空槽或最旧的条目 */
+    int slot = -1;
+    time_t oldest = TIME_MAX;
+    for (int i = 0; i < QUERY_CACHE_CAPACITY; i++) {
+        if (!qc->entries[i].valid) {
+            slot = i;
+            break;
+        }
+        if (qc->entries[i].timestamp < oldest) {
+            oldest = qc->entries[i].timestamp;
+            slot = i;  /* 备选: 替换最旧的 */
+        }
+    }
+
+    if (slot < 0) return;
+
+    /* 如果覆盖旧条目, 先释放 */
+    if (qc->entries[slot].valid) {
+        free(qc->entries[slot].out_ra);
+        free(qc->entries[slot].out_dec);
+        free(qc->entries[slot].out_mag);
+        qc->count--;
+    }
+
+    /* 分配并拷贝数据 */
+    size_t ra_size = (size_t)out_count * sizeof(double);
+    size_t dec_size = (size_t)out_count * sizeof(double);
+    size_t mag_size = (size_t)out_count * sizeof(float);
+
+    qc->entries[slot].out_ra = (double *)malloc(ra_size);
+    qc->entries[slot].out_dec = (double *)malloc(dec_size);
+    qc->entries[slot].out_mag = (float *)malloc(mag_size);
+
+    if (!qc->entries[slot].out_ra || !qc->entries[slot].out_dec || !qc->entries[slot].out_mag) {
+        free(qc->entries[slot].out_ra);
+        free(qc->entries[slot].out_dec);
+        free(qc->entries[slot].out_mag);
+        return;
+    }
+
+    memcpy(qc->entries[slot].out_ra, out_ra, ra_size);
+    memcpy(qc->entries[slot].out_dec, out_dec, dec_size);
+    memcpy(qc->entries[slot].out_mag, out_mag, mag_size);
+
+    qc->entries[slot].ra = round_to(ra, QUERY_CACHE_RA_ROUND);
+    qc->entries[slot].dec = round_to(dec, QUERY_CACHE_DEC_ROUND);
+    qc->entries[slot].radius = round_to(radius, QUERY_CACHE_RAD_ROUND);
+    qc->entries[slot].mag_high = round_to(mag_high, QUERY_CACHE_MAG_ROUND);
+    qc->entries[slot].out_count = out_count;
+    qc->entries[slot].timestamp = time(NULL);
+    qc->entries[slot].valid = 1;
+    qc->count++;
+}
+
+/* ===== 原有辅助函数 ===== */
 
 static const char *find_tag(const char *xml, const char *tag) {
     char pattern[128];
@@ -261,35 +650,53 @@ static uint32_t find_max_block_size(QTNode *nodes, int node_count) {
     return max_bs;
 }
 
+/* ===== 修改后的read_leaf_block: 优先查缓存 ===== */
 static uint8_t *read_leaf_block(XPSDFileInternal *xf, uint64_t block_offset,
                                  uint32_t compressed_size, uint32_t block_size,
                                  uint8_t *scratch) {
     if (!xf->mmap_data || block_size == 0) return NULL;
+
+    /* 1. 查解压块缓存 */
+    uint32_t cached_size = 0;
+    uint8_t *cached = block_cache_lookup(&xf->block_cache, block_offset, &cached_size);
+    if (cached && cached_size == block_size) {
+        return cached;  /* 缓存命中, 直接返回 */
+    }
+
+    /* 2. 缓存未命中, 执行解压 */
     const uint8_t *comp = xf->mmap_data + xf->data_position + block_offset;
 
     if (compressed_size == block_size) {
         memcpy(scratch, comp, block_size);
         if (xf->use_byte_shuffle && xf->item_size > 1)
             byte_unshuffle(scratch, block_size, xf->item_size);
-        return scratch;
+    } else {
+        int decompressed_size = -1;
+        if (strstr(xf->compression, "lz4") != NULL) {
+            decompressed_size = lz4_decompress(comp, compressed_size, scratch, block_size);
+        } else if (strstr(xf->compression, "zlib") != NULL) {
+            uLongf dest_len = block_size;
+            int zret = uncompress(scratch, &dest_len, comp, compressed_size);
+            if (zret == Z_OK && dest_len == block_size)
+                decompressed_size = (int)dest_len;
+        }
+
+        if (decompressed_size < 0) return NULL;
+
+        if (xf->use_byte_shuffle && xf->item_size > 1)
+            byte_unshuffle(scratch, block_size, xf->item_size);
     }
 
-    int decompressed_size = -1;
-    if (strstr(xf->compression, "lz4") != NULL) {
-        decompressed_size = lz4_decompress(comp, compressed_size, scratch, block_size);
-    } else if (strstr(xf->compression, "zlib") != NULL) {
-        uLongf dest_len = block_size;
-        int zret = uncompress(scratch, &dest_len, comp, compressed_size);
-        if (zret == Z_OK && dest_len == block_size)
-            decompressed_size = (int)dest_len;
+    /* 3. 存入解压块缓存 */
+    block_cache_insert(&xf->block_cache, block_offset, scratch, block_size);
+
+    /* 4. 返回缓存中的数据 (确保后续读的是缓存指针) */
+    cached = block_cache_lookup(&xf->block_cache, block_offset, &cached_size);
+    if (cached && cached_size == block_size) {
+        return cached;
     }
 
-    if (decompressed_size < 0) return NULL;
-
-    if (xf->use_byte_shuffle && xf->item_size > 1)
-        byte_unshuffle(scratch, block_size, xf->item_size);
-
-    return scratch;
+    return scratch;  /* 回退: 返回scratch (缓存插入失败时) */
 }
 
 static int load_xpsd_file(XPSDFileInternal *xf, const char *path) {
@@ -406,10 +813,16 @@ static int load_xpsd_file(XPSDFileInternal *xf, const char *path) {
         tree_search = tree_tag + 4;
     }
 
+    /* 初始化解压块缓存 */
+    block_cache_init(&xf->block_cache);
+
     return 0;
 }
 
 static void close_xpsd_file(XPSDFileInternal *xf) {
+    /* 释放解压块缓存 */
+    block_cache_free(&xf->block_cache);
+
     for (int t = 0; t < xf->tree_count; t++) {
         if (xf->trees[t].nodes) free(xf->trees[t].nodes);
     }
@@ -425,16 +838,6 @@ static void close_xpsd_file(XPSDFileInternal *xf) {
         xf->mmap_data = NULL;
     }
 }
-
-typedef struct {
-    double ra, dec, magG;
-} SimpleStar;
-
-typedef struct {
-    SimpleStar *stars;
-    int count;
-    int capacity;
-} StarCollector;
 
 static void collector_init(StarCollector *sc, int initial_cap) {
     sc->stars = (SimpleStar *)malloc(initial_cap * sizeof(SimpleStar));
@@ -581,6 +984,16 @@ GaiaClient *gaia_client_create_ex(const char *data_dir, GaiaDbType db_type) {
     client->db_type_detected = 0;
 
 #ifdef _WIN32
+    InitializeCriticalSection(&client->cache_lock);
+#else
+    pthread_mutex_init(&client->cache_lock, NULL);
+#endif
+    client->cache_lock_initialized = 1;
+
+    /* 初始化查询结果缓存 */
+    query_cache_init(&client->query_cache);
+
+#ifdef _WIN32
     char pattern[1024];
     snprintf(pattern, sizeof(pattern), "%s\\*.xpsd", data_dir);
     WIN32_FIND_DATAA fd;
@@ -630,8 +1043,22 @@ GaiaClient *gaia_client_create_ex(const char *data_dir, GaiaDbType db_type) {
 
 void gaia_client_destroy(GaiaClient *client) {
     if (!client) return;
+
+    /* 释放查询结果缓存 */
+    query_cache_free(&client->query_cache);
+
     for (int i = 0; i < client->file_count; i++)
         close_xpsd_file(&client->files[i]);
+
+    if (client->cache_lock_initialized) {
+#ifdef _WIN32
+        DeleteCriticalSection(&client->cache_lock);
+#else
+        pthread_mutex_destroy(&client->cache_lock);
+#endif
+        client->cache_lock_initialized = 0;
+    }
+
     free(client);
 }
 
@@ -641,6 +1068,30 @@ int gaia_client_cone_search(GaiaClient *client, double ra, double dec, double ra
     int nfiles = client->file_count;
     if (nfiles == 0) { *out_stars = NULL; *out_count = 0; return 0; }
 
+    /* ===== 查询结果缓存检查 ===== */
+    cache_lock(client);
+    double *cached_ra = NULL, *cached_dec = NULL;
+    float *cached_mag = NULL;
+    int cached_count = 0;
+    if (query_cache_lookup(client, ra, dec, radius_deg, mag_high,
+                            &cached_ra, &cached_dec, &cached_mag, &cached_count)) {
+        /* 缓存命中: 构造GaiaStar数组返回 */
+        *out_stars = (GaiaStar *)malloc(cached_count * sizeof(GaiaStar));
+        *out_count = cached_count;
+        for (int i = 0; i < cached_count; i++) {
+            (*out_stars)[i].ra = cached_ra[i];
+            (*out_stars)[i].dec = cached_dec[i];
+            (*out_stars)[i].magG = cached_mag[i];
+            (*out_stars)[i].magBP = 0;
+            (*out_stars)[i].magRP = 0;
+            (*out_stars)[i].source_id = 0;
+        }
+        cache_unlock(client);
+        return 0;
+    }
+    cache_unlock(client);
+
+    /* ===== 正常查询流程 ===== */
     double cos_ra_q = cos(ra * DEG2RAD);
     double sin_ra_q = sin(ra * DEG2RAD);
     double cos_dec_q = cos(dec * DEG2RAD);
@@ -680,6 +1131,12 @@ int gaia_client_cone_search(GaiaClient *client, double ra, double dec, double ra
     *out_stars = (GaiaStar *)malloc(total * sizeof(GaiaStar));
     *out_count = total;
     int idx = 0;
+
+    /* 构建缓存数据 (ra/dec/mag数组) */
+    double *cache_ra = (double *)malloc(total * sizeof(double));
+    double *cache_dec = (double *)malloc(total * sizeof(double));
+    float *cache_mag = (float *)malloc(total * sizeof(float));
+
     for (int f = 0; f < nfiles; f++) {
         for (int i = 0; i < sc_arr[f].count; i++) {
             (*out_stars)[idx].ra = sc_arr[f].stars[i].ra;
@@ -688,11 +1145,30 @@ int gaia_client_cone_search(GaiaClient *client, double ra, double dec, double ra
             (*out_stars)[idx].magBP = 0;
             (*out_stars)[idx].magRP = 0;
             (*out_stars)[idx].source_id = 0;
+
+            if (cache_ra && cache_dec && cache_mag) {
+                cache_ra[idx] = sc_arr[f].stars[i].ra;
+                cache_dec[idx] = sc_arr[f].stars[i].dec;
+                cache_mag[idx] = (float)sc_arr[f].stars[i].magG;
+            }
             idx++;
         }
         collector_free(&sc_arr[f]);
     }
     free(sc_arr);
+
+    /* ===== 存入查询结果缓存 ===== */
+    if (cache_ra && cache_dec && cache_mag) {
+        cache_lock(client);
+        query_cache_insert(client, ra, dec, radius_deg, mag_high,
+                           cache_ra, cache_dec, cache_mag, total);
+        cache_unlock(client);
+    }
+    /* 注意: query_cache_insert会拷贝数据, 这里释放临时数组 */
+    free(cache_ra);
+    free(cache_dec);
+    free(cache_mag);
+
     return 0;
 }
 

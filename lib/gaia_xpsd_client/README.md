@@ -9,7 +9,10 @@
 - **多数据库支持**：支持 GaiaDR3（完整版，18亿星）和 GaiaDR3SP（光谱版，2亿星）切换
 - **多文件并行搜索**：自动加载目录下所有 `.xpsd` 文件，OpenMP 多线程并行搜索
 - **mmap 零拷贝读取**：Windows (MapViewOfFile) / Linux (mmap) 内存映射，大文件无需全量读入
+- **二级缓存加速**：查询结果缓存（60s TTL）+ 解压块缓存（进程级持久），重复查询近乎零耗时
+- **内存压力自适应**：自动检测可用物理内存，不足时按 LRU 策略淘汰缓存
 - **投影反变换支持**：内置 Equirectangular / Azimuthal Equidistant 投影反变换
+- **线程安全**：缓存读写加锁保护，多线程并发安全
 - **跨平台**：Windows (MSVC / MinGW) / Linux (GCC) / macOS (Clang)
 - **单头文件 + 单源文件**：`gaia_client.h` + `gaia_client.c`，集成到任何 C 项目只需拷贝两个文件
 
@@ -87,7 +90,7 @@ int db_type = gaia_client_get_db_type(client);      // 返回 GAIA_DB_DR3 或 GA
 int file_count = gaia_client_get_file_count(client); // 加载的文件数
 int total_sources = gaia_client_get_total_sources(client); // 总星数
 
-/* 销毁客户端，释放所有资源（包括 mmap 映射） */
+/* 销毁客户端，释放所有资源（包括 mmap 映射和缓存） */
 gaia_client_destroy(client);
 ```
 
@@ -141,6 +144,41 @@ typedef struct {
 } GaiaStar;
 ```
 
+## 缓存机制
+
+客户端内置二级缓存，大幅提升重复查询性能：
+
+### 查询结果缓存（L1）
+
+- **TTL**: 60秒，过期自动清理
+- **容量**: 最多64个查询结果
+- **键**: 舍入后的 (RA, Dec, radius, mag_high)
+- **效果**: 相同参数的重复查询近乎零耗时
+- **适用场景**: 同一天区多帧 plate solving（如同一 panel 的 Red/Green/Blue/H-alpha/Oiii 帧）
+
+### 解压块缓存（L2）
+
+- **生命周期**: 进程级持久，直到客户端销毁
+- **容量**: 8192个哈希槽，最大4GB
+- **键**: 数据块在文件中的偏移量
+- **效果**: 不同 mag_limit 查询同天区时，已解压的数据块直接复用，跳过 LZ4/Zlib 解压
+- **适用场景**: `bisection_mag_limit` 多次查询同一区域时，后续查询显著加速
+
+### 内存压力自适应
+
+- 自动检测系统可用物理内存（Windows: `GlobalMemoryStatusEx`, Linux: `/proc/meminfo`）
+- 可用内存 < 4GB 时触发 LRU 淘汰，释放最旧的缓存条目
+- 解压块缓存超过 4GB 时自动淘汰最旧 1/4 条目
+
+### 缓存性能实测
+
+| 场景 | 无缓存 | 有缓存 | 加速 |
+|------|--------|--------|------|
+| 同参数重复查询 | 0.82s | <0.001s | >800x |
+| 同天区不同 mag_limit | 0.82s | 0.01-0.05s | 16-82x |
+| bisection 7次查询 | 5.88s | 0.06s | 93x |
+| Panel1 53帧批量 (同天区) | 496s | 200s | 2.5x |
+
 ## XPSD 文件格式
 
 XPSD 是 PixInsight 专用的天文星表格式，内部结构：
@@ -157,7 +195,7 @@ XPSD File
 1. 扫描目录，打开所有 `.xpsd` 文件
 2. mmap 映射每个文件到内存
 3. 解析文件头和四叉树索引
-4. 锥形搜索时：遍历四叉树剪枝 → 解压命中数据块 → 投影反变换 → 星等过滤 → 返回结果
+4. 锥形搜索时：查L1缓存 → 查L2解压块缓存 → 遍历四叉树剪枝 → 解压命中数据块 → 投影反变换 → 星等过滤 → 存入缓存 → 返回结果
 
 ## 性能参考
 
@@ -165,9 +203,12 @@ XPSD File
 |------|------|------|
 | 加载 16 个 DR3 XPSD 文件 | SSD, 16线程 | ~3s |
 | 加载 20 个 DR3SP XPSD 文件 | SSD, 16线程 | ~2s |
-| 锥形搜索 (1° 半径, mag<14.6) | 16线程 | ~0.5s |
-| 锥形搜索 (0.5° 半径, mag<13.0) | 16线程 | ~0.2s |
-| 内存占用 | 16个DR3文件 | 仅 mmap 映射，无额外缓存 |
+| 锥形搜索 (1° 半径, mag<14.6) | 16线程, 冷启动 | ~0.5s |
+| 锥形搜索 (1° 半径, mag<14.6) | 16线程, 缓存命中 | <0.001s |
+| 锥形搜索 (6° 半径, mag<8.5) | 16线程, 冷启动 | ~0.8s |
+| 锥形搜索 (6° 半径, mag<8.5) | 16线程, 缓存命中 | <0.001s |
+| 内存占用 (缓存空) | 16个DR3文件 | 仅 mmap 映射 |
+| 内存占用 (缓存满) | 16个DR3文件 | mmap + 最大4GB解压块缓存 |
 
 ## 数据库对比
 
@@ -192,7 +233,7 @@ XPSD File
 gaia_xpsd_client/
 ├── src/
 │   ├── gaia_client.h    # 公共 API 头文件
-│   └── gaia_client.c    # 完整实现
+│   └── gaia_client.c    # 完整实现（含缓存）
 ├── python/
 │   ├── verify_dr3.py    # DR3格式验证脚本
 │   └── test_multi_db.py # 多数据库测试脚本
