@@ -882,15 +882,15 @@ static void search_recursive(XPSDFileInternal *xf, TreeInfo *tree, int node_idx,
         dec_min = node->y0;
         dec_max = node->y1;
     } else {
-        double corners_ra[4], corners_dec[4];
-        double xs[4] = {node->x0, node->x1, node->x1, node->x0};
-        double ys[4] = {node->y0, node->y0, node->y1, node->y1};
-        for (int i = 0; i < 4; i++)
+        double corners_ra[5], corners_dec[5];
+        double xs[5] = {node->x0, node->x1, node->x1, node->x0, 0.0};
+        double ys[5] = {node->y0, node->y0, node->y1, node->y1, 0.0};
+        for (int i = 0; i < 5; i++)
             unproject(xs[i], ys[i], tree->projection, tree->center_ra, tree->center_dec,
                        &corners_ra[i], &corners_dec[i]);
         ra_min = corners_ra[0]; ra_max = corners_ra[0];
         dec_min = corners_dec[0]; dec_max = corners_dec[0];
-        for (int i = 1; i < 4; i++) {
+        for (int i = 1; i < 5; i++) {
             if (corners_ra[i] < ra_min) ra_min = corners_ra[i];
             if (corners_ra[i] > ra_max) ra_max = corners_ra[i];
             if (corners_dec[i] < dec_min) dec_min = corners_dec[i];
