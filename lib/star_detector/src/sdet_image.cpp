@@ -89,6 +89,108 @@ void sdet_gaussian_filter_separable(const float* src, float* dst, int w, int h, 
     }
 }
 
+void sdet_gaussian_blur_yvv(const float* src, float* dst, int w, int h, double sigma) {
+    if (sigma <= 0.5 || w < 4 || h < 4) {
+        sdet_gaussian_filter_separable(src, dst, w, h, sigma);
+        return;
+    }
+
+    // === calculateYvVFactors (gauss.cc:139-171) ===
+    double q;
+    if (sigma < 2.5) {
+        q = 3.97156 - 4.14554 * std::sqrt(1.0 - 0.26891 * sigma);
+    } else {
+        q = 0.98711 * sigma - 0.96330;
+    }
+    double b0 = 1.57825 + 2.44413 * q + 1.4281 * q * q + 0.422205 * q * q * q;
+    double b1 = 2.44413 * q + 2.85619 * q * q + 1.26661 * q * q * q;
+    double b2 = -1.4281 * q * q - 1.26661 * q * q * q;
+    double b3 = 0.422205 * q * q * q;
+    double B = 1.0 - (b1 + b2 + b3) / b0;
+    b1 /= b0;
+    b2 /= b0;
+    b3 /= b0;
+
+    // Triggs-Sdika 边界条件矩阵 M
+    double M[3][3];
+    M[0][0] = -b3 * b1 + 1.0 - b3 * b3 - b2;
+    M[0][1] = (b3 + b1) * (b2 + b3 * b1);
+    M[0][2] = b3 * (b1 + b3 * b2);
+    M[1][0] = b1 + b3 * b2;
+    M[1][1] = -(b2 - 1.0) * (b2 + b3 * b1);
+    M[1][2] = -(b3 * b1 + b3 * b3 + b2 - 1.0) * b3;
+    M[2][0] = b3 * b1 + b2 + b1 * b1 - b2 * b2;
+    M[2][1] = b1 * b2 + b3 * b2 * b2 - b1 * b3 * b3 - b3 * b3 * b3 - b3 * b2 + b3;
+    M[2][2] = b3 * (b1 + b3 * b2);
+
+    // M 归一化 (gaussHorizontalSse/gaussVerticalSse: gauss.cc:603-607)
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            M[i][j] *= (1.0 + b2 + (b1 - b3) * b3);
+            M[i][j] /= (1.0 + b1 - b2 + b3) * (1.0 - b1 - b2 - b3);
+        }
+    }
+
+    const float Bf = (float)B, b1f = (float)b1, b2f = (float)b2, b3f = (float)b3;
+    float Mf[3][3];
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+            Mf[i][j] = (float)M[i][j];
+
+    std::vector<float> tmp((size_t)w * h);
+
+    // === 水平方向前向+反向递归 (gaussHorizontalSse 标量: gauss.cc:683-707) ===
+    #pragma omp parallel for schedule(static)
+    for (int y = 0; y < h; y++) {
+        const float* srow = src + (size_t)y * w;
+        float* trow = tmp.data() + (size_t)y * w;
+
+        trow[0] = srow[0] * (Bf + b1f + b2f + b3f);
+        trow[1] = Bf * srow[1] + b1f * trow[0] + srow[0] * (b2f + b3f);
+        trow[2] = Bf * srow[2] + b1f * trow[1] + b2f * trow[0] + b3f * srow[0];
+        for (int x = 3; x < w; x++) {
+            trow[x] = Bf * srow[x] + b1f * trow[x - 1] + b2f * trow[x - 2] + b3f * trow[x - 3];
+        }
+
+        float sW = srow[w - 1];
+        float temp2Wm1 = sW + Mf[0][0] * (trow[w - 1] - sW) + Mf[0][1] * (trow[w - 2] - sW) + Mf[0][2] * (trow[w - 3] - sW);
+        float temp2W   = sW + Mf[1][0] * (trow[w - 1] - sW) + Mf[1][1] * (trow[w - 2] - sW) + Mf[1][2] * (trow[w - 3] - sW);
+        float temp2Wp1 = sW + Mf[2][0] * (trow[w - 1] - sW) + Mf[2][1] * (trow[w - 2] - sW) + Mf[2][2] * (trow[w - 3] - sW);
+
+        trow[w - 1] = temp2Wm1;
+        trow[w - 2] = Bf * trow[w - 2] + b1f * trow[w - 1] + b2f * temp2W + b3f * temp2Wp1;
+        trow[w - 3] = Bf * trow[w - 3] + b1f * trow[w - 2] + b2f * trow[w - 1] + b3f * temp2W;
+
+        for (int x = w - 4; x >= 0; x--) {
+            trow[x] = Bf * trow[x] + b1f * trow[x + 1] + b2f * trow[x + 2] + b3f * trow[x + 3];
+        }
+    }
+
+    // === 垂直方向前向+反向递归 (gaussVerticalSse 标量: gauss.cc:872-897) ===
+    #pragma omp parallel for schedule(static)
+    for (int x = 0; x < w; x++) {
+        dst[0 * w + x] = tmp[0 * w + x] * (Bf + b1f + b2f + b3f);
+        dst[1 * w + x] = Bf * tmp[1 * w + x] + b1f * dst[0 * w + x] + tmp[0 * w + x] * (b2f + b3f);
+        dst[2 * w + x] = Bf * tmp[2 * w + x] + b1f * dst[1 * w + x] + b2f * dst[0 * w + x] + b3f * tmp[0 * w + x];
+        for (int y = 3; y < h; y++) {
+            dst[(size_t)y * w + x] = Bf * tmp[(size_t)y * w + x] + b1f * dst[(size_t)(y - 1) * w + x] + b2f * dst[(size_t)(y - 2) * w + x] + b3f * dst[(size_t)(y - 3) * w + x];
+        }
+
+        float sH = tmp[(size_t)(h - 1) * w + x];
+        float temp2Hm1 = sH + Mf[0][0] * (dst[(size_t)(h - 1) * w + x] - sH) + Mf[0][1] * (dst[(size_t)(h - 2) * w + x] - sH) + Mf[0][2] * (dst[(size_t)(h - 3) * w + x] - sH);
+        float temp2H   = sH + Mf[1][0] * (dst[(size_t)(h - 1) * w + x] - sH) + Mf[1][1] * (dst[(size_t)(h - 2) * w + x] - sH) + Mf[1][2] * (dst[(size_t)(h - 3) * w + x] - sH);
+        float temp2Hp1 = sH + Mf[2][0] * (dst[(size_t)(h - 1) * w + x] - sH) + Mf[2][1] * (dst[(size_t)(h - 2) * w + x] - sH) + Mf[2][2] * (dst[(size_t)(h - 3) * w + x] - sH);
+
+        dst[(size_t)(h - 1) * w + x] = temp2Hm1;
+        dst[(size_t)(h - 2) * w + x] = Bf * dst[(size_t)(h - 2) * w + x] + b1f * dst[(size_t)(h - 1) * w + x] + b2f * temp2H + b3f * temp2Hp1;
+        dst[(size_t)(h - 3) * w + x] = Bf * dst[(size_t)(h - 3) * w + x] + b1f * dst[(size_t)(h - 2) * w + x] + b2f * dst[(size_t)(h - 1) * w + x] + b3f * temp2H;
+
+        for (int y = h - 4; y >= 0; y--) {
+            dst[(size_t)y * w + x] = Bf * dst[(size_t)y * w + x] + b1f * dst[(size_t)(y + 1) * w + x] + b2f * dst[(size_t)(y + 2) * w + x] + b3f * dst[(size_t)(y + 3) * w + x];
+        }
+    }
+}
+
 void sdet_median_filter_3x3(const float* src, float* dst, int w, int h) {
     #pragma omp parallel for schedule(static)
     for (int y = 0; y < h; y++) {

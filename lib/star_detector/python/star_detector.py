@@ -26,7 +26,7 @@ class SDetParamsPy:
     iterativeClipSigma: float = 9.0
     iterativeMaxRounds: int = 5
     medianFilterDetail: int = 1
-    maxStars: int = 0
+    maxStars: int = 2000
     fitRadius: int = 6
     fwhmClipSigma: float = 3.0
     maxAxisRatio: float = 2.0
@@ -37,8 +37,10 @@ class StarDetectionResult:
     """星点检测结果"""
     x: list[float]
     y: list[float]
-    flux: list[float]          # 正常星=振幅A，饱和星=-1
+    flux: list[float]          # 正常星=振幅A，饱和星=PSF拟合A或0(失败)
     saturated: list[int]       # 0=正常星，1=饱和星
+    mag: list[float]           # -2.5*log10(A)，拟合失败时为NaN
+    has_saturated: list[int]   # 1=该星检测到饱和平台，0=正常星
     # 可选额外数据
     extras: dict[str, list[float]] = field(default_factory=dict)
 
@@ -84,7 +86,7 @@ def _params_py_to_c(p: SDetParamsPy) -> _CSDetParams:
 
 
 # 支持的额外输出参数名
-EXTRA_NAMES_SUPPORTED = {"fwhm_x", "fwhm_y", "sx", "sy", "theta", "background", "amplitude", "r"}
+EXTRA_NAMES_SUPPORTED = {"fwhm_x", "fwhm_y", "sx", "sy", "theta", "background", "amplitude", "r", "cand_R"}
 
 
 def _load_dll(dll_path: str):
@@ -115,18 +117,22 @@ def _load_dll(dll_path: str):
     dll.sdet_detect_ex.argtypes = [
         c_void_p, POINTER(c_uint16), c_int, c_int,
         POINTER(POINTER(c_double)), POINTER(POINTER(c_double)),
-        POINTER(POINTER(c_float)), POINTER(POINTER(c_int)), POINTER(c_int),
+        POINTER(POINTER(c_float)), POINTER(POINTER(c_int)),
+        POINTER(POINTER(c_float)), POINTER(POINTER(c_int)),
+        POINTER(c_int),
         POINTER(c_char_p), c_int, POINTER(POINTER(POINTER(c_float))),
     ]
     dll.sdet_detect_ex.restype = c_int
     dll.sdet_free_detect_ex.argtypes = [
         POINTER(c_double), POINTER(c_double), POINTER(c_float), POINTER(c_int),
+        POINTER(c_float), POINTER(c_int),
         POINTER(POINTER(c_float)), c_int,
     ]
     dll.sdet_free_detect_ex.restype = None
     dll.sdet_detect_debug.argtypes = [
         c_void_p, POINTER(c_uint16), c_int, c_int,
         POINTER(POINTER(c_double)), POINTER(POINTER(c_double)), POINTER(c_int),
+        POINTER(POINTER(c_float)), POINTER(POINTER(c_int)),
         POINTER(POINTER(c_float)), POINTER(POINTER(c_float)), POINTER(POINTER(c_float)),
         POINTER(c_char_p), c_int, POINTER(POINTER(POINTER(c_float))),
     ]
@@ -201,6 +207,8 @@ class StarDetector:
         out_y = POINTER(c_double)()
         out_flux = POINTER(c_float)()
         out_saturated = POINTER(c_int)()
+        out_mag = POINTER(c_float)()
+        out_has_saturated = POINTER(c_int)()
         out_count = c_int(0)
 
         # 准备额外参数
@@ -220,7 +228,8 @@ class StarDetector:
 
         ret = self._dll.sdet_detect_ex(
             self._handle, data_ptr, width, height,
-            byref(out_x), byref(out_y), byref(out_flux), byref(out_saturated), byref(out_count),
+            byref(out_x), byref(out_y), byref(out_flux), byref(out_saturated),
+            byref(out_mag), byref(out_has_saturated), byref(out_count),
             c_extra_names, extra_count, byref(out_extras),
         )
         if ret != 0:
@@ -231,6 +240,8 @@ class StarDetector:
         ys = []
         fluxes = []
         saturateds = []
+        mags = []
+        has_saturateds = []
         extras_dict = {name: [] for name in (extra_names or [])}
 
         if count > 0 and out_x and out_y:
@@ -239,6 +250,8 @@ class StarDetector:
                 ys.append(out_y[i])
                 fluxes.append(out_flux[i])
                 saturateds.append(out_saturated[i])
+                mags.append(out_mag[i])
+                has_saturateds.append(out_has_saturated[i])
 
             # 读取额外参数
             if extra_count > 0 and out_extras:
@@ -249,10 +262,15 @@ class StarDetector:
 
             self._dll.sdet_free_detect_ex(
                 out_x, out_y, out_flux, out_saturated,
+                out_mag, out_has_saturated,
                 out_extras if extra_count > 0 else None, extra_count,
             )
 
-        return StarDetectionResult(x=xs, y=ys, flux=fluxes, saturated=saturateds, extras=extras_dict)
+        return StarDetectionResult(
+            x=xs, y=ys, flux=fluxes, saturated=saturateds,
+            mag=mags, has_saturated=has_saturateds,
+            extras=extras_dict,
+        )
 
     def detect_debug_image(self, image: np.ndarray, output_path: str,
                            extra_names: Optional[list[str]] = None) -> StarDetectionResult:

@@ -2,6 +2,10 @@
 
 void sdet_gaussian_filter_separable(const float* src, float* dst, int w, int h, double sigma);
 
+// Young-van Vliet 递归 IIR 高斯滤波
+// 标量实现, 参考 gaussHorizontalSse + gaussVerticalSse 的 M 归一化与 Triggs-Sdika 边界条件
+void sdet_gaussian_blur_yvv(const float* src, float* dst, int w, int h, double sigma);
+
 void sdet_median_filter_3x3(const float* src, float* dst, int w, int h);
 void sdet_median_filter_5x5(const float* src, float* dst, int w, int h);
 void sdet_median_filter(const float* src, float* dst, int w, int h, int radius);

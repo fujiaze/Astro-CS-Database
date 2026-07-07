@@ -16,3 +16,14 @@ __pycache__/
 x64/
 Debug/
 Release/
+
+# 临时调试文件
+err*.txt
+stderr*.txt
+stdout*.txt
+示例*.png
+*.tmp
+archive/
+
+# 大测试输出文件
+test_output/*.fits
