@@ -104,6 +104,10 @@ typedef struct {
     int total_sources;
     int has_spectrum;
     int star_stride;
+    int spectrum_start;
+    int spectrum_step;
+    int spectrum_count;
+    int spectrum_bits;
     int use_byte_shuffle;
     int item_size;
     char compression[64];
@@ -145,6 +149,18 @@ typedef struct {
     int count;
     int capacity;
 } StarCollector;
+
+typedef struct {
+    double ra, dec, magG, magBP, magRP;
+} SpectrumStar;
+
+typedef struct {
+    SpectrumStar *stars;
+    uint8_t *spectra;
+    int count;
+    int capacity;
+    int spectrum_count;
+} SpectrumStarCollector;
 
 /* ===== 缓存辅助函数 ===== */
 
@@ -747,6 +763,24 @@ static int load_xpsd_file(XPSDFileInternal *xf, const char *path) {
         char item_sz[32];
         parse_attr_after(data_tag, "itemSize", item_sz, sizeof(item_sz));
         xf->item_size = item_sz[0] ? atoi(item_sz) : 0;
+        char params_str[256];
+        parse_attr_after(data_tag, "parameters", params_str, sizeof(params_str));
+        xf->spectrum_start = 0;
+        xf->spectrum_step = 0;
+        xf->spectrum_count = 0;
+        xf->spectrum_bits = 0;
+        if (params_str[0]) {
+            const char *p = params_str;
+            while (*p) {
+                if (strncmp(p, "spectrumStart=", 14) == 0) { xf->spectrum_start = atoi(p + 14); }
+                else if (strncmp(p, "spectrumStep=", 13) == 0) { xf->spectrum_step = atoi(p + 13); }
+                else if (strncmp(p, "spectrumCount=", 14) == 0) { xf->spectrum_count = atoi(p + 14); }
+                else if (strncmp(p, "spectrumBits=", 13) == 0) { xf->spectrum_bits = atoi(p + 13); }
+                p = strchr(p, ',');
+                if (!p) break;
+                p++;
+            }
+        }
     }
 
     const char *stats_tag = find_tag(xml, "Statistics");
@@ -865,6 +899,45 @@ static void collector_free(StarCollector *sc) {
     sc->count = sc->capacity = 0;
 }
 
+static void spec_collector_init(SpectrumStarCollector *sc, int capacity, int spectrum_count) {
+    sc->stars = (SpectrumStar *)malloc(capacity * sizeof(SpectrumStar));
+    sc->spectra = (uint8_t *)malloc((size_t)capacity * spectrum_count);
+    sc->count = 0;
+    sc->capacity = capacity;
+    sc->spectrum_count = spectrum_count;
+}
+
+static void spec_collector_free(SpectrumStarCollector *sc) {
+    free(sc->stars);
+    free(sc->spectra);
+    sc->stars = NULL;
+    sc->spectra = NULL;
+    sc->count = 0;
+}
+
+static void spec_collector_push(SpectrumStarCollector *sc, double ra, double dec,
+                                 double magG, double magBP, double magRP,
+                                 const uint8_t *spectrum) {
+    if (sc->count >= sc->capacity) {
+        int new_cap = sc->capacity * 2;
+        SpectrumStar *new_stars = (SpectrumStar *)realloc(sc->stars, new_cap * sizeof(SpectrumStar));
+        if (!new_stars) return;
+        sc->stars = new_stars;
+        uint8_t *new_spectra = (uint8_t *)realloc(sc->spectra, (size_t)new_cap * sc->spectrum_count);
+        if (!new_spectra) return;
+        sc->spectra = new_spectra;
+        sc->capacity = new_cap;
+    }
+    sc->stars[sc->count].ra = ra;
+    sc->stars[sc->count].dec = dec;
+    sc->stars[sc->count].magG = magG;
+    sc->stars[sc->count].magBP = magBP;
+    sc->stars[sc->count].magRP = magRP;
+    if (spectrum && sc->spectrum_count > 0)
+        memcpy(sc->spectra + (size_t)sc->count * sc->spectrum_count, spectrum, sc->spectrum_count);
+    sc->count++;
+}
+
 static void search_recursive(XPSDFileInternal *xf, TreeInfo *tree, int node_idx,
                               double ra, double dec, double radius_deg,
                               double mag_low, double mag_high,
@@ -959,6 +1032,116 @@ static void search_recursive(XPSDFileInternal *xf, TreeInfo *tree, int node_idx,
                                                mag_low, mag_high, cos_ra_q, sin_ra_q,
                                                cos_dec_q, sin_dec_q, cos_radius, sc, scratch);
         if (node->child_se) search_recursive(xf, tree, node->child_se, ra, dec, radius_deg,
+                                               mag_low, mag_high, cos_ra_q, sin_ra_q,
+                                               cos_dec_q, sin_dec_q, cos_radius, sc, scratch);
+    }
+}
+
+static void search_recursive_spectrum(XPSDFileInternal *xf, TreeInfo *tree, uint32_t node_idx,
+                              double ra, double dec, double radius_deg,
+                              double mag_low, double mag_high,
+                              double cos_ra_q, double sin_ra_q,
+                              double cos_dec_q, double sin_dec_q,
+                              double cos_radius,
+                              SpectrumStarCollector *sc, uint8_t *scratch) {
+    if (sc->count >= MAX_STARS_RESULT) return;
+    QTNode *node = &tree->nodes[node_idx];
+
+    double ra_min, ra_max, dec_min, dec_max;
+    if (strcmp(tree->projection, "Equirectangular") == 0) {
+        ra_min = node->x0 + tree->center_ra;
+        ra_max = node->x1 + tree->center_ra;
+        dec_min = node->y0;
+        dec_max = node->y1;
+    } else {
+        double corners_ra[5], corners_dec[5];
+        double xs[5] = {node->x0, node->x1, node->x1, node->x0, 0.0};
+        double ys[5] = {node->y0, node->y0, node->y1, node->y1, 0.0};
+        for (int i = 0; i < 5; i++)
+            unproject(xs[i], ys[i], tree->projection, tree->center_ra, tree->center_dec,
+                       &corners_ra[i], &corners_dec[i]);
+        ra_min = corners_ra[0]; ra_max = corners_ra[0];
+        dec_min = corners_dec[0]; dec_max = corners_dec[0];
+        for (int i = 1; i < 5; i++) {
+            if (corners_ra[i] < ra_min) ra_min = corners_ra[i];
+            if (corners_ra[i] > ra_max) ra_max = corners_ra[i];
+            if (corners_dec[i] < dec_min) dec_min = corners_dec[i];
+            if (corners_dec[i] > dec_max) dec_max = corners_dec[i];
+        }
+    }
+
+    if (!bbox_intersects(ra, dec, radius_deg, ra_min, ra_max, dec_min, dec_max))
+        return;
+
+    if (node->is_leaf) {
+        uint8_t *data = read_leaf_block(xf, node->block_offset, node->compressed_size,
+                                         node->block_size, scratch);
+        if (!data) return;
+
+        int n = node->block_size / xf->star_stride;
+        int stride = xf->star_stride;
+        int is_eq = (strcmp(tree->projection, "Equirectangular") == 0);
+        double inv_scale = 1.0 / (3600.0 * 1000.0 * 500.0);
+        double inv_dra = 1.0 / (3600.0 * 1000.0 * 100.0);
+
+        for (int i = 0; i < n && sc->count < MAX_STARS_RESULT; i++) {
+            const uint8_t *p = data + i * stride;
+            uint32_t dx, dy;
+            memcpy(&dx, p, 4);
+            memcpy(&dy, p + 4, 4);
+            uint16_t mag_raw;
+            memcpy(&mag_raw, p + 20, 2);
+            double magG = mag_raw * 0.001 - 1.5;
+            if (magG < mag_low || magG > mag_high) continue;
+
+            double x = node->x0 + dx * inv_scale;
+            double y = node->y0 + dy * inv_scale;
+            double s_ra, s_dec;
+            if (is_eq) {
+                s_ra = x + tree->center_ra;
+                s_dec = y;
+            } else {
+                unproject(x, y, tree->projection, tree->center_ra, tree->center_dec, &s_ra, &s_dec);
+            }
+
+            int16_t dra_raw;
+            memcpy(&dra_raw, p + 26, 2);
+            if (dra_raw != 0)
+                s_ra += dra_raw * inv_dra;
+            if (s_ra < 0) s_ra += 360.0;
+            if (s_ra >= 360.0) s_ra -= 360.0;
+
+            double cos_dec_s = cos(s_dec * DEG2RAD);
+            double d_ang = cos_dec_q * cos_dec_s *
+                          (cos_ra_q * cos(s_ra * DEG2RAD) + sin_ra_q * sin(s_ra * DEG2RAD))
+                         + sin_dec_q * sin(s_dec * DEG2RAD);
+            if (d_ang > 1.0) d_ang = 1.0;
+            if (d_ang < -1.0) d_ang = -1.0;
+            if (acos(d_ang) <= radius_deg * DEG2RAD) {
+                double magBP = 0.0, magRP = 0.0;
+                const uint8_t *spectrum = NULL;
+                if (xf->has_spectrum) {
+                    uint16_t magBP_raw, magRP_raw;
+                    memcpy(&magBP_raw, p + 22, 2);
+                    memcpy(&magRP_raw, p + 24, 2);
+                    magBP = magBP_raw * 0.001 - 1.5;
+                    magRP = magRP_raw * 0.001 - 1.5;
+                    spectrum = p + 40;
+                }
+                spec_collector_push(sc, s_ra, s_dec, magG, magBP, magRP, spectrum);
+            }
+        }
+    } else {
+        if (node->child_nw) search_recursive_spectrum(xf, tree, node->child_nw, ra, dec, radius_deg,
+                                               mag_low, mag_high, cos_ra_q, sin_ra_q,
+                                               cos_dec_q, sin_dec_q, cos_radius, sc, scratch);
+        if (node->child_ne) search_recursive_spectrum(xf, tree, node->child_ne, ra, dec, radius_deg,
+                                               mag_low, mag_high, cos_ra_q, sin_ra_q,
+                                               cos_dec_q, sin_dec_q, cos_radius, sc, scratch);
+        if (node->child_sw) search_recursive_spectrum(xf, tree, node->child_sw, ra, dec, radius_deg,
+                                               mag_low, mag_high, cos_ra_q, sin_ra_q,
+                                               cos_dec_q, sin_dec_q, cos_radius, sc, scratch);
+        if (node->child_se) search_recursive_spectrum(xf, tree, node->child_se, ra, dec, radius_deg,
                                                mag_low, mag_high, cos_ra_q, sin_ra_q,
                                                cos_dec_q, sin_dec_q, cos_radius, sc, scratch);
     }
@@ -1215,4 +1398,127 @@ int gaia_client_get_total_sources(GaiaClient *client) {
         total += client->files[i].total_sources;
     }
     return total;
+}
+
+int gaia_client_cone_search_with_spectrum(
+    GaiaClient *client,
+    double ra, double dec, double radius_deg,
+    double mag_low, double mag_high,
+    GaiaSpectrumStar **out_stars,
+    uint8_t **out_spectra,
+    int *out_count) {
+    int nfiles = client->file_count;
+    if (nfiles == 0) {
+        *out_stars = NULL;
+        *out_spectra = NULL;
+        *out_count = 0;
+        return 0;
+    }
+
+    double cos_ra_q = cos(ra * DEG2RAD);
+    double sin_ra_q = sin(ra * DEG2RAD);
+    double cos_dec_q = cos(dec * DEG2RAD);
+    double sin_dec_q = sin(dec * DEG2RAD);
+    double cos_radius = cos(radius_deg * DEG2RAD);
+
+    SpectrumStarCollector *sc_arr = (SpectrumStarCollector *)calloc(nfiles, sizeof(SpectrumStarCollector));
+    for (int i = 0; i < nfiles; i++) {
+        int spec_count = 0;
+        if (client->files[i].has_spectrum) {
+            spec_count = client->files[i].spectrum_count;
+            if (spec_count == 0) spec_count = WL_COUNT;
+        }
+        spec_collector_init(&sc_arr[i], 4096, spec_count);
+    }
+
+    #pragma omp parallel for schedule(dynamic) num_threads(16)
+    for (int f = 0; f < nfiles; f++) {
+        XPSDFileInternal *xf = &client->files[f];
+        uint32_t scratch_size = xf->global_max_block_size;
+        if (scratch_size == 0) scratch_size = 65536;
+        uint8_t *scratch = (uint8_t *)malloc(scratch_size);
+        if (!scratch) continue;
+
+        for (int t = 0; t < xf->tree_count; t++) {
+            if (xf->trees[t].node_count > 0 && xf->trees[t].nodes)
+                search_recursive_spectrum(xf, &xf->trees[t], 0, ra, dec, radius_deg,
+                                  mag_low, mag_high, cos_ra_q, sin_ra_q,
+                                  cos_dec_q, sin_dec_q, cos_radius, &sc_arr[f], scratch);
+        }
+        free(scratch);
+    }
+
+    int total = 0;
+    for (int f = 0; f < nfiles; f++) total += sc_arr[f].count;
+
+    if (total == 0) {
+        for (int f = 0; f < nfiles; f++) spec_collector_free(&sc_arr[f]);
+        free(sc_arr);
+        *out_stars = NULL;
+        *out_spectra = NULL;
+        *out_count = 0;
+        return 0;
+    }
+
+    int any_spectrum = 0;
+    int global_spec_count = 0;
+    for (int f = 0; f < nfiles; f++) {
+        if (client->files[f].has_spectrum) {
+            global_spec_count = client->files[f].spectrum_count;
+            if (global_spec_count == 0) global_spec_count = WL_COUNT;
+            any_spectrum = 1;
+            break;
+        }
+    }
+
+    *out_stars = (GaiaSpectrumStar *)malloc(total * sizeof(GaiaSpectrumStar));
+    *out_count = total;
+
+    if (any_spectrum) {
+        *out_spectra = (uint8_t *)malloc((size_t)total * global_spec_count);
+    } else {
+        *out_spectra = NULL;
+    }
+
+    int idx = 0;
+    for (int f = 0; f < nfiles; f++) {
+        for (int i = 0; i < sc_arr[f].count; i++) {
+            (*out_stars)[idx].ra = sc_arr[f].stars[i].ra;
+            (*out_stars)[idx].dec = sc_arr[f].stars[i].dec;
+            (*out_stars)[idx].magG = sc_arr[f].stars[i].magG;
+            (*out_stars)[idx].magBP = sc_arr[f].stars[i].magBP;
+            (*out_stars)[idx].magRP = sc_arr[f].stars[i].magRP;
+
+            if (*out_spectra && sc_arr[f].spectrum_count > 0) {
+                int copy_count = sc_arr[f].spectrum_count;
+                if (copy_count > global_spec_count) copy_count = global_spec_count;
+                memcpy(*out_spectra + (size_t)idx * global_spec_count,
+                       sc_arr[f].spectra + (size_t)i * sc_arr[f].spectrum_count,
+                       copy_count);
+            }
+            idx++;
+        }
+        spec_collector_free(&sc_arr[f]);
+    }
+    free(sc_arr);
+
+    return 0;
+}
+
+int gaia_client_get_spectrum_params(GaiaClient *client, int *out_start_nm, int *out_step_nm, int *out_count) {
+    for (int i = 0; i < client->file_count; i++) {
+        if (client->files[i].has_spectrum) {
+            if (out_start_nm) *out_start_nm = client->files[i].spectrum_start;
+            if (out_step_nm) *out_step_nm = client->files[i].spectrum_step;
+            if (out_count) {
+                *out_count = client->files[i].spectrum_count;
+                if (*out_count == 0) *out_count = WL_COUNT;
+            }
+            return 1;
+        }
+    }
+    if (out_start_nm) *out_start_nm = 0;
+    if (out_step_nm) *out_step_nm = 0;
+    if (out_count) *out_count = 0;
+    return 0;
 }

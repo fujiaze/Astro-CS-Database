@@ -28,6 +28,14 @@ typedef struct {
     int64_t source_id;
 } GaiaStar;
 
+typedef struct {
+    double ra;
+    double dec;
+    double magG;
+    double magBP;
+    double magRP;
+} GaiaSpectrumStar;
+
 typedef struct GaiaClient GaiaClient;
 
 #ifdef __cplusplus
@@ -54,6 +62,20 @@ GAIA_EXPORT int gaia_client_cone_search_for_solver(
 GAIA_EXPORT int gaia_client_get_db_type(GaiaClient *client);
 GAIA_EXPORT int gaia_client_get_file_count(GaiaClient *client);
 GAIA_EXPORT int gaia_client_get_total_sources(GaiaClient *client);
+
+GAIA_EXPORT int gaia_client_cone_search_with_spectrum(
+    GaiaClient *client,
+    double ra, double dec, double radius_deg,
+    double mag_low, double mag_high,
+    GaiaSpectrumStar **out_stars,
+    uint8_t **out_spectra,
+    int *out_count);
+
+GAIA_EXPORT int gaia_client_get_spectrum_params(
+    GaiaClient *client,
+    int *out_start_nm,
+    int *out_step_nm,
+    int *out_count);
 
 #ifdef __cplusplus
 }

@@ -38,9 +38,10 @@
 | 属性 | GaiaDR3 (GAIA_DB_DR3) | GaiaDR3SP (GAIA_DB_DR3SP) |
 |------|----------------------|---------------------------|
 | 总星数 | ~18亿 | ~2.2亿 |
-| 条目大小 | 32 bytes | 可变长 |
+| 条目大小 | 32 bytes | 384 bytes (40头部+343光谱+1填充) |
 | 压缩方式 | LZ4-HC + shuffle | Zlib + shuffle |
-| 光谱数据 | 无 | 有 |
+| 光谱数据 | 无 | 有 (336-1020nm, 343采样, uint8) |
+| 光谱API | 不适用 | `gaia_client_cone_search_with_spectrum()` |
 | 适用场景 | Plate solving | 光谱分析 |
 
 ---
@@ -135,6 +136,104 @@ typedef struct {
 
 ---
 
+## 光谱接口（DR3SP 专用）
+
+DR3SP 数据库的每颗星记录为 384 字节 = 40 字节头部 + 343 字节光谱（uint8）+ 1 字节填充。
+光谱覆盖 336nm-1020nm 波长范围，步长 2nm，共 343 个采样点。
+
+### 光谱 API
+
+```c
+/* 带光谱数据的锥形搜索（仅 DR3SP 有效） */
+int gaia_client_cone_search_with_spectrum(
+    GaiaClient *client,
+    double ra, double dec, double radius_deg,
+    double mag_low, double mag_high,
+    GaiaSpectrumStar **out_stars,    /* 星点元数据 */
+    uint8_t **out_spectra,            /* 扁平光谱数组 (count × 343 bytes) */
+    int *out_count);
+
+/* 查询光谱波长校准参数 */
+int gaia_client_get_spectrum_params(
+    GaiaClient *client,
+    int *out_start_nm,   /* 起始波长 (336) */
+    int *out_step_nm,    /* 波长步长 (2) */
+    int *out_count);     /* 采样点数 (343) */
+/* 返回值: 1=有光谱, 0=无光谱 */
+
+typedef struct {
+    double ra, dec, magG, magBP, magRP;
+} GaiaSpectrumStar;
+```
+
+**内存管理**：`out_stars` 和 `out_spectra` 由 `malloc` 分配，调用方需分别 `free`。
+
+### Python 光谱接口示例
+
+```python
+import ctypes
+
+class GaiaSpectrumStar(ctypes.Structure):
+    _fields_ = [
+        ('ra', ctypes.c_double), ('dec', ctypes.c_double),
+        ('magG', ctypes.c_double), ('magBP', ctypes.c_double), ('magRP', ctypes.c_double),
+    ]
+
+dll.gaia_client_cone_search_with_spectrum.argtypes = [
+    ctypes.c_void_p, ctypes.c_double, ctypes.c_double, ctypes.c_double,
+    ctypes.c_double, ctypes.c_double,
+    ctypes.POINTER(ctypes.POINTER(GaiaSpectrumStar)),
+    ctypes.POINTER(ctypes.POINTER(ctypes.c_uint8)),
+    ctypes.POINTER(ctypes.c_int),
+]
+dll.gaia_client_get_spectrum_params.argtypes = [
+    ctypes.c_void_p,
+    ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int),
+]
+
+# 查询光谱参数
+start_nm, step_nm, spec_count = ctypes.c_int(), ctypes.c_int(), ctypes.c_int()
+has_spec = dll.gaia_client_get_spectrum_params(
+    client, ctypes.byref(start_nm), ctypes.byref(step_nm), ctypes.byref(spec_count))
+
+# 光谱搜索
+stars = ctypes.POINTER(GaiaSpectrumStar)()
+spectra = ctypes.POINTER(ctypes.c_uint8)()
+count = ctypes.c_int()
+dll.gaia_client_cone_search_with_spectrum(
+    client, 266.4167, -28.9867, 0.5, -2.0, 15.0,
+    ctypes.byref(stars), ctypes.byref(spectra), ctypes.byref(count))
+
+# 访问第 i 颗星的光谱
+for i in range(count.value):
+    s = stars[i]
+    spec_offset = i * spec_count.value
+    spectrum = [spectra[spec_offset + j] for j in range(spec_count.value)]
+    # spectrum[0] 对应 336nm, spectrum[1] 对应 338nm, ...
+    print(f"RA={s.ra:.4f}, Dec={s.dec:.4f}, "
+          f"magG={s.magG:.3f}, magBP={s.magBP:.3f}, magRP={s.magRP:.3f}")
+
+ctypes.cdll.msvcrt.free(stars)
+ctypes.cdll.msvcrt.free(spectra)
+```
+
+### DR3SP 星记录头部布局（40 字节）
+
+| 偏移 | 大小 | 字段 | 类型 | 说明 |
+|------|------|------|------|------|
+| 0 | 4 | dx | uint32 | X 位置增量 |
+| 4 | 4 | dy | uint32 | Y 位置增量 |
+| 8-19 | 12 | (保留) | - | 未使用字段 |
+| 20 | 2 | magG_raw | uint16 | magG = raw × 0.001 − 1.5 |
+| 22 | 2 | magBP_raw | uint16 | magBP = raw × 0.001 − 1.5 |
+| 24 | 2 | magRP_raw | uint16 | magRP = raw × 0.001 − 1.5 |
+| 26 | 2 | dra_raw | int16 | RA 修正增量 |
+| 28-39 | 12 | (保留) | - | 未使用字段 |
+| 40-382 | 343 | spectrum | uint8[343] | BP/RP 光谱流量值 |
+| 383 | 1 | (填充) | - | 对齐填充 |
+
+---
+
 ## 架构
 
 ### XPSD 文件格式
@@ -194,6 +293,7 @@ gaia_xpsd_client/
 ├── python/
 │   ├── verify_dr3.py              # DR3 格式验证脚本
 │   ├── verify_global_coverage.py  # 全天区覆盖验证脚本
+│   ├── verify_spectrum.py         # 光谱接口验证测试（基建保留）
 │   └── test_multi_db.py           # 多数据库测试脚本
 ├── example/
 │   └── demo.c                     # 使用示例
@@ -213,7 +313,7 @@ gaia_xpsd_client/
 
 ## 详细文档
 
-- **GitHub (C 版)**：https://github.com/fujiaze/Gaia-DR3SP-Client-C
+- **GitHub (C 版)**：https://github.com/fujiaze/Gaia-DR3-DR3SP-Client-C
 - **GitHub (Pyd 版)**：https://github.com/fujiaze/Gaia-DR3SP-Client-Pyd
 - **数据下载（百度网盘）**：https://pan.baidu.com/s/1u8CCMtecsaiz2nVjLsThRg?pwd=fujz （提取码：fujz）
 
