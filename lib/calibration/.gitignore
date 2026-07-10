@@ -1,0 +1,18 @@
+# Build artifacts
+*.o
+*.obj
+*.dll
+build_error.txt
+build_output.txt
+
+# Logs
+logs/
+
+# Python
+__pycache__/
+*.pyc
+*.pyd
+
+# IDE
+.vscode/
+.idea/
