@@ -1,5 +1,6 @@
 #include "aio_fits.h"
 #include "aio_log.h"
+#include "aio_util.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -383,7 +384,7 @@ static void build_metadata(const FITSHeader &hdr, AIOImageMetadata &meta) {
 int fits_read_file(const char *path, AIOImageData *out) {
     aio_log(AIO_LOG_INFO, "FITS", "Reading: %s", path);
 
-    FILE *fp = std::fopen(path, "rb");
+    FILE *fp = aio_fopen_utf8(path, "rb");
     if (!fp) {
         aio_log(AIO_LOG_ERROR, "FITS", "Cannot open: %s", path);
         return -1;
@@ -478,7 +479,7 @@ int fits_read_file(const char *path, AIOImageData *out) {
 int fits_read_header_only(const char *path, AIOImageData *out) {
     aio_log(AIO_LOG_INFO, "FITS", "Reading header only: %s", path);
 
-    FILE *fp = std::fopen(path, "rb");
+    FILE *fp = aio_fopen_utf8(path, "rb");
     if (!fp) {
         aio_log(AIO_LOG_ERROR, "FITS", "Cannot open: %s", path);
         return -1;
@@ -581,11 +582,14 @@ static void write_card(char card[80], const char *key, const char *value, const 
 int fits_write_file(const AIOImageData *image, const char *path) {
     aio_log(AIO_LOG_INFO, "FITS", "Writing: %s (%dx%d)", path, image->width, image->height);
 
-    FILE *fp = std::fopen(path, "wb");
+    FILE *fp = aio_fopen_utf8(path, "wb");
     if (!fp) {
-        aio_log(AIO_LOG_ERROR, "FITS", "Cannot create: %s", path);
+        aio_log(AIO_LOG_ERROR, "FITS", "Cannot open for write: %s", path);
         return -1;
     }
+
+    char iobuf[1 << 20];
+    std::setvbuf(fp, iobuf, _IOFBF, sizeof(iobuf));
 
     std::vector<char> header_buf;
     auto add_card = [&](const char *key, const char *value, const char *comment = "") {
@@ -632,15 +636,18 @@ int fits_write_file(const AIOImageData *image, const char *path) {
     int do_swap = needs_swap();
 
     if (image->float_sample || image->bits_per_sample == 32) {
-        std::vector<float> buf(n_pixels);
-        for (size_t i = 0; i < n_pixels; i++) {
-            buf[i] = image->data[i];
-            if (do_swap) swap_bytes_32(&buf[i]);
+        if (do_swap) {
+            std::vector<float> buf(n_pixels);
+            std::memcpy(buf.data(), image->data, n_pixels * sizeof(float));
+            for (size_t i = 0; i < n_pixels; i++) swap_bytes_32(&buf[i]);
+            std::fwrite(buf.data(), sizeof(float), n_pixels, fp);
+        } else {
+            std::fwrite(image->data, sizeof(float), n_pixels, fp);
         }
-        std::fwrite(buf.data(), sizeof(float), n_pixels, fp);
     } else {
         std::vector<int16_t> buf(n_pixels);
-        for (size_t i = 0; i < n_pixels; i++) {
+        #pragma omp parallel for schedule(static)
+        for (long long i = 0; i < (long long)n_pixels; i++) {
             buf[i] = (int16_t)std::round(image->data[i]);
             if (do_swap) swap_bytes_16(&buf[i]);
         }

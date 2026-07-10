@@ -1,5 +1,6 @@
 #include "aio_xisf.h"
 #include "aio_log.h"
+#include "aio_util.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -306,7 +307,7 @@ static void build_xisf_metadata(const std::vector<AIOFITSKeyword> &keywords,
 int xisf_read_file(const char *path, AIOImageData *out) {
     aio_log(AIO_LOG_INFO, "XISF", "Reading: %s", path);
 
-    FILE *fp = std::fopen(path, "rb");
+    FILE *fp = aio_fopen_utf8(path, "rb");
     if (!fp) {
         aio_log(AIO_LOG_ERROR, "XISF", "Cannot open: %s", path);
         return -1;
@@ -448,7 +449,7 @@ int xisf_read_file(const char *path, AIOImageData *out) {
 int xisf_read_header_only(const char *path, AIOImageData *out) {
     aio_log(AIO_LOG_INFO, "XISF", "Reading header only: %s", path);
 
-    FILE *fp = std::fopen(path, "rb");
+    FILE *fp = aio_fopen_utf8(path, "rb");
     if (!fp) {
         aio_log(AIO_LOG_ERROR, "XISF", "Cannot open: %s", path);
         return -1;

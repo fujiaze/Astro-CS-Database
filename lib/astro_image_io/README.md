@@ -13,8 +13,9 @@ FITS / XISF 天文图像统一 IO 库，C++ 原生实现 + Python 封装，零�
 - **自动格式检测**：根据文件扩展名 / 文件头自动选择 FITS 或 XISF 读取器
 - **完整元数据提取**：FITS 关键字 + WCS 坐标 + 观测元数据 + 校准元数据
 - **WCS 坐标支持**：CD 矩阵、CDELT、像素比例尺、旋转角计算
-- **FITS 写入**：支持 Float32 / UInt16 写出，保留原始关键字
+- **FITS 写入**：支持 Float32 / UInt16 写出，保留原始关键字，零拷贝写入 + 1MB 缓冲
 - **Python 封装**：ctypes 绑定 C++ DLL，提供原生 NumPy 数组访问
+- **UTF-8 路径支持**：Windows 下支持中文路径（`aio_fopen_utf8`）
 
 ### 性能指标
 
@@ -128,6 +129,26 @@ Windows 下 DLL 运行时依赖 MSYS2 MinGW64 运行库（`C:\msys64\mingw64\bin
 - **Python 旧版仓库**：https://github.com/fujiaze/Astro-Image-IO-Py
 
 ## 变更日志
+
+### 2026-07-10: UTF-8 路径支持 + FITS 写入优化
+
+**UTF-8 路径支持**
+
+新增 `aio_util.h`，提供 `aio_fopen_utf8()` 工具函数。Windows 下 `std::fopen` 不支持 UTF-8 编码的中文路径（如"全链路测试数据"），导致文件打开失败。`aio_fopen_utf8` 在 Windows 上使用 `MultiByteToWideChar` + `_wfopen` 打开文件，Linux/macOS 直接调用 `std::fopen`。
+
+`aio_fits.cpp` 和 `aio_xisf.cpp` 中所有 `std::fopen` 调用已替换为 `aio_fopen_utf8`。
+
+**FITS 写入优化**
+
+`fits_write_file` 的 float32 写入路径有两个性能问题：
+1. 逐像素循环拷贝 + 字节序交换（1620万次迭代），即使小端系统不需要交换
+2. 额外分配 64MB 临时缓冲
+
+修复：
+- 小端系统（不需要 swap）：直接 `std::fwrite(image->data, ...)` 零拷贝写入
+- 大端系统：`std::memcpy` 批量拷贝后再逐像素交换
+- int16 写入：OpenMP 并行化 `#pragma omp parallel for`
+- 添加 1MB 文件写入缓冲（`std::setvbuf`），减少磁盘 IO 次数
 
 ### 2026-07-10: FITS 关键字写入修复
 
