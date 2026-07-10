@@ -531,20 +531,29 @@ static void write_card(char card[80], const char *key, const char *value, const 
         card[8] = '=';
         card[9] = ' ';
 
-        bool is_string = (value[0] == '\'' || (key[0] != '\0' &&
-            strcmp(key, "CTYPE1") != 0 && strcmp(key, "CTYPE2") != 0 &&
-            strcmp(key, "RADESYS") != 0 && strcmp(key, "OBJECT") != 0 &&
-            strcmp(key, "FILTER") != 0 && strcmp(key, "IMAGETYP") != 0 &&
-            strcmp(key, "BUNIT") != 0 && strcmp(key, "DATE-OBS") != 0 &&
-            strcmp(key, "DATE-END") != 0 && strcmp(key, "OBSERVAT") != 0 &&
-            strcmp(key, "CTYPE1") != 0 && strcmp(key, "CTYPE2") != 0));
+        // 判断值是否需要加引号（字符串类型需要，布尔/数值不需要）
+        // FITS标准：布尔=T/F，整数/浮点=数字，字符串=单引号包围
+        bool needs_quotes = true;
 
-        for (const char *p = value; *p; p++) {
-            if (*p == '\'') { is_string = true; break; }
+        // 已有引号 → 不再加
+        if (value[0] == '\'') {
+            needs_quotes = false;
+        }
+        // 布尔值 T/F → 不加引号
+        else if (strcmp(value, "T") == 0 || strcmp(value, "F") == 0) {
+            needs_quotes = false;
+        }
+        // 数值（整数或浮点，含科学计数法）→ 不加引号
+        else {
+            char *end;
+            strtod(value, &end);
+            if (*end == '\0' && end != value) {
+                needs_quotes = false;
+            }
         }
 
         char val_str[72];
-        if (is_string && value[0] != '\'') {
+        if (needs_quotes) {
             snprintf(val_str, sizeof(val_str), "'%-8s'", value);
         } else {
             strncpy(val_str, value, sizeof(val_str) - 1);
@@ -603,7 +612,8 @@ int fits_write_file(const AIOImageData *image, const char *path) {
             if (strcmp(kw.name, "SIMPLE") == 0 || strcmp(kw.name, "BITPIX") == 0 ||
                 strcmp(kw.name, "NAXIS") == 0 || strcmp(kw.name, "NAXIS1") == 0 ||
                 strcmp(kw.name, "NAXIS2") == 0 || strcmp(kw.name, "NAXIS3") == 0 ||
-                strcmp(kw.name, "EXTEND") == 0 || strcmp(kw.name, "END") == 0) {
+                strcmp(kw.name, "EXTEND") == 0 || strcmp(kw.name, "END") == 0 ||
+                strcmp(kw.name, "BZERO") == 0 || strcmp(kw.name, "BSCALE") == 0) {
                 continue;
             }
             add_card(kw.name, kw.value, kw.comment);

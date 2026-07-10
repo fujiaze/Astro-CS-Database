@@ -126,3 +126,19 @@ Windows 下 DLL 运行时依赖 MSYS2 MinGW64 运行库（`C:\msys64\mingw64\bin
 
 - **C++ 仓库（当前版本）**：https://github.com/fujiaze/Astro-Image-IO-C
 - **Python 旧版仓库**：https://github.com/fujiaze/Astro-Image-IO-Py
+
+## 变更日志
+
+### 2026-07-10: FITS 关键字写入修复
+
+**问题1: `write_card` 引号判断逻辑错误**
+
+`write_card` 函数中判断 FITS 关键字值是否需要加引号的逻辑有缺陷，使用硬编码的关键字名称列表（CTYPE1/RADESYS/OBJECT 等）来判断是否为字符串，导致数值型关键字被错误加引号、字符串型关键字未加引号，产生"非法的 SIMPLE 关键字值"等读取错误。
+
+修复：改用类型推断策略——已带引号的不再加、布尔值 T/F 不加、`strtod` 可完整解析的数值不加、其余视为字符串加引号。
+
+**问题2: BZERO/BSCALE 关键字泄漏**
+
+`fits_write_file` 写入 FITS 时复制原始关键字的过滤列表未包含 BZERO/BSCALE。当从 uint16 FITS（BZERO=32768）读取数据转为 float32 后再写出，BZERO 关键字被保留，后续读取时 C++ 再次应用 BZERO 导致数据偏移（均值从 ~450 ADU 跳升到 ~65981 ADU）。
+
+修复：在 `fits_write_file` 的关键字过滤列表中增加 BZERO/BSCALE，写出的 FITS 不再携带原始数据的缩放参数。
