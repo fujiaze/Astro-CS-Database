@@ -381,6 +381,178 @@ class AstroCalibration:
             "original_mean": original_mean, "corrected_mean": corrected_mean,
         }
 
+    # -------------------- 全链路（内存直通） --------------------
+
+    def calibrate_and_correct(self, light_path: str, output_path: str,
+                              master_dark: str | None = None,
+                              master_flat: str | None = None,
+                              master_bias: str | None = None,
+                              dark_optimization: bool = False,
+                              dark_scale_factor: float = 1.0,
+                              hot_sigma: float = 5.0, cold_sigma: float = 5.0,
+                              method: int = METHOD_MEDIAN,
+                              max_structure_size: int = 4) -> dict:
+        """
+        全链路处理：校准 + 坏点修复（内存直通，只写一次FITS）
+        无暗场优化: (Light - Dark) / Flat -> 坏点修复 -> 输出
+        有暗场优化: (Light - Bias - K*(Dark - Bias)) / Flat -> 坏点修复 -> 输出
+        """
+        logger.info("=" * 60)
+        logger.info("全链路: %s -> %s", light_path, output_path)
+
+        light_img = self._reader.read(light_path)
+        light_data = light_img.data.astype(np.float32)
+        w, h = light_data.shape[1], light_data.shape[0]
+        keywords = light_img.keywords
+        light_img.close()
+        original_mean = float(np.mean(light_data))
+        logger.info("Light 加载: shape=(%d,%d), mean=%.4f", h, w, original_mean)
+
+        dark_data = self._load_optional(master_dark, "Dark")
+        flat_data = self._load_optional(master_flat, "Flat")
+        bias_data = self._load_optional(master_bias, "Bias")
+
+        # 阶段1: 校准
+        calibrated = np.zeros((h, w), dtype=np.float32)
+        actual_k = ctypes.c_float(dark_scale_factor)
+
+        ret = _dll.ac_calibrate_frame(
+            _to_float_ptr(light_data), w, h,
+            _to_float_ptr(dark_data) if dark_data is not None else None,
+            _to_float_ptr(flat_data) if flat_data is not None else None,
+            _to_float_ptr(bias_data) if bias_data is not None else None,
+            _to_float_ptr(calibrated),
+            1 if dark_optimization else 0, dark_scale_factor,
+            ctypes.pointer(actual_k),
+        )
+        if ret != AC_OK:
+            logger.error("校准失败: %d", ret)
+            return {"success": False, "error": f"校准DLL错误: {ret}"}
+
+        cal_mean = float(np.mean(calibrated))
+        k_val = float(actual_k.value)
+        logger.info("校准完成: mean=%.4f, K=%.4f", cal_mean, k_val)
+
+        # 阶段2: 坏点修复
+        corrected = np.zeros((h, w), dtype=np.float32)
+        n_hot = ctypes.c_int(0)
+        n_cold = ctypes.c_int(0)
+
+        ret = _dll.ac_correct_frame(
+            _to_float_ptr(calibrated), w, h,
+            _to_float_ptr(dark_data) if dark_data is not None else None,
+            _to_float_ptr(bias_data) if bias_data is not None else None,
+            _to_float_ptr(corrected),
+            hot_sigma, cold_sigma,
+            method, max_structure_size,
+            ctypes.pointer(n_hot), ctypes.pointer(n_cold),
+        )
+        if ret != AC_OK:
+            logger.error("坏点修复失败: %d", ret)
+            return {"success": False, "error": f"坏点修复DLL错误: {ret}"}
+
+        final_mean = float(np.mean(corrected))
+        logger.info(
+            "坏点修复完成: 热像素=%d, 冷像素=%d, mean=%.4f->%.4f->%.4f",
+            n_hot.value, n_cold.value, original_mean, cal_mean, final_mean,
+        )
+
+        out_keywords = [
+            kw for kw in (keywords or [])
+            if kw.name.upper() not in ("BZERO", "BSCALE")
+        ]
+        out_keywords.append(FITSKeywordPy(name="CCHOT", value=str(n_hot.value), comment="Hot pixels"))
+        out_keywords.append(FITSKeywordPy(name="CCCOLD", value=str(n_cold.value), comment="Cold pixels"))
+        out_keywords.append(FITSKeywordPy(name="ACVER", value="1.0.0", comment="Astro Calibration version"))
+        self._writer.write(corrected, output_path, keywords=out_keywords, float_sample=True)
+        logger.info("写入完成: %s", output_path)
+
+        return {
+            "success": True, "output_path": output_path,
+            "original_mean": original_mean,
+            "calibrated_mean": cal_mean,
+            "corrected_mean": final_mean,
+            "k": k_val,
+            "hot_pixels": n_hot.value, "cold_pixels": n_cold.value,
+        }
+
+    def calibrate_and_correct_mem(self, light_data, w, h, keywords,
+                                  dark_data=None, flat_data=None, bias_data=None,
+                                  dark_optimization=False, dark_scale_factor=1.0,
+                                  hot_sigma=5.0, cold_sigma=5.0,
+                                  method=METHOD_MEDIAN, max_structure_size=4):
+        """
+        全链路内存直通：接受numpy数组，不读文件，用于批处理缓存主帧
+        """
+        light_data = np.ascontiguousarray(light_data, dtype=np.float32)
+        original_mean = float(np.mean(light_data))
+
+        calibrated = np.zeros((h, w), dtype=np.float32)
+        actual_k = ctypes.c_float(dark_scale_factor)
+
+        ret = _dll.ac_calibrate_frame(
+            _to_float_ptr(light_data), w, h,
+            _to_float_ptr(dark_data) if dark_data is not None else None,
+            _to_float_ptr(flat_data) if flat_data is not None else None,
+            _to_float_ptr(bias_data) if bias_data is not None else None,
+            _to_float_ptr(calibrated),
+            1 if dark_optimization else 0, dark_scale_factor,
+            ctypes.pointer(actual_k),
+        )
+        if ret != AC_OK:
+            return {"success": False, "error": f"校准DLL错误: {ret}"}
+
+        cal_mean = float(np.mean(calibrated))
+
+        corrected = np.zeros((h, w), dtype=np.float32)
+        n_hot = ctypes.c_int(0)
+        n_cold = ctypes.c_int(0)
+
+        ret = _dll.ac_correct_frame(
+            _to_float_ptr(calibrated), w, h,
+            _to_float_ptr(dark_data) if dark_data is not None else None,
+            _to_float_ptr(bias_data) if bias_data is not None else None,
+            _to_float_ptr(corrected),
+            hot_sigma, cold_sigma, method, max_structure_size,
+            ctypes.pointer(n_hot), ctypes.pointer(n_cold),
+        )
+        if ret != AC_OK:
+            return {"success": False, "error": f"坏点修复DLL错误: {ret}"}
+
+        final_mean = float(np.mean(corrected))
+        logger.info(
+            "mean=%.1f->%.1f->%.1f  hot=%d  cold=%d",
+            original_mean, cal_mean, final_mean, n_hot.value, n_cold.value,
+        )
+
+        return {
+            "success": True,
+            "data": corrected,
+            "keywords": keywords,
+            "original_mean": original_mean,
+            "calibrated_mean": cal_mean,
+            "corrected_mean": final_mean,
+            "k": float(actual_k.value),
+            "hot_pixels": n_hot.value, "cold_pixels": n_cold.value,
+        }
+
+    def write_fits(self, data, output_path, keywords=None):
+        """写FITS文件（供批处理调用）"""
+        out_keywords = [
+            kw for kw in (keywords or [])
+            if kw.name.upper() not in ("BZERO", "BSCALE")
+        ]
+        self._writer.write(data, output_path, keywords=out_keywords, float_sample=True)
+
+    def read_image(self, path):
+        """读取图像，返回(data, w, h, keywords)"""
+        img = self._reader.read(path)
+        data = np.ascontiguousarray(img.data.astype(np.float32))
+        w, h = data.shape[1], data.shape[0]
+        keywords = img.keywords
+        img.close()
+        return data, w, h, keywords
+
     # -------------------- 内部工具 --------------------
 
     def _load_stack(self, paths: list) -> tuple:
