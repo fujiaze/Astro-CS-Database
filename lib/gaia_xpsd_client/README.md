@@ -41,7 +41,7 @@
 | 条目大小 | 32 bytes | 384 bytes (40头部+343光谱+1填充) |
 | 压缩方式 | LZ4-HC + shuffle | Zlib + shuffle |
 | 光谱数据 | 无 | 有 (336-1020nm, 343采样, uint8) |
-| 光谱API | 不适用 | `gaia_client_cone_search_with_spectrum()` |
+| 光谱API | 不适用 | `gaia_client_cone_search_with_spectrum()` / `_with_photometry()` |
 | 适用场景 | Plate solving | 光谱分析 |
 
 ---
@@ -136,84 +136,95 @@ typedef struct {
 
 ---
 
-## 光谱接口（DR3SP 专用）
+## 光谱与测光接口（DR3SP 专用）
 
 DR3SP 数据库的每颗星记录为 384 字节 = 40 字节头部 + 343 字节光谱（uint8）+ 1 字节填充。
-光谱覆盖 336nm-1020nm 波长范围，步长 2nm，共 343 个采样点。
+头部含 magG/magBP/magRP 星等，光谱覆盖 336nm-1020nm（步长 2nm，343 采样点）。
+
+**API 按职责拆分**：光谱查询和测光（BP/RP）查询独立，按需调用，避免不必要的内存开销。
+
+### 三级查询 API
+
+| API | 返回内容 | 适用场景 |
+|-----|---------|---------|
+| `gaia_client_cone_search()` | ra/dec/magG | Plate solving |
+| `gaia_client_cone_search_with_photometry()` | ra/dec/magG/**magBP/magRP** | 颜色分析（不读光谱，省内存） |
+| `gaia_client_cone_search_with_spectrum()` | ra/dec/magG + **343光谱点** | 光谱分析 |
 
 ### 光谱 API
 
 ```c
-/* 带光谱数据的锥形搜索（仅 DR3SP 有效） */
+typedef struct {
+    double ra, dec, magG;
+} GaiaSpectrumStar;
+
 int gaia_client_cone_search_with_spectrum(
     GaiaClient *client,
     double ra, double dec, double radius_deg,
     double mag_low, double mag_high,
-    GaiaSpectrumStar **out_stars,    /* 星点元数据 */
-    uint8_t **out_spectra,            /* 扁平光谱数组 (count × 343 bytes) */
+    GaiaSpectrumStar **out_stars,
+    uint8_t **out_spectra,
     int *out_count);
 
-/* 查询光谱波长校准参数 */
 int gaia_client_get_spectrum_params(
     GaiaClient *client,
-    int *out_start_nm,   /* 起始波长 (336) */
-    int *out_step_nm,    /* 波长步长 (2) */
-    int *out_count);     /* 采样点数 (343) */
+    int *out_start_nm, int *out_step_nm, int *out_count);
 /* 返回值: 1=有光谱, 0=无光谱 */
+```
 
+### 测光 API
+
+```c
 typedef struct {
     double ra, dec, magG, magBP, magRP;
-} GaiaSpectrumStar;
+} GaiaPhotometryStar;
+
+int gaia_client_cone_search_with_photometry(
+    GaiaClient *client,
+    double ra, double dec, double radius_deg,
+    double mag_low, double mag_high,
+    GaiaPhotometryStar **out_stars,
+    int *out_count);
 ```
 
 **内存管理**：`out_stars` 和 `out_spectra` 由 `malloc` 分配，调用方需分别 `free`。
 
-### Python 光谱接口示例
+### Python 示例
 
 ```python
 import ctypes
 
 class GaiaSpectrumStar(ctypes.Structure):
-    _fields_ = [
-        ('ra', ctypes.c_double), ('dec', ctypes.c_double),
-        ('magG', ctypes.c_double), ('magBP', ctypes.c_double), ('magRP', ctypes.c_double),
-    ]
+    _fields_ = [('ra', ctypes.c_double), ('dec', ctypes.c_double), ('magG', ctypes.c_double)]
 
-dll.gaia_client_cone_search_with_spectrum.argtypes = [
-    ctypes.c_void_p, ctypes.c_double, ctypes.c_double, ctypes.c_double,
-    ctypes.c_double, ctypes.c_double,
-    ctypes.POINTER(ctypes.POINTER(GaiaSpectrumStar)),
-    ctypes.POINTER(ctypes.POINTER(ctypes.c_uint8)),
-    ctypes.POINTER(ctypes.c_int),
-]
-dll.gaia_client_get_spectrum_params.argtypes = [
-    ctypes.c_void_p,
-    ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int),
-]
+class GaiaPhotometryStar(ctypes.Structure):
+    _fields_ = [('ra', ctypes.c_double), ('dec', ctypes.c_double),
+                ('magG', ctypes.c_double), ('magBP', ctypes.c_double), ('magRP', ctypes.c_double)]
 
-# 查询光谱参数
-start_nm, step_nm, spec_count = ctypes.c_int(), ctypes.c_int(), ctypes.c_int()
-has_spec = dll.gaia_client_get_spectrum_params(
-    client, ctypes.byref(start_nm), ctypes.byref(step_nm), ctypes.byref(spec_count))
+# --- 测光查询（BP/RP星等，不读光谱） ---
+phot_stars = ctypes.POINTER(GaiaPhotometryStar)()
+phot_count = ctypes.c_int()
+dll.gaia_client_cone_search_with_photometry(
+    client, 266.4167, -28.9867, 0.5, -2.0, 15.0,
+    ctypes.byref(phot_stars), ctypes.byref(phot_count))
+for i in range(phot_count.value):
+    s = phot_stars[i]
+    print(f"RA={s.ra:.4f}, magG={s.magG:.3f}, magBP={s.magBP:.3f}, magRP={s.magRP:.3f}")
+ctypes.cdll.msvcrt.free(phot_stars)
 
-# 光谱搜索
-stars = ctypes.POINTER(GaiaSpectrumStar)()
+# --- 光谱查询（343采样点，不含BP/RP） ---
+spec_stars = ctypes.POINTER(GaiaSpectrumStar)()
 spectra = ctypes.POINTER(ctypes.c_uint8)()
-count = ctypes.c_int()
+spec_count = ctypes.c_int()
 dll.gaia_client_cone_search_with_spectrum(
     client, 266.4167, -28.9867, 0.5, -2.0, 15.0,
-    ctypes.byref(stars), ctypes.byref(spectra), ctypes.byref(count))
-
-# 访问第 i 颗星的光谱
-for i in range(count.value):
-    s = stars[i]
-    spec_offset = i * spec_count.value
-    spectrum = [spectra[spec_offset + j] for j in range(spec_count.value)]
-    # spectrum[0] 对应 336nm, spectrum[1] 对应 338nm, ...
-    print(f"RA={s.ra:.4f}, Dec={s.dec:.4f}, "
-          f"magG={s.magG:.3f}, magBP={s.magBP:.3f}, magRP={s.magRP:.3f}")
-
-ctypes.cdll.msvcrt.free(stars)
+    ctypes.byref(spec_stars), ctypes.byref(spectra), ctypes.byref(spec_count))
+for i in range(spec_count.value):
+    s = spec_stars[i]
+    offset = i * 343
+    spectrum = [spectra[offset + j] for j in range(343)]  # 336nm-1020nm
+    print(f"RA={s.ra:.4f}, magG={s.magG:.3f}, spectrum[:5]={spectrum[:5]}")
+ctypes.cdll.msvcrt.free(spec_stars)
 ctypes.cdll.msvcrt.free(spectra)
 ```
 

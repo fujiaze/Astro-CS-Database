@@ -32,9 +32,15 @@ typedef struct {
     double ra;
     double dec;
     double magG;
+} GaiaSpectrumStar;
+
+typedef struct {
+    double ra;
+    double dec;
+    double magG;
     double magBP;
     double magRP;
-} GaiaSpectrumStar;
+} GaiaPhotometryStar;
 
 typedef struct GaiaClient GaiaClient;
 
@@ -69,6 +75,13 @@ GAIA_EXPORT int gaia_client_cone_search_with_spectrum(
     double mag_low, double mag_high,
     GaiaSpectrumStar **out_stars,
     uint8_t **out_spectra,
+    int *out_count);
+
+GAIA_EXPORT int gaia_client_cone_search_with_photometry(
+    GaiaClient *client,
+    double ra, double dec, double radius_deg,
+    double mag_low, double mag_high,
+    GaiaPhotometryStar **out_stars,
     int *out_count);
 
 GAIA_EXPORT int gaia_client_get_spectrum_params(

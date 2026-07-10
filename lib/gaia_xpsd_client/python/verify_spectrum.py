@@ -45,6 +45,14 @@ class GaiaSpectrumStar(ctypes.Structure):
         ('ra', ctypes.c_double),
         ('dec', ctypes.c_double),
         ('magG', ctypes.c_double),
+    ]
+
+
+class GaiaPhotometryStar(ctypes.Structure):
+    _fields_ = [
+        ('ra', ctypes.c_double),
+        ('dec', ctypes.c_double),
+        ('magG', ctypes.c_double),
         ('magBP', ctypes.c_double),
         ('magRP', ctypes.c_double),
     ]
@@ -86,6 +94,14 @@ def load_dll():
         ctypes.POINTER(ctypes.c_int)
     ]
     dll.gaia_client_cone_search_with_spectrum.restype = ctypes.c_int
+
+    dll.gaia_client_cone_search_with_photometry.argtypes = [
+        ctypes.c_void_p, ctypes.c_double, ctypes.c_double, ctypes.c_double,
+        ctypes.c_double, ctypes.c_double,
+        ctypes.POINTER(ctypes.POINTER(GaiaPhotometryStar)),
+        ctypes.POINTER(ctypes.c_int)
+    ]
+    dll.gaia_client_cone_search_with_photometry.restype = ctypes.c_int
 
     dll.gaia_client_get_spectrum_params.argtypes = [
         ctypes.c_void_p,
@@ -226,8 +242,6 @@ def test2_spectrum_reading(dll):
     print(f"    预期总长度: {expected_spec_len}")
 
     all_valid = True
-    mag_bp_ok = True
-    mag_rp_ok = True
     spec_range_ok = True
 
     for i in range(min(5, count)):
@@ -238,23 +252,12 @@ def test2_spectrum_reading(dll):
         min_v = min(spec_vals)
         max_v = max(spec_vals)
         nonzero = sum(1 for v in spec_vals if v > 0)
-
-        bp_diff = abs(s.magBP - s.magG)
-        rp_diff = abs(s.magRP - s.magG)
-        bp_valid = -2.0 < s.magBP < 20.0 and bp_diff < 5.0
-        rp_valid = -2.0 < s.magRP < 20.0 and rp_diff < 5.0
         range_valid = 0 <= min_v <= 255 and 0 <= max_v <= 255
 
-        if not bp_valid:
-            mag_bp_ok = False
-        if not rp_valid:
-            mag_rp_ok = False
         if not range_valid:
             spec_range_ok = False
 
-        print(f"    [{i}] RA={s.ra:.6f}, Dec={s.dec:.6f}, "
-              f"magG={s.magG:.3f}, magBP={s.magBP:.3f}, magRP={s.magRP:.3f} "
-              f"(BP-G={s.magBP-s.magG:.3f}, G-RP={s.magG-s.magRP:.3f})")
+        print(f"    [{i}] RA={s.ra:.6f}, Dec={s.dec:.6f}, magG={s.magG:.3f}")
         print(f"         光谱: min={min_v}, max={max_v}, 非零={nonzero}/{spec_count.value}, "
               f"前5值={spec_vals[:5]}")
 
@@ -273,14 +276,94 @@ def test2_spectrum_reading(dll):
     print(f"    光谱数组非NULL: {'PASS' if out_spectra else 'FAIL'}")
     print(f"    光谱值范围0-255 (前5颗): {'PASS' if spec_range_ok else 'FAIL'}")
     print(f"    全部{count}颗星光谱值范围0-255: {'PASS' if all_star_spec_valid else 'FAIL'}")
-    print(f"    magBP与magG相差<5.0等: {'PASS' if mag_bp_ok else 'FAIL'}")
-    print(f"    magRP与magG相差<5.0等: {'PASS' if mag_rp_ok else 'FAIL'}")
 
     ctypes.cdll.msvcrt.free(out_stars)
     ctypes.cdll.msvcrt.free(out_spectra)
     dll.gaia_client_destroy(client)
 
-    passed = out_spectra and spec_range_ok and all_star_spec_valid and mag_bp_ok and mag_rp_ok
+    passed = bool(out_spectra) and spec_range_ok and all_star_spec_valid
+    print(f"\n  结果: {'PASS' if passed else 'FAIL'}")
+    return passed
+
+
+def test4_photometry(dll):
+    """测试4: 测光(BP/RP)接口验证"""
+    print("\n" + "=" * 60)
+    print("测试4: 测光(BP/RP)接口验证")
+    print("=" * 60)
+
+    client = dll.gaia_client_create_ex(DR3SP_DIR.encode('utf-8'), GAIA_DB_DR3SP)
+    if not client:
+        print("  错误: 创建DR3SP客户端失败")
+        return False
+
+    ra, dec, radius = 266.41683, -28.98333, 0.5
+    mag_low, mag_high = -2.0, 15.0
+
+    out_stars = ctypes.POINTER(GaiaPhotometryStar)()
+    out_count = ctypes.c_int()
+
+    print(f"\n  测光搜索 RA={ra}, Dec={dec}, r={radius}")
+    t0 = time.time()
+    ret = dll.gaia_client_cone_search_with_photometry(
+        client, ra, dec, radius, mag_low, mag_high,
+        ctypes.byref(out_stars), ctypes.byref(out_count)
+    )
+    elapsed = time.time() - t0
+    count = out_count.value
+    print(f"  返回值: {ret}, 星数: {count}, 耗时: {elapsed:.3f}s")
+
+    if count == 0:
+        print("  错误: 无搜索结果")
+        dll.gaia_client_destroy(client)
+        return False
+
+    mag_bp_ok = True
+    mag_rp_ok = True
+
+    for i in range(min(5, count)):
+        s = out_stars[i]
+        bp_diff = abs(s.magBP - s.magG)
+        rp_diff = abs(s.magRP - s.magG)
+        bp_valid = -2.0 < s.magBP < 20.0 and bp_diff < 5.0
+        rp_valid = -2.0 < s.magRP < 20.0 and rp_diff < 5.0
+        if not bp_valid:
+            mag_bp_ok = False
+        if not rp_valid:
+            mag_rp_ok = False
+
+        print(f"    [{i}] RA={s.ra:.6f}, Dec={s.dec:.6f}, "
+              f"magG={s.magG:.3f}, magBP={s.magBP:.3f}, magRP={s.magRP:.3f} "
+              f"(BP-G={s.magBP-s.magG:.3f}, G-RP={s.magG-s.magRP:.3f})")
+
+    all_bp_ok = True
+    all_rp_ok = True
+    n_bp_valid = 0
+    n_rp_valid = 0
+    for i in range(count):
+        s = out_stars[i]
+        if s.magBP > 0:
+            n_bp_valid += 1
+            if not (-2.0 < s.magBP < 25.0 and abs(s.magBP - s.magG) < 7.0):
+                all_bp_ok = False
+        if s.magRP > 0:
+            n_rp_valid += 1
+            if not (-2.0 < s.magRP < 25.0 and abs(s.magRP - s.magG) < 7.0):
+                all_rp_ok = False
+
+    print(f"\n  验证汇总:")
+    print(f"    星数>0: PASS ({count})")
+    print(f"    有BP测光的星: {n_bp_valid}/{count}")
+    print(f"    有RP测光的星: {n_rp_valid}/{count}")
+    print(f"    magBP与magG相差<5.0等 (前5颗): {'PASS' if mag_bp_ok else 'FAIL'}")
+    print(f"    magRP与magG相差<5.0等 (前5颗): {'PASS' if mag_rp_ok else 'FAIL'}")
+    print(f"    全部有BP星等合理: {'PASS' if all_bp_ok else 'FAIL'}")
+    print(f"    全部有RP星等合理: {'PASS' if all_rp_ok else 'FAIL'}")
+
+    ctypes.cdll.msvcrt.free(out_stars)
+    dll.gaia_client_destroy(client)
+
+    passed = count > 0 and mag_bp_ok and mag_rp_ok and all_bp_ok and all_rp_ok
     print(f"\n  结果: {'PASS' if passed else 'FAIL'}")
     return passed
 
@@ -463,7 +546,7 @@ def test3_full_block_parsing():
 
 def main():
     print("=" * 60)
-    print("Gaia DR3SP 光谱接口验证测试")
+    print("Gaia DR3SP 光谱/测光接口验证测试")
     print("=" * 60)
 
     dll = load_dll()
@@ -474,6 +557,7 @@ def main():
     results['test1'] = test1_cone_search(dll)
     results['test2'] = test2_spectrum_reading(dll)
     results['test3'] = test3_full_block_parsing()
+    results['test4'] = test4_photometry(dll)
 
     print("\n" + "=" * 60)
     print("测试结果汇总")
