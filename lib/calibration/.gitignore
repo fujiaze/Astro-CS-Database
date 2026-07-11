@@ -1,13 +1,20 @@
-# 日志文件
-logs/
-
-# Python 缓存
-__pycache__/
-*.pyc
-
-# 编译产物
+# Build artifacts
+*.o
+*.obj
 *.dll
 *.exp
 *.lib
-*.o
-*.obj
+build_error.txt
+build_output.txt
+
+# Logs
+logs/
+
+# Python
+__pycache__/
+*.pyc
+*.pyd
+
+# IDE
+.vscode/
+.idea/
