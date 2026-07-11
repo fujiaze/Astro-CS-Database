@@ -1643,6 +1643,149 @@ int gaia_client_cone_search_with_spectrum(
     return 0;
 }
 
+int gaia_client_query_spectrum_by_coords(
+    GaiaClient *client,
+    const double *ra_list,
+    const double *dec_list,
+    int n_coords,
+    double match_radius_arcsec,
+    double mag_low,
+    double mag_high,
+    GaiaSpectrumStar **out_stars,
+    uint8_t **out_spectra,
+    int **out_match_idx,
+    int *out_count) {
+
+    int nfiles = client->file_count;
+    if (nfiles == 0 || n_coords <= 0) {
+        *out_stars = NULL;
+        *out_spectra = NULL;
+        *out_match_idx = NULL;
+        *out_count = 0;
+        return 0;
+    }
+
+    double radius_deg = match_radius_arcsec / 3600.0;
+    double cos_radius = cos(radius_deg * DEG2RAD);
+
+    /* 获取全局光谱点数 (取第一个有光谱的文件) */
+    int global_spec_count = WL_COUNT;
+    for (int f = 0; f < nfiles; f++) {
+        if (client->files[f].has_spectrum) {
+            global_spec_count = client->files[f].spectrum_count;
+            if (global_spec_count == 0) global_spec_count = WL_COUNT;
+            break;
+        }
+    }
+
+    /* 临时数组: 每个坐标的最佳匹配结果 (并行写入) */
+    GaiaSpectrumStar *temp_stars = (GaiaSpectrumStar *)malloc(n_coords * sizeof(GaiaSpectrumStar));
+    uint8_t *temp_spectra = (uint8_t *)malloc((size_t)n_coords * global_spec_count);
+    int *found_flags = (int *)calloc(n_coords, sizeof(int));
+
+    if (!temp_stars || !temp_spectra || !found_flags) {
+        free(temp_stars);
+        free(temp_spectra);
+        free(found_flags);
+        *out_stars = NULL;
+        *out_spectra = NULL;
+        *out_match_idx = NULL;
+        *out_count = 0;
+        return -1;
+    }
+
+    /* 并行搜索: 每个坐标独立搜索所有文件，找角距离最近的星 */
+    #pragma omp parallel for schedule(dynamic) num_threads(16)
+    for (int i = 0; i < n_coords; i++) {
+        double ra = ra_list[i];
+        double dec = dec_list[i];
+        double cos_ra_q = cos(ra * DEG2RAD);
+        double sin_ra_q = sin(ra * DEG2RAD);
+        double cos_dec_q = cos(dec * DEG2RAD);
+        double sin_dec_q = sin(dec * DEG2RAD);
+
+        double best_ang_dist = 1e9;
+
+        for (int f = 0; f < nfiles; f++) {
+            XPSDFileInternal *xf = &client->files[f];
+            uint32_t scratch_size = xf->global_max_block_size;
+            if (scratch_size == 0) scratch_size = 65536;
+            uint8_t *scratch = (uint8_t *)malloc(scratch_size);
+            if (!scratch) continue;
+
+            int spec_count = 0;
+            if (xf->has_spectrum) {
+                spec_count = xf->spectrum_count;
+                if (spec_count == 0) spec_count = WL_COUNT;
+            }
+
+            SpectrumStarCollector sc;
+            spec_collector_init(&sc, 16, spec_count);
+
+            for (int t = 0; t < xf->tree_count; t++) {
+                if (xf->trees[t].node_count > 0 && xf->trees[t].nodes)
+                    search_recursive_spectrum(xf, &xf->trees[t], 0, ra, dec, radius_deg,
+                                              mag_low, mag_high, cos_ra_q, sin_ra_q,
+                                              cos_dec_q, sin_dec_q, cos_radius, &sc, scratch);
+            }
+            free(scratch);
+
+            /* 从 collector 中找角距离最小的星 */
+            for (int j = 0; j < sc.count; j++) {
+                double s_ra = sc.stars[j].ra;
+                double s_dec = sc.stars[j].dec;
+                /* 球面角距离: cos(d) = sin(dec_q)*sin(dec_s) + cos(dec_q)*cos(dec_s)*cos(ra_q-ra_s) */
+                double cos_d = sin_dec_q * sin(s_dec * DEG2RAD) +
+                               cos_dec_q * cos(s_dec * DEG2RAD) *
+                               (cos_ra_q * cos(s_ra * DEG2RAD) + sin_ra_q * sin(s_ra * DEG2RAD));
+                if (cos_d > 1.0) cos_d = 1.0;
+                if (cos_d < -1.0) cos_d = -1.0;
+                double ang_dist = acos(cos_d);
+                if (ang_dist < best_ang_dist) {
+                    best_ang_dist = ang_dist;
+                    temp_stars[i].ra = s_ra;
+                    temp_stars[i].dec = s_dec;
+                    temp_stars[i].magG = sc.stars[j].magG;
+                    int copy_cnt = sc.spectrum_count;
+                    if (copy_cnt > global_spec_count) copy_cnt = global_spec_count;
+                    memcpy(temp_spectra + (size_t)i * global_spec_count,
+                           sc.spectra + (size_t)j * sc.spectrum_count, copy_cnt);
+                    found_flags[i] = 1;
+                }
+            }
+            spec_collector_free(&sc);
+        }
+    }
+
+    /* 压缩: 将匹配结果紧凑排列到输出数组 */
+    GaiaSpectrumStar *result_stars = (GaiaSpectrumStar *)malloc(n_coords * sizeof(GaiaSpectrumStar));
+    uint8_t *result_spectra = (uint8_t *)malloc((size_t)n_coords * global_spec_count);
+    int *match_idx = (int *)malloc(n_coords * sizeof(int));
+    int matched_count = 0;
+
+    for (int i = 0; i < n_coords; i++) {
+        if (found_flags[i]) {
+            result_stars[matched_count] = temp_stars[i];
+            memcpy(result_spectra + (size_t)matched_count * global_spec_count,
+                   temp_spectra + (size_t)i * global_spec_count, global_spec_count);
+            match_idx[i] = matched_count;
+            matched_count++;
+        } else {
+            match_idx[i] = -1;
+        }
+    }
+
+    free(temp_stars);
+    free(temp_spectra);
+    free(found_flags);
+
+    *out_stars = result_stars;
+    *out_spectra = result_spectra;
+    *out_match_idx = match_idx;
+    *out_count = matched_count;
+    return 0;
+}
+
 int gaia_client_cone_search_with_photometry(
     GaiaClient *client,
     double ra, double dec, double radius_deg,

@@ -6,3 +6,5 @@
 *.lib
 *.exe
 *.out
+__pycache__/
+*.pyc

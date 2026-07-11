@@ -77,6 +77,19 @@ GAIA_EXPORT int gaia_client_cone_search_with_spectrum(
     uint8_t **out_spectra,
     int *out_count);
 
+GAIA_EXPORT int gaia_client_query_spectrum_by_coords(
+    GaiaClient *client,
+    const double *ra_list,
+    const double *dec_list,
+    int n_coords,
+    double match_radius_arcsec,
+    double mag_low,
+    double mag_high,
+    GaiaSpectrumStar **out_stars,
+    uint8_t **out_spectra,
+    int **out_match_idx,
+    int *out_count);
+
 GAIA_EXPORT int gaia_client_cone_search_with_photometry(
     GaiaClient *client,
     double ra, double dec, double radius_deg,
