@@ -1,0 +1,13 @@
+# 日志文件
+logs/
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# 编译产物
+*.dll
+*.exp
+*.lib
+*.o
+*.obj
