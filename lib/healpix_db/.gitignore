@@ -1,0 +1,15 @@
+*.dll
+*.o
+*.obj
+*.lib
+*.exp
+*.pdb
+*.exe
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+logs/
+*.log
+.pytest_cache/
+nul
