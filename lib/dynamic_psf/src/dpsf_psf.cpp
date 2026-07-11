@@ -353,10 +353,8 @@ int moffat4_fit(const float* image, int width, int height,
     double final_params[7] = { B, A, x0, y0, sx, sy, theta };
     double mad = compute_trimmed_mad(samples.data(), m, final_params);
 
-    double flux = 0;
-    for (int i = 0; i < m; i++) {
-        if (samples[i].val > B) flux += samples[i].val - B;
-    }
+    // Moffat4 (beta=4) 解析积分: flux = 2 * pi * A * sx * sy / (beta - 1) = 2 * pi * A * sx * sy / 3
+    double flux = 2.0 * M_PI * A * sx * sy / 3.0;
 
     double sx_max = std::max(sx, sy), sx_min = std::min(sx, sy);
     double eccentricity = std::sqrt(1.0 - (sx_min / sx_max) * (sx_min / sx_max));
