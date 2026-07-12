@@ -122,8 +122,40 @@ AIO_EXPORT void aio_free_image_data(AIOImageData *image);
 AIO_EXPORT int aio_is_fits(const char *path);
 AIO_EXPORT int aio_is_xisf(const char *path);
 
+// ============================================================================
+// 压缩 API (codec: 0=NONE, 1=ZSTD, 2=LZ4; level: zstd 1-22, lz4 忽略)
+// ============================================================================
+AIO_EXPORT size_t aio_compress(const void *src, size_t srcSize,
+                                void *dst, size_t dstCapacity,
+                                int codec, int level);
+AIO_EXPORT size_t aio_decompress(const void *src, size_t srcSize,
+                                  void *dst, size_t dstCapacity,
+                                  int codec);
+AIO_EXPORT size_t aio_compress_bound(size_t srcSize, int codec);
+
+// ============================================================================
+// .ahpx 读写 API (管线入口/出口的文件 I/O)
+// ============================================================================
+AIO_EXPORT int aio_ahpx_write(const char *path,
+                               const void *pixels, int width, int height, int channels,
+                               const float *snr, int snr_w, int snr_h,
+                               int weight_mode, const void *weight_data,
+                               int grid_w, int grid_h,
+                               const char *metadata_json,
+                               int zstd_level);
+AIO_EXPORT int aio_ahpx_read_header(const char *path,
+                                     char *metadata_json, int metadata_capacity);
+AIO_EXPORT int aio_ahpx_read_pixels(const char *path,
+                                     float *pixels, int capacity,
+                                     int *width, int *height, int *channels);
+AIO_EXPORT int aio_ahpx_read_snr(const char *path,
+                                  float *snr, int capacity,
+                                  int *width, int *height);
+
 #ifdef __cplusplus
 }
 #endif
+
+#include "aio_pipeline.h"
 
 #endif

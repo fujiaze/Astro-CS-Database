@@ -583,3 +583,354 @@ class FITSWriter:
         if ret != 0:
             raise RuntimeError(f"FITS写入失败: {path}")
         return path
+
+
+# ============================================================================
+# ahpx 模块 (合并自 ahpx_io.py)
+# 通过 astro_image_io.dll 导出的 aio_ahpx_* API 读写 .ahpx 格式
+# .ahpx: 单帧图像(像素+SNR+权重+元数据)的自定义二进制存储格式
+# ============================================================================
+
+from ctypes import c_char_p, create_string_buffer, pointer
+
+# 权重模式常量 (对应 aio::ahpx::WeightMode)
+AHPX_WEIGHT_SCALAR = 0   # 整图统一权重 (标量)
+AHPX_WEIGHT_GRID = 1     # 分块网格权重 (gw×gh)
+AHPX_WEIGHT_PIXEL = 2    # 逐像素权重 (W×H)
+
+# header JSON 缓冲区容量 (字节)
+_AHPX_HEADER_JSON_CAPACITY = 65536
+
+# .ahpx 文件 Magic
+_AHPX_MAGIC = b"AHPX"
+
+
+def _find_ahpx_dll() -> str:
+    """查找 astro_image_io.dll (ahpx API 已合并到其中)
+
+    查找顺序: 同目录 → 上级目录 (lib/astro_image_io/)
+    """
+    dll_name = "astro_image_io.dll"
+    base = os.path.dirname(os.path.abspath(__file__))
+    candidates = [
+        os.path.join(base, dll_name),                           # 同目录
+        os.path.normpath(os.path.join(base, "..", dll_name)),   # 上级目录
+    ]
+    for p in candidates:
+        if os.path.isfile(p):
+            return p
+    return os.path.normpath(os.path.join(base, "..", dll_name))
+
+
+def _load_ahpx_dll(dll_path: str):
+    """加载 astro_image_io.dll 并配置 aio_ahpx_* 函数签名 (复用现有 _load_dll)"""
+    dll = _load_dll(dll_path)
+
+    # aio_ahpx_write(path, pixels, w, h, c, snr, snr_w, snr_h,
+    #                weight_mode, weight_data, grid_w, grid_h,
+    #                metadata_json, zstd_level) -> int
+    dll.aio_ahpx_write.argtypes = [
+        c_char_p,                                   # path
+        POINTER(c_float), c_int, c_int, c_int,      # pixels, width, height, channels
+        POINTER(c_float), c_int, c_int,             # snr, snr_w, snr_h
+        c_int, POINTER(c_float),                    # weight_mode, weight_data
+        c_int, c_int,                               # grid_w, grid_h
+        c_char_p,                                   # metadata_json
+        c_int,                                      # zstd_level
+    ]
+    dll.aio_ahpx_write.restype = c_int
+
+    # aio_ahpx_read_header(path, metadata_json, capacity) -> int
+    dll.aio_ahpx_read_header.argtypes = [c_char_p, c_char_p, c_int]
+    dll.aio_ahpx_read_header.restype = c_int
+
+    # aio_ahpx_read_pixels(path, pixels, capacity, &w, &h, &c) -> int
+    dll.aio_ahpx_read_pixels.argtypes = [
+        c_char_p, POINTER(c_float), c_int,
+        POINTER(c_int), POINTER(c_int), POINTER(c_int),
+    ]
+    dll.aio_ahpx_read_pixels.restype = c_int
+
+    # aio_ahpx_read_snr(path, snr, capacity, &w, &h) -> int
+    dll.aio_ahpx_read_snr.argtypes = [
+        c_char_p, POINTER(c_float), c_int,
+        POINTER(c_int), POINTER(c_int),
+    ]
+    dll.aio_ahpx_read_snr.restype = c_int
+
+    return dll
+
+
+class AhpxReader:
+    """.ahpx 文件读取器, 封装 astro_image_io.dll 的 aio_ahpx_read_* API
+
+    新 C API 是一次性调用 (非对象式), 每次 read_* 都会重新打开文件。
+    __init__ 中调用 aio_ahpx_read_header 获取并缓存元数据 JSON。
+    """
+
+    def __init__(self, path: str, dll_path: Optional[str] = None):
+        self._path = path
+        self._closed = False
+        self._header_json_cache: Optional[str] = None
+        self._image_info_cache: Optional[tuple] = None
+        if dll_path is None:
+            dll_path = _find_ahpx_dll()
+        self._dll = _load_ahpx_dll(dll_path)
+        # __init__ 中调用 aio_ahpx_read_header 获取元数据
+        buf = create_string_buffer(_AHPX_HEADER_JSON_CAPACITY)
+        path_bytes = path.encode("utf-8")
+        ret = self._dll.aio_ahpx_read_header(path_bytes, buf, _AHPX_HEADER_JSON_CAPACITY)
+        if ret != 0:
+            raise RuntimeError(f"读取 .ahpx header 失败 (code={ret}): {path}")
+        self._header_json_cache = buf.value.decode("utf-8", errors="replace")
+
+    @property
+    def header_json(self) -> str:
+        """元数据 JSON 字符串 (已解压)"""
+        return self._header_json_cache
+
+    @property
+    def image_info(self) -> tuple:
+        """(width, height, channels) - 从 header JSON 的 image 对象解析"""
+        if self._image_info_cache is None:
+            import json
+            try:
+                meta = json.loads(self._header_json_cache) if self._header_json_cache else {}
+            except (json.JSONDecodeError, ValueError):
+                meta = {}
+            img = meta.get("image", {}) if isinstance(meta, dict) else {}
+            w = int(img.get("width", 0))
+            h = int(img.get("height", 0))
+            c = int(img.get("channels", 1))
+            self._image_info_cache = (w, h, c)
+        return self._image_info_cache
+
+    @property
+    def width(self) -> int:
+        return self.image_info[0]
+
+    @property
+    def height(self) -> int:
+        return self.image_info[1]
+
+    @property
+    def channels(self) -> int:
+        return self.image_info[2]
+
+    def read_pixels(self) -> np.ndarray:
+        """读取像素数据, 返回 float32 numpy array (H, W, C)"""
+        w, h, c = self.image_info
+        if w <= 0 or h <= 0 or c <= 0:
+            raise RuntimeError(f"无效图像几何 (w={w} h={h} c={c})")
+        n = h * w * c
+        buf = (c_float * n)()
+        out_w, out_h, out_c = c_int(0), c_int(0), c_int(0)
+        ret = self._dll.aio_ahpx_read_pixels(
+            self._path.encode("utf-8"),
+            buf, n,
+            byref(out_w), byref(out_h), byref(out_c),
+        )
+        if ret != 0:
+            raise RuntimeError(f"读取像素数据失败 (code={ret})")
+        arr = np.frombuffer(buf, dtype=np.float32, count=n).copy()
+        return arr.reshape(h, w, c)
+
+    def read_snr(self) -> np.ndarray:
+        """读取 SNR 图, 返回 float32 numpy array (H, W)
+
+        SNR 与图像同尺寸, 从 image_info 推断缓冲区大小。
+        """
+        w, h, c = self.image_info
+        if w <= 0 or h <= 0:
+            raise RuntimeError(f"无效图像几何 (w={w} h={h})")
+        n = h * w
+        buf = (c_float * n)()
+        out_w, out_h = c_int(0), c_int(0)
+        ret = self._dll.aio_ahpx_read_snr(
+            self._path.encode("utf-8"),
+            buf, n,
+            byref(out_w), byref(out_h),
+        )
+        if ret != 0:
+            raise RuntimeError(f"读取 SNR 数据失败 (code={ret}, 文件可能不包含 SNR)")
+        arr = np.frombuffer(buf, dtype=np.float32, count=n).copy()
+        return arr.reshape(h, w)
+
+    def close(self) -> None:
+        # 新 API 是一次性的, 无需关闭 handle; 仅清理缓存
+        self._header_json_cache = None
+        self._image_info_cache = None
+        self._closed = True
+
+    def __del__(self):
+        self.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
+
+class AhpxWriter:
+    """.ahpx 文件写入器, 封装 astro_image_io.dll 的 aio_ahpx_write API
+
+    新 C API 是一次性写入 (非对象式), Python 端缓存所有数据,
+    write() 时一次性调用 aio_ahpx_write。
+    """
+
+    def __init__(self, dll_path: Optional[str] = None):
+        self._closed = False
+        self._metadata_json: Optional[str] = None
+        self._pixels: Optional[np.ndarray] = None
+        self._pixel_w = 0
+        self._pixel_h = 0
+        self._pixel_c = 1
+        self._snr: Optional[np.ndarray] = None
+        self._snr_w = 0
+        self._snr_h = 0
+        self._weight_mode = AHPX_WEIGHT_SCALAR
+        self._weight_scalar = 1.0
+        self._weight_grid: Optional[np.ndarray] = None
+        self._weight_grid_w = 0
+        self._weight_grid_h = 0
+        self._weight_pixel: Optional[np.ndarray] = None
+        if dll_path is None:
+            dll_path = _find_ahpx_dll()
+        self._dll = _load_ahpx_dll(dll_path)
+
+    def set_metadata(self, json_str: str) -> None:
+        """设置元数据 JSON 字符串"""
+        self._metadata_json = json_str
+
+    def set_pixels(self, pixels: np.ndarray, width: int, height: int, channels: int) -> None:
+        """设置像素数据 (float32, W×H×C)"""
+        arr = np.ascontiguousarray(pixels, dtype=np.float32)
+        expected = height * width * channels
+        if arr.size != expected:
+            raise ValueError(f"像素数据大小不匹配: 期望 {expected}, 实际 {arr.size}")
+        self._pixels = arr  # 持有引用防止 GC (write 时取指针)
+        self._pixel_w = width
+        self._pixel_h = height
+        self._pixel_c = channels
+
+    def set_snr(self, snr: np.ndarray, width: int, height: int) -> None:
+        """设置 SNR 图 (float32, W×H)"""
+        arr = np.ascontiguousarray(snr, dtype=np.float32)
+        expected = height * width
+        if arr.size != expected:
+            raise ValueError(f"SNR 数据大小不匹配: 期望 {expected}, 实际 {arr.size}")
+        self._snr = arr
+        self._snr_w = width
+        self._snr_h = height
+
+    def set_weight_scalar(self, scalar: float) -> None:
+        """设置标量权重 (整图统一)"""
+        self._weight_mode = AHPX_WEIGHT_SCALAR
+        self._weight_scalar = float(scalar)
+        self._weight_grid = None
+        self._weight_pixel = None
+
+    def set_weight_grid(self, grid: np.ndarray, gw: int, gh: int) -> None:
+        """设置网格权重 (float32, gw×gh)"""
+        arr = np.ascontiguousarray(grid, dtype=np.float32)
+        expected = gw * gh
+        if arr.size != expected:
+            raise ValueError(f"权重网格大小不匹配: 期望 {expected}, 实际 {arr.size}")
+        self._weight_mode = AHPX_WEIGHT_GRID
+        self._weight_grid = arr
+        self._weight_grid_w = gw
+        self._weight_grid_h = gh
+        self._weight_pixel = None
+
+    def set_weight_pixel(self, data: np.ndarray, width: int, height: int) -> None:
+        """设置逐像素权重 (float32, W×H)"""
+        arr = np.ascontiguousarray(data, dtype=np.float32)
+        expected = height * width
+        if arr.size != expected:
+            raise ValueError(f"权重像素数据大小不匹配: 期望 {expected}, 实际 {arr.size}")
+        self._weight_mode = AHPX_WEIGHT_PIXEL
+        self._weight_pixel = arr
+        self._weight_grid = None
+
+    def write(self, path: str, zstd_level: int = 5) -> str:
+        """写入 .ahpx 文件 (一次性)
+
+        zstd_level: 0=不压缩, 1-22 压缩级别 (推荐 5)
+        """
+        if self._pixels is None:
+            raise RuntimeError("未设置像素数据, 请先调用 set_pixels()")
+
+        path_bytes = path.encode("utf-8")
+        pixels_ptr = self._pixels.ctypes.data_as(POINTER(c_float))
+
+        # SNR (可为 None)
+        if self._snr is not None:
+            snr_ptr = self._snr.ctypes.data_as(POINTER(c_float))
+            snr_w = self._snr_w
+            snr_h = self._snr_h
+        else:
+            snr_ptr = None
+            snr_w = 0
+            snr_h = 0
+
+        # 权重数据指针
+        grid_w = 0
+        grid_h = 0
+        if self._weight_mode == AHPX_WEIGHT_SCALAR:
+            scalar_buf = c_float(self._weight_scalar)
+            weight_ptr = pointer(scalar_buf)
+        elif self._weight_mode == AHPX_WEIGHT_GRID:
+            weight_ptr = self._weight_grid.ctypes.data_as(POINTER(c_float))
+            grid_w = self._weight_grid_w
+            grid_h = self._weight_grid_h
+        elif self._weight_mode == AHPX_WEIGHT_PIXEL:
+            weight_ptr = self._weight_pixel.ctypes.data_as(POINTER(c_float))
+        else:
+            raise RuntimeError(f"未知权重模式: {self._weight_mode}")
+
+        # 元数据 JSON (可为 None)
+        meta_bytes = self._metadata_json.encode("utf-8") if self._metadata_json else None
+
+        ret = self._dll.aio_ahpx_write(
+            path_bytes,
+            pixels_ptr, self._pixel_w, self._pixel_h, self._pixel_c,
+            snr_ptr, snr_w, snr_h,
+            self._weight_mode, weight_ptr,
+            grid_w, grid_h,
+            meta_bytes,
+            zstd_level,
+        )
+        if ret != 0:
+            raise RuntimeError(f"写入 .ahpx 文件失败 (code={ret}): {path}")
+        return path
+
+    def close(self) -> None:
+        self._pixels = None
+        self._snr = None
+        self._weight_grid = None
+        self._weight_pixel = None
+        self._closed = True
+
+    def __del__(self):
+        self.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
+
+def is_ahpx(path: str, dll_path: Optional[str] = None) -> bool:
+    """检查文件是否为 .ahpx 格式 (检查文件头 Magic 'AHPX')
+
+    直接读取文件头前 4 字节, 不依赖 DLL。
+    保留 dll_path 参数仅为 API 兼容, 实际不使用。
+    """
+    try:
+        with open(path, "rb") as f:
+            magic = f.read(4)
+        return magic == _AHPX_MAGIC
+    except (OSError, IOError):
+        return False
