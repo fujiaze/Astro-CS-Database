@@ -157,5 +157,6 @@ AIO_EXPORT int aio_ahpx_read_snr(const char *path,
 #endif
 
 #include "aio_pipeline.h"
+#include "aio_pipeline_engine.h"
 
 #endif

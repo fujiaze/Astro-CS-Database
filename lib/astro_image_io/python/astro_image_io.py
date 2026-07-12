@@ -934,3 +934,443 @@ def is_ahpx(path: str, dll_path: Optional[str] = None) -> bool:
         return magic == _AHPX_MAGIC
     except (OSError, IOError):
         return False
+
+
+# ============================================================================
+# Pipeline 管线引擎模块
+# 封装 astro_image_io.dll 的 aio_pipeline_engine_* / aio_pipeline_frame_* API
+# ============================================================================
+
+from ctypes import (
+    CFUNCTYPE, c_int64, c_size_t, cast as c_cast,
+)
+
+# 阶段枚举常量 (对应 PipelineStage)
+STAGE_CALIBRATE = 0
+STAGE_PLATESOLVE = 1
+STAGE_PHOTOMETRIC = 2
+STAGE_DRIZZLE = 3
+STAGE_STACK = 4
+
+# 调试导出阶段位掩码
+DEBUG_AFTER_CALIBRATE = 1 << STAGE_CALIBRATE
+DEBUG_AFTER_PLATESOLVE = 1 << STAGE_PLATESOLVE
+DEBUG_AFTER_PHOTOMETRIC = 1 << STAGE_PHOTOMETRIC
+DEBUG_AFTER_DRIZZLE = 1 << STAGE_DRIZZLE
+DEBUG_AFTER_STACK = 1 << STAGE_STACK
+DEBUG_AFTER_ALL = -1
+
+
+class _CPipelineFrame(Structure):
+    """PipelineFrame C 结构体的 ctypes 映射 (对应 aio_pipeline.h)"""
+    _fields_ = [
+        # 图像数据
+        ("pixel_data", POINTER(c_float)),
+        ("width", c_int),
+        ("height", c_int),
+        ("channels", c_int),
+        # WCS 数据
+        ("cd", c_double * 4),
+        ("crval", c_double * 2),
+        ("crpix", c_double * 2),
+        ("ctype1", c_char * 16),
+        ("ctype2", c_char * 16),
+        ("sip_a", c_double * 36),
+        ("sip_b", c_double * 36),
+        ("sip_ap", c_double * 36),
+        ("sip_bp", c_double * 36),
+        ("sip_order", c_int),
+        ("sip_ap_order", c_int),
+        # 辅助数据
+        ("snr_data", POINTER(c_float)),
+        ("weight_data", POINTER(c_float)),
+        # HEALPix 数据
+        ("healpix_pixels", POINTER(c_float)),
+        ("healpix_snr", POINTER(c_float)),
+        ("healpix_ipix", POINTER(c_int64)),
+        ("n_healpix", c_int64),
+        ("nside", c_int),
+        ("nested", c_int),
+        ("pixfrac", c_double),
+        # 元数据
+        ("source_path", c_char * 512),
+        ("object_name", c_char * 128),
+        ("exptime", c_double),
+        ("filter_name", c_char * 64),
+        ("jd_obs", c_double),
+        ("rms_arcsec", c_double),
+        ("n_pairs", c_int),
+        # 状态标记
+        ("stages_completed", c_int),
+        ("has_wcs", c_int),
+        ("has_sip", c_int),
+    ]
+
+
+# 阶段处理函数类型: int (*)(PipelineFrame* frame, const void* params, char* error_msg, int error_capacity)
+PipelineStageHandlerC = CFUNCTYPE(
+    c_int,                  # 返回值
+    POINTER(_CPipelineFrame),  # frame
+    c_void_p,               # params
+    c_char_p,               # error_msg
+    c_int,                  # error_capacity
+)
+
+
+def _load_pipeline_dll(dll_path: str):
+    """加载 astro_image_io.dll 并配置 pipeline 相关函数签名"""
+    dll = _load_dll(dll_path)
+
+    # PipelineFrame 内存管理
+    dll.aio_pipeline_frame_create.argtypes = []
+    dll.aio_pipeline_frame_create.restype = POINTER(_CPipelineFrame)
+
+    dll.aio_pipeline_frame_destroy.argtypes = [POINTER(_CPipelineFrame)]
+    dll.aio_pipeline_frame_destroy.restype = None
+
+    dll.aio_pipeline_frame_alloc_pixels.argtypes = [POINTER(_CPipelineFrame), c_int, c_int, c_int]
+    dll.aio_pipeline_frame_alloc_pixels.restype = c_int
+
+    dll.aio_pipeline_frame_alloc_snr.argtypes = [POINTER(_CPipelineFrame), c_int, c_int]
+    dll.aio_pipeline_frame_alloc_snr.restype = c_int
+
+    dll.aio_pipeline_frame_alloc_weight.argtypes = [POINTER(_CPipelineFrame), c_int, c_int]
+    dll.aio_pipeline_frame_alloc_weight.restype = c_int
+
+    dll.aio_pipeline_frame_alloc_healpix.argtypes = [POINTER(_CPipelineFrame), c_int64]
+    dll.aio_pipeline_frame_alloc_healpix.restype = c_int
+
+    dll.aio_pipeline_frame_free_pixels.argtypes = [POINTER(_CPipelineFrame)]
+    dll.aio_pipeline_frame_free_pixels.restype = None
+
+    dll.aio_pipeline_frame_free_snr.argtypes = [POINTER(_CPipelineFrame)]
+    dll.aio_pipeline_frame_free_snr.restype = None
+
+    dll.aio_pipeline_frame_free_weight.argtypes = [POINTER(_CPipelineFrame)]
+    dll.aio_pipeline_frame_free_weight.restype = None
+
+    dll.aio_pipeline_frame_free_healpix.argtypes = [POINTER(_CPipelineFrame)]
+    dll.aio_pipeline_frame_free_healpix.restype = None
+
+    dll.aio_pipeline_frame_memory_usage.argtypes = [POINTER(_CPipelineFrame)]
+    dll.aio_pipeline_frame_memory_usage.restype = c_size_t
+
+    dll.aio_pipeline_export_xml.argtypes = [POINTER(_CPipelineFrame), c_char_p, c_char_p]
+    dll.aio_pipeline_export_xml.restype = c_int
+
+    # 引擎 API
+    dll.aio_pipeline_engine_create.argtypes = []
+    dll.aio_pipeline_engine_create.restype = c_void_p
+
+    dll.aio_pipeline_engine_destroy.argtypes = [c_void_p]
+    dll.aio_pipeline_engine_destroy.restype = None
+
+    dll.aio_pipeline_engine_register.argtypes = [
+        c_void_p, c_int, PipelineStageHandlerC, c_void_p
+    ]
+    dll.aio_pipeline_engine_register.restype = c_int
+
+    dll.aio_pipeline_engine_set_debug.argtypes = [c_void_p, c_char_p, c_int, c_int]
+    dll.aio_pipeline_engine_set_debug.restype = c_int
+
+    dll.aio_pipeline_engine_set_auto_free.argtypes = [c_void_p, c_int]
+    dll.aio_pipeline_engine_set_auto_free.restype = c_int
+
+    dll.aio_pipeline_engine_run_single.argtypes = [
+        c_void_p, POINTER(_CPipelineFrame), c_int, c_int, c_char_p, c_int
+    ]
+    dll.aio_pipeline_engine_run_single.restype = c_int
+
+    dll.aio_pipeline_engine_run_batch.argtypes = [
+        c_void_p, POINTER(POINTER(_CPipelineFrame)), c_int, c_int, c_int, c_int, c_char_p, c_int
+    ]
+    dll.aio_pipeline_engine_run_batch.restype = c_int
+
+    dll.aio_pipeline_stage_name.argtypes = [c_int]
+    dll.aio_pipeline_stage_name.restype = c_char_p
+
+    return dll
+
+
+class PipelineFramePy:
+    """PipelineFrame Python 封装, 管理 C 端 PipelineFrame 的生命周期
+
+    用法:
+        frame = PipelineFramePy()
+        frame.set_pixels(numpy_array, w, h, c)
+        frame.set_source_path("/path/to/image.fits")
+        frame.set_wcs(cd, crval, crpix, ctype1, ctype2)
+        # ... 传递给 PipelineEngine 执行
+    """
+
+    def __init__(self, dll_path: Optional[str] = None):
+        if dll_path is None:
+            dll_path = _find_ahpx_dll()
+        self._dll = _load_pipeline_dll(dll_path)
+        self._frame = self._dll.aio_pipeline_frame_create()
+        if not self._frame:
+            raise RuntimeError("aio_pipeline_frame_create 失败")
+        self._pixel_buf = None  # 持有 numpy 数组引用防止 GC
+        self._snr_buf = None
+        self._weight_buf = None
+        self._closed = False
+
+    @property
+    def handle(self) -> int:
+        """C 端 PipelineFrame 指针 (用于传递给引擎)"""
+        return c_cast(self._frame, c_void_p).value
+
+    @property
+    def c_frame(self):
+        """直接访问 C PipelineFrame 结构体"""
+        return self._frame
+
+    @property
+    def memory_usage(self) -> int:
+        """当前帧内存占用 (字节)"""
+        return self._dll.aio_pipeline_frame_memory_usage(self._frame)
+
+    def set_source_path(self, path: str) -> None:
+        """设置源文件路径 (用于日志和调试导出文件名)"""
+        path_bytes = path.encode("utf-8")[:511]
+        self._frame.contents.source_path = path_bytes
+
+    def set_pixels(self, pixels: np.ndarray, width: int, height: int, channels: int = 1) -> None:
+        """设置像素数据 (分配 C 端内存并拷贝)
+
+        pixels: float32 numpy array, 大小 = height * width * channels
+        """
+        arr = np.ascontiguousarray(pixels, dtype=np.float32)
+        expected = height * width * channels
+        if arr.size != expected:
+            raise ValueError(f"像素数据大小不匹配: 期望 {expected}, 实际 {arr.size}")
+        ret = self._dll.aio_pipeline_frame_alloc_pixels(self._frame, width, height, channels)
+        if ret != 0:
+            raise RuntimeError(f"alloc_pixels 失败 (code={ret})")
+        # 拷贝数据到 C 端缓冲区
+        c_ptr = self._frame.contents.pixel_data
+        if c_ptr:
+            dst = np.ctypeslib.as_array(c_ptr, shape=(expected,))
+            dst[:] = arr.ravel()
+        self._pixel_buf = arr  # 持有引用
+
+    def set_wcs(self, cd: list, crval: list, crpix: list,
+                ctype1: str = "RA---TAN", ctype2: str = "DEC--TAN") -> None:
+        """设置 WCS 参数"""
+        for i in range(min(4, len(cd))):
+            self._frame.contents.cd[i] = float(cd[i])
+        for i in range(min(2, len(crval))):
+            self._frame.contents.crval[i] = float(crval[i])
+        for i in range(min(2, len(crpix))):
+            self._frame.contents.crpix[i] = float(crpix[i])
+        self._frame.contents.ctype1 = ctype1.encode("utf-8")[:15]
+        self._frame.contents.ctype2 = ctype2.encode("utf-8")[:15]
+        self._frame.contents.has_wcs = 1
+
+    def set_sip(self, sip_a: list, sip_b: list, sip_ap: list, sip_bp: list,
+                order: int = 3, ap_order: int = 3) -> None:
+        """设置 SIP 畸变多项式系数"""
+        for i in range(min(36, len(sip_a))):
+            self._frame.contents.sip_a[i] = float(sip_a[i])
+        for i in range(min(36, len(sip_b))):
+            self._frame.contents.sip_b[i] = float(sip_b[i])
+        for i in range(min(36, len(sip_ap))):
+            self._frame.contents.sip_ap[i] = float(sip_ap[i])
+        for i in range(min(36, len(sip_bp))):
+            self._frame.contents.sip_bp[i] = float(sip_bp[i])
+        self._frame.contents.sip_order = order
+        self._frame.contents.sip_ap_order = ap_order
+        self._frame.contents.has_sip = 1
+
+    def set_metadata(self, object_name: str = "", exptime: float = 0.0,
+                     filter_name: str = "", jd_obs: float = 0.0) -> None:
+        """设置元数据"""
+        self._frame.contents.object_name = object_name.encode("utf-8")[:127]
+        self._frame.contents.exptime = float(exptime)
+        self._frame.contents.filter_name = filter_name.encode("utf-8")[:63]
+        self._frame.contents.jd_obs = float(jd_obs)
+
+    def free_pixels(self) -> None:
+        """释放像素数据"""
+        self._dll.aio_pipeline_frame_free_pixels(self._frame)
+        self._pixel_buf = None
+
+    def free_snr(self) -> None:
+        self._dll.aio_pipeline_frame_free_snr(self._frame)
+        self._snr_buf = None
+
+    def free_weight(self) -> None:
+        self._dll.aio_pipeline_frame_free_weight(self._frame)
+        self._weight_buf = None
+
+    def free_healpix(self) -> None:
+        self._dll.aio_pipeline_frame_free_healpix(self._frame)
+
+    def export_xml(self, path: str, comment: str = "") -> int:
+        """导出当前帧到 XML 文件 (调试用)"""
+        return self._dll.aio_pipeline_export_xml(
+            self._frame, path.encode("utf-8"), comment.encode("utf-8")
+        )
+
+    @property
+    def stages_completed(self) -> int:
+        return self._frame.contents.stages_completed
+
+    @property
+    def n_healpix(self) -> int:
+        return self._frame.contents.n_healpix
+
+    @property
+    def nside(self) -> int:
+        return self._frame.contents.nside
+
+    @property
+    def rms_arcsec(self) -> float:
+        return self._frame.contents.rms_arcsec
+
+    def close(self) -> None:
+        if not self._closed and self._frame:
+            self._dll.aio_pipeline_frame_destroy(self._frame)
+            self._frame = None
+            self._closed = True
+
+    def __del__(self):
+        self.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
+
+class PipelineEngine:
+    """管线编排引擎, 串联 CALIBRATE → PLATESOLVE → PHOTOMETRIC → DRIZZLE → STACK
+
+    用法:
+        engine = PipelineEngine()
+        engine.register(STAGE_DRIZZLE, drizzle_handler, drizzle_params)
+        engine.register(STAGE_STACK, stack_handler, stack_params)
+        frame = PipelineFramePy()
+        frame.set_pixels(...)
+        frame.set_wcs(...)
+        engine.run_single(frame, STAGE_DRIZZLE, STAGE_DRIZZLE)
+    """
+
+    def __init__(self, dll_path: Optional[str] = None):
+        if dll_path is None:
+            dll_path = _find_ahpx_dll()
+        self._dll = _load_pipeline_dll(dll_path)
+        self._engine = self._dll.aio_pipeline_engine_create()
+        if not self._engine:
+            raise RuntimeError("aio_pipeline_engine_create 失败")
+        self._handlers = []  # 持有 CFUNCTYPE 引用防止 GC
+        self._closed = False
+
+    def register(self, stage: int, handler: PipelineStageHandlerC,
+                 params: Optional[int] = None) -> None:
+        """注册阶段处理函数
+
+        stage: STAGE_CALIBRATE ~ STAGE_STACK
+        handler: PipelineStageHandlerC 类型的回调函数
+        params: 阶段参数指针 (c_void_p 的 value, 或 None)
+        """
+        param_ptr = params if params is not None else None
+        ret = self._dll.aio_pipeline_engine_register(
+            self._engine, stage, handler, param_ptr
+        )
+        if ret != 0:
+            raise RuntimeError(f"注册阶段 {stage} 失败 (code={ret})")
+        self._handlers.append(handler)  # 防止 GC
+
+    def set_debug(self, dir_path: str, stage_mask: int = DEBUG_AFTER_ALL,
+                  skip_pixels: bool = False) -> None:
+        """设置调试导出
+
+        dir_path: 导出目录
+        stage_mask: 导出阶段位掩码 (DEBUG_AFTER_*)
+        skip_pixels: True=跳过像素数据只导出元数据
+        """
+        ret = self._dll.aio_pipeline_engine_set_debug(
+            self._engine, dir_path.encode("utf-8"), stage_mask,
+            1 if skip_pixels else 0
+        )
+        if ret != 0:
+            raise RuntimeError(f"set_debug 失败 (code={ret})")
+
+    def set_auto_free(self, auto_free: bool) -> None:
+        """设置是否自动释放中间数据 (默认 True)"""
+        self._dll.aio_pipeline_engine_set_auto_free(
+            self._engine, 1 if auto_free else 0
+        )
+
+    def run_single(self, frame: PipelineFramePy, from_stage: int, to_stage: int) -> int:
+        """单帧执行
+
+        frame: PipelineFramePy 实例
+        from_stage/to_stage: 起始/结束阶段
+        返回: 0=成功, 非0=失败 (抛出 RuntimeError)
+        """
+        err_buf = create_string_buffer(512)
+        ret = self._dll.aio_pipeline_engine_run_single(
+            self._engine, frame.c_frame, from_stage, to_stage,
+            err_buf, 512
+        )
+        if ret != 0:
+            err_msg = err_buf.value.decode("utf-8", errors="replace")
+            raise RuntimeError(f"管线执行失败 (code={ret}): {err_msg}")
+        return ret
+
+    def run_batch(self, frames: list, n_threads: int = 16,
+                  from_stage: int = STAGE_CALIBRATE,
+                  to_stage: int = STAGE_DRIZZLE) -> int:
+        """批量并行执行
+
+        frames: PipelineFramePy 列表
+        n_threads: 线程数 (默认 16)
+        from_stage/to_stage: 起始/结束阶段
+        返回: 成功帧数
+        """
+        n = len(frames)
+        if n == 0:
+            return 0
+        # 构建 C 端 PipelineFrame* 数组
+        frame_arr = (POINTER(_CPipelineFrame) * n)()
+        for i, f in enumerate(frames):
+            frame_arr[i] = f.c_frame
+
+        err_buf = create_string_buffer(512)
+        ret = self._dll.aio_pipeline_engine_run_batch(
+            self._engine, frame_arr, n, n_threads,
+            from_stage, to_stage, err_buf, 512
+        )
+        if ret < n:
+            err_msg = err_buf.value.decode("utf-8", errors="replace")
+            import sys
+            print(f"[PipelineEngine] 部分帧失败: {ret}/{n} 成功. {err_msg}", file=sys.stderr)
+        return ret
+
+    @staticmethod
+    def stage_name(stage: int) -> str:
+        """获取阶段名称"""
+        from ctypes import string_at
+        dll = _load_pipeline_dll(_find_ahpx_dll())
+        ptr = dll.aio_pipeline_stage_name(stage)
+        if ptr:
+            return string_at(ptr).decode("utf-8", errors="replace")
+        return "unknown"
+
+    def close(self) -> None:
+        if not self._closed and self._engine:
+            self._dll.aio_pipeline_engine_destroy(self._engine)
+            self._engine = None
+            self._closed = True
+
+    def __del__(self):
+        self.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
