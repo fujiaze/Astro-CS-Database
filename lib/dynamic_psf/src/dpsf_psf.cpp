@@ -464,7 +464,7 @@ DPSF_EXPORT int dpsf_fit_batch(const uint16_t *image, int width, int height,
     int fitRadius = params->fitRadius;
     int success_count = 0;
 
-#pragma omp parallel for schedule(dynamic) num_threads(16) reduction(+:success_count)
+#pragma omp parallel for schedule(dynamic) reduction(+:success_count)
     for (int i = 0; i < count; i++) {
         double cx = cx_array[i];
         double cy = cy_array[i];

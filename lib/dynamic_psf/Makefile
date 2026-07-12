@@ -1,6 +1,6 @@
 CXX = g++
-CXXFLAGS = -O2 -march=native -Wall -std=c++17 -fopenmp
-LDFLAGS = -static-libgcc -static-libstdc++ -shared -fopenmp -lm
+CXXFLAGS = -O2 -march=native -Wall -std=c++17
+LDFLAGS = -shared -lm
 
 SRCDIR = src
 INCDIR = include
