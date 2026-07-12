@@ -19,7 +19,8 @@ static int dpsf_get_log_level() {
         int v = std::atoi(env);
         g_dpsf_log_level = (v >= 0 && v <= 3) ? v : LOG_INFO;
     } else {
-        g_dpsf_log_level = LOG_INFO;
+        // 默认只输出WARN+ERROR，避免DEBUG日志导致性能问题
+        g_dpsf_log_level = LOG_WARN;
     }
     return g_dpsf_log_level;
 }
@@ -64,12 +65,15 @@ void dpsf_log(int level, const char* module, const char* fmt, ...) {
     std::snprintf(line, sizeof(line), "[%s][%s][%s] %s\n",
                   time_str, dpsf_level_name(level), module ? module : "", msg);
 
+    // 仅输出到stderr，不再强制fflush（性能优化：避免每条日志刷盘）
     std::fprintf(stderr, "%s", line);
-    std::fflush(stderr);
 
-    dpsf_ensure_log_file();
-    if (g_dpsf_log_file) {
-        std::fprintf(g_dpsf_log_file, "%s", line);
-        std::fflush(g_dpsf_log_file);
+    // WARN及以上级别才写文件（DEBUG/INFO不写文件，减少I/O）
+    if (level >= LOG_WARN) {
+        dpsf_ensure_log_file();
+        if (g_dpsf_log_file) {
+            std::fprintf(g_dpsf_log_file, "%s", line);
+            // 不再每条fflush，由操作系统缓冲
+        }
     }
 }
