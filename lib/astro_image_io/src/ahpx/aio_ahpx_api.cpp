@@ -126,15 +126,15 @@ AIO_EXPORT int aio_ahpx_read_header(const char *path,
 
     // 如果调用方提供了缓冲区, 拷贝 JSON 头
     if (metadata_json && metadata_capacity > 0) {
-        size_t copyLen = headerJson.size();
-        if (copyLen >= (size_t)metadata_capacity) {
-            // 缓冲区不足, 截断
-            copyLen = (size_t)metadata_capacity - 1;
-            fprintf(stderr, "[aio][ahpx][api] read_header: 缓冲区不足 (需要 %zu, 容量 %d), 已截断\n",
-                    headerJson.size() + 1, metadata_capacity);
+        size_t required = headerJson.size() + 1;  // 含 '\0'
+        if (required > (size_t)metadata_capacity) {
+            // 缓冲区不足, 不截断, 返回所需容量 (正数) 供调用方扩容重试
+            fprintf(stderr, "[aio][ahpx][api] read_header: 缓冲区不足 (需要 %zu, 容量 %d), 返回所需容量\n",
+                    required, metadata_capacity);
+            return (int)required;
         }
-        std::memcpy(metadata_json, headerJson.data(), copyLen);
-        metadata_json[copyLen] = '\0';
+        std::memcpy(metadata_json, headerJson.data(), headerJson.size());
+        metadata_json[headerJson.size()] = '\0';
     }
 
     return 0;

@@ -599,7 +599,9 @@ AHPX_WEIGHT_GRID = 1     # 分块网格权重 (gw×gh)
 AHPX_WEIGHT_PIXEL = 2    # 逐像素权重 (W×H)
 
 # header JSON 缓冲区容量 (字节)
-_AHPX_HEADER_JSON_CAPACITY = 65536
+# 初始 65536, 不足时按 C API 返回的所需容量动态扩容, 最大 16MB
+_AHPX_HEADER_JSON_INITIAL_CAPACITY = 65536
+_AHPX_HEADER_JSON_MAX_CAPACITY = 16 * 1024 * 1024  # 16MB 上限
 
 # .ahpx 文件 Magic
 _AHPX_MAGIC = b"AHPX"
@@ -677,12 +679,28 @@ class AhpxReader:
             dll_path = _find_ahpx_dll()
         self._dll = _load_ahpx_dll(dll_path)
         # __init__ 中调用 aio_ahpx_read_header 获取元数据
-        buf = create_string_buffer(_AHPX_HEADER_JSON_CAPACITY)
+        # 动态扩容: 初始 65536, 不足时按 C API 返回的所需容量扩容重试, 最大 16MB
         path_bytes = path.encode("utf-8")
-        ret = self._dll.aio_ahpx_read_header(path_bytes, buf, _AHPX_HEADER_JSON_CAPACITY)
-        if ret != 0:
+        capacity = _AHPX_HEADER_JSON_INITIAL_CAPACITY
+        while True:
+            buf = create_string_buffer(capacity)
+            ret = self._dll.aio_ahpx_read_header(path_bytes, buf, capacity)
+            if ret == 0:
+                # 成功
+                self._header_json_cache = buf.value.decode("utf-8", errors="replace")
+                break
+            if ret > 0:
+                # 缓冲区不足, ret 为所需容量 (含 '\0')
+                required = ret
+                if required > _AHPX_HEADER_JSON_MAX_CAPACITY:
+                    raise RuntimeError(
+                        f"读取 .ahpx header 失败: 所需容量 {required} 超过 16MB 上限: {path}"
+                    )
+                # 扩容到所需容量, 2 倍余量防止边界振荡
+                capacity = min(required * 2, _AHPX_HEADER_JSON_MAX_CAPACITY)
+                continue
+            # 其他错误码 (1=path 为空, 2=打开失败等)
             raise RuntimeError(f"读取 .ahpx header 失败 (code={ret}): {path}")
-        self._header_json_cache = buf.value.decode("utf-8", errors="replace")
 
     @property
     def header_json(self) -> str:

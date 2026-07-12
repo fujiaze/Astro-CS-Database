@@ -224,6 +224,15 @@ bool AhpxReader::open(const std::string& path) {
         return false;
     }
 
+    // 16MB 上限, 防止异常文件耗尽内存
+    constexpr uint32_t HEADER_READ_MAX = 16 * 1024 * 1024;
+    if (readSize > HEADER_READ_MAX) {
+        fprintf(stderr, "[aio][ahpx][reader] JSON 头过大 (%u > %u): %s\n",
+                readSize, HEADER_READ_MAX, path.c_str());
+        close();
+        return false;
+    }
+
     std::vector<uint8_t> rawJson(readSize);
     if (std::fread(rawJson.data(), 1, readSize, m_fp) != readSize) {
         fprintf(stderr, "[aio][ahpx][reader] 读取 JSON 头失败: %s\n", path.c_str());
