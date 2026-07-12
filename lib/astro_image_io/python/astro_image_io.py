@@ -271,7 +271,10 @@ def _meta_c_to_py(c: _CAIOImageMetadata) -> ImageMetadataPy:
 def _load_dll(dll_path: str):
     mingw_bin = r"C:\msys64\mingw64\bin"
     if os.path.isdir(mingw_bin):
-        os.environ["PATH"] = mingw_bin + ";" + os.environ.get("PATH", "")
+        # 避免重复追加PATH导致环境变量超长（Windows 32767字符限制）
+        current_path = os.environ.get("PATH", "")
+        if mingw_bin not in current_path:
+            os.environ["PATH"] = mingw_bin + ";" + current_path
         try:
             os.add_dll_directory(mingw_bin)
         except OSError:
