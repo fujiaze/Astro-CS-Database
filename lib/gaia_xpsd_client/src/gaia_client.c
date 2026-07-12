@@ -1424,7 +1424,7 @@ int gaia_client_cone_search(GaiaClient *client, double ra, double dec, double ra
     StarCollector *sc_arr = (StarCollector *)calloc(nfiles, sizeof(StarCollector));
     for (int i = 0; i < nfiles; i++) collector_init(&sc_arr[i], 4096);
 
-    #pragma omp parallel for schedule(dynamic) num_threads(16)
+    #pragma omp parallel for schedule(dynamic)
     for (int f = 0; f < nfiles; f++) {
         XPSDFileInternal *xf = &client->files[f];
         uint32_t scratch_size = xf->global_max_block_size;
@@ -1571,7 +1571,7 @@ int gaia_client_cone_search_with_spectrum(
         spec_collector_init(&sc_arr[i], 4096, spec_count);
     }
 
-    #pragma omp parallel for schedule(dynamic) num_threads(16)
+    #pragma omp parallel for schedule(dynamic)
     for (int f = 0; f < nfiles; f++) {
         XPSDFileInternal *xf = &client->files[f];
         uint32_t scratch_size = xf->global_max_block_size;
@@ -1695,7 +1695,7 @@ int gaia_client_query_spectrum_by_coords(
     }
 
     /* 并行搜索: 每个坐标独立搜索所有文件，找角距离最近的星 */
-    #pragma omp parallel for schedule(dynamic) num_threads(16)
+    #pragma omp parallel for schedule(dynamic)
     for (int i = 0; i < n_coords; i++) {
         double ra = ra_list[i];
         double dec = dec_list[i];
@@ -1810,7 +1810,7 @@ int gaia_client_cone_search_with_photometry(
         phot_collector_init(&pc_arr[i], 4096);
     }
 
-    #pragma omp parallel for schedule(dynamic) num_threads(16)
+    #pragma omp parallel for schedule(dynamic)
     for (int f = 0; f < nfiles; f++) {
         XPSDFileInternal *xf = &client->files[f];
         uint32_t scratch_size = xf->global_max_block_size;
