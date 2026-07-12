@@ -42,10 +42,24 @@ AIO_EXPORT int aio_pipeline_engine_set_debug(PipelineEngine* engine,
                                               int skip_pixels);
 
 /* 设置自动释放 (默认开启)
- * auto_free: 1=阶段后自动释放中间数据, 0=保留所有数据
+ * auto_free: 1=阶段后自动丢弃阶段对应的块, 0=保留所有块
+ * 块丢弃策略 (替代旧版 auto_free):
+ *   PLATESOLVE  后丢弃: weight
+ *   PHOTOMETRIC 后丢弃: star_det, gaia_cat, psf
+ *   DRIZZLE     后丢弃: data, snr, weight, grad_map, cal_stats, photo_stats
+ *   STACK       后丢弃: healpix
  */
 AIO_EXPORT int aio_pipeline_engine_set_auto_free(PipelineEngine* engine,
                                                    int auto_free);
+
+/* 自定义某阶段后要丢弃的块 (覆盖默认策略)
+ * block_names: 逗号分隔的块名列表 (如 "weight,psf"), nullptr 或空串表示不丢弃
+ * 返回: 0=成功, 非0=失败
+ * 注意: 调用后 auto_free 对该阶段不再生效 (由自定义策略接管)
+ */
+AIO_EXPORT int aio_pipeline_engine_set_block_drop(PipelineEngine* engine,
+                                                    PipelineStage stage,
+                                                    const char* block_names);
 
 /* 单帧执行
  * frame: 输入帧 (已填充 pixel_data 等)

@@ -1,12 +1,12 @@
 // ============================================================================
-// 管线编排引擎实现
+// 管线编排引擎实现 (命名块容器版)
 //
 // 功能:
 //   - 注册各阶段处理函数 (PipelineStageHandler)
 //   - 单帧串行执行 (run_single)
 //   - 多帧批量并行 (run_batch, OpenMP 16线程)
-//   - 内存生命周期管理 (阶段间自动释放中间数据)
-//   - XML 调试导出 (每阶段后可选导出)
+//   - 块生命周期管理 (阶段间自动丢弃指定块)
+//   - XML 调试导出 (每阶段后可选导出所有块)
 //   - 错误处理 + 状态追踪
 //
 // 日志: 所有诊断/进度日志输出到 stderr
@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <string>
 #include <sstream>
+#include <vector>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -33,12 +34,15 @@
 // 引擎内部结构
 // ============================================================================
 struct PipelineEngine {
-    PipelineStageHandler handlers[5];  // 每阶段处理函数
-    const void*          params[5];    // 每阶段参数 (调用方管理生命周期)
-    char                 debug_dir[512]; // 调试导出目录
+    PipelineStageHandler handlers[5];     // 每阶段处理函数
+    const void*          params[5];        // 每阶段参数 (调用方管理生命周期)
+    char                 debug_dir[512];   // 调试导出目录
     int                  debug_stage_mask; // 导出阶段位掩码
     int                  debug_skip_pixels; // 跳过像素数据
-    int                  auto_free;    // 自动释放中间数据 (默认 1)
+    int                  auto_free;        // 自动丢弃中间块 (默认 1)
+    // 自定义块丢弃策略 (覆盖默认策略)
+    // block_drop[i] 存储阶段 i 后要丢弃的块名列表 (逗号分隔)，nullptr 表示用默认策略
+    char*                block_drop[5];
 };
 
 // ============================================================================
@@ -62,8 +66,15 @@ static std::string extract_basename(const char* path) {
 }
 
 // ============================================================================
-// 辅助: 从 source_path 生成调试 XML 文件路径
+// 辅助: 从 header 块的 SOURCE_PATH 生成调试 XML 文件路径
+// 若 header 块无 SOURCE_PATH，使用 "frame"
 // ============================================================================
+static std::string get_frame_source_path(const PipelineFrame* frame) {
+    const char* sp = aio_frame_kv_get(frame, "header", "SOURCE_PATH");
+    if (sp && sp[0]) return std::string(sp);
+    return std::string();
+}
+
 static std::string build_debug_xml_path(const char* debug_dir,
                                           const char* source_path,
                                           const char* stage_name) {
@@ -74,34 +85,74 @@ static std::string build_debug_xml_path(const char* debug_dir,
 }
 
 // ============================================================================
-// 辅助: 阶段后自动释放中间数据 (按生命周期约定表)
+// 辅助: 按逗号分隔字符串到 vector<string>
 // ============================================================================
-static void auto_free_after_stage(PipelineFrame* frame, PipelineStage stage) {
+static std::vector<std::string> split_commas(const char* s) {
+    std::vector<std::string> result;
+    if (!s || !s[0]) return result;
+    const char* start = s;
+    const char* p = s;
+    while (*p) {
+        if (*p == ',') {
+            if (p > start) {
+                result.push_back(std::string(start, p - start));
+            }
+            start = p + 1;
+        }
+        p++;
+    }
+    if (p > start) {
+        result.push_back(std::string(start, p - start));
+    }
+    return result;
+}
+
+// ============================================================================
+// 辅助: 默认块丢弃策略
+// ============================================================================
+static std::vector<std::string> default_drop_blocks(PipelineStage stage) {
     switch (stage) {
         case STAGE_PLATESOLVE:
-            // 校准权重不再需要
-            aio_pipeline_frame_free_weight(frame);
-            fprintf(stderr, "[engine] auto-free: weight_data after platesolve\n");
-            break;
+            return {"weight"};
+        case STAGE_PHOTOMETRIC:
+            return {"star_det", "gaia_cat", "psf"};
         case STAGE_DRIZZLE:
-            // 已转换为 HEALPix, 平面数据可释放
-            aio_pipeline_frame_free_pixels(frame);
-            aio_pipeline_frame_free_snr(frame);
-            aio_pipeline_frame_free_weight(frame);
-            fprintf(stderr, "[engine] auto-free: pixel_data/snr_data/weight_data after drizzle\n");
-            break;
+            return {"data", "snr", "weight", "grad_map", "cal_stats", "photo_stats"};
         case STAGE_STACK:
-            // 已输出到 .ahps
-            aio_pipeline_frame_free_healpix(frame);
-            fprintf(stderr, "[engine] auto-free: healpix_* after stack\n");
-            break;
+            return {"healpix"};
         default:
-            break;
+            return {};
     }
 }
 
 // ============================================================================
-// 辅助: 阶段后调试导出
+// 辅助: 阶段后自动丢弃块
+// ============================================================================
+static void auto_free_after_stage(PipelineEngine* eng, PipelineFrame* frame, PipelineStage stage) {
+    if (!eng->auto_free && !eng->block_drop[stage]) return;
+
+    std::vector<std::string> to_drop;
+    if (eng->block_drop[stage]) {
+        // 自定义策略
+        to_drop = split_commas(eng->block_drop[stage]);
+    } else if (eng->auto_free) {
+        // 默认策略
+        to_drop = default_drop_blocks(stage);
+    }
+
+    if (to_drop.empty()) return;
+
+    for (const auto& name : to_drop) {
+        if (aio_frame_has_block(frame, name.c_str())) {
+            aio_frame_remove_block(frame, name.c_str());
+            fprintf(stderr, "[engine] auto-drop: '%s' after %s\n",
+                    name.c_str(), aio_pipeline_stage_name(stage));
+        }
+    }
+}
+
+// ============================================================================
+// 辅助: 阶段后调试导出 (所有块导出为 XML)
 // ============================================================================
 static void debug_export(const PipelineEngine* eng, const PipelineFrame* frame,
                           PipelineStage stage) {
@@ -111,21 +162,19 @@ static void debug_export(const PipelineEngine* eng, const PipelineFrame* frame,
     if ((eng->debug_stage_mask & bit) == 0) return;
 
     const char* stage_name = aio_pipeline_stage_name(stage);
+    std::string src = get_frame_source_path(frame);
     std::string xml_path = build_debug_xml_path(eng->debug_dir,
-                                                 frame->source_path,
+                                                 src.c_str(),
                                                  stage_name);
-    std::string comment = std::string("after ") + stage_name;
-    if (eng->debug_skip_pixels) {
-        comment += " (skip_pixels=1)";
-    }
 
-    int ret = aio_pipeline_export_xml(frame, xml_path.c_str(), comment.c_str());
+    int ret = aio_frame_export_all_xml(frame, xml_path.c_str());
     if (ret != 0) {
         fprintf(stderr, "[engine] WARNING: debug export failed for stage %s (ret=%d)\n",
                 stage_name, ret);
     } else {
         fprintf(stderr, "[engine] debug export: %s\n", xml_path.c_str());
     }
+    (void)eng->debug_skip_pixels;  // export_all_xml 总是导出所有数据
 }
 
 // ============================================================================
@@ -185,10 +234,8 @@ static int execute_stage(PipelineEngine* eng, PipelineStage stage,
     // 调试导出
     debug_export(eng, frame, stage);
 
-    // 自动释放中间数据
-    if (eng->auto_free) {
-        auto_free_after_stage(frame, stage);
-    }
+    // 自动丢弃中间块
+    auto_free_after_stage(eng, frame, stage);
 
     return 0;
 }
@@ -206,6 +253,7 @@ AIO_EXPORT PipelineEngine* aio_pipeline_engine_create(void) {
     eng->debug_stage_mask = 0;
     eng->debug_skip_pixels = 0;
     eng->auto_free = 1;
+    for (int i = 0; i < 5; ++i) eng->block_drop[i] = nullptr;
 
     fprintf(stderr, "[engine] created (auto_free=1)\n");
     return eng;
@@ -213,6 +261,12 @@ AIO_EXPORT PipelineEngine* aio_pipeline_engine_create(void) {
 
 AIO_EXPORT void aio_pipeline_engine_destroy(PipelineEngine* eng) {
     if (!eng) return;
+    for (int i = 0; i < 5; ++i) {
+        if (eng->block_drop[i]) {
+            free(eng->block_drop[i]);
+            eng->block_drop[i] = nullptr;
+        }
+    }
     fprintf(stderr, "[engine] destroyed\n");
     delete eng;
 }
@@ -273,6 +327,31 @@ AIO_EXPORT int aio_pipeline_engine_set_auto_free(PipelineEngine* eng,
 }
 
 // ============================================================================
+// 设置自定义块丢弃策略
+// ============================================================================
+AIO_EXPORT int aio_pipeline_engine_set_block_drop(PipelineEngine* eng,
+                                                    PipelineStage stage,
+                                                    const char* block_names) {
+    if (!eng) return -1;
+    int idx = static_cast<int>(stage);
+    if (idx < 0 || idx >= 5) return -2;
+
+    // 释放旧策略
+    if (eng->block_drop[idx]) {
+        free(eng->block_drop[idx]);
+        eng->block_drop[idx] = nullptr;
+    }
+    if (block_names && block_names[0]) {
+        eng->block_drop[idx] = _strdup(block_names);
+        if (!eng->block_drop[idx]) return -3;
+    }
+    fprintf(stderr, "[engine] block_drop[%s] = '%s'\n",
+            aio_pipeline_stage_name(stage),
+            block_names ? block_names : "(null)");
+    return 0;
+}
+
+// ============================================================================
 // 单帧执行
 // ============================================================================
 AIO_EXPORT int aio_pipeline_engine_run_single(PipelineEngine* eng,
@@ -292,8 +371,9 @@ AIO_EXPORT int aio_pipeline_engine_run_single(PipelineEngine* eng,
         return -2;
     }
 
+    std::string src = get_frame_source_path(frame);
     fprintf(stderr, "[engine] === run_single: %s, stages %d->%d ===\n",
-            frame->source_path[0] ? frame->source_path : "(unnamed)",
+            src.empty() ? "(unnamed)" : src.c_str(),
             from_stage, to_stage);
 
     for (int s = from_stage; s <= to_stage; ++s) {
@@ -360,8 +440,9 @@ AIO_EXPORT int aio_pipeline_engine_run_batch(PipelineEngine* eng,
         }
 
         char local_error[512] = {0};
+        std::string src = get_frame_source_path(frame);
         fprintf(stderr, "[engine] frame[%d]: %s, processing stages %d->%d\n",
-                i, frame->source_path[0] ? frame->source_path : "(unnamed)",
+                i, src.empty() ? "(unnamed)" : src.c_str(),
                 from_stage, pre_stack_end);
 
         int ret = 0;
@@ -391,18 +472,8 @@ AIO_EXPORT int aio_pipeline_engine_run_batch(PipelineEngine* eng,
 
     // Phase 2: STACK (串行)
     if (has_stack && n_success > 0) {
-        // 收集成功的帧
-        // 注意: STACK 阶段需要接收所有成功帧的 PipelineFrame 数组
-        // 但 STACK handler 签名是 PipelineStageHandler(frame, params, ...)
-        // 只接收单个 frame。需要特殊处理。
-
-        // 方案: STACK 阶段的 handler 通过 params 传递所有帧的信息
-        // 或者: 对每个帧执行 STACK handler（但 stack 是多帧合并，不是逐帧）
-        // 实际上 STACK 阶段不适合用 PipelineStageHandler 签名
-
-        // 临时方案: STACK 阶段跳过（在 Python 层单独处理）
-        // 或者: 修改 STACK handler 签名
-        // 这里先跳过，打印警告
+        // 注意: STACK 阶段是多帧合并，需要 Python 层编排
+        // C++ 引擎对每帧调用 STACK handler（若已注册）
         fprintf(stderr, "[engine] WARNING: STACK stage in batch mode requires Python-layer orchestration\n");
         fprintf(stderr, "[engine] STACK handler will be called per-frame (if registered)\n");
 

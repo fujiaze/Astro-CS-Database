@@ -961,49 +961,62 @@ DEBUG_AFTER_STACK = 1 << STAGE_STACK
 DEBUG_AFTER_ALL = -1
 
 
-class _CPipelineFrame(Structure):
-    """PipelineFrame C 结构体的 ctypes 映射 (对应 aio_pipeline.h)"""
+# 块类型常量 (对应 AioBlockType 枚举)
+AIO_BLOCK_FLOAT32 = 0
+AIO_BLOCK_FLOAT64 = 1
+AIO_BLOCK_INT32   = 2
+AIO_BLOCK_INT64   = 3
+AIO_BLOCK_STRING  = 4
+AIO_BLOCK_KV      = 5
+AIO_BLOCK_RAW     = 6
+
+# numpy dtype -> AioBlockType 映射
+_NUMPY_TO_BLOCK_TYPE = {
+    np.dtype(np.float32): AIO_BLOCK_FLOAT32,
+    np.dtype(np.float64): AIO_BLOCK_FLOAT64,
+    np.dtype(np.int32):   AIO_BLOCK_INT32,
+    np.dtype(np.int64):   AIO_BLOCK_INT64,
+    np.dtype(np.uint8):   AIO_BLOCK_RAW,
+}
+
+# AioBlockType -> numpy dtype 映射
+_BLOCK_TYPE_TO_NUMPY = {
+    AIO_BLOCK_FLOAT32: np.float32,
+    AIO_BLOCK_FLOAT64: np.float64,
+    AIO_BLOCK_INT32:   np.int32,
+    AIO_BLOCK_INT64:   np.int64,
+    AIO_BLOCK_RAW:     np.uint8,
+}
+
+
+class _CAioKVEntry(Structure):
+    """AioKVEntry C 结构体 (对应 aio_pipeline.h)"""
     _fields_ = [
-        # 图像数据
-        ("pixel_data", POINTER(c_float)),
-        ("width", c_int),
-        ("height", c_int),
-        ("channels", c_int),
-        # WCS 数据
-        ("cd", c_double * 4),
-        ("crval", c_double * 2),
-        ("crpix", c_double * 2),
-        ("ctype1", c_char * 16),
-        ("ctype2", c_char * 16),
-        ("sip_a", c_double * 36),
-        ("sip_b", c_double * 36),
-        ("sip_ap", c_double * 36),
-        ("sip_bp", c_double * 36),
-        ("sip_order", c_int),
-        ("sip_ap_order", c_int),
-        # 辅助数据
-        ("snr_data", POINTER(c_float)),
-        ("weight_data", POINTER(c_float)),
-        # HEALPix 数据
-        ("healpix_pixels", POINTER(c_float)),
-        ("healpix_snr", POINTER(c_float)),
-        ("healpix_ipix", POINTER(c_int64)),
-        ("n_healpix", c_int64),
-        ("nside", c_int),
-        ("nested", c_int),
-        ("pixfrac", c_double),
-        # 元数据
-        ("source_path", c_char * 512),
-        ("object_name", c_char * 128),
-        ("exptime", c_double),
-        ("filter_name", c_char * 64),
-        ("jd_obs", c_double),
-        ("rms_arcsec", c_double),
-        ("n_pairs", c_int),
-        # 状态标记
+        ("key", c_char * 64),
+        ("value", c_char * 256),
+    ]
+
+
+class _CAioBlock(Structure):
+    """AioBlock C 结构体 (对应 aio_pipeline.h)"""
+    _fields_ = [
+        ("name", c_char * 64),
+        ("type", c_int),
+        ("data", c_void_p),
+        ("count", c_int64),
+        ("dims", c_int * 4),
+        ("n_dims", c_int),
+        ("description", c_char * 128),
+    ]
+
+
+class _CPipelineFrame(Structure):
+    """PipelineFrame C 结构体 (命名块容器, 对应 aio_pipeline.h)"""
+    _fields_ = [
+        ("blocks", POINTER(_CAioBlock)),
+        ("n_blocks", c_int),
+        ("blocks_capacity", c_int),
         ("stages_completed", c_int),
-        ("has_wcs", c_int),
-        ("has_sip", c_int),
     ]
 
 
@@ -1018,44 +1031,105 @@ PipelineStageHandlerC = CFUNCTYPE(
 
 
 def _load_pipeline_dll(dll_path: str):
-    """加载 astro_image_io.dll 并配置 pipeline 相关函数签名"""
+    """加载 astro_image_io.dll 并配置 pipeline 相关函数签名 (命名块容器版)"""
     dll = _load_dll(dll_path)
 
-    # PipelineFrame 内存管理
+    # 帧生命周期
     dll.aio_pipeline_frame_create.argtypes = []
     dll.aio_pipeline_frame_create.restype = POINTER(_CPipelineFrame)
 
     dll.aio_pipeline_frame_destroy.argtypes = [POINTER(_CPipelineFrame)]
     dll.aio_pipeline_frame_destroy.restype = None
 
-    dll.aio_pipeline_frame_alloc_pixels.argtypes = [POINTER(_CPipelineFrame), c_int, c_int, c_int]
-    dll.aio_pipeline_frame_alloc_pixels.restype = c_int
-
-    dll.aio_pipeline_frame_alloc_snr.argtypes = [POINTER(_CPipelineFrame), c_int, c_int]
-    dll.aio_pipeline_frame_alloc_snr.restype = c_int
-
-    dll.aio_pipeline_frame_alloc_weight.argtypes = [POINTER(_CPipelineFrame), c_int, c_int]
-    dll.aio_pipeline_frame_alloc_weight.restype = c_int
-
-    dll.aio_pipeline_frame_alloc_healpix.argtypes = [POINTER(_CPipelineFrame), c_int64]
-    dll.aio_pipeline_frame_alloc_healpix.restype = c_int
-
-    dll.aio_pipeline_frame_free_pixels.argtypes = [POINTER(_CPipelineFrame)]
-    dll.aio_pipeline_frame_free_pixels.restype = None
-
-    dll.aio_pipeline_frame_free_snr.argtypes = [POINTER(_CPipelineFrame)]
-    dll.aio_pipeline_frame_free_snr.restype = None
-
-    dll.aio_pipeline_frame_free_weight.argtypes = [POINTER(_CPipelineFrame)]
-    dll.aio_pipeline_frame_free_weight.restype = None
-
-    dll.aio_pipeline_frame_free_healpix.argtypes = [POINTER(_CPipelineFrame)]
-    dll.aio_pipeline_frame_free_healpix.restype = None
-
     dll.aio_pipeline_frame_memory_usage.argtypes = [POINTER(_CPipelineFrame)]
     dll.aio_pipeline_frame_memory_usage.restype = c_size_t
 
-    dll.aio_pipeline_export_xml.argtypes = [POINTER(_CPipelineFrame), c_char_p, c_char_p]
+    # 块管理 API
+    dll.aio_frame_add_block.argtypes = [
+        POINTER(_CPipelineFrame), c_char_p, c_int,
+        c_void_p, c_int64,
+        POINTER(c_int), c_int,
+        c_char_p,
+    ]
+    dll.aio_frame_add_block.restype = c_int
+
+    dll.aio_frame_add_block_move.argtypes = [
+        POINTER(_CPipelineFrame), c_char_p, c_int,
+        c_void_p, c_int64,
+        POINTER(c_int), c_int,
+        c_char_p,
+    ]
+    dll.aio_frame_add_block_move.restype = c_int
+
+    dll.aio_frame_get_block.argtypes = [POINTER(_CPipelineFrame), c_char_p]
+    dll.aio_frame_get_block.restype = POINTER(_CAioBlock)
+
+    dll.aio_frame_get_block_data.argtypes = [POINTER(_CPipelineFrame), c_char_p]
+    dll.aio_frame_get_block_data.restype = c_void_p
+
+    dll.aio_frame_get_block_count.argtypes = [POINTER(_CPipelineFrame), c_char_p]
+    dll.aio_frame_get_block_count.restype = c_int64
+
+    dll.aio_frame_get_block_type.argtypes = [POINTER(_CPipelineFrame), c_char_p]
+    dll.aio_frame_get_block_type.restype = c_int
+
+    dll.aio_frame_remove_block.argtypes = [POINTER(_CPipelineFrame), c_char_p]
+    dll.aio_frame_remove_block.restype = c_int
+
+    dll.aio_frame_has_block.argtypes = [POINTER(_CPipelineFrame), c_char_p]
+    dll.aio_frame_has_block.restype = c_int
+
+    dll.aio_frame_list_blocks.argtypes = [
+        POINTER(_CPipelineFrame), c_char_p, c_int, POINTER(c_int)
+    ]
+    dll.aio_frame_list_blocks.restype = c_int
+
+    # KV 操作 API
+    dll.aio_frame_kv_set.argtypes = [
+        POINTER(_CPipelineFrame), c_char_p, c_char_p, c_char_p
+    ]
+    dll.aio_frame_kv_set.restype = c_int
+
+    dll.aio_frame_kv_get.argtypes = [
+        POINTER(_CPipelineFrame), c_char_p, c_char_p
+    ]
+    dll.aio_frame_kv_get.restype = c_char_p
+
+    dll.aio_frame_kv_set_double.argtypes = [
+        POINTER(_CPipelineFrame), c_char_p, c_char_p, c_double
+    ]
+    dll.aio_frame_kv_set_double.restype = c_int
+
+    dll.aio_frame_kv_get_double.argtypes = [
+        POINTER(_CPipelineFrame), c_char_p, c_char_p, c_double
+    ]
+    dll.aio_frame_kv_get_double.restype = c_double
+
+    # 缓存文件
+    dll.aio_frame_save_cache.argtypes = [POINTER(_CPipelineFrame), c_char_p]
+    dll.aio_frame_save_cache.restype = c_int
+
+    dll.aio_frame_load_cache.argtypes = [POINTER(_CPipelineFrame), c_char_p]
+    dll.aio_frame_load_cache.restype = c_int
+
+    # 调试导出
+    dll.aio_frame_export_block_fits.argtypes = [
+        POINTER(_CPipelineFrame), c_char_p, c_char_p
+    ]
+    dll.aio_frame_export_block_fits.restype = c_int
+
+    dll.aio_frame_export_block_xml.argtypes = [
+        POINTER(_CPipelineFrame), c_char_p, c_char_p
+    ]
+    dll.aio_frame_export_block_xml.restype = c_int
+
+    dll.aio_frame_export_all_xml.argtypes = [POINTER(_CPipelineFrame), c_char_p]
+    dll.aio_frame_export_all_xml.restype = c_int
+
+    # 旧版兼容 (export_xml -> export_all_xml)
+    dll.aio_pipeline_export_xml.argtypes = [
+        POINTER(_CPipelineFrame), c_char_p, c_char_p
+    ]
     dll.aio_pipeline_export_xml.restype = c_int
 
     # 引擎 API
@@ -1076,6 +1150,9 @@ def _load_pipeline_dll(dll_path: str):
     dll.aio_pipeline_engine_set_auto_free.argtypes = [c_void_p, c_int]
     dll.aio_pipeline_engine_set_auto_free.restype = c_int
 
+    dll.aio_pipeline_engine_set_block_drop.argtypes = [c_void_p, c_int, c_char_p]
+    dll.aio_pipeline_engine_set_block_drop.restype = c_int
+
     dll.aio_pipeline_engine_run_single.argtypes = [
         c_void_p, POINTER(_CPipelineFrame), c_int, c_int, c_char_p, c_int
     ]
@@ -1093,13 +1170,14 @@ def _load_pipeline_dll(dll_path: str):
 
 
 class PipelineFramePy:
-    """PipelineFrame Python 封装, 管理 C 端 PipelineFrame 的生命周期
+    """PipelineFrame Python 封装 (命名块容器模型)
 
     用法:
         frame = PipelineFramePy()
-        frame.set_pixels(numpy_array, w, h, c)
-        frame.set_source_path("/path/to/image.fits")
-        frame.set_wcs(cd, crval, crpix, ctype1, ctype2)
+        frame.add_block("data", pixels_array, description="图像像素")
+        frame.kv_set("header", "EXPTIME", "60.0")
+        frame.kv_set("header", "FILTER", "L")
+        frame.kv_set_double("header", "CD1_1", 0.000123)
         # ... 传递给 PipelineEngine 执行
     """
 
@@ -1110,10 +1188,304 @@ class PipelineFramePy:
         self._frame = self._dll.aio_pipeline_frame_create()
         if not self._frame:
             raise RuntimeError("aio_pipeline_frame_create 失败")
-        self._pixel_buf = None  # 持有 numpy 数组引用防止 GC
-        self._snr_buf = None
-        self._weight_buf = None
         self._closed = False
+        self._owns_memory = True  # __init__ 创建的帧拥有内存，close 时释放
+        self._keep_alive = []  # 持有 numpy 数组引用防止 GC (用于 add_block_move)
+
+    @classmethod
+    def from_c_ptr(cls, c_frame_ptr, dll=None):
+        """包装现有 C 指针，不分配新内存（用于引擎回调场景）
+
+        c_frame_ptr: POINTER(_CPipelineFrame) 或 c_void_p
+        dll: 已加载的 pipeline DLL（None 时自动加载）
+        """
+        if dll is None:
+            dll = _load_pipeline_dll(_find_ahpx_dll())
+        obj = cls.__new__(cls)
+        obj._dll = dll
+        # 如果传入 c_void_p 或整数，转换为 POINTER(_CPipelineFrame)
+        if isinstance(c_frame_ptr, int):
+            obj._frame = c_cast(c_frame_ptr, POINTER(_CPipelineFrame))
+        else:
+            obj._frame = c_frame_ptr
+        obj._closed = False
+        obj._owns_memory = False  # 不拥有内存，close 时不调用 frame_destroy
+        obj._keep_alive = []
+        return obj
+
+    # --- 块管理 ---
+
+    def add_block(self, name: str, data, description: str = "") -> None:
+        """添加块 (拷贝数据到 C 端)
+
+        name: 块名 (如 "data", "header", "psf")
+        data: numpy 数组 / 字符串 / dict (KV)
+            - numpy 数组: 按 dtype 自动推断块类型 (FLOAT32/FLOAT64/INT32/INT64/RAW)
+            - str: STRING 块
+            - dict: KV 块 (key-value 对)
+        description: 人类可读描述
+        """
+        if isinstance(data, dict):
+            self.add_block_kv(name, data, description)
+            return
+        if isinstance(data, str):
+            self.add_block_string(name, data, description)
+            return
+        if not isinstance(data, np.ndarray):
+            data = np.asarray(data)
+        arr = np.ascontiguousarray(data)
+        block_type = _NUMPY_TO_BLOCK_TYPE.get(arr.dtype)
+        if block_type is None:
+            raise ValueError(f"不支持的 numpy dtype: {arr.dtype}")
+        count = arr.size
+        # 构建 dims (补齐到 4 维, 不足部分填 0)
+        shape = list(arr.shape)
+        n_dims = len(shape)
+        if n_dims > 4:
+            raise ValueError(f"维度数超过 4: {n_dims}")
+        shape_padded = shape + [0] * (4 - n_dims)
+        dims_arr = (c_int * 4)(*shape_padded)
+        ret = self._dll.aio_frame_add_block(
+            self._frame,
+            name.encode("utf-8"),
+            c_int(block_type),
+            arr.ctypes.data_as(c_void_p),
+            c_int64(count),
+            dims_arr,
+            c_int(n_dims),
+            description.encode("utf-8"),
+        )
+        if ret != 0:
+            raise RuntimeError(f"add_block 失败 (code={ret}): {name}")
+
+    def add_block_string(self, name: str, value: str, description: str = "") -> None:
+        """添加字符串块"""
+        b = value.encode("utf-8")
+        count = len(b)
+        dims_arr = (c_int * 4)(count, 0, 0, 0)
+        ret = self._dll.aio_frame_add_block(
+            self._frame,
+            name.encode("utf-8"),
+            c_int(AIO_BLOCK_STRING),
+            b if count > 0 else None,
+            c_int64(count),
+            dims_arr,
+            c_int(1),
+            description.encode("utf-8"),
+        )
+        if ret != 0:
+            raise RuntimeError(f"add_block_string 失败 (code={ret}): {name}")
+
+    def add_block_kv(self, name: str, kv_dict: dict, description: str = "") -> None:
+        """添加 KV 块 (字典 → KV 块)"""
+        # 先创建空 KV 块
+        for key, value in kv_dict.items():
+            self.kv_set(name, key, str(value))
+        # 设置 description (通过重新创建块实现 - 这里简化处理，description 只在首次创建时有效)
+
+    def get_block_data(self, name: str) -> Optional[np.ndarray]:
+        """获取数值块数据为零拷贝 numpy 数组 (直接映射 C 内存)
+
+        返回 shape 按 dims 重塑的 numpy 数组，或 None
+        注意: 返回的数组与 C 内存共享，修改数组会修改块数据
+        """
+        from ctypes import c_uint8
+        blk_ptr = self._dll.aio_frame_get_block(self._frame, name.encode("utf-8"))
+        if not blk_ptr:
+            return None
+        blk = blk_ptr.contents
+        if blk.type == AIO_BLOCK_KV:
+            return None  # KV 块请用 get_block_kv
+        if blk.type == AIO_BLOCK_STRING:
+            return None  # STRING 块请用 get_block_string
+        np_dtype = _BLOCK_TYPE_TO_NUMPY.get(blk.type)
+        if np_dtype is None:
+            return None
+        if blk.count <= 0 or not blk.data:
+            return np.zeros(0, dtype=np_dtype)
+        # 零拷贝: 用 uint8 指针映射原始字节, 再 view 为目标 dtype
+        elem_bytes = np.dtype(np_dtype).itemsize
+        total_bytes = int(blk.count) * elem_bytes
+        ptr = c_cast(blk.data, POINTER(c_uint8))
+        raw = np.ctypeslib.as_array(ptr, shape=(total_bytes,))
+        arr = raw.view(np_dtype)  # 零拷贝 reinterpret
+        # 按 dims 重塑
+        if blk.n_dims > 0:
+            shape = tuple(blk.dims[i] for i in range(blk.n_dims))
+            try:
+                arr = arr.reshape(shape)
+            except Exception:
+                pass  # reshape 失败则返回 1D
+        return arr
+
+    def get_block_string(self, name: str) -> Optional[str]:
+        """获取字符串块内容"""
+        from ctypes import c_uint8
+        blk_ptr = self._dll.aio_frame_get_block(self._frame, name.encode("utf-8"))
+        if not blk_ptr:
+            return None
+        blk = blk_ptr.contents
+        if blk.type != AIO_BLOCK_STRING:
+            return None
+        if not blk.data or blk.count <= 0:
+            return ""
+        # 读取字节
+        ptr = c_cast(blk.data, POINTER(c_uint8))
+        b = bytes(np.ctypeslib.as_array(ptr, shape=(blk.count,)))
+        return b.decode("utf-8", errors="replace")
+
+    def get_block_kv(self, name: str) -> Optional[dict]:
+        """获取 KV 块为字典"""
+        blk_ptr = self._dll.aio_frame_get_block(self._frame, name.encode("utf-8"))
+        if not blk_ptr:
+            return None
+        blk = blk_ptr.contents
+        if blk.type != AIO_BLOCK_KV:
+            return None
+        if not blk.data or blk.count <= 0:
+            return {}
+        # 读取 KV 数组
+        ptr = c_cast(blk.data, POINTER(_CAioKVEntry))
+        result = {}
+        for i in range(blk.count):
+            entry = ptr[i]
+            key = entry.key.decode("utf-8", errors="replace").rstrip("\x00")
+            value = entry.value.decode("utf-8", errors="replace").rstrip("\x00")
+            result[key] = value
+        return result
+
+    def get_block_info(self, name: str) -> Optional[dict]:
+        """获取块元数据 (不读数据)"""
+        blk_ptr = self._dll.aio_frame_get_block(self._frame, name.encode("utf-8"))
+        if not blk_ptr:
+            return None
+        blk = blk_ptr.contents
+        return {
+            "name": blk.name.decode("utf-8", errors="replace").rstrip("\x00"),
+            "type": blk.type,
+            "count": blk.count,
+            "dims": list(blk.dims)[:blk.n_dims] if blk.n_dims > 0 else [],
+            "n_dims": blk.n_dims,
+            "description": blk.description.decode("utf-8", errors="replace").rstrip("\x00"),
+        }
+
+    def remove_block(self, name: str) -> bool:
+        """移除块 (返回 True=成功, False=不存在)"""
+        ret = self._dll.aio_frame_remove_block(self._frame, name.encode("utf-8"))
+        return ret == 0
+
+    def has_block(self, name: str) -> bool:
+        """检查块是否存在"""
+        return self._dll.aio_frame_has_block(self._frame, name.encode("utf-8")) == 1
+
+    def list_blocks(self) -> list:
+        """列出所有块名"""
+        n_out = c_int(0)
+        # 先查询数量
+        self._dll.aio_frame_list_blocks(self._frame, None, 0, byref(n_out))
+        n = n_out.value
+        if n <= 0:
+            return []
+        # 分配缓冲区
+        buf = create_string_buffer(64 * n)
+        self._dll.aio_frame_list_blocks(self._frame, buf, n, byref(n_out))
+        result = []
+        for i in range(n):
+            name_bytes = buf.raw[i * 64:(i + 1) * 64]
+            name = name_bytes.split(b"\x00")[0].decode("utf-8", errors="replace")
+            if name:
+                result.append(name)
+        return result
+
+    # --- KV 操作 ---
+
+    def kv_set(self, block_name: str, key: str, value: str) -> None:
+        """设置 KV 块中某个 key 的 value (字符串形式)"""
+        ret = self._dll.aio_frame_kv_set(
+            self._frame,
+            block_name.encode("utf-8"),
+            key.encode("utf-8"),
+            value.encode("utf-8"),
+        )
+        if ret != 0:
+            raise RuntimeError(f"kv_set 失败 (code={ret}): {block_name}/{key}")
+
+    def kv_get(self, block_name: str, key: str) -> Optional[str]:
+        """获取 KV 块中某个 key 的 value"""
+        ptr = self._dll.aio_frame_kv_get(
+            self._frame,
+            block_name.encode("utf-8"),
+            key.encode("utf-8"),
+        )
+        if ptr:
+            return ptr.decode("utf-8", errors="replace")
+        return None
+
+    def kv_set_double(self, block_name: str, key: str, value: float) -> None:
+        """设置 KV 块中某个 key 的 value (double 自动转字符串)"""
+        ret = self._dll.aio_frame_kv_set_double(
+            self._frame,
+            block_name.encode("utf-8"),
+            key.encode("utf-8"),
+            c_double(value),
+        )
+        if ret != 0:
+            raise RuntimeError(f"kv_set_double 失败 (code={ret}): {block_name}/{key}")
+
+    def kv_get_double(self, block_name: str, key: str, default: float = 0.0) -> float:
+        """获取 KV 块中某个 key 的 value (字符串转 double)"""
+        return self._dll.aio_frame_kv_get_double(
+            self._frame,
+            block_name.encode("utf-8"),
+            key.encode("utf-8"),
+            c_double(default),
+        )
+
+    # --- 缓存文件 ---
+
+    def save_cache(self, path: str) -> None:
+        """保存所有块到缓存文件 (.aio)"""
+        ret = self._dll.aio_frame_save_cache(self._frame, path.encode("utf-8"))
+        if ret != 0:
+            raise RuntimeError(f"save_cache 失败 (code={ret}): {path}")
+
+    def load_cache(self, path: str) -> None:
+        """从缓存文件加载所有块 (清除现有块后加载)"""
+        ret = self._dll.aio_frame_load_cache(self._frame, path.encode("utf-8"))
+        if ret != 0:
+            raise RuntimeError(f"load_cache 失败 (code={ret}): {path}")
+
+    # --- 调试导出 ---
+
+    def export_block_fits(self, name: str, path: str) -> None:
+        """导出单个块为 FITS 文件"""
+        ret = self._dll.aio_frame_export_block_fits(
+            self._frame, name.encode("utf-8"), path.encode("utf-8")
+        )
+        if ret != 0:
+            raise RuntimeError(f"export_block_fits 失败 (code={ret}): {name} -> {path}")
+
+    def export_block_xml(self, name: str, path: str) -> None:
+        """导出单个块为 XML 文件"""
+        ret = self._dll.aio_frame_export_block_xml(
+            self._frame, name.encode("utf-8"), path.encode("utf-8")
+        )
+        if ret != 0:
+            raise RuntimeError(f"export_block_xml 失败 (code={ret}): {name} -> {path}")
+
+    def export_all_xml(self, path: str) -> None:
+        """导出所有块为 XML 文件"""
+        ret = self._dll.aio_frame_export_all_xml(self._frame, path.encode("utf-8"))
+        if ret != 0:
+            raise RuntimeError(f"export_all_xml 失败 (code={ret}): {path}")
+
+    def export_xml(self, path: str, comment: str = "") -> int:
+        """旧版兼容 (导出所有块为 XML)"""
+        return self._dll.aio_pipeline_export_xml(
+            self._frame, path.encode("utf-8"), comment.encode("utf-8")
+        )
+
+    # --- 属性 ---
 
     @property
     def handle(self) -> int:
@@ -1130,109 +1502,21 @@ class PipelineFramePy:
         """当前帧内存占用 (字节)"""
         return self._dll.aio_pipeline_frame_memory_usage(self._frame)
 
-    def set_source_path(self, path: str) -> None:
-        """设置源文件路径 (用于日志和调试导出文件名)"""
-        path_bytes = path.encode("utf-8")[:511]
-        self._frame.contents.source_path = path_bytes
-
-    def set_pixels(self, pixels: np.ndarray, width: int, height: int, channels: int = 1) -> None:
-        """设置像素数据 (分配 C 端内存并拷贝)
-
-        pixels: float32 numpy array, 大小 = height * width * channels
-        """
-        arr = np.ascontiguousarray(pixels, dtype=np.float32)
-        expected = height * width * channels
-        if arr.size != expected:
-            raise ValueError(f"像素数据大小不匹配: 期望 {expected}, 实际 {arr.size}")
-        ret = self._dll.aio_pipeline_frame_alloc_pixels(self._frame, width, height, channels)
-        if ret != 0:
-            raise RuntimeError(f"alloc_pixels 失败 (code={ret})")
-        # 拷贝数据到 C 端缓冲区
-        c_ptr = self._frame.contents.pixel_data
-        if c_ptr:
-            dst = np.ctypeslib.as_array(c_ptr, shape=(expected,))
-            dst[:] = arr.ravel()
-        self._pixel_buf = arr  # 持有引用
-
-    def set_wcs(self, cd: list, crval: list, crpix: list,
-                ctype1: str = "RA---TAN", ctype2: str = "DEC--TAN") -> None:
-        """设置 WCS 参数"""
-        for i in range(min(4, len(cd))):
-            self._frame.contents.cd[i] = float(cd[i])
-        for i in range(min(2, len(crval))):
-            self._frame.contents.crval[i] = float(crval[i])
-        for i in range(min(2, len(crpix))):
-            self._frame.contents.crpix[i] = float(crpix[i])
-        self._frame.contents.ctype1 = ctype1.encode("utf-8")[:15]
-        self._frame.contents.ctype2 = ctype2.encode("utf-8")[:15]
-        self._frame.contents.has_wcs = 1
-
-    def set_sip(self, sip_a: list, sip_b: list, sip_ap: list, sip_bp: list,
-                order: int = 3, ap_order: int = 3) -> None:
-        """设置 SIP 畸变多项式系数"""
-        for i in range(min(36, len(sip_a))):
-            self._frame.contents.sip_a[i] = float(sip_a[i])
-        for i in range(min(36, len(sip_b))):
-            self._frame.contents.sip_b[i] = float(sip_b[i])
-        for i in range(min(36, len(sip_ap))):
-            self._frame.contents.sip_ap[i] = float(sip_ap[i])
-        for i in range(min(36, len(sip_bp))):
-            self._frame.contents.sip_bp[i] = float(sip_bp[i])
-        self._frame.contents.sip_order = order
-        self._frame.contents.sip_ap_order = ap_order
-        self._frame.contents.has_sip = 1
-
-    def set_metadata(self, object_name: str = "", exptime: float = 0.0,
-                     filter_name: str = "", jd_obs: float = 0.0) -> None:
-        """设置元数据"""
-        self._frame.contents.object_name = object_name.encode("utf-8")[:127]
-        self._frame.contents.exptime = float(exptime)
-        self._frame.contents.filter_name = filter_name.encode("utf-8")[:63]
-        self._frame.contents.jd_obs = float(jd_obs)
-
-    def free_pixels(self) -> None:
-        """释放像素数据"""
-        self._dll.aio_pipeline_frame_free_pixels(self._frame)
-        self._pixel_buf = None
-
-    def free_snr(self) -> None:
-        self._dll.aio_pipeline_frame_free_snr(self._frame)
-        self._snr_buf = None
-
-    def free_weight(self) -> None:
-        self._dll.aio_pipeline_frame_free_weight(self._frame)
-        self._weight_buf = None
-
-    def free_healpix(self) -> None:
-        self._dll.aio_pipeline_frame_free_healpix(self._frame)
-
-    def export_xml(self, path: str, comment: str = "") -> int:
-        """导出当前帧到 XML 文件 (调试用)"""
-        return self._dll.aio_pipeline_export_xml(
-            self._frame, path.encode("utf-8"), comment.encode("utf-8")
-        )
-
     @property
     def stages_completed(self) -> int:
         return self._frame.contents.stages_completed
 
     @property
-    def n_healpix(self) -> int:
-        return self._frame.contents.n_healpix
-
-    @property
-    def nside(self) -> int:
-        return self._frame.contents.nside
-
-    @property
-    def rms_arcsec(self) -> float:
-        return self._frame.contents.rms_arcsec
+    def n_blocks(self) -> int:
+        return self._frame.contents.n_blocks
 
     def close(self) -> None:
         if not self._closed and self._frame:
-            self._dll.aio_pipeline_frame_destroy(self._frame)
+            if self._owns_memory:
+                self._dll.aio_pipeline_frame_destroy(self._frame)
             self._frame = None
             self._closed = True
+            self._keep_alive.clear()
 
     def __del__(self):
         self.close()
@@ -1299,10 +1583,29 @@ class PipelineEngine:
             raise RuntimeError(f"set_debug 失败 (code={ret})")
 
     def set_auto_free(self, auto_free: bool) -> None:
-        """设置是否自动释放中间数据 (默认 True)"""
+        """设置是否自动丢弃中间块 (默认 True)
+        默认策略: PLATESOLVE 后丢弃 weight; PHOTOMETRIC 后丢弃 star_det/gaia_cat/psf;
+        DRIZZLE 后丢弃 data/snr/weight/grad_map/cal_stats/photo_stats; STACK 后丢弃 healpix
+        """
         self._dll.aio_pipeline_engine_set_auto_free(
             self._engine, 1 if auto_free else 0
         )
+
+    def set_block_drop(self, stage: int, block_names: Optional[str]) -> None:
+        """自定义某阶段后要丢弃的块 (覆盖默认策略)
+
+        stage: STAGE_CALIBRATE ~ STAGE_STACK
+        block_names: 逗号分隔的块名列表 (如 "weight,psf"), None 或空串表示不丢弃
+        """
+        if block_names is None:
+            block_names_bytes = None
+        else:
+            block_names_bytes = block_names.encode("utf-8")
+        ret = self._dll.aio_pipeline_engine_set_block_drop(
+            self._engine, stage, block_names_bytes
+        )
+        if ret != 0:
+            raise RuntimeError(f"set_block_drop 失败 (code={ret})")
 
     def run_single(self, frame: PipelineFramePy, from_stage: int, to_stage: int) -> int:
         """单帧执行
