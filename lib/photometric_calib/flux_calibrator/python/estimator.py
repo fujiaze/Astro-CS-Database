@@ -277,24 +277,32 @@ class GradientEstimator:
             mult_surface = _identity_surface()
 
         # 7. 加性梯度曲面拟合 (PSF 背景值 B)
-        add_surface = fitter.fit_additive(
-            x_arr, y_arr, b_local, img_w, img_h, max_order=self._max_order)
-        self._logger.info(
-            "加性梯度拟合: 阶数=%d, LOOCV=%.6e, 使用=%d, 排除=%d",
-            add_surface.order, add_surface.loocv_error,
-            add_surface.n_used, add_surface.n_rejected)
+        # [封存 2026-07-12] 天光校正已封存，只保留乘性流量定标
+        # 原因: S_map 经验多项式拟合无法区分缓变天光与缓变星云信号，
+        #       在银河等区域会误减目标信号。天光一致性留给后续马赛克背景匹配模块。
+        # 恢复方法: 取消下方注释即可
+        # add_surface = fitter.fit_additive(
+        #     x_arr, y_arr, b_local, img_w, img_h, max_order=self._max_order)
+        # self._logger.info(
+        #     "加性梯度拟合: 阶数=%d, LOOCV=%.6e, 使用=%d, 排除=%d",
+        #     add_surface.order, add_surface.loocv_error,
+        #     add_surface.n_used, add_surface.n_rejected)
+        add_surface = _identity_surface()
+        self._logger.info("天光校正已封存 (add_surface=identity, S_map=0), 仅做乘性流量定标")
 
         # 7.5 加性信号检测: R² < 阈值则跳过加性校正
-        add_r2 = self._compute_r_squared(
-            fitter, add_surface, x_arr, y_arr, b_local, img_w, img_h)
-        self._add_r2 = float(add_r2)
-        self._logger.info(
-            "加性信号检测: R²=%.4f, 阈值=%.2f", add_r2, _MIN_R_SQUARED)
-        if add_r2 < _MIN_R_SQUARED:
-            self._logger.warning(
-                "加性梯度 R²=%.4f < 阈值%.2f, 跳过加性校正 (S_map=0.0)。",
-                add_r2, _MIN_R_SQUARED)
-            add_surface = _identity_surface()
+        # [封存 2026-07-12] 随加性梯度拟合一同封存
+        # add_r2 = self._compute_r_squared(
+        #     fitter, add_surface, x_arr, y_arr, b_local, img_w, img_h)
+        # self._add_r2 = float(add_r2)
+        # self._logger.info(
+        #     "加性信号检测: R²=%.4f, 阈值=%.2f", add_r2, _MIN_R_SQUARED)
+        # if add_r2 < _MIN_R_SQUARED:
+        #     self._logger.warning(
+        #         "加性梯度 R²=%.4f < 阈值%.2f, 跳过加性校正 (S_map=0.0)。",
+        #         add_r2, _MIN_R_SQUARED)
+        #     add_surface = _identity_surface()
+        self._add_r2 = 0.0
 
         # 8. 图像校正 + 通量归一化
         corrector = ImageCorrector(log_dir=self._log_dir)
@@ -411,6 +419,8 @@ class GradientEstimator:
             "add_r_squared": float(self._add_r2),
             "add_skipped": self._add_r2 < _MIN_R_SQUARED,
             "scale_factor": float(scale),
+            # [封存 2026-07-12] 天空校正已封存，仅做乘性流量定标
+            "sky_calibration_frozen": True,
         }
 
     # ------------------------------------------------------------------
@@ -474,22 +484,24 @@ class GradientEstimator:
         self._logger.info("乘性残差已保存: %s (%d 行)", mult_path, n)
 
         # ---- 加性残差 ----
-        b_obs = b_local
-        X_add = fitter._build_design_matrix(x_norm, y_norm, add_surface.order)
-        b_fit = X_add @ add_surface.coeffs
-        _, w_add, _ = fitter._irls_fit(X_add, b_obs)
-
-        add_path = os.path.join(output_dir, "add_residuals.csv")
-        with open(add_path, "w", encoding="utf-8", newline="") as f:
-            wr = csv.writer(f)
-            wr.writerow(["x", "y", "observed_b", "fitted_b", "weight"])
-            for i in range(n):
-                wr.writerow([
-                    f"{x[i]:.4f}", f"{y[i]:.4f}",
-                    f"{b_obs[i]:.6f}", f"{b_fit[i]:.6f}",
-                    f"{w_add[i]:.4f}",
-                ])
-        self._logger.info("加性残差已保存: %s (%d 行)", add_path, n)
+        # [封存 2026-07-12] 天空校正已封存，跳过加性残差输出 (add_surface=identity)
+        # 恢复方法: 取消下方注释即可
+        # b_obs = b_local
+        # X_add = fitter._build_design_matrix(x_norm, y_norm, add_surface.order)
+        # b_fit = X_add @ add_surface.coeffs
+        # _, w_add, _ = fitter._irls_fit(X_add, b_obs)
+        #
+        # add_path = os.path.join(output_dir, "add_residuals.csv")
+        # with open(add_path, "w", encoding="utf-8", newline="") as f:
+        #     wr = csv.writer(f)
+        #     wr.writerow(["x", "y", "observed_b", "fitted_b", "weight"])
+        #     for i in range(n):
+        #         wr.writerow([
+        #             f"{x[i]:.4f}", f"{y[i]:.4f}",
+        #             f"{b_obs[i]:.6f}", f"{b_fit[i]:.6f}",
+        #             f"{w_add[i]:.4f}",
+        #         ])
+        # self._logger.info("加性残差已保存: %s (%d 行)", add_path, n)
 
 
 # ============================================================================
@@ -651,20 +663,19 @@ if __name__ == "__main__":
     print(f"  [{'PASS' if mult_ok else 'FAIL'}] 乘性梯度系数恢复")
     all_pass = all_pass and mult_ok
 
-    # ---- 验证 5: 加性曲面恢复已知梯度 b_true ----
-    print("\n[验证 5] 加性曲面恢复已知梯度 b_true = 100 + 30*y_norm")
+    # ---- 验证 5: 加性曲面封存确认 (S_map=0) ----
+    # [封存 2026-07-12] 原验证加性曲面恢复已知梯度，现已封存
+    # 封存后 add_surface 为恒等曲面（order=1, coeffs 全0），S_map=0
+    print("\n[验证 5] 加性曲面封存确认 (S_map=0)")
     add = result["add_surface"]
-    # b_true = 100 + 30*y_norm -> (0,0)=100, (0,1)=y->30, (1,0)=x->0
-    a_const = _coeff_for(add, 0, 0)
-    a_y = _coeff_for(add, 0, 1)
-    a_x = _coeff_for(add, 1, 0)
-    print(f"  常数项(0,0)={a_const:.4f} (期望 100), y项(0,1)={a_y:.4f} (期望 30), "
-          f"x项(1,0)={a_x:.4f} (期望 ~0)")
-    add_ok = (abs(a_const - 100.0) < 5.0
-              and abs(a_y - 30.0) < 5.0
-              and abs(a_x) < 5.0)
-    print(f"  [{'PASS' if add_ok else 'FAIL'}] 加性梯度系数恢复")
-    all_pass = all_pass and add_ok
+    add_frozen = (add.order == 1
+                  and np.all(np.abs(add.coeffs) < 1e-12)
+                  and add.n_used == 0
+                  and np.isinf(add.loocv_error))
+    print(f"  add_surface.order={add.order}, coeffs={add.coeffs}, "
+          f"n_used={add.n_used}, loocv={add.loocv_error}")
+    print(f"  [{'PASS' if add_frozen else 'FAIL'}] 加性梯度已封存 (恒等曲面)")
+    all_pass = all_pass and add_frozen
 
     # ---- 验证 6: 质量报告格式正确 ----
     print("\n[验证 6] 质量报告格式正确")
@@ -698,11 +709,13 @@ if __name__ == "__main__":
     print(f"  [{'PASS' if qr_keys_ok and qr_type_ok else 'FAIL'}] 质量报告格式")
     all_pass = all_pass and qr_keys_ok and qr_type_ok
 
-    # ---- 验证 7: 残差 CSV 可写入且可解析 ----
-    print("\n[验证 7] 残差 CSV 可写入且可解析")
+    # ---- 验证 7: 残差 CSV (仅乘性, 加性已封存) ----
+    # [封存 2026-07-12] add_residuals.csv 不再生成, 只验证乘性残差 CSV
+    print("\n[验证 7] 残差 CSV (乘性, 加性已封存)")
     mult_csv = os.path.join(tmp_dir, "mult_residuals.csv")
     add_csv = os.path.join(tmp_dir, "add_residuals.csv")
-    csv_exist = os.path.isfile(mult_csv) and os.path.isfile(add_csv)
+    mult_exist = os.path.isfile(mult_csv)
+    add_not_exist = not os.path.isfile(add_csv)  # 加性已封存, 文件不应存在
 
     def _read_csv_rows(path):
         with open(path, "r", encoding="utf-8") as f:
@@ -710,11 +723,8 @@ if __name__ == "__main__":
             return list(rd)
 
     mult_rows = _read_csv_rows(mult_csv)
-    add_rows = _read_csv_rows(add_csv)
     mult_header_ok = mult_rows[0] == ["x", "y", "observed_r", "fitted_r", "weight"]
-    add_header_ok = add_rows[0] == ["x", "y", "observed_b", "fitted_b", "weight"]
     mult_nrows_ok = len(mult_rows) == n_stars + 1
-    add_nrows_ok = len(add_rows) == n_stars + 1
     # 验证数值可解析
     parse_ok = True
     for row in mult_rows[1:]:
@@ -727,11 +737,11 @@ if __name__ == "__main__":
             parse_ok = False
             break
     print(f"  mult_residuals.csv: {len(mult_rows) - 1} 行, 表头正确={mult_header_ok}")
-    print(f"  add_residuals.csv: {len(add_rows) - 1} 行, 表头正确={add_header_ok}")
+    print(f"  add_residuals.csv 已封存 (不存在={add_not_exist})")
     print(f"  数值可解析: {parse_ok}")
-    csv_ok = (csv_exist and mult_header_ok and add_header_ok
-              and mult_nrows_ok and add_nrows_ok and parse_ok)
-    print(f"  [{'PASS' if csv_ok else 'FAIL'}] 残差 CSV")
+    csv_ok = (mult_exist and add_not_exist and mult_header_ok
+              and mult_nrows_ok and parse_ok)
+    print(f"  [{'PASS' if csv_ok else 'FAIL'}] 残差 CSV (乘性+加性封存)")
     all_pass = all_pass and csv_ok
 
     # ---- 验证 8: 退化路径 (匹配星数 < 6) ----

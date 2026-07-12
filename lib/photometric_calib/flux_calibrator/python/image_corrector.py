@@ -105,11 +105,15 @@ class ImageCorrector:
         M_map = np.maximum(M_map, _MIN_M)
 
         # 加性梯度: s = B_0 + ΔB(x,y)
-        # 减去中位数去除全局背景 B_0, S_map 围绕 0
-        S_map_raw = fitter.evaluate_surface_fullimage(
-            add_surface, width, height)
-        s_offset = float(np.median(S_map_raw))
-        S_map = (S_map_raw - s_offset).astype(np.float32)
+        # [封存 2026-07-12] 天光校正已封存，S_map 返回全零矩阵
+        # 原因: 经验多项式拟合无法区分缓变天光与缓变星云信号
+        # 恢复方法: 取消下方注释即可
+        # S_map_raw = fitter.evaluate_surface_fullimage(
+        #     add_surface, width, height)
+        # s_offset = float(np.median(S_map_raw))
+        # S_map = (S_map_raw - s_offset).astype(np.float32)
+        s_offset = 0.0
+        S_map = np.zeros((height, width), dtype=np.float32)
 
         self._logger.info(
             f"梯度图评估完成: 尺寸={width}x{height}, "
@@ -147,7 +151,8 @@ class ImageCorrector:
 
         I_float = image.astype(np.float32)
         # M_map 已钳位至 >= 0.01, 此处再次取 max 保证数值安全
-        I_cal = (I_float - S_map) / np.maximum(M_map, _MIN_M)
+        # [封存 2026-07-12] S_map=0, 天光保留, 仅做乘性校正
+        I_cal = I_float / np.maximum(M_map, _MIN_M)
 
         self._logger.info(
             f"图像校正完成: 尺寸={width}x{height}, "
@@ -263,7 +268,8 @@ class ImageCorrector:
 
         # 图像校正
         I_float = image.astype(np.float32)
-        I_cal = (I_float - S_map) / np.maximum(M_map, _MIN_M)
+        # [封存 2026-07-12] S_map=0, 天光保留, 仅做乘性校正
+        I_cal = I_float / np.maximum(M_map, _MIN_M)
 
         # 通量归一化
         I_final, scale = self.normalize(

@@ -7,8 +7,9 @@
 
 - **模块名称**: photometric_calib
 - **功能**: 鲁棒流量校准，消除空间缓变梯度（残留渐晕、月光、光害、大气消光、大气辉光），输出与 Gaia DR3/SP 星表系统一致的校正图像
-- **算法依据**: [spec/photometric_calib_algorithm.md](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/spec/photometric_calib_algorithm.md)
-- **架构依据**: [spec/photometric_calib_architecture.md](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/spec/photometric_calib_architecture.md)
+- **算法依据**: [docs/algorithm.md](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/photometric_calib/docs/algorithm.md)
+- **架构依据**: [docs/architecture.md](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/photometric_calib/docs/architecture.md)
+- **GitHub 仓库**: https://github.com/fujiaze/Robust-Flux-Calibration (v1.0 已推送, 2026-07-12)
 
 ## 目录结构
 
@@ -30,6 +31,30 @@ lib/photometric_calib/
 > **清理记录（2026-07-12）**: 顶层 python/ 下的 star_matcher.py、image_corrector.py 含已确认梯度方向 bug（r=log10(F_syn/F_instr) 方向反转），gradient_fitter.py 未调参（MAX_ORDER=5），wcs_transform.py/curve_loader.py 为冗余副本。上述 5 个文件已删除，新版位于 gradient_estimator/python/ 和 spectrum_integrator/python/。sed_builder.py 和 synthetic_photometry.py 保留（spectrum_integrator/python/synthetic_photometry.py 自测块惰性引用 sed_builder，跨目录依赖未解耦）。
 
 ## 开发记录
+
+### [封存 2026-07-12] 天光校正（S_map 加性梯度）
+
+**决策**：封存 S_map 加性梯度天光校正，photometric_calib 仅做乘性流量定标（M_map）。
+
+**原因**：
+1. 信号污染：PSF 拟合的局部背景 B 值包含 ISL+DGL+气辉+黄道光+星云目标信号。在银河等区域，缓变星云信号会被当作天光误减，破坏真实目标。
+2. 采样稀疏：B 值仅在星点位置有（全图几十到几百个点），多项式在星点之间无物理约束，易过拟合。
+3. 无物理先验：未建模 ISL/DGL/气辉的空间结构，多项式无法区分"缓变天光"与"缓变星云"。
+
+**封存方式**：注释调用（可逆）
+- estimator.py：注释 `fit_additive` 调用、加性 R² 信号检测、加性残差 CSV 输出；`add_surface = _identity_surface()`
+- image_corrector.py：注释 S_map 评估（返回零矩阵）；校正公式 `I_cal = I_float / max(M_map, _MIN_M)`
+- 质量报告新增 `sky_calibration_frozen=True` 字段
+
+**后续方案**：天光一致性由后续马赛克背景匹配模块处理（借鉴光度马赛克方法，多帧共享最小残差低频背景）。
+
+**恢复方法**：取消 estimator.py 和 image_corrector.py 中的注释即可恢复天光校正。
+
+**GAMBONS 文献参考**（未引入实现，仅备查）：
+- Paper I (2021 MNRAS): A multiband map of the natural night sky brightness including Gaia and Hipparcos integrated starlight — Masana et al., DOI:10.1093/mnras/staa4005, arXiv:2101.01500
+- Paper II (2024 arXiv): An enhanced version of the Gaia map of the brightness of the natural sky — arXiv:2408.17371
+- 核心方法论：5 分量分解（ISL+DGL+zodiacal+airglow+extinction），先剥离 Gaia 恒星通量再拟合大气气辉
+- 用户决策：借鉴方法论但不引入复杂物理建模，黄道光等精细建模过于繁琐
 
 ### 图像校正器 ImageCorrector (image_corrector.py)
 - **功能**: 利用乘性/加性梯度曲面对图像逐像素校正, 并归一化到 Gaia 参考星系统
