@@ -28,6 +28,7 @@ import os
 import re
 import sys
 import logging
+import ctypes
 from datetime import datetime
 from typing import Optional
 
@@ -41,6 +42,12 @@ _lib_base = os.path.join(
 if _lib_base not in sys.path:
     sys.path.insert(0, _lib_base)
 from astro_image_io import ImageReader, FITSWriter, FITSKeywordPy
+
+# ---- 导入 C++ 校准 DLL 封装（同目录 astro_calibration.py） ----
+_lib_calib_dir = os.path.dirname(os.path.abspath(__file__))
+if _lib_calib_dir not in sys.path:
+    sys.path.insert(0, _lib_calib_dir)
+from astro_calibration import _dll as _ac_dll, _to_float_ptr, AC_OK as _AC_OK
 
 
 # ============================ 日志配置 ============================
@@ -512,12 +519,13 @@ class Calibrator:
     def __init__(self, max_workers=4):
         """
         Args:
-            max_workers: int，预留参数（当前校准为单帧处理，批量时可用于并行）
+            max_workers: int，C++ DLL OpenMP 线程数
         """
         self._max_workers = max_workers
         self._reader = ImageReader()
         self._writer = FITSWriter()
-        logger.info("Calibrator 初始化: max_workers=%d", max_workers)
+        _ac_dll.ac_set_num_threads(max_workers)
+        logger.info("Calibrator 初始化: max_workers=%d（C++ DLL 线程数已设置）", max_workers)
 
     def calibrate_frame(self, light_path, output_path,
                         master_bias=None, master_dark=None, master_flat=None,
@@ -690,13 +698,15 @@ class Calibrator:
                        dark_optimization=False,
                        light_exposure=0.0, dark_exposure=0.0):
         """
-        在内存中校准（生产模式用）。
+        在内存中校准（生产模式用），调用 C++ DLL ac_calibrate_frame。
         输入 numpy 数组，返回 (calibrated_data, stats_dict)。
         不读写文件。
 
         假设数据范围已统一（上游负责），内部不调用 unify_data_range。
         暗场缩放因子: 若 light_exposure 和 dark_exposure 都 > 0，则 K_init = light/dark，
                      否则 K_init = 1.0。dark_optimization=True 时以此为初值搜索。
+        Flat 归一化（median=1.0，clip 0.1）在 Python 端预处理后传给 DLL，
+        其余校准运算（减 bias/dark、除 flat、暗场优化搜索）全部由 C++ DLL 完成。
 
         Args:
             light_data: np.ndarray (H, W)，Light 帧数据
@@ -713,7 +723,38 @@ class Calibrator:
                 stats_dict: {"before": {...}, "after": {...}, "dark_scale_factor": float}
         """
         logger.info("=" * 60)
-        logger.info("图像校准（内存直通模式）: shape=%s", str(np.asarray(light_data).shape))
+        logger.info("图像校准（内存直通模式，C++ DLL）: shape=%s", str(np.asarray(light_data).shape))
+
+        light = np.ascontiguousarray(light_data, dtype=np.float32)
+        h, w = light.shape[0], light.shape[1]
+
+        # 统计校准前
+        stats_before = {
+            "min": float(np.min(light)), "max": float(np.max(light)),
+            "mean": float(np.mean(light)), "std": float(np.std(light)),
+        }
+        logger.info(
+            "校准前统计: min=%.4f, max=%.4f, mean=%.4f, std=%.4f",
+            stats_before["min"], stats_before["max"], stats_before["mean"], stats_before["std"],
+        )
+
+        # 准备主帧数据（float32 连续内存）
+        bias = np.ascontiguousarray(master_bias, dtype=np.float32) if master_bias is not None else None
+        dark = np.ascontiguousarray(master_dark, dtype=np.float32) if master_dark is not None else None
+        flat = np.ascontiguousarray(master_flat, dtype=np.float32) if master_flat is not None else None
+
+        # Flat 归一化（median=1.0，最小值裁剪 0.1）
+        # C++ DLL 内部仅裁剪 0.1 不做 median 归一化，需在 Python 端预处理
+        if flat is not None:
+            flat_median = float(np.median(flat))
+            if flat_median > 0:
+                flat = np.maximum(flat / flat_median, 0.1).astype(np.float32)
+                logger.info(
+                    "Flat 归一化: 原始 median=%.4f -> 归一化后 min=%.4f, max=%.4f, median=%.4f",
+                    flat_median, float(np.min(flat)), float(np.max(flat)), float(np.median(flat)),
+                )
+            else:
+                logger.warning("Flat median=%.4f (<=0)，跳过归一化", flat_median)
 
         # 计算暗场缩放因子初值
         if light_exposure > 0 and dark_exposure > 0:
@@ -726,16 +767,39 @@ class Calibrator:
             dark_scale_factor = 1.0
             logger.info("暗场缩放因子: 1.0（曝光时间未提供）")
 
-        calibrated, actual_k, stats = calibrate(
-            light_data,
-            master_bias=master_bias,
-            master_dark=master_dark,
-            master_flat=master_flat,
-            dark_scale_factor=dark_scale_factor,
-            dark_optimization=dark_optimization,
-            light_exposure=light_exposure,
-            dark_exposure=dark_exposure,
+        # 调用 C++ DLL 校准
+        # API: ac_calibrate_frame(light, w, h, dark, flat, bias, out, dark_opt, k_init, actual_k)
+        # 无暗场优化: (Light - Dark) / Flat
+        # 有暗场优化: (Light - Bias - K*(Dark - Bias)) / Flat
+        out = np.zeros((h, w), dtype=np.float32)
+        actual_k = ctypes.c_float(dark_scale_factor)
+
+        ret = _ac_dll.ac_calibrate_frame(
+            _to_float_ptr(light), w, h,
+            _to_float_ptr(dark) if dark is not None else None,
+            _to_float_ptr(flat) if flat is not None else None,
+            _to_float_ptr(bias) if bias is not None else None,
+            _to_float_ptr(out),
+            1 if dark_optimization else 0, dark_scale_factor,
+            ctypes.pointer(actual_k),
         )
 
-        stats["dark_scale_factor"] = actual_k
-        return calibrated, stats
+        if ret != _AC_OK:
+            logger.error("ac_calibrate_frame 失败，错误码: %d", ret)
+            raise RuntimeError("C++ DLL ac_calibrate_frame 失败，错误码: %d" % ret)
+
+        k_val = float(actual_k.value)
+        logger.info("C++ DLL 校准完成: K=%.4f", k_val)
+
+        # 统计校准后
+        stats_after = {
+            "min": float(np.min(out)), "max": float(np.max(out)),
+            "mean": float(np.mean(out)), "std": float(np.std(out)),
+        }
+        logger.info(
+            "校准后统计: min=%.4f, max=%.4f, mean=%.4f, std=%.4f",
+            stats_after["min"], stats_after["max"], stats_after["mean"], stats_after["std"],
+        )
+
+        stats = {"before": stats_before, "after": stats_after, "dark_scale_factor": k_val}
+        return out, stats

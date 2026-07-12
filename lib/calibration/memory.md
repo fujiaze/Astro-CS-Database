@@ -40,6 +40,7 @@ CCD/CMOS 标准校准模块，包含主帧生成、图像校准（含暗场优�
 - [x] cosmetic_corrector.py Python绑定C++ DLL（ctypes，模块级缓存，优先调用C++ fallback到Python）
 - [x] calibrate_fits.py 统一封装接口（单帧 calibrate_fits + 批量 calibrate_batch 16线程并行）
 - [x] 单帧性能测试通过（C++ DLL加载成功，2.0s/帧，较Python版8.5s提速4x）
+- [x] calibrate_data() 从 numpy 路径切换到 C++ DLL（ac_calibrate_frame），6/6 测试通过
 
 ## 重大Bug修复记录
 ### BZERO/BSCALE 关键字泄漏 bug（2026-07-10）
@@ -119,7 +120,7 @@ CCD/CMOS 标准校准模块，包含主帧生成、图像校准（含暗场优�
     - Flat归一化median=1.0最小裁剪0.1；返回(calibrated, actual_k, stats)
 - **Calibrator 类**:
   - `calibrate_frame(light_path, output_path, master_bias, master_dark, master_flat, dark_optimization, calibration_dir)`: 文件模式，calibration_dir提供时自动匹配主帧（EXPTIME/FILTER从FITS头读取），写FITS头记录CALIBRAT/DARKSCAL/MASTERBI/MASTERDA/MASTERFL
-  - `calibrate_data(light_data, master_bias, master_dark, master_flat, dark_optimization, light_exposure, dark_exposure)`: **生产模式内存直通**，输入numpy返回(numpy, stats_dict)，不读写文件；K_init=light_exp/dark_exp(若都>0)否则1.0
+  - `calibrate_data(light_data, master_bias, master_dark, master_flat, dark_optimization, light_exposure, dark_exposure)`: **生产模式内存直通，调用C++ DLL ac_calibrate_frame**，输入numpy返回(numpy, stats_dict)，不读写文件；K_init=light_exp/dark_exp(若都>0)否则1.0；Flat归一化(median=1.0,clip 0.1)在Python端预处理（C++ DLL内部仅裁剪0.1不做median归一化），其余校准运算(减bias/dark、除flat、暗场优化黄金分割搜索)全部由C++ DLL OpenMP 16线程完成；__init__中调用ac_set_num_threads设置DLL线程数
 - **日志**: `lib/calibration/logs/calibrator_YYYYMMDD_HHMMSS.log`，UTF-8，文件+控制台
 - **验证**: 合成数据全通过（主帧匹配6/6、数据范围统一3/3、背景提取、暗场优化K误差<0.01、标准校准3/3、内存直通、文件模式FITS头5/5关键字）
 
