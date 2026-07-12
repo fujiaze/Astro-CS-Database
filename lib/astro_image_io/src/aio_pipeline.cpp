@@ -991,14 +991,15 @@ AIO_EXPORT int aio_frame_export_block_fits(const PipelineFrame* frame,
         int n = std::snprintf(header + pos, 81, "%-8s= '%-68s'", key, val);
         if (n > 0) pos += 80;
     };
-    write_card_str("SIMPLE", "T");
+    /* SIMPLE/EXTEND: 逻辑值 T (无引号), astropy 要求 T 在 column 11 */
+    write_card("SIMPLE", "T");
     write_card("BITPIX", std::to_string(bitpix).c_str());
     write_card("NAXIS", std::to_string(naxis).c_str());
     if (naxis >= 1) write_card("NAXIS1", std::to_string(naxis1).c_str());
     if (naxis >= 2) write_card("NAXIS2", std::to_string(naxis2).c_str());
     if (naxis >= 3) write_card("NAXIS3", std::to_string(naxis3).c_str());
     if (bzero != 0.0) write_card("BZERO", std::to_string(bzero).c_str());
-    write_card_str("EXTEND", "T");
+    write_card("EXTEND", "T");
     write_card_str("BLOCK_NA", block_name);
     /* END 卡片 */
     int end_pos = pos;
@@ -1006,8 +1007,20 @@ AIO_EXPORT int aio_frame_export_block_fits(const PipelineFrame* frame,
     /* 写入头 (2880 字节) */
     std::fwrite(header, 1, 2880, fp);
 
-    /* 写数据 (填充到 2880 字节倍数) */
-    std::fwrite(blk->data, 1, data_bytes, fp);
+    /* 写数据 (FITS 标准要求大端字节序, x86 主机为小端, 需逐元素反转字节) */
+    if (elem_size == 4 || elem_size == 8) {
+        std::vector<char> be_buf(data_bytes);
+        const char* src = static_cast<const char*>(blk->data);
+        char* dst = be_buf.data();
+        for (int64_t i = 0; i < total_elems; ++i) {
+            for (size_t b = 0; b < elem_size; ++b) {
+                dst[i * elem_size + b] = src[i * elem_size + (elem_size - 1 - b)];
+            }
+        }
+        std::fwrite(be_buf.data(), 1, data_bytes, fp);
+    } else {
+        std::fwrite(blk->data, 1, data_bytes, fp);
+    }
     size_t pad = (2880 - (data_bytes % 2880)) % 2880;
     if (pad > 0) {
         std::vector<char> zeros(pad, 0);

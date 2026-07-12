@@ -1585,7 +1585,7 @@ class PipelineEngine:
     def set_auto_free(self, auto_free: bool) -> None:
         """设置是否自动丢弃中间块 (默认 True)
         默认策略: PLATESOLVE 后丢弃 weight; PHOTOMETRIC 后丢弃 star_det/gaia_cat/psf;
-        DRIZZLE 后丢弃 data/snr/weight/grad_map/cal_stats/photo_stats; STACK 后丢弃 healpix
+        DRIZZLE 后丢弃 data/snr/weight/photo_stats; STACK 后丢弃 healpix
         """
         self._dll.aio_pipeline_engine_set_auto_free(
             self._engine, 1 if auto_free else 0
