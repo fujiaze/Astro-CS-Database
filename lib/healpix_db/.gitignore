@@ -11,5 +11,11 @@ __pycache__/
 *.egg-info/
 logs/
 *.log
-.pytest_cache/
+*.pytest_cache/
 nul
+
+# 已拆分为独立仓库的模块（本地保留供 healpix_lod 编译，但不纳入本仓库）
+# healpix_stack → https://github.com/fujiaze/Healpix-Mosaic-C-Python-
+# healpix_drizzle → https://github.com/fujiaze/Healpix-Drizzle-C-Python-
+healpix_stack/
+healpix_drizzle/

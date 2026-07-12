@@ -1,5 +1,5 @@
 #include "lod_manager.h"
-#include "../ahpx_io/compressor.h"
+#include "astro_image_io.h"
 #include "../healpix_stack/ahps_reader.h"
 #include "../healpix_stack/healpix_core.h"
 
@@ -535,20 +535,20 @@ int LodManager::writeLevelData(
     size_t compSize = rawSize;
     uint8_t actualCodec = CODEC_NONE;
 
-    if (codec == CODEC_ZSTD && ahpx::hasZstdSupport()) {
-        size_t bound = ahpx::compressBoundZstd(rawSize);
+    if (codec == CODEC_ZSTD) {
+        size_t bound = aio_compress_bound(rawSize, 1);
         compBuf.resize(bound);
-        compSize = ahpx::compressZstd(rawBuf.data(), rawSize, compBuf.data(), bound, zstdLevel);
+        compSize = aio_compress(rawBuf.data(), rawSize, compBuf.data(), bound, 1, zstdLevel);
         if (compSize > 0 && compSize < rawSize) {
             actualCodec = CODEC_ZSTD;
         } else {
             actualCodec = CODEC_NONE;
             compSize = rawSize;
         }
-    } else if (codec == CODEC_LZ4 && ahpx::hasLz4Support()) {
-        size_t bound = ahpx::compressBoundLz4(rawSize);
+    } else if (codec == CODEC_LZ4) {
+        size_t bound = aio_compress_bound(rawSize, 2);
         compBuf.resize(bound);
-        compSize = ahpx::compressLz4(rawBuf.data(), rawSize, compBuf.data(), bound);
+        compSize = aio_compress(rawBuf.data(), rawSize, compBuf.data(), bound, 2, 0);
         if (compSize > 0 && compSize < rawSize) {
             actualCodec = CODEC_LZ4;
         } else {
@@ -689,14 +689,14 @@ bool LodManager::readLodTile(
         }
 
         if (codec == CODEC_ZSTD) {
-            size_t decSize = ahpx::decompressZstd(compBuf.data(), compSize, rawBuf.data(), rawSize);
+            size_t decSize = aio_decompress(compBuf.data(), compSize, rawBuf.data(), rawSize, 1);
             if (decSize != rawSize) {
                 fprintf(stderr, "[lod][manager] ZSTD 解压大小不匹配: %zu != %zu\n", decSize, rawSize);
                 std::fclose(fp);
                 return false;
             }
         } else if (codec == CODEC_LZ4) {
-            size_t decSize = ahpx::decompressLz4(compBuf.data(), compSize, rawBuf.data(), rawSize);
+            size_t decSize = aio_decompress(compBuf.data(), compSize, rawBuf.data(), rawSize, 2);
             if (decSize != rawSize) {
                 fprintf(stderr, "[lod][manager] LZ4 解压大小不匹配: %zu != %zu\n", decSize, rawSize);
                 std::fclose(fp);
