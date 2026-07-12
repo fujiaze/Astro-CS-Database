@@ -15,18 +15,82 @@
 
 ```
 lib/photometric_calib/
-├── python/             # Python 接口（旧版单体架构，大部分已迁移）
+├── cpp/                # C++ DLL（简化版全局scale校正，2026-07-12新建）
+│   ├── include/photometric_calib.h   # C API 声明
+│   ├── src/
+│   │   ├── pc_api.cpp              # C API 包装
+│   │   ├── star_matcher.cpp/.h     # 暴力最近邻匹配 + MAD清洗
+│   │   ├── image_corrector.cpp/.h  # I_cal=I*scale 校正
+│   │   └── wcs_transform.cpp/.h    # TAN+SIP投影
+│   ├── test/test_photometric_calib.py  # 测试 (4/4 通过)
+│   ├── Makefile
+│   └── build.ps1
+├── python/             # Python 接口
 │   ├── __init__.py
+│   ├── photometric_calib.py   # C++ DLL ctypes 封装 (PhotometricCalib类)
 │   ├── pc_logger.py          # 日志系统
 │   ├── sed_builder.py        # SED构造器 (保留：spectrum_integrator 自测惰性引用)
 │   └── synthetic_photometry.py  # 合成测光 (保留：spectrum_integrator 自测惰性引用)
-│   # 已删除（2026-07-12）: star_matcher.py/image_corrector.py/gradient_fitter.py/wcs_transform.py/curve_loader.py
-│   # 新版位于 gradient_estimator/python/ 和 spectrum_integrator/python/
-├── gradient_estimator/  # 梯度估算器（活跃版本，已修复梯度方向 bug）
+├── flux_calibrator/    # 流量校准器（pipeline_adapter 已切换到 C++ DLL）
+│   └── python/
+│       ├── pipeline_adapter.py  # 管线适配器（调用C++ DLL, 去掉GradientEstimator）
+│       ├── fsyn_loader.py       # F_syn JSON 加载器
+│       ├── star_matcher.py      # Python版星匹配（保留供测试）
+│       ├── wcs_transform.py     # Python版WCS（保留供测试）
+│       └── image_corrector.py   # Python版图像校正（保留供测试）
+├── archive/            # 归档（2026-07-12 从 flux_calibrator/python/ 移入）
+│   ├── estimator.py           # 旧版 GradientEstimator（含梯度拟合）
+│   └── gradient_fitter.py     # 旧版梯度曲面拟合器
 ├── spectrum_integrator/ # 光谱积分器（活跃版本）
 └── logs/               # 日志输出目录
-    └── calib_YYYYMMDD_HHMMSS.log
 ```
+
+## 开发记录
+
+### [简化版 2026-07-12] C++ DLL 全局 scale 校准
+
+**决策**：去掉梯度拟合（M_map曲面拟合），简化为全局scale校正。
+
+**算法**：
+1. WCS投影Gaia星到像素坐标（TAN+SIP投影）
+2. 暴力最近邻匹配PSF星和Gaia星（距离<3px）
+3. MAD离群清洗（r=log10(F_instr/F_syn), sigma=3.0）
+4. scale=median(F_syn/F_instr)
+5. I_cal=I*scale
+
+**新建文件**：
+- `cpp/include/photometric_calib.h` - C API 声明 (pc_calibrate_simple)
+- `cpp/src/wcs_transform.cpp/.h` - TAN+SIP投影 (参考 healpix_drizzle/wcs_sip.cpp)
+- `cpp/src/star_matcher.cpp/.h` - 暴力最近邻 + MAD清洗 (无nanoflann依赖)
+- `cpp/src/image_corrector.cpp/.h` - scale=median(F_syn/F_instr), I_cal=I*scale
+- `cpp/src/pc_api.cpp` - C API 包装层
+- `cpp/Makefile` / `cpp/build.ps1` - 构建脚本
+- `python/photometric_calib.py` - ctypes 封装 (PhotometricCalib类)
+- `cpp/test/test_photometric_calib.py` - 4项测试
+
+**修改文件**：
+- `flux_calibrator/python/pipeline_adapter.py` - 重写为调用C++ DLL，去掉GradientEstimator/gradient_fitter/image_corrector依赖，去掉grad_map块，保留photo_stats KV块(N_MATCHED, SCALE_FACTOR)
+
+**归档文件** (flux_calibrator/python/ -> archive/)：
+- `estimator.py` - 旧版GradientEstimator
+- `gradient_fitter.py` - 旧版梯度曲面拟合器
+
+**编译**：`make` 成功，photometric_calib.dll 697KB，`-static` 全静态链接（仅依赖KERNEL32/msvcrt系统DLL），OpenMP 16线程
+
+**测试结果**：4/4 通过
+1. 基本测光校准 (10星TAN投影, scale=10.0)
+2. MAD离群清洗 (20星注入1离群, 保留19)
+3. 无Gaia星退化 (scale=1.0)
+4. SIP WCS投影 (二阶SIP, 10星匹配)
+
+**关键设计**：
+- WCS: CRPIX 1-based, 像素0-based, dx=x-(CRPIX-1)
+- SIP系数按i*6+j索引（长度36扁平数组）
+- 无AP/BP时用3次牛顿迭代反解前向SIP
+- 暴力最近邻（Gaia星通常<10000, 无需nanoflann）
+- MAD: sigma=MAD/0.6745, sigma=0时跳过清洗（与Python版一致）
+
+
 
 > **清理记录（2026-07-12）**: 顶层 python/ 下的 star_matcher.py、image_corrector.py 含已确认梯度方向 bug（r=log10(F_syn/F_instr) 方向反转），gradient_fitter.py 未调参（MAX_ORDER=5），wcs_transform.py/curve_loader.py 为冗余副本。上述 5 个文件已删除，新版位于 gradient_estimator/python/ 和 spectrum_integrator/python/。sed_builder.py 和 synthetic_photometry.py 保留（spectrum_integrator/python/synthetic_photometry.py 自测块惰性引用 sed_builder，跨目录依赖未解耦）。
 
