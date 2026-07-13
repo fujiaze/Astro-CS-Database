@@ -1,10 +1,15 @@
 # Dynamic PSF - Moffat4 PSF 拟合引擎
 
+版本：v1.1 (含性能修复) | 2026-07-12
+
 天文图像中星点的 PSF（Point Spread Function，点扩散函数）拟合引擎，采用 β=4 固定 Moffat 模型与 7 参数 Levenberg-Marquardt 求解器，原生 uint16 输入，OpenMP 16 线程并行批量拟合。
 
 **性能摘要**：C++17 · OpenMP 16 线程 · uint16 原生输入 · 7 参数 LM 求解 · β=4 固定 Moffat · `-O2 -march=native`
 
-GitHub：https://github.com/fujiaze/Dynamic-PSF-Cpp
+## GitHub仓库
+- 仓库地址：https://github.com/fujiaze/Dynamic-PSF
+- 默认分支：master
+- 最新commit：a3ae0d6
 
 ## 概述
 
@@ -176,7 +181,7 @@ dynamic_psf/
 
 ## 详细文档链接
 
-- **源码仓库**：https://github.com/fujiaze/Dynamic-PSF-Cpp
+- **源码仓库**：https://github.com/fujiaze/Dynamic-PSF
 - **图像读取依赖**：[Astro-Image-Io](https://github.com/fujiaze/Astro-Image-Io)
 
 **参考文献**（算法参考以下开源项目，核心算法已按 MIT 许可重新实现，代码完全独立）：
