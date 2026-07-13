@@ -28,3 +28,8 @@
 - 新建独立GitHub仓库：Astro-Data-Pipeline
 - 推送至GitHub：commit e81717e
 - C API设计完成，支持ctypes绑定
+
+### 2026-07-13 仓库结构整理完成
+- GitHub仓库分支统一为main
+- 文档刷新并重新推送
+- 最新commit: 1dcee34
