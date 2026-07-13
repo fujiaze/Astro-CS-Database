@@ -30,3 +30,8 @@
 - 修复PSF性能问题（详见dynamic_psf模块记录）
 - 关键API：ImageReader/FITSWriter读写、PipelineFrame命名块容器、PipelineEngine管线调度
 - 推送至GitHub：commit a33d167
+
+### 2026-07-13 仓库结构整理完成
+- GitHub仓库分支统一为main
+- 文档刷新并重新推送
+- 最新commit: c7ae15f
