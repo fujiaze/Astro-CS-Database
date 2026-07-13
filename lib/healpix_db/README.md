@@ -1,8 +1,16 @@
 # Healpix Database
 
+版本：v1.0 | 2026-07-12
+
 天文巡天数据的 HEALpix 球面存储与可视化系统。LOD 金字塔支持多级预览，球面浏览器提供交互式可视化。
 
 本仓库为 HEALpix 数据库核心仓库，仅保留 LOD 金字塔和球面浏览器。单帧读写（.ahpx）、稀疏堆栈（.ahps）、Drizzle 重投影已拆分为独立仓库。
+
+## GitHub仓库
+- 仓库地址：https://github.com/fujiaze/Healpix-Database
+- 默认分支：main
+- 最新commit：7129e32
+- 关联仓库：Healpix-Mosaic, Healpix-Drizzle
 
 ## 模块
 
