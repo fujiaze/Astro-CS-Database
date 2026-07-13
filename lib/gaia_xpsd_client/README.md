@@ -1,8 +1,14 @@
 # Gaia DR3 XPSD Client
 
+版本：v1.0 | 2026-07-12
+
 轻量级 Gaia DR3 本地星表 C 客户端，直接读取 PixInsight XPSD 格式离线星表文件，支持锥形搜索（cone search）与多数据库切换。
 
 **版本 / 性能摘要**：支持 GaiaDR3（18亿星）/ GaiaDR3SP（2.2亿星）双数据库；1° 半径锥形搜索冷启动 ~0.5s、缓存命中 <0.001s；多文件 OpenMP 并行 + mmap 零拷贝 + 二级缓存。
+
+## GitHub仓库
+- 仓库地址：https://github.com/fujiaze/Gaia-DR3-DR3SP-Client-C
+- 默认分支：master
 
 ---
 
