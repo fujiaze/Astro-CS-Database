@@ -1,8 +1,15 @@
 # Astro Image IO
 
+版本：v1.0 C++原生实现 | 2026-07-12
+
 FITS / XISF 天文图像统一 IO 库 + Pipeline 管线引擎，C++ 原生实现 + Python 封装，零外部依赖。
 
 **版本/性能摘要**：FITS 4500×3600 读取 ~0.030s｜XISF 4500×3600 读取 ~0.033s｜零外部依赖（不依赖 cfitsio / XML 库）。
+
+## GitHub仓库
+- 仓库地址：https://github.com/fujiaze/Astro-Image-IO-C
+- 默认分支：master
+- 最新commit：a33d167
 
 ## 概述
 
