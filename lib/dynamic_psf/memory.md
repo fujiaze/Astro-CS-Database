@@ -30,3 +30,8 @@
   3. 添加OpenMP并行（#pragma omp parallel for schedule(dynamic)）
 - **结果**：9.26s → 0.26s（-97.1%），16线程并行加速
 - 推送至GitHub：commit a3ae0d6
+
+### 2026-07-13 仓库结构整理完成
+- GitHub仓库分支统一为main
+- 文档刷新并重新推送
+- 最新commit: d3ec9e2
