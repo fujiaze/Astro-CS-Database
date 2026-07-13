@@ -33,6 +33,11 @@
 - pipeline_adapter.py重写为调用C++ DLL，去掉GradientEstimator依赖
 - 推送至GitHub：commit 1a6fd32
 
+### 2026-07-13 仓库结构整理完成
+- GitHub仓库分支统一为main
+- 文档刷新并重新推送
+- 最新commit: a743531
+
 ---
 
 ## 详细开发记录（历史归档）
