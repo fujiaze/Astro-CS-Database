@@ -1,6 +1,13 @@
 # Astro Calibration (C++)
 
+版本：v1.0 C++ OpenMP | 2026-07-12
+
 天文 CCD/CMOS 图像标准校准模块，C++ 实现，OpenMP 多线程加速，Python ctypes 调用。
+
+## GitHub仓库
+- 仓库地址：https://github.com/fujiaze/Astro-Calibration-Cpp
+- 默认分支：master
+- 最新commit：ef6ac09
 
 ## 功能
 

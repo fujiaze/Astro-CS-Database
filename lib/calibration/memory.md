@@ -1,7 +1,45 @@
-# 校准模块开发记忆
+# calibration - 模块开发memory
 
-## 模块概述
-CCD/CMOS 标准校准模块，包含主帧生成、图像校准（含暗场优化）、坏点修复三个子模块。
+## 模块职责
+CCD/CMOS标准校准模块，包含主帧生成、图像校准（含暗场优化）、坏点修复三个子模块，提供Light帧的完整校准管线（Bias/Dark/Flat扣除 + 坏点插值修复）。
+
+## 当前版本
+- 版本号：v2.0 C++ DLL
+- 最新commit：ef6ac09
+- 更新时间：2026-07-12
+
+## GitHub仓库
+- 仓库地址：https://github.com/fujiaze/Astro-Calibration-Cpp
+- 默认分支：master
+
+## 依赖列表
+- C++17, OpenMP（cosmetic_corrector.dll）
+- astro_image_io.dll（FITS/XISF读写、BZERO/BSCALE处理）
+- Python ctypes（cosmetic_corrector.py绑定C++ DLL，fallback到Python scipy）
+
+## 关键决策记录
+- **calibrate_data()切换到ac_calibrate_frame C++ DLL**：生产模式内存直通，输入numpy返回numpy+stats_dict，不读写文件；Flat归一化在Python端预处理，校准运算（减bias/dark、除flat、暗场优化黄金分割搜索）全部由C++ DLL OpenMP 16线程完成
+- **6/6测试通过**：calibrate_data()从numpy路径切换到C++ DLL后，6/6测试全部通过
+- **cosmetic_corrector C++ OpenMP版本**：5×5中值滤波修复坏像素、全局统计检测热/冷像素、BFS连通区域过滤，OpenMP按行并行schedule(dynamic, 64)
+- **校准公式（用户纠正后）**：无暗场优化 Calibrated=(Light-Dark)/Flat（Dark已含Bias，直接减）；有暗场优化 Calibrated=(Light-Bias-K*(Dark-Bias))/Flat
+- **坏点修复策略（v4: AstroStack3方案）**：Dark/Bias主帧保留坏点（校准扣除），用Dark全局统计检测热像素+Bias全局统计检测冷像素（缺陷图），Light局部统计检测默认关闭
+- **BZERO/BSCALE根因修复**：astro_image_io C++的fits_write_file关键字过滤列表增加BZERO/BSCALE，从源头避免float32数据携带无符号16位关键字导致的二次偏移
+
+## 进度日志
+### 2026-07-12 calibrate_data()切换到C++ DLL
+- calibrate_data()从numpy路径切换到ac_calibrate_frame C++ DLL
+- 6/6测试通过
+- 推送至GitHub：commit ef6ac09
+
+### 2026-07-10 坏点修复C++ DLL与BZERO/BSCALE修复
+- cosmetic_corrector C++ OpenMP版本完成，单帧性能2.0s（较Python版8.5s提速4x）
+- BZERO/BSCALE关键字泄漏bug修复（astro_image_io C++根因修复）
+- filter_by_structure_size背景label 0泄漏bug修复
+- v6实验通过：6/6帧成功，坏点修复后均值变化仅0.02%-0.04%，星点信号完好
+
+---
+
+## 详细开发记录（历史归档）
 
 ## 开发阶段
 - Phase 1: Python 实现（已完成）
