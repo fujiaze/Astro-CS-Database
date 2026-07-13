@@ -12,8 +12,8 @@ Healpix天球分块数据库，提供LOD金字塔分层、球面浏览器可视�
 - 仓库地址：https://github.com/fujiaze/Healpix-Database
 - 默认分支：main
 - 关联仓库：
-  - Healpix-Mosaic（healpix_stack）：多帧叠加合成
-  - Healpix-Drizzle（healpix_drizzle）：Drizzle重投影
+  - Healpix-Mosaic-Cpp（healpix_stack）：多帧叠加合成 - https://github.com/fujiaze/Healpix-Mosaic-Cpp
+  - Healpix-Drizzle-Cpp（healpix_drizzle）：Drizzle重投影 - https://github.com/fujiaze/Healpix-Drizzle-Cpp
 
 ## 依赖列表
 - C++17, OpenMP
@@ -31,3 +31,10 @@ Healpix天球分块数据库，提供LOD金字塔分层、球面浏览器可视�
 - 完成hp_drizzle_run命名块直通接口，对接PipelineFrame
 - Drizzle重投影无需临时文件，直接从命名块读输入、写输出
 - 推送至GitHub：commit 7129e32
+
+### 2026-07-13 仓库结构整理完成
+- 关联仓库重命名：Healpix-Drizzle-C-Python- → Healpix-Drizzle-Cpp，Healpix-Mosaic-C-Python- → Healpix-Mosaic-Cpp
+- 关联仓库分支统一为main
+- 本地healpix_drizzle/healpix_stack建立独立git仓库
+- 文档刷新并重新推送
+- 最新commit: 28ac468
