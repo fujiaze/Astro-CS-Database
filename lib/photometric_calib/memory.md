@@ -1,6 +1,42 @@
-# Photometric Calib 模块记忆
+# photometric_calib - 模块开发memory
 
-> 本文件记录 photometric_calib 模块的开发进度与关键信息。
+## 模块职责
+鲁棒流量校准，将图像归一化到Gaia DR3/DR3SP星表系统，输出与Gaia参考星系统一致的校正图像。当前版本为C++ DLL简化版（全局scale校正，去掉梯度拟合）。
+
+## 当前版本
+- 版本号：v2.0 C++ DLL
+- 最新commit：1a6fd32
+- 更新时间：2026-07-12
+
+## GitHub仓库
+- 仓库地址：https://github.com/fujiaze/Flux-calibration
+- 默认分支：master
+
+## 依赖列表
+- C++17, OpenMP
+- astro_image_io.dll（FITS读写）
+- gaia_xpsd_client（Gaia星表查询）
+- Python ctypes（PhotometricCalib类封装）
+
+## 关键决策记录
+- **C++ DLL重写完成（pc_calibrate_simple）**：从Python版本迁移到C++ DLL，697KB静态链接，OpenMP 16线程，仅依赖KERNEL32/msvcrt系统DLL
+- **去掉梯度拟合**：去掉M_map曲面拟合（GradientEstimator/gradient_fitter），简化为全局scale校正，避免星点稀疏采样导致过拟合
+- **scale=median(F_syn/F_instr)**：算法流程为WCS投影Gaia星→暴力最近邻匹配（距离<3px）→MAD离群清洗→scale=median(F_syn/F_instr)→I_cal=I*scale
+- **4个Python文件归档**：estimator.py（旧版GradientEstimator）、gradient_fitter.py（旧版梯度曲面拟合器）等从flux_calibrator/python/移入archive/
+- **天光校正封存**：S_map加性梯度天光校正封存（注释调用，可逆），photometric_calib仅做乘性流量定标
+
+## 进度日志
+### 2026-07-12 C++ DLL重写完成
+- C++ DLL重写完成（pc_calibrate_simple），4/4测试通过
+- 去掉梯度拟合，简化为全局scale=median(F_syn/F_instr)校正
+- 4个Python文件归档到archive/
+- pipeline_adapter.py重写为调用C++ DLL，去掉GradientEstimator依赖
+- 推送至GitHub：commit 1a6fd32
+
+---
+
+## 详细开发记录（历史归档）
+
 > 根目录索引: [memory.md](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/memory.md)
 
 ## 模块概览
@@ -9,7 +45,7 @@
 - **功能**: 鲁棒流量校准，消除空间缓变梯度（残留渐晕、月光、光害、大气消光、大气辉光），输出与 Gaia DR3/SP 星表系统一致的校正图像
 - **算法依据**: [docs/algorithm.md](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/photometric_calib/docs/algorithm.md)
 - **架构依据**: [docs/architecture.md](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/photometric_calib/docs/architecture.md)
-- **GitHub 仓库**: https://github.com/fujiaze/Robust-Flux-Calibration (v1.0 已推送, 2026-07-12)
+- **历史仓库**: https://github.com/fujiaze/Robust-Flux-Calibration (v1.0 Python版, 2026-07-12, 已被Flux-calibration取代)
 
 ## 目录结构
 
