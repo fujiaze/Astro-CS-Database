@@ -5,6 +5,7 @@
 *.exp
 *.pdb
 *.exe
+*.a
 __pycache__/
 *.pyc
 *.pyo
@@ -13,6 +14,9 @@ logs/
 *.log
 *.pytest_cache/
 nul
+
+# Qt6 / CMake 构建产物
+healpix_browser_qt/build/
 
 # 已拆分为独立仓库的模块（本地保留供 healpix_lod 编译，但不纳入本仓库）
 # healpix_stack → https://github.com/fujiaze/Healpix-Mosaic-C-Python-
