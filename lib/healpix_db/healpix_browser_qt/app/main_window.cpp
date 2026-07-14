@@ -87,6 +87,16 @@ void MainWindow::setup_menu() {
     connect(reset_action, &QAction::triggered, this, &MainWindow::on_view_reset);
     view_menu->addAction(reset_action);
 
+    view_menu->addSeparator();
+
+    // 经纬线网格开关 (checkbox)
+    grid_toggle_action_ = new QAction("&经纬线网格 (30°)", this);
+    grid_toggle_action_->setCheckable(true);
+    grid_toggle_action_->setChecked(false);
+    grid_toggle_action_->setShortcut(QKeySequence("Ctrl+G"));
+    connect(grid_toggle_action_, &QAction::toggled, this, &MainWindow::on_grid_toggle);
+    view_menu->addAction(grid_toggle_action_);
+
     // ---- STF 菜单 ----
     QMenu* stf_menu = menuBar()->addMenu("&STF");
 
@@ -266,6 +276,15 @@ void MainWindow::on_view_reset() {
     }
 }
 
+void MainWindow::on_grid_toggle(bool checked) {
+    // 经纬线网格开关: 转发给当前 SphereView
+    if (current_view_) {
+        if (auto* v = qobject_cast<SphereView*>(current_view_)) {
+            v->set_grid_visible(checked);
+        }
+    }
+}
+
 // ============================================================================
 // STF 控制
 // ============================================================================
@@ -287,11 +306,12 @@ void MainWindow::on_auto_stretch_clicked() {
 // 状态栏更新
 // ============================================================================
 
-void MainWindow::on_view_changed(double ra, double dec, double zoom) {
-    status_view_->setText(QString("视角: RA=%1° Dec=%2° zoom=%3x")
+void MainWindow::on_view_changed(double ra, double dec, double fov) {
+    // 第三个参数语义变更: zoom → fov (SphereView 用 FOV 控制缩放)
+    status_view_->setText(QString("视角: RA=%1° Dec=%2° FOV=%3°")
                           .arg(ra, 0, 'f', 1)
                           .arg(dec, 0, 'f', 1, '+')
-                          .arg(zoom, 0, 'f', 2));
+                          .arg(fov, 0, 'f', 1));
 }
 
 void MainWindow::on_mouse_moved(double ra, double dec) {

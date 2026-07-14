@@ -23,7 +23,99 @@
 - [x] Task 10: STFPanel + main.cpp（demo exe，2026-07-14）
 - [x] Task 11: demo 验证（2026-07-14, Qt6 安装+cmake build+运行 .hiss 加载成功）
 - [x] Task 13: 归档 WebGL 浏览器 + 文档更新（2026-07-14）
+- [x] 视角与像素修复（2026-07-14, 虚拟轨迹球+菱形像素+no_data跳过）
+- [x] 视角控制重写（2026-07-14, 赤道仪相机+look_at_matrix 矩阵存储bug修复+菱形像素几何修正）
 - [ ] Task 12: 性能验证（待后续优化）
+
+## 视角控制重写（2026-07-14, 最终方案）
+**问题**: 虚拟轨迹球方案仍有左右拖动产生 roll（画面绕视线轴旋转感）
+
+**根因 1**: `look_at_matrix` 的 column-major 存储顺序错误（存了 V^T 而非 V）
+- 旧: col0=(sx,sy,sz,...), col1=(ux,uy,uz,...), col2=(-fx,-fy,-fz,...) → 转置矩阵
+- 新: col0=(sx,ux,-fx,...), col1=(sy,uy,-fy,...), col2=(sz,uz,-fz,...) → 正确
+- 验证: forward(1,0,0) 应映射到 cam(0,0,-1); 北天极右拖 y 不变
+
+**根因 2**: 导航逻辑过度复杂（携带 up / 双向量 / 轨迹球）
+- 最终方案: **赤道仪相机**（最简）
+- yaw (左右): center_ra_ += dx × FOV × DRAG_RATIO (绕极轴 Z, side=forward×up 指向 -Y/西, 画面右=西, 抓画面拖视线向东)
+- pitch (上下): center_dec_ += dy × FOV × DRAG_RATIO (绕赤纬轴 east, 抓画面拖鼠标下移看更北)
+- up 始终从 ra/dec 重算 north-up（绝不携带, 绝不 roll）
+- dec clamp 到 ±89.9° 避免极区数值问题
+
+**根因 3**: 菱形像素 pix_size 公式错误（偏大 4.1 倍, 产生摩尔纹）
+- 旧: `pix_size = 4*180/(3*nside) = 240/nside` 度（错误, 这是 nside=1 的像素边长）
+- 新: `pix_size = √(π/3)/nside × 180/π ≈ 58.6/nside` 度（HEALPix 等面积正方形边长, 用于 bbox）
+- 菱形半对角线: `h = √(π/6)/nside` rad（等面积正方形边长 / √2）
+
+**黑色缝隙修复** (drizzle pixfrac=0.8 稀疏填充):
+- drizzle 每个 CCD 像素收缩到 80% → 填充 64% 面积 → 留 36% 缝隙
+- 浏览器外扩菱形 25%: `h × 1.25`（≈1/pixfrac=1/0.8）让相邻像素重叠覆盖缝隙
+- drizzle 算法本身正确（通量守恒）, pixfrac 是用户参数, 不改 drizzle 源码
+
+**MAX_FOV 限制**:
+- 旧: 170°（全天, 球面 yaw 旋转畸变明显）
+- 新: 50°（小 FOV 下 yaw≈平移, 消除旋转感, 限制纬度线畸变）
+
+**关键参数**:
+- DRAG_RATIO = 0.003 (拖动速度 = FOV × 0.3%/像素)
+- FOV 范围 [0.5°, 50°]
+- North-up 初始化: 打开文件/reset_view 时 up=球面 north 切平面基
+
+**修改文件**:
+- core/gl_renderer.cpp - look_at_matrix column-major 存储修正 + build_hiss_polygon_mesh pix_size/h 公式修正 + 菱形外扩 1.25
+- widgets/sphere_view.cpp - apply_drag_rotation 改为赤道仪相机 (直接维护 center_ra_/center_dec_)
+- widgets/sphere_view.h - MAX_FOV=50, 注释更新
+
+**验证**:
+- Python 模拟确认: 右拖北天极 y 不变 (no roll), 下拖 x 不变 (no yaw)
+- 编译成功, 程序启动加载 .hiss 正常
+- 用户确认: 左右方向反转修复后所有拖动正常
+
+## 视角与像素修复（2026-07-14, 已被最终方案取代）
+**问题**: 上下拖动方向反 + 左右拖动旋转感 + 矩形近似摩尔纹 + 网格畸变 + 不流畅
+
+**修复方案演进**:
+1. eta 符号翻转（抓画面拖模式, 上下跟手）
+2. Rodrigues 旋转 + 携带式 up（失败, 左右仍旋转）
+3. 双向量四元数（forward 绕 up / forward+up 绕 right, 失败, 左右仍旋转）
+4. **虚拟轨迹球（最终方案, 成功）**
+
+**虚拟轨迹球算法** (sphere_view.cpp apply_drag_rotation):
+- forward + up 双向量（north-up 初始化: up=球面 north 切平面基, 极区兜底 Y 轴）
+- 屏幕拖动 (dx, dy) → 单个旋转轴 + 角度
+- right = forward × up（画面右方, 右手系）
+- 视线位移 = -dx*right + dy*up（抓画面拖: 视线反向于画面位移）
+- 旋转轴 axis = forward × 视线位移 = dy*right - dx*up
+- 旋转角度 angle = |dx,dy| × FOV × DRAG_RATIO (rad)
+- forward 和 up 同时绕 axis 旋转相同角度（保持正交, 无 roll）
+- 优点: 左右/上下统一为单个旋转, 不分 yaw/pitch, 画面不旋转
+
+**菱形像素修复** (gl_renderer.cpp build_hiss_polygon_mesh):
+- 球面切平面基构造菱形角点（替代矩形近似）
+- 中心笛卡尔 c + east/north 切平面基向量
+- 4 角点十字方向（下/右/上/左）, 投影回单位球
+- 无 cos_dec 发散, 真实 HEALPix 菱形
+
+**no_data 不渲染** (gl_renderer.cpp build_hiss_polygon_mesh):
+- 跳过 value<=0 的像素（与片元着色器 uNoData 阈值一致）
+- 提升渲染流畅性, 避免无效多边形占用 GPU 资源
+- 日志输出 skipped_no_data 统计
+
+**renderer 用传入 forward/up** (gl_renderer.cpp render_hiss_polygon/render_grid):
+- 不再从 ra/dec 重算 forward, 直接用 widget 层传入的 forward_*
+- 消除 widget 和 renderer 之间的状态不一致
+
+**关键参数**:
+- DRAG_RATIO = 0.003 (拖动速度 = FOV × 0.3%/像素)
+- FOV 范围 [0.5°, 170°]
+- North-up 初始化: 打开文件/reset_view 时 up=球面 north 切平面基
+
+**修改文件**:
+- core/browser_backend.h - ViewParams 加 forward_x/y/z 字段
+- core/gl_renderer.cpp - render_hiss_polygon/render_grid 用传入 forward + build_hiss_polygon_mesh 跳过 no_data
+- widgets/sphere_view.h - 声明 apply_drag_rotation / update_ra_dec_from_forward / init_forward_up_north_up
+- widgets/sphere_view.cpp - 切平面导航 → 双向量四元数 → 虚拟轨迹球（最终）
+
 
 ## Task 11 + 13: 验证与归档（2026-07-14）
 **Qt6 安装**:

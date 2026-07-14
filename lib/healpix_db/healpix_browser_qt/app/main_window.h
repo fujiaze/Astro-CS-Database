@@ -15,6 +15,7 @@
 
 class AbstractView;
 class STFPanel;
+class QAction;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -36,6 +37,7 @@ private slots:
     void on_view_changed(double center_ra, double center_dec, double zoom);
     void on_mouse_moved(double ra, double dec);
     void on_auto_stretch_clicked();
+    void on_grid_toggle(bool checked);  // View > 经纬线网格 checkbox
 
 private:
     void setup_menu();
@@ -56,6 +58,9 @@ private:
 
     // STF 控制面板 (DockWidget, 所有权归 QMainWindow)
     STFPanel* stf_panel_;
+
+    // View 菜单 actions
+    QAction* grid_toggle_action_ = nullptr;  // 经纬线网格开关
 
     // 状态栏标签
     QLabel* status_file_;

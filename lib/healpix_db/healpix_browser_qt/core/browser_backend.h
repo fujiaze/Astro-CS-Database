@@ -17,10 +17,20 @@
 // 视角参数 (widget 层填充后传给 core)
 // ============================================================================
 struct ViewParams {
-    double center_ra;    // 中心赤经 (度)
+    double center_ra;    // 中心赤经 (度, 从 forward 反算, 用于日志/screen_to_sky)
     double center_dec;   // 中心赤纬 (度)
     double zoom;         // 缩放级别 (1.0 = 全天, 越大越放大)
     double fov_deg;      // 视场大小 (度)
+    // 双向量四元数导航 (自由滚动, 左右不旋转)
+    // forward: 视线方向 (单位向量, 从球心向外)
+    // up: 画面上方 (单位向量, 与 forward 正交)
+    // 由 widget 层维护, renderer 直接使用不重算
+    double forward_x = 1.0;
+    double forward_y = 0.0;
+    double forward_z = 0.0;
+    double up_x = 0.0;
+    double up_y = 0.0;
+    double up_z = 1.0;
 };
 
 // ============================================================================

@@ -33,6 +33,7 @@ struct RenderParams {
     float no_data_value;         // 无数据标记（默认 0.0）
     int viewport_w;              // 视口宽（像素）
     int viewport_h;              // 视口高（像素）
+    bool grid_visible = false;   // 经纬线网格可见性 (30° 网格)
 };
 
 class GLRenderer {
@@ -123,6 +124,13 @@ private:
     double hiss_width_deg_ = 0.0;
     double hiss_height_deg_ = 0.0;
 
+    // ---- 经纬线网格 (30° 网格, 独立着色器, 固定颜色) ----
+    unsigned int grid_program_ = 0;     // 网格着色器
+    unsigned int grid_vao_ = 0;         // 网格 VAO
+    unsigned int grid_vbo_ = 0;         // 网格 VBO
+    int grid_vertex_count_ = 0;         // 网格顶点数 (线段端点)
+    bool grid_mesh_valid_ = false;      // 网格是否已构建
+
     // 初始化标志
     bool initialized_;
 
@@ -145,6 +153,10 @@ private:
     // .hiss 像素多边形模式: 网格构建与渲染（新）
     int build_hiss_polygon_mesh(BrowserBackend& backend);
     int render_hiss_polygon(BrowserBackend& backend, const RenderParams& params);
+
+    // 经纬线网格构建与渲染 (30° 网格, 独立着色器)
+    int build_grid_mesh();
+    int render_grid(const RenderParams& params);
 
     // 矩阵运算（4×4，column-major）
     static void perspective_matrix(double fov_deg, double aspect,

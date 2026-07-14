@@ -109,6 +109,7 @@ typedef void (APIENTRY *PFN_glDeleteShader)(GLuint shader);
 typedef GLint (APIENTRY *PFN_glGetUniformLocation)(GLuint program, const GLchar* name);
 typedef void (APIENTRY *PFN_glUniform1f)(GLint location, GLfloat v0);
 typedef void (APIENTRY *PFN_glUniform1i)(GLint location, GLint v0);
+typedef void (APIENTRY *PFN_glUniform4f)(GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
 typedef void (APIENTRY *PFN_glUniformMatrix4fv)(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
 typedef void (APIENTRY *PFN_glEnableVertexAttribArray)(GLuint index);
 typedef void (APIENTRY *PFN_glDisableVertexAttribArray)(GLuint index);
@@ -142,6 +143,7 @@ static PFN_glDeleteShader         pglDeleteShader = nullptr;
 static PFN_glGetUniformLocation   pglGetUniformLocation = nullptr;
 static PFN_glUniform1f            pglUniform1f = nullptr;
 static PFN_glUniform1i            pglUniform1i = nullptr;
+static PFN_glUniform4f            pglUniform4f = nullptr;
 static PFN_glUniformMatrix4fv     pglUniformMatrix4fv = nullptr;
 static PFN_glEnableVertexAttribArray pglEnableVertexAttribArray = nullptr;
 static PFN_glDisableVertexAttribArray pglDisableVertexAttribArray = nullptr;
@@ -195,6 +197,7 @@ static int load_gl_functions() {
     LOAD_GL_FUNC(glGetUniformLocation)
     LOAD_GL_FUNC(glUniform1f)
     LOAD_GL_FUNC(glUniform1i)
+    LOAD_GL_FUNC(glUniform4f)
     LOAD_GL_FUNC(glUniformMatrix4fv)
     LOAD_GL_FUNC(glEnableVertexAttribArray)
     LOAD_GL_FUNC(glDisableVertexAttribArray)
@@ -331,6 +334,26 @@ void main() {
 }
 )";
 
+// ---- 经纬线网格顶点着色器（球面位置 + MVP） ----
+static const char* kGridVertexShader = R"(
+#version 330 core
+layout(location = 0) in vec3 aPosition;
+uniform mat4 uMVPMatrix;
+void main() {
+    gl_Position = uMVPMatrix * vec4(aPosition, 1.0);
+}
+)";
+
+// ---- 经纬线网格片元着色器（固定半透明绿色） ----
+static const char* kGridFragmentShader = R"(
+#version 330 core
+uniform vec4 uGridColor;
+out vec4 FragColor;
+void main() {
+    FragColor = uGridColor;
+}
+)";
+
 // ============================================================================
 // 辅助：编译单个着色器
 // 返回 shader id (>0) 或 0（失败）
@@ -450,7 +473,10 @@ int GLRenderer::init() {
     // 4. 构建单帧四边形网格
     build_quad_mesh();
 
-    // 5. 初始化单帧纹理 ID
+    // 5. 构建经纬线网格 (30° 网格)
+    build_grid_mesh();
+
+    // 6. 初始化单帧纹理 ID
     single_frame_texture_ = 0;
 
     initialized_ = true;
@@ -496,6 +522,13 @@ void GLRenderer::cleanup() {
         single_frame_texture_ = 0;
     }
 
+    // 释放经纬线网格
+    if (grid_vao_) { pglDeleteVertexArrays(1, &grid_vao_); grid_vao_ = 0; }
+    if (grid_vbo_) { pglDeleteBuffers(1, &grid_vbo_); grid_vbo_ = 0; }
+    if (grid_program_) { pglDeleteProgram(grid_program_); grid_program_ = 0; }
+    grid_vertex_count_ = 0;
+    grid_mesh_valid_ = false;
+
     sphere_vertex_coords_.clear();
     sf_texture_valid_ = false;
     initialized_ = false;
@@ -535,15 +568,23 @@ int GLRenderer::render(BrowserBackend& backend, const RenderParams& params) {
     current_frame_++;
 
     // 按模式分发
+    int ret = 0;
     if (params.mode == RenderMode::SPHERE) {
-        return render_sphere(backend, params);
+        ret = render_sphere(backend, params);
     } else if (params.mode == RenderMode::HISS_POLYGON) {
-        return render_hiss_polygon(backend, params);
+        ret = render_hiss_polygon(backend, params);
     } else {
         // 旧 SINGLE_FRAME 已废弃，回退到 hiss_polygon
         LOG_WARN("render: 未知 RenderMode=%d，回退到 HISS_POLYGON", static_cast<int>(params.mode));
-        return render_hiss_polygon(backend, params);
+        ret = render_hiss_polygon(backend, params);
     }
+
+    // 叠加经纬线网格 (若可见)
+    if (params.grid_visible && ret == 0) {
+        render_grid(params);
+    }
+
+    return ret;
 }
 
 // ============================================================================
@@ -626,6 +667,23 @@ int GLRenderer::compile_shaders() {
 
     quad_program_ = link_program(quad_vs, quad_fs, "quad_program");
     if (quad_program_ == 0) return -6;
+
+    // ---- 经纬线网格着色器 ----
+    unsigned int grid_vs = compile_single_shader(GL_VERTEX_SHADER,
+                                                   kGridVertexShader,
+                                                   "grid_vertex");
+    if (grid_vs == 0) return -7;
+
+    unsigned int grid_fs = compile_single_shader(GL_FRAGMENT_SHADER,
+                                                   kGridFragmentShader,
+                                                   "grid_fragment");
+    if (grid_fs == 0) {
+        pglDeleteShader(grid_vs);
+        return -8;
+    }
+
+    grid_program_ = link_program(grid_vs, grid_fs, "grid_program");
+    if (grid_program_ == 0) return -9;
 
     LOG_INFO("compile_shaders: 所有着色器编译链接完成");
     return 0;
@@ -843,44 +901,42 @@ void GLRenderer::evict_unused_leaves(size_t max_leaves) {
 int GLRenderer::render_sphere(BrowserBackend& backend, const RenderParams& params) {
     const ViewParams& view = params.view;
 
-    // ---- 1. 计算相机位置 ----
-    // zoom=1.0 → 相机距球心 3.0（全天视角）
-    // zoom 越大 → 相机越靠近球面（放大）
-    double cam_distance = 3.0 / (view.zoom > 0.001 ? view.zoom : 0.001);
-    if (cam_distance < 1.01) cam_distance = 1.01;  // 不穿入球内
+    // ---- 1. 球心相机: 相机在球心(0,0,0)，向外看天球外表面 ----
+    // 与 render_hiss_polygon 统一相机模型, 遵守赤道坐标系约定
+    // FOV 范围保护: [0.5°, 170°], 防止 tan(fov/2) 退化
+    double fov_deg = view.fov_deg;
+    if (fov_deg < 0.5) fov_deg = 60.0;
+    if (fov_deg > 170.0) fov_deg = 170.0;
 
-    // 相机目标点：球面上 (center_ra, center_dec) 处
+    // 相机朝向: 从球心看向 (center_ra, center_dec) 方向
     double center_ra_rad = view.center_ra * M_PI / 180.0;
     double center_dec_rad = view.center_dec * M_PI / 180.0;
-    double target_x = std::cos(center_dec_rad) * std::cos(center_ra_rad);
-    double target_y = std::cos(center_dec_rad) * std::sin(center_ra_rad);
-    double target_z = std::sin(center_dec_rad);
+    double fx = std::cos(center_dec_rad) * std::cos(center_ra_rad);
+    double fy = std::cos(center_dec_rad) * std::sin(center_ra_rad);
+    double fz = std::sin(center_dec_rad);
 
-    // 相机位置：沿目标点方向后退
-    double eye_x = target_x * cam_distance;
-    double eye_y = target_y * cam_distance;
-    double eye_z = target_z * cam_distance;
+    // 相机位置 = 球心 (0, 0, 0), 看向目标 = forward
+    double eye_x = 0.0, eye_y = 0.0, eye_z = 0.0;
+    double target_x = fx, target_y = fy, target_z = fz;
 
-    // up 向量：近似 (0, 0, 1)，若几乎平行则用 (0, 1, 0)
-    double up_x = 0.0, up_y = 0.0, up_z = 1.0;
-    // 检查 view 方向与 up 是否平行
-    double dir_x = target_x - eye_x;
-    double dir_y = target_y - eye_y;
-    double dir_z = target_z - eye_z;
-    double dir_len = std::sqrt(dir_x * dir_x + dir_y * dir_y + dir_z * dir_z);
-    if (dir_len > 1e-10) {
-        double dot_up = (dir_x * up_x + dir_y * up_y + dir_z * up_z) / dir_len;
-        if (std::fabs(dot_up) > 0.99) {
-            // 近似平行，改用 Y 轴
-            up_x = 0.0; up_y = 1.0; up_z = 0.0;
-        }
+    // up 向量: 北天极方向投影到 forward 垂直平面
+    // up = world_up - (world_up · forward) * forward, world_up=(0,0,1)
+    double dot = fz;  // world_up · forward = sin(dec)
+    double up_x = -dot * fx;
+    double up_y = -dot * fy;
+    double up_z = 1.0 - dot * fz;
+    double up_len = std::sqrt(up_x * up_x + up_y * up_y + up_z * up_z);
+    if (up_len < 1e-10) {
+        // 极区兜底: dec=±90° 时 up 退化，用 (0,1,0) 替代
+        up_x = 0.0; up_y = 1.0; up_z = 0.0;
+    } else {
+        up_x /= up_len; up_y /= up_len; up_z /= up_len;
     }
 
     // ---- 2. 计算投影/视图矩阵 ----
     float proj_mat[16], view_mat[16], mvp_mat[16];
     double aspect = (double)params.viewport_w / (double)params.viewport_h;
-    double fov = view.fov_deg * M_PI / 180.0;
-    perspective_matrix(fov, aspect, 0.01, 100.0, proj_mat);
+    perspective_matrix(fov_deg, aspect, 0.01, 100.0, proj_mat);
     look_at_matrix(eye_x, eye_y, eye_z,
                    target_x, target_y, target_z,
                    up_x, up_y, up_z, view_mat);
@@ -955,7 +1011,9 @@ int GLRenderer::render_sphere(BrowserBackend& backend, const RenderParams& param
                      vertex_data.data());
 
     // ---- 5. 绘制 ----
-    glEnable(GL_DEPTH_TEST);
+    // 球心相机: 从球内看球内壁, 禁用深度测试和背面剔除
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
 
     pglUseProgram(sphere_program_);
 
@@ -1012,11 +1070,14 @@ int GLRenderer::build_hiss_polygon_mesh(BrowserBackend& backend) {
     std::vector<float> vertices;
     vertices.reserve(static_cast<size_t>(all.n_pix) * 6 * 4);
 
-    // bbox 估算
+    // bbox 估算 (仅统计有效像素, 跳过 value<=0 的 no_data)
     double min_ra = 360.0, max_ra = 0.0, min_dec = 90.0, max_dec = -90.0;
+    uint64_t skipped_no_data = 0;
 
-    // HEALPix 像素边长（度）: 近似公式
-    double pix_size = 4.0 * 180.0 / (3.0 * static_cast<double>(all.nside));
+    // HEALPix 像素尺寸 (用于 bbox 估算, 单位: 度)
+    // 像素面积 Ω = π/(3·nside²) sr, 等面积正方形边长 a = √(π/3)/nside rad
+    // → a_deg = √(π/3)/nside × 180/π ≈ 58.6/nside deg
+    double pix_size = std::sqrt(M_PI / 3.0) / static_cast<double>(all.nside) * 180.0 / M_PI;
     LOG_INFO("build_hiss_polygon_mesh: n_pix=%llu nside=%u pix_size=%.6f deg",
              static_cast<unsigned long long>(all.n_pix), all.nside, pix_size);
 
@@ -1024,42 +1085,76 @@ int GLRenderer::build_hiss_polygon_mesh(BrowserBackend& backend) {
         uint64_t ipix = all.ipix[i];
         float value = all.pixel[i];
 
+        // 跳过 no_data 像素 (value<=0, 与片元着色器 uNoData 阈值一致)
+        // 提升渲染流畅性, 避免无效多边形占用 GPU 资源
+        if (value <= 0.0f) {
+            ++skipped_no_data;
+            continue;
+        }
+
         // pix2ang_nest 计算像素中心
         double ra, dec;
         HealpixMath::pix2ang_nest(all.nside, ipix, ra, dec);
 
-        // 更新 bbox
+        // 更新 bbox (仅有效像素)
         if (ra < min_ra) min_ra = ra;
         if (ra > max_ra) max_ra = ra;
         if (dec < min_dec) min_dec = dec;
         if (dec > max_dec) max_dec = dec;
 
-        // 像素角点（近似: 中心 ± pix_size/2，RA 方向除以 cos(dec)）
-        double cos_dec = std::cos(dec * M_PI / 180.0);
-        if (std::fabs(cos_dec) < 1e-10) cos_dec = 1e-10;  // 极区兜底
-        double d_ra = pix_size / cos_dec;
-        double d_dec = pix_size;
-
-        // 4 个角点 (ra, dec)
-        double corners[4][2] = {
-            {ra - d_ra * 0.5, dec - d_dec * 0.5},  // 左下
-            {ra + d_ra * 0.5, dec - d_dec * 0.5},  // 右下
-            {ra + d_ra * 0.5, dec + d_dec * 0.5},  // 右上
-            {ra - d_ra * 0.5, dec + d_dec * 0.5}   // 左上
+        // 球面切平面基构造菱形角点 (真实 HEALPix 菱形, 无 cos_dec 发散)
+        // 中心 (ra,dec) → 笛卡尔 c + 切平面基 (east, north)
+        // 4 角点在十字方向 (下/右/上/左), 投影回单位球
+        double ra_rad = ra * M_PI / 180.0;
+        double dec_rad = dec * M_PI / 180.0;
+        double cd = std::cos(dec_rad);
+        double sd = std::sin(dec_rad);
+        double cr = std::cos(ra_rad);
+        double sr = std::sin(ra_rad);
+        // 中心笛卡尔坐标
+        double cx = cd * cr;
+        double cy = cd * sr;
+        double cz = sd;
+        // 切平面基 (单位向量, 与 c 正交)
+        // east = ∂c/∂ra / |∂c/∂ra| = (-sin_ra, cos_ra, 0)
+        double ex = -sr;
+        double ey = cr;
+        double ez = 0.0;
+        // north = ∂c/∂dec / |∂c/∂dec| = (-sin_dec*cos_ra, -sin_dec*sin_ra, cos_dec)
+        double nx = -sd * cr;
+        double ny = -sd * sr;
+        double nz = cd;
+        // 菱形半对角线 (弧度)
+        // HEALPix 像素面积 Ω = π/(3·nside²) sr
+        // 等面积正方形边长 a = √(π/3)/nside rad
+        // 菱形 (正方形旋转45°) 半对角线 h = a/√2 = √(π/6)/nside rad
+        // 对角线在 north/east 方向, 相邻像素刚好拼接无重叠/无缝隙
+        //
+        // 外扩系数 1.25 (≈1/pixfrac=1/0.8):
+        //   drizzle pixfrac=0.8 每像素只填充 80% 区域, 留 20% 黑色缝隙
+        //   外扩菱形 25% 让相邻像素重叠, 覆盖缝隙消除视觉黑色条纹
+        double h = std::sqrt(M_PI / 6.0) / static_cast<double>(all.nside) * 1.25;
+        // 4 角点 (十字菱形: 下→右→上→左)
+        double corners_xyz[4][3] = {
+            {cx - h * nx, cy - h * ny, cz - h * nz},  // 下
+            {cx + h * ex, cy + h * ey, cz + h * ez},  // 右
+            {cx + h * nx, cy + h * ny, cz + h * nz},  // 上
+            {cx - h * ex, cy - h * ey, cz - h * ez}   // 左
         };
-
-        // 转球面坐标 (x, y, z) 并生成 2 个三角形
-        // 三角形 1: 角点0, 角点1, 角点2
-        // 三角形 2: 角点0, 角点2, 角点3
+        // 生成 2 个三角形: 下→右→上, 下→上→左
         int tri_order[6] = {0, 1, 2, 0, 2, 3};
         for (int t = 0; t < 6; ++t) {
-            int c = tri_order[t];
-            double r_rad = corners[c][0] * M_PI / 180.0;
-            double d_rad = corners[c][1] * M_PI / 180.0;
-            vertices.push_back(static_cast<float>(std::cos(d_rad) * std::cos(r_rad)));  // x
-            vertices.push_back(static_cast<float>(std::cos(d_rad) * std::sin(r_rad)));  // y
-            vertices.push_back(static_cast<float>(std::sin(d_rad)));                     // z
-            vertices.push_back(value);                                                   // value
+            int ci = tri_order[t];
+            double px = corners_xyz[ci][0];
+            double py = corners_xyz[ci][1];
+            double pz = corners_xyz[ci][2];
+            // 归一化投影回单位球
+            double pl = std::sqrt(px * px + py * py + pz * pz);
+            if (pl > 1e-10) { px /= pl; py /= pl; pz /= pl; }
+            vertices.push_back(static_cast<float>(px));   // x
+            vertices.push_back(static_cast<float>(py));   // y
+            vertices.push_back(static_cast<float>(pz));   // z
+            vertices.push_back(value);                    // value
         }
     }
 
@@ -1099,7 +1194,10 @@ int GLRenderer::build_hiss_polygon_mesh(BrowserBackend& backend) {
     hiss_polygon_vertex_count_ = static_cast<int>(vertices.size() / 4);  // 每 4 float = 1 顶点
     hiss_mesh_valid_ = true;
 
-    LOG_INFO("build_hiss_polygon_mesh: 完成，顶点数=%d", hiss_polygon_vertex_count_);
+    LOG_INFO("build_hiss_polygon_mesh: 完成，顶点数=%d 跳过no_data=%llu/%llu",
+             hiss_polygon_vertex_count_,
+             static_cast<unsigned long long>(skipped_no_data),
+             static_cast<unsigned long long>(all.n_pix));
     return 0;
 }
 
@@ -1120,31 +1218,46 @@ int GLRenderer::render_hiss_polygon(BrowserBackend& backend, const RenderParams&
     // 设置视口（render() 已设置，这里冗余但安全）
     glViewport(0, 0, params.viewport_w, params.viewport_h);
 
-    // 计算 MVP 矩阵（复用球面视角逻辑）
-    double zoom = params.view.zoom > 0.001 ? params.view.zoom : 0.001;
-    // 固定相机距离 3.0（球面半径=1，安全距离）
-    // 用 FOV 控制缩放: FOV = 60/zoom（zoom=1→FOV=60°全天，zoom=13→FOV=4.5°放大）
-    double distance = 3.0;
-    double fov_deg = 60.0 / zoom;
+    // 球心相机: 相机在球心(0,0,0)，向外看
+    // FOV 由 params.view.fov_deg 直接传入（SphereView 控制）
+    // FOV 范围保护: [0.5°, 170°], 防止 tan(fov/2) 退化 (fov=180° → tan(90°)=∞ → 黑屏)
+    double fov_deg = params.view.fov_deg;
+    if (fov_deg < 0.5) fov_deg = 60.0;    // 下限兜底 (无效值用缺省)
+    if (fov_deg > 170.0) fov_deg = 170.0; // 上限保护 (全天不超过 170°)
 
-    // 相机看向数据中心
-    double center_ra_rad = params.view.center_ra * M_PI / 180.0;
-    double center_dec_rad = params.view.center_dec * M_PI / 180.0;
-    double cx = std::cos(center_dec_rad) * std::cos(center_ra_rad);
-    double cy = std::cos(center_dec_rad) * std::sin(center_ra_rad);
-    double cz = std::sin(center_dec_rad);
+    // 相机朝向: 用 widget 层传入的 forward (双向量四元数导航, 自由滚动)
+    // 不再从 ra/dec 重算, 直接使用 forward_*
+    double fx = params.view.forward_x;
+    double fy = params.view.forward_y;
+    double fz = params.view.forward_z;
+    double f_len = std::sqrt(fx * fx + fy * fy + fz * fz);
+    if (f_len < 1e-10) {
+        fx = 1.0; fy = 0.0; fz = 0.0;  // 兜底
+    } else {
+        fx /= f_len; fy /= f_len; fz /= f_len;
+    }
 
-    // 相机位置: 沿中心方向后退 distance
-    double ex = cx * distance;
-    double ey = cy * distance;
-    double ez = cz * distance;
+    // 相机位置 = 球心 (0, 0, 0)
+    double ex = 0.0, ey = 0.0, ez = 0.0;
+    // 看向目标 = 球心 + forward
+    double cx = fx, cy = fy, cz = fz;
 
-    // up 向量: 简化为 (0, 0, 1)
-    double up_x = 0.0, up_y = 0.0, up_z = 1.0;
+    // up 向量: 携带式 (由 widget 层维护, 自由滚动模式, 非 north-up)
+    // 直接用 params.view.up_*, 不再重算, 消除极区旋转感
+    double up_x = params.view.up_x;
+    double up_y = params.view.up_y;
+    double up_z = params.view.up_z;
+    // 归一化 (防止传入非单位向量)
+    double up_len = std::sqrt(up_x * up_x + up_y * up_y + up_z * up_z);
+    if (up_len < 1e-10) {
+        up_x = 0.0; up_y = 0.0; up_z = 1.0;  // 兜底
+    } else {
+        up_x /= up_len; up_y /= up_len; up_z /= up_len;
+    }
 
     float mvp[16];
     perspective_matrix(fov_deg, static_cast<double>(params.viewport_w) / params.viewport_h,
-                       0.1, 100.0, mvp);
+                       0.01, 100.0, mvp);
     float view_mat[16];
     look_at_matrix(ex, ey, ez, cx, cy, cz, up_x, up_y, up_z, view_mat);
     float final_mvp[16];
@@ -1173,11 +1286,14 @@ int GLRenderer::render_hiss_polygon(BrowserBackend& backend, const RenderParams&
 
     // 绘制
     glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);  // 禁用背面剔除，球心相机内外都能看到
     pglBindVertexArray(hiss_polygon_vao_);
     glDrawArrays(GL_TRIANGLES, 0, hiss_polygon_vertex_count_);
     pglBindVertexArray(0);
 
-    LOG_DEBUG("render_hiss_polygon: 绘制 %d 顶点 zoom=%.3f", hiss_polygon_vertex_count_, zoom);
+    LOG_DEBUG("render_hiss_polygon: 绘制 %d 顶点 fov=%.3f ra=%.4f dec=%.4f",
+              hiss_polygon_vertex_count_, fov_deg,
+              params.view.center_ra, params.view.center_dec);
     return 0;
 }
 
@@ -1389,15 +1505,22 @@ void GLRenderer::perspective_matrix(double fov_deg, double aspect,
     m[14] = (float)((2.0 * far_val * near_val) / (near_val - far_val));  // column 3, row 2
 }
 
-// look-at 矩阵（column-major）
+// look-at 矩阵（column-major, 与 perspective_matrix 一致）
 // forward = normalize(center - eye)
 // side = normalize(forward × up)
 // u' = side × forward  (true up)
 //
-// | side.x   u'.x   -fwd.x   0 |
-// | side.y   u'.y   -fwd.y   0 |
-// | side.z   u'.z   -fwd.z   0 |
-// | -s·eye   -u'·eye fwd·eye 1 |
+// View 矩阵 (row-major 概念):
+// | side.x   side.y   side.z   -dot(side,eye) |
+// | u'.x     u'.y     u'.z     -dot(u',eye)   |
+// | -fwd.x   -fwd.y   -fwd.z    dot(fwd,eye)  |
+// | 0        0        0         1             |
+//
+// Column-major 存储: col_i = V 的第 i 列
+// col0 = (side.x, u'.x, -fwd.x, 0)
+// col1 = (side.y, u'.y, -fwd.y, 0)
+// col2 = (side.z, u'.z, -fwd.z, 0)
+// col3 = (-dot(s,e), -dot(u,e), dot(f,e), 1)
 void GLRenderer::look_at_matrix(double eye_x, double eye_y, double eye_z,
                                  double center_x, double center_y, double center_z,
                                  double up_x, double up_y, double up_z, float* m) {
@@ -1422,29 +1545,29 @@ void GLRenderer::look_at_matrix(double eye_x, double eye_y, double eye_z,
     double uy = sz * fx - sx * fz;
     double uz = sx * fy - sy * fx;
 
-    // column-major 存储
-    // Column 0: [side.x, side.y, side.z, -dot(side, eye)]
+    // column-major 存储 (与 perspective_matrix 一致)
+    // Column 0: [side.x, u'.x, -fwd.x, 0]
     m[0]  = (float)sx;
-    m[1]  = (float)sy;
-    m[2]  = (float)sz;
-    m[3]  = (float)(-(sx * eye_x + sy * eye_y + sz * eye_z));
+    m[1]  = (float)ux;
+    m[2]  = (float)(-fx);
+    m[3]  = 0.0f;
 
-    // Column 1: [u'.x, u'.y, u'.z, -dot(u', eye)]
-    m[4]  = (float)ux;
+    // Column 1: [side.y, u'.y, -fwd.y, 0]
+    m[4]  = (float)sy;
     m[5]  = (float)uy;
-    m[6]  = (float)uz;
-    m[7]  = (float)(-(ux * eye_x + uy * eye_y + uz * eye_z));
+    m[6]  = (float)(-fy);
+    m[7]  = 0.0f;
 
-    // Column 2: [-fwd.x, -fwd.y, -fwd.z, dot(fwd, eye)]
-    m[8]  = (float)(-fx);
-    m[9]  = (float)(-fy);
+    // Column 2: [side.z, u'.z, -fwd.z, 0]
+    m[8]  = (float)sz;
+    m[9]  = (float)uz;
     m[10] = (float)(-fz);
-    m[11] = (float)(fx * eye_x + fy * eye_y + fz * eye_z);
+    m[11] = 0.0f;
 
-    // Column 3: [0, 0, 0, 1]
-    m[12] = 0.0f;
-    m[13] = 0.0f;
-    m[14] = 0.0f;
+    // Column 3: [-dot(side,eye), -dot(u',eye), dot(fwd,eye), 1]
+    m[12] = (float)(-(sx * eye_x + sy * eye_y + sz * eye_z));
+    m[13] = (float)(-(ux * eye_x + uy * eye_y + uz * eye_z));
+    m[14] = (float)(fx * eye_x + fy * eye_y + fz * eye_z);
     m[15] = 1.0f;
 }
 
@@ -1466,4 +1589,166 @@ void GLRenderer::multiply_matrix(const float* a, const float* b, float* out) {
     }
     // 复制到 out（避免 a 或 b 与 out 相同时的覆盖问题）
     for (int i = 0; i < 16; i++) out[i] = result[i];
+}
+
+// ============================================================================
+// build_grid_mesh() - 构建经纬线网格 (30° 网格)
+// RA 线: RA=0,30,60,...,330 (12条), 每条 Dec 从 -90° 到 90°, 采样 180 段
+// Dec 线: Dec=-60,-30,0,30,60 (5条), 每条 RA 从 0° 到 360°, 采样 360 段
+// 顶点格式: vec3 position (球面笛卡尔坐标, 单位球)
+// 用 GL_LINES 绘制
+// ============================================================================
+
+int GLRenderer::build_grid_mesh() {
+    LOG_INFO("build_grid_mesh: 构建 30° 经纬线网格");
+
+    std::vector<float> vertices;
+    const int RA_SEGMENTS = 180;  // 每条 RA 线采样段数 (Dec -90→90)
+    const int DEC_SEGMENTS = 360; // 每条 Dec 线采样段数 (RA 0→360)
+    const double DEG2RAD = M_PI / 180.0;
+
+    // RA 线 (经线): RA=0,30,60,...,330
+    for (int ra_i = 0; ra_i < 12; ++ra_i) {
+        double ra = ra_i * 30.0;
+        double ra_rad = ra * DEG2RAD;
+        for (int s = 0; s < RA_SEGMENTS; ++s) {
+            // 线段: (dec_s, dec_s+1)
+            double dec1 = -90.0 + 180.0 * s / RA_SEGMENTS;
+            double dec2 = -90.0 + 180.0 * (s + 1) / RA_SEGMENTS;
+            double d1_rad = dec1 * DEG2RAD;
+            double d2_rad = dec2 * DEG2RAD;
+
+            // 顶点 1
+            vertices.push_back((float)(std::cos(d1_rad) * std::cos(ra_rad)));
+            vertices.push_back((float)(std::cos(d1_rad) * std::sin(ra_rad)));
+            vertices.push_back((float)(std::sin(d1_rad)));
+            // 顶点 2
+            vertices.push_back((float)(std::cos(d2_rad) * std::cos(ra_rad)));
+            vertices.push_back((float)(std::cos(d2_rad) * std::sin(ra_rad)));
+            vertices.push_back((float)(std::sin(d2_rad)));
+        }
+    }
+
+    // Dec 线 (纬线): Dec=-60,-30,0,30,60
+    for (int dec_i = -2; dec_i <= 2; ++dec_i) {
+        double dec = dec_i * 30.0;
+        double dec_rad = dec * DEG2RAD;
+        for (int s = 0; s < DEC_SEGMENTS; ++s) {
+            // 线段: (ra_s, ra_s+1)
+            double ra1 = 360.0 * s / DEC_SEGMENTS;
+            double ra2 = 360.0 * (s + 1) / DEC_SEGMENTS;
+            double r1_rad = ra1 * DEG2RAD;
+            double r2_rad = ra2 * DEG2RAD;
+
+            // 顶点 1
+            vertices.push_back((float)(std::cos(dec_rad) * std::cos(r1_rad)));
+            vertices.push_back((float)(std::cos(dec_rad) * std::sin(r1_rad)));
+            vertices.push_back((float)(std::sin(dec_rad)));
+            // 顶点 2
+            vertices.push_back((float)(std::cos(dec_rad) * std::cos(r2_rad)));
+            vertices.push_back((float)(std::cos(dec_rad) * std::sin(r2_rad)));
+            vertices.push_back((float)(std::sin(dec_rad)));
+        }
+    }
+
+    grid_vertex_count_ = static_cast<int>(vertices.size() / 3);
+
+    // 创建 VAO / VBO
+    if (grid_vao_ == 0) pglGenVertexArrays(1, &grid_vao_);
+    if (grid_vbo_ == 0) pglGenBuffers(1, &grid_vbo_);
+
+    pglBindVertexArray(grid_vao_);
+    pglBindBuffer(GL_ARRAY_BUFFER, grid_vbo_);
+    pglBufferData(GL_ARRAY_BUFFER,
+                  vertices.size() * sizeof(float),
+                  vertices.data(),
+                  GL_STATIC_DRAW);
+
+    // 顶点属性: location=0 (vec3 position)
+    pglEnableVertexAttribArray(0);
+    pglVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+    pglBindVertexArray(0);
+    pglBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    grid_mesh_valid_ = true;
+    LOG_INFO("build_grid_mesh: 完成，顶点数=%d (RA线12条 + Dec线5条)", grid_vertex_count_);
+    return 0;
+}
+
+// ============================================================================
+// render_grid() - 渲染经纬线网格
+// 复用 render_hiss_polygon 的球心相机 MVP 矩阵
+// 用 grid_program_ 着色器 (固定半透明绿色)
+// GL_LINES 绘制
+// ============================================================================
+
+int GLRenderer::render_grid(const RenderParams& params) {
+    if (!grid_mesh_valid_) {
+        if (build_grid_mesh() != 0) {
+            LOG_ERROR("render_grid: 网格构建失败");
+            return -1;
+        }
+    }
+
+    // 球心相机 MVP (复用 render_hiss_polygon 逻辑, 用传入 forward)
+    double fov_deg = params.view.fov_deg;
+    if (fov_deg < 0.5) fov_deg = 60.0;
+    if (fov_deg > 170.0) fov_deg = 170.0;
+
+    double fx = params.view.forward_x;
+    double fy = params.view.forward_y;
+    double fz = params.view.forward_z;
+    double f_len = std::sqrt(fx * fx + fy * fy + fz * fz);
+    if (f_len < 1e-10) {
+        fx = 1.0; fy = 0.0; fz = 0.0;
+    } else {
+        fx /= f_len; fy /= f_len; fz /= f_len;
+    }
+
+    double ex = 0.0, ey = 0.0, ez = 0.0;
+    double cx = fx, cy = fy, cz = fz;
+
+    // up 向量: 携带式 (由 widget 层维护, 自由滚动模式)
+    double up_x = params.view.up_x;
+    double up_y = params.view.up_y;
+    double up_z = params.view.up_z;
+    double up_len = std::sqrt(up_x * up_x + up_y * up_y + up_z * up_z);
+    if (up_len < 1e-10) {
+        up_x = 0.0; up_y = 0.0; up_z = 1.0;  // 兜底
+    } else {
+        up_x /= up_len; up_y /= up_len; up_z /= up_len;
+    }
+
+    float proj_mat[16];
+    perspective_matrix(fov_deg, static_cast<double>(params.viewport_w) / params.viewport_h,
+                       0.01, 100.0, proj_mat);
+    float view_mat[16];
+    look_at_matrix(ex, ey, ez, cx, cy, cz, up_x, up_y, up_z, view_mat);
+    float final_mvp[16];
+    multiply_matrix(proj_mat, view_mat, final_mvp);
+
+    // 绘制网格
+    pglUseProgram(grid_program_);
+
+    GLint loc_mvp = pglGetUniformLocation(grid_program_, "uMVPMatrix");
+    if (loc_mvp >= 0) pglUniformMatrix4fv(loc_mvp, 1, GL_FALSE, final_mvp);
+
+    GLint loc_color = pglGetUniformLocation(grid_program_, "uGridColor");
+    if (loc_color >= 0) pglUniform4f(loc_color, 0.0f, 1.0f, 0.0f, 0.3f);  // 半透明绿色
+
+    // 启用混合 (半透明)
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+
+    pglBindVertexArray(grid_vao_);
+    glDrawArrays(GL_LINES, 0, grid_vertex_count_);
+    pglBindVertexArray(0);
+
+    glDisable(GL_BLEND);
+
+    LOG_DEBUG("render_grid: 绘制 %d 顶点 (GL_LINES)", grid_vertex_count_);
+    return 0;
 }
