@@ -47,10 +47,11 @@
 - 新: `pix_size = √(π/3)/nside × 180/π ≈ 58.6/nside` 度（HEALPix 等面积正方形边长, 用于 bbox）
 - 菱形半对角线: `h = √(π/6)/nside` rad（等面积正方形边长 / √2）
 
-**黑色缝隙修复** (drizzle pixfrac=0.8 稀疏填充):
-- drizzle 每个 CCD 像素收缩到 80% → 填充 64% 面积 → 留 36% 缝隙
-- 浏览器外扩菱形 25%: `h × 1.25`（≈1/pixfrac=1/0.8）让相邻像素重叠覆盖缝隙
-- drizzle 算法本身正确（通量守恒）, pixfrac 是用户参数, 不改 drizzle 源码
+**黑色缝隙修复** (drizzle 已修复, 浏览器外扩系数 1.25 → 1.02):
+- 历史方案: drizzle pixfrac=0.8 收缩源像素 80% → 填充 64% 面积 → 留 36% 缝隙, 浏览器外扩菱形 25% (`h × 1.25` ≈ 1/pixfrac=1/0.8) 覆盖缝隙
+- 2026-07-14 drizzle 已改为 pixfrac=1.0 (不收缩源像素, 消除固有缝隙), 见 drizzle memory.md
+- 浏览器外扩系数同步调整: 1.25 → 1.02 (仅覆盖浮点误差导致的亚像素缝隙, 不再需要 25% 覆盖)
+- gl_renderer.cpp build_hiss_polygon_mesh: `h = √(π/6)/nside × 1.02`
 
 **MAX_FOV 限制**:
 - 旧: 170°（全天, 球面 yaw 旋转畸变明显）

@@ -1130,10 +1130,9 @@ int GLRenderer::build_hiss_polygon_mesh(BrowserBackend& backend) {
         // 菱形 (正方形旋转45°) 半对角线 h = a/√2 = √(π/6)/nside rad
         // 对角线在 north/east 方向, 相邻像素刚好拼接无重叠/无缝隙
         //
-        // 外扩系数 1.25 (≈1/pixfrac=1/0.8):
-        //   drizzle pixfrac=0.8 每像素只填充 80% 区域, 留 20% 黑色缝隙
-        //   外扩菱形 25% 让相邻像素重叠, 覆盖缝隙消除视觉黑色条纹
-        double h = std::sqrt(M_PI / 6.0) / static_cast<double>(all.nside) * 1.25;
+        // 小膨胀系数 1.02 (2%): 仅覆盖浮点误差导致的亚像素缝隙
+        //   (drizzle 加权积分无像素缝隙, 但菱形顶点投影回球面有浮点误差)
+        double h = std::sqrt(M_PI / 6.0) / static_cast<double>(all.nside) * 1.02;
         // 4 角点 (十字菱形: 下→右→上→左)
         double corners_xyz[4][3] = {
             {cx - h * nx, cy - h * ny, cz - h * nz},  // 下
