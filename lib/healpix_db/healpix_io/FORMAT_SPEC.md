@@ -69,8 +69,13 @@
 ├─────────────────────────────────────────────────────────┤
 │ pixel 数组                             n_pix × 4 字节   │
 │   (连续 n_pix 个 float32)                               │
+├─────────────────────────────────────────────────────────┤
+│ snr 数组（可选，has_snr=true 时存在）   n_pix × 4 字节   │
+│   (连续 n_pix 个 float32，§14 SNR 通道扩展)             │
 └─────────────────────────────────────────────────────────┘
 ```
+
+> **snr 通道**（2026-07-15 设计扩展）：当 JSON 头 `has_snr=true` 时，pixel 数组后紧接 snr 数组（float32，与 ipix/pixel 一一对应）。`has_snr=false` 或字段缺失时无此数组（向前兼容旧文件）。详见 PROJECT_ARCHITECTURE.md §14.5。
 
 ### 2.3 JSON 头字段
 
@@ -84,6 +89,7 @@
 | `obs_time` | string | 是 | 观测时间（ISO 8601 格式，如 `"2025-05-03T03:15:25Z"`） |
 | `pixfrac` | float | 是 | drizzle pixfrac 参数 |
 | `fits_meta` | object | 是 | 原始 FITS 头关键信息子集 |
+| `has_snr` | bool | 否 | 是否含 snr 通道（§14 扩展，默认 false/缺失=无 snr 数组） |
 
 #### 2.3.1 `fits_meta` 对象
 
@@ -99,7 +105,8 @@
 ### 2.4 不包含的字段
 
 - **不含 WCS**：`ipix` 已隐含球面位置，无需重复存储 WCS
-- **不含 SNR / weight 块**：Drizzle 阶段已处理能量滴落与权重分配，单帧存储不再保留这些中间量
+- **snr 通道可选**（2026-07-15 扩展）：`has_snr=true` 时含 snr 数组，`has_snr=false` 或缺失时不含（向前兼容）
+- **不含 weight 块**：Drizzle 阶段已处理权重分配，单帧存储不保留 weight（如需可后续扩展）
 
 ### 2.5 JSON 头示例
 
@@ -255,6 +262,7 @@
 | 12 | `header_compressed_len` | 压缩 JSON 头 | zstd level=5 压缩的 UTF-8 JSON |
 | 12 + `header_compressed_len` | `n_pix × 8` | ipix 数组 | uint64 LE，升序 |
 | 12 + `header_compressed_len` + `n_pix × 8` | `n_pix × 4` | pixel 数组 | float32 LE |
+| 12 + `header_compressed_len` + `n_pix × 12` | `n_pix × 4`（可选） | snr 数组 | float32 LE，仅 `has_snr=true` 时存在 |
 
 #### `.hcsd`
 
@@ -323,7 +331,7 @@ HEALPix 像素索引 `ipix` 与 `(nside, nested, ordering)` 一起唯一确定�
 
 | 旧格式 | 新格式 | 关系 |
 |--------|--------|------|
-| `.ahpx` (单帧 Drizzle 输出) | `.hiss` | 替代。`.hiss` 去掉 WCS/SNR/weight 块，简化为 ipix + pixel 两个数组 |
+| `.ahpx` (单帧 Drizzle 输出) | `.hiss` | 替代。`.hiss` 去掉 WCS 块，简化为 ipix + pixel 两个数组；**§14 扩展新增可选 snr 通道**（`has_snr` 标识，向前兼容） |
 | `.ahps` (多帧叠加) | `.hcsd` | 替代。`.hcsd` 增加子叶块索引，支持浏览器按需加载 |
 | `.ahpl` (LOD 金字塔) | — | 不在本次迁移范围。LOD 金字塔后续可基于 `.hcsd` 在线计算或单独设计 |
 
@@ -353,7 +361,7 @@ HEALPix 像素索引 `ipix` 与 `(nside, nested, ordering)` 一起唯一确定�
 1. Magic 4 字节匹配
 2. `header_compressed_len` 解压后字节数 == `header_uncompressed_len`
 3. JSON 解析成功且含必填字段
-4. `n_pix × 8 + n_pix × 4` 与文件剩余大小一致（`.hiss`）
+4. `n_pix × 8 + n_pix × 4`（+ `n_pix × 4` 若 `has_snr=true`）与文件剩余大小一致（`.hiss`）
 5. `n_pix × 8 + n_pix × 4 + 1,179,648` 与文件剩余大小一致（`.hcsd`）
 6. `.hcsd` 子叶索引表中所有 `data_offset + data_length × 8` 不超过 ipix 数组总字节数
 

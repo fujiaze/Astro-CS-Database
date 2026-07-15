@@ -98,14 +98,16 @@ def test_hiss_roundtrip():
         print(f"  [OK] 类方式 meta 一致: filter={meta_out['filter']}, nside={meta_out['nside']}")
 
     # ---- 方式 B: 使用便捷函数 ----
-    r_nside, r_nested, r_ipix, r_pixel, r_meta = hiss_read(tmp_path)
+    r_nside, r_nested, r_ipix, r_pixel, r_meta, r_snr = hiss_read(tmp_path)
     assert r_nside == nside
     assert r_nested == nested
     np.testing.assert_array_equal(r_ipix, ipix_in, "便捷函数 ipix 不匹配")
     np.testing.assert_allclose(r_pixel, pixel_in, rtol=1e-5,
                                err_msg="便捷函数 pixel 不匹配")
     assert r_meta.get("filter") == "Lum"
-    print(f"  [OK] 便捷函数 hiss_read 一致: nside={r_nside}, n_pix={len(r_ipix)}")
+    # 未传 snr 时, 便捷函数返回 None
+    assert r_snr is None, f"未写入 snr 时 r_snr 应为 None, 实际: {r_snr}"
+    print(f"  [OK] 便捷函数 hiss_read 一致: nside={r_nside}, n_pix={len(r_ipix)}, snr=None")
 
     # 清理
     os.remove(tmp_path)
@@ -270,12 +272,13 @@ def test_hiss_empty():
         print(f"  [OK] meta 一致: filter={reader.meta.get('filter')}")
 
     # 便捷函数
-    r_nside, r_nested, r_ipix, r_pixel, r_meta = hiss_read(tmp_path)
+    r_nside, r_nested, r_ipix, r_pixel, r_meta, r_snr = hiss_read(tmp_path)
     assert r_nside == nside
     assert r_nested == nested
     assert len(r_ipix) == 0
     assert len(r_pixel) == 0
-    print(f"  [OK] 便捷函数 hiss_read(空): nside={r_nside}, n_pix={len(r_ipix)}")
+    assert r_snr is None
+    print(f"  [OK] 便捷函数 hiss_read(空): nside={r_nside}, n_pix={len(r_ipix)}, snr=None")
 
     os.remove(tmp_path)
     print(f"  [OK] 清理完成")

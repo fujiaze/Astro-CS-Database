@@ -75,19 +75,24 @@ def _load_dll(dll_path: Optional[str] = None) -> CDLL:
 def _setup_signatures(dll: CDLL):
     """设置 6 个 C 函数的 argtypes 和 restype"""
 
-    # hiss_write(path, nside, nested, n_pix, ipix, pixel, meta_json) -> int
+    # hiss_write(path, nside, nested, n_pix, ipix, pixel, snr, meta_json) -> int
+    # snr: 可为 nullptr (向后兼容, 旧调用方传 None)
     dll.hiss_write.argtypes = [
         c_char_p, c_uint32, c_int, c_uint64,
-        POINTER(c_uint64), POINTER(c_float), c_char_p,
+        POINTER(c_uint64), POINTER(c_float),
+        POINTER(c_float),  # snr (新增, 可为 None)
+        c_char_p,
     ]
     dll.hiss_write.restype = c_int
 
-    # hiss_read(path, nside*, nested*, n_pix*, ipix**, pixel**, meta_json**) -> int
+    # hiss_read(path, nside*, nested*, n_pix*, ipix**, pixel**, snr**, meta_json**) -> int
+    # snr**: 可为 nullptr (调用方不需要 snr 时传 None; 旧 .hiss 文件无 snr 通道时返回 nullptr)
     dll.hiss_read.argtypes = [
         c_char_p,
         POINTER(c_uint32), POINTER(c_int), POINTER(c_uint64),
         POINTER(POINTER(c_uint64)),
         POINTER(POINTER(c_float)),
+        POINTER(POINTER(c_float)),  # snr** (新增, 可为 None)
         POINTER(c_char_p),
     ]
     dll.hiss_read.restype = c_int
@@ -206,13 +211,15 @@ class HissWriter:
         self._nested = 1 if nested else 0
         self._dll = _get_dll()
 
-    def write(self, ipix: np.ndarray, pixel: np.ndarray, meta: dict) -> int:
+    def write(self, ipix: np.ndarray, pixel: np.ndarray, meta: dict,
+              snr: Optional[np.ndarray] = None) -> int:
         """ 写入像素数据和元数据
 
         Args:
             ipix: uint64 数组 [n_pix]
             pixel: float32 数组 [n_pix]
             meta: 元数据字典（会序列化为 JSON）
+            snr: float32 数组 [n_pix]，可选 SNR 通道；None 时不写入 snr 通道（向后兼容）
 
         Returns:
             int: 0=成功，<0=失败
@@ -227,6 +234,15 @@ class HissWriter:
                 f"ipix 和 pixel 长度不一致: {ipix_arr.size} != {pixel_arr.size}")
         n_pix = ipix_arr.size
 
+        # SNR 通道准备 (可选)
+        snr_ptr = None
+        if snr is not None:
+            snr_arr = _prep_pixel(snr)
+            if snr_arr.size != n_pix:
+                raise ValueError(
+                    f"snr 长度 {snr_arr.size} 与 ipix {n_pix} 不一致")
+            snr_ptr = snr_arr.ctypes.data_as(POINTER(c_float)) if n_pix > 0 else None
+
         meta_bytes = _encode_meta(meta)
         path_bytes = _encode_path(self._path)
 
@@ -234,12 +250,12 @@ class HissWriter:
         ipix_ptr = ipix_arr.ctypes.data_as(POINTER(c_uint64)) if n_pix > 0 else None
         pixel_ptr = pixel_arr.ctypes.data_as(POINTER(c_float)) if n_pix > 0 else None
 
-        logger.info("hiss_write: path=%s, nside=%d, nested=%d, n_pix=%d",
-                    self._path, self._nside, self._nested, n_pix)
+        logger.info("hiss_write: path=%s, nside=%d, nested=%d, n_pix=%d, has_snr=%s",
+                    self._path, self._nside, self._nested, n_pix, snr is not None)
 
         ret = self._dll.hiss_write(
             path_bytes, self._nside, self._nested, n_pix,
-            ipix_ptr, pixel_ptr, meta_bytes)
+            ipix_ptr, pixel_ptr, snr_ptr, meta_bytes)
 
         if ret != 0:
             raise RuntimeError(f"hiss_write 失败，返回码={ret}")
@@ -254,9 +270,11 @@ class HissWriter:
 class HissReader:
     """ .hiss 文件读取器
 
-    注意：C 侧 malloc 分配的 ipix/pixel 内存通过 np.ctypeslib.as_array
+    注意：C 侧 malloc 分配的 ipix/pixel/snr 内存通过 np.ctypeslib.as_array
     零拷贝访问。Reader 对象销毁时会调用 hio_free 释放 C 内存，
-    之后访问 ipix/pixel 属性将失效。建议使用 with 语句或保持 Reader 引用。
+    之后访问 ipix/pixel/snr 属性将失效。建议使用 with 语句或保持 Reader 引用。
+
+    若 .hiss 文件无 snr 通道（旧文件），snr 属性返回 None。
     """
 
     def __init__(self, path: str):
@@ -276,6 +294,7 @@ class HissReader:
         n_pix = c_uint64(0)
         ipix_ptr = POINTER(c_uint64)()
         pixel_ptr = POINTER(c_float)()
+        snr_ptr = POINTER(c_float)()  # 新增: snr 出参
         meta_ptr = c_char_p()
 
         path_bytes = _encode_path(path)
@@ -284,7 +303,9 @@ class HissReader:
         ret = self._dll.hiss_read(
             path_bytes,
             byref(nside), byref(nested), byref(n_pix),
-            byref(ipix_ptr), byref(pixel_ptr), byref(meta_ptr))
+            byref(ipix_ptr), byref(pixel_ptr),
+            byref(snr_ptr),  # 新增
+            byref(meta_ptr))
 
         if ret != 0:
             raise RuntimeError(f"hiss_read 失败，返回码={ret}")
@@ -301,10 +322,12 @@ class HissReader:
         # 保存 C 指针（延迟创建 numpy 视图）
         self._ipix_ptr = ipix_ptr
         self._pixel_ptr = pixel_ptr
+        self._snr_ptr = snr_ptr  # 可能为 nullptr (旧文件无 snr 通道)
         self._closed = False
 
-        logger.info("hiss_read 成功: nside=%d, nested=%d, n_pix=%d",
-                    self._nside, self._nested, self._n_pix)
+        logger.info("hiss_read 成功: nside=%d, nested=%d, n_pix=%d, has_snr=%s",
+                    self._nside, self._nested, self._n_pix,
+                    bool(snr_ptr))
 
     @property
     def nside(self) -> int:
@@ -317,6 +340,11 @@ class HissReader:
     @property
     def n_pix(self) -> int:
         return self._n_pix
+
+    @property
+    def has_snr(self) -> bool:
+        """ .hiss 文件是否包含 snr 通道 """
+        return bool(self._snr_ptr)
 
     @property
     def ipix(self) -> np.ndarray:
@@ -337,6 +365,21 @@ class HissReader:
         return np.ctypeslib.as_array(self._pixel_ptr, shape=(self._n_pix,))
 
     @property
+    def snr(self) -> Optional[np.ndarray]:
+        """ float32 数组 [n_pix]（零拷贝视图，C 内存由 Reader 管理）
+
+        Returns:
+            snr 数组，若 .hiss 文件无 snr 通道则返回 None
+        """
+        if self._closed:
+            raise RuntimeError("Reader 已关闭，数据不可访问")
+        if not self._snr_ptr:
+            return None  # 旧文件无 snr 通道
+        if self._n_pix == 0:
+            return np.empty(0, dtype=np.float32)
+        return np.ctypeslib.as_array(self._snr_ptr, shape=(self._n_pix,))
+
+    @property
     def meta(self) -> dict:
         """ JSON 解析后的字典 """
         return self._meta
@@ -346,6 +389,7 @@ class HissReader:
         if not self._closed:
             _free_ptr(self._ipix_ptr)
             _free_ptr(self._pixel_ptr)
+            _free_ptr(self._snr_ptr)
             self._closed = True
             logger.info("HissReader 内存已释放: %s", self._path)
 
@@ -593,7 +637,8 @@ class HcsdReader:
 # ============================================================================
 
 def hiss_write(path: str, nside: int, nested: bool,
-               ipix: np.ndarray, pixel: np.ndarray, meta: dict) -> int:
+               ipix: np.ndarray, pixel: np.ndarray, meta: dict,
+               snr: Optional[np.ndarray] = None) -> int:
     """ 便捷写入 .hiss 文件
 
     Args:
@@ -603,23 +648,25 @@ def hiss_write(path: str, nside: int, nested: bool,
         ipix: uint64 数组 [n_pix]
         pixel: float32 数组 [n_pix]
         meta: 元数据字典
+        snr: 可选 float32 数组 [n_pix]，SNR 通道；None 时不写入（向后兼容）
 
     Returns:
         int: 0=成功
     """
     writer = HissWriter(path, nside, nested)
-    return writer.write(ipix, pixel, meta)
+    return writer.write(ipix, pixel, meta, snr=snr)
 
 
-def hiss_read(path: str) -> Tuple[int, bool, np.ndarray, np.ndarray, dict]:
+def hiss_read(path: str) -> Tuple[int, bool, np.ndarray, np.ndarray, dict, Optional[np.ndarray]]:
     """ 便捷读取 .hiss 文件
 
     Args:
         path: .hiss 文件路径
 
     Returns:
-        (nside, nested, ipix, pixel, meta) 元组
-        ipix/pixel 为独立拷贝的 numpy 数组（C 内存已释放）
+        (nside, nested, ipix, pixel, meta, snr) 6 元组
+        ipix/pixel/snr 为独立拷贝的 numpy 数组（C 内存已释放）
+        snr 可能为 None（旧 .hiss 文件无 snr 通道）
 
     Raises:
         RuntimeError: DLL 调用失败
@@ -628,7 +675,9 @@ def hiss_read(path: str) -> Tuple[int, bool, np.ndarray, np.ndarray, dict]:
         # 拷贝数组，确保 Reader 关闭后数据仍可用
         ipix = reader.ipix.copy() if reader.n_pix > 0 else np.empty(0, dtype=np.uint64)
         pixel = reader.pixel.copy() if reader.n_pix > 0 else np.empty(0, dtype=np.float32)
-        return reader.nside, reader.nested, ipix, pixel, reader.meta
+        snr_arr = reader.snr
+        snr = snr_arr.copy() if (snr_arr is not None and reader.n_pix > 0) else None
+        return reader.nside, reader.nested, ipix, pixel, reader.meta, snr
 
 
 def hcsd_write(path: str, nside: int, nested: bool,

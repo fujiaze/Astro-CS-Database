@@ -97,10 +97,10 @@ static size_t hio_zstd_decompress(const void* src, size_t srcSize,
 // JSON 辅助函数 (简单字符串操作, 无外部 JSON 库依赖)
 // ============================================================================
 
-// 构建 .hiss/.hcsd JSON 头: 合并 nside/nested/n_pix 与调用者的 meta_json
-// meta_json 应为 JSON 对象字符串 (如 {"filter":"Lum",...}), 不含 nside/nested/n_pix
+// 构建 .hiss/.hcsd JSON 头: 合并 nside/nested/n_pix/has_snr 与调用者的 meta_json
+// meta_json 应为 JSON 对象字符串 (如 {"filter":"Lum",...}), 不含 nside/nested/n_pix/has_snr
 static std::string hio_build_json(uint32_t nside, int nested, uint64_t n_pix,
-                                  const char* meta_json) {
+                                  bool has_snr, const char* meta_json) {
     std::string result;
     result.reserve(256);
     result += "{\"nside\":";
@@ -109,6 +109,8 @@ static std::string hio_build_json(uint32_t nside, int nested, uint64_t n_pix,
     result += (nested ? "true" : "false");
     result += ",\"n_pix\":";
     result += std::to_string(n_pix);
+    result += ",\"has_snr\":";
+    result += (has_snr ? "true" : "false");
 
     if (meta_json && meta_json[0] != '\0') {
         std::string meta(meta_json);
@@ -227,18 +229,20 @@ static_assert(sizeof(LeafIndexEntry) == 24, "LeafIndexEntry must be 24 bytes");
 
 HIO_API int hiss_write(const char* path, uint32_t nside, int nested,
                        uint64_t n_pix, const uint64_t* ipix,
-                       const float* pixel, const char* meta_json) {
+                       const float* pixel, const float* snr,
+                       const char* meta_json) {
     // 参数校验
     if (!path || (n_pix > 0 && (!ipix || !pixel))) {
         fprintf(stderr, "[hio] hiss_write: 无效参数\n");
         return HIO_ERR_PARAM;
     }
 
-    fprintf(stderr, "[hio] hiss_write: path=%s nside=%u nested=%d n_pix=%llu\n",
-            path, nside, nested, (unsigned long long)n_pix);
+    bool has_snr = (snr != nullptr);
+    fprintf(stderr, "[hio] hiss_write: path=%s nside=%u nested=%d n_pix=%llu has_snr=%d\n",
+            path, nside, nested, (unsigned long long)n_pix, has_snr);
 
-    // 1. 构建 JSON 头
-    std::string jsonStr = hio_build_json(nside, nested, n_pix, meta_json);
+    // 1. 构建 JSON 头 (含 has_snr 字段)
+    std::string jsonStr = hio_build_json(nside, nested, n_pix, has_snr, meta_json);
     uint32_t jsonLen = (uint32_t)jsonStr.size();
 
     // 2. 用 zstd 压缩 JSON 头
@@ -298,11 +302,21 @@ HIO_API int hiss_write(const char* path, uint32_t nside, int nested,
             std::fclose(fp);
             return HIO_ERR_FILE;
         }
+
+        // 9. 写入 snr 数组 (n_pix * 4 字节, 仅当 has_snr=true)
+        if (has_snr) {
+            size_t snrBytes = (size_t)n_pix * sizeof(float);
+            if (std::fwrite(snr, 1, snrBytes, fp) != snrBytes) {
+                fprintf(stderr, "[hio] hiss_write: 写入 snr 数组失败\n");
+                std::fclose(fp);
+                return HIO_ERR_FILE;
+            }
+        }
     }
 
     std::fclose(fp);
 
-    fprintf(stderr, "[hio] hiss_write: 写入完成: %s\n", path);
+    fprintf(stderr, "[hio] hiss_write: 写入完成: %s (has_snr=%d)\n", path, has_snr);
     return HIO_OK;
 }
 
@@ -312,7 +326,7 @@ HIO_API int hiss_write(const char* path, uint32_t nside, int nested,
 
 HIO_API int hiss_read(const char* path, uint32_t* nside, int* nested,
                       uint64_t* n_pix, uint64_t** ipix,
-                      float** pixel, char** meta_json) {
+                      float** pixel, float** snr, char** meta_json) {
     if (!path || !nside || !nested || !n_pix || !ipix || !pixel || !meta_json) {
         fprintf(stderr, "[hio] hiss_read: 无效参数\n");
         return HIO_ERR_PARAM;
@@ -325,6 +339,7 @@ HIO_API int hiss_read(const char* path, uint32_t* nside, int* nested,
     *ipix = nullptr;
     *pixel = nullptr;
     *meta_json = nullptr;
+    if (snr) *snr = nullptr;
 
     FILE* fp = hio_fopen_utf8(path, "rb");
     if (!fp) {
@@ -382,6 +397,7 @@ HIO_API int hiss_read(const char* path, uint32_t* nside, int* nested,
     uint32_t jsonNside = 0;
     int jsonNested = 0;
     uint64_t jsonNPix = 0;
+    int jsonHasSnr = 0;  // 默认 false (向后兼容旧文件)
     if (!hio_parse_json_uint32(jsonStr, "nside", jsonNside) ||
         !hio_parse_json_bool(jsonStr, "nested", jsonNested) ||
         !hio_parse_json_uint64(jsonStr, "n_pix", jsonNPix)) {
@@ -389,6 +405,8 @@ HIO_API int hiss_read(const char* path, uint32_t* nside, int* nested,
         std::fclose(fp);
         return HIO_ERR_JSON;
     }
+    // has_snr 字段可选 (旧文件无此字段, 默认 false)
+    hio_parse_json_bool(jsonStr, "has_snr", jsonHasSnr);
 
     *nside = jsonNside;
     *nested = jsonNested;
@@ -403,8 +421,8 @@ HIO_API int hiss_read(const char* path, uint32_t* nside, int* nested,
     }
     std::memcpy(*meta_json, jsonStr.c_str(), jsonStr.size() + 1);
 
-    fprintf(stderr, "[hio] hiss_read: nside=%u nested=%d n_pix=%llu\n",
-            *nside, *nested, (unsigned long long)*n_pix);
+    fprintf(stderr, "[hio] hiss_read: nside=%u nested=%d n_pix=%llu has_snr=%d\n",
+            *nside, *nested, (unsigned long long)*n_pix, jsonHasSnr);
 
     // 5. 读取 ipix 数组
     if (*n_pix > 0) {
@@ -450,10 +468,51 @@ HIO_API int hiss_read(const char* path, uint32_t* nside, int* nested,
             std::fclose(fp);
             return HIO_ERR_FILE;
         }
+
+        // 7. 读取 snr 数组 (仅当 has_snr=true)
+        if (jsonHasSnr) {
+            if (snr) {
+                // 调用者需要 snr 数据
+                *snr = (float*)std::malloc((size_t)(*n_pix) * sizeof(float));
+                if (!*snr) {
+                    fprintf(stderr, "[hio] hiss_read: 分配 snr 内存失败\n");
+                    std::free(*pixel);
+                    *pixel = nullptr;
+                    std::free(*ipix);
+                    *ipix = nullptr;
+                    std::free(*meta_json);
+                    *meta_json = nullptr;
+                    std::fclose(fp);
+                    return HIO_ERR_MEM;
+                }
+                size_t snrBytes = (size_t)(*n_pix) * sizeof(float);
+                if (std::fread(*snr, 1, snrBytes, fp) != snrBytes) {
+                    fprintf(stderr, "[hio] hiss_read: 读取 snr 数组失败\n");
+                    std::free(*snr);
+                    *snr = nullptr;
+                    std::free(*pixel);
+                    *pixel = nullptr;
+                    std::free(*ipix);
+                    *ipix = nullptr;
+                    std::free(*meta_json);
+                    *meta_json = nullptr;
+                    std::fclose(fp);
+                    return HIO_ERR_FILE;
+                }
+            } else {
+                // 调用者不需要 snr, 跳过 snr 数组
+                size_t snrBytes = (size_t)(*n_pix) * sizeof(float);
+                if (std::fseek(fp, (long)snrBytes, SEEK_CUR) != 0) {
+                    fprintf(stderr, "[hio] hiss_read: 跳过 snr 数组失败\n");
+                    std::fclose(fp);
+                    return HIO_ERR_FILE;
+                }
+            }
+        }
     }
 
     std::fclose(fp);
-    fprintf(stderr, "[hio] hiss_read: 读取完成: %s\n", path);
+    fprintf(stderr, "[hio] hiss_read: 读取完成: %s (has_snr=%d)\n", path, jsonHasSnr);
     return HIO_OK;
 }
 
@@ -473,7 +532,7 @@ HIO_API int hcsd_write(const char* path, uint32_t nside, int nested,
             path, nside, nested, (unsigned long long)n_pix);
 
     // 1. 构建 JSON 头
-    std::string jsonStr = hio_build_json(nside, nested, n_pix, meta_json);
+    std::string jsonStr = hio_build_json(nside, nested, n_pix, false, meta_json);
     uint32_t jsonLen = (uint32_t)jsonStr.size();
 
     // 2. 压缩 JSON 头

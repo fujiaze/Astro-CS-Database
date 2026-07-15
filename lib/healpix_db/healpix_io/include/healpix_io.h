@@ -25,20 +25,24 @@ extern "C" {
 // n_pix - 像素数量
 // ipix - ipix 索引数组 [n_pix] (uint64)
 // pixel - 像素值数组 [n_pix] (float32)
+// snr - SNR 数组 [n_pix] (float32), 可为 nullptr (向后兼容, 无 snr 通道)
 // meta_json - JSON 元数据字符串
 // 返回: 0=成功, <0=失败
 HIO_API int hiss_write(const char* path, uint32_t nside, int nested,
                        uint64_t n_pix, const uint64_t* ipix,
-                       const float* pixel, const char* meta_json);
+                       const float* pixel, const float* snr,
+                       const char* meta_json);
 
 // 读取 .hiss 文件
 // path - 文件路径 (UTF-8)
 // nside, nested, n_pix - 输出参数
 // ipix, pixel, meta_json - 输出参数 (由 malloc 分配，调用者负责 free)
+// snr - SNR 数组输出参数 [n_pix] (float32), 可为 nullptr (不读取 snr 通道);
+//       文件无 snr 通道时 *snr = nullptr
 // 返回: 0=成功, <0=失败
 HIO_API int hiss_read(const char* path, uint32_t* nside, int* nested,
                       uint64_t* n_pix, uint64_t** ipix,
-                      float** pixel, char** meta_json);
+                      float** pixel, float** snr, char** meta_json);
 
 // ============================================================================
 // .hcsd 天球数据库格式 API
