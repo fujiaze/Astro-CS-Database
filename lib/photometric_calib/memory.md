@@ -26,6 +26,53 @@
 - **天光校正封存**：S_map加性梯度天光校正封存（注释调用，可逆），photometric_calib仅做乘性流量定标
 
 ## 进度日志
+### 2026-07-13 P0/P1/P2 性能优化（spec: format-unification-browser-perf 阶段5）
+
+**性能问题**: photometric 阶段耗时 354.7s（典型应 < 5s），根因是 C++ DLL 循环内大量 fprintf + 滤光片曲线重复预处理 + 固定 mag_max=16.0 返回数万颗星。
+
+**P0: 循环内 fprintf 清除（Task 10）**:
+- 新建 `cpp/include/log_macros.h` - LOG_INFO/LOG_DEBUG/LOG_ERROR 宏定义
+  - LOG_DEBUG 默认编译时不启用（展开为 ((void)0)），可通过定义 PC_ENABLE_DEBUG 启用
+  - LOG_INFO/LOG_ERROR 输出到 stderr，自动加 [INFO]/[ERROR] 前缀和 \n 后缀
+- `cpp/src/spectrum_integrator.cpp` - 第241行循环内 fprintf → LOG_DEBUG（被 pc_api.cpp OpenMP 循环高频调用）
+- `cpp/src/star_matcher.cpp` - 第86-89行循环内每颗匹配星的 fprintf → LOG_DEBUG
+- `cpp/src/pc_api.cpp` - 加 #include "log_macros.h"
+- 错误路径 fprintf 保留原样（最小改动）
+- 编译结果: photometric_calib.dll 1,031.2 KB，LOG_DEBUG 编译时展开为空，零运行时开销
+
+**P1: 滤光片曲线预处理缓存（Task 11，SpectrumIntegratorCache）**:
+- 循环前预处理一次（排序+Akima插值重采样到光谱网格）
+- 循环内只算 SED + 星等归一化 + Simpson 积分
+- 避免每颗星重复对滤光片曲线排序和插值
+
+**P2: 自适应迭代星等（Task 12）**:
+- `cpp/src/pc_api.cpp` - pc_calibrate_simple_with_gaia 函数中锥形搜索改为自适应迭代
+- mag_max 从 12.0 开始，若 n_gaia<2000 则增大到 13/14/15/16.0，直到 n_gaia>=2000 或达 16.0 上限
+- 不缩小 radius_deg，mag_min 保持外部传入值
+- 返回 2000-10000 颗星，避免固定 16.0 返回数万颗星导致后续处理耗时过长
+- 函数签名不变（mag_max 参数仍接受但内部用迭代覆盖）
+- 用 LOG_INFO 输出每次迭代 mag_max 和 n_gaia
+
+**性能结果**:
+| 阶段 | 修复前(s) | 修复后(s) | 改善 |
+|------|-----------|-----------|------|
+| photometric | 354.7 | 0.881 | **99.75%** |
+| 总管线 | 409.0 | 60.615 | 85.18% |
+
+- photometric 354.7s → 0.881s，超额完成 < 5s 目标
+- n_matched = 1527，scale_factor = 7.132932e-03
+- P0 + P1 + P2 三重优化叠加效果显著
+- 总管线未达 < 30s 目标主因是 drizzle 阶段 26.3s（占总管线 43%），非 photometric 优化范围
+
+### 2026-07-13 扩展 pc_calibrate_simple_with_gaia 接口
+- 新增 `pc_calibrate_simple_with_gaia` 接口：DLL 内部调用 gaia_client 查询 DR3SP 光谱 + OpenMP 16线程并行积分 F_syn
+- 新建 `cpp/src/spectrum_integrator.h/.cpp`：Akima 子样条插值 + Simpson 1/3 复合积分 + compute_f_syn（参考 python/synthetic_photometry.py）
+- 修改 `cpp/include/photometric_calib.h` + `cpp/src/pc_api.cpp`：新增接口声明与实现，原 pc_calibrate_simple 完全不变
+- 修改 `cpp/Makefile` + `build.ps1`：链接 gaia_client.dll，复制到输出目录，mingw64/bin 加入 PATH
+- 接口签名补充 WCS/PSF flux 参数（任务描述签名缺这些，无法复用 StarMatcher）
+- 编译成功：photometric_calib.dll 1.03MB，导出 pc_calibrate_simple + pc_calibrate_simple_with_gaia
+- 关键修复：g++ 需 mingw64/bin 在 PATH 中（找 cc1plus/ld 子进程）；build.ps1 改用 & 调用替代 Start-Process（处理含空格 -I 路径）
+
 ### 2026-07-12 C++ DLL重写完成
 - C++ DLL重写完成（pc_calibrate_simple），4/4测试通过
 - 去掉梯度拟合，简化为全局scale=median(F_syn/F_instr)校正

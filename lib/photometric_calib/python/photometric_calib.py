@@ -15,7 +15,7 @@ import logging
 import os
 import sys
 from ctypes import (
-    c_int, c_double, c_float,
+    c_int, c_double, c_float, c_void_p,
     POINTER, byref, cdll,
 )
 from typing import Optional, Tuple
@@ -73,6 +73,34 @@ class PhotometricCalib:
             # gaia_ra, gaia_dec, gaia_mag, gaia_fsyn, n_gaia
             POINTER(c_double), POINTER(c_double),
             POINTER(c_double), POINTER(c_double), c_int,
+            # psf_cx, psf_cy, psf_flux, psf_status, n_psf
+            POINTER(c_double), POINTER(c_double),
+            POINTER(c_double), POINTER(c_int), c_int,
+            # WCS参数
+            c_double, c_double, c_double, c_double,
+            c_double, c_double, c_double, c_double,
+            # SIP
+            c_int,
+            POINTER(c_double), POINTER(c_double),
+            POINTER(c_double), POINTER(c_double),
+            # 输出
+            POINTER(c_float), POINTER(c_int), POINTER(c_double),
+        ]
+
+        # 新接口: pc_calibrate_simple_with_gaia (DLL 内部完成锥形搜索+光谱积分)
+        self._dll.pc_calibrate_simple_with_gaia.restype = c_int
+        self._dll.pc_calibrate_simple_with_gaia.argtypes = [
+            # gaia_client_handle
+            c_void_p,
+            # 锥形搜索中心与半径, 星等范围
+            c_double, c_double, c_double,
+            c_double, c_double,
+            # 滤光片波长/透过率/数量
+            POINTER(c_double), POINTER(c_double), c_int,
+            # 光谱波长数组/数量
+            POINTER(c_double), c_int,
+            # pixels, width, height
+            POINTER(c_float), c_int, c_int,
             # psf_cx, psf_cy, psf_flux, psf_status, n_psf
             POINTER(c_double), POINTER(c_double),
             POINTER(c_double), POINTER(c_int), c_int,
@@ -186,6 +214,145 @@ class PhotometricCalib:
         # ---- 重塑输出 ----
         out_pixels = out_pixels.reshape(height, width)
         logger.info("测光校准完成: n_matched=%d, scale=%.6e",
+                    n_matched.value, scale_factor.value)
+        return out_pixels, n_matched.value, scale_factor.value
+
+    def calibrate_with_gaia(
+        self,
+        gaia_client_handle,
+        ra_center: float, dec_center: float, radius_deg: float,
+        mag_min: float, mag_max: float,
+        filter_wl: np.ndarray, filter_trans: np.ndarray,
+        spectrum_wl: np.ndarray,
+        pixels: np.ndarray,
+        psf_cx: np.ndarray, psf_cy: np.ndarray,
+        psf_flux: np.ndarray, psf_status: np.ndarray,
+        crval1: float, crval2: float,
+        crpix1: float, crpix2: float,
+        cd11: float, cd12: float, cd21: float, cd22: float,
+        sip_order: int = 0,
+        sip_a: Optional[np.ndarray] = None,
+        sip_b: Optional[np.ndarray] = None,
+        sip_ap: Optional[np.ndarray] = None,
+        sip_bp: Optional[np.ndarray] = None,
+    ) -> Tuple[np.ndarray, int, float]:
+        """用 gaia_client handle 调用新 DLL 接口 pc_calibrate_simple_with_gaia
+
+        DLL 内部完成: 锥形搜索 Gaia DR3SP -> BP/RP 光谱 Akima+Simpson 积分 F_syn ->
+                      WCS 投影 -> KDTree 匹配 PSF 星 -> MAD 清洗 -> 全局 scale 校正
+
+        Args:
+            gaia_client_handle: gaia_client_create_ex 返回的 handle (int 或 c_void_p)
+            ra_center, dec_center: 锥形搜索中心 (度)
+            radius_deg: 锥形搜索半径 (度)
+            mag_min, mag_max: 星等范围
+            filter_wl, filter_trans: 滤光片波长(nm)与透过率[0,1] float64 数组
+            spectrum_wl: 光谱波长数组 [336, 338, ..., 1020] nm float64 数组
+            pixels: 图像像素 float32 [H, W] (2D)
+            psf_cx/cy/flux: PSF 星数组 float64 [n_psf]
+            psf_status: PSF 星状态 int32 [n_psf] (0=成功)
+            WCS参数: crval1/2, crpix1/2, cd11/12/21/22
+            sip_order: SIP 阶数 (0=无SIP)
+            sip_a/b/ap/bp: SIP 系数数组 float64 [36] (按 i*6+j 索引)
+
+        Returns:
+            (out_pixels, n_matched, scale_factor)
+            out_pixels: 校正后图像 float32 [H, W]
+            n_matched: 匹配星数 (MAD清洗后)
+            scale_factor: scale 因子
+
+        Raises:
+            RuntimeError: DLL 调用失败 (ret != 0)
+            ValueError: gaia_client_handle 为空或 pixels 维度错误
+        """
+        # ---- 输入校验与类型转换 ----
+        if gaia_client_handle is None:
+            raise ValueError("gaia_client_handle 不能为 None")
+
+        pixels = np.ascontiguousarray(pixels, dtype=np.float32)
+        if pixels.ndim != 2:
+            raise ValueError(f"pixels 必须为 2D, 实际为 {pixels.ndim}D")
+        height, width = pixels.shape
+
+        filter_wl = np.ascontiguousarray(filter_wl, dtype=np.float64)
+        filter_trans = np.ascontiguousarray(filter_trans, dtype=np.float64)
+        filter_count = filter_wl.size
+        if filter_count == 0:
+            raise ValueError("filter_wl 不能为空")
+
+        spectrum_wl = np.ascontiguousarray(spectrum_wl, dtype=np.float64)
+        spectrum_count = spectrum_wl.size
+        if spectrum_count == 0:
+            raise ValueError("spectrum_wl 不能为空")
+
+        psf_cx = np.ascontiguousarray(psf_cx, dtype=np.float64)
+        psf_cy = np.ascontiguousarray(psf_cy, dtype=np.float64)
+        psf_flux = np.ascontiguousarray(psf_flux, dtype=np.float64)
+        psf_status = np.ascontiguousarray(psf_status, dtype=np.int32)
+        n_psf = psf_cx.size
+
+        # ---- SIP 系数 ----
+        def _prep_sip(arr):
+            if arr is None:
+                return None
+            return np.ascontiguousarray(arr, dtype=np.float64)
+
+        sip_a_c = _prep_sip(sip_a)
+        sip_b_c = _prep_sip(sip_b)
+        sip_ap_c = _prep_sip(sip_ap)
+        sip_bp_c = _prep_sip(sip_bp)
+
+        # ---- handle 转换 (int 或 c_void_p 均可, ctypes 自动处理) ----
+        if isinstance(gaia_client_handle, c_void_p):
+            handle_param = gaia_client_handle
+        else:
+            handle_param = c_void_p(gaia_client_handle)
+
+        # ---- 输出缓冲 ----
+        out_pixels = np.zeros(width * height, dtype=np.float32)
+        n_matched = c_int(0)
+        scale_factor = c_double(0.0)
+
+        logger.info(
+            "调用 pc_calibrate_simple_with_gaia: center=(%.6f, %.6f), r=%.4f°, "
+            "mag=[%.1f, %.1f], filter=%dpts, spectrum=%dpts, psf=%d颗, %dx%d",
+            ra_center, dec_center, radius_deg, mag_min, mag_max,
+            filter_count, spectrum_count, n_psf, width, height)
+
+        # ---- 调用 C 函数 ----
+        ret = self._dll.pc_calibrate_simple_with_gaia(
+            handle_param,
+            ra_center, dec_center, radius_deg,
+            mag_min, mag_max,
+            filter_wl.ctypes.data_as(POINTER(c_double)),
+            filter_trans.ctypes.data_as(POINTER(c_double)),
+            filter_count,
+            spectrum_wl.ctypes.data_as(POINTER(c_double)),
+            spectrum_count,
+            pixels.ctypes.data_as(POINTER(c_float)), width, height,
+            psf_cx.ctypes.data_as(POINTER(c_double)),
+            psf_cy.ctypes.data_as(POINTER(c_double)),
+            psf_flux.ctypes.data_as(POINTER(c_double)),
+            psf_status.ctypes.data_as(POINTER(c_int)), n_psf,
+            crval1, crval2, crpix1, crpix2,
+            cd11, cd12, cd21, cd22,
+            sip_order,
+            sip_a_c.ctypes.data_as(POINTER(c_double)) if sip_a_c is not None else None,
+            sip_b_c.ctypes.data_as(POINTER(c_double)) if sip_b_c is not None else None,
+            sip_ap_c.ctypes.data_as(POINTER(c_double)) if sip_ap_c is not None else None,
+            sip_bp_c.ctypes.data_as(POINTER(c_double)) if sip_bp_c is not None else None,
+            out_pixels.ctypes.data_as(POINTER(c_float)),
+            byref(n_matched), byref(scale_factor),
+        )
+
+        if ret != 0:
+            raise RuntimeError(
+                f"pc_calibrate_simple_with_gaia 失败, 返回码={ret} "
+                f"(-1=参数无效, -2=handle为空, -3=锥形搜索失败或无光谱星)")
+
+        # ---- 重塑输出 ----
+        out_pixels = out_pixels.reshape(height, width)
+        logger.info("测光校准(带Gaia)完成: n_matched=%d, scale=%.6e",
                     n_matched.value, scale_factor.value)
         return out_pixels, n_matched.value, scale_factor.value
 

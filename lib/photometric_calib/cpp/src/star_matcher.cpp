@@ -4,6 +4,7 @@
 // 参考: lib/photometric_calib/flux_calibrator/python/star_matcher.py
 
 #include "star_matcher.h"
+#include "log_macros.h"
 
 #include <cstdio>
 #include <cmath>
@@ -83,10 +84,11 @@ std::vector<StarMatch> StarMatcher::matchBruteForce(
         m.f_syn = gaia_fsyn[i];
         matches.push_back(m);
 
-        std::fprintf(stderr, "[star_matcher] 匹配#%d: Gaia[%d] -> PSF[%d] "
-                    "(%.2f,%.2f) dist=%.3f F_syn=%.4e F_instr=%.2f\n",
-                    (int)matches.size(), i, best_psf, m.x, m.y,
-                    std::sqrt(best_dist2), m.f_syn, m.f_instr);
+        // 循环内每颗匹配星的高频日志, 用 LOG_DEBUG 编译时禁用
+        LOG_DEBUG("[star_matcher] 匹配#%d: Gaia[%d] -> PSF[%d] "
+                  "(%.2f,%.2f) dist=%.3f F_syn=%.4e F_instr=%.2f",
+                  (int)matches.size(), i, best_psf, m.x, m.y,
+                  std::sqrt(best_dist2), m.f_syn, m.f_instr);
     }
 
     std::fprintf(stderr, "[star_matcher] 匹配完成: %d 对\n", (int)matches.size());
