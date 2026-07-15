@@ -88,49 +88,38 @@ STFParams STFEngine::auto_stretch(const float* data, size_t n, float no_data_val
 
     LOG_INFO("auto_stretch: 输入 %zu 像素，有效 %zu 像素", n, valid.size());
 
-    // 2. 计算中位数（nth_element, O(n)）
-    //    注意：nth_element 会改变容器顺序，但 valid 是局部副本，安全
-    size_t mid = valid.size() / 2;
-    std::nth_element(valid.begin(), valid.begin() + mid, valid.end());
-    float median = valid[mid];
+    // 2. 排序后取百分位数 (0.5% / 99.5%) 作为 shadows/highlights
+    //    只统计有数据的像素, 避免无数据区域(0值)拉偏统计
+    //    用 0.5%/99.5% 而非 min/max, 避免饱和星等异常值
+    std::sort(valid.begin(), valid.end());
+    size_t n_valid = valid.size();
+    size_t lo_idx = static_cast<size_t>(n_valid * 0.005);
+    size_t hi_idx = static_cast<size_t>(n_valid * 0.995);
+    if (hi_idx >= n_valid) hi_idx = n_valid - 1;
+    float p_lo = valid[lo_idx];
+    float p_hi = valid[hi_idx];
 
-    // 3. 计算 MAD = median(|v - median|)
-    std::vector<float> abs_dev(valid.size());
-    for (size_t i = 0; i < valid.size(); i++) {
-        abs_dev[i] = std::fabs(valid[i] - median);
-    }
-    std::nth_element(abs_dev.begin(), abs_dev.begin() + abs_dev.size() / 2, abs_dev.end());
-    float mad = abs_dev[abs_dev.size() / 2];
+    // 3. 计算中位数 (已排序, 直接取)
+    float median = valid[n_valid / 2];
 
-    // 4. sigma = 1.4826 * MAD（正态分布一致性常数）
-    float sigma = 1.4826f * mad;
-    if (sigma < 1e-10f) {
-        // 所有值几乎相同 → sigma 趋零，设最小阈值避免除零
-        LOG_WARN("auto_stretch: sigma 趋零 (mad=%g)，数据可能全相同，使用 1e-10 兜底", mad);
-        sigma = 1e-10f;
-    }
-
-    // 5. shadows = median - 3*sigma, highlights = median + 3*sigma
-    //    3-sigma 覆盖约 99.7% 正态分布区间
     STFParams p;
-    p.shadows = median - 3.0f * sigma;
-    p.highlights = median + 3.0f * sigma;
+    p.shadows = p_lo;
+    p.highlights = p_hi;
 
-    // 6. midtones = 归一化 median 到 [0,1]
-    //    即 MTF 中点对齐到中位数，使中位数映射到 0.5
+    // 4. midtones = 归一化 median 到 [0,1]
     float range = p.highlights - p.shadows;
     if (range < 1e-30f) {
-        // 极端边界：range 趋零，退化处理
         LOG_WARN("auto_stretch: range 趋零，使用 1.0 兜底");
         range = 1.0f;
     }
     p.midtones = (median - p.shadows) / range;
     // clamp 到 (0.01, 0.99) 避免极端 MTF 行为
     p.midtones = std::clamp(p.midtones, 0.01f, 0.99f);
-    p.compression = 0.0f;
+    // 默认使用 log 风格压缩 (强压缩, 提亮暗部, 适合天文图像)
+    p.compression = 0.8f;
 
-    LOG_INFO("auto_stretch: median=%g mad=%g sigma=%g shadows=%g highlights=%g midtones=%.4f",
-             median, mad, sigma, p.shadows, p.highlights, p.midtones);
+    LOG_INFO("auto_stretch: median=%g p_lo(0.5%%)=%g p_hi(99.5%%)=%g shadows=%g highlights=%g midtones=%.4f",
+             median, p_lo, p_hi, p.shadows, p.highlights, p.midtones);
 
     return p;
 }

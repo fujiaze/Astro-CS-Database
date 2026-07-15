@@ -31,6 +31,7 @@
 #include <cstring>
 #include <algorithm>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 // ============================================================================
@@ -467,8 +468,8 @@ int GLRenderer::init() {
         return -2;
     }
 
-    // 3. 构建球面网格（64×128 分段）
-    build_sphere_mesh(64, 128);
+    // 3. 构建初始球面网格 (首次用固定 256×512, render_sphere 会按 FOV 动态重建)
+    build_sphere_mesh(256, 512);
 
     // 4. 构建单帧四边形网格
     build_quad_mesh();
@@ -728,7 +729,14 @@ void GLRenderer::build_sphere_mesh(int segments_lat, int segments_lon) {
             vertices[vi * 4 + 3] = 0.0f;  // value 初始 0
 
             // 缓存 (ra, dec) 供 render 时查值
-            sphere_vertex_coords_.push_back({ra, dec});
+            SphereVertexCoord vc;
+            vc.ra = ra;
+            vc.dec = dec;
+            vc.x = x;
+            vc.y = y;
+            vc.z = z;
+            vc.leaf_ipix = HealpixMath::ang2pix_nest(64, ra, dec);
+            sphere_vertex_coords_.push_back(vc);
 
             vi++;
         }
@@ -787,6 +795,182 @@ void GLRenderer::build_sphere_mesh(int segments_lat, int segments_lon) {
     pglBindVertexArray(0);
 
     LOG_INFO("build_sphere_mesh: 完成，顶点数=%d 索引数=%d", num_verts, num_indices);
+}
+
+// ============================================================================
+// build_sphere_mesh_dynamic() - 按 FOV 和视口动态构建球面网格
+// 顶点密度 ≈ 屏幕像素密度 (每顶点约 1 屏幕像素)
+// 网格覆盖 FOV×1.2 (渲染余量), 以视角中心为局部 UV 网格
+// ============================================================================
+
+void GLRenderer::build_sphere_mesh_dynamic(const ViewParams& view,
+                                            int viewport_w, int viewport_h) {
+    // 屏幕像素角分辨率 (度/像素)
+    double fov_deg = view.fov_deg;
+    if (fov_deg < 0.01) fov_deg = 60.0;
+    if (fov_deg > 170.0) fov_deg = 170.0;
+
+    double aspect = (viewport_w > 0 && viewport_h > 0)
+                    ? (double)viewport_w / (double)viewport_h : 1.0;
+    double fov_ver = fov_deg;
+    double fov_hor = fov_deg * aspect;
+
+    // 渲染范围 = FOV × 1.2 (余量, 避免边缘裁剪)
+    double render_fov_ver = fov_ver * 1.2;
+    double render_fov_hor = fov_hor * 1.2;
+
+    // 顶点间距 = 屏幕像素角分辨率 × 2 (每顶点 2 像素, 顶点数减 4 倍)
+    // GPU 线性插值填充顶点间像素, 视觉质量几乎不变
+    double theta_screen = (fov_ver / (double)viewport_h) * 2.0;  // 度/顶点
+    if (theta_screen < 1e-6) theta_screen = 0.01;
+
+    // 分段数 = 渲染范围 / 顶点间距
+    int segments_lat = std::max(8, (int)(render_fov_ver / theta_screen) + 1);
+    int segments_lon = std::max(8, (int)(render_fov_hor / theta_screen) + 1);
+
+    // 上限保护 (避免极端情况爆内存, 8M 顶点 = 128MB VBO)
+    const int MAX_SEGMENTS = 2048;
+    if (segments_lat > MAX_SEGMENTS) segments_lat = MAX_SEGMENTS;
+    if (segments_lon > MAX_SEGMENTS) segments_lon = MAX_SEGMENTS;
+
+    LOG_INFO("build_sphere_mesh_dynamic: fov=%.2f viewport=%dx%d theta=%.4f°/px "
+             "segments=%dx%d (render范围 %.2fx%.2f°)",
+             fov_deg, viewport_w, viewport_h, theta_screen,
+             segments_lat, segments_lon, render_fov_ver, render_fov_hor);
+
+    sphere_vertex_coords_.clear();
+
+    // 网格中心 = 视角中心
+    double center_ra = view.center_ra;
+    double center_dec = view.center_dec;
+
+    int num_verts = (segments_lat + 1) * (segments_lon + 1);
+    std::vector<float> vertices(num_verts * 4, 0.0f);
+
+    // 纬度范围: center_dec ± render_fov_ver/2
+    // 经度范围: center_ra ± render_fov_hor/2
+    double dec_min = center_dec - render_fov_ver / 2.0;
+    double dec_max = center_dec + render_fov_ver / 2.0;
+    // 经度需考虑 cos(dec) 缩放 (实际 RA 跨度 = fov_hor / cos(dec))
+    double cos_dec = std::cos(center_dec * M_PI / 180.0);
+    if (std::abs(cos_dec) < 0.01) cos_dec = 0.01;  // 极区兜底
+    double ra_span = render_fov_hor / cos_dec;
+    double ra_min = center_ra - ra_span / 2.0;
+
+    int vi = 0;
+    for (int i = 0; i <= segments_lat; i++) {
+        double dec = dec_min + (dec_max - dec_min) * (double)i / segments_lat;
+        double dec_rad = dec * M_PI / 180.0;
+
+        for (int j = 0; j <= segments_lon; j++) {
+            double ra = ra_min + ra_span * (double)j / segments_lon;
+            if (ra >= 360.0) ra -= 360.0;
+            if (ra < 0.0) ra += 360.0;
+            double ra_rad = ra * M_PI / 180.0;
+
+            // 单位球笛卡尔坐标
+            float x = (float)(std::cos(dec_rad) * std::cos(ra_rad));
+            float y = (float)(std::cos(dec_rad) * std::sin(ra_rad));
+            float z = (float)(std::sin(dec_rad));
+
+            vertices[vi * 4 + 0] = x;
+            vertices[vi * 4 + 1] = y;
+            vertices[vi * 4 + 2] = z;
+            vertices[vi * 4 + 3] = 0.0f;
+
+            // 预计算笛卡尔坐标和 leaf_ipix, 查值时直接用 (避免每帧 cos/sin/ang2pix)
+            SphereVertexCoord vc;
+            vc.ra = ra;
+            vc.dec = dec;
+            vc.x = x;
+            vc.y = y;
+            vc.z = z;
+            vc.leaf_ipix = HealpixMath::ang2pix_nest(64, ra, dec);
+            sphere_vertex_coords_.push_back(vc);
+            vi++;
+        }
+    }
+
+    // 索引 (三角形列表)
+    int num_indices = segments_lat * segments_lon * 6;
+    std::vector<unsigned int> indices(num_indices);
+    int ii = 0;
+    for (int i = 0; i < segments_lat; i++) {
+        for (int j = 0; j < segments_lon; j++) {
+            int v0 = i * (segments_lon + 1) + j;
+            int v1 = v0 + 1;
+            int v2 = (i + 1) * (segments_lon + 1) + j;
+            int v3 = v2 + 1;
+            indices[ii++] = v0; indices[ii++] = v2; indices[ii++] = v1;
+            indices[ii++] = v1; indices[ii++] = v2; indices[ii++] = v3;
+        }
+    }
+    sphere_index_count_ = num_indices;
+
+    // 重建 VAO/VBO/IBO (先删旧的)
+    if (sphere_vao_) { pglDeleteVertexArrays(1, &sphere_vao_); sphere_vao_ = 0; }
+    if (sphere_vbo_) { pglDeleteBuffers(1, &sphere_vbo_); sphere_vbo_ = 0; }
+    if (sphere_ibo_) { pglDeleteBuffers(1, &sphere_ibo_); sphere_ibo_ = 0; }
+
+    pglGenVertexArrays(1, &sphere_vao_);
+    pglGenBuffers(1, &sphere_vbo_);
+    pglGenBuffers(1, &sphere_ibo_);
+
+    pglBindVertexArray(sphere_vao_);
+
+    pglBindBuffer(GL_ARRAY_BUFFER, sphere_vbo_);
+    pglBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float),
+                  vertices.data(), GL_DYNAMIC_DRAW);
+
+    pglBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sphere_ibo_);
+    pglBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int),
+                  indices.data(), GL_STATIC_DRAW);
+
+    pglEnableVertexAttribArray(0);
+    pglVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    pglEnableVertexAttribArray(1);
+    pglVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+                           (void*)(3 * sizeof(float)));
+
+    pglBindVertexArray(0);
+
+    // 记录当前网格参数 (用于 need_rebuild_mesh 检测)
+    mesh_center_ra_ = view.center_ra;
+    mesh_center_dec_ = view.center_dec;
+    mesh_fov_ = fov_deg;
+    mesh_viewport_w_ = viewport_w;
+    mesh_viewport_h_ = viewport_h;
+
+    LOG_INFO("build_sphere_mesh_dynamic: 完成，顶点数=%d 索引数=%d",
+             num_verts, num_indices);
+}
+
+// ============================================================================
+// need_rebuild_mesh() - 检测是否需要重建网格
+// 触发条件: 首次、FOV 变化>20%、视口变化>10%、中心移动超过半个视场
+// ============================================================================
+
+bool GLRenderer::need_rebuild_mesh(const ViewParams& view, int viewport_w, int viewport_h) const {
+    if (mesh_fov_ < 0) return true;  // 首次
+
+    // FOV 变化 >20% (避免缩放时频繁重建网格, 影响流畅性)
+    double fov_ratio = std::abs(view.fov_deg - mesh_fov_) / std::max(mesh_fov_, 1.0);
+    if (fov_ratio > 0.20) return true;
+
+    // 视口变化 >10%
+    if (viewport_w > 0 && mesh_viewport_w_ > 0) {
+        double vp_ratio = std::abs((double)viewport_w - (double)mesh_viewport_w_) / (double)mesh_viewport_w_;
+        if (vp_ratio > 0.10) return true;
+    }
+
+    // 中心移动超过半个视场 (避免拖动时频繁重建)
+    double half_fov = view.fov_deg / 2.0;
+    double dr = std::abs(view.center_ra - mesh_center_ra_);
+    if (dr > 180.0) dr = 360.0 - dr;  // 跨 0/360°
+    double dd = std::abs(view.center_dec - mesh_center_dec_);
+    if (dr > half_fov * 0.5 || dd > half_fov * 0.5) return true;
+
+    return false;
 }
 
 // ============================================================================
@@ -903,9 +1087,9 @@ int GLRenderer::render_sphere(BrowserBackend& backend, const RenderParams& param
 
     // ---- 1. 球心相机: 相机在球心(0,0,0)，向外看天球外表面 ----
     // 与 render_hiss_polygon 统一相机模型, 遵守赤道坐标系约定
-    // FOV 范围保护: [0.5°, 170°], 防止 tan(fov/2) 退化
+    // FOV 范围保护: [0.01°, 170°], 防止 tan(fov/2) 退化
     double fov_deg = view.fov_deg;
-    if (fov_deg < 0.5) fov_deg = 60.0;
+    if (fov_deg < 0.01) fov_deg = 60.0;
     if (fov_deg > 170.0) fov_deg = 170.0;
 
     // 相机朝向: 从球心看向 (center_ra, center_dec) 方向
@@ -942,63 +1126,144 @@ int GLRenderer::render_sphere(BrowserBackend& backend, const RenderParams& param
                    up_x, up_y, up_z, view_mat);
     multiply_matrix(proj_mat, view_mat, mvp_mat);
 
-    // ---- 3. 加载子叶数据，构建 ipix→value 查找表 ----
-    // 按 leaf_ipix 分组，每个子叶有自己的 nside 和 ipix→value 映射
-    struct LeafMap {
-        uint32_t nside;
-        std::unordered_map<uint64_t, float> ipix_to_value;
-    };
-    std::unordered_map<uint64_t, LeafMap> leaf_maps;  // key: leaf_ipix (nside=64)
+    // ---- 2.5 动态重建球面网格 (FOV/视口/中心变化时) ----
+    if (need_rebuild_mesh(view, params.viewport_w, params.viewport_h)) {
+        build_sphere_mesh_dynamic(view, params.viewport_w, params.viewport_h);
+        // 不全清子叶缓存: 增量更新逻辑会自动清理不需要的子叶、加载新增的子叶
+        // FOV 变化时 nside_target 变化, 但旧子叶仍可复用 (LOD 阈值只影响新加载的子叶)
+        // 注: 若 nside_target 变化导致已缓存子叶的分辨率不匹配, 查值时仍用旧 nside,
+        //     视觉上会有轻微分辨率差异, 但避免了反复加载/ud_grade 的性能开销
+        cache_fov_ = view.fov_deg;
+    }
 
+    // ---- 3. 子叶数据跨帧缓存 (避免每帧重新 load_leaf + ud_grade) ----
+    // 增量更新: 只加载缓存中没有的子叶, 保留仍需要的旧子叶
+    // 清理: 移除不在当前 required 列表中的旧子叶
     std::vector<uint64_t> required = backend.get_required_leaves(view);
-    LOG_DEBUG("render_sphere: 需要子叶 %zu 个", required.size());
+    LOG_DEBUG("render_sphere: 需要子叶 %zu 个 (缓存 %zu)", required.size(), leaf_cache_.size());
 
+    // 构建 required 集合用于清理
+    std::unordered_set<uint64_t> required_set(required.begin(), required.end());
+
+    // 清理缓存中不在 required 列表里的子叶
+    for (auto it = leaf_cache_.begin(); it != leaf_cache_.end(); ) {
+        if (required_set.find(it->first) == required_set.end()) {
+            it = leaf_cache_.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    // 加载缓存中缺失的子叶, 或 nside 不匹配的子叶 (放大后 nside_target 增大, 旧缓存分辨率不够)
+    int newly_loaded = 0;
+    int reloaded = 0;
     for (uint64_t leaf_ipix : required) {
-        uint32_t target_nside = backend.decide_target_nside(view, leaf_ipix);
+        // LOD 自动阈值: 按屏幕分辨率停止下钻
+        uint32_t target_nside = backend.decide_target_nside(view, leaf_ipix,
+                                                             params.viewport_w, params.viewport_h);
+
+        auto cache_it = leaf_cache_.find(leaf_ipix);
+        if (cache_it != leaf_cache_.end() && cache_it->second.nside >= target_nside) {
+            continue;  // 已缓存且 nside 足够, 跳过
+        }
+
+        // nside 不匹配或未缓存: 释放旧缓存, 重新加载
+        if (cache_it != leaf_cache_.end()) {
+            cache_it->second.release();
+            leaf_cache_.erase(cache_it);
+            reloaded++;
+        }
+
         LeafData leaf = backend.load_leaf(leaf_ipix, target_nside);
 
-        if (leaf.n_pix == 0 || leaf.pixel == nullptr) {
+        if (leaf.n_pix == 0 || (leaf.pixel == nullptr && leaf.pixel_u8 == nullptr)) {
             backend.release_leaf(leaf);
             continue;
         }
 
-        LeafMap lm;
-        lm.nside = leaf.nside;
-        lm.ipix_to_value.reserve(leaf.n_pix);
-        for (uint64_t i = 0; i < leaf.n_pix; i++) {
-            lm.ipix_to_value[leaf.ipix[i]] = leaf.pixel[i];
+        CachedLeaf cl;
+        cl.nside = leaf.nside;
+        cl.n = leaf.n_pix;
+        cl.use_u8 = leaf.use_u8;
+        if (leaf.owned) {
+            // ud_grade 结果: 转移指针所有权
+            cl.ipix = leaf.ipix;
+            if (leaf.use_u8) {
+                cl.pixel_u8 = leaf.pixel_u8;
+            } else {
+                cl.pixel = leaf.pixel;
+            }
+            cl.owned = true;
+            leaf.ipix = nullptr;
+            leaf.pixel = nullptr;
+            leaf.pixel_u8 = nullptr;
+            leaf.n_pix = 0;
+            leaf.owned = false;
+        } else {
+            // 零拷贝切片: 指针指向 backend 内部 (float32)
+            cl.ipix = leaf.ipix;
+            cl.pixel = leaf.pixel;
+            cl.owned = false;
+            cl.use_u8 = false;
         }
-        leaf_maps[leaf_ipix] = std::move(lm);
-
         backend.release_leaf(leaf);
+        leaf_cache_[leaf_ipix] = std::move(cl);
+        newly_loaded++;
     }
 
     // ---- 4. 每顶点查值，更新 VBO ----
-    // 顶点格式: [x, y, z, value]
     int num_verts = (int)sphere_vertex_coords_.size();
     std::vector<float> vertex_data(num_verts * 4, 0.0f);
 
+    // uint8 反归一化参数
+    float u8_range = params.data_max - params.data_min;
+    float u8_min = params.data_min;
+
     for (int i = 0; i < num_verts; i++) {
-        double ra = sphere_vertex_coords_[i].ra;
-        double dec = sphere_vertex_coords_[i].dec;
+        const auto& vc = sphere_vertex_coords_[i];
 
-        // 笛卡尔坐标（单位球）
-        double ra_rad = ra * M_PI / 180.0;
-        double dec_rad = dec * M_PI / 180.0;
-        vertex_data[i * 4 + 0] = (float)(std::cos(dec_rad) * std::cos(ra_rad));
-        vertex_data[i * 4 + 1] = (float)(std::cos(dec_rad) * std::sin(ra_rad));
-        vertex_data[i * 4 + 2] = (float)(std::sin(dec_rad));
+        // 笛卡尔坐标 (预计算, 直接用)
+        vertex_data[i * 4 + 0] = vc.x;
+        vertex_data[i * 4 + 1] = vc.y;
+        vertex_data[i * 4 + 2] = vc.z;
 
-        // 查值: 先找 nside=64 子叶，再在子叶的 nside 层查 ipix
+        // 查值: 先找 nside=64 子叶，再在子叶的 nside 层二分查找 ipix
+        // 若 ipix 找不到 (数据是拼接图非全天覆盖, ud_grade 后无数据像素不输出):
+        //   用位运算降到更粗 nside, 在数组中查找属于同一粗像素的任意子像素
+        //   HEALPix nested: nside 降半 = ipix 右移 2 位, 粗像素范围 [coarse<<shift, (coarse+1)<<shift)
         float value = params.no_data_value;
-        uint64_t leaf_ipix = HealpixMath::ang2pix_nest(64, ra, dec);
-        auto it = leaf_maps.find(leaf_ipix);
-        if (it != leaf_maps.end()) {
-            const LeafMap& lm = it->second;
-            uint64_t ipix_fine = HealpixMath::ang2pix_nest(lm.nside, ra, dec);
-            auto vit = lm.ipix_to_value.find(ipix_fine);
-            if (vit != lm.ipix_to_value.end()) {
-                value = vit->second;
+        auto it = leaf_cache_.find(vc.leaf_ipix);
+        if (it != leaf_cache_.end()) {
+            const CachedLeaf& lm = it->second;
+            uint64_t ipix_fine = HealpixMath::ang2pix_nest(lm.nside, vc.ra, vc.dec);
+
+            // 逐级降低 nside 查找: shift=0(原始), 2(nside/2), 4(nside/4), ...
+            // 限制最大 shift=4 (nside/16): 只填充小的拼接缝隙, 不填充大的无数据区域
+            // 超过 shift=4 仍找不到则返回 no_data (保持黑色, 避免远处像素错误填充)
+            const uint32_t MAX_SHIFT = 4;
+            uint32_t shift = 0;
+            while (shift <= MAX_SHIFT) {
+                uint64_t ipix_lo = ipix_fine >> shift;       // 当前粗像素 id
+                uint64_t range_lo = ipix_lo << shift;        // 粗像素在 fine 层的起始 ipix
+                uint64_t range_hi = (ipix_lo + 1) << shift;  // 粗像素在 fine 层的结束 ipix (不含)
+
+                // 在排序数组中查找 >= range_lo 的第一个
+                const uint64_t* begin = lm.ipix;
+                const uint64_t* end = lm.ipix + lm.n;
+                const uint64_t* bit = std::lower_bound(begin, end, range_lo);
+                if (bit != end && *bit < range_hi) {
+                    // 找到属于同一粗像素的子像素, 用它的值
+                    size_t idx = bit - begin;
+                    if (lm.use_u8 && lm.pixel_u8) {
+                        value = (float)lm.pixel_u8[idx] / 255.0f * u8_range + u8_min;
+                    } else if (lm.pixel) {
+                        value = lm.pixel[idx];
+                    }
+                    break;
+                }
+
+                // 当前 nside 找不到, 降一级 (shift += 2)
+                shift += 2;
             }
         }
         vertex_data[i * 4 + 3] = value;
@@ -1046,8 +1311,8 @@ int GLRenderer::render_sphere(BrowserBackend& backend, const RenderParams& param
 
     glDisable(GL_DEPTH_TEST);
 
-    LOG_DEBUG("render_sphere: 渲染完成 (子叶=%zu 顶点=%d)",
-              leaf_maps.size(), num_verts);
+    LOG_DEBUG("render_sphere: 渲染完成 (缓存子叶=%zu 顶点=%d)",
+              leaf_cache_.size(), num_verts);
     return 0;
 }
 
@@ -1066,9 +1331,53 @@ int GLRenderer::build_hiss_polygon_mesh(BrowserBackend& backend) {
         return -1;
     }
 
+    // ---- 自动 ud_grade 降采样 (避免大数据集卡死 GPU/主线程) ----
+    // 每像素 6 顶点 × 4 float = 24 float = 96 bytes
+    // 阈值 4M 像素 → 顶点数据 ≈ 384 MB (GPU 可接受, 主线程构建 < 1s)
+    // nside=65536 (n_pix=61.6M) → nside=16384 (n_pix=3.85M)
+    const uint64_t MAX_PIX_FOR_MESH = 4000000;
+    std::vector<uint64_t> ds_ipix;   // 降采样后 ipix (若触发)
+    std::vector<float> ds_pixel;     // 降采样后 pixel (若触发)
+    const uint64_t* use_ipix = all.ipix;
+    const float* use_pixel = all.pixel;
+    uint64_t use_n_pix = all.n_pix;
+    uint32_t use_nside = all.nside;
+
+    if (all.n_pix > MAX_PIX_FOR_MESH && all.nside > 256) {
+        // 计算目标 nside: 每次减半直到 n_pix 估计 < 阈值
+        // n_pix ∝ nside², 降 nside 到 1/2 → n_pix 降到 1/4
+        uint32_t target_nside = all.nside;
+        uint64_t est_n_pix = all.n_pix;
+        while (est_n_pix > MAX_PIX_FOR_MESH && target_nside > 256) {
+            target_nside >>= 1;
+            est_n_pix >>= 2;
+        }
+
+        // 转换为 vector 调用 HealpixMath::ud_grade
+        std::vector<uint64_t> src_ipix(all.ipix, all.ipix + all.n_pix);
+        std::vector<float> src_pixel(all.pixel, all.pixel + all.n_pix);
+
+        LOG_INFO("build_hiss_polygon_mesh: 自动降采样 nside %u → %u (n_pix %llu → ~%llu)",
+                 all.nside, target_nside,
+                 static_cast<unsigned long long>(all.n_pix),
+                 static_cast<unsigned long long>(est_n_pix));
+
+        auto graded = HealpixMath::ud_grade(all.nside, src_ipix, src_pixel, target_nside);
+        ds_ipix = std::move(graded.ipix);
+        ds_pixel = std::move(graded.pixel);
+
+        use_ipix = ds_ipix.data();
+        use_pixel = ds_pixel.data();
+        use_n_pix = ds_ipix.size();
+        use_nside = target_nside;
+
+        LOG_INFO("build_hiss_polygon_mesh: 降采样完成 n_pix=%llu nside=%u",
+                 static_cast<unsigned long long>(use_n_pix), use_nside);
+    }
+
     // 每像素 6 顶点（2 三角形）× 4 float (x,y,z,value) = 24 float
     std::vector<float> vertices;
-    vertices.reserve(static_cast<size_t>(all.n_pix) * 6 * 4);
+    vertices.reserve(static_cast<size_t>(use_n_pix) * 6 * 4);
 
     // bbox 估算 (仅统计有效像素, 跳过 value<=0 的 no_data)
     double min_ra = 360.0, max_ra = 0.0, min_dec = 90.0, max_dec = -90.0;
@@ -1077,13 +1386,13 @@ int GLRenderer::build_hiss_polygon_mesh(BrowserBackend& backend) {
     // HEALPix 像素尺寸 (用于 bbox 估算, 单位: 度)
     // 像素面积 Ω = π/(3·nside²) sr, 等面积正方形边长 a = √(π/3)/nside rad
     // → a_deg = √(π/3)/nside × 180/π ≈ 58.6/nside deg
-    double pix_size = std::sqrt(M_PI / 3.0) / static_cast<double>(all.nside) * 180.0 / M_PI;
+    double pix_size = std::sqrt(M_PI / 3.0) / static_cast<double>(use_nside) * 180.0 / M_PI;
     LOG_INFO("build_hiss_polygon_mesh: n_pix=%llu nside=%u pix_size=%.6f deg",
-             static_cast<unsigned long long>(all.n_pix), all.nside, pix_size);
+             static_cast<unsigned long long>(use_n_pix), use_nside, pix_size);
 
-    for (uint64_t i = 0; i < all.n_pix; ++i) {
-        uint64_t ipix = all.ipix[i];
-        float value = all.pixel[i];
+    for (uint64_t i = 0; i < use_n_pix; ++i) {
+        uint64_t ipix = use_ipix[i];
+        float value = use_pixel[i];
 
         // 跳过 no_data 像素 (value<=0, 与片元着色器 uNoData 阈值一致)
         // 提升渲染流畅性, 避免无效多边形占用 GPU 资源
@@ -1094,7 +1403,7 @@ int GLRenderer::build_hiss_polygon_mesh(BrowserBackend& backend) {
 
         // pix2ang_nest 计算像素中心
         double ra, dec;
-        HealpixMath::pix2ang_nest(all.nside, ipix, ra, dec);
+        HealpixMath::pix2ang_nest(use_nside, ipix, ra, dec);
 
         // 更新 bbox (仅有效像素)
         if (ra < min_ra) min_ra = ra;
@@ -1221,7 +1530,7 @@ int GLRenderer::render_hiss_polygon(BrowserBackend& backend, const RenderParams&
     // FOV 由 params.view.fov_deg 直接传入（SphereView 控制）
     // FOV 范围保护: [0.5°, 170°], 防止 tan(fov/2) 退化 (fov=180° → tan(90°)=∞ → 黑屏)
     double fov_deg = params.view.fov_deg;
-    if (fov_deg < 0.5) fov_deg = 60.0;    // 下限兜底 (无效值用缺省)
+    if (fov_deg < 0.01) fov_deg = 60.0;    // 下限兜底 (无效值用缺省)
     if (fov_deg > 170.0) fov_deg = 170.0; // 上限保护 (全天不超过 170°)
 
     // 相机朝向: 用 widget 层传入的 forward (双向量四元数导航, 自由滚动)
@@ -1692,7 +2001,7 @@ int GLRenderer::render_grid(const RenderParams& params) {
 
     // 球心相机 MVP (复用 render_hiss_polygon 逻辑, 用传入 forward)
     double fov_deg = params.view.fov_deg;
-    if (fov_deg < 0.5) fov_deg = 60.0;
+    if (fov_deg < 0.01) fov_deg = 60.0;
     if (fov_deg > 170.0) fov_deg = 170.0;
 
     double fx = params.view.forward_x;

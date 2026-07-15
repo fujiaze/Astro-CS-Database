@@ -33,6 +33,8 @@ private slots:
     void on_file_close();          // File > Close
     void on_exit();                // File > Exit
     void on_view_reset();          // View > Reset
+    void on_zoom_in();             // 工具栏 放大
+    void on_zoom_out();            // 工具栏 缩小
     void on_stf_changed(const STFParams& params);
     void on_view_changed(double center_ra, double center_dec, double zoom);
     void on_mouse_moved(double ra, double dec);
@@ -41,6 +43,7 @@ private slots:
 
 private:
     void setup_menu();
+    void setup_toolbar();
     void setup_status_bar();
     void setup_stf_panel();
     void open_file(const QString& path);

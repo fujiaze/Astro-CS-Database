@@ -4,13 +4,19 @@
 // 依赖: Qt6::Widgets (QApplication/QCommandLineParser), app/ (MainWindow)
 // 设计文档: docs/superpowers/specs/2026-07-13-cpp-qt-browser-ui-design.md §4.3
 // 用法: healpix_browser_qt.exe [file.hiss|file.hcsd]
+// 部署: windeployqt 部署 Qt6 DLL 和 plugins 到 exe 同级目录, 双击即可启动
 
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QStringList>
+#include <cstdlib>
 #include "main_window.h"
+#include "logger.h"
 
 int main(int argc, char* argv[]) {
+    // Qt 部署后, exe 同级目录有 platforms/qwindows.dll, Qt 默认自动查找
+    // 无需手动设置插件路径, 双击即可启动
+
     QApplication app(argc, argv);
     app.setApplicationName("HEALPix Browser");
     app.setApplicationVersion("1.0");
@@ -38,5 +44,13 @@ int main(int argc, char* argv[]) {
                                   Q_ARG(QString, args.first()));
     }
 
-    return app.exec();
+    int ret = app.exec();
+
+    // 程序退出时将内存日志缓冲写入文件 (若设置 BROWSER_LOG_FILE 环境变量)
+    const char* log_path = std::getenv("BROWSER_LOG_FILE");
+    if (log_path) {
+        browser_log::flush_to_file(log_path);
+    }
+
+    return ret;
 }

@@ -31,11 +31,19 @@ public:
     // .hiss 模式: 根据数据 bbox 设置初始视角（对准数据中心，FOV 自适应使 patch 占视野 60%）
     void set_initial_view_from_bbox();
 
+    // 从外部数据 bbox 设置初始视角 (不依赖 renderer, 用于 SPHERE 模式)
+    // ra/dec: 数据中心, w/h: 数据宽高 (度)
+    void set_initial_view_from_data(double ra, double dec, double w, double h);
+
     // 设置渲染模式（.hiss=HISS_POLYGON, .hcsd=SPHERE）
     void set_render_mode(RenderMode mode) { render_mode_ = mode; }
 
     // 经纬线网格开关
     void set_grid_visible(bool visible);
+
+    // 放大/缩小 (FOV /= FOV_STEP 放大, FOV *= FOV_STEP 缩小)
+    void zoom_in();
+    void zoom_out();
 
 protected:
     void handle_mouse_press(QMouseEvent* event) override;
@@ -92,7 +100,7 @@ private:
     double last_touch_dist_;  // 双指距离 (捏合缩放)
 
     // FOV 限制
-    static constexpr double MIN_FOV = 0.5;    // 最小FOV(最大放大)
+    static constexpr double MIN_FOV = 0.01;   // 最小FOV(最大放大, 去掉限制)
     static constexpr double MAX_FOV = 50.0;   // 最大FOV(限制50°避免球面旋转畸变)
     // 滚轮FOV灵敏度
     static constexpr double FOV_SPEED = 0.0015;

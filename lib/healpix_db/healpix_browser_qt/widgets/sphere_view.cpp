@@ -87,20 +87,24 @@ void SphereView::set_initial_view_from_bbox() {
         return;
     }
 
+    set_initial_view_from_data(ra, dec, w, h);
+}
+
+void SphereView::set_initial_view_from_data(double ra, double dec, double w, double h) {
     center_ra_ = ra;
     center_dec_ = dec;
-    // FOV 自适应: 使 patch 占视野约 60%
+    // FOV 自适应: 使 patch 占视野约 85% (数据更大更突出)
     // 球心相机看球面, 顶点距相机=1.0, patch 角宽度≈max_dim 度
-    // 要让 patch 占视野 60%: fov = max_dim / 0.6
+    // 要让 patch 占视野 85%: fov = max_dim / 0.85
     double max_dim = std::max(w, h);
     if (max_dim > 0.001) {
-        fov_deg_ = std::clamp(max_dim / 0.6, MIN_FOV, MAX_FOV);
+        fov_deg_ = std::clamp(max_dim / 0.85, MIN_FOV, MAX_FOV);
     } else {
         fov_deg_ = 60.0;
     }
     // 初始化 forward/up 为 north-up (ra=data_center, dec=data_center)
     init_forward_up_north_up(center_ra_, center_dec_);
-    LOG_INFO("set_initial_view_from_bbox: center=(%.4f,%.4f) size=%.4fx%.4f fov=%.3f forward=(%.3f,%.3f,%.3f) up=(%.3f,%.3f,%.3f)",
+    LOG_INFO("set_initial_view_from_data: center=(%.4f,%.4f) size=%.4fx%.4f fov=%.3f forward=(%.3f,%.3f,%.3f) up=(%.3f,%.3f,%.3f)",
              center_ra_, center_dec_, w, h, fov_deg_,
              forward_x_, forward_y_, forward_z_,
              up_x_, up_y_, up_z_);
@@ -244,6 +248,24 @@ void SphereView::keyPressEvent(QKeyEvent* event) {
 }
 
 // ============================================================================
+// 放大/缩小 (工具栏按钮调用)
+// ============================================================================
+
+void SphereView::zoom_in() {
+    fov_deg_ /= FOV_STEP;
+    fov_deg_ = std::clamp(fov_deg_, MIN_FOV, MAX_FOV);
+    emit view_changed(center_ra_, center_dec_, fov_deg_);
+    request_render();
+}
+
+void SphereView::zoom_out() {
+    fov_deg_ *= FOV_STEP;
+    fov_deg_ = std::clamp(fov_deg_, MIN_FOV, MAX_FOV);
+    emit view_changed(center_ra_, center_dec_, fov_deg_);
+    request_render();
+}
+
+// ============================================================================
 // 触摸事件
 // ============================================================================
 
@@ -324,8 +346,11 @@ RenderParams SphereView::build_render_params() {
     p.data_min = data_min_;
     p.data_max = data_max_;
     p.no_data_value = no_data_value_;
-    p.viewport_w = width();
-    p.viewport_h = height();
+    // viewport 用物理像素 (高DPI屏幕 devicePixelRatio>1 时, framebuffer 是物理像素大小)
+    qreal dpr = devicePixelRatio();
+    if (dpr < 1.0) dpr = 1.0;
+    p.viewport_w = (int)(width() * dpr);
+    p.viewport_h = (int)(height() * dpr);
     p.grid_visible = grid_visible_;
     return p;
 }

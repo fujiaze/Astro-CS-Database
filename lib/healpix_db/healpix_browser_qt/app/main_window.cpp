@@ -13,6 +13,7 @@
 #include <QMenuBar>
 #include <QMenu>
 #include <QAction>
+#include <QToolBar>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QStatusBar>
@@ -40,6 +41,7 @@ MainWindow::MainWindow(QWidget* parent)
     resize(1280, 800);
 
     setup_menu();
+    setup_toolbar();
     setup_status_bar();
     setup_stf_panel();
 
@@ -106,6 +108,41 @@ void MainWindow::setup_menu() {
     stf_menu->addAction(auto_action);
 }
 
+void MainWindow::setup_toolbar() {
+    QToolBar* toolbar = addToolBar("Main");
+    toolbar->setMovable(false);
+
+    // 放大按钮
+    QAction* zoom_in_action = new QAction("🔍+", this);
+    zoom_in_action->setToolTip("放大 (FOV /= 1.2)");
+    zoom_in_action->setShortcut(QKeySequence("Ctrl++"));
+    connect(zoom_in_action, &QAction::triggered, this, &MainWindow::on_zoom_in);
+    toolbar->addAction(zoom_in_action);
+
+    // 缩小按钮
+    QAction* zoom_out_action = new QAction("🔍-", this);
+    zoom_out_action->setToolTip("缩小 (FOV *= 1.2)");
+    zoom_out_action->setShortcut(QKeySequence("Ctrl+-"));
+    connect(zoom_out_action, &QAction::triggered, this, &MainWindow::on_zoom_out);
+    toolbar->addAction(zoom_out_action);
+
+    toolbar->addSeparator();
+
+    // 重置视角按钮
+    QAction* reset_action = new QAction("⟳", this);
+    reset_action->setToolTip("重置视角 (F5)");
+    reset_action->setShortcut(QKeySequence("F5"));
+    connect(reset_action, &QAction::triggered, this, &MainWindow::on_view_reset);
+    toolbar->addAction(reset_action);
+
+    // Auto Stretch 按钮
+    QAction* auto_stretch_action = new QAction("Auto STF", this);
+    auto_stretch_action->setToolTip("自动拉伸 (Ctrl+A)");
+    auto_stretch_action->setShortcut(QKeySequence("Ctrl+A"));
+    connect(auto_stretch_action, &QAction::triggered, this, &MainWindow::on_auto_stretch_clicked);
+    toolbar->addAction(auto_stretch_action);
+}
+
 void MainWindow::setup_status_bar() {
     status_file_ = new QLabel("文件: (未打开)", this);
     status_view_ = new QLabel("视角: -", this);
@@ -161,15 +198,23 @@ void MainWindow::open_file(const QString& path) {
     }
 
     // 按扩展名路由 (实际上 backend 已根据 Magic 判断 hiss/hcsd)
-    // .hiss 和 .hcsd 都用 SphereView（球面渲染），区别在 render_mode
+    // .hiss 和 .hcsd 都用 SphereView 球面渲染, 视角相关加载 (LOD 金字塔)
     AbstractView* view = nullptr;
     if (backend_->is_hiss()) {
         view = new SphereView(this);
-        static_cast<SphereView*>(view)->set_render_mode(RenderMode::HISS_POLYGON);
-        // 注: set_initial_view_from_bbox 需在 renderer 初始化后调用，
-        //     这里先设置标志，首次 paintGL 后由 auto_stretch 触发渲染
-        //     bbox 在 build_hiss_polygon_mesh 时计算，首次 render 时生效
-        static_cast<SphereView*>(view)->set_initial_view_from_bbox();
+        // .hiss 也用 SPHERE 模式 (视角相关渲染 + LOD 金字塔)
+        // 不再用 HISS_POLYGON 全量多边形模式 (大数据集会卡死)
+        static_cast<SphereView*>(view)->set_render_mode(RenderMode::SPHERE);
+
+        // 从 backend 获取数据 bbox, 设置初始视角到数据位置
+        double bbox_ra, bbox_dec, bbox_w, bbox_h;
+        if (backend_->get_data_bbox(bbox_ra, bbox_dec, bbox_w, bbox_h) == 0 &&
+            bbox_w > 0.0 && bbox_h > 0.0) {
+            static_cast<SphereView*>(view)->set_initial_view_from_data(
+                bbox_ra, bbox_dec, bbox_w, bbox_h);
+        } else {
+            static_cast<SphereView*>(view)->reset_view();
+        }
     } else if (backend_->is_hcsd()) {
         view = new SphereView(this);
         static_cast<SphereView*>(view)->set_render_mode(RenderMode::SPHERE);
@@ -281,6 +326,22 @@ void MainWindow::on_grid_toggle(bool checked) {
     if (current_view_) {
         if (auto* v = qobject_cast<SphereView*>(current_view_)) {
             v->set_grid_visible(checked);
+        }
+    }
+}
+
+void MainWindow::on_zoom_in() {
+    if (current_view_) {
+        if (auto* v = qobject_cast<SphereView*>(current_view_)) {
+            v->zoom_in();
+        }
+    }
+}
+
+void MainWindow::on_zoom_out() {
+    if (current_view_) {
+        if (auto* v = qobject_cast<SphereView*>(current_view_)) {
+            v->zoom_out();
         }
     }
 }

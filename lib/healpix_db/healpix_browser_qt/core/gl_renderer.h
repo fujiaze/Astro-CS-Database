@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <vector>
 #include <memory>
+#include <unordered_map>
 #include "browser_backend.h"
 #include "stf_engine.h"
 
@@ -138,12 +139,68 @@ private:
     struct SphereVertexCoord {
         double ra;
         double dec;
+        // 预计算值 (网格重建时计算, 查值时直接用, 避免每帧重复 cos/sin/ang2pix)
+        float x, y, z;           // 笛卡尔坐标 (单位球)
+        uint64_t leaf_ipix;      // nside=64 子叶 ipix
     };
     std::vector<SphereVertexCoord> sphere_vertex_coords_;
+
+    // ---- 子叶数据跨帧缓存 (避免每帧重新 load_leaf + ud_grade) ----
+    // key: leaf_ipix (nside=64), value: 子叶数据 (零拷贝指针或 owned 降采样数据)
+    struct CachedLeaf {
+        uint32_t nside = 0;
+        const uint64_t* ipix = nullptr;
+        const float* pixel = nullptr;       // float32 零拷贝 (use_u8=false)
+        const uint8_t* pixel_u8 = nullptr;  // uint8 降采样 (use_u8=true)
+        size_t n = 0;
+        bool owned = false;  // true=需 free (ud_grade 结果), false=指向 backend 内部
+        bool use_u8 = false;
+        ~CachedLeaf() { release(); }
+        CachedLeaf() = default;
+        CachedLeaf(CachedLeaf&& o) noexcept
+            : nside(o.nside), ipix(o.ipix), pixel(o.pixel), pixel_u8(o.pixel_u8),
+              n(o.n), owned(o.owned), use_u8(o.use_u8) {
+            o.owned = false; o.ipix = nullptr; o.pixel = nullptr; o.pixel_u8 = nullptr;
+        }
+        CachedLeaf& operator=(CachedLeaf&& o) noexcept {
+            if (this != &o) {
+                release();
+                nside = o.nside; ipix = o.ipix; pixel = o.pixel; pixel_u8 = o.pixel_u8;
+                n = o.n; owned = o.owned; use_u8 = o.use_u8;
+                o.owned = false; o.ipix = nullptr; o.pixel = nullptr; o.pixel_u8 = nullptr;
+            }
+            return *this;
+        }
+        void release() {
+            if (owned) {
+                std::free(const_cast<uint64_t*>(ipix));
+                if (use_u8) std::free(const_cast<uint8_t*>(pixel_u8));
+                else std::free(const_cast<float*>(pixel));
+            }
+            ipix = nullptr; pixel = nullptr; pixel_u8 = nullptr;
+            n = 0; owned = false; use_u8 = false;
+        }
+    };
+    std::unordered_map<uint64_t, CachedLeaf> leaf_cache_;
+    double cache_center_ra_ = -999.0;   // 缓存时的视角 (用于失效检测)
+    double cache_center_dec_ = -999.0;
+    double cache_fov_ = -999.0;
+
+    // ---- 动态网格跟踪 (检测重建时机) ----
+    double mesh_center_ra_ = -999.0;
+    double mesh_center_dec_ = -999.0;
+    double mesh_fov_ = -999.0;
+    int mesh_viewport_w_ = 0;
+    int mesh_viewport_h_ = 0;
 
     // 内部方法
     int compile_shaders();
     void build_sphere_mesh(int segments_lat, int segments_lon);
+    // 动态网格: 按 FOV 和视口计算细分度, 顶点密度≈屏幕像素
+    // 网格覆盖 FOV×1.2 (渲染余量), 以视角中心为局部 UV 网格
+    void build_sphere_mesh_dynamic(const ViewParams& view, int viewport_w, int viewport_h);
+    // 检查是否需要重建网格 (FOV 或视口变化超过阈值)
+    bool need_rebuild_mesh(const ViewParams& view, int viewport_w, int viewport_h) const;
     void build_quad_mesh();
     unsigned int upload_leaf_texture(const LeafData& leaf);
     void evict_unused_leaves(size_t max_leaves);

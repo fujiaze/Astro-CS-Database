@@ -12,6 +12,7 @@
 #include <vector>
 #include <cstdint>
 #include <mutex>
+#include <unordered_map>
 
 // ============================================================================
 // 视角参数 (widget 层填充后传给 core)
@@ -39,11 +40,15 @@ struct ViewParams {
 struct LeafData {
     uint64_t leaf_ipix;  // nside=64 子叶 ipix
     uint64_t n_pix;      // 像素数
-    uint64_t* ipix;      // ipix 数组 (malloc 分配)
-    float* pixel;        // 像素值数组 (malloc 分配)
+    uint64_t* ipix;      // ipix 数组 (malloc 分配 或 指向 all_ipix_ 切片, 见 owned)
+    float* pixel;        // 像素值数组 (float32, malloc 或 切片)
+    uint8_t* pixel_u8;   // uint8 降采样结果 (owned=true 时分配, 优先于 pixel)
     uint32_t nside;      // 实际 nside (可能被降采样)
+    bool owned;          // true=malloc 分配需 release_leaf 释放, false=指向 all_ipix_ 切片不释放
+    bool use_u8;         // true=pixel_u8 有效, false=pixel(float) 有效
 
-    LeafData() : leaf_ipix(0), n_pix(0), ipix(nullptr), pixel(nullptr), nside(0) {}
+    LeafData() : leaf_ipix(0), n_pix(0), ipix(nullptr), pixel(nullptr),
+                 pixel_u8(nullptr), nside(0), owned(false), use_u8(false) {}
 };
 
 // ============================================================================
@@ -78,20 +83,37 @@ public:
     // target_nside: 目标 nside (若 < 原始 nside 则 ud_grade 降采样)
     LeafData load_leaf(uint64_t leaf_ipix, uint32_t target_nside);
 
-    // 根据视角决定目标 nside (视角相关压缩)
-    // 中心区域 (距离 < fov_deg/4): nside=8192 (全分辨率)
-    // 中间区域 (距离 < fov_deg/2): nside=2048 (降采样)
-    // 边缘区域:                    nside=256  (高强度压缩)
-    uint32_t decide_target_nside(const ViewParams& view, uint64_t leaf_ipix) const;
+    // 决定目标 nside (LOD 自动阈值: 按屏幕分辨率停止下钻)
+    // viewport_w/h: 视口像素数, 用于计算屏幕角分辨率
+    // 返回: 目标 nside (2 的幂, clamp 到 [64, nside_])
+    uint32_t decide_target_nside(const ViewParams& view, uint64_t leaf_ipix,
+                                  int viewport_w, int viewport_h) const;
 
     // ---- 降采样 ----
     // NESTED 排序位运算: ipix_coarse = ipix_fine >> (2 * log2(ratio))
     // 4^k 个相邻像素求均值合并
-    LeafData ud_grade(const LeafData& input, uint32_t target_nside);
+    // ud_grade 降采样, 输出 uint8 (归一化到 [0,255])
+    // data_min/data_max: 归一化范围 (来自 STF data_range)
+    LeafData ud_grade(const LeafData& input, uint32_t target_nside,
+                      float data_min = 0.0f, float data_max = 1.0f);
+
+    // 设置数据范围 (供 ud_grade 归一化用, 由 widget 在 compute_data_range 后调用)
+    void set_data_range(float data_min, float data_max) {
+        data_min_ = data_min;
+        data_max_ = data_max;
+    }
 
     // ---- 全量数据 (仅 .hiss 模式, 单帧切面投影用) ----
     // 返回的 LeafData 由本对象持有, close_file() 时释放, 调用者不应释放
     LeafData get_all_data();
+
+    // ---- 数据 bbox (用于初始视角设置) ----
+    // 从子叶索引采样计算数据覆盖范围的 (center_ra, center_dec, width_deg, height_deg)
+    // .hiss: 从子叶索引的 key (nside=64 子叶 ipix) 计算
+    // .hcsd: 从文件元信息或前若干子叶采样计算 (暂返回全天)
+    // 返回 0=成功, <0=失败/无数据
+    int get_data_bbox(double& center_ra, double& center_dec,
+                      double& width_deg, double& height_deg) const;
 
     // 释放 LeafData 内存 (malloc 分配的数据用此释放; get_all_data 返回的不要用此释放)
     void release_leaf(LeafData& leaf);
@@ -115,7 +137,18 @@ private:
     uint64_t* all_ipix_;
     float* all_pixel_;
 
+    // .hiss 子叶索引 (open_file 时建立, 加速 load_leaf)
+    // key: nside=64 子叶 ipix, value: (起始索引, 像素数) 在 all_ipix_/all_pixel_ 中的范围
+    // 建立: 遍历 all_ipix_ 一次, 按 ipix>>shift 分组排序
+    std::unordered_map<uint64_t, std::pair<uint64_t, uint64_t>> hiss_leaf_index_;
+    int hiss_leaf_shift_ = 0;  // ipix >> hiss_leaf_shift_ = nside=64 子叶 ipix
+
+    void build_hiss_leaf_index();  // 建立 .hiss 子叶索引
     void free_all_data();
+
+    // 数据范围 (供 ud_grade 归一化, 由 set_data_range 设置)
+    float data_min_ = 0.0f;
+    float data_max_ = 1.0f;
 };
 
 #endif // BROWSER_BACKEND_H

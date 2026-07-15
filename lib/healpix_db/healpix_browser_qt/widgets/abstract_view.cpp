@@ -218,8 +218,12 @@ void AbstractView::compute_data_range() {
     if (backend_->is_hiss()) {
         LeafData all = backend_->get_all_data();
         if (all.n_pix > 0 && all.pixel != nullptr) {
-            valid.reserve(all.n_pix);
-            for (uint64_t i = 0; i < all.n_pix; ++i) {
+            // 大数据集采样 (避免遍历+排序 61.6M 像素卡死 UI)
+            // 采样上限 100K 像素, 足够计算百分位
+            const size_t MAX_SAMPLE = 100000;
+            size_t step = std::max<size_t>(1, all.n_pix / MAX_SAMPLE);
+            valid.reserve(std::min(MAX_SAMPLE, all.n_pix / step + 1));
+            for (uint64_t i = 0; i < all.n_pix; i += step) {
                 float v = all.pixel[i];
                 if (v > no_data_value_ && std::isfinite(v)) {
                     valid.push_back(v);
@@ -270,6 +274,11 @@ void AbstractView::compute_data_range() {
     }
 
     data_range_computed_ = true;
+
+    // 同步数据范围到 backend (供 ud_grade 归一化用)
+    if (backend_) {
+        backend_->set_data_range(data_min_, data_max_);
+    }
 
     // 若 renderer 已初始化, 同步 uniform
     if (gl_initialized_ && renderer_) {
