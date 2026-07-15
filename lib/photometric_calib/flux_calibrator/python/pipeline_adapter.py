@@ -272,7 +272,7 @@ def _build_psf_arrays(frame: PipelineFramePy) -> Tuple[
         np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """从 psf 块读取 PSF 拟合结果并转为 numpy 数组
 
-    psf 块格式: FLOAT64[N, 6], 每行 [status, B, flux, cx, cy, fwhm]
+    psf 块格式: FLOAT64[N, 9], 每行 [status, B, flux, cx, cy, fwhm, A, mad, eccentricity]
 
     Args:
         frame: PipelineFramePy 实例
@@ -290,7 +290,7 @@ def _build_psf_arrays(frame: PipelineFramePy) -> Tuple[
                 np.array([], dtype=np.int32))
 
     if psf_data.ndim != 2 or psf_data.shape[1] < 5:
-        logger.warning("psf 块格式异常: shape=%s, 期望 (N, 6)",
+        logger.warning("psf 块格式异常: shape=%s, 期望 (N, 9)",
                         psf_data.shape)
         return (np.array([], dtype=np.float64),
                 np.array([], dtype=np.float64),
