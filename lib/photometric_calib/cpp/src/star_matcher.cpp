@@ -104,12 +104,14 @@ std::vector<StarMatch> StarMatcher::matchBruteForce(
 // 剔除 |r - median| > outlier_sigma * sigma
 // ============================================================================
 std::vector<StarMatch> StarMatcher::cleanOutliers(
-    const std::vector<StarMatch>& matches, double outlier_sigma) {
+    const std::vector<StarMatch>& matches, double outlier_sigma,
+    double* out_sigma_residual) {
 
     int n_in = (int)matches.size();
     std::fprintf(stderr, "[star_matcher] clean_outliers: 输入 %d 颗, sigma阈值 %.2f\n",
                 n_in, outlier_sigma);
     if (n_in == 0) {
+        if (out_sigma_residual) *out_sigma_residual = 0.0;
         return {};
     }
 
@@ -129,6 +131,7 @@ std::vector<StarMatch> StarMatcher::cleanOutliers(
 
     if (r_vals.empty()) {
         std::fprintf(stderr, "[star_matcher] 警告: 无有效匹配星(F_instr/F_syn<=0), 全部排除\n");
+        if (out_sigma_residual) *out_sigma_residual = 0.0;
         return {};
     }
 
@@ -170,6 +173,8 @@ std::vector<StarMatch> StarMatcher::cleanOutliers(
 
     std::fprintf(stderr, "[star_matcher] 清洗完成: 保留 %d, 排除 %d (无效 %d, 离群 %d)\n",
                 (int)cleaned.size(), n_in - (int)cleaned.size(), n_invalid, n_outlier);
+    // 暴露 sigma_residual 供 SNR 模块 §14 使用 (向后兼容: nullptr 时跳过)
+    if (out_sigma_residual) *out_sigma_residual = sigma;
     return cleaned;
 }
 
@@ -182,13 +187,14 @@ std::vector<StarMatch> StarMatcher::matchAndClean(
     const double* gaia_mag, const double* gaia_fsyn, int n_gaia,
     const double* psf_cx, const double* psf_cy,
     const double* psf_flux, const int* psf_status, int n_psf,
-    double match_radius_px, double outlier_sigma) {
+    double match_radius_px, double outlier_sigma,
+    double* out_sigma_residual) {
 
     std::vector<StarMatch> matches = matchBruteForce(
         wcs, gaia_ra, gaia_dec, gaia_mag, gaia_fsyn, n_gaia,
         psf_cx, psf_cy, psf_flux, psf_status, n_psf, match_radius_px);
 
-    return cleanOutliers(matches, outlier_sigma);
+    return cleanOutliers(matches, outlier_sigma, out_sigma_residual);
 }
 
 } // namespace pc

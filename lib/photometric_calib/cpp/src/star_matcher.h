@@ -29,6 +29,8 @@ public:
     //   n_psf: PSF星数量
     //   match_radius_px: 匹配半径(像素), 最近邻距离须小于该值
     //   outlier_sigma: 离群阈值(倍sigma)
+    //   out_sigma_residual: 输出 sigma_residual = MAD/0.6745 (可为nullptr, 向后兼容)
+    //                      供 SNR 模块 §14 计算 SNR_phot = 1/(ln10×sigma_residual)
     // 返回: 清洗后的匹配列表
     std::vector<StarMatch> matchAndClean(
         const WcsTransform& wcs,
@@ -37,7 +39,8 @@ public:
         const double* psf_cx, const double* psf_cy,
         const double* psf_flux, const int* psf_status, int n_psf,
         double match_radius_px = 3.0,
-        double outlier_sigma = 3.0);
+        double outlier_sigma = 3.0,
+        double* out_sigma_residual = nullptr);
 
 private:
     // 暴力最近邻: 对每颗Gaia星找最近的PSF有效星
@@ -51,9 +54,11 @@ private:
         double match_radius_px);
 
     // MAD离群清洗: r=log10(F_instr/F_syn), 剔除|r-median|>sigma*MAD/0.6745
+    // out_sigma_residual: 输出 sigma = MAD/0.6745 (可为nullptr, 向后兼容)
     // 返回清洗后的匹配列表
     std::vector<StarMatch> cleanOutliers(
-        const std::vector<StarMatch>& matches, double outlier_sigma);
+        const std::vector<StarMatch>& matches, double outlier_sigma,
+        double* out_sigma_residual = nullptr);
 };
 
 } // namespace pc

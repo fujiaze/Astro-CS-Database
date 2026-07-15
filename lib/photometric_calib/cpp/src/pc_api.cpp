@@ -43,7 +43,8 @@ int pc_calibrate_simple(
     int sip_order,
     const double* sip_a, const double* sip_b,
     const double* sip_ap, const double* sip_bp,
-    float* out_pixels, int* out_n_matched, double* out_scale_factor) {
+    float* out_pixels, int* out_n_matched, double* out_scale_factor,
+    double* out_sigma_residual) {
 
     std::fprintf(stderr, "[pc_api] ====== 简化版测光校准开始 ======\n");
 #ifdef _OPENMP
@@ -66,6 +67,7 @@ int pc_calibrate_simple(
         // 仍然做恒等校正 (scale=1.0)
         *out_scale_factor = 1.0;
         *out_n_matched = 0;
+        if (out_sigma_residual) *out_sigma_residual = 0.0;
         #pragma omp parallel for schedule(static)
         for (int i = 0; i < width * height; ++i) {
             out_pixels[i] = pixels[i];
@@ -78,6 +80,7 @@ int pc_calibrate_simple(
         std::fprintf(stderr, "[pc_api] 错误: 无PSF星 (n_psf=%d)\n", n_psf);
         *out_scale_factor = 1.0;
         *out_n_matched = 0;
+        if (out_sigma_residual) *out_sigma_residual = 0.0;
         #pragma omp parallel for schedule(static)
         for (int i = 0; i < width * height; ++i) {
             out_pixels[i] = pixels[i];
@@ -94,16 +97,19 @@ int pc_calibrate_simple(
                          cd11, cd12, cd21, cd22,
                          sip_order, sip_a, sip_b, sip_ap, sip_bp);
 
-    // ---- 2. 星-图匹配 + MAD清洗 ----
+    // ---- 2. 星-图匹配 + MAD清洗 (透传 out_sigma_residual) ----
     pc::StarMatcher matcher;
+    double sigma_residual = 0.0;
     std::vector<pc::StarMatch> matches = matcher.matchAndClean(
         wcs, gaia_ra, gaia_dec, gaia_mag, gaia_fsyn, n_gaia,
         psf_cx, psf_cy, psf_flux, psf_status, n_psf,
         3.0,  // match_radius_px
-        3.0); // outlier_sigma
+        3.0,  // outlier_sigma
+        &sigma_residual);
 
     int n_matched = (int)matches.size();
-    std::fprintf(stderr, "[pc_api] 匹配+清洗完成: %d 颗\n", n_matched);
+    std::fprintf(stderr, "[pc_api] 匹配+清洗完成: %d 颗, sigma_residual=%.6f\n",
+                n_matched, sigma_residual);
 
     // ---- 3. 计算scale因子 ----
     double scale = pc::ImageCorrector::computeScale(matches);
@@ -114,9 +120,10 @@ int pc_calibrate_simple(
     // ---- 输出 ----
     *out_n_matched = n_matched;
     *out_scale_factor = scale;
+    if (out_sigma_residual) *out_sigma_residual = sigma_residual;
 
-    std::fprintf(stderr, "[pc_api] ====== 测光校准完成: n_matched=%d, scale=%.6e ======\n",
-                n_matched, scale);
+    std::fprintf(stderr, "[pc_api] ====== 测光校准完成: n_matched=%d, scale=%.6e, sigma_residual=%.6f ======\n",
+                n_matched, scale, sigma_residual);
     return 0;
 }
 
@@ -144,7 +151,8 @@ int pc_calibrate_simple_with_gaia(
     int sip_order,
     const double* sip_a, const double* sip_b,
     const double* sip_ap, const double* sip_bp,
-    float* out_pixels, int* out_n_matched, double* out_scale_factor) {
+    float* out_pixels, int* out_n_matched, double* out_scale_factor,
+    double* out_sigma_residual) {
 
     std::fprintf(stderr, "[pc_api] ====== pc_calibrate_simple_with_gaia 开始 ======\n");
 #ifdef _OPENMP
@@ -182,6 +190,7 @@ int pc_calibrate_simple_with_gaia(
         std::fprintf(stderr, "[pc_api] 退化: 无PSF星, scale=1.0\n");
         *out_scale_factor = 1.0;
         *out_n_matched = 0;
+        if (out_sigma_residual) *out_sigma_residual = 0.0;
         #pragma omp parallel for schedule(static)
         for (int i = 0; i < width * height; ++i) {
             out_pixels[i] = pixels[i];
@@ -233,6 +242,7 @@ int pc_calibrate_simple_with_gaia(
         LOG_INFO("无光谱星 (n_gaia=%d), 退化: scale=1.0", n_gaia);
         *out_scale_factor = 1.0;
         *out_n_matched = 0;
+        if (out_sigma_residual) *out_sigma_residual = 0.0;
         #pragma omp parallel for schedule(static)
         for (int i = 0; i < width * height; ++i) {
             out_pixels[i] = pixels[i];
@@ -266,6 +276,7 @@ int pc_calibrate_simple_with_gaia(
         LOG_ERROR("滤光片预处理失败, 退化: scale=1.0");
         *out_scale_factor = 1.0;
         *out_n_matched = 0;
+        if (out_sigma_residual) *out_sigma_residual = 0.0;
         #pragma omp parallel for schedule(static)
         for (int i = 0; i < width * height; ++i) {
             out_pixels[i] = pixels[i];
@@ -305,17 +316,20 @@ int pc_calibrate_simple_with_gaia(
                          cd11, cd12, cd21, cd22,
                          sip_order, sip_a, sip_b, sip_ap, sip_bp);
 
-    // ---- 6. 星-图匹配 + MAD 清洗 ----
+    // ---- 6. 星-图匹配 + MAD 清洗 (透传 out_sigma_residual) ----
     pc::StarMatcher matcher;
+    double sigma_residual = 0.0;
     std::vector<pc::StarMatch> matches = matcher.matchAndClean(
         wcs,
         gaia_ra.data(), gaia_dec.data(), gaia_mag.data(), gaia_fsyn.data(), n_gaia,
         psf_cx, psf_cy, psf_flux, psf_status, n_psf,
         3.0,   // match_radius_px
-        3.0);  // outlier_sigma
+        3.0,   // outlier_sigma
+        &sigma_residual);
 
     int n_matched = (int)matches.size();
-    std::fprintf(stderr, "[pc_api] 匹配+清洗完成: %d 颗\n", n_matched);
+    std::fprintf(stderr, "[pc_api] 匹配+清洗完成: %d 颗, sigma_residual=%.6f\n",
+                n_matched, sigma_residual);
 
     // ---- 7. 计算 scale + 图像校正 ----
     double scale = pc::ImageCorrector::computeScale(matches);
@@ -323,13 +337,14 @@ int pc_calibrate_simple_with_gaia(
 
     *out_n_matched = n_matched;
     *out_scale_factor = scale;
+    if (out_sigma_residual) *out_sigma_residual = sigma_residual;
 
     // ---- 8. 释放 gaia_client 返回的内存 ----
     // 注: MinGW 下两 DLL 共用 msvcrt, free 跨边界安全
     free(spec_stars);
     free(spectra_buf);
 
-    std::fprintf(stderr, "[pc_api] ====== pc_calibrate_simple_with_gaia 完成: n_matched=%d, scale=%.6e ======\n",
-                n_matched, scale);
+    std::fprintf(stderr, "[pc_api] ====== pc_calibrate_simple_with_gaia 完成: n_matched=%d, scale=%.6e, sigma_residual=%.6f ======\n",
+                n_matched, scale, sigma_residual);
     return 0;
 }

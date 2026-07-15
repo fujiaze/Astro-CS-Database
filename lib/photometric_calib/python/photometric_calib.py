@@ -85,6 +85,7 @@ class PhotometricCalib:
             POINTER(c_double), POINTER(c_double),
             # 输出
             POINTER(c_float), POINTER(c_int), POINTER(c_double),
+            POINTER(c_double),  # out_sigma_residual (供 SNR 模块 §14, 可为 nullptr 向后兼容)
         ]
 
         # 新接口: pc_calibrate_simple_with_gaia (DLL 内部完成锥形搜索+光谱积分)
@@ -113,6 +114,7 @@ class PhotometricCalib:
             POINTER(c_double), POINTER(c_double),
             # 输出
             POINTER(c_float), POINTER(c_int), POINTER(c_double),
+            POINTER(c_double),  # out_sigma_residual (供 SNR 模块 §14, 可为 nullptr 向后兼容)
         ]
 
     def calibrate_simple(
@@ -134,7 +136,7 @@ class PhotometricCalib:
         sip_b: Optional[np.ndarray] = None,
         sip_ap: Optional[np.ndarray] = None,
         sip_bp: Optional[np.ndarray] = None,
-    ) -> Tuple[np.ndarray, int, float]:
+    ) -> Tuple[np.ndarray, int, float, float]:
         """简化版测光校准
 
         Args:
@@ -147,10 +149,11 @@ class PhotometricCalib:
             sip_a/b/ap/bp: SIP系数数组 float64 [36] (按i*6+j索引)
 
         Returns:
-            (out_pixels, n_matched, scale_factor)
+            (out_pixels, n_matched, scale_factor, sigma_residual)
             out_pixels: 校正后图像 float32 [H, W]
             n_matched: 匹配星数 (MAD清洗后)
             scale_factor: scale因子
+            sigma_residual: MAD/0.6745 (供 SNR 模块 §14 计算 SNR_phot)
         """
         # ---- 输入校验与类型转换 ----
         pixels = np.ascontiguousarray(pixels, dtype=np.float32)
@@ -185,6 +188,7 @@ class PhotometricCalib:
         out_pixels = np.zeros(width * height, dtype=np.float32)
         n_matched = c_int(0)
         scale_factor = c_double(0.0)
+        sigma_residual = c_double(0.0)
 
         # ---- 调用C函数 ----
         ret = self._dll.pc_calibrate_simple(
@@ -206,6 +210,7 @@ class PhotometricCalib:
             sip_bp_c.ctypes.data_as(POINTER(c_double)) if sip_bp_c is not None else None,
             out_pixels.ctypes.data_as(POINTER(c_float)),
             byref(n_matched), byref(scale_factor),
+            byref(sigma_residual),
         )
 
         if ret != 0:
@@ -213,9 +218,9 @@ class PhotometricCalib:
 
         # ---- 重塑输出 ----
         out_pixels = out_pixels.reshape(height, width)
-        logger.info("测光校准完成: n_matched=%d, scale=%.6e",
-                    n_matched.value, scale_factor.value)
-        return out_pixels, n_matched.value, scale_factor.value
+        logger.info("测光校准完成: n_matched=%d, scale=%.6e, sigma_residual=%.6f",
+                    n_matched.value, scale_factor.value, sigma_residual.value)
+        return out_pixels, n_matched.value, scale_factor.value, sigma_residual.value
 
     def calibrate_with_gaia(
         self,
@@ -235,7 +240,7 @@ class PhotometricCalib:
         sip_b: Optional[np.ndarray] = None,
         sip_ap: Optional[np.ndarray] = None,
         sip_bp: Optional[np.ndarray] = None,
-    ) -> Tuple[np.ndarray, int, float]:
+    ) -> Tuple[np.ndarray, int, float, float]:
         """用 gaia_client handle 调用新 DLL 接口 pc_calibrate_simple_with_gaia
 
         DLL 内部完成: 锥形搜索 Gaia DR3SP -> BP/RP 光谱 Akima+Simpson 积分 F_syn ->
@@ -256,10 +261,11 @@ class PhotometricCalib:
             sip_a/b/ap/bp: SIP 系数数组 float64 [36] (按 i*6+j 索引)
 
         Returns:
-            (out_pixels, n_matched, scale_factor)
+            (out_pixels, n_matched, scale_factor, sigma_residual)
             out_pixels: 校正后图像 float32 [H, W]
             n_matched: 匹配星数 (MAD清洗后)
             scale_factor: scale 因子
+            sigma_residual: MAD/0.6745 (供 SNR 模块 §14 计算 SNR_phot)
 
         Raises:
             RuntimeError: DLL 调用失败 (ret != 0)
@@ -312,6 +318,7 @@ class PhotometricCalib:
         out_pixels = np.zeros(width * height, dtype=np.float32)
         n_matched = c_int(0)
         scale_factor = c_double(0.0)
+        sigma_residual = c_double(0.0)
 
         logger.info(
             "调用 pc_calibrate_simple_with_gaia: center=(%.6f, %.6f), r=%.4f°, "
@@ -343,6 +350,7 @@ class PhotometricCalib:
             sip_bp_c.ctypes.data_as(POINTER(c_double)) if sip_bp_c is not None else None,
             out_pixels.ctypes.data_as(POINTER(c_float)),
             byref(n_matched), byref(scale_factor),
+            byref(sigma_residual),
         )
 
         if ret != 0:
@@ -352,9 +360,9 @@ class PhotometricCalib:
 
         # ---- 重塑输出 ----
         out_pixels = out_pixels.reshape(height, width)
-        logger.info("测光校准(带Gaia)完成: n_matched=%d, scale=%.6e",
-                    n_matched.value, scale_factor.value)
-        return out_pixels, n_matched.value, scale_factor.value
+        logger.info("测光校准(带Gaia)完成: n_matched=%d, scale=%.6e, sigma_residual=%.6f",
+                    n_matched.value, scale_factor.value, sigma_residual.value)
+        return out_pixels, n_matched.value, scale_factor.value, sigma_residual.value
 
 
 # ============================================================================
@@ -406,7 +414,7 @@ if __name__ == "__main__":
     image = np.full((img_h, img_w), 1000.0, dtype=np.float32)
 
     # ---- 调用 ----
-    out_img, n_matched, scale = pc.calibrate_simple(
+    out_img, n_matched, scale, sigma_residual = pc.calibrate_simple(
         image, gaia_ra, gaia_dec, gaia_mag, gaia_fsyn,
         psf_cx, psf_cy, psf_flux, psf_status,
         crval1, crval2, crpix1, crpix2,
@@ -415,6 +423,7 @@ if __name__ == "__main__":
 
     print(f"n_matched = {n_matched} (期望 10)")
     print(f"scale = {scale:.6e} (期望 ~10.0, 因 F_syn/F_instr = 50000/5000 = 10)")
+    print(f"sigma_residual = {sigma_residual:.6f}")
     print(f"out_img[0,0] = {out_img[0, 0]:.4f} (期望 ~10000.0)")
     print(f"out_img shape = {out_img.shape}")
 

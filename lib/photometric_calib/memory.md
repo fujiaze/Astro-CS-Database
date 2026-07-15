@@ -26,6 +26,15 @@
 - **天光校正封存**：S_map加性梯度天光校正封存（注释调用，可逆），photometric_calib仅做乘性流量定标
 
 ## 进度日志
+### 2026-07-15 sigma_residual 暴露（spec: photometric-sigma-residual）
+- star_matcher.h/cpp: cleanOutliers/matchAndClean 新增 `double* out_sigma_residual = nullptr` 出参, 暴露已计算的 MAD/0.6745
+- photometric_calib.h: pc_calibrate_simple/pc_calibrate_simple_with_gaia 新增末尾参数 out_sigma_residual
+- pc_api.cpp: 透传 sigma_residual + 退化路径(n_gaia<=0/n_psf<=0/无光谱星/滤光片失败)设 0.0 + nullptr 检查
+- python/photometric_calib.py: argtypes 追加 POINTER(c_double), calibrate_simple/with_gaia 返回 4 元组(out_pixels, n_matched, scale, sigma_residual)
+- orchestrator photometric_adapter.py: photo_stats KV 块新增 SIGMA_RESIDUAL 字段
+- 端到端验证: sigma_residual=0.168mag, n_matched=1527, 全 6 节点通过, photometric 0.867s
+- 向后兼容: out_sigma_residual 可为 nullptr, 旧调用方不受影响
+
 ### 2026-07-13 P0/P1/P2 性能优化（spec: format-unification-browser-perf 阶段5）
 
 **性能问题**: photometric 阶段耗时 354.7s（典型应 < 5s），根因是 C++ DLL 循环内大量 fprintf + 滤光片曲线重复预处理 + 固定 mag_max=16.0 返回数万颗星。
@@ -253,3 +262,61 @@ lib/photometric_calib/
   - 日志: 实例 logger 'star_matcher', log_dir 时输出 star_matcher.log (参照 gradient_fitter 模式)
 - **验证**: 8/8 通过 (10 Gaia+11 PSF含1失败 -> match 10对过滤失败星; 坐标==PSF质心; 字段填充; clean 0排除; to_arrays 形状; 注入离群点剔除1; match_and_clean一致; dict输入兼容)
 - **测试数据注意**: r=log10(F_syn/F_instr) 在颜色上非单调 (F_syn 在 SED 峰值对齐滤光片时最大, 600nm 滤光片对应 BP-RP≈1.35), 测试颜色范围须取 r 单调区间(0.7~1.2)避免天然离群点
+
+### 11.2 photometric 性能优化（2026-07-13，P0+P1+P2）+ 11.3 性能结果（2026-07-15，从 PROJECT_ARCHITECTURE.md 迁入）
+
+**问题**：photometric 阶段在 Galaxy_Center 测试帧上耗时 354.7 s（典型应 < 5 s），根因是循环内 fprintf 日志 + 滤光片曲线重复预处理 + 锥形搜索返回星数过多。总管线 409 s vs 典型 20.9 s，性能回归 18 倍。
+
+#### P0: 循环内 fprintf 清除
+
+**新建** `lib/photometric_calib/cpp/include/log_macros.h`：
+- 定义 `LOG_INFO` / `LOG_DEBUG` / `LOG_ERROR` 宏
+- **`LOG_DEBUG` 默认编译时不启用**（宏展开为 `((void)0)`），可通过定义 `PC_ENABLE_DEBUG` 启用
+- `LOG_INFO` / `LOG_ERROR` 输出到 stderr，自动加 `[INFO]` / `[ERROR]` 前缀和 `\n` 后缀
+
+**修改** 3 个 C++ 文件：
+- `spectrum_integrator.cpp`：`compute_f_syn` 末尾的循环内 fprintf 改为 LOG_DEBUG（错误路径上 6 个 fprintf 保留原样）
+- `star_matcher.cpp`：`matchBruteForce` 循环内每颗匹配星的 fprintf（第 86-89 行）改为 LOG_DEBUG
+- `pc_api.cpp`：循环内 fprintf 改为 LOG_DEBUG
+
+#### P1: 滤光片曲线预处理缓存
+
+**问题**：`pc_calibrate_simple_with_gaia` 循环内每颗星都重新预处理滤光片曲线（排序 + akima 插值到光谱网格），重复计算浪费。
+
+**修复**：引入 `SpectrumIntegratorCache` 结构，循环前预处理一次滤光片曲线，循环内只算：SED（uint8→float64）+ 星等归一化 + 积分
+
+#### P2: 自适应迭代星等
+
+**问题**：固定 `mag_max=16.0` 查询 Gaia，返回星数可能数万颗，后续 OpenMP 光谱积分 + 星匹配耗时过长。
+
+**修复**：`pc_calibrate_simple_with_gaia` 改为自适应迭代星等查询：
+- 从 `mag_max=12.0` 开始查询 Gaia
+- 去除饱和星（`mag_min` 设为避免饱和的下限）
+- 如果返回星数 < 2000，增加 `mag_max` 到 13.0 / 14.0 / 15.0 / 16.0
+- 直到返回星数在 **2000-10000** 范围
+- 不缩小锥形搜索半径（保持 0.5×FOV 对角线）
+
+#### 11.3 性能结果（Galaxy_Center 测试帧，2026-07-13）
+
+**测试帧**：`Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts`（4500×3600，BITPIX=16，Red 滤光片，180 s）
+
+| 阶段 | 修复前 (s) | 修复后 (s) | 改善 |
+|------|-----------|-----------|------|
+| 0_read_fits | — | 0.061 | — |
+| 1_calibrate | — | 1.231 | — |
+| 2_platesolve_total | — | 4.434 | — |
+| 3_psf_fit | — | 0.436 | — |
+| **4_photometric** | **354.7** | **0.881** | **-99.75%** |
+| 5_drizzle | — | 26.316 | — |
+| **total** | **409.0** | **60.615** | **-85.18%** |
+
+**photometric 关键指标**：
+- `n_matched = 1527`（Gaia BP/RP 光谱积分后星匹配数）
+- `scale_factor = 7.132932e-03`（全局 scale 校正因子）
+- `before_mean=1563.07 → after_mean=11.15`，比值=0.00713 ≈ scale_factor ✓
+- 自适应迭代星等查询生效，`pc_calibrate_simple_with_gaia` 内部 `mag_max` 迭代控制星数
+
+**结论**：
+- photometric 阶段 354.7 s → 0.881 s（**99.75% 改善**），超额完成 < 5 s 目标
+- 总管线 409 s → 60.6 s（**85.18% 改善**），未达 < 30 s（drizzle 26.3 s 占主导，非 photometric 优化范围）
+- P0（循环内 fprintf 清除）+ P1（滤光片曲线预处理缓存）+ P2（自适应迭代星等）三重优化叠加效果显著

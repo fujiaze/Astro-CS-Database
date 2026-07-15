@@ -42,6 +42,8 @@ extern "C" {
 //   out_pixels      - 校正后像素 (调用者分配, float32 [H*W])
 //   out_n_matched   - 匹配星数 (MAD清洗后)
 //   out_scale_factor- scale因子
+//   out_sigma_residual - sigma_residual = MAD(log10(F_instr/F_syn))/0.6745
+//                        (可为 nullptr, 向后兼容; 供 SNR 模块 §14 计算 SNR_phot)
 //
 // 返回: 0=成功, <0=失败
 // ============================================================================
@@ -56,7 +58,8 @@ PC_API int pc_calibrate_simple(
     int sip_order,
     const double* sip_a, const double* sip_b,
     const double* sip_ap, const double* sip_bp,
-    float* out_pixels, int* out_n_matched, double* out_scale_factor);
+    float* out_pixels, int* out_n_matched, double* out_scale_factor,
+    double* out_sigma_residual);
 
 // ============================================================================
 // 扩展接口: 接受 gaia_client handle, DLL 内部查询 DR3SP 光谱并积分得 F_syn
@@ -79,6 +82,8 @@ PC_API int pc_calibrate_simple(
 //   out_pixels      - 校正后像素 (调用者分配, float32 [H*W])
 //   out_n_matched   - 匹配星数 (MAD清洗后)
 //   out_scale_factor- scale因子
+//   out_sigma_residual - sigma_residual = MAD(log10(F_instr/F_syn))/0.6745
+//                        (可为 nullptr, 向后兼容; 供 SNR 模块 §14 计算 SNR_phot)
 //
 // 返回: 0=成功, <0=失败
 //   -1: 空指针/参数无效
@@ -99,7 +104,8 @@ PC_API int pc_calibrate_simple_with_gaia(
     int sip_order,
     const double* sip_a, const double* sip_b,
     const double* sip_ap, const double* sip_bp,
-    float* out_pixels, int* out_n_matched, double* out_scale_factor);
+    float* out_pixels, int* out_n_matched, double* out_scale_factor,
+    double* out_sigma_residual);
 
 #ifdef __cplusplus
 }
