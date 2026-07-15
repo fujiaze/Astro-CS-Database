@@ -1,0 +1,21 @@
+# 编译产物
+*.dll
+*.exe
+*.o
+*.obj
+*.so
+*.a
+*.lib
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+
+# 日志 (保留 .gitkeep)
+logs/*
+!logs/.gitkeep
+
+# IDE
+.vscode/
+.idea/
