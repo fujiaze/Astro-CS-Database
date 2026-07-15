@@ -72,9 +72,9 @@ def make_psf_fit_handler(dll_path=None):
             from dynamic_psf import DynamicPSF
             results = DynamicPSF.fit_batch(image_u16, cx_list, cy_list, dll_path=dll_path)
 
-            # 构造psf数组 FLOAT64[N, 6]
+            # 构造psf数组 FLOAT64[N, 9]
             n = len(results)
-            psf_array = np.zeros((n, 6), dtype=np.float64)
+            psf_array = np.zeros((n, 9), dtype=np.float64)
             for i, r in enumerate(results):
                 psf_array[i, 0] = float(r.status)
                 psf_array[i, 1] = float(r.B)
@@ -83,6 +83,10 @@ def make_psf_fit_handler(dll_path=None):
                 psf_array[i, 4] = float(r.cy)
                 # fwhm = (fwhm_x + fwhm_y) / 2
                 psf_array[i, 5] = float((r.fwhm_x + r.fwhm_y) / 2.0)
+                # 新增3列: A/mad/eccentricity (供 SNR 模块 §14 使用)
+                psf_array[i, 6] = float(r.A)
+                psf_array[i, 7] = float(r.mad)
+                psf_array[i, 8] = float(r.eccentricity)
 
             # 写入psf块
             frame.add_block("psf", psf_array, description="PSF拟合结果")
