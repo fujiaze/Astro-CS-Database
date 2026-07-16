@@ -9,7 +9,18 @@
 
 CXX = g++
 CXXFLAGS = -O2 -std=c++17 -Wall -fopenmp
-INCLUDES = -Iinclude
+# -Iinclude: orchestrator 自身头文件
+# 其余 -I 路径: 各 DLL 模块头文件 (orchestrator.cpp stage handler 调用所需)
+# Makefile 位于 lib/orchestrator/cpp/, ../../ 解析到 lib/
+INCLUDES = -Iinclude \
+           -I../../astro_image_io/include \
+           -I../../plate_solve/cpp/ipv/include \
+           -I../../dynamic_psf/include \
+           -I../../photometric_calib/cpp/include \
+           -I../../photometric_calib/cpp/gradient_2d/include \
+           -I../../snr_estimator/cpp/include \
+           -I../../healpix_db/healpix_drizzle \
+           -I../../healpix_db/healpix_stack
 LDFLAGS = -static
 
 SRC_DIR = src

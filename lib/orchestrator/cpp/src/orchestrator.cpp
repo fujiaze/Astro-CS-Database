@@ -18,6 +18,41 @@
 #include <filesystem>
 #include <algorithm>
 #include <cctype>
+#include <cstring>
+#include <cstdlib>
+#include <cmath>
+
+// 重命名 aio_pipeline.h 的 PipelineStage typedef 为 AioPipelineStage,
+// 避免与 orchestrator.h 的 enum class PipelineStage 冲突
+// (aio_pipeline.h 定义了 C 风格 typedef enum {...} PipelineStage;)
+// astro_image_io.h / hp_drizzle_api.h / hp_stack_api.h 都会 include aio_pipeline.h
+#define PipelineStage AioPipelineStage
+
+// AIO 图像数据结构与元数据 (用于 run_stage_read_fits)
+#include "astro_image_io.h"
+
+// healpix_drizzle C API (用于 run_stage_drizzle)
+#include "hp_drizzle_api.h"
+
+// healpix_stack C API (用于 run_stage_gradient_sphere / run_stage_stack)
+#include "hp_stack_api.h"
+
+#undef PipelineStage
+
+// ipv_solver C API (用于 run_stage_platesolve)
+#include "ipv_api.h"
+
+// dynamic_psf C API (用于 run_stage_psf)
+#include "dynamic_psf.h"
+
+// photometric_calib C API (用于 run_stage_photometric)
+#include "photometric_calib.h"
+
+// gradient_2d C API (用于 run_stage_gradient_2d)
+#include "gradient_2d.h"
+
+// snr_estimator C API (用于 run_stage_snr)
+#include "snr_estimator.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -523,79 +558,223 @@ bool Orchestrator::init_dlls(const std::string& lib_base_dir, std::string& error
 // ============================================================================
 // 各阶段实现 (骨架: 检查 DLL 加载状态, 输出日志, 返回 true)
 // ============================================================================
-bool Orchestrator::run_stage_calibrate(TaskResult& /*result*/) {
-    LOG_DEBUG("orchestrator", "[CALIBRATE] 骨架实现: 调用 astro_calibration DLL (后续 Task 接入)");
-    if (!dlls_loaded_) {
-        LOG_WARN("orchestrator", "[CALIBRATE] DLL 未加载, 跳过此阶段");
+bool Orchestrator::run_stage_calibrate(TaskResult& result) {
+    LOG_INFO("orchestrator", "[CALIBRATE] 开始");
+
+    if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::CALIBRATE)) {
+        LOG_WARN("orchestrator", "[CALIBRATE] CALIBRATE DLL 未加载, 跳过");
         return true;
     }
-    if (!dll_loader_.is_loaded(ModuleId::CALIBRATE)) {
-        LOG_WARN("orchestrator", "[CALIBRATE] CALIBRATE 模块未加载, 跳过");
+
+    // run_single 旧版调用 (无 frame_): 保留骨架行为
+    if (frame_ == nullptr) {
+        LOG_WARN("orchestrator", "[CALIBRATE] frame_ 为空 (run_single 旧版), 跳过");
         return true;
     }
-    LOG_DEBUG("orchestrator", "[CALIBRATE] 模块已就绪: "
-              + dll_loader_.get_version(ModuleId::CALIBRATE));
-    // TODO: 后续 Task 调用 ac_calibrate_frame 完成校准
+
+    // 获取函数指针
+    auto fn_calibrate = dll_loader_.get_function<int (*)(
+        const float*, int, int,
+        const float*, const float*, const float*,
+        float*, int, float, float*)>(
+        ModuleId::CALIBRATE, "ac_calibrate_frame");
+    auto fn_get_block_data = dll_loader_.get_function<void* (*)(const PipelineFrame*, const char*)>(
+        ModuleId::AIO, "aio_frame_get_block_data");
+    auto fn_get_block = dll_loader_.get_function<const AioBlock* (*)(const PipelineFrame*, const char*)>(
+        ModuleId::AIO, "aio_frame_get_block");
+    auto fn_remove_block = dll_loader_.get_function<int (*)(PipelineFrame*, const char*)>(
+        ModuleId::AIO, "aio_frame_remove_block");
+    auto fn_add_block_move = dll_loader_.get_function<int (*)(
+        PipelineFrame*, const char*, AioBlockType,
+        void*, int64_t, const int*, int, const char*)>(
+        ModuleId::AIO, "aio_frame_add_block_move");
+
+    if (!fn_calibrate || !fn_get_block_data || !fn_get_block || !fn_remove_block || !fn_add_block_move) {
+        LOG_ERROR("orchestrator", "[CALIBRATE] 函数指针获取失败");
+        result.error_msg = "[CALIBRATE] 函数指针获取失败";
+        return false;
+    }
+
+    // 从 frame_ 读取 data 块
+    const AioBlock* data_block = fn_get_block(frame_, "data");
+    if (data_block == nullptr) {
+        LOG_ERROR("orchestrator", "[CALIBRATE] data 块不存在");
+        result.error_msg = "[CALIBRATE] data 块不存在";
+        return false;
+    }
+    int width = data_block->dims[1];
+    int height = data_block->dims[0];
+    float* light = static_cast<float*>(data_block->data);
+    int64_t n_pix = static_cast<int64_t>(width) * height;
+
+    LOG_INFO("orchestrator", "[CALIBRATE] 图像: " + std::to_string(width) + "x" + std::to_string(height));
+
+    // 分配输出缓冲 (ac_calibrate_frame 要求调用者分配)
+    float* out = static_cast<float*>(std::malloc(n_pix * sizeof(float)));
+    if (out == nullptr) {
+        LOG_ERROR("orchestrator", "[CALIBRATE] 分配输出缓冲失败");
+        result.error_msg = "[CALIBRATE] 分配输出缓冲失败";
+        return false;
+    }
+
+    // 调用 ac_calibrate_frame
+    // TODO: master_dark/flat/bias 应从 config_json 加载, 当前传 nullptr 走退化路径 (out=light)
+    float actual_k = 0.0f;
+    int ret = fn_calibrate(light, width, height,
+                           nullptr, nullptr, nullptr,  // master_dark/flat/bias
+                           out, 0, 1.0f, &actual_k);
+
+    if (ret != 0) {
+        LOG_ERROR("orchestrator", "[CALIBRATE] ac_calibrate_frame 失败: ret=" + std::to_string(ret));
+        result.error_msg = "[CALIBRATE] ac_calibrate_frame 失败";
+        std::free(out);
+        return false;
+    }
+
+    // 替换 data 块: remove 旧块 + add_block_move 新块 (转移所有权)
+    fn_remove_block(frame_, "data");
+    int dims[2] = {height, width};
+    ret = fn_add_block_move(frame_, "data", AIO_BLOCK_FLOAT32,
+                            out, n_pix, dims, 2, "校准后 Light 像素");
+    if (ret != 0) {
+        LOG_ERROR("orchestrator", "[CALIBRATE] 写回 data 块失败: ret=" + std::to_string(ret));
+        result.error_msg = "[CALIBRATE] 写回 data 块失败";
+        std::free(out);
+        return false;
+    }
+    // out 所有权已转移给 frame_, 不再 free
+
+    LOG_INFO("orchestrator", "[CALIBRATE] 完成 (退化路径: 无 master frames, out=light)");
     return true;
 }
 
-bool Orchestrator::run_stage_platesolve(TaskResult& /*result*/) {
-    LOG_DEBUG("orchestrator", "[PLATESOLVE] 骨架实现: 调用 ipv_solver DLL (后续 Task 接入)");
-    if (!dlls_loaded_) {
-        LOG_WARN("orchestrator", "[PLATESOLVE] DLL 未加载, 跳过此阶段");
+bool Orchestrator::run_stage_platesolve(TaskResult& result) {
+    LOG_INFO("orchestrator", "[PLATESOLVE] 开始");
+
+    if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::PLATESOLVE)) {
+        LOG_WARN("orchestrator", "[PLATESOLVE] PLATESOLVE DLL 未加载, 跳过");
         return true;
     }
-    if (!dll_loader_.is_loaded(ModuleId::PLATESOLVE)) {
-        LOG_WARN("orchestrator", "[PLATESOLVE] PLATESOLVE 模块未加载, 跳过");
+
+    // run_single 旧版调用 (无 frame_): 保留骨架行为
+    if (frame_ == nullptr) {
+        LOG_WARN("orchestrator", "[PLATESOLVE] frame_ 为空 (run_single 旧版), 跳过");
         return true;
     }
-    LOG_DEBUG("orchestrator", "[PLATESOLVE] 模块已就绪");
-    // TODO: 后续 Task 调用 ipv_solve_from_memory 完成解析
+
+    // 检查 header KV 是否已含 WCS (FITS 文件可能已带 WCS)
+    auto fn_kv_get = dll_loader_.get_function<const char* (*)(
+        const PipelineFrame*, const char*, const char*)>(
+        ModuleId::AIO, "aio_frame_kv_get");
+    if (fn_kv_get) {
+        const char* crval1 = fn_kv_get(frame_, "header", "CRVAL1");
+        const char* cd11 = fn_kv_get(frame_, "header", "CD1_1");
+        if (crval1 != nullptr && cd11 != nullptr) {
+            LOG_INFO("orchestrator", "[PLATESOLVE] header 已含 WCS, 跳过 plate solve");
+            return true;
+        }
+    }
+
+    // TODO: 实际调用 ipv_solve_from_memory 需要:
+    //   1. gaia_client handle (orchestrator 未加载 gaia_client.dll)
+    //   2. star_detector handle (orchestrator 未加载 star_detector.dll)
+    //   3. ra0/dec0/focal_length/pixel_size (需从 config 或 header 解析)
+    // 当前保留骨架, 后续 Task 集成 gaia_client + star_detector DLL 后实现
+    LOG_WARN("orchestrator", "[PLATESOLVE] 保留骨架: 需要 gaia_client + star_detector handle (未加载)");
     return true;
 }
 
-bool Orchestrator::run_stage_psf(TaskResult& /*result*/) {
-    LOG_DEBUG("orchestrator", "[PSF_FIT] 骨架实现: 调用 dynamic_psf DLL (后续 Task 接入)");
-    if (!dlls_loaded_) {
-        LOG_WARN("orchestrator", "[PSF_FIT] DLL 未加载, 跳过此阶段");
+bool Orchestrator::run_stage_psf(TaskResult& result) {
+    LOG_INFO("orchestrator", "[PSF] 开始");
+
+    if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::PSF)) {
+        LOG_WARN("orchestrator", "[PSF] PSF DLL 未加载, 跳过");
         return true;
     }
-    if (!dll_loader_.is_loaded(ModuleId::PSF)) {
-        LOG_WARN("orchestrator", "[PSF_FIT] PSF 模块未加载, 跳过");
+
+    // run_single 旧版调用 (无 frame_): 保留骨架行为
+    if (frame_ == nullptr) {
+        LOG_WARN("orchestrator", "[PSF] frame_ 为空 (run_single 旧版), 跳过");
         return true;
     }
-    LOG_DEBUG("orchestrator", "[PSF_FIT] 模块已就绪");
-    // TODO: 后续 Task 调用 dpsf_fit_batch 完成 PSF 拟合
+
+    // TODO: dpsf_fit_batch 需要 star_det 块 (星点坐标), 由 star_detector 生成
+    //   orchestrator 未加载 star_detector.dll, PLATESOLVE 也未注入 detector handle
+    //   所以 star_det 块不存在, PSF 拟合无法执行
+    // 当前保留骨架, 后续 Task 集成 star_detector 后实现
+    LOG_WARN("orchestrator", "[PSF] 保留骨架: 需要 star_det 块 (star_detector 未加载)");
     return true;
 }
 
-bool Orchestrator::run_stage_photometric(TaskResult& /*result*/) {
-    LOG_DEBUG("orchestrator", "[PHOTOMETRIC] 骨架实现: 调用 photometric_calib DLL (后续 Task 接入)");
-    if (!dlls_loaded_) {
-        LOG_WARN("orchestrator", "[PHOTOMETRIC] DLL 未加载, 跳过此阶段");
+bool Orchestrator::run_stage_photometric(TaskResult& result) {
+    LOG_INFO("orchestrator", "[PHOTOMETRIC] 开始");
+
+    if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::PHOTOMETRIC)) {
+        LOG_WARN("orchestrator", "[PHOTOMETRIC] PHOTOMETRIC DLL 未加载, 跳过");
         return true;
     }
-    if (!dll_loader_.is_loaded(ModuleId::PHOTOMETRIC)) {
-        LOG_WARN("orchestrator", "[PHOTOMETRIC] PHOTOMETRIC 模块未加载, 跳过");
+
+    // run_single 旧版调用 (无 frame_): 保留骨架行为
+    if (frame_ == nullptr) {
+        LOG_WARN("orchestrator", "[PHOTOMETRIC] frame_ 为空 (run_single 旧版), 跳过");
         return true;
     }
-    LOG_DEBUG("orchestrator", "[PHOTOMETRIC] 模块已就绪");
-    // TODO: 后续 Task 调用 pc_calibrate_simple 完成测光校准
+
+    // TODO: pc_calibrate_simple_with_gaia 需要 gaia_client handle (orchestrator 未加载)
+    //       pc_calibrate_simple 需要预计算 gaia_fsyn 数组 (需先锥形搜索+光谱积分)
+    //   两者都依赖 gaia_client.dll, 当前保留骨架
+    //   后续 Task 集成 gaia_client 后实现完整测光校准
+    LOG_WARN("orchestrator", "[PHOTOMETRIC] 保留骨架: 需要 gaia_client handle (未加载)");
     return true;
 }
 
-bool Orchestrator::run_stage_drizzle(TaskResult& /*result*/) {
-    LOG_DEBUG("orchestrator", "[DRIZZLE] 骨架实现: 调用 healpix_drizzle DLL (后续 Task 接入)");
-    if (!dlls_loaded_) {
-        LOG_WARN("orchestrator", "[DRIZZLE] DLL 未加载, 跳过此阶段");
+bool Orchestrator::run_stage_drizzle(TaskResult& result) {
+    LOG_INFO("orchestrator", "[DRIZZLE] 开始");
+
+    if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::DRIZZLE)) {
+        LOG_WARN("orchestrator", "[DRIZZLE] DRIZZLE DLL 未加载, 跳过");
         return true;
     }
-    if (!dll_loader_.is_loaded(ModuleId::DRIZZLE)) {
-        LOG_WARN("orchestrator", "[DRIZZLE] DRIZZLE 模块未加载, 跳过");
+
+    // run_single 旧版调用 (无 frame_): 保留骨架行为
+    if (frame_ == nullptr) {
+        LOG_WARN("orchestrator", "[DRIZZLE] frame_ 为空 (run_single 旧版), 跳过");
         return true;
     }
-    LOG_DEBUG("orchestrator", "[DRIZZLE] 模块已就绪");
-    // TODO: 后续 Task 调用 hp_drizzle_run 完成 Drizzle 重投影
+
+    // 获取函数指针
+    auto fn_drizzle = dll_loader_.get_function<int (*)(
+        PipelineFrame*, int, int, double,
+        const char*, HpDrizzleResult*)>(
+        ModuleId::DRIZZLE, "hp_drizzle_run");
+
+    if (!fn_drizzle) {
+        LOG_ERROR("orchestrator", "[DRIZZLE] hp_drizzle_run 函数未找到");
+        result.error_msg = "[DRIZZLE] hp_drizzle_run 函数未找到";
+        return false;
+    }
+
+    // 调用 hp_drizzle_run
+    // nside=32768 (默认), nested=1 (NESTED), pixfrac=1.0 (避免缝隙)
+    // output_path = current_output_path_ (.hiss 路径)
+    HpDrizzleResult driz_result;
+    std::memset(&driz_result, 0, sizeof(HpDrizzleResult));
+    LOG_INFO("orchestrator", "[DRIZZLE] 输出: " + current_output_path_);
+
+    int ret = fn_drizzle(frame_, 32768, 1, 1.0,
+                         current_output_path_.c_str(), &driz_result);
+    if (ret != 0) {
+        std::string err = driz_result.error_msg[0] != '\0'
+            ? std::string(driz_result.error_msg)
+            : std::to_string(ret);
+        LOG_ERROR("orchestrator", "[DRIZZLE] hp_drizzle_run 失败: " + err);
+        result.error_msg = "[DRIZZLE] hp_drizzle_run 失败: " + err;
+        return false;
+    }
+
+    LOG_INFO("orchestrator", "[DRIZZLE] 完成: n_healpix=" + std::to_string(driz_result.n_healpix_pixels)
+             + " n_source=" + std::to_string(driz_result.n_source_pixels)
+             + " 耗时=" + std::to_string(driz_result.elapsed_sec) + "s");
     return true;
 }
 
@@ -604,82 +783,343 @@ bool Orchestrator::run_stage_drizzle(TaskResult& /*result*/) {
 // ============================================================================
 
 // stage 0: READ_FITS - 读取 FITS 文件到 PipelineFrame (aio_read_fits)
-bool Orchestrator::run_stage_read_fits(TaskResult& /*result*/) {
-    LOG_DEBUG("orchestrator", "[READ_FITS] 骨架实现: 调用 aio_read_fits (后续 Task 接入)");
-    if (!dlls_loaded_) {
-        LOG_WARN("orchestrator", "[READ_FITS] DLL 未加载, 跳过此阶段");
-        return true;
+// 实现: 调用 aio_read_fits -> 获取 pixel/metadata/keywords -> 填充 frame_ 的 data/header 块
+bool Orchestrator::run_stage_read_fits(TaskResult& result) {
+    LOG_INFO("orchestrator", "[READ_FITS] 开始: " + current_fits_path_);
+
+    if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::AIO)) {
+        LOG_ERROR("orchestrator", "[READ_FITS] AIO DLL 未加载");
+        result.error_msg = "[READ_FITS] AIO DLL 未加载";
+        return false;
     }
-    if (!dll_loader_.is_loaded(ModuleId::AIO)) {
-        LOG_WARN("orchestrator", "[READ_FITS] AIO 模块未加载, 跳过");
-        return true;
+
+    // 获取 AIO 函数指针
+    auto fn_read_fits = dll_loader_.get_function<AIOImageData* (*)(const char*)>(
+        ModuleId::AIO, "aio_read_fits");
+    auto fn_get_pixels = dll_loader_.get_function<float* (*)(const AIOImageData*)>(
+        ModuleId::AIO, "aio_get_pixel_data");
+    auto fn_get_width = dll_loader_.get_function<int (*)(const AIOImageData*)>(
+        ModuleId::AIO, "aio_get_width");
+    auto fn_get_height = dll_loader_.get_function<int (*)(const AIOImageData*)>(
+        ModuleId::AIO, "aio_get_height");
+    auto fn_get_metadata = dll_loader_.get_function<AIOImageMetadata (*)(const AIOImageData*)>(
+        ModuleId::AIO, "aio_get_metadata");
+    auto fn_get_kw_count = dll_loader_.get_function<int (*)(const AIOImageData*)>(
+        ModuleId::AIO, "aio_get_keyword_count");
+    auto fn_get_kw = dll_loader_.get_function<AIOFITSKeyword (*)(const AIOImageData*, int)>(
+        ModuleId::AIO, "aio_get_keyword");
+    auto fn_free = dll_loader_.get_function<void (*)(AIOImageData*)>(
+        ModuleId::AIO, "aio_free_image_data");
+    auto fn_add_block = dll_loader_.get_function<int (*)(
+        PipelineFrame*, const char*, AioBlockType,
+        const void*, int64_t, const int*, int, const char*)>(
+        ModuleId::AIO, "aio_frame_add_block");
+    auto fn_kv_set = dll_loader_.get_function<int (*)(
+        PipelineFrame*, const char*, const char*, const char*)>(
+        ModuleId::AIO, "aio_frame_kv_set");
+    auto fn_kv_set_double = dll_loader_.get_function<int (*)(
+        PipelineFrame*, const char*, const char*, double)>(
+        ModuleId::AIO, "aio_frame_kv_set_double");
+
+    if (!fn_read_fits || !fn_get_pixels || !fn_get_width || !fn_get_height ||
+        !fn_get_metadata || !fn_free || !fn_add_block || !fn_kv_set) {
+        LOG_ERROR("orchestrator", "[READ_FITS] AIO 函数指针获取失败");
+        result.error_msg = "[READ_FITS] AIO 函数指针获取失败";
+        return false;
     }
-    LOG_DEBUG("orchestrator", "[READ_FITS] 模块已就绪");
-    // TODO: 后续 Task 调用 aio_read_fits 读取 FITS 到 PipelineFrame
+
+    // 读取 FITS 文件
+    AIOImageData* image = fn_read_fits(current_fits_path_.c_str());
+    if (image == nullptr) {
+        LOG_ERROR("orchestrator", "[READ_FITS] aio_read_fits 返回 nullptr: " + current_fits_path_);
+        result.error_msg = "[READ_FITS] 读取 FITS 失败";
+        return false;
+    }
+
+    int width = fn_get_width(image);
+    int height = fn_get_height(image);
+    float* pixels = fn_get_pixels(image);
+    LOG_INFO("orchestrator", "[READ_FITS] 图像尺寸: " + std::to_string(width) + "x" + std::to_string(height));
+
+    if (width <= 0 || height <= 0 || pixels == nullptr) {
+        LOG_ERROR("orchestrator", "[READ_FITS] 像素数据无效");
+        result.error_msg = "[READ_FITS] 像素数据无效";
+        fn_free(image);
+        return false;
+    }
+
+    // 添加 data 块 (FLOAT32 [H,W], 拷贝)
+    int dims[2] = {height, width};
+    int ret = fn_add_block(frame_, "data", AIO_BLOCK_FLOAT32,
+                           pixels, static_cast<int64_t>(width) * height,
+                           dims, 2, "校准前 Light 像素");
+    if (ret != 0) {
+        LOG_ERROR("orchestrator", "[READ_FITS] 添加 data 块失败: ret=" + std::to_string(ret));
+        result.error_msg = "[READ_FITS] 添加 data 块失败";
+        fn_free(image);
+        return false;
+    }
+
+    // 填充 header KV 块 (FITS keywords + WCS + 观测元数据)
+    if (fn_get_kw_count && fn_get_kw) {
+        int n_kw = fn_get_kw_count(image);
+        LOG_INFO("orchestrator", "[READ_FITS] FITS 关键字数: " + std::to_string(n_kw));
+        for (int i = 0; i < n_kw; ++i) {
+            AIOFITSKeyword kw = fn_get_kw(image, i);
+            // 跳过空 key
+            if (kw.name[0] == '\0') continue;
+            fn_kv_set(frame_, "header", kw.name, kw.value);
+        }
+    }
+
+    // 写入 WCS + 观测元数据到 header KV (供后续 stage 使用)
+    if (fn_get_metadata) {
+        AIOImageMetadata meta = fn_get_metadata(image);
+        // WCS
+        if (meta.wcs.has_wcs) {
+            fn_kv_set_double(frame_, "header", "CRPIX1", meta.wcs.crpix1);
+            fn_kv_set_double(frame_, "header", "CRPIX2", meta.wcs.crpix2);
+            fn_kv_set_double(frame_, "header", "CRVAL1", meta.wcs.crval1);
+            fn_kv_set_double(frame_, "header", "CRVAL2", meta.wcs.crval2);
+            fn_kv_set(frame_, "header", "CTYPE1", meta.wcs.ctype1);
+            fn_kv_set(frame_, "header", "CTYPE2", meta.wcs.ctype2);
+            fn_kv_set_double(frame_, "header", "CD1_1", meta.wcs.cd1_1);
+            fn_kv_set_double(frame_, "header", "CD1_2", meta.wcs.cd1_2);
+            fn_kv_set_double(frame_, "header", "CD2_1", meta.wcs.cd2_1);
+            fn_kv_set_double(frame_, "header", "CD2_2", meta.wcs.cd2_2);
+            if (meta.wcs.has_cdelt1) fn_kv_set_double(frame_, "header", "CDELT1", meta.wcs.cdelt1);
+            if (meta.wcs.has_cdelt2) fn_kv_set_double(frame_, "header", "CDELT2", meta.wcs.cdelt2);
+            if (meta.wcs.has_equinox) fn_kv_set_double(frame_, "header", "EQUINOX", meta.wcs.equinox);
+            if (meta.wcs.radesys[0] != '\0') fn_kv_set(frame_, "header", "RADESYS", meta.wcs.radesys);
+        }
+        // 观测元数据
+        if (meta.observation.object_name[0] != '\0')
+            fn_kv_set(frame_, "header", "OBJECT", meta.observation.object_name);
+        if (meta.observation.observat[0] != '\0')
+            fn_kv_set(frame_, "header", "OBSERVAT", meta.observation.observat);
+        if (meta.observation.has_focallen)
+            fn_kv_set_double(frame_, "header", "FOCALLEN", meta.observation.focallen);
+        if (meta.observation.has_xpixsz)
+            fn_kv_set_double(frame_, "header", "XPIXSZ", meta.observation.xpixsz);
+        if (meta.observation.has_aperture)
+            fn_kv_set_double(frame_, "header", "APERTURE", meta.observation.aperture);
+        // 校准元数据
+        if (meta.calibration.exptime > 0)
+            fn_kv_set_double(frame_, "header", "EXPTIME", meta.calibration.exptime);
+        if (meta.calibration.filter_name[0] != '\0')
+            fn_kv_set(frame_, "header", "FILTER", meta.calibration.filter_name);
+        if (meta.calibration.gain > 0)
+            fn_kv_set_double(frame_, "header", "GAIN", meta.calibration.gain);
+        if (meta.calibration.has_ccd_temp)
+            fn_kv_set_double(frame_, "header", "CCD-TEMP", meta.calibration.ccd_temp);
+        if (meta.calibration.frame_type[0] != '\0')
+            fn_kv_set(frame_, "header", "IMAGETYP", meta.calibration.frame_type);
+    }
+
+    fn_free(image);
+    LOG_INFO("orchestrator", "[READ_FITS] 完成");
     return true;
 }
 
 // stage 5: GRADIENT_2D - step4 C++化 (gradient_2d.dll)
-bool Orchestrator::run_stage_gradient_2d(TaskResult& /*result*/) {
-    LOG_DEBUG("orchestrator", "[GRADIENT_2D] 骨架实现: 调用 gradient_2d.dll (后续 Task 接入)");
-    if (!dlls_loaded_) {
-        LOG_WARN("orchestrator", "[GRADIENT_2D] DLL 未加载, 跳过此阶段");
+bool Orchestrator::run_stage_gradient_2d(TaskResult& result) {
+    LOG_INFO("orchestrator", "[GRADIENT_2D] 开始");
+
+    if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::GRADIENT_2D)) {
+        LOG_WARN("orchestrator", "[GRADIENT_2D] GRADIENT_2D DLL 未加载, 跳过");
         return true;
     }
-    if (!dll_loader_.is_loaded(ModuleId::GRADIENT_2D)) {
-        LOG_WARN("orchestrator", "[GRADIENT_2D] GRADIENT_2D 模块未加载, 跳过");
+
+    // run_single 旧版调用 (无 frame_): 保留骨架行为
+    if (frame_ == nullptr) {
+        LOG_WARN("orchestrator", "[GRADIENT_2D] frame_ 为空 (run_single 旧版), 跳过");
         return true;
     }
-    LOG_DEBUG("orchestrator", "[GRADIENT_2D] 模块已就绪");
-    // TODO: 后续 Task 调用 gradient_2d_calibrate 完成乘性梯度曲面拟合 + 图像校正
+
+    // TODO: gradient_2d_calibrate 需要:
+    //   1. gaia_ra/dec/mag/fsyn 数组 (需 gaia_client 锥形搜索+光谱积分)
+    //   2. psf_cx/cy/flux/status 数组 (需 PSF 阶段成功, 当前 PSF 为骨架)
+    //   3. WCS + SIP 参数 (需 PLATESOLVE 成功或 FITS 自带 WCS)
+    //   依赖 gaia_client + star_detector + PSF, 当前均未就绪
+    //   后续 Task 集成完整前置链后实现
+    LOG_WARN("orchestrator", "[GRADIENT_2D] 保留骨架: 需要 gaia 数据 + psf 块 (前置依赖未就绪)");
     return true;
 }
 
 // stage 6: SNR - SNR 估计 (snr_estimator.dll)
-bool Orchestrator::run_stage_snr(TaskResult& /*result*/) {
-    LOG_DEBUG("orchestrator", "[SNR] 骨架实现: 调用 snr_estimator.dll (后续 Task 接入)");
-    if (!dlls_loaded_) {
-        LOG_WARN("orchestrator", "[SNR] DLL 未加载, 跳过此阶段");
+bool Orchestrator::run_stage_snr(TaskResult& result) {
+    LOG_INFO("orchestrator", "[SNR] 开始");
+
+    if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::SNR)) {
+        LOG_WARN("orchestrator", "[SNR] SNR DLL 未加载, 跳过");
         return true;
     }
-    if (!dll_loader_.is_loaded(ModuleId::SNR)) {
-        LOG_WARN("orchestrator", "[SNR] SNR 模块未加载, 跳过");
+
+    // run_single 旧版调用 (无 frame_): 保留骨架行为
+    if (frame_ == nullptr) {
+        LOG_WARN("orchestrator", "[SNR] frame_ 为空 (run_single 旧版), 跳过");
         return true;
     }
-    LOG_DEBUG("orchestrator", "[SNR] 模块已就绪");
-    // TODO: 后续 Task 调用 snr_estimate 完成 SNR 建模
+
+    // 获取函数指针
+    auto fn_snr = dll_loader_.get_function<int (*)(
+        const float*, int, int,
+        const double*, int, double, float*)>(
+        ModuleId::SNR, "snr_estimate");
+    auto fn_get_block = dll_loader_.get_function<const AioBlock* (*)(const PipelineFrame*, const char*)>(
+        ModuleId::AIO, "aio_frame_get_block");
+    auto fn_remove_block = dll_loader_.get_function<int (*)(PipelineFrame*, const char*)>(
+        ModuleId::AIO, "aio_frame_remove_block");
+    auto fn_add_block_move = dll_loader_.get_function<int (*)(
+        PipelineFrame*, const char*, AioBlockType,
+        void*, int64_t, const int*, int, const char*)>(
+        ModuleId::AIO, "aio_frame_add_block_move");
+    auto fn_kv_get_double = dll_loader_.get_function<double (*)(
+        const PipelineFrame*, const char*, const char*, double)>(
+        ModuleId::AIO, "aio_frame_kv_get_double");
+
+    if (!fn_snr || !fn_get_block || !fn_remove_block || !fn_add_block_move) {
+        LOG_ERROR("orchestrator", "[SNR] 函数指针获取失败");
+        result.error_msg = "[SNR] 函数指针获取失败";
+        return false;
+    }
+
+    // 读取 data 块
+    const AioBlock* data_block = fn_get_block(frame_, "data");
+    if (data_block == nullptr) {
+        LOG_ERROR("orchestrator", "[SNR] data 块不存在");
+        result.error_msg = "[SNR] data 块不存在";
+        return false;
+    }
+    int width = data_block->dims[1];
+    int height = data_block->dims[0];
+    float* pixels = static_cast<float*>(data_block->data);
+
+    // 读取 psf 块 (FLOAT64 [N,9])
+    const AioBlock* psf_block = fn_get_block(frame_, "psf");
+    if (psf_block == nullptr) {
+        // psf 块不存在 (PSF 阶段为骨架), 跳过 SNR
+        LOG_WARN("orchestrator", "[SNR] psf 块不存在 (PSF 阶段未执行), 跳过");
+        return true;
+    }
+    int n_stars = psf_block->dims[0];
+    double* psf = static_cast<double*>(psf_block->data);
+
+    // 读取 sigma_residual (来自 photo_stats KV 块, 默认 0.0)
+    double sigma_residual = 0.0;
+    if (fn_kv_get_double) {
+        sigma_residual = fn_kv_get_double(frame_, "photo_stats", "SIGMA_RESIDUAL", 0.0);
+    }
+
+    LOG_INFO("orchestrator", "[SNR] n_stars=" + std::to_string(n_stars)
+             + " sigma_residual=" + std::to_string(sigma_residual));
+
+    // 分配输出 SNR 缓冲
+    int64_t n_pix = static_cast<int64_t>(width) * height;
+    float* out_snr = static_cast<float*>(std::malloc(n_pix * sizeof(float)));
+    if (out_snr == nullptr) {
+        LOG_ERROR("orchestrator", "[SNR] 分配输出缓冲失败");
+        result.error_msg = "[SNR] 分配输出缓冲失败";
+        return false;
+    }
+
+    // 调用 snr_estimate
+    int ret = fn_snr(pixels, height, width, psf, n_stars, sigma_residual, out_snr);
+    if (ret == 3) {
+        LOG_ERROR("orchestrator", "[SNR] snr_estimate 失败: nullptr 参数");
+        result.error_msg = "[SNR] snr_estimate 失败: nullptr 参数";
+        std::free(out_snr);
+        return false;
+    }
+    // ret=1 (n_stars<=0) 或 ret=2 (sigma<=0) 为退化路径, SNR 已填充, 继续写块
+
+    // 写入 snr 块 (FLOAT32 [H,W], 转移所有权)
+    fn_remove_block(frame_, "snr");
+    int dims[2] = {height, width};
+    ret = fn_add_block_move(frame_, "snr", AIO_BLOCK_FLOAT32,
+                            out_snr, n_pix, dims, 2, "SNR 图 (乘法模型)");
+    if (ret != 0) {
+        LOG_ERROR("orchestrator", "[SNR] 写入 snr 块失败: ret=" + std::to_string(ret));
+        result.error_msg = "[SNR] 写入 snr 块失败";
+        std::free(out_snr);
+        return false;
+    }
+    // out_snr 所有权已转移给 frame_
+
+    LOG_INFO("orchestrator", "[SNR] 完成 (ret=" + std::to_string(ret) + ")");
     return true;
 }
 
 // stage 8: GRADIENT_SPHERE - 球面梯度校准 (healpix_stack.dll hp_stack_gradient_corrected)
-bool Orchestrator::run_stage_gradient_sphere(TaskResult& /*result*/) {
-    LOG_DEBUG("orchestrator", "[GRADIENT_SPHERE] 骨架实现: 调用 healpix_stack.dll (后续 Task 接入)");
-    if (!dlls_loaded_) {
-        LOG_WARN("orchestrator", "[GRADIENT_SPHERE] DLL 未加载, 跳过此阶段");
-        return true;
+bool Orchestrator::run_stage_gradient_sphere(TaskResult& result) {
+    LOG_INFO("orchestrator", "[GRADIENT_SPHERE] 开始");
+
+    if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::GRADIENT_SPHERE)) {
+        LOG_ERROR("orchestrator", "[GRADIENT_SPHERE] GRADIENT_SPHERE DLL 未加载");
+        result.error_msg = "[GRADIENT_SPHERE] DLL 未加载";
+        return false;
     }
-    if (!dll_loader_.is_loaded(ModuleId::GRADIENT_SPHERE)) {
-        LOG_WARN("orchestrator", "[GRADIENT_SPHERE] GRADIENT_SPHERE 模块未加载, 跳过");
-        return true;
+
+    if (stage2_hiss_files_.empty()) {
+        LOG_ERROR("orchestrator", "[GRADIENT_SPHERE] 无 .hiss 输入文件");
+        result.error_msg = "[GRADIENT_SPHERE] 无 .hiss 输入文件";
+        return false;
     }
-    LOG_DEBUG("orchestrator", "[GRADIENT_SPHERE] 模块已就绪");
-    // TODO: 后续 Task 调用 hp_stack_gradient_corrected 完成球面梯度校准
+
+    // 获取函数指针
+    auto fn_gradient = dll_loader_.get_function<int (*)(
+        const char**, int, const char*, const char*,
+        double, int, int, double)>(
+        ModuleId::GRADIENT_SPHERE, "hp_stack_gradient_corrected");
+
+    if (!fn_gradient) {
+        LOG_ERROR("orchestrator", "[GRADIENT_SPHERE] hp_stack_gradient_corrected 函数未找到");
+        result.error_msg = "[GRADIENT_SPHERE] 函数未找到";
+        return false;
+    }
+
+    // 构建 hiss_paths 数组 (const char**)
+    int n_frames = static_cast<int>(stage2_hiss_files_.size());
+    std::vector<const char*> hiss_paths;
+    hiss_paths.reserve(n_frames);
+    for (const auto& p : stage2_hiss_files_) {
+        hiss_paths.push_back(p.c_str());
+    }
+
+    LOG_INFO("orchestrator", "[GRADIENT_SPHERE] 帧数: " + std::to_string(n_frames)
+             + " 输出: " + current_output_hcsd_);
+
+    // 调用 hp_stack_gradient_corrected
+    // 默认参数: sigma=3.0, max_iter=5, gradient_max_iter=10, gradient_lambda=1e-4
+    // gaia_data_dir 传 nullptr (跳过星拒绝)
+    int ret = fn_gradient(hiss_paths.data(), n_frames,
+                          nullptr,  // gaia_data_dir (跳过星拒绝)
+                          current_output_hcsd_.c_str(),
+                          3.0, 5, 10, 1e-4);
+    if (ret != 0) {
+        LOG_ERROR("orchestrator", "[GRADIENT_SPHERE] hp_stack_gradient_corrected 失败: ret=" + std::to_string(ret));
+        result.error_msg = "[GRADIENT_SPHERE] 失败: " + std::to_string(ret);
+        return false;
+    }
+
+    LOG_INFO("orchestrator", "[GRADIENT_SPHERE] 完成");
     return true;
 }
 
 // stage 9: STACK - Winsorized sigma clip + SNR²加权叠加 (healpix_stack.dll)
-bool Orchestrator::run_stage_stack(TaskResult& /*result*/) {
-    LOG_DEBUG("orchestrator", "[STACK] 骨架实现: 调用 healpix_stack.dll (后续 Task 接入)");
-    if (!dlls_loaded_) {
-        LOG_WARN("orchestrator", "[STACK] DLL 未加载, 跳过此阶段");
+bool Orchestrator::run_stage_stack(TaskResult& result) {
+    LOG_INFO("orchestrator", "[STACK] 开始");
+
+    if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::STACK)) {
+        LOG_WARN("orchestrator", "[STACK] STACK DLL 未加载, 跳过");
         return true;
     }
-    if (!dll_loader_.is_loaded(ModuleId::STACK)) {
-        LOG_WARN("orchestrator", "[STACK] STACK 模块未加载, 跳过");
-        return true;
-    }
-    LOG_DEBUG("orchestrator", "[STACK] 模块已就绪");
-    // TODO: 后续 Task 调用 hp_stack_* 完成 Winsorized sigma clip + SNR²加权叠加
+
+    // GRADIENT_SPHERE 阶段已通过 hp_stack_gradient_corrected 完成完整流程:
+    //   采样 → Gauss-Seidel 梯度拟合 → 校正叠加 → .hcsd 输出
+    // hp_stack_run 接收 PipelineFrame 数组 (非 .hiss 文件), 不适用于 stage2
+    // 当前保留骨架, .hcsd 已由 GRADIENT_SPHERE 生成
+    LOG_INFO("orchestrator", "[STACK] 跳过: .hcsd 已由 GRADIENT_SPHERE 生成");
     return true;
 }
 
@@ -736,6 +1176,28 @@ TaskResult Orchestrator::run_stage1(const std::string& fits_path,
     }
     state_ = TaskState::RUNNING;
 
+    // 创建 PipelineFrame (stage1 流水线帧, 各 stage handler 通过 frame_ 读写命名块)
+    auto fn_frame_create = dll_loader_.get_function<PipelineFrame* (*)()>(
+        ModuleId::AIO, "aio_pipeline_frame_create");
+    auto fn_frame_destroy = dll_loader_.get_function<void (*)(PipelineFrame*)>(
+        ModuleId::AIO, "aio_pipeline_frame_destroy");
+    if (!fn_frame_create || !fn_frame_destroy) {
+        result.error_msg = "[stage1] PipelineFrame 函数指针获取失败";
+        LOG_ERROR("orchestrator", result.error_msg);
+        state_ = TaskState::FAILED;
+        return result;
+    }
+    frame_ = fn_frame_create();
+    if (frame_ == nullptr) {
+        result.error_msg = "[stage1] PipelineFrame 创建失败";
+        LOG_ERROR("orchestrator", result.error_msg);
+        state_ = TaskState::FAILED;
+        return result;
+    }
+    // 设置 stage1 路径 (供 stage handler 使用)
+    current_fits_path_ = fits_path;
+    current_output_path_ = output_hiss;
+
     // 串行执行 stage 0-7 (lambda: 带计时调用 stage handler)
     auto run_v2_with_timing = [&](PipelineStageV2 stage, const char* name,
                                    bool (Orchestrator::*fn)(TaskResult&)) -> bool {
@@ -773,6 +1235,12 @@ TaskResult Orchestrator::run_stage1(const std::string& fits_path,
                                    &Orchestrator::run_stage_snr);
     ok = ok && run_v2_with_timing(PipelineStageV2::DRIZZLE,     "DRIZZLE",
                                    &Orchestrator::run_stage_drizzle);
+
+    // 销毁 PipelineFrame (无论成功失败)
+    if (frame_ != nullptr && fn_frame_destroy) {
+        fn_frame_destroy(frame_);
+        frame_ = nullptr;
+    }
 
     result.success = ok;
     result.output_ahpx_path = ok ? output_hiss : "";

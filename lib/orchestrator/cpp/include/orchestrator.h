@@ -24,6 +24,15 @@
 #include "checkpoint.h"
 #include "logger.h"
 
+// PipelineFrame 命名块容器 (stage1 流水线帧)
+// 位于 lib/astro_image_io/include/, 需 Makefile 添加 -I 路径
+// 重命名 aio_pipeline.h 的 PipelineStage typedef 为 AioPipelineStage,
+// 避免与本文件的 enum class PipelineStage 冲突
+// (aio_pipeline.h 定义了 C 风格 typedef enum {...} PipelineStage;)
+#define PipelineStage AioPipelineStage
+#include "aio_pipeline.h"
+#undef PipelineStage
+
 // 管线阶段枚举 (旧版, 5 阶段, 向后兼容, 供 run_single/run_batch 使用)
 enum class PipelineStage {
     CALIBRATE   = 0,
@@ -192,6 +201,21 @@ private:
 
     // 检查点管理器 (断点续传, Task 3)
     CheckpointManager checkpoint_mgr_;
+
+    // ========================================================================
+    // stage1/stage2 流水线状态 (Task: stage handler 实现)
+    // ========================================================================
+    // PipelineFrame: stage1 流水线帧 (run_stage1 开始创建, 结束销毁)
+    // 各 stage handler 通过 frame_ 读写命名块 (header/data/psf/snr 等)
+    PipelineFrame* frame_ = nullptr;
+    // 当前 stage1 输入 FITS 路径 (run_stage_read_fits 使用)
+    std::string current_fits_path_;
+    // 当前 stage1 输出 .hiss 路径 (run_stage_drizzle 使用)
+    std::string current_output_path_;
+    // stage2 输入 .hiss 文件列表 (run_stage_gradient_sphere / run_stage_stack 使用)
+    std::vector<std::string> stage2_hiss_files_;
+    // stage2 输出 .hcsd 路径 (run_stage_stack 使用)
+    std::string current_output_hcsd_;
 
     // 内部方法 (后续 Task 实现具体逻辑)
     bool run_stage_calibrate(TaskResult& result);
