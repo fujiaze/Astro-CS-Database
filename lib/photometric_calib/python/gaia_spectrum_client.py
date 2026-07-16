@@ -2,8 +2,11 @@
 """
 Gaia Spectrum Client - Gaia 光谱数据库 Python 客户端
 功能: 封装 gaia_client.dll 的 C API，提供锥形搜索 + BP/RP 光谱数据获取
-用途: 为 spectrum_integrator (光谱积分) 模块提供真实 Gaia DR3SP 光谱数据源，
+用途: 为 photometric_calib 模块提供真实 Gaia DR3SP 光谱数据源，
       支持 336-1020nm 范围 343 个采样点的 BP/RP 光谱查询，用于合成测光与 SED 验证
+迁移日期: 2026-07-16 (架构重构 spec G5 Phase 3)
+迁移来源: lib/photometric_calib/spectrum_integrator/python/gaia_spectrum_client.py
+路径调整: _find_dll() 从回溯3级 (spectrum_integrator/python/ -> lib) 改为回溯2级 (python/ -> lib)
 依赖: ctypes (调用 DLL), numpy (光谱数组), logging (日志)
 调用: from gaia_spectrum_client import GaiaSpectrumClient, GaiaSpectrumStarPy
       client = GaiaSpectrumClient(data_dir=".../GaiaDR3SP", db_type=2)
@@ -75,8 +78,9 @@ def _find_dll() -> str:
     """查找 gaia_client.dll，按候选路径优先级搜索"""
     module_dir = os.path.dirname(os.path.abspath(__file__))
     candidates = [
-        # 相对当前文件回溯三级: python -> spectrum_integrator -> photometric_calib -> lib
-        os.path.join(module_dir, "..", "..", "..", "gaia_xpsd_client", "gaia_client.dll"),
+        # 相对当前文件回溯二级: python -> photometric_calib -> lib
+        # 原 spectrum_integrator/python/ 回溯三级，现 python/ 回溯二级
+        os.path.join(module_dir, "..", "..", "gaia_xpsd_client", "gaia_client.dll"),
         # 项目根目录绝对路径 (兜底)
         os.path.join(r"F:\Astro dev\Astro CS Normalization Database",
                      "lib", "gaia_xpsd_client", "gaia_client.dll"),

@@ -1,27 +1,134 @@
 # -*- coding: utf-8 -*-
 """
-Spectrum Integrator - 光谱积分器主程序
-功能: 使用 Gaia DR3SP 真实 BP/RP 光谱计算合成流量 F_syn
-用途: 光谱积分器模块主程序，将 Gaia BP/RP 光谱 (uint8[343], 336-1020nm) 作为 S(λ)，
-      结合滤光片透过率 T(λ) 与可选 CCD QE Q(λ)，通过 SyntheticPhotometry 引擎积分
-      F_syn = ∫ S(λ)·T(λ)·Q(λ)·λ dλ，用于测光定标参考星理论流量计算
-依赖: numpy, synthetic_photometry (Akima插值+Simpson积分), logging
-调用: from integrator import SpectrumIntegrator
-      integrator = SpectrumIntegrator(filter_wl, filter_trans, qe_wl, qe_val, spectrum_wl)
-      f_syn = integrator.integrate_star(spectrum_uint8)
-      results = integrator.integrate_batch(stars)
-      integrator.save_results(results, output_path, "Baader R", "GSENSE2020BSI")
-数据流: Gaia uint8光谱 -> float64 S(λ) -> SyntheticPhotometry.compute -> F_syn 标量
+Photometric Calib 光谱积分器 (合并文件)
+功能: 合并 curve_loader.py 与 integrator.py
+用途: 滤光片/QE曲线加载 + Gaia BP/RP 光谱积分计算合成流量 F_syn
+合并日期: 2026-07-16
+合并来源 (架构重构 spec G5 Phase 3):
+  - curve_loader.py (原 lib/photometric_calib/spectrum_integrator/python/curve_loader.py)
+  - integrator.py (原 lib/photometric_calib/spectrum_integrator/python/integrator.py)
+路径调整:
+  - data_dir: 从回溯2级 (spectrum_integrator/python/ -> photometric_calib/)
+    改为回溯1级 (python/ -> photometric_calib/)
+  - integrator.py 中 `from curve_loader import CurveLoader` 仅在 __main__ 中出现，
+    随 __main__ 一起移除；CurveLoader 已在本文件 Part 1 定义
+  - integrator.py 中 `from synthetic_photometry import SyntheticPhotometry` 保留
+    (python/ 目录已有 synthetic_photometry.py)
 """
+
+# ======================================================================
+# Part 1: 曲线加载器 (原 spectrum_integrator/python/curve_loader.py)
+# ----------------------------------------------------------------------
+# 原文件 docstring:
+#   曲线加载器 (Curve Loader)
+#   功能: 加载滤光片透过率曲线与相机 QE 曲线
+#   用途: 光谱积分器模块的基础数据读取，提供滤光片/QE 曲线的统一访问接口
+#   数据: data/response_curves/filters.json (滤光片), qe_curves.json (QE曲线)
+# ======================================================================
 
 from __future__ import annotations
 
 import json
 import logging
 import os
-from typing import List, Optional
+from typing import Optional
 
 import numpy as np
+
+logger = logging.getLogger(__name__)
+
+_FILTERS_FILE = "filters.json"
+_QE_FILE = "qe_curves.json"
+
+
+class CurveLoader:
+    """滤光片/QE曲线加载器，支持按名称加载并返回 (波长, 值) 数组"""
+
+    def __init__(self, data_dir: Optional[str] = None):
+        if data_dir is None:
+            base = os.path.dirname(os.path.abspath(__file__))
+            # 路径调整: 原 curve_loader.py 在 lib/photometric_calib/spectrum_integrator/python/
+            # 现合并到 lib/photometric_calib/python/
+            # data/ 在 lib/photometric_calib/data/response_curves/
+            # 原回溯 2 级 (spectrum_integrator/python -> spectrum_integrator -> photometric_calib)
+            # 现回溯 1 级 (python -> photometric_calib)
+            module_root = os.path.normpath(os.path.join(base, ".."))
+            data_dir = os.path.join(module_root, "data", "response_curves")
+        self._data_dir = data_dir
+        self._filters_path = os.path.join(data_dir, _FILTERS_FILE)
+        self._qe_path = os.path.join(data_dir, _QE_FILE)
+        self._filters_cache: Optional[dict] = None
+        self._qe_cache: Optional[dict] = None
+        logger.info("曲线加载器初始化, data_dir=%s", data_dir)
+
+    def _load_json(self, path: str, label: str) -> dict:
+        logger.info("加载%s曲线文件: %s", label, path)
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        logger.info("已加载 %d 条%s曲线", len(data), label)
+        return data
+
+    def _load_filters(self) -> dict:
+        if self._filters_cache is None:
+            self._filters_cache = self._load_json(self._filters_path, "滤光片")
+        return self._filters_cache
+
+    def _load_qe(self) -> dict:
+        if self._qe_cache is None:
+            self._qe_cache = self._load_json(self._qe_path, "QE")
+        return self._qe_cache
+
+    def _extract_curve(self, data: dict, name: str, curve_type: str) -> tuple[np.ndarray, np.ndarray]:
+        if name not in data:
+            available = list(data.keys())
+            raise KeyError(
+                f"{curve_type} '{name}' 不存在, 可用名称({len(available)}条): {available}"
+            )
+        entry = data[name]
+        wavelength = np.asarray(entry["wavelength_nm"], dtype=np.float64)
+        value = np.asarray(entry["value"], dtype=np.float64)
+        logger.debug(
+            "%s '%s': %d 个点, 波长范围 %.1f~%.1f nm",
+            curve_type, name, len(wavelength), wavelength[0], wavelength[-1],
+        )
+        return wavelength, value
+
+    def load_filter(self, name: str) -> tuple[np.ndarray, np.ndarray]:
+        """按名称加载滤光片曲线, 返回 (wavelength_nm, transmittance)"""
+        return self._extract_curve(self._load_filters(), name, "滤光片")
+
+    def load_qe(self, name: str) -> tuple[np.ndarray, np.ndarray]:
+        """按名称加载QE曲线, 返回 (wavelength_nm, qe)"""
+        return self._extract_curve(self._load_qe(), name, "QE曲线")
+
+    def list_filters(self) -> list[str]:
+        """返回所有可用滤光片名称"""
+        return list(self._load_filters().keys())
+
+    def list_qe(self) -> list[str]:
+        """返回所有可用QE曲线名称"""
+        return list(self._load_qe().keys())
+
+
+# ======================================================================
+# Part 2: 光谱积分器 (原 spectrum_integrator/python/integrator.py)
+# ----------------------------------------------------------------------
+# 原文件 docstring:
+#   Spectrum Integrator - 光谱积分器主程序
+#   功能: 使用 Gaia DR3SP 真实 BP/RP 光谱计算合成流量 F_syn
+#   用途: 光谱积分器模块主程序，将 Gaia BP/RP 光谱 (uint8[343], 336-1020nm) 作为 S(λ)，
+#         结合滤光片透过率 T(λ) 与可选 CCD QE Q(λ)，通过 SyntheticPhotometry 引擎积分
+#         F_syn = ∫ S(λ)·T(λ)·Q(λ)·λ dλ，用于测光定标参考星理论流量计算
+#   依赖: numpy, synthetic_photometry (Akima插值+Simpson积分), logging
+#   调用: from integrator import SpectrumIntegrator
+#         integrator = SpectrumIntegrator(filter_wl, filter_trans, qe_wl, qe_val, spectrum_wl)
+#         f_syn = integrator.integrate_star(spectrum_uint8)
+#         results = integrator.integrate_batch(stars)
+#         integrator.save_results(results, output_path, "Baader R", "GSENSE2020BSI")
+#   数据流: Gaia uint8光谱 -> float64 S(λ) -> SyntheticPhotometry.compute -> F_syn 标量
+# ======================================================================
+
+from typing import List
 
 from synthetic_photometry import SyntheticPhotometry
 
@@ -180,98 +287,3 @@ class SpectrumIntegrator:
         """从 JSON 文件读取结果"""
         with open(json_path, "r", encoding="utf-8") as f:
             return json.load(f)
-
-
-# ======================================================================
-# 模块验证 (使用 GaiaDR3SP 真实光谱数据)
-# ======================================================================
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(name)s: %(message)s")
-
-    from gaia_spectrum_client import GaiaSpectrumClient
-    from curve_loader import CurveLoader
-
-    print("=" * 60)
-    print("SpectrumIntegrator 模块验证")
-    print("=" * 60)
-
-    project_root = os.path.normpath(
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "..")
-    )
-    data_dir = os.path.join(project_root, "GaiaDR3SP")
-    all_pass = True
-
-    # ---- 步骤 1: 连接 GaiaDR3SP 并锥形搜索银心方向 ----
-    print("\n[步骤 1] 连接 GaiaDR3SP 并锥形搜索 (ra=266.4168, dec=-28.9833, r=0.2, mag=[10,14])")
-    with GaiaSpectrumClient(data_dir=data_dir, db_type=2) as client:
-        stars_all = client.cone_search_with_spectrum(266.4168, -28.9833, 0.2, 10.0, 14.0)
-        spectrum_wl = client.get_wavelength_array()
-    stars = stars_all[:10]
-    print("  搜索到 %d 颗星, 取前 %d 颗" % (len(stars_all), len(stars)))
-    print("  光谱波长: %.1f~%.1f nm (%d 点)" % (spectrum_wl[0], spectrum_wl[-1], len(spectrum_wl)))
-    star_ok = len(stars) == 10
-    print("  [%s] 取得 10 颗星" % ("PASS" if star_ok else "FAIL"))
-    all_pass = all_pass and star_ok
-
-    # ---- 步骤 2: 加载 Baader R 滤光片 ----
-    print("\n[步骤 2] 加载 Baader R 滤光片")
-    loader = CurveLoader()
-    f_wl, f_trans = loader.load_filter("Baader R")
-    print("  滤光片: %d 点, 范围 %.1f~%.1f nm" % (len(f_wl), f_wl[0], f_wl[-1]))
-
-    # ---- 步骤 3: 创建积分器 ----
-    print("\n[步骤 3] 创建 SpectrumIntegrator")
-    integrator = SpectrumIntegrator(f_wl, f_trans, spectrum_wl=spectrum_wl)
-
-    # ---- 步骤 4: 逐颗积分, 验证 F_syn > 0 ----
-    print("\n[步骤 4] 逐颗积分 (验证 F_syn > 0)")
-    single_ok = True
-    for i, star in enumerate(stars):
-        f_syn = integrator.integrate_star(star.spectrum)
-        ok = f_syn > 0.0 and np.isfinite(f_syn)
-        if not ok:
-            single_ok = False
-        print("  星 %d: ra=%.4f, dec=%.4f, mag_g=%.2f, F_syn=%.6e [%s]"
-              % (i, star.ra, star.dec, star.mag_g, f_syn, "OK" if ok else "FAIL"))
-    print("  [%s] 10 颗星 F_syn 均为正有限值" % ("PASS" if single_ok else "FAIL"))
-    all_pass = all_pass and single_ok
-
-    # ---- 步骤 5: 批量积分 ----
-    print("\n[步骤 5] 批量积分 (验证返回长度=10)")
-    results = integrator.integrate_batch(stars)
-    batch_ok = len(results) == 10
-    print("  返回列表长度=%d" % len(results))
-    print("  [%s] 批量积分返回 10 项" % ("PASS" if batch_ok else "FAIL"))
-    all_pass = all_pass and batch_ok
-
-    # ---- 步骤 6: 保存 JSON + 读回一致性 ----
-    print("\n[步骤 6] 保存 JSON 并读回验证一致性")
-    logs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "logs")
-    os.makedirs(logs_dir, exist_ok=True)
-    out_path = os.path.join(logs_dir, "integrator_verify.json")
-    integrator.save_results(
-        results, out_path, "Baader R", qe_name=None,
-        ra_center=266.4168, dec_center=-28.9833, radius_deg=0.2,
-    )
-    loaded = SpectrumIntegrator.load_results(out_path)
-    n_match = loaded["n_stars"] == 10
-    count_match = len(loaded["stars"]) == 10
-    f_match = all(
-        abs(loaded["stars"][i]["f_syn"] - results[i]["f_syn"]) < 1e-9 for i in range(10)
-    )
-    field_match = all(
-        loaded["stars"][i]["ra"] == results[i]["ra"]
-        and loaded["stars"][i]["dec"] == results[i]["dec"]
-        and loaded["stars"][i]["mag_g"] == results[i]["mag_g"]
-        for i in range(10)
-    )
-    print("  n_stars=%d, stars=%d" % (loaded["n_stars"], len(loaded["stars"])))
-    print("  filter_name=%s, spectrum_source=%s" % (loaded["filter_name"], loaded["spectrum_source"]))
-    print("  [%s] n_stars/stars 数量一致" % ("PASS" if n_match and count_match else "FAIL"))
-    print("  [%s] f_syn 数值一致" % ("PASS" if f_match else "FAIL"))
-    print("  [%s] ra/dec/mag_g 字段一致" % ("PASS" if field_match else "FAIL"))
-    all_pass = all_pass and n_match and count_match and f_match and field_match
-
-    print("\n" + "=" * 60)
-    print("验证结果: %s" % ("全部通过" if all_pass else "存在失败项"))
-    print("=" * 60)

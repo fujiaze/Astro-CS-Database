@@ -1,30 +1,153 @@
 # -*- coding: utf-8 -*-
 """
-Photometric Calib 管线适配器 (简化版 C++ DLL)
-功能: 将 C++ photometric_calib.dll 包装为 PipelineStageHandler，从 PipelineFrame 命名块
-      读取 data/header/gaia_cat/psf，调用 pc_calibrate_simple 全局 scale 校正，
-      校正后替换 data 块并输出 photo_stats KV 块
-用途: 在管线引擎中注册 STAGE_PHOTOMETRIC 阶段处理器，实现内存管线数据直通
-依赖: numpy; astro_image_io (PipelineFramePy); 同目录 fsyn_loader;
-      lib/photometric_calib/python/photometric_calib.py (C++ DLL 封装)
-调用:
-    from pipeline_adapter import PhotometricParams, register_photometric_handler
-    params = PhotometricParams(f_syn_path="f_syn.json", log_dir="logs/photometric")
-    register_photometric_handler(engine, params)
-
-变更说明 (2026-07-12):
-  - 去掉 GradientEstimator 调用 (梯度曲面拟合)
-  - 去掉 grad_map 块生成 (M_map 曲面)
-  - 改为调用 C++ DLL pc_calibrate_simple 全局 scale 校正
-  - 保留 photo_stats KV 块 (N_MATCHED, SCALE_FACTOR)
-  - 仍然从 data/gaia_cat/psf 块读取数据
-  - 仍然从 header KV 读取 WCS/SIP 参数
+Photometric Calib 流量校准器 (合并文件)
+功能: 合并 fsyn_loader.py 与 pipeline_adapter.py
+用途: F_syn 结果加载 + 管线适配器（C++ DLL 封装）
+合并日期: 2026-07-16
+合并来源 (架构重构 spec G5 Phase 3):
+  - fsyn_loader.py (原 lib/photometric_calib/flux_calibrator/python/fsyn_loader.py)
+  - pipeline_adapter.py (原 lib/photometric_calib/flux_calibrator/python/pipeline_adapter.py)
+路径调整:
+  - _AIO_PATH: 从回溯3级 (flux_calibrator/python/ -> lib/) 改为回溯2级 (python/ -> lib/)
+  - _PC_PATH: 现在同目录即 photometric_calib/python/ (PhotometricCalib 在同目录)
+  - 移除 _THIS_DIR 同目录配置 (fsyn_loader 已合并到本文件)
+  - 移除 `from fsyn_loader import FSynLoader` (FSynLoader 已在本文件 Part 1 定义)
 """
+
+# ======================================================================
+# Part 1: F_syn Loader (原 flux_calibrator/python/fsyn_loader.py)
+# ----------------------------------------------------------------------
+# 原文件 docstring:
+#   FSyn Loader - F_syn 结果加载器
+#   功能: 从光谱积分器输出的 JSON 文件加载 F_syn 合成流量结果
+#   用途: gradient_estimator 模块的数据入口，读取 SpectrumIntegrator.save_results 写出的
+#         JSON 文件，解析为星点列表供梯度拟合器(GradientFitter)使用
+#   依赖: Python 标准库 json, logging
+#   调用: from fsyn_loader import FSynLoader
+#         stars = FSynLoader.load("f_syn_results.json")
+#         metadata, stars = FSynLoader.load_with_metadata("f_syn_results.json")
+#
+#   JSON 格式 (由 SpectrumIntegrator.save_results 生成):
+#     顶层: filter_name, qe_name, wl_step, spectrum_source, n_stars,
+#           ra_center, dec_center, radius_deg, stars[]
+#     stars[] 每项: source_id, ra, dec, mag_g, f_syn
+#
+#   处理规则:
+#     1. 校验 "stars" 字段存在，否则抛出 ValueError
+#     2. 每颗星提取 ra/dec/mag_g/f_syn/source_id 并做类型转换
+#     3. 过滤 f_syn <= 0 的无效积分结果
+# ======================================================================
 
 from __future__ import annotations
 
+import json
 import logging
 import os
+from typing import Dict, List, Tuple
+
+logger = logging.getLogger(__name__)
+
+
+class FSynLoader:
+    """F_syn 结果加载器，解析光谱积分器输出的 JSON 文件
+
+    将 SpectrumIntegrator.save_results 写出的 JSON 解析为星点列表，
+    每颗星含 ra/dec/mag_g/f_syn/source_id，并过滤 f_syn <= 0 的无效积分结果。
+    """
+
+    @staticmethod
+    def load(json_path: str) -> List[dict]:
+        """从 JSON 文件加载 F_syn 结果
+
+        Args:
+            json_path: JSON 文件路径
+
+        Returns:
+            list[dict]，每项含 ra(float), dec(float), mag_g(float),
+            f_syn(float), source_id(int)
+
+        Raises:
+            FileNotFoundError: 文件不存在
+            ValueError: JSON 缺少 stars 字段
+        """
+        _metadata, stars = FSynLoader.load_with_metadata(json_path)
+        return stars
+
+    @staticmethod
+    def load_with_metadata(json_path: str) -> Tuple[dict, List[dict]]:
+        """加载 JSON 并返回元数据和星列表
+
+        Args:
+            json_path: JSON 文件路径
+
+        Returns:
+            (metadata_dict, stars_list)
+            metadata_dict 含 filter_name, qe_name, n_stars, ra_center 等
+            stars_list 每项含 ra(float), dec(float), mag_g(float),
+            f_syn(float), source_id(int)
+
+        Raises:
+            FileNotFoundError: 文件不存在
+            ValueError: JSON 缺少 stars 字段
+        """
+        logger.info("加载 F_syn 结果: %s", json_path)
+        with open(json_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        if "stars" not in data:
+            raise ValueError("JSON 缺少 stars 字段，格式不符")
+
+        # 元数据: 顶层除 stars 外的全部字段
+        metadata: Dict = {k: v for k, v in data.items() if k != "stars"}
+
+        raw_stars = data["stars"]
+        n_raw = len(raw_stars)
+
+        stars: List[dict] = []
+        n_invalid = 0
+        for s in raw_stars:
+            f_syn = float(s["f_syn"])
+            # 过滤无效积分结果
+            if f_syn <= 0.0:
+                n_invalid += 1
+                continue
+            stars.append({
+                "ra": float(s["ra"]),
+                "dec": float(s["dec"]),
+                "mag_g": float(s["mag_g"]),
+                "f_syn": f_syn,
+                "source_id": int(s["source_id"]),
+            })
+
+        filter_name = metadata.get("filter_name", "未知")
+        logger.info(
+            "F_syn 结果加载完成: 滤光片=%s, 原始星数=%d, 无效(f_syn<=0)=%d, 有效星数=%d",
+            filter_name, n_raw, n_invalid, len(stars),
+        )
+        return metadata, stars
+
+
+# ======================================================================
+# Part 2: Pipeline Adapter (原 flux_calibrator/python/pipeline_adapter.py)
+# ----------------------------------------------------------------------
+# 原文件 docstring:
+#   Photometric Calib 管线适配器 (简化版 C++ DLL)
+#   功能: 将 C++ photometric_calib.dll 包装为 PipelineStageHandler，从 PipelineFrame 命名块
+#         读取 data/header/gaia_cat/psf，调用 pc_calibrate_simple 全局 scale 校正，
+#         校正后替换 data 块并输出 photo_stats KV 块
+#   用途: 在管线引擎中注册 STAGE_PHOTOMETRIC 阶段处理器，实现内存管线数据直通
+#   依赖: numpy; astro_image_io (PipelineFramePy); 同目录 fsyn_loader;
+#         lib/photometric_calib/python/photometric_calib.py (C++ DLL 封装)
+#
+#   变更说明 (2026-07-12):
+#     - 去掉 GradientEstimator 调用 (梯度曲面拟合)
+#     - 去掉 grad_map 块生成 (M_map 曲面)
+#     - 改为调用 C++ DLL pc_calibrate_simple 全局 scale 校正
+#     - 保留 photo_stats KV 块 (N_MATCHED, SCALE_FACTOR)
+#     - 仍然从 data/gaia_cat/psf 块读取数据
+#     - 仍然从 header KV 读取 WCS/SIP 参数
+# ======================================================================
+
 import sys
 from dataclasses import dataclass
 from typing import Optional, Tuple
@@ -32,31 +155,30 @@ from typing import Optional, Tuple
 import numpy as np
 
 # ---- 依赖路径配置 ----
+# 路径调整: 原文件在 flux_calibrator/python/，现合并到 photometric_calib/python/
 _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-# astro_image_io: flux_calibrator/python -> photometric_calib -> lib -> astro_image_io/python
+# astro_image_io: photometric_calib/python -> photometric_calib -> lib -> astro_image_io/python
+# 原路径 (从 flux_calibrator/python/): "..", "..", "..", "astro_image_io", "python"
+# 新路径 (从 photometric_calib/python/): "..", "..", "astro_image_io", "python"
 _AIO_PATH = os.path.normpath(os.path.join(
-    _THIS_DIR, "..", "..", "..", "astro_image_io", "python"))
+    _THIS_DIR, "..", "..", "astro_image_io", "python"))
 if _AIO_PATH not in sys.path:
     sys.path.insert(0, _AIO_PATH)
-# photometric_calib/python (C++ DLL封装): flux_calibrator/python -> photometric_calib/python
-_PC_PATH = os.path.normpath(os.path.join(
-    _THIS_DIR, "..", "..", "python"))
+# photometric_calib/python (C++ DLL封装): 当前目录即 photometric_calib/python/
+# 原路径 (从 flux_calibrator/python/): "..", "..", "python"
+# 新路径: 同目录 (_THIS_DIR)
+_PC_PATH = _THIS_DIR
 if _PC_PATH not in sys.path:
     sys.path.insert(0, _PC_PATH)
-# 同目录 (fsyn_loader)
-if _THIS_DIR not in sys.path:
-    sys.path.insert(0, _THIS_DIR)
+# 注: 原 _THIS_DIR 同目录配置 (为 fsyn_loader) 已移除，FSynLoader 已在本文件 Part 1 定义
 
 from astro_image_io import (  # noqa: E402
     PipelineFramePy, PipelineStageHandlerC, STAGE_PHOTOMETRIC,
 )
 from photometric_calib import PhotometricCalib  # noqa: E402
 
-# 惰性导入 FSynLoader (同目录, 可能因依赖缺失而失败)
-try:
-    from fsyn_loader import FSynLoader  # noqa: E402
-except ImportError:
-    FSynLoader = None
+# 注: 原 `from fsyn_loader import FSynLoader` 已移除
+# FSynLoader 已在本文件 Part 1 定义，可直接使用
 
 logger = logging.getLogger(__name__)
 
@@ -203,6 +325,7 @@ def _build_gaia_arrays(frame: PipelineFramePy,
         (gaia_ra, gaia_dec, gaia_mag, gaia_fsyn) float64 数组, 可能为空
     """
     # ---- 优先级 1: f_syn_path JSON ----
+    # 注: FSynLoader 已在本文件 Part 1 定义，无需 import
     if params.f_syn_path and FSynLoader is not None:
         try:
             stars = FSynLoader.load(params.f_syn_path)
