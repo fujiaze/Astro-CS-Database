@@ -19,7 +19,7 @@ Photometric Calib 管线适配器 (简化版 C++ DLL)
      - 从 gaia_cat 块读取 ra/dec/mag, f_syn=0 (退化路径, n_matched=0, scale=1.0)
 
 依赖: numpy; astro_image_io (PipelineFramePy); photometric_calib/python/photometric_calib.py (C++ DLL 封装);
-      photometric_calib/spectrum_integrator/python/curve_loader.py (CurveLoader)
+      photometric_calib/python/spectrum_integrator.py (CurveLoader, 合并自 curve_loader.py)
 调用:
     from photometric_adapter import PhotometricParams, register_photometric_handler
     params = PhotometricParams(gaia_client=gaia_client, log_dir="logs/photometric")
@@ -49,9 +49,9 @@ _PC_PATH = os.path.normpath(os.path.join(
     _THIS_DIR, "..", "..", "..", "..", "photometric_calib", "python"))
 if _PC_PATH not in sys.path:
     sys.path.insert(0, _PC_PATH)
-# curve_loader 所在目录 (photometric_calib/spectrum_integrator/python)
+# curve_loader 所在目录 (photometric_calib/python) - spectrum_integrator 子目录已合并
 _CURVE_LOADER_PATH = os.path.normpath(os.path.join(
-    _THIS_DIR, "..", "..", "..", "..", "photometric_calib", "spectrum_integrator", "python"))
+    _THIS_DIR, "..", "..", "..", "..", "photometric_calib", "python"))
 if _CURVE_LOADER_PATH not in sys.path:
     sys.path.insert(0, _CURVE_LOADER_PATH)
 # 同目录 (备用)
@@ -62,7 +62,7 @@ from astro_image_io import (  # noqa: E402
     PipelineFramePy, PipelineStageHandlerC, STAGE_PHOTOMETRIC,
 )
 from photometric_calib import PhotometricCalib  # noqa: E402
-from curve_loader import CurveLoader  # noqa: E402
+from spectrum_integrator import CurveLoader  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
