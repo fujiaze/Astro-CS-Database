@@ -2689,6 +2689,10 @@ TaskResult Orchestrator::run_stage2(const std::string& hiss_dir,
         return result;
     }
 
+    // 保存到成员变量供 stage handler 使用
+    stage2_hiss_files_ = hiss_files;
+    current_output_hcsd_ = output_hcsd;
+
     // 加载 DLL (如果未加载, stage2 仅需 GRADIENT_SPHERE/STACK 模块)
     if (!dlls_loaded_) {
         std::string err;

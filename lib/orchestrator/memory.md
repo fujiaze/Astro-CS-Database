@@ -5,11 +5,11 @@
 
 ## 当前版本
 - 版本号：v2.0 两段流水线 10 节点 C++ CLI (stage1/stage2) + v1.0 Python调试层
-- 最新commit：84cf3fb (feat: PSF/PHOTOMETRIC/GRADIENT_2D stage handlers)
+- 最新commit：stage2 单帧链路验证通过 (待提交)
 - GitHub: https://github.com/fujiaze/Orchestrator-Cpp-Python
 - 更新时间：2026-07-16
 - stage1 状态: 8/8 节点全部实际 DLL 调用，单帧端到端验证通过 (8 阶段全 success=true)
-- stage2 状态: GRADIENT_SPHERE 已实现, STACK 仍为骨架 (.hcsd 已由 GRADIENT_SPHERE 生成)
+- stage2 状态: 2/2 节点链路打通, 单帧验证通过 (GRADIENT_SPHERE 实际调用, STACK 骨架 .hcsd 已生成)
 
 ## 2026-07-16 DLL 加载修复 + stage handler 填充
 - **DLL 加载修复** (commit ff39173):
@@ -90,6 +90,25 @@
   - DRIZZLE 29.2s (15.4M HEALPix 像素, .hiss 输出 184MB)
 - **stage1 状态**: 8/8 节点全部实际 DLL 调用, 端到端单帧链路打通
 - **后续待办**: stage2 (GRADIENT_SPHERE 已实现, STACK 仍为骨架, .hcsd 已由 GRADIENT_SPHERE 生成, 需多帧 .hiss 输入验证)
+
+## 2026-07-16 stage2 单帧链路验证 + bug 修复 (.hiss→.hcsd 链路打通)
+- **目标**: 验证 stage2 多帧合并链路 (.hiss→.hcsd, GRADIENT_SPHERE + STACK)
+- **bug 修复**: run_stage2 收集 .hiss 文件到局部变量 hiss_files, 但未赋值给成员变量 stage2_hiss_files_, 也未设置 current_output_hcsd_; 导致 run_stage_gradient_sphere 检查 stage2_hiss_files_.empty() 永远为 true, 报错 "无 .hiss 输入文件"
+  - 修复: 在 hiss_files 收集 + sort + 非空检查后, 添加 `stage2_hiss_files_ = hiss_files; current_output_hcsd_ = output_hcsd;`
+- **单帧验证 (1 帧 .hiss 输入)**:
+  - 输入: output_hiss_dir/frame1.hiss (176MB, nside=32768, 15406480 像素, stage1 单帧输出)
+  - GRADIENT_SPHERE 4.786s success=true
+    - hp_stack_hiss: 1 帧堆叠, sigma=3.0, max_iter=5
+    - 第一遍扫描: 15406480 唯一像素
+    - 第二遍累加: SNR² 加权
+    - sigma-clip 迭代 0: 剔除 0 个离群值 (单帧无离群值), 提前收敛
+    - 输出: 15406480 像素, mean_pixel_count=1.0000
+    - hcsd_write: 78 非空子叶 / 49152, output_stage2.hcsd 177MB
+  - STACK 跳过 (.hcsd 已由 GRADIENT_SPHERE 生成)
+  - stage2 success=true
+- **stage2 状态**: 2/2 节点链路打通 (GRADIENT_SPHERE 实际调用 hp_stack_gradient_corrected, STACK 骨架跳过)
+- **限制**: 单帧测试无多帧叠加意义 (sigma-clip 剔除 0, mean_pixel_count=1.0); 真正多帧验证需多个 .hiss 文件
+- **后续待办**: 多帧 stage2 验证 (需多帧 .hiss, 即对多个 FITS 运行 stage1)
 
 ## 2026-07-16 架构重构 (spec §2.3 两段流水线 10 节点)
 - spec: .trae/specs/architecture-refactor/spec.md (已审阅通过)
