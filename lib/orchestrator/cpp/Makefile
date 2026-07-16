@@ -20,7 +20,9 @@ INCLUDES = -Iinclude \
            -I../../photometric_calib/cpp/gradient_2d/include \
            -I../../snr_estimator/cpp/include \
            -I../../healpix_db/healpix_drizzle \
-           -I../../healpix_db/healpix_stack
+           -I../../healpix_db/healpix_stack \
+           -I../../gaia_xpsd_client/src \
+           -I../../star_detector/include
 LDFLAGS = -static
 
 SRC_DIR = src

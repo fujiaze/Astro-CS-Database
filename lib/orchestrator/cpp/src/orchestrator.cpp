@@ -42,6 +42,12 @@
 // ipv_solver C API (用于 run_stage_platesolve)
 #include "ipv_api.h"
 
+// gaia_client C API (PLATESOLVE 依赖: GaiaClient 句柄 + 锥形查询)
+#include "gaia_client.h"
+
+// star_detector C API (PLATESOLVE 依赖: StarDetector 句柄 + 星点检测)
+#include "star_detector.h"
+
 // dynamic_psf C API (用于 run_stage_psf)
 #include "dynamic_psf.h"
 
@@ -122,6 +128,8 @@ Orchestrator::~Orchestrator() {
         interrupt();
         worker_thread_.join();
     }
+    // 释放 PLATESOLVE 环境 (gaia_client + star_detector + ipv_solver 句柄)
+    cleanup_platesolve_env();
     LOG_INFO("orchestrator", "析构完成");
 }
 
@@ -508,6 +516,9 @@ bool Orchestrator::init_dlls(const std::string& lib_base_dir, std::string& error
 
     LOG_INFO("orchestrator", "初始化 DLL 加载 (lib_base_dir=" + base_dir + ")");
 
+    // 保存项目根目录 (供 PLATESOLVE 推导 GaiaDR3SP 数据目录使用)
+    project_root_dir_ = base_dir;
+
     bool ok = dll_loader_.load_all(base_dir);
     dlls_loaded_ = ok;
 
@@ -648,6 +659,235 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     return true;
 }
 
+// ============================================================================
+// 辅助: RA/DEC 字符串解析
+// 支持 "HH MM SS.S" / "HH:MM:SS.S" / 浮点度 三种格式
+// ============================================================================
+static double parse_ra_hms(const char* s) {
+    if (s == nullptr || s[0] == '\0') return 0.0;
+    std::string str(s);
+    std::replace(str.begin(), str.end(), ':', ' ');
+    std::istringstream iss(str);
+    double h, m, sec;
+    if (iss >> h >> m >> sec) {
+        return (h + m / 60.0 + sec / 3600.0) * 15.0;
+    }
+    // 单个浮点数 (度)
+    iss.clear();
+    iss.str(str);
+    double deg;
+    if (iss >> deg) return deg;
+    return 0.0;
+}
+
+static double parse_dec_dms(const char* s) {
+    if (s == nullptr || s[0] == '\0') return 0.0;
+    std::string str(s);
+    double sign = 1.0;
+    if (!str.empty() && str[0] == '+') {
+        str = str.substr(1);
+    } else if (!str.empty() && str[0] == '-') {
+        sign = -1.0;
+        str = str.substr(1);
+    }
+    std::replace(str.begin(), str.end(), ':', ' ');
+    std::istringstream iss(str);
+    double d, m, sec;
+    if (iss >> d >> m >> sec) {
+        return sign * (d + m / 60.0 + sec / 3600.0);
+    }
+    iss.clear();
+    iss.str(str);
+    double deg;
+    if (iss >> deg) return sign * deg;
+    return 0.0;
+}
+
+// ============================================================================
+// init_platesolve_env - 初始化 PLATESOLVE 环境
+// 加载 gaia_client.dll + star_detector.dll, 创建 handle, 创建 ipv_solver 实例
+// 复用至 Orchestrator 析构 (cleanup_platesolve_env 释放)
+// ============================================================================
+bool Orchestrator::init_platesolve_env(std::string& error_msg) {
+    LOG_INFO("orchestrator", "[PLATESOLVE] 初始化环境 (gaia_client + star_detector + ipv_solver)");
+
+    // 检查前置条件: PLATESOLVE 模块已加载 (ipv_solver.dll)
+    if (!dll_loader_.is_loaded(ModuleId::PLATESOLVE)) {
+        error_msg = "PLATESOLVE (ipv_solver.dll) 未加载";
+        return false;
+    }
+
+    // 1. 加载 gaia_client.dll (位于 lib/photometric_calib/cpp/)
+    std::string gaia_dll_path = project_root_dir_ + "/lib/photometric_calib/cpp/gaia_client.dll";
+    HMODULE gaia_h = LoadLibraryExA(gaia_dll_path.c_str(), nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
+    if (gaia_h == nullptr) {
+        error_msg = "加载 gaia_client.dll 失败: " + gaia_dll_path;
+        LOG_ERROR("orchestrator", "[PLATESOLVE] " + error_msg);
+        return false;
+    }
+    gaia_client_dll_handle_ = gaia_h;
+    LOG_INFO("orchestrator", "[PLATESOLVE] gaia_client.dll 加载成功");
+
+    // 2. 加载 star_detector.dll (位于 lib/star_detector/)
+    std::string sdet_dll_path = project_root_dir_ + "/lib/star_detector/star_detector.dll";
+    HMODULE sdet_h = LoadLibraryExA(sdet_dll_path.c_str(), nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
+    if (sdet_h == nullptr) {
+        error_msg = "加载 star_detector.dll 失败: " + sdet_dll_path;
+        LOG_ERROR("orchestrator", "[PLATESOLVE] " + error_msg);
+        cleanup_platesolve_env();
+        return false;
+    }
+    star_detector_dll_handle_ = sdet_h;
+    LOG_INFO("orchestrator", "[PLATESOLVE] star_detector.dll 加载成功");
+
+    // 3. 创建 GaiaClient (使用 GaiaDR3SP 数据目录, db_type=GAIA_DB_DR3SP=2)
+    using gaia_create_ex_fn = GaiaClient* (*)(const char*, GaiaDbType);
+    auto fn_gaia_create_ex = reinterpret_cast<gaia_create_ex_fn>(
+        GetProcAddress(gaia_h, "gaia_client_create_ex"));
+    if (fn_gaia_create_ex == nullptr) {
+        error_msg = "gaia_client_create_ex 函数未找到";
+        LOG_ERROR("orchestrator", "[PLATESOLVE] " + error_msg);
+        cleanup_platesolve_env();
+        return false;
+    }
+    std::string gaia_data_dir = project_root_dir_ + "/GaiaDR3SP";
+    GaiaClient* gaia_client = fn_gaia_create_ex(gaia_data_dir.c_str(), GAIA_DB_DR3SP);
+    if (gaia_client == nullptr) {
+        error_msg = "GaiaClient 创建失败 (data_dir=" + gaia_data_dir + ")";
+        LOG_ERROR("orchestrator", "[PLATESOLVE] " + error_msg);
+        cleanup_platesolve_env();
+        return false;
+    }
+    gaia_client_handle_ = reinterpret_cast<intptr_t>(gaia_client);
+    LOG_INFO("orchestrator", "[PLATESOLVE] GaiaClient 创建成功 (data_dir=" + gaia_data_dir + ")");
+
+    // 4. 创建 StarDetector (使用默认参数, fitRadius=0 表示自动)
+    using sdet_create_fn = StarDetectorHandle (*)(const SDetParams*);
+    auto fn_sdet_create = reinterpret_cast<sdet_create_fn>(
+        GetProcAddress(sdet_h, "sdet_create"));
+    if (fn_sdet_create == nullptr) {
+        error_msg = "sdet_create 函数未找到";
+        LOG_ERROR("orchestrator", "[PLATESOLVE] " + error_msg);
+        cleanup_platesolve_env();
+        return false;
+    }
+    SDetParams sdet_params;
+    std::memset(&sdet_params, 0, sizeof(sdet_params));
+    sdet_params.structureLayers = 5;
+    sdet_params.hotPixelFilterRadius = 1;
+    sdet_params.iterativeClipSigma = 9.0f;
+    sdet_params.iterativeMaxRounds = 5;
+    sdet_params.medianFilterDetail = 1;
+    sdet_params.maxStars = 2000;
+    sdet_params.fitRadius = 0;  // 0 = 自动
+    sdet_params.fwhmClipSigma = 3.0f;
+    sdet_params.maxAxisRatio = 2.0f;
+    StarDetectorHandle sdet = fn_sdet_create(&sdet_params);
+    if (sdet == nullptr) {
+        error_msg = "StarDetector 创建失败";
+        LOG_ERROR("orchestrator", "[PLATESOLVE] " + error_msg);
+        cleanup_platesolve_env();
+        return false;
+    }
+    sdet_handle_ = reinterpret_cast<intptr_t>(sdet);
+    LOG_INFO("orchestrator", "[PLATESOLVE] StarDetector 创建成功 (fitRadius=0 自动)");
+
+    // 5. 创建 IPVSolver 实例 (通过 PLATESOLVE 模块的 ipv_solve_create)
+    auto fn_ipv_create = dll_loader_.get_function<void* (*)()>(
+        ModuleId::PLATESOLVE, "ipv_solve_create");
+    auto fn_ipv_set_gaia = dll_loader_.get_function<void (*)(void*, intptr_t)>(
+        ModuleId::PLATESOLVE, "ipv_set_gaia_handle");
+    auto fn_ipv_set_detector = dll_loader_.get_function<void (*)(void*, intptr_t)>(
+        ModuleId::PLATESOLVE, "ipv_set_detector_handle");
+
+    if (!fn_ipv_create || !fn_ipv_set_gaia || !fn_ipv_set_detector) {
+        error_msg = "ipv 函数指针获取失败 (ipv_solve_create/ipv_set_gaia_handle/ipv_set_detector_handle)";
+        LOG_ERROR("orchestrator", "[PLATESOLVE] " + error_msg);
+        cleanup_platesolve_env();
+        return false;
+    }
+
+    ipv_solver_handle_ = fn_ipv_create();
+    if (ipv_solver_handle_ == nullptr) {
+        error_msg = "ipv_solve_create 返回 nullptr";
+        LOG_ERROR("orchestrator", "[PLATESOLVE] " + error_msg);
+        cleanup_platesolve_env();
+        return false;
+    }
+    fn_ipv_set_gaia(ipv_solver_handle_, gaia_client_handle_);
+    fn_ipv_set_detector(ipv_solver_handle_, sdet_handle_);
+    LOG_INFO("orchestrator", "[PLATESOLVE] IPVSolver 创建成功, 已注入 Gaia + StarDetector 句柄");
+
+    platesolve_env_ready_ = true;
+    LOG_INFO("orchestrator", "[PLATESOLVE] 环境初始化完成");
+    return true;
+}
+
+// ============================================================================
+// cleanup_platesolve_env - 释放 PLATESOLVE 环境
+// 销毁顺序: ipv_solver -> star_detector -> gaia_client -> 卸载 DLL
+// ============================================================================
+void Orchestrator::cleanup_platesolve_env() {
+    if (!platesolve_env_ready_ && ipv_solver_handle_ == nullptr &&
+        gaia_client_handle_ == 0 && sdet_handle_ == 0 &&
+        gaia_client_dll_handle_ == nullptr && star_detector_dll_handle_ == nullptr) {
+        return;
+    }
+    LOG_INFO("orchestrator", "[PLATESOLVE] 释放环境资源");
+
+    // 1. 销毁 ipv_solver 实例
+    if (ipv_solver_handle_ != nullptr && dll_loader_.is_loaded(ModuleId::PLATESOLVE)) {
+        auto fn_ipv_destroy = dll_loader_.get_function<void (*)(void*)>(
+            ModuleId::PLATESOLVE, "ipv_solve_destroy");
+        if (fn_ipv_destroy) fn_ipv_destroy(ipv_solver_handle_);
+        ipv_solver_handle_ = nullptr;
+    }
+
+    // 2. 销毁 StarDetector
+    if (sdet_handle_ != 0 && star_detector_dll_handle_ != nullptr) {
+        using sdet_destroy_fn = void (*)(StarDetectorHandle);
+        auto fn_sdet_destroy = reinterpret_cast<sdet_destroy_fn>(
+            GetProcAddress(static_cast<HMODULE>(star_detector_dll_handle_), "sdet_destroy"));
+        if (fn_sdet_destroy) {
+            fn_sdet_destroy(reinterpret_cast<StarDetectorHandle>(sdet_handle_));
+        }
+        sdet_handle_ = 0;
+    }
+
+    // 3. 销毁 GaiaClient
+    if (gaia_client_handle_ != 0 && gaia_client_dll_handle_ != nullptr) {
+        using gaia_destroy_fn = void (*)(GaiaClient*);
+        auto fn_gaia_destroy = reinterpret_cast<gaia_destroy_fn>(
+            GetProcAddress(static_cast<HMODULE>(gaia_client_dll_handle_), "gaia_client_destroy"));
+        if (fn_gaia_destroy) {
+            fn_gaia_destroy(reinterpret_cast<GaiaClient*>(gaia_client_handle_));
+        }
+        gaia_client_handle_ = 0;
+    }
+
+    // 4. 卸载 DLL
+    if (star_detector_dll_handle_ != nullptr) {
+        FreeLibrary(static_cast<HMODULE>(star_detector_dll_handle_));
+        star_detector_dll_handle_ = nullptr;
+    }
+    if (gaia_client_dll_handle_ != nullptr) {
+        FreeLibrary(static_cast<HMODULE>(gaia_client_dll_handle_));
+        gaia_client_dll_handle_ = nullptr;
+    }
+    platesolve_env_ready_ = false;
+}
+
+// ============================================================================
+// run_stage_platesolve - PLATESOLVE 阶段实现 (ipv_solver.dll 内存接口)
+// 流程:
+//   1. 读取 PipelineFrame "data" 块 (FLOAT32 [H,W])
+//   2. 读取 "header" KV 块的 OBJCTRA/OBJCTDEC/FOCALLEN/XPIXSZ
+//   3. 调用 ipv_solve_from_memory 求解 WCS+SIP
+//   4. 将 WCS+SIP 结果写回 "header" KV 块
+//   5. (可选) 写入 "star_det" 块 (FLOAT32 [N,4]: x,y,flux,mag)
+//   6. (可选) 写入 "gaia_cat" 块 (FLOAT64 [N,3]: ra,dec,mag)
+// 约束: 必须使用 OBJCTRA/OBJCTDEC 作为初始指向, 无论是否已有 WCS 数据
+// ============================================================================
 bool Orchestrator::run_stage_platesolve(TaskResult& result) {
     LOG_INFO("orchestrator", "[PLATESOLVE] 开始");
 
@@ -662,25 +902,327 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
         return true;
     }
 
-    // 检查 header KV 是否已含 WCS (FITS 文件可能已带 WCS)
-    auto fn_kv_get = dll_loader_.get_function<const char* (*)(
-        const PipelineFrame*, const char*, const char*)>(
-        ModuleId::AIO, "aio_frame_kv_get");
-    if (fn_kv_get) {
-        const char* crval1 = fn_kv_get(frame_, "header", "CRVAL1");
-        const char* cd11 = fn_kv_get(frame_, "header", "CD1_1");
-        if (crval1 != nullptr && cd11 != nullptr) {
-            LOG_INFO("orchestrator", "[PLATESOLVE] header 已含 WCS, 跳过 plate solve");
-            return true;
+    // 初始化 PLATESOLVE 环境 (首次调用时加载 gaia_client + star_detector + ipv_solver)
+    if (!platesolve_env_ready_) {
+        std::string err;
+        if (!init_platesolve_env(err)) {
+            LOG_ERROR("orchestrator", "[PLATESOLVE] 环境初始化失败: " + err);
+            result.error_msg = "[PLATESOLVE] 环境初始化失败: " + err;
+            return false;
         }
     }
 
-    // TODO: 实际调用 ipv_solve_from_memory 需要:
-    //   1. gaia_client handle (orchestrator 未加载 gaia_client.dll)
-    //   2. star_detector handle (orchestrator 未加载 star_detector.dll)
-    //   3. ra0/dec0/focal_length/pixel_size (需从 config 或 header 解析)
-    // 当前保留骨架, 后续 Task 集成 gaia_client + star_detector DLL 后实现
-    LOG_WARN("orchestrator", "[PLATESOLVE] 保留骨架: 需要 gaia_client + star_detector handle (未加载)");
+    // 获取 AIO 函数指针
+    auto fn_get_block = dll_loader_.get_function<const AioBlock* (*)(const PipelineFrame*, const char*)>(
+        ModuleId::AIO, "aio_frame_get_block");
+    auto fn_kv_get = dll_loader_.get_function<const char* (*)(
+        const PipelineFrame*, const char*, const char*)>(
+        ModuleId::AIO, "aio_frame_kv_get");
+    auto fn_kv_get_double = dll_loader_.get_function<double (*)(
+        const PipelineFrame*, const char*, const char*, double)>(
+        ModuleId::AIO, "aio_frame_kv_get_double");
+    auto fn_kv_set = dll_loader_.get_function<int (*)(
+        PipelineFrame*, const char*, const char*, const char*)>(
+        ModuleId::AIO, "aio_frame_kv_set");
+    auto fn_kv_set_double = dll_loader_.get_function<int (*)(
+        PipelineFrame*, const char*, const char*, double)>(
+        ModuleId::AIO, "aio_frame_kv_set_double");
+    auto fn_add_block = dll_loader_.get_function<int (*)(
+        PipelineFrame*, const char*, AioBlockType,
+        const void*, int64_t, const int*, int, const char*)>(
+        ModuleId::AIO, "aio_frame_add_block");
+    auto fn_remove_block = dll_loader_.get_function<int (*)(PipelineFrame*, const char*)>(
+        ModuleId::AIO, "aio_frame_remove_block");
+
+    if (!fn_get_block || !fn_kv_get || !fn_kv_get_double || !fn_kv_set || !fn_kv_set_double) {
+        LOG_ERROR("orchestrator", "[PLATESOLVE] AIO 函数指针获取失败");
+        result.error_msg = "[PLATESOLVE] AIO 函数指针获取失败";
+        return false;
+    }
+
+    // 1. 读取 data 块 (FLOAT32 [H,W])
+    const AioBlock* data_block = fn_get_block(frame_, "data");
+    if (data_block == nullptr) {
+        LOG_ERROR("orchestrator", "[PLATESOLVE] data 块不存在");
+        result.error_msg = "[PLATESOLVE] data 块不存在";
+        return false;
+    }
+    int height = data_block->dims[0];
+    int width = data_block->dims[1];
+    const float* pixels = static_cast<const float*>(data_block->data);
+    LOG_INFO("orchestrator", "[PLATESOLVE] 图像: " + std::to_string(width) + "x" + std::to_string(height));
+
+    // 2. 从 header KV 读取初始指向 (OBJCTRA/OBJCTDEC/FOCALLEN/XPIXSZ)
+    //    约束: 必须使用 OBJCTRA/OBJCTDEC 作为初始指向, 无论是否已有 WCS 数据
+    const char* objctra = fn_kv_get(frame_, "header", "OBJCTRA");
+    const char* objctdec = fn_kv_get(frame_, "header", "OBJCTDEC");
+    double focal_length = fn_kv_get_double(frame_, "header", "FOCALLEN", 0.0);
+    double pixel_size = fn_kv_get_double(frame_, "header", "XPIXSZ", 0.0);
+
+    double ra0 = parse_ra_hms(objctra);
+    double dec0 = parse_dec_dms(objctdec);
+
+    LOG_INFO("orchestrator", "[PLATESOLVE] 初始指向: OBJCTRA='" + std::string(objctra ? objctra : "")
+             + "' -> ra0=" + std::to_string(ra0) + "deg, OBJCTDEC='" + std::string(objctdec ? objctdec : "")
+             + "' -> dec0=" + std::to_string(dec0) + "deg");
+    LOG_INFO("orchestrator", "[PLATESOLVE] 焦距=" + std::to_string(focal_length)
+             + "mm, 像素尺寸=" + std::to_string(pixel_size) + "um");
+
+    // 3. 调用 ipv_solve_from_memory (内存接口, 无临时文件)
+    auto fn_ipv_solve = dll_loader_.get_function<int (*)(
+        void*, const float*, int, int, double, double, double, double,
+        const IpvParams*, IpvWcsResult*)>(
+        ModuleId::PLATESOLVE, "ipv_solve_from_memory");
+    auto fn_get_default_params = dll_loader_.get_function<void (*)(IpvParams*)>(
+        ModuleId::PLATESOLVE, "ipv_get_default_params");
+
+    if (!fn_ipv_solve || !fn_get_default_params) {
+        LOG_ERROR("orchestrator", "[PLATESOLVE] ipv 函数指针获取失败");
+        result.error_msg = "[PLATESOLVE] ipv 函数指针获取失败";
+        return false;
+    }
+
+    IpvParams params;
+    fn_get_default_params(&params);
+    // 设置日志目录 (lib/plate_solve/logs)
+    std::string log_dir = project_root_dir_ + "/lib/plate_solve/logs";
+    std::memset(params.log_dir, 0, sizeof(params.log_dir));
+    std::strncpy(params.log_dir, log_dir.c_str(), sizeof(params.log_dir) - 1);
+
+    IpvWcsResult wcs_result;
+    std::memset(&wcs_result, 0, sizeof(wcs_result));
+
+    LOG_INFO("orchestrator", "[PLATESOLVE] 调用 ipv_solve_from_memory ...");
+    int ret = fn_ipv_solve(ipv_solver_handle_,
+                           pixels, width, height,
+                           ra0, dec0, focal_length, pixel_size,
+                           &params, &wcs_result);
+
+    if (ret != 1 || wcs_result.success != 1) {
+        std::string err = wcs_result.error_msg[0] != '\0'
+            ? std::string(wcs_result.error_msg)
+            : ("ret=" + std::to_string(ret));
+        LOG_ERROR("orchestrator", "[PLATESOLVE] 求解失败: " + err);
+        result.error_msg = "[PLATESOLVE] 求解失败: " + err;
+        return false;
+    }
+
+    LOG_INFO("orchestrator", "[PLATESOLVE] 求解成功: rms=" + std::to_string(wcs_result.rms_arcsec)
+             + "arcsec, n_pairs=" + std::to_string(wcs_result.n_pairs)
+             + ", n_detected=" + std::to_string(wcs_result.n_detected)
+             + ", n_catalog=" + std::to_string(wcs_result.n_catalog)
+             + ", trans_order=" + std::to_string(wcs_result.trans_order));
+
+    // 4. 写入 WCS 到 header KV 块
+    // CTYPE (使用求解结果, 为空则根据 sip_order 推导)
+    std::string ctype1(wcs_result.ctype1);
+    std::string ctype2(wcs_result.ctype2);
+    if (ctype1.empty()) ctype1 = (wcs_result.sip_order > 0) ? "RA---TAN-SIP" : "RA---TAN";
+    if (ctype2.empty()) ctype2 = (wcs_result.sip_order > 0) ? "DEC--TAN-SIP" : "DEC--TAN";
+
+    fn_kv_set(frame_, "header", "CTYPE1", ctype1.c_str());
+    fn_kv_set(frame_, "header", "CTYPE2", ctype2.c_str());
+    fn_kv_set_double(frame_, "header", "CRVAL1", wcs_result.crval[0]);
+    fn_kv_set_double(frame_, "header", "CRVAL2", wcs_result.crval[1]);
+    fn_kv_set_double(frame_, "header", "CRPIX1", wcs_result.crpix[0]);
+    fn_kv_set_double(frame_, "header", "CRPIX2", wcs_result.crpix[1]);
+    fn_kv_set_double(frame_, "header", "CD1_1", wcs_result.cd[0]);
+    fn_kv_set_double(frame_, "header", "CD1_2", wcs_result.cd[1]);
+    fn_kv_set_double(frame_, "header", "CD2_1", wcs_result.cd[2]);
+    fn_kv_set_double(frame_, "header", "CD2_2", wcs_result.cd[3]);
+    fn_kv_set(frame_, "header", "RADESYS", "ICRS");
+    fn_kv_set_double(frame_, "header", "EQUINOX", 2000.0);
+
+    LOG_INFO("orchestrator", "[PLATESOLVE] WCS 已写入: CTYPE1=" + ctype1
+             + ", CRVAL=(" + std::to_string(wcs_result.crval[0]) + ", " + std::to_string(wcs_result.crval[1])
+             + "), CRPIX=(" + std::to_string(wcs_result.crpix[0]) + ", " + std::to_string(wcs_result.crpix[1]) + ")");
+
+    // 5. 写入 SIP 系数 (前向 A/B + 逆向 AP/BP)
+    if (wcs_result.sip_order > 0) {
+        int order = wcs_result.sip_order;
+        fn_kv_set_double(frame_, "header", "A_ORDER", static_cast<double>(order));
+        fn_kv_set_double(frame_, "header", "B_ORDER", static_cast<double>(order));
+        char key[16];
+        for (int i = 0; i <= order; ++i) {
+            for (int j = 0; j <= order - i; ++j) {
+                int idx = i * 6 + j;
+                if (idx < 36) {
+                    std::snprintf(key, sizeof(key), "A_%d_%d", i, j);
+                    fn_kv_set_double(frame_, "header", key, wcs_result.sip_a[idx]);
+                    std::snprintf(key, sizeof(key), "B_%d_%d", i, j);
+                    fn_kv_set_double(frame_, "header", key, wcs_result.sip_b[idx]);
+                }
+            }
+        }
+
+        // 逆向 SIP (AP/BP)
+        if (wcs_result.sip_ap_order > 0) {
+            int ap_order = wcs_result.sip_ap_order;
+            fn_kv_set_double(frame_, "header", "AP_ORDER", static_cast<double>(ap_order));
+            fn_kv_set_double(frame_, "header", "BP_ORDER", static_cast<double>(ap_order));
+            for (int i = 0; i <= ap_order; ++i) {
+                for (int j = 0; j <= ap_order - i; ++j) {
+                    int idx = i * 6 + j;
+                    if (idx < 36) {
+                        std::snprintf(key, sizeof(key), "AP_%d_%d", i, j);
+                        fn_kv_set_double(frame_, "header", key, wcs_result.sip_ap[idx]);
+                        std::snprintf(key, sizeof(key), "BP_%d_%d", i, j);
+                        fn_kv_set_double(frame_, "header", key, wcs_result.sip_bp[idx]);
+                    }
+                }
+            }
+        }
+        LOG_INFO("orchestrator", "[PLATESOLVE] SIP 已写入: order=" + std::to_string(order)
+                 + ", ap_order=" + std::to_string(wcs_result.sip_ap_order));
+    } else {
+        LOG_INFO("orchestrator", "[PLATESOLVE] 无 SIP 系数 (sip_order=0)");
+    }
+
+    // 6. (可选) 写入 star_det 块 (FLOAT32 [N,4]: x, y, flux, mag)
+    //    失败不致命, 仅记录警告
+    if (fn_add_block && fn_remove_block && star_detector_dll_handle_ != nullptr && sdet_handle_ != 0) {
+        HMODULE sdet_h = static_cast<HMODULE>(star_detector_dll_handle_);
+        using sdet_detect_ex_fn = int (*)(StarDetectorHandle, const uint16_t*, int, int,
+            double**, double**, float**, int**, float**, int**, int*,
+            const char**, int, float***);
+        using sdet_free_fn = void (*)(double*, double*, float*, int*, float*, int*, float**, int);
+        auto fn_sdet_detect_ex = reinterpret_cast<sdet_detect_ex_fn>(
+            GetProcAddress(sdet_h, "sdet_detect_ex"));
+        auto fn_sdet_free = reinterpret_cast<sdet_free_fn>(
+            GetProcAddress(sdet_h, "sdet_free_detect_ex"));
+
+        if (fn_sdet_detect_ex && fn_sdet_free) {
+            // 将 float 像素转换为 uint16 (clip 0-65535, 截断)
+            int64_t n_pix = static_cast<int64_t>(width) * height;
+            uint16_t* pixels_u16 = static_cast<uint16_t*>(std::malloc(n_pix * sizeof(uint16_t)));
+            if (pixels_u16 != nullptr) {
+                for (int64_t i = 0; i < n_pix; ++i) {
+                    float v = pixels[i];
+                    if (v < 0.0f) v = 0.0f;
+                    if (v > 65535.0f) v = 65535.0f;
+                    pixels_u16[i] = static_cast<uint16_t>(v);
+                }
+
+                double *out_x = nullptr, *out_y = nullptr;
+                float *out_flux = nullptr, *out_mag = nullptr;
+                int *out_saturated = nullptr, *out_has_saturated = nullptr;
+                int out_count = 0;
+
+                int sdet_ret = fn_sdet_detect_ex(
+                    reinterpret_cast<StarDetectorHandle>(sdet_handle_),
+                    pixels_u16, width, height,
+                    &out_x, &out_y, &out_flux, &out_saturated,
+                    &out_mag, &out_has_saturated, &out_count,
+                    nullptr, 0, nullptr);
+
+                if (sdet_ret == 0 && out_count > 0 && out_x && out_y && out_flux && out_mag) {
+                    // 写入 star_det 块 (FLOAT32 [N,4]: x, y, flux, mag)
+                    int64_t n_stars = out_count;
+                    float* star_det = static_cast<float*>(std::malloc(n_stars * 4 * sizeof(float)));
+                    if (star_det != nullptr) {
+                        for (int i = 0; i < out_count; ++i) {
+                            star_det[i * 4 + 0] = static_cast<float>(out_x[i]);
+                            star_det[i * 4 + 1] = static_cast<float>(out_y[i]);
+                            star_det[i * 4 + 2] = out_flux[i];
+                            star_det[i * 4 + 3] = out_mag[i];
+                        }
+                        int dims[2] = {out_count, 4};
+                        fn_remove_block(frame_, "star_det");
+                        int r = fn_add_block(frame_, "star_det", AIO_BLOCK_FLOAT32,
+                                             star_det, n_stars * 4, dims, 2,
+                                             "星点检测结果: x,y,flux,mag");
+                        if (r == 0) {
+                            LOG_INFO("orchestrator", "[PLATESOLVE] star_det 块已写入: "
+                                     + std::to_string(out_count) + " 颗星");
+                        } else {
+                            LOG_WARN("orchestrator", "[PLATESOLVE] star_det 块写入失败 (add_block ret="
+                                     + std::to_string(r) + ")");
+                        }
+                        std::free(star_det);
+                    }
+                    fn_sdet_free(out_x, out_y, out_flux, out_saturated, out_mag,
+                                 out_has_saturated, nullptr, 0);
+                } else {
+                    LOG_WARN("orchestrator", "[PLATESOLVE] 星点检测未找到星点 (sdet_ret="
+                             + std::to_string(sdet_ret) + ", count=" + std::to_string(out_count) + ")");
+                }
+                std::free(pixels_u16);
+            }
+        } else {
+            LOG_WARN("orchestrator", "[PLATESOLVE] sdet_detect_ex 函数未找到, star_det 块未写入");
+        }
+    }
+
+    // 7. (可选) 写入 gaia_cat 块 (FLOAT64 [N,3]: ra, dec, mag)
+    //    使用求解后的 WCS 中心计算 FOV 半径, 锥形查询 Gaia 星表
+    //    失败不致命, 仅记录警告
+    if (fn_add_block && fn_remove_block && gaia_client_dll_handle_ != nullptr && gaia_client_handle_ != 0) {
+        HMODULE gaia_h = static_cast<HMODULE>(gaia_client_dll_handle_);
+        using gaia_cone_fn = int (*)(GaiaClient*, double, double, double, double,
+            double**, double**, float**, int*);
+        auto fn_gaia_cone = reinterpret_cast<gaia_cone_fn>(
+            GetProcAddress(gaia_h, "gaia_client_cone_search_for_solver"));
+
+        if (fn_gaia_cone) {
+            // 计算 FOV 半径: sqrt(|det(CD)|) * sqrt(w^2 + h^2) / 2 * 1.2 (20% 余量)
+            double cd_det = std::abs(wcs_result.cd[0] * wcs_result.cd[3] -
+                                     wcs_result.cd[1] * wcs_result.cd[2]);
+            double pixel_scale_deg = (cd_det > 0) ? std::sqrt(cd_det) : 0.0;
+            double fov_radius_deg = pixel_scale_deg * std::sqrt(
+                static_cast<double>(width) * width + static_cast<double>(height) * height) / 2.0 * 1.2;
+
+            if (fov_radius_deg > 0.0 && fov_radius_deg < 30.0) {
+                double *out_ra = nullptr, *out_dec = nullptr;
+                float *out_mag = nullptr;
+                int out_count = 0;
+                int gaia_ret = fn_gaia_cone(
+                    reinterpret_cast<GaiaClient*>(gaia_client_handle_),
+                    wcs_result.crval[0], wcs_result.crval[1],
+                    fov_radius_deg, 18.0,  // mag_high=18.0
+                    &out_ra, &out_dec, &out_mag, &out_count);
+
+                if (gaia_ret == 0 && out_count > 0 && out_ra && out_dec && out_mag) {
+                    int64_t n_gaia = out_count;
+                    double* gaia_cat = static_cast<double*>(std::malloc(n_gaia * 3 * sizeof(double)));
+                    if (gaia_cat != nullptr) {
+                        for (int i = 0; i < out_count; ++i) {
+                            gaia_cat[i * 3 + 0] = out_ra[i];
+                            gaia_cat[i * 3 + 1] = out_dec[i];
+                            gaia_cat[i * 3 + 2] = static_cast<double>(out_mag[i]);
+                        }
+                        int dims[2] = {out_count, 3};
+                        fn_remove_block(frame_, "gaia_cat");
+                        int r = fn_add_block(frame_, "gaia_cat", AIO_BLOCK_FLOAT64,
+                                             gaia_cat, n_gaia * 3, dims, 2,
+                                             "Gaia 星表: ra,dec,mag");
+                        if (r == 0) {
+                            LOG_INFO("orchestrator", "[PLATESOLVE] gaia_cat 块已写入: "
+                                     + std::to_string(out_count) + " 颗星, FOV半径="
+                                     + std::to_string(fov_radius_deg) + "deg");
+                        } else {
+                            LOG_WARN("orchestrator", "[PLATESOLVE] gaia_cat 块写入失败 (add_block ret="
+                                     + std::to_string(r) + ")");
+                        }
+                        std::free(gaia_cat);
+                    }
+                    // 释放 C 端内存 (gaia_client 使用 malloc 分配)
+                    std::free(out_ra);
+                    std::free(out_dec);
+                    std::free(out_mag);
+                } else {
+                    LOG_WARN("orchestrator", "[PLATESOLVE] Gaia 锥形查询返回空 (ret="
+                             + std::to_string(gaia_ret) + ", count=" + std::to_string(out_count) + ")");
+                }
+            } else {
+                LOG_WARN("orchestrator", "[PLATESOLVE] FOV 半径异常 ("
+                         + std::to_string(fov_radius_deg) + "deg), gaia_cat 块未写入");
+            }
+        } else {
+            LOG_WARN("orchestrator", "[PLATESOLVE] gaia_client_cone_search_for_solver 函数未找到, gaia_cat 块未写入");
+        }
+    }
+
+    LOG_INFO("orchestrator", "[PLATESOLVE] 完成");
     return true;
 }
 

@@ -217,6 +217,25 @@ private:
     // stage2 输出 .hcsd 路径 (run_stage_stack 使用)
     std::string current_output_hcsd_;
 
+    // ========================================================================
+    // PLATESOLVE 环境资源 (ipv_solver + gaia_client + star_detector)
+    // 说明: ipv_solver.dll 依赖 gaia_client.dll 与 star_detector.dll 的句柄,
+    //       这些 DLL 不在 DllLoader 的 10 模块枚举中, 需在 run_stage_platesolve
+    //       首次执行时单独加载并创建句柄, 复用至 Orchestrator 析构.
+    // ========================================================================
+    std::string project_root_dir_;            // 项目根目录 (GaiaDR3SP 数据目录推导基准)
+    void* gaia_client_dll_handle_ = nullptr;  // gaia_client.dll 的 HMODULE
+    void* star_detector_dll_handle_ = nullptr;// star_detector.dll 的 HMODULE
+    intptr_t gaia_client_handle_ = 0;         // GaiaClient* (由 gaia_client_create_ex 返回)
+    intptr_t sdet_handle_ = 0;                // StarDetectorHandle (由 sdet_create 返回)
+    void* ipv_solver_handle_ = nullptr;       // ipv solver 实例 (由 ipv_solve_create 返回)
+    bool platesolve_env_ready_ = false;       // 环境是否已初始化成功
+
+    // 初始化 PLATESOLVE 环境 (加载 DLL + 创建 handle), 失败返回 false
+    bool init_platesolve_env(std::string& error_msg);
+    // 释放 PLATESOLVE 环境 (销毁 handle + 卸载 DLL)
+    void cleanup_platesolve_env();
+
     // 内部方法 (后续 Task 实现具体逻辑)
     bool run_stage_calibrate(TaskResult& result);
     bool run_stage_platesolve(TaskResult& result);
