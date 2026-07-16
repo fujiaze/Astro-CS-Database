@@ -21,6 +21,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <cmath>
+#include <functional>
 
 // 重命名 aio_pipeline.h 的 PipelineStage typedef 为 AioPipelineStage,
 // 避免与 orchestrator.h 的 enum class PipelineStage 冲突
@@ -704,6 +705,305 @@ static double parse_dec_dms(const char* s) {
 }
 
 // ============================================================================
+// 辅助: 滤光片名称映射 (FITS FILTER 关键字 → filters.json 名称)
+// ============================================================================
+static std::string map_filter_name(const std::string& fits_filter) {
+    // 大小写不敏感比较的辅助
+    auto ieq = [](const std::string& a, const char* b) {
+        return std::equal(a.begin(), a.end(), b, b + std::strlen(b),
+            [](char c1, char c2) { return std::tolower(c1) == std::tolower(c2); });
+    };
+    if (ieq(fits_filter, "Red") || ieq(fits_filter, "R")) return "Baader R";
+    if (ieq(fits_filter, "Green") || ieq(fits_filter, "G")) return "Baader G";
+    if (ieq(fits_filter, "Blue") || ieq(fits_filter, "B")) return "Baader B";
+    if (ieq(fits_filter, "Lum") || ieq(fits_filter, "L") || ieq(fits_filter, "Luminance"))
+        return "Baader UV/IR Cut / L CMOS Optimized";
+    // 未匹配时原样返回 (可能本身就是 filters.json 中的名称)
+    return fits_filter;
+}
+
+// ============================================================================
+// 辅助: 从 filters.json 加载指定滤光片的波长与透过率数组
+// 简化 JSON 解析: 定位 "filter_name" 键 → 提取 wavelength_nm 和 value 数组
+// 返回: true=成功, false=失败
+// ============================================================================
+static bool load_filter_curve(const std::string& json_path,
+                               const std::string& filter_name,
+                               std::vector<double>& out_wl,
+                               std::vector<double>& out_trans) {
+    std::ifstream ifs(json_path);
+    if (!ifs.is_open()) {
+        LOG_ERROR("orchestrator", "无法打开 filters.json: " + json_path);
+        return false;
+    }
+    std::string content((std::istreambuf_iterator<char>(ifs)),
+                         std::istreambuf_iterator<char>());
+    ifs.close();
+
+    // 定位 "filter_name" 键 (作为 JSON 对象键, 带引号)
+    std::string key = "\"" + filter_name + "\"";
+    size_t pos = content.find(key);
+    if (pos == std::string::npos) {
+        LOG_ERROR("orchestrator", "滤光片 '" + filter_name + "' 未在 filters.json 中找到");
+        return false;
+    }
+
+    // 从 key 之后查找 "wavelength_nm" 数组
+    auto extract_array = [&content, &pos](const std::string& arr_key,
+                                           std::vector<double>& out) -> bool {
+        size_t kpos = content.find(arr_key, pos);
+        if (kpos == std::string::npos) return false;
+        size_t bracket_start = content.find('[', kpos);
+        if (bracket_start == std::string::npos) return false;
+        size_t bracket_end = content.find(']', bracket_start);
+        if (bracket_end == std::string::npos) return false;
+
+        std::string arr_str = content.substr(bracket_start + 1,
+                                              bracket_end - bracket_start - 1);
+        std::replace(arr_str.begin(), arr_str.end(), ',', ' ');
+        std::istringstream iss(arr_str);
+        out.clear();
+        double v;
+        while (iss >> v) out.push_back(v);
+        return !out.empty();
+    };
+
+    if (!extract_array("\"wavelength_nm\"", out_wl) ||
+        !extract_array("\"value\"", out_trans)) {
+        LOG_ERROR("orchestrator", "解析滤光片 " + filter_name + " 的数组失败");
+        return false;
+    }
+    if (out_wl.size() != out_trans.size()) {
+        LOG_ERROR("orchestrator", "滤光片 " + filter_name +
+                  " 数组长度不一致: wl=" + std::to_string(out_wl.size()) +
+                  " trans=" + std::to_string(out_trans.size()));
+        return false;
+    }
+    return true;
+}
+
+// ============================================================================
+// 辅助: 从 gaia_client 获取光谱波长数组
+// spectrum_wl = [start_nm + i*step_nm for i in range(count)]
+// ============================================================================
+static bool build_spectrum_wl(void* gaia_dll, intptr_t client_handle,
+                               std::vector<double>& out_wl) {
+    if (gaia_dll == nullptr || client_handle == 0) return false;
+    HMODULE gaia_h = static_cast<HMODULE>(gaia_dll);
+    using get_params_fn = int (*)(GaiaClient*, int*, int*, int*);
+    auto fn_get_params = reinterpret_cast<get_params_fn>(
+        GetProcAddress(gaia_h, "gaia_client_get_spectrum_params"));
+    if (!fn_get_params) {
+        LOG_ERROR("orchestrator", "gaia_client_get_spectrum_params 函数未找到");
+        return false;
+    }
+    int start_nm = 0, step_nm = 0, count = 0;
+    int ret = fn_get_params(reinterpret_cast<GaiaClient*>(client_handle),
+                            &start_nm, &step_nm, &count);
+    // 注意: gaia_client_get_spectrum_params 使用布尔约定 (1=成功, 0=失败),
+    // 而非错误码约定 (0=成功, 非0=失败)。此处 ret==1 表示成功找到光谱数据。
+    if (ret != 1 || count <= 0 || step_nm <= 0) {
+        LOG_ERROR("orchestrator", "gaia_client_get_spectrum_params 失败: ret="
+                  + std::to_string(ret) + " count=" + std::to_string(count));
+        return false;
+    }
+    out_wl.resize(count);
+    for (int i = 0; i < count; ++i) {
+        out_wl[i] = static_cast<double>(start_nm + i * step_nm);
+    }
+    return true;
+}
+
+// ============================================================================
+// 辅助: 从 header KV 块读取 WCS 参数 (供 PHOTOMETRIC / GRADIENT_2D 使用)
+// ============================================================================
+struct WcsHeaderParams {
+    double crval1 = 0, crval2 = 0;
+    double crpix1 = 0, crpix2 = 0;
+    double cd11 = 0, cd12 = 0, cd21 = 0, cd22 = 0;
+    int sip_order = 0;
+    double sip_a[36] = {0}, sip_b[36] = {0};
+    double sip_ap[36] = {0}, sip_bp[36] = {0};
+    bool has_ap = false;
+};
+
+static bool read_wcs_from_header(
+    const std::function<const char*(const char*, const char*)>& fn_kv_get,
+    const std::function<double(const char*, const char*, double)>& fn_kv_get_double,
+    WcsHeaderParams& wcs) {
+    wcs.crval1 = fn_kv_get_double("header", "CRVAL1", 0.0);
+    wcs.crval2 = fn_kv_get_double("header", "CRVAL2", 0.0);
+    wcs.crpix1 = fn_kv_get_double("header", "CRPIX1", 0.0);
+    wcs.crpix2 = fn_kv_get_double("header", "CRPIX2", 0.0);
+    wcs.cd11 = fn_kv_get_double("header", "CD1_1", 0.0);
+    wcs.cd12 = fn_kv_get_double("header", "CD1_2", 0.0);
+    wcs.cd21 = fn_kv_get_double("header", "CD2_1", 0.0);
+    wcs.cd22 = fn_kv_get_double("header", "CD2_2", 0.0);
+
+    if (wcs.crval1 == 0.0 && wcs.crval2 == 0.0 &&
+        wcs.crpix1 == 0.0 && wcs.crpix2 == 0.0) {
+        return false;  // WCS 缺失
+    }
+
+    // SIP 前向系数 (A/B)
+    auto read_sip = [&](const char* order_key, const char* prefix, double* coeffs) -> int {
+        const char* order_str = fn_kv_get("header", order_key);
+        if (order_str == nullptr) return 0;
+        int order = std::atoi(order_str);
+        if (order <= 0) return 0;
+        char key[16];
+        for (int i = 0; i <= order; ++i) {
+            for (int j = 0; j <= order - i; ++j) {
+                int idx = i * 6 + j;
+                if (idx < 36) {
+                    std::snprintf(key, sizeof(key), "%s_%d_%d", prefix, i, j);
+                    coeffs[idx] = fn_kv_get_double("header", key, 0.0);
+                }
+            }
+        }
+        return order;
+    };
+
+    int a_order = read_sip("A_ORDER", "A", wcs.sip_a);
+    int b_order = read_sip("B_ORDER", "B", wcs.sip_b);
+    wcs.sip_order = std::max(a_order, b_order);
+
+    int ap_order = read_sip("AP_ORDER", "AP", wcs.sip_ap);
+    int bp_order = read_sip("BP_ORDER", "BP", wcs.sip_bp);
+    wcs.has_ap = (ap_order > 0 && bp_order > 0);
+    return true;
+}
+
+// ============================================================================
+// 辅助: 为 GRADIENT_2D 预计算 Gaia F_syn 数组
+// (gradient_2d_calibrate 需要 gaia_fsyn, 但不接收 gaia_client handle;
+//  photometric_calib.dll 的 spectrum_integrator 是内部 C++ 函数未导出 C API,
+//  此处用线性插值+梯形积分做简化版 F_syn 计算, 与 pc_calibrate_simple_with_gaia
+//  内部的 Akima+Simpson 结果可能有微小差异, 但 GRADIENT_2D 做空间梯度拟合是
+//  相对测量, 系统偏移会抵消, 简化积分足够)
+// ============================================================================
+static bool compute_gaia_fsyn_for_gradient(
+    void* gaia_dll, intptr_t client_handle,
+    double ra_center, double dec_center, double radius_deg,
+    double mag_min, double mag_max,
+    const std::vector<double>& filter_wl,
+    const std::vector<double>& filter_trans,
+    const std::vector<double>& spectrum_wl,
+    std::vector<double>& out_ra,
+    std::vector<double>& out_dec,
+    std::vector<double>& out_mag,
+    std::vector<double>& out_fsyn) {
+
+    if (gaia_dll == nullptr || client_handle == 0) return false;
+    HMODULE gaia_h = static_cast<HMODULE>(gaia_dll);
+
+    // 1. 锥形搜索 (带光谱)
+    using cone_spec_fn = int (*)(GaiaClient*, double, double, double, double, double,
+        GaiaSpectrumStar**, uint8_t**, int*);
+    auto fn_cone_spec = reinterpret_cast<cone_spec_fn>(
+        GetProcAddress(gaia_h, "gaia_client_cone_search_with_spectrum"));
+    if (!fn_cone_spec) {
+        LOG_ERROR("orchestrator", "[GRADIENT_2D] gaia_client_cone_search_with_spectrum 函数未找到");
+        return false;
+    }
+
+    // 自适应星等查询 (与 pc_calibrate_simple_with_gaia 一致: 12->16 逐步增大)
+    static const double mag_max_arr[] = {12.0, 13.0, 14.0, 15.0, 16.0};
+    GaiaSpectrumStar* spec_stars = nullptr;
+    uint8_t* spectra_buf = nullptr;
+    int n_gaia = 0;
+    int rc = 0;
+
+    for (int i = 0; i < 5; ++i) {
+        double mag_max_try = mag_max_arr[i];
+        rc = fn_cone_spec(reinterpret_cast<GaiaClient*>(client_handle),
+                          ra_center, dec_center, radius_deg, mag_min, mag_max_try,
+                          &spec_stars, &spectra_buf, &n_gaia);
+        if (rc != 0) {
+            LOG_ERROR("orchestrator", "[GRADIENT_2D] 锥形搜索失败 rc=" + std::to_string(rc));
+            if (spec_stars) { std::free(spec_stars); spec_stars = nullptr; }
+            if (spectra_buf) { std::free(spectra_buf); spectra_buf = nullptr; }
+            return false;
+        }
+        LOG_INFO("orchestrator", "[GRADIENT_2D] 自适应星等查询: mag_max="
+                 + std::to_string(mag_max_try) + ", n_gaia=" + std::to_string(n_gaia));
+        if (n_gaia >= 2000 || i == 4) break;
+        if (spec_stars) { std::free(spec_stars); spec_stars = nullptr; }
+        if (spectra_buf) { std::free(spectra_buf); spectra_buf = nullptr; }
+    }
+
+    if (n_gaia <= 0 || spec_stars == nullptr || spectra_buf == nullptr) {
+        LOG_WARN("orchestrator", "[GRADIENT_2D] 无光谱星 (n_gaia=" + std::to_string(n_gaia) + ")");
+        if (spec_stars) std::free(spec_stars);
+        if (spectra_buf) std::free(spectra_buf);
+        return false;
+    }
+
+    int spec_count = (int)spectrum_wl.size();
+    int filt_count = (int)filter_wl.size();
+
+    // 2. 滤光片曲线线性插值到光谱网格
+    std::vector<double> filter_on_grid(spec_count, 0.0);
+    for (int i = 0; i < spec_count; ++i) {
+        double wl = spectrum_wl[i];
+        if (wl < filter_wl[0] || wl > filter_wl[filt_count - 1]) {
+            filter_on_grid[i] = 0.0;  // 范围外
+            continue;
+        }
+        int lo = 0, hi = filt_count - 2;
+        while (lo <= hi) {
+            int mid = (lo + hi) / 2;
+            if (wl >= filter_wl[mid] && wl <= filter_wl[mid + 1]) {
+                double dx = filter_wl[mid + 1] - filter_wl[mid];
+                double t = (dx > 0.0) ? (wl - filter_wl[mid]) / dx : 0.0;
+                filter_on_grid[i] = filter_trans[mid] * (1.0 - t) + filter_trans[mid + 1] * t;
+                break;
+            }
+            if (wl < filter_wl[mid]) hi = mid - 1;
+            else lo = mid + 1;
+        }
+    }
+
+    // 3. 预计算 weighted_wl[i] = λ_i × T(λ_i)
+    std::vector<double> weighted_wl(spec_count);
+    for (int i = 0; i < spec_count; ++i) {
+        weighted_wl[i] = spectrum_wl[i] * filter_on_grid[i];
+    }
+
+    // 4. 计算每颗星的 F_syn (梯形积分: ∫ S(λ)·T(λ)·λ dλ × 10^(-0.4*mag_g))
+    out_ra.resize(n_gaia);
+    out_dec.resize(n_gaia);
+    out_mag.resize(n_gaia);
+    out_fsyn.resize(n_gaia, 0.0);
+
+    int n_valid = 0;
+    for (int i = 0; i < n_gaia; ++i) {
+        out_ra[i] = spec_stars[i].ra;
+        out_dec[i] = spec_stars[i].dec;
+        out_mag[i] = spec_stars[i].magG;
+
+        double mag_factor = std::pow(10.0, -0.4 * spec_stars[i].magG);
+        const uint8_t* spec_i = spectra_buf + (size_t)i * spec_count;
+
+        double integral = 0.0;
+        for (int j = 0; j < spec_count - 1; ++j) {
+            double s0 = (double)spec_i[j] * mag_factor * weighted_wl[j];
+            double s1 = (double)spec_i[j + 1] * mag_factor * weighted_wl[j + 1];
+            integral += 0.5 * (s0 + s1) * (spectrum_wl[j + 1] - spectrum_wl[j]);
+        }
+        out_fsyn[i] = integral;
+        if (integral > 0.0 && std::isfinite(integral)) ++n_valid;
+    }
+
+    LOG_INFO("orchestrator", "[GRADIENT_2D] F_syn 计算完成: " + std::to_string(n_valid)
+             + "/" + std::to_string(n_gaia) + " 颗有效");
+
+    std::free(spec_stars);
+    std::free(spectra_buf);
+    return true;
+}
+
+// ============================================================================
 // init_platesolve_env - 初始化 PLATESOLVE 环境
 // 加载 gaia_client.dll + star_detector.dll, 创建 handle, 创建 ipv_solver 实例
 // 复用至 Orchestrator 析构 (cleanup_platesolve_env 释放)
@@ -1240,11 +1540,151 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
         return true;
     }
 
-    // TODO: dpsf_fit_batch 需要 star_det 块 (星点坐标), 由 star_detector 生成
-    //   orchestrator 未加载 star_detector.dll, PLATESOLVE 也未注入 detector handle
-    //   所以 star_det 块不存在, PSF 拟合无法执行
-    // 当前保留骨架, 后续 Task 集成 star_detector 后实现
-    LOG_WARN("orchestrator", "[PSF] 保留骨架: 需要 star_det 块 (star_detector 未加载)");
+    // 获取 AIO 函数指针
+    auto fn_get_block = dll_loader_.get_function<const AioBlock* (*)(const PipelineFrame*, const char*)>(
+        ModuleId::AIO, "aio_frame_get_block");
+    auto fn_remove_block = dll_loader_.get_function<int (*)(PipelineFrame*, const char*)>(
+        ModuleId::AIO, "aio_frame_remove_block");
+    auto fn_add_block = dll_loader_.get_function<int (*)(
+        PipelineFrame*, const char*, AioBlockType,
+        const void*, int64_t, const int*, int, const char*)>(
+        ModuleId::AIO, "aio_frame_add_block");
+
+    if (!fn_get_block || !fn_remove_block || !fn_add_block) {
+        LOG_ERROR("orchestrator", "[PSF] AIO 函数指针获取失败");
+        result.error_msg = "[PSF] AIO 函数指针获取失败";
+        return false;
+    }
+
+    // 1. 读取 data 块 (FLOAT32 [H,W]) → 转为 UINT16 (dpsf_fit_batch 要求 uint16)
+    const AioBlock* data_block = fn_get_block(frame_, "data");
+    if (data_block == nullptr) {
+        LOG_ERROR("orchestrator", "[PSF] data 块不存在");
+        result.error_msg = "[PSF] data 块不存在";
+        return false;
+    }
+    int height = data_block->dims[0];
+    int width = data_block->dims[1];
+    const float* pixels = static_cast<const float*>(data_block->data);
+    int64_t n_pix = static_cast<int64_t>(width) * height;
+    LOG_INFO("orchestrator", "[PSF] 图像: " + std::to_string(width) + "x" + std::to_string(height));
+
+    uint16_t* pixels_u16 = static_cast<uint16_t*>(std::malloc(n_pix * sizeof(uint16_t)));
+    if (pixels_u16 == nullptr) {
+        LOG_ERROR("orchestrator", "[PSF] 分配 uint16 缓冲失败");
+        result.error_msg = "[PSF] 分配 uint16 缓冲失败";
+        return false;
+    }
+    for (int64_t i = 0; i < n_pix; ++i) {
+        float v = pixels[i];
+        if (v < 0.0f) v = 0.0f;
+        if (v > 65535.0f) v = 65535.0f;
+        pixels_u16[i] = static_cast<uint16_t>(v);
+    }
+
+    // 2. 读取 star_det 块 (FLOAT32 [N,4]: x, y, flux, mag)
+    const AioBlock* star_det_block = fn_get_block(frame_, "star_det");
+    if (star_det_block == nullptr || star_det_block->dims[0] <= 0) {
+        LOG_WARN("orchestrator", "[PSF] star_det 块不存在或为空, 跳过 PSF 拟合");
+        std::free(pixels_u16);
+        return true;
+    }
+    int n_stars = star_det_block->dims[0];
+    const float* star_det_data = static_cast<const float*>(star_det_block->data);
+    LOG_INFO("orchestrator", "[PSF] star_det: " + std::to_string(n_stars) + " 颗星");
+
+    // 提取 cx/cy 数组 (double, dpsf_fit_batch 要求)
+    std::vector<double> cx_arr(n_stars), cy_arr(n_stars);
+    for (int i = 0; i < n_stars; ++i) {
+        cx_arr[i] = static_cast<double>(star_det_data[i * 4 + 0]);
+        cy_arr[i] = static_cast<double>(star_det_data[i * 4 + 1]);
+    }
+
+    // 3. 调用 dpsf_fit_batch
+    auto fn_fit_batch = dll_loader_.get_function<int (*)(
+        const uint16_t*, int, int,
+        const double*, const double*, int,
+        const DPSFFitParams*, DPSFFitResult**)>(
+        ModuleId::PSF, "dpsf_fit_batch");
+    auto fn_free_results = dll_loader_.get_function<void (*)(DPSFFitResult*)>(
+        ModuleId::PSF, "dpsf_free_results");
+
+    if (!fn_fit_batch || !fn_free_results) {
+        LOG_ERROR("orchestrator", "[PSF] dpsf_fit_batch/dpsf_free_results 函数未找到");
+        result.error_msg = "[PSF] DPSF 函数指针获取失败";
+        std::free(pixels_u16);
+        return false;
+    }
+
+    DPSFFitParams params;
+    params.fitRadius = 8;
+    params.maxIter = 100;
+    params.tolerance = 1e-6;
+
+    DPSFFitResult* results = nullptr;
+    LOG_INFO("orchestrator", "[PSF] 调用 dpsf_fit_batch (fitRadius=8, maxIter=100) ...");
+    int ret = fn_fit_batch(pixels_u16, width, height,
+                           cx_arr.data(), cy_arr.data(), n_stars,
+                           &params, &results);
+    std::free(pixels_u16);  // 图像不再需要
+
+    if (ret != 0 || results == nullptr) {
+        LOG_ERROR("orchestrator", "[PSF] dpsf_fit_batch 失败: ret=" + std::to_string(ret));
+        result.error_msg = "[PSF] dpsf_fit_batch 失败: ret=" + std::to_string(ret);
+        if (results) fn_free_results(results);
+        return false;
+    }
+
+    // 统计成功数
+    int n_ok = 0;
+    for (int i = 0; i < n_stars; ++i) {
+        if (results[i].status == DPSF_FIT_OK) ++n_ok;
+    }
+    LOG_INFO("orchestrator", "[PSF] 拟合完成: " + std::to_string(n_ok) + "/" + std::to_string(n_stars)
+             + " 成功 (" + std::to_string(static_cast<int>(100.0 * n_ok / std::max(1, n_stars))) + "%)");
+
+    // 4. 写入 psf 块 (FLOAT64 [N,9])
+    // 列含义 (与 snr_estimator.h 一致):
+    //   [0]=status, [1]=B, [2]=flux, [3]=cx, [4]=cy,
+    //   [5]=fwhm(平均), [6]=A, [7]=mad, [8]=eccentricity
+    int64_t n_elements = static_cast<int64_t>(n_stars) * 9;
+    double* psf_data = static_cast<double*>(std::malloc(n_elements * sizeof(double)));
+    if (psf_data == nullptr) {
+        LOG_ERROR("orchestrator", "[PSF] 分配 psf 块失败");
+        result.error_msg = "[PSF] 分配 psf 块失败";
+        fn_free_results(results);
+        return false;
+    }
+    for (int i = 0; i < n_stars; ++i) {
+        const DPSFFitResult& r = results[i];
+        double* row = psf_data + i * 9;
+        row[0] = static_cast<double>(r.status);
+        row[1] = r.B;
+        row[2] = r.flux;
+        row[3] = r.cx;
+        row[4] = r.cy;
+        row[5] = (r.fwhm_x + r.fwhm_y) * 0.5;  // 平均 FWHM
+        row[6] = r.A;
+        row[7] = r.mad;
+        row[8] = r.eccentricity;
+    }
+    fn_free_results(results);
+
+    int dims[2] = {n_stars, 9};
+    fn_remove_block(frame_, "psf");
+    int r = fn_add_block(frame_, "psf", AIO_BLOCK_FLOAT64,
+                         psf_data, n_elements, dims, 2,
+                         "PSF 拟合结果: status,B,flux,cx,cy,fwhm,A,mad,eccentricity");
+    if (r != 0) {
+        LOG_ERROR("orchestrator", "[PSF] 写入 psf 块失败: ret=" + std::to_string(r));
+        result.error_msg = "[PSF] 写入 psf 块失败";
+        std::free(psf_data);
+        return false;
+    }
+    std::free(psf_data);  // add_block 已拷贝
+
+    LOG_INFO("orchestrator", "[PSF] 完成: " + std::to_string(n_stars) + " 颗星, "
+             + std::to_string(n_ok) + " 成功");
     return true;
 }
 
@@ -1262,11 +1702,211 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
         return true;
     }
 
-    // TODO: pc_calibrate_simple_with_gaia 需要 gaia_client handle (orchestrator 未加载)
-    //       pc_calibrate_simple 需要预计算 gaia_fsyn 数组 (需先锥形搜索+光谱积分)
-    //   两者都依赖 gaia_client.dll, 当前保留骨架
-    //   后续 Task 集成 gaia_client 后实现完整测光校准
-    LOG_WARN("orchestrator", "[PHOTOMETRIC] 保留骨架: 需要 gaia_client handle (未加载)");
+    // 确保 PLATESOLVE 环境已初始化 (复用 gaia_client_handle_)
+    if (!platesolve_env_ready_) {
+        std::string err;
+        if (!init_platesolve_env(err)) {
+            LOG_ERROR("orchestrator", "[PHOTOMETRIC] init_platesolve_env 失败: " + err);
+            result.error_msg = "[PHOTOMETRIC] " + err;
+            return false;
+        }
+    }
+
+    // 获取 AIO 函数指针
+    auto fn_get_block = dll_loader_.get_function<const AioBlock* (*)(const PipelineFrame*, const char*)>(
+        ModuleId::AIO, "aio_frame_get_block");
+    auto fn_remove_block = dll_loader_.get_function<int (*)(PipelineFrame*, const char*)>(
+        ModuleId::AIO, "aio_frame_remove_block");
+    auto fn_add_block_move = dll_loader_.get_function<int (*)(
+        PipelineFrame*, const char*, AioBlockType,
+        void*, int64_t, const int*, int, const char*)>(
+        ModuleId::AIO, "aio_frame_add_block_move");
+    auto fn_kv_get = dll_loader_.get_function<const char* (*)(
+        const PipelineFrame*, const char*, const char*)>(
+        ModuleId::AIO, "aio_frame_kv_get");
+    auto fn_kv_get_double = dll_loader_.get_function<double (*)(
+        const PipelineFrame*, const char*, const char*, double)>(
+        ModuleId::AIO, "aio_frame_kv_get_double");
+    auto fn_kv_set = dll_loader_.get_function<int (*)(
+        PipelineFrame*, const char*, const char*, const char*)>(
+        ModuleId::AIO, "aio_frame_kv_set");
+    auto fn_kv_set_double = dll_loader_.get_function<int (*)(
+        PipelineFrame*, const char*, const char*, double)>(
+        ModuleId::AIO, "aio_frame_kv_set_double");
+
+    if (!fn_get_block || !fn_remove_block || !fn_add_block_move ||
+        !fn_kv_get || !fn_kv_get_double || !fn_kv_set || !fn_kv_set_double) {
+        LOG_ERROR("orchestrator", "[PHOTOMETRIC] AIO 函数指针获取失败");
+        result.error_msg = "[PHOTOMETRIC] AIO 函数指针获取失败";
+        return false;
+    }
+
+    // 1. 读取 data 块 (FLOAT32 [H,W])
+    const AioBlock* data_block = fn_get_block(frame_, "data");
+    if (data_block == nullptr) {
+        LOG_ERROR("orchestrator", "[PHOTOMETRIC] data 块不存在");
+        result.error_msg = "[PHOTOMETRIC] data 块不存在";
+        return false;
+    }
+    int height = data_block->dims[0];
+    int width = data_block->dims[1];
+    const float* pixels = static_cast<const float*>(data_block->data);
+    LOG_INFO("orchestrator", "[PHOTOMETRIC] 图像: " + std::to_string(width) + "x" + std::to_string(height));
+
+    // 2. 读取 psf 块 (FLOAT64 [N,9])
+    const AioBlock* psf_block = fn_get_block(frame_, "psf");
+    if (psf_block == nullptr || psf_block->dims[0] <= 0) {
+        LOG_WARN("orchestrator", "[PHOTOMETRIC] psf 块不存在或为空, 跳过测光校准");
+        return true;
+    }
+    int n_psf = psf_block->dims[0];
+    const double* psf_data = static_cast<const double*>(psf_block->data);
+    LOG_INFO("orchestrator", "[PHOTOMETRIC] psf: " + std::to_string(n_psf) + " 颗星");
+
+    // 提取 psf_cx/cy/flux/status 数组
+    // PSF 列: [0]=status, [1]=B, [2]=flux, [3]=cx, [4]=cy, [5]=fwhm, [6]=A, [7]=mad, [8]=eccentricity
+    std::vector<double> psf_cx(n_psf), psf_cy(n_psf), psf_flux(n_psf);
+    std::vector<int> psf_status(n_psf);
+    for (int i = 0; i < n_psf; ++i) {
+        const double* row = psf_data + i * 9;
+        psf_status[i] = static_cast<int>(row[0]);
+        psf_flux[i] = row[2];
+        psf_cx[i] = row[3];
+        psf_cy[i] = row[4];
+    }
+
+    // 3. 从 header KV 读取 FILTER + WCS + SIP
+    std::string filter_str;
+    const char* filter_cstr = fn_kv_get(frame_, "header", "FILTER");
+    if (filter_cstr) filter_str = filter_cstr;
+    std::string filter_name = map_filter_name(filter_str);
+    LOG_INFO("orchestrator", "[PHOTOMETRIC] FILTER='" + filter_str + "' -> '" + filter_name + "'");
+
+    // 加载滤光片曲线
+    std::string filters_json = project_root_dir_ + "/lib/photometric_calib/data/response_curves/filters.json";
+    std::vector<double> filter_wl, filter_trans;
+    if (!load_filter_curve(filters_json, filter_name, filter_wl, filter_trans)) {
+        LOG_ERROR("orchestrator", "[PHOTOMETRIC] 加载滤光片曲线失败");
+        result.error_msg = "[PHOTOMETRIC] 加载滤光片曲线失败";
+        return false;
+    }
+    LOG_INFO("orchestrator", "[PHOTOMETRIC] 滤光片: " + std::to_string(filter_wl.size()) + " 点");
+
+    // 构建 spectrum_wl
+    std::vector<double> spectrum_wl;
+    if (!build_spectrum_wl(gaia_client_dll_handle_, gaia_client_handle_, spectrum_wl)) {
+        LOG_ERROR("orchestrator", "[PHOTOMETRIC] 构建 spectrum_wl 失败");
+        result.error_msg = "[PHOTOMETRIC] 构建 spectrum_wl 失败";
+        return false;
+    }
+    LOG_INFO("orchestrator", "[PHOTOMETRIC] spectrum_wl: " + std::to_string(spectrum_wl.size()) + " 点");
+
+    // 读取 WCS + SIP
+    WcsHeaderParams wcs;
+    auto fn_kv_get_l = [&](const char* block, const char* key) -> const char* {
+        return fn_kv_get(frame_, block, key);
+    };
+    auto fn_kv_get_double_l = [&](const char* block, const char* key, double def) -> double {
+        return fn_kv_get_double(frame_, block, key, def);
+    };
+    if (!read_wcs_from_header(fn_kv_get_l, fn_kv_get_double_l, wcs)) {
+        LOG_ERROR("orchestrator", "[PHOTOMETRIC] WCS 缺失 (需 PLATESOLVE 先执行)");
+        result.error_msg = "[PHOTOMETRIC] WCS 缺失";
+        return false;
+    }
+
+    // 计算 FOV 半径 (度)
+    double cd_det = std::abs(wcs.cd11 * wcs.cd22 - wcs.cd12 * wcs.cd21);
+    double pixel_scale_deg = (cd_det > 0) ? std::sqrt(cd_det) : 0.0;
+    double fov_radius_deg = pixel_scale_deg * std::sqrt(
+        static_cast<double>(width) * width + static_cast<double>(height) * height) / 2.0 * 1.2;
+    if (fov_radius_deg <= 0.0 || fov_radius_deg >= 30.0) {
+        LOG_WARN("orchestrator", "[PHOTOMETRIC] FOV 半径异常 (" + std::to_string(fov_radius_deg) + "deg), 钳位");
+        fov_radius_deg = std::min(std::max(fov_radius_deg, 1.0), 10.0);
+    }
+    LOG_INFO("orchestrator", "[PHOTOMETRIC] FOV 半径: " + std::to_string(fov_radius_deg) + "deg");
+
+    // 4. 调用 pc_calibrate_simple_with_gaia (DLL 内部: 锥形搜索+光谱积分+星匹配+scale 校正)
+    auto fn_pc_calib = dll_loader_.get_function<int (*)(
+        void*, double, double, double, double, double,
+        const double*, const double*, int,
+        const double*, int,
+        const float*, int, int,
+        const double*, const double*, const double*, const int*, int,
+        double, double, double, double, double, double, double, double,
+        int, const double*, const double*, const double*, const double*,
+        float*, int*, double*, double*)>(
+        ModuleId::PHOTOMETRIC, "pc_calibrate_simple_with_gaia");
+
+    if (!fn_pc_calib) {
+        LOG_ERROR("orchestrator", "[PHOTOMETRIC] pc_calibrate_simple_with_gaia 函数未找到");
+        result.error_msg = "[PHOTOMETRIC] pc_calibrate_simple_with_gaia 函数未找到";
+        return false;
+    }
+
+    int64_t n_pix = static_cast<int64_t>(width) * height;
+    float* out_pixels = static_cast<float*>(std::malloc(n_pix * sizeof(float)));
+    if (out_pixels == nullptr) {
+        LOG_ERROR("orchestrator", "[PHOTOMETRIC] 分配输出缓冲失败");
+        result.error_msg = "[PHOTOMETRIC] 分配输出缓冲失败";
+        return false;
+    }
+
+    int out_n_matched = 0;
+    double out_scale = 0.0, out_sigma = 0.0;
+
+    // SIP 指针 (无 SIP 时传 nullptr)
+    const double* sip_a_ptr = (wcs.sip_order > 0) ? wcs.sip_a : nullptr;
+    const double* sip_b_ptr = (wcs.sip_order > 0) ? wcs.sip_b : nullptr;
+    const double* sip_ap_ptr = (wcs.has_ap) ? wcs.sip_ap : nullptr;
+    const double* sip_bp_ptr = (wcs.has_ap) ? wcs.sip_bp : nullptr;
+
+    LOG_INFO("orchestrator", "[PHOTOMETRIC] 调用 pc_calibrate_simple_with_gaia ...");
+    int ret = fn_pc_calib(
+        reinterpret_cast<void*>(reinterpret_cast<GaiaClient*>(gaia_client_handle_)),
+        wcs.crval1, wcs.crval2, fov_radius_deg,
+        6.0, 16.0,  // mag_min, mag_max (DLL 内部会自适应迭代)
+        filter_wl.data(), filter_trans.data(), (int)filter_wl.size(),
+        spectrum_wl.data(), (int)spectrum_wl.size(),
+        pixels, width, height,
+        psf_cx.data(), psf_cy.data(), psf_flux.data(), psf_status.data(), n_psf,
+        wcs.crval1, wcs.crval2, wcs.crpix1, wcs.crpix2,
+        wcs.cd11, wcs.cd12, wcs.cd21, wcs.cd22,
+        wcs.sip_order, sip_a_ptr, sip_b_ptr, sip_ap_ptr, sip_bp_ptr,
+        out_pixels, &out_n_matched, &out_scale, &out_sigma);
+
+    if (ret != 0) {
+        LOG_ERROR("orchestrator", "[PHOTOMETRIC] pc_calibrate_simple_with_gaia 失败: ret=" + std::to_string(ret));
+        result.error_msg = "[PHOTOMETRIC] pc_calibrate_simple_with_gaia 失败: ret=" + std::to_string(ret);
+        std::free(out_pixels);
+        return false;
+    }
+
+    LOG_INFO("orchestrator", "[PHOTOMETRIC] 完成: n_matched=" + std::to_string(out_n_matched)
+             + ", scale=" + std::to_string(out_scale)
+             + ", sigma_residual=" + std::to_string(out_sigma));
+
+    // 5. 更新 data 块 (替换为标定后像素, 转移所有权)
+    fn_remove_block(frame_, "data");
+    int dims[2] = {height, width};
+    int r = fn_add_block_move(frame_, "data", AIO_BLOCK_FLOAT32,
+                              out_pixels, n_pix, dims, 2,
+                              "测光标定后像素 (I_cal = I * scale)");
+    if (r != 0) {
+        LOG_ERROR("orchestrator", "[PHOTOMETRIC] 更新 data 块失败: ret=" + std::to_string(r));
+        result.error_msg = "[PHOTOMETRIC] 更新 data 块失败";
+        std::free(out_pixels);
+        return false;
+    }
+    // out_pixels 所有权已转移给 frame_
+
+    // 6. 写入 photo_stats KV 块 (N_MATCHED, SCALE_FACTOR, SIGMA_RESIDUAL 供 SNR 使用)
+    fn_kv_set(frame_, "photo_stats", "STATUS", "OK");
+    fn_kv_set_double(frame_, "photo_stats", "N_MATCHED", static_cast<double>(out_n_matched));
+    fn_kv_set_double(frame_, "photo_stats", "SCALE_FACTOR", out_scale);
+    fn_kv_set_double(frame_, "photo_stats", "SIGMA_RESIDUAL", out_sigma);
+
+    LOG_INFO("orchestrator", "[PHOTOMETRIC] photo_stats 已写入");
     return true;
 }
 
@@ -1478,13 +2118,215 @@ bool Orchestrator::run_stage_gradient_2d(TaskResult& result) {
         return true;
     }
 
-    // TODO: gradient_2d_calibrate 需要:
-    //   1. gaia_ra/dec/mag/fsyn 数组 (需 gaia_client 锥形搜索+光谱积分)
-    //   2. psf_cx/cy/flux/status 数组 (需 PSF 阶段成功, 当前 PSF 为骨架)
-    //   3. WCS + SIP 参数 (需 PLATESOLVE 成功或 FITS 自带 WCS)
-    //   依赖 gaia_client + star_detector + PSF, 当前均未就绪
-    //   后续 Task 集成完整前置链后实现
-    LOG_WARN("orchestrator", "[GRADIENT_2D] 保留骨架: 需要 gaia 数据 + psf 块 (前置依赖未就绪)");
+    // 确保 PLATESOLVE 环境已初始化 (复用 gaia_client_handle_)
+    if (!platesolve_env_ready_) {
+        std::string err;
+        if (!init_platesolve_env(err)) {
+            LOG_ERROR("orchestrator", "[GRADIENT_2D] init_platesolve_env 失败: " + err);
+            result.error_msg = "[GRADIENT_2D] " + err;
+            return false;
+        }
+    }
+
+    // 获取 AIO 函数指针
+    auto fn_get_block = dll_loader_.get_function<const AioBlock* (*)(const PipelineFrame*, const char*)>(
+        ModuleId::AIO, "aio_frame_get_block");
+    auto fn_remove_block = dll_loader_.get_function<int (*)(PipelineFrame*, const char*)>(
+        ModuleId::AIO, "aio_frame_remove_block");
+    auto fn_add_block_move = dll_loader_.get_function<int (*)(
+        PipelineFrame*, const char*, AioBlockType,
+        void*, int64_t, const int*, int, const char*)>(
+        ModuleId::AIO, "aio_frame_add_block_move");
+    auto fn_kv_get = dll_loader_.get_function<const char* (*)(
+        const PipelineFrame*, const char*, const char*)>(
+        ModuleId::AIO, "aio_frame_kv_get");
+    auto fn_kv_get_double = dll_loader_.get_function<double (*)(
+        const PipelineFrame*, const char*, const char*, double)>(
+        ModuleId::AIO, "aio_frame_kv_get_double");
+    auto fn_kv_set_double = dll_loader_.get_function<int (*)(
+        PipelineFrame*, const char*, const char*, double)>(
+        ModuleId::AIO, "aio_frame_kv_set_double");
+
+    if (!fn_get_block || !fn_remove_block || !fn_add_block_move || !fn_kv_get || !fn_kv_get_double) {
+        LOG_ERROR("orchestrator", "[GRADIENT_2D] AIO 函数指针获取失败");
+        result.error_msg = "[GRADIENT_2D] AIO 函数指针获取失败";
+        return false;
+    }
+
+    // 1. 读取 data 块 (FLOAT32 [H,W])
+    const AioBlock* data_block = fn_get_block(frame_, "data");
+    if (data_block == nullptr) {
+        LOG_ERROR("orchestrator", "[GRADIENT_2D] data 块不存在");
+        result.error_msg = "[GRADIENT_2D] data 块不存在";
+        return false;
+    }
+    int height = data_block->dims[0];
+    int width = data_block->dims[1];
+    const float* pixels = static_cast<const float*>(data_block->data);
+    LOG_INFO("orchestrator", "[GRADIENT_2D] 图像: " + std::to_string(width) + "x" + std::to_string(height));
+
+    // 2. 读取 psf 块 (FLOAT64 [N,9])
+    const AioBlock* psf_block = fn_get_block(frame_, "psf");
+    if (psf_block == nullptr || psf_block->dims[0] <= 0) {
+        LOG_WARN("orchestrator", "[GRADIENT_2D] psf 块不存在或为空, 跳过梯度校正");
+        return true;
+    }
+    int n_psf = psf_block->dims[0];
+    const double* psf_data = static_cast<const double*>(psf_block->data);
+
+    // 提取 psf_cx/cy/flux/status 数组
+    std::vector<double> psf_cx(n_psf), psf_cy(n_psf), psf_flux(n_psf);
+    std::vector<int> psf_status(n_psf);
+    for (int i = 0; i < n_psf; ++i) {
+        const double* row = psf_data + i * 9;
+        psf_status[i] = static_cast<int>(row[0]);
+        psf_flux[i] = row[2];
+        psf_cx[i] = row[3];
+        psf_cy[i] = row[4];
+    }
+
+    // 3. 从 header KV 读取 FILTER + WCS + SIP
+    std::string filter_str;
+    const char* filter_cstr = fn_kv_get(frame_, "header", "FILTER");
+    if (filter_cstr) filter_str = filter_cstr;
+    std::string filter_name = map_filter_name(filter_str);
+
+    std::string filters_json = project_root_dir_ + "/lib/photometric_calib/data/response_curves/filters.json";
+    std::vector<double> filter_wl, filter_trans;
+    if (!load_filter_curve(filters_json, filter_name, filter_wl, filter_trans)) {
+        LOG_ERROR("orchestrator", "[GRADIENT_2D] 加载滤光片曲线失败");
+        result.error_msg = "[GRADIENT_2D] 加载滤光片曲线失败";
+        return false;
+    }
+
+    std::vector<double> spectrum_wl;
+    if (!build_spectrum_wl(gaia_client_dll_handle_, gaia_client_handle_, spectrum_wl)) {
+        LOG_ERROR("orchestrator", "[GRADIENT_2D] 构建 spectrum_wl 失败");
+        result.error_msg = "[GRADIENT_2D] 构建 spectrum_wl 失败";
+        return false;
+    }
+
+    WcsHeaderParams wcs;
+    auto fn_kv_get_l = [&](const char* block, const char* key) -> const char* {
+        return fn_kv_get(frame_, block, key);
+    };
+    auto fn_kv_get_double_l = [&](const char* block, const char* key, double def) -> double {
+        return fn_kv_get_double(frame_, block, key, def);
+    };
+    if (!read_wcs_from_header(fn_kv_get_l, fn_kv_get_double_l, wcs)) {
+        LOG_ERROR("orchestrator", "[GRADIENT_2D] WCS 缺失");
+        result.error_msg = "[GRADIENT_2D] WCS 缺失";
+        return false;
+    }
+
+    // 计算 FOV 半径
+    double cd_det = std::abs(wcs.cd11 * wcs.cd22 - wcs.cd12 * wcs.cd21);
+    double pixel_scale_deg = (cd_det > 0) ? std::sqrt(cd_det) : 0.0;
+    double fov_radius_deg = pixel_scale_deg * std::sqrt(
+        static_cast<double>(width) * width + static_cast<double>(height) * height) / 2.0 * 1.2;
+    if (fov_radius_deg <= 0.0 || fov_radius_deg >= 30.0) {
+        fov_radius_deg = std::min(std::max(fov_radius_deg, 1.0), 10.0);
+    }
+    LOG_INFO("orchestrator", "[GRADIENT_2D] FOV 半径: " + std::to_string(fov_radius_deg) + "deg");
+
+    // 4. 预计算 Gaia F_syn 数组 (gradient_2d_calibrate 需要 gaia_fsyn)
+    std::vector<double> gaia_ra, gaia_dec, gaia_mag, gaia_fsyn;
+    if (!compute_gaia_fsyn_for_gradient(
+            gaia_client_dll_handle_, gaia_client_handle_,
+            wcs.crval1, wcs.crval2, fov_radius_deg,
+            6.0, 16.0, filter_wl, filter_trans, spectrum_wl,
+            gaia_ra, gaia_dec, gaia_mag, gaia_fsyn)) {
+        LOG_WARN("orchestrator", "[GRADIENT_2D] 无法获取 Gaia F_syn 数据, 跳过梯度校正");
+        return true;
+    }
+    int n_gaia = (int)gaia_ra.size();
+    LOG_INFO("orchestrator", "[GRADIENT_2D] Gaia 星: " + std::to_string(n_gaia) + " 颗");
+
+    // 5. 调用 gradient_2d_calibrate
+    auto fn_gradient = dll_loader_.get_function<int (*)(
+        const float*, int, int,
+        const double*, const double*, const double*, const double*, int,
+        const double*, const double*, const double*, const int*, int,
+        double, double, double, double, double, double, double, double,
+        int, const double*, const double*, const double*, const double*,
+        double, double, int,
+        float*, Gradient2DResult*)>(
+        ModuleId::GRADIENT_2D, "gradient_2d_calibrate");
+
+    if (!fn_gradient) {
+        LOG_ERROR("orchestrator", "[GRADIENT_2D] gradient_2d_calibrate 函数未找到");
+        result.error_msg = "[GRADIENT_2D] gradient_2d_calibrate 函数未找到";
+        return false;
+    }
+
+    int64_t n_pix = static_cast<int64_t>(width) * height;
+    float* out_pixels = static_cast<float*>(std::malloc(n_pix * sizeof(float)));
+    if (out_pixels == nullptr) {
+        LOG_ERROR("orchestrator", "[GRADIENT_2D] 分配输出缓冲失败");
+        result.error_msg = "[GRADIENT_2D] 分配输出缓冲失败";
+        return false;
+    }
+
+    const double* sip_a_ptr = (wcs.sip_order > 0) ? wcs.sip_a : nullptr;
+    const double* sip_b_ptr = (wcs.sip_order > 0) ? wcs.sip_b : nullptr;
+    const double* sip_ap_ptr = (wcs.has_ap) ? wcs.sip_ap : nullptr;
+    const double* sip_bp_ptr = (wcs.has_ap) ? wcs.sip_bp : nullptr;
+
+    Gradient2DResult g2d_result;
+    std::memset(&g2d_result, 0, sizeof(g2d_result));
+
+    LOG_INFO("orchestrator", "[GRADIENT_2D] 调用 gradient_2d_calibrate ...");
+    int ret = fn_gradient(
+        pixels, width, height,
+        gaia_ra.data(), gaia_dec.data(), gaia_mag.data(), gaia_fsyn.data(), n_gaia,
+        psf_cx.data(), psf_cy.data(), psf_flux.data(), psf_status.data(), n_psf,
+        wcs.crval1, wcs.crval2, wcs.crpix1, wcs.crpix2,
+        wcs.cd11, wcs.cd12, wcs.cd21, wcs.cd22,
+        wcs.sip_order, sip_a_ptr, sip_b_ptr, sip_ap_ptr, sip_bp_ptr,
+        3.0, 3.0, 3,  // match_radius_px, outlier_sigma, max_order
+        out_pixels, &g2d_result);
+
+    // -1=参数无效, -3=数值异常: 失败; -2=匹配星数<6: 退化恒等校正 (out_pixels 仍有效)
+    if (ret == -1 || ret == -3) {
+        LOG_ERROR("orchestrator", "[GRADIENT_2D] gradient_2d_calibrate 失败: ret=" + std::to_string(ret));
+        result.error_msg = "[GRADIENT_2D] 失败: ret=" + std::to_string(ret);
+        std::free(out_pixels);
+        return false;
+    }
+    if (ret == -2) {
+        LOG_WARN("orchestrator", "[GRADIENT_2D] 退化: 匹配星数 < 6, 恒等校正");
+    }
+
+    LOG_INFO("orchestrator", "[GRADIENT_2D] 完成: n_matched=" + std::to_string(g2d_result.n_matched)
+             + ", scale=" + std::to_string(g2d_result.scale_factor)
+             + ", rms=" + std::to_string(g2d_result.rms_residual)
+             + ", order=" + std::to_string(g2d_result.mult_order)
+             + ", R²=" + std::to_string(g2d_result.mult_r_squared)
+             + ", sigma=" + std::to_string(g2d_result.sigma_residual));
+
+    // 6. 更新 data 块 (替换为校正后像素, 转移所有权)
+    fn_remove_block(frame_, "data");
+    int dims[2] = {height, width};
+    int r = fn_add_block_move(frame_, "data", AIO_BLOCK_FLOAT32,
+                              out_pixels, n_pix, dims, 2,
+                              "2D 梯度校正后像素");
+    if (r != 0) {
+        LOG_ERROR("orchestrator", "[GRADIENT_2D] 更新 data 块失败: ret=" + std::to_string(r));
+        result.error_msg = "[GRADIENT_2D] 更新 data 块失败";
+        std::free(out_pixels);
+        return false;
+    }
+    // out_pixels 所有权已转移给 frame_
+
+    // 追加梯度校正信息到 photo_stats KV
+    if (fn_kv_set_double) {
+        fn_kv_set_double(frame_, "photo_stats", "G2D_N_MATCHED", static_cast<double>(g2d_result.n_matched));
+        fn_kv_set_double(frame_, "photo_stats", "G2D_SCALE", g2d_result.scale_factor);
+        fn_kv_set_double(frame_, "photo_stats", "G2D_RMS", g2d_result.rms_residual);
+        fn_kv_set_double(frame_, "photo_stats", "G2D_R_SQUARED", g2d_result.mult_r_squared);
+        fn_kv_set_double(frame_, "photo_stats", "G2D_SIGMA_RESIDUAL", g2d_result.sigma_residual);
+    }
+
     return true;
 }
 
