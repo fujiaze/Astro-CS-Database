@@ -108,7 +108,15 @@
   - stage2 success=true
 - **stage2 状态**: 2/2 节点链路打通 (GRADIENT_SPHERE 实际调用 hp_stack_gradient_corrected, STACK 骨架跳过)
 - **限制**: 单帧测试无多帧叠加意义 (sigma-clip 剔除 0, mean_pixel_count=1.0); 真正多帧验证需多个 .hiss 文件
-- **后续待办**: 多帧 stage2 验证 (需多帧 .hiss, 即对多个 FITS 运行 stage1)
+- **多帧验证 (2 帧 .hiss 输入)**:
+  - 输入: frame1.hiss (061703 Red, nside=32768, 15407202 像素) + frame2.hiss (062109 Red, nside=32768, 15406480 像素)
+  - GRADIENT_SPHERE 5.6316s success=true
+  - 合并后: 15522966 像素 (两帧重叠区叠加 + 非重叠区单独), mean_pixel_count=1.9850 (接近 2.0, 大部分像素两帧覆盖)
+  - sigma-clip 迭代 0: 剔除 0 个离群值 (两帧同天区同滤光片一致性良好)
+  - 输出: output_stage2.hcsd 178.77MB (78 非空子叶 / 49152)
+  - stage2 success=true
+- **已知问题**: .hiss 文件 has_snr=0 (SNR 通道未持久化), 导致 stage2 SNR² 加权退化为等权; 属 "4 处断层" 待修复 (drizzle落盘/hiss格式/Python绑定/stack加权)
+- **后续待办**: stage2 多帧验证 (需多帧 .hiss, 即对多个 FITS 运行 stage1)
 
 ## 2026-07-16 架构重构 (spec §2.3 两段流水线 10 节点)
 - spec: .trae/specs/architecture-refactor/spec.md (已审阅通过)
