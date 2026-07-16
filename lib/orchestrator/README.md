@@ -1,122 +1,188 @@
 # Pipeline Orchestrator
 
-版本：v1.0 Python原型 | 规划中：C++ CLI版本 | 2026-07-12
+版本：v2.0 两段流水线 10 节点 C++ CLI | 2026-07-16
 
 ## 模块职责
 
-管线编排引擎模块。统一管理校准→解析→PSF→测光→Drizzle全链路流水线，提供单帧和批量处理能力。
+管线编排引擎模块。统一管理两段流水线 10 节点全链路流水线，提供单帧预处理（stage1）和多帧合并（stage2）两个 CLI 命令。
 
-通过 `PipelineStageHandlerC` 将各 C++ DLL 模块封装为统一的阶段处理器，以 `PipelineFrame` 命名块容器在阶段间传递数据，实现零临时文件的内存管线。
+通过 `DllLoader` 动态加载各 C++ DLL 模块，以 `PipelineFrame` 命名块容器在阶段间传递数据，实现零临时文件的内存管线。
 
 ## GitHub仓库
-- 暂未上传（规划中）
+- https://github.com/fujiaze/Orchestrator-Cpp-Python
+
+## 架构设计（spec §2.3 两段流水线 10 节点）
+
+### 第一段：单帧预处理（FITS → .hiss, stage 0-7）
+
+```
+orchestrator stage1 --frame <fits> --output <hiss> [options]
+```
+
+| Stage | 名称 | DLL | 职责 |
+|-------|------|-----|------|
+| 0 | READ_FITS | astro_image_io.dll | 读取 FITS 到 PipelineFrame |
+| 1 | CALIBRATE | astro_calibration.dll | dark/bias/flat 校准 + 坏点修复 |
+| 2 | PLATESOLVE | ipv_solver.dll | WCS/SIP 解析 |
+| 3 | PSF | dynamic_psf.dll | PSF 拟合 |
+| 4 | PHOTOMETRIC | photometric_calib.dll | F_syn 积分 + 全局 scale |
+| 5 | GRADIENT_2D | gradient_2d.dll | step4 C++化: 乘性梯度曲面拟合 + 图像校正 |
+| 6 | SNR | snr_estimator.dll | 异常值剔除 + 测光不确定度 + 帧SNR基准 |
+| 7 | DRIZZLE | healpix_drizzle.dll | nside 1-2x, SNR同步转换, 落盘 .hiss |
+
+### 第二段：多帧合并（.hiss → .hcsd, stage 8-9）
+
+```
+orchestrator stage2 --frames <hiss_dir> --output <hcsd> [options]
+```
+
+| Stage | 名称 | DLL | 职责 |
+|-------|------|-----|------|
+| 8 | GRADIENT_SPHERE | healpix_stack.dll | 球面梯度校准 (hp_stack_gradient_corrected) |
+| 9 | STACK | healpix_stack.dll | Winsorized sigma clip + SNR²加权叠加 → .hcsd |
 
 ## 功能列表
+
+### C++ CLI（v2.0, 两段流水线）
+- `orchestrator stage1` - 单帧预处理 (stage 0-7 串行)
+- `orchestrator stage2` - 多帧合并 (stage 8-9 串行)
+- `orchestrator run` - 旧版单帧处理 (5 阶段, 向后兼容)
+- `orchestrator run-batch` - 旧版批量处理
+- `orchestrator status` - 状态查询
+- DllLoader: 动态加载 10 个模块 DLL (AIO/CALIBRATE/PLATESOLVE/PSF/PHOTOMETRIC/GRADIENT_2D/SNR/DRIZZLE/GRADIENT_SPHERE/STACK)
+- CheckpointManager: 断点续传
+- Logger: 统一日志系统 (DEBUG/INFO/WARN/ERROR)
+- 交互式 REPL 模式
+
+### Python 调试层（v1.0, 保留）
 - Orchestrator类：封装PipelineEngine，提供run_single/run_batch接口
-- 5个管线适配器（pipeline_adapters/）：
-  - calibrate_adapter.py - STAGE_CALIBRATE（调用ac_calibrate_frame C++ DLL）
-  - platesolve_adapter.py - STAGE_PLATESOLVE（调用ipv_solve_from_memory C++ DLL）
-  - psf_adapter.py - PSF_FIT非标准阶段（调用dpsf_fit_batch C++ DLL）
-  - photometric_adapter.py - STAGE_PHOTOMETRIC（调用pc_calibrate_simple C++ DLL）
-  - drizzle_adapter.py - STAGE_DRIZZLE（调用hp_drizzle_run C++ DLL）
-- 端到端测试（15项验证）
-- 批处理脚本（step1-4、batch、report、visualize）
+- 5个管线适配器（pipeline_adapters/）
+- 端到端测试
 
 ## 目录结构
-- python/orchestrator.py - 编排器核心
-- python/pipeline_adapters/ - 5个管线适配器
-- tests/test_orchestrator_e2e.py - 端到端测试
-- scripts/ - 批处理脚本（从integration_test迁移）
-- docs/architecture.md - 架构说明
-- logs/ - 运行时日志
+- `cpp/include/` - C++ 头文件 (orchestrator.h, dll_loader.h, cli_command.h, checkpoint.h, logger.h, cli_repl.h)
+- `cpp/src/` - C++ 源文件 (orchestrator.cpp, dll_loader.cpp, cli_command.cpp, checkpoint.cpp, logger.cpp, cli_repl.cpp, main.cpp)
+- `cpp/tests/` - 单元测试 (test_dll_loader, test_checkpoint, test_logger, test_orchestrator_cli)
+- `cpp/Makefile` - 编译配置 (g++ -O2 -std=c++17 -Wall -fopenmp -static)
+- `configs/` - 配置文件 (stage1_config.json, stage2_config.json, galaxy_center_t4.json)
+- `python/` - Python 调试层 (orchestrator.py + pipeline_adapters/)
+- `tests/` - Python 端到端测试
+- `archive/scripts/` - 归档批处理脚本
+- `docs/architecture.md` - 架构说明
+- `logs/` - 运行时日志
 
 ## 依赖列表
 
-### C++ DLL依赖（5个）
-- astro_image_io.dll - PipelineFrame + PipelineEngine
-- ipv_solver.dll - plate solving
-- dynamic_psf.dll - PSF拟合
-- photometric_calib.dll - 测光校准
-- healpix_drizzle.dll - HEALPix drizzle
+### C++ DLL依赖（10个模块, spec §2.3.2）
+- astro_image_io.dll - PipelineFrame + PipelineEngine (stage 0)
+- astro_calibration.dll - 校准 (stage 1)
+- ipv_solver.dll - plate solving (stage 2)
+- dynamic_psf.dll - PSF拟合 (stage 3)
+- photometric_calib.dll - 测光校准 (stage 4)
+- gradient_2d.dll - step4 C++化: 梯度曲面拟合 (stage 5)
+- snr_estimator.dll - SNR估算 (stage 6)
+- healpix_drizzle.dll - HEALPix drizzle (stage 7)
+- healpix_stack.dll - 球面梯度校准 + 堆叠 (stage 8-9, 共用)
 
 ### Python依赖
 - numpy, ctypes
 
 ## 编译说明
 
-本模块为Python模块，无需编译。依赖的C++ DLL请参考各模块的编译说明。
-
-所有 DLL 依赖 MinGW 运行时 (`C:\msys64\mingw64\bin`)。
+```powershell
+# 需要 MinGW g++ (C:\msys64\mingw64\bin)
+$env:Path = "C:\msys64\mingw64\bin;$env:Path"
+cd lib\orchestrator\cpp
+make            # 编译 orchestrator.exe
+make clean      # 清理
+```
 
 ## 使用示例
 
-```python
-from orchestrator import Orchestrator
-from pipeline_adapters import (
-    register_calibrate_handler,
-    register_platesolve_handler,
-    register_psf_handler,
-    register_photometric_handler,
-    register_drizzle_handler,
-)
+### stage1: 单帧预处理
 
-# 创建编排器
-orch = Orchestrator()
-
-# 注册handler
-register_calibrate_handler(orch.engine, CalibrateParams(...))
-register_platesolve_handler(orch.engine, PlateSolveParams(...))
-register_drizzle_handler(orch.engine, DrizzleParams(nside=8192, output_dir="./output"))
-
-# 运行单帧
-result = orch.run_single(frame, STAGE_CALIBRATE, STAGE_DRIZZLE)
+```powershell
+# 从项目根目录执行 (DLL 路径为相对路径)
+.\lib\orchestrator\cpp\orchestrator.exe stage1 `
+    --frame testdata\results\...\01_calibrated.fits `
+    --output output\frame1.hiss `
+    --gaia-data GaiaDR3SP `
+    --filter Red `
+    --config lib\orchestrator\configs\stage1_config.json `
+    --log-level INFO
 ```
 
-### 批量处理
+### stage2: 多帧合并
 
-```python
-scripts/run_all.py          # 全链路批量
-scripts/batch_calibrate.py  # 仅校准
-scripts/batch_solve.py      # 仅解析
-scripts/batch_step34.py     # 步骤3+4 (积分+估计)
+```powershell
+.\lib\orchestrator\cpp\orchestrator.exe stage2 `
+    --frames output\hiss_output\ `
+    --output output\stacked.hcsd `
+    --config lib\orchestrator\configs\stage2_config.json `
+    --log-level INFO
+```
+
+### 旧版命令（向后兼容）
+
+```powershell
+orchestrator run <fits> [--config <json>] [--threads <N>] [--fresh]
+orchestrator run-batch <dir> [--config <json>] [--threads <N>] [--fresh]
+```
+
+## 配置文件
+
+### stage1_config.json (spec §2.3.3)
+```json
+{
+  "project_root": ".",
+  "gaia_data_dir": "GaiaDR3SP",
+  "calibration_dir": "testdata/calibration",
+  "stages": ["read_fits", "calibrate", "platesolve", "psf",
+             "photometric", "gradient_2d", "snr", "drizzle"],
+  "frame": {"id": "panel1_Red", "filter": "Red", "qe_curve": "GSENSE2020BSI"},
+  "drizzle": {"nside_strategy": "1x_to_2x_drizzle", "nside_override": 0}
+}
+```
+
+### stage2_config.json (spec §2.3.3)
+```json
+{
+  "frames_dir": "output/hiss_output/",
+  "output_hcsd": "output/stacked.hcsd",
+  "stages": ["gradient_sphere", "stack"],
+  "stack": {
+    "sigma_clip_method": "winsorized",
+    "sigma_clip_sigma": 3.0,
+    "weighting": "snr_squared"
+  }
+}
 ```
 
 ## 接口说明
 
-### Orchestrator类
-- run_single(frame, from_stage, to_stage) -> dict
-  返回: {success, timings, blocks, output_files, wcs, photo_stats, error}
+### Orchestrator类 (C++)
+- `run_stage1(fits_path, output_hiss, config_json)` -> TaskResult
+- `run_stage2(hiss_dir, output_hcsd, config_json)` -> TaskResult
+- `run_single(fits_path)` -> TaskResult (旧版 5 阶段)
+- `run_batch(dir_path)` -> vector<TaskResult> (旧版批量)
+- `init_dlls(lib_base_dir, error_msg)` -> bool
+- `load_config(config_path, error_msg)` -> bool
+- `pause() / resume() / interrupt()` - 状态控制
+- `save_checkpoint() / load_checkpoint()` - 断点续传
 
-### PipelineStageHandlerC
-C回调函数签名: int (*)(void* frame, void* params, char* err_buf, int err_cap)
-
-### 5个适配器
-每个适配器提供register_xxx_handler(engine, params)函数和XxxParams数据类。
-
-## 迁移说明
-
-本模块从以下位置迁移而来（使用 copy，源文件保留）：
-
-- `lib/astro_image_io/python/orchestrator.py` → `python/orchestrator.py`
-- `lib/astro_image_io/python/tests/test_orchestrator_e2e.py` → `tests/test_orchestrator_e2e.py`
-- `lib/calibration/python/pipeline_adapter.py` → `python/pipeline_adapters/calibrate_adapter.py`
-- `lib/plate_solve/python/pipeline_adapter.py` → `python/pipeline_adapters/platesolve_adapter.py`
-- `lib/photometric_calib/flux_calibrator/python/pipeline_adapter.py` → `python/pipeline_adapters/photometric_adapter.py`
-- `lib/healpix_db/healpix_drizzle/pipeline_adapter.py` → `python/pipeline_adapters/drizzle_adapter.py`
-- `lib/dynamic_psf` 的 PSF handler 代码从 orchestrator.py 提取 → `python/pipeline_adapters/psf_adapter.py`
-- `lib/integration_test/python/*` → `scripts/`
-
-## 未来规划
-
-### C++ CLI 版本
-
-计划将编排器迁移为 C++ CLI 可执行程序，实现：
-- **JSON 处理**: 用 nlohmann/json 替代 Python dict 传递参数和结果
-- **命令行交互**: 支持 `--stage`, `--input`, `--output`, `--config` 等参数，可交互查询状态、中断程序
-- **断点续传**: 记录每帧处理状态，失败后可从断点恢复
-- **配合前端**: 输出结构化 JSON 进度，供 Web/GUI 前端实时展示
-- **多线程**: 利用 16 线程 CPU 并行处理多帧
-- **集成日志系统**: 统一的日志输出与分析
+### TaskResult 结构
+```json
+{
+  "success": true,
+  "frame_name": "...",
+  "timings": [{"stage": "...", "name": "...", "duration_sec": 0.0, "success": true}],
+  "wcs_fields": {},
+  "photo_stats": {},
+  "output_ahpx_path": "...",
+  "error_msg": ""
+}
+```
 
 ## 版本历史
+- v2.0 (2026-07-16): 两段流水线 10 节点 C++ CLI (stage1/stage2) + DllLoader 10 模块 + 配置文件
 - v1.0 (2026-07-12): 从各模块迁移编排代码，Python原型完成

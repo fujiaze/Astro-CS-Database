@@ -1,12 +1,25 @@
 # orchestrator - 模块开发memory
 
 ## 模块职责
-管线编排引擎（Orchestrator类 + 5个pipeline_adapter + 端到端测试 + 批处理脚本），串联校准→plate solve→PSF→测光校准→Drizzle全流程，作为各C++ DLL模块的统一调度入口。
+管线编排引擎（两段流水线 10 节点 C++ CLI + Python 调试层），串联 READ_FITS→CALIBRATE→PLATESOLVE→PSF→PHOTOMETRIC→GRADIENT_2D→SNR→DRIZZLE | GRADIENT_SPHERE→STACK 全流程，作为各 C++ DLL 模块的统一调度入口。
 
 ## 当前版本
-- 版本号：v1.0 Python原型 + v1.0 C++ CLI阶段1全部完成（Task 1-5完成, 142/142集成测试通过）
-- 最新commit：（暂未上传GitHub）
-- 更新时间：2026-07-15
+- 版本号：v2.0 两段流水线 10 节点 C++ CLI (stage1/stage2) + v1.0 Python调试层
+- 最新commit：7072123 (Phase 5: C++ pipeline design - two-stage 10-node pipeline)
+- GitHub: https://github.com/fujiaze/Orchestrator-Cpp-Python
+- 更新时间：2026-07-16
+
+## 2026-07-16 架构重构 (spec §2.3 两段流水线 10 节点)
+- spec: .trae/specs/architecture-refactor/spec.md (已审阅通过)
+- Phase 5 完成:
+  - dll_loader 扩展 10 模块 (AIO/CALIBRATE/PLATESOLVE/PSF/PHOTOMETRIC/GRADIENT_2D/SNR/DRIZZLE/GRADIENT_SPHERE/STACK)
+  - STACK 与 GRADIENT_SPHERE 共用 healpix_stack.dll (handle 共享避免 double-free)
+  - orchestrator.h: PipelineStageV2 枚举 (10 节点) + run_stage1/run_stage2
+  - orchestrator.cpp: run_stage1 (stage 0-7 串行) + run_stage2 (stage 8-9 串行) + 5 个新 stage handler 骨架
+  - cli_command.h/cpp: stage1/stage2 子命令 + cmd_stage1/cmd_stage2
+  - configs/stage1_config.json + stage2_config.json 模板
+  - V5 (stage1 CLI 8 阶段 timings) + V6 (stage2 CLI 2 阶段 timings) 验证通过
+  - init_dlls 更新为 10 模块错误检查
 
 ## 2026-07-15 PSF 块扩展 [N,6]→[N,9]
 - spec: .trae/specs/psf-block-extension/(三件套)
@@ -15,17 +28,21 @@
 - 架构决策: Python 定位为调试层,后续逐步迁移到纯 C++(见 spec §7)
 
 ## GitHub仓库
-- 仓库地址：暂未上传（规划中）
-- 默认分支：待定
+- 仓库地址：https://github.com/fujiaze/Orchestrator-Cpp-Python
+- 默认分支：main
 
 ## 依赖列表
-- 5个C++ DLL模块：
-  - astro_image_io.dll（PipelineFrame + 命名块容器）
-  - plate_solve（ipv_solver.dll，WCS求解）
-  - photometric_calib.dll（pc_calibrate_simple，流量校准）
-  - healpix_drizzle.dll（hp_drizzle_run，Drizzle重投影）
-  - dynamic_psf.dll（Moffat4 PSF拟合）
-- Python（ctypes封装各DLL）
+- 10个C++ DLL模块 (spec §2.3.2 两段流水线):
+  - astro_image_io.dll (AIO, stage 0: PipelineFrame + 命名块容器)
+  - astro_calibration.dll (CALIBRATE, stage 1: dark/bias/flat)
+  - ipv_solver.dll (PLATESOLVE, stage 2: WCS求解)
+  - dynamic_psf.dll (PSF, stage 3: Moffat4 PSF拟合)
+  - photometric_calib.dll (PHOTOMETRIC, stage 4: 流量校准)
+  - gradient_2d.dll (GRADIENT_2D, stage 5: step4 C++化, 乘性梯度曲面拟合)
+  - snr_estimator.dll (SNR, stage 6: SNR估算)
+  - healpix_drizzle.dll (DRIZZLE, stage 7: Drizzle重投影)
+  - healpix_stack.dll (GRADIENT_SPHERE+STACK, stage 8-9: 球面梯度校准+堆叠, 共用)
+- Python（ctypes封装各DLL, 调试层）
 - C++ CLI：MSYS2 g++ 16.1.0 (C:\msys64\mingw64\bin)，C++17，-static 静态链接
 
 ## 关键决策记录
