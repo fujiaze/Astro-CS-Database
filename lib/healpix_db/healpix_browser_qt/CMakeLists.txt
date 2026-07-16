@@ -1,6 +1,6 @@
 # CMakeLists.txt - HEALPix 浏览器 Qt 版 (healpix_browser_qt)
 # 三层构建: core/ 静态库 + widgets/ 静态库 + app/ demo 可执行
-# 依赖: Qt6 (Core/Gui/Widgets/OpenGLWidgets), OpenGL, healpix_io.dll
+# 依赖: Qt6 (Core/Gui/Widgets/OpenGLWidgets), OpenGL, astro_image_io.dll
 # 编译: cmake -B build -DCMAKE_PREFIX_PATH=C:/msys64/mingw64
 #        cmake --build build
 # 设计文档: docs/superpowers/specs/2026-07-13-cpp-qt-browser-ui-design.md §7
@@ -20,8 +20,10 @@ set(CMAKE_AUTOUIC ON)
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGLWidgets)
 find_package(OpenGL REQUIRED)
 
-# healpix_io 路径 (本模块同级目录)
-set(HIO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../healpix_io)
+# astro_image_io 路径 (lib/astro_image_io/, 提供 healpix_io 兼容 API)
+set(AIO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../astro_image_io)
+# 启用 astro_image_io 的 HEALPix I/O 模块 (兼容宏 hiss_read -> aio_hiss_read 等)
+set(AIO_DEFINES AIO_ENABLE_HEALPIX)
 
 # ============================================================================
 # core 静态库 (无 Qt 依赖, 纯 C++17 + OpenGL 3.3 Core)
@@ -35,15 +37,16 @@ add_library(healpix_browser_core STATIC
 target_include_directories(healpix_browser_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/core
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${HIO_DIR}/include
+    ${AIO_DIR}/include
 )
+target_compile_definitions(healpix_browser_core PUBLIC ${AIO_DEFINES})
 target_link_libraries(healpix_browser_core PUBLIC
     OpenGL::GL
     gdi32
 )
-# healpix_io.dll 在 ${HIO_DIR}, 链接 .a 导入库
-target_link_directories(healpix_browser_core PUBLIC ${HIO_DIR})
-target_link_libraries(healpix_browser_core PUBLIC healpix_io)
+# astro_image_io.dll 在 ${AIO_DIR}, 链接 .a 导入库
+target_link_directories(healpix_browser_core PUBLIC ${AIO_DIR})
+target_link_libraries(healpix_browser_core PUBLIC astro_image_io)
 
 # ============================================================================
 # widgets 静态库 (依赖 Qt6 + core)
@@ -99,8 +102,9 @@ if(BUILD_TESTS)
         core/browser_backend.cpp
         core/healpix_math.cpp
     )
-    target_include_directories(test_browser_backend PRIVATE core include ${HIO_DIR}/include)
-    target_link_directories(test_browser_backend PRIVATE ${HIO_DIR})
-    target_link_libraries(test_browser_backend PRIVATE healpix_io)
+    target_include_directories(test_browser_backend PRIVATE core include ${AIO_DIR}/include)
+    target_compile_definitions(test_browser_backend PRIVATE ${AIO_DEFINES})
+    target_link_directories(test_browser_backend PRIVATE ${AIO_DIR})
+    target_link_libraries(test_browser_backend PRIVATE astro_image_io)
     add_test(NAME browser_backend COMMAND test_browser_backend)
 endif()

@@ -66,11 +66,13 @@ foreach ($dll in $neededDlls) {
     }
 }
 
-# 复制 healpix_io.dll
-$healpixIoDll = "f:\Astro dev\Astro CS Normalization Database\lib\healpix_db\healpix_io\build\healpix_io.dll"
-if (Test-Path $healpixIoDll) {
-    Copy-Item $healpixIoDll "$buildDir\healpix_io.dll" -Force
-    Write-Host "  已复制: healpix_io.dll"
+# 复制 astro_image_io.dll (提供 healpix_io 兼容 API)
+$aioDll = "f:\Astro dev\Astro CS Normalization Database\lib\astro_image_io\astro_image_io.dll"
+if (Test-Path $aioDll) {
+    Copy-Item $aioDll "$buildDir\astro_image_io.dll" -Force
+    Write-Host "  已复制: astro_image_io.dll"
+} else {
+    Write-Host "  警告: 未找到 astro_image_io.dll (请先构建 lib/astro_image_io/)" -ForegroundColor Yellow
 }
 
 Write-Host "`n=== 4. 验证双击启动 ===" -ForegroundColor Cyan

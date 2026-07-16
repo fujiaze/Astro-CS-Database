@@ -1,12 +1,12 @@
 // browser_backend.cpp - HEALPix 浏览器数据后端实现 (healpix_browser_qt)
 // 功能: 管理 .hiss/.hcsd 文件, 按需加载子叶, 视角相关压缩, ud_grade 降采样
 // 用途: 为 GLRenderer 提供数据源, 无 Qt 依赖, 无 HTTP 服务器
-// 依赖: healpix_io.dll (hiss_read/hcsd_read/hcsd_read_leaf/hio_free)
-// 编译: C++17, 纯标准库 + healpix_io
+// 依赖: astro_image_io.dll (aio_hiss_read/aio_hcsd_read/aio_hcsd_read_leaf/aio_hio_free, 旧 API 通过兼容宏)
+// 编译: C++17, 纯标准库 + astro_image_io
 // 移植来源: healpix_browser_cpp/src/browser_backend.cpp (去掉 HTTP, 用 HealpixMath)
 
 #include "browser_backend.h"
-#include "healpix_io.h"
+#include "aio_healpix_io.h"
 #include "healpix_math.h"
 #include "logger.h"
 
@@ -184,8 +184,10 @@ int BrowserBackend::open_file(const std::string& path) {
         float* pixel = nullptr;
         char* meta_json = nullptr;
 
+        // hiss_read 8 参数: path, nside, nested, n_pix, ipix, pixel, snr, meta_json
+        // browser 不使用 SNR 通道, snr 传 nullptr (snr_format=0/1 均兼容, 不读取 snr 数据)
         int ret = hiss_read(path.c_str(), &nside, &nested, &n_pix,
-                            &ipix, &pixel, &meta_json);
+                            &ipix, &pixel, nullptr, &meta_json);
         if (ret != 0) {
             LOG_ERROR("hiss_read 失败: ret=%d path=%s", ret, path.c_str());
             file_path_.clear();

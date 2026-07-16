@@ -4,7 +4,7 @@
 // 依赖: browser_backend.h (数据源), stf_engine.h (STF uniform 转换),
 //       healpix_math.h (球面坐标转换), logger.h (日志)
 //       OpenGL 3.3 Core (wglGetProcAddress 加载 1.2+ 函数, opengl32.lib 链接 1.1 函数)
-// 编译: g++ -O2 -std=c++17 -Wall -Wextra -Icore -Iinclude -I../healpix_io/include
+// 编译: g++ -O2 -std=c++17 -Wall -Wextra -Icore -Iinclude -I../../astro_image_io/include
 //       -c core/gl_renderer.cpp -o core/gl_renderer.o -lopengl32 -lgdi32
 // 设计文档: docs/superpowers/specs/2026-07-13-cpp-qt-browser-core-design.md §3.4
 

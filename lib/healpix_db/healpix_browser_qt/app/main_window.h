@@ -1,8 +1,8 @@
 // main_window.h - HEALPix 浏览器主窗口 (healpix_browser_qt app)
 // 功能: QMainWindow 容器, 菜单栏 + 文件选择 + STF 控制面板 + 状态栏
-// 用途: demo exe 入口容器, 按扩展名路由 .hiss → SingleFrameView, .hcsd → SphereView
+// 用途: demo exe 入口容器, 按扩展名路由 .hiss/.hcsd → SphereView (统一球面渲染)
 // 依赖: Qt6::Widgets (QMainWindow/QFileDialog/QMessageBox/QStatusBar/QMenuBar)
-//       widgets/ (AbstractView/SingleFrameView/SphereView), core/ (BrowserBackend)
+//       widgets/ (AbstractView/SphereView), core/ (BrowserBackend)
 // 设计文档: docs/superpowers/specs/2026-07-13-cpp-qt-browser-ui-design.md §4.1, §8, §9
 
 #ifndef MAIN_WINDOW_H

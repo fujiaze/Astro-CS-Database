@@ -13,8 +13,8 @@ C++ + Qt6 实现的 HEALPix 浏览器，替代旧版 WebGL + HTTP 后端架构�
   - `GLRenderer` - OpenGL 渲染核心（球面网格 + 单帧 TAN 投影 + STF 着色器）
 - **`widgets/`** - Qt6 QOpenGLWidget 封装层（UI 前端）
   - `AbstractView` - 抽象基类，封装 OpenGL 上下文 + 事件转发骨架
-  - `SingleFrameView` - .hiss 单帧 2D 切面投影（拖动平移 + 滚轮缩放）
-  - `SphereView` - .hcsd 球面 3D 渲染（拖动旋转 + 滚轮缩放 + 触摸支持）
+  - `SphereView` - .hiss/.hcsd 统一球面 3D 渲染（拖动旋转 + 滚轮缩放 + 触摸支持 + LOD 金字塔）
+  - `archive/single_frame_view.*` - 已废弃的 2D 切面投影 widget（大数据集卡死，改用 SphereView）
 - **`app/`** - demo 可执行程序
   - `MainWindow` - 主窗口（菜单栏 + 状态栏 + STF 控制面板 + 文件路由）
   - `STFPanel` - STF 控制面板（4 滑块 + 4 预设 + 自动拉伸按钮）
@@ -27,7 +27,7 @@ C++ + Qt6 实现的 HEALPix 浏览器，替代旧版 WebGL + HTTP 后端架构�
 - MSYS2 MinGW64 g++ 16.1.0+（`C:\msys64\mingw64\bin`）
 - Qt6 Base（`pacman -S mingw-w64-x86_64-qt6-base`）
 - CMake 3.16+
-- healpix_io.dll（位于 `../healpix_io/`）
+- astro_image_io.dll（位于 `../../astro_image_io/`，提供 healpix_io 兼容 API，需 AIO_ENABLE_HEALPIX 定义）
 
 ### core 静态库（Makefile，无 Qt 依赖）
 
@@ -57,16 +57,16 @@ cmake --build build
 ## 运行 demo
 
 ```powershell
-$env:Path = "C:\msys64\mingw64\bin;..\..\healpix_io;$env:Path"
+$env:Path = "C:\msys64\mingw64\bin;..\..\astro_image_io;$env:Path"
 cd build
 .\healpix_browser_qt.exe                                   # 启动空窗口
 .\healpix_browser_qt.exe "path\to\file.hiss"               # 直接打开单帧文件
 .\healpix_browser_qt.exe "path\to\file.hcsd"               # 直接打开球面数据库
 ```
 
-文件路由：
-- `.hiss` → `SingleFrameView`（2D TAN 切面投影）
-- `.hcsd` → `SphereView`（3D UV 球面 64×128 分段）
+文件路由（统一球面渲染）：
+- `.hiss` → `SphereView`（SPHERE 模式 + 视角相关加载 + LOD 金字塔）
+- `.hcsd` → `SphereView`（SPHERE 模式 + 按需子叶 + LOD 金字塔）
 
 ## 测试
 
@@ -78,7 +78,7 @@ cd tests
 ./test_browser_backend.exe    # 4/4: .hiss 加载, .hcsd 接口, ud_grade, ipix_to_angle 静态方法
 ```
 
-注：`test_browser_backend.exe` 需要 `healpix_io.dll` 在 PATH 中（`$env:Path += ";..\..\healpix_io"`）。
+注：`test_browser_backend.exe` 需要 `astro_image_io.dll` 在 PATH 中（`$env:Path += ";..\..\astro_image_io"`）。
 
 ## 关键设计
 
@@ -89,7 +89,7 @@ cd tests
 | `healpix_browser_cpp` + winsock2 HTTP 服务器 | core/ 直接 C++ 内存调用 |
 | `healpix_browser_web` + WebGL + base64 | Qt6 QOpenGLWidget + OpenGL 3.3 Core |
 | 跨进程 HTTP + JSON + base64 序列化 | 同进程 C++ 内存直传 OpenGL 纹理 |
-| 单一模式（下拉框切换单帧/球面） | 双 widget 独立类（按文件扩展名路由） |
+| 单一模式（下拉框切换单帧/球面） | 统一 SphereView 球面渲染（.hiss/.hcsd 共用，LOD 金字塔） |
 
 ### UI 与算法分离
 

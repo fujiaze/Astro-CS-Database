@@ -17,7 +17,7 @@
 - [x] Task 4: BrowserBackend（数据加载与按需子叶，2026-07-13）
 - [x] Task 5: GLRenderer（OpenGL 渲染核心，2026-07-13）
 - [x] Task 6: AbstractView（Qt widget 基类，2026-07-14）
-- [x] Task 7: SingleFrameView（单帧 2D 切面投影 widget，2026-07-14）
+- [x] Task 7: SingleFrameView（单帧 2D 切面投影 widget，2026-07-14，**已废弃**：大数据集全量多边形卡死，.hiss 改用 SphereView SPHERE 模式 + LOD 金字塔，源码归档至 widgets/archive/）
 - [x] Task 8: SphereView（球面 3D 渲染 widget，2026-07-14）
 - [x] Task 9: MainWindow（主窗口，2026-07-14）
 - [x] Task 10: STFPanel + main.cpp（demo exe，2026-07-14）
@@ -25,6 +25,7 @@
 - [x] Task 13: 归档 WebGL 浏览器 + 文档更新（2026-07-14）
 - [x] 视角与像素修复（2026-07-14, 虚拟轨迹球+菱形像素+no_data跳过）
 - [x] 视角控制重写（2026-07-14, 赤道仪相机+look_at_matrix 矩阵存储bug修复+菱形像素几何修正）
+- [x] SingleFrameView 废弃（2026-07-16, .hiss 改用 SphereView SPHERE 模式 + LOD 金字塔, 源码归档至 widgets/archive/）
 - [ ] Task 12: 性能验证（待后续优化）
 
 ## 视角控制重写（2026-07-14, 最终方案）
@@ -137,8 +138,8 @@
 
 **运行时依赖**:
 - Qt6 DLLs (C:\msys64\mingw64\bin)
-- healpix_io.dll (..\..\healpix_io\) - 必须在 PATH 中
-- 启动命令需设置 PATH: `$env:Path = "C:\msys64\mingw64\bin;..\..\healpix_io;$env:Path"`
+- astro_image_io.dll (..\..\astro_image_io\) - 必须在 PATH 中（提供 healpix_io 兼容 API）
+- 启动命令需设置 PATH: `$env:Path = "C:\msys64\mingw64\bin;..\..\astro_image_io;$env:Path"`
 
 **归档操作**:
 - 创建 lib/healpix_db/archive/ 目录
@@ -154,15 +155,15 @@
 **widgets/ 层 (3个文件 + 1个 CMake)**:
 - `widgets/abstract_view.h` - QOpenGLWidget 子类基类声明
 - `widgets/abstract_view.cpp` - 实现 (OpenGL 上下文初始化/事件转发/数据范围计算/auto_stretch)
-- `widgets/single_frame_view.h` - 单帧 2D 切面投影 widget 声明
-- `widgets/single_frame_view.cpp` - 实现 (init_view_from_data/drag/wheel zoom [0.5,100]/cos(dec) RA 修正)
+- `widgets/archive/single_frame_view.h` - 已废弃的单帧 2D 切面投影 widget 声明（归档）
+- `widgets/archive/single_frame_view.cpp` - 实现 (init_view_from_data/drag/wheel zoom [0.5,100]/cos(dec) RA 修正, 已废弃)
 - `widgets/sphere_view.h` - 球面 3D 渲染 widget 声明
 - `widgets/sphere_view.cpp` - 实现 (drag/wheel/touch_event/screen_to_sky 近似映射)
 - `CMakeLists.txt` - 三层构建 (core 静态库 + widgets 静态库 + app demo exe)
 
 **app/ 层 (4个文件)**:
 - `app/main_window.h` - QMainWindow 主窗口声明
-- `app/main_window.cpp` - 实现 (菜单栏/状态栏/STFPanel dock/文件路由 .hiss→SingleFrame/.hcsd→Sphere/signal-slot)
+- `app/main_window.cpp` - 实现 (菜单栏/状态栏/STFPanel dock/文件路由 .hiss+.hcsd→SphereView 统一球面渲染/signal-slot)
 - `app/stf_panel.h` - STF 控制面板 QDockWidget 声明
 - `app/stf_panel.cpp` - 实现 (4 滑块 Shadows/Highlights/Midtones/Compression + 4 预设 linear/sqrt/asinh/log + 自动拉伸按钮)
 - `app/main.cpp` - QApplication 入口 (QCommandLineParser 解析可选文件参数)
@@ -176,19 +177,19 @@
   - .hiss: 全量遍历求 min/max
   - .hcsd: 采样前 4 个子叶求 min/max (避免全量加载成本)
 - auto_stretch() 采样上限 100000 像素 (避免大数据集耗时)
-- SingleFrameView 拖动: delta_ra = -dx * sensitivity / cos(dec), delta_dec = +dy * sensitivity
+- SingleFrameView 拖动 (已废弃): delta_ra = -dx * sensitivity / cos(dec), delta_dec = +dy * sensitivity
 - SphereView 拖动: center_ra -= dx * 0.3, center_dec += dy * 0.3 (clamp [-90, 90])
 - SphereView 触摸: 单指拖动 + 双指捏合缩放 (QTouchEvent)
 - SphereView screen_to_sky: 球面投影逆变换近似 (FOV/canvas 尺寸线性映射)
 - STFPanel 滑块: QSlider 范围 0-1000 (int), 映射到 [0, 1] float, 精度 0.001
 - STFPanel update_from_params: 用 blockSignals 避免回环
-- MainWindow 文件路由: backend.is_hiss() → SingleFrameView, backend.is_hcsd() → SphereView
+- MainWindow 文件路由: backend.is_hiss()/.is_hcsd() → 统一 SphereView (SPHERE 模式 + LOD 金字塔, SingleFrameView 已废弃)
 - MainWindow 命令行参数: QMetaObject::invokeMethod QueuedConnection 延迟到事件循环后打开
 
 **编译依赖**:
 - Qt6::Core/Gui/Widgets/OpenGLWidgets (需 MSYS2: pacman -S mingw-w64-x86_64-qt6-base)
 - OpenGL 3.3 Core Profile
-- healpix_io.dll (../healpix_io/)
+- astro_image_io.dll (../../astro_image_io/)（提供 healpix_io 兼容 API，需 AIO_ENABLE_HEALPIX 定义）
 - AUTOMOC ON (Q_OBJECT 宏需要 MOC 处理)
 
 **编译方式**:
@@ -216,7 +217,7 @@ cmake --build build
 - 球面: 顶点(aPosition vec3 + aValue float) → MVP → 片元 STF(mtf + asinhCompress)
 - 四边形: 顶点(aPosition vec2 + aTexCoord vec2) → 片元纹理采样 + STF
 
-**编译**: g++ -O2 -std=c++17 -Wall -Wextra -Icore -Iinclude -I../healpix_io/include
+**编译**: g++ -O2 -std=c++17 -Wall -Wextra -DAIO_ENABLE_HEALPIX -Icore -Iinclude -I../../astro_image_io/include
        -c core/gl_renderer.cpp -o core/gl_renderer.o -lopengl32 -lgdi32
 **验证**: 编译 0 error 0 warning ✓, 无 Qt 依赖 ✓, 接口完整 ✓
 
@@ -260,8 +261,8 @@ cmake --build build
 - 使用 LOG_INFO/LOG_ERROR 替代 std::cout/std::cerr
 - get_required_leaves 使用 HealpixMath::pix2ang_nest(64, ...) 计算子叶坐标
 
-**编译**: g++ -O2 -std=c++17 -Icore -Iinclude -I../healpix_io/include
-**测试**: 4/4 PASS ✓（需 healpix_io.dll 在 PATH 中）
+**编译**: g++ -O2 -std=c++17 -DAIO_ENABLE_HEALPIX -Icore -Iinclude -I../../astro_image_io/include
+**测试**: 4/4 PASS ✓（需 astro_image_io.dll 在 PATH 中）
 - test_open_hiss: 成功加载真实 .hiss 文件（nside=8192, npix=964279, filter=Red）
 - test_open_hcsd: 接口验证（无 .hcsd 测试文件）
 - test_ud_grade: nside 4→2 降采样正确
@@ -298,11 +299,32 @@ cmake --build build
 - 文件读写必须用 -Encoding UTF8
 
 ## 依赖
-- healpix_io.dll（hiss_read/hcsd_read/hcsd_read_leaf）位于 ../healpix_io/
+- astro_image_io.dll（aio_hiss_read/aio_hcsd_read/aio_hcsd_read_leaf，旧 API 通过兼容宏）位于 ../../astro_image_io/
 - Qt6（widgets/app 层，MSYS2: mingw-w64-x86_64-qt6-base）
 - OpenGL32, gdi32（系统）
+- 编译需定义 AIO_ENABLE_HEALPIX（启用 astro_image_io 的 HEALPix I/O 模块）
 
 ## 编译环境
 - MSYS2 MinGW64 g++ 16.1.0
 - Windows 10+
 - Qt6 路径: C:/msys64/mingw64
+
+### 浏览器性能/视觉修复（2026-07-15，从 PROJECT_ARCHITECTURE.md 迁入）
+
+针对 Qt6 浏览器多轮测试反馈的视觉/性能问题，按问题分类汇总修复：
+
+| 问题 | 根因 | 修复方案 |
+|------|------|----------|
+| 启动 FOV 自适应不当 | FOV 计算未取最大维度 | FOV = 85% × max(width, height) 对应角度 |
+| 缺少放大/缩小按钮 | 工具栏未实现 | 新增工具栏：放大 / 缩小 / 重置 / Auto STF |
+| 严重卡顿（CPU/GPU 占用率低） | 每帧日志输出阻塞 + 顶点密度过高 | 移除每10帧日志 + 顶点密度降为 2 像素/顶点 + 编译时关闭 DEBUG |
+| 黑色三角形未加载块 | 缓存更新逻辑错误 | 修复 cache_update 逻辑 + get_required_leaves 的 half_fov |
+| 缓存 nside 不匹配（放大后模糊） | 缓存命中时不检查 nside | 缓存命中检查 `nside >= target_nside`，不匹配则释放重载 |
+| 渲染区域黑边（高 DPI） | viewport 用逻辑像素 | `viewport_w = width() * devicePixelRatio()` |
+| FOV<0.5° 模糊 | FOV 下限 0.5° 兜底重置为 60° | 下限改为 0.01°（仅无效值兜底） |
+| 无数据区域模糊填充 | 递减查找无深度限制 | MAX_SHIFT=4（nside/16），超过返回 no_data |
+| auto_stretch 边缘比中心亮 | median±3σ 被 0 值拉偏 | 0.5%/99.5% 百分位，只统计有数据像素 |
+| 拉伸默认模式 | 无默认 | 默认 log 模式，compression=0.8 |
+| 性能：网格频繁重建 | need_rebuild_mesh 阈值 5% | FOV 变化阈值 5% → 20% |
+
+**关键代码位置**: `lib/healpix_db/healpix_browser_qt/core/gl_renderer.cpp`（need_rebuild_mesh / FOV 下限 / MAX_SHIFT）、`core/stf_engine.cpp`（auto_stretch 百分位）、`app/main.cpp`（移除手动插件路径，Qt 自动查找 platforms/）。

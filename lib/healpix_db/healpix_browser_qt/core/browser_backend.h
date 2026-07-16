@@ -1,8 +1,8 @@
 // browser_backend.h - HEALPix 浏览器数据后端 (healpix_browser_qt)
 // 功能: 管理 .hiss/.hcsd 文件, 按需加载子叶, 视角相关压缩, ud_grade 降采样
 // 用途: 为 GLRenderer 提供数据源, 无 Qt 依赖, 无 HTTP 服务器
-// 依赖: healpix_io.dll (hiss_read/hcsd_read/hcsd_read_leaf/hio_free)
-// 编译: C++17, 纯标准库 + healpix_io
+// 依赖: astro_image_io.dll (aio_hiss_read/aio_hcsd_read/aio_hcsd_read_leaf/aio_hio_free, 旧 API 通过兼容宏)
+// 编译: C++17, 纯标准库 + astro_image_io
 // 设计文档: docs/superpowers/specs/2026-07-13-cpp-qt-browser-core-design.md §3.1
 
 #ifndef BROWSER_BACKEND_H

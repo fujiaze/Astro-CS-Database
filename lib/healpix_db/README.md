@@ -1,108 +1,113 @@
 # Healpix Database
 
-版本：v1.0 | 2026-07-12
+版本：v2.0 | 2026-07-16
 
-天文巡天数据的 HEALpix 球面存储与可视化系统。LOD 金字塔支持多级预览，球面浏览器提供交互式可视化。
+天文巡天数据的 HEALPix 球面存储与可视化系统。Qt6+OpenGL 浏览器提供交互式可视化，支持 .hiss 单帧与 .hcsd 球面数据库浏览。
 
-本仓库为 HEALpix 数据库核心仓库，仅保留 LOD 金字塔和球面浏览器。单帧读写（.ahpx）、稀疏堆栈（.ahps）、Drizzle 重投影已拆分为独立仓库。
-
-## GitHub仓库
+## GitHub 仓库
 - 仓库地址：https://github.com/fujiaze/Healpix-Database
 - 默认分支：main
-- 最新commit：7129e32
-- 关联仓库：Healpix-Mosaic, Healpix-Drizzle
+- 关联仓库：Healpix-Mosaic-C-Python-（稀疏堆栈）、Healpix-Drizzle-C-Python-（Drizzle 重投影）
 
 ## 模块
 
-| 模块 | 功能 | 技术 |
-|------|------|------|
-| `healpix_lod/` | LOD 金字塔（多级降采样，增量更新，按需计算） | C++ DLL + Python ctypes |
-| `healpix_browser/` | 球面可视化浏览器（STF 拉伸 + 球面渲染 + 投影导出） | Python (PyQt5 + vispy) |
-| `docs/` | Drizzle 算法概述文档 | - |
-| `tests/` | 端到端集成测试 | Python |
+| 模块 | 功能 | 技术 | 状态 |
+|------|------|------|------|
+| `healpix_browser_qt/` | 球面可视化浏览器（STF 拉伸 + 球面/单帧渲染 + 30°经纬线网格） | C++ (Qt6 + OpenGL 3.3 Core) | 活跃 |
+| `healpix_io/` | .hiss/.hcsd 文件 I/O（已归档，API 并入 astro_image_io） | C++ | 已归档（2026-07-16） |
+| `healpix_stack/` | 稀疏 HEALPix 堆栈存储（独立仓库本地副本，.gitignore 忽略） | C++ | 活跃（独立仓库） |
+| `healpix_drizzle/` | 球面 Drizzle 重投影（独立仓库本地副本，.gitignore 忽略） | C++ | 活跃（独立仓库） |
+| `docs/` | Drizzle 算法概述文档 | - | 活跃（部分过时） |
+| `archive/` | 历史归档（healpix_browser_cpp + healpix_browser_web + legacy） | - | 归档 |
+
+### 归档内容
+
+- `archive/healpix_browser_cpp/` - C++ HTTP 后端 + WebGL 前端（2026-07-13 归档，被 healpix_browser_qt 替代）
+- `archive/healpix_browser_web/` - WebGL 前端（2026-07-13 归档，被 healpix_browser_qt 替代）
+- `archive/legacy/healpix_browser_python/` - PyQt5+vispy 浏览器（2026-07-16 归档，被 healpix_browser_qt 替代）
+- `archive/legacy/healpix_lod/` - LOD 金字塔（2026-07-16 归档，被 healpix_browser_qt 内存 ud_grade 替代）
+- `archive/legacy/tests/` - 端到端集成测试（2026-07-16 归档，依赖已删除模块）
 
 ## 关联仓库
 
 | 仓库 | 职责 |
 |------|------|
-| [Astro-Image-IO-C](https://github.com/fujiaze/Astro-Image-IO-C) | 统一 I/O 层：FITS/XISF 读取、.ahpx 单帧格式、压缩（zstd/lz4）、PipelineFrame 管线骨架 |
-| [Healpix-Mosaic](https://github.com/fujiaze/Healpix-Mosaic-C-Python-) | 稀疏 HEALpix 堆栈存储（sigma-clip + SNR 加权合并，.ahps 格式） |
-| [Healpix-Drizzle](https://github.com/fujiaze/Healpix-Drizzle-C-Python-) | 球面 Drizzle 重投影（WCS+SIP → HEALPix，通量守恒） |
+| [Astro-Image-IO-C](https://github.com/fujiaze/Astro-Image-IO-C) | 统一 I/O 层：FITS/XISF 读取、.ahpx/.hiss/.hcsd 格式、压缩（zstd/lz4）、PipelineFrame |
+| [Healpix-Mosaic-C-Python-](https://github.com/fujiaze/Healpix-Mosaic-C-Python-) | 稀疏 HEALPix 堆栈存储（sigma-clip + SNR 加权合并） |
+| [Healpix-Drizzle-C-Python-](https://github.com/fujiaze/Healpix-Drizzle-C-Python-) | 球面 Drizzle 重投影（WCS+SIP → HEALPix，通量守恒） |
 
 ## 依赖
 
-### C++ 编译
-- g++ (C++17)
-- OpenMP
-- [astro_image_io](https://github.com/fujiaze/Astro-Image-IO-C)（提供 AIO C API：压缩 + .ahpx 读写 + PipelineFrame）
-- [healpix_stack](https://github.com/fujiaze/Healpix-Mosaic-C-Python-)（healpix_lod 依赖其 ahps_reader 读取数据层 tile）
-
-### Python
-- numpy >= 1.20
-- astropy >= 5.0
-- PyQt5 >= 5.15 (浏览器)
-- vispy >= 0.9 (浏览器)
-- healpy >= 1.16 (浏览器)
+### healpix_browser_qt 编译依赖
+- g++ (C++17, MSYS2 MinGW64)
+- Qt6 (Core/Gui/Widgets/OpenGLWidgets)
+- OpenGL 3.3 Core
+- [astro_image_io](https://github.com/fujiaze/Astro-Image-IO-C)（提供 HEALPix I/O 兼容 API：aio_hiss_*/aio_hcsd_*/aio_hio_*）
 
 ## 构建
 
-healpix_lod 依赖 astro_image_io.dll 和 healpix_stack 源码（静态编译 ahps_reader），构建前请确保同级行存在 `astro_image_io/` 和 `healpix_stack/` 目录，或通过 Makefile 变量指定路径：
+### healpix_browser_qt
 
 ```bash
-cd healpix_lod
-make            # 带 zstd+lz4 压缩（通过 astro_image_io.dll 提供）
-# 或
-make no-comp    # 不带压缩 (fallback)
+# 1. 先构建 astro_image_io.dll (在 lib/astro_image_io/ 下)
+cd lib/astro_image_io
+powershell -ExecutionPolicy Bypass -File build.ps1
+
+# 2. 构建 healpix_browser_qt (在 lib/healpix_db/healpix_browser_qt/ 下)
+cd lib/healpix_db/healpix_browser_qt
+cmake -B build -DCMAKE_PREFIX_PATH=C:/msys64/mingw64
+cmake --build build
+
+# 或用 Makefile (仅 core + 测试，不需 Qt6)
+make
 ```
 
-编译后生成 `healpix_lod.dll`。
+### 部署（含 Qt6 DLL 打包）
+
+```bash
+cd lib/healpix_db/healpix_browser_qt
+powershell -ExecutionPolicy Bypass -File deploy.ps1
+```
 
 ## 使用
-
-### LOD 金字塔
-
-```python
-from healpix_lod import LodManager
-
-# 生成完整金字塔
-LodManager.generate_full("healpix_db/", band_index=0)
-
-# 增量更新（只重算变化的 tile）
-LodManager.update_incremental("healpix_db/", band_index=0, changed_tiles=[100, 101])
-
-# 按需计算单个 tile
-tile_data = LodManager.compute_on_demand("healpix_db/", band_index=0, level=2, tile_ipix=100)
-```
 
 ### 球面浏览器
 
 ```bash
-cd healpix_browser
-python -m healpix_browser
+cd lib/healpix_db/healpix_browser_qt
+# 启动（需 astro_image_io.dll 在 PATH 或同目录）
+$env:Path = "C:\msys64\mingw64\bin;$env:Path"
+$env:QT_PLUGIN_PATH = "C:\msys64\mingw64\share\Qt6\plugins"
+Start-Process -FilePath build\healpix_browser_qt.exe -ArgumentList "`"<hiss或hcsd路径>`""
+```
+
+或用启动脚本：
+```bash
+lib/healpix_db/healpix_browser_qt/run_healpix.bat <hiss或hcsd路径>
 ```
 
 支持：
-- 单帧浏览（.ahpx 文件，像素/SNR/权重通道切换）
-- 球数据库浏览（拖动旋转，滚轮缩放，波段切换，RGB 合成）
-- STF 非破坏性拉伸（自动/手动/预设）
-- 投影导出（TAN/SIN/ZEA/AIT/CAR，FITS/.ahpx/PNG）
+- 单帧浏览（.hiss 文件，STF 拉伸）
+- 球面数据库浏览（.hcsd 文件，拖动旋转，滚轮缩放）
+- 30° 经纬线网格（Ctrl+G 开关）
+- 赤道仪相机导航（yaw 绕赤经轴/pitch 绕赤纬轴，north-up 无 roll）
+- LOD 动态 nside（FOV 自适应分辨率）
+- 菱形像素 drizzle（pixfrac=1.0，无缝隙）
 
 ## 文件格式
 
-### .ahpl（LOD 层级）
-```
-[固定头 34B][压缩数据块]
-```
-- 数据：ipix(uint64) + value(float) + weight(float) + count(uint16)
-- NESTED 位运算父子映射
+### .hiss（单帧存储）
+HEALPix 单帧数据（ipix + pixel + 可选 snr），由 astro_image_io 的 aio_hiss_write/read 管理。
 
-其他格式（.ahpx 单帧、.ahps 稀疏堆栈）参见对应关联仓库文档。
+### .hcsd（球面数据库）
+HEALPix 球面数据库（含子叶块索引，支持按需加载），由 astro_image_io 的 aio_hcsd_write/read/read_leaf 管理。
 
 ## 技术特点
 
-- **HEALpix 等面积像素化**：NESTED scheme，nside=32768（~1.7"/px）
+- **HEALPix 等面积像素化**：NESTED scheme，支持 nside 最大 8192+
 - **稀疏存储**：只存有数据的像素，未观测天区零开销
-- **全链路压缩**：zstd level 5（像素/统计量）+ lz4（LOD 低层/索引），由 astro_image_io 统一提供
-- **分块压缩**：每 4096 像素独立压缩块，支持部分读取
-- **OpenMP 16 线程并行**：LOD 生成
-- **非破坏性 STF 拉伸**：MTF 公式，MAD 自动计算，不影响原始数据
+- **全链路压缩**：zstd level 5 + lz4，由 astro_image_io 统一提供
+- **Qt6+OpenGL 3.3 Core**：三层架构（core 无 Qt 依赖 + widgets Qt6 + app demo）
+- **非破坏性 STF 拉伸**：MTF 公式，0.5%/99.5% 分位自动计算
+- **LOD 动态 nside**：FOV 自适应，防止欠采样
+- **赤道仪相机**：north-up 无 roll，MAX_FOV=50° 限制球面畸变

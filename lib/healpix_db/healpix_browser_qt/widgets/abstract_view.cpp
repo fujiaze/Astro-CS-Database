@@ -1,6 +1,6 @@
 // abstract_view.cpp - HEALPix 浏览器 Qt widget 抽象基类实现 (healpix_browser_qt)
 // 功能: 实现 OpenGL 上下文初始化, 事件转发, 数据范围计算, STF 自动拉伸
-// 用途: 为 SingleFrameView / SphereView 提供通用骨架
+// 用途: 为 SphereView 提供通用骨架 (SingleFrameView 已废弃归档)
 // 依赖: Qt6::OpenGLWidgets, Qt6::Gui, core/ (BrowserBackend + GLRenderer + STFEngine)
 // 设计文档: docs/superpowers/specs/2026-07-13-cpp-qt-browser-ui-design.md §3.1, §6
 

@@ -211,3 +211,89 @@ Healpix天球分块数据库，提供LOD金字塔分层、球面浏览器可视�
 - 本地healpix_drizzle/healpix_stack建立独立git仓库
 - 文档刷新并重新推送
 - 最新commit: 28ac468
+
+### 已归档/废弃模块记录（2026-07-15，从 PROJECT_ARCHITECTURE.md 迁入）
+
+> 来源：PROJECT_ARCHITECTURE.md §2.1 模块清单（第48-75行）+ §2.3 ASCII 图（第220-226行）+ 附录目录结构（第1480-1553行）。
+> 本节集中记录 healpix_db 仓内已废弃/归档模块，便于后续查阅，避免重复散落于架构文档。
+
+#### 1. healpix_lod（LOD 金字塔，已废弃）
+- **路径**：`lib/healpix_db/healpix_lod/`
+- **职责**：旧版 LOD 金字塔（.ahpl 文件 + 多级降采样）
+- **废弃原因**：LOD 应为内存数据结构，由浏览器 C++ 后端 ud_grade 动态生成，无需落盘 .ahpl 文件
+- **替代方案**：`healpix_browser_qt` 内存 ud_grade（按视口动态降采样）
+
+#### 2. healpix_browser（PyQt5 浏览器，已废弃）
+- **路径**：`lib/healpix_db/healpix_browser/`
+- **职责**：旧版 PyQt5 + vispy 球面浏览器
+- **废弃原因**：依赖 PyQt5/vispy 较重，通信开销大
+- **替代方案**：`healpix_browser_qt`（Qt6 + OpenGL 3.3 Core，C++ 内存直传纹理，UI 与算法分离）
+
+#### 3. healpix_browser_cpp（C++ HTTP 后端，已归档到 archive/）
+- **原路径**：`lib/healpix_db/healpix_browser_cpp/`
+- **现位置**：`lib/healpix_db/healpix_browser_qt/archive/`（已移动）
+- **职责**：C++ 渲染后端 + winsock2 HTTP 服务器（按需子叶加载 + ud_grade 降采样）
+- **归档原因**：HTTP + base64 通讯开销大，由 `healpix_browser_qt` 的 C++ 内存直传替代
+- **替代方案**：`healpix_browser_qt` core/ 层（数据层逻辑已移植到 `BrowserBackend`）
+
+#### 4. healpix_browser_web（WebGL 前端，已归档到 archive/）
+- **原路径**：`lib/healpix_db/healpix_browser_web/`
+- **现位置**：`lib/healpix_db/healpix_browser_qt/archive/`（已移动）
+- **职责**：WebGL 前端（HTML/JS/CSS + STF + 球面渲染）
+- **归档原因**：与 C++ HTTP 后端配套的浏览器前端方案，随 `healpix_browser_cpp` 一并归档
+- **替代方案**：`healpix_browser_qt` widgets/ 层（渲染/交互逻辑已移植到 `SphereView`/`SingleFrameView`）
+
+#### 5. astro_image_io/src/ahpx（.ahpx 读写，已废弃）
+- **路径**：`lib/astro_image_io/src/ahpx/`
+- **职责**：旧版 .ahpx 单帧格式读写（目录内含 DEPRECATED.md）
+- **废弃原因**：.ahpx 格式被 .hiss 替代（格式体系统一：.ahpx→.hiss、.ahps→.hcsd、.ahpl 废弃）
+- **替代方案**：`healpix_io`（.hiss / .hcsd 格式读写 C++ DLL + Python 绑定）
+
+#### 归档位置说明
+- `healpix_browser_cpp/` 与 `healpix_browser_web/` 已移至 `lib/healpix_db/archive/` 目录（2026-07-13 归档）
+- `archive/README.md` 记录归档原因与移植内容映射（HTTP 后端 → core/、WebGL 前端 → core/+widgets/）
+- `healpix_browser/`（PyQt5+vispy）已于 2026-07-16 归档至 `archive/legacy/healpix_browser_python/`
+- `healpix_lod/` 已于 2026-07-16 归档至 `archive/legacy/healpix_lod/`（被 healpix_browser_qt 内存 ud_grade 替代）
+- `healpix_browser_cpp/` 顶层重复副本已于 2026-07-16 删除（archive/ 下保留正式归档）
+
+#### 保留原因
+- 以上废弃/归档模块代码保留供参考，未删除，但不再用于主管线
+- 保留目的：供历史方案对比、回溯设计决策、必要时查阅旧实现细节
+
+#### 编译依赖说明（healpix_drizzle 引用 healpix_stack）
+- `healpix_drizzle`（独立仓库 Healpix-Drizzle-Cpp 本地副本）编译时仍引用 `healpix_stack`（独立仓库 Healpix-Mosaic-Cpp 本地副本）的 `healpix_core.cpp`
+- 即：`healpix_drizzle` 与 `healpix_stack` 物理上位于 `lib/healpix_db/` 下（在 `healpix_db/.gitignore` 中忽略），存在跨仓库编译依赖
+
+## 遗留代码归档与依赖迁移（2026-07-16）
+
+**spec**: docs/superpowers/specs/2026-07-16-healpix-db-legacy-archive.md + checklist.md
+
+**操作内容**:
+1. **删除冗余**: `healpix_browser_cpp/` 顶层删除（与 archive/healpix_browser_cpp/ 字节级重复）
+2. **归档遗留代码到 archive/legacy/**:
+   - `healpix_browser/`（PyQt5+vispy）→ `archive/legacy/healpix_browser_python/`
+   - `healpix_lod/` → `archive/legacy/healpix_lod/`（被 healpix_browser_qt 内存 ud_grade 替代）
+   - `tests/test_e2e_integration.py` → `archive/legacy/tests/`（依赖已删除模块，静默 skip）
+   - 创建 `archive/legacy/README.md` 说明归档原因
+3. **依赖迁移**: healpix_browser_qt 依赖从 `../healpix_io/` 迁移至 `lib/astro_image_io/`（aio 模块）
+   - CMakeLists.txt: HIO_DIR → AIO_DIR（../../astro_image_io），链接库名 healpix_io → astro_image_io，添加 AIO_ENABLE_HEALPIX 定义
+   - Makefile: 同上
+   - deploy.ps1: healpix_io.dll → astro_image_io.dll
+   - browser_backend.cpp: #include "healpix_io.h" → #include "aio_healpix_io.h"
+   - 5 个源码注释中的路径同步更新
+
+**验证结果**:
+- astro_image_io.dll 构建成功（2923.7 KB，9 个 HEALPix I/O 符号全部导出）
+- healpix_browser_qt Makefile 编译成功（core 静态库 + 3 测试）
+- healpix_browser_qt CMake 完整构建成功（34/34：core + widgets + app + 测试）
+- test_healpix_math 5/5 ALL PASS
+- hiss_read 兼容宏验证通过（成功读取 nside=8192 n_pix=965048 的 .hiss 文件）
+
+**独立仓库 commit 更新**（与文档记录不一致，已更新）:
+- healpix_stack: 5f6b201 → 027b64f（文档已更新）
+- healpix_drizzle: e7c1d1f → ecf8758（文档已更新）
+
+**关键发现**:
+- astro_image_io 的 aio_healpix_io.h 末尾有兼容宏（#define hiss_read aio_hiss_read 等），但函数声明和宏都被 #ifdef AIO_ENABLE_HEALPIX 包裹，编译时必须定义此宏
+- DLL 名称从 healpix_io.dll 变为 astro_image_io.dll，链接库名从 -lhealpix_io 变为 -lastro_image_io
+- 路径从 ../healpix_io/ 变为 ../../astro_image_io/（跨 lib/healpix_db/ 到 lib/astro_image_io/）

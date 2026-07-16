@@ -1,9 +1,9 @@
 // test_browser_backend.cpp - BrowserBackend 单元测试
 // 功能: 验证 .hiss/.hcsd 文件加载, 按需子叶, ud_grade 降采样
-// 编译: g++ -O2 -std=c++17 -Icore -Iinclude -I../healpix_io/include
+// 编译: g++ -O2 -std=c++17 -Icore -Iinclude -I../../astro_image_io/include
 //        -o test_browser_backend.exe test_browser_backend.cpp
 //        core/browser_backend.cpp core/healpix_math.cpp
-//        -L../healpix_io -lhealpix_io
+//        -L../../astro_image_io -lastro_image_io
 
 #include <cassert>
 #include <cmath>
