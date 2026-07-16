@@ -9,6 +9,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <cstdlib>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -176,15 +177,75 @@ bool DllLoader::load_module(ModuleId id, const std::string& lib_base_dir) {
 }
 
 // ============================================================================
+// 辅助: 查找 MinGW bin 目录 (运行时 DLL 依赖搜索路径)
+// 业务 DLL 动态链接 libgomp-1.dll/liblz4.dll/libzstd.dll/libstdc++-6.dll 等
+// MinGW 运行时 DLL, 这些 DLL 位于 MSYS2 mingw64\bin 目录.
+// orchestrator.exe 用 -static 编译自身不需要, 但加载的业务 DLL 需要.
+// 策略: 1) 从 PATH 环境变量查找 mingw64\bin; 2) 回退默认 C:\msys64\mingw64\bin
+// ============================================================================
+#ifdef _WIN32
+static std::string find_mingw_bin() {
+    // 1. 从 PATH 环境变量查找
+    const char* path_env = std::getenv("PATH");
+    if (path_env != nullptr) {
+        std::string path_str(path_env);
+        size_t pos = 0;
+        while (pos < path_str.size()) {
+            size_t sep = path_str.find(';', pos);
+            std::string entry = (sep == std::string::npos)
+                ? path_str.substr(pos)
+                : path_str.substr(pos, sep - pos);
+            // 查找包含 mingw64\bin 的路径
+            if (entry.find("mingw64\\bin") != std::string::npos ||
+                entry.find("mingw64/bin") != std::string::npos) {
+                // 验证路径下有 libgomp-1.dll (MinGW 运行时标志)
+                std::string test = entry + "\\libgomp-1.dll";
+                DWORD attr = GetFileAttributesA(test.c_str());
+                if (attr != INVALID_FILE_ATTRIBUTES) {
+                    return entry;
+                }
+            }
+            if (sep == std::string::npos) break;
+            pos = sep + 1;
+        }
+    }
+    // 2. 回退默认路径
+    std::string def = "C:\\msys64\\mingw64\\bin";
+    std::string test = def + "\\libgomp-1.dll";
+    DWORD attr = GetFileAttributesA(test.c_str());
+    if (attr != INVALID_FILE_ATTRIBUTES) {
+        return def;
+    }
+    return "";
+}
+#endif
+
+// ============================================================================
 // load_all - 加载所有模块 DLL (对应 spec §2.3.2 两段流水线 10 节点)
 // 返回: 全部加载成功返回 true, 任一失败返回 false
-// 加载顺序: AIO 预加载 -> 第一段 stage1 模块 -> 第二段 stage2 模块
+// 加载顺序: 设置运行时搜索路径 -> AIO 预加载 -> 第一段 stage1 -> 第二段 stage2
 // ============================================================================
 bool DllLoader::load_all(const std::string& lib_base_dir) {
     std::cerr << "[dll_loader] 开始加载所有模块 (lib_base_dir="
               << lib_base_dir << ")" << std::endl;
 
     bool all_ok = true;
+
+#ifdef _WIN32
+    // 0. 添加 MinGW 运行时 DLL 搜索路径 (解决业务 DLL 依赖 libgomp/liblz4 等)
+    //    SetDllDirectoryA 将指定目录加入 DLL 搜索路径 (仅次于应用目录)
+    //    orchestrator.exe 用 -static 编译, 自身不需要运行时 DLL,
+    //    但业务 DLL (astro_image_io.dll 等) 动态链接需要.
+    {
+        std::string mingw_bin = find_mingw_bin();
+        if (!mingw_bin.empty()) {
+            SetDllDirectoryA(mingw_bin.c_str());
+            std::cerr << "[dll_loader] 设置运行时 DLL 搜索路径: " << mingw_bin << std::endl;
+        } else {
+            std::cerr << "[dll_loader] [警告] 未找到 MinGW bin 目录, 业务 DLL 可能加载失败" << std::endl;
+        }
+    }
+#endif
 
     // 1. 预加载 AIO (公共依赖, 多个模块依赖 astro_image_io.dll)
     //    用 load_module 正式加载 (注册到 modules_ 中, 可供后续 get_function 调用)
@@ -217,6 +278,30 @@ bool DllLoader::load_all(const std::string& lib_base_dir) {
     all_ok = load_module(ModuleId::CALIBRATE,   lib_base_dir) && all_ok;
     all_ok = load_module(ModuleId::PLATESOLVE,  lib_base_dir) && all_ok;
     all_ok = load_module(ModuleId::PSF,         lib_base_dir) && all_ok;
+
+#ifdef _WIN32
+    // 预加载 gaia_client.dll (PHOTOMETRIC 依赖, 位于 photometric_calib/cpp/ 目录)
+    // photometric_calib.dll 依赖 gaia_client.dll, gaia_client.dll 又依赖 libgomp/zlib
+    // 预加载到进程地址空间, 避免传递依赖解析失败 (code=126)
+    {
+        std::string gaia_dir;
+        if (lib_base_dir.empty()) {
+            gaia_dir = "lib/photometric_calib/cpp/";
+        } else if (lib_base_dir.back() == '/' || lib_base_dir.back() == '\\') {
+            gaia_dir = lib_base_dir + "lib/photometric_calib/cpp/";
+        } else {
+            gaia_dir = lib_base_dir + "/lib/photometric_calib/cpp/";
+        }
+        std::string gaia_path = gaia_dir + "gaia_client.dll";
+        HMODULE gaia_h = LoadLibraryExA(gaia_path.c_str(), nullptr,
+                                        LOAD_WITH_ALTERED_SEARCH_PATH);
+        if (gaia_h != nullptr) {
+            std::cerr << "[dll_loader] 预加载 gaia_client.dll (依赖前置) handle="
+                      << gaia_h << std::endl;
+        }
+    }
+#endif
+
     all_ok = load_module(ModuleId::PHOTOMETRIC, lib_base_dir) && all_ok;
     all_ok = load_module(ModuleId::GRADIENT_2D, lib_base_dir) && all_ok;
     all_ok = load_module(ModuleId::SNR,         lib_base_dir) && all_ok;

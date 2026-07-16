@@ -442,11 +442,38 @@ void Orchestrator::set_checkpoint_dir(const std::string& dir) {
 // ============================================================================
 // init_dlls - 初始化 DLL 加载
 // 调用 dll_loader_.load_all(lib_base_dir), 收集错误信息, 设置 dlls_loaded_ 标志
+// lib_base_dir 为空时自动推导项目根目录 (orchestrator.exe 位于 lib/orchestrator/cpp/)
 // ============================================================================
 bool Orchestrator::init_dlls(const std::string& lib_base_dir, std::string& error_msg) {
-    LOG_INFO("orchestrator", "初始化 DLL 加载 (lib_base_dir=" + lib_base_dir + ")");
+    std::string base_dir = lib_base_dir;
 
-    bool ok = dll_loader_.load_all(lib_base_dir);
+    // 自动推导项目根目录: orchestrator.exe 位于 <root>/lib/orchestrator/cpp/
+    if (base_dir.empty()) {
+#ifdef _WIN32
+        char exe_path[MAX_PATH] = {0};
+        if (GetModuleFileNameA(nullptr, exe_path, MAX_PATH) > 0) {
+            std::string ep(exe_path);
+            // exe_path = <root>/lib/orchestrator/cpp/orchestrator.exe
+            // 向上 4 级目录得到 <root> (去掉 cpp/orchestrator/lib 三级 + 文件名)
+            size_t pos = std::string::npos;
+            for (int i = 0; i < 4; ++i) {
+                pos = ep.find_last_of("\\/", pos == std::string::npos ? std::string::npos : pos - 1);
+                if (pos == std::string::npos) break;
+            }
+            if (pos != std::string::npos) {
+                base_dir = ep.substr(0, pos);
+                LOG_INFO("orchestrator", "自动推导项目根目录: " + base_dir);
+            }
+        }
+#endif
+        if (base_dir.empty()) {
+            base_dir = ".";  // 回退到当前目录
+        }
+    }
+
+    LOG_INFO("orchestrator", "初始化 DLL 加载 (lib_base_dir=" + base_dir + ")");
+
+    bool ok = dll_loader_.load_all(base_dir);
     dlls_loaded_ = ok;
 
     if (!ok) {
