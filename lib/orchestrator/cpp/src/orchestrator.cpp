@@ -52,6 +52,25 @@ std::string Orchestrator::state_name(TaskState state) {
 }
 
 // ============================================================================
+// stage_name_v2 - spec §2.3.2 两段流水线 10 节点阶段名称
+// ============================================================================
+std::string Orchestrator::stage_name_v2(PipelineStageV2 stage) {
+    switch (stage) {
+        case PipelineStageV2::READ_FITS:       return "READ_FITS";
+        case PipelineStageV2::CALIBRATE:       return "CALIBRATE";
+        case PipelineStageV2::PLATESOLVE:      return "PLATESOLVE";
+        case PipelineStageV2::PSF:             return "PSF";
+        case PipelineStageV2::PHOTOMETRIC:     return "PHOTOMETRIC";
+        case PipelineStageV2::GRADIENT_2D:     return "GRADIENT_2D";
+        case PipelineStageV2::SNR:             return "SNR";
+        case PipelineStageV2::DRIZZLE:         return "DRIZZLE";
+        case PipelineStageV2::GRADIENT_SPHERE: return "GRADIENT_SPHERE";
+        case PipelineStageV2::STACK:           return "STACK";
+        default:                               return "UNKNOWN";
+    }
+}
+
+// ============================================================================
 // 构造 / 析构
 // ============================================================================
 Orchestrator::Orchestrator() {
@@ -431,13 +450,15 @@ bool Orchestrator::init_dlls(const std::string& lib_base_dir, std::string& error
     dlls_loaded_ = ok;
 
     if (!ok) {
-        // 收集所有失败模块的错误信息
+        // 收集所有失败模块的错误信息 (spec §2.3.2 10 节点)
         std::stringstream ss;
         ss << "部分模块加载失败: ";
         bool first = true;
         std::vector<ModuleId> ids = {
-            ModuleId::CALIBRATE, ModuleId::PLATESOLVE, ModuleId::PSF,
-            ModuleId::PHOTOMETRIC, ModuleId::DRIZZLE
+            ModuleId::AIO, ModuleId::CALIBRATE, ModuleId::PLATESOLVE,
+            ModuleId::PSF, ModuleId::PHOTOMETRIC, ModuleId::GRADIENT_2D,
+            ModuleId::SNR, ModuleId::DRIZZLE, ModuleId::GRADIENT_SPHERE,
+            ModuleId::STACK
         };
         for (auto id : ids) {
             if (!dll_loader_.is_loaded(id)) {
@@ -453,10 +474,12 @@ bool Orchestrator::init_dlls(const std::string& lib_base_dir, std::string& error
         return false;
     }
 
-    // 加载成功, 输出各模块版本信息
-    LOG_INFO("orchestrator", "全部 5 个模块加载成功");
-    for (auto id : {ModuleId::CALIBRATE, ModuleId::PLATESOLVE, ModuleId::PSF,
-                    ModuleId::PHOTOMETRIC, ModuleId::DRIZZLE}) {
+    // 加载成功, 输出各模块版本信息 (spec §2.3.2 10 节点)
+    LOG_INFO("orchestrator", "全部 10 个模块加载成功");
+    for (auto id : {ModuleId::AIO, ModuleId::CALIBRATE, ModuleId::PLATESOLVE,
+                    ModuleId::PSF, ModuleId::PHOTOMETRIC, ModuleId::GRADIENT_2D,
+                    ModuleId::SNR, ModuleId::DRIZZLE, ModuleId::GRADIENT_SPHERE,
+                    ModuleId::STACK}) {
         std::string name = dll_loader_.get_info(id).name;
         std::string ver = dll_loader_.get_version(id);
         LOG_INFO("orchestrator", "  " + name + " 版本: " + ver);
@@ -547,4 +570,294 @@ bool Orchestrator::run_stage_drizzle(TaskResult& /*result*/) {
     LOG_DEBUG("orchestrator", "[DRIZZLE] 模块已就绪");
     // TODO: 后续 Task 调用 hp_drizzle_run 完成 Drizzle 重投影
     return true;
+}
+
+// ============================================================================
+// spec §2.3.2 两段流水线新增 stage handler (骨架)
+// ============================================================================
+
+// stage 0: READ_FITS - 读取 FITS 文件到 PipelineFrame (aio_read_fits)
+bool Orchestrator::run_stage_read_fits(TaskResult& /*result*/) {
+    LOG_DEBUG("orchestrator", "[READ_FITS] 骨架实现: 调用 aio_read_fits (后续 Task 接入)");
+    if (!dlls_loaded_) {
+        LOG_WARN("orchestrator", "[READ_FITS] DLL 未加载, 跳过此阶段");
+        return true;
+    }
+    if (!dll_loader_.is_loaded(ModuleId::AIO)) {
+        LOG_WARN("orchestrator", "[READ_FITS] AIO 模块未加载, 跳过");
+        return true;
+    }
+    LOG_DEBUG("orchestrator", "[READ_FITS] 模块已就绪");
+    // TODO: 后续 Task 调用 aio_read_fits 读取 FITS 到 PipelineFrame
+    return true;
+}
+
+// stage 5: GRADIENT_2D - step4 C++化 (gradient_2d.dll)
+bool Orchestrator::run_stage_gradient_2d(TaskResult& /*result*/) {
+    LOG_DEBUG("orchestrator", "[GRADIENT_2D] 骨架实现: 调用 gradient_2d.dll (后续 Task 接入)");
+    if (!dlls_loaded_) {
+        LOG_WARN("orchestrator", "[GRADIENT_2D] DLL 未加载, 跳过此阶段");
+        return true;
+    }
+    if (!dll_loader_.is_loaded(ModuleId::GRADIENT_2D)) {
+        LOG_WARN("orchestrator", "[GRADIENT_2D] GRADIENT_2D 模块未加载, 跳过");
+        return true;
+    }
+    LOG_DEBUG("orchestrator", "[GRADIENT_2D] 模块已就绪");
+    // TODO: 后续 Task 调用 gradient_2d_calibrate 完成乘性梯度曲面拟合 + 图像校正
+    return true;
+}
+
+// stage 6: SNR - SNR 估计 (snr_estimator.dll)
+bool Orchestrator::run_stage_snr(TaskResult& /*result*/) {
+    LOG_DEBUG("orchestrator", "[SNR] 骨架实现: 调用 snr_estimator.dll (后续 Task 接入)");
+    if (!dlls_loaded_) {
+        LOG_WARN("orchestrator", "[SNR] DLL 未加载, 跳过此阶段");
+        return true;
+    }
+    if (!dll_loader_.is_loaded(ModuleId::SNR)) {
+        LOG_WARN("orchestrator", "[SNR] SNR 模块未加载, 跳过");
+        return true;
+    }
+    LOG_DEBUG("orchestrator", "[SNR] 模块已就绪");
+    // TODO: 后续 Task 调用 snr_estimate 完成 SNR 建模
+    return true;
+}
+
+// stage 8: GRADIENT_SPHERE - 球面梯度校准 (healpix_stack.dll hp_stack_gradient_corrected)
+bool Orchestrator::run_stage_gradient_sphere(TaskResult& /*result*/) {
+    LOG_DEBUG("orchestrator", "[GRADIENT_SPHERE] 骨架实现: 调用 healpix_stack.dll (后续 Task 接入)");
+    if (!dlls_loaded_) {
+        LOG_WARN("orchestrator", "[GRADIENT_SPHERE] DLL 未加载, 跳过此阶段");
+        return true;
+    }
+    if (!dll_loader_.is_loaded(ModuleId::GRADIENT_SPHERE)) {
+        LOG_WARN("orchestrator", "[GRADIENT_SPHERE] GRADIENT_SPHERE 模块未加载, 跳过");
+        return true;
+    }
+    LOG_DEBUG("orchestrator", "[GRADIENT_SPHERE] 模块已就绪");
+    // TODO: 后续 Task 调用 hp_stack_gradient_corrected 完成球面梯度校准
+    return true;
+}
+
+// stage 9: STACK - Winsorized sigma clip + SNR²加权叠加 (healpix_stack.dll)
+bool Orchestrator::run_stage_stack(TaskResult& /*result*/) {
+    LOG_DEBUG("orchestrator", "[STACK] 骨架实现: 调用 healpix_stack.dll (后续 Task 接入)");
+    if (!dlls_loaded_) {
+        LOG_WARN("orchestrator", "[STACK] DLL 未加载, 跳过此阶段");
+        return true;
+    }
+    if (!dll_loader_.is_loaded(ModuleId::STACK)) {
+        LOG_WARN("orchestrator", "[STACK] STACK 模块未加载, 跳过");
+        return true;
+    }
+    LOG_DEBUG("orchestrator", "[STACK] 模块已就绪");
+    // TODO: 后续 Task 调用 hp_stack_* 完成 Winsorized sigma clip + SNR²加权叠加
+    return true;
+}
+
+// ============================================================================
+// run_stage1 - spec §2.3.3 单帧预处理 (FITS -> .hiss, stage 0-7)
+// 串行执行 8 个 stage, 各阶段调用对应 DLL 模块 (骨架), 输出 timings
+// ============================================================================
+TaskResult Orchestrator::run_stage1(const std::string& fits_path,
+                                    const std::string& output_hiss,
+                                    const std::string& config_json) {
+    TaskResult result;
+    result.success = false;
+    result.frame_name = fits_path;
+
+    LOG_INFO("orchestrator", "========== stage1: 单帧预处理 (FITS -> .hiss) ==========");
+    LOG_INFO("orchestrator", "输入 FITS: " + fits_path);
+    LOG_INFO("orchestrator", "输出 .hiss: " + output_hiss);
+    if (!config_json.empty()) {
+        LOG_INFO("orchestrator", "配置 JSON: " + config_json);
+    }
+
+    // 参数校验
+    if (fits_path.empty()) {
+        result.error_msg = "FITS 路径为空";
+        LOG_ERROR("orchestrator", result.error_msg);
+        return result;
+    }
+    if (!fs::exists(fits_path)) {
+        result.error_msg = "FITS 文件不存在: " + fits_path;
+        LOG_ERROR("orchestrator", result.error_msg);
+        return result;
+    }
+    if (output_hiss.empty()) {
+        result.error_msg = "输出 .hiss 路径为空";
+        LOG_ERROR("orchestrator", result.error_msg);
+        return result;
+    }
+
+    // 加载 DLL (如果未加载, 允许部分模块加载失败继续执行)
+    if (!dlls_loaded_) {
+        std::string err;
+        // lib_base_dir 留空, 使用相对路径 (项目根目录执行)
+        if (!init_dlls("", err)) {
+            LOG_WARN("orchestrator", "DLL 加载警告: " + err + " (部分阶段将跳过)");
+        }
+    }
+
+    // 进入运行状态
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        current_frame_ = fits_path;
+        current_stage_ = PipelineStage::CALIBRATE;
+        start_time_ = std::chrono::steady_clock::now();
+    }
+    state_ = TaskState::RUNNING;
+
+    // 串行执行 stage 0-7 (lambda: 带计时调用 stage handler)
+    auto run_v2_with_timing = [&](PipelineStageV2 stage, const char* name,
+                                   bool (Orchestrator::*fn)(TaskResult&)) -> bool {
+        LOG_INFO("orchestrator", "---------- stage1 阶段: " + std::string(name) + " ----------");
+        auto t0 = std::chrono::steady_clock::now();
+        bool ok = (this->*fn)(result);
+        auto t1 = std::chrono::steady_clock::now();
+        double dur = std::chrono::duration<double>(t1 - t0).count();
+
+        StageTiming st;
+        st.stage = PipelineStage::CALIBRATE;  // 复用旧枚举 (StageTiming 仍用旧枚举)
+        st.stage_name = name;
+        st.duration_sec = dur;
+        st.success = ok;
+        result.timings.push_back(st);
+        LOG_INFO("orchestrator", "[" + std::to_string(dur) + "s] " + name
+                 + (ok ? " 完成" : " 失败"));
+        return ok;
+    };
+
+    bool ok = true;
+    ok = ok && run_v2_with_timing(PipelineStageV2::READ_FITS,   "READ_FITS",
+                                   &Orchestrator::run_stage_read_fits);
+    ok = ok && run_v2_with_timing(PipelineStageV2::CALIBRATE,   "CALIBRATE",
+                                   &Orchestrator::run_stage_calibrate);
+    ok = ok && run_v2_with_timing(PipelineStageV2::PLATESOLVE,  "PLATESOLVE",
+                                   &Orchestrator::run_stage_platesolve);
+    ok = ok && run_v2_with_timing(PipelineStageV2::PSF,         "PSF",
+                                   &Orchestrator::run_stage_psf);
+    ok = ok && run_v2_with_timing(PipelineStageV2::PHOTOMETRIC, "PHOTOMETRIC",
+                                   &Orchestrator::run_stage_photometric);
+    ok = ok && run_v2_with_timing(PipelineStageV2::GRADIENT_2D, "GRADIENT_2D",
+                                   &Orchestrator::run_stage_gradient_2d);
+    ok = ok && run_v2_with_timing(PipelineStageV2::SNR,         "SNR",
+                                   &Orchestrator::run_stage_snr);
+    ok = ok && run_v2_with_timing(PipelineStageV2::DRIZZLE,     "DRIZZLE",
+                                   &Orchestrator::run_stage_drizzle);
+
+    result.success = ok;
+    result.output_ahpx_path = ok ? output_hiss : "";
+    state_ = ok ? TaskState::COMPLETED : TaskState::FAILED;
+
+    LOG_INFO("orchestrator", "========== stage1 "
+             + std::string(ok ? "完成 (成功)" : "失败") + " ==========");
+    return result;
+}
+
+// ============================================================================
+// run_stage2 - spec §2.3.3 多帧合并 (.hiss -> .hcsd, stage 8-9)
+// 串行执行 2 个 stage: GRADIENT_SPHERE -> STACK
+// ============================================================================
+TaskResult Orchestrator::run_stage2(const std::string& hiss_dir,
+                                    const std::string& output_hcsd,
+                                    const std::string& config_json) {
+    TaskResult result;
+    result.success = false;
+    result.frame_name = hiss_dir;  // stage2 用目录作为输入标识
+
+    LOG_INFO("orchestrator", "========== stage2: 多帧合并 (.hiss -> .hcsd) ==========");
+    LOG_INFO("orchestrator", "输入 .hiss 目录: " + hiss_dir);
+    LOG_INFO("orchestrator", "输出 .hcsd: " + output_hcsd);
+    if (!config_json.empty()) {
+        LOG_INFO("orchestrator", "配置 JSON: " + config_json);
+    }
+
+    // 参数校验
+    if (hiss_dir.empty()) {
+        result.error_msg = ".hiss 目录为空";
+        LOG_ERROR("orchestrator", result.error_msg);
+        return result;
+    }
+    if (!fs::exists(hiss_dir) || !fs::is_directory(hiss_dir)) {
+        result.error_msg = ".hiss 目录不存在或不是目录: " + hiss_dir;
+        LOG_ERROR("orchestrator", result.error_msg);
+        return result;
+    }
+    if (output_hcsd.empty()) {
+        result.error_msg = "输出 .hcsd 路径为空";
+        LOG_ERROR("orchestrator", result.error_msg);
+        return result;
+    }
+
+    // 收集 .hiss 文件列表
+    std::vector<std::string> hiss_files;
+    for (const auto& entry : fs::directory_iterator(hiss_dir)) {
+        if (!entry.is_regular_file()) continue;
+        std::string ext = entry.path().extension().string();
+        std::transform(ext.begin(), ext.end(), ext.begin(),
+                       [](unsigned char c) { return std::tolower(c); });
+        if (ext == ".hiss") {
+            hiss_files.push_back(entry.path().string());
+        }
+    }
+    std::sort(hiss_files.begin(), hiss_files.end());
+    LOG_INFO("orchestrator", "发现 " + std::to_string(hiss_files.size()) + " 个 .hiss 文件");
+    if (hiss_files.empty()) {
+        result.error_msg = "目录下无 .hiss 文件: " + hiss_dir;
+        LOG_ERROR("orchestrator", result.error_msg);
+        return result;
+    }
+
+    // 加载 DLL (如果未加载, stage2 仅需 GRADIENT_SPHERE/STACK 模块)
+    if (!dlls_loaded_) {
+        std::string err;
+        if (!init_dlls("", err)) {
+            LOG_WARN("orchestrator", "DLL 加载警告: " + err + " (部分阶段将跳过)");
+        }
+    }
+
+    // 进入运行状态
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        current_frame_ = hiss_dir;
+        current_stage_ = PipelineStage::STACK;
+        start_time_ = std::chrono::steady_clock::now();
+    }
+    state_ = TaskState::RUNNING;
+
+    // 串行执行 stage 8-9 (lambda: 带计时调用 stage handler)
+    auto run_v2_with_timing = [&](PipelineStageV2 stage, const char* name,
+                                   bool (Orchestrator::*fn)(TaskResult&)) -> bool {
+        LOG_INFO("orchestrator", "---------- stage2 阶段: " + std::string(name) + " ----------");
+        auto t0 = std::chrono::steady_clock::now();
+        bool ok = (this->*fn)(result);
+        auto t1 = std::chrono::steady_clock::now();
+        double dur = std::chrono::duration<double>(t1 - t0).count();
+
+        StageTiming st;
+        st.stage = PipelineStage::STACK;  // stage2 使用 STACK 枚举
+        st.stage_name = name;
+        st.duration_sec = dur;
+        st.success = ok;
+        result.timings.push_back(st);
+        LOG_INFO("orchestrator", "[" + std::to_string(dur) + "s] " + name
+                 + (ok ? " 完成" : " 失败"));
+        return ok;
+    };
+
+    bool ok = true;
+    ok = ok && run_v2_with_timing(PipelineStageV2::GRADIENT_SPHERE, "GRADIENT_SPHERE",
+                                   &Orchestrator::run_stage_gradient_sphere);
+    ok = ok && run_v2_with_timing(PipelineStageV2::STACK,           "STACK",
+                                   &Orchestrator::run_stage_stack);
+
+    result.success = ok;
+    result.output_ahpx_path = ok ? output_hcsd : "";
+    state_ = ok ? TaskState::COMPLETED : TaskState::FAILED;
+
+    LOG_INFO("orchestrator", "========== stage2 "
+             + std::string(ok ? "完成 (成功)" : "失败") + " ==========");
+    return result;
 }

@@ -24,13 +24,34 @@
 #include "checkpoint.h"
 #include "logger.h"
 
-// 管线阶段枚举 (与 aio_pipeline.h 的 PipelineStage 保持一致)
+// 管线阶段枚举 (旧版, 5 阶段, 向后兼容, 供 run_single/run_batch 使用)
 enum class PipelineStage {
     CALIBRATE   = 0,
     PLATESOLVE  = 1,
     PHOTOMETRIC = 2,
     DRIZZLE     = 3,
     STACK       = 4
+};
+
+// ============================================================================
+// 新版管线阶段枚举 (spec §2.3.2 两段流水线 10 节点)
+// 供 stage1/stage2 CLI 命令使用
+// 第一段: 单帧预处理 (stage 0-7, FITS -> .hiss)
+// 第二段: 多帧合并 (stage 8-9, .hiss -> .hcsd)
+// ============================================================================
+enum class PipelineStageV2 {
+    // 第一段: 单帧预处理
+    READ_FITS       = 0,  // aio_read_fits -> PipelineFrame
+    CALIBRATE       = 1,  // calibration.dll (dark/bias/flat + 坏点修复)
+    PLATESOLVE      = 2,  // ipv_solver.dll (WCS/SIP)
+    PSF             = 3,  // dynamic_psf.dll (PSF 拟合)
+    PHOTOMETRIC     = 4,  // photometric_calib.dll (F_syn 积分 + 全局 scale)
+    GRADIENT_2D     = 5,  // gradient_2d.dll (step4 C++化: 乘性梯度曲面拟合 + 图像校正)
+    SNR             = 6,  // snr_estimator.dll (异常值剔除 + 测光不确定度 + 帧SNR基准)
+    DRIZZLE         = 7,  // healpix_drizzle.dll (nside 1-2x, SNR同步转换, 落盘 .hiss)
+    // 第二段: 多帧合并
+    GRADIENT_SPHERE = 8,  // healpix_stack.dll hp_stack_gradient_corrected (球面梯度校准)
+    STACK           = 9   // healpix_stack.dll (Winsorized sigma clip + SNR²加权叠加 -> .hcsd)
 };
 
 // 任务状态
@@ -132,6 +153,30 @@ public:
     // 新增: 获取 DllLoader 引用 (供高级用户直接调用)
     DllLoader& get_dll_loader() { return dll_loader_; }
 
+    // ========================================================================
+    // spec §2.3 两段流水线 API (stage1/stage2 CLI 命令调用)
+    // ========================================================================
+
+    // stage1: 单帧预处理 (FITS -> .hiss, stage 0-7)
+    // 参数:
+    //   fits_path: 输入 FITS 文件路径
+    //   output_hiss: 输出 .hiss 文件路径
+    //   config_json: stage1 配置 JSON (含 gaia_data_dir, calibration_dir, filter 等)
+    // 返回: TaskResult (success=true 表示全部 8 个 stage 执行成功)
+    TaskResult run_stage1(const std::string& fits_path,
+                          const std::string& output_hiss,
+                          const std::string& config_json = "");
+
+    // stage2: 多帧合并 (.hiss -> .hcsd, stage 8-9)
+    // 参数:
+    //   hiss_dir: 输入 .hiss 文件目录 (目录下所有 .hiss 文件作为输入)
+    //   output_hcsd: 输出 .hcsd 文件路径
+    //   config_json: stage2 配置 JSON (含 stack 参数等)
+    // 返回: TaskResult (success=true 表示 GRADIENT_SPHERE + STACK 全部成功)
+    TaskResult run_stage2(const std::string& hiss_dir,
+                          const std::string& output_hcsd,
+                          const std::string& config_json = "");
+
 private:
     OrchestratorConfig config_;
     std::atomic<TaskState> state_{TaskState::IDLE};
@@ -155,7 +200,21 @@ private:
     bool run_stage_photometric(TaskResult& result);
     bool run_stage_drizzle(TaskResult& result);
 
+    // spec §2.3 两段流水线 10 节点新增 handler (骨架)
+    // stage 0: READ_FITS (aio_read_fits -> PipelineFrame)
+    bool run_stage_read_fits(TaskResult& result);
+    // stage 5: GRADIENT_2D (gradient_2d.dll, step4 C++化)
+    bool run_stage_gradient_2d(TaskResult& result);
+    // stage 6: SNR (snr_estimator.dll)
+    bool run_stage_snr(TaskResult& result);
+    // stage 8: GRADIENT_SPHERE (healpix_stack.dll hp_stack_gradient_corrected)
+    bool run_stage_gradient_sphere(TaskResult& result);
+    // stage 9: STACK (healpix_stack.dll, Winsorized sigma clip + SNR²加权叠加)
+    bool run_stage_stack(TaskResult& result);
+
     // 辅助方法
     static std::string stage_name(PipelineStage stage);
     static std::string state_name(TaskState state);
+    // 新增: PipelineStageV2 阶段名称
+    static std::string stage_name_v2(PipelineStageV2 stage);
 };

@@ -19,35 +19,50 @@
 // ============================================================================
 std::string DllLoader::get_module_name(ModuleId id) const {
     switch (id) {
-        case ModuleId::CALIBRATE:   return "CALIBRATE";
-        case ModuleId::PLATESOLVE:  return "PLATESOLVE";
-        case ModuleId::PSF:         return "PSF";
-        case ModuleId::PHOTOMETRIC: return "PHOTOMETRIC";
-        case ModuleId::DRIZZLE:     return "DRIZZLE";
-        default:                    return "UNKNOWN";
+        case ModuleId::AIO:             return "AIO";
+        case ModuleId::CALIBRATE:       return "CALIBRATE";
+        case ModuleId::PLATESOLVE:      return "PLATESOLVE";
+        case ModuleId::PSF:             return "PSF";
+        case ModuleId::PHOTOMETRIC:     return "PHOTOMETRIC";
+        case ModuleId::GRADIENT_2D:     return "GRADIENT_2D";
+        case ModuleId::SNR:             return "SNR";
+        case ModuleId::DRIZZLE:         return "DRIZZLE";
+        case ModuleId::GRADIENT_SPHERE: return "GRADIENT_SPHERE";
+        case ModuleId::STACK:           return "STACK";
+        default:                        return "UNKNOWN";
     }
 }
 
 std::string DllLoader::get_dll_filename(ModuleId id) const {
     switch (id) {
-        case ModuleId::CALIBRATE:   return "astro_calibration.dll";
-        case ModuleId::PLATESOLVE:  return "ipv_solver.dll";
-        case ModuleId::PSF:         return "dynamic_psf.dll";
-        case ModuleId::PHOTOMETRIC: return "photometric_calib.dll";
-        case ModuleId::DRIZZLE:     return "healpix_drizzle.dll";  // 实际 DLL 文件名
-        default:                    return "";
+        case ModuleId::AIO:             return "astro_image_io.dll";
+        case ModuleId::CALIBRATE:       return "astro_calibration.dll";
+        case ModuleId::PLATESOLVE:      return "ipv_solver.dll";
+        case ModuleId::PSF:             return "dynamic_psf.dll";
+        case ModuleId::PHOTOMETRIC:     return "photometric_calib.dll";
+        case ModuleId::GRADIENT_2D:     return "gradient_2d.dll";
+        case ModuleId::SNR:             return "snr_estimator.dll";
+        case ModuleId::DRIZZLE:         return "healpix_drizzle.dll";
+        case ModuleId::GRADIENT_SPHERE: return "healpix_stack.dll";
+        case ModuleId::STACK:           return "healpix_stack.dll";
+        default:                        return "";
     }
 }
 
 std::string DllLoader::get_default_path(ModuleId id, const std::string& lib_base_dir) const {
     std::string sub;
     switch (id) {
-        case ModuleId::CALIBRATE:   sub = "lib/calibration/";                 break;
-        case ModuleId::PLATESOLVE:  sub = "lib/plate_solve/cpp/ipv/";         break;
-        case ModuleId::PSF:         sub = "lib/dynamic_psf/";                 break;
-        case ModuleId::PHOTOMETRIC: sub = "lib/photometric_calib/cpp/";       break;
-        case ModuleId::DRIZZLE:     sub = "lib/healpix_db/healpix_drizzle/"; break;
-        default:                    sub = "";
+        case ModuleId::AIO:             sub = "lib/astro_image_io/";                          break;
+        case ModuleId::CALIBRATE:       sub = "lib/calibration/";                            break;
+        case ModuleId::PLATESOLVE:      sub = "lib/plate_solve/cpp/ipv/";                    break;
+        case ModuleId::PSF:             sub = "lib/dynamic_psf/";                            break;
+        case ModuleId::PHOTOMETRIC:     sub = "lib/photometric_calib/cpp/";                  break;
+        case ModuleId::GRADIENT_2D:     sub = "lib/photometric_calib/cpp/gradient_2d/";      break;
+        case ModuleId::SNR:             sub = "lib/snr_estimator/cpp/";                      break;
+        case ModuleId::DRIZZLE:         sub = "lib/healpix_db/healpix_drizzle/";             break;
+        case ModuleId::GRADIENT_SPHERE: sub = "lib/healpix_db/healpix_stack/";               break;
+        case ModuleId::STACK:           sub = "lib/healpix_db/healpix_stack/";               break;
+        default:                        sub = "";
     }
     if (lib_base_dir.empty()) {
         return sub;
@@ -63,7 +78,7 @@ std::string DllLoader::get_default_path(ModuleId id, const std::string& lib_base
 // 构造 / 析构
 // ============================================================================
 DllLoader::DllLoader() {
-    // 初始化 5 个模块的默认信息
+    // 初始化所有模块的默认信息 (10 个, 对应 spec §2.3.2 两段流水线)
     auto init = [this](ModuleId id) {
         ModuleInfo info;
         info.id = id;
@@ -75,11 +90,16 @@ DllLoader::DllLoader() {
         info.error_msg = "";
         modules_[id] = info;
     };
+    init(ModuleId::AIO);
     init(ModuleId::CALIBRATE);
     init(ModuleId::PLATESOLVE);
     init(ModuleId::PSF);
     init(ModuleId::PHOTOMETRIC);
+    init(ModuleId::GRADIENT_2D);
+    init(ModuleId::SNR);
     init(ModuleId::DRIZZLE);
+    init(ModuleId::GRADIENT_SPHERE);
+    init(ModuleId::STACK);
 }
 
 DllLoader::~DllLoader() {
@@ -156,55 +176,65 @@ bool DllLoader::load_module(ModuleId id, const std::string& lib_base_dir) {
 }
 
 // ============================================================================
-// load_all - 加载所有 5 个模块 DLL
+// load_all - 加载所有模块 DLL (对应 spec §2.3.2 两段流水线 10 节点)
 // 返回: 全部加载成功返回 true, 任一失败返回 false
+// 加载顺序: AIO 预加载 -> 第一段 stage1 模块 -> 第二段 stage2 模块
 // ============================================================================
 bool DllLoader::load_all(const std::string& lib_base_dir) {
     std::cerr << "[dll_loader] 开始加载所有模块 (lib_base_dir="
               << lib_base_dir << ")" << std::endl;
 
+    bool all_ok = true;
+
+    // 1. 预加载 AIO (公共依赖, 多个模块依赖 astro_image_io.dll)
+    //    用 load_module 正式加载 (注册到 modules_ 中, 可供后续 get_function 调用)
+    all_ok = load_module(ModuleId::AIO, lib_base_dir) && all_ok;
+
 #ifdef _WIN32
-    // 预加载公共依赖 DLL: astro_image_io.dll (位于 lib/astro_image_io/)
-    // 多个模块 (healpix_drizzle, healpix_lod) 依赖 astro_image_io.dll,
-    // 但它们各自在不同目录, LOAD_WITH_ALTERED_SEARCH_PATH 只能找同目录的依赖,
-    // 所以需要预先把 astro_image_io.dll 加载到进程地址空间, 后续加载的 DLL
-    // 在解析依赖时会直接复用已加载的 astro_image_io.dll
-    std::string aio_dir;
-    if (lib_base_dir.empty()) {
-        aio_dir = "lib/astro_image_io/";
-    } else if (lib_base_dir.back() == '/' || lib_base_dir.back() == '\\') {
-        aio_dir = lib_base_dir + "lib/astro_image_io/";
-    } else {
-        aio_dir = lib_base_dir + "/lib/astro_image_io/";
-    }
-    std::string aio_path = aio_dir + "astro_image_io.dll";
-    std::ifstream aio_ifs(aio_path, std::ios::binary);
-    if (aio_ifs.is_open()) {
-        aio_ifs.close();
+    // 兼容旧逻辑: 即便 load_module 已加载 AIO, 再用 LOAD_WITH_ALTERED_SEARCH_PATH
+    // 显式预加载一次, 保证后续 DLL 在解析依赖时能找到 astro_image_io.dll
+    // (Windows DLL 搜索路径问题的双保险)
+    {
+        std::string aio_dir;
+        if (lib_base_dir.empty()) {
+            aio_dir = "lib/astro_image_io/";
+        } else if (lib_base_dir.back() == '/' || lib_base_dir.back() == '\\') {
+            aio_dir = lib_base_dir + "lib/astro_image_io/";
+        } else {
+            aio_dir = lib_base_dir + "/lib/astro_image_io/";
+        }
+        std::string aio_path = aio_dir + "astro_image_io.dll";
         HMODULE aio_h = LoadLibraryExA(aio_path.c_str(), nullptr,
                                         LOAD_WITH_ALTERED_SEARCH_PATH);
         if (aio_h != nullptr) {
-            std::cerr << "[dll_loader] 预加载公共依赖 astro_image_io.dll 成功 (handle="
-                      << aio_h << ")" << std::endl;
-        } else {
-            std::cerr << "[dll_loader] [警告] 预加载 astro_image_io.dll 失败, "
-                      << "依赖模块 (DRIZZLE) 可能无法加载" << std::endl;
+            std::cerr << "[dll_loader] 预加载 astro_image_io.dll (依赖前置) handle="
+                      << aio_h << std::endl;
         }
-    } else {
-        std::cerr << "[dll_loader] [提示] astro_image_io.dll 未找到 ("
-                  << aio_path << "), 依赖模块可能无法加载" << std::endl;
     }
 #endif
 
-    bool all_ok = true;
+    // 2. 第一段: 单帧预处理 stage1 模块 (stage 1-7, AIO=stage0 已加载)
     all_ok = load_module(ModuleId::CALIBRATE,   lib_base_dir) && all_ok;
     all_ok = load_module(ModuleId::PLATESOLVE,  lib_base_dir) && all_ok;
     all_ok = load_module(ModuleId::PSF,         lib_base_dir) && all_ok;
     all_ok = load_module(ModuleId::PHOTOMETRIC, lib_base_dir) && all_ok;
+    all_ok = load_module(ModuleId::GRADIENT_2D, lib_base_dir) && all_ok;
+    all_ok = load_module(ModuleId::SNR,         lib_base_dir) && all_ok;
     all_ok = load_module(ModuleId::DRIZZLE,     lib_base_dir) && all_ok;
 
+    // 3. 第二段: 多帧合并 stage2 模块 (stage 8-9, 共用 healpix_stack.dll)
+    all_ok = load_module(ModuleId::GRADIENT_SPHERE, lib_base_dir) && all_ok;
+    // STACK 与 GRADIENT_SPHERE 共用 healpix_stack.dll, 已加载则跳过
+    if (!is_loaded(ModuleId::STACK)) {
+        all_ok = load_module(ModuleId::STACK, lib_base_dir) && all_ok;
+    } else {
+        // 复用 GRADIENT_SPHERE 的 handle
+        modules_[ModuleId::STACK].handle = modules_[ModuleId::GRADIENT_SPHERE].handle;
+        modules_[ModuleId::STACK].status = ModuleStatus::LOADED;
+    }
+
     if (all_ok) {
-        std::cerr << "[dll_loader] 全部 5 个模块加载成功" << std::endl;
+        std::cerr << "[dll_loader] 全部模块加载成功" << std::endl;
     } else {
         std::cerr << "[dll_loader] 部分模块加载失败, 详见各模块状态" << std::endl;
     }
@@ -229,11 +259,27 @@ void DllLoader::unload_module(ModuleId id) {
 
 void DllLoader::unload_all() {
     std::cerr << "[dll_loader] 卸载所有模块" << std::endl;
+    // 先卸载业务模块, 最后卸载 AIO (避免依赖顺序问题)
     unload_module(ModuleId::CALIBRATE);
     unload_module(ModuleId::PLATESOLVE);
     unload_module(ModuleId::PSF);
     unload_module(ModuleId::PHOTOMETRIC);
+    unload_module(ModuleId::GRADIENT_2D);
+    unload_module(ModuleId::SNR);
     unload_module(ModuleId::DRIZZLE);
+    // STACK 与 GRADIENT_SPHERE 共用 handle, 仅卸载一次
+    // 标记 STACK 为已卸载, 但不调用 free_library (避免 double-free)
+    if (modules_.count(ModuleId::STACK) &&
+        modules_[ModuleId::STACK].handle != nullptr &&
+        modules_.count(ModuleId::GRADIENT_SPHERE) &&
+        modules_[ModuleId::STACK].handle == modules_[ModuleId::GRADIENT_SPHERE].handle) {
+        modules_[ModuleId::STACK].handle = nullptr;
+        modules_[ModuleId::STACK].status = ModuleStatus::NOT_LOADED;
+    } else {
+        unload_module(ModuleId::STACK);
+    }
+    unload_module(ModuleId::GRADIENT_SPHERE);
+    unload_module(ModuleId::AIO);
 }
 
 // ============================================================================
@@ -291,14 +337,16 @@ std::string DllLoader::get_version(ModuleId id) {
             if (v == nullptr) return "[null]";
             return std::string(v);
         }
+        case ModuleId::AIO:
         case ModuleId::PLATESOLVE:
-            return "unknown";  // ipv_solver 暂无 version 函数
         case ModuleId::PSF:
-            return "unknown";  // dynamic_psf 暂无 version 函数
         case ModuleId::PHOTOMETRIC:
-            return "unknown";  // photometric_calib 暂无 version 函数
+        case ModuleId::GRADIENT_2D:
+        case ModuleId::SNR:
         case ModuleId::DRIZZLE:
-            return "unknown";  // healpix_drizzle 暂无 version 函数
+        case ModuleId::GRADIENT_SPHERE:
+        case ModuleId::STACK:
+            return "unknown";  // 暂无统一 version 函数, 后续补充
         default:
             return "unknown";
     }
@@ -329,14 +377,16 @@ bool DllLoader::set_num_threads(ModuleId id, int n) {
             std::cerr << "[dll_loader] CALIBRATE 线程数设置为 " << n << std::endl;
             return true;
         }
+        case ModuleId::AIO:
         case ModuleId::PLATESOLVE:
-            return false;  // 暂无 set_num_threads 接口
         case ModuleId::PSF:
-            return false;  // 暂无 set_num_threads 接口
         case ModuleId::PHOTOMETRIC:
-            return false;  // 暂无 set_num_threads 接口
+        case ModuleId::GRADIENT_2D:
+        case ModuleId::SNR:
         case ModuleId::DRIZZLE:
-            return false;  // 暂无 set_num_threads 接口
+        case ModuleId::GRADIENT_SPHERE:
+        case ModuleId::STACK:
+            return false;  // 暂无 set_num_threads 接口, 后续补充
         default:
             return false;
     }

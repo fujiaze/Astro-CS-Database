@@ -1,0 +1,29 @@
+{
+  "_comment": "stage1 配置文件模板 (spec §2.3.3) - 单帧预处理 FITS -> .hiss, stage 0-7",
+  "project_root": ".",
+  "gaia_data_dir": "GaiaDR3SP",
+  "calibration_dir": "testdata/calibration",
+  "output_root": "output",
+  "stages": [
+    "read_fits",
+    "calibrate",
+    "platesolve",
+    "psf",
+    "photometric",
+    "gradient_2d",
+    "snr",
+    "drizzle"
+  ],
+  "frame": {
+    "id": "panel1_Red",
+    "light_path": "",
+    "filter": "Red",
+    "qe_curve": "GSENSE2020BSI"
+  },
+  "drizzle": {
+    "nside_strategy": "1x_to_2x_drizzle",
+    "nside_override": 0
+  },
+  "log_level": "INFO",
+  "threads": 0
+}
