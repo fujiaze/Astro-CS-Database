@@ -1,11 +1,16 @@
 #include "../include/astro_image_io.h"
-#include "aio_fits.h"
-#include "aio_xisf.h"
 #include "aio_log.h"
 #include <cstdlib>
 #include <cstring>
 #include <cmath>
 #include <chrono>
+
+#ifdef AIO_ENABLE_FITS
+#include "aio_fits.h"
+#endif
+#ifdef AIO_ENABLE_XISF
+#include "aio_xisf.h"
+#endif
 
 static AIOImageData *alloc_image_data() {
     AIOImageData *img = (AIOImageData *)calloc(1, sizeof(AIOImageData));
@@ -18,12 +23,19 @@ static AIOImageData *alloc_image_data() {
 AIO_EXPORT AIOImageData *aio_read(const char *path) {
     if (!path) return nullptr;
 
+#ifdef AIO_ENABLE_XISF
     if (xisf_detect(path)) {
         return aio_read_xisf(path);
     }
+#endif
+#ifdef AIO_ENABLE_FITS
     return aio_read_fits(path);
+#else
+    return nullptr;
+#endif
 }
 
+#ifdef AIO_ENABLE_FITS
 AIO_EXPORT AIOImageData *aio_read_fits(const char *path) {
     if (!path) return nullptr;
 
@@ -43,7 +55,9 @@ AIO_EXPORT AIOImageData *aio_read_fits(const char *path) {
 
     return img;
 }
+#endif  // AIO_ENABLE_FITS
 
+#ifdef AIO_ENABLE_XISF
 AIO_EXPORT AIOImageData *aio_read_xisf(const char *path) {
     if (!path) return nullptr;
 
@@ -63,6 +77,7 @@ AIO_EXPORT AIOImageData *aio_read_xisf(const char *path) {
 
     return img;
 }
+#endif
 
 AIO_EXPORT AIOImageData *aio_read_header_only(const char *path) {
     if (!path) return nullptr;
@@ -70,17 +85,27 @@ AIO_EXPORT AIOImageData *aio_read_header_only(const char *path) {
     AIOImageData *img = alloc_image_data();
     if (!img) return nullptr;
 
+#ifdef AIO_ENABLE_XISF
     if (xisf_detect(path)) {
         if (xisf_read_header_only(path, img) != 0) {
             free(img);
             return nullptr;
         }
-    } else {
+    } else
+#endif
+#ifdef AIO_ENABLE_FITS
+    {
         if (fits_read_header_only(path, img) != 0) {
             free(img);
             return nullptr;
         }
     }
+#else
+    {
+        free(img);
+        return nullptr;
+    }
+#endif
 
     return img;
 }
@@ -97,10 +122,12 @@ AIO_EXPORT AIOImageMetadata aio_read_metadata(const char *path) {
     return meta;
 }
 
+#ifdef AIO_ENABLE_FITS
 AIO_EXPORT int aio_write_fits(const AIOImageData *image, const char *path) {
     if (!image || !path) return -1;
     return fits_write_file(image, path);
 }
+#endif
 
 AIO_EXPORT float *aio_get_pixel_data(const AIOImageData *image) {
     if (!image) return nullptr;
@@ -184,12 +211,16 @@ AIO_EXPORT void aio_free_image_data(AIOImageData *image) {
     free(image);
 }
 
+#ifdef AIO_ENABLE_FITS
 AIO_EXPORT int aio_is_fits(const char *path) {
     if (!path) return 0;
     return fits_detect(path);
 }
+#endif
 
+#ifdef AIO_ENABLE_XISF
 AIO_EXPORT int aio_is_xisf(const char *path) {
     if (!path) return 0;
     return xisf_detect(path);
 }
+#endif

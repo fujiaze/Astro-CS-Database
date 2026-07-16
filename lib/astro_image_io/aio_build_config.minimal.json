@@ -1,0 +1,11 @@
+{
+  "_comment": "aio 最小化编译配置 - 仅 FITS + 压缩 (无 XISF/HEALPix/管线)",
+  "enable_fits": true,
+  "enable_xisf": false,
+  "enable_ahpx": false,
+  "enable_healpix": false,
+  "enable_compressor": true,
+  "enable_pipeline": false,
+  "enable_zstd": true,
+  "enable_lz4": true
+}

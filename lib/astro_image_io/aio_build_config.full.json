@@ -1,0 +1,11 @@
+{
+  "_comment": "aio 全功能编译配置 - 所有模块 ON (含已废弃 ahpx)",
+  "enable_fits": true,
+  "enable_xisf": true,
+  "enable_ahpx": true,
+  "enable_healpix": true,
+  "enable_compressor": true,
+  "enable_pipeline": true,
+  "enable_zstd": true,
+  "enable_lz4": true
+}

@@ -1,0 +1,11 @@
+{
+  "_comment": "aio 默认编译配置 - 全功能 (FITS+XISF+HEALPix+压缩+管线)",
+  "enable_fits": true,
+  "enable_xisf": true,
+  "enable_ahpx": false,
+  "enable_healpix": true,
+  "enable_compressor": true,
+  "enable_pipeline": true,
+  "enable_zstd": true,
+  "enable_lz4": true
+}
