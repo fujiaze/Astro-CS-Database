@@ -5,9 +5,57 @@
 
 ## 当前版本
 - 版本号：v2.0 两段流水线 10 节点 C++ CLI (stage1/stage2) + v1.0 Python调试层
-- 最新commit：7072123 (Phase 5: C++ pipeline design - two-stage 10-node pipeline)
+- 最新commit：df06ef1 (feat: implement actual DLL calls for 10 stage handlers)
 - GitHub: https://github.com/fujiaze/Orchestrator-Cpp-Python
 - 更新时间：2026-07-16
+
+## 2026-07-16 DLL 加载修复 + stage handler 填充
+- **DLL 加载修复** (commit ff39173):
+  - 根因: orchestrator.exe 用 -static 编译, 不含 MinGW 运行时 DLL (libgomp/liblz4/libzstd 等), 业务 DLL 动态链接需要
+  - 修复 1: find_mingw_bin() + SetDllDirectoryA 自动检测 MinGW bin 并添加到 DLL 搜索路径
+  - 修复 2: init_dlls 自动推导项目根目录 (GetModuleFileNameA + 向上 4 级)
+  - 修复 3: 预加载 gaia_client.dll 解决 PHOTOMETRIC 传递依赖 (photometric_calib -> gaia_client -> libgomp/zlib)
+  - 结果: 10/10 模块加载成功 (之前 2/10)
+- **stage handler 填充** (commit df06ef1):
+  - 5/10 实现实际 DLL 调用: READ_FITS(aio_read_fits), CALIBRATE(ac_calibrate_frame), SNR(snr_estimate), DRIZZLE(hp_drizzle_run), GRADIENT_SPHERE(hp_stack_gradient_corrected)
+  - 5/10 保留骨架: PLATESOLVE/PSF/PHOTOMETRIC/GRADIENT_2D (前置依赖 gaia_client + star_detector 未集成), STACK (.hcsd 已由 GRADIENT_SPHERE 生成)
+  - PipelineFrame* frame_ 成员添加到 Orchestrator
+  - #define PipelineStage AioPipelineStage 解决与 aio_pipeline.h 的命名冲突
+  - Makefile: 8 个 -I 路径添加 (astro_image_io/plate_solve/dynamic_psf/photometric_calib/snr_estimator/healpix_drizzle/healpix_stack)
+  - 验证: READ_FITS (4500x3600, 68 关键字, 0.057s) + CALIBRATE (退化路径, 0.011s) 成功; DRIZZLE 因缺少 WCS 失败 (PLATESOLVE 未实现)
+
+## 2026-07-16 PLATESOLVE stage handler 实现 (ipv_solver.dll 内存接口) ★从骨架升级为实际 DLL 调用★
+- **目标**: 替换 run_stage_platesolve 骨架, 实现 ipv_solver.dll 实际调用, 求解 WCS+SIP 并写入 PipelineFrame
+- **约束**: 使用 ipv_solve_from_memory (非 deprecated 的 solve_blind); 使用 FITS header 的 OBJCTRA/DEC 作为初始指向; 只初始求解+Gaia 数据库, 不盲解
+- **修改文件 (3个)**:
+  - `lib/orchestrator/cpp/include/orchestrator.h`: 新增 PLATESOLVE 环境资源成员 (project_root_dir_/gaia_client_dll_handle_/star_detector_dll_handle_/gaia_client_handle_/sdet_handle_/ipv_solver_handle_/platesolve_env_ready_) + init_platesolve_env/cleanup_platesolve_env 方法声明
+  - `lib/orchestrator/cpp/src/orchestrator.cpp`:
+    - 添加 #include "gaia_client.h" + #include "star_detector.h"
+    - 析构函数调用 cleanup_platesolve_env()
+    - init_dlls 保存 project_root_dir_ = base_dir
+    - 新增静态辅助函数 parse_ra_hms / parse_dec_dms (支持 "HH MM SS.S" / "HH:MM:SS.S" / 浮点度)
+    - init_platesolve_env: LoadLibraryExA 加载 gaia_client.dll + star_detector.dll → gaia_client_create_ex(GAIA_DB_DR3SP=2, data_dir=<root>/GaiaDR3SP) → sdet_create(默认参数, fitRadius=0 自动) → ipv_solve_create() + ipv_set_gaia_handle + ipv_set_detector_handle
+    - cleanup_platesolve_env: 按序销毁 (ipv_solver → sdet → gaia_client → 卸载 DLL)
+    - run_stage_platesolve 重写: 读取 data 块 FLOAT32[H,W] + header KV (OBJCTRA/OBJCTDEC/FOCALLEN/XPIXSZ) → ipv_solve_from_memory 求解 → 写回 WCS (CTYPE1/2/CRVAL1/2/CRPIX1/2/CD1_1..CD2_2/RADESYS=ICRS/EQUINOX=2000.0) + SIP (A/B 前向 + AP/BP 逆向, 按 i+j<=order 三角写入) → 可选 sdet_detect_ex 写 star_det 块 (FLOAT32[N,4]: x,y,flux,mag) → 可选 gaia_client_cone_search_for_solver 写 gaia_cat 块 (FLOAT64[N,3]: ra,dec,mag)
+  - `lib/orchestrator/cpp/Makefile`: INCLUDES 新增 -I../../gaia_xpsd_client/src + -I../../star_detector/include
+- **编译结果**: orchestrator.exe 3.87 MB (g++ -O2 -std=c++17 -Wall -fopenmp -static 7 个 .cpp -lm, 成功)
+- **运行验证 (stage1 单帧端到端)**:
+  - 测试帧: testdata\Galaxy_Center_T4\lights\panel1\Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts (32MB, 4500x3600)
+  - PLATESOLVE 阶段: 4.37 秒, success=true
+  - WCS 求解: RMS=0.332865 arcsec, n_pairs=45, trans_order=3, sip_order=3
+  - OBJCTRA='18 11 14.00' → ra0=272.808333deg, OBJCTDEC='-13 10 37.0' → dec0=-13.176944deg
+  - 求解后中心: CRVAL=(272.825665, -13.131811), CRPIX=(2250.5, 1800.5), CTYPE1=RA---TAN-SIP
+  - star_det 块: 2000 颗星 (饱和 657, 正常 1343)
+  - gaia_cat 块: 2294645 颗星, FOV 半径=6.058901deg
+  - 全 8 阶段 stage1 流程: READ_FITS(0.04s) + CALIBRATE(0.01s) + PLATESOLVE(4.37s) + PSF/PHOTOMETRIC/GRADIENT_2D/SNR(骨架) + DRIZZLE(28.41s) 全部 success=true
+  - 资源释放正常: 析构时 [PLATESOLVE] 释放环境资源, StarDetector destroyed, dll_loader 卸载所有模块
+- **关键设计**:
+  - 环境生命周期: platesolve_env_ready_ 在首次 run_stage_platesolve 调用时创建, 复用至 Orchestrator 析构 (避免每帧重建 GaiaClient/StarDetector/IPVSolver)
+  - DLL 加载策略: gaia_client.dll 由 dll_loader.cpp load_all 预加载到进程地址空间 (PHOTOMETRIC 传递依赖); star_detector.dll 用 LOAD_WITH_ALTERED_SEARCH_PATH 加载
+  - GaiaDR3SP 数据目录: <project_root>/GaiaDR3SP (含 20 个 .xpsd 文件)
+  - PLATESOLVE 日志目录: <project_root>/lib/plate_solve/logs (通过 IpvParams.log_dir 设置)
+  - sdet 默认参数: structureLayers=5, hotPixelFilterRadius=1, iterativeClipSigma=9.0, iterativeMaxRounds=5, medianFilterDetail=1, maxStars=2000, fitRadius=0(自动), fwhmClipSigma=3.0, maxAxisRatio=2.0
+- **后续待办**: PHOTOMETRIC stage handler 仍为骨架 (WARN: 需要 gaia_client handle 未加载), 需后续 Task 填充; PSF/GRADIENT_2D 仍为骨架
 
 ## 2026-07-16 架构重构 (spec §2.3 两段流水线 10 节点)
 - spec: .trae/specs/architecture-refactor/spec.md (已审阅通过)
