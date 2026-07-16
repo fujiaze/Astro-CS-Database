@@ -9,7 +9,12 @@
 #include <cstdlib>
 #include <omp.h>
 
-static const double MOFFAT4_FWHM_FACTOR = 0.8700;
+// Moffat4 (beta=4) FWHM 因子
+// 模型使用 Q = 0.5 * r^2 / sigma^2 (注意 1/(2*sigma^2) 系数)
+// 标准 Moffat: M = A/(1 + r^2/alpha^2)^beta, FWHM = 2*alpha*sqrt(2^(1/beta)-1)
+// 由 Q = r^2/(2*sigma^2) = r^2/alpha^2 得 alpha = sqrt(2)*sigma
+// 故 FWHM = 2*sqrt(2)*sigma*sqrt(2^(1/4)-1) = 0.87 * sqrt(2) * sigma ≈ 1.2303 * sigma
+static const double MOFFAT4_FWHM_FACTOR = 1.230310;
 static const int NPARAMS = 7;
 
 struct SamplePixel {

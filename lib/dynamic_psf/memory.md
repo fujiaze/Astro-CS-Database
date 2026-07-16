@@ -35,3 +35,15 @@
 - GitHub仓库分支统一为main
 - 文档刷新并重新推送
 - 最新commit: d3ec9e2
+
+### 11.1 PSF 性能优化（2026-07-12）（2026-07-15，从 PROJECT_ARCHITECTURE.md 迁入）
+
+**问题**：PSF 阶段耗时 9.26 s（典型应 < 1 s），根因是 `dpsf_log.cpp` 默认日志级别为 LOG_INFO，每颗星拟合都输出 DEBUG 日志到 stderr + 文件（双 fflush），2000 颗星生成 364 MB 日志文件，I/O 开销主导耗时。
+
+**修复**：
+- `dpsf_log.cpp` 默认 threshold 从 LOG_INFO 改为 LOG_WARN
+- 移除双 fflush（stderr 和文件均不强制刷盘）
+- WARN 及以上级别才写文件（DEBUG/INFO 不写文件）
+- `Makefile` 添加 `-fopenmp` 启用 OpenMP 16 线程并行
+
+**结果**：PSF 9.26 s → 0.26 s（**-97.1%**），日志文件 364 MB → 0 KB
