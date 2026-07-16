@@ -1,0 +1,48 @@
+# 编译产物
+*.o
+*.obj
+*.dll
+*.exe
+*.so
+*.a
+*.lib
+*.dep
+
+# 编译中间目录
+obj/
+*.d
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+
+# 测试数据（非公开，不上传）
+testdata/
+
+# IDE 配置
+.vscode/
+.idea/
+*.swp
+*~
+
+# 临时文件
+*.tmp
+*.bak
+compile_err.txt
+build_err*.txt
+build_out*.txt
+
+# 压缩包
+*.rar
+*.zip
+*.7z
+
+# Siril solved.fits 大二进制文件不提交
+logs/siril_compare/siril_baseline_790/work/*/solved.fits
+
+# Siril 对比测试目录（本地开发使用，不提交到GitHub）
+python/siril_compare/
+
+.trae/
+logs/
