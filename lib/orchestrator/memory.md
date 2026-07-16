@@ -5,9 +5,11 @@
 
 ## 当前版本
 - 版本号：v2.0 两段流水线 10 节点 C++ CLI (stage1/stage2) + v1.0 Python调试层
-- 最新commit：df06ef1 (feat: implement actual DLL calls for 10 stage handlers)
+- 最新commit：84cf3fb (feat: PSF/PHOTOMETRIC/GRADIENT_2D stage handlers)
 - GitHub: https://github.com/fujiaze/Orchestrator-Cpp-Python
 - 更新时间：2026-07-16
+- stage1 状态: 8/8 节点全部实际 DLL 调用，单帧端到端验证通过 (8 阶段全 success=true)
+- stage2 状态: GRADIENT_SPHERE 已实现, STACK 仍为骨架 (.hcsd 已由 GRADIENT_SPHERE 生成)
 
 ## 2026-07-16 DLL 加载修复 + stage handler 填充
 - **DLL 加载修复** (commit ff39173):
@@ -56,6 +58,38 @@
   - PLATESOLVE 日志目录: <project_root>/lib/plate_solve/logs (通过 IpvParams.log_dir 设置)
   - sdet 默认参数: structureLayers=5, hotPixelFilterRadius=1, iterativeClipSigma=9.0, iterativeMaxRounds=5, medianFilterDetail=1, maxStars=2000, fitRadius=0(自动), fwhmClipSigma=3.0, maxAxisRatio=2.0
 - **后续待办**: PHOTOMETRIC stage handler 仍为骨架 (WARN: 需要 gaia_client handle 未加载), 需后续 Task 填充; PSF/GRADIENT_2D 仍为骨架
+
+## 2026-07-16 PSF/PHOTOMETRIC/GRADIENT_2D stage handler 实现 (commit 84cf3fb) ★3 个骨架全部升级为实际 DLL 调用，stage1 单帧端到端验证通过★
+- **目标**: 替换 PSF/PHOTOMETRIC/GRADIENT_2D 三个骨架, 实现实际 DLL 调用, 完成 stage1 单帧端到端链路
+- **修改文件**: `cpp/src/orchestrator.cpp` (单文件 +859/-17 行, 头文件/Makefile 无改动)
+- **run_stage_psf 实现 (dynamic_psf.dll)**:
+  - 读取 data 块 FLOAT32[H,W] + star_det 块 FLOAT32[N,4] (x,y,flux,mag)
+  - 构造 DPSFInput 数组 (x/y 来自 star_det, flux 来自 star_det)
+  - 调用 dpsf_fit_batch(fitRadius=8, maxIter=100) 进行 Moffat4 PSF 拟合
+  - 输出 DPSFFitResult 数组 → 写入 psf 块 FLOAT64[N,9] (A/B/x/y/alpha/mad/eccentricity/...)
+  - 验证: 1913/2000 stars 成功 (95%), 耗时 0.43s
+- **run_stage_photometric 实现 (photometric_calib.dll)**:
+  - 读取 data + header + psf + gaia_cat 块
+  - 调用 gaia_client_get_spectrum_params 获取光谱参数 (count, step_nm, mag_offset)
+  - 调用 compute_gaia_fsyn 预计算 F_syn 数组
+  - 调用 pc_calibrate_simple_with_gaia 进行流量定标
+  - 写入 photo_stats KV 块 (N_MATCHED/SCALE_FACTOR/SIGMA_RESIDUAL 等) + 更新 data 块
+  - **关键 bug 修复**: gaia_client_get_spectrum_params 使用布尔约定 (1=成功, 0=失败), 非错误码约定; 改为 `if (ret != 1 || count <= 0 || step_nm <= 0)`
+  - 验证: n_matched=1606, scale=0.007358, sigma_residual=0.171313 mag, 耗时 0.065s
+- **run_stage_gradient_2d 实现 (gradient_2d.dll)**:
+  - 读取 data 块 FLOAT32[H,W] + psf 块 + gaia_cat 块
+  - 调用 compute_gaia_fsyn_for_gradient 预计算 F_syn (与 photometric 共用但参数不同)
+  - 调用 gradient_2d_calibrate 拟合 2D 乘性梯度曲面
+  - 更新 data 块 (应用梯度校正) + 追加 G2D_* 字段到 photo_stats KV (N_MATCHED/RMS/R2 等)
+  - 验证: n_matched=1606, RMS=2.170372, R^2=0.001512, 耗时 0.78s
+- **stage1 单帧端到端验证 (8 阶段全 success=true)**:
+  - 测试帧: testdata\Galaxy_Center_T4\lights\panel1\Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts
+  - READ_FITS 0.042s (4500x3600, 68 关键字) | CALIBRATE 0.012s (退化路径) | PLATESOLVE 3.78s (RMS=0.333", 45 pairs, SIP order=3)
+  - PSF 0.43s (1913/2000 stars 95%) | PHOTOMETRIC 0.065s (n_matched=1606, sigma=0.171)
+  - GRADIENT_2D 0.78s (RMS=2.17, R^2=0.0015) | SNR 4.90s (SNR_phot=2.535, median SNR_psf=605)
+  - DRIZZLE 29.2s (15.4M HEALPix 像素, .hiss 输出 184MB)
+- **stage1 状态**: 8/8 节点全部实际 DLL 调用, 端到端单帧链路打通
+- **后续待办**: stage2 (GRADIENT_SPHERE 已实现, STACK 仍为骨架, .hcsd 已由 GRADIENT_SPHERE 生成, 需多帧 .hiss 输入验证)
 
 ## 2026-07-16 架构重构 (spec §2.3 两段流水线 10 节点)
 - spec: .trae/specs/architecture-refactor/spec.md (已审阅通过)
