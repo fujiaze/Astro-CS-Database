@@ -320,3 +320,66 @@ lib/photometric_calib/
 - photometric 阶段 354.7 s → 0.881 s（**99.75% 改善**），超额完成 < 5 s 目标
 - 总管线 409 s → 60.6 s（**85.18% 改善**），未达 < 30 s（drizzle 26.3 s 占主导，非 photometric 优化范围）
 - P0（循环内 fprintf 清除）+ P1（滤光片曲线预处理缓存）+ P2（自适应迭代星等）三重优化叠加效果显著
+
+### 2026-07-17 GAP-012 + GAP-013 修复（CCD QE 曲线 + 亮度比例稳健回归）
+
+**触发**: `docs/DESIGN_IMPL_GAP.md` 审计发现两处高优先级算法-实现不一致：
+- GAP-012（高）：算法文档 `F_syn = ∫ S(λ)·T(λ)·Q(λ) dλ`，但 C API 参数列表无 `qe_curve`，DLL 内部积分实际只有 `S(λ)·T(λ)`，CCD QE 量子效率曲线未参与合成流量计算
+- GAP-013（高）：photometric_calib C API 简化版仅做 `median(F_syn/F_instr)` 全局 scale，缺乏稳健回归 + 星等一致性预过滤，离群/误匹配会污染 scale
+
+**GAP-012 修复（CCD QE 曲线接入）**:
+
+修改文件:
+- `cpp/src/spectrum_integrator.h` - `SpectrumIntegratorCache` 结构新增 `qe_trans` 字段（重采样到光谱网格的 QE），`weighted_wl` 注释改为 `λ × T(λ) × Q(λ)`；`prepare_filter_cache` / `compute_f_syn` 签名新增 `const double* qe_wl, const double* qe_trans, int qe_count`
+- `cpp/src/spectrum_integrator.cpp` - `compute_f_syn` 中: QE 排序去重 + QE 范围参与积分范围计算 + 被积函数改为 `S(λ)·T(λ)·Q(λ)·λ`；`prepare_filter_cache` 中: QE Akima 插值重采样到光谱网格 + `weighted_wl[i] = λ_i × T(λ_i) × Q(λ_i)`；QE 为 nullptr 时 Q=1.0 并 LOG_WARNING `"QE curve not provided, F_syn without Q(λ)"`
+- `cpp/include/photometric_calib.h` - `pc_calibrate_simple` / `pc_calibrate_simple_with_gaia` 签名均扩展: 在 filter 参数后新增 `const double* qe_wl, const double* qe_trans, int qe_count`（向后兼容: 传 nullptr 即可）
+- `cpp/src/pc_api.cpp` - `pc_calibrate_simple` 签名同步扩展（标记 `(void)qe_wl; (void)qe_trans; (void)qe_count;` 因为此接口不在 DLL 内部计算 F_syn）；`pc_calibrate_simple_with_gaia` 签名同步扩展，`prepare_filter_cache` 调用传入 QE
+- `lib/orchestrator/cpp/src/orchestrator.cpp` - 新增 `load_qe_curve`（委托给 `load_filter_curve`，JSON 格式完全一致）+ `extract_qe_curve_name`（从 stage1_config.json 文本解析 "qe_curve" 字段值，简单字符串扫描无 nlohmann::json 依赖）；`run_stage_photometric` 中: 加载滤光片曲线后加载 QE 曲线（路径 `lib/photometric_calib/data/response_curves/qe_curves.json`）+ 函数指针类型签名新增三个 QE 参数 + 函数调用传入 `qe_wl.empty() ? nullptr : qe_wl.data()` 等
+
+配置支持:
+- `lib/orchestrator/configs/stage1_config.json` 已包含 `"frame": { "qe_curve": "GSENSE2020BSI" }`
+- `lib/photometric_calib/data/response_curves/qe_curves.json` 格式: `{"<name>": {"name":"...", "channel":"Q", "wavelength_nm":[...], "value":[...]}}`（**数组键名是 "value" 不是 "qe"**，与 filters.json 一致，故 load_qe_curve 可直接复用 load_filter_curve）
+
+**GAP-013 修复（亮度比例 IRLS + Tukey）**:
+
+修改文件:
+- `cpp/src/star_matcher.h` - `StarMatch` 结构新增 `gaia_mag` 字段；`matchAndClean` 签名变更: `outlier_sigma` → `mag_tolerance`，新增 `out_scale_factor` 出参；私有方法重命名 `matchBruteForce` → `matchWithKdTree`，`cleanOutliers` → `cleanAndScale`
+- `cpp/src/star_matcher.cpp` - **完全重写**:
+  - 自实现 `KdTree2D` 内部类（替代 nanoflann，因 `lib/healpix_db/healpix_stack/gradient/nanoflann.hpp` 实际不存在）: 递归分裂构建 + 最近邻查询
+  - `matchWithKdTree`: WCS 投影 Gaia 星到像素坐标 → 对 Gaia 星建 KD-tree（避免每颗 PSF 星扫描全部 Gaia 星）→ 对每颗 PSF 有效星查询最近邻（距离 < match_radius_px，默认 2.0px 收紧）
+  - `cleanAndScale`:
+    1. 星等一致性预过滤: `delta_i = -2.5*log10(F_instr_i) - gaia_mag_i`（粗略零点差），`median_delta` 作为粗略零点，拒绝 `|delta - median_delta| > mag_tolerance`（默认 3.0 mag）
+    2. IRLS + Tukey biweight 迭代: `r = log10(F_instr/F_syn)`，`S = MAD(r_consistent)/0.6745`，`c = _TUKEY_C * S`（`_TUKEY_C = 4.685` 标准稳健统计常数），权重 `w = (1-u²)²`（u=r/c，|u|>=1 时 w=0），迭代最多 50 次（`_IRLS_MAX_ITER = 50`），收敛阈值 `|new_location - prev_location| < 1e-6`（`_IRLS_CONVERGE`）
+    3. `scale = 10^(-location)`，`sigma_residual = MAD(r_inliers)/0.6745`，输出亮度比例一致性日志
+- `cpp/src/pc_api.cpp` - `matchAndClean` 调用更新: `3.0/3.0` → `2.0/3.0`（match_radius/mag_tolerance），新增 `&scale` 参数；移除 `ImageCorrector::computeScale` 调用（scale 现由 IRLS 直接输出，不再走 median 回退路径）
+
+**关键常量**（star_matcher.cpp 文件顶部）:
+```cpp
+static constexpr double _TUKEY_C = 4.685;        // Tukey biweight 标准常数
+static constexpr int    _IRLS_MAX_ITER = 50;     // IRLS 最大迭代次数
+static constexpr double _IRLS_CONVERGE = 1e-6;   // IRLS 收敛阈值
+```
+
+**编译验证**:
+- `lib/photometric_calib/cpp/build.ps1`: photometric_calib.dll **1056.5 KB**（较 v2.0 的 1031.2 KB 增加 25.3 KB，主要来自 KD-tree + IRLS 代码），编译零警告零错误
+- `lib/orchestrator/cpp/Makefile`: orchestrator.exe **3878.7 KB**，编译零警告零错误
+
+**向后兼容性**:
+- QE 参数可为 nullptr（`pc_calibrate_simple` 不在 DLL 内计算 F_syn；`pc_calibrate_simple_with_gaia` 收到 nullptr 时 Q=1.0 等价于无 QE）
+- `out_scale_factor` 可为 nullptr（旧调用方不受影响）
+- `mag_tolerance` 默认 3.0 mag，`match_radius_px` 默认 2.0px（替代原 `outlier_sigma=3.0` 暴力匹配阈值 3.0px）
+
+**待验证**（未在本任务范围内执行）:
+- 端到端测试（待用户运行 stage1 验证）: 期望 n_matched 与 sigma_residual 在 Galaxy_Center 测试帧上保持合理（参考 v2.0 基线: n_matched=1527, sigma_residual=0.168mag, scale=7.13e-03）
+- Python ctypes 包装层 `python/photometric_calib.py` 的 argtypes 需要同步扩展三个 QE 参数（若 Python 调用方需要使用新接口，否则可继续传 nullptr）
+- `pc_calibrate_simple` 旧接口的 Python 调用方需同步更新签名（追加三个 nullptr 占位参数）
+
+## 2026-07-18 GRADIENT_2D 模块归档
+- **决策**: 用户审阅 PROJECT_OVERVIEW.md 后纠正——stage1 不做曲面拟合和图像亮度修正（那是 stage2 马赛克阶段的事），PSF 后只做测光坐标系校准（PHOTOMETRIC 已完成）。
+- **操作**: 
+  - lib/photometric_calib/cpp/gradient_2d/ 整目录归档到 lib/photometric_calib/archive/gradient_2d/
+  - 保留全部代码（include/ + src/ + build.ps1），不删改文件内容
+  - orchestrator 中删除 PipelineStageV2::GRADIENT_2D 枚举 + run_stage_gradient_2d 函数
+  - stage1 重排为 7 节点：READ_FITS/CALIBRATE/PLATESOLVE/PSF/PHOTOMETRIC/SNR/DRIZZLE
+- **保留原因**: stage2 马赛克阶段若需要曲面拟合可参考此实现（IRLS+Tukey+Ridge+LOOCV 算法本身正确，只是不应在 stage1 单帧预处理中做）
+- **影响**: photometric_calib C API（pc_calibrate_simple_with_gaia）不受影响，仍正常提供 PHOTOMETRIC 阶段的测光坐标系校准功能
