@@ -25,7 +25,6 @@ std::string DllLoader::get_module_name(ModuleId id) const {
         case ModuleId::PLATESOLVE:      return "PLATESOLVE";
         case ModuleId::PSF:             return "PSF";
         case ModuleId::PHOTOMETRIC:     return "PHOTOMETRIC";
-        case ModuleId::GRADIENT_2D:     return "GRADIENT_2D";
         case ModuleId::SNR:             return "SNR";
         case ModuleId::DRIZZLE:         return "DRIZZLE";
         case ModuleId::GRADIENT_SPHERE: return "GRADIENT_SPHERE";
@@ -41,7 +40,6 @@ std::string DllLoader::get_dll_filename(ModuleId id) const {
         case ModuleId::PLATESOLVE:      return "ipv_solver.dll";
         case ModuleId::PSF:             return "dynamic_psf.dll";
         case ModuleId::PHOTOMETRIC:     return "photometric_calib.dll";
-        case ModuleId::GRADIENT_2D:     return "gradient_2d.dll";
         case ModuleId::SNR:             return "snr_estimator.dll";
         case ModuleId::DRIZZLE:         return "healpix_drizzle.dll";
         case ModuleId::GRADIENT_SPHERE: return "healpix_stack.dll";
@@ -58,7 +56,6 @@ std::string DllLoader::get_default_path(ModuleId id, const std::string& lib_base
         case ModuleId::PLATESOLVE:      sub = "lib/plate_solve/cpp/ipv/";                    break;
         case ModuleId::PSF:             sub = "lib/dynamic_psf/";                            break;
         case ModuleId::PHOTOMETRIC:     sub = "lib/photometric_calib/cpp/";                  break;
-        case ModuleId::GRADIENT_2D:     sub = "lib/photometric_calib/cpp/gradient_2d/";      break;
         case ModuleId::SNR:             sub = "lib/snr_estimator/cpp/";                      break;
         case ModuleId::DRIZZLE:         sub = "lib/healpix_db/healpix_drizzle/";             break;
         case ModuleId::GRADIENT_SPHERE: sub = "lib/healpix_db/healpix_stack/";               break;
@@ -96,7 +93,6 @@ DllLoader::DllLoader() {
     init(ModuleId::PLATESOLVE);
     init(ModuleId::PSF);
     init(ModuleId::PHOTOMETRIC);
-    init(ModuleId::GRADIENT_2D);
     init(ModuleId::SNR);
     init(ModuleId::DRIZZLE);
     init(ModuleId::GRADIENT_SPHERE);
@@ -303,7 +299,6 @@ bool DllLoader::load_all(const std::string& lib_base_dir) {
 #endif
 
     all_ok = load_module(ModuleId::PHOTOMETRIC, lib_base_dir) && all_ok;
-    all_ok = load_module(ModuleId::GRADIENT_2D, lib_base_dir) && all_ok;
     all_ok = load_module(ModuleId::SNR,         lib_base_dir) && all_ok;
     all_ok = load_module(ModuleId::DRIZZLE,     lib_base_dir) && all_ok;
 
@@ -349,7 +344,6 @@ void DllLoader::unload_all() {
     unload_module(ModuleId::PLATESOLVE);
     unload_module(ModuleId::PSF);
     unload_module(ModuleId::PHOTOMETRIC);
-    unload_module(ModuleId::GRADIENT_2D);
     unload_module(ModuleId::SNR);
     unload_module(ModuleId::DRIZZLE);
     // STACK 与 GRADIENT_SPHERE 共用 handle, 仅卸载一次
@@ -426,7 +420,6 @@ std::string DllLoader::get_version(ModuleId id) {
         case ModuleId::PLATESOLVE:
         case ModuleId::PSF:
         case ModuleId::PHOTOMETRIC:
-        case ModuleId::GRADIENT_2D:
         case ModuleId::SNR:
         case ModuleId::DRIZZLE:
         case ModuleId::GRADIENT_SPHERE:
@@ -466,7 +459,6 @@ bool DllLoader::set_num_threads(ModuleId id, int n) {
         case ModuleId::PLATESOLVE:
         case ModuleId::PSF:
         case ModuleId::PHOTOMETRIC:
-        case ModuleId::GRADIENT_2D:
         case ModuleId::SNR:
         case ModuleId::DRIZZLE:
         case ModuleId::GRADIENT_SPHERE:

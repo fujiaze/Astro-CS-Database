@@ -22,20 +22,19 @@
 #endif
 
 // 模块 ID 枚举
-// 对应 spec §2.3.2 两段流水线 10 节点
+// 对应 spec §2.3.2 两段流水线 9 节点 (2026-07-18 归档 GRADIENT_2D, stage1 改 7 节点)
 enum class ModuleId {
-    // 第一段: 单帧预处理 (stage 0-7)
+    // 第一段: 单帧预处理 (stage 0-6)
     AIO,            // astro_image_io.dll (文件 I/O + PipelineFrame, 预加载)
     CALIBRATE,      // astro_calibration.dll (stage 1)
     PLATESOLVE,     // ipv_solver.dll (stage 2)
     PSF,            // dynamic_psf.dll (stage 3)
     PHOTOMETRIC,    // photometric_calib.dll (stage 4)
-    GRADIENT_2D,    // gradient_2d.dll (stage 5, step4 C++化)
-    SNR,            // snr_estimator.dll (stage 6)
-    DRIZZLE,        // healpix_drizzle.dll (stage 7)
-    // 第二段: 多帧合并 (stage 8-9, 共用 healpix_stack.dll)
-    GRADIENT_SPHERE,// healpix_stack.dll hp_stack_gradient_corrected (stage 8)
-    STACK           // healpix_stack.dll hp_stack_* (stage 9)
+    SNR,            // snr_estimator.dll (stage 5)
+    DRIZZLE,        // healpix_drizzle.dll (stage 6)
+    // 第二段: 多帧合并 (stage 7-8, 共用 healpix_stack.dll)
+    GRADIENT_SPHERE,// healpix_stack.dll hp_stack_gradient_corrected (stage 7)
+    STACK           // healpix_stack.dll hp_stack_* (stage 8)
 };
 
 // 模块加载状态

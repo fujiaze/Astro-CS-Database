@@ -43,10 +43,12 @@ enum class PipelineStage {
 };
 
 // ============================================================================
-// 新版管线阶段枚举 (spec §2.3.2 两段流水线 10 节点)
+// 新版管线阶段枚举 (spec §2.3.2 两段流水线 9 节点)
+// 2026-07-18: 归档 GRADIENT_2D 节点 (stage1 不做曲面拟合和图像亮度修正,
+//             那是 stage2 马赛克阶段的事; PHOTOMETRIC 已完成测光坐标系校准)
 // 供 stage1/stage2 CLI 命令使用
-// 第一段: 单帧预处理 (stage 0-7, FITS -> .hiss)
-// 第二段: 多帧合并 (stage 8-9, .hiss -> .hcsd)
+// 第一段: 单帧预处理 (stage 0-6, FITS -> .hiss)
+// 第二段: 多帧合并 (stage 7-8, .hiss -> .hcsd)
 // ============================================================================
 enum class PipelineStageV2 {
     // 第一段: 单帧预处理
@@ -54,13 +56,12 @@ enum class PipelineStageV2 {
     CALIBRATE       = 1,  // calibration.dll (dark/bias/flat + 坏点修复)
     PLATESOLVE      = 2,  // ipv_solver.dll (WCS/SIP)
     PSF             = 3,  // dynamic_psf.dll (PSF 拟合)
-    PHOTOMETRIC     = 4,  // photometric_calib.dll (F_syn 积分 + 全局 scale)
-    GRADIENT_2D     = 5,  // gradient_2d.dll (step4 C++化: 乘性梯度曲面拟合 + 图像校正)
-    SNR             = 6,  // snr_estimator.dll (异常值剔除 + 测光不确定度 + 帧SNR基准)
-    DRIZZLE         = 7,  // healpix_drizzle.dll (nside 1-2x, SNR同步转换, 落盘 .hiss)
+    PHOTOMETRIC     = 4,  // photometric_calib.dll (F_syn 积分 + IRLS+Tukey 求 scale + 应用到图像)
+    SNR             = 5,  // snr_estimator.dll (异常值剔除 + 测光不确定度 + 帧SNR基准)
+    DRIZZLE         = 6,  // healpix_drizzle.dll (nside 1-2x, SNR同步转换, 落盘 .hiss)
     // 第二段: 多帧合并
-    GRADIENT_SPHERE = 8,  // healpix_stack.dll hp_stack_gradient_corrected (球面梯度校准)
-    STACK           = 9   // healpix_stack.dll (Winsorized sigma clip + SNR²加权叠加 -> .hcsd)
+    GRADIENT_SPHERE = 7,  // healpix_stack.dll hp_stack_gradient_corrected (球面梯度校准)
+    STACK           = 8   // healpix_stack.dll (Winsorized sigma clip + SNR²加权叠加 -> .hcsd)
 };
 
 // 任务状态
@@ -216,6 +217,10 @@ private:
     std::vector<std::string> stage2_hiss_files_;
     // stage2 输出 .hcsd 路径 (run_stage_stack 使用)
     std::string current_output_hcsd_;
+    // 当前 stage 配置 JSON (run_stage1/stage2 参数, 供 stage handler 读取)
+    // GAP-016/GAP-017: run_stage_drizzle 读 nside_strategy/nside_override,
+    //                  run_stage_gradient_sphere 读 sigma_clip_method 等
+    std::string current_config_json_;
 
     // ========================================================================
     // PLATESOLVE 环境资源 (ipv_solver + gaia_client + star_detector)
@@ -243,16 +248,14 @@ private:
     bool run_stage_photometric(TaskResult& result);
     bool run_stage_drizzle(TaskResult& result);
 
-    // spec §2.3 两段流水线 10 节点新增 handler (骨架)
+    // spec §2.3 两段流水线 9 节点新增 handler (2026-07-18 归档 GRADIENT_2D)
     // stage 0: READ_FITS (aio_read_fits -> PipelineFrame)
     bool run_stage_read_fits(TaskResult& result);
-    // stage 5: GRADIENT_2D (gradient_2d.dll, step4 C++化)
-    bool run_stage_gradient_2d(TaskResult& result);
-    // stage 6: SNR (snr_estimator.dll)
+    // stage 5: SNR (snr_estimator.dll)
     bool run_stage_snr(TaskResult& result);
-    // stage 8: GRADIENT_SPHERE (healpix_stack.dll hp_stack_gradient_corrected)
+    // stage 7: GRADIENT_SPHERE (healpix_stack.dll hp_stack_gradient_corrected)
     bool run_stage_gradient_sphere(TaskResult& result);
-    // stage 9: STACK (healpix_stack.dll, Winsorized sigma clip + SNR²加权叠加)
+    // stage 8: STACK (healpix_stack.dll, Winsorized sigma clip + SNR²加权叠加)
     bool run_stage_stack(TaskResult& result);
 
     // 辅助方法

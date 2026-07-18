@@ -1,5 +1,5 @@
 {
-  "_comment": "stage1 配置文件模板 (spec §2.3.3) - 单帧预处理 FITS -> .hiss, stage 0-7",
+  "_comment": "stage1 配置文件模板 (spec §2.3.3) - 单帧预处理 FITS -> .hiss, stage 0-6 (2026-07-18 归档 GRADIENT_2D)",
   "project_root": ".",
   "gaia_data_dir": "GaiaDR3SP",
   "calibration_dir": "testdata/calibration",
@@ -10,7 +10,6 @@
     "platesolve",
     "psf",
     "photometric",
-    "gradient_2d",
     "snr",
     "drizzle"
   ],

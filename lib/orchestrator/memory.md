@@ -1,15 +1,59 @@
 # orchestrator - 模块开发memory
 
 ## 模块职责
-管线编排引擎（两段流水线 10 节点 C++ CLI + Python 调试层），串联 READ_FITS→CALIBRATE→PLATESOLVE→PSF→PHOTOMETRIC→GRADIENT_2D→SNR→DRIZZLE | GRADIENT_SPHERE→STACK 全流程，作为各 C++ DLL 模块的统一调度入口。
+管线编排引擎（两段流水线 9 节点 C++ CLI + Python 调试层），串联 READ_FITS→CALIBRATE→PLATESOLVE→PSF→PHOTOMETRIC→SNR→DRIZZLE | GRADIENT_SPHERE→STACK 全流程，作为各 C++ DLL 模块的统一调度入口。
+> 2026-07-18 更新：归档 GRADIENT_2D 节点（stage1 由 8 节点缩减为 7 节点）。stage1 不做曲面拟合和图像亮度修正（由 stage2 球面梯度校正承担），PHOTOMETRIC 阶段已应用 scale 到图像完成测光坐标系校准，PSF 后直接算 SNR。
 
 ## 当前版本
-- 版本号：v2.0 两段流水线 10 节点 C++ CLI (stage1/stage2) + v1.0 Python调试层
+- 版本号：v2.0 两段流水线 9 节点 C++ CLI (stage1/stage2，2026-07-18 归档 GRADIENT_2D 后 stage1 7 节点 + stage2 2 节点) + v1.0 Python调试层
 - 最新commit：stage2 单帧链路验证通过 (待提交)
 - GitHub: https://github.com/fujiaze/Orchestrator-Cpp-Python
-- 更新时间：2026-07-16
-- stage1 状态: 8/8 节点全部实际 DLL 调用，单帧端到端验证通过 (8 阶段全 success=true)
+- 更新时间：2026-07-18
+- stage1 状态: 7/7 节点全部实际 DLL 调用，单帧端到端验证通过 (7 阶段全 success=true，2026-07-18 归档 GRADIENT_2D 后)
 - stage2 状态: 2/2 节点链路打通, 单帧验证通过 (GRADIENT_SPHERE 实际调用, STACK 骨架 .hcsd 已生成)
+
+## 2026-07-18 归档 GRADIENT_2D 节点 + stage1 重排为 7 节点 ★工程重构★
+- **背景**: 用户审阅 PROJECT_OVERVIEW.md 后指出 stage1 第 5 节点 GRADIENT_2D 描述错误。stage1 不应做曲面拟合和图像亮度修正（那是 stage2 马赛克阶段的事），PSF 后只做测光坐标系校准（PHOTOMETRIC 已应用 scale 到图像），然后直接算 SNR。
+- **spec**: `docs/superpowers/specs/2026-07-18-gradient-2d-archive.md` + `2026-07-18-gradient-2d-archive-checklist.md`
+- **代码归档**:
+  - `lib/photometric_calib/cpp/gradient_2d/` 整体移动到 `lib/photometric_calib/archive/gradient_2d/`（保留全部代码不删改，供 stage2 设计时参考）
+  - 包含 include/gradient_2d.h + src/gradient_fitter.h/cpp + src/gradient_2d_api.cpp + src/image_corrector.h/cpp + src/star_matcher.h/cpp + src/wcs_transform.h/cpp + build.ps1 + gradient_2d.dll
+- **orchestrator 代码修改** (5 文件):
+  - `cpp/include/dll_loader.h`: ModuleId 枚举删除 GRADIENT_2D，注释改为"9 节点（2026-07-18 归档 GRADIENT_2D, stage1 改 7 节点）"，stage 注释重排
+  - `cpp/src/dll_loader.cpp`: 删除所有 GRADIENT_2D 相关 case（get_module_name/get_dll_filename/get_default_path/构造函数init/load_all/unload_all/get_version/set_num_threads 共 8 处）
+  - `cpp/include/orchestrator.h`: PipelineStageV2 枚举删除 `GRADIENT_2D = 5`，重排为 SNR=5/DRIZZLE=6/GRADIENT_SPHERE=7/STACK=8；删除 `bool run_stage_gradient_2d(TaskResult& result);` 声明
+  - `cpp/src/orchestrator.cpp` (核心, 2947→2718 行):
+    - 删除 `#include "gradient_2d.h"`
+    - stage_name_v2() 删除 GRADIENT_2D case
+    - init_dlls() 两处模块列表删除 GRADIENT_2D（错误收集 + 版本输出），日志改为"全部 9 个模块加载成功"
+    - 删除 `compute_gaia_fsyn_for_gradient()` 整个辅助函数（约130行，仅被 run_stage_gradient_2d 调用）
+    - 更新注释"供 PHOTOMETRIC / GRADIENT_2D 使用"→"供 PHOTOMETRIC 使用"
+    - 删除 `run_stage_gradient_2d()` 整个函数实现（约226行）
+    - 删除 `run_v2_with_timing(PipelineStageV2::GRADIENT_2D, ...)` 调用（2行）
+  - `cpp/Makefile`: 删除 `-I../../photometric_calib/cpp/gradient_2d/include` 编译路径
+- **配置文件修改**:
+  - `configs/stage1_config.json`: stages 数组删除 `"gradient_2d"`，_comment 改为"stage 0-6 (2026-07-18 归档 GRADIENT_2D)"
+- **编译验证**:
+  - `orchestrator.exe` 编译通过，无错误无警告（PowerShell 前置 `$env:Path = "C:\msys64\mingw64\bin;" + $env:Path;` 再 make）
+- **残留检查**:
+  - Grep 确认 lib/orchestrator/cpp/ 下仅剩 6 处归档说明注释（无代码引用）
+- **文档同步**:
+  - `docs/PROJECT_OVERVIEW.md`: 顶部追加更新日期；第2节"8节点"→"7节点"；第3节标题"10节点"→"9节点"；stage1表格删除GRADIENT_2D行+stage重排；stage2表格重排；数据流删除GRADIENT_2D行；模块清单标注归档；依赖图删除"+gradient_2d"；GAP-014标注部分修复
+  - `docs/DESIGN_IMPL_GAP.md`: 末尾新增 GAP-021 完整条目（GRADIENT_2D 节点描述与用户意图不符）
+  - `docs/PIPELINE_OVERVIEW.md`: 第4步"测光定标"描述加入"IRLS+Tukey稳健回归求全局scale+应用到图像（测光坐标系校准）"；新增 blockquote 说明 7 节点结构
+  - `docs/ARCHITECTURE.md`: 同步 7 处修改（标题"10节点"→"9节点"、stage1表格删除GRADIENT_2D行+重排、stage2表格重排、模块清单5a改归档、数据流删除GRADIENT_2D行、依赖图删除"+gradient_2d"、端到端流程图"梯度校正(2D)"改为"流量标定(应用scale到图像)"）
+  - `lib/photometric_calib/memory.md`: 追加"## 2026-07-18 GRADIENT_2D 模块归档"章节
+  - 根 `memory.md`: 追加"## 2026-07-18 归档 GRADIENT_2D 节点 + stage1 重排为 7 节点"章节
+- **stage 序号重排映射**:
+  | 原stage | 原名称 | 新stage | 新名称 | 说明 |
+  |---------|--------|---------|--------|------|
+  | 0-4 | READ_FITS..PHOTOMETRIC | 0-4 | 不变 | 保持 |
+  | 5 | GRADIENT_2D | — | 归档 | 移到 archive/ |
+  | 6 | SNR | 5 | SNR | 重排 |
+  | 7 | DRIZZLE | 6 | DRIZZLE | 重排 |
+  | 8 | GRADIENT_SPHERE | 7 | GRADIENT_SPHERE | 重排 |
+  | 9 | STACK | 8 | STACK | 重排 |
+- **后续待办**: stage2 设计需评估是否需要类似 GRADIENT_2D 的 2D 梯度预处理（目前 stage2 仅 GRADIENT_SPHERE 球面梯度校准）
 
 ## 2026-07-16 DLL 加载修复 + stage handler 填充
 - **DLL 加载修复** (commit ff39173):
@@ -454,4 +498,117 @@ spec: .trae/specs/orchestrator-cpp-cli/spec.md (阶段1: 集成测试 - 阶段1�
 **相关接口参考**:
 - `AhpxReader(path)` → 构造, `read_pixels()` → (H,W,C) ndarray, `read_snr()` → (H,W), `read_weight()`, `header_json` 属性, `close()`
 - `is_ahpx(path)` 模块级函数（检查文件是否为 .ahpx 格式）
+
+## 2026-07-17 GAP-011 SNR 接口链路断裂修复 ★snr_estimate → snr_extract_model 稀疏控制点★
+
+**问题根因**:
+- `run_stage_snr` 调用旧版 `snr_estimate`（输出稠密 SNR 图，写 "snr" 块 FLOAT32[H,W]）
+- 但 drizzle 阶段 `hp_drizzle_run` 只识别 "snr_model" 块（稀疏控制点 AIO_BLOCK_RAW）
+- 导致 SNR²加权链路断裂，drizzle 拿不到 SNR 模型，重建时 snr=1.0
+
+**用户批复方案**:
+> hiss 中存储稀疏的控制点，而非稠密的 SNR 图层。SNR 计算阶段不直接计算出稠密图层，而是直接计算出控制点，随着 drizzle 步骤一起转化到球面坐标系上，落盘。后续步骤在使用的时候再展开计算。
+
+**修改文件 (1个)**:
+- `lib/orchestrator/cpp/src/orchestrator.cpp` 的 `run_stage_snr` 函数（原行 2334-2435，现 2504-2666）
+
+**关键变更点**:
+1. **API 切换**: `snr_estimate` → `snr_extract_model` + `snr_free_model`（动态加载自 snr_estimator.dll）
+2. **输入读取**:
+   - psf 块（FLOAT64[N,9]）: 同旧版
+   - sigma_residual: 从 `photo_stats` KV 块读 `SIGMA_RESIDUAL`，读不到用默认 0.1 并打 warning（用 `aio_frame_kv_get` 区分读不到与值=default）
+   - WCS 参数: 从 `header` KV 块读 CRVAL1/2/CRPIX1/2/CD1_1/CD1_2/CD2_1/CD2_2 构造 `SnrWcsParams`（CRPIX 1-based 直接传，CD 填充 cd[0..3]）
+3. **调用**: `fn_extract(psf_data, n_stars, sigma_residual, &wcs, &model)` → 返回 0/1/2/3
+4. **退化处理**（与 snr_estimator.h 一致）:
+   - ret=1: n_stars<=0 或无有效星，log warning，不写 snr_model 块，return true
+   - ret=2: sigma_residual<=0，log warning，不写 snr_model 块，return true
+   - ret=3: nullptr 参数，log error，return false
+   - ret=0: 成功，继续序列化
+5. **序列化 SnrModel 到 "snr_model" 块**（AIO_BLOCK_RAW 类型，与 hp_drizzle_api.cpp 行 409-480 期望一致）:
+   - 格式: `[n_points:u32(4B)][points:n×20B][snr_phot:f64(8B)][median_snr:f64(8B)][idw_power:f64(8B)]`
+   - 总字节 = 4 + n_points*20 + 24
+   - SnrControlPoint = ra(double 8B) + dec(double 8B) + snr_psf(float 4B) = 20B
+   - buffer 用 `std::malloc` 分配（`aio_frame_add_block_move` 要求 malloc 分配，frame 用 free 释放）
+   - 写入后 frame_ 接管 buffer 所有权，不能再 free
+6. **资源释放**: `fn_free(&model)` 释放 SnrModel.points 数组（由 snr_estimator DLL 内部分配）
+7. **删除旧代码**: 移除 data 块读取、out_snr 分配、`snr_estimate` 调用、`snr` 块写入
+
+**关键技术决策**:
+- 任务示例代码用 `std::vector<uint8_t>` + `buffer.release()` 是错误的（vector::release() C++23 才有，且 vector 用 new[] 分配与 add_block_move 的 free 不兼容）。改用 `std::malloc` + 手动 memcpy。
+- `aio_frame_kv_get_double` 无法区分"读不到"和"值=default"，所以加载 `aio_frame_kv_get` 先检查 key 是否存在，不存在则用 0.1 并打 warning。
+- dims 传 nullptr/n_dims=0（RAW 块为字节流，无维度概念，hp_drizzle_api.cpp 读取时只看 count）。
+
+**编译验证**:
+- 编译命令: `g++ -O2 -std=c++17 -Wall -fopenmp -static -lm`（7 个 .cpp）
+- 编译结果: 成功，零警告零错误，orchestrator.exe 3.97 MB
+- 符号验证（exe 字符串扫描）:
+  - `snr_extract_model` : 2 次（新 API 已链接）
+  - `snr_free_model` : 1 次（释放 API 已链接）
+  - `snr_estimate` : 0 次（旧 API 已完全移除）
+  - `snr_model` : 8 次（块名 + 日志 + 注释）
+  - `SIGMA_RESIDUAL` : 3 次（KV key + 日志）
+  - `CRVAL1`/`CD1_1` : 各 1 次（WCS 参数读取）
+
+**链路验证（与 hp_drizzle_api.cpp 期望格式对比）**:
+- drizzle 读取代码（hp_drizzle_api.cpp 行 418-430）:
+  ```
+  snr_blk = aio_frame_get_block(frame, "snr_model")
+  n_points = *(uint32_t*)raw
+  snr_phot   = *(double*)(raw + 4 + n_points*20)
+  median_snr = *(double*)(raw + 4 + n_points*20 + 8)
+  idw_power  = *(double*)(raw + 4 + n_points*20 + 16)
+  ```
+- orchestrator 写入格式完全匹配（n_points u32 + points n×20B + 3×f64）
+
+**未做 git commit**（用户未要求）。
+
+## 2026-07-17 GAP-016 NSIDE 自适应 + GAP-017 Winsorized sigma clip
+
+### GAP-016: NSIDE 自适应（中）
+**问题**: orchestrator 调用 hp_drizzle_run 时 nside 固定传 32768，未读取 stage1_config.json 的 nside_strategy 字段。
+**用户批复**: "这个自适应是 默认缺省，也可以用户传入参数指定"
+
+#### 修改
+- **orchestrator.h**: 新增成员变量 `current_config_json_` 保存 stage1/stage2 配置 JSON，供 stage handler 读取
+- **orchestrator.cpp** 新增静态函数 `calculate_nside(cd11, cd12, cd21, cd22, strategy, nside_override)`:
+  - 用户指定优先: nside_override > 0 直接返回（规整到 2 的幂次方，范围 [64, 131072]）
+  - 自适应: pixel_scale = 0.5*(sqrt(cd11²+cd21²)+sqrt(cd12²+cd22²))*3600 角秒/像素
+  - 策略 "1x_to_2x_drizzle"(默认): drizzle_factor=1.5; "1x"=1.0; "2x"=2.0; "fixed"=1.0
+  - nside_target = 1186.18 / (pixel_scale / drizzle_factor)
+  - 找到不小于 nside_target 的最小 2 的幂次方，限制 [64, 131072]
+  - CD 矩阵无效时回退 nside=32768
+- **run_stage_drizzle**: 从 frame_ header 读 CD 矩阵，从 current_config_json_ 解析 nside_strategy/nside_override，调用 calculate_nside
+- **run_stage1 / run_stage2**: 开头赋值 `current_config_json_ = config_json`
+- 新增辅助函数 orc_findJsonKey / orc_extractJsonStr / orc_extractJsonNum（与 hp_stack_api.cpp 同风格，避免引入 nlohmann::json 依赖）
+- stage1_config.json 已含 `drizzle.nside_strategy="1x_to_2x_drizzle"` 和 `drizzle.nside_override=0`
+
+#### 关键设计
+- LOG_INFO 是 (module, msg) 双参形式，msg 为 std::string，故用 snprintf + std::string 拼接，不能用 printf 风格
+- hp_drizzle_run 签名: `int hp_drizzle_run(PipelineFrame*, int nside, int nested, double pixfrac, const char*, HpDrizzleResult*)`
+- nside_override 校验：非 2 的幂次方时向下取到最近的 2 的幂次方
+
+### GAP-017: Winsorized sigma clip（中）
+**问题**: corrected_stacker.h 的 CorrectedStackParams 只有 sigma 和 max_iter，无 winsorized 标志。实际执行普通 sigma-clip。
+**用户批复**: "要求实现"
+
+#### 修改
+- **hp_stack_api.h**: hp_stack_gradient_corrected C API 签名扩展 3 参数
+  - `const char* sigma_clip_method` (nullptr / "standard" = 普通; "winsorized" = Winsorized)
+  - `double winsorize_low_pct` (默认 0.05)
+  - `double winsorize_high_pct` (默认 0.95)
+- **hp_stack_api.cpp**: 解析 sigma_clip_method → use_winsorized 标志，透传 CorrectedStackParams；meta_json 输出 sigma_clip.method/winsorize_low/winsorize_high
+- **run_stage_gradient_sphere**: 从 current_config_json_ (stage2 config) 解析 sigma_clip_method/sigma_clip_sigma/sigma_clip_max_iter/winsorize_low_pct/winsorize_high_pct，透传给 hp_stack_gradient_corrected
+- 函数指针签名同步更新为 11 参
+- stage2_config.json 已含 `stack.sigma_clip_method="winsorized"` 和 `stack.sigma_clip_sigma=3.0`
+
+#### 注意
+- C API 签名扩展向后不兼容，所有调用方需更新（仅 orchestrator.cpp 一处）
+- 详细实现见 healpix_stack 模块 memory.md GAP-017 条目
+
+### 编译验证
+- **healpix_stack.dll**: 编译成功（1437.2 KB），hp_stack_gradient_corrected 已正确导出
+- **orchestrator.exe**: 编译成功（3876.2 KB），零警告零错误
+- 编译日期: 2026-07-18 15:45
+
+### 未做 git commit（用户未要求）
 

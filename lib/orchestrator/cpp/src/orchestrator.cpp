@@ -55,9 +55,6 @@
 // photometric_calib C API (用于 run_stage_photometric)
 #include "photometric_calib.h"
 
-// gradient_2d C API (用于 run_stage_gradient_2d)
-#include "gradient_2d.h"
-
 // snr_estimator C API (用于 run_stage_snr)
 #include "snr_estimator.h"
 
@@ -66,6 +63,136 @@
 #endif
 
 namespace fs = std::filesystem;
+
+// ============================================================================
+// 简易 JSON 字段提取 (避免引入 nlohmann::json 依赖)
+// 与 hp_stack_api.cpp 中的 findKey/extractNum 同风格, 文件作用域私有
+// ============================================================================
+namespace {
+
+// 查找 "key": 后的值位置, 找不到返回 std::string::npos
+size_t orc_findJsonKey(const std::string& s, const std::string& key) {
+    std::string pat = "\"" + key + "\"";
+    size_t pos = s.find(pat);
+    if (pos == std::string::npos) return std::string::npos;
+    pos += pat.size();
+    // 跳过空白
+    while (pos < s.size() && (s[pos]==' '||s[pos]=='\t'||s[pos]=='\n'||s[pos]=='\r')) pos++;
+    if (pos >= s.size() || s[pos] != ':') return std::string::npos;
+    pos++;
+    // 跳过空白
+    while (pos < s.size() && (s[pos]==' '||s[pos]=='\t'||s[pos]=='\n'||s[pos]=='\r')) pos++;
+    return pos;
+}
+
+// 从 pos 提取字符串值 (pos 指向 '"')
+std::string orc_extractJsonStr(const std::string& s, size_t pos) {
+    std::string r;
+    if (pos >= s.size() || s[pos] != '"') return r;
+    pos++;
+    while (pos < s.size() && s[pos] != '"') {
+        if (s[pos] == '\\' && pos + 1 < s.size()) { r += s[pos+1]; pos += 2; }
+        else { r += s[pos]; pos++; }
+    }
+    return r;
+}
+
+// 从 pos 提取数字 (整数或浮点)
+double orc_extractJsonNum(const std::string& s, size_t pos) {
+    size_t start = pos;
+    if (pos < s.size() && s[pos] == '-') pos++;
+    while (pos < s.size()) {
+        char c = s[pos];
+        if ((c >= '0' && c <= '9') || c == '.' || c == 'e' || c == 'E' || c == '+' || c == '-') pos++;
+        else break;
+    }
+    return std::strtod(s.c_str() + start, nullptr);
+}
+
+// ============================================================================
+// GAP-016: NSIDE 自适应计算
+// 根据原始图像采样率 (CD 矩阵) 和策略计算合适的 HEALPix nside
+//   strategy:
+//     "1x_to_2x_drizzle" (默认): HEALPix 像素分辨率 = 1-2x 原始像素分辨率
+//     "fixed": 使用 nside_override (nside_override > 0 时优先)
+//   nside_override > 0: 用户指定优先, 直接返回
+// 返回 nside (2 的幂次方, 范围 [64, 131072])
+// ============================================================================
+int calculate_nside(double cd11, double cd12, double cd21, double cd22,
+                    const std::string& strategy, int nside_override) {
+    // 1. 用户指定优先
+    if (nside_override > 0) {
+        // 校验为 2 的幂次方且在范围内
+        int n = nside_override;
+        if (n < 64) n = 64;
+        if (n > 131072) n = 131072;
+        // 若不是 2 的幂次方, 向下取到最近的 2 的幂次方
+        if ((n & (n - 1)) != 0) {
+            int p = 1;
+            while (p * 2 <= n) p *= 2;
+            n = p;
+        }
+        LOG_INFO("orchestrator", "[NSIDE] 用户指定: nside=" + std::to_string(n));
+        return n;
+    }
+
+    // 2. 从 CD 矩阵计算原始像素分辨率 (角秒/像素)
+    // CD 矩阵单位是度/像素, 转角秒需 ×3600
+    double sx = std::sqrt(cd11 * cd11 + cd21 * cd21);
+    double sy = std::sqrt(cd12 * cd12 + cd22 * cd22);
+    double pixel_scale_arcsec = 0.5 * (sx + sy) * 3600.0;
+
+    // 若 CD 矩阵无效 (全 0), 回退到默认 nside=32768
+    if (pixel_scale_arcsec <= 0.0 || !std::isfinite(pixel_scale_arcsec)) {
+        LOG_WARN("orchestrator", "[NSIDE] CD 矩阵无效, 回退默认 nside=32768");
+        return 32768;
+    }
+
+    // 3. 按策略计算目标 HEALPix 像素分辨率
+    // "1x_to_2x_drizzle": 取 1-2x 中间值 1.5, 避免过采样
+    // HEALPix 像素分辨率 (arcsec) ≈ 3600*60*sqrt(3) / (3*nside) = 1186.18 / nside
+    // 反推: nside ≈ 1186.18 / target_resolution_arcsec
+    double drizzle_factor = 1.5;  // 默认 1x_to_2x_drizzle
+    if (strategy == "fixed" || strategy == "1x") {
+        drizzle_factor = 1.0;
+    } else if (strategy == "2x") {
+        drizzle_factor = 2.0;
+    } else if (strategy == "1x_to_2x_drizzle" || strategy.empty()) {
+        drizzle_factor = 1.5;
+    } else {
+        LOG_WARN("orchestrator", "[NSIDE] 未知 strategy='" + strategy + "', 使用默认 1.5x");
+        drizzle_factor = 1.5;
+    }
+
+    double target_resolution_arcsec = pixel_scale_arcsec / drizzle_factor;
+    // nside = 1186.18 / target_resolution_arcsec
+    // 推导: HEALPix 像素面积 = 4π/(12*nside²) sr = π/(3*nside²) sr
+    //       像素边长 ≈ sqrt(π/(3*nside²)) rad = sqrt(π/3)/nside rad
+    //                ≈ 1.0233/nside rad ≈ 58.6/nside deg ≈ 3517.6/nside * sqrt(3)/3 arcsec
+    // 简化用: resolution_arcsec ≈ 3517.6 / nside * sqrt(3)/3 ≈ 1186.18 / nside (近似)
+    // 反推 nside ≈ 1186.18 / target_resolution_arcsec
+    double nside_target = 1186.18 / target_resolution_arcsec;
+
+    // 4. 找到不小于 nside_target 的最小 2 的幂次方
+    int nside = 64;
+    while (nside < nside_target && nside < 131072) {
+        nside *= 2;
+    }
+
+    // 5. 限制在 [64, 131072]
+    if (nside < 64) nside = 64;
+    if (nside > 131072) nside = 131072;
+
+    char buf[256];
+    std::snprintf(buf, sizeof(buf),
+        "[NSIDE] 自适应: pixel_scale=%.3f\"/px, strategy=%s, nside=%d",
+        pixel_scale_arcsec, strategy.c_str(), nside);
+    LOG_INFO("orchestrator", std::string(buf));
+
+    return nside;
+}
+
+} // anonymous namespace
 
 // ============================================================================
 // 辅助: 阶段名称 / 状态名称
@@ -94,7 +221,7 @@ std::string Orchestrator::state_name(TaskState state) {
 }
 
 // ============================================================================
-// stage_name_v2 - spec §2.3.2 两段流水线 10 节点阶段名称
+// stage_name_v2 - spec §2.3.2 两段流水线 9 节点阶段名称 (2026-07-18 归档 GRADIENT_2D)
 // ============================================================================
 std::string Orchestrator::stage_name_v2(PipelineStageV2 stage) {
     switch (stage) {
@@ -103,7 +230,6 @@ std::string Orchestrator::stage_name_v2(PipelineStageV2 stage) {
         case PipelineStageV2::PLATESOLVE:      return "PLATESOLVE";
         case PipelineStageV2::PSF:             return "PSF";
         case PipelineStageV2::PHOTOMETRIC:     return "PHOTOMETRIC";
-        case PipelineStageV2::GRADIENT_2D:     return "GRADIENT_2D";
         case PipelineStageV2::SNR:             return "SNR";
         case PipelineStageV2::DRIZZLE:         return "DRIZZLE";
         case PipelineStageV2::GRADIENT_SPHERE: return "GRADIENT_SPHERE";
@@ -524,13 +650,13 @@ bool Orchestrator::init_dlls(const std::string& lib_base_dir, std::string& error
     dlls_loaded_ = ok;
 
     if (!ok) {
-        // 收集所有失败模块的错误信息 (spec §2.3.2 10 节点)
+        // 收集所有失败模块的错误信息 (spec §2.3.2 9 节点, 2026-07-18 归档 GRADIENT_2D)
         std::stringstream ss;
         ss << "部分模块加载失败: ";
         bool first = true;
         std::vector<ModuleId> ids = {
             ModuleId::AIO, ModuleId::CALIBRATE, ModuleId::PLATESOLVE,
-            ModuleId::PSF, ModuleId::PHOTOMETRIC, ModuleId::GRADIENT_2D,
+            ModuleId::PSF, ModuleId::PHOTOMETRIC,
             ModuleId::SNR, ModuleId::DRIZZLE, ModuleId::GRADIENT_SPHERE,
             ModuleId::STACK
         };
@@ -548,10 +674,10 @@ bool Orchestrator::init_dlls(const std::string& lib_base_dir, std::string& error
         return false;
     }
 
-    // 加载成功, 输出各模块版本信息 (spec §2.3.2 10 节点)
-    LOG_INFO("orchestrator", "全部 10 个模块加载成功");
+    // 加载成功, 输出各模块版本信息 (spec §2.3.2 9 节点, 2026-07-18 归档 GRADIENT_2D)
+    LOG_INFO("orchestrator", "全部 9 个模块加载成功");
     for (auto id : {ModuleId::AIO, ModuleId::CALIBRATE, ModuleId::PLATESOLVE,
-                    ModuleId::PSF, ModuleId::PHOTOMETRIC, ModuleId::GRADIENT_2D,
+                    ModuleId::PSF, ModuleId::PHOTOMETRIC,
                     ModuleId::SNR, ModuleId::DRIZZLE, ModuleId::GRADIENT_SPHERE,
                     ModuleId::STACK}) {
         std::string name = dll_loader_.get_info(id).name;
@@ -783,6 +909,43 @@ static bool load_filter_curve(const std::string& json_path,
 }
 
 // ============================================================================
+// 辅助: 加载 CCD QE 曲线 (GAP-012)
+// qe_curves.json 格式与 filters.json 一致:
+//   {"<name>": {"name": "...", "channel": "Q", "wavelength_nm": [...], "value": [...]}}
+// 注: 数组键名是 "value" 而非 "qe" (与 filters.json 共用解析逻辑)
+// ============================================================================
+static bool load_qe_curve(const std::string& json_path,
+                          const std::string& qe_name,
+                          std::vector<double>& out_wl,
+                          std::vector<double>& out_trans) {
+    // 复用 load_filter_curve 的 JSON 解析逻辑 (格式完全一致: wavelength_nm + value)
+    return load_filter_curve(json_path, qe_name, out_wl, out_trans);
+}
+
+// ============================================================================
+// 辅助: 从 stage1_config.json 文本中提取 "qe_curve" 字段值 (GAP-012)
+// 配置格式: { ... "frame": { ... "qe_curve": "GSENSE2020BSI" ... } ... }
+// 返回空字符串表示未配置或解析失败
+// ============================================================================
+static std::string extract_qe_curve_name(const std::string& json_content) {
+    if (json_content.empty()) return "";
+    // 定位 "qe_curve" 键
+    std::string key = "\"qe_curve\"";
+    size_t pos = json_content.find(key);
+    if (pos == std::string::npos) return "";
+    // 找 ':' 分隔符
+    pos = json_content.find(':', pos + key.size());
+    if (pos == std::string::npos) return "";
+    // 跳过空白, 找字符串首字符 '"'
+    size_t start = json_content.find('"', pos + 1);
+    if (start == std::string::npos) return "";
+    // 找字符串尾字符 '"'
+    size_t end = json_content.find('"', start + 1);
+    if (end == std::string::npos) return "";
+    return json_content.substr(start + 1, end - start - 1);
+}
+
+// ============================================================================
 // 辅助: 从 gaia_client 获取光谱波长数组
 // spectrum_wl = [start_nm + i*step_nm for i in range(count)]
 // ============================================================================
@@ -815,7 +978,7 @@ static bool build_spectrum_wl(void* gaia_dll, intptr_t client_handle,
 }
 
 // ============================================================================
-// 辅助: 从 header KV 块读取 WCS 参数 (供 PHOTOMETRIC / GRADIENT_2D 使用)
+// 辅助: 从 header KV 块读取 WCS 参数 (供 PHOTOMETRIC 使用)
 // ============================================================================
 struct WcsHeaderParams {
     double crval1 = 0, crval2 = 0;
@@ -871,135 +1034,6 @@ static bool read_wcs_from_header(
     int ap_order = read_sip("AP_ORDER", "AP", wcs.sip_ap);
     int bp_order = read_sip("BP_ORDER", "BP", wcs.sip_bp);
     wcs.has_ap = (ap_order > 0 && bp_order > 0);
-    return true;
-}
-
-// ============================================================================
-// 辅助: 为 GRADIENT_2D 预计算 Gaia F_syn 数组
-// (gradient_2d_calibrate 需要 gaia_fsyn, 但不接收 gaia_client handle;
-//  photometric_calib.dll 的 spectrum_integrator 是内部 C++ 函数未导出 C API,
-//  此处用线性插值+梯形积分做简化版 F_syn 计算, 与 pc_calibrate_simple_with_gaia
-//  内部的 Akima+Simpson 结果可能有微小差异, 但 GRADIENT_2D 做空间梯度拟合是
-//  相对测量, 系统偏移会抵消, 简化积分足够)
-// ============================================================================
-static bool compute_gaia_fsyn_for_gradient(
-    void* gaia_dll, intptr_t client_handle,
-    double ra_center, double dec_center, double radius_deg,
-    double mag_min, double mag_max,
-    const std::vector<double>& filter_wl,
-    const std::vector<double>& filter_trans,
-    const std::vector<double>& spectrum_wl,
-    std::vector<double>& out_ra,
-    std::vector<double>& out_dec,
-    std::vector<double>& out_mag,
-    std::vector<double>& out_fsyn) {
-
-    if (gaia_dll == nullptr || client_handle == 0) return false;
-    HMODULE gaia_h = static_cast<HMODULE>(gaia_dll);
-
-    // 1. 锥形搜索 (带光谱)
-    using cone_spec_fn = int (*)(GaiaClient*, double, double, double, double, double,
-        GaiaSpectrumStar**, uint8_t**, int*);
-    auto fn_cone_spec = reinterpret_cast<cone_spec_fn>(
-        GetProcAddress(gaia_h, "gaia_client_cone_search_with_spectrum"));
-    if (!fn_cone_spec) {
-        LOG_ERROR("orchestrator", "[GRADIENT_2D] gaia_client_cone_search_with_spectrum 函数未找到");
-        return false;
-    }
-
-    // 自适应星等查询 (与 pc_calibrate_simple_with_gaia 一致: 12->16 逐步增大)
-    static const double mag_max_arr[] = {12.0, 13.0, 14.0, 15.0, 16.0};
-    GaiaSpectrumStar* spec_stars = nullptr;
-    uint8_t* spectra_buf = nullptr;
-    int n_gaia = 0;
-    int rc = 0;
-
-    for (int i = 0; i < 5; ++i) {
-        double mag_max_try = mag_max_arr[i];
-        rc = fn_cone_spec(reinterpret_cast<GaiaClient*>(client_handle),
-                          ra_center, dec_center, radius_deg, mag_min, mag_max_try,
-                          &spec_stars, &spectra_buf, &n_gaia);
-        if (rc != 0) {
-            LOG_ERROR("orchestrator", "[GRADIENT_2D] 锥形搜索失败 rc=" + std::to_string(rc));
-            if (spec_stars) { std::free(spec_stars); spec_stars = nullptr; }
-            if (spectra_buf) { std::free(spectra_buf); spectra_buf = nullptr; }
-            return false;
-        }
-        LOG_INFO("orchestrator", "[GRADIENT_2D] 自适应星等查询: mag_max="
-                 + std::to_string(mag_max_try) + ", n_gaia=" + std::to_string(n_gaia));
-        if (n_gaia >= 2000 || i == 4) break;
-        if (spec_stars) { std::free(spec_stars); spec_stars = nullptr; }
-        if (spectra_buf) { std::free(spectra_buf); spectra_buf = nullptr; }
-    }
-
-    if (n_gaia <= 0 || spec_stars == nullptr || spectra_buf == nullptr) {
-        LOG_WARN("orchestrator", "[GRADIENT_2D] 无光谱星 (n_gaia=" + std::to_string(n_gaia) + ")");
-        if (spec_stars) std::free(spec_stars);
-        if (spectra_buf) std::free(spectra_buf);
-        return false;
-    }
-
-    int spec_count = (int)spectrum_wl.size();
-    int filt_count = (int)filter_wl.size();
-
-    // 2. 滤光片曲线线性插值到光谱网格
-    std::vector<double> filter_on_grid(spec_count, 0.0);
-    for (int i = 0; i < spec_count; ++i) {
-        double wl = spectrum_wl[i];
-        if (wl < filter_wl[0] || wl > filter_wl[filt_count - 1]) {
-            filter_on_grid[i] = 0.0;  // 范围外
-            continue;
-        }
-        int lo = 0, hi = filt_count - 2;
-        while (lo <= hi) {
-            int mid = (lo + hi) / 2;
-            if (wl >= filter_wl[mid] && wl <= filter_wl[mid + 1]) {
-                double dx = filter_wl[mid + 1] - filter_wl[mid];
-                double t = (dx > 0.0) ? (wl - filter_wl[mid]) / dx : 0.0;
-                filter_on_grid[i] = filter_trans[mid] * (1.0 - t) + filter_trans[mid + 1] * t;
-                break;
-            }
-            if (wl < filter_wl[mid]) hi = mid - 1;
-            else lo = mid + 1;
-        }
-    }
-
-    // 3. 预计算 weighted_wl[i] = λ_i × T(λ_i)
-    std::vector<double> weighted_wl(spec_count);
-    for (int i = 0; i < spec_count; ++i) {
-        weighted_wl[i] = spectrum_wl[i] * filter_on_grid[i];
-    }
-
-    // 4. 计算每颗星的 F_syn (梯形积分: ∫ S(λ)·T(λ)·λ dλ × 10^(-0.4*mag_g))
-    out_ra.resize(n_gaia);
-    out_dec.resize(n_gaia);
-    out_mag.resize(n_gaia);
-    out_fsyn.resize(n_gaia, 0.0);
-
-    int n_valid = 0;
-    for (int i = 0; i < n_gaia; ++i) {
-        out_ra[i] = spec_stars[i].ra;
-        out_dec[i] = spec_stars[i].dec;
-        out_mag[i] = spec_stars[i].magG;
-
-        double mag_factor = std::pow(10.0, -0.4 * spec_stars[i].magG);
-        const uint8_t* spec_i = spectra_buf + (size_t)i * spec_count;
-
-        double integral = 0.0;
-        for (int j = 0; j < spec_count - 1; ++j) {
-            double s0 = (double)spec_i[j] * mag_factor * weighted_wl[j];
-            double s1 = (double)spec_i[j + 1] * mag_factor * weighted_wl[j + 1];
-            integral += 0.5 * (s0 + s1) * (spectrum_wl[j + 1] - spectrum_wl[j]);
-        }
-        out_fsyn[i] = integral;
-        if (integral > 0.0 && std::isfinite(integral)) ++n_valid;
-    }
-
-    LOG_INFO("orchestrator", "[GRADIENT_2D] F_syn 计算完成: " + std::to_string(n_valid)
-             + "/" + std::to_string(n_gaia) + " 颗有效");
-
-    std::free(spec_stars);
-    std::free(spectra_buf);
     return true;
 }
 
@@ -1792,6 +1826,21 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     }
     LOG_INFO("orchestrator", "[PHOTOMETRIC] 滤光片: " + std::to_string(filter_wl.size()) + " 点");
 
+    // 加载 CCD QE 曲线 (GAP-012)
+    // 从 stage1_config.json 文本中提取 qe_curve 名称, 若配置则加载 qe_curves.json
+    std::vector<double> qe_wl, qe_trans;
+    std::string qe_name = extract_qe_curve_name(config_.calib_params_json);
+    if (!qe_name.empty()) {
+        std::string qe_json = project_root_dir_ + "/lib/photometric_calib/data/response_curves/qe_curves.json";
+        if (load_qe_curve(qe_json, qe_name, qe_wl, qe_trans)) {
+            LOG_INFO("orchestrator", "[PHOTOMETRIC] QE 曲线 '" + qe_name + "': " + std::to_string(qe_wl.size()) + " 点");
+        } else {
+            LOG_WARN("orchestrator", "[PHOTOMETRIC] 加载 QE 曲线 '" + qe_name + "' 失败, F_syn 将不含 Q(λ)");
+        }
+    } else {
+        LOG_INFO("orchestrator", "[PHOTOMETRIC] 未配置 qe_curve, F_syn 将不含 Q(λ)");
+    }
+
     // 构建 spectrum_wl
     std::vector<double> spectrum_wl;
     if (!build_spectrum_wl(gaia_client_dll_handle_, gaia_client_handle_, spectrum_wl)) {
@@ -1827,8 +1876,10 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     LOG_INFO("orchestrator", "[PHOTOMETRIC] FOV 半径: " + std::to_string(fov_radius_deg) + "deg");
 
     // 4. 调用 pc_calibrate_simple_with_gaia (DLL 内部: 锥形搜索+光谱积分+星匹配+scale 校正)
+    // 签名扩展 (GAP-012): 新增 qe_wl/qe_trans/qe_count 三个参数, 位于 filter 参数之后 spectrum 参数之前
     auto fn_pc_calib = dll_loader_.get_function<int (*)(
         void*, double, double, double, double, double,
+        const double*, const double*, int,
         const double*, const double*, int,
         const double*, int,
         const float*, int, int,
@@ -1867,6 +1918,9 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
         wcs.crval1, wcs.crval2, fov_radius_deg,
         6.0, 16.0,  // mag_min, mag_max (DLL 内部会自适应迭代)
         filter_wl.data(), filter_trans.data(), (int)filter_wl.size(),
+        qe_wl.empty() ? nullptr : qe_wl.data(),
+        qe_trans.empty() ? nullptr : qe_trans.data(),
+        (int)qe_wl.size(),
         spectrum_wl.data(), (int)spectrum_wl.size(),
         pixels, width, height,
         psf_cx.data(), psf_cy.data(), psf_flux.data(), psf_status.data(), n_psf,
@@ -1936,14 +1990,55 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
         return false;
     }
 
+    // GAP-016: NSIDE 自适应
+    // 1) 从 frame_ header 读取 CD 矩阵 (度/像素)
+    auto fn_kv_get_double = dll_loader_.get_function<double (*)(
+        const PipelineFrame*, const char*, const char*, double)>(
+        ModuleId::AIO, "aio_frame_kv_get_double");
+    double cd11 = 0.0, cd12 = 0.0, cd21 = 0.0, cd22 = 0.0;
+    if (fn_kv_get_double) {
+        cd11 = fn_kv_get_double(frame_, "header", "CD1_1", 0.0);
+        cd12 = fn_kv_get_double(frame_, "header", "CD1_2", 0.0);
+        cd21 = fn_kv_get_double(frame_, "header", "CD2_1", 0.0);
+        cd22 = fn_kv_get_double(frame_, "header", "CD2_2", 0.0);
+    } else {
+        LOG_WARN("orchestrator", "[DRIZZLE] aio_frame_kv_get_double 不可用, CD 矩阵取 0");
+    }
+
+    // 2) 从 current_config_json_ 解析 nside_strategy 和 nside_override
+    //    默认: strategy="1x_to_2x_drizzle", override=0 (自适应)
+    std::string nside_strategy = "1x_to_2x_drizzle";
+    int nside_override = 0;
+    if (!current_config_json_.empty()) {
+        size_t p = orc_findJsonKey(current_config_json_, "nside_strategy");
+        if (p != std::string::npos) {
+            std::string s = orc_extractJsonStr(current_config_json_, p);
+            if (!s.empty()) nside_strategy = s;
+        }
+        p = orc_findJsonKey(current_config_json_, "nside_override");
+        if (p != std::string::npos) {
+            nside_override = (int)orc_extractJsonNum(current_config_json_, p);
+        }
+    }
+
+    // 3) 计算最终 nside
+    int nside = calculate_nside(cd11, cd12, cd21, cd22, nside_strategy, nside_override);
+    {
+        char buf[256];
+        std::snprintf(buf, sizeof(buf),
+            "[DRIZZLE] nside=%d (strategy=%s, override=%d, cd11=%.6f cd12=%.6f)",
+            nside, nside_strategy.c_str(), nside_override, cd11, cd12);
+        LOG_INFO("orchestrator", std::string(buf));
+    }
+
     // 调用 hp_drizzle_run
-    // nside=32768 (默认), nested=1 (NESTED), pixfrac=1.0 (避免缝隙)
+    // nested=1 (NESTED), pixfrac=1.0 (避免缝隙)
     // output_path = current_output_path_ (.hiss 路径)
     HpDrizzleResult driz_result;
     std::memset(&driz_result, 0, sizeof(HpDrizzleResult));
     LOG_INFO("orchestrator", "[DRIZZLE] 输出: " + current_output_path_);
 
-    int ret = fn_drizzle(frame_, 32768, 1, 1.0,
+    int ret = fn_drizzle(frame_, nside, 1, 1.0,
                          current_output_path_.c_str(), &driz_result);
     if (ret != 0) {
         std::string err = driz_result.error_msg[0] != '\0'
@@ -2103,234 +2198,10 @@ bool Orchestrator::run_stage_read_fits(TaskResult& result) {
     return true;
 }
 
-// stage 5: GRADIENT_2D - step4 C++化 (gradient_2d.dll)
-bool Orchestrator::run_stage_gradient_2d(TaskResult& result) {
-    LOG_INFO("orchestrator", "[GRADIENT_2D] 开始");
-
-    if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::GRADIENT_2D)) {
-        LOG_WARN("orchestrator", "[GRADIENT_2D] GRADIENT_2D DLL 未加载, 跳过");
-        return true;
-    }
-
-    // run_single 旧版调用 (无 frame_): 保留骨架行为
-    if (frame_ == nullptr) {
-        LOG_WARN("orchestrator", "[GRADIENT_2D] frame_ 为空 (run_single 旧版), 跳过");
-        return true;
-    }
-
-    // 确保 PLATESOLVE 环境已初始化 (复用 gaia_client_handle_)
-    if (!platesolve_env_ready_) {
-        std::string err;
-        if (!init_platesolve_env(err)) {
-            LOG_ERROR("orchestrator", "[GRADIENT_2D] init_platesolve_env 失败: " + err);
-            result.error_msg = "[GRADIENT_2D] " + err;
-            return false;
-        }
-    }
-
-    // 获取 AIO 函数指针
-    auto fn_get_block = dll_loader_.get_function<const AioBlock* (*)(const PipelineFrame*, const char*)>(
-        ModuleId::AIO, "aio_frame_get_block");
-    auto fn_remove_block = dll_loader_.get_function<int (*)(PipelineFrame*, const char*)>(
-        ModuleId::AIO, "aio_frame_remove_block");
-    auto fn_add_block_move = dll_loader_.get_function<int (*)(
-        PipelineFrame*, const char*, AioBlockType,
-        void*, int64_t, const int*, int, const char*)>(
-        ModuleId::AIO, "aio_frame_add_block_move");
-    auto fn_kv_get = dll_loader_.get_function<const char* (*)(
-        const PipelineFrame*, const char*, const char*)>(
-        ModuleId::AIO, "aio_frame_kv_get");
-    auto fn_kv_get_double = dll_loader_.get_function<double (*)(
-        const PipelineFrame*, const char*, const char*, double)>(
-        ModuleId::AIO, "aio_frame_kv_get_double");
-    auto fn_kv_set_double = dll_loader_.get_function<int (*)(
-        PipelineFrame*, const char*, const char*, double)>(
-        ModuleId::AIO, "aio_frame_kv_set_double");
-
-    if (!fn_get_block || !fn_remove_block || !fn_add_block_move || !fn_kv_get || !fn_kv_get_double) {
-        LOG_ERROR("orchestrator", "[GRADIENT_2D] AIO 函数指针获取失败");
-        result.error_msg = "[GRADIENT_2D] AIO 函数指针获取失败";
-        return false;
-    }
-
-    // 1. 读取 data 块 (FLOAT32 [H,W])
-    const AioBlock* data_block = fn_get_block(frame_, "data");
-    if (data_block == nullptr) {
-        LOG_ERROR("orchestrator", "[GRADIENT_2D] data 块不存在");
-        result.error_msg = "[GRADIENT_2D] data 块不存在";
-        return false;
-    }
-    int height = data_block->dims[0];
-    int width = data_block->dims[1];
-    const float* pixels = static_cast<const float*>(data_block->data);
-    LOG_INFO("orchestrator", "[GRADIENT_2D] 图像: " + std::to_string(width) + "x" + std::to_string(height));
-
-    // 2. 读取 psf 块 (FLOAT64 [N,9])
-    const AioBlock* psf_block = fn_get_block(frame_, "psf");
-    if (psf_block == nullptr || psf_block->dims[0] <= 0) {
-        LOG_WARN("orchestrator", "[GRADIENT_2D] psf 块不存在或为空, 跳过梯度校正");
-        return true;
-    }
-    int n_psf = psf_block->dims[0];
-    const double* psf_data = static_cast<const double*>(psf_block->data);
-
-    // 提取 psf_cx/cy/flux/status 数组
-    std::vector<double> psf_cx(n_psf), psf_cy(n_psf), psf_flux(n_psf);
-    std::vector<int> psf_status(n_psf);
-    for (int i = 0; i < n_psf; ++i) {
-        const double* row = psf_data + i * 9;
-        psf_status[i] = static_cast<int>(row[0]);
-        psf_flux[i] = row[2];
-        psf_cx[i] = row[3];
-        psf_cy[i] = row[4];
-    }
-
-    // 3. 从 header KV 读取 FILTER + WCS + SIP
-    std::string filter_str;
-    const char* filter_cstr = fn_kv_get(frame_, "header", "FILTER");
-    if (filter_cstr) filter_str = filter_cstr;
-    std::string filter_name = map_filter_name(filter_str);
-
-    std::string filters_json = project_root_dir_ + "/lib/photometric_calib/data/response_curves/filters.json";
-    std::vector<double> filter_wl, filter_trans;
-    if (!load_filter_curve(filters_json, filter_name, filter_wl, filter_trans)) {
-        LOG_ERROR("orchestrator", "[GRADIENT_2D] 加载滤光片曲线失败");
-        result.error_msg = "[GRADIENT_2D] 加载滤光片曲线失败";
-        return false;
-    }
-
-    std::vector<double> spectrum_wl;
-    if (!build_spectrum_wl(gaia_client_dll_handle_, gaia_client_handle_, spectrum_wl)) {
-        LOG_ERROR("orchestrator", "[GRADIENT_2D] 构建 spectrum_wl 失败");
-        result.error_msg = "[GRADIENT_2D] 构建 spectrum_wl 失败";
-        return false;
-    }
-
-    WcsHeaderParams wcs;
-    auto fn_kv_get_l = [&](const char* block, const char* key) -> const char* {
-        return fn_kv_get(frame_, block, key);
-    };
-    auto fn_kv_get_double_l = [&](const char* block, const char* key, double def) -> double {
-        return fn_kv_get_double(frame_, block, key, def);
-    };
-    if (!read_wcs_from_header(fn_kv_get_l, fn_kv_get_double_l, wcs)) {
-        LOG_ERROR("orchestrator", "[GRADIENT_2D] WCS 缺失");
-        result.error_msg = "[GRADIENT_2D] WCS 缺失";
-        return false;
-    }
-
-    // 计算 FOV 半径
-    double cd_det = std::abs(wcs.cd11 * wcs.cd22 - wcs.cd12 * wcs.cd21);
-    double pixel_scale_deg = (cd_det > 0) ? std::sqrt(cd_det) : 0.0;
-    double fov_radius_deg = pixel_scale_deg * std::sqrt(
-        static_cast<double>(width) * width + static_cast<double>(height) * height) / 2.0 * 1.2;
-    if (fov_radius_deg <= 0.0 || fov_radius_deg >= 30.0) {
-        fov_radius_deg = std::min(std::max(fov_radius_deg, 1.0), 10.0);
-    }
-    LOG_INFO("orchestrator", "[GRADIENT_2D] FOV 半径: " + std::to_string(fov_radius_deg) + "deg");
-
-    // 4. 预计算 Gaia F_syn 数组 (gradient_2d_calibrate 需要 gaia_fsyn)
-    std::vector<double> gaia_ra, gaia_dec, gaia_mag, gaia_fsyn;
-    if (!compute_gaia_fsyn_for_gradient(
-            gaia_client_dll_handle_, gaia_client_handle_,
-            wcs.crval1, wcs.crval2, fov_radius_deg,
-            6.0, 16.0, filter_wl, filter_trans, spectrum_wl,
-            gaia_ra, gaia_dec, gaia_mag, gaia_fsyn)) {
-        LOG_WARN("orchestrator", "[GRADIENT_2D] 无法获取 Gaia F_syn 数据, 跳过梯度校正");
-        return true;
-    }
-    int n_gaia = (int)gaia_ra.size();
-    LOG_INFO("orchestrator", "[GRADIENT_2D] Gaia 星: " + std::to_string(n_gaia) + " 颗");
-
-    // 5. 调用 gradient_2d_calibrate
-    auto fn_gradient = dll_loader_.get_function<int (*)(
-        const float*, int, int,
-        const double*, const double*, const double*, const double*, int,
-        const double*, const double*, const double*, const int*, int,
-        double, double, double, double, double, double, double, double,
-        int, const double*, const double*, const double*, const double*,
-        double, double, int,
-        float*, Gradient2DResult*)>(
-        ModuleId::GRADIENT_2D, "gradient_2d_calibrate");
-
-    if (!fn_gradient) {
-        LOG_ERROR("orchestrator", "[GRADIENT_2D] gradient_2d_calibrate 函数未找到");
-        result.error_msg = "[GRADIENT_2D] gradient_2d_calibrate 函数未找到";
-        return false;
-    }
-
-    int64_t n_pix = static_cast<int64_t>(width) * height;
-    float* out_pixels = static_cast<float*>(std::malloc(n_pix * sizeof(float)));
-    if (out_pixels == nullptr) {
-        LOG_ERROR("orchestrator", "[GRADIENT_2D] 分配输出缓冲失败");
-        result.error_msg = "[GRADIENT_2D] 分配输出缓冲失败";
-        return false;
-    }
-
-    const double* sip_a_ptr = (wcs.sip_order > 0) ? wcs.sip_a : nullptr;
-    const double* sip_b_ptr = (wcs.sip_order > 0) ? wcs.sip_b : nullptr;
-    const double* sip_ap_ptr = (wcs.has_ap) ? wcs.sip_ap : nullptr;
-    const double* sip_bp_ptr = (wcs.has_ap) ? wcs.sip_bp : nullptr;
-
-    Gradient2DResult g2d_result;
-    std::memset(&g2d_result, 0, sizeof(g2d_result));
-
-    LOG_INFO("orchestrator", "[GRADIENT_2D] 调用 gradient_2d_calibrate ...");
-    int ret = fn_gradient(
-        pixels, width, height,
-        gaia_ra.data(), gaia_dec.data(), gaia_mag.data(), gaia_fsyn.data(), n_gaia,
-        psf_cx.data(), psf_cy.data(), psf_flux.data(), psf_status.data(), n_psf,
-        wcs.crval1, wcs.crval2, wcs.crpix1, wcs.crpix2,
-        wcs.cd11, wcs.cd12, wcs.cd21, wcs.cd22,
-        wcs.sip_order, sip_a_ptr, sip_b_ptr, sip_ap_ptr, sip_bp_ptr,
-        3.0, 3.0, 3,  // match_radius_px, outlier_sigma, max_order
-        out_pixels, &g2d_result);
-
-    // -1=参数无效, -3=数值异常: 失败; -2=匹配星数<6: 退化恒等校正 (out_pixels 仍有效)
-    if (ret == -1 || ret == -3) {
-        LOG_ERROR("orchestrator", "[GRADIENT_2D] gradient_2d_calibrate 失败: ret=" + std::to_string(ret));
-        result.error_msg = "[GRADIENT_2D] 失败: ret=" + std::to_string(ret);
-        std::free(out_pixels);
-        return false;
-    }
-    if (ret == -2) {
-        LOG_WARN("orchestrator", "[GRADIENT_2D] 退化: 匹配星数 < 6, 恒等校正");
-    }
-
-    LOG_INFO("orchestrator", "[GRADIENT_2D] 完成: n_matched=" + std::to_string(g2d_result.n_matched)
-             + ", scale=" + std::to_string(g2d_result.scale_factor)
-             + ", rms=" + std::to_string(g2d_result.rms_residual)
-             + ", order=" + std::to_string(g2d_result.mult_order)
-             + ", R²=" + std::to_string(g2d_result.mult_r_squared)
-             + ", sigma=" + std::to_string(g2d_result.sigma_residual));
-
-    // 6. 更新 data 块 (替换为校正后像素, 转移所有权)
-    fn_remove_block(frame_, "data");
-    int dims[2] = {height, width};
-    int r = fn_add_block_move(frame_, "data", AIO_BLOCK_FLOAT32,
-                              out_pixels, n_pix, dims, 2,
-                              "2D 梯度校正后像素");
-    if (r != 0) {
-        LOG_ERROR("orchestrator", "[GRADIENT_2D] 更新 data 块失败: ret=" + std::to_string(r));
-        result.error_msg = "[GRADIENT_2D] 更新 data 块失败";
-        std::free(out_pixels);
-        return false;
-    }
-    // out_pixels 所有权已转移给 frame_
-
-    // 追加梯度校正信息到 photo_stats KV
-    if (fn_kv_set_double) {
-        fn_kv_set_double(frame_, "photo_stats", "G2D_N_MATCHED", static_cast<double>(g2d_result.n_matched));
-        fn_kv_set_double(frame_, "photo_stats", "G2D_SCALE", g2d_result.scale_factor);
-        fn_kv_set_double(frame_, "photo_stats", "G2D_RMS", g2d_result.rms_residual);
-        fn_kv_set_double(frame_, "photo_stats", "G2D_R_SQUARED", g2d_result.mult_r_squared);
-        fn_kv_set_double(frame_, "photo_stats", "G2D_SIGMA_RESIDUAL", g2d_result.sigma_residual);
-    }
-
-    return true;
-}
-
 // stage 6: SNR - SNR 估计 (snr_estimator.dll)
+// GAP-011 修复: 改用 snr_extract_model 提取稀疏控制点, 序列化到 snr_model 块 (AIO_BLOCK_RAW)
+// 旧版 snr_estimate 输出稠密 SNR 图写 "snr" 块, 但 drizzle 阶段只识别 "snr_model" 块,
+// 导致 SNR²加权链路断裂。改为稀疏控制点随 drizzle 一起转球面坐标落盘 .hiss
 bool Orchestrator::run_stage_snr(TaskResult& result) {
     LOG_INFO("orchestrator", "[SNR] 开始");
 
@@ -2345,11 +2216,13 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
         return true;
     }
 
-    // 获取函数指针
-    auto fn_snr = dll_loader_.get_function<int (*)(
-        const float*, int, int,
-        const double*, int, double, float*)>(
-        ModuleId::SNR, "snr_estimate");
+    // 获取函数指针 (GAP-011: 改用 snr_extract_model / snr_free_model)
+    auto fn_extract = dll_loader_.get_function<int (*)(
+        const double*, int, double,
+        const SnrWcsParams*, SnrModel*)>(
+        ModuleId::SNR, "snr_extract_model");
+    auto fn_free = dll_loader_.get_function<void (*)(SnrModel*)>(
+        ModuleId::SNR, "snr_free_model");
     auto fn_get_block = dll_loader_.get_function<const AioBlock* (*)(const PipelineFrame*, const char*)>(
         ModuleId::AIO, "aio_frame_get_block");
     auto fn_remove_block = dll_loader_.get_function<int (*)(PipelineFrame*, const char*)>(
@@ -2358,28 +2231,21 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
         PipelineFrame*, const char*, AioBlockType,
         void*, int64_t, const int*, int, const char*)>(
         ModuleId::AIO, "aio_frame_add_block_move");
+    auto fn_kv_get = dll_loader_.get_function<const char* (*)(
+        const PipelineFrame*, const char*, const char*)>(
+        ModuleId::AIO, "aio_frame_kv_get");
     auto fn_kv_get_double = dll_loader_.get_function<double (*)(
         const PipelineFrame*, const char*, const char*, double)>(
         ModuleId::AIO, "aio_frame_kv_get_double");
 
-    if (!fn_snr || !fn_get_block || !fn_remove_block || !fn_add_block_move) {
+    if (!fn_extract || !fn_free || !fn_get_block || !fn_remove_block
+        || !fn_add_block_move || !fn_kv_get_double) {
         LOG_ERROR("orchestrator", "[SNR] 函数指针获取失败");
         result.error_msg = "[SNR] 函数指针获取失败";
         return false;
     }
 
-    // 读取 data 块
-    const AioBlock* data_block = fn_get_block(frame_, "data");
-    if (data_block == nullptr) {
-        LOG_ERROR("orchestrator", "[SNR] data 块不存在");
-        result.error_msg = "[SNR] data 块不存在";
-        return false;
-    }
-    int width = data_block->dims[1];
-    int height = data_block->dims[0];
-    float* pixels = static_cast<float*>(data_block->data);
-
-    // 读取 psf 块 (FLOAT64 [N,9])
+    // 读取 psf 块 (FLOAT64 [N,9], 每行 [status,B,flux,cx,cy,fwhm,A,mad,eccentricity])
     const AioBlock* psf_block = fn_get_block(frame_, "psf");
     if (psf_block == nullptr) {
         // psf 块不存在 (PSF 阶段为骨架), 跳过 SNR
@@ -2387,50 +2253,112 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
         return true;
     }
     int n_stars = psf_block->dims[0];
-    double* psf = static_cast<double*>(psf_block->data);
+    const double* psf_data = static_cast<const double*>(psf_block->data);
 
-    // 读取 sigma_residual (来自 photo_stats KV 块, 默认 0.0)
-    double sigma_residual = 0.0;
-    if (fn_kv_get_double) {
-        sigma_residual = fn_kv_get_double(frame_, "photo_stats", "SIGMA_RESIDUAL", 0.0);
+    // 读取 sigma_residual (来自 photo_stats KV 块)
+    // 若读不到则用默认值 0.1 (并打 warning)
+    double sigma_residual = 0.1;
+    bool sig_read = false;
+    if (fn_kv_get) {
+        const char* sig_str = fn_kv_get(frame_, "photo_stats", "SIGMA_RESIDUAL");
+        if (sig_str != nullptr) {
+            sigma_residual = std::atof(sig_str);
+            sig_read = true;
+        }
+    } else {
+        // kv_get 不可用时退回 kv_get_double (无法区分读不到与值=default)
+        sigma_residual = fn_kv_get_double(frame_, "photo_stats", "SIGMA_RESIDUAL", 0.1);
+        sig_read = true;
     }
+    if (!sig_read) {
+        LOG_WARN("orchestrator", "[SNR] photo_stats/SIGMA_RESIDUAL 读不到, 使用默认值 0.1");
+    }
+
+    // 从 header KV 块读取 WCS 参数
+    // CRPIX 为 1-based (FITS 标准), SnrWcsParams.crpix1/crpix2 也是 1-based, 直接传无需转换
+    // CD 矩阵填充: cd[0]=CD1_1, cd[1]=CD1_2, cd[2]=CD2_1, cd[3]=CD2_2
+    SnrWcsParams wcs = {};
+    wcs.crval1 = fn_kv_get_double(frame_, "header", "CRVAL1", 0.0);
+    wcs.crval2 = fn_kv_get_double(frame_, "header", "CRVAL2", 0.0);
+    wcs.crpix1 = fn_kv_get_double(frame_, "header", "CRPIX1", 0.0);
+    wcs.crpix2 = fn_kv_get_double(frame_, "header", "CRPIX2", 0.0);
+    wcs.cd[0]  = fn_kv_get_double(frame_, "header", "CD1_1", 0.0);
+    wcs.cd[1]  = fn_kv_get_double(frame_, "header", "CD1_2", 0.0);
+    wcs.cd[2]  = fn_kv_get_double(frame_, "header", "CD2_1", 0.0);
+    wcs.cd[3]  = fn_kv_get_double(frame_, "header", "CD2_2", 0.0);
 
     LOG_INFO("orchestrator", "[SNR] n_stars=" + std::to_string(n_stars)
-             + " sigma_residual=" + std::to_string(sigma_residual));
+             + " sigma_residual=" + std::to_string(sigma_residual)
+             + " CRVAL=(" + std::to_string(wcs.crval1) + "," + std::to_string(wcs.crval2) + ")"
+             + " CRPIX=(" + std::to_string(wcs.crpix1) + "," + std::to_string(wcs.crpix2) + ")");
 
-    // 分配输出 SNR 缓冲
-    int64_t n_pix = static_cast<int64_t>(width) * height;
-    float* out_snr = static_cast<float*>(std::malloc(n_pix * sizeof(float)));
-    if (out_snr == nullptr) {
-        LOG_ERROR("orchestrator", "[SNR] 分配输出缓冲失败");
-        result.error_msg = "[SNR] 分配输出缓冲失败";
-        return false;
+    // 调用 snr_extract_model 提取稀疏控制点
+    SnrModel model = {};
+    int ret = fn_extract(psf_data, n_stars, sigma_residual, &wcs, &model);
+    if (ret == 1) {
+        // n_stars<=0 或无有效星 (status==0, A>B, mad>0)
+        LOG_WARN("orchestrator", "[SNR] n_stars<=0 或无有效星, 跳过 snr_model 块");
+        return true;
     }
-
-    // 调用 snr_estimate
-    int ret = fn_snr(pixels, height, width, psf, n_stars, sigma_residual, out_snr);
+    if (ret == 2) {
+        // sigma_residual<=0
+        LOG_WARN("orchestrator", "[SNR] sigma_residual<=0, 跳过 snr_model 块");
+        return true;
+    }
     if (ret == 3) {
-        LOG_ERROR("orchestrator", "[SNR] snr_estimate 失败: nullptr 参数");
-        result.error_msg = "[SNR] snr_estimate 失败: nullptr 参数";
-        std::free(out_snr);
+        LOG_ERROR("orchestrator", "[SNR] snr_extract_model 失败: nullptr 参数");
+        result.error_msg = "[SNR] snr_extract_model 失败: nullptr 参数";
         return false;
     }
-    // ret=1 (n_stars<=0) 或 ret=2 (sigma<=0) 为退化路径, SNR 已填充, 继续写块
 
-    // 写入 snr 块 (FLOAT32 [H,W], 转移所有权)
-    fn_remove_block(frame_, "snr");
-    int dims[2] = {height, width};
-    ret = fn_add_block_move(frame_, "snr", AIO_BLOCK_FLOAT32,
-                            out_snr, n_pix, dims, 2, "SNR 图 (乘法模型)");
-    if (ret != 0) {
-        LOG_ERROR("orchestrator", "[SNR] 写入 snr 块失败: ret=" + std::to_string(ret));
-        result.error_msg = "[SNR] 写入 snr 块失败";
-        std::free(out_snr);
+    LOG_INFO("orchestrator", "[SNR] 提取稀疏控制点: n_points=" + std::to_string(model.n_points)
+             + ", snr_phot=" + std::to_string(model.snr_phot)
+             + ", median_snr=" + std::to_string(model.median_snr)
+             + ", idw_power=" + std::to_string(model.idw_power));
+
+    // 序列化 SnrModel 到 "snr_model" 块 (AIO_BLOCK_RAW 类型)
+    // 格式 (与 hp_drizzle_api.cpp 行 409-480 期望一致):
+    //   [n_points:   uint32 (4B)]
+    //   [points:     n_points × 20B]  // SnrControlPoint: ra(double 8B)+dec(double 8B)+snr_psf(float 4B)
+    //   [snr_phot:   double 8B]
+    //   [median_snr: double 8B]
+    //   [idw_power:  double 8B]
+    // 总字节数 = 4 + n_points*20 + 24
+    uint32_t n_points = model.n_points;
+    size_t payload_size = 4 + (size_t)n_points * 20 + 24;
+    // fn_add_block_move 要求 data 必须是 malloc 分配 (frame 用 free() 释放)
+    uint8_t* buffer = static_cast<uint8_t*>(std::malloc(payload_size));
+    if (buffer == nullptr) {
+        LOG_ERROR("orchestrator", "[SNR] 分配 snr_model 缓冲失败 (size=" + std::to_string(payload_size) + ")");
+        result.error_msg = "[SNR] 分配 snr_model 缓冲失败";
+        fn_free(&model);
         return false;
     }
-    // out_snr 所有权已转移给 frame_
+    uint8_t* p = buffer;
+    std::memcpy(p, &n_points, 4);                          p += 4;
+    std::memcpy(p, model.points, (size_t)n_points * 20);  p += (size_t)n_points * 20;
+    std::memcpy(p, &model.snr_phot, 8);                   p += 8;
+    std::memcpy(p, &model.median_snr, 8);                 p += 8;
+    std::memcpy(p, &model.idw_power, 8);                  p += 8;
 
-    LOG_INFO("orchestrator", "[SNR] 完成 (ret=" + std::to_string(ret) + ")");
+    // 写入 snr_model 块 (move 语义, frame_ 接管 buffer 内存)
+    fn_remove_block(frame_, "snr_model");
+    int wr = fn_add_block_move(frame_, "snr_model", AIO_BLOCK_RAW,
+                               buffer, static_cast<int64_t>(payload_size),
+                               nullptr, 0, "SNR 稀疏控制点模型 (GAP-011)");
+    if (wr != 0) {
+        LOG_ERROR("orchestrator", "[SNR] 写入 snr_model 块失败: ret=" + std::to_string(wr));
+        result.error_msg = "[SNR] 写入 snr_model 块失败";
+        std::free(buffer);
+        fn_free(&model);
+        return false;
+    }
+    // buffer 所有权已转移给 frame_, 不能再 free
+
+    // 释放 SnrModel 内部资源 (points 数组, 由 snr_estimator DLL 分配)
+    fn_free(&model);
+
+    LOG_INFO("orchestrator", "[SNR] 完成 (snr_model 块已写入, payload=" + std::to_string(payload_size) + "B)");
     return true;
 }
 
@@ -2450,10 +2378,11 @@ bool Orchestrator::run_stage_gradient_sphere(TaskResult& result) {
         return false;
     }
 
-    // 获取函数指针
+    // 获取函数指针 (GAP-017: 签名新增 sigma_clip_method/winsorize_low/high_pct 3 个参数)
     auto fn_gradient = dll_loader_.get_function<int (*)(
         const char**, int, const char*, const char*,
-        double, int, int, double)>(
+        double, int, int, double,
+        const char*, double, double)>(
         ModuleId::GRADIENT_SPHERE, "hp_stack_gradient_corrected");
 
     if (!fn_gradient) {
@@ -2470,16 +2399,55 @@ bool Orchestrator::run_stage_gradient_sphere(TaskResult& result) {
         hiss_paths.push_back(p.c_str());
     }
 
-    LOG_INFO("orchestrator", "[GRADIENT_SPHERE] 帧数: " + std::to_string(n_frames)
-             + " 输出: " + current_output_hcsd_);
+    // GAP-017: 从 current_config_json_ (stage2 config) 解析 sigma_clip 参数
+    // 默认: sigma_clip_method="standard", sigma=3.0, max_iter=5
+    //       winsorize_low_pct=0.05, winsorize_high_pct=0.95 (winsorized 模式下生效)
+    std::string sigma_clip_method = "standard";
+    double sigma = 3.0;
+    int max_iter = 5;
+    double winsorize_low_pct = 0.05;
+    double winsorize_high_pct = 0.95;
+    if (!current_config_json_.empty()) {
+        size_t p = orc_findJsonKey(current_config_json_, "sigma_clip_method");
+        if (p != std::string::npos) {
+            std::string s = orc_extractJsonStr(current_config_json_, p);
+            if (!s.empty()) sigma_clip_method = s;
+        }
+        p = orc_findJsonKey(current_config_json_, "sigma_clip_sigma");
+        if (p != std::string::npos) {
+            sigma = orc_extractJsonNum(current_config_json_, p);
+            if (sigma <= 0.0) sigma = 3.0;
+        }
+        p = orc_findJsonKey(current_config_json_, "sigma_clip_max_iter");
+        if (p != std::string::npos) {
+            int v = (int)orc_extractJsonNum(current_config_json_, p);
+            if (v > 0) max_iter = v;
+        }
+        p = orc_findJsonKey(current_config_json_, "winsorize_low_pct");
+        if (p != std::string::npos) {
+            winsorize_low_pct = orc_extractJsonNum(current_config_json_, p);
+        }
+        p = orc_findJsonKey(current_config_json_, "winsorize_high_pct");
+        if (p != std::string::npos) {
+            winsorize_high_pct = orc_extractJsonNum(current_config_json_, p);
+        }
+    }
 
-    // 调用 hp_stack_gradient_corrected
-    // 默认参数: sigma=3.0, max_iter=5, gradient_max_iter=10, gradient_lambda=1e-4
+    LOG_INFO("orchestrator", "[GRADIENT_SPHERE] 帧数: " + std::to_string(n_frames)
+             + " 输出: " + current_output_hcsd_
+             + " sigma_clip=" + sigma_clip_method
+             + " sigma=" + std::to_string(sigma)
+             + " max_iter=" + std::to_string(max_iter));
+
+    // 调用 hp_stack_gradient_corrected (GAP-017: 传入 sigma_clip_method + winsorize 参数)
+    // 默认 gradient_max_iter=10, gradient_lambda=1e-4
     // gaia_data_dir 传 nullptr (跳过星拒绝)
+    const char* method_cstr = sigma_clip_method.c_str();
     int ret = fn_gradient(hiss_paths.data(), n_frames,
                           nullptr,  // gaia_data_dir (跳过星拒绝)
                           current_output_hcsd_.c_str(),
-                          3.0, 5, 10, 1e-4);
+                          sigma, max_iter, 10, 1e-4,
+                          method_cstr, winsorize_low_pct, winsorize_high_pct);
     if (ret != 0) {
         LOG_ERROR("orchestrator", "[GRADIENT_SPHERE] hp_stack_gradient_corrected 失败: ret=" + std::to_string(ret));
         result.error_msg = "[GRADIENT_SPHERE] 失败: " + std::to_string(ret);
@@ -2524,6 +2492,9 @@ TaskResult Orchestrator::run_stage1(const std::string& fits_path,
     if (!config_json.empty()) {
         LOG_INFO("orchestrator", "配置 JSON: " + config_json);
     }
+
+    // GAP-016: 保存 config_json 供 run_stage_drizzle 读取 nside_strategy/nside_override
+    current_config_json_ = config_json;
 
     // 参数校验
     if (fits_path.empty()) {
@@ -2613,8 +2584,6 @@ TaskResult Orchestrator::run_stage1(const std::string& fits_path,
                                    &Orchestrator::run_stage_psf);
     ok = ok && run_v2_with_timing(PipelineStageV2::PHOTOMETRIC, "PHOTOMETRIC",
                                    &Orchestrator::run_stage_photometric);
-    ok = ok && run_v2_with_timing(PipelineStageV2::GRADIENT_2D, "GRADIENT_2D",
-                                   &Orchestrator::run_stage_gradient_2d);
     ok = ok && run_v2_with_timing(PipelineStageV2::SNR,         "SNR",
                                    &Orchestrator::run_stage_snr);
     ok = ok && run_v2_with_timing(PipelineStageV2::DRIZZLE,     "DRIZZLE",
@@ -2652,6 +2621,9 @@ TaskResult Orchestrator::run_stage2(const std::string& hiss_dir,
     if (!config_json.empty()) {
         LOG_INFO("orchestrator", "配置 JSON: " + config_json);
     }
+
+    // GAP-017: 保存 config_json 供 run_stage_gradient_sphere 读取 sigma_clip_method 等
+    current_config_json_ = config_json;
 
     // 参数校验
     if (hiss_dir.empty()) {
