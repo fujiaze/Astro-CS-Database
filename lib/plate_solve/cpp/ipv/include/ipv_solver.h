@@ -1,0 +1,152 @@
+#ifndef IPV_SOLVER_H
+#define IPV_SOLVER_H
+
+#include <vector>
+#include <string>
+#include "ipv_types.h"
+#include "ipv_itertrans.h"   // Trans, IterTransResult, MatchPair
+#include "ipv_log.h"
+
+namespace ipv {
+
+// ---------------------------------------------------------------------------
+// V4.19: 迭代重投影结果 (固定索引策略)
+// ---------------------------------------------------------------------------
+struct IterativeReprojectResult {
+    Trans                   trans;         // 收敛后的 TRANS
+    std::vector<MatchPair>  matched;       // 固定索引匹配对
+    double                  ra0 = 0.0;     // 收敛后中心 RA (度)
+    double                  dec0 = 0.0;    // 收敛后中心 Dec (度)
+    int                     n_matched = 0; // 匹配对数
+    int                     n_iterations = 0; // 迭代次数
+    double                  convergence = 0.0; // 最终收敛值 (角秒)
+    bool                    success = false;
+};
+
+// ---------------------------------------------------------------------------
+// iterative_reproject: 迭代重投影 (固定索引策略)
+//
+// 流程:
+//   1. apply_match: 用 TRANS 常数项 x00/y00 反推新中心
+//      (V4.20: TRANS 常数项已是角秒, 直接用, 不乘 s0)
+//   2. project_catalog_stars: 用新中心重新 gnomonic 投影 Gaia
+//   3. update_stars_positions: 按固定索引更新 W 坐标 (不重新匹配!)
+//   4. atRecalcTrans: 用相同匹配对重拟合 TRANS
+//   5. 收敛判定: sqrt(x00² + y00²) < 0.01" (角秒, 直接, 不乘 s0)
+//
+// 输入:
+//   U               - 图像侧星点 (像素坐标, 原点图像中心)
+//   gaia_ra/dec     - Gaia 星原始 (RA, Dec) 度
+//   initial_trans   - 初始 TRANS (来自 iter_trans)
+//   initial_inliers - 初始匹配对 (固定索引, 不重新匹配)
+//   ra0, dec0       - 初始中心 (度)
+//   s0              - 像素尺度 (角秒/像素)
+//   img_width/height- 图像尺寸
+//   logger          - 日志器 (可选)
+//
+// 输出: IterativeReprojectResult
+// ---------------------------------------------------------------------------
+IterativeReprojectResult iterative_reproject(
+    const std::vector<StarPoint>& U,
+    const std::vector<double>& gaia_ra,
+    const std::vector<double>& gaia_dec,
+    const Trans& initial_trans,
+    const std::vector<MatchPair>& initial_inliers,
+    double ra0, double dec0,
+    double s0,
+    int img_width, int img_height,
+    Logger* logger = nullptr
+);
+
+// ---------------------------------------------------------------------------
+// extract_wcs_sip: 从 TRANS 提取 WCS + SIP
+//
+// 流程:
+//   1. CD 矩阵: (s0/3600) * M^-1, M = TRANS 线性项
+//      (因为 TRANS: W->U, W=xin, 所以 d(world)/d(pixel) = s0 * M^-1)
+//   2. CRVAL = 收敛后中心
+//   3. CRPIX = 图像中心 (1-based)
+//   4. SIP: 从 TRANS 高阶项提取 (order >= 2 时)
+//   5. RMS: 用最终匹配对计算
+//
+// 输入:
+//   trans           - 收敛后的 TRANS
+//   ra0, dec0       - 收敛后中心 (度)
+//   img_width/height- 图像尺寸
+//   s0              - 像素尺度 (角秒/像素)
+//   U               - 图像侧星点 (用于 RMS 计算)
+//   W               - 星表侧星点 (像素, 用于 RMS 计算)
+//   matched         - 匹配对 (用于 RMS 计算)
+//   logger          - 日志器 (可选)
+//
+// 输出: *result (WcsFitResult)
+// ---------------------------------------------------------------------------
+void extract_wcs_sip(
+    const Trans& trans,
+    double ra0, double dec0,
+    int img_width, int img_height,
+    double s0,
+    const std::vector<StarPoint>& U,
+    const std::vector<StarPoint>& W,
+    const std::vector<MatchPair>& matched,
+    WcsFitResult* result,
+    Logger* logger = nullptr
+);
+
+// ===========================================================================
+// IPVSolver 主类
+// V4.19: 统一求解 (无 flip_mode 区分)
+// 流程: select → triangle_match → iter_trans → iterative_reproject → extract_wcs_sip
+// ===========================================================================
+class IPVSolver {
+public:
+    IPVSolver();
+    ~IPVSolver();
+
+    // 设置 GaiaClient 句柄（由外部注入）
+    void set_gaia_handle(intptr_t handle);
+
+    // 设置 StarDetector 句柄（由外部注入）
+    void set_detector_handle(intptr_t handle);
+
+    // 主求解函数 (统一路径)
+    // 输入:
+    //   image_path       - 图像文件路径
+    //   ra0              - 初始指向 RA (度)
+    //   dec0             - 初始指向 Dec (度)
+    //   focal_length_mm  - 焦距 (mm)
+    //   pixel_size_um    - 像素尺寸 (um)
+    //   params           - 求解参数
+    // 输出:
+    //   *result          - WCS 拟合结果 (通过指针返回, 避免大结构体值传递)
+    void solve(
+        const std::string& image_path,
+        double ra0,
+        double dec0,
+        double focal_length_mm,
+        double pixel_size_um,
+        const IPVSolverParams& params,
+        WcsFitResult* result
+    );
+
+    // 从内存数据求解 (不读文件, 直接接受 float* 像素数据)
+    void solve_from_memory(
+        const float* pixels,
+        int width, int height,
+        double ra0,
+        double dec0,
+        double focal_length_mm,
+        double pixel_size_um,
+        const IPVSolverParams& params,
+        WcsFitResult* result
+    );
+
+private:
+    intptr_t gaia_handle_ = 0;
+    intptr_t detector_handle_ = 0;
+    Logger   logger_;
+};
+
+} // namespace ipv
+
+#endif // IPV_SOLVER_H
