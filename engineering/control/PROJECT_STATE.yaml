@@ -15,7 +15,7 @@ phase:
   gate: G1
   gate_status: NOT_PASSED
   baseline_tag: astrocs-baseline-p00
-current_task: P01-002
+current_task: P01-003
 allowed_parallel_read_only_tasks: 1
 allowed_parallel_code_change_tasks: 0
 project_status: G0_PASSED_READY_FOR_P01
