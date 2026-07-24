@@ -52,3 +52,24 @@ test_output/
 *.bak
 *.swp
 *~
+
+# Python 缓存与构建
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+*.egg
+dist/
+.pytest_cache/
+.ninja_log
+meson-private/
+
+# 导出包与上下文压缩包
+AstroCS_Database_Context.zip
+*_Context.zip
+repo.bundle
+
+# 编译输出日志
+compile_out.txt
+compile_out*.txt
+link_err.txt
