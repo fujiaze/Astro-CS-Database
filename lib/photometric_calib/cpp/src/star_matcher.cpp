@@ -1,6 +1,9 @@
-// star_matcher.cpp - 星-图匹配器
-// 功能: 将Gaia参考星与图像PSF拟合星进行空间匹配, MAD离群清洗
-// 算法: 暴力最近邻搜索(Gaia星数量通常<10000) + MAD稳健sigma裁剪
+// star_matcher.cpp - 星-图匹配器 (GAP-013 改进版)
+// 功能: 将Gaia参考星与图像PSF拟合星进行空间匹配, IRLS+Tukey 稳健清洗
+// 算法:
+//   - KD-tree 最近邻匹配 (在 Gaia 星像素坐标上建树, 对每颗 PSF 星查询)
+//   - 星等一致性预过滤 (|delta - median_delta| > 3 mag 拒绝)
+//   - IRLS + Tukey biweight 稳健位置估计 (c=4.685, 50 次迭代, 收敛 1e-6)
 // 参考: lib/photometric_calib/flux_calibrator/python/star_matcher.py
 
 #include "star_matcher.h"
@@ -9,20 +12,134 @@
 #include <cstdio>
 #include <cmath>
 #include <algorithm>
+#include <vector>
+#include <numeric>
 
 namespace pc {
 
 static constexpr double _MAD_SCALE = 0.6745;
+// Tukey biweight 常数 c=4.685 (标准稳健统计, 对应 95% 正态效率)
+static constexpr double _TUKEY_C = 4.685;
+// IRLS 最大迭代次数
+static constexpr int _IRLS_MAX_ITER = 50;
+// IRLS 收敛阈值 (|scale_new - scale_old| < 1e-6)
+static constexpr double _IRLS_CONVERGE = 1e-6;
+
+// ============================================================================
+// 内部: 简单 2D KD-tree (替代 nanoflann, Gaia 星通常 <10000, 自实现足够)
+// 仅支持最近邻查询 (within max_dist2)
+// ============================================================================
+class KdTree2D {
+public:
+    KdTree2D(const std::vector<double>& xs, const std::vector<double>& ys)
+        : points_(xs.size()) {
+        for (size_t i = 0; i < xs.size(); ++i) {
+            points_[i] = std::make_pair(xs[i], ys[i]);
+        }
+        std::vector<int> indices(xs.size());
+        std::iota(indices.begin(), indices.end(), 0);
+        root_ = build(indices, 0);
+    }
+
+    ~KdTree2D() { destroy(root_); }
+
+    // 在 max_dist2 范围内找最近邻, 返回索引或 -1
+    int findNearest(double x, double y, double max_dist2) const {
+        int best_idx = -1;
+        double best_dist2 = max_dist2;
+        findNearestRec(root_, x, y, best_idx, best_dist2);
+        return best_idx;
+    }
+
+private:
+    struct Node {
+        int idx;     // 原始索引
+        int axis;    // 0=x, 1=y
+        Node* left;
+        Node* right;
+    };
+
+    std::vector<std::pair<double, double>> points_;
+    Node* root_;
+
+    Node* build(std::vector<int>& indices, int axis) {
+        if (indices.empty()) return nullptr;
+        if (axis >= 2) axis = 0;  // 仅 2 维, 循环切分
+
+        // 按当前轴排序, 取中位数作为根
+        std::sort(indices.begin(), indices.end(),
+                  [&](int a, int b) {
+                      return axis == 0 ? points_[a].first < points_[b].first
+                                       : points_[a].second < points_[b].second;
+                  });
+        size_t mid = indices.size() / 2;
+        int midx = indices[mid];
+
+        Node* node = new Node;
+        node->idx = midx;
+        node->axis = axis;
+        std::vector<int> left_idx(indices.begin(), indices.begin() + mid);
+        std::vector<int> right_idx(indices.begin() + mid + 1, indices.end());
+        node->left = build(left_idx, axis + 1);
+        node->right = build(right_idx, axis + 1);
+        return node;
+    }
+
+    void findNearestRec(Node* node, double x, double y,
+                        int& best_idx, double& best_dist2) const {
+        if (node == nullptr) return;
+        const auto& p = points_[node->idx];
+        double dx = p.first - x;
+        double dy = p.second - y;
+        double dist2 = dx * dx + dy * dy;
+        if (dist2 < best_dist2) {
+            best_dist2 = dist2;
+            best_idx = node->idx;
+        }
+
+        // 决定先访问哪个子树 (按当前轴的分裂方向)
+        double diff = (node->axis == 0) ? dx : dy;
+        Node* first = (diff < 0) ? node->left : node->right;
+        Node* second = (diff < 0) ? node->right : node->left;
+
+        findNearestRec(first, x, y, best_idx, best_dist2);
+
+        // 检查另一侧是否可能有更近的点 (基于分裂平面的距离)
+        double split_dist2 = diff * diff;
+        if (split_dist2 < best_dist2) {
+            findNearestRec(second, x, y, best_idx, best_dist2);
+        }
+    }
+
+    void destroy(Node* node) {
+        if (node == nullptr) return;
+        destroy(node->left);
+        destroy(node->right);
+        delete node;
+    }
+};
+
+// ============================================================================
+// 内部工具: 计算中位数 (排序后取中间)
+// ============================================================================
+static double medianOf(std::vector<double> vals) {
+    if (vals.empty()) return 0.0;
+    std::sort(vals.begin(), vals.end());
+    size_t n = vals.size();
+    return (n % 2 == 1) ? vals[n / 2] : 0.5 * (vals[n / 2 - 1] + vals[n / 2]);
+}
 
 StarMatcher::StarMatcher() {
-    std::fprintf(stderr, "[star_matcher] 初始化: 暴力最近邻 + MAD清洗\n");
+    LOG_INFO("[star_matcher] 初始化: KD-tree + IRLS/Tukey 清洗 (GAP-013)");
 }
 
 // ============================================================================
-// 暴力最近邻匹配
-// 对每颗Gaia星: WCS投影到像素坐标, 在PSF有效星中找最近邻
+// KD-tree 最近邻匹配
+// 1. WCS 投影所有 Gaia 星到像素坐标
+// 2. 对 Gaia 像素坐标建 KD-tree
+// 3. 对每颗 PSF 有效星 (status==0), 查询 KD-tree 找最近邻 Gaia 星 (距离 < match_radius_px)
 // ============================================================================
-std::vector<StarMatch> StarMatcher::matchBruteForce(
+std::vector<StarMatch> StarMatcher::matchWithKdTree(
     const WcsTransform& wcs,
     const double* gaia_ra, const double* gaia_dec,
     const double* gaia_mag, const double* gaia_fsyn, int n_gaia,
@@ -33,12 +150,20 @@ std::vector<StarMatch> StarMatcher::matchBruteForce(
     std::vector<StarMatch> matches;
 
     if (n_gaia <= 0 || n_psf <= 0) {
-        std::fprintf(stderr, "[star_matcher] 警告: Gaia星=%d, PSF星=%d, 无匹配\n",
-                    n_gaia, n_psf);
+        LOG_INFO("[star_matcher] 警告: Gaia星=%d, PSF星=%d, 无匹配", n_gaia, n_psf);
         return matches;
     }
 
-    // 收集PSF有效星 (status==0)
+    // 1. WCS 投影所有 Gaia 星到像素坐标
+    std::vector<double> gaia_px(n_gaia), gaia_py(n_gaia);
+    for (int i = 0; i < n_gaia; ++i) {
+        wcs.skyToPixel(gaia_ra[i], gaia_dec[i], gaia_px[i], gaia_py[i]);
+    }
+
+    // 2. 对 Gaia 像素坐标建 KD-tree
+    KdTree2D kdtree(gaia_px, gaia_py);
+
+    // 3. 收集 PSF 有效星 (status==0)
     std::vector<int> valid_idx;
     valid_idx.reserve(n_psf);
     for (int i = 0; i < n_psf; ++i) {
@@ -47,139 +172,217 @@ std::vector<StarMatch> StarMatcher::matchBruteForce(
         }
     }
     if (valid_idx.empty()) {
-        std::fprintf(stderr, "[star_matcher] 警告: 无有效PSF星 (status!=0全部)\n");
+        LOG_INFO("[star_matcher] 警告: 无有效PSF星 (status!=0全部)");
         return matches;
     }
-    std::fprintf(stderr, "[star_matcher] PSF有效星: %d / %d\n",
-                (int)valid_idx.size(), n_psf);
+    LOG_INFO("[star_matcher] PSF有效星: %d / %d, Gaia星: %d, 匹配半径: %.2f px",
+             (int)valid_idx.size(), n_psf, n_gaia, match_radius_px);
 
-    // 对每颗Gaia星: WCS投影 + 暴力最近邻
-    for (int i = 0; i < n_gaia; ++i) {
-        double gx, gy;
-        wcs.skyToPixel(gaia_ra[i], gaia_dec[i], gx, gy);
-
-        // 暴力搜索最近邻PSF有效星
-        double best_dist2 = match_radius_px * match_radius_px;
-        int best_psf = -1;
-        for (size_t k = 0; k < valid_idx.size(); ++k) {
-            int j = valid_idx[k];
-            double ddx = psf_cx[j] - gx;
-            double ddy = psf_cy[j] - gy;
-            double dist2 = ddx * ddx + ddy * ddy;
-            if (dist2 < best_dist2) {
-                best_dist2 = dist2;
-                best_psf = j;
-            }
-        }
-
-        if (best_psf < 0) {
+    // 4. 对每颗 PSF 有效星, 查询 KD-tree 找最近邻 Gaia 星
+    double max_dist2 = match_radius_px * match_radius_px;
+    for (size_t k = 0; k < valid_idx.size(); ++k) {
+        int j = valid_idx[k];
+        int best_gaia = kdtree.findNearest(psf_cx[j], psf_cy[j], max_dist2);
+        if (best_gaia < 0) {
             // 无匹配 (最近邻超出阈值)
             continue;
         }
 
         StarMatch m;
-        m.x = psf_cx[best_psf];
-        m.y = psf_cy[best_psf];
-        m.f_instr = psf_flux[best_psf];
-        m.f_syn = gaia_fsyn[i];
+        m.x = psf_cx[j];
+        m.y = psf_cy[j];
+        m.f_instr = psf_flux[j];
+        m.f_syn = gaia_fsyn[best_gaia];
+        m.gaia_mag = gaia_mag[best_gaia];
         matches.push_back(m);
 
         // 循环内每颗匹配星的高频日志, 用 LOG_DEBUG 编译时禁用
-        LOG_DEBUG("[star_matcher] 匹配#%d: Gaia[%d] -> PSF[%d] "
-                  "(%.2f,%.2f) dist=%.3f F_syn=%.4e F_instr=%.2f",
-                  (int)matches.size(), i, best_psf, m.x, m.y,
-                  std::sqrt(best_dist2), m.f_syn, m.f_instr);
+#ifdef PC_ENABLE_DEBUG
+        double dx = psf_cx[j] - gaia_px[best_gaia];
+        double dy = psf_cy[j] - gaia_py[best_gaia];
+        LOG_DEBUG("[star_matcher] 匹配#%d: PSF[%d] -> Gaia[%d] "
+                  "(%.2f,%.2f) dist=%.3f F_syn=%.4e F_instr=%.2f mag_g=%.2f",
+                  (int)matches.size(), j, best_gaia, m.x, m.y,
+                  std::sqrt(dx * dx + dy * dy), m.f_syn, m.f_instr, m.gaia_mag);
+#endif
     }
 
-    std::fprintf(stderr, "[star_matcher] 匹配完成: %d 对\n", (int)matches.size());
+    LOG_INFO("[star_matcher] KD-tree 匹配完成: %d 对", (int)matches.size());
     return matches;
 }
 
 // ============================================================================
-// MAD离群清洗
-// r = log10(F_instr / F_syn)
-// 排除 F_instr<=0 或 F_syn<=0
-// median = median(r), MAD = median(|r - median|)
-// sigma = MAD / 0.6745
-// 剔除 |r - median| > outlier_sigma * sigma
+// 星等一致性预过滤 + IRLS+Tukey 稳健清洗
+//   1) delta = -2.5*log10(F_instr) - gaia_mag (粗略零点差)
+//   2) median_delta 作为粗略零点, 拒绝 |delta - median_delta| > mag_tolerance
+//   3) r = log10(F_instr/F_syn) 上做 IRLS + Tukey biweight
+//   4) scale = 10^(-location), sigma_residual = MAD(r_inliers)/0.6745
 // ============================================================================
-std::vector<StarMatch> StarMatcher::cleanOutliers(
-    const std::vector<StarMatch>& matches, double outlier_sigma,
-    double* out_sigma_residual) {
+std::vector<StarMatch> StarMatcher::cleanAndScale(
+    const std::vector<StarMatch>& matches, double mag_tolerance,
+    double* out_scale_factor, double* out_sigma_residual) {
 
     int n_in = (int)matches.size();
-    std::fprintf(stderr, "[star_matcher] clean_outliers: 输入 %d 颗, sigma阈值 %.2f\n",
-                n_in, outlier_sigma);
+    LOG_INFO("[star_matcher] cleanAndScale: 输入 %d 颗, 星等容忍 %.2f mag",
+             n_in, mag_tolerance);
+
+    if (out_scale_factor) *out_scale_factor = 1.0;
+    if (out_sigma_residual) *out_sigma_residual = 0.0;
+
     if (n_in == 0) {
-        if (out_sigma_residual) *out_sigma_residual = 0.0;
         return {};
     }
 
-    // 计算r = log10(F_instr/F_syn), 排除无效值
-    std::vector<double> r_vals;
+    // ---- 1. 计算有效 r = log10(F_instr/F_syn) 和 delta = -2.5*log10(F_instr) - gaia_mag ----
+    std::vector<double> r_vals, delta_vals;
+    std::vector<int> valid_idx;  // 在 matches 中的索引
     r_vals.reserve(n_in);
-    std::vector<bool> valid(n_in, false);
+    delta_vals.reserve(n_in);
+    valid_idx.reserve(n_in);
+
     for (int i = 0; i < n_in; ++i) {
-        if (matches[i].f_instr > 0.0 && matches[i].f_syn > 0.0) {
-            double r = std::log10(matches[i].f_instr / matches[i].f_syn);
-            if (std::isfinite(r)) {
-                r_vals.push_back(r);
-                valid[i] = true;
-            }
-        }
+        if (matches[i].f_instr <= 0.0 || matches[i].f_syn <= 0.0) continue;
+        double r = std::log10(matches[i].f_instr / matches[i].f_syn);
+        if (!std::isfinite(r)) continue;
+        double mag_inst = -2.5 * std::log10(matches[i].f_instr);
+        if (!std::isfinite(mag_inst)) continue;
+        double delta = mag_inst - matches[i].gaia_mag;
+        if (!std::isfinite(delta)) continue;
+        r_vals.push_back(r);
+        delta_vals.push_back(delta);
+        valid_idx.push_back(i);
     }
 
     if (r_vals.empty()) {
-        std::fprintf(stderr, "[star_matcher] 警告: 无有效匹配星(F_instr/F_syn<=0), 全部排除\n");
-        if (out_sigma_residual) *out_sigma_residual = 0.0;
+        LOG_INFO("[star_matcher] 警告: 无有效匹配星 (F_instr/F_syn<=0 或无效值)");
         return {};
     }
 
-    // 中位数
-    std::vector<double> r_sorted = r_vals;
-    std::sort(r_sorted.begin(), r_sorted.end());
-    double med = r_sorted[r_sorted.size() / 2];
+    // ---- 2. 星等一致性预过滤: |delta - median_delta| > mag_tolerance 拒绝 ----
+    double median_delta = medianOf(delta_vals);
+    std::vector<int> mag_consistent_idx;
+    std::vector<double> r_consistent;
+    mag_consistent_idx.reserve(r_vals.size());
+    r_consistent.reserve(r_vals.size());
+    int n_mag_rejected = 0;
+    for (size_t k = 0; k < r_vals.size(); ++k) {
+        if (std::fabs(delta_vals[k] - median_delta) <= mag_tolerance) {
+            mag_consistent_idx.push_back(valid_idx[k]);
+            r_consistent.push_back(r_vals[k]);
+        } else {
+            n_mag_rejected++;
+        }
+    }
+    LOG_INFO("[star_matcher] 星等一致性: 通过 %d, 拒绝 %d (median_delta=%.4f, tol=%.2f mag)",
+             (int)mag_consistent_idx.size(), n_mag_rejected, median_delta, mag_tolerance);
 
-    // MAD = median(|r - median|)
+    if (r_consistent.empty()) {
+        LOG_INFO("[star_matcher] 警告: 星等一致性过滤后无匹配星");
+        return {};
+    }
+
+    // ---- 3. IRLS + Tukey biweight 稳健位置估计 ----
+    // 初始: location = median(r), S = MAD(r)/0.6745
+    double location = medianOf(r_consistent);
     std::vector<double> abs_dev;
-    abs_dev.reserve(r_vals.size());
-    for (double r : r_vals) {
-        abs_dev.push_back(std::fabs(r - med));
+    abs_dev.reserve(r_consistent.size());
+    for (double r : r_consistent) abs_dev.push_back(std::fabs(r - location));
+    double mad = medianOf(abs_dev);
+    double S = (mad > 0.0) ? (mad / _MAD_SCALE) : 0.0;
+    LOG_INFO("[star_matcher] IRLS 初始: location=%.6f, MAD=%.6f, S=%.6f", location, mad, S);
+
+    if (S <= 0.0) {
+        // 所有 r 相同 (S=0), 无法做 IRLS, 直接用 location 作为最终估计
+        LOG_INFO("[star_matcher] IRLS: S=0 (所有 r 相同), 跳过迭代");
+    } else {
+        // IRLS 迭代
+        double prev_location = location;
+        for (int iter = 0; iter < _IRLS_MAX_ITER; ++iter) {
+            double sum_wr = 0.0, sum_w = 0.0;
+            double cS = _TUKEY_C * S;
+            for (double r : r_consistent) {
+                double u = (r - location) / cS;
+                double aU = std::fabs(u);
+                double w;
+                if (aU >= 1.0) {
+                    w = 0.0;
+                } else {
+                    double tmp = 1.0 - u * u;
+                    w = tmp * tmp;  // Tukey biweight 权重 (1-u^2)^2
+                }
+                sum_wr += w * r;
+                sum_w += w;
+            }
+            if (sum_w <= 0.0) {
+                LOG_INFO("[star_matcher] IRLS 迭代 %d: 所有权重为 0, 终止", iter);
+                break;
+            }
+            double new_location = sum_wr / sum_w;
+            double diff = std::fabs(new_location - prev_location);
+            location = new_location;
+            LOG_DEBUG("[star_matcher] IRLS 迭代 %d: location=%.6f, diff=%.2e", iter, location, diff);
+            if (diff < _IRLS_CONVERGE) {
+                LOG_INFO("[star_matcher] IRLS 收敛于迭代 %d: location=%.6f", iter, location);
+                break;
+            }
+            prev_location = new_location;
+        }
     }
-    std::sort(abs_dev.begin(), abs_dev.end());
-    double mad = abs_dev[abs_dev.size() / 2];
-    double sigma = (mad > 0.0) ? (mad / _MAD_SCALE) : 0.0;
 
-    std::fprintf(stderr, "[star_matcher] r中位数=%.6f, MAD=%.6f, sigma=%.6f\n",
-                med, mad, sigma);
+    // ---- 4. 计算 scale = 10^(-location) 和 inliers (Tukey 权重 > 0) ----
+    double scale = std::pow(10.0, -location);
+    if (out_scale_factor) *out_scale_factor = scale;
 
-    // 清洗: 保留有效且未离群的星
+    // 收集 inliers (Tukey 权重 > 0)
     std::vector<StarMatch> cleaned;
-    cleaned.reserve(n_in);
-    int n_outlier = 0;
-    int n_invalid = 0;
-    for (int i = 0; i < n_in; ++i) {
-        if (!valid[i]) {
-            n_invalid++;
-            continue;
+    cleaned.reserve(mag_consistent_idx.size());
+    std::vector<double> r_inliers;
+    r_inliers.reserve(mag_consistent_idx.size());
+    double cS = (S > 0.0) ? (_TUKEY_C * S) : 1.0;
+    int n_irls_outlier = 0;
+    for (size_t k = 0; k < r_consistent.size(); ++k) {
+        double r = r_consistent[k];
+        double u = (S > 0.0) ? (r - location) / cS : 0.0;
+        if (S <= 0.0 || std::fabs(u) < 1.0) {
+            cleaned.push_back(matches[mag_consistent_idx[k]]);
+            r_inliers.push_back(r);
+        } else {
+            n_irls_outlier++;
         }
-        double r = std::log10(matches[i].f_instr / matches[i].f_syn);
-        if (sigma > 0.0 && std::fabs(r - med) > outlier_sigma * sigma) {
-            n_outlier++;
-            continue;
-        }
-        cleaned.push_back(matches[i]);
     }
 
-    std::fprintf(stderr, "[star_matcher] 清洗完成: 保留 %d, 排除 %d (无效 %d, 离群 %d)\n",
-                (int)cleaned.size(), n_in - (int)cleaned.size(), n_invalid, n_outlier);
-    // 暴露 sigma_residual 供 SNR 模块 §14 使用 (向后兼容: nullptr 时跳过)
-    if (out_sigma_residual) *out_sigma_residual = sigma;
+    // sigma_residual = MAD(r_inliers)/0.6745 (供 SNR 模块使用)
+    double sigma_residual = 0.0;
+    if (!r_inliers.empty()) {
+        std::vector<double> dev;
+        dev.reserve(r_inliers.size());
+        for (double r : r_inliers) dev.push_back(std::fabs(r - location));
+        double mad_in = medianOf(dev);
+        sigma_residual = (mad_in > 0.0) ? (mad_in / _MAD_SCALE) : 0.0;
+    }
+    if (out_sigma_residual) *out_sigma_residual = sigma_residual;
+
+    // ---- 5. 亮度比例一致性日志 ----
+    LOG_INFO("[star_matcher] 亮度比例一致性:");
+    LOG_INFO("  - 输入匹配: %d", n_in);
+    LOG_INFO("  - 星等一致性通过: %d (拒绝 %d)", (int)mag_consistent_idx.size(), n_mag_rejected);
+    LOG_INFO("  - IRLS inliers: %d (outliers: %d)", (int)cleaned.size(), n_irls_outlier);
+    LOG_INFO("  - location(r) = %.6f (dex), scale = 10^(-location) = %.6e", location, scale);
+    LOG_INFO("  - MAD(r) = %.6f, S = %.6f, sigma_residual = %.6f", mad, S, sigma_residual);
+    if (!r_inliers.empty()) {
+        double r_min = *std::min_element(r_inliers.begin(), r_inliers.end());
+        double r_max = *std::max_element(r_inliers.begin(), r_inliers.end());
+        LOG_INFO("  - r_inliers 范围: [%.6f, %.6f] (spread %.6f dex = %.3f mag)",
+                 r_min, r_max, r_max - r_min, 2.5 * (r_max - r_min));
+    }
+    LOG_INFO("[star_matcher] 清洗完成: 保留 %d, 排除 %d (无效/星等不一致/IRLS离群)",
+             (int)cleaned.size(), n_in - (int)cleaned.size());
+
     return cleaned;
 }
 
 // ============================================================================
-// 一站式: 匹配 + 清洗
+// 一站式: KD-tree 匹配 + IRLS/Tukey 清洗
 // ============================================================================
 std::vector<StarMatch> StarMatcher::matchAndClean(
     const WcsTransform& wcs,
@@ -187,14 +390,14 @@ std::vector<StarMatch> StarMatcher::matchAndClean(
     const double* gaia_mag, const double* gaia_fsyn, int n_gaia,
     const double* psf_cx, const double* psf_cy,
     const double* psf_flux, const int* psf_status, int n_psf,
-    double match_radius_px, double outlier_sigma,
-    double* out_sigma_residual) {
+    double match_radius_px, double mag_tolerance,
+    double* out_scale_factor, double* out_sigma_residual) {
 
-    std::vector<StarMatch> matches = matchBruteForce(
+    std::vector<StarMatch> matches = matchWithKdTree(
         wcs, gaia_ra, gaia_dec, gaia_mag, gaia_fsyn, n_gaia,
         psf_cx, psf_cy, psf_flux, psf_status, n_psf, match_radius_px);
 
-    return cleanOutliers(matches, outlier_sigma, out_sigma_residual);
+    return cleanAndScale(matches, mag_tolerance, out_scale_factor, out_sigma_residual);
 }
 
 } // namespace pc

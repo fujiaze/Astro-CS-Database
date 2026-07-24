@@ -38,6 +38,7 @@ int pc_calibrate_simple(
     const double* gaia_mag, const double* gaia_fsyn, int n_gaia,
     const double* psf_cx, const double* psf_cy,
     const double* psf_flux, const int* psf_status, int n_psf,
+    const double* qe_wl, const double* qe_trans, int qe_count,
     double crval1, double crval2, double crpix1, double crpix2,
     double cd11, double cd12, double cd21, double cd22,
     int sip_order,
@@ -89,6 +90,11 @@ int pc_calibrate_simple(
         return 0;
     }
 
+    // 注: pc_calibrate_simple 不在 DLL 内部计算 F_syn (gaia_fsyn 由调用方外部传入)
+    //     QE 参数仅为 API 一致性保留, 此处不做处理. 若需用 QE 计算 F_syn, 请使用
+    //     pc_calibrate_simple_with_gaia 接口.
+    (void)qe_wl; (void)qe_trans; (void)qe_count;
+
     std::fprintf(stderr, "[pc_api] 图像: %dx%d, Gaia星: %d, PSF星: %d, SIP阶数: %d\n",
                 width, height, n_gaia, n_psf, sip_order);
 
@@ -97,24 +103,23 @@ int pc_calibrate_simple(
                          cd11, cd12, cd21, cd22,
                          sip_order, sip_a, sip_b, sip_ap, sip_bp);
 
-    // ---- 2. 星-图匹配 + MAD清洗 (透传 out_sigma_residual) ----
+    // ---- 2. 星-图匹配 + IRLS/Tukey 清洗 (GAP-013: 输出 scale + sigma_residual) ----
     pc::StarMatcher matcher;
+    double scale = 1.0;
     double sigma_residual = 0.0;
     std::vector<pc::StarMatch> matches = matcher.matchAndClean(
         wcs, gaia_ra, gaia_dec, gaia_mag, gaia_fsyn, n_gaia,
         psf_cx, psf_cy, psf_flux, psf_status, n_psf,
-        3.0,  // match_radius_px
-        3.0,  // outlier_sigma
+        2.0,  // match_radius_px (GAP-013: 收紧 3.0 -> 2.0)
+        3.0,  // mag_tolerance (GAP-013: 星等一致性容忍度, mag)
+        &scale,
         &sigma_residual);
 
     int n_matched = (int)matches.size();
-    std::fprintf(stderr, "[pc_api] 匹配+清洗完成: %d 颗, sigma_residual=%.6f\n",
-                n_matched, sigma_residual);
+    std::fprintf(stderr, "[pc_api] 匹配+清洗完成: %d 颗, scale=%.6e, sigma_residual=%.6f\n",
+                n_matched, scale, sigma_residual);
 
-    // ---- 3. 计算scale因子 ----
-    double scale = pc::ImageCorrector::computeScale(matches);
-
-    // ---- 4. 图像校正: I_cal = I * scale ----
+    // ---- 3. 图像校正: I_cal = I * scale ----
     pc::ImageCorrector::correctImage(pixels, width, height, scale, out_pixels);
 
     // ---- 输出 ----
@@ -142,6 +147,7 @@ int pc_calibrate_simple_with_gaia(
     double ra_center, double dec_center, double radius_deg,
     double mag_min, double mag_max,
     const double* filter_wl, const double* filter_trans, int filter_count,
+    const double* qe_wl, const double* qe_trans, int qe_count,
     const double* spectrum_wl, int spectrum_count,
     const float* pixels, int width, int height,
     const double* psf_cx, const double* psf_cy,
@@ -267,13 +273,15 @@ int pc_calibrate_simple_with_gaia(
     std::fprintf(stderr, "[pc_api] 搜索到 %d 颗光谱星, 光谱点数=%d (wl_start=%d, wl_step=%d)\n",
                 n_gaia, spec_stride, wl_start, wl_step);
 
-    // ---- 2. 预处理滤光片曲线 (Task 11: 循环前只做一次) ----
-    // 排序 + Akima 插值到光谱网格, 缓存 weighted_wl = λ × T(λ)
+    // ---- 2. 预处理滤光片曲线 + QE 曲线 (GAP-012: F_syn = ∫ S(λ)·T(λ)·Q(λ)·λ dλ) ----
+    // 排序 + Akima 插值到光谱网格, 缓存 weighted_wl = λ × T(λ) × Q(λ)
+    // qe_wl 可为 nullptr (向后兼容, 此时 Q(λ)=1.0)
     photo_calib::SpectrumIntegratorCache filter_cache = photo_calib::prepare_filter_cache(
         filter_wl, filter_trans, filter_count,
+        qe_wl, qe_trans, qe_count,
         spectrum_wl, spectrum_count);
     if (filter_cache.spectrum_wl.empty()) {
-        LOG_ERROR("滤光片预处理失败, 退化: scale=1.0");
+        LOG_ERROR("滤光片/QE 预处理失败, 退化: scale=1.0");
         *out_scale_factor = 1.0;
         *out_n_matched = 0;
         if (out_sigma_residual) *out_sigma_residual = 0.0;
@@ -285,7 +293,8 @@ int pc_calibrate_simple_with_gaia(
         free(spectra_buf);
         return 0;
     }
-    LOG_INFO("滤光片预处理完成: %d 点重采样到 %d 点", filter_count, spectrum_count);
+    LOG_INFO("滤光片/QE 预处理完成: filter=%d 点, qe=%d 点 -> 光谱 %d 点",
+             filter_count, qe_count, spectrum_count);
 
     // ---- 3. OpenMP 16 线程并行计算 F_syn (复用缓存) ----
     std::vector<double> f_syn_values(n_gaia, 0.0);
@@ -316,23 +325,24 @@ int pc_calibrate_simple_with_gaia(
                          cd11, cd12, cd21, cd22,
                          sip_order, sip_a, sip_b, sip_ap, sip_bp);
 
-    // ---- 6. 星-图匹配 + MAD 清洗 (透传 out_sigma_residual) ----
+    // ---- 6. 星-图匹配 + IRLS/Tukey 清洗 (GAP-013: 输出 scale + sigma_residual) ----
     pc::StarMatcher matcher;
+    double scale = 1.0;
     double sigma_residual = 0.0;
     std::vector<pc::StarMatch> matches = matcher.matchAndClean(
         wcs,
         gaia_ra.data(), gaia_dec.data(), gaia_mag.data(), gaia_fsyn.data(), n_gaia,
         psf_cx, psf_cy, psf_flux, psf_status, n_psf,
-        3.0,   // match_radius_px
-        3.0,   // outlier_sigma
+        2.0,   // match_radius_px (GAP-013: 收紧 3.0 -> 2.0)
+        3.0,   // mag_tolerance (GAP-013: 星等一致性容忍度, mag)
+        &scale,
         &sigma_residual);
 
     int n_matched = (int)matches.size();
-    std::fprintf(stderr, "[pc_api] 匹配+清洗完成: %d 颗, sigma_residual=%.6f\n",
-                n_matched, sigma_residual);
+    std::fprintf(stderr, "[pc_api] 匹配+清洗完成: %d 颗, scale=%.6e, sigma_residual=%.6f\n",
+                n_matched, scale, sigma_residual);
 
-    // ---- 7. 计算 scale + 图像校正 ----
-    double scale = pc::ImageCorrector::computeScale(matches);
+    // ---- 7. 图像校正: I_cal = I * scale (scale 来自 IRLS 稳健估计) ----
     pc::ImageCorrector::correctImage(pixels, width, height, scale, out_pixels);
 
     *out_n_matched = n_matched;

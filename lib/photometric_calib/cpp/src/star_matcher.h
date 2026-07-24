@@ -12,40 +12,49 @@ struct StarMatch {
     double y;         // 图像像素y (PSF质心)
     double f_instr;   // 仪器流量 (PSF flux)
     double f_syn;     // 合成流量 (Gaia)
+    double gaia_mag;  // Gaia G 星等 (GAP-013: 用于星等一致性检查与日志)
 };
 
 // 星-图匹配器: Gaia星 <-> PSF拟合星
-// 暴力最近邻搜索 + MAD离群清洗
+// GAP-013 改进:
+//   - KD-tree 最近邻匹配 (替代暴力搜索, 在 Gaia 星像素坐标上建树)
+//   - 距离阈值收紧到 2px (默认)
+//   - 星等一致性检查 (>3 mag 拒绝)
+//   - IRLS + Tukey biweight 稳健清洗 (替代 MAD, c=4.685, 50 次迭代)
+//   - 亮度比例一致性日志
 class StarMatcher {
 public:
     StarMatcher();
 
-    // 匹配 + MAD清洗
+    // 匹配 + IRLS/Tukey 清洗 (GAP-013 新版)
     // 参数:
     //   wcs: WCS转换器
     //   gaia_ra/dec/mag/fsyn: Gaia星数组 [n_gaia]
     //   n_gaia: Gaia星数量
     //   psf_cx/cy/flux/status: PSF星数组 [n_psf]
     //   n_psf: PSF星数量
-    //   match_radius_px: 匹配半径(像素), 最近邻距离须小于该值
-    //   outlier_sigma: 离群阈值(倍sigma)
-    //   out_sigma_residual: 输出 sigma_residual = MAD/0.6745 (可为nullptr, 向后兼容)
-    //                      供 SNR 模块 §14 计算 SNR_phot = 1/(ln10×sigma_residual)
-    // 返回: 清洗后的匹配列表
+    //   match_radius_px: 匹配半径(像素), 最近邻距离须小于该值 (默认 2.0, GAP-013 收紧)
+    //   mag_tolerance: 星等一致性容忍度 (mag, 默认 3.0; |delta - median_delta| > tol 拒绝)
+    //   out_scale_factor: 输出 IRLS 稳健 scale = 10^(-location(r)) (可为 nullptr)
+    //                     其中 r = log10(F_instr/F_syn); scale 用于 I_cal = I * scale
+    //   out_sigma_residual: 输出 sigma_residual = MAD(r_inliers)/0.6745 (可为 nullptr, 向后兼容)
+    //                       供 SNR 模块 §14 计算 SNR_phot = 1/(ln10×sigma_residual)
+    // 返回: 清洗后的匹配列表 (仅 IRLS inliers, Tukey 权重 > 0)
     std::vector<StarMatch> matchAndClean(
         const WcsTransform& wcs,
         const double* gaia_ra, const double* gaia_dec,
         const double* gaia_mag, const double* gaia_fsyn, int n_gaia,
         const double* psf_cx, const double* psf_cy,
         const double* psf_flux, const int* psf_status, int n_psf,
-        double match_radius_px = 3.0,
-        double outlier_sigma = 3.0,
+        double match_radius_px = 2.0,
+        double mag_tolerance = 3.0,
+        double* out_scale_factor = nullptr,
         double* out_sigma_residual = nullptr);
 
 private:
-    // 暴力最近邻: 对每颗Gaia星找最近的PSF有效星
+    // KD-tree 最近邻匹配: 对 Gaia 星像素坐标建 KD-tree, 对每颗 PSF 有效星找最近邻 Gaia 星
     // 返回匹配列表(未清洗)
-    std::vector<StarMatch> matchBruteForce(
+    std::vector<StarMatch> matchWithKdTree(
         const WcsTransform& wcs,
         const double* gaia_ra, const double* gaia_dec,
         const double* gaia_mag, const double* gaia_fsyn, int n_gaia,
@@ -53,11 +62,15 @@ private:
         const double* psf_flux, const int* psf_status, int n_psf,
         double match_radius_px);
 
-    // MAD离群清洗: r=log10(F_instr/F_syn), 剔除|r-median|>sigma*MAD/0.6745
-    // out_sigma_residual: 输出 sigma = MAD/0.6745 (可为nullptr, 向后兼容)
-    // 返回清洗后的匹配列表
-    std::vector<StarMatch> cleanOutliers(
-        const std::vector<StarMatch>& matches, double outlier_sigma,
+    // 星等一致性预过滤 + IRLS+Tukey 稳健清洗
+    //   1) 计算每对匹配的 delta = -2.5*log10(F_instr) - gaia_mag (粗略零点差)
+    //   2) 用 median(delta) 作为粗略零点, 拒绝 |delta - median_delta| > mag_tolerance 的匹配
+    //   3) 对剩余匹配的 r = log10(F_instr/F_syn) 做 IRLS + Tukey biweight 稳健位置估计
+    //   4) 输出 scale = 10^(-location), sigma_residual = MAD(r_inliers)/0.6745
+    //   返回 IRLS inliers (Tukey 权重 > 0)
+    std::vector<StarMatch> cleanAndScale(
+        const std::vector<StarMatch>& matches, double mag_tolerance,
+        double* out_scale_factor = nullptr,
         double* out_sigma_residual = nullptr);
 };
 

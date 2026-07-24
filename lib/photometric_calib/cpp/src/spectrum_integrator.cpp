@@ -159,12 +159,13 @@ double simpson_integrate(const std::vector<double>& x, const std::vector<double>
 }
 
 // ----------------------------------------------------------------------------
-// compute_f_syn: 单星合成流量
+// compute_f_syn: 单星合成流量 (GAP-012: 加入 CCD QE 曲线 Q(λ))
 // ----------------------------------------------------------------------------
 double compute_f_syn(
     const uint8_t* spectrum_uint8, int spectrum_count,
     const double* spectrum_wl, int wl_count,
     const double* filter_wl, const double* filter_trans, int filter_count,
+    const double* qe_wl, const double* qe_trans, int qe_count,
     double mag_g) {
 
     if (spectrum_uint8 == nullptr || spectrum_wl == nullptr ||
@@ -180,6 +181,11 @@ double compute_f_syn(
     if (spectrum_count != wl_count) {
         std::fprintf(stderr, "[spec_int] compute_f_syn: spectrum_count(%d) != wl_count(%d)\n",
                     spectrum_count, wl_count);
+        return 0.0;
+    }
+    // QE 可为 nullptr (向后兼容, Q(λ)=1.0); 若提供则 qe_trans 不可为空且 qe_count>0
+    if (qe_wl != nullptr && (qe_trans == nullptr || qe_count <= 0)) {
+        std::fprintf(stderr, "[spec_int] compute_f_syn: QE 参数不一致 (qe_wl 非空但 qe_trans/qe_count 无效)\n");
         return 0.0;
     }
 
@@ -205,9 +211,26 @@ double compute_f_syn(
         return 0.0;
     }
 
-    // 积分范围: SED 与滤光片波长交集
+    // QE 排序去重 (若有)
+    std::vector<double> qw, qv;
+    bool has_qe = false;
+    if (qe_wl != nullptr && qe_count > 0) {
+        prepare_curve(std::vector<double>(qe_wl, qe_wl + qe_count),
+                      std::vector<double>(qe_trans, qe_trans + qe_count),
+                      qw, qv);
+        if (qw.size() >= 2) has_qe = true;
+    }
+    if (!has_qe) {
+        LOG_INFO("[spec_int] compute_f_syn: QE curve not provided, F_syn without Q(λ)");
+    }
+
+    // 积分范围: SED 与滤光片波长交集 (QE 范围也参与, 若提供)
     double wl_min = std::max(sw.front(), fw.front());
     double wl_max = std::min(sw.back(), fw.back());
+    if (has_qe) {
+        wl_min = std::max(wl_min, qw.front());
+        wl_max = std::min(wl_max, qw.back());
+    }
     if (wl_min >= wl_max) {
         std::fprintf(stderr, "[spec_int] compute_f_syn: 波长重叠区间为空 [%.2f, %.2f]\n",
                     wl_min, wl_max);
@@ -229,27 +252,33 @@ double compute_f_syn(
     // Akima 插值到网格 (范围外钳位为 0)
     std::vector<double> s_grid = akima_interpolate(sw, sf, grid, 0.0);
     std::vector<double> t_grid = akima_interpolate(fw, fv, grid, 0.0);
+    std::vector<double> q_grid;
+    if (has_qe) {
+        q_grid = akima_interpolate(qw, qv, grid, 0.0);
+    }
 
-    // 被积函数: S(λ)·T(λ)·λ
+    // 被积函数: S(λ)·T(λ)·Q(λ)·λ  (无 QE 时 Q=1.0)
     std::vector<double> integrand(n_points, 0.0);
     for (int i = 0; i < n_points; ++i) {
-        integrand[i] = s_grid[i] * t_grid[i] * grid[i];
+        double q = has_qe ? q_grid[i] : 1.0;
+        integrand[i] = s_grid[i] * t_grid[i] * q * grid[i];
     }
 
     // Simpson 积分
     double f_syn = simpson_integrate(grid, integrand);
 
     // 循环内高频日志 (被 pc_api.cpp OpenMP 并行循环调用), 用 LOG_DEBUG 编译时禁用
-    LOG_DEBUG("[spec_int] compute_f_syn: mag_g=%.3f, 范围=[%.1f,%.1f]nm, %d点, F_syn=%.6e",
-              mag_g, wl_min, wl_max, n_points, f_syn);
+    LOG_DEBUG("[spec_int] compute_f_syn: mag_g=%.3f, 范围=[%.1f,%.1f]nm, %d点, QE=%s, F_syn=%.6e",
+              mag_g, wl_min, wl_max, n_points, has_qe ? "on" : "off", f_syn);
     return f_syn;
 }
 
 // ----------------------------------------------------------------------------
-// prepare_filter_cache: 预处理滤光片曲线, 缓存重采样结果 (Task 11)
+// prepare_filter_cache: 预处理滤光片+QE 曲线, 缓存重采样结果 (Task 11 + GAP-012)
 // ----------------------------------------------------------------------------
 SpectrumIntegratorCache prepare_filter_cache(
     const double* filter_wl, const double* filter_trans, int filter_count,
+    const double* qe_wl, const double* qe_trans, int qe_count,
     const double* spectrum_wl, int spectrum_count) {
 
     SpectrumIntegratorCache cache;
@@ -261,6 +290,11 @@ SpectrumIntegratorCache prepare_filter_cache(
     if (filter_count <= 0 || spectrum_count <= 0) {
         std::fprintf(stderr, "[spec_int] prepare_filter_cache: 尺寸无效 filt=%d spec=%d\n",
                     filter_count, spectrum_count);
+        return cache;
+    }
+    // QE 可为 nullptr (向后兼容, Q(λ)=1.0); 若提供则 qe_trans 不可为空且 qe_count>0
+    if (qe_wl != nullptr && (qe_trans == nullptr || qe_count <= 0)) {
+        std::fprintf(stderr, "[spec_int] prepare_filter_cache: QE 参数不一致\n");
         return cache;
     }
 
@@ -276,20 +310,47 @@ SpectrumIntegratorCache prepare_filter_cache(
         return cache;
     }
 
-    // 2. 复制光谱波长网格作为积分网格
-    cache.spectrum_wl.assign(spectrum_wl, spectrum_wl + spectrum_count);
-
-    // 3. Akima 插值: 滤光片透过率重采样到光谱波长网格 (范围外 = 0)
-    cache.filter_trans = akima_interpolate(fw, fv, cache.spectrum_wl, 0.0);
-
-    // 4. 预计算 weighted_wl[i] = λ_i × T(λ_i)
-    cache.weighted_wl.resize(spectrum_count, 0.0);
-    for (int i = 0; i < spectrum_count; ++i) {
-        cache.weighted_wl[i] = cache.spectrum_wl[i] * cache.filter_trans[i];
+    // 2. QE 曲线排序去重 (若有)
+    std::vector<double> qw, qv;
+    bool has_qe = false;
+    if (qe_wl != nullptr && qe_count > 0) {
+        prepare_curve(std::vector<double>(qe_wl, qe_wl + qe_count),
+                      std::vector<double>(qe_trans, qe_trans + qe_count),
+                      qw, qv);
+        if (qw.size() >= 2) has_qe = true;
+    }
+    if (!has_qe) {
+        LOG_INFO("[spec_int] prepare_filter_cache: QE curve not provided, F_syn without Q(λ)");
     }
 
-    LOG_INFO("[spec_int] prepare_filter_cache: 滤光片 %zu 点 -> 光谱 %d 点, 范围 [%.1f, %.1f] nm",
-             fw.size(), spectrum_count, fw.front(), fw.back());
+    // 3. 复制光谱波长网格作为积分网格
+    cache.spectrum_wl.assign(spectrum_wl, spectrum_wl + spectrum_count);
+
+    // 4. Akima 插值: 滤光片透过率重采样到光谱波长网格 (范围外 = 0)
+    cache.filter_trans = akima_interpolate(fw, fv, cache.spectrum_wl, 0.0);
+
+    // 5. Akima 插值: QE 透过率重采样到光谱波长网格 (范围外 = 0)
+    if (has_qe) {
+        cache.qe_trans = akima_interpolate(qw, qv, cache.spectrum_wl, 0.0);
+    }
+
+    // 6. 预计算 weighted_wl[i] = λ_i × T(λ_i) × Q(λ_i)  (无 QE 时 Q=1.0)
+    cache.weighted_wl.resize(spectrum_count, 0.0);
+    for (int i = 0; i < spectrum_count; ++i) {
+        double q = has_qe ? cache.qe_trans[i] : 1.0;
+        cache.weighted_wl[i] = cache.spectrum_wl[i] * cache.filter_trans[i] * q;
+    }
+
+    if (has_qe) {
+        LOG_INFO("[spec_int] prepare_filter_cache: 滤光片 %zu 点 + QE %zu 点 -> 光谱 %d 点, "
+                 "范围 F[%.1f,%.1f] Q[%.1f,%.1f] nm",
+                 fw.size(), qw.size(), spectrum_count,
+                 fw.front(), fw.back(), qw.front(), qw.back());
+    } else {
+        LOG_INFO("[spec_int] prepare_filter_cache: 滤光片 %zu 点 -> 光谱 %d 点, "
+                 "范围 [%.1f, %.1f] nm (无 QE)",
+                 fw.size(), spectrum_count, fw.front(), fw.back());
+    }
     return cache;
 }
 
