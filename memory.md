@@ -4,6 +4,22 @@
 天文CCD图像校准与标准化数据库系统。使用C++开发核心算法模块（编译为DLL），Python脚本调用。
 开发环境：16线程CPU + 64GB内存，多线程任务使用16线程。
 
+## 仓库整合记录
+
+### 2026-07-24 11 个子仓库合并到主仓库 Astro-CS-Database ★工程整合★
+- **主仓库**：https://github.com/fujiaze/Astro-CS-Database (public, 1.87 MB, 112 commits)
+- **整合方式**：`git filter-repo --to-subdirectory-filter lib/<module>` 将 11 个子仓库历史重写到 `lib/<module>/` 路径下，合并到一个主仓库。原 11 个子仓库未受影响（仅被 clone 读取）。
+- **主仓库本地工作区**：`f:\Astro dev\AstroCsNormalizationMain`（含 lib/ 11 模块 + docs/ + memory.md + .gitignore，纯代码+文档 1.87 MB）
+- **排除内容**：siril-1.4.3/、GaiaDR3/、GaiaDR3SP/、.trae/、logs/、output/、build/、archive/、testdata/、*.xpsd、*.hiss、*.hcsd、编译产物、图像（已用 filter-repo 从历史清理，原 70MB→1.87MB）
+- **合并的 11 个子仓库**（commits 数）：
+  - astro_image_io(15) / calibration(7) / data_pipeline(3) / dynamic_psf(7) / gaia_xpsd_client(10)
+  - healpix_db(11) / orchestrator(14) / photometric_calib(14) / plate_solve(1) / snr_estimator(2) / star_detector(12)
+- **导出包**：`f:\Astro dev\Astro CS Normalization Database\AstroCS_Database_Context.zip` (1.93 MB)
+  - 含 `repo.bundle`（git bundle，可 `git clone repo.bundle` 恢复）+ `PROJECT_CONTEXT.md`（项目脉络导航）+ `docs/`（架构文档原文）
+  - 用途：给 ChatGPT 在 Linux 沙箱解包分析项目脉络，输出下一阶段工程文档
+- **整合脚本**：`.trae/specs/2026-07-24-repo-consolidation/`（spec.md + checklist.md + step1~6 脚本）
+- **后续**：主仓库作为统一开发入口，原 11 个子仓库可继续独立维护或归档
+
 ## 目录结构
 - `lib/` - 通用库（文件IO、Gaia数据库客户端等）
 - `lib/astro_image_io/` - 统一天文图像 I/O 层 + Pipeline 管线引擎（FITS/XISF 读写 + .ahpx 单帧格式 + zstd/lz4 压缩 + PipelineFrame + 管线编排引擎）
