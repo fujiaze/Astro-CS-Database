@@ -21,6 +21,8 @@
 - **行尾符规范化**：`.gitattributes` 强制全仓库 LF（`* text=auto eol=lf`），二进制文件标记 binary 不转换；解决主仓库迁移后 252 个文件因 CRLF/LF 差异产生的假阳性 modified 状态
 - **已封存子仓库**（保留为历史快照，README 注明依赖指向主仓库 Astro-CS-Database，不再独立开发）：
   - PlateSolve-IPV-Cpp：https://github.com/fujiaze/PlateSolve-IPV-Cpp（commit 74e98cc，README 已更新）
+  - Gaia-DR3-DR3SP-Client-C：https://github.com/fujiaze/Gaia-DR3-DR3SP-Client-C（commit 94afbf7，README 已更新）
+  - Dynamic-PSF-Cpp：https://github.com/fujiaze/Dynamic-PSF-Cpp（commit 7db81f8，README 已更新，修正仓库名不一致 Dynamic-PSF → Dynamic-PSF-Cpp）
 - **后续**：主仓库作为统一开发入口，原 11 个子仓库可继续独立维护或归档
 
 ## 目录结构
