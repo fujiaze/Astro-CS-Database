@@ -1,0 +1,11 @@
+{
+  "_comment": "aio 管线专用编译配置 - FITS + HEALPix + 压缩 + 管线 (无 XISF/ahpx)",
+  "enable_fits": true,
+  "enable_xisf": false,
+  "enable_ahpx": false,
+  "enable_healpix": true,
+  "enable_compressor": true,
+  "enable_pipeline": true,
+  "enable_zstd": true,
+  "enable_lz4": true
+}
