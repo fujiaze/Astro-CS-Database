@@ -6,7 +6,7 @@
 | ADR-001 | PENDING | - | Drizzle/Stack 源码纳管 | monorepo 导入或 Git submodule |
 | ADR-002 | PENDING | - | PipelineFrame 唯一所有者 | astro_image_io 或 data_pipeline |
 | ADR-003 | PENDING | - | Stage 2 节点模型 | 单节点、双节点或内部子阶段 |
-| ADR-004 | PENDING | - | 根级构建系统 | 根 CMake 或 bootstrap 统一现有构建 |
+| ADR-004 | ACCEPTED | 2026-07-24 | 根级构建系统 | 根级 PowerShell 编排器 + 各模块保留现有 build.ps1/Makefile（方案 B）|
 | ADR-005 | PENDING | - | HCSD 质量通道 | 是否保存 coverage/weight/variance |
 | ADR-006 | PENDING | - | float32 星检测接口 | 扩展 star_detector 或受控归一化适配 |
 
