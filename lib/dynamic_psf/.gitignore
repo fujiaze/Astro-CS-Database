@@ -1,0 +1,6 @@
+*.dll
+*.o
+logs/
+output/
+__pycache__/
+*.pyc
