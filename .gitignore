@@ -73,3 +73,7 @@ repo.bundle
 compile_out.txt
 compile_out*.txt
 link_err.txt
+
+# 自治 Agent 临时解压目录与压缩包
+.astrocs_agent_bootstrap/
+AstroCS_Autonomous_Agent_Pack*.zip

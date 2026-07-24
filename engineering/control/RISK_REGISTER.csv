@@ -1,0 +1,11 @@
+﻿risk_id,description,impact,likelihood,mitigation_task,status
+R-001,核心 Drizzle/Stack 源码未纳入导出基线,Critical,High,P00-002;P00-003,OPEN
+R-002,Stage 2 空成功节点导致伪完成,Critical,High,P06-001,OPEN
+R-003,HISS/HCSD 格式漂移和兼容性不足,High,High,P02-003;P02-004,OPEN
+R-004,跨 DLL 内存所有权不清,High,Medium,P03-002,OPEN
+R-005,配置字段静默不生效,High,High,P03-005,OPEN
+R-006,真实测试数据无版本与校验和,High,High,P02-006,OPEN
+R-007,PipelineFrame 双实现漂移,High,Medium,P02-001,OPEN
+R-008,float32 到 uint16 截断影响检测和 PSF,High,High,P05-004,OPEN
+R-009,旧审计结论未按当前源码复核,Medium,High,P00-006,OPEN
+R-010,无 CI/统一构建导致本机可用但不可复现,High,High,P01-007;P04-005,OPEN

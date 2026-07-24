@@ -1,0 +1,12 @@
+﻿interface_id,type,name,owner,consumers,status,task_id,notes
+IF-AIO-PIPELINE,C ABI,PipelineFrame/blocks,astro_image_io,all stages,UNFROZEN,P02-001,duplicate with data_pipeline
+IF-AIO-HISS,file/C ABI,.hiss read/write,astro_image_io,drizzle/stack/browser,UNFROZEN,P02-003,snr_format 0/1
+IF-AIO-HCSD,file/C ABI,.hcsd read/write/leaf,astro_image_io,stack/browser,UNFROZEN,P02-004,quality channels undecided
+IF-CAL,C ABI,astro_calibration.dll,calibration,orchestrator,UNVERIFIED,P03-001,cal_stats at orchestrator layer
+IF-IPV,C ABI,ipv_solver.dll,plate_solve,orchestrator,UNVERIFIED,P03-001,success=1 differs from other modules
+IF-DPSF,C ABI,dynamic_psf.dll,dynamic_psf,orchestrator,UNVERIFIED,P03-001,uint16 input
+IF-PC,C ABI,photometric_calib.dll,photometric_calib,orchestrator,UNVERIFIED,P03-001,41 parameter call
+IF-SNR,C ABI,snr_estimator.dll,snr_estimator,orchestrator/drizzle,UNVERIFIED,P03-001,packed control point compatibility
+IF-DRIZZLE,C ABI,healpix_drizzle.dll,healpix_drizzle,orchestrator,MISSING_SOURCE,P00-002,not present in export
+IF-STACK,C ABI,healpix_stack.dll,healpix_stack,orchestrator,MISSING_SOURCE,P00-003,not present in export
+IF-ORC-CLI,CLI/JSON,orchestrator stage1/stage2,orchestrator,scripts/user,UNFROZEN,P03-006,exit codes and stdout schema
