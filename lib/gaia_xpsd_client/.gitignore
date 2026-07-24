@@ -1,0 +1,10 @@
+*.o
+*.obj
+*.dll
+*.so
+*.a
+*.lib
+*.exe
+*.out
+__pycache__/
+*.pyc
