@@ -1,0 +1,54 @@
+# 第三方源码与数据库（参考/适配用，不入仓库）
+siril-1.4.3/
+GaiaDR3/
+GaiaDR3SP/
+
+# IDE 配置
+.trae/
+.vscode/
+.idea/
+
+# 日志与编译产物
+logs/
+output/
+build/
+Release/
+Debug/
+*.o
+*.obj
+*.dll
+*.exe
+*.lib
+*.a
+*.so
+*.pdb
+*.ipdb
+*.iobj
+*.exp
+*.ilk
+
+# 归档目录
+archive/
+
+# 测试数据与图像
+testdata/
+test_data/
+test_output/
+*.png
+*.jpg
+*.jpeg
+*.bmp
+*.tif
+*.tiff
+*.fits
+*.fit
+*.xisx
+*.xpsd
+*.hiss
+*.hcsd
+
+# 临时文件
+*.tmp
+*.bak
+*.swp
+*~
