@@ -14,7 +14,7 @@ phase:
   name: 基线冻结与仓库完整性恢复
   gate: G0
   gate_status: NOT_PASSED
-current_task: P00-005
+current_task: P00-006
 allowed_parallel_read_only_tasks: 1
 allowed_parallel_code_change_tasks: 0
 project_status: ACTIVE_BASELINE_RECOVERY

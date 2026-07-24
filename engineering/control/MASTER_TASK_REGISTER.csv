@@ -3,8 +3,8 @@ P00-001,P00,冻结并复核主仓库基线,P0,,DONE,基线预检报告,报告可
 P00-002,P00,恢复并固定 healpix_drizzle 源码,P0,P00-001,DONE,受控源码与来源记录,主仓库可定位固定版本
 P00-003,P00,恢复并固定 healpix_stack 源码,P0,P00-001,DONE,受控源码与来源记录,主仓库可定位固定版本
 P00-004,P00,建立完整模块与依赖图,P0,P00-002;P00-003,DONE,dependency_graph.md/json,每个 DLL 与头文件依赖可追踪
-P00-005,P00,采集工具链与本机环境,P0,P00-001,IN_PROGRESS,environment baseline,版本、路径、许可证与哈希齐全
-P00-006,P00,复核旧审计 163 项当前状态,P0,P00-002;P00-003,BACKLOG,audit reconciliation,每项标记 OPEN/CLOSED/STALE/UNVERIFIED
+P00-005,P00,采集工具链与本机环境,P0,P00-001,DONE,environment baseline,版本、路径、许可证与哈希齐全
+P00-006,P00,复核旧审计 163 项当前状态,P0,P00-002;P00-003,IN_PROGRESS,audit reconciliation,每项标记 OPEN/CLOSED/STALE/UNVERIFIED
 P00-007,P00,建立文档冲突登记,P1,P00-001,BACKLOG,documentation conflict register,根仓库治理与阶段编号冲突清晰
 P00-008,P00,冻结 baseline tag,P0,P00-004;P00-005;P00-006,BACKLOG,baseline tag,G0 证据完整
 P01-001,P01,确定根级构建策略 ADR,P0,P00-008,BACKLOG,ADR-004,选择有证据
