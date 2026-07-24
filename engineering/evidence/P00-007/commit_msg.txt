@@ -1,0 +1,21 @@
+P00-007: 建立文档冲突登记
+
+扫描 docs/ + engineering/ + 根 memory.md + lib/*/memory.md, 识别同一主题的矛盾表述,
+建立文档冲突登记册, 为后续文档修正与 ADR 决策提供基线。
+
+交付物:
+- documentation_conflict_register.json: 机器可读登记册(10 项冲突, 8 个主题)
+- documentation_conflict_register.md: 人类可读报告
+- fix_json.py: JSON 未转义引号修复脚本
+- TASK/TEST/EVIDENCE_INDEX/REVIEW_REPORT: 任务闭环四件套
+
+冲突分布:
+- high(3): C-001 monorepo vs 多仓库 / C-002 Stage 编号(9/10/7/5 套并存) / C-003 SNR 块(snr vs snr_model)
+- medium(4): C-004 Stack 空骨架 / C-005 healpix_io 已归档仍被引用 / C-006 data_pipeline 归属 / C-007 GAP-011~017 状态不同步
+- low(3): C-008 integration_test 历史日志 / C-009 psf 块 [N,6] vs [N,9] / C-010 模块清单仓库列
+
+待 ADR 决策: C-004(ADR-003) / C-006(ADR-002) / C-002 部分(PipelineStage 枚举二选一)
+与 P00-006 协同: C-003/C-007 以旧审计复核结果为权威来源
+
+独立复核: PASS(JSON 可解析, 10 项全覆盖, 每项含来源行号与修正方向, 范围无越界)
+任务状态: P00-007 DONE, 推进到 P00-008(冻结 baseline tag, G0 gate)

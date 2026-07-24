@@ -5,8 +5,8 @@ P00-003,P00,恢复并固定 healpix_stack 源码,P0,P00-001,DONE,受控源码与
 P00-004,P00,建立完整模块与依赖图,P0,P00-002;P00-003,DONE,dependency_graph.md/json,每个 DLL 与头文件依赖可追踪
 P00-005,P00,采集工具链与本机环境,P0,P00-001,DONE,environment baseline,版本、路径、许可证与哈希齐全
 P00-006,P00,复核旧审计 163 项当前状态,P0,P00-002;P00-003,DONE,audit reconciliation,每项标记 OPEN/CLOSED/STALE/UNVERIFIED
-P00-007,P00,建立文档冲突登记,P1,P00-001,IN_PROGRESS,documentation conflict register,根仓库治理与阶段编号冲突清晰
-P00-008,P00,冻结 baseline tag,P0,P00-004;P00-005;P00-006,BACKLOG,baseline tag,G0 证据完整
+P00-007,P00,建立文档冲突登记,P1,P00-001,DONE,documentation conflict register,根仓库治理与阶段编号冲突清晰
+P00-008,P00,冻结 baseline tag,P0,P00-004;P00-005;P00-006;P00-007,IN_PROGRESS,baseline tag,G0 证据完整
 P01-001,P01,确定根级构建策略 ADR,P0,P00-008,BACKLOG,ADR-004,选择有证据
 P01-002,P01,建立依赖锁定清单,P0,P01-001,BACKLOG,dependencies.lock.json,全部依赖固定版本
 P01-003,P01,建立 bootstrap 脚本,P0,P01-002,BACKLOG,bootstrap.ps1,干净环境可安装/检查依赖
