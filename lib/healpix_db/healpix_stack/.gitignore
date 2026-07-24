@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+tests/__pycache__/
+
+# Build artifacts
+*.dll
+*.exe
+*.o
+*.obj
+*.lib
+*.exp
+*.pdb
+*.ilk
