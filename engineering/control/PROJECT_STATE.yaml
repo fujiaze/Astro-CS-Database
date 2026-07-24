@@ -13,11 +13,12 @@ phase:
   current: P00
   name: 基线冻结与仓库完整性恢复
   gate: G0
-  gate_status: NOT_PASSED
-current_task: P00-008
+  gate_status: PASSED
+  baseline_tag: astrocs-baseline-p00
+current_task: P01-001
 allowed_parallel_read_only_tasks: 1
 allowed_parallel_code_change_tasks: 0
-project_status: ACTIVE_BASELINE_FREEZE
+project_status: G0_PASSED_READY_FOR_P01
 bootstrap_mode: ZIP_AUTO_INSTALL_OR_RESUME
 last_updated: 2026-07-24
 rules:

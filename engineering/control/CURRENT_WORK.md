@@ -1,55 +1,57 @@
 # 当前唯一工作
 
-## Task ID
+## 上一阶段完成
 
-`P00-008` — 冻结 baseline tag (G0 gate)
+### P00 基线冻结与仓库完整性恢复 — G0 PASSED ✅
 
-## 目标
+P00 全阶段 8 个任务全部 DONE：
 
-汇总 P00-001 ~ P00-007 全部 G0 证据，核对 G0 Checklist，创建第一个 baseline tag 并冻结证据哈希。
+| Task | 标题 | 状态 |
+|---|---|---|
+| P00-001 | 冻结并复核主仓库基线 | DONE |
+| P00-002 | 恢复并固定 healpix_drizzle 源码 | DONE |
+| P00-003 | 恢复并固定 healpix_stack 源码 | DONE |
+| P00-004 | 建立完整模块与依赖图 | DONE |
+| P00-005 | 采集工具链与本机环境 | DONE |
+| P00-006 | 复核旧审计 163 项当前状态 | DONE |
+| P00-007 | 建立文档冲突登记 | DONE |
+| P00-008 | 冻结 baseline tag | DONE |
 
-## 入口条件
+**G0 Gate**: PASSED（5 PASS + 2 PASS_WITH_CAVEAT + 0 FAIL）
+**Baseline Tag**: `astrocs-baseline-p00`
+**证据**: `engineering/evidence/P00-008/baseline_manifest.json`（42 任务证据 + 10 控制文件，全部 SHA-256）
 
-- P00-001 DONE ✓（基线预检）
-- P00-002 DONE ✓（healpix_drizzle 源码纳管）
-- P00-003 DONE ✓（healpix_stack 源码纳管）
-- P00-004 DONE ✓（依赖图）
-- P00-005 DONE ✓（环境基线）
-- P00-006 DONE ✓（旧审计 163 项复核）
-- P00-007 DONE ✓（文档冲突登记 10 项）
+---
 
-## 允许修改
+## 下一阶段准备
 
-- `engineering/evidence/P00-008/**`
-- `engineering/control/**`
-- 创建 git tag（只读仓库历史，不改业务代码）
+### P01 可复现构建 — Gate G1
 
-## 禁止修改
+**目标**：新目录一条构建入口，统一产物和 smoke test。
+**Gate G1**：干净构建、产物 manifest、DLL 加载与基础测试。
 
-- `lib/**`、`docs/**`、构建脚本与算法配置
+P01 任务序列：
+- P01-001 确定根级构建策略 ADR（ADR-004）
+- P01-002 建立依赖锁定清单
+- P01-003 建立 bootstrap 脚本
+- P01-004 统一构建产物目录和 manifest
+- P01-005 逐模块 clean build
+- P01-006 根级 smoke test
+- P01-007 干净 clone 重建验证
 
-## 执行计划
+## 当前任务
 
-1. 汇总 G0 证据清单（P00-001 ~ P00-007 所有产物 SHA-256）
-2. 核对 G0 Checklist（7 项）
-3. 生成 G0 证据摘要报告（baseline_manifest.json/md）
-4. 创建 git tag `astrocs-baseline-p00`（annotated tag，附 G0 证据摘要）
-5. 冻结 tag SHA-256 与关键产物哈希
-6. 生成报告、复核、提交
+`P01-001` — 确定根级构建策略 ADR
 
-## G0 Checklist（来自 P00_BASELINE_AND_REPOSITORY_INTEGRITY.md）
+> ⚠ 尚未正式开始。P01-001 的入口条件是 P00-008 DONE（已满足）。
+> 由于 P01 涉及构建系统选型决策（ADR-004），属于"工程重构"类任务，
+> 需要走 iterative-discussion 流程与用户确认构建策略方向后再启动。
+> 在用户确认前，本会话暂停在此处，等待下一阶段指令。
 
-- [ ] 13 个实际运行模块/子模块源码均受控（P00-002/P00-003 确认）
-- [ ] 每个依赖固定版本（P00-004 依赖图 + P00-005 环境基线）
-- [ ] 当前工程可否构建有明确证据（P00-005 工具链 + P00-004 依赖图）
-- [ ] 旧审计已复核（P00-006：163 项标记完成）
-- [ ] 文档冲突已登记（P00-007：10 项登记完成）
-- [ ] 风险和阻塞清晰（RISK_REGISTER.csv）
-- [ ] baseline tag 与 SHA-256 完成（本任务产出）
+## G0 → G1 过渡说明
 
-## 完成标准
+G0 通过后的 PASS_WITH_CAVEAT 后续工作归属：
+- 检查项 2（依赖固定版本）→ P01-002 建立 dependencies.lock.json
+- 检查项 3（构建证据）→ P01-007 干净 clone 重建验证
 
-- G0 Checklist 7 项全部勾选或标注豁免理由
-- baseline_manifest.json 含 tag 名、tag commit SHA、关键证据文件 SHA-256
-- git tag `astrocs-baseline-p00` 已创建并推送
-- G0 gate_status 置为 PASSED
+G0 阶段识别的 10 项风险与 4 项 ADR 将在 P01-P06 阶段逐步处理。
