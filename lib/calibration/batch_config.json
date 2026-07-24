@@ -1,0 +1,28 @@
+{
+    "calibration_dir": "testdata/Galaxy_Center_T4 全链路测试数据/calibration files",
+    "lights_dirs": [
+        "testdata/Galaxy_Center_T4 全链路测试数据/lights/panel1",
+        "testdata/Galaxy_Center_T4 全链路测试数据/lights/panel2",
+        "testdata/Galaxy_Center_T4 全链路测试数据/lights/panel3"
+    ],
+    "output_dir": "testdata/Galaxy_Center_T4 全链路测试数据/output",
+    "master_bias": "masterBias_BIN-1_4500x3600.xisf",
+    "master_darks": {
+        "180": "masterDark_BIN-1_4500x3600_EXPOSURE-180.00s.xisf",
+        "300": "masterDark_BIN-1_4500x3600_EXPOSURE-300.00s.xisf",
+        "600": "masterDark_BIN-1_4500x3600_EXPOSURE-600.00s.xisf"
+    },
+    "master_flats": {
+        "Red": "masterFlat_BIN-1_4500x3600_FILTER-Red_mono.xisf",
+        "Green": "masterFlat_BIN-1_4500x3600_FILTER-Green_mono.xisf",
+        "Blue": "masterFlat_BIN-1_4500x3600_FILTER-Blue_mono.xisf",
+        "H-alpha": "masterFlat_BIN-1_4500x3600_FILTER-H-alpha_mono.xisf",
+        "Oiii": "masterFlat_BIN-1_4500x3600_FILTER-Oiii_mono.xisf"
+    },
+    "dark_optimization": false,
+    "hot_sigma": 5.0,
+    "cold_sigma": 5.0,
+    "method": "median",
+    "max_structure_size": 4,
+    "file_extensions": [".fts", ".fit", ".fits"]
+}
