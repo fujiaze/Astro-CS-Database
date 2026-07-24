@@ -1,0 +1,190 @@
+{
+  "project_root": "f:/Astro dev/Astro CS Normalization Database",
+  "gaia_data_dir": "GaiaDR3SP",
+  "calibration_dir": "testdata/Galaxy_Center_T4 全链路测试数据/calibration files",
+  "focal_length_mm": 200,
+  "pixel_size_um": 6.0,
+  "qe_name": "KAF-16200",
+  "mag_low": 0.0,
+  "mag_high": 18.0,
+  "match_radius_px": 3.0,
+  "outlier_sigma": 3.0,
+  "max_order": 5,
+  "output_root": "testdata/Galaxy_Center_T4 全链路测试数据/results",
+  "frames": [
+    {
+      "id": "panel1_Red",
+      "panel": "panel1",
+      "filter": "Red",
+      "filter_curve_name": "Baader R",
+      "light_path": "testdata/Galaxy_Center_T4 全链路测试数据/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts",
+      "ra0": 0,
+      "dec0": 0,
+      "narrowband": null
+    },
+    {
+      "id": "panel1_Green",
+      "panel": "panel1",
+      "filter": "Green",
+      "filter_curve_name": "Baader G",
+      "light_path": "testdata/Galaxy_Center_T4 全链路测试数据/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@063620-180S-Green.fts",
+      "ra0": 0,
+      "dec0": 0,
+      "narrowband": null
+    },
+    {
+      "id": "panel1_Blue",
+      "panel": "panel1",
+      "filter": "Blue",
+      "filter_curve_name": "Baader B",
+      "light_path": "testdata/Galaxy_Center_T4 全链路测试数据/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@055414-180S-Blue.fts",
+      "ra0": 0,
+      "dec0": 0,
+      "narrowband": null
+    },
+    {
+      "id": "panel1_H-alpha",
+      "panel": "panel1",
+      "filter": "H-alpha",
+      "filter_curve_name": null,
+      "light_path": "testdata/Galaxy_Center_T4 全链路测试数据/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@061318-300S-H-alpha.fts",
+      "ra0": 0,
+      "dec0": 0,
+      "narrowband": {
+        "center_nm": 656.3,
+        "bandwidth_nm": 7.0,
+        "transmittance": 1.0
+      }
+    },
+    {
+      "id": "panel1_Oiii",
+      "panel": "panel1",
+      "filter": "Oiii",
+      "filter_curve_name": null,
+      "light_path": "testdata/Galaxy_Center_T4 全链路测试数据/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@063631-600S-Oiii.fts",
+      "ra0": 0,
+      "dec0": 0,
+      "narrowband": {
+        "center_nm": 500.7,
+        "bandwidth_nm": 8.5,
+        "transmittance": 1.0
+      }
+    },
+    {
+      "id": "panel2_Red",
+      "panel": "panel2",
+      "filter": "Red",
+      "filter_curve_name": "Baader R",
+      "light_path": "testdata/Galaxy_Center_T4 全链路测试数据/lights/panel2/Galaxy_Center_mosaic2_T4_flying_dutchman-20250716@002647-180S-Red.fts",
+      "ra0": 0,
+      "dec0": 0,
+      "narrowband": null
+    },
+    {
+      "id": "panel2_Green",
+      "panel": "panel2",
+      "filter": "Green",
+      "filter_curve_name": "Baader G",
+      "light_path": "testdata/Galaxy_Center_T4 全链路测试数据/lights/panel2/Galaxy_Center_mosaic2_T4_flying_dutchman-20250716@004609-180S-Green.fts",
+      "ra0": 0,
+      "dec0": 0,
+      "narrowband": null
+    },
+    {
+      "id": "panel2_Blue",
+      "panel": "panel2",
+      "filter": "Blue",
+      "filter_curve_name": "Baader B",
+      "light_path": "testdata/Galaxy_Center_T4 全链路测试数据/lights/panel2/Galaxy_Center_mosaic2_T4_flying_dutchman-20250716@010515-180S-Blue.fts",
+      "ra0": 0,
+      "dec0": 0,
+      "narrowband": null
+    },
+    {
+      "id": "panel2_H-alpha",
+      "panel": "panel2",
+      "filter": "H-alpha",
+      "filter_curve_name": null,
+      "light_path": "testdata/Galaxy_Center_T4 全链路测试数据/lights/panel2/Galaxy_Center_mosaic2_T4_flying_dutchman-20250716@012420-300S-H-alpha.fts",
+      "ra0": 0,
+      "dec0": 0,
+      "narrowband": {
+        "center_nm": 656.3,
+        "bandwidth_nm": 7.0,
+        "transmittance": 1.0
+      }
+    },
+    {
+      "id": "panel2_Oiii",
+      "panel": "panel2",
+      "filter": "Oiii",
+      "filter_curve_name": null,
+      "light_path": "testdata/Galaxy_Center_T4 全链路测试数据/lights/panel2/Galaxy_Center_mosaic2_T4_flying_dutchman-20250716@014720-600S-Oiii.fts",
+      "ra0": 0,
+      "dec0": 0,
+      "narrowband": {
+        "center_nm": 500.7,
+        "bandwidth_nm": 8.5,
+        "transmittance": 1.0
+      }
+    },
+    {
+      "id": "panel3_Red",
+      "panel": "panel3",
+      "filter": "Red",
+      "filter_curve_name": "Baader R",
+      "light_path": "testdata/Galaxy_Center_T4 全链路测试数据/lights/panel3/Galaxy_Center_mosaic3_T4_flying_dutchman-20250718@001638-180S-Red.fts",
+      "ra0": 0,
+      "dec0": 0,
+      "narrowband": null
+    },
+    {
+      "id": "panel3_Green",
+      "panel": "panel3",
+      "filter": "Green",
+      "filter_curve_name": "Baader G",
+      "light_path": "testdata/Galaxy_Center_T4 全链路测试数据/lights/panel3/Galaxy_Center_mosaic3_T4_flying_dutchman-20250718@005457-180S-Green.fts",
+      "ra0": 0,
+      "dec0": 0,
+      "narrowband": null
+    },
+    {
+      "id": "panel3_Blue",
+      "panel": "panel3",
+      "filter": "Blue",
+      "filter_curve_name": "Baader B",
+      "light_path": "testdata/Galaxy_Center_T4 全链路测试数据/lights/panel3/Galaxy_Center_mosaic3_T4_flying_dutchman-20250718@013842-180S-Blue.fts",
+      "ra0": 0,
+      "dec0": 0,
+      "narrowband": null
+    },
+    {
+      "id": "panel3_H-alpha",
+      "panel": "panel3",
+      "filter": "H-alpha",
+      "filter_curve_name": null,
+      "light_path": "testdata/Galaxy_Center_T4 全链路测试数据/lights/panel3/Galaxy_Center_mosaic3_T4_flying_dutchman-20250718@021646-300S-H-alpha.fts",
+      "ra0": 0,
+      "dec0": 0,
+      "narrowband": {
+        "center_nm": 656.3,
+        "bandwidth_nm": 7.0,
+        "transmittance": 1.0
+      }
+    },
+    {
+      "id": "panel3_Oiii",
+      "panel": "panel3",
+      "filter": "Oiii",
+      "filter_curve_name": null,
+      "light_path": "testdata/Galaxy_Center_T4 全链路测试数据/lights/panel3/Galaxy_Center_mosaic3_T4_flying_dutchman-20250718@025717-600S-Oiii.fts",
+      "ra0": 0,
+      "dec0": 0,
+      "narrowband": {
+        "center_nm": 500.7,
+        "bandwidth_nm": 8.5,
+        "transmittance": 1.0
+      }
+    }
+  ]
+}

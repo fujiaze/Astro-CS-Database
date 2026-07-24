@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.dll
+*.exe
+logs/
+output/
+*.log
+*.xml
+*.ahpx

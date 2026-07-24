@@ -1,0 +1,19 @@
+{
+  "_comment": "stage2 配置文件模板 (spec §2.3.3) - 多帧合并 .hiss -> .hcsd, stage 8-9",
+  "frames_dir": "output/hiss_output/",
+  "output_hcsd": "output/stacked.hcsd",
+  "stages": [
+    "gradient_sphere",
+    "stack"
+  ],
+  "stack": {
+    "sigma_clip_method": "winsorized",
+    "sigma_clip_sigma": 3.0,
+    "weighting": "snr_squared",
+    "mosaic_fov_ra": 0.0,
+    "mosaic_fov_dec": 0.0,
+    "mosaic_fov_radius_deg": 0.0
+  },
+  "log_level": "INFO",
+  "threads": 0
+}
