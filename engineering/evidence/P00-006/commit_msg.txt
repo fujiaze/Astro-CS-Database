@@ -1,0 +1,21 @@
+P00-006: 复核旧审计 163 项当前状态
+
+定位 2026-07-18 代码审计的 163 项条目(19 Critical + 31 High + 54 Medium + 59 Low),
+通过 3 个子 Agent 并行复核 P0P1/P2/P3 三组, 逐项对照当前源码标记状态。
+
+交付物:
+- audit_reconciliation_P0P1.json/md: 50 项复核(44 OPEN / 6 CLOSED)
+- audit_reconciliation_P2.json/md: 54 项复核(38 OPEN / 15 CLOSED / 1 REJECTED)
+- audit_reconciliation_P3.json/md: 59 项复核(27 OPEN / 32 CLOSED)
+- audit_reconciliation.json/md: 统一 163 项报告(112 OPEN / 50 CLOSED / 1 REJECTED)
+- merge_audit.py: 合并脚本
+- TASK/TEST/EVIDENCE_INDEX/REVIEW_REPORT: 任务闭环四件套
+
+关键发现:
+- P0+P1 仅 6 项 CLOSED(12%), 44 项 Critical/High 仍 OPEN, 需 P01+ 优先修复
+- P3 过半 CLOSED(54%), 代码风格类问题已大量修复
+- 1 项 REJECTED: B8-M-6 fact2 系数(healpix_stack 不需要)
+- 同源问题: cal_stats 缺失 / 1000 颗最亮星限制 / STACK 空骨架
+
+独立复核: PASS(脚本可重复, B1-C-1 抽查确认 OPEN, 范围无越界)
+任务状态: P00-006 DONE, 推进到 P00-007(建立文档冲突登记)
