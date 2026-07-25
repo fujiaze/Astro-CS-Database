@@ -221,6 +221,9 @@ private:
     // GAP-016/GAP-017: run_stage_drizzle 读 nside_strategy/nside_override,
     //                  run_stage_gradient_sphere 读 sigma_clip_method 等
     std::string current_config_json_;
+    // P03-002: 从 config 解析的 Gaia 数据目录 (init_platesolve_env 使用)
+    // 空时默认为 project_root_dir_/GaiaDR3SP
+    std::string config_gaia_data_dir_;
 
     // ========================================================================
     // PLATESOLVE 环境资源 (ipv_solver + gaia_client + star_detector)

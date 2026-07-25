@@ -403,8 +403,7 @@ bool Orchestrator::load_config(const std::string& config_path, std::string& erro
 
     LOG_INFO("orchestrator", "配置文件大小: " + std::to_string(content.size()) + " 字节");
 
-    // TODO: 后续 Task 引入 JSON 库, 解析各字段到 config_ 成员
-    // 当前骨架: 仅把整个 JSON 文本存入 calib_params_json (便于后续解析)
+    // P03-002: 把整个 JSON 文本存入 calib_params_json (供各 stage handler 按需解析)
     config_.calib_params_json = content;
 
     // 默认日志目录与输出目录 (若配置中未指定)
@@ -420,15 +419,35 @@ bool Orchestrator::load_config(const std::string& config_path, std::string& erro
     checkpoint_mgr_.set_checkpoint_dir(ckpt_dir);
     LOG_INFO("orchestrator", "检查点目录: " + ckpt_dir);
 
-    // Task 4: 解析日志级别 (大小写不敏感) 并设置 Logger
-    // 当前骨架: 直接读取 config_.log_level 字段 (后续 Task 引入 JSON 库时从配置文件解析)
-    if (!config_.log_level.empty()) {
-        LogLevel lvl = Logger::string_to_level(config_.log_level);
-        Logger::instance().set_level(lvl);
-        LOG_INFO("orchestrator", "日志级别设置为: " + config_.log_level);
+    // P03-002: 解析 log_level (顶层字段, 大小写不敏感)
+    // 优先级: CLI --log-level > config.log_level > 默认 INFO
+    // CLI 覆盖在 cmd_stage1/cmd_stage2 中处理; 此处仅解析 config
+    std::string cfg_log_level = orc_getJsonString(content, "log_level");
+    if (!cfg_log_level.empty() && config_.log_level.empty()) {
+        config_.log_level = cfg_log_level;
+    }
+    if (config_.log_level.empty()) {
+        config_.log_level = "INFO";
+    }
+    LogLevel lvl = Logger::string_to_level(config_.log_level);
+    Logger::instance().set_level(lvl);
+    LOG_INFO("orchestrator", "日志级别设置为: " + config_.log_level);
+
+    // P03-002: 解析 threads (顶层字段, 0=自动检测)
+    double cfg_threads = orc_getJsonNum(content, "threads", 0.0);
+    config_.threads = static_cast<int>(cfg_threads);
+    LOG_INFO("orchestrator", "配置线程数: " + std::to_string(config_.threads)
+             + (config_.threads == 0 ? " (0=自动检测)" : ""));
+
+    // P03-002: 解析 gaia_data_dir (顶层字段, 用于 init_platesolve_env)
+    // 空时在 init_platesolve_env 中默认为 project_root_dir_/GaiaDR3SP
+    std::string cfg_gaia_dir = orc_getJsonString(content, "gaia_data_dir");
+    if (!cfg_gaia_dir.empty()) {
+        config_gaia_data_dir_ = cfg_gaia_dir;
+        LOG_INFO("orchestrator", "配置 Gaia 数据目录: " + cfg_gaia_dir);
     }
 
-    LOG_INFO("orchestrator", "配置加载完成 (骨架: 字段解析待后续 Task 实现)");
+    LOG_INFO("orchestrator", "配置加载完成 (P03-002: log_level/threads/gaia_data_dir 已解析)");
     return true;
 }
 
@@ -1479,6 +1498,7 @@ bool Orchestrator::init_platesolve_env(std::string& error_msg) {
     LOG_INFO("orchestrator", "[PLATESOLVE] star_detector.dll 加载成功");
 
     // 3. 创建 GaiaClient (使用 GaiaDR3SP 数据目录, db_type=GAIA_DB_DR3SP=2)
+    //    P03-002: gaia_data_dir 优先从 config 读取, 空时默认 project_root_dir_/GaiaDR3SP
     using gaia_create_ex_fn = GaiaClient* (*)(const char*, GaiaDbType);
     auto fn_gaia_create_ex = reinterpret_cast<gaia_create_ex_fn>(
         GetProcAddress(gaia_h, "gaia_client_create_ex"));
@@ -1488,7 +1508,19 @@ bool Orchestrator::init_platesolve_env(std::string& error_msg) {
         cleanup_platesolve_env();
         return false;
     }
-    std::string gaia_data_dir = project_root_dir_ + "/GaiaDR3SP";
+    // P03-002: 优先使用 config 中配置的 gaia_data_dir
+    std::string gaia_data_dir;
+    if (!config_gaia_data_dir_.empty()) {
+        gaia_data_dir = config_gaia_data_dir_;
+        // 相对路径基于 project_root_dir_ 解析
+        if (!fs::path(gaia_data_dir).is_absolute()) {
+            gaia_data_dir = (fs::path(project_root_dir_) / gaia_data_dir).string();
+        }
+    } else {
+        gaia_data_dir = project_root_dir_ + "/GaiaDR3SP";
+    }
+    LOG_INFO("orchestrator", "[PLATESOLVE] Gaia 数据目录: " + gaia_data_dir
+             + (config_gaia_data_dir_.empty() ? " (默认)" : " (来自 config)"));
     GaiaClient* gaia_client = fn_gaia_create_ex(gaia_data_dir.c_str(), GAIA_DB_DR3SP);
     if (gaia_client == nullptr) {
         error_msg = "GaiaClient 创建失败 (data_dir=" + gaia_data_dir + ")";
@@ -1516,7 +1548,14 @@ bool Orchestrator::init_platesolve_env(std::string& error_msg) {
     sdet_params.iterativeClipSigma = 9.0f;
     sdet_params.iterativeMaxRounds = 5;
     sdet_params.medianFilterDetail = 1;
-    sdet_params.maxStars = 2000;
+    // P03-002: maxStars 从 config 读取 (默认 2000)
+    int cfg_max_stars = 2000;
+    if (!current_config_json_.empty()) {
+        // 优先 platesolve.max_stars, 其次 psf.max_stars
+        cfg_max_stars = static_cast<int>(orc_getJsonNum(current_config_json_, "max_stars", 2000.0));
+        if (cfg_max_stars <= 0) cfg_max_stars = 2000;
+    }
+    sdet_params.maxStars = cfg_max_stars;
     sdet_params.fitRadius = 0;  // 0 = 自动
     sdet_params.fwhmClipSigma = 3.0f;
     sdet_params.maxAxisRatio = 2.0f;
@@ -1528,7 +1567,8 @@ bool Orchestrator::init_platesolve_env(std::string& error_msg) {
         return false;
     }
     sdet_handle_ = reinterpret_cast<intptr_t>(sdet);
-    LOG_INFO("orchestrator", "[PLATESOLVE] StarDetector 创建成功 (fitRadius=0 自动)");
+    LOG_INFO("orchestrator", "[PLATESOLVE] StarDetector 创建成功 (fitRadius=0 自动, maxStars="
+             + std::to_string(cfg_max_stars) + ")");
 
     // 5. 创建 IPVSolver 实例 (通过 PLATESOLVE 模块的 ipv_solve_create)
     auto fn_ipv_create = dll_loader_.get_function<void* (*)()>(
@@ -1724,10 +1764,21 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
 
     // 2. 从 header KV 读取初始指向 (OBJCTRA/OBJCTDEC/FOCALLEN/XPIXSZ)
     //    约束: 必须使用 OBJCTRA/OBJCTDEC 作为初始指向, 无论是否已有 WCS 数据
+    //    P03-002: 支持从 config 覆盖 (initial_ra/initial_dec/focal_length/pixel_size)
     const char* objctra = fn_kv_get(frame_, "header", "OBJCTRA");
     const char* objctdec = fn_kv_get(frame_, "header", "OBJCTDEC");
     double focal_length = fn_kv_get_double(frame_, "header", "FOCALLEN", 0.0);
     double pixel_size = fn_kv_get_double(frame_, "header", "XPIXSZ", 0.0);
+
+    // P03-002: config 覆盖 (空/0 时使用 FITS header 值)
+    std::string cfg_initial_ra = orc_getJsonString(current_config_json_, "initial_ra");
+    std::string cfg_initial_dec = orc_getJsonString(current_config_json_, "initial_dec");
+    double cfg_focal = orc_getJsonNum(current_config_json_, "focal_length", 0.0);
+    double cfg_pixel = orc_getJsonNum(current_config_json_, "pixel_size", 0.0);
+    if (!cfg_initial_ra.empty()) objctra = cfg_initial_ra.c_str();
+    if (!cfg_initial_dec.empty()) objctdec = cfg_initial_dec.c_str();
+    if (cfg_focal > 0.0) focal_length = cfg_focal;
+    if (cfg_pixel > 0.0) pixel_size = cfg_pixel;
 
     double ra0 = parse_ra_hms(objctra);
     double dec0 = parse_dec_dms(objctdec);
@@ -1736,7 +1787,8 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
              + "' -> ra0=" + std::to_string(ra0) + "deg, OBJCTDEC='" + std::string(objctdec ? objctdec : "")
              + "' -> dec0=" + std::to_string(dec0) + "deg");
     LOG_INFO("orchestrator", "[PLATESOLVE] 焦距=" + std::to_string(focal_length)
-             + "mm, 像素尺寸=" + std::to_string(pixel_size) + "um");
+             + "mm, 像素尺寸=" + std::to_string(pixel_size) + "um"
+             + (!cfg_initial_ra.empty() || cfg_focal > 0.0 ? " (部分来自 config)" : ""));
 
     // 3. 调用 ipv_solve_from_memory_with_callback (P02-003 路径 B)
     //    与 ipv_solve_from_memory 算法等价, 区别: callback 同步导出 sdet_detect_ex 结果
@@ -2000,13 +2052,31 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
         return false;
     }
 
-    DPSFFitParams params;
-    params.fitRadius = 8;
-    params.maxIter = 100;
-    params.tolerance = 1e-6;
+    // P03-002: 从 current_config_json_ 解析 psf 参数 (默认值与原硬编码一致)
+    int fit_radius = 8;
+    int max_iter = 100;
+    double tolerance = 1e-6;
+    if (!current_config_json_.empty()) {
+        fit_radius = static_cast<int>(orc_getJsonNum(current_config_json_, "fit_radius", 8.0));
+        max_iter = static_cast<int>(orc_getJsonNum(current_config_json_, "max_iter", 100.0));
+        tolerance = orc_getJsonNum(current_config_json_, "tolerance", 1e-6);
+        if (fit_radius < 0) fit_radius = 0;  // 0 = 自动
+        if (max_iter <= 0) max_iter = 100;
+        if (tolerance <= 0.0) tolerance = 1e-6;
+    }
 
+    DPSFFitParams params;
+    params.fitRadius = fit_radius;
+    params.maxIter = max_iter;
+    params.tolerance = tolerance;
+
+    {
+        char buf[128];
+        std::snprintf(buf, sizeof(buf), "[PSF] 调用 dpsf_fit_batch (fitRadius=%d, maxIter=%d, tol=%.1e) ...",
+            fit_radius, max_iter, tolerance);
+        LOG_INFO("orchestrator", std::string(buf));
+    }
     DPSFFitResult* results = nullptr;
-    LOG_INFO("orchestrator", "[PSF] 调用 dpsf_fit_batch (fitRadius=8, maxIter=100) ...");
     int ret = fn_fit_batch(pixels_u16, width, height,
                            cx_arr.data(), cy_arr.data(), n_stars,
                            &params, &results);
@@ -2167,7 +2237,14 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     LOG_INFO("orchestrator", "[PHOTOMETRIC] FILTER='" + filter_str + "' -> '" + filter_name + "'");
 
     // 加载滤光片曲线
-    std::string filters_json = project_root_dir_ + "/lib/photometric_calib/data/response_curves/filters.json";
+    // P03-002: 优先从 config 读取 filters_json 路径, 空时使用默认值
+    std::string filters_json = orc_getJsonString(current_config_json_, "filters_json");
+    if (filters_json.empty()) {
+        filters_json = project_root_dir_ + "/lib/photometric_calib/data/response_curves/filters.json";
+    } else if (!fs::path(filters_json).is_absolute()) {
+        filters_json = (fs::path(project_root_dir_) / filters_json).string();
+    }
+    LOG_INFO("orchestrator", "[PHOTOMETRIC] filters_json: " + filters_json);
     std::vector<double> filter_wl, filter_trans;
     if (!load_filter_curve(filters_json, filter_name, filter_wl, filter_trans)) {
         LOG_ERROR("orchestrator", "[PHOTOMETRIC] 加载滤光片曲线失败");
@@ -2181,7 +2258,14 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     std::vector<double> qe_wl, qe_trans;
     std::string qe_name = extract_qe_curve_name(config_.calib_params_json);
     if (!qe_name.empty()) {
-        std::string qe_json = project_root_dir_ + "/lib/photometric_calib/data/response_curves/qe_curves.json";
+        // P03-002: 优先从 config 读取 qe_curves_json 路径, 空时使用默认值
+        std::string qe_json = orc_getJsonString(current_config_json_, "qe_curves_json");
+        if (qe_json.empty()) {
+            qe_json = project_root_dir_ + "/lib/photometric_calib/data/response_curves/qe_curves.json";
+        } else if (!fs::path(qe_json).is_absolute()) {
+            qe_json = (fs::path(project_root_dir_) / qe_json).string();
+        }
+        LOG_INFO("orchestrator", "[PHOTOMETRIC] qe_curves_json: " + qe_json);
         if (load_qe_curve(qe_json, qe_name, qe_wl, qe_trans)) {
             LOG_INFO("orchestrator", "[PHOTOMETRIC] QE 曲线 '" + qe_name + "': " + std::to_string(qe_wl.size()) + " 点");
         } else {
@@ -2225,6 +2309,24 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     }
     LOG_INFO("orchestrator", "[PHOTOMETRIC] FOV 半径: " + std::to_string(fov_radius_deg) + "deg");
 
+    // P03-002: 从 current_config_json_ 解析 photometric 参数 (mag_min/mag_max/fov_radius_deg)
+    // 默认值与原硬编码一致: mag_min=6.0, mag_max=16.0, fov_radius_deg=0(自动计算)
+    double mag_min = 6.0;
+    double mag_max = 16.0;
+    double cfg_fov_radius = 0.0;
+    if (!current_config_json_.empty()) {
+        mag_min = orc_getJsonNum(current_config_json_, "mag_min", 6.0);
+        mag_max = orc_getJsonNum(current_config_json_, "mag_max", 16.0);
+        cfg_fov_radius = orc_getJsonNum(current_config_json_, "fov_radius_deg", 0.0);
+        if (mag_min < 0) mag_min = 0.0;
+        if (mag_max <= mag_min) mag_max = 16.0;
+    }
+    // P03-002: 若 config 指定 fov_radius_deg > 0, 覆盖自动计算值
+    if (cfg_fov_radius > 0.0 && cfg_fov_radius < 30.0) {
+        fov_radius_deg = cfg_fov_radius;
+        LOG_INFO("orchestrator", "[PHOTOMETRIC] FOV 半径 (来自 config): " + std::to_string(fov_radius_deg) + "deg");
+    }
+
     // 4. 调用 pc_calibrate_simple_with_gaia (DLL 内部: 锥形搜索+光谱积分+星匹配+scale 校正)
     // 签名扩展 (GAP-012): 新增 qe_wl/qe_trans/qe_count 三个参数, 位于 filter 参数之后 spectrum 参数之前
     auto fn_pc_calib = dll_loader_.get_function<int (*)(
@@ -2262,11 +2364,17 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     const double* sip_ap_ptr = (wcs.has_ap) ? wcs.sip_ap : nullptr;
     const double* sip_bp_ptr = (wcs.has_ap) ? wcs.sip_bp : nullptr;
 
-    LOG_INFO("orchestrator", "[PHOTOMETRIC] 调用 pc_calibrate_simple_with_gaia ...");
+    {
+        char buf[160];
+        std::snprintf(buf, sizeof(buf),
+            "[PHOTOMETRIC] 调用 pc_calibrate_simple_with_gaia (mag_min=%.1f, mag_max=%.1f, fov=%.3fdeg) ...",
+            mag_min, mag_max, fov_radius_deg);
+        LOG_INFO("orchestrator", std::string(buf));
+    }
     int ret = fn_pc_calib(
         reinterpret_cast<void*>(reinterpret_cast<GaiaClient*>(gaia_client_handle_)),
         wcs.crval1, wcs.crval2, fov_radius_deg,
-        6.0, 16.0,  // mag_min, mag_max (DLL 内部会自适应迭代)
+        mag_min, mag_max,  // P03-002: 从 config 读取 (DLL 内部会自适应迭代)
         filter_wl.data(), filter_trans.data(), (int)filter_wl.size(),
         qe_wl.empty() ? nullptr : qe_wl.data(),
         qe_trans.empty() ? nullptr : qe_trans.data(),
@@ -2357,8 +2465,11 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
 
     // 2) 从 current_config_json_ 解析 nside_strategy 和 nside_override
     //    默认: strategy="1x_to_2x_drizzle", override=0 (自适应)
+    //    P03-002: 新增 pixfrac 解析 (默认 1.0 避免缝隙)
     std::string nside_strategy = "1x_to_2x_drizzle";
     int nside_override = 0;
+    double pixfrac = 1.0;
+    int nested = 1;
     if (!current_config_json_.empty()) {
         size_t p = orc_findJsonKey(current_config_json_, "nside_strategy");
         if (p != std::string::npos) {
@@ -2369,6 +2480,15 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
         if (p != std::string::npos) {
             nside_override = (int)orc_extractJsonNum(current_config_json_, p);
         }
+        // P03-002: 解析 pixfrac (在 drizzle 段或顶层)
+        // 优先在 drizzle 段查找, 找不到再在顶层查找
+        double pf = orc_getJsonNum(current_config_json_, "pixfrac", -1.0);
+        if (pf >= 0.0 && pf <= 1.0) {
+            pixfrac = pf;
+        }
+        // P03-002: 解析 nested (默认 true)
+        bool nest_val = orc_getJsonBool(current_config_json_, "nested", true);
+        nested = nest_val ? 1 : 0;
     }
 
     // 3) 计算最终 nside
@@ -2376,19 +2496,19 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
     {
         char buf[256];
         std::snprintf(buf, sizeof(buf),
-            "[DRIZZLE] nside=%d (strategy=%s, override=%d, cd11=%.6f cd12=%.6f)",
-            nside, nside_strategy.c_str(), nside_override, cd11, cd12);
+            "[DRIZZLE] nside=%d (strategy=%s, override=%d, cd11=%.6f cd12=%.6f), pixfrac=%.3f, nested=%d",
+            nside, nside_strategy.c_str(), nside_override, cd11, cd12, pixfrac, nested);
         LOG_INFO("orchestrator", std::string(buf));
     }
 
     // 调用 hp_drizzle_run
-    // nested=1 (NESTED), pixfrac=1.0 (避免缝隙)
+    // P03-002: pixfrac 从 config 读取 (默认 1.0), nested 从 config 读取 (默认 true)
     // output_path = current_output_path_ (.hiss 路径)
     HpDrizzleResult driz_result;
     std::memset(&driz_result, 0, sizeof(HpDrizzleResult));
     LOG_INFO("orchestrator", "[DRIZZLE] 输出: " + current_output_path_);
 
-    int ret = fn_drizzle(frame_, nside, 1, 1.0,
+    int ret = fn_drizzle(frame_, nside, nested, pixfrac,
                          current_output_path_.c_str(), &driz_result);
     if (ret != 0) {
         std::string err = driz_result.error_msg[0] != '\0'
@@ -2789,14 +2909,31 @@ bool Orchestrator::run_stage_gradient_sphere(TaskResult& result) {
              + " sigma=" + std::to_string(sigma)
              + " max_iter=" + std::to_string(max_iter));
 
+    // P03-002: 从 config 解析 gradient_sphere 参数
+    // gaia_data_dir: 空时传 nullptr (跳过星拒绝)
+    // gradient_max_iter: 默认 10
+    // gradient_lambda: 默认 1e-4
+    std::string cfg_gaia_dir = orc_getJsonString(current_config_json_, "gaia_data_dir");
+    int gradient_max_iter = static_cast<int>(orc_getJsonNum(current_config_json_, "gradient_max_iter", 10.0));
+    double gradient_lambda = orc_getJsonNum(current_config_json_, "gradient_lambda", 1.0e-4);
+    if (gradient_max_iter <= 0) gradient_max_iter = 10;
+    if (gradient_lambda <= 0.0) gradient_lambda = 1.0e-4;
+    // 相对路径基于 project_root_dir_ 解析
+    if (!cfg_gaia_dir.empty() && !fs::path(cfg_gaia_dir).is_absolute()) {
+        cfg_gaia_dir = (fs::path(project_root_dir_) / cfg_gaia_dir).string();
+    }
+    LOG_INFO("orchestrator", "[GRADIENT_SPHERE] gradient_max_iter=" + std::to_string(gradient_max_iter)
+             + " gradient_lambda=" + std::to_string(gradient_lambda)
+             + " gaia_data_dir=" + (cfg_gaia_dir.empty() ? "(null, 跳过星拒绝)" : cfg_gaia_dir));
+
     // 调用 hp_stack_gradient_corrected (GAP-017: 传入 sigma_clip_method + winsorize 参数)
-    // 默认 gradient_max_iter=10, gradient_lambda=1e-4
-    // gaia_data_dir 传 nullptr (跳过星拒绝)
+    // P03-002: gradient_max_iter/gradient_lambda/gaia_data_dir 从 config 读取
     const char* method_cstr = sigma_clip_method.c_str();
+    const char* gaia_dir_cstr = cfg_gaia_dir.empty() ? nullptr : cfg_gaia_dir.c_str();
     int ret = fn_gradient(hiss_paths.data(), n_frames,
-                          nullptr,  // gaia_data_dir (跳过星拒绝)
+                          gaia_dir_cstr,  // P03-002: 从 config 读取, 空时 nullptr
                           current_output_hcsd_.c_str(),
-                          sigma, max_iter, 10, 1e-4,
+                          sigma, max_iter, gradient_max_iter, gradient_lambda,
                           method_cstr, winsorize_low_pct, winsorize_high_pct);
     if (ret != 0) {
         LOG_ERROR("orchestrator", "[GRADIENT_SPHERE] hp_stack_gradient_corrected 失败: ret=" + std::to_string(ret));

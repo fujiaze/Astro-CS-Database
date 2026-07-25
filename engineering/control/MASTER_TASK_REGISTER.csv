@@ -13,7 +13,7 @@ P02-005,P02,Dynamic PSF float32 API,P02-001,G2,DONE,evidence/P02-005
 P02-006,P02,Gaia 查询边界与缓存,P02-004,G2,DONE,evidence/P02-006
 P02-007,P02,PlateSolve 无退化与单次检测专项 Gate,P02-004;P02-005;P02-006,G2,DONE,evidence/P02-007
 P03-001,P03,真实校准输入接线,P01-002;P00-003,G3,DONE,evidence/P03-001
-P03-002,P03,配置参数端到端追踪,P03-001;P02-007,G3,TODO,evidence/P03-002
+P03-002,P03,配置参数端到端追踪,P03-001;P02-007,G3,DONE,evidence/P03-002
 P03-003,P03,严格失败与禁止静默跳过,P03-002,G3,TODO,evidence/P03-003
 P03-004,P03,SNR 稀疏模型与 SIP 一致性,P02-007;P03-002,G3,TODO,evidence/P03-004
 P04-001,P04,CLI request 与 effective config,P03-003,G4,TODO,evidence/P04-001

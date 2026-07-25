@@ -612,3 +612,18 @@ spec: .trae/specs/orchestrator-cpp-cli/spec.md (阶段1: 集成测试 - 阶段1�
 
 ### 未做 git commit（用户未要求）
 
+## 2026-07-25 P03-002 配置参数端到端追踪 (v1.1 开发包) ★G3 Gate★
+- **目标**: 证明 Gaia、filter、QE、nside、pixfrac、线程、超时等全部配置参数到达消费者
+- **结果**: VERDICT: PASS (49 参数全追踪, 5 断裂点修复, 8 已知限制文档化)
+- **修改文件**:
+  - `cpp/src/orchestrator.cpp` - 23 处 P03-002 标记, 修复 5 个断裂点 (filters_json/qe_curves_json/gradient_sphere 3 参数从 config 解析)
+  - `cpp/include/orchestrator.h` - 新增 config_gaia_data_dir_ 成员
+  - `configs/stage1_config.json` - 扩展 platesolve/psf/photometric/dizzle 参数段
+  - `configs/stage2_config.json` - 扩展 gradient_sphere 参数段
+- **新增证据**: engineering/evidence/P03-002/ (TASK_REPORT/TEST_REPORT/EVIDENCE_INDEX/REVIEW_REPORT + config_parameter_trace.json + test_normal.log + .hiss)
+- **新增契约**: engineering/contracts/config_parameter_registry.csv (49 参数 CSV 注册表)
+- **参数分类**: stage1 34 (顶层6/calibration11/platesolve6/psf4/photometric6/drizzle4) + stage2 15 (stack8/gradient_sphere4+顶层3)
+- **断裂点修复**: DEF-01 filters_json / DEF-02 qe_curves_json / DEF-03 gradient_sphere.gaia_data_dir / DEF-04 gradient_max_iter / DEF-05 gradient_lambda
+- **已知限制 (WARN)**: frame.filter (FITS header 优先) / stack.weighting (DLL 固定 SNR²) / stack.mosaic_fov_* (预留) / threads (消费者骨架未实现)
+- **测试**: stage1 正常测试 PASS (Galaxy_Center Red 帧, ~16s, .hiss 生成) + 19 边界条件代码审查 PASS + 5 失败场景 PASS
+
