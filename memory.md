@@ -1166,3 +1166,20 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 - **测试**: stage1 正常测试 PASS (Galaxy_Center Red 帧 ~16s, .hiss 生成) + 19 边界条件代码审查 PASS + 5 失败场景 PASS
 - **向后兼容**: 所有修改空配置值时用默认值, 行为与修改前一致; 撤销 5 处 orchestrator.cpp 修改即可回滚
 - **依赖**: P03-001 (DONE) + P02-007 (DONE); **后续**: P03-003 (严格失败与禁止静默跳过)
+
+## 2026-07-25 P03-003 严格失败与禁止静默跳过 (v1.1 开发包 G3 Gate) ★DONE★
+- **目标**: 必需 DLL/块/质量失败必须非零退出；删除生产路径 true-on-skip；建立稳定错误码与非零退出测试
+- **结果**: VERDICT: PASS — 141/141 测试通过 (集成 136 + 端到端 5), 12 类静默跳过消除, 9 个稳定退出码定义
+- **代码修改** (orchestrator 模块, 代码变更已包含在 P03-004 提交 a4290d8 中):
+  - `lib/orchestrator/cpp/include/orchestrator.h` - 新增 AstroCsExitCode 命名空间 (9 个 constexpr int 常量: SUCCESS=0/GENERIC_ERROR=1/DLL_LOAD_FAILED=2/BLOCK_MISSING=3/CALIBRATE_FAILED=4/PLATESOLVE_FAILED=5/DRIZZLE_FAILED=6/CONFIG_ERROR=7/FILE_IO_ERROR=8) + TaskResult.exit_code 字段
+  - `lib/orchestrator/cpp/src/orchestrator.cpp` - 87 处 P03-003 标记, 覆盖 9 个 stage handler 所有必需失败路径; 兜底机制 (失败时若 exit_code=0 按 stage 类型推导默认退出码)
+  - `lib/orchestrator/cpp/src/cli_command.cpp` - 4 个 CLI 入口点 (cmd_run/cmd_run_batch/cmd_stage1/cmd_stage2) 统一传播 exit_code: `return r.success ? 0 : (r.exit_code != 0 ? r.exit_code : 1)`
+  - `lib/orchestrator/cpp/tests/test_orchestrator_cli.cpp` - 测试 6 期望退出码从 2 改为 7 (CONFIG_ERROR)
+- **静默跳过消除**: 12 类 WARN+return true 模式改为 ERROR+return false+exit_code (DLL 未加载/frame_ 为空/必需块缺失/块写入失败/stage handler 未设置 exit_code 兜底)
+- **必需/可选阶段分类**: READ_FITS/CALIBRATE/PLATESOLVE/PSF/PHOTOMETRIC/DRIZZLE/GRADIENT_SPHERE/STACK 为必需 (失败返回非零); SNR 为可选 (失败降级到 photo_stats SNR_STATUS=degraded, 不阻塞 stage1)
+- **端到端验证**: --help=0 / run nonexistent=1 / config error=7 / run-batch nonexistent=8 / unknown subcommand=1
+- **证据**: engineering/evidence/P03-003/ (TASK_REPORT/TEST_REPORT/EVIDENCE_INDEX/REVIEW_REPORT + error_code_registry.json + exit_code_evidence.log)
+- **commit**: 0610c00 P03-003 证据交付 (代码变更已含于 P03-004 a4290d8)
+- **向后兼容**: 成功路径行为不变 (exit_code=0); TaskResult 新增字段默认值 0; 失败路径行为变更 (原返回 0 的静默跳过现返回非零, 符合 v1.1 开发包规则)
+- **残留风险**: 测试环境 DLL 全部加载失败 (code 126), 退出码 2/3/4/5/6 需真实 DLL 环境补充验证; SNR 降级路径下游感知待加强
+- **依赖**: P03-002 (DONE); **后续**: P03-004 (DONE, 代码含 P03-003 框架)

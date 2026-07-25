@@ -627,3 +627,19 @@ spec: .trae/specs/orchestrator-cpp-cli/spec.md (阶段1: 集成测试 - 阶段1�
 - **已知限制 (WARN)**: frame.filter (FITS header 优先) / stack.weighting (DLL 固定 SNR²) / stack.mosaic_fov_* (预留) / threads (消费者骨架未实现)
 - **测试**: stage1 正常测试 PASS (Galaxy_Center Red 帧, ~16s, .hiss 生成) + 19 边界条件代码审查 PASS + 5 失败场景 PASS
 
+## 2026-07-25 P03-003 严格失败与禁止静默跳过 (v1.1 开发包) ★G3 Gate★
+- **目标**: 必需 DLL/块/质量失败必须非零退出；删除生产路径 true-on-skip；建立稳定错误码与非零退出测试
+- **结果**: VERDICT: PASS (141/141 测试通过: 集成 136 + 端到端 5)
+- **代码修改** (代码变更已包含在 P03-004 提交 a4290d8 中):
+  - `cpp/include/orchestrator.h` - 新增 AstroCsExitCode 命名空间 (9 个 constexpr int 常量) + TaskResult.exit_code 字段
+  - `cpp/src/orchestrator.cpp` - 87 处 P03-003 标记, 12 类 WARN+return true 改为 ERROR+return false+exit_code; 兜底机制 (stage handler 未设置 exit_code 时按 stage 类型推导)
+  - `cpp/src/cli_command.cpp` - 4 个 CLI 入口点统一传播 exit_code: `r.success ? 0 : (r.exit_code != 0 ? r.exit_code : 1)`
+  - `cpp/tests/test_orchestrator_cli.cpp` - 测试 6 期望退出码从 2 改为 7 (CONFIG_ERROR)
+- **错误码定义** (AstroCsExitCode): SUCCESS=0 / GENERIC_ERROR=1 / DLL_LOAD_FAILED=2 / BLOCK_MISSING=3 / CALIBRATE_FAILED=4 / PLATESOLVE_FAILED=5 / DRIZZLE_FAILED=6 / CONFIG_ERROR=7 / FILE_IO_ERROR=8
+- **必需阶段**: READ_FITS/CALIBRATE/PLATESOLVE/PSF/PHOTOMETRIC/DRIZZLE/GRADIENT_SPHERE/STACK (失败返回非零)
+- **可选阶段**: SNR (失败降级到 photo_stats SNR_STATUS=degraded, 不阻塞 stage1)
+- **端到端验证**: --help=0 / run nonexistent=1 / config error=7 / run-batch nonexistent=8 / unknown subcommand=1
+- **新增证据**: engineering/evidence/P03-003/ (TASK_REPORT/TEST_REPORT/EVIDENCE_INDEX/REVIEW_REPORT + error_code_registry.json + exit_code_evidence.log)
+- **commit**: 0610c00 (证据交付), 代码变更含于 a4290d8 (P03-004)
+- **残留风险**: 测试环境 DLL 全部加载失败 (code 126), 退出码 2/3/4/5/6 需真实 DLL 环境补充验证
+
