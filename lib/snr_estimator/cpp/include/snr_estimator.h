@@ -37,7 +37,23 @@ SNR_API int snr_estimate(const float* data, int h, int w,
                          float* out_snr);
 
 // ============================================================================
-// WCS 参数 (简化版, 不含 SIP, 用于像素→球面坐标转换)
+// SIP 前向系数 (A/B 多项式, 用于 pixel→sky 方向)
+// 系数按 a[i*6+j] 存储, 对应 dx^i * dy^j, 下三角 i+j<=order
+// 阶数上限 5 (36 元素), 与 FITS SIP 标准和 healpix_drizzle/wcs_sip.h 一致
+// a_order<=0 表示无 SIP 修正 (仅用 CD+TAN)
+// ============================================================================
+#define SNR_SIP_MAX_ORDER 5
+#define SNR_SIP_COEFF_SIZE 36  // (ORDER+1)*(ORDER+2)/2 上限, 用 6x6 数组存储
+
+typedef struct {
+    int a_order;                  // 前向 A 多项式阶数 (0=无)
+    int b_order;                  // 前向 B 多项式阶数 (0=无)
+    double a[SNR_SIP_COEFF_SIZE]; // A_i_j 系数 (前向, 像素→中间坐标)
+    double b[SNR_SIP_COEFF_SIZE]; // B_i_j 系数
+} SnrSipCoeffs;
+
+// ============================================================================
+// WCS 参数 (完整版, 含前向 SIP A/B, 用于像素→球面坐标转换)
 // CRPIX 是 1-based (FITS 标准)
 // ============================================================================
 typedef struct {
@@ -46,6 +62,7 @@ typedef struct {
     double crpix1;  // 参考点像素 X (1-based)
     double crpix2;  // 参考点像素 Y (1-based)
     double cd[4];   // CD 矩阵 [cd11, cd12, cd21, cd22] (度/像素)
+    SnrSipCoeffs sip;  // 前向 SIP 系数 (a_order=0 时无修正)
 } SnrWcsParams;
 
 // ============================================================================

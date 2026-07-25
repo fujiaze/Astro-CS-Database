@@ -414,10 +414,11 @@ void test_part2_cli_command() {
     }
 
     // 测试 6: orchestrator run <fits> --config nonexistent.json 配置加载失败
+    // P03-003: 配置错误退出码从 2 改为 7 (AstroCsExitCode::CONFIG_ERROR)
     {
         ExecResult r = exec_command(exe + " run nonexistent_frame.fits --config nonexistent_config.json");
         ASSERT_TRUE(r.exit_code != 0, "run --config nonexistent.json 退出码非0");
-        ASSERT_EQ(r.exit_code, 2, "run --config nonexistent.json 退出码为2 (配置加载失败)");
+        ASSERT_EQ(r.exit_code, 7, "run --config nonexistent.json 退出码为7 (P03-003: CONFIG_ERROR)");
     }
 
     // 测试 7: orchestrator run <fits> --threads 8 线程数参数

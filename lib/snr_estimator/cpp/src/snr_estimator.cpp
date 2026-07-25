@@ -202,8 +202,44 @@ SNR_API int snr_estimate(const float* data, int h, int w,
 }
 
 // ============================================================================
-// 像素坐标 → 球面坐标 (TAN 投影, 不含 SIP)
-// 复用 drizzle_engine wcs_sip.cpp 的 tanIntermediateToWorld 公式
+// SIP 前向多项式求值 (复用 healpix_drizzle/wcs_sip.cpp 算法)
+//
+// 系数按 coeffs[i*6+j] 存储, 对应 dx^i * dy^j
+// 下三角: i+j <= order
+// order<=0 时返回 0 (无 SIP 修正)
+//
+// 公式: result = Σ_{i+j<=order} coeffs[i*6+j] * dx^i * dy^j
+// ============================================================================
+static double snrEvalSip(const double* coeffs, double dx, double dy, int order) {
+    if (order <= 0) return 0.0;
+    double result = 0.0;
+    // dx^i 缓存
+    double px[SNR_SIP_MAX_ORDER + 1];
+    double py[SNR_SIP_MAX_ORDER + 1];
+    px[0] = 1.0;
+    py[0] = 1.0;
+    for (int k = 1; k <= order; ++k) {
+        px[k] = px[k - 1] * dx;
+        py[k] = py[k - 1] * dy;
+    }
+    for (int i = 0; i <= order; ++i) {
+        for (int j = 0; j <= order - i; ++j) {
+            result += coeffs[i * 6 + j] * px[i] * py[j];
+        }
+    }
+    return result;
+}
+
+// ============================================================================
+// 像素坐标 → 球面坐标 (TAN 投影 + 前向 SIP A/B)
+// 复用 healpix_drizzle/wcs_sip.cpp 的 pixelToSky 算法, 保证 SNR 控制点
+// 与 drizzle 阶段查询点使用同一坐标系 (P03-004 WCS+SIP 一致性)
+//
+// 步骤:
+//   1. 归一化像素坐标: dx = x - (crpix1-1), dy = y - (crpix2-1) (CRPIX 1-based)
+//   2. 前向 SIP 修正 (A/B): dx' = dx + A(dx,dy), dy' = dy + B(dx,dy)
+//   3. CD 矩阵: xi = cd[0]*dx' + cd[1]*dy', eta = cd[2]*dx' + cd[3]*dy'
+//   4. TAN 反投影: (xi, eta) → (ra, dec)
 // ============================================================================
 static void pixelToSkySimple(double x, double y,
                               const SnrWcsParams* wcs,
@@ -215,11 +251,20 @@ static void pixelToSkySimple(double x, double y,
     double dx = x - (wcs->crpix1 - 1.0);
     double dy = y - (wcs->crpix2 - 1.0);
 
-    // 2. CD 矩阵: 像素 → 中间世界坐标 (度)
+    // 2. 前向 SIP 修正 (A/B), 若 a_order>0
+    //    FITS 标准: A/B 是前向多项式, U = dx + A(dx,dy), V = dy + B(dx,dy)
+    if (wcs->sip.a_order > 0 || wcs->sip.b_order > 0) {
+        double f = snrEvalSip(wcs->sip.a, dx, dy, wcs->sip.a_order);
+        double g = snrEvalSip(wcs->sip.b, dx, dy, wcs->sip.b_order);
+        dx += f;
+        dy += g;
+    }
+
+    // 3. CD 矩阵: 像素 → 中间世界坐标 (度)
     double xi  = wcs->cd[0] * dx + wcs->cd[1] * dy;
     double eta = wcs->cd[2] * dx + wcs->cd[3] * dy;
 
-    // 3. TAN 反投影: 中间坐标 → 天球
+    // 4. TAN 反投影: 中间坐标 → 天球
     const double ra0_deg  = wcs->crval1;
     const double dec0_deg = wcs->crval2;
 
@@ -347,8 +392,16 @@ SNR_API int snr_extract_model(const double* psf, int n_stars,
     }
 
     // WCS 像素→球面转换, 构造控制点
+    // P03-004: 使用完整 WCS+SIP (前向 A/B), 与 drizzle 阶段坐标系一致
     out_model->points = new SnrControlPoint[n_valid];
     out_model->n_points = (uint32_t)n_valid;
+
+    int sip_a_order = wcs->sip.a_order;
+    int sip_b_order = wcs->sip.b_order;
+    fprintf(stderr, "[snr_model] WCS+SIP: a_order=%d b_order=%d "
+                    "(前向 SIP %s, 与 drizzle WcsSip.pixelToSky 一致)\n",
+            sip_a_order, sip_b_order,
+            (sip_a_order > 0 || sip_b_order > 0) ? "启用" : "禁用 (仅 CD+TAN)");
 
     for (int i = 0; i < n_valid; ++i) {
         double ra, dec;
@@ -356,6 +409,15 @@ SNR_API int snr_extract_model(const double* psf, int n_stars,
         out_model->points[i].ra = ra;
         out_model->points[i].dec = dec;
         out_model->points[i].snr_psf = (float)star_snr[i];
+    }
+
+    // P03-004: 输出前 3 个控制点坐标用于调试验证
+    int show_n = (n_valid < 3) ? n_valid : 3;
+    for (int i = 0; i < show_n; ++i) {
+        fprintf(stderr, "[snr_model] ctrl_point[%d]: ra=%.6f dec=%.6f "
+                        "snr_psf=%.4f (src px x=%.2f y=%.2f)\n",
+                i, out_model->points[i].ra, out_model->points[i].dec,
+                out_model->points[i].snr_psf, star_x[i], star_y[i]);
     }
 
     fprintf(stderr, "[snr_model] done: n_points=%u, snr_phot=%.6f, median=%.6f, power=2.0\n",

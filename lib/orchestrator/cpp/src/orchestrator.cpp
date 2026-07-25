@@ -828,15 +828,20 @@ bool Orchestrator::init_dlls(const std::string& lib_base_dir, std::string& error
 bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     LOG_INFO("orchestrator", "[CALIBRATE] 开始");
 
+    // P03-003: CALIBRATE 是必需 stage, DLL 未加载必须失败 (退出码 2)
     if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::CALIBRATE)) {
-        LOG_WARN("orchestrator", "[CALIBRATE] CALIBRATE DLL 未加载, 跳过");
-        return true;
+        LOG_ERROR("orchestrator", "[CALIBRATE] CALIBRATE DLL 未加载 (必需模块)");
+        result.error_msg = "[CALIBRATE] CALIBRATE DLL 未加载 (必需模块)";
+        result.exit_code = AstroCsExitCode::DLL_LOAD_FAILED;
+        return false;
     }
 
-    // run_single 旧版调用 (无 frame_): 保留骨架行为
+    // P03-003: frame_ 为空属于内部错误, 不再静默跳过
     if (frame_ == nullptr) {
-        LOG_WARN("orchestrator", "[CALIBRATE] frame_ 为空 (run_single 旧版), 跳过");
-        return true;
+        LOG_ERROR("orchestrator", "[CALIBRATE] frame_ 为空 (PipelineFrame 未初始化)");
+        result.error_msg = "[CALIBRATE] frame_ 为空 (PipelineFrame 未初始化)";
+        result.exit_code = AstroCsExitCode::GENERIC_ERROR;
+        return false;
     }
 
     // 获取函数指针 (CALIBRATE + AIO)
@@ -887,14 +892,17 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
         !fn_get_metadata || !fn_free_image) {
         LOG_ERROR("orchestrator", "[CALIBRATE] 函数指针获取失败");
         result.error_msg = "[CALIBRATE] 函数指针获取失败";
+        result.exit_code = AstroCsExitCode::GENERIC_ERROR;
         return false;
     }
 
     // 1. 从 frame_ 读取 data 块 (FLOAT32 [H,W])
+    //    P03-003: data 是必需块 (READ_FITS 产出), 缺失必须失败 (退出码 3)
     const AioBlock* data_block = fn_get_block(frame_, "data");
     if (data_block == nullptr) {
-        LOG_ERROR("orchestrator", "[CALIBRATE] data 块不存在");
-        result.error_msg = "[CALIBRATE] data 块不存在";
+        LOG_ERROR("orchestrator", "[CALIBRATE] data 块不存在 (必需块)");
+        result.error_msg = "[CALIBRATE] data 块不存在 (必需块)";
+        result.exit_code = AstroCsExitCode::BLOCK_MISSING;
         return false;
     }
     int width = data_block->dims[1];
@@ -1084,6 +1092,7 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     if (!validation_ok) {
         LOG_ERROR("orchestrator", "[CALIBRATE] Master 文件验证失败, 中止校准");
         result.error_msg = "[CALIBRATE] Master 文件验证失败 (尺寸/曝光/温度不匹配)";
+        result.exit_code = AstroCsExitCode::CALIBRATE_FAILED;
         if (bias_img) fn_free_image(bias_img);
         if (dark_img) fn_free_image(dark_img);
         if (flat_img) fn_free_image(flat_img);
@@ -1095,6 +1104,7 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
         if (!allow_no_calib) {
             LOG_ERROR("orchestrator", "[CALIBRATE] 无任何 Master 文件可用且 allow_no_calibration=false");
             result.error_msg = "[CALIBRATE] 无 Master 文件且未启用 allow_no_calibration";
+            result.exit_code = AstroCsExitCode::CALIBRATE_FAILED;
             if (bias_img) fn_free_image(bias_img);
             if (dark_img) fn_free_image(dark_img);
             if (flat_img) fn_free_image(flat_img);
@@ -1108,6 +1118,7 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     if (out == nullptr) {
         LOG_ERROR("orchestrator", "[CALIBRATE] 分配输出缓冲失败");
         result.error_msg = "[CALIBRATE] 分配输出缓冲失败";
+        result.exit_code = AstroCsExitCode::GENERIC_ERROR;
         if (bias_img) fn_free_image(bias_img);
         if (dark_img) fn_free_image(dark_img);
         if (flat_img) fn_free_image(flat_img);
@@ -1128,6 +1139,7 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     if (ret != 0) {
         LOG_ERROR("orchestrator", "[CALIBRATE] ac_calibrate_frame 失败: ret=" + std::to_string(ret));
         result.error_msg = "[CALIBRATE] ac_calibrate_frame 失败: ret=" + std::to_string(ret);
+        result.exit_code = AstroCsExitCode::CALIBRATE_FAILED;
         std::free(out);
         if (bias_img) fn_free_image(bias_img);
         if (dark_img) fn_free_image(dark_img);
@@ -1154,6 +1166,7 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
              + ", actual_k=" + std::to_string(actual_k));
 
     // 11. 替换 data 块 (转移所有权)
+    //     P03-003: data 块写回失败必须返回非零 (退出码 3, 必需块缺失)
     fn_remove_block(frame_, "data");
     int dims[2] = {height, width};
     ret = fn_add_block_move(frame_, "data", AIO_BLOCK_FLOAT32,
@@ -1161,6 +1174,7 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     if (ret != 0) {
         LOG_ERROR("orchestrator", "[CALIBRATE] 写回 data 块失败: ret=" + std::to_string(ret));
         result.error_msg = "[CALIBRATE] 写回 data 块失败";
+        result.exit_code = AstroCsExitCode::BLOCK_MISSING;
         std::free(out);
         if (bias_img) fn_free_image(bias_img);
         if (dark_img) fn_free_image(dark_img);
@@ -1701,15 +1715,20 @@ void path_b_detection_callback(const double* detections, int n_detections, void*
 bool Orchestrator::run_stage_platesolve(TaskResult& result) {
     LOG_INFO("orchestrator", "[PLATESOLVE] 开始");
 
+    // P03-003: PLATESOLVE 是必需 stage, DLL 未加载必须失败 (退出码 2)
     if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::PLATESOLVE)) {
-        LOG_WARN("orchestrator", "[PLATESOLVE] PLATESOLVE DLL 未加载, 跳过");
-        return true;
+        LOG_ERROR("orchestrator", "[PLATESOLVE] PLATESOLVE DLL 未加载 (必需模块)");
+        result.error_msg = "[PLATESOLVE] PLATESOLVE DLL 未加载 (必需模块)";
+        result.exit_code = AstroCsExitCode::DLL_LOAD_FAILED;
+        return false;
     }
 
-    // run_single 旧版调用 (无 frame_): 保留骨架行为
+    // P03-003: frame_ 为空属于内部错误, 不再静默跳过
     if (frame_ == nullptr) {
-        LOG_WARN("orchestrator", "[PLATESOLVE] frame_ 为空 (run_single 旧版), 跳过");
-        return true;
+        LOG_ERROR("orchestrator", "[PLATESOLVE] frame_ 为空 (PipelineFrame 未初始化)");
+        result.error_msg = "[PLATESOLVE] frame_ 为空 (PipelineFrame 未初始化)";
+        result.exit_code = AstroCsExitCode::GENERIC_ERROR;
+        return false;
     }
 
     // 初始化 PLATESOLVE 环境 (首次调用时加载 gaia_client + star_detector + ipv_solver)
@@ -1747,14 +1766,17 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
     if (!fn_get_block || !fn_kv_get || !fn_kv_get_double || !fn_kv_set || !fn_kv_set_double) {
         LOG_ERROR("orchestrator", "[PLATESOLVE] AIO 函数指针获取失败");
         result.error_msg = "[PLATESOLVE] AIO 函数指针获取失败";
+        result.exit_code = AstroCsExitCode::GENERIC_ERROR;
         return false;
     }
 
     // 1. 读取 data 块 (FLOAT32 [H,W])
+    //    P03-003: data 是必需块 (CALIBRATE 产出), 缺失必须失败 (退出码 3)
     const AioBlock* data_block = fn_get_block(frame_, "data");
     if (data_block == nullptr) {
-        LOG_ERROR("orchestrator", "[PLATESOLVE] data 块不存在");
-        result.error_msg = "[PLATESOLVE] data 块不存在";
+        LOG_ERROR("orchestrator", "[PLATESOLVE] data 块不存在 (必需块)");
+        result.error_msg = "[PLATESOLVE] data 块不存在 (必需块)";
+        result.exit_code = AstroCsExitCode::BLOCK_MISSING;
         return false;
     }
     int height = data_block->dims[0];
@@ -1803,6 +1825,7 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
     if (!fn_ipv_solve_cb || !fn_get_default_params) {
         LOG_ERROR("orchestrator", "[PLATESOLVE] ipv 函数指针获取失败 (ipv_solve_from_memory_with_callback)");
         result.error_msg = "[PLATESOLVE] ipv 函数指针获取失败 (路径B)";
+        result.exit_code = AstroCsExitCode::GENERIC_ERROR;
         return false;
     }
 
@@ -1835,6 +1858,7 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
             : ("ret=" + std::to_string(ret));
         LOG_ERROR("orchestrator", "[PLATESOLVE] 求解失败: " + err);
         result.error_msg = "[PLATESOLVE] 求解失败: " + err;
+        result.exit_code = AstroCsExitCode::PLATESOLVE_FAILED;
         return false;
     }
 
@@ -1914,38 +1938,51 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
     //    原路径: ipv_solve_from_memory 内部 sdet_detect_ex (1次) + 此处显式 sdet_detect_ex (2次)
     //    路径 B: ipv_solve_from_memory_with_callback 内部 sdet_detect_ex (1次) + callback 导出
     //    sdet_detect_ex 调用次数: 2 -> 1, 减少重复计算和内存占用
+    //    P03-003: star_det 是必需块 (PSF 依赖), 写入失败必须返回非零退出码
     if (fn_add_block && fn_remove_block && cb_ctx.copied && cb_ctx.n_detected > 0
         && !cb_ctx.detections_buf.empty()) {
         int64_t n_stars = cb_ctx.n_detected;
         float* star_det = static_cast<float*>(std::malloc(n_stars * 4 * sizeof(float)));
-        if (star_det != nullptr) {
-            for (int64_t i = 0; i < n_stars; ++i) {
-                // star_det v1: [x_px, y_px, flux, mag, saturated, has_saturated] (FLOAT64)
-                // star_det 块: [x, y, flux, mag] (FLOAT32, PSF 期望格式)
-                star_det[i * 4 + 0] = static_cast<float>(cb_ctx.detections_buf[i * 6 + 0]);  // x
-                star_det[i * 4 + 1] = static_cast<float>(cb_ctx.detections_buf[i * 6 + 1]);  // y
-                star_det[i * 4 + 2] = static_cast<float>(cb_ctx.detections_buf[i * 6 + 2]);  // flux
-                star_det[i * 4 + 3] = static_cast<float>(cb_ctx.detections_buf[i * 6 + 3]);  // mag
-            }
-            int dims[2] = {static_cast<int>(n_stars), 4};
-            fn_remove_block(frame_, "star_det");
-            int r = fn_add_block(frame_, "star_det", AIO_BLOCK_FLOAT32,
-                                 star_det, n_stars * 4, dims, 2,
-                                 "星点检测结果 (路径B callback 导出): x,y,flux,mag");
-            if (r == 0) {
-                LOG_INFO("orchestrator", "[PLATESOLVE] star_det 块已写入 (路径B): "
-                         + std::to_string(n_stars) + " 颗星");
-            } else {
-                LOG_WARN("orchestrator", "[PLATESOLVE] star_det 块写入失败 (add_block ret="
-                         + std::to_string(r) + ")");
-            }
-            std::free(star_det);
+        if (star_det == nullptr) {
+            LOG_ERROR("orchestrator", "[PLATESOLVE] 分配 star_det 缓冲失败 (必需块)");
+            result.error_msg = "[PLATESOLVE] 分配 star_det 缓冲失败";
+            result.exit_code = AstroCsExitCode::GENERIC_ERROR;
+            return false;
         }
+        for (int64_t i = 0; i < n_stars; ++i) {
+            // star_det v1: [x_px, y_px, flux, mag, saturated, has_saturated] (FLOAT64)
+            // star_det 块: [x, y, flux, mag] (FLOAT32, PSF 期望格式)
+            star_det[i * 4 + 0] = static_cast<float>(cb_ctx.detections_buf[i * 6 + 0]);  // x
+            star_det[i * 4 + 1] = static_cast<float>(cb_ctx.detections_buf[i * 6 + 1]);  // y
+            star_det[i * 4 + 2] = static_cast<float>(cb_ctx.detections_buf[i * 6 + 2]);  // flux
+            star_det[i * 4 + 3] = static_cast<float>(cb_ctx.detections_buf[i * 6 + 3]);  // mag
+        }
+        int dims[2] = {static_cast<int>(n_stars), 4};
+        fn_remove_block(frame_, "star_det");
+        int r = fn_add_block(frame_, "star_det", AIO_BLOCK_FLOAT32,
+                             star_det, n_stars * 4, dims, 2,
+                             "星点检测结果 (路径B callback 导出): x,y,flux,mag");
+        if (r == 0) {
+            LOG_INFO("orchestrator", "[PLATESOLVE] star_det 块已写入 (路径B): "
+                     + std::to_string(n_stars) + " 颗星");
+        } else {
+            LOG_ERROR("orchestrator", "[PLATESOLVE] star_det 块写入失败 (必需块): add_block ret="
+                     + std::to_string(r));
+            result.error_msg = "[PLATESOLVE] star_det 块写入失败 (必需块)";
+            result.exit_code = AstroCsExitCode::BLOCK_MISSING;
+            std::free(star_det);
+            return false;
+        }
+        std::free(star_det);
     } else {
-        LOG_WARN("orchestrator", "[PLATESOLVE] callback 未导出检测结果 (n_detected="
+        // P03-003: callback 未导出检测结果, star_det 必需块缺失, 必须失败
+        LOG_ERROR("orchestrator", "[PLATESOLVE] callback 未导出检测结果 (n_detected="
                  + std::to_string(cb_ctx.n_detected) + ", copied="
                  + (cb_ctx.copied ? "true" : "false")
-                 + "), star_det 块未写入 (PSF 将跳过)");
+                 + "), star_det 必需块未写入");
+        result.error_msg = "[PLATESOLVE] callback 未导出检测结果, star_det 必需块未写入";
+        result.exit_code = AstroCsExitCode::BLOCK_MISSING;
+        return false;
     }
 
     // P02-006: 删除无消费者 gaia_cat 二次查询
@@ -1965,15 +2002,20 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
 bool Orchestrator::run_stage_psf(TaskResult& result) {
     LOG_INFO("orchestrator", "[PSF] 开始");
 
+    // P03-003: PSF 是必需 stage (PHOTOMETRIC 依赖 psf 块), DLL 未加载必须失败 (退出码 2)
     if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::PSF)) {
-        LOG_WARN("orchestrator", "[PSF] PSF DLL 未加载, 跳过");
-        return true;
+        LOG_ERROR("orchestrator", "[PSF] PSF DLL 未加载 (必需模块)");
+        result.error_msg = "[PSF] PSF DLL 未加载 (必需模块)";
+        result.exit_code = AstroCsExitCode::DLL_LOAD_FAILED;
+        return false;
     }
 
-    // run_single 旧版调用 (无 frame_): 保留骨架行为
+    // P03-003: frame_ 为空属于内部错误, 不再静默跳过
     if (frame_ == nullptr) {
-        LOG_WARN("orchestrator", "[PSF] frame_ 为空 (run_single 旧版), 跳过");
-        return true;
+        LOG_ERROR("orchestrator", "[PSF] frame_ 为空 (PipelineFrame 未初始化)");
+        result.error_msg = "[PSF] frame_ 为空 (PipelineFrame 未初始化)";
+        result.exit_code = AstroCsExitCode::GENERIC_ERROR;
+        return false;
     }
 
     // 获取 AIO 函数指针
@@ -2019,11 +2061,14 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
     }
 
     // 2. 读取 star_det 块 (FLOAT32 [N,4]: x, y, flux, mag)
+    //    P03-003: star_det 是必需块 (PLATESOLVE 路径B 产出), 缺失必须失败 (退出码 3)
     const AioBlock* star_det_block = fn_get_block(frame_, "star_det");
     if (star_det_block == nullptr || star_det_block->dims[0] <= 0) {
-        LOG_WARN("orchestrator", "[PSF] star_det 块不存在或为空, 跳过 PSF 拟合");
+        LOG_ERROR("orchestrator", "[PSF] star_det 块不存在或为空 (必需块, PLATESOLVE 应产出)");
+        result.error_msg = "[PSF] star_det 块不存在或为空 (必需块)";
+        result.exit_code = AstroCsExitCode::BLOCK_MISSING;
         std::free(pixels_u16);
-        return true;
+        return false;
     }
     int n_stars = star_det_block->dims[0];
     const float* star_det_data = static_cast<const float*>(star_det_block->data);
@@ -2145,15 +2190,20 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
 bool Orchestrator::run_stage_photometric(TaskResult& result) {
     LOG_INFO("orchestrator", "[PHOTOMETRIC] 开始");
 
+    // P03-003: PHOTOMETRIC 是必需 stage (产出 photo_stats 供 SNR/Drizzle 使用), DLL 未加载必须失败 (退出码 2)
     if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::PHOTOMETRIC)) {
-        LOG_WARN("orchestrator", "[PHOTOMETRIC] PHOTOMETRIC DLL 未加载, 跳过");
-        return true;
+        LOG_ERROR("orchestrator", "[PHOTOMETRIC] PHOTOMETRIC DLL 未加载 (必需模块)");
+        result.error_msg = "[PHOTOMETRIC] PHOTOMETRIC DLL 未加载 (必需模块)";
+        result.exit_code = AstroCsExitCode::DLL_LOAD_FAILED;
+        return false;
     }
 
-    // run_single 旧版调用 (无 frame_): 保留骨架行为
+    // P03-003: frame_ 为空属于内部错误, 不再静默跳过
     if (frame_ == nullptr) {
-        LOG_WARN("orchestrator", "[PHOTOMETRIC] frame_ 为空 (run_single 旧版), 跳过");
-        return true;
+        LOG_ERROR("orchestrator", "[PHOTOMETRIC] frame_ 为空 (PipelineFrame 未初始化)");
+        result.error_msg = "[PHOTOMETRIC] frame_ 为空 (PipelineFrame 未初始化)";
+        result.exit_code = AstroCsExitCode::GENERIC_ERROR;
+        return false;
     }
 
     // 确保 PLATESOLVE 环境已初始化 (复用 gaia_client_handle_)
@@ -2208,10 +2258,13 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     LOG_INFO("orchestrator", "[PHOTOMETRIC] 图像: " + std::to_string(width) + "x" + std::to_string(height));
 
     // 2. 读取 psf 块 (FLOAT64 [N,9])
+    //    P03-003: psf 是必需块 (PSF 阶段产出), 缺失必须失败 (退出码 3)
     const AioBlock* psf_block = fn_get_block(frame_, "psf");
     if (psf_block == nullptr || psf_block->dims[0] <= 0) {
-        LOG_WARN("orchestrator", "[PHOTOMETRIC] psf 块不存在或为空, 跳过测光校准");
-        return true;
+        LOG_ERROR("orchestrator", "[PHOTOMETRIC] psf 块不存在或为空 (必需块, PSF 应产出)");
+        result.error_msg = "[PHOTOMETRIC] psf 块不存在或为空 (必需块)";
+        result.exit_code = AstroCsExitCode::BLOCK_MISSING;
+        return false;
     }
     int n_psf = psf_block->dims[0];
     const double* psf_data = static_cast<const double*>(psf_block->data);
@@ -2425,15 +2478,20 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
 bool Orchestrator::run_stage_drizzle(TaskResult& result) {
     LOG_INFO("orchestrator", "[DRIZZLE] 开始");
 
+    // P03-003: DRIZZLE 是必需 stage (生成 .hiss 输出), DLL 未加载必须失败 (退出码 2)
     if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::DRIZZLE)) {
-        LOG_WARN("orchestrator", "[DRIZZLE] DRIZZLE DLL 未加载, 跳过");
-        return true;
+        LOG_ERROR("orchestrator", "[DRIZZLE] DRIZZLE DLL 未加载 (必需模块)");
+        result.error_msg = "[DRIZZLE] DRIZZLE DLL 未加载 (必需模块)";
+        result.exit_code = AstroCsExitCode::DLL_LOAD_FAILED;
+        return false;
     }
 
-    // run_single 旧版调用 (无 frame_): 保留骨架行为
+    // P03-003: frame_ 为空属于内部错误, 不再静默跳过
     if (frame_ == nullptr) {
-        LOG_WARN("orchestrator", "[DRIZZLE] frame_ 为空 (run_single 旧版), 跳过");
-        return true;
+        LOG_ERROR("orchestrator", "[DRIZZLE] frame_ 为空 (PipelineFrame 未初始化)");
+        result.error_msg = "[DRIZZLE] frame_ 为空 (PipelineFrame 未初始化)";
+        result.exit_code = AstroCsExitCode::GENERIC_ERROR;
+        return false;
     }
 
     // 获取函数指针
@@ -2516,6 +2574,7 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
             : std::to_string(ret);
         LOG_ERROR("orchestrator", "[DRIZZLE] hp_drizzle_run 失败: " + err);
         result.error_msg = "[DRIZZLE] hp_drizzle_run 失败: " + err;
+        result.exit_code = AstroCsExitCode::DRIZZLE_FAILED;
         return false;
     }
 
@@ -2534,9 +2593,11 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
 bool Orchestrator::run_stage_read_fits(TaskResult& result) {
     LOG_INFO("orchestrator", "[READ_FITS] 开始: " + current_fits_path_);
 
+    // P03-003: AIO 是必需模块 (PipelineFrame + FITS I/O 基础), 缺失必须失败 (退出码 2)
     if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::AIO)) {
-        LOG_ERROR("orchestrator", "[READ_FITS] AIO DLL 未加载");
-        result.error_msg = "[READ_FITS] AIO DLL 未加载";
+        LOG_ERROR("orchestrator", "[READ_FITS] AIO DLL 未加载 (必需模块)");
+        result.error_msg = "[READ_FITS] AIO DLL 未加载 (必需模块)";
+        result.exit_code = AstroCsExitCode::DLL_LOAD_FAILED;
         return false;
     }
 
@@ -2572,6 +2633,7 @@ bool Orchestrator::run_stage_read_fits(TaskResult& result) {
         !fn_get_metadata || !fn_free || !fn_add_block || !fn_kv_set) {
         LOG_ERROR("orchestrator", "[READ_FITS] AIO 函数指针获取失败");
         result.error_msg = "[READ_FITS] AIO 函数指针获取失败";
+        result.exit_code = AstroCsExitCode::GENERIC_ERROR;
         return false;
     }
 
@@ -2580,6 +2642,7 @@ bool Orchestrator::run_stage_read_fits(TaskResult& result) {
     if (image == nullptr) {
         LOG_ERROR("orchestrator", "[READ_FITS] aio_read_fits 返回 nullptr: " + current_fits_path_);
         result.error_msg = "[READ_FITS] 读取 FITS 失败";
+        result.exit_code = AstroCsExitCode::FILE_IO_ERROR;
         return false;
     }
 
@@ -2591,11 +2654,13 @@ bool Orchestrator::run_stage_read_fits(TaskResult& result) {
     if (width <= 0 || height <= 0 || pixels == nullptr) {
         LOG_ERROR("orchestrator", "[READ_FITS] 像素数据无效");
         result.error_msg = "[READ_FITS] 像素数据无效";
+        result.exit_code = AstroCsExitCode::FILE_IO_ERROR;
         fn_free(image);
         return false;
     }
 
     // 添加 data 块 (FLOAT32 [H,W], 拷贝)
+    // P03-003: data 是必需块, 写入失败必须返回非零 (退出码 3)
     int dims[2] = {height, width};
     int ret = fn_add_block(frame_, "data", AIO_BLOCK_FLOAT32,
                            pixels, static_cast<int64_t>(width) * height,
@@ -2603,6 +2668,7 @@ bool Orchestrator::run_stage_read_fits(TaskResult& result) {
     if (ret != 0) {
         LOG_ERROR("orchestrator", "[READ_FITS] 添加 data 块失败: ret=" + std::to_string(ret));
         result.error_msg = "[READ_FITS] 添加 data 块失败";
+        result.exit_code = AstroCsExitCode::BLOCK_MISSING;
         fn_free(image);
         return false;
     }
@@ -2675,15 +2741,28 @@ bool Orchestrator::run_stage_read_fits(TaskResult& result) {
 bool Orchestrator::run_stage_snr(TaskResult& result) {
     LOG_INFO("orchestrator", "[SNR] 开始");
 
+    // P03-003: SNR 是可选 stage (drizzle 不强依赖 snr_model 块), 允许降级
+    // 但降级必须记录到 photo_stats/SNR_STATUS, 禁止静默跳过
     if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::SNR)) {
-        LOG_WARN("orchestrator", "[SNR] SNR DLL 未加载, 跳过");
-        return true;
+        LOG_WARN("orchestrator", "[SNR] SNR DLL 未加载, 降级跳过 (记录到 photo_stats)");
+        // 尝试写入 photo_stats 标记 (AIO 可能可用)
+        if (dll_loader_.is_loaded(ModuleId::AIO)) {
+            auto fn_kv_set_skipped = dll_loader_.get_function<int (*)(
+                PipelineFrame*, const char*, const char*, const char*)>(
+                ModuleId::AIO, "aio_frame_kv_set");
+            if (fn_kv_set_skipped && frame_) {
+                fn_kv_set_skipped(frame_, "photo_stats", "SNR_STATUS", "SKIPPED_NO_DLL");
+            }
+        }
+        return true;  // 可选 stage, 允许降级继续
     }
 
-    // run_single 旧版调用 (无 frame_): 保留骨架行为
+    // P03-003: frame_ 为空属于内部错误, 不再静默跳过
     if (frame_ == nullptr) {
-        LOG_WARN("orchestrator", "[SNR] frame_ 为空 (run_single 旧版), 跳过");
-        return true;
+        LOG_ERROR("orchestrator", "[SNR] frame_ 为空 (PipelineFrame 未初始化)");
+        result.error_msg = "[SNR] frame_ 为空 (PipelineFrame 未初始化)";
+        result.exit_code = AstroCsExitCode::GENERIC_ERROR;
+        return false;
     }
 
     // 获取函数指针 (GAP-011: 改用 snr_extract_model / snr_free_model)
@@ -2707,20 +2786,26 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
     auto fn_kv_get_double = dll_loader_.get_function<double (*)(
         const PipelineFrame*, const char*, const char*, double)>(
         ModuleId::AIO, "aio_frame_kv_get_double");
+    // P03-003: 用于在降级时写入 photo_stats/SNR_STATUS
+    auto fn_kv_set = dll_loader_.get_function<int (*)(
+        PipelineFrame*, const char*, const char*, const char*)>(
+        ModuleId::AIO, "aio_frame_kv_set");
 
     if (!fn_extract || !fn_free || !fn_get_block || !fn_remove_block
         || !fn_add_block_move || !fn_kv_get_double) {
         LOG_ERROR("orchestrator", "[SNR] 函数指针获取失败");
         result.error_msg = "[SNR] 函数指针获取失败";
+        result.exit_code = AstroCsExitCode::GENERIC_ERROR;
         return false;
     }
 
     // 读取 psf 块 (FLOAT64 [N,9], 每行 [status,B,flux,cx,cy,fwhm,A,mad,eccentricity])
+    // P03-003: psf 块缺失时降级 (记录到 photo_stats), 不静默跳过
     const AioBlock* psf_block = fn_get_block(frame_, "psf");
     if (psf_block == nullptr) {
-        // psf 块不存在 (PSF 阶段为骨架), 跳过 SNR
-        LOG_WARN("orchestrator", "[SNR] psf 块不存在 (PSF 阶段未执行), 跳过");
-        return true;
+        LOG_WARN("orchestrator", "[SNR] psf 块不存在 (PSF 阶段未产出), 降级跳过");
+        if (fn_kv_set) fn_kv_set(frame_, "photo_stats", "SNR_STATUS", "SKIPPED_NO_PSF");
+        return true;  // 可选 stage, 允许降级继续
     }
     int n_stars = psf_block->dims[0];
     const double* psf_data = static_cast<const double*>(psf_block->data);
@@ -2757,27 +2842,81 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
     wcs.cd[2]  = fn_kv_get_double(frame_, "header", "CD2_1", 0.0);
     wcs.cd[3]  = fn_kv_get_double(frame_, "header", "CD2_2", 0.0);
 
+    // P03-004: 读取前向 SIP 系数 (A_ORDER/B_ORDER + A_i_j/B_i_j)
+    // 复用 hp_drizzle_api.cpp 的 SIP 读取逻辑, 系数按 a[i*6+j] 存储
+    // 保证 SNR 控制点 (ra,dec) 与 drizzle 阶段坐标系一致 (WCS+SIP 一致性)
+    wcs.sip.a_order = 0;
+    wcs.sip.b_order = 0;
+    if (fn_kv_get) {
+        const char* a_order_str = fn_kv_get(frame_, "header", "A_ORDER");
+        if (a_order_str && a_order_str[0] != '\0') {
+            int a_order = std::atoi(a_order_str);
+            if (a_order > 0 && a_order <= SNR_SIP_MAX_ORDER) {
+                const char* b_order_str = fn_kv_get(frame_, "header", "B_ORDER");
+                int b_order = b_order_str ? std::atoi(b_order_str) : a_order;
+                if (b_order > SNR_SIP_MAX_ORDER) b_order = SNR_SIP_MAX_ORDER;
+                if (b_order < 0) b_order = 0;
+
+                wcs.sip.a_order = a_order;
+                wcs.sip.b_order = b_order;
+
+                // 读取 A_i_j (跳过 (0,0), i+j<=order)
+                for (int i = 0; i <= a_order; ++i) {
+                    for (int j = 0; j <= a_order - i; ++j) {
+                        if (i + j == 0) continue;  // A_0_0 恒为 0
+                        char key[16];
+                        std::snprintf(key, sizeof(key), "A_%d_%d", i, j);
+                        const char* val = fn_kv_get(frame_, "header", key);
+                        if (val && val[0] != '\0') {
+                            wcs.sip.a[i * 6 + j] = std::atof(val);
+                        }
+                    }
+                }
+                // 读取 B_i_j
+                for (int i = 0; i <= b_order; ++i) {
+                    for (int j = 0; j <= b_order - i; ++j) {
+                        if (i + j == 0) continue;
+                        char key[16];
+                        std::snprintf(key, sizeof(key), "B_%d_%d", i, j);
+                        const char* val = fn_kv_get(frame_, "header", key);
+                        if (val && val[0] != '\0') {
+                            wcs.sip.b[i * 6 + j] = std::atof(val);
+                        }
+                    }
+                }
+                LOG_INFO("orchestrator", "[SNR] SIP 前向系数加载: A_ORDER=" + std::to_string(a_order)
+                         + " B_ORDER=" + std::to_string(b_order)
+                         + " (P03-004 WCS+SIP 一致性)");
+            }
+        }
+    }
+
     LOG_INFO("orchestrator", "[SNR] n_stars=" + std::to_string(n_stars)
              + " sigma_residual=" + std::to_string(sigma_residual)
              + " CRVAL=(" + std::to_string(wcs.crval1) + "," + std::to_string(wcs.crval2) + ")"
-             + " CRPIX=(" + std::to_string(wcs.crpix1) + "," + std::to_string(wcs.crpix2) + ")");
+             + " CRPIX=(" + std::to_string(wcs.crpix1) + "," + std::to_string(wcs.crpix2) + ")"
+             + " SIP(a_order=" + std::to_string(wcs.sip.a_order)
+             + ", b_order=" + std::to_string(wcs.sip.b_order) + ")");
 
     // 调用 snr_extract_model 提取稀疏控制点
     SnrModel model = {};
     int ret = fn_extract(psf_data, n_stars, sigma_residual, &wcs, &model);
     if (ret == 1) {
         // n_stars<=0 或无有效星 (status==0, A>B, mad>0)
-        LOG_WARN("orchestrator", "[SNR] n_stars<=0 或无有效星, 跳过 snr_model 块");
-        return true;
+        LOG_WARN("orchestrator", "[SNR] n_stars<=0 或无有效星, 降级跳过 snr_model 块");
+        if (fn_kv_set) fn_kv_set(frame_, "photo_stats", "SNR_STATUS", "SKIPPED_NO_STARS");
+        return true;  // 可选 stage, 允许降级继续
     }
     if (ret == 2) {
         // sigma_residual<=0
-        LOG_WARN("orchestrator", "[SNR] sigma_residual<=0, 跳过 snr_model 块");
-        return true;
+        LOG_WARN("orchestrator", "[SNR] sigma_residual<=0, 降级跳过 snr_model 块");
+        if (fn_kv_set) fn_kv_set(frame_, "photo_stats", "SNR_STATUS", "SKIPPED_NO_SIGMA");
+        return true;  // 可选 stage, 允许降级继续
     }
     if (ret == 3) {
         LOG_ERROR("orchestrator", "[SNR] snr_extract_model 失败: nullptr 参数");
         result.error_msg = "[SNR] snr_extract_model 失败: nullptr 参数";
+        result.exit_code = AstroCsExitCode::GENERIC_ERROR;
         return false;
     }
 
@@ -2801,6 +2940,7 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
     if (buffer == nullptr) {
         LOG_ERROR("orchestrator", "[SNR] 分配 snr_model 缓冲失败 (size=" + std::to_string(payload_size) + ")");
         result.error_msg = "[SNR] 分配 snr_model 缓冲失败";
+        result.exit_code = AstroCsExitCode::GENERIC_ERROR;
         fn_free(&model);
         return false;
     }
@@ -2812,16 +2952,17 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
     std::memcpy(p, &model.idw_power, 8);                  p += 8;
 
     // 写入 snr_model 块 (move 语义, frame_ 接管 buffer 内存)
+    // P03-003: snr_model 是可选块, 写入失败时降级 (不阻塞 stage1)
     fn_remove_block(frame_, "snr_model");
     int wr = fn_add_block_move(frame_, "snr_model", AIO_BLOCK_RAW,
                                buffer, static_cast<int64_t>(payload_size),
                                nullptr, 0, "SNR 稀疏控制点模型 (GAP-011)");
     if (wr != 0) {
-        LOG_ERROR("orchestrator", "[SNR] 写入 snr_model 块失败: ret=" + std::to_string(wr));
-        result.error_msg = "[SNR] 写入 snr_model 块失败";
+        LOG_WARN("orchestrator", "[SNR] 写入 snr_model 块失败 (可选块), 降级跳过: ret=" + std::to_string(wr));
+        if (fn_kv_set) fn_kv_set(frame_, "photo_stats", "SNR_STATUS", "SKIPPED_WRITE_FAILED");
         std::free(buffer);
         fn_free(&model);
-        return false;
+        return true;  // 可选块写入失败, 允许降级继续
     }
     // buffer 所有权已转移给 frame_, 不能再 free
 
@@ -2836,15 +2977,19 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
 bool Orchestrator::run_stage_gradient_sphere(TaskResult& result) {
     LOG_INFO("orchestrator", "[GRADIENT_SPHERE] 开始");
 
+    // P03-003: GRADIENT_SPHERE 是 stage2 必需 stage, DLL 未加载必须失败 (退出码 2)
     if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::GRADIENT_SPHERE)) {
-        LOG_ERROR("orchestrator", "[GRADIENT_SPHERE] GRADIENT_SPHERE DLL 未加载");
-        result.error_msg = "[GRADIENT_SPHERE] DLL 未加载";
+        LOG_ERROR("orchestrator", "[GRADIENT_SPHERE] GRADIENT_SPHERE DLL 未加载 (必需模块)");
+        result.error_msg = "[GRADIENT_SPHERE] DLL 未加载 (必需模块)";
+        result.exit_code = AstroCsExitCode::DLL_LOAD_FAILED;
         return false;
     }
 
+    // P03-003: 必需输入缺失必须失败 (退出码 8)
     if (stage2_hiss_files_.empty()) {
         LOG_ERROR("orchestrator", "[GRADIENT_SPHERE] 无 .hiss 输入文件");
         result.error_msg = "[GRADIENT_SPHERE] 无 .hiss 输入文件";
+        result.exit_code = AstroCsExitCode::FILE_IO_ERROR;
         return false;
     }
 
@@ -2858,6 +3003,7 @@ bool Orchestrator::run_stage_gradient_sphere(TaskResult& result) {
     if (!fn_gradient) {
         LOG_ERROR("orchestrator", "[GRADIENT_SPHERE] hp_stack_gradient_corrected 函数未找到");
         result.error_msg = "[GRADIENT_SPHERE] 函数未找到";
+        result.exit_code = AstroCsExitCode::GENERIC_ERROR;
         return false;
     }
 
@@ -2938,6 +3084,7 @@ bool Orchestrator::run_stage_gradient_sphere(TaskResult& result) {
     if (ret != 0) {
         LOG_ERROR("orchestrator", "[GRADIENT_SPHERE] hp_stack_gradient_corrected 失败: ret=" + std::to_string(ret));
         result.error_msg = "[GRADIENT_SPHERE] 失败: " + std::to_string(ret);
+        result.exit_code = AstroCsExitCode::GENERIC_ERROR;
         return false;
     }
 
@@ -2949,16 +3096,20 @@ bool Orchestrator::run_stage_gradient_sphere(TaskResult& result) {
 bool Orchestrator::run_stage_stack(TaskResult& result) {
     LOG_INFO("orchestrator", "[STACK] 开始");
 
+    // P03-003: STACK 是 stage2 必需 stage, DLL 未加载必须失败 (退出码 2)
+    // 注: 当前 STACK 是骨架, .hcsd 由 GRADIENT_SPHERE 生成, 但 DLL 加载仍必需
     if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::STACK)) {
-        LOG_WARN("orchestrator", "[STACK] STACK DLL 未加载, 跳过");
-        return true;
+        LOG_ERROR("orchestrator", "[STACK] STACK DLL 未加载 (必需模块)");
+        result.error_msg = "[STACK] STACK DLL 未加载 (必需模块)";
+        result.exit_code = AstroCsExitCode::DLL_LOAD_FAILED;
+        return false;
     }
 
     // GRADIENT_SPHERE 阶段已通过 hp_stack_gradient_corrected 完成完整流程:
     //   采样 → Gauss-Seidel 梯度拟合 → 校正叠加 → .hcsd 输出
     // hp_stack_run 接收 PipelineFrame 数组 (非 .hiss 文件), 不适用于 stage2
     // 当前保留骨架, .hcsd 已由 GRADIENT_SPHERE 生成
-    LOG_INFO("orchestrator", "[STACK] 跳过: .hcsd 已由 GRADIENT_SPHERE 生成");
+    LOG_INFO("orchestrator", "[STACK] 跳过 (骨架): .hcsd 已由 GRADIENT_SPHERE 生成");
     return true;
 }
 
@@ -3000,12 +3151,28 @@ TaskResult Orchestrator::run_stage1(const std::string& fits_path,
         return result;
     }
 
-    // 加载 DLL (如果未加载, 允许部分模块加载失败继续执行)
+    // 加载 DLL (P03-003: 必需模块缺失必须失败, 不再静默继续)
     if (!dlls_loaded_) {
         std::string err;
         // lib_base_dir 留空, 使用相对路径 (项目根目录执行)
         if (!init_dlls("", err)) {
-            LOG_WARN("orchestrator", "DLL 加载警告: " + err + " (部分阶段将跳过)");
+            // 检查必需模块 (AIO/CALIBRATE/PLATESOLVE/PSF/PHOTOMETRIC/DRIZZLE) 是否加载
+            // SNR 是可选模块, 缺失时允许降级继续
+            bool aio_ok = dll_loader_.is_loaded(ModuleId::AIO);
+            bool calibrate_ok = dll_loader_.is_loaded(ModuleId::CALIBRATE);
+            bool platesolve_ok = dll_loader_.is_loaded(ModuleId::PLATESOLVE);
+            bool psf_ok = dll_loader_.is_loaded(ModuleId::PSF);
+            bool photometric_ok = dll_loader_.is_loaded(ModuleId::PHOTOMETRIC);
+            bool drizzle_ok = dll_loader_.is_loaded(ModuleId::DRIZZLE);
+            if (!aio_ok || !calibrate_ok || !platesolve_ok || !psf_ok || !photometric_ok || !drizzle_ok) {
+                LOG_ERROR("orchestrator", "DLL 加载失败 (必需模块缺失): " + err);
+                result.error_msg = "DLL 加载失败 (必需模块缺失): " + err;
+                result.exit_code = AstroCsExitCode::DLL_LOAD_FAILED;
+                state_ = TaskState::FAILED;
+                return result;
+            }
+            // 仅可选模块 (SNR) 缺失, 允许继续 (SNR 阶段会降级)
+            LOG_WARN("orchestrator", "DLL 加载警告 (仅可选模块缺失): " + err + " (SNR 将降级)");
         }
     }
 
@@ -3041,6 +3208,7 @@ TaskResult Orchestrator::run_stage1(const std::string& fits_path,
     current_output_path_ = output_hiss;
 
     // 串行执行 stage 0-7 (lambda: 带计时调用 stage handler)
+    // P03-003: 失败时若 exit_code 未设置, 按 stage 兜底设置默认退出码
     auto run_v2_with_timing = [&](PipelineStageV2 stage, const char* name,
                                    bool (Orchestrator::*fn)(TaskResult&)) -> bool {
         LOG_INFO("orchestrator", "---------- stage1 阶段: " + std::string(name) + " ----------");
@@ -3057,6 +3225,19 @@ TaskResult Orchestrator::run_stage1(const std::string& fits_path,
         result.timings.push_back(st);
         LOG_INFO("orchestrator", "[" + std::to_string(dur) + "s] " + name
                  + (ok ? " 完成" : " 失败"));
+        // P03-003: 兜底 exit_code (stage handler 未设置时按 stage 类型推导)
+        if (!ok && result.exit_code == AstroCsExitCode::SUCCESS) {
+            switch (stage) {
+                case PipelineStageV2::READ_FITS:   result.exit_code = AstroCsExitCode::FILE_IO_ERROR; break;
+                case PipelineStageV2::CALIBRATE:   result.exit_code = AstroCsExitCode::CALIBRATE_FAILED; break;
+                case PipelineStageV2::PLATESOLVE:  result.exit_code = AstroCsExitCode::PLATESOLVE_FAILED; break;
+                case PipelineStageV2::PSF:         result.exit_code = AstroCsExitCode::GENERIC_ERROR; break;
+                case PipelineStageV2::PHOTOMETRIC: result.exit_code = AstroCsExitCode::GENERIC_ERROR; break;
+                case PipelineStageV2::SNR:         result.exit_code = AstroCsExitCode::GENERIC_ERROR; break;
+                case PipelineStageV2::DRIZZLE:     result.exit_code = AstroCsExitCode::DRIZZLE_FAILED; break;
+                default:                            result.exit_code = AstroCsExitCode::GENERIC_ERROR; break;
+            }
+        }
         return ok;
     };
 
@@ -3152,11 +3333,21 @@ TaskResult Orchestrator::run_stage2(const std::string& hiss_dir,
     stage2_hiss_files_ = hiss_files;
     current_output_hcsd_ = output_hcsd;
 
-    // 加载 DLL (如果未加载, stage2 仅需 GRADIENT_SPHERE/STACK 模块)
+    // 加载 DLL (P03-003: stage2 必需模块 GRADIENT_SPHERE/STACK 缺失必须失败)
     if (!dlls_loaded_) {
         std::string err;
         if (!init_dlls("", err)) {
-            LOG_WARN("orchestrator", "DLL 加载警告: " + err + " (部分阶段将跳过)");
+            // 检查 stage2 必需模块 (GRADIENT_SPHERE/STACK 共用 healpix_stack.dll)
+            bool gs_ok = dll_loader_.is_loaded(ModuleId::GRADIENT_SPHERE);
+            bool stack_ok = dll_loader_.is_loaded(ModuleId::STACK);
+            if (!gs_ok || !stack_ok) {
+                LOG_ERROR("orchestrator", "DLL 加载失败 (stage2 必需模块缺失): " + err);
+                result.error_msg = "DLL 加载失败 (stage2 必需模块缺失): " + err;
+                result.exit_code = AstroCsExitCode::DLL_LOAD_FAILED;
+                return result;
+            }
+            // 仅 stage1 模块缺失, stage2 仍可继续
+            LOG_WARN("orchestrator", "DLL 加载警告 (仅 stage1 模块缺失): " + err);
         }
     }
 
@@ -3186,6 +3377,16 @@ TaskResult Orchestrator::run_stage2(const std::string& hiss_dir,
         result.timings.push_back(st);
         LOG_INFO("orchestrator", "[" + std::to_string(dur) + "s] " + name
                  + (ok ? " 完成" : " 失败"));
+        // P03-003: 兜底 exit_code (stage handler 未设置时按 stage 类型推导)
+        if (!ok && result.exit_code == AstroCsExitCode::SUCCESS) {
+            switch (stage) {
+                case PipelineStageV2::GRADIENT_SPHERE:
+                case PipelineStageV2::STACK:
+                    result.exit_code = AstroCsExitCode::GENERIC_ERROR; break;
+                default:
+                    result.exit_code = AstroCsExitCode::GENERIC_ERROR; break;
+            }
+        }
         return ok;
     };
 

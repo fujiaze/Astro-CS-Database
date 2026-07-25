@@ -74,6 +74,25 @@ enum class TaskState {
     FAILED       // 失败
 };
 
+// ============================================================================
+// AstroCS 进程退出码 (P03-003)
+// 必需阶段/DLL/块失败必须返回非零退出码, 禁止静默跳过 (return true on skip)
+// 0=成功; 1=通用错误; 2=DLL 加载失败; 3=必需块缺失;
+// 4=校准失败; 5=PlateSolve 失败; 6=Drizzle 失败;
+// 7=配置错误; 8=文件 I/O 错误
+// ============================================================================
+namespace AstroCsExitCode {
+    constexpr int SUCCESS          = 0;
+    constexpr int GENERIC_ERROR    = 1;
+    constexpr int DLL_LOAD_FAILED  = 2;
+    constexpr int BLOCK_MISSING    = 3;
+    constexpr int CALIBRATE_FAILED = 4;
+    constexpr int PLATESOLVE_FAILED = 5;
+    constexpr int DRIZZLE_FAILED   = 6;
+    constexpr int CONFIG_ERROR     = 7;
+    constexpr int FILE_IO_ERROR    = 8;
+}
+
 // 阶段耗时记录
 struct StageTiming {
     PipelineStage stage;
@@ -91,6 +110,9 @@ struct TaskResult {
     std::map<std::string, std::string> photo_stats;  // 测光统计
     std::string output_ahpx_path;                    // 输出 .ahpx 路径
     std::string error_msg;
+    // P03-003: 进程退出码 (AstroCsExitCode::SUCCESS=0 表示成功, 非零表示具体错误)
+    // 失败时由各 stage handler 设置对应错误码, 由 cli_command 直接返回
+    int exit_code = AstroCsExitCode::SUCCESS;
 };
 
 // 编排器配置

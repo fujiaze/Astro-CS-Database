@@ -279,7 +279,7 @@ int CliCommand::cmd_run(const std::string& fits_path,
         std::string err;
         if (!orch.load_config(config_path, err)) {
             LOG_ERROR("cli", "配置加载失败: " + err);
-            return 2;
+            return 7;  // P03-003: 配置错误 (原为 2)
         }
     }
 
@@ -303,7 +303,8 @@ int CliCommand::cmd_run(const std::string& fits_path,
 
     TaskResult r = orch.run_single(fits_path);
     output_json_result(r);
-    return r.success ? 0 : 3;
+    // P03-003: 使用 TaskResult.exit_code 传递细分错误码 (失败时若 exit_code=0 用 1 兜底)
+    return r.success ? 0 : (r.exit_code != 0 ? r.exit_code : 1);
 }
 
 // ============================================================================
@@ -320,7 +321,7 @@ int CliCommand::cmd_run_batch(const std::string& dir_path,
         std::string err;
         if (!orch.load_config(config_path, err)) {
             LOG_ERROR("cli", "配置加载失败: " + err);
-            return 2;
+            return 7;  // P03-003: 配置错误 (原为 2)
         }
     }
 
@@ -333,7 +334,7 @@ int CliCommand::cmd_run_batch(const std::string& dir_path,
         std::cout << "  \"failed_count\": 0," << std::endl;
         std::cout << "  \"results\": []" << std::endl;
         std::cout << "}" << std::endl;
-        return 4;  // 目录不存在错误
+        return 8;  // P03-003: 文件 I/O 错误 (原为 4)
     }
 
     if (threads > 0) {
@@ -356,9 +357,9 @@ int CliCommand::cmd_run_batch(const std::string& dir_path,
     std::vector<TaskResult> results = orch.run_batch(dir_path);
     output_json_batch(results);
 
-    // 任意失败则返回非0
+    // P03-003: 任意失败则返回非零 (优先使用 TaskResult.exit_code, 否则用 1)
     for (const auto& r : results) {
-        if (!r.success) return 3;
+        if (!r.success) return r.exit_code != 0 ? r.exit_code : 1;
     }
     return 0;
 }
@@ -389,7 +390,7 @@ int CliCommand::cmd_stage1(const std::string& fits_path,
         std::string err;
         if (!orch.load_config(config_path, err)) {
             LOG_ERROR("cli", "配置加载失败: " + err);
-            return 2;
+            return 7;  // P03-003: 配置错误 (原为 2)
         }
         // 读取配置文件原始内容作为 config_json 传给 run_stage1
         std::ifstream ifs(config_path, std::ios::binary);
@@ -409,7 +410,8 @@ int CliCommand::cmd_stage1(const std::string& fits_path,
 
     TaskResult r = orch.run_stage1(fits_path, output_hiss, config_json);
     output_json_result(r);
-    return r.success ? 0 : 3;
+    // P03-003: 使用 TaskResult.exit_code 传递细分错误码 (失败时若 exit_code=0 用 1 兜底)
+    return r.success ? 0 : (r.exit_code != 0 ? r.exit_code : 1);
 }
 
 // ============================================================================
@@ -427,7 +429,7 @@ int CliCommand::cmd_stage2(const std::string& hiss_dir,
         std::string err;
         if (!orch.load_config(config_path, err)) {
             LOG_ERROR("cli", "配置加载失败: " + err);
-            return 2;
+            return 7;  // P03-003: 配置错误 (原为 2)
         }
         std::ifstream ifs(config_path, std::ios::binary);
         if (ifs.is_open()) {
@@ -446,7 +448,8 @@ int CliCommand::cmd_stage2(const std::string& hiss_dir,
 
     TaskResult r = orch.run_stage2(hiss_dir, output_hcsd, config_json);
     output_json_result(r);
-    return r.success ? 0 : 3;
+    // P03-003: 使用 TaskResult.exit_code 传递细分错误码 (失败时若 exit_code=0 用 1 兜底)
+    return r.success ? 0 : (r.exit_code != 0 ? r.exit_code : 1);
 }
 
 // ============================================================================
