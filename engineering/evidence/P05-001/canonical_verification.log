@@ -1,0 +1,99 @@
+======================================================================
+P05-001 Canonical 数据集验证
+======================================================================
+验证 7 个 canonical 帧
+
+[P05-001-C001] Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180
+  A. SHA-256 完整性: PASS
+  B. PlateSolve success=True (期望 true): PASS
+  C. PlateSolve RMS=0.3329" (< 1.0"): PASS
+  D. PlateSolve n_pairs=45 (> 10): PASS
+  E. PSF 有效参数 (声明性, 基于 stage1 历史): DECLARED
+  F. 测光 n_matched [0, 5000] (声明性, G-002 缺口): DECLARED
+  G. SNR has_snr (0_or_1, P03-004 修复后=1): DECLARED
+  H. HISS 文件 > 10KB (声明性, 实际 11.5MB+): DECLARED
+
+[P05-001-C002] LDN43_LRGBH_flying_dutchman-20250503@031525-600S-Lum.fts
+  A. SHA-256 完整性: PASS
+  B. PlateSolve success=True (期望 true): PASS
+  C. PlateSolve RMS=0.1431" (< 1.0"): PASS
+  D. PlateSolve n_pairs=34 (> 10): PASS
+  E. PSF 有效参数 (声明性, 基于 stage1 历史): DECLARED
+  F. 测光 n_matched [0, 5000] (声明性, G-002 缺口): DECLARED
+  G. SNR has_snr (0_or_1, P03-004 修复后=1): DECLARED
+  H. HISS 文件 > 10KB (声明性, 实际 11.5MB+): DECLARED
+
+[P05-001-C003] NGC1727_RGBHO_T2_flying_dutchman-20251031@064517-600S-Red.ft
+  A. SHA-256 完整性: PASS
+  B. PlateSolve success=True (期望 true): PASS
+  C. PlateSolve RMS=0.1174" (< 1.0"): PASS
+  D. PlateSolve n_pairs=41 (> 10): PASS
+  E. PSF 有效参数 (声明性, 基于 stage1 历史): DECLARED
+  F. 测光 n_matched [0, 5000] (声明性, G-002 缺口): DECLARED
+  G. SNR has_snr (0_or_1, P03-004 修复后=1): DECLARED
+  H. HISS 文件 > 10KB (声明性, 实际 11.5MB+): DECLARED
+
+[P05-001-C004] NGC247_T2_flying_dutchman-20250816@033428-600S-Lum.fts
+  A. SHA-256 完整性: PASS
+  B. PlateSolve success=True (期望 true): PASS
+  C. PlateSolve RMS=0.1927" (< 1.0"): PASS
+  D. PlateSolve n_pairs=34 (> 10): PASS
+  E. PSF 有效参数 (声明性, 基于 stage1 历史): DECLARED
+  F. 测光 n_matched [0, 5000] (声明性, G-002 缺口): DECLARED
+  G. SNR has_snr (0_or_1, P03-004 修复后=1): DECLARED
+  H. HISS 文件 > 10KB (声明性, 实际 11.5MB+): DECLARED
+
+[P05-001-C005] NGC55_T3_flying_dutchman-20250701@074114-600S-Red.fts
+  A. SHA-256 完整性: PASS
+  B. PlateSolve success=True (期望 true): PASS
+  C. PlateSolve RMS=0.1333" (< 1.0"): PASS
+  D. PlateSolve n_pairs=38 (> 10): PASS
+  E. PSF 有效参数 (声明性, 基于 stage1 历史): DECLARED
+  F. 测光 n_matched [0, 5000] (声明性, G-002 缺口): DECLARED
+  G. SNR has_snr (0_or_1, P03-004 修复后=1): DECLARED
+  H. HISS 文件 > 10KB (声明性, 实际 11.5MB+): DECLARED
+
+[P05-001-C006] NGC90_2025wwk_T3_flying_dutchman-20251011@020846-600S-Red.ft
+  A. SHA-256 完整性: PASS
+  B. PlateSolve success=True (期望 true): PASS
+  C. PlateSolve RMS=0.1394" (< 1.0"): PASS
+  D. PlateSolve n_pairs=32 (> 10): PASS
+  E. PSF 有效参数 (声明性, 基于 stage1 历史): DECLARED
+  F. 测光 n_matched [0, 5000] (声明性, G-002 缺口): DECLARED
+  G. SNR has_snr (0_or_1, P03-004 修复后=1): DECLARED
+  H. HISS 文件 > 10KB (声明性, 实际 11.5MB+): DECLARED
+
+[P05-001-C007] Victory_Nebula_mosaic1_flying_dutchman-20250204@035646-180S-
+  A. SHA-256 完整性: PASS
+  B. PlateSolve success=True (期望 true): PASS
+  C. PlateSolve RMS=0.3975" (< 1.0"): PASS
+  D. PlateSolve n_pairs=32 (> 10): PASS
+  E. PSF 有效参数 (声明性, 基于 stage1 历史): DECLARED
+  F. 测光 n_matched [0, 5000] (声明性, G-002 缺口): DECLARED
+  G. SNR has_snr (0_or_1, P03-004 修复后=1): DECLARED
+  H. HISS 文件 > 10KB (声明性, 实际 11.5MB+): DECLARED
+
+======================================================================
+验证汇总
+======================================================================
+总检查项: 56
+PASS: 28
+FAIL: 0
+DECLARED (声明性, 不计数): 28
+
+Dataset_ID      Target               PASS     FAIL     DECLARED  
+-----------------------------------------------------------------
+P05-001-C001    Galaxy_Center        4        0        4         
+P05-001-C002    LDN43                4        0        4         
+P05-001-C003    NGC1727              4        0        4         
+P05-001-C004    NGC247               4        0        4         
+P05-001-C005    NGC55                4        0        4         
+P05-001-C006    NGC83_cluster        4        0        4         
+P05-001-C007    Victory_Nebula       4        0        4         
+
+总体结论: PASS
+  - 4 项实测验证 (A/B/C/D) 全部 PASS: 是
+  - 4 项声明性预期 (E/F/G/H) 基于 stage1 历史数据声明
+  - 所有 canonical 帧符合 P02-001 plate solve 预期范围
+======================================================================
+验证结果已写入: F:\Astro dev\Astro CS Normalization Database\engineering\evidence\P05-001\canonical_verification.json

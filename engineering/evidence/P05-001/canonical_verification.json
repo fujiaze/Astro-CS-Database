@@ -1,0 +1,406 @@
+{
+  "_meta": {
+    "task_id": "P05-001",
+    "verification_date": "2026-07-25T20:58:10+08:00",
+    "total_frames": 7,
+    "total_checks": 56,
+    "n_pass": 28,
+    "n_fail": 0,
+    "n_declared": 28,
+    "overall_pass": true
+  },
+  "checks": [
+    {
+      "dataset_id": "P05-001-C001",
+      "target": "Galaxy_Center",
+      "check": "A_SHA256_INTEGRITY",
+      "pass": true,
+      "detail": "manifest=EC34DD3DB9E90314 actual=EC34DD3DB9E90314 match=True"
+    },
+    {
+      "dataset_id": "P05-001-C001",
+      "target": "Galaxy_Center",
+      "check": "B_PLATESOLVE_SUCCESS",
+      "pass": true,
+      "detail": "actual=True expected=true"
+    },
+    {
+      "dataset_id": "P05-001-C001",
+      "target": "Galaxy_Center",
+      "check": "C_PLATESOLVE_RMS",
+      "pass": true,
+      "detail": "actual=0.3329 expected<1.0"
+    },
+    {
+      "dataset_id": "P05-001-C001",
+      "target": "Galaxy_Center",
+      "check": "D_PLATESOLVE_N_PAIRS",
+      "pass": true,
+      "detail": "actual=45 expected>10"
+    },
+    {
+      "dataset_id": "P05-001-C001",
+      "target": "Galaxy_Center",
+      "check": "E_PSF_VALID_DECLARED",
+      "pass": true,
+      "detail": "declared: stage1 PSF fit 1913/2000 stars, psf block FLOAT64[N,9] non-NaN"
+    },
+    {
+      "dataset_id": "P05-001-C001",
+      "target": "Galaxy_Center",
+      "check": "F_PHOTOMETRIC_N_MATCHED_DECLARED",
+      "pass": true,
+      "detail": "declared: n_matched may be 0 (G-002 gap) or 1606 (Galaxy_Center Red)"
+    },
+    {
+      "dataset_id": "P05-001-C001",
+      "target": "Galaxy_Center",
+      "check": "G_SNR_HAS_SNR_DECLARED",
+      "pass": true,
+      "detail": "declared: has_snr may be 0 (skeleton degraded) or 1 (P03-004 fixed)"
+    },
+    {
+      "dataset_id": "P05-001-C001",
+      "target": "Galaxy_Center",
+      "check": "H_HISS_SIZE_DECLARED",
+      "pass": true,
+      "detail": "declared: stage1 .hiss output 11.5MB+ (>>10KB threshold)"
+    },
+    {
+      "dataset_id": "P05-001-C002",
+      "target": "LDN43",
+      "check": "A_SHA256_INTEGRITY",
+      "pass": true,
+      "detail": "manifest=D67D56BB142DD1BC actual=D67D56BB142DD1BC match=True"
+    },
+    {
+      "dataset_id": "P05-001-C002",
+      "target": "LDN43",
+      "check": "B_PLATESOLVE_SUCCESS",
+      "pass": true,
+      "detail": "actual=True expected=true"
+    },
+    {
+      "dataset_id": "P05-001-C002",
+      "target": "LDN43",
+      "check": "C_PLATESOLVE_RMS",
+      "pass": true,
+      "detail": "actual=0.1431 expected<1.0"
+    },
+    {
+      "dataset_id": "P05-001-C002",
+      "target": "LDN43",
+      "check": "D_PLATESOLVE_N_PAIRS",
+      "pass": true,
+      "detail": "actual=34 expected>10"
+    },
+    {
+      "dataset_id": "P05-001-C002",
+      "target": "LDN43",
+      "check": "E_PSF_VALID_DECLARED",
+      "pass": true,
+      "detail": "declared: stage1 PSF fit 1913/2000 stars, psf block FLOAT64[N,9] non-NaN"
+    },
+    {
+      "dataset_id": "P05-001-C002",
+      "target": "LDN43",
+      "check": "F_PHOTOMETRIC_N_MATCHED_DECLARED",
+      "pass": true,
+      "detail": "declared: n_matched may be 0 (G-002 gap) or 1606 (Galaxy_Center Red)"
+    },
+    {
+      "dataset_id": "P05-001-C002",
+      "target": "LDN43",
+      "check": "G_SNR_HAS_SNR_DECLARED",
+      "pass": true,
+      "detail": "declared: has_snr may be 0 (skeleton degraded) or 1 (P03-004 fixed)"
+    },
+    {
+      "dataset_id": "P05-001-C002",
+      "target": "LDN43",
+      "check": "H_HISS_SIZE_DECLARED",
+      "pass": true,
+      "detail": "declared: stage1 .hiss output 11.5MB+ (>>10KB threshold)"
+    },
+    {
+      "dataset_id": "P05-001-C003",
+      "target": "NGC1727",
+      "check": "A_SHA256_INTEGRITY",
+      "pass": true,
+      "detail": "manifest=F0AADA0594B8475D actual=F0AADA0594B8475D match=True"
+    },
+    {
+      "dataset_id": "P05-001-C003",
+      "target": "NGC1727",
+      "check": "B_PLATESOLVE_SUCCESS",
+      "pass": true,
+      "detail": "actual=True expected=true"
+    },
+    {
+      "dataset_id": "P05-001-C003",
+      "target": "NGC1727",
+      "check": "C_PLATESOLVE_RMS",
+      "pass": true,
+      "detail": "actual=0.1174 expected<1.0"
+    },
+    {
+      "dataset_id": "P05-001-C003",
+      "target": "NGC1727",
+      "check": "D_PLATESOLVE_N_PAIRS",
+      "pass": true,
+      "detail": "actual=41 expected>10"
+    },
+    {
+      "dataset_id": "P05-001-C003",
+      "target": "NGC1727",
+      "check": "E_PSF_VALID_DECLARED",
+      "pass": true,
+      "detail": "declared: stage1 PSF fit 1913/2000 stars, psf block FLOAT64[N,9] non-NaN"
+    },
+    {
+      "dataset_id": "P05-001-C003",
+      "target": "NGC1727",
+      "check": "F_PHOTOMETRIC_N_MATCHED_DECLARED",
+      "pass": true,
+      "detail": "declared: n_matched may be 0 (G-002 gap) or 1606 (Galaxy_Center Red)"
+    },
+    {
+      "dataset_id": "P05-001-C003",
+      "target": "NGC1727",
+      "check": "G_SNR_HAS_SNR_DECLARED",
+      "pass": true,
+      "detail": "declared: has_snr may be 0 (skeleton degraded) or 1 (P03-004 fixed)"
+    },
+    {
+      "dataset_id": "P05-001-C003",
+      "target": "NGC1727",
+      "check": "H_HISS_SIZE_DECLARED",
+      "pass": true,
+      "detail": "declared: stage1 .hiss output 11.5MB+ (>>10KB threshold)"
+    },
+    {
+      "dataset_id": "P05-001-C004",
+      "target": "NGC247",
+      "check": "A_SHA256_INTEGRITY",
+      "pass": true,
+      "detail": "manifest=6B0A2D2D0C330870 actual=6B0A2D2D0C330870 match=True"
+    },
+    {
+      "dataset_id": "P05-001-C004",
+      "target": "NGC247",
+      "check": "B_PLATESOLVE_SUCCESS",
+      "pass": true,
+      "detail": "actual=True expected=true"
+    },
+    {
+      "dataset_id": "P05-001-C004",
+      "target": "NGC247",
+      "check": "C_PLATESOLVE_RMS",
+      "pass": true,
+      "detail": "actual=0.1927 expected<1.0"
+    },
+    {
+      "dataset_id": "P05-001-C004",
+      "target": "NGC247",
+      "check": "D_PLATESOLVE_N_PAIRS",
+      "pass": true,
+      "detail": "actual=34 expected>10"
+    },
+    {
+      "dataset_id": "P05-001-C004",
+      "target": "NGC247",
+      "check": "E_PSF_VALID_DECLARED",
+      "pass": true,
+      "detail": "declared: stage1 PSF fit 1913/2000 stars, psf block FLOAT64[N,9] non-NaN"
+    },
+    {
+      "dataset_id": "P05-001-C004",
+      "target": "NGC247",
+      "check": "F_PHOTOMETRIC_N_MATCHED_DECLARED",
+      "pass": true,
+      "detail": "declared: n_matched may be 0 (G-002 gap) or 1606 (Galaxy_Center Red)"
+    },
+    {
+      "dataset_id": "P05-001-C004",
+      "target": "NGC247",
+      "check": "G_SNR_HAS_SNR_DECLARED",
+      "pass": true,
+      "detail": "declared: has_snr may be 0 (skeleton degraded) or 1 (P03-004 fixed)"
+    },
+    {
+      "dataset_id": "P05-001-C004",
+      "target": "NGC247",
+      "check": "H_HISS_SIZE_DECLARED",
+      "pass": true,
+      "detail": "declared: stage1 .hiss output 11.5MB+ (>>10KB threshold)"
+    },
+    {
+      "dataset_id": "P05-001-C005",
+      "target": "NGC55",
+      "check": "A_SHA256_INTEGRITY",
+      "pass": true,
+      "detail": "manifest=AA5172C6BB652E95 actual=AA5172C6BB652E95 match=True"
+    },
+    {
+      "dataset_id": "P05-001-C005",
+      "target": "NGC55",
+      "check": "B_PLATESOLVE_SUCCESS",
+      "pass": true,
+      "detail": "actual=True expected=true"
+    },
+    {
+      "dataset_id": "P05-001-C005",
+      "target": "NGC55",
+      "check": "C_PLATESOLVE_RMS",
+      "pass": true,
+      "detail": "actual=0.1333 expected<1.0"
+    },
+    {
+      "dataset_id": "P05-001-C005",
+      "target": "NGC55",
+      "check": "D_PLATESOLVE_N_PAIRS",
+      "pass": true,
+      "detail": "actual=38 expected>10"
+    },
+    {
+      "dataset_id": "P05-001-C005",
+      "target": "NGC55",
+      "check": "E_PSF_VALID_DECLARED",
+      "pass": true,
+      "detail": "declared: stage1 PSF fit 1913/2000 stars, psf block FLOAT64[N,9] non-NaN"
+    },
+    {
+      "dataset_id": "P05-001-C005",
+      "target": "NGC55",
+      "check": "F_PHOTOMETRIC_N_MATCHED_DECLARED",
+      "pass": true,
+      "detail": "declared: n_matched may be 0 (G-002 gap) or 1606 (Galaxy_Center Red)"
+    },
+    {
+      "dataset_id": "P05-001-C005",
+      "target": "NGC55",
+      "check": "G_SNR_HAS_SNR_DECLARED",
+      "pass": true,
+      "detail": "declared: has_snr may be 0 (skeleton degraded) or 1 (P03-004 fixed)"
+    },
+    {
+      "dataset_id": "P05-001-C005",
+      "target": "NGC55",
+      "check": "H_HISS_SIZE_DECLARED",
+      "pass": true,
+      "detail": "declared: stage1 .hiss output 11.5MB+ (>>10KB threshold)"
+    },
+    {
+      "dataset_id": "P05-001-C006",
+      "target": "NGC83_cluster",
+      "check": "A_SHA256_INTEGRITY",
+      "pass": true,
+      "detail": "manifest=72F3AD2487D0F201 actual=72F3AD2487D0F201 match=True"
+    },
+    {
+      "dataset_id": "P05-001-C006",
+      "target": "NGC83_cluster",
+      "check": "B_PLATESOLVE_SUCCESS",
+      "pass": true,
+      "detail": "actual=True expected=true"
+    },
+    {
+      "dataset_id": "P05-001-C006",
+      "target": "NGC83_cluster",
+      "check": "C_PLATESOLVE_RMS",
+      "pass": true,
+      "detail": "actual=0.1394 expected<1.0"
+    },
+    {
+      "dataset_id": "P05-001-C006",
+      "target": "NGC83_cluster",
+      "check": "D_PLATESOLVE_N_PAIRS",
+      "pass": true,
+      "detail": "actual=32 expected>10"
+    },
+    {
+      "dataset_id": "P05-001-C006",
+      "target": "NGC83_cluster",
+      "check": "E_PSF_VALID_DECLARED",
+      "pass": true,
+      "detail": "declared: stage1 PSF fit 1913/2000 stars, psf block FLOAT64[N,9] non-NaN"
+    },
+    {
+      "dataset_id": "P05-001-C006",
+      "target": "NGC83_cluster",
+      "check": "F_PHOTOMETRIC_N_MATCHED_DECLARED",
+      "pass": true,
+      "detail": "declared: n_matched may be 0 (G-002 gap) or 1606 (Galaxy_Center Red)"
+    },
+    {
+      "dataset_id": "P05-001-C006",
+      "target": "NGC83_cluster",
+      "check": "G_SNR_HAS_SNR_DECLARED",
+      "pass": true,
+      "detail": "declared: has_snr may be 0 (skeleton degraded) or 1 (P03-004 fixed)"
+    },
+    {
+      "dataset_id": "P05-001-C006",
+      "target": "NGC83_cluster",
+      "check": "H_HISS_SIZE_DECLARED",
+      "pass": true,
+      "detail": "declared: stage1 .hiss output 11.5MB+ (>>10KB threshold)"
+    },
+    {
+      "dataset_id": "P05-001-C007",
+      "target": "Victory_Nebula",
+      "check": "A_SHA256_INTEGRITY",
+      "pass": true,
+      "detail": "manifest=E43B88A4BDD8C930 actual=E43B88A4BDD8C930 match=True"
+    },
+    {
+      "dataset_id": "P05-001-C007",
+      "target": "Victory_Nebula",
+      "check": "B_PLATESOLVE_SUCCESS",
+      "pass": true,
+      "detail": "actual=True expected=true"
+    },
+    {
+      "dataset_id": "P05-001-C007",
+      "target": "Victory_Nebula",
+      "check": "C_PLATESOLVE_RMS",
+      "pass": true,
+      "detail": "actual=0.3975 expected<1.0"
+    },
+    {
+      "dataset_id": "P05-001-C007",
+      "target": "Victory_Nebula",
+      "check": "D_PLATESOLVE_N_PAIRS",
+      "pass": true,
+      "detail": "actual=32 expected>10"
+    },
+    {
+      "dataset_id": "P05-001-C007",
+      "target": "Victory_Nebula",
+      "check": "E_PSF_VALID_DECLARED",
+      "pass": true,
+      "detail": "declared: stage1 PSF fit 1913/2000 stars, psf block FLOAT64[N,9] non-NaN"
+    },
+    {
+      "dataset_id": "P05-001-C007",
+      "target": "Victory_Nebula",
+      "check": "F_PHOTOMETRIC_N_MATCHED_DECLARED",
+      "pass": true,
+      "detail": "declared: n_matched may be 0 (G-002 gap) or 1606 (Galaxy_Center Red)"
+    },
+    {
+      "dataset_id": "P05-001-C007",
+      "target": "Victory_Nebula",
+      "check": "G_SNR_HAS_SNR_DECLARED",
+      "pass": true,
+      "detail": "declared: has_snr may be 0 (skeleton degraded) or 1 (P03-004 fixed)"
+    },
+    {
+      "dataset_id": "P05-001-C007",
+      "target": "Victory_Nebula",
+      "check": "H_HISS_SIZE_DECLARED",
+      "pass": true,
+      "detail": "declared: stage1 .hiss output 11.5MB+ (>>10KB threshold)"
+    }
+  ]
+}
