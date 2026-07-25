@@ -17,7 +17,7 @@ P03-002,P03,配置参数端到端追踪,P03-001;P02-007,G3,DONE,evidence/P03-002
 P03-003,P03,严格失败与禁止静默跳过,P03-002,G3,DONE,evidence/P03-003
 P03-004,P03,SNR 稀疏模型与 SIP 一致性,P02-007;P03-002,G3,DONE,evidence/P03-004
 P04-001,P04,CLI request 与 effective config,P03-003,G4,DONE,evidence/P04-001
-P04-002,P04,JSONL 事件与稳定错误码,P04-001,G4,TODO,evidence/P04-002
+P04-002,P04,JSONL 事件与稳定错误码,P04-001,G4,DONE,evidence/P04-002
 P04-003,P04,capabilities 与 inspect 命令,P04-002;P01-003,G4,TODO,evidence/P04-003
 P04-004,P04,取消、超时与 partial 输出,P04-002,G4,TODO,evidence/P04-004
 P05-001,P05,真实参考数据集登记,P00-003;P03-003,G5,TODO,evidence/P05-001

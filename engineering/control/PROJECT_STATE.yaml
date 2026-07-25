@@ -1,9 +1,9 @@
 project: AstroCS CLI Core
 state_schema: 1
 current_gate: G4
-current_task: P04-002
+current_task: P04-003
 status: TODO
-last_completed_task: P04-001
+last_completed_task: P04-002
 product_target: CLI Real-Data Core v1
 baseline_tag: astrocs-baseline-p00
 g0_passed: true
@@ -39,4 +39,6 @@ notes:
   - P00-P03 阶段全部完成,G0-G3 gate 通过。进入 P04 CLI 协议阶段。
   - P04-001 DONE (CLI request + effective config + SHA-256 hash + stdout/stderr 分离 + inspect/capabilities 子命令, 234/234 测试通过)。
   - P04-001 残留: 嵌套合并仅顶层覆盖 (留待 P04-002 评估); 真实 stage 成功路径未验证 (留待 P05-002); HISS/HCSD provenance 写入未实现 (留待 P05/P06)。
+  - P04-002 DONE (JSONL 事件 schema 13 种 + 错误码注册表 22 条 + output_jsonl_event_ex + 错误码一致性保证 + 双事件并发向后兼容, 229/229 测试通过, VERDICT: PASS)。
+  - P04-002 残留: TIMEOUT/CANCELLED 未实际触发 (留待 P04-004); 模块特定码 20-28 未实际使用 (留待 P05+); 嵌套合并保持 P04-001 实现 (GUI 暂无需求)。
 last_updated: 2026-07-25
