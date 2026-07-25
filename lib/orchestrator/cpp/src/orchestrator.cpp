@@ -1212,13 +1212,45 @@ void Orchestrator::cleanup_platesolve_env() {
 }
 
 // ============================================================================
+// P02-003 路径 B: callback 导出 sdet_detect_ex 检测结果
+// ============================================================================
+// 路径 B callback 上下文 (POD-like, 供 C callback 通过 user_data 访问)
+// star_det v1 格式: FLOAT64 [N,6] (x_px, y_px, flux, mag, saturated, has_saturated)
+namespace {
+struct PathBCallbackCtx {
+    std::vector<double> detections_buf;  // 复制的检测结果 [N*6]
+    int n_detected = 0;
+    bool copied = false;
+};
+
+// 路径 B callback 函数 (签名匹配 IpvDetectionCallback)
+// 在 sdet_detect_ex 之后、选星之前同步调用; 返回后源指针失效, 必须在此复制
+void path_b_detection_callback(const double* detections, int n_detections, void* user_data) {
+    PathBCallbackCtx* ctx = static_cast<PathBCallbackCtx*>(user_data);
+    if (ctx == nullptr) return;
+    if (detections == nullptr || n_detections <= 0) {
+        ctx->n_detected = 0;
+        ctx->copied = false;
+        return;
+    }
+    // 立即复制检测结果到本地缓冲区 (callback 返回后源指针失效)
+    ctx->detections_buf.assign(
+        detections, detections + static_cast<size_t>(n_detections) * 6);
+    ctx->n_detected = n_detections;
+    ctx->copied = true;
+}
+}  // namespace
+
+// ============================================================================
 // run_stage_platesolve - PLATESOLVE 阶段实现 (ipv_solver.dll 内存接口)
-// 流程:
+// 流程 (P02-003 路径 B: callback 导出):
 //   1. 读取 PipelineFrame "data" 块 (FLOAT32 [H,W])
 //   2. 读取 "header" KV 块的 OBJCTRA/OBJCTDEC/FOCALLEN/XPIXSZ
-//   3. 调用 ipv_solve_from_memory 求解 WCS+SIP
+//   3. 调用 ipv_solve_from_memory_with_callback 求解 WCS+SIP
+//      (内部 sdet_detect_ex 仅调用 1 次, callback 同步导出检测结果)
 //   4. 将 WCS+SIP 结果写回 "header" KV 块
-//   5. (可选) 写入 "star_det" 块 (FLOAT32 [N,4]: x,y,flux,mag)
+//   5. 用 callback 导出的检测结果写入 "star_det" 块 (FLOAT32 [N,4])
+//      (避免原路径在 PLATESOLVE 内显式第二次调用 sdet_detect_ex)
 //   6. (可选) 写入 "gaia_cat" 块 (FLOAT64 [N,3]: ra,dec,mag)
 // 约束: 必须使用 OBJCTRA/OBJCTDEC 作为初始指向, 无论是否已有 WCS 数据
 // ============================================================================
@@ -1302,17 +1334,19 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
     LOG_INFO("orchestrator", "[PLATESOLVE] 焦距=" + std::to_string(focal_length)
              + "mm, 像素尺寸=" + std::to_string(pixel_size) + "um");
 
-    // 3. 调用 ipv_solve_from_memory (内存接口, 无临时文件)
-    auto fn_ipv_solve = dll_loader_.get_function<int (*)(
+    // 3. 调用 ipv_solve_from_memory_with_callback (P02-003 路径 B)
+    //    与 ipv_solve_from_memory 算法等价, 区别: callback 同步导出 sdet_detect_ex 结果
+    //    callback 为 NULL 时行为与 ipv_solve_from_memory 完全一致
+    auto fn_ipv_solve_cb = dll_loader_.get_function<int (*)(
         void*, const float*, int, int, double, double, double, double,
-        const IpvParams*, IpvWcsResult*)>(
-        ModuleId::PLATESOLVE, "ipv_solve_from_memory");
+        const IpvParams*, IpvDetectionCallback, void*, IpvWcsResult*)>(
+        ModuleId::PLATESOLVE, "ipv_solve_from_memory_with_callback");
     auto fn_get_default_params = dll_loader_.get_function<void (*)(IpvParams*)>(
         ModuleId::PLATESOLVE, "ipv_get_default_params");
 
-    if (!fn_ipv_solve || !fn_get_default_params) {
-        LOG_ERROR("orchestrator", "[PLATESOLVE] ipv 函数指针获取失败");
-        result.error_msg = "[PLATESOLVE] ipv 函数指针获取失败";
+    if (!fn_ipv_solve_cb || !fn_get_default_params) {
+        LOG_ERROR("orchestrator", "[PLATESOLVE] ipv 函数指针获取失败 (ipv_solve_from_memory_with_callback)");
+        result.error_msg = "[PLATESOLVE] ipv 函数指针获取失败 (路径B)";
         return false;
     }
 
@@ -1326,11 +1360,18 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
     IpvWcsResult wcs_result;
     std::memset(&wcs_result, 0, sizeof(wcs_result));
 
-    LOG_INFO("orchestrator", "[PLATESOLVE] 调用 ipv_solve_from_memory ...");
-    int ret = fn_ipv_solve(ipv_solver_handle_,
-                           pixels, width, height,
-                           ra0, dec0, focal_length, pixel_size,
-                           &params, &wcs_result);
+    // P02-003 路径 B: callback 上下文, 用于接收 sdet_detect_ex 检测结果
+    PathBCallbackCtx cb_ctx;
+
+    LOG_INFO("orchestrator", "[PLATESOLVE] 调用 ipv_solve_from_memory_with_callback (路径B callback 导出) ...");
+    int ret = fn_ipv_solve_cb(ipv_solver_handle_,
+                              pixels, width, height,
+                              ra0, dec0, focal_length, pixel_size,
+                              &params, path_b_detection_callback, &cb_ctx, &wcs_result);
+
+    LOG_INFO("orchestrator", "[PLATESOLVE] callback 导出: n_detected=" + std::to_string(cb_ctx.n_detected)
+             + ", copied=" + (cb_ctx.copied ? "true" : "false")
+             + ", wcs_result.n_detected=" + std::to_string(wcs_result.n_detected));
 
     if (ret != 1 || wcs_result.success != 1) {
         std::string err = wcs_result.error_msg[0] != '\0'
@@ -1412,79 +1453,43 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
         LOG_INFO("orchestrator", "[PLATESOLVE] 无 SIP 系数 (sip_order=0)");
     }
 
-    // 6. (可选) 写入 star_det 块 (FLOAT32 [N,4]: x, y, flux, mag)
-    //    失败不致命, 仅记录警告
-    if (fn_add_block && fn_remove_block && star_detector_dll_handle_ != nullptr && sdet_handle_ != 0) {
-        HMODULE sdet_h = static_cast<HMODULE>(star_detector_dll_handle_);
-        using sdet_detect_ex_fn = int (*)(StarDetectorHandle, const uint16_t*, int, int,
-            double**, double**, float**, int**, float**, int**, int*,
-            const char**, int, float***);
-        using sdet_free_fn = void (*)(double*, double*, float*, int*, float*, int*, float**, int);
-        auto fn_sdet_detect_ex = reinterpret_cast<sdet_detect_ex_fn>(
-            GetProcAddress(sdet_h, "sdet_detect_ex"));
-        auto fn_sdet_free = reinterpret_cast<sdet_free_fn>(
-            GetProcAddress(sdet_h, "sdet_free_detect_ex"));
-
-        if (fn_sdet_detect_ex && fn_sdet_free) {
-            // 将 float 像素转换为 uint16 (clip 0-65535, 截断)
-            int64_t n_pix = static_cast<int64_t>(width) * height;
-            uint16_t* pixels_u16 = static_cast<uint16_t*>(std::malloc(n_pix * sizeof(uint16_t)));
-            if (pixels_u16 != nullptr) {
-                for (int64_t i = 0; i < n_pix; ++i) {
-                    float v = pixels[i];
-                    if (v < 0.0f) v = 0.0f;
-                    if (v > 65535.0f) v = 65535.0f;
-                    pixels_u16[i] = static_cast<uint16_t>(v);
-                }
-
-                double *out_x = nullptr, *out_y = nullptr;
-                float *out_flux = nullptr, *out_mag = nullptr;
-                int *out_saturated = nullptr, *out_has_saturated = nullptr;
-                int out_count = 0;
-
-                int sdet_ret = fn_sdet_detect_ex(
-                    reinterpret_cast<StarDetectorHandle>(sdet_handle_),
-                    pixels_u16, width, height,
-                    &out_x, &out_y, &out_flux, &out_saturated,
-                    &out_mag, &out_has_saturated, &out_count,
-                    nullptr, 0, nullptr);
-
-                if (sdet_ret == 0 && out_count > 0 && out_x && out_y && out_flux && out_mag) {
-                    // 写入 star_det 块 (FLOAT32 [N,4]: x, y, flux, mag)
-                    int64_t n_stars = out_count;
-                    float* star_det = static_cast<float*>(std::malloc(n_stars * 4 * sizeof(float)));
-                    if (star_det != nullptr) {
-                        for (int i = 0; i < out_count; ++i) {
-                            star_det[i * 4 + 0] = static_cast<float>(out_x[i]);
-                            star_det[i * 4 + 1] = static_cast<float>(out_y[i]);
-                            star_det[i * 4 + 2] = out_flux[i];
-                            star_det[i * 4 + 3] = out_mag[i];
-                        }
-                        int dims[2] = {out_count, 4};
-                        fn_remove_block(frame_, "star_det");
-                        int r = fn_add_block(frame_, "star_det", AIO_BLOCK_FLOAT32,
-                                             star_det, n_stars * 4, dims, 2,
-                                             "星点检测结果: x,y,flux,mag");
-                        if (r == 0) {
-                            LOG_INFO("orchestrator", "[PLATESOLVE] star_det 块已写入: "
-                                     + std::to_string(out_count) + " 颗星");
-                        } else {
-                            LOG_WARN("orchestrator", "[PLATESOLVE] star_det 块写入失败 (add_block ret="
-                                     + std::to_string(r) + ")");
-                        }
-                        std::free(star_det);
-                    }
-                    fn_sdet_free(out_x, out_y, out_flux, out_saturated, out_mag,
-                                 out_has_saturated, nullptr, 0);
-                } else {
-                    LOG_WARN("orchestrator", "[PLATESOLVE] 星点检测未找到星点 (sdet_ret="
-                             + std::to_string(sdet_ret) + ", count=" + std::to_string(out_count) + ")");
-                }
-                std::free(pixels_u16);
+    // 6. 写入 star_det 块 (FLOAT32 [N,4]: x, y, flux, mag)
+    //    P02-003 路径 B: 使用 callback 导出的检测结果 (避免原路径第二次 sdet_detect_ex)
+    //    原路径: ipv_solve_from_memory 内部 sdet_detect_ex (1次) + 此处显式 sdet_detect_ex (2次)
+    //    路径 B: ipv_solve_from_memory_with_callback 内部 sdet_detect_ex (1次) + callback 导出
+    //    sdet_detect_ex 调用次数: 2 -> 1, 减少重复计算和内存占用
+    if (fn_add_block && fn_remove_block && cb_ctx.copied && cb_ctx.n_detected > 0
+        && !cb_ctx.detections_buf.empty()) {
+        int64_t n_stars = cb_ctx.n_detected;
+        float* star_det = static_cast<float*>(std::malloc(n_stars * 4 * sizeof(float)));
+        if (star_det != nullptr) {
+            for (int64_t i = 0; i < n_stars; ++i) {
+                // star_det v1: [x_px, y_px, flux, mag, saturated, has_saturated] (FLOAT64)
+                // star_det 块: [x, y, flux, mag] (FLOAT32, PSF 期望格式)
+                star_det[i * 4 + 0] = static_cast<float>(cb_ctx.detections_buf[i * 6 + 0]);  // x
+                star_det[i * 4 + 1] = static_cast<float>(cb_ctx.detections_buf[i * 6 + 1]);  // y
+                star_det[i * 4 + 2] = static_cast<float>(cb_ctx.detections_buf[i * 6 + 2]);  // flux
+                star_det[i * 4 + 3] = static_cast<float>(cb_ctx.detections_buf[i * 6 + 3]);  // mag
             }
-        } else {
-            LOG_WARN("orchestrator", "[PLATESOLVE] sdet_detect_ex 函数未找到, star_det 块未写入");
+            int dims[2] = {static_cast<int>(n_stars), 4};
+            fn_remove_block(frame_, "star_det");
+            int r = fn_add_block(frame_, "star_det", AIO_BLOCK_FLOAT32,
+                                 star_det, n_stars * 4, dims, 2,
+                                 "星点检测结果 (路径B callback 导出): x,y,flux,mag");
+            if (r == 0) {
+                LOG_INFO("orchestrator", "[PLATESOLVE] star_det 块已写入 (路径B): "
+                         + std::to_string(n_stars) + " 颗星");
+            } else {
+                LOG_WARN("orchestrator", "[PLATESOLVE] star_det 块写入失败 (add_block ret="
+                         + std::to_string(r) + ")");
+            }
+            std::free(star_det);
         }
+    } else {
+        LOG_WARN("orchestrator", "[PLATESOLVE] callback 未导出检测结果 (n_detected="
+                 + std::to_string(cb_ctx.n_detected) + ", copied="
+                 + (cb_ctx.copied ? "true" : "false")
+                 + "), star_det 块未写入 (PSF 将跳过)");
     }
 
     // 7. (可选) 写入 gaia_cat 块 (FLOAT64 [N,3]: ra, dec, mag)
