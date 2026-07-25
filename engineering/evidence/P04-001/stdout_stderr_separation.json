@@ -1,0 +1,6 @@
+{
+  "stdout_first_line": "{",
+  "stdout_is_json": true,
+  "stderr_first_line": "[2026-07-25 17:41:57][INFO][cli] inspect: 检查配置 (不执行实际任务)",
+  "stderr_line_count": 3
+}

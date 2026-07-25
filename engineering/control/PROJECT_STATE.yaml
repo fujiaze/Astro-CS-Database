@@ -1,9 +1,9 @@
 project: AstroCS CLI Core
 state_schema: 1
-current_gate: G1
-current_task: P01-003
-status: IN_PROGRESS
-last_completed_task: P01-002
+current_gate: G4
+current_task: P04-002
+status: TODO
+last_completed_task: P04-001
 product_target: CLI Real-Data Core v1
 baseline_tag: astrocs-baseline-p00
 g0_passed: true
@@ -11,12 +11,32 @@ g0_evidence:
   - P00-001 仓库与环境事实基线 DONE
   - P00-002 恢复并锁定全部模块源码 DONE
   - P00-003 旧 CLI 真实数据基线 DONE (stage1 45s/stage2 7s, sdet_detect_ex×2, G-001/G-002 确认)
+g1_passed: true
+g1_evidence:
+  - P01-001 PipelineFrame 唯一归属决策 DONE (ADR-005)
+  - P01-002 数据块注册表与 schema 校验器 DONE
+  - P01-003 HISS/HCSD 格式版本与 round-trip DONE
+g2_passed: true
+g2_evidence:
+  - P02-001 PlateSolve 全量 TestData 与旧路径基线 DONE
+  - P02-002 共享 detections 候选路径与 star_det v1 DONE
+  - P02-003 PlateSolve 全量 A/B 与路径决策 DONE
+  - P02-004 实施选定 PlateSolve 单次检测路径 DONE
+  - P02-005 Dynamic PSF float32 API DONE
+  - P02-006 Gaia 查询边界与缓存 DONE
+  - P02-007 PlateSolve 无退化与单次检测专项 Gate DONE
+g3_passed: true
+g3_evidence:
+  - P03-001 真实校准输入接线 DONE
+  - P03-002 配置参数端到端追踪 DONE
+  - P03-003 严格失败与禁止静默跳过 DONE
+  - P03-004 SNR 稀疏模型与 SIP 一致性 DONE
 notes:
   - GUI is later and controls CLI through a machine protocol.
   - PlateSolve path changes are conditional on full TestData non-regression; fallback preserves internal detection and exports it to PSF.
   - Preserve existing git configuration and user changes.
   - v1.1 开发包已部署;v1.0 证据归档于 engineering_archive_v1.0/。
-  - P00 阶段全部完成,G0 gate 通过。进入 P01 合约冻结阶段。
-  - P01-001 DONE (ADR-005 PipelineFrame 归属 astro_image_io)。
-  - P01-002 DONE (数据块注册表 10 块 + schema 校验器;发现 star_det FLOAT32[N,4] vs 契约 FLOAT64[N,6] critical 不一致,待 P02-002 修复)。
+  - P00-P03 阶段全部完成,G0-G3 gate 通过。进入 P04 CLI 协议阶段。
+  - P04-001 DONE (CLI request + effective config + SHA-256 hash + stdout/stderr 分离 + inspect/capabilities 子命令, 234/234 测试通过)。
+  - P04-001 残留: 嵌套合并仅顶层覆盖 (留待 P04-002 评估); 真实 stage 成功路径未验证 (留待 P05-002); HISS/HCSD provenance 写入未实现 (留待 P05/P06)。
 last_updated: 2026-07-25

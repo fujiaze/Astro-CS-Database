@@ -1,25 +1,26 @@
-# 当前任务：P03-002 配置参数端到端追踪
+# 当前任务：P04-002 JSONL 事件与稳定错误码
 
-读取 `tasks/P03-002.md` 并执行。追踪所有配置参数从 CLI/config 到各阶段 DLL 入口的端到端传递路径，确保参数无丢失、无静默覆盖。
+读取 `tasks/P04-002.md` 并执行。扩展 JSONL 事件类型 (stage_started/stage_completed/warning)，定义 `ASTROCS_*` 错误码与 HTTP 状态的映射，确保字段和错误码可由未来 GUI 稳定消费。
 
 ## 上一任务完成情况
 
-- P03-001 真实校准输入接线: DONE (VERDICT: PASS)
-  - 证据: evidence/P03-001/
-  - 关键变更: orchestrator.cpp 重写 run_stage_calibrate, stage1_config.json 新增 calibration 段
-  - 6/6 测试通过 (3 正面 + 3 负面), cal_stats KV 块 (22 字段) 正确输出
-  - 残留建议已转移至 P03-003 (严格失败与禁止静默跳过)
+- P04-001 CLI request 与 effective config: DONE (VERDICT: PASS)
+  - 证据: evidence/P04-001/
+  - 关键变更: 新增 cli_request_schema.json + effective_config_schema.json 契约; cli_command.cpp 新增 SHA-256 实现 + JSON 合并工具 + inspect/capabilities/cmd_request 子命令 (+763 行)
+  - 234/234 测试通过 (189 C++ 集成测试 + 45 Python schema 验证)
+  - 兼容性: 0 退化 (Part 1-5 既有测试全通过, P03-003 退出码未变)
+  - 残留建议已转移至 P04-002 (嵌套合并评估) / P04-004 (timeouts 语义) / P05-002 (真实数据端到端验证)
 
-## P03-002 依赖
+## P04-002 依赖
 
-- P03-001 (DONE)
-- P02-007 (DONE)
+- P04-001 (DONE)
 
 ## 执行步骤
 
-1. 列出所有 stage1/stage2 配置参数 (stage1_config.json 全字段)
-2. 追踪每个参数从 CLI -> Orchestrator::load_config -> 各 stage handler -> DLL 入口的传递路径
-3. 标识未消费者 (配置存在但未传入 DLL) 和静默覆盖 (代码硬编码覆盖配置值)
-4. 输出参数追踪矩阵和缺陷清单
+1. 扩展 JSONL 事件类型: stage_started / stage_completed / warning (当前已实现 accepted/completed/failed)
+2. 定义 ASTROCS_* 错误码与 HTTP 状态映射 (供 GUI 消费)
+3. 评估嵌套对象深度合并需求 (若 GUI 需要, 实现 json_merge 递归合并)
+4. 更新 capabilities 输出以反映新事件类型
+5. 编写测试验证新事件类型与错误码
 
 完成独立复核后, 更新状态并进入依赖满足的下一任务。

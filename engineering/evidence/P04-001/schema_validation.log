@@ -1,0 +1,68 @@
+============================================================
+P04-001 JSON Schema 验证 + 端到端语义测试
+============================================================
+
+[Section] 测试 1: schema 文件本身可解析为合法 JSON Schema
+  [PASS] cli_request_schema.json 可解析 (cli_request_schema.json)
+  [PASS] cli_request_schema.json 符合 JSON Schema Draft 2020-12 规范
+  [PASS] effective_config_schema.json 可解析 (effective_config_schema.json)
+  [PASS] effective_config_schema.json 符合 JSON Schema Draft 2020-12 规范
+
+[Section] 测试 2: 合法 request 样例通过 cli_request_schema
+  [PASS] 合法: stage1 最小合法 request
+  [PASS] 合法: stage2 with frame
+  [PASS] 合法: stage2 with inputs 数组
+  [PASS] 合法: stage1 + job_id + config(inline) + overrides
+  [PASS] 合法: inspect command
+  [PASS] 合法: capabilities command
+  [PASS] 合法: config 字段为文件路径字符串
+
+[Section] 测试 3: 非法 request 样例被 cli_request_schema 拒绝
+  [PASS] 非法被正确拒绝: 缺少 schema_version
+  [PASS] 非法被正确拒绝: 缺少 command
+  [PASS] 非法被正确拒绝: 缺少 output
+  [PASS] 非法被正确拒绝: command 不在 enum 中
+  [PASS] 非法被正确拒绝: schema_version 非 1
+  [PASS] 非法被正确拒绝: stage1 缺少 frame (allOf 条件)
+  [PASS] 非法被正确拒绝: stage2 缺少 frame 和 inputs
+  [PASS] 非法被正确拒绝: inputs 为空数组 (minItems=1)
+  [PASS] 非法被正确拒绝: 额外字段 (additionalProperties=false)
+  [PASS] 非法被正确拒绝: timeouts 值为 0 (exclusiveMinimum=0)
+
+[Section] 测试 4: orchestrator inspect 实际输出通过 effective_config_schema
+  [PASS] inspect 输出通过 effective_config_schema 校验
+  [PASS] effective_config.schema_version == 1
+  [PASS] effective_config.command == stage1
+  [PASS] effective_config.job_id 一致
+  [PASS] effective_config.config 是对象
+  [PASS] effective_config.sources 是对象
+  [PASS] effective_config_hash 符合 ^[0-9a-f]{64}$ 格式 (前12位: 2f02216a9313...)
+  [PASS] sources 所有值都在 {'overrides', 'cli', 'config', 'default'} 中
+  [PASS] effective_config.created_at 非空
+  [INFO] 实际输出已保存: f:\Astro dev\Astro CS Normalization Database\engineering\evidence\P04-001\cli_request_effective_config.json
+
+[Section] 测试 5: 配置优先级语义深度验证 (default < config < overrides < cli)
+  [PASS] threads=8 (overrides 覆盖 config=4), 实际=8
+  [PASS] sources.threads=overrides, 实际=overrides
+  [PASS] log_level=WARN (overrides), 实际=WARN
+  [PASS] sources.log_level=overrides, 实际=overrides
+  [PASS] gaia_data_dir=config_specified (config 覆盖 default), 实际=config_specified_gaia_dir
+  [PASS] sources.gaia_data_dir=config, 实际=config
+  [PASS] calibration_dir=default 值, 实际=testdata/T4 calibration files
+  [PASS] sources.calibration_dir=default, 实际=default
+
+[Section] 测试 6: SHA-256 hash 一致性 (相同输入产生相同 hash)
+  [PASS] 3 次 inspect hash 全部一致: 97ddcbe9920a1929f602001ff3b7dfd80bf168b2b75f1ff668f013898dd92446
+  [PASS] hash 长度 64: 64
+
+[Section] 测试 7: stdout/stderr 严格分离 (stdout=JSON, stderr=日志)
+  [PASS] inspect 退出码 0, 实际=0
+  [PASS] stdout 可解析为 JSON (机器可读)
+  [PASS] stderr 非空 (日志输出)
+  [PASS] stderr 包含模块名 (cli/inspect), 实际前 200 字符: '[2026-07-25 17:33:49][INFO][cli] inspect: 检查配置 (不执行实际任务)\n[2026-07-25 17:33:49][INFO][cli] inspect: effective_config_hash=e335cfa2621cbae77d826528464f35569bbd64e56df45272a866f09fd4cbdff7\n'
+  [PASS] stdout 不含日志格式标记 ([INFO]/[WARN]/[ERROR]/[DEBUG])
+  [INFO] 分离证据已保存: f:\Astro dev\Astro CS Normalization Database\engineering\evidence\P04-001\stdout_stderr_separation.json
+
+============================================================
+测试汇总: 45 通过, 0 失败
+============================================================

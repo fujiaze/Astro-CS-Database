@@ -2,3 +2,4 @@
 *.exe
 logs/
 build/
+nul

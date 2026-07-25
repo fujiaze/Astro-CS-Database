@@ -63,6 +63,7 @@ static int g_fail_count = 0;
     } while (0)
 
 #define ASSERT_EQ(a, b, msg) ASSERT_TRUE((a) == (b), msg)
+#define ASSERT_FALSE(cond, msg) ASSERT_TRUE(!(cond), msg)
 #define ASSERT_CONTAINS(str, substr, msg) \
     ASSERT_TRUE((str).find(substr) != std::string::npos, msg)
 
@@ -979,6 +980,284 @@ void test_part5_logger_integration() {
 }
 
 // ============================================================================
+// Part 6: P04-001 CLI request 与 effective config 测试
+// 验证 --request 模式、配置优先级、effective_config 快照与 hash、stdout/stderr 分离
+// ============================================================================
+void test_part6_p04_001_request_and_effective_config() {
+    TEST_SECTION("Part 6: P04-001 CLI request 与 effective config");
+
+    std::string exe = find_orchestrator_exe();
+
+    // 创建临时目录用于测试 fixtures
+    TempDir tmp("p04_001_fixtures_");
+    std::string tmpdir = tmp.path();
+
+    // ---- 测试 1: capabilities 子命令输出 JSON 能力声明 ----
+    {
+        ExecResult r = exec_command(exe + " capabilities");
+        ASSERT_EQ(r.exit_code, 0, "capabilities 退出码为 0");
+        ASSERT_CONTAINS(r.stdout_output, "schema_version", "capabilities 输出包含 schema_version");
+        ASSERT_CONTAINS(r.stdout_output, "commands", "capabilities 输出包含 commands 数组");
+        ASSERT_CONTAINS(r.stdout_output, "stage1", "capabilities 输出包含 stage1");
+        ASSERT_CONTAINS(r.stdout_output, "stage2", "capabilities 输出包含 stage2");
+        ASSERT_CONTAINS(r.stdout_output, "inspect", "capabilities 输出包含 inspect");
+        ASSERT_CONTAINS(r.stdout_output, "config_priority", "capabilities 输出包含 config_priority");
+        ASSERT_CONTAINS(r.stdout_output, "exit_codes", "capabilities 输出包含 exit_codes");
+        ASSERT_CONTAINS(r.stdout_output, "stdout_format", "capabilities 输出包含 stdout_format");
+        ASSERT_CONTAINS(r.stdout_output, "jsonl", "capabilities stdout_format=jsonl");
+        ASSERT_CONTAINS(r.stdout_output, "stderr_format", "capabilities 输出包含 stderr_format");
+    }
+
+    // ---- 测试 2: inspect 缺少 --request 参数返回 CONFIG_ERROR (7) ----
+    {
+        ExecResult r = exec_command(exe + " inspect");
+        ASSERT_EQ(r.exit_code, 7, "inspect 无 --request 退出码为 7 (CONFIG_ERROR)");
+    }
+
+    // ---- 测试 3: inspect 不存在的 request 文件返回 FILE_IO_ERROR (8) ----
+    {
+        ExecResult r = exec_command(exe + " inspect --request Z:/nonexistent_request.json");
+        ASSERT_EQ(r.exit_code, 8, "inspect 不存在文件退出码为 8 (FILE_IO_ERROR)");
+    }
+
+    // ---- 测试 4: inspect 有效 request (stage1 + 内联 config + overrides) ----
+    // 验证 effective_config_hash 格式 (64 位小写十六进制) + 配置优先级合并
+    {
+        std::string req_path = tmpdir + "/req_stage1_inline.json";
+        std::ofstream ofs(req_path);
+        ofs << "{"
+            << "\"schema_version\":1,"
+            << "\"command\":\"stage1\","
+            << "\"job_id\":\"test_job_001\","
+            << "\"frame\":\"nonexistent.fits\","
+            << "\"output\":\"" << tmpdir << "/out.hiss\","
+            << "\"config\":{\"log_level\":\"INFO\",\"threads\":4,\"platesolve\":{\"max_stars\":1500}},"
+            << "\"overrides\":{\"threads\":8,\"log_level\":\"WARN\"}"
+            << "}";
+        ofs.close();
+
+        ExecResult r = exec_command(exe + " inspect --request " + req_path);
+        ASSERT_EQ(r.exit_code, 0, "inspect 有效 request 退出码为 0");
+
+        // 验证 stdout 输出 effective_config JSON
+        ASSERT_CONTAINS(r.stdout_output, "schema_version", "inspect 输出包含 schema_version");
+        ASSERT_CONTAINS(r.stdout_output, "effective_config_hash", "inspect 输出包含 effective_config_hash");
+        ASSERT_CONTAINS(r.stdout_output, "test_job_001", "inspect 输出包含 job_id");
+        ASSERT_CONTAINS(r.stdout_output, "sources", "inspect 输出包含 sources");
+
+        // 验证 effective_config_hash 格式 (64 位小写十六进制)
+        // 在输出中查找 "effective_config_hash": "<64hex>"
+        std::string hash;
+        {
+            std::string key = "\"effective_config_hash\": \"";
+            size_t pos = r.stdout_output.find(key);
+            if (pos != std::string::npos) {
+                size_t start = pos + key.size();
+                size_t end = r.stdout_output.find("\"", start);
+                if (end != std::string::npos) hash = r.stdout_output.substr(start, end - start);
+            }
+        }
+        ASSERT_EQ(hash.size(), 64u, "effective_config_hash 长度为 64");
+        bool hash_ok = !hash.empty();
+        for (char c : hash) {
+            if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'))) { hash_ok = false; break; }
+        }
+        ASSERT_TRUE(hash_ok, "effective_config_hash 全部为小写十六进制");
+
+        // 验证配置优先级 (overrides 覆盖 config, 覆盖 default)
+        // threads: default=0 -> config=4 -> overrides=8, 期望最终 8, 来源 "overrides"
+        ASSERT_CONTAINS(r.stdout_output, "\"threads\":8", "配置优先级: overrides.threads=8 覆盖 config.threads=4");
+        // log_level: default=INFO -> config=INFO -> overrides=WARN, 期望 "WARN", 来源 "overrides"
+        ASSERT_CONTAINS(r.stdout_output, "\"log_level\":\"WARN\"", "配置优先级: overrides.log_level=WARN 覆盖");
+        // platesolve.max_stars: default=2000 -> config=1500, 期望 1500 (嵌套对象整体覆盖)
+        ASSERT_CONTAINS(r.stdout_output, "1500", "配置优先级: config.platesolve.max_stars=1500 保留");
+        // sources 标记 (输出格式 "key": "value", 含空格)
+        ASSERT_CONTAINS(r.stdout_output, "\"threads\": \"overrides\"", "sources.threads=overrides");
+        ASSERT_CONTAINS(r.stdout_output, "\"log_level\": \"overrides\"", "sources.log_level=overrides");
+        ASSERT_CONTAINS(r.stdout_output, "\"gaia_data_dir\": \"default\"", "sources.gaia_data_dir=default (未被覆盖)");
+    }
+
+    // ---- 测试 5: inspect 同一 request 两次 hash 一致 (幂等性) ----
+    {
+        std::string req_path = tmpdir + "/req_hash_consistency.json";
+        std::ofstream ofs(req_path);
+        ofs << "{"
+            << "\"schema_version\":1,"
+            << "\"command\":\"inspect\","
+            << "\"output\":\"" << tmpdir << "/out.hiss\","
+            << "\"config\":{\"threads\":2,\"log_level\":\"DEBUG\"}"
+            << "}";
+        ofs.close();
+
+        ExecResult r1 = exec_command(exe + " inspect --request " + req_path);
+        ExecResult r2 = exec_command(exe + " inspect --request " + req_path);
+        ASSERT_EQ(r1.exit_code, 0, "inspect hash 测试 1 退出码 0");
+        ASSERT_EQ(r2.exit_code, 0, "inspect hash 测试 2 退出码 0");
+
+        // 提取两次的 hash
+        auto extract_hash = [](const std::string& out) -> std::string {
+            std::string key = "\"effective_config_hash\": \"";
+            size_t pos = out.find(key);
+            if (pos == std::string::npos) return "";
+            size_t start = pos + key.size();
+            size_t end = out.find("\"", start);
+            return (end == std::string::npos) ? "" : out.substr(start, end - start);
+        };
+        std::string h1 = extract_hash(r1.stdout_output);
+        std::string h2 = extract_hash(r2.stdout_output);
+        ASSERT_EQ(h1.size(), 64u, "第一次 hash 长度 64");
+        ASSERT_EQ(h2.size(), 64u, "第二次 hash 长度 64");
+        ASSERT_EQ(h1, h2, "同一 request 两次 inspect hash 一致 (幂等性)");
+    }
+
+    // ---- 测试 6: 不同 config 产生不同 hash ----
+    {
+        std::string req_a = tmpdir + "/req_diff_a.json";
+        std::string req_b = tmpdir + "/req_diff_b.json";
+        std::ofstream oa(req_a);
+        oa << "{\"schema_version\":1,\"command\":\"inspect\",\"output\":\"o.hiss\","
+           << "\"config\":{\"threads\":2}}";
+        oa.close();
+        std::ofstream ob(req_b);
+        ob << "{\"schema_version\":1,\"command\":\"inspect\",\"output\":\"o.hiss\","
+           << "\"config\":{\"threads\":4}}";
+        ob.close();
+
+        ExecResult r1 = exec_command(exe + " inspect --request " + req_a);
+        ExecResult r2 = exec_command(exe + " inspect --request " + req_b);
+
+        auto extract_hash = [](const std::string& out) -> std::string {
+            std::string key = "\"effective_config_hash\": \"";
+            size_t pos = out.find(key);
+            if (pos == std::string::npos) return "";
+            size_t start = pos + key.size();
+            size_t end = out.find("\"", start);
+            return (end == std::string::npos) ? "" : out.substr(start, end - start);
+        };
+        std::string h1 = extract_hash(r1.stdout_output);
+        std::string h2 = extract_hash(r2.stdout_output);
+        ASSERT_TRUE(h1 != h2, "不同 config 产生不同 hash");
+    }
+
+    // ---- 测试 7: --request 模式 stage1 nonexistent.fits 输出 JSONL 事件流 ----
+    // 验证 stdout 全部为 JSONL (每行一个 JSON), 至少有 accepted + failed 事件
+    {
+        std::string req_path = tmpdir + "/req_stage1_run.json";
+        std::ofstream ofs(req_path);
+        ofs << "{"
+            << "\"schema_version\":1,"
+            << "\"command\":\"stage1\","
+            << "\"job_id\":\"job_e2e_001\","
+            << "\"frame\":\"nonexistent_frame.fits\","
+            << "\"output\":\"" << tmpdir << "/out.hiss\","
+            << "\"config\":{\"log_level\":\"ERROR\"}"  // 抑制日志噪音
+            << "}";
+        ofs.close();
+
+        ExecResult r = exec_command(exe + " stage1 --request " + req_path);
+        // frame 不存在, stage1 失败, 退出码非 0
+        ASSERT_TRUE(r.exit_code != 0, "stage1 nonexistent.fits 退出码非 0");
+
+        // stdout 应包含 JSONL 事件
+        ASSERT_CONTAINS(r.stdout_output, "\"type\":\"accepted\"", "stdout 包含 accepted 事件");
+        ASSERT_CONTAINS(r.stdout_output, "\"job_id\":\"job_e2e_001\"", "stdout 事件包含 job_id");
+        ASSERT_CONTAINS(r.stdout_output, "effective_config_hash", "accepted 事件包含 effective_config_hash");
+
+        // 失败时应有 failed 事件 (stage_started + failed, 或直接 failed)
+        bool has_failed = r.stdout_output.find("\"type\":\"failed\"") != std::string::npos;
+        ASSERT_TRUE(has_failed, "stdout 包含 failed 事件");
+    }
+
+    // ---- 测试 8: stdout/stderr 严格分离 ----
+    // stdout 仅包含 JSONL (每行以 { 开头), stderr 包含人类可读日志
+    {
+        std::string req_path = tmpdir + "/req_separation.json";
+        std::ofstream ofs(req_path);
+        ofs << "{"
+            << "\"schema_version\":1,"
+            << "\"command\":\"inspect\","
+            << "\"output\":\"" << tmpdir << "/out.hiss\","
+            << "\"config\":{\"log_level\":\"INFO\"}"
+            << "}";
+        ofs.close();
+
+        ExecResult r = exec_command(exe + " inspect --request " + req_path);
+        ASSERT_EQ(r.exit_code, 0, "separation 测试 inspect 退出码 0");
+
+        // stdout 应为可解析 JSON (顶层 { 开始)
+        ASSERT_FALSE(r.stdout_output.empty(), "stdout 非空");
+        ASSERT_TRUE(r.stdout_output.find("{") == 0 || r.stdout_output.find("\n") != std::string::npos,
+                    "stdout 以 { 开始 (JSON)");
+
+        // stderr 应包含人类可读日志 (含时间戳/级别/模块名)
+        // inspect 至少有一条 LOG_INFO "inspect: 检查配置"
+        ASSERT_FALSE(r.stderr_output.empty(), "stderr 非空 (日志输出到 stderr)");
+        // 日志格式: [时间][级别][模块] 消息
+        ASSERT_TRUE(r.stderr_output.find("inspect") != std::string::npos ||
+                    r.stderr_output.find("cli") != std::string::npos,
+                    "stderr 包含模块名 (inspect/cli)");
+    }
+
+    // ---- 测试 9: request JSON 缺少 command 字段返回 CONFIG_ERROR (7) ----
+    {
+        std::string req_path = tmpdir + "/req_no_command.json";
+        std::ofstream ofs(req_path);
+        ofs << "{\"schema_version\":1,\"output\":\"o.hiss\",\"config\":{}}";
+        ofs.close();
+
+        ExecResult r = exec_command(exe + " inspect --request " + req_path);
+        ASSERT_EQ(r.exit_code, 7, "request 缺少 command 退出码为 7 (CONFIG_ERROR)");
+    }
+
+    // ---- 测试 10: stage1 缺少 --frame 字段返回 CONFIG_ERROR ----
+    {
+        std::string req_path = tmpdir + "/req_stage1_no_frame.json";
+        std::ofstream ofs(req_path);
+        ofs << "{\"schema_version\":1,\"command\":\"stage1\","
+            << "\"output\":\"" << tmpdir << "/out.hiss\"}";
+        ofs.close();
+
+        ExecResult r = exec_command(exe + " stage1 --request " + req_path);
+        ASSERT_EQ(r.exit_code, 7, "stage1 缺少 frame 退出码为 7 (CONFIG_ERROR)");
+        // stdout 应有 failed 事件 + ASTROCS_CONFIG_INVALID
+        ASSERT_CONTAINS(r.stdout_output, "\"type\":\"failed\"", "缺少 frame 时输出 failed 事件");
+        ASSERT_CONTAINS(r.stdout_output, "ASTROCS_CONFIG_INVALID", "错误码为 ASTROCS_CONFIG_INVALID");
+    }
+
+    // ---- 测试 11: CLI 覆盖优先级 (--log-level DEBUG 覆盖 request.config.log_level) ----
+    {
+        std::string req_path = tmpdir + "/req_cli_override.json";
+        std::ofstream ofs(req_path);
+        ofs << "{"
+            << "\"schema_version\":1,"
+            << "\"command\":\"stage1\","
+            << "\"frame\":\"nonexistent.fits\","
+            << "\"output\":\"" << tmpdir << "/out.hiss\","
+            << "\"config\":{\"log_level\":\"INFO\",\"threads\":2}"
+            << "}";
+        ofs.close();
+
+        // 通过 --log-level DEBUG 覆盖 config.log_level=INFO
+        ExecResult r = exec_command(exe + " stage1 --request " + req_path + " --log-level DEBUG");
+        // frame 不存在, 失败
+        ASSERT_TRUE(r.exit_code != 0, "CLI override 测试: frame 不存在失败");
+
+        // 验证 accepted 事件含 effective_config_hash
+        ASSERT_CONTAINS(r.stdout_output, "\"type\":\"accepted\"", "CLI override: 输出 accepted 事件");
+        ASSERT_CONTAINS(r.stdout_output, "effective_config_hash", "CLI override: 含 hash");
+    }
+
+    // ---- 测试 12: capabilities 输出 exit_codes 数组包含全部 9 个码 ----
+    {
+        ExecResult r = exec_command(exe + " capabilities");
+        ASSERT_CONTAINS(r.stdout_output, "\"name\": \"SUCCESS\"", "capabilities 包含 SUCCESS");
+        ASSERT_CONTAINS(r.stdout_output, "\"name\": \"CONFIG_ERROR\"", "capabilities 包含 CONFIG_ERROR");
+        ASSERT_CONTAINS(r.stdout_output, "\"name\": \"FILE_IO_ERROR\"", "capabilities 包含 FILE_IO_ERROR");
+        ASSERT_CONTAINS(r.stdout_output, "\"name\": \"PLATESOLVE_FAILED\"", "capabilities 包含 PLATESOLVE_FAILED");
+    }
+}
+
+// ============================================================================
 // main
 // ============================================================================
 int main(int argc, char* argv[]) {
@@ -992,12 +1271,13 @@ int main(int argc, char* argv[]) {
     std::cout << "Orchestrator CLI 集成测试 (Task 5 - 阶段1)" << std::endl;
     std::cout << "============================================================" << std::endl;
 
-    // 执行 5 个 Part 的测试
+    // 执行 6 个 Part 的测试 (Part 6 = P04-001)
     test_part1_repl_commands();
     test_part2_cli_command();
     test_part3_checkpoint_resume();
     test_part4_dll_loader();
     test_part5_logger_integration();
+    test_part6_p04_001_request_and_effective_config();
 
     // 输出汇总
     std::cout << "\n============================================================" << std::endl;
