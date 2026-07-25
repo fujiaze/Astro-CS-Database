@@ -1,19 +1,23 @@
 # -*- coding: utf-8 -*-
 """
-P02-001 PlateSolve 全量 TestData 批量测试工具
+P02-001 / P02-003 PlateSolve 全量 TestData 批量测试工具
 ================================================
 
 功能:
     轻量级 plate solving 测试工具, 只做:
       1. 读取 FITS 文件头 (OBJCTRA/OBJCTDEC/FOCALLEN/XPIXSZ)
-      2. 调用 ipv_solver.dll 的 ipv_solve (C API)
+      2. 调用 ipv_solver.dll 的 C API
       3. 记录 WCS, 星数, RMS, 耗时
 
     不做 (区别于完整 stage1):
       - 不写 FITS (overwrite=False)
       - 不调用 drizzle, photometric, snr
-      - 不重复调用 sdet_detect_ex (G-001 缺口无关)
       - 不写 star_det/gaia_cat 块
+
+模式 (--mode):
+    old    : 调用 ipv_solve (从文件读, P02-001 旧路径基线)
+    path-b : 调用 ipv_solve_from_memory_with_callback (P02-003 路径B, callback 导出)
+             读 FITS 像素到内存 float32, callback 内复制检测结果 (star_det v1)
 
 依赖:
     lib/plate_solve/python/solve_and_write_wcs.py (复用环境初始化 + FITS 头读取)
@@ -25,12 +29,18 @@ P02-001 PlateSolve 全量 TestData 批量测试工具
             --output-dir engineering/evidence/P02-001/results \\
             --repeat-first 10
 
+    pwsh> python engineering/tools/batch_platesolve_test.py \\
+            --mode path-b \\
+            --manifest engineering/evidence/P02-001/testdata_manifest.json \\
+            --output-dir engineering/evidence/P02-003/results
+
 输出:
     results/frame_<index>.json        每帧单次运行结果
     results/frame_<index>_run<k>.json 前 10 帧 3 次重复性结果
-    results/old_path_baseline.json    汇总基线
+    results/old_path_baseline.json    汇总基线 (mode=old)
+    results/path_b_results.json       汇总基线 (mode=path-b)
 
-作者: P02-001 子 Agent
+作者: P02-001 子 Agent (P02-003 扩展 path-b 模式)
 日期: 2026-07-25
 """
 
@@ -157,11 +167,167 @@ def solve_single_frame(solver, fits_path: str) -> dict:
 
 
 # ============================================================================
+# P02-003 路径 B: 从 FITS 读取像素到内存 (float32, row-major [H,W])
+# ============================================================================
+def read_fits_pixels(fits_path):
+    """读取 FITS 像素数据为 numpy float32 数组 (row-major [H,W])
+
+    参数:
+        fits_path: FITS 文件路径
+
+    返回:
+        tuple: (pixels_float32, width, height)
+            pixels_float32: numpy.ndarray shape=[H,W] dtype=float32 C-contiguous
+            width: 图像宽度 (像素)
+            height: 图像高度 (像素)
+    """
+    import numpy as np
+    from astropy.io import fits
+
+    # memmap=False: FITS 含 BZERO/BSCALE/BLANK 关键字时不支持 memmap
+    with fits.open(fits_path, mode='readonly', memmap=False) as hdul:
+        data = hdul[0].data
+        if data is None:
+            raise RuntimeError("FITS PRIMARY HDU 无数据")
+        # 确保 float32 + C-contiguous + 2D
+        arr = np.asarray(data, dtype=np.float32)
+        if arr.ndim != 2:
+            if arr.ndim == 3 and arr.shape[0] == 1:
+                arr = arr[0]
+            else:
+                raise RuntimeError("FITS 数据非 2D: shape=%s" % (arr.shape,))
+        if not arr.flags['C_CONTIGUOUS']:
+            arr = np.ascontiguousarray(arr)
+    height, width = arr.shape
+    return arr, width, height
+
+
+# ============================================================================
+# P02-003 路径 B: 单帧 plate solve (callback 导出检测结果)
+# ============================================================================
+def solve_single_frame_path_b(solver, fits_path):
+    """对单帧执行 plate solving (路径B: ipv_solve_from_memory_with_callback)
+
+    参数:
+        solver: IPVSolver 实例 (已设置 gaia/detector 句柄)
+        fits_path: FITS 文件路径
+
+    返回:
+        dict: 同 solve_single_frame, 额外含 callback_n_detected
+    """
+    import numpy as np
+
+    t0 = time.perf_counter()
+
+    # 1. 读取 FITS 头获取初始指向
+    try:
+        header_info = read_fits_header(fits_path)
+        ra0 = header_info["ra0"]
+        dec0 = header_info["dec0"]
+        focal_length = header_info["focal_length"]
+        pixel_size = header_info["pixel_size"]
+    except Exception as e:
+        return {
+            "success": False,
+            "duration_sec": time.perf_counter() - t0,
+            "error": "read_fits_header 失败: %s" % str(e),
+        }
+
+    # 2. 读取 FITS 像素到内存 (float32)
+    try:
+        pixels, width, height = read_fits_pixels(fits_path)
+    except Exception as e:
+        return {
+            "success": False,
+            "duration_sec": time.perf_counter() - t0,
+            "error": "read_fits_pixels 失败: %s" % str(e),
+            "ra0": ra0, "dec0": dec0,
+            "focal_length_mm": focal_length, "pixel_size_um": pixel_size,
+        }
+
+    # 3. callback 上下文 (记录检测结果)
+    cb_state = {"n_detected": 0, "copied": False, "detections": None}
+
+    def on_detections(detections_arr, n_det, user_data):
+        """路径B callback: 复制检测结果 (callback 返回后源指针失效)"""
+        cb_state["n_detected"] = int(n_det)
+        if detections_arr is not None and n_det > 0:
+            # detections_arr 已是 numpy 数组副本 (ipv_solver.py 的 _trampoline 已 copy)
+            cb_state["detections"] = detections_arr
+            cb_state["copied"] = True
+
+    # 4. 调用 solver.solve_from_memory_with_callback (路径B)
+    try:
+        result = solver.solve_from_memory_with_callback(
+            pixels, width, height,
+            ra0, dec0, focal_length, pixel_size,
+            callback=on_detections, user_data=None,
+        )
+    except Exception as e:
+        return {
+            "success": False,
+            "duration_sec": time.perf_counter() - t0,
+            "error": "solver.solve_from_memory_with_callback 异常: %s" % str(e),
+            "ra0": ra0, "dec0": dec0,
+            "focal_length_mm": focal_length, "pixel_size_um": pixel_size,
+            "callback_n_detected": cb_state["n_detected"],
+        }
+
+    duration = time.perf_counter() - t0
+
+    # 5. 提取 WCS 字段 (与 solve_single_frame 一致)
+    ctype1 = result.ctype1.decode('utf-8', errors='ignore').rstrip('\x00')
+    ctype2 = result.ctype2.decode('utf-8', errors='ignore').rstrip('\x00')
+    if not ctype1:
+        ctype1 = "RA---TAN-SIP" if result.sip_order > 0 else "RA---TAN"
+    if not ctype2:
+        ctype2 = "DEC--TAN-SIP" if result.sip_order > 0 else "DEC--TAN"
+
+    err_msg = result.error_msg.decode("utf-8", errors="ignore").strip()
+
+    return {
+        "success": bool(result.success),
+        "duration_sec": duration,
+        "ra0": ra0, "dec0": dec0,
+        "focal_length_mm": focal_length,
+        "pixel_size_um": pixel_size,
+        "wcs": {
+            "ctype1": ctype1,
+            "ctype2": ctype2,
+            "crval1": float(result.crval[0]),
+            "crval2": float(result.crval[1]),
+            "crpix1": float(result.crpix[0]),
+            "crpix2": float(result.crpix[1]),
+            "cd1_1": float(result.cd[0]),
+            "cd1_2": float(result.cd[1]),
+            "cd2_1": float(result.cd[2]),
+            "cd2_2": float(result.cd[3]),
+            "sip_order": int(result.sip_order),
+            "sip_ap_order": int(result.sip_ap_order),
+            "sip_a": list(result.sip_a),
+            "sip_b": list(result.sip_b),
+            "sip_ap": list(result.sip_ap),
+            "sip_bp": list(result.sip_bp),
+        },
+        "n_pairs": int(result.n_pairs),
+        "n_detected": int(result.n_detected),
+        "n_catalog": int(result.n_catalog),
+        "rms_px": float(result.rms_px),
+        "rms_arcsec": float(result.rms_arcsec),
+        "trans_order": int(result.trans_order),
+        "best_inliers": int(result.best_inliers),
+        "error_msg": err_msg,
+        "callback_n_detected": cb_state["n_detected"],
+        "callback_copied": bool(cb_state["copied"]),
+    }
+
+
+# ============================================================================
 # 主入口
 # ============================================================================
 def main():
     parser = argparse.ArgumentParser(
-        description="P02-001 PlateSolve 全量 TestData 批量测试工具",
+        description="P02-001/P02-003 PlateSolve 全量 TestData 批量测试工具",
     )
     parser.add_argument(
         "--manifest", required=True,
@@ -170,6 +336,10 @@ def main():
     parser.add_argument(
         "--output-dir", required=True,
         help="结果输出目录 (results/)",
+    )
+    parser.add_argument(
+        "--mode", choices=["old", "path-b"], default="old",
+        help="求解模式: old=ipv_solve(文件) / path-b=ipv_solve_from_memory_with_callback(路径B)",
     )
     parser.add_argument(
         "--repeat-first", type=int, default=10,
@@ -202,10 +372,25 @@ def main():
     if args.limit > 0:
         frames = frames[:args.limit]
 
+    # 选择求解函数 (P02-003 路径 B)
+    if args.mode == "path-b":
+        solve_fn = solve_single_frame_path_b
+        mode_label = "路径B (callback 导出)"
+        summary_filename = "path_b_results.json"
+        task_id = "P02-003"
+        task_name = "PlateSolve 全量 TestData 路径B (callback 导出) (v1.1 开发包)"
+    else:
+        solve_fn = solve_single_frame
+        mode_label = "旧路径 (ipv_solve)"
+        summary_filename = "old_path_baseline.json"
+        task_id = "P02-001"
+        task_name = "PlateSolve 全量 TestData 旧路径基线 (v1.1 开发包)"
+
     n_total = len(frames)
     print("=" * 60)
-    print("P02-001 PlateSolve 全量 TestData 批量测试")
+    print("P02-003 PlateSolve 全量 TestData 批量测试 [%s]" % mode_label)
     print("=" * 60)
+    print("模式: %s (--mode %s)" % (mode_label, args.mode))
     print("总帧数: %d" % n_total)
     print("前 %d 帧重复 3 次" % args.repeat_first)
     print("输出目录: %s" % args.output_dir)
@@ -231,7 +416,7 @@ def main():
         fits_path = os.path.join(PROJECT_ROOT, fr["filepath"])
 
         # 单次运行
-        result = solve_single_frame(solver, fits_path)
+        result = solve_fn(solver, fits_path)
         result["index"] = idx
         result["case_id"] = fr["case_id"]
         result["target_name"] = fr["target_name"]
@@ -253,7 +438,7 @@ def main():
         if i <= args.repeat_first:
             runs = [result]
             for run_idx in (2, 3):
-                r2 = solve_single_frame(solver, fits_path)
+                r2 = solve_fn(solver, fits_path)
                 r2["index"] = idx
                 r2["case_id"] = fr["case_id"]
                 r2["target_name"] = fr["target_name"]
@@ -413,10 +598,12 @@ def main():
     # ============================================================================
     summary = {
         "_meta": {
-            "task_id": "P02-001",
-            "task_name": "PlateSolve 全量 TestData 旧路径基线 (v1.1 开发包)",
+            "task_id": task_id,
+            "task_name": task_name,
             "phase": "P02",
             "gate": "G2",
+            "mode": args.mode,
+            "mode_label": mode_label,
             "commit_base": manifest["_meta"]["commit_base"],
             "manifest_sha256": manifest["_meta"]["manifest_sha256"],
             "total_frames": n_total,
@@ -463,12 +650,14 @@ def main():
                 "crval1": r["wcs"]["crval1"] if r["success"] and "wcs" in r else None,
                 "crval2": r["wcs"]["crval2"] if r["success"] and "wcs" in r else None,
                 "sip_order": r["wcs"]["sip_order"] if r["success"] and "wcs" in r else 0,
+                "callback_n_detected": r.get("callback_n_detected", None),
+                "callback_copied": r.get("callback_copied", None),
             }
             for r in all_results
         ],
     }
 
-    out_summary = os.path.join(args.output_dir, "..", "old_path_baseline.json")
+    out_summary = os.path.join(args.output_dir, "..", summary_filename)
     out_summary = os.path.normpath(out_summary)
     with open(out_summary, "w", encoding="utf-8") as f:
         json.dump(summary, f, ensure_ascii=False, indent=2, default=str)
@@ -479,7 +668,7 @@ def main():
     # 摘要打印
     print("")
     print("=" * 60)
-    print("P02-001 PlateSolve 全量基线 - 摘要")
+    print("PlateSolve 全量基线 [%s] - 摘要" % mode_label)
     print("=" * 60)
     print("总帧数: %d" % n_total)
     print("成功: %d  失败: %d  成功率: %.2f%%" % (n_success, n_fail, success_rate * 100))
