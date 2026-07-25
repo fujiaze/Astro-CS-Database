@@ -1,0 +1,2 @@
+[2026-07-25 18:20:55][INFO][cli] inspect: 检查配置 (不执行实际任务)
+[2026-07-25 18:20:55][ERROR][cli] request 文件不存在: Z:/nonexistent_req.json

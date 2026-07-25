@@ -97,6 +97,26 @@ private:
                                    const std::string& result_json = "",
                                    const std::string& error_json = "");
 
+    // P04-002: 扩展 JSONL 事件输出 (含数字 exit_code + 持续时间 + 关键指标)
+    // 输出字段: schema_version/type/job_id/timestamp/stage/duration_ms/status/
+    //           progress/message/result/error/exit_code/effective_config_hash
+    // 用于 stage_start/stage_end/result/error/warning/progress 事件
+    // exit_code: -1 表示不输出该字段; >=0 时输出 (error/failed 事件)
+    // duration_ms: -1 表示不输出; >=0 时输出 (stage_end/stage_completed)
+    // status: "" 表示不输出; "ok"/"failed"/"degraded" 时输出
+    // extra_json: 额外字段 JSON 片段 (如 ",\"rms_arcsec\":0.33,\"n_pairs\":45")
+    static void output_jsonl_event_ex(const std::string& event_type,
+                                      const std::string& job_id,
+                                      const std::string& stage = "",
+                                      double progress = -1.0,
+                                      const std::string& message = "",
+                                      const std::string& result_json = "",
+                                      const std::string& error_json = "",
+                                      int exit_code = -1,
+                                      double duration_ms = -1.0,
+                                      const std::string& status = "",
+                                      const std::string& extra_json = "");
+
     // P04-001: 计算有效配置 (合并 default + config + overrides + cli)
     // 返回 EffectiveConfig (含 SHA-256 hash)
     static EffectiveConfig compute_effective_config(

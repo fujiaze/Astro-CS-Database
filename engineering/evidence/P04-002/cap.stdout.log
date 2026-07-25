@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "commands": ["run", "run-batch", "stage1", "stage2", "inspect", "capabilities", "status"],
+  "request_commands": ["stage1", "stage2", "inspect"],
+  "config_sources": ["cli", "overrides", "config", "default"],
+  "config_priority": ["cli", "overrides", "config", "default"],
+  "exit_codes": [
+    {"numeric_code": 0, "name": "SUCCESS", "code": "ASTROCS_SUCCESS"},
+    {"numeric_code": 1, "name": "GENERIC_ERROR", "code": "ASTROCS_INTERNAL"},
+    {"numeric_code": 2, "name": "DLL_LOAD_FAILED", "code": "ASTROCS_MODULE_MISSING"},
+    {"numeric_code": 3, "name": "BLOCK_MISSING", "code": "ASTROCS_BLOCK_MISSING"},
+    {"numeric_code": 4, "name": "CALIBRATE_FAILED", "code": "ASTROCS_CALIBRATION_MISSING"},
+    {"numeric_code": 5, "name": "PLATESOLVE_FAILED", "code": "ASTROCS_PLATESOLVE_FAILED"},
+    {"numeric_code": 6, "name": "DRIZZLE_FAILED", "code": "ASTROCS_DRIZZLE_FAILED"},
+    {"numeric_code": 7, "name": "CONFIG_ERROR", "code": "ASTROCS_CONFIG_INVALID"},
+    {"numeric_code": 8, "name": "FILE_IO_ERROR", "code": "ASTROCS_FILE_IO_ERROR"},
+    {"numeric_code": 9, "name": "TIMEOUT", "code": "ASTROCS_TIMEOUT"},
+    {"numeric_code": 10, "name": "CANCELLED", "code": "ASTROCS_CANCELLED"}
+  ],
+  "events": ["accepted", "stage_started", "stage_start", "stage_completed", "stage_end", "progress", "quality_metric", "warning", "result", "error", "failed", "cancelled", "completed"],
+  "stdout_format": "jsonl",
+  "stderr_format": "human_readable_log",
+  "jsonl_schema": "engineering/contracts/jsonl_event_schema.json",
+  "error_code_registry": "engineering/contracts/error_code_registry.csv"
+}

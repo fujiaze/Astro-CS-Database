@@ -1258,6 +1258,210 @@ void test_part6_p04_001_request_and_effective_config() {
 }
 
 // ============================================================================
+// Part 7: P04-002 JSONL 事件与稳定错误码测试
+// 验证 stage_start/stage_end/result/error 事件, 数字 exit_code, JSONL 可解析性
+// ============================================================================
+void test_part7_p04_002_jsonl_events_and_error_codes() {
+    TEST_SECTION("Part 7: P04-002 JSONL 事件与稳定错误码");
+
+    std::string exe = find_orchestrator_exe();
+    TempDir tmp("p04_002_fixtures_");
+    std::string tmpdir = tmp.path();
+
+    // ---- 测试 1: capabilities 输出含 numeric_code + TIMEOUT + CANCELLED ----
+    {
+        ExecResult r = exec_command(exe + " capabilities");
+        ASSERT_EQ(r.exit_code, 0, "capabilities 退出码为 0");
+        ASSERT_CONTAINS(r.stdout_output, "numeric_code", "capabilities 包含 numeric_code 字段");
+        ASSERT_CONTAINS(r.stdout_output, "\"name\": \"TIMEOUT\"", "capabilities 包含 TIMEOUT (P04-002 新增)");
+        ASSERT_CONTAINS(r.stdout_output, "\"name\": \"CANCELLED\"", "capabilities 包含 CANCELLED (P04-002 新增)");
+        ASSERT_CONTAINS(r.stdout_output, "\"code\": \"ASTROCS_CONFIG_INVALID\"", "capabilities 包含字符串 code ASTROCS_CONFIG_INVALID");
+        ASSERT_CONTAINS(r.stdout_output, "stage_start", "capabilities events 含 stage_start");
+        ASSERT_CONTAINS(r.stdout_output, "stage_end", "capabilities events 含 stage_end");
+        ASSERT_CONTAINS(r.stdout_output, "\"error\"", "capabilities events 含 error");
+        ASSERT_CONTAINS(r.stdout_output, "\"result\"", "capabilities events 含 result");
+        ASSERT_CONTAINS(r.stdout_output, "jsonl_schema", "capabilities 含 jsonl_schema 路径");
+        ASSERT_CONTAINS(r.stdout_output, "error_code_registry", "capabilities 含 error_code_registry 路径");
+    }
+
+    // ---- 测试 2: --request stage1 失败输出 error 事件含数字 exit_code ----
+    {
+        std::string req_path = tmpdir + "/req_stage1_fail.json";
+        std::ofstream ofs(req_path);
+        ofs << "{"
+            << "\"schema_version\":1,"
+            << "\"command\":\"stage1\","
+            << "\"job_id\":\"job_p04002_err_001\","
+            << "\"frame\":\"nonexistent_frame.fits\","
+            << "\"output\":\"" << tmpdir << "/out.hiss\","
+            << "\"config\":{\"log_level\":\"ERROR\"}"
+            << "}";
+        ofs.close();
+
+        ExecResult r = exec_command(exe + " stage1 --request " + req_path);
+        ASSERT_TRUE(r.exit_code != 0, "stage1 nonexistent.fits 退出码非 0");
+
+        // stdout 应含新事件类型 stage_start
+        ASSERT_CONTAINS(r.stdout_output, "\"type\":\"stage_start\"", "stdout 含 stage_start 事件");
+        ASSERT_CONTAINS(r.stdout_output, "\"type\":\"stage_end\"", "stdout 含 stage_end 事件 (失败时也输出)");
+        ASSERT_CONTAINS(r.stdout_output, "\"type\":\"error\"", "stdout 含 error 事件");
+        ASSERT_CONTAINS(r.stdout_output, "\"type\":\"failed\"", "stdout 含 failed 事件 (向后兼容)");
+
+        // error 事件含数字 exit_code (顶层)
+        ASSERT_CONTAINS(r.stdout_output, "\"exit_code\":", "stdout 含数字 exit_code 字段");
+
+        // error.numeric_code 字段
+        ASSERT_CONTAINS(r.stdout_output, "\"numeric_code\":", "error JSON 含 numeric_code 字段");
+
+        // 失败 stage1 nonexistent -> FILE_IO_ERROR(8) 或 GENERIC_ERROR(1)
+        // 注意: 真实环境 DLL 加载失败可能返回 2 (DLL_LOAD_FAILED)
+        bool has_valid_exit_code = (r.stdout_output.find("\"exit_code\":1") != std::string::npos ||
+                                    r.stdout_output.find("\"exit_code\":2") != std::string::npos ||
+                                    r.stdout_output.find("\"exit_code\":3") != std::string::npos ||
+                                    r.stdout_output.find("\"exit_code\":8") != std::string::npos);
+        ASSERT_TRUE(has_valid_exit_code, "exit_code 在 {1,2,3,8} 中");
+    }
+
+    // ---- 测试 3: request 缺少 command 输出 error 事件 + CONFIG_ERROR(7) ----
+    {
+        std::string req_path = tmpdir + "/req_no_cmd.json";
+        std::ofstream ofs(req_path);
+        ofs << "{\"schema_version\":1,\"output\":\"o.hiss\",\"config\":{}}";
+        ofs.close();
+
+        ExecResult r = exec_command(exe + " inspect --request " + req_path);
+        ASSERT_EQ(r.exit_code, 7, "request 缺少 command 退出码为 7 (CONFIG_ERROR)");
+        ASSERT_CONTAINS(r.stdout_output, "\"type\":\"error\"", "缺少 command 时输出 error 事件");
+        ASSERT_CONTAINS(r.stdout_output, "\"exit_code\":7", "error 事件 exit_code=7");
+        ASSERT_CONTAINS(r.stdout_output, "\"numeric_code\":7", "error.numeric_code=7");
+        ASSERT_CONTAINS(r.stdout_output, "ASTROCS_CONFIG_INVALID", "error.code=ASTROCS_CONFIG_INVALID");
+    }
+
+    // ---- 测试 4: request 文件不存在输出 error 事件 + FILE_IO_ERROR(8) ----
+    {
+        ExecResult r = exec_command(exe + " stage1 --request Z:/nonexistent_req.json");
+        ASSERT_EQ(r.exit_code, 8, "request 文件不存在退出码为 8 (FILE_IO_ERROR)");
+        ASSERT_CONTAINS(r.stdout_output, "\"type\":\"error\"", "文件不存在时输出 error 事件");
+        ASSERT_CONTAINS(r.stdout_output, "\"exit_code\":8", "error 事件 exit_code=8");
+        ASSERT_CONTAINS(r.stdout_output, "\"numeric_code\":8", "error.numeric_code=8");
+        ASSERT_CONTAINS(r.stdout_output, "ASTROCS_INPUT_INVALID", "error.code=ASTROCS_INPUT_INVALID");
+    }
+
+    // ---- 测试 5: stdout 每行可被 JSON 解析 (JSONL 有效性) ----
+    {
+        std::string req_path = tmpdir + "/req_jsonl_valid.json";
+        std::ofstream ofs(req_path);
+        ofs << "{"
+            << "\"schema_version\":1,"
+            << "\"command\":\"stage1\","
+            << "\"job_id\":\"job_jsonl_valid\","
+            << "\"frame\":\"nonexistent.fits\","
+            << "\"output\":\"" << tmpdir << "/out.hiss\","
+            << "\"config\":{\"log_level\":\"ERROR\"}"
+            << "}";
+        ofs.close();
+
+        ExecResult r = exec_command(exe + " stage1 --request " + req_path);
+        ASSERT_TRUE(r.exit_code != 0, "JSONL 有效性测试: stage1 失败");
+
+        // 检查 stdout 每行 (非空) 都以 { 开头并以 } 结尾 (JSONL 单行 JSON)
+        std::istringstream iss(r.stdout_output);
+        std::string line;
+        int json_lines = 0;
+        int bad_lines = 0;
+        while (std::getline(iss, line)) {
+            // 跳过空行
+            if (line.empty()) continue;
+            // 跳过仅含空白字符的行
+            bool all_space = true;
+            for (char c : line) { if (!std::isspace((unsigned char)c)) { all_space = false; break; } }
+            if (all_space) continue;
+            ++json_lines;
+            // 每行必须以 { 开头, 以 } 结尾 (允许尾部 \r)
+            std::string trimmed = line;
+            while (!trimmed.empty() && (trimmed.back() == '\r' || trimmed.back() == ' ' || trimmed.back() == '\t')) {
+                trimmed.pop_back();
+            }
+            if (trimmed.empty() || trimmed.front() != '{' || trimmed.back() != '}') {
+                ++bad_lines;
+                std::cerr << "  [DEBUG] 非 JSONL 行: " << line << std::endl;
+            }
+        }
+        ASSERT_TRUE(json_lines >= 3, "stdout 至少 3 行 JSONL (accepted + stage_start + error)");
+        ASSERT_EQ(bad_lines, 0, "stdout 所有非空行均为有效 JSONL (单行 JSON)");
+    }
+
+    // ---- 测试 6: stderr 仅含人类可读日志, 不含 JSONL 事件 ----
+    {
+        std::string req_path = tmpdir + "/req_stderr.json";
+        std::ofstream ofs(req_path);
+        ofs << "{"
+            << "\"schema_version\":1,"
+            << "\"command\":\"inspect\","
+            << "\"output\":\"" << tmpdir << "/out.hiss\","
+            << "\"config\":{\"log_level\":\"INFO\"}"
+            << "}";
+        ofs.close();
+
+        ExecResult r = exec_command(exe + " inspect --request " + req_path);
+        ASSERT_EQ(r.exit_code, 0, "inspect 退出码 0");
+
+        // stderr 应含日志格式 [时间][级别][模块]
+        ASSERT_FALSE(r.stderr_output.empty(), "stderr 非空");
+        ASSERT_TRUE(r.stderr_output.find("[") != std::string::npos, "stderr 含日志格式 [");
+        ASSERT_TRUE(r.stderr_output.find("INFO") != std::string::npos ||
+                    r.stderr_output.find("ERROR") != std::string::npos,
+                    "stderr 含日志级别");
+
+        // stderr 不应含 JSONL 事件行 (每行不应以 { 开头)
+        std::istringstream iss(r.stderr_output);
+        std::string line;
+        int jsonl_in_stderr = 0;
+        while (std::getline(iss, line)) {
+            std::string trimmed = line;
+            while (!trimmed.empty() && (trimmed.back() == '\r' || trimmed.back() == ' ' || trimmed.back() == '\t')) {
+                trimmed.pop_back();
+            }
+            if (!trimmed.empty() && trimmed.front() == '{' && trimmed.back() == '}') {
+                ++jsonl_in_stderr;
+            }
+        }
+        ASSERT_EQ(jsonl_in_stderr, 0, "stderr 不含完整 JSONL 事件行 (stdout/stderr 严格分离)");
+    }
+
+    // ---- 测试 7: 错误码一致性 (退出码 == error.exit_code == error.numeric_code) ----
+    {
+        std::string req_path = tmpdir + "/req_consistency.json";
+        std::ofstream ofs(req_path);
+        ofs << "{\"schema_version\":1,\"output\":\"o.hiss\",\"config\":{}}";
+        ofs.close();
+
+        ExecResult r = exec_command(exe + " inspect --request " + req_path);
+        // 缺少 command -> CONFIG_ERROR(7)
+        ASSERT_EQ(r.exit_code, 7, "一致性测试: 退出码=7");
+
+        // 从 stdout 提取 exit_code 字段值, 验证与进程退出码一致
+        std::string exit_code_str = "\"exit_code\":";
+        size_t pos = r.stdout_output.find(exit_code_str);
+        ASSERT_TRUE(pos != std::string::npos, "stdout 含 exit_code 字段");
+        size_t val_start = pos + exit_code_str.size();
+        // 解析数字
+        int parsed_exit_code = -1;
+        if (val_start < r.stdout_output.size()) {
+            std::string num;
+            while (val_start < r.stdout_output.size() &&
+                   r.stdout_output[val_start] >= '0' &&
+                   r.stdout_output[val_start] <= '9') {
+                num += r.stdout_output[val_start];
+                ++val_start;
+            }
+            if (!num.empty()) parsed_exit_code = std::atoi(num.c_str());
+        }
+        ASSERT_EQ(parsed_exit_code, 7, "JSONL exit_code == 进程退出码 (7)");
+    }
+}
+
+// ============================================================================
 // main
 // ============================================================================
 int main(int argc, char* argv[]) {
@@ -1271,13 +1475,14 @@ int main(int argc, char* argv[]) {
     std::cout << "Orchestrator CLI 集成测试 (Task 5 - 阶段1)" << std::endl;
     std::cout << "============================================================" << std::endl;
 
-    // 执行 6 个 Part 的测试 (Part 6 = P04-001)
+    // 执行 7 个 Part 的测试 (Part 6 = P04-001, Part 7 = P04-002)
     test_part1_repl_commands();
     test_part2_cli_command();
     test_part3_checkpoint_resume();
     test_part4_dll_loader();
     test_part5_logger_integration();
     test_part6_p04_001_request_and_effective_config();
+    test_part7_p04_002_jsonl_events_and_error_codes();
 
     // 输出汇总
     std::cout << "\n============================================================" << std::endl;

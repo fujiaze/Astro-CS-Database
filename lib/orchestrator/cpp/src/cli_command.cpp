@@ -992,8 +992,61 @@ void CliCommand::output_jsonl_event(const std::string& event_type,
 }
 
 // ============================================================================
+// P04-002: output_jsonl_event_ex - 扩展 JSONL 事件输出
+// 含数字 exit_code + duration_ms + status + 额外字段
+// 用于 stage_start/stage_end/result/error/warning/progress 事件
+// ============================================================================
+void CliCommand::output_jsonl_event_ex(const std::string& event_type,
+                                       const std::string& job_id,
+                                       const std::string& stage,
+                                       double progress,
+                                       const std::string& message,
+                                       const std::string& result_json,
+                                       const std::string& error_json,
+                                       int exit_code,
+                                       double duration_ms,
+                                       const std::string& status,
+                                       const std::string& extra_json) {
+    std::cout << "{";
+    std::cout << "\"schema_version\":1,";
+    std::cout << "\"type\":\"" << json_escape(event_type) << "\",";
+    std::cout << "\"job_id\":\"" << json_escape(job_id) << "\",";
+    std::cout << "\"timestamp\":\"" << get_utc_timestamp() << "\"";
+    if (!stage.empty()) {
+        std::cout << ",\"stage\":\"" << json_escape(stage) << "\"";
+    }
+    if (duration_ms >= 0.0) {
+        std::cout << ",\"duration_ms\":" << duration_ms;
+    }
+    if (!status.empty()) {
+        std::cout << ",\"status\":\"" << json_escape(status) << "\"";
+    }
+    if (progress >= 0.0) {
+        std::cout << ",\"progress\":" << progress;
+    }
+    if (!message.empty()) {
+        std::cout << ",\"message\":\"" << json_escape(message) << "\"";
+    }
+    if (!result_json.empty()) {
+        std::cout << ",\"result\":" << result_json;
+    }
+    if (!error_json.empty()) {
+        std::cout << ",\"error\":" << error_json;
+    }
+    if (exit_code >= 0) {
+        std::cout << ",\"exit_code\":" << exit_code;
+    }
+    if (!extra_json.empty()) {
+        // extra_json 应以 "," 开头, 直接追加
+        std::cout << extra_json;
+    }
+    std::cout << "}" << std::endl;
+}
+
+// ============================================================================
 // P04-001: cmd_inspect - 检查配置, 输出 effective_config (不执行实际任务)
 // stdout 输出 effective_config JSON, stderr 输出日志
+// P04-002: 错误路径输出 JSONL error + failed 事件 (含数字 exit_code)
 // ============================================================================
 int CliCommand::cmd_inspect(const std::string& request_path) {
     LOG_INFO("cli", "inspect: 检查配置 (不执行实际任务)");
@@ -1001,11 +1054,19 @@ int CliCommand::cmd_inspect(const std::string& request_path) {
     // 读取 request JSON
     if (!fs::exists(request_path)) {
         LOG_ERROR("cli", "request 文件不存在: " + request_path);
+        std::string err_json = "{\"code\":\"ASTROCS_INPUT_INVALID\",\"numeric_code\":8,\"message\":\"request file not found\"}";
+        output_jsonl_event_ex("error", "", "", -1.0, "", "", err_json,
+                              AstroCsExitCode::FILE_IO_ERROR);
+        output_jsonl_event("failed", "", "", -1.0, "", "", err_json);
         return AstroCsExitCode::FILE_IO_ERROR;
     }
     std::ifstream ifs(request_path, std::ios::binary);
     if (!ifs.is_open()) {
         LOG_ERROR("cli", "无法打开 request 文件: " + request_path);
+        std::string err_json = "{\"code\":\"ASTROCS_INPUT_INVALID\",\"numeric_code\":8,\"message\":\"cannot open request file\"}";
+        output_jsonl_event_ex("error", "", "", -1.0, "", "", err_json,
+                              AstroCsExitCode::FILE_IO_ERROR);
+        output_jsonl_event("failed", "", "", -1.0, "", "", err_json);
         return AstroCsExitCode::FILE_IO_ERROR;
     }
     std::stringstream ss;
@@ -1038,6 +1099,10 @@ int CliCommand::cmd_inspect(const std::string& request_path) {
 
     if (command.empty()) {
         LOG_ERROR("cli", "request JSON 缺少 command 字段");
+        std::string err_json = "{\"code\":\"ASTROCS_CONFIG_INVALID\",\"numeric_code\":7,\"message\":\"missing command field\"}";
+        output_jsonl_event_ex("error", job_id, "", -1.0, "", "", err_json,
+                              AstroCsExitCode::CONFIG_ERROR);
+        output_jsonl_event("failed", job_id, "", -1.0, "", "", err_json);
         return AstroCsExitCode::CONFIG_ERROR;
     }
 
@@ -1079,6 +1144,7 @@ int CliCommand::cmd_inspect(const std::string& request_path) {
 // ============================================================================
 // P04-001: cmd_capabilities - 查询 CLI 支持的能力
 // stdout 输出 capabilities JSON, stderr 输出日志
+// P04-002: 扩展 exit_codes 含 numeric_code/code/exit_code_match, 事件类型新增
 // ============================================================================
 int CliCommand::cmd_capabilities() {
     LOG_INFO("cli", "capabilities: 查询 CLI 支持的能力");
@@ -1093,21 +1159,31 @@ int CliCommand::cmd_capabilities() {
               << std::endl;
     std::cout << "  \"config_priority\": [\"cli\", \"overrides\", \"config\", \"default\"],"
               << std::endl;
+    // P04-002: exit_codes 扩展为 numeric_code + name + string_code 三元组
     std::cout << "  \"exit_codes\": [" << std::endl;
-    std::cout << "    {\"code\": 0, \"name\": \"SUCCESS\"}," << std::endl;
-    std::cout << "    {\"code\": 1, \"name\": \"GENERIC_ERROR\"}," << std::endl;
-    std::cout << "    {\"code\": 2, \"name\": \"DLL_LOAD_FAILED\"}," << std::endl;
-    std::cout << "    {\"code\": 3, \"name\": \"BLOCK_MISSING\"}," << std::endl;
-    std::cout << "    {\"code\": 4, \"name\": \"CALIBRATE_FAILED\"}," << std::endl;
-    std::cout << "    {\"code\": 5, \"name\": \"PLATESOLVE_FAILED\"}," << std::endl;
-    std::cout << "    {\"code\": 6, \"name\": \"DRIZZLE_FAILED\"}," << std::endl;
-    std::cout << "    {\"code\": 7, \"name\": \"CONFIG_ERROR\"}," << std::endl;
-    std::cout << "    {\"code\": 8, \"name\": \"FILE_IO_ERROR\"}" << std::endl;
+    std::cout << "    {\"numeric_code\": 0, \"name\": \"SUCCESS\", \"code\": \"ASTROCS_SUCCESS\"}," << std::endl;
+    std::cout << "    {\"numeric_code\": 1, \"name\": \"GENERIC_ERROR\", \"code\": \"ASTROCS_INTERNAL\"}," << std::endl;
+    std::cout << "    {\"numeric_code\": 2, \"name\": \"DLL_LOAD_FAILED\", \"code\": \"ASTROCS_MODULE_MISSING\"}," << std::endl;
+    std::cout << "    {\"numeric_code\": 3, \"name\": \"BLOCK_MISSING\", \"code\": \"ASTROCS_BLOCK_MISSING\"}," << std::endl;
+    std::cout << "    {\"numeric_code\": 4, \"name\": \"CALIBRATE_FAILED\", \"code\": \"ASTROCS_CALIBRATION_MISSING\"}," << std::endl;
+    std::cout << "    {\"numeric_code\": 5, \"name\": \"PLATESOLVE_FAILED\", \"code\": \"ASTROCS_PLATESOLVE_FAILED\"}," << std::endl;
+    std::cout << "    {\"numeric_code\": 6, \"name\": \"DRIZZLE_FAILED\", \"code\": \"ASTROCS_DRIZZLE_FAILED\"}," << std::endl;
+    std::cout << "    {\"numeric_code\": 7, \"name\": \"CONFIG_ERROR\", \"code\": \"ASTROCS_CONFIG_INVALID\"}," << std::endl;
+    std::cout << "    {\"numeric_code\": 8, \"name\": \"FILE_IO_ERROR\", \"code\": \"ASTROCS_FILE_IO_ERROR\"}," << std::endl;
+    std::cout << "    {\"numeric_code\": 9, \"name\": \"TIMEOUT\", \"code\": \"ASTROCS_TIMEOUT\"}," << std::endl;
+    std::cout << "    {\"numeric_code\": 10, \"name\": \"CANCELLED\", \"code\": \"ASTROCS_CANCELLED\"}" << std::endl;
     std::cout << "  ]," << std::endl;
-    std::cout << "  \"events\": [\"accepted\", \"stage_started\", \"stage_completed\", "
-              << "\"completed\", \"failed\", \"warning\"]," << std::endl;
+    // P04-002: 事件类型扩展 (含 stage_start/stage_end/error/result/progress/warning)
+    std::cout << "  \"events\": [\"accepted\", \"stage_started\", \"stage_start\", "
+              << "\"stage_completed\", \"stage_end\", \"progress\", \"quality_metric\", "
+              << "\"warning\", \"result\", \"error\", \"failed\", \"cancelled\", \"completed\"],"
+              << std::endl;
     std::cout << "  \"stdout_format\": \"jsonl\"," << std::endl;
-    std::cout << "  \"stderr_format\": \"human_readable_log\"" << std::endl;
+    std::cout << "  \"stderr_format\": \"human_readable_log\"," << std::endl;
+    std::cout << "  \"jsonl_schema\": \"engineering/contracts/jsonl_event_schema.json\","
+              << std::endl;
+    std::cout << "  \"error_code_registry\": \"engineering/contracts/error_code_registry.csv\""
+              << std::endl;
     std::cout << "}" << std::endl;
 
     return AstroCsExitCode::SUCCESS;
@@ -1116,6 +1192,7 @@ int CliCommand::cmd_capabilities() {
 // ============================================================================
 // P04-001: cmd_request - --request 模式入口
 // 解析 request JSON, 合并配置, 输出 JSONL 事件流, 执行任务
+// P04-002: 扩展事件流 (stage_start/stage_end/result/error 含数字 exit_code)
 // ============================================================================
 int CliCommand::cmd_request(const std::string& request_path,
                             const std::map<std::string, std::string>& cli_overrides) {
@@ -1124,14 +1201,18 @@ int CliCommand::cmd_request(const std::string& request_path,
     // 读取 request JSON
     if (!fs::exists(request_path)) {
         LOG_ERROR("cli", "request 文件不存在: " + request_path);
-        std::string err_json = "{\"code\":\"ASTROCS_INPUT_INVALID\",\"message\":\"request file not found\"}";
+        std::string err_json = "{\"code\":\"ASTROCS_INPUT_INVALID\",\"numeric_code\":8,\"message\":\"request file not found\"}";
+        output_jsonl_event_ex("error", "", "", -1.0, "", "", err_json,
+                              AstroCsExitCode::FILE_IO_ERROR);
         output_jsonl_event("failed", "", "", -1.0, "", "", err_json);
         return AstroCsExitCode::FILE_IO_ERROR;
     }
     std::ifstream ifs(request_path, std::ios::binary);
     if (!ifs.is_open()) {
         LOG_ERROR("cli", "无法打开 request 文件: " + request_path);
-        std::string err_json = "{\"code\":\"ASTROCS_INPUT_INVALID\",\"message\":\"cannot open request file\"}";
+        std::string err_json = "{\"code\":\"ASTROCS_INPUT_INVALID\",\"numeric_code\":8,\"message\":\"cannot open request file\"}";
+        output_jsonl_event_ex("error", "", "", -1.0, "", "", err_json,
+                              AstroCsExitCode::FILE_IO_ERROR);
         output_jsonl_event("failed", "", "", -1.0, "", "", err_json);
         return AstroCsExitCode::FILE_IO_ERROR;
     }
@@ -1172,7 +1253,9 @@ int CliCommand::cmd_request(const std::string& request_path,
 
     if (command.empty()) {
         LOG_ERROR("cli", "request JSON 缺少 command 字段");
-        std::string err_json = "{\"code\":\"ASTROCS_CONFIG_INVALID\",\"message\":\"missing command field\"}";
+        std::string err_json = "{\"code\":\"ASTROCS_CONFIG_INVALID\",\"numeric_code\":7,\"message\":\"missing command field\"}";
+        output_jsonl_event_ex("error", job_id, "", -1.0, "", "", err_json,
+                              AstroCsExitCode::CONFIG_ERROR);
         output_jsonl_event("failed", job_id, "", -1.0, "", "", err_json);
         return AstroCsExitCode::CONFIG_ERROR;
     }
@@ -1194,24 +1277,38 @@ int CliCommand::cmd_request(const std::string& request_path,
     // 根据 command 分发
     if (command == "stage1") {
         if (frame.empty()) {
-            std::string err_json = "{\"code\":\"ASTROCS_CONFIG_INVALID\",\"message\":\"stage1 requires frame field\"}";
+            std::string err_json = "{\"code\":\"ASTROCS_CONFIG_INVALID\",\"numeric_code\":7,\"message\":\"stage1 requires frame field\"}";
+            output_jsonl_event_ex("error", job_id, "", -1.0, "", "", err_json,
+                                  AstroCsExitCode::CONFIG_ERROR);
             output_jsonl_event("failed", job_id, "", -1.0, "", "", err_json);
             return AstroCsExitCode::CONFIG_ERROR;
         }
         if (output.empty()) {
-            std::string err_json = "{\"code\":\"ASTROCS_CONFIG_INVALID\",\"message\":\"stage1 requires output field\"}";
+            std::string err_json = "{\"code\":\"ASTROCS_CONFIG_INVALID\",\"numeric_code\":7,\"message\":\"stage1 requires output field\"}";
+            output_jsonl_event_ex("error", job_id, "", -1.0, "", "", err_json,
+                                  AstroCsExitCode::CONFIG_ERROR);
             output_jsonl_event("failed", job_id, "", -1.0, "", "", err_json);
             return AstroCsExitCode::CONFIG_ERROR;
         }
 
-        // stage_started 事件
+        // P04-002: 同时输出 stage_started (旧) 和 stage_start (新, 含 frame)
         output_jsonl_event("stage_started", job_id, "stage1", 0.0, "stage1 started");
+        output_jsonl_event_ex("stage_start", job_id, "stage1", 0.0, "stage1 started",
+                              "", "", -1, -1.0, "",
+                              ",\"frame\":\"" + json_escape(frame) + "\"");
+
+        // 计时开始
+        auto t0 = std::chrono::steady_clock::now();
 
         // 执行 stage1 (使用 ec.config_json 作为配置)
         Orchestrator orch;
         TaskResult r = orch.run_stage1(frame, output, ec.config_json);
 
-        // stage_completed / failed 事件
+        // 计算持续时间
+        auto t1 = std::chrono::steady_clock::now();
+        double duration_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
+
+        // stage_completed / stage_end / result / error 事件
         if (r.success) {
             // 构建 result JSON (含 timings 摘要)
             std::ostringstream result_oss;
@@ -1221,33 +1318,72 @@ int CliCommand::cmd_request(const std::string& request_path,
                        << ",\"effective_config_hash\":\"" << ec.effective_config_hash << "\"}";
             output_jsonl_event("stage_completed", job_id, "stage1", 1.0,
                                "stage1 completed", result_oss.str());
+
+            // P04-002: stage_end 事件 (含 duration_ms + status)
+            output_jsonl_event_ex("stage_end", job_id, "stage1", 1.0,
+                                  "stage1 completed", result_oss.str(), "",
+                                  -1, duration_ms, "ok");
+
+            // P04-002: result 事件 (含 output + hash)
+            // 注: stage1 输出 .hiss 文件, hash 字段为 effective_config_hash (输出文件 hash 需读文件)
+            std::string output_hash = ec.effective_config_hash;  // 使用 ec hash 作为可追溯性 hash
+            output_jsonl_event_ex("result", job_id, "stage1", 1.0,
+                                  "stage1 output produced", "", "",
+                                  -1, -1.0, "ok",
+                                  ",\"output\":\"" + json_escape(output) + "\""
+                                  + ",\"hash\":\"" + output_hash + "\"");
+
             output_jsonl_event("completed", job_id, "", 1.0,
                              "request completed successfully", result_oss.str());
             return AstroCsExitCode::SUCCESS;
         } else {
-            std::string exit_code_str = std::to_string(r.exit_code);
-            std::string err_json = "{\"code\":\"ASTROCS_INTERNAL\",\"message\":\""
-                                 + json_escape(r.error_msg) + "\",\"exit_code\":" + exit_code_str + "}";
+            int ec_exit = r.exit_code != 0 ? r.exit_code : AstroCsExitCode::GENERIC_ERROR;
+            const char* ec_str = AstroCsExitCode::error_code_string(ec_exit);
+            std::string exit_code_str = std::to_string(ec_exit);
+            std::string err_json = "{\"code\":\"" + std::string(ec_str) + "\","
+                                 + "\"numeric_code\":" + exit_code_str + ","
+                                 + "\"message\":\"" + json_escape(r.error_msg) + "\","
+                                 + "\"exit_code\":" + exit_code_str + "}";
+            // P04-002: stage_end 事件 (失败时也输出, 含 duration_ms + status=failed)
+            output_jsonl_event_ex("stage_end", job_id, "stage1", -1.0,
+                                  "stage1 failed", "", err_json,
+                                  ec_exit, duration_ms, "failed");
+            // P04-002: error 事件 (含数字 exit_code)
+            output_jsonl_event_ex("error", job_id, "stage1", -1.0,
+                                  "stage1 failed", "", err_json,
+                                  ec_exit, -1.0, "failed");
             output_jsonl_event("failed", job_id, "stage1", -1.0,
                              "stage1 failed", "", err_json);
-            return r.exit_code != 0 ? r.exit_code : AstroCsExitCode::GENERIC_ERROR;
+            return ec_exit;
         }
     } else if (command == "stage2") {
         if (output.empty()) {
-            std::string err_json = "{\"code\":\"ASTROCS_CONFIG_INVALID\",\"message\":\"stage2 requires output field\"}";
+            std::string err_json = "{\"code\":\"ASTROCS_CONFIG_INVALID\",\"numeric_code\":7,\"message\":\"stage2 requires output field\"}";
+            output_jsonl_event_ex("error", job_id, "", -1.0, "", "", err_json,
+                                  AstroCsExitCode::CONFIG_ERROR);
             output_jsonl_event("failed", job_id, "", -1.0, "", "", err_json);
             return AstroCsExitCode::CONFIG_ERROR;
         }
         if (frame.empty()) {
-            std::string err_json = "{\"code\":\"ASTROCS_CONFIG_INVALID\",\"message\":\"stage2 requires frame (hiss dir) field\"}";
+            std::string err_json = "{\"code\":\"ASTROCS_CONFIG_INVALID\",\"numeric_code\":7,\"message\":\"stage2 requires frame (hiss dir) field\"}";
+            output_jsonl_event_ex("error", job_id, "", -1.0, "", "", err_json,
+                                  AstroCsExitCode::CONFIG_ERROR);
             output_jsonl_event("failed", job_id, "", -1.0, "", "", err_json);
             return AstroCsExitCode::CONFIG_ERROR;
         }
 
         output_jsonl_event("stage_started", job_id, "stage2", 0.0, "stage2 started");
+        output_jsonl_event_ex("stage_start", job_id, "stage2", 0.0, "stage2 started",
+                              "", "", -1, -1.0, "",
+                              ",\"frame\":\"" + json_escape(frame) + "\"");
+
+        auto t0 = std::chrono::steady_clock::now();
 
         Orchestrator orch;
         TaskResult r = orch.run_stage2(frame, output, ec.config_json);
+
+        auto t1 = std::chrono::steady_clock::now();
+        double duration_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
 
         if (r.success) {
             std::ostringstream result_oss;
@@ -1256,16 +1392,36 @@ int CliCommand::cmd_request(const std::string& request_path,
                        << ",\"effective_config_hash\":\"" << ec.effective_config_hash << "\"}";
             output_jsonl_event("stage_completed", job_id, "stage2", 1.0,
                                "stage2 completed", result_oss.str());
+            output_jsonl_event_ex("stage_end", job_id, "stage2", 1.0,
+                                  "stage2 completed", result_oss.str(), "",
+                                  -1, duration_ms, "ok");
+            std::string output_hash = ec.effective_config_hash;
+            output_jsonl_event_ex("result", job_id, "stage2", 1.0,
+                                  "stage2 output produced", "", "",
+                                  -1, -1.0, "ok",
+                                  ",\"output\":\"" + json_escape(output) + "\""
+                                  + ",\"hash\":\"" + output_hash + "\"");
             output_jsonl_event("completed", job_id, "", 1.0,
                              "request completed successfully", result_oss.str());
             return AstroCsExitCode::SUCCESS;
         } else {
-            std::string exit_code_str = std::to_string(r.exit_code);
-            std::string err_json = "{\"code\":\"ASTROCS_INTERNAL\",\"message\":\""
-                                 + json_escape(r.error_msg) + "\",\"exit_code\":" + exit_code_str + "}";
+            int ec_exit = r.exit_code != 0 ? r.exit_code : AstroCsExitCode::GENERIC_ERROR;
+            const char* ec_str = AstroCsExitCode::error_code_string(ec_exit);
+            std::string exit_code_str = std::to_string(ec_exit);
+            std::string err_json = "{\"code\":\"" + std::string(ec_str) + "\","
+                                 + "\"numeric_code\":" + exit_code_str + ","
+                                 + "\"message\":\"" + json_escape(r.error_msg) + "\","
+                                 + "\"exit_code\":" + exit_code_str + "}";
+            // P04-002: stage_end 事件 (失败时也输出)
+            output_jsonl_event_ex("stage_end", job_id, "stage2", -1.0,
+                                  "stage2 failed", "", err_json,
+                                  ec_exit, duration_ms, "failed");
+            output_jsonl_event_ex("error", job_id, "stage2", -1.0,
+                                  "stage2 failed", "", err_json,
+                                  ec_exit, -1.0, "failed");
             output_jsonl_event("failed", job_id, "stage2", -1.0,
                              "stage2 failed", "", err_json);
-            return r.exit_code != 0 ? r.exit_code : AstroCsExitCode::GENERIC_ERROR;
+            return ec_exit;
         }
     } else if (command == "inspect") {
         // inspect 命令: 只输出 effective_config, 不执行任务
@@ -1282,8 +1438,10 @@ int CliCommand::cmd_request(const std::string& request_path,
         cmd_capabilities();
         return AstroCsExitCode::SUCCESS;
     } else {
-        std::string err_json = "{\"code\":\"ASTROCS_CONFIG_INVALID\",\"message\":\"unknown command: "
+        std::string err_json = "{\"code\":\"ASTROCS_CONFIG_INVALID\",\"numeric_code\":7,\"message\":\"unknown command: "
                              + json_escape(command) + "\"}";
+        output_jsonl_event_ex("error", job_id, "", -1.0, "", "", err_json,
+                              AstroCsExitCode::CONFIG_ERROR);
         output_jsonl_event("failed", job_id, "", -1.0, "", "", err_json);
         return AstroCsExitCode::CONFIG_ERROR;
     }

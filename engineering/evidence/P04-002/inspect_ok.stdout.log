@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "command": "inspect",
+  "job_id": "job_sample_002",
+  "effective_config_hash": "e335cfa2621cbae77d826528464f35569bbd64e56df45272a866f09fd4cbdff7",
+  "created_at": "2026-07-25T10:20:55Z",
+  "request_path": "f:\\Astro dev\\Astro CS Normalization Database\\engineering\\evidence\\P04-002\\tmp_capture\\req_inspect.json",
+  "sources": {"calibration": "default", "calibration_dir": "default", "drizzle": "default", "frame": "default", "gaia_data_dir": "default", "log_level": "config", "output_root": "default", "photometric": "default", "platesolve": "default", "psf": "default", "threads": "default"},
+  "config": {"calibration":{"require_size_match":true,"require_exposure_match":true,"exposure_tolerance_s":0.5,"allow_no_calibration":false,"dark_optimization":0,"dark_scale_factor":1.0},"calibration_dir":"testdata/T4 calibration files","drizzle":{"nside_strategy":"1x_to_2x_drizzle","nside_override":0,"pixfrac":1.0,"nested":true},"frame":{"filter":"","qe_curve":""},"gaia_data_dir":"GaiaDR3SP","log_level":"INFO","output_root":"output","photometric":{"mag_min":6.0,"mag_max":16.0,"fov_radius_deg":0.0},"platesolve":{"focal_length":0.0,"pixel_size":0.0,"max_stars":2000},"psf":{"fit_radius":8,"max_iter":100,"tolerance":1.0e-6,"max_stars":2000},"threads":0}
+}

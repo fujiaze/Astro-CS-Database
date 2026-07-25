@@ -75,22 +75,72 @@ enum class TaskState {
 };
 
 // ============================================================================
-// AstroCS 进程退出码 (P03-003)
+// AstroCS 进程退出码 (P03-003 / P04-002 扩展)
 // 必需阶段/DLL/块失败必须返回非零退出码, 禁止静默跳过 (return true on skip)
 // 0=成功; 1=通用错误; 2=DLL 加载失败; 3=必需块缺失;
 // 4=校准失败; 5=PlateSolve 失败; 6=Drizzle 失败;
-// 7=配置错误; 8=文件 I/O 错误
+// 7=配置错误; 8=文件 I/O 错误;
+// 9=超时 (P04-004 用); 10=用户取消 (P04-004 用);
+// 20-29=模块特定非退出码 (star_detect/psf/photometric/snr/stack/hiss/hcsd/abi/input)
+// 100+=模块扩展码 (预留)
+// 与 engineering/contracts/error_code_registry.csv 一致
 // ============================================================================
 namespace AstroCsExitCode {
-    constexpr int SUCCESS          = 0;
-    constexpr int GENERIC_ERROR    = 1;
-    constexpr int DLL_LOAD_FAILED  = 2;
-    constexpr int BLOCK_MISSING    = 3;
-    constexpr int CALIBRATE_FAILED = 4;
+    constexpr int SUCCESS           = 0;
+    constexpr int GENERIC_ERROR     = 1;
+    constexpr int DLL_LOAD_FAILED   = 2;
+    constexpr int BLOCK_MISSING     = 3;
+    constexpr int CALIBRATE_FAILED  = 4;
     constexpr int PLATESOLVE_FAILED = 5;
-    constexpr int DRIZZLE_FAILED   = 6;
-    constexpr int CONFIG_ERROR     = 7;
-    constexpr int FILE_IO_ERROR    = 8;
+    constexpr int DRIZZLE_FAILED    = 6;
+    constexpr int CONFIG_ERROR      = 7;
+    constexpr int FILE_IO_ERROR     = 8;
+    constexpr int TIMEOUT           = 9;   // P04-004: 操作超时
+    constexpr int CANCELLED         = 10;  // P04-004: 用户取消
+
+    // 模块特定非退出码 (20-29, 不直接作为进程退出码, 但出现在 JSONL error.numeric_code)
+    constexpr int STAR_DETECT_FAILED    = 20;
+    constexpr int PSF_FAILED             = 21;
+    constexpr int PHOTOMETRIC_FAILED     = 22;
+    constexpr int SNR_FAILED             = 23;
+    constexpr int STACK_FAILED          = 24;
+    constexpr int HISS_INVALID           = 25;
+    constexpr int HCSD_INVALID           = 26;
+    constexpr int MODULE_ABI_UNSUPPORTED = 27;
+    constexpr int INPUT_INVALID          = 28;
+    constexpr int MODULE_SPECIFIC_BASE   = 100;
+
+    // 字符串错误码 (供 JSONL error.code 字段使用, 稳定契约)
+    inline const char* error_code_string(int code) {
+        switch (code) {
+            case SUCCESS:               return "ASTROCS_SUCCESS";
+            case GENERIC_ERROR:         return "ASTROCS_INTERNAL";
+            case DLL_LOAD_FAILED:       return "ASTROCS_MODULE_MISSING";
+            case BLOCK_MISSING:         return "ASTROCS_BLOCK_MISSING";
+            case CALIBRATE_FAILED:      return "ASTROCS_CALIBRATION_MISSING";
+            case PLATESOLVE_FAILED:     return "ASTROCS_PLATESOLVE_FAILED";
+            case DRIZZLE_FAILED:        return "ASTROCS_DRIZZLE_FAILED";
+            case CONFIG_ERROR:          return "ASTROCS_CONFIG_INVALID";
+            case FILE_IO_ERROR:         return "ASTROCS_FILE_IO_ERROR";
+            case TIMEOUT:               return "ASTROCS_TIMEOUT";
+            case CANCELLED:             return "ASTROCS_CANCELLED";
+            case STAR_DETECT_FAILED:    return "ASTROCS_STAR_DETECT_FAILED";
+            case PSF_FAILED:            return "ASTROCS_PSF_FAILED";
+            case PHOTOMETRIC_FAILED:    return "ASTROCS_PHOTOMETRIC_FAILED";
+            case SNR_FAILED:            return "ASTROCS_SNR_FAILED";
+            case STACK_FAILED:          return "ASTROCS_STACK_FAILED";
+            case HISS_INVALID:          return "ASTROCS_HISS_INVALID";
+            case HCSD_INVALID:          return "ASTROCS_HCSD_INVALID";
+            case MODULE_ABI_UNSUPPORTED: return "ASTROCS_MODULE_ABI_UNSUPPORTED";
+            case INPUT_INVALID:         return "ASTROCS_INPUT_INVALID";
+            default:                    return "ASTROCS_INTERNAL";
+        }
+    }
+
+    // 判断数字 code 是否可作为进程退出码 (0-10)
+    inline bool is_process_exit_code(int code) {
+        return code >= 0 && code <= 10;
+    }
 }
 
 // 阶段耗时记录

@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "source": "engineering/contracts/error_code_registry.csv",
+  "description": "AstroCS stable error code registry for GUI consumption. numeric_code 0-10 are valid process exit codes; 20-28 are module-specific non-exit codes; 100+ is reserved for module-specific extensions.",
+  "exit_codes": [
+    {"numeric_code": 0, "exit_name": "SUCCESS", "code": "ASTROCS_SUCCESS", "category": "internal", "meaning": "operation completed successfully", "retryable": false, "exit_code_match": true},
+    {"numeric_code": 1, "exit_name": "GENERIC_ERROR", "code": "ASTROCS_INTERNAL", "category": "internal", "meaning": "unexpected internal error", "retryable": "maybe", "exit_code_match": true},
+    {"numeric_code": 2, "exit_name": "DLL_LOAD_FAILED", "code": "ASTROCS_MODULE_MISSING", "category": "dependency", "meaning": "required module or DLL missing", "retryable": false, "exit_code_match": true},
+    {"numeric_code": 3, "exit_name": "BLOCK_MISSING", "code": "ASTROCS_BLOCK_MISSING", "category": "dependency", "meaning": "named data block missing in PipelineFrame", "retryable": false, "exit_code_match": true},
+    {"numeric_code": 4, "exit_name": "CALIBRATE_FAILED", "code": "ASTROCS_CALIBRATION_MISSING", "category": "input", "meaning": "required master calibration data unavailable or calibration failed", "retryable": "maybe", "exit_code_match": true},
+    {"numeric_code": 5, "exit_name": "PLATESOLVE_FAILED", "code": "ASTROCS_PLATESOLVE_FAILED", "category": "algorithm", "meaning": "WCS solve failed", "retryable": "maybe", "exit_code_match": true},
+    {"numeric_code": 6, "exit_name": "DRIZZLE_FAILED", "code": "ASTROCS_DRIZZLE_FAILED", "category": "algorithm", "meaning": "HEALPix drizzle failed", "retryable": "maybe", "exit_code_match": true},
+    {"numeric_code": 7, "exit_name": "CONFIG_ERROR", "code": "ASTROCS_CONFIG_INVALID", "category": "request", "meaning": "invalid or incomplete effective configuration", "retryable": false, "exit_code_match": true},
+    {"numeric_code": 8, "exit_name": "FILE_IO_ERROR", "code": "ASTROCS_FILE_IO_ERROR", "category": "input", "meaning": "input/output file operation failed", "retryable": false, "exit_code_match": true},
+    {"numeric_code": 9, "exit_name": "TIMEOUT", "code": "ASTROCS_TIMEOUT", "category": "control", "meaning": "operation timed out", "retryable": "maybe", "exit_code_match": true},
+    {"numeric_code": 10, "exit_name": "CANCELLED", "code": "ASTROCS_CANCELLED", "category": "control", "meaning": "user cancellation", "retryable": false, "exit_code_match": true},
+    {"numeric_code": 20, "exit_name": "STAR_DETECT_FAILED", "code": "ASTROCS_STAR_DETECT_FAILED", "category": "algorithm", "meaning": "star detection failed", "retryable": "maybe", "exit_code_match": false},
+    {"numeric_code": 21, "exit_name": "PSF_FAILED", "code": "ASTROCS_PSF_FAILED", "category": "algorithm", "meaning": "PSF fitting failed", "retryable": "maybe", "exit_code_match": false},
+    {"numeric_code": 22, "exit_name": "PHOTOMETRIC_FAILED", "code": "ASTROCS_PHOTOMETRIC_FAILED", "category": "algorithm", "meaning": "photometric calibration failed", "retryable": "maybe", "exit_code_match": false},
+    {"numeric_code": 23, "exit_name": "SNR_FAILED", "code": "ASTROCS_SNR_FAILED", "category": "algorithm", "meaning": "SNR model generation failed", "retryable": "maybe", "exit_code_match": false},
+    {"numeric_code": 24, "exit_name": "STACK_FAILED", "code": "ASTROCS_STACK_FAILED", "category": "algorithm", "meaning": "gradient/robust stack failed", "retryable": "maybe", "exit_code_match": false},
+    {"numeric_code": 25, "exit_name": "HISS_INVALID", "code": "ASTROCS_HISS_INVALID", "category": "format", "meaning": "HISS write or validation failed", "retryable": false, "exit_code_match": false},
+    {"numeric_code": 26, "exit_name": "HCSD_INVALID", "code": "ASTROCS_HCSD_INVALID", "category": "format", "meaning": "HCSD write or validation failed", "retryable": false, "exit_code_match": false},
+    {"numeric_code": 27, "exit_name": "MODULE_ABI_UNSUPPORTED", "code": "ASTROCS_MODULE_ABI_UNSUPPORTED", "category": "dependency", "meaning": "module capability/ABI version unsupported", "retryable": false, "exit_code_match": false},
+    {"numeric_code": 28, "exit_name": "INPUT_INVALID", "code": "ASTROCS_INPUT_INVALID", "category": "input", "meaning": "input file or data block invalid", "retryable": false, "exit_code_match": false},
+    {"numeric_code": 100, "exit_name": "MODULE_SPECIFIC_BASE", "code": "ASTROCS_MODULE_SPECIFIC", "category": "internal", "meaning": "reserved range for module-specific error codes (100+)", "retryable": "maybe", "exit_code_match": false}
+  ]
+}

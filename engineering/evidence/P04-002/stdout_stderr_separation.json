@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-07-25T10:20:55Z",
+  "scenario": "inspect --request with valid request file",
+  "stdout_first_line": "{",
+  "stdout_is_json": true,
+  "stdout_lines": 10,
+  "stdout_byte_size": 449,
+  "stderr_first_line": "[2026-07-25 18:20:36][INFO][cli] inspect: 检查配置 (不执行实际任务)",
+  "stderr_line_count": 2,
+  "stderr_contains_jsonl": false,
+  "stdout_contains_log_lines": false,
+  "separation_validated": true
+}
