@@ -20,12 +20,53 @@
 #include <chrono>
 #include <ctime>
 #include <iomanip>
+#include <csignal>
+#include <atomic>
 
 #ifdef _WIN32
 #include <windows.h>
 #endif
 
 namespace fs = std::filesystem;
+
+// ============================================================================
+// P04-004: 全局取消信号支持
+// 通过全局指针在 SIGINT/Ctrl+C 信号处理器中调用 orch->request_cancel()
+// 注意: 信号处理器中只能调用 async-signal-safe 函数, atomic store 是安全的
+// ============================================================================
+static std::atomic<Orchestrator*> g_active_orchestrator{nullptr};
+static std::atomic<bool> g_cancel_on_signal_enabled{false};
+
+// P04-004: SIGINT 信号处理器 (Ctrl+C)
+// 设置 cancel_token_, 让正在执行的 stage 在下一个检查点停止
+// 注意: 不能用 extern "C" + static 组合 (C++17 禁止在 linkage specification 中使用 static)
+static void p04004_sigint_handler(int sig) {
+    (void)sig;
+    Orchestrator* orch = g_active_orchestrator.load(std::memory_order_acquire);
+    if (orch != nullptr && g_cancel_on_signal_enabled.load(std::memory_order_acquire)) {
+        orch->request_cancel();
+    }
+}
+
+// P04-004: 注册信号处理器 (在 stage1/stage2 执行前调用)
+// orch: 当前命令使用的 Orchestrator 实例
+// enable_cancel_on_signal: 是否启用 --cancel-on-signal
+static void p04004_register_signal_handler(Orchestrator* orch, bool enable_cancel_on_signal) {
+    g_active_orchestrator.store(orch, std::memory_order_release);
+    g_cancel_on_signal_enabled.store(enable_cancel_on_signal, std::memory_order_release);
+    if (enable_cancel_on_signal) {
+        std::signal(SIGINT, p04004_sigint_handler);
+        LOG_INFO("cli", "P04-004: --cancel-on-signal 已启用, Ctrl+C 将触发取消");
+    }
+}
+
+// P04-004: 注销信号处理器 (在命令完成后调用)
+static void p04004_unregister_signal_handler() {
+    g_active_orchestrator.store(nullptr, std::memory_order_release);
+    g_cancel_on_signal_enabled.store(false, std::memory_order_release);
+    // 恢复默认 SIGINT 处理 (避免影响后续命令)
+    std::signal(SIGINT, SIG_DFL);
+}
 
 // ============================================================================
 // P04-001: SHA-256 纯 C++17 实现 (无外部依赖)
@@ -395,11 +436,13 @@ int CliCommand::execute(int argc, char* argv[]) {
         //     [--gaia-data <dir>] [--calibration-dir <dir>]
         //     [--filter <name>] [--config <json>] [--log-level <LEVEL>]
         //     [--request <file>] (P04-001: request JSON 模式)
+        //     [--cancel-on-signal] (P04-004: Ctrl+C 时取消)
         std::string fits_path, output_hiss;
         std::string config_path, log_level;
         std::string request_path;
         // 以下参数当前仅记录日志 (后续 Task 传入 stage1_config)
         std::string gaia_data, calibration_dir, filter_name;
+        bool cancel_on_signal = false;  // P04-004
 
         for (int i = 2; i < argc; ++i) {
             std::string a = argv[i];
@@ -419,6 +462,8 @@ int CliCommand::execute(int argc, char* argv[]) {
                 log_level = argv[++i];
             } else if (a == "--request" && i + 1 < argc) {
                 request_path = argv[++i];
+            } else if (a == "--cancel-on-signal") {
+                cancel_on_signal = true;  // P04-004
             } else if (a.rfind("--", 0) == 0) {
                 LOG_ERROR("cli", "未知参数: " + a);
                 print_usage();
@@ -437,6 +482,7 @@ int CliCommand::execute(int argc, char* argv[]) {
             if (!gaia_data.empty()) cli_overrides["gaia_data_dir"] = "\"" + gaia_data + "\"";
             if (!calibration_dir.empty()) cli_overrides["calibration_dir"] = "\"" + calibration_dir + "\"";
             if (!filter_name.empty()) cli_overrides["frame.filter"] = "\"" + filter_name + "\"";
+            if (cancel_on_signal) cli_overrides["cancel_on_signal"] = "true";  // P04-004
             return cmd_request(request_path, cli_overrides);
         }
 
@@ -455,7 +501,7 @@ int CliCommand::execute(int argc, char* argv[]) {
         if (!calibration_dir.empty())  LOG_INFO("cli", "stage1 calibration-dir: " + calibration_dir);
         if (!filter_name.empty())      LOG_INFO("cli", "stage1 filter: " + filter_name);
 
-        return cmd_stage1(fits_path, output_hiss, config_path, log_level);
+        return cmd_stage1(fits_path, output_hiss, config_path, log_level, cancel_on_signal);
     }
 
     // spec §2.3.3 stage2: 多帧合并 (.hiss -> .hcsd, stage 8-9)
@@ -463,9 +509,11 @@ int CliCommand::execute(int argc, char* argv[]) {
         // orchestrator stage2 --frames <hiss_dir> --output <hcsd>
         //     [--config <json>] [--log-level <LEVEL>]
         //     [--request <file>] (P04-001: request JSON 模式)
+        //     [--cancel-on-signal] (P04-004: Ctrl+C 时取消)
         std::string hiss_dir, output_hcsd;
         std::string config_path, log_level;
         std::string request_path;
+        bool cancel_on_signal = false;  // P04-004
 
         for (int i = 2; i < argc; ++i) {
             std::string a = argv[i];
@@ -479,6 +527,8 @@ int CliCommand::execute(int argc, char* argv[]) {
                 log_level = argv[++i];
             } else if (a == "--request" && i + 1 < argc) {
                 request_path = argv[++i];
+            } else if (a == "--cancel-on-signal") {
+                cancel_on_signal = true;  // P04-004
             } else if (a.rfind("--", 0) == 0) {
                 LOG_ERROR("cli", "未知参数: " + a);
                 print_usage();
@@ -494,6 +544,7 @@ int CliCommand::execute(int argc, char* argv[]) {
         if (!request_path.empty()) {
             std::map<std::string, std::string> cli_overrides;
             if (!log_level.empty()) cli_overrides["log_level"] = "\"" + log_level + "\"";
+            if (cancel_on_signal) cli_overrides["cancel_on_signal"] = "true";  // P04-004
             return cmd_request(request_path, cli_overrides);
         }
 
@@ -508,16 +559,26 @@ int CliCommand::execute(int argc, char* argv[]) {
             return 1;
         }
 
-        return cmd_stage2(hiss_dir, output_hcsd, config_path, log_level);
+        return cmd_stage2(hiss_dir, output_hcsd, config_path, log_level, cancel_on_signal);
     }
 
     // P04-001: inspect 子命令 (检查配置, 输出 effective_config, 不执行实际任务)
+    // P04-003: 扩展支持 --hiss/--hcsd/--frame 检查文件元数据
     if (sub == "inspect") {
         std::string request_path;
+        std::string hiss_path;
+        std::string hcsd_path;
+        std::string frame_path;
         for (int i = 2; i < argc; ++i) {
             std::string a = argv[i];
             if (a == "--request" && i + 1 < argc) {
                 request_path = argv[++i];
+            } else if (a == "--hiss" && i + 1 < argc) {
+                hiss_path = argv[++i];
+            } else if (a == "--hcsd" && i + 1 < argc) {
+                hcsd_path = argv[++i];
+            } else if (a == "--frame" && i + 1 < argc) {
+                frame_path = argv[++i];
             } else if (a.rfind("--", 0) == 0) {
                 LOG_ERROR("cli", "未知参数: " + a);
                 print_usage();
@@ -528,8 +589,18 @@ int CliCommand::execute(int argc, char* argv[]) {
                 return 1;
             }
         }
+        // P04-003: 互斥分发 (优先级: --hiss > --hcsd > --frame > --request)
+        if (!hiss_path.empty()) {
+            return cmd_inspect_hiss(hiss_path);
+        }
+        if (!hcsd_path.empty()) {
+            return cmd_inspect_hcsd(hcsd_path);
+        }
+        if (!frame_path.empty()) {
+            return cmd_inspect_frame(frame_path);
+        }
         if (request_path.empty()) {
-            LOG_ERROR("cli", "错误: inspect 缺少 --request <file> 参数");
+            LOG_ERROR("cli", "错误: inspect 缺少 --request/--hiss/--hcsd/--frame 参数");
             print_usage();
             return 7;  // CONFIG_ERROR
         }
@@ -659,12 +730,17 @@ int CliCommand::cmd_status() {
 
 // ============================================================================
 // cmd_stage1 - spec §2.3.3 单帧预处理 (FITS -> .hiss, stage 0-7)
+// cancel_on_signal: P04-004 - true 时注册 SIGINT 处理器触发取消
 // ============================================================================
 int CliCommand::cmd_stage1(const std::string& fits_path,
                            const std::string& output_hiss,
                            const std::string& config_path,
-                           const std::string& log_level) {
+                           const std::string& log_level,
+                           bool cancel_on_signal) {
     Orchestrator orch;
+
+    // P04-004: 注册 SIGINT 处理器 (如启用 --cancel-on-signal)
+    p04004_register_signal_handler(&orch, cancel_on_signal);
 
     // 加载配置 (可选, 后续 Task 解析 stage1_config.json 各字段)
     std::string config_json;
@@ -672,6 +748,7 @@ int CliCommand::cmd_stage1(const std::string& fits_path,
         std::string err;
         if (!orch.load_config(config_path, err)) {
             LOG_ERROR("cli", "配置加载失败: " + err);
+            p04004_unregister_signal_handler();
             return 7;  // P03-003: 配置错误 (原为 2)
         }
         // 读取配置文件原始内容作为 config_json 传给 run_stage1
@@ -691,6 +768,7 @@ int CliCommand::cmd_stage1(const std::string& fits_path,
     }
 
     TaskResult r = orch.run_stage1(fits_path, output_hiss, config_json);
+    p04004_unregister_signal_handler();
     output_json_result(r);
     // P03-003: 使用 TaskResult.exit_code 传递细分错误码 (失败时若 exit_code=0 用 1 兜底)
     return r.success ? 0 : (r.exit_code != 0 ? r.exit_code : 1);
@@ -698,12 +776,17 @@ int CliCommand::cmd_stage1(const std::string& fits_path,
 
 // ============================================================================
 // cmd_stage2 - spec §2.3.3 多帧合并 (.hiss -> .hcsd, stage 8-9)
+// cancel_on_signal: P04-004 - true 时注册 SIGINT 处理器触发取消
 // ============================================================================
 int CliCommand::cmd_stage2(const std::string& hiss_dir,
                            const std::string& output_hcsd,
                            const std::string& config_path,
-                           const std::string& log_level) {
+                           const std::string& log_level,
+                           bool cancel_on_signal) {
     Orchestrator orch;
+
+    // P04-004: 注册 SIGINT 处理器 (如启用 --cancel-on-signal)
+    p04004_register_signal_handler(&orch, cancel_on_signal);
 
     // 加载配置 (可选, 后续 Task 解析 stage2_config.json 各字段)
     std::string config_json;
@@ -711,6 +794,7 @@ int CliCommand::cmd_stage2(const std::string& hiss_dir,
         std::string err;
         if (!orch.load_config(config_path, err)) {
             LOG_ERROR("cli", "配置加载失败: " + err);
+            p04004_unregister_signal_handler();
             return 7;  // P03-003: 配置错误 (原为 2)
         }
         std::ifstream ifs(config_path, std::ios::binary);
@@ -729,6 +813,7 @@ int CliCommand::cmd_stage2(const std::string& hiss_dir,
     }
 
     TaskResult r = orch.run_stage2(hiss_dir, output_hcsd, config_json);
+    p04004_unregister_signal_handler();
     output_json_result(r);
     // P03-003: 使用 TaskResult.exit_code 传递细分错误码 (失败时若 exit_code=0 用 1 兜底)
     return r.success ? 0 : (r.exit_code != 0 ? r.exit_code : 1);
@@ -1142,15 +1227,479 @@ int CliCommand::cmd_inspect(const std::string& request_path) {
 }
 
 // ============================================================================
+// P04-003: cmd_inspect_hiss - 检查 HISS 文件元数据
+// 优先调用 AIO DLL 的 aio_hiss_read 获取完整元数据;
+// DLL 不可用时降级读取二进制头 (magic + 长度前缀)
+// stdout 输出 JSONL 事件 (result 事件含元数据), stderr 输出日志
+// ============================================================================
+int CliCommand::cmd_inspect_hiss(const std::string& hiss_path) {
+    LOG_INFO("cli", "inspect --hiss: " + hiss_path);
+
+    // 文件存在性检查
+    if (!fs::exists(hiss_path)) {
+        LOG_ERROR("cli", "HISS 文件不存在: " + hiss_path);
+        std::string err_json = "{\"code\":\"ASTROCS_FILE_IO_ERROR\",\"numeric_code\":8,\"message\":\"hiss file not found\"}";
+        output_jsonl_event_ex("error", "", "", -1.0, "", "", err_json,
+                              AstroCsExitCode::FILE_IO_ERROR);
+        output_jsonl_event("failed", "", "", -1.0, "", "", err_json);
+        return AstroCsExitCode::FILE_IO_ERROR;
+    }
+
+    // 读取文件大小
+    uintmax_t file_size = fs::file_size(hiss_path);
+    LOG_INFO("cli", "HISS 文件大小: " + std::to_string(file_size) + " 字节");
+
+    // 读取二进制头 (前 12 字节: magic + uncomp_json_len + comp_json_len)
+    std::ifstream ifs(hiss_path, std::ios::binary);
+    if (!ifs.is_open()) {
+        LOG_ERROR("cli", "无法打开 HISS 文件: " + hiss_path);
+        std::string err_json = "{\"code\":\"ASTROCS_FILE_IO_ERROR\",\"numeric_code\":8,\"message\":\"cannot open hiss file\"}";
+        output_jsonl_event_ex("error", "", "", -1.0, "", "", err_json,
+                              AstroCsExitCode::FILE_IO_ERROR);
+        output_jsonl_event("failed", "", "", -1.0, "", "", err_json);
+        return AstroCsExitCode::FILE_IO_ERROR;
+    }
+
+    char magic[4] = {0};
+    ifs.read(magic, 4);
+    uint32_t uncomp_json_len = 0, comp_json_len = 0;
+    ifs.read(reinterpret_cast<char*>(&uncomp_json_len), 4);
+    ifs.read(reinterpret_cast<char*>(&comp_json_len), 4);
+    ifs.close();
+
+    bool magic_ok = (magic[0] == 'H' && magic[1] == 'I' &&
+                     magic[2] == 'S' && magic[3] == 'S');
+    if (!magic_ok) {
+        LOG_ERROR("cli", "HISS magic 不匹配: " + std::string(magic, 4));
+        std::string err_json = "{\"code\":\"ASTROCS_HISS_INVALID\",\"numeric_code\":25,\"message\":\"invalid HISS magic\"}";
+        output_jsonl_event_ex("error", "", "", -1.0, "", "", err_json,
+                              AstroCsExitCode::HISS_INVALID);
+        output_jsonl_event("failed", "", "", -1.0, "", "", err_json);
+        return AstroCsExitCode::HISS_INVALID;
+    }
+
+    // 尝试加载 AIO DLL 获取完整元数据
+    std::string nside_str = "unknown";
+    std::string nested_str = "unknown";
+    std::string n_pix_str = "unknown";
+    std::string has_snr_str = "unknown";
+    std::string snr_format_str = "unknown";
+    std::string snr_n_points_str = "unknown";
+    std::string meta_json_str = "{}";
+
+    {
+        Orchestrator orch;
+        std::string err;
+        Logger::instance().set_stderr_output(false);
+        bool ok = orch.init_dlls("", err);
+        Logger::instance().set_stderr_output(true);
+        if (ok && orch.get_dll_loader().is_loaded(ModuleId::AIO)) {
+            DllLoader& loader = orch.get_dll_loader();
+            using HisReadFn = int (*)(const char*, uint32_t*, int*,
+                                       uint64_t*, uint64_t**, float**, float**, char**);
+            using FreeFn = void (*)(void*);
+            auto fn_read = loader.get_function<HisReadFn>(ModuleId::AIO, "aio_hiss_read");
+            auto fn_free = loader.get_function<FreeFn>(ModuleId::AIO, "aio_hio_free");
+            if (fn_read && fn_free) {
+                uint32_t nside = 0;
+                int nested = 0;
+                uint64_t n_pix = 0;
+                uint64_t* ipix = nullptr;
+                float* pixel = nullptr;
+                float* snr = nullptr;
+                char* meta_json = nullptr;
+                int ret = fn_read(hiss_path.c_str(), &nside, &nested, &n_pix,
+                                   &ipix, &pixel, &snr, &meta_json);
+                if (ret == 0) {
+                    nside_str = std::to_string(nside);
+                    nested_str = nested ? "true" : "false";
+                    n_pix_str = std::to_string(n_pix);
+                    if (meta_json) {
+                        meta_json_str = std::string(meta_json);
+                        // 解析 has_snr / snr_format / snr_n_points
+                        std::vector<json_merge::JsonField> fields =
+                            json_merge::parse_object(meta_json_str);
+                        for (const auto& f : fields) {
+                            if (f.key == "has_snr") has_snr_str = f.raw_value;
+                            else if (f.key == "snr_format") snr_format_str = f.raw_value;
+                            else if (f.key == "snr_n_points") snr_n_points_str = f.raw_value;
+                        }
+                    }
+                    // 释放内存
+                    if (ipix) fn_free(ipix);
+                    if (pixel) fn_free(pixel);
+                    if (snr) fn_free(snr);
+                    if (meta_json) fn_free(meta_json);
+                    LOG_INFO("cli", "HISS 元数据读取成功: nside=" + nside_str +
+                             " n_pix=" + n_pix_str);
+                } else {
+                    LOG_WARN("cli", "aio_hiss_read 返回错误: " + std::to_string(ret) +
+                             " (仅输出二进制头元数据)");
+                }
+            } else {
+                LOG_WARN("cli", "AIO DLL 未导出 aio_hiss_read/aio_hio_free (仅输出二进制头元数据)");
+            }
+        } else {
+            LOG_WARN("cli", "AIO DLL 未加载 (仅输出二进制头元数据)");
+        }
+    }
+
+    // 输出 JSONL result 事件 (含 HISS 元数据)
+    std::ostringstream result_oss;
+    result_oss << "{\"file\":\"" << json_escape(hiss_path) << "\""
+               << ",\"format\":\"HISS\""
+               << ",\"file_size\":" << file_size
+               << ",\"magic\":\"HISS\""
+               << ",\"uncomp_json_len\":" << uncomp_json_len
+               << ",\"comp_json_len\":" << comp_json_len
+               << ",\"nside\":" << nside_str
+               << ",\"nested\":" << nested_str
+               << ",\"n_pix\":" << n_pix_str
+               << ",\"has_snr\":" << has_snr_str
+               << ",\"snr_format\":" << snr_format_str
+               << ",\"snr_n_points\":" << snr_n_points_str
+               << ",\"meta_json\":" << meta_json_str
+               << "}";
+    output_jsonl_event_ex("result", "", "", 1.0, "hiss inspect completed",
+                          result_oss.str(), "", -1, -1.0, "ok");
+    output_jsonl_event("completed", "", "", 1.0, "hiss inspect completed", result_oss.str());
+    return AstroCsExitCode::SUCCESS;
+}
+
+// ============================================================================
+// P04-003: cmd_inspect_hcsd - 检查 HCSD 文件元数据
+// 优先调用 AIO DLL 的 aio_hcsd_read 获取完整元数据;
+// DLL 不可用时降级读取二进制头 (magic + 长度前缀)
+// stdout 输出 JSONL 事件 (result 事件含元数据), stderr 输出日志
+// ============================================================================
+int CliCommand::cmd_inspect_hcsd(const std::string& hcsd_path) {
+    LOG_INFO("cli", "inspect --hcsd: " + hcsd_path);
+
+    // 文件存在性检查
+    if (!fs::exists(hcsd_path)) {
+        LOG_ERROR("cli", "HCSD 文件不存在: " + hcsd_path);
+        std::string err_json = "{\"code\":\"ASTROCS_FILE_IO_ERROR\",\"numeric_code\":8,\"message\":\"hcsd file not found\"}";
+        output_jsonl_event_ex("error", "", "", -1.0, "", "", err_json,
+                              AstroCsExitCode::FILE_IO_ERROR);
+        output_jsonl_event("failed", "", "", -1.0, "", "", err_json);
+        return AstroCsExitCode::FILE_IO_ERROR;
+    }
+
+    // 读取文件大小
+    uintmax_t file_size = fs::file_size(hcsd_path);
+    LOG_INFO("cli", "HCSD 文件大小: " + std::to_string(file_size) + " 字节");
+
+    // 读取二进制头 (前 12 字节: magic + uncomp_json_len + comp_json_len)
+    std::ifstream ifs(hcsd_path, std::ios::binary);
+    if (!ifs.is_open()) {
+        LOG_ERROR("cli", "无法打开 HCSD 文件: " + hcsd_path);
+        std::string err_json = "{\"code\":\"ASTROCS_FILE_IO_ERROR\",\"numeric_code\":8,\"message\":\"cannot open hcsd file\"}";
+        output_jsonl_event_ex("error", "", "", -1.0, "", "", err_json,
+                              AstroCsExitCode::FILE_IO_ERROR);
+        output_jsonl_event("failed", "", "", -1.0, "", "", err_json);
+        return AstroCsExitCode::FILE_IO_ERROR;
+    }
+
+    char magic[4] = {0};
+    ifs.read(magic, 4);
+    uint32_t uncomp_json_len = 0, comp_json_len = 0;
+    ifs.read(reinterpret_cast<char*>(&uncomp_json_len), 4);
+    ifs.read(reinterpret_cast<char*>(&comp_json_len), 4);
+    ifs.close();
+
+    bool magic_ok = (magic[0] == 'H' && magic[1] == 'C' &&
+                     magic[2] == 'S' && magic[3] == 'D');
+    if (!magic_ok) {
+        LOG_ERROR("cli", "HCSD magic 不匹配: " + std::string(magic, 4));
+        std::string err_json = "{\"code\":\"ASTROCS_HCSD_INVALID\",\"numeric_code\":26,\"message\":\"invalid HCSD magic\"}";
+        output_jsonl_event_ex("error", "", "", -1.0, "", "", err_json,
+                              AstroCsExitCode::HCSD_INVALID);
+        output_jsonl_event("failed", "", "", -1.0, "", "", err_json);
+        return AstroCsExitCode::HCSD_INVALID;
+    }
+
+    // 尝试加载 AIO DLL 获取完整元数据
+    std::string nside_str = "unknown";
+    std::string nested_str = "unknown";
+    std::string n_pix_str = "unknown";
+    std::string meta_json_str = "{}";
+    // HCSD leaf_index 固定 49152 项 (12 * 64^2)
+    constexpr uint32_t HCSD_N_LEAVES = 49152;
+    constexpr uint64_t HCSD_LEAF_INDEX_BYTES = static_cast<uint64_t>(HCSD_N_LEAVES) * 24;
+
+    {
+        Orchestrator orch;
+        std::string err;
+        Logger::instance().set_stderr_output(false);
+        bool ok = orch.init_dlls("", err);
+        Logger::instance().set_stderr_output(true);
+        if (ok && orch.get_dll_loader().is_loaded(ModuleId::AIO)) {
+            DllLoader& loader = orch.get_dll_loader();
+            using HcsdReadFn = int (*)(const char*, uint32_t*, int*,
+                                        uint64_t*, uint64_t**, float**, char**);
+            using FreeFn = void (*)(void*);
+            auto fn_read = loader.get_function<HcsdReadFn>(ModuleId::AIO, "aio_hcsd_read");
+            auto fn_free = loader.get_function<FreeFn>(ModuleId::AIO, "aio_hio_free");
+            if (fn_read && fn_free) {
+                uint32_t nside = 0;
+                int nested = 0;
+                uint64_t n_pix = 0;
+                uint64_t* ipix = nullptr;
+                float* pixel = nullptr;
+                char* meta_json = nullptr;
+                int ret = fn_read(hcsd_path.c_str(), &nside, &nested, &n_pix,
+                                   &ipix, &pixel, &meta_json);
+                if (ret == 0) {
+                    nside_str = std::to_string(nside);
+                    nested_str = nested ? "true" : "false";
+                    n_pix_str = std::to_string(n_pix);
+                    if (meta_json) {
+                        meta_json_str = std::string(meta_json);
+                    }
+                    // 释放内存
+                    if (ipix) fn_free(ipix);
+                    if (pixel) fn_free(pixel);
+                    if (meta_json) fn_free(meta_json);
+                    LOG_INFO("cli", "HCSD 元数据读取成功: nside=" + nside_str +
+                             " n_pix=" + n_pix_str);
+                } else {
+                    LOG_WARN("cli", "aio_hcsd_read 返回错误: " + std::to_string(ret) +
+                             " (仅输出二进制头元数据)");
+                }
+            } else {
+                LOG_WARN("cli", "AIO DLL 未导出 aio_hcsd_read/aio_hio_free (仅输出二进制头元数据)");
+            }
+        } else {
+            LOG_WARN("cli", "AIO DLL 未加载 (仅输出二进制头元数据)");
+        }
+    }
+
+    // 输出 JSONL result 事件 (含 HCSD 元数据)
+    std::ostringstream result_oss;
+    result_oss << "{\"file\":\"" << json_escape(hcsd_path) << "\""
+               << ",\"format\":\"HCSD\""
+               << ",\"file_size\":" << file_size
+               << ",\"magic\":\"HCSD\""
+               << ",\"uncomp_json_len\":" << uncomp_json_len
+               << ",\"comp_json_len\":" << comp_json_len
+               << ",\"n_leaves\":" << HCSD_N_LEAVES
+               << ",\"leaf_index_bytes\":" << HCSD_LEAF_INDEX_BYTES
+               << ",\"nside\":" << nside_str
+               << ",\"nested\":" << nested_str
+               << ",\"n_pix\":" << n_pix_str
+               << ",\"meta_json\":" << meta_json_str
+               << "}";
+    output_jsonl_event_ex("result", "", "", 1.0, "hcsd inspect completed",
+                          result_oss.str(), "", -1, -1.0, "ok");
+    output_jsonl_event("completed", "", "", 1.0, "hcsd inspect completed", result_oss.str());
+    return AstroCsExitCode::SUCCESS;
+}
+
+// ============================================================================
+// P04-003: cmd_inspect_frame - 检查 FITS 帧元数据
+// 直接读取 2880 字节头块, 解析关键字 (不依赖 DLL)
+// stdout 输出 JSONL 事件 (result 事件含元数据), stderr 输出日志
+// ============================================================================
+int CliCommand::cmd_inspect_frame(const std::string& fits_path) {
+    LOG_INFO("cli", "inspect --frame: " + fits_path);
+
+    // 文件存在性检查
+    if (!fs::exists(fits_path)) {
+        LOG_ERROR("cli", "FITS 文件不存在: " + fits_path);
+        std::string err_json = "{\"code\":\"ASTROCS_FILE_IO_ERROR\",\"numeric_code\":8,\"message\":\"fits file not found\"}";
+        output_jsonl_event_ex("error", "", "", -1.0, "", "", err_json,
+                              AstroCsExitCode::FILE_IO_ERROR);
+        output_jsonl_event("failed", "", "", -1.0, "", "", err_json);
+        return AstroCsExitCode::FILE_IO_ERROR;
+    }
+
+    // 读取文件大小
+    uintmax_t file_size = fs::file_size(fits_path);
+    LOG_INFO("cli", "FITS 文件大小: " + std::to_string(file_size) + " 字节");
+
+    // 读取 FITS 头 (2880 字节块)
+    std::ifstream ifs(fits_path, std::ios::binary);
+    if (!ifs.is_open()) {
+        LOG_ERROR("cli", "无法打开 FITS 文件: " + fits_path);
+        std::string err_json = "{\"code\":\"ASTROCS_FILE_IO_ERROR\",\"numeric_code\":8,\"message\":\"cannot open fits file\"}";
+        output_jsonl_event_ex("error", "", "", -1.0, "", "", err_json,
+                              AstroCsExitCode::FILE_IO_ERROR);
+        output_jsonl_event("failed", "", "", -1.0, "", "", err_json);
+        return AstroCsExitCode::FILE_IO_ERROR;
+    }
+
+    // 读取最多 4 个 2880 字节头块 (主头 + 可能的扩展)
+    constexpr size_t FITS_BLOCK = 2880;
+    constexpr size_t MAX_HEADER_BLOCKS = 4;
+    std::vector<char> header_buf(FITS_BLOCK * MAX_HEADER_BLOCKS, 0);
+    ifs.read(header_buf.data(), FITS_BLOCK * MAX_HEADER_BLOCKS);
+    size_t bytes_read = static_cast<size_t>(ifs.gcount());
+    ifs.close();
+
+    // 检查 SIMPLE = T
+    bool is_simple_t = (bytes_read >= 80 &&
+                        std::string(header_buf.data(), 80).find("SIMPLE") != std::string::npos &&
+                        header_buf[29] == 'T');
+    if (!is_simple_t) {
+        LOG_ERROR("cli", "FITS 头无效 (缺少 SIMPLE = T)");
+        std::string err_json = "{\"code\":\"ASTROCS_INPUT_INVALID\",\"numeric_code\":28,\"message\":\"invalid FITS header (SIMPLE=T not found)\"}";
+        output_jsonl_event_ex("error", "", "", -1.0, "", "", err_json,
+                              AstroCsExitCode::INPUT_INVALID);
+        output_jsonl_event("failed", "", "", -1.0, "", "", err_json);
+        return AstroCsExitCode::INPUT_INVALID;
+    }
+
+    // 解析关键字 (每个关键字 80 字节, 格式: KEY = VALUE / COMMENT)
+    // 收集常用关键字: SIMPLE, BITPIX, NAXIS, NAXIS1, NAXIS2, EXPTIME, FILTER, IMAGETYP, OBJECT, INSTRUME, TELESCOP, DATE-OBS
+    std::map<std::string, std::string> keywords;
+    bool found_end = false;
+    for (size_t block = 0; block < MAX_HEADER_BLOCKS && !found_end; ++block) {
+        for (size_t i = 0; i < FITS_BLOCK; i += 80) {
+            size_t pos = block * FITS_BLOCK + i;
+            if (pos + 80 > bytes_read) break;
+            std::string card(header_buf.data() + pos, 80);
+            // END 卡片
+            if (card.substr(0, 4) == "END ") {
+                found_end = true;
+                break;
+            }
+            // 解析 KEY = VALUE
+            size_t eq_pos = card.find('=');
+            if (eq_pos == std::string::npos || eq_pos > 8) continue;
+            std::string key = card.substr(0, eq_pos);
+            // 去除尾部空格
+            while (!key.empty() && key.back() == ' ') key.pop_back();
+            if (key.empty()) continue;
+            // 提取 VALUE (跳过 = 和空格)
+            std::string value = card.substr(eq_pos + 1);
+            // 去除前导空格
+            size_t vstart = value.find_first_not_of(' ');
+            if (vstart == std::string::npos) continue;
+            value = value.substr(vstart);
+            // 截取 / 前部分 (去掉注释)
+            size_t slash = value.find('/');
+            if (slash != std::string::npos) {
+                value = value.substr(0, slash);
+            }
+            // 去除尾部空格
+            while (!value.empty() && value.back() == ' ') value.pop_back();
+            keywords[key] = value;
+        }
+    }
+
+    LOG_INFO("cli", "FITS 关键字解析完成, 共 " + std::to_string(keywords.size()) + " 个");
+
+    // 构建 keywords JSON 对象
+    std::ostringstream kw_oss;
+    kw_oss << "{";
+    bool first = true;
+    for (const auto& kv : keywords) {
+        if (!first) kw_oss << ",";
+        first = false;
+        // 判断 value 是否为字符串 (以 ' 开头) 或数字
+        const std::string& v = kv.second;
+        bool is_string = (!v.empty() && v.front() == '\'');
+        std::string cleaned = v;
+        if (is_string) {
+            // 去除单引号
+            if (cleaned.size() >= 2 && cleaned.back() == '\'') {
+                cleaned = cleaned.substr(1, cleaned.size() - 2);
+            } else if (cleaned.size() >= 1) {
+                cleaned = cleaned.substr(1);
+            }
+            // 去除尾部空格
+            while (!cleaned.empty() && cleaned.back() == ' ') cleaned.pop_back();
+        }
+        kw_oss << "\"" << json_escape(kv.first) << "\":";
+        if (is_string) {
+            kw_oss << "\"" << json_escape(cleaned) << "\"";
+        } else {
+            // 数字或 T/F
+            if (v == "T" || v == "F") {
+                kw_oss << (v == "T" ? "true" : "false");
+            } else {
+                kw_oss << json_escape(v);
+            }
+        }
+    }
+    kw_oss << "}";
+
+    // 输出 JSONL result 事件 (含 FITS 帧元数据)
+    std::ostringstream result_oss;
+    result_oss << "{\"file\":\"" << json_escape(fits_path) << "\""
+               << ",\"format\":\"FITS\""
+               << ",\"file_size\":" << file_size
+               << ",\"simple\":true"
+               << ",\"keywords\":" << kw_oss.str()
+               << "}";
+    output_jsonl_event_ex("result", "", "", 1.0, "frame inspect completed",
+                          result_oss.str(), "", -1, -1.0, "ok");
+    output_jsonl_event("completed", "", "", 1.0, "frame inspect completed", result_oss.str());
+    return AstroCsExitCode::SUCCESS;
+}
+
+// ============================================================================
 // P04-001: cmd_capabilities - 查询 CLI 支持的能力
 // stdout 输出 capabilities JSON, stderr 输出日志
 // P04-002: 扩展 exit_codes 含 numeric_code/code/exit_code_match, 事件类型新增
+// P04-003: 扩展 modules 数组 (含 name/version/capabilities), stages, schema_versions
 // ============================================================================
 int CliCommand::cmd_capabilities() {
     LOG_INFO("cli", "capabilities: 查询 CLI 支持的能力");
 
+    // P04-003: 尝试加载 DLL 获取各模块版本号 (best-effort, 失败不影响 capabilities 输出)
+    // 使用局部 Orchestrator 实例, 避免影响全局状态
+    std::string aio_ver = "unknown";
+    std::string calib_ver = "unknown";
+    std::string platesolve_ver = "unknown";
+    std::string psf_ver = "unknown";
+    std::string photometric_ver = "unknown";
+    std::string snr_ver = "unknown";
+    std::string drizzle_ver = "unknown";
+    std::string stack_ver = "unknown";
+    std::string gaia_client_ver = "unknown";
+    std::string star_detector_ver = "unknown";
+
+    {
+        Orchestrator orch;
+        std::string err;
+        // 静默加载, 失败不报错 (capabilities 应在 DLL 不可用时仍可工作)
+        Logger::instance().set_stderr_output(false);
+        bool ok = orch.init_dlls("", err);
+        Logger::instance().set_stderr_output(true);
+        if (ok) {
+            DllLoader& loader = orch.get_dll_loader();
+            aio_ver = loader.get_version(ModuleId::AIO);
+            calib_ver = loader.get_version(ModuleId::CALIBRATE);
+            platesolve_ver = loader.get_version(ModuleId::PLATESOLVE);
+            psf_ver = loader.get_version(ModuleId::PSF);
+            photometric_ver = loader.get_version(ModuleId::PHOTOMETRIC);
+            snr_ver = loader.get_version(ModuleId::SNR);
+            drizzle_ver = loader.get_version(ModuleId::DRIZZLE);
+            stack_ver = loader.get_version(ModuleId::STACK);
+        } else {
+            LOG_WARN("cli", "capabilities: DLL 加载失败, 模块版本号将为 unknown");
+        }
+    }
+
     std::cout << "{" << std::endl;
     std::cout << "  \"schema_version\": 1," << std::endl;
+    std::cout << "  \"version\": \"1.0.0\"," << std::endl;
+    // P04-003: modules 数组 (含 name/version/capabilities)
+    std::cout << "  \"modules\": [" << std::endl;
+    std::cout << "    {\"name\":\"astro_image_io\",\"version\":\"" << aio_ver << "\",\"capabilities\":[\"read_fits\",\"write_hiss\",\"read_hiss\",\"write_hcsd\",\"read_hcsd\"]}," << std::endl;
+    std::cout << "    {\"name\":\"calibration\",\"version\":\"" << calib_ver << "\",\"capabilities\":[\"calibrate\"]}," << std::endl;
+    std::cout << "    {\"name\":\"star_detector\",\"version\":\"" << star_detector_ver << "\",\"capabilities\":[\"detect\"]}," << std::endl;
+    std::cout << "    {\"name\":\"ipv_solver\",\"version\":\"" << platesolve_ver << "\",\"capabilities\":[\"solve_from_memory\",\"solve_from_detections_v1\",\"solve_from_memory_with_callback\"]}," << std::endl;
+    std::cout << "    {\"name\":\"dynamic_psf\",\"version\":\"" << psf_ver << "\",\"capabilities\":[\"fit_batch\",\"fit_batch_f32\"]}," << std::endl;
+    std::cout << "    {\"name\":\"snr_estimator\",\"version\":\"" << snr_ver << "\",\"capabilities\":[\"estimate\"]}," << std::endl;
+    std::cout << "    {\"name\":\"healpix_drizzle\",\"version\":\"" << drizzle_ver << "\",\"capabilities\":[\"drizzle\"]}," << std::endl;
+    std::cout << "    {\"name\":\"healpix_stack\",\"version\":\"" << stack_ver << "\",\"capabilities\":[\"stack\"]}," << std::endl;
+    std::cout << "    {\"name\":\"photometric_calib\",\"version\":\"" << photometric_ver << "\",\"capabilities\":[\"calibrate\"]}," << std::endl;
+    std::cout << "    {\"name\":\"gaia_client\",\"version\":\"" << gaia_client_ver << "\",\"capabilities\":[\"cone_search\",\"query_spectrum\"]}" << std::endl;
+    std::cout << "  ]," << std::endl;
+    // P04-003: stages 数组 (两段流水线 8 个 stage, spec §2.3.2)
+    std::cout << "  \"stages\": [\"READ_FITS\",\"CALIBRATE\",\"PLATESOLVE\",\"PSF\",\"PHOTOMETRIC\",\"SNR\",\"DRIZZLE\",\"STACK\"]," << std::endl;
     std::cout << "  \"commands\": [\"run\", \"run-batch\", \"stage1\", \"stage2\", "
               << "\"inspect\", \"capabilities\", \"status\"]," << std::endl;
     std::cout << "  \"request_commands\": [\"stage1\", \"stage2\", \"inspect\"],"
@@ -1158,6 +1707,9 @@ int CliCommand::cmd_capabilities() {
     std::cout << "  \"config_sources\": [\"cli\", \"overrides\", \"config\", \"default\"],"
               << std::endl;
     std::cout << "  \"config_priority\": [\"cli\", \"overrides\", \"config\", \"default\"],"
+              << std::endl;
+    // P04-003: schema_versions 对象 (各契约文件版本)
+    std::cout << "  \"schema_versions\": {\"hiss\":\"1.0\",\"hcsd\":\"1.0\",\"star_det\":\"v1\",\"request\":\"v1\",\"effective_config\":\"v1\",\"jsonl_event\":\"v1\"},"
               << std::endl;
     // P04-002: exit_codes 扩展为 numeric_code + name + string_code 三元组
     std::cout << "  \"exit_codes\": [" << std::endl;
@@ -1171,7 +1723,17 @@ int CliCommand::cmd_capabilities() {
     std::cout << "    {\"numeric_code\": 7, \"name\": \"CONFIG_ERROR\", \"code\": \"ASTROCS_CONFIG_INVALID\"}," << std::endl;
     std::cout << "    {\"numeric_code\": 8, \"name\": \"FILE_IO_ERROR\", \"code\": \"ASTROCS_FILE_IO_ERROR\"}," << std::endl;
     std::cout << "    {\"numeric_code\": 9, \"name\": \"TIMEOUT\", \"code\": \"ASTROCS_TIMEOUT\"}," << std::endl;
-    std::cout << "    {\"numeric_code\": 10, \"name\": \"CANCELLED\", \"code\": \"ASTROCS_CANCELLED\"}" << std::endl;
+    std::cout << "    {\"numeric_code\": 10, \"name\": \"CANCELLED\", \"code\": \"ASTROCS_CANCELLED\"}," << std::endl;
+    std::cout << "    {\"numeric_code\": 20, \"name\": \"STAR_DETECT_FAILED\", \"code\": \"ASTROCS_STAR_DETECT_FAILED\"}," << std::endl;
+    std::cout << "    {\"numeric_code\": 21, \"name\": \"PSF_FAILED\", \"code\": \"ASTROCS_PSF_FAILED\"}," << std::endl;
+    std::cout << "    {\"numeric_code\": 22, \"name\": \"PHOTOMETRIC_FAILED\", \"code\": \"ASTROCS_PHOTOMETRIC_FAILED\"}," << std::endl;
+    std::cout << "    {\"numeric_code\": 23, \"name\": \"SNR_FAILED\", \"code\": \"ASTROCS_SNR_FAILED\"}," << std::endl;
+    std::cout << "    {\"numeric_code\": 24, \"name\": \"STACK_FAILED\", \"code\": \"ASTROCS_STACK_FAILED\"}," << std::endl;
+    std::cout << "    {\"numeric_code\": 25, \"name\": \"HISS_INVALID\", \"code\": \"ASTROCS_HISS_INVALID\"}," << std::endl;
+    std::cout << "    {\"numeric_code\": 26, \"name\": \"HCSD_INVALID\", \"code\": \"ASTROCS_HCSD_INVALID\"}," << std::endl;
+    std::cout << "    {\"numeric_code\": 27, \"name\": \"MODULE_ABI_UNSUPPORTED\", \"code\": \"ASTROCS_MODULE_ABI_UNSUPPORTED\"}," << std::endl;
+    std::cout << "    {\"numeric_code\": 28, \"name\": \"INPUT_INVALID\", \"code\": \"ASTROCS_INPUT_INVALID\"}," << std::endl;
+    std::cout << "    {\"numeric_code\": 100, \"name\": \"MODULE_SPECIFIC_BASE\", \"code\": \"ASTROCS_MODULE_SPECIFIC\"}" << std::endl;
     std::cout << "  ]," << std::endl;
     // P04-002: 事件类型扩展 (含 stage_start/stage_end/error/result/progress/warning)
     std::cout << "  \"events\": [\"accepted\", \"stage_started\", \"stage_start\", "
@@ -1182,7 +1744,11 @@ int CliCommand::cmd_capabilities() {
     std::cout << "  \"stderr_format\": \"human_readable_log\"," << std::endl;
     std::cout << "  \"jsonl_schema\": \"engineering/contracts/jsonl_event_schema.json\","
               << std::endl;
-    std::cout << "  \"error_code_registry\": \"engineering/contracts/error_code_registry.csv\""
+    std::cout << "  \"error_code_registry\": \"engineering/contracts/error_code_registry.csv\","
+              << std::endl;
+    std::cout << "  \"hiss_format\": \"engineering/contracts/hiss_format_v1.md\","
+              << std::endl;
+    std::cout << "  \"hcsd_format\": \"engineering/contracts/hcsd_format_v1.md\""
               << std::endl;
     std::cout << "}" << std::endl;
 

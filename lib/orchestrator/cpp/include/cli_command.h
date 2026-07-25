@@ -9,7 +9,10 @@
 //   orchestrator stage1 --frame <fits> --output <hiss> [options]  (spec §2.3.3)
 //   orchestrator stage2 --frames <dir> --output <hcsd> [options]  (spec §2.3.3)
 //   orchestrator inspect --request <file>   (P04-001: 检查配置, 输出 effective_config)
-//   orchestrator capabilities               (P04-001: 查询能力)
+//   orchestrator inspect --hiss <file>      (P04-003: 检查 HISS 文件元数据)
+//   orchestrator inspect --hcsd <file>      (P04-003: 检查 HCSD 文件元数据)
+//   orchestrator inspect --frame <file>     (P04-003: 检查 FITS 帧元数据)
+//   orchestrator capabilities               (P04-001: 查询能力, P04-003 扩展 modules)
 //   orchestrator status
 //   orchestrator --help
 //
@@ -19,6 +22,14 @@
 //   - 生成 effective_config 快照 + SHA-256 hash
 //   - stdout 输出 JSONL 事件流 (accepted/stage_started/stage_completed/completed/failed)
 //   - stderr 输出人类可读日志 (由 Logger 负责)
+//
+// P04-003: inspect --hiss/--hcsd/--frame 模式
+//   - 检查 HISS/HCSD/FITS 文件元数据, 不执行实际任务
+//   - HISS/HCSD: 优先调用 AIO DLL 的 aio_hiss_read/aio_hcsd_read 获取完整元数据;
+//                DLL 不可用时降级读取二进制头 (magic/长度前缀)
+//   - FITS: 直接读取 2880 字节头块, 解析关键字 (不依赖 DLL)
+//   - stdout 输出 JSONL 事件 (result 事件含文件元数据)
+//   - stderr 输出人类可读日志
 // ============================================================================
 
 #pragma once
@@ -61,18 +72,31 @@ private:
 
     // spec §2.3.3 两段流水线 CLI 命令
     // stage1: 单帧预处理 (FITS -> .hiss, stage 0-7)
+    // cancel_on_signal: P04-004 标志, true 时注册 SIGINT 处理器触发取消
     static int cmd_stage1(const std::string& fits_path,
                           const std::string& output_hiss,
                           const std::string& config_path,
-                          const std::string& log_level = "");
+                          const std::string& log_level = "",
+                          bool cancel_on_signal = false);
     // stage2: 多帧合并 (.hiss -> .hcsd, stage 8-9)
+    // cancel_on_signal: P04-004 标志, true 时注册 SIGINT 处理器触发取消
     static int cmd_stage2(const std::string& hiss_dir,
                           const std::string& output_hcsd,
                           const std::string& config_path,
-                          const std::string& log_level = "");
+                          const std::string& log_level = "",
+                          bool cancel_on_signal = false);
 
     // P04-001: inspect 子命令 (检查配置, 输出 effective_config)
     static int cmd_inspect(const std::string& request_path);
+
+    // P04-003: inspect --hiss <file> - 检查 HISS 文件元数据
+    static int cmd_inspect_hiss(const std::string& hiss_path);
+
+    // P04-003: inspect --hcsd <file> - 检查 HCSD 文件元数据
+    static int cmd_inspect_hcsd(const std::string& hcsd_path);
+
+    // P04-003: inspect --frame <file> - 检查 FITS 帧元数据
+    static int cmd_inspect_frame(const std::string& fits_path);
 
     // P04-001: capabilities 子命令 (查询 CLI 支持的能力)
     static int cmd_capabilities();

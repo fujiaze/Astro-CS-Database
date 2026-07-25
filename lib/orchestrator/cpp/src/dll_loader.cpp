@@ -397,37 +397,45 @@ ModuleInfo DllLoader::get_info(ModuleId id) const {
 
 // ============================================================================
 // get_version - 获取模块版本号
-//   - CALIBRATE: 调用 ac_version()
-//   - 其他模块: 暂返回 "unknown" (后续 Task 补充接口)
+//   - 各模块尝试调用其约定的 *_version 函数 (const char* (*)())
+//   - 未导出 version 函数时返回 "unknown"
+//   - P04-003: 扩展支持全部 9 个模块 (AIO/CALIBRATE/PLATESOLVE/PSF/PHOTOMETRIC/SNR/DRIZZLE/STACK)
 // ============================================================================
 std::string DllLoader::get_version(ModuleId id) {
     if (!is_loaded(id)) {
         return "[未加载]";
     }
+    using FuncType = const char* (*)();
+    // 各模块可能的版本函数名 (按命名约定: 模块前缀 + _version)
+    // CALIBRATE: ac_version (已确认)
+    // AIO: aio_version (尝试)
+    // PLATESOLVE: ipv_version (尝试)
+    // PSF: dpsf_version (尝试)
+    // PHOTOMETRIC: pc_version (尝试)
+    // SNR: snr_version (尝试)
+    // DRIZZLE: hd_version (尝试)
+    // STACK: hs_version (尝试)
+    const char* candidate_names[] = {nullptr, nullptr};
     switch (id) {
-        case ModuleId::CALIBRATE: {
-            // ac_version 返回 const char*
-            using FuncType = const char* (*)();
-            FuncType fn = get_function<FuncType>(id, "ac_version");
-            if (fn == nullptr) {
-                return "[无 ac_version 函数]";
-            }
-            const char* v = fn();
-            if (v == nullptr) return "[null]";
-            return std::string(v);
-        }
-        case ModuleId::AIO:
-        case ModuleId::PLATESOLVE:
-        case ModuleId::PSF:
-        case ModuleId::PHOTOMETRIC:
-        case ModuleId::SNR:
-        case ModuleId::DRIZZLE:
+        case ModuleId::AIO:             candidate_names[0] = "aio_version"; break;
+        case ModuleId::CALIBRATE:       candidate_names[0] = "ac_version"; break;
+        case ModuleId::PLATESOLVE:      candidate_names[0] = "ipv_version"; break;
+        case ModuleId::PSF:             candidate_names[0] = "dpsf_version"; break;
+        case ModuleId::PHOTOMETRIC:     candidate_names[0] = "pc_version"; break;
+        case ModuleId::SNR:             candidate_names[0] = "snr_version"; break;
+        case ModuleId::DRIZZLE:         candidate_names[0] = "hd_version"; break;
         case ModuleId::GRADIENT_SPHERE:
-        case ModuleId::STACK:
-            return "unknown";  // 暂无统一 version 函数, 后续补充
-        default:
-            return "unknown";
+        case ModuleId::STACK:           candidate_names[0] = "hs_version"; break;
+        default:                        return "unknown";
     }
+    for (int i = 0; i < 2 && candidate_names[i] != nullptr; ++i) {
+        FuncType fn = get_function<FuncType>(id, candidate_names[i]);
+        if (fn != nullptr) {
+            const char* v = fn();
+            if (v != nullptr) return std::string(v);
+        }
+    }
+    return "unknown";  // 模块未导出 version 函数
 }
 
 // ============================================================================

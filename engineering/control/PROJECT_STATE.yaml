@@ -1,9 +1,9 @@
 project: AstroCS CLI Core
 state_schema: 1
 current_gate: G4
-current_task: P04-003
+current_task: P04-004
 status: TODO
-last_completed_task: P04-002
+last_completed_task: P04-003
 product_target: CLI Real-Data Core v1
 baseline_tag: astrocs-baseline-p00
 g0_passed: true
@@ -41,4 +41,6 @@ notes:
   - P04-001 残留: 嵌套合并仅顶层覆盖 (留待 P04-002 评估); 真实 stage 成功路径未验证 (留待 P05-002); HISS/HCSD provenance 写入未实现 (留待 P05/P06)。
   - P04-002 DONE (JSONL 事件 schema 13 种 + 错误码注册表 22 条 + output_jsonl_event_ex + 错误码一致性保证 + 双事件并发向后兼容, 229/229 测试通过, VERDICT: PASS)。
   - P04-002 残留: TIMEOUT/CANCELLED 未实际触发 (留待 P04-004); 模块特定码 20-28 未实际使用 (留待 P05+); 嵌套合并保持 P04-001 实现 (GUI 暂无需求)。
+  - P04-003 DONE (capabilities 扩展 modules/stages/schema_versions + inspect --hiss/--hcsd/--frame 三子命令 + HISS_INVALID/HCSD_INVALID/INPUT_INVALID 错误码实际触发 + P04-004 集成修复, 317/317 测试通过, VERDICT: PASS)。
+  - P04-003 残留: DLL 版本号大多 unknown (留待 P05+); FITS 扩展头未支持 (留待 P05+); snr_format 字段类型小问题 (低优先级)。
 last_updated: 2026-07-25

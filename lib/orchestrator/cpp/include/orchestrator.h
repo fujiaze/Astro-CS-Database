@@ -177,6 +177,16 @@ struct OrchestratorConfig {
     bool enable_checkpoint = true;    // 启用检查点
     bool fresh_start = false;         // 忽略检查点重新开始
     std::string log_level = "INFO";   // 日志级别 (DEBUG/INFO/WARN/ERROR)
+
+    // P04-004: stage 级超时配置 (秒, <=0 表示不限制)
+    // key: stage 名称 (READ_FITS/CALIBRATE/PLATESOLVE/PSF/PHOTOMETRIC/SNR/DRIZZLE/GRADIENT_SPHERE/STACK)
+    // value: 该 stage 的最大允许秒数
+    std::map<std::string, double> stage_timeouts;
+
+    // P04-004: 是否允许输出 partial 结果 (取消/超时时)
+    // false (默认): 严格原子性, 取消/超时时删除部分输出
+    // true: 取消/超时时保留已生成的部分输出 (标记 partial=true)
+    bool allow_partial_output = false;
 };
 
 // ============================================================================
@@ -221,6 +231,31 @@ public:
 
     // 新增: 设置启用检查点标志 (Task 3)
     void set_enable_checkpoint(bool en) { config_.enable_checkpoint = en; }
+
+    // P04-004: 设置 stage 超时配置 (从 JSON config 解析后调用)
+    // stage_timeouts: key=stage 名称, value=超时秒数 (<=0 不限制)
+    void set_stage_timeouts(const std::map<std::string, double>& stage_timeouts) {
+        config_.stage_timeouts = stage_timeouts;
+    }
+
+    // P04-004: 设置是否允许 partial 输出 (取消/超时时保留部分结果)
+    void set_allow_partial_output(bool allow) { config_.allow_partial_output = allow; }
+
+    // P04-004: 取消 token - 请求取消当前运行
+    // 线程安全: 设置 cancel_token_ 为 true, 各 stage 检查后停止
+    void request_cancel();
+
+    // P04-004: 检查取消 token 是否被设置
+    bool is_cancelled() const { return cancel_token_.load(std::memory_order_acquire); }
+
+    // P04-004: 检查超时标志是否被触发 (由 stage watchdog 设置)
+    bool is_timed_out() const { return timeout_flag_.load(std::memory_order_acquire); }
+
+    // P04-004: 重置取消/超时标志 (新一轮运行前调用)
+    void reset_cancel_timeout();
+
+    // P04-004: 获取当前 stage 名称 (用于 watchdog 与日志)
+    std::string get_current_stage_name() const;
 
     // 新增: 获取 CheckpointManager 引用 (供 REPL/CLI 直接调用 list/clear 等)
     CheckpointManager& get_checkpoint_manager() { return checkpoint_mgr_; }
@@ -267,6 +302,22 @@ private:
     std::mutex mutex_;
     std::thread worker_thread_;
     std::chrono::steady_clock::time_point start_time_;
+
+    // P04-004: 取消 token (atomic, 线程安全)
+    // 由 request_cancel() 设置, 各 stage 在关键点检查并停止
+    std::atomic<bool> cancel_token_{false};
+    // P04-004: 超时标志 (atomic, 线程安全)
+    // 由 stage watchdog 线程设置, stage handler 在循环中检查
+    std::atomic<bool> timeout_flag_{false};
+    // P04-004: watchdog 停止标志 (atomic, 线程安全)
+    // 由 run_v2_with_timing 在 stage 完成后设置, 通知 watchdog 立即退出
+    std::atomic<bool> stage_watchdog_stop_{false};
+    // P04-004: 当前 stage 名称 (用于 watchdog 与日志)
+    // 由 run_v2_with_timing 在 stage 开始时设置
+    std::string current_stage_name_;
+    // P04-004: 当前 stage 输出文件路径 (用于原子性清理)
+    // 由 run_stage1/run_stage2 在开始时设置, 失败/取消/超时时删除
+    std::string current_output_file_;
 
     // DLL 加载器 (5 个模块: CALIBRATE/PLATESOLVE/PSF/PHOTOMETRIC/DRIZZLE)
     DllLoader dll_loader_;
@@ -338,4 +389,20 @@ private:
     static std::string state_name(TaskState state);
     // 新增: PipelineStageV2 阶段名称
     static std::string stage_name_v2(PipelineStageV2 stage);
+
+    // P04-004: 解析 config_json 中的 stage_timeouts 字段
+    // 格式: {"stage_timeouts":{"READ_FITS":10.0,"CALIBRATE":60.0,...}}
+    // 返回: 解析得到的 stage->seconds 映射 (空 map 表示未配置或解析失败)
+    static std::map<std::string, double> parse_stage_timeouts(const std::string& config_json);
+
+    // P04-004: 原子输出清理 - 删除部分生成的输出文件
+    // path: 要删除的文件路径 (通常为 current_output_file_)
+    // 返回: true 如果文件不存在或成功删除; false 如果删除失败
+    bool cleanup_partial_output(const std::string& path);
+
+    // P04-004: 检查 stage 是否应继续执行 (取消/超时检查)
+    // 返回: true 继续; false 应停止 (取消或超时)
+    // stage_name: 当前 stage 名称 (用于日志)
+    // result: 若停止, 设置 result.error_msg 和 result.exit_code
+    bool check_stage_continue(const std::string& stage_name, TaskResult& result);
 };

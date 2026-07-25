@@ -349,6 +349,119 @@ std::string Orchestrator::stage_name_v2(PipelineStageV2 stage) {
 }
 
 // ============================================================================
+// P04-004: 取消 token / 超时机制 / 原子输出清理 实现
+// ============================================================================
+
+// request_cancel - 设置取消 token, 通知各 stage 停止
+// 线程安全: atomic store, 可由信号处理器或其他线程调用
+void Orchestrator::request_cancel() {
+    cancel_token_.store(true, std::memory_order_release);
+    LOG_WARN("orchestrator", "P04-004: 收到取消请求, cancel_token=true");
+}
+
+// reset_cancel_timeout - 重置取消/超时标志 (新一轮运行前调用)
+void Orchestrator::reset_cancel_timeout() {
+    cancel_token_.store(false, std::memory_order_release);
+    timeout_flag_.store(false, std::memory_order_release);
+    stage_watchdog_stop_.store(false, std::memory_order_release);
+    LOG_INFO("orchestrator", "P04-004: 取消/超时标志已重置");
+}
+
+// get_current_stage_name - 获取当前 stage 名称 (供 CLI 输出 JSONL 事件)
+std::string Orchestrator::get_current_stage_name() const {
+    std::lock_guard<std::mutex> lock(const_cast<std::mutex&>(mutex_));
+    return current_stage_name_;
+}
+
+// parse_stage_timeouts - 从 config_json 解析 stage_timeouts 字段
+// 格式: {"stage_timeouts":{"READ_FITS":10.0,"CALIBRATE":60.0,...}}
+std::map<std::string, double> Orchestrator::parse_stage_timeouts(const std::string& config_json) {
+    std::map<std::string, double> result;
+    if (config_json.empty()) return result;
+
+    // 查找 "stage_timeouts" 字段
+    size_t pos = orc_findJsonKey(config_json, "stage_timeouts");
+    if (pos == std::string::npos) return result;
+
+    // 跳过空白, 期望 '{'
+    while (pos < config_json.size() && (config_json[pos]==' '||config_json[pos]=='\t'||config_json[pos]=='\n'||config_json[pos]=='\r')) pos++;
+    if (pos >= config_json.size() || config_json[pos] != '{') return result;
+    pos++; // 跳过 '{'
+
+    // 解析 "stage_name": <number> 对
+    while (pos < config_json.size()) {
+        // 跳过空白与逗号
+        while (pos < config_json.size() && (config_json[pos]==' '||config_json[pos]=='\t'||config_json[pos]=='\n'||config_json[pos]=='\r'||config_json[pos]==',')) pos++;
+        if (pos >= config_json.size() || config_json[pos] == '}') break;
+
+        // 解析 key (字符串)
+        if (config_json[pos] != '"') { pos++; continue; }
+        std::string key = orc_extractJsonStr(config_json, pos);
+        // 跳过 key 字符串
+        pos = config_json.find('"', pos + 1) + 1;
+        // 跳过空白与冒号
+        while (pos < config_json.size() && (config_json[pos]==' '||config_json[pos]=='\t'||config_json[pos]=='\n'||config_json[pos]=='\r')) pos++;
+        if (pos < config_json.size() && config_json[pos] == ':') pos++;
+        while (pos < config_json.size() && (config_json[pos]==' '||config_json[pos]=='\t'||config_json[pos]=='\n'||config_json[pos]=='\r')) pos++;
+
+        // 解析 number
+        std::string num_str;
+        while (pos < config_json.size() && (std::isdigit((unsigned char)config_json[pos]) || config_json[pos]=='.' || config_json[pos]=='-' || config_json[pos]=='+' || config_json[pos]=='e' || config_json[pos]=='E')) {
+            num_str += config_json[pos];
+            pos++;
+        }
+        if (!num_str.empty()) {
+            try {
+                double seconds = std::stod(num_str);
+                result[key] = seconds;
+                LOG_INFO("orchestrator", "P04-004: stage_timeouts[" + key + "] = " + std::to_string(seconds) + "s");
+            } catch (...) {
+                LOG_WARN("orchestrator", "P04-004: stage_timeouts[" + key + "] 解析失败: " + num_str);
+            }
+        }
+    }
+    return result;
+}
+
+// cleanup_partial_output - 删除部分生成的输出文件 (原子性保证)
+// 删除指定路径的文件, 确保失败/取消/超时后无残留部分输出
+bool Orchestrator::cleanup_partial_output(const std::string& path) {
+    if (path.empty()) {
+        return true;  // 空路径视为无操作
+    }
+    std::error_code ec;
+    if (!fs::exists(path, ec)) {
+        return true;  // 文件不存在, 视为成功
+    }
+    bool removed = fs::remove(path, ec);
+    if (removed && !ec) {
+        LOG_WARN("orchestrator", "P04-004: 原子清理 - 已删除部分输出: " + path);
+        return true;
+    } else {
+        LOG_ERROR("orchestrator", "P04-004: 原子清理失败 - 无法删除: " + path + " (ec=" + ec.message() + ")");
+        return false;
+    }
+}
+
+// check_stage_continue - 检查 stage 是否应继续执行 (取消/超时检查)
+// 返回 true 继续; false 停止 (并设置 result.error_msg/exit_code)
+bool Orchestrator::check_stage_continue(const std::string& stage_name, TaskResult& result) {
+    if (is_cancelled()) {
+        result.error_msg = "stage " + stage_name + " 取消 (用户请求)";
+        result.exit_code = AstroCsExitCode::CANCELLED;
+        LOG_WARN("orchestrator", "P04-004: " + result.error_msg);
+        return false;
+    }
+    if (is_timed_out()) {
+        result.error_msg = "stage " + stage_name + " 超时";
+        result.exit_code = AstroCsExitCode::TIMEOUT;
+        LOG_WARN("orchestrator", "P04-004: " + result.error_msg);
+        return false;
+    }
+    return true;
+}
+
+// ============================================================================
 // 构造 / 析构
 // ============================================================================
 Orchestrator::Orchestrator() {
@@ -3116,6 +3229,7 @@ bool Orchestrator::run_stage_stack(TaskResult& result) {
 // ============================================================================
 // run_stage1 - spec §2.3.3 单帧预处理 (FITS -> .hiss, stage 0-7)
 // 串行执行 8 个 stage, 各阶段调用对应 DLL 模块 (骨架), 输出 timings
+// P04-004: 集成取消 token / stage 超时 / 原子输出清理
 // ============================================================================
 TaskResult Orchestrator::run_stage1(const std::string& fits_path,
                                     const std::string& output_hiss,
@@ -3133,6 +3247,37 @@ TaskResult Orchestrator::run_stage1(const std::string& fits_path,
 
     // GAP-016: 保存 config_json 供 run_stage_drizzle 读取 nside_strategy/nside_override
     current_config_json_ = config_json;
+
+    // P04-004: 重置取消/超时标志, 解析 stage_timeouts 配置
+    reset_cancel_timeout();
+    auto timeouts = parse_stage_timeouts(config_json);
+    if (!timeouts.empty()) {
+        config_.stage_timeouts = timeouts;
+        LOG_INFO("orchestrator", "P04-004: 已加载 " + std::to_string(timeouts.size()) + " 个 stage 超时配置");
+    }
+    // P04-004: 解析 allow_partial_output 配置 (默认 false, 严格原子性)
+    bool allow_partial = orc_getJsonBool(config_json, "allow_partial_output", false);
+    config_.allow_partial_output = allow_partial;
+    if (allow_partial) {
+        LOG_WARN("orchestrator", "P04-004: allow_partial_output=true, 取消/超时/失败时将保留部分输出");
+    }
+    // P04-004: 记录输出路径 (用于失败/取消/超时时的原子清理)
+    current_output_file_ = output_hiss;
+
+    // P04-004: 原子性范围守卫 - 任何失败路径 (包括参数校验/DLL加载/stage失败/取消/超时)
+    // 都在函数退出时检查并清理部分输出 (除非 allow_partial_output=true 或已成功)
+    // 使用 RAII 模式, 析构函数在函数返回时自动调用, 覆盖所有 return 路径
+    struct AtomicOutputGuard {
+        Orchestrator* self;
+        const std::string& path;
+        bool& success_flag;
+        bool allow_partial;
+        ~AtomicOutputGuard() {
+            if (!success_flag && !allow_partial && !path.empty()) {
+                self->cleanup_partial_output(path);
+            }
+        }
+    } atomic_guard{this, output_hiss, result.success, config_.allow_partial_output};
 
     // 参数校验
     if (fits_path.empty()) {
@@ -3209,13 +3354,76 @@ TaskResult Orchestrator::run_stage1(const std::string& fits_path,
 
     // 串行执行 stage 0-7 (lambda: 带计时调用 stage handler)
     // P03-003: 失败时若 exit_code 未设置, 按 stage 兜底设置默认退出码
+    // P04-004: 在 stage 开始前/后检查 cancel_token_/timeout_flag_, 触发时停止
+    //          启动 watchdog 线程检测 stage 超时
     auto run_v2_with_timing = [&](PipelineStageV2 stage, const char* name,
                                    bool (Orchestrator::*fn)(TaskResult&)) -> bool {
+        // P04-004: stage 开始前检查取消/超时
+        if (!check_stage_continue(name, result)) {
+            // 记录 timings (跳过的 stage, duration=0, success=false)
+            StageTiming st;
+            st.stage = PipelineStage::CALIBRATE;
+            st.stage_name = std::string(name) + " (skipped)";
+            st.duration_sec = 0.0;
+            st.success = false;
+            result.timings.push_back(st);
+            return false;
+        }
+
+        // P04-004: 设置当前 stage 名称 (供 CLI 输出 cancelled 事件)
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            current_stage_name_ = name;
+        }
+
         LOG_INFO("orchestrator", "---------- stage1 阶段: " + std::string(name) + " ----------");
+
+        // P04-004: 启动 watchdog 线程 (如果该 stage 配置了超时)
+        double timeout_sec = 0.0;
+        auto it = config_.stage_timeouts.find(name);
+        if (it != config_.stage_timeouts.end()) {
+            timeout_sec = it->second;
+        }
+        std::thread watchdog;
+        bool watchdog_active = false;
+        if (timeout_sec > 0.0) {
+            watchdog_active = true;
+            // 重置 watchdog 停止标志
+            stage_watchdog_stop_.store(false, std::memory_order_release);
+            watchdog = std::thread([this, name, timeout_sec]() {
+                auto deadline = std::chrono::steady_clock::now()
+                              + std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                    std::chrono::duration<double>(timeout_sec));
+                // 每 100ms 检查一次, 直到 deadline 或被通知停止
+                while (std::chrono::steady_clock::now() < deadline) {
+                    if (stage_watchdog_stop_.load(std::memory_order_acquire)) {
+                        return;  // stage 已完成, watchdog 退出
+                    }
+                    if (is_cancelled()) return;  // 已取消, 不再触发超时
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                }
+                // 到达 deadline, 触发超时标志
+                if (!is_cancelled() &&
+                    !stage_watchdog_stop_.load(std::memory_order_acquire)) {
+                    timeout_flag_.store(true, std::memory_order_release);
+                    LOG_WARN("orchestrator", "P04-004: stage " + std::string(name) + " 超时 ("
+                             + std::to_string(timeout_sec) + "s), 触发 timeout_flag");
+                }
+            });
+        }
+
         auto t0 = std::chrono::steady_clock::now();
         bool ok = (this->*fn)(result);
         auto t1 = std::chrono::steady_clock::now();
         double dur = std::chrono::duration<double>(t1 - t0).count();
+
+        // P04-004: 通知 watchdog 停止并 join (避免线程泄漏)
+        if (watchdog_active) {
+            stage_watchdog_stop_.store(true, std::memory_order_release);
+            if (watchdog.joinable()) {
+                watchdog.join();
+            }
+        }
 
         StageTiming st;
         st.stage = PipelineStage::CALIBRATE;  // 复用旧枚举 (StageTiming 仍用旧枚举)
@@ -3225,6 +3433,22 @@ TaskResult Orchestrator::run_stage1(const std::string& fits_path,
         result.timings.push_back(st);
         LOG_INFO("orchestrator", "[" + std::to_string(dur) + "s] " + name
                  + (ok ? " 完成" : " 失败"));
+
+        // P04-004: stage 执行后检查取消/超时 (可能在执行期间被设置)
+        // 优先级: 取消 > 超时 > stage 失败
+        if (is_cancelled()) {
+            result.exit_code = AstroCsExitCode::CANCELLED;
+            result.error_msg = std::string(name) + " 取消 (用户请求)";
+            LOG_WARN("orchestrator", "P04-004: " + result.error_msg);
+            return false;
+        }
+        if (is_timed_out()) {
+            result.exit_code = AstroCsExitCode::TIMEOUT;
+            result.error_msg = std::string(name) + " 超时";
+            LOG_WARN("orchestrator", "P04-004: " + result.error_msg);
+            return false;
+        }
+
         // P03-003: 兜底 exit_code (stage handler 未设置时按 stage 类型推导)
         if (!ok && result.exit_code == AstroCsExitCode::SUCCESS) {
             switch (stage) {
@@ -3264,7 +3488,23 @@ TaskResult Orchestrator::run_stage1(const std::string& fits_path,
     }
 
     result.success = ok;
-    result.output_ahpx_path = ok ? output_hiss : "";
+
+    // P04-004: 原子输出清理 - 失败/取消/超时时删除部分输出文件
+    // 默认 allow_partial_output=false (严格原子性), 删除部分输出
+    // 若 allow_partial_output=true, 保留部分输出 (标记 partial)
+    if (!ok) {
+        if (!config_.allow_partial_output) {
+            LOG_INFO("orchestrator", "P04-004: 原子性清理 - stage1 失败/取消/超时, 删除部分输出");
+            cleanup_partial_output(output_hiss);
+            result.output_ahpx_path = "";
+        } else {
+            LOG_WARN("orchestrator", "P04-004: allow_partial_output=true, 保留部分输出: " + output_hiss);
+            result.output_ahpx_path = output_hiss;  // 标记为 partial 输出
+        }
+    } else {
+        result.output_ahpx_path = output_hiss;
+    }
+
     state_ = ok ? TaskState::COMPLETED : TaskState::FAILED;
 
     LOG_INFO("orchestrator", "========== stage1 "
@@ -3275,6 +3515,7 @@ TaskResult Orchestrator::run_stage1(const std::string& fits_path,
 // ============================================================================
 // run_stage2 - spec §2.3.3 多帧合并 (.hiss -> .hcsd, stage 8-9)
 // 串行执行 2 个 stage: GRADIENT_SPHERE -> STACK
+// P04-004: 集成取消 token / stage 超时 / 原子输出清理
 // ============================================================================
 TaskResult Orchestrator::run_stage2(const std::string& hiss_dir,
                                     const std::string& output_hcsd,
@@ -3292,6 +3533,22 @@ TaskResult Orchestrator::run_stage2(const std::string& hiss_dir,
 
     // GAP-017: 保存 config_json 供 run_stage_gradient_sphere 读取 sigma_clip_method 等
     current_config_json_ = config_json;
+
+    // P04-004: 重置取消/超时标志, 解析 stage_timeouts 配置
+    reset_cancel_timeout();
+    auto timeouts = parse_stage_timeouts(config_json);
+    if (!timeouts.empty()) {
+        config_.stage_timeouts = timeouts;
+        LOG_INFO("orchestrator", "P04-004: 已加载 " + std::to_string(timeouts.size()) + " 个 stage 超时配置");
+    }
+    // P04-004: 解析 allow_partial_output 配置 (默认 false, 严格原子性)
+    bool allow_partial = orc_getJsonBool(config_json, "allow_partial_output", false);
+    config_.allow_partial_output = allow_partial;
+    if (allow_partial) {
+        LOG_WARN("orchestrator", "P04-004: allow_partial_output=true, 取消/超时/失败时将保留部分输出");
+    }
+    // P04-004: 记录输出路径 (用于失败/取消/超时时的原子清理)
+    current_output_file_ = output_hcsd;
 
     // 参数校验
     if (hiss_dir.empty()) {
@@ -3361,13 +3618,68 @@ TaskResult Orchestrator::run_stage2(const std::string& hiss_dir,
     state_ = TaskState::RUNNING;
 
     // 串行执行 stage 8-9 (lambda: 带计时调用 stage handler)
+    // P04-004: 集成取消/超时检查与 watchdog
     auto run_v2_with_timing = [&](PipelineStageV2 stage, const char* name,
                                    bool (Orchestrator::*fn)(TaskResult&)) -> bool {
+        // P04-004: stage 开始前检查取消/超时
+        if (!check_stage_continue(name, result)) {
+            StageTiming st;
+            st.stage = PipelineStage::STACK;
+            st.stage_name = std::string(name) + " (skipped)";
+            st.duration_sec = 0.0;
+            st.success = false;
+            result.timings.push_back(st);
+            return false;
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            current_stage_name_ = name;
+        }
+
         LOG_INFO("orchestrator", "---------- stage2 阶段: " + std::string(name) + " ----------");
+
+        // P04-004: 启动 watchdog 线程 (如果该 stage 配置了超时)
+        double timeout_sec = 0.0;
+        auto it = config_.stage_timeouts.find(name);
+        if (it != config_.stage_timeouts.end()) {
+            timeout_sec = it->second;
+        }
+        std::thread watchdog;
+        bool watchdog_active = false;
+        if (timeout_sec > 0.0) {
+            watchdog_active = true;
+            stage_watchdog_stop_.store(false, std::memory_order_release);
+            watchdog = std::thread([this, name, timeout_sec]() {
+                auto deadline = std::chrono::steady_clock::now()
+                              + std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                    std::chrono::duration<double>(timeout_sec));
+                while (std::chrono::steady_clock::now() < deadline) {
+                    if (stage_watchdog_stop_.load(std::memory_order_acquire)) return;
+                    if (is_cancelled()) return;
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                }
+                if (!is_cancelled() &&
+                    !stage_watchdog_stop_.load(std::memory_order_acquire)) {
+                    timeout_flag_.store(true, std::memory_order_release);
+                    LOG_WARN("orchestrator", "P04-004: stage " + std::string(name) + " 超时 ("
+                             + std::to_string(timeout_sec) + "s), 触发 timeout_flag");
+                }
+            });
+        }
+
         auto t0 = std::chrono::steady_clock::now();
         bool ok = (this->*fn)(result);
         auto t1 = std::chrono::steady_clock::now();
         double dur = std::chrono::duration<double>(t1 - t0).count();
+
+        // P04-004: 通知 watchdog 停止并 join
+        if (watchdog_active) {
+            stage_watchdog_stop_.store(true, std::memory_order_release);
+            if (watchdog.joinable()) {
+                watchdog.join();
+            }
+        }
 
         StageTiming st;
         st.stage = PipelineStage::STACK;  // stage2 使用 STACK 枚举
@@ -3377,6 +3689,21 @@ TaskResult Orchestrator::run_stage2(const std::string& hiss_dir,
         result.timings.push_back(st);
         LOG_INFO("orchestrator", "[" + std::to_string(dur) + "s] " + name
                  + (ok ? " 完成" : " 失败"));
+
+        // P04-004: stage 执行后检查取消/超时
+        if (is_cancelled()) {
+            result.exit_code = AstroCsExitCode::CANCELLED;
+            result.error_msg = std::string(name) + " 取消 (用户请求)";
+            LOG_WARN("orchestrator", "P04-004: " + result.error_msg);
+            return false;
+        }
+        if (is_timed_out()) {
+            result.exit_code = AstroCsExitCode::TIMEOUT;
+            result.error_msg = std::string(name) + " 超时";
+            LOG_WARN("orchestrator", "P04-004: " + result.error_msg);
+            return false;
+        }
+
         // P03-003: 兜底 exit_code (stage handler 未设置时按 stage 类型推导)
         if (!ok && result.exit_code == AstroCsExitCode::SUCCESS) {
             switch (stage) {
@@ -3397,7 +3724,20 @@ TaskResult Orchestrator::run_stage2(const std::string& hiss_dir,
                                    &Orchestrator::run_stage_stack);
 
     result.success = ok;
-    result.output_ahpx_path = ok ? output_hcsd : "";
+
+    // P04-004: 原子输出清理 - 失败/取消/超时时删除部分输出文件
+    if (!ok) {
+        if (!config_.allow_partial_output) {
+            LOG_INFO("orchestrator", "P04-004: 原子性清理 - stage2 失败/取消/超时, 删除部分输出");
+            cleanup_partial_output(output_hcsd);
+            result.output_ahpx_path = "";
+        } else {
+            LOG_WARN("orchestrator", "P04-004: allow_partial_output=true, 保留部分输出: " + output_hcsd);
+            result.output_ahpx_path = output_hcsd;
+        }
+    } else {
+        result.output_ahpx_path = output_hcsd;
+    }
     state_ = ok ? TaskState::COMPLETED : TaskState::FAILED;
 
     LOG_INFO("orchestrator", "========== stage2 "

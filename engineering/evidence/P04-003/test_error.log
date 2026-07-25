@@ -1,0 +1,185 @@
+[checkpoint] 已清除 3 个检查点文件
+[checkpoint] 已清除 0 个检查点文件
+[2026-07-25 19:10:52][INFO][logger] 日志系统初始化完成 (log_dir=lib/orchestrator/logs, level=INFO)
+[2026-07-25 19:10:52][INFO][orchestrator] 初始化编排器 (骨架版本)
+[2026-07-25 19:10:52][INFO][orchestrator] 可用线程数: 16
+[2026-07-25 19:10:52][INFO][orchestrator] 设置检查点目录: ckpt_orch_45028927072400
+[2026-07-25 19:10:52][INFO][orchestrator] 保存检查点: orch_frame.fts
+[2026-07-25 19:10:52][INFO][orchestrator] 加载检查点: orch_frame.fts
+[2026-07-25 19:10:52][INFO][orchestrator] 恢复起点: stage_id=0 (CALIBRATE)
+[2026-07-25 19:10:52][INFO][orchestrator] 析构完成
+[dll_loader] 卸载所有模块
+[dll_loader] 加载模块 CALIBRATE: Z:/nonexistent_path_xyz/lib/calibration/astro_calibration.dll
+[dll_loader] [错误] DLL 文件不存在: Z:/nonexistent_path_xyz/lib/calibration/astro_calibration.dll
+[dll_loader] 卸载所有模块
+[dll_loader] 开始加载所有模块 (lib_base_dir=../../..)
+[dll_loader] 设置运行时 DLL 搜索路径: C:\msys64\mingw64\bin
+[dll_loader] 加载模块 AIO: ../../../lib/astro_image_io/astro_image_io.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 CALIBRATE: ../../../lib/calibration/astro_calibration.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 PLATESOLVE: ../../../lib/plate_solve/cpp/ipv/ipv_solver.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 PSF: ../../../lib/dynamic_psf/dynamic_psf.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 PHOTOMETRIC: ../../../lib/photometric_calib/cpp/photometric_calib.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 SNR: ../../../lib/snr_estimator/cpp/snr_estimator.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 DRIZZLE: ../../../lib/healpix_db/healpix_drizzle/healpix_drizzle.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 GRADIENT_SPHERE: ../../../lib/healpix_db/healpix_stack/healpix_stack.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 STACK: ../../../lib/healpix_db/healpix_stack/healpix_stack.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 部分模块加载失败, 详见各模块状态
+[dll_loader] 卸载所有模块
+[dll_loader] 开始加载所有模块 (lib_base_dir=../../..)
+[dll_loader] 设置运行时 DLL 搜索路径: C:\msys64\mingw64\bin
+[dll_loader] 加载模块 AIO: ../../../lib/astro_image_io/astro_image_io.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 CALIBRATE: ../../../lib/calibration/astro_calibration.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 PLATESOLVE: ../../../lib/plate_solve/cpp/ipv/ipv_solver.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 PSF: ../../../lib/dynamic_psf/dynamic_psf.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 PHOTOMETRIC: ../../../lib/photometric_calib/cpp/photometric_calib.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 SNR: ../../../lib/snr_estimator/cpp/snr_estimator.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 DRIZZLE: ../../../lib/healpix_db/healpix_drizzle/healpix_drizzle.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 GRADIENT_SPHERE: ../../../lib/healpix_db/healpix_stack/healpix_stack.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 STACK: ../../../lib/healpix_db/healpix_stack/healpix_stack.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 部分模块加载失败, 详见各模块状态
+[dll_loader] 卸载所有模块
+[dll_loader] 开始加载所有模块 (lib_base_dir=../../..)
+[dll_loader] 设置运行时 DLL 搜索路径: C:\msys64\mingw64\bin
+[dll_loader] 加载模块 AIO: ../../../lib/astro_image_io/astro_image_io.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 CALIBRATE: ../../../lib/calibration/astro_calibration.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 PLATESOLVE: ../../../lib/plate_solve/cpp/ipv/ipv_solver.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 PSF: ../../../lib/dynamic_psf/dynamic_psf.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 PHOTOMETRIC: ../../../lib/photometric_calib/cpp/photometric_calib.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 SNR: ../../../lib/snr_estimator/cpp/snr_estimator.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 DRIZZLE: ../../../lib/healpix_db/healpix_drizzle/healpix_drizzle.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 GRADIENT_SPHERE: ../../../lib/healpix_db/healpix_stack/healpix_stack.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 STACK: ../../../lib/healpix_db/healpix_stack/healpix_stack.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 部分模块加载失败, 详见各模块状态
+[dll_loader] 卸载所有模块
+[dll_loader] 开始加载所有模块 (lib_base_dir=../../..)
+[dll_loader] 设置运行时 DLL 搜索路径: C:\msys64\mingw64\bin
+[dll_loader] 加载模块 AIO: ../../../lib/astro_image_io/astro_image_io.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 CALIBRATE: ../../../lib/calibration/astro_calibration.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 PLATESOLVE: ../../../lib/plate_solve/cpp/ipv/ipv_solver.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 PSF: ../../../lib/dynamic_psf/dynamic_psf.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 PHOTOMETRIC: ../../../lib/photometric_calib/cpp/photometric_calib.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 SNR: ../../../lib/snr_estimator/cpp/snr_estimator.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 DRIZZLE: ../../../lib/healpix_db/healpix_drizzle/healpix_drizzle.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 GRADIENT_SPHERE: ../../../lib/healpix_db/healpix_stack/healpix_stack.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 STACK: ../../../lib/healpix_db/healpix_stack/healpix_stack.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 部分模块加载失败, 详见各模块状态
+[dll_loader] 卸载所有模块
+[dll_loader] 卸载所有模块
+[dll_loader] 开始加载所有模块 (lib_base_dir=../../..)
+[dll_loader] 设置运行时 DLL 搜索路径: C:\msys64\mingw64\bin
+[dll_loader] 加载模块 AIO: ../../../lib/astro_image_io/astro_image_io.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 CALIBRATE: ../../../lib/calibration/astro_calibration.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 PLATESOLVE: ../../../lib/plate_solve/cpp/ipv/ipv_solver.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 PSF: ../../../lib/dynamic_psf/dynamic_psf.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 PHOTOMETRIC: ../../../lib/photometric_calib/cpp/photometric_calib.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 SNR: ../../../lib/snr_estimator/cpp/snr_estimator.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 DRIZZLE: ../../../lib/healpix_db/healpix_drizzle/healpix_drizzle.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 GRADIENT_SPHERE: ../../../lib/healpix_db/healpix_stack/healpix_stack.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 STACK: ../../../lib/healpix_db/healpix_stack/healpix_stack.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 部分模块加载失败, 详见各模块状态
+[dll_loader] 卸载所有模块
+[dll_loader] 卸载所有模块
+[2026-07-25 19:10:52][INFO][logger] 日志系统初始化完成 (log_dir=lib/orchestrator/logs, level=INFO)
+[2026-07-25 19:10:52][INFO][orchestrator] 初始化编排器 (骨架版本)
+[2026-07-25 19:10:52][INFO][orchestrator] 可用线程数: 16
+[2026-07-25 19:10:52][INFO][orchestrator] 初始化 DLL 加载 (lib_base_dir=Z:/nonexistent_path_xyz)
+[dll_loader] 开始加载所有模块 (lib_base_dir=Z:/nonexistent_path_xyz)
+[dll_loader] 设置运行时 DLL 搜索路径: C:\msys64\mingw64\bin
+[dll_loader] 加载模块 AIO: Z:/nonexistent_path_xyz/lib/astro_image_io/astro_image_io.dll
+[dll_loader] [错误] DLL 文件不存在: Z:/nonexistent_path_xyz/lib/astro_image_io/astro_image_io.dll
+[dll_loader] 加载模块 CALIBRATE: Z:/nonexistent_path_xyz/lib/calibration/astro_calibration.dll
+[dll_loader] [错误] DLL 文件不存在: Z:/nonexistent_path_xyz/lib/calibration/astro_calibration.dll
+[dll_loader] 加载模块 PLATESOLVE: Z:/nonexistent_path_xyz/lib/plate_solve/cpp/ipv/ipv_solver.dll
+[dll_loader] [错误] DLL 文件不存在: Z:/nonexistent_path_xyz/lib/plate_solve/cpp/ipv/ipv_solver.dll
+[dll_loader] 加载模块 PSF: Z:/nonexistent_path_xyz/lib/dynamic_psf/dynamic_psf.dll
+[dll_loader] [错误] DLL 文件不存在: Z:/nonexistent_path_xyz/lib/dynamic_psf/dynamic_psf.dll
+[dll_loader] 加载模块 PHOTOMETRIC: Z:/nonexistent_path_xyz/lib/photometric_calib/cpp/photometric_calib.dll
+[dll_loader] [错误] DLL 文件不存在: Z:/nonexistent_path_xyz/lib/photometric_calib/cpp/photometric_calib.dll
+[dll_loader] 加载模块 SNR: Z:/nonexistent_path_xyz/lib/snr_estimator/cpp/snr_estimator.dll
+[dll_loader] [错误] DLL 文件不存在: Z:/nonexistent_path_xyz/lib/snr_estimator/cpp/snr_estimator.dll
+[dll_loader] 加载模块 DRIZZLE: Z:/nonexistent_path_xyz/lib/healpix_db/healpix_drizzle/healpix_drizzle.dll
+[dll_loader] [错误] DLL 文件不存在: Z:/nonexistent_path_xyz/lib/healpix_db/healpix_drizzle/healpix_drizzle.dll
+[dll_loader] 加载模块 GRADIENT_SPHERE: Z:/nonexistent_path_xyz/lib/healpix_db/healpix_stack/healpix_stack.dll
+[dll_loader] [错误] DLL 文件不存在: Z:/nonexistent_path_xyz/lib/healpix_db/healpix_stack/healpix_stack.dll
+[dll_loader] 加载模块 STACK: Z:/nonexistent_path_xyz/lib/healpix_db/healpix_stack/healpix_stack.dll
+[dll_loader] [错误] DLL 文件不存在: Z:/nonexistent_path_xyz/lib/healpix_db/healpix_stack/healpix_stack.dll
+[dll_loader] 部分模块加载失败, 详见各模块状态
+[2026-07-25 19:10:52][WARN][orchestrator] 部分模块加载失败: AIO=DLL 文件不存在: Z:/nonexistent_path_xyz/lib/astro_image_io/astro_image_io.dll; CALIBRATE=DLL 文件不存在: Z:/nonexistent_path_xyz/lib/calibration/astro_calibration.dll; PLATESOLVE=DLL 文件不存在: Z:/nonexistent_path_xyz/lib/plate_solve/cpp/ipv/ipv_solver.dll; PSF=DLL 文件不存在: Z:/nonexistent_path_xyz/lib/dynamic_psf/dynamic_psf.dll; PHOTOMETRIC=DLL 文件不存在: Z:/nonexistent_path_xyz/lib/photometric_calib/cpp/photometric_calib.dll; SNR=DLL 文件不存在: Z:/nonexistent_path_xyz/lib/snr_estimator/cpp/snr_estimator.dll; DRIZZLE=DLL 文件不存在: Z:/nonexistent_path_xyz/lib/healpix_db/healpix_drizzle/healpix_drizzle.dll; GRADIENT_SPHERE=DLL 文件不存在: Z:/nonexistent_path_xyz/lib/healpix_db/healpix_stack/healpix_stack.dll; STACK=DLL 文件不存在: Z:/nonexistent_path_xyz/lib/healpix_db/healpix_stack/healpix_stack.dll
+[2026-07-25 19:10:52][WARN][orchestrator] 加载失败的阶段将被跳过
+[2026-07-25 19:10:52][INFO][orchestrator] 初始化 DLL 加载 (lib_base_dir=../../..)
+[dll_loader] 开始加载所有模块 (lib_base_dir=../../..)
+[dll_loader] 设置运行时 DLL 搜索路径: C:\msys64\mingw64\bin
+[dll_loader] 加载模块 AIO: ../../../lib/astro_image_io/astro_image_io.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 CALIBRATE: ../../../lib/calibration/astro_calibration.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 PLATESOLVE: ../../../lib/plate_solve/cpp/ipv/ipv_solver.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 PSF: ../../../lib/dynamic_psf/dynamic_psf.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 PHOTOMETRIC: ../../../lib/photometric_calib/cpp/photometric_calib.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 SNR: ../../../lib/snr_estimator/cpp/snr_estimator.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 DRIZZLE: ../../../lib/healpix_db/healpix_drizzle/healpix_drizzle.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 GRADIENT_SPHERE: ../../../lib/healpix_db/healpix_stack/healpix_stack.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 加载模块 STACK: ../../../lib/healpix_db/healpix_stack/healpix_stack.dll
+[dll_loader] [错误] LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[dll_loader] 部分模块加载失败, 详见各模块状态
+[2026-07-25 19:10:52][WARN][orchestrator] 部分模块加载失败: AIO=LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣); CALIBRATE=LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣); PLATESOLVE=LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣); PSF=LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣); PHOTOMETRIC=LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣); SNR=LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣); DRIZZLE=LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣); GRADIENT_SPHERE=LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣); STACK=LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)
+[2026-07-25 19:10:52][WARN][orchestrator] 加载失败的阶段将被跳过
+[2026-07-25 19:10:52][INFO][orchestrator] 析构完成
+[dll_loader] 卸载所有模块
+[2026-07-25 19:10:52][INFO][logger] 日志系统初始化完成 (log_dir=logger_integration_45029257333600, level=DEBUG)
+[2026-07-25 19:10:52][INFO][logger] 日志系统初始化完成 (log_dir=logger_level_45029264218900, level=WARN)
+[2026-07-25 19:10:52][INFO][logger] 日志系统初始化完成 (log_dir=logger_multimod_45029270455000, level=DEBUG)
+[2026-07-25 19:10:52][INFO][logger] 日志系统初始化完成 (log_dir=logger_format_45029277438700, level=DEBUG)
+[2026-07-25 19:10:52][INFO][logger] 日志系统初始化完成 (log_dir=logger_shutdown_45029287241700, level=DEBUG)
+[2026-07-25 19:10:52][INFO][logger] 日志系统初始化完成 (log_dir=logger_shutdown_45029287241700, level=INFO)

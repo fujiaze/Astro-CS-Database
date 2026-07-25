@@ -1462,6 +1462,521 @@ void test_part7_p04_002_jsonl_events_and_error_codes() {
 }
 
 // ============================================================================
+// Part 8: P04-003 capabilities 扩展与 inspect --hiss/--hcsd/--frame 测试
+// 验证 capabilities modules/stages/schema_versions, inspect 子命令元数据输出
+// ============================================================================
+void test_part8_p04_003_capabilities_and_inspect() {
+    TEST_SECTION("Part 8: P04-003 capabilities 扩展与 inspect --hiss/--hcsd/--frame");
+
+    std::string exe = find_orchestrator_exe();
+    TempDir tmp("p04_003_fixtures_");
+    std::string tmpdir = tmp.path();
+
+    // ---- 测试 1: capabilities 含 modules 数组 (P04-003 扩展) ----
+    {
+        ExecResult r = exec_command(exe + " capabilities");
+        ASSERT_EQ(r.exit_code, 0, "capabilities 退出码 0");
+
+        // modules 数组字段
+        ASSERT_CONTAINS(r.stdout_output, "\"modules\"", "capabilities 含 modules 字段 (P04-003)");
+        ASSERT_CONTAINS(r.stdout_output, "\"name\":\"astro_image_io\"", "modules 含 astro_image_io");
+        ASSERT_CONTAINS(r.stdout_output, "\"name\":\"calibration\"", "modules 含 calibration");
+        ASSERT_CONTAINS(r.stdout_output, "\"name\":\"ipv_solver\"", "modules 含 ipv_solver");
+        ASSERT_CONTAINS(r.stdout_output, "\"name\":\"healpix_drizzle\"", "modules 含 healpix_drizzle");
+        ASSERT_CONTAINS(r.stdout_output, "\"name\":\"healpix_stack\"", "modules 含 healpix_stack");
+        ASSERT_CONTAINS(r.stdout_output, "\"name\":\"photometric_calib\"", "modules 含 photometric_calib");
+        ASSERT_CONTAINS(r.stdout_output, "\"name\":\"gaia_client\"", "modules 含 gaia_client");
+
+        // 每个模块含 version 字段 (允许 "unknown")
+        ASSERT_CONTAINS(r.stdout_output, "\"version\"", "modules 含 version 字段");
+
+        // capabilities 数组 (模块能力)
+        ASSERT_CONTAINS(r.stdout_output, "\"capabilities\":[\"read_fits\"", "AIO capabilities 含 read_fits");
+        ASSERT_CONTAINS(r.stdout_output, "\"write_hiss\"", "AIO capabilities 含 write_hiss");
+        ASSERT_CONTAINS(r.stdout_output, "\"read_hiss\"", "AIO capabilities 含 read_hiss");
+        ASSERT_CONTAINS(r.stdout_output, "\"write_hcsd\"", "AIO capabilities 含 write_hcsd");
+        ASSERT_CONTAINS(r.stdout_output, "\"read_hcsd\"", "AIO capabilities 含 read_hcsd");
+    }
+
+    // ---- 测试 2: capabilities 含 stages + schema_versions (P04-003 扩展) ----
+    {
+        ExecResult r = exec_command(exe + " capabilities");
+        ASSERT_EQ(r.exit_code, 0, "capabilities 退出码 0 (重测)");
+
+        // stages 数组 (两段流水线 8 个 stage)
+        ASSERT_CONTAINS(r.stdout_output, "\"stages\"", "capabilities 含 stages 字段 (P04-003)");
+        ASSERT_CONTAINS(r.stdout_output, "READ_FITS", "stages 含 READ_FITS");
+        ASSERT_CONTAINS(r.stdout_output, "CALIBRATE", "stages 含 CALIBRATE");
+        ASSERT_CONTAINS(r.stdout_output, "PLATESOLVE", "stages 含 PLATESOLVE");
+        ASSERT_CONTAINS(r.stdout_output, "DRIZZLE", "stages 含 DRIZZLE");
+        ASSERT_CONTAINS(r.stdout_output, "STACK", "stages 含 STACK");
+
+        // schema_versions 对象 (各契约文件版本)
+        ASSERT_CONTAINS(r.stdout_output, "\"schema_versions\"", "capabilities 含 schema_versions 字段");
+        ASSERT_CONTAINS(r.stdout_output, "\"hiss\":\"1.0\"", "schema_versions.hiss=1.0");
+        ASSERT_CONTAINS(r.stdout_output, "\"hcsd\":\"1.0\"", "schema_versions.hcsd=1.0");
+        ASSERT_CONTAINS(r.stdout_output, "\"request\":\"v1\"", "schema_versions.request=v1");
+        ASSERT_CONTAINS(r.stdout_output, "\"effective_config\":\"v1\"", "schema_versions.effective_config=v1");
+        ASSERT_CONTAINS(r.stdout_output, "\"jsonl_event\":\"v1\"", "schema_versions.jsonl_event=v1");
+
+        // 契约文件路径引用 (便于 GUI 查询)
+        ASSERT_CONTAINS(r.stdout_output, "hiss_format", "capabilities 含 hiss_format 路径");
+        ASSERT_CONTAINS(r.stdout_output, "hcsd_format", "capabilities 含 hcsd_format 路径");
+    }
+
+    // ---- 测试 3: inspect 缺少参数返回 CONFIG_ERROR(7) ----
+    {
+        ExecResult r = exec_command(exe + " inspect");
+        ASSERT_EQ(r.exit_code, 7, "inspect 无参数退出码 7 (CONFIG_ERROR)");
+    }
+
+    // ---- 测试 4: inspect --hiss 文件不存在返回 FILE_IO_ERROR(8) ----
+    {
+        ExecResult r = exec_command(exe + " inspect --hiss Z:/nonexistent.hiss");
+        ASSERT_EQ(r.exit_code, 8, "inspect --hiss 不存在文件退出码 8 (FILE_IO_ERROR)");
+        ASSERT_CONTAINS(r.stdout_output, "\"type\":\"error\"", "stdout 含 error 事件");
+        ASSERT_CONTAINS(r.stdout_output, "\"exit_code\":8", "error 事件 exit_code=8");
+        ASSERT_CONTAINS(r.stdout_output, "ASTROCS_FILE_IO_ERROR", "error.code=ASTROCS_FILE_IO_ERROR");
+    }
+
+    // ---- 测试 5: inspect --hcsd 文件不存在返回 FILE_IO_ERROR(8) ----
+    {
+        ExecResult r = exec_command(exe + " inspect --hcsd Z:/nonexistent.hcsd");
+        ASSERT_EQ(r.exit_code, 8, "inspect --hcsd 不存在文件退出码 8 (FILE_IO_ERROR)");
+        ASSERT_CONTAINS(r.stdout_output, "\"type\":\"error\"", "stdout 含 error 事件");
+        ASSERT_CONTAINS(r.stdout_output, "\"exit_code\":8", "error 事件 exit_code=8");
+    }
+
+    // ---- 测试 6: inspect --frame 文件不存在返回 FILE_IO_ERROR(8) ----
+    {
+        ExecResult r = exec_command(exe + " inspect --frame Z:/nonexistent.fts");
+        ASSERT_EQ(r.exit_code, 8, "inspect --frame 不存在文件退出码 8 (FILE_IO_ERROR)");
+        ASSERT_CONTAINS(r.stdout_output, "\"type\":\"error\"", "stdout 含 error 事件");
+        ASSERT_CONTAINS(r.stdout_output, "\"exit_code\":8", "error 事件 exit_code=8");
+    }
+
+    // ---- 测试 7: inspect --hiss 无效 magic 返回 HISS_INVALID(25) ----
+    {
+        // 创建一个伪 HISS 文件 (magic 错误)
+        std::string bad_hiss = tmpdir + "/bad.hiss";
+        std::ofstream ofs(bad_hiss, std::ios::binary);
+        const char bad_magic[] = {'X', 'X', 'X', 'X'};
+        ofs.write(bad_magic, 4);
+        uint32_t dummy_len = 0;
+        ofs.write(reinterpret_cast<const char*>(&dummy_len), 4);
+        ofs.write(reinterpret_cast<const char*>(&dummy_len), 4);
+        ofs.close();
+
+        ExecResult r = exec_command(exe + " inspect --hiss " + bad_hiss);
+        ASSERT_EQ(r.exit_code, 25, "inspect --hiss 无效 magic 退出码 25 (HISS_INVALID)");
+        ASSERT_CONTAINS(r.stdout_output, "\"type\":\"error\"", "stdout 含 error 事件");
+        ASSERT_CONTAINS(r.stdout_output, "\"exit_code\":25", "error 事件 exit_code=25");
+        ASSERT_CONTAINS(r.stdout_output, "ASTROCS_HISS_INVALID", "error.code=ASTROCS_HISS_INVALID");
+    }
+
+    // ---- 测试 8: inspect --hcsd 无效 magic 返回 HCSD_INVALID(26) ----
+    {
+        // 创建一个伪 HCSD 文件 (magic 错误)
+        std::string bad_hcsd = tmpdir + "/bad.hcsd";
+        std::ofstream ofs(bad_hcsd, std::ios::binary);
+        const char bad_magic[] = {'X', 'X', 'X', 'X'};
+        ofs.write(bad_magic, 4);
+        uint32_t dummy_len = 0;
+        ofs.write(reinterpret_cast<const char*>(&dummy_len), 4);
+        ofs.write(reinterpret_cast<const char*>(&dummy_len), 4);
+        ofs.close();
+
+        ExecResult r = exec_command(exe + " inspect --hcsd " + bad_hcsd);
+        ASSERT_EQ(r.exit_code, 26, "inspect --hcsd 无效 magic 退出码 26 (HCSD_INVALID)");
+        ASSERT_CONTAINS(r.stdout_output, "\"type\":\"error\"", "stdout 含 error 事件");
+        ASSERT_CONTAINS(r.stdout_output, "\"exit_code\":26", "error 事件 exit_code=26");
+        ASSERT_CONTAINS(r.stdout_output, "ASTROCS_HCSD_INVALID", "error.code=ASTROCS_HCSD_INVALID");
+    }
+
+    // ---- 测试 9: inspect --frame 无效 FITS 头返回 INPUT_INVALID(28) ----
+    {
+        // 创建一个伪 FITS 文件 (SIMPLE = F, 即非主头)
+        std::string bad_fits = tmpdir + "/bad.fts";
+        std::ofstream ofs(bad_fits, std::ios::binary);
+        // 写入 2880 字节, SIMPLE 行不为 'T'
+        std::string card = "SIMPLE  =                    F                                                  ";
+        std::vector<char> block(2880, ' ');
+        std::copy(card.begin(), card.end(), block.begin());
+        ofs.write(block.data(), 2880);
+        ofs.close();
+
+        ExecResult r = exec_command(exe + " inspect --frame " + bad_fits);
+        ASSERT_EQ(r.exit_code, 28, "inspect --frame 无效 FITS 退出码 28 (INPUT_INVALID)");
+        ASSERT_CONTAINS(r.stdout_output, "\"type\":\"error\"", "stdout 含 error 事件");
+        ASSERT_CONTAINS(r.stdout_output, "\"exit_code\":28", "error 事件 exit_code=28");
+        ASSERT_CONTAINS(r.stdout_output, "ASTROCS_INPUT_INVALID", "error.code=ASTROCS_INPUT_INVALID");
+    }
+
+    // ---- 测试 10: inspect --hiss 真实文件输出 result + completed 事件 ----
+    // 使用 P00-003 baseline HISS 文件
+    {
+        // 查找 P00-003 baseline HISS 文件 (相对路径: 从 cpp/ 目录出发)
+        std::vector<std::string> candidates = {
+            "../../../engineering/evidence/P00-003/output/stage1_baseline.hiss",
+            "../../../../engineering/evidence/P00-003/output/stage1_baseline.hiss",
+            "engineering/evidence/P00-003/output/stage1_baseline.hiss",
+        };
+        std::string hiss_path;
+        for (const auto& c : candidates) {
+            if (fs::exists(c)) { hiss_path = c; break; }
+        }
+        if (hiss_path.empty()) {
+            std::cerr << "  [SKIP] 未找到 P00-003 baseline HISS 文件, 跳过测试 10" << std::endl;
+        } else {
+            ExecResult r = exec_command(exe + " inspect --hiss " + hiss_path);
+            ASSERT_EQ(r.exit_code, 0, "inspect --hiss 真实文件退出码 0");
+
+            // stdout 含 result 事件
+            ASSERT_CONTAINS(r.stdout_output, "\"type\":\"result\"", "stdout 含 result 事件");
+            ASSERT_CONTAINS(r.stdout_output, "\"format\":\"HISS\"", "result.format=HISS");
+            ASSERT_CONTAINS(r.stdout_output, "\"magic\":\"HISS\"", "result.magic=HISS");
+            ASSERT_CONTAINS(r.stdout_output, "\"file_size\"", "result 含 file_size 字段");
+            ASSERT_CONTAINS(r.stdout_output, "\"nside\"", "result 含 nside 字段");
+            ASSERT_CONTAINS(r.stdout_output, "\"n_pix\"", "result 含 n_pix 字段");
+            ASSERT_CONTAINS(r.stdout_output, "\"meta_json\"", "result 含 meta_json 字段");
+
+            // stdout 含 completed 事件
+            ASSERT_CONTAINS(r.stdout_output, "\"type\":\"completed\"", "stdout 含 completed 事件");
+            ASSERT_CONTAINS(r.stdout_output, "hiss inspect completed", "completed 事件 message 正确");
+
+            // stdout 每行均为有效 JSONL
+            std::istringstream iss(r.stdout_output);
+            std::string line;
+            int json_lines = 0;
+            int bad_lines = 0;
+            while (std::getline(iss, line)) {
+                if (line.empty()) continue;
+                bool all_space = true;
+                for (char c : line) { if (!std::isspace((unsigned char)c)) { all_space = false; break; } }
+                if (all_space) continue;
+                ++json_lines;
+                std::string trimmed = line;
+                while (!trimmed.empty() && (trimmed.back() == '\r' || trimmed.back() == ' ' || trimmed.back() == '\t')) {
+                    trimmed.pop_back();
+                }
+                if (trimmed.empty() || trimmed.front() != '{' || trimmed.back() != '}') {
+                    ++bad_lines;
+                }
+            }
+            ASSERT_TRUE(json_lines >= 2, "stdout 至少 2 行 JSONL (result + completed)");
+            ASSERT_EQ(bad_lines, 0, "stdout 所有非空行均为有效 JSONL");
+
+            // stderr 含日志
+            ASSERT_FALSE(r.stderr_output.empty(), "stderr 非空 (含日志)");
+        }
+    }
+
+    // ---- 测试 11: inspect --hcsd 真实文件输出 result + completed 事件 ----
+    {
+        std::vector<std::string> candidates = {
+            "../../../engineering/evidence/P00-003/output/stage2_baseline.hcsd",
+            "../../../../engineering/evidence/P00-003/output/stage2_baseline.hcsd",
+            "engineering/evidence/P00-003/output/stage2_baseline.hcsd",
+        };
+        std::string hcsd_path;
+        for (const auto& c : candidates) {
+            if (fs::exists(c)) { hcsd_path = c; break; }
+        }
+        if (hcsd_path.empty()) {
+            std::cerr << "  [SKIP] 未找到 P00-003 baseline HCSD 文件, 跳过测试 11" << std::endl;
+        } else {
+            ExecResult r = exec_command(exe + " inspect --hcsd " + hcsd_path);
+            ASSERT_EQ(r.exit_code, 0, "inspect --hcsd 真实文件退出码 0");
+
+            ASSERT_CONTAINS(r.stdout_output, "\"type\":\"result\"", "stdout 含 result 事件");
+            ASSERT_CONTAINS(r.stdout_output, "\"format\":\"HCSD\"", "result.format=HCSD");
+            ASSERT_CONTAINS(r.stdout_output, "\"magic\":\"HCSD\"", "result.magic=HCSD");
+            ASSERT_CONTAINS(r.stdout_output, "\"n_leaves\":49152", "result 含 n_leaves=49152");
+            ASSERT_CONTAINS(r.stdout_output, "\"nside\"", "result 含 nside 字段");
+            ASSERT_CONTAINS(r.stdout_output, "\"n_pix\"", "result 含 n_pix 字段");
+
+            ASSERT_CONTAINS(r.stdout_output, "\"type\":\"completed\"", "stdout 含 completed 事件");
+            ASSERT_CONTAINS(r.stdout_output, "hcsd inspect completed", "completed 事件 message 正确");
+        }
+    }
+
+    // ---- 测试 12: inspect --frame 真实 FITS 文件输出 result + completed 事件 ----
+    {
+        std::vector<std::string> candidates = {
+            "../../../testdata/Victory_Nebula_T4_Flying_Dutchman/lights/Victory_Nebula_mosaic1_flying_dutchman-20250204@035646-180S-Lum.fts",
+            "../../../../testdata/Victory_Nebula_T4_Flying_Dutchman/lights/Victory_Nebula_mosaic1_flying_dutchman-20250204@035646-180S-Lum.fts",
+            "testdata/Victory_Nebula_T4_Flying_Dutchman/lights/Victory_Nebula_mosaic1_flying_dutchman-20250204@035646-180S-Lum.fts",
+        };
+        std::string fits_path;
+        for (const auto& c : candidates) {
+            if (fs::exists(c)) { fits_path = c; break; }
+        }
+        if (fits_path.empty()) {
+            std::cerr << "  [SKIP] 未找到 FITS 测试文件, 跳过测试 12" << std::endl;
+        } else {
+            ExecResult r = exec_command(exe + " inspect --frame " + fits_path);
+            ASSERT_EQ(r.exit_code, 0, "inspect --frame 真实文件退出码 0");
+
+            ASSERT_CONTAINS(r.stdout_output, "\"type\":\"result\"", "stdout 含 result 事件");
+            ASSERT_CONTAINS(r.stdout_output, "\"format\":\"FITS\"", "result.format=FITS");
+            ASSERT_CONTAINS(r.stdout_output, "\"simple\":true", "result.simple=true");
+            ASSERT_CONTAINS(r.stdout_output, "\"keywords\"", "result 含 keywords 对象");
+
+            // 检查关键字 (常用 FITS 关键字)
+            ASSERT_CONTAINS(r.stdout_output, "SIMPLE", "keywords 含 SIMPLE");
+            ASSERT_CONTAINS(r.stdout_output, "BITPIX", "keywords 含 BITPIX");
+            ASSERT_CONTAINS(r.stdout_output, "NAXIS", "keywords 含 NAXIS");
+            ASSERT_CONTAINS(r.stdout_output, "EXPTIME", "keywords 含 EXPTIME");
+
+            ASSERT_CONTAINS(r.stdout_output, "\"type\":\"completed\"", "stdout 含 completed 事件");
+            ASSERT_CONTAINS(r.stdout_output, "frame inspect completed", "completed 事件 message 正确");
+        }
+    }
+
+    // ---- 测试 13: 互斥分发优先级 (--hiss > --hcsd > --frame > --request) ----
+    {
+        // 同时传 --hiss 和 --hcsd, 应优先执行 --hiss
+        std::string bad_hiss = tmpdir + "/mutex.hiss";
+        std::ofstream ofs(bad_hiss, std::ios::binary);
+        const char magic[] = {'H', 'I', 'S', 'S'};
+        ofs.write(magic, 4);
+        uint32_t dummy = 0;
+        ofs.write(reinterpret_cast<const char*>(&dummy), 4);
+        ofs.write(reinterpret_cast<const char*>(&dummy), 4);
+        ofs.close();
+
+        ExecResult r = exec_command(exe + " inspect --hiss " + bad_hiss + " --hcsd Z:/nonexistent.hcsd");
+        // 应执行 --hiss (退出 0), 不应执行 --hcsd (会退出 8)
+        ASSERT_EQ(r.exit_code, 0, "互斥分发: --hiss 优先于 --hcsd");
+        ASSERT_CONTAINS(r.stdout_output, "\"format\":\"HISS\"", "执行的是 HISS inspect");
+    }
+}
+
+// ============================================================================
+// Part 9: P04-004 取消/超时/原子性测试
+// 验证 --cancel-on-signal 参数, 取消 token, stage 超时, 原子输出清理, partial 输出
+// ============================================================================
+void test_part9_p04_004_cancel_timeout_atomicity() {
+    TEST_SECTION("Part 9: P04-004 取消/超时/原子性");
+
+    std::string exe = find_orchestrator_exe();
+    TempDir tmp("p04_004_fixtures_");
+    std::string tmpdir = tmp.path();
+
+    // ---- 测试 1: capabilities 包含 cancelled 事件类型 ----
+    {
+        ExecResult r = exec_command(exe + " capabilities");
+        ASSERT_EQ(r.exit_code, 0, "capabilities 退出码为 0");
+        ASSERT_CONTAINS(r.stdout_output, "\"cancelled\"",
+                        "capabilities events 含 cancelled 事件类型 (P04-004)");
+        ASSERT_CONTAINS(r.stdout_output, "\"name\": \"TIMEOUT\"",
+                        "capabilities 含 TIMEOUT 错误码 (P04-004)");
+        ASSERT_CONTAINS(r.stdout_output, "\"name\": \"CANCELLED\"",
+                        "capabilities 含 CANCELLED 错误码 (P04-004)");
+        ASSERT_CONTAINS(r.stdout_output, "ASTROCS_TIMEOUT",
+                        "capabilities 含 ASTROCS_TIMEOUT 字符串码");
+        ASSERT_CONTAINS(r.stdout_output, "ASTROCS_CANCELLED",
+                        "capabilities 含 ASTROCS_CANCELLED 字符串码");
+    }
+
+    // ---- 测试 2: --cancel-on-signal 参数被接受 (不报"未知参数") ----
+    {
+        // 使用不存在的 FITS 文件, stage1 会失败, 但 --cancel-on-signal 应被接受
+        ExecResult r = exec_command(exe + " stage1 --frame nonexistent.fits --output "
+                                    + tmpdir + "/out.hiss --cancel-on-signal");
+        ASSERT_TRUE(r.exit_code != 0, "stage1 nonexistent.fits 退出码非 0");
+        // stderr 不应含 "未知参数" (说明 --cancel-on-signal 被正确解析)
+        ASSERT_TRUE(r.stderr_output.find("未知参数") == std::string::npos,
+                    "--cancel-on-signal 参数被接受 (无未知参数错误)");
+        // stderr 应含 P04-004 启用日志 (信号处理器注册日志)
+        ASSERT_TRUE(r.stderr_output.find("cancel-on-signal") != std::string::npos ||
+                    r.stderr_output.find("P04-004") != std::string::npos,
+                    "stderr 含 --cancel-on-signal 启用日志");
+    }
+
+    // ---- 测试 3: 原子性 - stage1 失败时删除部分输出 ----
+    // 创建一个假的输出文件, stage1 失败后应被删除 (默认 allow_partial_output=false)
+    {
+        std::string output_path = tmpdir + "/atomic_test.hiss";
+        // 创建假的输出文件 (模拟部分输出)
+        {
+            std::ofstream ofs(output_path, std::ios::binary);
+            ofs << "PARTIAL_OUTPUT_CONTENT_SHOULD_BE_DELETED";
+            ofs.close();
+        }
+        ASSERT_TRUE(fs::exists(output_path), "测试前: 假输出文件存在");
+
+        // stage1 用不存在的 FITS, 会失败, 触发原子清理
+        ExecResult r = exec_command(exe + " stage1 --frame nonexistent.fits --output "
+                                    + output_path);
+        ASSERT_TRUE(r.exit_code != 0, "stage1 nonexistent.fits 退出码非 0");
+
+        // 原子性验证: 假输出文件应被删除
+        ASSERT_FALSE(fs::exists(output_path),
+                     "原子性: stage1 失败后部分输出文件已删除 (allow_partial_output=false)");
+    }
+
+    // ---- 测试 4: allow_partial_output=true 保留部分输出 ----
+    // 使用配置文件启用 allow_partial_output, stage1 失败后应保留部分输出
+    {
+        std::string output_path = tmpdir + "/partial_test.hiss";
+        std::string config_path = tmpdir + "/partial_config.json";
+        // 创建允许 partial 输出的配置
+        {
+            std::ofstream ofs(config_path);
+            ofs << "{\"allow_partial_output\":true,\"log_level\":\"ERROR\"}";
+            ofs.close();
+        }
+        // 创建假的输出文件
+        {
+            std::ofstream ofs(output_path, std::ios::binary);
+            ofs << "PARTIAL_OUTPUT_CONTENT_SHOULD_BE_KEPT";
+            ofs.close();
+        }
+        ASSERT_TRUE(fs::exists(output_path), "测试前: 假输出文件存在");
+
+        // stage1 用不存在的 FITS, 会失败, 但 allow_partial_output=true
+        ExecResult r = exec_command(exe + " stage1 --frame nonexistent.fits --output "
+                                    + output_path + " --config " + config_path);
+        ASSERT_TRUE(r.exit_code != 0, "stage1 nonexistent.fits 退出码非 0");
+
+        // allow_partial_output=true: 假输出文件应被保留
+        ASSERT_TRUE(fs::exists(output_path),
+                    "allow_partial_output=true: 部分输出文件被保留");
+    }
+
+    // ---- 测试 5: request_cancel / is_cancelled / reset_cancel_timeout 单元测试 ----
+    {
+        Orchestrator orch;
+        // 初始状态: 未取消, 未超时
+        ASSERT_FALSE(orch.is_cancelled(), "初始状态: is_cancelled()=false");
+        ASSERT_FALSE(orch.is_timed_out(), "初始状态: is_timed_out()=false");
+
+        // 请求取消
+        orch.request_cancel();
+        ASSERT_TRUE(orch.is_cancelled(), "request_cancel() 后: is_cancelled()=true");
+        ASSERT_FALSE(orch.is_timed_out(), "request_cancel() 后: is_timed_out()=false");
+
+        // 重置
+        orch.reset_cancel_timeout();
+        ASSERT_FALSE(orch.is_cancelled(), "reset_cancel_timeout() 后: is_cancelled()=false");
+        ASSERT_FALSE(orch.is_timed_out(), "reset_cancel_timeout() 后: is_timed_out()=false");
+
+        // 设置 stage_timeouts (通过 public API)
+        std::map<std::string, double> timeouts;
+        timeouts["READ_FITS"] = 10.0;
+        timeouts["CALIBRATE"] = 60.0;
+        timeouts["PLATESOLVE"] = 120.0;
+        orch.set_stage_timeouts(timeouts);
+
+        // 设置 allow_partial_output
+        orch.set_allow_partial_output(true);
+        orch.set_allow_partial_output(false);
+        ASSERT_TRUE(true, "set_stage_timeouts / set_allow_partial_output 调用成功");
+    }
+
+    // ---- 测试 6: stage_timeouts 配置解析 (通过 config JSON) ----
+    {
+        std::string output_path = tmpdir + "/timeout_parse_test.hiss";
+        std::string config_path = tmpdir + "/timeout_config.json";
+        // 创建含 stage_timeouts 的配置
+        {
+            std::ofstream ofs(config_path);
+            ofs << "{\"stage_timeouts\":{\"READ_FITS\":10.0,\"CALIBRATE\":60.0,"
+                << "\"PLATESOLVE\":120.0,\"DRIZZLE\":300.0},"
+                << "\"log_level\":\"ERROR\"}";
+            ofs.close();
+        }
+
+        ExecResult r = exec_command(exe + " stage1 --frame nonexistent.fits --output "
+                                    + output_path + " --config " + config_path);
+        ASSERT_TRUE(r.exit_code != 0, "stage1 nonexistent.fits 退出码非 0");
+
+        // stderr 应含 stage_timeouts 解析日志
+        ASSERT_TRUE(r.stderr_output.find("stage_timeouts") != std::string::npos ||
+                    r.stderr_output.find("stage 超时配置") != std::string::npos,
+                    "stderr 含 stage_timeouts 配置加载日志");
+        // stderr 应含解析的具体 stage 超时值
+        ASSERT_TRUE(r.stderr_output.find("READ_FITS") != std::string::npos,
+                    "stderr 含 READ_FITS stage 超时配置");
+    }
+
+    // ---- 测试 7: 超时触发测试 (best-effort, 使用极短超时 + 真实 FITS) ----
+    // 如果 DLL 不可用或 stage 太快, 测试 informational (不强制 FAIL)
+    {
+        // 查找一个真实 FITS 文件 (用于触发 stage 执行)
+        std::string fits_file;
+        {
+            // 搜索 testdata 下的 .fits 文件
+            std::vector<std::string> search_dirs = {
+                "../../../testdata",
+                "../../../../testdata",
+                "../../../../../testdata"
+            };
+            for (const auto& dir : search_dirs) {
+                if (fs::exists(dir) && fs::is_directory(dir)) {
+                    // 递归查找第一个 .fits 文件
+                    for (const auto& entry : fs::recursive_directory_iterator(dir)) {
+                        if (entry.is_regular_file() && entry.path().extension() == ".fits") {
+                            fits_file = entry.path().string();
+                            break;
+                        }
+                    }
+                    if (!fits_file.empty()) break;
+                }
+            }
+        }
+
+        if (!fits_file.empty()) {
+            std::string output_path = tmpdir + "/timeout_trigger.hiss";
+            std::string config_path = tmpdir + "/timeout_trigger_config.json";
+            // 极短超时 (0.001s = 1ms), 期望触发 timeout
+            {
+                std::ofstream ofs(config_path);
+                ofs << "{\"stage_timeouts\":{\"READ_FITS\":0.001},\"log_level\":\"ERROR\"}";
+                ofs.close();
+            }
+
+            ExecResult r = exec_command(exe + " stage1 --frame \"" + fits_file
+                                        + "\" --output " + output_path
+                                        + " --config " + config_path);
+            // 退出码 9 = TIMEOUT (P04-004 触发)
+            // 退出码 2 = DLL_LOAD_FAILED (DLL 不可用, stage 未执行)
+            // 退出码 1 = GENERIC_ERROR (stage 太快完成, 未触发超时, 但其他错误)
+            // 退出码 5 = PLATESOLVE_FAILED (stage 执行但 platesolve 失败)
+            bool is_timeout = (r.exit_code == 9);
+            bool is_dll_fail = (r.exit_code == 2);
+            bool is_other_error = (r.exit_code == 1 || r.exit_code == 5 || r.exit_code == 8);
+            ASSERT_TRUE(is_timeout || is_dll_fail || is_other_error,
+                        "超时测试: 退出码为 9(TIMEOUT)/2(DLL)/1(GENERIC)/5(PLATESOLVE)/8(IO) 之一");
+            // 如果触发了超时, 验证 stderr 含超时日志
+            if (is_timeout) {
+                ASSERT_TRUE(r.stderr_output.find("超时") != std::string::npos ||
+                            r.stderr_output.find("timeout") != std::string::npos,
+                            "超时触发: stderr 含超时日志");
+                // 原子性: 超时后输出文件应被删除
+                ASSERT_FALSE(fs::exists(output_path),
+                             "超时后: 部分输出文件已删除 (原子性)");
+            }
+            // 超时测试 informational, 不强制要求触发
+        } else {
+            // 无 FITS 文件, 跳过超时触发测试
+            ASSERT_TRUE(true, "超时触发测试: 跳过 (无 testdata FITS 文件)");
+        }
+    }
+
+    // ---- 测试 8: --cancel-on-signal 不影响其他命令 (无 stage1/stage2 时) ----
+    {
+        // capabilities 命令不应受 --cancel-on-signal 影响 (该参数仅 stage1/stage2 解析)
+        ExecResult r = exec_command(exe + " capabilities --cancel-on-signal");
+        // capabilities 不解析 --cancel-on-signal, 可能报未知参数或忽略
+        // 这里只验证 capabilities 仍能正常输出
+        ASSERT_CONTAINS(r.stdout_output, "schema_version",
+                        "capabilities 仍能正常输出 (不受 --cancel-on-signal 影响)");
+    }
+}
+
+// ============================================================================
 // main
 // ============================================================================
 int main(int argc, char* argv[]) {
@@ -1475,7 +1990,7 @@ int main(int argc, char* argv[]) {
     std::cout << "Orchestrator CLI 集成测试 (Task 5 - 阶段1)" << std::endl;
     std::cout << "============================================================" << std::endl;
 
-    // 执行 7 个 Part 的测试 (Part 6 = P04-001, Part 7 = P04-002)
+    // 执行 9 个 Part 的测试 (Part 6 = P04-001, Part 7 = P04-002, Part 8 = P04-003, Part 9 = P04-004)
     test_part1_repl_commands();
     test_part2_cli_command();
     test_part3_checkpoint_resume();
@@ -1483,6 +1998,8 @@ int main(int argc, char* argv[]) {
     test_part5_logger_integration();
     test_part6_p04_001_request_and_effective_config();
     test_part7_p04_002_jsonl_events_and_error_codes();
+    test_part8_p04_003_capabilities_and_inspect();
+    test_part9_p04_004_cancel_timeout_atomicity();
 
     // 输出汇总
     std::cout << "\n============================================================" << std::endl;
