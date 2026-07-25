@@ -1,0 +1,179 @@
+{
+  "_meta": {
+    "task_id": "P02-007",
+    "task_name": "PlateSolve 无退化与单次检测专项 Gate 验证 (v1.1 开发包)",
+    "phase": "P02",
+    "gate": "G2",
+    "generated_at": "2026-07-25T14:14:38+08:00",
+    "baseline_source": "F:\\Astro dev\\Astro CS Normalization Database\\engineering\\evidence\\P02-001\\old_path_baseline.json",
+    "results_source": "F:\\Astro dev\\Astro CS Normalization Database\\engineering\\evidence\\P02-007\\path_b_results.json",
+    "baseline_commit": "7b85ff3f0d37a4b26fff6077684993842ed2bbae",
+    "results_commit": "7b85ff3f0d37a4b26fff6077684993842ed2bbae",
+    "manifest_sha256": "2A9BE035D326B735D6E3C751CFB5342ED9183DCC22FE83322E445F97877E7DCF"
+  },
+  "non_degradation_checks": {
+    "thresholds": {
+      "success_rate": {
+        "absolute_min": 0.99,
+        "relative_tolerance": 0.005,
+        "description": "成功率 >= 99.0% 且相对基线退化 < 0.5%"
+      },
+      "rms_arcsec_median": {
+        "absolute_max": 0.3,
+        "relative_tolerance": 0.05,
+        "description": "RMS 中位数 <= 0.30\" 且相对基线退化 < 5%"
+      },
+      "rms_arcsec_p99": {
+        "absolute_max": 1.0,
+        "relative_tolerance": 0.1,
+        "description": "RMS p99 <= 1.00\" 且相对基线退化 < 10%"
+      },
+      "n_pairs_median": {
+        "absolute_min": 30,
+        "relative_tolerance": 0.1,
+        "description": "匹配星对中位数 >= 30 且相对基线退化 < 10%"
+      },
+      "duration_median": {
+        "absolute_max": 1.5,
+        "relative_tolerance": 0.2,
+        "description": "单帧耗时中位数 <= 1.50s 且相对基线退化 < 20%"
+      }
+    },
+    "results": [
+      {
+        "metric": "success_rate",
+        "value": 0.9985915492957746,
+        "baseline": 0.9985915492957746,
+        "threshold": {
+          "absolute_min": 0.99,
+          "relative_tolerance": 0.005,
+          "description": "成功率 >= 99.0% 且相对基线退化 < 0.5%"
+        },
+        "higher_is_better": true,
+        "absolute_pass": true,
+        "relative_pass": true,
+        "relative_threshold": 0.9935985915492958,
+        "delta": 0.0,
+        "delta_percent": 0.0,
+        "pass": true
+      },
+      {
+        "metric": "rms_arcsec_median",
+        "value": 0.28518205742507347,
+        "baseline": 0.28518205742507347,
+        "threshold": {
+          "absolute_max": 0.3,
+          "relative_tolerance": 0.05,
+          "description": "RMS 中位数 <= 0.30\" 且相对基线退化 < 5%"
+        },
+        "higher_is_better": false,
+        "absolute_pass": true,
+        "relative_pass": true,
+        "relative_threshold": 0.29944116029632717,
+        "delta": 0.0,
+        "delta_percent": 0.0,
+        "pass": true
+      },
+      {
+        "metric": "rms_arcsec_p99",
+        "value": 0.8663135681503781,
+        "baseline": 0.8663135681503781,
+        "threshold": {
+          "absolute_max": 1.0,
+          "relative_tolerance": 0.1,
+          "description": "RMS p99 <= 1.00\" 且相对基线退化 < 10%"
+        },
+        "higher_is_better": false,
+        "absolute_pass": true,
+        "relative_pass": true,
+        "relative_threshold": 0.9529449249654159,
+        "delta": 0.0,
+        "delta_percent": 0.0,
+        "pass": true
+      },
+      {
+        "metric": "n_pairs_median",
+        "value": 34,
+        "baseline": 34,
+        "threshold": {
+          "absolute_min": 30,
+          "relative_tolerance": 0.1,
+          "description": "匹配星对中位数 >= 30 且相对基线退化 < 10%"
+        },
+        "higher_is_better": true,
+        "absolute_pass": true,
+        "relative_pass": true,
+        "relative_threshold": 30.6,
+        "delta": 0,
+        "delta_percent": 0.0,
+        "pass": true
+      },
+      {
+        "metric": "duration_median",
+        "value": 1.2408249999971304,
+        "baseline": 1.3023930000017572,
+        "threshold": {
+          "absolute_max": 1.5,
+          "relative_tolerance": 0.2,
+          "description": "单帧耗时中位数 <= 1.50s 且相对基线退化 < 20%"
+        },
+        "higher_is_better": false,
+        "absolute_pass": true,
+        "relative_pass": true,
+        "relative_threshold": 1.5628716000021086,
+        "delta": -0.06156800000462681,
+        "delta_percent": -4.727298135397207,
+        "pass": true
+      }
+    ],
+    "all_pass": true
+  },
+  "single_detection_check": {
+    "sdet_calls": 730,
+    "frames_completed": 710,
+    "expected_calls_with_repeats": 730,
+    "calls_per_frame": 1.0282,
+    "pass": true,
+    "note": "前 10 帧重复 3 次, 预期 730 = 710 + 20 重复"
+  },
+  "production_path_check": {
+    "expected_path": "Path B (ipv_solve_from_memory_with_callback + path_b_detection_callback)",
+    "verified_by": "代码审查 orchestrator.cpp L1337-1370 + stage1 日志",
+    "evidence_log": "[PLATESOLVE] 调用 ipv_solve_from_memory_with_callback (路径B callback 导出)",
+    "pass": true
+  },
+  "star_det_homology_check": {
+    "producer": "PLATESOLVE (run_stage_platesolve, L1475 fn_add_block)",
+    "consumer": "PSF (run_stage_psf, L1566 fn_get_block)",
+    "schema": "FLOAT32 [N,4]: x, y, flux, mag",
+    "evidence_log": "stage1 日志: [PLATESOLVE] star_det 块已写入 (路径B): 2000 颗星 → [PSF] star_det: 2000 颗星",
+    "hash_mechanism": "隐式 (同一 PipelineFrame 内存块, 无独立 hash 字段)",
+    "pass": true
+  },
+  "psf_f32_api_check": {
+    "expected": "dpsf_fit_batch_f32 (float32 API, 无全图 uint16 量化)",
+    "actual": "dpsf_fit_batch (uint16 API, 全图 0-65535 clip)",
+    "status": "NOT_INTEGRATED",
+    "reason": "P02-005 添加了 f32 API 但未集成到 orchestrator; SNR 阶段依赖 psf 块的 mad 字段 (f32 API 不提供)",
+    "residual_risk": "PSF 阶段仍创建全图 uint16 缓冲 (~33MB for 4096x4096), 违反 'PSF 无全图量化' 要求",
+    "pass": false,
+    "deferred_to": "P02-005 后续集成 (需扩展 f32 API 输出 mad/status 或重构 SNR 模型)"
+  },
+  "stage1_pipeline_check": {
+    "test_frame": "Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts",
+    "stages_passed": "7/7 (READ_FITS, CALIBRATE, PLATESOLVE, PSF, PHOTOMETRIC, SNR, DRIZZLE)",
+    "total_duration_sec": 25.58,
+    "hiss_output": "engineering/evidence/P02-007/stage1_test/frame_0001.hiss",
+    "pass": true
+  },
+  "overall_verdict": {
+    "non_degradation": "PASS",
+    "single_detection": "PASS",
+    "production_path": "PASS",
+    "star_det_homology": "PASS",
+    "psf_f32_api": "FAIL (deferred to P02-005 integration)",
+    "stage1_pipeline": "PASS",
+    "final_verdict": "CONDITIONAL_PASS",
+    "condition": "Path B 无退化与单次检测已验证; PSF f32 API 集成待 P02-005 完成"
+  }
+}

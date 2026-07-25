@@ -7,11 +7,11 @@ P01-002,P01,数据块注册表与 schema 校验器,P01-001,G1,DONE,evidence/P01-
 P01-003,P01,HISS/HCSD 格式版本与 round-trip,P00-002;P01-001,G1,DONE,evidence/P01-003
 P02-001,P02,PlateSolve 全量 TestData 与旧路径基线,P01-002;P00-003,G2,DONE,evidence/P02-001
 P02-002,P02,共享 detections 候选路径与 star_det v1,P02-001,G2,DONE,evidence/P02-002
-P02-003,P02,PlateSolve 全量 A/B 与路径决策,P02-002;P00-003,G2,IN_PROGRESS,evidence/P02-003
-P02-004,P02,实施选定 PlateSolve 单次检测路径,P02-003,G2,TODO,evidence/P02-004
+P02-003,P02,PlateSolve 全量 A/B 与路径决策,P02-002;P00-003,G2,DONE,evidence/P02-003
+P02-004,P02,实施选定 PlateSolve 单次检测路径,P02-003,G2,DONE,evidence/P02-004
 P02-005,P02,Dynamic PSF float32 API,P02-001,G2,DONE,evidence/P02-005
-P02-006,P02,Gaia 查询边界与缓存,P02-004,G2,TODO,evidence/P02-006
-P02-007,P02,PlateSolve 无退化与单次检测专项 Gate,P02-004;P02-005;P02-006,G2,TODO,evidence/P02-007
+P02-006,P02,Gaia 查询边界与缓存,P02-004,G2,IN_PROGRESS,evidence/P02-006
+P02-007,P02,PlateSolve 无退化与单次检测专项 Gate,P02-004;P02-005;P02-006,G2,CONDITIONAL_PASS,evidence/P02-007
 P03-001,P03,真实校准输入接线,P01-002;P00-003,G3,TODO,evidence/P03-001
 P03-002,P03,配置参数端到端追踪,P03-001;P02-007,G3,TODO,evidence/P03-002
 P03-003,P03,严格失败与禁止静默跳过,P03-002,G3,TODO,evidence/P03-003
