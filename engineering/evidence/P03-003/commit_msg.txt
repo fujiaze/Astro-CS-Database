@@ -1,0 +1,22 @@
+P03-003: 严格失败与禁止静默跳过 (v1.1 开发包) - 证据交付
+
+代码变更已包含在 P03-004 提交 (a4290d8) 中, 本次仅提交证据目录:
+- engineering/evidence/P03-003/TASK_REPORT.md (任务报告)
+- engineering/evidence/P03-003/TEST_REPORT.md (测试报告)
+- engineering/evidence/P03-003/EVIDENCE_INDEX.md (证据索引)
+- engineering/evidence/P03-003/REVIEW_REPORT.md (评审报告, VERDICT: PASS)
+- engineering/evidence/P03-003/error_code_registry.json (错误码注册表)
+- engineering/evidence/P03-003/exit_code_evidence.log (端到端退出码验证日志)
+
+验证结果 (141/141 PASS):
+- 集成测试: 136/136 (test_orchestrator_cli 5 个 Part)
+- 端到端退出码: 5/5 (--help=0, run=1, config=7, run-batch=8, unknown=1)
+
+关键交付:
+- AstroCsExitCode 命名空间 (9 个稳定退出码)
+- 87 处 P03-003 标记覆盖所有必需 stage 失败路径
+- 12 类静默跳过模式已消除 (WARN+return true → ERROR+return false+exit_code)
+- 4 个 CLI 入口点统一传播 exit_code
+- 兜底机制确保任何失败路径都不会返回 0
+
+VERDICT: PASS
