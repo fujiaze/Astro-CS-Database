@@ -1,0 +1,18 @@
+{
+  "_comment": "P03-001 负面测试3: 曝光时间不匹配 (300s Dark 配 180s Light, 应失败)",
+  "project_root": ".",
+  "gaia_data_dir": "GaiaDR3SP",
+  "calibration_dir": "testdata/T4 calibration files",
+  "output_root": "output",
+  "stages": ["read_fits", "calibrate"],
+  "frame": { "id": "negative_test_3", "filter": "Red", "qe_curve": "GSENSE2020BSI" },
+  "calibration": {
+    "master_bias_path": "",
+    "master_dark_path": "testdata/T4 calibration files/masterDark_BIN-1_4500x3600_EXPOSURE-300.00s.xisf",
+    "master_flat_path": "",
+    "require_size_match": true, "require_exposure_match": true, "exposure_tolerance_s": 0.5,
+    "require_temperature_match": false, "temperature_tolerance_c": 1.0,
+    "allow_no_calibration": false, "dark_optimization": 0, "dark_scale_factor": 1.0
+  },
+  "log_level": "INFO", "threads": 0
+}

@@ -192,6 +192,116 @@ int calculate_nside(double cd11, double cd12, double cd21, double cd22,
     return nside;
 }
 
+// ============================================================================
+// P03-001: 校准输入接线辅助函数
+// 用于 run_stage_calibrate 加载/验证 Master Bias/Dark/Flat, 输出 cal_stats
+// ============================================================================
+
+// 从 JSON 文本提取字符串字段 (复用 orc_findJsonKey/orc_extractJsonStr)
+std::string orc_getJsonString(const std::string& s, const std::string& key) {
+    size_t pos = orc_findJsonKey(s, key);
+    if (pos == std::string::npos) return "";
+    return orc_extractJsonStr(s, pos);
+}
+
+// 从 JSON 文本提取数字字段 (复用 orc_findJsonKey/orc_extractJsonNum)
+double orc_getJsonNum(const std::string& s, const std::string& key, double def) {
+    size_t pos = orc_findJsonKey(s, key);
+    if (pos == std::string::npos) return def;
+    return orc_extractJsonNum(s, pos);
+}
+
+// 从 JSON 文本提取布尔字段
+bool orc_getJsonBool(const std::string& s, const std::string& key, bool def) {
+    size_t pos = orc_findJsonKey(s, key);
+    if (pos == std::string::npos) return def;
+    while (pos < s.size() && (s[pos]==' '||s[pos]=='\t'||s[pos]=='\n'||s[pos]=='\r')) pos++;
+    if (pos + 4 <= s.size() && s[pos]=='t' && s[pos+1]=='r' && s[pos+2]=='u' && s[pos+3]=='e') return true;
+    if (pos + 5 <= s.size() && s[pos]=='f' && s[pos+1]=='a' && s[pos+2]=='l' && s[pos+3]=='s' && s[pos+4]=='e') return false;
+    return def;
+}
+
+// 格式化曝光时间字符串 (2 位小数, 如 "180.00s")
+std::string format_exposure_2f(double exptime) {
+    char buf[32];
+    std::snprintf(buf, sizeof(buf), "%.2f", exptime);
+    return std::string(buf) + "s";
+}
+
+// 从 masterDark 文件路径解析曝光时间 (文件名含 _EXPOSURE-180.00s)
+// 返回 -1.0 表示解析失败
+double parse_exposure_from_dark_path(const std::string& path) {
+    const std::string tag = "_EXPOSURE-";
+    size_t p = path.find(tag);
+    if (p == std::string::npos) return -1.0;
+    p += tag.size();
+    size_t end = path.find('s', p);
+    if (end == std::string::npos) return -1.0;
+    std::string num_str = path.substr(p, end - p);
+    try {
+        return std::stod(num_str);
+    } catch (...) {
+        return -1.0;
+    }
+}
+
+// 从 calibration_dir + 帧尺寸自动推导 Master Bias 路径
+// 文件名格式: masterBias_BIN-1_<W>x<H>.xisf
+std::string derive_master_bias_path(const std::string& dir, int w, int h) {
+    if (dir.empty()) return "";
+    std::string filename = "masterBias_BIN-1_" + std::to_string(w) + "x" + std::to_string(h) + ".xisf";
+    return (fs::path(dir) / filename).string();
+}
+
+// 从 calibration_dir + 帧尺寸 + 曝光时间自动推导 Master Dark 路径
+// 文件名格式: masterDark_BIN-1_<W>x<H>_EXPOSURE-<exptime.2f>s.xisf
+std::string derive_master_dark_path(const std::string& dir, int w, int h, double exptime) {
+    if (dir.empty() || exptime <= 0) return "";
+    std::string filename = "masterDark_BIN-1_" + std::to_string(w) + "x" + std::to_string(h) +
+                           "_EXPOSURE-" + format_exposure_2f(exptime) + ".xisf";
+    return (fs::path(dir) / filename).string();
+}
+
+// 从 calibration_dir + 帧尺寸 + 滤光片自动推导 Master Flat 路径
+// 文件名格式: masterFlat_BIN-1_<W>x<H>_FILTER-<Filter>_mono.xisf
+std::string derive_master_flat_path(const std::string& dir, int w, int h, const std::string& filter_name) {
+    if (dir.empty() || filter_name.empty()) return "";
+    std::string filename = "masterFlat_BIN-1_" + std::to_string(w) + "x" + std::to_string(h) +
+                           "_FILTER-" + filter_name + "_mono.xisf";
+    return (fs::path(dir) / filename).string();
+}
+
+// 计算数组均值
+double compute_array_mean(const float* data, int64_t n) {
+    if (!data || n <= 0) return 0.0;
+    double sum = 0.0;
+    for (int64_t i = 0; i < n; ++i) sum += static_cast<double>(data[i]);
+    return sum / static_cast<double>(n);
+}
+
+// 计算数组中位数 (使用 nth_element, O(n))
+double compute_array_median(const float* data, int64_t n) {
+    if (!data || n <= 0) return 0.0;
+    std::vector<float> tmp(data, data + n);
+    int64_t mid = n / 2;
+    std::nth_element(tmp.begin(), tmp.begin() + mid, tmp.end());
+    if (n % 2 == 1) return static_cast<double>(tmp[mid]);
+    float hi = tmp[mid];
+    float lo = *std::max_element(tmp.begin(), tmp.begin() + mid);
+    return static_cast<double>((hi + lo) * 0.5f);
+}
+
+// 计算数组标准差 (给定均值)
+double compute_array_std(const float* data, int64_t n, double mean) {
+    if (!data || n <= 0) return 0.0;
+    double sum_sq = 0.0;
+    for (int64_t i = 0; i < n; ++i) {
+        double d = static_cast<double>(data[i]) - mean;
+        sum_sq += d * d;
+    }
+    return std::sqrt(sum_sq / static_cast<double>(n));
+}
+
 } // anonymous namespace
 
 // ============================================================================
@@ -694,7 +804,7 @@ bool Orchestrator::init_dlls(const std::string& lib_base_dir, std::string& error
 }
 
 // ============================================================================
-// 各阶段实现 (骨架: 检查 DLL 加载状态, 输出日志, 返回 true)
+// 各阶段实现 (CALIBRATE 已在 P03-001 接入真实 Master Bias/Dark/Flat)
 // ============================================================================
 bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     LOG_INFO("orchestrator", "[CALIBRATE] 开始");
@@ -710,7 +820,7 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
         return true;
     }
 
-    // 获取函数指针
+    // 获取函数指针 (CALIBRATE + AIO)
     auto fn_calibrate = dll_loader_.get_function<int (*)(
         const float*, int, int,
         const float*, const float*, const float*,
@@ -726,14 +836,42 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
         PipelineFrame*, const char*, AioBlockType,
         void*, int64_t, const int*, int, const char*)>(
         ModuleId::AIO, "aio_frame_add_block_move");
+    auto fn_kv_get = dll_loader_.get_function<const char* (*)(
+        const PipelineFrame*, const char*, const char*)>(
+        ModuleId::AIO, "aio_frame_kv_get");
+    auto fn_kv_get_double = dll_loader_.get_function<double (*)(
+        const PipelineFrame*, const char*, const char*, double)>(
+        ModuleId::AIO, "aio_frame_kv_get_double");
+    auto fn_kv_set = dll_loader_.get_function<int (*)(
+        PipelineFrame*, const char*, const char*, const char*)>(
+        ModuleId::AIO, "aio_frame_kv_set");
+    auto fn_kv_set_double = dll_loader_.get_function<int (*)(
+        PipelineFrame*, const char*, const char*, double)>(
+        ModuleId::AIO, "aio_frame_kv_set_double");
+    // AIO 读取 .xisf Master 文件函数
+    auto fn_read_xisf = dll_loader_.get_function<AIOImageData* (*)(const char*)>(
+        ModuleId::AIO, "aio_read_xisf");
+    auto fn_get_pixels = dll_loader_.get_function<float* (*)(const AIOImageData*)>(
+        ModuleId::AIO, "aio_get_pixel_data");
+    auto fn_get_width = dll_loader_.get_function<int (*)(const AIOImageData*)>(
+        ModuleId::AIO, "aio_get_width");
+    auto fn_get_height = dll_loader_.get_function<int (*)(const AIOImageData*)>(
+        ModuleId::AIO, "aio_get_height");
+    auto fn_get_metadata = dll_loader_.get_function<AIOImageMetadata (*)(const AIOImageData*)>(
+        ModuleId::AIO, "aio_get_metadata");
+    auto fn_free_image = dll_loader_.get_function<void (*)(AIOImageData*)>(
+        ModuleId::AIO, "aio_free_image_data");
 
-    if (!fn_calibrate || !fn_get_block_data || !fn_get_block || !fn_remove_block || !fn_add_block_move) {
+    if (!fn_calibrate || !fn_get_block_data || !fn_get_block || !fn_remove_block ||
+        !fn_add_block_move || !fn_kv_get || !fn_kv_get_double || !fn_kv_set || !fn_kv_set_double ||
+        !fn_read_xisf || !fn_get_pixels || !fn_get_width || !fn_get_height ||
+        !fn_get_metadata || !fn_free_image) {
         LOG_ERROR("orchestrator", "[CALIBRATE] 函数指针获取失败");
         result.error_msg = "[CALIBRATE] 函数指针获取失败";
         return false;
     }
 
-    // 从 frame_ 读取 data 块
+    // 1. 从 frame_ 读取 data 块 (FLOAT32 [H,W])
     const AioBlock* data_block = fn_get_block(frame_, "data");
     if (data_block == nullptr) {
         LOG_ERROR("orchestrator", "[CALIBRATE] data 块不存在");
@@ -745,44 +883,310 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     float* light = static_cast<float*>(data_block->data);
     int64_t n_pix = static_cast<int64_t>(width) * height;
 
-    LOG_INFO("orchestrator", "[CALIBRATE] 图像: " + std::to_string(width) + "x" + std::to_string(height));
+    LOG_INFO("orchestrator", "[CALIBRATE] 图像: " + std::to_string(width) + "x" + std::to_string(height)
+             + " (" + std::to_string(n_pix) + " 像素)");
 
-    // 分配输出缓冲 (ac_calibrate_frame 要求调用者分配)
+    // 2. 从 frame_ header KV 读取帧元数据 (EXPTIME, FILTER, CCD-TEMP)
+    double frame_exptime = fn_kv_get_double(frame_, "header", "EXPTIME", 0.0);
+    std::string frame_filter;
+    const char* filter_cstr = fn_kv_get(frame_, "header", "FILTER");
+    if (filter_cstr) frame_filter = filter_cstr;
+    double frame_ccd_temp = 0.0;
+    bool has_ccd_temp = (fn_kv_get(frame_, "header", "CCD-TEMP") != nullptr);
+    if (has_ccd_temp) {
+        frame_ccd_temp = fn_kv_get_double(frame_, "header", "CCD-TEMP", 0.0);
+    }
+
+    LOG_INFO("orchestrator", "[CALIBRATE] 帧元数据: EXPTIME=" + std::to_string(frame_exptime)
+             + "s, FILTER='" + frame_filter + "'"
+             + (has_ccd_temp ? (", CCD-TEMP=" + std::to_string(frame_ccd_temp) + "C") : ", CCD-TEMP=<none>"));
+
+    // 3. 从 current_config_json_ 解析 calibration 段字段
+    std::string bias_path, dark_path, flat_path;
+    bool require_size = true;
+    bool require_exposure = true;
+    double exposure_tol = 0.5;
+    bool require_temp = false;
+    double temp_tol = 1.0;
+    bool allow_no_calib = false;
+    int dark_opt = 0;
+    double dark_k = 1.0;
+
+    if (!current_config_json_.empty()) {
+        bias_path = orc_getJsonString(current_config_json_, "master_bias_path");
+        dark_path = orc_getJsonString(current_config_json_, "master_dark_path");
+        flat_path = orc_getJsonString(current_config_json_, "master_flat_path");
+        require_size = orc_getJsonBool(current_config_json_, "require_size_match", true);
+        require_exposure = orc_getJsonBool(current_config_json_, "require_exposure_match", true);
+        exposure_tol = orc_getJsonNum(current_config_json_, "exposure_tolerance_s", 0.5);
+        require_temp = orc_getJsonBool(current_config_json_, "require_temperature_match", false);
+        temp_tol = orc_getJsonNum(current_config_json_, "temperature_tolerance_c", 1.0);
+        allow_no_calib = orc_getJsonBool(current_config_json_, "allow_no_calibration", false);
+        dark_opt = static_cast<int>(orc_getJsonNum(current_config_json_, "dark_optimization", 0.0));
+        dark_k = orc_getJsonNum(current_config_json_, "dark_scale_factor", 1.0);
+    }
+
+    // 4. 从 calibration_dir (顶层字段) 自动推导 Master 路径 (若 master_*_path 为空)
+    std::string calib_dir;
+    if (!current_config_json_.empty()) {
+        calib_dir = orc_getJsonString(current_config_json_, "calibration_dir");
+    }
+    if (calib_dir.empty()) {
+        calib_dir = "testdata/T4 calibration files";
+    }
+    // 相对路径基于 project_root_dir_ 解析
+    if (!calib_dir.empty() && !fs::path(calib_dir).is_absolute()) {
+        calib_dir = (fs::path(project_root_dir_) / calib_dir).string();
+    }
+    LOG_INFO("orchestrator", "[CALIBRATE] calibration_dir: " + calib_dir);
+
+    if (bias_path.empty()) {
+        bias_path = derive_master_bias_path(calib_dir, width, height);
+        LOG_INFO("orchestrator", "[CALIBRATE] 自动推导 master_bias_path: " + bias_path);
+    }
+    if (dark_path.empty()) {
+        dark_path = derive_master_dark_path(calib_dir, width, height, frame_exptime);
+        LOG_INFO("orchestrator", "[CALIBRATE] 自动推导 master_dark_path: " + dark_path);
+    }
+    if (flat_path.empty()) {
+        flat_path = derive_master_flat_path(calib_dir, width, height, frame_filter);
+        LOG_INFO("orchestrator", "[CALIBRATE] 自动推导 master_flat_path: " + flat_path);
+    }
+
+    // 5. 加载 Master 文件 (aio_read_xisf)
+    AIOImageData* bias_img = nullptr;
+    AIOImageData* dark_img = nullptr;
+    AIOImageData* flat_img = nullptr;
+    float* master_bias = nullptr;
+    float* master_dark = nullptr;
+    float* master_flat = nullptr;
+    int bias_w = 0, bias_h = 0;
+    int dark_w = 0, dark_h = 0;
+    int flat_w = 0, flat_h = 0;
+    double dark_exptime = -1.0;
+    double dark_temp = 0.0;
+    bool dark_has_temp = false;
+
+    auto load_master = [&](const std::string& path, AIOImageData*& img,
+                           float*& pix, int& w, int& h) -> bool {
+        if (path.empty()) return false;
+        if (!fs::exists(path)) {
+            LOG_WARN("orchestrator", "[CALIBRATE] Master 文件不存在: " + path);
+            return false;
+        }
+        img = fn_read_xisf(path.c_str());
+        if (img == nullptr) {
+            LOG_ERROR("orchestrator", "[CALIBRATE] 读取 Master 文件失败: " + path);
+            return false;
+        }
+        w = fn_get_width(img);
+        h = fn_get_height(img);
+        pix = fn_get_pixels(img);
+        LOG_INFO("orchestrator", "[CALIBRATE] 加载 Master: " + path
+                 + " (" + std::to_string(w) + "x" + std::to_string(h) + ")");
+        return true;
+    };
+
+    bool has_bias = load_master(bias_path, bias_img, master_bias, bias_w, bias_h);
+    bool has_dark = load_master(dark_path, dark_img, master_dark, dark_w, dark_h);
+    bool has_flat = load_master(flat_path, flat_img, master_flat, flat_w, flat_h);
+
+    // 6. 验证 Master 文件 (尺寸/曝光/温度)
+    bool validation_ok = true;
+
+    // 尺寸匹配验证
+    if (require_size) {
+        if (has_bias && (bias_w != width || bias_h != height)) {
+            LOG_ERROR("orchestrator", "[CALIBRATE] master_bias 尺寸不匹配: "
+                     + std::to_string(bias_w) + "x" + std::to_string(bias_h) + " vs "
+                     + std::to_string(width) + "x" + std::to_string(height));
+            validation_ok = false;
+        }
+        if (has_dark && (dark_w != width || dark_h != height)) {
+            LOG_ERROR("orchestrator", "[CALIBRATE] master_dark 尺寸不匹配: "
+                     + std::to_string(dark_w) + "x" + std::to_string(dark_h) + " vs "
+                     + std::to_string(width) + "x" + std::to_string(height));
+            validation_ok = false;
+        }
+        if (has_flat && (flat_w != width || flat_h != height)) {
+            LOG_ERROR("orchestrator", "[CALIBRATE] master_flat 尺寸不匹配: "
+                     + std::to_string(flat_w) + "x" + std::to_string(flat_h) + " vs "
+                     + std::to_string(width) + "x" + std::to_string(height));
+            validation_ok = false;
+        }
+    }
+
+    // 曝光时间匹配验证 (从 masterDark 文件名解析 EXPOSURE)
+    if (require_exposure && has_dark && frame_exptime > 0) {
+        dark_exptime = parse_exposure_from_dark_path(dark_path);
+        if (dark_exptime > 0) {
+            double diff = std::fabs(dark_exptime - frame_exptime);
+            if (diff > exposure_tol) {
+                LOG_ERROR("orchestrator", "[CALIBRATE] master_dark 曝光时间不匹配: dark="
+                         + std::to_string(dark_exptime) + "s vs frame="
+                         + std::to_string(frame_exptime) + "s (tolerance="
+                         + std::to_string(exposure_tol) + "s)");
+                validation_ok = false;
+            } else {
+                LOG_INFO("orchestrator", "[CALIBRATE] master_dark 曝光时间匹配: dark="
+                         + std::to_string(dark_exptime) + "s vs frame="
+                         + std::to_string(frame_exptime) + "s (diff="
+                         + std::to_string(diff) + "s)");
+            }
+        } else {
+            LOG_WARN("orchestrator", "[CALIBRATE] 无法从路径解析 master_dark 曝光时间: " + dark_path);
+        }
+    }
+
+    // 温度匹配验证 (从 masterDark metadata 读取 CCD-TEMP)
+    if (require_temp && has_dark && has_ccd_temp && dark_img != nullptr) {
+        AIOImageMetadata dark_meta = fn_get_metadata(dark_img);
+        if (dark_meta.calibration.has_ccd_temp) {
+            dark_temp = dark_meta.calibration.ccd_temp;
+            dark_has_temp = true;
+            double diff = std::fabs(dark_temp - frame_ccd_temp);
+            if (diff > temp_tol) {
+                LOG_ERROR("orchestrator", "[CALIBRATE] master_dark 温度不匹配: dark="
+                         + std::to_string(dark_temp) + "C vs frame="
+                         + std::to_string(frame_ccd_temp) + "C (tolerance="
+                         + std::to_string(temp_tol) + "C)");
+                validation_ok = false;
+            } else {
+                LOG_INFO("orchestrator", "[CALIBRATE] master_dark 温度匹配: dark="
+                         + std::to_string(dark_temp) + "C vs frame="
+                         + std::to_string(frame_ccd_temp) + "C (diff="
+                         + std::to_string(diff) + "C)");
+            }
+        } else {
+            LOG_WARN("orchestrator", "[CALIBRATE] master_dark 无 CCD-TEMP 元数据, 跳过温度验证");
+        }
+    }
+
+    if (!validation_ok) {
+        LOG_ERROR("orchestrator", "[CALIBRATE] Master 文件验证失败, 中止校准");
+        result.error_msg = "[CALIBRATE] Master 文件验证失败 (尺寸/曝光/温度不匹配)";
+        if (bias_img) fn_free_image(bias_img);
+        if (dark_img) fn_free_image(dark_img);
+        if (flat_img) fn_free_image(flat_img);
+        return false;
+    }
+
+    // 7. 检查是否处于无校准退化模式
+    if (!has_bias && !has_dark && !has_flat) {
+        if (!allow_no_calib) {
+            LOG_ERROR("orchestrator", "[CALIBRATE] 无任何 Master 文件可用且 allow_no_calibration=false");
+            result.error_msg = "[CALIBRATE] 无 Master 文件且未启用 allow_no_calibration";
+            if (bias_img) fn_free_image(bias_img);
+            if (dark_img) fn_free_image(dark_img);
+            if (flat_img) fn_free_image(flat_img);
+            return false;
+        }
+        LOG_WARN("orchestrator", "[CALIBRATE] 无校准退化模式 (allow_no_calibration=true)");
+    }
+
+    // 8. 分配输出缓冲 (ac_calibrate_frame 要求调用者分配)
     float* out = static_cast<float*>(std::malloc(n_pix * sizeof(float)));
     if (out == nullptr) {
         LOG_ERROR("orchestrator", "[CALIBRATE] 分配输出缓冲失败");
         result.error_msg = "[CALIBRATE] 分配输出缓冲失败";
+        if (bias_img) fn_free_image(bias_img);
+        if (dark_img) fn_free_image(dark_img);
+        if (flat_img) fn_free_image(flat_img);
         return false;
     }
 
-    // 调用 ac_calibrate_frame
-    // TODO: master_dark/flat/bias 应从 config_json 加载, 当前传 nullptr 走退化路径 (out=light)
+    // 9. 调用 ac_calibrate_frame (实际应用 Bias/Dark/Flat)
     float actual_k = 0.0f;
+    LOG_INFO("orchestrator", "[CALIBRATE] 调用 ac_calibrate_frame: dark_opt="
+             + std::to_string(dark_opt) + ", k_init=" + std::to_string(dark_k)
+             + ", has_bias=" + (has_bias ? "true" : "false")
+             + ", has_dark=" + (has_dark ? "true" : "false")
+             + ", has_flat=" + (has_flat ? "true" : "false"));
     int ret = fn_calibrate(light, width, height,
-                           nullptr, nullptr, nullptr,  // master_dark/flat/bias
-                           out, 0, 1.0f, &actual_k);
+                           master_dark, master_flat, master_bias,
+                           out, dark_opt, static_cast<float>(dark_k), &actual_k);
 
     if (ret != 0) {
         LOG_ERROR("orchestrator", "[CALIBRATE] ac_calibrate_frame 失败: ret=" + std::to_string(ret));
-        result.error_msg = "[CALIBRATE] ac_calibrate_frame 失败";
+        result.error_msg = "[CALIBRATE] ac_calibrate_frame 失败: ret=" + std::to_string(ret);
         std::free(out);
+        if (bias_img) fn_free_image(bias_img);
+        if (dark_img) fn_free_image(dark_img);
+        if (flat_img) fn_free_image(flat_img);
         return false;
     }
 
-    // 替换 data 块: remove 旧块 + add_block_move 新块 (转移所有权)
+    // 10. 计算校准前/后图像统计 + Master 均值
+    double light_mean = compute_array_mean(light, n_pix);
+    double light_median = compute_array_median(light, n_pix);
+    double light_std = compute_array_std(light, n_pix, light_mean);
+    double out_mean = compute_array_mean(out, n_pix);
+    double out_median = compute_array_median(out, n_pix);
+    double out_std = compute_array_std(out, n_pix, out_mean);
+    double bias_mean = has_bias ? compute_array_mean(master_bias, n_pix) : 0.0;
+    double dark_mean = has_dark ? compute_array_mean(master_dark, n_pix) : 0.0;
+    double flat_mean = has_flat ? compute_array_mean(master_flat, n_pix) : 0.0;
+
+    LOG_INFO("orchestrator", "[CALIBRATE] 校准统计: light_mean=" + std::to_string(light_mean)
+             + " -> out_mean=" + std::to_string(out_mean)
+             + ", bias_mean=" + std::to_string(bias_mean)
+             + ", dark_mean=" + std::to_string(dark_mean)
+             + ", flat_mean=" + std::to_string(flat_mean)
+             + ", actual_k=" + std::to_string(actual_k));
+
+    // 11. 替换 data 块 (转移所有权)
     fn_remove_block(frame_, "data");
     int dims[2] = {height, width};
     ret = fn_add_block_move(frame_, "data", AIO_BLOCK_FLOAT32,
-                            out, n_pix, dims, 2, "校准后 Light 像素");
+                            out, n_pix, dims, 2, "校准后 Light 像素 (Bias/Dark/Flat 已应用)");
     if (ret != 0) {
         LOG_ERROR("orchestrator", "[CALIBRATE] 写回 data 块失败: ret=" + std::to_string(ret));
         result.error_msg = "[CALIBRATE] 写回 data 块失败";
         std::free(out);
+        if (bias_img) fn_free_image(bias_img);
+        if (dark_img) fn_free_image(dark_img);
+        if (flat_img) fn_free_image(flat_img);
         return false;
     }
-    // out 所有权已转移给 frame_, 不再 free
+    // out 所有权已转移给 frame_
 
-    LOG_INFO("orchestrator", "[CALIBRATE] 完成 (退化路径: 无 master frames, out=light)");
+    // 12. 写入 cal_stats KV 块 (P03-001 交付物)
+    fn_kv_set(frame_, "cal_stats", "STATUS", "OK");
+    fn_kv_set(frame_, "cal_stats", "MASTER_BIAS_PATH", bias_path.c_str());
+    fn_kv_set(frame_, "cal_stats", "MASTER_DARK_PATH", dark_path.c_str());
+    fn_kv_set(frame_, "cal_stats", "MASTER_FLAT_PATH", flat_path.c_str());
+    fn_kv_set_double(frame_, "cal_stats", "MASTER_BIAS_MEAN", bias_mean);
+    fn_kv_set_double(frame_, "cal_stats", "MASTER_DARK_MEAN", dark_mean);
+    fn_kv_set_double(frame_, "cal_stats", "MASTER_FLAT_MEAN", flat_mean);
+    fn_kv_set_double(frame_, "cal_stats", "LIGHT_MEAN", light_mean);
+    fn_kv_set_double(frame_, "cal_stats", "LIGHT_MEDIAN", light_median);
+    fn_kv_set_double(frame_, "cal_stats", "LIGHT_STD", light_std);
+    fn_kv_set_double(frame_, "cal_stats", "OUT_MEAN", out_mean);
+    fn_kv_set_double(frame_, "cal_stats", "OUT_MEDIAN", out_median);
+    fn_kv_set_double(frame_, "cal_stats", "OUT_STD", out_std);
+    fn_kv_set_double(frame_, "cal_stats", "ACTUAL_K", actual_k);
+    fn_kv_set_double(frame_, "cal_stats", "DARK_OPTIMIZATION", dark_opt);
+    fn_kv_set_double(frame_, "cal_stats", "HAS_BIAS", has_bias ? 1.0 : 0.0);
+    fn_kv_set_double(frame_, "cal_stats", "HAS_DARK", has_dark ? 1.0 : 0.0);
+    fn_kv_set_double(frame_, "cal_stats", "HAS_FLAT", has_flat ? 1.0 : 0.0);
+    if (dark_exptime > 0) {
+        fn_kv_set_double(frame_, "cal_stats", "DARK_EXPTIME", dark_exptime);
+    }
+    if (dark_has_temp) {
+        fn_kv_set_double(frame_, "cal_stats", "DARK_CCD_TEMP", dark_temp);
+    }
+    fn_kv_set(frame_, "cal_stats", "CALIBRATION_STATUS",
+              (has_bias || has_dark || has_flat) ? "APPLIED" : "DEGENERATED");
+
+    LOG_INFO("orchestrator", "[CALIBRATE] cal_stats 已写入 (CALIBRATION_STATUS="
+             + std::string((has_bias || has_dark || has_flat) ? "APPLIED" : "DEGENERATED") + ")");
+
+    // 13. 释放 Master 文件图像数据
+    if (bias_img) fn_free_image(bias_img);
+    if (dark_img) fn_free_image(dark_img);
+    if (flat_img) fn_free_image(flat_img);
+
+    LOG_INFO("orchestrator", "[CALIBRATE] 完成 (实际应用 Bias/Dark/Flat)");
     return true;
 }
 

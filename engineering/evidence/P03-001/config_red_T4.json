@@ -1,26 +1,17 @@
 {
-  "_comment": "stage1 配置文件模板 (spec §2.3.3) - 单帧预处理 FITS -> .hiss, stage 0-6 (2026-07-18 归档 GRADIENT_2D)",
+  "_comment": "P03-001 Red 帧完整校准测试配置 (T4, Bias+Dark+Flat 全有)",
   "project_root": ".",
   "gaia_data_dir": "GaiaDR3SP",
   "calibration_dir": "testdata/T4 calibration files",
   "output_root": "output",
-  "stages": [
-    "read_fits",
-    "calibrate",
-    "platesolve",
-    "psf",
-    "photometric",
-    "snr",
-    "drizzle"
-  ],
+  "stages": ["read_fits", "calibrate"],
   "frame": {
-    "id": "panel1_Red",
-    "light_path": "",
+    "id": "panel1_Red_T4",
     "filter": "Red",
     "qe_curve": "GSENSE2020BSI"
   },
   "calibration": {
-    "_comment": "P03-001: 校准输入接线配置。master_*_path 为空时从 calibration_dir 自动推导",
+    "_comment": "P03-001: 自动推导 Master 路径 (calibration_dir + 尺寸 + 曝光 + 滤光片)",
     "master_bias_path": "",
     "master_dark_path": "",
     "master_flat_path": "",
@@ -32,10 +23,6 @@
     "allow_no_calibration": false,
     "dark_optimization": 0,
     "dark_scale_factor": 1.0
-  },
-  "drizzle": {
-    "nside_strategy": "1x_to_2x_drizzle",
-    "nside_override": 0
   },
   "log_level": "INFO",
   "threads": 0
