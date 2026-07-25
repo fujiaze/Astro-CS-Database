@@ -1,0 +1,20 @@
+[2026-07-25 20:24:31][INFO][logger] 日志系统初始化完成 (log_dir=lib/orchestrator/logs, level=INFO)
+[2026-07-25 20:24:31][INFO][orchestrator] 初始化编排器 (骨架版本)
+[2026-07-25 20:24:31][INFO][orchestrator] 可用线程数: 16
+[2026-07-25 20:24:31][INFO][orchestrator] 加载配置: f:\Astro dev\Astro CS Normalization Database\engineering\evidence\P04-004\partial_config.json
+[2026-07-25 20:24:31][INFO][orchestrator] 配置文件大小: 51 字节
+[2026-07-25 20:24:31][INFO][orchestrator] 检查点目录: output\.checkpoint
+[2026-07-25 20:24:31][INFO][orchestrator] 日志级别设置为: INFO
+[2026-07-25 20:24:31][INFO][orchestrator] 配置线程数: 0 (0=自动检测)
+[2026-07-25 20:24:31][INFO][orchestrator] 配置加载完成 (P03-002: log_level/threads/gaia_data_dir 已解析)
+[2026-07-25 20:24:31][INFO][orchestrator] ========== stage1: 单帧预处理 (FITS -> .hiss) ==========
+[2026-07-25 20:24:31][INFO][orchestrator] 输入 FITS: nonexistent.fits
+[2026-07-25 20:24:31][INFO][orchestrator] 输出 .hiss: f:\Astro dev\Astro CS Normalization Database\engineering\evidence\P04-004\partial_test.hiss
+[2026-07-25 20:24:31][INFO][orchestrator] 配置 JSON: {"allow_partial_output":true,"log_level":"ERROR"}
+
+
+[2026-07-25 20:24:31][INFO][orchestrator] P04-004: 取消/超时标志已重置
+[2026-07-25 20:24:31][WARN][orchestrator] P04-004: allow_partial_output=true, 取消/超时/失败时将保留部分输出
+[2026-07-25 20:24:31][ERROR][orchestrator] FITS 文件不存在: nonexistent.fits
+[2026-07-25 20:24:31][INFO][orchestrator] 析构完成
+[dll_loader] 卸载所有模块

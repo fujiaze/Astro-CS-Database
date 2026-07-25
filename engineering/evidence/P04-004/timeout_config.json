@@ -1,0 +1,1 @@
+{"stage_timeouts":{"READ_FITS":10.0,"CALIBRATE":60.0,"PLATESOLVE":120.0,"DRIZZLE":300.0},"log_level":"ERROR"}

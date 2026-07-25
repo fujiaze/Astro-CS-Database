@@ -1,0 +1,149 @@
+{
+  "task_id": "P04-004",
+  "task_name": "取消、超时与 partial 输出（v1.1 开发包）",
+  "gate": "G4",
+  "baseline_commit": "83b0b9c",
+  "verdict": "PASS",
+  "implementation": {
+    "cancel_token": {
+      "type": "std::atomic<bool>",
+      "member": "Orchestrator::cancel_token_",
+      "memory_order": "acquire/release",
+      "trigger_method": "Orchestrator::request_cancel()",
+      "query_method": "Orchestrator::is_cancelled()",
+      "reset_method": "Orchestrator::reset_cancel_timeout()",
+      "signal_handler": "p04004_sigint_handler (SIGINT)",
+      "global_state": [
+        "g_active_orchestrator (std::atomic<Orchestrator*>)",
+        "g_cancel_on_signal_enabled (std::atomic<bool>)"
+      ],
+      "cli_flag": "--cancel-on-signal",
+      "cli_scope": ["stage1", "stage2"],
+      "default": false,
+      "async_signal_safe": true
+    },
+    "stage_timeout": {
+      "config_field": "OrchestratorConfig::stage_timeouts",
+      "config_type": "std::map<std::string, double>",
+      "config_key": "stage_timeouts",
+      "config_format": "{\"stage_timeouts\":{\"READ_FITS\":10.0,\"PLATESOLVE\":60.0,...}}",
+      "parse_method": "Orchestrator::parse_stage_timeouts()",
+      "watchdog_implementation": "std::thread per stage",
+      "watchdog_member": "Orchestrator::stage_watchdog_stop_ (std::atomic<bool>)",
+      "timeout_member": "Orchestrator::timeout_flag_ (std::atomic<bool>)",
+      "query_method": "Orchestrator::is_timed_out()",
+      "adaptive_polling": {
+        "short_timeout_threshold_sec": 0.1,
+        "short_timeout_poll_ms": 1,
+        "normal_poll_ms": 100,
+        "rationale": "短超时(<=100ms)用1ms轮询避免错过deadline; 普通超时用100ms降低CPU占用"
+      },
+      "stage_check_points": ["stage 开始前", "stage 结束后"],
+      "error_code_on_timeout": 9,
+      "error_string_code": "ASTROCS_TIMEOUT",
+      "error_msg_format": "<STAGE_NAME> 超时 (<timeout_sec>s)"
+    },
+    "atomic_output_cleanup": {
+      "mechanism": "RAII guard (AtomicOutputGuard)",
+      "scope": ["run_stage1", "run_stage2"],
+      "guard_destructor_condition": "!success_flag && !allow_partial && !path.empty()",
+      "cleanup_method": "Orchestrator::cleanup_partial_output(const std::string& path)",
+      "output_tracking_member": "Orchestrator::current_output_file_",
+      "covers_failure_paths": [
+        "参数校验失败",
+        "DLL 加载失败",
+        "stage 执行失败",
+        "取消触发",
+        "超时触发"
+      ],
+      "file_not_exist_handling": "视为清理成功"
+    },
+    "partial_output": {
+      "config_field": "OrchestratorConfig::allow_partial_output",
+      "config_type": "bool",
+      "config_key": "allow_partial_output",
+      "default": false,
+      "parse_method": "orc_getJsonBool(config_json, \"allow_partial_output\", false)",
+      "setter": "Orchestrator::set_allow_partial_output(bool)",
+      "behavior_when_true": "AtomicOutputGuard 跳过清理, 保留部分输出",
+      "behavior_when_false": "严格原子性, 失败时无残留"
+    }
+  },
+  "error_codes": {
+    "TIMEOUT": {"numeric": 9, "string": "ASTROCS_TIMEOUT"},
+    "CANCELLED": {"numeric": 10, "string": "ASTROCS_CANCELLED"}
+  },
+  "cli_parameters": {
+    "--cancel-on-signal": {
+      "type": "flag (no value)",
+      "applies_to": ["stage1", "stage2"],
+      "default": false,
+      "effect": "注册 SIGINT 处理器, Ctrl+C 触发 orch->request_cancel()"
+    }
+  },
+  "config_schema": {
+    "stage_timeouts": {
+      "type": "object",
+      "description": "stage 名到超时秒数的映射",
+      "keys": ["READ_FITS", "CALIBRATE", "PLATESOLVE", "PHOTOMETRIC", "DRIZZLE", "STACK"],
+      "values": "double (秒)"
+    },
+    "allow_partial_output": {
+      "type": "bool",
+      "description": "true 时保留部分输出, false 时严格原子性",
+      "default": false
+    }
+  },
+  "test_results": {
+    "total_assertions": 346,
+    "passed": 346,
+    "failed": 0,
+    "regressions": 0,
+    "part9_assertions": 8,
+    "part9_cases": [
+      "capabilities 含 cancelled/TIMEOUT/CANCELLED",
+      "--cancel-on-signal 被接受",
+      "原子性 - 失败时删除部分输出",
+      "allow_partial_output=true 保留部分输出",
+      "request_cancel/is_cancelled/reset_cancel_timeout 单元测试",
+      "stage_timeouts 配置解析",
+      "超时触发 (真实 FITS + 0.001s 超时)",
+      "--cancel-on-signal 不影响其他命令"
+    ]
+  },
+  "bug_fixes": [
+    {
+      "id": "watchdog-short-timeout-miss",
+      "symptom": "stage_timeouts.READ_FITS=0.001 (1ms) 时, 超时未触发, stage1 成功返回 exit=0",
+      "root_cause": "watchdog 固定 100ms 轮询, stage 65ms 完成, watchdog 被停止标志拦截, 未设置 timeout_flag_",
+      "fix": "自适应轮询: 超时 <=100ms 用 1ms 轮询, 否则用 100ms",
+      "fix_locations": ["run_stage1 watchdog", "run_stage2 watchdog"],
+      "verification": "修复后 timeout_trigger 测试 exit=9 (TIMEOUT), output 已删除 (原子性)"
+    }
+  ],
+  "files_changed": [
+    {
+      "path": "lib/orchestrator/cpp/src/orchestrator.cpp",
+      "changes": "+26/-3",
+      "summary": "watchdog 自适应轮询 + stage2 AtomicOutputGuard + 启动日志"
+    }
+  ],
+  "files_already_committed_in_p04_003": [
+    "lib/orchestrator/cpp/include/orchestrator.h",
+    "lib/orchestrator/cpp/include/cli_command.h",
+    "lib/orchestrator/cpp/src/cli_command.cpp",
+    "lib/orchestrator/cpp/tests/test_orchestrator_cli.cpp"
+  ],
+  "compatibility": {
+    "backward_compatible": true,
+    "default_behavior_unchanged": true,
+    "rationale": "--cancel-on-signal 默认 false; stage_timeouts 默认空; allow_partial_output 默认 false"
+  },
+  "rollback_plan": {
+    "steps": [
+      "git revert <P04-004 commit>",
+      "或: 删除 orchestrator.cpp 中 P04-004 标记的代码段 (grep 'P04-004')",
+      "或: git checkout 83b0b9c -- lib/orchestrator/cpp/src/orchestrator.cpp"
+    ]
+  }
+}

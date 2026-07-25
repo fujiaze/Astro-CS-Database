@@ -3388,19 +3388,23 @@ TaskResult Orchestrator::run_stage1(const std::string& fits_path,
         bool watchdog_active = false;
         if (timeout_sec > 0.0) {
             watchdog_active = true;
+            LOG_INFO("orchestrator", "P04-004: 启动 watchdog for " + std::string(name)
+                     + " timeout=" + std::to_string(timeout_sec) + "s");
             // 重置 watchdog 停止标志
             stage_watchdog_stop_.store(false, std::memory_order_release);
             watchdog = std::thread([this, name, timeout_sec]() {
                 auto deadline = std::chrono::steady_clock::now()
                               + std::chrono::duration_cast<std::chrono::nanoseconds>(
                                     std::chrono::duration<double>(timeout_sec));
-                // 每 100ms 检查一次, 直到 deadline 或被通知停止
+                // P04-004: 超时 <= 100ms 时立即检查 deadline, 避免错过超时窗口
+                int sleep_ms = (timeout_sec < 0.1) ? 1 : 100;
+                // 每 sleep_ms 检查一次, 直到 deadline 或被通知停止
                 while (std::chrono::steady_clock::now() < deadline) {
                     if (stage_watchdog_stop_.load(std::memory_order_acquire)) {
                         return;  // stage 已完成, watchdog 退出
                     }
                     if (is_cancelled()) return;  // 已取消, 不再触发超时
-                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(sleep_ms));
                 }
                 // 到达 deadline, 触发超时标志
                 if (!is_cancelled() &&
@@ -3550,6 +3554,21 @@ TaskResult Orchestrator::run_stage2(const std::string& hiss_dir,
     // P04-004: 记录输出路径 (用于失败/取消/超时时的原子清理)
     current_output_file_ = output_hcsd;
 
+    // P04-004: 原子性范围守卫 - 任何失败路径 (包括参数校验/DLL加载/stage失败/取消/超时)
+    // 都在函数退出时检查并清理部分输出 (除非 allow_partial_output=true 或已成功)
+    // 使用 RAII 模式, 析构函数在函数返回时自动调用, 覆盖所有 return 路径
+    struct AtomicOutputGuard {
+        Orchestrator* self;
+        const std::string& path;
+        bool& success_flag;
+        bool allow_partial;
+        ~AtomicOutputGuard() {
+            if (!success_flag && !allow_partial && !path.empty()) {
+                self->cleanup_partial_output(path);
+            }
+        }
+    } atomic_guard{this, output_hcsd, result.success, config_.allow_partial_output};
+
     // 参数校验
     if (hiss_dir.empty()) {
         result.error_msg = ".hiss 目录为空";
@@ -3649,15 +3668,19 @@ TaskResult Orchestrator::run_stage2(const std::string& hiss_dir,
         bool watchdog_active = false;
         if (timeout_sec > 0.0) {
             watchdog_active = true;
+            LOG_INFO("orchestrator", "P04-004: 启动 watchdog for " + std::string(name)
+                     + " timeout=" + std::to_string(timeout_sec) + "s");
             stage_watchdog_stop_.store(false, std::memory_order_release);
             watchdog = std::thread([this, name, timeout_sec]() {
                 auto deadline = std::chrono::steady_clock::now()
                               + std::chrono::duration_cast<std::chrono::nanoseconds>(
                                     std::chrono::duration<double>(timeout_sec));
+                // P04-004: 超时 <= 100ms 时立即检查 deadline, 避免错过超时窗口
+                int sleep_ms = (timeout_sec < 0.1) ? 1 : 100;
                 while (std::chrono::steady_clock::now() < deadline) {
                     if (stage_watchdog_stop_.load(std::memory_order_acquire)) return;
                     if (is_cancelled()) return;
-                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(sleep_ms));
                 }
                 if (!is_cancelled() &&
                     !stage_watchdog_stop_.load(std::memory_order_acquire)) {

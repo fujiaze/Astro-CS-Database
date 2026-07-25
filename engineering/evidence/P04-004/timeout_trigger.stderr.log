@@ -1,0 +1,83 @@
+[2026-07-25 20:24:31][INFO][logger] 日志系统初始化完成 (log_dir=lib/orchestrator/logs, level=INFO)
+[2026-07-25 20:24:31][INFO][orchestrator] 初始化编排器 (骨架版本)
+[2026-07-25 20:24:31][INFO][orchestrator] 可用线程数: 16
+[2026-07-25 20:24:31][INFO][orchestrator] 加载配置: f:\Astro dev\Astro CS Normalization Database\engineering\evidence\P04-004\timeout_trigger_config.json
+[2026-07-25 20:24:31][INFO][orchestrator] 配置文件大小: 59 字节
+[2026-07-25 20:24:31][INFO][orchestrator] 检查点目录: output\.checkpoint
+[2026-07-25 20:24:31][INFO][orchestrator] 日志级别设置为: INFO
+[2026-07-25 20:24:31][INFO][orchestrator] 配置线程数: 0 (0=自动检测)
+[2026-07-25 20:24:31][INFO][orchestrator] 配置加载完成 (P03-002: log_level/threads/gaia_data_dir 已解析)
+[2026-07-25 20:24:31][INFO][orchestrator] ========== stage1: 单帧预处理 (FITS -> .hiss) ==========
+[2026-07-25 20:24:31][INFO][orchestrator] 输入 FITS: F:\Astro dev\Astro CS Normalization Database\testdata\results\Galaxy_Center_T4\panel1\Blue\Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@055414-180S-Blue\01_calibrated.fits
+[2026-07-25 20:24:31][INFO][orchestrator] 输出 .hiss: f:\Astro dev\Astro CS Normalization Database\engineering\evidence\P04-004\timeout_trigger.hiss
+[2026-07-25 20:24:31][INFO][orchestrator] 配置 JSON: {"stage_timeouts":{"READ_FITS":0.001},"log_level":"INFO"}
+
+
+[2026-07-25 20:24:31][INFO][orchestrator] P04-004: 取消/超时标志已重置
+[2026-07-25 20:24:31][INFO][orchestrator] P04-004: stage_timeouts[READ_FITS] = 0.001000s
+[2026-07-25 20:24:31][INFO][orchestrator] P04-004: 已加载 1 个 stage 超时配置
+[2026-07-25 20:24:31][INFO][orchestrator] 自动推导项目根目录: F:\Astro dev\Astro CS Normalization Database
+[2026-07-25 20:24:31][INFO][orchestrator] 初始化 DLL 加载 (lib_base_dir=F:\Astro dev\Astro CS Normalization Database)
+[dll_loader] 开始加载所有模块 (lib_base_dir=F:\Astro dev\Astro CS Normalization Database)
+[dll_loader] 设置运行时 DLL 搜索路径: C:\msys64\mingw64\bin
+[dll_loader] 加载模块 AIO: F:\Astro dev\Astro CS Normalization Database/lib/astro_image_io/astro_image_io.dll
+[dll_loader] 模块 AIO 加载成功 (handle=0x7ffdd8e50000)
+[dll_loader] 预加载 astro_image_io.dll (依赖前置) handle=0x7ffdd8e50000
+[dll_loader] 加载模块 CALIBRATE: F:\Astro dev\Astro CS Normalization Database/lib/calibration/astro_calibration.dll
+[dll_loader] 模块 CALIBRATE 加载成功 (handle=0x7ffdd9150000)
+[dll_loader] 加载模块 PLATESOLVE: F:\Astro dev\Astro CS Normalization Database/lib/plate_solve/cpp/ipv/ipv_solver.dll
+[dll_loader] 模块 PLATESOLVE 加载成功 (handle=0x7ffdd8b50000)
+[dll_loader] 加载模块 PSF: F:\Astro dev\Astro CS Normalization Database/lib/dynamic_psf/dynamic_psf.dll
+[dll_loader] 模块 PSF 加载成功 (handle=0x7ffdd8af0000)
+[dll_loader] 预加载 gaia_client.dll (依赖前置) handle=0x7ffdd9860000
+[dll_loader] 加载模块 PHOTOMETRIC: F:\Astro dev\Astro CS Normalization Database/lib/photometric_calib/cpp/photometric_calib.dll
+[dll_loader] 模块 PHOTOMETRIC 加载成功 (handle=0x7ffdd20f0000)
+[dll_loader] 加载模块 SNR: F:\Astro dev\Astro CS Normalization Database/lib/snr_estimator/cpp/snr_estimator.dll
+[dll_loader] 模块 SNR 加载成功 (handle=0x7ffdd1dd0000)
+[dll_loader] 加载模块 DRIZZLE: F:\Astro dev\Astro CS Normalization Database/lib/healpix_db/healpix_drizzle/healpix_drizzle.dll
+[dll_loader] 模块 DRIZZLE 加载成功 (handle=0x7ffdd1a30000)
+[dll_loader] 加载模块 GRADIENT_SPHERE: F:\Astro dev\Astro CS Normalization Database/lib/healpix_db/healpix_stack/healpix_stack.dll
+[dll_loader] 模块 GRADIENT_SPHERE 加载成功 (handle=0x7ffdcc860000)
+[dll_loader] 加载模块 STACK: F:\Astro dev\Astro CS Normalization Database/lib/healpix_db/healpix_stack/healpix_stack.dll
+[dll_loader] 模块 STACK 加载成功 (handle=0x7ffdcc860000)
+[dll_loader] 全部模块加载成功
+[2026-07-25 20:24:31][INFO][orchestrator] 全部 9 个模块加载成功
+[2026-07-25 20:24:31][INFO][orchestrator]   AIO 版本: unknown
+[2026-07-25 20:24:31][INFO][orchestrator]   CALIBRATE 版本: Astro Calibration C++ v1.0.0
+[2026-07-25 20:24:31][INFO][orchestrator]   PLATESOLVE 版本: unknown
+[2026-07-25 20:24:31][INFO][orchestrator]   PSF 版本: unknown
+[2026-07-25 20:24:31][INFO][orchestrator]   PHOTOMETRIC 版本: unknown
+[2026-07-25 20:24:31][INFO][orchestrator]   SNR 版本: unknown
+[2026-07-25 20:24:31][INFO][orchestrator]   DRIZZLE 版本: unknown
+[2026-07-25 20:24:31][INFO][orchestrator]   GRADIENT_SPHERE 版本: unknown
+[2026-07-25 20:24:31][INFO][orchestrator]   STACK 版本: unknown
+[dll_loader] CALIBRATE 线程数设置为 16
+[2026-07-25 20:24:31][INFO][orchestrator] CALIBRATE 线程数: 16
+[2026-07-25 20:24:31][DEBUG][PIPELINE] frame_create: ok
+[2026-07-25 20:24:31][INFO][orchestrator] ---------- stage1 阶段: READ_FITS ----------
+[2026-07-25 20:24:31][INFO][orchestrator] P04-004: 启动 watchdog for READ_FITS timeout=0.001000s
+[2026-07-25 20:24:31][INFO][orchestrator] [READ_FITS] 开始: F:\Astro dev\Astro CS Normalization Database\testdata\results\Galaxy_Center_T4\panel1\Blue\Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@055414-180S-Blue\01_calibrated.fits
+[2026-07-25 20:24:31][INFO][FITS] Reading: F:\Astro dev\Astro CS Normalization Database\testdata\results\Galaxy_Center_T4\panel1\Blue\Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@055414-180S-Blue\01_calibrated.fits
+[2026-07-25 20:24:31][INFO][FITS] Header: BITPIX=-32 NAXIS=2 NAXIS1=4500 NAXIS2=3600 NAXIS3=0 BSCALE=1.0 BZERO=0.0 keywords=104
+[2026-07-25 20:24:31][WARN][orchestrator] P04-004: stage READ_FITS 超时 (0.001000s), 触发 timeout_flag
+[2026-07-25 20:24:31][INFO][FITS] Read OK: 4500x3600 1ch BITPIX=-32
+[2026-07-25 20:24:31][INFO][API] aio_read_fits: 0.052 s
+[2026-07-25 20:24:31][INFO][orchestrator] [READ_FITS] 图像尺寸: 4500x3600
+[2026-07-25 20:24:31][DEBUG][PIPELINE] add_block: 'data' type=0 count=16200000 (64800000 bytes)
+[2026-07-25 20:24:31][INFO][orchestrator] [READ_FITS] FITS 关键字数: 104
+[2026-07-25 20:24:31][INFO][orchestrator] [READ_FITS] 完成
+[2026-07-25 20:24:31][INFO][orchestrator] [0.064937s] READ_FITS 完成
+[2026-07-25 20:24:31][WARN][orchestrator] P04-004: READ_FITS 超时
+[2026-07-25 20:24:31][DEBUG][PIPELINE] frame_destroy: ok
+[2026-07-25 20:24:31][INFO][orchestrator] P04-004: 原子性清理 - stage1 失败/取消/超时, 删除部分输出
+[2026-07-25 20:24:31][INFO][orchestrator] ========== stage1 失败 ==========
+[2026-07-25 20:24:31][INFO][orchestrator] 析构完成
+[dll_loader] 卸载所有模块
+[dll_loader] 卸载模块 CALIBRATE
+[dll_loader] 卸载模块 PLATESOLVE
+[dll_loader] 卸载模块 PSF
+[dll_loader] 卸载模块 PHOTOMETRIC
+[dll_loader] 卸载模块 SNR
+[dll_loader] 卸载模块 DRIZZLE
+[dll_loader] 卸载模块 GRADIENT_SPHERE
+[dll_loader] 卸载模块 AIO

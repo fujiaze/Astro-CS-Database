@@ -1,0 +1,6 @@
+capabilities exit=0
+cancel-on-signal exit=1
+atomic cleanup exit=1 before=True after=False
+allow_partial exit=1 before=True after=True
+timeout_parse exit=1
+timeout_trigger exit=9 (9=TIMEOUT) output_exists=False
