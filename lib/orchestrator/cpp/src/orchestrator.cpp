@@ -1492,74 +1492,15 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
                  + "), star_det 块未写入 (PSF 将跳过)");
     }
 
-    // 7. (可选) 写入 gaia_cat 块 (FLOAT64 [N,3]: ra, dec, mag)
-    //    使用求解后的 WCS 中心计算 FOV 半径, 锥形查询 Gaia 星表
-    //    失败不致命, 仅记录警告
-    if (fn_add_block && fn_remove_block && gaia_client_dll_handle_ != nullptr && gaia_client_handle_ != 0) {
-        HMODULE gaia_h = static_cast<HMODULE>(gaia_client_dll_handle_);
-        using gaia_cone_fn = int (*)(GaiaClient*, double, double, double, double,
-            double**, double**, float**, int*);
-        auto fn_gaia_cone = reinterpret_cast<gaia_cone_fn>(
-            GetProcAddress(gaia_h, "gaia_client_cone_search_for_solver"));
-
-        if (fn_gaia_cone) {
-            // 计算 FOV 半径: sqrt(|det(CD)|) * sqrt(w^2 + h^2) / 2 * 1.2 (20% 余量)
-            double cd_det = std::abs(wcs_result.cd[0] * wcs_result.cd[3] -
-                                     wcs_result.cd[1] * wcs_result.cd[2]);
-            double pixel_scale_deg = (cd_det > 0) ? std::sqrt(cd_det) : 0.0;
-            double fov_radius_deg = pixel_scale_deg * std::sqrt(
-                static_cast<double>(width) * width + static_cast<double>(height) * height) / 2.0 * 1.2;
-
-            if (fov_radius_deg > 0.0 && fov_radius_deg < 30.0) {
-                double *out_ra = nullptr, *out_dec = nullptr;
-                float *out_mag = nullptr;
-                int out_count = 0;
-                int gaia_ret = fn_gaia_cone(
-                    reinterpret_cast<GaiaClient*>(gaia_client_handle_),
-                    wcs_result.crval[0], wcs_result.crval[1],
-                    fov_radius_deg, 18.0,  // mag_high=18.0
-                    &out_ra, &out_dec, &out_mag, &out_count);
-
-                if (gaia_ret == 0 && out_count > 0 && out_ra && out_dec && out_mag) {
-                    int64_t n_gaia = out_count;
-                    double* gaia_cat = static_cast<double*>(std::malloc(n_gaia * 3 * sizeof(double)));
-                    if (gaia_cat != nullptr) {
-                        for (int i = 0; i < out_count; ++i) {
-                            gaia_cat[i * 3 + 0] = out_ra[i];
-                            gaia_cat[i * 3 + 1] = out_dec[i];
-                            gaia_cat[i * 3 + 2] = static_cast<double>(out_mag[i]);
-                        }
-                        int dims[2] = {out_count, 3};
-                        fn_remove_block(frame_, "gaia_cat");
-                        int r = fn_add_block(frame_, "gaia_cat", AIO_BLOCK_FLOAT64,
-                                             gaia_cat, n_gaia * 3, dims, 2,
-                                             "Gaia 星表: ra,dec,mag");
-                        if (r == 0) {
-                            LOG_INFO("orchestrator", "[PLATESOLVE] gaia_cat 块已写入: "
-                                     + std::to_string(out_count) + " 颗星, FOV半径="
-                                     + std::to_string(fov_radius_deg) + "deg");
-                        } else {
-                            LOG_WARN("orchestrator", "[PLATESOLVE] gaia_cat 块写入失败 (add_block ret="
-                                     + std::to_string(r) + ")");
-                        }
-                        std::free(gaia_cat);
-                    }
-                    // 释放 C 端内存 (gaia_client 使用 malloc 分配)
-                    std::free(out_ra);
-                    std::free(out_dec);
-                    std::free(out_mag);
-                } else {
-                    LOG_WARN("orchestrator", "[PLATESOLVE] Gaia 锥形查询返回空 (ret="
-                             + std::to_string(gaia_ret) + ", count=" + std::to_string(out_count) + ")");
-                }
-            } else {
-                LOG_WARN("orchestrator", "[PLATESOLVE] FOV 半径异常 ("
-                         + std::to_string(fov_radius_deg) + "deg), gaia_cat 块未写入");
-            }
-        } else {
-            LOG_WARN("orchestrator", "[PLATESOLVE] gaia_client_cone_search_for_solver 函数未找到, gaia_cat 块未写入");
-        }
-    }
+    // P02-006: 删除无消费者 gaia_cat 二次查询
+    // 原代码在 PLATESOLVE 求解完成后, 调用 gaia_client_cone_search_for_solver 写 "gaia_cat" 块,
+    // 但下游 stage (PSF / PHOTOMETRIC / SNR / DRIZZLE) 均未读取 "gaia_cat" 块, 属于无消费者死代码。
+    // 区分两条 Gaia 查询语义 (docs/05 §9):
+    //   - Astrometry query: PLATESOLVE 内部由 ipv_solve_from_memory_with_callback 完成
+    //     (匹配星等几何 + WCS 求解), 结果以 star_det / WCS 形式落盘, 不需要 gaia_cat。
+    //   - Photometry query: PHOTOMETRIC 阶段独立调用 pc_calibrate_simple_with_gaia,
+    //     内部按需 cone search + DR3SP 光谱 + 滤光片 + QE 积分, 不依赖 gaia_cat 块。
+    // 删除此处二次查询可节省一次 cone search 调用 (GaiaClient 进程内缓存仍按 TTL 命中)。
 
     LOG_INFO("orchestrator", "[PLATESOLVE] 完成");
     return true;

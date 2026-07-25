@@ -1,0 +1,112 @@
+{
+  "task": "P02-006",
+  "title": "Gaia 查询边界与缓存",
+  "date": "2026-07-25",
+  "baseline_commit": "c960dcc",
+  "branch": "main",
+  "cache_implementation": {
+    "type": "in_process",
+    "persistence": "volatile",
+    "thread_safe": true,
+    "lock_mechanism": {
+      "windows": "CRITICAL_SECTION",
+      "linux": "pthread_mutex_t"
+    },
+    "config": {
+      "query_cache_capacity": 64,
+      "query_cache_ttl_sec": 60,
+      "block_cache_capacity": 8192,
+      "block_cache_max_memory_bytes": 4294967296,
+      "memory_pressure_threshold_bytes": 4294967296
+    },
+    "cache_key": {
+      "version": 1,
+      "version_macro": "GAIA_CACHE_VERSION",
+      "fields": ["ra", "dec", "radius", "mag_high"],
+      "rounding": {
+        "ra_deg": 0.001,
+        "dec_deg": 0.001,
+        "radius_deg": 0.01,
+        "mag": 0.01
+      },
+      "version_mismatch_behavior": "evict_and_skip"
+    },
+    "eviction": {
+      "ttl_expired": "free_and_invalidate",
+      "version_mismatch": "free_and_invalidate",
+      "memory_pressure": "evict_oldest_quarter",
+      "capacity_full": "slot_reuse"
+    },
+    "stored_data": {
+      "out_ra": "double[]",
+      "out_dec": "double[]",
+      "out_mag": "float[]",
+      "out_count": "int"
+    }
+  },
+  "gaia_query_semantics": {
+    "astrometry": {
+      "stage": "PLATESOLVE",
+      "mechanism": "ipv_solve_from_memory_with_callback",
+      "output": ["star_det", "WCS", "SIP"],
+      "depends_on_gaia_cat": false
+    },
+    "photometry": {
+      "stage": "PHOTOMETRIC",
+      "mechanism": "pc_calibrate_simple_with_gaia",
+      "output": ["photo_stats"],
+      "depends_on_gaia_cat": false,
+      "independent_cone_search": true
+    },
+    "deleted_gaia_cat_query": {
+      "location": "run_stage_platesolve (原 L1495-L1562)",
+      "consumer_count": 0,
+      "consumers_audited": ["PSF", "PHOTOMETRIC", "SNR", "DRIZZLE"],
+      "net_lines_removed": 68,
+      "comments_added": 9
+    }
+  },
+  "code_changes": {
+    "lib/orchestrator/cpp/src/orchestrator.cpp": {
+      "lines_added": 9,
+      "lines_removed": 77,
+      "net": -68
+    },
+    "lib/gaia_xpsd_client/src/gaia_client.c": {
+      "lines_added": 15,
+      "lines_removed": 0,
+      "net": 15
+    }
+  },
+  "verification": {
+    "cache_hit_test": {
+      "program": "test_cache_hit.c",
+      "q1_miss_elapsed_sec": 0.0165,
+      "q2_hit_elapsed_sec": 0.0000,
+      "q4_hit_elapsed_sec": 0.0000,
+      "speedup_q2": 5888.1,
+      "speedup_q4": 4455.9,
+      "required_speedup": 10,
+      "verdict": "PASS"
+    },
+    "stage1_test": {
+      "platesolve_rms_arcsec": 0.332865,
+      "platesolve_n_pairs": 45,
+      "star_det_written": true,
+      "gaia_cat_written": false,
+      "all_stages_passed": true,
+      "verdict": "PASS"
+    }
+  },
+  "build_artifacts": {
+    "gaia_client_dll": {
+      "path": "build/artifacts/gaia_client.dll",
+      "size_bytes": 281990
+    },
+    "orchestrator_exe": {
+      "path": "build/artifacts/orchestrator.exe",
+      "size_bytes": 3921419
+    }
+  },
+  "verdict": "PASS"
+}

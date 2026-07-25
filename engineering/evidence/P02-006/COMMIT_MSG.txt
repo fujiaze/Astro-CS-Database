@@ -1,0 +1,9 @@
+P02-006: 删除无消费者gaia_cat二次查询+GaiaClient进程内缓存
+
+- 删除 orchestrator.cpp 中 run_stage_platesolve 的 gaia_cat 二次 cone search 死代码 (68行)
+  下游 stage (PSF/PHOTOMETRIC/SNR/DRIZZLE) 均未读取 gaia_cat 块
+- 区分 astrometry/photometry 两条 Gaia 查询语义 (docs/05 §9)
+- GaiaClient 增加 GAIA_CACHE_VERSION 版本号机制 (gaia_client.c +15行)
+  schema 变更时递增版本号即可让旧缓存条目自动失效
+- 验证: test_cache_hit 缓存命中加速 ~5000x, stage1 全流程无退化 (rms=0.33")
+- 交付物: TASK_REPORT/TEST_REPORT/EVIDENCE_INDEX/REVIEW_REPORT/gaia_cache_impl.json

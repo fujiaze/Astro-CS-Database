@@ -44,6 +44,10 @@
 #define QUERY_CACHE_MAG_ROUND  0.01   /* 星等舍入精度 */
 #define BLOCK_CACHE_MAX_MEMORY (4ULL * 1024 * 1024 * 1024) /* 解压块缓存最大4GB */
 #define MEMORY_PRESSURE_THRESHOLD (4ULL * 1024 * 1024 * 1024) /* 可用内存<4GB时触发释放 */
+/* P02-006: 缓存键版本号。当 dataset / 字段集合 / 参数语义发生破坏性变化时,
+ * 递增此版本号即可让旧缓存条目自然失效 (lookup 时 version 不匹配则跳过)。
+ * 当前版本: 1 (ra/dec/mag 三元组, mag_high 作为参数) */
+#define GAIA_CACHE_VERSION     1
 #ifndef TIME_MAX
 #define TIME_MAX ((time_t)-1 < 0 ? (time_t)((1ULL << (8 * sizeof(time_t) - 1)) - 1) : (time_t)(-1))
 #endif
@@ -89,6 +93,7 @@ typedef struct {
     int out_count;                     /* 星数 */
     time_t timestamp;                  /* 缓存创建时间 */
     int valid;                         /* 是否有效 */
+    int version;                       /* P02-006: 缓存键版本号, 用于在 schema 变更时让旧条目失效 */
 } QueryCacheEntry;
 
 typedef struct {
@@ -409,6 +414,15 @@ static int query_cache_lookup(GaiaClient *client, double ra, double dec,
             qc->count--;
             continue;
         }
+        /* P02-006: 版本不匹配视为失效, 清理后跳过 (旧 schema 条目不可复用) */
+        if (qc->entries[i].version != GAIA_CACHE_VERSION) {
+            free(qc->entries[i].out_ra);
+            free(qc->entries[i].out_dec);
+            free(qc->entries[i].out_mag);
+            qc->entries[i].valid = 0;
+            qc->count--;
+            continue;
+        }
         if (qc->entries[i].ra == r_ra &&
             qc->entries[i].dec == r_dec &&
             qc->entries[i].radius == r_radius &&
@@ -488,6 +502,7 @@ static void query_cache_insert(GaiaClient *client, double ra, double dec,
     qc->entries[slot].out_count = out_count;
     qc->entries[slot].timestamp = time(NULL);
     qc->entries[slot].valid = 1;
+    qc->entries[slot].version = GAIA_CACHE_VERSION;  /* P02-006: 标记缓存键版本 */
     qc->count++;
 }
 
