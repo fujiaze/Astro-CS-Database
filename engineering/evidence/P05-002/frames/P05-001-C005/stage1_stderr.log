@@ -1,0 +1,5 @@
+[2026-07-25 21:14:52][INFO]   [robust_refine] NN 匹配: U=180, W=60, tol=0.676", Lowe通过=39, 双向=39
+[2026-07-25 21:14:52][INFO]   [robust_refine] iter 1: tol=0.676", matched=39, rms=0.4509"→0.3899", cd_Δ=3.6981%, damp=1.00e+06
+[2026-07-25 21:14:52][INFO]   [robust_refine] NN 匹配: U=180, W=60, tol=0.585", Lowe通过=36, 双向=36
+[2026-07-25 21:14:52][INFO]   [robust_refine] iter 2: tol=0.585", matched=36, rms=0.3899"→0.3460", cd_Δ=1.2115%, damp=1.00e+06
+

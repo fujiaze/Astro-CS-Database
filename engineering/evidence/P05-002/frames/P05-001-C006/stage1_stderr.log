@@ -1,0 +1,5 @@
+[pc_api] 匹配+清洗完成: 1 颗, scale=3.784489e-03, sigma_residual=0.000000
+[image_corrector] 图像校正: 4500x3600, scale=3.784489e-03, 并行16线程
+[image_corrector] 校正完成
+[pc_api] ====== pc_calibrate_simple_with_gaia 完成: n_matched=1, scale=3.784489e-03, sigma_residual=0.000000 ======
+

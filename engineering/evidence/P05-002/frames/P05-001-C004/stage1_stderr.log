@@ -1,0 +1,5 @@
+[2026-07-25 21:14:52][INFO] === triangle_match 开始: N_U=60, N_W=60, n_A0=60, n_B0=60, tol=0.0020, s0=6.1879 ===
+[2026-07-25 21:14:52][INFO] triangle_match: stage=0, nA=60, nB=60
+[2026-07-25 21:14:52][INFO] triangle_match_single: n_A=60, n_B=60, tol=0.0020, s0=6.1879, scale=[0.1347,0.2020]
+[2026-07-25 21:14:52][DEBUG] stars_to_triangles: N=60, expected=34220, valid=34220, skipped_degenerate=0 (并行, 16 线程)
+

@@ -1,0 +1,91 @@
+读取 orchestrator 日志: f:\Astro dev\Astro CS Normalization Database\lib\orchestrator\logs\orchestrator_2026-07-25.log
+日志总行数: 3608
+============================================================
+[P05-001-C001] 处理中 ...
+============================================================
+[P05-001-C001] 日志切片行数: 171
+[P05-001-C001] 运行 inspect --hiss ...
+[P05-001-C001] success=True, HISS=46.59KB
+[P05-001-C001] PlateSolve: RMS=0.345963 arcsec n_pairs=36
+[P05-001-C001] PSF: 1984/2000 (99 percent)
+[P05-001-C001] Photometric: n_matched=1 scale=0.003784
+[P05-001-C001] SNR: skipped=True
+[P05-001-C001] HISS: nside=512 n_pix=3928 has_snr=False
+============================================================
+[P05-001-C002] 处理中 ...
+============================================================
+[P05-001-C002] 日志切片行数: 75
+[P05-001-C002] success=False, HISS=0KB
+[P05-001-C002] Photometric: n_matched=0 scale=
+[P05-001-C002] SNR: skipped=False
+============================================================
+[P05-001-C003] 处理中 ...
+============================================================
+[P05-001-C003] 日志切片行数: 171
+[P05-001-C003] 运行 inspect --hiss ...
+[P05-001-C003] success=True, HISS=18.89KB
+[P05-001-C003] PlateSolve: RMS=0.123992 arcsec n_pairs=47
+[P05-001-C003] PSF: 1917/2000 (96 percent)
+[P05-001-C003] Photometric: n_matched=1 scale=2.2E-05
+[P05-001-C003] SNR: skipped=True
+[P05-001-C003] HISS: nside=2048 n_pix=1566 has_snr=False
+============================================================
+[P05-001-C004] 处理中 ...
+============================================================
+[P05-001-C004] 日志切片行数: 171
+[P05-001-C004] 运行 inspect --hiss ...
+[P05-001-C004] success=True, HISS=19KB
+[P05-001-C004] PlateSolve: RMS=0.192681 arcsec n_pairs=34
+[P05-001-C004] PSF: 865/927 (93 percent)
+[P05-001-C004] Photometric: n_matched=1 scale=8.2E-05
+[P05-001-C004] SNR: skipped=True
+[P05-001-C004] HISS: nside=2048 n_pix=1575 has_snr=False
+============================================================
+[P05-001-C005] 处理中 ...
+============================================================
+[P05-001-C005] 日志切片行数: 171
+[P05-001-C005] 运行 inspect --hiss ...
+[P05-001-C005] success=True, HISS=18.53KB
+[P05-001-C005] PlateSolve: RMS=0.127038 arcsec n_pairs=38
+[P05-001-C005] PSF: 940/958 (98 percent)
+[P05-001-C005] Photometric: n_matched=1 scale=4.6E-05
+[P05-001-C005] SNR: skipped=True
+[P05-001-C005] HISS: nside=2048 n_pix=1536 has_snr=False
+============================================================
+[P05-001-C006] 处理中 ...
+============================================================
+[P05-001-C006] 日志切片行数: 171
+[P05-001-C006] 运行 inspect --hiss ...
+[P05-001-C006] success=True, HISS=18.83KB
+[P05-001-C006] PlateSolve: RMS=0.118804 arcsec n_pairs=31
+[P05-001-C006] PSF: 900/916 (98 percent)
+[P05-001-C006] Photometric: n_matched=1 scale=4.2E-05
+[P05-001-C006] SNR: skipped=True
+[P05-001-C006] HISS: nside=2048 n_pix=1561 has_snr=False
+============================================================
+[P05-001-C007] 处理中 ...
+============================================================
+[P05-001-C007] 日志切片行数: 168
+[P05-001-C007] 运行 inspect --hiss ...
+[P05-001-C007] success=True, HISS=46.57KB
+[P05-001-C007] PlateSolve: RMS=0.378761 arcsec n_pairs=31
+[P05-001-C007] PSF: 1948/2000 (97 percent)
+[P05-001-C007] Photometric: n_matched=0 scale=1
+[P05-001-C007] SNR: skipped=True
+[P05-001-C007] HISS: nside=512 n_pix=3927 has_snr=False
+
+============================================================
+P05-002 结果汇总完成
+============================================================
+总帧数: 7
+成功帧数: 6
+失败帧数: 1
+HISS 文件数: 6
+PlateSolve 通过: 6/7 (RMS<1.0 arcsec and n_pairs>10)
+PSF 有效: 6/7
+HISS >10KB: 6/7
+WCS 完整: 6/7
+star_det 已写入: 6/7
+has_snr=true: 0/7 (P03-004 SNR 降级)
+
+结果文件: f:\Astro dev\Astro CS Normalization Database\engineering\evidence\P05-002\stage1_e2e_results.json
