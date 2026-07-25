@@ -1,0 +1,1 @@
+解压最新AstroCS开发包，读取AUTONOMOUS_ENTRY.md，按状态文件持续执行，仅在硬阻塞或全部完成时汇报。

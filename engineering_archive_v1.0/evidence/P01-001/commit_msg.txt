@@ -1,0 +1,28 @@
+P01-001: 确定根级构建策略 ADR-004
+
+基于 P00-004 依赖图和 P00-005 环境基线, 评估当前构建系统现状, 对比 3 个候选方案
+(CMake 统一 / PowerShell 编排器 / 混合), 决策根级构建策略。
+
+决策: 选择方案 B - 根级 PowerShell 编排器 + 各模块保留现有 build.ps1/Makefile
+
+交付物:
+- engineering/control/ADR-004.md: ADR 决策文档(8 章节: 背景/约束/候选/证据/决策/后果/迁移/回退)
+- engineering/control/DECISION_LOG.md: ADR-004 PENDING -> ACCEPTED
+- TASK/TEST/EVIDENCE_INDEX/REVIEW_REPORT: 任务闭环四件套
+
+决策理由:
+- 最小改动(surgical changes), 不重写 13 个模块构建文件
+- 符合用户 PowerShell 7 强制要求
+- 不引入新工具链依赖(无需 CMake)
+- 项目 Windows-only, PowerShell 足够
+- 可复现(脚本化 + manifest)
+
+核心设计:
+- 根级 build.ps1 统一入口(-Target all/clean/<module>)
+- 优先调用各模块 build.ps1, 无则 mingw32-make
+- 统一产物目录 build/artifacts/ + build/logs/ + build/manifest.json
+- 工具链 PATH 注入 C:\msys64\mingw64\bin
+- 按依赖图分层构建(基础层 -> 中间层 -> 顶层)
+
+独立复核: PASS(ADR 文档完整, 决策依据充分, 与用户规则一致)
+任务状态: P01-001 DONE, 推进到 P01-002(建立依赖锁定清单)

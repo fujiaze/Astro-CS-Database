@@ -1,0 +1,243 @@
+{
+  "task_id": "P02-005",
+  "task_name": "Dynamic PSF float32 API (v1.1 开发包)",
+  "phase": "P02",
+  "gate": "G2",
+  "commit_base": "7b85ff3f0d37a4b26fff6077684993842ed2bbae",
+  "package_version": "2026-07-24-cli-core-v1.1-platesolve-conditional-path",
+  "generated_at": "2026-07-25T12:20:00+08:00",
+  "generator": "P02-005 子 Agent",
+
+  "new_api": {
+    "name": "dpsf_fit_batch_f32",
+    "header_file": "lib/dynamic_psf/include/dynamic_psf.h",
+    "header_lines": "97-106",
+    "impl_file": "lib/dynamic_psf/src/dpsf_psf.cpp",
+    "impl_lines": "534-652",
+    "python_binding_file": "lib/dynamic_psf/python/dynamic_psf.py",
+    "python_binding_lines": "219-282",
+    "signature_c": "int dpsf_fit_batch_f32(const float* image, int width, int height, const double* detections, int n_detections, const DPSFFitParams* params, double* out_psf_params, int* out_n_valid)",
+    "signature_python": "DynamicPSF.fit_batch_f32(image: np.ndarray[float32], detections: np.ndarray[float64, shape=(N,6)], params: DPSFFitParamsPy = None, dll_path: str = None) -> (np.ndarray[float64, shape=(N,9)], int)",
+    "return_value": "0=成功完成批量; -1=参数错误",
+    "input_image_dtype": "float32",
+    "input_detections_schema": "star_det_v1:FLOAT64[N,6]",
+    "detections_columns": [
+      "x_px",
+      "y_px",
+      "flux",
+      "mag",
+      "saturated_0_1",
+      "has_saturated_0_1"
+    ],
+    "columns_used_in_fit": ["x_px", "y_px"],
+    "output_psf_params_schema": "psf_params:FLOAT64[N,9]",
+    "output_psf_params_fields": [
+      "B",
+      "A",
+      "cx",
+      "cy",
+      "sx",
+      "sy",
+      "theta",
+      "fwhm_x",
+      "fwhm_y"
+    ],
+    "failed_fit_marker": "NaN (all 9 fields)",
+    "output_n_valid": "成功拟合数 (status == DPSF_FIT_OK)",
+    "default_params": {
+      "fitRadius": 8,
+      "maxIter": 200,
+      "tolerance": 1e-08
+    },
+    "parallelism": "OpenMP schedule(dynamic) reduction(+:success_count)",
+    "creates_full_uint16_buffer": false,
+    "does_0_65535_clip": false,
+    "calls_sdet_detect_ex": false,
+    "consumes_star_det_v1": true,
+    "logs_schema_and_count": true,
+    "schema_macros": {
+      "DPSF_STAR_DET_SCHEMA_V1": "star_det_v1:FLOAT64[N,6]",
+      "DPSF_PSF_PARAMS_SCHEMA": "psf_params:FLOAT64[N,9]"
+    }
+  },
+
+  "old_api_preserved": [
+    {
+      "name": "dpsf_fit",
+      "signature": "int dpsf_fit(const uint16_t* image, int width, int height, double cx, double cy, const DPSFFitParams* params, DPSFFitResult* result)",
+      "modified": false
+    },
+    {
+      "name": "dpsf_fit_batch",
+      "signature": "int dpsf_fit_batch(const uint16_t* image, int width, int height, const double* cx_array, const double* cy_array, int count, const DPSFFitParams* params, DPSFFitResult** out_results)",
+      "modified": false
+    },
+    {
+      "name": "dpsf_free_results",
+      "signature": "void dpsf_free_results(DPSFFitResult* results)",
+      "modified": false
+    }
+  ],
+
+  "changed_files": [
+    {
+      "path": "lib/dynamic_psf/include/dynamic_psf.h",
+      "change_type": "modified",
+      "size_bytes": 3655,
+      "sha256": "E70159A1317BDDBAB9257EA3436638338817D9B9C2032B5EBD2B1C02B02AEE8F",
+      "summary": "新增 dpsf_fit_batch_f32 声明 + 2 个 schema 宏 + doxygen 注释; 旧 3 个 API 声明未改"
+    },
+    {
+      "path": "lib/dynamic_psf/src/dpsf_psf.cpp",
+      "change_type": "modified",
+      "size_bytes": 23981,
+      "sha256": "7F8C61083F7160B654AD4FB47AD2FEFE2D11023F8596ED5908ECAF9C1408ED2C",
+      "summary": "新增 <limits> 头 + dpsf_fit_batch_f32 实现 (130 行); 旧 4 个函数实现未改"
+    },
+    {
+      "path": "lib/dynamic_psf/python/dynamic_psf.py",
+      "change_type": "modified",
+      "size_bytes": 9708,
+      "sha256": "7FA3A79F871FF6DEDBEE759401BB8C8DC9FA9FCA94EBFE95528332C1D559F952",
+      "summary": "新增 c_float 导入 + argtypes 注册 + fit_batch_f32 静态方法; 旧 fit/fit_batch 未改"
+    },
+    {
+      "path": "engineering/tools/psf_f32_ab_test.py",
+      "change_type": "added",
+      "size_bytes": 15647,
+      "sha256": "ED55DC1E8657D6D3584D08DF1C202077762E7FB7068B9D22DC9F384F63B2D377",
+      "summary": "A/B 测试脚本 (FITS 读取 + numpy 检测 + f32/u16 API 对比 + 10 项有效性检查)"
+    }
+  ],
+
+  "build_result": {
+    "toolchain": "mingw32-make 4.4.1 + g++ 16.1.0 (MSYS2 mingw64)",
+    "build_command": "mingw32-make clean; mingw32-make",
+    "build_dir": "lib/dynamic_psf",
+    "success": true,
+    "warnings": [
+      "dpsf_psf.cpp:403:9: warning: unused variable 'maxIter' [-Wunused-variable] (旧代码, 非本任务引入)",
+      "dpsf_psf.cpp:404:12: warning: unused variable 'tolerance' [-Wunused-variable] (旧代码, 非本任务引入)"
+    ],
+    "dll_path": "lib/dynamic_psf/dynamic_psf.dll",
+    "dll_size_bytes": 334677,
+    "dll_sha256": "A33286D65FED2CCE23EE6A5635AFA3D5A38F6D6302BCB61ED0056F9441E34C9A",
+    "build_artifacts_copy_sha256": "A33286D65FED2CCE23EE6A5635AFA3D5A38F6D6302BCB61ED0056F9441E34C9A",
+    "old_dll_sha256_before_build": "51AFFB4AD05737B3146274F8FDDB95208327DB336F4A645FF68C4D0032B43BA2",
+    "exported_symbols_verified": ["dpsf_fit", "dpsf_fit_batch", "dpsf_free_results", "dpsf_fit_batch_f32"],
+    "exported_symbols_count": 4
+  },
+
+  "single_frame_test": {
+    "fits_path": "testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts",
+    "image_size": "4500x3600",
+    "original_dtype": "uint16",
+    "pixel_range": [1267.0, 65535.0],
+    "pixel_median": 1457.0,
+    "n_detections": 50,
+    "detections_schema": "star_det_v1:FLOAT64[N,6]",
+    "fit_radius": 8,
+    "f32_api": {
+      "n_valid": 47,
+      "n_total": 50,
+      "success_rate": 0.94,
+      "elapsed_sec": 0.016,
+      "all_validity_checks_pass": true,
+      "validity_checks": [
+        {"name": "A > 0", "pass": true},
+        {"name": "sx > 0.3", "pass": true},
+        {"name": "sy > 0.3", "pass": true},
+        {"name": "fwhm_x > 0", "pass": true},
+        {"name": "fwhm_y > 0", "pass": true},
+        {"name": "fwhm_x < 50", "pass": true},
+        {"name": "fwhm_y < 50", "pass": true},
+        {"name": "B finite", "pass": true},
+        {"name": "cx in image", "pass": true},
+        {"name": "cy in image", "pass": true}
+      ],
+      "psf_params_mean": {
+        "B": 1518.47479,
+        "A": 87578.048887,
+        "cx": 2518.431367,
+        "cy": 896.71402,
+        "sx": 1.468127,
+        "sy": 1.564958,
+        "theta": -198.818167,
+        "fwhm_x": 1.806251,
+        "fwhm_y": 1.925384
+      }
+    },
+    "u16_api": {
+      "n_valid": 47,
+      "n_total": 50,
+      "success_rate": 0.94,
+      "elapsed_sec": 0.03
+    },
+    "ab_comparison": {
+      "n_both_ok": 47,
+      "fields": {
+        "B": {"diff_abs_mean": 0.0, "abs_rel_diff_max": 0.0},
+        "A": {"diff_abs_mean": 0.0, "abs_rel_diff_max": 0.0},
+        "cx": {"diff_abs_mean": 0.0, "abs_rel_diff_max": 0.0},
+        "cy": {"diff_abs_mean": 0.0, "abs_rel_diff_max": 0.0},
+        "sx": {"diff_abs_mean": 0.0, "abs_rel_diff_max": 0.0},
+        "sy": {"diff_abs_mean": 0.0, "abs_rel_diff_max": 0.0},
+        "theta": {"diff_abs_mean": 0.0, "abs_rel_diff_max": 0.0},
+        "fwhm_x": {"diff_abs_mean": 0.0, "abs_rel_diff_max": 0.0},
+        "fwhm_y": {"diff_abs_mean": 0.0, "abs_rel_diff_max": 0.0}
+      },
+      "conclusion": "原始 uint16 场景下新 f32 API 与旧 u16 API 输出完全一致 (向后兼容验证通过)"
+    }
+  },
+
+  "hdr_scenario_test": {
+    "scenario": "high_dynamic_range_simulated",
+    "scale": 3.0,
+    "offset": 500.0,
+    "hdr_pixel_range": [4301.0, 197105.0],
+    "n_pixels_over_65535": 7295,
+    "n_pixels_negative": 0,
+    "f32_api": {
+      "n_valid": 48,
+      "n_total": 50,
+      "success_rate": 0.96,
+      "elapsed_sec": 0.012,
+      "A_mean": 258985.0537,
+      "fwhm_x_mean": 1.8325,
+      "fwhm_y_mean": 1.8848
+    },
+    "u16_api": {
+      "n_valid": 48,
+      "n_total": 50,
+      "success_rate": 0.96,
+      "elapsed_sec": 0.026,
+      "A_mean": 82492.0439,
+      "fwhm_x_mean": 2.6251,
+      "fwhm_y_mean": 2.5983
+    },
+    "ab_comparison": {
+      "n_both_ok": 48,
+      "A_rel_diff_max": 3.262977,
+      "fwhm_x_rel_diff_max": 0.507968,
+      "fwhm_y_rel_diff_max": 0.489776,
+      "conclusion": "HDR 场景下旧 API 因 clip 丢失高亮信息, 振幅被压缩 -68%, FWHM 被高估 +44%; 新 f32 API 保留完整动态范围, 输出更准确"
+    }
+  },
+
+  "docs_05_section_8_compliance": {
+    "all_requirements_met": true,
+    "requirements": [
+      {"req": "新增 dpsf_fit_batch_f32, 接收 const float*", "met": true, "evidence": "dynamic_psf.h L97-106"},
+      {"req": "内部拟合使用 float/double", "met": true, "evidence": "moffat4_fit 内部 lm_solve/moffat4_residual 全 double (未修改)"},
+      {"req": "不做 0-65535 clip", "met": true, "evidence": "dpsf_psf.cpp L604-610 直接从 float32 裁剪 patch"},
+      {"req": "旧 uint16 API 保留兼容", "met": true, "evidence": "旧 3 个 API 一字未改 + A/B 47/47 一致"},
+      {"req": "消费 star_det v1 (FLOAT64 [N,6])", "met": true, "evidence": "detections 参数 const double* [N,6]"},
+      {"req": "不调用 sdet_detect_ex", "met": true, "evidence": "dpsf_psf.cpp L534-652 仅消费 detections 数组"},
+      {"req": "不创建整张 uint16 图像", "met": true, "evidence": "dpsf_psf.cpp L604-610 仅裁剪局部 patch"},
+      {"req": "记录消费的 schema/count", "met": true, "evidence": "dpsf_psf.cpp L564-566 日志记录"}
+    ]
+  },
+
+  "verdict": "PASS",
+  "verdict_reason": "新 API 实现完成, 构建成功, 4 个符号导出, 单帧 A/B 47/47 完全一致 (向后兼容), HDR 场景新 API 更准确 (振幅 +68%, FWHM -30%), docs/05 §8 全部 8 项要求满足, 旧 API 一字未改"
+}

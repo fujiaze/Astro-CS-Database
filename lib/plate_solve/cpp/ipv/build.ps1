@@ -9,7 +9,7 @@ $ErrorActionPreference = "Stop"
 $GXX = "C:\msys64\mingw64\bin\g++.exe"
 $env:Path = "C:\msys64\mingw64\bin;" + $env:Path
 
-$IPV_DIR = "f:\Astro dev\Astro CS Normalization Database\lib\plate_solve\cpp\ipv"
+$IPV_DIR = $PSScriptRoot
 Set-Location $IPV_DIR
 
 $SRC_DIR = "src"

@@ -1,0 +1,30 @@
+P00-008: 冻结 baseline tag (G0 gate)
+
+汇总 P00-001 ~ P00-007 全部 G0 证据, 核对 G0 Checklist, 创建第一个 baseline tag
+astrocs-baseline-p00 并冻结证据哈希, 正式通过 G0 gate。
+
+交付物:
+- generate_manifest.py: manifest 生成脚本(采集 42 任务证据 + 10 控制文件 SHA-256)
+- baseline_manifest.json: 机器可读 G0 证据清单
+- baseline_manifest.md: 人类可读 G0 报告
+- TASK/TEST/EVIDENCE_INDEX/REVIEW_REPORT: 任务闭环四件套
+
+G0 Checklist 结果:
+- 5 PASS: 模块源码受控 / 旧审计复核 / 文档冲突登记 / 风险清晰 / baseline tag
+- 2 PASS_WITH_CAVEAT: 依赖固定版本(→P01-002) / 构建证据(→P01-007)
+- 0 FAIL
+- G0 Gate: PASSED
+
+证据统计:
+- 任务证据: 42 个文件(0 missing), 覆盖 P00-001~P00-007 + bootstrap
+- 控制文件: 10 个文件
+- 风险: 10 项 OPEN(G0 仅要求识别, 均有 mitigation_task 映射)
+- ADR: 4 项 PENDING(ADR-001/002/003/004, G0 不要求完成)
+
+控制文件更新:
+- MASTER_TASK_REGISTER.csv: P00-008 → DONE
+- PROJECT_STATE.yaml: gate_status → PASSED, baseline_tag → astrocs-baseline-p00
+- CURRENT_WORK.md: P00 完成, 准备 P01-001
+
+独立复核: PASS(脚本可重复, 52 文件全齐, G0 checklist 一致, 范围无越界)
+任务状态: P00-008 DONE, G0 PASSED, P00 阶段完成, 准备进入 P01 可复现构建

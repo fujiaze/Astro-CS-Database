@@ -1,0 +1,135 @@
+{
+  "task": "P01-003",
+  "test": "hiss_hcsd_roundtrip",
+  "status": "PASS",
+  "summary": {
+    "total": 4,
+    "passed": 4,
+    "failed": 0
+  },
+  "dll": {
+    "path": "f:\\Astro dev\\Astro CS Normalization Database\\lib\\astro_image_io\\astro_image_io.dll"
+  },
+  "environment": {
+    "python": "3.10.11",
+    "platform": "win32"
+  },
+  "results": [
+    {
+      "file_path": "f:\\Astro dev\\Astro CS Normalization Database\\engineering\\evidence\\P00-003\\output\\stage1_baseline.hiss",
+      "file_type": "HISS",
+      "file_size": 47693,
+      "file_sha256": "EB63758586AD1FFDF8FB4139301E2B345AD045188190E8AB9AD3E847349F98F9",
+      "success": true,
+      "error": null,
+      "read_nside": 512,
+      "read_nested": true,
+      "read_n_pix": 3927,
+      "read_has_snr": false,
+      "read_snr_format": 0,
+      "read_meta_keys": [
+        "HISS/uncomp=796/comp=557"
+      ],
+      "copy_path": "f:\\Astro dev\\Astro CS Normalization Database\\engineering\\evidence\\P01-003\\roundtrip_output\\stage1_baseline.roundtrip.hiss",
+      "copy_size": 47710,
+      "copy_sha256": "C850DE21967E090C8D68CEF35B524AF2E23B88413B945B0A3C6E7D21F66AA384",
+      "json_header_match": true,
+      "ipix_match": true,
+      "pixel_match": true,
+      "snr_match": true,
+      "snr_model_match": true,
+      "file_size_match": false,
+      "leaf_read_match": null,
+      "read_ms": 0.9524000015517231,
+      "write_ms": 1.0975000004691537,
+      "reread_ms": 0.6697999997413717
+    },
+    {
+      "file_path": "f:\\Astro dev\\Astro CS Normalization Database\\lib\\orchestrator\\cpp\\output_hiss_dir\\frame1.hiss",
+      "file_type": "HISS",
+      "file_size": 184878332,
+      "file_sha256": "3C06E240D22719CE8CD4FDEAEE0A37127CC06EF72018F012911C5E2FF68C7823",
+      "success": true,
+      "error": null,
+      "read_nside": 32768,
+      "read_nested": true,
+      "read_n_pix": 15406480,
+      "read_has_snr": false,
+      "read_snr_format": 0,
+      "read_meta_keys": [
+        "HISS/uncomp=806/comp=560"
+      ],
+      "copy_path": "f:\\Astro dev\\Astro CS Normalization Database\\engineering\\evidence\\P01-003\\roundtrip_output\\frame1.roundtrip.hiss",
+      "copy_size": 184878349,
+      "copy_sha256": "34B5EF6CCF51149BB656342DE862B2BD58EF9C9644673F64067E035BF767550C",
+      "json_header_match": true,
+      "ipix_match": true,
+      "pixel_match": true,
+      "snr_match": true,
+      "snr_model_match": true,
+      "file_size_match": false,
+      "leaf_read_match": null,
+      "read_ms": 2504.6376999998756,
+      "write_ms": 4076.8501999991713,
+      "reread_ms": 2678.815500001292
+    },
+    {
+      "file_path": "f:\\Astro dev\\Astro CS Normalization Database\\lib\\orchestrator\\cpp\\output_hiss_dir\\frame2.hiss",
+      "file_type": "HISS",
+      "file_size": 184886999,
+      "file_sha256": "BC2C19FFC17B99F812E7C24028B84FB4856EB0F34F0BC6919FB5EED5233DDAB9",
+      "success": true,
+      "error": null,
+      "read_nside": 32768,
+      "read_nested": true,
+      "read_n_pix": 15407202,
+      "read_has_snr": false,
+      "read_snr_format": 0,
+      "read_meta_keys": [
+        "HISS/uncomp=806/comp=563"
+      ],
+      "copy_path": "f:\\Astro dev\\Astro CS Normalization Database\\engineering\\evidence\\P01-003\\roundtrip_output\\frame2.roundtrip.hiss",
+      "copy_size": 184887016,
+      "copy_sha256": "133BFF8E49520C89761DF3999DF5E925A25C3F39CB287EE981C128A1E8F352AC",
+      "json_header_match": true,
+      "ipix_match": true,
+      "pixel_match": true,
+      "snr_match": true,
+      "snr_model_match": true,
+      "file_size_match": false,
+      "leaf_read_match": null,
+      "read_ms": 2802.9853999996703,
+      "write_ms": 3685.4213000005984,
+      "reread_ms": 2688.8592000013887
+    },
+    {
+      "file_path": "f:\\Astro dev\\Astro CS Normalization Database\\engineering\\evidence\\P00-003\\output\\stage2_baseline.hcsd",
+      "file_type": "HCSD",
+      "file_size": 187455430,
+      "file_sha256": "2A9BD12E0F91BB59ABB170B2765A4806EC5C45FB16045F7C50E131AFA4122C37",
+      "success": true,
+      "error": null,
+      "read_nside": 32768,
+      "read_nested": true,
+      "read_n_pix": 15522966,
+      "read_has_snr": false,
+      "read_snr_format": 0,
+      "read_meta_keys": [
+        "HCSD/uncomp=228/comp=178"
+      ],
+      "copy_path": "f:\\Astro dev\\Astro CS Normalization Database\\engineering\\evidence\\P01-003\\roundtrip_output\\stage2_baseline.roundtrip.hcsd",
+      "copy_size": 187455454,
+      "copy_sha256": "021C3C5F6D4A91824CE578138168DD19F7F8C3107C13191D49B441E3BB88F6D8",
+      "json_header_match": true,
+      "ipix_match": true,
+      "pixel_match": true,
+      "snr_match": true,
+      "snr_model_match": true,
+      "file_size_match": false,
+      "leaf_read_match": true,
+      "read_ms": 2848.026200001186,
+      "write_ms": 4036.9023000002926,
+      "reread_ms": 2509.331100000054
+    }
+  ]
+}

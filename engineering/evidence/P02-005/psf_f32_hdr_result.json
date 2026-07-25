@@ -1,0 +1,12 @@
+{
+  "scenario": "high_dynamic_range_simulated",
+  "scale": 3.0,
+  "offset": 500.0,
+  "n_pixels_over_65535": 7295,
+  "n_pixels_negative": 0,
+  "f32_n_valid": 48,
+  "u16_n_valid": 48,
+  "n_both_ok": 48,
+  "f32_elapsed_sec": 0.012,
+  "u16_elapsed_sec": 0.026
+}

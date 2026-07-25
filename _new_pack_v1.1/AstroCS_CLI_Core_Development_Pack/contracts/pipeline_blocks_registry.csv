@@ -1,0 +1,10 @@
+block,schema,type,dims,producer,consumers,persistent,notes
+data,1,FLOAT32,"[H,W]",READ_FITS,"CALIBRATE,STAR_DETECT/PLATESOLVE,PSF,PHOTOMETRIC,DRIZZLE",no,replaced by CALIBRATE and PHOTOMETRIC
+header,1,KV,"[N]",READ_FITS,"all stage handlers",no,WCS modified by PLATESOLVE
+cal_stats,1,KV,"[N]",CALIBRATE,"metadata/report",no,must prove real masters used
+star_det,1,FLOAT64,"[N,6]","STAR_DETECT or PLATESOLVE_INTERNAL_EXPORT","PLATESOLVE(on upstream path),PSF",no,exactly one producer selected by path ADR
+astrometry_stats,1,KV,"[N]",PLATESOLVE,"metadata/report",no,WCS quality
+astrometry_matches,1,FLOAT64,"[M,7]",PLATESOLVE,"diagnostics",no,optional
+psf,1,FLOAT64,"[N,9]",PSF,"PHOTOMETRIC,SNR",no,row-aligned with star_det
+photo_stats,1,KV,"[N]",PHOTOMETRIC,"SNR,metadata/report",no,global scale and residual
+snr_model,1,RAW,"[bytes]",SNR,"DRIZZLE,HISS writer",yes,sparse spherical control model

@@ -18,12 +18,24 @@ import os
 import ctypes
 from ctypes import (
     c_int, c_float, c_double, c_char, c_char_p, c_void_p, c_ssize_t,
-    Structure, POINTER, byref
+    Structure, POINTER, byref, CFUNCTYPE
 )
 
 # c_intptr 在部分 Python 构建中未导出，使用 c_ssize_t 替代
 # (两者均为指针大小的有符号整数，等价于 C 的 intptr_t)
 c_intptr = c_ssize_t
+
+# ============================================================================
+# P02-002: 路径 B 回调函数类型 (对应 C 端 IpvDetectionCallback)
+#   void (*IpvDetectionCallback)(const double* detections, int n_detections, void* user_data)
+# 注意: Python 端回调函数必须保持引用, 避免 GC 回收导致 segfault
+# ============================================================================
+IpvDetectionCallback = CFUNCTYPE(
+    None,                      # void return
+    POINTER(c_double),         # detections [N,6] FLOAT64
+    c_int,                     # n_detections
+    c_void_p,                  # user_data
+)
 
 
 # ============================================================================
@@ -164,6 +176,47 @@ class IPVSolver:
             c_double,               # focal_length_mm
             c_double,               # pixel_size_um
             POINTER(IpvParams),     # params
+            POINTER(IpvWcsResult),  # result
+        ]
+
+        # ====================================================================
+        # P02-002: 路径 A / 路径 B 函数签名
+        # ====================================================================
+
+        # 路径 A: int ipv_solve_from_detections_v1(void*, const double*, int,
+        #           int, int, double, double, double, double,
+        #           const IpvParams*, IpvWcsResult*)
+        d.ipv_solve_from_detections_v1.restype = c_int
+        d.ipv_solve_from_detections_v1.argtypes = [
+            c_void_p,               # solver
+            POINTER(c_double),      # detections [N,6] FLOAT64
+            c_int,                  # n_detections
+            c_int,                  # image_width
+            c_int,                  # image_height
+            c_double,               # ra0
+            c_double,               # dec0
+            c_double,               # focal_length_mm
+            c_double,               # pixel_size_um
+            POINTER(IpvParams),     # params
+            POINTER(IpvWcsResult),  # result
+        ]
+
+        # 路径 B: int ipv_solve_from_memory_with_callback(void*, const float*,
+        #           int, int, double, double, double, double,
+        #           const IpvParams*, IpvDetectionCallback, void*, IpvWcsResult*)
+        d.ipv_solve_from_memory_with_callback.restype = c_int
+        d.ipv_solve_from_memory_with_callback.argtypes = [
+            c_void_p,               # solver
+            POINTER(c_float),       # pixels (float32, row-major)
+            c_int,                  # width
+            c_int,                  # height
+            c_double,               # ra0
+            c_double,               # dec0
+            c_double,               # focal_length_mm
+            c_double,               # pixel_size_um
+            POINTER(IpvParams),     # params
+            IpvDetectionCallback,   # callback (C FUNCTYPE)
+            c_void_p,               # user_data
             POINTER(IpvWcsResult),  # result
         ]
 
@@ -309,6 +362,173 @@ class IPVSolver:
             err = result.error_msg.decode('utf-8', errors='ignore').strip()
             if err:
                 raise RuntimeError(f"ipv_solve_from_memory 调用失败: {err}")
+        return result
+
+    # ========================================================================
+    # P02-002: 路径 A / 路径 B 接口 (实验性)
+    # ========================================================================
+
+    def solve_from_detections_v1(self, detections, image_width, image_height,
+                                  ra0, dec0, focal_length_mm, pixel_size_um,
+                                  params=None):
+        """
+        P02-002 路径 A: 从外部 detections 求解 (跳过 sdet_detect_ex)
+
+        参数:
+            detections: 检测结果, FLOAT64 [N,6] star_det v1 格式
+                        列: x_px, y_px, flux, mag, saturated(0/1), has_saturated(0/1)
+                        支持 numpy.ndarray (shape=[N,6], dtype=float64) 或 ctypes 指针
+            image_width:  图像宽度 (像素)
+            image_height: 图像高度 (像素)
+            ra0: 初始指向 RA (度)
+            dec0: 初始指向 Dec (度)
+            focal_length_mm: 焦距 (mm)
+            pixel_size_um: 像素尺寸 (um)
+            params: IpvParams 参数 (None=用默认值)
+
+        返回:
+            IpvWcsResult 结果对象
+
+        注意:
+            - 跳过 star_detector, 直接使用调用方提供的检测结果
+            - 算法其余部分与 solve_from_memory 完全一致
+            - 调用方负责确保 detections 格式正确
+        """
+        if params is None:
+            params = self.get_default_params()
+
+        result = IpvWcsResult()
+
+        import numpy as np
+        if isinstance(detections, np.ndarray):
+            # 确保 C-contiguous + float64 + shape=[N,6]
+            if detections.dtype != np.float64:
+                detections = detections.astype(np.float64)
+            if not detections.flags['C_CONTIGUOUS']:
+                detections = np.ascontiguousarray(detections)
+            if detections.ndim != 2 or detections.shape[1] != 6:
+                raise ValueError(
+                    f"detections 必须是 [N,6] 数组, 实际 shape={detections.shape}"
+                )
+            det_ptr = detections.ctypes.data_as(POINTER(c_double))
+            n_det = int(detections.shape[0])
+        else:
+            # 假设已是 ctypes 兼容指针, n_detections 需调用方另行提供
+            # 这里不支持该模式, 因为 n_detections 必须明确
+            raise TypeError(
+                "detections 必须是 numpy.ndarray (shape=[N,6], dtype=float64)"
+            )
+
+        ret = self._dll.ipv_solve_from_detections_v1(
+            self._handle,
+            det_ptr,
+            c_int(n_det),
+            c_int(image_width),
+            c_int(image_height),
+            c_double(ra0),
+            c_double(dec0),
+            c_double(focal_length_mm),
+            c_double(pixel_size_um),
+            byref(params),
+            byref(result),
+        )
+
+        if ret == 0:
+            err = result.error_msg.decode('utf-8', errors='ignore').strip()
+            if err:
+                raise RuntimeError(f"ipv_solve_from_detections_v1 调用失败: {err}")
+        return result
+
+    def solve_from_memory_with_callback(self, pixels, width, height,
+                                         ra0, dec0, focal_length_mm,
+                                         pixel_size_um, callback, user_data=None,
+                                         params=None):
+        """
+        P02-002 路径 B: 带 callback 的内存求解 (保持原有检测 + 导出检测结果)
+
+        参数:
+            pixels: 像素数据 (numpy float32 数组, row-major, shape=[height, width])
+            width: 图像宽度 (像素)
+            height: 图像高度 (像素)
+            ra0: 初始指向 RA (度)
+            dec0: 初始指向 Dec (度)
+            focal_length_mm: 焦距 (mm)
+            pixel_size_um: 像素尺寸 (um)
+            callback: 检测结果导出回调, 签名 (detections_arr, n_detections, user_data)
+                      detections_arr: numpy.ndarray float64 [N,6] (在回调内有效, 回调返回后失效)
+                      n_detections: 检测星数
+                      user_data: 调用方传入的 user_data
+                      传 None 时行为与 solve_from_memory 完全一致
+            user_data: 传给 callback 的用户数据 (任意 Python 对象)
+                       注意: ctypes 会将其转为 c_void_p (整数), 回调内需要自行还原
+            params: IpvParams 参数 (None=用默认值)
+
+        返回:
+            IpvWcsResult 结果对象
+
+        注意:
+            - 算法与 solve_from_memory 完全一致, 区别仅在 sdet_detect_ex 后调用 callback
+            - callback 内必须立即复制 detections 数据, 返回后缓冲区失效
+            - 本方法负责将 C 指针包装为 numpy 数组传给 Python callback
+        """
+        if params is None:
+            params = self.get_default_params()
+
+        result = IpvWcsResult()
+
+        # 将 numpy 数组转换为 ctypes float 指针
+        import numpy as np
+        if isinstance(pixels, np.ndarray):
+            if pixels.dtype != np.float32:
+                pixels = pixels.astype(np.float32)
+            if not pixels.flags['C_CONTIGUOUS']:
+                pixels = np.ascontiguousarray(pixels)
+            pix_ptr = pixels.ctypes.data_as(POINTER(c_float))
+        else:
+            pix_ptr = pixels
+
+        # 包装 Python callback 为 C FUNCTYPE
+        # 必须保持引用避免 GC, 存到局部变量 (函数作用域内有效)
+        cb_ref = None
+        if callback is not None:
+            def _trampoline(det_ptr, n_det, ud_ptr):
+                """C→Python 回调桥: 将 [N,6] FLOAT64 指针包装为 numpy 数组"""
+                try:
+                    if det_ptr and n_det > 0:
+                        # 从 C 指针构造 numpy 数组 (零拷贝视图)
+                        arr = np.ctypeslib.as_array(det_ptr, shape=(n_det, 6))
+                        # 复制一份, 防止 C 端释放后 Python 端访问失效
+                        arr_copy = arr.copy()
+                        callback(arr_copy, int(n_det), user_data)
+                except Exception as e:
+                    # 回调内异常不能泄漏到 C 边界, 打印到 stderr
+                    import sys
+                    print(f"[IPVSolver callback] 异常: {e}", file=sys.stderr)
+
+            cb_ref = IpvDetectionCallback(_trampoline)
+
+        ret = self._dll.ipv_solve_from_memory_with_callback(
+            self._handle,
+            pix_ptr,
+            c_int(width),
+            c_int(height),
+            c_double(ra0),
+            c_double(dec0),
+            c_double(focal_length_mm),
+            c_double(pixel_size_um),
+            byref(params),
+            cb_ref if cb_ref is not None else IpvDetectionCallback(0),
+            None,  # user_data 已通过闭包捕获, 这里传 None
+            byref(result),
+        )
+
+        # 显式释放 cb_ref 引用 (避免循环引用)
+        del cb_ref
+
+        if ret == 0:
+            err = result.error_msg.decode('utf-8', errors='ignore').strip()
+            if err:
+                raise RuntimeError(f"ipv_solve_from_memory_with_callback 调用失败: {err}")
         return result
 
     def close(self):

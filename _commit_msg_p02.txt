@@ -1,0 +1,41 @@
+P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+
+## 主要变更
+
+### 工程治理（v1.0 → v1.1 包迁移）
+- 部署 v1.1 CLI Core 开发包到 engineering/
+- 旧 v1.0 证据归档到 engineering_archive_v1.0/
+
+### P00 阶段（G0 gate 通过）
+- P00-001: 仓库与环境事实基线（13模块+16产物+20 Gaia xpsd 盘点）
+- P00-002: 恢复并锁定全部模块源码（healpix_drizzle/stack/browser_qt 86文件）
+- P00-003: 旧 CLI 真实数据基线（stage1 45s/stage2 7s, sdet_detect_ex×2 确认 G-001）
+
+### P01 阶段（G1 gate 通过，合约冻结）
+- P01-001: PipelineFrame 唯一归属决策（ADR-005: 归属 astro_image_io）
+- P01-002: 数据块注册表与 schema 校验器（10块, validate_block_schema.py）
+- P01-003: HISS/HCSD 格式版本与 round-trip（4/4 PASS, 字节级可重现）
+
+### P02 阶段（进行中）
+- P02-001: PlateSolve 全量 TestData 基线（710帧, 99.86%成功率, RMS中位0.285"）
+- P02-002: 共享 detections 候选路径与 star_det v1
+  - 新增 ipv_solve_from_detections_v1（路径A: 上游检测）
+  - 新增 ipv_solve_from_memory_with_callback（路径B: callback导出）
+  - 单帧三路径 WCS bit-wise identical
+- P02-005: Dynamic PSF float32 API
+  - 新增 dpsf_fit_batch_f32（float32输入, 不做uint16 clip）
+  - 旧 uint16 API 保留
+
+### 工具与契约
+- engineering/tools/batch_platesolve_test.py（710帧批量测试工具）
+- engineering/tools/validate_block_schema.py（数据块schema校验）
+- engineering/tools/test_hiss_hcsd_roundtrip.py（HISS/HCSD round-trip）
+- engineering/contracts/testdata_manifest.csv（710帧注册表）
+- engineering/contracts/hiss_format_v1.md, hcsd_format_v1.md
+- engineering/contracts/pipeline_blocks_registry.csv
+
+## 验证
+- P00-003 stage1/stage2 真实数据运行成功
+- P02-001 710帧全量基线（19.2分钟, 99.86%成功率）
+- P02-002 三路径单帧精度一致（5/5 bit-wise identical）
+- P02-005 float32 API vs uint16 API 向后兼容（47/50 完全一致）

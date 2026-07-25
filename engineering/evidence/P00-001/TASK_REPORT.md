@@ -1,92 +1,31 @@
-# TASK_REPORT: P00-001 冻结并复核主仓库基线
+# TASK_REPORT
 
-## 任务信息
-- **Task ID**: P00-001
-- **Phase**: P00 基线冻结与仓库完整性恢复
-- **状态**: IN_REVIEW
-- **执行时间**: 2026-07-24
-
-## 开始前状态
-- **Commit**: eb44f655bbbbfbc5c8c1629fef5d4762c52f0628 (eb44f65)
-- **基线 Commit** (控制包导出时): 9f10c72ceb635b726fa995c72c85e4635b36fabf (9f10c72)
-- **分支**: main
-- **Dirty**: `.astrocs_agent_bootstrap/`、`AstroCS_Autonomous_Agent_Pack_2026-07-24_v2.zip`、`engineering/` 未跟踪
-- **远端**: origin https://github.com/fujiaze/Astro-CS-Database.git
-- **Tags**: 0
-
-## 执行步骤
-1. 运行 `python engineering/tools/repo_preflight.py --repo . --output engineering/evidence/P00-001`
-2. 复核 preflight.json 和 preflight.md
-3. 验证 healpix_drizzle/healpix_stack 的 git 跟踪状态
-4. 统计各模块跟踪文件数
-5. 识别 CI 文件来源
-6. 二次运行预检验证可重复性
-
-## 关键发现
-
-### 1. 已跟踪模块（11 个，全部存在）
-| 模块 | 跟踪文件数 |
-|---|---|
-| astro_image_io | 59 |
-| calibration | 31 |
-| data_pipeline | 8 |
-| dynamic_psf | 12 |
-| gaia_xpsd_client | 12 |
-| healpix_db | 35 |
-| orchestrator | 37 |
-| photometric_calib | 32 |
-| plate_solve | 55 |
-| snr_estimator | 8 |
-| star_detector | 22 |
-| **合计** | **311** |
-
-总跟踪文件：350（含 docs/、根文件、.gitattributes、.gitignore、memory.md 等）
-
-### 2. 未受控源码（2 个模块）
-- `lib/healpix_db/healpix_drizzle` — 本地存在完整源码（含独立 .git），但主仓库 git ls-files 返回 0 文件
-- `lib/healpix_db/healpix_stack` — 本地存在完整源码（含独立 .git），但主仓库 git ls-files 返回 0 文件
-
-原因：这两个模块此前被拆分为独立 GitHub 仓库（Healpix-Drizzle-Cpp / Healpix-Mosaic-Cpp），本地保留 clone 但未纳入主仓库版本控制。Git 因检测到嵌套 .git 目录而拒绝跟踪其内部文件。
-
-### 3. 构建入口
-- **根级 CMakeLists.txt**: 不存在（无统一构建入口）
-- **根级 requirements.txt**: 不存在
-- 各模块有独立 Makefile（11 个模块各 1 个）+ build.ps1（24 个 .ps1 脚本）
-
-### 4. CI/CD
-- 主仓库自身无 CI 配置
-- 9 个 CI 文件全部来自第三方源码（siril-1.4.3、eigen-3.4.0、nanoflann-master），均为第三方项目自带
-
-### 5. 测试文件
-- 1175 个测试文件（含 test_/tests/ 路径下的文件）
-- 无统一测试入口
-
-### 6. Git 状态
-- 分支: main，跟踪 origin/main
-- Tags: 0（无 baseline tag）
-- Submodules: 无
-- 远端: origin https://github.com/fujiaze/Astro-CS-Database.git
-
-### 7. HEAD 与基线差异
-- 控制包导出基线: 9f10c72
-- 当前 HEAD: eb44f65（比基线多 1 个文档提交：memory.md 补充封存记录）
-- 差异性质: 仅文档更新，不影响代码基线完整性
-
-## 阻塞项
-- 无硬阻塞。healpix_drizzle/healpix_stack 源码在本地存在，P00-002/003 可从本地恢复。
-
-## 允许范围遵守
-- 仅修改了 `engineering/evidence/P00-001/**` 和 `engineering/control/**`
-- 未修改 `lib/**`、`docs/**`、构建脚本与算法配置
-- 未修改业务代码
-
-## 变更文件清单
-- `engineering/evidence/P00-001/preflight.json`（新增）
-- `engineering/evidence/P00-001/preflight.md`（新增）
-- `engineering/evidence/P00-001/artifacts.sha256`（新增）
-- `engineering/evidence/P00-001/TASK_REPORT.md`（新增）
-- `engineering/evidence/P00-001/TEST_REPORT.md`（新增）
-- `engineering/evidence/P00-001/EVIDENCE_INDEX.md`（新增）
-
-## 下一任务
-P00-002: 恢复并固定 healpix_drizzle 源码
+- Task ID: P00-001
+- Commit/base: 7b85ff3 (main, ahead origin/main by 2)
+- Objective: 盘点仓库、分支、工作树、编译工具、真实数据、DLL、源码与现有输出；不改业务代码。本任务为 v1.1 开发包格式重写，整合 v1.0 旧证据（P00-001 旧基线预检 + P00-005 环境基线 + P00-008 G0 manifest）。
+- Changes:
+  - 仅写入 `engineering/evidence/P00-001/**`，未修改任何 `lib/**` 业务源码。
+  - 重新采集 Git 状态、工具链版本、build/artifacts 16 个产物的 SHA-256、Gaia DR3 SP 20 个 xpsd 文件清单、testdata 3 套 master 校准帧、HISS/HCSD 输出文件哈希。
+  - 整合 v1.0 旧证据：P00-001 旧 preflight 报告、P00-005 environment_baseline.json（16 工具链）、P00-008 baseline_manifest.json（G0 tag manifest）。
+  - 工作树中 `lib/gaia_xpsd_client/Makefile` 与 `lib/plate_solve/cpp/ipv/build.ps1` 的修改属于 v1.1 包迁移过程，非本任务产生，本任务未触碰。
+- Files:
+  - `engineering/evidence/P00-001/baseline_inventory.json`（结构化清单：git/工具链/13 模块/16 产物 SHA-256/Gaia 20 文件/testdata 3 套 master/HISS+HCSD）
+  - `engineering/evidence/P00-001/TASK_REPORT.md`（本文件）
+  - `engineering/evidence/P00-001/TEST_REPORT.md`（盘点验证测试表）
+  - `engineering/evidence/P00-001/EVIDENCE_INDEX.md`（证据索引含 SHA-256）
+  - `engineering/evidence/P00-001/REVIEW_REPORT.md`（独立复核报告，VERDICT: PASS）
+- Compatibility:
+  - 只读盘点任务，不引入接口/ABI/格式变更。
+  - 与 v1.0 旧证据兼容：旧 preflight.json/preflight.md/artifacts.sha256 保留在原位，本任务新增 baseline_inventory.json 作为 v1.1 结构化清单。
+  - baseline_inventory.json 字段与 v1.1 开发包契约一致，可被后续 P00-002+ 任务引用。
+- Rollback:
+  - 删除 `engineering/evidence/P00-001/` 下本任务新增的 5 个文件即可回滚。
+  - 旧 v1.0 证据（preflight.json/preflight.md/artifacts.sha256/旧 TASK_REPORT.md 等）保留在 `engineering_archive_v1.0/evidence/P00-001/`，回滚后可从归档恢复。
+  - 不需要 git revert，因为本任务不产生 commit（由主 Agent 统一提交）。
+- Remaining risks:
+  - **工作树有大量未提交改动**：73 个未跟踪文件 + 60 个已删除跟踪文件 + 13 个已修改跟踪文件，主要是 v1.1 包迁移所致；建议主 Agent 在 P00 阶段结束后统一提交，避免与后续任务混淆。
+  - **lib/gaia_xpsd_client/Makefile 与 lib/plate_solve/cpp/ipv/build.ps1 被修改但未提交**：属于 v1.1 迁移过程产物，需主 Agent 确认是否纳入下一次 commit。
+  - **build/artifacts/a.exe**：127872 字节的临时编译产物，非正式模块输出，建议清理。
+  - **GCC/G++/mingw32-make 不在默认 PATH**：构建脚本需显式调用 `C:\msys64\mingw64\bin`，PATH 中存在 TRAE 自带 make.cmd 与 mingw32-make 两个 make，需注意区分（来自 P00-005 旧证据，仍未修复）。
+  - **Gaia DR3 SP 63.5 GB 数据不在 Git 跟踪**：20 个 xpsd 文件位于 `GaiaDR3SP/`，由 .gitignore 排除，重建环境需独立获取。
+  - **HISS/HCSD 输出文件较大**（frame1.hiss 176MB / frame2.hiss 176MB / output_stage2.hcsd 179MB），不在 Git 跟踪，需通过 pipeline 重新生成或独立备份。

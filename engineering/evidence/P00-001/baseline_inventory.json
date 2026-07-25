@@ -1,0 +1,312 @@
+{
+  "project": "AstroCS",
+  "task_id": "P00-001",
+  "version": "v1.1",
+  "generated_at": "2026-07-25",
+  "generated_by": "subagent P00-001 v1.1 repack",
+  "objective": "盘点仓库、分支、工作树、编译工具、真实数据、DLL、源码与现有输出；不改业务代码。",
+  "git": {
+    "head_commit": "7b85ff3f0d37a4b26fff6077684993842ed2bbae",
+    "head_short": "7b85ff3",
+    "head_subject": "P01-002: 建立依赖锁定清单",
+    "branch": "main",
+    "remote_origin": "https://github.com/fujiaze/Astro-CS-Database.git",
+    "remote_protocol": "https",
+    "remote_user": "fujiaze",
+    "tags": ["astrocs-baseline-p00"],
+    "submodules": [],
+    "ahead_of_origin": 2,
+    "behind_origin": 0,
+    "recent_commits": [
+      {"hash": "7b85ff3", "subject": "P01-002: 建立依赖锁定清单", "date": "2026-07-24 19:59:13 +0800"},
+      {"hash": "bfc1bb1", "subject": "P01-001: 确定根级构建策略 ADR-004", "date": "2026-07-24 19:55:08 +0800"},
+      {"hash": "a063d41", "subject": "P00-008: 冻结 baseline tag (G0 gate)", "date": "2026-07-24 19:43:23 +0800"},
+      {"hash": "7dfc183", "subject": "P00-007: 建立文档冲突登记", "date": "2026-07-24 19:39:36 +0800"},
+      {"hash": "bb853b5", "subject": "P00-006: 复核旧审计 163 项当前状", "date": "2026-07-24 19:24:06 +0800"}
+    ],
+    "worktree_status": {
+      "summary": "工作树未提交改动：engineering/ 目录刚从 v1.0 迁移到 v1.1（旧文件删除、新文件添加）；lib/ 下 2 处构建脚本被修改；根目录新增 v1.1 包与 bootstrap/build 脚本",
+      "modified_tracked": [
+        "engineering/MANIFEST.md",
+        "engineering/control/MASTER_TASK_REGISTER.csv",
+        "engineering/control/PROJECT_STATE.yaml",
+        "engineering/control/REQUIREMENTS_TRACEABILITY.csv",
+        "engineering/control/RISK_REGISTER.csv",
+        "engineering/templates/ADR.md",
+        "engineering/templates/BLOCKED_REPORT.md",
+        "engineering/templates/EVIDENCE_INDEX.md",
+        "engineering/templates/REVIEW_REPORT.md",
+        "engineering/templates/TASK_REPORT.md",
+        "engineering/templates/TEST_REPORT.md",
+        "lib/gaia_xpsd_client/Makefile",
+        "lib/plate_solve/cpp/ipv/build.ps1"
+      ],
+      "deleted_tracked_count": 60,
+      "added_untracked_count": 73,
+      "added_untracked_highlights": [
+        "AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip",
+        "_new_pack_v1.1/",
+        "bootstrap.ps1",
+        "build.ps1",
+        "smoke_test.py",
+        "engineering/AUTONOMOUS_ENTRY.md",
+        "engineering/PACKAGE_VERSION.txt",
+        "engineering/README.md",
+        "engineering/SHA256SUMS.txt",
+        "engineering/START_PROMPT.txt",
+        "engineering/checklists/G0_BASELINE.md ~ G8_RELEASE.md (9 个)",
+        "engineering/contracts/ (6 个契约文件)",
+        "engineering/control/CURRENT_TASK.md",
+        "engineering/control/DECISION_REGISTER.md",
+        "engineering/docs/ (19 个文档)",
+        "engineering/reference/proposed_api/ (3 个 API 头)",
+        "engineering/tasks/P00-001.md ~ P08-002.md (32 个任务卡)",
+        "engineering/templates/PLATESOLVE_AB_REPORT.md",
+        "engineering_archive_v1.0/ (v1.0 旧控制包归档)"
+      ]
+    }
+  },
+  "toolchain": {
+    "host_os": "Windows 10.0.26220.0",
+    "host_arch": "AMD64",
+    "shell": {
+      "name": "PowerShell",
+      "version": "7.6.3",
+      "path": "C:\\Users\\fujia\\AppData\\Local\\Programs\\PowerShell\\7\\pwsh.exe",
+      "note": "用户规则强制使用 PowerShell 7"
+    },
+    "compilers": [
+      {"name": "GCC", "version": "16.1.0", "path": "C:\\msys64\\mingw64\\bin\\gcc.exe", "flavor": "Rev4, Built by MSYS2 project (MinGW-w64)"},
+      {"name": "G++", "version": "16.1.0", "path": "C:\\msys64\\mingw64\\bin\\g++.exe", "flavor": "C++ 编译器, 用于所有模块 DLL/EXE 构建"}
+    ],
+    "build_tools": [
+      {"name": "mingw32-make", "version": "4.4.1", "path": "C:\\msys64\\mingw64\\bin\\mingw32-make.exe"},
+      {"name": "Git", "version": "2.53.0.windows.1", "path": "C:\\Program Files\\Git\\cmd\\git.exe"},
+      {"name": "GitHub CLI (gh)", "version": "2.63.2 (2024-12-05)", "path": "C:\\Users\\fujia\\AppData\\Local\\Temp\\gh-cli-install\\bin\\gh.exe", "auth_user": "fujiaze", "scopes": "gist,read:org,repo"},
+      {"name": "Qt6 (qmake6)", "version": "6.11.0", "path": "C:\\msys64\\mingw64\\bin\\qmake6.exe", "used_by": "healpix_browser_qt"},
+      {"name": "CMake", "note": "healpix_browser_qt 提供 CMakeLists.txt, 通过 Qt6 工具链构建", "path": "see PATH"}
+    ],
+    "runtimes_libraries": [
+      {"name": "GSL", "version": "2.8", "path": "C:\\msys64\\mingw64\\bin\\libgsl-28.dll", "used_by": "star_detector (gsl_multifit_nlinear LM)"},
+      {"name": "GSL CBLAS", "version": "2.8", "path": "C:\\msys64\\mingw64\\bin\\libgslcblas-0.dll"},
+      {"name": "OpenMP (libgomp)", "version": "16.1.0", "path": "C:\\msys64\\mingw64\\bin\\libgomp-1.dll", "used_by": "calibration/dynamic_psf/gaia_xpsd_client/star_detector/snr_estimator/healpix_drizzle/healpix_stack"},
+      {"name": "zstd", "path": "C:\\msys64\\mingw64\\bin\\libzstd.dll", "used_by": "astro_image_io/healpix_stack (按 build_config 启用)"},
+      {"name": "lz4", "path": "C:\\msys64\\mingw64\\bin\\liblz4.dll", "used_by": "astro_image_io/healpix_stack (按 build_config 启用)"},
+      {"name": "zlib", "path": "C:\\msys64\\mingw64\\bin\\zlib1.dll", "used_by": "gaia_xpsd_client (-lz)"},
+      {"name": "Eigen3", "version": "5.0.1", "path": "C:\\msys64\\mingw64\\include\\eigen3", "note": "头文件库, 用于 healpix_stack spherical_spline"}
+    ],
+    "path_issues": [
+      "GCC/G++/mingw32-make 不在默认 PATH，构建脚本(build.ps1)需显式调用 C:\\msys64\\mingw64\\bin 或将其加入 PATH",
+      "PATH 中存在 TRAE 自带 make.cmd (4.4.1) 与 mingw32-make.exe (4.4.1) 两个 make，构建时应显式使用 mingw32-make",
+      "qmake6 不在默认 PATH，healpix_browser_qt 构建需显式指定 Qt6 路径"
+    ],
+    "python": {
+      "version": "3.10.11",
+      "path": "C:\\Users\\fujia\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\vm\\tools\\python\\python.exe",
+      "note": "用于部分模块的 Python 适配层和测试"
+    },
+    "root_build_scripts": [
+      "bootstrap.ps1",
+      "build.ps1",
+      "smoke_test.py"
+    ]
+  },
+  "modules": [
+    {"name": "astro_image_io", "path": "lib/astro_image_io", "language": "C++/Python", "build_files": ["Makefile", "build.ps1", "pyproject.toml"], "build_configs": ["aio_build_config.json", "aio_build_config.full.json", "aio_build_config.healpix.json", "aio_build_config.minimal.json"], "output_dll": "astro_image_io.dll", "has_memory_md": true},
+    {"name": "calibration", "path": "lib/calibration", "language": "C++/Python", "build_files": ["Makefile", "build.ps1", "batch_config.json"], "output_dll": "astro_calibration.dll", "has_memory_md": true},
+    {"name": "data_pipeline", "path": "lib/data_pipeline", "language": "C++", "build_files": [], "note": "无独立 Makefile, 源码与 astro_image_io 共享 aio_pipeline", "has_memory_md": true},
+    {"name": "dynamic_psf", "path": "lib/dynamic_psf", "language": "C++/Python", "build_files": ["Makefile"], "output_dll": "dynamic_psf.dll", "has_memory_md": true},
+    {"name": "gaia_xpsd_client", "path": "lib/gaia_xpsd_client", "language": "C/Python", "build_files": ["Makefile"], "output_dll": "gaia_client.dll", "has_memory_md": true, "note": "Makefile 在本次工作树中被修改(未提交)"},
+    {"name": "healpix_db/healpix_browser_qt", "path": "lib/healpix_db/healpix_browser_qt", "language": "C++/Qt6", "build_files": ["CMakeLists.txt", "Makefile", "deploy.ps1"], "output_exe": "healpix_browser_qt.exe", "has_memory_md": true},
+    {"name": "healpix_db/healpix_drizzle", "path": "lib/healpix_db/healpix_drizzle", "language": "C++/Python", "build_files": ["Makefile"], "output_dll": "healpix_drizzle.dll", "has_memory_md": true, "note": "原嵌套 .git 已移除, 已纳入主仓库(P00-002)"},
+    {"name": "healpix_db/healpix_stack", "path": "lib/healpix_db/healpix_stack", "language": "C++/Python", "build_files": ["Makefile", "build.ps1"], "output_dll": "healpix_stack.dll", "has_memory_md": true, "note": "原嵌套 .git 已移除, 已纳入主仓库(P00-003); 含 gradient/ 子目录(球面样条+梯度拟合)"},
+    {"name": "orchestrator", "path": "lib/orchestrator", "language": "C++/Python", "build_files": ["cpp/Makefile"], "output_exe": "orchestrator.exe", "has_memory_md": true, "note": "CLI 入口, 加载各模块 DLL"},
+    {"name": "photometric_calib", "path": "lib/photometric_calib", "language": "C++/Python", "build_files": ["cpp/Makefile", "cpp/build.ps1"], "output_dll": "photometric_calib.dll", "has_memory_md": true},
+    {"name": "plate_solve", "path": "lib/plate_solve", "language": "C++/Python", "build_files": ["cpp/ipv/Makefile", "cpp/ipv/build.ps1"], "output_dll": "ipv_solver.dll", "has_memory_md": true, "note": "build.ps1 在本次工作树中被修改(未提交); 含 siril-1.4.3 对比基准"},
+    {"name": "snr_estimator", "path": "lib/snr_estimator", "language": "C++/Python", "build_files": ["cpp/Makefile", "cpp/build.ps1"], "output_dll": "snr_estimator.dll", "has_memory_md": true},
+    {"name": "star_detector", "path": "lib/star_detector", "language": "C++/Python", "build_files": ["Makefile"], "output_dll": "star_detector.dll", "has_memory_md": true}
+  ],
+  "module_count": 13,
+  "build_artifacts": {
+    "path": "build/artifacts",
+    "file_count": 16,
+    "files": [
+      {"name": "astro_calibration.dll", "size_bytes": 997878, "sha256": "5C18B1E8A14068851B51762D8AAEBAB7619E01C58A7ECF50147ABC65DBD2B3F5", "module": "calibration"},
+      {"name": "astro_image_io.dll", "size_bytes": 2993875, "sha256": "565FABF338A8B20965815A194BA8198C15C9B277AF63B29628203C2B1A994A8A", "module": "astro_image_io"},
+      {"name": "dynamic_psf.dll", "size_bytes": 331997, "sha256": "51AFFB4AD05737B3146274F8FDDB95208327DB336F4A645FF68C4D0032B43BA2", "module": "dynamic_psf"},
+      {"name": "gaia_client.dll", "size_bytes": 281990, "sha256": "83CD1267E4C2A488238D9EE0F6B8E012D77377D0976A55522C495EEFAC383338", "module": "gaia_xpsd_client"},
+      {"name": "healpix_browser_qt.exe", "size_bytes": 1528326, "sha256": "DC5E8C2CA1FD0EA099E31EE48D4904689B7A860E7264EC7588F565AF75206274", "module": "healpix_db/healpix_browser_qt"},
+      {"name": "healpix_drizzle.dll", "size_bytes": 1273688, "sha256": "54DE6D78AEE963E87B4BA20D8914AB652A3E6D11A47AFC23B0BF1AA9D5A57924", "module": "healpix_db/healpix_drizzle"},
+      {"name": "healpix_stack.dll", "size_bytes": 1471655, "sha256": "F99A42D5B62897D307378035D03C57612BC42BB5880E6B638874444E793C09D3", "module": "healpix_db/healpix_stack"},
+      {"name": "ipv_solver.dll", "size_bytes": 886618, "sha256": "9860E6985561822E4BF8AD26C4E4DA6E906879D58292578EBFB5F4BB20CD2A7E", "module": "plate_solve"},
+      {"name": "orchestrator.exe", "size_bytes": 3927610, "sha256": "04704F1B8687905E8EBF1175482137C419229CB0456426A677BF820F69021385", "module": "orchestrator"},
+      {"name": "photometric_calib.dll", "size_bytes": 1081805, "sha256": "E6F9842BAE052D3A8F7DB38A5612F13EBB8A452C99E5467313626DED4CAF7610", "module": "photometric_calib"},
+      {"name": "snr_estimator.dll", "size_bytes": 972836, "sha256": "F4D72EAB2F1CAF0A3AD67F1667D839001E04115B549574B2434D82797CF7108B", "module": "snr_estimator"},
+      {"name": "star_detector.dll", "size_bytes": 1055760, "sha256": "2A9F4A027999E95CA1E842634FA8C44D30181B0155D50F3E0DAA24A28C459937", "module": "star_detector"},
+      {"name": "test_browser_backend.exe", "size_bytes": 749685, "sha256": "923FBC4268DA4514C843B22FC156D487443D3743E22B31F23972085854D86DEE", "module": "healpix_db/healpix_browser_qt"},
+      {"name": "test_healpix_math.exe", "size_bytes": 480495, "sha256": "F945536767C96E3AE4C7E72CA08A14160C69485D80250769EA73590E6BE89D4C", "module": "healpix_db/healpix_browser_qt"},
+      {"name": "test_stf_engine.exe", "size_bytes": 388274, "sha256": "058220D91521D2FD42B538D99FE39448B9A360C5955591A289501CD64D5A852E", "module": "healpix_db/healpix_browser_qt"},
+      {"name": "a.exe", "size_bytes": 127872, "sha256": "D667664DDB718D73742A86D1A4BBFE566FFAC6D6001584405C7CE18910FFF2FF", "module": "(临时编译产物, 非正式模块)"}
+    ]
+  },
+  "real_data": {
+    "gaia_dr3sp": {
+      "path": "GaiaDR3SP",
+      "file_count": 20,
+      "format": "xpsd (Gaia DR3 SP 1.0.0 分片)",
+      "naming": "gdr3sp-1.0.0-NN.xpsd (NN=01..20)",
+      "total_size_bytes": 68167941509,
+      "total_size_gb_approx": 63.5,
+      "per_file_size_range_gb_approx": [2.95, 3.28],
+      "files": [
+        {"name": "gdr3sp-1.0.0-01.xpsd", "size_bytes": 3171712967},
+        {"name": "gdr3sp-1.0.0-02.xpsd", "size_bytes": 3307973804},
+        {"name": "gdr3sp-1.0.0-03.xpsd", "size_bytes": 3408466284},
+        {"name": "gdr3sp-1.0.0-04.xpsd", "size_bytes": 3425270522},
+        {"name": "gdr3sp-1.0.0-05.xpsd", "size_bytes": 3464210720},
+        {"name": "gdr3sp-1.0.0-06.xpsd", "size_bytes": 3491549550},
+        {"name": "gdr3sp-1.0.0-07.xpsd", "size_bytes": 3402071386},
+        {"name": "gdr3sp-1.0.0-08.xpsd", "size_bytes": 3492173505},
+        {"name": "gdr3sp-1.0.0-09.xpsd", "size_bytes": 3492290344},
+        {"name": "gdr3sp-1.0.0-10.xpsd", "size_bytes": 3390511901},
+        {"name": "gdr3sp-1.0.0-11.xpsd", "size_bytes": 3450706015},
+        {"name": "gdr3sp-1.0.0-12.xpsd", "size_bytes": 3463046097},
+        {"name": "gdr3sp-1.0.0-13.xpsd", "size_bytes": 3432319542},
+        {"name": "gdr3sp-1.0.0-14.xpsd", "size_bytes": 3354949357},
+        {"name": "gdr3sp-1.0.0-15.xpsd", "size_bytes": 3229111987},
+        {"name": "gdr3sp-1.0.0-16.xpsd", "size_bytes": 3401020752},
+        {"name": "gdr3sp-1.0.0-17.xpsd", "size_bytes": 3214556233},
+        {"name": "gdr3sp-1.0.0-18.xpsd", "size_bytes": 3365919876},
+        {"name": "gdr3sp-1.0.0-19.xpsd", "size_bytes": 3517894082},
+        {"name": "gdr3sp-1.0.0-20.xpsd", "size_bytes": 3359138739}
+      ]
+    },
+    "testdata": {
+      "path": "testdata",
+      "top_level_dirs": [
+        "Galaxy_Center_T4",
+        "LDN43_T2素材_flying_dutchman",
+        "NGC1727_T2_flying_dutchman",
+        "NGC247_T2_flying_dutchman",
+        "NGC55_T3_flying_dutchman",
+        "NGC83_cluster_T3_Flying_Dutchman",
+        "Victory_Nebula_T4_Flying_Dutchman",
+        "report",
+        "results",
+        "T2 calibration files",
+        "T3 calibration files",
+        "T4 calibration files"
+      ],
+      "targets": [
+        {"name": "Galaxy_Center_T4", "telescope": "T4", "panels": ["panel1", "panel2", "panel3"], "filters": ["Red", "Green", "Blue", "H-alpha", "Oiii"], "exposures": ["180S", "300S", "600S"]},
+        {"name": "LDN43_T2素材_flying_dutchman", "telescope": "T2", "filters": ["Lum", "Red", "Green", "Blue", "H-alpha"], "exposures": ["600S", "1200S"]},
+        {"name": "NGC1727_T2_flying_dutchman", "telescope": "T2", "filters": ["Red", "Green", "Blue", "H-alpha", "OIII"], "exposures": ["600S", "1200S", "1800S"]},
+        {"name": "NGC247_T2_flying_dutchman", "telescope": "T2"},
+        {"name": "NGC55_T3_flying_dutchman", "telescope": "T3"},
+        {"name": "NGC83_cluster_T3_Flying_Dutchman", "telescope": "T3"},
+        {"name": "Victory_Nebula_T4_Flying_Dutchman", "telescope": "T4"}
+      ],
+      "calibration_masters": {
+        "T4": {
+          "path": "testdata/T4 calibration files",
+          "format": "xisf",
+          "binning": 1,
+          "dimensions": "4500x3600",
+          "files": [
+            "masterBias_BIN-1_4500x3600.xisf",
+            "masterDark_BIN-1_4500x3600_EXPOSURE-180.00s.xisf",
+            "masterDark_BIN-1_4500x3600_EXPOSURE-300.00s.xisf",
+            "masterDark_BIN-1_4500x3600_EXPOSURE-600.00s.xisf",
+            "masterFlat_BIN-1_4500x3600_FILTER-Blue_mono.xisf",
+            "masterFlat_BIN-1_4500x3600_FILTER-Green_mono.xisf",
+            "masterFlat_BIN-1_4500x3600_FILTER-H-alpha_mono.xisf",
+            "masterFlat_BIN-1_4500x3600_FILTER-Oiii_mono.xisf",
+            "masterFlat_BIN-1_4500x3600_FILTER-Red_mono.xisf"
+          ]
+        },
+        "T3": {
+          "path": "testdata/T3 calibration files",
+          "format": "xisf",
+          "binning": 1,
+          "dimensions": "4096x4096",
+          "files": [
+            "masterBias_BIN-1_4096x4096.xisf",
+            "masterDark_BIN-1_4096x4096_EXPOSURE-600.00s.xisf",
+            "masterDark_BIN-1_4096x4096_EXPOSURE-1200.00s.xisf",
+            "masterFlat_BIN-1_4096x4096_FILTER-Blue_mono.xisf",
+            "masterFlat_BIN-1_4096x4096_FILTER-Green_mono.xisf",
+            "masterFlat_BIN-1_4096x4096_FILTER-H-alpha_mono.xisf",
+            "masterFlat_BIN-1_4096x4096_FILTER-Lum_mono.xisf",
+            "masterFlat_BIN-1_4096x4096_FILTER-Oiii_mono.xisf",
+            "masterFlat_BIN-1_4096x4096_FILTER-Red_mono.xisf"
+          ]
+        },
+        "T2": {
+          "path": "testdata/T2 calibration files",
+          "format": "xisf",
+          "binning": 1,
+          "dimensions": "4096x4096",
+          "files": [
+            "masterBias_BIN-1_4096x4096.xisf",
+            "masterDark_BIN-1_4096x4096_EXPOSURE-600.00s.xisf",
+            "masterDark_BIN-1_4096x4096_EXPOSURE-1200.00s.xisf",
+            "masterDark_BIN-1_4096x4096_EXPOSURE-1800.00s.xisf",
+            "masterFlat_BIN-1_4096x4096_FILTER-Blue_mono.xisf",
+            "masterFlat_BIN-1_4096x4096_FILTER-Green_mono.xisf",
+            "masterFlat_BIN-1_4096x4096_FILTER-H-alpha_mono.xisf",
+            "masterFlat_BIN-1_4096x4096_FILTER-OIII_mono.xisf",
+            "masterFlat_BIN-1_4096x4096_FILTER-Red_mono.xisf"
+          ]
+        }
+      },
+      "report_dir": "testdata/report (各目标处理报告, 含 Galaxy_Center_T4 等 7 个子目录)",
+      "results_dir": "testdata/results (按目标分组的处理结果)"
+    }
+  },
+  "existing_outputs": {
+    "hiss_files": {
+      "path": "lib/orchestrator/cpp/output_hiss_dir",
+      "format": "HISS (Healpix Image Stack Single-frame)",
+      "files": [
+        {"name": "frame1.hiss", "size_bytes": 184878332, "sha256": "3C06E240D22719CE8CD4FDEAEE0A37127CC06EF72018F012911C5E2FF68C7823"},
+        {"name": "frame2.hiss", "size_bytes": 184886999, "sha256": "BC2C19FFC17B99F812E7C24028B84FB4856EB0F34F0BC6919FB5EED5233DDAB9"}
+      ]
+    },
+    "hcsd_file": {
+      "path": "lib/orchestrator/cpp/output_stage2.hcsd",
+      "format": "HCSD (Healpix Combined Stack Data, Stage 2 输出)",
+      "size_bytes": 187455430,
+      "sha256": "2A9BD12E0F91BB59ABB170B2765A4806EC5C45FB16045F7C50E131AFA4122C37"
+    }
+  },
+  "evidence_legacy_sources": {
+    "v1.0_P00-001": "engineering/evidence/P00-001/ (旧基线预检, 已被本文件覆盖更新为 v1.1)",
+    "v1.0_P00-005": "engineering/evidence/P00-005/environment_baseline.json (16 工具链基线, 本文件 toolchain 字段整合其内容)",
+    "v1.0_P00-008": "engineering/evidence/P00-008/baseline_manifest.json (G0 baseline tag manifest, 本文件引用其 SHA-256 与任务摘要)",
+    "archive_note": "v1.0 旧控制包已迁移到 engineering_archive_v1.0/, engineering/evidence/P00-001 与 P00-005 保留副本"
+  },
+  "scope_compliance": {
+    "business_code_modified": false,
+    "business_code_files_touched": [],
+    "engineering_meta_modified": [
+      "engineering/evidence/P00-001/baseline_inventory.json (本文件, 新增)",
+      "engineering/evidence/P00-001/TASK_REPORT.md (v1.1 重写)",
+      "engineering/evidence/P00-001/TEST_REPORT.md (v1.1 重写)",
+      "engineering/evidence/P00-001/EVIDENCE_INDEX.md (v1.1 重写)",
+      "engineering/evidence/P00-001/REVIEW_REPORT.md (v1.1 重写)"
+    ],
+    "note": "本任务为只读盘点, 不修改任何 lib/** 业务源码; 工作树中 lib/gaia_xpsd_client/Makefile 与 lib/plate_solve/cpp/ipv/build.ps1 的修改属于 v1.1 包迁移过程, 非本任务产生"
+  },
+  "acceptance_criteria": {
+    "all_steps_executed": true,
+    "no_business_code_changed": true,
+    "deliverables_present": [
+      "TASK_REPORT.md",
+      "TEST_REPORT.md",
+      "EVIDENCE_INDEX.md",
+      "REVIEW_REPORT.md",
+      "baseline_inventory.json"
+    ],
+    "verdict": "PASS"
+  }
+}

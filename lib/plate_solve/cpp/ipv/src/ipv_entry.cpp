@@ -377,3 +377,176 @@ IPV_API int ipv_solve_from_memory(
     return do_solve_from_memory_impl(s, pixels, width, height, ra0, dec0,
                                      focal_length_mm, pixel_size_um, sp, result);
 }
+
+// ============================================================================
+// P02-002: 路径 A / 路径 B C API 实现
+//
+// 与 ipv_solve_from_memory 一致的异常隔离策略:
+//   - 入口函数本身无 try/catch (避免 SEH 记录栈损坏)
+//   - 异常捕获由 do_solve_*_impl 负责
+// ============================================================================
+
+namespace {
+
+// 路径 A 实现: 从外部 detections 求解 (跳过 sdet_detect_ex)
+int do_solve_from_detections_v1_impl(
+    ipv::IPVSolver* s,
+    const double* detections,
+    int n_detections,
+    int image_width, int image_height,
+    double ra0, double dec0,
+    double focal_length_mm, double pixel_size_um,
+    const ipv::IPVSolverParams& sp,
+    IpvWcsResult* result
+) {
+    try {
+        auto wcs_ptr = std::make_unique<ipv::WcsFitResult>();
+        ipv::WcsFitResult& wcs = *wcs_ptr;
+        s->solve_from_detections_v1(
+            detections, n_detections,
+            image_width, image_height,
+            ra0, dec0,
+            focal_length_mm, pixel_size_um,
+            sp,
+            &wcs
+        );
+        to_c_result(wcs, result);
+    } catch (const std::bad_alloc& e) {
+        set_error_msg(result->error_msg, sizeof(result->error_msg), e.what());
+        return 0;
+    } catch (const std::exception& e) {
+        set_error_msg(result->error_msg, sizeof(result->error_msg), e.what());
+        return 0;
+    } catch (...) {
+        set_error_msg(result->error_msg, sizeof(result->error_msg), "未知 C++ 异常");
+        return 0;
+    }
+    return result->success;
+}
+
+// 路径 B 实现: 带 callback 的内存求解 (保持原有检测 + 导出检测结果)
+int do_solve_from_memory_with_callback_impl(
+    ipv::IPVSolver* s,
+    const float* pixels,
+    int width, int height,
+    double ra0, double dec0,
+    double focal_length_mm, double pixel_size_um,
+    const ipv::IPVSolverParams& sp,
+    IpvDetectionCallback callback,
+    void* user_data,
+    IpvWcsResult* result
+) {
+    try {
+        auto wcs_ptr = std::make_unique<ipv::WcsFitResult>();
+        ipv::WcsFitResult& wcs = *wcs_ptr;
+        // IpvDetectionCallback (C ABI) → ipv::DetectionSinkFn (C++ 内部)
+        // 两者签名兼容 (都是 void(const double*, int, void*)), 可直接 reinterpret_cast
+        ipv::DetectionSinkFn sink_fn = nullptr;
+        if (callback != nullptr) {
+            sink_fn = reinterpret_cast<ipv::DetectionSinkFn>(callback);
+        }
+        s->solve_from_memory_with_callback(
+            pixels, width, height,
+            ra0, dec0,
+            focal_length_mm, pixel_size_um,
+            sp,
+            sink_fn, user_data,
+            &wcs
+        );
+        to_c_result(wcs, result);
+    } catch (const std::bad_alloc& e) {
+        set_error_msg(result->error_msg, sizeof(result->error_msg), e.what());
+        return 0;
+    } catch (const std::exception& e) {
+        set_error_msg(result->error_msg, sizeof(result->error_msg), e.what());
+        return 0;
+    } catch (...) {
+        set_error_msg(result->error_msg, sizeof(result->error_msg), "未知 C++ 异常");
+        return 0;
+    }
+    return result->success;
+}
+
+} // namespace
+
+// 路径 A: 从外部 detections 求解 (跳过 sdet_detect_ex)
+IPV_API int ipv_solve_from_detections_v1(
+    void* solver,
+    const double* detections,
+    int n_detections,
+    int image_width,
+    int image_height,
+    double ra0,
+    double dec0,
+    double focal_length_mm,
+    double pixel_size_um,
+    const IpvParams* params,
+    IpvWcsResult* result
+) {
+    if (result) {
+        std::memset(result, 0, sizeof(IpvWcsResult));
+    }
+
+    if (solver == nullptr || detections == nullptr || result == nullptr) {
+        if (result) {
+            set_error_msg(result->error_msg, sizeof(result->error_msg),
+                          "无效参数: solver/detections/result 为空");
+        }
+        return 0;
+    }
+
+    if (n_detections <= 0 || image_width <= 0 || image_height <= 0) {
+        set_error_msg(result->error_msg, sizeof(result->error_msg),
+                      "无效参数: n_detections/image_width/image_height 必须为正数");
+        return 0;
+    }
+
+    ipv::IPVSolver* s = static_cast<ipv::IPVSolver*>(solver);
+    ipv::IPVSolverParams sp = to_solver_params(params);
+    return do_solve_from_detections_v1_impl(s, detections, n_detections,
+                                            image_width, image_height,
+                                            ra0, dec0,
+                                            focal_length_mm, pixel_size_um,
+                                            sp, result);
+}
+
+// 路径 B: 带 callback 的内存求解
+IPV_API int ipv_solve_from_memory_with_callback(
+    void* solver,
+    const float* pixels,
+    int width,
+    int height,
+    double ra0,
+    double dec0,
+    double focal_length_mm,
+    double pixel_size_um,
+    const IpvParams* params,
+    IpvDetectionCallback callback,
+    void* user_data,
+    IpvWcsResult* result
+) {
+    if (result) {
+        std::memset(result, 0, sizeof(IpvWcsResult));
+    }
+
+    if (solver == nullptr || pixels == nullptr || result == nullptr) {
+        if (result) {
+            set_error_msg(result->error_msg, sizeof(result->error_msg),
+                          "无效参数: solver/pixels/result 为空");
+        }
+        return 0;
+    }
+
+    if (width <= 0 || height <= 0) {
+        set_error_msg(result->error_msg, sizeof(result->error_msg),
+                      "无效参数: width/height 必须为正数");
+        return 0;
+    }
+
+    ipv::IPVSolver* s = static_cast<ipv::IPVSolver*>(solver);
+    ipv::IPVSolverParams sp = to_solver_params(params);
+    return do_solve_from_memory_with_callback_impl(s, pixels, width, height,
+                                                   ra0, dec0,
+                                                   focal_length_mm, pixel_size_um,
+                                                   sp, callback, user_data, result);
+}

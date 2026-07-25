@@ -1,0 +1,262 @@
+{
+  "_meta": {
+    "task_id": "P02-002",
+    "task_name": "共享 detections 候选路径与 star_det v1 (v1.1 开发包)",
+    "phase": "P02",
+    "gate": "G2",
+    "version": "2026-07-25-cli-core-v1.1-platesolve-conditional-path",
+    "commit_base": "7b85ff3f0d37a4b26fff6077684993842ed2bbae",
+    "generated_at": "2026-07-25",
+    "generator": "P02-002 子 Agent",
+    "verdict": "PASS"
+  },
+  "spec_reference": {
+    "task_spec": "engineering/tasks/P02-002.md",
+    "format_spec": "engineering/docs/05_STAR_DETECT_PSF_DEDUP_SPEC.md",
+    "baseline_reference": "engineering/evidence/P02-001/EVIDENCE_INDEX.md",
+    "gate_checklist": "engineering/checklists/G2_SINGLE_DETECTION.md"
+  },
+  "candidate_paths": {
+    "pathA_from_detections": {
+      "name": "路径 A: 从外部 detections 求解 (跳过内部检测)",
+      "c_api": "ipv_solve_from_detections_v1",
+      "python_method": "IPVSolver.solve_from_detections_v1",
+      "description": "接受外部 detections (FLOAT64 [N,6] star_det v1) 直接求解, 跳过内部 sdet_detect_ex; 调用方负责 detections 生命周期",
+      "use_case": "跨模块 detections 复用 (如对齐叠加模块的检测结果直接喂给 PlateSolve, G-003 缺口修复)",
+      "skip_steps": ["FITS I/O", "sdet_detect_ex"],
+      "kept_steps": ["ipv_select_from_detections", "triangle_match", "iter_trans", "iterative_reproject", "hi_order_rematch", "robust_refine", "extract_wcs_sip"]
+    },
+    "pathB_callback": {
+      "name": "路径 B: 带 callback 的内存求解 (保留内部检测 + 导出)",
+      "c_api": "ipv_solve_from_memory_with_callback",
+      "python_method": "IPVSolver.solve_from_memory_with_callback",
+      "description": "保留 PlateSolve 内部 sdet_detect_ex, 但在检测后通过 callback 同步导出 detections (star_det v1 格式) 供下游复用",
+      "use_case": "管线内 detections 共享 (如 PlateSolve 导出 detections 供测光/SNR 阶段复用, G-002 缺口修复)",
+      "skip_steps": [],
+      "kept_steps": ["FITS I/O", "sdet_detect_ex", "callback 导出 detections", "ipv_select", "triangle_match", "iter_trans", "iterative_reproject", "hi_order_rematch", "robust_refine", "extract_wcs_sip"],
+      "callback_contract": {
+        "type": "IpvDetectionCallback",
+        "signature": "void (*)(const double* detections, int n_detections, void* user_data)",
+        "timing": "sdet_detect_ex 之后, ipv_select 之前 (同步调用)",
+        "buffer_ownership": "C++ 端构造 std::vector<double> 临时缓冲区, callback 返回后立即析构; 调用方必须在 callback 内复制数据",
+        "python_trampoline": "ctypes 内 _trampoline 自动 .copy() 复制数据, 避免悬挂引用",
+        "null_callback_behavior": "callback=NULL 时, 路径 B 行为与 ipv_solve_from_memory 完全一致"
+      }
+    }
+  },
+  "star_det_v1_format": {
+    "dtype": "FLOAT64",
+    "shape": "[N, 6]",
+    "columns": [
+      {"index": 0, "name": "x_px", "type": "double", "description": "像素 X 坐标"},
+      {"index": 1, "name": "y_px", "type": "double", "description": "像素 Y 坐标"},
+      {"index": 2, "name": "flux", "type": "double", "description": "光通量 (正常星=振幅A, 饱和星=PSF拟合A或0)"},
+      {"index": 3, "name": "mag", "type": "double", "description": "星等 -2.5*log10(A), 拟合失败时 NaN"},
+      {"index": 4, "name": "saturated", "type": "double", "description": "0=正常星, 1=饱和星"},
+      {"index": 5, "name": "has_saturated", "type": "double", "description": "1=该星检测到饱和平台, 0=正常星"}
+    ]
+  },
+  "code_changes": {
+    "modified_files": [
+      {
+        "path": "lib/plate_solve/cpp/ipv/include/ipv_api.h",
+        "size_bytes": 7230,
+        "sha256": "1324295AFB947B5829545B29B1FFC73CC3804B730FF5E3ED5E89EA0AE454CA0A",
+        "change": "新增 IpvDetectionCallback 类型 + ipv_solve_from_detections_v1 + ipv_solve_from_memory_with_callback 声明"
+      },
+      {
+        "path": "lib/plate_solve/cpp/ipv/include/ipv_select.h",
+        "size_bytes": 7663,
+        "sha256": "967EAA0D949E4AA70D6637D6DF918EA5AF1B9D0E34CF88F946E0D8F594FB44D5",
+        "change": "新增 DetectionSinkFn 类型 + ipv_select_from_detections + ipv_select_from_memory_with_callback 声明"
+      },
+      {
+        "path": "lib/plate_solve/cpp/ipv/src/ipv_select.cpp",
+        "size_bytes": 71782,
+        "sha256": "19439711F62FB40E8246060553E98B5D340DB7C0651D10E2E4087640955CE0EB",
+        "change": "新增路径 A 选星 (跳过 sdet) + 路径 B 选星 (callback 导出 star_det v1)"
+      },
+      {
+        "path": "lib/plate_solve/cpp/ipv/include/ipv_solver.h",
+        "size_bytes": 7360,
+        "sha256": "E80DEF9F4B9019FBA0539C6FF7C218AEE1D131E00653617608089E6E60716688",
+        "change": "新增 solve_from_detections_v1 + solve_from_memory_with_callback + solve_post_select 方法声明"
+      },
+      {
+        "path": "lib/plate_solve/cpp/ipv/src/ipv_solver.cpp",
+        "size_bytes": 64980,
+        "sha256": "3174061FCEE4BD2ED5850F4B99C17027D681DD864E0B3E0713551FF66DE0E697",
+        "change": "新增三个方法实现 (共享 solve_post_select: triangle_match → iter_trans → iterative_reproject → hi_order_rematch → robust_refine → extract_wcs_sip)"
+      },
+      {
+        "path": "lib/plate_solve/cpp/ipv/src/ipv_entry.cpp",
+        "size_bytes": 19608,
+        "sha256": "B776464CF1B2F014DF4003CD8811A45D6A0EB76B5CB396D171A27F36A2DABF87",
+        "change": "新增 2 个 C API 入口 + try/catch 异常隔离包装"
+      },
+      {
+        "path": "lib/plate_solve/python/ipv_solver.py",
+        "size_bytes": 28293,
+        "sha256": "EB166EA9B608E3128B6772371C25CFCA35C484171D07343D0EC917D04FEC5807",
+        "change": "新增 IpvDetectionCallback CFUNCTYPE + 2 个方法 + Python callback trampoline (自动 .copy())"
+      }
+    ],
+    "rebuilt_artifacts": [
+      {
+        "path": "lib/plate_solve/cpp/ipv/ipv_solver.dll",
+        "size_bytes": 984362,
+        "sha256": "804B2F2F54C665DCBC796A021E756DE62D37A4531B878483425ACB9A9E506547",
+        "exported_symbols": [
+          "ipv_solve",
+          "ipv_solve_from_memory",
+          "ipv_solve_create",
+          "ipv_solve_destroy",
+          "ipv_solve_from_detections_v1",
+          "ipv_solve_from_memory_with_callback"
+        ],
+        "note": "6 个导出符号 (4 原 + 2 新), 原 API 符号地址未变 (向后兼容)"
+      }
+    ],
+    "new_tools": [
+      {
+        "path": "engineering/tools/p02_002_single_frame_test.py",
+        "size_bytes": 16626,
+        "sha256": "F3BC2BC2D99D71A8EBF674EB90CA0BDC4D74AB9DBC52BFFB567F65361D1330F7",
+        "purpose": "单帧三路径对比 (path0/pathA/pathB), 验证 WCS 精度等价性"
+      },
+      {
+        "path": "engineering/tools/p02_002_batch_test.py",
+        "size_bytes": 8864,
+        "sha256": "88049915E54676E45B9054A4A91C9949E10F1EAF18E3230D9DA1D30214CC8953",
+        "purpose": "5 帧批量三路径对比 (Red/Green/Blue/H-alpha/Oiii), 验证多滤镜场景等价性"
+      }
+    ],
+    "unchanged_files": [
+      "lib/plate_solve/python/pipeline_adapter.py (生产路径未切换, 仍调用 solve_from_memory)",
+      "lib/plate_solve/python/solve_and_write_wcs.py (CLI 入口未修改)",
+      "lib/plate_solve/cpp/ipv/include/ipv_types.h (数据结构未修改)",
+      "lib/plate_solve/cpp/ipv/include/ipv_triangle.h (triangle_match 算法未修改)",
+      "lib/plate_solve/cpp/ipv/include/ipv_itertrans.h (iter_trans 算法未修改)",
+      "lib/plate_solve/cpp/ipv/include/ipv_ransac.h (RANSAC 算法未修改)",
+      "lib/plate_solve/cpp/ipv/include/ipv_robust_refine.h (refine 算法未修改)",
+      "lib/plate_solve/cpp/ipv/include/ipv_sip.h (SIP 提取算法未修改)",
+      "lib/plate_solve/cpp/ipv/include/ipv_wcs.h (WCS 提取算法未修改)"
+    ]
+  },
+  "backward_compatibility": {
+    "preserved_apis": [
+      "ipv_solve",
+      "ipv_solve_from_memory",
+      "ipv_solve_create",
+      "ipv_solve_destroy",
+      "ipv_set_gaia_handle",
+      "ipv_set_detector_handle",
+      "ipv_get_default_params"
+    ],
+    "preserved_python_methods": [
+      "IPVSolver.solve",
+      "IPVSolver.solve_from_memory",
+      "IPVSolver.set_gaia_handle",
+      "IPVSolver.set_detector_handle"
+    ],
+    "production_path_unchanged": true,
+    "production_path_file": "lib/plate_solve/python/pipeline_adapter.py",
+    "production_path_method": "PipelinePlateSolveHandler._handle (调用 solver.solve_from_memory)"
+  },
+  "test_results_summary": {
+    "single_frame": {
+      "frame": "Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts",
+      "filter": "Red",
+      "exposure": "180S",
+      "three_paths_success": true,
+      "n_pairs": 45,
+      "rms_arcsec": 0.3328651647440576,
+      "diff_A_vs_0": {
+        "d_crval1_arcsec": 0.0,
+        "d_crval2_arcsec": 0.0,
+        "d_rms_arcsec": 0.0,
+        "d_n_pairs": 0,
+        "same_success": true,
+        "same_wcs_bitwise": true
+      },
+      "diff_B_vs_0": {
+        "d_crval1_arcsec": 0.0,
+        "d_crval2_arcsec": 0.0,
+        "d_rms_arcsec": 0.0,
+        "d_n_pairs": 0,
+        "same_success": true,
+        "same_wcs_bitwise": true
+      },
+      "durations_sec": {
+        "path0_baseline": 2.145,
+        "pathB_callback": 1.590,
+        "pathA_from_detections": 0.080
+      },
+      "evidence": "engineering/evidence/P02-002/results/single_frame_three_paths.json"
+    },
+    "batch_5_frames": {
+      "total": 5,
+      "path0_success": 5,
+      "pathA_success": 5,
+      "pathB_success": 5,
+      "A_vs_0_pass": 5,
+      "B_vs_0_pass": 5,
+      "tolerance_arcsec": 0.001,
+      "actual_max_diff_arcsec": 0.0,
+      "frames": [
+        {"label": "Galaxy_Center_Red_180S", "filter": "Red", "n_pairs": 45, "rms_arcsec": 0.3329, "pathA_dur": 0.078, "pathB_dur": 1.542, "path0_dur": 2.328},
+        {"label": "Galaxy_Center_Green_180S", "filter": "Green", "n_pairs": 30, "rms_arcsec": 0.3199, "pathA_dur": 0.072, "pathB_dur": 1.317, "path0_dur": 1.318},
+        {"label": "Galaxy_Center_Blue_180S", "filter": "Blue", "n_pairs": 32, "rms_arcsec": 0.5183, "pathA_dur": 0.071, "pathB_dur": 1.410, "path0_dur": 1.351},
+        {"label": "Galaxy_Center_Halpha_300S", "filter": "H-alpha", "n_pairs": 44, "rms_arcsec": 0.4030, "pathA_dur": 0.074, "pathB_dur": 0.894, "path0_dur": 0.836},
+        {"label": "Galaxy_Center_Oiii_600S", "filter": "Oiii", "n_pairs": 34, "rms_arcsec": 0.4110, "pathA_dur": 0.070, "pathB_dur": 0.790, "path0_dur": 0.773}
+      ],
+      "performance": {
+        "pathA_avg_duration_sec": 0.073,
+        "path0_avg_duration_sec": 1.521,
+        "pathA_speedup_percent": 95.2,
+        "pathB_avg_duration_sec": 1.191,
+        "pathB_overhead_vs_path0_sec": -0.330,
+        "callback_n_detections": 2000,
+        "data_flow_closed_loop": true
+      },
+      "evidence": "engineering/evidence/P02-002/results/batch_three_paths.json"
+    }
+  },
+  "deliverables": {
+    "reports": [
+      "engineering/evidence/P02-002/TASK_REPORT.md",
+      "engineering/evidence/P02-002/TEST_REPORT.md",
+      "engineering/evidence/P02-002/EVIDENCE_INDEX.md",
+      "engineering/evidence/P02-002/REVIEW_REPORT.md"
+    ],
+    "metadata": "engineering/evidence/P02-002/candidate_path_impl.json",
+    "results": [
+      "engineering/evidence/P02-002/results/single_frame_three_paths.json",
+      "engineering/evidence/P02-002/results/batch_three_paths.json",
+      "engineering/evidence/P02-002/results/per_frame/Galaxy_Center_Red_180S.json",
+      "engineering/evidence/P02-002/results/per_frame/Galaxy_Center_Green_180S.json",
+      "engineering/evidence/P02-002/results/per_frame/Galaxy_Center_Blue_180S.json",
+      "engineering/evidence/P02-002/results/per_frame/Galaxy_Center_Halpha_300S.json",
+      "engineering/evidence/P02-002/results/per_frame/Galaxy_Center_Oiii_600S.json"
+    ],
+    "logs": [
+      "engineering/evidence/P02-002/results/solver_logs/ (单帧三路径日志, 9 个文件)",
+      "engineering/evidence/P02-002/results/batch_solver_logs/ (批量三路径日志, 45 个文件)"
+    ]
+  },
+  "risks_and_limitations": {
+    "test_set_scope": "5 帧 (Galaxy_Center T4, Red/Green/Blue/H-alpha/Oiii), 未覆盖 P02-001 全量 710 帧",
+    "narrowband_failure_uncovered": "未覆盖 P02-001 frame 50 (Oiii 600s 窄带失败帧), 路径 A 空 detections 行为待验证",
+    "callback_thread_safety": "callback 在求解线程同步调用, 调用方不得在 callback 内执行阻塞操作",
+    "detections_ownership": "路径 A detections 指针生命周期由调用方管理; Python 端 ctypes 自动管理, C/C++ 端需显式管理",
+    "dll_boundary_exception": "callback 跨 DLL 边界, C++ 异常不得泄漏到 callback; Python 端 _trampoline 已 try/except 兜底",
+    "pathA_perf_conditional": "路径 A 95% 提速仅在已有外部 detections 场景下成立; 跨模块复用是真正价值"
+  },
+  "follow_up_recommendations": [
+    "切换生产路径前运行 P02-001 同款 710 帧全量回归测试",
+    "补充窄带失败帧测试 (P02-001 frame 50 Oiii 600s), 验证路径 A 空 detections 行为",
+    "在管线编排层引入路径 B (G-002 缺口修复), PlateSolve 导出 detections 供测光/SNR 复用",
+    "在跨模块调度层引入路径 A (G-003 缺口修复), 上游对齐叠加检测结果直接喂给 PlateSolve",
+    "为路径 A 增加 detections 质量预检 (N < 5 时直接返回失败, 避免无意义求解)"
+  ]
+}

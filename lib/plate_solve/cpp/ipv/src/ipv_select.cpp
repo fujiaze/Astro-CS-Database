@@ -1180,4 +1180,620 @@ int ipv_select_from_memory(
     return 0;
 }
 
+// ============================================================================
+// P02-002: 路径 A - ipv_select_from_detections
+//
+// 从外部 detections (FLOAT64 [N,6] star_det v1) 选星, 跳过 sdet_detect_ex。
+// 算法与 ipv_select_from_memory 一致, 区别:
+//   - 跳过 float→uint16 转换
+//   - 跳过 sdet_detect_ex 调用
+//   - 直接从 detections 构建 U_full/mag_full 和 U
+// ============================================================================
+
+int ipv_select_from_detections(
+    const double* detections,
+    int n_detections,
+    int image_width, int image_height,
+    double ra, double dec,
+    double focal_length_mm,
+    double pixel_size_um,
+    const IPVSolverParams& params,
+    StarSelection& output,
+    Logger* logger)
+{
+    // 清零输出
+    output = StarSelection{};
+
+    // --- 参数校验 ---
+    if (focal_length_mm <= 0.0) {
+        if (logger) logger->error("ipv_select_from_detections: focal_length_mm 非法");
+        return -1;
+    }
+    if (pixel_size_um <= 0.0) {
+        if (logger) logger->error("ipv_select_from_detections: pixel_size_um 非法");
+        return -1;
+    }
+    if (detections == nullptr || n_detections <= 0) {
+        if (logger) logger->error("ipv_select_from_detections: detections/n_detections 非法");
+        return -1;
+    }
+    if (image_width <= 0 || image_height <= 0) {
+        if (logger) logger->error("ipv_select_from_detections: image_width/height 非法");
+        return -1;
+    }
+
+    if (logger) logger->info("=== ipv_select_from_detections 启动 (路径 A) ===");
+
+    // --- 获取注入的句柄 ---
+    void* gaia_handle = get_gaia_client_handle();
+    if (!gaia_handle) {
+        if (logger) logger->error("ipv_select_from_detections: GaiaClient 句柄未注入");
+        return -1;
+    }
+    // 路径 A 不需要 detector_handle (跳过 sdet_detect_ex)
+
+    // --- 加载依赖 DLL (路径 A 仍需 gaia_client.dll) ---
+    if (!load_dlls(logger)) {
+        if (logger) logger->error("ipv_select_from_detections: 依赖 DLL 加载失败");
+        return -1;
+    }
+
+#ifdef _WIN32
+    int img_w = image_width;
+    int img_h = image_height;
+
+    if (logger) {
+        char buf[256];
+        std::snprintf(buf, sizeof(buf),
+            "Step 1: 使用外部 detections %d 颗, 图像 %d×%d (路径 A, 跳过 sdet_detect_ex)",
+            n_detections, img_w, img_h);
+        logger->info(buf);
+    }
+
+    // --- Step 2: 从 detections 构建内部检测向量 ---
+    // star_det v1: [N,6] = x_px, y_px, flux, mag, saturated, has_saturated
+    std::vector<double> det_x(n_detections), det_y(n_detections);
+    std::vector<double> det_flux(n_detections);
+    std::vector<float>  det_mag(n_detections);
+    std::vector<int>    det_sat(n_detections), det_has_sat(n_detections);
+
+    for (int i = 0; i < n_detections; ++i) {
+        const double* row = detections + (size_t)i * 6;
+        det_x[i]      = row[0];
+        det_y[i]      = row[1];
+        det_flux[i]   = row[2];
+        det_mag[i]    = static_cast<float>(row[3]);
+        det_sat[i]    = (row[4] != 0.0) ? 1 : 0;
+        det_has_sat[i]= (row[5] != 0.0) ? 1 : 0;
+    }
+
+    if (logger) {
+        int n_sat = 0;
+        for (int i = 0; i < n_detections; ++i) if (det_sat[i]) n_sat++;
+        char buf[256];
+        std::snprintf(buf, sizeof(buf), "  detections: %d 颗 (饱和 %d, 正常 %d)",
+                      n_detections, n_sat, n_detections - n_sat);
+        logger->info(buf);
+    }
+
+    // --- Step 3: 图像侧选星 (V4.28 按 mag 升序) ---
+    if (logger) logger->info("Step 3: 图像侧选星");
+    std::vector<double> flux_vec = det_flux;
+    std::vector<double> mag_vec(det_mag.begin(), det_mag.end());
+    std::vector<bool> sat_vec(n_detections);
+    for (int i = 0; i < n_detections; ++i) sat_vec[i] = (det_sat[i] != 0);
+
+    std::vector<int> sel_idx = select_image_stars(
+        flux_vec, mag_vec, sat_vec, params.img_n_target, logger);
+    int N = static_cast<int>(sel_idx.size());
+    if (N < 2) {
+        if (logger) logger->error("ipv_select_from_detections: 图像侧选星数过少");
+        return -1;
+    }
+
+    // --- Step 4: 构建 U 向量组 (像素坐标, 原点图像中心, Y 轴向上) ---
+    double s0 = IPV_ARCSEC_PER_UM_PER_MM * pixel_size_um / focal_length_mm;
+    double cx = img_w / 2.0, cy = img_h / 2.0;
+    output.U.resize(N);
+    for (int i = 0; i < N; ++i) {
+        int idx = sel_idx[i];
+        output.U[i].x = (det_x[idx] - cx);
+        output.U[i].y = -(det_y[idx] - cy);
+        output.U[i].flux = det_flux[idx];
+        output.U[i].saturated = (det_sat[idx] != 0);
+    }
+    output.img_width = img_w;
+    output.img_height = img_h;
+
+    // 保存全部检测星点供 robust_refine 使用 (坐标约定同 U)
+    output.U_full.resize(n_detections);
+    output.mag_full.resize(n_detections);
+    for (int i = 0; i < n_detections; ++i) {
+        output.U_full[i].x = det_x[i] - cx;
+        output.U_full[i].y = -(det_y[i] - cy);
+        output.U_full[i].flux = det_flux[i];
+        output.U_full[i].saturated = (det_sat[i] != 0);
+        output.mag_full[i] = static_cast<double>(det_mag[i]);
+    }
+
+    if (logger) {
+        char buf[256];
+        std::snprintf(buf, sizeof(buf), "  U 向量组: %d×2 (s0=%.4f\"/px)", N, s0);
+        logger->info(buf);
+    }
+
+    // --- Step 5: 计算 FOV 与密度 ---
+    if (logger) logger->info("Step 4: FOV/密度计算");
+    double fov_diag_deg, query_radius_deg, query_area_sqdeg, img_area_sqdeg;
+    double rho_img, rho_target;
+    int n_target;
+    compute_fov_density(
+        focal_length_mm, pixel_size_um,
+        static_cast<double>(img_w), static_cast<double>(img_h),
+        N, params.gaia_density_ratio, params.gaia_query_radius_factor,
+        s0, fov_diag_deg, query_radius_deg, query_area_sqdeg,
+        img_area_sqdeg, rho_img, rho_target, n_target, logger);
+
+    output.fov_diag_deg = fov_diag_deg;
+    output.rho_img = rho_img;
+    output.rho_target = rho_target;
+    output.s0 = s0;
+
+    // --- Step 6: V4.9 基于天球平均密度直接估算极限星等 ---
+    if (logger) logger->info("Step 5: V4.9 密度公式估算极限星等 (替代迭代)");
+    double m_lim_final = estimate_mag_lim_by_density(n_target, query_area_sqdeg, logger);
+    int m_lim_iters = 0;
+
+    // --- Step 7: 用估算的极限星等查询 Gaia 星表 (一次查询) ---
+    if (logger) {
+        char buf[256];
+        std::snprintf(buf, sizeof(buf), "Step 6: 用 m_lim=%.3f 查询 Gaia 星表", m_lim_final);
+        logger->info(buf);
+    }
+    std::vector<double> cat_ra, cat_dec;
+    std::vector<float> cat_mag;
+    int q_ret = gaia_query_stars(gaia_handle, ra, dec, query_radius_deg, m_lim_final,
+                                  cat_ra, cat_dec, cat_mag);
+
+    // V4.9 补救: 若一次查询不足, 逐步放宽 (最多 2 次, 每次 +1.0 mag)
+    int rescue_count = 0;
+    while ((q_ret != 0 || (int)cat_ra.size() < n_target) && rescue_count < 2) {
+        double m_rescue = m_lim_final + 1.0 * (rescue_count + 1);
+        if (logger) {
+            char buf[256];
+            std::snprintf(buf, sizeof(buf),
+                "V4.9 补救查询 %d: Gaia 返回 %d < n_target=%d, 放宽到 m=%.3f",
+                rescue_count + 1, (int)cat_ra.size(), n_target, m_rescue);
+            logger->warn(buf);
+        }
+        cat_ra.clear(); cat_dec.clear(); cat_mag.clear();
+        q_ret = gaia_query_stars(gaia_handle, ra, dec, query_radius_deg, m_rescue,
+                                  cat_ra, cat_dec, cat_mag);
+        if (q_ret == 0 && (int)cat_ra.size() >= n_target) {
+            m_lim_final = m_rescue;
+            break;
+        }
+        rescue_count++;
+    }
+
+    // 最终兜底: mag=22
+    if (q_ret != 0 || cat_ra.size() < 2) {
+        if (logger) logger->warn("Gaia 返回过少, 启用 mag=22 兜底查询");
+        cat_ra.clear(); cat_dec.clear(); cat_mag.clear();
+        q_ret = gaia_query_stars(gaia_handle, ra, dec, query_radius_deg, 22.0,
+                                  cat_ra, cat_dec, cat_mag);
+    }
+    if (q_ret != 0 || cat_ra.size() < 2) {
+        if (logger) logger->error("ipv_select_from_detections: Gaia 星表查询星数过少");
+        return -1;
+    }
+
+    int n_gaia_final = (int)cat_ra.size();
+    output.m_lim_final = m_lim_final;
+    output.n_gaia_final = n_gaia_final;
+    output.m_lim_iterations = m_lim_iters;
+
+    // --- Step 9: Gnomonic 投影 + FOV 内过滤 ---
+    if (logger) logger->info("Step 7: Gnomonic 投影 + FOV 过滤");
+    double fov_half_w = img_w / 2.0 * s0;
+    double fov_half_h = img_h / 2.0 * s0;
+
+    const size_t n_cat = cat_ra.size();
+    std::vector<double> proj_xi(n_cat), proj_eta(n_cat);
+    std::vector<char> proj_valid(n_cat, 0);
+    #pragma omp parallel for num_threads(16) schedule(static)
+    for (ptrdiff_t i = 0; i < (ptrdiff_t)n_cat; ++i) {
+        double xi = 0.0, eta = 0.0;
+        bool valid = false;
+        gnomonic_forward_proj(cat_ra[i], cat_dec[i], ra, dec, xi, eta, valid);
+        proj_xi[i] = xi;
+        proj_eta[i] = eta;
+        proj_valid[i] = valid ? 1 : 0;
+    }
+
+    std::vector<int> fov_idx;
+    for (size_t i = 0; i < n_cat; ++i) {
+        if (!proj_valid[i]) continue;
+        if (std::abs(proj_xi[i]) < fov_half_w && std::abs(proj_eta[i]) < fov_half_h) {
+            fov_idx.push_back(static_cast<int>(i));
+        }
+    }
+    if (fov_idx.size() < 2) {
+        if (logger) logger->warn("FOV 内星数过少, 放宽到 1.5×FOV");
+        fov_idx.clear();
+        for (size_t i = 0; i < n_cat; ++i) {
+            if (!proj_valid[i]) continue;
+            if (std::abs(proj_xi[i]) < fov_half_w * 1.5 && std::abs(proj_eta[i]) < fov_half_h * 1.5) {
+                fov_idx.push_back(static_cast<int>(i));
+            }
+        }
+    }
+    if (fov_idx.size() < 2) {
+        if (logger) logger->error("ipv_select_from_detections: FOV 内 Gaia 星数过少");
+        return -1;
+    }
+
+    // --- Step 10: 按星等升序 (最亮优先) 取前 n_target 颗 ---
+    std::sort(fov_idx.begin(), fov_idx.end(),
+              [&](int a, int b) { return cat_mag[a] < cat_mag[b]; });
+    int M = std::min(n_target, static_cast<int>(fov_idx.size()));
+
+    output.W.resize(M);
+    output.gaia_ra.resize(M);
+    output.gaia_dec.resize(M);
+    for (int i = 0; i < M; ++i) {
+        int idx = fov_idx[i];
+        output.W[i].x = proj_xi[idx];
+        output.W[i].y = proj_eta[idx];
+        output.W[i].flux = 0.0;
+        output.W[i].saturated = false;
+        output.gaia_ra[i]  = cat_ra[idx];
+        output.gaia_dec[i] = cat_dec[idx];
+    }
+
+    if (logger) {
+        char buf[256];
+        std::snprintf(buf, sizeof(buf),
+            "  W 向量组: %d×2 (FOV 内 %d, 取最亮 %d, gaia_ra/dec 已保存)",
+            M, static_cast<int>(fov_idx.size()), M);
+        logger->info(buf);
+    }
+#else
+    // 非 Windows 平台不支持
+    if (logger) logger->error("ipv_select_from_detections: 非 Windows 平台不支持");
+    return -1;
+#endif // _WIN32
+
+    output.success = true;
+    if (logger) logger->info("=== ipv_select_from_detections 完成 (路径 A) ===");
+    return 0;
+}
+
+// ============================================================================
+// P02-002: 路径 B - ipv_select_from_memory_with_callback
+//
+// 与 ipv_select_from_memory 算法完全一致, 区别:
+//   - sdet_detect_ex 调用后, 选星前, 调用 callback 导出完整检测结果
+//   - callback 接收 FLOAT64 [N,6] star_det v1 格式
+//   - callback 为 NULL 时行为与 ipv_select_from_memory 完全一致
+// ============================================================================
+
+int ipv_select_from_memory_with_callback(
+    const float* pixels,
+    int width, int height,
+    double ra, double dec,
+    double focal_length_mm,
+    double pixel_size_um,
+    const IPVSolverParams& params,
+    DetectionSinkFn callback,
+    void* user_data,
+    StarSelection& output,
+    Logger* logger)
+{
+    // 清零输出
+    output = StarSelection{};
+
+    // --- 参数校验 ---
+    if (focal_length_mm <= 0.0) {
+        if (logger) logger->error("ipv_select_from_memory_with_callback: focal_length_mm 非法");
+        return -1;
+    }
+    if (pixel_size_um <= 0.0) {
+        if (logger) logger->error("ipv_select_from_memory_with_callback: pixel_size_um 非法");
+        return -1;
+    }
+    if (pixels == nullptr || width <= 0 || height <= 0) {
+        if (logger) logger->error("ipv_select_from_memory_with_callback: pixels/width/height 非法");
+        return -1;
+    }
+
+    if (logger) logger->info("=== ipv_select_from_memory_with_callback 启动 (路径 B) ===");
+
+    // --- 获取注入的句柄 ---
+    void* gaia_handle = get_gaia_client_handle();
+    void* detector_handle = get_star_detector_handle();
+    if (!gaia_handle) {
+        if (logger) logger->error("ipv_select_from_memory_with_callback: GaiaClient 句柄未注入");
+        return -1;
+    }
+    if (!detector_handle) {
+        if (logger) logger->error("ipv_select_from_memory_with_callback: StarDetector 句柄未注入");
+        return -1;
+    }
+
+    // --- 加载依赖 DLL ---
+    if (!load_dlls(logger)) {
+        if (logger) logger->error("ipv_select_from_memory_with_callback: 依赖 DLL 加载失败");
+        return -1;
+    }
+
+#ifdef _WIN32
+    // --- Step 1: 使用传入的内存像素数据 (不读文件) ---
+    int img_w = width;
+    int img_h = height;
+    const float* pixel_data = pixels;
+    if (logger) {
+        char buf[256];
+        std::snprintf(buf, sizeof(buf), "Step 1: 使用内存像素数据 %d×%d", img_w, img_h);
+        logger->info(buf);
+    }
+
+    // 转 uint16 (star_detector 需要 uint16_t*)
+    std::vector<uint16_t> img_u16(static_cast<size_t>(img_w) * img_h);
+    for (size_t i = 0; i < img_u16.size(); ++i) {
+        float v = pixel_data[i];
+        if (v < 0.0f) v = 0.0f;
+        if (v > 65535.0f) v = 65535.0f;
+        img_u16[i] = static_cast<uint16_t>(v);
+    }
+
+    // --- Step 2: 星点检测 ---
+    if (logger) logger->info("Step 2: 星点检测 (sdet_detect_ex)");
+    double *det_x = nullptr, *det_y = nullptr;
+    float *det_flux = nullptr;
+    int *det_sat = nullptr;
+    float *det_mag = nullptr;
+    int *det_has_sat = nullptr;
+    int det_count = 0;
+    int det_ret = g_dll.sdet_detect_ex(
+        detector_handle, img_u16.data(), img_w, img_h,
+        &det_x, &det_y, &det_flux, &det_sat,
+        &det_mag, &det_has_sat, &det_count,
+        nullptr, 0, nullptr);
+    if (det_ret != 0 || det_count <= 0) {
+        if (logger) logger->error("ipv_select_from_memory_with_callback: 星点检测失败或未检测到星");
+        if (det_x || det_y || det_flux || det_sat || det_mag || det_has_sat) {
+            g_dll.sdet_free_ex(det_x, det_y, det_flux, det_sat,
+                               det_mag, det_has_sat, nullptr, 0);
+        }
+        return -1;
+    }
+    if (logger) {
+        int n_sat = 0;
+        for (int i = 0; i < det_count; ++i) if (det_sat[i]) n_sat++;
+        char buf[256];
+        std::snprintf(buf, sizeof(buf), "  检测到星点: %d 颗 (饱和 %d, 正常 %d)",
+                      det_count, n_sat, det_count - n_sat);
+        logger->info(buf);
+    }
+
+    // --- Step 2.5 (路径 B): 调用 callback 导出检测结果 (FLOAT64 [N,6]) ---
+    // callback 在 sdet_free_ex 之前调用, 确保源指针有效
+    // callback 返回后源指针仍由本函数管理, 稍后 sdet_free_ex 释放
+    if (callback != nullptr) {
+        if (logger) logger->info("Step 2.5: 调用 callback 导出 detections (路径 B)");
+        // 构建 FLOAT64 [N,6] 缓冲区 (栈上分配可能过大, 使用堆)
+        std::vector<double> det_v1(static_cast<size_t>(det_count) * 6);
+        for (int i = 0; i < det_count; ++i) {
+            double* row = det_v1.data() + (size_t)i * 6;
+            row[0] = det_x[i];
+            row[1] = det_y[i];
+            row[2] = static_cast<double>(det_flux[i]);
+            row[3] = static_cast<double>(det_mag[i]);
+            row[4] = static_cast<double>(det_sat[i]);
+            row[5] = static_cast<double>(det_has_sat[i]);
+        }
+        // 调用 callback (同步, 调用期间缓冲区有效)
+        callback(det_v1.data(), det_count, user_data);
+        if (logger) logger->info("  callback 完成, 源缓冲区已由 callback 复制");
+        // det_v1 在此处析构, callback 必须已复制数据
+    }
+
+    // --- Step 3: 图像侧选星 (V4.28 按 mag 升序) ---
+    if (logger) logger->info("Step 3: 图像侧选星");
+    std::vector<double> flux_vec(det_flux, det_flux + det_count);
+    std::vector<double> mag_vec(det_mag, det_mag + det_count);
+    std::vector<bool> sat_vec(det_count);
+    for (int i = 0; i < det_count; ++i) sat_vec[i] = (det_sat[i] != 0);
+
+    std::vector<int> sel_idx = select_image_stars(
+        flux_vec, mag_vec, sat_vec, params.img_n_target, logger);
+    int N = static_cast<int>(sel_idx.size());
+    if (N < 2) {
+        if (logger) logger->error("ipv_select_from_memory_with_callback: 图像侧选星数过少");
+        g_dll.sdet_free_ex(det_x, det_y, det_flux, det_sat,
+                           det_mag, det_has_sat, nullptr, 0);
+        return -1;
+    }
+
+    // --- Step 4: 构建 U 向量组 (像素坐标, 原点图像中心, Y 轴向上) ---
+    double s0 = IPV_ARCSEC_PER_UM_PER_MM * pixel_size_um / focal_length_mm;
+    double cx = img_w / 2.0, cy = img_h / 2.0;
+    output.U.resize(N);
+    for (int i = 0; i < N; ++i) {
+        int idx = sel_idx[i];
+        output.U[i].x = (det_x[idx] - cx);
+        output.U[i].y = -(det_y[idx] - cy);
+        output.U[i].flux = static_cast<double>(det_flux[idx]);
+        output.U[i].saturated = (det_sat[idx] != 0);
+    }
+    output.img_width = img_w;
+    output.img_height = img_h;
+
+    // V4.30: 保存全部检测星点供 robust_refine 使用
+    output.U_full.resize(det_count);
+    output.mag_full.resize(det_count);
+    for (int i = 0; i < det_count; ++i) {
+        output.U_full[i].x = det_x[i] - cx;
+        output.U_full[i].y = -(det_y[i] - cy);
+        output.U_full[i].flux = static_cast<double>(det_flux[i]);
+        output.U_full[i].saturated = (det_sat[i] != 0);
+        output.mag_full[i] = static_cast<double>(det_mag[i]);
+    }
+
+    // 释放星点检测内存
+    g_dll.sdet_free_ex(det_x, det_y, det_flux, det_sat,
+                       det_mag, det_has_sat, nullptr, 0);
+
+    if (logger) {
+        char buf[256];
+        std::snprintf(buf, sizeof(buf), "  U 向量组: %d×2 (s0=%.4f\"/px)", N, s0);
+        logger->info(buf);
+    }
+
+    // --- Step 5: 计算 FOV 与密度 ---
+    if (logger) logger->info("Step 4: FOV/密度计算");
+    double fov_diag_deg, query_radius_deg, query_area_sqdeg, img_area_sqdeg;
+    double rho_img, rho_target;
+    int n_target;
+    compute_fov_density(
+        focal_length_mm, pixel_size_um,
+        static_cast<double>(img_w), static_cast<double>(img_h),
+        N, params.gaia_density_ratio, params.gaia_query_radius_factor,
+        s0, fov_diag_deg, query_radius_deg, query_area_sqdeg,
+        img_area_sqdeg, rho_img, rho_target, n_target, logger);
+
+    output.fov_diag_deg = fov_diag_deg;
+    output.rho_img = rho_img;
+    output.rho_target = rho_target;
+    output.s0 = s0;
+
+    // --- Step 6: V4.9 基于天球平均密度直接估算极限星等 ---
+    if (logger) logger->info("Step 5: V4.9 密度公式估算极限星等 (替代迭代)");
+    double m_lim_final = estimate_mag_lim_by_density(n_target, query_area_sqdeg, logger);
+    int m_lim_iters = 0;
+
+    // --- Step 7: 用估算的极限星等查询 Gaia 星表 (一次查询) ---
+    if (logger) {
+        char buf[256];
+        std::snprintf(buf, sizeof(buf), "Step 6: 用 m_lim=%.3f 查询 Gaia 星表", m_lim_final);
+        logger->info(buf);
+    }
+    std::vector<double> cat_ra, cat_dec;
+    std::vector<float> cat_mag;
+    int q_ret = gaia_query_stars(gaia_handle, ra, dec, query_radius_deg, m_lim_final,
+                                  cat_ra, cat_dec, cat_mag);
+
+    int rescue_count = 0;
+    while ((q_ret != 0 || (int)cat_ra.size() < n_target) && rescue_count < 2) {
+        double m_rescue = m_lim_final + 1.0 * (rescue_count + 1);
+        if (logger) {
+            char buf[256];
+            std::snprintf(buf, sizeof(buf),
+                "V4.9 补救查询 %d: Gaia 返回 %d < n_target=%d, 放宽到 m=%.3f",
+                rescue_count + 1, (int)cat_ra.size(), n_target, m_rescue);
+            logger->warn(buf);
+        }
+        cat_ra.clear(); cat_dec.clear(); cat_mag.clear();
+        q_ret = gaia_query_stars(gaia_handle, ra, dec, query_radius_deg, m_rescue,
+                                  cat_ra, cat_dec, cat_mag);
+        if (q_ret == 0 && (int)cat_ra.size() >= n_target) {
+            m_lim_final = m_rescue;
+            break;
+        }
+        rescue_count++;
+    }
+
+    if (q_ret != 0 || cat_ra.size() < 2) {
+        if (logger) logger->warn("Gaia 返回过少, 启用 mag=22 兜底查询");
+        cat_ra.clear(); cat_dec.clear(); cat_mag.clear();
+        q_ret = gaia_query_stars(gaia_handle, ra, dec, query_radius_deg, 22.0,
+                                  cat_ra, cat_dec, cat_mag);
+    }
+    if (q_ret != 0 || cat_ra.size() < 2) {
+        if (logger) logger->error("ipv_select_from_memory_with_callback: Gaia 星表查询星数过少");
+        return -1;
+    }
+
+    int n_gaia_final = (int)cat_ra.size();
+    output.m_lim_final = m_lim_final;
+    output.n_gaia_final = n_gaia_final;
+    output.m_lim_iterations = m_lim_iters;
+
+    // --- Step 9: Gnomonic 投影 + FOV 内过滤 ---
+    if (logger) logger->info("Step 7: Gnomonic 投影 + FOV 过滤");
+    double fov_half_w = img_w / 2.0 * s0;
+    double fov_half_h = img_h / 2.0 * s0;
+
+    const size_t n_cat = cat_ra.size();
+    std::vector<double> proj_xi(n_cat), proj_eta(n_cat);
+    std::vector<char> proj_valid(n_cat, 0);
+    #pragma omp parallel for num_threads(16) schedule(static)
+    for (ptrdiff_t i = 0; i < (ptrdiff_t)n_cat; ++i) {
+        double xi = 0.0, eta = 0.0;
+        bool valid = false;
+        gnomonic_forward_proj(cat_ra[i], cat_dec[i], ra, dec, xi, eta, valid);
+        proj_xi[i] = xi;
+        proj_eta[i] = eta;
+        proj_valid[i] = valid ? 1 : 0;
+    }
+
+    std::vector<int> fov_idx;
+    for (size_t i = 0; i < n_cat; ++i) {
+        if (!proj_valid[i]) continue;
+        if (std::abs(proj_xi[i]) < fov_half_w && std::abs(proj_eta[i]) < fov_half_h) {
+            fov_idx.push_back(static_cast<int>(i));
+        }
+    }
+    if (fov_idx.size() < 2) {
+        if (logger) logger->warn("FOV 内星数过少, 放宽到 1.5×FOV");
+        fov_idx.clear();
+        for (size_t i = 0; i < n_cat; ++i) {
+            if (!proj_valid[i]) continue;
+            if (std::abs(proj_xi[i]) < fov_half_w * 1.5 && std::abs(proj_eta[i]) < fov_half_h * 1.5) {
+                fov_idx.push_back(static_cast<int>(i));
+            }
+        }
+    }
+    if (fov_idx.size() < 2) {
+        if (logger) logger->error("ipv_select_from_memory_with_callback: FOV 内 Gaia 星数过少");
+        return -1;
+    }
+
+    // --- Step 10: 按星等升序 (最亮优先) 取前 n_target 颗 ---
+    std::sort(fov_idx.begin(), fov_idx.end(),
+              [&](int a, int b) { return cat_mag[a] < cat_mag[b]; });
+    int M = std::min(n_target, static_cast<int>(fov_idx.size()));
+
+    output.W.resize(M);
+    output.gaia_ra.resize(M);
+    output.gaia_dec.resize(M);
+    for (int i = 0; i < M; ++i) {
+        int idx = fov_idx[i];
+        output.W[i].x = proj_xi[idx];
+        output.W[i].y = proj_eta[idx];
+        output.W[i].flux = 0.0;
+        output.W[i].saturated = false;
+        output.gaia_ra[i]  = cat_ra[idx];
+        output.gaia_dec[i] = cat_dec[idx];
+    }
+
+    if (logger) {
+        char buf[256];
+        std::snprintf(buf, sizeof(buf),
+            "  W 向量组: %d×2 (FOV 内 %d, 取最亮 %d, gaia_ra/dec 已保存)",
+            M, static_cast<int>(fov_idx.size()), M);
+        logger->info(buf);
+    }
+#else
+    // 非 Windows 平台不支持
+    if (logger) logger->error("ipv_select_from_memory_with_callback: 非 Windows 平台不支持");
+    return -1;
+#endif // _WIN32
+
+    output.success = true;
+    if (logger) logger->info("=== ipv_select_from_memory_with_callback 完成 (路径 B) ===");
+    return 0;
+}
+
 } // namespace ipv

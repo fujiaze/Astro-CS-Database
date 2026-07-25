@@ -135,6 +135,58 @@ int ipv_select_from_memory(
     Logger* logger = nullptr
 );
 
+// ============================================================================
+// P02-002: 候选路径 A / 路径 B 选星接口 (实验性)
+//
+// star_det v1 格式: FLOAT64 [N,6]
+//   0: x_px  1: y_px  2: flux  3: mag  4: saturated  5: has_saturated
+// ============================================================================
+
+// 路径 B 检测结果导出 callback (C ABI 兼容)
+// callback 在 sdet_detect_ex 调用后、选星前同步调用
+// detections 指向 [N,6] FLOAT64 缓冲区, 调用期间有效, callback 返回后失效
+typedef void (*DetectionSinkFn)(
+    const double* detections,     // [N,6] FLOAT64 star_det v1
+    int n_detections,
+    void* user_data
+);
+
+// 路径 A: 从外部 detections 选星 (跳过 sdet_detect_ex)
+// 输入: FLOAT64 [N,6] detections + 图像尺寸 + 中心指向 + 焦距/像元 + 参数
+// 输出: StarSelection (U ~50 颗 + W ~75-150 颗 + 元数据)
+// 返回: 0=成功, -1=失败
+// 算法与 ipv_select_from_memory 一致, 区别: 跳过 float→uint16 转换和 sdet_detect_ex
+int ipv_select_from_detections(
+    const double* detections,     // [N,6] FLOAT64 star_det v1
+    int n_detections,
+    int image_width, int image_height,
+    double ra, double dec,
+    double focal_length_mm,
+    double pixel_size_um,
+    const IPVSolverParams& params,
+    StarSelection& output,
+    Logger* logger = nullptr
+);
+
+// 路径 B: 带 callback 的内存选星 (保持原有检测 + 导出检测结果)
+// 输入: float* pixels + 宽高 + 中心指向 + 焦距/像元 + 参数 + callback
+// 输出: StarSelection (U ~50 颗 + W ~75-150 颗 + 元数据)
+// 返回: 0=成功, -1=失败
+// 算法与 ipv_select_from_memory 一致, 区别: sdet_detect_ex 后调用 callback 导出检测结果
+// callback 为 NULL 时行为与 ipv_select_from_memory 完全一致
+int ipv_select_from_memory_with_callback(
+    const float* pixels,
+    int width, int height,
+    double ra, double dec,
+    double focal_length_mm,
+    double pixel_size_um,
+    const IPVSolverParams& params,
+    DetectionSinkFn callback,
+    void* user_data,
+    StarSelection& output,
+    Logger* logger = nullptr
+);
+
 } // namespace ipv
 
 #endif // IPV_SELECT_H

@@ -120,6 +120,63 @@ IPV_API int ipv_solve_from_memory(
     IpvWcsResult* result          // 输出结果
 );
 
+// ============================================================================
+// P02-002: 候选路径 A / 路径 B API (实验性, 生产默认不调用)
+//
+// 规范: docs/05_STAR_DETECT_PSF_DEDUP_SPEC.md
+// star_det v1 格式: FLOAT64 [N,6]
+//   0: x_px          1: y_px          2: flux
+//   3: mag           4: saturated     5: has_saturated
+// ============================================================================
+
+// 路径 B callback: 导出 PlateSolve 内部 sdet_detect_ex 检测结果
+// callback 在 sdet_detect_ex 调用后、选星前同步调用
+// callback 返回后源指针失效, 调用方必须在 callback 内复制数据
+// detections 指向 [N,6] FLOAT64 缓冲区, 由求解器在调用期间拥有
+typedef void (*IpvDetectionCallback)(
+    const double* detections,     // [N,6] FLOAT64 star_det v1
+    int n_detections,
+    void* user_data
+);
+
+// 路径 A 候选 API: 从外部 detections 求解 (跳过 sdet_detect_ex)
+// detections: FLOAT64 [N,6] star_det v1 格式
+// 算法逻辑与 ipv_solve_from_memory 完全一致, 仅跳过检测步骤
+// 返回: 0=失败, 1=成功 (结果写入 result)
+IPV_API int ipv_solve_from_detections_v1(
+    void* solver,
+    const double* detections,     // [N,6] FLOAT64 star_det v1
+    int n_detections,
+    int image_width,              // 图像宽度 (像素)
+    int image_height,             // 图像高度 (像素)
+    double ra0,                   // 初始指向 RA (度)
+    double dec0,                  // 初始指向 Dec (度)
+    double focal_length_mm,       // 焦距 (mm)
+    double pixel_size_um,         // 像素尺寸 (um)
+    const IpvParams* params,      // 参数 (NULL=用默认值)
+    IpvWcsResult* result          // 输出结果
+);
+
+// 路径 B API: 带 callback 的内存求解 (保持原有数据流 + 导出检测)
+// 与 ipv_solve_from_memory 算法完全一致, 区别:
+//   - 在 sdet_detect_ex 调用后、选星前调用 callback 导出完整检测结果
+//   - callback 为 NULL 时行为与 ipv_solve_from_memory 完全一致
+// 返回: 0=失败, 1=成功 (结果写入 result)
+IPV_API int ipv_solve_from_memory_with_callback(
+    void* solver,
+    const float* pixels,          // 像素数据 (float32, row-major)
+    int width,                    // 图像宽度
+    int height,                   // 图像高度
+    double ra0,                   // 初始指向 RA (度)
+    double dec0,                  // 初始指向 Dec (度)
+    double focal_length_mm,       // 焦距 (mm)
+    double pixel_size_um,         // 像素尺寸 (um)
+    const IpvParams* params,      // 参数 (NULL=用默认值)
+    IpvDetectionCallback callback, // 检测结果导出回调 (NULL=不导出)
+    void* user_data,              // 回调用户数据
+    IpvWcsResult* result          // 输出结果
+);
+
 // 获取默认参数
 IPV_API void ipv_get_default_params(IpvParams* params);
 

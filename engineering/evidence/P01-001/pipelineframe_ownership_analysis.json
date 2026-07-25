@@ -1,0 +1,225 @@
+{
+  "task_id": "P01-001",
+  "title": "PipelineFrame 唯一归属决策分析",
+  "date": "2026-07-25",
+  "baseline_commit": "7b85ff3f0d37a4b26fff6077684993842ed2bbae",
+  "decision": {
+    "adr_id": "ADR-005",
+    "supersedes": "ADR-PENDING-001",
+    "status": "ACCEPTED",
+    "chosen_option": "A",
+    "summary": "PipelineFrame 唯一归属 astro_image_io；data_pipeline 源码归档不参与构建"
+  },
+  "modules": {
+    "astro_image_io": {
+      "path": "lib/astro_image_io/",
+      "role": "统一天文图像 I/O 层 + Pipeline 管线引擎",
+      "github_repo": "https://github.com/fujiaze/Astro-Image-IO-C",
+      "files": {
+        "headers": [
+          "include/aio_pipeline.h",
+          "include/aio_pipeline_engine.h",
+          "include/astro_image_io.h",
+          "include/aio_healpix_io.h",
+          "include/aio_ahpx_format.h"
+        ],
+        "pipeline_sources": [
+          "src/aio_pipeline.cpp",
+          "src/aio_pipeline_engine.cpp"
+        ],
+        "other_sources": [
+          "src/aio_api.cpp",
+          "src/aio_fits.cpp",
+          "src/aio_xisf.cpp",
+          "src/aio_log.cpp",
+          "src/aio_compressor.cpp",
+          "src/healpix/aio_healpix_io.cpp",
+          "src/ahpx/aio_ahpx_api.cpp",
+          "src/ahpx/aio_ahpx_reader.cpp",
+          "src/ahpx/aio_ahpx_writer.cpp"
+        ],
+        "build_files": [
+          "Makefile",
+          "build.ps1",
+          "aio_build_config.json",
+          "aio_build_config.full.json",
+          "aio_build_config.healpix.json",
+          "aio_build_config.minimal.json"
+        ]
+      },
+      "build_artifact": {
+        "exists": true,
+        "filename": "astro_image_io.dll",
+        "size_bytes": 2993875,
+        "path": "lib/astro_image_io/astro_image_io.dll"
+      },
+      "consumers": [
+        "orchestrator (via ModuleId::AIO, dll_loader.cpp)"
+      ],
+      "is_active": true
+    },
+    "data_pipeline": {
+      "path": "lib/data_pipeline/",
+      "role": "拆分中间态：从 astro_image_io 迁移 C++ 实现的产物",
+      "github_repo": "https://github.com/fujiaze/Astro-Data-Pipeline",
+      "files": {
+        "headers": [
+          "include/aio_pipeline.h",
+          "include/aio_pipeline_engine.h"
+        ],
+        "pipeline_sources": [
+          "src/aio_pipeline.cpp",
+          "src/aio_pipeline_engine.cpp"
+        ],
+        "other_sources": [],
+        "build_files": []
+      },
+      "build_artifact": {
+        "exists": false,
+        "filename": null,
+        "size_bytes": 0,
+        "path": null
+      },
+      "consumers": [],
+      "is_active": false,
+      "archive_reason": "迁移未完成，无构建文件，无构建产物，无消费者"
+    }
+  },
+  "exported_symbols": {
+    "count": 21,
+    "prefix": "AIO_EXPORT",
+    "identical_in_both_modules": true,
+    "symbols": [
+      "aio_pipeline_frame_create",
+      "aio_pipeline_frame_destroy",
+      "aio_pipeline_frame_memory_usage",
+      "aio_frame_add_block",
+      "aio_frame_add_block_move",
+      "aio_frame_get_block_data",
+      "aio_frame_get_block_count",
+      "aio_frame_get_block_type",
+      "aio_frame_remove_block",
+      "aio_frame_has_block",
+      "aio_frame_list_blocks",
+      "aio_frame_kv_set",
+      "aio_frame_kv_get",
+      "aio_frame_kv_set_double",
+      "aio_frame_kv_get_double",
+      "aio_frame_save_cache",
+      "aio_frame_load_cache",
+      "aio_frame_export_block_xml",
+      "aio_frame_export_all_xml",
+      "aio_pipeline_export_xml",
+      "aio_frame_export_block_fits"
+    ],
+    "note": "aio_pipeline_engine.cpp 额外导出 7 个引擎符号（aio_pipeline_engine_create/destroy/register/set_debug/set_auto_free/set_block_drop/run_single/run_batch/stage_name），同样两模块完全相同"
+  },
+  "source_comparison": {
+    "aio_pipeline_cpp": {
+      "method": "PowerShell Compare-Object (Get-Content -Encoding UTF8)",
+      "result": "IDENTICAL_CONTENT",
+      "note": "fc /b 报 DIFFERENT 系 BOM 或行尾差异，文本内容相同"
+    },
+    "aio_pipeline_engine_cpp": {
+      "method": "PowerShell Compare-Object (Get-Content -Encoding UTF8)",
+      "result": "IDENTICAL_CONTENT"
+    },
+    "aio_pipeline_h": {
+      "method": "逐行读取对比",
+      "result": "IDENTICAL_CONTENT"
+    },
+    "aio_pipeline_engine_h": {
+      "method": "逐行读取对比",
+      "result": "IDENTICAL_CONTENT"
+    }
+  },
+  "conflict_analysis": {
+    "current_runtime_conflict": false,
+    "reason": "data_pipeline 无构建产物，21 个符号只从 astro_image_io.dll 导出，运行时无冲突",
+    "potential_link_time_conflict": true,
+    "potential_conflict_reason": "若 data_pipeline 被构建为 DLL 且与 astro_image_io.dll 同时加载，21 个同名导出符号将导致符号解析歧义",
+    "actual_loader": {
+      "module_id": "AIO",
+      "dll_filename": "astro_image_io.dll",
+      "evidence": "lib/orchestrator/cpp/src/dll_loader.cpp:38"
+    },
+    "orchestrator_symbol_resolution": {
+      "aio_pipeline_frame_create": "from astro_image_io.dll (orchestrator.cpp:2536)",
+      "aio_frame_add_block": "from astro_image_io.dll (orchestrator.cpp:1267/1585/2093)",
+      "aio_frame_add_block_move": "from astro_image_io.dll (orchestrator.cpp:728/1757/2233)",
+      "aio_frame_get_block": "from astro_image_io.dll (orchestrator.cpp:722)",
+      "aio_frame_get_block_data": "from astro_image_io.dll (orchestrator.cpp:720)",
+      "aio_frame_remove_block": "from astro_image_io.dll (orchestrator.cpp:723)"
+    }
+  },
+  "options_evaluated": {
+    "A": {
+      "title": "PipelineFrame 归属 astro_image_io（data_pipeline 归档）",
+      "chosen": true,
+      "pros": [
+        "最小改动：astro_image_io.dll 已构建且工作正常",
+        "零符号冲突风险：data_pipeline 不参与构建",
+        "orchestrator 无需改动",
+        "符合 P01 合约冻结阶段稳定性优先",
+        "符合 P00-003 基线保持有效"
+      ],
+      "cons": [
+        "与 02 架构文档依赖方向短期偏离",
+        "PipelineFrame 概念上属运行时数据通道，留在 I/O 模块职责略不纯"
+      ]
+    },
+    "B": {
+      "title": "PipelineFrame 归属 data_pipeline（astro_image_io 只负责 I/O）",
+      "chosen": false,
+      "pros": [
+        "符合 02 架构文档依赖方向",
+        "概念清晰"
+      ],
+      "cons": [
+        "破坏现有可用构建链",
+        "data_pipeline 无构建文件需新建",
+        "需修改 orchestrator dll_loader.cpp",
+        "违反最小改动原则",
+        "P01 阶段风险过高"
+      ]
+    },
+    "C": {
+      "title": "新建独立 pipeline_frame 模块",
+      "chosen": false,
+      "pros": [
+        "概念最清晰",
+        "长期可维护性最好"
+      ],
+      "cons": [
+        "最大改动：新建模块+构建文件+修改依赖",
+        "违反最小改动原则",
+        "无立即分离紧迫性",
+        "P01 阶段不宜引入新模块边界"
+      ]
+    }
+  },
+  "architecture_context": {
+    "dependency_direction_doc": "engineering/docs/02_CLI_CORE_ARCHITECTURE.md §4",
+    "documented_direction": "CLI → Orchestrator → contracts/data_pipeline → astro_image_io",
+    "actual_direction": "CLI → Orchestrator → astro_image_io (provides PipelineFrame)",
+    "deviation": "短期偏离：PipelineFrame 由底层 astro_image_io 提供，而非上层 data_pipeline",
+    "deviation_reason": "data_pipeline 是迁移未完成的中间态产物，P01 优先稳定性",
+    "target_state_preserved": true
+  },
+  "contract_impact": {
+    "pipelineframe_contract_v1": "无变更（API 不变）",
+    "pipeline_blocks_registry_csv": "无变更（块定义与模块归属无关）",
+    "orchestrator_code": "无变更（继续从 astro_image_io.dll 加载）",
+    "business_source_code": "无变更（本任务为 ADR 决策，不实施代码改动）"
+  },
+  "follow_up_actions": {
+    "immediate": [
+      "lib/data_pipeline/ 标记为 ARCHIVED（后续任务实施）",
+      "更新 DECISION_REGISTER.md: ADR-PENDING-001 → ADR-005 ACCEPTED"
+    ],
+    "future": [
+      "P02+ 阶段若需架构重构，以新 ADR 取代 ADR-005",
+      "迁移路径见 ADR.md Compatibility/migration 章节"
+    ]
+  }
+}

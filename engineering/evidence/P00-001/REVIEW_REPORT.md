@@ -1,42 +1,29 @@
-# Review Report
-Task: P00-001
-Reviewer mode: isolated-self-review
-Baseline: eb44f655bbbbfbc5c8c1629fef5d4762c52f0628
+# REVIEW_REPORT
 
-## Scope review
-- 任务允许修改：`engineering/evidence/P00-001/**`、`engineering/control/**`、`engineering/tools/`
-- 任务禁止修改：`lib/**`、`docs/**`、构建脚本与算法配置
-- 抽查结果：`git diff --name-only HEAD` 返回空（无跟踪文件被修改）
-- `git status --short` 仅显示 `.astrocs_agent_bootstrap/`、`AstroCS_Autonomous_Agent_Pack_2026-07-24_v2.zip`、`engineering/` 未跟踪
-- **结论：无越界修改。PASS**
-
-## Acceptance review
-任务完成标准：
-1. ✅ 报告可在另一份 clone 上重复生成 — 两次运行 repo_preflight.py 均成功，SHA-256 一致
-2. ✅ 所有缺口都明确为事实，不做猜测 — healpix_drizzle/stack 未受控有 git ls-files 实证；CI 文件来源有路径实证；无根 CMake 有 preflight.json 实证
-3. ✅ 基线 commit 和文件哈希已记录 — preflight.json 记录 HEAD=eb44f65，artifacts.sha256 记录报告哈希
-4. ✅ 没有改动业务代码 — git diff 为空
-- **结论：全部验收条件满足。PASS**
-
-## Test and evidence review
-- TEST_REPORT.md 记录了 4 项测试：首次运行、重复运行、关键字段验证、Git 跟踪验证
-- 抽查重新运行：total tracked=350（与报告一致），drizzle/stack tracked=0（与报告一致），tags=0（与报告一致）
-- 证据文件齐全：preflight.json、preflight.md、artifacts.sha256、TASK_REPORT、TEST_REPORT、EVIDENCE_INDEX
-- **结论：测试覆盖充分，证据可追溯。PASS**
-
-## Compatibility review
-- 本任务为只读预检，不涉及数据格式、ABI、CLI、配置、schema 或依赖变更
-- 无兼容性影响
-- **结论：PASS**
-
-## Risks and residual issues
-1. **healpix_drizzle/healpix_stack 未受控** — 已登记，将由 P00-002/003 处理。本地源码存在，无硬阻塞。
-2. **无根级构建入口** — 已登记，将由 P01-001（根级构建策略 ADR）处理。
-3. **无主仓库 CI** — 已登记，将由 P04-005（快速 CI）处理。
-4. **无 baseline tag** — 将由 P00-008 在 G0 通过后创建。
-5. **HEAD 与控制包基线 commit 差异**（eb44f65 vs 9f10c72）— 仅文档提交，不影响代码基线完整性。后续 P00-008 创建 baseline tag 时应基于当前 HEAD。
-
-## Required corrections
-无。
+- Reviewer mode: 独立复核（subagent self-review，只读盘点任务）
+- Diff reviewed:
+  - `engineering/evidence/P00-001/baseline_inventory.json`（新增，312 行结构化 JSON）
+  - `engineering/evidence/P00-001/TASK_REPORT.md`（v1.1 重写）
+  - `engineering/evidence/P00-001/TEST_REPORT.md`（v1.1 重写，13 项测试全 PASS）
+  - `engineering/evidence/P00-001/EVIDENCE_INDEX.md`（v1.1 重写，含 5 项 SHA-256）
+  - `engineering/evidence/P00-001/REVIEW_REPORT.md`（本文件）
+  - 未触碰任何 `lib/**` 业务源码（git status 确认 lib/ 下仅 Makefile/build.ps1 因 v1.1 迁移被改，非本任务产生）
+- Tests rerun:
+  - 重新执行 git log/status/branch/remote/tag 命令，结果与 baseline_inventory.json 一致。
+  - 重新执行 Get-FileHash 采集 build/artifacts 16 文件 + HISS/HCSD 3 文件 SHA-256，结果与 baseline_inventory.json 一致。
+  - 重新执行 Get-ChildItem 盘点 GaiaDR3SP/testdata/lib 目录，结果与 baseline_inventory.json 一致。
+- Contract/ABI/format findings:
+  - 无契约/ABI/格式变更。本任务为只读盘点，不修改任何接口、数据结构或文件格式。
+  - baseline_inventory.json 字段命名遵循 v1.1 开发包 evidence 命名规范，可被后续任务直接引用。
+  - 旧 v1.0 证据（preflight.json/preflight.md/artifacts.sha256）保留原位，未删除，向后兼容。
+- Scientific regression findings:
+  - 无科学回归风险。本任务不涉及算法/数据处理逻辑，仅盘点环境与产物。
+  - HISS/HCSD 输出文件的 SHA-256 已记录，可作为后续 Stage1/Stage2 验证的基准指纹。
+- Risks:
+  - **工作树脏**：73 未跟踪 + 60 删除 + 13 修改，主 Agent 需在 P00 阶段结束时统一提交，否则污染后续任务基线。
+  - **lib/ 下 2 处构建脚本改动未提交**：Makefile（gaia_xpsd_client）与 build.ps1（plate_solve/ipv）需主 Agent 确认归属。
+  - **a.exe 临时产物残留**：建议清理 build/artifacts/a.exe。
+  - **大文件未纳管**：Gaia 63.5 GB + HISS/HCSD ≈530 MB 不在 Git，依赖本地备份，重建环境需独立获取。
+  - 以上风险均为既存状态，本任务仅识别不修复，符合 P00-001 只读盘点范围。
 
 VERDICT: PASS

@@ -1,0 +1,22 @@
+P00-005: 采集工具链与本机环境
+
+采集本机 16 个工具链的版本、路径、许可证与 13 个关键二进制 SHA-256,
+生成 environment baseline, 为 P01 构建可重现性提供环境基线。
+
+交付物:
+- environment_baseline.json: 机器可读工具链基线(16 工具)
+- environment_baseline.md: 人类可读基线(清单+哈希+路径问题+与P00-004对应)
+- TASK_REPORT / TEST_REPORT / EVIDENCE_INDEX / REVIEW_REPORT: 任务闭环四件套
+
+采集结果:
+- PowerShell 7.6.3 / Python 3.10.11 / Git 2.53.0 / gh 2.63.2
+- GCC/G++ 16.1.0 (MSYS2 Rev4) / mingw32-make 4.4.1
+- Qt6 6.11.0 / GSL 2.8 / Eigen3 5.0.1
+- zstd / lz4 / zlib / OpenMP (libgomp)
+
+识别 3 个路径问题:
+- GCC/make/qmake6 不在默认 PATH, 构建脚本需显式调用 msys64 路径
+- PATH 中存在两个 make (TRAE make.cmd 与 mingw32-make.exe)
+
+独立复核: PASS(gcc.exe 哈希重新计算一致, 范围无越界, 与P00-004依赖图完全对应)
+任务状态: P00-005 DONE, 推进到 P00-006(复核旧审计 163 项)

@@ -1,0 +1,712 @@
+{
+  "schema": "dependencies.lock/v1",
+  "project": "AstroCS",
+  "task_id": "P01-002",
+  "generated_at": "2026-07-24T11:58:16.817746+00:00",
+  "baseline_tag": "astrocs-baseline-p00",
+  "toolchain": [
+    {
+      "name": "PowerShell",
+      "version": "7.6.3",
+      "path": "C:\\Users\\fujia\\AppData\\Local\\Programs\\PowerShell\\7\\pwsh.exe",
+      "license": "MIT",
+      "sha256": null,
+      "locked": true
+    },
+    {
+      "name": "Python",
+      "version": "3.10.11",
+      "path": "C:\\Users\\fujia\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\vm\\tools\\python\\python.exe",
+      "license": "PSF (Python Software Foundation License)",
+      "sha256": "77177A53D091575C514D5BD19DF3EE40665A26459FB92D71319F139291440D98",
+      "locked": true
+    },
+    {
+      "name": "Git",
+      "version": "2.53.0.windows.1",
+      "path": "C:\\Program Files\\Git\\cmd\\git.exe",
+      "license": "GPLv2 (with LGPLv2.1+ for some parts)",
+      "sha256": "DA240FE9BC24895B3E04150A4990B8A6FF329ECABCD8F19684C2CC310DA5EF3F",
+      "locked": true
+    },
+    {
+      "name": "GitHub CLI (gh)",
+      "version": "2.63.2 (2024-12-05)",
+      "path": "C:\\Users\\fujia\\AppData\\Local\\Temp\\gh-cli-install\\bin\\gh.exe",
+      "license": "MIT",
+      "sha256": "C9D45316C3EE3270CCA8A713C93F3FB48855EF8CFFB90A80D356AD265A9C2275",
+      "locked": true
+    },
+    {
+      "name": "GCC",
+      "version": "16.1.0 (Rev4, Built by MSYS2 project)",
+      "path": "C:\\msys64\\mingw64\\bin\\gcc.exe",
+      "license": "GPLv3 with GCC Runtime Library Exception",
+      "sha256": "9909A5E830DC5E9740D4958A99ECE7797652F1F30756C6AB54C51867BBA4765C",
+      "locked": true
+    },
+    {
+      "name": "G++",
+      "version": "16.1.0 (Rev4, Built by MSYS2 project)",
+      "path": "C:\\msys64\\mingw64\\bin\\g++.exe",
+      "license": "GPLv3 with GCC Runtime Library Exception",
+      "sha256": "805AEB690FAD8CB3DDFE8065998B2337B2CBF8C5F07B2ABCE5DCAFF5420535D0",
+      "locked": true
+    },
+    {
+      "name": "mingw32-make",
+      "version": "4.4.1",
+      "path": "C:\\msys64\\mingw64\\bin\\mingw32-make.exe",
+      "license": "GPLv3",
+      "sha256": "C7D3BE056FEB5EE8C1F236114CA97D3589C644963DE88D53F5E1D623F7EC7844",
+      "locked": true
+    },
+    {
+      "name": "Make (TRAE bundled)",
+      "version": "4.4.1",
+      "path": "C:\\Users\\fujia\\AppData\\Roaming\\TRAE SOLO CN\\ModularData\\ai-agent\\vm\\tools\\bin\\make.cmd",
+      "license": "GPLv3",
+      "sha256": null,
+      "locked": true
+    },
+    {
+      "name": "Qt6",
+      "version": "6.11.0",
+      "path": "C:\\msys64\\mingw64\\bin\\qmake6.exe",
+      "license": "GPLv3 / LGPLv3 / Commercial (triple-licensed)",
+      "sha256": "36BE79B55084BD5C7BD91517D88E2B99A88CEEF20E313834FD1AB48AD91211D2",
+      "locked": true
+    },
+    {
+      "name": "GSL (GNU Scientific Library)",
+      "version": "2.8",
+      "path": "C:\\msys64\\mingw64\\bin\\libgsl-28.dll",
+      "license": "GPLv3",
+      "sha256": "F133DD12A4F5DA84981D5AE8165A7FF83409579B99BB0FF7F1FE39FE7FEC7F4E",
+      "locked": true
+    },
+    {
+      "name": "GSL CBLAS",
+      "version": "2.8",
+      "path": "C:\\msys64\\mingw64\\bin\\libgslcblas-0.dll",
+      "license": "GPLv3",
+      "sha256": "0FE783C4F188F5D891602898A5284EBAEB8859E089E4E9922C8F2FF8CF6CD843",
+      "locked": true
+    },
+    {
+      "name": "zstd",
+      "version": null,
+      "path": "C:\\msys64\\mingw64\\bin\\libzstd.dll",
+      "license": "BSD-3-Clause",
+      "sha256": "B95C223A9548A9ECF51377C962E0BC8F0C51EB0C6F67A296DBC885996F0DD40D",
+      "locked": true
+    },
+    {
+      "name": "lz4",
+      "version": null,
+      "path": "C:\\msys64\\mingw64\\bin\\liblz4.dll",
+      "license": "BSD-2-Clause",
+      "sha256": "35F917274BCA8F19677BA66F1B3CC3C83568C3249FC43215FC16E76439C8E856",
+      "locked": true
+    },
+    {
+      "name": "zlib",
+      "version": null,
+      "path": "C:\\msys64\\mingw64\\bin\\zlib1.dll",
+      "license": "zlib License",
+      "sha256": "93E9243A44C29200EEACAF9658EFE2558581770E4B11CA4B500E18E424A6E3B5",
+      "locked": true
+    },
+    {
+      "name": "OpenMP (libgomp)",
+      "version": "16.1.0 (随 GCC)",
+      "path": "C:\\msys64\\mingw64\\bin\\libgomp-1.dll",
+      "license": "GPLv3 with GCC Runtime Library Exception",
+      "sha256": "53ADE6D7001F8E8E02F22CA266A25C0A7BA61B5231EA1DC7E6713DFEB865C9D0",
+      "locked": true
+    },
+    {
+      "name": "Eigen3",
+      "version": "5.0.1",
+      "path": "C:\\msys64\\mingw64\\include\\eigen3",
+      "license": "MPL-2.0",
+      "sha256": null,
+      "locked": true
+    }
+  ],
+  "external_libs": [
+    {
+      "name": "GSL (GNU Scientific Library)",
+      "version": "2.8",
+      "dll": "libgsl-28.dll",
+      "path": "C:\\msys64\\mingw64\\bin\\libgsl-28.dll",
+      "sha256": "F133DD12A4F5DA84981D5AE8165A7FF83409579B99BB0FF7F1FE39FE7FEC7F4E",
+      "used_by": [
+        "star_detector"
+      ]
+    },
+    {
+      "name": "GSL CBLAS",
+      "version": "2.8",
+      "dll": "libgslcblas-0.dll",
+      "path": "C:\\msys64\\mingw64\\bin\\libgslcblas-0.dll",
+      "sha256": "0FE783C4F188F5D891602898A5284EBAEB8859E089E4E9922C8F2FF8CF6CD843",
+      "used_by": [
+        "star_detector"
+      ]
+    },
+    {
+      "name": "zstd",
+      "version": null,
+      "dll": "libzstd.dll",
+      "path": "C:\\msys64\\mingw64\\bin\\libzstd.dll",
+      "sha256": "B95C223A9548A9ECF51377C962E0BC8F0C51EB0C6F67A296DBC885996F0DD40D",
+      "used_by": [
+        "astro_image_io"
+      ]
+    },
+    {
+      "name": "lz4",
+      "version": null,
+      "dll": "liblz4.dll",
+      "path": "C:\\msys64\\mingw64\\bin\\liblz4.dll",
+      "sha256": "35F917274BCA8F19677BA66F1B3CC3C83568C3249FC43215FC16E76439C8E856",
+      "used_by": [
+        "astro_image_io"
+      ]
+    },
+    {
+      "name": "zlib",
+      "version": null,
+      "dll": "zlib1.dll",
+      "path": "C:\\msys64\\mingw64\\bin\\zlib1.dll",
+      "sha256": "93E9243A44C29200EEACAF9658EFE2558581770E4B11CA4B500E18E424A6E3B5",
+      "used_by": [
+        "gaia_xpsd_client",
+        "healpix_stack"
+      ]
+    },
+    {
+      "name": "OpenMP (libgomp)",
+      "version": "16.1.0 (随 GCC)",
+      "dll": "libgomp-1.dll",
+      "path": "C:\\msys64\\mingw64\\bin\\libgomp-1.dll",
+      "sha256": "53ADE6D7001F8E8E02F22CA266A25C0A7BA61B5231EA1DC7E6713DFEB865C9D0",
+      "used_by": [
+        "calibration",
+        "dynamic_psf",
+        "gaia_xpsd_client",
+        "star_detector",
+        "snr_estimator",
+        "photometric_calib",
+        "plate_solve_ipv",
+        "healpix_drizzle",
+        "astro_image_io"
+      ]
+    },
+    {
+      "name": "Qt6",
+      "version": "6.11.0",
+      "dll": null,
+      "path": "C:\\msys64\\mingw64\\bin\\qmake6.exe",
+      "sha256": "36BE79B55084BD5C7BD91517D88E2B99A88CEEF20E313834FD1AB48AD91211D2",
+      "used_by": [
+        "healpix_browser_qt"
+      ],
+      "type": "framework",
+      "components": [
+        "Core",
+        "Gui",
+        "Widgets",
+        "OpenGLWidgets"
+      ]
+    },
+    {
+      "name": "Eigen3",
+      "version": "5.0.1",
+      "dll": null,
+      "path": "C:\\msys64\\mingw64\\include\\eigen3",
+      "sha256": "",
+      "used_by": [
+        "healpix_stack"
+      ],
+      "type": "header-only"
+    }
+  ],
+  "modules": [
+    {
+      "name": "astro_image_io",
+      "path": "lib/astro_image_io",
+      "build_system": "build.ps1+Makefile",
+      "authority": "build.ps1",
+      "sources": [
+        "src/aio_log.cpp",
+        "src/aio_api.cpp",
+        "src/aio_fits.cpp",
+        "src/aio_xisf.cpp",
+        "src/aio_compressor.cpp",
+        "src/aio_pipeline.cpp",
+        "src/aio_pipeline_engine.cpp",
+        "src/ahpx/aio_ahpx_api.cpp",
+        "src/ahpx/aio_ahpx_reader.cpp",
+        "src/ahpx/aio_ahpx_writer.cpp",
+        "src/healpix/aio_healpix_io.cpp"
+      ],
+      "cflags": [
+        "-O2",
+        "-std=c++17",
+        "-Wall",
+        "-fopenmp",
+        "-shared"
+      ],
+      "ldlibs": [
+        "-lm",
+        "-lzstd",
+        "-llz4"
+      ],
+      "output": "astro_image_io.dll",
+      "includes": [
+        "include",
+        "src"
+      ],
+      "defines": [
+        "AIO_ENABLE_FITS",
+        "AIO_ENABLE_XISF",
+        "AIO_ENABLE_AHPX",
+        "AIO_ENABLE_HEALPIX",
+        "AIO_ENABLE_COMPRESSOR",
+        "AIO_ENABLE_PIPELINE",
+        "HAS_ZSTD",
+        "HAS_LZ4"
+      ],
+      "notes": "build.ps1 is authoritative and config-driven via aio_build_config.json (presets: default/full/minimal/healpix). All defines/libs are conditional on config flags. Makefile is outdated: lacks healpix source, conditional defines, zstd/lz4 libs; adds -march=native. Compiler: C:\\msys64\\mingw64\\bin\\g++.exe.",
+      "makefile_outdated": [
+        "src/healpix/aio_healpix_io.cpp"
+      ]
+    },
+    {
+      "name": "calibration",
+      "path": "lib/calibration",
+      "build_system": "build.ps1+Makefile",
+      "authority": "build.ps1",
+      "sources": [
+        "src/master_generator.cpp",
+        "src/calibrator.cpp",
+        "src/cosmetic_corrector.cpp",
+        "src/ac_api.cpp"
+      ],
+      "cflags": [
+        "-O2",
+        "-march=native",
+        "-Wall",
+        "-std=c++17",
+        "-shared",
+        "-fopenmp"
+      ],
+      "ldlibs": [
+        "-lm"
+      ],
+      "output": "astro_calibration.dll",
+      "includes": [
+        "include"
+      ],
+      "defines": [],
+      "notes": "Makefile is severely outdated. build.ps1 is authoritative. Output renamed from cosmetic_corrector.dll to astro_calibration.dll.",
+      "makefile_outdated": [
+        "src/master_generator.cpp",
+        "src/calibrator.cpp",
+        "src/cosmetic_corrector.cpp",
+        "src/ac_api.cpp"
+      ]
+    },
+    {
+      "name": "dynamic_psf",
+      "path": "lib/dynamic_psf",
+      "build_system": "Makefile",
+      "authority": "makefile",
+      "sources": [
+        "src/dpsf_psf.cpp",
+        "src/dpsf_image.cpp",
+        "src/dpsf_log.cpp"
+      ],
+      "cflags": [
+        "-O2",
+        "-march=native",
+        "-Wall",
+        "-std=c++17",
+        "-fopenmp"
+      ],
+      "ldlibs": [
+        "-lm"
+      ],
+      "output": "dynamic_psf.dll",
+      "includes": [
+        "include",
+        "src"
+      ],
+      "defines": [],
+      "notes": "Makefile-only module. No build.ps1. No external library dependencies beyond libm and OpenMP.",
+      "makefile_outdated": null
+    },
+    {
+      "name": "gaia_xpsd_client",
+      "path": "lib/gaia_xpsd_client",
+      "build_system": "Makefile",
+      "authority": "makefile",
+      "sources": [
+        "src/gaia_client.c"
+      ],
+      "cflags": [
+        "-O2",
+        "-march=native",
+        "-Wall"
+      ],
+      "ldlibs": [
+        "-lz",
+        "-fopenmp"
+      ],
+      "output": "gaia_client.dll",
+      "includes": [
+        "src"
+      ],
+      "defines": [],
+      "notes": "C module (uses gcc, not g++). Multiple targets: static lib (libgaia_client.a), shared dll (gaia_client.dll), demo exe (gaia_client_demo). 'dll' and 'all' targets produce gaia_client.dll. No build.ps1. Depends on zlib (-lz).",
+      "makefile_outdated": null
+    },
+    {
+      "name": "star_detector",
+      "path": "lib/star_detector",
+      "build_system": "Makefile",
+      "authority": "makefile",
+      "sources": [
+        "src/sdet_api.cpp",
+        "src/sdet_detector.cpp",
+        "src/sdet_image.cpp",
+        "src/sdet_log.cpp",
+        "src/sdet_background.cpp"
+      ],
+      "cflags": [
+        "-Wall",
+        "-std=c++17",
+        "-fopenmp",
+        "-march=native",
+        "-ffp-contract=fast",
+        "-funroll-loops",
+        "-O3"
+      ],
+      "ldlibs": [
+        "-lgsl",
+        "-lgslcblas",
+        "-lm"
+      ],
+      "output": "star_detector.dll",
+      "includes": [
+        "include",
+        "src"
+      ],
+      "defines": [],
+      "notes": "Makefile-only module. Depends on GSL (gsl_multifit_nlinear). Has optional LTO and PCH targets. PCH header: src/stardetector_common.h.",
+      "makefile_outdated": null
+    },
+    {
+      "name": "snr_estimator",
+      "path": "lib/snr_estimator/cpp",
+      "build_system": "build.ps1+Makefile",
+      "authority": "build.ps1",
+      "sources": [
+        "src/snr_estimator.cpp"
+      ],
+      "cflags": [
+        "-O2",
+        "-std=c++17",
+        "-Wall",
+        "-fPIC",
+        "-fopenmp",
+        "-shared"
+      ],
+      "ldlibs": [],
+      "output": "snr_estimator.dll",
+      "includes": [
+        "include"
+      ],
+      "defines": [],
+      "notes": "build.ps1 and Makefile are consistent. Single source file module.",
+      "makefile_outdated": []
+    },
+    {
+      "name": "photometric_calib",
+      "path": "lib/photometric_calib/cpp",
+      "build_system": "build.ps1+Makefile",
+      "authority": "build.ps1",
+      "sources": [
+        "src/pc_api.cpp",
+        "src/star_matcher.cpp",
+        "src/image_corrector.cpp",
+        "src/wcs_transform.cpp",
+        "src/spectrum_integrator.cpp"
+      ],
+      "cflags": [
+        "-O2",
+        "-std=c++17",
+        "-fopenmp",
+        "-fPIC",
+        "-Wall",
+        "-shared",
+        "-fopenmp"
+      ],
+      "ldlibs": [
+        "-lm"
+      ],
+      "output": "photometric_calib.dll",
+      "includes": [
+        "include",
+        "src",
+        "../../gaia_xpsd_client/src"
+      ],
+      "defines": [],
+      "notes": "build.ps1 and Makefile are consistent. Depends on gaia_client.dll (linked directly as input, copied to output dir at runtime). build.ps1 copies gaia_client.dll to module dir after build.",
+      "makefile_outdated": []
+    },
+    {
+      "name": "plate_solve_ipv",
+      "path": "lib/plate_solve/cpp/ipv",
+      "build_system": "build.ps1+Makefile",
+      "authority": "build.ps1",
+      "sources": [
+        "src/ipv_select.cpp",
+        "src/ipv_kvector.cpp",
+        "src/ipv_polygon.cpp",
+        "src/ipv_ransac.cpp",
+        "src/ipv_angle.cpp",
+        "src/ipv_wcs.cpp",
+        "src/ipv_sip.cpp",
+        "src/ipv_distortion.cpp",
+        "src/ipv_triangle.cpp",
+        "src/ipv_itertrans.cpp",
+        "src/ipv_robust_refine.cpp",
+        "src/ipv_solver.cpp",
+        "src/ipv_entry.cpp"
+      ],
+      "cflags": [
+        "-std=c++17",
+        "-O3",
+        "-ffast-math",
+        "-funroll-loops",
+        "-march=native",
+        "-Wall",
+        "-Wextra",
+        "-mstackrealign",
+        "-fopenmp"
+      ],
+      "ldlibs": [
+        "-lkernel32"
+      ],
+      "output": "ipv_solver.dll",
+      "includes": [
+        "include"
+      ],
+      "defines": [
+        "IPV_EXPORTS",
+        "__USE_MINGW_ANSI_STDIO=1"
+      ],
+      "notes": "Source lists identical. build.ps1 uses more aggressive optimization (-O3 -ffast-math -funroll-loops -mstackrealign) and defines __USE_MINGW_ANSI_STDIO=1; Makefile uses -O2 only. build.ps1 is authoritative. Uses two-phase compile (compile .o then link).",
+      "makefile_outdated": []
+    },
+    {
+      "name": "healpix_drizzle",
+      "path": "lib/healpix_db/healpix_drizzle",
+      "build_system": "Makefile",
+      "authority": "makefile",
+      "sources": [
+        "fits_reader.cpp",
+        "wcs_sip.cpp",
+        "poly_clip.cpp",
+        "drizzle_engine.cpp",
+        "hp_drizzle_api.cpp"
+      ],
+      "cflags": [
+        "-O3",
+        "-march=native",
+        "-ffast-math",
+        "-funroll-loops",
+        "-Wall",
+        "-std=c++17",
+        "-fopenmp"
+      ],
+      "ldlibs": [
+        "-lm"
+      ],
+      "output": "healpix_drizzle.dll",
+      "includes": [
+        ".",
+        "../../astro_image_io/include",
+        "../../astro_image_io/src",
+        "../healpix_stack"
+      ],
+      "defines": [
+        "AIO_ENABLE_HEALPIX"
+      ],
+      "notes": "Makefile-only module. Sources are in module root (not src/). Statically compiles healpix_core.cpp and snr_evaluator.cpp from healpix_stack. Links astro_image_io.dll for FITS/XISF/HEALPix I/O (healpix_io merged into aio per 2026-07-16 spec G1).",
+      "makefile_outdated": null
+    },
+    {
+      "name": "healpix_stack",
+      "path": "lib/healpix_db/healpix_stack",
+      "build_system": "build.ps1+Makefile",
+      "authority": "build.ps1",
+      "sources": [
+        "healpix_core.cpp",
+        "ahps_reader.cpp",
+        "ahps_writer.cpp",
+        "stack_db.cpp",
+        "stack_engine.cpp",
+        "hp_stack_api.cpp",
+        "hp_stack_hiss.cpp",
+        "gradient/snr_evaluator.cpp",
+        "gradient/spherical_spline.cpp",
+        "gradient/gradient_sampler.cpp",
+        "gradient/gradient_fitter.cpp",
+        "gradient/corrected_stacker.cpp",
+        "../../gaia_xpsd_client/src/gaia_client.c"
+      ],
+      "cflags": [
+        "-O3",
+        "-std=c++17",
+        "-Wall",
+        "-fopenmp",
+        "-shared"
+      ],
+      "ldlibs": [
+        "-lzstd",
+        "-llz4",
+        "-lz",
+        "-lm"
+      ],
+      "output": "healpix_stack.dll",
+      "includes": [
+        ".",
+        "gradient",
+        "../../astro_image_io/include",
+        "../../astro_image_io/src",
+        "../../gaia_xpsd_client/src",
+        "C:/msys64/mingw64/include/eigen3"
+      ],
+      "defines": [
+        "HAS_ZSTD",
+        "HAS_LZ4",
+        "AIO_ENABLE_HEALPIX"
+      ],
+      "notes": "Makefile is outdated: references healpix_io.dll (merged into aio per 2026-07-16 spec G1), lacks gradient/ sources, lacks gaia_client.c, lacks -DAIO_ENABLE_HEALPIX, lacks eigen3 include. build.ps1 is authoritative. Sources in module root (not src/). Uses Eigen3 (C:\\msys64\\mingw64\\include\\eigen3).",
+      "makefile_outdated": [
+        "gradient/snr_evaluator.cpp",
+        "gradient/spherical_spline.cpp",
+        "gradient/gradient_sampler.cpp",
+        "gradient/gradient_fitter.cpp",
+        "gradient/corrected_stacker.cpp",
+        "../../gaia_xpsd_client/src/gaia_client.c"
+      ]
+    },
+    {
+      "name": "healpix_browser_qt",
+      "path": "lib/healpix_db/healpix_browser_qt",
+      "build_system": "CMake+Makefile",
+      "authority": "cmake",
+      "sources": [],
+      "cflags": [],
+      "ldlibs": [],
+      "output": "",
+      "includes": [],
+      "defines": [],
+      "notes": "Task description said 'qmake (Qt6)' but actual build system is CMake with Qt6 (find_package Qt6 Core/Gui/Widgets/OpenGLWidgets). No .pro file found. CMakeLists.txt is authoritative for full app build (core + widgets + app). Makefile only builds core static lib + unit tests (no Qt, no widgets, no app). app/ sources (main.cpp, main_window.cpp, stf_panel.cpp) only in CMakeLists.txt. Has deploy.ps1 for deployment.",
+      "makefile_outdated": null
+    },
+    {
+      "name": "orchestrator",
+      "path": "lib/orchestrator/cpp",
+      "build_system": "Makefile",
+      "authority": "makefile",
+      "sources": [
+        "src/main.cpp",
+        "src/orchestrator.cpp",
+        "src/dll_loader.cpp",
+        "src/checkpoint.cpp",
+        "src/logger.cpp",
+        "src/cli_repl.cpp",
+        "src/cli_command.cpp"
+      ],
+      "cflags": [
+        "-O2",
+        "-std=c++17",
+        "-Wall",
+        "-fopenmp"
+      ],
+      "ldlibs": [
+        "-lm"
+      ],
+      "output": "orchestrator.exe",
+      "includes": [
+        "include",
+        "../../astro_image_io/include",
+        "../../plate_solve/cpp/ipv/include",
+        "../../dynamic_psf/include",
+        "../../photometric_calib/cpp/include",
+        "../../snr_estimator/cpp/include",
+        "../../healpix_db/healpix_drizzle",
+        "../../healpix_db/healpix_stack",
+        "../../gaia_xpsd_client/src",
+        "../../star_detector/include"
+      ],
+      "defines": [],
+      "notes": "Makefile-only module. Output is EXE (not DLL). No DLL linking at compile time - runtime dynamic loading via DllLoader. Includes headers from 9 other modules. Static linking (-static). Has 4 test targets.",
+      "makefile_outdated": null
+    },
+    {
+      "name": "data_pipeline",
+      "path": "lib/data_pipeline",
+      "build_system": "no_build",
+      "authority": "none",
+      "sources": [],
+      "cflags": [],
+      "ldlibs": [],
+      "output": "",
+      "includes": [],
+      "defines": [],
+      "notes": "No build.ps1 or Makefile. Sources are compiled into astro_image_io.dll via build.ps1's enable_pipeline config flag. This module provides header + source files consumed by astro_image_io, not built independently.",
+      "makefile_outdated": null
+    }
+  ],
+  "build_order": {
+    "layer_1_base": [
+      "astro_image_io",
+      "calibration",
+      "dynamic_psf",
+      "gaia_xpsd_client",
+      "star_detector",
+      "snr_estimator"
+    ],
+    "layer_2_middle": [
+      "healpix_drizzle",
+      "healpix_stack",
+      "photometric_calib",
+      "healpix_browser_qt"
+    ],
+    "layer_3_top": [
+      "orchestrator",
+      "plate_solve_ipv"
+    ],
+    "no_build": [
+      "data_pipeline"
+    ],
+    "note": "按 P00-004 依赖图分层: 基础层(无跨模块依赖) -> 中间层(依赖基础层) -> 顶层(运行时动态加载)"
+  },
+  "path_requirements": {
+    "msys2_mingw64_bin": "C:\\msys64\\mingw64\\bin",
+    "must_be_in_path": true,
+    "note": "GCC/mingw32-make/qmake6 不在默认 PATH, 根级 build.ps1 需注入此路径"
+  },
+  "lock_integrity": {
+    "environment_baseline_sha256": "42e5d2fd1d03748e5170e22555c9963aca849421a069de70658fc8eadc2306fb",
+    "module_build_configs_sha256": "d6a61a55985fc127ae62a451ae14a85ac8c00a62df758168d2128797fc2bd81f",
+    "dependency_graph_sha256": "6f2ce8f21063e971bcc77c40c335a4b3b3d9111feebb4b3d8270f7751e22904b"
+  }
+}

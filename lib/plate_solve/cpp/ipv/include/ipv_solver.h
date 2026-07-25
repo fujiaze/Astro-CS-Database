@@ -5,6 +5,7 @@
 #include <string>
 #include "ipv_types.h"
 #include "ipv_itertrans.h"   // Trans, IterTransResult, MatchPair
+#include "ipv_select.h"      // P02-002: DetectionSinkFn, ipv_select_from_detections, ipv_select_from_memory_with_callback
 #include "ipv_log.h"
 
 namespace ipv {
@@ -138,6 +139,53 @@ public:
         double focal_length_mm,
         double pixel_size_um,
         const IPVSolverParams& params,
+        WcsFitResult* result
+    );
+
+    // ========================================================================
+    // P02-002: 候选路径 A / 路径 B 求解接口 (实验性)
+    // ========================================================================
+
+    // 路径 A: 从外部 detections 求解 (跳过 sdet_detect_ex)
+    // detections: FLOAT64 [N,6] star_det v1 格式
+    // 算法与 solve_from_memory 一致, 仅跳过检测步骤
+    void solve_from_detections_v1(
+        const double* detections,
+        int n_detections,
+        int image_width, int image_height,
+        double ra0,
+        double dec0,
+        double focal_length_mm,
+        double pixel_size_um,
+        const IPVSolverParams& params,
+        WcsFitResult* result
+    );
+
+    // 路径 B: 带 callback 的内存求解 (保持原有检测 + 导出检测结果)
+    // 与 solve_from_memory 一致, 区别: sdet_detect_ex 后调用 callback 导出检测结果
+    // callback 为 NULL 时行为与 solve_from_memory 完全一致
+    void solve_from_memory_with_callback(
+        const float* pixels,
+        int width, int height,
+        double ra0,
+        double dec0,
+        double focal_length_mm,
+        double pixel_size_um,
+        const IPVSolverParams& params,
+        DetectionSinkFn callback,
+        void* user_data,
+        WcsFitResult* result
+    );
+
+private:
+    // P02-002: 选星后通用求解流程 (triangle_match → iter_trans →
+    //          iterative_reproject → hi_order_rematch → robust_refine → extract_wcs_sip)
+    // 供 solve_from_detections_v1 和 solve_from_memory_with_callback 共享
+    void solve_post_select(
+        StarSelection& selection,
+        const IPVSolverParams& params,
+        double ra0,
+        double dec0,
         WcsFitResult* result
     );
 

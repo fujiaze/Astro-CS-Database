@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import os
 from ctypes import (
-    Structure, c_int, c_double, c_void_p, c_uint16,
+    Structure, c_int, c_double, c_void_p, c_uint16, c_float,
     POINTER, byref, cdll,
 )
 from dataclasses import dataclass
@@ -127,6 +127,18 @@ def _load_dll(dll_path: str):
     dll.dpsf_fit_batch.restype = c_int
     dll.dpsf_free_results.argtypes = [POINTER(_CDPSFFitResult)]
     dll.dpsf_free_results.restype = None
+    # float32 PSF 拟合 API (P02-005, v1.1)
+    # int dpsf_fit_batch_f32(const float* image, int width, int height,
+    #                         const double* detections, int n_detections,
+    #                         const DPSFFitParams* params,
+    #                         double* out_psf_params, int* out_n_valid)
+    dll.dpsf_fit_batch_f32.argtypes = [
+        POINTER(c_float), c_int, c_int,
+        POINTER(c_double), c_int,
+        POINTER(_CDPSFFitParams),
+        POINTER(c_double), POINTER(c_int),
+    ]
+    dll.dpsf_fit_batch_f32.restype = c_int
     return dll
 
 
@@ -203,3 +215,68 @@ class DynamicPSF:
                 results.append(_result_c_to_py(out_results[i]))
             dll.dpsf_free_results(out_results)
         return results
+
+    @staticmethod
+    def fit_batch_f32(image: np.ndarray,
+                      detections: np.ndarray,
+                      params: Optional[DPSFFitParamsPy] = None,
+                      dll_path: Optional[str] = None):
+        """float32 PSF 批量拟合 (P02-005, v1.1)
+
+        消费 star_det v1 (FLOAT64 [N,6]) 格式的检测结果, 直接在 float32 图像上拟合,
+        不做 0-65535 clip, 不创建整张 uint16 图像。
+
+        参数:
+            image       - float32 图像, 2D (height, width)
+            detections  - star_det v1 检测结果, shape=(N,6), dtype=float64
+                          列: [0]=x_px [1]=y_px [2]=flux [3]=mag [4]=saturated [5]=has_saturated
+            params      - 拟合参数, 可为 None 使用默认值 (fitRadius=8, maxIter=200, tol=1e-8)
+            dll_path    - DLL 路径, 默认 lib/dynamic_psf/dynamic_psf.dll
+
+        返回:
+            (psf_params, n_valid) 元组:
+              psf_params - np.ndarray shape=(N,9) dtype=float64
+                           列: [0]=B [1]=A [2]=cx [3]=cy [4]=sx [5]=sy
+                               [6]=theta [7]=fwhm_x [8]=fwhm_y
+                           失败的拟合行全为 NaN
+              n_valid    - 成功拟合的星点数
+        """
+        dll = DynamicPSF._ensure_dll(dll_path)
+        if image.ndim != 2:
+            raise ValueError(f"image 必须为2D数组, 当前 ndim={image.ndim}")
+        if image.dtype != np.float32:
+            img = np.ascontiguousarray(image, dtype=np.float32)
+        else:
+            img = np.ascontiguousarray(image, dtype=np.float32)
+        height, width = img.shape
+
+        if detections.ndim != 2 or detections.shape[1] != 6:
+            raise ValueError(
+                f"detections 必须为 shape=(N,6) 的数组, 当前 shape={detections.shape}")
+        if detections.dtype != np.float64:
+            det = np.ascontiguousarray(detections, dtype=np.float64)
+        else:
+            det = np.ascontiguousarray(detections, dtype=np.float64)
+        n = det.shape[0]
+        if n == 0:
+            return np.zeros((0, 9), dtype=np.float64), 0
+
+        img_ptr = img.ctypes.data_as(POINTER(c_float))
+        det_ptr = det.ctypes.data_as(POINTER(c_double))
+        if params is None:
+            params = DPSFFitParamsPy()
+        c_params = _params_py_to_c(params)
+
+        out_params = np.zeros((n, 9), dtype=np.float64)
+        out_ptr = out_params.ctypes.data_as(POINTER(c_double))
+        n_valid = c_int(0)
+
+        ret = dll.dpsf_fit_batch_f32(
+            img_ptr, width, height,
+            det_ptr, n,
+            byref(c_params),
+            out_ptr, byref(n_valid),
+        )
+        if ret != 0:
+            raise RuntimeError(f"dpsf_fit_batch_f32 返回错误码: {ret}")
+        return out_params, n_valid.value

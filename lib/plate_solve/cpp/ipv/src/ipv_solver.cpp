@@ -1104,4 +1104,380 @@ void IPVSolver::solve_from_memory(
                   result->trans_order, result->sip.order, (int)result->success);
 }
 
+// ===========================================================================
+// P02-002: solve_post_select - 选星后通用求解流程
+//
+// 从 triangle_match 开始到 extract_wcs_sip 结束的完整流程。
+// 供 solve_from_detections_v1 (路径 A) 和 solve_from_memory_with_callback (路径 B) 共享。
+// 算法与 solve_from_memory 中相应部分完全一致, 仅提取为独立方法。
+// ===========================================================================
+void IPVSolver::solve_post_select(
+    StarSelection& selection,
+    const IPVSolverParams& params,
+    double ra0,
+    double dec0,
+    WcsFitResult* result
+) {
+    WcsFitResult fail_result{};
+    fail_result.trans_order = 0;
+
+    // 1. triangle_match (n_target=60, 与 solve_from_memory 一致)
+    auto t_sel_start = std::chrono::steady_clock::now();
+    TriangleMatchResult tri_result{};
+    int vote_threshold = params.vote_threshold;
+    const int n_target = 60;  // 与 solve_from_memory 的 {60} 一致
+
+    auto t_tri_start = std::chrono::steady_clock::now();
+    tri_result = triangle_match(selection.U, selection.W, n_target, n_target,
+                                 0.002, selection.s0);
+    auto t_tri_end = std::chrono::steady_clock::now();
+
+    logger_.infof("[P02-002] n_target=%d, max_vote=%d, threshold=%d",
+                  n_target, tri_result.max_vote, vote_threshold);
+    logger_.infof("  [阶段] triangle_match (n=%d): %.2f ms, max_vote=%d, top_pairs=%d, success=%d",
+                  n_target, elapsed_ms(t_tri_start, t_tri_end),
+                  tri_result.max_vote,
+                  (int)tri_result.top_pairs.size(),
+                  (int)tri_result.success);
+    auto t_sel_end = std::chrono::steady_clock::now();
+    logger_.infof("  [阶段] triangle_match: %.2f ms, n_target_used=%d",
+                  elapsed_ms(t_sel_start, t_sel_end), n_target);
+
+    if (!selection.success) {
+        logger_.error("selection 失败, 终止求解");
+        *result = fail_result;
+        return;
+    }
+
+    // 2. 提取 U / W / s0 / 图像尺寸
+    const std::vector<StarPoint>& U = selection.U;
+    const std::vector<StarPoint>& W = selection.W;
+    double s0 = selection.s0;
+    int img_width = selection.img_width;
+    int img_height = selection.img_height;
+
+    logger_.infof("  N_U=%d, N_W=%d, s0=%.4f arcsec/px, img=%dx%d, fov_diag=%.4f deg",
+                  (int)U.size(), (int)W.size(), s0, img_width, img_height,
+                  selection.fov_diag_deg);
+
+    // 3. triangle_match 失败判断
+    if (!tri_result.success || tri_result.max_vote < 3) {
+        logger_.error("triangle_match 失败或票数不足, 终止求解");
+        logger_.errorf("  诊断: success=%d, max_vote=%d (阈值=3)",
+                       (int)tri_result.success, tri_result.max_vote);
+        *result = fail_result;
+        return;
+    }
+
+    // 4. iter_trans 求解 (order 阶数回退机制)
+    auto t_it_start = std::chrono::steady_clock::now();
+    IterTransResult it_result;
+    bool it_success = false;
+    for (int it_order = 3; it_order >= 1; --it_order) {
+        it_result = iter_trans_solve(
+            U, W, tri_result.top_pairs, 5.0, it_order);
+        if (it_result.success && it_result.n_inliers >= 3) {
+            it_success = true;
+            if (it_order < 3) {
+                logger_.warnf("iter_trans_solve order=3 失败, 回退到 order=%d 成功 (n_inliers=%d)",
+                              it_order, it_result.n_inliers);
+            }
+            break;
+        }
+        logger_.warnf("iter_trans_solve order=%d 失败 (success=%d, n_inliers=%d)",
+                      it_order, (int)it_result.success, it_result.n_inliers);
+    }
+    auto t_it_end = std::chrono::steady_clock::now();
+    logger_.infof("  [阶段] iter_trans_solve: %.2f ms, n_inliers=%d, rms=%.4f, iters=%d, success=%d",
+                  elapsed_ms(t_it_start, t_it_end),
+                  it_result.n_inliers, it_result.rms,
+                  it_result.n_iterations, (int)it_result.success);
+
+    if (!it_success) {
+        logger_.error("iter_trans_solve 全部阶数失败, 终止求解");
+        *result = fail_result;
+        return;
+    }
+
+    // 5. 迭代重投影 (固定索引策略)
+    auto t_rep_start = std::chrono::steady_clock::now();
+    IterativeReprojectResult rep_result = iterative_reproject(
+        U, selection.gaia_ra, selection.gaia_dec,
+        it_result.trans, it_result.inliers,
+        ra0, dec0, s0, img_width, img_height, &logger_);
+    auto t_rep_end = std::chrono::steady_clock::now();
+    logger_.infof("  [阶段] iterative_reproject: %.2f ms, success=%d, "
+                  "ra=%.6f→%.6f, dec=%.6f→%.6f, n_matched=%d, iters=%d, conv=%.4f\"",
+                  elapsed_ms(t_rep_start, t_rep_end), (int)rep_result.success,
+                  ra0, rep_result.ra0, dec0, rep_result.dec0,
+                  rep_result.n_matched, rep_result.n_iterations,
+                  rep_result.convergence);
+
+    if (!rep_result.success || rep_result.n_matched < 3) {
+        logger_.error("iterative_reproject 失败或匹配数不足, 终止求解");
+        *result = fail_result;
+        return;
+    }
+
+    // 6. 用收敛后的中心重新投影 Gaia, 得到 W_final
+    const int N_W = (int)selection.gaia_ra.size();
+    std::vector<StarPoint> W_final(N_W);
+    int n_invalid_proj = 0;
+    for (int i = 0; i < N_W; ++i) {
+        double xi, eta;
+        bool valid;
+        gnomonic_forward_proj_solver(
+            selection.gaia_ra[i], selection.gaia_dec[i],
+            rep_result.ra0, rep_result.dec0, xi, eta, valid);
+        if (!valid) {
+            W_final[i].x = 1e18;
+            W_final[i].y = 1e18;
+            ++n_invalid_proj;
+        } else {
+            W_final[i].x = xi;
+            W_final[i].y = eta;
+        }
+        W_final[i].flux = 0.0;
+        W_final[i].saturated = false;
+    }
+
+    if (n_invalid_proj > 0) {
+        logger_.warnf("  W_final 投影: %d 颗无效 (将过滤)", n_invalid_proj);
+    }
+
+    // 7. 高阶重匹配
+    if (rep_result.trans.order > 1) {
+        auto t_himatch_start = std::chrono::steady_clock::now();
+        const int order_hi = rep_result.trans.order;
+        const int min_pairs_hi = (order_hi == 3) ? 10 :
+                                  (order_hi == 2) ? 6 : 3;
+
+        std::vector<MatchPair> hi_matches = at_match_lists(
+            U, W_final, rep_result.trans, 5.0);
+        logger_.infof("  [阶段] hi_order_rematch iter 0: n_matched=%zu (min=%d, order=%d)",
+                      hi_matches.size(), min_pairs_hi, order_hi);
+
+        if ((int)hi_matches.size() >= min_pairs_hi) {
+            IterTransResult hi_result = at_recalc_trans(U, W_final, hi_matches, order_hi);
+            if (hi_result.success) {
+                for (int iter = 0; iter < 5; ++iter) {
+                    std::vector<MatchPair> new_matches = at_match_lists(
+                        U, W_final, hi_result.trans, 5.0);
+                    if ((int)new_matches.size() < min_pairs_hi) break;
+                    IterTransResult new_result = at_recalc_trans(
+                        U, W_final, new_matches, order_hi);
+                    if (!new_result.success) break;
+
+                    int dn = (int)new_matches.size() - (int)hi_matches.size();
+                    double drms = std::fabs(new_result.rms - hi_result.rms);
+                    bool conv_match = (std::abs(dn) <= 1);
+                    bool conv_rms = (hi_result.rms > 0) ?
+                                    (drms < hi_result.rms * 0.01) : true;
+
+                    hi_result = new_result;
+                    hi_matches = new_matches;
+
+                    if (conv_match && conv_rms) {
+                        logger_.infof("  [阶段] hi_order_rematch iter %d: 收敛 (dn=%d, drms=%.4f)",
+                                      iter + 1, dn, drms);
+                        break;
+                    }
+                    logger_.infof("  [阶段] hi_order_rematch iter %d: n_matched=%zu, rms=%.4f",
+                                  iter + 1, hi_matches.size(), hi_result.rms);
+                }
+                rep_result.trans = hi_result.trans;
+                rep_result.matched = hi_matches;
+                rep_result.n_matched = (int)hi_matches.size();
+            }
+        }
+        auto t_himatch_end = std::chrono::steady_clock::now();
+        logger_.infof("  [阶段] hi_order_rematch: %.2f ms, n_matched=%d, trans.order=%d",
+                      elapsed_ms(t_himatch_start, t_himatch_end),
+                      rep_result.n_matched, rep_result.trans.order);
+    }
+
+    // 8. V4.30: 鲁棒扩增精化
+    bool robust_refine_applied = false;
+    if (!selection.U_full.empty() && rep_result.trans.order > 1) {
+        auto t_robust_start = std::chrono::steady_clock::now();
+        double initial_rms_arcsec = rep_result.trans.sig;
+        if (initial_rms_arcsec <= 0) initial_rms_arcsec = 1.0;
+
+        RobustRefineResult rob = robust_refine_wcs(
+            rep_result.trans,
+            selection.U_full, selection.mag_full,
+            selection.gaia_ra, selection.gaia_dec,
+            rep_result.ra0, rep_result.dec0,
+            s0, initial_rms_arcsec,
+            selection.fov_diag_deg,
+            img_width, img_height,
+            RobustRefineParams{}, &logger_);
+
+        if (rob.success && !rob.fallback) {
+            rep_result.trans = rob.trans;
+            rep_result.matched = rob.matched;
+            rep_result.n_matched = rob.n_matched;
+            robust_refine_applied = true;
+            logger_.infof("  [阶段] robust_refine: 成功, n_matched=%d, rms=%.4f\", "
+                          "iter=%d, pool=%d, cd_Δ=%.4f%%",
+                          rob.n_matched, rob.rms_arcsec, rob.n_iterations,
+                          rob.n_pool, rob.cd_relative_change * 100);
+        } else {
+            logger_.infof("  [阶段] robust_refine: 回退 (fallback=%d), 使用 hi_order_rematch 结果",
+                          (int)rob.fallback);
+        }
+        auto t_robust_end = std::chrono::steady_clock::now();
+        logger_.infof("  [阶段] robust_refine: %.2f ms",
+                      elapsed_ms(t_robust_start, t_robust_end));
+    }
+
+    // 9. 选择传给 extract_wcs_sip 的 U 向量
+    const std::vector<StarPoint>& U_for_wcs =
+        robust_refine_applied ? selection.U_full : U;
+
+    // 10. WCS+SIP 从 TRANS 提取
+    auto t_wcs_start = std::chrono::steady_clock::now();
+    extract_wcs_sip(
+        rep_result.trans, rep_result.ra0, rep_result.dec0,
+        img_width, img_height, s0,
+        U_for_wcs, W_final, rep_result.matched, result, &logger_);
+    auto t_wcs_end = std::chrono::steady_clock::now();
+
+    logger_.infof("  [阶段] extract_wcs_sip: %.2f ms, success=%d, n_pairs=%d, "
+                  "rms_px=%.3f, rms_arcsec=%.3f, trans_order=%d, sip_order=%d",
+                  elapsed_ms(t_wcs_start, t_wcs_end), (int)result->success, result->n_pairs,
+                  result->rms_px, result->rms_arcsec,
+                  result->trans_order, result->sip.order);
+
+    logger_.infof("  最终: n_pairs=%d, rms_px=%.3f, rms_arcsec=%.3f, "
+                  "trans_order=%d, sip_order=%d, success=%d",
+                  result->n_pairs, result->rms_px, result->rms_arcsec,
+                  result->trans_order, result->sip.order, (int)result->success);
+}
+
+// ===========================================================================
+// P02-002: 路径 A - solve_from_detections_v1
+//
+// 从外部 detections (FLOAT64 [N,6] star_det v1) 求解, 跳过 sdet_detect_ex。
+// 算法与 solve_from_memory 一致, 仅跳过检测步骤。
+// ===========================================================================
+void IPVSolver::solve_from_detections_v1(
+    const double* detections,
+    int n_detections,
+    int image_width, int image_height,
+    double ra0,
+    double dec0,
+    double focal_length_mm,
+    double pixel_size_um,
+    const IPVSolverParams& params,
+    WcsFitResult* result
+) {
+    // 失败结果
+    WcsFitResult fail_result{};
+    fail_result.trans_order = 0;
+
+    // 1. 初始化日志
+    if (params.log_dir != nullptr && params.log_dir[0] != '\0') {
+        std::string dir(params.log_dir);
+        while (!dir.empty() && (dir.back() == '/' || dir.back() == '\\')) {
+            dir.pop_back();
+        }
+        logger_.init(dir + "/ipv_solver.log");
+        init_triangle_logger(dir + "/ipv_triangle.log");
+        init_itertrans_logger(dir + "/ipv_itertrans.log");
+    }
+
+    logger_.info("==== IPVSolver::solve_from_detections_v1 开始 (P02-002 路径 A) ====");
+    logger_.infof("  detections=%d 颗, image=%dx%d", n_detections, image_width, image_height);
+    logger_.infof("  ra0=%.6f deg, dec0=%.6f deg", ra0, dec0);
+    logger_.infof("  focal_length=%.3f mm, pixel_size=%.3f um",
+                  focal_length_mm, pixel_size_um);
+
+    // 2. 选星 (路径 A: 从外部 detections 选星, 跳过 sdet_detect_ex)
+    IPVSolverParams p_adapt = params;
+    p_adapt.img_n_target = 60;  // 与 solve_from_memory 一致
+
+    StarSelection selection;
+    int ret = ipv_select_from_detections(
+        detections, n_detections,
+        image_width, image_height,
+        ra0, dec0, focal_length_mm, pixel_size_um,
+        p_adapt, selection, &logger_);
+
+    if (ret != 0 || !selection.success) {
+        logger_.error("ipv_select_from_detections 失败, 终止求解");
+        *result = fail_result;
+        return;
+    }
+
+    // 3. 选星后通用求解流程
+    solve_post_select(selection, params, ra0, dec0, result);
+
+    logger_.info("==== IPVSolver::solve_from_detections_v1 完成 (P02-002 路径 A) ====");
+}
+
+// ===========================================================================
+// P02-002: 路径 B - solve_from_memory_with_callback
+//
+// 与 solve_from_memory 算法完全一致, 区别:
+//   - sdet_detect_ex 调用后, 选星前, 调用 callback 导出完整检测结果
+//   - callback 为 NULL 时行为与 solve_from_memory 完全一致
+// ===========================================================================
+void IPVSolver::solve_from_memory_with_callback(
+    const float* pixels,
+    int width, int height,
+    double ra0,
+    double dec0,
+    double focal_length_mm,
+    double pixel_size_um,
+    const IPVSolverParams& params,
+    DetectionSinkFn callback,
+    void* user_data,
+    WcsFitResult* result
+) {
+    // 失败结果
+    WcsFitResult fail_result{};
+    fail_result.trans_order = 0;
+
+    // 1. 初始化日志
+    if (params.log_dir != nullptr && params.log_dir[0] != '\0') {
+        std::string dir(params.log_dir);
+        while (!dir.empty() && (dir.back() == '/' || dir.back() == '\\')) {
+            dir.pop_back();
+        }
+        logger_.init(dir + "/ipv_solver.log");
+        init_triangle_logger(dir + "/ipv_triangle.log");
+        init_itertrans_logger(dir + "/ipv_itertrans.log");
+    }
+
+    logger_.info("==== IPVSolver::solve_from_memory_with_callback 开始 (P02-002 路径 B) ====");
+    logger_.infof("  pixels=%dx%d (内存数据)", width, height);
+    logger_.infof("  ra0=%.6f deg, dec0=%.6f deg", ra0, dec0);
+    logger_.infof("  focal_length=%.3f mm, pixel_size=%.3f um",
+                  focal_length_mm, pixel_size_um);
+    logger_.infof("  callback=%s", callback ? "ENABLED" : "NULL (兼容模式)");
+
+    // 2. 选星 (路径 B: 带 callback 的内存选星)
+    IPVSolverParams p_adapt = params;
+    p_adapt.img_n_target = 60;
+
+    StarSelection selection;
+    int ret = ipv_select_from_memory_with_callback(
+        pixels, width, height,
+        ra0, dec0, focal_length_mm, pixel_size_um,
+        p_adapt, callback, user_data,
+        selection, &logger_);
+
+    if (ret != 0 || !selection.success) {
+        logger_.error("ipv_select_from_memory_with_callback 失败, 终止求解");
+        *result = fail_result;
+        return;
+    }
+
+    // 3. 选星后通用求解流程
+    solve_post_select(selection, params, ra0, dec0, result);
+
+    logger_.info("==== IPVSolver::solve_from_memory_with_callback 完成 (P02-002 路径 B) ====");
+}
+
 } // namespace ipv

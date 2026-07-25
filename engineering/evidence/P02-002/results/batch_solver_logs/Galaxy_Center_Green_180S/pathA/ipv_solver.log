@@ -1,0 +1,61 @@
+﻿=== IPV Plate Solve Log ===
+[2026-07-25 12:45:16][INFO] ==== IPVSolver::solve_from_detections_v1 开始 (P02-002 路径 A) ====
+[2026-07-25 12:45:16][INFO]   detections=2000 颗, image=4500x3600
+[2026-07-25 12:45:16][INFO]   ra0=272.808333 deg, dec0=-13.176944 deg
+[2026-07-25 12:45:16][INFO]   focal_length=200.000 mm, pixel_size=6.000 um
+[2026-07-25 12:45:16][INFO] === ipv_select_from_detections 启动 (路径 A) ===
+[2026-07-25 12:45:16][INFO] Step 1: 使用外部 detections 2000 颗, 图像 4500×3600 (路径 A, 跳过 sdet_detect_ex)
+[2026-07-25 12:45:16][INFO]   detections: 2000 颗 (饱和 560, 正常 1440)
+[2026-07-25 12:45:16][INFO] Step 3: 图像侧选星
+[2026-07-25 12:45:16][INFO] 选星: 按 mag(box积分) 升序取前 60 颗 (含饱和 58 颗)
+[2026-07-25 12:45:16][INFO]   U 向量组: 60×2 (s0=6.1879"/px)
+[2026-07-25 12:45:16][INFO] Step 4: FOV/密度计算
+[2026-07-25 12:45:16][INFO] FOV计算: s0=6.1879"/px, FOV_diag=9.9056°, query_r=5.4481°, img_area=47.86341°², query_area=93.24654°², rho_img=1.25, rho_target=1.88, n_target=60
+[2026-07-25 12:45:16][INFO] Step 5: V4.9 密度公式估算极限星等 (替代迭代)
+[2026-07-25 12:45:16][INFO] 密度估算极限星等: G=9.815 (n_required=60, area=93.2465°², rho_target=0.64/°²)
+[2026-07-25 12:45:16][INFO] Step 6: 用 m_lim=9.815 查询 Gaia 星表
+[2026-07-25 12:45:16][INFO] Step 7: Gnomonic 投影 + FOV 过滤
+[2026-07-25 12:45:16][INFO]   W 向量组: 60×2 (FOV 内 600, 取最亮 60, gaia_ra/dec 已保存)
+[2026-07-25 12:45:16][INFO] === ipv_select_from_detections 完成 (路径 A) ===
+[2026-07-25 12:45:16][INFO] [P02-002] n_target=60, max_vote=469, threshold=2
+[2026-07-25 12:45:16][INFO]   [阶段] triangle_match (n=60): 68.87 ms, max_vote=469, top_pairs=60, success=1
+[2026-07-25 12:45:16][INFO]   [阶段] triangle_match: 68.89 ms, n_target_used=60
+[2026-07-25 12:45:16][INFO]   N_U=60, N_W=60, s0=6.1879 arcsec/px, img=4500x3600, fov_diag=9.9056 deg
+[2026-07-25 12:45:16][INFO]   [阶段] iter_trans_solve: 0.52 ms, n_inliers=33, rms=0.5882, iters=3, success=1
+[2026-07-25 12:45:16][INFO]   [诊断] iterative_reproject 入口: U.size=60, gaia_ra.size=60, gaia_dec.size=60, initial_inliers.size=33, s0=6.1879, img=4500x3600
+[2026-07-25 12:45:16][INFO] iterative_reproject: 开始 (N_W=60, n_inliers=33, s0=6.1879"/px, max_iter=5, conv_thresh=0.0100")
+[2026-07-25 12:45:16][INFO]   iter 0: ra_cur=272.808333 dec_cur=-13.176944, xi_center=-127.4081" eta_center=562.1795", conv=576.4362" (thresh=0.0100")
+[2026-07-25 12:45:16][INFO]   iter 0: 新中心 ra=272.772008 dec=-13.020781 (Δra=-0.036325° Δdec=0.156163°)
+[2026-07-25 12:45:16][INFO]   iter 0: at_recalc_trans 成功, n=33, sig=0.3496, rms=0.5882, x00=0.0000 y00=-0.0009 (asec)
+[2026-07-25 12:45:16][INFO]   iter 1: 收敛 (TRANS 常数项 = 0.0009" < 0.0100")
+[2026-07-25 12:45:16][INFO] iterative_reproject: 完成 (收敛), ra=272.808333→272.772008 dec=-13.176944→-13.020781, n_matched=33 (固定), iters=1, conv=0.0009"
+[2026-07-25 12:45:16][INFO]   [阶段] iterative_reproject: 0.18 ms, success=1, ra=272.808333→272.772008, dec=-13.176944→-13.020781, n_matched=33, iters=1, conv=0.0009"
+[2026-07-25 12:45:16][INFO]   [阶段] hi_order_rematch iter 0: n_matched=33 (min=10, order=3)
+[2026-07-25 12:45:16][INFO]   [阶段] hi_order_rematch iter 1: 收敛 (dn=0, drms=0.0000)
+[2026-07-25 12:45:16][INFO]   [阶段] hi_order_rematch: 0.10 ms, n_matched=33, trans.order=3
+[2026-07-25 12:45:16][INFO] ==== robust_refine_wcs 开始 (V4.30) ====
+  U_full=2000, mag_full=2000, gaia=60
+  ra0=272.772008, dec0=-13.020781, s0=6.1879"/px, fov=9.9056°, img=4500x3600
+  initial_rms=0.3496", trans.order=3
+[2026-07-25 12:45:16][INFO]   [robust_refine] 网格采样: FOV=9.906°, G_short=4, N_long=5, n_cells=20, quota=9, narrow_all=0, N_full=2000
+[2026-07-25 12:45:16][INFO]   [robust_refine] 网格采样完成: 选中 180 颗 (上限 300, 下限 100)
+[2026-07-25 12:45:16][INFO]   [robust_refine] NN 匹配: U=180, W=60, tol=1.000", Lowe通过=35, 双向=35
+[2026-07-25 12:45:16][INFO]   [robust_refine] baseline: initial_rms=0.3496" (60星), U_pool RMS=0.5022" (180 星, matched=35)
+[2026-07-25 12:45:16][INFO]   [robust_refine] NN 匹配: U=180, W=60, tol=1.004", Lowe通过=35, 双向=35
+[2026-07-25 12:45:16][INFO]   [robust_refine] iter 0: tol=1.004", matched=35, rms=0.5022"→0.4524", cd_Δ=2.4384%, damp=0.00e+00
+[2026-07-25 12:45:16][INFO]   [robust_refine] NN 匹配: U=180, W=60, tol=0.679", Lowe通过=30, 双向=30
+[2026-07-25 12:45:16][INFO]   [robust_refine] iter 1: tol=0.679", matched=30, rms=0.4524"→0.3199", cd_Δ=2.2461%, damp=1.56e+03
+[2026-07-25 12:45:16][INFO]   [robust_refine] NN 匹配: U=180, W=60, tol=0.500", Lowe通过=27, 双向=27
+[2026-07-25 12:45:16][WARN]   [robust_refine] iter 2: matched=27 < 30, 回退
+[2026-07-25 12:45:16][INFO] ==== robust_refine_wcs 成功 ====
+  iter=2, matched=30, rms=0.3199" (0.0517 px), cd_Δ=2.4384%, pool=180
+[2026-07-25 12:45:16][INFO]   [阶段] robust_refine: 成功, n_matched=30, rms=0.3199", iter=2, pool=180, cd_Δ=2.4384%
+[2026-07-25 12:45:16][INFO]   [阶段] robust_refine: 0.38 ms
+[2026-07-25 12:45:16][INFO]   [诊断] extract_wcs_sip 入口: trans.order=3, trans.valid=1, ra0=272.772008, dec0=-13.020781, img=4500x3600, s0=6.1879, U.size=2000, W.size=60, matched.size=30
+[2026-07-25 12:45:16][INFO]   [V4.22] 清零 trans.x00/y00 (saved: x00=-0.0385, y00=-0.0294)
+[2026-07-25 12:45:16][INFO] extract_wcs_sip: SIP A/B 解析公式成功, order=3
+[2026-07-25 12:45:16][INFO] extract_wcs_sip: SIP AP/BP 网格反变换成功, ap_order=3, n_inv_coef=10, n_grid=49
+[2026-07-25 12:45:16][INFO] extract_wcs_sip: CD=[1.752285e-03 5.101373e-07; -8.503486e-07 1.752583e-03], CRVAL=(272.772008, -13.020781), CRPIX=(2250.5, 1800.5), ctype=[RA---TAN-SIP, DEC--TAN-SIP], n_pairs=30, rms_px=0.0517, rms_arcsec=0.3199, trans_order=3, sip_order=3, ap_order=3
+[2026-07-25 12:45:16][INFO]   [阶段] extract_wcs_sip: 0.05 ms, success=1, n_pairs=30, rms_px=0.052, rms_arcsec=0.320, trans_order=3, sip_order=3
+[2026-07-25 12:45:16][INFO]   最终: n_pairs=30, rms_px=0.052, rms_arcsec=0.320, trans_order=3, sip_order=3, success=1
+[2026-07-25 12:45:16][INFO] ==== IPVSolver::solve_from_detections_v1 完成 (P02-002 路径 A) ====

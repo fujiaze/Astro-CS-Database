@@ -1,28 +1,22 @@
-project: AstroCS
-owner: 付家泽
-execution_mode: AUTONOMOUS_SINGLE_OWNER_WITH_INDEPENDENT_REVIEW
-baseline:
-  commit: 9f10c72ceb635b726fa995c72c85e4635b36fabf
-  commit_short: 9f10c72
-  exported_at: 2026-07-24
-  evidence_scope: partial
-  notes:
-    - healpix_drizzle source missing from exported baseline
-    - healpix_stack source missing from exported baseline
-phase:
-  current: P01
-  name: 可复现构建
-  gate: G1
-  gate_status: NOT_PASSED
-  baseline_tag: astrocs-baseline-p00
+project: AstroCS CLI Core
+state_schema: 1
+current_gate: G1
 current_task: P01-003
-allowed_parallel_read_only_tasks: 1
-allowed_parallel_code_change_tasks: 0
-project_status: G0_PASSED_READY_FOR_P01
-bootstrap_mode: ZIP_AUTO_INSTALL_OR_RESUME
-last_updated: 2026-07-24
-rules:
-  one_primary_task_at_a_time: true
-  require_failure_evidence_before_bugfix: true
-  require_explicit_timeout_for_python_external_processes: true
-  require_control_files_update_on_task_close: true
+status: IN_PROGRESS
+last_completed_task: P01-002
+product_target: CLI Real-Data Core v1
+baseline_tag: astrocs-baseline-p00
+g0_passed: true
+g0_evidence:
+  - P00-001 仓库与环境事实基线 DONE
+  - P00-002 恢复并锁定全部模块源码 DONE
+  - P00-003 旧 CLI 真实数据基线 DONE (stage1 45s/stage2 7s, sdet_detect_ex×2, G-001/G-002 确认)
+notes:
+  - GUI is later and controls CLI through a machine protocol.
+  - PlateSolve path changes are conditional on full TestData non-regression; fallback preserves internal detection and exports it to PSF.
+  - Preserve existing git configuration and user changes.
+  - v1.1 开发包已部署;v1.0 证据归档于 engineering_archive_v1.0/。
+  - P00 阶段全部完成,G0 gate 通过。进入 P01 合约冻结阶段。
+  - P01-001 DONE (ADR-005 PipelineFrame 归属 astro_image_io)。
+  - P01-002 DONE (数据块注册表 10 块 + schema 校验器;发现 star_det FLOAT32[N,4] vs 契约 FLOAT64[N,6] critical 不一致,待 P02-002 修复)。
+last_updated: 2026-07-25

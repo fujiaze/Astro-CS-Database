@@ -1,0 +1,650 @@
+{
+  "project": "AstroCS",
+  "task_id": "P00-007",
+  "generated_at": "2026-07-24",
+  "scanner_scope": "docs/ + engineering/ + 根 memory.md + lib/*/memory.md",
+  "total_conflicts": 10,
+  "topics_covered": [
+    "monorepo vs 多仓库",
+    "Stage 编号体系",
+    "SNR 块定义",
+    "Stack 节点模型",
+    "模块状态",
+    "已修 GAP 记录",
+    "healpix_io 合并",
+    "data_pipeline 模块"
+  ],
+  "conflicts": [
+    {
+      "id": "C-001",
+      "topic": "monorepo vs 多仓库治理",
+      "conflict": "2026-07-24 已将 11 个子仓库历史合并到主仓库 Astro-CS-Database，主仓库 .git 直接落在项目根目录。但多份核心架构文档、根 memory.md 旧表述及历史 spec 仍写\"分模块独立仓库\"\"根目录非 git 仓库\"\"各模块独立 git 管理\"，且模块清单仍把 healpix_stack/healpix_drizzle/snr_estimator/orchestrator 等标注为\"独立仓库\"。memory.md 自身存在自相矛盾（同一文件第 9-12 行记录合并、第 85/148 行仍写非 git 仓库）。",
+      "sources": [
+        {
+          "doc": "memory.md",
+          "line": 9,
+          "statement": "2026-07-24 11 个子仓库合并到主仓库 Astro-CS-Database ★工程整合★"
+        },
+        {
+          "doc": "memory.md",
+          "line": 12,
+          "statement": "主仓库 .git 直接落在项目根目录"
+        },
+        {
+          "doc": "engineering/05_REPOSITORY_AND_DEPENDENCY_MANAGEMENT.md",
+          "line": 9,
+          "statement": "当前基线已是 monorepo"
+        },
+        {
+          "doc": "engineering/02_BASELINE_AUDIT.md",
+          "line": 22,
+          "statement": "实际导出基线已经在 2026-07-24 将 11 个模块历史合并到一个主仓库。后续应按单仓库/单基线治理，旧表述必须归档或修正"
+        },
+        {
+          "doc": "docs/ARCHITECTURE.md",
+          "line": 18,
+          "statement": "分模块独立仓库：每个核心模块独立 GitHub 仓库...根目录非 git 仓库，各模块独立 git 管理"
+        },
+        {
+          "doc": "docs/ARCHITECTURE.md",
+          "line": 234,
+          "statement": "各模块独立 git 仓库，根目录非 git 仓库"
+        },
+        {
+          "doc": "docs/ARCHITECTURE.md",
+          "line": 65,
+          "statement": "dynamic_psf | 待建立独立仓库"
+        },
+        {
+          "doc": "docs/ARCHITECTURE.md",
+          "line": 68,
+          "statement": "healpix_drizzle | 活跃（独立仓库，.gitignore 忽略）"
+        },
+        {
+          "doc": "docs/PROJECT_OVERVIEW.md",
+          "line": 25,
+          "statement": "分模块独立仓库 | 每个核心模块独立 GitHub 仓库...根目录非 git 仓库"
+        },
+        {
+          "doc": "docs/PROJECT_OVERVIEW.md",
+          "line": 217,
+          "statement": "各模块独立 git 仓库，根目录非 git 仓库"
+        },
+        {
+          "doc": "memory.md",
+          "line": 85,
+          "statement": "根目录非 git 仓库，各模块独立 git 管理"
+        },
+        {
+          "doc": "memory.md",
+          "line": 148,
+          "statement": "根目录非 git 仓库 (符合架构设计)"
+        },
+        {
+          "doc": "memory.md",
+          "line": 69,
+          "statement": "lib/orchestrator/ (独立仓库) - 管线编排引擎模块（v2.0 两段流水线 10 节点...）"
+        },
+        {
+          "doc": "docs/superpowers/specs/2026-07-16-project-reorganization-checklist.md",
+          "line": 10,
+          "statement": "根目录非 git 仓库，各模块独立 git 仓库。回滚点 = 各模块当前 commit hash"
+        },
+        {
+          "doc": "docs/superpowers/specs/2026-07-16-project-reorganization.md",
+          "line": 15,
+          "statement": "与当前两段流水线 10 节点架构、step4 C++化、各模块独立仓库拆分等实施现状存在偏差"
+        }
+      ],
+      "severity": "high",
+      "recommendation": "以 memory.md:9-12 和 engineering/05/02 为准（monorepo，主仓库 Astro-CS-Database 在项目根目录）。需修正：docs/ARCHITECTURE.md §1 核心设计原则与 §8 开发环境、docs/PROJECT_OVERVIEW.md §2 与 §11、memory.md:85/148/69 等旧表述、lib/*/README 与模块清单的\"独立仓库\"标注。历史 spec（2026-07-16-project-reorganization*）建议加归档头注，不就地改写历史决策。"
+    },
+    {
+      "id": "C-002",
+      "topic": "Stage 编号体系",
+      "conflict": "同一项目同时存在 4 套阶段计数：9 节点（归档 GRADIENT_2D 后）、10 节点（含 GRADIENT_2D 的旧版 PipelineStageV2）、7 节点（stage1 单段）、5 阶段（aio_pipeline.h 的 PipelineStage 枚举）。GAP-021 已归档 GRADIENT_2D 并重排为 9 节点（stage1 0-6 + stage2 7-8），但 orchestrator 模块描述、多份 memory 记录、历史 spec 仍写 10 节点；aio_pipeline.h 暴露的 PipelineStage 枚举仅 5 阶段，无法表达 READ_FITS/PSF/SNR/GRADIENT_SPHERE。",
+      "sources": [
+        {
+          "doc": "docs/ARCHITECTURE.md",
+          "line": 31,
+          "statement": "两段流水线 9 节点架构（2026-07-16，2026-07-18 归档 GRADIENT_2D）"
+        },
+        {
+          "doc": "docs/ARCHITECTURE.md",
+          "line": 19,
+          "statement": "第一段单帧预处理（FITS→.hiss, stage 0-6...7 节点）+ 第二段多帧合并（.hiss→.hcsd, stage 7-8）"
+        },
+        {
+          "doc": "docs/ARCHITECTURE.md",
+          "line": 73,
+          "statement": "orchestrator | 管线编排引擎（两段流水线 10 节点 C++ CLI + Python 调试层）"
+        },
+        {
+          "doc": "docs/PROJECT_OVERVIEW.md",
+          "line": 26,
+          "statement": "两段流水线 | stage1（FITS→.hiss，7 节点）+ stage2（.hiss→.hcsd，2 节点）"
+        },
+        {
+          "doc": "docs/PROJECT_OVERVIEW.md",
+          "line": 31,
+          "statement": "两段流水线 9 节点（修复后实际状态）"
+        },
+        {
+          "doc": "docs/PROJECT_OVERVIEW.md",
+          "line": 112,
+          "statement": "orchestrator | 两段流水线编排引擎（10 节点 C++ CLI + Python 调试层）"
+        },
+        {
+          "doc": "docs/PIPELINE_OVERVIEW.md",
+          "line": 21,
+          "statement": "stage1 共 7 节点：READ_FITS/CALIBRATE/PLATESOLVE/PSF/PHOTOMETRIC/SNR/DRIZZLE...上表把 SNR 拆为 2 步、Drizzle 拆为 2 步展示"
+        },
+        {
+          "doc": "docs/DESIGN_IMPL_GAP.md",
+          "line": 256,
+          "statement": "PipelineStageV2...第一阶段 8 个节点...第二阶段 2 个节点...共 10 节点"
+        },
+        {
+          "doc": "docs/DESIGN_IMPL_GAP.md",
+          "line": 285,
+          "statement": "orchestrator.h PipelineStageV2 枚举确认 10 节点"
+        },
+        {
+          "doc": "memory.md",
+          "line": 69,
+          "statement": "v2.0 两段流水线 10 节点 C++ CLI"
+        },
+        {
+          "doc": "memory.md",
+          "line": 852,
+          "statement": "PipelineStage 枚举: CALIBRATE / PLATESOLVE / PHOTOMETRIC / DRIZZLE / STACK"
+        },
+        {
+          "doc": "memory.md",
+          "line": 1057,
+          "statement": "端到端: 9/9 节点成功"
+        },
+        {
+          "doc": "memory.md",
+          "line": 1091,
+          "statement": "orchestrator.h: PipelineStageV2 枚举 (10 节点)"
+        },
+        {
+          "doc": "memory.md",
+          "line": 1128,
+          "statement": "stage1 8/8 节点全部实际 DLL 调用"
+        },
+        {
+          "doc": "docs/superpowers/specs/2026-07-18-audit-findings-P0P1.md",
+          "line": 56,
+          "statement": "B1-C-1: 管线阶段枚举仅 5 个，与 9 节点架构不一致"
+        },
+        {
+          "doc": "docs/superpowers/specs/2026-07-18-audit-findings-P2.md",
+          "line": 851,
+          "statement": "检查点模块判定管线是否全部完成的阈值硬编码为 4，基于旧版 5 阶段（0-4）。但新版是 9 节点"
+        },
+        {
+          "doc": "docs/superpowers/specs/2026-07-16-project-reorganization.md",
+          "line": 96,
+          "statement": "两段流水线 10 节点架构（stage1: 0-7, stage2: 8-9）"
+        }
+      ],
+      "severity": "high",
+      "recommendation": "以 GAP-021 归档后的 9 节点（stage1: READ_FITS/CALIBRATE/PLATESOLVE/PSF/PHOTOMETRIC/SNR/DRIZZLE 共 7 节点 + stage2: GRADIENT_SPHERE/STACK 共 2 节点）为准。需修正：docs/ARCHITECTURE.md:73 与 docs/PROJECT_OVERVIEW.md:112 orchestrator 模块描述\"10 节点\"→\"9 节点\"；memory.md:69/1091 旧记录加历史标注。PipelineStage 枚举（5 阶段）vs PipelineStageV2（9 节点）的二选一需 ADR 决策（见 audit B1-C-1），暂列为 P03 接口契约范畴。"
+    },
+    {
+      "id": "C-003",
+      "topic": "SNR 块定义（稠密 snr vs 稀疏 snr_model）",
+      "conflict": "ARCHITECTURE.md §4.1 数据流表仍写 SNR 阶段输出 snr (FLOAT32[H,W]) 稠密图像块，但 PROJECT_OVERVIEW.md、03_TARGET_SYSTEM_ARCHITECTURE.md、06_DATA_MANAGEMENT_SPEC.md 均确认实际为 snr_model（RAW，稀疏控制点序列化）。DESIGN_IMPL_GAP.md GAP-011 仍标\"待修复\"，但 audit-findings-P0P1.md 指出代码已修复、文档与代码状态不同步。02_BASELINE_AUDIT.md 将此列为\"数据格式漂移\"高风险。",
+      "sources": [
+        {
+          "doc": "docs/ARCHITECTURE.md",
+          "line": 113,
+          "statement": "SNR | data, psf, photo_stats | snr (FLOAT32[H,W])"
+        },
+        {
+          "doc": "docs/PROJECT_OVERVIEW.md",
+          "line": 62,
+          "statement": "SNR → snr_model(RAW: 稀疏控制点序列化) [修复后: 不再写 snr 稠密块]"
+        },
+        {
+          "doc": "docs/PROJECT_OVERVIEW.md",
+          "line": 68,
+          "statement": "snr_model 块序列化格式（与 hp_drizzle_api.cpp 期望一致）"
+        },
+        {
+          "doc": "engineering/03_TARGET_SYSTEM_ARCHITECTURE.md",
+          "line": 84,
+          "statement": "snr_model | RAW/typed | SNR | DRIZZLE/HISS | 稀疏球面控制点模型"
+        },
+        {
+          "doc": "engineering/06_DATA_MANAGEMENT_SPEC.md",
+          "line": 78,
+          "statement": "标准块表仍提到稠密 snr，实际管线改为 snr_model"
+        },
+        {
+          "doc": "engineering/02_BASELINE_AUDIT.md",
+          "line": 93,
+          "statement": "数据格式漂移：HISS 已出现逐像素 SNR 与稀疏 SNR 两种格式，缺强制兼容矩阵"
+        },
+        {
+          "doc": "docs/DESIGN_IMPL_GAP.md",
+          "line": 103,
+          "statement": "GAP-011：SNR 接口链路断裂...（状态字段无 CLOSED 标记）"
+        },
+        {
+          "doc": "docs/DESIGN_IMPL_GAP.md",
+          "line": 116,
+          "statement": "snr_estimate...输出稠密 SNR 图...写入 snr 命名块"
+        },
+        {
+          "doc": "docs/DESIGN_IMPL_GAP.md",
+          "line": 118,
+          "statement": "snr 块：稠密 SNR 图，类型为像素块（FLOAT32 数组）"
+        },
+        {
+          "doc": "docs/superpowers/specs/2026-07-18-audit-findings-P0P1.md",
+          "line": 636,
+          "statement": "GAP-011...状态仍标为待修复，但实际代码已经修复（snr_model 块替代 snr 浮点图像）。文档与代码状态不同步"
+        },
+        {
+          "doc": "lib/orchestrator/memory.md",
+          "line": 505,
+          "statement": "run_stage_snr 调用旧版 snr_estimate（输出稠密 SNR 图，写 snr 块 FLOAT32[H,W]）"
+        },
+        {
+          "doc": "lib/orchestrator/memory.md",
+          "line": 506,
+          "statement": "但 drizzle 阶段 hp_drizzle_run 只识别 snr_model 块（稀疏控制点 AIO_BLOCK_RAW）"
+        }
+      ],
+      "severity": "high",
+      "recommendation": "以 snr_model（RAW，稀疏控制点序列化）为准。需修正：docs/ARCHITECTURE.md §4.1 数据流表 snr (FLOAT32[H,W]) → snr_model (RAW: 稀疏控制点序列化)；同步 DESIGN_IMPL_GAP.md GAP-011 状态为 CLOSED 并附代码证据（与 P00-006 旧审计复核协同）；HISS 格式兼容矩阵（snr_format=0/1）由 P02 数据契约冻结。"
+    },
+    {
+      "id": "C-004",
+      "topic": "Stage 2 Stack 节点模型",
+      "conflict": "ARCHITECTURE.md §2 第二阶段表格把 STACK 描述为独立节点（Winsorized sigma clip + SNR²加权叠加 → .hcsd），但 PROJECT_OVERVIEW.md 与 DESIGN_IMPL_GAP.md GAP-015 确认 STACK 是空骨架（.hcsd 实际由 GRADIENT_SPHERE 的 hp_stack_gradient_corrected 单函数生成）。engineering/12 要求 P06 选择 A/B/C 方案，ADR-003 仍 PENDING。",
+      "sources": [
+        {
+          "doc": "docs/ARCHITECTURE.md",
+          "line": 52,
+          "statement": "8 | STACK | healpix_stack | Winsorized sigma clip + SNR²加权叠加，输出 .hcsd"
+        },
+        {
+          "doc": "docs/PROJECT_OVERVIEW.md",
+          "line": 50,
+          "statement": "STACK | healpix_stack | Winsorized sigma clip...当前为空骨架（.hcsd 已由 stage 7 生成）"
+        },
+        {
+          "doc": "docs/PIPELINE_OVERVIEW.md",
+          "line": 34,
+          "statement": "12. SNR² 加权叠加 | healpix_stack | 高 SNR 数据更高权重 → .hcsd 天球数据库"
+        },
+        {
+          "doc": "docs/DESIGN_IMPL_GAP.md",
+          "line": 287,
+          "statement": "GAP-015：stage2 4 步合并为 1 函数 + STACK 空骨架"
+        },
+        {
+          "doc": "docs/DESIGN_IMPL_GAP.md",
+          "line": 313,
+          "statement": "第二阶段实际只有 1 个有效节点（GRADIENT_SPHERE），STACK 是占位"
+        },
+        {
+          "doc": "engineering/12_STAGE2_STACKING_VALIDATION_SPEC.md",
+          "line": 111,
+          "statement": "当前代码把完整输出放入 GRADIENT_SPHERE，STACK 仅返回成功。P06 必须选择并记录 A/B/C"
+        },
+        {
+          "doc": "engineering/12_STAGE2_STACKING_VALIDATION_SPEC.md",
+          "line": 117,
+          "statement": "不允许继续保留空节点成功而文档声称执行了算法"
+        },
+        {
+          "doc": "engineering/control/DECISION_LOG.md",
+          "line": 8,
+          "statement": "ADR-003 | PENDING | Stage 2 节点模型 | 单节点、双节点或内部子阶段"
+        }
+      ],
+      "severity": "medium",
+      "recommendation": "待 ADR-003 决策（单节点/双节点/内部子阶段）。当前过渡表述以\"STACK 空骨架，实际由 GRADIENT_SPHERE 单函数完成 4 个内部步骤\"为准，修正 docs/ARCHITECTURE.md §2 第二阶段表格的 STACK 行说明，避免暗示 STACK 独立执行叠加。PIPELINE_OVERVIEW.md §第二阶段 4 步表格应标注\"4 个内部步骤，非 4 个独立节点\"。"
+    },
+    {
+      "id": "C-005",
+      "topic": "healpix_io 合并后仍被多处引用为独立 DLL",
+      "conflict": "2026-07-16 healpix_io 已归档，API 并入 astro_image_io（aio_healpix_io.h 兼容宏，DLL 名 healpix_io.dll → astro_image_io.dll）。ARCHITECTURE.md 与 DESIGN_IMPL_GAP.md GAP-002 已标\"已修复/已归档\"。但根 memory.md 的历史开发日志、马赛克叠加梯度建模计划.md（活跃文档）、多份 2026-07-13~15 历史 spec 仍把 healpix_io 当作独立 DLL 引用（hiss_write/hiss_read 通过 healpix_io.dll 调用），易误导新开发者编译依赖。",
+      "sources": [
+        {
+          "doc": "docs/ARCHITECTURE.md",
+          "line": 70,
+          "statement": "healpix_io | .hiss / .hcsd 存储格式读写（已归档，API 并入 astro_image_io）| 已归档（2026-07-16）"
+        },
+        {
+          "doc": "docs/ARCHITECTURE.md",
+          "line": 98,
+          "statement": "lib/healpix_db/healpix_io/archive/：healpix_io 源码归档（API 已并入 astro_image_io）"
+        },
+        {
+          "doc": "docs/DESIGN_IMPL_GAP.md",
+          "line": 24,
+          "statement": "GAP-002：healpix_io 实际代码已移至 archive/ 但仍标为活跃 —— 已修复"
+        },
+        {
+          "doc": "memory.md",
+          "line": 464,
+          "statement": "将 healpix_drizzle 模块的输出格式从 .ahpx 改为 .hiss，通过 healpix_io.dll 的 hiss_write 写入"
+        },
+        {
+          "doc": "memory.md",
+          "line": 479,
+          "statement": "DLL 依赖: astro_image_io.dll + healpix_io.dll + libgomp-1.dll"
+        },
+        {
+          "doc": "memory.md",
+          "line": 521,
+          "statement": "healpix_io C++ DLL 实现（Task 2，2026-07-13）"
+        },
+        {
+          "doc": "memory.md",
+          "line": 1043,
+          "statement": "断层2 (healpix_io.h/.cpp): hiss 格式 has_snr 字段实现"
+        },
+        {
+          "doc": "马赛克叠加梯度建模计划.md",
+          "line": 5,
+          "statement": "复用 healpix_io 的 DLL 接口读写 .hiss/.hcsd"
+        },
+        {
+          "doc": "马赛克叠加梯度建模计划.md",
+          "line": 68,
+          "statement": "healpix_io 提供 .hiss/.hcsd 读写 DLL 接口，复用"
+        },
+        {
+          "doc": "马赛克叠加梯度建模计划.md",
+          "line": 337,
+          "statement": "复用 healpix_io DLL 接口"
+        },
+        {
+          "doc": "docs/superpowers/specs/2026-07-15-snr-module-and-grad-design.md",
+          "line": 222,
+          "statement": "healpix_io.h/.cpp hiss_write/read | FORMAT_SPEC 已设计 has_snr 字段，但 C API/Python 绑定未实现"
+        },
+        {
+          "doc": "docs/superpowers/specs/2026-07-13-cpp-qt-browser-core-design.md",
+          "line": 99,
+          "statement": "healpix_io.dll（现有，不修改）"
+        }
+      ],
+      "severity": "medium",
+      "recommendation": "以 healpix_io 已归档、API 并入 astro_image_io（aio_healpix_io.h）为准。需修正：马赛克叠加梯度建模计划.md（活跃文档）中 healpix_io DLL 引用 → astro_image_io DLL；memory.md 历史日志在 2026-07-16 条目后加\"⚠ 已归档，见 healpix_io 合并\"标注；历史 spec（2026-07-13~15）加归档头注，不就地改写。"
+    },
+    {
+      "id": "C-006",
+      "topic": "data_pipeline 模块状态与数据总线归属",
+      "conflict": "ARCHITECTURE.md/PROJECT_OVERVIEW.md 把 data_pipeline 标为\"活跃（拆分中间态）\"，PIPELINE_OVERVIEW.md 核心设计原则写\"数据总线：data_pipeline（PipelineFrame + PipelineEngine）\"。但 engineering/03 明确\"data_pipeline 不得继续作为第二份同名 ABI 长期存在，P02 必须决定\"，ADR-002 PENDING，P00-004 依赖图确认 data_pipeline 无独立构建、源码与 astro_image_io 重复，orchestrator 实际加载 astro_image_io.dll 而非 data_pipeline.dll（GAP-019）。lib/data_pipeline/memory.md 与 README.md 仍称\"独立仓库\"。",
+      "sources": [
+        {
+          "doc": "docs/ARCHITECTURE.md",
+          "line": 76,
+          "statement": "data_pipeline | 数据总线...活跃（拆分中间态：astro_image_io 仍保留副本）| Astro-Data-Pipeline"
+        },
+        {
+          "doc": "docs/PROJECT_OVERVIEW.md",
+          "line": 113,
+          "statement": "data_pipeline | 数据总线（拆分中间态，与 astro_image_io 同 API，待 GAP-006 处理）| Astro-Data-Pipeline"
+        },
+        {
+          "doc": "docs/PIPELINE_OVERVIEW.md",
+          "line": 57,
+          "statement": "数据总线：data_pipeline（PipelineFrame + PipelineEngine）提供命名块容器在内存中传递"
+        },
+        {
+          "doc": "engineering/03_TARGET_SYSTEM_ARCHITECTURE.md",
+          "line": 42,
+          "statement": "data_pipeline 不得继续作为第二份同名 ABI 长期存在。P02 必须决定：合并、废弃或改名"
+        },
+        {
+          "doc": "engineering/03_TARGET_SYSTEM_ARCHITECTURE.md",
+          "line": 118,
+          "statement": "data_pipeline 与 astro_image_io 谁拥有 PipelineFrame（ADR 门禁）"
+        },
+        {
+          "doc": "engineering/control/DECISION_LOG.md",
+          "line": 7,
+          "statement": "ADR-002 | PENDING | PipelineFrame 唯一所有者 | astro_image_io 或 data_pipeline"
+        },
+        {
+          "doc": "engineering/evidence/P00-004/dependency_graph.md",
+          "line": 127,
+          "statement": "data_pipeline 模块无独立构建文件, 其源文件与 astro_image_io/src 下同名文件重复, 存在维护一致性问题"
+        },
+        {
+          "doc": "docs/DESIGN_IMPL_GAP.md",
+          "line": 80,
+          "statement": "GAP-006：data_pipeline 从 astro_image_io 拆分未完成 —— 待修复"
+        },
+        {
+          "doc": "docs/DESIGN_IMPL_GAP.md",
+          "line": 489,
+          "statement": "PIPELINE_OVERVIEW.md 核心设计原则中数据总线：data_pipeline...与实际不符"
+        },
+        {
+          "doc": "lib/data_pipeline/memory.md",
+          "line": 23,
+          "statement": "从astro_image_io迁移独立：原管线实现位于astro_image_io，为职责单一拆分为独立仓库"
+        },
+        {
+          "doc": "lib/data_pipeline/README.md",
+          "line": 108,
+          "statement": "v1.0 (2026-07-12): 从astro_image_io迁移C++实现，新建独立仓库"
+        }
+      ],
+      "severity": "medium",
+      "recommendation": "待 ADR-002 决策 PipelineFrame 唯一所有者。当前 docs/PIPELINE_OVERVIEW.md:57 \"数据总线：data_pipeline\"与实际（orchestrator 加载 astro_image_io.dll）不符，应至少标注\"实际由 astro_image_io 提供，data_pipeline 为拆分中间态\"。lib/data_pipeline/memory.md:23 与 README.md:108 的\"独立仓库\"表述需按 C-001 monorepo 决策同步修正。"
+    },
+    {
+      "id": "C-007",
+      "topic": "已修 GAP 记录与代码现状不同步",
+      "conflict": "DESIGN_IMPL_GAP.md 中 GAP-011/012/013/016/017 等多项仍标\"待修复\"或无 CLOSED 标记，但 PROJECT_OVERVIEW.md（标称\"修复后状态\"）描述这些功能已实现（snr_model 块、CCD QE 积分、IRLS+Tukey、NSIDE 自适应、Winsorized sigma clip）。02_BASELINE_AUDIT.md 明确\"旧审计不能直接当当前事实，必须在 P00 重新逐项复核\"。audit-findings-P0P1.md 直接指出 GAP-011 文档与代码状态不同步。",
+      "sources": [
+        {
+          "doc": "docs/DESIGN_IMPL_GAP.md",
+          "line": 103,
+          "statement": "GAP-011：SNR 接口链路断裂...（无 CLOSED 标记）"
+        },
+        {
+          "doc": "docs/DESIGN_IMPL_GAP.md",
+          "line": 149,
+          "statement": "GAP-012：CCD QE 曲线未使用...（无 CLOSED 标记）"
+        },
+        {
+          "doc": "docs/DESIGN_IMPL_GAP.md",
+          "line": 196,
+          "statement": "GAP-013：photometric_calib C API 是简化版...（无 CLOSED 标记）"
+        },
+        {
+          "doc": "docs/DESIGN_IMPL_GAP.md",
+          "line": 332,
+          "statement": "GAP-016：NSIDE 自适应未实现...（无 CLOSED 标记）"
+        },
+        {
+          "doc": "docs/DESIGN_IMPL_GAP.md",
+          "line": 376,
+          "statement": "GAP-017：Winsorized sigma clip 未实现...（无 CLOSED 标记）"
+        },
+        {
+          "doc": "docs/PROJECT_OVERVIEW.md",
+          "line": 3,
+          "statement": "创建日期：2026-07-17（GAP-011/012/013/016/017 修复后状态）"
+        },
+        {
+          "doc": "docs/PROJECT_OVERVIEW.md",
+          "line": 41,
+          "statement": "PHOTOMETRIC | F_syn = ∫ S(λ)·T(λ)·Q(λ) dλ（含 CCD QE）+ IRLS+Tukey biweight 稳健回归"
+        },
+        {
+          "doc": "docs/PROJECT_OVERVIEW.md",
+          "line": 43,
+          "statement": "DRIZZLE | NSIDE 自适应...+ 读 snr_model 块用 SnrEvaluator 重建逐像素 SNR"
+        },
+        {
+          "doc": "docs/PROJECT_OVERVIEW.md",
+          "line": 50,
+          "statement": "STACK | Winsorized sigma clip（缩尾 5%/95% 分位数 + 稳健均值/标准差）"
+        },
+        {
+          "doc": "docs/superpowers/specs/2026-07-18-audit-findings-P0P1.md",
+          "line": 636,
+          "statement": "GAP-011...状态仍标为待修复，但实际代码已经修复...文档与代码状态不同步"
+        },
+        {
+          "doc": "engineering/02_BASELINE_AUDIT.md",
+          "line": 72,
+          "statement": "旧审计不能直接当当前事实，必须在 P00 重新逐项复核—关闭—保留—降级"
+        }
+      ],
+      "severity": "medium",
+      "recommendation": "与 P00-006（旧审计复核）协同，逐项复核 GAP-011~020 的代码现状，在 DESIGN_IMPL_GAP.md 每项补 OPEN/CLOSED/STALE/UNVERIFIED 状态字段并附代码证据（commit/文件:行）。在 P00-007 范围内仅登记冲突，不就地改 GAP 状态。"
+    },
+    {
+      "id": "C-008",
+      "topic": "integration_test 模块状态",
+      "conflict": "ARCHITECTURE.md 与 memory.md 一致标 integration_test 已归档（orchestrator/archive/scripts/ 有副本），无实质冲突。但 memory.md 历史开发日志仍详细记录 integration_test 的 Task 1-8 进度（\"进行中\"措辞），易让新开发者误以为该模块仍在活跃开发。",
+      "sources": [
+        {
+          "doc": "docs/ARCHITECTURE.md",
+          "line": 77,
+          "statement": "integration_test | 全链路整合测试（已归档）| 已归档（orchestrator/archive/scripts/ 有完整副本）"
+        },
+        {
+          "doc": "memory.md",
+          "line": 71,
+          "statement": "lib/integration_test/ - 全链路整合测试 (已删除，orchestrator/archive/scripts/ 有完整副本)"
+        },
+        {
+          "doc": "memory.md",
+          "line": 882,
+          "statement": "integration_test 全链路整合测试（进行中）"
+        },
+        {
+          "doc": "memory.md",
+          "line": 891,
+          "statement": "模块记忆: lib/integration_test/memory.md（该路径已不存在）"
+        }
+      ],
+      "severity": "low",
+      "recommendation": "memory.md:882-891 的\"integration_test 全链路整合测试（进行中）\"历史条目加归档标注（如\"⚠ 已归档至 orchestrator/archive/scripts/，本条为历史记录\"）。无实质冲突，仅需历史记录清理。"
+    },
+    {
+      "id": "C-009",
+      "topic": "psf 块字段数 [N,6] vs [N,9]",
+      "conflict": "psf 块已从 [N,6] 扩展到 [N,9]（新增 A/mad/eccentricity），ARCHITECTURE.md/PROJECT_OVERVIEW.md 已同步。但 memory.md 旧记录仍写 [N,6]，engineering/06 明确把此列为\"当前必须复核的冲突\"。",
+      "sources": [
+        {
+          "doc": "docs/ARCHITECTURE.md",
+          "line": 111,
+          "statement": "psf (FLOAT64[N,9])：x,y,fwhm,背景,A,mad,eccentricity 等"
+        },
+        {
+          "doc": "docs/PROJECT_OVERVIEW.md",
+          "line": 60,
+          "statement": "psf(FLOAT64[N,9]: status,B,flux,cx,cy,fwhm,A,mad,eccentricity)"
+        },
+        {
+          "doc": "engineering/06_DATA_MANAGEMENT_SPEC.md",
+          "line": 77,
+          "statement": "psf 注释中曾出现 [6]、[N,9]"
+        },
+        {
+          "doc": "memory.md",
+          "line": 799,
+          "statement": "psf 块（FLOAT64[N,6]: status, B, flux, cx, cy, fwhm均值）"
+        },
+        {
+          "doc": "memory.md",
+          "line": 166,
+          "statement": "PSF 块扩展(已完成): psf_adapter.py: [N,6]→[N,9],新增 A/mad/eccentricity 三列"
+        }
+      ],
+      "severity": "low",
+      "recommendation": "以 [N,9] 为准。memory.md:799 旧记录加历史标注。06_DATA_MANAGEMENT_SPEC.md:77 已正确识别，P02 数据契约冻结时把 psf schema 固定为 [N,9] 并写入 pipeline_blocks.schema.json。"
+    },
+    {
+      "id": "C-010",
+      "topic": "模块 GitHub 仓库状态描述",
+      "conflict": "memory.md:9-26 记录 2026-07-24 合并后原 11 个子仓库\"封存为历史快照，README 注明依赖指向主仓库\"。但 docs/ARCHITECTURE.md/PROJECT_OVERVIEW.md 模块清单仍把各模块的独立 GitHub 仓库（Astro-Image-IO-C/Astro-Calibration-Cpp/PlateSolve-IPV-Cpp/Flux-calibration/Healpix-Drizzle-Cpp/Healpix-Mosaic-Cpp/Healpix-Database/Orchestrator-Cpp-Python/Snr-Estimator-Cpp-Python 等）当作活跃仓库列出，lib/healpix_db/README.md 与 lib/data_pipeline/README.md 仍标\"独立仓库\"。",
+      "sources": [
+        {
+          "doc": "memory.md",
+          "line": 22,
+          "statement": "已封存子仓库（保留为历史快照，README 注明依赖指向主仓库 Astro-CS-Database，不再独立开发）"
+        },
+        {
+          "doc": "docs/ARCHITECTURE.md",
+          "line": 62,
+          "statement": "astro_image_io | Astro-Image-IO-C"
+        },
+        {
+          "doc": "docs/ARCHITECTURE.md",
+          "line": 63,
+          "statement": "calibration | Astro-Calibration-Cpp"
+        },
+        {
+          "doc": "docs/ARCHITECTURE.md",
+          "line": 68,
+          "statement": "healpix_drizzle | Healpix-Drizzle-Cpp | 活跃（独立仓库，.gitignore 忽略）"
+        },
+        {
+          "doc": "docs/ARCHITECTURE.md",
+          "line": 69,
+          "statement": "healpix_stack | Healpix-Mosaic-Cpp | 活跃（独立仓库，.gitignore 忽略）"
+        },
+        {
+          "doc": "docs/PROJECT_OVERVIEW.md",
+          "line": 100,
+          "statement": "astro_image_io | Astro-Image-IO-C"
+        },
+        {
+          "doc": "docs/PROJECT_OVERVIEW.md",
+          "line": 107,
+          "statement": "healpix_drizzle | Healpix-Drizzle-Cpp"
+        },
+        {
+          "doc": "lib/healpix_db/README.md",
+          "line": 18,
+          "statement": "healpix_stack/ | 稀疏 HEALPix 堆栈存储（独立仓库本地副本，.gitignore 忽略）| 活跃（独立仓库）"
+        },
+        {
+          "doc": "lib/healpix_db/README.md",
+          "line": 19,
+          "statement": "healpix_drizzle/ | 球面 Drizzle 重投影（独立仓库本地副本，.gitignore 忽略）| 活跃（独立仓库）"
+        },
+        {
+          "doc": "lib/data_pipeline/README.md",
+          "line": 108,
+          "statement": "v1.0 (2026-07-12): 从astro_image_io迁移C++实现，新建独立仓库"
+        }
+      ],
+      "severity": "low",
+      "recommendation": "以 monorepo 为准（主仓库 Astro-CS-Database）。模块清单 GitHub 仓库列改为\"历史仓库（已封存，指向主仓库 Astro-CS-Database）\"或删除该列。lib/*/README.md 的\"独立仓库\"表述同步修正。属 C-001 的延伸，随 C-001 一并处理。"
+    }
+  ],
+  "topics_no_conflict": [],
+  "cross_references": {
+    "ADR_pending": [
+      "ADR-001 Drizzle/Stack 源码纳管（影响 C-001 模块仓库列）",
+      "ADR-002 PipelineFrame 唯一所有者（影响 C-006 data_pipeline 归属）",
+      "ADR-003 Stage 2 节点模型（影响 C-004 Stack 节点）"
+    ],
+    "related_tasks": [
+      "P00-002",
+      "P00-003",
+      "P00-006",
+      "P02-001",
+      "P03",
+      "P06"
+    ]
+  }
+}

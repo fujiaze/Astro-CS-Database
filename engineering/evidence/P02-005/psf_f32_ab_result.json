@@ -1,0 +1,222 @@
+{
+  "fits_path": "testdata\\Galaxy_Center_T4\\lights\\panel1\\Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts",
+  "n_stars_requested": 50,
+  "fit_radius": 8,
+  "timestamp": "2026-07-25T12:15:55.739988",
+  "image": {
+    "width": 4500,
+    "height": 3600,
+    "original_dtype": "uint16",
+    "read_sec": 0.304,
+    "min": 1267.0,
+    "max": 65535.0,
+    "median": 1457.0
+  },
+  "detections": {
+    "count": 50,
+    "schema": "star_det_v1:FLOAT64[N,6]",
+    "detect_sec": 0.472
+  },
+  "f32_api": {
+    "n_valid": 47,
+    "n_total": 50,
+    "success_rate": 0.94,
+    "elapsed_sec": 0.016
+  },
+  "u16_api": {
+    "n_valid": 47,
+    "n_total": 50,
+    "success_rate": 0.94,
+    "elapsed_sec": 0.03
+  },
+  "comparison": {
+    "n_both_ok": 47,
+    "fields": {
+      "B": {
+        "f32_mean": 1518.47479,
+        "u16_mean": 1518.47479,
+        "diff_mean": 0.0,
+        "diff_abs_mean": 0.0,
+        "abs_rel_diff_mean": 0.0,
+        "abs_rel_diff_max": 0.0
+      },
+      "A": {
+        "f32_mean": 87578.048887,
+        "u16_mean": 87578.048887,
+        "diff_mean": 0.0,
+        "diff_abs_mean": 0.0,
+        "abs_rel_diff_mean": 0.0,
+        "abs_rel_diff_max": 0.0
+      },
+      "cx": {
+        "f32_mean": 2518.431367,
+        "u16_mean": 2518.431367,
+        "diff_mean": 0.0,
+        "diff_abs_mean": 0.0,
+        "abs_rel_diff_mean": 0.0,
+        "abs_rel_diff_max": 0.0
+      },
+      "cy": {
+        "f32_mean": 896.71402,
+        "u16_mean": 896.71402,
+        "diff_mean": 0.0,
+        "diff_abs_mean": 0.0,
+        "abs_rel_diff_mean": 0.0,
+        "abs_rel_diff_max": 0.0
+      },
+      "sx": {
+        "f32_mean": 1.468127,
+        "u16_mean": 1.468127,
+        "diff_mean": 0.0,
+        "diff_abs_mean": 0.0,
+        "abs_rel_diff_mean": 0.0,
+        "abs_rel_diff_max": 0.0
+      },
+      "sy": {
+        "f32_mean": 1.564958,
+        "u16_mean": 1.564958,
+        "diff_mean": 0.0,
+        "diff_abs_mean": 0.0,
+        "abs_rel_diff_mean": 0.0,
+        "abs_rel_diff_max": 0.0
+      },
+      "theta": {
+        "f32_mean": -198.818167,
+        "u16_mean": -198.818167,
+        "diff_mean": 0.0,
+        "diff_abs_mean": 0.0,
+        "abs_rel_diff_mean": 0.0,
+        "abs_rel_diff_max": 0.0
+      },
+      "fwhm_x": {
+        "f32_mean": 1.806251,
+        "u16_mean": 1.806251,
+        "diff_mean": 0.0,
+        "diff_abs_mean": 0.0,
+        "abs_rel_diff_mean": 0.0,
+        "abs_rel_diff_max": 0.0
+      },
+      "fwhm_y": {
+        "f32_mean": 1.925384,
+        "u16_mean": 1.925384,
+        "diff_mean": 0.0,
+        "diff_abs_mean": 0.0,
+        "abs_rel_diff_mean": 0.0,
+        "abs_rel_diff_max": 0.0
+      }
+    }
+  },
+  "f32_validity": {
+    "n_valid_non_nan": 47,
+    "checks": [
+      {
+        "name": "A > 0",
+        "pass": true
+      },
+      {
+        "name": "sx > 0.3",
+        "pass": true
+      },
+      {
+        "name": "sy > 0.3",
+        "pass": true
+      },
+      {
+        "name": "fwhm_x > 0",
+        "pass": true
+      },
+      {
+        "name": "fwhm_y > 0",
+        "pass": true
+      },
+      {
+        "name": "fwhm_x < 50",
+        "pass": true
+      },
+      {
+        "name": "fwhm_y < 50",
+        "pass": true
+      },
+      {
+        "name": "B finite",
+        "pass": true
+      },
+      {
+        "name": "cx in image",
+        "pass": true
+      },
+      {
+        "name": "cy in image",
+        "pass": true
+      }
+    ],
+    "all_pass": true
+  },
+  "summary_first_5": [
+    {
+      "star_idx": 0,
+      "cx": 995.0,
+      "cy": 20.0,
+      "f32": {
+        "B": 1251.553,
+        "A": 87558.739,
+        "fwhm_x": 2.1733,
+        "fwhm_y": 2.9826
+      },
+      "u16": {
+        "B": 1251.553,
+        "A": 87558.739,
+        "fwhm_x": 2.1733,
+        "fwhm_y": 2.9826
+      }
+    },
+    {
+      "star_idx": 1,
+      "cx": 2870.0,
+      "cy": 145.0,
+      "f32": {
+        "B": 1537.937,
+        "A": 96897.641,
+        "fwhm_x": 1.9556,
+        "fwhm_y": 1.5557
+      },
+      "u16": {
+        "B": 1537.937,
+        "A": 96897.641,
+        "fwhm_x": 1.9556,
+        "fwhm_y": 1.5557
+      }
+    },
+    {
+      "star_idx": 2,
+      "cx": 180.0,
+      "cy": 245.0,
+      "f32": null,
+      "u16": null
+    },
+    {
+      "star_idx": 3,
+      "cx": 3470.0,
+      "cy": 250.0,
+      "f32": null,
+      "u16": null
+    },
+    {
+      "star_idx": 4,
+      "cx": 3510.0,
+      "cy": 250.0,
+      "f32": {
+        "B": 1556.795,
+        "A": 80865.531,
+        "fwhm_x": 1.0876,
+        "fwhm_y": 1.627
+      },
+      "u16": {
+        "B": 1556.795,
+        "A": 80865.531,
+        "fwhm_x": 1.0876,
+        "fwhm_y": 1.627
+      }
+    }
+  ]
+}

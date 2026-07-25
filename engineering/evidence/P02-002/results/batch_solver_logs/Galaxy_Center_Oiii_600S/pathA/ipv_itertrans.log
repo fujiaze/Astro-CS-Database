@@ -1,0 +1,35 @@
+﻿=== IPV Plate Solve Log ===
+[2026-07-25 12:45:23][INFO] iter_trans_solve: U=60, W=60, initial_pairs=60, tol=5.00, order=3
+[2026-07-25 12:45:23][DEBUG] calc_trans_general: order=3, n_pairs=20, 拟合成功
+[2026-07-25 12:45:23][INFO] iter_trans_inner: 初始拟合完成, 初始工作集=20, order=3
+[2026-07-25 12:45:23][INFO]   [调试] 初始 TRANS: x00=293.8652 y00=20.3747, x10=6.308576 x01=-0.004668 y10=-0.005834 y01=-6.309607
+[2026-07-25 12:45:23][INFO]   [调试] 初始对[0]: u=31 w=16, U=(890.69,-169.62), W=(5913.09,1085.38), pred=(5912.25,1085.36), dist=0.8347" (dx=-0.83 dy=-0.02)
+[2026-07-25 12:45:23][INFO]   [调试] 初始对[1]: u=53 w=37, U=(-773.18,588.83), W=(-4584.56,-3689.30), pred=(-4584.53,-3688.41), dist=0.8848" (dx=0.02 dy=0.88)
+[2026-07-25 12:45:23][INFO]   [调试] 初始对[2]: u=28 w=23, U=(1943.17,1147.73), W=(12526.12,-7218.70), pred=(12526.21,-7218.26), dist=0.4525" (dx=0.09 dy=0.44)
+[2026-07-25 12:45:23][INFO]   [调试] 初始对[3]: u=16 w=30, U=(-2009.84,291.56), W=(-12360.51,-1804.67), pred=(-12360.19,-1804.36), dist=0.4471" (dx=0.32 dy=0.31)
+[2026-07-25 12:45:23][INFO]   [调试] 初始对[4]: u=58 w=11, U=(2009.19,1599.02), W=(12932.57,-10054.21), pred=(12932.44,-10054.38), dist=0.2133" (dx=-0.13 dy=-0.17)
+[2026-07-25 12:45:23][INFO]   [调试] 初始对[5]: u=27 w=38, U=(-359.58,-814.34), W=(-1969.81,5158.36), pred=(-1969.46,5157.91), dist=0.5684" (dx=0.34 dy=-0.45)
+[2026-07-25 12:45:23][INFO] iter_trans_inner: V4.23 工作集扩展 20->60 (nr=nbright)
+[2026-07-25 12:45:23][DEBUG] iter 0: 绝对剔除 nr=60→30, nb=30
+[2026-07-25 12:45:23][DEBUG] iter 0: sigma(35%)=0.239257 角秒²
+[2026-07-25 12:45:23][DEBUG] iter 0: 相对剔除 nr=27, nb=33, rel_thresh=2.392565
+[2026-07-25 12:45:23][DEBUG] calc_trans_general: order=3, n_pairs=27, 拟合成功
+[2026-07-25 12:45:23][INFO] iter_trans_inner: 完成, nr=27, sig=0.3956, rms=0.5797, iters=1, success=1
+[2026-07-25 12:45:23][INFO] iter_trans_solve: 第一轮 iter_trans 成功, inliers=27, rms=0.5797
+[2026-07-25 12:45:23][INFO] at_match_lists: U=60, W=60, tol=5.00", U→W单向=30, W→U单向=30, 双向=30, 去重后=30
+[2026-07-25 12:45:23][DEBUG] calc_trans_general: order=3, n_pairs=30, 拟合成功
+[2026-07-25 12:45:23][INFO] at_recalc_trans: n=30, order=3, sig=0.4653, sx=0.4997, sy=0.4152, rms=0.6497
+[2026-07-25 12:45:23][INFO] iter_trans_solve: 第一轮 refit 成功, inliers=30, rms=0.6497
+[2026-07-25 12:45:23][INFO] at_match_lists: U=60, W=60, tol=5.00", U→W单向=30, W→U单向=30, 双向=30, 去重后=30
+[2026-07-25 12:45:23][DEBUG] calc_trans_general: order=3, n_pairs=30, 拟合成功
+[2026-07-25 12:45:23][INFO] at_recalc_trans: n=30, order=3, sig=0.4653, sx=0.4997, sy=0.4152, rms=0.6497
+[2026-07-25 12:45:23][INFO] iter_trans_solve: 第二轮 refit 成功, inliers=30, rms=0.6497
+[2026-07-25 12:45:23][DEBUG] calc_trans_general: order=3, n_pairs=30, 拟合成功
+[2026-07-25 12:45:23][INFO] at_recalc_trans: n=30, order=3, sig=0.4652, sx=0.4996, sy=0.4153, rms=0.6497
+[2026-07-25 12:45:23][INFO] at_match_lists: U=60, W=60, tol=5.00", U→W单向=30, W→U单向=30, 双向=30, 去重后=30
+[2026-07-25 12:45:23][DEBUG] calc_trans_general: order=3, n_pairs=30, 拟合成功
+[2026-07-25 12:45:23][INFO] at_recalc_trans: n=30, order=3, sig=0.4652, sx=0.4996, sy=0.4153, rms=0.6497
+[2026-07-25 12:45:23][INFO] at_match_lists: U=60, W=60, tol=5.00", U→W单向=30, W→U单向=30, 双向=30, 去重后=30
+[2026-07-25 12:45:23][DEBUG] calc_trans_general: order=3, n_pairs=30, 拟合成功
+[2026-07-25 12:45:23][INFO] at_recalc_trans: n=30, order=3, sig=0.4652, sx=0.4996, sy=0.4153, rms=0.6497
+=== Log End ===
