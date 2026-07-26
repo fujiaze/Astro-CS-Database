@@ -1,0 +1,10 @@
+{
+  "success": false,
+  "frame_name": "testdata\\Galaxy_Center_T4\\lights\\panel1\\Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts",
+  "timings": [
+  ],
+  "wcs_fields": {},
+  "photo_stats": {},
+  "output_ahpx_path": "",
+  "error_msg": "DLL 加载失败 (必需模块缺失): 部分模块加载失败: PHOTOMETRIC=LoadLibraryA 失败: code=126 (�Ҳ���ָ����ģ�顣)"
+}

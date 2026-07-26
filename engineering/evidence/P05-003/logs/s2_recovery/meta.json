@@ -1,0 +1,21 @@
+{
+  "scenario": "s2_recovery",
+  "exit_code": 0,
+  "duration_ms": 33772,
+  "output_exists": true,
+  "output_path": "engineering\\evidence\\P05-003\\hiss\\s2_recovery.hiss",
+  "stdout_path": "engineering\\evidence\\P05-003\\logs\\s2_recovery\\stdout.log",
+  "stderr_path": "engineering\\evidence\\P05-003\\logs\\s2_recovery\\stderr.log",
+  "command_args": [
+    "stage1",
+    "--frame",
+    "testdata\\Galaxy_Center_T4\\lights\\panel1\\Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts",
+    "--output",
+    "engineering\\evidence\\P05-003\\hiss\\s2_recovery.hiss",
+    "--log-level",
+    "INFO",
+    "--config",
+    "engineering\\evidence\\P05-002\\configs\\stage1_config_T4.json"
+  ],
+  "stdout_preview": "{\r\n  \"success\": true,\r\n  \"frame_name\": \"testdata\\\\Galaxy_Center_T4\\\\lights\\\\panel1\\\\Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts\",\r\n  \"timings\": [\r\n    {\"stage\": \"CALIBRATE\", \"name\": \"READ_FITS\", \"duration_sec\": 0.229705, \"success\": true},\r\n    {\"stage\": \"CALIBRATE\", \"name\": \"CALIBRATE\", \"duration_sec\": 1.10615, \"success\": true},\r\n    {\"stage\": \"CALIBRATE\", \"name\": \"PLATESOLVE\", \"duration_sec\": 12.5173, \"success\": true},\r\n    {\"stage\": \"CALIBRATE\", \"name\": \"PSF\", \"duration_sec\": 0.876867, \"success\": true},\r\n    {\"stage\": \"CALIBRATE\", \"name\": \"PHOTOMETRIC\", \"duration_sec\": 2.23658, \"success\": true},\r\n    {\"stage\": \"CALIBRATE\", \"name\": \"SNR\", \"duration_sec\": 0.0447248, \"success\": true},\r\n    {\"stage\": \"CALIBRATE\", \"name\": \"DRIZZLE\", \"duration_sec\": 15.7471, \"success\": true}\r\n  ],\r\n  \"wcs_fields\": {},\r\n  \"photo_stats\": {},\r\n  \"output_ahpx_path\": \"engineering\\\\evidence\\\\P05-003\\\\hiss\\\\s2_recovery.hiss\",\r\n  \"error_msg\": \"\"\r\n}\r\n"
+}

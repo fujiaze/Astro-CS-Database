@@ -1,0 +1,21 @@
+{
+  "scenario": "s1_1_2_config_not_exist",
+  "exit_code": 7,
+  "duration_ms": 50,
+  "output_exists": false,
+  "output_path": "engineering\\evidence\\P05-003\\hiss\\s1_1_2_config_not_exist.hiss",
+  "stdout_path": "engineering\\evidence\\P05-003\\logs\\s1_1_2_config_not_exist\\stdout.log",
+  "stderr_path": "engineering\\evidence\\P05-003\\logs\\s1_1_2_config_not_exist\\stderr.log",
+  "command_args": [
+    "stage1",
+    "--frame",
+    "testdata\\Galaxy_Center_T4\\lights\\panel1\\Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts",
+    "--output",
+    "engineering\\evidence\\P05-003\\hiss\\s1_1_2_config_not_exist.hiss",
+    "--log-level",
+    "INFO",
+    "--config",
+    "engineering\\evidence\\P05-003\\configs\\P05003_nonexistent_config.json"
+  ],
+  "stdout_preview": null
+}

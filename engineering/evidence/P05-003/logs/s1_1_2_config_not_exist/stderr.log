@@ -1,0 +1,8 @@
+[2026-07-25 22:49:48][INFO][logger] 日志系统初始化完成 (log_dir=lib/orchestrator/logs, level=INFO)
+[2026-07-25 22:49:48][INFO][orchestrator] 初始化编排器 (骨架版本)
+[2026-07-25 22:49:48][INFO][orchestrator] 可用线程数: 16
+[2026-07-25 22:49:48][INFO][orchestrator] 加载配置: engineering\evidence\P05-003\configs\P05003_nonexistent_config.json
+[2026-07-25 22:49:48][ERROR][orchestrator] 配置文件不存在: engineering\evidence\P05-003\configs\P05003_nonexistent_config.json
+[2026-07-25 22:49:48][ERROR][cli] 配置加载失败: 配置文件不存在: engineering\evidence\P05-003\configs\P05003_nonexistent_config.json
+[2026-07-25 22:49:48][INFO][orchestrator] 析构完成
+[dll_loader] 卸载所有模块

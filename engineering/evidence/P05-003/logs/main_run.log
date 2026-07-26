@@ -1,0 +1,50 @@
+
+========== 场景 1.1.1: --frame 文件不存在 ==========
+  exit_code=1 output_exists=False
+
+========== 场景 1.1.2: --config 文件不存在 ==========
+  exit_code=7 output_exists=False
+
+========== 场景 1.1.3: --output 目录不存在 ==========
+  exit_code=6 output_exists=False
+
+========== 场景 1.2: DLL 缺失 (gaia_client.dll) ==========
+  已临时移除 gaia_client.dll -> lib\photometric_calib\cpp\gaia_client.dll.p05003_bak
+  exit_code=2 output_exists=False
+  已恢复 gaia_client.dll
+
+========== 场景 1.3.1: Master 文件尺寸不匹配 ==========
+  exit_code=4 output_exists=False
+
+========== 场景 1.3.2: Master 目录不存在 + allow_no_calibration=false ==========
+  exit_code=4 output_exists=False
+
+========== 场景 1.4.1: PlateSolve 失败 (全黑图像) ==========
+  exit_code=5 output_exists=False
+
+========== 场景 1.4.2: PlateSolve 失败 (极小图像 10x10) ==========
+  exit_code=4 output_exists=False
+
+========== 场景 1.5: 取消测试 (Ctrl+C, Python 脚本) ==========
+[cancel] 启动: f:\Astro dev\Astro CS Normalization Database\lib\orchestrator\cpp\orchestrator.exe stage1 --frame f:\Astro dev\Astro CS Normalization Database\testdata\Galaxy_Center_T4\lights\panel1\Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts --output f:\Astro dev\Astro CS Normalization Database\engineering\evidence\P05-003\hiss\s1_5_cancelled.hiss --config f:\Astro dev\Astro CS Normalization Database\engineering\evidence\P05-002\configs\stage1_config_T4.json --log-level INFO --cancel-on-signal [cancel] 子进程 PID=35532, 等待 800ms 后发送 Ctrl+C [cancel] FreeConsole: 1 (last_err=6) [cancel] AttachConsole(child=35532): 1 (last_err=6) [cancel] SetConsoleCtrlHandler(NULL, TRUE): 1 [cancel] GenerateConsoleCtrlEvent(CTRL_C_EVENT, 0): 1 (last_err=6) [cancel] 等待子进程退出 (最长 15.0s)... [cancel] SetConsoleCtrlHandler(NULL, FALSE): 1 [cancel] FreeConsole (再次): 1 [cancel] AttachConsole(ATTACH_PARENT_PROCESS): 1 [cancel] 子进程退出, exit_code=10  [cancel] 结果: exit_code=10 output_exists=False duration_ms=822 ctrl_c_sent=True [cancel] stdout 保存至 f:\Astro dev\Astro CS Normalization Database\engineering\evidence\P05-003\logs\s1_5_cancelled\stdout.log [cancel] stderr 保存至 f:\Astro dev\Astro CS Normalization Database\engineering\evidence\P05-003\logs\s1_5_cancelled\stderr.log [cancel] meta 保存至 f:\Astro dev\Astro CS Normalization Database\engineering\evidence\P05-003\logs\s1_5_cancelled\meta.json {"scenario": "s1_5_cancelled", "exit_code": 10, "duration_ms": 822, "output_exists": false, "atomicity_ok": true, "ctrl_c_sent": true, "stdout_path": "f:\\Astro dev\\Astro CS Normalization Database\\engineering\\evidence\\P05-003\\logs\\s1_5_cancelled\\stdout.log", "stderr_path": "f:\\Astro dev\\Astro CS Normalization Database\\engineering\\evidence\\P05-003\\logs\\s1_5_cancelled\\stderr.log", "output_path": "f:\\Astro dev\\Astro CS Normalization Database\\engineering\\evidence\\P05-003\\hiss\\s1_5_cancelled.hiss", "stdout_first_line": "{", "stderr_last_line": "[dll_loader] 卸载模块 AIO"}
+  exit_code=10 output_exists=False
+
+========== 场景 1.6: 超时测试 (READ_FITS=0.001s) ==========
+  exit_code=9 output_exists=False
+
+========== 场景 2: 恢复测试 (正常 stage1) ==========
+  exit_code=0 output_exists=True
+
+========== 汇总写入 engineering\evidence\P05-003\negative_test_results.json ==========
+总场景数: 11
+  s1_1_1_frame_not_exist           exit=1   output_exists=False atomic_ok=True
+  s1_1_2_config_not_exist          exit=7   output_exists=False atomic_ok=True
+  s1_1_3_output_dir_not_exist      exit=6   output_exists=False atomic_ok=True
+  s1_2_dll_missing                 exit=2   output_exists=False atomic_ok=True
+  s1_3_1_size_mismatch             exit=4   output_exists=False atomic_ok=True
+  s1_3_2_no_calib_dir              exit=4   output_exists=False atomic_ok=True
+  s1_4_1_black_image               exit=5   output_exists=False atomic_ok=True
+  s1_4_2_tiny_image                exit=4   output_exists=False atomic_ok=True
+  s1_5_cancelled                   exit=10  output_exists=False atomic_ok=True
+  s1_6_timeout                     exit=9   output_exists=False atomic_ok=True
+  s2_recovery                      exit=0   output_exists=True atomic_ok=False
