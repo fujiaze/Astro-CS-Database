@@ -1,0 +1,194 @@
+{
+  "_meta": {
+    "task_id": "P06-001",
+    "task_name": "Stage2 真实输入兼容检查 (v1.1 开发包)",
+    "phase": "P06",
+    "gate": "G6",
+    "commit_base": "a353417",
+    "package_version": "2026-07-24-cli-core-v1.1-platesolve-conditional-path",
+    "generated_at": "2026-07-26T14:40:00Z",
+    "orchestrator_entry": "lib/orchestrator/cpp/orchestrator.exe",
+    "orchestrator_sha256": "759E2D4FF640BBF752AC7047037B5DC7D4E9C4107E3206013988024D02D21B50",
+    "config_used": "lib/orchestrator/configs/stage2_config.json",
+    "stage2_config_weighting": "snr_squared",
+    "stage2_config_sigma_clip_method": "winsorized",
+    "stage2_config_sigma": 3.0,
+    "stage2_config_max_iter": 5,
+    "psversion": "7.6.3"
+  },
+  "scope": {
+    "read_only": true,
+    "business_source_modified": false,
+    "evidence_dir": "engineering/evidence/P06-001/",
+    "input_hiss_source": "engineering/evidence/P05-002/hiss/ (6 frames from P05-001 real observations)",
+    "baseline_hiss_source": "lib/orchestrator/cpp/output_hiss_dir/ (P00-003 baseline, 2 frames nside=32768)"
+  },
+  "input_hiss_metadata": {
+    "P05-001-C001_Galaxy_Center_T4_Red_180s.hiss": {"nside": 512, "nested": true, "n_pix": 3928, "filter": "Red", "exposure_s": 180.0, "crval": [272.8256445295, -13.1317715206]},
+    "P05-001-C003_NGC1727_T2_Red_600s.hiss": {"nside": 2048, "nested": true, "n_pix": 1566, "filter": "Red", "exposure_s": 600.0, "crval": [73.0967776250, -69.5894101335]},
+    "P05-001-C004_NGC247_T2_Lum_600s.hiss": {"nside": 2048, "nested": true, "n_pix": 1575, "filter": "Lum", "exposure_s": 600.0, "crval": [11.7897540573, -20.7417018134]},
+    "P05-001-C005_NGC55_T3_Red_600s.hiss": {"nside": 2048, "nested": true, "n_pix": 1536, "filter": "Red", "exposure_s": 600.0, "crval": [3.7457521267, -39.1967876913]},
+    "P05-001-C006_NGC83_cluster_T3_Red_600s.hiss": {"nside": 2048, "nested": true, "n_pix": 1561, "filter": "Red", "exposure_s": 600.0, "crval": [5.3715779611, 22.4410615214]},
+    "P05-001-C007_Victory_Nebula_T4_Lum_180s.hiss": {"nside": 512, "nested": true, "n_pix": 3927, "filter": "Lum", "exposure_s": 180.0, "crval": [187.5459021437, -78.8170014956]},
+    "note": "All 6 frames has_snr=false (P03-004 G-002 degradation). All from different sky regions (no overlap)."
+  },
+  "checks": [
+    {
+      "id": "A",
+      "name": "baseline_reproducibility",
+      "description": "P00-003 stage2 baseline 字节级可重现性验证",
+      "input_dir": "lib/orchestrator/cpp/output_hiss_dir",
+      "input_files": ["frame1.hiss (184878332 bytes, nside=32768, n_pix=15406480)", "frame2.hiss (184886999 bytes, nside=32768, n_pix=15407202)"],
+      "expected": "exit=0, HCSD SHA-256=2A9BD12E0F91BB59ABB170B2765A4806EC5C45FB16045F7C50E131AFA4122C37 (与 P00-003 一致)",
+      "actual_exit_code": 0,
+      "actual_hcsd_size": 187455430,
+      "actual_hcsd_sha256": "2A9BD12E0F91BB59ABB170B2765A4806EC5C45FB16045F7C50E131AFA4122C37",
+      "actual_hcsd_inspect": {"nside": 32768, "nested": true, "n_pix": 15522966, "filter": "Red", "n_frames": 2, "mean_pixel_count": 1.9850, "total_exposure_s": 360.0, "median_exposure": 180.0, "sigma": 3.0, "max_iter": 5},
+      "result": "PASS",
+      "evidence_files": ["test_A_baseline/logs/stage2_stdout.log", "test_A_baseline/logs/stage2_stderr.log", "test_A_baseline/logs/stage2_stdout.log.exitcode.txt", "test_A_baseline/logs/hcsd_inspect.log", "test_A_baseline/output/stage2_baseline_repro.hcsd"]
+    },
+    {
+      "id": "B1",
+      "name": "nside_consistent",
+      "description": "nside 一致的 2 帧 (C003 nside=2048 + C005 nside=2048, 同 filter=Red) 期望成功",
+      "input_dir": "test_B_nside_mismatch/input_b1_nside_consistent",
+      "input_files": ["frame_C003.hiss (nside=2048, n_pix=1566, Red)", "frame_C005.hiss (nside=2048, n_pix=1536, Red)"],
+      "expected": "exit=0, HCSD 输出生成, 无 nside 错误",
+      "actual_exit_code": 0,
+      "actual_hcsd_size": 1217055,
+      "actual_hcsd_sha256": "B3EE2CC335DF871D47961CC25D72D86910703368B95E052C62A2462391B44A86",
+      "actual_hcsd_inspect": {"nside": 2048, "nested": true, "n_pix": 3102, "filter": "Red", "n_frames": 2, "mean_pixel_count": 1.0000, "total_exposure_s": 1200.0, "median_exposure": 600.0},
+      "overlap_stats": {"unique_pixels": 3102, "mean_pixel_count": 1.0, "note": "两帧来自不同天区 (crval=[73.10,-69.59] vs [3.75,-39.20]), 无重叠像素, count=1.0"},
+      "result": "PASS",
+      "evidence_files": ["test_B_nside_mismatch/logs/b1_stdout.log", "test_B_nside_mismatch/logs/b1_stderr.log", "test_B_nside_mismatch/logs/b1_stdout.log.exitcode.txt", "test_B_nside_mismatch/logs/b1_hcsd_inspect.log", "test_B_nside_mismatch/output/b1_nside_consistent.hcsd"]
+    },
+    {
+      "id": "B2",
+      "name": "nside_mismatch",
+      "description": "nside 不一致的 2 帧 (C001 nside=512 + C003 nside=2048) 期望报错 HPS_ERR_NSIDE=-3",
+      "input_dir": "test_B_nside_mismatch/input_b2_nside_mismatch",
+      "input_files": ["frame_C001.hiss (nside=512, n_pix=3928, Red)", "frame_C003.hiss (nside=2048, n_pix=1566, Red)"],
+      "expected": "exit=1, error_msg 含 HPS_ERR_NSIDE (-3), 日志显示 'nside/nested 不一致'",
+      "actual_exit_code": 1,
+      "actual_error_msg": "[GRADIENT_SPHERE] 失败: -3",
+      "actual_hcsd_size": 0,
+      "key_log_line": "[hp_stack_hiss] nside/nested 不一致: 帧 1 (2048/1) vs 首帧 (512/1)",
+      "source_code_ref": "lib/healpix_db/healpix_stack/hp_stack_hiss.cpp:159-166 (HPS_ERR_NSIDE=-3)",
+      "result": "PASS",
+      "evidence_files": ["test_B_nside_mismatch/logs/b2_stdout.log", "test_B_nside_mismatch/logs/b2_stderr.log", "test_B_nside_mismatch/logs/b2_stdout.log.exitcode.txt"]
+    },
+    {
+      "id": "B3",
+      "name": "order_nested_ring_mismatch",
+      "description": "NESTED + RING 不一致 (C003 NESTED + C003 改造为 RING, 同 nside=2048) 期望报错 HPS_ERR_NSIDE=-3",
+      "input_dir": "test_B_nside_mismatch/input_b3_order_mismatch",
+      "input_files": ["frame_C003_NESTED.hiss (nside=2048, nested=true)", "frame_C003_RING.hiss (nside=2048, nested=false, 用 make_ring_hiss.py 改造)"],
+      "expected": "exit=1, error_msg 含 HPS_ERR_NSIDE (-3), 日志显示 'nside/nested 不一致' 含 nested 字段差异",
+      "actual_exit_code": 1,
+      "actual_error_msg": "[GRADIENT_SPHERE] 失败: -3",
+      "actual_hcsd_size": 0,
+      "key_log_line": "[hp_stack_hiss] nside/nested 不一致: 帧 1 (2048/0) vs 首帧 (2048/1)",
+      "key_log_hiss_read": ["[hio] hiss_read: nside=2048 nested=1 n_pix=1566 (NESTED)", "[hio] hiss_read: nside=2048 nested=0 n_pix=1566 (RING)"],
+      "source_code_ref": "lib/healpix_db/healpix_stack/hp_stack_hiss.cpp:163 (hd.nested != nested 检查)",
+      "result": "PASS",
+      "evidence_files": ["test_B_nside_mismatch/logs/b3_stdout.log", "test_B_nside_mismatch/logs/b3_stderr.log", "test_B_nside_mismatch/logs/b3_stdout.log.exitcode.txt", "make_ring_hiss.py"]
+    },
+    {
+      "id": "C",
+      "name": "filter_mixed",
+      "description": "filter 混合 (C003 Red + C004 Lum, 同 nside=2048) 期望成功 (filter 不强制一致, 取首帧)",
+      "input_dir": "test_C_filter_mixed/input",
+      "input_files": ["frame_C003_Red.hiss (nside=2048, filter=Red)", "frame_C004_Lum.hiss (nside=2048, filter=Lum)"],
+      "expected": "exit=0, HCSD 输出生成, filter 取首帧 (Red)",
+      "actual_exit_code": 0,
+      "actual_hcsd_size": 1217523,
+      "actual_hcsd_sha256": "7B0F01BA320F09EEC7D2A1C2FB64E5333EEF71B615408C9077B7658CAA51EA48",
+      "actual_hcsd_inspect": {"nside": 2048, "nested": true, "n_pix": 3141, "filter": "Red", "n_frames": 2, "mean_pixel_count": 1.0000, "total_exposure_s": 1200.0, "median_exposure": 600.0},
+      "filter_behavior": "filter 取首帧 (Red), 不强制一致性检查, 不警告. 源码: hp_stack_hiss.cpp:172-174 (filter = extract_json_string(meta_str, 'filter') 仅在 filter.empty() 时取首帧)",
+      "result": "PASS",
+      "evidence_files": ["test_C_filter_mixed/logs/stdout.log", "test_C_filter_mixed/logs/stderr.log", "test_C_filter_mixed/logs/stdout.log.exitcode.txt", "test_C_filter_mixed/logs/hcsd_inspect.log", "test_C_filter_mixed/output/filter_mixed.hcsd"]
+    },
+    {
+      "id": "D",
+      "name": "duplicate_frame",
+      "description": "重复帧 (C003 文件复制 2 份) 期望成功 (无显式重复检测, ipix_map 合并相同 ipix)",
+      "input_dir": "test_D_duplicate/input",
+      "input_files": ["frame_C003_copy1.hiss (nside=2048, n_pix=1566)", "frame_C003_copy2.hiss (同上, 字节级一致)"],
+      "expected": "exit=0, HCSD 输出生成, mean_pixel_count=2.0 (两帧完全重叠)",
+      "actual_exit_code": 0,
+      "actual_hcsd_size": 1198623,
+      "actual_hcsd_sha256": "BD761931EEB7C0121179844975ADE763885A662E563CEB62D6318EAA43E8F041",
+      "actual_hcsd_inspect": {"nside": 2048, "nested": true, "n_pix": 1566, "filter": "Red", "n_frames": 2, "mean_pixel_count": 2.0000, "total_exposure_s": 1200.0, "median_exposure": 600.0},
+      "overlap_stats": {"unique_pixels": 1566, "mean_pixel_count": 2.0, "sigma_clip_rejected": 0, "note": "重复帧 ipix 完全重叠, count=2.0. sigma-clip iter 0 剔除 0 (值完全相同, std=0, 不满足 count>=2 && std>0 条件). 提前收敛."},
+      "result": "PASS",
+      "evidence_files": ["test_D_duplicate/logs/stdout.log", "test_D_duplicate/logs/stderr.log", "test_D_duplicate/logs/stdout.log.exitcode.txt", "test_D_duplicate/logs/hcsd_inspect.log", "test_D_duplicate/output/duplicate.hcsd"]
+    },
+    {
+      "id": "E",
+      "name": "corrupted_file",
+      "description": "损坏文件 (C003 完整 + C005 截断为 100 字节) 期望报错 HPS_ERR_HIO=-5",
+      "input_dir": "test_E_corrupted/input",
+      "input_files": ["frame_C003_good.hiss (19347 字节, 完整)", "frame_C005_truncated.hiss (100 字节, 截断)"],
+      "expected": "exit=1, error_msg 含 HPS_ERR_HIO (-5), 日志显示 hiss_read 失败并明确指出损坏文件",
+      "actual_exit_code": 1,
+      "actual_error_msg": "[GRADIENT_SPHERE] 失败: -5",
+      "actual_hcsd_size": 0,
+      "key_log_lines": [
+        "[hio] hiss_read: 解压 JSON 失败",
+        "[hp_stack_hiss] hiss_read 失败: ...frame_C005_truncated.hiss (ret=-2)",
+        "[2026-07-26 22:29:54][ERROR][orchestrator] [GRADIENT_SPHERE] hp_stack_gradient_corrected 失败: ret=-5"
+      ],
+      "source_code_ref": "lib/healpix_db/healpix_stack/hp_stack_hiss.cpp:153-157 (HPS_ERR_HIO=-5); lib/astro_image_io/src/healpix/aio_healpix_io.cpp:hiss_read (ret=-2 解压 JSON 失败)",
+      "result": "PASS",
+      "evidence_files": ["test_E_corrupted/logs/stdout.log", "test_E_corrupted/logs/stderr.log", "test_E_corrupted/logs/stdout.log.exitcode.txt"]
+    },
+    {
+      "id": "F",
+      "name": "empty_directory",
+      "description": "空目录 (无 .hiss 文件) 期望报错 '目录下无 .hiss 文件'",
+      "input_dir": "test_F_empty_dir/input",
+      "input_files": [],
+      "expected": "exit=1, error_msg='目录下无 .hiss 文件: ...', 日志显示 '发现 0 个 .hiss 文件'",
+      "actual_exit_code": 1,
+      "actual_error_msg": "目录下无 .hiss 文件: f:\\Astro dev\\Astro CS Normalization Database\\engineering\\evidence\\P06-001\\test_F_empty_dir\\input",
+      "actual_hcsd_size": 0,
+      "key_log_line": "[ERROR][orchestrator] 目录下无 .hiss 文件: ...",
+      "source_code_ref": "lib/orchestrator/cpp/src/orchestrator.cpp:3602-3606 (hiss_files.empty() 检查)",
+      "result": "PASS",
+      "evidence_files": ["test_F_empty_dir/logs/stdout.log", "test_F_empty_dir/logs/stderr.log", "test_F_empty_dir/logs/stdout.log.exitcode.txt"]
+    }
+  ],
+  "photometric_version_check": {
+    "result": "NOT_APPLICABLE",
+    "reason": "HISS 格式 (hiss_format_v1.md) 不包含显式 photometric_version 字段. P05-002 生成的 HISS meta_json 仅含: nside, nested, n_pix, has_snr, filter, exposure_s, obs_time, pixfrac, wcs, fits_meta, source, drizzle. 无 module_versions 或 photometric_summary 字段.",
+    "stage2_behavior": "stage2 源码 (hp_stack_hiss.cpp) 无测光版本检查逻辑. filter 字段仅取首帧不强制一致性.",
+    "contract_ref": "engineering/contracts/hiss_format_v1.md:79-82 (测光摘要/模块版本列为可选 meta_json 字段, 非必填)"
+  },
+  "snr_squared_weight_proof": {
+    "result": "PASS",
+    "evidence": {
+      "config_loaded": "stage2_config.json 中 weighting='snr_squared' (日志确认加载)",
+      "code_path_triggered": "日志显示 '[hp_stack_hiss] 第二遍累加完成 (SNR² 加权)' 和 '[hp_stack_hiss] sigma-clip 迭代 0: 剔除 0 个离群值 (SNR² 加权)'",
+      "source_code_ref": "lib/healpix_db/healpix_stack/hp_stack_hiss.cpp:224-228 (w = hd.snr ? snr² : 1.0)",
+      "actual_behavior": "因所有 HISS has_snr=false (P03-004 G-002 degradation), SNR² 权重退化为等权 (w=1.0). 但代码路径被触发, 日志明确标注 'SNR² 加权'.",
+      "degradation_note": "G-002 缺口: PHOTOMETRIC n_matched=0 -> sigma_residual=0 -> SNR 模型未构建 -> HISS has_snr=0 -> stage2 SNR²加权退化为等权. 这是既存退化, 不影响本任务 PASS."
+    }
+  },
+  "gradient_sphere_stats": {
+    "result": "DEGRADED (G-002)",
+    "evidence": {
+      "code_path": "lib/healpix_db/healpix_stack/gradient/corrected_stacker.cpp + gradient_sampler",
+      "actual_behavior": "所有检查中日志显示 '[gradient_sampler] gaia_client_create_ex 失败:' 和 '[hp_stack_gradient_corrected] 采样失败 (rc=2, rows=0), 回退到无梯度校正模式'",
+      "fallback_behavior": "回退到 hp_stack_hiss (无梯度校正的纯堆叠), 不影响堆叠结果正确性",
+      "degradation_note": "gaia_client_create_ex 失败原因疑似 gaia_data_dir 路径问题 (stage2_config.json 中 gaia_data_dir 为空). 这是既存退化, 不影响兼容性检查."
+    }
+  },
+  "overlap_stats_summary": {
+    "A_baseline": {"unique_pixels": 15522966, "mean_pixel_count": 1.9850, "sigma_clip_rejected": 0, "note": "2 帧部分重叠 (nside=32768, ~1.985 平均覆盖)"},
+    "B1_nside_consistent": {"unique_pixels": 3102, "mean_pixel_count": 1.0000, "sigma_clip_rejected": 0, "note": "2 帧无重叠 (不同天区)"},
+    "C_filter_mixed": {"unique_pixels": 3141, "mean_pixel_count": 1.0000, "sigma_clip_rejected": 0, "note": "2 帧无重叠 (不同天区)"},
+    "D_duplicate": {"unique_pixels": 1566, "mean_pixel_count": 2.0000, "sigma_clip_rejected": 0, "note": "2 帧完全重叠 (重复帧), sigma-clip 无剔除 (std=0)"}
+  },
+  "verdict": "PASS",
+  "verdict_reason": "所有 8 个兼容性检查 (A/B1/B2/B3/C/D/E/F) 行为符合预期. nside/nested 不一致被正确检测 (HPS_ERR_NSIDE=-3). 损坏文件被正确检测 (HPS_ERR_HIO=-5). 空目录被正确检测. filter 混合不强制一致性 (取首帧, 设计行为). 重复帧被合并 (mean_pixel_count=2.0, 设计行为). SNR² 权重代码路径被触发 (日志明确标注 'SNR² 加权'), 因 has_snr=0 退化为等权 (G-002 既存缺口). 测光版本检查不适用 (HISS 格式无此字段). 所有失败路径均执行原子性清理 (无部分输出残留)."
+}

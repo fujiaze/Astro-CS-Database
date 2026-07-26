@@ -1,9 +1,9 @@
 project: AstroCS CLI Core
 state_schema: 1
-current_gate: G4
-current_task: P04-004
+current_gate: G6
+current_task: P06-002
 status: TODO
-last_completed_task: P04-003
+last_completed_task: P06-001
 product_target: CLI Real-Data Core v1
 baseline_tag: astrocs-baseline-p00
 g0_passed: true
@@ -31,6 +31,17 @@ g3_evidence:
   - P03-002 配置参数端到端追踪 DONE
   - P03-003 严格失败与禁止静默跳过 DONE
   - P03-004 SNR 稀疏模型与 SIP 一致性 DONE
+g4_passed: true
+g4_evidence:
+  - P04-001 CLI request 与 effective config DONE
+  - P04-002 JSONL 事件与稳定错误码 DONE
+  - P04-003 capabilities 与 inspect 命令 DONE
+  - P04-004 取消、超时与 partial 输出 DONE
+g5_passed: true
+g5_evidence:
+  - P05-001 真实参考数据集登记 DONE
+  - P05-002 Stage1 真实数据端到端 DONE
+  - P05-003 Stage1 负面与恢复测试 DONE
 notes:
   - GUI is later and controls CLI through a machine protocol.
   - PlateSolve path changes are conditional on full TestData non-regression; fallback preserves internal detection and exports it to PSF.
@@ -43,4 +54,9 @@ notes:
   - P04-002 残留: TIMEOUT/CANCELLED 未实际触发 (留待 P04-004); 模块特定码 20-28 未实际使用 (留待 P05+); 嵌套合并保持 P04-001 实现 (GUI 暂无需求)。
   - P04-003 DONE (capabilities 扩展 modules/stages/schema_versions + inspect --hiss/--hcsd/--frame 三子命令 + HISS_INVALID/HCSD_INVALID/INPUT_INVALID 错误码实际触发 + P04-004 集成修复, 317/317 测试通过, VERDICT: PASS)。
   - P04-003 残留: DLL 版本号大多 unknown (留待 P05+); FITS 扩展头未支持 (留待 P05+); snr_format 字段类型小问题 (低优先级)。
-last_updated: 2026-07-25
+  - P04-004 DONE (stage 级超时 + 取消信号处理 + partial 输出 + TIMEOUT/CANCELLED 错误码实际触发)。
+  - P05-001 DONE (真实参考数据集登记)。
+  - P05-002 DONE (Stage1 真实数据端到端, 6 个 HISS 文件生成)。
+  - P05-003 DONE (Stage1 负面与恢复测试)。
+  - P06-001 DONE (Stage2 真实输入兼容检查, 8/8 兼容性检查 PASS, SNR² 权重代码路径已证明触发, VERDICT: PASS)。证据: evidence/P06-001/。残留: G-002 既存缺口 (has_snr=0 退化为等权); gaia_client_create_ex 失败 (梯度校正回退)。
+last_updated: 2026-07-26

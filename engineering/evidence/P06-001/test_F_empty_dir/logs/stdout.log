@@ -1,0 +1,10 @@
+{
+  "success": false,
+  "frame_name": "f:\\Astro dev\\Astro CS Normalization Database\\engineering\\evidence\\P06-001\\test_F_empty_dir\\input",
+  "timings": [
+  ],
+  "wcs_fields": {},
+  "photo_stats": {},
+  "output_ahpx_path": "",
+  "error_msg": "目录下无 .hiss 文件: f:\\Astro dev\\Astro CS Normalization Database\\engineering\\evidence\\P06-001\\test_F_empty_dir\\input"
+}

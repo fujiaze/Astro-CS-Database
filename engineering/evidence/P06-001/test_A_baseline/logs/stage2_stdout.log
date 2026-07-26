@@ -1,0 +1,12 @@
+{
+  "success": true,
+  "frame_name": "f:\\Astro dev\\Astro CS Normalization Database\\lib\\orchestrator\\cpp\\output_hiss_dir",
+  "timings": [
+    {"stage": "STACK", "name": "GRADIENT_SPHERE", "duration_sec": 7.18791, "success": true},
+    {"stage": "STACK", "name": "STACK", "duration_sec": 1.68e-05, "success": true}
+  ],
+  "wcs_fields": {},
+  "photo_stats": {},
+  "output_ahpx_path": "f:\\Astro dev\\Astro CS Normalization Database\\engineering\\evidence\\P06-001\\test_A_baseline\\output\\stage2_baseline_repro.hcsd",
+  "error_msg": ""
+}

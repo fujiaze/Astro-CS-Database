@@ -23,7 +23,7 @@ P04-004,P04,取消、超时与 partial 输出,P04-002,G4,DONE,evidence/P04-004
 P05-001,P05,真实参考数据集登记,P00-003;P03-003,G5,DONE,evidence/P05-001
 P05-002,P05,Stage1 真实数据端到端,P05-001;P03-004;P04-004,G5,DONE,evidence/P05-002
 P05-003,P05,Stage1 负面与恢复测试,P05-002,G5,DONE,evidence/P05-003
-P06-001,P06,Stage2 真实输入兼容检查,P05-002;P01-003,G6,TODO,evidence/P06-001
+P06-001,P06,Stage2 真实输入兼容检查,P05-002;P01-003,G6,DONE,evidence/P06-001
 P06-002,P06,球面梯度与稳健叠加证据,P06-001,G6,TODO,evidence/P06-002
 P06-003,P06,HCSD 输出与独立读取,P06-002;P04-003,G6,TODO,evidence/P06-003
 P07-001,P07,性能与峰值内存基线,P05-002;P06-003,G7,TODO,evidence/P07-001

@@ -1,0 +1,11 @@
+{
+  "success": false,
+  "frame_name": "f:\\Astro dev\\Astro CS Normalization Database\\engineering\\evidence\\P06-001\\test_B_nside_mismatch\\input_b3_order_mismatch",
+  "timings": [
+    {"stage": "STACK", "name": "GRADIENT_SPHERE", "duration_sec": 0.0025943, "success": false}
+  ],
+  "wcs_fields": {},
+  "photo_stats": {},
+  "output_ahpx_path": "",
+  "error_msg": "[GRADIENT_SPHERE] 失败: -3"
+}
