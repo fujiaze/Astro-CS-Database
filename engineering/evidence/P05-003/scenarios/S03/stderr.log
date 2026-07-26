@@ -1,0 +1,89 @@
+[2026-07-26 11:56:29][INFO][logger] 日志系统初始化完成 (log_dir=lib/orchestrator/logs, level=INFO)
+[2026-07-26 11:56:29][INFO][orchestrator] 初始化编排器 (骨架版本)
+[2026-07-26 11:56:29][INFO][orchestrator] 可用线程数: 16
+[2026-07-26 11:56:29][INFO][orchestrator] 加载配置: f:\Astro dev\Astro CS Normalization Database\engineering\evidence\P05-002\configs\stage1_config_T2.json
+[2026-07-26 11:56:29][INFO][orchestrator] 配置文件大小: 1964 字节
+[2026-07-26 11:56:29][INFO][orchestrator] 检查点目录: output\.checkpoint
+[2026-07-26 11:56:29][INFO][orchestrator] 日志级别设置为: INFO
+[2026-07-26 11:56:29][INFO][orchestrator] 配置线程数: 0 (0=自动检测)
+[2026-07-26 11:56:29][INFO][orchestrator] 配置 Gaia 数据目录: GaiaDR3SP
+[2026-07-26 11:56:29][INFO][orchestrator] 配置加载完成 (P03-002: log_level/threads/gaia_data_dir 已解析)
+[2026-07-26 11:56:29][INFO][cli] 日志级别设置为: INFO
+[2026-07-26 11:56:29][INFO][orchestrator] ========== stage1: 单帧预处理 (FITS -> .hiss) ==========
+[2026-07-26 11:56:29][INFO][orchestrator] 输入 FITS: f:\Astro dev\Astro CS Normalization Database\testdata\NGC1727_T2_flying_dutchman\lights\NONEXISTENT_frame.fts
+[2026-07-26 11:56:29][INFO][orchestrator] 输出 .hiss: f:\Astro dev\Astro CS Normalization Database\engineering\evidence\P05-003\hiss\S03_nonexist_input.hiss
+[2026-07-26 11:56:29][INFO][orchestrator] 配置 JSON: {
+  "_comment": "P05-002 stage1 config for T2 (4096x4096) frames - LDN43/NGC1727/NGC247",
+  "project_root": ".",
+  "gaia_data_dir": "GaiaDR3SP",
+  "calibration_dir": "testdata/T2 calibration files",
+  "output_root": "engineering/evidence/P05-002/hiss",
+  "stages": [
+    "read_fits",
+    "calibrate",
+    "platesolve",
+    "psf",
+    "photometric",
+    "snr",
+    "drizzle"
+  ],
+  "frame": {
+    "id": "T2_canonical",
+    "light_path": "",
+    "filter": "",
+    "qe_curve": "GSENSE2020BSI"
+  },
+  "calibration": {
+    "_comment": "P03-001: master_*_path 为空时从 calibration_dir + 帧尺寸/曝光/滤镜 自动推导",
+    "master_bias_path": "",
+    "master_dark_path": "",
+    "master_flat_path": "",
+    "require_size_match": true,
+    "require_exposure_match": true,
+    "exposure_tolerance_s": 0.5,
+    "require_temperature_match": false,
+    "temperature_tolerance_c": 1.0,
+    "allow_no_calibration": false,
+    "dark_optimization": 0,
+    "dark_scale_factor": 1.0
+  },
+  "platesolve": {
+    "_comment": "P03-002: initial_ra/dec 为空时从 FITS header OBJCTRA/DEC 读取",
+    "initial_ra": "",
+    "initial_dec": "",
+    "focal_length": 0.0,
+    "pixel_size": 0.0,
+    "max_stars": 2000,
+    "log_dir": "lib/plate_solve/logs"
+  },
+  "psf": {
+    "_comment": "P03-002: PSF 拟合参数",
+    "fit_radius": 8,
+    "max_iter": 100,
+    "tolerance": 1.0e-6,
+    "max_stars": 2000
+  },
+  "photometric": {
+    "_comment": "P03-002: 测光校准参数 (mag_max 内部自适应迭代)",
+    "mag_min": 6.0,
+    "mag_max": 16.0,
+    "fov_radius_deg": 0.0,
+    "filters_json": "lib/photometric_calib/data/response_curves/filters.json",
+    "qe_curves_json": "lib/photometric_calib/data/response_curves/qe_curves.json"
+  },
+  "drizzle": {
+    "_comment": "P03-002: Drizzle 参数 (pixfrac=1.0 避免缝隙)",
+    "nside_strategy": "1x_to_2x_drizzle",
+    "nside_override": 0,
+    "pixfrac": 1.0,
+    "nested": true
+  },
+  "log_level": "INFO",
+  "threads": 0
+}
+
+[2026-07-26 11:56:29][INFO][orchestrator] P04-004: 取消/超时标志已重置
+[2026-07-26 11:56:29][ERROR][orchestrator] FITS 文件不存在: f:\Astro dev\Astro CS Normalization Database\testdata\NGC1727_T2_flying_dutchman\lights\NONEXISTENT_frame.fts
+[2026-07-26 11:56:29][INFO][orchestrator] 析构完成
+[dll_loader] 卸载所有模块
+
