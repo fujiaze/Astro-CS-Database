@@ -2,14 +2,14 @@ project: AstroCS CLI Core and Spherical Browser
 phase: v1.2 scientific-chain-and-browser
 state_schema: 1
 status: ACTIVE
-current_gate: G10
-current_task: P10-006
-last_completed_task: P10-005
+current_gate: G11
+current_task: P11-001
+last_completed_task: P10-006
 baseline_engineering: engineering/G0-G8 preserved
 product_target: Real-data Stage1 + Galaxy Center 3-panel HCSD + performant spherical browser
 started: 2026-07-27
 g9_passed: false
-g10_passed: false
+g10_passed: true
 g11_passed: false
 g12_passed: false
 g13_passed: false
@@ -138,4 +138,5 @@ notes:
   - P10-003 DONE 2026-07-27. Calibration master inventory: 27 XISF files (T2:9 + T3:9 + T4:9 = 3 Bias + 8 Dark + 16 Flat). All SHA-256 unique, all 4 filename/header match YES. Hard gate PASS. 20/20 tests PASS.
   - P10-004 DONE 2026-07-27. Filter alias map frozen: 6 canonical names (LUM/RED/GREEN/BLUE/HA/OIII), 52 aliases (incl. Unicode α/₃/Ⅲ/fullwidth). 11 observed aliases all resolved. OIII/Oiii conflict resolved. 23/23 tests PASS.
   - P10-005 DONE 2026-07-27. Light-to-Master resolver: 710 lights parsed, 587 resolved (Bias unique + Dark exact + Flat unique), 123 unresolved (T2 25 + T4 98 missing Lum flat, consistent with P10-002). 0-resolved root cause fixed (image_size unified field: header preferred + filename fallback). Forbidden shortcuts all PASS (no first-match / no silent fallback / no other-filter substitution / Dark fallback explicit). 23/23 tests PASS.
+  - P10-006 DONE 2026-07-27. T1-T4 真实校准代表帧验证: 16/16 代表帧 PASS (T2:5 + T3:6 + T4:5). 校准公式 (Light - Dark) / NormalizedFlat 与项目 calibrator.py 一致. Flat 归一化到 median=1.0, 最小值裁剪 0.1. 16 个校准后 FITS 文件已生成 (float32, CALIBRAT=TRUE + SRCFRAME 关键字). 0 NaN/0 Inf/0 极端值, 坏点比例 0%. 25/25 测试 PASS (contract 5 + unit 12 + e2e 4 + forbidden shortcut 4). 禁止捷径 PASS (无 T1 伪造/无 Lum 替代/全部 Light/Master 路径真实存在). FITSWriter 方法名修复 (write_fits→write).
 
