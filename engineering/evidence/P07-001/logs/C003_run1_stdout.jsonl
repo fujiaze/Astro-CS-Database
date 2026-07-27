@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "frame_name": "testdata\\NGC1727_T2_flying_dutchman\\lights\\NGC1727_RGBHO_T2_flying_dutchman-20251031@064517-600S-Red.fts",
+  "timings": [
+    {"stage": "CALIBRATE", "name": "READ_FITS", "duration_sec": 0.140934, "success": true},
+    {"stage": "CALIBRATE", "name": "CALIBRATE", "duration_sec": 0.868006, "success": true},
+    {"stage": "CALIBRATE", "name": "PLATESOLVE", "duration_sec": 17.6722, "success": true},
+    {"stage": "CALIBRATE", "name": "PSF", "duration_sec": 0.359332, "success": true},
+    {"stage": "CALIBRATE", "name": "PHOTOMETRIC", "duration_sec": 5.18479, "success": true},
+    {"stage": "CALIBRATE", "name": "SNR", "duration_sec": 0.0013774, "success": true},
+    {"stage": "CALIBRATE", "name": "DRIZZLE", "duration_sec": 14.3255, "success": true}
+  ],
+  "wcs_fields": {},
+  "photo_stats": {},
+  "output_ahpx_path": "engineering\\evidence\\P07-001\\output\\C003_run1.hiss",
+  "error_msg": ""
+}
