@@ -3,8 +3,8 @@ phase: v1.2 scientific-chain-and-browser
 state_schema: 1
 status: ACTIVE
 current_gate: G10
-current_task: P10-004
-last_completed_task: P10-003
+current_task: P10-005
+last_completed_task: P10-004
 baseline_engineering: engineering/G0-G8 preserved
 product_target: Real-data Stage1 + Galaxy Center 3-panel HCSD + performant spherical browser
 started: 2026-07-27
@@ -89,6 +89,20 @@ p10_003_calibration_master_inventory:
   hard_gate: PASS
   tests_passed: 20
   evidence_dir: engineering_v1.2/evidence/P10-003
+p10_004_filter_alias_map:
+  canonical_names: [LUM, RED, GREEN, BLUE, HA, OIII]
+  total_aliases: 52
+  observed_aliases: 11
+  unresolved_aliases: 0
+  unicode_alpha_aliases: 4
+  unicode_subscript_3_aliases: 2
+  unicode_roman_iii_aliases: 2
+  fullwidth_aliases: 1
+  case_test_aliases: 42
+  oiii_alias_conflict_resolved: true
+  hard_gate: PASS
+  tests_passed: 23
+  evidence_dir: engineering_v1.2/evidence/P10-004
 notes:
   - PlateSolve shared internal detection is already mainline; verify, do not reimplement.
   - WCS sign/SIP hypothesis must be proven by closure tests before patching.
@@ -100,4 +114,5 @@ notes:
   - P10-001 DONE 2026-07-27. TestData catalog: 3 devices (T2/T3/T4), 49 light groups, 7 doc files, 49 FITS + 27 XISF headers. 1 conflict (OIII alias). Hard gate PASS. 12/12 tests PASS.
   - P10-002 DONE 2026-07-27. T1-T4 device profiles: T1=no_data, T2/T3/T4=active (710 lights, 27 calib files). T2/T4 missing Lum Flat recorded. 76/76 tests PASS.
   - P10-003 DONE 2026-07-27. Calibration master inventory: 27 XISF files (T2:9 + T3:9 + T4:9 = 3 Bias + 8 Dark + 16 Flat). All SHA-256 unique, all 4 filename/header match YES. Hard gate PASS. 20/20 tests PASS.
+  - P10-004 DONE 2026-07-27. Filter alias map frozen: 6 canonical names (LUM/RED/GREEN/BLUE/HA/OIII), 52 aliases (incl. Unicode α/₃/Ⅲ/fullwidth). 11 observed aliases all resolved. OIII/Oiii conflict resolved. 23/23 tests PASS.
 

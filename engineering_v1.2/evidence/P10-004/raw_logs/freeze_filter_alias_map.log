@@ -1,0 +1,63 @@
+======================================================================
+P10-004 freeze_filter_alias_map.py 启动
+======================================================================
+
+[阶段 1] 扫描数据源...
+  文档滤镜扫描: 7 个文档
+    Galaxy_Center_T4/素材信息.txt: ['B', 'Blue', 'G', 'Green', 'Ha', 'OIII', 'R', 'Red']
+    LDN43_T2素材_flying_dutchman/素材信息与版权约定.txt: ['B', 'Blue', 'G', 'Green', 'Ha', 'Halpha', 'L', 'Lum', 'R', 'Red']
+    NGC1727_T2_flying_dutchman/素材信息与版权约定.txt: ['B', 'Blue', 'G', 'Green', 'Halpha', 'OIII', 'R', 'Red']
+    NGC247_T2_flying_dutchman/素材信息与版权约定.txt: ['B', 'Blue', 'G', 'Green', 'Ha', 'Halpha', 'L', 'Lum', 'OIII', 'R', 'Red']
+    NGC55_T3_flying_dutchman/素材信息与版权约定.txt: ['B', 'Blue', 'G', 'Green', 'H', 'Halpha', 'L', 'Lum', 'OIII', 'R', 'Red']
+    NGC83_cluster_T3_Flying_Dutchman/素材信息与版权约定.txt: ['B', 'Blue', 'G', 'Green', 'L', 'Lum', 'R', 'Red']
+    Victory_Nebula_T4_Flying_Dutchman/素材信息与版权约定.txt: ['B', 'Blue', 'G', 'Green', 'L', 'R', 'Red']
+
+  Header filter 集合 (FITS + XISF): ['Blue', 'Green', 'H-alpha', 'Lum', 'OIII', 'Oiii', 'Red']
+
+  TESTDATA_DATASET_CATALOG filter_in_header: ['Blue', 'Green', 'H-alpha', 'Lum', 'OIII', 'Oiii', 'Red']
+  TESTDATA_DATASET_CATALOG filter_in_filename: ['Blue', 'Green', 'H-alpha', 'Lum', 'OIII', 'Oiii', 'Red']
+
+  CALIBRATION_MASTER_INVENTORY filter_from_filename: ['Blue', 'Green', 'Lum', 'OIII', 'Oiii', 'Red']
+  CALIBRATION_MASTER_INVENTORY filter_from_header: ['Blue', 'Green', 'H-alpha', 'Lum', 'OIII', 'Oiii', 'Red']
+
+  DEVICE_PROFILE filter_set (Header): ['Blue', 'Green', 'H-alpha', 'Lum', 'OIII', 'Oiii', 'Red']
+  DEVICE_PROFILE filter_set_doc (文档): ['B', 'G', 'L', 'R']
+
+[阶段 2] 验证观察到的别名全部可归一化...
+  观察到的别名全集 (11): ['B', 'Blue', 'G', 'Green', 'H-alpha', 'L', 'Lum', 'OIII', 'Oiii', 'R', 'Red']
+    'B' -> BLUE
+    'Blue' -> BLUE
+    'G' -> GREEN
+    'Green' -> GREEN
+    'H-alpha' -> HA
+    'L' -> LUM
+    'Lum' -> LUM
+    'OIII' -> OIII
+    'Oiii' -> OIII
+    'R' -> RED
+    'Red' -> RED
+
+  全部 11 个观察到的别名均可归一化
+
+[阶段 3] 构建 FILTER_ALIAS_MAP.json...
+
+[阶段 4] 禁止捷径检查...
+  LUM: Luminance 宽带滤镜 (透过整个可见光谱)
+  RED: Red 宽带 R 滤镜
+  GREEN: Green 宽带 G 滤镜
+  BLUE: Blue 宽带 B 滤镜
+  HA: H-alpha 窄带滤镜 (656.3nm 氢α发射线)
+  OIII: OIII 窄带滤镜 (500.7nm 双电离氧发射线)
+  6 个规范名全部对应不同物理滤镜: PASS
+
+[写入] f:\Astro dev\Astro CS Normalization Database\engineering_v1.2\evidence\P10-004\FILTER_ALIAS_MAP.json
+[写入] f:\Astro dev\Astro CS Normalization Database\engineering_v1.2\evidence\P10-004\ALIAS_OBSERVATION_REPORT.json
+
+======================================================================
+P10-004 freeze_filter_alias_map.py 完成
+======================================================================
+
+规范名: ['LUM', 'RED', 'GREEN', 'BLUE', 'HA', 'OIII']
+别名总数: 52
+观察到的别名: 11
+无法归一化的别名: 0
