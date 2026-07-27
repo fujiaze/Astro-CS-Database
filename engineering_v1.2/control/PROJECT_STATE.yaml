@@ -3,8 +3,8 @@ phase: v1.2 scientific-chain-and-browser
 state_schema: 1
 status: ACTIVE
 current_gate: G10
-current_task: P10-005
-last_completed_task: P10-004
+current_task: P10-006
+last_completed_task: P10-005
 baseline_engineering: engineering/G0-G8 preserved
 product_target: Real-data Stage1 + Galaxy Center 3-panel HCSD + performant spherical browser
 started: 2026-07-27
@@ -103,6 +103,28 @@ p10_004_filter_alias_map:
   hard_gate: PASS
   tests_passed: 23
   evidence_dir: engineering_v1.2/evidence/P10-004
+p10_005_light_to_master_resolution:
+  total_lights: 710
+  resolved: 587
+  unresolved: 123
+  bias_unique: 710
+  dark_exact: 710
+  flat_unique: 587
+  flat_missing: 123
+  unresolved_reason: "all missing_lum_flat (T2 25 + T4 98, consistent with P10-002 missing_flats)"
+  t2_lum_unresolved: 25
+  t4_lum_unresolved: 98
+  t3_lum_resolved: 22
+  zero_resolved_root_cause: "image_size_from_header all empty (P10-003 XISF NAXIS1/NAXIS2 not extracted)"
+  zero_resolved_fix: "unified image_size field (header preferred, filename fallback)"
+  forbidden_shortcut_check: PASS
+  forbidden_no_first_match: PASS
+  forbidden_no_silent_fallback: PASS
+  forbidden_no_other_filter_substitution: PASS
+  forbidden_dark_fallback_explicit: PASS
+  hard_gate: PASS
+  tests_passed: 23
+  evidence_dir: engineering_v1.2/evidence/P10-005
 notes:
   - PlateSolve shared internal detection is already mainline; verify, do not reimplement.
   - WCS sign/SIP hypothesis must be proven by closure tests before patching.
@@ -115,4 +137,5 @@ notes:
   - P10-002 DONE 2026-07-27. T1-T4 device profiles: T1=no_data, T2/T3/T4=active (710 lights, 27 calib files). T2/T4 missing Lum Flat recorded. 76/76 tests PASS.
   - P10-003 DONE 2026-07-27. Calibration master inventory: 27 XISF files (T2:9 + T3:9 + T4:9 = 3 Bias + 8 Dark + 16 Flat). All SHA-256 unique, all 4 filename/header match YES. Hard gate PASS. 20/20 tests PASS.
   - P10-004 DONE 2026-07-27. Filter alias map frozen: 6 canonical names (LUM/RED/GREEN/BLUE/HA/OIII), 52 aliases (incl. Unicode α/₃/Ⅲ/fullwidth). 11 observed aliases all resolved. OIII/Oiii conflict resolved. 23/23 tests PASS.
+  - P10-005 DONE 2026-07-27. Light-to-Master resolver: 710 lights parsed, 587 resolved (Bias unique + Dark exact + Flat unique), 123 unresolved (T2 25 + T4 98 missing Lum flat, consistent with P10-002). 0-resolved root cause fixed (image_size unified field: header preferred + filename fallback). Forbidden shortcuts all PASS (no first-match / no silent fallback / no other-filter substitution / Dark fallback explicit). 23/23 tests PASS.
 

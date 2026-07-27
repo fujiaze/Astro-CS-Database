@@ -1,0 +1,63 @@
+======================================================================
+P10-005 resolve_light_to_master.py 启动
+======================================================================
+
+[阶段 1] 加载数据...
+  Master 数: 27 (T2:9 T3:9 T4:9)
+  Header 采样: 49 个 (FITS)
+
+[阶段 2] 枚举 Light 文件...
+  Light 文件总数: 710
+
+[阶段 3] 解析每张 Light...
+  [100/710] 解析中... (resolved=100, unresolved=0)
+  [200/710] 解析中... (resolved=190, unresolved=10)
+  [300/710] 解析中... (resolved=282, unresolved=18)
+  [400/710] 解析中... (resolved=375, unresolved=25)
+  [500/710] 解析中... (resolved=460, unresolved=40)
+  [600/710] 解析中... (resolved=522, unresolved=78)
+  [700/710] 解析中... (resolved=577, unresolved=123)
+  [710/710] 解析中... (resolved=587, unresolved=123)
+
+[阶段 4] 写入 LIGHT_TO_MASTER_RESOLUTION.csv...
+  [写入] f:\Astro dev\Astro CS Normalization Database\engineering_v1.2\evidence\P10-005\LIGHT_TO_MASTER_RESOLUTION.csv (710 行)
+
+[阶段 5] 写入 UNRESOLVED_CALIBRATION_REPORT.md...
+  [写入] f:\Astro dev\Astro CS Normalization Database\engineering_v1.2\evidence\P10-005\UNRESOLVED_CALIBRATION_REPORT.md
+
+[阶段 6] 写入 RESOLUTION_SUMMARY.json...
+  [写入] f:\Astro dev\Astro CS Normalization Database\engineering_v1.2\evidence\P10-005\RESOLUTION_SUMMARY.json
+
+======================================================================
+汇总:
+  Total lights: 710
+  Resolved: 587 (82.7%)
+  Unresolved: 123 (17.3%)
+
+  按设备:
+    T2: 174
+    T3: 151
+    T4: 385
+
+  按滤镜规范名:
+    BLUE: 132
+    GREEN: 137
+    HA: 77
+    LUM: 160
+    OIII: 72
+    RED: 132
+
+  Bias 状态:
+    unique: 710
+
+  Dark 状态:
+    exact: 710
+
+  Flat 状态:
+    missing: 123
+    unique: 587
+
+  歧义分类:
+    FLAT_MISSING: 123
+    NONE: 587
+======================================================================
