@@ -2,9 +2,9 @@ project: AstroCS CLI Core and Spherical Browser
 phase: v1.2 scientific-chain-and-browser
 state_schema: 1
 status: ACTIVE
-current_gate: G9
-current_task: P10-001
-last_completed_task: P09-003
+current_gate: G10
+current_task: P10-002
+last_completed_task: P10-001
 baseline_engineering: engineering/G0-G8 preserved
 product_target: Real-data Stage1 + Galaxy Center 3-panel HCSD + performant spherical browser
 started: 2026-07-27
@@ -54,6 +54,17 @@ p09_003_canonical_dataset:
     dec_deg: 0.0
     fov_deg: 50.0
   evidence_dir: engineering_v1.2/evidence/P09-003
+p10_001_testdata_catalog:
+  subdirs_discovered: 10
+  doc_files_read: 7
+  devices_cataloged: 3
+  light_groups: 49
+  fits_headers_sampled: 49
+  xisf_headers_sampled: 27
+  conflicts_found: 1
+  hard_gate: PASS
+  oiii_alias_conflict: "OIII (T2) vs Oiii (T3/T4)"
+  evidence_dir: engineering_v1.2/evidence/P10-001
 notes:
   - PlateSolve shared internal detection is already mainline; verify, do not reimplement.
   - WCS sign/SIP hypothesis must be proven by closure tests before patching.
@@ -62,4 +73,5 @@ notes:
   - Tools extended (tools/astro_toolkit.py +5 step handlers: unzip/move_dir/run_python/file_exists/rmtree).
   - P09-002 DONE 2026-07-27. INTERNAL_DETECTION_SHARED_EXPORT naming unified (capabilities + logs + comments). Algorithm untouched, ABI preserved. 6/6 tests PASS.
   - P09-003 DONE 2026-07-27. canonical_dataset_v1.2 frozen (44 files SHA-256). 7 photometric failure frames + 32 Galaxy Center Red + 4 HCSD baselines. Browser baseline: HISS leaf_index 15s bottleneck, 0 timing instrumentation. 12/12 tests PASS.
+  - P10-001 DONE 2026-07-27. TestData catalog: 3 devices (T2/T3/T4), 49 light groups, 7 doc files, 49 FITS + 27 XISF headers. 1 conflict (OIII alias). Hard gate PASS. 12/12 tests PASS.
 

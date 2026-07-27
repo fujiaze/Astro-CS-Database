@@ -1,6 +1,6 @@
 # 当前任务
 
-`P10-001`：读取全部 TestData 子目录说明文档。
+`P10-002`：建立 T1-T4 设备档案。
 
 ## P09-001 已完成（2026-07-27）
 
@@ -33,12 +33,24 @@
 - 12/12 测试 PASS，四件套完整
 - 证据：engineering_v1.2/evidence/P09-003/（TASK/TEST/EVIDENCE_INDEX/REVIEW + canonical_dataset + browser_baseline + photometric_failure_baseline + 脚本 + 原始日志）
 
-## 下一步：P10-001
+## P10-001 已完成（2026-07-27）
 
-依据 `tasks/P10-001.md`：
+- 10 个 TestData 子目录发现（7 数据集 + 3 校准目录）
+- 7 个说明文档递归读取（素材信息*.txt）
+- 49 个 FITS Header 采样 + 27 个 XISF Header 采样
+- 4 个交付物：
+  - TESTDATA_EQUIPMENT_CATALOG.csv（3 行 T2/T3/T4 设备档案）
+  - TESTDATA_DATASET_CATALOG.csv（49 行数据集清单）
+  - FILTER_ALIAS_MAP.json（6 规范滤镜名）
+  - DOCUMENT_FACT_CONFLICTS.md（1 冲突：OIII 别名不一致）
+- 硬门限 PASS（T1-T4 设备 ID + Light 归属）
+- 12/12 测试 PASS，四件套完整
+- 证据：engineering_v1.2/evidence/P10-001/
 
-- 递归读取每个 TestData 子文件夹的说明文档
-- 交叉读取 FITS/XISF Header
-- 输出 TESTDATA_EQUIPMENT_CATALOG.csv 和 TESTDATA_DATASET_CATALOG.csv
-- 生成 FILTER_ALIAS_MAP.json 和 DOCUMENT_FACT_CONFLICTS.md
+## 下一步：P10-002
+
+依据 `tasks/P10-002.md`：
+
+- 建立 T1-T4 设备档案
+- 依赖 P10-001（已满足）
 
