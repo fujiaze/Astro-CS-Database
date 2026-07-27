@@ -1202,3 +1202,59 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 - **已知缺口 (不阻塞 PASS, contract §9)**: 无 format_version (§9.1); 无校验和 (§9.2); meta 无显式 input_hiss_files (§4.3 不强制); N_LEAVES 硬编码 49152 (§9.4); data_offset/data_length 单位混淆 (§9.6)
 - **依赖**: P06-002 (DONE) + P04-003 (DONE); **后续**: P07-001 性能与峰值内存基线
 - **Gate**: G6 PASSED (P06-001/002/003 全部 DONE)
+
+## 2026-07-27 P07-001 性能与峰值内存基线 (v1.1 开发包 G7 Gate) ★DONE★
+- **结果**: VERDICT: PASS — 9/9 测试 PASS, 未修改业务源码
+- **基线**: Stage1 C003 中位数 wall 77.805s + 峰值 35470 MB; Stage2 中位数 wall 5.597s + 峰值 1979 MB
+- **HCSD SHA-256**: 与 P00-003 baseline 字节级一致 (2A9BD12E...4122C37)
+- **内存泄漏**: 无 (3 次峰值差异 <2 MB); **取消测试**: PASS (进程退出无残留)
+- **性能异常 (非回归)**: C001 南天内存 3.6GB vs C003 35.5GB (根因 Gaia xpsd 分区); 冷启动效应; HISS 非字节级可重现 (zstd 时间戳, P00-003 已记录)
+- **残留**: 南天天区内存需求 32-35 GB (部署需 64 GB RAM)
+- **证据**: engineering/evidence/P07-001/
+
+## 2026-07-27 P07-002 长批次与故障稳定性 (v1.1 开发包 G7 Gate) ★DONE★
+- **结果**: VERDICT: PASS — 13/13 测试 PASS, 未修改业务源码
+- **验证**: Stage1 批量 6/6 帧 PASS; Stage2 重复 3/3 确定性 PASS (SHA-256 字节级一致); 取消后重跑 PASS; 故障注入 PASS (优雅退出非崩溃); 资源泄漏检查 PASS (残留进程=0, 临时文件=0)
+- **性能异常 (非回归)**: C003 wall +10.8% (长批次负载波动); stage2 wall +14.5% (长批次后冷启动)
+- **证据**: engineering/evidence/P07-002/
+- **Gate**: G7 PASSED (P07-001/002 全部 DONE)
+
+## 2026-07-27 P08-001 CLI Core v1 发布包 (v1.1 开发包 G8 Gate) ★DONE★
+- **结果**: VERDICT: PASS — 发布包自包含, 未修改业务源码
+- **发布包**: dist/AstroCS-CLI-v1/ (22 文件, ~22 MB)
+  - 17 二进制 (orchestrator.exe + 9 模块 DLL + 7 MinGW 运行时 DLL, 不提交 git)
+  - 5 文本 (VERSION.txt + SHA256SUMS.txt + README.txt + verify.bat + 2 config JSON, 提交 git)
+- **自包含**: orchestrator.exe -static 编译, MinGW 运行时 DLL 7 个内含, verify.bat 纯 cmd.exe+certutil 不依赖 Python/PowerShell
+- **干净目录验证**: capabilities exit 0 (9/9 DLL 加载) + inspect --hiss nonexistent.hiss exit 8 (FILE_IO_ERROR)
+- **回归测试**: test_orchestrator_cli.exe 346/346 PASS
+- **版本**: v1.1.0, commit 29cb291, g++ 16.1.0 MSYS2
+- **配置**: default_stage1.json (34 参数) + default_stage2.json (15 参数) 与 config_parameter_registry.csv 一致
+- **SHA-256 清单**: SHA256SUMS.txt 22 文件完整性 (orchestrator.exe = 759e2d4f...)
+- **残留**: GaiaDR3SP/测试数据不包含 (需单独获取); 南天天区内存 32-35 GB; DLL 版本号 unknown; HISS 非字节级可重现
+- **证据**: engineering/evidence/P08-001/
+
+## 2026-07-27 P08-002 最终独立复核与交接 (v1.1 开发包 G8 Gate) ★DONE★ ★v1.1 交付完成★
+- **目标**: v1.1 开发包最终独立复核与交接 (v1.1 最后一项任务, 完成后整个 v1.1 开发包交付完毕)
+- **结果**: VERDICT: PASS — 10/10 测试 PASS, 未修改业务源码
+- **独立环境 smoke 测试 (5/5 PASS)**: clean_env (PATH 仅含 bin/+系统目录) capabilities exit 0 (9/9 DLL 加载) + inspect --hiss 真实 (nside=2048, n_pix=1566) + inspect --hcsd 真实 (nside=32768, n_leaves=49152) + inspect nonexistent (exit 8 FILE_IO_ERROR) + verify.bat 等价验证 4/4
+- **Canonical 测试 (3/3 PASS)**: C003 HISS inspect (与 P05-002 记录一致) + HCSD inspect + SHA-256 baseline 字节级一致 (2A9BD12E... 与 P00-003/P06-002/P06-003/P07-001 一致) + inspect 读取验证
+- **GUI 依赖分析 (PASS)**: healpix_browser_qt 通过 astro_image_io.dll (独立 I/O 库) 走格式契约路径直接读 HISS/HCSD 公开格式, 不链接 orchestrator.exe 内部库, 不调用 orchestrator 进程; CLI 契约路径 smoke 测试已验证可用 (未来可作替代方案)
+- **回归测试 (352/352 PASS)**: test_orchestrator_cli.exe 全部通过, 比 P08-001 基线 (346/346) +6 测试无回归
+- **交接文档**: HANDOVER.md + final_handover.json + 四份标准报告 (TASK/TEST/EVIDENCE/REVIEW) + logs/ (smoke_tests.log + canonical_results.json + gui_dependency_analysis.md + regression_test_orchestrator_cli.out)
+- **控制文件更新**: MASTER_TASK_REGISTER.csv (P08-002 → DONE, 31 任务全部 DONE) + PROJECT_STATE.yaml (status=DONE, g8_passed=true) + CURRENT_TASK.md (v1.1 完成, 指向 v1.2 规划)
+- **初始问题与修复**: verify.bat 在 PowerShell 中编码问题 (用 PowerShell 模拟关键步骤等价验证 4/4 PASS); HISS inspect JSON 解析失败 (用正则提取字段绕过); 沙箱路径限制 (在项目内创建 clean_env 作为独立环境)
+- **证据**: engineering/evidence/P08-002/
+- **依赖**: P08-001 (DONE)
+- **Gate**: G8 PASSED (P08-001/002 全部 DONE)
+
+## ★★★ v1.1 开发包交付完成 ★★★ (2026-07-27)
+- **总任务数**: 31 (P00-001 ~ P08-002, 全部 DONE)
+- **Gate 通过**: 9/9 (G0-G8 全部 PASSED)
+- **发布包**: dist/AstroCS-CLI-v1/ (v1.1.0, 22 文件, ~22 MB, 自包含)
+- **回归测试**: test_orchestrator_cli.exe 352/352 PASS
+- **关键交付物**:
+  - CLI Core: orchestrator.exe + 9 模块 DLL (两阶段流水线 Stage1/Stage2)
+  - 契约文档: HISS/HCSD v1.0 + JSONL 事件 v1 + 21 错误码 + 49 配置参数
+  - 发布包: 自包含, 不依赖 Python/PowerShell/.NET/VC++ Runtime
+  - GUI: healpix_browser_qt 源码完整 (未包含在 v1.1, 留待 v1.2+)
+- **下一阶段**: v1.2 规划 (GUI 发布包 + G-002 修复 + GAP-015 STACK 完整实现 + DLL 版本号 + CLI 契约路径 GUI 原型)

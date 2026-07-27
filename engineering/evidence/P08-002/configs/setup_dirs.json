@@ -1,0 +1,5 @@
+[
+  { "type": "mkdir", "params": { "path": "engineering/evidence/P08-002" } },
+  { "type": "mkdir", "params": { "path": "engineering/evidence/P08-002/logs" } },
+  { "type": "mkdir", "params": { "path": "C:/Temp/AstroCS-verify" } }
+]
