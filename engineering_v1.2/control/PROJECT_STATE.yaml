@@ -125,6 +125,49 @@ p10_005_light_to_master_resolution:
   hard_gate: PASS
   tests_passed: 23
   evidence_dir: engineering_v1.2/evidence/P10-005
+p10_006_representative_calibration:
+  representative_frames: 16
+  by_device: {T2: 5, T3: 6, T4: 5}
+  by_filter: {BLUE: 3, GREEN: 3, HA: 3, LUM: 1, OIII: 3, RED: 3}
+  calibration_formula: "(Light - Dark) / NormalizedFlat"
+  flat_normalization: "median=1.0, min clip 0.1"
+  calibrated_fits_generated: 16
+  total_bad_pixels: 0
+  nan_count: 0
+  inf_count: 0
+  extreme_count: 0
+  bad_pixel_ratio: 0.0
+  shape_consistency_pass: 16
+  finite_stats_pass: 16
+  fits_writer_fix: "writer.write() instead of writer.write_fits()"
+  forbidden_shortcut_check: PASS
+  forbidden_no_t1_fabrication: PASS
+  forbidden_no_lum_substitution: PASS
+  forbidden_all_paths_real: PASS
+  hard_gate: PASS
+  tests_passed: 25
+  evidence_dir: engineering_v1.2/evidence/P10-006
+p11_001_coordinate_convention:
+  status: FROZEN
+  frozen_date: 2026-07-27
+  coordinate_systems: 7
+  conversion_functions: 7
+  frozen_variables: 22
+  modules_audited: 7
+  y_flip_chain: "input_side (det->U) + output_side (U->FITS WCS)"
+  four_module_consistency: "PlateSolve + Photometric + SNR + Drizzle (CRPIX 1-based, pixel 0-based, degrees, TAN+SIP, no explicit cos(Dec))"
+  crpix_basis: "1-based FITS"
+  cd_matrix: "standard WCS (no 1/cos(Dec) factor)"
+  sip_index: "A[i*6+j] for dx^i*dy^j"
+  sip_y_flip_signs: "A *= (-1)^j, B *= -(-1)^j, AP same as A, BP same as B"
+  crval_crpix_unchanged_after_yflip: true
+  forbidden_no_symbol_change: PASS
+  forbidden_no_photometric_compensation: PASS
+  forbidden_no_code_modification: PASS
+  change_control: "ADR + P11-002~P11-005 closure validation required"
+  hard_gate: PASS
+  tests_passed: 19
+  evidence_dir: engineering_v1.2/evidence/P11-001
 notes:
   - PlateSolve shared internal detection is already mainline; verify, do not reimplement.
   - WCS sign/SIP hypothesis must be proven by closure tests before patching.
@@ -139,4 +182,5 @@ notes:
   - P10-004 DONE 2026-07-27. Filter alias map frozen: 6 canonical names (LUM/RED/GREEN/BLUE/HA/OIII), 52 aliases (incl. Unicode α/₃/Ⅲ/fullwidth). 11 observed aliases all resolved. OIII/Oiii conflict resolved. 23/23 tests PASS.
   - P10-005 DONE 2026-07-27. Light-to-Master resolver: 710 lights parsed, 587 resolved (Bias unique + Dark exact + Flat unique), 123 unresolved (T2 25 + T4 98 missing Lum flat, consistent with P10-002). 0-resolved root cause fixed (image_size unified field: header preferred + filename fallback). Forbidden shortcuts all PASS (no first-match / no silent fallback / no other-filter substitution / Dark fallback explicit). 23/23 tests PASS.
   - P10-006 DONE 2026-07-27. T1-T4 真实校准代表帧验证: 16/16 代表帧 PASS (T2:5 + T3:6 + T4:5). 校准公式 (Light - Dark) / NormalizedFlat 与项目 calibrator.py 一致. Flat 归一化到 median=1.0, 最小值裁剪 0.1. 16 个校准后 FITS 文件已生成 (float32, CALIBRAT=TRUE + SRCFRAME 关键字). 0 NaN/0 Inf/0 极端值, 坏点比例 0%. 25/25 测试 PASS (contract 5 + unit 12 + e2e 4 + forbidden shortcut 4). 禁止捷径 PASS (无 T1 伪造/无 Lum 替代/全部 Light/Master 路径真实存在). FITSWriter 方法名修复 (write_fits→write).
+  - P11-001 DONE 2026-07-27. 坐标约定冻结: COORDINATE_CONVENTION.md (13229 bytes, 10 章 + 附录). 7 个坐标系统 (S1 detector/S2 U/S3 FITS WCS/S4 切平面/S5 天球/S6 HEALPix/S7 浏览器笛卡尔) + 7 个关键转换函数 + 22 个冻结变量. 4 个 WCS 消费模块 (PlateSolve/Photometric/SNR/Drizzle) 约定完全一致 (CRPIX 1-based + 像素 0-based + 度 + TAN+SIP + 不显式乘 cos(Dec)). Y 轴反转链: 输入侧 (det→U) + 输出侧 (U→FITS WCS). 19/19 验证测试 PASS (contract 7 + unit 6 + consistency 4 + forbidden 1 + deliverable 1). 禁止捷径 PASS (无代码修改/无先改符号/无 Photometric 内补偿). 变更控制: ADR + P11-002~P11-005 闭环验证.
 
