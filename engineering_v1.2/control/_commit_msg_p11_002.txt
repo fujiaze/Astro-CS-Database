@@ -1,0 +1,34 @@
+P11-002: establish standard WCS real star pair closure diagnostic tool
+
+Tool architecture (independent of PlateSolve internal transform):
+- scripts/wcs_closure_diagnostic.py: core diagnostic module
+- scripts/test_wcs_closure.py: 30 unit tests (5 independence hard constraints)
+- scripts/run_diagnostic.py: driver script (copy -> solve -> diagnose -> summary)
+- scripts/check_fits_header.py: FITS header inspection utility
+
+Tool independence (enforced by 5 hard-constraint unit tests):
+- Does not import ipv_solver.to_astropy_wcs
+- Does not read wcs_result.cd/crval/crpix/sip_*/ctype for transform
+- Uses only astropy.wcs.WCS for pixel<->sky conversions
+- WCS built only from FITS header
+
+Validation on 2 representative frames:
+- T3_LUM_NGC55: PlateSolve RMS=0.151px (31 pairs) vs independent median=0.897px (702 matched), gate=FAIL
+- T2_HA_LDN43: PlateSolve RMS=0.108px (33 pairs) vs independent median=0.772px (1237 matched), gate=FAIL
+- astropy WCS numerical closure precision: 1.18e-10 to 1.37e-10 px (perfect)
+
+Key findings:
+- PlateSolve internal RMS vs independent median: 6-7x gap (validates tool necessity)
+- T3: Y-direction residual dominates (0.848 vs 0.218 px)
+- T2: X/Y balanced residuals (~0.5 px each)
+- Q4 quadrant over-represented in both frames
+- SIP_ORDER=3 consistent across frames
+
+Test results:
+- 30/30 unit tests PASS (incl. 5 tool independence hard constraints)
+- 4 evidence documents: TASK_REPORT / TEST_REPORT / EVIDENCE_INDEX / REVIEW_REPORT
+- VERDICT: PASS
+
+Also includes previously uncommitted P10-006 evidence (16/16 representative frames PASS, 25/25 tests PASS).
+
+Refs: tasks/P11-002.md, docs/05_WCS_COORDINATE_CONVENTION_AND_CLOSURE_SPEC.md

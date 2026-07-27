@@ -1,32 +1,43 @@
 # 当前任务
 
-`P11-002`：建立标准 WCS 真实星对闭环诊断工具。
+`P11-003`：在 T1-T4 代表帧复现 WCS 闭环缺陷，量化 X/Y 偏差、象限、SIP 阶数。
 
-## P11-001 已完成（2026-07-27）
+## P11-002 已完成（2026-07-27）
 
-- 1 个冻结文档交付物：
-  - COORDINATE_CONVENTION.md（13229 bytes，10 章 + 附录）
-    - 7 个坐标系统定义（S1 detector / S2 U / S3 FITS WCS / S4 切平面 / S5 天球 / S6 HEALPix / S7 浏览器笛卡尔）
-    - 7 个关键转换函数（S1→S2 / S2→S4 / S5→S4 / S4→S5 / S2→S3 / S3→S5 / S5→S3）
-    - 22 个冻结变量（cx/cy/CRPIX/CD/SIP/shape/has_wcs 等）
-    - Y 轴反转链（输入侧 det→U + 输出侧 U→FITS WCS）
-    - 四模块一致性表（PlateSolve/Photometric/SNR/Drizzle）
-    - 球面浏览器独立坐标系
-    - Gaia 客户端约定
-    - 禁止事项（不得先改符号 / 不得只在 Photometric 补偿 / 不得用旧路径替代闭环验证）
-    - 变更控制流程（ADR + P11-002~P11-005 闭环验证）
-- 1 个验证脚本：
-  - verify_convention.py（19 项验证测试：contract 7 + unit 6 + consistency 4 + forbidden 1 + deliverable 1）
-- 关键冻结约定：
-  - CRPIX 1-based（FITS 标准），公式 width/2.0 + 0.5
-  - CD 矩阵标准 WCS（无独立 1/cos(Dec) 因子），消费方不显式乘 cos(Dec)
-  - SIP 索引 A[i*6+j] 对应 dx^i*dy^j
-  - Y-flip 符号：A *= (-1)^j, B *= -(-1)^j, AP 同 A, BP 同 B, CRVAL/CRPIX 不变
-  - 图像 shape=(height, width)，NAXIS1=width, NAXIS2=height
-  - has_wcs: CTYPE 非空 + CD |val|>1e-15
-- 19/19 测试 PASS
-- 禁止捷径 PASS（无代码修改、无先改符号、无 Photometric 内补偿）
-- 证据：engineering_v1.2/evidence/P11-001/
+- 工具版本：P11-002 v1.0
+- 工具架构：独立于 PlateSolve 内部 transform
+  - 核心模块：`scripts/wcs_closure_diagnostic.py`
+  - 单元测试：`scripts/test_wcs_closure.py`（30/30 PASS，含 5 项独立性硬约束）
+  - Driver 脚本：`scripts/run_diagnostic.py`
+  - FITS header 工具：`scripts/check_fits_header.py`
+- 工具独立性硬约束（5 项单元测试强制）：
+  - 不导入 `ipv_solver.to_astropy_wcs`
+  - 不读取 `wcs_result.cd/crval/crpix/sip_*/ctype` 做 transform
+  - 仅用 `astropy.wcs.WCS` 做 pixel↔sky 转换
+  - WCS 仅从 FITS header 构建
+- 验证帧（2 帧）：
+  - T3_LUM_NGC55（T3 / LUM / NGC55 / 4096×4096 / FOV_diag=1.558°）
+  - T2_HA_LDN43（T2 / HA / LDN43 / 4096×4096 / FOV_diag=1.575°）
+- 关键结果：
+
+| 帧 | PlateSolve RMS (px) | n_pairs (solve) | 独立诊断 median (px) | n_matched (诊断) | gate |
+|----|---------------------|-----------------|----------------------|-------------------|------|
+| T3_LUM_NGC55 | 0.151 | 31 | 0.897 | 702 | FAIL |
+| T2_HA_LDN43 | 0.108 | 33 | 0.772 | 1237 | FAIL |
+
+- 数值闭环精度：1.18e-10 ~ 1.37e-10 px（astropy WCS 完全自洽）
+- 关键发现：
+  - PlateSolve 内部 RMS 与独立诊断 median 残差差距 6-7 倍，验证独立诊断工具必要性
+  - T3 Y 方向偏差主导 (0.848 vs 0.218 px)
+  - T2 X/Y 均衡偏差 (~0.5 px each)
+  - Q4 象限 (+X, -Y) 星对偏多（两帧一致）
+  - SIP_ORDER=3 两帧一致
+- 证据：`engineering_v1.2/evidence/P11-002/`
+  - 4 份报告：TASK_REPORT.md / TEST_REPORT.md / EVIDENCE_INDEX.md / REVIEW_REPORT.md
+  - 2 帧 closure_report.json + matched_pairs.json + residual_plot.png + quadrant_plot.png
+  - driver_summary.json
+  - unit_test.log + run_diagnostic.log
+- VERDICT: PASS
 
 ## 历史任务（已完成）
 
@@ -40,14 +51,17 @@
 - P10-005：Light 到 Master 唯一解析（587/710 resolved，123 missing_lum_flat，23/23 PASS）
 - P10-006：T1-T4 真实校准代表帧验证（16/16 PASS，25/25 测试 PASS）
 - P11-001：坐标约定冻结（COORDINATE_CONVENTION.md，7 坐标系 + 22 变量，19/19 PASS）
+- P11-002：WCS 真实星对闭环诊断工具建立（30/30 测试 PASS，2 帧代表帧验证，VERDICT: PASS）
 
-## 下一步：P11-002
+## 下一步：P11-003
 
-依据 `tasks/P11-002.md`（待查阅）：
+依据 `tasks/P11-003.md`：
 
-- 建立标准 WCS 真实星对闭环诊断工具
-- 依赖：P11-001（已满足）+ P09-003（已满足）
-- 基于冻结的坐标约定构建诊断工具，验证 WCS 可回投真实星点
+- 在 T1-T4 全部代表帧复现 WCS 闭环缺陷
+- 依赖：P11-002（已满足，工具已建立）
+- 量化 X/Y 偏差分布、象限偏差、SIP 阶数对残差影响
+- 对比不同设备/滤镜/目标的偏差模式
+- 工具已就绪：可直接调用 `wcs_closure_diagnostic.diagnose_frame` 批量处理
 
 ## 已知 BLOCKED 项
 

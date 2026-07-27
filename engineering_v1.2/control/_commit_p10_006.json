@@ -1,0 +1,44 @@
+[
+  {
+    "type": "write_file",
+    "params": {
+      "path": "engineering_v1.2/control/_commit_msg_p10_006.txt",
+      "content": "feat(P10-006): complete T1-T4 representative frame calibration validation\n\n- 16/16 representative frames PASS (T2:5 + T3:6 + T4:5)\n- Calibration formula: (Light - Dark) / NormalizedFlat\n- Flat normalization: median=1.0, min clip 0.1\n- 16 calibrated FITS files generated (float32, CALIBRAT=TRUE + SRCFRAME keywords)\n- 0 NaN / 0 Inf / 0 extreme values, bad pixel ratio 0.0%\n- 25/25 tests PASS (contract 5 + unit 12 + e2e 4 + forbidden shortcut 4)\n- Forbidden shortcut checks PASS (no T1 fabrication / no Lum substitution / all paths real)\n- FITSWriter method fix: write_fits() -> write()\n- G10 Gate PASSED (all 6 tasks P10-001 ~ P10-006 DONE)\n- Update PROJECT_STATE.yaml, MASTER_TASK_REGISTER.csv, CURRENT_TASK.md\n\nTask: P10-006 T1-T4 真实校准代表帧验证\nEvidence: engineering_v1.2/evidence/P10-006/"
+    }
+  },
+  {
+    "type": "git_add",
+    "params": {
+      "repo": ".",
+      "files": [
+        "engineering_v1.2/control/PROJECT_STATE.yaml",
+        "engineering_v1.2/control/MASTER_TASK_REGISTER.csv",
+        "engineering_v1.2/control/CURRENT_TASK.md",
+        "engineering_v1.2/control/_commit_msg_p10_006.txt"
+      ]
+    }
+  },
+  {
+    "type": "git_commit",
+    "params": {
+      "repo": ".",
+      "message_file": "engineering_v1.2/control/_commit_msg_p10_006.txt"
+    }
+  },
+  {
+    "type": "git_push",
+    "params": {
+      "repo": ".",
+      "remote": "origin",
+      "branch": "main",
+      "timeout_sec": 180
+    }
+  },
+  {
+    "type": "git_log",
+    "params": {
+      "repo": ".",
+      "count": 3
+    }
+  }
+]

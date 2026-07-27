@@ -3,8 +3,8 @@ phase: v1.2 scientific-chain-and-browser
 state_schema: 1
 status: ACTIVE
 current_gate: G11
-current_task: P11-001
-last_completed_task: P10-006
+current_task: P11-002
+last_completed_task: P11-001
 baseline_engineering: engineering/G0-G8 preserved
 product_target: Real-data Stage1 + Galaxy Center 3-panel HCSD + performant spherical browser
 started: 2026-07-27
@@ -168,6 +168,47 @@ p11_001_coordinate_convention:
   hard_gate: PASS
   tests_passed: 19
   evidence_dir: engineering_v1.2/evidence/P11-001
+p11_002_wcs_closure_diagnostic:
+  status: ACTIVE
+  tool_version: P11-002 v1.0
+  tool_independent_of_platesolve_transform: true
+  unit_tests_passed: 30
+  unit_tests_independence_hard_constraints: 5
+  validation_frames:
+    - frame_id: T3_LUM_NGC55
+      platesolve_rms_px: 0.151
+      platesolve_n_pairs: 31
+      diagnose_n_matched: 702
+      diagnose_median_px: 0.897
+      diagnose_p90_px: 1.284
+      diagnose_p99_px: 1.778
+      x_median_abs_px: 0.218
+      y_median_abs_px: 0.848
+      pixel_sky_pixel_closure_err_px: 1.18e-10
+      gate_passed: false
+      has_sip: true
+      sip_order: 3
+    - frame_id: T2_HA_LDN43
+      platesolve_rms_px: 0.108
+      platesolve_n_pairs: 33
+      diagnose_n_matched: 1237
+      diagnose_median_px: 0.772
+      diagnose_p90_px: 0.958
+      diagnose_p99_px: 2.058
+      x_median_abs_px: 0.498
+      y_median_abs_px: 0.555
+      pixel_sky_pixel_closure_err_px: 1.37e-10
+      gate_passed: false
+      has_sip: true
+      sip_order: 3
+  key_finding: "PlateSolve RMS (31-33 pairs) vs independent median (702-1237 matched): 6-7x gap, validates need for independent diagnostic"
+  numerical_closure_perfect: true
+  forbidden_shortcut_check: PASS
+  forbidden_no_platesolve_transform_dependency: PASS
+  forbidden_no_wcs_result_field_use: PASS
+  hard_gate: PASS
+  verdict: PASS
+  evidence_dir: engineering_v1.2/evidence/P11-002
 notes:
   - PlateSolve shared internal detection is already mainline; verify, do not reimplement.
   - WCS sign/SIP hypothesis must be proven by closure tests before patching.
@@ -183,4 +224,5 @@ notes:
   - P10-005 DONE 2026-07-27. Light-to-Master resolver: 710 lights parsed, 587 resolved (Bias unique + Dark exact + Flat unique), 123 unresolved (T2 25 + T4 98 missing Lum flat, consistent with P10-002). 0-resolved root cause fixed (image_size unified field: header preferred + filename fallback). Forbidden shortcuts all PASS (no first-match / no silent fallback / no other-filter substitution / Dark fallback explicit). 23/23 tests PASS.
   - P10-006 DONE 2026-07-27. T1-T4 真实校准代表帧验证: 16/16 代表帧 PASS (T2:5 + T3:6 + T4:5). 校准公式 (Light - Dark) / NormalizedFlat 与项目 calibrator.py 一致. Flat 归一化到 median=1.0, 最小值裁剪 0.1. 16 个校准后 FITS 文件已生成 (float32, CALIBRAT=TRUE + SRCFRAME 关键字). 0 NaN/0 Inf/0 极端值, 坏点比例 0%. 25/25 测试 PASS (contract 5 + unit 12 + e2e 4 + forbidden shortcut 4). 禁止捷径 PASS (无 T1 伪造/无 Lum 替代/全部 Light/Master 路径真实存在). FITSWriter 方法名修复 (write_fits→write).
   - P11-001 DONE 2026-07-27. 坐标约定冻结: COORDINATE_CONVENTION.md (13229 bytes, 10 章 + 附录). 7 个坐标系统 (S1 detector/S2 U/S3 FITS WCS/S4 切平面/S5 天球/S6 HEALPix/S7 浏览器笛卡尔) + 7 个关键转换函数 + 22 个冻结变量. 4 个 WCS 消费模块 (PlateSolve/Photometric/SNR/Drizzle) 约定完全一致 (CRPIX 1-based + 像素 0-based + 度 + TAN+SIP + 不显式乘 cos(Dec)). Y 轴反转链: 输入侧 (det→U) + 输出侧 (U→FITS WCS). 19/19 验证测试 PASS (contract 7 + unit 6 + consistency 4 + forbidden 1 + deliverable 1). 禁止捷径 PASS (无代码修改/无先改符号/无 Photometric 内补偿). 变更控制: ADR + P11-002~P11-005 闭环验证.
+  - P11-002 DONE 2026-07-27. WCS 真实星对闭环诊断工具建立. 工具完全独立于 PlateSolve 内部 transform (5 项硬约束测试). 30/30 单元测试 PASS. 在 T3_LUM_NGC55 + T2_HA_LDN43 两帧代表帧运行: PlateSolve 内部 RMS (0.151/0.108 px, 31/33 pairs) vs 独立诊断 median 残差 (0.897/0.772 px, 702/1237 matched) 差距 6-7x, 验证独立诊断工具必要性. astropy WCS 数值闭环精度 1e-10 px (完美). 关键发现: T3 Y方向偏差主导 (0.848 vs 0.218), T2 X/Y均衡偏差 (~0.5 px each), Q4象限偏多. SIP_ORDER=3 两帧一致. 禁止捷径 PASS (无 PlateSolve transform 依赖/无 wcs_result 字段使用). VERDICT: PASS.
 

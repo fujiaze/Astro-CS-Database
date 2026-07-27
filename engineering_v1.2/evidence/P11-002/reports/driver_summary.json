@@ -1,0 +1,50 @@
+{
+  "tool_version": "P11-002 v1.0",
+  "frames": [
+    {
+      "frame_id": "T3_LUM_NGC55",
+      "src_fits": "f:\\Astro dev\\Astro CS Normalization Database\\testdata\\NGC55_T3_flying_dutchman\\lights\\NGC55_T3_flying_dutchman-20250703@075400-600S-Lum.fts",
+      "work_fits": "f:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.2\\evidence\\P11-002\\work\\T3_LUM_NGC55_solved.fits",
+      "solve_result": {
+        "success": true,
+        "rms_px": 0.15076599357431072,
+        "n_pairs": 31
+      },
+      "diagnose_result": {
+        "n_matched": 702,
+        "dist_median_px": 0.896781728652651,
+        "dist_p90_px": 1.2837412516299962,
+        "dist_p99_px": 1.7775703346091534,
+        "gate_passed": false,
+        "has_sip": true,
+        "sip_order": 3
+      },
+      "solve_elapsed_sec": 1.3692684173583984,
+      "diag_elapsed_sec": 2.8447425365448
+    },
+    {
+      "frame_id": "T2_HA_LDN43",
+      "src_fits": "f:\\Astro dev\\Astro CS Normalization Database\\testdata\\LDN43_T2\u7d20\u6750_flying_dutchman\\lights\\LDN43_LRGBH_flying_dutchman-20250503@042947-1200S-H-alpha.fts",
+      "work_fits": "f:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.2\\evidence\\P11-002\\work\\T2_HA_LDN43_solved.fits",
+      "solve_result": {
+        "success": true,
+        "rms_px": 0.10763460489226707,
+        "n_pairs": 33
+      },
+      "diagnose_result": {
+        "n_matched": 1237,
+        "dist_median_px": 0.77184083178854,
+        "dist_p90_px": 0.9582553880198086,
+        "dist_p99_px": 2.0580386801056756,
+        "gate_passed": false,
+        "has_sip": true,
+        "sip_order": 3
+      },
+      "solve_elapsed_sec": 1.2334833145141602,
+      "diag_elapsed_sec": 2.0703468322753906
+    }
+  ],
+  "n_total": 2,
+  "n_passed": 0,
+  "n_errors": 0
+}

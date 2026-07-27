@@ -45,3 +45,19 @@
 - GitHub仓库分支统一为main
 - 文档刷新并重新推送
 - 最新commit: 3a0db4a6
+
+### 2026-07-27 P11-002 WCS真实星对闭环诊断工具建立 (v1.2 engineering)
+- 工具位置：engineering_v1.2/evidence/P11-002/scripts/wcs_closure_diagnostic.py
+- 工具独立性：完全独立于 PlateSolve internal transform（不导入 to_astropy_wcs，不读 wcs_result.cd/crval/crpix/sip_*）
+- 仅用 astropy.wcs.WCS 从 FITS header 构建 WCS 做 pixel↔sky 转换
+- 30/30 单元测试 PASS（含 5 项工具独立性硬约束）
+- 在 T3_LUM_NGC55 + T2_HA_LDN43 两帧代表帧运行：
+  - T3: PlateSolve RMS=0.151px(31pairs) vs 独立 median=0.897px(702 matched) — 5.9× 差距
+  - T2: PlateSolve RMS=0.108px(33pairs) vs 独立 median=0.772px(1237 matched) — 7.2× 差距
+- astropy WCS 数值闭环精度 1e-10 px（完美）
+- 真实残差分布：
+  - T3 Y方向主导 (0.848 vs 0.218 px)
+  - T2 X/Y均衡 (~0.5 px each)
+  - Q4 象限偏多（两帧一致）
+  - SIP_ORDER=3 两帧一致
+- VERDICT: PASS，为 P11-003 全帧复现提供工具基础

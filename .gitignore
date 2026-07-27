@@ -42,10 +42,17 @@ test_output/
 *.tiff
 *.fits
 *.fit
-*.xisx
+*.fts
+*.xisf
 *.xpsd
 *.hiss
 *.hcsd
+*.npy
+*.npz
+
+# 工作产物目录 (含已求解 FITS 等大文件)
+engineering_v1.2/evidence/P10-006/calibrated/
+engineering_v1.2/evidence/P11-002/work/
 
 # 临时文件
 *.tmp
