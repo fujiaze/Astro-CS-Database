@@ -1,0 +1,56 @@
+[
+  {
+    "type": "git_add",
+    "params": {
+      "repo": ".",
+      "files": [
+        "engineering_v1.2/control/CURRENT_TASK.md",
+        "engineering_v1.2/control/MASTER_TASK_REGISTER.csv",
+        "engineering_v1.2/control/PROJECT_STATE.yaml",
+        "engineering_v1.2/evidence/P09-002/commit_run.log",
+        "engineering_v1.2/evidence/P09-003/TASK_REPORT.md",
+        "engineering_v1.2/evidence/P09-003/TEST_REPORT.md",
+        "engineering_v1.2/evidence/P09-003/EVIDENCE_INDEX.md",
+        "engineering_v1.2/evidence/P09-003/REVIEW_REPORT.md",
+        "engineering_v1.2/evidence/P09-003/canonical_dataset_v1.2.json",
+        "engineering_v1.2/evidence/P09-003/browser_performance_baseline.json",
+        "engineering_v1.2/evidence/P09-003/photometric_failure_baseline.json",
+        "engineering_v1.2/evidence/P09-003/generate_canonical_dataset.py",
+        "engineering_v1.2/evidence/P09-003/capture_browser_baseline.py",
+        "engineering_v1.2/evidence/P09-003/hashes/all_hashes.json",
+        "engineering_v1.2/evidence/P09-003/raw_logs/browser_hcsd_stderr.log",
+        "engineering_v1.2/evidence/P09-003/raw_logs/browser_hcsd_stdout.log",
+        "engineering_v1.2/evidence/P09-003/raw_logs/browser_hiss_stderr.log",
+        "engineering_v1.2/evidence/P09-003/raw_logs/browser_hiss_stdout.log",
+        "engineering_v1.2/evidence/P09-003/raw_logs/generate_canonical_dataset.log",
+        "engineering_v1.2/evidence/P09-003/commit_msg.txt",
+        "engineering_v1.2/evidence/P09-003/commit_config.json"
+      ]
+    },
+    "stop_on_error": true
+  },
+  {
+    "type": "git_commit",
+    "params": {
+      "repo": ".",
+      "message_file": "engineering_v1.2/evidence/P09-003/commit_msg.txt"
+    },
+    "stop_on_error": true
+  },
+  {
+    "type": "git_push",
+    "params": {
+      "repo": ".",
+      "remote": "origin",
+      "branch": "main",
+      "timeout_sec": 180
+    }
+  },
+  {
+    "type": "git_log",
+    "params": {
+      "repo": ".",
+      "count": 5
+    }
+  }
+]

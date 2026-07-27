@@ -1,0 +1,11 @@
+[hio] hiss_read: nside=65536 nested=1 n_pix=61611427 has_snr=0 snr_format=0
+[hio] hiss_read: 读取完成: f:\Astro dev\Astro CS Normalization Database\output\pipeline_debug\Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red\drizzle\T4_2x_nside65536.hiss (has_snr=0 snr_format=0)
+[2026-07-27 18:43:23][INFO] .hiss 已加载: nside=65536 nested=1 n_pix=61611427 filter=
+[2026-07-27 18:43:23][INFO] build_hiss_leaf_index: 开始建立子叶索引 (n_pix=61611427, shift=20)
+[2026-07-27 18:43:38][INFO] build_hiss_leaf_index: 完成 nside=65536 shift=20 子叶数=78 (覆盖 61611427 像素)
+[2026-07-27 18:43:38][INFO] get_data_bbox(.hiss): center=(272.8125,-12.9644) size=9.4375x7.7408 deg
+[2026-07-27 18:43:38][INFO] set_initial_view_from_data: center=(272.8125,-12.9644) size=9.4375x7.7408 fov=11.103 forward=(0.048,-0.973,-0.224) up=(0.011,-0.224,0.975)
+[2026-07-27 18:43:38][INFO] compute_data_range: 100019 有效像素, 百分位 [0.5%=345.3, 99.5%=1052]
+[2026-07-27 18:43:38][INFO] auto_stretch: 输入 100019 像素，有效 100019 像素
+[2026-07-27 18:43:38][INFO] auto_stretch: median=387.294 p_lo(0.5%)=345.296 p_hi(99.5%)=1051.83 shadows=345.296 highlights=1051.83 midtones=0.0594
+[2026-07-27 18:43:38][INFO] STFPanel::set_data_range: [345.3, 1052]

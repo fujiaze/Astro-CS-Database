@@ -1,6 +1,6 @@
 # 当前任务
 
-`P09-003`：冻结测光失败帧与浏览器性能基线数据。
+`P10-001`：读取全部 TestData 子目录说明文档。
 
 ## P09-001 已完成（2026-07-27）
 
@@ -23,12 +23,22 @@
 - 6/6 测试 PASS，四件套完整
 - 证据：engineering_v1.2/evidence/P09-002/（BASELINE/TASK/TEST/EVIDENCE_INDEX/REVIEW + 原始日志）
 
-## 下一步：P09-003
+## P09-003 已完成（2026-07-27）
 
-依据 `tasks/P09-003.md`：
+- canonical_dataset_v1.2.json：44 文件 SHA-256 已冻结（7 测光失败帧 + 32 银心 Red 帧 + 4 HCSD 基线 + 1 默认 HISS + 4 浏览器配置）
+- 4 个 HCSD 字节一致（SHA-256: 2A9BD12E...），证明 P07-001/P07-002/P08-002 stage2 字节级可重现性
+- 浏览器性能基线：HISS leaf_index 构建 15s 瓶颈（nside=65536, 61M 像素, 78 子叶）；HCSD 默认视角 RA=0° 不覆盖数据（设计缺陷）；浏览器无 timing instrumentation（0 个 QElapsedTimer/std::chrono）
+- 测光失败基线：7 帧 G-002 缺口（n_matched 0/1，sigma_residual=0.0，SNR 模型未构建，HISS has_snr=0，stage2 等权回退）
+- 禁止捷径条款合规：失败样本不可替换
+- 12/12 测试 PASS，四件套完整
+- 证据：engineering_v1.2/evidence/P09-003/（TASK/TEST/EVIDENCE_INDEX/REVIEW + canonical_dataset + browser_baseline + photometric_failure_baseline + 脚本 + 原始日志）
 
-- 选定 T1–T4 测光代表帧、银心 32 帧、当前 HCSD 和浏览器固定视角
-- 记录 canonical_dataset_v1.2.json 与基线性能记录
-- 必测项：修改前事实/失败基线、对应测试、真实数据/性能测试、回归、原始日志
-- 禁止捷径：不得用随意选择的数据替换失败样本
+## 下一步：P10-001
+
+依据 `tasks/P10-001.md`：
+
+- 递归读取每个 TestData 子文件夹的说明文档
+- 交叉读取 FITS/XISF Header
+- 输出 TESTDATA_EQUIPMENT_CATALOG.csv 和 TESTDATA_DATASET_CATALOG.csv
+- 生成 FILTER_ALIAS_MAP.json 和 DOCUMENT_FACT_CONFLICTS.md
 

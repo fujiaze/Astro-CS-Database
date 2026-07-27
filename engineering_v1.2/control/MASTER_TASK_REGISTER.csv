@@ -1,7 +1,7 @@
 task_id,phase,title,dependencies,gate,status,evidence_dir
 P09-001,P09,冻结v1.1事实基线并建立v1.2证据,,G9,DONE,evidence/P09-001
-P09-002,P09,确认共享检测主线与统一命名,P09-001,G9,TODO,evidence/P09-002
-P09-003,P09,冻结测光失败帧与浏览器性能基线数据,P09-001,G9,TODO,evidence/P09-003
+P09-002,P09,确认共享检测主线与统一命名,P09-001,G9,DONE,evidence/P09-002
+P09-003,P09,冻结测光失败帧与浏览器性能基线数据,P09-001,G9,DONE,evidence/P09-003
 P10-001,P10,读取全部TestData子目录说明文档,P09-001,G10,TODO,evidence/P10-001
 P10-002,P10,建立T1-T4设备档案,P10-001,G10,TODO,evidence/P10-002
 P10-003,P10,盘点全部主校准帧,P10-001,G10,TODO,evidence/P10-003

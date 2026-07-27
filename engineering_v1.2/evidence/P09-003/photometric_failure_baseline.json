@@ -1,0 +1,162 @@
+{
+  "schema_version": "1.2",
+  "task_id": "P09-003",
+  "gate": "G9",
+  "recorded_at_utc": "2026-07-27T10:45:00Z",
+  "title": "测光失败帧失败基线 - 修改前事实记录",
+  "spec_source": "engineering_v1.2/tasks/P09-003.md",
+  "description": "记录 v1.2 P09-003 时的测光失败帧基线状态. 本基线复用 v1.1 P05-002 既有 evidence (frozen), 因 P09-001/P09-002 均未修改算法, 失败状态与 P05-002 完全一致.",
+  "g002_gap_root_cause": "KD-tree star_matcher 返回 0 或 1 对匹配, 导致 sigma_residual=0, SNR 模型未构建, HISS has_snr=0, stage2 SNR² 加权退化为等权. 根因待查 (疑似 PSF 星点坐标与 Gaia 星表 WCS 转换或匹配半径配置问题). 首次记录: engineering/evidence/P00-003/old_cli_baseline.json L189 L293-L297.",
+  "failure_frames_count": 7,
+  "failure_frames_summary": [
+    {
+      "frame_id": "P05-001-C001",
+      "device": "T4",
+      "target": "Galaxy_Center",
+      "filter": "Red",
+      "exposure_s": 180,
+      "photometric_status": "degraded",
+      "n_matched": 1,
+      "scale": 0.003784,
+      "sigma_residual": 0.0,
+      "failure_type": "single_point_match",
+      "fits_rel_path": "testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts"
+    },
+    {
+      "frame_id": "P05-001-C002",
+      "device": "T2",
+      "target": "LDN43",
+      "filter": "Lum",
+      "exposure_s": 600,
+      "photometric_status": "failed",
+      "n_matched": 0,
+      "scale": null,
+      "sigma_residual": null,
+      "failure_type": "stage1_overall_fail_missing_master_flat_Lum",
+      "failure_root_cause": "missing_master_flat_Lum",
+      "fits_rel_path": "testdata/LDN43_T2素材_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250503@031525-600S-Lum.fts"
+    },
+    {
+      "frame_id": "P05-001-C003",
+      "device": "T2",
+      "target": "NGC1727",
+      "filter": "Red",
+      "exposure_s": 600,
+      "photometric_status": "degraded",
+      "n_matched": 1,
+      "scale": 2.2e-05,
+      "sigma_residual": 0.0,
+      "failure_type": "single_point_match",
+      "fits_rel_path": "testdata/NGC1727_T2_flying_dutchman/lights/NGC1727_RGBHO_T2_flying_dutchman-20251031@064517-600S-Red.fts"
+    },
+    {
+      "frame_id": "P05-001-C004",
+      "device": "T2",
+      "target": "NGC247",
+      "filter": "Lum",
+      "exposure_s": 600,
+      "photometric_status": "degraded",
+      "n_matched": 1,
+      "scale": 8.2e-05,
+      "sigma_residual": 0.0,
+      "failure_type": "single_point_match",
+      "fits_rel_path": "testdata/NGC247_T2_flying_dutchman/lights/NGC247_T2_flying_dutchman-20250816@033428-600S-Lum.fts"
+    },
+    {
+      "frame_id": "P05-001-C005",
+      "device": "T3",
+      "target": "NGC55",
+      "filter": "Red",
+      "exposure_s": 600,
+      "photometric_status": "degraded",
+      "n_matched": 1,
+      "scale": 4.6e-05,
+      "sigma_residual": 0.0,
+      "failure_type": "single_point_match",
+      "fits_rel_path": "testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@074114-600S-Red.fts"
+    },
+    {
+      "frame_id": "P05-001-C006",
+      "device": "T3",
+      "target": "NGC83_cluster",
+      "filter": "Red",
+      "exposure_s": 600,
+      "photometric_status": "degraded",
+      "n_matched": 1,
+      "scale": 4.2e-05,
+      "sigma_residual": 0.0,
+      "failure_type": "single_point_match",
+      "fits_rel_path": "testdata/NGC83_cluster_T3_Flying_Dutchman/lights/NGC90_2025wwk_T3_flying_dutchman-20251011@020846-600S-Red.fts"
+    },
+    {
+      "frame_id": "P05-001-C007",
+      "device": "T4",
+      "target": "Victory_Nebula",
+      "filter": "Lum",
+      "exposure_s": 180,
+      "photometric_status": "failed",
+      "n_matched": 0,
+      "scale": 1.0,
+      "sigma_residual": 0.0,
+      "failure_type": "zero_match_g002_gap",
+      "fits_rel_path": "testdata/Victory_Nebula_T4_Flying_Dutchman/lights/Victory_Nebula_mosaic1_flying_dutchman-20250204@035646-180S-Lum.fts"
+    }
+  ],
+  "failure_classification": {
+    "zero_match": ["P05-001-C002", "P05-001-C007"],
+    "single_point_match": ["P05-001-C001", "P05-001-C003", "P05-001-C004", "P05-001-C005", "P05-001-C006"],
+    "all_sigma_residual_zero": true,
+    "all_snr_model_not_built": true,
+    "all_hiss_has_snr_false": true
+  },
+  "no_shortcut_compliance": {
+    "rule": "P09-003 禁止捷径条款: 不得用随意选择的数据替换失败样本",
+    "compliance": "本基线中所有 7 个失败帧均来自 P05-002 既有 evidence (frozen at 2026-07-26). 未进行任何重新选择或替换. SHA-256 已在 canonical_dataset_v1.2.json 中冻结. fits_rel_path 与 P05-002/stage1_e2e_results.json 中的 frame_path 完全一致.",
+    "sha256_frozen_in": "engineering_v1.2/evidence/P09-003/canonical_dataset_v1.2.json"
+  },
+  "evidence_sources": {
+    "primary": "engineering/evidence/P05-002/stage1_e2e_results.json",
+    "primary_description": "P05-002 stage1 e2e 验证 7 帧完整 photometric 矩阵",
+    "secondary": [
+      "engineering/evidence/P00-003/old_cli_baseline.json - G-002 缺口首次确认",
+      "engineering/evidence/P05-002/frames/P05-001-C002/stage1_meta.json - C002 failure_root_cause",
+      "engineering/evidence/P05-002/frames/P05-001-C007/stage1_full_log.txt - C007 n_matched=0 日志",
+      "engineering/evidence/P03-001/lum_T2_noFlat_run.log - C002 副本日志",
+      "engineering/evidence/P03-002/orchestrator_test_normal.log - 多次运行一致性",
+      "engineering/evidence/P07-001/TEST_REPORT.md - C003 n_matched=0 标注 (与 P05-002 n_matched=1 漂移)",
+      "engineering/evidence/P03-004/snr_model_validation.json - SNR 模型退化引用 photometric",
+      "engineering/evidence/P06-001/stage2_compat_results.json - G-002 缺口链路说明",
+      "engineering/evidence/P06-002/stage2_gradient_evidence.json - has_snr=false 等权回退"
+    ]
+  },
+  "upstream_propagation": {
+    "description": "G-002 缺口上游传导证据",
+    "stage1": {
+      "photometric_n_matched": "0 或 1 (退化)",
+      "sigma_residual": "0.0 (无法计算)",
+      "snr_model": "未构建 (sigma_residual=0)",
+      "hiss_has_snr": "false (SNR 模型未构建)"
+    },
+    "stage2": {
+      "actual_weight": "1.0 (等权回退, has_snr=0)",
+      "interpretation": "has_snr=0 → w=1.0 (等权回退, G-002 既存缺口)",
+      "evidence": "engineering/evidence/P06-002/stage2_gradient_evidence.json L52-L58"
+    }
+  },
+  "regression_check_p09_002": {
+    "description": "P09-002 只修改命名 (INTERNAL_DETECTION_SHARED_EXPORT), 未修改算法",
+    "algorithm_unchanged": true,
+    "abi_preserved": true,
+    "verdict": "失败基线与 P05-002 完全一致, 无回归"
+  },
+  "p11_fix_target": {
+    "description": "v1.2 P11 阶段将修复 G-002 缺口",
+    "tasks": ["P11-001", "P11-002", "P11-003", "P11-004", "P11-005", "P11-006"],
+    "fix_success_criteria": [
+      "n_matched >= 10 (零匹配或单点匹配不再发生)",
+      "sigma_residual > 0.0 (残差可计算)",
+      "SNR 模型成功构建 (has_snr=true)",
+      "stage2 SNR² 加权生效 (actual_weight != 1.0)"
+    ]
+  }
+}
