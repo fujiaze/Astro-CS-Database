@@ -1,0 +1,18 @@
+{
+  "_description": "P10-003 主校准帧盘点汇总",
+  "generated_at": "2026-07-27T11:38:03.996049Z",
+  "total_files": 27,
+  "by_device": {
+    "T2": 9,
+    "T3": 9,
+    "T4": 9
+  },
+  "by_type": {
+    "Bias": 3,
+    "Dark": 8,
+    "Flat": 16
+  },
+  "header_parse_errors": 0,
+  "hard_gate_unknown_type": "PASS",
+  "csv_path": "engineering_v1.2\\evidence\\P10-003\\CALIBRATION_MASTER_INVENTORY.csv"
+}
