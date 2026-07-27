@@ -1,0 +1,24 @@
+{
+  "hcsd_path": "engineering\\evidence\\P06-002\\T7_snr_weight_debug\\output\\snr_weighted.hcsd",
+  "nside": 64,
+  "nested": true,
+  "n_pix": 4,
+  "ipix": [
+    100,
+    101,
+    102,
+    103
+  ],
+  "pixel": [
+    18.0,
+    18.0,
+    18.0,
+    18.0
+  ],
+  "expected_weighted_mean": 18.0,
+  "expected_equal_weight_mean": 15.0,
+  "actual_pixel_value": 18.0,
+  "verdict": "PASS_SNR_WEIGHTED",
+  "tolerance": 1e-05,
+  "meta_json": "{\"nside\":64,\"nested\":true,\"n_pix\":4,\"has_snr\":false,\"filter\":\"Lum\",\"n_frames\":2,\"total_exposure_s\":200.000,\"sigma_clip\":{\"sigma\":3.0000,\"max_iter\":5},\"stack_stats\":{\"mean_pixel_count\":2.0000,\"median_exposure\":100.000}}"
+}

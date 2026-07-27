@@ -1,0 +1,27 @@
+{
+  "_comment": "P06-002 stage2 配置 - 宽松 sigma-clip (sigma=5.0, max_iter=1)",
+  "frames_dir": "output/hiss_output/",
+  "output_hcsd": "output/stacked.hcsd",
+  "stages": [
+    "gradient_sphere",
+    "stack"
+  ],
+  "stack": {
+    "sigma_clip_method": "winsorized",
+    "sigma_clip_sigma": 5.0,
+    "sigma_clip_max_iter": 1,
+    "winsorize_low_pct": 0.05,
+    "winsorize_high_pct": 0.95,
+    "weighting": "snr_squared",
+    "mosaic_fov_ra": 0.0,
+    "mosaic_fov_dec": 0.0,
+    "mosaic_fov_radius_deg": 0.0
+  },
+  "gradient_sphere": {
+    "gaia_data_dir": "",
+    "gradient_max_iter": 10,
+    "gradient_lambda": 1.0e-4
+  },
+  "log_level": "INFO",
+  "threads": 0
+}

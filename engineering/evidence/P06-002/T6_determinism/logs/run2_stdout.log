@@ -1,0 +1,12 @@
+{
+  "success": true,
+  "frame_name": "engineering/evidence/P06-002/test_B_overlap_duplicate/input",
+  "timings": [
+    {"stage": "STACK", "name": "GRADIENT_SPHERE", "duration_sec": 80.4072, "success": true},
+    {"stage": "STACK", "name": "STACK", "duration_sec": 2.17e-05, "success": true}
+  ],
+  "wcs_fields": {},
+  "photo_stats": {},
+  "output_ahpx_path": "engineering/evidence/P06-002/T6_determinism/output/T6_run2.hcsd",
+  "error_msg": ""
+}

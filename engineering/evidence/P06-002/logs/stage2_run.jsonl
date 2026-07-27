@@ -1,0 +1,12 @@
+{
+  "success": true,
+  "frame_name": "lib/orchestrator/cpp/output_hiss_dir",
+  "timings": [
+    {"stage": "STACK", "name": "GRADIENT_SPHERE", "duration_sec": 7.47968, "success": true},
+    {"stage": "STACK", "name": "STACK", "duration_sec": 3.79e-05, "success": true}
+  ],
+  "wcs_fields": {},
+  "photo_stats": {},
+  "output_ahpx_path": "engineering/evidence/P06-002/T1_baseline/output/T1_baseline.hcsd",
+  "error_msg": ""
+}

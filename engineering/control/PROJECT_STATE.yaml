@@ -1,9 +1,9 @@
 project: AstroCS CLI Core
 state_schema: 1
 current_gate: G6
-current_task: P06-002
+current_task: P06-003
 status: TODO
-last_completed_task: P06-001
+last_completed_task: P06-002
 product_target: CLI Real-Data Core v1
 baseline_tag: astrocs-baseline-p00
 g0_passed: true
@@ -59,4 +59,5 @@ notes:
   - P05-002 DONE (Stage1 真实数据端到端, 6 个 HISS 文件生成)。
   - P05-003 DONE (Stage1 负面与恢复测试)。
   - P06-001 DONE (Stage2 真实输入兼容检查, 8/8 兼容性检查 PASS, SNR² 权重代码路径已证明触发, VERDICT: PASS)。证据: evidence/P06-001/。残留: G-002 既存缺口 (has_snr=0 退化为等权); gaia_client_create_ex 失败 (梯度校正回退)。
-last_updated: 2026-07-26
+  - P06-002 DONE (球面梯度与稳健叠加证据, 7/7 验证 PASS, SNR² 权重真实生效 definitive proof, 梯度校正管线完整运行, 确定性保证, VERDICT: PASS)。证据: evidence/P06-002/。残留: G-002 真实数据 has_snr=0 仍退化为等权 (待 P03-004 修复后回归); HCSD has_snr 字段不传播 (不影响堆叠数学); 梯度校正 fit_rms=0.0 (C003 副本差异为 0, 待未来用不同帧测试非零差异)。
+last_updated: 2026-07-27
