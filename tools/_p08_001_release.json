@@ -1,0 +1,55 @@
+[
+  {
+    "type": "write_file",
+    "params": {
+      "path": "tools/_p08_001_commit_msg.txt",
+      "content": "P08-001 CLI Core v1 发布包 (VERDICT: PASS)\n\n发布包: dist/AstroCS-CLI-v1/ (22 文件, ~22 MB, v1.1.0)\n- 自包含: orchestrator.exe -static 编译, MinGW 运行时 DLL 7 个内含\n- verify.bat 纯 cmd.exe+certutil, 不依赖 Python/PowerShell\n- 配置: default_stage1.json (34 参数) + default_stage2.json (15 参数)\n- VERSION.txt + SHA256SUMS.txt + README.txt\n\n验证:\n- 干净目录 (PATH 仅含 bin/+系统): capabilities exit 0 + 9/9 DLL 加载\n- inspect --hiss nonexistent.hiss exit 8 (FILE_IO_ERROR) + JSONL 输出\n- 回归测试 test_orchestrator_cli.exe 346/346 PASS\n- SHA-256 清单 22 文件完整性\n\n.gitignore: 为 dist/AstroCS-CLI-v1/ 文本文件添加例外 (二进制 *.exe/*.dll 仍排除)\n控制文件: P08-001=DONE, P08-002=IN_PROGRESS\n\n证据: engineering/evidence/P08-001/"
+    }
+  },
+  {
+    "type": "git_add",
+    "params": {
+      "repo": ".",
+      "files": [
+        ".gitignore",
+        "engineering/control/CURRENT_TASK.md",
+        "engineering/control/MASTER_TASK_REGISTER.csv",
+        "engineering/control/PROJECT_STATE.yaml",
+        "engineering/evidence/P08-001/TASK_REPORT.md",
+        "engineering/evidence/P08-001/TEST_REPORT.md",
+        "engineering/evidence/P08-001/EVIDENCE_INDEX.md",
+        "engineering/evidence/P08-001/REVIEW_REPORT.md",
+        "engineering/evidence/P08-001/release_manifest.json",
+        "dist/AstroCS-CLI-v1/VERSION.txt",
+        "dist/AstroCS-CLI-v1/SHA256SUMS.txt",
+        "dist/AstroCS-CLI-v1/README.txt",
+        "dist/AstroCS-CLI-v1/verify.bat",
+        "dist/AstroCS-CLI-v1/config/default_stage1.json",
+        "dist/AstroCS-CLI-v1/config/default_stage2.json"
+      ]
+    }
+  },
+  {
+    "type": "git_commit",
+    "params": {
+      "repo": ".",
+      "message_file": "tools/_p08_001_commit_msg.txt"
+    }
+  },
+  {
+    "type": "git_push",
+    "params": {
+      "repo": ".",
+      "remote": "origin",
+      "branch": "main",
+      "timeout_sec": 180
+    }
+  },
+  {
+    "type": "git_log",
+    "params": {
+      "repo": ".",
+      "count": 5
+    }
+  }
+]

@@ -1,0 +1,8 @@
+P07-002 补充证据: logs/ + HISS 输出文件
+
+补充提交稳定性测试日志和 HISS 输出文件（被 .gitignore 忽略，用 -f 强制添加）:
+- logs/: 36 个日志文件（6 帧 stage1 stdout/stderr/memory + 3 次 stage2 + 取消重跑 + 故障注入）
+- output/: 7 个 HISS 文件（6 帧 batch + 1 个 cancel_rerun_rerun）
+- HCSD 文件（187MB×3）未提交，因体积过大，可通过 stage2 确定性重现（SHA-256 = 2A9BD12E...）
+
+与 P07-001 做法一致。

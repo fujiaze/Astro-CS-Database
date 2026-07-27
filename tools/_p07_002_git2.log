@@ -1,0 +1,51 @@
+{
+  "ok": true,
+  "results": [
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "[main 29cb291] P07-002 补充证据: logs/ + HISS 输出文件\n 44 files changed, 26557 insertions(+)\n create mode 100644 engineering/evidence/P07-002/logs/batch_C001_memory.json\n create mode 100644 engineering/evidence/P07-002/logs/batch_C001_stderr.log\n create mode 100644 engineering/evidence/P07-002/logs/batch_C001_stdout.jsonl\n create mode 100644 engineering/evidence/P07-002/logs/batch_C003_memory.json\n create mode 100644 engineering/evidence/P07-002/logs/batch_C003_stderr.log\n create mode 100644 engineering/evidence/P07-002/logs/batch_C003_stdout.jsonl\n create mode 100644 engineering/evidence/P07-002/logs/batch_C004_memory.json\n create mode 100644 engineering/evidence/P07-002/logs/batch_C004_stderr.log\n create mode 100644 engineering/evidence/P07-002/logs/batch_C004_stdout.jsonl\n create mode 100644 engineering/evidence/P07-002/logs/batch_C005_memory.json\n create mode 100644 engineering/evidence/P07-002/logs/batch_C005_stderr.log\n create mode 100644 engineering/evidence/P07-002/logs/batch_C005_stdout.jsonl\n create mode 100644 engineering/evidence/P07-002/logs/batch_C006_memory.json\n create mode 100644 engineering/evidence/P07-002/logs/batch_C006_stderr.log\n create mode 100644 engineering/evidence/P07-002/logs/batch_C006_stdout.jsonl\n create mode 100644 engineering/evidence/P07-002/logs/batch_C007_memory.json\n create mode 100644 engineering/evidence/P07-002/logs/batch_C007_stderr.log\n create mode 100644 engineering/evidence/P07-002/logs/batch_C007_stdout.jsonl\n create mode 100644 engineering/evidence/P07-002/logs/cancel_rerun_cancel_memory.json\n create mode 100644 engineering/evidence/P07-002/logs/cancel_rerun_cancel_stderr.log\n create mode 100644 engineering/evidence/P07-002/logs/cancel_rerun_cancel_stdout.jsonl\n create mode 100644 engineering/evidence/P07-002/logs/cancel_rerun_rerun_memory.json\n create mode 100644 engineering/evidence/P07-002/logs/cancel_rerun_rerun_stderr.log\n create mode 100644 engineering/evidence/P07-002/logs/cancel_rerun_rerun_stdout.jsonl\n create mode 100644 engineering/evidence/P07-002/logs/fault_inject_memory.json\n create mode 100644 engineering/evidence/P07-002/logs/fault_inject_stderr.log\n create mode 100644 engineering/evidence/P07-002/logs/fault_inject_stdout.jsonl\n create mode 100644 engineering/evidence/P07-002/logs/stability_runner_main.log\n create mode 100644 engineering/evidence/P07-002/logs/stage2_repeat_1_memory.json\n create mode 100644 engineering/evidence/P07-002/logs/stage2_repeat_1_stderr.log\n create mode 100644 engineering/evidence/P07-002/logs/stage2_repeat_1_stdout.jsonl\n create mode 100644 engineering/evidence/P07-002/logs/stage2_repeat_2_memory.json\n create mode 100644 engineering/evidence/P07-002/logs/stage2_repeat_2_stderr.log\n create mode 100644 engineering/evidence/P07-002/logs/stage2_repeat_2_stdout.jsonl\n create mode 100644 engineering/evidence/P07-002/logs/stage2_repeat_3_memory.json\n create mode 100644 engineering/evidence/P07-002/logs/stage2_repeat_3_stderr.log\n create mode 100644 engineering/evidence/P07-002/logs/stage2_repeat_3_stdout.jsonl\n create mode 100644 engineering/evidence/P07-002/output/batch_C001.hiss\n create mode 100644 engineering/evidence/P07-002/output/batch_C003.hiss\n create mode 100644 engineering/evidence/P07-002/output/batch_C004.hiss\n create mode 100644 engineering/evidence/P07-002/output/batch_C005.hiss\n create mode 100644 engineering/evidence/P07-002/output/batch_C006.hiss\n create mode 100644 engineering/evidence/P07-002/output/batch_C007.hiss\n create mode 100644 engineering/evidence/P07-002/output/cancel_rerun_rerun.hiss\n",
+      "stderr": "",
+      "elapsed_sec": 0.122,
+      "cmd": [
+        "git",
+        "commit",
+        "-F",
+        ".\\tools/_p07_002_commit_msg2.txt"
+      ],
+      "step": 0,
+      "type": "git_commit"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "To https://github.com/fujiaze/Astro-CS-Database.git\n   c3865eb..29cb291  main -> main\n",
+      "elapsed_sec": 2.811,
+      "cmd": [
+        "git",
+        "push",
+        "origin",
+        "main"
+      ],
+      "step": 1,
+      "type": "git_push"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "29cb291 P07-002 补充证据: logs/ + HISS 输出文件\nc3865eb P07-002 长批次与故障稳定性 (VERDICT: PASS)\n8440e19 P07-001 补充证据: logs/ + HISS 输出文件\n4c1f546 P07-001 性能与峰值内存基线 (VERDICT: PASS)\n5031094 P06-003 HCSD 输出与独立读取 (VERDICT: PASS)\n",
+      "stderr": "",
+      "elapsed_sec": 0.033,
+      "cmd": [
+        "git",
+        "log",
+        "--oneline",
+        "-n",
+        "5"
+      ],
+      "step": 2,
+      "type": "git_log"
+    }
+  ]
+}

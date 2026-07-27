@@ -1,0 +1,93 @@
+{
+  "ok": true,
+  "results": [
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "tools/_p08_001_commit_msg.txt",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [],
+      "extra": {
+        "path": "tools/_p08_001_commit_msg.txt",
+        "bytes": 801
+      },
+      "step": 0,
+      "type": "write_file"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "warning: in the working copy of '.gitignore', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering/control/CURRENT_TASK.md', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering/control/MASTER_TASK_REGISTER.csv', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering/control/PROJECT_STATE.yaml', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'dist/AstroCS-CLI-v1/SHA256SUMS.txt', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering/evidence/P08-001/release_manifest.json', CRLF will be replaced by LF the next time Git touches it\n",
+      "elapsed_sec": 0.073,
+      "cmd": [
+        "git",
+        "add",
+        ".gitignore",
+        "engineering/control/CURRENT_TASK.md",
+        "engineering/control/MASTER_TASK_REGISTER.csv",
+        "engineering/control/PROJECT_STATE.yaml",
+        "engineering/evidence/P08-001/TASK_REPORT.md",
+        "engineering/evidence/P08-001/TEST_REPORT.md",
+        "engineering/evidence/P08-001/EVIDENCE_INDEX.md",
+        "engineering/evidence/P08-001/REVIEW_REPORT.md",
+        "engineering/evidence/P08-001/release_manifest.json",
+        "dist/AstroCS-CLI-v1/VERSION.txt",
+        "dist/AstroCS-CLI-v1/SHA256SUMS.txt",
+        "dist/AstroCS-CLI-v1/README.txt",
+        "dist/AstroCS-CLI-v1/verify.bat",
+        "dist/AstroCS-CLI-v1/config/default_stage1.json",
+        "dist/AstroCS-CLI-v1/config/default_stage2.json"
+      ],
+      "step": 1,
+      "type": "git_add"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "[main 889944a] P08-001 CLI Core v1 发布包 (VERDICT: PASS)\n 15 files changed, 997 insertions(+), 23 deletions(-)\n create mode 100644 dist/AstroCS-CLI-v1/README.txt\n create mode 100644 dist/AstroCS-CLI-v1/SHA256SUMS.txt\n create mode 100644 dist/AstroCS-CLI-v1/VERSION.txt\n create mode 100644 dist/AstroCS-CLI-v1/config/default_stage1.json\n create mode 100644 dist/AstroCS-CLI-v1/config/default_stage2.json\n create mode 100644 dist/AstroCS-CLI-v1/verify.bat\n create mode 100644 engineering/evidence/P08-001/EVIDENCE_INDEX.md\n create mode 100644 engineering/evidence/P08-001/REVIEW_REPORT.md\n create mode 100644 engineering/evidence/P08-001/TASK_REPORT.md\n create mode 100644 engineering/evidence/P08-001/TEST_REPORT.md\n create mode 100644 engineering/evidence/P08-001/release_manifest.json\n",
+      "stderr": "",
+      "elapsed_sec": 0.094,
+      "cmd": [
+        "git",
+        "commit",
+        "-F",
+        ".\\tools/_p08_001_commit_msg.txt"
+      ],
+      "step": 2,
+      "type": "git_commit"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "To https://github.com/fujiaze/Astro-CS-Database.git\n   29cb291..889944a  main -> main\n",
+      "elapsed_sec": 2.484,
+      "cmd": [
+        "git",
+        "push",
+        "origin",
+        "main"
+      ],
+      "step": 3,
+      "type": "git_push"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "889944a P08-001 CLI Core v1 发布包 (VERDICT: PASS)\n29cb291 P07-002 补充证据: logs/ + HISS 输出文件\nc3865eb P07-002 长批次与故障稳定性 (VERDICT: PASS)\n8440e19 P07-001 补充证据: logs/ + HISS 输出文件\n4c1f546 P07-001 性能与峰值内存基线 (VERDICT: PASS)\n",
+      "stderr": "",
+      "elapsed_sec": 0.03,
+      "cmd": [
+        "git",
+        "log",
+        "--oneline",
+        "-n",
+        "5"
+      ],
+      "step": 4,
+      "type": "git_log"
+    }
+  ]
+}

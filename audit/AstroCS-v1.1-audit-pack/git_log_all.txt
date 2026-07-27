@@ -1,0 +1,160 @@
+a3b468d P08-002 补充提交: logs/ 证据文件 (被 .gitignore logs/ 规则忽略, 用 -f 强制添加)
+dc774c6 P08-002 最终独立复核与交接: v1.1 开发包交付完成 (VERDICT: PASS)
+889944a P08-001 CLI Core v1 发布包 (VERDICT: PASS)
+29cb291 P07-002 补充证据: logs/ + HISS 输出文件
+c3865eb P07-002 长批次与故障稳定性 (VERDICT: PASS)
+8440e19 P07-001 补充证据: logs/ + HISS 输出文件
+4c1f546 P07-001 性能与峰值内存基线 (VERDICT: PASS)
+5031094 P06-003 HCSD 输出与独立读取 (VERDICT: PASS)
+4ccb507 P06-002 球面梯度与稳健叠加证据 (v1.1 开发包) - VERDICT: PASS
+5ec9866 tools: 新增 astro_toolkit.py Python 工具集（跳过沙箱确认）
+62226ec P06-001 Stage2 真实输入兼容检查完成 (VERDICT: PASS)
+a353417 chore(control): P05-003 完成 - 同步 MASTER_TASK_REGISTER 状态
+5482676 P05-003
+ad1f1d3 P05-003 Stage1 负面与恢复测试
+e7dccd9 feat(engineering): P05-002 Stage1 真实数据端到端验证 (v1.1 开发包)
+7c4c1ae feat(engineering): P05-001 真实参考数据集登记 (v1.1 开发包)
+f98de03 P04阶段完成: G4 gate通过(CLI request+JSONL+capabilities+取消超时)
+4c8a2f7 feat(orchestrator): P04-004 取消、超时与 partial 输出 (v1.1 开发包)
+83b0b9c feat(orchestrator): P04-003 capabilities 与 inspect 命令 (v1.1 开发包)
+74c44b9 chore(control): P04-002 完成后更新任务注册表与项目状态
+df2058b feat(orchestrator): P04-002 JSONL 事件与稳定错误码 (v1.1 开发包)
+9ab211e P04-001: CLI request 与 effective config (v1.1 开发包) - VERDICT: PASS
+eb6eeb4 P03阶段完成: G3 gate通过(校准+配置+严格失败+SNR)
+8861cce P03-003: 更新 memory 记录严格失败与禁止静默跳过完成
+0610c00 P03-003: 严格失败与禁止静默跳过 (v1.1 开发包) - 证据交付
+a4290d8 P03-004: SNR 稀疏模型与 SIP 一致性
+448a568 P03-002: 配置参数端到端追踪 (VERDICT: PASS)
+7cd71c0 P03-001: 真实校准输入接线 (VERDICT: PASS)
+8b4ba31 P02-006: 删除无消费者gaia_cat二次查询+GaiaClient进程内缓存
+c960dcc P02-007: PlateSolve 无退化与单次检测专项 Gate 验证 (CONDITIONAL_PASS)
+f8097df Merge path-b-callback-export: P02-003 路径B (callback 导出) 合并到 main
+55e6d6d P02-003: PlateSolve 全量 A/B 与路径决策 (路径B callback 导出)
+ba4f0d3 P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+7b85ff3 P01-002: 建立依赖锁定清单
+bfc1bb1 P01-001: 确定根级构建策略 ADR-004
+a063d41 P00-008: 冻结 baseline tag (G0 gate)
+7dfc183 P00-007: 建立文档冲突登记
+bb853b5 P00-006: 复核旧审计 163 项当前状态
+39e049b P00-005: 采集工具链与本机环境
+61c3b05 P00-004: 建立完整模块与依赖图
+dde66ba P00-003: 恢复并固定 healpix_stack 源码
+a5fc8dd P00-002: 恢复并固定 healpix_drizzle 源码
+1ac7425 P00-001: 冻结并复核主仓库基线
+eb44f65 docs(memory): 补充 Gaia-DR3-DR3SP-Client-C 与 Dynamic-PSF-Cpp 封存记录
+9f10c72 docs(memory): 补充主仓库迁移与 PlateSolve-IPV-Cpp 封存记录
+705b89b docs: 纳入项目核心文档 + 更新 memory.md 仓库整合记录
+f822beb feat(photometric_calib): 提交 star_matcher/spectrum_integrator 本地代码修改
+d459bb4 chore: 添加 .gitattributes 强制 LF + 扩充 .gitignore 规则
+d411565 docs: integrate root documentation, specs, and gitignore into main repo
+1181b8d Merge remote-tracking branch 'star_detector/main'
+98ec469 Merge remote-tracking branch 'snr_estimator/main'
+dabf35e Merge remote-tracking branch 'plate_solve/main'
+3746a61 Merge remote-tracking branch 'photometric_calib/main'
+6a2ce3d Merge remote-tracking branch 'orchestrator/main'
+8c03d08 Merge remote-tracking branch 'healpix_db/main'
+f727ab8 Merge remote-tracking branch 'gaia_xpsd_client/main'
+2325bae Merge remote-tracking branch 'dynamic_psf/main'
+b92fefe Merge remote-tracking branch 'data_pipeline/main'
+58daf22 Merge remote-tracking branch 'calibration/main'
+b684ab2 Merge remote-tracking branch 'astro_image_io/main'
+c384de1 chore: initialize main repository
+875f01a refactor: 归档 gradient_2d 模块到 archive/ (stage1 不再做曲面拟合)
+ee8e543 refactor(stage1): 归档 GRADIENT_2D 节点, stage1 由 8 节点缩减为 7 节点
+a0ff3dd feat(snr): 新增 snr_extract_model 稀疏控制点模型提取 API（2026-07-16）
+cd86827 fix(psf): 修正 Moffat4 FWHM 因子 0.87 → 1.2303 + memory 迁入 PSF 性能优化记录（2026-07-16）
+7604fdc 归档: 遗留浏览器+healpix_lod+healpix_io 源码归档, 依赖迁移至 astro_image_io, SingleFrameView 废弃（2026-07-16）
+7583559 重构: 根目录调试文件整理 + 模块内部冗余清理（2026-07-16）
+1fce124 整理: 根目录调试脚本归档 + 高价值工具保留（2026-07-16）
+5817eec 整理: 根目录 run_healpix.bat 移入 healpix_browser_qt/（2026-07-16）
+99211b9 docs: record stage2 multi-frame (2 frames) validation results
+b106813 fix(stage2): assign hiss_files to member variables to enable GRADIENT_SPHERE
+31e467b docs: update memory.md with PSF/PHOTOMETRIC/GRADIENT_2D implementation
+1fc051a feat(stage_handlers): implement PSF/PHOTOMETRIC/GRADIENT_2D stage handlers
+7825722 docs: update memory.md with PLATESOLVE implementation details
+7aa763b feat(platesolve): implement stage 2 PLATESOLVE with ipv_solve_from_memory
+978f48d feat(stage_handlers): implement actual DLL calls for 10 stage handlers
+fbc2361 fix(dll_loader): resolve DLL code=126 loading failures for all 10 modules
+03cbf2b Phase 6: documentation sync (spec section 2.3, G8)
+7c7df79 Phase 5: C++ pipeline design - two-stage 10-node pipeline (spec section 2.3)
+5a37322 feat(gradient_2d): step4 C++化为独立 stage (STAGE_GRADIENT_2D)
+53bad25 refactor: update photometric_adapter import path (spec G5 Phase 3)
+d3e1a9e refactor: merge subdirs into python/ (spec G5 Phase 3)
+484bc61 refactor: archive scripts/ + add configs/ (spec G3 Phase 2)
+caf8997 feat(aio): merge healpix_io into aio + selective build system (spec G1+G2)
+127c4a9 feat: 管线编排引擎初始版本 (9节点管线 + SNR集成)
+8399f94 feat: SNR 估算模块初始版本 (乘法模型)
+ec7aebc feat(io): .hiss 格式扩展 snr 通道 + Python 绑定 (断层2+3)
+5ebb2f7 feat(photometric): expose sigma_residual out-param for SNR module §14
+8ef816b docs(psf): update psf block format comment [N,6] to [N,9]
+f78d3b7 feat(psf): extend psf block from [N,6] to [N,9] (add A/mad/eccentricity for SNR module)
+cc6ad0e feat(photometric): P0/P1/P2 性能优化 + 能量守恒测试
+8604773 feat(browser): LOD动态网格+uint8降采样+双击启动部署
+dbb9ed0 ﻿fix(browser): 同步 drizzle pixfrac=1.0 修复, 外扩系数 1.25 → 1.02
+6cea069 fix: 重写视角控制为赤道仪相机 + 修复 look_at_matrix 矩阵存储 bug + 菱形像素几何修正
+3fc4bfe fix: STF预设单位重构 + .hiss改球面渲染消除摩尔纹
+6a6cc8c chore: ignore python/tests/output directory
+bd7da16 docs: update version to V5.0 in README
+557a4d1 docs: refresh memory.md with repo restructure and updated links
+2a6a4d3 docs: refresh memory.md with repo restructure record
+95f7ba9 docs: refresh memory.md with repo restructure record
+81b0ec5 docs: refresh memory.md with repo restructure record
+f63e922 docs: refresh memory.md with repo restructure record
+037c1b2 docs: refresh memory.md with repo restructure record
+c3664ea docs: refresh memory.md with repo restructure record
+e72ffb9 docs: add missing memory.md with version history and algorithm details
+75c6ab3 docs: add module memory.md and update README with GitHub repo info
+65a52de docs: add module memory.md and update README with usage examples
+3949875 docs: add module memory.md and update README with GitHub repo info
+5c2a5e7 docs: update memory.md and README with C++ DLL switch status
+675d351 docs: add module memory.md and update README with GitHub repo info
+9e366ae docs: add module memory.md and update README with performance fix
+9de3fa8 docs: update memory.md and README to v2.0 C++ DLL version
+9d6b200 fix: dynamic buffer for .ahpx header JSON reading
+312dd8a perf: fix PSF performance regression (9.26s -> 0.26s, -97.1%)
+2767c66 refactor: archive residual Python photometric files
+e27ff13 feat: initial Astro-Data-Pipline - memory pipeline C++ implementation
+ddf17ca ﻿feat: switch calibrate_data to C++ DLL path
+9fcd406 feat: C++ migration complete - fix FITS export, add memory pipeline
+bc894de feat: rewrite photometric_calib as C++ DLL with simplified algorithm
+c0073c9 refactor: migrate PipelineFrame to named-block container model with KV/cache/export
+e3f0f78 feat: add pipeline orchestration engine with OpenMP parallel batch execution
+55d69dd refactor: split ahpx_io/stack/drizzle into independent repos
+51b8c7b feat: add ahpx I/O, compressor, and pipeline framework
+ebc8197 docs: 更新 README 为 Flux Calibration 并添加 45 帧性能数据
+787679b refactor: 重命名 gradient_estimator 为 flux_calibrator 并封存天光校正
+f75ae3f v1.0: 鲁棒流量校准 Python 开发原型
+e53c886 update gaia_client.c
+0779592 update Makefile and dpsf_psf.cpp
+9d0da97 update astro_image_io.py
+0c08aeb feat: HEALpix Database - 球面存储与可视化系统
+4c7f5df feat: calibration module with C++ OpenMP cosmetic corrector (C++)
+3b39d12 feat: calibration module with C++ OpenMP cosmetic corrector (C++)
+0349b72 fix: Moffat4 PSF flux使用解析积分替代窗口累加
+c4b5333 feat: add batch coordinate spectrum query API (OpenMP parallel)
+0107e3d feat: UTF-8 path support + FITS write optimization
+ce62842 feat: batch processing + README + UTF-8 path support + FITS write optimization
+a88d978 feat: Astro Calibration C++ module
+b58ff40 fix: FITS keyword write_card quote logic + BZERO/BSCALE filtering
+51adc4d refactor: split spectrum and photometry APIs for separation of concerns
+7691d76 feat: expose DR3SP spectrum interface (BP/RP spectra + magBP/magRP)
+4839668 feat: Astro Image IO C++ native implementation - FITS/XISF read/write with Python ctypes binding
+941b82a fix(search_recursive): add projection center point to AzimuthalEquidistant bbox computation
+12c55ed feat: Dynamic PSF - Moffat4 PSF fitting engine with 16bit input and batch mode
+8c0762c feat: V5.0 Gaussian PSF + GSL trust-region LM + 代码清理
+22e727f feat: add L1 query cache (60s TTL) and L2 decompressed block cache
+787ab23 feat: 自适应fitRadius - 基于连通域大小自动估算FWHM
+1013feb feat: half-threshold saturated star detection + candidate pre-filter + OpenMP parallelization
+7eb45fc chore: compress example2 image to JPEG for faster push
+8cbeef6 feat: add saturated star detection with debug image output
+1153cd9 Merge branch 'master' of github.com:fujiaze/Gaia-DR3SP-C-Client
+08a8766 Add multi-database support (GaiaDR3 and GaiaDR3SP)
+23f3ee5 Update README.md
+25d7181 docs: 添加代码注释，说明核心算法原理
+b33f88d docs: README添加检测效果示例图像
+2ce5598 feat: 基于SExtractor背景估计 + 修复Moffat4坐标计算
+1ddbe24 删除多余文字
+cebab97 添加百度网盘下载链接
+850973a feat: Star Detector - astronomical star detector with PSF fitting filter, FWHM clipping and roundness filter
+802becc Initial commit: Astro Image IO
+4a2750b Initial commit: Gaia DR3 XPSD Client

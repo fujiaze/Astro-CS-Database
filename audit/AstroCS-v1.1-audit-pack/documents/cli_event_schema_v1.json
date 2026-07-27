@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "astrocs.cli.event.v1",
+  "type": "object",
+  "required": ["schema_version", "type", "job_id", "timestamp"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "type": {"enum": ["accepted", "stage_started", "progress", "quality_metric", "warning", "stage_completed", "failed", "cancelled", "completed"]},
+    "job_id": {"type": "string"},
+    "timestamp": {"type": "string"},
+    "stage": {"type": "string"},
+    "progress": {"type": "number", "minimum": 0, "maximum": 1},
+    "metric": {"type": "object"},
+    "message": {"type": "string"},
+    "error": {
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": {
+        "code": {"type": "string"},
+        "message": {"type": "string"},
+        "module_code": {},
+        "details": {"type": "object"}
+      },
+      "additionalProperties": false
+    },
+    "result": {"type": "object"}
+  },
+  "additionalProperties": false
+}

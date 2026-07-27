@@ -1,0 +1,49 @@
+param_name,config_file,json_path,type,default_value,parse_function,consumer_stage,consumer_dll,consumer_function,verification,severity,notes
+gaia_data_dir,stage1_config.json,gaia_data_dir,string,GaiaDR3SP,orc_getJsonString,PLATESOLVE,gaia_client.dll,gaia_client_create_ex,PASS,,
+log_level,stage1_config.json,log_level,string,INFO,orc_getJsonString,ALL,logger,Logger::set_level,PASS,,"CLI --log-level 优先"
+threads,stage1_config.json,threads,int,0,orc_getJsonNum,ALL,(骨架),(存储),WARN,LOW,"当前串行执行"
+calibration_dir,stage1_config.json,calibration_dir,string,testdata/T4 calibration files,orc_getJsonString,CALIBRATE,calibration.dll,master路径推导,PASS,,
+frame.filter,stage1_config.json,frame.filter,string,Red,(未解析),PHOTOMETRIC,(FITS header),(FITS header FILTER),WARN,LOW,"FITS header 优先"
+frame.qe_curve,stage1_config.json,frame.qe_curve,string,GSENSE2020BSI,extract_qe_curve_name,PHOTOMETRIC,photometric_calib.dll,load_qe_curve,PASS,,
+calibration.master_bias_path,stage1_config.json,calibration.master_bias_path,string,,orc_getJsonString,CALIBRATE,calibration.dll,aio_load_master_bias,PASS,,"空时自动推导"
+calibration.master_dark_path,stage1_config.json,calibration.master_dark_path,string,,orc_getJsonString,CALIBRATE,calibration.dll,aio_load_master_dark,PASS,,"空时自动推导"
+calibration.master_flat_path,stage1_config.json,calibration.master_flat_path,string,,orc_getJsonString,CALIBRATE,calibration.dll,aio_load_master_flat,PASS,,"空时自动推导"
+calibration.require_size_match,stage1_config.json,calibration.require_size_match,bool,true,orc_getJsonBool,CALIBRATE,calibration.dll,cal_apply校验,PASS,,
+calibration.require_exposure_match,stage1_config.json,calibration.require_exposure_match,bool,true,orc_getJsonBool,CALIBRATE,calibration.dll,cal_apply校验,PASS,,
+calibration.exposure_tolerance_s,stage1_config.json,calibration.exposure_tolerance_s,double,0.5,orc_getJsonNum,CALIBRATE,calibration.dll,cal_apply校验,PASS,,
+calibration.require_temperature_match,stage1_config.json,calibration.require_temperature_match,bool,false,orc_getJsonBool,CALIBRATE,calibration.dll,cal_apply校验,PASS,,
+calibration.temperature_tolerance_c,stage1_config.json,calibration.temperature_tolerance_c,double,1.0,orc_getJsonNum,CALIBRATE,calibration.dll,cal_apply校验,PASS,,
+calibration.allow_no_calibration,stage1_config.json,calibration.allow_no_calibration,bool,false,orc_getJsonBool,CALIBRATE,(orchestrator),跳过决策,PASS,,
+calibration.dark_optimization,stage1_config.json,calibration.dark_optimization,int,0,orc_getJsonNum,CALIBRATE,calibration.dll,cal_apply,PASS,,
+calibration.dark_scale_factor,stage1_config.json,calibration.dark_scale_factor,double,1.0,orc_getJsonNum,CALIBRATE,calibration.dll,cal_apply,PASS,,
+platesolve.initial_ra,stage1_config.json,platesolve.initial_ra,string,,orc_getJsonString,PLATESOLVE,ipv_solver.dll,ipv_solve_from_memory_with_callback,PASS,,"空时从FITS header"
+platesolve.initial_dec,stage1_config.json,platesolve.initial_dec,string,,orc_getJsonString,PLATESOLVE,ipv_solver.dll,ipv_solve_from_memory_with_callback,PASS,,"空时从FITS header"
+platesolve.focal_length,stage1_config.json,platesolve.focal_length,double,0.0,orc_getJsonNum,PLATESOLVE,ipv_solver.dll,ipv_solve_from_memory_with_callback,PASS,,"0时从FITS header"
+platesolve.pixel_size,stage1_config.json,platesolve.pixel_size,double,0.0,orc_getJsonNum,PLATESOLVE,ipv_solver.dll,ipv_solve_from_memory_with_callback,PASS,,"0时从FITS header"
+platesolve.max_stars,stage1_config.json,platesolve.max_stars,int,2000,orc_getJsonNum,PLATESOLVE,star_detector.dll,sdet_create,PASS,,
+psf.fit_radius,stage1_config.json,psf.fit_radius,int,8,orc_getJsonNum,PSF,dynamic_psf.dll,dpsf_fit_batch,PASS,,"0=自动"
+psf.max_iter,stage1_config.json,psf.max_iter,int,100,orc_getJsonNum,PSF,dynamic_psf.dll,dpsf_fit_batch,PASS,,
+psf.tolerance,stage1_config.json,psf.tolerance,double,1.0e-6,orc_getJsonNum,PSF,dynamic_psf.dll,dpsf_fit_batch,PASS,,
+photometric.mag_min,stage1_config.json,photometric.mag_min,double,6.0,orc_getJsonNum,PHOTOMETRIC,photometric_calib.dll,pc_calibrate_simple_with_gaia,PASS,,
+photometric.mag_max,stage1_config.json,photometric.mag_max,double,16.0,orc_getJsonNum,PHOTOMETRIC,photometric_calib.dll,pc_calibrate_simple_with_gaia,PASS,,
+photometric.fov_radius_deg,stage1_config.json,photometric.fov_radius_deg,double,0.0,orc_getJsonNum,PHOTOMETRIC,photometric_calib.dll,pc_calibrate_simple_with_gaia,PASS,,"0=自动计算"
+photometric.filters_json,stage1_config.json,photometric.filters_json,string,lib/photometric_calib/data/response_curves/filters.json,orc_getJsonString,PHOTOMETRIC,(文件加载),load_filter_curve,PASS,MEDIUM,"P03-002修复: 原硬编码"
+photometric.qe_curves_json,stage1_config.json,photometric.qe_curves_json,string,lib/photometric_calib/data/response_curves/qe_curves.json,orc_getJsonString,PHOTOMETRIC,(文件加载),load_qe_curve,PASS,MEDIUM,"P03-002修复: 原硬编码"
+drizzle.nside_strategy,stage1_config.json,drizzle.nside_strategy,string,1x_to_2x_drizzle,orc_findJsonKey+orc_extractJsonStr,DRIZZLE,(orchestrator),calculate_nside,PASS,,
+drizzle.nside_override,stage1_config.json,drizzle.nside_override,int,0,orc_findJsonKey+orc_extractJsonNum,DRIZZLE,(orchestrator),calculate_nside,PASS,,"0=自适应"
+drizzle.pixfrac,stage1_config.json,drizzle.pixfrac,double,1.0,orc_getJsonNum,DRIZZLE,healpix_drizzle.dll,hp_drizzle_run,PASS,,"范围0.0-1.0"
+drizzle.nested,stage1_config.json,drizzle.nested,bool,true,orc_getJsonBool,DRIZZLE,healpix_drizzle.dll,hp_drizzle_run,PASS,,
+stage2.log_level,stage2_config.json,log_level,string,INFO,orc_getJsonString,ALL,logger,Logger::set_level,PASS,,
+stage2.threads,stage2_config.json,threads,int,0,orc_getJsonNum,ALL,(骨架),(存储),WARN,LOW,"当前串行执行"
+stack.sigma_clip_method,stage2_config.json,stack.sigma_clip_method,string,winsorized,orc_findJsonKey+orc_extractJsonStr,GRADIENT_SPHERE,healpix_stack.dll,hp_stack_gradient_corrected,PASS,,
+stack.sigma_clip_sigma,stage2_config.json,stack.sigma_clip_sigma,double,3.0,orc_findJsonKey+orc_extractJsonNum,GRADIENT_SPHERE,healpix_stack.dll,hp_stack_gradient_corrected,PASS,,
+stack.sigma_clip_max_iter,stage2_config.json,stack.sigma_clip_max_iter,int,5,orc_findJsonKey+orc_extractJsonNum,GRADIENT_SPHERE,healpix_stack.dll,hp_stack_gradient_corrected,PASS,,
+stack.winsorize_low_pct,stage2_config.json,stack.winsorize_low_pct,double,0.05,orc_findJsonKey+orc_extractJsonNum,GRADIENT_SPHERE,healpix_stack.dll,hp_stack_gradient_corrected,PASS,,
+stack.winsorize_high_pct,stage2_config.json,stack.winsorize_high_pct,double,0.95,orc_findJsonKey+orc_extractJsonNum,GRADIENT_SPHERE,healpix_stack.dll,hp_stack_gradient_corrected,PASS,,
+stack.weighting,stage2_config.json,stack.weighting,string,snr_squared,(未解析),STACK,(DLL内部),(DLL内部固定),WARN,LOW,"DLL固定SNR²加权"
+stack.mosaic_fov_ra,stage2_config.json,stack.mosaic_fov_ra,double,0.0,(未解析),STACK,(预留),(预留),WARN,LOW,"预留参数"
+stack.mosaic_fov_dec,stage2_config.json,stack.mosaic_fov_dec,double,0.0,(未解析),STACK,(预留),(预留),WARN,LOW,"预留参数"
+stack.mosaic_fov_radius_deg,stage2_config.json,stack.mosaic_fov_radius_deg,double,0.0,(未解析),STACK,(预留),(预留),WARN,LOW,"预留参数"
+gradient_sphere.gaia_data_dir,stage2_config.json,gradient_sphere.gaia_data_dir,string,,orc_getJsonString,GRADIENT_SPHERE,healpix_stack.dll,hp_stack_gradient_corrected,PASS,MEDIUM,"P03-002修复: 原硬编码nullptr"
+gradient_sphere.gradient_max_iter,stage2_config.json,gradient_sphere.gradient_max_iter,int,10,orc_getJsonNum,GRADIENT_SPHERE,healpix_stack.dll,hp_stack_gradient_corrected,PASS,MEDIUM,"P03-002修复: 原硬编码10"
+gradient_sphere.gradient_lambda,stage2_config.json,gradient_sphere.gradient_lambda,double,1.0e-4,orc_getJsonNum,GRADIENT_SPHERE,healpix_stack.dll,hp_stack_gradient_corrected,PASS,MEDIUM,"P03-002修复: 原硬编码1e-4"

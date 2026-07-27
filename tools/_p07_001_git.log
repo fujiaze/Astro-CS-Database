@@ -1,0 +1,126 @@
+{
+  "ok": false,
+  "results": [
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "## main...origin/main\n M engineering/control/CURRENT_TASK.md\n M engineering/control/MASTER_TASK_REGISTER.csv\n M engineering/control/PROJECT_STATE.yaml\n?? engineering/evidence/P07-001/\n?? tools/_p06_002_commit_msg.txt\n?? tools/_p06_002_run_snr_debug.json\n?? tools/_p06_002_run_snr_debug.log\n?? tools/_p06_002_run_tests.json\n?? tools/_p06_002_run_tests.log\n?? tools/_p07_001_git.json\n",
+      "stderr": "",
+      "elapsed_sec": 0.053,
+      "cmd": [
+        "git",
+        "status",
+        "--porcelain=v1",
+        "-b"
+      ],
+      "extra": {
+        "porcelain": "## main...origin/main\n M engineering/control/CURRENT_TASK.md\n M engineering/control/MASTER_TASK_REGISTER.csv\n M engineering/control/PROJECT_STATE.yaml\n?? engineering/evidence/P07-001/\n?? tools/_p06_002_commit_msg.txt\n?? tools/_p06_002_run_snr_debug.json\n?? tools/_p06_002_run_snr_debug.log\n?? tools/_p06_002_run_tests.json\n?? tools/_p06_002_run_tests.log\n?? tools/_p07_001_git.json\n"
+      },
+      "step": 0,
+      "type": "git_status"
+    },
+    {
+      "ok": false,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "warning: in the working copy of 'engineering/control/CURRENT_TASK.md', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering/control/MASTER_TASK_REGISTER.csv', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering/control/PROJECT_STATE.yaml', CRLF will be replaced by LF the next time Git touches it\nThe following paths are ignored by one of your .gitignore files:\nengineering/evidence/P07-001/logs\nengineering/evidence/P07-001/output\nhint: Use -f if you really want to add them.\nhint: Disable this message with \"git config set advice.addIgnoredFile false\"\n",
+      "elapsed_sec": 0.081,
+      "cmd": [
+        "git",
+        "add",
+        "engineering/evidence/P07-001/performance_baseline.json",
+        "engineering/evidence/P07-001/TASK_REPORT.md",
+        "engineering/evidence/P07-001/TEST_REPORT.md",
+        "engineering/evidence/P07-001/EVIDENCE_INDEX.md",
+        "engineering/evidence/P07-001/REVIEW_REPORT.md",
+        "engineering/evidence/P07-001/perf_runner.py",
+        "engineering/evidence/P07-001/commit_msg.txt",
+        "engineering/evidence/P07-001/configs/stage1_config_T2.json",
+        "engineering/evidence/P07-001/configs/stage1_config_T4.json",
+        "engineering/evidence/P07-001/output/C003_run1.hiss",
+        "engineering/evidence/P07-001/output/C003_run2.hiss",
+        "engineering/evidence/P07-001/output/C003_run3.hiss",
+        "engineering/evidence/P07-001/output/C001_run1.hiss",
+        "engineering/evidence/P07-001/output/C007_run1.hiss",
+        "engineering/evidence/P07-001/output/stage2_run1.hcsd",
+        "engineering/evidence/P07-001/output/stage2_run2.hcsd",
+        "engineering/evidence/P07-001/logs/C003_run1_stdout.jsonl",
+        "engineering/evidence/P07-001/logs/C003_run1_stderr.log",
+        "engineering/evidence/P07-001/logs/C003_run1_memory.json",
+        "engineering/evidence/P07-001/logs/C003_run2_stdout.jsonl",
+        "engineering/evidence/P07-001/logs/C003_run2_stderr.log",
+        "engineering/evidence/P07-001/logs/C003_run2_memory.json",
+        "engineering/evidence/P07-001/logs/C003_run3_stdout.jsonl",
+        "engineering/evidence/P07-001/logs/C003_run3_stderr.log",
+        "engineering/evidence/P07-001/logs/C003_run3_memory.json",
+        "engineering/evidence/P07-001/logs/C001_run1_stdout.jsonl",
+        "engineering/evidence/P07-001/logs/C001_run1_stderr.log",
+        "engineering/evidence/P07-001/logs/C001_run1_memory.json",
+        "engineering/evidence/P07-001/logs/C007_run1_stdout.jsonl",
+        "engineering/evidence/P07-001/logs/C007_run1_stderr.log",
+        "engineering/evidence/P07-001/logs/C007_run1_memory.json",
+        "engineering/evidence/P07-001/logs/stage2_run1_stdout.jsonl",
+        "engineering/evidence/P07-001/logs/stage2_run1_stderr.log",
+        "engineering/evidence/P07-001/logs/stage2_run1_memory.json",
+        "engineering/evidence/P07-001/logs/stage2_run2_stdout.jsonl",
+        "engineering/evidence/P07-001/logs/stage2_run2_stderr.log",
+        "engineering/evidence/P07-001/logs/stage2_run2_memory.json",
+        "engineering/evidence/P07-001/logs/cancel_test_stdout.jsonl",
+        "engineering/evidence/P07-001/logs/cancel_test_stderr.log",
+        "engineering/evidence/P07-001/logs/cancel_test_memory.json",
+        "engineering/control/CURRENT_TASK.md",
+        "engineering/control/MASTER_TASK_REGISTER.csv",
+        "engineering/control/PROJECT_STATE.yaml",
+        "tools/_p07_001_git.json"
+      ],
+      "step": 1,
+      "type": "git_add"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "[main 4c1f546] P07-001 性能与峰值内存基线 (VERDICT: PASS)\n 13 files changed, 1423 insertions(+), 26 deletions(-)\n create mode 100644 engineering/evidence/P07-001/EVIDENCE_INDEX.md\n create mode 100644 engineering/evidence/P07-001/REVIEW_REPORT.md\n create mode 100644 engineering/evidence/P07-001/TASK_REPORT.md\n create mode 100644 engineering/evidence/P07-001/TEST_REPORT.md\n create mode 100644 engineering/evidence/P07-001/commit_msg.txt\n create mode 100644 engineering/evidence/P07-001/configs/stage1_config_T2.json\n create mode 100644 engineering/evidence/P07-001/configs/stage1_config_T4.json\n create mode 100644 engineering/evidence/P07-001/perf_runner.py\n create mode 100644 engineering/evidence/P07-001/performance_baseline.json\n create mode 100644 tools/_p07_001_git.json\n",
+      "stderr": "",
+      "elapsed_sec": 0.099,
+      "cmd": [
+        "git",
+        "commit",
+        "-F",
+        ".\\engineering/evidence/P07-001/commit_msg.txt"
+      ],
+      "step": 2,
+      "type": "git_commit"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "To https://github.com/fujiaze/Astro-CS-Database.git\n   5031094..4c1f546  main -> main\n",
+      "elapsed_sec": 2.758,
+      "cmd": [
+        "git",
+        "push",
+        "origin",
+        "main"
+      ],
+      "step": 3,
+      "type": "git_push"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "4c1f546 P07-001 性能与峰值内存基线 (VERDICT: PASS)\n5031094 P06-003 HCSD 输出与独立读取 (VERDICT: PASS)\n4ccb507 P06-002 球面梯度与稳健叠加证据 (v1.1 开发包) - VERDICT: PASS\n5ec9866 tools: 新增 astro_toolkit.py Python 工具集（跳过沙箱确认）\n62226ec P06-001 Stage2 真实输入兼容检查完成 (VERDICT: PASS)\n",
+      "stderr": "",
+      "elapsed_sec": 0.03,
+      "cmd": [
+        "git",
+        "log",
+        "--oneline",
+        "-n",
+        "5"
+      ],
+      "step": 4,
+      "type": "git_log"
+    }
+  ]
+}

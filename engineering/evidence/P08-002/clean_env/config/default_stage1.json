@@ -1,0 +1,71 @@
+{
+  "_comment": "AstroCS CLI v1.1.0 - Stage1 默认配置 (单帧预处理 FITS -> .hiss)",
+  "_schema": "engineering/contracts/config_parameter_registry.csv",
+  "_stage_count": 7,
+  "project_root": ".",
+  "gaia_data_dir": "GaiaDR3SP",
+  "calibration_dir": "testdata/T4 calibration files",
+  "output_root": "output",
+  "stages": [
+    "read_fits",
+    "calibrate",
+    "platesolve",
+    "psf",
+    "photometric",
+    "snr",
+    "drizzle"
+  ],
+  "frame": {
+    "id": "panel1_Red",
+    "light_path": "",
+    "filter": "Red",
+    "qe_curve": "GSENSE2020BSI"
+  },
+  "calibration": {
+    "_comment": "master_*_path 为空时从 calibration_dir 自动推导",
+    "master_bias_path": "",
+    "master_dark_path": "",
+    "master_flat_path": "",
+    "require_size_match": true,
+    "require_exposure_match": true,
+    "exposure_tolerance_s": 0.5,
+    "require_temperature_match": false,
+    "temperature_tolerance_c": 1.0,
+    "allow_no_calibration": false,
+    "dark_optimization": 0,
+    "dark_scale_factor": 1.0
+  },
+  "platesolve": {
+    "_comment": "initial_ra/dec 为空时从 FITS header OBJCTRA/DEC; focal_length/pixel_size 为 0 时从 FITS header",
+    "initial_ra": "",
+    "initial_dec": "",
+    "focal_length": 0.0,
+    "pixel_size": 0.0,
+    "max_stars": 2000,
+    "log_dir": "lib/plate_solve/logs"
+  },
+  "psf": {
+    "_comment": "fit_radius=0 表示自动; max_stars=0 表示不限制",
+    "fit_radius": 8,
+    "max_iter": 100,
+    "tolerance": 1.0e-6,
+    "max_stars": 2000
+  },
+  "photometric": {
+    "_comment": "mag_max 内部会自适应迭代 (2000-10000 星范围); fov_radius_deg=0 自动计算",
+    "mag_min": 6.0,
+    "mag_max": 16.0,
+    "fov_radius_deg": 0.0,
+    "filters_json": "lib/photometric_calib/data/response_curves/filters.json",
+    "qe_curves_json": "lib/photometric_calib/data/response_curves/qe_curves.json"
+  },
+  "drizzle": {
+    "_comment": "nside_strategy=1x_to_2x_drizzle 自适应; nside_override=0 自适应; pixfrac=1.0 避免缝隙",
+    "nside_strategy": "1x_to_2x_drizzle",
+    "nside_override": 0,
+    "pixfrac": 1.0,
+    "nested": true
+  },
+  "log_level": "INFO",
+  "threads": 0
+}

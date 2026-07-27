@@ -1,0 +1,74 @@
+============================================================
+  AstroCS CLI Core v1.1.0 (v1.1 开发包)
+  Release Package - P08-001
+============================================================
+
+版本号: v1.1.0
+发布阶段: P08-001 CLI Core v1 发布包
+Gate: G8 (Release)
+
+构建日期: 2026-07-27 13:50:20 +08:00
+Git Commit: 29cb2912affda58b5387371b65cc9a636f365f58
+Git Short:  29cb291
+Git Branch: main
+
+构建环境:
+  OS:         Microsoft Windows NT 10.0.26220.0
+  架构:       AMD64 (x86_64)
+  编译器:     g++ (Rev4, Built by MSYS2 project) 16.1.0
+  工具链:     MSYS2 mingw64
+  运行时:     MinGW-w64 (libgcc_s_seh-1, libstdc++-6, libwinpthread-1, libgomp-1)
+
+包含的组件:
+  1. orchestrator.exe        - CLI 编排器主程序 (v1.0.0, 4126364 bytes)
+     - 命令: run, run-batch, stage1, stage2, inspect, capabilities, status
+     - 两段流水线: stage1 (7节点) + stage2 (2节点)
+     - 退出码: 21 个稳定错误码 (0=SUCCESS ... 100=MODULE_SPECIFIC_BASE)
+
+  2. 模块 DLL (9 个):
+     - astro_image_io.dll     - FITS/XISF/HISS/HCSD I/O (lib/astro_image_io/)
+     - astro_calibration.dll  - CCD 校准 (lib/calibration/)
+     - ipv_solver.dll         - PlateSolve 求解器 (lib/plate_solve/cpp/ipv/)
+     - dynamic_psf.dll        - PSF 拟合 (lib/dynamic_psf/)
+     - photometric_calib.dll  - 测光校准 (lib/photometric_calib/cpp/)
+     - gaia_client.dll        - Gaia DR3/DR3SP 客户端 (lib/photometric_calib/cpp/)
+     - snr_estimator.dll      - SNR 估算 (lib/snr_estimator/cpp/)
+     - healpix_drizzle.dll    - 球面 Drizzle 重投影 (lib/healpix_db/healpix_drizzle/)
+     - healpix_stack.dll      - 稀疏堆栈 + 球面梯度 (lib/healpix_db/healpix_stack/)
+
+  3. 运行时 DLL (7 个, bin/):
+     - libgcc_s_seh-1.dll     - GCC 运行时
+     - libstdc++-6.dll        - C++ 标准库
+     - libwinpthread-1.dll    - POSIX 线程
+     - libgomp-1.dll          - OpenMP 并行运行时
+     - liblz4.dll             - LZ4 压缩
+     - libzstd.dll            - Zstandard 压缩
+     - zlib1.dll              - zlib 压缩
+
+  4. 配置文件 (config/):
+     - default_stage1.json    - Stage1 默认配置 (34 参数)
+     - default_stage2.json    - Stage2 默认配置 (15 参数)
+
+  5. 验证脚本:
+     - verify.bat             - Windows 原生验证脚本 (不依赖 Python/PowerShell)
+
+支持的格式:
+  - HISS v1.0  (稀疏 HEALPix 单帧存储, engineering/contracts/hiss_format_v1.md)
+  - HCSD v1.0  (稀疏 HEALPix 天球数据库, engineering/contracts/hcsd_format_v1.md)
+  - JSONL 事件 v1 (engineering/contracts/jsonl_event_schema.json)
+
+支持的 stage:
+  Stage1: READ_FITS -> CALIBRATE -> PLATESOLVE -> PSF -> PHOTOMETRIC -> SNR -> DRIZZLE
+  Stage2: GRADIENT_SPHERE -> STACK
+
+依赖运行时:
+  - MinGW-w64 运行时 DLL (已包含在 bin/)
+  - 无需安装 Python / PowerShell / .NET
+  - 无需安装 Visual C++ Runtime (orchestrator.exe 用 -static 编译)
+
+注意事项:
+  - GaiaDR3SP 数据库需单独获取 (不包含在发布包中, ~50GB)
+  - 测试数据需单独获取 (testdata/, ~73GB)
+  - 配置参数详情参见 engineering/contracts/config_parameter_registry.csv (49 参数)
+
+============================================================

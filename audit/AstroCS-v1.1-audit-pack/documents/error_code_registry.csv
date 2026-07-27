@@ -1,0 +1,22 @@
+numeric_code,exit_name,code,category,meaning,retryable,exit_code_match
+0,SUCCESS,ASTROCS_SUCCESS,internal,operation completed successfully,no,yes
+1,GENERIC_ERROR,ASTROCS_INTERNAL,internal,unexpected internal error,maybe,yes
+2,DLL_LOAD_FAILED,ASTROCS_MODULE_MISSING,dependency,required module or DLL missing,no,yes
+3,BLOCK_MISSING,ASTROCS_BLOCK_MISSING,dependency,named data block missing in PipelineFrame,no,yes
+4,CALIBRATE_FAILED,ASTROCS_CALIBRATION_MISSING,input,required master calibration data unavailable or calibration failed,maybe,yes
+5,PLATESOLVE_FAILED,ASTROCS_PLATESOLVE_FAILED,algorithm,WCS solve failed,maybe,yes
+6,DRIZZLE_FAILED,ASTROCS_DRIZZLE_FAILED,algorithm,HEALPix drizzle failed,maybe,yes
+7,CONFIG_ERROR,ASTROCS_CONFIG_INVALID,request,invalid or incomplete effective configuration,no,yes
+8,FILE_IO_ERROR,ASTROCS_FILE_IO_ERROR,input,input/output file operation failed,no,yes
+9,TIMEOUT,ASTROCS_TIMEOUT,control,operation timed out,maybe,yes
+10,CANCELLED,ASTROCS_CANCELLED,control,user cancellation,no,yes
+20,STAR_DETECT_FAILED,ASTROCS_STAR_DETECT_FAILED,algorithm,star detection failed,maybe,no
+21,PSF_FAILED,ASTROCS_PSF_FAILED,algorithm,PSF fitting failed,maybe,no
+22,PHOTOMETRIC_FAILED,ASTROCS_PHOTOMETRIC_FAILED,algorithm,photometric calibration failed,maybe,no
+23,SNR_FAILED,ASTROCS_SNR_FAILED,algorithm,SNR model generation failed,maybe,no
+24,STACK_FAILED,ASTROCS_STACK_FAILED,algorithm,gradient/robust stack failed,maybe,no
+25,HISS_INVALID,ASTROCS_HISS_INVALID,format,HISS write or validation failed,no,no
+26,HCSD_INVALID,ASTROCS_HCSD_INVALID,format,HCSD write or validation failed,no,no
+27,MODULE_ABI_UNSUPPORTED,ASTROCS_MODULE_ABI_UNSUPPORTED,dependency,module capability/ABI version unsupported,no,no
+28,INPUT_INVALID,ASTROCS_INPUT_INVALID,input,input file or data block invalid,no,no
+100,MODULE_SPECIFIC_BASE,ASTROCS_MODULE_SPECIFIC,internal,reserved range for module-specific error codes (100+),maybe,no

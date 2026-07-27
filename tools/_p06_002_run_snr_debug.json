@@ -1,0 +1,38 @@
+[
+  {
+    "type": "mkdir",
+    "params": {"path": "engineering/evidence/P06-002/T7_snr_weight_debug/output"}
+  },
+  {
+    "type": "mkdir",
+    "params": {"path": "engineering/evidence/P06-002/T7_snr_weight_debug/logs"}
+  },
+  {
+    "type": "run_orchestrator",
+    "params": {
+      "exe": "lib/orchestrator/cpp/orchestrator.exe",
+      "args": ["stage2",
+               "--frames", "engineering/evidence/P06-002/test_D_snr_weight/input",
+               "--output", "engineering/evidence/P06-002/T7_snr_weight_debug/output/snr_weighted.hcsd",
+               "--config", "engineering/evidence/P06-002/configs/stage2_config_default.json",
+               "--log-level", "DEBUG"],
+      "timeout_sec": 120,
+      "stdout_file": "engineering/evidence/P06-002/T7_snr_weight_debug/logs/stage2_stdout.log",
+      "stderr_file": "engineering/evidence/P06-002/T7_snr_weight_debug/logs/stage2_stderr.log"
+    }
+  },
+  {
+    "type": "sha256",
+    "params": {"path": "engineering/evidence/P06-002/T7_snr_weight_debug/output/snr_weighted.hcsd"}
+  },
+  {
+    "type": "run_orchestrator",
+    "params": {
+      "exe": "lib/orchestrator/cpp/orchestrator.exe",
+      "args": ["inspect", "--hcsd", "engineering/evidence/P06-002/T7_snr_weight_debug/output/snr_weighted.hcsd"],
+      "timeout_sec": 60,
+      "stdout_file": "engineering/evidence/P06-002/T7_snr_weight_debug/logs/hcsd_inspect.log",
+      "stderr_file": "engineering/evidence/P06-002/T7_snr_weight_debug/logs/hcsd_inspect.err.log"
+    }
+  }
+]

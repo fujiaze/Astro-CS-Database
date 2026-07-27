@@ -1,0 +1,62 @@
+{
+  "task_id": "P07-002",
+  "started_at": "2026-07-27T13:19:23+0800",
+  "environment": {
+    "orchestrator_exe": "F:\\Astro dev\\Astro CS Normalization Database\\engineering\\lib\\orchestrator\\cpp\\orchestrator.exe",
+    "stage2_input_dir": "F:\\Astro dev\\Astro CS Normalization Database\\engineering\\lib\\orchestrator\\cpp\\output_hiss_dir",
+    "stage2_baseline_sha256": "2A9BD12E0F91BB59ABB170B2765A4806EC5C45FB16045F7C50E131AFA4122C37",
+    "system_memory_start_mb": {
+      "memory_load_pct": 28,
+      "total_phys_mb": 65446.38,
+      "avail_phys_mb": 46685.58,
+      "used_phys_mb": 18760.8,
+      "total_pagefile_mb": 75174.38,
+      "avail_pagefile_mb": 47925.23
+    }
+  },
+  "stage1_batch": {
+    "total_frames": 6,
+    "success_count": 0,
+    "batch_total_sec": 0.0,
+    "mem_regression_mb": 0,
+    "frames": [
+      {
+        "frame_id": "C001",
+        "label": "C001_Galaxy_Center_T4_Red_180s",
+        "success": false,
+        "error": "FITS not found: F:\\Astro dev\\Astro CS Normalization Database\\engineering\\testdata\\Galaxy_Center_T4\\lights\\panel1\\Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts"
+      },
+      {
+        "frame_id": "C003",
+        "label": "C003_NGC1727_T2_Red_600s",
+        "success": false,
+        "error": "FITS not found: F:\\Astro dev\\Astro CS Normalization Database\\engineering\\testdata\\NGC1727_T2_flying_dutchman\\lights\\NGC1727_RGBHO_T2_flying_dutchman-20251031@064517-600S-Red.fts"
+      },
+      {
+        "frame_id": "C004",
+        "label": "C004_NGC247_T2_Lum_600s",
+        "success": false,
+        "error": "FITS not found: F:\\Astro dev\\Astro CS Normalization Database\\engineering\\testdata\\NGC247_T2_flying_dutchman\\lights\\NGC247_T2_flying_dutchman-20250816@033428-600S-Lum.fts"
+      },
+      {
+        "frame_id": "C005",
+        "label": "C005_NGC55_T3_Red_600s",
+        "success": false,
+        "error": "FITS not found: F:\\Astro dev\\Astro CS Normalization Database\\engineering\\testdata\\NGC55_T3_flying_dutchman\\lights\\NGC55_T3_flying_dutchman-20250701@074114-600S-Red.fts"
+      },
+      {
+        "frame_id": "C006",
+        "label": "C006_NGC83_cluster_T3_Red_600s",
+        "success": false,
+        "error": "FITS not found: F:\\Astro dev\\Astro CS Normalization Database\\engineering\\testdata\\NGC83_cluster_T3_Flying_Dutchman\\lights\\NGC90_2025wwk_T3_flying_dutchman-20251011@020846-600S-Red.fts"
+      },
+      {
+        "frame_id": "C007",
+        "label": "C007_Victory_Nebula_T4_Lum_180s",
+        "success": false,
+        "error": "FITS not found: F:\\Astro dev\\Astro CS Normalization Database\\engineering\\testdata\\Victory_Nebula_T4_Flying_Dutchman\\lights\\Victory_Nebula_mosaic1_flying_dutchman-20250204@035646-180S-Lum.fts"
+      }
+    ],
+    "verdict": "FAIL"
+  }
+}

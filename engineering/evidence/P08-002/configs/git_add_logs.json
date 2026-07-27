@@ -1,0 +1,32 @@
+[
+  {
+    "type": "run_orchestrator",
+    "params": {
+      "command": "git add -f engineering/evidence/P08-002/logs/canonical_results.json engineering/evidence/P08-002/logs/gui_dependency_analysis.md engineering/evidence/P08-002/logs/regression_test_orchestrator_cli.out engineering/evidence/P08-002/logs/smoke_tests.log",
+      "timeout_sec": 30
+    }
+  },
+  {
+    "type": "write_file",
+    "params": {
+      "path": "engineering/evidence/P08-002/configs/commit_msg_logs.txt",
+      "content": "P08-002 补充提交: logs/ 证据文件 (被 .gitignore logs/ 规则忽略, 用 -f 强制添加)\n\n包含文件:\n- logs/smoke_tests.log (5/5 smoke 测试详细日志)\n- logs/canonical_results.json (3/3 canonical 测试结果, 含 SHA-256 baseline 对比)\n- logs/gui_dependency_analysis.md (GUI 依赖分析报告)\n- logs/regression_test_orchestrator_cli.out (回归测试 352/352 PASS 日志)\n\n这些日志文件是 P08-002 独立复核的关键证据, 需纳入版本控制。"
+    }
+  },
+  {
+    "type": "git_commit",
+    "params": {
+      "message_file": "engineering/evidence/P08-002/configs/commit_msg_logs.txt"
+    }
+  },
+  {
+    "type": "git_push",
+    "params": {}
+  },
+  {
+    "type": "git_log",
+    "params": {
+      "count": 3
+    }
+  }
+]

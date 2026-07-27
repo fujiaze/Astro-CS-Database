@@ -1,0 +1,158 @@
+[
+  {
+    "type": "mkdir",
+    "params": {"path": "engineering/evidence/P06-002/logs"}
+  },
+  {
+    "type": "mkdir",
+    "params": {"path": "engineering/evidence/P06-002/T1_baseline/output"}
+  },
+  {
+    "type": "mkdir",
+    "params": {"path": "engineering/evidence/P06-002/T1_baseline/logs"}
+  },
+  {
+    "type": "mkdir",
+    "params": {"path": "engineering/evidence/P06-002/T5_gradient/output"}
+  },
+  {
+    "type": "mkdir",
+    "params": {"path": "engineering/evidence/P06-002/T5_gradient/logs"}
+  },
+  {
+    "type": "mkdir",
+    "params": {"path": "engineering/evidence/P06-002/T6_determinism/output"}
+  },
+  {
+    "type": "mkdir",
+    "params": {"path": "engineering/evidence/P06-002/T6_determinism/logs"}
+  },
+  {
+    "type": "mkdir",
+    "params": {"path": "engineering/evidence/P06-002/T2_sigma_clip_debug/output"}
+  },
+  {
+    "type": "mkdir",
+    "params": {"path": "engineering/evidence/P06-002/T2_sigma_clip_debug/logs"}
+  },
+  {
+    "type": "run_orchestrator",
+    "params": {
+      "exe": "lib/orchestrator/cpp/orchestrator.exe",
+      "args": ["stage2",
+               "--frames", "lib/orchestrator/cpp/output_hiss_dir",
+               "--output", "engineering/evidence/P06-002/T1_baseline/output/T1_baseline.hcsd",
+               "--config", "engineering/evidence/P06-002/configs/stage2_config_t1_baseline.json",
+               "--log-level", "DEBUG"],
+      "timeout_sec": 180,
+      "stdout_file": "engineering/evidence/P06-002/T1_baseline/logs/stage2_stdout.log",
+      "stderr_file": "engineering/evidence/P06-002/T1_baseline/logs/stage2_stderr.log"
+    }
+  },
+  {
+    "type": "sha256",
+    "params": {"path": "engineering/evidence/P06-002/T1_baseline/output/T1_baseline.hcsd"}
+  },
+  {
+    "type": "run_orchestrator",
+    "params": {
+      "exe": "lib/orchestrator/cpp/orchestrator.exe",
+      "args": ["inspect", "--hcsd", "engineering/evidence/P06-002/T1_baseline/output/T1_baseline.hcsd"],
+      "timeout_sec": 60,
+      "stdout_file": "engineering/evidence/P06-002/T1_baseline/logs/hcsd_inspect.log",
+      "stderr_file": "engineering/evidence/P06-002/T1_baseline/logs/hcsd_inspect.err.log"
+    }
+  },
+  {
+    "type": "run_orchestrator",
+    "params": {
+      "exe": "lib/orchestrator/cpp/orchestrator.exe",
+      "args": ["stage2",
+               "--frames", "engineering/evidence/P06-002/test_outlier/input",
+               "--output", "engineering/evidence/P06-002/T2_sigma_clip_debug/output/T2_sigma_clip.hcsd",
+               "--config", "engineering/evidence/P06-002/configs/stage2_config_strict.json",
+               "--log-level", "DEBUG"],
+      "timeout_sec": 180,
+      "stdout_file": "engineering/evidence/P06-002/T2_sigma_clip_debug/logs/stage2_stdout.log",
+      "stderr_file": "engineering/evidence/P06-002/T2_sigma_clip_debug/logs/stage2_stderr.log"
+    }
+  },
+  {
+    "type": "sha256",
+    "params": {"path": "engineering/evidence/P06-002/T2_sigma_clip_debug/output/T2_sigma_clip.hcsd"}
+  },
+  {
+    "type": "run_orchestrator",
+    "params": {
+      "exe": "lib/orchestrator/cpp/orchestrator.exe",
+      "args": ["inspect", "--hcsd", "engineering/evidence/P06-002/T2_sigma_clip_debug/output/T2_sigma_clip.hcsd"],
+      "timeout_sec": 60,
+      "stdout_file": "engineering/evidence/P06-002/T2_sigma_clip_debug/logs/hcsd_inspect.log",
+      "stderr_file": "engineering/evidence/P06-002/T2_sigma_clip_debug/logs/hcsd_inspect.err.log"
+    }
+  },
+  {
+    "type": "run_orchestrator",
+    "params": {
+      "exe": "lib/orchestrator/cpp/orchestrator.exe",
+      "args": ["stage2",
+               "--frames", "engineering/evidence/P06-002/test_B_overlap_duplicate/input",
+               "--output", "engineering/evidence/P06-002/T5_gradient/output/T5_gradient.hcsd",
+               "--config", "engineering/evidence/P06-002/configs/stage2_config_gradient.json",
+               "--log-level", "DEBUG"],
+      "timeout_sec": 180,
+      "stdout_file": "engineering/evidence/P06-002/T5_gradient/logs/stage2_stdout.log",
+      "stderr_file": "engineering/evidence/P06-002/T5_gradient/logs/stage2_stderr.log"
+    }
+  },
+  {
+    "type": "sha256",
+    "params": {"path": "engineering/evidence/P06-002/T5_gradient/output/T5_gradient.hcsd"}
+  },
+  {
+    "type": "run_orchestrator",
+    "params": {
+      "exe": "lib/orchestrator/cpp/orchestrator.exe",
+      "args": ["inspect", "--hcsd", "engineering/evidence/P06-002/T5_gradient/output/T5_gradient.hcsd"],
+      "timeout_sec": 60,
+      "stdout_file": "engineering/evidence/P06-002/T5_gradient/logs/hcsd_inspect.log",
+      "stderr_file": "engineering/evidence/P06-002/T5_gradient/logs/hcsd_inspect.err.log"
+    }
+  },
+  {
+    "type": "run_orchestrator",
+    "params": {
+      "exe": "lib/orchestrator/cpp/orchestrator.exe",
+      "args": ["stage2",
+               "--frames", "engineering/evidence/P06-002/test_B_overlap_duplicate/input",
+               "--output", "engineering/evidence/P06-002/T6_determinism/output/T6_run1.hcsd",
+               "--config", "engineering/evidence/P06-002/configs/stage2_config_gradient.json",
+               "--log-level", "DEBUG"],
+      "timeout_sec": 180,
+      "stdout_file": "engineering/evidence/P06-002/T6_determinism/logs/run1_stdout.log",
+      "stderr_file": "engineering/evidence/P06-002/T6_determinism/logs/run1_stderr.log"
+    }
+  },
+  {
+    "type": "sha256",
+    "params": {"path": "engineering/evidence/P06-002/T6_determinism/output/T6_run1.hcsd"}
+  },
+  {
+    "type": "run_orchestrator",
+    "params": {
+      "exe": "lib/orchestrator/cpp/orchestrator.exe",
+      "args": ["stage2",
+               "--frames", "engineering/evidence/P06-002/test_B_overlap_duplicate/input",
+               "--output", "engineering/evidence/P06-002/T6_determinism/output/T6_run2.hcsd",
+               "--config", "engineering/evidence/P06-002/configs/stage2_config_gradient.json",
+               "--log-level", "DEBUG"],
+      "timeout_sec": 180,
+      "stdout_file": "engineering/evidence/P06-002/T6_determinism/logs/run2_stdout.log",
+      "stderr_file": "engineering/evidence/P06-002/T6_determinism/logs/run2_stderr.log"
+    }
+  },
+  {
+    "type": "sha256",
+    "params": {"path": "engineering/evidence/P06-002/T6_determinism/output/T6_run2.hcsd"}
+  }
+]

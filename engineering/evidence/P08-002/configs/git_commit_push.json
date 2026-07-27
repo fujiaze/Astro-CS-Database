@@ -1,0 +1,43 @@
+[
+  {
+    "type": "git_add",
+    "params": {
+      "files": [
+        "engineering/control/CURRENT_TASK.md",
+        "engineering/control/MASTER_TASK_REGISTER.csv",
+        "engineering/control/PROJECT_STATE.yaml",
+        "memory.md",
+        "engineering/evidence/P08-002/HANDOVER.md",
+        "engineering/evidence/P08-002/final_handover.json",
+        "engineering/evidence/P08-002/TASK_REPORT.md",
+        "engineering/evidence/P08-002/TEST_REPORT.md",
+        "engineering/evidence/P08-002/EVIDENCE_INDEX.md",
+        "engineering/evidence/P08-002/REVIEW_REPORT.md",
+        "engineering/evidence/P08-002/configs/commit_msg.txt",
+        "engineering/evidence/P08-002/configs/copy_clean_env.json",
+        "engineering/evidence/P08-002/configs/prepare_testdata.json",
+        "engineering/evidence/P08-002/configs/setup_dirs.json",
+        "engineering/evidence/P08-002/logs/canonical_results.json",
+        "engineering/evidence/P08-002/logs/gui_dependency_analysis.md",
+        "engineering/evidence/P08-002/logs/regression_test_orchestrator_cli.out",
+        "engineering/evidence/P08-002/logs/smoke_tests.log"
+      ]
+    }
+  },
+  {
+    "type": "git_commit",
+    "params": {
+      "message_file": "engineering/evidence/P08-002/configs/commit_msg.txt"
+    }
+  },
+  {
+    "type": "git_push",
+    "params": {}
+  },
+  {
+    "type": "git_log",
+    "params": {
+      "count": 5
+    }
+  }
+]
