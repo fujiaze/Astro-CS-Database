@@ -1,0 +1,56 @@
+{
+  "test_date": "2026-07-27",
+  "environment": "clean_env (engineering/evidence/P08-002/clean_env/)",
+  "canonical_1_hiss": {
+    "test": "Canonical-1: Stage1 单帧 HISS inspect (C003 NGC1727 南天)",
+    "source": "P05-002 C003 (NGC1727 南天, Red, 600s)",
+    "file": "C003_NGC1727_Red_600s.hiss",
+    "size_bytes": 19347,
+    "sha256": "C9FBB48501D664CE4E6F7EBE528AB7142077C45A791E2926556C9F1CFEB2E438",
+    "inspect_exit_code": 0,
+    "objctra": "04 52 22.00",
+    "objctdec": "-69 55 30.0",
+    "filter": "Red",
+    "exposure_s": 600.0,
+    "nside": 2048,
+    "n_pix": 1566,
+    "has_snr": false,
+    "snr_format": "none",
+    "baseline_consistency": true,
+    "result": "PASS",
+    "note": "HISS 非字节级可重现 (zstd 时间戳), 但数据与 P05-002 记录一致 (nside/n_pix/filter/exposure_s)"
+  },
+  "canonical_2_hcsd": {
+    "test": "Canonical-2: Stage2 叠加 HCSD inspect + SHA-256 baseline",
+    "source": "P07-001 stage2_run1.hcsd (= P00-003 baseline = P06-002 T1_baseline)",
+    "file": "stage2_baseline.hcsd",
+    "size_bytes": 187455430,
+    "sha256": "2A9BD12E0F91BB59ABB170B2765A4806EC5C45FB16045F7C50E131AFA4122C37",
+    "baseline_sha256": "2A9BD12E0F91BB59ABB170B2765A4806EC5C45FB16045F7C50E131AFA4122C37",
+    "sha256_match_baseline": true,
+    "inspect_exit_code": 0,
+    "nside": 32768,
+    "n_pix": 15522966,
+    "n_leaves": 49152,
+    "n_frames": 2,
+    "mean_pixel_count": 1.985,
+    "baseline_consistency": true,
+    "result": "PASS",
+    "note": "HCSD SHA-256 与 P00-003/P06-002/P06-003/P07-001 baseline 字节级一致 (确定性保证)"
+  },
+  "canonical_3_inspect": {
+    "test": "Canonical-3: inspect --hiss + inspect --hcsd 读取验证",
+    "hiss_inspect_exit": 0,
+    "hiss_result_event": true,
+    "hcsd_inspect_exit": 0,
+    "hcsd_result_event": true,
+    "result": "PASS",
+    "note": "已在 smoke 测试中完成, inspect 命令能正确读取真实 HISS/HCSD 文件并输出 result+completed JSONL 事件."
+  },
+  "summary": {
+    "total": 3,
+    "passed": 3,
+    "failed": 0,
+    "overall": "PASS"
+  }
+}

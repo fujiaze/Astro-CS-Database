@@ -1,0 +1,57 @@
+P08-002 回归测试日志 - test_orchestrator_cli.exe
+================================================
+测试时间: 2026-07-27
+测试环境: 项目根目录 (lib/orchestrator/cpp/), PATH 含 C:\msys64\mingw64\bin
+测试套件: test_orchestrator_cli.exe (集成测试)
+
+================================================
+测试结果摘要
+================================================
+总测试数: 352
+通过: 352
+失败: 0
+跳过: 0
+exit code: 0
+
+================================================
+测试覆盖 (9 个 Part)
+================================================
+Part 1 - 基础功能 checkpoint: PASS
+Part 2 - dll_loader 模块加载: PASS
+Part 3 - logger 日志系统: PASS
+Part 4 - orchestrator 编排器: PASS
+Part 5 - 日志系统集成测试 (16 子测试): PASS
+Part 6 - P04-001 CLI request 与 effective config (46 子测试): PASS
+Part 7 - P04-002 JSONL 事件与稳定错误码 (38 子测试): PASS
+Part 8 - P04-003 capabilities 扩展与 inspect --hiss/--hcsd/--frame (73 子测试): PASS
+Part 9 - P04-004 取消/超时/原子性 (21 子测试): PASS
+
+================================================
+关键验证项
+================================================
+- capabilities 退出码 0: PASS
+- inspect --hiss 不存在文件退出码 8 (FILE_IO_ERROR): PASS
+- inspect --hiss 无效 magic 退出码 25 (HISS_INVALID): PASS
+- inspect --hcsd 无效 magic 退出码 26 (HCSD_INVALID): PASS
+- inspect --frame 无效 FITS 退出码 28 (INPUT_INVALID): PASS
+- inspect --hiss 真实文件退出码 0 (result + completed 事件): PASS
+- inspect --hcsd 真实文件退出码 0 (n_leaves=49152): PASS
+- inspect --frame 真实文件退出码 0 (SIMPLE/BITPIX/NAXIS/EXPTIME): PASS
+- 超时测试退出码 9 (TIMEOUT): PASS
+- 原子性: stage1 失败后部分输出文件已删除: PASS
+- JSONL 有效性: 所有非空行均为有效 JSONL: PASS
+- stdout/stderr 严格分离: PASS
+
+================================================
+与 P08-001 基线对比
+================================================
+P08-001 基线: 346/346 PASS
+P08-002 当前: 352/352 PASS
+增量: +6 个测试 (新增的边界测试用例)
+无回归: 所有原有测试继续通过
+
+================================================
+结论
+================================================
+VERDICT: PASS
+所有回归测试通过, 无功能退化, 无新增失败.
