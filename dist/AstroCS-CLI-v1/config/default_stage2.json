@@ -1,0 +1,31 @@
+{
+  "_comment": "AstroCS CLI v1.1.0 - Stage2 默认配置 (多帧合并 .hiss -> .hcsd)",
+  "_schema": "engineering/contracts/config_parameter_registry.csv",
+  "_stage_count": 2,
+  "frames_dir": "output/hiss_output/",
+  "output_hcsd": "output/stacked.hcsd",
+  "stages": [
+    "gradient_sphere",
+    "stack"
+  ],
+  "stack": {
+    "_comment": "weighting=snr_squared 在 DLL 内部实现; sigma_clip_max_iter 默认 5",
+    "sigma_clip_method": "winsorized",
+    "sigma_clip_sigma": 3.0,
+    "sigma_clip_max_iter": 5,
+    "winsorize_low_pct": 0.05,
+    "winsorize_high_pct": 0.95,
+    "weighting": "snr_squared",
+    "mosaic_fov_ra": 0.0,
+    "mosaic_fov_dec": 0.0,
+    "mosaic_fov_radius_deg": 0.0
+  },
+  "gradient_sphere": {
+    "_comment": "gaia_data_dir 为空时跳过星拒绝; gradient_max_iter/lambda 控制 IRLS 收敛",
+    "gaia_data_dir": "",
+    "gradient_max_iter": 10,
+    "gradient_lambda": 1.0e-4
+  },
+  "log_level": "INFO",
+  "threads": 0
+}
