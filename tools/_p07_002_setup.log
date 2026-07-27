@@ -1,0 +1,108 @@
+{
+  "ok": true,
+  "results": [
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "F:\\Astro dev\\Astro CS Normalization Database\\engineering/evidence/P07-002",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [],
+      "extra": {
+        "path": "F:\\Astro dev\\Astro CS Normalization Database\\engineering/evidence/P07-002"
+      },
+      "step": 0,
+      "type": "mkdir"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "F:\\Astro dev\\Astro CS Normalization Database\\engineering/evidence/P07-002/logs",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [],
+      "extra": {
+        "path": "F:\\Astro dev\\Astro CS Normalization Database\\engineering/evidence/P07-002/logs"
+      },
+      "step": 1,
+      "type": "mkdir"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "F:\\Astro dev\\Astro CS Normalization Database\\engineering/evidence/P07-002/output",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [],
+      "extra": {
+        "path": "F:\\Astro dev\\Astro CS Normalization Database\\engineering/evidence/P07-002/output"
+      },
+      "step": 2,
+      "type": "mkdir"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "F:\\Astro dev\\Astro CS Normalization Database\\engineering/evidence/P07-002/configs",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [],
+      "extra": {
+        "path": "F:\\Astro dev\\Astro CS Normalization Database\\engineering/evidence/P07-002/configs"
+      },
+      "step": 3,
+      "type": "mkdir"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "engineering/evidence/P07-002/configs/stage1_config_T2.json",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "engineering/evidence/P05-002/configs/stage1_config_T2.json",
+        "engineering/evidence/P07-002/configs/stage1_config_T2.json"
+      ],
+      "extra": {
+        "src": "engineering/evidence/P05-002/configs/stage1_config_T2.json",
+        "dst": "engineering/evidence/P07-002/configs/stage1_config_T2.json"
+      },
+      "step": 4,
+      "type": "copy_file"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "engineering/evidence/P07-002/configs/stage1_config_T3.json",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "engineering/evidence/P05-002/configs/stage1_config_T3.json",
+        "engineering/evidence/P07-002/configs/stage1_config_T3.json"
+      ],
+      "extra": {
+        "src": "engineering/evidence/P05-002/configs/stage1_config_T3.json",
+        "dst": "engineering/evidence/P07-002/configs/stage1_config_T3.json"
+      },
+      "step": 5,
+      "type": "copy_file"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "engineering/evidence/P07-002/configs/stage1_config_T4.json",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "engineering/evidence/P05-002/configs/stage1_config_T4.json",
+        "engineering/evidence/P07-002/configs/stage1_config_T4.json"
+      ],
+      "extra": {
+        "src": "engineering/evidence/P05-002/configs/stage1_config_T4.json",
+        "dst": "engineering/evidence/P07-002/configs/stage1_config_T4.json"
+      },
+      "step": 6,
+      "type": "copy_file"
+    }
+  ]
+}

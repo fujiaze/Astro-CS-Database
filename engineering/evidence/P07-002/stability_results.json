@@ -1,0 +1,425 @@
+{
+  "task_id": "P07-002",
+  "started_at": "2026-07-27T13:20:23+0800",
+  "environment": {
+    "orchestrator_exe": "F:\\Astro dev\\Astro CS Normalization Database\\lib\\orchestrator\\cpp\\orchestrator.exe",
+    "stage2_input_dir": "F:\\Astro dev\\Astro CS Normalization Database\\lib\\orchestrator\\cpp\\output_hiss_dir",
+    "stage2_baseline_sha256": "2A9BD12E0F91BB59ABB170B2765A4806EC5C45FB16045F7C50E131AFA4122C37",
+    "system_memory_start_mb": {
+      "memory_load_pct": 28,
+      "total_phys_mb": 65446.38,
+      "avail_phys_mb": 46679.15,
+      "used_phys_mb": 18767.23,
+      "total_pagefile_mb": 75174.38,
+      "avail_pagefile_mb": 47767.38
+    },
+    "system_memory_end_mb": {
+      "memory_load_pct": 28,
+      "total_phys_mb": 65446.38,
+      "avail_phys_mb": 46671.09,
+      "used_phys_mb": 18775.29,
+      "total_pagefile_mb": 75174.38,
+      "avail_pagefile_mb": 47762.01
+    }
+  },
+  "stage1_batch": {
+    "total_frames": 6,
+    "success_count": 6,
+    "batch_total_sec": 235.864,
+    "mem_regression_mb": -4.61,
+    "frames": [
+      {
+        "exit_code": 0,
+        "elapsed_sec": 19.085,
+        "peak_working_set_mb": 3633.6,
+        "peak_pagefile_mb": 2470.54,
+        "sample_count": 167,
+        "frame_id": "C001",
+        "label": "C001_Galaxy_Center_T4_Red_180s",
+        "telescope": "T4",
+        "fits_path": "testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts",
+        "config": "stage1_config_T4.json",
+        "mem_before_mb": {
+          "memory_load_pct": 28,
+          "total_phys_mb": 65446.38,
+          "avail_phys_mb": 46675.05,
+          "used_phys_mb": 18771.33,
+          "total_pagefile_mb": 75174.38,
+          "avail_pagefile_mb": 47911.82
+        },
+        "mem_after_mb": {
+          "memory_load_pct": 28,
+          "total_phys_mb": 65446.38,
+          "avail_phys_mb": 46673.56,
+          "used_phys_mb": 18772.82,
+          "total_pagefile_mb": 75174.38,
+          "avail_pagefile_mb": 47900.99
+        },
+        "mem_delta_avail_mb": -1.49,
+        "timings": [],
+        "output_sha256": "59BC5D9EBD796585FD4AD14383D091916AFF5CB8A06ED685983E562C3102518B",
+        "output_size": 47705,
+        "success": true
+      },
+      {
+        "exit_code": 0,
+        "elapsed_sec": 85.898,
+        "peak_working_set_mb": 35471.28,
+        "peak_pagefile_mb": 20013.31,
+        "sample_count": 780,
+        "frame_id": "C003",
+        "label": "C003_NGC1727_T2_Red_600s",
+        "telescope": "T2",
+        "fits_path": "testdata/NGC1727_T2_flying_dutchman/lights/NGC1727_RGBHO_T2_flying_dutchman-20251031@064517-600S-Red.fts",
+        "config": "stage1_config_T2.json",
+        "mem_before_mb": {
+          "memory_load_pct": 28,
+          "total_phys_mb": 65446.38,
+          "avail_phys_mb": 46673.84,
+          "used_phys_mb": 18772.54,
+          "total_pagefile_mb": 75174.38,
+          "avail_pagefile_mb": 47900.95
+        },
+        "mem_after_mb": {
+          "memory_load_pct": 28,
+          "total_phys_mb": 65446.38,
+          "avail_phys_mb": 46812.32,
+          "used_phys_mb": 18634.07,
+          "total_pagefile_mb": 75174.38,
+          "avail_pagefile_mb": 47984.55
+        },
+        "mem_delta_avail_mb": 138.48,
+        "timings": [],
+        "output_sha256": "6D7D264221C76AC013E638152AD90A035DA71E75B0862B1CADFE2FC38C6A3458",
+        "output_size": 19347,
+        "success": true
+      },
+      {
+        "exit_code": 0,
+        "elapsed_sec": 17.374,
+        "peak_working_set_mb": 792.8,
+        "peak_pagefile_mb": 875.84,
+        "sample_count": 149,
+        "frame_id": "C004",
+        "label": "C004_NGC247_T2_Lum_600s",
+        "telescope": "T2",
+        "fits_path": "testdata/NGC247_T2_flying_dutchman/lights/NGC247_T2_flying_dutchman-20250816@033428-600S-Lum.fts",
+        "config": "stage1_config_T2.json",
+        "mem_before_mb": {
+          "memory_load_pct": 28,
+          "total_phys_mb": 65446.38,
+          "avail_phys_mb": 46812.96,
+          "used_phys_mb": 18633.42,
+          "total_pagefile_mb": 75174.38,
+          "avail_pagefile_mb": 47984.41
+        },
+        "mem_after_mb": {
+          "memory_load_pct": 28,
+          "total_phys_mb": 65446.38,
+          "avail_phys_mb": 46798.39,
+          "used_phys_mb": 18648.0,
+          "total_pagefile_mb": 75174.38,
+          "avail_pagefile_mb": 47968.01
+        },
+        "mem_delta_avail_mb": -14.57,
+        "timings": [],
+        "output_sha256": "458A5C14290F55C4C8F4933DAB84AB171A3E7F3415DBDAC1F0995662C41F848C",
+        "output_size": 19450,
+        "success": true
+      },
+      {
+        "exit_code": 0,
+        "elapsed_sec": 16.882,
+        "peak_working_set_mb": 791.25,
+        "peak_pagefile_mb": 871.71,
+        "sample_count": 149,
+        "frame_id": "C005",
+        "label": "C005_NGC55_T3_Red_600s",
+        "telescope": "T3",
+        "fits_path": "testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@074114-600S-Red.fts",
+        "config": "stage1_config_T3.json",
+        "mem_before_mb": {
+          "memory_load_pct": 28,
+          "total_phys_mb": 65446.38,
+          "avail_phys_mb": 46798.76,
+          "used_phys_mb": 18647.62,
+          "total_pagefile_mb": 75174.38,
+          "avail_pagefile_mb": 47967.94
+        },
+        "mem_after_mb": {
+          "memory_load_pct": 28,
+          "total_phys_mb": 65446.38,
+          "avail_phys_mb": 46799.89,
+          "used_phys_mb": 18646.49,
+          "total_pagefile_mb": 75174.38,
+          "avail_pagefile_mb": 47966.27
+        },
+        "mem_delta_avail_mb": 1.13,
+        "timings": [],
+        "output_sha256": "36429B2B05CA9BD0DA2CEDB0EA1BE319858084F162A6403BFBA81E0AC20D1547",
+        "output_size": 18981,
+        "success": true
+      },
+      {
+        "exit_code": 0,
+        "elapsed_sec": 16.893,
+        "peak_working_set_mb": 795.71,
+        "peak_pagefile_mb": 872.48,
+        "sample_count": 149,
+        "frame_id": "C006",
+        "label": "C006_NGC83_cluster_T3_Red_600s",
+        "telescope": "T3",
+        "fits_path": "testdata/NGC83_cluster_T3_Flying_Dutchman/lights/NGC90_2025wwk_T3_flying_dutchman-20251011@020846-600S-Red.fts",
+        "config": "stage1_config_T3.json",
+        "mem_before_mb": {
+          "memory_load_pct": 28,
+          "total_phys_mb": 65446.38,
+          "avail_phys_mb": 46800.14,
+          "used_phys_mb": 18646.24,
+          "total_pagefile_mb": 75174.38,
+          "avail_pagefile_mb": 47965.81
+        },
+        "mem_after_mb": {
+          "memory_load_pct": 28,
+          "total_phys_mb": 65446.38,
+          "avail_phys_mb": 46711.1,
+          "used_phys_mb": 18735.28,
+          "total_pagefile_mb": 75174.38,
+          "avail_pagefile_mb": 47832.69
+        },
+        "mem_delta_avail_mb": -89.04,
+        "timings": [],
+        "output_sha256": "AB13622F086584CCB129CFD2131EC77AFB4487A192580ACFDA91E2CC35E64C34",
+        "output_size": 19286,
+        "success": true
+      },
+      {
+        "exit_code": 0,
+        "elapsed_sec": 67.592,
+        "peak_working_set_mb": 32607.03,
+        "peak_pagefile_mb": 18511.67,
+        "sample_count": 617,
+        "frame_id": "C007",
+        "label": "C007_Victory_Nebula_T4_Lum_180s",
+        "telescope": "T4",
+        "fits_path": "testdata/Victory_Nebula_T4_Flying_Dutchman/lights/Victory_Nebula_mosaic1_flying_dutchman-20250204@035646-180S-Lum.fts",
+        "config": "stage1_config_T4.json",
+        "mem_before_mb": {
+          "memory_load_pct": 28,
+          "total_phys_mb": 65446.38,
+          "avail_phys_mb": 46711.34,
+          "used_phys_mb": 18735.04,
+          "total_pagefile_mb": 75174.38,
+          "avail_pagefile_mb": 47832.63
+        },
+        "mem_after_mb": {
+          "memory_load_pct": 28,
+          "total_phys_mb": 65446.38,
+          "avail_phys_mb": 46678.17,
+          "used_phys_mb": 18768.21,
+          "total_pagefile_mb": 75174.38,
+          "avail_pagefile_mb": 47747.98
+        },
+        "mem_delta_avail_mb": -33.17,
+        "timings": [],
+        "output_sha256": "0AA8FBA18E5339385D78C1E20406B647EEBAD63B6AE370E86309E208A1A082C9",
+        "output_size": 47691,
+        "success": true
+      }
+    ],
+    "verdict": "PASS"
+  },
+  "stage2_repeat": {
+    "total_runs": 3,
+    "success_count": 3,
+    "unique_sha256_count": 1,
+    "deterministic": true,
+    "matches_p07_001_baseline": true,
+    "baseline_sha256": "2A9BD12E0F91BB59ABB170B2765A4806EC5C45FB16045F7C50E131AFA4122C37",
+    "runs": [
+      {
+        "exit_code": 0,
+        "elapsed_sec": 6.627,
+        "peak_working_set_mb": 1962.89,
+        "peak_pagefile_mb": 2045.24,
+        "sample_count": 61,
+        "label": "stage2_repeat_1",
+        "run_index": 1,
+        "mem_before_mb": {
+          "memory_load_pct": 28,
+          "total_phys_mb": 65446.38,
+          "avail_phys_mb": 46678.18,
+          "used_phys_mb": 18768.2,
+          "total_pagefile_mb": 75174.38,
+          "avail_pagefile_mb": 47747.88
+        },
+        "mem_after_mb": {
+          "memory_load_pct": 28,
+          "total_phys_mb": 65446.38,
+          "avail_phys_mb": 46654.16,
+          "used_phys_mb": 18792.22,
+          "total_pagefile_mb": 75174.38,
+          "avail_pagefile_mb": 47756.08
+        },
+        "timings": [],
+        "output_sha256": "2A9BD12E0F91BB59ABB170B2765A4806EC5C45FB16045F7C50E131AFA4122C37",
+        "output_size": 187455430,
+        "success": true
+      },
+      {
+        "exit_code": 0,
+        "elapsed_sec": 6.392,
+        "peak_working_set_mb": 1979.65,
+        "peak_pagefile_mb": 2046.38,
+        "sample_count": 59,
+        "label": "stage2_repeat_2",
+        "run_index": 2,
+        "mem_before_mb": {
+          "memory_load_pct": 28,
+          "total_phys_mb": 65446.38,
+          "avail_phys_mb": 46668.52,
+          "used_phys_mb": 18777.86,
+          "total_pagefile_mb": 75174.38,
+          "avail_pagefile_mb": 47760.29
+        },
+        "mem_after_mb": {
+          "memory_load_pct": 28,
+          "total_phys_mb": 65446.38,
+          "avail_phys_mb": 46625.73,
+          "used_phys_mb": 18820.65,
+          "total_pagefile_mb": 75174.38,
+          "avail_pagefile_mb": 47725.39
+        },
+        "timings": [],
+        "output_sha256": "2A9BD12E0F91BB59ABB170B2765A4806EC5C45FB16045F7C50E131AFA4122C37",
+        "output_size": 187455430,
+        "success": true
+      },
+      {
+        "exit_code": 0,
+        "elapsed_sec": 6.202,
+        "peak_working_set_mb": 1914.06,
+        "peak_pagefile_mb": 1985.9,
+        "sample_count": 57,
+        "label": "stage2_repeat_3",
+        "run_index": 3,
+        "mem_before_mb": {
+          "memory_load_pct": 28,
+          "total_phys_mb": 65446.38,
+          "avail_phys_mb": 46624.15,
+          "used_phys_mb": 18822.23,
+          "total_pagefile_mb": 75174.38,
+          "avail_pagefile_mb": 47724.59
+        },
+        "mem_after_mb": {
+          "memory_load_pct": 28,
+          "total_phys_mb": 65446.38,
+          "avail_phys_mb": 46602.59,
+          "used_phys_mb": 18843.79,
+          "total_pagefile_mb": 75174.38,
+          "avail_pagefile_mb": 47738.56
+        },
+        "timings": [],
+        "output_sha256": "2A9BD12E0F91BB59ABB170B2765A4806EC5C45FB16045F7C50E131AFA4122C37",
+        "output_size": 187455430,
+        "success": true
+      }
+    ],
+    "verdict": "PASS"
+  },
+  "cancel_rerun": {
+    "cancel": {
+      "label": "cancel_rerun_cancel",
+      "frame_id": "C003",
+      "cancel_after_sec": 10,
+      "exit_code": 3221225786,
+      "elapsed_sec": 12.853,
+      "process_exited": true,
+      "partial_output_exists": false,
+      "partial_output_size": 0,
+      "peak_working_set_mb": 28063.67
+    },
+    "residual_after_cancel": {
+      "residual_count": 0,
+      "details": []
+    },
+    "rerun": {
+      "exit_code": 0,
+      "elapsed_sec": 86.916,
+      "peak_working_set_mb": 35472.09,
+      "peak_pagefile_mb": 20013.36,
+      "sample_count": 794,
+      "label": "cancel_rerun_rerun",
+      "mem_before_mb": {
+        "memory_load_pct": 28,
+        "total_phys_mb": 65446.38,
+        "avail_phys_mb": 46636.46,
+        "used_phys_mb": 18809.93,
+        "total_pagefile_mb": 75174.38,
+        "avail_pagefile_mb": 47746.83
+      },
+      "mem_after_mb": {
+        "memory_load_pct": 28,
+        "total_phys_mb": 65446.38,
+        "avail_phys_mb": 46667.8,
+        "used_phys_mb": 18778.59,
+        "total_pagefile_mb": 75174.38,
+        "avail_pagefile_mb": 47729.58
+      },
+      "timings": [],
+      "output_sha256": "044C2FCFF0E74CDDF50E6653B9B18AAE15F7174EC3DE5012F7F2FA7723003332",
+      "output_size": 19347
+    },
+    "rerun_success": true,
+    "verdict": "PASS"
+  },
+  "fault_injection": {
+    "delete_target": "frame1.hiss",
+    "delete_success": true,
+    "delete_at_sec": 2.041,
+    "exit_code": 1,
+    "elapsed_sec": 2.605,
+    "process_exited": true,
+    "crashed": false,
+    "graceful_handling": true,
+    "hcsd_generated": false,
+    "peak_working_set_mb": 1319.12,
+    "stderr_tail": "7 13:26:33][INFO][orchestrator] [2.551150s] GRADIENT_SPHERE 失败\n[2026-07-27 13:26:33][INFO][orchestrator] P04-004: 原子性清理 - stage2 失败/取消/超时, 删除部分输出\n[2026-07-27 13:26:33][INFO][orchestrator] ========== stage2 失败 ==========\n[2026-07-27 13:26:33][INFO][orchestrator] 析构完成\n[dll_loader] 卸载所有模块\n[dll_loader] 卸载模块 CALIBRATE\n[dll_loader] 卸载模块 PLATESOLVE\n[dll_loader] 卸载模块 PSF\n[dll_loader] 卸载模块 PHOTOMETRIC\n[dll_loader] 卸载模块 SNR\n[dll_loader] 卸载模块 DRIZZLE\n[dll_loader] 卸载模块 GRADIENT_SPHERE\n[dll_loader] 卸载模块 AIO\n",
+    "verdict": "PASS"
+  },
+  "leak_check": {
+    "system_memory_now_mb": {
+      "memory_load_pct": 28,
+      "total_phys_mb": 65446.38,
+      "avail_phys_mb": 46679.14,
+      "used_phys_mb": 18767.25,
+      "total_pagefile_mb": 75174.38,
+      "avail_pagefile_mb": 47767.38
+    },
+    "system_mem_healthy": true,
+    "residual_processes": {
+      "residual_count": 0,
+      "details": []
+    },
+    "temp_files": {
+      "temp_file_count": 0,
+      "temp_files": []
+    },
+    "stage1_peak_mem_diff_mb": 34680.03,
+    "stage1_peak_diff_note": "不同帧天区峰值差异（Gaia xpsd 南天分区特性，非泄漏，P07-001 已记录）",
+    "stage2_peak_mem_diff_mb": 65.59,
+    "stage2_peak_stable": true,
+    "output_files_count": 10,
+    "issues": [],
+    "verdict": "PASS"
+  },
+  "overall_verdict": "PASS",
+  "verdicts": {
+    "stage1_batch": "PASS",
+    "stage2_repeat": "PASS",
+    "cancel_rerun": "PASS",
+    "fault_injection": "PASS",
+    "leak_check": "PASS"
+  },
+  "completed_at": "2026-07-27T13:28:06+0800"
+}

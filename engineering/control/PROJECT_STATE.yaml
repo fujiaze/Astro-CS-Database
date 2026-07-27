@@ -1,9 +1,9 @@
 project: AstroCS CLI Core
 state_schema: 1
-current_gate: G7
-current_task: P07-002
-status: IN_PROGRESS
-last_completed_task: P07-001
+current_gate: G8
+current_task: P08-001
+status: TODO
+last_completed_task: P07-002
 product_target: CLI Real-Data Core v1
 baseline_tag: astrocs-baseline-p00
 g0_passed: true
@@ -47,6 +47,10 @@ g6_evidence:
   - P06-001 Stage2 真实输入兼容检查 DONE
   - P06-002 球面梯度与稳健叠加证据 DONE
   - P06-003 HCSD 输出与独立读取 DONE
+g7_passed: true
+g7_evidence:
+  - P07-001 性能与峰值内存基线 DONE
+  - P07-002 长批次与故障稳定性 DONE
 notes:
   - GUI is later and controls CLI through a machine protocol.
   - PlateSolve path changes are conditional on full TestData non-regression; fallback preserves internal detection and exports it to PSF.
@@ -67,4 +71,5 @@ notes:
   - P06-002 DONE (球面梯度与稳健叠加证据, 7/7 验证 PASS, SNR² 权重真实生效 definitive proof, 梯度校正管线完整运行, 确定性保证, VERDICT: PASS)。证据: evidence/P06-002/。残留: G-002 真实数据 has_snr=0 仍退化为等权 (待 P03-004 修复后回归); HCSD has_snr 字段不传播 (不影响堆叠数学); 梯度校正 fit_rms=0.0 (C003 副本差异为 0, 待未来用不同帧测试非零差异)。
   - P06-003 DONE (HCSD 输出与独立读取, 7/7 验证 PASS, 17 个子测试全部 PASS, VERDICT: PASS)。证据: evidence/P06-003/。验证: 子叶索引 leaf_index 结构正确 (T1 78/49152 非空与 P00-003 baseline 一致, leaf_ipix 一致, sum(data_length)=n_pix); metadata 必填字段齐全 (nside/nested/n_pix/has_snr + caller 元数据); 输入追溯有效 (n_frames/n_pix/mean_pixel_count 与 stage2 日志一致); inspect --hcsd 独立读取成功 (DLL 全加载, JSONL 输出); 字节级结构符合契约 (Magic/JSON头/leaf_index/sorted_ipix 升序/文件大小); 按子叶读取 aio_hcsd_read_leaf 正确 (T1 79/79, T6 6/6 逐子叶 ipix+pixel 与全量读取一致); HCSD 字节级可重现 (T1 SHA-256 = P00-003 baseline SHA-256)。残留: 无 format_version 字段 (contract §9.1, v1.1+ 待修复); 无校验和 (§9.2); meta 无显式 input_hiss_files (§4.3 不强制); DLL 路径需用 lib/orchestrator/cpp/ (非本任务引入)。
   - P07-001 DONE (性能与峰值内存基线, 9/9 测试 PASS, VERDICT: PASS)。证据: evidence/P07-001/。基线: Stage1 C003 中位数 wall 77.805s + 峰值 35470 MB; Stage2 中位数 wall 5.597s + 峰值 1979 MB; HCSD SHA-256 与 P00-003 baseline 字节级一致。内存泄漏检查: 无泄漏 (3 次峰值差异 <2 MB)。取消测试: PASS (进程退出无残留, partial 输出清理)。性能异常: 3 项均非回归 (C001 南天内存 3.6GB vs C003 35.5GB 根因 Gaia xpsd 分区; 冷启动效应; HISS 非字节级可重现 P00-003 已记录)。残留: 南天天区内存需求 32-35 GB (部署需 64 GB RAM)。
+  - P07-002 DONE (长批次与故障稳定性, 13/13 测试 PASS, VERDICT: PASS)。证据: evidence/P07-002/。验证: Stage1 批量 6/6 帧 PASS (C001/C003/C004/C005/C006/C007 连续运行, 峰值内存与 P07-001 基线一致); Stage2 重复 3/3 确定性 PASS (HCSD SHA-256 = 2A9BD12E... 与 P07-001/P00-003 baseline 字节级一致); 取消后重跑 PASS (进程正常退出, 重跑成功, 无残留); 故障注入 PASS (stage2 输入 HISS 删除后 exit_code=1 优雅退出非崩溃); 资源泄漏检查 PASS (残留进程=0, 临时文件=0, 系统可用 46.68GB healthy, stage2 重复峰值差异 65.59MB stable)。性能异常: 2 项均非回归 (C003 wall +10.8% 长批次负载波动; stage2 wall +14.5% 长批次后冷启动)。残留: 无新增 (南天内存需求/HISS 非字节级可重现 P07-001 已记录)。
 last_updated: 2026-07-27

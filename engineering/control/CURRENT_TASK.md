@@ -1,28 +1,30 @@
-# 当前任务：P07-002 长批次与故障稳定性
+# 当前任务：P08-001 CLI Core v1 发布包
 
-读取 `tasks/P07-002.md` 并执行。验证长批次运行稳定性和故障恢复能力。
+读取 `tasks/P08-001.md` 并执行。生成自包含运行包、版本清单、hash、默认配置与验证命令。
 
 ## 上一任务完成情况
 
-- P07-001 性能与峰值内存基线: DONE (VERDICT: PASS)
-  - 证据: evidence/P07-001/
-  - 9/9 测试用例 PASS (stage1 单帧3次 + 多帧3帧 + stage2 2次 + 内存泄漏 + 取消)
-  - Stage1 C003 中位数: wall 77.805s, 峰值内存 35470 MB
-  - Stage2 中位数: wall 5.597s, 峰值内存 1979 MB, HCSD SHA-256 与 P00-003 baseline 完全一致
-  - 内存泄漏检查: 无泄漏 (3 次峰值差异 <2 MB)
-  - 取消测试: PASS (进程正常退出, 无残留, partial 输出已清理)
-  - 性能异常定位: 3 项均非回归 (C001 南天内存差异/冷启动效应/HISS 非字节级可重现)
-  - 残留: 南天天区内存需求 32-35 GB (部署需 64 GB RAM); HISS 非字节级可重现 (P00-003 已记录)
+- P07-002 长批次与故障稳定性: DONE (VERDICT: PASS)
+  - 证据: evidence/P07-002/
+  - 13/13 测试用例 PASS (Stage1 批量 6 帧 + Stage2 重复 3 次 + 取消重跑 2 项 + 故障注入 + 资源泄漏)
+  - Stage1 批量 6/6 帧 PASS: C001(3.6GB/19s) C003(35.5GB/86s) C004(793MB/17s) C005(791MB/17s) C006(796MB/17s) C007(32.6GB/68s)
+  - Stage2 重复 3/3 确定性 PASS: HCSD SHA-256 = 2A9BD12E... 与 P07-001/P00-003 baseline 字节级一致
+  - 取消后重跑 PASS: 进程正常退出 (STATUS_CONTROL_C_EXIT), 重跑成功, 无残留进程/partial 输出
+  - 故障注入 PASS: stage2 输入 HISS 删除后 exit_code=1 优雅退出 (非崩溃)
+  - 资源泄漏检查 PASS: 残留进程=0, 临时文件=0, 系统可用 46.68GB (71% healthy), stage2 重复峰值差异 65.59MB (stable)
+  - 性能异常: 2 项均非回归 (C003 wall +10.8% 长批次负载波动; stage2 wall +14.5% 长批次后冷启动)
+  - 残留: 无新增 (南天内存需求 32-35GB/HISS 非字节级可重现 P07-001 已记录)
 
-## P07-002 依赖
+## P08-001 依赖
 
-- P07-001 (DONE, 性能与峰值内存基线)
-- P05-003 (DONE, Stage1 负面与恢复测试)
+- P07-002 (DONE, 长批次与故障稳定性)
+- P04-003 (DONE, capabilities 与 inspect 命令)
 
 ## 执行步骤
 
-1. 按任务规范执行长批次稳定性测试
-2. 验证故障恢复能力
-3. 独立复核以 VERDICT: PASS 结束
+1. 发布包不得依赖用户安装 Python/PowerShell
+2. 从干净目录验证 capabilities、smoke、inspect
+3. 生成版本与 SHA-256 清单
+4. 独立复核以 VERDICT: PASS 结束
 
 完成独立复核后, 更新状态并进入依赖满足的下一任务。

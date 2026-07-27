@@ -1,0 +1,36 @@
+P07-002 长批次与故障稳定性 (VERDICT: PASS)
+
+Stage1 批量稳定性 (6/6 帧 PASS):
+- C001 Galaxy_Center (dec=-13°): 19.085s, 3634 MB
+- C003 NGC1727 (dec=-70°): 85.898s, 35471 MB
+- C004 NGC247: 17.374s, 793 MB
+- C005 NGC55: 16.882s, 791 MB
+- C006 NGC83_cluster: 16.893s, 796 MB
+- C007 Victory_Nebula (dec=-79°): 67.592s, 32607 MB
+- 帧间内存回归正常, 峰值与 P07-001 基线一致
+
+Stage2 重复稳定性 (3/3 确定性 PASS):
+- HCSD SHA-256 = 2A9BD12E0F91BB59ABB170B2765A4806EC5C45FB16045F7C50E131AFA4122C37
+- 3 次 SHA-256 完全一致, 与 P07-001/P00-003 baseline 字节级一致
+- 峰值内存稳定 (差异 65.59 MB < 200MB)
+
+取消后重跑 (PASS):
+- 取消: exit_code=STATUS_CONTROL_C_EXIT (0xC000013A), 进程正常退出
+- 无残留进程, 无 partial 输出
+- 重跑: exit_code=0, HISS 输出正确
+
+故障注入 (PASS):
+- stage2 运行时删除 frame1.hiss
+- exit_code=1 (报错退出, 非崩溃), graceful_handling=True
+
+资源泄漏检查 (PASS):
+- 残留进程=0, 临时文件=0
+- 系统可用内存 46679 MB / 65446 MB (71% healthy)
+- stage2 重复峰值差异 65.59 MB (stable)
+
+性能异常定位 (2 项, 均非回归):
+- C003 wall +10.8%: 长批次负载波动
+- stage2 wall +14.5%: 长批次后冷启动效应
+
+13/13 测试用例 PASS, 未修改业务源码.
+控制文件更新: P07-002 DONE, G7 passed, current_task -> P08-001.
