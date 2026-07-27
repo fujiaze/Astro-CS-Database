@@ -1183,3 +1183,22 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 - **向后兼容**: 成功路径行为不变 (exit_code=0); TaskResult 新增字段默认值 0; 失败路径行为变更 (原返回 0 的静默跳过现返回非零, 符合 v1.1 开发包规则)
 - **残留风险**: 测试环境 DLL 全部加载失败 (code 126), 退出码 2/3/4/5/6 需真实 DLL 环境补充验证; SNR 降级路径下游感知待加强
 - **依赖**: P03-002 (DONE); **后续**: P03-004 (DONE, 代码含 P03-003 框架)
+
+
+## 2026-07-27 P06-003 HCSD 输出与独立读取 (v1.1 开发包 G6 Gate) ★DONE★
+- **目标**: 验证 HCSD 输出文件的子叶索引、metadata、输入追溯和浏览器/独立读取
+- **结果**: VERDICT: PASS — 7/7 验证 PASS (17 个子测试全部 PASS), 未修改业务源码
+- **验证内容**:
+  1. 子叶索引 leaf_index 结构: T1 78/49152 非空 (与 P00-003 baseline 一致), leaf_ipix 一致, sum(data_length)=n_pix
+  2. metadata 必填字段: nside=32768/nested=true/n_pix=15522966/has_snr=false + caller 元数据 (filter/n_frames/sigma_clip/stack_stats)
+  3. 输入追溯: n_frames=2=输入 HISS 数 (frame1+frame2), n_pix 与 stage2 日志一致, mean_pixel_count=1.9850 一致
+  4. inspect --hcsd 独立读取: DLL 全加载 9/9, JSONL result+completed 输出, 统计与 stage2 日志一致 (P04-003 复验)
+  5. 字节级结构: Magic "HCSD"/JSON头/leaf_index 1179648 字节/sorted_ipix 升序/文件大小匹配
+  6. 按子叶读取 aio_hcsd_read_leaf: T1 79/79 PASS, T6 6/6 PASS (逐子叶 ipix+pixel 与全量读取完全一致)
+  7. HCSD 字节级可重现: T1 SHA-256 = P00-003 baseline SHA-256 (2A9BD12E...4122C37)
+- **证据**: engineering/evidence/P06-003/ (TASK/TEST/EVIDENCE/REVIEW 报告 + hcsd_validation_results.json + parse_hcsd_binary.py + verify_read_leaf.py + logs/)
+- **关键脚本**: parse_hcsd_binary.py (HCSD 字节级解析, zstd 解压 JSON 头 + leaf_index 49152 项 + sorted_ipix 抽样验证) + verify_read_leaf.py (模拟 aio_hcsd_read_leaf 与全量读取逐子叶比较)
+- **DLL 路径注意**: build/artifacts/orchestrator.exe 的 DLL 自动推导路径错误 (向上4级得 F:\Astro dev 而非项目根), 需用 lib/orchestrator/cpp/orchestrator.exe (P06-002 已确认)
+- **已知缺口 (不阻塞 PASS, contract §9)**: 无 format_version (§9.1); 无校验和 (§9.2); meta 无显式 input_hiss_files (§4.3 不强制); N_LEAVES 硬编码 49152 (§9.4); data_offset/data_length 单位混淆 (§9.6)
+- **依赖**: P06-002 (DONE) + P04-003 (DONE); **后续**: P07-001 性能与峰值内存基线
+- **Gate**: G6 PASSED (P06-001/002/003 全部 DONE)

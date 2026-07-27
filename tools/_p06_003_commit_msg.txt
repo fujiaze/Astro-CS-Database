@@ -1,0 +1,12 @@
+P06-003 HCSD 输出与独立读取 (VERDICT: PASS)
+
+7/7 验证 PASS (17 个子测试全部 PASS):
+1. 子叶索引 leaf_index 结构 (T1 78/49152 非空与 P00-003 baseline 一致, leaf_ipix 一致, sum(data_length)=n_pix)
+2. metadata 必填字段 (nside=32768/nested=true/n_pix=15522966/has_snr=false + caller 元数据 filter/n_frames/sigma_clip/stack_stats)
+3. 输入追溯 (n_frames=2=输入 HISS 数, n_pix 与 stage2 日志一致, mean_pixel_count 一致)
+4. inspect --hcsd 独立读取 (DLL 全加载 9/9, JSONL result+completed 输出, P04-003 复验)
+5. 字节级结构 (Magic/JSON头/leaf_index 1179648 字节/sorted_ipix 升序/文件大小匹配)
+6. 按子叶读取 aio_hcsd_read_leaf (T1 79/79, T6 6/6 逐子叶 ipix+pixel 与全量读取完全一致)
+7. HCSD 字节级可重现 (T1 SHA-256 = P00-003 baseline SHA-256 2A9BD12E...4122C37)
+
+G6 Gate PASSED (P06-001/002/003 全部 DONE), 进入 P07 阶段。
