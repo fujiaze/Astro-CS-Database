@@ -1,0 +1,77 @@
+[2026-07-27 13:26:30][INFO][logger] 日志系统初始化完成 (log_dir=lib/orchestrator/logs, level=INFO)
+[2026-07-27 13:26:30][INFO][orchestrator] 初始化编排器 (骨架版本)
+[2026-07-27 13:26:30][INFO][orchestrator] 可用线程数: 16
+[2026-07-27 13:26:30][INFO][orchestrator] ========== stage2: 多帧合并 (.hiss -> .hcsd) ==========
+[2026-07-27 13:26:30][INFO][orchestrator] 输入 .hiss 目录: F:\Astro dev\Astro CS Normalization Database\engineering\evidence\P07-002\output\fault_inject_input
+[2026-07-27 13:26:30][INFO][orchestrator] 输出 .hcsd: F:\Astro dev\Astro CS Normalization Database\engineering\evidence\P07-002\output\fault_inject.hcsd
+[2026-07-27 13:26:30][INFO][orchestrator] P04-004: 取消/超时标志已重置
+[2026-07-27 13:26:30][INFO][orchestrator] 发现 2 个 .hiss 文件
+[2026-07-27 13:26:30][INFO][orchestrator] 自动推导项目根目录: F:\Astro dev\Astro CS Normalization Database
+[2026-07-27 13:26:30][INFO][orchestrator] 初始化 DLL 加载 (lib_base_dir=F:\Astro dev\Astro CS Normalization Database)
+[dll_loader] 开始加载所有模块 (lib_base_dir=F:\Astro dev\Astro CS Normalization Database)
+[dll_loader] 设置运行时 DLL 搜索路径: C:\msys64\mingw64\bin
+[dll_loader] 加载模块 AIO: F:\Astro dev\Astro CS Normalization Database/lib/astro_image_io/astro_image_io.dll
+[dll_loader] 模块 AIO 加载成功 (handle=0x7ff801200000)
+[dll_loader] 预加载 astro_image_io.dll (依赖前置) handle=0x7ff801200000
+[dll_loader] 加载模块 CALIBRATE: F:\Astro dev\Astro CS Normalization Database/lib/calibration/astro_calibration.dll
+[dll_loader] 模块 CALIBRATE 加载成功 (handle=0x7ff8021b0000)
+[dll_loader] 加载模块 PLATESOLVE: F:\Astro dev\Astro CS Normalization Database/lib/plate_solve/cpp/ipv/ipv_solver.dll
+[dll_loader] 模块 PLATESOLVE 加载成功 (handle=0x7fff64360000)
+[dll_loader] 加载模块 PSF: F:\Astro dev\Astro CS Normalization Database/lib/dynamic_psf/dynamic_psf.dll
+[dll_loader] 模块 PSF 加载成功 (handle=0x7ff8a7eb0000)
+[dll_loader] 预加载 gaia_client.dll (依赖前置) handle=0x7ff85adb0000
+[dll_loader] 加载模块 PHOTOMETRIC: F:\Astro dev\Astro CS Normalization Database/lib/photometric_calib/cpp/photometric_calib.dll
+[dll_loader] 模块 PHOTOMETRIC 加载成功 (handle=0x7fff67fc0000)
+[dll_loader] 加载模块 SNR: F:\Astro dev\Astro CS Normalization Database/lib/snr_estimator/cpp/snr_estimator.dll
+[dll_loader] 模块 SNR 加载成功 (handle=0x7fff644b0000)
+[dll_loader] 加载模块 DRIZZLE: F:\Astro dev\Astro CS Normalization Database/lib/healpix_db/healpix_drizzle/healpix_drizzle.dll
+[dll_loader] 模块 DRIZZLE 加载成功 (handle=0x7fff5f0d0000)
+[dll_loader] 加载模块 GRADIENT_SPHERE: F:\Astro dev\Astro CS Normalization Database/lib/healpix_db/healpix_stack/healpix_stack.dll
+[dll_loader] 模块 GRADIENT_SPHERE 加载成功 (handle=0x7fff5efe0000)
+[dll_loader] 加载模块 STACK: F:\Astro dev\Astro CS Normalization Database/lib/healpix_db/healpix_stack/healpix_stack.dll
+[dll_loader] 模块 STACK 加载成功 (handle=0x7fff5efe0000)
+[dll_loader] 全部模块加载成功
+[2026-07-27 13:26:30][INFO][orchestrator] 全部 9 个模块加载成功
+[2026-07-27 13:26:30][INFO][orchestrator]   AIO 版本: unknown
+[2026-07-27 13:26:30][INFO][orchestrator]   CALIBRATE 版本: Astro Calibration C++ v1.0.0
+[2026-07-27 13:26:30][INFO][orchestrator]   PLATESOLVE 版本: unknown
+[2026-07-27 13:26:30][INFO][orchestrator]   PSF 版本: unknown
+[2026-07-27 13:26:30][INFO][orchestrator]   PHOTOMETRIC 版本: unknown
+[2026-07-27 13:26:30][INFO][orchestrator]   SNR 版本: unknown
+[2026-07-27 13:26:30][INFO][orchestrator]   DRIZZLE 版本: unknown
+[2026-07-27 13:26:30][INFO][orchestrator]   GRADIENT_SPHERE 版本: unknown
+[2026-07-27 13:26:30][INFO][orchestrator]   STACK 版本: unknown
+[dll_loader] CALIBRATE 线程数设置为 16
+[2026-07-27 13:26:30][INFO][orchestrator] CALIBRATE 线程数: 16
+[2026-07-27 13:26:30][INFO][orchestrator] ---------- stage2 阶段: GRADIENT_SPHERE ----------
+[2026-07-27 13:26:30][INFO][orchestrator] [GRADIENT_SPHERE] 开始
+[2026-07-27 13:26:30][INFO][orchestrator] [GRADIENT_SPHERE] 帧数: 2 输出: F:\Astro dev\Astro CS Normalization Database\engineering\evidence\P07-002\output\fault_inject.hcsd sigma_clip=standard sigma=3.000000 max_iter=5
+[2026-07-27 13:26:30][INFO][orchestrator] [GRADIENT_SPHERE] gradient_max_iter=10 gradient_lambda=0.000100 gaia_data_dir=(null, 跳过星拒绝)
+[hp_stack_gradient_corrected] 开始: 2 帧 → F:\Astro dev\Astro CS Normalization Database\engineering\evidence\P07-002\output\fault_inject.hcsd (sigma=3.00, max_iter=5, grad_iter=10, grad_lambda=1.0e-04, sigma_clip=standard, winsor_low=0.00, winsor_high=0.00)
+[hp_stack_gradient_corrected] === 阶段1: 球面背景采样 ===
+[gradient_sampler] gaia_client_create_ex 失败: 
+[hp_stack_gradient_corrected] 采样失败 (rc=2, rows=0), 回退到无梯度校正模式
+[hp_stack_hiss] 开始堆叠: 2 帧 → F:\Astro dev\Astro CS Normalization Database\engineering\evidence\P07-002\output\fault_inject.hcsd (sigma=3.00, max_iter=5)
+[hio] hiss_read: nside=32768 nested=1 n_pix=15406480 has_snr=0 snr_format=0
+[hio] hiss_read: 读取完成: F:\Astro dev\Astro CS Normalization Database\engineering\evidence\P07-002\output\fault_inject_input\frame1.hiss (has_snr=0 snr_format=0)
+[hp_stack_hiss] 帧 0: F:\Astro dev\Astro CS Normalization Database\engineering\evidence\P07-002\output\fault_inject_input\frame1.hiss (nside=32768, n_pix=15406480, has_snr=0)
+[hio] hiss_read: nside=32768 nested=1 n_pix=15407202 has_snr=0 snr_format=0
+[hio] hiss_read: 读取完成: F:\Astro dev\Astro CS Normalization Database\engineering\evidence\P07-002\output\fault_inject_input\frame2.hiss (has_snr=0 snr_format=0)
+[hp_stack_hiss] 帧 1: F:\Astro dev\Astro CS Normalization Database\engineering\evidence\P07-002\output\fault_inject_input\frame2.hiss (nside=32768, n_pix=15407202, has_snr=0)
+[hp_stack_hiss] 第一遍扫描完成: 15522966 唯一像素, nside=32768
+[hio] hiss_read: 无法打开文件: F:\Astro dev\Astro CS Normalization Database\engineering\evidence\P07-002\output\fault_inject_input\frame1.hiss
+[hp_stack_hiss] 第二遍 hiss_read 失败: F:\Astro dev\Astro CS Normalization Database\engineering\evidence\P07-002\output\fault_inject_input\frame1.hiss (ret=-2)
+[2026-07-27 13:26:33][ERROR][orchestrator] [GRADIENT_SPHERE] hp_stack_gradient_corrected 失败: ret=-5
+[2026-07-27 13:26:33][INFO][orchestrator] [2.551150s] GRADIENT_SPHERE 失败
+[2026-07-27 13:26:33][INFO][orchestrator] P04-004: 原子性清理 - stage2 失败/取消/超时, 删除部分输出
+[2026-07-27 13:26:33][INFO][orchestrator] ========== stage2 失败 ==========
+[2026-07-27 13:26:33][INFO][orchestrator] 析构完成
+[dll_loader] 卸载所有模块
+[dll_loader] 卸载模块 CALIBRATE
+[dll_loader] 卸载模块 PLATESOLVE
+[dll_loader] 卸载模块 PSF
+[dll_loader] 卸载模块 PHOTOMETRIC
+[dll_loader] 卸载模块 SNR
+[dll_loader] 卸载模块 DRIZZLE
+[dll_loader] 卸载模块 GRADIENT_SPHERE
+[dll_loader] 卸载模块 AIO

@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "frame_name": "F:\\Astro dev\\Astro CS Normalization Database\\testdata\\NGC1727_T2_flying_dutchman\\lights\\NGC1727_RGBHO_T2_flying_dutchman-20251031@064517-600S-Red.fts",
+  "timings": [
+    {"stage": "CALIBRATE", "name": "READ_FITS", "duration_sec": 0.0449171, "success": true},
+    {"stage": "CALIBRATE", "name": "CALIBRATE", "duration_sec": 0.449489, "success": true},
+    {"stage": "CALIBRATE", "name": "PLATESOLVE", "duration_sec": 18.7146, "success": true},
+    {"stage": "CALIBRATE", "name": "PSF", "duration_sec": 0.40362, "success": true},
+    {"stage": "CALIBRATE", "name": "PHOTOMETRIC", "duration_sec": 6.28011, "success": true},
+    {"stage": "CALIBRATE", "name": "SNR", "duration_sec": 0.0003488, "success": true},
+    {"stage": "CALIBRATE", "name": "DRIZZLE", "duration_sec": 14.4341, "success": true}
+  ],
+  "wcs_fields": {},
+  "photo_stats": {},
+  "output_ahpx_path": "F:\\Astro dev\\Astro CS Normalization Database\\engineering\\evidence\\P07-002\\output\\cancel_rerun_rerun.hiss",
+  "error_msg": ""
+}

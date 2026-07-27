@@ -1,0 +1,122 @@
+
+======================================================================
+[P07-002] Stage1 批量稳定性测试（6 帧连续）
+======================================================================
+
+[batch 1/6] C001 - C001_Galaxy_Center_T4_Red_180s
+  exe: F:\Astro dev\Astro CS Normalization Database\lib\orchestrator\cpp\orchestrator.exe
+  frame: testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts
+  timeout: 120s
+  exit_code: 0, elapsed: 19.085s, peak_mem: 3633.6 MB, success: True
+  HISS SHA-256: 59BC5D9EBD796585..., size: 47705 bytes
+
+[batch 2/6] C003 - C003_NGC1727_T2_Red_600s
+  exe: F:\Astro dev\Astro CS Normalization Database\lib\orchestrator\cpp\orchestrator.exe
+  frame: testdata/NGC1727_T2_flying_dutchman/lights/NGC1727_RGBHO_T2_flying_dutchman-20251031@064517-600S-Red.fts
+  timeout: 120s
+  exit_code: 0, elapsed: 85.898s, peak_mem: 35471.28 MB, success: True
+  HISS SHA-256: 6D7D264221C76AC0..., size: 19347 bytes
+
+[batch 3/6] C004 - C004_NGC247_T2_Lum_600s
+  exe: F:\Astro dev\Astro CS Normalization Database\lib\orchestrator\cpp\orchestrator.exe
+  frame: testdata/NGC247_T2_flying_dutchman/lights/NGC247_T2_flying_dutchman-20250816@033428-600S-Lum.fts
+  timeout: 120s
+  exit_code: 0, elapsed: 17.374s, peak_mem: 792.8 MB, success: True
+  HISS SHA-256: 458A5C14290F55C4..., size: 19450 bytes
+
+[batch 4/6] C005 - C005_NGC55_T3_Red_600s
+  exe: F:\Astro dev\Astro CS Normalization Database\lib\orchestrator\cpp\orchestrator.exe
+  frame: testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@074114-600S-Red.fts
+  timeout: 120s
+  exit_code: 0, elapsed: 16.882s, peak_mem: 791.25 MB, success: True
+  HISS SHA-256: 36429B2B05CA9BD0..., size: 18981 bytes
+
+[batch 5/6] C006 - C006_NGC83_cluster_T3_Red_600s
+  exe: F:\Astro dev\Astro CS Normalization Database\lib\orchestrator\cpp\orchestrator.exe
+  frame: testdata/NGC83_cluster_T3_Flying_Dutchman/lights/NGC90_2025wwk_T3_flying_dutchman-20251011@020846-600S-Red.fts
+  timeout: 120s
+  exit_code: 0, elapsed: 16.893s, peak_mem: 795.71 MB, success: True
+  HISS SHA-256: AB13622F086584CC..., size: 19286 bytes
+
+[batch 6/6] C007 - C007_Victory_Nebula_T4_Lum_180s
+  exe: F:\Astro dev\Astro CS Normalization Database\lib\orchestrator\cpp\orchestrator.exe
+  frame: testdata/Victory_Nebula_T4_Flying_Dutchman/lights/Victory_Nebula_mosaic1_flying_dutchman-20250204@035646-180S-Lum.fts
+  timeout: 120s
+  exit_code: 0, elapsed: 67.592s, peak_mem: 32607.03 MB, success: True
+  HISS SHA-256: 0AA8FBA18E533938..., size: 47691 bytes
+
+[batch] 完成: 6/6 成功, 总耗时 235.864s, 内存回归 -4.61 MB
+
+======================================================================
+[P07-002] Stage2 重复稳定性测试（3 次）
+======================================================================
+
+[repeat 1/3] stage2_repeat_1
+  exe: F:\Astro dev\Astro CS Normalization Database\lib\orchestrator\cpp\orchestrator.exe
+  frames_dir: F:\Astro dev\Astro CS Normalization Database\lib\orchestrator\cpp\output_hiss_dir
+  timeout: 180s
+  exit_code: 0, elapsed: 6.627s, peak_mem: 1962.89 MB
+  HCSD SHA-256: 2A9BD12E0F91BB59..., size: 187455430 bytes
+
+[repeat 2/3] stage2_repeat_2
+  exe: F:\Astro dev\Astro CS Normalization Database\lib\orchestrator\cpp\orchestrator.exe
+  frames_dir: F:\Astro dev\Astro CS Normalization Database\lib\orchestrator\cpp\output_hiss_dir
+  timeout: 180s
+  exit_code: 0, elapsed: 6.392s, peak_mem: 1979.65 MB
+  HCSD SHA-256: 2A9BD12E0F91BB59..., size: 187455430 bytes
+
+[repeat 3/3] stage2_repeat_3
+  exe: F:\Astro dev\Astro CS Normalization Database\lib\orchestrator\cpp\orchestrator.exe
+  frames_dir: F:\Astro dev\Astro CS Normalization Database\lib\orchestrator\cpp\output_hiss_dir
+  timeout: 180s
+  exit_code: 0, elapsed: 6.202s, peak_mem: 1914.06 MB
+  HCSD SHA-256: 2A9BD12E0F91BB59..., size: 187455430 bytes
+
+[repeat] 完成: 3/3 成功, 确定性: True, 匹配基线: True
+
+======================================================================
+[P07-002] 取消后重跑测试
+======================================================================
+
+[cancel] 启动 stage1 C003, 10s 后取消
+[cancel] 发送 CTRL_BREAK_EVENT 到 PID 35392
+[cancel] exit_code: 3221225786, elapsed: 12.853s, process_exited: True, partial: False (0 bytes)
+
+[rerun] 重跑 stage1 C003 验证恢复
+[rerun] exit_code: 0, elapsed: 86.916s, success: True
+[rerun] HISS SHA-256: 044C2FCFF0E74CDD..., size: 19347 bytes
+
+[cancel_rerun] verdict: PASS
+
+======================================================================
+[P07-002] 故障注入测试（stage2 运行时删除输入 HISS）
+======================================================================
+[fault] 复制 2 个 HISS 到 F:\Astro dev\Astro CS Normalization Database\engineering\evidence\P07-002\output\fault_inject_input: ['frame1.hiss', 'frame2.hiss']
+[fault] 启动 stage2, 2s 后删除 frame1.hiss
+[fault] 已删除 frame1.hiss at t=2.041s
+
+[fault] exit_code: 1, elapsed: 2.605s, process_exited: True
+[fault] graceful: True, hcsd_generated: False
+[fault] verdict: PASS
+
+======================================================================
+[P07-002] 资源泄漏检查
+======================================================================
+
+[leak] 系统内存: 46651.72 MB 可用 / 65446.38 MB 总计
+[leak] 残留进程: 0
+[leak] 临时文件: 0
+[leak] stage1 峰值差异: 34680.03 MB (unstable)
+[leak] stage2 峰值差异: 65.59 MB
+[leak] verdict: FAIL
+
+======================================================================
+[P07-002] 全部测试完成 - Overall VERDICT: FAIL
+======================================================================
+  stage1_batch: PASS
+  stage2_repeat: PASS
+  cancel_rerun: PASS
+  fault_injection: PASS
+  leak_check: FAIL
+
+结果已保存: F:\Astro dev\Astro CS Normalization Database\engineering\evidence\P07-002\stability_results.json

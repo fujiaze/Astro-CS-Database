@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "frame_name": "F:\\Astro dev\\Astro CS Normalization Database\\testdata\\NGC55_T3_flying_dutchman\\lights\\NGC55_T3_flying_dutchman-20250701@074114-600S-Red.fts",
+  "timings": [
+    {"stage": "CALIBRATE", "name": "READ_FITS", "duration_sec": 0.185837, "success": true},
+    {"stage": "CALIBRATE", "name": "CALIBRATE", "duration_sec": 1.04772, "success": true},
+    {"stage": "CALIBRATE", "name": "PLATESOLVE", "duration_sec": 0.774512, "success": true},
+    {"stage": "CALIBRATE", "name": "PSF", "duration_sec": 0.162141, "success": true},
+    {"stage": "CALIBRATE", "name": "PHOTOMETRIC", "duration_sec": 0.0328601, "success": true},
+    {"stage": "CALIBRATE", "name": "SNR", "duration_sec": 0.0003413, "success": true},
+    {"stage": "CALIBRATE", "name": "DRIZZLE", "duration_sec": 14.6129, "success": true}
+  ],
+  "wcs_fields": {},
+  "photo_stats": {},
+  "output_ahpx_path": "F:\\Astro dev\\Astro CS Normalization Database\\engineering\\evidence\\P07-002\\output\\batch_C005.hiss",
+  "error_msg": ""
+}
