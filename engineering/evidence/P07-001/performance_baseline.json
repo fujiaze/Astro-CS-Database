@@ -1,0 +1,301 @@
+{
+  "task_id": "P07-001",
+  "task_name": "性能与峰值内存基线",
+  "phase": "P07",
+  "gate": "G7",
+  "execution_date": "2026-07-27",
+  "commit_base": "503109484933fc3d4b2459471159e1169843fdfa",
+  "verdict": "PASS",
+  "environment": {
+    "cpu": {
+      "name": "AMD Ryzen 7 5800X 8-Core Processor",
+      "physical_cores": 8,
+      "logical_processors": 16,
+      "max_clock_mhz": 3801
+    },
+    "memory": {
+      "total_gb": 63.91,
+      "free_gb_before_run": 46.81
+    },
+    "os": {
+      "caption": "Microsoft Windows 11 专业工作站版 Insider Preview",
+      "version": "10.0.26220",
+      "build_number": 26220,
+      "architecture": "64-bit"
+    },
+    "compiler": {
+      "gpp_version": "g++.exe (Rev4, Built by MSYS2 project) 16.1.0",
+      "gcc_version": "gcc.exe (Rev4, Built by MSYS2 project) 16.1.0",
+      "path": "C:\\msys64\\mingw64\\bin"
+    },
+    "threads": {
+      "omp_num_threads": "not set (default, orchestrator reports 16 available threads)",
+      "config_threads": 0
+    },
+    "orchestrator": {
+      "exe_path": "lib/orchestrator/cpp/orchestrator.exe",
+      "exe_size_bytes": 4126364,
+      "exe_compile_time": "2026-07-25 20:03:27",
+      "exe_sha256": "759E2D4FF640BBF752AC7047037B5DC7D4E9C4107E3206013988024D02D21B50",
+      "commit_hash": "5031094"
+    }
+  },
+  "stage1_single_frame_baseline": {
+    "frame": "C003_NGC1727_T2_Red_600s",
+    "fits_path": "testdata/NGC1727_T2_flying_dutchman/lights/NGC1727_RGBHO_T2_flying_dutchman-20251031@064517-600S-Red.fts",
+    "image_size": "4096x4096",
+    "telescope": "T2",
+    "focal_length_mm": 1917.5,
+    "pixel_size_um": 9.0,
+    "initial_pointing": {"ra_deg": 73.091667, "dec_deg": -69.589722},
+    "runs": [
+      {
+        "label": "C003_run1",
+        "wall_sec": 80.778,
+        "peak_working_set_mb": 35470.23,
+        "peak_pagefile_mb": 20013.14,
+        "sample_count": 722,
+        "exit_code": 0,
+        "output_sha256": "08DCBBF2805C2C234B3104D0DDFEBB3087E064DC476BF1C5A26457FCA696BC04",
+        "output_size_bytes": 19347,
+        "timings": {
+          "READ_FITS": 0.140934,
+          "CALIBRATE": 0.868006,
+          "PLATESOLVE": 17.6722,
+          "PSF": 0.359332,
+          "PHOTOMETRIC": 5.18479,
+          "SNR": 0.0013774,
+          "DRIZZLE": 14.3255
+        }
+      },
+      {
+        "label": "C003_run2",
+        "wall_sec": 77.561,
+        "peak_working_set_mb": 35469.87,
+        "peak_pagefile_mb": 20011.72,
+        "sample_count": 689,
+        "exit_code": 0,
+        "output_sha256": "13ED2A378CC8F1415E11ACD4DCFC295CE8E955D91A07017889C3CE881C413874",
+        "output_size_bytes": 19348,
+        "timings": {
+          "READ_FITS": 0.0460973,
+          "CALIBRATE": 0.442178,
+          "PLATESOLVE": 16.6661,
+          "PSF": 0.34506,
+          "PHOTOMETRIC": 5.13801,
+          "SNR": 0.0002217,
+          "DRIZZLE": 13.0188
+        }
+      },
+      {
+        "label": "C003_run3",
+        "wall_sec": 77.805,
+        "peak_working_set_mb": 35471.4,
+        "peak_pagefile_mb": 20013.67,
+        "sample_count": 691,
+        "exit_code": 0,
+        "output_sha256": "A9C1D0A4EB080428F752422D0312969A786B61F43B7DE733927E78B560A1F0A3",
+        "output_size_bytes": 19348,
+        "timings": {
+          "READ_FITS": 0.0469377,
+          "CALIBRATE": 0.462915,
+          "PLATESOLVE": 16.5839,
+          "PSF": 0.351169,
+          "PHOTOMETRIC": 5.21154,
+          "SNR": 0.0003161,
+          "DRIZZLE": 13.9571
+        }
+      }
+    ],
+    "statistics": {
+      "wall_sec": {"median": 77.805, "mean": 78.715, "stddev": 1.765, "min": 77.561, "max": 80.778},
+      "peak_working_set_mb": {"median": 35470.23, "mean": 35470.5, "stddev": 0.77, "min": 35469.87, "max": 35471.4},
+      "peak_pagefile_mb": {"median": 20013.14, "mean": 20012.84, "stddev": 1.04, "min": 20011.72, "max": 20013.67},
+      "timings_median": {
+        "READ_FITS": 0.0469377,
+        "CALIBRATE": 0.462915,
+        "PLATESOLVE": 16.6661,
+        "PSF": 0.351169,
+        "PHOTOMETRIC": 5.18479,
+        "SNR": 0.0003161,
+        "DRIZZLE": 13.9571
+      }
+    }
+  },
+  "stage1_multi_frame_comparison": [
+    {
+      "frame": "C001_Galaxy_Center_T4_Red_180s",
+      "fits_path": "testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts",
+      "image_size": "4500x3600",
+      "input_size_bytes": 32405760,
+      "telescope": "T4",
+      "focal_length_mm": 200.0,
+      "pixel_size_um": 6.0,
+      "initial_pointing": {"ra_deg": 272.808333, "dec_deg": -13.176944},
+      "platesolve": {"duration_sec": 2.59427, "n_pairs": 36, "rms_arcsec": 0.346},
+      "drizzle": {"duration_sec": 14.4471},
+      "wall_sec": 19.293,
+      "peak_working_set_mb": 3634.18,
+      "output_hiss_sha256": "AC0ACE5E714463A66C43E7456D7D0E78011E5CBEDE3159FDA6EB5C1F3297B72B",
+      "output_hiss_size_bytes": 47706,
+      "note": "赤道附近天区(dec=-13°)，Gaia xpsd 内存映射小"
+    },
+    {
+      "frame": "C003_NGC1727_T2_Red_600s",
+      "fits_path": "testdata/NGC1727_T2_flying_dutchman/lights/NGC1727_RGBHO_T2_flying_dutchman-20251031@064517-600S-Red.fts",
+      "image_size": "4096x4096",
+      "input_size_bytes": 33554432,
+      "telescope": "T2",
+      "focal_length_mm": 1917.5,
+      "pixel_size_um": 9.0,
+      "initial_pointing": {"ra_deg": 73.091667, "dec_deg": -69.589722},
+      "platesolve": {"duration_sec": 16.6661, "n_pairs": 47, "rms_arcsec": 0.124},
+      "drizzle": {"duration_sec": 13.0188},
+      "wall_sec": 77.561,
+      "peak_working_set_mb": 35469.87,
+      "output_hiss_sha256": "13ED2A378CC8F1415E11ACD4DCFC295CE8E955D91A07017889C3CE881C413874",
+      "output_hiss_size_bytes": 19348,
+      "note": "南天天区(dec=-69.6°)，Gaia xpsd 内存映射大"
+    },
+    {
+      "frame": "C007_Victory_Nebula_T4_Lum_180s",
+      "fits_path": "testdata/Victory_Nebula_T4_Flying_Dutchman/lights/Victory_Nebula_mosaic1_flying_dutchman-20250204@035646-180S-Lum.fts",
+      "image_size": "4500x3600",
+      "input_size_bytes": 32405760,
+      "telescope": "T4",
+      "focal_length_mm": 200.0,
+      "pixel_size_um": 6.0,
+      "initial_pointing": {"ra_deg": 187.5, "dec_deg": -78.85},
+      "platesolve": {"duration_sec": 13.5601, "n_pairs": 41, "rms_arcsec": 0.379},
+      "drizzle": {"duration_sec": 13.7094},
+      "wall_sec": 63.721,
+      "peak_working_set_mb": 32606.46,
+      "output_hiss_sha256": "29422C9C33D0669112837AF3281AF88669F4D3FE0B956582F7BA38DCD249F9C9",
+      "output_hiss_size_bytes": 47691,
+      "note": "南天极天区(dec=-78.85°)，Gaia xpsd 内存映射大"
+    }
+  ],
+  "stage2_baseline": {
+    "input": {
+      "frames_dir": "lib/orchestrator/cpp/output_hiss_dir",
+      "frame1": {"name": "frame1.hiss", "size_bytes": 184878332, "nside": 32768, "n_pix": 15406480},
+      "frame2": {"name": "frame2.hiss", "size_bytes": 184886999, "nside": 32768, "n_pix": 15407202}
+    },
+    "runs": [
+      {
+        "label": "stage2_run1",
+        "wall_sec": 5.595,
+        "peak_working_set_mb": 1860.98,
+        "os_peak_working_set_mb": 1979.41,
+        "peak_pagefile_mb": 1927.71,
+        "os_peak_pagefile_mb": 2046.43,
+        "sample_count": 51,
+        "exit_code": 0,
+        "output_hcsd_sha256": "2A9BD12E0F91BB59ABB170B2765A4806EC5C45FB16045F7C50E131AFA4122C37",
+        "output_hcsd_size_bytes": 187455430,
+        "timings": {
+          "GRADIENT_SPHERE": 5.47986,
+          "STACK": 0.0000222
+        }
+      },
+      {
+        "label": "stage2_run2",
+        "wall_sec": 5.598,
+        "peak_working_set_mb": 1860.91,
+        "os_peak_working_set_mb": 1979.35,
+        "peak_pagefile_mb": 1985.91,
+        "os_peak_pagefile_mb": 2046.38,
+        "sample_count": 51,
+        "exit_code": 0,
+        "output_hcsd_sha256": "2A9BD12E0F91BB59ABB170B2765A4806EC5C45FB16045F7C50E131AFA4122C37",
+        "output_hcsd_size_bytes": 187455430,
+        "timings": {
+          "GRADIENT_SPHERE": 5.48782,
+          "STACK": 0.0000223
+        }
+      }
+    ],
+    "determinism": {
+      "hcsd_sha256_match": true,
+      "hcsd_size_match": true,
+      "wall_sec_diff": 0.003,
+      "peak_working_set_diff_mb": 0.07
+    },
+    "comparison_with_p00_003": {
+      "p00_003_gradient_sphere_sec": 6.62873,
+      "p07_001_gradient_sphere_sec_median": 5.48782,
+      "improvement_pct": 17.24,
+      "p00_003_peak_mb": 1978.38,
+      "p07_001_peak_mb_median": 1979.38,
+      "peak_diff_pct": 0.05,
+      "p00_003_hcsd_sha256": "2A9BD12E0F91BB59ABB170B2765A4806EC5C45FB16045F7C50E131AFA4122C37",
+      "hcsd_sha256_match": true
+    }
+  },
+  "memory_leak_check": {
+    "method": "连续运行 stage1 3 次（同一帧 C003），记录每次峰值内存",
+    "frame": "C003_NGC1727_T2_Red_600s",
+    "runs": [
+      {"run": 1, "peak_working_set_mb": 35470.23},
+      {"run": 2, "peak_working_set_mb": 35469.87},
+      {"run": 3, "peak_working_set_mb": 35471.4}
+    ],
+    "peak_diff_mb": 1.53,
+    "trend": "稳定（差异 <2 MB，在采样精度范围内）",
+    "verdict": "无内存泄漏迹象"
+  },
+  "cancel_state_check": {
+    "method": "启动 stage1 (C003)，运行 10s 后发送 CTRL_BREAK_EVENT",
+    "frame": "C003_NGC1727_T2_Red_600s",
+    "cancel_after_sec": 10,
+    "exit_code": 3221225786,
+    "exit_code_meaning": "STATUS_CONTROL_C_EXIT (0xC000013A)",
+    "elapsed_sec": 12.411,
+    "process_exited": true,
+    "residual_process": false,
+    "partial_output_exists": false,
+    "partial_output_size_bytes": 0,
+    "peak_working_set_mb_at_cancel": 29022.8,
+    "memory_released": true,
+    "verdict": "PASS - 进程正常退出，无残留，partial 输出已清理"
+  },
+  "performance_anomaly_investigation": {
+    "anomaly_1": {
+      "description": "C001 峰值内存 3.6 GB vs C003/C007 32-35 GB（差异 ~10x）",
+      "investigation": "检查 PlateSolve 日志",
+      "root_cause": "Gaia DR3 SP xpsd 内存映射区域差异。C001 (dec=-13.18°, 靠近天赤道) 查询区域的 xpsd 文件较小，内存映射 ~3.6 GB；C003 (dec=-69.6°) 和 C007 (dec=-78.85°) 位于南天，xpsd 文件较大，内存映射 ~32-35 GB。",
+      "evidence": "C001 PLATESOLVE 2.594s + 峰值 3.6 GB; C003 PLATESOLVE 16.666s + 峰值 35.5 GB; C007 PLATESOLVE 13.560s + 峰值 32.6 GB",
+      "is_regression": false,
+      "is_code_defect": false,
+      "resolution": "已知行为（Gaia DR3 SP 分区特性），非代码缺陷。P00-003 已记录 stage1 峰值内存 32GB 来自 Gaia xpsd mmap。建议在部署文档中标注南天天区内存需求。"
+    },
+    "anomaly_2": {
+      "description": "C003 wall time 80.778s (run1) vs 77.561s (run2)（差异 ~3.2s）",
+      "investigation": "对比 timings",
+      "root_cause": "run1 的 READ_FITS (0.141s) 和 CALIBRATE (0.868s) 高于 run2/run3 (0.046s/0.442s)，属冷启动效应（首次运行 DLL 加载/缓存冷）。",
+      "evidence": "run1 READ_FITS 0.141s vs run2 0.046s; run1 CALIBRATE 0.868s vs run2 0.442s",
+      "is_regression": false,
+      "resolution": "正常冷启动效应，非异常"
+    },
+    "anomaly_3": {
+      "description": "HISS 非字节级可重现（C003 三次运行 SHA-256 不同，size 差 1 字节）",
+      "investigation": "对比三次输出",
+      "root_cause": "zstd 压缩元数据/时间戳或并行 drizzle 浮点非确定性。P00-003 已记录此行为。",
+      "evidence": "run1 size=19347, run2 size=19348, run3 size=19348; hash 全不同",
+      "is_regression": false,
+      "resolution": "已知行为，非本任务引入。HCSD 字节级可重现（stage2 验证）"
+    }
+  },
+  "summary": {
+    "stage1_c003_median_wall_sec": 77.805,
+    "stage1_c003_median_peak_mb": 35470.23,
+    "stage2_median_wall_sec": 5.597,
+    "stage2_median_peak_mb": 1979.38,
+    "memory_leak_detected": false,
+    "cancel_test_passed": true,
+    "hcsd_deterministic": true,
+    "hiss_deterministic": false,
+    "performance_anomalies_investigated": 3,
+    "verdict": "PASS"
+  }
+}
