@@ -1783,9 +1783,10 @@ void Orchestrator::cleanup_platesolve_env() {
 }
 
 // ============================================================================
-// P02-003 路径 B: callback 导出 sdet_detect_ex 检测结果
+// P09-002 INTERNAL_DETECTION_SHARED_EXPORT: callback 导出 sdet_detect_ex 检测结果
+// (历史命名: P02-003 路径 B; 正式命名见 capabilities["internal_detection_shared_export"])
 // ============================================================================
-// 路径 B callback 上下文 (POD-like, 供 C callback 通过 user_data 访问)
+// INTERNAL_DETECTION_SHARED_EXPORT callback 上下文 (POD-like, 供 C callback 通过 user_data 访问)
 // star_det v1 格式: FLOAT64 [N,6] (x_px, y_px, flux, mag, saturated, has_saturated)
 namespace {
 struct PathBCallbackCtx {
@@ -1794,7 +1795,7 @@ struct PathBCallbackCtx {
     bool copied = false;
 };
 
-// 路径 B callback 函数 (签名匹配 IpvDetectionCallback)
+// INTERNAL_DETECTION_SHARED_EXPORT callback 函数 (签名匹配 IpvDetectionCallback)
 // 在 sdet_detect_ex 之后、选星之前同步调用; 返回后源指针失效, 必须在此复制
 void path_b_detection_callback(const double* detections, int n_detections, void* user_data) {
     PathBCallbackCtx* ctx = static_cast<PathBCallbackCtx*>(user_data);
@@ -1814,7 +1815,7 @@ void path_b_detection_callback(const double* detections, int n_detections, void*
 
 // ============================================================================
 // run_stage_platesolve - PLATESOLVE 阶段实现 (ipv_solver.dll 内存接口)
-// 流程 (P02-003 路径 B: callback 导出):
+// 流程 (P09-002 INTERNAL_DETECTION_SHARED_EXPORT, 历史 P02-003 路径 B: callback 导出):
 //   1. 读取 PipelineFrame "data" 块 (FLOAT32 [H,W])
 //   2. 读取 "header" KV 块的 OBJCTRA/OBJCTDEC/FOCALLEN/XPIXSZ
 //   3. 调用 ipv_solve_from_memory_with_callback 求解 WCS+SIP
@@ -1925,7 +1926,7 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
              + "mm, 像素尺寸=" + std::to_string(pixel_size) + "um"
              + (!cfg_initial_ra.empty() || cfg_focal > 0.0 ? " (部分来自 config)" : ""));
 
-    // 3. 调用 ipv_solve_from_memory_with_callback (P02-003 路径 B)
+    // 3. 调用 ipv_solve_from_memory_with_callback (P09-002 INTERNAL_DETECTION_SHARED_EXPORT)
     //    与 ipv_solve_from_memory 算法等价, 区别: callback 同步导出 sdet_detect_ex 结果
     //    callback 为 NULL 时行为与 ipv_solve_from_memory 完全一致
     auto fn_ipv_solve_cb = dll_loader_.get_function<int (*)(
@@ -1937,7 +1938,7 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
 
     if (!fn_ipv_solve_cb || !fn_get_default_params) {
         LOG_ERROR("orchestrator", "[PLATESOLVE] ipv 函数指针获取失败 (ipv_solve_from_memory_with_callback)");
-        result.error_msg = "[PLATESOLVE] ipv 函数指针获取失败 (路径B)";
+        result.error_msg = "[PLATESOLVE] ipv 函数指针获取失败 (INTERNAL_DETECTION_SHARED_EXPORT)";
         result.exit_code = AstroCsExitCode::GENERIC_ERROR;
         return false;
     }
@@ -1952,10 +1953,10 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
     IpvWcsResult wcs_result;
     std::memset(&wcs_result, 0, sizeof(wcs_result));
 
-    // P02-003 路径 B: callback 上下文, 用于接收 sdet_detect_ex 检测结果
+    // P09-002 INTERNAL_DETECTION_SHARED_EXPORT: callback 上下文, 用于接收 sdet_detect_ex 检测结果
     PathBCallbackCtx cb_ctx;
 
-    LOG_INFO("orchestrator", "[PLATESOLVE] 调用 ipv_solve_from_memory_with_callback (路径B callback 导出) ...");
+    LOG_INFO("orchestrator", "[PLATESOLVE] 调用 ipv_solve_from_memory_with_callback (INTERNAL_DETECTION_SHARED_EXPORT callback 导出) ...");
     int ret = fn_ipv_solve_cb(ipv_solver_handle_,
                               pixels, width, height,
                               ra0, dec0, focal_length, pixel_size,
@@ -2047,9 +2048,10 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
     }
 
     // 6. 写入 star_det 块 (FLOAT32 [N,4]: x, y, flux, mag)
-    //    P02-003 路径 B: 使用 callback 导出的检测结果 (避免原路径第二次 sdet_detect_ex)
+    //    P09-002 INTERNAL_DETECTION_SHARED_EXPORT (历史 P02-003 路径 B):
+    //       使用 callback 导出的检测结果 (避免原路径第二次 sdet_detect_ex)
     //    原路径: ipv_solve_from_memory 内部 sdet_detect_ex (1次) + 此处显式 sdet_detect_ex (2次)
-    //    路径 B: ipv_solve_from_memory_with_callback 内部 sdet_detect_ex (1次) + callback 导出
+    //    INTERNAL_DETECTION_SHARED_EXPORT: ipv_solve_from_memory_with_callback 内部 sdet_detect_ex (1次) + callback 导出
     //    sdet_detect_ex 调用次数: 2 -> 1, 减少重复计算和内存占用
     //    P03-003: star_det 是必需块 (PSF 依赖), 写入失败必须返回非零退出码
     if (fn_add_block && fn_remove_block && cb_ctx.copied && cb_ctx.n_detected > 0
@@ -2074,9 +2076,9 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
         fn_remove_block(frame_, "star_det");
         int r = fn_add_block(frame_, "star_det", AIO_BLOCK_FLOAT32,
                              star_det, n_stars * 4, dims, 2,
-                             "星点检测结果 (路径B callback 导出): x,y,flux,mag");
+                             "星点检测结果 (INTERNAL_DETECTION_SHARED_EXPORT callback 导出): x,y,flux,mag");
         if (r == 0) {
-            LOG_INFO("orchestrator", "[PLATESOLVE] star_det 块已写入 (路径B): "
+            LOG_INFO("orchestrator", "[PLATESOLVE] star_det 块已写入 (INTERNAL_DETECTION_SHARED_EXPORT): "
                      + std::to_string(n_stars) + " 颗星");
         } else {
             LOG_ERROR("orchestrator", "[PLATESOLVE] star_det 块写入失败 (必需块): add_block ret="
@@ -2174,7 +2176,7 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
     }
 
     // 2. 读取 star_det 块 (FLOAT32 [N,4]: x, y, flux, mag)
-    //    P03-003: star_det 是必需块 (PLATESOLVE 路径B 产出), 缺失必须失败 (退出码 3)
+    //    P03-003: star_det 是必需块 (PLATESOLVE INTERNAL_DETECTION_SHARED_EXPORT 产出), 缺失必须失败 (退出码 3)
     const AioBlock* star_det_block = fn_get_block(frame_, "star_det");
     if (star_det_block == nullptr || star_det_block->dims[0] <= 0) {
         LOG_ERROR("orchestrator", "[PSF] star_det 块不存在或为空 (必需块, PLATESOLVE 应产出)");

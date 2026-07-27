@@ -1690,7 +1690,10 @@ int CliCommand::cmd_capabilities() {
     std::cout << "    {\"name\":\"astro_image_io\",\"version\":\"" << aio_ver << "\",\"capabilities\":[\"read_fits\",\"write_hiss\",\"read_hiss\",\"write_hcsd\",\"read_hcsd\"]}," << std::endl;
     std::cout << "    {\"name\":\"calibration\",\"version\":\"" << calib_ver << "\",\"capabilities\":[\"calibrate\"]}," << std::endl;
     std::cout << "    {\"name\":\"star_detector\",\"version\":\"" << star_detector_ver << "\",\"capabilities\":[\"detect\"]}," << std::endl;
-    std::cout << "    {\"name\":\"ipv_solver\",\"version\":\"" << platesolve_ver << "\",\"capabilities\":[\"solve_from_memory\",\"solve_from_detections_v1\",\"solve_from_memory_with_callback\"]}," << std::endl;
+    // P09-002: ipv_solver capabilities 显式声明 INTERNAL_DETECTION_SHARED_EXPORT
+    //   表示生产路径使用内部单次检测 + callback 共享导出 (P02-003 路径 B 的正式命名)
+    //   PSF 阶段通过 star_det 块复用同一份检测结果, 不再二次调用 sdet_detect_ex
+    std::cout << "    {\"name\":\"ipv_solver\",\"version\":\"" << platesolve_ver << "\",\"capabilities\":[\"solve_from_memory\",\"solve_from_detections_v1\",\"solve_from_memory_with_callback\",\"internal_detection_shared_export\"]}," << std::endl;
     std::cout << "    {\"name\":\"dynamic_psf\",\"version\":\"" << psf_ver << "\",\"capabilities\":[\"fit_batch\",\"fit_batch_f32\"]}," << std::endl;
     std::cout << "    {\"name\":\"snr_estimator\",\"version\":\"" << snr_ver << "\",\"capabilities\":[\"estimate\"]}," << std::endl;
     std::cout << "    {\"name\":\"healpix_drizzle\",\"version\":\"" << drizzle_ver << "\",\"capabilities\":[\"drizzle\"]}," << std::endl;

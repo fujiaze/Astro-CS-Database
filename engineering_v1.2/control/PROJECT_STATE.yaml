@@ -3,8 +3,8 @@ phase: v1.2 scientific-chain-and-browser
 state_schema: 1
 status: ACTIVE
 current_gate: G9
-current_task: P09-002
-last_completed_task: P09-001
+current_task: P09-003
+last_completed_task: P09-002
 baseline_engineering: engineering/G0-G8 preserved
 product_target: Real-data Stage1 + Galaxy Center 3-panel HCSD + performant spherical browser
 started: 2026-07-27
@@ -33,9 +33,19 @@ overcorrection_register:
   - CORR-004 three-panel mosaic not validated on real data
   - CORR-005 browser performance has no Gate
   - CORR-006 PlateSolve shared detection preserved (naming only)
+p09_002_build_artifacts:
+  orchestrator_exe_sha256: 13265FCFEA720155C0715505A6E8DAF6DB8B5FE3322E7DB84874A1765ECA148B
+  ipv_solver_dll_sha256: ECC13B5472BC2322E2978A67CC9AB0320314C370A231C90E8FC535680E157027
+  ipv_solver_capabilities:
+    - solve_from_memory
+    - solve_from_detections_v1
+    - solve_from_memory_with_callback
+    - internal_detection_shared_export
 notes:
   - PlateSolve shared internal detection is already mainline; verify, do not reimplement.
   - WCS sign/SIP hypothesis must be proven by closure tests before patching.
   - Existing user changes and prior evidence must be preserved.
   - P09-001 DONE 2026-07-27. v1.1 baseline frozen + 6 overcorrections recorded in DECISION_REGISTER.md.
   - Tools extended (tools/astro_toolkit.py +5 step handlers: unzip/move_dir/run_python/file_exists/rmtree).
+  - P09-002 DONE 2026-07-27. INTERNAL_DETECTION_SHARED_EXPORT naming unified (capabilities + logs + comments). Algorithm untouched, ABI preserved. 6/6 tests PASS.
+

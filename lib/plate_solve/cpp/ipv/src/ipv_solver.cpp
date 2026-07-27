@@ -1417,7 +1417,8 @@ void IPVSolver::solve_from_detections_v1(
 }
 
 // ===========================================================================
-// P02-002: 路径 B - solve_from_memory_with_callback
+// P09-002 INTERNAL_DETECTION_SHARED_EXPORT (历史 P02-002 路径 B) -
+//   solve_from_memory_with_callback
 //
 // 与 solve_from_memory 算法完全一致, 区别:
 //   - sdet_detect_ex 调用后, 选星前, 调用 callback 导出完整检测结果
@@ -1450,14 +1451,14 @@ void IPVSolver::solve_from_memory_with_callback(
         init_itertrans_logger(dir + "/ipv_itertrans.log");
     }
 
-    logger_.info("==== IPVSolver::solve_from_memory_with_callback 开始 (P02-002 路径 B) ====");
+    logger_.info("==== IPVSolver::solve_from_memory_with_callback 开始 (INTERNAL_DETECTION_SHARED_EXPORT) ====");
     logger_.infof("  pixels=%dx%d (内存数据)", width, height);
     logger_.infof("  ra0=%.6f deg, dec0=%.6f deg", ra0, dec0);
     logger_.infof("  focal_length=%.3f mm, pixel_size=%.3f um",
                   focal_length_mm, pixel_size_um);
     logger_.infof("  callback=%s", callback ? "ENABLED" : "NULL (兼容模式)");
 
-    // 2. 选星 (路径 B: 带 callback 的内存选星)
+    // 2. 选星 (INTERNAL_DETECTION_SHARED_EXPORT: 带 callback 的内存选星)
     IPVSolverParams p_adapt = params;
     p_adapt.img_n_target = 60;
 
@@ -1477,7 +1478,7 @@ void IPVSolver::solve_from_memory_with_callback(
     // 3. 选星后通用求解流程
     solve_post_select(selection, params, ra0, dec0, result);
 
-    logger_.info("==== IPVSolver::solve_from_memory_with_callback 完成 (P02-002 路径 B) ====");
+    logger_.info("==== IPVSolver::solve_from_memory_with_callback 完成 (INTERNAL_DETECTION_SHARED_EXPORT) ====");
 }
 
 } // namespace ipv

@@ -1470,7 +1470,8 @@ int ipv_select_from_detections(
 }
 
 // ============================================================================
-// P02-002: 路径 B - ipv_select_from_memory_with_callback
+// P09-002 INTERNAL_DETECTION_SHARED_EXPORT (历史 P02-002 路径 B) -
+//   ipv_select_from_memory_with_callback
 //
 // 与 ipv_select_from_memory 算法完全一致, 区别:
 //   - sdet_detect_ex 调用后, 选星前, 调用 callback 导出完整检测结果
@@ -1507,7 +1508,7 @@ int ipv_select_from_memory_with_callback(
         return -1;
     }
 
-    if (logger) logger->info("=== ipv_select_from_memory_with_callback 启动 (路径 B) ===");
+    if (logger) logger->info("=== ipv_select_from_memory_with_callback 启动 (INTERNAL_DETECTION_SHARED_EXPORT) ===");
 
     // --- 获取注入的句柄 ---
     void* gaia_handle = get_gaia_client_handle();
@@ -1577,11 +1578,11 @@ int ipv_select_from_memory_with_callback(
         logger->info(buf);
     }
 
-    // --- Step 2.5 (路径 B): 调用 callback 导出检测结果 (FLOAT64 [N,6]) ---
+    // --- Step 2.5 (INTERNAL_DETECTION_SHARED_EXPORT): 调用 callback 导出检测结果 (FLOAT64 [N,6]) ---
     // callback 在 sdet_free_ex 之前调用, 确保源指针有效
     // callback 返回后源指针仍由本函数管理, 稍后 sdet_free_ex 释放
     if (callback != nullptr) {
-        if (logger) logger->info("Step 2.5: 调用 callback 导出 detections (路径 B)");
+        if (logger) logger->info("Step 2.5: 调用 callback 导出 detections (INTERNAL_DETECTION_SHARED_EXPORT)");
         // 构建 FLOAT64 [N,6] 缓冲区 (栈上分配可能过大, 使用堆)
         std::vector<double> det_v1(static_cast<size_t>(det_count) * 6);
         for (int i = 0; i < det_count; ++i) {
@@ -1792,7 +1793,7 @@ int ipv_select_from_memory_with_callback(
 #endif // _WIN32
 
     output.success = true;
-    if (logger) logger->info("=== ipv_select_from_memory_with_callback 完成 (路径 B) ===");
+    if (logger) logger->info("=== ipv_select_from_memory_with_callback 完成 (INTERNAL_DETECTION_SHARED_EXPORT) ===");
     return 0;
 }
 

@@ -379,7 +379,10 @@ IPV_API int ipv_solve_from_memory(
 }
 
 // ============================================================================
-// P02-002: 路径 A / 路径 B C API 实现
+// P09-002 INTERNAL_DETECTION_SHARED_EXPORT: 路径 A / 路径 B C API 实现
+//   路径 A (ipv_solve_from_detections_v1): 外部 detections 求解, 跳过 sdet_detect_ex
+//   路径 B (ipv_solve_from_memory_with_callback, 正式命名 INTERNAL_DETECTION_SHARED_EXPORT):
+//     内部单次检测 + callback 同步导出, 由 PSF 通过 star_det 块复用
 //
 // 与 ipv_solve_from_memory 一致的异常隔离策略:
 //   - 入口函数本身无 try/catch (避免 SEH 记录栈损坏)
@@ -424,7 +427,7 @@ int do_solve_from_detections_v1_impl(
     return result->success;
 }
 
-// 路径 B 实现: 带 callback 的内存求解 (保持原有检测 + 导出检测结果)
+// 路径 B 实现 (INTERNAL_DETECTION_SHARED_EXPORT): 带 callback 的内存求解 (保持原有检测 + 导出检测结果)
 int do_solve_from_memory_with_callback_impl(
     ipv::IPVSolver* s,
     const float* pixels,
@@ -470,6 +473,7 @@ int do_solve_from_memory_with_callback_impl(
 } // namespace
 
 // 路径 A: 从外部 detections 求解 (跳过 sdet_detect_ex)
+// 注: 生产路径为路径 B (INTERNAL_DETECTION_SHARED_EXPORT), 路径 A 仅用于 A/B 对比测试
 IPV_API int ipv_solve_from_detections_v1(
     void* solver,
     const double* detections,
@@ -510,7 +514,8 @@ IPV_API int ipv_solve_from_detections_v1(
                                             sp, result);
 }
 
-// 路径 B: 带 callback 的内存求解
+// 路径 B (INTERNAL_DETECTION_SHARED_EXPORT): 带 callback 的内存求解
+//   生产路径: 每帧 sdet_detect_ex 仅调用 1 次, callback 同步导出检测结果给 PSF
 IPV_API int ipv_solve_from_memory_with_callback(
     void* solver,
     const float* pixels,
