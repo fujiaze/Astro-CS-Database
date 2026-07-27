@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "light",
+    "system_id",
+    "bias",
+    "dark",
+    "flat",
+    "status",
+    "reason"
+  ],
+  "properties": {
+    "light": {
+      "type": "string"
+    },
+    "system_id": {
+      "enum": [
+        "T1",
+        "T2",
+        "T3",
+        "T4"
+      ]
+    },
+    "bias": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "dark": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "flat": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "enum": [
+        "RESOLVED",
+        "AMBIGUOUS",
+        "MISSING",
+        "INVALID"
+      ]
+    },
+    "reason": {
+      "type": "string"
+    },
+    "normalized_filter": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

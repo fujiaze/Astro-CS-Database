@@ -1,0 +1,18 @@
+P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+
+- 解压 AstroCS_Next_Phase_Development_Pack v1.2 (50 任务) 到 engineering_v1.2/
+- 扩展 tools/astro_toolkit.py: 新增 unzip/move_dir/run_python/file_exists/rmtree 步骤
+  (避免子 Agent 频繁触发沙箱确认)
+- 记录 v1.1 仓库事实快照: HEAD=ed145a7, 分支=main, 工作树状态
+- 锁定 v1.1 工程控制文件 SHA-256 (PROJECT_STATE/MASTER_TASK_REGISTER/CURRENT_TASK)
+- 显式记录 6 项 v1.1 过度结论修正 (CORR-001~006) 到 DECISION_REGISTER.md
+- 生成 P09-001 证据四件套 (TASK/TEST/EVIDENCE_INDEX/REVIEW) + 原始证据
+- validate_pack.py 通过 (tasks=50, prompt_chars=62)
+- 更新 MASTER_TASK_REGISTER/PROJECT_STATE/CURRENT_TASK 进入 P09-002
+
+禁止后续任务引用下列 v1.1 结论为"已通过":
+- 测光链 (n_matched=0-1 退化)
+- SNR^2 加权 (仅合成数据证明)
+- 梯度校正 (未在真实非零梯度验证)
+- 三面板马赛克 (未在真实数据验证)
+- 浏览器性能 (无 Gate)

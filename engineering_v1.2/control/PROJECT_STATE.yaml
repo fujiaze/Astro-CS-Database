@@ -1,0 +1,41 @@
+project: AstroCS CLI Core and Spherical Browser
+phase: v1.2 scientific-chain-and-browser
+state_schema: 1
+status: ACTIVE
+current_gate: G9
+current_task: P09-002
+last_completed_task: P09-001
+baseline_engineering: engineering/G0-G8 preserved
+product_target: Real-data Stage1 + Galaxy Center 3-panel HCSD + performant spherical browser
+started: 2026-07-27
+g9_passed: false
+g10_passed: false
+g11_passed: false
+g12_passed: false
+g13_passed: false
+g14_passed: false
+g15_passed: false
+g16_passed: false
+baseline_lock:
+  v11_head_commit: ed145a7
+  v11_branch: main
+  v11_control_sha256:
+    PROJECT_STATE_yaml: 55C6F9120B27BF83965B163D2F09E3502C49F269E06F9579EED3CF91395D0951
+    MASTER_TASK_REGISTER_csv: 09E476835F216CE873FCCD0D904B40D43FB0DE81092AC8077B289137FC4AC6FD
+    CURRENT_TASK_md: CF87C7CD5AA60E06270C232581A3A94A13DF31633DD82ACBD5B0F657F878D7E8
+  v12_pack: AstroCS_Next_Phase_Development_Pack_2026-07-27_v1.2.zip
+  v12_install_dir: engineering_v1.2/
+  v12_validate_pack: OK tasks=50 prompt_chars=62
+overcorrection_register:
+  - CORR-001 photometric chain incomplete (n_matched=0-1 degraded)
+  - CORR-002 SNR^2 weighting only proven on synthetic HISS
+  - CORR-003 gradient correction not validated on real non-zero gradient
+  - CORR-004 three-panel mosaic not validated on real data
+  - CORR-005 browser performance has no Gate
+  - CORR-006 PlateSolve shared detection preserved (naming only)
+notes:
+  - PlateSolve shared internal detection is already mainline; verify, do not reimplement.
+  - WCS sign/SIP hypothesis must be proven by closure tests before patching.
+  - Existing user changes and prior evidence must be preserved.
+  - P09-001 DONE 2026-07-27. v1.1 baseline frozen + 6 overcorrections recorded in DECISION_REGISTER.md.
+  - Tools extended (tools/astro_toolkit.py +5 step handlers: unzip/move_dir/run_python/file_exists/rmtree).

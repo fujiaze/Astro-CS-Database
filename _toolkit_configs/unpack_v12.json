@@ -1,0 +1,5 @@
+[
+  {"type": "mkdir", "params": {"path": "_new_pack_v1.2"}},
+  {"type": "unzip", "params": {"zip_path": "AstroCS_Next_Phase_Development_Pack_2026-07-27_v1.2.zip", "dest_dir": "_new_pack_v1.2"}},
+  {"type": "list_dir", "params": {"path": "_new_pack_v1.2", "pattern": "*"}}
+]

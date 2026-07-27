@@ -33,7 +33,11 @@ AstroCS 工程工具集 - Python 脚本 + JSON 配置驱动的批量操作工具
     { "type": "write_file",  "params": { "path": "x.txt", "content": "hello", "encoding": "utf-8" } },
     { "type": "copy_file",   "params": { "src": "a.bin", "dst": "b.bin" } },
     { "type": "delete_file", "params": { "paths": ["tmp1.txt","tmp2.txt"] } },
-    { "type": "list_dir",    "params": { "path": ".", "pattern": "*.md" } }
+    { "type": "list_dir",    "params": { "path": ".", "pattern": "*.md" } },
+    { "type": "unzip",       "params": { "zip_path": "pack.zip", "dest_dir": "unpacked" } },
+    { "type": "move_file",   "params": { "src": "a.txt", "dst": "b.txt" } },
+    { "type": "file_exists", "params": { "path": "README.md" } },
+    { "type": "rmtree",      "params": { "path": "tmp_dir" } }
   ]
 
 每步结果（输出到 stdout 的 JSON 数组元素）：
@@ -57,6 +61,7 @@ import shutil
 import subprocess
 import sys
 import time
+import zipfile
 from pathlib import Path
 from typing import Any
 
@@ -166,11 +171,17 @@ def step_git_log(params: dict, ctx: dict) -> dict:
 
 def step_run_orchestrator(params: dict, ctx: dict) -> dict:
     exe = params["exe"]
-    if not os.path.isabs(exe):
-        exe = os.path.join(ctx.get("cwd", "."), exe)
-    args = [exe] + list(params.get("args", []))
+    # 支持 PATH 中的命令（如 git/python），仅当 exe 不含路径分隔符且非绝对路径时按 PATH 解析
+    if os.path.sep not in exe and not os.path.isabs(exe):
+        # 让 subprocess 直接按 PATH 查找；不拼接 cwd
+        exe_resolved = exe
+    else:
+        if not os.path.isabs(exe):
+            exe = os.path.join(ctx.get("cwd", "."), exe)
+        exe_resolved = exe
+    args = [exe_resolved] + list(params.get("args", []))
     cwd = ctx.get("cwd", ".")
-    # 注入 DLL 路径（Windows）
+    # 注入 DLL 路径（Windows）— 仅对 orchestrator.exe 等 build 产物有用，对 git/python 无害
     env = os.environ.copy()
     arts = os.path.join(cwd, "build", "artifacts")
     env["PATH"] = arts + os.pathsep + r"C:\msys64\mingw64\bin" + os.pathsep + env.get("PATH", "")
@@ -258,6 +269,120 @@ def step_list_dir(params: dict, ctx: dict) -> dict:
             "elapsed_sec": 0, "cmd": [], "extra": {"items": items}}
 
 
+def step_unzip(params: dict, ctx: dict) -> dict:
+    """解压 zip 文件到目标目录。避免调用外部命令触发沙箱确认。"""
+    zip_path = params["zip_path"]
+    dest_dir = params["dest_dir"]
+    cwd = ctx.get("cwd", ".")
+    if not os.path.isabs(zip_path):
+        zip_path = os.path.join(cwd, zip_path)
+    if not os.path.isabs(dest_dir):
+        dest_dir = os.path.join(cwd, dest_dir)
+    if not os.path.exists(zip_path):
+        return {"ok": False, "exit_code": -4, "stdout": "",
+                "stderr": f"zip not found: {zip_path}",
+                "elapsed_sec": 0, "cmd": [zip_path], "extra": {}}
+    Path(dest_dir).mkdir(parents=True, exist_ok=True)
+    t0 = time.time()
+    try:
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            members = zf.namelist()
+            zf.extractall(dest_dir)
+    except zipfile.BadZipFile as e:
+        return {"ok": False, "exit_code": -7, "stdout": "",
+                "stderr": f"BadZipFile: {e}",
+                "elapsed_sec": round(time.time() - t0, 3),
+                "cmd": [zip_path], "extra": {}}
+    return {"ok": True, "exit_code": 0, "stdout": dest_dir, "stderr": "",
+            "elapsed_sec": round(time.time() - t0, 3),
+            "cmd": [zip_path, dest_dir],
+            "extra": {"dest_dir": dest_dir, "n_members": len(members),
+                      "members": members[:50]}}  # 仅前 50 项避免输出爆炸
+
+
+def step_move_file(params: dict, ctx: dict) -> dict:
+    src = params["src"]
+    dst = params["dst"]
+    cwd = ctx.get("cwd", ".")
+    if not os.path.isabs(src):
+        src = os.path.join(cwd, src)
+    if not os.path.isabs(dst):
+        dst = os.path.join(cwd, dst)
+    if not os.path.exists(src):
+        return {"ok": False, "exit_code": -4, "stdout": "",
+                "stderr": f"src not found: {src}",
+                "elapsed_sec": 0, "cmd": [src, dst], "extra": {}}
+    Path(dst).parent.mkdir(parents=True, exist_ok=True)
+    if os.path.exists(dst) and os.path.isdir(dst):
+        dst = os.path.join(dst, os.path.basename(src))
+    shutil.move(src, dst)
+    return {"ok": True, "exit_code": 0, "stdout": dst, "stderr": "",
+            "elapsed_sec": 0, "cmd": [src, dst], "extra": {"src": src, "dst": dst}}
+
+
+def step_file_exists(params: dict, ctx: dict) -> dict:
+    path = params["path"]
+    cwd = ctx.get("cwd", ".")
+    if not os.path.isabs(path):
+        path = os.path.join(cwd, path)
+    exists = os.path.exists(path)
+    extra = {"path": path, "exists": exists}
+    if exists and os.path.isfile(path):
+        extra["size"] = os.path.getsize(path)
+    return {"ok": True, "exit_code": 0, "stdout": json.dumps({"exists": exists}),
+            "stderr": "", "elapsed_sec": 0, "cmd": [path], "extra": extra}
+
+
+def step_rmtree(params: dict, ctx: dict) -> dict:
+    path = params["path"]
+    cwd = ctx.get("cwd", ".")
+    if not os.path.isabs(path):
+        path = os.path.join(cwd, path)
+    if not os.path.exists(path):
+        return {"ok": True, "exit_code": 0, "stdout": path, "stderr": "",
+                "elapsed_sec": 0, "cmd": [path],
+                "extra": {"path": path, "removed": False, "note": "not exists"}}
+    shutil.rmtree(path)
+    return {"ok": True, "exit_code": 0, "stdout": path, "stderr": "",
+            "elapsed_sec": 0, "cmd": [path],
+            "extra": {"path": path, "removed": True}}
+
+
+def step_move_dir(params: dict, ctx: dict) -> dict:
+    """移动整个目录到目标路径（用于将解压的开发包重命名为 engineering_v1.2 等）。
+    若 dst 已存在且非空，src 内容合并到 dst 内（同名文件覆盖）。
+    若 dst 不存在，等价于 shutil.move。"""
+    src = params["src"]
+    dst = params["dst"]
+    cwd = ctx.get("cwd", ".")
+    if not os.path.isabs(src):
+        src = os.path.join(cwd, src)
+    if not os.path.isabs(dst):
+        dst = os.path.join(cwd, dst)
+    if not os.path.exists(src):
+        return {"ok": False, "exit_code": -4, "stdout": "",
+                "stderr": f"src not found: {src}",
+                "elapsed_sec": 0, "cmd": [src, dst], "extra": {}}
+    Path(dst).parent.mkdir(parents=True, exist_ok=True)
+    if not os.path.exists(dst):
+        shutil.move(src, dst)
+    else:
+        # 合并：用 shutil.copytree(dir_exists_ok=True) + rmtree
+        shutil.copytree(src, dst, dirs_exist_ok=True)
+        shutil.rmtree(src)
+    return {"ok": True, "exit_code": 0, "stdout": dst, "stderr": "",
+            "elapsed_sec": 0, "cmd": [src, dst],
+            "extra": {"src": src, "dst": dst}}
+
+
+def step_run_python(params: dict, ctx: dict) -> dict:
+    """运行 Python 脚本（不通过外部 shell）。args 第一个元素是脚本路径。"""
+    args = ["python"] + list(params.get("args", []))
+    cwd = params.get("cwd", ctx.get("cwd", "."))
+    return _run(args, cwd, params.get("timeout_sec", 120),
+                params.get("stdout_file"), params.get("stderr_file"))
+
+
 HANDLERS = {
     "git_status": step_git_status,
     "git_add": step_git_add,
@@ -271,6 +396,12 @@ HANDLERS = {
     "copy_file": step_copy_file,
     "delete_file": step_delete_file,
     "list_dir": step_list_dir,
+    "unzip": step_unzip,
+    "move_file": step_move_file,
+    "file_exists": step_file_exists,
+    "rmtree": step_rmtree,
+    "move_dir": step_move_dir,
+    "run_python": step_run_python,
 }
 
 

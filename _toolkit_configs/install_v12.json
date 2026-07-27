@@ -1,0 +1,11 @@
+[
+  {"type": "move_dir", "params": {"src": "_new_pack_v1.2/AstroCS_Next_Phase_Development_Pack_v1.2", "dst": "engineering_v1.2"}},
+  {"type": "rmtree", "params": {"path": "_new_pack_v1.2"}},
+  {"type": "file_exists", "params": {"path": "engineering_v1.2/tools/validate_pack.py"}},
+  {"type": "run_python", "params": {
+    "args": ["engineering_v1.2/tools/validate_pack.py", "engineering_v1.2"],
+    "timeout_sec": 60,
+    "stdout_file": "_toolkit_configs/validate_pack.out",
+    "stderr_file": "_toolkit_configs/validate_pack.err"
+  }}
+]

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "nodes",
+    "edges",
+    "connected"
+  ],
+  "properties": {
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "a",
+          "b",
+          "sample_count",
+          "median_before",
+          "median_after",
+          "mad_before",
+          "mad_after"
+        ]
+      }
+    },
+    "connected": {
+      "type": "boolean"
+    },
+    "components": {
+      "type": "integer",
+      "minimum": 1
+    }
+  },
+  "additionalProperties": true
+}

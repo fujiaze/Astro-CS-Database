@@ -87,3 +87,8 @@ link_err.txt
 # 自治 Agent 临时解压目录与压缩包
 .astrocs_agent_bootstrap/
 AstroCS_Autonomous_Agent_Pack*.zip
+AstroCS_Next_Phase_Development_Pack*.zip
+_new_pack_v*/
+
+# v1.1 审计包
+audit/*.rar

@@ -1,8 +1,0 @@
-[
-  {"type": "git_add", "params": {"repo": ".", "files": ["README.md", "tools/gen_audit_pack.py", "audit/AstroCS-v1.1-audit-pack/AUDIT_MANIFEST.json", "audit/AstroCS-v1.1-audit-pack/AUDIT_MANIFEST.txt", "audit/AstroCS-v1.1-audit-pack/git_log_all.txt", "audit/AstroCS-v1.1-audit-pack/git_log_detailed.txt", "audit/AstroCS-v1.1-audit-pack/astrocs-v1.1-full.bundle"]}},
-  {"type": "git_add", "params": {"repo": ".", "all": true}},
-  {"type": "git_commit", "params": {"repo": ".", "message_file": "tools/_commit_audit_msg.txt"}},
-  {"type": "git_push", "params": {"repo": ".", "remote": "origin", "branch": "main", "timeout_sec": 180}},
-  {"type": "git_log", "params": {"repo": ".", "count": 3}},
-  {"type": "delete_file", "params": {"paths": ["tools/_commit_audit_msg.txt"]}}
-]
