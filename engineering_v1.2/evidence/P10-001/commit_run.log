@@ -1,0 +1,81 @@
+{
+  "ok": true,
+  "results": [
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "warning: in the working copy of 'engineering_v1.2/control/MASTER_TASK_REGISTER.csv', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.2/evidence/P10-001/DOCUMENT_FACT_CONFLICTS.md', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.2/evidence/P10-001/FILTER_ALIAS_MAP.json', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.2/evidence/P10-001/TESTDATA_DATASET_CATALOG.csv', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.2/evidence/P10-001/TESTDATA_EQUIPMENT_CATALOG.csv', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.2/evidence/P10-001/raw_logs/extract_testdata_catalog.log', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.2/evidence/P10-001/raw_logs/header_samples.json', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.2/evidence/P10-001/raw_logs/run_extract_final.log', CRLF will be replaced by LF the next time Git touches it\n",
+      "elapsed_sec": 0.124,
+      "cmd": [
+        "git",
+        "add",
+        "engineering_v1.2/control/CURRENT_TASK.md",
+        "engineering_v1.2/control/MASTER_TASK_REGISTER.csv",
+        "engineering_v1.2/control/PROJECT_STATE.yaml",
+        "engineering_v1.2/evidence/P10-001/TASK_REPORT.md",
+        "engineering_v1.2/evidence/P10-001/TEST_REPORT.md",
+        "engineering_v1.2/evidence/P10-001/EVIDENCE_INDEX.md",
+        "engineering_v1.2/evidence/P10-001/REVIEW_REPORT.md",
+        "engineering_v1.2/evidence/P10-001/TESTDATA_EQUIPMENT_CATALOG.csv",
+        "engineering_v1.2/evidence/P10-001/TESTDATA_DATASET_CATALOG.csv",
+        "engineering_v1.2/evidence/P10-001/FILTER_ALIAS_MAP.json",
+        "engineering_v1.2/evidence/P10-001/DOCUMENT_FACT_CONFLICTS.md",
+        "engineering_v1.2/evidence/P10-001/scripts/extract_testdata_catalog.py",
+        "engineering_v1.2/evidence/P10-001/raw_logs/extract_testdata_catalog.log",
+        "engineering_v1.2/evidence/P10-001/raw_logs/run_extract_final.log",
+        "engineering_v1.2/evidence/P10-001/raw_logs/header_samples.json",
+        "engineering_v1.2/evidence/P10-001/commit_msg.txt",
+        "engineering_v1.2/evidence/P10-001/commit_config.json"
+      ],
+      "step": 0,
+      "type": "git_add"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "[main bb6963b] P10-001: 读取全部 TestData 子目录说明文档\n 17 files changed, 3180 insertions(+), 11 deletions(-)\n create mode 100644 engineering_v1.2/evidence/P10-001/DOCUMENT_FACT_CONFLICTS.md\n create mode 100644 engineering_v1.2/evidence/P10-001/EVIDENCE_INDEX.md\n create mode 100644 engineering_v1.2/evidence/P10-001/FILTER_ALIAS_MAP.json\n create mode 100644 engineering_v1.2/evidence/P10-001/REVIEW_REPORT.md\n create mode 100644 engineering_v1.2/evidence/P10-001/TASK_REPORT.md\n create mode 100644 engineering_v1.2/evidence/P10-001/TESTDATA_DATASET_CATALOG.csv\n create mode 100644 engineering_v1.2/evidence/P10-001/TESTDATA_EQUIPMENT_CATALOG.csv\n create mode 100644 engineering_v1.2/evidence/P10-001/TEST_REPORT.md\n create mode 100644 engineering_v1.2/evidence/P10-001/commit_config.json\n create mode 100644 engineering_v1.2/evidence/P10-001/commit_msg.txt\n create mode 100644 engineering_v1.2/evidence/P10-001/raw_logs/extract_testdata_catalog.log\n create mode 100644 engineering_v1.2/evidence/P10-001/raw_logs/header_samples.json\n create mode 100644 engineering_v1.2/evidence/P10-001/raw_logs/run_extract_final.log\n create mode 100644 engineering_v1.2/evidence/P10-001/scripts/extract_testdata_catalog.py\n",
+      "stderr": "",
+      "elapsed_sec": 0.128,
+      "cmd": [
+        "git",
+        "commit",
+        "-F",
+        ".\\engineering_v1.2/evidence/P10-001/commit_msg.txt"
+      ],
+      "step": 1,
+      "type": "git_commit"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "To https://github.com/fujiaze/Astro-CS-Database.git\n   73a33b7..bb6963b  main -> main\n",
+      "elapsed_sec": 75.591,
+      "cmd": [
+        "git",
+        "push",
+        "origin",
+        "main"
+      ],
+      "step": 2,
+      "type": "git_push"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "bb6963b P10-001: 读取全部 TestData 子目录说明文档\n73a33b7 P09-003: 冻结测光失败帧与浏览器性能基线数据\n06df865 P09-002: 统一共享检测命名为 INTERNAL_DETECTION_SHARED_EXPORT\n0d1857d P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)\ned145a7 docs: 补充项目 README + 生成 v1.1 审计包\n",
+      "stderr": "",
+      "elapsed_sec": 0.044,
+      "cmd": [
+        "git",
+        "log",
+        "--oneline",
+        "-n",
+        "5"
+      ],
+      "step": 3,
+      "type": "git_log"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "device_id": "T1",
+  "status": "no_data",
+  "description": "testdata 中无 T1 设备数据. 硬门限允许 T1-T4, 但实际只有 T2/T3/T4.",
+  "telescope": "",
+  "aperture_mm": "",
+  "focal_length_mm": "",
+  "camera": "",
+  "mount": "",
+  "pixel_size_um": "",
+  "image_size": "",
+  "bin": "",
+  "gain": "",
+  "offset": "",
+  "temperature_c": "",
+  "filter_set": [],
+  "light_dirs": [],
+  "master_dir": "",
+  "calibration_files": [],
+  "doc_source": "",
+  "data_conflict_note": "T1 在 testdata 中无任何数据 (无 Light 帧, 无校准文件, 无说明文档).",
+  "generated_at": "2026-07-27T11:27:23.713458Z"
+}

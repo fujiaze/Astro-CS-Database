@@ -1,0 +1,138 @@
+{
+  "device_id": "T3",
+  "status": "active",
+  "telescope": "Chilescope T3（ASA 500N）, 焦距1900mm",
+  "aperture_mm": "500",
+  "focal_length_mm": "1900",
+  "camera": "FLI Proline 16803",
+  "camera_from_header": "FLI",
+  "mount": "DDM85",
+  "pixel_size_um": "9.0",
+  "image_size": "4096x4096",
+  "bin": "1",
+  "gain": "",
+  "offset": "",
+  "temperature_c": "-20.0",
+  "filter_set": [
+    "Blue",
+    "Green",
+    "H-alpha",
+    "Lum",
+    "Oiii",
+    "Red"
+  ],
+  "filter_set_doc": "Astrodon LRGBHO 50 mm",
+  "light_dirs": [
+    "testdata\\NGC55_T3_flying_dutchman\\lights",
+    "testdata\\NGC83_cluster_T3_Flying_Dutchman\\lights"
+  ],
+  "master_dir": "testdata\\T3 calibration files",
+  "calibration": {
+    "bias_files": [
+      "masterBias_BIN-1_4096x4096.xisf"
+    ],
+    "dark_files": [
+      "masterDark_BIN-1_4096x4096_EXPOSURE-1200.00s.xisf",
+      "masterDark_BIN-1_4096x4096_EXPOSURE-600.00s.xisf"
+    ],
+    "dark_exposures_s": [
+      600.0,
+      1200.0
+    ],
+    "flat_files": [
+      "masterFlat_BIN-1_4096x4096_FILTER-Blue_mono.xisf",
+      "masterFlat_BIN-1_4096x4096_FILTER-Green_mono.xisf",
+      "masterFlat_BIN-1_4096x4096_FILTER-H-alpha_mono.xisf",
+      "masterFlat_BIN-1_4096x4096_FILTER-Lum_mono.xisf",
+      "masterFlat_BIN-1_4096x4096_FILTER-Oiii_mono.xisf",
+      "masterFlat_BIN-1_4096x4096_FILTER-Red_mono.xisf"
+    ],
+    "flat_filters": [
+      "Blue",
+      "Green",
+      "H-alpha",
+      "Lum",
+      "Oiii",
+      "Red"
+    ],
+    "missing_flats": [],
+    "total_calib_files": 9
+  },
+  "datasets": [
+    {
+      "target": "NGC55",
+      "panel": "",
+      "filter": "Blue",
+      "exposure_s": 600.0,
+      "n_lights": 12
+    },
+    {
+      "target": "NGC55",
+      "panel": "",
+      "filter": "Green",
+      "exposure_s": 600.0,
+      "n_lights": 11
+    },
+    {
+      "target": "NGC55",
+      "panel": "",
+      "filter": "H-alpha",
+      "exposure_s": 1200.0,
+      "n_lights": 16
+    },
+    {
+      "target": "NGC55",
+      "panel": "",
+      "filter": "Lum",
+      "exposure_s": 600.0,
+      "n_lights": 15
+    },
+    {
+      "target": "NGC55",
+      "panel": "",
+      "filter": "Oiii",
+      "exposure_s": 1200.0,
+      "n_lights": 14
+    },
+    {
+      "target": "NGC55",
+      "panel": "",
+      "filter": "Red",
+      "exposure_s": 600.0,
+      "n_lights": 11
+    },
+    {
+      "target": "NGC83_cluster",
+      "panel": "",
+      "filter": "Blue",
+      "exposure_s": 600.0,
+      "n_lights": 16
+    },
+    {
+      "target": "NGC83_cluster",
+      "panel": "",
+      "filter": "Green",
+      "exposure_s": 600.0,
+      "n_lights": 18
+    },
+    {
+      "target": "NGC83_cluster",
+      "panel": "",
+      "filter": "Lum",
+      "exposure_s": 600.0,
+      "n_lights": 22
+    },
+    {
+      "target": "NGC83_cluster",
+      "panel": "",
+      "filter": "Red",
+      "exposure_s": 600.0,
+      "n_lights": 16
+    }
+  ],
+  "total_light_frames": 151,
+  "doc_source": "testdata\\NGC55_T3_flying_dutchman\\素材信息与版权约定.txt",
+  "data_conflict_note": "",
+  "missing_flat_warning": "",
+  "generated_at": "2026-07-27T11:27:23.715468Z"
+}

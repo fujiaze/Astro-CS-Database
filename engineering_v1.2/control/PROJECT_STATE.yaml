@@ -3,8 +3,8 @@ phase: v1.2 scientific-chain-and-browser
 state_schema: 1
 status: ACTIVE
 current_gate: G10
-current_task: P10-002
-last_completed_task: P10-001
+current_task: P10-003
+last_completed_task: P10-002
 baseline_engineering: engineering/G0-G8 preserved
 product_target: Real-data Stage1 + Galaxy Center 3-panel HCSD + performant spherical browser
 started: 2026-07-27
@@ -65,6 +65,19 @@ p10_001_testdata_catalog:
   hard_gate: PASS
   oiii_alias_conflict: "OIII (T2) vs Oiii (T3/T4)"
   evidence_dir: engineering_v1.2/evidence/P10-001
+p10_002_device_profiles:
+  total_devices: 4
+  active_devices: 3
+  no_data_devices: 1
+  total_light_frames: 710
+  t2_lights: 174
+  t3_lights: 151
+  t4_lights: 385
+  total_calib_files: 27
+  missing_lum_flats: [T2, T4]
+  hard_gate: PASS
+  tests_passed: 76
+  evidence_dir: engineering_v1.2/evidence/P10-002
 notes:
   - PlateSolve shared internal detection is already mainline; verify, do not reimplement.
   - WCS sign/SIP hypothesis must be proven by closure tests before patching.
@@ -74,4 +87,5 @@ notes:
   - P09-002 DONE 2026-07-27. INTERNAL_DETECTION_SHARED_EXPORT naming unified (capabilities + logs + comments). Algorithm untouched, ABI preserved. 6/6 tests PASS.
   - P09-003 DONE 2026-07-27. canonical_dataset_v1.2 frozen (44 files SHA-256). 7 photometric failure frames + 32 Galaxy Center Red + 4 HCSD baselines. Browser baseline: HISS leaf_index 15s bottleneck, 0 timing instrumentation. 12/12 tests PASS.
   - P10-001 DONE 2026-07-27. TestData catalog: 3 devices (T2/T3/T4), 49 light groups, 7 doc files, 49 FITS + 27 XISF headers. 1 conflict (OIII alias). Hard gate PASS. 12/12 tests PASS.
+  - P10-002 DONE 2026-07-27. T1-T4 device profiles: T1=no_data, T2/T3/T4=active (710 lights, 27 calib files). T2/T4 missing Lum Flat recorded. 76/76 tests PASS.
 
