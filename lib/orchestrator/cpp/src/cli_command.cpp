@@ -1693,7 +1693,7 @@ int CliCommand::cmd_capabilities() {
     // P09-002: ipv_solver capabilities 显式声明 INTERNAL_DETECTION_SHARED_EXPORT
     //   表示生产路径使用内部单次检测 + callback 共享导出 (P02-003 路径 B 的正式命名)
     //   PSF 阶段通过 star_det 块复用同一份检测结果, 不再二次调用 sdet_detect_ex
-    std::cout << "    {\"name\":\"ipv_solver\",\"version\":\"" << platesolve_ver << "\",\"capabilities\":[\"solve_from_memory\",\"solve_from_detections_v1\",\"solve_from_memory_with_callback\",\"internal_detection_shared_export\"]}," << std::endl;
+    std::cout << "    {\"name\":\"ipv_solver\",\"version\":\"" << platesolve_ver << "\",\"capabilities\":[\"solve_from_memory\",\"solve_from_detections_v1\",\"solve_from_memory_with_callback\",\"internal_detection_shared_export\",\"export_authoritative_pairs\",\"wcs_sip_serialization\"]}," << std::endl;
     std::cout << "    {\"name\":\"dynamic_psf\",\"version\":\"" << psf_ver << "\",\"capabilities\":[\"fit_batch\",\"fit_batch_f32\"]}," << std::endl;
     std::cout << "    {\"name\":\"snr_estimator\",\"version\":\"" << snr_ver << "\",\"capabilities\":[\"estimate\"]}," << std::endl;
     std::cout << "    {\"name\":\"healpix_drizzle\",\"version\":\"" << drizzle_ver << "\",\"capabilities\":[\"drizzle\"]}," << std::endl;
@@ -1712,7 +1712,7 @@ int CliCommand::cmd_capabilities() {
     std::cout << "  \"config_priority\": [\"cli\", \"overrides\", \"config\", \"default\"],"
               << std::endl;
     // P04-003: schema_versions 对象 (各契约文件版本)
-    std::cout << "  \"schema_versions\": {\"hiss\":\"1.0\",\"hcsd\":\"1.0\",\"star_det\":\"v1\",\"request\":\"v1\",\"effective_config\":\"v1\",\"jsonl_event\":\"v1\"},"
+    std::cout << "  \"schema_versions\": {\"hiss\":\"1.0\",\"hcsd\":\"1.0\",\"star_det\":\"v1\",\"request\":\"v1\",\"effective_config\":\"v1\",\"jsonl_event\":\"v1\",\"wcs_authoritative_pairs\":\"1.0\",\"wcs_closure_report\":\"1.0\",\"coordinate_convention\":\"2\"},"
               << std::endl;
     // P04-002: exit_codes 扩展为 numeric_code + name + string_code 三元组
     std::cout << "  \"exit_codes\": [" << std::endl;
