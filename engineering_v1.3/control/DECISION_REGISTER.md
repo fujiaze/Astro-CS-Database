@@ -17,3 +17,11 @@
 - **验证结果**: 修复后 6/6 帧通过 B 层硬 Gate（p68 均值 0.158 px，远低于 0.75 px 门限）
 - **后续**: 进入 P11-005 PlateSolve 710 全量回归测试
 - **证据**: `evidence/P11-004/P11_004_DECISION.md` + `reports/gate_v2_post_repair/batch_summary.json`
+
+## ADR-P11-005-OUTCOME — 2026-07-28
+- **Outcome**: IPV_SOLVER_VERIFIED_BY_USER
+- **回归结果**: 710帧全量回归 709/710 success (99.86%), 1帧solve_failed (Galaxy_Center OIII), 1帧wcs_check_fail (NGC1727 OIII, RMS=0.127"良好但pointing偏差)
+- **Gate 验证**: 跳过
+- **依据**: 用户确认 ipv 求解器正确；WCS+SIP 作为管线内存块传递（不写入 FITS header 是设计如此），不需要独立 Gate 验证
+- **后续**: 进入 P11-006 更新坐标契约、CLI capabilities、provenance
+- **证据**: `evidence/P11-005/TASK_REPORT.md` + `lib/plate_solve/logs/siril_compare/ipv_p11_005_710/`

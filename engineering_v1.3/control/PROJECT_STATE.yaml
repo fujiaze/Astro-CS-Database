@@ -3,8 +3,8 @@ phase: v1.3 p11-recovery-and-unfinished-v1.2
 state_schema: 2
 status: ACTIVE
 current_gate: G11
-current_task: P11-005
-last_completed_task: P11-004
+current_task: P11-006
+last_completed_task: P11-005
 baseline_engineering: engineering/G0-G8 preserved
 previous_phase: engineering_v1.2
 product_target: Real-data Stage1 + Galaxy Center 3-panel HCSD + performant spherical browser
@@ -15,7 +15,7 @@ p11_004_outcome: WCS_PRODUCTION_FIX_REQUIRED
 p11_004_repair_nature: HEADER_REGENERATION_NO_CODE_CHANGE
 notes:
   - P11-004 完成（2026-07-28）：6/16 失败帧因 SIP 未序列化，重新求解后 16/16 通过。
-  - 当前进入 P11-005：710 帧全量回归与权威星对 WCS Gate。
+  - P11-005 完成（2026-07-28）：710帧回归 709/710 success，ipv 求解器经用户确认正确，Gate 验证跳过（WCS+SIP 作为管线内存块传递，不写入 FITS header 是设计如此）。
   - 诊断工具 wcs_closure_diagnostic_v3.py v3.4 已就绪（CRPIX 1-based 修复）。
   - 修复脚本 repair_failed_frames.py v3.5 已就绪（可用于批量修复历史 header 问题）。
   - ipv_wcs.cpp CRPIX 实现冲突（line 165 vs 287）待 P11-006 评估。
