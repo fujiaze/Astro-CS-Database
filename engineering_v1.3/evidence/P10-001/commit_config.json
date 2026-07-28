@@ -1,0 +1,52 @@
+[
+  {
+    "type": "git_add",
+    "params": {
+      "repo": ".",
+      "files": [
+        "engineering_v1.2/control/CURRENT_TASK.md",
+        "engineering_v1.2/control/MASTER_TASK_REGISTER.csv",
+        "engineering_v1.2/control/PROJECT_STATE.yaml",
+        "engineering_v1.2/evidence/P10-001/TASK_REPORT.md",
+        "engineering_v1.2/evidence/P10-001/TEST_REPORT.md",
+        "engineering_v1.2/evidence/P10-001/EVIDENCE_INDEX.md",
+        "engineering_v1.2/evidence/P10-001/REVIEW_REPORT.md",
+        "engineering_v1.2/evidence/P10-001/TESTDATA_EQUIPMENT_CATALOG.csv",
+        "engineering_v1.2/evidence/P10-001/TESTDATA_DATASET_CATALOG.csv",
+        "engineering_v1.2/evidence/P10-001/FILTER_ALIAS_MAP.json",
+        "engineering_v1.2/evidence/P10-001/DOCUMENT_FACT_CONFLICTS.md",
+        "engineering_v1.2/evidence/P10-001/scripts/extract_testdata_catalog.py",
+        "engineering_v1.2/evidence/P10-001/raw_logs/extract_testdata_catalog.log",
+        "engineering_v1.2/evidence/P10-001/raw_logs/run_extract_final.log",
+        "engineering_v1.2/evidence/P10-001/raw_logs/header_samples.json",
+        "engineering_v1.2/evidence/P10-001/commit_msg.txt",
+        "engineering_v1.2/evidence/P10-001/commit_config.json"
+      ]
+    },
+    "stop_on_error": true
+  },
+  {
+    "type": "git_commit",
+    "params": {
+      "repo": ".",
+      "message_file": "engineering_v1.2/evidence/P10-001/commit_msg.txt"
+    },
+    "stop_on_error": true
+  },
+  {
+    "type": "git_push",
+    "params": {
+      "repo": ".",
+      "remote": "origin",
+      "branch": "main",
+      "timeout_sec": 180
+    }
+  },
+  {
+    "type": "git_log",
+    "params": {
+      "repo": ".",
+      "count": 5
+    }
+  }
+]

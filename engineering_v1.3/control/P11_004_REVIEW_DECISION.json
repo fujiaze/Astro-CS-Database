@@ -1,0 +1,18 @@
+{
+  "decision_id": "ADR-P11-004-GATE-V2",
+  "date": "2026-07-28",
+  "status": "APPROVED_FOR_IMPLEMENTATION",
+  "finding": "Current failure is not sufficient evidence of a WCS production defect. The independent diagnostic changed the correspondence set by all-star kd-tree matching, so its residual distribution is not comparable to the solver RANSAC inlier RMS.",
+  "required_action": "Replace the hard gate with authoritative-correspondence external reprojection. Keep blind catalog rematching as a diagnostic-only secondary test.",
+  "wcs_patch_policy": "Do not change CD/SIP/CRPIX unless authoritative-correspondence reprojection through the serialized WCS fails.",
+  "p11_004_outcomes": [
+    "NO_CODE_CHANGE_REQUIRED",
+    "WCS_PRODUCTION_FIX_REQUIRED"
+  ],
+  "prohibited": [
+    "Use all-star nearest-neighbour p68 as the sole WCS gate",
+    "Use internal solver RMS alone without external WCS reprojection",
+    "Patch Photometric locally to compensate coordinates",
+    "Change CRPIX/CD/SIP based only on current kd-tree report"
+  ]
+}

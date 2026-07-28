@@ -1,0 +1,149 @@
+# MANIFEST
+
+- Package: AstroCS_Recovery_Development_Pack_v1.3
+- Version: 1.3.0
+- Files: 133
+- Tasks: 50
+- Start prompt chars: 66
+
+## Key recovery additions
+
+- P11-004 review decision and Gate v2
+- authoritative inlier pair contract
+- v1.2 progress migration tool
+- original review bundle embedded
+- all unfinished v1.2 tasks retained
+
+## File list
+
+- `AUTONOMOUS_ENTRY.md` — 2959 bytes — `41b64644a88b4b09392162b27394442d6ef71d35ca0fd3f9ca32656dedaa78ac`
+- `PACKAGE_VERSION.txt` — 6 bytes — `64d23f858ef51b0f996e4966d4e27c0371b437e2d2787890b1f7ad22d4ec5663`
+- `README.md` — 1157 bytes — `df7069c7e8e617d8133a6db6ce2d51843d5ca05769f7ae2ab020039371bf177a`
+- `START_PROMPT.txt` — 139 bytes — `ebae33900e799f0046236c72f3a2b5e936c3b812ad4bdc45eee250fc7bcb32bc`
+- `agent/BLOCKED_PROTOCOL.md` — 568 bytes — `5e0569f007c6832e378e206cb3d7e52dc78b322dd75364aaffb4e326a3a7ba73`
+- `agent/EVIDENCE_AND_REPORTING_RULES.md` — 537 bytes — `ab2fb752b9b3e0e6844fd1081aef0655f1ecb5357e321ac15454f08a668b09a6`
+- `agent/MASTER_AGENT_INSTRUCTIONS.md` — 1913 bytes — `89de7f1a14ee7cb3f5834a8d9b18d3358c60fe01e2edcca1f62fcf3b05a8332f`
+- `agent/PARALLELIZATION_AND_DEPENDENCY_RULES.md` — 1019 bytes — `ec2af540a2a0ec77c057704cc40b9dae2ec3df5d5e934d6a10f3137c4b7a3e50`
+- `agent/REVIEW_AGENT_INSTRUCTIONS.md` — 837 bytes — `d95bccfeaefb55587cd463fc7e425fd1cd97de5bec37135434e9a499cbcc476e`
+- `agent/SESSION_RESUME.md` — 345 bytes — `168f662dda2ca85c56b60dbc5680d03da0538dbb7a4c94620c63433e3fcd4355`
+- `agent/TASK_EXECUTION_PROTOCOL.md` — 619 bytes — `24a1d379d7de2728e1ec61eac5deff2ec10b661615a908a9f48f13985907510a`
+- `checklists/BROWSER_PERFORMANCE.md` — 269 bytes — `a66e6f01e19f18bfc369e923654ac97b25b3ede62dea4edf8460ac9ecbe9ce76`
+- `checklists/G10_TESTDATA_AND_CALIBRATION.md` — 233 bytes — `393d07d261b15052b0bc898c2c56bd4408dee0cc1f24c6a34a9c4945423e99a9`
+- `checklists/G11_WCS_AND_PHOTOMETRY.md` — 240 bytes — `ab5daebe27a12c5253be6076342fc87eca7861edf13a514242b1576b56f5eaf1`
+- `checklists/G12_STAGE1_SCIENCE.md` — 190 bytes — `b261bf7712da485970c082b680b798dd7d484cb310bfa11f358dcfaaa29e6f5c`
+- `checklists/G13_GALAXY_CENTER_MOSAIC.md` — 311 bytes — `9e44db46d42c612e2387c0b6a312b518480681945e2a74c67b5fc0da669bbe2d`
+- `checklists/G14_BROWSER_IO_ASYNC.md` — 266 bytes — `baf119f3e83c138c6a858be0b51deb36d8a81131efb8581a8db19dcdecfbb633`
+- `checklists/G15_BROWSER_GPU.md` — 217 bytes — `c407ca195f6879fbce0e48aeaad3c5c2cd91ce87aa798ca14737d7b8f50f766e`
+- `checklists/G16_RELEASE_AND_HANDOVER.md` — 233 bytes — `f5c7d16eb8d13ba5dfced558ec579dd419b1ab2358edf669ff5cd80b6a6805fc`
+- `checklists/G9_BASELINE.md` — 196 bytes — `f284bff7c5f4878895730e35e477c6ebd735b44b7a802ed2b6b02ea9bad69c82`
+- `checklists/P11_WCS_GATE_V2.md` — 489 bytes — `9369637979ba072b55f4baf43d15541e2c52dfcb18c091da63d51ceb43bbc7a9`
+- `checklists/SCIENTIFIC_EVIDENCE.md` — 220 bytes — `315777821c341b18d973db16f5d236421b394f531596da25b0def30adacd7e1e`
+- `checklists/TASK_ENTRY.md` — 219 bytes — `7e42052a153df4e49dff08057a2c8e488a9f909a6821a1df653b39148468e210`
+- `contracts/FILTER_ALIAS_MAP.template.json` — 457 bytes — `06bc9b38e9522d1bfe1386fed6db6dc35f57cf070f63b495865e011114b1b8f5`
+- `contracts/browser_performance_report.schema.json` — 747 bytes — `0b272f5d352ee7aad68230ffb57c298e18556f8e70c48df6b278bcd214a228ee`
+- `contracts/calibration_resolution.schema.json` — 864 bytes — `ca2ba730e2dbf9ad0c2796bf83db53868c8ddef35ecf1726b62360e6185ee8fb`
+- `contracts/mosaic_overlap_graph.schema.json` — 700 bytes — `8fba07454980176748b02e9a01f06fa2dd701e016d5de47f67b4b101f4f2e1fe`
+- `contracts/photometry_report.schema.json` — 950 bytes — `bec42dcde84478b1d23f17323d5e1b15d416c3eb16c3163c2368ba5b8b8b9515`
+- `contracts/telescope_system_profile.schema.json` — 1364 bytes — `4ae3a7e618fa71775a1d81d520543d0f7219db9e3f2228e59c1af8e3188992ab`
+- `contracts/wcs_authoritative_pairs.schema.json` — 2176 bytes — `b0422ec8b7f613fbc889e729cba2ba974ba7ddcce2cef27b97314bc4bedaa8ef`
+- `contracts/wcs_closure_report.schema.json` — 786 bytes — `ae55c5b962444cf63d0e87fe6fa6b7875901a16db62d391990296d3e612ae0cc`
+- `control/BASELINE_FACTS.md` — 781 bytes — `e3df140a9657c1bc91af1b3fb8c565beefcefd899c262f8e4bbf62c1bf77994a`
+- `control/CURRENT_TASK.md` — 142 bytes — `09451d830e475b0dc8333194120aa7ed431f328abbc30fba2f30b4b90c951f4e`
+- `control/DECISION_REGISTER.md` — 599 bytes — `b67d9690db7e7fc4366f449a6ed96cdfd9aba35cf37bffb03c2efff654e6626e`
+- `control/MASTER_TASK_REGISTER.csv` — 4468 bytes — `232638f69852e2b0df4c10e09165d65a568467ce9ad5ec77295dfc5e7ae2676a`
+- `control/P11_004_REVIEW_DECISION.json` — 1043 bytes — `f80c94bd7e02ab7f83fd22c8a7368a0e956b692778ecb5e572f552121c4465bc`
+- `control/PROJECT_STATE.yaml` — 753 bytes — `5b1cc0e1305c621219458bb3126ade5719c35dadccacba33cdf341f872a9faad`
+- `control/REQUIREMENTS_TRACEABILITY.csv` — 903 bytes — `dd57daa6b0f5bc95655aa8984c86851229e3b5ff0155b06de9fbb752cada9eff`
+- `control/RISK_REGISTER.csv` — 827 bytes — `ab2d10e9b0a0935f97a51641c39aae98812a6869a6ce1ab1254b9a2b5e6d62f7`
+- `docs/00_PHASE_GOAL_AND_BOUNDARIES.md` — 870 bytes — `601fd9229180bfd8e2848bcd9cc0006f512045bc4bf7014c07d856ad3f7186e5`
+- `docs/01_V11_AUDIT_CORRECTION.md` — 621 bytes — `b4a78af36ce3d753f0d47cf138d69a9504a4b461f53e609015a62f308af725b4`
+- `docs/02_PLATESOLVE_SHARED_DETECTION_MAINLINE_STATUS.md` — 705 bytes — `159b166969c8bf1184b5fd8c9202e8bb9eca37a9ddc76a80987ebb0c0f6064f8`
+- `docs/03_TESTDATA_T1_T4_INVENTORY_SPEC.md` — 673 bytes — `fda1181c556ebf71f96b61d41dfb6d60a29c06e3140c622cf93873ac99a8d0be`
+- `docs/04_CALIBRATION_MASTER_RESOLUTION_SPEC.md` — 792 bytes — `c872556d9e9504bf41e896e0d8aae748be34fb49d8f9b22542ffd3f28c35596f`
+- `docs/05_WCS_COORDINATE_CONVENTION_AND_CLOSURE_SPEC.md` — 2229 bytes — `eb56fec08094d8eaf5050a4cbab7d0246f9483bf95ebae7818fa18be84add3d7`
+- `docs/06_PHOTOMETRY_CORRECTION_SPEC.md` — 982 bytes — `af66b50666d5b6e40a06c85fbed71f7e373a7fe5e7fd54e9027dcbcbcabc38ca`
+- `docs/07_SNR_AND_HISS_PROVENANCE_SPEC.md` — 620 bytes — `0b0837633cc2cd018ae6aace2ff3b1d0f8981b205964de5bff8c3b8becef6fe2`
+- `docs/08_STAGE1_REAL_DATA_FULL_VALIDATION_SPEC.md` — 487 bytes — `c6b35f3606d5262c2bad3b777dea1fc78cf028e3e92dd8bd4b90f6d5a80b6536`
+- `docs/09_GALAXY_CENTER_THREE_PANEL_MOSAIC_SPEC.md` — 561 bytes — `a0a791d105ff5cfca585af1553d2dfef5049b0fac3537be37e4b0b2e580a9aff`
+- `docs/10_SPHERICAL_GRADIENT_SCIENTIFIC_VALIDATION_SPEC.md` — 825 bytes — `9db674f414cfd35fa36a59f438bf0ebdf7060a359416686f24001856482aeb30`
+- `docs/11_STACKING_AND_HCSD_QUALITY_SPEC.md` — 650 bytes — `f4dcc3a376c4a213b89ad721d54d724dfa2b77221f9543f23567060e63cc518b`
+- `docs/12_BROWSER_PERFORMANCE_BASELINE_SPEC.md` — 542 bytes — `19ff1b9781be4d424c279fbefb3fe3dfad283204b905512385e4bc755f236c8a`
+- `docs/13_BROWSER_IO_ASYNC_TILE_CACHE_SPEC.md` — 609 bytes — `d408b596b0bc04ed367463a157074d5215d640f3dda1cbbb8dd5ae85ee76c0e3`
+- `docs/14_BROWSER_GPU_TILE_RENDERER_SPEC.md` — 605 bytes — `a21dd07bf6cdb2718dada8df03e05036a9ca8948b641515e9d76f225d1565457`
+- `docs/15_HCSD_LOD_AND_FORMAT_EVOLUTION_SPEC.md` — 483 bytes — `53cbf4e758ccb417e06b01c55c42d0fd5fd3b47597cec01efac001df811e5c6c`
+- `docs/16_BROWSER_VISUAL_ACCEPTANCE_SPEC.md` — 654 bytes — `62a51eb300200d758df8a3d0ee5b6f8f6dd9e6de693a0a865c81b64331d99400`
+- `docs/17_TEST_ARCHITECTURE_AND_FULL_REGRESSION.md` — 551 bytes — `91ee5e59a62a85673a5b1ecac4f923052acf39be72c18d2cf22e99f84e28fc2e`
+- `docs/18_CODE_CHANGE_MAP.md` — 835 bytes — `312e5dacd25ecfecf8d63170a9292c7b649f76e2b79a815f9e690b85045612aa`
+- `docs/19_ROADMAP_GATES_AND_PARALLEL_PLAN.md` — 577 bytes — `738e72e6831cd2a574f098b42015519ea94d6b1237da68da64b4ae8c985bb766`
+- `docs/20_USER_RESULT_DELIVERY_SPEC.md` — 546 bytes — `dd1282cdb8d0b2fdd1f627b14915320e386e9b18bf6fee4893c97ba5bc693b82`
+- `docs/21_PHOTOMETRY_AND_GALAXY_CENTER_DISCUSSION_PLAN.md` — 8882 bytes — `4f0cea419f7531afc31dbba880149a2f39880598633f1ad09f5b3c6874db28a1`
+- `docs/22_BROWSER_OPTIMIZATION_DISCUSSION_PLAN.md` — 11119 bytes — `9af48077a1627c544cd0ef44bf659a52a58f2dd07ddb407448f42d8f6e7ebe9a`
+- `docs/23_P11_004_REVIEW_DECISION.md` — 1807 bytes — `6f2bede2aa8988a46b5a351af85ab4ac13729f3b8447ce54b6ae994f91652fc9`
+- `docs/24_WCS_VALIDATION_V2_SPEC.md` — 2209 bytes — `551087c4a685de040ef6207a60852bfa8378edfc5f7f15e755e7bcc10076bfa6`
+- `docs/25_AUTHORITATIVE_MATCH_PAIR_CONTRACT.md` — 1107 bytes — `20eb1356d1559455ee86e468c23aed1d29633faf97d9f9374fc3e05ea1527ddf`
+- `docs/26_P11_RECOVERY_RUNBOOK.md` — 1027 bytes — `bf26c141fe3ced20416ac30b5f80a196cea6cf3dc12b9dffedcebcd19f89438c`
+- `docs/27_PROGRESS_MIGRATION_SPEC.md` — 603 bytes — `88e9108539ab2eb3d0a3d27c3ec83cc06b2f0491e7f17281fae715307799786f`
+- `docs/28_UNFINISHED_SCOPE_MATRIX.md` — 695 bytes — `94ce25f7d1c35be8c7d790188fa86d96011f32b3097921d7b52cd4376a6a598a`
+- `evidence/README.md` — 175 bytes — `6848f696afa042da21f5f4155f686cfba7cc5e745cbdcfbd02c301aca05eb906`
+- `review_inputs/P11-004_review_bundle.zip` — 39971048 bytes — `f3562ff6cd7f9c6da92dc5bbe53e7bc3a4074584bd4d10641a3d170534e2938a`
+- `tasks/P09-001.md` — 992 bytes — `c831810db64ec3058bce504f2173dd881a11d3fd560c5fa1d5d5a7f606f51180`
+- `tasks/P09-002.md` — 1074 bytes — `0eeb924e49e0f3137d50cb60058e5603f597966ef2c77997b77fa122e337fa26`
+- `tasks/P09-003.md` — 1031 bytes — `8e5212d03ba6ea72763a1c0e022351f2a18bb83823c38311b3f22662f8bfd9cc`
+- `tasks/P10-001.md` — 962 bytes — `8cb463cb0e80b6b8b573941427a82cc7ae7c8edbfc20283169f56ce11f854051`
+- `tasks/P10-002.md` — 932 bytes — `ca8a204741e580aa62b36d87802d792c4b3a29ab2368384654ff5d35fc0c433a`
+- `tasks/P10-003.md` — 947 bytes — `dc38b3b0c073232dcfe3a9eda7c788753f95d8966c70f60de1a627eb09d9bf4d`
+- `tasks/P10-004.md` — 956 bytes — `ff4c33e08670d0791aa5edd309891de3326d90759f582fd533c8cf981faf14ae`
+- `tasks/P10-005.md` — 1001 bytes — `f473f0f3838d7ba93e54f9a2c621c00b4172fb06911c0f7866f3dd3969c73a5c`
+- `tasks/P10-006.md` — 951 bytes — `cac0e783514ffe24797fbf919503e07dcd32a95495559e1943beeb272f59f12d`
+- `tasks/P11-001.md` — 958 bytes — `e6f8d33add13b69ea3ed3cb406b8b9c46e3bd7152a6247cd926cb8cc9bc8e5ff`
+- `tasks/P11-002.md` — 1000 bytes — `d5f9b6b42b38d3c224a1414fbb1f4c793971996557e49f0bfeb661cd79c32073`
+- `tasks/P11-003.md` — 955 bytes — `e0454c1ae5c2c079175d2bf1c4a7cddde22ce81a7ac231392cbea8968f33660e`
+- `tasks/P11-004.md` — 1346 bytes — `ac3aa310e7621b331d30cdb80f44618a4246de726b5a1d8362761ec942d2b47c`
+- `tasks/P11-005.md` — 995 bytes — `0960a970ff87337977ff0eab00eb1256a8f815ccd15e566ce0e9e3135f4bf0ed`
+- `tasks/P11-006.md` — 949 bytes — `04ba34df91eed0e9d6a1cb71dca068896e25adfbba3904086f4faf7e41522dbf`
+- `tasks/P12-001.md` — 936 bytes — `15597c4f16e8237904ce9db4ea77f8321d243245003fd9446895188e67ce1aa9`
+- `tasks/P12-002.md` — 971 bytes — `de3de5490e9e15d4228ca792f327cad77116f8c2b910017505d8d47753cea118`
+- `tasks/P12-003.md` — 964 bytes — `189dfda16046bcb76d91a2809499659a19210606a2f8a5603b1f6870850b112a`
+- `tasks/P12-004.md` — 956 bytes — `0421d2562ba200a7ea7f225f0f00ae209dbd264143683052c85d2ced23c19093`
+- `tasks/P12-005.md` — 964 bytes — `0b5372e2db5ed4e4e7fbd5c7fae9fa8425d16b72dd867b728712d3fcdeb2718e`
+- `tasks/P12-006.md` — 926 bytes — `a747dd8b3fbdb9839b155b7fa5545682cf50355d7a4854cf22cbd6a736919e8b`
+- `tasks/P13-001.md` — 975 bytes — `2b6f0ae28b021f7a2f9c5f4e3b66481e1ca0a2159caa9f5ceee7b014b01ac951`
+- `tasks/P13-002.md` — 930 bytes — `37e7a170a77f982659ec800b86e8ccdd8d20c5e5980a8a71c6520326c5b5547b`
+- `tasks/P13-003.md` — 947 bytes — `6273cca88d815b1269aacf2de6ab63875224ef126083c5420299f25b208d975d`
+- `tasks/P13-004.md` — 880 bytes — `90607cd5da42bc01c980897b7b53a1e150f9d547ce32be46aac2f43be701258c`
+- `tasks/P14-001.md` — 955 bytes — `9cc35f06c27153a9408e6d15bfe0a69ab87e4de6eab708ff27946257266323f8`
+- `tasks/P14-002.md` — 931 bytes — `04fd778e913681fb9c262d7d57430ee3c616a3a54f63612769fd6861249f31ea`
+- `tasks/P14-003.md` — 965 bytes — `eab5b463e7df1747b91dd3336f10cbfaaccb709402766fb527d2f120fa3a690a`
+- `tasks/P14-004.md` — 973 bytes — `ffff23401946638eb8c8131cb475037164122456949001002e8416f2ce46488d`
+- `tasks/P14-005.md` — 935 bytes — `4a914040ecd00ce56824a7e4f401a6613708170996cacb8bce11784a9973a8b4`
+- `tasks/P14-006.md` — 925 bytes — `c0235b2da280b202efaee94e9068272dbfe6d72da963e97c64c802bc7208899d`
+- `tasks/P14-007.md` — 928 bytes — `bef89e314c41d47e50504c92cac25c0a649f28172bc138b107194ee7b011d754`
+- `tasks/P14-008.md` — 933 bytes — `4fe727e2be6687be18bcf04223056d5e157da671abf9d3c5700a87b2788f2551`
+- `tasks/P15-001.md` — 929 bytes — `f75d5528c9ccf086976b6a29c0bf4255236747da726241c27d1b7793d580d950`
+- `tasks/P15-002.md` — 935 bytes — `7521311a46c97029a8e65bce50886269ae3344aec40147bb98bfd3cfa8945a87`
+- `tasks/P15-003.md` — 918 bytes — `fedd4aaabd08f228d3633cd0c9041fac519addaf5bdc9160867b9fdf1a353d13`
+- `tasks/P15-004.md` — 959 bytes — `e0cd6c8871e5da1b62bfaa5585a1382f3b7b2051e176730472b1ba83d1dcea32`
+- `tasks/P15-005.md` — 904 bytes — `c680d0087cb2cb1596692818e8cfa30fbde2ce3feddfa887a16a70fff55727c3`
+- `tasks/P15-006.md` — 948 bytes — `883acc94bb8b63f99d5f39fdcf9139ab26cca7f8a39179a1627b09557cb2bca0`
+- `tasks/P15-007.md` — 927 bytes — `c5bfa1f5a3f6a01ecaa8abd659763204664e78b3ae713813141e1f9703f5e78e`
+- `tasks/P15-008.md` — 943 bytes — `6ec71b5f3059f235f76abae9e4ce8de9f8ebca83b2695c70aef37a56e0b1cffa`
+- `tasks/P16-001.md` — 924 bytes — `e1b85385e9f14b84a45a764d84ced6ad4f221cfa7b225350fe8a84a32e227019`
+- `tasks/P16-002.md` — 903 bytes — `9f65dd8b598eb2ba15815f04cd186ce43888eb171ffbf9c397d186a8ef4d85d2`
+- `tasks/P16-003.md` — 922 bytes — `415b66cc2a01e6950d1768a9e0741ea48ad68d24ec5ef701710ebf798c0daf16`
+- `tasks/P16-004.md` — 932 bytes — `218ba1c19ec80fd59e3b9361baf98c232716dd960e6cd5193cb0124314faac40`
+- `tasks/P16-005.md` — 959 bytes — `a2f7525cb05b3e26b4cda62e36c1e36e3d1cc083b8223e1468362906dafb4014`
+- `tasks/P16-006.md` — 944 bytes — `a53906795907e41178c2c531b2d7fd456397a87a67e13aff77272fb1f83ca603`
+- `tasks/P17-001.md` — 955 bytes — `eaae43ff7301b31a0d54c400088847a514bdf0e6fb667923d1a9c9647808d46e`
+- `tasks/P17-002.md` — 922 bytes — `937beac4033e2a65efddd4e7e10bb1646b8d3a806f381bb40fdcc0c5e7a07a4c`
+- `tasks/P17-003.md` — 964 bytes — `022724de1aa472e6843933d4376c4faff0dd6cf7a570f06b941684631099891a`
+- `templates/ADR.md` — 225 bytes — `6fe3a2d0c84ba50d18d5ad6b4dde8ac86f8b184c14060d59cad7cd011170a853`
+- `templates/BLOCKED_REPORT.md` — 219 bytes — `6e87c0adb9a74043e06fe2b4c1b227884857a94eeceb1b21a4b37f185701e114`
+- `templates/EVIDENCE_INDEX.md` — 219 bytes — `e98a98188b70f2947db7fac1ee243b0014a8624d5012655c62d5c6ba7d0b2bbd`
+- `templates/P11_004_DECISION.md` — 357 bytes — `645c562f64a5454b9e9142d252dff729dd6f0206aa0f384e27495ffa9debd766`
+- `templates/REVIEW_REPORT.md` — 250 bytes — `98f1d200474dcd3b241fd58aaeab4854125467a0529f491cd6046be0f5946781`
+- `templates/SESSION_CHECKPOINT.md` — 222 bytes — `7d04803ad99113abb9fee66019fa7aa85d711ac4f817090162eb081f48de282b`
+- `templates/TASK_REPORT.md` — 219 bytes — `10a5bf136e4c74cda4148f8643e6e338490d6dac9a1b0c2b0a4668dae4c5b476`
+- `templates/TEST_REPORT.md` — 219 bytes — `362a1b0622213140ee3519aa9767e34f575f65d8723c0cf298cae2687aa78a2a`
+- `tools/migrate_from_v12.py` — 3386 bytes — `6837efcaedc6384cdf1308a222338c704bc14baa11e75bf2b0b2f6cf11f8124b`
+- `tools/phase_task_controller.py` — 1389 bytes — `b03a3a5bc8fa2a12b0acc522d6ef147d43046b33a46c707bf6c58de13a32aa0f`
+- `tools/validate_pack.py` — 1612 bytes — `04b1c8fe204420b6d05971b28584c9085aaf2b9910942d9a2e6a5776fe477d51`

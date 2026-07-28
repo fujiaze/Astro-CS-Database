@@ -1,0 +1,48 @@
+[
+  {
+    "type": "git_status",
+    "params": {
+      "repo": "."
+    }
+  },
+  {
+    "type": "git_add",
+    "params": {
+      "repo": ".",
+      "files": [
+        "engineering_v1.2/control/MASTER_TASK_REGISTER.csv",
+        "engineering_v1.2/control/PROJECT_STATE.yaml",
+        "engineering_v1.2/control/CURRENT_TASK.md",
+        "engineering_v1.2/evidence/P10-002/",
+        "engineering_v1.2/evidence/P10-001/commit_run.log",
+        "engineering_v1.2/evidence/P10-001/raw_logs/run_extract.log",
+        "engineering_v1.2/evidence/P10-001/raw_logs/run_extract_v2.log",
+        "engineering_v1.2/evidence/P10-001/raw_logs/run_extract_v3.log",
+        "engineering_v1.2/evidence/P09-003/commit_run.log"
+      ]
+    }
+  },
+  {
+    "type": "git_commit",
+    "params": {
+      "repo": ".",
+      "message_file": "engineering_v1.2/evidence/P10-002/commit_msg.txt"
+    }
+  },
+  {
+    "type": "git_push",
+    "params": {
+      "repo": ".",
+      "remote": "origin",
+      "branch": "main",
+      "timeout_sec": 180
+    }
+  },
+  {
+    "type": "git_log",
+    "params": {
+      "repo": ".",
+      "count": 3
+    }
+  }
+]

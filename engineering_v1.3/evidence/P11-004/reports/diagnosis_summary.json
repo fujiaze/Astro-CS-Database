@@ -1,0 +1,56 @@
+{
+  "task": "P11-004 diagnosis",
+  "timestamp": "2026-07-28 12:14:23",
+  "total_frames": 8,
+  "n_success": 8,
+  "frames": [
+    {
+      "png": "f:\\Astro dev\\Astro CS Normalization Database\\T2_RED_LDN43_reproject.png",
+      "fits": "f:\\Astro dev\\Astro CS Normalization Database\\T2_RED_LDN43_solved.fits",
+      "frame_id": "T2_RED_LDN43",
+      "success": true
+    },
+    {
+      "png": "f:\\Astro dev\\Astro CS Normalization Database\\T2_GREEN_LDN43_reproject.png",
+      "fits": "f:\\Astro dev\\Astro CS Normalization Database\\T2_GREEN_LDN43_solved.fits",
+      "frame_id": "T2_GREEN_LDN43",
+      "success": true
+    },
+    {
+      "png": "f:\\Astro dev\\Astro CS Normalization Database\\T2_BLUE_LDN43_reproject.png",
+      "fits": "f:\\Astro dev\\Astro CS Normalization Database\\T2_BLUE_LDN43_solved.fits",
+      "frame_id": "T2_BLUE_LDN43",
+      "success": true
+    },
+    {
+      "png": "f:\\Astro dev\\Astro CS Normalization Database\\T2_HA_LDN43_reproject.png",
+      "fits": "f:\\Astro dev\\Astro CS Normalization Database\\T2_HA_LDN43_solved.fits",
+      "frame_id": "T2_HA_LDN43",
+      "success": true
+    },
+    {
+      "png": "f:\\Astro dev\\Astro CS Normalization Database\\T3_RED_NGC55_reproject.png",
+      "fits": "f:\\Astro dev\\Astro CS Normalization Database\\T3_RED_NGC55_solved.fits",
+      "frame_id": "T3_RED_NGC55",
+      "success": true
+    },
+    {
+      "png": "f:\\Astro dev\\Astro CS Normalization Database\\T3_GREEN_NGC55_reproject.png",
+      "fits": "f:\\Astro dev\\Astro CS Normalization Database\\T3_GREEN_NGC55_solved.fits",
+      "frame_id": "T3_GREEN_NGC55",
+      "success": true
+    },
+    {
+      "png": "f:\\Astro dev\\Astro CS Normalization Database\\T3_BLUE_NGC55_reproject.png",
+      "fits": "f:\\Astro dev\\Astro CS Normalization Database\\T3_BLUE_NGC55_solved.fits",
+      "frame_id": "T3_BLUE_NGC55",
+      "success": true
+    },
+    {
+      "png": "f:\\Astro dev\\Astro CS Normalization Database\\T3_LUM_NGC55_reproject.png",
+      "fits": "f:\\Astro dev\\Astro CS Normalization Database\\T3_LUM_NGC55_solved.fits",
+      "frame_id": "T3_LUM_NGC55",
+      "success": true
+    }
+  ]
+}

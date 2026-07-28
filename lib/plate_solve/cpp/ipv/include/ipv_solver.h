@@ -94,6 +94,39 @@ void extract_wcs_sip(
     Logger* logger = nullptr
 );
 
+// ---------------------------------------------------------------------------
+// P11-004 v1.3: 求解器权威 inlier 缓存 (供 WCS Gate v2 双层闭环使用)
+//
+// 在 solve()/solve_from_memory()/solve_post_select() 末尾填充,
+// 通过 C API (ipv_get_last_inlier_count / ipv_get_last_inliers) 导出,
+// 用于 wcs_closure_diagnostic.py 的 --authoritative-pairs 模式。
+//
+// 字段对应 25_AUTHORITATIVE_MATCH_PAIR_CONTRACT.md 契约:
+//   matched     - 最终 inlier 匹配对 (u 索引指向 U_snapshot, w 索引指向 gaia_ra/dec)
+//   U_snapshot  - 求解用图像侧星点 (像素坐标, 原点图像中心, Y 轴向上)
+//                 若 robust_refine 应用, 为 selection.U_full, 否则为 selection.U
+//   gaia_ra/dec - Gaia 星原始 (RA, Dec) 度, 与 W 一一对应
+//   trans       - 最终 TRANS (用于内部预测)
+//   s0          - 像素尺度 (角秒/像素)
+//   img_w/h     - 图像尺寸
+//   ra0/dec0    - 收敛后中心 (度)
+//   robust_applied - 是否应用了 robust_refine_wcs (影响 u 索引空间)
+// ---------------------------------------------------------------------------
+struct SolveInlierCache {
+    std::vector<MatchPair>  matched;
+    std::vector<StarPoint>  U_snapshot;
+    std::vector<double>     gaia_ra;
+    std::vector<double>     gaia_dec;
+    Trans                   trans;
+    double                  s0 = 0.0;
+    double                  ra0 = 0.0;
+    double                  dec0 = 0.0;
+    int                     img_width = 0;
+    int                     img_height = 0;
+    bool                    robust_applied = false;
+    bool                    valid = false;
+};
+
 // ===========================================================================
 // IPVSolver 主类
 // V4.19: 统一求解 (无 flip_mode 区分)
@@ -177,6 +210,33 @@ public:
         WcsFitResult* result
     );
 
+    // ========================================================================
+    // P11-004 v1.3: 权威 inlier 导出接口 (供 WCS Gate v2 双层闭环)
+    //
+    // 用途: 在 solve_* 之后调用, 获取求解器内部最终 inlier 对应关系,
+    //       避免外部诊断工具用 kd-tree 重新匹配导致误配。
+    // 详见 docs/24_WCS_VALIDATION_V2_SPEC.md 与 docs/25_AUTHORITATIVE_MATCH_PAIR_CONTRACT.md
+    // ========================================================================
+
+    // 获取最后一次成功求解的 inlier 数量
+    // 返回 0 表示无缓存或求解失败
+    int get_last_inlier_count() const;
+
+    // 获取最后一次成功求解的 inlier 详细数据
+    // 输出 out_buffer: 调用方分配的缓冲区, 大小 = max_count * 9 个 double
+    // 每行 9 个 double 字段:
+    //   [0] det_x_px      - 检测器 x (像素, 图像中心原点, Y 轴向上)
+    //   [1] det_y_px      - 检测器 y
+    //   [2] gaia_ra_deg   - Gaia RA (度)
+    //   [3] gaia_dec_deg  - Gaia Dec (度)
+    //   [4] pred_x_px     - 内部 TRANS 预测 x (像素, 经 s0 缩放)
+    //   [5] pred_y_px     - 内部 TRANS 预测 y
+    //   [6] residual_x_px - 残差 x = det_x - pred_x (像素)
+    //   [7] residual_y_px - 残差 y = det_y - pred_y
+    //   [8] residual_dist_px - 残差距离 sqrt(res_x² + res_y²)
+    // 返回实际写入的行数 (<= max_count), <0 表示错误
+    int get_last_inliers(double* out_buffer, int max_count) const;
+
 private:
     // P02-002: 选星后通用求解流程 (triangle_match → iter_trans →
     //          iterative_reproject → hi_order_rematch → robust_refine → extract_wcs_sip)
@@ -189,10 +249,26 @@ private:
         WcsFitResult* result
     );
 
+    // P11-004 v1.3: 填充 last_inliers_ 缓存 (供 get_last_inlier_* 读取)
+    // 在每次 solve_* 成功末尾调用
+    void cache_last_inliers_(
+        const std::vector<MatchPair>& matched,
+        const std::vector<StarPoint>& U_snapshot,
+        const std::vector<double>& gaia_ra,
+        const std::vector<double>& gaia_dec,
+        const Trans& trans,
+        double s0,
+        double ra0, double dec0,
+        int img_width, int img_height,
+        bool robust_applied);
+
 private:
     intptr_t gaia_handle_ = 0;
     intptr_t detector_handle_ = 0;
     Logger   logger_;
+
+    // P11-004 v1.3: 求解器最终权威 inlier 缓存
+    SolveInlierCache last_inliers_;
 };
 
 } // namespace ipv

@@ -1,0 +1,220 @@
+{
+  "tool_version": "P11-004 v3.5 (repair_failed_frames)",
+  "repair_strategy": "regenerate_fits_header_no_code_change",
+  "n_frames": 6,
+  "n_success": 6,
+  "n_failed": 0,
+  "overall_ok": true,
+  "frames": [
+    {
+      "frame_id": "T2_RED_LDN43",
+      "fits_path": "f:\\Astro dev\\Astro CS Normalization Database\\testdata\\LDN43_T2素材_flying_dutchman\\lights\\LDN43_LRGBH_flying_dutchman-20250503@032713-1200S-Red.fts",
+      "success": true,
+      "rms_px": 0.12052027773561103,
+      "rms_arcsec": 0.11667902778838188,
+      "n_pairs": 34,
+      "elapsed_sec": 1.1417922973632812,
+      "before": {
+        "has_sip_before": false,
+        "sip_order_before": 0,
+        "crpix_before": [
+          2048.0,
+          2048.0
+        ],
+        "ctype_before": [
+          "RA---TAN",
+          "DEC--TAN"
+        ]
+      },
+      "after": {
+        "has_sip_after": true,
+        "sip_order_after": 3,
+        "has_ap_after": true,
+        "ap_order_after": 3,
+        "crpix_after": [
+          2048.5,
+          2048.5
+        ],
+        "ctype_after": [
+          "RA---TAN-SIP",
+          "DEC--TAN-SIP"
+        ]
+      }
+    },
+    {
+      "frame_id": "T2_GREEN_LDN43",
+      "fits_path": "f:\\Astro dev\\Astro CS Normalization Database\\testdata\\LDN43_T2素材_flying_dutchman\\lights\\LDN43_LRGBH_flying_dutchman-20250503@034804-1200S-Green.fts",
+      "success": true,
+      "rms_px": 0.1027868037962746,
+      "rms_arcsec": 0.09951075919965956,
+      "n_pairs": 32,
+      "elapsed_sec": 1.0583844184875488,
+      "before": {
+        "has_sip_before": false,
+        "sip_order_before": 0,
+        "crpix_before": [
+          2048.0,
+          2048.0
+        ],
+        "ctype_before": [
+          "RA---TAN",
+          "DEC--TAN"
+        ]
+      },
+      "after": {
+        "has_sip_after": true,
+        "sip_order_after": 3,
+        "has_ap_after": true,
+        "ap_order_after": 3,
+        "crpix_after": [
+          2048.5,
+          2048.5
+        ],
+        "ctype_after": [
+          "RA---TAN-SIP",
+          "DEC--TAN-SIP"
+        ]
+      }
+    },
+    {
+      "frame_id": "T2_BLUE_LDN43",
+      "fits_path": "f:\\Astro dev\\Astro CS Normalization Database\\testdata\\LDN43_T2素材_flying_dutchman\\lights\\LDN43_LRGBH_flying_dutchman-20250503@040855-1200S-Blue.fts",
+      "success": true,
+      "rms_px": 0.2883216738848297,
+      "rms_arcsec": 0.2791031081893359,
+      "n_pairs": 40,
+      "elapsed_sec": 1.1076974868774414,
+      "before": {
+        "has_sip_before": false,
+        "sip_order_before": 0,
+        "crpix_before": [
+          2048.0,
+          2048.0
+        ],
+        "ctype_before": [
+          "RA---TAN",
+          "DEC--TAN"
+        ]
+      },
+      "after": {
+        "has_sip_after": true,
+        "sip_order_after": 3,
+        "has_ap_after": true,
+        "ap_order_after": 3,
+        "crpix_after": [
+          2048.5,
+          2048.5
+        ],
+        "ctype_after": [
+          "RA---TAN-SIP",
+          "DEC--TAN-SIP"
+        ]
+      }
+    },
+    {
+      "frame_id": "T2_HA_LDN43",
+      "fits_path": "f:\\Astro dev\\Astro CS Normalization Database\\testdata\\LDN43_T2素材_flying_dutchman\\lights\\LDN43_LRGBH_flying_dutchman-20250503@042947-1200S-H-alpha.fts",
+      "success": true,
+      "rms_px": 0.10763460489223405,
+      "rms_arcsec": 0.10419318245964951,
+      "n_pairs": 33,
+      "elapsed_sec": 0.9239330291748047,
+      "before": {
+        "has_sip_before": false,
+        "sip_order_before": 0,
+        "crpix_before": [
+          2048.0,
+          2048.0
+        ],
+        "ctype_before": [
+          "RA---TAN",
+          "DEC--TAN"
+        ]
+      },
+      "after": {
+        "has_sip_after": true,
+        "sip_order_after": 3,
+        "has_ap_after": true,
+        "ap_order_after": 3,
+        "crpix_after": [
+          2048.5,
+          2048.5
+        ],
+        "ctype_after": [
+          "RA---TAN-SIP",
+          "DEC--TAN-SIP"
+        ]
+      }
+    },
+    {
+      "frame_id": "T2_OIII_NGC1727",
+      "fits_path": "f:\\Astro dev\\Astro CS Normalization Database\\testdata\\NGC1727_T2_flying_dutchman\\lights\\NGC1727_RGBHO_T2_flying_dutchman-20251031@075259-1800S-OIII.fts",
+      "success": true,
+      "rms_px": 0.13009276108614534,
+      "rms_arcsec": 0.1259332795999916,
+      "n_pairs": 45,
+      "elapsed_sec": 17.451890230178833,
+      "before": {
+        "has_sip_before": false,
+        "sip_order_before": 0,
+        "crpix_before": [
+          2048.0,
+          2048.0
+        ],
+        "ctype_before": [
+          "RA---TAN",
+          "DEC--TAN"
+        ]
+      },
+      "after": {
+        "has_sip_after": true,
+        "sip_order_after": 3,
+        "has_ap_after": true,
+        "ap_order_after": 3,
+        "crpix_after": [
+          2048.5,
+          2048.5
+        ],
+        "ctype_after": [
+          "RA---TAN-SIP",
+          "DEC--TAN-SIP"
+        ]
+      }
+    },
+    {
+      "frame_id": "T3_LUM_NGC55",
+      "fits_path": "f:\\Astro dev\\Astro CS Normalization Database\\testdata\\NGC55_T3_flying_dutchman\\lights\\NGC55_T3_flying_dutchman-20250703@075400-600S-Lum.fts",
+      "success": true,
+      "rms_px": 0.14806191544936298,
+      "rms_arcsec": 0.14466311521656086,
+      "n_pairs": 31,
+      "elapsed_sec": 1.1366674900054932,
+      "before": {
+        "has_sip_before": false,
+        "sip_order_before": 0,
+        "crpix_before": [
+          2048.0,
+          2048.0
+        ],
+        "ctype_before": [
+          "RA---TAN",
+          "DEC--TAN"
+        ]
+      },
+      "after": {
+        "has_sip_after": true,
+        "sip_order_after": 3,
+        "has_ap_after": true,
+        "ap_order_after": 3,
+        "crpix_after": [
+          2048.5,
+          2048.5
+        ],
+        "ctype_after": [
+          "RA---TAN-SIP",
+          "DEC--TAN-SIP"
+        ]
+      }
+    }
+  ]
+}

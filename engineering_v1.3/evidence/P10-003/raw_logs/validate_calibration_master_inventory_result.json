@@ -1,0 +1,110 @@
+{
+  "summary": {
+    "total": 20,
+    "passed": 20,
+    "failed": 0
+  },
+  "items": [
+    {
+      "test_id": "T01",
+      "status": "PASS",
+      "detail": "P10-001 交付物齐全 (2 项)"
+    },
+    {
+      "test_id": "T02",
+      "status": "PASS",
+      "detail": "CSV 可读, 27 行"
+    },
+    {
+      "test_id": "T03",
+      "status": "PASS",
+      "detail": "行数 = 27 (T2:9 + T3:9 + T4:9)"
+    },
+    {
+      "test_id": "T04",
+      "status": "PASS",
+      "detail": "device_id 集合 = ['T2', 'T3', 'T4'] (⊆ T1-T4)"
+    },
+    {
+      "test_id": "T05",
+      "status": "PASS",
+      "detail": "master_type 集合 = ['Bias', 'Dark', 'Flat'] (无 Unknown)"
+    },
+    {
+      "test_id": "T06",
+      "status": "PASS",
+      "detail": "全部 27 行有合法 SHA-256 (64 hex)"
+    },
+    {
+      "test_id": "T07",
+      "status": "PASS",
+      "detail": "全部文件 file_size_bytes > 0"
+    },
+    {
+      "test_id": "T08",
+      "status": "PASS",
+      "detail": "全部行有 scanned_at 时间戳"
+    },
+    {
+      "test_id": "T09",
+      "status": "PASS",
+      "detail": "T2/T3/T4 各有 1 个 Bias"
+    },
+    {
+      "test_id": "T10",
+      "status": "PASS",
+      "detail": "T2 Dark exposures = [600.0, 1200.0, 1800.0]"
+    },
+    {
+      "test_id": "T11",
+      "status": "PASS",
+      "detail": "T3 Dark exposures = [600.0, 1200.0]"
+    },
+    {
+      "test_id": "T12",
+      "status": "PASS",
+      "detail": "T4 Dark exposures = [180.0, 300.0, 600.0]"
+    },
+    {
+      "test_id": "T13",
+      "status": "PASS",
+      "detail": "T2 Flats = ['Blue', 'Green', 'H-alpha', 'OIII', 'Red'] (5 项, 缺 Lum)"
+    },
+    {
+      "test_id": "T14",
+      "status": "PASS",
+      "detail": "T3 Flats = ['Blue', 'Green', 'H-alpha', 'Lum', 'Oiii', 'Red'] (6 项, 完整)"
+    },
+    {
+      "test_id": "T15",
+      "status": "PASS",
+      "detail": "T4 Flats = ['Blue', 'Green', 'H-alpha', 'Oiii', 'Red'] (5 项, 缺 Lum)"
+    },
+    {
+      "test_id": "T16",
+      "status": "PASS",
+      "detail": "全部 bin = 1 (集合 = ['1'])"
+    },
+    {
+      "test_id": "T17",
+      "status": "PASS",
+      "detail": "全部 instrument = FLI"
+    },
+    {
+      "test_id": "T18",
+      "status": "PASS",
+      "detail": "全部 27 行 4 项 match 全为 YES (0 个 NO)"
+    },
+    {
+      "test_id": "T19",
+      "status": "PASS",
+      "detail": "全部 27 个 SHA-256 唯一 (无重复)"
+    },
+    {
+      "test_id": "T20",
+      "status": "PASS",
+      "detail": "无 Unknown 类型, 无 Header 解析错误 (禁止捷径 PASS)"
+    }
+  ],
+  "exit_code": 0
+}

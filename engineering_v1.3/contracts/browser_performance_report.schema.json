@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "hardware",
+    "dataset",
+    "build",
+    "open_ms",
+    "first_frame_ms",
+    "frame_time_ms",
+    "gui_block_ms",
+    "peak_memory_mb"
+  ],
+  "properties": {
+    "hardware": {
+      "type": "object"
+    },
+    "dataset": {
+      "type": "object"
+    },
+    "build": {
+      "type": "object"
+    },
+    "open_ms": {
+      "type": "object"
+    },
+    "first_frame_ms": {
+      "type": "object"
+    },
+    "frame_time_ms": {
+      "type": "object"
+    },
+    "gui_block_ms": {
+      "type": "object"
+    },
+    "peak_memory_mb": {
+      "type": "number"
+    },
+    "cache": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,123 @@
+======================================================================
+P10-001 extract_testdata_catalog.py 启动
+REPO_ROOT = F:\Astro dev\Astro CS Normalization Database
+TESTDATA_DIR = F:\Astro dev\Astro CS Normalization Database\testdata
+OUT_DIR = F:\Astro dev\Astro CS Normalization Database\engineering_v1.2\evidence\P10-001
+======================================================================
+
+[阶段1] 发现 10 个 TestData 子目录:
+  - Galaxy_Center_T4
+  - LDN43_T2素材_flying_dutchman
+  - NGC1727_T2_flying_dutchman
+  - NGC247_T2_flying_dutchman
+  - NGC55_T3_flying_dutchman
+  - NGC83_cluster_T3_Flying_Dutchman
+  - T2 calibration files
+  - T3 calibration files
+  - T4 calibration files
+  - Victory_Nebula_T4_Flying_Dutchman
+发现 3 个校准目录: ['T2', 'T3', 'T4']
+  [文档] Galaxy_Center_T4 <- 素材信息.txt
+  [文档] LDN43_T2素材_flying_dutchman <- 素材信息与版权约定.txt
+  [文档] NGC1727_T2_flying_dutchman <- 素材信息与版权约定.txt
+  [文档] NGC247_T2_flying_dutchman <- 素材信息与版权约定.txt
+  [文档] NGC55_T3_flying_dutchman <- 素材信息与版权约定.txt
+  [文档] NGC83_cluster_T3_Flying_Dutchman <- 素材信息与版权约定.txt
+  [文档] Victory_Nebula_T4_Flying_Dutchman <- 素材信息与版权约定.txt
+
+[阶段4] 读取 FITS Header (每个 Light 子目录采样)
+  [Header] Galaxy_Center_T4/panel1/Red: filter=Red exp=180.0 size=4500x3600 camera=FLI
+  [Header] Galaxy_Center_T4/panel1/Green: filter=Green exp=180.0 size=4500x3600 camera=FLI
+  [Header] Galaxy_Center_T4/panel1/Blue: filter=Blue exp=180.0 size=4500x3600 camera=FLI
+  [Header] Galaxy_Center_T4/panel1/H-alpha: filter=H-alpha exp=300.0 size=4500x3600 camera=FLI
+  [Header] Galaxy_Center_T4/panel1/Oiii: filter=Oiii exp=600.0 size=4500x3600 camera=FLI
+  [Header] Galaxy_Center_T4/panel2/Red: filter=Red exp=180.0 size=4500x3600 camera=FLI
+  [Header] Galaxy_Center_T4/panel2/Green: filter=Green exp=180.0 size=4500x3600 camera=FLI
+  [Header] Galaxy_Center_T4/panel2/Blue: filter=Blue exp=180.0 size=4500x3600 camera=FLI
+  [Header] Galaxy_Center_T4/panel2/H-alpha: filter=H-alpha exp=300.0 size=4500x3600 camera=FLI
+  [Header] Galaxy_Center_T4/panel2/Oiii: filter=Oiii exp=600.0 size=4500x3600 camera=FLI
+  [Header] Galaxy_Center_T4/panel3/Red: filter=Red exp=180.0 size=4500x3600 camera=FLI
+  [Header] Galaxy_Center_T4/panel3/Green: filter=Green exp=180.0 size=4500x3600 camera=FLI
+  [Header] Galaxy_Center_T4/panel3/Blue: filter=Blue exp=180.0 size=4500x3600 camera=FLI
+  [Header] Galaxy_Center_T4/panel3/H-alpha: filter=H-alpha exp=300.0 size=4500x3600 camera=FLI
+  [Header] Galaxy_Center_T4/panel3/Oiii: filter=Oiii exp=600.0 size=4500x3600 camera=FLI
+  [Header] LDN43_T2素材_flying_dutchman//Lum: filter=Lum exp=600.0 size=4096x4096 camera=FLI
+  [Header] LDN43_T2素材_flying_dutchman//Red: filter=Red exp=1200.0 size=4096x4096 camera=FLI
+  [Header] LDN43_T2素材_flying_dutchman//Green: filter=Green exp=1200.0 size=4096x4096 camera=FLI
+  [Header] LDN43_T2素材_flying_dutchman//Blue: filter=Blue exp=1200.0 size=4096x4096 camera=FLI
+  [Header] LDN43_T2素材_flying_dutchman//H-alpha: filter=H-alpha exp=1200.0 size=4096x4096 camera=FLI
+  [Header] NGC1727_T2_flying_dutchman//Red: filter=Red exp=600.0 size=4096x4096 camera=FLI
+  [Header] NGC1727_T2_flying_dutchman//Green: filter=Green exp=600.0 size=4096x4096 camera=FLI
+  [Header] NGC1727_T2_flying_dutchman//Blue: filter=Blue exp=600.0 size=4096x4096 camera=FLI
+  [Header] NGC1727_T2_flying_dutchman//OIII: filter=OIII exp=1800.0 size=4096x4096 camera=FLI
+  [Header] NGC1727_T2_flying_dutchman//H-alpha: filter=H-alpha exp=1200.0 size=4096x4096 camera=FLI
+  [Header] NGC247_T2_flying_dutchman//Lum: filter=Lum exp=600.0 size=4096x4096 camera=FLI
+  [Header] NGC247_T2_flying_dutchman//Red: filter=Red exp=600.0 size=4096x4096 camera=FLI
+  [Header] NGC247_T2_flying_dutchman//Green: filter=Green exp=600.0 size=4096x4096 camera=FLI
+  [Header] NGC247_T2_flying_dutchman//Blue: filter=Blue exp=600.0 size=4096x4096 camera=FLI
+  [Header] NGC247_T2_flying_dutchman//H-alpha: filter=H-alpha exp=1200.0 size=4096x4096 camera=FLI
+  [Header] NGC247_T2_flying_dutchman//OIII: filter=OIII exp=1200.0 size=4096x4096 camera=FLI
+  [Header] NGC55_T3_flying_dutchman//Red: filter=Red exp=600.0 size=4096x4096 camera=FLI
+  [Header] NGC55_T3_flying_dutchman//Green: filter=Green exp=600.0 size=4096x4096 camera=FLI
+  [Header] NGC55_T3_flying_dutchman//Blue: filter=Blue exp=600.0 size=4096x4096 camera=FLI
+  [Header] NGC55_T3_flying_dutchman//H-alpha: filter=H-alpha exp=1200.0 size=4096x4096 camera=FLI
+  [Header] NGC55_T3_flying_dutchman//Oiii: filter=Oiii exp=1200.0 size=4096x4096 camera=FLI
+  [Header] NGC55_T3_flying_dutchman//Lum: filter=Lum exp=600.0 size=4096x4096 camera=FLI
+  [Header] NGC83_cluster_T3_Flying_Dutchman//Red: filter=Red exp=600.0 size=4096x4096 camera=FLI
+  [Header] NGC83_cluster_T3_Flying_Dutchman//Green: filter=Green exp=600.0 size=4096x4096 camera=FLI
+  [Header] NGC83_cluster_T3_Flying_Dutchman//Blue: filter=Blue exp=600.0 size=4096x4096 camera=FLI
+  [Header] NGC83_cluster_T3_Flying_Dutchman//Lum: filter=Lum exp=600.0 size=4096x4096 camera=FLI
+  [Header] Victory_Nebula_T4_Flying_Dutchman/panel1/Lum: filter=Lum exp=180.0 size=4500x3600 camera=FLI
+  [Header] Victory_Nebula_T4_Flying_Dutchman/panel1/Red: filter=Red exp=180.0 size=4500x3600 camera=FLI
+  [Header] Victory_Nebula_T4_Flying_Dutchman/panel1/Green: filter=Green exp=180.0 size=4500x3600 camera=FLI
+  [Header] Victory_Nebula_T4_Flying_Dutchman/panel1/Blue: filter=Blue exp=180.0 size=4500x3600 camera=FLI
+  [Header] Victory_Nebula_T4_Flying_Dutchman/panel2/Lum: filter=Lum exp=180.0 size=4500x3600 camera=FLI
+  [Header] Victory_Nebula_T4_Flying_Dutchman/panel2/Red: filter=Red exp=180.0 size=4500x3600 camera=FLI
+  [Header] Victory_Nebula_T4_Flying_Dutchman/panel2/Green: filter=Green exp=180.0 size=4500x3600 camera=FLI
+  [Header] Victory_Nebula_T4_Flying_Dutchman/panel2/Blue: filter=Blue exp=180.0 size=4500x3600 camera=FLI
+
+[阶段5] 读取 XISF Header (校准文件)
+  [XISF] T2/masterBias_BIN-1_4096x4096.xisf: filter= size= error=
+  [XISF] T2/masterDark_BIN-1_4096x4096_EXPOSURE-1200.00s.xisf: filter= size= error=
+  [XISF] T2/masterDark_BIN-1_4096x4096_EXPOSURE-1800.00s.xisf: filter= size= error=
+  [XISF] T2/masterDark_BIN-1_4096x4096_EXPOSURE-600.00s.xisf: filter= size= error=
+  [XISF] T2/masterFlat_BIN-1_4096x4096_FILTER-Blue_mono.xisf: filter= size= error=
+  [XISF] T2/masterFlat_BIN-1_4096x4096_FILTER-Green_mono.xisf: filter= size= error=
+  [XISF] T2/masterFlat_BIN-1_4096x4096_FILTER-H-alpha_mono.xisf: filter= size= error=
+  [XISF] T2/masterFlat_BIN-1_4096x4096_FILTER-OIII_mono.xisf: filter= size= error=
+  [XISF] T2/masterFlat_BIN-1_4096x4096_FILTER-Red_mono.xisf: filter= size= error=
+  [XISF] T3/masterBias_BIN-1_4096x4096.xisf: filter= size= error=
+  [XISF] T3/masterDark_BIN-1_4096x4096_EXPOSURE-1200.00s.xisf: filter= size= error=
+  [XISF] T3/masterDark_BIN-1_4096x4096_EXPOSURE-600.00s.xisf: filter= size= error=
+  [XISF] T3/masterFlat_BIN-1_4096x4096_FILTER-Blue_mono.xisf: filter= size= error=
+  [XISF] T3/masterFlat_BIN-1_4096x4096_FILTER-Green_mono.xisf: filter= size= error=
+  [XISF] T3/masterFlat_BIN-1_4096x4096_FILTER-H-alpha_mono.xisf: filter= size= error=
+  [XISF] T3/masterFlat_BIN-1_4096x4096_FILTER-Lum_mono.xisf: filter= size= error=
+  [XISF] T3/masterFlat_BIN-1_4096x4096_FILTER-Oiii_mono.xisf: filter= size= error=
+  [XISF] T3/masterFlat_BIN-1_4096x4096_FILTER-Red_mono.xisf: filter= size= error=
+  [XISF] T4/masterBias_BIN-1_4500x3600.xisf: filter= size= error=
+  [XISF] T4/masterDark_BIN-1_4500x3600_EXPOSURE-180.00s.xisf: filter= size= error=
+  [XISF] T4/masterDark_BIN-1_4500x3600_EXPOSURE-300.00s.xisf: filter= size= error=
+  [XISF] T4/masterDark_BIN-1_4500x3600_EXPOSURE-600.00s.xisf: filter= size= error=
+  [XISF] T4/masterFlat_BIN-1_4500x3600_FILTER-Blue_mono.xisf: filter= size= error=
+  [XISF] T4/masterFlat_BIN-1_4500x3600_FILTER-Green_mono.xisf: filter= size= error=
+  [XISF] T4/masterFlat_BIN-1_4500x3600_FILTER-H-alpha_mono.xisf: filter= size= error=
+  [XISF] T4/masterFlat_BIN-1_4500x3600_FILTER-Oiii_mono.xisf: filter= size= error=
+  [XISF] T4/masterFlat_BIN-1_4500x3600_FILTER-Red_mono.xisf: filter= size= error=
+
+[阶段7] 写出 TESTDATA_EQUIPMENT_CATALOG.csv
+[阶段8] 写出 TESTDATA_DATASET_CATALOG.csv
+[阶段9] 写出 FILTER_ALIAS_MAP.json
+[阶段10] 写出 DOCUMENT_FACT_CONFLICTS.md
+[阶段11] 写出 extract_testdata_catalog.log
+[阶段12] 写出 header_samples.json
+
+======================================================================
+P10-001 数据提取完成
+  设备档案: F:\Astro dev\Astro CS Normalization Database\engineering_v1.2\evidence\P10-001\TESTDATA_EQUIPMENT_CATALOG.csv
+  数据集清单: F:\Astro dev\Astro CS Normalization Database\engineering_v1.2\evidence\P10-001\TESTDATA_DATASET_CATALOG.csv
+  滤镜别名映射: F:\Astro dev\Astro CS Normalization Database\engineering_v1.2\evidence\P10-001\FILTER_ALIAS_MAP.json
+  冲突报告: F:\Astro dev\Astro CS Normalization Database\engineering_v1.2\evidence\P10-001\DOCUMENT_FACT_CONFLICTS.md
+  冲突数: 1
+  硬门限: PASS
+======================================================================

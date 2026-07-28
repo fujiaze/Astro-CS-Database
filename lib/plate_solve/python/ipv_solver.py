@@ -21,6 +21,9 @@ from ctypes import (
     Structure, POINTER, byref, CFUNCTYPE
 )
 
+# P11-004 v1.3: get_last_inliers 使用 numpy 构造 (N,9) 视图
+import numpy as np
+
 # c_intptr 在部分 Python 构建中未导出，使用 c_ssize_t 替代
 # (两者均为指针大小的有符号整数，等价于 C 的 intptr_t)
 c_intptr = c_ssize_t
@@ -224,6 +227,15 @@ class IPVSolver:
         d.ipv_get_default_params.restype = None
         d.ipv_get_default_params.argtypes = [POINTER(IpvParams)]
 
+        # P11-004 v1.3: 权威 inlier 导出 API
+        # int ipv_get_last_inlier_count(void* solver)
+        d.ipv_get_last_inlier_count.restype = c_int
+        d.ipv_get_last_inlier_count.argtypes = [c_void_p]
+
+        # int ipv_get_last_inliers(void* solver, double* out_buffer, int max_count)
+        d.ipv_get_last_inliers.restype = c_int
+        d.ipv_get_last_inliers.argtypes = [c_void_p, POINTER(c_double), c_int]
+
     def set_gaia_handle(self, handle):
         """
         设置 GaiaClient 句柄
@@ -252,6 +264,58 @@ class IPVSolver:
         params = IpvParams()
         self._dll.ipv_get_default_params(byref(params))
         return params
+
+    def get_last_inlier_count(self):
+        """
+        P11-004 v1.3: 获取最后一次成功求解的权威 inlier 数量
+
+        返回:
+            int: inlier 数 (0 表示无缓存或求解失败)
+        """
+        return int(self._dll.ipv_get_last_inlier_count(self._handle))
+
+    def get_last_inliers(self, max_count=None):
+        """
+        P11-004 v1.3: 获取最后一次成功求解的权威 inlier 详细数据
+
+        用于 WCS Gate v2 双层闭环, 避免外部诊断工具用 kd-tree 重新匹配导致误配。
+        详见 docs/24_WCS_VALIDATION_V2_SPEC.md 与 docs/25_AUTHORITATIVE_MATCH_PAIR_CONTRACT.md
+
+        参数:
+            max_count: int or None, 缓冲区最大行数; None 时自动用 get_last_inlier_count()
+
+        返回:
+            numpy.ndarray, shape=(N, 9), dtype=float64
+            若无缓存或求解失败, 返回空数组 shape=(0, 9)
+            每行 9 个字段:
+                [0] det_x_px       - 检测器 x (像素, 图像中心原点, Y 轴向上)
+                [1] det_y_px       - 检测器 y
+                [2] gaia_ra_deg    - Gaia RA (度)
+                [3] gaia_dec_deg   - Gaia Dec (度)
+                [4] pred_x_px      - 内部 TRANS 预测 x (像素, 经 s0 缩放)
+                [5] pred_y_px      - 内部 TRANS 预测 y
+                [6] residual_x_px  - 残差 x = det_x - pred_x (像素)
+                [7] residual_y_px  - 残差 y = det_y - pred_y
+                [8] residual_dist_px - 残差距离 sqrt(res_x² + res_y²)
+        """
+        n = int(self._dll.ipv_get_last_inlier_count(self._handle))
+        if n <= 0:
+            return np.empty((0, 9), dtype=np.float64)
+
+        if max_count is None:
+            max_count = n
+        else:
+            max_count = min(int(max_count), n)
+
+        if max_count <= 0:
+            return np.empty((0, 9), dtype=np.float64)
+
+        buf = (c_double * (max_count * 9))()
+        ret = self._dll.ipv_get_last_inliers(self._handle, buf, max_count)
+        if ret < 0:
+            raise RuntimeError(f"ipv_get_last_inliers 调用失败 (ret={ret})")
+        arr = np.frombuffer(buf, dtype=np.float64).reshape(ret, 9).copy()
+        return arr
 
     def solve(self, image_path, ra0, dec0, focal_length_mm, pixel_size_um,
               params=None):

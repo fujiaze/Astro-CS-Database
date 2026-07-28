@@ -1,0 +1,56 @@
+======================================================================
+P10-002 generate_device_profiles.py 启动
+REPO_ROOT = F:\Astro dev\Astro CS Normalization Database
+OUT_DIR = F:\Astro dev\Astro CS Normalization Database\engineering_v1.2\evidence\P10-002
+======================================================================
+
+[加载] 设备档案: 3 行
+[加载] 数据集清单: 49 行
+[加载] Header 采样: FITS=49, XISF=27
+
+[生成] T1_DEVICE_PROFILE.json
+  status: no_data
+
+[生成] T2_DEVICE_PROFILE.json
+  status: active
+  telescope: Chilescope T2 （ASA 500N）, 焦距1900mm
+  aperture: 500mm
+  focal_length: 1900mm
+  camera: FLI Proline 16803
+  image_size: 4096x4096
+  filter_set: ['Blue', 'Green', 'H-alpha', 'Lum', 'OIII', 'Red']
+  total_lights: 174
+  calib_files: 9
+  WARNING missing_flats: ['Lum']
+
+[生成] T3_DEVICE_PROFILE.json
+  status: active
+  telescope: Chilescope T3（ASA 500N）, 焦距1900mm
+  aperture: 500mm
+  focal_length: 1900mm
+  camera: FLI Proline 16803
+  image_size: 4096x4096
+  filter_set: ['Blue', 'Green', 'H-alpha', 'Lum', 'Oiii', 'Red']
+  total_lights: 151
+  calib_files: 9
+
+[生成] T4_DEVICE_PROFILE.json
+  status: active
+  telescope: Chilescope T4 （Nikkor 200F2）, 焦距200mm
+  aperture: 200mm
+  focal_length: 200mm
+  camera: FLI Microline 16200
+  image_size: 4500x3600
+  filter_set: ['Blue', 'Green', 'H-alpha', 'Lum', 'Oiii', 'Red']
+  total_lights: 385
+  calib_files: 9
+  WARNING missing_flats: ['Lum']
+
+======================================================================
+P10-002 设备档案生成完成
+  总设备数: 4
+  活跃设备: 3 (T2, T3, T4)
+  无数据设备: 1 (T1)
+  总 Light 帧数: 710
+  禁止捷径检查: PASS
+  汇总: F:\Astro dev\Astro CS Normalization Database\engineering_v1.2\evidence\P10-002\DEVICE_PROFILE_SUMMARY.json

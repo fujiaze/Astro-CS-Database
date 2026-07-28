@@ -1,0 +1,85 @@
+{
+  "ok": true,
+  "results": [
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "warning: in the working copy of 'engineering_v1.2/control/MASTER_TASK_REGISTER.csv', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.2/evidence/P09-002/commit_run.log', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.2/evidence/P09-003/browser_performance_baseline.json', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.2/evidence/P09-003/canonical_dataset_v1.2.json', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.2/evidence/P09-003/hashes/all_hashes.json', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.2/evidence/P09-003/raw_logs/generate_canonical_dataset.log', CRLF will be replaced by LF the next time Git touches it\n",
+      "elapsed_sec": 0.138,
+      "cmd": [
+        "git",
+        "add",
+        "engineering_v1.2/control/CURRENT_TASK.md",
+        "engineering_v1.2/control/MASTER_TASK_REGISTER.csv",
+        "engineering_v1.2/control/PROJECT_STATE.yaml",
+        "engineering_v1.2/evidence/P09-002/commit_run.log",
+        "engineering_v1.2/evidence/P09-003/TASK_REPORT.md",
+        "engineering_v1.2/evidence/P09-003/TEST_REPORT.md",
+        "engineering_v1.2/evidence/P09-003/EVIDENCE_INDEX.md",
+        "engineering_v1.2/evidence/P09-003/REVIEW_REPORT.md",
+        "engineering_v1.2/evidence/P09-003/canonical_dataset_v1.2.json",
+        "engineering_v1.2/evidence/P09-003/browser_performance_baseline.json",
+        "engineering_v1.2/evidence/P09-003/photometric_failure_baseline.json",
+        "engineering_v1.2/evidence/P09-003/generate_canonical_dataset.py",
+        "engineering_v1.2/evidence/P09-003/capture_browser_baseline.py",
+        "engineering_v1.2/evidence/P09-003/hashes/all_hashes.json",
+        "engineering_v1.2/evidence/P09-003/raw_logs/browser_hcsd_stderr.log",
+        "engineering_v1.2/evidence/P09-003/raw_logs/browser_hcsd_stdout.log",
+        "engineering_v1.2/evidence/P09-003/raw_logs/browser_hiss_stderr.log",
+        "engineering_v1.2/evidence/P09-003/raw_logs/browser_hiss_stdout.log",
+        "engineering_v1.2/evidence/P09-003/raw_logs/generate_canonical_dataset.log",
+        "engineering_v1.2/evidence/P09-003/commit_msg.txt",
+        "engineering_v1.2/evidence/P09-003/commit_config.json"
+      ],
+      "step": 0,
+      "type": "git_add"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "[main 73a33b7] P09-003: 冻结测光失败帧与浏览器性能基线数据\n 21 files changed, 3381 insertions(+), 11 deletions(-)\n create mode 100644 engineering_v1.2/evidence/P09-002/commit_run.log\n create mode 100644 engineering_v1.2/evidence/P09-003/EVIDENCE_INDEX.md\n create mode 100644 engineering_v1.2/evidence/P09-003/REVIEW_REPORT.md\n create mode 100644 engineering_v1.2/evidence/P09-003/TASK_REPORT.md\n create mode 100644 engineering_v1.2/evidence/P09-003/TEST_REPORT.md\n create mode 100644 engineering_v1.2/evidence/P09-003/browser_performance_baseline.json\n create mode 100644 engineering_v1.2/evidence/P09-003/canonical_dataset_v1.2.json\n create mode 100644 engineering_v1.2/evidence/P09-003/capture_browser_baseline.py\n create mode 100644 engineering_v1.2/evidence/P09-003/commit_config.json\n create mode 100644 engineering_v1.2/evidence/P09-003/commit_msg.txt\n create mode 100644 engineering_v1.2/evidence/P09-003/generate_canonical_dataset.py\n create mode 100644 engineering_v1.2/evidence/P09-003/hashes/all_hashes.json\n create mode 100644 engineering_v1.2/evidence/P09-003/photometric_failure_baseline.json\n create mode 100644 engineering_v1.2/evidence/P09-003/raw_logs/browser_hcsd_stderr.log\n create mode 100644 engineering_v1.2/evidence/P09-003/raw_logs/browser_hcsd_stdout.log\n create mode 100644 engineering_v1.2/evidence/P09-003/raw_logs/browser_hiss_stderr.log\n create mode 100644 engineering_v1.2/evidence/P09-003/raw_logs/browser_hiss_stdout.log\n create mode 100644 engineering_v1.2/evidence/P09-003/raw_logs/generate_canonical_dataset.log\n",
+      "stderr": "",
+      "elapsed_sec": 0.128,
+      "cmd": [
+        "git",
+        "commit",
+        "-F",
+        ".\\engineering_v1.2/evidence/P09-003/commit_msg.txt"
+      ],
+      "step": 1,
+      "type": "git_commit"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "To https://github.com/fujiaze/Astro-CS-Database.git\n   06df865..73a33b7  main -> main\n",
+      "elapsed_sec": 2.759,
+      "cmd": [
+        "git",
+        "push",
+        "origin",
+        "main"
+      ],
+      "step": 2,
+      "type": "git_push"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "73a33b7 P09-003: 冻结测光失败帧与浏览器性能基线数据\n06df865 P09-002: 统一共享检测命名为 INTERNAL_DETECTION_SHARED_EXPORT\n0d1857d P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)\ned145a7 docs: 补充项目 README + 生成 v1.1 审计包\na3b468d P08-002 补充提交: logs/ 证据文件 (被 .gitignore logs/ 规则忽略, 用 -f 强制添加)\n",
+      "stderr": "",
+      "elapsed_sec": 0.043,
+      "cmd": [
+        "git",
+        "log",
+        "--oneline",
+        "-n",
+        "5"
+      ],
+      "step": 3,
+      "type": "git_log"
+    }
+  ]
+}

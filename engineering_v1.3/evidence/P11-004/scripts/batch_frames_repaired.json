@@ -1,0 +1,43 @@
+{
+  "config_version": "1.1",
+  "generated_from": "REPRESENTATIVE_FRAMES_ARCHIVE.json + repair_summary.json",
+  "n_frames": 6,
+  "frames": [
+    {
+      "fits": "F:/Astro dev/Astro CS Normalization Database/testdata/LDN43_T2素材_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250503@032713-1200S-Red.fts",
+      "output_subdir": "T2_RED_LDN43",
+      "focal_length_mm": 1917.5,
+      "pixel_size_um": 9.0
+    },
+    {
+      "fits": "F:/Astro dev/Astro CS Normalization Database/testdata/LDN43_T2素材_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250503@034804-1200S-Green.fts",
+      "output_subdir": "T2_GREEN_LDN43",
+      "focal_length_mm": 1917.5,
+      "pixel_size_um": 9.0
+    },
+    {
+      "fits": "F:/Astro dev/Astro CS Normalization Database/testdata/LDN43_T2素材_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250503@040855-1200S-Blue.fts",
+      "output_subdir": "T2_BLUE_LDN43",
+      "focal_length_mm": 1917.7,
+      "pixel_size_um": 9.0
+    },
+    {
+      "fits": "F:/Astro dev/Astro CS Normalization Database/testdata/LDN43_T2素材_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250503@042947-1200S-H-alpha.fts",
+      "output_subdir": "T2_HA_LDN43",
+      "focal_length_mm": 1917.7,
+      "pixel_size_um": 9.0
+    },
+    {
+      "fits": "F:/Astro dev/Astro CS Normalization Database/testdata/NGC1727_T2_flying_dutchman/lights/NGC1727_RGBHO_T2_flying_dutchman-20251031@075259-1800S-OIII.fts",
+      "output_subdir": "T2_OIII_NGC1727",
+      "focal_length_mm": 1917.7,
+      "pixel_size_um": 9.0
+    },
+    {
+      "fits": "F:/Astro dev/Astro CS Normalization Database/testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250703@075400-600S-Lum.fts",
+      "output_subdir": "T3_LUM_NGC55",
+      "focal_length_mm": 1900.0,
+      "pixel_size_um": 9.0
+    }
+  ]
+}

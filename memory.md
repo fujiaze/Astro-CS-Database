@@ -1305,19 +1305,61 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 - **Gate**: G11 进行中 (P11-001/002/003 DONE, P11-004/005/006 TODO)
 - **NTFS 压缩损坏教训**: 长时间写入大文件时, 若目录启用了 NTFS 压缩 (Attributes 含 Compressed), 写入崩溃可能导致文件大小正常但内容全 NUL. 后续应避免在压缩目录下生成关键证据文件, 或在写入后立即校验 nonZero 字节数
 
-### P11-004 进度（2026-07-28，DEFERRED → 审核包已导出）
-- **状态**: 用户决定跳过当前问题，审核包已导出至项目根目录 `P11-004_review_bundle.zip`，等待审核反馈
+### P11-004 进度（2026-07-28，DEFERRED → 审核包已导出 → v1.3 恢复完成）
+- **v1.3 状态**: DONE（2026-07-28，WCS_PRODUCTION_FIX_REQUIRED，HEADER_REGENERATION_NO_CODE_CHANGE）
+- **v1.2 历史**: 用户决定跳过当前问题，审核包已导出至项目根目录 `P11-004_review_bundle.zip`，等待审核反馈
 - **审核包**: `P11-004_review_bundle.zip`（38.12 MB，29 个条目）
   - 含 P11-004 evidence + 调试 PNG 样本（T2_RED_LDN43 + T3_LUM_NGC55 各 1 张）+ 前置任务上下文 + 核心库代码副本 + README
   - 不 commit（.gitignore 已加 `*_review_bundle.zip`）
-- **已完成**:
-  - Siril v2 诊断工具升级（自适应星等 + 亮星优先 + 迭代剔除）
-  - WCS 构建等价性验证（8/8 帧 EQUIVALENT，`to_astropy_wcs(result)` ≡ `WCS(header)`，投影差异 1e-10 px）
-  - 单帧 T2_RED_LDN43 诊断（siril_bright_first 24 对 p68=0.82px FAIL；全星等 1942 对 p68=1.02px FAIL）
-  - Gaia 查询路径对比（同一 C API，无差异）
-  - 视觉验证（visualize_reproject 投影位置准确，IPV 求解精度高）
-- **核心矛盾**: 诊断工具 kd-tree 重新匹配残差（p68=1.0px）与 IPV 内部 RMS（0.12px）不可比，匹配策略不同（IPV RANSAC 选 inliers vs 诊断工具全星等 kd-tree 含暗星误配+饱和星偏差）
-- **已排除根因**: WCS 构建（等价）、WCS 闭环（正确）、Gaia 查询（同一 API）、检测星点来源（callback 与 IPV 一致）、CRPIX 偏移（用户否决）
-- **遗留问题**: 见 `engineering_v1.2/evidence/P11-004/ISSUES_DEFERRED.md`
-- **备选方案**: A.用 IPV RMS 作 gate / B.严格匹配+剔除 / C.视觉验证 / D.查质心坐标系（待审核决策）
-- **根目录整理**: 已清理 8 张调试 PNG（归档至 `archive/debug_png_2026-07-28/`）+ 8 个 solved.fits（删除）+ 旧开发包 zip / 临时目录 / _commit_msg_p02.txt（归档至 `archive/old_packs/` 和 `archive/temp_dirs_2026-07-28/`）
+
+**v1.3 恢复执行（2026-07-28，按 AUTONOMOUS_ENTRY.md §2 双层闭环方案）**:
+- **诊断工具升级**: `engineering_v1.3/evidence/P11-004/scripts/wcs_closure_diagnostic_v3.py` v3.4
+  - 新增 `--authoritative-pairs` 模式：A 层 solver.get_last_inliers() + B 层 astropy WCS(header) 独立回投
+  - 禁止启用 C 层 blind kd-tree rematch（按 AUTONOMOUS_ENTRY.md §2 第 4 条）
+  - v3.3 修复：u_to_astropy_pixel Y 轴方向（solver U 系 Y 向上 vs astropy 0-based pixel Y 向下，需 CRPIX - U_y）
+  - v3.4 修复：CRPIX 1-based/0-based 转换（`wcs.wcs.crpix` 返回 FITS 1-based 值，需 -1 转换为 0-based，之前误用导致 B 层残差系统性偏移 ~1px）
+
+- **初始验证（16 帧代表帧，gate_v2_final/batch_summary.json）**:
+  - 10/16 PASS，6/16 FAIL
+  - 失败帧：T2_RED/GREEN/BLUE/HA_LDN43, T2_OIII_NGC1727, T3_LUM_NGC55
+  - 失败特征：全部 has_sip=false, sip_order=0, CRPIX=(2048.0, 2048.0) 而非 (2048.5, 2048.5)
+  - A 层 p68 ∈ [0.083, 0.237] px，证明求解器内部精度正常
+
+- **根因定位**:
+  1. compare_wcs_construction.py: `to_astropy_wcs(result)` vs `WCS(header)` 8/8 等价（1e-10 px）
+  2. 6 失败帧 FITS header 是历史遗留，在 SIP 序列化功能完整实现前生成
+  3. astropy WCS 在缺失 SIP 时退化为 1 阶 TAN 投影，无法拟合 3 阶光学畸变
+  4. 当前 C++ 代码（ipv_wcs.cpp:287-288,348）已正确实现 SIP 输出和 CRPIX+0.5
+
+- **修复策略（HEADER_REGENERATION_NO_CODE_CHANGE）**:
+  - 修复脚本：`scripts/repair_failed_frames.py` v3.5
+  - 调用 `solve_and_write_wcs(overwrite=True)` 用当前代码重新求解 6 失败帧
+  - 备份原 header 至 `backups/`
+  - 未修改任何 C++/Python 生产代码
+
+- **修复后验证（gate_v2_post_repair/batch_summary.json）**:
+  - 6/6 PASS, has_sip=true, sip_order=3, CRPIX=(2048.5, 2048.5)
+  - B 层 p68 均值 0.158 px（门限 0.75 px，余量 4.7×）
+  - B 层 p99 均值 0.398 px（门限 3.0 px，余量 7.5×）
+  - 修复前后 B 层 p68 改善 30–53 倍
+
+- **决策（P11_004_DECISION.md）**:
+  - Outcome: WCS_PRODUCTION_FIX_REQUIRED
+  - 修复性质: HEADER_REGENERATION_NO_CODE_CHANGE
+  - 触发条件满足：6 帧一致的 SIP 缺失 + CRPIX 0-based 偏差
+  - 未修改任何生产代码
+
+- **遗留问题**:
+  - ipv_wcs.cpp 内部 CRPIX 实现冲突（line 165 `cx + 1.0` vs line 287 `img_width/2.0 + 0.5`）待 P11-006 评估
+  - 其他 testdata 帧可能也存在历史 header 问题，P11-005 全量回归时统一处理
+
+- **任务四件套**:
+  - `evidence/P11-004/P11_004_DECISION.md`
+  - `evidence/P11-004/TASK_REPORT.md`
+  - `evidence/P11-004/TEST_REPORT.md`
+  - `evidence/P11-004/EVIDENCE_INDEX.md`
+  - `evidence/P11-004/REVIEW_REPORT.md`
+
+- **控制文件更新**: PROJECT_STATE.yaml (current_task=P11-005, last_completed=P11-004) + CURRENT_TASK.md + MASTER_TASK_REGISTER.csv (P11-004 → DONE, P11-005 → IN_PROGRESS) + DECISION_REGISTER.md (ADR-P11-004-GATE-V2-OUTCOME)
+- **依赖**: P11-003 (DONE); **后续**: P11-005 (PlateSolve 710 全量回归与权威星对 WCS Gate)
+- **Gate**: G11 进行中 (P11-001/002/003/004 DONE, P11-005 IN_PROGRESS, P11-006 TODO)

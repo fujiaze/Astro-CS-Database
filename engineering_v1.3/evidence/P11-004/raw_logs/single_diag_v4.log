@@ -1,0 +1,26 @@
+2026-07-28 14:45:00,999 [INFO] wcs_closure_v3: ======================================================================
+2026-07-28 14:45:00,999 [INFO] wcs_closure_v3: P11-004 v3.0 权威星对诊断: Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red
+2026-07-28 14:45:00,999 [INFO] wcs_closure_v3: FITS: F:/Astro dev/Astro CS Normalization Database/testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts
+2026-07-28 14:45:01,000 [INFO] wcs_closure_v3: MODE: authoritative_pairs (kd-tree rematch DISABLED)
+2026-07-28 14:45:01,144 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts
+2026-07-28 14:45:01,207 [INFO] wcs_closure: 图像尺寸: 4500x3600
+2026-07-28 14:45:01,491 [WARNING] astropy: FITSFixedWarning: RADECSYS= 'FK5 ' / Equatorial coordinate system 
+the RADECSYS keyword is deprecated, use RADESYSa.
+2026-07-28 14:45:01,492 [WARNING] astropy: FITSFixedWarning: 'datfix' made the change 'Set MJD-OBS to 60858.262025 from DATE-OBS'.
+2026-07-28 14:45:01,492 [INFO] wcs_closure: WCS 构建: has_sip=True sip_order=3 ctype=['RA---TAN-SIP', 'DEC--TAN-SIP'] crpix=(2250.500,1800.500) crval=(272.825665,-13.131811)
+2026-07-28 14:45:01,505 [INFO] wcs_closure: 初始化 PlateSolve 环境 (project_root=.)
+2026-07-28 14:45:01,791 [INFO] wcs_closure: PlateSolve 环境就绪
+2026-07-28 14:45:01,794 [INFO] wcs_closure_v3: 重跑 PlateSolve 以填充权威 inlier 缓存...
+2026-07-28 14:45:03,887 [INFO] wcs_closure_v3: 权威 inlier: n=45 (来自 IPVSolver.get_last_inliers)
+2026-07-28 14:45:03,888 [INFO] wcs_closure_v3: [A 层 内部 TRANS 预测] n=45, p68=0.0592 px, p90=0.0777 px, p99=0.0901 px
+2026-07-28 14:45:03,892 [INFO] wcs_closure_v3: [B 层 预剔除诊断] n=45, CRPIX_0based=(2250.50,1800.50), det_xy range=[248.8,325.3]~[4426.1,3491.8], ext_pred range=[247.8,108.2]~[4425.1,3274.7], ext_dist: median=2080.8440 p68=2394.8567 p90=2909.8061 p99=3342.0076 max=3383.6198
+2026-07-28 14:45:03,892 [INFO] wcs_closure: Siril 迭代剔除完成: 0 次迭代, 保留 0/45, final p68=0.0000 px
+2026-07-28 14:45:03,892 [INFO] wcs_closure_v3: Siril 剔除后保留: 0/45 对 (剔除 45)
+2026-07-28 14:45:03,893 [INFO] wcs_closure_v3: [B 层 外部 WCS 回投] n=0, p68=0.0000 px, p90=0.0000 px, p99=0.0000 px
+2026-07-28 14:45:03,893 [INFO] wcs_closure_v3: [A vs B 预测差] delta_dist: median=0.0000 px, p90=0.0000 px, max=0.0000 px
+2026-07-28 14:45:03,893 [INFO] wcs_closure_v3: 权威星对已保存 (JSONL): f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\reports\gate_v2\T4_RED_Galaxy_Center\matched_pairs_authoritative.jsonl (n=0)
+2026-07-28 14:45:03,894 [INFO] wcs_closure_v3: 闭环报告已保存: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\reports\gate_v2\T4_RED_Galaxy_Center\closure_report.json
+2026-07-28 14:45:03,894 [INFO] wcs_closure_v3: [Gate] p68=0.0000 (<=0.75:True) p90=0.0000 (<=1.5:True) p99=0.0000 (<=3.0:True) n=0 (>=5:False) => FAIL
+2026-07-28 14:45:04,634 [INFO] wcs_closure: 四象限分布图已保存: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\reports\gate_v2\T4_RED_Galaxy_Center\quadrant_plot.png
+2026-07-28 14:45:04,634 [INFO] wcs_closure_v3: 权威星对诊断完成: Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red (耗时 2.89s)
+2026-07-28 14:45:04,988 [INFO] wcs_closure: PlateSolve 环境已释放

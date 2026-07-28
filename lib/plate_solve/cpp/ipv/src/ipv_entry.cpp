@@ -306,6 +306,41 @@ IPV_API void ipv_get_default_params(IpvParams* params) {
     // log_dir 保持 '\0' (空字符串 = 不写日志)
 }
 
+// ============================================================================
+// P11-004 v1.3: 权威 inlier 导出 C API 实现
+// ============================================================================
+
+// 获取最后一次成功求解的 inlier 数量
+IPV_API int ipv_get_last_inlier_count(void* solver) {
+    if (solver == nullptr) return 0;
+    try {
+        ipv::IPVSolver* s = static_cast<ipv::IPVSolver*>(solver);
+        return s->get_last_inlier_count();
+    } catch (...) {
+        // 吞掉异常, 防止泄漏到 C 边界
+        return 0;
+    }
+}
+
+// 获取最后一次成功求解的 inlier 详细数据
+// out_buffer: 调用方分配, 大小 = max_count * 9 * sizeof(double)
+// 返回: >=0 实际写入行数, <0 表示错误
+IPV_API int ipv_get_last_inliers(void* solver, double* out_buffer, int max_count) {
+    if (solver == nullptr || out_buffer == nullptr || max_count <= 0) {
+        return -1;
+    }
+    try {
+        ipv::IPVSolver* s = static_cast<ipv::IPVSolver*>(solver);
+        return s->get_last_inliers(out_buffer, max_count);
+    } catch (const std::exception& e) {
+        // 异常不应发生, 但保护 C 边界
+        (void)e;
+        return -1;
+    } catch (...) {
+        return -1;
+    }
+}
+
 // 执行求解
 IPV_API int ipv_solve(
     void* solver,

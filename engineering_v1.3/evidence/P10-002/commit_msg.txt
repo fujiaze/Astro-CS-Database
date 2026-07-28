@@ -1,0 +1,37 @@
+P10-002: 建立 T1-T4 设备档案 (DONE)
+
+依据 tasks/P10-002.md 和 docs/03_TESTDATA_T1_T4_INVENTORY_SPEC.md,
+结合 P10-001 的 TESTDATA_EQUIPMENT_CATALOG.csv 与 Header 采样数据,
+建立 T1-T4 四套唯一规范设备档案 (JSON profile).
+
+交付物:
+- T1_DEVICE_PROFILE.json (status=no_data, 硬门限允许但实际无数据)
+- T2_DEVICE_PROFILE.json (active, ASA 500N + FLI Proline 16803, 174 lights)
+- T3_DEVICE_PROFILE.json (active, ASA 500N + FLI Proline 16803, 151 lights)
+- T4_DEVICE_PROFILE.json (active, Nikkor 200F2 + FLI Microline 16200, 385 lights)
+- DEVICE_PROFILE_SUMMARY.json (4 devices, 710 lights, hard_gate=PASS)
+
+关键发现:
+- T1 无数据 (标注 no_data, 不创建虚假档案)
+- T2/T4 缺 Lum Flat (已在 missing_flats 记录, P10-005 处理)
+- OIII 别名不一致 (T2=OIII, T3/T4=Oiii, P10-004 统一)
+- 总 Light 帧数 710 (T2:174 + T3:151 + T4:385)
+- 校准文件 27 个 (T2/T3/T4 各 9 个)
+- dark 曝光覆盖 Light 范围
+
+失败基线修复:
+- csv.DictReader 返回的 n_lights 为 str 导致 sum() TypeError
+- 修复为 int(d["n_lights"]) 显式转换
+- 同时修复 collect_device_headers 设备匹配正则, 覆盖 4 种 key 格式变体
+
+测试结果:
+- 76/76 测试 PASS (20 类测试, 覆盖 contract/unit/component/真实数据/失败基线/原始日志)
+- 硬门限 PASS (T1-T4 设备 ID, 无 T5/unknown, 710 Light 帧归属明确)
+- 禁止捷径检查 PASS (无 T5/unknown, T1 标注 no_data, 无虚假档案)
+
+状态更新:
+- PROJECT_STATE.yaml: current_task=P10-003, 新增 p10_002_device_profiles 段
+- MASTER_TASK_REGISTER.csv: P10-002 标记为 DONE
+- CURRENT_TASK.md: 当前任务 P10-003 (盘点全部主校准帧)
+
+证据目录: engineering_v1.2/evidence/P10-002/

@@ -1,0 +1,51 @@
+task_id,phase,title,dependencies,gate,status,evidence_dir
+P09-001,P09,冻结v1.1事实基线并建立v1.2证据,,G9,DONE,evidence/P09-001
+P09-002,P09,确认共享检测主线与统一命名,P09-001,G9,DONE,evidence/P09-002
+P09-003,P09,冻结测光失败帧与浏览器性能基线数据,P09-001,G9,DONE,evidence/P09-003
+P10-001,P10,读取全部TestData子目录说明文档,P09-001,G10,DONE,evidence/P10-001
+P10-002,P10,建立T1-T4设备档案,P10-001,G10,DONE,evidence/P10-002
+P10-003,P10,盘点全部主校准帧,P10-001,G10,DONE,evidence/P10-003
+P10-004,P10,冻结滤镜规范名和别名,P10-001;P10-002,G10,DONE,evidence/P10-004
+P10-005,P10,实现并验证Light到Master唯一解析,P10-002;P10-003;P10-004,G10,DONE,evidence/P10-005
+P10-006,P10,T1-T4真实校准代表帧验证,P10-005,G10,DONE,evidence/P10-006
+P11-001,P11,冻结内部/图像/FITS/WCS坐标约定,P09-002,G11,DONE,evidence/P11-001
+P11-002,P11,建立标准WCS真实星对闭环诊断工具,P11-001;P09-003,G11,DONE,evidence/P11-002
+P11-003,P11,在T1-T4代表帧复现WCS闭环缺陷,P11-002,G11,DONE,evidence/P11-003
+P11-004,P11,在WCS生产端实施统一修正,P11-003,G11,DEFERRED,evidence/P11-004
+P11-005,P11,PlateSolve 710全量回归与WCS闭环Gate,P11-004,G11,TODO,evidence/P11-005
+P11-006,P11,更新WCS/SIP契约和provenance,P11-005,G11,TODO,evidence/P11-006
+P12-001,P12,增加Photometric分阶段诊断,P11-006,G12,TODO,evidence/P12-001
+P12-002,P12,修复Gaia到PSF空间匹配与唯一配对,P12-001,G12,TODO,evidence/P12-002
+P12-003,P12,验证光谱积分与响应曲线无回归,P12-001,G12,TODO,evidence/P12-003
+P12-004,P12,T1-T4与滤镜类别测光矩阵验证,P12-002;P12-003;P10-006,G12,TODO,evidence/P12-004
+P12-005,P12,修复SNR模型与HISS持久化,P12-004;P11-006,G12,TODO,evidence/P12-005
+P12-006,P12,生成Stage1代表矩阵正式HISS,P12-005,G12,TODO,evidence/P12-006
+P13-001,P13,建立Stage1全TestData批处理与恢复入口,P12-006,G12,TODO,evidence/P13-001
+P13-002,P13,运行全部TestData Stage1,P13-001;P10-005,G12,TODO,evidence/P13-002
+P13-003,P13,Stage1负面恢复与资源验证,P13-002,G12,TODO,evidence/P13-003
+P13-004,P13,Stage1科学链独立Gate,P13-002;P13-003,G12,TODO,evidence/P13-004
+P14-001,P14,冻结银心三片Red 32帧数据集,P10-002;P10-004;P09-003,G13,TODO,evidence/P14-001
+P14-002,P14,生成并验证银心32份正式HISS,P14-001;P12-005,G13,TODO,evidence/P14-002
+P14-003,P14,建立重叠图与无梯度基线HCSD,P14-002,G13,TODO,evidence/P14-003
+P14-004,P14,已知非零球面梯度注入恢复测试,P14-003,G13,TODO,evidence/P14-004
+P14-005,P14,真实银心球面梯度校正,P14-004,G13,TODO,evidence/P14-005
+P14-006,P14,真实SNR²稳健叠加验证,P14-005,G13,TODO,evidence/P14-006
+P14-007,P14,HCSD质量、索引和provenance独立读取,P14-006,G13,TODO,evidence/P14-007
+P14-008,P14,银心马赛克科学独立Gate,P14-003;P14-004;P14-005;P14-006;P14-007,G13,TODO,evidence/P14-008
+P15-001,P15,浏览器性能插桩与可重复基线,P09-003,G14,TODO,evidence/P15-001
+P15-002,P15,HCSD元数据索引专用持久读句柄,P15-001,G14,TODO,evidence/P15-002
+P15-003,P15,批量叶读取与I/O合并,P15-002,G14,TODO,evidence/P15-003
+P15-004,P15,异步I/O解码队列与过期请求取消,P15-003,G14,TODO,evidence/P15-004
+P15-005,P15,HEALPix层级可见叶查询,P15-001,G14,TODO,evidence/P15-005
+P15-006,P15,CPU/GPU LRU缓存与周边预取,P15-004;P15-005,G14,TODO,evidence/P15-006
+P15-007,P15,交互LOD、事件合并与渐进细化,P15-006,G14,TODO,evidence/P15-007
+P15-008,P15,浏览器异步I/O性能Gate,P15-002;P15-003;P15-004;P15-005;P15-006;P15-007,G14,TODO,evidence/P15-008
+P16-001,P16,冻结Tile数据模型与渲染接口,P15-008,G15,TODO,evidence/P16-001
+P16-002,P16,实现R32F GPU Tile Renderer,P16-001,G15,TODO,evidence/P16-002
+P16-003,P16,STF着色器与科学数值一致性,P16-002,G15,TODO,evidence/P16-003
+P16-004,P16,GPU缓存上传/驱逐生命周期,P16-002;P15-006,G15,TODO,evidence/P16-004
+P16-005,P16,真实银心浏览器视觉和性能Gate,P16-003;P16-004;P14-008,G15,TODO,evidence/P16-005
+P16-006,P16,条件性HCSD LOD ADR与原型,P16-005,G15,TODO,evidence/P16-006
+P17-001,P17,建立并运行统一全量回归入口,P13-004;P14-008;P16-005,G16,TODO,evidence/P17-001
+P17-002,P17,生成用户可见银心结果包,P17-001,G16,TODO,evidence/P17-002
+P17-003,P17,最终独立复核、发布候选与交接,P17-002,G16,TODO,evidence/P17-003

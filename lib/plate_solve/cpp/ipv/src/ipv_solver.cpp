@@ -744,6 +744,15 @@ void IPVSolver::solve(
                       result->trans_order, result->sip.order);
     }
 
+    // P11-004 v1.3: 缓存最终权威 inlier 数据 (供 WCS Gate v2 双层闭环)
+    cache_last_inliers_(
+        rep_result.matched, U_for_wcs,
+        selection.gaia_ra, selection.gaia_dec,
+        rep_result.trans, s0,
+        rep_result.ra0, rep_result.dec0,
+        img_width, img_height,
+        robust_refine_applied);
+
     // 9. 最终日志
     logger_.info("==== IPVSolver::solve 完成 (V4.22) ====");
     logger_.infof("  最终: n_pairs=%d, rms_px=%.3f, rms_arcsec=%.3f, "
@@ -1096,6 +1105,15 @@ void IPVSolver::solve_from_memory(
                       result->trans_order, result->sip.order);
     }
 
+    // P11-004 v1.3: 缓存最终权威 inlier 数据 (供 WCS Gate v2 双层闭环)
+    cache_last_inliers_(
+        rep_result.matched, U_for_wcs,
+        selection.gaia_ra, selection.gaia_dec,
+        rep_result.trans, s0,
+        rep_result.ra0, rep_result.dec0,
+        img_width, img_height,
+        robust_refine_applied);
+
     // 9. 最终日志
     logger_.info("==== IPVSolver::solve_from_memory 完成 (V4.22) ====");
     logger_.infof("  最终: n_pairs=%d, rms_px=%.3f, rms_arcsec=%.3f, "
@@ -1353,6 +1371,15 @@ void IPVSolver::solve_post_select(
                   "trans_order=%d, sip_order=%d, success=%d",
                   result->n_pairs, result->rms_px, result->rms_arcsec,
                   result->trans_order, result->sip.order, (int)result->success);
+
+    // P11-004 v1.3: 缓存最终权威 inlier 数据 (供 WCS Gate v2 双层闭环)
+    cache_last_inliers_(
+        rep_result.matched, U_for_wcs,
+        selection.gaia_ra, selection.gaia_dec,
+        rep_result.trans, s0,
+        rep_result.ra0, rep_result.dec0,
+        img_width, img_height,
+        robust_refine_applied);
 }
 
 // ===========================================================================
@@ -1479,6 +1506,139 @@ void IPVSolver::solve_from_memory_with_callback(
     solve_post_select(selection, params, ra0, dec0, result);
 
     logger_.info("==== IPVSolver::solve_from_memory_with_callback 完成 (INTERNAL_DETECTION_SHARED_EXPORT) ====");
+}
+
+// ===========================================================================
+// P11-004 v1.3: 权威 inlier 缓存实现
+//
+// cache_last_inliers_: 在每次 solve_* 成功末尾填充缓存
+// get_last_inlier_count: 返回缓存中的 inlier 数量
+// get_last_inliers: 输出 (N,9) double 数组 (字段定义见 ipv_solver.h)
+//
+// 内部预测计算 (与 extract_wcs_sip 的 RMS 计算保持一致):
+//   apply_trans(trans, U.x, U.y) -> (xi_asec, eta_asec)  [TRANS: U(像素)→W(角秒)]
+//   pred_x_px = xi_asec / s0
+//   pred_y_px = eta_asec / s0
+//   residual_x_px = U.x - pred_x_px (像素)
+// ===========================================================================
+
+void IPVSolver::cache_last_inliers_(
+    const std::vector<MatchPair>& matched,
+    const std::vector<StarPoint>& U_snapshot,
+    const std::vector<double>& gaia_ra,
+    const std::vector<double>& gaia_dec,
+    const Trans& trans,
+    double s0,
+    double ra0, double dec0,
+    int img_width, int img_height,
+    bool robust_applied) {
+
+    last_inliers_.matched       = matched;
+    last_inliers_.U_snapshot    = U_snapshot;
+    last_inliers_.gaia_ra       = gaia_ra;
+    last_inliers_.gaia_dec      = gaia_dec;
+    last_inliers_.trans          = trans;
+    last_inliers_.s0            = s0;
+    last_inliers_.ra0           = ra0;
+    last_inliers_.dec0          = dec0;
+    last_inliers_.img_width     = img_width;
+    last_inliers_.img_height    = img_height;
+    last_inliers_.robust_applied = robust_applied;
+    last_inliers_.valid         = !matched.empty() && s0 > 0.0;
+
+    if (last_inliers_.valid) {
+        logger_.infof("  [cache_last_inliers_] 缓存 %zu 对 inliers "
+                      "(robust=%d, s0=%.4f\", U_snap.size=%zu, gaia.size=%zu, "
+                      "trans.order=%d, ra0=%.6f, dec0=%.6f)",
+                      matched.size(), (int)robust_applied, s0,
+                      U_snapshot.size(), gaia_ra.size(),
+                      trans.order, ra0, dec0);
+    } else {
+        logger_.warnf("  [cache_last_inliers_] 跳过缓存 (matched.empty=%d, s0=%.4f)",
+                      (int)matched.empty(), s0);
+    }
+}
+
+int IPVSolver::get_last_inlier_count() const {
+    return last_inliers_.valid ? (int)last_inliers_.matched.size() : 0;
+}
+
+int IPVSolver::get_last_inliers(double* out_buffer, int max_count) const {
+    if (!last_inliers_.valid) {
+        return 0;
+    }
+    if (out_buffer == nullptr || max_count <= 0) {
+        return -1;
+    }
+
+    const int n_total = (int)last_inliers_.matched.size();
+    const int n_out   = std::min(n_total, max_count);
+    const double s0   = last_inliers_.s0;
+    const Trans& trans = last_inliers_.trans;
+    const auto& U       = last_inliers_.U_snapshot;
+    const auto& gaia_ra  = last_inliers_.gaia_ra;
+    const auto& gaia_dec = last_inliers_.gaia_dec;
+    const double ra0  = last_inliers_.ra0;
+    const double dec0 = last_inliers_.dec0;
+
+    for (int i = 0; i < n_out; ++i) {
+        const auto& mp = last_inliers_.matched[i];
+        double* row = out_buffer + i * 9;
+
+        if (mp.u < 0 || mp.u >= (int)U.size() ||
+            mp.w < 0 || mp.w >= (int)gaia_ra.size()) {
+            // 索引越界, 写入 NaN (供调用方识别)
+            for (int k = 0; k < 9; ++k) row[k] = std::nan("");
+            continue;
+        }
+
+        const auto& u_star = U[mp.u];
+        const double ra  = gaia_ra[mp.w];
+        const double dec = gaia_dec[mp.w];
+
+        // P11-004 v3.1 修复: 残差 = (实际W - 预测W) / s0, 与 extract_wcs_sip 的 RMS 计算一致
+        //
+        // 1. 实际 W (角秒): 用 gnomonic 正向投影把 Gaia (ra,dec) 投到以 ra0/dec0 为中心的切平面
+        // 2. 预测 W (角秒): apply_trans(trans, U) -> (xi_pred_asec, eta_pred_asec)
+        // 3. 残差 (像素) = (实际 - 预测) / s0
+        //
+        // 坐标系约定 (V4.20):
+        //   U = 像素坐标, 图像中心原点, Y 轴向上
+        //   W = 角秒坐标, 投影中心原点 (gnomonic xi/eta)
+        //   TRANS: U -> W
+        //   所以 det_x_px = u_star.x, 但残差应在 W 空间计算
+        bool valid = false;
+        double xi_actual_asec = 0.0, eta_actual_asec = 0.0;
+        gnomonic_forward_proj_solver(
+            ra, dec, ra0, dec0,
+            xi_actual_asec, eta_actual_asec, valid);
+
+        // 内部 TRANS 预测: apply_trans(U) -> (xi_pred_asec, eta_pred_asec) [角秒]
+        double xi_pred_asec = 0.0, eta_pred_asec = 0.0;
+        apply_trans(trans, u_star.x, u_star.y, &xi_pred_asec, &eta_pred_asec);
+
+        // 转回像素 (用于 A vs B 层对比: 内部预测 vs 外部 WCS 回投)
+        double pred_x_px = xi_pred_asec  / s0;
+        double pred_y_px = eta_pred_asec / s0;
+
+        // 残差 (像素) = (实际W - 预测W) / s0
+        // 与 extract_wcs_sip 的 RMS 计算一致 (匹配 RMS)
+        double res_x = valid ? (xi_actual_asec  - xi_pred_asec)  / s0 : std::nan("");
+        double res_y = valid ? (eta_actual_asec - eta_pred_asec) / s0 : std::nan("");
+        double res_dist = std::sqrt(res_x * res_x + res_y * res_y);
+
+        row[0] = u_star.x;          // det_x_px
+        row[1] = u_star.y;          // det_y_px
+        row[2] = ra;                 // gaia_ra_deg
+        row[3] = dec;                // gaia_dec_deg
+        row[4] = pred_x_px;          // pred_x_px (内部预测的 W 像素)
+        row[5] = pred_y_px;          // pred_y_px
+        row[6] = res_x;              // residual_x_px = (实际W - 预测W) / s0
+        row[7] = res_y;              // residual_y_px
+        row[8] = res_dist;           // residual_dist_px
+    }
+
+    return n_out;
 }
 
 } // namespace ipv

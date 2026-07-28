@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AstroCS WCS Authoritative Pair Report",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "frame_id",
+    "solver_rms_px",
+    "pairs"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "frame_id": {
+      "type": "string"
+    },
+    "input_sha256": {
+      "type": "string"
+    },
+    "solver_version": {
+      "type": "string"
+    },
+    "detection_hash": {
+      "type": "string"
+    },
+    "solver_rms_px": {
+      "type": "number"
+    },
+    "n_inliers": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "pairs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "pair_id",
+          "gaia_ra_deg",
+          "gaia_dec_deg",
+          "detector_x_px",
+          "detector_y_px"
+        ],
+        "properties": {
+          "pair_id": {
+            "type": "integer"
+          },
+          "gaia_source_id": {
+            "type": [
+              "integer",
+              "string",
+              "null"
+            ]
+          },
+          "gaia_ra_deg": {
+            "type": "number"
+          },
+          "gaia_dec_deg": {
+            "type": "number"
+          },
+          "detector_x_px": {
+            "type": "number"
+          },
+          "detector_y_px": {
+            "type": "number"
+          },
+          "internal_pred_x_px": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "internal_pred_y_px": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "internal_residual_px": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "saturated": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "edge": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "blend": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,365 @@
+2026-07-28 14:11:50,425 [INFO] wcs_closure_v3: 批量权威星对诊断: 16 帧
+2026-07-28 14:11:50,428 [INFO] wcs_closure: 初始化 PlateSolve 环境 (project_root=.)
+2026-07-28 14:11:50,792 [INFO] wcs_closure: PlateSolve 环境就绪
+2026-07-28 14:11:50,792 [INFO] wcs_closure_v3: ======================================================================
+2026-07-28 14:11:50,792 [INFO] wcs_closure_v3: P11-004 v3.0 权威星对诊断: Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red
+2026-07-28 14:11:50,792 [INFO] wcs_closure_v3: FITS: F:/Astro dev/Astro CS Normalization Database/testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts
+2026-07-28 14:11:50,792 [INFO] wcs_closure_v3: MODE: authoritative_pairs (kd-tree rematch DISABLED)
+2026-07-28 14:11:50,984 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts
+2026-07-28 14:11:51,123 [INFO] wcs_closure: 图像尺寸: 4500x3600
+2026-07-28 14:11:51,125 [INFO] wcs_closure_v3: FITS 无 WCS header, 调用 PlateSolve 求解并写入 WCS...
+2026-07-28 14:11:53,688 [INFO] wcs_closure_v3: PlateSolve 求解完成: success=True, n_pairs=45, rms_px=0.0538
+2026-07-28 14:11:53,688 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts
+2026-07-28 14:11:53,744 [INFO] wcs_closure: 图像尺寸: 4500x3600
+2026-07-28 14:11:54,051 [WARNING] astropy: FITSFixedWarning: RADECSYS= 'FK5 ' / Equatorial coordinate system 
+the RADECSYS keyword is deprecated, use RADESYSa.
+2026-07-28 14:11:54,053 [WARNING] astropy: FITSFixedWarning: 'datfix' made the change 'Set MJD-OBS to 60858.262025 from DATE-OBS'.
+2026-07-28 14:11:54,053 [INFO] wcs_closure: WCS 构建: has_sip=True sip_order=3 ctype=['RA---TAN-SIP', 'DEC--TAN-SIP'] crpix=(2250.500,1800.500) crval=(272.825665,-13.131811)
+2026-07-28 14:11:54,055 [INFO] wcs_closure_v3: 重跑 PlateSolve 以填充权威 inlier 缓存...
+2026-07-28 14:11:55,469 [ERROR] wcs_closure_v3: 帧 F:/Astro dev/Astro CS Normalization Database/testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts 诊断失败: name 'np' is not defined
+Traceback (most recent call last):
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 628, in diagnose_batch_authoritative
+    report = diagnose_frame_authoritative(
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 324, in diagnose_frame_authoritative
+    pairs = fetch_authoritative_inliers(solver)
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 107, in fetch_authoritative_inliers
+    arr = solver.get_last_inliers()
+  File "F:\Astro dev\Astro CS Normalization Database\lib\plate_solve\python\ipv_solver.py", line 314, in get_last_inliers
+    arr = np.frombuffer(buf, dtype=np.float64).reshape(ret, 9).copy()
+NameError: name 'np' is not defined
+2026-07-28 14:11:55,474 [INFO] wcs_closure_v3: ======================================================================
+2026-07-28 14:11:55,474 [INFO] wcs_closure_v3: P11-004 v3.0 权威星对诊断: Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@063620-180S-Green
+2026-07-28 14:11:55,474 [INFO] wcs_closure_v3: FITS: F:/Astro dev/Astro CS Normalization Database/testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@063620-180S-Green.fts
+2026-07-28 14:11:55,474 [INFO] wcs_closure_v3: MODE: authoritative_pairs (kd-tree rematch DISABLED)
+2026-07-28 14:11:55,474 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@063620-180S-Green.fts
+2026-07-28 14:11:55,624 [INFO] wcs_closure: 图像尺寸: 4500x3600
+2026-07-28 14:11:55,625 [INFO] wcs_closure_v3: FITS 无 WCS header, 调用 PlateSolve 求解并写入 WCS...
+2026-07-28 14:11:57,034 [INFO] wcs_closure_v3: PlateSolve 求解完成: success=True, n_pairs=30, rms_px=0.0517
+2026-07-28 14:11:57,035 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@063620-180S-Green.fts
+2026-07-28 14:11:57,090 [INFO] wcs_closure: 图像尺寸: 4500x3600
+2026-07-28 14:11:57,100 [WARNING] astropy: FITSFixedWarning: 'datfix' made the change 'Set MJD-OBS to 60858.275428 from DATE-OBS'.
+2026-07-28 14:11:57,100 [INFO] wcs_closure: WCS 构建: has_sip=True sip_order=3 ctype=['RA---TAN-SIP', 'DEC--TAN-SIP'] crpix=(2250.500,1800.500) crval=(272.772008,-13.020781)
+2026-07-28 14:11:57,102 [INFO] wcs_closure_v3: 重跑 PlateSolve 以填充权威 inlier 缓存...
+2026-07-28 14:11:58,320 [ERROR] wcs_closure_v3: 帧 F:/Astro dev/Astro CS Normalization Database/testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@063620-180S-Green.fts 诊断失败: name 'np' is not defined
+Traceback (most recent call last):
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 628, in diagnose_batch_authoritative
+    report = diagnose_frame_authoritative(
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 324, in diagnose_frame_authoritative
+    pairs = fetch_authoritative_inliers(solver)
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 107, in fetch_authoritative_inliers
+    arr = solver.get_last_inliers()
+  File "F:\Astro dev\Astro CS Normalization Database\lib\plate_solve\python\ipv_solver.py", line 314, in get_last_inliers
+    arr = np.frombuffer(buf, dtype=np.float64).reshape(ret, 9).copy()
+NameError: name 'np' is not defined
+2026-07-28 14:11:58,325 [INFO] wcs_closure_v3: ======================================================================
+2026-07-28 14:11:58,325 [INFO] wcs_closure_v3: P11-004 v3.0 权威星对诊断: Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@055414-180S-Blue
+2026-07-28 14:11:58,325 [INFO] wcs_closure_v3: FITS: F:/Astro dev/Astro CS Normalization Database/testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@055414-180S-Blue.fts
+2026-07-28 14:11:58,326 [INFO] wcs_closure_v3: MODE: authoritative_pairs (kd-tree rematch DISABLED)
+2026-07-28 14:11:58,326 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@055414-180S-Blue.fts
+2026-07-28 14:11:58,474 [INFO] wcs_closure: 图像尺寸: 4500x3600
+2026-07-28 14:11:58,476 [INFO] wcs_closure_v3: FITS 无 WCS header, 调用 PlateSolve 求解并写入 WCS...
+2026-07-28 14:11:59,905 [INFO] wcs_closure_v3: PlateSolve 求解完成: success=True, n_pairs=32, rms_px=0.0838
+2026-07-28 14:11:59,905 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@055414-180S-Blue.fts
+2026-07-28 14:11:59,972 [INFO] wcs_closure: 图像尺寸: 4500x3600
+2026-07-28 14:11:59,988 [WARNING] astropy: FITSFixedWarning: 'datfix' made the change 'Set MJD-OBS to 60859.246204 from DATE-OBS'.
+2026-07-28 14:11:59,988 [INFO] wcs_closure: WCS 构建: has_sip=True sip_order=3 ctype=['RA---TAN-SIP', 'DEC--TAN-SIP'] crpix=(2250.500,1800.500) crval=(272.908390,-13.161417)
+2026-07-28 14:11:59,991 [INFO] wcs_closure_v3: 重跑 PlateSolve 以填充权威 inlier 缓存...
+2026-07-28 14:12:01,276 [ERROR] wcs_closure_v3: 帧 F:/Astro dev/Astro CS Normalization Database/testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@055414-180S-Blue.fts 诊断失败: name 'np' is not defined
+Traceback (most recent call last):
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 628, in diagnose_batch_authoritative
+    report = diagnose_frame_authoritative(
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 324, in diagnose_frame_authoritative
+    pairs = fetch_authoritative_inliers(solver)
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 107, in fetch_authoritative_inliers
+    arr = solver.get_last_inliers()
+  File "F:\Astro dev\Astro CS Normalization Database\lib\plate_solve\python\ipv_solver.py", line 314, in get_last_inliers
+    arr = np.frombuffer(buf, dtype=np.float64).reshape(ret, 9).copy()
+NameError: name 'np' is not defined
+2026-07-28 14:12:01,282 [INFO] wcs_closure_v3: ======================================================================
+2026-07-28 14:12:01,282 [INFO] wcs_closure_v3: P11-004 v3.0 权威星对诊断: Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@061318-300S-H-alpha
+2026-07-28 14:12:01,282 [INFO] wcs_closure_v3: FITS: F:/Astro dev/Astro CS Normalization Database/testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@061318-300S-H-alpha.fts
+2026-07-28 14:12:01,282 [INFO] wcs_closure_v3: MODE: authoritative_pairs (kd-tree rematch DISABLED)
+2026-07-28 14:12:01,282 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@061318-300S-H-alpha.fts
+2026-07-28 14:12:01,432 [INFO] wcs_closure: 图像尺寸: 4500x3600
+2026-07-28 14:12:01,433 [INFO] wcs_closure_v3: FITS 无 WCS header, 调用 PlateSolve 求解并写入 WCS...
+2026-07-28 14:12:02,397 [INFO] wcs_closure_v3: PlateSolve 求解完成: success=True, n_pairs=44, rms_px=0.0651
+2026-07-28 14:12:02,397 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@061318-300S-H-alpha.fts
+2026-07-28 14:12:02,450 [INFO] wcs_closure: 图像尺寸: 4500x3600
+2026-07-28 14:12:02,461 [WARNING] astropy: FITSFixedWarning: 'datfix' made the change 'Set MJD-OBS to 60859.259433 from DATE-OBS'.
+2026-07-28 14:12:02,461 [INFO] wcs_closure: WCS 构建: has_sip=True sip_order=3 ctype=['RA---TAN-SIP', 'DEC--TAN-SIP'] crpix=(2250.500,1800.500) crval=(272.877836,-13.150873)
+2026-07-28 14:12:02,463 [INFO] wcs_closure_v3: 重跑 PlateSolve 以填充权威 inlier 缓存...
+2026-07-28 14:12:03,261 [ERROR] wcs_closure_v3: 帧 F:/Astro dev/Astro CS Normalization Database/testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@061318-300S-H-alpha.fts 诊断失败: name 'np' is not defined
+Traceback (most recent call last):
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 628, in diagnose_batch_authoritative
+    report = diagnose_frame_authoritative(
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 324, in diagnose_frame_authoritative
+    pairs = fetch_authoritative_inliers(solver)
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 107, in fetch_authoritative_inliers
+    arr = solver.get_last_inliers()
+  File "F:\Astro dev\Astro CS Normalization Database\lib\plate_solve\python\ipv_solver.py", line 314, in get_last_inliers
+    arr = np.frombuffer(buf, dtype=np.float64).reshape(ret, 9).copy()
+NameError: name 'np' is not defined
+2026-07-28 14:12:03,266 [INFO] wcs_closure_v3: ======================================================================
+2026-07-28 14:12:03,266 [INFO] wcs_closure_v3: P11-004 v3.0 权威星对诊断: Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@063631-600S-Oiii
+2026-07-28 14:12:03,266 [INFO] wcs_closure_v3: FITS: F:/Astro dev/Astro CS Normalization Database/testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@063631-600S-Oiii.fts
+2026-07-28 14:12:03,266 [INFO] wcs_closure_v3: MODE: authoritative_pairs (kd-tree rematch DISABLED)
+2026-07-28 14:12:03,266 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@063631-600S-Oiii.fts
+2026-07-28 14:12:03,412 [INFO] wcs_closure: 图像尺寸: 4500x3600
+2026-07-28 14:12:03,412 [INFO] wcs_closure_v3: FITS 无 WCS header, 调用 PlateSolve 求解并写入 WCS...
+2026-07-28 14:12:04,335 [INFO] wcs_closure_v3: PlateSolve 求解完成: success=True, n_pairs=34, rms_px=0.0664
+2026-07-28 14:12:04,335 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@063631-600S-Oiii.fts
+2026-07-28 14:12:04,389 [INFO] wcs_closure: 图像尺寸: 4500x3600
+2026-07-28 14:12:04,400 [WARNING] astropy: FITSFixedWarning: 'datfix' made the change 'Set MJD-OBS to 60859.275556 from DATE-OBS'.
+2026-07-28 14:12:04,400 [INFO] wcs_closure: WCS 构建: has_sip=True sip_order=3 ctype=['RA---TAN-SIP', 'DEC--TAN-SIP'] crpix=(2250.500,1800.500) crval=(272.892215,-13.171286)
+2026-07-28 14:12:04,401 [INFO] wcs_closure_v3: 重跑 PlateSolve 以填充权威 inlier 缓存...
+2026-07-28 14:12:05,129 [ERROR] wcs_closure_v3: 帧 F:/Astro dev/Astro CS Normalization Database/testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@063631-600S-Oiii.fts 诊断失败: name 'np' is not defined
+Traceback (most recent call last):
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 628, in diagnose_batch_authoritative
+    report = diagnose_frame_authoritative(
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 324, in diagnose_frame_authoritative
+    pairs = fetch_authoritative_inliers(solver)
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 107, in fetch_authoritative_inliers
+    arr = solver.get_last_inliers()
+  File "F:\Astro dev\Astro CS Normalization Database\lib\plate_solve\python\ipv_solver.py", line 314, in get_last_inliers
+    arr = np.frombuffer(buf, dtype=np.float64).reshape(ret, 9).copy()
+NameError: name 'np' is not defined
+2026-07-28 14:12:05,135 [INFO] wcs_closure_v3: ======================================================================
+2026-07-28 14:12:05,135 [INFO] wcs_closure_v3: P11-004 v3.0 权威星对诊断: LDN43_LRGBH_flying_dutchman-20250503@032713-1200S-Red
+2026-07-28 14:12:05,135 [INFO] wcs_closure_v3: FITS: F:/Astro dev/Astro CS Normalization Database/testdata/LDN43_T2素材_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250503@032713-1200S-Red.fts
+2026-07-28 14:12:05,136 [INFO] wcs_closure_v3: MODE: authoritative_pairs (kd-tree rematch DISABLED)
+2026-07-28 14:12:05,136 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/LDN43_T2素材_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250503@032713-1200S-Red.fts
+2026-07-28 14:12:05,196 [INFO] wcs_closure: 图像尺寸: 4096x4096
+2026-07-28 14:12:05,206 [WARNING] astropy: FITSFixedWarning: 'datfix' made the change 'Set MJD-OBS to 60798.143993 from DATE-OBS'.
+2026-07-28 14:12:05,206 [INFO] wcs_closure: WCS 构建: has_sip=False sip_order=0 ctype=['RA---TAN', 'DEC--TAN'] crpix=(2048.000,2048.000) crval=(248.609554,-15.758981)
+2026-07-28 14:12:05,208 [INFO] wcs_closure_v3: 重跑 PlateSolve 以填充权威 inlier 缓存...
+2026-07-28 14:12:06,063 [ERROR] wcs_closure_v3: 帧 F:/Astro dev/Astro CS Normalization Database/testdata/LDN43_T2素材_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250503@032713-1200S-Red.fts 诊断失败: name 'np' is not defined
+Traceback (most recent call last):
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 628, in diagnose_batch_authoritative
+    report = diagnose_frame_authoritative(
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 324, in diagnose_frame_authoritative
+    pairs = fetch_authoritative_inliers(solver)
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 107, in fetch_authoritative_inliers
+    arr = solver.get_last_inliers()
+  File "F:\Astro dev\Astro CS Normalization Database\lib\plate_solve\python\ipv_solver.py", line 314, in get_last_inliers
+    arr = np.frombuffer(buf, dtype=np.float64).reshape(ret, 9).copy()
+NameError: name 'np' is not defined
+2026-07-28 14:12:06,067 [INFO] wcs_closure_v3: ======================================================================
+2026-07-28 14:12:06,067 [INFO] wcs_closure_v3: P11-004 v3.0 权威星对诊断: LDN43_LRGBH_flying_dutchman-20250503@034804-1200S-Green
+2026-07-28 14:12:06,067 [INFO] wcs_closure_v3: FITS: F:/Astro dev/Astro CS Normalization Database/testdata/LDN43_T2素材_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250503@034804-1200S-Green.fts
+2026-07-28 14:12:06,067 [INFO] wcs_closure_v3: MODE: authoritative_pairs (kd-tree rematch DISABLED)
+2026-07-28 14:12:06,068 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/LDN43_T2素材_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250503@034804-1200S-Green.fts
+2026-07-28 14:12:06,133 [INFO] wcs_closure: 图像尺寸: 4096x4096
+2026-07-28 14:12:06,142 [WARNING] astropy: FITSFixedWarning: 'datfix' made the change 'Set MJD-OBS to 60798.158472 from DATE-OBS'.
+2026-07-28 14:12:06,143 [INFO] wcs_closure: WCS 构建: has_sip=False sip_order=0 ctype=['RA---TAN', 'DEC--TAN'] crpix=(2048.000,2048.000) crval=(248.609730,-15.759134)
+2026-07-28 14:12:06,144 [INFO] wcs_closure_v3: 重跑 PlateSolve 以填充权威 inlier 缓存...
+2026-07-28 14:12:06,972 [ERROR] wcs_closure_v3: 帧 F:/Astro dev/Astro CS Normalization Database/testdata/LDN43_T2素材_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250503@034804-1200S-Green.fts 诊断失败: name 'np' is not defined
+Traceback (most recent call last):
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 628, in diagnose_batch_authoritative
+    report = diagnose_frame_authoritative(
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 324, in diagnose_frame_authoritative
+    pairs = fetch_authoritative_inliers(solver)
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 107, in fetch_authoritative_inliers
+    arr = solver.get_last_inliers()
+  File "F:\Astro dev\Astro CS Normalization Database\lib\plate_solve\python\ipv_solver.py", line 314, in get_last_inliers
+    arr = np.frombuffer(buf, dtype=np.float64).reshape(ret, 9).copy()
+NameError: name 'np' is not defined
+2026-07-28 14:12:06,976 [INFO] wcs_closure_v3: ======================================================================
+2026-07-28 14:12:06,976 [INFO] wcs_closure_v3: P11-004 v3.0 权威星对诊断: LDN43_LRGBH_flying_dutchman-20250503@040855-1200S-Blue
+2026-07-28 14:12:06,976 [INFO] wcs_closure_v3: FITS: F:/Astro dev/Astro CS Normalization Database/testdata/LDN43_T2素材_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250503@040855-1200S-Blue.fts
+2026-07-28 14:12:06,976 [INFO] wcs_closure_v3: MODE: authoritative_pairs (kd-tree rematch DISABLED)
+2026-07-28 14:12:06,976 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/LDN43_T2素材_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250503@040855-1200S-Blue.fts
+2026-07-28 14:12:07,036 [INFO] wcs_closure: 图像尺寸: 4096x4096
+2026-07-28 14:12:07,045 [WARNING] astropy: FITSFixedWarning: 'datfix' made the change 'Set MJD-OBS to 60798.172963 from DATE-OBS'.
+2026-07-28 14:12:07,045 [INFO] wcs_closure: WCS 构建: has_sip=False sip_order=0 ctype=['RA---TAN', 'DEC--TAN'] crpix=(2048.000,2048.000) crval=(248.609924,-15.759349)
+2026-07-28 14:12:07,047 [INFO] wcs_closure_v3: 重跑 PlateSolve 以填充权威 inlier 缓存...
+2026-07-28 14:12:07,890 [ERROR] wcs_closure_v3: 帧 F:/Astro dev/Astro CS Normalization Database/testdata/LDN43_T2素材_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250503@040855-1200S-Blue.fts 诊断失败: name 'np' is not defined
+Traceback (most recent call last):
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 628, in diagnose_batch_authoritative
+    report = diagnose_frame_authoritative(
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 324, in diagnose_frame_authoritative
+    pairs = fetch_authoritative_inliers(solver)
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 107, in fetch_authoritative_inliers
+    arr = solver.get_last_inliers()
+  File "F:\Astro dev\Astro CS Normalization Database\lib\plate_solve\python\ipv_solver.py", line 314, in get_last_inliers
+    arr = np.frombuffer(buf, dtype=np.float64).reshape(ret, 9).copy()
+NameError: name 'np' is not defined
+2026-07-28 14:12:07,894 [INFO] wcs_closure_v3: ======================================================================
+2026-07-28 14:12:07,894 [INFO] wcs_closure_v3: P11-004 v3.0 权威星对诊断: LDN43_LRGBH_flying_dutchman-20250503@042947-1200S-H-alpha
+2026-07-28 14:12:07,894 [INFO] wcs_closure_v3: FITS: F:/Astro dev/Astro CS Normalization Database/testdata/LDN43_T2素材_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250503@042947-1200S-H-alpha.fts
+2026-07-28 14:12:07,894 [INFO] wcs_closure_v3: MODE: authoritative_pairs (kd-tree rematch DISABLED)
+2026-07-28 14:12:07,894 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/LDN43_T2素材_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250503@042947-1200S-H-alpha.fts
+2026-07-28 14:12:07,968 [INFO] wcs_closure: 图像尺寸: 4096x4096
+2026-07-28 14:12:07,977 [WARNING] astropy: FITSFixedWarning: 'datfix' made the change 'Set MJD-OBS to 60798.187512 from DATE-OBS'.
+2026-07-28 14:12:07,977 [INFO] wcs_closure: WCS 构建: has_sip=False sip_order=0 ctype=['RA---TAN', 'DEC--TAN'] crpix=(2048.000,2048.000) crval=(248.609824,-15.759494)
+2026-07-28 14:12:07,979 [INFO] wcs_closure_v3: 重跑 PlateSolve 以填充权威 inlier 缓存...
+2026-07-28 14:12:08,663 [ERROR] wcs_closure_v3: 帧 F:/Astro dev/Astro CS Normalization Database/testdata/LDN43_T2素材_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250503@042947-1200S-H-alpha.fts 诊断失败: name 'np' is not defined
+Traceback (most recent call last):
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 628, in diagnose_batch_authoritative
+    report = diagnose_frame_authoritative(
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 324, in diagnose_frame_authoritative
+    pairs = fetch_authoritative_inliers(solver)
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 107, in fetch_authoritative_inliers
+    arr = solver.get_last_inliers()
+  File "F:\Astro dev\Astro CS Normalization Database\lib\plate_solve\python\ipv_solver.py", line 314, in get_last_inliers
+    arr = np.frombuffer(buf, dtype=np.float64).reshape(ret, 9).copy()
+NameError: name 'np' is not defined
+2026-07-28 14:12:08,667 [INFO] wcs_closure_v3: ======================================================================
+2026-07-28 14:12:08,667 [INFO] wcs_closure_v3: P11-004 v3.0 权威星对诊断: NGC1727_RGBHO_T2_flying_dutchman-20251031@075259-1800S-OIII
+2026-07-28 14:12:08,667 [INFO] wcs_closure_v3: FITS: F:/Astro dev/Astro CS Normalization Database/testdata/NGC1727_T2_flying_dutchman/lights/NGC1727_RGBHO_T2_flying_dutchman-20251031@075259-1800S-OIII.fts
+2026-07-28 14:12:08,667 [INFO] wcs_closure_v3: MODE: authoritative_pairs (kd-tree rematch DISABLED)
+2026-07-28 14:12:08,667 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/NGC1727_T2_flying_dutchman/lights/NGC1727_RGBHO_T2_flying_dutchman-20251031@075259-1800S-OIII.fts
+2026-07-28 14:12:08,722 [INFO] wcs_closure: 图像尺寸: 4096x4096
+2026-07-28 14:12:08,731 [WARNING] astropy: FITSFixedWarning: 'datfix' made the change 'Set MJD-OBS to 60979.329028 from DATE-OBS'.
+2026-07-28 14:12:08,731 [INFO] wcs_closure: WCS 构建: has_sip=False sip_order=0 ctype=['RA---TAN', 'DEC--TAN'] crpix=(2048.000,2048.000) crval=(73.093493,-69.589685)
+2026-07-28 14:12:08,733 [INFO] wcs_closure_v3: 重跑 PlateSolve 以填充权威 inlier 缓存...
+2026-07-28 14:12:28,517 [ERROR] wcs_closure_v3: 帧 F:/Astro dev/Astro CS Normalization Database/testdata/NGC1727_T2_flying_dutchman/lights/NGC1727_RGBHO_T2_flying_dutchman-20251031@075259-1800S-OIII.fts 诊断失败: name 'np' is not defined
+Traceback (most recent call last):
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 628, in diagnose_batch_authoritative
+    report = diagnose_frame_authoritative(
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 324, in diagnose_frame_authoritative
+    pairs = fetch_authoritative_inliers(solver)
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 107, in fetch_authoritative_inliers
+    arr = solver.get_last_inliers()
+  File "F:\Astro dev\Astro CS Normalization Database\lib\plate_solve\python\ipv_solver.py", line 314, in get_last_inliers
+    ret = self._dll.ipv_get_last_inliers(self._handle, buf, max_count)
+NameError: name 'np' is not defined
+2026-07-28 14:12:28,522 [INFO] wcs_closure_v3: ======================================================================
+2026-07-28 14:12:28,522 [INFO] wcs_closure_v3: P11-004 v3.0 权威星对诊断: NGC55_T3_flying_dutchman-20250701@074114-600S-Red
+2026-07-28 14:12:28,522 [INFO] wcs_closure_v3: FITS: F:/Astro dev/Astro CS Normalization Database/testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@074114-600S-Red.fts
+2026-07-28 14:12:28,522 [INFO] wcs_closure_v3: MODE: authoritative_pairs (kd-tree rematch DISABLED)
+2026-07-28 14:12:28,522 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@074114-600S-Red.fts
+2026-07-28 14:12:28,686 [INFO] wcs_closure: 图像尺寸: 4096x4096
+2026-07-28 14:12:28,687 [INFO] wcs_closure_v3: FITS 无 WCS header, 调用 PlateSolve 求解并写入 WCS...
+2026-07-28 14:12:29,569 [INFO] wcs_closure_v3: PlateSolve 求解完成: success=True, n_pairs=38, rms_px=0.1365
+2026-07-28 14:12:29,569 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@074114-600S-Red.fts
+2026-07-28 14:12:29,627 [INFO] wcs_closure: 图像尺寸: 4096x4096
+2026-07-28 14:12:29,638 [WARNING] astropy: FITSFixedWarning: 'datfix' made the change 'Set MJD-OBS to 60857.320394 from DATE-OBS'.
+2026-07-28 14:12:29,638 [INFO] wcs_closure: WCS 构建: has_sip=True sip_order=3 ctype=['RA---TAN-SIP', 'DEC--TAN-SIP'] crpix=(2048.500,2048.500) crval=(3.745681,-39.196792)
+2026-07-28 14:12:29,641 [INFO] wcs_closure_v3: 重跑 PlateSolve 以填充权威 inlier 缓存...
+2026-07-28 14:12:30,251 [ERROR] wcs_closure_v3: 帧 F:/Astro dev/Astro CS Normalization Database/testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@074114-600S-Red.fts 诊断失败: name 'np' is not defined
+Traceback (most recent call last):
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 628, in diagnose_batch_authoritative
+    report = diagnose_frame_authoritative(
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 324, in diagnose_frame_authoritative
+    pairs = fetch_authoritative_inliers(solver)
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 107, in fetch_authoritative_inliers
+    arr = solver.get_last_inliers()
+  File "F:\Astro dev\Astro CS Normalization Database\lib\plate_solve\python\ipv_solver.py", line 314, in get_last_inliers
+    ret = self._dll.ipv_get_last_inliers(self._handle, buf, max_count)
+NameError: name 'np' is not defined
+2026-07-28 14:12:30,260 [INFO] wcs_closure_v3: ======================================================================
+2026-07-28 14:12:30,260 [INFO] wcs_closure_v3: P11-004 v3.0 权威星对诊断: NGC55_T3_flying_dutchman-20250701@075153-600S-Green
+2026-07-28 14:12:30,260 [INFO] wcs_closure_v3: FITS: F:/Astro dev/Astro CS Normalization Database/testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@075153-600S-Green.fts
+2026-07-28 14:12:30,260 [INFO] wcs_closure_v3: MODE: authoritative_pairs (kd-tree rematch DISABLED)
+2026-07-28 14:12:30,260 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@075153-600S-Green.fts
+2026-07-28 14:12:30,428 [INFO] wcs_closure: 图像尺寸: 4096x4096
+2026-07-28 14:12:30,430 [INFO] wcs_closure_v3: FITS 无 WCS header, 调用 PlateSolve 求解并写入 WCS...
+2026-07-28 14:12:31,305 [INFO] wcs_closure_v3: PlateSolve 求解完成: success=True, n_pairs=33, rms_px=0.1101
+2026-07-28 14:12:31,305 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@075153-600S-Green.fts
+2026-07-28 14:12:31,366 [INFO] wcs_closure: 图像尺寸: 4096x4096
+2026-07-28 14:12:31,384 [WARNING] astropy: FITSFixedWarning: 'datfix' made the change 'Set MJD-OBS to 60857.327789 from DATE-OBS'.
+2026-07-28 14:12:31,384 [INFO] wcs_closure: WCS 构建: has_sip=True sip_order=3 ctype=['RA---TAN-SIP', 'DEC--TAN-SIP'] crpix=(2048.500,2048.500) crval=(3.745951,-39.196714)
+2026-07-28 14:12:31,386 [INFO] wcs_closure_v3: 重跑 PlateSolve 以填充权威 inlier 缓存...
+2026-07-28 14:12:32,057 [ERROR] wcs_closure_v3: 帧 F:/Astro dev/Astro CS Normalization Database/testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@075153-600S-Green.fts 诊断失败: name 'np' is not defined
+Traceback (most recent call last):
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 628, in diagnose_batch_authoritative
+    report = diagnose_frame_authoritative(
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 324, in diagnose_frame_authoritative
+    pairs = fetch_authoritative_inliers(solver)
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 107, in fetch_authoritative_inliers
+    arr = solver.get_last_inliers()
+  File "F:\Astro dev\Astro CS Normalization Database\lib\plate_solve\python\ipv_solver.py", line 314, in get_last_inliers
+    ret = self._dll.ipv_get_last_inliers(self._handle, buf, max_count)
+NameError: name 'np' is not defined
+2026-07-28 14:12:32,065 [INFO] wcs_closure_v3: ======================================================================
+2026-07-28 14:12:32,065 [INFO] wcs_closure_v3: P11-004 v3.0 权威星对诊断: NGC55_T3_flying_dutchman-20250701@080333-600S-Blue
+2026-07-28 14:12:32,065 [INFO] wcs_closure_v3: FITS: F:/Astro dev/Astro CS Normalization Database/testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@080333-600S-Blue.fts
+2026-07-28 14:12:32,065 [INFO] wcs_closure_v3: MODE: authoritative_pairs (kd-tree rematch DISABLED)
+2026-07-28 14:12:32,065 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@080333-600S-Blue.fts
+2026-07-28 14:12:32,225 [INFO] wcs_closure: 图像尺寸: 4096x4096
+2026-07-28 14:12:32,227 [INFO] wcs_closure_v3: FITS 无 WCS header, 调用 PlateSolve 求解并写入 WCS...
+2026-07-28 14:12:33,076 [INFO] wcs_closure_v3: PlateSolve 求解完成: success=True, n_pairs=36, rms_px=0.1353
+2026-07-28 14:12:33,076 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@080333-600S-Blue.fts
+2026-07-28 14:12:33,134 [INFO] wcs_closure: 图像尺寸: 4096x4096
+2026-07-28 14:12:33,146 [WARNING] astropy: FITSFixedWarning: 'datfix' made the change 'Set MJD-OBS to 60857.335891 from DATE-OBS'.
+2026-07-28 14:12:33,147 [INFO] wcs_closure: WCS 构建: has_sip=True sip_order=3 ctype=['RA---TAN-SIP', 'DEC--TAN-SIP'] crpix=(2048.500,2048.500) crval=(3.746084,-39.196812)
+2026-07-28 14:12:33,148 [INFO] wcs_closure_v3: 重跑 PlateSolve 以填充权威 inlier 缓存...
+2026-07-28 14:12:33,780 [ERROR] wcs_closure_v3: 帧 F:/Astro dev/Astro CS Normalization Database/testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@080333-600S-Blue.fts 诊断失败: name 'np' is not defined
+Traceback (most recent call last):
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 628, in diagnose_batch_authoritative
+    report = diagnose_frame_authoritative(
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 324, in diagnose_frame_authoritative
+    pairs = fetch_authoritative_inliers(solver)
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 107, in fetch_authoritative_inliers
+    arr = solver.get_last_inliers()
+  File "F:\Astro dev\Astro CS Normalization Database\lib\plate_solve\python\ipv_solver.py", line 314, in get_last_inliers
+    ret = self._dll.ipv_get_last_inliers(self._handle, buf, max_count)
+NameError: name 'np' is not defined
+2026-07-28 14:12:33,787 [INFO] wcs_closure_v3: ======================================================================
+2026-07-28 14:12:33,787 [INFO] wcs_closure_v3: P11-004 v3.0 权威星对诊断: NGC55_T3_flying_dutchman-20250701@081412-1200S-H-alpha
+2026-07-28 14:12:33,787 [INFO] wcs_closure_v3: FITS: F:/Astro dev/Astro CS Normalization Database/testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@081412-1200S-H-alpha.fts
+2026-07-28 14:12:33,787 [INFO] wcs_closure_v3: MODE: authoritative_pairs (kd-tree rematch DISABLED)
+2026-07-28 14:12:33,787 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@081412-1200S-H-alpha.fts
+2026-07-28 14:12:33,952 [INFO] wcs_closure: 图像尺寸: 4096x4096
+2026-07-28 14:12:33,953 [INFO] wcs_closure_v3: FITS 无 WCS header, 调用 PlateSolve 求解并写入 WCS...
+2026-07-28 14:12:34,862 [INFO] wcs_closure_v3: PlateSolve 求解完成: success=True, n_pairs=39, rms_px=0.1434
+2026-07-28 14:12:34,862 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@081412-1200S-H-alpha.fts
+2026-07-28 14:12:34,920 [INFO] wcs_closure: 图像尺寸: 4096x4096
+2026-07-28 14:12:34,931 [WARNING] astropy: FITSFixedWarning: 'datfix' made the change 'Set MJD-OBS to 60857.343356 from DATE-OBS'.
+2026-07-28 14:12:34,931 [INFO] wcs_closure: WCS 构建: has_sip=True sip_order=3 ctype=['RA---TAN-SIP', 'DEC--TAN-SIP'] crpix=(2048.500,2048.500) crval=(3.745761,-39.196853)
+2026-07-28 14:12:34,932 [INFO] wcs_closure_v3: 重跑 PlateSolve 以填充权威 inlier 缓存...
+2026-07-28 14:12:35,559 [ERROR] wcs_closure_v3: 帧 F:/Astro dev/Astro CS Normalization Database/testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@081412-1200S-H-alpha.fts 诊断失败: name 'np' is not defined
+Traceback (most recent call last):
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 628, in diagnose_batch_authoritative
+    report = diagnose_frame_authoritative(
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 324, in diagnose_frame_authoritative
+    pairs = fetch_authoritative_inliers(solver)
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 107, in fetch_authoritative_inliers
+    arr = solver.get_last_inliers()
+  File "F:\Astro dev\Astro CS Normalization Database\lib\plate_solve\python\ipv_solver.py", line 314, in get_last_inliers
+    ret = self._dll.ipv_get_last_inliers(self._handle, buf, max_count)
+NameError: name 'np' is not defined
+2026-07-28 14:12:35,566 [INFO] wcs_closure_v3: ======================================================================
+2026-07-28 14:12:35,566 [INFO] wcs_closure_v3: P11-004 v3.0 权威星对诊断: NGC55_T3_flying_dutchman-20250701@083458-1200S-Oiii
+2026-07-28 14:12:35,566 [INFO] wcs_closure_v3: FITS: F:/Astro dev/Astro CS Normalization Database/testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@083458-1200S-Oiii.fts
+2026-07-28 14:12:35,566 [INFO] wcs_closure_v3: MODE: authoritative_pairs (kd-tree rematch DISABLED)
+2026-07-28 14:12:35,566 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@083458-1200S-Oiii.fts
+2026-07-28 14:12:35,727 [INFO] wcs_closure: 图像尺寸: 4096x4096
+2026-07-28 14:12:35,729 [INFO] wcs_closure_v3: FITS 无 WCS header, 调用 PlateSolve 求解并写入 WCS...
+2026-07-28 14:12:36,509 [INFO] wcs_closure_v3: PlateSolve 求解完成: success=True, n_pairs=45, rms_px=0.2037
+2026-07-28 14:12:36,509 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@083458-1200S-Oiii.fts
+2026-07-28 14:12:36,568 [INFO] wcs_closure: 图像尺寸: 4096x4096
+2026-07-28 14:12:36,579 [WARNING] astropy: FITSFixedWarning: 'datfix' made the change 'Set MJD-OBS to 60857.357755 from DATE-OBS'.
+2026-07-28 14:12:36,579 [INFO] wcs_closure: WCS 构建: has_sip=True sip_order=3 ctype=['RA---TAN-SIP', 'DEC--TAN-SIP'] crpix=(2048.500,2048.500) crval=(3.746175,-39.196776)
+2026-07-28 14:12:36,581 [INFO] wcs_closure_v3: 重跑 PlateSolve 以填充权威 inlier 缓存...
+2026-07-28 14:12:37,175 [ERROR] wcs_closure_v3: 帧 F:/Astro dev/Astro CS Normalization Database/testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@083458-1200S-Oiii.fts 诊断失败: name 'np' is not defined
+Traceback (most recent call last):
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 628, in diagnose_batch_authoritative
+    report = diagnose_frame_authoritative(
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 324, in diagnose_frame_authoritative
+    pairs = fetch_authoritative_inliers(solver)
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 107, in fetch_authoritative_inliers
+    arr = solver.get_last_inliers()
+  File "F:\Astro dev\Astro CS Normalization Database\lib\plate_solve\python\ipv_solver.py", line 314, in get_last_inliers
+    ret = self._dll.ipv_get_last_inliers(self._handle, buf, max_count)
+NameError: name 'np' is not defined
+2026-07-28 14:12:37,182 [INFO] wcs_closure_v3: ======================================================================
+2026-07-28 14:12:37,182 [INFO] wcs_closure_v3: P11-004 v3.0 权威星对诊断: NGC55_T3_flying_dutchman-20250703@075400-600S-Lum
+2026-07-28 14:12:37,182 [INFO] wcs_closure_v3: FITS: F:/Astro dev/Astro CS Normalization Database/testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250703@075400-600S-Lum.fts
+2026-07-28 14:12:37,182 [INFO] wcs_closure_v3: MODE: authoritative_pairs (kd-tree rematch DISABLED)
+2026-07-28 14:12:37,182 [INFO] wcs_closure: 读取 FITS: F:/Astro dev/Astro CS Normalization Database/testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250703@075400-600S-Lum.fts
+2026-07-28 14:12:37,339 [INFO] wcs_closure: 图像尺寸: 4096x4096
+2026-07-28 14:12:37,347 [WARNING] astropy: FITSFixedWarning: 'datfix' made the change 'Set MJD-OBS to 60859.329595 from DATE-OBS'.
+2026-07-28 14:12:37,347 [INFO] wcs_closure: WCS 构建: has_sip=False sip_order=0 ctype=['RA---TAN', 'DEC--TAN'] crpix=(2048.000,2048.000) crval=(3.749672,-39.194104)
+2026-07-28 14:12:37,350 [INFO] wcs_closure_v3: 重跑 PlateSolve 以填充权威 inlier 缓存...
+2026-07-28 14:12:38,028 [ERROR] wcs_closure_v3: 帧 F:/Astro dev/Astro CS Normalization Database/testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250703@075400-600S-Lum.fts 诊断失败: name 'np' is not defined
+Traceback (most recent call last):
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 628, in diagnose_batch_authoritative
+    report = diagnose_frame_authoritative(
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 324, in diagnose_frame_authoritative
+    pairs = fetch_authoritative_inliers(solver)
+  File "F:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P11-004\scripts\wcs_closure_diagnostic_v3.py", line 107, in fetch_authoritative_inliers
+    arr = solver.get_last_inliers()
+  File "F:\Astro dev\Astro CS Normalization Database\lib\plate_solve\python\ipv_solver.py", line 314, in get_last_inliers
+    ret = self._dll.ipv_get_last_inliers(self._handle, buf, max_count)
+NameError: name 'np' is not defined

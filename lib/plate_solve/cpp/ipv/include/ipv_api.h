@@ -180,6 +180,40 @@ IPV_API int ipv_solve_from_memory_with_callback(
 // 获取默认参数
 IPV_API void ipv_get_default_params(IpvParams* params);
 
+// ============================================================================
+// P11-004 v1.3: 权威 inlier 导出 C API (供 WCS Gate v2 双层闭环)
+//
+// 用途: 在 ipv_solve/ipv_solve_from_memory/ipv_solve_from_detections_v1/
+//       ipv_solve_from_memory_with_callback 成功返回后调用,
+//       获取求解器内部最终权威 inlier 对应关系,
+//       避免外部诊断工具用 kd-tree 重新匹配导致误配。
+//
+// 详见 docs/24_WCS_VALIDATION_V2_SPEC.md 与 docs/25_AUTHORITATIVE_MATCH_PAIR_CONTRACT.md
+//
+// 字段约定 (out_buffer 每行 9 个 double, 行数 = 返回值):
+//   [0] det_x_px      - 检测器 x (像素, 图像中心原点, Y 轴向上)
+//   [1] det_y_px      - 检测器 y
+//   [2] gaia_ra_deg   - Gaia RA (度)
+//   [3] gaia_dec_deg  - Gaia Dec (度)
+//   [4] pred_x_px     - 内部 TRANS 预测 x (像素, 经 s0 缩放)
+//   [5] pred_y_px     - 内部 TRANS 预测 y
+//   [6] residual_x_px - 残差 x = det_x - pred_x (像素)
+//   [7] residual_y_px - 残差 y = det_y - pred_y
+//   [8] residual_dist_px - 残差距离 sqrt(res_x² + res_y²)
+// ============================================================================
+
+// 获取最后一次成功求解的 inlier 数量
+// 返回: >=0 inlier 数, 0 表示无缓存或求解失败
+IPV_API int ipv_get_last_inlier_count(void* solver);
+
+// 获取最后一次成功求解的 inlier 详细数据
+// 输入:
+//   solver     - 求解器句柄
+//   out_buffer - 调用方分配的缓冲区, 大小 = max_count * 9 * sizeof(double)
+//   max_count  - 缓冲区最多容纳的行数
+// 返回: >=0 实际写入的行数, <0 表示错误 (如 buffer 为空或 max_count<=0)
+IPV_API int ipv_get_last_inliers(void* solver, double* out_buffer, int max_count);
+
 #ifdef __cplusplus
 }
 #endif
