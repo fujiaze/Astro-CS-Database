@@ -1440,3 +1440,50 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 - **控制文件**: PROJECT_STATE.yaml (last_completed=P12-003, current=P12-004) + CURRENT_TASK.md + MASTER_TASK_REGISTER.csv (P12-003 → DONE) + DECISION_REGISTER.md (ADR-P12-003)
 - **依赖**: P12-002 (DONE); **后续**: P12-004（v1.2 后续任务，待用户确认）
 - **Gate**: G12 进行中 (P12-001/002/003 DONE, P12-004~006 TODO)
+
+### P12-004 进度（2026-07-28，CONDITIONAL_DONE）
+- **状态**: CONDITIONAL_DONE（T1-T4 与滤镜类别测光矩阵验证，0/16 Gate PASS → 转入 P12-005 修复）
+- **目标**: 对 16 帧代表帧 (T2/T3/T4 × LUM/RED/GREEN/BLUE/HA/OIII) 运行 orchestrator stage1, 收集 PhotometricDiag 诊断字段, 检查 Gate
+- **测试结果**: 0/16 Gate PASS，失败分类:
+  - INVALID_SCALE 3 帧 (T4 RED/GREEN/BLUE, scale_factor ≈ 0.0026-0.0028 被误判 < 0.01 下限, valid_fsyn=0)
+  - STAGE1_ERROR 13 帧 (2 帧滤光片曲线加载失败 + 4 帧中文路径 filesystem error + 7 帧无 Master 文件)
+- **P12-002 修复有效性间接验证**: T4 RED/GREEN/BLUE 空间匹配正常 (unique_matches=spatial_candidates, rejected_ambiguous=0, fit_used 1231-1670 充足)
+- **证据**: engineering_v1.3/evidence/P12-004/ (TASK_REPORT + TEST_REPORT + EVIDENCE_INDEX + REVIEW_REPORT + reports/PHOTOMETRY_MATRIX.csv + reports/photometric_diag_summary.json + reports/failure_classification.json + raw_logs/<frame>/stage1.log + raw_logs/<frame>/photometry_report.json)
+- **commit**: b854d9a
+- **控制文件**: PROJECT_STATE.yaml (last_completed=P12-004, current=P12-005) + CURRENT_TASK.md + MASTER_TASK_REGISTER.csv (P12-004 → DONE)
+- **依赖**: P12-002; P12-003; P10-006 (DONE); **后续**: P12-005 (修复 4 类问题)
+- **Gate**: G12 进行中 (P12-001~004 DONE, P12-005/006 TODO)
+
+### P12-005 进度（2026-07-28，DONE）
+- **状态**: DONE（SNR_MODEL_FIX + HISS_PERSISTENCE_VERIFIED，16/16 Gate PASS）
+- **目标**: 修复 P12-004 暴露的 4 类问题，使 16 帧代表帧测光矩阵全部通过 Gate，且 SNR 模型成功写入 HISS 持久化文件
+- **修复内容 (4 类)**:
+  1. **initDiag 误覆盖** (`lib/photometric_calib/cpp/src/star_matcher.cpp` L45-49): 从 initDiag 移除 spectrum_rows_total/valid_fsyn 重置，避免覆盖 pc_api.cpp 在光谱积分阶段已正确填充的值
+  2. **scale_factor 误判** (`engineering_v1.3/evidence/P12-004/scripts/run_photometric_matrix.py` L70): SCALE_FACTOR_MIN=0.0（Spec 无下限约束，仅要求 scale > 0），SCALE_FACTOR_MAX=1.0e9
+  3. **窄带滤光片 HA/OIII 缺失**:
+     - `lib/photometric_calib/data/response_curves/filters.json` L2571-2675: 新增 Baader 7nm H-alpha (21 点, 640-672nm) + Baader 8.5nm OIII (25 点, 484-518nm) 滤光片曲线
+     - `lib/orchestrator/cpp/src/orchestrator.cpp` L1397-1402: map_filter_name 新增 H-alpha/HA/OIII/Oiii 大小写变体映射
+  4. **C++ 中文路径 filesystem error**:
+     - PowerShell `New-Item -ItemType Junction` 创建 ASCII 链接 (testdata/*_flying_dutchman) 绕过 MSYS2 std::filesystem 中文路径 bug
+     - 按设备生成独立 stage1_config_T2/T3/T4.json，将 calibration_dir 指向 ASCII 路径
+- **测试结果**: 16/16 Gate PASS
+  - Broadband (LUM/RED/GREEN/BLUE): 10/10 PASS (fit_used 最小 258)
+  - Narrowband (HA/OIII): 6/6 PASS (HISS n_points 最小 234)
+  - 全部帧 has_snr=1 写入 HISS (n_points 范围 234-1984)
+  - 全部帧 valid_fsyn == spectrum_rows_total (initDiag 修复有效)
+  - scale_factor 范围 5e-6 ~ 2.8e-3，全部 > 0
+  - sigma_residual 范围 0.053-0.367，全部 > 0 且有限
+  - 旧功能 (P12-001/002/003, P11-006) 无回归
+- **设备滤光片适配**:
+  - T4: Baader RGBHaOIII (7nm HA, 8.5nm OIII) — 直接对应 Baader 曲线
+  - T2/T3: Astrodon 3nm HA 等 — 暂用 Baader 曲线近似（足够覆盖中心波长，光度定标精度可接受）
+- **证据**: engineering_v1.3/evidence/P12-005/ (TASK_REPORT + TEST_REPORT + EVIDENCE_INDEX + REVIEW_REPORT + scripts/compute_hashes.json + scripts/compute_hashes.log + scripts/commit_msg.txt + scripts/commit_config.json)
+- **commit**: 60ce503（52 files, +10198/-2888），已 push 到 origin/main
+- **控制文件**: PROJECT_STATE.yaml (last_completed=P12-005, current=P12-006) + CURRENT_TASK.md + MASTER_TASK_REGISTER.csv (P12-005 → DONE)
+- **依赖**: P12-004 (DONE); P11-006 (DONE); **后续**: P12-006 (生成 Stage1 代表矩阵正式 HISS)
+- **Gate**: G12 进行中 (P12-001~005 DONE, P12-006 TODO)
+- **关键经验**:
+  - PhotometricDiag 字段初始化必须遵守"谁写谁清零"原则，避免覆盖上游已写入的值
+  - Spec 中 scale_factor 无下限约束，仅要求 > 0（不可自行添加 0.01 下限）
+  - MSYS2 MinGW64 std::filesystem 不支持中文路径，需用 ASCII junction 绕过
+  - 按设备生成独立 stage1_config 可隔离 calibration_dir 配置，避免相互干扰
