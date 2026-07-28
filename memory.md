@@ -1370,4 +1370,18 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 - **Gate 验证**: 跳过（用户确认 ipv 求解器正确；WCS+SIP 作为管线内存块传递，不写入 FITS header 是设计如此）
 - **控制文件更新**: PROJECT_STATE.yaml (current_task=P11-006, last_completed=P11-005) + CURRENT_TASK.md + MASTER_TASK_REGISTER.csv (P11-005 → DONE, P11-006 → PENDING) + DECISION_REGISTER.md (ADR-P11-005-OUTCOME)
 - **依赖**: P11-004 (DONE); **后续**: P11-006 (更新坐标契约、CLI capabilities、provenance)
-- **Gate**: G11 进行中 (P11-001/002/003/004/005 DONE, P11-006 PENDING)
+- **Gate**: G11 进行中 (P11-001/002/003/004/005 DONE, P11-006 DONE)
+
+### P11-006 进度（2026-07-28，DONE）
+- **状态**: DONE（coordinate convention v2 + CLI capabilities + provenance）
+- **完成内容**:
+  1. 修复 `ipv_wcs.cpp` L165-167 CRPIX 冲突：`cx + 1.0` → `cx + 0.5`（统一为 `width/2.0 + 0.5`，与 L287 和 P11-001 冻结值一致）
+  2. 更新 `cli_command.cpp` L1696/L1715：ipv_solver capabilities 新增 `export_authoritative_pairs`/`wcs_sip_serialization`；schema_versions 新增 `wcs_authoritative_pairs:"1.0"`、`wcs_closure_report:"1.0"`、`coordinate_convention:"2"`
+  3. `run_ipv_baseline.py` 移除 `offset_px < 250` 检查（望远镜 pointing 抖动不应作为 WCS Gate；文件被 `lib/plate_solve/.gitignore` 排除，本地修改未提交）
+  4. 坐标契约 v2（`evidence/P11-006/COORDINATE_CONVENTION_V2.md`）：CRPIX 统一、WCS+SIP 管线内存块传递、A/B/C 三层验证架构、B 层硬 Gate 阈值、SIP 序列化要求
+  5. provenance schema 扩展：`wcs_authoritative_pairs.schema.json` 新增可选 `provenance` 对象（solver_version, gaia_catalog_version, wcs_closure_summary 等）
+- **回归验证**: 710 帧重跑 709/710 pass（与 P11-005 一致，无回归），RMS 中位 0.285"，耗时 15.9min
+- **编译验证**: ipv_solver.dll + orchestrator.exe 编译成功，capabilities 输出正确
+- **控制文件更新**: PROJECT_STATE.yaml (last_completed=P11-006) + CURRENT_TASK.md + MASTER_TASK_REGISTER.csv (P11-006 → DONE) + DECISION_REGISTER.md (ADR-P11-006-COORD-V2)
+- **依赖**: P11-005 (DONE); **后续**: G11 全部完成（P11-001~006 DONE）
+- **Gate**: G11 完成 (P11-001/002/003/004/005/006 DONE)
