@@ -1422,3 +1422,21 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 - **控制文件**: PROJECT_STATE.yaml (last_completed=P12-002, current=P12-003) + CURRENT_TASK.md + MASTER_TASK_REGISTER.csv (P12-002 → DONE) + DECISION_REGISTER.md (ADR-P12-002)
 - **依赖**: P12-001 (DONE); **后续**: P12-003 (验证光谱积分与响应曲线无回归)
 - **Gate**: G12 进行中 (P12-001/002 DONE, P12-003~006 TODO)
+
+### P12-003 进度（2026-07-28，DONE）
+- **状态**: DONE（SPECTRUM_INTEGRATION_NO_REGRESSION + RESPONSE_CURVE_VERIFIED）
+- **目标**: 验证 P12-002 修复（KD-tree + 双向匹配）未引入光谱积分与响应曲线回归
+- **测试结果**: 5/5 PASS
+  1. 滤光片(38种)+QE曲线(13种)溯源完成，波长范围和值域均正常
+  2. C++ vs Python F_syn 一致性（60组对比，相对误差 < 1e-6 uncached, < 0.03% cached）
+  3. cached vs uncached 一致性（60组，相对误差 < 0.03%）
+  4. 无 QE 与 QE=1.0 等价性（相对误差 = 0）
+  5. 现有测光校准测试 5/5 PASS 无回归
+- **新增测试文件**:
+  - lib/photometric_calib/cpp/test/test_spectrum_integrator.cpp（C++ 黑体光谱 F_syn 计算）
+  - lib/photometric_calib/cpp/test/test_spectrum_integrator_golden.py（Python golden 对比）
+- **证据**: engineering_v1.3/evidence/P12-003/（TASK_REPORT + TEST_REPORT + EVIDENCE_INDEX + REVIEW_REPORT + reports/test_results.json + reports/filter_qe_provenance.json）
+- **commit**: b7b1879（15 files, +6113/-31），已 push 到 origin/main
+- **控制文件**: PROJECT_STATE.yaml (last_completed=P12-003, current=P12-004) + CURRENT_TASK.md + MASTER_TASK_REGISTER.csv (P12-003 → DONE) + DECISION_REGISTER.md (ADR-P12-003)
+- **依赖**: P12-002 (DONE); **后续**: P12-004（v1.2 后续任务，待用户确认）
+- **Gate**: G12 进行中 (P12-001/002/003 DONE, P12-004~006 TODO)
