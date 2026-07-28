@@ -104,6 +104,63 @@
           }
         }
       }
+    },
+    "provenance": {
+      "type": "object",
+      "description": "求解溯源元数据（P11-006 新增）",
+      "properties": {
+        "solver_version": {
+          "type": "string",
+          "description": "求解器版本，如 ipv_v4.30"
+        },
+        "solver_commit": {
+          "type": "string",
+          "description": "求解器 git commit hash"
+        },
+        "gaia_catalog_version": {
+          "type": "string",
+          "description": "Gaia 星表版本，如 DR3SP"
+        },
+        "detection_hash": {
+          "type": "string",
+          "description": "检测结果哈希（sha256 前16位）"
+        },
+        "observation_epoch": {
+          "type": "string",
+          "description": "观测历元，从 FITS header 提取"
+        },
+        "wcs_closure_summary": {
+          "type": "object",
+          "description": "WCS 闭环验证摘要",
+          "properties": {
+            "layer_a_solver_rms_px": {
+              "type": "number"
+            },
+            "layer_b_external_p68_px": {
+              "type": "number"
+            },
+            "layer_b_external_p90_px": {
+              "type": "number"
+            },
+            "layer_b_external_p99_px": {
+              "type": "number"
+            },
+            "gate_passed": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "software_commit_config_hash": {
+          "type": "string",
+          "description": "软件 commit+config 哈希"
+        }
+      },
+      "required": [
+        "solver_version",
+        "gaia_catalog_version"
+      ],
+      "additionalProperties": false
     }
   }
 }
