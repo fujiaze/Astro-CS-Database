@@ -1,17 +1,17 @@
 device,filter_class,filter_name,target,frame_name,status,fit_used,scale_factor,sigma_residual,n_matched,spectrum_rows_total,valid_fsyn,gaia_projected_in_frame,psf_valid,unique_matches,gate_pass,failure_category,notes
-T4,Broadband,RED,Galaxy_Center,Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts,FAIL,1670,0.002836,0.181595,1670,0,0,6021,1984,1673,FAIL,INVALID_SCALE,"scale_factor=0.002836 超出 [0.01, 100.0]"
-T4,Broadband,GREEN,Galaxy_Center,Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@063620-180S-Green.fts,FAIL,1619,0.002696,0.157614,1619,0,0,5892,1966,1623,FAIL,INVALID_SCALE,"scale_factor=0.002696 超出 [0.01, 100.0]"
-T4,Broadband,BLUE,Galaxy_Center,Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@055414-180S-Blue.fts,FAIL,1231,0.00261,0.128533,1231,0,0,6124,1922,1237,FAIL,INVALID_SCALE,"scale_factor=0.00261 超出 [0.01, 100.0]"
-T4,Narrowband,HA,Galaxy_Center,Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@061318-300S-H-alpha.fts,STAGE1_ERROR,0,0,0,0,0,0,0,0,0,FAIL,STAGE1_ERROR,exit_code=1: [dll_loader] 卸载模块 AIO
-T4,Narrowband,OIII,Galaxy_Center,Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@063631-600S-Oiii.fts,STAGE1_ERROR,0,0,0,0,0,0,0,0,0,FAIL,STAGE1_ERROR,exit_code=1: [dll_loader] 卸载模块 AIO
-T2,Broadband,RED,LDN43,LDN43_LRGBH_flying_dutchman-20250503@032713-1200S-Red.fts,STAGE1_ERROR,0,0,0,0,0,0,0,0,0,FAIL,STAGE1_ERROR,exit_code=3:   what():  filesystem error: Cannot convert character sequence: Illegal byte sequence
-T2,Broadband,GREEN,LDN43,LDN43_LRGBH_flying_dutchman-20250503@034804-1200S-Green.fts,STAGE1_ERROR,0,0,0,0,0,0,0,0,0,FAIL,STAGE1_ERROR,exit_code=3:   what():  filesystem error: Cannot convert character sequence: Illegal byte sequence
-T2,Broadband,BLUE,LDN43,LDN43_LRGBH_flying_dutchman-20250503@040855-1200S-Blue.fts,STAGE1_ERROR,0,0,0,0,0,0,0,0,0,FAIL,STAGE1_ERROR,exit_code=3:   what():  filesystem error: Cannot convert character sequence: Illegal byte sequence
-T2,Narrowband,HA,LDN43,LDN43_LRGBH_flying_dutchman-20250503@042947-1200S-H-alpha.fts,STAGE1_ERROR,0,0,0,0,0,0,0,0,0,FAIL,STAGE1_ERROR,exit_code=3:   what():  filesystem error: Cannot convert character sequence: Illegal byte sequence
-T2,Narrowband,OIII,NGC1727,NGC1727_RGBHO_T2_flying_dutchman-20251031@075259-1800S-OIII.fts,STAGE1_ERROR,0,0,0,0,0,0,0,0,0,FAIL,STAGE1_ERROR,exit_code=4: [dll_loader] 卸载模块 AIO
-T3,Broadband,RED,NGC55,NGC55_T3_flying_dutchman-20250701@074114-600S-Red.fts,STAGE1_ERROR,0,0,0,0,0,0,0,0,0,FAIL,STAGE1_ERROR,exit_code=4: [dll_loader] 卸载模块 AIO
-T3,Broadband,GREEN,NGC55,NGC55_T3_flying_dutchman-20250701@075153-600S-Green.fts,STAGE1_ERROR,0,0,0,0,0,0,0,0,0,FAIL,STAGE1_ERROR,exit_code=4: [dll_loader] 卸载模块 AIO
-T3,Broadband,BLUE,NGC55,NGC55_T3_flying_dutchman-20250701@080333-600S-Blue.fts,STAGE1_ERROR,0,0,0,0,0,0,0,0,0,FAIL,STAGE1_ERROR,exit_code=4: [dll_loader] 卸载模块 AIO
-T3,Narrowband,HA,NGC55,NGC55_T3_flying_dutchman-20250701@081412-1200S-H-alpha.fts,STAGE1_ERROR,0,0,0,0,0,0,0,0,0,FAIL,STAGE1_ERROR,exit_code=4: [dll_loader] 卸载模块 AIO
-T3,Narrowband,OIII,NGC55,NGC55_T3_flying_dutchman-20250701@083458-1200S-Oiii.fts,STAGE1_ERROR,0,0,0,0,0,0,0,0,0,FAIL,STAGE1_ERROR,exit_code=4: [dll_loader] 卸载模块 AIO
-T3,Broadband,LUM,NGC55,NGC55_T3_flying_dutchman-20250703@075400-600S-Lum.fts,STAGE1_ERROR,0,0,0,0,0,0,0,0,0,FAIL,STAGE1_ERROR,exit_code=4: [dll_loader] 卸载模块 AIO
+T4,Broadband,RED,Galaxy_Center,Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts,PASS,1670,0.002836,0.181595,1670,14649,14649,6021,1984,1673,PASS,,
+T4,Broadband,GREEN,Galaxy_Center,Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@063620-180S-Green.fts,PASS,1619,0.002696,0.157614,1619,14405,14373,5892,1966,1623,PASS,,
+T4,Broadband,BLUE,Galaxy_Center,Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@055414-180S-Blue.fts,PASS,1231,0.00261,0.128533,1231,14703,14613,6124,1922,1237,PASS,,
+T4,Narrowband,HA,Galaxy_Center,Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@061318-300S-H-alpha.fts,PASS,1645,0.000475,0.20081,1645,14704,14704,6087,1946,1650,PASS,,
+T4,Narrowband,OIII,Galaxy_Center,Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@063631-600S-Oiii.fts,PASS,1519,0.000592,0.146881,1519,14761,14662,6120,1849,1524,PASS,,
+T2,Broadband,RED,LDN43,LDN43_LRGBH_flying_dutchman-20250503@032713-1200S-Red.fts,PASS,1093,1.6e-05,0.065141,1093,2996,2996,1210,1949,1111,PASS,,
+T2,Broadband,GREEN,LDN43,LDN43_LRGBH_flying_dutchman-20250503@034804-1200S-Green.fts,PASS,1069,1.2e-05,0.052114,1069,2996,2994,1210,1958,1115,PASS,,
+T2,Broadband,BLUE,LDN43,LDN43_LRGBH_flying_dutchman-20250503@040855-1200S-Blue.fts,PASS,1087,9e-06,0.056537,1087,2995,2994,1210,1965,1119,PASS,,
+T2,Narrowband,HA,LDN43,LDN43_LRGBH_flying_dutchman-20250503@042947-1200S-H-alpha.fts,PASS,910,8e-06,0.066902,910,2995,2995,1209,1267,931,PASS,,
+T2,Narrowband,OIII,NGC1727,NGC1727_RGBHO_T2_flying_dutchman-20251031@075259-1800S-OIII.fts,PASS,1099,6e-06,0.36662,1099,2486,2486,1333,1961,1099,PASS,,
+T3,Broadband,RED,NGC55,NGC55_T3_flying_dutchman-20250701@074114-600S-Red.fts,PASS,288,1.8e-05,0.119183,288,759,759,311,940,289,PASS,,
+T3,Broadband,GREEN,NGC55,NGC55_T3_flying_dutchman-20250701@075153-600S-Green.fts,PASS,278,2e-05,0.08357,278,759,759,311,884,287,PASS,,
+T3,Broadband,BLUE,NGC55,NGC55_T3_flying_dutchman-20250701@080333-600S-Blue.fts,PASS,269,2.3e-05,0.055428,269,759,759,311,791,289,PASS,,
+T3,Narrowband,HA,NGC55,NGC55_T3_flying_dutchman-20250701@081412-1200S-H-alpha.fts,PASS,271,5e-06,0.100344,271,759,759,311,398,274,PASS,,
+T3,Narrowband,OIII,NGC55,NGC55_T3_flying_dutchman-20250701@083458-1200S-Oiii.fts,PASS,251,1.1e-05,0.053769,251,759,759,311,385,256,PASS,,
+T3,Broadband,LUM,NGC55,NGC55_T3_flying_dutchman-20250703@075400-600S-Lum.fts,PASS,258,1.6e-05,0.155009,258,757,757,311,1439,261,PASS,,

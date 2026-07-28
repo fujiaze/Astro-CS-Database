@@ -1394,6 +1394,12 @@ static std::string map_filter_name(const std::string& fits_filter) {
     if (ieq(fits_filter, "Blue") || ieq(fits_filter, "B")) return "Baader B";
     if (ieq(fits_filter, "Lum") || ieq(fits_filter, "L") || ieq(fits_filter, "Luminance"))
         return "Baader UV/IR Cut / L CMOS Optimized";
+    // P12-005: 窄带滤光片映射 (H-alpha / OIII 大小写变体)
+    // T4: Baader RGBHaOIII (7nm HA, 8.5nm OIII); T2/T3: Astrodon (暂用 Baader 曲线近似)
+    if (ieq(fits_filter, "H-alpha") || ieq(fits_filter, "Ha") || ieq(fits_filter, "HA"))
+        return "Baader 7nm H-alpha";
+    if (ieq(fits_filter, "OIII") || ieq(fits_filter, "Oiii"))
+        return "Baader 8.5nm OIII";
     // 未匹配时原样返回 (可能本身就是 filters.json 中的名称)
     return fits_filter;
 }

@@ -1,0 +1,405 @@
+{
+  "ok": true,
+  "results": [
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "5AEB4823B46A2CDFC407B45A3195147D4203AFB4A36C295A977EEACBEE16E7B7",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "F:\\Astro dev\\Astro CS Normalization Database\\lib/photometric_calib/cpp/src/star_matcher.cpp"
+      ],
+      "extra": {
+        "sha256": "5AEB4823B46A2CDFC407B45A3195147D4203AFB4A36C295A977EEACBEE16E7B7",
+        "size": 26145
+      },
+      "step": 0,
+      "type": "sha256"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "FD73BD9D06513D2376BEA338042C777CB547E3CE9C71AAC97EE0B5319CE1F692",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "F:\\Astro dev\\Astro CS Normalization Database\\lib/photometric_calib/cpp/src/pc_api.cpp"
+      ],
+      "extra": {
+        "sha256": "FD73BD9D06513D2376BEA338042C777CB547E3CE9C71AAC97EE0B5319CE1F692",
+        "size": 16308
+      },
+      "step": 1,
+      "type": "sha256"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "A1D76D7FC46330311EC31B076F217A2DE902A41F14FD2E45E72A0F6047AB65AD",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "F:\\Astro dev\\Astro CS Normalization Database\\lib/photometric_calib/data/response_curves/filters.json"
+      ],
+      "extra": {
+        "sha256": "A1D76D7FC46330311EC31B076F217A2DE902A41F14FD2E45E72A0F6047AB65AD",
+        "size": 197842
+      },
+      "step": 2,
+      "type": "sha256"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "06C00EA4BF420EBB277F1C7ED65BA6892228279FBA0235A274CD112AA44B549F",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "F:\\Astro dev\\Astro CS Normalization Database\\lib/orchestrator/cpp/src/orchestrator.cpp"
+      ],
+      "extra": {
+        "sha256": "06C00EA4BF420EBB277F1C7ED65BA6892228279FBA0235A274CD112AA44B549F",
+        "size": 186282
+      },
+      "step": 3,
+      "type": "sha256"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "AC2334444D2877E17F9B59CAA421C22AF8670B7BF0E6A7B6F490FE4BFCE9DE7B",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "F:\\Astro dev\\Astro CS Normalization Database\\lib/snr_estimator/cpp/src/snr_estimator.cpp"
+      ],
+      "extra": {
+        "sha256": "AC2334444D2877E17F9B59CAA421C22AF8670B7BF0E6A7B6F490FE4BFCE9DE7B",
+        "size": 15593
+      },
+      "step": 4,
+      "type": "sha256"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "0528B1A58AAF1FBE1A9966DA941E927B4705553AA237A448BE67246FA7AB7ACD",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "F:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.3/evidence/P12-004/scripts/run_photometric_matrix.py"
+      ],
+      "extra": {
+        "sha256": "0528B1A58AAF1FBE1A9966DA941E927B4705553AA237A448BE67246FA7AB7ACD",
+        "size": 27263
+      },
+      "step": 5,
+      "type": "sha256"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "E8B1F4FDBB48F9405A041234058575385F3BB20DB196DF8A4ED4D751DED33F33",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "F:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.3/evidence/P12-004/reports/PHOTOMETRY_MATRIX.csv"
+      ],
+      "extra": {
+        "sha256": "E8B1F4FDBB48F9405A041234058575385F3BB20DB196DF8A4ED4D751DED33F33",
+        "size": 2635
+      },
+      "step": 6,
+      "type": "sha256"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "E6FBA70967901D258C23C9244AD7A7A138CB0F025A024D9DD9AD4A6D1BA6AA87",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "F:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.3/evidence/P12-004/reports/photometric_diag_summary.json"
+      ],
+      "extra": {
+        "sha256": "E6FBA70967901D258C23C9244AD7A7A138CB0F025A024D9DD9AD4A6D1BA6AA87",
+        "size": 18292
+      },
+      "step": 7,
+      "type": "sha256"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "5918D5890FBB6F0D9685E3414AED7E1DA9FAEFA40164EF5541577A3E78E83292",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "F:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.3/evidence/P12-004/reports/failure_classification.json"
+      ],
+      "extra": {
+        "sha256": "5918D5890FBB6F0D9685E3414AED7E1DA9FAEFA40164EF5541577A3E78E83292",
+        "size": 357
+      },
+      "step": 8,
+      "type": "sha256"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "7AF1AAADFD76F327A27566041BB584A76BC17890084093208DA194A86F1C65DC",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "F:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.3/evidence/P12-004/raw_logs/T4_RED_Galaxy_Center/photometry_report.json"
+      ],
+      "extra": {
+        "sha256": "7AF1AAADFD76F327A27566041BB584A76BC17890084093208DA194A86F1C65DC",
+        "size": 714
+      },
+      "step": 9,
+      "type": "sha256"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "3360337CFDB91A1395F43D17533B89F28EA5B30B646335DE5531CE4506B24F3C",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "F:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.3/evidence/P12-004/raw_logs/T4_GREEN_Galaxy_Center/photometry_report.json"
+      ],
+      "extra": {
+        "sha256": "3360337CFDB91A1395F43D17533B89F28EA5B30B646335DE5531CE4506B24F3C",
+        "size": 718
+      },
+      "step": 10,
+      "type": "sha256"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "B0165505978365BBD1B325D7126603F1F4131E116891F63C233EE05D861AEF18",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "F:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.3/evidence/P12-004/raw_logs/T4_BLUE_Galaxy_Center/photometry_report.json"
+      ],
+      "extra": {
+        "sha256": "B0165505978365BBD1B325D7126603F1F4131E116891F63C233EE05D861AEF18",
+        "size": 716
+      },
+      "step": 11,
+      "type": "sha256"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "D5741F0720045C86923829C4BC94272F5137F048C10C28766D907DE5B7CDF837",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "F:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.3/evidence/P12-004/raw_logs/T4_HA_Galaxy_Center/photometry_report.json"
+      ],
+      "extra": {
+        "sha256": "D5741F0720045C86923829C4BC94272F5137F048C10C28766D907DE5B7CDF837",
+        "size": 721
+      },
+      "step": 12,
+      "type": "sha256"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "EF0E0B5E5FC1410AFA181D78D993885F18C7EE675BDFA556668BBC235522C102",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "F:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.3/evidence/P12-004/raw_logs/T4_OIII_Galaxy_Center/photometry_report.json"
+      ],
+      "extra": {
+        "sha256": "EF0E0B5E5FC1410AFA181D78D993885F18C7EE675BDFA556668BBC235522C102",
+        "size": 719
+      },
+      "step": 13,
+      "type": "sha256"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "A7C1763ADBB08922D0EBCD0BA409820121F1E7DE795E331438FB514B693F3F77",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "F:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.3/evidence/P12-004/raw_logs/T2_RED_LDN43/photometry_report.json"
+      ],
+      "extra": {
+        "sha256": "A7C1763ADBB08922D0EBCD0BA409820121F1E7DE795E331438FB514B693F3F77",
+        "size": 706
+      },
+      "step": 14,
+      "type": "sha256"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "943718937FE1B4F21B324BEBBF73B31628CADCFE417E3672DD13C58D91DBBAAC",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "F:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.3/evidence/P12-004/raw_logs/T2_GREEN_LDN43/photometry_report.json"
+      ],
+      "extra": {
+        "sha256": "943718937FE1B4F21B324BEBBF73B31628CADCFE417E3672DD13C58D91DBBAAC",
+        "size": 707
+      },
+      "step": 15,
+      "type": "sha256"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "4BFDF92DF9A43ACFA97D84A868DF22ADF4FB13DE09A3C0D9F25A8684ACEE2B16",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "F:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.3/evidence/P12-004/raw_logs/T2_BLUE_LDN43/photometry_report.json"
+      ],
+      "extra": {
+        "sha256": "4BFDF92DF9A43ACFA97D84A868DF22ADF4FB13DE09A3C0D9F25A8684ACEE2B16",
+        "size": 707
+      },
+      "step": 16,
+      "type": "sha256"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "E9AAE37346A8725BAFDAAFFF03D4653E035664E6D56CB68F434945674ED542E1",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "F:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.3/evidence/P12-004/raw_logs/T2_HA_LDN43/photometry_report.json"
+      ],
+      "extra": {
+        "sha256": "E9AAE37346A8725BAFDAAFFF03D4653E035664E6D56CB68F434945674ED542E1",
+        "size": 706
+      },
+      "step": 17,
+      "type": "sha256"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "3DAFDDB2C9688E74D0A6626451C31E1B7C60B20145BC3DC41975528041E031C0",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "F:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.3/evidence/P12-004/raw_logs/T2_OIII_NGC1727/photometry_report.json"
+      ],
+      "extra": {
+        "sha256": "3DAFDDB2C9688E74D0A6626451C31E1B7C60B20145BC3DC41975528041E031C0",
+        "size": 711
+      },
+      "step": 18,
+      "type": "sha256"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "12A3DE3767AE69C5EA7B1DCA5AEC45C2C985B8B9E40994AC3B7FBFA6A33CBE7B",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "F:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.3/evidence/P12-004/raw_logs/T3_RED_NGC55/photometry_report.json"
+      ],
+      "extra": {
+        "sha256": "12A3DE3767AE69C5EA7B1DCA5AEC45C2C985B8B9E40994AC3B7FBFA6A33CBE7B",
+        "size": 689
+      },
+      "step": 19,
+      "type": "sha256"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "9DDE79028F1D5D5998F86B5D02563ECC5CA9DA11043D2AADF5E49ECC6D10E47F",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "F:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.3/evidence/P12-004/raw_logs/T3_GREEN_NGC55/photometry_report.json"
+      ],
+      "extra": {
+        "sha256": "9DDE79028F1D5D5998F86B5D02563ECC5CA9DA11043D2AADF5E49ECC6D10E47F",
+        "size": 692
+      },
+      "step": 20,
+      "type": "sha256"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "381D43900642C99CC2BE46DFBBF22AA5B521EB6FB5779EFF963FF9D5F88F4A03",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "F:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.3/evidence/P12-004/raw_logs/T3_BLUE_NGC55/photometry_report.json"
+      ],
+      "extra": {
+        "sha256": "381D43900642C99CC2BE46DFBBF22AA5B521EB6FB5779EFF963FF9D5F88F4A03",
+        "size": 692
+      },
+      "step": 21,
+      "type": "sha256"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "24F2F0BD6FCA33F39E10B2D00AF993132879A759D0B8A999F6E58755C2F776EC",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "F:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.3/evidence/P12-004/raw_logs/T3_HA_NGC55/photometry_report.json"
+      ],
+      "extra": {
+        "sha256": "24F2F0BD6FCA33F39E10B2D00AF993132879A759D0B8A999F6E58755C2F776EC",
+        "size": 693
+      },
+      "step": 22,
+      "type": "sha256"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "ED64528B184EEA75E2FC01A69FD1ED92F90B6E6D9FEAD70A89309F733808B905",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "F:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.3/evidence/P12-004/raw_logs/T3_OIII_NGC55/photometry_report.json"
+      ],
+      "extra": {
+        "sha256": "ED64528B184EEA75E2FC01A69FD1ED92F90B6E6D9FEAD70A89309F733808B905",
+        "size": 695
+      },
+      "step": 23,
+      "type": "sha256"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "D58047A240C0548B017643B773317FE41C290DA0019E0BB89C96428ABED7A244",
+      "stderr": "",
+      "elapsed_sec": 0,
+      "cmd": [
+        "F:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.3/evidence/P12-004/raw_logs/T3_LUM_NGC55/photometry_report.json"
+      ],
+      "extra": {
+        "sha256": "D58047A240C0548B017643B773317FE41C290DA0019E0BB89C96428ABED7A244",
+        "size": 693
+      },
+      "step": 24,
+      "type": "sha256"
+    }
+  ]
+}

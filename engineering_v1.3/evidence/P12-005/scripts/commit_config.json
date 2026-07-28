@@ -1,0 +1,95 @@
+[
+  {
+    "type": "git_status",
+    "params": {"repo": "."},
+    "stop_on_error": false
+  },
+  {
+    "type": "git_add",
+    "params": {
+      "repo": ".",
+      "files": [
+        "lib/photometric_calib/cpp/src/star_matcher.cpp",
+        "lib/orchestrator/cpp/src/orchestrator.cpp",
+        "lib/photometric_calib/data/response_curves/filters.json",
+        "engineering_v1.3/evidence/P12-004/reports/PHOTOMETRY_MATRIX.csv",
+        "engineering_v1.3/evidence/P12-004/reports/photometric_diag_summary.json",
+        "engineering_v1.3/evidence/P12-004/reports/failure_classification.json",
+        "engineering_v1.3/evidence/P12-004/scripts/run_photometric_matrix.py",
+        "engineering_v1.3/evidence/P12-004/scripts/stage1_config_T2.json",
+        "engineering_v1.3/evidence/P12-004/scripts/stage1_config_T3.json",
+        "engineering_v1.3/evidence/P12-004/scripts/stage1_config_T4.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T4_RED_Galaxy_Center/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T4_RED_Galaxy_Center/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T4_GREEN_Galaxy_Center/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T4_GREEN_Galaxy_Center/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T4_BLUE_Galaxy_Center/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T4_BLUE_Galaxy_Center/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T4_HA_Galaxy_Center/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T4_HA_Galaxy_Center/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T4_OIII_Galaxy_Center/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T4_OIII_Galaxy_Center/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T2_RED_LDN43/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T2_RED_LDN43/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T2_GREEN_LDN43/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T2_GREEN_LDN43/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T2_BLUE_LDN43/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T2_BLUE_LDN43/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T2_HA_LDN43/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T2_HA_LDN43/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T2_OIII_NGC1727/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T2_OIII_NGC1727/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T3_RED_NGC55/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T3_RED_NGC55/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T3_GREEN_NGC55/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T3_GREEN_NGC55/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T3_BLUE_NGC55/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T3_BLUE_NGC55/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T3_HA_NGC55/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T3_HA_NGC55/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T3_OIII_NGC55/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T3_OIII_NGC55/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T3_LUM_NGC55/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T3_LUM_NGC55/stage1.log",
+        "engineering_v1.3/evidence/P12-005/TASK_REPORT.md",
+        "engineering_v1.3/evidence/P12-005/TEST_REPORT.md",
+        "engineering_v1.3/evidence/P12-005/EVIDENCE_INDEX.md",
+        "engineering_v1.3/evidence/P12-005/REVIEW_REPORT.md",
+        "engineering_v1.3/evidence/P12-005/scripts/compute_hashes.json",
+        "engineering_v1.3/evidence/P12-005/scripts/compute_hashes.log",
+        "engineering_v1.3/evidence/P12-005/scripts/commit_msg.txt",
+        "engineering_v1.3/evidence/P12-005/scripts/commit_config.json",
+        "engineering_v1.3/control/CURRENT_TASK.md",
+        "engineering_v1.3/control/MASTER_TASK_REGISTER.csv",
+        "engineering_v1.3/control/PROJECT_STATE.yaml"
+      ]
+    },
+    "stop_on_error": true
+  },
+  {
+    "type": "git_commit",
+    "params": {
+      "repo": ".",
+      "message_file": "engineering_v1.3/evidence/P12-005/scripts/commit_msg.txt"
+    },
+    "stop_on_error": true
+  },
+  {
+    "type": "git_push",
+    "params": {
+      "repo": ".",
+      "remote": "origin",
+      "branch": "main",
+      "timeout_sec": 300
+    },
+    "stop_on_error": true
+  },
+  {
+    "type": "git_log",
+    "params": {"repo": ".", "count": 5}
+  },
+  {
+    "type": "git_status",
+    "params": {"repo": "."}
+  }
+]

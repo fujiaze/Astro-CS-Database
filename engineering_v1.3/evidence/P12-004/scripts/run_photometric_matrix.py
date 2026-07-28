@@ -35,12 +35,29 @@ from typing import Any, Dict, List, Optional, Tuple
 
 PROJECT_ROOT = Path(r"f:\Astro dev\Astro CS Normalization Database")
 ORCH_EXE = PROJECT_ROOT / "lib" / "orchestrator" / "cpp" / "orchestrator.exe"
-STAGE1_CONFIG = PROJECT_ROOT / "lib" / "orchestrator" / "configs" / "stage1_config.json"
+STAGE1_CONFIG_BASE = PROJECT_ROOT / "lib" / "orchestrator" / "configs" / "stage1_config.json"
 GAIA_DATA = "GaiaDR3SP"
 EVIDENCE_DIR = PROJECT_ROOT / "engineering_v1.3" / "evidence" / "P12-004"
 RAW_LOGS_DIR = EVIDENCE_DIR / "raw_logs"
 REPORTS_DIR = EVIDENCE_DIR / "reports"
 SCRIPTS_DIR = EVIDENCE_DIR / "scripts"
+
+# P12-005: 按设备选择校准目录
+DEVICE_CALIB_DIR = {
+    "T2": "testdata/T2 calibration files",
+    "T3": "testdata/T3 calibration files",
+    "T4": "testdata/T4 calibration files",
+}
+
+
+def make_device_config(device: str) -> Path:
+    """P12-005: 根据设备生成对应的 stage1 config (覆盖 calibration_dir)"""
+    import json as _json
+    base = _json.loads(STAGE1_CONFIG_BASE.read_text(encoding="utf-8"))
+    base["calibration_dir"] = DEVICE_CALIB_DIR.get(device, base["calibration_dir"])
+    out = SCRIPTS_DIR / f"stage1_config_{device}.json"
+    out.write_text(_json.dumps(base, indent=2, ensure_ascii=False), encoding="utf-8")
+    return out
 
 PER_FRAME_TIMEOUT_S = 600
 
@@ -48,9 +65,10 @@ PER_FRAME_TIMEOUT_S = 600
 BROADBAND_GATE_FIT_USED = 20
 # 窄带 Gate: fit_used >= 8
 NARROWBAND_GATE_FIT_USED = 8
-# scale_factor 合理范围
-SCALE_FACTOR_MIN = 0.01
-SCALE_FACTOR_MAX = 100.0
+# scale_factor 合理范围 (P12-005 修复: 移除 0.01 下限, 接受 > 0 即可)
+# 项目规则: scale_factor 无下限约束, 仅要求 > 0
+SCALE_FACTOR_MIN = 0.0  # 排除 <= 0, 接受任意正数
+SCALE_FACTOR_MAX = 1.0e9  # 实际不限制上限
 
 # 滤镜类别
 BROADBAND_FILTERS = {"LUM", "RED", "GREEN", "BLUE"}
@@ -70,15 +88,15 @@ FRAMES: List[Tuple[str, str, str, str, str]] = [
      r"testdata\Galaxy_Center_T4\lights\panel1\Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@061318-300S-H-alpha.fts"),
     ("T4", "OIII",  "OIII",    "Galaxy_Center",
      r"testdata\Galaxy_Center_T4\lights\panel1\Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@063631-600S-Oiii.fts"),
-    # T2 (5 帧)
+    # T2 (5 帧) — P12-005: 使用 ASCII junction (LDN43_T2_flying_dutchman) 绕过中文路径 bug
     ("T2", "RED",   "Red",     "LDN43",
-     r"testdata\LDN43_T2素材_flying_dutchman\lights\LDN43_LRGBH_flying_dutchman-20250503@032713-1200S-Red.fts"),
+     r"testdata\LDN43_T2_flying_dutchman\lights\LDN43_LRGBH_flying_dutchman-20250503@032713-1200S-Red.fts"),
     ("T2", "GREEN", "Green",   "LDN43",
-     r"testdata\LDN43_T2素材_flying_dutchman\lights\LDN43_LRGBH_flying_dutchman-20250503@034804-1200S-Green.fts"),
+     r"testdata\LDN43_T2_flying_dutchman\lights\LDN43_LRGBH_flying_dutchman-20250503@034804-1200S-Green.fts"),
     ("T2", "BLUE",  "Blue",    "LDN43",
-     r"testdata\LDN43_T2素材_flying_dutchman\lights\LDN43_LRGBH_flying_dutchman-20250503@040855-1200S-Blue.fts"),
+     r"testdata\LDN43_T2_flying_dutchman\lights\LDN43_LRGBH_flying_dutchman-20250503@040855-1200S-Blue.fts"),
     ("T2", "HA",    "H-alpha", "LDN43",
-     r"testdata\LDN43_T2素材_flying_dutchman\lights\LDN43_LRGBH_flying_dutchman-20250503@042947-1200S-H-alpha.fts"),
+     r"testdata\LDN43_T2_flying_dutchman\lights\LDN43_LRGBH_flying_dutchman-20250503@042947-1200S-H-alpha.fts"),
     ("T2", "OIII",  "OIII",    "NGC1727",
      r"testdata\NGC1727_T2_flying_dutchman\lights\NGC1727_RGBHO_T2_flying_dutchman-20251031@075259-1800S-OIII.fts"),
     # T3 (6 帧, NGC55)
@@ -246,10 +264,10 @@ def classify_failure(result: FrameResult) -> Tuple[bool, str, str]:
     if not (sigma == sigma and sigma > 0.0):  # NaN check + > 0
         return False, "ZERO_SIGMA", f"sigma_residual={sigma} (非正或非有限)"
 
-    # 3. scale_factor 必须在合理范围
-    if not (SCALE_FACTOR_MIN <= scale <= SCALE_FACTOR_MAX):
+    # 3. scale_factor 必须 > 0 (P12-005 修复: 移除下限, 接受任意正值)
+    if not (scale > SCALE_FACTOR_MIN and scale <= SCALE_FACTOR_MAX):
         return False, "INVALID_SCALE", (
-            f"scale_factor={scale} 超出 [{SCALE_FACTOR_MIN}, {SCALE_FACTOR_MAX}]"
+            f"scale_factor={scale} 必须 > 0 (P12-005: 移除 0.01 下限)"
         )
 
     return True, "", ""
@@ -292,7 +310,8 @@ def run_single_frame(device: str, filter_canonical: str, filter_alias: str,
         result.notes = f"FITS 文件不存在: {fits_abs}"
         return result
 
-    # 构造 orchestrator stage1 命令
+    # 构造 orchestrator stage1 命令 — P12-005: 按设备生成 config (覆盖 calibration_dir)
+    device_config = make_device_config(device)
     cmd = [
         str(ORCH_EXE),
         "stage1",
@@ -300,7 +319,7 @@ def run_single_frame(device: str, filter_canonical: str, filter_alias: str,
         "--output", str(hiss_path),
         "--gaia-data", GAIA_DATA,
         "--filter", filter_alias,
-        "--config", str(STAGE1_CONFIG),
+        "--config", str(device_config),
         "--log-level", "INFO",
     ]
 
@@ -588,13 +607,13 @@ def main() -> int:
     if not ORCH_EXE.exists():
         print(f"[ERROR] orchestrator.exe 不存在: {ORCH_EXE}")
         return 2
-    if not STAGE1_CONFIG.exists():
-        print(f"[ERROR] stage1_config.json 不存在: {STAGE1_CONFIG}")
+    if not STAGE1_CONFIG_BASE.exists():
+        print(f"[ERROR] stage1_config.json 不存在: {STAGE1_CONFIG_BASE}")
         return 2
 
     print(f"[P12-004] 共 {len(FRAMES)} 帧代表帧")
     print(f"[P12-004] orchestrator: {ORCH_EXE}")
-    print(f"[P12-004] 配置: {STAGE1_CONFIG}")
+    print(f"[P12-004] 配置基线: {STAGE1_CONFIG_BASE} (按设备动态生成)")
     print(f"[P12-004] timeout: {PER_FRAME_TIMEOUT_S}s/帧")
     print()
 

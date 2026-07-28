@@ -1,6 +1,6 @@
 {
   "frame": "f:\\Astro dev\\Astro CS Normalization Database\\testdata\\Galaxy_Center_T4\\lights\\panel1\\Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@055414-180S-Blue.fts",
-  "valid_fsyn": 0,
+  "valid_fsyn": 14613,
   "gaia_in_frame": 6124,
   "psf_valid": 1922,
   "unique_matches": 1237,
@@ -13,7 +13,7 @@
     "p90": 1.73019,
     "max": 1.99949
   },
-  "spectrum_rows_total": 0,
+  "spectrum_rows_total": 14703,
   "psf_total": 2000,
   "spatial_candidates": 1237,
   "rejected_ambiguous": 0,

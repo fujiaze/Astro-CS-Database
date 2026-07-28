@@ -1,0 +1,26 @@
+{
+  "frame": "f:\\Astro dev\\Astro CS Normalization Database\\testdata\\LDN43_T2_flying_dutchman\\lights\\LDN43_LRGBH_flying_dutchman-20250503@034804-1200S-Green.fts",
+  "valid_fsyn": 2994,
+  "gaia_in_frame": 1210,
+  "psf_valid": 1958,
+  "unique_matches": 1115,
+  "fit_used": 1069,
+  "scale_factor": 1.21222e-05,
+  "sigma_residual": 0.0521139,
+  "status": "PASS",
+  "match_distance": {
+    "median": 0.467896,
+    "p90": 0.767252,
+    "max": 1.6597
+  },
+  "spectrum_rows_total": 2996,
+  "psf_total": 2000,
+  "spatial_candidates": 1115,
+  "rejected_ambiguous": 0,
+  "rejected_distance": 843,
+  "rejected_quality": 46,
+  "robust_iterations": 8,
+  "r_median": 4.91081,
+  "r_p90": 5.00993,
+  "r_max": 5.15907
+}

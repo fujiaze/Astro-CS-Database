@@ -42,10 +42,11 @@ static double percentileOf(std::vector<double> vals, double p) {
 }
 
 // P12-001: 初始化 PhotometricDiag (全 0)
+// P12-005 修复: spectrum_rows_total/valid_fsyn 由 pc_api.cpp 在光谱积分阶段填充，
+//   initDiag 仅清零 star_matcher 负责的字段，避免覆盖上游已写入的值
 static void initDiag(PhotometricDiag* d) {
     if (!d) return;
-    d->spectrum_rows_total = 0;
-    d->valid_fsyn = 0;
+    // 注意: 不再重置 spectrum_rows_total 和 valid_fsyn (P12-005 修复)
     d->gaia_projected_in_frame = 0;
     d->psf_total = 0;
     d->psf_valid = 0;

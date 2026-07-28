@@ -1,0 +1,26 @@
+{
+  "frame": "f:\\Astro dev\\Astro CS Normalization Database\\testdata\\NGC55_T3_flying_dutchman\\lights\\NGC55_T3_flying_dutchman-20250701@075153-600S-Green.fts",
+  "valid_fsyn": 759,
+  "gaia_in_frame": 311,
+  "psf_valid": 884,
+  "unique_matches": 287,
+  "fit_used": 278,
+  "scale_factor": 1.99767e-05,
+  "sigma_residual": 0.0835698,
+  "status": "PASS",
+  "match_distance": {
+    "median": 0.573841,
+    "p90": 1.09829,
+    "max": 1.761
+  },
+  "spectrum_rows_total": 759,
+  "psf_total": 923,
+  "spatial_candidates": 287,
+  "rejected_ambiguous": 0,
+  "rejected_distance": 597,
+  "rejected_quality": 9,
+  "robust_iterations": 7,
+  "r_median": 4.68739,
+  "r_p90": 4.79698,
+  "r_max": 5.04919
+}

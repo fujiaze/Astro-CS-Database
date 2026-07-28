@@ -1,6 +1,6 @@
 {
   "frame": "f:\\Astro dev\\Astro CS Normalization Database\\testdata\\Galaxy_Center_T4\\lights\\panel1\\Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@063620-180S-Green.fts",
-  "valid_fsyn": 0,
+  "valid_fsyn": 14373,
   "gaia_in_frame": 5892,
   "psf_valid": 1966,
   "unique_matches": 1623,
@@ -13,7 +13,7 @@
     "p90": 0.805548,
     "max": 1.56457
   },
-  "spectrum_rows_total": 0,
+  "spectrum_rows_total": 14405,
   "psf_total": 2000,
   "spatial_candidates": 1623,
   "rejected_ambiguous": 0,

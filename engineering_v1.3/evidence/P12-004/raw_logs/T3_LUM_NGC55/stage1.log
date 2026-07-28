@@ -1,178 +1,614 @@
 === COMMAND ===
-f:\Astro dev\Astro CS Normalization Database\lib\orchestrator\cpp\orchestrator.exe stage1 --frame f:\Astro dev\Astro CS Normalization Database\testdata\NGC55_T3_flying_dutchman\lights\NGC55_T3_flying_dutchman-20250703@075400-600S-Lum.fts --output f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T3_LUM_NGC55\T3_LUM_NGC55.hiss --gaia-data GaiaDR3SP --filter Lum --config f:\Astro dev\Astro CS Normalization Database\lib\orchestrator\configs\stage1_config.json --log-level INFO
+f:\Astro dev\Astro CS Normalization Database\lib\orchestrator\cpp\orchestrator.exe stage1 --frame f:\Astro dev\Astro CS Normalization Database\testdata\NGC55_T3_flying_dutchman\lights\NGC55_T3_flying_dutchman-20250703@075400-600S-Lum.fts --output f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T3_LUM_NGC55\T3_LUM_NGC55.hiss --gaia-data GaiaDR3SP --filter Lum --config f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\scripts\stage1_config_T3.json --log-level INFO
 
 === EXIT CODE ===
-4
+0
 
 === STDOUT ===
 {
-  "success": false,
+  "success": true,
   "frame_name": "f:\\Astro dev\\Astro CS Normalization Database\\testdata\\NGC55_T3_flying_dutchman\\lights\\NGC55_T3_flying_dutchman-20250703@075400-600S-Lum.fts",
   "timings": [
-    {"stage": "CALIBRATE", "name": "READ_FITS", "duration_sec": 0.184177, "success": true},
-    {"stage": "CALIBRATE", "name": "CALIBRATE", "duration_sec": 0.0005776, "success": false}
+    {"stage": "CALIBRATE", "name": "READ_FITS", "duration_sec": 0.0664782, "success": true},
+    {"stage": "CALIBRATE", "name": "CALIBRATE", "duration_sec": 0.641282, "success": true},
+    {"stage": "CALIBRATE", "name": "PLATESOLVE", "duration_sec": 0.867425, "success": true},
+    {"stage": "CALIBRATE", "name": "PSF", "duration_sec": 0.257708, "success": true},
+    {"stage": "CALIBRATE", "name": "PHOTOMETRIC", "duration_sec": 0.0304152, "success": true},
+    {"stage": "CALIBRATE", "name": "SNR", "duration_sec": 0.0017826, "success": true},
+    {"stage": "CALIBRATE", "name": "DRIZZLE", "duration_sec": 24.5403, "success": true}
   ],
   "wcs_fields": {},
-  "photo_stats": {},
-  "output_ahpx_path": "",
-  "error_msg": "[CALIBRATE] 无 Master 文件且未启用 allow_no_calibration"
+  "photo_stats": {"FIT_USED": "258", "GAIA_IN_FRAME": "311", "MATCH_DIST_MAX": "1.791182", "MATCH_DIST_MEDIAN": "0.541834", "MATCH_DIST_P90": "1.071993", "N_MATCHED": "258", "PSF_TOTAL": "1477", "PSF_VALID": "1439", "REJECTED_AMBIGUOUS": "0", "REJECTED_DISTANCE": "1178", "REJECTED_QUALITY": "3", "ROBUST_ITERATIONS": "7", "R_MAX": "5.461983", "R_MEDIAN": "4.817198", "R_P90": "4.971790", "SCALE_FACTOR": "0.000016", "SIGMA_RESIDUAL": "0.155009", "SPATIAL_CANDIDATES": "261", "SPECTRUM_ROWS_TOTAL": "757", "STATUS": "OK", "UNIQUE_MATCHES": "261", "VALID_FSYN": "757"},
+  "output_ahpx_path": "f:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.3\\evidence\\P12-004\\raw_logs\\T3_LUM_NGC55\\T3_LUM_NGC55.hiss",
+  "error_msg": ""
 }
 
 === STDERR ===
-[2026-07-28 22:33:10][INFO][cli] stage1 gaia-data: GaiaDR3SP
-[2026-07-28 22:33:10][INFO][cli] stage1 filter: Lum
-[2026-07-28 22:33:10][INFO][logger] 日志系统初始化完成 (log_dir=lib/orchestrator/logs, level=INFO)
-[2026-07-28 22:33:10][INFO][orchestrator] 初始化编排器 (骨架版本)
-[2026-07-28 22:33:10][INFO][orchestrator] 可用线程数: 16
-[2026-07-28 22:33:10][INFO][orchestrator] 加载配置: f:\Astro dev\Astro CS Normalization Database\lib\orchestrator\configs\stage1_config.json
-[2026-07-28 22:33:10][INFO][orchestrator] 配置文件大小: 2233 字节
-[2026-07-28 22:33:10][INFO][orchestrator] 检查点目录: output\.checkpoint
-[2026-07-28 22:33:10][INFO][orchestrator] 日志级别设置为: INFO
-[2026-07-28 22:33:10][INFO][orchestrator] 配置线程数: 0 (0=自动检测)
-[2026-07-28 22:33:10][INFO][orchestrator] 配置 Gaia 数据目录: GaiaDR3SP
-[2026-07-28 22:33:10][INFO][orchestrator] 配置加载完成 (P03-002: log_level/threads/gaia_data_dir 已解析)
-[2026-07-28 22:33:10][INFO][cli] 日志级别设置为: INFO
-[2026-07-28 22:33:10][INFO][orchestrator] ========== stage1: 单帧预处理 (FITS -> .hiss) ==========
-[2026-07-28 22:33:10][INFO][orchestrator] 输入 FITS: f:\Astro dev\Astro CS Normalization Database\testdata\NGC55_T3_flying_dutchman\lights\NGC55_T3_flying_dutchman-20250703@075400-600S-Lum.fts
-[2026-07-28 22:33:10][INFO][orchestrator] 输出 .hiss: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T3_LUM_NGC55\T3_LUM_NGC55.hiss
-[2026-07-28 22:33:10][INFO][orchestrator] 配置 JSON: {
-  "_comment": "stage1 配置文件模板 (spec §2.3.3) - 单帧预处理 FITS -> .hiss, stage 0-6 (2026-07-18 归档 GRADIENT_2D; 2026-07-25 P03-002 扩展参数追踪)",
-  "project_root": ".",
-  "gaia_data_dir": "GaiaDR3SP",
-  "calibration_dir": "testdata/T4 calibration files",
-  "output_root": "output",
-  "stages": [
-    "read_fits",
-    "calibrate",
-    "platesolve",
-    "psf",
-    "photometric",
-    "snr",
-    "drizzle"
-  ],
-  "frame": {
-    "id": "panel1_Red",
-    "light_path": "",
-    "filter": "Red",
-    "qe_curve": "GSENSE2020BSI"
-  },
-  "calibration": {
-    "_comment": "P03-001: 校准输入接线配置。master_*_path 为空时从 calibration_dir 自动推导",
-    "master_bias_path": "",
-    "master_dark_path": "",
-    "master_flat_path": "",
-    "require_size_match": true,
-    "require_exposure_match": true,
-    "exposure_tolerance_s": 0.5,
-    "require_temperature_match": false,
-    "temperature_tolerance_c": 1.0,
-    "allow_no_calibration": false,
-    "dark_optimization": 0,
-    "dark_scale_factor": 1.0
-  },
-  "platesolve": {
-    "_comment": "P03-002: PlateSolve 参数。initial_ra/dec 为空时从 FITS header OBJCTRA/DEC 读取; focal_length/pixel_size 为 0 时从 FITS header 读取",
-    "initial_ra": "",
-    "initial_dec": "",
-    "focal_length": 0.0,
-    "pixel_size": 0.0,
-    "max_stars": 2000,
-    "log_dir": "lib/plate_solve/logs"
-  },
-  "psf": {
-    "_comment": "P03-002: PSF 拟合参数。fit_radius=0 表示自动; max_stars=0 表示不限制",
-    "fit_radius": 8,
-    "max_iter": 100,
-    "tolerance": 1.0e-6,
-    "max_stars": 2000
-  },
-  "photometric": {
-    "_comment": "P03-002: 测光校准参数。mag_max 内部会自适应迭代 (2000-10000 星范围)",
-    "mag_min": 6.0,
-    "mag_max": 16.0,
-    "fov_radius_deg": 0.0,
-    "filters_json": "lib/photometric_calib/data/response_curves/filters.json",
-    "qe_curves_json": "lib/photometric_calib/data/response_curves/qe_curves.json"
-  },
-  "drizzle": {
-    "_comment": "P03-002: Drizzle 参数。nside_strategy=1x_to_2x_drizzle 自适应; pixfrac 默认 1.0 避免缝隙",
-    "nside_strategy": "1x_to_2x_drizzle",
-    "nside_override": 0,
-    "pixfrac": 1.0,
-    "nested": true
-  },
-  "log_level": "INFO",
-  "threads": 0
-}
+[2026-07-28 23:15:00][INFO][cli] stage1 gaia-data: GaiaDR3SP
+[2026-07-28 23:15:00][INFO][cli] stage1 filter: Lum
+[2026-07-28 23:15:00][INFO][logger] 日志系统初始化完成 (log_dir=lib/orchestrator/logs, level=INFO)
+[2026-07-28 23:15:00][INFO][orchestrator] 初始化编排器 (骨架版本)
+[2026-07-28 23:15:00][INFO][orchestrator] 可用线程数: 16
+[2026-07-28 23:15:00][INFO][orchestrator] 加载配置: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\scripts\stage1_config_T3.json
+[2026-07-28 23:15:00][INFO][orchestrator] 配置文件大小: 2299 字节
+[2026-07-28 23:15:00][INFO][orchestrator] 检查点目录: output\.checkpoint
+[2026-07-28 23:15:00][INFO][orchestrator] 日志级别设置为: INFO
+[2026-07-28 23:15:00][INFO][orchestrator] 配置线程数: 0 (0=自动检测)
+[2026-07-28 23:15:00][INFO][orchestrator] 配置 Gaia 数据目录: GaiaDR3SP
+[2026-07-28 23:15:00][INFO][orchestrator] 配置加载完成 (P03-002: log_level/threads/gaia_data_dir 已解析)
+[2026-07-28 23:15:00][INFO][cli] 日志级别设置为: INFO
+[2026-07-28 23:15:00][INFO][orchestrator] ========== stage1: 单帧预处理 (FITS -> .hiss) ==========
+[2026-07-28 23:15:00][INFO][orchestrator] 输入 FITS: f:\Astro dev\Astro CS Normalization Database\testdata\NGC55_T3_flying_dutchman\lights\NGC55_T3_flying_dutchman-20250703@075400-600S-Lum.fts
+[2026-07-28 23:15:00][INFO][orchestrator] 输出 .hiss: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T3_LUM_NGC55\T3_LUM_NGC55.hiss
+[2026-07-28 23:15:00][INFO][orchestrator] 配置 JSON: {
 
-[2026-07-28 22:33:10][INFO][orchestrator] P04-004: 取消/超时标志已重置
-[2026-07-28 22:33:10][INFO][orchestrator] 自动推导项目根目录: f:\Astro dev\Astro CS Normalization Database
-[2026-07-28 22:33:10][INFO][orchestrator] 初始化 DLL 加载 (lib_base_dir=f:\Astro dev\Astro CS Normalization Database)
+  "_comment": "stage1 配置文件模板 (spec §2.3.3) - 单帧预处理 FITS -> .hiss, stage 0-6 (2026-07-18 归档 GRADIENT_2D; 2026-07-25 P03-002 扩展参数追踪)",
+
+  "project_root": ".",
+
+  "gaia_data_dir": "GaiaDR3SP",
+
+  "calibration_dir": "testdata/T3 calibration files",
+
+  "output_root": "output",
+
+  "stages": [
+
+    "read_fits",
+
+    "calibrate",
+
+    "platesolve",
+
+    "psf",
+
+    "photometric",
+
+    "snr",
+
+    "drizzle"
+
+  ],
+
+  "frame": {
+
+    "id": "panel1_Red",
+
+    "light_path": "",
+
+    "filter": "Red",
+
+    "qe_curve": "GSENSE2020BSI"
+
+  },
+
+  "calibration": {
+
+    "_comment": "P03-001: 校准输入接线配置。master_*_path 为空时从 calibration_dir 自动推导",
+
+    "master_bias_path": "",
+
+    "master_dark_path": "",
+
+    "master_flat_path": "",
+
+    "require_size_match": true,
+
+    "require_exposure_match": true,
+
+    "exposure_tolerance_s": 0.5,
+
+    "require_temperature_match": false,
+
+    "temperature_tolerance_c": 1.0,
+
+    "allow_no_calibration": false,
+
+    "dark_optimization": 0,
+
+    "dark_scale_factor": 1.0
+
+  },
+
+  "platesolve": {
+
+    "_comment": "P03-002: PlateSolve 参数。initial_ra/dec 为空时从 FITS header OBJCTRA/DEC 读取; focal_length/pixel_size 为 0 时从 FITS header 读取",
+
+    "initial_ra": "",
+
+    "initial_dec": "",
+
+    "focal_length": 0.0,
+
+    "pixel_size": 0.0,
+
+    "max_stars": 2000,
+
+    "log_dir": "lib/plate_solve/logs"
+
+  },
+
+  "psf": {
+
+    "_comment": "P03-002: PSF 拟合参数。fit_radius=0 表示自动; max_stars=0 表示不限制",
+
+    "fit_radius": 8,
+
+    "max_iter": 100,
+
+    "tolerance": 1e-06,
+
+    "max_stars": 2000
+
+  },
+
+  "photometric": {
+
+    "_comment": "P03-002: 测光校准参数。mag_max 内部会自适应迭代 (2000-10000 星范围)",
+
+    "mag_min": 6.0,
+
+    "mag_max": 16.0,
+
+    "fov_radius_deg": 0.0,
+
+    "filters_json": "lib/photometric_calib/data/response_curves/filters.json",
+
+    "qe_curves_json": "lib/photometric_calib/data/response_curves/qe_curves.json"
+
+  },
+
+  "drizzle": {
+
+    "_comment": "P03-002: Drizzle 参数。nside_strategy=1x_to_2x_drizzle 自适应; pixfrac 默认 1.0 避免缝隙",
+
+    "nside_strategy": "1x_to_2x_drizzle",
+
+    "nside_override": 0,
+
+    "pixfrac": 1.0,
+
+    "nested": true
+
+  },
+
+  "log_level": "INFO",
+
+  "threads": 0
+
+}
+[2026-07-28 23:15:00][INFO][orchestrator] P04-004: 取消/超时标志已重置
+[2026-07-28 23:15:00][INFO][orchestrator] 自动推导项目根目录: f:\Astro dev\Astro CS Normalization Database
+[2026-07-28 23:15:00][INFO][orchestrator] 初始化 DLL 加载 (lib_base_dir=f:\Astro dev\Astro CS Normalization Database)
 [dll_loader] 开始加载所有模块 (lib_base_dir=f:\Astro dev\Astro CS Normalization Database)
 [dll_loader] 设置运行时 DLL 搜索路径: C:\msys64\mingw64\bin
 [dll_loader] 加载模块 AIO: f:\Astro dev\Astro CS Normalization Database/lib/astro_image_io/astro_image_io.dll
-[dll_loader] 模块 AIO 加载成功 (handle=0x7fffabad0000)
-[dll_loader] 预加载 astro_image_io.dll (依赖前置) handle=0x7fffabad0000
+[dll_loader] 模块 AIO 加载成功 (handle=0x7fffd8ce0000)
+[dll_loader] 预加载 astro_image_io.dll (依赖前置) handle=0x7fffd8ce0000
 [dll_loader] 加载模块 CALIBRATE: f:\Astro dev\Astro CS Normalization Database/lib/calibration/astro_calibration.dll
-[dll_loader] 模块 CALIBRATE 加载成功 (handle=0x7fffe45b0000)
+[dll_loader] 模块 CALIBRATE 加载成功 (handle=0x7fffe5710000)
 [dll_loader] 加载模块 PLATESOLVE: f:\Astro dev\Astro CS Normalization Database/lib/plate_solve/cpp/ipv/ipv_solver.dll
-[dll_loader] 模块 PLATESOLVE 加载成功 (handle=0x7fffddc40000)
+[dll_loader] 模块 PLATESOLVE 加载成功 (handle=0x7fffe4570000)
 [dll_loader] 加载模块 PSF: f:\Astro dev\Astro CS Normalization Database/lib/dynamic_psf/dynamic_psf.dll
-[dll_loader] 模块 PSF 加载成功 (handle=0x7fffe4550000)
+[dll_loader] 模块 PSF 加载成功 (handle=0x7fffe5fc0000)
 [dll_loader] 预加载 gaia_client.dll (依赖前置) handle=0x7fffe6460000
 [dll_loader] 加载模块 PHOTOMETRIC: f:\Astro dev\Astro CS Normalization Database/lib/photometric_calib/cpp/photometric_calib.dll
-[dll_loader] 模块 PHOTOMETRIC 加载成功 (handle=0x7fffd98d0000)
+[dll_loader] 模块 PHOTOMETRIC 加载成功 (handle=0x7fffddc70000)
 [dll_loader] 加载模块 SNR: f:\Astro dev\Astro CS Normalization Database/lib/snr_estimator/cpp/snr_estimator.dll
-[dll_loader] 模块 SNR 加载成功 (handle=0x7fffd8950000)
+[dll_loader] 模块 SNR 加载成功 (handle=0x7fffdc710000)
 [dll_loader] 加载模块 DRIZZLE: f:\Astro dev\Astro CS Normalization Database/lib/healpix_db/healpix_drizzle/healpix_drizzle.dll
-[dll_loader] 模块 DRIZZLE 加载成功 (handle=0x7fffd50b0000)
+[dll_loader] 模块 DRIZZLE 加载成功 (handle=0x7fffd98d0000)
 [dll_loader] 加载模块 GRADIENT_SPHERE: f:\Astro dev\Astro CS Normalization Database/lib/healpix_db/healpix_stack/healpix_stack.dll
-[dll_loader] 模块 GRADIENT_SPHERE 加载成功 (handle=0x7fffd2360000)
+[dll_loader] 模块 GRADIENT_SPHERE 加载成功 (handle=0x7fffd8910000)
 [dll_loader] 加载模块 STACK: f:\Astro dev\Astro CS Normalization Database/lib/healpix_db/healpix_stack/healpix_stack.dll
-[dll_loader] 模块 STACK 加载成功 (handle=0x7fffd2360000)
+[dll_loader] 模块 STACK 加载成功 (handle=0x7fffd8910000)
 [dll_loader] 全部模块加载成功
-[2026-07-28 22:33:10][INFO][orchestrator] 全部 9 个模块加载成功
-[2026-07-28 22:33:10][INFO][orchestrator]   AIO 版本: unknown
-[2026-07-28 22:33:10][INFO][orchestrator]   CALIBRATE 版本: Astro Calibration C++ v1.0.0
-[2026-07-28 22:33:10][INFO][orchestrator]   PLATESOLVE 版本: unknown
-[2026-07-28 22:33:10][INFO][orchestrator]   PSF 版本: unknown
-[2026-07-28 22:33:10][INFO][orchestrator]   PHOTOMETRIC 版本: unknown
-[2026-07-28 22:33:10][INFO][orchestrator]   SNR 版本: unknown
-[2026-07-28 22:33:10][INFO][orchestrator]   DRIZZLE 版本: unknown
-[2026-07-28 22:33:10][INFO][orchestrator]   GRADIENT_SPHERE 版本: unknown
-[2026-07-28 22:33:10][INFO][orchestrator]   STACK 版本: unknown
+[2026-07-28 23:15:00][INFO][orchestrator] 全部 9 个模块加载成功
+[2026-07-28 23:15:00][INFO][orchestrator]   AIO 版本: unknown
+[2026-07-28 23:15:00][INFO][orchestrator]   CALIBRATE 版本: Astro Calibration C++ v1.0.0
+[2026-07-28 23:15:00][INFO][orchestrator]   PLATESOLVE 版本: unknown
+[2026-07-28 23:15:00][INFO][orchestrator]   PSF 版本: unknown
+[2026-07-28 23:15:00][INFO][orchestrator]   PHOTOMETRIC 版本: unknown
+[2026-07-28 23:15:00][INFO][orchestrator]   SNR 版本: unknown
+[2026-07-28 23:15:00][INFO][orchestrator]   DRIZZLE 版本: unknown
+[2026-07-28 23:15:00][INFO][orchestrator]   GRADIENT_SPHERE 版本: unknown
+[2026-07-28 23:15:00][INFO][orchestrator]   STACK 版本: unknown
 [dll_loader] CALIBRATE 线程数设置为 16
-[2026-07-28 22:33:10][INFO][orchestrator] CALIBRATE 线程数: 16
-[2026-07-28 22:33:10][DEBUG][PIPELINE] frame_create: ok
-[2026-07-28 22:33:10][INFO][orchestrator] ---------- stage1 阶段: READ_FITS ----------
-[2026-07-28 22:33:10][INFO][orchestrator] [READ_FITS] 开始: f:\Astro dev\Astro CS Normalization Database\testdata\NGC55_T3_flying_dutchman\lights\NGC55_T3_flying_dutchman-20250703@075400-600S-Lum.fts
-[2026-07-28 22:33:10][INFO][FITS] Reading: f:\Astro dev\Astro CS Normalization Database\testdata\NGC55_T3_flying_dutchman\lights\NGC55_T3_flying_dutchman-20250703@075400-600S-Lum.fts
-[2026-07-28 22:33:10][INFO][FITS] Header: BITPIX=16 NAXIS=2 NAXIS1=4096 NAXIS2=4096 NAXIS3=0 BSCALE=1.0 BZERO=32768.0 keywords=162
-[2026-07-28 22:33:10][INFO][FITS] Applying BSCALE=1.000000 BZERO=32768.000000
-[2026-07-28 22:33:10][INFO][FITS] Read OK: 4096x4096 1ch BITPIX=16
-[2026-07-28 22:33:10][INFO][API] aio_read_fits: 0.170 s
-[2026-07-28 22:33:10][INFO][orchestrator] [READ_FITS] 图像尺寸: 4096x4096
-[2026-07-28 22:33:10][DEBUG][PIPELINE] add_block: 'data' type=0 count=16777216 (67108864 bytes)
-[2026-07-28 22:33:10][INFO][orchestrator] [READ_FITS] FITS 关键字数: 162
-[2026-07-28 22:33:10][INFO][orchestrator] [READ_FITS] 完成
-[2026-07-28 22:33:10][INFO][orchestrator] [0.184177s] READ_FITS 完成
-[2026-07-28 22:33:10][INFO][orchestrator] ---------- stage1 阶段: CALIBRATE ----------
-[2026-07-28 22:33:10][INFO][orchestrator] [CALIBRATE] 开始
-[2026-07-28 22:33:10][INFO][orchestrator] [CALIBRATE] 图像: 4096x4096 (16777216 像素)
-[2026-07-28 22:33:10][INFO][orchestrator] [CALIBRATE] 帧元数据: EXPTIME=600.000000s, FILTER='Lum', CCD-TEMP=-20.000000C
-[2026-07-28 22:33:10][INFO][orchestrator] [CALIBRATE] calibration_dir: f:\Astro dev\Astro CS Normalization Database\testdata/T4 calibration files
-[2026-07-28 22:33:10][INFO][orchestrator] [CALIBRATE] 自动推导 master_bias_path: f:\Astro dev\Astro CS Normalization Database\testdata/T4 calibration files\masterBias_BIN-1_4096x4096.xisf
-[2026-07-28 22:33:10][INFO][orchestrator] [CALIBRATE] 自动推导 master_dark_path: f:\Astro dev\Astro CS Normalization Database\testdata/T4 calibration files\masterDark_BIN-1_4096x4096_EXPOSURE-600.00s.xisf
-[2026-07-28 22:33:10][INFO][orchestrator] [CALIBRATE] 自动推导 master_flat_path: f:\Astro dev\Astro CS Normalization Database\testdata/T4 calibration files\masterFlat_BIN-1_4096x4096_FILTER-Lum_mono.xisf
-[2026-07-28 22:33:10][WARN][orchestrator] [CALIBRATE] Master 文件不存在: f:\Astro dev\Astro CS Normalization Database\testdata/T4 calibration files\masterBias_BIN-1_4096x4096.xisf
-[2026-07-28 22:33:10][WARN][orchestrator] [CALIBRATE] Master 文件不存在: f:\Astro dev\Astro CS Normalization Database\testdata/T4 calibration files\masterDark_BIN-1_4096x4096_EXPOSURE-600.00s.xisf
-[2026-07-28 22:33:10][WARN][orchestrator] [CALIBRATE] Master 文件不存在: f:\Astro dev\Astro CS Normalization Database\testdata/T4 calibration files\masterFlat_BIN-1_4096x4096_FILTER-Lum_mono.xisf
-[2026-07-28 22:33:10][ERROR][orchestrator] [CALIBRATE] 无任何 Master 文件可用且 allow_no_calibration=false
-[2026-07-28 22:33:10][INFO][orchestrator] [0.000578s] CALIBRATE 失败
-[2026-07-28 22:33:10][DEBUG][PIPELINE] frame_destroy: ok
-[2026-07-28 22:33:10][INFO][orchestrator] P04-004: 原子性清理 - stage1 失败/取消/超时, 删除部分输出
-[2026-07-28 22:33:10][INFO][orchestrator] ========== stage1 失败 ==========
-[2026-07-28 22:33:10][INFO][orchestrator] 析构完成
+[2026-07-28 23:15:00][INFO][orchestrator] CALIBRATE 线程数: 16
+[2026-07-28 23:15:00][DEBUG][PIPELINE] frame_create: ok
+[2026-07-28 23:15:00][INFO][orchestrator] ---------- stage1 阶段: READ_FITS ----------
+[2026-07-28 23:15:00][INFO][orchestrator] [READ_FITS] 开始: f:\Astro dev\Astro CS Normalization Database\testdata\NGC55_T3_flying_dutchman\lights\NGC55_T3_flying_dutchman-20250703@075400-600S-Lum.fts
+[2026-07-28 23:15:00][INFO][FITS] Reading: f:\Astro dev\Astro CS Normalization Database\testdata\NGC55_T3_flying_dutchman\lights\NGC55_T3_flying_dutchman-20250703@075400-600S-Lum.fts
+[2026-07-28 23:15:00][INFO][FITS] Header: BITPIX=16 NAXIS=2 NAXIS1=4096 NAXIS2=4096 NAXIS3=0 BSCALE=1.0 BZERO=32768.0 keywords=162
+[2026-07-28 23:15:00][INFO][FITS] Applying BSCALE=1.000000 BZERO=32768.000000
+[2026-07-28 23:15:00][INFO][FITS] Read OK: 4096x4096 1ch BITPIX=16
+[2026-07-28 23:15:00][INFO][API] aio_read_fits: 0.039 s
+[2026-07-28 23:15:00][INFO][orchestrator] [READ_FITS] 图像尺寸: 4096x4096
+[2026-07-28 23:15:00][DEBUG][PIPELINE] add_block: 'data' type=0 count=16777216 (67108864 bytes)
+[2026-07-28 23:15:00][INFO][orchestrator] [READ_FITS] FITS 关键字数: 162
+[2026-07-28 23:15:00][INFO][orchestrator] [READ_FITS] 完成
+[2026-07-28 23:15:00][INFO][orchestrator] [0.066478s] READ_FITS 完成
+[2026-07-28 23:15:00][INFO][orchestrator] ---------- stage1 阶段: CALIBRATE ----------
+[2026-07-28 23:15:00][INFO][orchestrator] [CALIBRATE] 开始
+[2026-07-28 23:15:00][INFO][orchestrator] [CALIBRATE] 图像: 4096x4096 (16777216 像素)
+[2026-07-28 23:15:00][INFO][orchestrator] [CALIBRATE] 帧元数据: EXPTIME=600.000000s, FILTER='Lum', CCD-TEMP=-20.000000C
+[2026-07-28 23:15:00][INFO][orchestrator] [CALIBRATE] calibration_dir: f:\Astro dev\Astro CS Normalization Database\testdata/T3 calibration files
+[2026-07-28 23:15:00][INFO][orchestrator] [CALIBRATE] 自动推导 master_bias_path: f:\Astro dev\Astro CS Normalization Database\testdata/T3 calibration files\masterBias_BIN-1_4096x4096.xisf
+[2026-07-28 23:15:00][INFO][orchestrator] [CALIBRATE] 自动推导 master_dark_path: f:\Astro dev\Astro CS Normalization Database\testdata/T3 calibration files\masterDark_BIN-1_4096x4096_EXPOSURE-600.00s.xisf
+[2026-07-28 23:15:00][INFO][orchestrator] [CALIBRATE] 自动推导 master_flat_path: f:\Astro dev\Astro CS Normalization Database\testdata/T3 calibration files\masterFlat_BIN-1_4096x4096_FILTER-Lum_mono.xisf
+[2026-07-28 23:15:00][INFO][XISF] Reading: f:\Astro dev\Astro CS Normalization Database\testdata/T3 calibration files\masterBias_BIN-1_4096x4096.xisf
+[2026-07-28 23:15:00][INFO][XISF] XML header length: 20702 bytes
+[2026-07-28 23:15:00][INFO][XISF] Image: 4096x4096x1 fmt=Float32 byteOrder= offset=24576 size=67108864
+[2026-07-28 23:15:00][INFO][XISF] Byte order: file= system=little swap=0
+[2026-07-28 23:15:00][INFO][XISF] Read OK: 4096x4096 1ch fmt=Float32 keywords=197
+[2026-07-28 23:15:00][INFO][API] aio_read_xisf: 0.056 s
+[2026-07-28 23:15:00][INFO][orchestrator] [CALIBRATE] 加载 Master: f:\Astro dev\Astro CS Normalization Database\testdata/T3 calibration files\masterBias_BIN-1_4096x4096.xisf (4096x4096)
+[2026-07-28 23:15:00][INFO][XISF] Reading: f:\Astro dev\Astro CS Normalization Database\testdata/T3 calibration files\masterDark_BIN-1_4096x4096_EXPOSURE-600.00s.xisf
+[2026-07-28 23:15:00][INFO][XISF] XML header length: 20514 bytes
+[2026-07-28 23:15:00][INFO][XISF] Image: 4096x4096x1 fmt=Float32 byteOrder= offset=24576 size=67108864
+[2026-07-28 23:15:00][INFO][XISF] Byte order: file= system=little swap=0
+[2026-07-28 23:15:00][INFO][XISF] Read OK: 4096x4096 1ch fmt=Float32 keywords=196
+[2026-07-28 23:15:00][INFO][API] aio_read_xisf: 0.037 s
+[2026-07-28 23:15:00][INFO][orchestrator] [CALIBRATE] 加载 Master: f:\Astro dev\Astro CS Normalization Database\testdata/T3 calibration files\masterDark_BIN-1_4096x4096_EXPOSURE-600.00s.xisf (4096x4096)
+[2026-07-28 23:15:00][INFO][XISF] Reading: f:\Astro dev\Astro CS Normalization Database\testdata/T3 calibration files\masterFlat_BIN-1_4096x4096_FILTER-Lum_mono.xisf
+[2026-07-28 23:15:00][INFO][XISF] XML header length: 20746 bytes
+[2026-07-28 23:15:00][INFO][XISF] Image: 4096x4096x1 fmt=Float32 byteOrder= offset=24576 size=67108864
+[2026-07-28 23:15:00][INFO][XISF] Byte order: file= system=little swap=0
+[2026-07-28 23:15:00][INFO][XISF] Read OK: 4096x4096 1ch fmt=Float32 keywords=196
+[2026-07-28 23:15:00][INFO][API] aio_read_xisf: 0.122 s
+[2026-07-28 23:15:00][INFO][orchestrator] [CALIBRATE] 加载 Master: f:\Astro dev\Astro CS Normalization Database\testdata/T3 calibration files\masterFlat_BIN-1_4096x4096_FILTER-Lum_mono.xisf (4096x4096)
+[2026-07-28 23:15:00][INFO][orchestrator] [CALIBRATE] master_dark 曝光时间匹配: dark=600.000000s vs frame=600.000000s (diff=0.000000s)
+[2026-07-28 23:15:00][INFO][orchestrator] [CALIBRATE] 调用 ac_calibrate_frame: dark_opt=0, k_init=1.000000, has_bias=true, has_dark=true, has_flat=true
+[2026-07-28 23:15:00][INFO][orchestrator] [CALIBRATE] 校准统计: light_mean=2051.613610 -> out_mean=14051.542442, bias_mean=0.015146, dark_mean=0.015438, flat_mean=0.146059, actual_k=1.000000
+[2026-07-28 23:15:00][DEBUG][PIPELINE] remove_block: 'data' removed (n_blocks=1)
+[2026-07-28 23:15:00][DEBUG][PIPELINE] add_block_move: 'data' type=0 count=16777216 (moved ptr=000002131bca8040)
+[2026-07-28 23:15:00][INFO][orchestrator] [CALIBRATE] cal_stats 已写入 (CALIBRATION_STATUS=APPLIED)
+[2026-07-28 23:15:00][INFO][orchestrator] [CALIBRATE] 完成 (实际应用 Bias/Dark/Flat)
+[2026-07-28 23:15:00][INFO][orchestrator] [0.641282s] CALIBRATE 完成
+[2026-07-28 23:15:00][INFO][orchestrator] ---------- stage1 阶段: PLATESOLVE ----------
+[2026-07-28 23:15:00][INFO][orchestrator] [PLATESOLVE] 开始
+[2026-07-28 23:15:00][INFO][orchestrator] [PLATESOLVE] 初始化环境 (gaia_client + star_detector + ipv_solver)
+[2026-07-28 23:15:00][INFO][orchestrator] [PLATESOLVE] gaia_client.dll 加载成功
+[2026-07-28 23:15:00][INFO][orchestrator] [PLATESOLVE] star_detector.dll 加载成功
+[2026-07-28 23:15:00][INFO][orchestrator] [PLATESOLVE] Gaia 数据目录: f:\Astro dev\Astro CS Normalization Database\GaiaDR3SP (来自 config)
+[2026-07-28 23:15:00][INFO][orchestrator] [PLATESOLVE] GaiaClient 创建成功 (data_dir=f:\Astro dev\Astro CS Normalization Database\GaiaDR3SP)
+[2026-07-28 23:15:00][INFO][SDET] StarDetector created (fitRadius=0, fwhmClipSigma=3.0, maxAxisRatio=2.0)
+[2026-07-28 23:15:00][INFO][orchestrator] [PLATESOLVE] StarDetector 创建成功 (fitRadius=0 自动, maxStars=2000)
+[2026-07-28 23:15:00][INFO][orchestrator] [PLATESOLVE] IPVSolver 创建成功, 已注入 Gaia + StarDetector 句柄
+[2026-07-28 23:15:00][INFO][orchestrator] [PLATESOLVE] 环境初始化完成
+[2026-07-28 23:15:00][INFO][orchestrator] [PLATESOLVE] 图像: 4096x4096
+[2026-07-28 23:15:00][INFO][orchestrator] [PLATESOLVE] 初始指向: OBJCTRA='00 15 00.00' -> ra0=3.750000deg, OBJCTDEC='-39 11 39.0' -> dec0=-39.194167deg
+[2026-07-28 23:15:00][INFO][orchestrator] [PLATESOLVE] 焦距=1934.700000mm, 像素尺寸=9.000000um
+[2026-07-28 23:15:00][INFO][orchestrator] [PLATESOLVE] 调用 ipv_solve_from_memory_with_callback (INTERNAL_DETECTION_SHARED_EXPORT callback 导出) ...
+[2026-07-28 23:15:00][INFO] ==== IPVSolver::solve_from_memory_with_callback 开始 (INTERNAL_DETECTION_SHARED_EXPORT) ====
+[2026-07-28 23:15:00][INFO]   pixels=4096x4096 (内存数据)
+[2026-07-28 23:15:00][INFO]   ra0=3.750000 deg, dec0=-39.194167 deg
+[2026-07-28 23:15:00][INFO]   focal_length=1934.700 mm, pixel_size=9.000 um
+[2026-07-28 23:15:00][INFO]   callback=ENABLED
+[2026-07-28 23:15:00][INFO] === ipv_select_from_memory_with_callback 启动 (INTERNAL_DETECTION_SHARED_EXPORT) ===
+[2026-07-28 23:15:00][INFO] ipv_select: 依赖 DLL 全部加载成功
+[2026-07-28 23:15:00][INFO] Step 1: 使用内存像素数据 4096×4096
+[2026-07-28 23:15:00][INFO] Step 2: 星点检测 (sdet_detect_ex)
+[2026-07-28 23:15:00][INFO][SDET] sdet_detect_ex start: 4096x4096
+[2026-07-28 23:15:00][DEBUG][SDET] [1] uint16→float: 17.4 ms
+[2026-07-28 23:15:01][DEBUG][SDET] [2] Gaussian YvV smooth (sigma=2.0): 125.8 ms
+[2026-07-28 23:15:01][INFO][SDET] peaker: median=13784.0000 bgnoise=207.3932 threshold=14820.9658 (median+5*bgnoise)
+[2026-07-28 23:15:01][DEBUG][SDET] [3] Threshold: 369.9 ms
+[2026-07-28 23:15:01][INFO][SDET] peaker: bg=13784.0 maxi=65535.0 norm=65535.0 dynrange=51751.0 minsatlevel=36225.7 satrange=5175.1 s_factor=3.7169 locthreshold=1036.9662
+[2026-07-28 23:15:01][DEBUG][SDET] [4] peaker: 30.5 ms (1637 candidates, full peaker 7-step)
+[2026-07-28 23:15:01][INFO][SDET] Candidates: 1637
+[2026-07-28 23:15:01][INFO][SDET] Peaker stages: pass_threshold=635739 pass_localmax=4911 pass_count3=3233 pass_boundary=3233 | cond_meanhigh=356 cond_platform=1908 sat_both=213 nonsat=3020
+[2026-07-28 23:15:01][INFO][SDET] Auto fitRadius: med_pixels=80 fwhm_est=4.39 auto_radius=13 actual=13
+[2026-07-28 23:15:01][INFO][SDET] Task6 candidates sorted by mag_est (desc): maxstars=2000 candidates=1637
+[2026-07-28 23:15:01][DEBUG][SDET] [6] Moffat4 fit: 197.9 ms (1593/1637 OK)
+[2026-07-28 23:15:01][INFO][SDET] Moffat4 fit: 1593/1637 OK
+[2026-07-28 23:15:01][INFO][SDET] === Fit statistics by pixel count ===
+[2026-07-28 23:15:01][INFO][SDET]   px[5-9]: total=22 ok=21(95.5%) invalid=0 noconv=1 iterlimit=0
+[2026-07-28 23:15:01][INFO][SDET]   px[10-19]: total=108 ok=107(99.1%) invalid=0 noconv=1 iterlimit=0
+[2026-07-28 23:15:01][INFO][SDET]   px[20-49]: total=381 ok=375(98.4%) invalid=0 noconv=6 iterlimit=0
+[2026-07-28 23:15:01][INFO][SDET]   px[50-99]: total=411 ok=407(99.0%) invalid=0 noconv=4 iterlimit=0
+[2026-07-28 23:15:01][INFO][SDET]   px[100-299]: total=669 ok=638(95.4%) invalid=0 noconv=31 iterlimit=0
+[2026-07-28 23:15:01][DEBUG][SDET] [7] FWHM stats: 1.3 ms (med=2.7883 mad=0.5607)
+[2026-07-28 23:15:01][INFO][SDET] FWHM stats: med=2.7883 mad=0.5607 (from 1593 fitted stars)
+[2026-07-28 23:15:01][DEBUG][SDET] [8] Build normal stars: 2.2 ms (1477 stars, fit_fail=44 fwhm=0 round=36 reject=80)
+[2026-07-28 23:15:01][INFO][SDET] Normal stars: 1477 (fit_fail=44 fwhm=0 roundness=36 reject=80)
+[2026-07-28 23:15:01][DEBUG][SDET] [9] Saturated star detection skipped (V4.52: use A>dynrange from peaker): 0.4 ms
+[2026-07-28 23:15:01][DEBUG][SDET] [10a] Dedup: 0.9 ms
+[2026-07-28 23:15:01][DEBUG][SDET] [10b] Sort: 0.2 ms
+[2026-07-28 23:15:01][INFO][SDET] After dedup+sort: 1477 stars (saturated=380 normal=1097)
+[2026-07-28 23:15:01][INFO][SDET] sdet_detect_ex done: 1477 stars (sat=380 normal=1097), 0.747 s
+[2026-07-28 23:15:01][INFO]   检测到星点: 1477 颗 (饱和 380, 正常 1097)
+[2026-07-28 23:15:01][INFO] Step 2.5: 调用 callback 导出 detections (INTERNAL_DETECTION_SHARED_EXPORT)
+[2026-07-28 23:15:01][INFO]   callback 完成, 源缓冲区已由 callback 复制
+[2026-07-28 23:15:01][INFO] Step 3: 图像侧选星
+[2026-07-28 23:15:01][INFO] 选星: 按 mag(box积分) 升序取前 60 颗 (含饱和 57 颗)
+[2026-07-28 23:15:01][INFO]   U 向量组: 60×2 (s0=0.9595"/px)
+[2026-07-28 23:15:01][INFO] Step 4: FOV/密度计算
+[2026-07-28 23:15:01][INFO] FOV计算: s0=0.9595"/px, FOV_diag=1.5439°, query_r=0.8492°, img_area=1.19186°², query_area=2.26532°², rho_img=50.34, rho_target=75.51, n_target=60
+[2026-07-28 23:15:01][INFO] Step 5: V4.9 密度公式估算极限星等 (替代迭代)
+[2026-07-28 23:15:01][INFO] 密度估算极限星等: G=11.057 (n_required=60, area=2.2653°², rho_target=26.49/°²)
+[2026-07-28 23:15:01][INFO] Step 6: 用 m_lim=11.057 查询 Gaia 星表
+[2026-07-28 23:15:01][WARN] V4.9 补救查询 1: Gaia 返回 22 < n_target=60, 放宽到 m=12.057
+[2026-07-28 23:15:01][WARN] V4.9 补救查询 2: Gaia 返回 49 < n_target=60, 放宽到 m=13.057
+[2026-07-28 23:15:01][INFO] Step 7: Gnomonic 投影 + FOV 过滤
+[2026-07-28 23:15:01][INFO]   W 向量组: 49×2 (FOV 内 49, 取最亮 49, gaia_ra/dec 已保存)
+[2026-07-28 23:15:01][INFO] === ipv_select_from_memory_with_callback 完成 (INTERNAL_DETECTION_SHARED_EXPORT) ===
+[2026-07-28 23:15:01][INFO] === triangle_match 开始: N_U=60, N_W=49, n_A0=60, n_B0=60, tol=0.0020, s0=0.9595 ===
+[2026-07-28 23:15:01][INFO] triangle_match: stage=0 nA=60 nB=60 超过实际星数, 停止扩充
+[2026-07-28 23:15:01][INFO] triangle_match_single: n_A=60, n_B=49, tol=0.0020, s0=0.9595, scale=[0.8685,1.3027]
+[2026-07-28 23:15:01][DEBUG] stars_to_triangles: N=60, expected=34220, valid=34220, skipped_degenerate=0 (并行, 16 线程)
+[2026-07-28 23:15:01][DEBUG] stars_to_triangles: prune_triangle_array ba>0.9 剪枝: before=34220, after=24966, pruned=9254
+[2026-07-28 23:15:01][DEBUG] stars_to_triangles: N=49, expected=18424, valid=18424, skipped_degenerate=0 (并行, 16 线程)
+[2026-07-28 23:15:01][DEBUG] stars_to_triangles: prune_triangle_array ba>0.9 剪枝: before=18424, after=13409, pruned=5015
+[2026-07-28 23:15:01][INFO] make_vote_matrix: n_A=24966, n_B=13409, matched_triangles=27822, vote_matrix=60x49, scale_rejected=27147 (range=[0.8685,1.3027]) [并行 16 线程]
+[2026-07-28 23:15:01][INFO] top_vote_getters: 矩阵=60x49, 候选对数(vote>=2)=2913, top_n=60
+[2026-07-28 23:15:01][INFO] top_vote_getters: V4.25 去重后 top_pairs=49, 去重剔除=2864
+[2026-07-28 23:15:01][INFO]   [调试] top[0]: u=14 w=17, votes=908
+[2026-07-28 23:15:01][INFO]   [调试] top[1]: u=27 w=20, votes=872
+[2026-07-28 23:15:01][INFO]   [调试] top[2]: u=25 w=26, votes=838
+[2026-07-28 23:15:01][INFO]   [调试] top[3]: u=13 w=12, votes=835
+[2026-07-28 23:15:01][INFO]   [调试] top[4]: u=43 w=42, votes=798
+[2026-07-28 23:15:01][INFO]   [调试] top[5]: u=16 w=19, votes=796
+[2026-07-28 23:15:01][INFO]   [调试] top[6]: u=39 w=36, votes=796
+[2026-07-28 23:15:01][INFO]   [调试] top[7]: u=10 w=8, votes=795
+[2026-07-28 23:15:01][INFO]   [调试] top[8]: u=32 w=29, votes=791
+[2026-07-28 23:15:01][INFO]   [调试] top[9]: u=4 w=4, votes=787
+[2026-07-28 23:15:01][INFO] triangle_match_single 完成: tri_A=24966, tri_B=13409, vote_matrix=60x49, max_vote=908, 候选对数(vote>=2)=2913, top_pairs=49
+[2026-07-28 23:15:01][INFO] === triangle_match 结束: tri_A=24966, tri_B=13409, top_pairs=49, max_vote=908, success=1 ===
+[2026-07-28 23:15:01][INFO] [P02-002] n_target=60, max_vote=908, threshold=2
+[2026-07-28 23:15:01][INFO]   [阶段] triangle_match (n=60): 44.38 ms, max_vote=908, top_pairs=49, success=1
+[2026-07-28 23:15:01][INFO]   [阶段] triangle_match: 44.65 ms, n_target_used=60
+[2026-07-28 23:15:01][INFO]   N_U=60, N_W=49, s0=0.9595 arcsec/px, img=4096x4096, fov_diag=1.5439 deg
+[2026-07-28 23:15:01][INFO] iter_trans_solve: U=60, W=49, initial_pairs=49, tol=5.00, order=3
+[2026-07-28 23:15:01][DEBUG] calc_trans_general: order=3, n_pairs=20, 拟合成功
+[2026-07-28 23:15:01][INFO] iter_trans_inner: 初始拟合完成, 初始工作集=20, order=3
+[2026-07-28 23:15:01][INFO]   [调试] 初始 TRANS: x00=-0.4222 y00=-0.2958, x10=-0.009791 x01=-0.958563 y10=-0.958465 y01=0.009979
+[2026-07-28 23:15:01][INFO]   [调试] 初始对[0]: u=14 w=17, U=(185.55,170.17), W=(-165.27,-176.55), pred=(-165.35,-176.44), dist=0.1324" (dx=-0.07 dy=0.11)
+[2026-07-28 23:15:01][INFO]   [调试] 初始对[1]: u=27 w=20, U=(254.66,-347.21), W=(329.80,-247.78), pred=(329.87,-247.78), dist=0.0703" (dx=0.07 dy=0.00)
+[2026-07-28 23:15:01][INFO]   [调试] 初始对[2]: u=25 w=26, U=(541.98,75.20), W=(-77.52,-518.87), pred=(-77.76,-518.89), dist=0.2440" (dx=-0.24 dy=-0.03)
+[2026-07-28 23:15:01][INFO]   [调试] 初始对[3]: u=13 w=12, U=(57.77,580.49), W=(-557.07,-49.97), pred=(-557.20,-49.86), dist=0.1680" (dx=-0.13 dy=0.11)
+[2026-07-28 23:15:01][INFO]   [调试] 初始对[4]: u=43 w=42, U=(676.08,-364.12), W=(341.82,-651.45), pred=(341.84,-651.55), dist=0.0983" (dx=0.02 dy=-0.10)
+[2026-07-28 23:15:01][INFO]   [调试] 初始对[5]: u=16 w=19, U=(540.87,1609.24), W=(-1543.29,-501.47), pred=(-1543.41,-501.45), dist=0.1216" (dx=-0.12 dy=0.03)
+[2026-07-28 23:15:01][INFO] iter_trans_inner: V4.23 工作集扩展 20->49 (nr=nbright)
+[2026-07-28 23:15:01][DEBUG] iter 0: 绝对剔除 nr=49→48, nb=1
+[2026-07-28 23:15:01][DEBUG] iter 0: sigma(35%)=0.024656 角秒²
+[2026-07-28 23:15:01][DEBUG] iter 0: 相对剔除 nr=32, nb=17, rel_thresh=0.246556
+[2026-07-28 23:15:01][DEBUG] calc_trans_general: order=3, n_pairs=32, 拟合成功
+[2026-07-28 23:15:01][INFO] iter_trans_inner: 完成, nr=32, sig=0.0213, rms=0.1482, iters=1, success=1
+[2026-07-28 23:15:01][INFO] iter_trans_solve: 第一轮 iter_trans 成功, inliers=32, rms=0.1482
+[2026-07-28 23:15:01][INFO] at_match_lists: U=60, W=49, tol=5.00", U→W单向=48, W→U单向=48, 双向=48, 去重后=48
+[2026-07-28 23:15:01][DEBUG] calc_trans_general: order=3, n_pairs=48, 拟合成功
+[2026-07-28 23:15:01][INFO] at_recalc_trans: n=48, order=3, sig=0.0615, sx=0.2217, sy=0.1728, rms=0.2811
+[2026-07-28 23:15:01][INFO] iter_trans_solve: 第一轮 refit 成功, inliers=48, rms=0.2811
+[2026-07-28 23:15:01][INFO] at_match_lists: U=60, W=49, tol=5.00", U→W单向=48, W→U单向=48, 双向=48, 去重后=48
+[2026-07-28 23:15:01][DEBUG] calc_trans_general: order=3, n_pairs=48, 拟合成功
+[2026-07-28 23:15:01][INFO] at_recalc_trans: n=48, order=3, sig=0.0615, sx=0.2217, sy=0.1728, rms=0.2811
+[2026-07-28 23:15:01][INFO] iter_trans_solve: 第二轮 refit 成功, inliers=48, rms=0.2811
+[2026-07-28 23:15:01][INFO]   [阶段] iter_trans_solve: 4.69 ms, n_inliers=48, rms=0.2811, iters=3, success=1
+[2026-07-28 23:15:01][INFO]   [诊断] iterative_reproject 入口: U.size=60, gaia_ra.size=49, gaia_dec.size=49, initial_inliers.size=48, s0=0.9595, img=4096x4096
+[2026-07-28 23:15:01][INFO] iterative_reproject: 开始 (N_W=49, n_inliers=48, s0=0.9595"/px, max_iter=5, conv_thresh=0.0100")
+[2026-07-28 23:15:01][INFO]   iter 0: ra_cur=3.750000 dec_cur=-39.194167, xi_center=-0.3426" eta_center=-0.3123", conv=0.4636" (thresh=0.0100")
+[2026-07-28 23:15:01][INFO]   iter 0: 新中心 ra=3.749877 dec=-39.194253 (Δra=-0.000123° Δdec=-0.000087°)
+[2026-07-28 23:15:01][DEBUG] calc_trans_general: order=3, n_pairs=48, 拟合成功
+[2026-07-28 23:15:01][INFO] at_recalc_trans: n=48, order=3, sig=0.0615, sx=0.2217, sy=0.1728, rms=0.2811
+[2026-07-28 23:15:01][INFO]   iter 0: at_recalc_trans 成功, n=48, sig=0.0615, rms=0.2811, x00=0.0000 y00=0.0000 (asec)
+[2026-07-28 23:15:01][INFO]   iter 1: 收敛 (TRANS 常数项 = 0.0000" < 0.0100")
+[2026-07-28 23:15:01][INFO] iterative_reproject: 完成 (收敛), ra=3.750000→3.749877 dec=-39.194167→-39.194253, n_matched=48 (固定), iters=1, conv=0.0000"
+[2026-07-28 23:15:01][INFO]   [阶段] iterative_reproject: 2.12 ms, success=1, ra=3.750000→3.749877, dec=-39.194167→-39.194253, n_matched=48, iters=1, conv=0.0000"
+[2026-07-28 23:15:01][INFO] at_match_lists: U=60, W=49, tol=5.00", U→W单向=48, W→U单向=48, 双向=48, 去重后=48
+[2026-07-28 23:15:01][INFO]   [阶段] hi_order_rematch iter 0: n_matched=48 (min=10, order=3)
+[2026-07-28 23:15:01][DEBUG] calc_trans_general: order=3, n_pairs=48, 拟合成功
+[2026-07-28 23:15:01][INFO] at_recalc_trans: n=48, order=3, sig=0.0615, sx=0.2217, sy=0.1728, rms=0.2811
+[2026-07-28 23:15:01][INFO] at_match_lists: U=60, W=49, tol=5.00", U→W单向=48, W→U单向=48, 双向=48, 去重后=48
+[2026-07-28 23:15:01][DEBUG] calc_trans_general: order=3, n_pairs=48, 拟合成功
+[2026-07-28 23:15:01][INFO] at_recalc_trans: n=48, order=3, sig=0.0615, sx=0.2217, sy=0.1728, rms=0.2811
+[2026-07-28 23:15:01][INFO]   [阶段] hi_order_rematch iter 1: 收敛 (dn=0, drms=0.0000)
+[2026-07-28 23:15:01][INFO]   [阶段] hi_order_rematch: 1.22 ms, n_matched=48, trans.order=3
+[2026-07-28 23:15:01][INFO] ==== robust_refine_wcs 开始 (V4.30) ====
+  U_full=1477, mag_full=1477, gaia=49
+  ra0=3.749877, dec0=-39.194253, s0=0.9595"/px, fov=1.5439°, img=4096x4096
+  initial_rms=0.0615", trans.order=3
+[2026-07-28 23:15:01][INFO]   [robust_refine] 网格采样: FOV=1.544°, G_short=3, N_long=3, n_cells=9, quota=20, narrow_all=0, N_full=1477
+[2026-07-28 23:15:01][INFO]   [robust_refine] 网格采样完成: 选中 180 颗 (上限 300, 下限 100)
+[2026-07-28 23:15:01][INFO]   [robust_refine] NN 匹配: U=180, W=49, tol=1.000", Lowe通过=48, 双向=48
+[2026-07-28 23:15:01][INFO]   [robust_refine] baseline: initial_rms=0.0615" (60星), U_pool RMS=0.2811" (180 星, matched=48)
+[2026-07-28 23:15:01][INFO]   [robust_refine] NN 匹配: U=180, W=49, tol=1.000", Lowe通过=48, 双向=48
+[2026-07-28 23:15:01][INFO]   [robust_refine] 空间一致性: 2/48 可疑 (K=8, σ=0.625")
+[2026-07-28 23:15:01][INFO]   [robust_refine] iter 0: tol=1.000", matched=48, rms=0.2811"→0.2864", cd_Δ=0.3483%, damp=0.00e+00
+[2026-07-28 23:15:01][INFO]   [robust_refine] NN 匹配: U=180, W=49, tol=0.500", Lowe通过=42, 双向=42
+[2026-07-28 23:15:01][INFO]   [robust_refine] 空间一致性: 2/42 可疑 (K=8, σ=0.062")
+[2026-07-28 23:15:01][INFO]   [robust_refine] iter 1: tol=0.500", matched=42, rms=0.2864"→0.1732", cd_Δ=0.2645%, damp=0.00e+00
+[2026-07-28 23:15:01][INFO]   [robust_refine] NN 匹配: U=180, W=49, tol=0.500", Lowe通过=42, 双向=42
+[2026-07-28 23:15:01][INFO]   [robust_refine] 空间一致性: 1/42 可疑 (K=8, σ=0.061")
+[2026-07-28 23:15:01][INFO]   [robust_refine] iter 2: tol=0.500", matched=42, rms=0.1732"→0.1701", cd_Δ=0.0113%, damp=0.00e+00
+[2026-07-28 23:15:01][INFO]   [robust_refine] NN 匹配: U=180, W=49, tol=0.300", Lowe通过=38, 双向=38
+[2026-07-28 23:15:01][INFO]   [robust_refine] iter 3: tol=0.300", matched=38, rms=0.1701"→0.1334", cd_Δ=0.0626%, damp=0.00e+00
+[2026-07-28 23:15:01][INFO]   [robust_refine] NN 匹配: U=180, W=49, tol=0.300", Lowe通过=38, 双向=38
+[2026-07-28 23:15:01][INFO]   [robust_refine] iter 4: tol=0.300", matched=38, rms=0.1334"→0.1330", cd_Δ=0.0103%, damp=0.00e+00
+[2026-07-28 23:15:01][INFO]   [robust_refine] NN 匹配: U=180, W=49, tol=0.300", Lowe通过=38, 双向=38
+[2026-07-28 23:15:01][INFO]   [robust_refine] iter 5: tol=0.300", matched=38, rms=0.1330"→0.1329", cd_Δ=0.0126%, damp=0.00e+00
+[2026-07-28 23:15:01][INFO]   [robust_refine] NN 匹配: U=180, W=49, tol=0.300", Lowe通过=38, 双向=38
+[2026-07-28 23:15:01][INFO]   [robust_refine] iter 6: tol=0.300", matched=38, rms=0.1329"→0.1328", cd_Δ=0.0072%, damp=0.00e+00
+[2026-07-28 23:15:01][INFO]   [robust_refine] iter 6: 收敛 (conv_dp=0, conv_rms=1)
+[2026-07-28 23:15:01][INFO] ==== robust_refine_wcs 成功 ====
+  iter=7, matched=38, rms=0.1328" (0.1384 px), cd_Δ=0.3483%, pool=180
+[2026-07-28 23:15:01][INFO]   [阶段] robust_refine: 成功, n_matched=38, rms=0.1328", iter=7, pool=180, cd_Δ=0.3483%
+[2026-07-28 23:15:01][INFO]   [阶段] robust_refine: 5.00 ms
+[2026-07-28 23:15:01][INFO]   [诊断] extract_wcs_sip 入口: trans.order=3, trans.valid=1, ra0=3.749877, dec0=-39.194253, img=4096x4096, s0=0.9595, U.size=1477, W.size=49, matched.size=38
+[2026-07-28 23:15:01][INFO]   [V4.22] 清零 trans.x00/y00 (saved: x00=-0.0085, y00=-0.0366)
+[2026-07-28 23:15:01][INFO] extract_wcs_sip: SIP A/B 解析公式成功, order=3
+[2026-07-28 23:15:01][INFO] extract_wcs_sip: SIP AP/BP 网格反变换成功, ap_order=3, n_inv_coef=10, n_grid=49
+[2026-07-28 23:15:01][INFO] extract_wcs_sip: CD=[-2.739843e-06 2.662812e-04; -2.662183e-04 -2.757434e-06], CRVAL=(3.749877, -39.194253), CRPIX=(2048.5, 2048.5), ctype=[RA---TAN-SIP, DEC--TAN-SIP], n_pairs=38, rms_px=0.1384, rms_arcsec=0.1328, trans_order=3, sip_order=3, ap_order=3
+[2026-07-28 23:15:01][INFO]   [阶段] extract_wcs_sip: 1.03 ms, success=1, n_pairs=38, rms_px=0.138, rms_arcsec=0.133, trans_order=3, sip_order=3
+[2026-07-28 23:15:01][INFO]   最终: n_pairs=38, rms_px=0.138, rms_arcsec=0.133, trans_order=3, sip_order=3, success=1
+[2026-07-28 23:15:01][INFO]   [cache_last_inliers_] 缓存 38 对 inliers (robust=1, s0=0.9595", U_snap.size=1477, gaia.size=49, trans.order=3, ra0=3.749877, dec0=-39.194253)
+[2026-07-28 23:15:01][INFO] ==== IPVSolver::solve_from_memory_with_callback 完成 (INTERNAL_DETECTION_SHARED_EXPORT) ====
+[2026-07-28 23:15:01][INFO][orchestrator] [PLATESOLVE] callback 导出: n_detected=1477, copied=true, wcs_result.n_detected=0
+[2026-07-28 23:15:01][INFO][orchestrator] [PLATESOLVE] 求解成功: rms=0.132813arcsec, n_pairs=38, n_detected=0, n_catalog=0, trans_order=3
+[2026-07-28 23:15:01][INFO][orchestrator] [PLATESOLVE] WCS 已写入: CTYPE1=RA---TAN-SIP, CRVAL=(3.749877, -39.194253), CRPIX=(2048.500000, 2048.500000)
+[2026-07-28 23:15:01][INFO][orchestrator] [PLATESOLVE] SIP 已写入: order=3, ap_order=3
+[2026-07-28 23:15:01][DEBUG][PIPELINE] add_block: 'star_det' type=0 count=5908 (23632 bytes)
+[2026-07-28 23:15:01][INFO][orchestrator] [PLATESOLVE] star_det 块已写入 (INTERNAL_DETECTION_SHARED_EXPORT): 1477 颗星
+[2026-07-28 23:15:01][INFO][orchestrator] [PLATESOLVE] 完成
+[2026-07-28 23:15:01][INFO][orchestrator] [0.867425s] PLATESOLVE 完成
+[2026-07-28 23:15:01][INFO][orchestrator] ---------- stage1 阶段: PSF ----------
+[2026-07-28 23:15:01][INFO][orchestrator] [PSF] 开始
+[2026-07-28 23:15:01][INFO][orchestrator] [PSF] 图像: 4096x4096
+[2026-07-28 23:15:01][INFO][orchestrator] [PSF] star_det: 1477 颗星
+[2026-07-28 23:15:01][INFO][orchestrator] [PSF] 调用 dpsf_fit_batch (fitRadius=8, maxIter=100, tol=1.0e-06) ...
+[2026-07-28 23:15:01][WARN][DPSF] Invalid fit params: finite=1 A=0.00 sx=6.2153 sy=6.2942
+[2026-07-28 23:15:01][WARN][DPSF] Invalid fit params: finite=1 A=0.00 sx=6.5599 sy=6.6379
+[2026-07-28 23:15:01][WARN][DPSF] Invalid fit params: finite=1 A=0.00 sx=5.7821 sy=5.8106
+[2026-07-28 23:15:01][WARN][DPSF] FWHM exceeds rect: fwhm_x=173.39 fwhm_y=192.20 rect=17x17
+[2026-07-28 23:15:01][WARN][DPSF] Background constraint violated: B=37789.3483 bkg0=23312.5000 ratio=0.6210
+[2026-07-28 23:15:01][WARN][DPSF] Background constraint violated: B=-1793.5465 bkg0=19699.0000 ratio=1.0910
+[2026-07-28 23:15:01][WARN][DPSF] Invalid fit params: finite=1 A=0.00 sx=5.9811 sy=6.0147
+[2026-07-28 23:15:01][WARN][DPSF] Background constraint violated: B=-663.2331 bkg0=18656.0000 ratio=1.0356
+[2026-07-28 23:15:01][WARN][DPSF] Background constraint violated: B=-14937.2478 bkg0=20489.5000 ratio=1.7290
+[2026-07-28 23:15:01][WARN][DPSF] FWHM exceeds rect: fwhm_x=4611.78 fwhm_y=229.50 rect=17x17
+[2026-07-28 23:15:01][WARN][DPSF] Background constraint violated: B=-582.1348 bkg0=17846.5000 ratio=1.0326
+[2026-07-28 23:15:01][WARN][DPSF] Background constraint violated: B=-2452.3805 bkg0=19435.0000 ratio=1.1262
+[2026-07-28 23:15:01][WARN][DPSF] Background constraint violated: B=-2069.4599 bkg0=18515.5000 ratio=1.1118
+[2026-07-28 23:15:01][WARN][DPSF] Background constraint violated: B=179.2153 bkg0=17789.0000 ratio=0.9899
+[2026-07-28 23:15:01][WARN][DPSF] FWHM exceeds rect: fwhm_x=407.81 fwhm_y=472.02 rect=17x17
+[2026-07-28 23:15:01][WARN][DPSF] FWHM exceeds rect: fwhm_x=63.89 fwhm_y=7.28 rect=17x17
+[2026-07-28 23:15:01][WARN][DPSF] Background constraint violated: B=-858.9497 bkg0=18308.0000 ratio=1.0469
+[2026-07-28 23:15:01][WARN][DPSF] Background constraint violated: B=4870.3612 bkg0=19811.5000 ratio=0.7542
+[2026-07-28 23:15:01][WARN][DPSF] Background constraint violated: B=3814.2683 bkg0=17461.0000 ratio=0.7816
+[2026-07-28 23:15:01][WARN][DPSF] Background constraint violated: B=3019.0232 bkg0=17018.5000 ratio=0.8226
+[2026-07-28 23:15:01][WARN][DPSF] Background constraint violated: B=2527.6423 bkg0=17446.0000 ratio=0.8551
+[2026-07-28 23:15:01][WARN][DPSF] Background constraint violated: B=1162.2082 bkg0=17576.0000 ratio=0.9339
+[2026-07-28 23:15:01][WARN][DPSF] Background constraint violated: B=2204.0120 bkg0=17101.0000 ratio=0.8711
+[2026-07-28 23:15:01][WARN][DPSF] Background constraint violated: B=348.0070 bkg0=17359.0000 ratio=0.9800
+[2026-07-28 23:15:01][WARN][DPSF] Background constraint violated: B=6224.6395 bkg0=16545.5000 ratio=0.6238
+[2026-07-28 23:15:01][WARN][DPSF] Background constraint violated: B=7794.8937 bkg0=15601.5000 ratio=0.5004
+[2026-07-28 23:15:01][WARN][DPSF] Background constraint violated: B=4384.2431 bkg0=16354.0000 ratio=0.7319
+[2026-07-28 23:15:01][WARN][DPSF] Background constraint violated: B=1318.2848 bkg0=17608.0000 ratio=0.9251
+[2026-07-28 23:15:01][WARN][DPSF] Background constraint violated: B=2283.2256 bkg0=16553.0000 ratio=0.8621
+[2026-07-28 23:15:01][WARN][DPSF] Background constraint violated: B=1338.2424 bkg0=16985.0000 ratio=0.9212
+[2026-07-28 23:15:01][WARN][DPSF] Background constraint violated: B=6771.0395 bkg0=16638.5000 ratio=0.5930
+[2026-07-28 23:15:01][WARN][DPSF] Background constraint violated: B=6557.3238 bkg0=15887.0000 ratio=0.5873
+[2026-07-28 23:15:01][WARN][DPSF] Background constraint violated: B=5415.3056 bkg0=15614.0000 ratio=0.6532
+[2026-07-28 23:15:01][WARN][DPSF] Background constraint violated: B=7815.2294 bkg0=15640.5000 ratio=0.5003
+[2026-07-28 23:15:01][WARN][DPSF] Invalid fit params: finite=1 A=21350.81 sx=0.3000 sy=1.6110
+[2026-07-28 23:15:01][INFO][orchestrator] [PSF] 拟合完成: 1439/1477 成功 (97%)
+[2026-07-28 23:15:01][DEBUG][PIPELINE] add_block: 'psf' type=1 count=13293 (106344 bytes)
+[2026-07-28 23:15:01][INFO][orchestrator] [PSF] 完成: 1477 颗星, 1439 成功
+[2026-07-28 23:15:01][INFO][orchestrator] [0.257708s] PSF 完成
+[2026-07-28 23:15:01][INFO][orchestrator] ---------- stage1 阶段: PHOTOMETRIC ----------
+[2026-07-28 23:15:01][INFO][orchestrator] [PHOTOMETRIC] 开始
+[2026-07-28 23:15:01][INFO][orchestrator] [PHOTOMETRIC] 图像: 4096x4096
+[2026-07-28 23:15:01][INFO][orchestrator] [PHOTOMETRIC] psf: 1477 颗星
+[2026-07-28 23:15:01][INFO][orchestrator] [PHOTOMETRIC] FILTER='Lum' -> 'Baader UV/IR Cut / L CMOS Optimized'
+[2026-07-28 23:15:01][INFO][orchestrator] [PHOTOMETRIC] filters_json: f:\Astro dev\Astro CS Normalization Database\lib/photometric_calib/data/response_curves/filters.json
+[2026-07-28 23:15:01][INFO][orchestrator] [PHOTOMETRIC] 滤光片: 7 点
+[2026-07-28 23:15:01][INFO][orchestrator] [PHOTOMETRIC] qe_curves_json: f:\Astro dev\Astro CS Normalization Database\lib/photometric_calib/data/response_curves/qe_curves.json
+[2026-07-28 23:15:01][INFO][orchestrator] [PHOTOMETRIC] QE 曲线 'GSENSE2020BSI': 447 点
+[2026-07-28 23:15:01][INFO][orchestrator] [PHOTOMETRIC] spectrum_wl: 343 点
+[2026-07-28 23:15:01][INFO][orchestrator] [PHOTOMETRIC] FOV 半径: 0.925419deg
+[2026-07-28 23:15:01][INFO][orchestrator] [PHOTOMETRIC] 调用 pc_calibrate_simple_with_gaia (mag_min=6.0, mag_max=16.0, fov=0.925deg) ...
+[pc_api] ====== pc_calibrate_simple_with_gaia 开始 ======
+[pc_api] OpenMP线程数: 16
+[INFO] 锥形搜索: ra=3.7499 dec=-39.1943 r=0.925 mag_min=6.0 (自适应迭代 mag_max, 不缩小半径)
+[INFO] 自适应星等查询: mag_max=12.0
+[INFO] 自适应星等查询: mag_max=12.0, n_gaia=60
+[INFO] 自适应星等查询: mag_max=13.0
+[INFO] 自适应星等查询: mag_max=13.0, n_gaia=125
+[INFO] 自适应星等查询: mag_max=14.0
+[INFO] 自适应星等查询: mag_max=14.0, n_gaia=242
+[INFO] 自适应星等查询: mag_max=15.0
+[INFO] 自适应星等查询: mag_max=15.0, n_gaia=452
+[INFO] 自适应星等查询: mag_max=16.0
+[INFO] 自适应星等查询: mag_max=16.0, n_gaia=757
+[INFO] 自适应星等查询完成: mag_max=16.0, n_gaia=757
+[pc_api] 搜索到 757 颗光谱星, 光谱点数=343 (wl_start=336, wl_step=2)
+[INFO] [spec_int] prepare_filter_cache: 滤光片 7 点 + QE 447 点 -> 光谱 343 点, 范围 F[300.0,800.0] Q[204.0,1096.0] nm
+[INFO] 滤光片/QE 预处理完成: filter=7 点, qe=447 点 -> 光谱 343 点
+[pc_api] F_syn 并行计算完成: 757/757 颗有效
+[INFO] [pc_api] P12-001 阶段1: spectrum_rows_total=757, valid_fsyn=757
+[wcs_transform] 初始化: CRVAL=(3.749877,-39.194253), CRPIX=(2048.500,2048.500), CD=[-2.740e-06,2.663e-04;-2.662e-04,-2.757e-06], det=7.090e-08, sip_order=3
+[INFO] [star_matcher] 初始化: KD-tree + IRLS/Tukey 清洗 (GAP-013)
+[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=311 / 757
+[INFO] [star_matcher] P12-001 阶段3: psf_total=1477, psf_valid=1439
+[INFO] [star_matcher] PSF有效星: 1439 / 1477, Gaia星: 757, 匹配半径: 2.00 px
+[INFO] [star_matcher] P12-002 正向匹配 (PSF→Gaia): 261 / 1439 命中
+[INFO] [star_matcher] P12-002 反向匹配 (Gaia→PSF): 261 / 757 命中
+[INFO] [star_matcher] P12-002 阶段4/5/6: spatial_candidates=261 (正向命中), unique_matches=261 (双向唯一), rejected_ambiguous=0 (非互为最近邻), rejected_distance=1178 (距离超阈值)
+[INFO] [star_matcher] P12-001 阶段8: match_distance median=0.5418 p90=1.0720 max=1.7912 px
+[INFO] [star_matcher] P12-002 KD-tree 双向匹配完成: 261 对 (正向 261, 歧义 0)
+[INFO] [star_matcher] cleanAndScale: 输入 261 颗, 星等容忍 3.00 mag
+[INFO] [star_matcher] 星等一致性: 通过 261, 拒绝 0 (median_delta=-30.3717, tol=3.00 mag)
+[INFO] [star_matcher] IRLS 初始: location=4.816636, MAD=0.099987, S=0.148239
+[INFO] [star_matcher] IRLS 收敛于迭代 6: location=4.798826
+[INFO] [star_matcher] 亮度比例一致性:
+[INFO]   - 输入匹配: 261
+[INFO]   - 星等一致性通过: 261 (拒绝 0)
+[INFO]   - IRLS inliers: 258 (outliers: 3)
+[INFO]   - location(r) = 4.798826 (dex), scale = 10^(-location) = 1.589182e-05
+[INFO]   - MAD(r) = 0.099987, S = 0.148239, sigma_residual = 0.155009
+[INFO]   - r_inliers 范围: [4.177776, 5.461983] (spread 1.284208 dex = 3.211 mag)
+[INFO] [star_matcher] 清洗完成: 保留 258, 排除 3 (无效/星等不一致/IRLS离群)
+[INFO] [star_matcher] P12-001 阶段6/7/8: rejected_quality=3 (invalid=0 + mag=0 + irls=3), fit_used=258, robust_iterations=7, scale=1.589182e-05, sigma=0.155009
+[INFO] [star_matcher] P12-001 阶段8: r_inliers median=4.817198 p90=4.971790 max=5.461983 dex
+[pc_api] 匹配+清洗完成: 258 颗, scale=1.589182e-05, sigma_residual=0.155009
+[image_corrector] 图像校正: 4096x4096, scale=1.589182e-05, 并行16线程
+[image_corrector] 校正完成
+[pc_api] ====== pc_calibrate_simple_with_gaia 完成: n_matched=258, scale=1.589182e-05, sigma_residual=0.155009 ======
+[2026-07-28 23:15:01][INFO][orchestrator] [PHOTOMETRIC] 完成: n_matched=258, scale=0.000016, sigma_residual=0.155009
+[2026-07-28 23:15:01][DEBUG][PIPELINE] remove_block: 'data' removed (n_blocks=4)
+[2026-07-28 23:15:01][DEBUG][PIPELINE] add_block_move: 'data' type=0 count=16777216 (moved ptr=0000021304c6a040)
+[2026-07-28 23:15:01][INFO][orchestrator] [PHOTOMETRIC] photometry_report.json 已生成: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T3_LUM_NGC55\photometry_report.json
+[2026-07-28 23:15:01][INFO][orchestrator] [PHOTOMETRIC] photo_stats 已写入 (含 17 个诊断字段)
+[2026-07-28 23:15:01][INFO][orchestrator] [0.030415s] PHOTOMETRIC 完成
+[2026-07-28 23:15:01][INFO][orchestrator] ---------- stage1 阶段: SNR ----------
+[2026-07-28 23:15:01][INFO][orchestrator] [SNR] 开始
+[2026-07-28 23:15:01][INFO][orchestrator] [SNR] SIP 前向系数加载: A_ORDER=3 B_ORDER=3 (P03-004 WCS+SIP 一致性)
+[2026-07-28 23:15:01][INFO][orchestrator] [SNR] n_stars=1477 sigma_residual=0.155009 CRVAL=(3.749877,-39.194253) CRPIX=(2048.500000,2048.500000) SIP(a_order=3, b_order=3)
+[snr_model] SNR_phot = 2.801742
+[snr_model] PSF stars: total=1477 valid=875 skipped=602 (status=38 A<=B=564 mad<=0=0)
+[snr_model] median(SNR_psf) = 67.858135
+[snr_model] WCS+SIP: a_order=3 b_order=3 (前向 SIP 启用, 与 drizzle WcsSip.pixelToSky 一致)
+[snr_model] ctrl_point[0]: ra=4.223405 dec=-39.229389 snr_psf=19.0778 (src px x=2169.04 y=3429.01)
+[snr_model] ctrl_point[1]: ra=4.047324 dec=-39.499314 snr_psf=18.5670 (src px x=3188.02 y=2922.97)
+[snr_model] ctrl_point[2]: ra=3.798838 dec=-39.358204 snr_psf=19.7158 (src px x=2662.07 y=2196.04)
+[snr_model] done: n_points=875, snr_phot=2.801742, median=67.858135, power=2.0
+[2026-07-28 23:15:01][INFO][orchestrator] [SNR] 提取稀疏控制点: n_points=875, snr_phot=2.801742, median_snr=67.858135, idw_power=2.000000
+[2026-07-28 23:15:01][DEBUG][PIPELINE] add_block_move: 'snr_model' type=6 count=17528 (moved ptr=0000021304811b20)
+[2026-07-28 23:15:01][INFO][orchestrator] [SNR] 完成 (snr_model 块已写入, payload=17528B)
+[2026-07-28 23:15:01][INFO][orchestrator] [0.001783s] SNR 完成
+[2026-07-28 23:15:01][INFO][orchestrator] ---------- stage1 阶段: DRIZZLE ----------
+[2026-07-28 23:15:01][INFO][orchestrator] [DRIZZLE] 开始
+[2026-07-28 23:15:01][INFO][orchestrator] [NSIDE] 自适应: pixel_scale=0.959"/px, strategy=1x_to_2x_drizzle, nside=2048
+[2026-07-28 23:15:01][INFO][orchestrator] [DRIZZLE] nside=2048 (strategy=1x_to_2x_drizzle, override=0, cd11=-0.000003 cd12=0.000266), pixfrac=1.000, nested=1
+[2026-07-28 23:15:01][INFO][orchestrator] [DRIZZLE] 输出: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T3_LUM_NGC55\T3_LUM_NGC55.hiss
+[hp_drizzle_api] hp_drizzle_run: 开始 (nside=2048, nested=1, pixfrac=1.0000, output=f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T3_LUM_NGC55\T3_LUM_NGC55.hiss)
+[hp_drizzle_api] hp_drizzle_run: data 块 4096x4096 float32
+[hp_drizzle_api] hp_drizzle_run: WCS CRVAL=(3.749877,-39.194253) CRPIX=(2048.500,2048.500) CD=[-2.740e-06,2.663e-04,-2.662e-04,-2.757e-06]
+[hp_drizzle_api] hp_drizzle_run: SIP A_ORDER=3 B_ORDER=3 AP_ORDER=3 BP_ORDER=3
+[hp_drizzle_api] hp_drizzle_run: snr_model 块加载: n_points=875, snr_phot=2.8017, median_snr=67.8581, idw_power=2.00
+[snr_evaluator] build 成功: 875 控制点 (有效 875/875), snr_phot=2.8017, median_snr=67.8581, idw_power=2.00
+[wcs_sip] WCS 初始化: CRVAL=(3.749877, -39.194253)°, CRPIX=(2048.500, 2048.500), CD=[-2.740e-06, 2.663e-04; -2.662e-04, -2.757e-06], det=7.090e-08
+[wcs_sip] SIP: A/B order=3, AP/BP order=3
+[hp_drizzle_api] hp_drizzle_run: SNR 重建完成 (16777216 像素)
+[wcs_sip] WCS 初始化: CRVAL=(3.749877, -39.194253)°, CRPIX=(2048.500, 2048.500), CD=[-2.740e-06, 2.663e-04; -2.662e-04, -2.757e-06], det=7.090e-08
+[wcs_sip] SIP: A/B order=3, AP/BP order=3
+[drizzle_engine] HEALPix: nside=2048 nested=1 npix=50331648 res=103.06"
+[drizzle_engine] 完成: 16777216 源像素 → 1536 HEALPix 像素, 耗时 14.660s
+[hp_drizzle_api] hp_drizzle_run: Drizzle 完成 (16777216 源像素 → 1536 HEALPix 像素, 耗时 14.660s)
+[hp_drizzle_api] hp_drizzle_run: 写入 .hiss (filter=Lum, exptime=600.0, date=2025-07-03T07:54:37, fits_meta=15)
+[drizzle_engine] 写入 1536 个 HEALPix 像素到 f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T3_LUM_NGC55\T3_LUM_NGC55.hiss
+[drizzle_engine] hiss_write_snr_model: meta_json=714 bytes, n_points=875
+[hio] hiss_write_snr_model: path=f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T3_LUM_NGC55\T3_LUM_NGC55.hiss nside=2048 n_pix=1536 has_snr=1 n_points=875
+[hio] hiss_write_snr_model: 写入完成: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T3_LUM_NGC55\T3_LUM_NGC55.hiss (has_snr=1 n_points=875)
+[drizzle_engine] 写入成功: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T3_LUM_NGC55\T3_LUM_NGC55.hiss (1536 像素)
+[hp_drizzle_api] hp_drizzle_run: .hiss 已写入 f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T3_LUM_NGC55\T3_LUM_NGC55.hiss
+[2026-07-28 23:15:26][INFO][orchestrator] [DRIZZLE] 完成: n_healpix=1536 n_source=16777216 耗时=14.660220s
+[2026-07-28 23:15:26][INFO][orchestrator] [24.540290s] DRIZZLE 完成
+[2026-07-28 23:15:26][DEBUG][PIPELINE] frame_destroy: ok
+[2026-07-28 23:15:26][INFO][orchestrator] ========== stage1 完成 (成功) ==========
+[2026-07-28 23:15:26][INFO][orchestrator] [PLATESOLVE] 释放环境资源
+[2026-07-28 23:15:26][INFO][SDET] StarDetector destroyed
+[2026-07-28 23:15:26][INFO][orchestrator] 析构完成
 [dll_loader] 卸载所有模块
 [dll_loader] 卸载模块 CALIBRATE
 [dll_loader] 卸载模块 PLATESOLVE

@@ -1,0 +1,26 @@
+{
+  "frame": "f:\\Astro dev\\Astro CS Normalization Database\\testdata\\Galaxy_Center_T4\\lights\\panel1\\Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@063631-600S-Oiii.fts",
+  "valid_fsyn": 14662,
+  "gaia_in_frame": 6120,
+  "psf_valid": 1849,
+  "unique_matches": 1524,
+  "fit_used": 1519,
+  "scale_factor": 0.000591545,
+  "sigma_residual": 0.146881,
+  "status": "PASS",
+  "match_distance": {
+    "median": 0.441413,
+    "p90": 0.717796,
+    "max": 1.84415
+  },
+  "spectrum_rows_total": 14761,
+  "psf_total": 2000,
+  "spatial_candidates": 1524,
+  "rejected_ambiguous": 0,
+  "rejected_distance": 325,
+  "rejected_quality": 5,
+  "robust_iterations": 7,
+  "r_median": 3.21009,
+  "r_p90": 3.42865,
+  "r_max": 3.83744
+}

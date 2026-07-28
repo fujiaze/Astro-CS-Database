@@ -1,0 +1,26 @@
+{
+  "frame": "f:\\Astro dev\\Astro CS Normalization Database\\testdata\\NGC1727_T2_flying_dutchman\\lights\\NGC1727_RGBHO_T2_flying_dutchman-20251031@075259-1800S-OIII.fts",
+  "valid_fsyn": 2486,
+  "gaia_in_frame": 1333,
+  "psf_valid": 1961,
+  "unique_matches": 1099,
+  "fit_used": 1099,
+  "scale_factor": 5.81823e-06,
+  "sigma_residual": 0.36662,
+  "status": "PASS",
+  "match_distance": {
+    "median": 0.426558,
+    "p90": 0.721192,
+    "max": 1.78494
+  },
+  "spectrum_rows_total": 2486,
+  "psf_total": 2000,
+  "spatial_candidates": 1099,
+  "rejected_ambiguous": 0,
+  "rejected_distance": 862,
+  "rejected_quality": 0,
+  "robust_iterations": 6,
+  "r_median": 5.21444,
+  "r_p90": 5.58249,
+  "r_max": 6.26153
+}

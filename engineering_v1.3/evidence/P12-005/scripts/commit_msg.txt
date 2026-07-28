@@ -1,0 +1,39 @@
+P12-005: 修复 SNR 模型与 HISS 持久化 (16/16 Gate PASS)
+
+修复 P12-004 暴露的 4 类问题，使 16 帧代表帧测光矩阵全部通过 Gate，
+且 SNR 模型成功写入 HISS 持久化文件 (has_snr=1)。
+
+修复内容:
+1. initDiag 误覆盖 (star_matcher.cpp L45-49):
+   移除 spectrum_rows_total/valid_fsyn 重置，避免覆盖 pc_api.cpp
+   在光谱积分阶段已正确填充的值。
+
+2. scale_factor 误判 INVALID_SCALE (run_photometric_matrix.py):
+   SCALE_FACTOR_MIN=0.0 (Spec 无下限约束，仅要求 scale > 0)；
+   SCALE_FACTOR_MAX=1.0e9 (实际不限制上限)。
+
+3. 窄带滤光片 HA/OIII 缺失:
+   - filters.json L2571-2675: 新增 Baader 7nm H-alpha (21 点)
+     和 Baader 8.5nm OIII (25 点) 滤光片曲线定义。
+   - orchestrator.cpp L1397-1402: map_filter_name 新增 H-alpha/HA/OIII/Oiii
+     大小写变体映射到规范滤光片名。
+
+4. C++ 中文路径 filesystem error:
+   - 使用 PowerShell New-Item -ItemType Junction 创建 ASCII 链接
+     (testdata/*_flying_dutchman) 绕过 MSYS2 std::filesystem 中文路径 bug。
+   - 按设备生成独立 stage1_config_T2/T3/T4.json，将 calibration_dir
+     指向对应的 ASCII 路径。
+
+验证结果:
+- 16/16 帧通过 Gate (Broadband 10/10, Narrowband 6/6)
+- 全部帧 has_snr=1 写入 HISS (n_points 最小 234)
+- 全部帧 valid_fsyn == spectrum_rows_total (initDiag 修复有效)
+- scale_factor 范围 5e-6 ~ 2.8e-3，全部 > 0
+- sigma_residual 范围 0.053-0.367，全部 > 0 且有限
+- 旧功能 (P12-001/002/003, P11-006) 无回归
+
+证据: engineering_v1.3/evidence/P12-005/{TASK_REPORT,TEST_REPORT,
+EVIDENCE_INDEX,REVIEW_REPORT}.md (VERDICT: PASS)
+
+控制文件: CURRENT_TASK.md, MASTER_TASK_REGISTER.csv, PROJECT_STATE.yaml
+均已更新，指向下一任务 P12-006 (生成 Stage1 代表矩阵正式 HISS)。
