@@ -1363,3 +1363,11 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 - **控制文件更新**: PROJECT_STATE.yaml (current_task=P11-005, last_completed=P11-004) + CURRENT_TASK.md + MASTER_TASK_REGISTER.csv (P11-004 → DONE, P11-005 → IN_PROGRESS) + DECISION_REGISTER.md (ADR-P11-004-GATE-V2-OUTCOME)
 - **依赖**: P11-003 (DONE); **后续**: P11-005 (PlateSolve 710 全量回归与权威星对 WCS Gate)
 - **Gate**: G11 进行中 (P11-001/002/003/004 DONE, P11-005 IN_PROGRESS, P11-006 TODO)
+
+### P11-005 进度（2026-07-28，DONE）
+- **状态**: DONE（IPV_SOLVER_VERIFIED_BY_USER）
+- **回归结果**: 710帧全量回归 709/710 success (99.86%), 1帧 solve_failed (Galaxy_Center OIII), 1帧 wcs_check_fail (NGC1727 OIII, RMS=0.127"良好但 pointing 偏差)
+- **Gate 验证**: 跳过（用户确认 ipv 求解器正确；WCS+SIP 作为管线内存块传递，不写入 FITS header 是设计如此）
+- **控制文件更新**: PROJECT_STATE.yaml (current_task=P11-006, last_completed=P11-005) + CURRENT_TASK.md + MASTER_TASK_REGISTER.csv (P11-005 → DONE, P11-006 → PENDING) + DECISION_REGISTER.md (ADR-P11-005-OUTCOME)
+- **依赖**: P11-004 (DONE); **后续**: P11-006 (更新坐标契约、CLI capabilities、provenance)
+- **Gate**: G11 进行中 (P11-001/002/003/004/005 DONE, P11-006 PENDING)
