@@ -1,0 +1,1861 @@
+{
+  "test1_provenance": {
+    "filters": {
+      "Antlia V Pro Series B": {
+        "n_points": 53,
+        "wl_min": 420.0,
+        "wl_max": 524.0,
+        "val_min": 0.002,
+        "val_max": 0.978
+      },
+      "Antlia V Pro Series G": {
+        "n_points": 53,
+        "wl_min": 480.0,
+        "wl_max": 584.0,
+        "val_min": 0.001,
+        "val_max": 0.982
+      },
+      "Antlia V Pro Series R": {
+        "n_points": 64,
+        "wl_min": 594.0,
+        "wl_max": 720.0,
+        "val_min": 0.0,
+        "val_max": 0.988
+      },
+      "Astrodon E-series B": {
+        "n_points": 67,
+        "wl_min": 386.0,
+        "wl_max": 518.0,
+        "val_min": 0.01,
+        "val_max": 0.99
+      },
+      "Astrodon E-series G": {
+        "n_points": 55,
+        "wl_min": 492.0,
+        "wl_max": 600.0,
+        "val_min": 0.01,
+        "val_max": 0.98
+      },
+      "Astrodon E-series R": {
+        "n_points": 88,
+        "wl_min": 576.0,
+        "wl_max": 750.0,
+        "val_min": 0.007,
+        "val_max": 0.98
+      },
+      "Astrodon I-series B": {
+        "n_points": 67,
+        "wl_min": 386.0,
+        "wl_max": 518.0,
+        "val_min": 0.01,
+        "val_max": 0.99
+      },
+      "Astrodon I-series G": {
+        "n_points": 62,
+        "wl_min": 482.0,
+        "wl_max": 604.0,
+        "val_min": 0.007,
+        "val_max": 0.99
+      },
+      "Astrodon I-series R": {
+        "n_points": 64,
+        "wl_min": 582.0,
+        "wl_max": 708.0,
+        "val_min": 0.01,
+        "val_max": 0.99
+      },
+      "Astronomik Deep Sky B": {
+        "n_points": 54,
+        "wl_min": 416.0,
+        "wl_max": 522.0,
+        "val_min": 0.0,
+        "val_max": 0.969
+      },
+      "Astronomik Deep Sky G": {
+        "n_points": 50,
+        "wl_min": 484.0,
+        "wl_max": 582.0,
+        "val_min": 0.0,
+        "val_max": 0.98
+      },
+      "Astronomik Deep Sky R": {
+        "n_points": 60,
+        "wl_min": 586.0,
+        "wl_max": 704.0,
+        "val_min": 0.003,
+        "val_max": 0.972
+      },
+      "Astronomik Typ 2c B": {
+        "n_points": 65,
+        "wl_min": 402.0,
+        "wl_max": 530.0,
+        "val_min": 0.0,
+        "val_max": 0.963
+      },
+      "Astronomik Typ 2c G": {
+        "n_points": 90,
+        "wl_min": 456.0,
+        "wl_max": 634.0,
+        "val_min": 0.002,
+        "val_max": 0.984
+      },
+      "Astronomik Typ 2c R": {
+        "n_points": 69,
+        "wl_min": 542.0,
+        "wl_max": 678.0,
+        "val_min": 0.001,
+        "val_max": 0.991
+      },
+      "Astronomik UV-IR Block L-1": {
+        "n_points": 7,
+        "wl_min": 300.0,
+        "wl_max": 800.0,
+        "val_min": 0.0,
+        "val_max": 1.0
+      },
+      "Astronomik UV-IR Block L-2": {
+        "n_points": 7,
+        "wl_min": 300.0,
+        "wl_max": 800.0,
+        "val_min": 0.0,
+        "val_max": 1.0
+      },
+      "Astronomik UV-IR Block L-3": {
+        "n_points": 7,
+        "wl_min": 300.0,
+        "wl_max": 800.0,
+        "val_min": 0.0,
+        "val_max": 1.0
+      },
+      "Baader B": {
+        "n_points": 68,
+        "wl_min": 388.0,
+        "wl_max": 522.0,
+        "val_min": 0.013,
+        "val_max": 0.982
+      },
+      "Baader G": {
+        "n_points": 55,
+        "wl_min": 484.0,
+        "wl_max": 592.0,
+        "val_min": 0.007,
+        "val_max": 0.986
+      },
+      "Baader R": {
+        "n_points": 73,
+        "wl_min": 572.0,
+        "wl_max": 716.0,
+        "val_min": 0.008,
+        "val_max": 0.988
+      },
+      "Baader UV/IR Cut / L CMOS Optimized": {
+        "n_points": 7,
+        "wl_min": 300.0,
+        "wl_max": 800.0,
+        "val_min": 0.0,
+        "val_max": 1.0
+      },
+      "Chroma B": {
+        "n_points": 49,
+        "wl_min": 414.0,
+        "wl_max": 510.0,
+        "val_min": 0.002,
+        "val_max": 0.988
+      },
+      "Chroma G": {
+        "n_points": 57,
+        "wl_min": 486.0,
+        "wl_max": 598.0,
+        "val_min": 0.009,
+        "val_max": 0.996
+      },
+      "Chroma R": {
+        "n_points": 69,
+        "wl_min": 578.0,
+        "wl_max": 714.0,
+        "val_min": 0.011,
+        "val_max": 0.985
+      },
+      "IDAS LPS P3 Light Pollution": {
+        "n_points": 504,
+        "wl_min": 299.0,
+        "wl_max": 802.0,
+        "val_min": 0.003,
+        "val_max": 0.984
+      },
+      "Johnson B": {
+        "n_points": 420,
+        "wl_min": 359.5,
+        "wl_max": 569.0,
+        "val_min": 0.001,
+        "val_max": 0.994
+      },
+      "Johnson I": {
+        "n_points": 464,
+        "wl_min": 697.5,
+        "wl_max": 929.0,
+        "val_min": 0.001,
+        "val_max": 0.999
+      },
+      "Johnson R": {
+        "n_points": 772,
+        "wl_min": 546.0,
+        "wl_max": 931.5,
+        "val_min": 0.001,
+        "val_max": 0.995
+      },
+      "Johnson U": {
+        "n_points": 222,
+        "wl_min": 308.5,
+        "wl_max": 419.0,
+        "val_min": 0.001,
+        "val_max": 0.994
+      },
+      "Johnson V": {
+        "n_points": 517,
+        "wl_min": 473.0,
+        "wl_max": 731.0,
+        "val_min": 0.001,
+        "val_max": 0.998
+      },
+      "Optolong B": {
+        "n_points": 76,
+        "wl_min": 374.0,
+        "wl_max": 524.0,
+        "val_min": 0.0,
+        "val_max": 0.973
+      },
+      "Optolong G": {
+        "n_points": 58,
+        "wl_min": 464.0,
+        "wl_max": 578.0,
+        "val_min": 0.0,
+        "val_max": 0.977
+      },
+      "OPTOLONG L-PRO Light Pollution": {
+        "n_points": 400,
+        "wl_min": 350.0,
+        "wl_max": 749.0,
+        "val_min": 0.003,
+        "val_max": 0.986
+      },
+      "Optolong R": {
+        "n_points": 90,
+        "wl_min": 566.0,
+        "wl_max": 744.0,
+        "val_min": 0.0,
+        "val_max": 0.99
+      },
+      "SDSS g": {
+        "n_points": 313,
+        "wl_min": 389.0,
+        "wl_max": 545.0,
+        "val_min": 0.001,
+        "val_max": 0.993
+      },
+      "SDSS i": {
+        "n_points": 315,
+        "wl_min": 678.5,
+        "wl_max": 835.5,
+        "val_min": 0.001,
+        "val_max": 0.998
+      },
+      "SDSS r": {
+        "n_points": 299,
+        "wl_min": 539.0,
+        "wl_max": 688.0,
+        "val_min": 0.001,
+        "val_max": 0.994
+      },
+      "SDSS u": {
+        "n_points": 183,
+        "wl_min": 304.0,
+        "wl_max": 395.0,
+        "val_min": 0.001,
+        "val_max": 0.99
+      },
+      "SDSS z": {
+        "n_points": 601,
+        "wl_min": 800.0,
+        "wl_max": 1100.0,
+        "val_min": 0.001,
+        "val_max": 0.999
+      },
+      "ZWO B": {
+        "n_points": 63,
+        "wl_min": 418.0,
+        "wl_max": 542.0,
+        "val_min": 0.002,
+        "val_max": 0.961
+      },
+      "ZWO G": {
+        "n_points": 57,
+        "wl_min": 502.0,
+        "wl_max": 614.0,
+        "val_min": 0.002,
+        "val_max": 0.982
+      },
+      "ZWO R": {
+        "n_points": 76,
+        "wl_min": 592.0,
+        "wl_max": 742.0,
+        "val_min": 0.0,
+        "val_max": 0.989
+      }
+    },
+    "qe": {
+      "GSENSE2020BSI": {
+        "n_points": 447,
+        "wl_min": 204.0,
+        "wl_max": 1096.0,
+        "val_min": 0.055,
+        "val_max": 0.9358
+      },
+      "GSENSE400BSI": {
+        "n_points": 400,
+        "wl_min": 200.0,
+        "wl_max": 998.0,
+        "val_min": 0.1572,
+        "val_max": 0.9591
+      },
+      "GSENSE400FSI": {
+        "n_points": 400,
+        "wl_min": 200.0,
+        "wl_max": 998.0,
+        "val_min": 0.1006,
+        "val_max": 0.8616
+      },
+      "GSENSE4040BSI": {
+        "n_points": 447,
+        "wl_min": 204.0,
+        "wl_max": 1096.0,
+        "val_min": 0.055,
+        "val_max": 0.9358
+      },
+      "GSENSE4040FSI": {
+        "n_points": 349,
+        "wl_min": 300.0,
+        "wl_max": 996.0,
+        "val_min": 0.0614,
+        "val_max": 0.6187
+      },
+      "Ideal QE curve": {
+        "n_points": 6,
+        "wl_min": 1.0,
+        "wl_max": 2500.0,
+        "val_min": 1.0,
+        "val_max": 1.0
+      },
+      "KAF-16200": {
+        "n_points": 300,
+        "wl_min": 400.0,
+        "wl_max": 998.0,
+        "val_min": 0.0363,
+        "val_max": 0.589
+      },
+      "KAF-16803": {
+        "n_points": 343,
+        "wl_min": 360.0,
+        "wl_max": 1044.0,
+        "val_min": 0.0036,
+        "val_max": 0.5964
+      },
+      "KAF-8300": {
+        "n_points": 64,
+        "wl_min": 360.0,
+        "wl_max": 990.0,
+        "val_min": 0.0448,
+        "val_max": 0.5656
+      },
+      "Sony IMX183": {
+        "n_points": 54,
+        "wl_min": 400.0,
+        "wl_max": 1000.0,
+        "val_min": 0.092,
+        "val_max": 0.997
+      },
+      "Sony IMX411/455/461/533/571": {
+        "n_points": 298,
+        "wl_min": 402.0,
+        "wl_max": 996.0,
+        "val_min": 0.0507,
+        "val_max": 0.9172
+      },
+      "Sony IMX492": {
+        "n_points": 73,
+        "wl_min": 340.0,
+        "wl_max": 1060.0,
+        "val_min": 0.0081,
+        "val_max": 0.8216
+      }
+    }
+  },
+  "test2_fsyn_consistency": [
+    {
+      "T_kelvin": 3500.0,
+      "mag_g": 10.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 343.5163087879539,
+      "f_syn_cpp_uncached": 343.51616791,
+      "f_syn_cpp_cached": 343.55469813,
+      "rel_err_uncached": 4.101055767097858e-07,
+      "rel_err_cached": 0.00011175405960074326,
+      "rel_err_cached_vs_uncached": 0.00011216421117662155,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 4500.0,
+      "mag_g": 10.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 677.6128392775079,
+      "f_syn_cpp_uncached": 677.61339839,
+      "f_syn_cpp_cached": 677.5854496,
+      "rel_err_uncached": 8.25120865132185e-07,
+      "rel_err_cached": 4.042083608854028e-05,
+      "rel_err_cached_vs_uncached": 4.124592292080086e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 5800.0,
+      "mag_g": 10.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 877.813949903538,
+      "f_syn_cpp_uncached": 877.81412177,
+      "f_syn_cpp_cached": 877.6809472,
+      "rel_err_uncached": 1.9578916707298335e-07,
+      "rel_err_cached": 0.00015151582354389553,
+      "rel_err_cached_vs_uncached": 0.00015171158300748404,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 7500.0,
+      "mag_g": 10.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 814.8554031533671,
+      "f_syn_cpp_uncached": 814.85559204,
+      "f_syn_cpp_cached": 814.7204624,
+      "rel_err_uncached": 2.3180386631782576e-07,
+      "rel_err_cached": 0.00016560085733605988,
+      "rel_err_cached_vs_uncached": 0.0001658326227617346,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 10000.0,
+      "mag_g": 10.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 584.478432491828,
+      "f_syn_cpp_uncached": 584.47865727,
+      "f_syn_cpp_cached": 584.43751307,
+      "rel_err_uncached": 3.845790699419989e-07,
+      "rel_err_cached": 7.00101484558469e-05,
+      "rel_err_cached_vs_uncached": 7.039470045346048e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 3500.0,
+      "mag_g": 12.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 54.443665929739694,
+      "f_syn_cpp_uncached": 54.443643601,
+      "f_syn_cpp_cached": 54.449750231,
+      "rel_err_uncached": 4.101255731958911e-07,
+      "rel_err_cached": 0.00011175407012746998,
+      "rel_err_cached_vs_uncached": 0.00011216424170208979,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 4500.0,
+      "mag_g": 12.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 107.39439760951669,
+      "f_syn_cpp_uncached": 107.39448622,
+      "f_syn_cpp_cached": 107.39005664,
+      "rel_err_uncached": 8.250940951248035e-07,
+      "rel_err_cached": 4.0420819086612944e-05,
+      "rel_err_cached_vs_uncached": 4.124587915000642e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 5800.0,
+      "mag_g": 12.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 139.12413534495158,
+      "f_syn_cpp_uncached": 139.12416258,
+      "f_syn_cpp_cached": 139.10305584,
+      "rel_err_uncached": 1.9576077392473575e-07,
+      "rel_err_cached": 0.0001515158020520379,
+      "rel_err_cached_vs_uncached": 0.0001517115331267955,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 7500.0,
+      "mag_g": 12.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 129.14587812979252,
+      "f_syn_cpp_uncached": 129.14590807,
+      "f_syn_cpp_cached": 129.12449146,
+      "rel_err_uncached": 2.3183246652855505e-07,
+      "rel_err_cached": 0.0001656008701340514,
+      "rel_err_cached_vs_uncached": 0.00016583266415518436,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 10000.0,
+      "mag_g": 12.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 92.6335888796639,
+      "f_syn_cpp_uncached": 92.633624505,
+      "f_syn_cpp_cached": 92.627103588,
+      "rel_err_uncached": 3.8458335175294543e-07,
+      "rel_err_cached": 7.001015228214494e-05,
+      "rel_err_cached_vs_uncached": 7.039470856126492e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 3500.0,
+      "mag_g": 15.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 3.435163087879539,
+      "f_syn_cpp_uncached": 3.4351616791,
+      "f_syn_cpp_cached": 3.4355469813,
+      "rel_err_uncached": 4.1010557658050837e-07,
+      "rel_err_cached": 0.00011175405960068638,
+      "rel_err_cached_vs_uncached": 0.00011216421117643538,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 4500.0,
+      "mag_g": 15.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 6.776128392775078,
+      "f_syn_cpp_uncached": 6.7761339839,
+      "f_syn_cpp_cached": 6.775854496,
+      "rel_err_uncached": 8.25120865200344e-07,
+      "rel_err_cached": 4.0420836088377754e-05,
+      "rel_err_cached_vs_uncached": 4.124592292070649e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 5800.0,
+      "mag_g": 15.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 8.778139499035376,
+      "f_syn_cpp_uncached": 8.7781412177,
+      "f_syn_cpp_cached": 8.776809472,
+      "rel_err_uncached": 1.9578916741295064e-07,
+      "rel_err_cached": 0.00015151582354349085,
+      "rel_err_cached_vs_uncached": 0.0001517115830074193,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 7500.0,
+      "mag_g": 15.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 8.14855403153367,
+      "f_syn_cpp_uncached": 8.1485559204,
+      "f_syn_cpp_cached": 8.147204624,
+      "rel_err_uncached": 2.3180386628294632e-07,
+      "rel_err_cached": 0.0001656008573359378,
+      "rel_err_cached_vs_uncached": 0.00016583262276157764,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 10000.0,
+      "mag_g": 15.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 5.84478432491828,
+      "f_syn_cpp_uncached": 5.8447865727,
+      "f_syn_cpp_cached": 5.8443751307,
+      "rel_err_uncached": 3.84579070124352e-07,
+      "rel_err_cached": 7.001014845585907e-05,
+      "rel_err_cached_vs_uncached": 7.039470045365498e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 3500.0,
+      "mag_g": 10.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 294.41131558910496,
+      "f_syn_cpp_uncached": 294.41130782,
+      "f_syn_cpp_cached": 294.43250165,
+      "rel_err_uncached": 2.6388608578788693e-08,
+      "rel_err_cached": 7.196075617085213e-05,
+      "rel_err_cached_vs_uncached": 7.198714667907154e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 4500.0,
+      "mag_g": 10.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 578.250758930492,
+      "f_syn_cpp_uncached": 578.25137412,
+      "f_syn_cpp_cached": 578.21046693,
+      "rel_err_uncached": 1.063880156728409e-06,
+      "rel_err_cached": 6.96791138959636e-05,
+      "rel_err_cached_vs_uncached": 7.074291879070448e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 5800.0,
+      "mag_g": 10.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 746.4987504549053,
+      "f_syn_cpp_uncached": 746.49902586,
+      "f_syn_cpp_cached": 746.36995522,
+      "rel_err_uncached": 3.68929076498114e-07,
+      "rel_err_cached": 0.00017253241861009245,
+      "rel_err_cached_vs_uncached": 0.00017290128389827958,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 7500.0,
+      "mag_g": 10.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 691.0510984671309,
+      "f_syn_cpp_uncached": 691.05135717,
+      "f_syn_cpp_cached": 690.92533742,
+      "rel_err_uncached": 3.743614178350652e-07,
+      "rel_err_cached": 0.00018198516348486487,
+      "rel_err_cached_vs_uncached": 0.00018235945663435519,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 10000.0,
+      "mag_g": 10.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 494.558168843257,
+      "f_syn_cpp_uncached": 494.55841765,
+      "f_syn_cpp_cached": 494.51728602,
+      "rel_err_uncached": 5.030889360985588e-07,
+      "rel_err_cached": 8.266534824947389e-05,
+      "rel_err_cached_vs_uncached": 8.316839534447291e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 3500.0,
+      "mag_g": 12.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 46.66104898606922,
+      "f_syn_cpp_uncached": 46.661047754,
+      "f_syn_cpp_cached": 46.66440675,
+      "rel_err_uncached": 2.6404661772517846e-08,
+      "rel_err_cached": 7.196074678436453e-05,
+      "rel_err_cached_vs_uncached": 7.198715334693347e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 4500.0,
+      "mag_g": 12.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 91.64656913644076,
+      "f_syn_cpp_uncached": 91.646666637,
+      "f_syn_cpp_cached": 91.640183285,
+      "rel_err_uncached": 1.0638757146492881e-06,
+      "rel_err_cached": 6.967911075042142e-05,
+      "rel_err_cached_vs_uncached": 7.074291120340549e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 5800.0,
+      "mag_g": 12.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 118.31207877767048,
+      "f_syn_cpp_uncached": 118.31212243,
+      "f_syn_cpp_cached": 118.29166611,
+      "rel_err_uncached": 3.689591965124308e-07,
+      "rel_err_cached": 0.000172532406508076,
+      "rel_err_cached_vs_uncached": 0.00017290130191106298,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 7500.0,
+      "mag_g": 12.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 109.52421816033285,
+      "f_syn_cpp_uncached": 109.52425916,
+      "f_syn_cpp_cached": 109.50428638,
+      "rel_err_uncached": 3.743433903294544e-07,
+      "rel_err_cached": 0.00018198514143854318,
+      "rel_err_cached_vs_uncached": 0.00018235941656383038,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 10000.0,
+      "mag_g": 12.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 78.38218750757106,
+      "f_syn_cpp_uncached": 78.382226941,
+      "f_syn_cpp_cached": 78.375708016,
+      "rel_err_uncached": 5.030917124427915e-07,
+      "rel_err_cached": 8.266535774381856e-05,
+      "rel_err_cached_vs_uncached": 8.316840761492475e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 3500.0,
+      "mag_g": 15.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 2.94411315589105,
+      "f_syn_cpp_uncached": 2.9441130782,
+      "f_syn_cpp_cached": 2.9443250165,
+      "rel_err_uncached": 2.6388608699460465e-08,
+      "rel_err_cached": 7.196075617071333e-05,
+      "rel_err_cached_vs_uncached": 7.198714667905344e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 4500.0,
+      "mag_g": 15.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 5.782507589304919,
+      "f_syn_cpp_uncached": 5.7825137412,
+      "f_syn_cpp_cached": 5.7821046693,
+      "rel_err_uncached": 1.063880156740697e-06,
+      "rel_err_cached": 6.967911389598819e-05,
+      "rel_err_cached_vs_uncached": 7.074291879074136e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 5800.0,
+      "mag_g": 15.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 7.464987504549052,
+      "f_syn_cpp_uncached": 7.4649902586,
+      "f_syn_cpp_cached": 7.4636995522,
+      "rel_err_uncached": 3.689290767741459e-07,
+      "rel_err_cached": 0.00017253241860990212,
+      "rel_err_cached_vs_uncached": 0.00017290128389836523,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 7500.0,
+      "mag_g": 15.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 6.910510984671309,
+      "f_syn_cpp_uncached": 6.9105135717,
+      "f_syn_cpp_cached": 6.9092533742,
+      "rel_err_uncached": 3.743614179276037e-07,
+      "rel_err_cached": 0.00018198516348479803,
+      "rel_err_cached_vs_uncached": 0.00018235945663438088,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 10000.0,
+      "mag_g": 15.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 4.94558168843257,
+      "f_syn_cpp_uncached": 4.9455841765,
+      "f_syn_cpp_cached": 4.9451728602,
+      "rel_err_uncached": 5.030889359764374e-07,
+      "rel_err_cached": 8.266534824951699e-05,
+      "rel_err_cached_vs_uncached": 8.316839534439391e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 3500.0,
+      "mag_g": 10.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 1442.766795918388,
+      "f_syn_cpp_uncached": 1442.7662578,
+      "f_syn_cpp_cached": 1442.6916272,
+      "rel_err_uncached": 3.7297669279893594e-07,
+      "rel_err_cached": 5.210039391018655e-05,
+      "rel_err_cached_vs_uncached": 5.172743651051581e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 4500.0,
+      "mag_g": 10.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 1650.779802671959,
+      "f_syn_cpp_uncached": 1650.7786425,
+      "f_syn_cpp_cached": 1650.840728,
+      "rel_err_uncached": 7.028023708686277e-07,
+      "rel_err_cached": 3.690699870585562e-05,
+      "rel_err_cached_vs_uncached": 3.760982750900019e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 5800.0,
+      "mag_g": 10.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 1401.1122815830374,
+      "f_syn_cpp_uncached": 1401.1120207,
+      "f_syn_cpp_cached": 1401.1829429,
+      "rel_err_uncached": 1.8619709566161644e-07,
+      "rel_err_cached": 5.043230145886531e-05,
+      "rel_err_cached_vs_uncached": 5.06185079795461e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 7500.0,
+      "mag_g": 10.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 942.3942334723652,
+      "f_syn_cpp_uncached": 942.39417341,
+      "f_syn_cpp_cached": 942.49525387,
+      "rel_err_uncached": 6.373379952619544e-08,
+      "rel_err_cached": 0.00010719547514915889,
+      "rel_err_cached_vs_uncached": 0.00010725921578472244,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 10000.0,
+      "mag_g": 10.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 520.3740572914494,
+      "f_syn_cpp_uncached": 520.37364565,
+      "f_syn_cpp_cached": 520.51851307,
+      "rel_err_uncached": 7.910491379500178e-07,
+      "rel_err_cached": 0.0002775998851721082,
+      "rel_err_cached_vs_uncached": 0.000278391154531141,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 3500.0,
+      "mag_g": 12.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 228.66312731599817,
+      "f_syn_cpp_uncached": 228.66304204,
+      "f_syn_cpp_cached": 228.65121388,
+      "rel_err_uncached": 3.7293287805050254e-07,
+      "rel_err_cached": 5.21003807566384e-05,
+      "rel_err_cached_vs_uncached": 5.17274671694611e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 4500.0,
+      "mag_g": 12.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 261.6309671507084,
+      "f_syn_cpp_uncached": 261.63078327,
+      "f_syn_cpp_cached": 261.64062316,
+      "rel_err_uncached": 7.028247091463341e-07,
+      "rel_err_cached": 3.6906981603862764e-05,
+      "rel_err_cached_vs_uncached": 3.760983274612886e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 5800.0,
+      "mag_g": 12.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 222.06133169546104,
+      "f_syn_cpp_uncached": 222.06129035,
+      "f_syn_cpp_cached": 222.07253076,
+      "rel_err_uncached": 1.8618937710815837e-07,
+      "rel_err_cached": 5.0432303785017454e-05,
+      "rel_err_cached_vs_uncached": 5.0618502586753074e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 7500.0,
+      "mag_g": 12.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 149.35942052449582,
+      "f_syn_cpp_uncached": 149.35941101,
+      "f_syn_cpp_cached": 149.37543118,
+      "rel_err_uncached": 6.370201345050099e-08,
+      "rel_err_cached": 0.00010719548487769594,
+      "rel_err_cached_vs_uncached": 0.00010725919372377304,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 10000.0,
+      "mag_g": 12.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 82.47373009345861,
+      "f_syn_cpp_uncached": 82.473664852,
+      "f_syn_cpp_cached": 82.496624791,
+      "rel_err_uncached": 7.910574499330236e-07,
+      "rel_err_cached": 0.00027759987956704475,
+      "rel_err_cached_vs_uncached": 0.0002783911572403767,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 3500.0,
+      "mag_g": 15.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 14.427667959183879,
+      "f_syn_cpp_uncached": 14.427662578,
+      "f_syn_cpp_cached": 14.426916272,
+      "rel_err_uncached": 3.729766927102885e-07,
+      "rel_err_cached": 5.210039391018656e-05,
+      "rel_err_cached_vs_uncached": 5.172743651060446e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 4500.0,
+      "mag_g": 15.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 16.507798026719588,
+      "f_syn_cpp_uncached": 16.507786425,
+      "f_syn_cpp_cached": 16.50840728,
+      "rel_err_uncached": 7.028023707222821e-07,
+      "rel_err_cached": 3.690699870608806e-05,
+      "rel_err_cached_vs_uncached": 3.760982750908628e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 5800.0,
+      "mag_g": 15.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 14.011122815830372,
+      "f_syn_cpp_uncached": 14.011120207,
+      "f_syn_cpp_cached": 14.011829429,
+      "rel_err_uncached": 1.8619709550440689e-07,
+      "rel_err_cached": 5.043230145907324e-05,
+      "rel_err_cached_vs_uncached": 5.061850797959681e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 7500.0,
+      "mag_g": 15.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 9.423942334723652,
+      "f_syn_cpp_uncached": 9.4239417341,
+      "f_syn_cpp_cached": 9.4249525387,
+      "rel_err_uncached": 6.373379959405329e-08,
+      "rel_err_cached": 0.00010719547514903071,
+      "rel_err_cached_vs_uncached": 0.00010725921578466214,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 10000.0,
+      "mag_g": 15.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "qe_name": null,
+      "f_syn_python": 5.203740572914493,
+      "f_syn_cpp_uncached": 5.2037364565,
+      "f_syn_cpp_cached": 5.2051851307,
+      "rel_err_uncached": 7.91049137833955e-07,
+      "rel_err_cached": 0.0002775998851721833,
+      "rel_err_cached_vs_uncached": 0.0002783911545311,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 3500.0,
+      "mag_g": 10.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 1256.5199211238237,
+      "f_syn_cpp_uncached": 1256.5197369,
+      "f_syn_cpp_cached": 1256.2887308,
+      "rel_err_uncached": 1.4661432786172774e-07,
+      "rel_err_cached": 0.00018399256544772004,
+      "rel_err_cached_vs_uncached": 0.00018384597807431284,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 4500.0,
+      "mag_g": 10.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 1441.034053611678,
+      "f_syn_cpp_uncached": 1441.0334248,
+      "f_syn_cpp_cached": 1440.8915062,
+      "rel_err_uncached": 4.3636142846306864e-07,
+      "rel_err_cached": 9.892022421028579e-05,
+      "rel_err_cached_vs_uncached": 9.848390575640052e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 5800.0,
+      "mag_g": 10.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 1225.2507815913457,
+      "f_syn_cpp_uncached": 1225.250913,
+      "f_syn_cpp_cached": 1225.1465309,
+      "rel_err_uncached": 1.0725041466728885e-07,
+      "rel_err_cached": 8.508518656912764e-05,
+      "rel_err_cached_vs_uncached": 8.519242784687172e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 7500.0,
+      "mag_g": 10.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 825.1928643360807,
+      "f_syn_cpp_uncached": 825.19305819,
+      "f_syn_cpp_cached": 825.16434209,
+      "rel_err_uncached": 2.3491952935067717e-07,
+      "rel_err_cached": 3.456433921496822e-05,
+      "rel_err_cached_vs_uncached": 3.479925056929533e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 10000.0,
+      "mag_g": 10.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 456.1262870779484,
+      "f_syn_cpp_uncached": 456.12607453,
+      "f_syn_cpp_cached": 456.18068212,
+      "rel_err_uncached": 4.659848696370961e-07,
+      "rel_err_cached": 0.00011925434598394765,
+      "rel_err_cached_vs_uncached": 0.0001197203866414735,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 3500.0,
+      "mag_g": 12.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 199.14498691809203,
+      "f_syn_cpp_uncached": 199.14495773,
+      "f_syn_cpp_cached": 199.10834573,
+      "rel_err_uncached": 1.4656704391404865e-07,
+      "rel_err_cached": 0.00018399252052025958,
+      "rel_err_cached_vs_uncached": 0.0001838459804221074,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 4500.0,
+      "mag_g": 12.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 228.3885061673788,
+      "f_syn_cpp_uncached": 228.38840652,
+      "f_syn_cpp_cached": 228.36591392,
+      "rel_err_uncached": 4.3630645206246494e-07,
+      "rel_err_cached": 9.892024672315653e-05,
+      "rel_err_cached_vs_uncached": 9.848398324029139e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 5800.0,
+      "mag_g": 12.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 194.18916228017787,
+      "f_syn_cpp_uncached": 194.18918311,
+      "f_syn_cpp_cached": 194.17263966,
+      "rel_err_uncached": 1.0726562633573318e-07,
+      "rel_err_cached": 8.508518180866226e-05,
+      "rel_err_cached_vs_uncached": 8.519243829677774e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 7500.0,
+      "mag_g": 12.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 130.7842553153739,
+      "f_syn_cpp_uncached": 130.78428604,
+      "f_syn_cpp_cached": 130.77973484,
+      "rel_err_uncached": 2.3492603162452287e-07,
+      "rel_err_cached": 3.456436987011807e-05,
+      "rel_err_cached_vs_uncached": 3.4799287726484026e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 10000.0,
+      "mag_g": 12.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 72.29114472924027,
+      "f_syn_cpp_uncached": 72.291111043,
+      "f_syn_cpp_cached": 72.299765763,
+      "rel_err_uncached": 4.659801750001245e-07,
+      "rel_err_cached": 0.00011925435393246226,
+      "rel_err_cached_vs_uncached": 0.00011972038989479062,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 3500.0,
+      "mag_g": 15.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 12.565199211238237,
+      "f_syn_cpp_uncached": 12.565197369,
+      "f_syn_cpp_cached": 12.562887308,
+      "rel_err_uncached": 1.466143279182762e-07,
+      "rel_err_cached": 0.0001839925654476748,
+      "rel_err_cached_vs_uncached": 0.00018384597807421103,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 4500.0,
+      "mag_g": 15.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 14.41034053611678,
+      "f_syn_cpp_uncached": 14.410334248,
+      "f_syn_cpp_cached": 14.408915062,
+      "rel_err_uncached": 4.363614283447299e-07,
+      "rel_err_cached": 9.892022421026607e-05,
+      "rel_err_cached_vs_uncached": 9.848390575649913e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 5800.0,
+      "mag_g": 15.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 12.252507815913456,
+      "f_syn_cpp_uncached": 12.25250913,
+      "f_syn_cpp_cached": 12.251465309,
+      "rel_err_uncached": 1.07250414707883e-07,
+      "rel_err_cached": 8.508518656900587e-05,
+      "rel_err_cached_vs_uncached": 8.519242784679053e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 7500.0,
+      "mag_g": 15.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 8.251928643360806,
+      "f_syn_cpp_uncached": 8.2519305819,
+      "f_syn_cpp_cached": 8.2516434209,
+      "rel_err_uncached": 2.3491952946261533e-07,
+      "rel_err_cached": 3.456433921477018e-05,
+      "rel_err_cached_vs_uncached": 3.4799250569209224e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 10000.0,
+      "mag_g": 15.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "qe_name": "GSENSE2020BSI",
+      "f_syn_python": 4.561262870779483,
+      "f_syn_cpp_uncached": 4.5612607453,
+      "f_syn_cpp_cached": 4.5618068212,
+      "rel_err_uncached": 4.65984869387852e-07,
+      "rel_err_cached": 0.00011925434598422028,
+      "rel_err_cached_vs_uncached": 0.00011972038664149687,
+      "status": "PASS"
+    }
+  ],
+  "test3_cached_vs_uncached": [
+    {
+      "T_kelvin": 3500.0,
+      "mag_g": 10.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "f_syn_uncached": 343.51616791,
+      "f_syn_cached": 343.55469813,
+      "rel_err": 0.00011216421117662155,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 4500.0,
+      "mag_g": 10.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "f_syn_uncached": 677.61339839,
+      "f_syn_cached": 677.5854496,
+      "rel_err": 4.124592292080086e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 5800.0,
+      "mag_g": 10.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "f_syn_uncached": 877.81412177,
+      "f_syn_cached": 877.6809472,
+      "rel_err": 0.00015171158300748404,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 7500.0,
+      "mag_g": 10.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "f_syn_uncached": 814.85559204,
+      "f_syn_cached": 814.7204624,
+      "rel_err": 0.0001658326227617346,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 10000.0,
+      "mag_g": 10.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "f_syn_uncached": 584.47865727,
+      "f_syn_cached": 584.43751307,
+      "rel_err": 7.039470045346048e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 3500.0,
+      "mag_g": 12.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "f_syn_uncached": 54.443643601,
+      "f_syn_cached": 54.449750231,
+      "rel_err": 0.00011216424170208979,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 4500.0,
+      "mag_g": 12.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "f_syn_uncached": 107.39448622,
+      "f_syn_cached": 107.39005664,
+      "rel_err": 4.124587915000642e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 5800.0,
+      "mag_g": 12.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "f_syn_uncached": 139.12416258,
+      "f_syn_cached": 139.10305584,
+      "rel_err": 0.0001517115331267955,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 7500.0,
+      "mag_g": 12.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "f_syn_uncached": 129.14590807,
+      "f_syn_cached": 129.12449146,
+      "rel_err": 0.00016583266415518436,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 10000.0,
+      "mag_g": 12.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "f_syn_uncached": 92.633624505,
+      "f_syn_cached": 92.627103588,
+      "rel_err": 7.039470856126492e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 3500.0,
+      "mag_g": 15.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "f_syn_uncached": 3.4351616791,
+      "f_syn_cached": 3.4355469813,
+      "rel_err": 0.00011216421117643538,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 4500.0,
+      "mag_g": 15.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "f_syn_uncached": 6.7761339839,
+      "f_syn_cached": 6.775854496,
+      "rel_err": 4.124592292070649e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 5800.0,
+      "mag_g": 15.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "f_syn_uncached": 8.7781412177,
+      "f_syn_cached": 8.776809472,
+      "rel_err": 0.0001517115830074193,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 7500.0,
+      "mag_g": 15.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "f_syn_uncached": 8.1485559204,
+      "f_syn_cached": 8.147204624,
+      "rel_err": 0.00016583262276157764,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 10000.0,
+      "mag_g": 15.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": false,
+      "f_syn_uncached": 5.8447865727,
+      "f_syn_cached": 5.8443751307,
+      "rel_err": 7.039470045365498e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 3500.0,
+      "mag_g": 10.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "f_syn_uncached": 294.41130782,
+      "f_syn_cached": 294.43250165,
+      "rel_err": 7.198714667907154e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 4500.0,
+      "mag_g": 10.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "f_syn_uncached": 578.25137412,
+      "f_syn_cached": 578.21046693,
+      "rel_err": 7.074291879070448e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 5800.0,
+      "mag_g": 10.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "f_syn_uncached": 746.49902586,
+      "f_syn_cached": 746.36995522,
+      "rel_err": 0.00017290128389827958,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 7500.0,
+      "mag_g": 10.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "f_syn_uncached": 691.05135717,
+      "f_syn_cached": 690.92533742,
+      "rel_err": 0.00018235945663435519,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 10000.0,
+      "mag_g": 10.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "f_syn_uncached": 494.55841765,
+      "f_syn_cached": 494.51728602,
+      "rel_err": 8.316839534447291e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 3500.0,
+      "mag_g": 12.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "f_syn_uncached": 46.661047754,
+      "f_syn_cached": 46.66440675,
+      "rel_err": 7.198715334693347e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 4500.0,
+      "mag_g": 12.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "f_syn_uncached": 91.646666637,
+      "f_syn_cached": 91.640183285,
+      "rel_err": 7.074291120340549e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 5800.0,
+      "mag_g": 12.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "f_syn_uncached": 118.31212243,
+      "f_syn_cached": 118.29166611,
+      "rel_err": 0.00017290130191106298,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 7500.0,
+      "mag_g": 12.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "f_syn_uncached": 109.52425916,
+      "f_syn_cached": 109.50428638,
+      "rel_err": 0.00018235941656383038,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 10000.0,
+      "mag_g": 12.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "f_syn_uncached": 78.382226941,
+      "f_syn_cached": 78.375708016,
+      "rel_err": 8.316840761492475e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 3500.0,
+      "mag_g": 15.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "f_syn_uncached": 2.9441130782,
+      "f_syn_cached": 2.9443250165,
+      "rel_err": 7.198714667905344e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 4500.0,
+      "mag_g": 15.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "f_syn_uncached": 5.7825137412,
+      "f_syn_cached": 5.7821046693,
+      "rel_err": 7.074291879074136e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 5800.0,
+      "mag_g": 15.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "f_syn_uncached": 7.4649902586,
+      "f_syn_cached": 7.4636995522,
+      "rel_err": 0.00017290128389836523,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 7500.0,
+      "mag_g": 15.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "f_syn_uncached": 6.9105135717,
+      "f_syn_cached": 6.9092533742,
+      "rel_err": 0.00018235945663438088,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 10000.0,
+      "mag_g": 15.0,
+      "filter_name": "Antlia V Pro Series B",
+      "has_qe": true,
+      "f_syn_uncached": 4.9455841765,
+      "f_syn_cached": 4.9451728602,
+      "rel_err": 8.316839534439391e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 3500.0,
+      "mag_g": 10.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "f_syn_uncached": 1442.7662578,
+      "f_syn_cached": 1442.6916272,
+      "rel_err": 5.172743651051581e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 4500.0,
+      "mag_g": 10.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "f_syn_uncached": 1650.7786425,
+      "f_syn_cached": 1650.840728,
+      "rel_err": 3.760982750900019e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 5800.0,
+      "mag_g": 10.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "f_syn_uncached": 1401.1120207,
+      "f_syn_cached": 1401.1829429,
+      "rel_err": 5.06185079795461e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 7500.0,
+      "mag_g": 10.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "f_syn_uncached": 942.39417341,
+      "f_syn_cached": 942.49525387,
+      "rel_err": 0.00010725921578472244,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 10000.0,
+      "mag_g": 10.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "f_syn_uncached": 520.37364565,
+      "f_syn_cached": 520.51851307,
+      "rel_err": 0.000278391154531141,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 3500.0,
+      "mag_g": 12.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "f_syn_uncached": 228.66304204,
+      "f_syn_cached": 228.65121388,
+      "rel_err": 5.17274671694611e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 4500.0,
+      "mag_g": 12.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "f_syn_uncached": 261.63078327,
+      "f_syn_cached": 261.64062316,
+      "rel_err": 3.760983274612886e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 5800.0,
+      "mag_g": 12.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "f_syn_uncached": 222.06129035,
+      "f_syn_cached": 222.07253076,
+      "rel_err": 5.0618502586753074e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 7500.0,
+      "mag_g": 12.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "f_syn_uncached": 149.35941101,
+      "f_syn_cached": 149.37543118,
+      "rel_err": 0.00010725919372377304,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 10000.0,
+      "mag_g": 12.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "f_syn_uncached": 82.473664852,
+      "f_syn_cached": 82.496624791,
+      "rel_err": 0.0002783911572403767,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 3500.0,
+      "mag_g": 15.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "f_syn_uncached": 14.427662578,
+      "f_syn_cached": 14.426916272,
+      "rel_err": 5.172743651060446e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 4500.0,
+      "mag_g": 15.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "f_syn_uncached": 16.507786425,
+      "f_syn_cached": 16.50840728,
+      "rel_err": 3.760982750908628e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 5800.0,
+      "mag_g": 15.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "f_syn_uncached": 14.011120207,
+      "f_syn_cached": 14.011829429,
+      "rel_err": 5.061850797959681e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 7500.0,
+      "mag_g": 15.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "f_syn_uncached": 9.4239417341,
+      "f_syn_cached": 9.4249525387,
+      "rel_err": 0.00010725921578466214,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 10000.0,
+      "mag_g": 15.0,
+      "filter_name": "ZWO R",
+      "has_qe": false,
+      "f_syn_uncached": 5.2037364565,
+      "f_syn_cached": 5.2051851307,
+      "rel_err": 0.0002783911545311,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 3500.0,
+      "mag_g": 10.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "f_syn_uncached": 1256.5197369,
+      "f_syn_cached": 1256.2887308,
+      "rel_err": 0.00018384597807431284,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 4500.0,
+      "mag_g": 10.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "f_syn_uncached": 1441.0334248,
+      "f_syn_cached": 1440.8915062,
+      "rel_err": 9.848390575640052e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 5800.0,
+      "mag_g": 10.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "f_syn_uncached": 1225.250913,
+      "f_syn_cached": 1225.1465309,
+      "rel_err": 8.519242784687172e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 7500.0,
+      "mag_g": 10.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "f_syn_uncached": 825.19305819,
+      "f_syn_cached": 825.16434209,
+      "rel_err": 3.479925056929533e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 10000.0,
+      "mag_g": 10.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "f_syn_uncached": 456.12607453,
+      "f_syn_cached": 456.18068212,
+      "rel_err": 0.0001197203866414735,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 3500.0,
+      "mag_g": 12.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "f_syn_uncached": 199.14495773,
+      "f_syn_cached": 199.10834573,
+      "rel_err": 0.0001838459804221074,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 4500.0,
+      "mag_g": 12.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "f_syn_uncached": 228.38840652,
+      "f_syn_cached": 228.36591392,
+      "rel_err": 9.848398324029139e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 5800.0,
+      "mag_g": 12.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "f_syn_uncached": 194.18918311,
+      "f_syn_cached": 194.17263966,
+      "rel_err": 8.519243829677774e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 7500.0,
+      "mag_g": 12.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "f_syn_uncached": 130.78428604,
+      "f_syn_cached": 130.77973484,
+      "rel_err": 3.4799287726484026e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 10000.0,
+      "mag_g": 12.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "f_syn_uncached": 72.291111043,
+      "f_syn_cached": 72.299765763,
+      "rel_err": 0.00011972038989479062,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 3500.0,
+      "mag_g": 15.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "f_syn_uncached": 12.565197369,
+      "f_syn_cached": 12.562887308,
+      "rel_err": 0.00018384597807421103,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 4500.0,
+      "mag_g": 15.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "f_syn_uncached": 14.410334248,
+      "f_syn_cached": 14.408915062,
+      "rel_err": 9.848390575649913e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 5800.0,
+      "mag_g": 15.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "f_syn_uncached": 12.25250913,
+      "f_syn_cached": 12.251465309,
+      "rel_err": 8.519242784679053e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 7500.0,
+      "mag_g": 15.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "f_syn_uncached": 8.2519305819,
+      "f_syn_cached": 8.2516434209,
+      "rel_err": 3.4799250569209224e-05,
+      "status": "PASS"
+    },
+    {
+      "T_kelvin": 10000.0,
+      "mag_g": 15.0,
+      "filter_name": "ZWO R",
+      "has_qe": true,
+      "f_syn_uncached": 4.5612607453,
+      "f_syn_cached": 4.5618068212,
+      "rel_err": 0.00011972038664149687,
+      "status": "PASS"
+    }
+  ],
+  "test4_no_qe_vs_qe1": {
+    "cpp_no_qe": {
+      "T_kelvin": 5800.0,
+      "mag_g": 12.0,
+      "spec_count": 343,
+      "f_syn_uncached": 139.12416258,
+      "f_syn_cached": 139.10305584
+    },
+    "cpp_qe1": {
+      "T_kelvin": 5800.0,
+      "mag_g": 12.0,
+      "spec_count": 343,
+      "f_syn_uncached": 139.12416258,
+      "f_syn_cached": 139.10305584
+    },
+    "rel_err_uncached": 0.0,
+    "rel_err_cached": 0.0
+  },
+  "test5_regression": {
+    "exit_code": 0,
+    "n_pass": 5,
+    "n_total": 5,
+    "stdout_tail": "========================\n[测试3] 无Gaia星退化路径 (scale=1.0)\n============================================================\n  n_matched = 0 (期望 0)\n  scale = 1.000000e+00 (期望 1.0)\n  out_img[0,0] = 500.0000 (期望 500.0)\n  diag.spectrum_rows_total = 0 (期望 0)\n  [PASS] 退化路径\n\n============================================================\n[测试4] SIP WCS投影 (二阶SIP)\n============================================================\n  n_matched = 10 (期望 10, SIP投影后仍能匹配)\n  scale = 1.000000e+01\n  diag.fit_used = 10\n  [PASS] SIP WCS投影\n\n============================================================\n[测试5] P12-001 PhotometricDiag 分阶段诊断输出\n============================================================\n  diag.to_dict() = {'spectrum_rows_total': 0, 'valid_fsyn': 0, 'gaia_projected_in_frame': 10, 'psf_total': 10, 'psf_valid': 10, 'spatial_candidates': 10, 'unique_matches': 10, 'rejected_ambiguous': 0, 'rejected_distance': 0, 'rejected_quality': 0, 'fit_used': 10, 'robust_iterations': 0, 'scale_factor': 10.0, 'sigma_residual': 0.0, 'r_median': -1.0, 'r_p90': -1.0, 'r_max': -1.0, 'match_distance_median': 0.14142135623789936, 'match_distance_p90': 0.1414213562382129, 'match_distance_max': 0.1414213562388188}\n  阶段3 PSF: psf_total=10 (期望 10), psf_valid=10 (期望 10)\n  阶段7 拟合: fit_used=10 (期望 10), robust_iterations=0\n  阶段7 scale_factor=1.000000e+01, sigma_residual=0.000000\n  阶段8 r_median=-1.000000, r_p90=-1.000000, r_max=-1.000000\n  阶段8 match_distance_median=0.141421, p90=0.141421, max=0.141421\n    [PASS] psf_total > 0\n    [PASS] psf_valid > 0 (实际=10)\n    [PASS] fit_used > 0 (实际=10)\n    [PASS] scale_factor > 0 (实际=1.000000e+01)\n    [PASS] diag.scale_factor ≈ scale (1.000000e+01 vs 1.000000e+01)\n    [PASS] diag.sigma_residual ≈ sigma_residual (0.000000 vs 0.000000)\n  [PASS] P12-001 diag 输出\n\n============================================================\n测试汇总:\n  [PASS] 基本测光校准\n  [PASS] MAD离群清洗\n  [PASS] 无Gaia星退化\n  [PASS] SIP WCS投影\n  [PASS] P12-001 diag 输出\n\n总计: 5/5 通过\n============================================================\n"
+  }
+}

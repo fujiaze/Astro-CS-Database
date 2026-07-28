@@ -3,8 +3,9 @@ phase: v1.3 p12-photometric-diagnostic
 state_schema: 2
 status: ACTIVE
 current_gate: G12
-current_task: P12-003
-last_completed_task: P12-002
+current_task: P12-004
+last_completed_task: P12-003
+last_completed_date: 2026-07-28
 baseline_engineering: engineering/G0-G8 preserved
 previous_phase: engineering_v1.2
 product_target: Real-data Stage1 + Galaxy Center 3-panel HCSD + performant spherical browser
@@ -22,4 +23,5 @@ notes:
   - P11-006 完成（2026-07-28）：坐标契约升级到 v2（COORDINATE_CONVENTION_V2.md），新增 A/B/C 三层验证架构与 B 层硬 Gate 量化阈值；wcs_authoritative_pairs.schema.json 新增可选 provenance 对象；CLI capabilities 声明 schema_versions；run_ipv_baseline.py 移除 offset_px 检查；710帧回归 709/710 无回归。
   - P12-001 完成（2026-07-28）：PhotometricDiag 结构体（20字段）+ 8 阶段埋点 + photo_stats KV（17字段）+ photometry_report.json + quality_metric CLI 事件；Python ctypes 封装同步；契约测试 5/5 通过；KD-tree 方向逻辑 bug 为预存问题（P12-002 范围），fit_used/sigma_residual Gate 待 P12-002 修复后满足。
   - P12-002 完成（2026-07-28）：修复 KdTree2D::findNearestRec 方向 bug（diff < 0 应去 right 子树，原错误去 left）+ 实现双向最近邻唯一配对（正向 PSF→Gaia + 反向 Gaia→PSF + 互为最近邻过滤）；编译成功（DLL 1065.4 KB）；5/5 测试通过（修复前 3 个 FAIL 全部 PASS）；diag 字段守恒（spatial_candidates = unique_matches + rejected_ambiguous）；fit_used/sigma_residual Gate 已满足。
+  - P12-003 完成（2026-07-28）：验证光谱积分与响应曲线无回归。5/5 测试通过：(1) 38 种滤光片 + 13 种 QE 曲线溯源完整；(2) C++ vs Python F_syn 一致性 60/60 PASS（最大 uncached rel_err=1.06e-6, 最大 cached rel_err=2.78e-4/0.028%，远优于 1% 标准）；(3) cached vs uncached 一致性 60/60 PASS（最大 rel_err=0.028% < 0.03% 标准）；(4) 无 QE vs QE=1.0 等价性验证（rel_err=0）；(5) 现有测光校准测试 5/5 PASS 无回归。确认 P12-002 修复未影响光谱积分和响应曲线处理。
   - All unfinished P09-P17 work remains in scope.

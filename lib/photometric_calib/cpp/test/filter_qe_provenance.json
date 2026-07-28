@@ -1,0 +1,391 @@
+{
+  "filters": {
+    "Antlia V Pro Series B": {
+      "n_points": 53,
+      "wl_min": 420.0,
+      "wl_max": 524.0,
+      "val_min": 0.002,
+      "val_max": 0.978
+    },
+    "Antlia V Pro Series G": {
+      "n_points": 53,
+      "wl_min": 480.0,
+      "wl_max": 584.0,
+      "val_min": 0.001,
+      "val_max": 0.982
+    },
+    "Antlia V Pro Series R": {
+      "n_points": 64,
+      "wl_min": 594.0,
+      "wl_max": 720.0,
+      "val_min": 0.0,
+      "val_max": 0.988
+    },
+    "Astrodon E-series B": {
+      "n_points": 67,
+      "wl_min": 386.0,
+      "wl_max": 518.0,
+      "val_min": 0.01,
+      "val_max": 0.99
+    },
+    "Astrodon E-series G": {
+      "n_points": 55,
+      "wl_min": 492.0,
+      "wl_max": 600.0,
+      "val_min": 0.01,
+      "val_max": 0.98
+    },
+    "Astrodon E-series R": {
+      "n_points": 88,
+      "wl_min": 576.0,
+      "wl_max": 750.0,
+      "val_min": 0.007,
+      "val_max": 0.98
+    },
+    "Astrodon I-series B": {
+      "n_points": 67,
+      "wl_min": 386.0,
+      "wl_max": 518.0,
+      "val_min": 0.01,
+      "val_max": 0.99
+    },
+    "Astrodon I-series G": {
+      "n_points": 62,
+      "wl_min": 482.0,
+      "wl_max": 604.0,
+      "val_min": 0.007,
+      "val_max": 0.99
+    },
+    "Astrodon I-series R": {
+      "n_points": 64,
+      "wl_min": 582.0,
+      "wl_max": 708.0,
+      "val_min": 0.01,
+      "val_max": 0.99
+    },
+    "Astronomik Deep Sky B": {
+      "n_points": 54,
+      "wl_min": 416.0,
+      "wl_max": 522.0,
+      "val_min": 0.0,
+      "val_max": 0.969
+    },
+    "Astronomik Deep Sky G": {
+      "n_points": 50,
+      "wl_min": 484.0,
+      "wl_max": 582.0,
+      "val_min": 0.0,
+      "val_max": 0.98
+    },
+    "Astronomik Deep Sky R": {
+      "n_points": 60,
+      "wl_min": 586.0,
+      "wl_max": 704.0,
+      "val_min": 0.003,
+      "val_max": 0.972
+    },
+    "Astronomik Typ 2c B": {
+      "n_points": 65,
+      "wl_min": 402.0,
+      "wl_max": 530.0,
+      "val_min": 0.0,
+      "val_max": 0.963
+    },
+    "Astronomik Typ 2c G": {
+      "n_points": 90,
+      "wl_min": 456.0,
+      "wl_max": 634.0,
+      "val_min": 0.002,
+      "val_max": 0.984
+    },
+    "Astronomik Typ 2c R": {
+      "n_points": 69,
+      "wl_min": 542.0,
+      "wl_max": 678.0,
+      "val_min": 0.001,
+      "val_max": 0.991
+    },
+    "Astronomik UV-IR Block L-1": {
+      "n_points": 7,
+      "wl_min": 300.0,
+      "wl_max": 800.0,
+      "val_min": 0.0,
+      "val_max": 1.0
+    },
+    "Astronomik UV-IR Block L-2": {
+      "n_points": 7,
+      "wl_min": 300.0,
+      "wl_max": 800.0,
+      "val_min": 0.0,
+      "val_max": 1.0
+    },
+    "Astronomik UV-IR Block L-3": {
+      "n_points": 7,
+      "wl_min": 300.0,
+      "wl_max": 800.0,
+      "val_min": 0.0,
+      "val_max": 1.0
+    },
+    "Baader B": {
+      "n_points": 68,
+      "wl_min": 388.0,
+      "wl_max": 522.0,
+      "val_min": 0.013,
+      "val_max": 0.982
+    },
+    "Baader G": {
+      "n_points": 55,
+      "wl_min": 484.0,
+      "wl_max": 592.0,
+      "val_min": 0.007,
+      "val_max": 0.986
+    },
+    "Baader R": {
+      "n_points": 73,
+      "wl_min": 572.0,
+      "wl_max": 716.0,
+      "val_min": 0.008,
+      "val_max": 0.988
+    },
+    "Baader UV/IR Cut / L CMOS Optimized": {
+      "n_points": 7,
+      "wl_min": 300.0,
+      "wl_max": 800.0,
+      "val_min": 0.0,
+      "val_max": 1.0
+    },
+    "Chroma B": {
+      "n_points": 49,
+      "wl_min": 414.0,
+      "wl_max": 510.0,
+      "val_min": 0.002,
+      "val_max": 0.988
+    },
+    "Chroma G": {
+      "n_points": 57,
+      "wl_min": 486.0,
+      "wl_max": 598.0,
+      "val_min": 0.009,
+      "val_max": 0.996
+    },
+    "Chroma R": {
+      "n_points": 69,
+      "wl_min": 578.0,
+      "wl_max": 714.0,
+      "val_min": 0.011,
+      "val_max": 0.985
+    },
+    "IDAS LPS P3 Light Pollution": {
+      "n_points": 504,
+      "wl_min": 299.0,
+      "wl_max": 802.0,
+      "val_min": 0.003,
+      "val_max": 0.984
+    },
+    "Johnson B": {
+      "n_points": 420,
+      "wl_min": 359.5,
+      "wl_max": 569.0,
+      "val_min": 0.001,
+      "val_max": 0.994
+    },
+    "Johnson I": {
+      "n_points": 464,
+      "wl_min": 697.5,
+      "wl_max": 929.0,
+      "val_min": 0.001,
+      "val_max": 0.999
+    },
+    "Johnson R": {
+      "n_points": 772,
+      "wl_min": 546.0,
+      "wl_max": 931.5,
+      "val_min": 0.001,
+      "val_max": 0.995
+    },
+    "Johnson U": {
+      "n_points": 222,
+      "wl_min": 308.5,
+      "wl_max": 419.0,
+      "val_min": 0.001,
+      "val_max": 0.994
+    },
+    "Johnson V": {
+      "n_points": 517,
+      "wl_min": 473.0,
+      "wl_max": 731.0,
+      "val_min": 0.001,
+      "val_max": 0.998
+    },
+    "Optolong B": {
+      "n_points": 76,
+      "wl_min": 374.0,
+      "wl_max": 524.0,
+      "val_min": 0.0,
+      "val_max": 0.973
+    },
+    "Optolong G": {
+      "n_points": 58,
+      "wl_min": 464.0,
+      "wl_max": 578.0,
+      "val_min": 0.0,
+      "val_max": 0.977
+    },
+    "OPTOLONG L-PRO Light Pollution": {
+      "n_points": 400,
+      "wl_min": 350.0,
+      "wl_max": 749.0,
+      "val_min": 0.003,
+      "val_max": 0.986
+    },
+    "Optolong R": {
+      "n_points": 90,
+      "wl_min": 566.0,
+      "wl_max": 744.0,
+      "val_min": 0.0,
+      "val_max": 0.99
+    },
+    "SDSS g": {
+      "n_points": 313,
+      "wl_min": 389.0,
+      "wl_max": 545.0,
+      "val_min": 0.001,
+      "val_max": 0.993
+    },
+    "SDSS i": {
+      "n_points": 315,
+      "wl_min": 678.5,
+      "wl_max": 835.5,
+      "val_min": 0.001,
+      "val_max": 0.998
+    },
+    "SDSS r": {
+      "n_points": 299,
+      "wl_min": 539.0,
+      "wl_max": 688.0,
+      "val_min": 0.001,
+      "val_max": 0.994
+    },
+    "SDSS u": {
+      "n_points": 183,
+      "wl_min": 304.0,
+      "wl_max": 395.0,
+      "val_min": 0.001,
+      "val_max": 0.99
+    },
+    "SDSS z": {
+      "n_points": 601,
+      "wl_min": 800.0,
+      "wl_max": 1100.0,
+      "val_min": 0.001,
+      "val_max": 0.999
+    },
+    "ZWO B": {
+      "n_points": 63,
+      "wl_min": 418.0,
+      "wl_max": 542.0,
+      "val_min": 0.002,
+      "val_max": 0.961
+    },
+    "ZWO G": {
+      "n_points": 57,
+      "wl_min": 502.0,
+      "wl_max": 614.0,
+      "val_min": 0.002,
+      "val_max": 0.982
+    },
+    "ZWO R": {
+      "n_points": 76,
+      "wl_min": 592.0,
+      "wl_max": 742.0,
+      "val_min": 0.0,
+      "val_max": 0.989
+    }
+  },
+  "qe": {
+    "GSENSE2020BSI": {
+      "n_points": 447,
+      "wl_min": 204.0,
+      "wl_max": 1096.0,
+      "val_min": 0.055,
+      "val_max": 0.9358
+    },
+    "GSENSE400BSI": {
+      "n_points": 400,
+      "wl_min": 200.0,
+      "wl_max": 998.0,
+      "val_min": 0.1572,
+      "val_max": 0.9591
+    },
+    "GSENSE400FSI": {
+      "n_points": 400,
+      "wl_min": 200.0,
+      "wl_max": 998.0,
+      "val_min": 0.1006,
+      "val_max": 0.8616
+    },
+    "GSENSE4040BSI": {
+      "n_points": 447,
+      "wl_min": 204.0,
+      "wl_max": 1096.0,
+      "val_min": 0.055,
+      "val_max": 0.9358
+    },
+    "GSENSE4040FSI": {
+      "n_points": 349,
+      "wl_min": 300.0,
+      "wl_max": 996.0,
+      "val_min": 0.0614,
+      "val_max": 0.6187
+    },
+    "Ideal QE curve": {
+      "n_points": 6,
+      "wl_min": 1.0,
+      "wl_max": 2500.0,
+      "val_min": 1.0,
+      "val_max": 1.0
+    },
+    "KAF-16200": {
+      "n_points": 300,
+      "wl_min": 400.0,
+      "wl_max": 998.0,
+      "val_min": 0.0363,
+      "val_max": 0.589
+    },
+    "KAF-16803": {
+      "n_points": 343,
+      "wl_min": 360.0,
+      "wl_max": 1044.0,
+      "val_min": 0.0036,
+      "val_max": 0.5964
+    },
+    "KAF-8300": {
+      "n_points": 64,
+      "wl_min": 360.0,
+      "wl_max": 990.0,
+      "val_min": 0.0448,
+      "val_max": 0.5656
+    },
+    "Sony IMX183": {
+      "n_points": 54,
+      "wl_min": 400.0,
+      "wl_max": 1000.0,
+      "val_min": 0.092,
+      "val_max": 0.997
+    },
+    "Sony IMX411/455/461/533/571": {
+      "n_points": 298,
+      "wl_min": 402.0,
+      "wl_max": 996.0,
+      "val_min": 0.0507,
+      "val_max": 0.9172
+    },
+    "Sony IMX492": {
+      "n_points": 73,
+      "wl_min": 340.0,
+      "wl_max": 1060.0,
+      "val_min": 0.0081,
+      "val_max": 0.8216
+    }
+  }
+}

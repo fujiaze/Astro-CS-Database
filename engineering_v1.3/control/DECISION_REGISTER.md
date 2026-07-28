@@ -62,3 +62,17 @@
 - **Gate 状态**: G12 Photometric Gate 全部满足（fit_used ≥ 20/8, sigma_residual > 0, unique_matches > 1）。
 - **后续**: P12-003 验证光谱积分与响应曲线无回归。
 - **证据**: `evidence/P12-002/TASK_REPORT.md` + `evidence/P12-002/TEST_REPORT.md` + `evidence/P12-002/REVIEW_REPORT.md` + `evidence/P12-002/raw_logs/test_photometric_calib_p12_002.log`
+
+## ADR-P12-003 — 2026-07-28
+- **Outcome**: SPECTRUM_INTEGRATION_NO_REGRESSION + RESPONSE_CURVE_VERIFIED
+- **验证结论**: P12-002 修复（KD-tree 方向 bug + 双向最近邻唯一配对）未引入光谱积分与响应曲线回归，P12-002 修复安全。
+- **验证范围**:
+  1. 溯源完整性（test1）：38 种滤光片 + 13 种 CCD QE 曲线数据完整性验证（采样点数、波长范围、值域范围全部正常）。
+  2. C++ vs Python F_syn 一致性（test2）：60 组对比（5 温度 × 3 星等 × 2 滤光片 × 2 QE 状态），最大 uncached 相对误差 1.06e-6（优于 1% 标准 ~9400 倍），最大 cached 相对误差 2.78e-4/0.028%（优于 1% 标准 ~36 倍）。
+  3. 缓存版本一致性（test3）：60 组对比，最大相对误差 0.028%（< 0.03% 标准），cached 版本源自网格插值精度差异。
+  4. QE 等价性（test4）：无 QE 参数与 QE=1.0 完全等价（相对误差 = 0）。
+  5. 现有测试无回归（test5）：5/5 PASS（基本测光校准、MAD 清洗、退化路径、SIP 投影、P12-001 diag）。
+- **未修改部分**: P12-002 仅修改 `star_matcher.cpp`（空间匹配逻辑），未触及 `spectrum_integrator.cpp`（光谱积分逻辑）、滤光片/QE 数据加载、黑体光谱生成、`compute_f_syn`/`compute_f_syn_cached` 接口。
+- **风险评估**: 低风险。cached 版本相对误差略高（0.028% vs 0.03% 标准，余量较小）但满足要求，源自网格插值精度差异，对测光校准（通常精度 1-5%）无实际影响。
+- **后续**: P12-004 T1-T4 与滤镜类别测光矩阵验证。
+- **证据**: `evidence/P12-003/TASK_REPORT.md` + `evidence/P12-003/TEST_REPORT.md` + `evidence/P12-003/EVIDENCE_INDEX.md` + `evidence/P12-003/REVIEW_REPORT.md` + `evidence/P12-003/reports/test_results.json` + `evidence/P12-003/reports/filter_qe_provenance.json`

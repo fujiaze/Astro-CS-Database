@@ -16,7 +16,7 @@ P11-005,P11,PlateSolve 710全量回归与权威星对WCS Gate,P11-004,G11,DONE,e
 P11-006,P11,更新坐标契约、CLI capabilities、provenance,P11-005,G11,DONE,evidence/P11-006
 P12-001,P12,增加Photometric分阶段诊断,P11-006,G12,DONE,evidence/P12-001
 P12-002,P12,修复Gaia到PSF空间匹配与唯一配对,P12-001,G12,DONE,evidence/P12-002
-P12-003,P12,验证光谱积分与响应曲线无回归,P12-001,G12,TODO,evidence/P12-003
+P12-003,P12,验证光谱积分与响应曲线无回归,P12-001,G12,DONE,evidence/P12-003
 P12-004,P12,T1-T4与滤镜类别测光矩阵验证,P12-002;P12-003;P10-006,G12,TODO,evidence/P12-004
 P12-005,P12,修复SNR模型与HISS持久化,P12-004;P11-006,G12,TODO,evidence/P12-005
 P12-006,P12,生成Stage1代表矩阵正式HISS,P12-005,G12,TODO,evidence/P12-006
