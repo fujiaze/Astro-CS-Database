@@ -16,13 +16,87 @@ import os
 import sys
 from ctypes import (
     c_int, c_double, c_float, c_void_p,
-    POINTER, byref, cdll,
+    POINTER, byref, cdll, Structure,
 )
 from typing import Optional, Tuple
 
 import numpy as np
 
 logger = logging.getLogger(__name__)
+
+
+# ============================================================================
+# P12-001: PhotometricDiag ctypes 镜像结构体
+# 与 C++ 端 lib/photometric_calib/cpp/include/photometric_calib.h 中
+# struct PhotometricDiag 字段顺序与类型一一对应 (12 int + 8 double = 20 字段).
+# ============================================================================
+class PhotometricDiag(Structure):
+    """P12-001 分阶段诊断结构体 (ctypes 镜像)
+
+    与 C++ 端 PhotometricDiag 一一对应:
+      阶段1 Fsyn:  spectrum_rows_total / valid_fsyn
+      阶段2 投影:  gaia_projected_in_frame
+      阶段3 PSF:   psf_total / psf_valid
+      阶段4/5 匹配: spatial_candidates / unique_matches
+      阶段6 拒绝:  rejected_ambiguous / rejected_distance / rejected_quality
+      阶段7 拟合:  fit_used / robust_iterations / scale_factor / sigma_residual
+      阶段8 残差:  r_median / r_p90 / r_max
+                   match_distance_median / match_distance_p90 / match_distance_max
+    """
+    _fields_ = [
+        # 阶段1: Fsyn
+        ("spectrum_rows_total", c_int),
+        ("valid_fsyn", c_int),
+        # 阶段2: 投影
+        ("gaia_projected_in_frame", c_int),
+        # 阶段3: PSF
+        ("psf_total", c_int),
+        ("psf_valid", c_int),
+        # 阶段4/5: 匹配
+        ("spatial_candidates", c_int),
+        ("unique_matches", c_int),
+        # 阶段6: 拒绝原因
+        ("rejected_ambiguous", c_int),
+        ("rejected_distance", c_int),
+        ("rejected_quality", c_int),
+        # 阶段7: 拟合
+        ("fit_used", c_int),
+        ("robust_iterations", c_int),
+        ("scale_factor", c_double),
+        ("sigma_residual", c_double),
+        # 阶段8: 残差/距离统计
+        ("r_median", c_double),
+        ("r_p90", c_double),
+        ("r_max", c_double),
+        ("match_distance_median", c_double),
+        ("match_distance_p90", c_double),
+        ("match_distance_max", c_double),
+    ]
+
+    def to_dict(self) -> dict:
+        """转 dict (供日志/JSON 序列化)"""
+        return {
+            "spectrum_rows_total": self.spectrum_rows_total,
+            "valid_fsyn": self.valid_fsyn,
+            "gaia_projected_in_frame": self.gaia_projected_in_frame,
+            "psf_total": self.psf_total,
+            "psf_valid": self.psf_valid,
+            "spatial_candidates": self.spatial_candidates,
+            "unique_matches": self.unique_matches,
+            "rejected_ambiguous": self.rejected_ambiguous,
+            "rejected_distance": self.rejected_distance,
+            "rejected_quality": self.rejected_quality,
+            "fit_used": self.fit_used,
+            "robust_iterations": self.robust_iterations,
+            "scale_factor": self.scale_factor,
+            "sigma_residual": self.sigma_residual,
+            "r_median": self.r_median,
+            "r_p90": self.r_p90,
+            "r_max": self.r_max,
+            "match_distance_median": self.match_distance_median,
+            "match_distance_p90": self.match_distance_p90,
+            "match_distance_max": self.match_distance_max,
+        }
 
 
 def _find_dll() -> str:
@@ -60,12 +134,46 @@ class PhotometricCalib:
             dll_path = _find_dll()
         logger.info("加载 photometric_calib.dll: %s", dll_path)
 
+        # P12-001: 显式添加 DLL 所在目录到搜索路径, 确保 gaia_client.dll 等依赖能被找到
+        # (ctypes.cdll.LoadLibrary 默认不搜索 DLL 同目录的依赖)
+        dll_dir = os.path.dirname(os.path.abspath(dll_path))
+        try:
+            os.add_dll_directory(dll_dir)
+        except (AttributeError, OSError):
+            pass  # 非 Windows 或目录已添加
+
+        # MinGW 运行时 DLL (libgomp-1.dll/zlib1.dll 等) 在 mingw64/bin,
+        # gaia_client_p002006.dll 依赖它们. 自动添加常见 MinGW 路径.
+        for mingw_bin in (r"C:\msys64\mingw64\bin", r"C:\msys64\usr\bin"):
+            if os.path.isdir(mingw_bin):
+                try:
+                    os.add_dll_directory(mingw_bin)
+                except (AttributeError, OSError):
+                    pass
+                break
+
+        # 预加载 gaia_client*.dll (photometric_calib.dll 的依赖),
+        # 让 Windows 把 libgomp-1.dll/zlib1.dll 等二级依赖也加载到进程地址空间.
+        for dep_name in ("gaia_client_p002006.dll", "gaia_client.dll"):
+            dep_path = os.path.join(dll_dir, dep_name)
+            if os.path.isfile(dep_path):
+                try:
+                    cdll.LoadLibrary(dep_path)
+                    logger.debug("预加载依赖 DLL: %s", dep_path)
+                except OSError as e:
+                    logger.debug("预加载 %s 失败 (可忽略): %s", dep_path, e)
+                break
+
         self._dll = cdll.LoadLibrary(dll_path)
         self._setup_signature()
         logger.info("DLL加载成功, API已绑定")
 
     def _setup_signature(self):
-        """设置C函数签名"""
+        """设置C函数签名
+
+        P12-001: argtypes 末尾新增 POINTER(PhotometricDiag) 出参.
+        GAP-012: 同时补齐 QE 参数 (qe_wl/qe_trans/qe_count) 以匹配 C++ ABI.
+        """
         self._dll.pc_calibrate_simple.restype = c_int
         self._dll.pc_calibrate_simple.argtypes = [
             # pixels, width, height
@@ -76,6 +184,8 @@ class PhotometricCalib:
             # psf_cx, psf_cy, psf_flux, psf_status, n_psf
             POINTER(c_double), POINTER(c_double),
             POINTER(c_double), POINTER(c_int), c_int,
+            # GAP-012: qe_wl, qe_trans, qe_count (pc_calibrate_simple 不计算 F_syn, 可为 nullptr/0)
+            POINTER(c_double), POINTER(c_double), c_int,
             # WCS参数
             c_double, c_double, c_double, c_double,
             c_double, c_double, c_double, c_double,
@@ -86,6 +196,7 @@ class PhotometricCalib:
             # 输出
             POINTER(c_float), POINTER(c_int), POINTER(c_double),
             POINTER(c_double),  # out_sigma_residual (供 SNR 模块 §14, 可为 nullptr 向后兼容)
+            POINTER(PhotometricDiag),  # P12-001: out_diag (可为 nullptr 向后兼容)
         ]
 
         # 新接口: pc_calibrate_simple_with_gaia (DLL 内部完成锥形搜索+光谱积分)
@@ -97,6 +208,8 @@ class PhotometricCalib:
             c_double, c_double, c_double,
             c_double, c_double,
             # 滤光片波长/透过率/数量
+            POINTER(c_double), POINTER(c_double), c_int,
+            # GAP-012: qe_wl, qe_trans, qe_count
             POINTER(c_double), POINTER(c_double), c_int,
             # 光谱波长数组/数量
             POINTER(c_double), c_int,
@@ -115,6 +228,7 @@ class PhotometricCalib:
             # 输出
             POINTER(c_float), POINTER(c_int), POINTER(c_double),
             POINTER(c_double),  # out_sigma_residual (供 SNR 模块 §14, 可为 nullptr 向后兼容)
+            POINTER(PhotometricDiag),  # P12-001: out_diag (可为 nullptr 向后兼容)
         ]
 
     def calibrate_simple(
@@ -136,7 +250,9 @@ class PhotometricCalib:
         sip_b: Optional[np.ndarray] = None,
         sip_ap: Optional[np.ndarray] = None,
         sip_bp: Optional[np.ndarray] = None,
-    ) -> Tuple[np.ndarray, int, float, float]:
+        qe_wl: Optional[np.ndarray] = None,
+        qe_trans: Optional[np.ndarray] = None,
+    ) -> Tuple[np.ndarray, int, float, float, PhotometricDiag]:
         """简化版测光校准
 
         Args:
@@ -147,13 +263,17 @@ class PhotometricCalib:
             WCS参数: crval1/2, crpix1/2, cd11/12/21/22
             sip_order: SIP阶数 (0=无SIP)
             sip_a/b/ap/bp: SIP系数数组 float64 [36] (按i*6+j索引)
+            qe_wl: GAP-012 CCD QE 波长数组 [n_qe] (nm), None 时 Q(λ)=1.0
+                   注: pc_calibrate_simple 不在 DLL 内部计算 F_syn, QE 参数仅作 API 一致性保留
+            qe_trans: CCD QE 透过率数组 [n_qe] [0,1]
 
         Returns:
-            (out_pixels, n_matched, scale_factor, sigma_residual)
+            (out_pixels, n_matched, scale_factor, sigma_residual, diag)
             out_pixels: 校正后图像 float32 [H, W]
             n_matched: 匹配星数 (MAD清洗后)
             scale_factor: scale因子
             sigma_residual: MAD/0.6745 (供 SNR 模块 §14 计算 SNR_phot)
+            diag: P12-001 PhotometricDiag 分阶段诊断结构体 (20字段)
         """
         # ---- 输入校验与类型转换 ----
         pixels = np.ascontiguousarray(pixels, dtype=np.float32)
@@ -184,11 +304,17 @@ class PhotometricCalib:
         sip_ap_c = _prep_sip(sip_ap)
         sip_bp_c = _prep_sip(sip_bp)
 
+        # ---- GAP-012: QE 曲线 (pc_calibrate_simple 不计算 F_syn, 但需匹配 ABI) ----
+        qe_wl_c = _prep_sip(qe_wl)
+        qe_trans_c = _prep_sip(qe_trans)
+        qe_count = qe_wl_c.size if qe_wl_c is not None else 0
+
         # ---- 输出缓冲 ----
         out_pixels = np.zeros(width * height, dtype=np.float32)
         n_matched = c_int(0)
         scale_factor = c_double(0.0)
         sigma_residual = c_double(0.0)
+        diag = PhotometricDiag()  # P12-001: 全 0 初始化
 
         # ---- 调用C函数 ----
         ret = self._dll.pc_calibrate_simple(
@@ -201,6 +327,9 @@ class PhotometricCalib:
             psf_cy.ctypes.data_as(POINTER(c_double)),
             psf_flux.ctypes.data_as(POINTER(c_double)),
             psf_status.ctypes.data_as(POINTER(c_int)), n_psf,
+            qe_wl_c.ctypes.data_as(POINTER(c_double)) if qe_wl_c is not None else None,
+            qe_trans_c.ctypes.data_as(POINTER(c_double)) if qe_trans_c is not None else None,
+            qe_count,
             crval1, crval2, crpix1, crpix2,
             cd11, cd12, cd21, cd22,
             sip_order,
@@ -211,6 +340,7 @@ class PhotometricCalib:
             out_pixels.ctypes.data_as(POINTER(c_float)),
             byref(n_matched), byref(scale_factor),
             byref(sigma_residual),
+            byref(diag),
         )
 
         if ret != 0:
@@ -220,7 +350,8 @@ class PhotometricCalib:
         out_pixels = out_pixels.reshape(height, width)
         logger.info("测光校准完成: n_matched=%d, scale=%.6e, sigma_residual=%.6f",
                     n_matched.value, scale_factor.value, sigma_residual.value)
-        return out_pixels, n_matched.value, scale_factor.value, sigma_residual.value
+        logger.info("P12-001 diag: %s", diag.to_dict())
+        return out_pixels, n_matched.value, scale_factor.value, sigma_residual.value, diag
 
     def calibrate_with_gaia(
         self,
@@ -240,7 +371,9 @@ class PhotometricCalib:
         sip_b: Optional[np.ndarray] = None,
         sip_ap: Optional[np.ndarray] = None,
         sip_bp: Optional[np.ndarray] = None,
-    ) -> Tuple[np.ndarray, int, float, float]:
+        qe_wl: Optional[np.ndarray] = None,
+        qe_trans: Optional[np.ndarray] = None,
+    ) -> Tuple[np.ndarray, int, float, float, PhotometricDiag]:
         """用 gaia_client handle 调用新 DLL 接口 pc_calibrate_simple_with_gaia
 
         DLL 内部完成: 锥形搜索 Gaia DR3SP -> BP/RP 光谱 Akima+Simpson 积分 F_syn ->
@@ -259,13 +392,16 @@ class PhotometricCalib:
             WCS参数: crval1/2, crpix1/2, cd11/12/21/22
             sip_order: SIP 阶数 (0=无SIP)
             sip_a/b/ap/bp: SIP 系数数组 float64 [36] (按 i*6+j 索引)
+            qe_wl: GAP-012 CCD QE 波长数组 [n_qe] (nm), None 时 Q(λ)=1.0
+            qe_trans: CCD QE 透过率数组 [n_qe] [0,1]
 
         Returns:
-            (out_pixels, n_matched, scale_factor, sigma_residual)
+            (out_pixels, n_matched, scale_factor, sigma_residual, diag)
             out_pixels: 校正后图像 float32 [H, W]
             n_matched: 匹配星数 (MAD清洗后)
             scale_factor: scale 因子
             sigma_residual: MAD/0.6745 (供 SNR 模块 §14 计算 SNR_phot)
+            diag: P12-001 PhotometricDiag 分阶段诊断结构体 (20字段, 完整填充 8 个阶段)
 
         Raises:
             RuntimeError: DLL 调用失败 (ret != 0)
@@ -308,6 +444,11 @@ class PhotometricCalib:
         sip_ap_c = _prep_sip(sip_ap)
         sip_bp_c = _prep_sip(sip_bp)
 
+        # ---- GAP-012: QE 曲线 ----
+        qe_wl_c = _prep_sip(qe_wl)
+        qe_trans_c = _prep_sip(qe_trans)
+        qe_count = qe_wl_c.size if qe_wl_c is not None else 0
+
         # ---- handle 转换 (int 或 c_void_p 均可, ctypes 自动处理) ----
         if isinstance(gaia_client_handle, c_void_p):
             handle_param = gaia_client_handle
@@ -319,12 +460,13 @@ class PhotometricCalib:
         n_matched = c_int(0)
         scale_factor = c_double(0.0)
         sigma_residual = c_double(0.0)
+        diag = PhotometricDiag()  # P12-001: 全 0 初始化
 
         logger.info(
             "调用 pc_calibrate_simple_with_gaia: center=(%.6f, %.6f), r=%.4f°, "
-            "mag=[%.1f, %.1f], filter=%dpts, spectrum=%dpts, psf=%d颗, %dx%d",
+            "mag=[%.1f, %.1f], filter=%dpts, spectrum=%dpts, psf=%d颗, %dx%d, qe=%dpts",
             ra_center, dec_center, radius_deg, mag_min, mag_max,
-            filter_count, spectrum_count, n_psf, width, height)
+            filter_count, spectrum_count, n_psf, width, height, qe_count)
 
         # ---- 调用 C 函数 ----
         ret = self._dll.pc_calibrate_simple_with_gaia(
@@ -334,6 +476,9 @@ class PhotometricCalib:
             filter_wl.ctypes.data_as(POINTER(c_double)),
             filter_trans.ctypes.data_as(POINTER(c_double)),
             filter_count,
+            qe_wl_c.ctypes.data_as(POINTER(c_double)) if qe_wl_c is not None else None,
+            qe_trans_c.ctypes.data_as(POINTER(c_double)) if qe_trans_c is not None else None,
+            qe_count,
             spectrum_wl.ctypes.data_as(POINTER(c_double)),
             spectrum_count,
             pixels.ctypes.data_as(POINTER(c_float)), width, height,
@@ -351,6 +496,7 @@ class PhotometricCalib:
             out_pixels.ctypes.data_as(POINTER(c_float)),
             byref(n_matched), byref(scale_factor),
             byref(sigma_residual),
+            byref(diag),
         )
 
         if ret != 0:
@@ -362,7 +508,8 @@ class PhotometricCalib:
         out_pixels = out_pixels.reshape(height, width)
         logger.info("测光校准(带Gaia)完成: n_matched=%d, scale=%.6e, sigma_residual=%.6f",
                     n_matched.value, scale_factor.value, sigma_residual.value)
-        return out_pixels, n_matched.value, scale_factor.value, sigma_residual.value
+        logger.info("P12-001 diag: %s", diag.to_dict())
+        return out_pixels, n_matched.value, scale_factor.value, sigma_residual.value, diag
 
 
 # ============================================================================
@@ -414,7 +561,7 @@ if __name__ == "__main__":
     image = np.full((img_h, img_w), 1000.0, dtype=np.float32)
 
     # ---- 调用 ----
-    out_img, n_matched, scale, sigma_residual = pc.calibrate_simple(
+    out_img, n_matched, scale, sigma_residual, diag = pc.calibrate_simple(
         image, gaia_ra, gaia_dec, gaia_mag, gaia_fsyn,
         psf_cx, psf_cy, psf_flux, psf_status,
         crval1, crval2, crpix1, crpix2,
