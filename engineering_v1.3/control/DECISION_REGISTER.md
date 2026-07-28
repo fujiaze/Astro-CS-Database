@@ -76,3 +76,29 @@
 - **风险评估**: 低风险。cached 版本相对误差略高（0.028% vs 0.03% 标准，余量较小）但满足要求，源自网格插值精度差异，对测光校准（通常精度 1-5%）无实际影响。
 - **后续**: P12-004 T1-T4 与滤镜类别测光矩阵验证。
 - **证据**: `evidence/P12-003/TASK_REPORT.md` + `evidence/P12-003/TEST_REPORT.md` + `evidence/P12-003/EVIDENCE_INDEX.md` + `evidence/P12-003/REVIEW_REPORT.md` + `evidence/P12-003/reports/test_results.json` + `evidence/P12-003/reports/filter_qe_provenance.json`
+
+## ADR-P12-004 — 2026-07-28
+- **Outcome**: PHOTOMETRIC_MATRIX_VERIFIED + GATE_NOT_PASSED + P12-002_FIX_INDIRECTLY_VERIFIED
+- **验证结论**: 16 帧代表帧测光矩阵验证完成，0/16 Gate PASS。P12-002 修复（KD-tree 方向 bug + 双向最近邻唯一配对）在真实数据上工作正常（间接验证），但发现 4 类阻塞性问题需 P12-005 修复。
+- **验证范围**:
+  1. 16 帧代表帧（T2/T3/T4 × LUM/RED/GREEN/BLUE/HA/OIII × Galaxy_Center/LDN43/NGC1727/NGC55）测光校准。
+  2. PhotometricDiag 20 字段诊断收集（成功帧完整填充，失败帧部分填充）。
+  3. Gate 检查（Broadband fit_used ≥ 20, Narrowband fit_used ≥ 8, scale_factor ∈ [0.01, 100.0], sigma_residual > 0）。
+  4. 失败分类（5 类：INSUFFICIENT_STARS / ZERO_SIGMA / INVALID_SCALE / STAGE1_ERROR / TIMEOUT）。
+- **测试结果**: 0/16 Gate PASS（全部失败）
+  - INVALID_SCALE 3 帧（T4 RED/GREEN/BLUE）：stage1 成功但 scale_factor ≈ 0.0026-0.0028 超出 [0.01, 100.0] 下限；valid_fsyn=0 表明光谱合成异常。
+  - STAGE1_ERROR 13 帧：
+    - 2 帧（T4 HA/OIII）：`[PHOTOMETRIC] 加载滤光片曲线失败`，filters.json 缺少窄带滤光片定义 + map_filter_name 未正确映射。
+    - 4 帧（T2 RED/GREEN/BLUE/HA-LDN43）：`filesystem error: Cannot convert character sequence`，C++ std::filesystem 无法处理中文路径 "LDN43_T2素材"。
+    - 7 帧（T2 OIII-NGC1727 + T3 全部 6 帧）：`[CALIBRATE] 无 Master 文件且未启用 allow_no_calibration`，stage1_config.json 的 calibration_dir 仅含 T4 校准文件。
+- **P12-002 修复有效性间接验证**: T4 RED/GREEN/BLUE 三帧 stage1 成功执行到 PHOTOMETRIC 阶段，空间匹配工作正常（unique_matches=spatial_candidates, rejected_ambiguous=0, fit_used 1231-1670 充足），KD-tree 方向 bug 修复 + 双向最近邻唯一配对工作正常，P12-002 修复未引入回归。
+- **Gate 状态**: G12 Photometric Diagnostic Gate 未通过（0/16 Gate PASS），阻塞 P12-006 和 P13 任务。
+- **VERDICT**: CONDITIONAL_PASS — 测试执行完整，证据齐全，失败分类准确，但 0/16 Gate PASS，需进入 P12-005 修复 4 类问题。
+- **待修复问题（P12-005 范围）**:
+  1. scale_factor 异常根因调查（T4 RED/GREEN/BLUE, valid_fsyn=0, spectrum_rows_total=0）。
+  2. 窄带滤光片 HA/OIII 定义补充到 filters.json + map_filter_name 映射修复。
+  3. C++ 中文路径处理（使用宽字符 API 或 UTF-8 路径转换）。
+  4. T2/T3 校准文件补充或启用 allow_no_calibration。
+- **风险评估**: 高风险（0/16 Gate PASS 阻塞 G12 Gate），但 P12-002 修复有效（空间匹配层面），问题集中在光谱合成/滤光片加载/路径处理/校准文件 4 个独立维度，可并行修复。
+- **后续**: P12-005 修复 SNR 模型与 HISS 持久化（含本任务发现的 4 类问题修复）。
+- **证据**: `evidence/P12-004/TASK_REPORT.md` + `evidence/P12-004/TEST_REPORT.md` + `evidence/P12-004/EVIDENCE_INDEX.md` + `evidence/P12-004/REVIEW_REPORT.md` + `evidence/P12-004/reports/PHOTOMETRY_MATRIX.csv` + `evidence/P12-004/reports/photometric_diag_summary.json` + `evidence/P12-004/reports/failure_classification.json` + `evidence/P12-004/scripts/run_photometric_matrix.py` + `evidence/P12-004/raw_logs/`

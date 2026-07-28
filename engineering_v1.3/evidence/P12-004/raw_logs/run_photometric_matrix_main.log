@@ -1,0 +1,100 @@
+[P12-004] 共 16 帧代表帧
+[P12-004] orchestrator: f:\Astro dev\Astro CS Normalization Database\lib\orchestrator\cpp\orchestrator.exe
+[P12-004] 配置: f:\Astro dev\Astro CS Normalization Database\lib\orchestrator\configs\stage1_config.json
+[P12-004] timeout: 600s/帧
+
+=== [1/16] T4/RED/Galaxy_Center ===
+[P12-004] 运行 T4/RED/Galaxy_Center: Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts
+  输出目录: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T4_RED_Galaxy_Center
+  exit_code=0, elapsed=32.2s, fit_used=1670, scale=0.002836, sigma=0.1816, gate=False
+
+=== [2/16] T4/GREEN/Galaxy_Center ===
+[P12-004] 运行 T4/GREEN/Galaxy_Center: Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@063620-180S-Green.fts
+  输出目录: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T4_GREEN_Galaxy_Center
+  exit_code=0, elapsed=35.5s, fit_used=1619, scale=0.002696, sigma=0.1576, gate=False
+
+=== [3/16] T4/BLUE/Galaxy_Center ===
+[P12-004] 运行 T4/BLUE/Galaxy_Center: Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@055414-180S-Blue.fts
+  输出目录: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T4_BLUE_Galaxy_Center
+  exit_code=0, elapsed=30.2s, fit_used=1231, scale=0.00261, sigma=0.1285, gate=False
+
+=== [4/16] T4/HA/Galaxy_Center ===
+[P12-004] 运行 T4/HA/Galaxy_Center: Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@061318-300S-H-alpha.fts
+  输出目录: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T4_HA_Galaxy_Center
+  exit_code=1, elapsed=4.0s, fit_used=0, scale=0, sigma=0, gate=False
+
+=== [5/16] T4/OIII/Galaxy_Center ===
+[P12-004] 运行 T4/OIII/Galaxy_Center: Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@063631-600S-Oiii.fts
+  输出目录: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T4_OIII_Galaxy_Center
+  exit_code=1, elapsed=4.1s, fit_used=0, scale=0, sigma=0, gate=False
+
+=== [6/16] T2/RED/LDN43 ===
+[P12-004] 运行 T2/RED/LDN43: LDN43_LRGBH_flying_dutchman-20250503@032713-1200S-Red.fts
+  输出目录: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T2_RED_LDN43
+  exit_code=3, elapsed=3.7s, fit_used=0, scale=0, sigma=0, gate=False
+
+=== [7/16] T2/GREEN/LDN43 ===
+[P12-004] 运行 T2/GREEN/LDN43: LDN43_LRGBH_flying_dutchman-20250503@034804-1200S-Green.fts
+  输出目录: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T2_GREEN_LDN43
+  exit_code=3, elapsed=4.2s, fit_used=0, scale=0, sigma=0, gate=False
+
+=== [8/16] T2/BLUE/LDN43 ===
+[P12-004] 运行 T2/BLUE/LDN43: LDN43_LRGBH_flying_dutchman-20250503@040855-1200S-Blue.fts
+  输出目录: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T2_BLUE_LDN43
+  exit_code=3, elapsed=50.9s, fit_used=0, scale=0, sigma=0, gate=False
+
+=== [9/16] T2/HA/LDN43 ===
+[P12-004] 运行 T2/HA/LDN43: LDN43_LRGBH_flying_dutchman-20250503@042947-1200S-H-alpha.fts
+  输出目录: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T2_HA_LDN43
+  exit_code=3, elapsed=4.1s, fit_used=0, scale=0, sigma=0, gate=False
+
+=== [10/16] T2/OIII/NGC1727 ===
+[P12-004] 运行 T2/OIII/NGC1727: NGC1727_RGBHO_T2_flying_dutchman-20251031@075259-1800S-OIII.fts
+  输出目录: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T2_OIII_NGC1727
+  exit_code=4, elapsed=0.2s, fit_used=0, scale=0, sigma=0, gate=False
+
+=== [11/16] T3/RED/NGC55 ===
+[P12-004] 运行 T3/RED/NGC55: NGC55_T3_flying_dutchman-20250701@074114-600S-Red.fts
+  输出目录: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T3_RED_NGC55
+  exit_code=4, elapsed=0.2s, fit_used=0, scale=0, sigma=0, gate=False
+
+=== [12/16] T3/GREEN/NGC55 ===
+[P12-004] 运行 T3/GREEN/NGC55: NGC55_T3_flying_dutchman-20250701@075153-600S-Green.fts
+  输出目录: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T3_GREEN_NGC55
+  exit_code=4, elapsed=0.2s, fit_used=0, scale=0, sigma=0, gate=False
+
+=== [13/16] T3/BLUE/NGC55 ===
+[P12-004] 运行 T3/BLUE/NGC55: NGC55_T3_flying_dutchman-20250701@080333-600S-Blue.fts
+  输出目录: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T3_BLUE_NGC55
+  exit_code=4, elapsed=0.2s, fit_used=0, scale=0, sigma=0, gate=False
+
+=== [14/16] T3/HA/NGC55 ===
+[P12-004] 运行 T3/HA/NGC55: NGC55_T3_flying_dutchman-20250701@081412-1200S-H-alpha.fts
+  输出目录: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T3_HA_NGC55
+  exit_code=4, elapsed=0.2s, fit_used=0, scale=0, sigma=0, gate=False
+
+=== [15/16] T3/OIII/NGC55 ===
+[P12-004] 运行 T3/OIII/NGC55: NGC55_T3_flying_dutchman-20250701@083458-1200S-Oiii.fts
+  输出目录: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T3_OIII_NGC55
+  exit_code=4, elapsed=0.2s, fit_used=0, scale=0, sigma=0, gate=False
+
+=== [16/16] T3/LUM/NGC55 ===
+[P12-004] 运行 T3/LUM/NGC55: NGC55_T3_flying_dutchman-20250703@075400-600S-Lum.fts
+  输出目录: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T3_LUM_NGC55
+  exit_code=4, elapsed=0.2s, fit_used=0, scale=0, sigma=0, gate=False
+
+============================================================
+[P12-004] 测光矩阵测试完成
+  总帧数: 16
+  Gate PASS: 0
+  Gate FAIL: 16
+  Gate 通过率: 0.0%
+  分类统计: {'INVALID_SCALE': 3, 'STAGE1_ERROR': 13}
+  Broadband (LUM/RED/GREEN/BLUE): 0/10 PASS
+  Narrowband (HA/OIII):           0/6 PASS
+
+  PHOTOMETRY_MATRIX.csv:           f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\reports\PHOTOMETRY_MATRIX.csv
+  photometric_diag_summary.json:   f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\reports\photometric_diag_summary.json
+  failure_classification.json:     f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\reports\failure_classification.json
+
+[P12-004] 警告: 所有 16 帧 Gate 失败, 建议生成 BLOCKED_REPORT.md

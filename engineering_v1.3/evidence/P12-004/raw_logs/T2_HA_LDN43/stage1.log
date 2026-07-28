@@ -1,0 +1,98 @@
+=== COMMAND ===
+f:\Astro dev\Astro CS Normalization Database\lib\orchestrator\cpp\orchestrator.exe stage1 --frame f:\Astro dev\Astro CS Normalization Database\testdata\LDN43_T2素材_flying_dutchman\lights\LDN43_LRGBH_flying_dutchman-20250503@042947-1200S-H-alpha.fts --output f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T2_HA_LDN43\T2_HA_LDN43.hiss --gaia-data GaiaDR3SP --filter H-alpha --config f:\Astro dev\Astro CS Normalization Database\lib\orchestrator\configs\stage1_config.json --log-level INFO
+
+=== EXIT CODE ===
+3
+
+=== STDOUT ===
+
+=== STDERR ===
+[2026-07-28 22:33:05][INFO][cli] stage1 gaia-data: GaiaDR3SP
+[2026-07-28 22:33:05][INFO][cli] stage1 filter: H-alpha
+[2026-07-28 22:33:05][INFO][logger] 日志系统初始化完成 (log_dir=lib/orchestrator/logs, level=INFO)
+[2026-07-28 22:33:05][INFO][orchestrator] 初始化编排器 (骨架版本)
+[2026-07-28 22:33:05][INFO][orchestrator] 可用线程数: 16
+[2026-07-28 22:33:05][INFO][orchestrator] 加载配置: f:\Astro dev\Astro CS Normalization Database\lib\orchestrator\configs\stage1_config.json
+[2026-07-28 22:33:05][INFO][orchestrator] 配置文件大小: 2233 字节
+[2026-07-28 22:33:05][INFO][orchestrator] 检查点目录: output\.checkpoint
+[2026-07-28 22:33:05][INFO][orchestrator] 日志级别设置为: INFO
+[2026-07-28 22:33:05][INFO][orchestrator] 配置线程数: 0 (0=自动检测)
+[2026-07-28 22:33:05][INFO][orchestrator] 配置 Gaia 数据目录: GaiaDR3SP
+[2026-07-28 22:33:05][INFO][orchestrator] 配置加载完成 (P03-002: log_level/threads/gaia_data_dir 已解析)
+[2026-07-28 22:33:05][INFO][cli] 日志级别设置为: INFO
+[2026-07-28 22:33:05][INFO][orchestrator] ========== stage1: 单帧预处理 (FITS -> .hiss) ==========
+[2026-07-28 22:33:05][INFO][orchestrator] 输入 FITS: f:\Astro dev\Astro CS Normalization Database\testdata\LDN43_T2�ز�_flying_dutchman\lights\LDN43_LRGBH_flying_dutchman-20250503@042947-1200S-H-alpha.fts
+[2026-07-28 22:33:05][INFO][orchestrator] 输出 .hiss: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T2_HA_LDN43\T2_HA_LDN43.hiss
+[2026-07-28 22:33:05][INFO][orchestrator] 配置 JSON: {
+  "_comment": "stage1 配置文件模板 (spec §2.3.3) - 单帧预处理 FITS -> .hiss, stage 0-6 (2026-07-18 归档 GRADIENT_2D; 2026-07-25 P03-002 扩展参数追踪)",
+  "project_root": ".",
+  "gaia_data_dir": "GaiaDR3SP",
+  "calibration_dir": "testdata/T4 calibration files",
+  "output_root": "output",
+  "stages": [
+    "read_fits",
+    "calibrate",
+    "platesolve",
+    "psf",
+    "photometric",
+    "snr",
+    "drizzle"
+  ],
+  "frame": {
+    "id": "panel1_Red",
+    "light_path": "",
+    "filter": "Red",
+    "qe_curve": "GSENSE2020BSI"
+  },
+  "calibration": {
+    "_comment": "P03-001: 校准输入接线配置。master_*_path 为空时从 calibration_dir 自动推导",
+    "master_bias_path": "",
+    "master_dark_path": "",
+    "master_flat_path": "",
+    "require_size_match": true,
+    "require_exposure_match": true,
+    "exposure_tolerance_s": 0.5,
+    "require_temperature_match": false,
+    "temperature_tolerance_c": 1.0,
+    "allow_no_calibration": false,
+    "dark_optimization": 0,
+    "dark_scale_factor": 1.0
+  },
+  "platesolve": {
+    "_comment": "P03-002: PlateSolve 参数。initial_ra/dec 为空时从 FITS header OBJCTRA/DEC 读取; focal_length/pixel_size 为 0 时从 FITS header 读取",
+    "initial_ra": "",
+    "initial_dec": "",
+    "focal_length": 0.0,
+    "pixel_size": 0.0,
+    "max_stars": 2000,
+    "log_dir": "lib/plate_solve/logs"
+  },
+  "psf": {
+    "_comment": "P03-002: PSF 拟合参数。fit_radius=0 表示自动; max_stars=0 表示不限制",
+    "fit_radius": 8,
+    "max_iter": 100,
+    "tolerance": 1.0e-6,
+    "max_stars": 2000
+  },
+  "photometric": {
+    "_comment": "P03-002: 测光校准参数。mag_max 内部会自适应迭代 (2000-10000 星范围)",
+    "mag_min": 6.0,
+    "mag_max": 16.0,
+    "fov_radius_deg": 0.0,
+    "filters_json": "lib/photometric_calib/data/response_curves/filters.json",
+    "qe_curves_json": "lib/photometric_calib/data/response_curves/qe_curves.json"
+  },
+  "drizzle": {
+    "_comment": "P03-002: Drizzle 参数。nside_strategy=1x_to_2x_drizzle 自适应; pixfrac 默认 1.0 避免缝隙",
+    "nside_strategy": "1x_to_2x_drizzle",
+    "nside_override": 0,
+    "pixfrac": 1.0,
+    "nested": true
+  },
+  "log_level": "INFO",
+  "threads": 0
+}
+
+[2026-07-28 22:33:05][INFO][orchestrator] P04-004: 取消/超时标志已重置
+terminate called after throwing an instance of 'std::filesystem::__cxx11::filesystem_error'
+  what():  filesystem error: Cannot convert character sequence: Illegal byte sequence

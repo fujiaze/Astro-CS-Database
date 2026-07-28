@@ -1,0 +1,184 @@
+=== COMMAND ===
+f:\Astro dev\Astro CS Normalization Database\lib\orchestrator\cpp\orchestrator.exe stage1 --frame f:\Astro dev\Astro CS Normalization Database\testdata\NGC55_T3_flying_dutchman\lights\NGC55_T3_flying_dutchman-20250701@080333-600S-Blue.fts --output f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T3_BLUE_NGC55\T3_BLUE_NGC55.hiss --gaia-data GaiaDR3SP --filter Blue --config f:\Astro dev\Astro CS Normalization Database\lib\orchestrator\configs\stage1_config.json --log-level INFO
+
+=== EXIT CODE ===
+4
+
+=== STDOUT ===
+{
+  "success": false,
+  "frame_name": "f:\\Astro dev\\Astro CS Normalization Database\\testdata\\NGC55_T3_flying_dutchman\\lights\\NGC55_T3_flying_dutchman-20250701@080333-600S-Blue.fts",
+  "timings": [
+    {"stage": "CALIBRATE", "name": "READ_FITS", "duration_sec": 0.183944, "success": true},
+    {"stage": "CALIBRATE", "name": "CALIBRATE", "duration_sec": 0.0005916, "success": false}
+  ],
+  "wcs_fields": {},
+  "photo_stats": {},
+  "output_ahpx_path": "",
+  "error_msg": "[CALIBRATE] 无 Master 文件且未启用 allow_no_calibration"
+}
+
+=== STDERR ===
+[2026-07-28 22:33:10][INFO][cli] stage1 gaia-data: GaiaDR3SP
+[2026-07-28 22:33:10][INFO][cli] stage1 filter: Blue
+[2026-07-28 22:33:10][INFO][logger] 日志系统初始化完成 (log_dir=lib/orchestrator/logs, level=INFO)
+[2026-07-28 22:33:10][INFO][orchestrator] 初始化编排器 (骨架版本)
+[2026-07-28 22:33:10][INFO][orchestrator] 可用线程数: 16
+[2026-07-28 22:33:10][INFO][orchestrator] 加载配置: f:\Astro dev\Astro CS Normalization Database\lib\orchestrator\configs\stage1_config.json
+[2026-07-28 22:33:10][INFO][orchestrator] 配置文件大小: 2233 字节
+[2026-07-28 22:33:10][INFO][orchestrator] 检查点目录: output\.checkpoint
+[2026-07-28 22:33:10][INFO][orchestrator] 日志级别设置为: INFO
+[2026-07-28 22:33:10][INFO][orchestrator] 配置线程数: 0 (0=自动检测)
+[2026-07-28 22:33:10][INFO][orchestrator] 配置 Gaia 数据目录: GaiaDR3SP
+[2026-07-28 22:33:10][INFO][orchestrator] 配置加载完成 (P03-002: log_level/threads/gaia_data_dir 已解析)
+[2026-07-28 22:33:10][INFO][cli] 日志级别设置为: INFO
+[2026-07-28 22:33:10][INFO][orchestrator] ========== stage1: 单帧预处理 (FITS -> .hiss) ==========
+[2026-07-28 22:33:10][INFO][orchestrator] 输入 FITS: f:\Astro dev\Astro CS Normalization Database\testdata\NGC55_T3_flying_dutchman\lights\NGC55_T3_flying_dutchman-20250701@080333-600S-Blue.fts
+[2026-07-28 22:33:10][INFO][orchestrator] 输出 .hiss: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\evidence\P12-004\raw_logs\T3_BLUE_NGC55\T3_BLUE_NGC55.hiss
+[2026-07-28 22:33:10][INFO][orchestrator] 配置 JSON: {
+  "_comment": "stage1 配置文件模板 (spec §2.3.3) - 单帧预处理 FITS -> .hiss, stage 0-6 (2026-07-18 归档 GRADIENT_2D; 2026-07-25 P03-002 扩展参数追踪)",
+  "project_root": ".",
+  "gaia_data_dir": "GaiaDR3SP",
+  "calibration_dir": "testdata/T4 calibration files",
+  "output_root": "output",
+  "stages": [
+    "read_fits",
+    "calibrate",
+    "platesolve",
+    "psf",
+    "photometric",
+    "snr",
+    "drizzle"
+  ],
+  "frame": {
+    "id": "panel1_Red",
+    "light_path": "",
+    "filter": "Red",
+    "qe_curve": "GSENSE2020BSI"
+  },
+  "calibration": {
+    "_comment": "P03-001: 校准输入接线配置。master_*_path 为空时从 calibration_dir 自动推导",
+    "master_bias_path": "",
+    "master_dark_path": "",
+    "master_flat_path": "",
+    "require_size_match": true,
+    "require_exposure_match": true,
+    "exposure_tolerance_s": 0.5,
+    "require_temperature_match": false,
+    "temperature_tolerance_c": 1.0,
+    "allow_no_calibration": false,
+    "dark_optimization": 0,
+    "dark_scale_factor": 1.0
+  },
+  "platesolve": {
+    "_comment": "P03-002: PlateSolve 参数。initial_ra/dec 为空时从 FITS header OBJCTRA/DEC 读取; focal_length/pixel_size 为 0 时从 FITS header 读取",
+    "initial_ra": "",
+    "initial_dec": "",
+    "focal_length": 0.0,
+    "pixel_size": 0.0,
+    "max_stars": 2000,
+    "log_dir": "lib/plate_solve/logs"
+  },
+  "psf": {
+    "_comment": "P03-002: PSF 拟合参数。fit_radius=0 表示自动; max_stars=0 表示不限制",
+    "fit_radius": 8,
+    "max_iter": 100,
+    "tolerance": 1.0e-6,
+    "max_stars": 2000
+  },
+  "photometric": {
+    "_comment": "P03-002: 测光校准参数。mag_max 内部会自适应迭代 (2000-10000 星范围)",
+    "mag_min": 6.0,
+    "mag_max": 16.0,
+    "fov_radius_deg": 0.0,
+    "filters_json": "lib/photometric_calib/data/response_curves/filters.json",
+    "qe_curves_json": "lib/photometric_calib/data/response_curves/qe_curves.json"
+  },
+  "drizzle": {
+    "_comment": "P03-002: Drizzle 参数。nside_strategy=1x_to_2x_drizzle 自适应; pixfrac 默认 1.0 避免缝隙",
+    "nside_strategy": "1x_to_2x_drizzle",
+    "nside_override": 0,
+    "pixfrac": 1.0,
+    "nested": true
+  },
+  "log_level": "INFO",
+  "threads": 0
+}
+
+[2026-07-28 22:33:10][INFO][orchestrator] P04-004: 取消/超时标志已重置
+[2026-07-28 22:33:10][INFO][orchestrator] 自动推导项目根目录: f:\Astro dev\Astro CS Normalization Database
+[2026-07-28 22:33:10][INFO][orchestrator] 初始化 DLL 加载 (lib_base_dir=f:\Astro dev\Astro CS Normalization Database)
+[dll_loader] 开始加载所有模块 (lib_base_dir=f:\Astro dev\Astro CS Normalization Database)
+[dll_loader] 设置运行时 DLL 搜索路径: C:\msys64\mingw64\bin
+[dll_loader] 加载模块 AIO: f:\Astro dev\Astro CS Normalization Database/lib/astro_image_io/astro_image_io.dll
+[dll_loader] 模块 AIO 加载成功 (handle=0x7fffabad0000)
+[dll_loader] 预加载 astro_image_io.dll (依赖前置) handle=0x7fffabad0000
+[dll_loader] 加载模块 CALIBRATE: f:\Astro dev\Astro CS Normalization Database/lib/calibration/astro_calibration.dll
+[dll_loader] 模块 CALIBRATE 加载成功 (handle=0x7fffe45b0000)
+[dll_loader] 加载模块 PLATESOLVE: f:\Astro dev\Astro CS Normalization Database/lib/plate_solve/cpp/ipv/ipv_solver.dll
+[dll_loader] 模块 PLATESOLVE 加载成功 (handle=0x7fffddc40000)
+[dll_loader] 加载模块 PSF: f:\Astro dev\Astro CS Normalization Database/lib/dynamic_psf/dynamic_psf.dll
+[dll_loader] 模块 PSF 加载成功 (handle=0x7fffe4550000)
+[dll_loader] 预加载 gaia_client.dll (依赖前置) handle=0x7fffe6460000
+[dll_loader] 加载模块 PHOTOMETRIC: f:\Astro dev\Astro CS Normalization Database/lib/photometric_calib/cpp/photometric_calib.dll
+[dll_loader] 模块 PHOTOMETRIC 加载成功 (handle=0x7fffd98d0000)
+[dll_loader] 加载模块 SNR: f:\Astro dev\Astro CS Normalization Database/lib/snr_estimator/cpp/snr_estimator.dll
+[dll_loader] 模块 SNR 加载成功 (handle=0x7fffd8950000)
+[dll_loader] 加载模块 DRIZZLE: f:\Astro dev\Astro CS Normalization Database/lib/healpix_db/healpix_drizzle/healpix_drizzle.dll
+[dll_loader] 模块 DRIZZLE 加载成功 (handle=0x7fffd50b0000)
+[dll_loader] 加载模块 GRADIENT_SPHERE: f:\Astro dev\Astro CS Normalization Database/lib/healpix_db/healpix_stack/healpix_stack.dll
+[dll_loader] 模块 GRADIENT_SPHERE 加载成功 (handle=0x7fffd2360000)
+[dll_loader] 加载模块 STACK: f:\Astro dev\Astro CS Normalization Database/lib/healpix_db/healpix_stack/healpix_stack.dll
+[dll_loader] 模块 STACK 加载成功 (handle=0x7fffd2360000)
+[dll_loader] 全部模块加载成功
+[2026-07-28 22:33:10][INFO][orchestrator] 全部 9 个模块加载成功
+[2026-07-28 22:33:10][INFO][orchestrator]   AIO 版本: unknown
+[2026-07-28 22:33:10][INFO][orchestrator]   CALIBRATE 版本: Astro Calibration C++ v1.0.0
+[2026-07-28 22:33:10][INFO][orchestrator]   PLATESOLVE 版本: unknown
+[2026-07-28 22:33:10][INFO][orchestrator]   PSF 版本: unknown
+[2026-07-28 22:33:10][INFO][orchestrator]   PHOTOMETRIC 版本: unknown
+[2026-07-28 22:33:10][INFO][orchestrator]   SNR 版本: unknown
+[2026-07-28 22:33:10][INFO][orchestrator]   DRIZZLE 版本: unknown
+[2026-07-28 22:33:10][INFO][orchestrator]   GRADIENT_SPHERE 版本: unknown
+[2026-07-28 22:33:10][INFO][orchestrator]   STACK 版本: unknown
+[dll_loader] CALIBRATE 线程数设置为 16
+[2026-07-28 22:33:10][INFO][orchestrator] CALIBRATE 线程数: 16
+[2026-07-28 22:33:10][DEBUG][PIPELINE] frame_create: ok
+[2026-07-28 22:33:10][INFO][orchestrator] ---------- stage1 阶段: READ_FITS ----------
+[2026-07-28 22:33:10][INFO][orchestrator] [READ_FITS] 开始: f:\Astro dev\Astro CS Normalization Database\testdata\NGC55_T3_flying_dutchman\lights\NGC55_T3_flying_dutchman-20250701@080333-600S-Blue.fts
+[2026-07-28 22:33:10][INFO][FITS] Reading: f:\Astro dev\Astro CS Normalization Database\testdata\NGC55_T3_flying_dutchman\lights\NGC55_T3_flying_dutchman-20250701@080333-600S-Blue.fts
+[2026-07-28 22:33:10][INFO][FITS] Header: BITPIX=16 NAXIS=2 NAXIS1=4096 NAXIS2=4096 NAXIS3=0 BSCALE=1.0 BZERO=32768.0 keywords=125
+[2026-07-28 22:33:10][INFO][FITS] Applying BSCALE=1.000000 BZERO=32768.000000
+[2026-07-28 22:33:10][INFO][FITS] Read OK: 4096x4096 1ch BITPIX=16
+[2026-07-28 22:33:10][INFO][API] aio_read_fits: 0.170 s
+[2026-07-28 22:33:10][INFO][orchestrator] [READ_FITS] 图像尺寸: 4096x4096
+[2026-07-28 22:33:10][DEBUG][PIPELINE] add_block: 'data' type=0 count=16777216 (67108864 bytes)
+[2026-07-28 22:33:10][INFO][orchestrator] [READ_FITS] FITS 关键字数: 125
+[2026-07-28 22:33:10][INFO][orchestrator] [READ_FITS] 完成
+[2026-07-28 22:33:10][INFO][orchestrator] [0.183944s] READ_FITS 完成
+[2026-07-28 22:33:10][INFO][orchestrator] ---------- stage1 阶段: CALIBRATE ----------
+[2026-07-28 22:33:10][INFO][orchestrator] [CALIBRATE] 开始
+[2026-07-28 22:33:10][INFO][orchestrator] [CALIBRATE] 图像: 4096x4096 (16777216 像素)
+[2026-07-28 22:33:10][INFO][orchestrator] [CALIBRATE] 帧元数据: EXPTIME=600.000000s, FILTER='Blue', CCD-TEMP=-20.000000C
+[2026-07-28 22:33:10][INFO][orchestrator] [CALIBRATE] calibration_dir: f:\Astro dev\Astro CS Normalization Database\testdata/T4 calibration files
+[2026-07-28 22:33:10][INFO][orchestrator] [CALIBRATE] 自动推导 master_bias_path: f:\Astro dev\Astro CS Normalization Database\testdata/T4 calibration files\masterBias_BIN-1_4096x4096.xisf
+[2026-07-28 22:33:10][INFO][orchestrator] [CALIBRATE] 自动推导 master_dark_path: f:\Astro dev\Astro CS Normalization Database\testdata/T4 calibration files\masterDark_BIN-1_4096x4096_EXPOSURE-600.00s.xisf
+[2026-07-28 22:33:10][INFO][orchestrator] [CALIBRATE] 自动推导 master_flat_path: f:\Astro dev\Astro CS Normalization Database\testdata/T4 calibration files\masterFlat_BIN-1_4096x4096_FILTER-Blue_mono.xisf
+[2026-07-28 22:33:10][WARN][orchestrator] [CALIBRATE] Master 文件不存在: f:\Astro dev\Astro CS Normalization Database\testdata/T4 calibration files\masterBias_BIN-1_4096x4096.xisf
+[2026-07-28 22:33:10][WARN][orchestrator] [CALIBRATE] Master 文件不存在: f:\Astro dev\Astro CS Normalization Database\testdata/T4 calibration files\masterDark_BIN-1_4096x4096_EXPOSURE-600.00s.xisf
+[2026-07-28 22:33:10][WARN][orchestrator] [CALIBRATE] Master 文件不存在: f:\Astro dev\Astro CS Normalization Database\testdata/T4 calibration files\masterFlat_BIN-1_4096x4096_FILTER-Blue_mono.xisf
+[2026-07-28 22:33:10][ERROR][orchestrator] [CALIBRATE] 无任何 Master 文件可用且 allow_no_calibration=false
+[2026-07-28 22:33:10][INFO][orchestrator] [0.000592s] CALIBRATE 失败
+[2026-07-28 22:33:10][DEBUG][PIPELINE] frame_destroy: ok
+[2026-07-28 22:33:10][INFO][orchestrator] P04-004: 原子性清理 - stage1 失败/取消/超时, 删除部分输出
+[2026-07-28 22:33:10][INFO][orchestrator] ========== stage1 失败 ==========
+[2026-07-28 22:33:10][INFO][orchestrator] 析构完成
+[dll_loader] 卸载所有模块
+[dll_loader] 卸载模块 CALIBRATE
+[dll_loader] 卸载模块 PLATESOLVE
+[dll_loader] 卸载模块 PSF
+[dll_loader] 卸载模块 PHOTOMETRIC
+[dll_loader] 卸载模块 SNR
+[dll_loader] 卸载模块 DRIZZLE
+[dll_loader] 卸载模块 GRADIENT_SPHERE
+[dll_loader] 卸载模块 AIO

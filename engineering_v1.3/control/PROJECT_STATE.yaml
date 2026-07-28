@@ -3,8 +3,8 @@ phase: v1.3 p12-photometric-diagnostic
 state_schema: 2
 status: ACTIVE
 current_gate: G12
-current_task: P12-004
-last_completed_task: P12-003
+current_task: P12-005
+last_completed_task: P12-004
 last_completed_date: 2026-07-28
 baseline_engineering: engineering/G0-G8 preserved
 previous_phase: engineering_v1.2
@@ -24,4 +24,5 @@ notes:
   - P12-001 完成（2026-07-28）：PhotometricDiag 结构体（20字段）+ 8 阶段埋点 + photo_stats KV（17字段）+ photometry_report.json + quality_metric CLI 事件；Python ctypes 封装同步；契约测试 5/5 通过；KD-tree 方向逻辑 bug 为预存问题（P12-002 范围），fit_used/sigma_residual Gate 待 P12-002 修复后满足。
   - P12-002 完成（2026-07-28）：修复 KdTree2D::findNearestRec 方向 bug（diff < 0 应去 right 子树，原错误去 left）+ 实现双向最近邻唯一配对（正向 PSF→Gaia + 反向 Gaia→PSF + 互为最近邻过滤）；编译成功（DLL 1065.4 KB）；5/5 测试通过（修复前 3 个 FAIL 全部 PASS）；diag 字段守恒（spatial_candidates = unique_matches + rejected_ambiguous）；fit_used/sigma_residual Gate 已满足。
   - P12-003 完成（2026-07-28）：验证光谱积分与响应曲线无回归。5/5 测试通过：(1) 38 种滤光片 + 13 种 QE 曲线溯源完整；(2) C++ vs Python F_syn 一致性 60/60 PASS（最大 uncached rel_err=1.06e-6, 最大 cached rel_err=2.78e-4/0.028%，远优于 1% 标准）；(3) cached vs uncached 一致性 60/60 PASS（最大 rel_err=0.028% < 0.03% 标准）；(4) 无 QE vs QE=1.0 等价性验证（rel_err=0）；(5) 现有测光校准测试 5/5 PASS 无回归。确认 P12-002 修复未影响光谱积分和响应曲线处理。
+  - P12-004 完成（2026-07-28，CONDITIONAL）：T1-T4 与滤镜类别测光矩阵验证。16 帧代表帧（T2/T3/T4 × LUM/RED/GREEN/BLUE/HA/OIII）测光校准 0/16 Gate PASS。失败分类：INVALID_SCALE 3 帧（T4 RED/GREEN/BLUE, scale_factor ≈ 0.0026-0.0028, valid_fsyn=0 光谱合成异常）+ STAGE1_ERROR 13 帧（2 帧滤光片曲线加载失败 + 4 帧中文路径 filesystem error + 7 帧无 Master 文件）。P12-002 修复有效性间接验证通过（T4 RED/GREEN/BLUE 空间匹配工作正常, unique_matches=spatial_candidates, rejected_ambiguous=0, fit_used 1231-1670 充足）。VERDICT: CONDITIONAL_PASS，需进入 P12-005 修复 4 类问题：(1) scale_factor 异常根因调查；(2) 窄带滤光片 HA/OIII 定义补充 + map_filter_name 修复；(3) C++ 中文路径处理；(4) T2/T3 校准文件补充或启用 allow_no_calibration。
   - All unfinished P09-P17 work remains in scope.
