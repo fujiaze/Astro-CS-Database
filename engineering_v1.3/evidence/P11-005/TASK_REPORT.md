@@ -19,12 +19,17 @@
   - NGC83_T3: 72 帧
   - LDN43_T2: 42 帧
 - **求解成功率**：709/710 = 99.86%
-- **WCS 通过率**（status=pass）：708/710 = 99.72%
+- **WCS 通过率**（status=pass）：709/710 = 99.86%（P11-006 修正后，见下方说明）
 - **RMS 分布**（角秒，仅 pass 帧）：
   - 中位数：0.2852"
   - 均值：0.3117"
   - 最大：1.4907"
   - 最小：0.0906"
+
+> **P11-006 修正说明**：原 P11-005 报告中 WCS 通过率为 708/710（含 1 帧 wcs_check_fail）。
+> P11-006 移除了 `validate_wcs` 中的 `offset_px < 250` 检查（望远镜指向偏差/抖动是正常的深空摄影现象，
+> 与 WCS 求解质量无关），重跑 710 帧后该帧已转为 status=pass，WCS 通过率提升至 709/710。
+> 详见 `lib/plate_solve/logs/siril_compare/ipv_p11_006_710/`。
 
 ## 2. 异常帧
 
@@ -33,11 +38,14 @@
 - error: 求解过程未产生结果（n_pairs=0）
 - 可能原因：OIII 窄带图像星点稀少
 
-### 2.2 wcs_check_fail（1帧）
+### 2.2 原 wcs_check_fail 帧 → P11-006 已修正为 pass
 - label: `NGC1727_RGBHO_T2_flying_dutchman-20251210@031347-1800S-OIII`
 - RMS: 0.127"（求解精度良好）
-- center_offset: 299.4"（FITS头pointing与实际偏差较大）
+- center_offset: 299.4"（offset_px = 309.67，FITS头pointing与实际偏差较大）
 - 原因：FITS 头 ra0/dec0 指向不准，求解本身成功
+- **P11-006 处理**：`offset_px < 250` 检查已移除（望远镜抖动是正常现象，不应作为 WCS 验证判定条件）。
+  该帧 scale_rel_error=0.00121（0.12%）、rms_arcsec=0.127" < 3.0、n_pairs=41 ≥ 10，
+  满足新判定条件，status 由 wcs_check_fail 转为 pass。
 
 ## 3. Gate 验证
 
@@ -45,11 +53,14 @@
 
 ## 4. 结论
 
-ipv 求解器在 710 帧全量回归中表现稳定（99.86% 求解成功率），与 baseline 789/790 表现一致。2 个异常帧均属 OIII 窄带滤镜，与求解器逻辑无关。
+ipv 求解器在 710 帧全量回归中表现稳定（99.86% 求解成功率），与 baseline 789/790 表现一致。
+P11-006 移除 `offset_px` 检查后，WCS 通过率由 708/710 提升至 709/710（唯一异常帧为 OIII 窄带 solve_failed，
+与求解器逻辑无关）。剩余 1 个异常帧属 OIII 窄带滤镜（星点稀少导致求解失败），与求解器逻辑无关。
 
 ## 5. 证据索引
 
-- PlateSolve 回归结果：`lib/plate_solve/logs/siril_compare/ipv_p11_005_710/per_frame.json`
-- 汇总统计：`lib/plate_solve/logs/siril_compare/ipv_p11_005_710/summary.json`
+- PlateSolve 回归结果（P11-005 原始）：`lib/plate_solve/logs/siril_compare/ipv_p11_005_710/per_frame.json`
+- PlateSolve 回归结果（P11-006 修正后）：`lib/plate_solve/logs/siril_compare/ipv_p11_006_710/per_frame.json`
+- 汇总统计（P11-006）：`lib/plate_solve/logs/siril_compare/ipv_p11_006_710/summary.json`
 - 运行日志：`engineering_v1.3/evidence/P11-005/raw_logs/platesolve_regression.log`
 - 数据集清单：`engineering_v1.3/evidence/P11-005/DATASETS.md`
