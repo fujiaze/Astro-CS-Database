@@ -14,6 +14,36 @@ extern "C" {
 #endif
 
 // ============================================================================
+// P12-001: Photometric 分阶段诊断结构体
+// 各阶段计数埋点, 供 Python 侧分析匹配失败原因. 所有可能为 nullptr 的出参均向后兼容.
+// ============================================================================
+struct PhotometricDiag {
+    // 阶段1: Fsyn
+    int spectrum_rows_total;      // n_gaia (锥形搜索返回的行数)
+    int valid_fsyn;               // f_syn > 0 且有限 的星数
+    // 阶段2: 投影
+    int gaia_projected_in_frame;  // 投影后落在 [0,W) x [0,H) 的 Gaia 星数
+    // 阶段3: PSF
+    int psf_total;                // n_psf (输入 PSF 星总数)
+    int psf_valid;                // status==0 的 PSF 星数
+    // 阶段4/5: 匹配
+    int spatial_candidates;       // KD-tree 查询命中数 (距离<阈值的初始匹配)
+    int unique_matches;           // 唯一配对后数 (当前实现无双向过滤, 等于 spatial_candidates)
+    // 阶段6: 拒绝原因
+    int rejected_ambiguous;       // 双向匹配冲突 (当前无双向, 保持 0)
+    int rejected_distance;        // 距离超阈值 (KD-tree 最近邻仍 > match_radius_px)
+    int rejected_quality;         // F<=0/非有限 + 星等不一致 + IRLS 离群 的总和
+    // 阶段7: 拟合
+    int fit_used;                 // IRLS inliers (Tukey 权重 > 0)
+    int robust_iterations;        // IRLS 实际迭代次数
+    double scale_factor;          // 10^(-location(r)), 与 out_scale_factor 一致
+    double sigma_residual;        // MAD(r_inliers)/0.6745, 与 out_sigma_residual 一致
+    // 阶段8: 残差/距离统计
+    double r_median, r_p90, r_max;                       // r = log10(F_instr/F_syn) 的 inliers 统计
+    double match_distance_median, match_distance_p90, match_distance_max;  // PSF-Gaia 像素距离统计
+};
+
+// ============================================================================
 // 简化版测光校准 C API (GAP-012 + GAP-013 改进版)
 //
 // 功能: WCS投影Gaia星 -> KD-tree匹配PSF星 -> 星等一致性过滤
@@ -50,6 +80,8 @@ extern "C" {
 //   out_scale_factor- scale因子 (IRLS 稳健估计, 10^(-location(r)))
 //   out_sigma_residual - sigma_residual = MAD(log10(F_instr/F_syn)_inliers)/0.6745
 //                        (可为 nullptr, 向后兼容; 供 SNR 模块 §14 计算 SNR_phot)
+//   out_diag        - P12-001 分阶段诊断结构体 (可为 nullptr, 向后兼容)
+//                     旧接口仅填充部分字段; 完整诊断请使用 pc_calibrate_simple_with_gaia
 //
 // 返回: 0=成功, <0=失败
 // ============================================================================
@@ -66,7 +98,8 @@ PC_API int pc_calibrate_simple(
     const double* sip_a, const double* sip_b,
     const double* sip_ap, const double* sip_bp,
     float* out_pixels, int* out_n_matched, double* out_scale_factor,
-    double* out_sigma_residual);
+    double* out_sigma_residual,
+    PhotometricDiag* out_diag);
 
 // ============================================================================
 // 扩展接口: 接受 gaia_client handle, DLL 内部查询 DR3SP 光谱并积分得 F_syn
@@ -94,6 +127,8 @@ PC_API int pc_calibrate_simple(
 //   out_scale_factor- scale因子 (IRLS 稳健估计, 10^(-location(r)))
 //   out_sigma_residual - sigma_residual = MAD(log10(F_instr/F_syn)_inliers)/0.6745
 //                        (可为 nullptr, 向后兼容; 供 SNR 模块 §14 计算 SNR_phot)
+//   out_diag        - P12-001 分阶段诊断结构体 (可为 nullptr, 向后兼容)
+//                     完整填充所有 8 个阶段字段
 //
 // 返回: 0=成功, <0=失败
 //   -1: 空指针/参数无效
@@ -116,7 +151,8 @@ PC_API int pc_calibrate_simple_with_gaia(
     const double* sip_a, const double* sip_b,
     const double* sip_ap, const double* sip_bp,
     float* out_pixels, int* out_n_matched, double* out_scale_factor,
-    double* out_sigma_residual);
+    double* out_sigma_residual,
+    PhotometricDiag* out_diag);
 
 #ifdef __cplusplus
 }

@@ -8,6 +8,7 @@
 
 #include "star_matcher.h"
 #include "log_macros.h"
+#include "photometric_calib.h"  // P12-001: PhotometricDiag 定义
 
 #include <cstdio>
 #include <cmath>
@@ -24,6 +25,42 @@ static constexpr double _TUKEY_C = 4.685;
 static constexpr int _IRLS_MAX_ITER = 50;
 // IRLS 收敛阈值 (|scale_new - scale_old| < 1e-6)
 static constexpr double _IRLS_CONVERGE = 1e-6;
+
+// ============================================================================
+// P12-001: 百分位数计算 (线性插值), 用于 r_inliers 和 match_distance 的 p90 统计
+// ============================================================================
+static double percentileOf(std::vector<double> vals, double p) {
+    if (vals.empty()) return 0.0;
+    std::sort(vals.begin(), vals.end());
+    size_t n = vals.size();
+    if (n == 1) return vals[0];
+    double idx = p * (double)(n - 1);
+    size_t lo = (size_t)std::floor(idx);
+    size_t hi = (lo + 1 < n) ? (lo + 1) : (n - 1);
+    double frac = idx - (double)lo;
+    return vals[lo] * (1.0 - frac) + vals[hi] * frac;
+}
+
+// P12-001: 初始化 PhotometricDiag (全 0)
+static void initDiag(PhotometricDiag* d) {
+    if (!d) return;
+    d->spectrum_rows_total = 0;
+    d->valid_fsyn = 0;
+    d->gaia_projected_in_frame = 0;
+    d->psf_total = 0;
+    d->psf_valid = 0;
+    d->spatial_candidates = 0;
+    d->unique_matches = 0;
+    d->rejected_ambiguous = 0;
+    d->rejected_distance = 0;
+    d->rejected_quality = 0;
+    d->fit_used = 0;
+    d->robust_iterations = 0;
+    d->scale_factor = 0.0;
+    d->sigma_residual = 0.0;
+    d->r_median = 0.0; d->r_p90 = 0.0; d->r_max = 0.0;
+    d->match_distance_median = 0.0; d->match_distance_p90 = 0.0; d->match_distance_max = 0.0;
+}
 
 // ============================================================================
 // 内部: 简单 2D KD-tree (替代 nanoflann, Gaia 星通常 <10000, 自实现足够)
@@ -145,9 +182,16 @@ std::vector<StarMatch> StarMatcher::matchWithKdTree(
     const double* gaia_mag, const double* gaia_fsyn, int n_gaia,
     const double* psf_cx, const double* psf_cy,
     const double* psf_flux, const int* psf_status, int n_psf,
-    double match_radius_px) {
+    double match_radius_px,
+    PhotometricDiag* out_diag,
+    int frame_width, int frame_height) {
 
     std::vector<StarMatch> matches;
+
+    // P12-001 阶段3: PSF 总数 (无论后续是否匹配成功)
+    if (out_diag) {
+        out_diag->psf_total = n_psf;
+    }
 
     if (n_gaia <= 0 || n_psf <= 0) {
         LOG_INFO("[star_matcher] 警告: Gaia星=%d, PSF星=%d, 无匹配", n_gaia, n_psf);
@@ -156,8 +200,24 @@ std::vector<StarMatch> StarMatcher::matchWithKdTree(
 
     // 1. WCS 投影所有 Gaia 星到像素坐标
     std::vector<double> gaia_px(n_gaia), gaia_py(n_gaia);
+    int n_in_frame = 0;  // P12-001 阶段2: 投影后落在 [0,W) x [0,H) 的 Gaia 星数
     for (int i = 0; i < n_gaia; ++i) {
         wcs.skyToPixel(gaia_ra[i], gaia_dec[i], gaia_px[i], gaia_py[i]);
+        if (frame_width > 0 && frame_height > 0) {
+            if (gaia_px[i] >= 0.0 && gaia_px[i] < frame_width &&
+                gaia_py[i] >= 0.0 && gaia_py[i] < frame_height) {
+                ++n_in_frame;
+            }
+        } else {
+            // 无 frame 尺寸, 无法判定, 计为全部
+            ++n_in_frame;
+        }
+    }
+    // P12-001 阶段2: 投影统计
+    if (out_diag) {
+        out_diag->gaia_projected_in_frame = n_in_frame;
+        LOG_INFO("[star_matcher] P12-001 阶段2: gaia_projected_in_frame=%d / %d",
+                 n_in_frame, n_gaia);
     }
 
     // 2. 对 Gaia 像素坐标建 KD-tree
@@ -171,6 +231,12 @@ std::vector<StarMatch> StarMatcher::matchWithKdTree(
             valid_idx.push_back(i);
         }
     }
+    // P12-001 阶段3: PSF 有效星数
+    if (out_diag) {
+        out_diag->psf_valid = (int)valid_idx.size();
+        LOG_INFO("[star_matcher] P12-001 阶段3: psf_total=%d, psf_valid=%d",
+                 n_psf, (int)valid_idx.size());
+    }
     if (valid_idx.empty()) {
         LOG_INFO("[star_matcher] 警告: 无有效PSF星 (status!=0全部)");
         return matches;
@@ -180,6 +246,8 @@ std::vector<StarMatch> StarMatcher::matchWithKdTree(
 
     // 4. 对每颗 PSF 有效星, 查询 KD-tree 找最近邻 Gaia 星
     double max_dist2 = match_radius_px * match_radius_px;
+    std::vector<double> match_distances;  // P12-001 阶段8: 记录每对匹配的像素距离
+    match_distances.reserve(valid_idx.size());
     for (size_t k = 0; k < valid_idx.size(); ++k) {
         int j = valid_idx[k];
         int best_gaia = kdtree.findNearest(psf_cx[j], psf_cy[j], max_dist2);
@@ -196,15 +264,44 @@ std::vector<StarMatch> StarMatcher::matchWithKdTree(
         m.gaia_mag = gaia_mag[best_gaia];
         matches.push_back(m);
 
-        // 循环内每颗匹配星的高频日志, 用 LOG_DEBUG 编译时禁用
-#ifdef PC_ENABLE_DEBUG
+        // P12-001 阶段8: 记录匹配距离 (PSF 星到 Gaia 星的像素距离)
         double dx = psf_cx[j] - gaia_px[best_gaia];
         double dy = psf_cy[j] - gaia_py[best_gaia];
+        match_distances.push_back(std::sqrt(dx * dx + dy * dy));
+
+        // 循环内每颗匹配星的高频日志, 用 LOG_DEBUG 编译时禁用
+#ifdef PC_ENABLE_DEBUG
         LOG_DEBUG("[star_matcher] 匹配#%d: PSF[%d] -> Gaia[%d] "
                   "(%.2f,%.2f) dist=%.3f F_syn=%.4e F_instr=%.2f mag_g=%.2f",
                   (int)matches.size(), j, best_gaia, m.x, m.y,
-                  std::sqrt(dx * dx + dy * dy), m.f_syn, m.f_instr, m.gaia_mag);
+                  match_distances.back(), m.f_syn, m.f_instr, m.gaia_mag);
 #endif
+    }
+
+    // P12-001 阶段4: 空间候选数 (KD-tree 命中)
+    // P12-001 阶段6: rejected_distance = 有效PSF星 - 命中数 (距离超阈值)
+    // P12-001 阶段8: 匹配距离统计
+    if (out_diag) {
+        out_diag->spatial_candidates = (int)matches.size();
+        out_diag->unique_matches = (int)matches.size();  // 当前无双向过滤, 等于候选数
+        out_diag->rejected_ambiguous = 0;  // 当前无双向匹配, 保持 0
+        out_diag->rejected_distance = (int)valid_idx.size() - (int)matches.size();
+        LOG_INFO("[star_matcher] P12-001 阶段4/6: spatial_candidates=%d, "
+                 "unique_matches=%d, rejected_ambiguous=%d, rejected_distance=%d",
+                 out_diag->spatial_candidates, out_diag->unique_matches,
+                 out_diag->rejected_ambiguous, out_diag->rejected_distance);
+
+        if (!match_distances.empty()) {
+            out_diag->match_distance_median = percentileOf(match_distances, 0.5);
+            out_diag->match_distance_p90 = percentileOf(match_distances, 0.9);
+            out_diag->match_distance_max =
+                *std::max_element(match_distances.begin(), match_distances.end());
+            LOG_INFO("[star_matcher] P12-001 阶段8: match_distance "
+                     "median=%.4f p90=%.4f max=%.4f px",
+                     out_diag->match_distance_median,
+                     out_diag->match_distance_p90,
+                     out_diag->match_distance_max);
+        }
     }
 
     LOG_INFO("[star_matcher] KD-tree 匹配完成: %d 对", (int)matches.size());
@@ -220,7 +317,8 @@ std::vector<StarMatch> StarMatcher::matchWithKdTree(
 // ============================================================================
 std::vector<StarMatch> StarMatcher::cleanAndScale(
     const std::vector<StarMatch>& matches, double mag_tolerance,
-    double* out_scale_factor, double* out_sigma_residual) {
+    double* out_scale_factor, double* out_sigma_residual,
+    PhotometricDiag* out_diag) {
 
     int n_in = (int)matches.size();
     LOG_INFO("[star_matcher] cleanAndScale: 输入 %d 颗, 星等容忍 %.2f mag",
@@ -255,6 +353,15 @@ std::vector<StarMatch> StarMatcher::cleanAndScale(
 
     if (r_vals.empty()) {
         LOG_INFO("[star_matcher] 警告: 无有效匹配星 (F_instr/F_syn<=0 或无效值)");
+        if (out_diag) {
+            out_diag->rejected_quality = n_in;  // 全部因 F<=0/非有限 被拒绝
+            out_diag->fit_used = 0;
+            out_diag->robust_iterations = 0;
+            out_diag->scale_factor = 1.0;
+            out_diag->sigma_residual = 0.0;
+            LOG_INFO("[star_matcher] P12-001 阶段6/7: rejected_quality=%d (全部无效), fit_used=0",
+                     n_in);
+        }
         return {};
     }
 
@@ -278,6 +385,16 @@ std::vector<StarMatch> StarMatcher::cleanAndScale(
 
     if (r_consistent.empty()) {
         LOG_INFO("[star_matcher] 警告: 星等一致性过滤后无匹配星");
+        if (out_diag) {
+            int n_invalid = n_in - (int)valid_idx.size();
+            out_diag->rejected_quality = n_invalid + n_mag_rejected;
+            out_diag->fit_used = 0;
+            out_diag->robust_iterations = 0;
+            out_diag->scale_factor = 1.0;
+            out_diag->sigma_residual = 0.0;
+            LOG_INFO("[star_matcher] P12-001 阶段6/7: rejected_quality=%d (invalid=%d + mag=%d), fit_used=0",
+                     out_diag->rejected_quality, n_invalid, n_mag_rejected);
+        }
         return {};
     }
 
@@ -291,6 +408,7 @@ std::vector<StarMatch> StarMatcher::cleanAndScale(
     double S = (mad > 0.0) ? (mad / _MAD_SCALE) : 0.0;
     LOG_INFO("[star_matcher] IRLS 初始: location=%.6f, MAD=%.6f, S=%.6f", location, mad, S);
 
+    int irls_iter_count = 0;  // P12-001 阶段7: IRLS 实际迭代次数
     if (S <= 0.0) {
         // 所有 r 相同 (S=0), 无法做 IRLS, 直接用 location 作为最终估计
         LOG_INFO("[star_matcher] IRLS: S=0 (所有 r 相同), 跳过迭代");
@@ -298,6 +416,7 @@ std::vector<StarMatch> StarMatcher::cleanAndScale(
         // IRLS 迭代
         double prev_location = location;
         for (int iter = 0; iter < _IRLS_MAX_ITER; ++iter) {
+            irls_iter_count = iter + 1;  // P12-001: 记录迭代次数
             double sum_wr = 0.0, sum_w = 0.0;
             double cS = _TUKEY_C * S;
             for (double r : r_consistent) {
@@ -378,6 +497,32 @@ std::vector<StarMatch> StarMatcher::cleanAndScale(
     LOG_INFO("[star_matcher] 清洗完成: 保留 %d, 排除 %d (无效/星等不一致/IRLS离群)",
              (int)cleaned.size(), n_in - (int)cleaned.size());
 
+    // P12-001 阶段6/7/8: 填充诊断结构体
+    if (out_diag) {
+        int n_invalid = n_in - (int)valid_idx.size();  // F<=0/非有限
+        out_diag->rejected_quality = n_invalid + n_mag_rejected + n_irls_outlier;
+        out_diag->fit_used = (int)cleaned.size();
+        out_diag->robust_iterations = irls_iter_count;
+        out_diag->scale_factor = scale;
+        out_diag->sigma_residual = sigma_residual;
+        if (!r_inliers.empty()) {
+            out_diag->r_median = percentileOf(r_inliers, 0.5);
+            out_diag->r_p90 = percentileOf(r_inliers, 0.9);
+            out_diag->r_max = *std::max_element(r_inliers.begin(), r_inliers.end());
+        }
+        LOG_INFO("[star_matcher] P12-001 阶段6/7/8: rejected_quality=%d "
+                 "(invalid=%d + mag=%d + irls=%d), fit_used=%d, "
+                 "robust_iterations=%d, scale=%.6e, sigma=%.6f",
+                 out_diag->rejected_quality, n_invalid, n_mag_rejected,
+                 n_irls_outlier, out_diag->fit_used, out_diag->robust_iterations,
+                 out_diag->scale_factor, out_diag->sigma_residual);
+        if (!r_inliers.empty()) {
+            LOG_INFO("[star_matcher] P12-001 阶段8: r_inliers "
+                     "median=%.6f p90=%.6f max=%.6f dex",
+                     out_diag->r_median, out_diag->r_p90, out_diag->r_max);
+        }
+    }
+
     return cleaned;
 }
 
@@ -391,13 +536,19 @@ std::vector<StarMatch> StarMatcher::matchAndClean(
     const double* psf_cx, const double* psf_cy,
     const double* psf_flux, const int* psf_status, int n_psf,
     double match_radius_px, double mag_tolerance,
-    double* out_scale_factor, double* out_sigma_residual) {
+    double* out_scale_factor, double* out_sigma_residual,
+    PhotometricDiag* out_diag,
+    int frame_width, int frame_height) {
+
+    // P12-001: 初始化诊断结构体 (全 0)
+    initDiag(out_diag);
 
     std::vector<StarMatch> matches = matchWithKdTree(
         wcs, gaia_ra, gaia_dec, gaia_mag, gaia_fsyn, n_gaia,
-        psf_cx, psf_cy, psf_flux, psf_status, n_psf, match_radius_px);
+        psf_cx, psf_cy, psf_flux, psf_status, n_psf, match_radius_px,
+        out_diag, frame_width, frame_height);
 
-    return cleanAndScale(matches, mag_tolerance, out_scale_factor, out_sigma_residual);
+    return cleanAndScale(matches, mag_tolerance, out_scale_factor, out_sigma_residual, out_diag);
 }
 
 } // namespace pc

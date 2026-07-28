@@ -45,12 +45,18 @@ int pc_calibrate_simple(
     const double* sip_a, const double* sip_b,
     const double* sip_ap, const double* sip_bp,
     float* out_pixels, int* out_n_matched, double* out_scale_factor,
-    double* out_sigma_residual) {
+    double* out_sigma_residual,
+    PhotometricDiag* out_diag) {
 
     std::fprintf(stderr, "[pc_api] ====== 简化版测光校准开始 ======\n");
 #ifdef _OPENMP
     std::fprintf(stderr, "[pc_api] OpenMP线程数: %d\n", omp_get_max_threads());
 #endif
+
+    // P12-001: 初始化诊断结构体 (全 0)
+    if (out_diag) {
+        std::memset(out_diag, 0, sizeof(PhotometricDiag));
+    }
 
     // ---- 参数校验 ----
     if (pixels == nullptr || out_pixels == nullptr ||
@@ -113,7 +119,9 @@ int pc_calibrate_simple(
         2.0,  // match_radius_px (GAP-013: 收紧 3.0 -> 2.0)
         3.0,  // mag_tolerance (GAP-013: 星等一致性容忍度, mag)
         &scale,
-        &sigma_residual);
+        &sigma_residual,
+        out_diag,      // P12-001: 透传诊断 (阶段2/3/4/6/7/8)
+        width, height);
 
     int n_matched = (int)matches.size();
     std::fprintf(stderr, "[pc_api] 匹配+清洗完成: %d 颗, scale=%.6e, sigma_residual=%.6f\n",
@@ -158,12 +166,18 @@ int pc_calibrate_simple_with_gaia(
     const double* sip_a, const double* sip_b,
     const double* sip_ap, const double* sip_bp,
     float* out_pixels, int* out_n_matched, double* out_scale_factor,
-    double* out_sigma_residual) {
+    double* out_sigma_residual,
+    PhotometricDiag* out_diag) {
 
     std::fprintf(stderr, "[pc_api] ====== pc_calibrate_simple_with_gaia 开始 ======\n");
 #ifdef _OPENMP
     std::fprintf(stderr, "[pc_api] OpenMP线程数: %d\n", omp_get_max_threads());
 #endif
+
+    // P12-001: 初始化诊断结构体 (全 0)
+    if (out_diag) {
+        std::memset(out_diag, 0, sizeof(PhotometricDiag));
+    }
 
     // ---- 参数校验 ----
     if (pixels == nullptr || out_pixels == nullptr ||
@@ -311,6 +325,14 @@ int pc_calibrate_simple_with_gaia(
     }
     std::fprintf(stderr, "[pc_api] F_syn 并行计算完成: %d/%d 颗有效\n", n_valid_fsyn, n_gaia);
 
+    // P12-001 阶段1: 填充 spectrum_rows_total 和 valid_fsyn
+    if (out_diag) {
+        out_diag->spectrum_rows_total = n_gaia;
+        out_diag->valid_fsyn = n_valid_fsyn;
+        LOG_INFO("[pc_api] P12-001 阶段1: spectrum_rows_total=%d, valid_fsyn=%d",
+                 n_gaia, n_valid_fsyn);
+    }
+
     // ---- 4. 构造 Gaia ra/dec/mag/fsyn 数组, 调用现有 StarMatcher + ImageCorrector ----
     std::vector<double> gaia_ra(n_gaia), gaia_dec(n_gaia), gaia_mag(n_gaia), gaia_fsyn(n_gaia);
     for (int i = 0; i < n_gaia; ++i) {
@@ -336,7 +358,9 @@ int pc_calibrate_simple_with_gaia(
         2.0,   // match_radius_px (GAP-013: 收紧 3.0 -> 2.0)
         3.0,   // mag_tolerance (GAP-013: 星等一致性容忍度, mag)
         &scale,
-        &sigma_residual);
+        &sigma_residual,
+        out_diag,      // P12-001: 透传诊断 (阶段2/3/4/6/7/8)
+        width, height);
 
     int n_matched = (int)matches.size();
     std::fprintf(stderr, "[pc_api] 匹配+清洗完成: %d 颗, scale=%.6e, sigma_residual=%.6f\n",

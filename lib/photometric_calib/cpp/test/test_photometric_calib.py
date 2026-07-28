@@ -71,8 +71,8 @@ def test_basic_calibration():
     # ---- 原图 ----
     image = np.full((img_h, img_w), 1000.0, dtype=np.float32)
 
-    # ---- 调用 ----
-    out_img, n_matched, scale = pc.calibrate_simple(
+    # ---- 调用 (P12-001: 返回5元组含 diag) ----
+    out_img, n_matched, scale, sigma_residual, diag = pc.calibrate_simple(
         image, gaia_ra, gaia_dec, gaia_mag, gaia_fsyn,
         psf_cx, psf_cy, psf_flux, psf_status,
         crval1, crval2, crpix1, crpix2,
@@ -83,6 +83,8 @@ def test_basic_calibration():
     print(f"  scale = {scale:.6e} (期望 ~10.0)")
     print(f"  out_img[0,0] = {out_img[0, 0]:.4f} (期望 ~10000.0)")
     print(f"  out_img shape = {out_img.shape}")
+    print(f"  diag.fit_used = {diag.fit_used} (期望 10)")
+    print(f"  diag.psf_valid = {diag.psf_valid} (期望 10)")
 
     t1_ok = (n_matched == 10 and abs(scale - 10.0) < 0.5
              and abs(out_img[0, 0] - 10000.0) < 500.0
@@ -134,7 +136,7 @@ def test_outlier_cleaning():
 
     image = np.full((img_h, img_w), 1000.0, dtype=np.float32)
 
-    out_img, n_matched, scale = pc.calibrate_simple(
+    out_img, n_matched, scale, sigma_residual, diag = pc.calibrate_simple(
         image, gaia_ra, gaia_dec, gaia_mag, gaia_fsyn,
         psf_cx, psf_cy, psf_flux, psf_status,
         crval1, crval2, crpix1, crpix2,
@@ -143,6 +145,8 @@ def test_outlier_cleaning():
 
     print(f"  n_matched = {n_matched} (期望 19, 离群1被剔除)")
     print(f"  scale = {scale:.6e} (期望 ~10.0)")
+    print(f"  diag.fit_used = {diag.fit_used} (期望 19)")
+    print(f"  diag.rejected_quality = {diag.rejected_quality}")
 
     t2_ok = (n_matched == 19 and abs(scale - 10.0) < 0.5)
     print(f"  [{'PASS' if t2_ok else 'FAIL'}] MAD离群清洗")
@@ -170,7 +174,7 @@ def test_no_gaia():
     psf_flux = np.array([100.0], dtype=np.float64)
     psf_status = np.array([0], dtype=np.int32)
 
-    out_img, n_matched, scale = pc.calibrate_simple(
+    out_img, n_matched, scale, sigma_residual, diag = pc.calibrate_simple(
         image, gaia_ra, gaia_dec, gaia_mag, gaia_fsyn,
         psf_cx, psf_cy, psf_flux, psf_status,
         10.0, 20.0, 100.0, 100.0, 0.01, 0.0, 0.0, 0.01,
@@ -179,6 +183,7 @@ def test_no_gaia():
     print(f"  n_matched = {n_matched} (期望 0)")
     print(f"  scale = {scale:.6e} (期望 1.0)")
     print(f"  out_img[0,0] = {out_img[0, 0]:.4f} (期望 500.0)")
+    print(f"  diag.spectrum_rows_total = {diag.spectrum_rows_total} (期望 0)")
 
     t3_ok = (n_matched == 0 and abs(scale - 1.0) < 1e-9
              and abs(out_img[0, 0] - 500.0) < 1e-3)
@@ -241,7 +246,7 @@ def test_sip_wcs():
 
     image = np.full((img_h, img_w), 1000.0, dtype=np.float32)
 
-    out_img, n_matched, scale = pc.calibrate_simple(
+    out_img, n_matched, scale, sigma_residual, diag = pc.calibrate_simple(
         image, gaia_ra, gaia_dec, gaia_mag, gaia_fsyn,
         psf_cx, psf_cy, psf_flux, psf_status,
         crval1, crval2, crpix1, crpix2,
@@ -252,10 +257,101 @@ def test_sip_wcs():
 
     print(f"  n_matched = {n_matched} (期望 10, SIP投影后仍能匹配)")
     print(f"  scale = {scale:.6e}")
+    print(f"  diag.fit_used = {diag.fit_used}")
 
     t4_ok = (n_matched >= 8 and scale > 0)  # SIP可能引入微小偏移, 允许少匹配几颗
     print(f"  [{'PASS' if t4_ok else 'FAIL'}] SIP WCS投影")
     return t4_ok
+
+
+def test_diag_output():
+    """P12-001: 测试 PhotometricDiag 分阶段诊断输出
+
+    构造已知输入 (10颗星 TAN 投影), 调用 calibrate_simple,
+    验证 diag 各字段非默认值 (至少 spectrum_rows_total/psf_valid/fit_used > 0).
+    """
+    from photometric_calib import PhotometricCalib, PhotometricDiag
+
+    print("\n" + "=" * 60)
+    print("[测试5] P12-001 PhotometricDiag 分阶段诊断输出")
+    print("=" * 60)
+
+    pc = PhotometricCalib()
+
+    # ---- 构造WCS参数 (与 test_basic_calibration 相同) ----
+    crpix1, crpix2 = 100.0, 100.0
+    crval1, crval2 = 10.0, 20.0
+    cd_val = 0.01
+    img_w, img_h = 200, 200
+
+    px_vals = np.linspace(25, 175, 10)
+    py_vals = np.full(10, 100.0)
+
+    from astropy.wcs import WCS
+    w = WCS(naxis=2)
+    w.wcs.cd = [[cd_val, 0], [0, cd_val]]
+    w.wcs.crval = [crval1, crval2]
+    w.wcs.crpix = [crpix1, crpix2]
+    w.wcs.ctype = ["RA---TAN", "DEC--TAN"]
+    world = w.all_pix2world(px_vals, py_vals, 0)
+    gaia_ra = world[0]
+    gaia_dec = world[1]
+    gaia_mag = np.full(10, 12.0)
+    gaia_fsyn = np.full(10, 50000.0)
+
+    psf_cx = px_vals + 0.1
+    psf_cy = py_vals - 0.1
+    psf_flux = gaia_fsyn / 10.0
+    psf_status = np.zeros(10, dtype=np.int32)
+
+    image = np.full((img_h, img_w), 1000.0, dtype=np.float32)
+
+    # ---- 调用 ----
+    out_img, n_matched, scale, sigma_residual, diag = pc.calibrate_simple(
+        image, gaia_ra, gaia_dec, gaia_mag, gaia_fsyn,
+        psf_cx, psf_cy, psf_flux, psf_status,
+        crval1, crval2, crpix1, crpix2,
+        cd_val, 0.0, 0.0, cd_val,
+    )
+
+    # ---- 验证 diag 是 PhotometricDiag 实例 ----
+    assert isinstance(diag, PhotometricDiag), \
+        f"diag 应为 PhotometricDiag 实例, 实际为 {type(diag)}"
+
+    # ---- 验证 diag 字段非默认值 (P12-001 关键检查) ----
+    print(f"  diag.to_dict() = {diag.to_dict()}")
+
+    # 阶段1: Fsyn (pc_calibrate_simple 不计算 F_syn, 但 gaia 行数应等于 n_gaia)
+    # 注: pc_calibrate_simple 旧接口可能不填充所有阶段字段, 仅验证关键字段
+    print(f"  阶段3 PSF: psf_total={diag.psf_total} (期望 10), psf_valid={diag.psf_valid} (期望 10)")
+    print(f"  阶段7 拟合: fit_used={diag.fit_used} (期望 10), robust_iterations={diag.robust_iterations}")
+    print(f"  阶段7 scale_factor={diag.scale_factor:.6e}, sigma_residual={diag.sigma_residual:.6f}")
+    print(f"  阶段8 r_median={diag.r_median:.6f}, r_p90={diag.r_p90:.6f}, r_max={diag.r_max:.6f}")
+    print(f"  阶段8 match_distance_median={diag.match_distance_median:.6f}, "
+          f"p90={diag.match_distance_p90:.6f}, max={diag.match_distance_max:.6f}")
+
+    # 关键字段断言 (P12-001 通过条件: 至少 spectrum_rows_total/psf_valid/fit_used > 0)
+    # pc_calibrate_simple 不在 DLL 内部计算 F_syn, 但 DLL 仍应填充 psf/匹配/拟合相关字段
+    checks = []
+    checks.append(("psf_total > 0", diag.psf_total > 0))
+    checks.append((f"psf_valid > 0 (实际={diag.psf_valid})", diag.psf_valid > 0))
+    checks.append((f"fit_used > 0 (实际={diag.fit_used})", diag.fit_used > 0))
+    checks.append((f"scale_factor > 0 (实际={diag.scale_factor:.6e})", diag.scale_factor > 0))
+    # diag.scale_factor 与返回的 scale 应一致
+    checks.append((f"diag.scale_factor ≈ scale ({diag.scale_factor:.6e} vs {scale:.6e})",
+                   abs(diag.scale_factor - scale) < 1e-9))
+    # diag.sigma_residual 与返回的 sigma_residual 应一致
+    checks.append((f"diag.sigma_residual ≈ sigma_residual ({diag.sigma_residual:.6f} vs {sigma_residual:.6f})",
+                   abs(diag.sigma_residual - sigma_residual) < 1e-9))
+
+    all_ok = True
+    for desc, ok in checks:
+        print(f"    [{'PASS' if ok else 'FAIL'}] {desc}")
+        if not ok:
+            all_ok = False
+
+    print(f"  [{'PASS' if all_ok else 'FAIL'}] P12-001 diag 输出")
+    return all_ok
 
 
 if __name__ == "__main__":
@@ -295,6 +391,14 @@ if __name__ == "__main__":
         import traceback
         traceback.print_exc()
         results.append(("SIP WCS投影", False))
+
+    try:
+        results.append(("P12-001 diag 输出", test_diag_output()))
+    except Exception as e:
+        print(f"  [FAIL] P12-001 diag 输出异常: {e}")
+        import traceback
+        traceback.print_exc()
+        results.append(("P12-001 diag 输出", False))
 
     print("\n" + "=" * 60)
     print("测试汇总:")
