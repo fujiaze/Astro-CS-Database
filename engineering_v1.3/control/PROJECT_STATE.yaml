@@ -1,10 +1,10 @@
 project: AstroCS CLI Core and Spherical Browser
-phase: v1.3 p11-recovery-and-unfinished-v1.2
+phase: v1.3 p12-photometric-diagnostic
 state_schema: 2
 status: ACTIVE
-current_gate: G11
-current_task: (待定)
-last_completed_task: P11-006
+current_gate: G12
+current_task: P12-002
+last_completed_task: P12-001
 baseline_engineering: engineering/G0-G8 preserved
 previous_phase: engineering_v1.2
 product_target: Real-data Stage1 + Galaxy Center 3-panel HCSD + performant spherical browser
@@ -20,4 +20,5 @@ notes:
   - 修复脚本 repair_failed_frames.py v3.5 已就绪（可用于批量修复历史 header 问题）。
   - ipv_wcs.cpp CRPIX 实现冲突（line 165 vs 287）已在 P11-006 修复（统一为 width/2.0 + 0.5）。
   - P11-006 完成（2026-07-28）：坐标契约升级到 v2（COORDINATE_CONVENTION_V2.md），新增 A/B/C 三层验证架构与 B 层硬 Gate 量化阈值；wcs_authoritative_pairs.schema.json 新增可选 provenance 对象；CLI capabilities 声明 schema_versions；run_ipv_baseline.py 移除 offset_px 检查；710帧回归 709/710 无回归。
+  - P12-001 完成（2026-07-28）：PhotometricDiag 结构体（20字段）+ 8 阶段埋点 + photo_stats KV（17字段）+ photometry_report.json + quality_metric CLI 事件；Python ctypes 封装同步；契约测试 5/5 通过；KD-tree 方向逻辑 bug 为预存问题（P12-002 范围），fit_used/sigma_residual Gate 待 P12-002 修复后满足。
   - All unfinished P09-P17 work remains in scope.

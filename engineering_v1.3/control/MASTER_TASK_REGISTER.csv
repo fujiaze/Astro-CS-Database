@@ -14,7 +14,7 @@ P11-003,P11,在T1-T4代表帧复现WCS闭环缺陷,P11-002,G11,DONE,evidence/P11
 P11-004,P11,修正WCS验证Gate并完成生产端裁决,P11-003,G11,DONE,evidence/P11-004
 P11-005,P11,PlateSolve 710全量回归与权威星对WCS Gate,P11-004,G11,DONE,evidence/P11-005
 P11-006,P11,更新坐标契约、CLI capabilities、provenance,P11-005,G11,DONE,evidence/P11-006
-P12-001,P12,增加Photometric分阶段诊断,P11-006,G12,TODO,evidence/P12-001
+P12-001,P12,增加Photometric分阶段诊断,P11-006,G12,DONE,evidence/P12-001
 P12-002,P12,修复Gaia到PSF空间匹配与唯一配对,P12-001,G12,TODO,evidence/P12-002
 P12-003,P12,验证光谱积分与响应曲线无回归,P12-001,G12,TODO,evidence/P12-003
 P12-004,P12,T1-T4与滤镜类别测光矩阵验证,P12-002;P12-003;P10-006,G12,TODO,evidence/P12-004

@@ -36,3 +36,16 @@
 - **回归验证**: 710帧回归 709/710 success (99.86%)，与 P11-005 一致，无回归。
 - **后续**: P11 阶段全部完成；下一阶段为 P12（Photometric 分阶段诊断）或 P15（浏览器优化）。
 - **证据**: `evidence/P11-006/TASK_REPORT.md` + `evidence/P11-006/COORDINATE_CONVENTION_V2.md` + `contracts/wcs_authoritative_pairs.schema.json`
+
+## ADR-P12-001 — 2026-07-28
+- **Outcome**: PHOTOMETRIC_DIAG_STRUCT + CLI_QUALITY_METRIC + JSON_REPORT
+- **变更范围**:
+  1. C++ DLL（子任务A）：新增 `PhotometricDiag` 结构体（20字段，8阶段诊断），`pc_calibrate_simple` / `pc_calibrate_simple_with_gaia` 出参新增 `POINTER(PhotometricDiag)`（向后兼容 nullptr）；`star_matcher.cpp` 8 阶段埋点（Fsyn/投影/PSF/匹配/拒绝/拟合/残差/距离）。
+  2. Orchestrator（子任务B）：`run_stage_photometric` 写入 photo_stats KV 块 17 个诊断字段 + 同步到 `result.photo_stats` + 生成 `photometry_report.json`（遵循 schema）；CLI `quality_metric` 事件输出 17 个诊断字段。
+  3. Python 封装（子任务C）：`photometric_calib.py` 新增 `PhotometricDiag` ctypes 镜像结构体 + `to_dict()` + argtypes 更新 + 5元组返回 + DLL 加载增强（`os.add_dll_directory` + MinGW bin + 预加载依赖）。
+- **兼容性**: PhotometricDiag 出参为可选（nullptr 向后兼容）；Python 封装从 4元组改为 5元组（破坏性变更，但仅影响 photometric_calib.py 调用方）；C++ 算法核心逻辑（IRLS/Tukey/KD-tree）未修改。
+- **测试结果**: 单元测试 2/5 PASS（3 FAIL 因预存 KD-tree bug），契约测试 5/5 PASS，CLI 验证全部通过。
+- **已知问题**: KD-tree `findNearestRec` 方向逻辑反转（`diff < 0` 时应探索 right, 实际探索 left），导致远离根节点的查询点无法找到最近邻。此为预存 bug，P12-001 未引入（git diff 确认），归属 P12-002。
+- **Gate 状态**: fit_used ≥ 20/8 和 sigma_residual > 0 两项 Gate 受 KD-tree bug 影响，待 P12-002 修复后满足；其余 Gate 全部通过。
+- **后续**: P12-002 修复 KD-tree 方向逻辑 bug + Gaia 到 PSF 空间匹配与唯一配对。
+- **证据**: `evidence/P12-001/TASK_REPORT.md` + `evidence/P12-001/TEST_REPORT.md` + `evidence/P12-001/raw_logs/`
