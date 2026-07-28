@@ -1385,3 +1385,40 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 - **控制文件更新**: PROJECT_STATE.yaml (last_completed=P11-006) + CURRENT_TASK.md + MASTER_TASK_REGISTER.csv (P11-006 → DONE) + DECISION_REGISTER.md (ADR-P11-006-COORD-V2)
 - **依赖**: P11-005 (DONE); **后续**: G11 全部完成（P11-001~006 DONE）
 - **Gate**: G11 完成 (P11-001/002/003/004/005/006 DONE)
+
+### P12-001 进度（2026-07-28，DONE）
+- **状态**: DONE（PhotometricDiag 结构体 + 8 阶段埋点 + photo_stats KV + photometry_report.json + quality_metric CLI + Python ctypes 封装）
+- **修改文件**: star_matcher.cpp (PhotometricDiag 结构体 + 8 阶段埋点) + photometric_calib.h (PC_API 出参) + pc_api.cpp (透传 diag) + photometric_calib.py (PhotometricDiag ctypes 镜像 + 5元组返回) + orchestrator.cpp (photo_stats KV 17字段 + photometry_report.json + quality_metric CLI 事件)
+- **测试**: 单元测试 2/5 PASS（3 FAIL 因预存 KD-tree bug, P12-002 范围）+ 契约测试 5/5 PASS + CLI 验证全部通过
+- **已知问题**: KD-tree findNearestRec 方向逻辑反转（diff < 0 时应探索 right, 实际探索 left），导致 10 颗 PSF 星中仅 1 颗匹配成功。归属 P12-002。
+- **Gate**: fit_used ≥ 20/8 和 sigma_residual > 0 两项 Gate 受 KD-tree bug 影响，待 P12-002 修复后满足
+- **控制文件**: PROJECT_STATE.yaml (last_completed=P12-001) + CURRENT_TASK.md + MASTER_TASK_REGISTER.csv (P12-001 → DONE) + DECISION_REGISTER.md (ADR-P12-001)
+- **依赖**: P11-006 (DONE); **后续**: P12-002
+
+### P12-002 进度（2026-07-28，DONE）
+- **状态**: DONE（KDTREE_DIRECTION_FIX + BIDIRECTIONAL_UNIQUE_MATCHING）
+- **修改文件**: `lib/photometric_calib/cpp/src/star_matcher.cpp`（仅 1 个文件，2 处改动）
+- **改动 A**: 修复 `KdTree2D::findNearestRec` 方向 bug（第 137-142 行）
+  - 修复前: `first = (diff < 0) ? node->left : node->right`（错误：diff < 0 时去了 left）
+  - 修复后: `first = (diff < 0) ? node->right : node->left`（正确：diff = node - query, diff < 0 表示 query 在 node 右侧, 应去 right 子树）
+- **改动 B**: 重写 `StarMatcher::matchWithKdTree` 实现双向最近邻唯一配对
+  - 新增 PSF KD-tree 构建（用于反向 Gaia→PSF 查询）
+  - 正向匹配 (PSF→Gaia): 每颗 PSF 有效星找最近 Gaia 星
+  - 反向匹配 (Gaia→PSF): 每颗 Gaia 星找最近 PSF 有效星
+  - 唯一配对: 仅保留互为最近邻的对 (PSF[k]→Gaia[g] 且 Gaia[g]→PSF[k])
+  - diag 字段: spatial_candidates=正向命中, unique_matches=双向唯一, rejected_ambiguous=非互为最近邻, rejected_distance=距离超阈值
+  - 守恒律: valid_idx.size() = rejected_distance + spatial_candidates = rejected_distance + unique_matches + rejected_ambiguous
+- **未修改**: IRLS/Tukey/星等一致性/质量筛选逻辑 (cleanAndScale 完全不变) + 匹配半径逻辑 (match_radius_px 由调用方传入) + C API 接口 + PhotometricDiag 结构体 + Python ctypes 封装
+- **编译**: g++ 16.1.0, exit 0, DLL 1065.4 KB (修复前 1031.2 KB, +34 KB)
+- **测试**: 5/5 PASS（修复前 2/5 PASS, 3 FAIL 因 KD-tree bug）
+  - 测试1 基本测光 (10星): n_matched 1→10, scale=10.0, fit_used=10
+  - 测试2 MAD清洗 (20星): n_matched <19→19, scale=9.997, sigma_residual=0.003365, rejected_quality=1
+  - 测试3 退化路径: n_matched=0, scale=1.0 (保持 PASS)
+  - 测试4 SIP WCS (10星): n_matched <8→10, scale=10.0
+  - 测试5 diag 输出: 全部 20 字段正确填充 (保持 PASS)
+- **diag 关键字段 (测试5)**: spatial_candidates=10, unique_matches=10, rejected_ambiguous=0, rejected_distance=0, fit_used=10, match_distance_median=0.1414 px
+- **Gate**: G12 Photometric Gate 全部满足 (fit_used ≥ 20/8, sigma_residual > 0, unique_matches > 1)
+- **证据**: engineering_v1.3/evidence/P12-002/ (TASK_REPORT + TEST_REPORT + EVIDENCE_INDEX + REVIEW_REPORT + raw_logs/test_photometric_calib_p12_002.log)
+- **控制文件**: PROJECT_STATE.yaml (last_completed=P12-002, current=P12-003) + CURRENT_TASK.md + MASTER_TASK_REGISTER.csv (P12-002 → DONE) + DECISION_REGISTER.md (ADR-P12-002)
+- **依赖**: P12-001 (DONE); **后续**: P12-003 (验证光谱积分与响应曲线无回归)
+- **Gate**: G12 进行中 (P12-001/002 DONE, P12-003~006 TODO)

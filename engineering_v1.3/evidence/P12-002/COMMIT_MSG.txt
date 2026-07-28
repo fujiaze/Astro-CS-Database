@@ -1,0 +1,30 @@
+P12-002: fix KdTree2D direction bug and add bidirectional unique matching
+
+修复 star_matcher.cpp 中 KdTree2D::findNearestRec 的方向逻辑 bug
+(diff < 0 时应探索 right 子树, 原错误去 left), 并重写
+StarMatcher::matchWithKdTree 实现双向最近邻唯一配对:
+
+- 正向匹配 (PSF -> Gaia): 每颗 PSF 有效星找最近 Gaia 星
+- 反向匹配 (Gaia -> PSF): 每颗 Gaia 星找最近 PSF 有效星 (新增 PSF KD-tree)
+- 唯一配对: 仅保留互为最近邻的对
+- diag 守恒律: valid = rejected_distance + spatial_candidates
+                = rejected_distance + unique_matches + rejected_ambiguous
+
+代码改动严格限定于 star_matcher.cpp 的空间匹配逻辑, 未触及
+spectrum_integrator.cpp / pc_api.cpp / PhotometricDiag 结构体 /
+Python ctypes 封装 / 响应曲线数据 (filters.json / qe_curves.json).
+
+测试: 5/5 PASS (修复前 2/5 PASS, 3 FAIL 因 KD-tree bug).
+Gate G12 满足: fit_used >= 20 (broadband) / 8 (narrowband),
+sigma_residual > 0, unique_matches > 1.
+
+证据: engineering_v1.3/evidence/P12-002/
+- TASK_REPORT.md
+- TEST_REPORT.md
+- EVIDENCE_INDEX.md
+- REVIEW_REPORT.md
+- raw_logs/test_photometric_calib_p12_002.log
+
+控制文件: PROJECT_STATE.yaml (last_completed=P12-002, current=P12-003)
+        + CURRENT_TASK.md + MASTER_TASK_REGISTER.csv + DECISION_REGISTER.md
+        + memory.md

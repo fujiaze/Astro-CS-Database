@@ -49,3 +49,16 @@
 - **Gate 状态**: fit_used ≥ 20/8 和 sigma_residual > 0 两项 Gate 受 KD-tree bug 影响，待 P12-002 修复后满足；其余 Gate 全部通过。
 - **后续**: P12-002 修复 KD-tree 方向逻辑 bug + Gaia 到 PSF 空间匹配与唯一配对。
 - **证据**: `evidence/P12-001/TASK_REPORT.md` + `evidence/P12-001/TEST_REPORT.md` + `evidence/P12-001/raw_logs/`
+
+## ADR-P12-002 — 2026-07-28
+- **Outcome**: KDTREE_DIRECTION_FIX + BIDIRECTIONAL_UNIQUE_MATCHING
+- **变更范围**:
+  1. KD-tree 方向 bug 修复（`star_matcher.cpp` 第 137-142 行）：`findNearestRec` 中 `diff < 0` 时应探索 right 子树（原错误探索 left），导致远离根节点的查询点无法找到最近邻。修复为 `first = (diff < 0) ? node->right : node->left`。
+  2. 双向最近邻唯一配对（`star_matcher.cpp` `matchWithKdTree` 方法重写）：新增 PSF KD-tree 构建（用于反向 Gaia→PSF 查询）+ 正向匹配（PSF→Gaia）+ 反向匹配（Gaia→PSF）+ 唯一配对过滤（互为最近邻保留，非互为最近邻计入 rejected_ambiguous）。
+- **算法选择**: 方案 A（建 PSF 的 KD-tree，Gaia→PSF 查询），保持 O((N_psf + N_gaia) × log(max)) 效率，避免 O(N_psf × N_gaia) 暴力计算。
+- **diag 字段语义**: spatial_candidates=正向命中数; unique_matches=双向唯一; rejected_ambiguous=正向命中但非互为最近邻; rejected_distance=正向未命中。守恒律: valid_idx.size() = rejected_distance + spatial_candidates = rejected_distance + unique_matches + rejected_ambiguous。
+- **兼容性**: C API 接口签名不变; PhotometricDiag 结构体不变; Python ctypes 封装不变; IRLS/Tukey/星等一致性/质量筛选逻辑完全不变; 匹配半径逻辑不变（由调用方传入）。
+- **测试结果**: 5/5 PASS（修复前 2/5 PASS, 3 FAIL 因 KD-tree bug）；测试1 n_matched 1→10, 测试2 n_matched <19→19, 测试4 n_matched <8→10。
+- **Gate 状态**: G12 Photometric Gate 全部满足（fit_used ≥ 20/8, sigma_residual > 0, unique_matches > 1）。
+- **后续**: P12-003 验证光谱积分与响应曲线无回归。
+- **证据**: `evidence/P12-002/TASK_REPORT.md` + `evidence/P12-002/TEST_REPORT.md` + `evidence/P12-002/REVIEW_REPORT.md` + `evidence/P12-002/raw_logs/test_photometric_calib_p12_002.log`

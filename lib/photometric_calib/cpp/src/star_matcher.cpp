@@ -134,10 +134,12 @@ private:
             best_idx = node->idx;
         }
 
-        // 决定先访问哪个子树 (按当前轴的分裂方向)
+        // P12-002 修复: 决定先访问哪个子树 (按当前轴的分裂方向)
+        // diff = node - query; diff < 0 表示 query 在 node 右侧, 应去 right 子树
+        // (原 bug: diff < 0 错误地去了 left 子树, 导致只能匹配到少量星)
         double diff = (node->axis == 0) ? dx : dy;
-        Node* first = (diff < 0) ? node->left : node->right;
-        Node* second = (diff < 0) ? node->right : node->left;
+        Node* first = (diff < 0) ? node->right : node->left;
+        Node* second = (diff < 0) ? node->left : node->right;
 
         findNearestRec(first, x, y, best_idx, best_dist2);
 
@@ -171,10 +173,13 @@ StarMatcher::StarMatcher() {
 }
 
 // ============================================================================
-// KD-tree 最近邻匹配
+// KD-tree 最近邻匹配 (P12-002: 双向最近邻唯一配对)
 // 1. WCS 投影所有 Gaia 星到像素坐标
-// 2. 对 Gaia 像素坐标建 KD-tree
-// 3. 对每颗 PSF 有效星 (status==0), 查询 KD-tree 找最近邻 Gaia 星 (距离 < match_radius_px)
+// 2. 对 Gaia 像素坐标建 KD-tree (用于正向 PSF→Gaia 查询)
+// 3. 对 PSF 有效星建 KD-tree (用于反向 Gaia→PSF 查询)
+// 4. 正向匹配: 每颗 PSF 有效星 → 最近 Gaia 星 (距离 < match_radius_px)
+// 5. 反向匹配: 每颗 Gaia 星 → 最近 PSF 星 (距离 < match_radius_px)
+// 6. 唯一配对: 仅保留互为最近邻的对 (PSF[k]→Gaia[g] 且 Gaia[g]→PSF[k])
 // ============================================================================
 std::vector<StarMatch> StarMatcher::matchWithKdTree(
     const WcsTransform& wcs,
@@ -220,8 +225,8 @@ std::vector<StarMatch> StarMatcher::matchWithKdTree(
                  n_in_frame, n_gaia);
     }
 
-    // 2. 对 Gaia 像素坐标建 KD-tree
-    KdTree2D kdtree(gaia_px, gaia_py);
+    // 2. 对 Gaia 像素坐标建 KD-tree (用于正向 PSF→Gaia 查询)
+    KdTree2D gaia_kdtree(gaia_px, gaia_py);
 
     // 3. 收集 PSF 有效星 (status==0)
     std::vector<int> valid_idx;
@@ -244,50 +249,101 @@ std::vector<StarMatch> StarMatcher::matchWithKdTree(
     LOG_INFO("[star_matcher] PSF有效星: %d / %d, Gaia星: %d, 匹配半径: %.2f px",
              (int)valid_idx.size(), n_psf, n_gaia, match_radius_px);
 
-    // 4. 对每颗 PSF 有效星, 查询 KD-tree 找最近邻 Gaia 星
-    double max_dist2 = match_radius_px * match_radius_px;
-    std::vector<double> match_distances;  // P12-001 阶段8: 记录每对匹配的像素距离
-    match_distances.reserve(valid_idx.size());
+    // 4. P12-002: 对 PSF 有效星也建 KD-tree (用于反向 Gaia→PSF 查询)
+    // PSF KD-tree 的索引即 valid_idx 数组的下标 k (0..valid_idx.size()-1)
+    std::vector<double> psf_valid_px(valid_idx.size()), psf_valid_py(valid_idx.size());
     for (size_t k = 0; k < valid_idx.size(); ++k) {
         int j = valid_idx[k];
-        int best_gaia = kdtree.findNearest(psf_cx[j], psf_cy[j], max_dist2);
+        psf_valid_px[k] = psf_cx[j];
+        psf_valid_py[k] = psf_cy[j];
+    }
+    KdTree2D psf_kdtree(psf_valid_px, psf_valid_py);
+
+    // 5. 正向匹配 (PSF→Gaia): 对每颗 PSF 有效星找最近 Gaia 星
+    double max_dist2 = match_radius_px * match_radius_px;
+    // forward_gaia[k] = PSF valid_idx 位置 k 对应的最近 Gaia 索引, -1 表示无命中
+    std::vector<int> forward_gaia(valid_idx.size(), -1);
+    std::vector<double> forward_dist2(valid_idx.size(), 0.0);
+    int n_forward_hits = 0;
+    for (size_t k = 0; k < valid_idx.size(); ++k) {
+        int j = valid_idx[k];
+        int best_gaia = gaia_kdtree.findNearest(psf_cx[j], psf_cy[j], max_dist2);
         if (best_gaia < 0) {
-            // 无匹配 (最近邻超出阈值)
+            continue;  // 无匹配 (最近邻超出阈值)
+        }
+        forward_gaia[k] = best_gaia;
+        double dx = psf_cx[j] - gaia_px[best_gaia];
+        double dy = psf_cy[j] - gaia_py[best_gaia];
+        forward_dist2[k] = dx * dx + dy * dy;
+        ++n_forward_hits;
+    }
+    LOG_INFO("[star_matcher] P12-002 正向匹配 (PSF→Gaia): %d / %d 命中",
+             n_forward_hits, (int)valid_idx.size());
+
+    // 6. P12-002 反向匹配 (Gaia→PSF): 对每颗 Gaia 星找最近 PSF 有效星
+    // backward_psf[g] = Gaia 索引 g 对应的最近 PSF valid_idx 位置, -1 表示无命中
+    std::vector<int> backward_psf(n_gaia, -1);
+    int n_backward_hits = 0;
+    for (int g = 0; g < n_gaia; ++g) {
+        int best_psf_pos = psf_kdtree.findNearest(gaia_px[g], gaia_py[g], max_dist2);
+        if (best_psf_pos < 0) {
             continue;
         }
+        backward_psf[g] = best_psf_pos;
+        ++n_backward_hits;
+    }
+    LOG_INFO("[star_matcher] P12-002 反向匹配 (Gaia→PSF): %d / %d 命中",
+             n_backward_hits, n_gaia);
 
+    // 7. P12-002 唯一配对: 仅保留互为最近邻的对 (PSF[k]→Gaia[g] 且 Gaia[g]→PSF[k])
+    std::vector<double> match_distances;  // P12-001 阶段8: 记录每对匹配的像素距离
+    match_distances.reserve(valid_idx.size());
+    int n_ambiguous = 0;  // 正向命中但非互为最近邻的对数
+    for (size_t k = 0; k < valid_idx.size(); ++k) {
+        int g = forward_gaia[k];
+        if (g < 0) {
+            continue;  // 正向无命中 (距离超阈值), 计入 rejected_distance
+        }
+        if (backward_psf[g] != (int)k) {
+            // 正向命中但不是互为最近邻 → 拒绝为歧义对
+            ++n_ambiguous;
+            continue;
+        }
+        // 互为最近邻, 保留
+        int j = valid_idx[k];
         StarMatch m;
         m.x = psf_cx[j];
         m.y = psf_cy[j];
         m.f_instr = psf_flux[j];
-        m.f_syn = gaia_fsyn[best_gaia];
-        m.gaia_mag = gaia_mag[best_gaia];
+        m.f_syn = gaia_fsyn[g];
+        m.gaia_mag = gaia_mag[g];
         matches.push_back(m);
-
-        // P12-001 阶段8: 记录匹配距离 (PSF 星到 Gaia 星的像素距离)
-        double dx = psf_cx[j] - gaia_px[best_gaia];
-        double dy = psf_cy[j] - gaia_py[best_gaia];
-        match_distances.push_back(std::sqrt(dx * dx + dy * dy));
+        match_distances.push_back(std::sqrt(forward_dist2[k]));
 
         // 循环内每颗匹配星的高频日志, 用 LOG_DEBUG 编译时禁用
 #ifdef PC_ENABLE_DEBUG
         LOG_DEBUG("[star_matcher] 匹配#%d: PSF[%d] -> Gaia[%d] "
                   "(%.2f,%.2f) dist=%.3f F_syn=%.4e F_instr=%.2f mag_g=%.2f",
-                  (int)matches.size(), j, best_gaia, m.x, m.y,
+                  (int)matches.size(), j, g, m.x, m.y,
                   match_distances.back(), m.f_syn, m.f_instr, m.gaia_mag);
 #endif
     }
 
-    // P12-001 阶段4: 空间候选数 (KD-tree 命中)
-    // P12-001 阶段6: rejected_distance = 有效PSF星 - 命中数 (距离超阈值)
-    // P12-001 阶段8: 匹配距离统计
+    // 8. P12-002 diag 更新
+    //    spatial_candidates = 正向命中数 (PSF→Gaia 距离 < radius 的对数, 未过滤双向)
+    //    unique_matches     = 双向唯一匹配数 (互为最近邻)
+    //    rejected_ambiguous = 正向命中但非互为最近邻的对数
+    //    rejected_distance  = 正向未命中数 (最近邻超阈值) = valid_idx.size() - n_forward_hits
     if (out_diag) {
-        out_diag->spatial_candidates = (int)matches.size();
-        out_diag->unique_matches = (int)matches.size();  // 当前无双向过滤, 等于候选数
-        out_diag->rejected_ambiguous = 0;  // 当前无双向匹配, 保持 0
-        out_diag->rejected_distance = (int)valid_idx.size() - (int)matches.size();
-        LOG_INFO("[star_matcher] P12-001 阶段4/6: spatial_candidates=%d, "
-                 "unique_matches=%d, rejected_ambiguous=%d, rejected_distance=%d",
+        out_diag->spatial_candidates = n_forward_hits;
+        out_diag->unique_matches = (int)matches.size();
+        out_diag->rejected_ambiguous = n_ambiguous;
+        out_diag->rejected_distance = (int)valid_idx.size() - n_forward_hits;
+        LOG_INFO("[star_matcher] P12-002 阶段4/5/6: "
+                 "spatial_candidates=%d (正向命中), "
+                 "unique_matches=%d (双向唯一), "
+                 "rejected_ambiguous=%d (非互为最近邻), "
+                 "rejected_distance=%d (距离超阈值)",
                  out_diag->spatial_candidates, out_diag->unique_matches,
                  out_diag->rejected_ambiguous, out_diag->rejected_distance);
 
@@ -304,7 +360,8 @@ std::vector<StarMatch> StarMatcher::matchWithKdTree(
         }
     }
 
-    LOG_INFO("[star_matcher] KD-tree 匹配完成: %d 对", (int)matches.size());
+    LOG_INFO("[star_matcher] P12-002 KD-tree 双向匹配完成: %d 对 (正向 %d, 歧义 %d)",
+             (int)matches.size(), n_forward_hits, n_ambiguous);
     return matches;
 }
 
