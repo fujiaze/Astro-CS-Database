@@ -2506,7 +2506,7 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
         const double*, const double*, const double*, const int*, int,
         double, double, double, double, double, double, double, double,
         int, const double*, const double*, const double*, const double*,
-        float*, int*, double*, double*)>(
+        float*, int*, double*, double*, PhotometricDiag*)>(
         ModuleId::PHOTOMETRIC, "pc_calibrate_simple_with_gaia");
 
     if (!fn_pc_calib) {
@@ -2525,6 +2525,8 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
 
     int out_n_matched = 0;
     double out_scale = 0.0, out_sigma = 0.0;
+    // P12-001: 分阶段诊断结构体 (出参, DLL 内部填充 8 阶段字段)
+    PhotometricDiag diag = {};
 
     // SIP 指针 (无 SIP 时传 nullptr)
     const double* sip_a_ptr = (wcs.sip_order > 0) ? wcs.sip_a : nullptr;
@@ -2553,7 +2555,7 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
         wcs.crval1, wcs.crval2, wcs.crpix1, wcs.crpix2,
         wcs.cd11, wcs.cd12, wcs.cd21, wcs.cd22,
         wcs.sip_order, sip_a_ptr, sip_b_ptr, sip_ap_ptr, sip_bp_ptr,
-        out_pixels, &out_n_matched, &out_scale, &out_sigma);
+        out_pixels, &out_n_matched, &out_scale, &out_sigma, &diag);
 
     if (ret != 0) {
         LOG_ERROR("orchestrator", "[PHOTOMETRIC] pc_calibrate_simple_with_gaia 失败: ret=" + std::to_string(ret));
@@ -2586,7 +2588,113 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     fn_kv_set_double(frame_, "photo_stats", "SCALE_FACTOR", out_scale);
     fn_kv_set_double(frame_, "photo_stats", "SIGMA_RESIDUAL", out_sigma);
 
-    LOG_INFO("orchestrator", "[PHOTOMETRIC] photo_stats 已写入");
+    // P12-001 子任务B: 写入 PhotometricDiag 17 个分阶段诊断字段到 photo_stats KV 块
+    fn_kv_set_double(frame_, "photo_stats", "SPECTRUM_ROWS_TOTAL", static_cast<double>(diag.spectrum_rows_total));
+    fn_kv_set_double(frame_, "photo_stats", "VALID_FSYN", static_cast<double>(diag.valid_fsyn));
+    fn_kv_set_double(frame_, "photo_stats", "GAIA_IN_FRAME", static_cast<double>(diag.gaia_projected_in_frame));
+    fn_kv_set_double(frame_, "photo_stats", "PSF_TOTAL", static_cast<double>(diag.psf_total));
+    fn_kv_set_double(frame_, "photo_stats", "PSF_VALID", static_cast<double>(diag.psf_valid));
+    fn_kv_set_double(frame_, "photo_stats", "SPATIAL_CANDIDATES", static_cast<double>(diag.spatial_candidates));
+    fn_kv_set_double(frame_, "photo_stats", "UNIQUE_MATCHES", static_cast<double>(diag.unique_matches));
+    fn_kv_set_double(frame_, "photo_stats", "REJECTED_AMBIGUOUS", static_cast<double>(diag.rejected_ambiguous));
+    fn_kv_set_double(frame_, "photo_stats", "REJECTED_DISTANCE", static_cast<double>(diag.rejected_distance));
+    fn_kv_set_double(frame_, "photo_stats", "REJECTED_QUALITY", static_cast<double>(diag.rejected_quality));
+    fn_kv_set_double(frame_, "photo_stats", "FIT_USED", static_cast<double>(diag.fit_used));
+    fn_kv_set_double(frame_, "photo_stats", "ROBUST_ITERATIONS", static_cast<double>(diag.robust_iterations));
+    fn_kv_set_double(frame_, "photo_stats", "R_MEDIAN", diag.r_median);
+    fn_kv_set_double(frame_, "photo_stats", "R_P90", diag.r_p90);
+    fn_kv_set_double(frame_, "photo_stats", "R_MAX", diag.r_max);
+    fn_kv_set_double(frame_, "photo_stats", "MATCH_DIST_MEDIAN", diag.match_distance_median);
+    fn_kv_set_double(frame_, "photo_stats", "MATCH_DIST_P90", diag.match_distance_p90);
+    fn_kv_set_double(frame_, "photo_stats", "MATCH_DIST_MAX", diag.match_distance_max);
+
+    // P12-001 子任务B: 同步 photo_stats 到 result.photo_stats (供 CLI quality_metric 事件使用)
+    // 注: run_stage1 销毁 frame_ 后 KV 块不可访问, 故在此复制到 TaskResult
+    result.photo_stats["STATUS"] = "OK";
+    result.photo_stats["N_MATCHED"] = std::to_string(out_n_matched);
+    result.photo_stats["SCALE_FACTOR"] = std::to_string(out_scale);
+    result.photo_stats["SIGMA_RESIDUAL"] = std::to_string(out_sigma);
+    result.photo_stats["SPECTRUM_ROWS_TOTAL"] = std::to_string(diag.spectrum_rows_total);
+    result.photo_stats["VALID_FSYN"] = std::to_string(diag.valid_fsyn);
+    result.photo_stats["GAIA_IN_FRAME"] = std::to_string(diag.gaia_projected_in_frame);
+    result.photo_stats["PSF_TOTAL"] = std::to_string(diag.psf_total);
+    result.photo_stats["PSF_VALID"] = std::to_string(diag.psf_valid);
+    result.photo_stats["SPATIAL_CANDIDATES"] = std::to_string(diag.spatial_candidates);
+    result.photo_stats["UNIQUE_MATCHES"] = std::to_string(diag.unique_matches);
+    result.photo_stats["REJECTED_AMBIGUOUS"] = std::to_string(diag.rejected_ambiguous);
+    result.photo_stats["REJECTED_DISTANCE"] = std::to_string(diag.rejected_distance);
+    result.photo_stats["REJECTED_QUALITY"] = std::to_string(diag.rejected_quality);
+    result.photo_stats["FIT_USED"] = std::to_string(diag.fit_used);
+    result.photo_stats["ROBUST_ITERATIONS"] = std::to_string(diag.robust_iterations);
+    result.photo_stats["R_MEDIAN"] = std::to_string(diag.r_median);
+    result.photo_stats["R_P90"] = std::to_string(diag.r_p90);
+    result.photo_stats["R_MAX"] = std::to_string(diag.r_max);
+    result.photo_stats["MATCH_DIST_MEDIAN"] = std::to_string(diag.match_distance_median);
+    result.photo_stats["MATCH_DIST_P90"] = std::to_string(diag.match_distance_p90);
+    result.photo_stats["MATCH_DIST_MAX"] = std::to_string(diag.match_distance_max);
+
+    // P12-001 子任务B: 生成 photometry_report.json
+    // 遵循 engineering_v1.3/contracts/photometry_report.schema.json
+    // 输出到 .hiss 同目录 (current_output_path_ 的父目录)
+    try {
+        fs::path output_path(current_output_path_);
+        fs::path report_path = output_path.parent_path() / "photometry_report.json";
+        // JSON 字符串转义 (frame_name 是文件路径, 可能含反斜杠/双引号)
+        auto json_escape_str = [](const std::string& s) -> std::string {
+            std::string out;
+            out.reserve(s.size() + 8);
+            for (char c : s) {
+                switch (c) {
+                    case '"':  out += "\\\""; break;
+                    case '\\': out += "\\\\"; break;
+                    case '\n': out += "\\n";  break;
+                    case '\r': out += "\\r";  break;
+                    case '\t': out += "\\t";  break;
+                    default:   out.push_back(c); break;
+                }
+            }
+            return out;
+        };
+        // status: fit_used > 0 为 PASS, 否则 FAIL (无有效拟合星)
+        std::string status_str = (diag.fit_used > 0) ? "PASS" : "FAIL";
+        std::ofstream ofs(report_path, std::ios::binary);
+        if (ofs.is_open()) {
+            ofs << "{\n";
+            ofs << "  \"frame\": \"" << json_escape_str(result.frame_name) << "\",\n";
+            ofs << "  \"valid_fsyn\": " << diag.valid_fsyn << ",\n";
+            ofs << "  \"gaia_in_frame\": " << diag.gaia_projected_in_frame << ",\n";
+            ofs << "  \"psf_valid\": " << diag.psf_valid << ",\n";
+            ofs << "  \"unique_matches\": " << diag.unique_matches << ",\n";
+            ofs << "  \"fit_used\": " << diag.fit_used << ",\n";
+            ofs << "  \"scale_factor\": " << out_scale << ",\n";
+            ofs << "  \"sigma_residual\": " << out_sigma << ",\n";
+            ofs << "  \"status\": \"" << status_str << "\",\n";
+            ofs << "  \"match_distance\": {\n";
+            ofs << "    \"median\": " << diag.match_distance_median << ",\n";
+            ofs << "    \"p90\": " << diag.match_distance_p90 << ",\n";
+            ofs << "    \"max\": " << diag.match_distance_max << "\n";
+            ofs << "  },\n";
+            ofs << "  \"spectrum_rows_total\": " << diag.spectrum_rows_total << ",\n";
+            ofs << "  \"psf_total\": " << diag.psf_total << ",\n";
+            ofs << "  \"spatial_candidates\": " << diag.spatial_candidates << ",\n";
+            ofs << "  \"rejected_ambiguous\": " << diag.rejected_ambiguous << ",\n";
+            ofs << "  \"rejected_distance\": " << diag.rejected_distance << ",\n";
+            ofs << "  \"rejected_quality\": " << diag.rejected_quality << ",\n";
+            ofs << "  \"robust_iterations\": " << diag.robust_iterations << ",\n";
+            ofs << "  \"r_median\": " << diag.r_median << ",\n";
+            ofs << "  \"r_p90\": " << diag.r_p90 << ",\n";
+            ofs << "  \"r_max\": " << diag.r_max << "\n";
+            ofs << "}\n";
+            ofs.close();
+            LOG_INFO("orchestrator", "[PHOTOMETRIC] photometry_report.json 已生成: " + report_path.string());
+        } else {
+            LOG_WARN("orchestrator", "[PHOTOMETRIC] 无法创建 photometry_report.json: " + report_path.string());
+        }
+    } catch (const std::exception& e) {
+        LOG_WARN("orchestrator", "[PHOTOMETRIC] 生成 photometry_report.json 异常: " + std::string(e.what()));
+    }
+
+    LOG_INFO("orchestrator", "[PHOTOMETRIC] photo_stats 已写入 (含 17 个诊断字段)");
     return true;
 }
 

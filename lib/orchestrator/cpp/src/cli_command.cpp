@@ -1893,6 +1893,44 @@ int CliCommand::cmd_request(const std::string& request_path,
                                   "stage1 completed", result_oss.str(), "",
                                   -1, duration_ms, "ok");
 
+            // P12-001 子任务B: quality_metric 事件 (photometric 阶段诊断指标)
+            // 从 r.photo_stats 读取 PhotometricDiag 17 字段 + N_MATCHED/SCALE_FACTOR/SIGMA_RESIDUAL
+            {
+                auto get_ps_int = [&](const std::string& key) -> int {
+                    auto it = r.photo_stats.find(key);
+                    if (it == r.photo_stats.end()) return 0;
+                    try { return std::stoi(it->second); } catch (...) { return 0; }
+                };
+                auto get_ps_double = [&](const std::string& key) -> double {
+                    auto it = r.photo_stats.find(key);
+                    if (it == r.photo_stats.end()) return 0.0;
+                    try { return std::stod(it->second); } catch (...) { return 0.0; }
+                };
+                std::ostringstream metric_oss;
+                metric_oss << ",\"metric\":{"
+                    << "\"spectrum_rows_total\":" << get_ps_int("SPECTRUM_ROWS_TOTAL")
+                    << ",\"valid_fsyn\":" << get_ps_int("VALID_FSYN")
+                    << ",\"gaia_in_frame\":" << get_ps_int("GAIA_IN_FRAME")
+                    << ",\"psf_total\":" << get_ps_int("PSF_TOTAL")
+                    << ",\"psf_valid\":" << get_ps_int("PSF_VALID")
+                    << ",\"spatial_candidates\":" << get_ps_int("SPATIAL_CANDIDATES")
+                    << ",\"unique_matches\":" << get_ps_int("UNIQUE_MATCHES")
+                    << ",\"rejected_ambiguous\":" << get_ps_int("REJECTED_AMBIGUOUS")
+                    << ",\"rejected_distance\":" << get_ps_int("REJECTED_DISTANCE")
+                    << ",\"rejected_quality\":" << get_ps_int("REJECTED_QUALITY")
+                    << ",\"fit_used\":" << get_ps_int("FIT_USED")
+                    << ",\"robust_iterations\":" << get_ps_int("ROBUST_ITERATIONS")
+                    << ",\"r_median\":" << get_ps_double("R_MEDIAN")
+                    << ",\"r_p90\":" << get_ps_double("R_P90")
+                    << ",\"r_max\":" << get_ps_double("R_MAX")
+                    << ",\"match_dist_median\":" << get_ps_double("MATCH_DIST_MEDIAN")
+                    << ",\"match_dist_p90\":" << get_ps_double("MATCH_DIST_P90")
+                    << ",\"match_dist_max\":" << get_ps_double("MATCH_DIST_MAX")
+                    << "}";
+                output_jsonl_event_ex("quality_metric", job_id, "photometric", -1.0, "", "", "",
+                                      -1, -1.0, "", metric_oss.str());
+            }
+
             // P04-002: result 事件 (含 output + hash)
             // 注: stage1 输出 .hiss 文件, hash 字段为 effective_config_hash (输出文件 hash 需读文件)
             std::string output_hash = ec.effective_config_hash;  // 使用 ec hash 作为可追溯性 hash
