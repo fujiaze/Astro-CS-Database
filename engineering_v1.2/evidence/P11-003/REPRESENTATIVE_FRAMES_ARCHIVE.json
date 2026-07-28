@@ -1,0 +1,515 @@
+{
+  "archive_version": "1.0",
+  "task_id": "P11-003",
+  "generated_at": "2026-07-28",
+  "source_documents": [
+    "testdata/Galaxy_Center_T4/素材信息.txt",
+    "testdata/LDN43_T2素材_flying_dutchman/素材信息与版权约定.txt",
+    "testdata/NGC1727_T2_flying_dutchman/素材信息与版权约定.txt",
+    "testdata/NGC247_T2_flying_dutchman/素材信息与版权约定.txt",
+    "testdata/NGC55_T3_flying_dutchman/素材信息与版权约定.txt",
+    "testdata/NGC83_cluster_T3_Flying_Dutchman/素材信息与版权约定.txt",
+    "testdata/Victory_Nebula_T4_Flying_Dutchman/素材信息与版权约定.txt",
+    "engineering_v1.2/evidence/P10-002/T1_DEVICE_PROFILE.json",
+    "engineering_v1.2/evidence/P10-002/T2_DEVICE_PROFILE.json",
+    "engineering_v1.2/evidence/P10-002/T3_DEVICE_PROFILE.json",
+    "engineering_v1.2/evidence/P10-002/T4_DEVICE_PROFILE.json",
+    "engineering_v1.2/evidence/P10-006/REPRESENTATIVE_CALIBRATION_REPORT.csv"
+  ],
+  "devices": {
+    "T1": {
+      "status": "no_data",
+      "telescope": "Chilescope T1",
+      "note": "未提供数据, P10-002 标记为 no_data, 不在 P11-003 测试范围"
+    },
+    "T2": {
+      "telescope": "Chilescope T2 (ASA 500N), 焦距1900mm",
+      "camera": "FLI Proline 16803",
+      "mount": "DDM85",
+      "pixel_size_um": 9.0,
+      "image_size": "4096x4096",
+      "filter_set": [
+        "Lum",
+        "Red",
+        "Green",
+        "Blue",
+        "H-alpha",
+        "OIII"
+      ],
+      "filter_doc": "Astrodon 50mm LRGBHO + 3nm Halpha",
+      "master_dir": "testdata/T2 calibration files",
+      "datasets": [
+        {
+          "target": "LDN43",
+          "filters": [
+            "Lum",
+            "Red",
+            "Green",
+            "Blue",
+            "H-alpha"
+          ],
+          "single_exposure_s": {
+            "Lum": 600,
+            "RGBHa": 1200
+          }
+        },
+        {
+          "target": "NGC1727",
+          "filters": [
+            "Red",
+            "Green",
+            "Blue",
+            "H-alpha",
+            "OIII"
+          ],
+          "single_exposure_s": {
+            "RGB": 600,
+            "Ha": 1200,
+            "OIII": 1800
+          }
+        },
+        {
+          "target": "NGC247",
+          "filters": [
+            "Lum",
+            "Red",
+            "Green",
+            "Blue",
+            "H-alpha",
+            "OIII"
+          ],
+          "single_exposure_s": {
+            "LRGB": 600,
+            "HaOIII": 1200
+          }
+        }
+      ],
+      "missing_flats": [
+        "Lum"
+      ]
+    },
+    "T3": {
+      "telescope": "Chilescope T3 (ASA 500N), 焦距1900mm",
+      "camera": "FLI Proline 16803",
+      "mount": "DDM85",
+      "pixel_size_um": 9.0,
+      "image_size": "4096x4096",
+      "filter_set": [
+        "Lum",
+        "Red",
+        "Green",
+        "Blue",
+        "H-alpha",
+        "Oiii"
+      ],
+      "filter_doc": "Astrodon LRGBHO 50mm",
+      "master_dir": "testdata/T3 calibration files",
+      "datasets": [
+        {
+          "target": "NGC55",
+          "filters": [
+            "Lum",
+            "Red",
+            "Green",
+            "Blue",
+            "H-alpha",
+            "Oiii"
+          ],
+          "single_exposure_s": {
+            "LRGB": 600,
+            "HaOIII": 1200
+          }
+        },
+        {
+          "target": "NGC83_cluster",
+          "filters": [
+            "Lum",
+            "Red",
+            "Green",
+            "Blue"
+          ],
+          "single_exposure_s": {
+            "LRGB": 600
+          }
+        }
+      ],
+      "missing_flats": []
+    },
+    "T4": {
+      "telescope": "Chilescope T4 (Nikkor 200F2), 焦距200mm",
+      "camera": "FLI Microline 16200",
+      "mount": "10 Micron GM1000HPs",
+      "pixel_size_um": 6.0,
+      "image_size": "4500x3600",
+      "filter_set": [
+        "Lum",
+        "Red",
+        "Green",
+        "Blue",
+        "Ha",
+        "OIII"
+      ],
+      "filter_doc": "Baader 50mm RGBHaOIII",
+      "master_dir": "testdata/T4 calibration files",
+      "datasets": [
+        {
+          "target": "Galaxy_Center",
+          "filters": [
+            "Red",
+            "Green",
+            "Blue",
+            "Ha",
+            "OIII"
+          ],
+          "panels": 3,
+          "single_exposure_s": {
+            "RGB": 180,
+            "Ha": 300,
+            "OIII": 600
+          }
+        },
+        {
+          "target": "Victory_Nebula",
+          "filters": [
+            "Lum",
+            "Red",
+            "Green",
+            "Blue"
+          ],
+          "panels": 2,
+          "single_exposure_s": {
+            "LRGB": 180
+          }
+        }
+      ],
+      "missing_flats": [
+        "Lum"
+      ]
+    }
+  },
+  "representative_frames": [
+    {
+      "frame_id": "T4_RED_Galaxy_Center",
+      "device": "T4",
+      "filter": "RED",
+      "target": "Galaxy_Center",
+      "light_path": "testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts",
+      "exposure_s": 180,
+      "image_size": "4500x3600",
+      "focal_length_mm": 200.0,
+      "pixel_size_um": 6.0,
+      "status_in_p11_003": "completed",
+      "platesolve_rms_px": 0.0538,
+      "platesolve_n_pairs": 45,
+      "diagnose_n_matched": 1795,
+      "diagnose_median_px": 0.5333,
+      "gate_passed": true,
+      "action_completed": "closure_report + matched_pairs + residual_plot + quadrant_plot"
+    },
+    {
+      "frame_id": "T4_GREEN_Galaxy_Center",
+      "device": "T4",
+      "filter": "GREEN",
+      "target": "Galaxy_Center",
+      "light_path": "testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@063620-180S-Green.fts",
+      "exposure_s": 180,
+      "image_size": "4500x3600",
+      "focal_length_mm": 200.0,
+      "pixel_size_um": 6.0,
+      "status_in_p11_003": "completed",
+      "platesolve_rms_px": 0.0517,
+      "platesolve_n_pairs": 30,
+      "diagnose_n_matched": 1795,
+      "diagnose_median_px": 0.5831,
+      "gate_passed": true,
+      "action_completed": "closure_report + matched_pairs + residual_plot + quadrant_plot"
+    },
+    {
+      "frame_id": "T4_BLUE_Galaxy_Center",
+      "device": "T4",
+      "filter": "BLUE",
+      "target": "Galaxy_Center",
+      "light_path": "testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@055414-180S-Blue.fts",
+      "exposure_s": 180,
+      "image_size": "4500x3600",
+      "focal_length_mm": 200.0,
+      "pixel_size_um": 6.0,
+      "status_in_p11_003": "completed",
+      "platesolve_rms_px": 0.0838,
+      "platesolve_n_pairs": 32,
+      "diagnose_n_matched": 1785,
+      "diagnose_median_px": 0.5601,
+      "gate_passed": true,
+      "action_completed": "closure_report + matched_pairs + residual_plot + quadrant_plot"
+    },
+    {
+      "frame_id": "T4_HA_Galaxy_Center",
+      "device": "T4",
+      "filter": "HA",
+      "target": "Galaxy_Center",
+      "light_path": "testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@061318-300S-H-alpha.fts",
+      "exposure_s": 300,
+      "image_size": "4500x3600",
+      "focal_length_mm": 200.0,
+      "pixel_size_um": 6.0,
+      "status_in_p11_003": "completed",
+      "platesolve_rms_px": 0.0651,
+      "platesolve_n_pairs": 44,
+      "diagnose_n_matched": 1808,
+      "diagnose_median_px": 0.6629,
+      "gate_passed": true,
+      "action_completed": "closure_report + matched_pairs + residual_plot + quadrant_plot"
+    },
+    {
+      "frame_id": "T4_OIII_Galaxy_Center",
+      "device": "T4",
+      "filter": "OIII",
+      "target": "Galaxy_Center",
+      "light_path": "testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250703@063631-600S-Oiii.fts",
+      "exposure_s": 600,
+      "image_size": "4500x3600",
+      "focal_length_mm": 200.0,
+      "pixel_size_um": 6.0,
+      "status_in_p11_003": "completed",
+      "platesolve_rms_px": 0.0664,
+      "platesolve_n_pairs": 34,
+      "diagnose_n_matched": 1785,
+      "diagnose_median_px": 0.6063,
+      "gate_passed": true,
+      "action_completed": "closure_report + matched_pairs + residual_plot + quadrant_plot"
+    },
+    {
+      "frame_id": "T2_RED_LDN43",
+      "device": "T2",
+      "filter": "RED",
+      "target": "LDN43",
+      "light_path": "testdata/LDN43_T2素材_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250503@032713-1200S-Red.fts",
+      "exposure_s": 1200,
+      "image_size": "4096x4096",
+      "focal_length_mm": 1917.5,
+      "pixel_size_um": 9.0,
+      "status_in_p11_003": "completed",
+      "platesolve_rms_px": 0.1205,
+      "platesolve_n_pairs": 34,
+      "diagnose_n_matched": 1945,
+      "diagnose_median_px": 0.96,
+      "gate_passed": false,
+      "action_completed": "closure_report + matched_pairs + residual_plot + quadrant_plot (closure_report.json 损坏-全零字节, 数据从 archive 汇总恢复)"
+    },
+    {
+      "frame_id": "T2_GREEN_LDN43",
+      "device": "T2",
+      "filter": "GREEN",
+      "target": "LDN43",
+      "light_path": "testdata/LDN43_T2素材_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250503@034804-1200S-Green.fts",
+      "exposure_s": 1200,
+      "image_size": "4096x4096",
+      "focal_length_mm": 1917.5,
+      "pixel_size_um": 9.0,
+      "status_in_p11_003": "completed",
+      "platesolve_rms_px": 0.1028,
+      "platesolve_n_pairs": 32,
+      "diagnose_n_matched": 1944,
+      "diagnose_median_px": 0.788,
+      "gate_passed": false,
+      "action_completed": "closure_report + matched_pairs + residual_plot + quadrant_plot (closure_report.json 损坏-全零字节, 数据从 archive 汇总恢复)"
+    },
+    {
+      "frame_id": "T2_BLUE_LDN43",
+      "device": "T2",
+      "filter": "BLUE",
+      "target": "LDN43",
+      "light_path": "testdata/LDN43_T2素材_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250503@040855-1200S-Blue.fts",
+      "exposure_s": 1200,
+      "image_size": "4096x4096",
+      "focal_length_mm": 1917.7,
+      "pixel_size_um": 9.0,
+      "status_in_p11_003": "completed",
+      "platesolve_rms_px": 0.2883,
+      "platesolve_n_pairs": 40,
+      "diagnose_n_matched": 1941,
+      "diagnose_median_px": 0.88,
+      "gate_passed": false,
+      "action_completed": "closure_report + matched_pairs + residual_plot + quadrant_plot (closure_report.json 损坏-全零字节, 数据从 archive 汇总恢复)"
+    },
+    {
+      "frame_id": "T2_HA_LDN43",
+      "device": "T2",
+      "filter": "HA",
+      "target": "LDN43",
+      "light_path": "testdata/LDN43_T2素材_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250503@042947-1200S-H-alpha.fts",
+      "exposure_s": 1200,
+      "image_size": "4096x4096",
+      "focal_length_mm": 1917.7,
+      "pixel_size_um": 9.0,
+      "status_in_p11_003": "completed",
+      "status_in_p11_002": "completed (gate=False, median=0.772, n_matched=1237)",
+      "action_required": "rerun to generate full reports (residual_plot + quadrant_plot + closure_report + matched_pairs)",
+      "action_completed": "closure_report + matched_pairs + residual_plot + quadrant_plot",
+      "platesolve_rms_px": 0.1076,
+      "platesolve_n_pairs": 33,
+      "diagnose_n_matched": 1237,
+      "diagnose_median_px": 0.7718,
+      "gate_passed": false
+    },
+    {
+      "frame_id": "T2_OIII_NGC1727",
+      "device": "T2",
+      "filter": "OIII",
+      "target": "NGC1727",
+      "light_path": "testdata/NGC1727_T2_flying_dutchman/lights/NGC1727_RGBHO_T2_flying_dutchman-20251031@075259-1800S-OIII.fts",
+      "exposure_s": 1800,
+      "image_size": "4096x4096",
+      "focal_length_mm": 1917.7,
+      "pixel_size_um": 9.0,
+      "status_in_p11_003": "completed",
+      "action_completed": "closure_report + matched_pairs + residual_plot + quadrant_plot",
+      "platesolve_rms_px": 0.1301,
+      "platesolve_n_pairs": 45,
+      "diagnose_n_matched": 1624,
+      "diagnose_median_px": 0.6891,
+      "gate_passed": true
+    },
+    {
+      "frame_id": "T3_RED_NGC55",
+      "device": "T3",
+      "filter": "RED",
+      "target": "NGC55",
+      "light_path": "testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@074114-600S-Red.fts",
+      "exposure_s": 600,
+      "image_size": "4096x4096",
+      "focal_length_mm": 1900.0,
+      "pixel_size_um": 9.0,
+      "status_in_p11_003": "completed",
+      "action_completed": "closure_report + matched_pairs + residual_plot + quadrant_plot",
+      "platesolve_rms_px": 0.1348,
+      "platesolve_n_pairs": 38,
+      "diagnose_n_matched": 693,
+      "diagnose_median_px": 0.7625,
+      "gate_passed": false
+    },
+    {
+      "frame_id": "T3_GREEN_NGC55",
+      "device": "T3",
+      "filter": "GREEN",
+      "target": "NGC55",
+      "light_path": "testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@075153-600S-Green.fts",
+      "exposure_s": 600,
+      "image_size": "4096x4096",
+      "focal_length_mm": 1900.0,
+      "pixel_size_um": 9.0,
+      "status_in_p11_003": "completed",
+      "action_completed": "closure_report + matched_pairs + residual_plot + quadrant_plot",
+      "platesolve_rms_px": 0.1088,
+      "platesolve_n_pairs": 33,
+      "diagnose_n_matched": 663,
+      "diagnose_median_px": 0.8264,
+      "gate_passed": false
+    },
+    {
+      "frame_id": "T3_BLUE_NGC55",
+      "device": "T3",
+      "filter": "BLUE",
+      "target": "NGC55",
+      "light_path": "testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@080333-600S-Blue.fts",
+      "exposure_s": 600,
+      "image_size": "4096x4096",
+      "focal_length_mm": 1900.0,
+      "pixel_size_um": 9.0,
+      "status_in_p11_003": "completed",
+      "action_completed": "closure_report + matched_pairs + residual_plot + quadrant_plot",
+      "platesolve_rms_px": 0.1336,
+      "platesolve_n_pairs": 36,
+      "diagnose_n_matched": 614,
+      "diagnose_median_px": 0.7734,
+      "gate_passed": false
+    },
+    {
+      "frame_id": "T3_HA_NGC55",
+      "device": "T3",
+      "filter": "HA",
+      "target": "NGC55",
+      "light_path": "testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@081412-1200S-H-alpha.fts",
+      "exposure_s": 1200,
+      "image_size": "4096x4096",
+      "focal_length_mm": 1900.0,
+      "pixel_size_um": 9.0,
+      "status_in_p11_003": "completed",
+      "action_completed": "closure_report + matched_pairs + residual_plot + quadrant_plot",
+      "platesolve_rms_px": 0.1416,
+      "platesolve_n_pairs": 39,
+      "diagnose_n_matched": 328,
+      "diagnose_median_px": 0.7095,
+      "gate_passed": true
+    },
+    {
+      "frame_id": "T3_OIII_NGC55",
+      "device": "T3",
+      "filter": "OIII",
+      "target": "NGC55",
+      "light_path": "testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250701@083458-1200S-Oiii.fts",
+      "exposure_s": 1200,
+      "image_size": "4096x4096",
+      "focal_length_mm": 1900.0,
+      "pixel_size_um": 9.0,
+      "status_in_p11_003": "completed",
+      "action_completed": "closure_report + matched_pairs + residual_plot + quadrant_plot",
+      "platesolve_rms_px": 0.2013,
+      "platesolve_n_pairs": 45,
+      "diagnose_n_matched": 306,
+      "diagnose_median_px": 0.6925,
+      "gate_passed": true
+    },
+    {
+      "frame_id": "T3_LUM_NGC55",
+      "device": "T3",
+      "filter": "LUM",
+      "target": "NGC55",
+      "light_path": "testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250703@075400-600S-Lum.fts",
+      "exposure_s": 600,
+      "image_size": "4096x4096",
+      "focal_length_mm": 1900.0,
+      "pixel_size_um": 9.0,
+      "status_in_p11_003": "completed",
+      "status_in_p11_002": "completed (gate=False, median=0.897, n_matched=702)",
+      "action_completed": "closure_report + matched_pairs + residual_plot + quadrant_plot",
+      "platesolve_rms_px": 0.1508,
+      "platesolve_n_pairs": 31,
+      "diagnose_n_matched": 702,
+      "diagnose_median_px": 0.8968,
+      "gate_passed": false
+    }
+  ],
+  "execution_plan": {
+    "total_frames": 16,
+    "completed_in_p11_003": 16,
+    "incomplete_in_p11_003": 0,
+    "pending_in_p11_003": 0,
+    "frames_to_execute": [
+      "T2_HA_LDN43 (rerun, missing plots)",
+      "T2_OIII_NGC1727 (new)",
+      "T3_RED_NGC55 (new)",
+      "T3_GREEN_NGC55 (new)",
+      "T3_BLUE_NGC55 (new)",
+      "T3_HA_NGC55 (new)",
+      "T3_OIII_NGC55 (new)",
+      "T3_LUM_NGC55 (new, P11-002 done)"
+    ],
+    "parallel_groups": {
+      "group_a": [
+        "T2_HA_LDN43",
+        "T2_OIII_NGC1727",
+        "T3_RED_NGC55",
+        "T3_GREEN_NGC55"
+      ],
+      "group_b": [
+        "T3_BLUE_NGC55",
+        "T3_HA_NGC55",
+        "T3_OIII_NGC55",
+        "T3_LUM_NGC55"
+      ]
+    },
+    "dll_handles": "independent per subagent (run_frame creates own env via init_environment)",
+    "gaia_cache": "isolated per subagent (in-memory 60s TTL, no cross-process sharing)"
+  }
+}

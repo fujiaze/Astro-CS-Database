@@ -1258,3 +1258,31 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
   - 发布包: 自包含, 不依赖 Python/PowerShell/.NET/VC++ Runtime
   - GUI: healpix_browser_qt 源码完整 (未包含在 v1.1, 留待 v1.2+)
 - **下一阶段**: v1.2 规划 (GUI 发布包 + G-002 修复 + GAP-015 STACK 完整实现 + DLL 版本号 + CLI 契约路径 GUI 原型)
+
+## 2026-07-28 P11-003 T1-T4 代表帧 WCS 闭环缺陷复现 (v1.2 开发包 G11 Gate) ★DONE★
+- **目标**: 在 T1-T4 全部代表帧复现 WCS 闭环缺陷, 量化 X/Y 偏差/象限/SIP 阶数
+- **结果**: VERDICT: PARTIAL — 16/16 帧求解+诊断成功, 8/16 gate 通过 (50%), 未修改业务源码
+- **执行范围**: 16 帧 (T2:5 LDN43×4+NGC1727×1 / T3:6 NGC55×6 / T4:5 Galaxy_Center×5)
+- **执行方式**: 并行 Subagent (Group A + Group B 各 4 帧, 独立 DLL 句柄和 Gaia 缓存) + 3 帧重跑 (NTFS 压缩损坏恢复)
+- **跨帧模式 (根因结论)**:
+  1. **焦距/FOV 主导**: T4 (200mm 大FOV) 5/5 通过 (100%); T2/T3 (1900mm 小FOV) 3/11 通过 (27.3%). SIP order=3 在大 FOV 下充分拟合畸变, 小 FOV 下亚像素偏差未充分建模
+  2. **滤镜类型次要**: 窄带 HA/OIII 4/6 通过 (66.7%, 星点锐利质心精度高); 宽带 RGB/LUM 1/10 通过 (10%, 暗星噪声拉低质心精度)
+  3. **Y 方向系统偏差**: 15/16 帧 Y 残差 > X 残差 (93.75%); T3_LUM_NGC55 极端 Y=0.848 vs X=0.218 (3.9 倍)
+  4. **排除 SIP 写入/解析损失**: PS↔Sky 闭环误差 1e-10 px (远小于精度要求)
+- **关键数据**:
+  - 求解 RMS 范围: 0.0517-0.2883 px (n_pairs 30-45)
+  - 诊断 median 残差范围: 0.533-0.960 px (n_matched 306-1945)
+  - gate 门限: median ≤ 0.75 px AND p90 ≤ 1.5 px AND p99 ≤ 3.0 px
+  - 全部帧 has_sip=true, sip_order=3
+- **数据完整性事件**: T2_RED/GREEN/BLUE_LDN43 三帧 closure_report.json + matched_pairs.json 出现 NTFS 压缩文件损坏 (全 NUL 字节, 文件大小正常). 根因: NTFS Compressed 属性导致写入异常. 修复: 用 run_p11_003_subset.py --frames 重跑恢复, 数据与之前一致
+- **证据**: engineering_v1.2/evidence/P11-003/
+  - 4 份标准报告: TASK_REPORT.md / TEST_REPORT.md / EVIDENCE_INDEX.md / REVIEW_REPORT.md
+  - 16 帧 closure_report.json + matched_pairs.json + residual_plot.png + quadrant_plot.png
+  - p11_003_summary.json (16 帧汇总 + 跨帧模式 + 根因结论)
+  - group_a_summary.json + group_b_summary.json + rerun_corrupted_summary.json
+  - REPRESENTATIVE_FRAMES_ARCHIVE.json (16 帧设备档案 + 执行状态)
+  - scripts/run_p11_003_subset.py (subset driver, 支持 --frames/--group/--all)
+- **控制文件更新**: PROJECT_STATE.yaml (current_task=P11-004, last_completed=P11-003) + CURRENT_TASK.md + MASTER_TASK_REGISTER.csv (P11-003 → DONE)
+- **依赖**: P11-002 (DONE); **后续**: P11-004 (在 WCS 生产端实施统一修正)
+- **Gate**: G11 进行中 (P11-001/002/003 DONE, P11-004/005/006 TODO)
+- **NTFS 压缩损坏教训**: 长时间写入大文件时, 若目录启用了 NTFS 压缩 (Attributes 含 Compressed), 写入崩溃可能导致文件大小正常但内容全 NUL. 后续应避免在压缩目录下生成关键证据文件, 或在写入后立即校验 nonZero 字节数

@@ -1,0 +1,120 @@
+{
+  "frame_id": "T4_BLUE_Galaxy_Center_solved",
+  "fits_path": "f:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.2\\evidence\\P11-003\\work\\T4_BLUE_Galaxy_Center_solved.fits",
+  "tool_version": "P11-002 v1.0",
+  "tool_independent_of_platesolve_transform": true,
+  "elapsed_sec": 7.778014659881592,
+  "image_size": {
+    "width": 4500,
+    "height": 3600
+  },
+  "wcs": {
+    "has_sip": true,
+    "sip_order": 3,
+    "crpix": [
+      2250.5,
+      1800.5
+    ],
+    "crval": [
+      272.9083900861123,
+      -13.161416740495097
+    ],
+    "cd": [
+      [
+        0.001751888113792318,
+        2.67877749763668e-07
+      ],
+      [
+        -5.3188696298045e-07,
+        0.001752270208139287
+      ]
+    ],
+    "ctype": [
+      "RA---TAN-SIP",
+      "DEC--TAN-SIP"
+    ],
+    "solve_performed_by_tool": false
+  },
+  "platesolve": {
+    "ra0": 272.80833333333334,
+    "dec0": -13.176944444444445,
+    "focal_length_mm": 200.0,
+    "pixel_size_um": 6.0,
+    "success": true,
+    "n_detected": 0,
+    "n_pairs": 32,
+    "rms_px": 0.08376274893880992,
+    "trans_order": 3,
+    "best_inliers": 32,
+    "sip_order": 3
+  },
+  "gaia": {
+    "search_center_ra": 272.9083900861123,
+    "search_center_dec": -13.161416740495097,
+    "search_radius_deg": 7.069236526266504,
+    "mag_high": 18.0,
+    "n_catalog": 3228356,
+    "n_valid_predicted": 3228356
+  },
+  "matching": {
+    "method": "scipy.spatial.cKDTree bidirectional nearest-neighbor",
+    "max_dist_px": 3.0,
+    "n_detected": 2000,
+    "n_matched": 1785
+  },
+  "residual_stats": {
+    "n": 1785,
+    "dist_median_px": 0.5601227598574435,
+    "dist_p90_px": 0.7208493661483808,
+    "dist_p99_px": 2.7713410687697126,
+    "dist_mean_px": 0.6581422014927146,
+    "dist_max_px": 2.9844451576357,
+    "dist_std_px": 0.43460310595144563,
+    "x_median_abs_px": 0.2868548591209219,
+    "y_median_abs_px": 0.4699478433396962,
+    "x_mean_px": 0.24209359050282267,
+    "y_mean_px": 0.38998570846982505,
+    "x_std_px": 0.43204110469872714,
+    "y_std_px": 0.47399719573618176,
+    "x_p90_abs_px": 0.4710540175401548,
+    "y_p90_abs_px": 0.5902098601806074,
+    "quadrant_counts": {
+      "Q1": 976,
+      "Q2": 383,
+      "Q3": 222,
+      "Q4": 419
+    },
+    "edge_counts": {
+      "top": 1005,
+      "bottom": 354,
+      "left": 376,
+      "right": 982,
+      "center": 154
+    }
+  },
+  "pixel_sky_pixel_closure": {
+    "n_samples": 200,
+    "closure_err_median_px": 7.030234855940067e-11,
+    "closure_err_p90_px": 4.291367546118054e-09,
+    "closure_err_p99_px": 1.7726777199786355e-08,
+    "closure_err_max_px": 3.845622633309798e-08,
+    "x_err_median_px": 4.069988790433854e-11,
+    "y_err_median_px": 3.376499080331996e-11
+  },
+  "sky_pixel_sky_closure": {
+    "n_samples": 200,
+    "closure_err_median_deg": 3.98545948505101e-12,
+    "closure_err_p90_deg": 1.2712534163610476e-10,
+    "closure_err_p99_deg": 2.2047269692547125e-10,
+    "closure_err_max_deg": 2.86309279080457e-10,
+    "ra_err_median_deg": 2.2737367544323206e-12,
+    "dec_err_median_deg": 2.0676793610618915e-12
+  },
+  "fov_diag_deg": 10.098909323237864,
+  "gate_check": {
+    "median_le_0_75_px": true,
+    "p90_le_1_5_px": true,
+    "p99_le_3_0_px": true
+  },
+  "gate_passed": true
+}

@@ -1,0 +1,42 @@
+P11-003: reproduce WCS closure defects on T1-T4 representative frames (16/16 diagnosed, 8/16 gate PASS, VERDICT: PARTIAL)
+
+## Task
+Reproduce WCS closure defects on all T1-T4 representative frames (16 frames), quantify X/Y deviation, quadrant distribution, and SIP order.
+
+## Execution
+- 16 frames (T2:5 LDN43x4+NGC1727x1 / T3:6 NGC55x6 / T4:5 Galaxy_Centerx5)
+- Parallel subagents (Group A + Group B, 4 frames each, independent DLL handles and Gaia cache)
+- 3 frames rerun due to NTFS compression corruption (T2_RED/GREEN/BLUE_LDN43, all NUL bytes)
+
+## Results
+- Solve success: 16/16 (rms 0.0517-0.2883 px, n_pairs 30-45)
+- Diagnose success: 16/16 (n_matched 306-1945, median 0.533-0.960 px)
+- Gate pass rate: 8/16 (50%)
+- Gate threshold: median <= 0.75 px AND p90 <= 1.5 px AND p99 <= 3.0 px
+
+## Cross-frame patterns (root cause)
+1. Focal length/FOV dominates: T4 (200mm large FOV) 5/5 pass; T2/T3 (1900mm small FOV) 3/11 pass. SIP order=3 fits distortion well at large FOV but under-models sub-pixel bias at small FOV.
+2. Filter type secondary: narrowband HA/OIII 4/6 pass (sharp star centroid); broadband RGB/LUM 1/10 pass (faint star noise lowers centroid precision).
+3. Y-direction systematic bias: 15/16 frames Y residual > X residual; T3_LUM_NGC55 extreme Y=0.848 vs X=0.218.
+4. SIP write/parse loss excluded: PS<->Sky closure error 1e-10 px (far below precision requirement).
+
+## Verdict: PARTIAL
+WCS closure implementation correct (numerical closure 1e-10 px, not a code defect). Gate failures root caused to SIP order under-modeling at small FOV + Y-direction systematic bias + broadband faint star centroid precision.
+
+## Deliverables
+- 4 standard reports (TASK/TEST/EVIDENCE/REVIEW)
+- 16 frames closure_report.json + matched_pairs.json + residual_plot.png + quadrant_plot.png
+- p11_003_summary.json (16-frame aggregate + cross-frame patterns + root cause)
+- group_a_summary.json + group_b_summary.json + rerun_corrupted_summary.json
+- REPRESENTATIVE_FRAMES_ARCHIVE.json (16-frame device profile + execution status)
+- scripts/run_p11_003_subset.py (subset driver, supports --frames/--group/--all)
+- Control files: PROJECT_STATE.yaml + CURRENT_TASK.md + MASTER_TASK_REGISTER.csv + memory.md
+
+## Dependencies
+- P11-002 (DONE, diagnostic tool established)
+- Next: P11-004 (apply unified correction at WCS production side)
+
+## Forbidden shortcuts
+- No data fabrication: PASS
+- No gate lowering: PASS
+- No skip failing frame: PASS

@@ -1,43 +1,45 @@
 # 当前任务
 
-`P11-003`：在 T1-T4 代表帧复现 WCS 闭环缺陷，量化 X/Y 偏差、象限、SIP 阶数。
+`P11-004`：在 WCS 生产端实施统一修正（基于 P11-003 根因结论）。
 
-## P11-002 已完成（2026-07-27）
+## P11-003 已完成（2026-07-28）
 
-- 工具版本：P11-002 v1.0
-- 工具架构：独立于 PlateSolve 内部 transform
-  - 核心模块：`scripts/wcs_closure_diagnostic.py`
-  - 单元测试：`scripts/test_wcs_closure.py`（30/30 PASS，含 5 项独立性硬约束）
-  - Driver 脚本：`scripts/run_diagnostic.py`
-  - FITS header 工具：`scripts/check_fits_header.py`
-- 工具独立性硬约束（5 项单元测试强制）：
-  - 不导入 `ipv_solver.to_astropy_wcs`
-  - 不读取 `wcs_result.cd/crval/crpix/sip_*/ctype` 做 transform
-  - 仅用 `astropy.wcs.WCS` 做 pixel↔sky 转换
-  - WCS 仅从 FITS header 构建
-- 验证帧（2 帧）：
-  - T3_LUM_NGC55（T3 / LUM / NGC55 / 4096×4096 / FOV_diag=1.558°）
-  - T2_HA_LDN43（T2 / HA / LDN43 / 4096×4096 / FOV_diag=1.575°）
+- 任务目标：在 T1-T4 代表帧复现 WCS 闭环缺陷，量化 X/Y 偏差、象限、SIP 阶数
+- 工具：P11-003 v1.0（subset driver + astropy WCS 独立诊断）
+- 执行范围：16 帧代表帧
+  - T2: 5 帧（LDN43 ×4 + NGC1727 ×1）
+  - T3: 6 帧（NGC55 ×6）
+  - T4: 5 帧（Galaxy_Center ×5）
+- 执行方式：并行 Subagent（Group A + Group B 各 4 帧）+ 3 帧重跑（NTFS 压缩损坏恢复）
 - 关键结果：
 
-| 帧 | PlateSolve RMS (px) | n_pairs (solve) | 独立诊断 median (px) | n_matched (诊断) | gate |
-|----|---------------------|-----------------|----------------------|-------------------|------|
-| T3_LUM_NGC55 | 0.151 | 31 | 0.897 | 702 | FAIL |
-| T2_HA_LDN43 | 0.108 | 33 | 0.772 | 1237 | FAIL |
+| 维度 | 结果 |
+|------|------|
+| 求解成功率 | 16/16 = 100% |
+| 诊断成功率 | 16/16 = 100% |
+| gate 通过率 | 8/16 = 50% |
+| median solve RMS | 0.1146 px |
+| median 残差中位数 | 0.736 px |
 
-- 数值闭环精度：1.18e-10 ~ 1.37e-10 px（astropy WCS 完全自洽）
-- 关键发现：
-  - PlateSolve 内部 RMS 与独立诊断 median 残差差距 6-7 倍，验证独立诊断工具必要性
-  - T3 Y 方向偏差主导 (0.848 vs 0.218 px)
-  - T2 X/Y 均衡偏差 (~0.5 px each)
-  - Q4 象限 (+X, -Y) 星对偏多（两帧一致）
-  - SIP_ORDER=3 两帧一致
-- 证据：`engineering_v1.2/evidence/P11-002/`
-  - 4 份报告：TASK_REPORT.md / TEST_REPORT.md / EVIDENCE_INDEX.md / REVIEW_REPORT.md
-  - 2 帧 closure_report.json + matched_pairs.json + residual_plot.png + quadrant_plot.png
-  - driver_summary.json
-  - unit_test.log + run_diagnostic.log
-- VERDICT: PASS
+- 跨帧模式（根因结论）：
+
+| 因素 | 模式 |
+|------|------|
+| 焦距/FOV（主导） | T4 (200mm 大 FOV) 100% 通过；T2/T3 (1900mm 小 FOV) 27% 通过 |
+| 滤镜类型（次要） | 窄带 HA/OIII 66.7% 通过；宽带 RGB/LUM 10% 通过 |
+| Y 方向系统偏差 | 15/16 帧 Y 残差 > X 残差（93.75%） |
+| SIP 写入/解析损失 | 已排除（PS↔Sky 闭环 1e-10 px） |
+
+- VERDICT: PARTIAL
+  - WCS 闭环实现正确（数值闭环精度 1e-10 px，非代码缺陷）
+  - gate 失败根因：SIP order=3 在小 FOV 下建模不足 + Y 方向系统偏差 + 宽带暗星质心精度
+- 证据：`engineering_v1.2/evidence/P11-003/`
+  - 4 份标准报告：TASK_REPORT.md / TEST_REPORT.md / EVIDENCE_INDEX.md / REVIEW_REPORT.md
+  - 16 帧 closure_report.json + matched_pairs.json + residual_plot.png + quadrant_plot.png
+  - p11_003_summary.json（16 帧汇总 + 跨帧模式 + 根因结论）
+  - group_a_summary.json + group_b_summary.json + rerun_corrupted_summary.json
+  - REPRESENTATIVE_FRAMES_ARCHIVE.json（16 帧设备档案 + 执行状态）
+  - raw_logs/（执行日志）
 
 ## 历史任务（已完成）
 
@@ -52,16 +54,22 @@
 - P10-006：T1-T4 真实校准代表帧验证（16/16 PASS，25/25 测试 PASS）
 - P11-001：坐标约定冻结（COORDINATE_CONVENTION.md，7 坐标系 + 22 变量，19/19 PASS）
 - P11-002：WCS 真实星对闭环诊断工具建立（30/30 测试 PASS，2 帧代表帧验证，VERDICT: PASS）
+- P11-003：T1-T4 代表帧 WCS 闭环缺陷复现（16 帧，8/16 gate 通过，VERDICT: PARTIAL）
 
-## 下一步：P11-003
+## 下一步：P11-004
 
-依据 `tasks/P11-003.md`：
+依据 `tasks/P11-004.md`：
 
-- 在 T1-T4 全部代表帧复现 WCS 闭环缺陷
-- 依赖：P11-002（已满足，工具已建立）
-- 量化 X/Y 偏差分布、象限偏差、SIP 阶数对残差影响
-- 对比不同设备/滤镜/目标的偏差模式
-- 工具已就绪：可直接调用 `wcs_closure_diagnostic.diagnose_frame` 批量处理
+- 在 WCS 生产端实施统一修正（基于 P11-003 根因结论）
+- 依赖：P11-003（已满足，根因结论已就绪）
+- 待修正根因：
+  1. SIP order=3 在小 FOV (T2/T3 1900mm) 下建模不足 → 考虑提高 SIP order 或引入更高阶畸变模型
+  2. Y 方向系统偏差（15/16 帧 Y > X）→ 排查检测器/光学/坐标变换链中的 Y 方向系统误差
+  3. 宽带暗星质心精度 → 考虑质心算法优化或 SNR 加权
+- 不修正项：
+  - 大 FOV (T4 200mm) 已 100% 通过，无需修正
+  - 窄带 HA/OIII 66.7% 通过，质心精度已满足
+- 验证：修正后重跑 16 帧代表帧，gate 通过率目标 ≥ 14/16 (87.5%)
 
 ## 已知 BLOCKED 项
 
