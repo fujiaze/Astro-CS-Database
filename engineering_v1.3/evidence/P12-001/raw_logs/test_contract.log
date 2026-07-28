@@ -1,0 +1,73 @@
+============================================================
+P12-001 契约测试: photometry_report.json vs schema
+============================================================
+============================================================
+[契约测试1] photometry_report.json vs schema
+============================================================
+  Schema: f:\Astro dev\Astro CS Normalization Database\engineering_v1.3\contracts\photometry_report.schema.json
+  Report: f:\Astro dev\Astro CS Normalization Database\output\p12_001_test\photometry_report.json
+  Schema required fields: ['frame', 'valid_fsyn', 'gaia_in_frame', 'psf_valid', 'unique_matches', 'fit_used', 'scale_factor', 'sigma_residual', 'status']
+  [PASS] jsonschema.validate 通过
+
+============================================================
+[契约测试2] required 字段齐全性
+============================================================
+  [PASS] frame: 存在
+  [PASS] valid_fsyn: 存在
+  [PASS] gaia_in_frame: 存在
+  [PASS] psf_valid: 存在
+  [PASS] unique_matches: 存在
+  [PASS] fit_used: 存在
+  [PASS] scale_factor: 存在
+  [PASS] sigma_residual: 存在
+  [PASS] status: 存在
+  [PASS] required 字段齐全
+
+============================================================
+[契约测试3] P12-001 诊断字段齐全性 (17 个 diag 字段)
+============================================================
+  [PASS] spectrum_rows_total: 存在
+  [PASS] psf_total: 存在
+  [PASS] spatial_candidates: 存在
+  [PASS] rejected_ambiguous: 存在
+  [PASS] rejected_distance: 存在
+  [PASS] rejected_quality: 存在
+  [PASS] robust_iterations: 存在
+  [PASS] r_median: 存在
+  [PASS] r_p90: 存在
+  [PASS] r_max: 存在
+  [PASS] P12-001 诊断字段齐全
+
+============================================================
+[契约测试4] 字段类型正确性
+============================================================
+  [PASS] frame is string
+  [PASS] valid_fsyn is int
+  [PASS] gaia_in_frame is int
+  [PASS] psf_valid is int
+  [PASS] unique_matches is int
+  [PASS] fit_used is int
+  [PASS] scale_factor is number/null
+  [PASS] sigma_residual is number/null
+  [PASS] status in [PASS/FAIL/SKIPPED]
+  [PASS] match_distance is object
+  [PASS] 字段类型正确
+
+============================================================
+[契约测试5] match_distance 子字段齐全性
+============================================================
+  [PASS] match_distance.median: 存在
+  [PASS] match_distance.p90: 存在
+  [PASS] match_distance.max: 存在
+  [PASS] match_distance 子字段齐全
+
+============================================================
+契约测试汇总:
+  [PASS] schema 验证
+  [PASS] required 字段齐全
+  [PASS] P12-001 诊断字段齐全
+  [PASS] 字段类型正确
+  [PASS] match_distance 子字段
+
+总计: 5/5 通过
+============================================================

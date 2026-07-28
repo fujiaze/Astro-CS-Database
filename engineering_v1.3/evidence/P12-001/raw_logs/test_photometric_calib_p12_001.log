@@ -1,0 +1,207 @@
+[INFO] 加载 photometric_calib.dll: f:\Astro dev\Astro CS Normalization Database\lib\photometric_calib\cpp\photometric_calib.dll
+[INFO] DLL加载成功, API已绑定
+[INFO] 测光校准完成: n_matched=1, scale=1.000000e+01, sigma_residual=0.000000
+[INFO] P12-001 diag: {'spectrum_rows_total': 0, 'valid_fsyn': 0, 'gaia_projected_in_frame': 10, 'psf_total': 11, 'psf_valid': 10, 'spatial_candidates': 1, 'unique_matches': 1, 'rejected_ambiguous': 0, 'rejected_distance': 9, 'rejected_quality': 0, 'fit_used': 1, 'robust_iterations': 0, 'scale_factor': 10.0, 'sigma_residual': 0.0, 'r_median': -1.0, 'r_p90': -1.0, 'r_max': -1.0, 'match_distance_median': 0.14142135623814556, 'match_distance_p90': 0.14142135623814556, 'match_distance_max': 0.14142135623814556}
+[INFO] 加载 photometric_calib.dll: f:\Astro dev\Astro CS Normalization Database\lib\photometric_calib\cpp\photometric_calib.dll
+[INFO] DLL加载成功, API已绑定
+[pc_api] ====== 简化版测光校准开始 ======
+[pc_api] OpenMP线程数: 16
+[pc_api] 图像: 200x200, Gaia星: 10, PSF星: 11, SIP阶数: 0
+[wcs_transform] 初始化: CRVAL=(10.000000,20.000000), CRPIX=(100.000,100.000), CD=[1.000e-02,0.000e+00;0.000e+00,1.000e-02], det=1.000e-04, sip_order=0
+[INFO] [star_matcher] 初始化: KD-tree + IRLS/Tukey 清洗 (GAP-013)
+[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=10 / 10
+[INFO] [star_matcher] P12-001 阶段3: psf_total=11, psf_valid=10
+[INFO] [star_matcher] PSF有效星: 10 / 11, Gaia星: 10, 匹配半径: 2.00 px
+[INFO] [star_matcher] P12-001 阶段4/6: spatial_candidates=1, unique_matches=1, rejected_ambiguous=0, rejected_distance=9
+[INFO] [star_matcher] P12-001 阶段8: match_distance median=0.1414 p90=0.1414 max=0.1414 px
+[INFO] [star_matcher] KD-tree 匹配完成: 1 对
+[INFO] [star_matcher] cleanAndScale: 输入 1 颗, 星等容忍 3.00 mag
+[INFO] [star_matcher] 星等一致性: 通过 1, 拒绝 0 (median_delta=-21.2474, tol=3.00 mag)
+[INFO] [star_matcher] IRLS 初始: location=-1.000000, MAD=0.000000, S=0.000000
+[INFO] [star_matcher] IRLS: S=0 (所有 r 相同), 跳过迭代
+[INFO] [star_matcher] 亮度比例一致性:
+[INFO]   - 输入匹配: 1
+[INFO]   - 星等一致性通过: 1 (拒绝 0)
+[INFO]   - IRLS inliers: 1 (outliers: 0)
+[INFO]   - location(r) = -1.000000 (dex), scale = 10^(-location) = 1.000000e+01
+[INFO]   - MAD(r) = 0.000000, S = 0.000000, sigma_residual = 0.000000
+[INFO]   - r_inliers 范围: [-1.000000, -1.000000] (spread 0.000000 dex = 0.000 mag)
+[INFO] [star_matcher] 清洗完成: 保留 1, 排除 0 (无效/星等不一致/IRLS离群)
+[INFO] [star_matcher] P12-001 阶段6/7/8: rejected_quality=0 (invalid=0 + mag=0 + irls=0), fit_used=1, robust_iterations=0, scale=1.000000e+01, sigma=0.000000
+[INFO] [star_matcher] P12-001 阶段8: r_inliers median=-1.000000 p90=-1.000000 max=-1.000000 dex
+[pc_api] 匹配+清洗完成: 1 颗, scale=1.000000e+01, sigma_residual=0.000000
+[image_corrector] 图像校正: 200x200, scale=1.000000e+01, 并行16线程
+[image_corrector] 校正完成
+[pc_api] ====== 测光校准完成: n_matched=1, scale=1.000000e+01, sigma_residual=0.000000 ======
+[pc_api] ====== 简化版测光校准开始 ======
+[pc_api] OpenMP线程数: 16
+[pc_api] 图像: 200x200, Gaia星: 20, PSF星: 20, SIP阶数: 0
+[wcs_transform] 初始化: CRVAL=(10.000000,20.000000), CRPIX=(100.000,100.000), CD=[1.000e-02,0.000e+00;0.000e+00,1.000e-02], det=1.000e-04, sip_order=0
+[INFO] [star_matcher] 初始化: KD-tree + IRLS/Tukey 清洗 (GAP-013)
+[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=20 / 20
+[INFO] [star_matcher] P12-001 阶段3: psf_total=20, psf_valid=20
+[INFO] [star_matcher] PSF有效星: 20 / 20, Gaia星: 20, 匹配半径: 2.00 px
+[INFO] [star_matcher] P12-001 阶段4/6: spatial_candidates=1, unique_matches=1, rejected_ambiguous=0, rejected_distance=19
+[INFO] [star_matcher] P12-001 阶段8: match_distance median=0.1414 p90=0.1414 max=0.1414 px
+[INFO] [star_matcher] KD-tree 匹配完成: 1 对
+[INFO] [star_matcher] cleanAndScale: 输入 1 颗, 星等容忍 3.00 mag
+[INFO] [star_matcher] 星等一致性: 通过 1, 拒绝 0 (median_delta=-21.2480, tol=3.00 mag)
+[INFO] [star_matcher] IRLS 初始: location=-0.999783, MAD=0.000000, S=0.000000
+[INFO] [star_matcher] IRLS: S=0 (所有 r 相同), 跳过迭代
+[INFO] [star_matcher] 亮度比例一致性:
+[INFO]   - 输入匹配: 1
+[INFO]   - 星等一致性通过: 1 (拒绝 0)
+[INFO]   - IRLS inliers: 1 (outliers: 0)
+[INFO]   - location(r) = -0.999783 (dex), scale = 10^(-location) = 9.995002e+00
+[INFO]   - MAD(r) = 0.000000, S = 0.000000, sigma_residual = 0.000000
+[INFO]   - r_inliers 范围: [-0.999783, -0.999783] (spread 0.000000 dex = 0.000 mag)
+[INFO] [star_matcher] 清洗完成: 保留 1, 排除 0 (无效/星等不一致/IRLS离群)
+[INFO] [star_matcher] P12-001 阶段6/7/8: rejected_quality=0 (invalid=0 + mag=0 + irls=0), fit_used=1, robust_iterations=0, scale=9.995002e+00, sigma=0.000000
+[INFO] [star_matcher] P12-001 阶段8: r_inliers median=-0.999783 p90=-0.999783 max=-[INFO] 测光校准完成: n_matched=1, scale=9.995002e+00, sigma_residual=0.000000
+[INFO] P12-001 diag: {'spectrum_rows_total': 0, 'valid_fsyn': 0, 'gaia_projected_in_frame': 20, 'psf_total': 20, 'psf_valid': 20, 'spatial_candidates': 1, 'unique_matches': 1, 'rejected_ambiguous': 0, 'rejected_distance': 19, 'rejected_quality': 0, 'fit_used': 1, 'robust_iterations': 0, 'scale_factor': 9.995002498750624, 'sigma_residual': 0.0, 'r_median': -0.9997829070277698, 'r_p90': -0.9997829070277698, 'r_max': -0.9997829070277698, 'match_distance_median': 0.1414213562391705, 'match_distance_p90': 0.1414213562391705, 'match_distance_max': 0.1414213562391705}
+[INFO] 加载 photometric_calib.dll: f:\Astro dev\Astro CS Normalization Database\lib\photometric_calib\cpp\photometric_calib.dll
+[INFO] DLL加载成功, API已绑定
+[INFO] 测光校准完成: n_matched=0, scale=1.000000e+00, sigma_residual=0.000000
+[INFO] P12-001 diag: {'spectrum_rows_total': 0, 'valid_fsyn': 0, 'gaia_projected_in_frame': 0, 'psf_total': 0, 'psf_valid': 0, 'spatial_candidates': 0, 'unique_matches': 0, 'rejected_ambiguous': 0, 'rejected_distance': 0, 'rejected_quality': 0, 'fit_used': 0, 'robust_iterations': 0, 'scale_factor': 0.0, 'sigma_residual': 0.0, 'r_median': 0.0, 'r_p90': 0.0, 'r_max': 0.0, 'match_distance_median': 0.0, 'match_distance_p90': 0.0, 'match_distance_max': 0.0}
+[INFO] 加载 photometric_calib.dll: f:\Astro dev\Astro CS Normalization Database\lib\photometric_calib\cpp\photometric_calib.dll
+[INFO] DLL加载成功, API已绑定
+[INFO] 测光校准完成: n_matched=1, scale=1.000000e+01, sigma_residual=0.000000
+[INFO] P12-001 diag: {'spectrum_rows_total': 0, 'valid_fsyn': 0, 'gaia_projected_in_frame': 10, 'psf_total': 10, 'psf_valid': 10, 'spatial_candidates': 1, 'unique_matches': 1, 'rejected_ambiguous': 0, 'rejected_distance': 9, 'rejected_quality': 0, 'fit_used': 1, 'robust_iterations': 0, 'scale_factor': 10.0, 'sigma_residual': 0.0, 'r_median': -1.0, 'r_p90': -1.0, 'r_max': -1.0, 'match_distance_median': 0.1414213562381958, 'match_distance_p90': 0.1414213562381958, 'match_distance_max': 0.1414213562381958}
+[INFO] 加载 photometric_calib.dll: f:\Astro dev\Astro CS Normalization Database\lib\photometric_calib\cpp\photometric_calib.dll
+[INFO] DLL加载成功, API已绑定
+0.999783 dex
+[pc_api] 匹配+清洗完成: 1 颗, scale=9.995002e+00, sigma_residual=0.000000
+[image_corrector] 图像校正: 200x200, scale=9.995002e+00, 并行16线程
+[image_corrector] 校正完成
+[pc_api] ====== 测光校准完成: n_matched=1, scale=9.995002e+00, sigma_residual=0.000000 ======
+[pc_api] ====== 简化版测光校准开始 ======
+[pc_api] OpenMP线程数: 16
+[pc_api] 错误: 无Gaia星 (n_gaia=0)
+[pc_api] 退化: scale=1.0, 无校正
+[pc_api] ====== 简化版测光校准开始 ======
+[pc_api] OpenMP线程数: 16
+[pc_api] 图像: 200x200, Gaia星: 10, PSF星: 10, SIP阶数: 2
+[wcs_transform] 初始化: CRVAL=(10.000000,20.000000), CRPIX=(100.000,100.000), CD=[1.000e-02,0.000e+00;0.000e+00,1.000e-02], det=1.000e-04, sip_order=2
+[INFO] [star_matcher] 初始化: KD-tree + IRLS/Tukey 清洗 (GAP-013)
+[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=10 / 10
+[INFO] [star_matcher] P12-001 阶段3: psf_total=10, psf_valid=10
+[INFO] [star_matcher] PSF有效星: 10 / 10, Gaia星: 10, 匹配半径: 2.00 px
+[INFO] [star_matcher] P12-001 阶段4/6: spatial_candidates=1, unique_matches=1, rejected_ambiguous=0, rejected_distance=9
+[INFO] [star_matcher] P12-001 阶段8: match_distance median=0.1414 p90=0.1414 max=0.1414 px
+[INFO] [star_matcher] KD-tree 匹配完成: 1 对
+[INFO] [star_matcher] cleanAndScale: 输入 1 颗, 星等容忍 3.00 mag
+[INFO] [star_matcher] 星等一致性: 通过 1, 拒绝 0 (median_delta=-21.2474, tol=3.00 mag)
+[INFO] [star_matcher] IRLS 初始: location=-1.000000, MAD=0.000000, S=0.000000
+[INFO] [star_matcher] IRLS: S=0 (所有 r 相同), 跳过迭代
+[INFO] [star_matcher] 亮度比例一致性:
+[INFO]   - 输入匹配: 1
+[INFO]   - 星等一致性通过: 1 (拒绝 0)
+[INFO]   - IRLS inliers: 1 (outliers: 0)
+[INFO]   - location(r) = -1.000000 (dex), scale = 10^(-location) = 1.000000e+01
+[INFO]   - MAD(r) = 0.000000, S = 0.000000, sigma_residual = 0.000000
+[INFO]   - r_inliers 范围: [-1.000000, -1.000000] (spread 0.000000 dex = 0.000 mag)
+[INFO] [star_matcher] 清洗完成: 保留 1, 排除 0 (无效/星等不一致/IRLS离群)
+[INFO] [star_matcher] P12-001 阶段6/7/8: rejected_quality=0 (invalid=0 + mag=0 + irls=0), fit_used=1, robust_iterations=0, scale=1.000000e+01, sigma=0.000000
+[INFO] [star_matcher] P12-001 阶段8: r_inliers median=-1.000000 p90=-1.000000 max=-1.000000 dex
+[pc_api] 匹配+清洗完成: 1 颗, scale=1.000000e+01, sigma_residual=0.000000
+[image_corrector] 图像校正: 200x200, scale=1.000000e+01, 并行16线程
+[image_corrector] 校正完成
+[pc_api] ====== 测光校准完成: n_matched=1, scale=1.000000e+01, sigma_residual=0.000000 ======
+[pc_api] ====== 简化版测光校准开始 ======
+[pc_api] OpenMP线程数: 16
+[pc_api] 图像: 200x200, Gaia星: 10, PSF星: 10, SIP阶数: 0
+[wcs_transform] 初始化: CRVAL=(10.000000,20.000000), CRPIX=(100.000,100.000), CD=[1.000e-02,0.000e+00;0.000e+00,1.000e-02], det=1.000e-04, sip_order=0
+[INFO] [star_matcher] 初始化: KD-tree + IRLS/Tukey 清洗 (GAP-013)
+[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=10 / 10
+[INFO] [star_matcher] P12-001 阶段3: psf_total=10, psf_valid=10
+[INFO] [star_matcher] PSF有效星: 10 / 10, Gaia星: 10, 匹配半径: 2.00 px
+[INFO] [star_matcher] P12-001 阶段4/6: spatial_candidates=1, unique_matches=1, rejected_ambiguous=0, rejected_distance=9
+[INFO] [star_matcher] P12-001 阶段8: match_distance median=0.1414 p90=0.1414 max=0.1414 px
+[INFO] [star_matcher] KD-tree 匹配完成: 1 对
+[INFO] [star_matcher] cleanAndScale: 输入 1 颗, 星等容忍 3.00 mag
+[INFO] [star_matcher] 星等一致性: 通过 1, 拒绝 0 (median_delta=-21.2474, tol=3.00 mag)
+[INFO] [star_matcher] IRLS 初始: location=-1.000000, MAD=0.000000, S=0.000000
+[INFO] [star_matcher] IRLS: S=0 (所有 r 相同), 跳过迭代
+[INFO] [star_matcher] 亮度比例一致性:
+[INFO]   - 输入匹配: 1
+[INFO]   - 星等一致性通过: 1 (拒绝 0)
+[INFO]   - IRLS inliers: 1 (outliers: 0)
+[INFO]   - location(r) = -1.000000 (dex), scale = 10^(-location) = 1.000000e+01
+[INFO]   - MAD(r) = 0.000000, S = 0[INFO] 测光校准完成: n_matched=1, scale=1.000000e+01, sigma_residual=0.000000
+[INFO] P12-001 diag: {'spectrum_rows_total': 0, 'valid_fsyn': 0, 'gaia_projected_in_frame': 10, 'psf_total': 10, 'psf_valid': 10, 'spatial_candidates': 1, 'unique_matches': 1, 'rejected_ambiguous': 0, 'rejected_distance': 9, 'rejected_quality': 0, 'fit_used': 1, 'robust_iterations': 0, 'scale_factor': 10.0, 'sigma_residual': 0.0, 'r_median': -1.0, 'r_p90': -1.0, 'r_max': -1.0, 'match_distance_median': 0.14142135623814556, 'match_distance_p90': 0.14142135623814556, 'match_distance_max': 0.14142135623814556}
+============================================================
+photometric_calib C++ DLL 测试
+============================================================
+============================================================
+[测试1] 基本测光校准 (10颗星, TAN投影)
+============================================================
+  n_matched = 1 (期望 10)
+  scale = 1.000000e+01 (期望 ~10.0)
+  out_img[0,0] = 10000.0000 (期望 ~10000.0)
+  out_img shape = (200, 200)
+  diag.fit_used = 1 (期望 10)
+  diag.psf_valid = 10 (期望 10)
+  [FAIL] 基本测光校准
+
+============================================================
+[测试2] MAD离群清洗 (注入1颗离群星)
+============================================================
+  n_matched = 1 (期望 19, 离群1被剔除)
+  scale = 9.995002e+00 (期望 ~10.0)
+  diag.fit_used = 1 (期望 19)
+  diag.rejected_quality = 0
+  [FAIL] MAD离群清洗
+
+============================================================
+[测试3] 无Gaia星退化路径 (scale=1.0)
+============================================================
+  n_matched = 0 (期望 0)
+  scale = 1.000000e+00 (期望 1.0)
+  out_img[0,0] = 500.0000 (期望 500.0)
+  diag.spectrum_rows_total = 0 (期望 0)
+  [PASS] 退化路径
+
+============================================================
+[测试4] SIP WCS投影 (二阶SIP)
+============================================================
+  n_matched = 1 (期望 10, SIP投影后仍能匹配)
+  scale = 1.000000e+01
+  diag.fit_used = 1
+  [FAIL] SIP WCS投影
+
+============================================================
+[测试5] P12-001 PhotometricDiag 分阶段诊断输出
+============================================================
+  diag.to_dict() = {'spectrum_rows_total': 0, 'valid_fsyn': 0, 'gaia_projected_in_frame': 10, 'psf_total': 10, 'psf_valid': 10, 'spatial_candidates': 1, 'unique_matches': 1, 'rejected_ambiguous': 0, 'rejected_distance': 9, 'rejected_quality': 0, 'fit_used': 1, 'robust_iterations': 0, 'scale_factor': 10.0, 'sigma_residual': 0.0, 'r_median': -1.0, 'r_p90': -1.0, 'r_max': -1.0, 'match_distance_median': 0.14142135623814556, 'match_distance_p90': 0.14142135623814556, 'match_distance_max': 0.14142135623814556}
+  阶段3 PSF: psf_total=10 (期望 10), psf_valid=10 (期望 10)
+  阶段7 拟合: fit_used=1 (期望 10), robust_iterations=0
+  阶段7 scale_factor=1.000000e+01, sigma_residual=0.000000
+  阶段8 r_median=-1.000000, r_p90=-1.000000, r_max=-1.000000
+  阶段8 match_distance_median=0.141421, p90=0.141421, max=0.141421
+    [PASS] psf_total > 0
+    [PASS] psf_valid > 0 (实际=10)
+    [PASS] fit_used > 0 (实际=1)
+    [PASS] scale_factor > 0 (实际=1.000000e+01)
+    [PASS] diag.scale_factor ≈ scale (1.000000e+01 vs 1.000000e+01)
+    [PASS] diag.sigma_residual ≈ sigma_residual (0.000000 vs 0.000000)
+  [PASS] P12-001 diag 输出
+
+============================================================
+测试汇总:
+  [FAIL] 基本测光校准
+  [FAIL] MAD离群清洗
+  [PASS] 无Gaia星退化
+  [FAIL] SIP WCS投影
+  [PASS] P12-001 diag 输出
+
+总计: 2/5 通过
+============================================================
+.000000, sigma_residual = 0.000000
+[INFO]   - r_inliers 范围: [-1.000000, -1.000000] (spread 0.000000 dex = 0.000 mag)
+[INFO] [star_matcher] 清洗完成: 保留 1, 排除 0 (无效/星等不一致/IRLS离群)
+[INFO] [star_matcher] P12-001 阶段6/7/8: rejected_quality=0 (invalid=0 + mag=0 + irls=0), fit_used=1, robust_iterations=0, scale=1.000000e+01, sigma=0.000000
+[INFO] [star_matcher] P12-001 阶段8: r_inliers median=-1.000000 p90=-1.000000 max=-1.000000 dex
+[pc_api] 匹配+清洗完成: 1 颗, scale=1.000000e+01, sigma_residual=0.000000
+[image_corrector] 图像校正: 200x200, scale=1.000000e+01, 并行16线程
+[image_corrector] 校正完成
+[pc_api] ====== 测光校准完成: n_matched=1, scale=1.000000e+01, sigma_residual=0.000000 ======

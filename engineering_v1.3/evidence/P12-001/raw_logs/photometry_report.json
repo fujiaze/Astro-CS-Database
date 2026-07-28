@@ -1,0 +1,26 @@
+{
+  "frame": "testdata/results/Victory_Nebula_T4_Flying_Dutchman/panel1/Red/Victory_Nebula_mosaic1_flying_dutchman-20250204@045409-180S-Red/01_calibrated.fits",
+  "valid_fsyn": 0,
+  "gaia_in_frame": 3880,
+  "psf_valid": 1818,
+  "unique_matches": 1,
+  "fit_used": 1,
+  "scale_factor": 0.00414984,
+  "sigma_residual": 0,
+  "status": "PASS",
+  "match_distance": {
+    "median": 0.129163,
+    "p90": 0.129163,
+    "max": 0.129163
+  },
+  "spectrum_rows_total": 0,
+  "psf_total": 2000,
+  "spatial_candidates": 1,
+  "rejected_ambiguous": 0,
+  "rejected_distance": 1817,
+  "rejected_quality": 0,
+  "robust_iterations": 0,
+  "r_median": 2.38197,
+  "r_p90": 2.38197,
+  "r_max": 2.38197
+}
