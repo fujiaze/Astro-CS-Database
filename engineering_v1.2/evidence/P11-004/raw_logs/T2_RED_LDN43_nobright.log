@@ -1,0 +1,28 @@
+2026-07-28 13:03:51,936 [INFO] wcs_closure: ======================================================================
+2026-07-28 13:03:51,936 [INFO] wcs_closure: 诊断帧: T2_RED_LDN43_solved
+2026-07-28 13:03:51,936 [INFO] wcs_closure: FITS: T2_RED_LDN43_solved.fits
+2026-07-28 13:03:52,088 [INFO] wcs_closure: 读取 FITS: T2_RED_LDN43_solved.fits
+2026-07-28 13:03:52,161 [INFO] wcs_closure: 图像尺寸: 4096x4096
+2026-07-28 13:03:52,475 [WARNING] astropy: FITSFixedWarning: RADECSYS= 'FK5 ' / Equatorial coordinate system 
+the RADECSYS keyword is deprecated, use RADESYSa.
+2026-07-28 13:03:52,477 [WARNING] astropy: FITSFixedWarning: 'datfix' made the change 'Set MJD-OBS to 60798.143993 from DATE-OBS'.
+2026-07-28 13:03:52,478 [INFO] wcs_closure: WCS 构建: has_sip=True sip_order=3 ctype=['RA---TAN-SIP', 'DEC--TAN-SIP'] crpix=(2048.500,2048.500) crval=(248.609646,-15.759139)
+2026-07-28 13:03:52,482 [INFO] wcs_closure: 初始化 PlateSolve 环境 (project_root=f:\Astro dev\Astro CS Normalization Database)
+2026-07-28 13:03:52,785 [INFO] wcs_closure: PlateSolve 环境就绪
+2026-07-28 13:03:52,789 [INFO] wcs_closure: Siril 自适应星等上限: (l=1.37°, b=20.99°, fov=1.57°, N=2000) -> mag_high=17.334
+2026-07-28 13:03:52,789 [INFO] wcs_closure: Gaia cone_search: center=(248.609646, -15.759139) radius=1.1022 deg mag_high=17.3
+2026-07-28 13:03:52,801 [INFO] wcs_closure: Gaia 查询返回: n=11025
+2026-07-28 13:03:52,801 [INFO] wcs_closure: PlateSolve 求解: ra0=248.608333 dec0=-15.759722 fl=1917.50 ps=9.0000
+2026-07-28 13:03:53,752 [INFO] wcs_closure: callback 收到 2000 个检测星点
+2026-07-28 13:03:53,791 [INFO] wcs_closure: PlateSolve 完成: success=1 n_detected=0 n_pairs=34 rms_px=0.1205 trans_order=3
+2026-07-28 13:03:53,799 [INFO] wcs_closure: world_to_pixel 有效: 11025/11025
+2026-07-28 13:03:53,799 [INFO] wcs_closure: Gaia 过滤后: ra=11025, dec=11025, mag=11025, pred_xy=11025
+2026-07-28 13:03:53,855 [INFO] wcs_closure: kd-tree 匹配: 1942 对 (max_dist=3.00 px)
+2026-07-28 13:03:53,914 [INFO] wcs_closure: 匹配对已保存: engineering_v1.2\evidence\P11-004\reports\T2_RED_LDN43_nobright\matched_pairs.json (n=1942)
+2026-07-28 13:03:53,915 [INFO] wcs_closure: 闭环报告已保存: engineering_v1.2\evidence\P11-004\reports\T2_RED_LDN43_nobright\closure_report.json
+2026-07-28 13:03:53,915 [INFO] wcs_closure: [新版 gate] p68=1.015 px (<=0.75: False), p90=1.173 px (<=1.5: True), p99=1.561 px (<=3.0: True), n=1942 (>=5: True) => FAIL
+2026-07-28 13:03:53,915 [INFO] wcs_closure: [Legacy gate] median=0.960 px (<=0.75: False) => FAIL
+2026-07-28 13:03:54,856 [INFO] wcs_closure: 残差图已保存: engineering_v1.2\evidence\P11-004\reports\T2_RED_LDN43_nobright\residual_plot.png
+2026-07-28 13:03:55,100 [INFO] wcs_closure: 四象限分布图已保存: engineering_v1.2\evidence\P11-004\reports\T2_RED_LDN43_nobright\quadrant_plot.png
+2026-07-28 13:03:55,100 [INFO] wcs_closure: 诊断完成: T2_RED_LDN43_solved (耗时 1.98s)
+2026-07-28 13:03:55,115 [INFO] wcs_closure: PlateSolve 环境已释放

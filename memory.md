@@ -975,6 +975,24 @@ spec: .trae/specs/optimize-integration-gaia-query/
 - 内部实现用 `namespace ac {}`，C导出层在 ac_api.cpp 用 extern "C" 包装
 - combine: 0=mean, 1=median（AC_COMBINE_MEAN / AC_COMBINE_MEDIAN）
 
+## 工作流规则
+
+### 审核包规则（2026-07-28 用户确立）
+- **位置**：审核包 zip 必须放在**项目根目录**（不放 `archive/`、`evidence/` 等子目录）
+- **命名**：`Pxx-xxx_review_bundle.zip`（与任务编号对齐，如 `P11-004_review_bundle.zip`）
+- **本地保留，不 commit**：审核包是给审核者本地查看的产物，不进入 git 仓库
+- **gitignore**：`.gitignore` 中通过 `*_review_bundle.zip` 通配符统一忽略
+- **内容组织**：
+  - `README.md`（审核包总览：背景、问题、证据清单、问题遗留与备选方案）
+  - `P11-xxx/`（任务 evidence：raw_logs/ + reports/ + scripts/ + ISSUES_DEFERRED.md 等）
+  - `P11-001_reference/`、`P11-002_scripts/`、`P11-003_context/`（前置任务的关键上下文）
+  - `tasks/P11-xxx.md`（任务定义文件副本）
+  - `lib_plate_solve/`（涉及的核心库代码副本）
+  - `P11-xxx/debug_png/`（关键调试 PNG 样本，每帧选 1 张代表通道，避免包过大）
+- **样本 PNG 数量**：默认 2 张（T2 + T3 各 1 张代表通道），单张 18-22 MB；如证据需要可扩展，但要平衡包大小
+- **生成后核验**：用 `[System.IO.Compression.ZipFile]::OpenRead()` 列出条目，确认文件数和大小符合预期
+- **根目录整理**：每次导出审核包后，及时清理根目录的调试 PNG 和 `*_solved.fits` 等中间产物（归档到 `archive/debug_png_<date>/`，中间产物直接删除）
+
 ### 端到端测试 PLATESOLVE 阶段失败 - aio_frame_export_block_fits 导出 FITS 格式错误（已修复）
 - **现象**: 端到端测试在 PLATESOLVE 阶段失败，StarDetector 检测到 0 颗星。任务描述假设是 BZERO 数据格式问题
 - **根因**: `aio_frame_export_block_fits` (lib/astro_image_io/src/aio_pipeline.cpp) 导出的 FITS 文件格式不正确：
@@ -1286,3 +1304,20 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 - **依赖**: P11-002 (DONE); **后续**: P11-004 (在 WCS 生产端实施统一修正)
 - **Gate**: G11 进行中 (P11-001/002/003 DONE, P11-004/005/006 TODO)
 - **NTFS 压缩损坏教训**: 长时间写入大文件时, 若目录启用了 NTFS 压缩 (Attributes 含 Compressed), 写入崩溃可能导致文件大小正常但内容全 NUL. 后续应避免在压缩目录下生成关键证据文件, 或在写入后立即校验 nonZero 字节数
+
+### P11-004 进度（2026-07-28，DEFERRED → 审核包已导出）
+- **状态**: 用户决定跳过当前问题，审核包已导出至项目根目录 `P11-004_review_bundle.zip`，等待审核反馈
+- **审核包**: `P11-004_review_bundle.zip`（38.12 MB，29 个条目）
+  - 含 P11-004 evidence + 调试 PNG 样本（T2_RED_LDN43 + T3_LUM_NGC55 各 1 张）+ 前置任务上下文 + 核心库代码副本 + README
+  - 不 commit（.gitignore 已加 `*_review_bundle.zip`）
+- **已完成**:
+  - Siril v2 诊断工具升级（自适应星等 + 亮星优先 + 迭代剔除）
+  - WCS 构建等价性验证（8/8 帧 EQUIVALENT，`to_astropy_wcs(result)` ≡ `WCS(header)`，投影差异 1e-10 px）
+  - 单帧 T2_RED_LDN43 诊断（siril_bright_first 24 对 p68=0.82px FAIL；全星等 1942 对 p68=1.02px FAIL）
+  - Gaia 查询路径对比（同一 C API，无差异）
+  - 视觉验证（visualize_reproject 投影位置准确，IPV 求解精度高）
+- **核心矛盾**: 诊断工具 kd-tree 重新匹配残差（p68=1.0px）与 IPV 内部 RMS（0.12px）不可比，匹配策略不同（IPV RANSAC 选 inliers vs 诊断工具全星等 kd-tree 含暗星误配+饱和星偏差）
+- **已排除根因**: WCS 构建（等价）、WCS 闭环（正确）、Gaia 查询（同一 API）、检测星点来源（callback 与 IPV 一致）、CRPIX 偏移（用户否决）
+- **遗留问题**: 见 `engineering_v1.2/evidence/P11-004/ISSUES_DEFERRED.md`
+- **备选方案**: A.用 IPV RMS 作 gate / B.严格匹配+剔除 / C.视觉验证 / D.查质心坐标系（待审核决策）
+- **根目录整理**: 已清理 8 张调试 PNG（归档至 `archive/debug_png_2026-07-28/`）+ 8 个 solved.fits（删除）+ 旧开发包 zip / 临时目录 / _commit_msg_p02.txt（归档至 `archive/old_packs/` 和 `archive/temp_dirs_2026-07-28/`）

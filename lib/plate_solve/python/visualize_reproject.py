@@ -266,7 +266,7 @@ def wcs_world_to_pixel(result, ra_arr, dec_arr):
     return np.asarray(x_pix, dtype=np.float64), np.asarray(y_pix, dtype=np.float64)
 
 
-def visualize_frame(env, fits_path, out_path, top_n=1000):
+def visualize_frame(env, fits_path, out_path, top_n=1000, save_solved_fits=False):
     """处理单帧: plate solve -> Gaia 查询 -> WCS 重投影 -> MTF 拉伸 -> PNG 输出
 
     参数:
@@ -274,6 +274,7 @@ def visualize_frame(env, fits_path, out_path, top_n=1000):
         fits_path: FITS 文件路径
         out_path: 输出 PNG 路径
         top_n: 标记前 N 颗最亮星 (默认 1000)
+        save_solved_fits: True=同时保存带 WCS 的 FITS 副本 (复制原文件 + 写 WCS header)
 
     返回:
         dict: 结果信息 (success, rms, n_pairs, n_marked, elapsed)
@@ -325,6 +326,18 @@ def visualize_frame(env, fits_path, out_path, top_n=1000):
 
     if not success:
         print(f"  !!! Plate solve FAILED: {result.error_msg.decode('utf-8', errors='ignore')}")
+
+    # 3.5 保存带 WCS 的 FITS 副本 (可选)
+    if success and save_solved_fits:
+        import shutil
+        from solve_and_write_wcs import write_wcs_to_fits
+        solved_fits_path = out_path.replace("_reproject.png", "_solved.fits")
+        print(f"  保存带 WCS 的 FITS: {solved_fits_path}")
+        try:
+            shutil.copy2(fits_path, solved_fits_path)
+            write_wcs_to_fits(solved_fits_path, result, overwrite=True)
+        except Exception as e:
+            print(f"  !!! 保存 solved FITS 失败: {e}")
 
     # 4. 查询 Gaia 星表 (高星等上限确保覆盖足够多的星)
     query_radius = fov_deg * 0.75
@@ -453,12 +466,17 @@ def main():
     parser.add_argument("--batch", action="store_true", help="批量处理模式")
     parser.add_argument("--input", type=str, default=None, help="指定输入文件 (single 模式)")
     parser.add_argument("--top-n", type=int, default=1000, help="标记前 N 颗最亮星 (默认 1000)")
+    parser.add_argument("--output-dir", type=str, default=None,
+                        help="输出目录 (默认 lib/plate_solve/logs/visualize_reproject)")
+    parser.add_argument("--save-solved-fits", action="store_true",
+                        help="同时保存带 WCS 的 FITS 副本 ({label}_solved.fits)")
     args = parser.parse_args()
 
     if not args.single and not args.batch:
         args.single = True
 
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    output_dir = args.output_dir if args.output_dir else OUTPUT_DIR
+    os.makedirs(output_dir, exist_ok=True)
     env = init_environment()
 
     if args.single:
@@ -474,8 +492,9 @@ def main():
             print(f"\n单张测试: {label}")
             print(f"文件: {fits_path}")
 
-        out_path = os.path.join(OUTPUT_DIR, f"{label}_reproject.png")
-        info = visualize_frame(env, fits_path, out_path, top_n=args.top_n)
+        out_path = os.path.join(output_dir, f"{label}_reproject.png")
+        info = visualize_frame(env, fits_path, out_path, top_n=args.top_n,
+                                save_solved_fits=args.save_solved_fits)
         print(f"\n结果: success={info['success']}, RMS={info['rms_arcsec']:.3f}\", "
               f"n_marked={info['n_marked']}, elapsed={info['elapsed']:.1f}s")
 
@@ -485,9 +504,10 @@ def main():
         results = []
         for i, (label, fits_path) in enumerate(all_frames):
             print(f"\n[{i+1}/{len(all_frames)}] {label}")
-            out_path = os.path.join(OUTPUT_DIR, f"{label}_reproject.png")
+            out_path = os.path.join(output_dir, f"{label}_reproject.png")
             try:
-                info = visualize_frame(env, fits_path, out_path, top_n=args.top_n)
+                info = visualize_frame(env, fits_path, out_path, top_n=args.top_n,
+                                        save_solved_fits=args.save_solved_fits)
                 results.append({"label": label, **info})
             except Exception as e:
                 print(f"  !!! ERROR: {e}")
@@ -496,7 +516,7 @@ def main():
         n_ok = sum(1 for r in results if r.get("success"))
         print(f"\n{'='*70}")
         print(f"批量完成: {n_ok}/{len(results)} 成功")
-        print(f"输出目录: {OUTPUT_DIR}")
+        print(f"输出目录: {output_dir}")
 
     env["solver"].close()
 

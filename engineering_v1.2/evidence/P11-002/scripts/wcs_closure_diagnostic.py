@@ -51,6 +51,23 @@ logger = logging.getLogger("wcs_closure")
 
 
 # ============================================================================
+# Siril 1.4.3 经验常量 (src/registration/matching/atpmatch.h, src/algos/astrometry_solver.h)
+# ============================================================================
+# 用于规避"全星等一次性 kd-tree 匹配导致的系统性残差":
+#   1. 自适应星等上限 (非固定 18.0)
+#   2. 亮星优先匹配 (最亮 N 颗做精匹配)
+#   3. 分位数鲁棒剔除 (35 分位做 sigma, 68.3 分位做上报)
+SIRIL_AT_MATCH_NBRIGHT = 20             # 三角形粗匹配用最亮星数
+SIRIL_AT_MATCH_CATALOG_NBRIGHT = 60     # 星表精匹配用最亮星数 (我们用作 kd-tree 匹配上限)
+SIRIL_BRIGHTEST_STARS = 2000            # 视场期望总星数 (用于自适应 mag_high)
+SIRIL_AT_MATCH_PERCENTILE = 0.35        # 剔除用分位 (Siril iter_trans)
+SIRIL_ONE_STDEV_PERCENTILE = 0.683      # 上报用分位 (1σ, Siril iter_trans 末尾)
+SIRIL_AT_MATCH_NSIGMA = 10.0            # 软剔除倍数 (10×35分位)
+SIRIL_AT_MATCH_MAXDIST_PX = 50.0        # 硬剔除阈值 (px)
+SIRIL_AT_MATCH_MAXITER = 5              # 残差剔除最大迭代
+
+
+# ============================================================================
 # FITS 读取
 # ============================================================================
 def read_fits_image_and_header(fits_path: str) -> Tuple[np.ndarray, Any]:
@@ -199,6 +216,279 @@ def cone_search_gaia(
     gaia_client._msvcrt.free(out_dec)
     gaia_client._msvcrt.free(out_mag)
     return ra_arr, dec_arr, mag_arr
+
+
+# ============================================================================
+# 自适应星等上限 (参考 Siril 1.4.3 src/algos/astrometry_solver.c:174-197)
+# ============================================================================
+def compute_mag_limit_siril(
+    ra0_deg: float,
+    dec0_deg: float,
+    fov_deg: float,
+    n_brightest: int = SIRIL_BRIGHTEST_STARS,
+) -> float:
+    """按 Siril 1.4.3 自适应计算 Gaia 星等上限
+
+    依据: src/algos/astrometry_solver.c:174-197 compute_mag_limit_from_position_and_fov()
+
+    算法:
+        1. 将 (ra, dec) 转换为银道坐标 (l, b)
+        2. 计算视场球面积 S = 2*(1-cos(fov/2)) * (180/π)² (平方度)
+        3. 模型: limit = m0 + s * (log10(N/S) - 2)
+           - m0 = 11.68 + 2.66 * sin(|b|)
+           - a = 2.36 + (|l|-90) * 0.0073 * (|l|>=90 ? 1 : -1)
+           - b_slope = 0.88 - (|l|-90) * 0.0065 * (|l|>=90 ? 1 : -1)
+           - s = a + b_slope * sin(|b|)
+        4. clamp(limit, 7.0, +inf)
+
+    参数:
+        ra0_deg, dec0_deg: 视场中心 (度, ICRS)
+        fov_deg: 视场直径 (度)
+        n_brightest: 期望视场内最亮 N 颗星 (Siril 默认 2000)
+
+    返回:
+        mag_high (float): 自适应星等上限
+    """
+    import math
+
+    # 1. ICRS -> 银道坐标 (近似, 用 astropy 若可用, 否则用简化公式)
+    try:
+        from astropy.coordinates import SkyCoord
+        import astropy.units as u
+        c = SkyCoord(ra=ra0_deg * u.deg, dec=dec0_deg * u.deg, frame="icrs")
+        g = c.galactic
+        ml = float(g.l.deg)
+        mb = float(g.b.deg)
+    except Exception:
+        # 简化近似 (精度足够用于星等上限估算)
+        # 参考: https://en.wikipedia.org/wiki/Galactic_coordinate_system
+        dec_rad = math.radians(dec0_deg)
+        ra_rad = math.radians(ra0_deg)
+        # 北银极在赤道坐标 (192.85948°, 27.12825°)
+        ra_ngp = math.radians(192.85948)
+        dec_ngp = math.radians(27.12825)
+        sin_b = (math.sin(dec_rad) * math.sin(dec_ngp) +
+                 math.cos(dec_rad) * math.cos(dec_ngp) * math.cos(ra_rad - ra_ngp))
+        mb = math.degrees(math.asin(max(-1.0, min(1.0, sin_b))))
+        # l 简化 (略, 用 0 兜底)
+        ml = 0.0
+
+    mb_abs = abs(mb)
+    ml_abs = abs(ml)
+
+    # 2. 视场球面积 (平方度)
+    fov_rad = math.radians(fov_deg)
+    S = 2.0 * (1.0 - math.cos(0.5 * fov_rad)) * (180.0 / math.pi) ** 2
+
+    # 3. 星等模型 (Siril astrometry_solver.c:188-195)
+    m0 = 11.68 + 2.66 * math.sin(math.radians(mb_abs))
+    sign_l = 1.0 if ml_abs >= 90.0 else -1.0
+    a = 2.36 + (ml_abs - 90.0) * 0.0073 * sign_l
+    b_slope = 0.88 - (ml_abs - 90.0) * 0.0065 * sign_l
+    s = a + b_slope * math.sin(math.radians(mb_abs))
+
+    log_term = math.log10(float(n_brightest) / max(S, 1e-6)) - 2.0
+    limit = m0 + s * log_term
+
+    # 4. 下限保护 (Siril: max(limit, 7.0))
+    limit = max(limit, 7.0)
+    logger.info(
+        "Siril 自适应星等上限: (l=%.2f°, b=%.2f°, fov=%.2f°, N=%d) -> mag_high=%.3f",
+        ml, mb, fov_deg, n_brightest, limit,
+    )
+    return limit
+
+
+# ============================================================================
+# 亮星优先匹配 (参考 Siril atpmatch.c:1636 sort_star_by_mag + AT_MATCH_CATALOG_NBRIGHT)
+# ============================================================================
+def match_pairs_bright_first(
+    detected_xy: np.ndarray,
+    detected_mag: np.ndarray,
+    predicted_xy: np.ndarray,
+    gaia_mag: np.ndarray,
+    max_dist_px: float = 3.0,
+    n_brightest: int = SIRIL_AT_MATCH_CATALOG_NBRIGHT,
+) -> List[Tuple[int, int, float]]:
+    """亮星优先 kd-tree 匹配
+
+    Siril 策略: 先按星等升序排序, 仅用最亮 N 颗做匹配.
+    这能规避密集星场中暗星误配导致的系统性残差.
+
+    参数:
+        detected_xy: 检测星点 (x, y) [N_det, 2]
+        detected_mag: 检测星点星等 [N_det] (来自 star_detector)
+        predicted_xy: Gaia 投影像素坐标 [N_pred, 2]
+        gaia_mag: Gaia 星等 [N_pred]
+        max_dist_px: 最大匹配距离
+        n_brightest: 仅用最亮 N 颗 Gaia 星做匹配 (Siril 默认 60)
+
+    返回:
+        list of (det_idx, pred_idx, dist_px)
+    """
+    if len(detected_xy) == 0 or len(predicted_xy) == 0:
+        return []
+
+    # 按 Gaia 星等升序 (亮星在前), 取前 n_brightest
+    n_use = min(n_brightest, len(predicted_xy))
+    bright_order = np.argsort(gaia_mag)[:n_use]
+    pred_xy_bright = predicted_xy[bright_order]
+    logger.info(
+        "亮星优先匹配: 取最亮 %d/%d 颗 Gaia 星 (mag %.2f~%.2f)",
+        n_use, len(predicted_xy),
+        float(gaia_mag[bright_order[0]]), float(gaia_mag[bright_order[-1]]),
+    )
+
+    # 对亮星子集做 kd-tree 匹配
+    bright_matches = match_pairs_kdtree(detected_xy, pred_xy_bright, max_dist_px)
+
+    # 将 pred_idx 从 "亮星子集索引" 映射回 "原始 Gaia 索引"
+    matches = []
+    for det_idx, sub_idx, dist in bright_matches:
+        orig_pred_idx = int(bright_order[sub_idx])
+        matches.append((det_idx, orig_pred_idx, dist))
+
+    logger.info("亮星优先匹配完成: %d 对", len(matches))
+    return matches
+
+
+# ============================================================================
+# Siril 风格迭代残差剔除 (参考 atpmatch.c:2760-3184 iter_trans)
+# ============================================================================
+def iterative_outlier_rejection_siril(
+    residuals: np.ndarray,
+    total_dists: np.ndarray,
+    matches: List[Tuple[int, int, float]],
+    max_iter: int = SIRIL_AT_MATCH_MAXITER,
+    hard_max_dist_px: float = SIRIL_AT_MATCH_MAXDIST_PX,
+    percentile: float = SIRIL_AT_MATCH_PERCENTILE,
+    nsigma: float = SIRIL_AT_MATCH_NSIGMA,
+) -> Tuple[np.ndarray, Dict[str, Any]]:
+    """Siril 风格迭代残差剔除
+
+    算法 (atpmatch.c:2955-3184 iter_trans):
+        1. 硬剔除: dist > hard_max_dist_px 直接丢
+        2. 软剔除 sigma = 35 分位 (sort(dist²))
+        3. 软剔除: dist > nsigma * sqrt(sigma) 丢弃  (Siril 用 dist², 这里等价)
+        4. 迭代 max_iter 次
+
+    返回:
+        (keep_mask [N] bool, info dict)
+    """
+    n = len(matches)
+    if n == 0:
+        return np.zeros(0, dtype=bool), {"n_iter": 0, "final_sigma_px": 0.0, "n_kept": 0}
+
+    keep = np.ones(n, dtype=bool)
+    info = {"n_iter": 0, "final_sigma_px": 0.0, "n_kept": n, "rejected_per_iter": []}
+
+    for it in range(max_iter):
+        d_curr = total_dists[keep]
+        if len(d_curr) == 0:
+            break
+
+        # 1. 硬剔除
+        hard_mask = d_curr <= hard_max_dist_px
+        n_hard_reject = int(len(d_curr) - np.sum(hard_mask))
+        # 同步到 keep
+        keep_idx = np.where(keep)[0]
+        keep[keep_idx[~hard_mask]] = False
+
+        d_after_hard = total_dists[keep]
+        if len(d_after_hard) == 0:
+            break
+
+        # 2. 35 分位 sigma (Siril: dist2_sorted, 35 分位)
+        sigma = float(np.percentile(d_after_hard, percentile * 100.0))
+        if sigma <= 0:
+            sigma = float(np.median(d_after_hard)) or 1e-6
+
+        # 3. 软剔除: dist > nsigma * sigma
+        soft_thresh = nsigma * sigma
+        soft_mask = d_after_hard <= soft_thresh
+        n_soft_reject = int(len(d_after_hard) - np.sum(soft_mask))
+        keep_idx2 = np.where(keep)[0]
+        keep[keep_idx2[~soft_mask]] = False
+
+        info["rejected_per_iter"].append({
+            "iter": it + 1,
+            "n_before": int(np.sum(keep) + n_hard_reject + n_soft_reject),
+            "n_hard_reject": n_hard_reject,
+            "n_soft_reject": n_soft_reject,
+            "sigma35_px": sigma,
+            "soft_thresh_px": soft_thresh,
+            "n_kept": int(np.sum(keep)),
+        })
+
+        # 4. 收敛检查: 剔除数为 0 即停
+        if n_hard_reject == 0 and n_soft_reject == 0:
+            break
+
+    # 最终 sigma = 68.3 分位 (Siril ONE_STDEV_PERCENTILE)
+    final_d = total_dists[keep]
+    final_sigma = float(np.percentile(final_d, SIRIL_ONE_STDEV_PERCENTILE * 100.0)) if len(final_d) > 0 else 0.0
+    info["n_iter"] = len(info["rejected_per_iter"])
+    info["final_sigma_px"] = final_sigma
+    info["n_kept"] = int(np.sum(keep))
+    info["final_p35_px"] = float(np.percentile(final_d, SIRIL_AT_MATCH_PERCENTILE * 100.0)) if len(final_d) > 0 else 0.0
+    info["final_p68_px"] = final_sigma
+    logger.info(
+        "Siril 迭代剔除完成: %d 次迭代, 保留 %d/%d, final p68=%.4f px",
+        info["n_iter"], info["n_kept"], n, final_sigma,
+    )
+    return keep, info
+
+
+# ============================================================================
+# 按星等分 bin 残差统计 (诊断增强)
+# ============================================================================
+def compute_residuals_by_mag_bin(
+    residuals: np.ndarray,
+    total_dists: np.ndarray,
+    gaia_mag: np.ndarray,
+    keep_mask: np.ndarray,
+    bin_width: float = 1.0,
+    mag_low: float = 6.0,
+    mag_high: float = 18.0,
+) -> List[Dict[str, Any]]:
+    """按 Gaia 星等分 bin 报告残差
+
+    参数:
+        residuals: [N, 2] 残差
+        total_dists: [N] 残差距离
+        gaia_mag: [N] Gaia 星等
+        keep_mask: [N] bool, Siril 剔除后保留的
+        bin_width: bin 宽度 (默认 1 mag)
+        mag_low, mag_high: bin 范围
+
+    返回:
+        list of {mag_bin, n, median_px, p68_px, p90_px, x_mean, y_mean, kept}
+    """
+    bins = np.arange(mag_low, mag_high + bin_width, bin_width)
+    result = []
+    for i in range(len(bins) - 1):
+        lo, hi = bins[i], bins[i + 1]
+        in_bin = (gaia_mag >= lo) & (gaia_mag < hi) & keep_mask
+        n = int(np.sum(in_bin))
+        if n == 0:
+            result.append({
+                "mag_bin": f"{lo:.0f}-{hi:.0f}",
+                "n": 0, "median_px": 0.0, "p68_px": 0.0,
+                "p90_px": 0.0, "x_mean_px": 0.0, "y_mean_px": 0.0,
+            })
+            continue
+        d_bin = total_dists[in_bin]
+        r_bin = residuals[in_bin]
+        result.append({
+            "mag_bin": f"{lo:.0f}-{hi:.0f}",
+            "n": n,
+            "median_px": float(np.median(d_bin)),
+            "p68_px": float(np.percentile(d_bin, SIRIL_ONE_STDEV_PERCENTILE * 100.0)),
+            "p90_px": float(np.percentile(d_bin, 90.0)),
+            "x_mean_px": float(np.mean(r_bin[:, 0])),
+            "y_mean_px": float(np.mean(r_bin[:, 1])),
+        })
+    return result
 
 
 # ============================================================================
@@ -654,11 +944,21 @@ def diagnose_frame(
     project_root: str,
     env=None,
     max_match_dist_px: float = 3.0,
-    gaia_mag_high: float = 18.0,
+    gaia_mag_high: float = 0.0,
     gaia_search_radius_factor: float = 0.7,
     solve_if_no_wcs: bool = True,
+    siril_bright_first: bool = True,
+    siril_n_brightest: int = SIRIL_AT_MATCH_CATALOG_NBRIGHT,
+    siril_outlier_rejection: bool = True,
 ) -> Dict[str, Any]:
-    """诊断单帧 WCS 闭环
+    """诊断单帧 WCS 闭环 (P11-004 Siril 1.4.3 策略升级版)
+
+    相比原版 (固定 mag_high=18.0 + 全星等 kd-tree 匹配) 的改进:
+        1. 自适应星等上限 (参考 Siril compute_mag_limit_from_position_and_fov)
+        2. 亮星优先匹配 (参考 Siril sort_star_by_mag + AT_MATCH_CATALOG_NBRIGHT=60)
+        3. Siril 风格迭代残差剔除 (35 分位 sigma + 10×sigma 软剔除, 5 次迭代)
+        4. 残差按星等分 bin 报告 (诊断增强)
+        5. gate 阈值改用 68.3 分位 (Siril ONE_STDEV_PERCENTILE) 替代 median
 
     Args:
         fits_path: FITS 文件路径 (含或不含 WCS header)
@@ -666,9 +966,12 @@ def diagnose_frame(
         project_root: 项目根目录 (用于加载 PlateSolve lib)
         env: 可选 PlateSolve 环境 (None 则自动初始化)
         max_match_dist_px: 最大匹配距离 (像素)
-        gaia_mag_high: Gaia 星等上限
+        gaia_mag_high: Gaia 星等上限; 0=自适应 (Siril 公式), >0=固定值
         gaia_search_radius_factor: Gaia 查询半径 = FOV_diag * factor
         solve_if_no_wcs: 若 FITS 无 WCS, 自动调用 PlateSolve 求解并写入
+        siril_bright_first: True=仅用最亮 N 颗 Gaia 星做匹配 (Siril 策略)
+        siril_n_brightest: 亮星优先匹配的 N (Siril 默认 60)
+        siril_outlier_rejection: True=启用 Siril 风格迭代剔除
 
     Returns:
         closure_report dict
@@ -749,8 +1052,18 @@ def diagnose_frame(
         fov_diag_deg = float(np.sqrt(fov_x_deg ** 2 + fov_y_deg ** 2))
         search_radius = max(fov_diag_deg * gaia_search_radius_factor, 0.5)
 
+        # P11-004: 自适应星等上限 (Siril compute_mag_limit_from_position_and_fov)
+        # gaia_mag_high=0 触发自适应; >0 使用固定值 (兼容旧调用)
+        mag_high_effective = gaia_mag_high
+        mag_high_source = "fixed"
+        if gaia_mag_high <= 0:
+            mag_high_effective = compute_mag_limit_siril(
+                ra0, dec0, fov_diag_deg, n_brightest=SIRIL_BRIGHTEST_STARS,
+            )
+            mag_high_source = "siril_adaptive"
+
         gaia_ra, gaia_dec, gaia_mag = cone_search_gaia(
-            gaia_client, ra0, dec0, search_radius, mag_high=gaia_mag_high,
+            gaia_client, ra0, dec0, search_radius, mag_high=mag_high_effective,
         )
 
         # 6. 运行 PlateSolve (callback 拿检测星点)
@@ -774,14 +1087,77 @@ def diagnose_frame(
             len(gaia_ra_v), len(gaia_dec_v), len(gaia_mag_v), len(pred_xy),
         )
 
-        # 8. kd-tree 匹配
-        matches = match_pairs_kdtree(det_xy, pred_xy, max_match_dist_px)
+        # 8. 匹配 (P11-004: 亮星优先, 参考 Siril sort_star_by_mag)
+        if siril_bright_first:
+            matches = match_pairs_bright_first(
+                det_xy, detections[:, 3] if len(detections) > 0 else np.zeros(0),
+                pred_xy, gaia_mag_v,
+                max_dist_px=max_match_dist_px,
+                n_brightest=siril_n_brightest,
+            )
+            match_method = f"siril_bright_first(n={siril_n_brightest})"
+        else:
+            matches = match_pairs_kdtree(det_xy, pred_xy, max_match_dist_px)
+            match_method = "scipy.spatial.cKDTree bidirectional nearest-neighbor (all magnitudes)"
 
         # 9. 残差计算
         residuals, match_dists, total_dists = compute_residuals(det_xy, pred_xy, matches)
 
-        # 10. 统计
+        # 9.5 P11-004: Siril 风格迭代残差剔除 (atpmatch.c iter_trans)
+        siril_rejection_info: Dict[str, Any] = {"enabled": bool(siril_outlier_rejection)}
+        keep_mask = np.ones(len(matches), dtype=bool)
+        if siril_outlier_rejection and len(matches) > 0:
+            keep_mask, siril_rejection_info_inner = iterative_outlier_rejection_siril(
+                residuals, total_dists, matches,
+                max_iter=SIRIL_AT_MATCH_MAXITER,
+                hard_max_dist_px=SIRIL_AT_MATCH_MAXDIST_PX,
+                percentile=SIRIL_AT_MATCH_PERCENTILE,
+                nsigma=SIRIL_AT_MATCH_NSIGMA,
+            )
+            siril_rejection_info = siril_rejection_info_inner
+            siril_rejection_info["enabled"] = True
+            n_kept = int(np.sum(keep_mask))
+            logger.info(
+                "Siril 剔除后保留: %d/%d 对 (剔除 %d)",
+                n_kept, len(matches), len(matches) - n_kept,
+            )
+            # 过滤 matches/residuals/dists 到保留子集
+            matches = [m for i, m in enumerate(matches) if keep_mask[i]]
+            residuals = residuals[keep_mask]
+            total_dists = total_dists[keep_mask]
+            match_dists = match_dists[keep_mask]
+            # keep_mask 也需相应"重置"为全 True (后续代码用 len(matches) 索引)
+            keep_mask_after = np.ones(len(matches), dtype=bool)
+        else:
+            keep_mask_after = keep_mask
+
+        # 10. 统计 (原版 median/p90/p99)
         stats = compute_stats(residuals, total_dists, width, height, det_xy)
+
+        # 10.5 P11-004: Siril 分位数统计 + 按星等分 bin (诊断增强)
+        siril_stats: Dict[str, Any] = {}
+        mag_bin_stats: List[Dict[str, Any]] = []
+        if len(matches) > 0:
+            # 重新构造 gaia_mag_matched (按 matches 顺序, 已被 Siril 剔除过滤)
+            gaia_mag_matched = np.array([
+                float(gaia_mag_v[m[1]]) if len(gaia_mag_v) > m[1] else 0.0
+                for m in matches
+            ], dtype=np.float64)
+            siril_stats = {
+                "p35_px": float(np.percentile(total_dists, SIRIL_AT_MATCH_PERCENTILE * 100.0)),
+                "p68_px": float(np.percentile(total_dists, SIRIL_ONE_STDEV_PERCENTILE * 100.0)),
+                "n_kept": int(len(matches)),
+                "rejection_info": siril_rejection_info,
+            }
+            mag_bin_stats = compute_residuals_by_mag_bin(
+                residuals, total_dists, gaia_mag_matched, keep_mask_after,
+                bin_width=1.0, mag_low=6.0, mag_high=mag_high_effective,
+            )
+        else:
+            siril_stats = {
+                "p35_px": 0.0, "p68_px": 0.0, "n_kept": 0,
+                "rejection_info": siril_rejection_info,
+            }
 
         # 11. 双向闭环
         psp_closure = pixel_sky_pixel_closure(wcs, det_xy, n_samples=min(200, len(det_xy)))
@@ -822,7 +1198,7 @@ def diagnose_frame(
         report: Dict[str, Any] = {
             "frame_id": frame_id,
             "fits_path": os.path.abspath(fits_path),
-            "tool_version": "P11-002 v1.0",
+            "tool_version": "P11-002 v2.0 (P11-004 Siril 1.4.3 升级)",
             "tool_independent_of_platesolve_transform": True,
             "elapsed_sec": float(elapsed),
             "image_size": {"width": int(width), "height": int(height)},
@@ -844,30 +1220,51 @@ def diagnose_frame(
                 "search_center_ra": float(ra0),
                 "search_center_dec": float(dec0),
                 "search_radius_deg": float(search_radius),
-                "mag_high": float(gaia_mag_high),
+                "mag_high_requested": float(gaia_mag_high),
+                "mag_high_effective": float(mag_high_effective),
+                "mag_high_source": mag_high_source,
                 "n_catalog": int(len(gaia_ra)),
                 "n_valid_predicted": int(len(pred_xy)),
             },
             "matching": {
-                "method": "scipy.spatial.cKDTree bidirectional nearest-neighbor",
+                "method": match_method,
                 "max_dist_px": float(max_match_dist_px),
                 "n_detected": int(len(det_xy)),
                 "n_matched": int(len(matches)),
+                "siril_bright_first": bool(siril_bright_first),
+                "siril_n_brightest": int(siril_n_brightest) if siril_bright_first else 0,
             },
             "residual_stats": stats,
+            "siril_stats": siril_stats,
+            "residuals_by_mag_bin": mag_bin_stats,
             "pixel_sky_pixel_closure": psp_closure,
             "sky_pixel_sky_closure": sps_closure,
             "fov_diag_deg": fov_diag_deg,
-            "gate_check": {
+            # P11-004: gate 改用 Siril 68.3 分位 (1σ) 替代 median, 更鲁棒
+            # 原版 gate (median≤0.75, p90≤1.5, p99≤3.0) 仍保留为 legacy_gate_check
+            "legacy_gate_check": {
                 "median_le_0_75_px": stats["dist_median_px"] <= 0.75,
                 "p90_le_1_5_px": stats["dist_p90_px"] <= 1.5,
                 "p99_le_3_0_px": stats["dist_p99_px"] <= 3.0,
             },
+            "gate_check": {
+                # 新版 gate (P11-004): 用 Siril 1σ 分位 + 亮星优先 + 剔除后
+                "p68_le_0_75_px": siril_stats.get("p68_px", 0.0) <= 0.75,
+                "p90_le_1_5_px": stats["dist_p90_px"] <= 1.5,
+                "p99_le_3_0_px": stats["dist_p99_px"] <= 3.0,
+                "n_matched_ge_5": int(len(matches)) >= 5,
+            },
         }
         report["gate_passed"] = bool(
-            report["gate_check"]["median_le_0_75_px"]
+            report["gate_check"]["p68_le_0_75_px"]
             and report["gate_check"]["p90_le_1_5_px"]
             and report["gate_check"]["p99_le_3_0_px"]
+            and report["gate_check"]["n_matched_ge_5"]
+        )
+        report["legacy_gate_passed"] = bool(
+            report["legacy_gate_check"]["median_le_0_75_px"]
+            and report["legacy_gate_check"]["p90_le_1_5_px"]
+            and report["legacy_gate_check"]["p99_le_3_0_px"]
         )
 
         report_path = os.path.join(output_dir, "closure_report.json")
@@ -875,10 +1272,17 @@ def diagnose_frame(
             json.dump(report, f, indent=2)
         logger.info("闭环报告已保存: %s", report_path)
         logger.info(
-            "门限: median=%.3f px (<=0.75: %s), p90=%.3f px (<=1.5: %s), p99=%.3f px (<=3.0: %s)",
-            stats["dist_median_px"], report["gate_check"]["median_le_0_75_px"],
+            "[新版 gate] p68=%.3f px (<=0.75: %s), p90=%.3f px (<=1.5: %s), p99=%.3f px (<=3.0: %s), n=%d (>=5: %s) => %s",
+            siril_stats.get("p68_px", 0.0), report["gate_check"]["p68_le_0_75_px"],
             stats["dist_p90_px"], report["gate_check"]["p90_le_1_5_px"],
             stats["dist_p99_px"], report["gate_check"]["p99_le_3_0_px"],
+            len(matches), report["gate_check"]["n_matched_ge_5"],
+            "PASS" if report["gate_passed"] else "FAIL",
+        )
+        logger.info(
+            "[Legacy gate] median=%.3f px (<=0.75: %s) => %s",
+            stats["dist_median_px"], report["legacy_gate_check"]["median_le_0_75_px"],
+            "PASS" if report["legacy_gate_passed"] else "FAIL",
         )
 
         # 残差图
@@ -905,7 +1309,10 @@ def diagnose_batch(
     output_dir: str,
     project_root: str,
     max_match_dist_px: float = 3.0,
-    gaia_mag_high: float = 18.0,
+    gaia_mag_high: float = 0.0,
+    siril_bright_first: bool = True,
+    siril_n_brightest: int = SIRIL_AT_MATCH_CATALOG_NBRIGHT,
+    siril_outlier_rejection: bool = True,
 ) -> Dict[str, Any]:
     """批量诊断多帧
 
@@ -913,6 +1320,7 @@ def diagnose_batch(
         frames_json: JSON 文件, 内容为 [{fits, output_subdir}, ...] 或 [fits_path, ...]
         output_dir: 输出根目录 (每帧会建子目录)
         project_root: 项目根目录
+        gaia_mag_high: 0=自适应 (Siril 公式), >0=固定值
     """
     with open(frames_json, "r", encoding="utf-8") as f:
         frames = json.load(f)
@@ -938,6 +1346,9 @@ def diagnose_batch(
                     fits_path, frame_out, project_root,
                     env=env, max_match_dist_px=max_match_dist_px,
                     gaia_mag_high=gaia_mag_high,
+                    siril_bright_first=siril_bright_first,
+                    siril_n_brightest=siril_n_brightest,
+                    siril_outlier_rejection=siril_outlier_rejection,
                 )
                 summaries.append({
                     "frame_id": report["frame_id"],
@@ -946,10 +1357,14 @@ def diagnose_batch(
                     "has_sip": report["wcs"]["has_sip"],
                     "sip_order": report["wcs"]["sip_order"],
                     "n_matched": report["matching"]["n_matched"],
+                    "mag_high_effective": report["gaia"]["mag_high_effective"],
+                    "mag_high_source": report["gaia"]["mag_high_source"],
                     "dist_median_px": report["residual_stats"]["dist_median_px"],
                     "dist_p90_px": report["residual_stats"]["dist_p90_px"],
                     "dist_p99_px": report["residual_stats"]["dist_p99_px"],
+                    "siril_p68_px": report["siril_stats"].get("p68_px", 0.0),
                     "gate_passed": report["gate_passed"],
+                    "legacy_gate_passed": report.get("legacy_gate_passed", False),
                     "elapsed_sec": report["elapsed_sec"],
                 })
             except Exception as e:
@@ -967,22 +1382,26 @@ def diagnose_batch(
     # 汇总报告
     n_total = len(summaries)
     n_ok = sum(1 for s in summaries if s.get("gate_passed", False))
+    n_legacy_ok = sum(1 for s in summaries if s.get("legacy_gate_passed", False))
     n_err = sum(1 for s in summaries if "error" in s)
 
     summary = {
-        "tool_version": "P11-002 v1.0",
+        "tool_version": "P11-002 v2.0 (P11-004 Siril 1.4.3 升级)",
         "n_total": n_total,
         "n_passed": n_ok,
+        "n_legacy_passed": n_legacy_ok,
         "n_failed": n_total - n_ok - n_err,
         "n_errors": n_err,
         "pass_rate": float(n_ok / n_total) if n_total > 0 else 0.0,
+        "legacy_pass_rate": float(n_legacy_ok / n_total) if n_total > 0 else 0.0,
         "frames": summaries,
     }
     summary_path = os.path.join(output_dir, "batch_summary.json")
     os.makedirs(output_dir, exist_ok=True)
     with open(summary_path, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
-    logger.info("批量汇总: %s (pass=%d/%d)", summary_path, n_ok, n_total)
+    logger.info("批量汇总: %s (新 gate pass=%d/%d, legacy gate pass=%d/%d)",
+                summary_path, n_ok, n_total, n_legacy_ok, n_total)
     return summary
 
 
@@ -991,7 +1410,7 @@ def diagnose_batch(
 # ============================================================================
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="P11-002 标准 WCS 真实星对闭环诊断工具",
+        description="P11-002 标准 WCS 真实星对闭环诊断工具 (P11-004 Siril 1.4.3 升级版)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
@@ -1001,8 +1420,14 @@ def main() -> int:
     parser.add_argument("--project-root", default=".", help="项目根目录")
     parser.add_argument("--max-match-dist-px", type=float, default=3.0,
                         help="最大匹配距离 (像素), 默认 3.0")
-    parser.add_argument("--gaia-mag-high", type=float, default=18.0,
-                        help="Gaia 星等上限, 默认 18.0")
+    parser.add_argument("--gaia-mag-high", type=float, default=0.0,
+                        help="Gaia 星等上限; 0=自适应 (Siril 公式, 默认), >0=固定值")
+    parser.add_argument("--no-siril-bright-first", action="store_true",
+                        help="禁用亮星优先匹配 (默认启用, Siril AT_MATCH_CATALOG_NBRIGHT=60)")
+    parser.add_argument("--siril-n-brightest", type=int, default=SIRIL_AT_MATCH_CATALOG_NBRIGHT,
+                        help=f"亮星优先匹配的 N (默认 {SIRIL_AT_MATCH_CATALOG_NBRIGHT})")
+    parser.add_argument("--no-siril-outlier-rejection", action="store_true",
+                        help="禁用 Siril 风格迭代残差剔除 (默认启用)")
     parser.add_argument("--log", help="日志文件路径 (可选)")
     args = parser.parse_args()
 
@@ -1011,11 +1436,17 @@ def main() -> int:
         fh.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
         logging.getLogger().addHandler(fh)
 
+    siril_bright_first = not args.no_siril_bright_first
+    siril_outlier_rejection = not args.no_siril_outlier_rejection
+
     if args.batch:
         diagnose_batch(
             args.batch, args.output_dir, args.project_root,
             max_match_dist_px=args.max_match_dist_px,
             gaia_mag_high=args.gaia_mag_high,
+            siril_bright_first=siril_bright_first,
+            siril_n_brightest=args.siril_n_brightest,
+            siril_outlier_rejection=siril_outlier_rejection,
         )
     elif args.fits:
         diagnose_frame(
@@ -1023,6 +1454,9 @@ def main() -> int:
             env=None,
             max_match_dist_px=args.max_match_dist_px,
             gaia_mag_high=args.gaia_mag_high,
+            siril_bright_first=siril_bright_first,
+            siril_n_brightest=args.siril_n_brightest,
+            siril_outlier_rejection=siril_outlier_rejection,
         )
     else:
         parser.error("必须指定 --fits 或 --batch")

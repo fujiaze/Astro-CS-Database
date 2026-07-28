@@ -255,6 +255,35 @@ p11_003_wcs_closure_reproduction:
   forbidden_no_gate_lowering: PASS
   forbidden_no_skip_failing_frame: PASS
   evidence_dir: engineering_v1.2/evidence/P11-003
+p11_004_wcs_unified_fix:
+  status: DEFERRED
+  deferred_date: 2026-07-28
+  deferred_reason: "诊断工具 kd-tree 重新匹配残差 (p68≈1.0px) 与 IPV 内部 RMS (0.12px) 不可比，匹配策略不同 (IPV RANSAC inliers vs 诊断工具全星等 kd-tree 含暗星误配+饱和星偏差)"
+  review_bundle: P11-004_review_bundle.zip
+  review_bundle_path: project_root
+  review_bundle_size_mb: 38.12
+  review_bundle_entries: 29
+  review_bundle_in_git: false
+  completed_work:
+    - "Siril v2 诊断工具升级 (自适应星等 + 亮星优先 + 迭代剔除)"
+    - "WCS 构建等价性验证 (8/8 帧 EQUIVALENT, to_astropy_wcs(result) ≡ WCS(header), 投影差异 1e-10 px)"
+    - "单帧 T2_RED_LDN43 诊断 (siril_bright_first 24 对 p68=0.82px FAIL; 全星等 1942 对 p68=1.02px FAIL)"
+    - "Gaia 查询路径对比 (同一 C API gaia_client_cone_search_for_solver, 无差异)"
+    - "视觉验证 (visualize_reproject 投影位置准确, IPV 求解精度高)"
+  excluded_root_causes:
+    - "WCS 构建 (to_astropy_wcs(result) ≡ WCS(header), 差异 1e-10 px)"
+    - "WCS 闭环 (pixel→sky→pixel + sky→pixel→sky 双向闭环, 误差 1e-10 px)"
+    - "Gaia 查询路径 (诊断工具 vs vector_match_v2.py 同一 C API)"
+    - "检测星点来源 (solve_from_memory_with_callback 与 IPV 一致)"
+    - "CRPIX 0.5px 偏移 (用户否决: 解析精度极高无系统性偏移)"
+  alternative_solutions_pending_review:
+    - "A. 用 IPV RMS 作 gate (绕过诊断工具 kd-tree 匹配, 承认 IPV 求解精度已验证)"
+    - "B. 严格匹配+剔除 (复刻 IPV RANSAC inlier 选择策略到诊断工具, 使残差可比)"
+    - "C. 视觉验证 (visualize_reproject 投影位置准确, 作为定性证据)"
+    - "D. 查质心坐标系 (待审核决策)"
+  forbidden_shortcut_check: PASS
+  forbidden_no_root_cause_skip: PASS
+  evidence_dir: engineering_v1.2/evidence/P11-004
 notes:
   - PlateSolve shared internal detection is already mainline; verify, do not reimplement.
   - WCS sign/SIP hypothesis must be proven by closure tests before patching.
@@ -272,4 +301,5 @@ notes:
   - P11-001 DONE 2026-07-27. 坐标约定冻结: COORDINATE_CONVENTION.md (13229 bytes, 10 章 + 附录). 7 个坐标系统 (S1 detector/S2 U/S3 FITS WCS/S4 切平面/S5 天球/S6 HEALPix/S7 浏览器笛卡尔) + 7 个关键转换函数 + 22 个冻结变量. 4 个 WCS 消费模块 (PlateSolve/Photometric/SNR/Drizzle) 约定完全一致 (CRPIX 1-based + 像素 0-based + 度 + TAN+SIP + 不显式乘 cos(Dec)). Y 轴反转链: 输入侧 (det→U) + 输出侧 (U→FITS WCS). 19/19 验证测试 PASS (contract 7 + unit 6 + consistency 4 + forbidden 1 + deliverable 1). 禁止捷径 PASS (无代码修改/无先改符号/无 Photometric 内补偿). 变更控制: ADR + P11-002~P11-005 闭环验证.
   - P11-002 DONE 2026-07-27. WCS 真实星对闭环诊断工具建立. 工具完全独立于 PlateSolve 内部 transform (5 项硬约束测试). 30/30 单元测试 PASS. 在 T3_LUM_NGC55 + T2_HA_LDN43 两帧代表帧运行: PlateSolve 内部 RMS (0.151/0.108 px, 31/33 pairs) vs 独立诊断 median 残差 (0.897/0.772 px, 702/1237 matched) 差距 6-7x, 验证独立诊断工具必要性. astropy WCS 数值闭环精度 1e-10 px (完美). 关键发现: T3 Y方向偏差主导 (0.848 vs 0.218), T2 X/Y均衡偏差 (~0.5 px each), Q4象限偏多. SIP_ORDER=3 两帧一致. 禁止捷径 PASS (无 PlateSolve transform 依赖/无 wcs_result 字段使用). VERDICT: PASS.
   - P11-003 DONE 2026-07-28. T1-T4 代表帧 WCS 闭环缺陷复现与量化. 16 帧 (T2:5 + T3:6 + T4:5) 全部求解成功 (rms 0.10-0.29 px, n_pairs 31-45) + 全部诊断成功 (n_matched 306-1945, median 0.53-0.96 px). gate 通过率 8/16 (50%): T4 100% (5/5), T3 33.3% (2/6), T2 20% (1/5). 跨帧模式: (1) 焦距/FOV 主导 (T4 200mm 大FOV 100% 通过, T2/T3 1900mm 小FOV 27% 通过, SIP order=3 在大 FOV 下充分拟合畸变); (2) 滤镜类型次要 (窄带 HA/OIII 66.7% 通过, 宽带 RGB/LUM 10% 通过, 窄带星点锐利质心精度高); (3) Y 方向系统偏差 (15/16 帧 Y > X, T3_LUM 极端 Y=0.848 vs X=0.218); (4) 排除 SIP 写入/解析损失 (PS↔Sky 闭环 1e-10 px). 数据完整性: T2_RED/GREEN/BLUE_LDN43 三帧 JSON 文件 NTFS 压缩损坏 (全 NUL), 已重跑恢复. 禁止捷径 PASS (无数据伪造/无门限降低/无跳过失败帧). VERDICT: PARTIAL (WCS 闭环实现正确, gate 失败根因为 SIP order 在小 FOV 下建模不足 + Y 方向系统偏差 + 宽带暗星质心精度, 非代码缺陷).
+  - P11-004 DEFERRED 2026-07-28. 在 WCS 生产端实施统一修正. 用户决定跳过当前问题, 审核包已导出至项目根目录 P11-004_review_bundle.zip (38.12 MB, 29 entries, 不 commit). 核心矛盾: 诊断工具 kd-tree 重新匹配残差 (p68≈1.0px) 与 IPV 内部 RMS (0.12px) 不可比, 匹配策略不同 (IPV RANSAC inliers 24-34 对 vs 诊断工具全星等 kd-tree 1942 对含暗星误配+饱和星偏差). 已排除根因: WCS 构建 (等价 1e-10 px) + WCS 闭环 (1e-10 px) + Gaia 查询 (同一 C API) + 检测星点来源 (callback 与 IPV 一致) + CRPIX 偏移 (用户否决). 已完成: Siril v2 诊断工具升级 + WCS 构建等价性验证 + 单帧 T2_RED_LDN43 诊断 + Gaia 查询路径对比 + 视觉验证 (visualize_reproject 投影位置准确). 备选方案待审核决策: A.用 IPV RMS 作 gate / B.严格匹配+剔除 / C.视觉验证 / D.查质心坐标系. 禁止捷径 PASS (无根因跳过/无门限降低). 审核包规则写入 memory.md 工作流规则章节 (审核包放根目录, 不 commit, .gitignore 加 *_review_bundle.zip).
 
