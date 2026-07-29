@@ -1,8 +1,9 @@
 # AstroCS — 天文 CCD 图像校准与标准化数据库系统
 
-**版本**: v1.1.0 (CLI Core v1.1 开发包)
-**状态**: G8 (Release) PASSED · 31/31 任务 DONE · 352/352 回归测试 PASS
+**版本**: v1.3.0 (Stage1 全量验证 + 浏览器性能修复阶段)
+**状态**: G12 (Stage1 科学链) 进行中 · 22/50 任务 DONE · P13-002 IN_PROGRESS
 **平台**: Windows 10/11 (64-bit) · MinGW-w64 g++ 16.1.0
+**审计入口**: [engineering_v1.3/AUDIT_PACK.md](engineering_v1.3/AUDIT_PACK.md)
 
 ---
 
@@ -58,28 +59,33 @@ cmake --build build
 
 ```
 Astro-CS-Normalization-Database/
-├── dist/AstroCS-CLI-v1/      # 自包含发布包 (22 文件, ~22 MB)
-├── lib/                       # 源码
-│   ├── orchestrator/cpp/      # CLI 编排器 (orchestrator.exe)
+├── lib/                       # 源码（活跃）
+│   ├── orchestrator/cpp/      # CLI 编排器 (orchestrator.exe, 32MB 栈)
 │   ├── astro_image_io/        # FITS/XISF/HISS/HCSD I/O
 │   ├── calibration/           # CCD 校准
-│   ├── plate_solve/cpp/ipv/    # PlateSolve 求解器
-│   ├── dynamic_psf/            # PSF 拟合
+│   ├── plate_solve/cpp/ipv/   # PlateSolve 求解器
+│   ├── dynamic_psf/           # PSF 拟合
 │   ├── photometric_calib/cpp/ # 测光校准 + Gaia 客户端
-│   ├── snr_estimator/cpp/     # SNR 估算
+│   ├── snr_estimator/cpp/     # SNR 估算 (leaf_max_size=32)
 │   └── healpix_db/
-│       ├── healpix_drizzle/   # 球面 Drizzle 重投影
+│       ├── healpix_drizzle/   # 球面 Drizzle (DLL 栈 8MB)
 │       ├── healpix_stack/     # 稀疏堆栈 + 球面梯度
-│       └── healpix_browser_qt/# GUI 浏览器 (Qt6, v1.2)
-├── engineering/
-│   ├── contracts/             # 契约文档 (FROZEN)
-│   ├── tasks/                 # 任务定义 (31 个)
-│   ├── evidence/              # 任务证据 (P00~P08)
-│   └── control/               # 项目状态控制文件
-├── docs/                      # 架构与设计文档
+│       └── healpix_browser_qt/# GUI 浏览器 (Qt6) + CLI 调试工具
+├── engineering_v1.3/          # 当前工程包（活跃，P09-P17）
+│   ├── AUDIT_PACK.md          # 审计交付包入口
+│   ├── AUTONOMOUS_ENTRY.md    # 自治执行入口
+│   ├── control/               # 项目状态控制文件
+│   ├── docs/                  # Spec 文档 (28 篇)
+│   ├── contracts/             # 契约文档
+│   ├── evidence/              # 任务证据 (P09~P13)
+│   └── checklists/            # Gate 检查清单
+├── engineering/               # v1.0 工程包（归档参考）
+├── engineering_v1.2/          # v1.2 工程包（归档参考）
 ├── tools/                     # Python 工具集 (astro_toolkit)
-├── testdata/                  # 测试数据 (~73 GB, 需单独获取)
-├── GaiaDR3SP/                 # Gaia DR3SP 数据库 (~50 GB, 需单独获取)
+├── testdata/                  # 测试数据 (710 帧, ~73 GB)
+├── GaiaDR3SP/                 # Gaia DR3SP 数据库 (~50 GB)
+├── output/                    # 运行时输出 (.hiss/.hcsd)
+├── ROOT_INVENTORY.md          # 根目录清单与归档状态
 └── memory.md                  # 工程记忆
 ```
 
@@ -146,10 +152,12 @@ python tools/astro_toolkit.py tools/my_task.json --log tools/my_task.log
 
 ## 项目管理
 
-- **任务注册表**: [engineering/control/MASTER_TASK_REGISTER.csv](engineering/control/MASTER_TASK_REGISTER.csv) (31 任务)
-- **项目状态**: [engineering/control/PROJECT_STATE.yaml](engineering/control/PROJECT_STATE.yaml)
-- **当前任务**: [engineering/control/CURRENT_TASK.md](engineering/control/CURRENT_TASK.md)
-- **交接文档**: [engineering/evidence/P08-002/HANDOVER.md](engineering/evidence/P08-002/HANDOVER.md)
+- **审计入口**: [engineering_v1.3/AUDIT_PACK.md](engineering_v1.3/AUDIT_PACK.md) (v1.3 交付包)
+- **任务注册表**: [engineering_v1.3/control/MASTER_TASK_REGISTER.csv](engineering_v1.3/control/MASTER_TASK_REGISTER.csv) (50 任务)
+- **项目状态**: [engineering_v1.3/control/PROJECT_STATE.yaml](engineering_v1.3/control/PROJECT_STATE.yaml)
+- **当前任务**: [engineering_v1.3/control/CURRENT_TASK.md](engineering_v1.3/control/CURRENT_TASK.md)
+- **自治入口**: [engineering_v1.3/AUTONOMOUS_ENTRY.md](engineering_v1.3/AUTONOMOUS_ENTRY.md)
+- **根目录清单**: [ROOT_INVENTORY.md](ROOT_INVENTORY.md)
 
 ## 已知限制
 
@@ -161,13 +169,22 @@ python tools/astro_toolkit.py tools/my_task.json --log tools/my_task.log
 | Gaia-memory | 南天天区 Gaia 内存需求 32-35 GB |
 | External-data | GaiaDR3SP (~50GB) 和 testdata (~73GB) 不含在发布包中 |
 
-## v1.2 路线图
+## v1.3 路线图（当前）
 
-1. GUI 发布包（healpix_browser_qt + Qt6 运行时）
-2. G-002 修复（HISS has_snr 持久化，SNR²加权真实生效）
-3. GAP-015 完成（STACK stage 完整实现）
-4. DLL 版本号补充
-5. CLI 契约路径 GUI 原型
+1. ✅ P09-P12: 基线冻结 + TestData + WCS + 测光修复 (22 任务 DONE)
+2. ⏳ P13: Stage1 全量验证 (P13-002 IN_PROGRESS, 用户调整范围)
+3. ⏳ Stage1 性能优化 (80s/帧 → 目标 <30s/帧)
+4. ⏳ P14: 银心三片 32 帧马赛克 (8 任务 TODO)
+5. ⏳ P15: 浏览器异步 I/O (8 任务 TODO)
+6. ⏳ P16: 浏览器 GPU Tile Renderer (6 任务 TODO)
+7. ⏳ P17: 统一回归与发布 (3 任务 TODO)
+
+## v1.3 关键修复（2026-07-29）
+
+- 栈溢出修复 (snr_evaluator nanoflann 递归 + EXE 栈 32MB)
+- 浏览器 CLI 后台调试工具 (DLL 诊断 + 性能基准 + 交互模拟)
+- 浏览器部署修复 (libgomp-1.dll + liblz4.dll)
+- Stage2 全流程验证 (银心 5 帧 + 胜利 20 帧 LUM)
 
 ## 文档导航
 

@@ -1487,3 +1487,45 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
   - Spec 中 scale_factor 无下限约束，仅要求 > 0（不可自行添加 0.01 下限）
   - MSYS2 MinGW64 std::filesystem 不支持中文路径，需用 ASCII junction 绕过
   - 按设备生成独立 stage1_config 可隔离 calibration_dir 配置，避免相互干扰
+
+### P13-002 进度（2026-07-29，IN_PROGRESS，用户调整范围）
+- **状态**: IN_PROGRESS（用户调整范围，已交付部分均 PASS，待用户审计）
+- **用户方向调整（2026-07-29）**: 不在前面就批量跑 710 帧（严重拖慢进度）。改为：
+  1. ✅ 先修复栈溢出
+  2. ✅ 只用银心+胜利两组数据跑通全流程（Stage1+Stage2+浏览器）
+  3. ✅ 修好浏览器性能（CLI 工具 + 部署修复）
+  4. ⏳ 用户验证全流程工作没问题（待审计）
+  5. ⏳ 优化 Stage1 性能（80s/帧太慢）
+  6. ⏳ 全部验证好后，再跑最终全流程测试
+- **关键修复 (3 commit)**:
+  1. **栈溢出修复 (commit 61d49fa + 04226a9)**:
+     - 症状: Victory_Nebula mosaic1 RED@045711 + BLUE@060603/071753 在 DRIZZLE 阶段 exit=3221225725 (0xC00000FD STATUS_STACK_OVERFLOW)
+     - 根因: nanoflann `divideTree` 在偏斜 3D 笛卡尔控制点数据上递归数百层（理想 ~11 层），每帧栈使用 1-2KB（BoundingBox 按值拷贝 + -O3 内联），超过 Windows DLL 默认 1MB 栈限制
+     - **关键认知**: `-Wl,--stack` 对 DLL 无效，DLL 代码使用调用线程栈，必须设置 EXE 栈
+     - 修复: healpix_drizzle.dll 栈 8MB (`-Wl,--stack,8388608`) + snr_evaluator leaf_max_size 10→32 + orchestrator.exe 栈 32MB (`-Wl,--stack,33554432`)
+     - 验证: 3/3 失败帧 exit=0，HISS 正常生成（85KB-87KB）
+  2. **浏览器 CLI 后台调试工具 (commit e5aeaac)**:
+     - 文件: `lib/healpix_db/healpix_browser_qt/app/browser_cli.cpp`
+     - 功能: `--diag` DLL 依赖诊断 / `--benchmark` 性能基准 / `--sim zoom/pan` 交互模拟
+     - 输出: JSON 报告 stdout + 详细日志 stderr
+     - 性能: .hiss 加载 3.4ms, .hcsd 球面 55-63 FPS, 子叶加载 0.42ms/叶, 内存 8MB
+  3. **浏览器部署修复 (commit e5aeaac)**:
+     - 症状: 双击启动 exit=-1073741515 (STATUS_DLL_NOT_FOUND)
+     - 根因: astro_image_io.dll 依赖 libgomp-1.dll (OpenMP) + liblz4.dll (压缩) 未部署
+     - 修复: deploy.ps1 添加这两个 DLL 到复制列表
+     - 验证: windeployqt + 依赖 DLL 部署后双击启动正常 (PID=42508)
+- **Stage2 全流程验证**:
+  - 银心 5 代表帧 (T4_RED/GREEN/BLUE/HA/OIII) → galaxy_center_stacked.hcsd (1.2MB, GRADIENT_SPHERE success=true, 0.017s)
+  - 胜利 20 帧 LUM → victory_lum_stacked.hcsd (6890 像素, GRADIENT_SPHERE success=true, 0.063s)
+- **Stage1 批量运行**: 281/385 Victory_Nebula T4 帧已完成，全部 PASS（has_snr=1, fit_used 1700-1900, sigma 0.06-0.13），性能 70-80s/帧
+- **审计交付包**: `engineering_v1.3/AUDIT_PACK.md` (8 节: 项目状态/会话交付/用户调整/已知问题/审计入口/技术亮点/待决策项/下一阶段候选)
+- **P13-002 证据 4 件套**: TASK_REPORT.md + TEST_REPORT.md + EVIDENCE_INDEX.md + REVIEW_REPORT.md (全部完成)
+- **根目录整理**: ROOT_INVENTORY.md (活跃/归档/临时分类) + README.md 更新到 v1.3
+- **控制文件**: PROJECT_STATE.yaml (session_2026_07_29_summary 更新) + MASTER_TASK_REGISTER.csv (P13-002 IN_PROGRESS) + CURRENT_TASK.md (用户方向调整)
+- **依赖**: P13-001 (DONE); **后续**: P13-003 (负面恢复) + P13-004 (科学独立 Gate) + 性能优化 + 全量 710 帧
+- **Gate**: G12 进行中 (P13-001 DONE, P13-002 IN_PROGRESS, P13-003/004 TODO)
+- **待用户审计决策项**:
+  1. Stage1 性能优化方向（PLATESOLVE 13s + DRIZZLE 15-24s 是大头）
+  2. 全量测试时机（优化后立即跑？还是先完成 P14？）
+  3. 浏览器后续路径（P15 异步 I/O + P16 GPU 是否调整优先级？当前 55-63 FPS 是否够？）
+  4. 栈溢出算法层修复（当前 32MB EXE 栈足够，是否需要 nanoflann middleSplit_ 退化分割作为长期方案？）

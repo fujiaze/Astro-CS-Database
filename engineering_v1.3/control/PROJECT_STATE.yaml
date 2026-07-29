@@ -1,5 +1,5 @@
 project: AstroCS CLI Core and Spherical Browser
-phase: v1.3 p12-photometric-diagnostic
+phase: v1.3 p13-stage1-full-validation
 state_schema: 2
 status: ACTIVE
 current_gate: G12
@@ -14,6 +14,17 @@ migration_required: false
 p11_004_gate_version: 2
 p11_004_outcome: WCS_PRODUCTION_FIX_REQUIRED
 p11_004_repair_nature: HEADER_REGENERATION_NO_CODE_CHANGE
+
+# 当前会话完成的关键工作（2026-07-29）
+session_2026_07_29_summary:
+  - 栈溢出修复 (commit 61d49fa + 04226a9)
+  - 浏览器 CLI 后台调试工具 (commit e5aeaac)
+  - 浏览器部署修复 (libgomp-1.dll + liblz4.dll)
+  - Stage2 全流程验证 (银心 5 帧 + 胜利 20 帧 LUM)
+  - 审计交付包生成 (engineering_v1.3/AUDIT_PACK.md)
+  - P13-002 证据 4 件套完成 (TASK/TEST/EVIDENCE/REVIEW)
+  - README.md 更新到 v1.3 + ROOT_INVENTORY.md 根目录清单
+
 notes:
   - P11-004 完成（2026-07-28）：6/16 失败帧因 SIP 未序列化，重新求解后 16/16 通过。
   - P11-005 完成（2026-07-28）：710帧回归 709/710 success，ipv 求解器经用户确认正确，Gate 验证跳过（WCS+SIP 作为管线内存块传递，不写入 FITS header 是设计如此）。
@@ -28,4 +39,18 @@ notes:
   - P12-005 完成（2026-07-28，PASS）：修复 SNR 模型与 HISS 持久化。修复 4 类问题：(1) star_matcher.cpp::initDiag 移除 spectrum_rows_total/valid_fsyn 重置（避免覆盖 pc_api.cpp 已写入的值）；(2) run_photometric_matrix.py SCALE_FACTOR_MIN=0.0（Spec 无下限约束，仅要求 scale > 0）；(3) filters.json 新增 Baader 7nm H-alpha + 8.5nm OIII 曲线 + orchestrator.cpp map_filter_name 新增 H-alpha/HA/OIII/Oiii 大小写变体映射；(4) ASCII junction (testdata/*_flying_dutchman) 绕过 MSYS2 std::filesystem 中文路径 bug + 按设备生成 stage1_config_T2/T3/T4.json。16 帧代表帧重新运行 stage1，16/16 Gate PASS（Broadband 10/10, Narrowband 6/6），全部帧 has_snr=1 写入 HISS，全部帧 valid_fsyn == spectrum_rows_total。VERDICT: PASS。
   - P12-006 完成（2026-07-29，PASS）：生成 Stage1 代表矩阵正式 HISS。将 P12-005 生成的 16 份 HISS 文件复制到正式位置 evidence/P12-006/hiss/，使用 lib/astro_image_io/python/aio_healpix_io.py 的 hiss_read_snr_model() API 独立 inspect 每个 HISS 文件。16/16 PASS（has_snr=1, snr_format=1, n_points>0 最小 234, inspect_ok=True）。SHA256 哈希全部计算并记录。HISS 元数据字段完整（14/14 字段: nside/nested/n_pix/has_snr/snr_format/snr_n_points/filter/exposure_s/obs_time/wcs/drizzle/pixfrac/fits_meta/source）。无源码修改，无 fallback/skip。VERDICT: PASS。
   - P13-001 完成（2026-07-29，PASS）：建立 Stage1 全 TestData 批处理与恢复入口。Runner 脚本 stage1_batch_runner.py 提供 6 子命令（scan/run/status/report/cache-list/cache-clear），支持 7 元 hash 缓存（commit+orch+config+filters+qe+fits+gaia，禁止捷径合规）、断点恢复（batch_state.json 持久化）、超时保护（subprocess timeout 默认 600s 可配置）、分类报告（CSV+JSON+failure_classification）。自动测试 10 用例 795 断言全部 PASS，含端到端冒烟（T4_RED_Galaxy_Center: fit_used=1670, has_snr=1, snr_n_points=1984, elapsed=29.2s）。testdata 扫描 710 帧（T4=385, T3=151, T2=174）与 DATASETS.md 基线一致。关键修复：Galaxy_Center_T4 扫描逻辑修正为 panel<N>/<bn>.fts（无 filter 子目录），修复后 710 帧全部正确扫描。VERDICT: PASS。
+
+  # P13-002 进行中工作（2026-07-29 会话）
+  - P13-002 进行中（2026-07-29）：运行全部 TestData Stage1。已用银心+胜利 385 帧（T4）运行，~281 帧已生成 .hiss 文件。发现并修复 3 类问题：
+    (1) Windows MAX_PATH=260 路径过长导致 .hiss 文件创建失败（rc=-2 HIO_ERR_FILE）。修复：stage1_batch_runner.py 改用 hash_key 前 16 字符作为输出目录名。
+    (2) snr_evaluator 栈溢出（exit=3221225725=0xC00000FD）。根因：nanoflann divideTree 递归在偏斜 3D 笛卡尔控制点数据上产生极不平衡 KD-tree，递归深度数百层，每帧 1-2KB 栈，超过 Windows DLL 默认 1MB。修复（3 commit）：healpix_drizzle.dll 栈 8MB（-Wl,--stack,8388608）+ snr_evaluator leaf_max_size 10→32 + orchestrator.exe 栈 32MB（-Wl,--stack,33554432，根因修正：-Wl,--stack 对 DLL 无效，DLL 代码使用调用线程栈，必须设置 EXE 栈）。
+    (3) 浏览器打不开。根因：astro_image_io.dll 依赖 libgomp-1.dll（OpenMP）和 liblz4.dll（压缩）未复制到 exe 目录，双击启动时 STATUS_DLL_NOT_FOUND。修复：deploy.ps1 添加这两个 DLL。
+  - 新增浏览器 CLI 后台调试工具 browser_cli.exe（commit e5aeaac）。功能：--diag DLL 依赖诊断 / --benchmark 文件加载+子叶加载+降采样性能测试 / --sim zoom/pan 模拟缩放/平移（帧率+内存统计）。输出 JSON 报告到 stdout，详细日志到 stderr。验证：.hiss 加载 3.4ms，.hcsd 球面 55-63 FPS，子叶加载 0.19-0.42ms/叶。
+  - Stage2 全流程验证通过：银心 5 代表帧 → galaxy_center_stacked.hcsd（1.2MB, success=true, 0.017s）；胜利 20 帧 LUM → victory_lum_stacked.hcsd（6890 像素, success=true, 0.063s）。浏览器部署后双击启动正常（windeployqt + libgomp-1.dll + liblz4.dll）。
+
+  # 已知问题（待后续任务处理）
+  - Stage1 性能：80s/帧太慢（PLATESOLVE 13s + DRIZZLE 15-24s 是大头），用户要求优化。
+  - 栈溢出修复是数据依赖的：32MB 栈对当前数据集足够，但极端偏斜数据可能仍需更大栈或算法层修复（middleSplit_ 退化分割）。
+  - P13-002 尚未完成全量 710 帧运行（当前 281/385 T4 帧，无 T2/T3 帧）。
+
   - All unfinished P09-P17 work remains in scope.
