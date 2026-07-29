@@ -59,12 +59,15 @@ all: healpix_drizzle.dll
 # -shared          生成 Windows DLL
 # -static-libgcc   静态链接 libgcc, 避免运行时依赖
 # -static-libstdc++ 静态链接 libstdc++
+# -Wl,--stack,8388608  设置 DLL 栈大小为 8MB (Windows 默认 1MB 太小,
+#                      nanoflann divideTree 在偏斜 3D 数据上递归深度可达数百层,
+#                      每帧 1-2KB 栈 → 1MB 不够, P13-002 修复栈溢出 0xC00000FD)
 healpix_drizzle.dll: $(SRCS) $(DEPS)
-	$(CXX) $(CXXFLAGS) -shared -o $@ $(SRCS) $(DEPS) $(INCLUDES) $(DEFS) -static-libgcc -static-libstdc++ $(LDFLAGS) $(LIBS)
+	$(CXX) $(CXXFLAGS) -shared -o $@ $(SRCS) $(DEPS) $(INCLUDES) $(DEFS) -static-libgcc -static-libstdc++ -Wl,--stack,8388608 $(LDFLAGS) $(LIBS)
 
 # 不带压缩库构建 (链接 astro_image_io.dll, 与 all 一致)
 no-comp:
-	$(CXX) $(CXXFLAGS) -shared -o healpix_drizzle.dll $(SRCS) $(DEPS) $(INCLUDES) $(DEFS) -static-libgcc -static-libstdc++ $(LDFLAGS) -lm
+	$(CXX) $(CXXFLAGS) -shared -o healpix_drizzle.dll $(SRCS) $(DEPS) $(INCLUDES) $(DEFS) -static-libgcc -static-libstdc++ -Wl,--stack,8388608 $(LDFLAGS) -lm
 
 clean:
 	del /Q *.o *.dll 2>nul

@@ -107,9 +107,9 @@ struct SnrEvaluator::Impl {
             tree = nullptr;
         }
         if (points3d.empty()) return;
-        // KD-tree 参数: leaf_max_size=10 (平衡树深与构建时间)
+        // KD-tree 参数: leaf_max_size=32 (P13-002 修复栈溢出: 10→32 减少递归深度)
         tree = new KDTree(3, adaptor,
-                          nanoflann::KDTreeSingleIndexAdaptorParams(10));
+                          nanoflann::KDTreeSingleIndexAdaptorParams(32));
         tree->buildIndex();
     }
 };
