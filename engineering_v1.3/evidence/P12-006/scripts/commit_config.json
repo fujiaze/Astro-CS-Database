@@ -1,0 +1,37 @@
+[
+  {
+    "type": "git_add",
+    "params": {
+      "repo": ".",
+      "files": [
+        "engineering_v1.3/evidence/P12-006",
+        "engineering_v1.3/control/CURRENT_TASK.md",
+        "engineering_v1.3/control/MASTER_TASK_REGISTER.csv",
+        "engineering_v1.3/control/PROJECT_STATE.yaml"
+      ]
+    }
+  },
+  {
+    "type": "git_commit",
+    "params": {
+      "repo": ".",
+      "message_file": "engineering_v1.3/evidence/P12-006/scripts/commit_msg.txt"
+    }
+  },
+  {
+    "type": "git_push",
+    "params": {
+      "repo": ".",
+      "remote": "origin",
+      "branch": "main",
+      "timeout_sec": 180
+    }
+  },
+  {
+    "type": "git_log",
+    "params": {
+      "repo": ".",
+      "count": 3
+    }
+  }
+]

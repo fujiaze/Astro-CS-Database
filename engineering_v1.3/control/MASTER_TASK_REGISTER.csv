@@ -19,7 +19,7 @@ P12-002,P12,修复Gaia到PSF空间匹配与唯一配对,P12-001,G12,DONE,evidenc
 P12-003,P12,验证光谱积分与响应曲线无回归,P12-001,G12,DONE,evidence/P12-003
 P12-004,P12,T1-T4与滤镜类别测光矩阵验证,P12-002;P12-003;P10-006,G12,DONE,evidence/P12-004
 P12-005,P12,修复SNR模型与HISS持久化,P12-004;P11-006,G12,DONE,evidence/P12-005
-P12-006,P12,生成Stage1代表矩阵正式HISS,P12-005,G12,TODO,evidence/P12-006
+P12-006,P12,生成Stage1代表矩阵正式HISS,P12-005,G12,DONE,evidence/P12-006
 P13-001,P13,建立Stage1全TestData批处理与恢复入口,P12-006,G12,TODO,evidence/P13-001
 P13-002,P13,运行全部TestData Stage1,P13-001;P10-005,G12,TODO,evidence/P13-002
 P13-003,P13,Stage1负面恢复与资源验证,P13-002,G12,TODO,evidence/P13-003

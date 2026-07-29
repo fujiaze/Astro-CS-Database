@@ -1,0 +1,18 @@
+P12-006: 生成 Stage1 代表矩阵正式 HISS (16/16 PASS)
+
+将 P12-005 生成的 16 份 HISS 文件复制到正式位置 evidence/P12-006/hiss/，
+使用 lib/astro_image_io/python/aio_healpix_io.py 的 hiss_read_snr_model() API
+独立 inspect 每个 HISS 文件。
+
+结果:
+- 16/16 HISS inspect PASS (has_snr=1, snr_format=1, n_points>0 最小 234)
+- SHA256 哈希全部计算并记录
+- HISS 元数据字段完整 (14/14 字段)
+- 无源码修改，无 fallback/skip
+
+覆盖:
+- T4: RED/GREEN/BLUE/HA/OIII (Galaxy_Center, nside=512)
+- T2: RED/GREEN/BLUE/HA (LDN43) + OIII (NGC1727) (nside=2048)
+- T3: RED/GREEN/BLUE/HA/OIII/LUM (NGC55, nside=2048)
+
+VERDICT: PASS
