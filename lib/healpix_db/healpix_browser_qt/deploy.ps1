@@ -11,7 +11,8 @@ $ErrorActionPreference = "Stop"
 
 # 路径设置
 $mingwBin = "C:\msys64\mingw64\bin"
-$buildDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$buildDir = "$scriptDir\build"
 $exePath = "$buildDir\healpix_browser_qt.exe"
 
 Write-Host "=== 1. 编译 ===" -ForegroundColor Cyan
@@ -31,6 +32,9 @@ $neededDlls = @(
     "libgcc_s_seh-1.dll",
     "libwinpthread-1.dll",
     "libstdc++-6.dll",
+    # astro_image_io.dll 依赖 (OpenMP + LZ4 压缩)
+    "libgomp-1.dll",
+    "liblz4.dll",
     # Qt6Core 依赖
     "libb2-1.dll",
     "libdouble-conversion.dll",

@@ -82,6 +82,25 @@ target_link_libraries(healpix_browser_qt PRIVATE
 )
 
 # ============================================================================
+# CLI 后台调试工具 (不依赖 Qt Widgets, 纯 C++17 + core + psapi)
+# 用途: DLL 诊断 + 文件加载测试 + 性能 benchmark + 模拟操作
+# ============================================================================
+add_executable(browser_cli
+    app/browser_cli.cpp
+    core/browser_backend.cpp
+    core/stf_engine.cpp
+    core/healpix_math.cpp
+)
+target_include_directories(browser_cli PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/core
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${AIO_DIR}/include
+)
+target_compile_definitions(browser_cli PRIVATE ${AIO_DEFINES})
+target_link_directories(browser_cli PRIVATE ${AIO_DIR})
+target_link_libraries(browser_cli PRIVATE astro_image_io psapi)
+
+# ============================================================================
 # 单元测试 (可选, 通过 -DBUILD_TESTS=ON 启用)
 # ============================================================================
 option(BUILD_TESTS "Build unit tests" OFF)
