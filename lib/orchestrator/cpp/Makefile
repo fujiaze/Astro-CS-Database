@@ -22,7 +22,10 @@ INCLUDES = -Iinclude \
            -I../../healpix_db/healpix_stack \
            -I../../gaia_xpsd_client/src \
            -I../../star_detector/include
-LDFLAGS = -static
+# -Wl,--stack,33554432: 设置 EXE 主线程栈为 32MB
+# (P13-002: nanoflann divideTree 递归在偏斜 3D 数据上深度可达数百层,
+#  DLL 中的代码使用调用线程的栈, -Wl,--stack 对 DLL 无效, 必须设置 EXE 栈)
+LDFLAGS = -static -Wl,--stack,33554432
 
 SRC_DIR = src
 INCDIR = include
