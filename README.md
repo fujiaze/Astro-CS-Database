@@ -3,7 +3,7 @@
 **版本**: v1.3.0 (Stage1 全量验证 + 浏览器性能修复阶段)
 **状态**: G12 (Stage1 科学链) 进行中 · 22/50 任务 DONE · P13-002 IN_PROGRESS
 **平台**: Windows 10/11 (64-bit) · MinGW-w64 g++ 16.1.0
-**审计入口**: [engineering_v1.3/AUDIT_PACK.md](engineering_v1.3/AUDIT_PACK.md)
+**审计入口**: [工程控制/AUDIT_PACK.md](工程控制/AUDIT_PACK.md)
 
 ---
 
@@ -71,7 +71,7 @@ Astro-CS-Normalization-Database/
 │       ├── healpix_drizzle/   # 球面 Drizzle (DLL 栈 8MB)
 │       ├── healpix_stack/     # 稀疏堆栈 + 球面梯度
 │       └── healpix_browser_qt/# GUI 浏览器 (Qt6) + CLI 调试工具
-├── engineering_v1.3/          # 当前工程包（活跃，P09-P17）
+├── 工程控制/          # 当前工程包（活跃，P09-P17）
 │   ├── AUDIT_PACK.md          # 审计交付包入口
 │   ├── AUTONOMOUS_ENTRY.md    # 自治执行入口
 │   ├── control/               # 项目状态控制文件
@@ -152,11 +152,11 @@ python tools/astro_toolkit.py tools/my_task.json --log tools/my_task.log
 
 ## 项目管理
 
-- **审计入口**: [engineering_v1.3/AUDIT_PACK.md](engineering_v1.3/AUDIT_PACK.md) (v1.3 交付包)
-- **任务注册表**: [engineering_v1.3/control/MASTER_TASK_REGISTER.csv](engineering_v1.3/control/MASTER_TASK_REGISTER.csv) (50 任务)
-- **项目状态**: [engineering_v1.3/control/PROJECT_STATE.yaml](engineering_v1.3/control/PROJECT_STATE.yaml)
-- **当前任务**: [engineering_v1.3/control/CURRENT_TASK.md](engineering_v1.3/control/CURRENT_TASK.md)
-- **自治入口**: [engineering_v1.3/AUTONOMOUS_ENTRY.md](engineering_v1.3/AUTONOMOUS_ENTRY.md)
+- **审计入口**: [工程控制/AUDIT_PACK.md](工程控制/AUDIT_PACK.md) (v1.3 交付包)
+- **任务注册表**: [工程控制/control/MASTER_TASK_REGISTER.csv](工程控制/control/MASTER_TASK_REGISTER.csv) (50 任务)
+- **项目状态**: [工程控制/control/PROJECT_STATE.yaml](工程控制/control/PROJECT_STATE.yaml)
+- **当前任务**: [工程控制/control/CURRENT_TASK.md](工程控制/control/CURRENT_TASK.md)
+- **自治入口**: [工程控制/AUTONOMOUS_ENTRY.md](工程控制/AUTONOMOUS_ENTRY.md)
 - **根目录清单**: [ROOT_INVENTORY.md](ROOT_INVENTORY.md)
 
 ## 已知限制

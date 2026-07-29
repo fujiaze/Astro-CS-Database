@@ -1,52 +1,44 @@
-# 根目录清单与归档状态
+# 根目录清单
 
 > 更新时间: 2026-07-29
-> 用途: 明确根目录每个目录/文件的用途、状态和归档建议
+> 用途: 根目录结构索引，供 AI / 审计快速定位
 
-## 活跃目录（当前开发使用）
+## 目录结构
 
-| 路径 | 用途 | 状态 |
-|------|------|------|
-| `lib/` | 源代码（C++ DLL + Python 工具） | 活跃 |
-| `testdata/` | 测试数据（710 帧 FITS） | 活跃 |
-| `GaiaDR3SP/` | Gaia DR3 星表数据库 | 活跃 |
-| `output/` | 运行时输出（.hiss/.hcsd） | 活跃 |
-| `tools/` | 项目工具集（astro_toolkit.py） | 活跃 |
-| `engineering_v1.3/` | 当前工程包（P09-P17 任务） | 活跃 |
-| `.gitignore` / `.gitattributes` | Git 配置 | 活跃 |
-| `README.md` | 项目说明（需更新到 v1.3） | 需更新 |
-| `memory.md` | 项目记忆（开发日志） | 活跃 |
+| 路径 | 大小 | 用途 | Git 追踪 |
+|------|------|------|----------|
+| `lib/` | 3.2 GB | 源代码（C++ DLL + Python 工具） | 是 (372 文件) |
+| `工程控制/` | 26 MB | 工程控制包（P09-P17 任务文档/证据/控制文件） | 是 (552 文件) |
+| `tools/` | 0.2 MB | 项目工具集（astro_toolkit.py） | 是 (24 文件) |
+| `testdata/` | 71.7 GB | 测试数据（710 帧 FITS） | 否 (.gitignore) |
+| `GaiaDR3SP/` | 64.7 GB | Gaia DR3 星表数据库 | 否 (.gitignore) |
+| `GaiaDR3/` | 41.9 GB | Gaia DR3 数据（旧版） | 否 (.gitignore) |
+| `siril-1.4.3/` | 55.2 MB | Siril 参考源码 | 否 (.gitignore) |
+| `output/` | 500.8 MB | 运行时输出（.hiss/.hcsd） | 否 (.gitignore) |
+| `.trae/` | 3.7 MB | IDE 配置 | 否 (.gitignore) |
 
-## 历史归档目录（可安全归档/删除）
+## 根目录文件
 
-| 路径 | 用途 | 状态 | 建议 |
-|------|------|------|------|
-| `engineering/` | v1.0 工程包（G0-G8 已完成） | 归档 | 保留参考 |
-| `engineering_archive_v1.0/` | v1.0 归档副本 | 归档 | 可删除（与 engineering/ 重复） |
-| `engineering_v1.2/` | v1.2 工程包（P09-P17 任务定义） | 归档 | 保留参考（v1.3 继承任务定义） |
-| `docs/` | v1.0 文档 | 归档 | 可删除（已被 engineering_v1.3/docs/ 替代） |
-| `audit/` | v1.1 审计包 | 归档 | 可删除 |
-| `dist/` | v1.0 分发包 | 归档 | 可删除（已过时） |
+| 文件 | 用途 |
+|------|------|
+| `.gitignore` / `.gitattributes` | Git 配置 |
+| `README.md` | 项目说明 v1.3 |
+| `memory.md` | 开发记忆（需求/进度/重大问题日志） |
+| `ROOT_INVENTORY.md` | 本文件（目录索引） |
 
-## 临时文件（可清理）
+## 工程控制包结构 (`工程控制/`)
 
-| 路径 | 用途 | 建议 |
-|------|------|------|
-| `COMMIT_MSG.txt` | vq-commit 临时消息文件 | 清理 |
-| `_commit_msg_p02.txt` | P02 时期临时文件 | 清理 |
-| `_toolkit_configs/` | 旧工具配置 | 清理 |
-| `bootstrap.ps1` | v1.0 引导脚本 | 保留参考 |
-| `build.ps1` | v1.0 构建脚本 | 保留参考 |
-
-## 根目录清理建议
-
-```powershell
-# 可选清理（需用户确认）
-# Remove-Item "COMMIT_MSG.txt" -Force
-# Remove-Item "_commit_msg_p02.txt" -Force
-# Remove-Item "_toolkit_configs" -Recurse -Force
-# Remove-Item "audit" -Recurse -Force
-# Remove-Item "dist" -Recurse -Force
 ```
-
-**注意**: 历史目录（engineering/, engineering_archive_v1.0/, engineering_v1.2/）保留作为参考，不删除。活跃开发只在 `engineering_v1.3/` 进行。
+工程控制/
+├── AUTONOMOUS_ENTRY.md     # 自治执行入口
+├── AUDIT_PACK.md           # 审计入口主文档
+├── control/                # 控制文件
+│   ├── PROJECT_STATE.yaml  # 项目状态 (G12)
+│   ├── MASTER_TASK_REGISTER.csv  # 50 任务注册表
+│   └── CURRENT_TASK.md     # 当前任务
+├── contracts/              # 契约文档 (FROZEN)
+├── docs/                   # 设计与规格文档
+├── evidence/               # 任务证据 (P09-P13)
+├── tasks/                  # 任务定义
+└── tools/                  # 工程工具
+```

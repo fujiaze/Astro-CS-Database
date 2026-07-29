@@ -1313,7 +1313,7 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
   - 不 commit（.gitignore 已加 `*_review_bundle.zip`）
 
 **v1.3 恢复执行（2026-07-28，按 AUTONOMOUS_ENTRY.md §2 双层闭环方案）**:
-- **诊断工具升级**: `engineering_v1.3/evidence/P11-004/scripts/wcs_closure_diagnostic_v3.py` v3.4
+- **诊断工具升级**: `工程控制/evidence/P11-004/scripts/wcs_closure_diagnostic_v3.py` v3.4
   - 新增 `--authoritative-pairs` 模式：A 层 solver.get_last_inliers() + B 层 astropy WCS(header) 独立回投
   - 禁止启用 C 层 blind kd-tree rematch（按 AUTONOMOUS_ENTRY.md §2 第 4 条）
   - v3.3 修复：u_to_astropy_pixel Y 轴方向（solver U 系 Y 向上 vs astropy 0-based pixel Y 向下，需 CRPIX - U_y）
@@ -1418,7 +1418,7 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
   - 测试5 diag 输出: 全部 20 字段正确填充 (保持 PASS)
 - **diag 关键字段 (测试5)**: spatial_candidates=10, unique_matches=10, rejected_ambiguous=0, rejected_distance=0, fit_used=10, match_distance_median=0.1414 px
 - **Gate**: G12 Photometric Gate 全部满足 (fit_used ≥ 20/8, sigma_residual > 0, unique_matches > 1)
-- **证据**: engineering_v1.3/evidence/P12-002/ (TASK_REPORT + TEST_REPORT + EVIDENCE_INDEX + REVIEW_REPORT + raw_logs/test_photometric_calib_p12_002.log)
+- **证据**: 工程控制/evidence/P12-002/ (TASK_REPORT + TEST_REPORT + EVIDENCE_INDEX + REVIEW_REPORT + raw_logs/test_photometric_calib_p12_002.log)
 - **控制文件**: PROJECT_STATE.yaml (last_completed=P12-002, current=P12-003) + CURRENT_TASK.md + MASTER_TASK_REGISTER.csv (P12-002 → DONE) + DECISION_REGISTER.md (ADR-P12-002)
 - **依赖**: P12-001 (DONE); **后续**: P12-003 (验证光谱积分与响应曲线无回归)
 - **Gate**: G12 进行中 (P12-001/002 DONE, P12-003~006 TODO)
@@ -1435,7 +1435,7 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 - **新增测试文件**:
   - lib/photometric_calib/cpp/test/test_spectrum_integrator.cpp（C++ 黑体光谱 F_syn 计算）
   - lib/photometric_calib/cpp/test/test_spectrum_integrator_golden.py（Python golden 对比）
-- **证据**: engineering_v1.3/evidence/P12-003/（TASK_REPORT + TEST_REPORT + EVIDENCE_INDEX + REVIEW_REPORT + reports/test_results.json + reports/filter_qe_provenance.json）
+- **证据**: 工程控制/evidence/P12-003/（TASK_REPORT + TEST_REPORT + EVIDENCE_INDEX + REVIEW_REPORT + reports/test_results.json + reports/filter_qe_provenance.json）
 - **commit**: b7b1879（15 files, +6113/-31），已 push 到 origin/main
 - **控制文件**: PROJECT_STATE.yaml (last_completed=P12-003, current=P12-004) + CURRENT_TASK.md + MASTER_TASK_REGISTER.csv (P12-003 → DONE) + DECISION_REGISTER.md (ADR-P12-003)
 - **依赖**: P12-002 (DONE); **后续**: P12-004（v1.2 后续任务，待用户确认）
@@ -1448,7 +1448,7 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
   - INVALID_SCALE 3 帧 (T4 RED/GREEN/BLUE, scale_factor ≈ 0.0026-0.0028 被误判 < 0.01 下限, valid_fsyn=0)
   - STAGE1_ERROR 13 帧 (2 帧滤光片曲线加载失败 + 4 帧中文路径 filesystem error + 7 帧无 Master 文件)
 - **P12-002 修复有效性间接验证**: T4 RED/GREEN/BLUE 空间匹配正常 (unique_matches=spatial_candidates, rejected_ambiguous=0, fit_used 1231-1670 充足)
-- **证据**: engineering_v1.3/evidence/P12-004/ (TASK_REPORT + TEST_REPORT + EVIDENCE_INDEX + REVIEW_REPORT + reports/PHOTOMETRY_MATRIX.csv + reports/photometric_diag_summary.json + reports/failure_classification.json + raw_logs/<frame>/stage1.log + raw_logs/<frame>/photometry_report.json)
+- **证据**: 工程控制/evidence/P12-004/ (TASK_REPORT + TEST_REPORT + EVIDENCE_INDEX + REVIEW_REPORT + reports/PHOTOMETRY_MATRIX.csv + reports/photometric_diag_summary.json + reports/failure_classification.json + raw_logs/<frame>/stage1.log + raw_logs/<frame>/photometry_report.json)
 - **commit**: b854d9a
 - **控制文件**: PROJECT_STATE.yaml (last_completed=P12-004, current=P12-005) + CURRENT_TASK.md + MASTER_TASK_REGISTER.csv (P12-004 → DONE)
 - **依赖**: P12-002; P12-003; P10-006 (DONE); **后续**: P12-005 (修复 4 类问题)
@@ -1459,7 +1459,7 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 - **目标**: 修复 P12-004 暴露的 4 类问题，使 16 帧代表帧测光矩阵全部通过 Gate，且 SNR 模型成功写入 HISS 持久化文件
 - **修复内容 (4 类)**:
   1. **initDiag 误覆盖** (`lib/photometric_calib/cpp/src/star_matcher.cpp` L45-49): 从 initDiag 移除 spectrum_rows_total/valid_fsyn 重置，避免覆盖 pc_api.cpp 在光谱积分阶段已正确填充的值
-  2. **scale_factor 误判** (`engineering_v1.3/evidence/P12-004/scripts/run_photometric_matrix.py` L70): SCALE_FACTOR_MIN=0.0（Spec 无下限约束，仅要求 scale > 0），SCALE_FACTOR_MAX=1.0e9
+  2. **scale_factor 误判** (`工程控制/evidence/P12-004/scripts/run_photometric_matrix.py` L70): SCALE_FACTOR_MIN=0.0（Spec 无下限约束，仅要求 scale > 0），SCALE_FACTOR_MAX=1.0e9
   3. **窄带滤光片 HA/OIII 缺失**:
      - `lib/photometric_calib/data/response_curves/filters.json` L2571-2675: 新增 Baader 7nm H-alpha (21 点, 640-672nm) + Baader 8.5nm OIII (25 点, 484-518nm) 滤光片曲线
      - `lib/orchestrator/cpp/src/orchestrator.cpp` L1397-1402: map_filter_name 新增 H-alpha/HA/OIII/Oiii 大小写变体映射
@@ -1477,7 +1477,7 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 - **设备滤光片适配**:
   - T4: Baader RGBHaOIII (7nm HA, 8.5nm OIII) — 直接对应 Baader 曲线
   - T2/T3: Astrodon 3nm HA 等 — 暂用 Baader 曲线近似（足够覆盖中心波长，光度定标精度可接受）
-- **证据**: engineering_v1.3/evidence/P12-005/ (TASK_REPORT + TEST_REPORT + EVIDENCE_INDEX + REVIEW_REPORT + scripts/compute_hashes.json + scripts/compute_hashes.log + scripts/commit_msg.txt + scripts/commit_config.json)
+- **证据**: 工程控制/evidence/P12-005/ (TASK_REPORT + TEST_REPORT + EVIDENCE_INDEX + REVIEW_REPORT + scripts/compute_hashes.json + scripts/compute_hashes.log + scripts/commit_msg.txt + scripts/commit_config.json)
 - **commit**: 60ce503（52 files, +10198/-2888），已 push 到 origin/main
 - **控制文件**: PROJECT_STATE.yaml (last_completed=P12-005, current=P12-006) + CURRENT_TASK.md + MASTER_TASK_REGISTER.csv (P12-005 → DONE)
 - **依赖**: P12-004 (DONE); P11-006 (DONE); **后续**: P12-006 (生成 Stage1 代表矩阵正式 HISS)
@@ -1518,7 +1518,7 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
   - 银心 5 代表帧 (T4_RED/GREEN/BLUE/HA/OIII) → galaxy_center_stacked.hcsd (1.2MB, GRADIENT_SPHERE success=true, 0.017s)
   - 胜利 20 帧 LUM → victory_lum_stacked.hcsd (6890 像素, GRADIENT_SPHERE success=true, 0.063s)
 - **Stage1 批量运行**: 281/385 Victory_Nebula T4 帧已完成，全部 PASS（has_snr=1, fit_used 1700-1900, sigma 0.06-0.13），性能 70-80s/帧
-- **审计交付包**: `engineering_v1.3/AUDIT_PACK.md` (8 节: 项目状态/会话交付/用户调整/已知问题/审计入口/技术亮点/待决策项/下一阶段候选)
+- **审计交付包**: `工程控制/AUDIT_PACK.md` (8 节: 项目状态/会话交付/用户调整/已知问题/审计入口/技术亮点/待决策项/下一阶段候选)
 - **P13-002 证据 4 件套**: TASK_REPORT.md + TEST_REPORT.md + EVIDENCE_INDEX.md + REVIEW_REPORT.md (全部完成)
 - **根目录整理**: ROOT_INVENTORY.md (活跃/归档/临时分类) + README.md 更新到 v1.3
 - **控制文件**: PROJECT_STATE.yaml (session_2026_07_29_summary 更新) + MASTER_TASK_REGISTER.csv (P13-002 IN_PROGRESS) + CURRENT_TASK.md (用户方向调整)

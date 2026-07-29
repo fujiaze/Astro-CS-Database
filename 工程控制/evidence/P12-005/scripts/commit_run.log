@@ -1,0 +1,153 @@
+{
+  "ok": true,
+  "results": [
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "## main...origin/main\n M engineering_v1.2/control/MASTER_TASK_REGISTER.csv\n M engineering_v1.2/evidence/P11-003/REPRESENTATIVE_FRAMES_ARCHIVE.json\n M engineering_v1.2/evidence/P11-003/reports/p11_003_summary.json\n M engineering_v1.3/control/MASTER_TASK_REGISTER.csv\n M engineering_v1.3/control/PROJECT_STATE.yaml\n M engineering_v1.3/evidence/P12-004/raw_logs/T2_BLUE_LDN43/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T2_GREEN_LDN43/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T2_HA_LDN43/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T2_OIII_NGC1727/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T2_RED_LDN43/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T3_BLUE_NGC55/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T3_GREEN_NGC55/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T3_HA_NGC55/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T3_LUM_NGC55/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T3_OIII_NGC55/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T3_RED_NGC55/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T4_BLUE_Galaxy_Center/photometry_report.json\n M engineering_v1.3/evidence/P12-004/raw_logs/T4_BLUE_Galaxy_Center/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T4_GREEN_Galaxy_Center/photometry_report.json\n M engineering_v1.3/evidence/P12-004/raw_logs/T4_GREEN_Galaxy_Center/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T4_HA_Galaxy_Center/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T4_OIII_Galaxy_Center/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T4_RED_Galaxy_Center/photometry_report.json\n M engineering_v1.3/evidence/P12-004/raw_logs/T4_RED_Galaxy_Center/stage1.log\n M engineering_v1.3/evidence/P12-004/reports/PHOTOMETRY_MATRIX.csv\n M engineering_v1.3/evidence/P12-004/reports/failure_classification.json\n M engineering_v1.3/evidence/P12-004/reports/photometric_diag_summary.json\n M engineering_v1.3/evidence/P12-004/scripts/run_photometric_matrix.py\n M lib/orchestrator/cpp/src/orchestrator.cpp\n M lib/photometric_calib/cpp/src/star_matcher.cpp\n M lib/photometric_calib/data/response_curves/filters.json\n M lib/plate_solve/python/visualize_reproject.py\n?? AstroCS_Recovery_Development_Pack_2026-07-28_v1.3.zip\n?? engineering_v1.3/evidence/P11-005/raw_logs/gate_v3_5frames_test.log\n?? engineering_v1.3/evidence/P11-005/reports/\n?? engineering_v1.3/evidence/P11-005/scripts/\n?? engineering_v1.3/evidence/P12-004/raw_logs/T2_BLUE_LDN43/photometry_report.json\n?? engineering_v1.3/evidence/P12-004/raw_logs/T2_GREEN_LDN43/photometry_report.json\n?? engineering_v1.3/evidence/P12-004/raw_logs/T2_HA_LDN43/photometry_report.json\n?? engineering_v1.3/evidence/P12-004/raw_logs/T2_OIII_NGC1727/photometry_report.json\n?? engineering_v1.3/evidence/P12-004/raw_logs/T2_RED_LDN43/photometry_report.json\n?? engineering_v1.3/evidence/P12-004/raw_logs/T3_BLUE_NGC55/photometry_report.json\n?? engineering_v1.3/evidence/P12-004/raw_logs/T3_GREEN_NGC55/photometry_report.json\n?? engineering_v1.3/evidence/P12-004/raw_logs/T3_HA_NGC55/photometry_report.json\n?? engineering_v1.3/evidence/P12-004/raw_logs/T3_LUM_NGC55/photometry_report.json\n?? engineering_v1.3/evidence/P12-004/raw_logs/T3_OIII_NGC55/photometry_report.json\n?? engineering_v1.3/evidence/P12-004/raw_logs/T3_RED_NGC55/photometry_report.json\n?? engineering_v1.3/evidence/P12-004/raw_logs/T4_HA_Galaxy_Center/photometry_report.json\n?? engineering_v1.3/evidence/P12-004/raw_logs/T4_OIII_Galaxy_Center/photometry_report.json\n?? engineering_v1.3/evidence/P12-004/scripts/stage1_config_T2.json\n?? engineering_v1.3/evidence/P12-004/scripts/stage1_config_T3.json\n?? engineering_v1.3/evidence/P12-004/scripts/stage1_config_T4.json\n?? engineering_v1.3/evidence/P12-005/\n",
+      "stderr": "",
+      "elapsed_sec": 0.057,
+      "cmd": [
+        "git",
+        "status",
+        "--porcelain=v1",
+        "-b"
+      ],
+      "extra": {
+        "porcelain": "## main...origin/main\n M engineering_v1.2/control/MASTER_TASK_REGISTER.csv\n M engineering_v1.2/evidence/P11-003/REPRESENTATIVE_FRAMES_ARCHIVE.json\n M engineering_v1.2/evidence/P11-003/reports/p11_003_summary.json\n M engineering_v1.3/control/MASTER_TASK_REGISTER.csv\n M engineering_v1.3/control/PROJECT_STATE.yaml\n M engineering_v1.3/evidence/P12-004/raw_logs/T2_BLUE_LDN43/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T2_GREEN_LDN43/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T2_HA_LDN43/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T2_OIII_NGC1727/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T2_RED_LDN43/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T3_BLUE_NGC55/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T3_GREEN_NGC55/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T3_HA_NGC55/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T3_LUM_NGC55/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T3_OIII_NGC55/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T3_RED_NGC55/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T4_BLUE_Galaxy_Center/photometry_report.json\n M engineering_v1.3/evidence/P12-004/raw_logs/T4_BLUE_Galaxy_Center/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T4_GREEN_Galaxy_Center/photometry_report.json\n M engineering_v1.3/evidence/P12-004/raw_logs/T4_GREEN_Galaxy_Center/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T4_HA_Galaxy_Center/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T4_OIII_Galaxy_Center/stage1.log\n M engineering_v1.3/evidence/P12-004/raw_logs/T4_RED_Galaxy_Center/photometry_report.json\n M engineering_v1.3/evidence/P12-004/raw_logs/T4_RED_Galaxy_Center/stage1.log\n M engineering_v1.3/evidence/P12-004/reports/PHOTOMETRY_MATRIX.csv\n M engineering_v1.3/evidence/P12-004/reports/failure_classification.json\n M engineering_v1.3/evidence/P12-004/reports/photometric_diag_summary.json\n M engineering_v1.3/evidence/P12-004/scripts/run_photometric_matrix.py\n M lib/orchestrator/cpp/src/orchestrator.cpp\n M lib/photometric_calib/cpp/src/star_matcher.cpp\n M lib/photometric_calib/data/response_curves/filters.json\n M lib/plate_solve/python/visualize_reproject.py\n?? AstroCS_Recovery_Development_Pack_2026-07-28_v1.3.zip\n?? engineering_v1.3/evidence/P11-005/raw_logs/gate_v3_5frames_test.log\n?? engineering_v1.3/evidence/P11-005/reports/\n?? engineering_v1.3/evidence/P11-005/scripts/\n?? engineering_v1.3/evidence/P12-004/raw_logs/T2_BLUE_LDN43/photometry_report.json\n?? engineering_v1.3/evidence/P12-004/raw_logs/T2_GREEN_LDN43/photometry_report.json\n?? engineering_v1.3/evidence/P12-004/raw_logs/T2_HA_LDN43/photometry_report.json\n?? engineering_v1.3/evidence/P12-004/raw_logs/T2_OIII_NGC1727/photometry_report.json\n?? engineering_v1.3/evidence/P12-004/raw_logs/T2_RED_LDN43/photometry_report.json\n?? engineering_v1.3/evidence/P12-004/raw_logs/T3_BLUE_NGC55/photometry_report.json\n?? engineering_v1.3/evidence/P12-004/raw_logs/T3_GREEN_NGC55/photometry_report.json\n?? engineering_v1.3/evidence/P12-004/raw_logs/T3_HA_NGC55/photometry_report.json\n?? engineering_v1.3/evidence/P12-004/raw_logs/T3_LUM_NGC55/photometry_report.json\n?? engineering_v1.3/evidence/P12-004/raw_logs/T3_OIII_NGC55/photometry_report.json\n?? engineering_v1.3/evidence/P12-004/raw_logs/T3_RED_NGC55/photometry_report.json\n?? engineering_v1.3/evidence/P12-004/raw_logs/T4_HA_Galaxy_Center/photometry_report.json\n?? engineering_v1.3/evidence/P12-004/raw_logs/T4_OIII_Galaxy_Center/photometry_report.json\n?? engineering_v1.3/evidence/P12-004/scripts/stage1_config_T2.json\n?? engineering_v1.3/evidence/P12-004/scripts/stage1_config_T3.json\n?? engineering_v1.3/evidence/P12-004/scripts/stage1_config_T4.json\n?? engineering_v1.3/evidence/P12-005/\n"
+      },
+      "step": 0,
+      "type": "git_status"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "warning: in the working copy of 'engineering_v1.3/evidence/P12-004/raw_logs/T2_BLUE_LDN43/stage1.log', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.3/evidence/P12-004/raw_logs/T2_GREEN_LDN43/stage1.log', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.3/evidence/P12-004/raw_logs/T2_HA_LDN43/stage1.log', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.3/evidence/P12-004/raw_logs/T2_OIII_NGC1727/stage1.log', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.3/evidence/P12-004/raw_logs/T2_RED_LDN43/stage1.log', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.3/evidence/P12-004/raw_logs/T3_BLUE_NGC55/stage1.log', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.3/evidence/P12-004/raw_logs/T3_GREEN_NGC55/stage1.log', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.3/evidence/P12-004/raw_logs/T3_HA_NGC55/stage1.log', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.3/evidence/P12-004/raw_logs/T3_LUM_NGC55/stage1.log', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.3/evidence/P12-004/raw_logs/T3_OIII_NGC55/stage1.log', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.3/evidence/P12-004/raw_logs/T3_RED_NGC55/stage1.log', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.3/evidence/P12-004/raw_logs/T4_BLUE_Galaxy_Center/stage1.log', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.3/evidence/P12-004/raw_logs/T4_GREEN_Galaxy_Center/stage1.log', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.3/evidence/P12-004/raw_logs/T4_HA_Galaxy_Center/stage1.log', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.3/evidence/P12-004/raw_logs/T4_OIII_Galaxy_Center/stage1.log', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.3/evidence/P12-004/raw_logs/T4_RED_Galaxy_Center/stage1.log', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.3/evidence/P12-004/reports/PHOTOMETRY_MATRIX.csv', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.3/evidence/P12-004/reports/failure_classification.json', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.3/evidence/P12-004/reports/photometric_diag_summary.json', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'lib/photometric_calib/data/response_curves/filters.json', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.3/evidence/P12-004/scripts/stage1_config_T2.json', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.3/evidence/P12-004/scripts/stage1_config_T3.json', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.3/evidence/P12-004/scripts/stage1_config_T4.json', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'engineering_v1.3/evidence/P12-005/scripts/compute_hashes.log', CRLF will be replaced by LF the next time Git touches it\n",
+      "elapsed_sec": 0.236,
+      "cmd": [
+        "git",
+        "add",
+        "lib/photometric_calib/cpp/src/star_matcher.cpp",
+        "lib/orchestrator/cpp/src/orchestrator.cpp",
+        "lib/photometric_calib/data/response_curves/filters.json",
+        "engineering_v1.3/evidence/P12-004/reports/PHOTOMETRY_MATRIX.csv",
+        "engineering_v1.3/evidence/P12-004/reports/photometric_diag_summary.json",
+        "engineering_v1.3/evidence/P12-004/reports/failure_classification.json",
+        "engineering_v1.3/evidence/P12-004/scripts/run_photometric_matrix.py",
+        "engineering_v1.3/evidence/P12-004/scripts/stage1_config_T2.json",
+        "engineering_v1.3/evidence/P12-004/scripts/stage1_config_T3.json",
+        "engineering_v1.3/evidence/P12-004/scripts/stage1_config_T4.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T4_RED_Galaxy_Center/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T4_RED_Galaxy_Center/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T4_GREEN_Galaxy_Center/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T4_GREEN_Galaxy_Center/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T4_BLUE_Galaxy_Center/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T4_BLUE_Galaxy_Center/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T4_HA_Galaxy_Center/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T4_HA_Galaxy_Center/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T4_OIII_Galaxy_Center/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T4_OIII_Galaxy_Center/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T2_RED_LDN43/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T2_RED_LDN43/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T2_GREEN_LDN43/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T2_GREEN_LDN43/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T2_BLUE_LDN43/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T2_BLUE_LDN43/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T2_HA_LDN43/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T2_HA_LDN43/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T2_OIII_NGC1727/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T2_OIII_NGC1727/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T3_RED_NGC55/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T3_RED_NGC55/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T3_GREEN_NGC55/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T3_GREEN_NGC55/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T3_BLUE_NGC55/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T3_BLUE_NGC55/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T3_HA_NGC55/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T3_HA_NGC55/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T3_OIII_NGC55/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T3_OIII_NGC55/stage1.log",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T3_LUM_NGC55/photometry_report.json",
+        "engineering_v1.3/evidence/P12-004/raw_logs/T3_LUM_NGC55/stage1.log",
+        "engineering_v1.3/evidence/P12-005/TASK_REPORT.md",
+        "engineering_v1.3/evidence/P12-005/TEST_REPORT.md",
+        "engineering_v1.3/evidence/P12-005/EVIDENCE_INDEX.md",
+        "engineering_v1.3/evidence/P12-005/REVIEW_REPORT.md",
+        "engineering_v1.3/evidence/P12-005/scripts/compute_hashes.json",
+        "engineering_v1.3/evidence/P12-005/scripts/compute_hashes.log",
+        "engineering_v1.3/evidence/P12-005/scripts/commit_msg.txt",
+        "engineering_v1.3/evidence/P12-005/scripts/commit_config.json",
+        "engineering_v1.3/control/CURRENT_TASK.md",
+        "engineering_v1.3/control/MASTER_TASK_REGISTER.csv",
+        "engineering_v1.3/control/PROJECT_STATE.yaml"
+      ],
+      "step": 1,
+      "type": "git_add"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "[main 60ce503] P12-005: 修复 SNR 模型与 HISS 持久化 (16/16 Gate PASS)\n 52 files changed, 10198 insertions(+), 2888 deletions(-)\n create mode 100644 engineering_v1.3/evidence/P12-004/raw_logs/T2_BLUE_LDN43/photometry_report.json\n create mode 100644 engineering_v1.3/evidence/P12-004/raw_logs/T2_GREEN_LDN43/photometry_report.json\n create mode 100644 engineering_v1.3/evidence/P12-004/raw_logs/T2_HA_LDN43/photometry_report.json\n create mode 100644 engineering_v1.3/evidence/P12-004/raw_logs/T2_OIII_NGC1727/photometry_report.json\n create mode 100644 engineering_v1.3/evidence/P12-004/raw_logs/T2_RED_LDN43/photometry_report.json\n create mode 100644 engineering_v1.3/evidence/P12-004/raw_logs/T3_BLUE_NGC55/photometry_report.json\n create mode 100644 engineering_v1.3/evidence/P12-004/raw_logs/T3_GREEN_NGC55/photometry_report.json\n create mode 100644 engineering_v1.3/evidence/P12-004/raw_logs/T3_HA_NGC55/photometry_report.json\n create mode 100644 engineering_v1.3/evidence/P12-004/raw_logs/T3_LUM_NGC55/photometry_report.json\n create mode 100644 engineering_v1.3/evidence/P12-004/raw_logs/T3_OIII_NGC55/photometry_report.json\n create mode 100644 engineering_v1.3/evidence/P12-004/raw_logs/T3_RED_NGC55/photometry_report.json\n create mode 100644 engineering_v1.3/evidence/P12-004/raw_logs/T4_HA_Galaxy_Center/photometry_report.json\n create mode 100644 engineering_v1.3/evidence/P12-004/raw_logs/T4_OIII_Galaxy_Center/photometry_report.json\n create mode 100644 engineering_v1.3/evidence/P12-004/scripts/stage1_config_T2.json\n create mode 100644 engineering_v1.3/evidence/P12-004/scripts/stage1_config_T3.json\n create mode 100644 engineering_v1.3/evidence/P12-004/scripts/stage1_config_T4.json\n create mode 100644 engineering_v1.3/evidence/P12-005/EVIDENCE_INDEX.md\n create mode 100644 engineering_v1.3/evidence/P12-005/REVIEW_REPORT.md\n create mode 100644 engineering_v1.3/evidence/P12-005/TASK_REPORT.md\n create mode 100644 engineering_v1.3/evidence/P12-005/TEST_REPORT.md\n create mode 100644 engineering_v1.3/evidence/P12-005/scripts/commit_config.json\n create mode 100644 engineering_v1.3/evidence/P12-005/scripts/commit_msg.txt\n create mode 100644 engineering_v1.3/evidence/P12-005/scripts/compute_hashes.json\n create mode 100644 engineering_v1.3/evidence/P12-005/scripts/compute_hashes.log\n",
+      "stderr": "",
+      "elapsed_sec": 0.238,
+      "cmd": [
+        "git",
+        "commit",
+        "-F",
+        ".\\engineering_v1.3/evidence/P12-005/scripts/commit_msg.txt"
+      ],
+      "step": 2,
+      "type": "git_commit"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "To https://github.com/fujiaze/Astro-CS-Database.git\n   b854d9a..60ce503  main -> main\n",
+      "elapsed_sec": 4.448,
+      "cmd": [
+        "git",
+        "push",
+        "origin",
+        "main"
+      ],
+      "step": 3,
+      "type": "git_push"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "60ce503 P12-005: 修复 SNR 模型与 HISS 持久化 (16/16 Gate PASS)\nb854d9a P12-004: T1-T4 与滤镜类别测光矩阵验证\n67161dc memory: 记录 P12-003 完成（验证光谱积分与响应曲线无回归）\nb7b1879 P12-003: 验证光谱积分与响应曲线无回归\na6d1040 P12-002: fix KdTree2D direction bug and add bidirectional unique matching\n",
+      "stderr": "",
+      "elapsed_sec": 0.031,
+      "cmd": [
+        "git",
+        "log",
+        "--oneline",
+        "-n",
+        "5"
+      ],
+      "step": 4,
+      "type": "git_log"
+    },
+    {
+      "ok": true,
+      "exit_code": 0,
+      "stdout": "## main...origin/main\n M engineering_v1.2/control/MASTER_TASK_REGISTER.csv\n M engineering_v1.2/evidence/P11-003/REPRESENTATIVE_FRAMES_ARCHIVE.json\n M engineering_v1.2/evidence/P11-003/reports/p11_003_summary.json\n M lib/plate_solve/python/visualize_reproject.py\n?? AstroCS_Recovery_Development_Pack_2026-07-28_v1.3.zip\n?? engineering_v1.3/evidence/P11-005/raw_logs/gate_v3_5frames_test.log\n?? engineering_v1.3/evidence/P11-005/reports/\n?? engineering_v1.3/evidence/P11-005/scripts/\n",
+      "stderr": "",
+      "elapsed_sec": 0.054,
+      "cmd": [
+        "git",
+        "status",
+        "--porcelain=v1",
+        "-b"
+      ],
+      "extra": {
+        "porcelain": "## main...origin/main\n M engineering_v1.2/control/MASTER_TASK_REGISTER.csv\n M engineering_v1.2/evidence/P11-003/REPRESENTATIVE_FRAMES_ARCHIVE.json\n M engineering_v1.2/evidence/P11-003/reports/p11_003_summary.json\n M lib/plate_solve/python/visualize_reproject.py\n?? AstroCS_Recovery_Development_Pack_2026-07-28_v1.3.zip\n?? engineering_v1.3/evidence/P11-005/raw_logs/gate_v3_5frames_test.log\n?? engineering_v1.3/evidence/P11-005/reports/\n?? engineering_v1.3/evidence/P11-005/scripts/\n"
+      },
+      "step": 5,
+      "type": "git_status"
+    }
+  ]
+}

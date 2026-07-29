@@ -1,0 +1,9 @@
+memory: 记录 P12-004/P12-005 完成（initDiag 修复、scale_factor 误判、HA/OIII 滤光片、中文路径绕过，16/16 Gate PASS）
+
+更新内容:
+- P12-004 进度记录 (CONDITIONAL_DONE, 0/16 Gate PASS, 失败分类明细)
+- P12-005 进度记录 (DONE, 16/16 Gate PASS, 4 类修复详情)
+- 关键经验: PhotometricDiag 字段初始化"谁写谁清零"原则
+- 关键经验: Spec 中 scale_factor 无下限约束 (仅要求 > 0)
+- 关键经验: MSYS2 std::filesystem 中文路径 bug 用 ASCII junction 绕过
+- 关键经验: 按设备生成独立 stage1_config 隔离 calibration_dir 配置

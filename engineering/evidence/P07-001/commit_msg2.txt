@@ -1,9 +1,0 @@
-P07-001 补充证据: logs/ + HISS 输出文件
-
-补充提交被 .gitignore 忽略的性能证据文件:
-- logs/: 24 个日志文件 (stdout JSONL + stderr + 内存采样 JSON)
-- output/*.hiss: 5 个 HISS 输出文件 (C003×3 + C001×1 + C007×1)
-
-HCSD 文件 (178MB) 因超过 GitHub 100MB 限制未提交,
-其 SHA-256 (2A9BD12E...) 已记录在 EVIDENCE_INDEX.md 和 performance_baseline.json 中,
-可重现性已通过 stage2 两次运行验证 (字节级一致)。

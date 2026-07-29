@@ -1,9 +1,0 @@
-P00-003: 恢复并固定 healpix_stack 源码
-
-将 healpix_stack 从独立仓库纳入主仓库版本控制：
-- 来源: https://github.com/fujiaze/Healpix-Mosaic-Cpp.git commit 027b64f
-- 删除嵌套 .git，清理编译产物（dll/4个exe/pycache/pytest_cache/空日志）
-- 38 个源码/测试/文档文件纳入主仓库（含 gradient/ 子目录 14 个文件）
-- 第三方依赖 nanoflann.hpp (BSD) 已记录
-- 源码哈希验证未修改（2 个抽查 MATCH）
-- 复核 VERDICT: PASS

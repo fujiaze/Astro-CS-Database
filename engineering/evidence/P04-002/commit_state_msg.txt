@@ -1,5 +1,0 @@
-chore(control): P04-002 完成后更新任务注册表与项目状态
-
-- MASTER_TASK_REGISTER.csv: P04-002 标记为 DONE
-- PROJECT_STATE.yaml: current_task=P04-003, last_completed_task=P04-002, 新增 P04-002 完成记录与残留说明
-- CURRENT_TASK.md: 切换到 P04-003 (capabilities 与 inspect 命令)

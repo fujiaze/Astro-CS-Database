@@ -1,2 +1,0 @@
-{"schema_version":1,"type":"error","job_id":"","timestamp":"2026-07-25T10:20:55Z","error":{"code":"ASTROCS_INPUT_INVALID","numeric_code":8,"message":"request file not found"},"exit_code":8}
-{"schema_version":1,"type":"failed","job_id":"","timestamp":"2026-07-25T10:20:55Z","error":{"code":"ASTROCS_INPUT_INVALID","numeric_code":8,"message":"request file not found"}}

@@ -1,9 +1,0 @@
-P00-002: 恢复并固定 healpix_drizzle 源码
-
-将 healpix_drizzle 从独立仓库纳入主仓库版本控制：
-- 来源: https://github.com/fujiaze/Healpix-Drizzle-Cpp.git commit ecf8758
-- 删除嵌套 .git，清理编译产物（dll/exe/pycache/pytest_cache）
-- 移除 lib/healpix_db/.gitignore 中 healpix_drizzle/ 忽略规则
-- 18 个源码/测试/文档文件纳入主仓库
-- 源码哈希验证未修改（3 个抽查 MATCH）
-- 复核 VERDICT: PASS

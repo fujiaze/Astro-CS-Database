@@ -1,0 +1,76 @@
+{
+  "tool_version": "P11-004 v3.0 (authoritative_pairs)",
+  "mode": "authoritative_pairs",
+  "n_total": 5,
+  "n_passed": 2,
+  "n_failed": 1,
+  "n_errors": 2,
+  "pass_rate": 0.4,
+  "frames": [
+    {
+      "frame_id": "LDN43_LRGBH_flying_dutchman-20250503@032713-1200S-Red",
+      "fits_path": "F:\\Astro dev\\Astro CS Normalization Database\\testdata\\LDN43_T2\u7d20\u6750_flying_dutchman\\lights\\LDN43_LRGBH_flying_dutchman-20250503@032713-1200S-Red.fts",
+      "output_dir": "f:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.3\\evidence\\P11-005\\reports\\gate_v3_5frames_test\\T2_RED_LDN43",
+      "has_sip": true,
+      "sip_order": 3,
+      "n_authoritative_pairs": 34,
+      "n_after_rejection": 34,
+      "layer_a_internal_p68_px": 0.08529878367947233,
+      "layer_b_external_p68_px": 0.16046499749873905,
+      "layer_b_external_p90_px": 0.22417818365435854,
+      "layer_b_external_p99_px": 0.3357002964009098,
+      "delta_pred_dist_median_px": 2028.86196259515,
+      "platesolve_rms_px": 0.12052027773561103,
+      "gate_passed": true,
+      "elapsed_sec": 1.4938788414001465
+    },
+    {
+      "frame_id": "NGC55_T3_flying_dutchman-20250703@075400-600S-Lum",
+      "fits_path": "F:\\Astro dev\\Astro CS Normalization Database\\testdata\\NGC55_T3_flying_dutchman\\lights\\NGC55_T3_flying_dutchman-20250703@075400-600S-Lum.fts",
+      "output_dir": "f:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.3\\evidence\\P11-005\\reports\\gate_v3_5frames_test\\T3_LUM_NGC55",
+      "has_sip": true,
+      "sip_order": 3,
+      "n_authoritative_pairs": 31,
+      "n_after_rejection": 31,
+      "layer_a_internal_p68_px": 0.13266162712677915,
+      "layer_b_external_p68_px": 0.13758325684077388,
+      "layer_b_external_p90_px": 0.241403750371487,
+      "layer_b_external_p99_px": 0.39190043315829465,
+      "delta_pred_dist_median_px": 1271.7390142400034,
+      "platesolve_rms_px": 0.14806191544936298,
+      "gate_passed": true,
+      "elapsed_sec": 0.7903966903686523
+    },
+    {
+      "frame_id": "Victory_Nebula_mosaic1_flying_dutchman-20250204@035646-180S-Lum",
+      "fits_path": "F:/Astro dev/Astro CS Normalization Database/testdata/Victory_Nebula_T4_Flying_Dutchman/lights/Victory_Nebula_mosaic1_flying_dutchman-20250204@035646-180S-Lum.fts",
+      "output_dir": "f:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.3\\evidence\\P11-005\\reports\\gate_v3_5frames_test\\T4_LUM_VN_m1_1",
+      "error": "PlateSolve \u6c42\u89e3\u540e FITS \u4ecd\u65e0 WCS, \u65e0\u6cd5\u8bca\u65ad",
+      "gate_passed": false
+    },
+    {
+      "frame_id": "Victory_Nebula_mosaic2_flying_dutchman-20250204@061544-180S-Lum",
+      "fits_path": "F:/Astro dev/Astro CS Normalization Database/testdata/Victory_Nebula_T4_Flying_Dutchman/lights/Victory_Nebula_mosaic2_flying_dutchman-20250204@061544-180S-Lum.fts",
+      "output_dir": "f:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.3\\evidence\\P11-005\\reports\\gate_v3_5frames_test\\T4_LUM_VN_m2_1",
+      "error": "PlateSolve \u6c42\u89e3\u540e FITS \u4ecd\u65e0 WCS, \u65e0\u6cd5\u8bca\u65ad",
+      "gate_passed": false
+    },
+    {
+      "frame_id": "NGC247_T2_flying_dutchman-20250816@033428-600S-Lum",
+      "fits_path": "F:\\Astro dev\\Astro CS Normalization Database\\testdata\\NGC247_T2_flying_dutchman\\lights\\NGC247_T2_flying_dutchman-20250816@033428-600S-Lum.fts",
+      "output_dir": "f:\\Astro dev\\Astro CS Normalization Database\\engineering_v1.3\\evidence\\P11-005\\reports\\gate_v3_5frames_test\\T2_LUM_NGC247",
+      "has_sip": false,
+      "sip_order": 0,
+      "n_authoritative_pairs": 34,
+      "n_after_rejection": 34,
+      "layer_a_internal_p68_px": 0.21616087691434865,
+      "layer_b_external_p68_px": 7.223277253407695,
+      "layer_b_external_p90_px": 10.998908033533079,
+      "layer_b_external_p99_px": 16.980441776205975,
+      "delta_pred_dist_median_px": 1084.1786857088136,
+      "platesolve_rms_px": 0.19902392469657953,
+      "gate_passed": false,
+      "elapsed_sec": 0.8339052200317383
+    }
+  ]
+}

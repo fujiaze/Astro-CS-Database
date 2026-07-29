@@ -1,0 +1,55 @@
+{
+  "_description": "P13-001 Stage1 批处理汇总",
+  "_generated_at": "2026-07-29T12:28:58",
+  "_hash_binding": {
+    "git_commit": "c755334b639a0c6bb908a21245488b0ee945934d",
+    "orchestrator_sha256": "A95C43B1443B53510A1ED2E48FA5DC29E41B069CD25E89D2FA3F202ABA9A8377",
+    "hash_components": [
+      "git_commit_hash",
+      "orchestrator.exe_sha256",
+      "stage1_config_<device>.json_sha256",
+      "filters.json_sha256",
+      "qe_curves.json_sha256",
+      "input_fits_sha256",
+      "gaia_data_dir_name"
+    ]
+  },
+  "total_frames": 5,
+  "by_status": {
+    "PASS": 5
+  },
+  "by_failure_category": {
+    "PASS": 5
+  },
+  "by_device": {
+    "T4": {
+      "total": 5,
+      "pass": 5,
+      "fail": 0,
+      "error": 0,
+      "timeout": 0,
+      "skipped": 0
+    }
+  },
+  "by_dataset": {
+    "Victory_Nebula_T4_Flying_Dutchman": {
+      "total": 5,
+      "pass": 5,
+      "fail": 0,
+      "error": 0,
+      "timeout": 0,
+      "skipped": 0
+    }
+  },
+  "by_filter": {
+    "LUM": {
+      "total": 5,
+      "pass": 5,
+      "fail": 0,
+      "error": 0,
+      "timeout": 0,
+      "skipped": 0
+    }
+  },
+  "pass_rate_pct": 100.0
+}

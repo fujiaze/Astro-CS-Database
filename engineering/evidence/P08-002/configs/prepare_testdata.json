@@ -1,7 +1,0 @@
-[
-  { "type": "mkdir", "params": { "path": "engineering/evidence/P08-002/clean_env/testdata" } },
-  { "type": "copy_file", "params": { "src": "engineering/evidence/P05-002/hiss/P05-001-C003_NGC1727_T2_Red_600s.hiss", "dst": "engineering/evidence/P08-002/clean_env/testdata/C003_NGC1727_Red_600s.hiss" } },
-  { "type": "copy_file", "params": { "src": "engineering/evidence/P07-001/output/stage2_run1.hcsd", "dst": "engineering/evidence/P08-002/clean_env/testdata/stage2_baseline.hcsd" } },
-  { "type": "sha256", "params": { "path": "engineering/evidence/P08-002/clean_env/testdata/C003_NGC1727_Red_600s.hiss" } },
-  { "type": "sha256", "params": { "path": "engineering/evidence/P08-002/clean_env/testdata/stage2_baseline.hcsd" } }
-]

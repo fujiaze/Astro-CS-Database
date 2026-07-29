@@ -1,5 +1,0 @@
-[2026-07-25 21:14:49][INFO][orchestrator] [CALIBRATE] 加载 Master: f:\Astro dev\Astro CS Normalization Database\testdata/T4 calibration files\masterDark_BIN-1_4500x3600_EXPOSURE-180.00s.xisf (4500x3600)
-[2026-07-25 21:14:49][INFO][XISF] Reading: f:\Astro dev\Astro CS Normalization Database\testdata/T4 calibration files\masterFlat_BIN-1_4500x3600_FILTER-Red_mono.xisf
-[2026-07-25 21:14:49][INFO][XISF] XML header length: 20520 bytes
-[2026-07-25 21:14:49][INFO][XISF] Image: 4500x3600x1 fmt=Float32 byteOrder= offset=24576 size=64800000
-

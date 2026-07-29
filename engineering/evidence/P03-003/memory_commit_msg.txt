@@ -1,8 +1,0 @@
-P03-003: 更新 memory 记录严格失败与禁止静默跳过完成
-
-根 memory.md + lib/orchestrator/memory.md 追加 P03-003 完成记录:
-- 9 个 AstroCsExitCode 稳定退出码定义
-- 12 类静默跳过消除 (WARN+return true -> ERROR+return false+exit_code)
-- 87 处 P03-003 标记覆盖所有必需 stage 失败路径
-- 141/141 测试通过 (集成 136 + 端到端 5)
-- VERDICT: PASS

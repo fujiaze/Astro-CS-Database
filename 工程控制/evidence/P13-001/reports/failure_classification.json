@@ -1,0 +1,14 @@
+{
+  "_description": "P13-001 失败帧分类",
+  "_categories": [
+    "INSUFFICIENT_STARS - fit_used 不足",
+    "ZERO_SIGMA - sigma_residual 非正",
+    "INVALID_SCALE - scale_factor <= 0",
+    "STAGE1_ERROR - orchestrator 运行失败",
+    "TIMEOUT - 超时"
+  ],
+  "total_failed": 0,
+  "total_passed": 5,
+  "total_skipped": 0,
+  "failures": []
+}

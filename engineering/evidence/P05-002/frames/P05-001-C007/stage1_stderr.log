@@ -1,5 +1,0 @@
-[2026-07-25 21:15:08][INFO][orchestrator] 配置 Gaia 数据目录: GaiaDR3SP
-[2026-07-25 21:15:08][INFO][orchestrator] 配置加载完成 (P03-002: log_level/threads/gaia_data_dir 已解析)
-[2026-07-25 21:15:08][INFO][cli] 日志级别设置为: INFO
-[2026-07-25 21:15:08][INFO][orchestrator] ========== stage1: 单帧预处理 (FITS -> .hiss) ==========
-

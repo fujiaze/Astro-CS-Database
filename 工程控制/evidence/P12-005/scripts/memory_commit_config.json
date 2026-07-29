@@ -1,0 +1,28 @@
+[
+  {
+    "type": "git_add",
+    "params": {
+      "repo": ".",
+      "files": ["memory.md"]
+    },
+    "stop_on_error": true
+  },
+  {
+    "type": "git_commit",
+    "params": {
+      "repo": ".",
+      "message_file": "engineering_v1.3/evidence/P12-005/scripts/memory_commit_msg.txt"
+    },
+    "stop_on_error": true
+  },
+  {
+    "type": "git_push",
+    "params": {
+      "repo": ".",
+      "remote": "origin",
+      "branch": "main",
+      "timeout_sec": 300
+    },
+    "stop_on_error": true
+  }
+]

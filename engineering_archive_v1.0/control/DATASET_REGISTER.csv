@@ -1,6 +1,0 @@
-﻿dataset_id,name,version,source,status,task_id,notes
-DS-SYN-001,Synthetic core,0.1,generated,NOT_CREATED,P04-002,constant/star/gradient/SNR/outlier truth
-DS-MINI-001,Minimal real chain,0.1,private/local,NOT_REGISTERED,P04-003,small FITS + small Gaia subset
-DS-STAGE1-001,Stage1 representative,0.1,private/local,NOT_REGISTERED,P05-008,FOV/filter/background diversity
-DS-STAGE2-001,Stage2 mosaic,0.1,private/local,NOT_REGISTERED,P06-008,multi-overlap/RA0/high-dec/outliers
-DS-PLATE-790,Plate solve 790-frame,unknown,existing local,UNVERIFIED,P05-003,full regression
