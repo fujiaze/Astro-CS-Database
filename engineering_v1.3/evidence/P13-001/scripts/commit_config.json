@@ -1,0 +1,44 @@
+[
+  {
+    "type": "git_add",
+    "params": {
+      "repo": ".",
+      "files": [
+        "engineering_v1.3/evidence/P13-001/scripts/stage1_batch_runner.py",
+        "engineering_v1.3/evidence/P13-001/scripts/test_stage1_batch_runner.py",
+        "engineering_v1.3/evidence/P13-001/scripts/commit_msg.txt",
+        "engineering_v1.3/evidence/P13-001/scripts/commit_config.json",
+        "engineering_v1.3/evidence/P13-001/raw_logs/test_run_20260729_120344.log",
+        "engineering_v1.3/evidence/P13-001/TASK_REPORT.md",
+        "engineering_v1.3/evidence/P13-001/TEST_REPORT.md",
+        "engineering_v1.3/evidence/P13-001/EVIDENCE_INDEX.md",
+        "engineering_v1.3/evidence/P13-001/REVIEW_REPORT.md",
+        "engineering_v1.3/control/CURRENT_TASK.md",
+        "engineering_v1.3/control/PROJECT_STATE.yaml",
+        "engineering_v1.3/control/MASTER_TASK_REGISTER.csv"
+      ]
+    }
+  },
+  {
+    "type": "git_commit",
+    "params": {
+      "repo": ".",
+      "message_file": "engineering_v1.3/evidence/P13-001/scripts/commit_msg.txt"
+    }
+  },
+  {
+    "type": "git_push",
+    "params": {
+      "repo": ".",
+      "remote": "origin",
+      "timeout_sec": 180
+    }
+  },
+  {
+    "type": "git_log",
+    "params": {
+      "repo": ".",
+      "count": 5
+    }
+  }
+]

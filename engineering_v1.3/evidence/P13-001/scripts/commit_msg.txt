@@ -1,0 +1,23 @@
+feat(P13-001): 建立 Stage1 全 TestData 批处理与恢复入口
+
+建立 Stage1 全 TestData 批处理与恢复入口，实现有超时、hash 缓存、断点和分类报告的批处理框架。
+
+交付物：
+- stage1_batch_runner.py: 6 子命令 (scan/run/status/report/cache-list/cache-clear)
+- test_stage1_batch_runner.py: 10 用例 795 断言全部 PASS
+- 7 元 hash 缓存 (commit+orch+config+filters+qe+fits+gaia，禁止捷径合规)
+- 断点恢复 (batch_state.json 持久化)
+- 超时保护 (subprocess timeout 默认 600s 可配置)
+- 分类报告 (CSV+JSON+failure_classification)
+
+关键修复：
+- Galaxy_Center_T4 扫描逻辑修正为 panel<N>/<bn>.fts (无 filter 子目录)
+- 修复后 710 帧全部正确扫描 (T4=385, T3=151, T2=174)
+
+验证结果：
+- testdata 扫描 710 帧与 DATASETS.md 基线一致
+- 端到端冒烟测试 PASS (T4_RED_Galaxy_Center: fit_used=1670, has_snr=1, snr_n_points=1984, elapsed=29.2s)
+- 4 件套证据完整 (TASK/TEST/EVIDENCE/REVIEW)
+- VERDICT: PASS
+
+Ref: tasks/P13-001.md, docs/17_TEST_ARCHITECTURE_AND_FULL_REGRESSION.md
