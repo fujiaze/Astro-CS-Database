@@ -2,7 +2,7 @@
 
 - Gate: I
 - 日期: 2026-07-30
-- 状态: IN PROGRESS (I-002 运行中)
+- 状态: PENDING_USER_DECISION (I-002 阶段B 违规启动已停止, 等待用户决策)
 - 依赖: Gate H (已完成)
 
 ## 1. Gate I 任务清单
@@ -10,8 +10,8 @@
 | 任务 | 标题 | 状态 | 说明 |
 |------|------|------|------|
 | I-001 | 冻结格式、CLI和算法契约 | DONE | CLI_CONTRACT.md + ALGORITHM_CONTRACT.md FROZEN |
-| I-002 | 执行710帧最终回归与失败分类 | IN PROGRESS | 阶段A PASS, 阶段B 运行中 |
-| I-003 | 生成发布包、网站素材索引和最终审计ZIP | IN PROGRESS | 框架就绪, 待710帧完成 |
+| I-002 | 执行710帧最终回归与失败分类 | PENDING_USER_DECISION | 阶段A PASS (14/15帧), 阶段B 违规启动已停止 |
+| I-003 | 生成发布包、网站素材索引和最终审计ZIP | TODO | 框架就绪, 待 I-002 完成 |
 
 ## 2. I-001 契约冻结结果
 

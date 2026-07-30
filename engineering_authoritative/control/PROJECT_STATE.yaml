@@ -1,23 +1,65 @@
 project: AstroCS
 package_version: 2.0
 ssot: README.md
-current_gate: I
-current_task: I-002
+wiki: https://github.com/fujiaze/Astro-CS-Database/wiki
+current_milestone: 冻结 HISS 与完整 Stage1 功能规范
 status: ACTIVE
-full_regression_allowed: true
-last_completed_task: I-001
+stage2: STOPPED
+full_regression_allowed: false
+last_completed: I-001 (契约冻结)
 last_completed_date: 2026-07-30
-stage_a_status: PASS (14/15 frames, 1 known stack overflow)
-stage_b_status: RUNNING (710-frame full regression in background)
-frozen_rules:
-  - stage2_additive_only
-  - global_consensus_surface_snr2_weighted
-  - same_filter_only
-  - debug_quality_layers_default_off
-  - browser_is_scientific_inspector
-  - resource_aware_admission
-  - no_710_before_gate_I
-legacy_assets:
-  previous_hiss_281: debug_only
-  mixed_filter_hcsd: non_acceptance_evidence
-  browser_cli_fps: non_gui_evidence
+
+# Wiki 规范冻结状态（https://github.com/fujiaze/Astro-CS-Database/wiki）
+wiki_pushed: 2026-07-30
+wiki_pages: 12
+
+frozen_items:
+  - stage1_only (Stage2 停止)
+  - 单色输入
+  - GUI 负责分组和警报
+  - 只使用已有 Master
+  - 无 Overscan/裁切/CFA/Master 制作
+  - 标准公式 (L-D)/F
+  - 暗场优化公式 [L-B-k(D-B)]/F
+  - 暗场优化系数 k = t_light / t_dark (从 FITS EXPTIME 读取)
+  - CLI 单一 JSON 配置文件 (草案，待 GPT 细化)
+  - signal float32
+  - SNR 控制点 float32
+  - 自动 NSIDE 1-2x 过采样
+  - 显式 NSIDE 默认接受
+  - Drizzle float64 几何, float64 累积
+  - Drizzle 不允许低精度近似
+  - 功能完成后先做性能分析
+  - 710 帧必须由用户明确批准
+  - HISS 单一格式 (不维护 v1/v2 产品路线)
+  - 事件名统一为 warning (非 warning_record)
+
+pending_items:
+  - support 是否存储及精度 (待 ChatGPT 讨论)
+  - Drizzle signal/support 精确归一化公式
+  - HISS Tile 层级和目标块大小
+  - Codec 选择 (byte-shuffle+LZ4 vs Zstd)
+  - Tile checksum 算法
+  - Metadata 物理编码
+  - schema fingerprint 生成方式
+  - Drizzle 守恒量和误差门限
+  - pixfrac 精确定义
+
+# 代码差距（需修正实现以符合 Wiki 规范）
+code_gaps:
+  P0:
+    - Drizzle 仍写 V1 HISS 格式 (需实现 V2 writer)
+    - support 通道未持久化 (待 support 决策后处理)
+    - 浏览器无法读 V2 文件
+  P1:
+    - CLI 事件名 accepted/completed 应为 job_started/job_completed
+    - stage_progress 事件未实现
+  P2:
+    - 浏览器不显示 support/SNR 控制点
+    - 浏览器 .hiss 全量加载 (未用分块 API)
+
+note: |
+  2026-07-30 项目方向调整：按 ChatGPT Wiki 规范重新聚焦 Stage1。
+  Stage2/HCSD/全局梯度/多帧叠加/710帧回归全部停止。
+  当前唯一里程碑：冻结 HISS 与完整 Stage1 功能规范。
+  详见 Wiki: https://github.com/fujiaze/Astro-CS-Database/wiki
