@@ -1,0 +1,193 @@
+{
+  "task": "D-001",
+  "panels": {
+    "panel1": {
+      "nside": 512,
+      "nested": true,
+      "n_pix": 3928,
+      "crval": [
+        272.8256445295,
+        -13.1317715206
+      ],
+      "crpix": [
+        2250.5,
+        1800.5
+      ],
+      "cd": [
+        [
+          0.001752112340951,
+          2.999016755136e-07
+        ],
+        [
+          -6.522096515637e-07,
+          0.001752365769155
+        ]
+      ],
+      "det_cd": 3.070341885595334e-06,
+      "pixscale_arcsec": 6.308060782626902,
+      "ra_range": [
+        268.681640625,
+        276.943359375
+      ],
+      "dec_range": [
+        -16.334822780685997,
+        -9.896853442815875
+      ],
+      "signal_median": 25272.51953125,
+      "filter": "Red",
+      "exposure_s": 180.0,
+      "obs_time": "2025-07-02T06:17:19",
+      "cd00_sign": 1,
+      "cd11_sign": 1
+    },
+    "panel2": {
+      "nside": 512,
+      "nested": true,
+      "n_pix": 3927,
+      "crval": [
+        272.8748151272,
+        -18.2567618275
+      ],
+      "crpix": [
+        2250.5,
+        1800.5
+      ],
+      "cd": [
+        [
+          -0.001752326253433,
+          6.194430135413e-06
+        ],
+        [
+          -6.207997278996e-06,
+          -0.00175266375262
+        ]
+      ],
+      "det_cd": 3.0712771621618554e-06,
+      "pixscale_arcsec": 6.309021478931392,
+      "ra_range": [
+        268.59375,
+        277.119140625
+      ],
+      "dec_range": [
+        -21.46208291543266,
+        -15.01753114709345
+      ],
+      "signal_median": 27836.46875,
+      "filter": "Red",
+      "exposure_s": 180.0,
+      "obs_time": "2025-07-16T00:42:34",
+      "cd00_sign": -1,
+      "cd11_sign": -1
+    },
+    "panel3": {
+      "nside": 512,
+      "nested": true,
+      "n_pix": 3936,
+      "crval": [
+        272.8865952326,
+        -23.2540826271
+      ],
+      "crpix": [
+        2250.5,
+        1800.5
+      ],
+      "cd": [
+        [
+          -0.001751830933225,
+          6.840366781843e-06
+        ],
+        [
+          -6.77743733341e-06,
+          -0.001752008693594
+        ]
+      ],
+      "det_cd": 3.0692693848742916e-06,
+      "pixscale_arcsec": 6.30695895245647,
+      "ra_range": [
+        268.505859375,
+        277.294921875
+      ],
+      "dec_range": [
+        -26.443334157130206,
+        -20.026084741068622
+      ],
+      "signal_median": 28860.3671875,
+      "filter": "Red",
+      "exposure_s": 180.0,
+      "obs_time": "2025-07-18T00:16:53",
+      "cd00_sign": -1,
+      "cd11_sign": -1
+    }
+  },
+  "grid_consistent": true,
+  "overlaps": {
+    "panel1_vs_panel2": 792,
+    "panel1_vs_panel3": 0,
+    "panel2_vs_panel3": 879
+  },
+  "triple_overlap": 0,
+  "pair_stats": {
+    "panel1_vs_panel2": {
+      "n_overlap": 792,
+      "n_valid": 792,
+      "ratio_median": 0.9814309820024871,
+      "ratio_mad": 0.044070605442125044,
+      "ratio_mean": 8.67329157863876,
+      "ratio_std": 164.00487076960275,
+      "ratio_p16": 0.901532151910158,
+      "ratio_p84": 1.0659920752875256,
+      "signal_a_median": 28465.8212890625,
+      "signal_b_median": 28824.9248046875,
+      "correlation": 0.27845782628626176
+    },
+    "panel1_vs_panel3": null,
+    "panel2_vs_panel3": {
+      "n_overlap": 879,
+      "n_valid": 879,
+      "ratio_median": 0.9877593800103147,
+      "ratio_mad": 0.01995113212666444,
+      "ratio_mean": 40.093566980396815,
+      "ratio_std": 737.5404925802803,
+      "ratio_p16": 0.9514429345972358,
+      "ratio_p84": 1.02804860580051,
+      "signal_a_median": 27338.841796875,
+      "signal_b_median": 27715.666015625,
+      "correlation": 0.2858817018158099
+    }
+  },
+  "photometric_stable": true,
+  "mirror_check": {
+    "det_signs": {
+      "panel1": 1,
+      "panel2": 1,
+      "panel3": 1
+    },
+    "det_consistent": true,
+    "cd00_signs": {
+      "panel1": 1,
+      "panel2": -1,
+      "panel3": -1
+    },
+    "cd00_consistent": false,
+    "cd11_signs": {
+      "panel1": 1,
+      "panel2": -1,
+      "panel3": -1
+    },
+    "cd11_consistent": false,
+    "rotation_groups": {
+      "(1, 1)": [
+        "panel1"
+      ],
+      "(-1, -1)": [
+        "panel2",
+        "panel3"
+      ]
+    },
+    "rotation_difference": true,
+    "pixscale_relative_diff": 0.00032696924271033976,
+    "mirror_ok": true,
+    "note": "det(CD) consistent = same chirality (no mirror). CD00/CD11 sign difference = 180 deg camera rotation (rigid body, not mirror)."
+  },
+  "overall_pass": true
+}

@@ -1592,3 +1592,27 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
   3. SNR NaN 点被显式过滤 (非跳过), V2 忠实保留 V1 的 NaN
 - **复现**: `python "lib/astro_image_io/python/hiss_v2_visualizer.py" "output/C-002" "engineering_authoritative/evidence/C-004/visualizations" --dpi 150`
 - **Gate C 进度**: C-001(契约冻结 DONE) + C-002(V2读写器 DONE) + C-003(?) + C-004(可视化 DONE)
+
+## 2026-07-30 D-001 同一天区多帧 HISS 球面重合与光度一致性 ★DONE★ (Gate D 首任务)
+- **目标**: 生成银心三片(panel1/2/3)Red HISS, 验证球面信号真实重合+光度一致+无镜像
+- **依赖**: B-001/B-002 (panel1 HISS + stage1 配置) + C-002 (hiss_v2.py V1读取器)
+- **执行**:
+  - panel1 复用 output/B-002/T4_RED_GalaxyCenter_panel1.hiss (复制到 output/D-001/)
+  - panel2/panel3 新生成: orchestrator.exe stage1, 配置基于 B-001 T4 Red (drizzle nside=512 nested pixfrac=1.0 一致)
+  - panel2 FITS: Galaxy_Center_mosaic2_T4_20250716@004219-180S-Red.fts (ASCII路径, 无中文问题)
+  - panel3 FITS: Galaxy_Center_mosaic3_T4_20250718@001638-180S-Red.fts (ASCII路径)
+  - 三片 Stage1 全部成功 (exit=0, ~25s/帧), HISS 87433/87461/87430 bytes
+- **验证** (engineering_authoritative/evidence/D-001/verify_overlap.py):
+  - 用 hiss_v2.v1_read_snr_model() 读 V1 .hiss (ipix/signal/meta), astropy_healpix 转 RA/Dec
+  - 球面网格一致: nside=512 nested=True 三片一致 PASS
+  - 真实球面信号重合: panel1∩panel2=792 ipix(20%), panel2∩panel3=879 ipix(22%), panel1∩panel3=0(不相邻, panel2居中, 正常马赛克布局)
+  - 光度尺度: 重叠区 signal 比值 median 0.981/0.988 (|median-1|<0.02), PASS
+  - 无镜像: det(CD) 三片同号(正) 手性一致 PASS; panel2/panel3 相对 panel1 旋转180°(CD00/CD11符号翻转, det不变号, 刚体旋转非镜像)
+  - OVERALL: PASS (6/6 验收项全通过)
+- **关键发现**:
+  1. 三片为银心区域南北排列马赛克(Dec中心 -13°/-18°/-23°), 相邻片Dec交接区有~20%球面像素重合
+  2. panel2/panel3 相对 panel1 旋转180°(拍摄相机角度差异), Drizzle球面投影正确处理(光度比值≈1.0证实)
+  3. 重叠区signal相关性偏低(0.28): 片边缘以天光背景为主无强点源, 比值median是更可靠光度指标
+  4. stage1日志`*>`重定向仅31B(orchestrator日志走自身logger非stdout), HISS文件+verify脚本是权威证据
+- **交付**: output/D-001/*.hiss(3片) + evidence/D-001/(TASK_REPORT/TEST_REPORT/overlap_analysis.png/overlap_stats.json/verify_overlap.py/configs/logs)
+- **Gate D 进度**: D-001(球面重合 DONE)

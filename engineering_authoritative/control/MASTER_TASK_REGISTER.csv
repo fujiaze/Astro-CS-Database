@@ -10,15 +10,15 @@ C-001,C,冻结HISS v2 signal/support/SNR/provenance契约,B-003,DONE
 C-002,C,实现HISS分块索引、压缩、校验与batch read,C-001,DONE
 C-003,C,实现HISS inspector和往返/损坏测试,C-002,DONE
 C-004,C,浏览器显示HISS signal、SNR点和support,C-002,DONE
-D-001,D,同一天区多帧HISS球面重合与光度一致性,"C-003,C-004",IN_PROGRESS
-E-001,E,实现星点/饱和/异常掩膜和稀疏控制点采样,D-001,TODO
+D-001,D,同一天区多帧HISS球面重合与光度一致性,"C-003,C-004",DONE
+E-001,E,实现星点/饱和/异常掩膜和稀疏控制点采样,D-001,IN_PROGRESS
 E-002,E,实现局部SNR²/逆方差联合拟合权重,E-001,TODO
 E-003,E,实现全局加性共识曲面稀疏求解器,E-002,TODO
 E-004,E,完成已知梯度/SNR/异常注入恢复测试,E-003,TODO
 G-001,G,实现梯度校正后稳健排异,E-004,TODO
 G-002,G,实现独立SNR²连续加权融合,G-001,TODO
 G-003,G,实现HCSD生产层和可开关调试质量层,G-002,TODO
-F-001,F,生成银心三片Red各一帧HISS,D-001,TODO
+F-001,F,生成银心三片Red各一帧HISS,D-001,DONE
 F-002,F,完成三片最小总曲面、HCSD和浏览器检查,"E-004,F-001,G-003",TODO
 G-004,G,完成银心Red 11+11+10正式32帧叠加,F-002,TODO
 G-005,G,量化接缝、连续性、排异与权重并交付浏览结果,G-004,TODO

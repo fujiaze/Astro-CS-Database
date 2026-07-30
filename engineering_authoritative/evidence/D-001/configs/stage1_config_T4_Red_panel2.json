@@ -1,0 +1,74 @@
+{
+  "_comment": "D-001 Stage1 配置 - T4 银心 panel2 Red 180s. 用于三片球面重合验证. 校准链与 B-001 一致.",
+  "_task": "D-001",
+  "_frame_id": "T4_RED_GalaxyCenter_panel2",
+  "_basis": "engineering_authoritative/evidence/B-001/configs/stage1_config_T4_Red.json",
+  "project_root": ".",
+  "gaia_data_dir": "GaiaDR3SP",
+  "calibration_dir": "testdata/T4 calibration files",
+  "output_root": "output",
+  "stages": [
+    "read_fits",
+    "calibrate",
+    "platesolve",
+    "psf",
+    "photometric",
+    "snr",
+    "drizzle"
+  ],
+  "frame": {
+    "id": "T4_RED_GalaxyCenter_panel2",
+    "light_path": "testdata/Galaxy_Center_T4/lights/panel2/Galaxy_Center_mosaic2_T4_flying_dutchman-20250716@004219-180S-Red.fts",
+    "output_hiss": "output/D-001/T4_RED_GalaxyCenter_panel2.hiss",
+    "filter": "Red",
+    "qe_curve": "KAF-16200",
+    "target": "Galaxy_Center",
+    "panel": "panel2",
+    "exposure_s": 180.0
+  },
+  "calibration": {
+    "_comment": "T4 校准链 (Bias/Dark/Flat), 与 B-001 一致",
+    "master_bias_path": "testdata/T4 calibration files/masterBias_BIN-1_4500x3600.xisf",
+    "master_dark_path": "testdata/T4 calibration files/masterDark_BIN-1_4500x3600_EXPOSURE-180.00s.xisf",
+    "master_flat_path": "testdata/T4 calibration files/masterFlat_BIN-1_4500x3600_FILTER-Red_mono.xisf",
+    "require_size_match": true,
+    "require_exposure_match": true,
+    "exposure_tolerance_s": 0.5,
+    "require_temperature_match": false,
+    "temperature_tolerance_c": 1.0,
+    "allow_no_calibration": false,
+    "dark_optimization": 0,
+    "dark_scale_factor": 1.0
+  },
+  "platesolve": {
+    "_comment": "T4: Nikkor 200F2 焦距 200mm, FLI 16200 像素 6.0um",
+    "initial_ra": "",
+    "initial_dec": "",
+    "focal_length": 200.0,
+    "pixel_size": 6.0,
+    "max_stars": 2000,
+    "log_dir": "lib/plate_solve/logs"
+  },
+  "psf": {
+    "fit_radius": 8,
+    "max_iter": 100,
+    "tolerance": 1e-06,
+    "max_stars": 2000
+  },
+  "photometric": {
+    "mag_min": 6.0,
+    "mag_max": 16.0,
+    "fov_radius_deg": 0.0,
+    "filters_json": "lib/photometric_calib/data/response_curves/filters.json",
+    "qe_curves_json": "lib/photometric_calib/data/response_curves/qe_curves.json"
+  },
+  "drizzle": {
+    "_comment": "Drizzle 参数与 B-001 一致, 保证三片 nside=512 nested=1 可球面重合",
+    "nside_strategy": "1x_to_2x_drizzle",
+    "nside_override": 0,
+    "pixfrac": 1.0,
+    "nested": true
+  },
+  "log_level": "INFO",
+  "threads": 0
+}
