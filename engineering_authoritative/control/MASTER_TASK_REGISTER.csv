@@ -3,8 +3,8 @@ A-001,A,安装权威README并生成迁移报告,,DONE
 A-002,A,整理T1-T4设备与说明文档目录,A-001,DONE
 A-003,A,建立滤镜别名与主校准帧清单,A-002,DONE
 A-004,A,实现Light到Bias/Dark/Flat唯一解析与严格模式,A-003,DONE
-B-001,B,选择T1-T4代表帧与固定配置,A-004,IN_PROGRESS
-B-002,B,完成代表帧Stage1并输出科学统计,B-001,TODO
+B-001,B,选择T1-T4代表帧与固定配置,A-004,DONE
+B-002,B,完成代表帧Stage1并输出科学统计,B-001,IN_PROGRESS
 B-003,B,验证PlateSolve回投、测光、SNR和Drizzle一致性,B-002,TODO
 C-001,C,冻结HISS v2 signal/support/SNR/provenance契约,B-003,TODO
 C-002,C,实现HISS分块索引、压缩、校验与batch read,C-001,TODO

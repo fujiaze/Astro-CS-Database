@@ -1,0 +1,76 @@
+{
+  "_comment": "B-001 Stage1 配置 - T4 代表帧 (Galaxy_Center panel1 Red 180s). 校准链经 A-004 严格模式验证 RESOLVED.",
+  "_task": "B-001",
+  "_frame_id": "T4_RED_GalaxyCenter_panel1",
+  "_verified_by": "engineering_authoritative/evidence/B-001/results/representative_resolution.csv",
+  "project_root": ".",
+  "gaia_data_dir": "GaiaDR3SP",
+  "calibration_dir": "testdata/T4 calibration files",
+  "output_root": "output",
+  "stages": [
+    "read_fits",
+    "calibrate",
+    "platesolve",
+    "psf",
+    "photometric",
+    "snr",
+    "drizzle"
+  ],
+  "frame": {
+    "id": "T4_RED_GalaxyCenter_panel1",
+    "light_path": "testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts",
+    "output_hiss": "output/B-001/T4_RED_GalaxyCenter_panel1.hiss",
+    "filter": "Red",
+    "qe_curve": "KAF-16200",
+    "target": "Galaxy_Center",
+    "panel": "panel1",
+    "exposure_s": 180.0
+  },
+  "calibration": {
+    "_comment": "B-001: 校准输入已由 A-004 严格模式验证为 exact 匹配 (Bias/Dark/Flat 三链完整)",
+    "master_bias_path": "testdata/T4 calibration files/masterBias_BIN-1_4500x3600.xisf",
+    "master_dark_path": "testdata/T4 calibration files/masterDark_BIN-1_4500x3600_EXPOSURE-180.00s.xisf",
+    "master_flat_path": "testdata/T4 calibration files/masterFlat_BIN-1_4500x3600_FILTER-Red_mono.xisf",
+    "require_size_match": true,
+    "require_exposure_match": true,
+    "exposure_tolerance_s": 0.5,
+    "require_temperature_match": false,
+    "temperature_tolerance_c": 1.0,
+    "allow_no_calibration": false,
+    "dark_optimization": 0,
+    "dark_scale_factor": 1.0
+  },
+  "platesolve": {
+    "_comment": "T4: Nikkor 200F2 焦距 200mm, FLI 16200 像素 6.0um. focal_length/pixel_size 为 0 时从 FITS header 读取",
+    "initial_ra": "",
+    "initial_dec": "",
+    "focal_length": 200.0,
+    "pixel_size": 6.0,
+    "max_stars": 2000,
+    "log_dir": "lib/plate_solve/logs"
+  },
+  "psf": {
+    "_comment": "PSF 拟合参数. fit_radius=0 表示自动; max_stars=0 表示不限制",
+    "fit_radius": 8,
+    "max_iter": 100,
+    "tolerance": 1e-06,
+    "max_stars": 2000
+  },
+  "photometric": {
+    "_comment": "测光校准参数. mag_max 内部会自适应迭代 (2000-10000 星范围)",
+    "mag_min": 6.0,
+    "mag_max": 16.0,
+    "fov_radius_deg": 0.0,
+    "filters_json": "lib/photometric_calib/data/response_curves/filters.json",
+    "qe_curves_json": "lib/photometric_calib/data/response_curves/qe_curves.json"
+  },
+  "drizzle": {
+    "_comment": "Drizzle 参数. nside_strategy=1x_to_2x_drizzle 自适应; pixfrac 默认 1.0 避免缝隙",
+    "nside_strategy": "1x_to_2x_drizzle",
+    "nside_override": 0,
+    "pixfrac": 1.0,
+    "nested": true
+  },
+  "log_level": "INFO",
+  "threads": 0
+}

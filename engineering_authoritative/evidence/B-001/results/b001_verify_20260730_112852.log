@@ -1,0 +1,48 @@
+[2026-07-30 11:28:52] [INFO] ======================================================================
+[2026-07-30 11:28:52] [INFO] B-001 代表帧 A-004 解析验证启动
+[2026-07-30 11:28:52] [INFO]   代表帧数量: 3
+[2026-07-30 11:28:52] [INFO]   输出目录: F:\Astro dev\Astro CS Normalization Database\engineering_authoritative\evidence\B-001\results
+[2026-07-30 11:28:52] [INFO]   日志文件: F:\Astro dev\Astro CS Normalization Database\engineering_authoritative\evidence\B-001\results\b001_verify_20260730_112852.log
+[2026-07-30 11:28:52] [INFO] 加载 Master 清单: 27 条记录
+[2026-07-30 11:28:52] [INFO] 加载滤镜别名映射: 6 个规范滤镜
+[2026-07-30 11:28:52] [INFO] ======================================================================
+[2026-07-30 11:28:52] [INFO] 步骤 1: 文件存在性检查
+[2026-07-30 11:28:52] [INFO]   [OK] T2_RED_LDN43 -> F:\Astro dev\Astro CS Normalization Database\testdata\LDN43_T2素材_flying_dutchman\lights\LDN43_LRGBH_flying_dutchman-20250503@032713-1200S-Red.fts
+[2026-07-30 11:28:52] [INFO]   [OK] T3_RED_NGC55 -> F:\Astro dev\Astro CS Normalization Database\testdata\NGC55_T3_flying_dutchman\lights\NGC55_T3_flying_dutchman-20250703@080546-600S-Red.fts
+[2026-07-30 11:28:52] [INFO]   [OK] T4_RED_GalaxyCenter_panel1 -> F:\Astro dev\Astro CS Normalization Database\testdata\Galaxy_Center_T4\lights\panel1\Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts
+[2026-07-30 11:28:52] [INFO] ======================================================================
+[2026-07-30 11:28:52] [INFO] 步骤 2: A-004 严格模式解析 (strict=True)
+[2026-07-30 11:28:52] [INFO] ------------------------------------------------------------
+[2026-07-30 11:28:52] [INFO] 解析: T2_RED_LDN43 (T2 Red 1200s)
+[2026-07-30 11:28:52] [INFO] ======================================================================
+[2026-07-30 11:28:52] [INFO] 解析 Light 帧: LDN43_LRGBH_flying_dutchman-20250503@032713-1200S-Red.fts (严格模式=True)
+[2026-07-30 11:28:53] [INFO]   设备=T2 尺寸=4096x4096 Bin=1x1 曝光=1200.0s 滤镜=Red->Red 温度=-20.0
+[2026-07-30 11:28:53] [INFO]   Bias:  status=exact id=T2/masterBias_BIN-1_4096x4096.xisf reason=唯一匹配
+[2026-07-30 11:28:53] [INFO]   Dark:  status=exact id=T2/masterDark_BIN-1_4096x4096_EXPOSURE-1200.00s.xisf reason=曝光精确匹配 (1200.0s vs 1200.0s)
+[2026-07-30 11:28:53] [INFO]   Flat:  status=exact id=T2/masterFlat_BIN-1_4096x4096_FILTER-Red_mono.xisf reason=滤镜匹配 (Red)
+[2026-07-30 11:28:53] [INFO]   => RESOLVED: 全部校准帧匹配
+[2026-07-30 11:28:53] [INFO] ------------------------------------------------------------
+[2026-07-30 11:28:53] [INFO] 解析: T3_RED_NGC55 (T3 Red 600s)
+[2026-07-30 11:28:53] [INFO] ======================================================================
+[2026-07-30 11:28:53] [INFO] 解析 Light 帧: NGC55_T3_flying_dutchman-20250703@080546-600S-Red.fts (严格模式=True)
+[2026-07-30 11:28:53] [INFO]   设备=T3 尺寸=4096x4096 Bin=1x1 曝光=600.0s 滤镜=Red->Red 温度=-20.0
+[2026-07-30 11:28:53] [INFO]   Bias:  status=exact id=T3/masterBias_BIN-1_4096x4096.xisf reason=唯一匹配
+[2026-07-30 11:28:53] [INFO]   Dark:  status=exact id=T3/masterDark_BIN-1_4096x4096_EXPOSURE-600.00s.xisf reason=曝光精确匹配 (600.0s vs 600.0s)
+[2026-07-30 11:28:53] [INFO]   Flat:  status=exact id=T3/masterFlat_BIN-1_4096x4096_FILTER-Red_mono.xisf reason=滤镜匹配 (Red)
+[2026-07-30 11:28:53] [INFO]   => RESOLVED: 全部校准帧匹配
+[2026-07-30 11:28:53] [INFO] ------------------------------------------------------------
+[2026-07-30 11:28:53] [INFO] 解析: T4_RED_GalaxyCenter_panel1 (T4 Red 180s)
+[2026-07-30 11:28:53] [INFO] ======================================================================
+[2026-07-30 11:28:53] [INFO] 解析 Light 帧: Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts (严格模式=True)
+[2026-07-30 11:28:53] [INFO]   设备=T4 尺寸=4500x3600 Bin=1x1 曝光=180.0s 滤镜=Red->Red 温度=-20.0
+[2026-07-30 11:28:53] [INFO]   Bias:  status=exact id=T4/masterBias_BIN-1_4500x3600.xisf reason=唯一匹配
+[2026-07-30 11:28:53] [INFO]   Dark:  status=exact id=T4/masterDark_BIN-1_4500x3600_EXPOSURE-180.00s.xisf reason=曝光精确匹配 (180.0s vs 180.0s)
+[2026-07-30 11:28:53] [INFO]   Flat:  status=exact id=T4/masterFlat_BIN-1_4500x3600_FILTER-Red_mono.xisf reason=滤镜匹配 (Red)
+[2026-07-30 11:28:53] [INFO]   => RESOLVED: 全部校准帧匹配
+[2026-07-30 11:28:53] [INFO] JSON 结果已保存: F:\Astro dev\Astro CS Normalization Database\engineering_authoritative\evidence\B-001\results\representative_resolution.json
+[2026-07-30 11:28:53] [INFO] CSV 结果已保存: F:\Astro dev\Astro CS Normalization Database\engineering_authoritative\evidence\B-001\results\representative_resolution.csv
+[2026-07-30 11:28:53] [INFO] ======================================================================
+[2026-07-30 11:28:53] [INFO] 验证汇总: 3/3 RESOLVED
+[2026-07-30 11:28:53] [INFO]   [RESOLVED] T2_RED_LDN43 (T2 Red): 全部校准帧匹配
+[2026-07-30 11:28:53] [INFO]   [RESOLVED] T3_RED_NGC55 (T3 Red): 全部校准帧匹配
+[2026-07-30 11:28:53] [INFO]   [RESOLVED] T4_RED_GalaxyCenter_panel1 (T4 Red): 全部校准帧匹配
