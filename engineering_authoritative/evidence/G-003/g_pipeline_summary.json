@@ -1,0 +1,124 @@
+{
+  "pipeline": "G-001~G-003",
+  "data": "D-001 三片 Red HISS (GalaxyCenter) + E-003 加性共识曲面",
+  "timestamp": "2026-07-30T14:46:47.526919",
+  "timings": {
+    "load_s": 0.448,
+    "g001_s": 0.456,
+    "g002_s": 0.158,
+    "g003_s": 0.047,
+    "total_s": 1.112
+  },
+  "g001": {
+    "task": "G-001",
+    "params": {
+      "reject_sigma": 3.0,
+      "reject_mad_factor": 1.4826
+    },
+    "panels": {
+      "panel1": {
+        "n_pix": 3928,
+        "offset": 33.92722747682895,
+        "residual_median": 709.7592405313189,
+        "residual_mad_sigma": 2160.7371457285876,
+        "n_rejected": 277,
+        "reject_pct": 7.052,
+        "n_valid": 3651,
+        "snr_median": 445.1665344238281
+      },
+      "panel2": {
+        "n_pix": 3927,
+        "offset": 222.1896782822924,
+        "residual_median": 767.0776294660172,
+        "residual_mad_sigma": 2893.527332861538,
+        "n_rejected": 248,
+        "reject_pct": 6.315,
+        "n_valid": 3679,
+        "snr_median": 264.3543395996094
+      },
+      "panel3": {
+        "n_pix": 3936,
+        "offset": -256.1169057591219,
+        "residual_median": 1656.9760465973795,
+        "residual_mad_sigma": 3157.508904958786,
+        "n_rejected": 226,
+        "reject_pct": 5.742,
+        "n_valid": 3710,
+        "snr_median": 235.06808471679688
+      }
+    },
+    "elapsed_s": 0.456,
+    "total_rejected": 751,
+    "total_pix": 11791,
+    "total_valid": 11040,
+    "total_reject_pct": 6.369
+  },
+  "g002": {
+    "task": "G-002",
+    "params": {
+      "use_snr_squared": true,
+      "snr_floor": 1.0
+    },
+    "n_pix_fused": 9706,
+    "n_overlap": 1334,
+    "overlap_pct": 13.744,
+    "signal_median": 27360.142578125,
+    "signal_min": 15845.8408203125,
+    "signal_max": 38894.33203125,
+    "weight_median": 112182.5598696405,
+    "weight_min": 1691.628349676961,
+    "weight_max": 1796865.6330988407,
+    "snr_eff_median": 318.6737060546875,
+    "snr_eff_min": 41.12940979003906,
+    "snr_eff_max": 1340.47216796875,
+    "support_count_dist": {
+      "1": 8372,
+      "2": 1334
+    },
+    "per_panel_contrib_count": {
+      "panel1": 3651,
+      "panel2": 3679,
+      "panel3": 3710
+    },
+    "elapsed_s": 0.158
+  },
+  "g003": {
+    "task": "G-003",
+    "params": {
+      "write_debug_layers": true
+    },
+    "files": {
+      "hcsd": "f:\\Astro dev\\Astro CS Normalization Database\\output\\G-F\\T4_RED_GalaxyCenter_fused.hcsd",
+      "snr": "f:\\Astro dev\\Astro CS Normalization Database\\output\\G-F\\T4_RED_GalaxyCenter_fused.hcsd.snr",
+      "debug": "f:\\Astro dev\\Astro CS Normalization Database\\output\\G-F\\T4_RED_GalaxyCenter_fused.hcsd.debug.npz"
+    },
+    "verify": {
+      "path": "f:\\Astro dev\\Astro CS Normalization Database\\output\\G-F\\T4_RED_GalaxyCenter_fused.hcsd",
+      "nside": 512,
+      "nested": true,
+      "n_pix": 9706,
+      "ipix_min": 1842678,
+      "ipix_max": 1893698,
+      "ipix_sorted": true,
+      "n_leaves_with_data": 185,
+      "signal_median": 27360.142578125,
+      "signal_min": 15845.8408203125,
+      "signal_max": 38894.33203125,
+      "meta_keys": [
+        "filter",
+        "n_frames",
+        "total_exposure_s",
+        "sigma_clip",
+        "stack_stats",
+        "source",
+        "pipeline",
+        "nside",
+        "nested",
+        "n_pix"
+      ],
+      "filter": "Red",
+      "n_frames": 3
+    },
+    "elapsed_s": 0.047
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "task": "G-003",
+  "params": {
+    "write_debug_layers": true
+  },
+  "files": {
+    "hcsd": "f:\\Astro dev\\Astro CS Normalization Database\\output\\G-F\\T4_RED_GalaxyCenter_fused.hcsd",
+    "snr": "f:\\Astro dev\\Astro CS Normalization Database\\output\\G-F\\T4_RED_GalaxyCenter_fused.hcsd.snr",
+    "debug": "f:\\Astro dev\\Astro CS Normalization Database\\output\\G-F\\T4_RED_GalaxyCenter_fused.hcsd.debug.npz"
+  },
+  "verify": {
+    "path": "f:\\Astro dev\\Astro CS Normalization Database\\output\\G-F\\T4_RED_GalaxyCenter_fused.hcsd",
+    "nside": 512,
+    "nested": true,
+    "n_pix": 9706,
+    "ipix_min": 1842678,
+    "ipix_max": 1893698,
+    "ipix_sorted": true,
+    "n_leaves_with_data": 185,
+    "signal_median": 27360.142578125,
+    "signal_min": 15845.8408203125,
+    "signal_max": 38894.33203125,
+    "meta_keys": [
+      "filter",
+      "n_frames",
+      "total_exposure_s",
+      "sigma_clip",
+      "stack_stats",
+      "source",
+      "pipeline",
+      "nside",
+      "nested",
+      "n_pix"
+    ],
+    "filter": "Red",
+    "n_frames": 3
+  },
+  "elapsed_s": 0.047
+}
