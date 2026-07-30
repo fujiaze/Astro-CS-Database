@@ -1,10 +1,12 @@
 project: AstroCS
 package_version: 2.0
 ssot: README.md
-current_gate: G
-current_task: G-004
+current_gate: I
+current_task: I-002
 status: ACTIVE
-full_regression_allowed: false
+full_regression_allowed: true
+last_completed_task: I-001
+last_completed_date: 2026-07-30
 frozen_rules:
   - stage2_additive_only
   - global_consensus_surface_snr2_weighted
