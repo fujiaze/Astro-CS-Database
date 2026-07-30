@@ -64,7 +64,8 @@ DEVICE_CONFIG_DIR = PROJECT_ROOT / "lib" / "orchestrator" / "configs"
 FILTERS_JSON = PROJECT_ROOT / "lib" / "photometric_calib" / "data" / "response_curves" / "filters.json"
 QE_CURVES_JSON = PROJECT_ROOT / "lib" / "photometric_calib" / "data" / "response_curves" / "qe_curves.json"
 GAIA_DATA_DIR = "GaiaDR3SP"
-EVIDENCE_DIR = PROJECT_ROOT / "output" / "p13-001"
+# 支持环境变量覆盖输出目录，用于多设备并行（避免 batch_state 冲突）
+EVIDENCE_DIR = PROJECT_ROOT / os.environ.get("P13_EVIDENCE_DIR", "output/p13-001")
 SCRIPTS_DIR = EVIDENCE_DIR / "scripts"
 RAW_LOGS_DIR = EVIDENCE_DIR / "raw_logs"
 REPORTS_DIR = EVIDENCE_DIR / "reports"
