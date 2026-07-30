@@ -1,0 +1,132 @@
+2026-07-30 12:44:47,795 [INFO] b003: ======================================================================
+2026-07-30 12:44:47,795 [INFO] b003: B-003 一致性验证开始
+2026-07-30 12:44:47,795 [INFO] b003: project_root=f:\Astro dev\Astro CS Normalization Database
+2026-07-30 12:44:47,795 [INFO] b003: output_dir=f:\Astro dev\Astro CS Normalization Database\engineering_authoritative\evidence\B-003
+2026-07-30 12:44:47,795 [INFO] b003: gaia_timeout=60s
+2026-07-30 12:44:47,795 [INFO] b003: 初始化 PlateSolve 环境...
+2026-07-30 12:44:48,326 [INFO] b003: PlateSolve 环境就绪
+2026-07-30 12:44:48,900 [INFO] b003: ======================================================================
+2026-07-30 12:44:48,900 [INFO] b003: PlateSolve 回投验证: T2_RED_LDN43
+2026-07-30 12:44:48,910 [INFO] b003: FITS: f:\Astro dev\Astro CS Normalization Database\testdata/LDN43_T2_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250503@032713-1200S-Red.fts
+2026-07-30 12:44:48,911 [INFO] b003: focal_length=1900.0mm pixel_size=9.00um pixel_scale=0.967"/px
+2026-07-30 12:44:48,974 [INFO] b003: 图像尺寸: 4096x4096
+2026-07-30 12:44:48,978 [INFO] b003: 初始指向: ra0=248.608333 dec0=-15.759722 fl=1900.00 ps=9.0000
+2026-07-30 12:44:48,978 [INFO] b003: 运行 PlateSolve (solve_from_memory_with_callback)...
+2026-07-30 12:44:49,864 [INFO] b003: PlateSolve 完成: success=1 n_detected=2000 n_pairs=34 rms_px=0.1194 rms_arcsec=0.1167 trans_order=3 sip_order=3 (0.89s)
+2026-07-30 12:44:49,864 [INFO] b003: 权威 inlier: n=34
+2026-07-30 12:44:49,896 [INFO] b003: astropy WCS 构建: ctype=['RA---TAN-SIP', 'DEC--TAN-SIP'] crval=(248.609646,-15.759139) crpix=(2048.500,2048.500) sip=3(10 fwd) ap=3(10 inv)
+2026-07-30 12:44:49,900 [INFO] b003: [B 层 外部 WCS 回投] n=34
+2026-07-30 12:44:49,900 [INFO] b003:   残差(px): median=0.1481 p68=0.1604 p90=0.2242 p99=0.3357 max=0.3536 rms=0.1611
+2026-07-30 12:44:49,900 [INFO] b003:   残差("): median=0.1433 p68=0.1551 p90=0.2168 p99=0.3246 rms=0.1558
+2026-07-30 12:44:49,900 [INFO] b003: [WCS 交叉对比] cd_Δ=0.1382% crval_Δ=0.0440" crpix_Δ=0.0000px
+2026-07-30 12:44:49,904 [INFO] b003: [T2_RED_LDN43] 测光: fit_used=1095(>50:True) sigma=0.0663(<0.5:True) scale=8.441798e-06(range:False reasonable:True)
+2026-07-30 12:44:49,904 [INFO] b003: [T2_RED_LDN43] SNR: n_points=1930(>100:True) median=83.02(>10:True)
+2026-07-30 12:44:49,904 [INFO] b003: [T2_RED_LDN43] Drizzle: support=1573(>0:True) signal=16777216(>0:True)
+2026-07-30 12:44:49,904 [INFO] b003: [T2_RED_LDN43] WCS 元数据: crval_valid=True crpix_valid=True cd_diag_reasonable=True det_ratio=3282.719
+2026-07-30 12:44:49,904 [INFO] b003: ======================================================================
+2026-07-30 12:44:49,904 [INFO] b003: PlateSolve 回投验证: T3_RED_NGC55
+2026-07-30 12:44:49,904 [INFO] b003: FITS: f:\Astro dev\Astro CS Normalization Database\testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250703@080546-600S-Red.fts
+2026-07-30 12:44:49,904 [INFO] b003: focal_length=1900.0mm pixel_size=9.00um pixel_scale=0.959"/px
+2026-07-30 12:44:49,960 [INFO] b003: 图像尺寸: 4096x4096
+2026-07-30 12:44:49,962 [INFO] b003: 初始指向: ra0=3.750000 dec0=-39.194167 fl=1900.00 ps=9.0000
+2026-07-30 12:44:49,962 [INFO] b003: 运行 PlateSolve (solve_from_memory_with_callback)...
+2026-07-30 12:44:50,571 [INFO] b003: PlateSolve 完成: success=1 n_detected=995 n_pairs=37 rms_px=0.1409 rms_arcsec=0.1377 trans_order=3 sip_order=3 (0.61s)
+2026-07-30 12:44:50,571 [INFO] b003: 权威 inlier: n=37
+2026-07-30 12:44:50,577 [INFO] b003: astropy WCS 构建: ctype=['RA---TAN-SIP', 'DEC--TAN-SIP'] crval=(3.749569,-39.194288) crpix=(2048.500,2048.500) sip=3(10 fwd) ap=3(10 inv)
+2026-07-30 12:44:50,579 [INFO] b003: [B 层 外部 WCS 回投] n=37
+2026-07-30 12:44:50,579 [INFO] b003:   残差(px): median=0.1170 p68=0.1446 p90=0.2751 p99=0.3143 max=0.3146 rms=0.1595
+2026-07-30 12:44:50,579 [INFO] b003:   残差("): median=0.1122 p68=0.1387 p90=0.2638 p99=0.3014 rms=0.1530
+2026-07-30 12:44:50,579 [INFO] b003: [WCS 交叉对比] cd_Δ=0.3453% crval_Δ=0.2463" crpix_Δ=0.0000px
+2026-07-30 12:44:50,582 [INFO] b003: [T3_RED_NGC55] 测光: fit_used=285(>50:True) sigma=0.1288(<0.5:True) scale=1.015245e-05(range:False reasonable:True)
+2026-07-30 12:44:50,583 [INFO] b003: [T3_RED_NGC55] SNR: n_points=617(>100:True) median=86.59(>10:True)
+2026-07-30 12:44:50,583 [INFO] b003: [T3_RED_NGC55] Drizzle: support=1535(>0:True) signal=16777216(>0:True)
+2026-07-30 12:44:50,583 [INFO] b003: [T3_RED_NGC55] WCS 元数据: crval_valid=True crpix_valid=True cd_diag_reasonable=True det_ratio=3279.893
+2026-07-30 12:44:50,583 [INFO] b003: ======================================================================
+2026-07-30 12:44:50,583 [INFO] b003: PlateSolve 回投验证: T4_RED_GalaxyCenter_panel1
+2026-07-30 12:44:50,583 [INFO] b003: FITS: f:\Astro dev\Astro CS Normalization Database\testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts
+2026-07-30 12:44:50,583 [INFO] b003: focal_length=200.0mm pixel_size=6.00um pixel_scale=6.308"/px
+2026-07-30 12:44:50,641 [INFO] b003: 图像尺寸: 4500x3600
+2026-07-30 12:44:50,643 [INFO] b003: 初始指向: ra0=272.808333 dec0=-13.176944 fl=200.00 ps=6.0000
+2026-07-30 12:44:50,643 [INFO] b003: 运行 PlateSolve (solve_from_memory_with_callback)...
+2026-07-30 12:44:53,002 [INFO] b003: PlateSolve 完成: success=1 n_detected=2000 n_pairs=45 rms_px=0.0538 rms_arcsec=0.3329 trans_order=3 sip_order=3 (2.36s)
+2026-07-30 12:44:53,002 [INFO] b003: 权威 inlier: n=45
+2026-07-30 12:44:53,012 [INFO] b003: astropy WCS 构建: ctype=['RA---TAN-SIP', 'DEC--TAN-SIP'] crval=(272.825665,-13.131811) crpix=(2250.500,1800.500) sip=3(10 fwd) ap=3(10 inv)
+2026-07-30 12:44:53,014 [INFO] b003: [B 层 外部 WCS 回投] n=45
+2026-07-30 12:44:53,015 [INFO] b003:   残差(px): median=0.0630 p68=0.0758 p90=0.0922 p99=0.1071 max=0.1136 rms=0.0667
+2026-07-30 12:44:53,015 [INFO] b003:   残差("): median=0.3973 p68=0.4780 p90=0.5818 p99=0.6758 rms=0.4210
+2026-07-30 12:44:53,015 [INFO] b003: [WCS 交叉对比] cd_Δ=33.6013% crval_Δ=0.1585" crpix_Δ=0.0000px
+2026-07-30 12:44:53,019 [INFO] b003: [T4_RED_GalaxyCenter_panel1] 测光: fit_used=1670(>50:True) sigma=0.1821(<0.5:True) scale=1.565441e-03(range:True reasonable:True)
+2026-07-30 12:44:53,019 [INFO] b003: [T4_RED_GalaxyCenter_panel1] SNR: n_points=1984(>100:True) median=378.62(>10:True)
+2026-07-30 12:44:53,019 [INFO] b003: [T4_RED_GalaxyCenter_panel1] Drizzle: support=3928(>0:True) signal=16200000(>0:True)
+2026-07-30 12:44:53,020 [INFO] b003: [T4_RED_GalaxyCenter_panel1] WCS 元数据: crval_valid=True crpix_valid=True cd_diag_reasonable=False det_ratio=3282.870
+2026-07-30 12:44:53,431 [INFO] b003: PlateSolve 环境已释放
+2026-07-30 12:44:53,432 [INFO] b003: verification_results.csv 已保存: f:\Astro dev\Astro CS Normalization Database\engineering_authoritative\evidence\B-003\verification_results.csv
+2026-07-30 12:44:53,433 [INFO] b003: verification_results.json 已保存: f:\Astro dev\Astro CS Normalization Database\engineering_authoritative\evidence\B-003\verification_results.json
+2026-07-30 12:44:53,433 [INFO] b003: ======================================================================
+2026-07-30 12:44:53,433 [INFO] b003: B-003 验证汇总: 3/3 PlateSolve PASS, 2/3 Overall PASS
+2026-07-30 12:46:07,605 [INFO] b003: ======================================================================
+2026-07-30 12:46:07,605 [INFO] b003: B-003 一致性验证开始
+2026-07-30 12:46:07,605 [INFO] b003: project_root=f:\Astro dev\Astro CS Normalization Database
+2026-07-30 12:46:07,605 [INFO] b003: output_dir=f:\Astro dev\Astro CS Normalization Database\engineering_authoritative\evidence\B-003
+2026-07-30 12:46:07,605 [INFO] b003: gaia_timeout=60s
+2026-07-30 12:46:07,606 [INFO] b003: 初始化 PlateSolve 环境...
+2026-07-30 12:46:07,934 [INFO] b003: PlateSolve 环境就绪
+2026-07-30 12:46:08,382 [INFO] b003: ======================================================================
+2026-07-30 12:46:08,382 [INFO] b003: PlateSolve 回投验证: T2_RED_LDN43
+2026-07-30 12:46:08,382 [INFO] b003: FITS: f:\Astro dev\Astro CS Normalization Database\testdata/LDN43_T2_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250503@032713-1200S-Red.fts
+2026-07-30 12:46:08,382 [INFO] b003: focal_length=1900.0mm pixel_size=9.00um pixel_scale=0.967"/px
+2026-07-30 12:46:08,435 [INFO] b003: 图像尺寸: 4096x4096
+2026-07-30 12:46:08,437 [INFO] b003: 初始指向: ra0=248.608333 dec0=-15.759722 fl=1900.00 ps=9.0000
+2026-07-30 12:46:08,437 [INFO] b003: 运行 PlateSolve (solve_from_memory_with_callback)...
+2026-07-30 12:46:09,265 [INFO] b003: PlateSolve 完成: success=1 n_detected=2000 n_pairs=34 rms_px=0.1194 rms_arcsec=0.1167 trans_order=3 sip_order=3 (0.83s)
+2026-07-30 12:46:09,265 [INFO] b003: 权威 inlier: n=34
+2026-07-30 12:46:09,285 [INFO] b003: astropy WCS 构建: ctype=['RA---TAN-SIP', 'DEC--TAN-SIP'] crval=(248.609646,-15.759139) crpix=(2048.500,2048.500) sip=3(10 fwd) ap=3(10 inv)
+2026-07-30 12:46:09,288 [INFO] b003: [B 层 外部 WCS 回投] n=34
+2026-07-30 12:46:09,288 [INFO] b003:   残差(px): median=0.1481 p68=0.1604 p90=0.2242 p99=0.3357 max=0.3536 rms=0.1611
+2026-07-30 12:46:09,288 [INFO] b003:   残差("): median=0.1433 p68=0.1551 p90=0.2168 p99=0.3246 rms=0.1558
+2026-07-30 12:46:09,288 [INFO] b003: [WCS 交叉对比] cd_Δ=0.1382% crval_Δ=0.0440" crpix_Δ=0.0000px
+2026-07-30 12:46:09,292 [INFO] b003: [T2_RED_LDN43] 测光: fit_used=1095(>50:True) sigma=0.0663(<0.5:True) scale=8.441798e-06(range:False reasonable:True)
+2026-07-30 12:46:09,292 [INFO] b003: [T2_RED_LDN43] SNR: n_points=1930(>100:True) median=83.02(>10:True)
+2026-07-30 12:46:09,292 [INFO] b003: [T2_RED_LDN43] Drizzle: support=1573(>0:True) signal=16777216(>0:True)
+2026-07-30 12:46:09,292 [INFO] b003: [T2_RED_LDN43] WCS 元数据: crval_valid=True crpix_valid=True det_reasonable=True(det_ratio=1.000) ps_match=True(cd_ps=0.967 vs decl=0.967)
+2026-07-30 12:46:09,292 [INFO] b003: ======================================================================
+2026-07-30 12:46:09,292 [INFO] b003: PlateSolve 回投验证: T3_RED_NGC55
+2026-07-30 12:46:09,292 [INFO] b003: FITS: f:\Astro dev\Astro CS Normalization Database\testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250703@080546-600S-Red.fts
+2026-07-30 12:46:09,292 [INFO] b003: focal_length=1900.0mm pixel_size=9.00um pixel_scale=0.959"/px
+2026-07-30 12:46:09,344 [INFO] b003: 图像尺寸: 4096x4096
+2026-07-30 12:46:09,346 [INFO] b003: 初始指向: ra0=3.750000 dec0=-39.194167 fl=1900.00 ps=9.0000
+2026-07-30 12:46:09,346 [INFO] b003: 运行 PlateSolve (solve_from_memory_with_callback)...
+2026-07-30 12:46:09,890 [INFO] b003: PlateSolve 完成: success=1 n_detected=995 n_pairs=37 rms_px=0.1409 rms_arcsec=0.1377 trans_order=3 sip_order=3 (0.54s)
+2026-07-30 12:46:09,890 [INFO] b003: 权威 inlier: n=37
+2026-07-30 12:46:09,895 [INFO] b003: astropy WCS 构建: ctype=['RA---TAN-SIP', 'DEC--TAN-SIP'] crval=(3.749569,-39.194288) crpix=(2048.500,2048.500) sip=3(10 fwd) ap=3(10 inv)
+2026-07-30 12:46:09,897 [INFO] b003: [B 层 外部 WCS 回投] n=37
+2026-07-30 12:46:09,897 [INFO] b003:   残差(px): median=0.1170 p68=0.1446 p90=0.2751 p99=0.3143 max=0.3146 rms=0.1595
+2026-07-30 12:46:09,897 [INFO] b003:   残差("): median=0.1122 p68=0.1387 p90=0.2638 p99=0.3014 rms=0.1530
+2026-07-30 12:46:09,897 [INFO] b003: [WCS 交叉对比] cd_Δ=0.3453% crval_Δ=0.2463" crpix_Δ=0.0000px
+2026-07-30 12:46:09,901 [INFO] b003: [T3_RED_NGC55] 测光: fit_used=285(>50:True) sigma=0.1288(<0.5:True) scale=1.015245e-05(range:False reasonable:True)
+2026-07-30 12:46:09,901 [INFO] b003: [T3_RED_NGC55] SNR: n_points=617(>100:True) median=86.59(>10:True)
+2026-07-30 12:46:09,901 [INFO] b003: [T3_RED_NGC55] Drizzle: support=1535(>0:True) signal=16777216(>0:True)
+2026-07-30 12:46:09,901 [INFO] b003: [T3_RED_NGC55] WCS 元数据: crval_valid=True crpix_valid=True det_reasonable=True(det_ratio=0.999) ps_match=True(cd_ps=0.959 vs decl=0.959)
+2026-07-30 12:46:09,901 [INFO] b003: ======================================================================
+2026-07-30 12:46:09,901 [INFO] b003: PlateSolve 回投验证: T4_RED_GalaxyCenter_panel1
+2026-07-30 12:46:09,901 [INFO] b003: FITS: f:\Astro dev\Astro CS Normalization Database\testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts
+2026-07-30 12:46:09,901 [INFO] b003: focal_length=200.0mm pixel_size=6.00um pixel_scale=6.308"/px
+2026-07-30 12:46:09,951 [INFO] b003: 图像尺寸: 4500x3600
+2026-07-30 12:46:09,954 [INFO] b003: 初始指向: ra0=272.808333 dec0=-13.176944 fl=200.00 ps=6.0000
+2026-07-30 12:46:09,954 [INFO] b003: 运行 PlateSolve (solve_from_memory_with_callback)...
+2026-07-30 12:46:11,979 [INFO] b003: PlateSolve 完成: success=1 n_detected=2000 n_pairs=45 rms_px=0.0538 rms_arcsec=0.3329 trans_order=3 sip_order=3 (2.03s)
+2026-07-30 12:46:11,979 [INFO] b003: 权威 inlier: n=45
+2026-07-30 12:46:11,985 [INFO] b003: astropy WCS 构建: ctype=['RA---TAN-SIP', 'DEC--TAN-SIP'] crval=(272.825665,-13.131811) crpix=(2250.500,1800.500) sip=3(10 fwd) ap=3(10 inv)
+2026-07-30 12:46:11,987 [INFO] b003: [B 层 外部 WCS 回投] n=45
+2026-07-30 12:46:11,987 [INFO] b003:   残差(px): median=0.0630 p68=0.0758 p90=0.0922 p99=0.1071 max=0.1136 rms=0.0667
+2026-07-30 12:46:11,987 [INFO] b003:   残差("): median=0.3973 p68=0.4780 p90=0.5818 p99=0.6758 rms=0.4210
+2026-07-30 12:46:11,987 [INFO] b003: [WCS 交叉对比] cd_Δ=33.6013% crval_Δ=0.1585" crpix_Δ=0.0000px
+2026-07-30 12:46:11,991 [INFO] b003: [T4_RED_GalaxyCenter_panel1] 测光: fit_used=1670(>50:True) sigma=0.1821(<0.5:True) scale=1.565441e-03(range:True reasonable:True)
+2026-07-30 12:46:11,991 [INFO] b003: [T4_RED_GalaxyCenter_panel1] SNR: n_points=1984(>100:True) median=378.62(>10:True)
+2026-07-30 12:46:11,991 [INFO] b003: [T4_RED_GalaxyCenter_panel1] Drizzle: support=3928(>0:True) signal=16200000(>0:True)
+2026-07-30 12:46:11,991 [INFO] b003: [T4_RED_GalaxyCenter_panel1] WCS 元数据: crval_valid=True crpix_valid=True det_reasonable=True(det_ratio=1.000) ps_match=True(cd_ps=6.308 vs decl=6.308)
+2026-07-30 12:46:12,279 [INFO] b003: PlateSolve 环境已释放
+2026-07-30 12:46:12,280 [INFO] b003: verification_results.csv 已保存: f:\Astro dev\Astro CS Normalization Database\engineering_authoritative\evidence\B-003\verification_results.csv
+2026-07-30 12:46:12,280 [INFO] b003: verification_results.json 已保存: f:\Astro dev\Astro CS Normalization Database\engineering_authoritative\evidence\B-003\verification_results.json
+2026-07-30 12:46:12,280 [INFO] b003: ======================================================================
+2026-07-30 12:46:12,280 [INFO] b003: B-003 验证汇总: 3/3 PlateSolve PASS, 3/3 Overall PASS
