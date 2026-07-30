@@ -1,0 +1,106 @@
+{
+  "Lum": {
+    "canonical_name": "Lum",
+    "aliases": [
+      "L",
+      "Lum",
+      "Luminance",
+      "Lumination"
+    ],
+    "note": "亮度滤镜"
+  },
+  "Red": {
+    "canonical_name": "Red",
+    "aliases": [
+      "R",
+      "Red"
+    ],
+    "note": "红色滤镜"
+  },
+  "Green": {
+    "canonical_name": "Green",
+    "aliases": [
+      "G",
+      "Green"
+    ],
+    "note": "绿色滤镜"
+  },
+  "Blue": {
+    "canonical_name": "Blue",
+    "aliases": [
+      "B",
+      "Blue"
+    ],
+    "note": "蓝色滤镜"
+  },
+  "H-alpha": {
+    "canonical_name": "H-alpha",
+    "aliases": [
+      "Ha",
+      "Halpha",
+      "H-alpha",
+      "Hα",
+      "H_a"
+    ],
+    "note": "氢Alpha窄带滤镜, 3nm (T2) / 品牌未明确 (T3/T4)"
+  },
+  "OIII": {
+    "canonical_name": "OIII",
+    "aliases": [
+      "OIII",
+      "Oiii",
+      "O3",
+      "OⅢ",
+      "O_III"
+    ],
+    "note": "氧III窄带滤镜"
+  },
+  "_observed_variants": {
+    "T2_Light": [
+      "Blue",
+      "Green",
+      "H-alpha",
+      "Lum",
+      "OIII",
+      "Red"
+    ],
+    "T3_Light": [
+      "Blue",
+      "Green",
+      "H-alpha",
+      "Lum",
+      "Oiii",
+      "Red"
+    ],
+    "T4_Light": [
+      "Blue",
+      "Green",
+      "H-alpha",
+      "Lum",
+      "Oiii",
+      "Red"
+    ],
+    "T2_MasterFlat": [
+      "Blue",
+      "Green",
+      "H-alpha",
+      "OIII",
+      "Red"
+    ],
+    "T3_MasterFlat": [
+      "Blue",
+      "Green",
+      "H-alpha",
+      "Lum",
+      "Oiii",
+      "Red"
+    ],
+    "T4_MasterFlat": [
+      "Blue",
+      "Green",
+      "H-alpha",
+      "Oiii",
+      "Red"
+    ]
+  }
+}
