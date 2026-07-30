@@ -1568,3 +1568,27 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
   - 自测: `python light_master_resolver.py --self-test`
   - 宽松: `--lenient` (Dark 允许最近曝光降级)
   - 退出码: 0=全 RESOLVED, 1=存在 UNRESOLVED, 2=运行错误
+
+## 2026-07-30 C-004 浏览器显示 HISS signal、SNR 点和 support ★DONE★
+- **目标**: 让浏览器能显示 HISS V2 文件三要素（signal 球面色图 + SNR 稀疏点散点 + support 覆盖标记）
+- **依赖**: C-002 (HISS V2 读写器, hiss_v2.py)
+- **方案**: 方案 A (Python 验证可视化工具) — browser_cli.exe 当前仅支持 V1 `.hiss`，不支持 V2 `.hiss2` (报错"未知 Magic: HI2S" rc=-5)
+- **实现**:
+  - 工具: `lib/astro_image_io/python/hiss_v2_visualizer.py`
+  - 复用 C-002 的 HissV2Reader.read_all() 读取 ipix/signal/support/snr_model/provenance
+  - HEALPix ipix→(ra,dec) 转换: 优先 astropy_healpix (6.1.7, 支持 NESTED), 回退纯 numpy (仅 RING)
+  - matplotlib 4 子图: (1)signal magma色图 (2)support YlGn+灰叉号 (3)SNR plasma散点 (4)组合图(signal+SNR菱形+support)
+  - NaN/Inf 容错: SNR 数据含 NaN (V1 源数据特性), 同时过滤 ra/dec/val 三者 NaN
+  - 英文标题 (DejaVu Sans 不支持中文), dpi=150, 2048×1477 PNG
+- **结果**: 3/3 帧可视化成功
+  - T2_RED_LDN43: nside=2048 n_pix=1573 SNR=1930 RA[248.03,249.19] Dec[-16.32,-15.19] → 181KB PNG
+  - T3_RED_NGC55: nside=2048 n_pix=1535 SNR=617  RA[3.03,4.46]     Dec[-39.74,-38.63] → 191KB PNG
+  - T4_RED_GalaxyCenter_panel1: nside=512 n_pix=3928 SNR=1984 RA[268.68,276.94] Dec[-16.33,-9.90] → 193KB PNG
+- **V1/V2 一致性验证**: T3 帧 V1 browser_cli center=(3.867,-39.075) 落在 V2 像素范围内 ✓
+- **证据**: `engineering_authoritative/evidence/C-004/` (TASK_REPORT.md + TEST_REPORT.md + visualizations/*.png)
+- **已知限制**:
+  1. browser_cli 不支持 V2 (C++ 需升级 BrowserBackend + astro_image_io DLL 识别 HI2S magic, 属后续任务)
+  2. NESTED 排序依赖 astropy_healpix (纯 numpy fallback 仅完整实现 RING)
+  3. SNR NaN 点被显式过滤 (非跳过), V2 忠实保留 V1 的 NaN
+- **复现**: `python "lib/astro_image_io/python/hiss_v2_visualizer.py" "output/C-002" "engineering_authoritative/evidence/C-004/visualizations" --dpi 150`
+- **Gate C 进度**: C-001(契约冻结 DONE) + C-002(V2读写器 DONE) + C-003(?) + C-004(可视化 DONE)

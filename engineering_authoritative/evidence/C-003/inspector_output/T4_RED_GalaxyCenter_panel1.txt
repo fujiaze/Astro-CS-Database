@@ -1,0 +1,94 @@
+========================================================================
+HISS V2 Inspector Report
+========================================================================
+文件: f:\Astro dev\Astro CS Normalization Database\output\C-002\T4_RED_GalaxyCenter_panel1.hiss2
+文件大小: 56560 B
+整体结论: PASS ✓
+
+------------------------------------------------------------------------
+[1] FIXED HEADER (24B, 契约 §5.1)
+------------------------------------------------------------------------
+  magic            = b'HI2S'   ✓ (期望 b'HI2S')
+  version          = 2    ✓ (期望 2)
+  flags            = 0x0000  dense_mode=False
+  json_uncomp_len  = 983
+  json_comp_len    = 634
+  n_pix (header)   = 3928
+
+------------------------------------------------------------------------
+[2] JSON PROVENANCE (契约 §5.2)
+------------------------------------------------------------------------
+  解析状态: ✓  必填字段齐全: ✓
+  format_version = 'HISS-V2'  ✓ (期望 'HISS-V2')
+  provenance 全部字段 (18 项):
+    chunk_size = 4096
+    codec = 'ZSTD'
+    crc_algorithm = 'CRC32_IEEE8023'
+    drizzle = {"n_healpix_pixels": 3928, "elapsed_sec": 12.6401}
+    exposure_s = 180.0
+    filter = 'Red'
+    fits_meta = {"EQUINOX": "2000", "GAIN": "1", "IMAGETYP": "Light Frame", "INSTRUME": "FLI"...
+    format_version = 'HISS-V2'
+    has_snr = True
+    n_chunks = 1
+    n_pix = 3928
+    nested = True
+    nside = 512
+    obs_time = '2025-07-02T06:17:19'
+    ordering = 'NESTED'
+    pixfrac = 1.0
+    source = {"fits_path": "", "n_source_pixels": 16200000}
+    wcs = {"cd": [0.001752112340951, 2.999016755136e-07, -6.522096515637e-07, 0.0017523...
+
+------------------------------------------------------------------------
+[3] CHUNK INDEX (契约 §6.2, 24B/项)
+------------------------------------------------------------------------
+  chunk_index_offset = 658
+  chunk_index_size   = 24
+  n_chunks (json)    = 1
+  n_chunks (index)   = 1
+  n_pix 一致性: header=3928 json=3928 sum(raw_count)=3928  ✓
+
+   idx     offset  comp_size  raw_count  crc32(stored)  crc32(actual)  ok  codec   first_ipix    last_ipix
+     0        682      17667       3928 0x0000af6c6616 0x0000af6c6616   ✓   ZSTD      1863143      1893706
+
+------------------------------------------------------------------------
+[4] SNR SPARSE BLOCK (契约 §8)
+------------------------------------------------------------------------
+  has_snr        = True
+  offset         = 18349
+  size           = 38163
+  n_points       = 1984
+  ra_bytes       = 15872  (期望 n_points×8 = 15872)
+  dec_bytes      = 15872  (期望 n_points×8 = 15872)
+  snr_bytes      = 7936  (期望 n_points×4 = 7936)
+  snr_phot       = 2.384372149284729
+  median_snr     = 378.6228749139501
+  idw_power      = 2.0
+  解析状态       = ✓
+
+------------------------------------------------------------------------
+[5] FOOTER (48B, 契约 §9)
+------------------------------------------------------------------------
+  chunk_index_offset = 658
+  chunk_index_size   = 24
+  snr_block_offset   = 18349
+  snr_block_size     = 38163
+  global_crc32       = 0x0bc97433
+  magic_trailer      = b'HI2S'  ✓ (期望 b'HI2S')
+
+------------------------------------------------------------------------
+[6] GLOBAL CRC32 (契约 §12.3, 覆盖 [0, filesize-48))
+------------------------------------------------------------------------
+  stored  = 0x0bc97433
+  actual  = 0x0bc97433
+  一致    = ✓
+
+------------------------------------------------------------------------
+[7] FILE SIZE (契约 §13.10)
+------------------------------------------------------------------------
+  expected = 56560
+  actual   = 56560
+  一致     = ✓
+
+========================================================================
