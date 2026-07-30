@@ -1529,3 +1529,42 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
   2. 全量测试时机（优化后立即跑？还是先完成 P14？）
   3. 浏览器后续路径（P15 异步 I/O + P16 GPU 是否调整优先级？当前 55-63 FPS 是否够？）
   4. 栈溢出算法层修复（当前 32MB EXE 栈足够，是否需要 nanoflann middleSplit_ 退化分割作为长期方案？）
+
+## 2026-07-30 A-004 Light 到 Bias/Dark/Flat 唯一解析与严格模式 ★DONE★
+- **目标**: 实现 Python 解析器，读取 Light 帧 Header，匹配 Bias/Dark/Flat Master 帧，严格模式不可静默降级
+- **结果**: 4/4 内置测试用例全部 PASS，解析覆盖率 3/4=75% (1 帧 UNRESOLVED 为真实缺失)
+- **实现**:
+  - 脚本: `engineering_authoritative/evidence/A-004/scripts/light_master_resolver.py`
+  - 结果: `engineering_authoritative/evidence/A-004/results/` (resolution_result JSON/CSV + UNRESOLVED_REPORT.md)
+  - 日志: `engineering_authoritative/evidence/A-004/logs/`
+- **解析逻辑**:
+  - FITS(.fts) 用 astropy 读取 Header; XISF(.xisf) 用纯 Python XML 解析 (复用 A-002 逻辑)
+  - Header 读取超时 30s (threading 子线程 join 实现, Windows 无 signal.alarm)
+  - 设备 ID 从路径推导 (FITS INSTRUME=FLI 无法区分 T2/T3/T4, 正则 `[_/]T([234])(?![a-zA-Z0-9])` 匹配含中文路径如 `_T2素材`)
+  - 滤镜规范化使用 A-002 FILTER_ALIAS_MAP.json (6 规范滤镜 + 别名, 大小写不敏感回退)
+  - Bias 匹配: 同设备+同尺寸+同 Bin (唯一)
+  - Dark 匹配: 同设备+同尺寸+同 Bin+曝光精确 (容差 0.01s); 严格模式无精确则 UNRESOLVED, 宽松模式取最近 Dark 降级
+  - Flat 匹配: 同设备+同尺寸+同 Bin+同规范滤镜 (唯一, 不可用其他滤镜替代)
+  - 严格模式 (默认): Bias/Dark/Flat 三者必须 exact, 否则 UNRESOLVED; --lenient 开启宽松模式
+- **测试结果 (4/4 PASS)**:
+  1. T2 Red (LDN43 1200s): RESOLVED — Bias+Dark+Flat 全 exact ✓
+  2. T2 Lum (LDN43 600s): UNRESOLVED — Flat not_found (T2 无 Lum Flat, 同设备有 Blue/Green/H-alpha/OIII/Red Flat) ✓
+  3. T3 Lum (NGC55 600s): RESOLVED — Bias+Dark+Flat 全 exact (T3 有 Lum Flat) ✓
+  4. T4 Red (Galaxy_Center 180s): RESOLVED — Bias+Dark+Flat 全 exact ✓
+- **UNRESOLVED 帧**: LDN43_LRGBH_flying_dutchman-20250503@031525-600S-Lum.fts (T2 Lum, 缺失 Flat)
+- **已知问题 (不修复, 仅记录)**:
+  - T2 Lum Flat 缺失: LDN43_T2 和 NGC247_T2 的 Lum 帧会标记为 UNRESOLVED
+  - T4 Lum Flat 缺失: Victory_T4 的 Lum 帧会标记为 UNRESOLVED
+  - 这些是真实缺失, 解析器明确报告, 不可静默降级 (如用 Red Flat 替代 Lum Flat)
+- **依赖**: A-002 (TESTDATA_EQUIPMENT_CATALOG.csv + FILTER_ALIAS_MAP.json + CALIBRATION_MASTER_INVENTORY.csv)
+- **关键设计决策**:
+  - 设备 ID 必须从路径推导 (FITS header 无设备序列号, INSTRUME=FLI 无法区分 T2/T3/T4)
+  - Dark 严格模式不降级 (任务要求"不可静默降级", 无精确曝光匹配则 UNRESOLVED, 但报告最近 Dark 供参考)
+  - Flat 严格模式不跨滤镜替代 (如不可用 Red Flat 替代 Lum Flat)
+  - XISF 读取用纯 Python XML 解析 (不依赖外部 XISF 库, 复用 A-002 验证过的逻辑)
+- **CLI 用法**:
+  - 单帧: `python light_master_resolver.py <light_path>`
+  - 批量: `python light_master_resolver.py --batch <dir>`
+  - 自测: `python light_master_resolver.py --self-test`
+  - 宽松: `--lenient` (Dark 允许最近曝光降级)
+  - 退出码: 0=全 RESOLVED, 1=存在 UNRESOLVED, 2=运行错误

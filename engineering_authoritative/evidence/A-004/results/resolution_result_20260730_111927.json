@@ -1,0 +1,170 @@
+[
+  {
+    "light_path": "F:\\Astro dev\\Astro CS Normalization Database\\testdata\\LDN43_T2素材_flying_dutchman\\lights\\LDN43_LRGBH_flying_dutchman-20250503@032713-1200S-Red.fts",
+    "light_file": "LDN43_LRGBH_flying_dutchman-20250503@032713-1200S-Red.fts",
+    "device_id": "UNKNOWN",
+    "sensor_size": "4096x4096",
+    "binning": "1x1",
+    "exposure_s": 1200.0,
+    "filter_raw": "Red",
+    "filter_canonical": "Red",
+    "ccd_temp_c": "-20.0",
+    "bias": {
+      "status": "not_found",
+      "master_id": null,
+      "master_path": null,
+      "reason": "无 Bias 匹配 UNKNOWN|4096x4096|1x1",
+      "candidates_considered": 0,
+      "nearest_exposure": null
+    },
+    "dark": {
+      "status": "not_found",
+      "master_id": null,
+      "master_path": null,
+      "reason": "无 Dark 匹配 UNKNOWN|4096x4096|1x1",
+      "candidates_considered": 0,
+      "nearest_exposure": null
+    },
+    "flat": {
+      "status": "not_found",
+      "master_id": null,
+      "master_path": null,
+      "reason": "无 Flat 匹配 UNKNOWN|4096x4096|1x1|Red",
+      "candidates_considered": 0,
+      "nearest_exposure": null
+    },
+    "resolution_status": "UNRESOLVED",
+    "resolution_note": "缺失: Bias, Dark, Flat",
+    "missing": [
+      "Bias",
+      "Dark",
+      "Flat"
+    ],
+    "timestamp": "2026-07-30T11:19:27.278904",
+    "read_error": null
+  },
+  {
+    "light_path": "F:\\Astro dev\\Astro CS Normalization Database\\testdata\\LDN43_T2素材_flying_dutchman\\lights\\LDN43_LRGBH_flying_dutchman-20250503@031525-600S-Lum.fts",
+    "light_file": "LDN43_LRGBH_flying_dutchman-20250503@031525-600S-Lum.fts",
+    "device_id": "UNKNOWN",
+    "sensor_size": "4096x4096",
+    "binning": "1x1",
+    "exposure_s": 600.0,
+    "filter_raw": "Lum",
+    "filter_canonical": "Lum",
+    "ccd_temp_c": "-20.0",
+    "bias": {
+      "status": "not_found",
+      "master_id": null,
+      "master_path": null,
+      "reason": "无 Bias 匹配 UNKNOWN|4096x4096|1x1",
+      "candidates_considered": 0,
+      "nearest_exposure": null
+    },
+    "dark": {
+      "status": "not_found",
+      "master_id": null,
+      "master_path": null,
+      "reason": "无 Dark 匹配 UNKNOWN|4096x4096|1x1",
+      "candidates_considered": 0,
+      "nearest_exposure": null
+    },
+    "flat": {
+      "status": "not_found",
+      "master_id": null,
+      "master_path": null,
+      "reason": "无 Flat 匹配 UNKNOWN|4096x4096|1x1|Lum",
+      "candidates_considered": 0,
+      "nearest_exposure": null
+    },
+    "resolution_status": "UNRESOLVED",
+    "resolution_note": "缺失: Bias, Dark, Flat",
+    "missing": [
+      "Bias",
+      "Dark",
+      "Flat"
+    ],
+    "timestamp": "2026-07-30T11:19:27.284924",
+    "read_error": null
+  },
+  {
+    "light_path": "F:\\Astro dev\\Astro CS Normalization Database\\testdata\\NGC55_T3_flying_dutchman\\lights\\NGC55_T3_flying_dutchman-20250703@075400-600S-Lum.fts",
+    "light_file": "NGC55_T3_flying_dutchman-20250703@075400-600S-Lum.fts",
+    "device_id": "T3",
+    "sensor_size": "4096x4096",
+    "binning": "1x1",
+    "exposure_s": 600.0,
+    "filter_raw": "Lum",
+    "filter_canonical": "Lum",
+    "ccd_temp_c": "-20.0",
+    "bias": {
+      "status": "exact",
+      "master_id": "T3/masterBias_BIN-1_4096x4096.xisf",
+      "master_path": "testdata/T3 calibration files/masterBias_BIN-1_4096x4096.xisf",
+      "reason": "唯一匹配",
+      "candidates_considered": 1,
+      "nearest_exposure": null
+    },
+    "dark": {
+      "status": "exact",
+      "master_id": "T3/masterDark_BIN-1_4096x4096_EXPOSURE-600.00s.xisf",
+      "master_path": "testdata/T3 calibration files/masterDark_BIN-1_4096x4096_EXPOSURE-600.00s.xisf",
+      "reason": "曝光精确匹配 (600.0s vs 600.0s)",
+      "candidates_considered": 2,
+      "nearest_exposure": null
+    },
+    "flat": {
+      "status": "exact",
+      "master_id": "T3/masterFlat_BIN-1_4096x4096_FILTER-Lum_mono.xisf",
+      "master_path": "testdata/T3 calibration files/masterFlat_BIN-1_4096x4096_FILTER-Lum_mono.xisf",
+      "reason": "滤镜匹配 (Lum)",
+      "candidates_considered": 1,
+      "nearest_exposure": null
+    },
+    "resolution_status": "RESOLVED",
+    "resolution_note": "全部校准帧匹配",
+    "missing": [],
+    "timestamp": "2026-07-30T11:19:27.291569",
+    "read_error": null
+  },
+  {
+    "light_path": "F:\\Astro dev\\Astro CS Normalization Database\\testdata\\Galaxy_Center_T4\\lights\\panel1\\Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts",
+    "light_file": "Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts",
+    "device_id": "T4",
+    "sensor_size": "4500x3600",
+    "binning": "1x1",
+    "exposure_s": 180.0,
+    "filter_raw": "Red",
+    "filter_canonical": "Red",
+    "ccd_temp_c": "-20.0",
+    "bias": {
+      "status": "exact",
+      "master_id": "T4/masterBias_BIN-1_4500x3600.xisf",
+      "master_path": "testdata/T4 calibration files/masterBias_BIN-1_4500x3600.xisf",
+      "reason": "唯一匹配",
+      "candidates_considered": 1,
+      "nearest_exposure": null
+    },
+    "dark": {
+      "status": "exact",
+      "master_id": "T4/masterDark_BIN-1_4500x3600_EXPOSURE-180.00s.xisf",
+      "master_path": "testdata/T4 calibration files/masterDark_BIN-1_4500x3600_EXPOSURE-180.00s.xisf",
+      "reason": "曝光精确匹配 (180.0s vs 180.0s)",
+      "candidates_considered": 3,
+      "nearest_exposure": null
+    },
+    "flat": {
+      "status": "exact",
+      "master_id": "T4/masterFlat_BIN-1_4500x3600_FILTER-Red_mono.xisf",
+      "master_path": "testdata/T4 calibration files/masterFlat_BIN-1_4500x3600_FILTER-Red_mono.xisf",
+      "reason": "滤镜匹配 (Red)",
+      "candidates_considered": 1,
+      "nearest_exposure": null
+    },
+    "resolution_status": "RESOLVED",
+    "resolution_note": "全部校准帧匹配",
+    "missing": [],
+    "timestamp": "2026-07-30T11:19:27.298738",
+    "read_error": null
+  }
+]

@@ -2,7 +2,7 @@ project: AstroCS
 package_version: 2.0
 ssot: README.md
 current_gate: A
-current_task: A-002
+current_task: A-004
 status: ACTIVE
 full_regression_allowed: false
 frozen_rules:
