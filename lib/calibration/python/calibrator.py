@@ -454,7 +454,7 @@ def calibrate(light_data, master_bias=None, master_dark=None, master_flat=None,
 
     if dark_optimization:
         # 暗场优化模式: (Light - Bias - K*(Dark - Bias)) / Flat
-        # 需要 Bias 和 Dark
+        # K = t_light / t_dark，从 FITS 头 EXPTIME 读取
         if bias is None:
             logger.error("暗场优化需要 Master Bias，但未提供")
             actual_k = 1.0
@@ -462,15 +462,15 @@ def calibrate(light_data, master_bias=None, master_dark=None, master_flat=None,
             logger.error("暗场优化需要 Master Dark，但未提供")
             actual_k = 1.0
         else:
-            # 搜索最优 K
-            if light_exposure > 0 and dark_exposure > 0:
-                k_init = light_exposure / dark_exposure
-                logger.info("暗场优化: k_init = light_exp/dark_exp = %.2f/%.2f = %.4f",
-                            light_exposure, dark_exposure, k_init)
-            else:
-                k_init = dark_scale_factor
-                logger.info("暗场优化: k_init = dark_scale_factor = %.4f", k_init)
-            actual_k = optimize_dark_scale(light, bias, dark, flat, k_init)
+            # K = t_light / t_dark（从 FITS EXPTIME 计算）
+            if light_exposure <= 0 or dark_exposure <= 0:
+                raise ValueError(
+                    "暗场优化需要 FITS 头 EXPTIME 关键字计算 K = t_light/t_dark，"
+                    "但 light_exposure=%.4f, dark_exposure=%.4f" % (light_exposure, dark_exposure)
+                )
+            actual_k = light_exposure / dark_exposure
+            logger.info("暗场优化: K = t_light/t_dark = %.2f/%.2f = %.4f",
+                        light_exposure, dark_exposure, actual_k)
 
         calibrated = light.astype(np.float32, copy=True)
         if bias is not None:

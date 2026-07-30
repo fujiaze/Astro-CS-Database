@@ -1362,7 +1362,7 @@ int CliCommand::cmd_inspect_hiss(const std::string& hiss_path) {
                << "}";
     output_jsonl_event_ex("result", "", "", 1.0, "hiss inspect completed",
                           result_oss.str(), "", -1, -1.0, "ok");
-    output_jsonl_event("completed", "", "", 1.0, "hiss inspect completed", result_oss.str());
+    output_jsonl_event("job_completed", "", "", 1.0, "hiss inspect completed", result_oss.str());
     return AstroCsExitCode::SUCCESS;
 }
 
@@ -1491,7 +1491,7 @@ int CliCommand::cmd_inspect_hcsd(const std::string& hcsd_path) {
                << "}";
     output_jsonl_event_ex("result", "", "", 1.0, "hcsd inspect completed",
                           result_oss.str(), "", -1, -1.0, "ok");
-    output_jsonl_event("completed", "", "", 1.0, "hcsd inspect completed", result_oss.str());
+    output_jsonl_event("job_completed", "", "", 1.0, "hcsd inspect completed", result_oss.str());
     return AstroCsExitCode::SUCCESS;
 }
 
@@ -1634,7 +1634,7 @@ int CliCommand::cmd_inspect_frame(const std::string& fits_path) {
                << "}";
     output_jsonl_event_ex("result", "", "", 1.0, "frame inspect completed",
                           result_oss.str(), "", -1, -1.0, "ok");
-    output_jsonl_event("completed", "", "", 1.0, "frame inspect completed", result_oss.str());
+    output_jsonl_event("job_completed", "", "", 1.0, "frame inspect completed", result_oss.str());
     return AstroCsExitCode::SUCCESS;
 }
 
@@ -1738,10 +1738,9 @@ int CliCommand::cmd_capabilities() {
     std::cout << "    {\"numeric_code\": 28, \"name\": \"INPUT_INVALID\", \"code\": \"ASTROCS_INPUT_INVALID\"}," << std::endl;
     std::cout << "    {\"numeric_code\": 100, \"name\": \"MODULE_SPECIFIC_BASE\", \"code\": \"ASTROCS_MODULE_SPECIFIC\"}" << std::endl;
     std::cout << "  ]," << std::endl;
-    // P04-002: 事件类型扩展 (含 stage_start/stage_end/error/result/progress/warning)
-    std::cout << "  \"events\": [\"accepted\", \"stage_started\", \"stage_start\", "
-              << "\"stage_completed\", \"stage_end\", \"progress\", \"quality_metric\", "
-              << "\"warning\", \"result\", \"error\", \"failed\", \"cancelled\", \"completed\"],"
+    // 事件类型: job_started/stage_started/stage_progress/stage_completed/warning/error/job_completed
+    std::cout << "  \"events\": [\"job_started\", \"stage_started\", \"stage_progress\", "
+              << "\"stage_completed\", \"warning\", \"error\", \"job_completed\"],"
               << std::endl;
     std::cout << "  \"stdout_format\": \"jsonl\"," << std::endl;
     std::cout << "  \"stderr_format\": \"human_readable_log\"," << std::endl;
@@ -1837,10 +1836,10 @@ int CliCommand::cmd_request(const std::string& request_path,
 
     LOG_INFO("cli", "effective_config_hash=" + ec.effective_config_hash);
 
-    // 输出 accepted 事件 (含 effective_config_hash)
+    // 输出 job_started 事件 (含 effective_config_hash)
     std::string accepted_result = "{\"effective_config_hash\":\"" + ec.effective_config_hash
                                 + "\",\"job_id\":\"" + json_escape(job_id) + "\"}";
-    output_jsonl_event("accepted", job_id, "", -1.0,
+    output_jsonl_event("job_started", job_id, "", -1.0,
                        "request accepted, effective_config computed", accepted_result);
 
     // 根据 command 分发
@@ -1940,7 +1939,7 @@ int CliCommand::cmd_request(const std::string& request_path,
                                   ",\"output\":\"" + json_escape(output) + "\""
                                   + ",\"hash\":\"" + output_hash + "\"");
 
-            output_jsonl_event("completed", job_id, "", 1.0,
+            output_jsonl_event("job_completed", job_id, "", 1.0,
                              "request completed successfully", result_oss.str());
             return AstroCsExitCode::SUCCESS;
         } else {
@@ -2008,7 +2007,7 @@ int CliCommand::cmd_request(const std::string& request_path,
                                   -1, -1.0, "ok",
                                   ",\"output\":\"" + json_escape(output) + "\""
                                   + ",\"hash\":\"" + output_hash + "\"");
-            output_jsonl_event("completed", job_id, "", 1.0,
+            output_jsonl_event("job_completed", job_id, "", 1.0,
                              "request completed successfully", result_oss.str());
             return AstroCsExitCode::SUCCESS;
         } else {
@@ -2035,12 +2034,12 @@ int CliCommand::cmd_request(const std::string& request_path,
         std::ostringstream result_oss;
         result_oss << "{\"effective_config_hash\":\"" << ec.effective_config_hash
                    << "\",\"config\":" << ec.config_json << "}";
-        output_jsonl_event("completed", job_id, "", 1.0,
+        output_jsonl_event("job_completed", job_id, "", 1.0,
                          "inspect completed (no task executed)", result_oss.str());
         return AstroCsExitCode::SUCCESS;
     } else if (command == "capabilities") {
         // capabilities 命令
-        output_jsonl_event("completed", job_id, "", 1.0,
+        output_jsonl_event("job_completed", job_id, "", 1.0,
                          "capabilities query");
         cmd_capabilities();
         return AstroCsExitCode::SUCCESS;
