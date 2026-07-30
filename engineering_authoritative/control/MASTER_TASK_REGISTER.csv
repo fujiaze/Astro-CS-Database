@@ -7,9 +7,9 @@ B-001,B,选择T1-T4代表帧与固定配置,A-004,DONE
 B-002,B,完成代表帧Stage1并输出科学统计,B-001,DONE
 B-003,B,验证PlateSolve回投、测光、SNR和Drizzle一致性,B-002,DONE
 C-001,C,冻结HISS v2 signal/support/SNR/provenance契约,B-003,DONE
-C-002,C,实现HISS分块索引、压缩、校验与batch read,C-001,IN_PROGRESS
-C-003,C,实现HISS inspector和往返/损坏测试,C-002,TODO
-C-004,C,浏览器显示HISS signal、SNR点和support,C-002,TODO
+C-002,C,实现HISS分块索引、压缩、校验与batch read,C-001,DONE
+C-003,C,实现HISS inspector和往返/损坏测试,C-002,IN_PROGRESS
+C-004,C,浏览器显示HISS signal、SNR点和support,C-002,IN_PROGRESS
 D-001,D,同一天区多帧HISS球面重合与光度一致性,"C-003,C-004",TODO
 E-001,E,实现星点/饱和/异常掩膜和稀疏控制点采样,D-001,TODO
 E-002,E,实现局部SNR²/逆方差联合拟合权重,E-001,TODO

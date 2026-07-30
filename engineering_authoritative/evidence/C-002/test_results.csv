@@ -1,0 +1,38 @@
+test,passed,detail
+转换 T2_RED_LDN43,1,ret=0 v1_npix=1573 v2_size=43291
+转换 T3_RED_NGC55,1,ret=0 v1_npix=1535 v2_size=19012
+转换 T4_RED_GalaxyCenter_panel1,1,ret=0 v1_npix=3928 v2_size=56560
+全局CRC T2_RED_LDN43,1,global_crc=0x6652eca9 n_chunks=1 has_snr=True
+全局CRC T3_RED_NGC55,1,global_crc=0x84319194 n_chunks=1 has_snr=True
+全局CRC T4_RED_GalaxyCenter_panel1,1,global_crc=0x0bc97433 n_chunks=1 has_snr=True
+provenance T2_RED_LDN43,1,fv=HISS-V2 nside=2048 n_chunks=1
+provenance T3_RED_NGC55,1,fv=HISS-V2 nside=2048 n_chunks=1
+provenance T4_RED_GalaxyCenter_panel1,1,fv=HISS-V2 nside=512 n_chunks=1
+read_chunk T2_RED_LDN43,1,raw_count=1573 ipix_eq=True signal_eq=True support_all1=True signal_dtype=float32
+read_chunk T3_RED_NGC55,1,raw_count=1535 ipix_eq=True signal_eq=True support_all1=True signal_dtype=float32
+read_chunk T4_RED_GalaxyCenter_panel1,1,raw_count=3928 ipix_eq=True signal_eq=True support_all1=True signal_dtype=float32
+read_chunks T2_RED_LDN43,1,total=1573 expected=1573
+read_chunks T3_RED_NGC55,1,total=1535 expected=1535
+read_chunks T4_RED_GalaxyCenter_panel1,1,total=3928 expected=3928
+ipix_range T2_RED_LDN43,1,full=1573/1573 sub=787/787 empty=0
+ipix_range T3_RED_NGC55,1,full=1535/1535 sub=768/768 empty=0
+ipix_range T4_RED_GalaxyCenter_panel1,1,full=3928/3928 sub=1965/1965 empty=0
+leaf T2_RED_LDN43,1,leaf_ipix=30727 count=415 expected=415
+leaf T3_RED_NGC55,1,leaf_ipix=35501 count=78 expected=78
+leaf T4_RED_GalaxyCenter_panel1,1,leaf_ipix=29111 count=12 expected=12
+snr T2_RED_LDN43,1,n=1930 ra_eq=True dec_eq=True snr_eq=True scal_eq=True bytes_exact=True has_nan=True
+snr T3_RED_NGC55,1,n=617 ra_eq=True dec_eq=True snr_eq=True scal_eq=True bytes_exact=True has_nan=True
+snr T4_RED_GalaxyCenter_panel1,1,n=1984 ra_eq=True dec_eq=True snr_eq=True scal_eq=True bytes_exact=True has_nan=True
+read_all T2_RED_LDN43,1,n_pix=1573 has_snr=True
+read_all T3_RED_NGC55,1,n_pix=1535 has_snr=True
+read_all T4_RED_GalaxyCenter_panel1,1,n_pix=3928 has_snr=True
+corrupt T2_RED_LDN43,1,flip@677 code=-4 (期望 -4)
+corrupt T3_RED_NGC55,1,flip@672 code=-4 (期望 -4)
+corrupt T4_RED_GalaxyCenter_panel1,1,flip@687 code=-4 (期望 -4)
+multi-chunk T2_RED_LDN43,1,n_chunks=4/4 total=1573 chunk0_rc=512
+err -1 文件不存在,1,code=-1
+err -2 magic不匹配,1,code=-2
+err -8 footer截断,1,code=-8
+magic T2_RED_LDN43,1,v1=b'HISS' v2=b'HI2S'
+magic T3_RED_NGC55,1,v1=b'HISS' v2=b'HI2S'
+magic T4_RED_GalaxyCenter_panel1,1,v1=b'HISS' v2=b'HI2S'
