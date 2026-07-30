@@ -60,11 +60,11 @@ from typing import Any, Dict, List, Optional, Tuple
 PROJECT_ROOT = Path(r"f:\Astro dev\Astro CS Normalization Database")
 ORCH_EXE = PROJECT_ROOT / "lib" / "orchestrator" / "cpp" / "orchestrator.exe"
 STAGE1_CONFIG_BASE = PROJECT_ROOT / "lib" / "orchestrator" / "configs" / "stage1_config.json"
-DEVICE_CONFIG_DIR = PROJECT_ROOT / "engineering_v1.3" / "evidence" / "P12-004" / "scripts"
+DEVICE_CONFIG_DIR = PROJECT_ROOT / "lib" / "orchestrator" / "configs"
 FILTERS_JSON = PROJECT_ROOT / "lib" / "photometric_calib" / "data" / "response_curves" / "filters.json"
 QE_CURVES_JSON = PROJECT_ROOT / "lib" / "photometric_calib" / "data" / "response_curves" / "qe_curves.json"
 GAIA_DATA_DIR = "GaiaDR3SP"
-EVIDENCE_DIR = PROJECT_ROOT / "engineering_v1.3" / "evidence" / "P13-001"
+EVIDENCE_DIR = PROJECT_ROOT / "output" / "p13-001"
 SCRIPTS_DIR = EVIDENCE_DIR / "scripts"
 RAW_LOGS_DIR = EVIDENCE_DIR / "raw_logs"
 REPORTS_DIR = EVIDENCE_DIR / "reports"
