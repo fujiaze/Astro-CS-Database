@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Stage2 job",
+  "type": "object",
+  "required": [
+    "inputs",
+    "filter",
+    "gradient",
+    "rejection",
+    "stack"
+  ],
+  "properties": {
+    "inputs": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "string"
+      }
+    },
+    "filter": {
+      "type": "string"
+    },
+    "gradient": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "const": "additive_global_consensus"
+        },
+        "snr_weighted": {
+          "const": true
+        }
+      }
+    },
+    "debug_quality_layers": {
+      "type": "boolean",
+      "default": false
+    },
+    "rejection": {
+      "type": "object"
+    },
+    "stack": {
+      "type": "object"
+    }
+  }
+}

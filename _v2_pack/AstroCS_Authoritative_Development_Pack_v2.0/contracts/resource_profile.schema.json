@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Frame resource profile",
+  "type": "object",
+  "required": [
+    "frame_id",
+    "stage",
+    "predicted_peak_bytes",
+    "uncertainty_bytes"
+  ],
+  "properties": {
+    "frame_id": {
+      "type": "string"
+    },
+    "stage": {
+      "type": "string"
+    },
+    "predicted_peak_bytes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "uncertainty_bytes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "actual_peak_bytes": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "cpu_intensity": {
+      "type": "number"
+    },
+    "io_intensity": {
+      "type": "number"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+project: AstroCS
+package_version: 2.0
+ssot: README.md
+current_gate: A
+current_task: A-001
+status: READY
+full_regression_allowed: false
+frozen_rules:
+  - stage2_additive_only
+  - global_consensus_surface_snr2_weighted
+  - same_filter_only
+  - debug_quality_layers_default_off
+  - browser_is_scientific_inspector
+  - resource_aware_admission
+  - no_710_before_gate_I
+legacy_assets:
+  previous_hiss_281: debug_only
+  mixed_filter_hcsd: non_acceptance_evidence
+  browser_cli_fps: non_gui_evidence
