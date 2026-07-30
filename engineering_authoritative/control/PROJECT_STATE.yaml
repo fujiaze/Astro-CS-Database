@@ -1,8 +1,8 @@
 project: AstroCS
 package_version: 2.0
 ssot: README.md
-current_gate: E
-current_task: E-001
+current_gate: G
+current_task: G-001
 status: ACTIVE
 full_regression_allowed: false
 frozen_rules:
