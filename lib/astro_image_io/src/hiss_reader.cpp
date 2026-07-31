@@ -27,6 +27,7 @@
 // ============================================================================
 #include "hiss_format.h"
 #include "aio_util.h"  // aio_fopen_utf8 (UTF-8 路径支持)
+#include "hiss_transform.h"  // WP-G 步骤12: inverse_transform (解压后逆向变换)
 
 // Windows 头文件 (windows.h, 经 aio_util.h 引入) 中 OPTIONAL 被定义为空宏,
 // 与 hiss::SubblockFlags::OPTIONAL 冲突。取消定义以恢复枚举值可用。
@@ -287,10 +288,13 @@ struct HissReader::Impl {
 
     // ---- 内部方法 ----
 
-    // 读取子块数据 (解压 + 校验)
+    // 读取子块数据 (解压 + 校验 + 逆向变换)
+    // WP-G 步骤12: 解压后若 transform_id != NONE, 执行 inverse_transform 还原原始数据
+    // element_size - 元素大小 (供 transform 使用, 如 signal=4, support=1)
     // 返回 0=成功, <0=失败 (错误码见任务规范)
     int read_subblock(const HissSubblockDescriptor& desc,
-                      std::vector<uint8_t>& out) const {
+                      std::vector<uint8_t>& out,
+                      size_t element_size = 1) const {
         // a. 检查 offset + compressed_size 越界
         if (desc.offset + desc.compressed_size > filesize) {
             fprintf(stderr, "[hiss][reader] 子块越界: offset=%llu size=%llu filesize=%llu\n",
@@ -357,11 +361,52 @@ struct HissReader::Impl {
             return -4;
         }
 
-        // f. 反向变换检查 (目前不支持任何变换)
+        // f. WP-G 步骤12: 逆向变换 (解压后执行)
+        //    若 transform_id != NONE, 调用 inverse_transform 还原原始数据
+        //    对于大小保持变换 (NONE/BYTE_SHUFFLE/DELTA): expected_output_size = out.size()
+        //    对于 DELTA_VARINT: expected_output_size = 0 (从数据前缀 n_elements 自动确定)
         if (desc.transform_id != TransformId::NONE) {
-            fprintf(stderr, "[hiss][reader] transform_id=%u 不支持\n",
-                    (unsigned)desc.transform_id);
-            return -6;
+            TransformType tt = transform_id_to_type(desc.transform_id);
+
+            // 确定期望输出大小
+            // DELTA_VARINT 的输出大小编码在数据前缀中, 传 0 让 inverse 自动确定
+            // 其他变换的输出大小 == 输入大小 (大小保持)
+            size_t expected = (tt == TransformType::DELTA_VARINT) ? 0 : out.size();
+
+            std::vector<uint8_t> restored = inverse_transform(
+                tt, out.data(), out.size(), element_size, expected);
+
+            // 校验逆向变换结果
+            // DELTA_VARINT 的 n_elements=0 时输出为空 (有效), 其他情况空输出=错误
+            bool is_error = false;
+            if (restored.empty() && !out.empty()) {
+                if (tt == TransformType::DELTA_VARINT && out.size() >= 4) {
+                    // 检查 n_elements 是否为 0 (有效的空输出)
+                    uint32_t n_elem = (uint32_t)out[0] | ((uint32_t)out[1] << 8) |
+                                      ((uint32_t)out[2] << 16) | ((uint32_t)out[3] << 24);
+                    if (n_elem != 0) {
+                        is_error = true;  // n_elements>0 但输出空 = 错误
+                    }
+                    // n_elements=0: 空输出是有效的, 不算错误
+                } else {
+                    is_error = true;  // 其他变换: 非空输入产生空输出 = 错误
+                }
+            }
+
+            if (is_error) {
+                fprintf(stderr,
+                        "[hiss][reader] inverse_transform 失败: type=%s(%u) input_size=%zu "
+                        "element_size=%zu\n",
+                        transform_type_name(tt), (unsigned)desc.transform_id,
+                        out.size(), element_size);
+                return -6;
+            }
+
+            out = std::move(restored);
+
+            fprintf(stderr,
+                    "[hiss][reader]   inverse_transform %s: %zu → %zu 字节 (element_size=%zu)\n",
+                    transform_type_name(tt), desc.uncompressed_size, out.size(), element_size);
         }
 
         return 0;
@@ -671,13 +716,15 @@ int HissReader::read_tile(uint64_t parent_ipix,
     }
 
     // 读取并解压 SIGNAL (紧凑或全长度)
+    // WP-G 步骤12: element_size=4 (float32), 支持 transform 逆向
     std::vector<uint8_t> sig_raw;
-    int ret = impl.read_subblock(*sig_desc, sig_raw);
+    int ret = impl.read_subblock(*sig_desc, sig_raw, sizeof(float));
     if (ret != 0) return ret;
 
     // 读取并解压 SUPPORT (紧凑或全长度)
+    // WP-G 步骤12: element_size=1 (uint8)
     std::vector<uint8_t> sup_raw;
-    ret = impl.read_subblock(*sup_desc, sup_raw);
+    ret = impl.read_subblock(*sup_desc, sup_raw, sizeof(uint8_t));
     if (ret != 0) return ret;
 
     // 转换 signal: float32 数组 (紧凑)
@@ -759,7 +806,7 @@ int HissReader::read_tile(uint64_t parent_ipix,
             return -5;
         }
         std::vector<uint8_t> occ_raw;
-        ret = impl.read_subblock(*occ_desc, occ_raw);
+        ret = impl.read_subblock(*occ_desc, occ_raw, sizeof(uint32_t));  // WP-G: element_size=4 (uint32 索引)
         if (ret != 0) return ret;
 
         // 索引列表: uint32 数组 (升序)
@@ -812,7 +859,7 @@ int HissReader::read_tile_signal(uint64_t parent_ipix,
     }
 
     std::vector<uint8_t> sig_raw;
-    int ret = impl.read_subblock(*sig_desc, sig_raw);
+    int ret = impl.read_subblock(*sig_desc, sig_raw, sizeof(float));  // WP-G: element_size=4 (float32)
     if (ret != 0) return ret;
 
     size_t n_sig = sig_raw.size() / sizeof(float);
@@ -838,8 +885,10 @@ int HissReader::read_tile_signal(uint64_t parent_ipix,
         signal = std::move(signal_compact);
         return 0;
     }
+    // WP-G 步骤12: SPARSE_LIST 的 occupancy 为 uint32 索引数组 (element_size=4)
+    size_t occ_elem_size = (tile.occ_mode == OccupancyMode::SPARSE_LIST) ? sizeof(uint32_t) : 1;
     std::vector<uint8_t> occ_raw;
-    ret = impl.read_subblock(*occ_desc, occ_raw);
+    ret = impl.read_subblock(*occ_desc, occ_raw, occ_elem_size);
     if (ret != 0) return ret;
 
     signal.assign(n_leaf_per_tile, 0.0f);
@@ -905,8 +954,10 @@ int HissReader::read_tile_support(uint64_t parent_ipix,
         support = std::move(support_compact);
         return 0;
     }
+    // WP-G 步骤12: SPARSE_LIST 的 occupancy 为 uint32 索引数组 (element_size=4)
+    size_t occ_elem_size = (tile.occ_mode == OccupancyMode::SPARSE_LIST) ? sizeof(uint32_t) : 1;
     std::vector<uint8_t> occ_raw;
-    ret = impl.read_subblock(*occ_desc, occ_raw);
+    ret = impl.read_subblock(*occ_desc, occ_raw, occ_elem_size);
     if (ret != 0) return ret;
 
     support.assign(n_leaf_per_tile, 0);
@@ -1100,7 +1151,7 @@ int HissReader::query_pixel(double ra, double dec,
             return 0;
         }
         std::vector<uint8_t> occ_raw;
-        ret = impl.read_subblock(*occ_desc, occ_raw);
+        ret = impl.read_subblock(*occ_desc, occ_raw, sizeof(uint32_t));  // WP-G: element_size=4 (uint32 索引)
         if (ret != 0) return ret;
 
         // sparse list: uint32 数组 (升序)

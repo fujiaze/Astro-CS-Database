@@ -88,6 +88,8 @@ $srcFiles += "src/hiss_codec.cpp"
 $srcFiles += "src/hiss_common.cpp"
 # HISS Tile 几何模型 (步骤1: compute_tile_depth/nside, make_tile_geometry)
 $srcFiles += "src/hiss_tile_model.cpp"
+# HISS Transform 正式路径 (WP-G 步骤12: BYTE_SHUFFLE/DELTA/DELTA_VARINT)
+$srcFiles += "src/hiss_transform.cpp"
 # HISS writer (XISF 式 Header + attachments 单体容器)
 $srcFiles += "src/hiss_writer.cpp"
 # HISS 流式写入器 (步骤10: 临时子块池管理, 原子替换)

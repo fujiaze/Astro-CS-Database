@@ -116,7 +116,8 @@ enum class TransformId : uint16_t {
     NONE        = 0,
     BYTE_SHUFFLE = 1,  // 字节重排 (配合 LZ4/Zstd)
     DELTA       = 2,   // 差分编码 (SPARSE_LIST 用)
-    VARINT      = 3,   // 变长整数 (SPARSE_LIST 用)
+    VARINT      = 3,   // 变长整数 (SPARSE_LIST 用, 旧值, 向后兼容映射到 DELTA_VARINT)
+    DELTA_VARINT = 4,  // 差分 + 变长整数组合编码 (WP-G 步骤12 新增)
 };
 
 enum class ChecksumType : uint8_t {
@@ -313,6 +314,11 @@ public:
     HISS_EXPORT void set_experiment_codec(SubblockType type,
                                            CodecId codec,
                                            TransformId transform);
+
+    // 设置实验性 transform (未冻结, 仅供实验, WP-G 步骤12 新增)
+    // 仅修改 transform, 保留已有 codec 设置 (若未设置则默认 RAW)
+    HISS_EXPORT void set_experiment_transform(SubblockType type,
+                                                TransformId transform);
 
 private:
     struct Impl;

@@ -20,6 +20,7 @@
 #include "hiss_format.h"
 #include "hiss_stream_writer.h"
 #include "hiss_tile_model.h"  // make_tile_geometry (用于自动选择时的 n_leaf_per_tile)
+#include "hiss_transform.h"   // WP-G 步骤12: apply_transform (压缩前正向变换)
 
 #include <cstdio>
 #include <cerrno>
@@ -72,6 +73,7 @@ struct HissWriter::Impl {
 // 内部辅助: 压缩子块并追加到流式写入器
 //   返回 0=成功, <0=失败; 成功时 desc 已填充 (offset/size/codec 等)
 //   依据步骤10: 压缩后立即写入临时池, 不保留 compressed_data 在内存
+//   依据步骤12 (WP-G): 在压缩前执行 apply_transform (若 transform_id != NONE)
 // ---------------------------------------------------------------------------
 
 static int compress_and_append(HissStreamWriter& stream,
@@ -79,7 +81,38 @@ static int compress_and_append(HissStreamWriter& stream,
                                 uint16_t flags,
                                 const uint8_t* data, size_t data_size,
                                 CodecId codec_id, TransformId transform_id,
+                                size_t element_size,
                                 HissSubblockDescriptor& desc) {
+    // WP-G 步骤12: 在压缩前执行正向变换 (若 transform_id != NONE)
+    // 变换后的数据作为压缩输入, uncompressed_size 记录变换后大小
+    std::vector<uint8_t> transformed;
+    const uint8_t* data_to_compress = data;
+    size_t size_to_compress = data_size;
+
+    if (transform_id != TransformId::NONE) {
+        TransformType tt = transform_id_to_type(transform_id);
+        transformed = apply_transform(tt, data, data_size, element_size);
+
+        // 校验: 非空输入变换后不应为空 (空输入的 DELTA_VARINT 输出 4 字节, 不为空)
+        if (transformed.empty() && data_size > 0) {
+            fprintf(stderr,
+                    "[hiss][writer] compress_and_append: transform 失败 type=%s(%u) "
+                    "element_size=%zu data_size=%zu\n",
+                    transform_type_name(tt), (unsigned)transform_id,
+                    element_size, data_size);
+            return -1;
+        }
+        // 空输入 + DELTA_VARINT: transformed 为 4 字节 [0,0,0,0], data_size=0
+        // 这是有效情况, 继续处理
+
+        data_to_compress = transformed.data();
+        size_to_compress = transformed.size();
+
+        fprintf(stderr,
+                "[hiss][writer]   transform %s: %zu → %zu 字节 (element_size=%zu)\n",
+                transform_type_name(tt), data_size, size_to_compress, element_size);
+    }
+
     // 查找 codec
     const CodecEntry* entry = CodecRegistry::instance().find(codec_id);
     if (!entry) {
@@ -88,11 +121,12 @@ static int compress_and_append(HissStreamWriter& stream,
         return -1;
     }
 
-    // 分配压缩缓冲区并压缩
-    size_t bound = entry->bound(data_size);
+    // 分配压缩缓冲区并压缩 (基于变换后大小)
+    size_t bound = entry->bound(size_to_compress);
     std::vector<uint8_t> compressed(bound);
     size_t compressed_size = bound;
-    int ret = entry->compress(data, data_size, compressed.data(), &compressed_size);
+    int ret = entry->compress(data_to_compress, size_to_compress,
+                               compressed.data(), &compressed_size);
     if (ret != 0) {
         fprintf(stderr, "[hiss][writer] compress_and_append: 压缩失败 ret=%d (codec=%u type=%u)\n",
                 ret, (unsigned)codec_id, (unsigned)type);
@@ -100,11 +134,12 @@ static int compress_and_append(HissStreamWriter& stream,
     }
 
     // 填充描述符 (offset 由 stream.append_subblock 回填)
+    // uncompressed_size = 变换后大小 (压缩前大小), Reader 解压后需 inverse_transform 还原
     desc.type              = type;
     desc.flags             = flags;
     desc.offset            = 0;  // append_subblock 回填
     desc.compressed_size   = compressed_size;
-    desc.uncompressed_size = data_size;
+    desc.uncompressed_size = size_to_compress;  // WP-G: 变换后大小
     desc.codec_id          = codec_id;
     desc.transform_id      = transform_id;
     desc.checksum_type     = ChecksumType::NONE;  // 默认 NONE, 实验时可扩展
@@ -121,7 +156,7 @@ static int compress_and_append(HissStreamWriter& stream,
     fprintf(stderr,
             "[hiss][writer]   子块 type=%u flags=0x%04x uncompressed=%zu compressed=%zu "
             "codec=%u transform=%u offset=%llu\n",
-            (unsigned)type, flags, data_size, compressed_size,
+            (unsigned)type, flags, size_to_compress, compressed_size,
             (unsigned)codec_id, (unsigned)transform_id,
             (unsigned long long)desc.offset);
     return 0;
@@ -318,7 +353,11 @@ int HissWriter::add_tile(uint64_t parent_ipix,
     std::vector<HissSubblockDescriptor> subblocks;
 
     // 5a. occupancy 子块 (FULL 时省略; BITMAP/SPARSE_LIST 时生成)
+    //     WP-G 步骤12: 传递 element_size 供 transform 使用
+    //       BITMAP: element_size=1 (原始字节, 位图)
+    //       SPARSE_LIST: element_size=4 (uint32 索引数组, delta/varint 有意义)
     if (auto_mode != OccupancyMode::FULL) {
+        size_t occ_elem_size = (auto_mode == OccupancyMode::SPARSE_LIST) ? 4 : 1;
         HissSubblockDescriptor desc;
         int ret = compress_and_append(
             pimpl_->stream,
@@ -327,12 +366,14 @@ int HissWriter::add_tile(uint64_t parent_ipix,
             occ_data.data(), occ_data.size(),
             pimpl_->codec_for(SubblockType::OCCUPANCY),
             pimpl_->transform_for(SubblockType::OCCUPANCY),
+            occ_elem_size,
             desc);
         if (ret != 0) return ret;
         subblocks.push_back(desc);
     }
 
     // 5b. signal 子块 (必需) — 只含有效像素的紧凑数组 (BITMAP/SPARSE) 或全长度 (FULL)
+    //     WP-G 步骤12: element_size=sizeof(float)=4, 适用于 BYTE_SHUFFLE/DELTA/DELTA_VARINT
     {
         size_t sig_bytes = signal_compact.size() * sizeof(float);
         HissSubblockDescriptor desc;
@@ -343,12 +384,14 @@ int HissWriter::add_tile(uint64_t parent_ipix,
             (const uint8_t*)signal_compact.data(), sig_bytes,
             pimpl_->codec_for(SubblockType::SIGNAL),
             pimpl_->transform_for(SubblockType::SIGNAL),
+            sizeof(float),  // element_size=4 (float32)
             desc);
         if (ret != 0) return ret;
         subblocks.push_back(desc);
     }
 
     // 5c. support 子块 (必需) — 只含有效像素的紧凑数组 (BITMAP/SPARSE) 或全长度 (FULL)
+    //     WP-G 步骤12: element_size=1 (uint8), BYTE_SHUFFLE 为 no-op, DELTA/DELTA_VARINT 可用
     {
         HissSubblockDescriptor desc;
         int ret = compress_and_append(
@@ -358,6 +401,7 @@ int HissWriter::add_tile(uint64_t parent_ipix,
             support_compact.data(), support_compact.size(),
             pimpl_->codec_for(SubblockType::SUPPORT),
             pimpl_->transform_for(SubblockType::SUPPORT),
+            sizeof(uint8_t),  // element_size=1 (uint8)
             desc);
         if (ret != 0) return ret;
         subblocks.push_back(desc);
@@ -367,6 +411,7 @@ int HissWriter::add_tile(uint64_t parent_ipix,
     //     冻结布局 (02_FROZEN §17 + 00_COMMON_CONTRACTS §2.5):
     //       [n_points: uint32][points: n_points * 8B]
     //       每点: local_ipix(uint32) + snr(float32) = 8 字节
+    //     WP-G 步骤12: SNR 为混合布局, element_size=1 (transform 一般不适用于 SNR)
     if (snr) {
         uint32_t n_points = (uint32_t)snr->points.size();
         size_t snr_bytes = 4 + (size_t)n_points * 8;
@@ -385,6 +430,7 @@ int HissWriter::add_tile(uint64_t parent_ipix,
             snr_data.data(), snr_data.size(),
             pimpl_->codec_for(SubblockType::SNR),
             pimpl_->transform_for(SubblockType::SNR),
+            1,  // element_size=1 (混合布局, 按字节处理)
             desc);
         if (ret != 0) return ret;
         subblocks.push_back(desc);
@@ -457,6 +503,23 @@ void HissWriter::set_experiment_codec(SubblockType type,
     fprintf(stderr,
             "[hiss][writer] set_experiment_codec: type=%u codec=%u transform=%u\n",
             (unsigned)type, (unsigned)codec, (unsigned)transform);
+}
+
+// ---------------------------------------------------------------------------
+// set_experiment_transform (WP-G 步骤12 新增)
+//   仅设置 transform, 保留已有 codec (若未设置则默认 RAW)
+//   与 set_experiment_codec 类似, 但只修改 transform 部分
+// ---------------------------------------------------------------------------
+
+void HissWriter::set_experiment_transform(SubblockType type,
+                                           TransformId transform) {
+    auto& entry = pimpl_->experiment_codecs[type];
+    // 保留已有 codec (entry.first), 仅更新 transform (entry.second)
+    // 若该 type 未设置过 codec, entry.first 默认为 CodecId::RAW (0)
+    entry.second = transform;
+    fprintf(stderr,
+            "[hiss][writer] set_experiment_transform: type=%u transform=%u (codec=%u 保持)\n",
+            (unsigned)type, (unsigned)transform, (unsigned)entry.first);
 }
 
 } // namespace hiss
