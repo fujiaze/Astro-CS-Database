@@ -86,8 +86,12 @@ $srcFiles += "src/hiss_codec.cpp"
 # HISS 共享方法 (compute_tile_*, DrizzleTileAccumulator::finalize_*, HissMetadata::to_json/from_json)
 # 集中在此文件避免 Writer/Reader 重复定义
 $srcFiles += "src/hiss_common.cpp"
+# HISS Tile 几何模型 (步骤1: compute_tile_depth/nside, make_tile_geometry)
+$srcFiles += "src/hiss_tile_model.cpp"
 # HISS writer (XISF 式 Header + attachments 单体容器)
 $srcFiles += "src/hiss_writer.cpp"
+# HISS 流式写入器 (步骤10: 临时子块池管理, 原子替换)
+$srcFiles += "src/hiss_stream_writer.cpp"
 # HISS reader (按目录读取, 按需加载 Tile)
 $srcFiles += "src/hiss_reader.cpp"
 

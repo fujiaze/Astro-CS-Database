@@ -8,7 +8,9 @@ SRCS = $(SRC_DIR)/aio_fits.cpp $(SRC_DIR)/aio_xisf.cpp \
        $(SRC_DIR)/aio_compressor.cpp \
        $(SRC_DIR)/hiss_codec.cpp \
        $(SRC_DIR)/hiss_common.cpp \
+       $(SRC_DIR)/hiss_tile_model.cpp \
        $(SRC_DIR)/hiss_writer.cpp \
+       $(SRC_DIR)/hiss_stream_writer.cpp \
        $(SRC_DIR)/hiss_reader.cpp \
        $(AHPX_DIR)/aio_ahpx_writer.cpp $(AHPX_DIR)/aio_ahpx_reader.cpp $(AHPX_DIR)/aio_ahpx_api.cpp \
        $(SRC_DIR)/aio_pipeline.cpp \

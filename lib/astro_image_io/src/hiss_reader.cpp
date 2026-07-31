@@ -28,6 +28,16 @@
 #include "hiss_format.h"
 #include "aio_util.h"  // aio_fopen_utf8 (UTF-8 路径支持)
 
+// Windows 头文件 (windows.h, 经 aio_util.h 引入) 中 OPTIONAL 被定义为空宏,
+// 与 hiss::SubblockFlags::OPTIONAL 冲突。取消定义以恢复枚举值可用。
+// REQUIRED 在 Windows 头中通常未定义, 但为安全起见一并取消。
+#ifdef OPTIONAL
+#undef OPTIONAL
+#endif
+#ifdef REQUIRED
+#undef REQUIRED
+#endif
+
 #include <cstring>
 #include <cstdio>
 #include <cstdint>
@@ -243,6 +253,22 @@ static uint64_t radec_to_nested_ipix(double ra_deg, double dec_deg, int nside) {
     int bighp, x, y;
     hpx_ang2xy(theta, phi, nside, &bighp, &x, &y);
     return hpx_xy2nest(bighp, x, y, nside);
+}
+
+// ============================================================================
+// 4.1 子块类型校验 (依据 02_FROZEN §13)
+//     已知类型: OCCUPANCY(0), SIGNAL(1), SUPPORT(2), SNR(3), EXTENSION(255)
+//     未知类型: 上述以外的任何值
+//     未知必需子块 → 拒绝 (HISS_ERR_UNKNOWN_REQUIRED)
+//     未知可选子块 → 跳过 (继续处理)
+// ============================================================================
+
+static inline bool is_known_subblock_type(SubblockType type) {
+    return type == SubblockType::OCCUPANCY ||
+           type == SubblockType::SIGNAL    ||
+           type == SubblockType::SUPPORT   ||
+           type == SubblockType::SNR       ||
+           type == SubblockType::EXTENSION;
 }
 
 // ============================================================================
@@ -550,6 +576,45 @@ int HissReader::open(const std::string& path) {
         impl.tiles.push_back(std::move(tile));
     }
 
+    // ---- 3. 全扫描子块目录, 拒绝未知必需子块 (02_FROZEN §13) ----
+    // 已知类型: OCCUPANCY/SIGNAL/SUPPORT/SNR/EXTENSION
+    // 未知必需子块 → 返回 HISS_ERR_UNKNOWN_REQUIRED (-7)
+    // 未知可选子块 → 记录日志并跳过 (继续处理)
+    for (size_t t = 0; t < impl.tiles.size(); t++) {
+        const HissTile& tile = impl.tiles[t];
+        for (const auto& sb : tile.subblocks) {
+            if (!is_known_subblock_type(sb.type)) {
+                bool is_required = (sb.flags & (uint16_t)SubblockFlags::REQUIRED) != 0;
+                bool is_optional = (sb.flags & (uint16_t)SubblockFlags::OPTIONAL) != 0;
+                if (is_required) {
+                    fprintf(stderr,
+                            "[hiss][reader] 拒绝: Tile %zu (parent=%llu) 含未知必需子块 "
+                            "type=%u flags=0x%04x — 返回 HISS_ERR_UNKNOWN_REQUIRED\n",
+                            t, (unsigned long long)tile.parent_ipix,
+                            (unsigned)sb.type, sb.flags);
+                    close();
+                    return HISS_ERR_UNKNOWN_REQUIRED;  // -7
+                }
+                if (is_optional) {
+                    fprintf(stderr,
+                            "[hiss][reader] 跳过: Tile %zu (parent=%llu) 含未知可选子块 "
+                            "type=%u flags=0x%04x (optional, 跳过)\n",
+                            t, (unsigned long long)tile.parent_ipix,
+                            (unsigned)sb.type, sb.flags);
+                } else {
+                    // flags 既无 REQUIRED 也无 OPTIONAL: 视为未知, 拒绝
+                    fprintf(stderr,
+                            "[hiss][reader] 拒绝: Tile %zu (parent=%llu) 含未知子块 "
+                            "type=%u flags=0x%04x (无 required/optional 标记, 视为必需)\n",
+                            t, (unsigned long long)tile.parent_ipix,
+                            (unsigned)sb.type, sb.flags);
+                    close();
+                    return HISS_ERR_UNKNOWN_REQUIRED;  // -7
+                }
+            }
+        }
+    }
+
     fprintf(stderr, "[hiss][reader] 打开成功: %s n_tiles=%u\n",
             path.c_str(), n_tiles);
     return 0;
@@ -571,7 +636,13 @@ const std::vector<HissTile>& HissReader::tiles() const {
 }
 
 // ----------------------------------------------------------------------------
-// read_tile(): 读取 Tile 的 signal + support
+// read_tile(): 读取 Tile 的 signal + support (展开到 n_leaf_per_tile)
+//
+// 步骤11 关键改动:
+//   - FULL: signal/support 数组长度 = n_leaf_per_tile, 直接返回
+//   - BITMAP: 读取 occupancy 位图 + n_valid 个紧凑 signal/support → 展开到 n_leaf_per_tile
+//   - SPARSE_LIST: 读取索引列表 + n_valid 个紧凑 signal/support → 展开到 n_leaf_per_tile
+//   展开后无效像素的 signal=0.0f, support=0
 // ----------------------------------------------------------------------------
 int HissReader::read_tile(uint64_t parent_ipix,
                            std::vector<float>& signal,
@@ -588,7 +659,7 @@ int HissReader::read_tile(uint64_t parent_ipix,
     if (!sig_desc) {
         fprintf(stderr, "[hiss][reader] Tile %llu 无 SIGNAL 子块\n",
                 (unsigned long long)parent_ipix);
-        return -6;  // 未知必需子块 → -6
+        return -6;
     }
 
     // 查找 SUPPORT 子块
@@ -599,31 +670,131 @@ int HissReader::read_tile(uint64_t parent_ipix,
         return -6;
     }
 
-    // 读取并解压 SIGNAL
+    // 读取并解压 SIGNAL (紧凑或全长度)
     std::vector<uint8_t> sig_raw;
     int ret = impl.read_subblock(*sig_desc, sig_raw);
     if (ret != 0) return ret;
 
-    // 读取并解压 SUPPORT
+    // 读取并解压 SUPPORT (紧凑或全长度)
     std::vector<uint8_t> sup_raw;
     ret = impl.read_subblock(*sup_desc, sup_raw);
     if (ret != 0) return ret;
 
-    // 转换 signal: float32 数组
+    // 转换 signal: float32 数组 (紧凑)
     size_t n_sig = sig_raw.size() / sizeof(float);
-    signal.resize(n_sig);
+    std::vector<float> signal_compact(n_sig);
     for (size_t i = 0; i < n_sig; i++) {
-        signal[i] = read_f32_le(sig_raw.data() + i * sizeof(float));
+        signal_compact[i] = read_f32_le(sig_raw.data() + i * sizeof(float));
     }
 
-    // 转换 support: uint8 数组
-    support = std::move(sup_raw);
+    // support 紧凑数组
+    std::vector<uint8_t> support_compact = std::move(sup_raw);
+
+    // 计算 n_leaf_per_tile (依据 02_FROZEN §11, n_leaf = 4^depth)
+    // depth = log2(nside / tile_nside), n_leaf = (nside/tile_nside)^2
+    uint32_t n_leaf_per_tile = 0;
+    if (impl.grid.nside > 0 && tile.tile_nside > 0 && impl.grid.nside >= tile.tile_nside) {
+        uint32_t ratio = impl.grid.nside / tile.tile_nside;
+        if (ratio > 0) {
+            n_leaf_per_tile = ratio * ratio;  // (NSIDE/tile_nside)^2 = 4^depth
+        }
+    }
+    if (n_leaf_per_tile == 0) {
+        // 无法计算 (grid 未初始化或 tile_nside 异常), 退化为紧凑数组直接返回
+        fprintf(stderr,
+                "[hiss][reader] read_tile: n_leaf_per_tile=0 (nside=%u tile_nside=%u), "
+                "退化为紧凑返回\n", impl.grid.nside, tile.tile_nside);
+        signal = std::move(signal_compact);
+        support = std::move(support_compact);
+        return 0;
+    }
+
+    // 根据 occupancy 模式展开
+    if (tile.occ_mode == OccupancyMode::FULL) {
+        // FULL: 数组已是全长度, 直接返回
+        signal = std::move(signal_compact);
+        support = std::move(support_compact);
+    } else if (tile.occ_mode == OccupancyMode::BITMAP) {
+        // BITMAP: 读取 occupancy 位图, 展开紧凑数组到 n_leaf_per_tile
+        const HissSubblockDescriptor* occ_desc = Impl::find_subblock(tile, SubblockType::OCCUPANCY);
+        if (!occ_desc) {
+            fprintf(stderr, "[hiss][reader] Tile %llu BITMAP 模式但无 OCCUPANCY 子块\n",
+                    (unsigned long long)parent_ipix);
+            return -5;
+        }
+        std::vector<uint8_t> occ_raw;
+        ret = impl.read_subblock(*occ_desc, occ_raw);
+        if (ret != 0) return ret;
+
+        // 展开到 n_leaf_per_tile: 无效像素 signal=0, support=0
+        signal.assign(n_leaf_per_tile, 0.0f);
+        support.assign(n_leaf_per_tile, 0);
+        size_t compact_idx = 0;
+        for (uint32_t i = 0; i < n_leaf_per_tile; i++) {
+            size_t byte_idx = i / 8;
+            size_t bit_idx  = i % 8;
+            bool valid = false;
+            if (byte_idx < occ_raw.size()) {
+                valid = (occ_raw[byte_idx] >> bit_idx) & 1;
+            }
+            if (valid) {
+                if (compact_idx < signal_compact.size()) {
+                    signal[i] = signal_compact[compact_idx];
+                }
+                if (compact_idx < support_compact.size()) {
+                    support[i] = support_compact[compact_idx];
+                }
+                compact_idx++;
+            }
+        }
+        fprintf(stderr,
+                "[hiss][reader]   BITMAP 展开: n_leaf=%u compact=%zu expanded=%zu\n",
+                n_leaf_per_tile, compact_idx, signal.size());
+    } else if (tile.occ_mode == OccupancyMode::SPARSE_LIST) {
+        // SPARSE_LIST: 读取索引列表, 展开紧凑数组到 n_leaf_per_tile
+        const HissSubblockDescriptor* occ_desc = Impl::find_subblock(tile, SubblockType::OCCUPANCY);
+        if (!occ_desc) {
+            fprintf(stderr, "[hiss][reader] Tile %llu SPARSE_LIST 模式但无 OCCUPANCY 子块\n",
+                    (unsigned long long)parent_ipix);
+            return -5;
+        }
+        std::vector<uint8_t> occ_raw;
+        ret = impl.read_subblock(*occ_desc, occ_raw);
+        if (ret != 0) return ret;
+
+        // 索引列表: uint32 数组 (升序)
+        size_t n_sparse = occ_raw.size() / sizeof(uint32_t);
+
+        // 展开到 n_leaf_per_tile
+        signal.assign(n_leaf_per_tile, 0.0f);
+        support.assign(n_leaf_per_tile, 0);
+        for (size_t i = 0; i < n_sparse; i++) {
+            uint32_t local_ipix = read_u32_le(occ_raw.data() + i * sizeof(uint32_t));
+            if (local_ipix < n_leaf_per_tile) {
+                if (i < signal_compact.size()) {
+                    signal[local_ipix] = signal_compact[i];
+                }
+                if (i < support_compact.size()) {
+                    support[local_ipix] = support_compact[i];
+                }
+            }
+        }
+        fprintf(stderr,
+                "[hiss][reader]   SPARSE_LIST 展开: n_leaf=%u n_sparse=%zu expanded=%zu\n",
+                n_leaf_per_tile, n_sparse, signal.size());
+    } else {
+        // 未知 occupancy 模式, 退化为紧凑返回
+        fprintf(stderr, "[hiss][reader] read_tile: 未知 occ_mode=%u, 退化为紧凑返回\n",
+                (unsigned)tile.occ_mode);
+        signal = std::move(signal_compact);
+        support = std::move(support_compact);
+    }
 
     return 0;
 }
 
 // ----------------------------------------------------------------------------
-// read_tile_signal(): 只读 signal
+// read_tile_signal(): 只读 signal (展开到 n_leaf_per_tile, 与 read_tile 一致)
 // ----------------------------------------------------------------------------
 int HissReader::read_tile_signal(uint64_t parent_ipix,
                                   std::vector<float>& signal) const {
@@ -645,15 +816,58 @@ int HissReader::read_tile_signal(uint64_t parent_ipix,
     if (ret != 0) return ret;
 
     size_t n_sig = sig_raw.size() / sizeof(float);
-    signal.resize(n_sig);
+    std::vector<float> signal_compact(n_sig);
     for (size_t i = 0; i < n_sig; i++) {
-        signal[i] = read_f32_le(sig_raw.data() + i * sizeof(float));
+        signal_compact[i] = read_f32_le(sig_raw.data() + i * sizeof(float));
+    }
+
+    // 计算 n_leaf_per_tile 并按 occ_mode 展开 (与 read_tile 一致)
+    uint32_t n_leaf_per_tile = 0;
+    if (impl.grid.nside > 0 && tile.tile_nside > 0 && impl.grid.nside >= tile.tile_nside) {
+        uint32_t ratio = impl.grid.nside / tile.tile_nside;
+        if (ratio > 0) n_leaf_per_tile = ratio * ratio;
+    }
+    if (n_leaf_per_tile == 0 || tile.occ_mode == OccupancyMode::FULL) {
+        signal = std::move(signal_compact);
+        return 0;
+    }
+
+    // BITMAP / SPARSE_LIST: 需读 occupancy 展开到 n_leaf_per_tile
+    const HissSubblockDescriptor* occ_desc = Impl::find_subblock(tile, SubblockType::OCCUPANCY);
+    if (!occ_desc) {
+        signal = std::move(signal_compact);
+        return 0;
+    }
+    std::vector<uint8_t> occ_raw;
+    ret = impl.read_subblock(*occ_desc, occ_raw);
+    if (ret != 0) return ret;
+
+    signal.assign(n_leaf_per_tile, 0.0f);
+    if (tile.occ_mode == OccupancyMode::BITMAP) {
+        size_t compact_idx = 0;
+        for (uint32_t i = 0; i < n_leaf_per_tile; i++) {
+            size_t byte_idx = i / 8;
+            size_t bit_idx  = i % 8;
+            bool valid = (byte_idx < occ_raw.size()) && ((occ_raw[byte_idx] >> bit_idx) & 1);
+            if (valid) {
+                if (compact_idx < signal_compact.size()) signal[i] = signal_compact[compact_idx];
+                compact_idx++;
+            }
+        }
+    } else { // SPARSE_LIST
+        size_t n_sparse = occ_raw.size() / sizeof(uint32_t);
+        for (size_t i = 0; i < n_sparse; i++) {
+            uint32_t local_ipix = read_u32_le(occ_raw.data() + i * sizeof(uint32_t));
+            if (local_ipix < n_leaf_per_tile && i < signal_compact.size()) {
+                signal[local_ipix] = signal_compact[i];
+            }
+        }
     }
     return 0;
 }
 
 // ----------------------------------------------------------------------------
-// read_tile_support(): 只读 support
+// read_tile_support(): 只读 support (展开到 n_leaf_per_tile, 与 read_tile 一致)
 // ----------------------------------------------------------------------------
 int HissReader::read_tile_support(uint64_t parent_ipix,
                                    std::vector<uint8_t>& support) const {
@@ -670,19 +884,60 @@ int HissReader::read_tile_support(uint64_t parent_ipix,
         return -6;
     }
 
-    std::vector<uint8_t> sup_raw;
-    int ret = impl.read_subblock(*sup_desc, sup_raw);
+    std::vector<uint8_t> support_compact;
+    int ret = impl.read_subblock(*sup_desc, support_compact);
     if (ret != 0) return ret;
 
-    support = std::move(sup_raw);
+    // 计算 n_leaf_per_tile 并按 occ_mode 展开 (与 read_tile 一致)
+    uint32_t n_leaf_per_tile = 0;
+    if (impl.grid.nside > 0 && tile.tile_nside > 0 && impl.grid.nside >= tile.tile_nside) {
+        uint32_t ratio = impl.grid.nside / tile.tile_nside;
+        if (ratio > 0) n_leaf_per_tile = ratio * ratio;
+    }
+    if (n_leaf_per_tile == 0 || tile.occ_mode == OccupancyMode::FULL) {
+        support = std::move(support_compact);
+        return 0;
+    }
+
+    // BITMAP / SPARSE_LIST: 需读 occupancy 展开到 n_leaf_per_tile
+    const HissSubblockDescriptor* occ_desc = Impl::find_subblock(tile, SubblockType::OCCUPANCY);
+    if (!occ_desc) {
+        support = std::move(support_compact);
+        return 0;
+    }
+    std::vector<uint8_t> occ_raw;
+    ret = impl.read_subblock(*occ_desc, occ_raw);
+    if (ret != 0) return ret;
+
+    support.assign(n_leaf_per_tile, 0);
+    if (tile.occ_mode == OccupancyMode::BITMAP) {
+        size_t compact_idx = 0;
+        for (uint32_t i = 0; i < n_leaf_per_tile; i++) {
+            size_t byte_idx = i / 8;
+            size_t bit_idx  = i % 8;
+            bool valid = (byte_idx < occ_raw.size()) && ((occ_raw[byte_idx] >> bit_idx) & 1);
+            if (valid) {
+                if (compact_idx < support_compact.size()) support[i] = support_compact[compact_idx];
+                compact_idx++;
+            }
+        }
+    } else { // SPARSE_LIST
+        size_t n_sparse = occ_raw.size() / sizeof(uint32_t);
+        for (size_t i = 0; i < n_sparse; i++) {
+            uint32_t local_ipix = read_u32_le(occ_raw.data() + i * sizeof(uint32_t));
+            if (local_ipix < n_leaf_per_tile && i < support_compact.size()) {
+                support[local_ipix] = support_compact[i];
+            }
+        }
+    }
     return 0;
 }
 
 // ----------------------------------------------------------------------------
 // read_tile_snr(): 读取 SNR 控制点
-// SNR 子块解压后布局:
-//   n_points (uint32) + points[n_points × 8B (local_ipix u32 + snr f32)]
-//   + snr_phot (f64) + median_snr (f64) + idw_power (f64)
+// 冻结布局 (02_FROZEN §17 + 00_COMMON_CONTRACTS §2.5):
+//   [n_points: uint32][points: n_points × 8B (local_ipix u32 + snr f32)]
+//   不包含 snr_phot/median_snr/idw_power (估计器状态, 不写入 HISS)
 // ----------------------------------------------------------------------------
 int HissReader::read_tile_snr(uint64_t parent_ipix, HissSnrBlock& snr) const {
     const Impl& impl = *pimpl_;
@@ -704,21 +959,21 @@ int HissReader::read_tile_snr(uint64_t parent_ipix, HissSnrBlock& snr) const {
     if (ret != 0) return ret;
 
     // 解析 SNR 数据
-    // 最小长度: n_points(4) + 3 scalars(24) = 28
-    if (raw.size() < 28) {
-        fprintf(stderr, "[hiss][reader] SNR 数据过短: %zu\n", raw.size());
+    // 最小长度: n_points(4)
+    if (raw.size() < 4) {
+        fprintf(stderr, "[hiss][reader] SNR 数据过短: %zu (最小 4)\n", raw.size());
         return -4;
     }
 
     uint32_t n_points = read_u32_le(raw.data());
-    size_t expected = 4 + (size_t)n_points * 8 + 24;
+    size_t expected = 4 + (size_t)n_points * 8;
     if (raw.size() != expected) {
         fprintf(stderr, "[hiss][reader] SNR 数据长度不匹配: got=%zu expected=%zu (n_points=%u)\n",
                 raw.size(), expected, n_points);
         return -4;
     }
 
-    // 解析控制点
+    // 解析控制点: 每点 local_ipix(u32) + snr(f32) = 8 字节
     snr.points.resize(n_points);
     const uint8_t* p = raw.data() + 4;
     for (uint32_t i = 0; i < n_points; i++) {
@@ -727,10 +982,9 @@ int HissReader::read_tile_snr(uint64_t parent_ipix, HissSnrBlock& snr) const {
         p += 8;
     }
 
-    // 解析 3 个标量
-    snr.snr_phot   = read_f64_le(p); p += 8;
-    snr.median_snr = read_f64_le(p); p += 8;
-    snr.idw_power  = read_f64_le(p);
+    fprintf(stderr,
+            "[hiss][reader]   SNR 子块: 读取 %u 个控制点 (布局: n_points + %llu 字节, 不含估计器状态)\n",
+            n_points, (unsigned long long)((size_t)n_points * 8));
 
     return 0;
 }

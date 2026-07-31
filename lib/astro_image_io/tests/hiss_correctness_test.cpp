@@ -592,6 +592,9 @@ static std::string write_test_hiss(const std::string& base_path,
     meta.tile_nside = grid.tile_nside;
     std::strncpy(meta.object, "CorrectnessTest", sizeof(meta.object) - 1);
     meta.exptime = 60.0;
+    // BUNIT=ASTROCS_RELATIVE_FLUX (默认) 要求 PHOTAPPL=TRUE (Writer 元数据一致性校验)
+    meta.photappl = 1;
+    meta.photscal = 1.0;
 
     hiss::HissWriter w;
     if (w.open(path, grid, meta) != 0) return "";
@@ -688,9 +691,6 @@ static void test_13_independent_read(int id) {
     }
 
     hiss::HissSnrBlock snr;
-    snr.snr_phot = 15.0;
-    snr.median_snr = 12.0;
-    snr.idw_power = 2.0;
     snr.points.push_back({10, 8.5f});
     snr.points.push_back({20, 15.2f});
     snr.points.push_back({30, 22.1f});
@@ -711,22 +711,18 @@ static void test_13_independent_read(int id) {
     ASSERT_TRUE(r.read_tile_support(3, sup) == 0, "独立读取 support");
     ASSERT_TRUE(sup.size() == n_leaf, "support 长度正确");
 
-    // 独立读取 SNR
+    // 独立读取 SNR (冻结布局: n_points + points, 不含估计器状态)
     hiss::HissSnrBlock snr_read;
     int snr_ret = r.read_tile_snr(3, snr_read);
-    if (snr_ret != 0) {
-        // SNR 往返失败: 已知 Writer/Reader 二进制布局不一致 (底层实现 bug, 待修复)
-        // Writer 布局: n_points(4) + points(8*n) + snr_phot(8) + median_snr(8) + idw_power(8) = 52B (3点)
-        // Reader 期望: n_points(4) + points(8*n) = 28B (3点), 未读取三个全局 double
-        // 测试策略: 不修改底层实现 (遵守"不擅自改变算法"约束), 记录为已知问题
-        fprintf(stderr, "  [已知问题] read_tile_snr 返回 %d — Writer/Reader SNR 二进制布局不一致\n", snr_ret);
-        fprintf(stderr, "  Writer 写入 52B (含 snr_phot/median_snr/idw_power 三个 double), Reader 期望 28B (仅 n_points+points)\n");
-        // 软通过: 测试本身 (signal/support 独立读取) 已通过, SNR 问题作为已知限制记录
-        ASSERT_TRUE(true, "SNR 独立读取测试完成 (已知问题: Writer/Reader 布局不一致, 待底层修复)");
-    } else {
-        ASSERT_NEAR(snr_read.snr_phot, snr.snr_phot, 1e-6, "snr_phot 往返一致");
-        ASSERT_NEAR(snr_read.median_snr, snr.median_snr, 1e-6, "median_snr 往返一致");
-        ASSERT_TRUE(snr_read.points.size() == snr.points.size(), "SNR 控制点数量一致");
+    ASSERT_TRUE(snr_ret == 0, "read_tile_snr 返回 0 (布局已修复)");
+
+    // 验证 SNR 控制点往返一致
+    ASSERT_TRUE(snr_read.points.size() == snr.points.size(), "SNR 控制点数量一致");
+    for (size_t i = 0; i < snr.points.size() && i < snr_read.points.size(); i++) {
+        ASSERT_TRUE(snr_read.points[i].local_ipix == snr.points[i].local_ipix,
+                    "SNR 控制点 local_ipix 往返一致");
+        ASSERT_NEAR(snr_read.points[i].snr, snr.points[i].snr, 1e-6f,
+                    "SNR 控制点 snr 往返一致");
     }
 
     r.close();
@@ -849,13 +845,23 @@ static void test_15_unknown_optional_skip(int id) {
     pos += 4;
     // Tile 头
     size_t tile_dir_pos = pos;
+    // n_subblocks 在 tile 头偏移 13 (parent_ipix(8)+tile_nside(4)+occ_mode(1)=13)
     uint16_t n_subblocks;
-    std::memcpy(&n_subblocks, file_data.data() + pos + 12, 2);  // parent_ipix(8)+tile_nside(4)
+    std::memcpy(&n_subblocks, file_data.data() + tile_dir_pos + 13, 2);
     ASSERT_TRUE(n_subblocks >= 2, "原始 Tile 至少有 signal+support 子块");
 
     // 在子块描述符区域之后插入一个未知可选子块描述符
-    size_t subblocks_start = pos + 15;  // tile 头 15 字节
+    size_t subblocks_start = tile_dir_pos + 15;  // tile 头 15 字节
     size_t subblocks_end = subblocks_start + (size_t)n_subblocks * 40;
+
+    // 插入前更新现有子块描述符的 offset (+40), 因 Header 增长 40B 导致数据区后移
+    for (uint16_t i = 0; i < n_subblocks; i++) {
+        size_t off_pos = subblocks_start + (size_t)i * 40 + 3;  // offset 字段在描述符内偏移 3
+        uint64_t old_off;
+        std::memcpy(&old_off, file_data.data() + off_pos, 8);
+        uint64_t new_off = old_off + 40;
+        std::memcpy(file_data.data() + off_pos, &new_off, 8);
+    }
 
     // 构造未知可选子块描述符 (40 字节)
     uint8_t unknown_desc[40] = {0};
@@ -872,9 +878,9 @@ static void test_15_unknown_optional_skip(int id) {
     // 插入到子块描述符末尾
     file_data.insert(file_data.begin() + subblocks_end, unknown_desc, unknown_desc + 40);
 
-    // 更新 n_subblocks
+    // 更新 n_subblocks (偏移 13)
     uint16_t new_n = (uint16_t)(n_subblocks + 1);
-    std::memcpy(file_data.data() + tile_dir_pos + 12, &new_n, 2);
+    std::memcpy(file_data.data() + tile_dir_pos + 13, &new_n, 2);
 
     // 写回文件
     std::ofstream fout(path, std::ios::binary | std::ios::trunc);
@@ -884,10 +890,7 @@ static void test_15_unknown_optional_skip(int id) {
     // Reader 应能打开并跳过未知可选子块, 正常读取 signal/support
     hiss::HissReader r;
     int open_ret = r.open(path);
-    if (open_ret != 0) {
-        // Reader 可能不显式跳过未知子块, 但只要 read_tile 能正常工作即可
-        fprintf(stderr, "  注意: open 返回 %d, 检查 read_tile 是否仍可用\n", open_ret);
-    }
+    ASSERT_TRUE(open_ret == 0, "Reader.open 成功 (跳过未知可选子块)");
 
     std::vector<float> sig;
     std::vector<uint8_t> sup;
@@ -917,7 +920,7 @@ static void test_16_unknown_required_reject(int id) {
     std::string path = write_test_hiss("hiss_test_16", hiss::OccupancyMode::FULL, acc);
     ASSERT_TRUE(!path.empty(), "写入基础 HISS 文件");
 
-    // 读取并修改: 添加一个未知必需子块
+    // 读取并修改: 将 SUPPORT 子块的 type 改为未知值 (201), 保留 REQUIRED flags
     std::ifstream fin(path, std::ios::binary);
     std::vector<uint8_t> file_data((std::istreambuf_iterator<char>(fin)),
                                     std::istreambuf_iterator<char>());
@@ -928,54 +931,42 @@ static void test_16_unknown_required_reject(int id) {
     size_t pos = (size_t)header_offset + 24;
     uint32_t json_len;
     std::memcpy(&json_len, file_data.data() + pos, 4);
-    pos += 4 + json_len;
-    pos += 4;  // n_tiles
+    pos += 4 + json_len + 4;  // 跳过 json + n_tiles
     size_t tile_dir_pos = pos;
+
+    // n_subblocks 在 tile 头偏移 13 (parent_ipix(8)+tile_nside(4)+occ_mode(1)=13)
     uint16_t n_subblocks;
-    std::memcpy(&n_subblocks, file_data.data() + pos + 12, 2);
+    std::memcpy(&n_subblocks, file_data.data() + tile_dir_pos + 13, 2);
+    ASSERT_TRUE(n_subblocks >= 2, "原始 Tile 至少有 signal+support 子块");
 
-    size_t subblocks_end = pos + 15 + (size_t)n_subblocks * 40;
-
-    // 构造未知必需子块描述符
-    uint8_t unknown_req[40] = {0};
-    unknown_req[0] = 201;  // 未知 type
-    uint16_t req_flags = (uint16_t)hiss::SubblockFlags::REQUIRED;
-    std::memcpy(unknown_req + 1, &req_flags, 2);
-    uint64_t fake_offset = file_data.size();
-    std::memcpy(unknown_req + 3, &fake_offset, 8);
-    uint64_t fake_size = 0;
-    std::memcpy(unknown_req + 11, &fake_size, 8);
-    std::memcpy(unknown_req + 19, &fake_size, 8);
-
-    file_data.insert(file_data.begin() + subblocks_end, unknown_req, unknown_req + 40);
-    uint16_t new_n = (uint16_t)(n_subblocks + 1);
-    std::memcpy(file_data.data() + tile_dir_pos + 12, &new_n, 2);
+    // 遍历子块描述符, 找到 SUPPORT (type=2) 并改为未知 type=201
+    size_t desc_start = tile_dir_pos + 15;
+    bool found = false;
+    for (uint16_t i = 0; i < n_subblocks; i++) {
+        size_t desc_off = desc_start + (size_t)i * 40;
+        uint8_t type = file_data[desc_off];
+        if (type == (uint8_t)hiss::SubblockType::SUPPORT) {
+            file_data[desc_off] = 201;
+            found = true;
+            break;
+        }
+    }
+    ASSERT_TRUE(found, "找到 SUPPORT 子块并修改为未知 type");
 
     std::ofstream fout(path, std::ios::binary | std::ios::trunc);
     fout.write((const char*)file_data.data(), file_data.size());
     fout.close();
 
-    // Reader 打开时不应因未知必需子块直接失败 (它在 read_tile 时按需检查)
-    // 但 read_tile 应在遇到未知必需子块时报错
-    // 注: 当前 Reader 实现是按 SubblockType 查找, 未知 type 的必需子块在 read_tile
-    //     中不会被 find_subblock 找到, 但规范要求"未知必需子块拒绝"
+    // Reader.open 应拒绝未知必需子块 (02_FROZEN §13, 全扫描子块目录)
     hiss::HissReader r;
-    r.open(path);
-
-    // read_tile 查找 SIGNAL/SUPPORT, 不会主动检查未知必需子块
-    // 此测试验证: 文件含未知必需子块时, Reader 不应静默接受
-    std::vector<float> sig;
-    std::vector<uint8_t> sup;
-    int read_ret = r.read_tile(5, sig, sup);
+    int open_ret = r.open(path);
+    fprintf(stderr, "  Reader.open 返回 %d (期望 HISS_ERR_UNKNOWN_REQUIRED=%d)\n",
+            open_ret, HISS_ERR_UNKNOWN_REQUIRED);
     r.close();
     std::filesystem::remove(path);
 
-    // 当前实现不会在 read_tile 中扫描未知必需子块 (仅按 type 查找)
-    // 规范要求拒绝, 但实现暂未做全扫描. 记录此行为.
-    fprintf(stderr, "  read_tile 返回 %d (当前实现按 type 查找, 未全扫描未知必需子块)\n", read_ret);
-    // 此测试验证行为: 文件含未知必需子块, Reader 应能识别并拒绝
-    // 如果 read_ret == 0, 说明 Reader 未拒绝 (记录为已知限制)
-    ASSERT_TRUE(true, "未知必需子块测试完成 (行为记录: Reader 按 type 查找, 未主动拒绝未知必需子块)");
+    ASSERT_TRUE(open_ret == HISS_ERR_UNKNOWN_REQUIRED,
+                "未知必需子块 → Reader.open 返回 HISS_ERR_UNKNOWN_REQUIRED (-7)");
 }
 
 // ============================================================================
@@ -1144,6 +1135,7 @@ static void test_20_atomic_commit(int id) {
     hiss::HissMetadata meta;
     meta.nside = grid.nside; meta.tile_nside = grid.tile_nside;
     std::strncpy(meta.object, "AtomicTest", sizeof(meta.object) - 1);
+    meta.photappl = 1; meta.photscal = 1.0;  // BUNIT=ASTROCS_RELATIVE_FLUX 要求 PHOTAPPL=TRUE
 
     hiss::DrizzleTileAccumulator acc;
     acc.tile_nside = 16; acc.parent_ipix = 42;
@@ -1208,6 +1200,7 @@ static void test_21_nested_ipix_recovery(int id) {
 
     hiss::HissMetadata meta;
     meta.nside = nside; meta.tile_nside = tile_nside;
+    meta.photappl = 1; meta.photscal = 1.0;  // BUNIT=ASTROCS_RELATIVE_FLUX 要求 PHOTAPPL=TRUE
 
     // 选择一个 parent_ipix, 填充其所有叶像素
     uint64_t parent_ipix = 5;

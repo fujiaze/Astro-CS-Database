@@ -9,11 +9,17 @@
 
 #include "aio_healpix_io.h"
 
+// WP-E 步骤8: aio_hiss_write/read 改造成新 HissWriter/HissReader 后端
+#include "../../include/hiss_format.h"
+#include "../hiss_tile_model.h"
+
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
+#include <cmath>
 #include <string>
 #include <vector>
+#include <map>
 #include <algorithm>
 
 #include <zstd.h>
@@ -248,92 +254,112 @@ AIO_EXPORT int aio_hiss_write(const char* path, uint32_t nside, int nested,
                        uint64_t n_pix, const uint64_t* ipix,
                        const float* pixel, const float* snr,
                        const char* meta_json) {
-    // 参数校验
+    // WP-E 步骤8: 改造成新 HissWriter 后端 (保持 C API 签名不变)
+    (void)snr;       // 旧API的逐像素SNR在新格式中不直接写入 (新格式用稀疏控制点)
+    (void)meta_json; // 新HissMetadata有自己的JSON序列化, 忽略旧meta_json
+
     if (!path || (n_pix > 0 && (!ipix || !pixel))) {
         fprintf(stderr, "[hio] hiss_write: 无效参数\n");
         return HIO_ERR_PARAM;
     }
-
-    bool has_snr = (snr != nullptr);
-    fprintf(stderr, "[hio] hiss_write: path=%s nside=%u nested=%d n_pix=%llu has_snr=%d\n",
-            path, nside, nested, (unsigned long long)n_pix, has_snr);
-
-    // 1. 构建 JSON 头 (含 has_snr + snr_format=0 字段)
-    std::string jsonStr = hio_build_json(nside, nested, n_pix, has_snr, 0, 0, meta_json);
-    uint32_t jsonLen = (uint32_t)jsonStr.size();
-
-    // 2. 用 zstd 压缩 JSON 头
-    std::vector<uint8_t> compJson;
-    size_t compJsonLen = hio_zstd_compress(jsonStr.data(), jsonLen, compJson, ZSTD_LEVEL);
-    if (compJsonLen == 0) {
-        fprintf(stderr, "[hio] hiss_write: JSON 头压缩失败\n");
-        return HIO_ERR_ZSTD;
+    if (!nested) {
+        fprintf(stderr, "[hio] hiss_write: HISS 要求 NESTED ordering, RING 不支持\n");
+        return HIO_ERR_PARAM;
     }
-    uint32_t compLen = (uint32_t)compJsonLen;
 
-    fprintf(stderr, "[hio] hiss_write: JSON 头 %u -> %u 字节 (zstd level=%d, snr_format=0)\n",
-            jsonLen, compLen, ZSTD_LEVEL);
+    fprintf(stderr, "[hio] hiss_write (新HissWriter后端): path=%s nside=%u n_pix=%llu\n",
+            path, nside, (unsigned long long)n_pix);
 
-    // 3. 打开文件
-    FILE* fp = hio_fopen_utf8(path, "wb");
-    if (!fp) {
-        fprintf(stderr, "[hio] hiss_write: 无法创建文件: %s\n", path);
+    if (n_pix == 0) {
+        // 空数据, 仍创建文件 (含 Header, 无 Tile)
+        hiss::HissGridSpec grid;
+        grid.nside = nside;
+        grid.tile_nside = hiss::compute_tile_nside(nside);
+        grid.ordering = 1;
+        grid.radesys = 0;
+        grid.pixfrac = 1.0;
+        hiss::HissMetadata hmeta;
+        hmeta.nside = nside;
+        hmeta.tile_nside = grid.tile_nside;
+        hiss::HissWriter writer;
+        if (writer.open(path, grid, hmeta) != 0) return HIO_ERR_FILE;
+        if (writer.finalize() != 0) return HIO_ERR_FILE;
+        return HIO_OK;
+    }
+
+    // 1. 计算 Tile 几何 (02_FROZEN §11)
+    uint32_t depth = hiss::compute_tile_depth(nside);
+    uint32_t tile_nside = hiss::compute_tile_nside(nside);
+    uint32_t n_leaf_per_tile = 1u << (2 * depth);
+    int shift = 2 * (int)depth;
+    // A_p = 4π / (12 * NSIDE²) (球面度)
+    const double kPi = 3.14159265358979323846;
+    double A_p = 4.0 * kPi / (12.0 * (double)nside * (double)nside);
+
+    // 2. 按 Tile 父像素分组 (NESTED 位运算)
+    struct TileGroup {
+        uint64_t parent_ipix = 0;
+        std::vector<std::pair<uint32_t, float>> pixels;
+    };
+    std::map<uint64_t, TileGroup> tile_groups;
+    for (uint64_t i = 0; i < n_pix; i++) {
+        uint64_t gipix = ipix[i];
+        uint64_t parent = (shift > 0) ? (gipix >> shift) : gipix;
+        uint32_t local  = (shift > 0) ? (uint32_t)(gipix & ((1ULL << shift) - 1)) : 0;
+        tile_groups[parent].parent_ipix = parent;
+        tile_groups[parent].pixels.push_back({local, pixel[i]});
+    }
+
+    // 3. 构造 HissGridSpec + HissMetadata
+    hiss::HissGridSpec grid;
+    grid.nside = nside;
+    grid.tile_nside = tile_nside;
+    grid.ordering = 1;  // NESTED
+    grid.radesys = 0;   // ICRS
+    grid.pixfrac = 1.0;
+
+    hiss::HissMetadata hmeta;
+    hmeta.nside = nside;
+    hmeta.tile_nside = tile_nside;
+    hmeta.ordering = 1;
+    hmeta.radesys = 0;
+    hmeta.pixfrac = 1.0;
+    hmeta.photappl = 0;
+    std::snprintf(hmeta.bunit, sizeof(hmeta.bunit), "ADU");
+
+    // 4. HissWriter 写入
+    hiss::HissWriter writer;
+    if (writer.open(path, grid, hmeta) != 0) {
+        fprintf(stderr, "[hio] hiss_write: HissWriter.open 失败\n");
         return HIO_ERR_FILE;
     }
 
-    // 4. 写入 Magic (4 字节)
-    if (std::fwrite(HISS_MAGIC, 1, 4, fp) != 4) {
-        fprintf(stderr, "[hio] hiss_write: 写入 Magic 失败\n");
-        std::fclose(fp);
-        return HIO_ERR_FILE;
-    }
-
-    // 5. 写入 uncompressed_len (uint32) + compressed_len (uint32)
-    uint32_t hdr[2] = {jsonLen, compLen};
-    if (std::fwrite(hdr, 4, 2, fp) != 2) {
-        fprintf(stderr, "[hio] hiss_write: 写入 JSON 长度失败\n");
-        std::fclose(fp);
-        return HIO_ERR_FILE;
-    }
-
-    // 6. 写入压缩后的 JSON 头
-    if (std::fwrite(compJson.data(), 1, compLen, fp) != compLen) {
-        fprintf(stderr, "[hio] hiss_write: 写入压缩 JSON 失败\n");
-        std::fclose(fp);
-        return HIO_ERR_FILE;
-    }
-
-    // 7. 写入 ipix 数组 (n_pix * 8 字节)
-    if (n_pix > 0) {
-        size_t ipixBytes = (size_t)n_pix * sizeof(uint64_t);
-        if (std::fwrite(ipix, 1, ipixBytes, fp) != ipixBytes) {
-            fprintf(stderr, "[hio] hiss_write: 写入 ipix 数组失败\n");
-            std::fclose(fp);
-            return HIO_ERR_FILE;
-        }
-
-        // 8. 写入 pixel 数组 (n_pix * 4 字节)
-        size_t pixelBytes = (size_t)n_pix * sizeof(float);
-        if (std::fwrite(pixel, 1, pixelBytes, fp) != pixelBytes) {
-            fprintf(stderr, "[hio] hiss_write: 写入 pixel 数组失败\n");
-            std::fclose(fp);
-            return HIO_ERR_FILE;
-        }
-
-        // 9. 写入 snr 数组 (n_pix * 4 字节, 仅当 has_snr=true)
-        if (has_snr) {
-            size_t snrBytes = (size_t)n_pix * sizeof(float);
-            if (std::fwrite(snr, 1, snrBytes, fp) != snrBytes) {
-                fprintf(stderr, "[hio] hiss_write: 写入 snr 数组失败\n");
-                std::fclose(fp);
-                return HIO_ERR_FILE;
+    for (const auto& [parent_ipix, tg] : tile_groups) {
+        hiss::DrizzleTileAccumulator acc;
+        acc.tile_nside = tile_nside;
+        acc.parent_ipix = parent_ipix;
+        acc.pixel_area = A_p;
+        acc.pixels.resize(n_leaf_per_tile);
+        for (const auto& [local, sig] : tg.pixels) {
+            if (local < n_leaf_per_tile) {
+                acc.pixels[local].sum_flux = sig;
+                acc.pixels[local].sum_area = A_p;  // 旧API无support, 设全覆盖
             }
         }
+        if (writer.add_tile(parent_ipix, acc, nullptr, hiss::OccupancyMode::FULL) != 0) {
+            fprintf(stderr, "[hio] hiss_write: HissWriter.add_tile 失败\n");
+            writer.cancel();
+            return HIO_ERR_FILE;
+        }
     }
 
-    std::fclose(fp);
+    if (writer.finalize() != 0) {
+        fprintf(stderr, "[hio] hiss_write: HissWriter.finalize 失败\n");
+        return HIO_ERR_FILE;
+    }
 
-    fprintf(stderr, "[hio] hiss_write: 写入完成: %s (has_snr=%d)\n", path, has_snr);
+    fprintf(stderr, "[hio] hiss_write: 写入完成 (新HissWriter后端, %zu Tile): %s\n",
+            tile_groups.size(), path);
     return HIO_OK;
 }
 
@@ -344,6 +370,8 @@ AIO_EXPORT int aio_hiss_write(const char* path, uint32_t nside, int nested,
 AIO_EXPORT int aio_hiss_read(const char* path, uint32_t* nside, int* nested,
                       uint64_t* n_pix, uint64_t** ipix,
                       float** pixel, float** snr, char** meta_json) {
+    // WP-E 步骤8: 改造成新 HissReader 后端 (保持 C API 签名不变)
+    // 新格式为 XISF 式 Header + attachments, 旧格式 (Magic=HISS + JSON + 平铺数组) 不再支持读取
     if (!path || !nside || !nested || !n_pix || !ipix || !pixel || !meta_json) {
         fprintf(stderr, "[hio] hiss_read: 无效参数\n");
         return HIO_ERR_PARAM;
@@ -356,119 +384,90 @@ AIO_EXPORT int aio_hiss_read(const char* path, uint32_t* nside, int* nested,
     *ipix = nullptr;
     *pixel = nullptr;
     *meta_json = nullptr;
-    if (snr) *snr = nullptr;
+    if (snr) *snr = nullptr;  // 新格式 SNR 为稀疏控制点, 不输出逐像素
 
-    FILE* fp = hio_fopen_utf8(path, "rb");
-    if (!fp) {
-        fprintf(stderr, "[hio] hiss_read: 无法打开文件: %s\n", path);
+    // 1. 用 HissReader 打开文件
+    hiss::HissReader reader;
+    if (reader.open(path) != 0) {
+        fprintf(stderr, "[hio] hiss_read: HissReader.open 失败: %s\n", path);
         return HIO_ERR_FILE;
     }
 
-    // 1. 读取并验证 Magic
-    char magic[4];
-    if (std::fread(magic, 1, 4, fp) != 4) {
-        fprintf(stderr, "[hio] hiss_read: 读取 Magic 失败\n");
-        std::fclose(fp);
-        return HIO_ERR_FILE;
-    }
-    if (std::memcmp(magic, HISS_MAGIC, 4) != 0) {
-        fprintf(stderr, "[hio] hiss_read: Magic 不匹配 (期望 HISS)\n");
-        std::fclose(fp);
-        return HIO_ERR_MAGIC;
-    }
+    // 2. 获取网格规格和元数据
+    hiss::HissGridSpec grid = reader.grid();
+    hiss::HissMetadata hmeta = reader.metadata();
 
-    // 2. 读取 JSON 头长度
-    uint32_t hdr[2];
-    if (std::fread(hdr, 4, 2, fp) != 2) {
-        fprintf(stderr, "[hio] hiss_read: 读取 JSON 长度失败\n");
-        std::fclose(fp);
-        return HIO_ERR_FILE;
-    }
-    uint32_t uncompLen = hdr[0];
-    uint32_t compLen = hdr[1];
+    *nside = grid.nside;
+    *nested = (grid.ordering == 1) ? 1 : 0;
 
-    // 3. 读取并解压 JSON 头
-    std::vector<uint8_t> compBuf(compLen);
-    if (compLen > 0) {
-        if (std::fread(compBuf.data(), 1, compLen, fp) != compLen) {
-            fprintf(stderr, "[hio] hiss_read: 读取压缩 JSON 失败\n");
-            std::fclose(fp);
-            return HIO_ERR_FILE;
-        }
-    }
-
-    std::string jsonStr;
-    jsonStr.resize(uncompLen);
-    if (uncompLen > 0) {
-        size_t decompSize = hio_zstd_decompress(compBuf.data(), compLen,
-                                                &jsonStr[0], uncompLen);
-        if (decompSize == 0 || decompSize != uncompLen) {
-            fprintf(stderr, "[hio] hiss_read: JSON 解压失败 (期望 %u, 实际 %zu)\n",
-                    uncompLen, decompSize);
-            std::fclose(fp);
-            return HIO_ERR_ZSTD;
-        }
-    }
-
-    // 4. 解析 JSON 头
-    uint32_t jsonNside = 0;
-    int jsonNested = 0;
-    uint64_t jsonNPix = 0;
-    int jsonHasSnr = 0;  // 默认 false (向后兼容旧文件)
-    uint32_t jsonSnrFormat = 0;  // 默认 0 (逐像素, 向后兼容旧文件)
-    uint32_t jsonSnrNPoints = 0; // 稀疏控制点数 (仅 snr_format=1)
-    if (!hio_parse_json_uint32(jsonStr, "nside", jsonNside) ||
-        !hio_parse_json_bool(jsonStr, "nested", jsonNested) ||
-        !hio_parse_json_uint64(jsonStr, "n_pix", jsonNPix)) {
-        fprintf(stderr, "[hio] hiss_read: JSON 解析失败 (缺少必填字段)\n");
-        std::fclose(fp);
-        return HIO_ERR_JSON;
-    }
-    // has_snr 字段可选 (旧文件无此字段, 默认 false)
-    hio_parse_json_bool(jsonStr, "has_snr", jsonHasSnr);
-    // snr_format 字段可选 (旧文件无此字段, 默认 0=逐像素)
-    hio_parse_json_uint32(jsonStr, "snr_format", jsonSnrFormat);
-    // snr_n_points 字段可选 (仅 snr_format=1)
-    hio_parse_json_uint32(jsonStr, "snr_n_points", jsonSnrNPoints);
-
-    *nside = jsonNside;
-    *nested = jsonNested;
-    *n_pix = jsonNPix;
-
-    // 分配 meta_json (包含完整 JSON 字符串, 含 null 终止)
+    // 3. 序列化 meta_json (使用 HissMetadata::to_json)
+    std::string jsonStr = hmeta.to_json();
     *meta_json = (char*)std::malloc(jsonStr.size() + 1);
     if (!*meta_json) {
         fprintf(stderr, "[hio] hiss_read: 分配 meta_json 内存失败\n");
-        std::fclose(fp);
         return HIO_ERR_MEM;
     }
     std::memcpy(*meta_json, jsonStr.c_str(), jsonStr.size() + 1);
 
-    fprintf(stderr, "[hio] hiss_read: nside=%u nested=%d n_pix=%llu has_snr=%d snr_format=%u\n",
-            *nside, *nested, (unsigned long long)*n_pix, jsonHasSnr, jsonSnrFormat);
+    // 4. 遍历所有 Tile, 读取 signal (展开到 n_leaf_per_tile), 收集有效像素
+    //    有效像素定义: signal != 0.0f (有累计通量)
+    //    新格式 signal = 累计通量 (步骤7), 无贡献像素 signal=0.0f 自然跳过
+    const std::vector<hiss::HissTile>& tiles = reader.tiles();
+    if (tiles.empty()) {
+        // 空 Tile (无数据), 仅返回 Header 信息
+        *n_pix = 0;
+        fprintf(stderr, "[hio] hiss_read: 无 Tile (空文件): %s\n", path);
+        return HIO_OK;
+    }
 
-    // 5. 读取 ipix 数组
+    // 计算 Tile 几何 (用于 local_ipix → global_ipix 转换)
+    uint32_t depth = hiss::compute_tile_depth(grid.nside);
+    int shift = 2 * (int)depth;
+
+    // 收集所有有效像素 (signal != 0.0f)
+    std::vector<uint64_t> out_ipix;
+    std::vector<float>    out_pixel;
+    // 预估: 假设平均每个 Tile 有 50% 有效像素
+    uint64_t est_total = (uint64_t)tiles.size() * (1ULL << (2 * depth)) / 2;
+    out_ipix.reserve(est_total > 0 ? est_total : 1024);
+    out_pixel.reserve(est_total > 0 ? est_total : 1024);
+
+    for (const auto& tile : tiles) {
+        std::vector<float> signal;
+        std::vector<uint8_t> support;
+        int ret = reader.read_tile(tile.parent_ipix, signal, support);
+        if (ret != 0) {
+            fprintf(stderr, "[hio] hiss_read: read_tile 失败 parent=%llu ret=%d\n",
+                    (unsigned long long)tile.parent_ipix, ret);
+            std::free(*meta_json);
+            *meta_json = nullptr;
+            return HIO_ERR_FILE;
+        }
+
+        // signal 已展开到 n_leaf_per_tile (Reader 自动展开 BITMAP/SPARSE)
+        // global_ipix = (parent_ipix << shift) | local_ipix
+        for (size_t local = 0; local < signal.size(); local++) {
+            // 仅返回有数据的像素 (signal != 0.0f 或 support > 0)
+            if (signal[local] != 0.0f || (local < support.size() && support[local] > 0)) {
+                uint64_t global_ipix = ((uint64_t)tile.parent_ipix << shift) | (uint64_t)local;
+                out_ipix.push_back(global_ipix);
+                out_pixel.push_back(signal[local]);
+            }
+        }
+    }
+
+    // 5. 分配输出数组 (malloc, 调用者负责 free)
+    *n_pix = (uint64_t)out_ipix.size();
     if (*n_pix > 0) {
         *ipix = (uint64_t*)std::malloc((size_t)(*n_pix) * sizeof(uint64_t));
         if (!*ipix) {
             fprintf(stderr, "[hio] hiss_read: 分配 ipix 内存失败\n");
             std::free(*meta_json);
             *meta_json = nullptr;
-            std::fclose(fp);
             return HIO_ERR_MEM;
         }
-        size_t ipixBytes = (size_t)(*n_pix) * sizeof(uint64_t);
-        if (std::fread(*ipix, 1, ipixBytes, fp) != ipixBytes) {
-            fprintf(stderr, "[hio] hiss_read: 读取 ipix 数组失败\n");
-            std::free(*ipix);
-            *ipix = nullptr;
-            std::free(*meta_json);
-            *meta_json = nullptr;
-            std::fclose(fp);
-            return HIO_ERR_FILE;
-        }
+        std::memcpy(*ipix, out_ipix.data(), (size_t)(*n_pix) * sizeof(uint64_t));
 
-        // 6. 读取 pixel 数组
         *pixel = (float*)std::malloc((size_t)(*n_pix) * sizeof(float));
         if (!*pixel) {
             fprintf(stderr, "[hio] hiss_read: 分配 pixel 内存失败\n");
@@ -476,94 +475,13 @@ AIO_EXPORT int aio_hiss_read(const char* path, uint32_t* nside, int* nested,
             *ipix = nullptr;
             std::free(*meta_json);
             *meta_json = nullptr;
-            std::fclose(fp);
             return HIO_ERR_MEM;
         }
-        size_t pixelBytes = (size_t)(*n_pix) * sizeof(float);
-        if (std::fread(*pixel, 1, pixelBytes, fp) != pixelBytes) {
-            fprintf(stderr, "[hio] hiss_read: 读取 pixel 数组失败\n");
-            std::free(*pixel);
-            *pixel = nullptr;
-            std::free(*ipix);
-            *ipix = nullptr;
-            std::free(*meta_json);
-            *meta_json = nullptr;
-            std::fclose(fp);
-            return HIO_ERR_FILE;
-        }
-
-        // 7. 处理 snr 通道 (仅当 has_snr=true)
-        if (jsonHasSnr) {
-            if (jsonSnrFormat == 0) {
-                // snr_format=0: 逐像素 float32[n_pix]
-                if (snr) {
-                    // 调用者需要 snr 数据
-                    *snr = (float*)std::malloc((size_t)(*n_pix) * sizeof(float));
-                    if (!*snr) {
-                        fprintf(stderr, "[hio] hiss_read: 分配 snr 内存失败\n");
-                        std::free(*pixel);
-                        *pixel = nullptr;
-                        std::free(*ipix);
-                        *ipix = nullptr;
-                        std::free(*meta_json);
-                        *meta_json = nullptr;
-                        std::fclose(fp);
-                        return HIO_ERR_MEM;
-                    }
-                    size_t snrBytes = (size_t)(*n_pix) * sizeof(float);
-                    if (std::fread(*snr, 1, snrBytes, fp) != snrBytes) {
-                        fprintf(stderr, "[hio] hiss_read: 读取 snr 数组失败\n");
-                        std::free(*snr);
-                        *snr = nullptr;
-                        std::free(*pixel);
-                        *pixel = nullptr;
-                        std::free(*ipix);
-                        *ipix = nullptr;
-                        std::free(*meta_json);
-                        *meta_json = nullptr;
-                        std::fclose(fp);
-                        return HIO_ERR_FILE;
-                    }
-                } else {
-                    // 调用者不需要 snr, 跳过 snr 数组
-                    size_t snrBytes = (size_t)(*n_pix) * sizeof(float);
-                    if (std::fseek(fp, (long)snrBytes, SEEK_CUR) != 0) {
-                        fprintf(stderr, "[hio] hiss_read: 跳过 snr 数组失败\n");
-                        std::free(*pixel);
-                        *pixel = nullptr;
-                        std::free(*ipix);
-                        *ipix = nullptr;
-                        std::free(*meta_json);
-                        *meta_json = nullptr;
-                        std::fclose(fp);
-                        return HIO_ERR_FILE;
-                    }
-                }
-            } else {
-                // snr_format=1: 稀疏控制点, hiss_read 不解析 (调用者应使用 hiss_read_snr_model)
-                // 跳过整个稀疏块: 4 + 20*n_points + 24 字节
-                size_t modelBytes = 4 + (size_t)jsonSnrNPoints * sizeof(HioSnrControlPoint) + 24;
-                if (snr) *snr = nullptr;  // 稀疏格式不输出逐像素
-                fprintf(stderr, "[hio] hiss_read: snr_format=1, 跳过稀疏块 %zu 字节 (n_points=%u)\n",
-                        modelBytes, jsonSnrNPoints);
-                if (std::fseek(fp, (long)modelBytes, SEEK_CUR) != 0) {
-                    fprintf(stderr, "[hio] hiss_read: 跳过稀疏 snr 块失败\n");
-                    std::free(*pixel);
-                    *pixel = nullptr;
-                    std::free(*ipix);
-                    *ipix = nullptr;
-                    std::free(*meta_json);
-                    *meta_json = nullptr;
-                    std::fclose(fp);
-                    return HIO_ERR_FILE;
-                }
-            }
-        }
+        std::memcpy(*pixel, out_pixel.data(), (size_t)(*n_pix) * sizeof(float));
     }
 
-    std::fclose(fp);
-    fprintf(stderr, "[hio] hiss_read: 读取完成: %s (has_snr=%d snr_format=%u)\n",
-            path, jsonHasSnr, jsonSnrFormat);
+    fprintf(stderr, "[hio] hiss_read (新HissReader后端): nside=%u nested=%d n_pix=%llu tiles=%zu: %s\n",
+            *nside, *nested, (unsigned long long)*n_pix, tiles.size(), path);
     return HIO_OK;
 }
 

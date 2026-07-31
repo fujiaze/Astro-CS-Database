@@ -28,6 +28,9 @@ int main() {
     std::strncpy(meta.filter, "R", sizeof(meta.filter) - 1);
     meta.exptime = 60.0;
     meta.history = "smoke test\nline2";
+    // BUNIT=ASTROCS_RELATIVE_FLUX (默认) 要求 PHOTAPPL=TRUE (Writer 元数据一致性校验)
+    meta.photappl = 1;
+    meta.photscal = 1.0;
 
     // 3. 累加器: tile_nside=16, 16^2=256 叶像素
     DrizzleTileAccumulator acc;
@@ -47,11 +50,8 @@ int main() {
         return 1;
     }
 
-    // 4. SNR
+    // 4. SNR (冻结布局: 仅 n_points + points, 不含估计器状态)
     HissSnrBlock snr;
-    snr.snr_phot = 12.5;
-    snr.median_snr = 10.0;
-    snr.idw_power = 2.0;
     snr.points.push_back({1, 8.5f});
     snr.points.push_back({5, 15.2f});
 
