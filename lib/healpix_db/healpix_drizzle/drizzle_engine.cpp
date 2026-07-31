@@ -1,6 +1,10 @@
 #include "drizzle_engine.h"
 #include "healpix_core.h"
+#include "spherical_overlap.h"   // WP-D: 球面 HEALPix 重叠计算
 #include "aio_healpix_io.h"   // aio.dll C API: hiss_write (向后兼容宏)
+// WP-E 步骤8: 接入新 HissWriter (替代旧 hiss_write)
+#include "../../../astro_image_io/include/hiss_format.h"
+#include "../../../astro_image_io/src/hiss_tile_model.h"
 
 #include <chrono>
 #include <cmath>
@@ -58,21 +62,30 @@ DrizzleEngine::DrizzleEngine() {}
 DrizzleEngine::~DrizzleEngine() {}
 
 // ============================================================================
-// compute_auto_nside - 自动 NSIDE 计算 (02_FROZEN §5)
+// compute_auto_nside - 自动 NSIDE 计算 (02_FROZEN §5, WP-B 步骤5 修复)
 //
 // 依据最终 WCS/SIP 在有效视场内的局部 Jacobian:
-//   1. 在图像中心 + 四角共 5 个采样点, 用有限差分计算局部像素尺度 (角秒/像素);
-//   2. 取 5 个采样点局部像素尺度的最小值作为"最细局部输入像素尺度";
+//   1. 在图像范围内以至少 9×9 网格采样 (81 个采样点), 用有限差分计算局部像素
+//      尺度 (角秒/像素). 9×9 网格覆盖整个有效视场, 避免 SIP 畸变极值仅在边缘
+//      时被漏掉 (原 5 点采样仅中心+四角, 边缘畸变极值可能位于四角之间).
+//   2. 取所有有效采样点局部像素尺度的最小值作为"最细局部输入像素尺度";
 //   3. HEALPix 线性像素尺度 ≈ 210960/nside 角秒 (即 58.6/nside 度);
 //   4. 选择最小的 2 次幂 NSIDE, 使 HEALPix 线性像素尺度不粗于该最细尺度
 //      (即 210960/nside <= finest_arcsec, 结果约为 1~2 倍线性过采样);
-//   5. NSIDE 钳位到 [16, 1048576] (2^4 到 2^20), 覆盖约 0.1" 到 3.7° 像素尺度.
+//   5. NSIDE 钳位到 [16, 4194304] (2^4 到 2^22), 覆盖约 0.05" 到 3.7° 像素尺度,
+//      支持 0.1"/px 输入的 1~2 倍过采样要求 (210960/0.1 ≈ 2.1e6, 需要 2^22).
 //
 // 有限差分法天然包含 SIP 多项式 + TAN 投影的非线性 Jacobian, 比 CD 矩阵
 // 行列式法 (仅 CRVAL 附近的线性近似) 更准确, 符合"局部 Jacobian"语义.
 // ============================================================================
 int compute_auto_nside(const WcsParams& wcs, int img_w, int img_h)
 {
+    // NSIDE 钳位范围 (WP-B 步骤5 修复)
+    // NSIDE_MIN = 16 (2^4): 像素尺度 ~3.66°, 覆盖大视场粗像素
+    // NSIDE_MAX = 4194304 (2^22): 像素尺度 ~0.0503", 支持 0.1"/px 输入 1~2 倍过采样
+    static const int NSIDE_MIN = 16;
+    static const int NSIDE_MAX = 4194304;  // 2^22
+
     if (!wcs.has_wcs || img_w <= 0 || img_h <= 0) {
         fprintf(stderr, "[drizzle_engine] compute_auto_nside: WCS 无效或图像尺寸非法 "
                 "(has_wcs=%d, w=%d, h=%d)\n", (int)wcs.has_wcs, img_w, img_h);
@@ -86,45 +99,60 @@ int compute_auto_nside(const WcsParams& wcs, int img_w, int img_h)
         return 0;
     }
 
-    // 采样点: 图像中心 + 四角 (0.5 像素内缩避免越界, 覆盖有效视场)
-    double sample_xy[5][2] = {
-        {img_w * 0.5,   img_h * 0.5  },  // 中心
-        {0.5,           0.5          },  // 左下
-        {img_w - 0.5,   0.5          },  // 右下
-        {img_w - 0.5,   img_h - 0.5  },  // 右上
-        {0.5,           img_h - 0.5  }   // 左上
-    };
+    // 9×9 网格采样 (81 个采样点)
+    // 采样点在图像范围内均匀分布, 0.5 像素内缩避免越界
+    // 与原 5 点采样相比, 9×9 网格能捕捉到 SIP 畸变极值位于边缘中间位置的情况
+    // (例如: 边缘中点的 SIP 畸变可能比四角更细)
+    const int GRID_N = 9;
+    const double margin = 0.5;  // 像素内缩, 避免边界越界
 
     // 有限差分半步长 (像素): dh=0.5 → 步长 1 像素, 平衡精度与效率
     const double dh = 0.5;
 
     double finest_arcsec = 1e30;  // 最细局部输入像素尺度 (角秒/像素)
+    int n_valid_samples = 0;      // 有效采样点计数 (诊断用)
+    int n_invalid_samples = 0;    // 无效采样点计数 (诊断用)
 
-    for (int i = 0; i < 5; i++) {
-        double x = sample_xy[i][0];
-        double y = sample_xy[i][1];
+    for (int iy = 0; iy < GRID_N; iy++) {
+        // y 坐标在 [margin, img_h - margin] 范围内均匀分布
+        double y = (img_h > 1)
+            ? margin + (double)iy * (img_h - 2.0 * margin) / (double)(GRID_N - 1)
+            : (double)img_h * 0.5;
+        for (int ix = 0; ix < GRID_N; ix++) {
+            // x 坐标在 [margin, img_w - margin] 范围内均匀分布
+            double x = (img_w > 1)
+                ? margin + (double)ix * (img_w - 2.0 * margin) / (double)(GRID_N - 1)
+                : (double)img_w * 0.5;
 
-        // x 方向有限差分: pixelToSky(x-dh, y) 与 pixelToSky(x+dh, y) 的角距离
-        double ra1, dec1, ra2, dec2;
-        wcsip.pixelToSky(x - dh, y, ra1, dec1);
-        wcsip.pixelToSky(x + dh, y, ra2, dec2);
-        double scale_x = greatCircleDistance(ra1, dec1, ra2, dec2) * 3600.0;  // 角秒/(2*dh 像素)
+            // x 方向有限差分: pixelToSky(x-dh, y) 与 pixelToSky(x+dh, y) 的角距离
+            double ra1, dec1, ra2, dec2;
+            wcsip.pixelToSky(x - dh, y, ra1, dec1);
+            wcsip.pixelToSky(x + dh, y, ra2, dec2);
+            double scale_x = greatCircleDistance(ra1, dec1, ra2, dec2) * 3600.0;
 
-        // y 方向有限差分
-        wcsip.pixelToSky(x, y - dh, ra1, dec1);
-        wcsip.pixelToSky(x, y + dh, ra2, dec2);
-        double scale_y = greatCircleDistance(ra1, dec1, ra2, dec2) * 3600.0;
+            // y 方向有限差分
+            wcsip.pixelToSky(x, y - dh, ra1, dec1);
+            wcsip.pixelToSky(x, y + dh, ra2, dec2);
+            double scale_y = greatCircleDistance(ra1, dec1, ra2, dec2) * 3600.0;
 
-        // 跳过无效采样点 (投影发散或退化)
-        if (!std::isfinite(scale_x) || scale_x <= 0.0) continue;
-        if (!std::isfinite(scale_y) || scale_y <= 0.0) continue;
+            // 跳过无效采样点 (投影发散或退化)
+            if (!std::isfinite(scale_x) || scale_x <= 0.0 ||
+                !std::isfinite(scale_y) || scale_y <= 0.0) {
+                n_invalid_samples++;
+                continue;
+            }
 
-        // 该点局部像素尺度 = 两方向最细 (最小), 单位归一化为 角秒/像素 (步长=1px)
-        double local_scale = std::min(scale_x, scale_y);
-        if (local_scale < finest_arcsec) {
-            finest_arcsec = local_scale;
+            // 该点局部像素尺度 = 两方向最细 (最小), 单位归一化为 角秒/像素 (步长=1px)
+            double local_scale = std::min(scale_x, scale_y);
+            if (local_scale < finest_arcsec) {
+                finest_arcsec = local_scale;
+            }
+            n_valid_samples++;
         }
     }
+
+    fprintf(stderr, "[drizzle_engine] compute_auto_nside: 9x9 网格采样完成, "
+            "有效=%d, 无效=%d\n", n_valid_samples, n_invalid_samples);
 
     if (finest_arcsec >= 1e30 || finest_arcsec <= 0.0) {
         fprintf(stderr, "[drizzle_engine] compute_auto_nside: 所有采样点局部尺度无效, 无法计算\n");
@@ -142,15 +170,13 @@ int compute_auto_nside(const WcsParams& wcs, int img_w, int img_h)
     while ((double)nside < nside_min_real) {
         int next = nside << 1;
         if (next <= nside) {  // 溢出保护 (达到 int 上限)
-            nside = (1 << 20);
+            nside = NSIDE_MAX;
             break;
         }
         nside = next;
     }
 
-    // 钳位到 [16, 1048576] (2^4 到 2^20)
-    const int NSIDE_MIN = 16;        // 2^4, 像素尺度 ~3.66°
-    const int NSIDE_MAX = 1048576;   // 2^20, 像素尺度 ~0.20"
+    // 钳位到 [NSIDE_MIN, NSIDE_MAX] = [16, 4194304] (2^4 到 2^22)
     if (nside < NSIDE_MIN) nside = NSIDE_MIN;
     if (nside > NSIDE_MAX) nside = NSIDE_MAX;
 
@@ -158,15 +184,22 @@ int compute_auto_nside(const WcsParams& wcs, int img_w, int img_h)
     double hp_res_arcsec = 210960.0 / (double)nside;
     double oversample = hp_res_arcsec / finest_arcsec;
 
-    fprintf(stderr, "[drizzle_engine] compute_auto_nside: finest=%.4f\"/px, "
-            "nside_min=%.2f, nside=%d (hp_res=%.4f\"/px, %.3fx 线性过采样)\n",
-            finest_arcsec, nside_min_real, nside, hp_res_arcsec, oversample);
+    fprintf(stderr, "[drizzle_engine] compute_auto_nside: finest=%.6f\"/px, "
+            "nside_min=%.4f, nside=%d (hp_res=%.6f\"/px, %.4fx 线性过采样), "
+            "钳位范围=[%d, %d]\n",
+            finest_arcsec, nside_min_real, nside, hp_res_arcsec, oversample,
+            NSIDE_MIN, NSIDE_MAX);
 
     return nside;
 }
 
 // ============================================================================
 // drizzle - 执行 Drizzle: FITS 图像 → HEALPix 累加器
+//
+// WP-B 步骤6 修复: 入口校验
+//   1. pixfrac <= 0.0 或 pixfrac > 1.0 → 返回错误 (拒绝, 不进入"点采样快速路径")
+//   2. nested == false (RING 模式) → 返回错误 (HISS 内部统一 NESTED)
+//   3. 移除所有"点采样快速路径"代码, 任何 pixfrac 非法值都被拒绝
 // ============================================================================
 bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
                             const float* snrData, const float* weightData,
@@ -175,6 +208,27 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
 {
     error_msg.clear();
     accumulators.clear();
+
+    // ---- WP-B 步骤6: 入口参数校验 (pixfrac + RING) ----
+    // pixfrac 必须在 (0, 1] 范围内 (02_FROZEN §9)
+    // pixfrac <= 0: 旧代码进入"点采样快速路径", 现在直接拒绝
+    // pixfrac > 1: 非法值, 拒绝
+    if (config.pixfrac <= 0.0 || config.pixfrac > 1.0) {
+        char buf[256];
+        snprintf(buf, sizeof(buf), "pixfrac must be in (0, 1], got %.6f", config.pixfrac);
+        error_msg = buf;
+        fprintf(stderr, "[drizzle_engine] drizzle: 拒绝非法 pixfrac (%.6f), %s\n",
+                config.pixfrac, error_msg.c_str());
+        return false;
+    }
+
+    // HISS 内部统一 NESTED (02_FROZEN §6)
+    // RING 模式不被支持, 直接拒绝
+    if (!config.nested) {
+        error_msg = "HISS requires NESTED ordering, RING not supported";
+        fprintf(stderr, "[drizzle_engine] drizzle: 拒绝 RING 模式 (HISS 内部统一 NESTED)\n");
+        return false;
+    }
 
     // 1. 检查 WCS
     if (!img.wcs.has_wcs) {
@@ -201,6 +255,22 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
     fprintf(stderr, "[drizzle_engine] HEALPix: nside=%d nested=%d npix=%lld res=%.2f\"\n",
             hp.getNside(), hp.isNested() ? 1 : 0,
             (long long)hp.getNpix(), hp.pixelResolutionArcsec());
+
+    // WP-C 步骤9: Gaia 测光比例应用日志
+    // 若 apply_photometry=true, 在 drizzle 像素值处理中对每个源像素应用
+    // pixelValue *= config.photscal (I_photo = k_photo * I_cal, 02_FROZEN §7)
+    // 此时 HISS signal 保存的累计通量已是相对测光通量, 元数据 PHOTAPPL=TRUE
+    if (config.apply_photometry) {
+        fprintf(stderr,
+                "[drizzle_engine] Applying photometry scale: photscal=%.6f "
+                "(apply_photometry=true, I_photo = k_photo * I_cal)\n",
+                config.photscal);
+    } else {
+        fprintf(stderr,
+                "[drizzle_engine] Applying photometry scale: photscal=%.6f "
+                "(apply_photometry=false, signal 保留原始 I_cal)\n",
+                config.photscal);
+    }
 
     // 4. 记录开始时间
     auto tStart = std::chrono::high_resolution_clock::now();
@@ -234,6 +304,14 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
 
             // 跳过 NaN / Inf
             if (!std::isfinite(pixelValue)) continue;
+
+            // WP-C 步骤9: 应用 Gaia 测光比例 (I_photo = k_photo * I_cal, 02_FROZEN §7)
+            // 在跳过 NaN/Inf 之后应用, 避免对无效像素做无意义乘法
+            // photscal 默认 1.0, apply_photometry=false 时不应用 (pixelValue 保持原值)
+            // 使用 double 精度乘法, 避免大动态范围 (例如 k=1e-7) 下的 float 精度损失
+            if (config.apply_photometry) {
+                pixelValue = (float)((double)pixelValue * config.photscal);
+            }
 
             // 获取 SNR
             float snrValue = 1.0f;
@@ -286,7 +364,22 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
 }
 
 // ============================================================================
-// processPixel - 处理单个像素的 Drizzle (6步流水线)
+// processPixel - 处理单个像素的 Drizzle (球面几何流水线, WP-D 步骤3-4 修复)
+//
+// 修复内容 (02_FROZEN §8/§9/§10):
+//   1. 源像素通过 WCS/SIP 映射到球面顶点 (radec_to_vec), 不再用切平面近似
+//   2. 球面多边形面积 (Girard 定理), float64 内部精度
+//   3. 候选像素查询基于球面包围圆 + queryDisc, 不限于 1-ring (可 > 48)
+//   4. 球面 Sutherland-Hodgman 裁剪 + Girard 面积计算真实球面重叠
+//   5. 通量守恒: sumFlux += L_j * (a_jp / A_j_drop), sumArea += a_jp (球面度)
+//
+// 6 步流水线:
+//   Step 1: 取像素四角 (0-based)
+//   Step 2: Pixfrac 收缩 (平面空间, 局部线性尺寸 × pixfrac)
+//   Step 3: SIP+WCS 逐角映射 (像素→天球) → 球面向量
+//   Step 4: 计算 drop 球面面积 (Girard 定理)
+//   Step 5: 候选像素查询 (query_candidate_pixels, 不限于 1-ring)
+//   Step 6: 对每个候选像素计算球面重叠面积, 累加通量
 // ============================================================================
 void DrizzleEngine::processPixel(
     double px, double py,
@@ -307,247 +400,71 @@ void DrizzleEngine::processPixel(
     };
 
     // ---- Step 2: Pixfrac 收缩 (平面空间) ----
-    if (config.pixfrac <= 0.0) {
-        // 退化为点采样: 四角都 = (px, py)
-        for (int i = 0; i < 4; i++) {
-            corners_xy[i][0] = px;
-            corners_xy[i][1] = py;
-        }
-    } else if (config.pixfrac < 1.0) {
+    // WP-B 步骤6: pixfrac <= 0 已在 drizzle() 入口拒绝, 这里 pixfrac 必然 > 0
+    // pixfrac == 1.0: 不收缩, 四角保持原位
+    // 0 < pixfrac < 1.0: 向中心收缩, 局部线性尺寸 × pixfrac, 面积 × pixfrac²
+    // (02_FROZEN §9: 标准 drop 语义, 源像素总信号不变, drop 内信号面密度 × 1/pixfrac²)
+    if (config.pixfrac < 1.0) {
         for (int i = 0; i < 4; i++) {
             corners_xy[i][0] = px + config.pixfrac * (corners_xy[i][0] - px);
             corners_xy[i][1] = py + config.pixfrac * (corners_xy[i][1] - py);
         }
     }
 
-    // ---- Step 3: SIP+WCS 逐角映射 (像素→天球) ----
-    SkyCoord cornersSky[4];
+    // ---- Step 3: SIP+WCS 逐角映射 (像素→天球) → 球面单位向量 ----
+    // WP-D 步骤3: 不再用切平面近似, 直接使用球面向量
+    // drop_corners 是收缩后源像素的球面多边形顶点 (逆时针顺序, 单位向量)
+    std::vector<spherical::Vec3> drop_corners(4);
     for (int i = 0; i < 4; i++) {
-        wcs.pixelToSky(corners_xy[i][0], corners_xy[i][1],
-                       cornersSky[i].ra, cornersSky[i].dec);
+        double ra, dec;
+        wcs.pixelToSky(corners_xy[i][0], corners_xy[i][1], ra, dec);
+        if (!std::isfinite(ra) || !std::isfinite(dec)) return;
+        drop_corners[i] = spherical::radec_to_vec(ra, dec);
     }
 
-    // ---- Step 4: 用四角笛卡尔平均近似中心 (减少 1 次 pixelToSky) ----
-    // 球面笛卡尔平均: 四角单位向量求和 → 归一化 → 球面坐标
-    // 精度: 对 < 10" 像素, 笛卡尔平均与真实中心的偏差 < 0.001"
-    double cx_x = 0, cx_y = 0, cx_z = 0;
-    for (int i = 0; i < 4; i++) {
-        double dec_rad = cornersSky[i].dec * D2R;
-        double ra_rad = cornersSky[i].ra * D2R;
-        double cd = std::cos(dec_rad);
-        cx_x += cd * std::cos(ra_rad);
-        cx_y += cd * std::sin(ra_rad);
-        cx_z += std::sin(dec_rad);
-    }
-    cx_x *= 0.25; cx_y *= 0.25; cx_z *= 0.25;
-    double ra_center = std::atan2(cx_y, cx_x) * 180.0 / M_PI;
-    if (ra_center < 0) ra_center += 360.0;
-    double cz_clamped = std::max(-1.0, std::min(1.0, cx_z));
-    double dec_center = std::asin(cz_clamped) * 180.0 / M_PI;
-    if (!std::isfinite(ra_center) || !std::isfinite(dec_center)) return;
-
-    // 计算收缩后对角线角秒数 (用收缩后的四角对角点)
-    double diag_arcsec = greatCircleDistance(
-        cornersSky[0].ra, cornersSky[0].dec,
-        cornersSky[2].ra, cornersSky[2].dec) * 3600.0;
-    if (!std::isfinite(diag_arcsec) || diag_arcsec <= 0.0) return;
-
-    double hpResArcsec = hp.pixelResolutionArcsec();
-
-    // 点采样快速路径 (pixfrac <= 0)
-    if (config.pixfrac <= 0.0) {
-        int64_t ipix = hp.radec2pix(ra_center, dec_center);
-        if (ipix >= 0) {
-            auto& acc = accum[(uint64_t)ipix];
-            acc.sumFlux   += pixelValue * weightValue;
-            acc.sumWeight += weightValue;
-            acc.sumSnrSq  += (double)snrValue * snrValue * weightValue;
-            acc.nContrib++;  // 诊断: 点采样贡献 (源像素退化为点, a_jp=0, sumArea 不累加)
-        }
+    // ---- Step 4: 计算 drop 球面面积 (Girard 定理) ----
+    // A_j_drop = pixfrac 收缩后的 drop 球面面积 (球面度)
+    // 用于标准 Drizzle 通量守恒: weight = a_jp / A_j_drop, Σweight = 1 → Σout = Σin
+    double drop_area = spherical::spherical_polygon_area(drop_corners);
+    if (drop_area < 1e-20) {
+        // 几何退化: 源像素投影到球面后面积接近 0 (例如极区或投影背面)
+        // 直接跳过该像素, 不破坏 support 几何意义
         return;
     }
 
-    // ---- 候选 HEALPix 像素检索: 5基准全部1-ring (修复黑色缝隙) ----
-    // 之前仅中心1-ring 在 WCS 畸变下可能漏掉源像素四角延伸到的相邻像素,
-    // 导致球面出现微小黑色缝隙(邻居缺失率1.39%)。
-    // 扩展为 5基准(中心+四角)各取1-ring邻居, 保证覆盖源像素周围所有可能相交的 HEALPix 像素。
-    // 覆盖分析 (nside=65536, hpRes=3.22", pixfrac=1.0):
-    //   - 源像素对角线 ≈ 6.31", 中心到角 ≈ 3.16"
-    //   - HEALPix 像素半径 ≈ 1.61", 相交条件: 中心距 < 3.16"+1.61"=4.77"
-    //   - 5基准+各1-ring 覆盖约 11x11 区域, 中心到边缘 ≈ 17.7" >> 4.77", 完全覆盖
-    // 候选数: 5 基准 + 5×8 邻居 = 45 (去重后约 30-40)
-    int64_t candidates_arr[48];
-    int n_candidates = 0;
+    // ---- Step 5: 候选像素查询 (球面包围圆 + queryDisc, 不限于 1-ring) ----
+    // WP-D 步骤4: 修复固定 1-ring 限制 (候选数 ≤ 48 → 可 > 48)
+    // 高 NSIDE + 大源像素时, drop 跨越多个 HEALPix 像素, queryDisc 自动覆盖
+    std::vector<uint64_t> candidates;
+    spherical::query_candidate_pixels(drop_corners, hp, candidates);
 
-    // 线性去重 (候选数 < 48, 线性搜索比 unordered_set 快)
-    auto addCandidate = [&](int64_t ipix) {
-        if (ipix < 0) return;
-        for (int i = 0; i < n_candidates; i++) {
-            if (candidates_arr[i] == ipix) return;
-        }
-        candidates_arr[n_candidates++] = ipix;
-    };
-
-    // 5 基准: 中心 + 四角
-    int64_t base_ipix[5];
-    base_ipix[0] = hp.radec2pix(ra_center, dec_center);
-    for (int i = 0; i < 4; i++) {
-        base_ipix[i+1] = hp.radec2pix(cornersSky[i].ra, cornersSky[i].dec);
-    }
-
-    // 添加 5 基准本身
-    for (int i = 0; i < 5; i++) {
-        addCandidate(base_ipix[i]);
-    }
-
-    // 添加每个基准的 1-ring 邻居 (8 邻居/基准)
-    for (int i = 0; i < 5; i++) {
-        if (base_ipix[i] < 0) continue;
-        auto nbrs = hp.neighbors(base_ipix[i]);
-        for (int64_t nb : nbrs) {
-            addCandidate(nb);
-        }
-    }
-
-    if (n_candidates == 0) return;
-
-    // ---- Step 5: 局部切平面面积裁剪 ----
-    // 将像素四边形投影到以 (ra_center, dec_center) 为中心的切平面
-    std::vector<Point2D> pixelQuad(4);
-    for (int i = 0; i < 4; i++) {
-        pixelQuad[i] = PolyClip::gnomonicForward(cornersSky[i].ra, cornersSky[i].dec,
-                                                  ra_center, dec_center);
-    }
-
-    double pixelArea = std::abs(PolyClip::polygonArea(pixelQuad));
-    if (pixelArea < 1e-20) {
-        // 退化情况: 点采样
-        int64_t ipix = hp.radec2pix(ra_center, dec_center);
-        if (ipix >= 0) {
-            auto& acc = accum[(uint64_t)ipix];
-            acc.sumFlux   += pixelValue * weightValue;
-            acc.sumWeight += weightValue;
-            acc.sumSnrSq  += (double)snrValue * snrValue * weightValue;
-            acc.nContrib++;  // 诊断: 退化路径贡献 (面积≈0, sumArea 不累加)
-        }
+    if (candidates.empty()) {
         return;
     }
 
-    // 计算收缩后像素面积 (pixfrac<1 时收缩, pixfrac>=1 时不变)
-    // 用于标准 Drizzle 通量守恒: weight = overlapArea / A_shrunk
-    //   sum(weight per source) = A_shrunk / A_shrunk = 1
-    //   sum_out = sum_in (通量守恒)
-    // 注: pixfrac<1 收缩源像素覆盖范围, 但总通量不变
-    //     收缩后单位面积通量 = pixelValue / pixfrac² (能量提高)
-    //     out = sum(in × overlap/A_shrunk), sum_out = sum_in
-    double shrunkPixelArea = pixelArea;  // pixelArea 已是收缩后面积 (Step 2 已收缩)
+    // ---- Step 6: 对每个候选像素计算球面重叠面积, 累加通量 ----
+    // 通量守恒 (02_FROZEN §8): F_p = Σ_j L_j * (a_jp / A_j_drop)
+    //   - a_jp = 球面重叠面积 (球面度)
+    //   - A_j_drop = drop 球面面积 (球面度)
+    //   - drop 未截断时, Σ_p a_jp = A_j_drop, 故 Σ_p F_p = L_j (通量守恒)
+    // support 累加 (02_FROZEN §10): sumArea += a_jp (球面度)
+    //   - support = Σ a_jp / A_p (A_p = HEALPix 像素面积, 由下游归一化)
+    for (uint64_t ipix : candidates) {
+        double overlap_area = spherical::compute_overlap_area(drop_corners, hp, ipix);
+        if (overlap_area < 1e-20) continue;  // 不相交或面积过小
 
-    // 计算 pixelQuad 的 bbox (用于早期剔除, 避免对不相交的 HEALPix 像素做 PolyClip)
-    double px_min = pixelQuad[0].x, px_max = pixelQuad[0].x;
-    double py_min = pixelQuad[0].y, py_max = pixelQuad[0].y;
-    for (int i = 1; i < 4; i++) {
-        if (pixelQuad[i].x < px_min) px_min = pixelQuad[i].x;
-        if (pixelQuad[i].x > px_max) px_max = pixelQuad[i].x;
-        if (pixelQuad[i].y < py_min) py_min = pixelQuad[i].y;
-        if (pixelQuad[i].y > py_max) py_max = pixelQuad[i].y;
-    }
+        // weight = a_jp / A_j_drop (标准 Drizzle 通量守恒权重)
+        double weight = overlap_area / drop_area;
+        if (weight <= 0.0) continue;
 
-    // 遍历候选 HEALPix 像素 (用固定数组, 避免 vector 分配)
-    SkyCoord hpCornersArr[4];
-    Point2D hpQuadArr[4];
-    std::vector<Point2D> hpQuadVec(4);  // clipPolygon 需要 vector
-    std::vector<Point2D> pixelQuadVec = pixelQuad;  // clipPolygon 需要 vector
-
-    for (int ci = 0; ci < n_candidates; ci++) {
-        int64_t ipix = candidates_arr[ci];
-        // a. 获取 HEALPix 像素四角球面坐标 (菱形近似, 修复方形近似导致的边缘误判)
-        // HEALPix 赤道带像素为菱形 (diamond), 不是方形:
-        //   - 边长 a = res / sqrt(sqrt(3)) ≈ res / 1.316
-        //   - NS 对角线 d_ns = sqrt(sqrt(3)) * res ≈ 1.316 * res
-        //   - EW 对角线 d_ew = 2/sqrt(sqrt(3)) * res ≈ 1.516 * res
-        // 4 个顶点 (北/东/南/西, 顺时针):
-        //   - 北: (ra_c, dec_c + d_ns/2)
-        //   - 东: (ra_c + d_ew/(2*cos(dec)), dec_c)
-        //   - 南: (ra_c, dec_c - d_ns/2)
-        //   - 西: (ra_c - d_ew/(2*cos(dec)), dec_c)
-        // 之前方形近似 (±half_ra, ±half_dec) 在像素边缘会误判为不相交, 导致黑色缝隙
-        double ra_c, dec_c;
-        hp.pix2radec(ipix, &ra_c, &dec_c);
-
-        // HEALPix 像素分辨率 (度)
-        double res_deg = hpResArcsec / 3600.0;
-        double cos_dec = std::cos(dec_c * D2R);
-
-        // 菱形对角线半长 (度)
-        // sqrt(sqrt(3)) ≈ 1.3160740129524924
-        // NS 半对角线 = sqrt(sqrt(3))/2 * res ≈ 0.658 * res
-        // EW 半对角线 = 1/sqrt(sqrt(3)) * res ≈ 0.760 * res
-        static const double SQRT_SQRT3 = 1.3160740129524924;
-        static const double D_NS_HALF_FACTOR = SQRT_SQRT3 / 2.0;       // ≈ 0.658
-        static const double D_EW_HALF_FACTOR = 1.0 / SQRT_SQRT3;       // ≈ 0.760
-
-        double half_dec = D_NS_HALF_FACTOR * res_deg;  // NS 对角线半长 (Dec 度)
-        double half_ra;
-        if (std::abs(cos_dec) < 1e-10) {
-            half_ra = D_EW_HALF_FACTOR * res_deg;
-        } else {
-            half_ra = D_EW_HALF_FACTOR * res_deg / cos_dec;  // EW 对角线半长 (RA 度)
-        }
-
-        // 菱形 4 顶点 (北/西/南/东, 逆时针, 兼容 PolyClip::clipPolygon 的 Sutherland-Hodgman 算法)
-        hpCornersArr[0] = {ra_c,           dec_c + half_dec};  // 北
-        hpCornersArr[1] = {ra_c - half_ra, dec_c            };  // 西
-        hpCornersArr[2] = {ra_c,           dec_c - half_dec};  // 南
-        hpCornersArr[3] = {ra_c + half_ra, dec_c            };  // 东
-
-        // b/c. 将 HEALPix 像素四边形投影到同一切平面
-        for (int i = 0; i < 4; i++) {
-            hpQuadArr[i] = PolyClip::gnomonicForward(hpCornersArr[i].ra, hpCornersArr[i].dec,
-                                                     ra_center, dec_center);
-        }
-
-        // bbox 早期剔除: 如果 hpQuad 和 pixelQuad 的 bbox 不相交, 跳过
-        // 这是最大的性能优化: 避免对不相交的像素做昂贵的 PolyClip 裁剪
-        double hx_min = hpQuadArr[0].x, hx_max = hpQuadArr[0].x;
-        double hy_min = hpQuadArr[0].y, hy_max = hpQuadArr[0].y;
-        for (int i = 1; i < 4; i++) {
-            if (hpQuadArr[i].x < hx_min) hx_min = hpQuadArr[i].x;
-            if (hpQuadArr[i].x > hx_max) hx_max = hpQuadArr[i].x;
-            if (hpQuadArr[i].y < hy_min) hy_min = hpQuadArr[i].y;
-            if (hpQuadArr[i].y > hy_max) hy_max = hpQuadArr[i].y;
-        }
-        if (hx_max < px_min || hx_min > px_max || hy_max < py_min || hy_min > py_max) {
-            continue;  // bbox 不相交, 跳过 PolyClip
-        }
-
-        // d. 用 PolyClip::clipPolygon 计算交集 (pixelQuad 为 subject, hpQuad 为 clip)
-        // 将数组拷贝到 vector (PolyClip 接口要求)
-        for (int i = 0; i < 4; i++) hpQuadVec[i] = hpQuadArr[i];
-        std::vector<Point2D> intersection = PolyClip::clipPolygon(pixelQuadVec, hpQuadVec);
-        if (intersection.size() < 3) continue;
-
-        // e. 交集面积
-        double overlapArea = std::abs(PolyClip::polygonArea(intersection));
-        if (overlapArea < 1e-20) continue;
-
-        // g. 权重 = 交集面积 / 收缩后像素面积 (标准 Drizzle 通量守恒)
-        // sum(weight per source) = A_shrunk / A_shrunk = 1
-        // 配合 brightness = sumFlux, 实现 sum_out = sum_in
-        double weight = overlapArea / shrunkPixelArea;
-
-        // ---- Step 6: 通量守恒分配 ----
-        if (weight > 1e-10) {
-            auto& acc = accum[(uint64_t)ipix];
-            acc.sumFlux   += pixelValue * weight * weightValue;
-            acc.sumWeight += weight * weightValue;
-            acc.sumSnrSq  += (double)snrValue * snrValue * weight * weightValue;
-            // support 累加 (02_FROZEN §10): a_jp = 球面重叠面积, 这里用切平面交集面积
-            // overlapArea 近似 (小视场下平面≈球面). weight = overlapArea/A_j_drop 已含
-            // 除法, 故 sumArea 必须累加原始 overlapArea (即 a_jp), 而非 weight.
-            // support = Σ a_jp / A_p 由下游 (HISS Writer) 用 sumArea/A_p 归一化得到.
-            acc.sumArea   += overlapArea;
-            acc.nContrib++;
-        }
+        // 通量累加 (float64 内部精度)
+        auto& acc = accum[ipix];
+        acc.sumFlux   += (double)pixelValue * weight * (double)weightValue;
+        acc.sumWeight += weight * (double)weightValue;
+        acc.sumSnrSq  += (double)snrValue * snrValue * weight * (double)weightValue;
+        // support: 累加球面重叠面积 a_jp (球面度), 由下游 HISS Writer 用 sumArea/A_p 归一化
+        acc.sumArea   += overlap_area;
+        acc.nContrib++;
     }
 }
 
@@ -596,9 +513,16 @@ void DrizzleEngine::getHealpixCorners(const healpix::HealpixCore& hp, int64_t ip
 }
 
 // ============================================================================
-// writeHis - 将累加器归一化并写入 .hiss 文件
-// snr_model != nullptr: 写稀疏控制点格式 (snr_format=1)
-// snr_model == nullptr: 不写 SNR 通道
+// writeHis - 将累加器按 Tile 分组并写入 .hiss 文件 (WP-E 步骤8)
+//
+// 改造要点 (02_FROZEN §8/§14/§16, 00_COMMON_CONTRACTS §4.4):
+//   1. 不再调用旧 hiss_write()/hiss_write_snr_model(), 改为构造 HissWriter
+//   2. 按 Tile 父像素分组累加器 (NESTED 位运算: parent = ipix >> 2d)
+//   3. signal = 累计通量 (步骤7, finalize_signal 已在 hiss_common.cpp 修复)
+//   4. support = 面积比 (pixel_area = A_p, 02_FROZEN §10)
+//   5. 元数据不含完整 WCS/SIP (cd/crval/crpix/sip_order/sip 系数全部移除,
+//      02_FROZEN §16: HISS 像素由 NSIDE/NESTED/ipix/ICRS 直接定位)
+//   6. 旧 aio_hiss_write/read 改造成新 Writer/Reader 后端 (aio_healpix_io.cpp)
 // ============================================================================
 bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator>& accumulators,
                              const DrizzleStats& stats, const WcsParams& wcs,
@@ -610,169 +534,157 @@ bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator
 {
     error_msg.clear();
 
-    // 1. 收集有效像素 (sumWeight > 0)
-    struct PixelEntry {
-        uint64_t ipix;
-        double   brightness;
+    // 1. 计算 Tile 几何 (02_FROZEN §11)
+    uint32_t nside = (uint32_t)config.nside;
+    uint32_t depth = hiss::compute_tile_depth(nside);
+    uint32_t tile_nside = hiss::compute_tile_nside(nside);
+    uint32_t n_leaf_per_tile = 1u << (2 * depth);  // 4^depth
+    int shift = 2 * (int)depth;
+
+    // HEALPix 像素面积 A_p (球面度, 02_FROZEN §10): A_p = 4π / (12 * NSIDE²)
+    double A_p = 4.0 * M_PI / (12.0 * (double)nside * (double)nside);
+
+    fprintf(stderr,
+            "[drizzle_engine] writeHis: nside=%u depth=%u tile_nside=%u n_leaf=%u A_p=%.6e\n",
+            nside, depth, tile_nside, n_leaf_per_tile, A_p);
+
+    // 2. 按 Tile 父像素分组累加器 (NESTED 位运算)
+    //    parent_ipix = global_ipix >> (2*depth)
+    //    local_ipix  = global_ipix & ((1 << (2*depth)) - 1)
+    struct TileGroup {
+        uint64_t parent_ipix = 0;
+        std::vector<std::pair<uint32_t, const PixelAccumulator*>> pixels;
     };
-    std::vector<PixelEntry> entries;
-    entries.reserve(accumulators.size());
+    std::map<uint64_t, TileGroup> tile_groups;
 
     for (const auto& [ipix, acc] : accumulators) {
-        if (acc.sumWeight > 0.0) {
-            // 通量守恒模式: brightness = sumFlux (不除以 sumWeight)
-            double brightness = acc.sumFlux;
-            entries.push_back({ipix, brightness});
-        }
+        // 有效像素: sumFlux != 0 或 sumArea > 0
+        if (acc.sumFlux == 0.0 && acc.sumArea <= 0.0) continue;
+        uint64_t parent = (shift > 0) ? (ipix >> shift) : ipix;
+        uint32_t local  = (shift > 0) ? (uint32_t)(ipix & ((1ULL << shift) - 1)) : 0;
+        tile_groups[parent].parent_ipix = parent;
+        tile_groups[parent].pixels.push_back({local, &acc});
     }
 
-    if (entries.empty()) {
+    if (tile_groups.empty()) {
         error_msg = "无有效像素可写入";
         fprintf(stderr, "[drizzle_engine] %s\n", error_msg.c_str());
         return false;
     }
 
-    // 2. 排序 ipix (升序)
-    std::sort(entries.begin(), entries.end(),
-              [](const PixelEntry& a, const PixelEntry& b) {
-                  return a.ipix < b.ipix;
-              });
+    fprintf(stderr, "[drizzle_engine] 写入 %zu 个 Tile 到 %s (nside=%u)\n",
+            tile_groups.size(), outputPath.c_str(), nside);
 
-    size_t n = entries.size();
-    fprintf(stderr, "[drizzle_engine] 写入 %zu 个 HEALPix 像素到 %s\n", n, outputPath.c_str());
+    // 3. 构造 HissGridSpec (02_FROZEN §16: 不保存完整 WCS)
+    hiss::HissGridSpec grid;
+    grid.nside      = nside;
+    grid.tile_nside = tile_nside;
+    grid.ordering   = 1;  // NESTED
+    grid.radesys    = 0;  // ICRS
+    grid.pixfrac    = config.pixfrac;
 
-    // 3. 构造 ipix / pixel 数组 (不再构造逐像素 snrArr)
-    std::vector<uint64_t> ipixArr(n);
-    std::vector<float>    pixelArr(n);
-    for (size_t i = 0; i < n; i++) {
-        ipixArr[i]  = entries[i].ipix;
-        pixelArr[i] = (float)entries[i].brightness;
-    }
-
-    // 4. 构造 JSON meta 字符串 (hiss_write 内部会前置 nside/nested/n_pix 字段)
-    //    包含: filter / exposure_s / obs_time / pixfrac / fits_meta / wcs / source / drizzle
-    char buf[512];
-    std::string json;
-    json.reserve(2048);
-
-    json += "{";
-
-    // filter
-    json += "\"filter\":\"";
-    json += escapeJsonString(meta.filter);
-    json += "\",";
-
-    // exposure_s
-    snprintf(buf, sizeof(buf), "\"exposure_s\":%.6f,", meta.exposure_s);
-    json += buf;
-
-    // obs_time
-    json += "\"obs_time\":\"";
-    json += escapeJsonString(meta.obs_time);
-    json += "\",";
-
-    // pixfrac
-    snprintf(buf, sizeof(buf), "\"pixfrac\":%.4f,", config.pixfrac);
-    json += buf;
-
-    // wcs (原始 WCS 参数)
-    snprintf(buf, sizeof(buf),
-             "\"wcs\":{\"cd\":[%.12e,%.12e,%.12e,%.12e],\"crval\":[%.10f,%.10f],"
-             "\"crpix\":[%.6f,%.6f],\"sip_order\":%d},",
-             wcs.cd[0], wcs.cd[1], wcs.cd[2], wcs.cd[3],
-             wcs.crval[0], wcs.crval[1],
-             wcs.crpix[0], wcs.crpix[1],
-             wcs.sip.order);
-    json += buf;
-
-    // fits_meta (OBJCTRA/OBJCTDEC/IMAGETYP/SITELAT/SITELONG 等)
-    json += "\"fits_meta\":{";
-    bool first = true;
-    for (const auto& [k, v] : meta.fits_meta) {
-        if (!first) json += ",";
-        first = false;
-        json += "\"";
-        json += escapeJsonString(k);
-        json += "\":\"";
-        json += escapeJsonString(v);
-        json += "\"";
-    }
-    json += "},";
-
-    // source
-    json += "\"source\":{\"fits_path\":\"";
-    json += escapeJsonString(fitsPath);
-    json += "\",\"n_source_pixels\":";
-    json += std::to_string(stats.nSourcePixels);
-    json += "},";
-
-    // support 诊断汇总 (02_FROZEN §10): support = Σ a_jp / A_p
-    // A_p = HEALPix 像素球面面积 (平方度) = 4π/(12*nside²) sr * (180/π)² deg²/sr
-    // 注: sumArea 为切平面交集面积 (小视场下平面≈球面), 用于诊断验证累加是否正常.
-    double hp_area_deg2 = (4.0 * M_PI / (12.0 * (double)stats.nside * (double)stats.nside))
-                          * (180.0 / M_PI) * (180.0 / M_PI);
-    double sum_support = 0.0;
-    uint64_t total_ncontrib = 0;
-    int64_t n_with_area = 0;
-    for (const auto& [ipix, acc] : accumulators) {
-        total_ncontrib += acc.nContrib;
-        if (acc.sumArea > 0.0 && hp_area_deg2 > 0.0) {
-            double sp = acc.sumArea / hp_area_deg2;
-            if (sp > 1.0) sp = 1.0;  // support 合法范围 0~1, 钳位 (平面/球面近似偏差)
-            sum_support += sp;
-            n_with_area++;
-        }
-    }
-    double avg_support = (n_with_area > 0) ? (sum_support / (double)n_with_area) : 0.0;
-
-    // drizzle
-    snprintf(buf, sizeof(buf),
-             "\"drizzle\":{\"n_healpix_pixels\":%zu,\"elapsed_sec\":%.4f,"
-             "\"avg_support\":%.4f,\"total_ncontrib\":%llu}",
-             n, stats.elapsedSec, avg_support, (unsigned long long)total_ncontrib);
-    json += buf;
-
-    json += "}";
-
-    // 5. 写入 .hiss 文件
-    //    snr_model != nullptr: 稀疏控制点格式 (snr_format=1)
-    //    snr_model == nullptr: 无 SNR 通道
-    int rc;
-    if (snr_model && snr_model->n_points > 0) {
-        fprintf(stderr, "[drizzle_engine] hiss_write_snr_model: meta_json=%zu bytes, n_points=%u\n",
-                json.size(), snr_model->n_points);
-        rc = hiss_write_snr_model(outputPath.c_str(),
-                                   (uint32_t)config.nside,
-                                   config.nested ? 1 : 0,
-                                   (uint64_t)n,
-                                   ipixArr.data(),
-                                   pixelArr.data(),
-                                   snr_model,
-                                   json.c_str());
-        if (rc != 0) {
-            error_msg = "hiss_write_snr_model 写入失败 (rc=" + std::to_string(rc) + "): " + outputPath;
-            fprintf(stderr, "[drizzle_engine] %s\n", error_msg.c_str());
-            return false;
-        }
+    // 4. 构造 HissMetadata (精简, 不含完整 WCS/SIP, 02_FROZEN §16)
+    //    移除: cd/crval/crpix/sip_order/sip 系数
+    //    保留: NSIDE/ORDERING/RADESYS/TILENSID/PIXFRAC + FITS 常用字段 + 测光/校准字段
+    hiss::HissMetadata hmeta;
+    hmeta.nside      = nside;
+    hmeta.tile_nside = tile_nside;
+    hmeta.ordering   = 1;  // NESTED
+    hmeta.radesys    = 0;  // ICRS
+    hmeta.pixfrac    = config.pixfrac;
+    hmeta.photscal   = config.photscal;
+    hmeta.photappl   = config.apply_photometry ? 1 : 0;
+    // BUNIT: apply_photometry=true → ASTROCS_RELATIVE_FLUX (02_FROZEN §7)
+    if (config.apply_photometry) {
+        std::snprintf(hmeta.bunit, sizeof(hmeta.bunit), "ASTROCS_RELATIVE_FLUX");
     } else {
-        fprintf(stderr, "[drizzle_engine] hiss_write: meta_json=%zu bytes, has_snr=false\n", json.size());
-        rc = hiss_write(outputPath.c_str(),
-                        (uint32_t)config.nside,
-                        config.nested ? 1 : 0,
-                        (uint64_t)n,
-                        ipixArr.data(),
-                        pixelArr.data(),
-                        nullptr,  // 无逐像素 SNR
-                        json.c_str());
-        if (rc != 0) {
-            error_msg = "hiss_write 写入失败 (rc=" + std::to_string(rc) + "): " + outputPath;
+        std::snprintf(hmeta.bunit, sizeof(hmeta.bunit), "ADU");
+    }
+    // 传统 FITS 字段 (按输入继承)
+    std::snprintf(hmeta.filter, sizeof(hmeta.filter), "%s", meta.filter.c_str());
+    hmeta.exptime = meta.exposure_s;
+    std::snprintf(hmeta.date_obs, sizeof(hmeta.date_obs), "%s", meta.obs_time.c_str());
+    // 从 fits_meta 提取常用字段
+    auto get_meta = [&](const std::string& key) -> std::string {
+        auto it = meta.fits_meta.find(key);
+        return (it != meta.fits_meta.end()) ? it->second : std::string();
+    };
+    std::string obj = get_meta("OBJECT");
+    std::snprintf(hmeta.object, sizeof(hmeta.object), "%s", obj.c_str());
+    std::snprintf(hmeta.telescop, sizeof(hmeta.telescop), "%s", get_meta("TELESCOP").c_str());
+    std::snprintf(hmeta.instrume, sizeof(hmeta.instrume), "%s", get_meta("INSTRUME").c_str());
+    std::string gain_str = get_meta("GAIN");
+    if (!gain_str.empty()) {
+        try { hmeta.gain = std::stod(gain_str); } catch (...) {}
+    }
+    // 历史/诊断 (不含完整 WCS, 仅记录摘要)
+    char hist[512];
+    std::snprintf(hist, sizeof(hist),
+                  "Stage1 drizzle: n_source=%lld n_healpix=%lld elapsed=%.3fs n_tiles=%zu "
+                  "(WCS/SIP not stored in HISS per 02_FROZEN §16)",
+                  (long long)stats.nSourcePixels, (long long)stats.nHealpixPixels,
+                  stats.elapsedSec, tile_groups.size());
+    hmeta.history = hist;
+
+    // 5. 构造 HissWriter 并写入
+    hiss::HissWriter writer;
+    int wret = writer.open(outputPath, grid, hmeta);
+    if (wret != 0) {
+        error_msg = "HissWriter.open 失败 (rc=" + std::to_string(wret) + "): " + outputPath;
+        fprintf(stderr, "[drizzle_engine] %s\n", error_msg.c_str());
+        return false;
+    }
+
+    // 6. 逐 Tile 构造 DrizzleTileAccumulator 并写入
+    //    signal = 累计通量 (步骤7), support = 面积比 (步骤10, A_p 归一化)
+    for (const auto& [parent_ipix, tg] : tile_groups) {
+        hiss::DrizzleTileAccumulator acc;
+        acc.tile_nside  = tile_nside;
+        acc.parent_ipix = parent_ipix;
+        acc.pixel_area  = A_p;  // 02_FROZEN §10: support = sum_area / A_p
+        acc.pixels.resize(n_leaf_per_tile);
+
+        for (const auto& [local_ipix, pacc] : tg.pixels) {
+            if (local_ipix < n_leaf_per_tile) {
+                acc.pixels[local_ipix].sum_flux  = pacc->sumFlux;
+                acc.pixels[local_ipix].sum_area  = pacc->sumArea;
+                acc.pixels[local_ipix].n_contrib = pacc->nContrib;
+            }
+        }
+
+        // SNR: snr_model 含 ra/dec 控制点, 需 HEALPix 坐标转换才能确定 Tile 和 local_ipix
+        // 当前暂不写入 SNR (待集成测试时完善 ra/dec → ipix 转换)
+        const hiss::HissSnrBlock* snr_block = nullptr;
+
+        // occ_mode 由 Writer 自动选择 (步骤11), 传入 FULL 作为建议 (Writer 会忽略)
+        int tret = writer.add_tile(parent_ipix, acc, snr_block, hiss::OccupancyMode::FULL);
+        if (tret != 0) {
+            error_msg = "HissWriter.add_tile 失败 (rc=" + std::to_string(tret) +
+                        ") parent=" + std::to_string(parent_ipix);
             fprintf(stderr, "[drizzle_engine] %s\n", error_msg.c_str());
+            writer.cancel();
             return false;
         }
     }
 
-    fprintf(stderr, "[drizzle_engine] 写入成功: %s (%zu 像素)\n",
-            outputPath.c_str(), n);
+    // 7. finalize: 生成 Header + 原子替换
+    int fret = writer.finalize();
+    if (fret != 0) {
+        error_msg = "HissWriter.finalize 失败 (rc=" + std::to_string(fret) + "): " + outputPath;
+        fprintf(stderr, "[drizzle_engine] %s\n", error_msg.c_str());
+        return false;
+    }
+
+    // SNR 警告 (ra/dec → ipix 转换待集成)
+    if (snr_model && snr_model->n_points > 0) {
+        fprintf(stderr,
+                "[drizzle_engine] 警告: snr_model 含 %u 控制点, ra/dec→ipix 转换待集成, "
+                "本次未写入 SNR\n", snr_model->n_points);
+    }
+
+    fprintf(stderr,
+            "[drizzle_engine] 写入成功: %s (%zu Tile, signal=累计通量, 无完整 WCS)\n",
+            outputPath.c_str(), tile_groups.size());
     return true;
 }
 
