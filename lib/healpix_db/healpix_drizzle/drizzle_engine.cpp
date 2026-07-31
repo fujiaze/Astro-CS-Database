@@ -56,6 +56,17 @@ static std::string escapeJsonString(const std::string& s) {
 }
 
 // ============================================================================
+// WcsSip 回调包装: 将 spherical::PixelToSkyFn 适配到 WcsSip::pixelToSky
+// 用于 build_drop_polygon_sampled 的边采样
+// ============================================================================
+static bool wcsPixelToSkyCallback(double x, double y, double& ra, double& dec,
+                                  void* user_data) {
+    const WcsSip* wcs = static_cast<const WcsSip*>(user_data);
+    wcs->pixelToSky(x, y, ra, dec);
+    return std::isfinite(ra) && std::isfinite(dec);
+}
+
+// ============================================================================
 // 构造 / 析构
 // ============================================================================
 DrizzleEngine::DrizzleEngine() {}
@@ -364,11 +375,12 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
 //   3. 候选像素查询基于球面包围圆 + queryDisc, 不限于 1-ring (可 > 48)
 //   4. 球面 Sutherland-Hodgman 裁剪 + Girard 面积计算真实球面重叠
 //   5. 通量守恒: sumFlux += L_j * (a_jp / A_j_drop), sumArea += a_jp (球面度)
+//   6. Phase C1: 源像素 WCS/SIP 边自适应细分 (大像素/强畸变时提升精度)
 //
 // 6 步流水线:
-//   Step 1: 取像素四角 (0-based)
-//   Step 2: Pixfrac 收缩 (平面空间, 局部线性尺寸 × pixfrac)
-//   Step 3: SIP+WCS 逐角映射 (像素→天球) → 球面向量
+//   Step 1: 取像素四角 (0-based) + pixfrac 收缩
+//   Step 2: SIP+WCS 逐角映射 (像素→天球), 估算像素角跨度
+//   Step 3: 自适应边细分 (大像素用更多采样点, 小像素用 4 角)
 //   Step 4: 计算 drop 球面面积 (Girard 定理)
 //   Step 5: 候选像素查询 (query_candidate_pixels, 不限于 1-ring)
 //   Step 6: 对每个候选像素计算球面重叠面积, 累加通量
@@ -383,35 +395,78 @@ void DrizzleEngine::processPixel(
     const healpix::HealpixCore& hp,
     std::unordered_map<uint64_t, PixelAccumulator>& accum) const
 {
-    // ---- Step 1: 取像素四角 (0-based) ----
-    double corners_xy[4][2] = {
-        {px - 0.5, py - 0.5},  // 左下
-        {px + 0.5, py - 0.5},  // 右下
-        {px + 0.5, py + 0.5},  // 右上
-        {px - 0.5, py + 0.5}   // 左上
-    };
-
-    // ---- Step 2: Pixfrac 收缩 (平面空间) ----
+    // ---- Step 1: 取像素四角 (0-based) + pixfrac 收缩 ----
     // WP-B 步骤6: pixfrac <= 0 已在 drizzle() 入口拒绝, 这里 pixfrac 必然 > 0
     // pixfrac == 1.0: 不收缩, 四角保持原位
     // 0 < pixfrac < 1.0: 向中心收缩, 局部线性尺寸 × pixfrac, 面积 × pixfrac²
     // (02_FROZEN §9: 标准 drop 语义, 源像素总信号不变, drop 内信号面密度 × 1/pixfrac²)
-    if (config.pixfrac < 1.0) {
-        for (int i = 0; i < 4; i++) {
-            corners_xy[i][0] = px + config.pixfrac * (corners_xy[i][0] - px);
-            corners_xy[i][1] = py + config.pixfrac * (corners_xy[i][1] - py);
-        }
+    double half = 0.5 * config.pixfrac;
+    double corners_xy[4][2] = {
+        {px - half, py - half},  // 左下
+        {px + half, py - half},  // 右下
+        {px + half, py + half},  // 右上
+        {px - half, py + half}   // 左上
+    };
+
+    // ---- Step 2: SIP+WCS 逐角映射 (像素→天球) ----
+    // 先映射 4 角, 用于估算像素角跨度 (决定是否需要边细分)
+    double corners_ra[4], corners_dec[4];
+    for (int i = 0; i < 4; i++) {
+        wcs.pixelToSky(corners_xy[i][0], corners_xy[i][1],
+                       corners_ra[i], corners_dec[i]);
+        if (!std::isfinite(corners_ra[i]) || !std::isfinite(corners_dec[i]))
+            return;
     }
 
-    // ---- Step 3: SIP+WCS 逐角映射 (像素→天球) → 球面单位向量 ----
-    // WP-D 步骤3: 不再用切平面近似, 直接使用球面向量
-    // drop_corners 是收缩后源像素的球面多边形顶点 (逆时针顺序, 单位向量)
-    std::vector<spherical::Vec3> drop_corners(4);
+    // ---- Step 3: 自适应边细分 ----
+    // Phase C1: 对源像素 WCS/SIP 弯曲边进行自适应细分
+    //
+    // 策略: 估算像素最大边角跨度 (弧度), 按跨度选择采样数:
+    //   - span < 60"  (≈ 2.9e-4 rad): samples=1 (4 角, 零额外开销)
+    //     典型天文图像像素 1-2"/px, 4 角大圆弧近似已足够精确
+    //   - 60" ≤ span < 600" (10'): samples=4 (16 顶点)
+    //     中等大小像素, 边弯曲开始显著
+    //   - span ≥ 600": samples=8 (32 顶点)
+    //     大像素或远离切点, TAN/SIP 曲率显著
+    //
+    // 性能: 大多数像素 span < 60", 走快速路径 (零额外 WCS 调用).
+    //        仅大像素/宽视场触发细分, 额外 WCS 调用 (4→16/32) 可接受.
+    double max_edge_rad = 0.0;
     for (int i = 0; i < 4; i++) {
-        double ra, dec;
-        wcs.pixelToSky(corners_xy[i][0], corners_xy[i][1], ra, dec);
-        if (!std::isfinite(ra) || !std::isfinite(dec)) return;
-        drop_corners[i] = spherical::radec_to_vec(ra, dec);
+        int j = (i + 1) % 4;
+        // 近似角距离 (忽略 cos(dec) 因子, 仅用于阈值判断)
+        double dra  = (corners_ra[j]  - corners_ra[i])  * D2R;
+        double ddec = (corners_dec[j] - corners_dec[i]) * D2R;
+        double edge = std::sqrt(dra * dra + ddec * ddec);
+        if (edge > max_edge_rad) max_edge_rad = edge;
+    }
+
+    const double THRESH_60ARCSEC  = 60.0  * (M_PI / 180.0) / 3600.0;  // ≈ 2.91e-4 rad
+    const double THRESH_600ARCSEC = 600.0 * (M_PI / 180.0) / 3600.0;  // ≈ 2.91e-3 rad
+
+    int samples_per_edge = 1;
+    if (max_edge_rad >= THRESH_600ARCSEC) {
+        samples_per_edge = 8;
+    } else if (max_edge_rad >= THRESH_60ARCSEC) {
+        samples_per_edge = 4;
+    }
+
+    // 构造 drop 球面多边形顶点 (逆时针顺序, 单位向量)
+    std::vector<spherical::Vec3> drop_corners;
+    if (samples_per_edge == 1) {
+        // 快速路径: 直接用已映射的 4 角 (零额外 WCS 调用)
+        drop_corners.resize(4);
+        for (int i = 0; i < 4; i++) {
+            drop_corners[i] = spherical::radec_to_vec(corners_ra[i], corners_dec[i]);
+        }
+    } else {
+        // 细分路径: 通过 build_drop_polygon_sampled 采样各边
+        // (重新映射 4 角 + 边内采样点, 4 角的重复映射开销可忽略)
+        drop_corners = spherical::build_drop_polygon_sampled(
+            px, py, config.pixfrac,
+            wcsPixelToSkyCallback, const_cast<WcsSip*>(&wcs),
+            samples_per_edge);
+        if (drop_corners.empty()) return;  // 投影失败
     }
 
     // ---- Step 4: 计算 drop 球面面积 (Girard 定理) ----

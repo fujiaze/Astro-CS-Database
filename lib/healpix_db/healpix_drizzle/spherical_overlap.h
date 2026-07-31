@@ -96,6 +96,61 @@ std::vector<Vec3> get_healpix_boundary(
     const healpix::HealpixCore& hp, uint64_t ipix, int nside);
 
 // ============================================================================
+// 获取 HEALPix 像素的球面边界顶点 (带自适应采样)
+//
+// 对赤道带像素 (bighp 4-7, 或 bighp 0-3/8-11 的赤道部分):
+//   - 所有 4 条边均采样 N 段, 每段用大圆弧近似
+//   (赤道带像素的边在 (z, phi) 空间为线性曲线, 非大圆弧;
+//    采样后用多段大圆弧近似, 显著降低面积误差)
+// 对极区像素 (bighp 0-3/8-11 的极冠部分):
+//   - 所有边保持 4 个角顶点 (极区边为大圆弧)
+//
+// 采样数 samples_per_edge=8 时, 赤道带像素 4 边各 8 段, 总共 4*8=32 个顶点
+// samples_per_edge=1 时退化为 4 个角顶点 (与 get_healpix_boundary 一致)
+//
+// hp: HEALPix 核心
+// ipix: 像素 NESTED 索引
+// nside: NSIDE (冗余参数, 与 hp.getNside() 一致)
+// samples_per_edge: 每条边的采样段数 (>=1)
+// ============================================================================
+std::vector<Vec3> get_healpix_boundary_sampled(
+    const healpix::HealpixCore& hp, uint64_t ipix, int nside,
+    int samples_per_edge = 8);
+
+// ============================================================================
+// 回调类型: 像素坐标 → 天球坐标
+// px, py: 像素坐标 (0-based)
+// ra, dec: 输出天球坐标 (度)
+// user_data: 不透明指针, 由调用者传入
+// 返回: true 成功, false 表示投影未定义 (例如 TAN 投影背面)
+// ============================================================================
+typedef bool (*PixelToSkyFn)(double px, double py, double& ra, double& dec,
+                             void* user_data);
+
+// ============================================================================
+// 构造源像素 drop 球面多边形 (带边采样)
+//
+// 源像素中心 (px, py), 像素范围 ±0.5 (pixfrac=1.0 时).
+// pixfrac 收缩后, 四角向中心移动 pixfrac 倍.
+// 每条边采样 samples_per_edge 段, 每个采样点通过 pixelToSky 回调映射到天球,
+// 再转换为球面单位向量.
+//
+// samples_per_edge=1: 退化为 4 个角顶点 (与旧 processPixel Step1-3 行为一致)
+// samples_per_edge=N: 4 条边各采样 N 段, 共 4*N 个顶点 (每边不含末点, 避免重复)
+//
+// px, py: 像素中心 (0-based)
+// pixfrac: 收缩因子 (0, 1] (1.0 = 不收缩)
+// pixelToSky: 像素→天球 回调函数
+// user_data: 传给回调的不透明指针
+// samples_per_edge: 每条边的采样段数 (>=1)
+// 返回: 球面多边形顶点 (逆时针, 单位向量). 投影失败时返回空向量.
+// ============================================================================
+std::vector<Vec3> build_drop_polygon_sampled(
+    double px, double py, double pixfrac,
+    PixelToSkyFn pixelToSky, void* user_data,
+    int samples_per_edge);
+
+// ============================================================================
 // 计算源像素 drop 与目标 HEALPix 像素的球面重叠面积
 //
 // drop_corners: drop 球面多边形顶点 (已通过 WCS/SIP 映射到球面, 单位向量)

@@ -14,18 +14,20 @@
 // 编译命令 (见 task 描述):
 //   g++ -std=c++17 -O2 -fopenmp -DAIO_ENABLE_HEALPIX \
 //     -I../ -I../../healpix_stack -I../../../astro_image_io/include \
-//     test_spherical_overlap.cpp ../spherical_overlap.cpp \
+//     test_spherical_overlap.cpp ../spherical_overlap.cpp ../wcs_sip.cpp \
 //     ../../healpix_stack/healpix_core.cpp \
 //     -o test_spherical_overlap.exe
 // ============================================================================
 
 #include "spherical_overlap.h"
+#include "wcs_sip.h"
 
 #include <cstdio>
 #include <cmath>
 #include <vector>
 #include <algorithm>
 #include <string>
+#include <cstring>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -597,6 +599,502 @@ static void test_sutherland_hodgman() {
 }
 
 // ============================================================================
+// 测试 10: HEALPix 边界采样 - 顶点数验证
+//
+// 赤道带像素 (bighp 4-7): 采样后顶点数 > 4
+// 极区像素 (bighp 0-3/8-11 极冠): 采样后顶点数 = 4
+// samples_per_edge=1: 退化为 4 顶点
+// ============================================================================
+static void test_boundary_sampled_vertices() {
+    printf("\n[测试组 10] HEALPix 边界采样顶点数验证\n");
+
+    // 10.1 赤道带像素 (bighp=4): samples_per_edge=8 → 顶点数 = 4*8 = 32
+    {
+        int nside = 4;
+        healpix::HealpixCore hp(nside, true);
+        // bighp=4, 选取赤道带中心像素 (x=nside/2, y=nside/2)
+        int bighp = 4;
+        int x = nside / 2, y = nside / 2;
+        int64_t ipix = (int64_t)bighp * (int64_t)nside * nside;
+        int xv = x, yv = y;
+        for (int i = 0; i < 32; i++) {
+            ipix |= ((int64_t)(((yv & 1) << 1) | (xv & 1))) << (i * 2);
+            xv >>= 1; yv >>= 1;
+            if (!xv && !yv) break;
+        }
+
+        std::vector<spherical::Vec3> b = spherical::get_healpix_boundary_sampled(hp, (uint64_t)ipix, nside, 8);
+        char msg[256];
+        snprintf(msg, sizeof(msg), "赤道带像素 samples=8: 顶点数=%zu (期望 32)", b.size());
+        ASSERT_TRUE("赤道带像素 samples=8 顶点数=32", b.size() == 32, msg);
+    }
+
+    // 10.2 赤道带像素 samples_per_edge=1 → 退化为 4 顶点
+    {
+        int nside = 4;
+        healpix::HealpixCore hp(nside, true);
+        int bighp = 4;
+        int x = nside / 2, y = nside / 2;
+        int64_t ipix = (int64_t)bighp * (int64_t)nside * nside;
+        int xv = x, yv = y;
+        for (int i = 0; i < 32; i++) {
+            ipix |= ((int64_t)(((yv & 1) << 1) | (xv & 1))) << (i * 2);
+            xv >>= 1; yv >>= 1;
+            if (!xv && !yv) break;
+        }
+
+        std::vector<spherical::Vec3> b = spherical::get_healpix_boundary_sampled(hp, (uint64_t)ipix, nside, 1);
+        ASSERT_TRUE("赤道带像素 samples=1 退化为 4 顶点", b.size() == 4,
+                    "samples_per_edge=1 应退化为 4 顶点");
+    }
+
+    // 10.3 极区像素 (bighp=0, 极冠): 采样后仍为 4 顶点
+    {
+        int nside = 4;
+        healpix::HealpixCore hp(nside, true);
+        // bighp=0, 选取极冠区域像素 (x+y > Ns)
+        int bighp = 0;
+        int x = nside, y = nside;  // x+y = 2*Ns > Ns, 在极冠内
+        // 实际像素坐标范围 [0, Ns], 取 x=Ns-1, y=Ns-1 → x+y = 2*(Ns-1) > Ns (当 Ns>=2)
+        x = nside - 1; y = nside - 1;
+        int64_t ipix = (int64_t)bighp * (int64_t)nside * nside;
+        int xv = x, yv = y;
+        for (int i = 0; i < 32; i++) {
+            ipix |= ((int64_t)(((yv & 1) << 1) | (xv & 1))) << (i * 2);
+            xv >>= 1; yv >>= 1;
+            if (!xv && !yv) break;
+        }
+
+        std::vector<spherical::Vec3> b = spherical::get_healpix_boundary_sampled(hp, (uint64_t)ipix, nside, 8);
+        ASSERT_TRUE("极区像素采样后仍为 4 顶点", b.size() == 4,
+                    "极区像素边为大圆弧, 不需要采样");
+    }
+
+    // 10.4 默认参数 samples_per_edge=8
+    {
+        int nside = 16;
+        healpix::HealpixCore hp(nside, true);
+        int bighp = 5;  // 赤道带
+        int x = nside / 2, y = nside / 2;
+        int64_t ipix = (int64_t)bighp * (int64_t)nside * nside;
+        int xv = x, yv = y;
+        for (int i = 0; i < 32; i++) {
+            ipix |= ((int64_t)(((yv & 1) << 1) | (xv & 1))) << (i * 2);
+            xv >>= 1; yv >>= 1;
+            if (!xv && !yv) break;
+        }
+
+        std::vector<spherical::Vec3> b = spherical::get_healpix_boundary_sampled(hp, (uint64_t)ipix, nside);
+        ASSERT_TRUE("默认 samples_per_edge=8 (赤道带)", b.size() == 32,
+                    "默认参数应为 8");
+    }
+}
+
+// ============================================================================
+// 测试 11: HEALPix 边界采样 - 面积精度提升
+//
+// 对比 4 顶点边界 vs 采样边界的面积误差:
+//   - 低 NSIDE 赤道带像素: 4 顶点误差 ~5-20%, 采样后应 < 1%
+//   - 全天总面积: 采样后应更接近 4π
+//
+// Phase C1.2 关键验收: NSIDE=1/2/4/16/64 赤道带单像素面积,
+//   采样 16 段时相对理论值 4π/(12·NSIDE²) 误差 < 1%.
+// ============================================================================
+static void test_boundary_sampled_accuracy() {
+    printf("\n[测试组 11] HEALPix 边界采样面积精度提升\n");
+
+    // 11.1 NSIDE=1/2/4/16/64 赤道带单像素面积精度 (Phase C1.2 关键验收)
+    //   采样 16 段时误差应 < 1%; 4 顶点误差应 > 16 采样误差 (验证采样提升精度)
+    {
+        const int nsides[] = {1, 2, 4, 16, 64};
+        const int n_cases = (int)(sizeof(nsides) / sizeof(nsides[0]));
+
+        for (int ci = 0; ci < n_cases; ci++) {
+            int nside = nsides[ci];
+            healpix::HealpixCore hp(nside, true);
+            double theory = 4.0 * M_PI / (12.0 * (double)nside * nside);
+
+            // 选取赤道带中心像素 (bighp=4, x=nside/2, y=nside/2)
+            // NSIDE=1 时每个 bighp 只有 1 个像素 (x=0, y=0)
+            int bighp = 4;
+            int x = nside / 2;
+            int y = nside / 2;
+            int64_t ipix = (int64_t)bighp * (int64_t)nside * nside;
+            int xv = x, yv = y;
+            for (int i = 0; i < 32; i++) {
+                ipix |= ((int64_t)(((yv & 1) << 1) | (xv & 1))) << (i * 2);
+                xv >>= 1; yv >>= 1;
+                if (!xv && !yv) break;
+            }
+
+            // 4 顶点边界
+            std::vector<spherical::Vec3> b4 =
+                spherical::get_healpix_boundary(hp, (uint64_t)ipix, nside);
+            double area_4 = spherical::spherical_polygon_area(b4);
+            double err_4 = std::fabs(area_4 - theory) / theory;
+
+            // 16 段采样边界
+            std::vector<spherical::Vec3> b16 =
+                spherical::get_healpix_boundary_sampled(hp, (uint64_t)ipix, nside, 16);
+            double area_16 = spherical::spherical_polygon_area(b16);
+            double err_16 = std::fabs(area_16 - theory) / theory;
+
+            printf("    NSIDE=%-3d 赤道带: 4顶点 err=%.4f%%, 16采样 err=%.4f%%\n",
+                   nside, err_4 * 100, err_16 * 100);
+
+            char name_cmp[128], name_tol[128];
+            snprintf(name_cmp, sizeof(name_cmp),
+                     "NSIDE=%d 16采样误差 < 4顶点误差", nside);
+            snprintf(name_tol, sizeof(name_tol),
+                     "NSIDE=%d 16采样误差 < 1%%", nside);
+
+            // 16 采样误差应严格小于 4 顶点误差 (验证采样提升精度)
+            ASSERT_TRUE(name_cmp, err_16 < err_4, "采样应提升精度");
+            // Phase C1.2 关键验收: 16 采样误差 < 1%
+            ASSERT_TRUE(name_tol, err_16 < 0.01,
+                        "16 采样应将单像素面积误差降至 1% 以下");
+        }
+    }
+
+    // 11.2 采样数单调性: 8 采样 vs 16 采样 (NSIDE=1, 像素最大, 误差最显著)
+    {
+        int nside = 1;
+        healpix::HealpixCore hp(nside, true);
+        double theory = 4.0 * M_PI / (12.0 * (double)nside * nside);
+        uint64_t ipix = 4;  // NSIDE=1, bighp=4
+
+        std::vector<spherical::Vec3> b8 =
+            spherical::get_healpix_boundary_sampled(hp, ipix, nside, 8);
+        double err_8 = std::fabs(spherical::spherical_polygon_area(b8) - theory) / theory;
+
+        std::vector<spherical::Vec3> b16 =
+            spherical::get_healpix_boundary_sampled(hp, ipix, nside, 16);
+        double err_16 = std::fabs(spherical::spherical_polygon_area(b16) - theory) / theory;
+
+        printf("    NSIDE=1 单调性: 8采样 err=%.4f%%, 16采样 err=%.4f%%\n",
+               err_8 * 100, err_16 * 100);
+
+        // 16 采样应不差于 8 采样 (允许浮点噪声 1e-10)
+        ASSERT_TRUE("NSIDE=1 16采样不差于8采样 (单调提升)",
+                    err_16 <= err_8 + 1e-10,
+                    "更多采样段数应给出更小或相等的误差");
+    }
+
+    // 11.3 全天总面积: 采样后更接近 4π
+    {
+        int nside = 1;
+        healpix::HealpixCore hp(nside, true);
+        int64_t npix = hp.getNpix();
+
+        double total_4 = 0.0, total_16 = 0.0;
+        for (int64_t ipix = 0; ipix < npix; ipix++) {
+            std::vector<spherical::Vec3> b4 = spherical::get_healpix_boundary(hp, (uint64_t)ipix, nside);
+            total_4 += spherical::spherical_polygon_area(b4);
+
+            std::vector<spherical::Vec3> b16 = spherical::get_healpix_boundary_sampled(hp, (uint64_t)ipix, nside, 16);
+            total_16 += spherical::spherical_polygon_area(b16);
+        }
+
+        double err_4 = std::fabs(total_4 - 4.0 * M_PI) / (4.0 * M_PI);
+        double err_16 = std::fabs(total_16 - 4.0 * M_PI) / (4.0 * M_PI);
+        printf("    NSIDE=1 全天: 4顶点 err=%.4f%%, 16采样 err=%.4f%%\n",
+               err_4 * 100, err_16 * 100);
+
+        ASSERT_TRUE("全天总面积 采样后误差 <= 4顶点误差 (含浮点容差)",
+                    err_16 <= err_4 + 1e-12,
+                    "采样应提升或保持全天总面积精度");
+        // 16 采样全天总面积误差应 < 1%
+        ASSERT_TRUE("全天总面积 16采样误差 < 1%", err_16 < 0.01,
+                    "16 采样全天总面积误差应 < 1%");
+    }
+}
+
+// ============================================================================
+// 测试 12: compute_overlap_area 使用采样边界后的精度提升
+//
+// 修改 compute_overlap_area 内部使用 get_healpix_boundary_sampled 后:
+//   - 通量守恒精度应保持或提升
+//   - 相邻像素重叠面积之和 = drop 总面积 (误差 < 1e-6)
+// ============================================================================
+static void test_overlap_with_sampled_boundary() {
+    printf("\n[测试组 12] 采样边界下的重叠面积精度\n");
+
+    // 12.1 低 NSIDE 下通量守恒: 采样后应仍满足 Σa_jp = A_drop
+    {
+        int nside = 4;
+        healpix::HealpixCore hp(nside, true);
+        // drop 覆盖多个像素
+        std::vector<spherical::Vec3> drop = makeRectDrop(45.0, 0.0, 10.0);
+        double drop_area = spherical::spherical_polygon_area(drop);
+
+        std::vector<uint64_t> candidates;
+        spherical::query_candidate_pixels(drop, hp, candidates);
+
+        double sum_overlap = 0.0;
+        int n_nonzero = 0;
+        for (uint64_t ipix : candidates) {
+            double a = spherical::compute_overlap_area(drop, hp, ipix);
+            if (a > 1e-15) {
+                sum_overlap += a;
+                n_nonzero++;
+            }
+        }
+
+        char msg[256];
+        snprintf(msg, sizeof(msg), "Σa=%.10g, A_drop=%.10g, n=%d", sum_overlap, drop_area, n_nonzero);
+        // 低 NSIDE (<=8) 使用 8 采样边界 (32 顶点), 裁剪数值噪声较大, 容差 5%
+        // (相比 4 顶点边界面积误差 ~20%, 采样后单像素面积误差 < 1%, 通量守恒由裁剪精度限制)
+        ASSERT_TRUE("低 NSIDE 采样边界通量守恒 < 5%",
+                    std::fabs(sum_overlap - drop_area) < drop_area * 0.05, msg);
+    }
+
+    // 12.2 高 NSIDE 通量守恒: 严格容差
+    {
+        int nside = 256;
+        healpix::HealpixCore hp(nside, true);
+        std::vector<spherical::Vec3> drop = makeRectDrop(45.0, 0.0, 1.0);
+        double drop_area = spherical::spherical_polygon_area(drop);
+
+        std::vector<uint64_t> candidates;
+        spherical::query_candidate_pixels(drop, hp, candidates);
+
+        double sum_overlap = 0.0;
+        for (uint64_t ipix : candidates) {
+            double a = spherical::compute_overlap_area(drop, hp, ipix);
+            if (a > 1e-15) sum_overlap += a;
+        }
+
+        double rel_err = std::fabs(sum_overlap - drop_area) / drop_area;
+        ASSERT_TRUE("高 NSIDE 采样边界通量守恒 < 1e-6", rel_err < 1e-6,
+                    "采样不应破坏高 NSIDE 通量守恒");
+    }
+}
+
+// ============================================================================
+// WcsSip 回调包装: 将 spherical::PixelToSkyFn 适配到 drizzle::WcsSip::pixelToSky
+// ============================================================================
+static bool wcsPixelToSkyCallback(double x, double y, double& ra, double& dec,
+                                  void* user_data) {
+    const drizzle::WcsSip* wcs = static_cast<const drizzle::WcsSip*>(user_data);
+    wcs->pixelToSky(x, y, ra, dec);
+    return std::isfinite(ra) && std::isfinite(dec);
+}
+
+// ============================================================================
+// 测试 13: 源像素 WCS/SIP 边细分精度提升
+//
+// processPixel 当前仅取源像素四角映射到球面, 用大圆弧连接.
+// 但 WCS/SIP 投影 (TAN + SIP 畸变) 将像素直边映射为球面曲线, 非大圆弧.
+// 边细分后 (samples_per_edge>1) 用多段大圆弧近似曲线, 降低面积误差.
+//
+// 测试策略:
+//   1. 构造有 TAN 投影曲率的 WCS (大像素尺度 + 远离切点)
+//   2. 分别用 samples=1 (4顶点), 8, 64 (近似真值) 构造 drop 多边形
+//   3. 验证 samples=8 面积比 samples=1 更接近 samples=64
+//   4. 验证 samples=1 退化为 4 顶点 (与旧代码一致)
+//   5. 构造有 SIP 畸变的 WCS, 验证边细分对 SIP 弯曲边同样有效
+// ============================================================================
+static void test_drop_polygon_subdivision() {
+    printf("\n[测试组 13] 源像素 WCS/SIP 边细分精度提升\n");
+
+    // 13.1 TAN 投影曲率: 大像素 + 远离切点 → 边弯曲
+    //   CRVAL=(45°,0°), CRPIX=(21,21) 1-based, CD=5.0°/px
+    //   测试像素 (30,30) → 距切点 (10,10)*5° ≈ 70.7° → TAN 曲率显著
+    //   像素 5°×5° 在 70° 处, TAN 投影将直边映射为显著弯曲的球面曲线
+    {
+        drizzle::WcsParams wcs;
+        wcs.has_wcs = true;
+        wcs.crval[0] = 45.0;
+        wcs.crval[1] = 0.0;
+        wcs.crpix[0] = 21.0;  // 1-based
+        wcs.crpix[1] = 21.0;
+        wcs.cd[0] = 5.0;   // 5°/px (极大像素, 放大 TAN 曲率效应)
+        wcs.cd[1] = 0.0;
+        wcs.cd[2] = 0.0;
+        wcs.cd[3] = 5.0;
+        std::strcpy(wcs.ctype1, "RA---TAN-SIP");
+        std::strcpy(wcs.ctype2, "DEC--TAN-SIP");
+        wcs.sip.order = 0;  // 无 SIP, 纯 TAN 曲率
+
+        drizzle::WcsSip wcsip(wcs);
+
+        double px = 30.0, py = 30.0;  // dx=10, dy=10 → ~70.7° from center
+        double pixfrac = 1.0;
+
+        // samples=1 (4 顶点), 8, 64 (近似真值)
+        std::vector<spherical::Vec3> d1 =
+            spherical::build_drop_polygon_sampled(px, py, pixfrac,
+                wcsPixelToSkyCallback, &wcsip, 1);
+        std::vector<spherical::Vec3> d8 =
+            spherical::build_drop_polygon_sampled(px, py, pixfrac,
+                wcsPixelToSkyCallback, &wcsip, 8);
+        std::vector<spherical::Vec3> d64 =
+            spherical::build_drop_polygon_sampled(px, py, pixfrac,
+                wcsPixelToSkyCallback, &wcsip, 64);
+
+        ASSERT_TRUE("TAN曲率: samples=1 返回 4 顶点", d1.size() == 4,
+                    "samples=1 应退化为 4 顶点");
+        ASSERT_TRUE("TAN曲率: samples=8 返回 32 顶点", d8.size() == 32,
+                    "samples=8 应返回 4*8=32 顶点");
+        ASSERT_TRUE("TAN曲率: samples=64 返回 256 顶点", d64.size() == 256,
+                    "samples=64 应返回 4*64=256 顶点");
+
+        double area1  = spherical::spherical_polygon_area(d1);
+        double area8  = spherical::spherical_polygon_area(d8);
+        double area64 = spherical::spherical_polygon_area(d64);
+        double err1   = std::fabs(area1 - area64);
+        double err8   = std::fabs(area8 - area64);
+
+        printf("    TAN曲率: area(4v)=%.10g, area(32v)=%.10g, area(256v)=%.10g\n",
+               area1, area8, area64);
+        printf("             err(4v)=%.6e, err(32v)=%.6e\n", err1, err8);
+
+        ASSERT_TRUE("TAN曲率: samples=8 比 samples=1 更精确",
+                    err8 < err1,
+                    "边细分应降低 TAN 投影曲率导致的面积误差");
+    }
+
+    // 13.2 SIP 畸变: 3 阶 SIP 多项式使像素边在球面上弯曲
+    //   CRVAL=(45°,0°), CRPIX=(501,501), CD=0.01°/px
+    //   SIP A[18]=1e-7 (dx³), B[3]=1e-7 (dy³) → 像素 (800,800) 处畸变显著
+    {
+        drizzle::WcsParams wcs;
+        wcs.has_wcs = true;
+        wcs.crval[0] = 45.0;
+        wcs.crval[1] = 0.0;
+        wcs.crpix[0] = 501.0;
+        wcs.crpix[1] = 501.0;
+        wcs.cd[0] = 0.01;
+        wcs.cd[1] = 0.0;
+        wcs.cd[2] = 0.0;
+        wcs.cd[3] = 0.01;
+        std::strcpy(wcs.ctype1, "RA---TAN-SIP");
+        std::strcpy(wcs.ctype2, "DEC--TAN-SIP");
+        wcs.sip.order = 3;
+        // A[i*6+j] 对应 dx^i*dy^j; A[18]=dx³, B[3]=dy³
+        wcs.sip.a[18] = 1e-7;
+        wcs.sip.b[3]  = 1e-7;
+
+        drizzle::WcsSip wcsip(wcs);
+
+        double px = 800.0, py = 800.0;  // dx=300, dy=300 from CRPIX
+        double pixfrac = 1.0;
+
+        std::vector<spherical::Vec3> d1 =
+            spherical::build_drop_polygon_sampled(px, py, pixfrac,
+                wcsPixelToSkyCallback, &wcsip, 1);
+        std::vector<spherical::Vec3> d8 =
+            spherical::build_drop_polygon_sampled(px, py, pixfrac,
+                wcsPixelToSkyCallback, &wcsip, 8);
+        std::vector<spherical::Vec3> d64 =
+            spherical::build_drop_polygon_sampled(px, py, pixfrac,
+                wcsPixelToSkyCallback, &wcsip, 64);
+
+        // 检查投影成功 (SIP 畸变不应导致投影失败)
+        ASSERT_TRUE("SIP畸变: samples=1 投影成功 (4 顶点)", d1.size() == 4,
+                    "SIP 畸变下应能正常投影");
+        ASSERT_TRUE("SIP畸变: samples=8 投影成功 (32 顶点)", d8.size() == 32,
+                    "SIP 畸变下应能正常采样");
+
+        double area1  = spherical::spherical_polygon_area(d1);
+        double area8  = spherical::spherical_polygon_area(d8);
+        double area64 = spherical::spherical_polygon_area(d64);
+        double err1   = std::fabs(area1 - area64);
+        double err8   = std::fabs(area8 - area64);
+
+        printf("    SIP畸变: area(4v)=%.10g, area(32v)=%.10g, area(256v)=%.10g\n",
+               area1, area8, area64);
+        printf("             err(4v)=%.6e, err(32v)=%.6e\n", err1, err8);
+
+        ASSERT_TRUE("SIP畸变: samples=8 比 samples=1 更精确",
+                    err8 < err1,
+                    "边细分应降低 SIP 畸变导致的面积误差");
+    }
+
+    // 13.3 小像素无畸变: samples=1 与 samples=8 面积应接近一致
+    //   CRVAL=(45°,0°), CRPIX=(101,101), CD=0.01°/px, 像素 (100,100) ≈ 切点
+    {
+        drizzle::WcsParams wcs;
+        wcs.has_wcs = true;
+        wcs.crval[0] = 45.0;
+        wcs.crval[1] = 0.0;
+        wcs.crpix[0] = 101.0;
+        wcs.crpix[1] = 101.0;
+        wcs.cd[0] = 0.01;
+        wcs.cd[1] = 0.0;
+        wcs.cd[2] = 0.0;
+        wcs.cd[3] = 0.01;
+        std::strcpy(wcs.ctype1, "RA---TAN-SIP");
+        std::strcpy(wcs.ctype2, "DEC--TAN-SIP");
+        wcs.sip.order = 0;
+
+        drizzle::WcsSip wcsip(wcs);
+
+        double px = 100.0, py = 100.0;  // 接近切点
+        double pixfrac = 1.0;
+
+        auto d1 = spherical::build_drop_polygon_sampled(px, py, pixfrac,
+            wcsPixelToSkyCallback, &wcsip, 1);
+        auto d8 = spherical::build_drop_polygon_sampled(px, py, pixfrac,
+            wcsPixelToSkyCallback, &wcsip, 8);
+
+        double area1 = spherical::spherical_polygon_area(d1);
+        double area8 = spherical::spherical_polygon_area(d8);
+        double rel_diff = std::fabs(area1 - area8) / area1;
+
+        printf("    无畸变切点: area(4v)=%.10g, area(32v)=%.10g, rel_diff=%.6e\n",
+               area1, area8, rel_diff);
+
+        // 切点附近 TAN 投影近似线性, 但 4 顶点用大圆弧连接, 32 顶点追踪真实投影曲线,
+        // 仍有微小差异 (二阶效应). 容差 5e-4 (0.05%) 验证 "接近一致".
+        ASSERT_TRUE("无畸变切点: 4顶点 vs 32顶点面积接近一致 (rel < 5e-4)",
+                    rel_diff < 5e-4,
+                    "切点附近边弯曲微小, 面积应接近一致");
+    }
+
+    // 13.4 pixfrac 收缩: samples=1 的 4 顶点应正确收缩
+    {
+        drizzle::WcsParams wcs;
+        wcs.has_wcs = true;
+        wcs.crval[0] = 45.0;
+        wcs.crval[1] = 0.0;
+        wcs.crpix[0] = 101.0;
+        wcs.crpix[1] = 101.0;
+        wcs.cd[0] = 0.01;
+        wcs.cd[1] = 0.0;
+        wcs.cd[2] = 0.0;
+        wcs.cd[3] = 0.01;
+        std::strcpy(wcs.ctype1, "RA---TAN-SIP");
+        std::strcpy(wcs.ctype2, "DEC--TAN-SIP");
+        wcs.sip.order = 0;
+
+        drizzle::WcsSip wcsip(wcs);
+
+        double px = 150.0, py = 150.0;
+        double pixfrac = 0.5;  // 收缩到一半
+
+        // samples=1 with pixfrac=0.5
+        auto d_shrink = spherical::build_drop_polygon_sampled(px, py, pixfrac,
+            wcsPixelToSkyCallback, &wcsip, 1);
+        // samples=1 with pixfrac=1.0 (full pixel)
+        auto d_full = spherical::build_drop_polygon_sampled(px, py, 1.0,
+            wcsPixelToSkyCallback, &wcsip, 1);
+
+        double area_shrink = spherical::spherical_polygon_area(d_shrink);
+        double area_full   = spherical::spherical_polygon_area(d_full);
+
+        printf("    pixfrac收缩: area(0.5)=%.10g, area(1.0)=%.10g, ratio=%.6f\n",
+               area_shrink, area_full, area_shrink / area_full);
+
+        // pixfrac=0.5 → 线性尺寸 ×0.5, 面积 ×0.25
+        // 切点附近近似线性, 面积比应接近 0.25 (容差 5%)
+        ASSERT_TRUE("pixfrac=0.5 面积 ≈ 0.25 × pixfrac=1.0 面积",
+                    std::fabs(area_shrink / area_full - 0.25) < 0.05,
+                    "pixfrac=0.5 应使面积约为原来的 1/4");
+    }
+}
+
+// ============================================================================
 // 主函数: 运行所有测试
 // ============================================================================
 int main() {
@@ -613,6 +1111,10 @@ int main() {
     test_overlap_non_negative();
     test_adjacent_pixel_sum();
     test_sutherland_hodgman();
+    test_boundary_sampled_vertices();
+    test_boundary_sampled_accuracy();
+    test_overlap_with_sampled_boundary();
+    test_drop_polygon_subdivision();
 
     printf("\n================================================================\n");
     printf("测试汇总: %d 通过, %d 失败\n", g_pass_count, g_fail_count);
