@@ -1,0 +1,4 @@
+fits_label,img_w,img_h,crval_ra,crval_dec,auto_nside,hp_res_arcsec,finest_arcsec,is_power_of_2,in_range,oversample_factor
+Galaxy_Center_panel3_Red,4500,3600,272.886471,-23.254057,65536,3.220769,6.307367,true,true,0.5106
+NGC55_Lum,4096,4096,3.749672,-39.194104,262144,0.805192,0.958371,true,true,0.8402
+Victory_Nebula_Lum,4500,3600,187.544518,-83.433869,65536,3.220769,6.307346,true,true,0.5106

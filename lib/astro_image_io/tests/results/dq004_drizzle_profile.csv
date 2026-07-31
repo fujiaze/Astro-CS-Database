@@ -1,0 +1,2 @@
+fits_label,nside,n_source_pixels,n_healpix_pixels,total_s,wcs_s,overlap_s,candidate_s,accum_merge_s
+Galaxy_Center_panel3_Red,64,16200000,84,195.0409,29.6392,71.6392,92.0255,0.000000

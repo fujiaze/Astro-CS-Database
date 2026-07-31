@@ -1,0 +1,5 @@
+target_occupancy,actual_occupancy,n_leaf_per_tile,n_valid,auto_mode,total_file_size,occupancy_bytes,signal_bytes,support_bytes
+1.0000,1.0000,256,256,FULL,1708,0,1024,256
+0.8000,0.7969,256,204,BITMAP,1475,32,780,195
+0.3000,0.2969,256,76,BITMAP,865,32,292,73
+0.0500,0.0469,256,12,SPARSE_LIST,567,44,44,11

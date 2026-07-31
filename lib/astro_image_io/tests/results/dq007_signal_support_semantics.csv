@@ -1,0 +1,4 @@
+fits_label,nside,n_healpix_pixels,total_source_flux,total_signal,flux_conservation_err,support_min,support_max,support_mean,support_in_range,signal_is_flux_not_avg,A_p
+Galaxy_Center_panel3_Red,64,84,1.169525e+10,1.169525e+10,1.798095e-09,0,163,113.9405,true,true,2.556635e-04
+NGC55_Lum,64,6,1.760186e+10,1.760186e+10,1.138434e-08,0,98,38.5000,true,true,2.556635e-04
+Victory_Nebula_Lum,64,82,1.309478e+10,1.309478e+10,1.622142e-09,0,164,116.8171,true,true,2.556635e-04
