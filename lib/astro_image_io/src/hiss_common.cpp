@@ -84,31 +84,42 @@ HISS_EXPORT uint32_t compute_tile_nside(uint32_t nside) {
 }
 
 // ============================================================================
-// 2. DrizzleTileAccumulator 方法 (02_FROZEN §10)
+// 2. DrizzleTileAccumulator 方法 (02_FROZEN §8/§10)
 //    float64 内部累加, 最终输出 float32 signal + uint8 support
+//
+//    语义修正 (依据 00_COMMON_CONTRACTS §2.2, spec.md 步骤2/7):
+//      signal[p]  = float(sumFlux)                       — 累计通量 (不除面积)
+//      support[p] = uint8(round(255 * clamp(S, 0, 1)))   — 面积比
+//      其中 S = sum_area / A_p, A_p = pixel_area (成员变量, 由调用方设置)
 // ============================================================================
 
-// finalize_signal: 按 sum_area 归一化得 float32 通量, 无贡献像素写 0
+// finalize_signal: 直接保存累计通量 (不除面积), 无贡献像素 sum_flux=0 自然写 0
+//   旧错误: signal = sum_flux / sum_area (平均面亮度)
+//   新正确: signal = sum_flux (累计通量, 02_FROZEN §8)
 void DrizzleTileAccumulator::finalize_signal(std::vector<float>& signal) const {
     signal.resize(pixels.size());
     for (size_t i = 0; i < pixels.size(); i++) {
-        double sum_flux = pixels[i].sum_flux;
-        double sum_area = pixels[i].sum_area;
-        if (sum_area > 0.0) {
-            signal[i] = (float)(sum_flux / sum_area);
-        } else {
-            signal[i] = 0.0f;  // 无贡献像素
-        }
+        // 直接保存累计通量 (不除面积)
+        // 无贡献像素 sum_flux=0, 自然写 0; 不需要单独判断 sum_area
+        signal[i] = (float)(pixels[i].sum_flux);
     }
 }
 
-// finalize_support: S = sum_area, 钳制到 [0,1], 输出 uint8 = round(255*S)
+// finalize_support: S = sum_area / pixel_area, 钳制 [0,1], uint8 = round(255*S)
+//   旧错误: S = sum_area (未归一化, 假设 sum_area 已经在 [0,1])
+//   新正确: S = sum_area / A_p (A_p = pixel_area, 目标 HEALPix 像素面积, 球面度)
+//
+//   pixel_area 默认 1.0 (向后兼容); 调用方应设置为 hp.pixel_area()
 void DrizzleTileAccumulator::finalize_support(std::vector<uint8_t>& support) const {
     support.resize(pixels.size());
+    // A_p 必须为正, 否则视为 1.0 (避免除零)
+    const double A_p = (pixel_area > 0.0) ? pixel_area : 1.0;
     for (size_t i = 0; i < pixels.size(); i++) {
-        double S = pixels[i].sum_area;
+        // 归一化面积比 S = sum_area / A_p
+        double S = pixels[i].sum_area / A_p;
+        // 仅浮点误差级超限可钳制 (02_FROZEN §10)
         if (S < 0.0) S = 0.0;
-        if (S > 1.0) S = 1.0;  // 浮点误差级超限钳制
+        if (S > 1.0) S = 1.0;
         long v = std::lround(255.0 * S);
         if (v < 0)   v = 0;
         if (v > 255) v = 255;
@@ -116,16 +127,21 @@ void DrizzleTileAccumulator::finalize_support(std::vector<uint8_t>& support) con
     }
 }
 
-// validate_support: 检查 sum_area 在 [0,1] 范围内 (允许浮点误差)
-//   0=OK, <0=错误 (明显超 1 是错误)
+// validate_support: 检查归一化后 S = sum_area / A_p 在 [0,1] 范围内 (允许浮点误差)
+//   0=OK, <0=错误 (明显超 1 是几何/WCS/实现错误)
+//
+//   旧错误: 直接检查 sum_area 在 [0,1]
+//   新正确: 检查 sum_area / pixel_area 在 [0,1]
 int DrizzleTileAccumulator::validate_support() const {
     const double eps = 1e-6;
+    const double A_p = (pixel_area > 0.0) ? pixel_area : 1.0;
     for (size_t i = 0; i < pixels.size(); i++) {
-        double S = pixels[i].sum_area;
+        double S = pixels[i].sum_area / A_p;
         if (S < -eps || S > 1.0 + eps) {
             fprintf(stderr,
-                    "[hiss][common] validate_support: 像素 %zu sum_area=%g 超限 (有效范围 [0,1])\n",
-                    i, S);
+                    "[hiss][common] validate_support: 像素 %zu sum_area=%g, A_p=%g, "
+                    "S=%g 超限 (有效范围 [0,1])\n",
+                    i, pixels[i].sum_area, A_p, S);
             return -1;
         }
     }

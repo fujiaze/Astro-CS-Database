@@ -46,6 +46,23 @@ struct HissGridSpec {
 };
 
 // ============================================================================
+// 1.1 Tile 几何 (依据 02_FROZEN §11, 00_COMMON_CONTRACTS §2.1)
+//     详细定义见 src/hiss_tile_model.h
+//     通过 make_tile_geometry(nside) / make_tile_geometry_for_parent(nside, parent) 构造
+//
+//     关键公式 (修正了旧版 "tile_nside^2 * 12" 错误):
+//       d              = min(9, log2(NSIDE/16))
+//       tile_nside     = NSIDE / 2^d
+//       n_leaf_per_tile = 4^d = (NSIDE / tile_nside)^2
+//       满 Tile 最多 4^9 = 262144 个叶像素
+//
+//     使用方式:
+//       #include "hiss_tile_model.h"
+//       hiss::HissTileGeometry g = hiss::make_tile_geometry(64);
+//       // g.depth=2, g.tile_nside=16, g.n_leaf_per_tile=16
+// ============================================================================
+
+// ============================================================================
 // 2. Tile 自适应层级计算 (已冻结: 02_FROZEN §11)
 //    d = min(9, log2(NSIDE/16))
 //    tile_nside = NSIDE / 2^d
@@ -138,8 +155,13 @@ struct HissTile {
 };
 
 // ============================================================================
-// 8. SNR 控制点 (已冻结: 02_FROZEN §17)
+// 8. SNR 控制点 (已冻结: 02_FROZEN §17, 00_COMMON_CONTRACTS §2.5)
 //    每点仅 local_ipix(uint32) + snr(float32)
+//
+// SNR 子块二进制布局 (冻结, 02_FROZEN §17 + 00_COMMON_CONTRACTS §2.5):
+//   [n_points: uint32]
+//   [points: n_points * 8B]  — 每点 local_ipix(uint32) + snr(float32)
+//   不包含 snr_phot/median_snr/idw_power (这些是估计器状态, 不写入 HISS)
 // ============================================================================
 
 struct HissSnrControlPoint {
@@ -147,12 +169,27 @@ struct HissSnrControlPoint {
     float    snr;         // SNR 值
 };
 
+// HissSnrBlock: SNR 子块在内存中的表示
+// 依据 02_FROZEN §17 和 00_COMMON_CONTRACTS §2.5, HISS 文件中仅保存
+// n_points + points (每点 local_ipix + snr), 不保存估计器状态量
+// (snr_phot/median_snr/idw_power)。这些状态量由 SNR 估计器自行管理,
+// 不进入 HISS 容器。
 struct HissSnrBlock {
     std::vector<HissSnrControlPoint> points;  // 控制点列表
-    double snr_phot = 0.0;       // 全局标量 (子块头保存一次)
-    double median_snr = 0.0;     // 归一化基准
-    double idw_power = 2.0;      // IDW 幂次
 };
+
+// ============================================================================
+// 8.1 HISS 错误码 (依据 00_COMMON_CONTRACTS §3.3)
+//     Reader 在遇到未知必需子块时返回 HISS_ERR_UNKNOWN_REQUIRED
+// ============================================================================
+#define HISS_OK                     0
+#define HISS_ERR_INVALID_ARG       -1   // 非法参数
+#define HISS_ERR_INVALID_STATE     -2   // 非法状态
+#define HISS_ERR_IO                -3   // I/O 错误
+#define HISS_ERR_CHECKSUM          -4   // 校验失败
+#define HISS_ERR_FORMAT            -5   // 格式错误
+#define HISS_ERR_UNSUPPORTED       -6   // 不支持的特性
+#define HISS_ERR_UNKNOWN_REQUIRED  -7   // 未知必需子块 (规范 §13 要求拒绝)
 
 // ============================================================================
 // 9. 元数据 (已冻结: 02_FROZEN §16)
@@ -198,23 +235,38 @@ struct HissMetadata {
 // ============================================================================
 // 10. Drizzle Tile 累加器 (已冻结: 02_FROZEN §8/§10)
 //     float64 内部累加, 最终输出 float32 signal + uint8 support
+//
+//     语义修正 (依据 00_COMMON_CONTRACTS §2.2, spec.md 步骤2/7):
+//       signal[p]  = float(sumFlux)                       — 累计通量 (不除面积)
+//       support[p] = uint8(round(255 * clamp(S, 0, 1)))   — 面积比
+//       其中 S = sum_area / A_p, A_p = 目标 HEALPix 像素面积 (球面度)
+//
+//     A_p 通过成员变量 pixel_area 传入 (调用方在 finalize_* 前设置)。
+//     默认值 1.0 仅为向后兼容, 调用方应正确设置为 hp.pixel_area()。
 // ============================================================================
 
 struct DrizzleTileAccumulator {
     // 按 Tile 局部 ipix 索引的累加器
     struct Accum {
-        double sum_flux = 0.0;     // Σ L_j * a_jp / A_j_drop
-        double sum_area = 0.0;     // Σ a_jp (用于 support)
+        double sum_flux = 0.0;     // Σ L_j * (a_jp / A_j_drop) — 累计通量 (02_FROZEN §8)
+        double sum_area = 0.0;     // Σ a_jp — 球面重叠面积 (球面度, 未归一化)
         uint32_t n_contrib = 0;    // 贡献源像素数 (诊断用)
     };
     std::vector<Accum> pixels;      // 按 Tile 内局部 ipix 排列
     uint32_t tile_nside = 0;
     uint64_t parent_ipix = 0;
 
+    // 目标 HEALPix 像素面积 A_p (球面度), 用于 support 归一化
+    // 调用方需在 finalize_support/validate_support 前设置为 hp.pixel_area()
+    // 默认 1.0 仅向后兼容 (旧调用未设置时退化为 sum_area 直接作为 S)
+    double pixel_area = 1.0;
+
     // 最终输出
-    void finalize_signal(std::vector<float>& signal) const;   // float32
-    void finalize_support(std::vector<uint8_t>& support) const; // uint8 round(255*S)
-    // support 范围检查: 仅浮点误差级超限可钳制; 明显超 1 是错误
+    // signal: 直接保存累计通量 (不除面积), 无贡献像素 sum_flux=0 自然写 0
+    void finalize_signal(std::vector<float>& signal) const;   // float32, = float(sumFlux)
+    // support: S = sum_area / pixel_area, 钳制 [0,1], uint8 = round(255*S)
+    void finalize_support(std::vector<uint8_t>& support) const; // uint8 round(255*S/A_p)
+    // support 范围检查 (基于归一化后的 S): 仅浮点误差级超限可钳制; 明显超 1 是错误
     HISS_EXPORT int validate_support() const; // 0=OK, <0=错误
 };
 
