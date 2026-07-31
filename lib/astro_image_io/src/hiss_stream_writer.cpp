@@ -59,14 +59,23 @@ static const size_t COPY_BUF_SIZE = 4 * 1024 * 1024;
 // 内部辅助: 小端字节追加工具 (用于构建 Header 字节流)
 // ============================================================================
 
+// 显式小端序写入工具 (02_FROZEN §14: 所有数值按显式小端序写入, Reader 不依赖本机端序)
 struct ByteBuf {
     std::vector<uint8_t> data;
 
     void u8 (uint8_t v)            { data.push_back(v); }
-    void u16(uint16_t v)           { size_t n = data.size(); data.resize(n + 2); std::memcpy(data.data() + n, &v, 2); }
-    void u32(uint32_t v)           { size_t n = data.size(); data.resize(n + 4); std::memcpy(data.data() + n, &v, 4); }
-    void u64(uint64_t v)           { size_t n = data.size(); data.resize(n + 8); std::memcpy(data.data() + n, &v, 8); }
-    void f64(double v)             { size_t n = data.size(); data.resize(n + 8); std::memcpy(data.data() + n, &v, 8); }
+    void u16(uint16_t v)           { size_t n = data.size(); data.resize(n + 2);
+                                     data[n+0] = (uint8_t)(v & 0xFF);
+                                     data[n+1] = (uint8_t)((v >> 8) & 0xFF); }
+    void u32(uint32_t v)           { size_t n = data.size(); data.resize(n + 4);
+                                     data[n+0] = (uint8_t)(v & 0xFF);
+                                     data[n+1] = (uint8_t)((v >> 8) & 0xFF);
+                                     data[n+2] = (uint8_t)((v >> 16) & 0xFF);
+                                     data[n+3] = (uint8_t)((v >> 24) & 0xFF); }
+    void u64(uint64_t v)           { size_t n = data.size(); data.resize(n + 8);
+                                     for (int i = 0; i < 8; i++)
+                                         data[n+i] = (uint8_t)((v >> (8*i)) & 0xFF); }
+    void f64(double v)             { uint64_t bits; std::memcpy(&bits, &v, 8); u64(bits); }
     void bytes(const void* p, size_t n) {
         size_t off = data.size();
         data.resize(off + n);

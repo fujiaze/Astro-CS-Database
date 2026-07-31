@@ -1,9 +1,0 @@
-[
-  { "type": "mkdir", "params": { "path": "engineering/evidence/P07-002" } },
-  { "type": "mkdir", "params": { "path": "engineering/evidence/P07-002/logs" } },
-  { "type": "mkdir", "params": { "path": "engineering/evidence/P07-002/output" } },
-  { "type": "mkdir", "params": { "path": "engineering/evidence/P07-002/configs" } },
-  { "type": "copy_file", "params": { "src": "engineering/evidence/P05-002/configs/stage1_config_T2.json", "dst": "engineering/evidence/P07-002/configs/stage1_config_T2.json" } },
-  { "type": "copy_file", "params": { "src": "engineering/evidence/P05-002/configs/stage1_config_T3.json", "dst": "engineering/evidence/P07-002/configs/stage1_config_T3.json" } },
-  { "type": "copy_file", "params": { "src": "engineering/evidence/P05-002/configs/stage1_config_T4.json", "dst": "engineering/evidence/P07-002/configs/stage1_config_T4.json" } }
-]

@@ -59,6 +59,10 @@ struct HissWriter::Impl {
     // 实验性 codec 配置 (按 SubblockType 区分), 默认 RAW/NONE
     std::map<SubblockType, std::pair<CodecId, TransformId>> experiment_codecs;
 
+    // 实验性 checksum 配置 (按 SubblockType 区分), 默认 NONE
+    // INTERIM_BASELINE_NOT_FROZEN: 候选注册机制, 算法待 DQ-006 冻结
+    std::map<SubblockType, ChecksumType> experiment_checksums;
+
     CodecId codec_for(SubblockType t) const {
         auto it = experiment_codecs.find(t);
         return it != experiment_codecs.end() ? it->second.first : CodecId::RAW;
@@ -67,6 +71,10 @@ struct HissWriter::Impl {
         auto it = experiment_codecs.find(t);
         return it != experiment_codecs.end() ? it->second.second : TransformId::NONE;
     }
+    ChecksumType checksum_for(SubblockType t) const {
+        auto it = experiment_checksums.find(t);
+        return it != experiment_checksums.end() ? it->second : ChecksumType::NONE;
+    }
 };
 
 // ---------------------------------------------------------------------------
@@ -74,6 +82,10 @@ struct HissWriter::Impl {
 //   返回 0=成功, <0=失败; 成功时 desc 已填充 (offset/size/codec 等)
 //   依据步骤10: 压缩后立即写入临时池, 不保留 compressed_data 在内存
 //   依据步骤12 (WP-G): 在压缩前执行 apply_transform (若 transform_id != NONE)
+//   checksum (INTERIM_BASELINE_NOT_FROZEN):
+//     - 默认 ChecksumType::NONE (不计算校验, 向后兼容)
+//     - 实验时通过 set_experiment_checksum 启用 CRC32C 等候选算法
+//     - checksum 计算的是压缩后数据 (与 Reader 端一致, Reader 在解压前校验)
 // ---------------------------------------------------------------------------
 
 static int compress_and_append(HissStreamWriter& stream,
@@ -81,6 +93,7 @@ static int compress_and_append(HissStreamWriter& stream,
                                 uint16_t flags,
                                 const uint8_t* data, size_t data_size,
                                 CodecId codec_id, TransformId transform_id,
+                                ChecksumType checksum_type,
                                 size_t element_size,
                                 HissSubblockDescriptor& desc) {
     // WP-G 步骤12: 在压缩前执行正向变换 (若 transform_id != NONE)
@@ -142,8 +155,26 @@ static int compress_and_append(HissStreamWriter& stream,
     desc.uncompressed_size = size_to_compress;  // WP-G: 变换后大小
     desc.codec_id          = codec_id;
     desc.transform_id      = transform_id;
-    desc.checksum_type     = ChecksumType::NONE;  // 默认 NONE, 实验时可扩展
+    desc.checksum_type     = ChecksumType::NONE;  // 默认 NONE, 下方按 checksum_type 覆盖
     desc.checksum          = 0;
+
+    // checksum 计算 (INTERIM_BASELINE_NOT_FROZEN)
+    // 计算的是压缩后数据 (与 Reader 端一致, Reader 在解压前校验 comp.data())
+    if (checksum_type != ChecksumType::NONE) {
+        const ChecksumEntry* cs = ChecksumRegistry::instance().find(checksum_type);
+        if (!cs) {
+            fprintf(stderr,
+                    "[hiss][writer] compress_and_append: checksum id=%u 未注册 (type=%u)\n",
+                    (unsigned)checksum_type, (unsigned)type);
+            return -4;
+        }
+        desc.checksum      = cs->compute(compressed.data(), compressed_size);
+        desc.checksum_type = checksum_type;
+        fprintf(stderr,
+                "[hiss][writer]   checksum %s: type=%u value=0x%016llx (comp_size=%zu)\n",
+                cs->name.c_str(), (unsigned)checksum_type,
+                (unsigned long long)desc.checksum, compressed_size);
+    }
 
     // 立即追加到流式写入器 (写入临时池), 释放 compressed 内存
     ret = stream.append_subblock(compressed.data(), compressed_size, desc);
@@ -155,9 +186,10 @@ static int compress_and_append(HissStreamWriter& stream,
     // compressed 在此处析构, 释放内存 (步骤10: 不保留 compressed_data)
     fprintf(stderr,
             "[hiss][writer]   子块 type=%u flags=0x%04x uncompressed=%zu compressed=%zu "
-            "codec=%u transform=%u offset=%llu\n",
+            "codec=%u transform=%u checksum_type=%u offset=%llu\n",
             (unsigned)type, flags, size_to_compress, compressed_size,
             (unsigned)codec_id, (unsigned)transform_id,
+            (unsigned)desc.checksum_type,
             (unsigned long long)desc.offset);
     return 0;
 }
@@ -375,6 +407,7 @@ int HissWriter::add_tile(uint64_t parent_ipix,
             occ_data.data(), occ_data.size(),
             pimpl_->codec_for(SubblockType::OCCUPANCY),
             pimpl_->transform_for(SubblockType::OCCUPANCY),
+            pimpl_->checksum_for(SubblockType::OCCUPANCY),
             occ_elem_size,
             desc);
         if (ret != 0) return ret;
@@ -393,6 +426,7 @@ int HissWriter::add_tile(uint64_t parent_ipix,
             (const uint8_t*)signal_compact.data(), sig_bytes,
             pimpl_->codec_for(SubblockType::SIGNAL),
             pimpl_->transform_for(SubblockType::SIGNAL),
+            pimpl_->checksum_for(SubblockType::SIGNAL),
             sizeof(float),  // element_size=4 (float32)
             desc);
         if (ret != 0) return ret;
@@ -410,6 +444,7 @@ int HissWriter::add_tile(uint64_t parent_ipix,
             support_compact.data(), support_compact.size(),
             pimpl_->codec_for(SubblockType::SUPPORT),
             pimpl_->transform_for(SubblockType::SUPPORT),
+            pimpl_->checksum_for(SubblockType::SUPPORT),
             sizeof(uint8_t),  // element_size=1 (uint8)
             desc);
         if (ret != 0) return ret;
@@ -439,6 +474,7 @@ int HissWriter::add_tile(uint64_t parent_ipix,
             snr_data.data(), snr_data.size(),
             pimpl_->codec_for(SubblockType::SNR),
             pimpl_->transform_for(SubblockType::SNR),
+            pimpl_->checksum_for(SubblockType::SNR),
             1,  // element_size=1 (混合布局, 按字节处理)
             desc);
         if (ret != 0) return ret;
@@ -498,6 +534,7 @@ void HissWriter::cancel() {
     }
     pimpl_->stream.cancel();
     pimpl_->experiment_codecs.clear();
+    pimpl_->experiment_checksums.clear();
     pimpl_->opened = false;
 }
 
@@ -529,6 +566,21 @@ void HissWriter::set_experiment_transform(SubblockType type,
     fprintf(stderr,
             "[hiss][writer] set_experiment_transform: type=%u transform=%u (codec=%u 保持)\n",
             (unsigned)type, (unsigned)transform, (unsigned)entry.first);
+}
+
+// ---------------------------------------------------------------------------
+// set_experiment_checksum (INTERIM_BASELINE_NOT_FROZEN)
+//   设置实验性 checksum (按 SubblockType), 默认 NONE
+//   checksum 计算的是压缩后数据 (与 Reader 端一致)
+//   候选算法通过 ChecksumRegistry 注册, 内置 CRC32C
+// ---------------------------------------------------------------------------
+
+void HissWriter::set_experiment_checksum(SubblockType type,
+                                           ChecksumType checksum) {
+    pimpl_->experiment_checksums[type] = checksum;
+    fprintf(stderr,
+            "[hiss][writer] set_experiment_checksum: type=%u checksum=%u\n",
+            (unsigned)type, (unsigned)checksum);
 }
 
 } // namespace hiss

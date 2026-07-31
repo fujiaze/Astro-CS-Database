@@ -603,8 +603,8 @@ void test_part3_checkpoint_resume() {
 
         PipelineStage from;
         bool loaded = orch.load_checkpoint("orch_frame.fts", from);
-        // 新建的空检查点, resume_stage 应为 0
-        ASSERT_TRUE(loaded || !loaded, "Orchestrator 加载检查点执行完成 (空检查点)");
+        // 刚保存的检查点应能成功加载 (恒真 loaded||!loaded 是软通过, 已修复)
+        ASSERT_TRUE(loaded, "应成功加载刚保存的空检查点");
     }
 
     // 测试 6: fully_completed 标记
@@ -1960,8 +1960,8 @@ void test_part9_p04_004_cancel_timeout_atomicity() {
             }
             // 超时测试 informational, 不强制要求触发
         } else {
-            // 无 FITS 文件, 跳过超时触发测试
-            ASSERT_TRUE(true, "超时触发测试: 跳过 (无 testdata FITS 文件)");
+            // 无 FITS 文件, 跳过超时触发测试 (与测试 10/11/12 的 SKIP 约定一致, 不计入通过)
+            std::cerr << "  [SKIP] 未找到 testdata FITS 文件, 跳过超时触发测试" << std::endl;
         }
     }
 

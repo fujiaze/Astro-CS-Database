@@ -156,6 +156,9 @@ int BrowserBackend::open_file(const std::string& path) {
     nside_ = 0;
     n_pix_ = 0;
     nested_ = 1;
+    // 重置 HISS Header (避免旧文件 Header 残留)
+    hiss_header_ = HissHeader{};
+    hiss_header_loaded_ = false;
 
     // 读取前 4 字节 Magic 判断格式
     std::ifstream f(path, std::ios::binary);
@@ -176,34 +179,47 @@ int BrowserBackend::open_file(const std::string& path) {
 
     if (std::memcmp(magic, "HISS", 4) == 0 ||
         std::memcmp(magic, "ACSH", 4) == 0) {
-        // 单帧模式 - 全量加载到内存
+        // 单帧模式 - 按需加载: 只读 Header/Tile 目录, 不加载像素数据
         // WP-H: "ACSH" 是新 HISS 格式 (8字节 MAGIC "ACSHISS\0") 的前4字节
-        //        "HISS" 是旧格式, 两者均由 aio_hiss_read (HissReader) 统一处理
+        //        "HISS" 是旧格式, 两者均由 HissReader 统一处理
+        // 规范要求: Browser 打开 HISS 时先读 Header/目录, 不加载整文件; 按视野读取 Tile
+        //   - 旧方案 aio_hiss_read: 全量加载所有像素 (内存随文件大小线性增长)
+        //   - 新方案 aio_hiss_inspect: 只读 Header + Tile 目录 (NSIDE/Tile数/元数据)
+        //   - load_leaf 时按 parent_ipix 调用 aio_hiss_read_tile_signal 按需读取
         is_hiss_ = true;
-        uint32_t nside = 0;
-        int nested = 0;
-        uint64_t n_pix = 0;
-        uint64_t* ipix = nullptr;
-        float* pixel = nullptr;
+        uint32_t nside = 0, tile_nside = 0, depth = 0, n_leaf_per_tile = 0;
+        uint64_t n_tiles = 0, n_pix_total = 0;
         char* meta_json = nullptr;
+        uint64_t* tile_ipix_list = nullptr;
 
-        // hiss_read 8 参数: path, nside, nested, n_pix, ipix, pixel, snr, meta_json
-        // browser 不使用 SNR 通道, snr 传 nullptr (snr_format=0/1 均兼容, 不读取 snr 数据)
-        int ret = hiss_read(path.c_str(), &nside, &nested, &n_pix,
-                            &ipix, &pixel, nullptr, &meta_json);
+        int ret = aio_hiss_inspect(path.c_str(), &nside, &tile_nside, &depth,
+                                    &n_leaf_per_tile, &n_tiles, &n_pix_total,
+                                    &meta_json, &tile_ipix_list);
         if (ret != 0) {
-            LOG_ERROR("hiss_read 失败: ret=%d path=%s", ret, path.c_str());
+            LOG_ERROR("aio_hiss_inspect 失败: ret=%d path=%s", ret, path.c_str());
             file_path_.clear();
             return -3;
         }
 
         nside_ = nside;
-        nested_ = nested;
-        n_pix_ = n_pix;
-        all_ipix_ = ipix;
-        all_pixel_ = pixel;
+        nested_ = 1;  // HISS 固定 NESTED
+        n_pix_ = n_pix_total;
 
-        // 解析 filter (简单从 meta_json 提取)
+        // 保存 Header (供 load_leaf 按需加载使用)
+        hiss_header_.nside = nside;
+        hiss_header_.tile_nside = tile_nside;
+        hiss_header_.depth = depth;
+        hiss_header_.n_leaf_per_tile = n_leaf_per_tile;
+        hiss_header_.n_tiles = n_tiles;
+        hiss_header_.n_pix_total = n_pix_total;
+        hiss_header_loaded_ = true;
+
+        if (tile_ipix_list && n_tiles > 0) {
+            hiss_header_.tile_ipix_list.assign(tile_ipix_list, tile_ipix_list + n_tiles);
+            aio_hio_free(tile_ipix_list);
+        }
+
+        // 解析 filter (从 meta_json 提取)
         if (meta_json) {
             const char* key = "\"filter\"";
             const char* p = std::strstr(meta_json, key);
@@ -216,14 +232,19 @@ int BrowserBackend::open_file(const std::string& path) {
                 }
                 filter_ = val;
             }
-            hio_free(meta_json);
+            hiss_header_.meta_json = meta_json;
+            aio_hio_free(meta_json);
         }
 
-        LOG_INFO(".hiss 已加载: nside=%u nested=%d n_pix=%llu filter=%s",
-                 nside_, nested_, (unsigned long long)n_pix_, filter_.c_str());
+        // 按需模式: 不加载像素数据, 不建立子叶索引
+        // all_ipix_/all_pixel_ 保持 nullptr, hiss_leaf_index_ 保持空
+        // load_leaf 通过 aio_hiss_read_tile_signal 按 parent_ipix 按需读取 Tile
 
-        // 建立子叶索引 (加速 load_leaf, 避免每次遍历全部像素)
-        build_hiss_leaf_index();
+        LOG_INFO(".hiss 已打开(按需模式): nside=%u tile_nside=%u depth=%u "
+                 "n_tiles=%llu n_pix=%llu filter=%s",
+                 nside_, tile_nside, depth,
+                 (unsigned long long)n_tiles, (unsigned long long)n_pix_,
+                 filter_.c_str());
 
         return 0;
     } else if (std::memcmp(magic, "HCSD", 4) == 0) {
@@ -293,6 +314,9 @@ void BrowserBackend::close_file() {
     nside_ = 0;
     n_pix_ = 0;
     nested_ = 1;
+    // 重置 HISS Header (按需模式状态)
+    hiss_header_ = HissHeader{};
+    hiss_header_loaded_ = false;
 }
 
 // ============================================================================
@@ -426,36 +450,84 @@ LeafData BrowserBackend::load_leaf(uint64_t leaf_ipix, uint32_t target_nside) {
     result.leaf_ipix = leaf_ipix;
 
     if (is_hiss_) {
-        // 单帧模式 - 用子叶索引快速查找 (避免遍历全部像素)
-        // 子叶索引在 open_file 时建立, 按 leaf_ipix 分组连续存储
+        // 按需加载: 调用 aio_hiss_read_tile_signal 读取 Tile signal
+        // leaf_ipix 是 nside=64 子叶 ipix, tile_nside 通常 == 64 (HISS 设计)
+        // 每个 Tile 含 n_leaf_per_tile = 4^depth 个像素 (NESTED 排序)
         result.n_pix = 0;
         result.nside = nside_;
-        result.owned = false;
+        result.owned = true;  // malloc/aio 分配, release_leaf 释放
 
-        auto it = hiss_leaf_index_.find(leaf_ipix);
-        if (it != hiss_leaf_index_.end()) {
-            uint64_t start = it->second.first;
-            uint64_t count = it->second.second;
-            result.n_pix = count;
-            if (count > 0) {
-                // 零拷贝: 直接指向 all_ipix_/all_pixel_ 的切片 (owned=false)
-                result.ipix = all_ipix_ + start;
-                result.pixel = all_pixel_ + start;
-                result.owned = false;
-            }
+        uint32_t tile_nside = hiss_header_.tile_nside;
+        uint32_t depth = hiss_header_.depth;
+
+        // 计算 parent_ipix (Tile 在 tile_nside 层的 ipix):
+        //   tile_nside == 64: leaf_ipix 直接作为 parent_ipix
+        //   tile_nside <  64: parent_ipix = leaf_ipix >> (2 * log2(64/tile_nside))
+        //   tile_nside >  64: 不支持 (一个 leaf 跨多个 Tile, 暂不处理)
+        uint64_t parent_ipix = leaf_ipix;
+        if (tile_nside > 0 && tile_nside < 64) {
+            uint32_t coarse_shift = 0;
+            uint32_t ratio = 64 / tile_nside;
+            while (ratio > 1) { coarse_shift += 2; ratio >>= 1; }
+            parent_ipix = leaf_ipix >> coarse_shift;
+        } else if (tile_nside > 64) {
+            LOG_WARN("load_leaf(.hiss) tile_nside=%u > 64 不支持按子叶加载 leaf=%llu",
+                     tile_nside, (unsigned long long)leaf_ipix);
+            return result;
         }
 
-        LOG_DEBUG("load_leaf(.hiss) leaf=%llu n_pix=%llu nside=%u owned=%d",
-                  (unsigned long long)leaf_ipix,
-                  (unsigned long long)result.n_pix, result.nside, result.owned);
+        // 调用按需 API 读取 Tile signal (只读这一个 Tile, 不加载其他 Tile)
+        float* signal = nullptr;
+        uint32_t n_signal = 0;
+        int ret = aio_hiss_read_tile_signal(file_path_.c_str(), parent_ipix,
+                                             &signal, &n_signal);
+        if (ret != 0) {
+            // Tile 无数据 (视场外或文件中不存在)
+            LOG_DEBUG("load_leaf(.hiss ondemand) leaf=%llu parent=%llu 无数据 ret=%d",
+                      (unsigned long long)leaf_ipix,
+                      (unsigned long long)parent_ipix, ret);
+            return result;
+        }
+        if (!signal || n_signal == 0) {
+            if (signal) aio_hio_free(signal);
+            LOG_DEBUG("load_leaf(.hiss ondemand) leaf=%llu 空Tile",
+                      (unsigned long long)leaf_ipix);
+            return result;
+        }
 
-        // 降采样 (需要拷贝+聚合, 返回 owned=true 的独立内存, uint8)
+        // 生成 ipix 数组: Tile 内第 i 个像素 ipix = parent_ipix << (2*depth) | i
+        // (NESTED: 高位是 parent_ipix, 低位是 Tile 内 local_ipix)
+        int tile_shift = (int)depth * 2;
+        uint64_t* ipix = (uint64_t*)std::malloc((size_t)n_signal * sizeof(uint64_t));
+        if (!ipix) {
+            aio_hio_free(signal);
+            LOG_ERROR("load_leaf(.hiss) malloc ipix 失败 n=%u", n_signal);
+            return result;
+        }
+        for (uint32_t i = 0; i < n_signal; i++) {
+            ipix[i] = (parent_ipix << tile_shift) | (uint64_t)i;
+        }
+
+        result.n_pix = n_signal;
+        result.ipix = ipix;       // std::malloc 分配, release_leaf 用 std::free
+        result.pixel = signal;    // aio 分配 (与 hcsd 路径一致, 同一 CRT 下 std::free 兼容)
+        result.owned = true;
+
+        LOG_DEBUG("load_leaf(.hiss ondemand) leaf=%llu parent=%llu n_pix=%u nside=%u",
+                  (unsigned long long)leaf_ipix,
+                  (unsigned long long)parent_ipix, n_signal, result.nside);
+
+        // 降采样 (ud_grade 返回 owned=true 的 malloc 内存, uint8)
         if (target_nside < nside_ && target_nside > 0 && result.n_pix > 0) {
             LeafData downsampled = ud_grade(result, target_nside, data_min_, data_max_);
-            // ud_grade 返回 owned=true 的 malloc 内存, use_u8=true
+            // 释放原始 Tile 数据 (pixel 用 aio_hio_free, ipix 用 std::free)
+            aio_hio_free(result.pixel);
+            std::free(result.ipix);
+            result.ipix = nullptr;
+            result.pixel = nullptr;
             return downsampled;
         }
-        // 无降采样: 返回零拷贝切片 (release_leaf 不会 free)
+        // 无降采样: 返回 owned=true 的数据, release_leaf 会用 std::free 释放
         return result;
     } else {
         // 球面模式 - 调用 hcsd_read_leaf 按需读取
@@ -607,7 +679,34 @@ int BrowserBackend::get_data_bbox(double& center_ra, double& center_dec,
                                    double& width_deg, double& height_deg) const {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    if (is_hiss_ && !hiss_leaf_index_.empty()) {
+    if (is_hiss_ && hiss_header_loaded_ && !hiss_header_.tile_ipix_list.empty()) {
+        // .hiss 按需模式: 从 Tile 目录 (tile_nside 层) 计算 bbox
+        // open_file 仅读 Header, hiss_leaf_index_ 为空, 用 tile_ipix_list 替代
+        double min_ra = 360.0, max_ra = 0.0, min_dec = 90.0, max_dec = -90.0;
+        uint32_t tile_nside = hiss_header_.tile_nside;
+        if (tile_nside == 0) tile_nside = 64;
+        for (uint64_t tile_ipix : hiss_header_.tile_ipix_list) {
+            double ra, dec;
+            HealpixMath::pix2ang_nest(tile_nside, tile_ipix, ra, dec);
+            if (ra < min_ra) min_ra = ra;
+            if (ra > max_ra) max_ra = ra;
+            if (dec < min_dec) min_dec = dec;
+            if (dec > max_dec) max_dec = dec;
+        }
+        center_ra = (min_ra + max_ra) * 0.5;
+        center_dec = (min_dec + max_dec) * 0.5;
+        width_deg = max_ra - min_ra;
+        height_deg = max_dec - min_dec;
+        // 加 1° 余量 (tile_nside=64 子叶约 0.92°, 半径约 0.46°)
+        width_deg += 1.0;
+        height_deg += 1.0;
+
+        LOG_INFO("get_data_bbox(.hiss ondemand): center=(%.4f,%.4f) size=%.4fx%.4f deg "
+                 "n_tiles=%llu tile_nside=%u",
+                 center_ra, center_dec, width_deg, height_deg,
+                 (unsigned long long)hiss_header_.n_tiles, tile_nside);
+        return 0;
+    } else if (is_hiss_ && !hiss_leaf_index_.empty()) {
         // .hiss: 从子叶索引的 key 计算 bbox
         double min_ra = 360.0, max_ra = 0.0, min_dec = 90.0, max_dec = -90.0;
         for (const auto& kv : hiss_leaf_index_) {

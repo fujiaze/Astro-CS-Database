@@ -32,12 +32,13 @@ AIO_DIR ?= ../../astro_image_io
 INCLUDES = -I. -I$(AIO_DIR)/include -I$(AIO_DIR)/src -I../healpix_stack
 
 # Drizzle 模块源文件
-#   fits_reader.cpp   - FITS 图像读取与头解析
-#   wcs_sip.cpp       - WCS 投影与 SIP 畸变多项式求值
-#   poly_clip.cpp     - 多边形裁剪 (Sutherland-Hodgman)
-#   drizzle_engine.cpp- drizzle 重投影核心算法 (调用 hiss_write 输出 .hiss)
-#   hp_drizzle_api.cpp- 对外 C ABI 接口
-SRCS = fits_reader.cpp wcs_sip.cpp poly_clip.cpp drizzle_engine.cpp hp_drizzle_api.cpp
+#   fits_reader.cpp        - FITS 图像读取与头解析
+#   wcs_sip.cpp            - WCS 投影与 SIP 畸变多项式求值
+#   poly_clip.cpp          - 多边形裁剪 (Sutherland-Hodgman)
+#   spherical_overlap.cpp  - 球面 HEALPix 边界 + Girard 定理 + 候选查询 (02_FROZEN §8)
+#   drizzle_engine.cpp     - drizzle 重投影核心算法 (调用 hiss_write 输出 .hiss)
+#   hp_drizzle_api.cpp     - 对外 C ABI 接口
+SRCS = fits_reader.cpp wcs_sip.cpp poly_clip.cpp spherical_overlap.cpp drizzle_engine.cpp hp_drizzle_api.cpp
 
 # 依赖模块源文件 (静态编译进来, 避免跨 dll 依赖)
 # 注: .hiss 读写通过链接 astro_image_io.dll 获得 (healpix_io 已合并入 aio)

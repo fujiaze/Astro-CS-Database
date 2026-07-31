@@ -1,19 +1,22 @@
 // ============================================================================
-// hiss_codec.cpp - AstroCS HISS Codec 注册表与内置 codec 实现
+// hiss_codec.cpp - AstroCS HISS Codec/Checksum 注册表与内置实现
 //
 // 内容:
 //   1. RAW codec (无压缩, 必须): compress/decompress 直接 memcpy, bound = input_size
 //   2. LZ4 / Zstd codec (可选): 编译时通过 -DHAS_LZ4 / -DHAS_ZSTD 启用
 //   3. CodecRegistry 单例: 注册/查找/列出 codec, RAW 内置不可覆盖
+//   4. CRC32-C (Castagnoli) 校验实现 (共享, 供 Reader/Writer 复用)
+//   5. ChecksumRegistry 单例: 注册/查找/列出 checksum, CRC32C 内置
 //
 // 设计说明:
-//   - hiss_format.h 中 CodecRegistry 类未声明私有数据成员与构造函数 (规范已冻结),
-//     故注册表状态以文件作用域静态容器承载, 由单例方法访问, 避免修改头文件。
+//   - hiss_format.h 中 CodecRegistry/ChecksumRegistry 类未声明私有数据成员与构造函数
+//     (规范已冻结), 故注册表状态以文件作用域静态容器承载, 由单例方法访问。
 //   - 单例采用 Meyers singleton (C++11 起局部静态初始化线程安全)。
-//   - 内置 codec 注册在 RegistryState 构造函数中完成, 由 magic static 保证
+//   - 内置 codec/checksum 注册在 RegistryState 构造函数中完成, 由 magic static 保证
 //     首次访问时线程安全地一次性初始化。
 //   - 线程安全: register/find/list 经 std::mutex 保护。
-//   - 不依赖外部库: LZ4/Zstd 为可选, RAW 为必需。
+//   - 不依赖外部库: LZ4/Zstd 为可选, RAW/CRC32C 为必需。
+//   - CRC32C 实现从 hiss_reader.cpp 移入此处共享, 避免 Reader/Writer 重复定义。
 // ============================================================================
 #include "hiss_format.h"
 
@@ -221,14 +224,55 @@ static size_t lz4_bound(size_t input_size) {
 #endif // HAS_LZ4
 
 // ============================================================================
-// 内部: 注册表状态 (文件作用域静态, 由 CodecRegistry 单例方法访问)
+// 内部: CRC32-C (Castagnoli) 校验实现 (共享, 供 Reader/Writer 复用)
+//   多项式: 0x1EDC6F41 (反向: 0x82F63B78)
+//   初始值: 0xFFFFFFFF, 最终异或: 0xFFFFFFFF
+//   用于 HissSubblockDescriptor.checksum (ChecksumType::CRC32C)
+//   原实现位于 hiss_reader.cpp, 已移至此处共享, 避免重复定义
+// ============================================================================
+
+// CRC32-C 查表实现 (运行时生成表, 首次调用时初始化)
+static uint32_t crc32c_table[256];
+static bool     crc32c_table_init = false;
+
+static void init_crc32c_table() {
+    for (uint32_t i = 0; i < 256; i++) {
+        uint32_t crc = i;
+        for (int j = 0; j < 8; j++) {
+            if (crc & 1)
+                crc = (crc >> 1) ^ 0x82F63B78u;  // Castagnoli 反向多项式
+            else
+                crc >>= 1;
+        }
+        crc32c_table[i] = crc;
+    }
+    crc32c_table_init = true;
+}
+
+static uint32_t crc32c(const uint8_t* data, size_t size) {
+    if (!crc32c_table_init) init_crc32c_table();
+    uint32_t crc = 0xFFFFFFFFu;
+    for (size_t i = 0; i < size; i++) {
+        crc = crc32c_table[(crc ^ data[i]) & 0xFF] ^ (crc >> 8);
+    }
+    return crc ^ 0xFFFFFFFFu;
+}
+
+// ChecksumFunc 签名适配: uint32_t → uint64_t (高位补 0)
+static uint64_t crc32c_compute(const uint8_t* data, size_t size) {
+    return (uint64_t)crc32c(data, size);
+}
+
+// ============================================================================
+// 内部: 注册表状态 (文件作用域静态, 由 CodecRegistry/ChecksumRegistry 单例方法访问)
 // ============================================================================
 
 struct RegistryState {
-    std::map<CodecId, CodecEntry> codecs;  // 按 CodecId 索引的 codec 表
-    std::mutex                     mutex;  // 保护并发访问
+    std::map<CodecId, CodecEntry>     codecs;    // 按 CodecId 索引的 codec 表
+    std::map<ChecksumType, ChecksumEntry> checksums;  // 按 ChecksumType 索引的 checksum 表
+    std::mutex                         mutex;    // 保护并发访问
 
-    // 构造时注册内置 codec (RAW 必须; Zstd/LZ4 可选)
+    // 构造时注册内置 codec (RAW 必须; Zstd/LZ4 可选) 和内置 checksum (CRC32C 必须)
     // 由 magic static 保证首次访问时线程安全地一次性初始化
     RegistryState() {
         // --- RAW (必须, 始终可用) ---
@@ -274,6 +318,17 @@ struct RegistryState {
 #else
         fprintf(stderr, "[hiss][codec] LZ4 未编译 (需 -DHAS_LZ4)\n");
 #endif
+
+        // --- CRC32C (必须, INTERIM_BASELINE_NOT_FROZEN 候选) ---
+        // 内置注册, Reader/Writer 通过 ChecksumRegistry::find() 共享同一实现
+        {
+            ChecksumEntry e;
+            e.id      = ChecksumType::CRC32C;
+            e.name    = "CRC32C";
+            e.compute = crc32c_compute;
+            checksums[e.id] = e;
+            fprintf(stderr, "[hiss][codec] 内置注册: CRC32C (Castagnoli)\n");
+        }
     }
 };
 
@@ -338,6 +393,65 @@ std::vector<CodecId> CodecRegistry::list() const {
     std::vector<CodecId> ids;
     ids.reserve(s.codecs.size());
     for (const auto& kv : s.codecs) {
+        ids.push_back(kv.first);
+    }
+    return ids;
+}
+
+// ============================================================================
+// ChecksumRegistry 实现 (类比 CodecRegistry, INTERIM_BASELINE_NOT_FROZEN)
+// ============================================================================
+
+// 全局单例 (Meyers singleton, C++11 起局部静态初始化线程安全)
+// 注: ChecksumRegistry 类在头文件中未声明私有成员与构造函数, 使用编译器隐式
+//     默认构造; 注册表状态由 registry_state() 独立管理 (与 CodecRegistry 共享)。
+ChecksumRegistry& ChecksumRegistry::instance() {
+    static ChecksumRegistry inst;
+    // 触发注册表状态初始化 (含内置 CRC32C 注册), 首次访问时执行
+    (void)registry_state();
+    return inst;
+}
+
+// 注册 checksum
+// NONE 为基线值, 不允许注册 (返回 <0)
+// 其他 checksum: 若已存在则覆盖 (更新实现)
+// 返回 0=成功, <0=失败
+int ChecksumRegistry::register_checksum(const ChecksumEntry& entry) {
+    if (entry.id == ChecksumType::NONE) {
+        fprintf(stderr, "[hiss][codec] register_checksum: NONE 为基线值, 不可注册\n");
+        return -1;
+    }
+    if (!entry.compute) {
+        fprintf(stderr, "[hiss][codec] register_checksum: compute 回调为空\n");
+        return -2;
+    }
+
+    RegistryState& s = registry_state();
+    std::lock_guard<std::mutex> lock(s.mutex);
+    s.checksums[entry.id] = entry;  // 已存在则覆盖
+    fprintf(stderr, "[hiss][codec] register_checksum: 已注册 checksum id=%u name=%s\n",
+            (unsigned)entry.id, entry.name.c_str());
+    return 0;
+}
+
+// 按 ChecksumType 查找 checksum, 未找到返回 nullptr
+const ChecksumEntry* ChecksumRegistry::find(ChecksumType id) const {
+    RegistryState& s = registry_state();
+    std::lock_guard<std::mutex> lock(s.mutex);
+    auto it = s.checksums.find(id);
+    if (it == s.checksums.end()) {
+        return nullptr;
+    }
+    return &it->second;
+}
+
+// 列出所有已注册 checksum 的 ChecksumType (NONE 不在列表中)
+std::vector<ChecksumType> ChecksumRegistry::list() const {
+    RegistryState& s = registry_state();
+    std::lock_guard<std::mutex> lock(s.mutex);
+    std::vector<ChecksumType> ids;
+    ids.reserve(s.checksums.size());
+    for (const auto& kv : s.checksums) {
         ids.push_back(kv.first);
     }
     return ids;

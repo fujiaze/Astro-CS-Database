@@ -13,16 +13,21 @@
 //   7. Writer 元数据一致性: apply_photometry=false + BUNIT=ASTROCS_RELATIVE_FLUX → 拒绝
 //   8. Writer 元数据一致性: apply_photometry=false + BUNIT=ADU → 成功
 //
-// 编译 (仅 photometry_apply 模块测试, 测试 1-5):
-//   g++ -std=c++17 -O2 -I../src test_photometry_apply.cpp ../src/photometry_apply.cpp -o test_photometry_apply.exe
-//
-// 编译 (含 Writer 真实校验测试, 测试 1-8):
-//   g++ -std=c++17 -O2 -I../src -I../../astro_image_io/include \
+// 编译 (从 tests/ 目录, 链接真实 HissWriter::open()):
+//   g++ -std=c++17 -O2 -fopenmp -DHAS_ZSTD -DAIO_ENABLE_HEALPIX \
+//     -I../src -I../../astro_image_io/include -I../../astro_image_io/src \
 //     test_photometry_apply.cpp ../src/photometry_apply.cpp \
-//     ../../astro_image_io/src/hiss_writer.cpp \
-//     ../../astro_image_io/src/hiss_common.cpp \
 //     ../../astro_image_io/src/hiss_codec.cpp \
-//     -o test_photometry_apply.exe
+//     ../../astro_image_io/src/hiss_common.cpp \
+//     ../../astro_image_io/src/hiss_tile_model.cpp \
+//     ../../astro_image_io/src/hiss_writer.cpp \
+//     ../../astro_image_io/src/hiss_stream_writer.cpp \
+//     ../../astro_image_io/src/hiss_transform.cpp \
+//     ../../astro_image_io/src/hiss_reader.cpp \
+//     ../../astro_image_io/src/healpix/aio_healpix_io.cpp \
+//     ../../astro_image_io/src/aio_api.cpp \
+//     ../../astro_image_io/src/aio_log.cpp \
+//     -lzstd -lm -o test_photometry_apply.exe
 // ============================================================================
 
 #include "photometry_apply.h"
@@ -34,10 +39,8 @@
 #include <vector>
 #include <filesystem>
 
-// ---- Writer 测试依赖 (若启用 WRITER_TEST 宏则链接真实 Writer) ----
-#ifdef WRITER_TEST
+// ---- Writer 测试依赖: 链接真实 HissWriter (hiss_format.h) ----
 #include "hiss_format.h"
-#endif
 
 // ============================================================================
 // 简单测试框架 (维护正确通过/失败计数, 禁止 ASSERT_TRUE(true) 软通过)
@@ -237,45 +240,12 @@ static void test_large_dynamic_range() {
 // ============================================================================
 // 以下是 Writer 元数据一致性校验测试
 //
-// 策略:
-//   - 若编译时定义了 WRITER_TEST 宏, 链接真实 hiss_writer.cpp, 测试真实 open() 行为
-//   - 否则, 用模拟函数复制 open() 中的校验逻辑 (代码审查方式验证)
+// 策略: 直接调用真实 hiss::HissWriter::open() 验证元数据一致性校验逻辑
+//       (链接 ../../astro_image_io/src/hiss_writer.cpp 等真实生产代码)
 // ============================================================================
-
-// 模拟 HissMetadata 的测光字段 (用于无 WRITER_TEST 时的校验逻辑测试)
-struct SimMetadata {
-    int         photappl;       // 0=false, 非 0=true
-    double      photscal;
-    char        bunit[32];
-};
-
-// 模拟 hiss_writer.cpp open() 中的元数据一致性校验逻辑
-// 返回: 0=允许, -2=拒绝 (HISS_ERR_INVALID_STATE)
-static int simulate_writer_open_check(const SimMetadata& md) {
-    // 与 hiss_writer.cpp open() 中的校验逻辑保持一致:
-    //   if (bunit == "ASTROCS_RELATIVE_FLUX" && photappl == 0) return -2;
-    const std::string bunit_str(md.bunit);
-    const bool is_relative_flux = (bunit_str == "ASTROCS_RELATIVE_FLUX");
-    const bool photappl = (md.photappl != 0);
-
-    if (is_relative_flux && !photappl) {
-        return -2;  // HISS_ERR_INVALID_STATE
-    }
-    return 0;  // 允许
-}
 
 // 测试 6: Writer: apply_photometry=true + BUNIT=ASTROCS_RELATIVE_FLUX → 成功
 static void test_writer_photappl_true_relative_flux() {
-    SimMetadata md;
-    md.photappl = 1;
-    md.photscal = 1.234e-5;
-    std::snprintf(md.bunit, sizeof(md.bunit), "ASTROCS_RELATIVE_FLUX");
-
-    int rc = simulate_writer_open_check(md);
-    ASSERT_TRUE(rc == 0, "Writer: apply_photometry=true + BUNIT=ASTROCS_RELATIVE_FLUX → 成功");
-
-#ifdef WRITER_TEST
-    // 真实 Writer 测试: 构造 HissMetadata 并调用 open()
     hiss::HissGridSpec grid;
     grid.nside = 16;
     grid.tile_nside = 16;
@@ -295,26 +265,16 @@ static void test_writer_photappl_true_relative_flux() {
 
     hiss::HissWriter writer;
     std::string tmp_path = "test_photometry_apply_tmp_partial.hiss";
-    int real_rc = writer.open(tmp_path, grid, meta);
-    ASSERT_TRUE(real_rc == 0, "Writer (真实): apply_photometry=true + BUNIT=ASTROCS_RELATIVE_FLUX → open 成功");
+    int rc = writer.open(tmp_path, grid, meta);
+    ASSERT_TRUE(rc == 0, "Writer: apply_photometry=true + BUNIT=ASTROCS_RELATIVE_FLUX → open 成功");
     writer.cancel();  // 清理临时文件
     std::error_code ec;
     std::filesystem::remove(tmp_path, ec);
     std::filesystem::remove(tmp_path + ".partial", ec);
-#endif
 }
 
 // 测试 7: Writer: apply_photometry=false + BUNIT=ASTROCS_RELATIVE_FLUX → 拒绝
 static void test_writer_photappl_false_relative_flux() {
-    SimMetadata md;
-    md.photappl = 0;
-    md.photscal = 1.0;
-    std::snprintf(md.bunit, sizeof(md.bunit), "ASTROCS_RELATIVE_FLUX");
-
-    int rc = simulate_writer_open_check(md);
-    ASSERT_TRUE(rc == -2, "Writer: apply_photometry=false + BUNIT=ASTROCS_RELATIVE_FLUX → 拒绝 (HISS_ERR_INVALID_STATE)");
-
-#ifdef WRITER_TEST
     hiss::HissGridSpec grid;
     grid.nside = 16;
     grid.tile_nside = 16;
@@ -334,23 +294,13 @@ static void test_writer_photappl_false_relative_flux() {
 
     hiss::HissWriter writer;
     std::string tmp_path = "test_photometry_apply_tmp_reject.hiss";
-    int real_rc = writer.open(tmp_path, grid, meta);
-    ASSERT_TRUE(real_rc == -2, "Writer (真实): apply_photometry=false + BUNIT=ASTROCS_RELATIVE_FLUX → open 返回 -2");
+    int rc = writer.open(tmp_path, grid, meta);
+    ASSERT_TRUE(rc == -2, "Writer: apply_photometry=false + BUNIT=ASTROCS_RELATIVE_FLUX → open 返回 -2 (拒绝)");
     // open 失败时不创建 .partial, 无需清理
-#endif
 }
 
 // 测试 8: Writer: apply_photometry=false + BUNIT=ADU → 成功 (允许非测光数据)
 static void test_writer_photappl_false_adu() {
-    SimMetadata md;
-    md.photappl = 0;
-    md.photscal = 1.0;
-    std::snprintf(md.bunit, sizeof(md.bunit), "ADU");
-
-    int rc = simulate_writer_open_check(md);
-    ASSERT_TRUE(rc == 0, "Writer: apply_photometry=false + BUNIT=ADU → 成功 (允许非测光数据)");
-
-#ifdef WRITER_TEST
     hiss::HissGridSpec grid;
     grid.nside = 16;
     grid.tile_nside = 16;
@@ -370,13 +320,12 @@ static void test_writer_photappl_false_adu() {
 
     hiss::HissWriter writer;
     std::string tmp_path = "test_photometry_apply_tmp_adu.hiss";
-    int real_rc = writer.open(tmp_path, grid, meta);
-    ASSERT_TRUE(real_rc == 0, "Writer (真实): apply_photometry=false + BUNIT=ADU → open 成功");
+    int rc = writer.open(tmp_path, grid, meta);
+    ASSERT_TRUE(rc == 0, "Writer: apply_photometry=false + BUNIT=ADU → open 成功 (允许非测光数据)");
     writer.cancel();
     std::error_code ec;
     std::filesystem::remove(tmp_path, ec);
     std::filesystem::remove(tmp_path + ".partial", ec);
-#endif
 }
 
 // ============================================================================
@@ -405,11 +354,7 @@ int main() {
     printf("失败: %d\n", g_fail);
     printf("总计: %d\n", g_pass + g_fail);
 
-#ifdef WRITER_TEST
-    printf("\n(已启用 WRITER_TEST, 包含真实 Writer open() 测试)\n");
-#else
-    printf("\n(未启用 WRITER_TEST, Writer 校验逻辑用模拟函数验证; 启用真实测试请加 -DWRITER_TEST)\n");
-#endif
+    printf("\n(Writer 元数据一致性校验直接调用真实 hiss::HissWriter::open())\n");
 
     return (g_fail == 0) ? 0 : 1;
 }

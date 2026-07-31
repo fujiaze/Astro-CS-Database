@@ -3,10 +3,9 @@
 //
 // 内容:
 //   1. 小端序二进制读写工具
-//   2. CRC32-C (Castagnoli) 校验实现
-//   3. log2i 辅助 (用于 query_pixel 坐标转换)
-//   4. HEALPix NESTED 坐标转换 (ra/dec → ipix, 不依赖外部 HealpixCore)
-//   5. HissReader 类实现 (按目录读取, 按需加载 Tile, 不依赖 WCS)
+//   2. log2i 辅助 (用于 query_pixel 坐标转换)
+//   3. HEALPix NESTED 坐标转换 (ra/dec → ipix, 不依赖外部 HealpixCore)
+//   4. HissReader 类实现 (按目录读取, 按需加载 Tile, 不依赖 WCS)
 //
 // 二进制布局 (与 Writer 对应):
 //   [固定签名块 20B: MAGIC(8) + version(4) + header_offset(8)]
@@ -24,6 +23,9 @@
 // 注: 下列共享方法已移至 hiss_common.cpp (避免与 Writer 重复定义):
 //   - HissMetadata::to_json / from_json (§16)
 //   - compute_tile_depth / compute_tile_nside (§11)
+//
+// 注: CRC32-C (Castagnoli) 校验实现已移至 hiss_codec.cpp 共享,
+//     Reader/Writer 通过 ChecksumRegistry::find() 获取同一实现。
 // ============================================================================
 #include "hiss_format.h"
 #include "aio_util.h"  // aio_fopen_utf8 (UTF-8 路径支持)
@@ -100,43 +102,10 @@ static inline double read_f64_le(const uint8_t* p) {
 }
 
 // ============================================================================
-// 2. CRC32-C (Castagnoli) 校验实现
-//    多项式: 0x1EDC6F41 (反向: 0x82F63B78)
-//    初始值: 0xFFFFFFFF, 最终异或: 0xFFFFFFFF
-//    用于 HissSubblockDescriptor.checksum (ChecksumType::CRC32C)
-// ============================================================================
-
-// CRC32-C 查表实现 (运行时生成表, 首次调用时初始化)
-static uint32_t crc32c_table[256];
-static bool crc32c_table_init = false;
-
-static void init_crc32c_table() {
-    for (uint32_t i = 0; i < 256; i++) {
-        uint32_t crc = i;
-        for (int j = 0; j < 8; j++) {
-            if (crc & 1)
-                crc = (crc >> 1) ^ 0x82F63B78u;  // Castagnoli 反向多项式
-            else
-                crc >>= 1;
-        }
-        crc32c_table[i] = crc;
-    }
-    crc32c_table_init = true;
-}
-
-static uint32_t crc32c(const uint8_t* data, size_t size) {
-    if (!crc32c_table_init) init_crc32c_table();
-    uint32_t crc = 0xFFFFFFFFu;
-    for (size_t i = 0; i < size; i++) {
-        crc = crc32c_table[(crc ^ data[i]) & 0xFF] ^ (crc >> 8);
-    }
-    return crc ^ 0xFFFFFFFFu;
-}
-
-// ============================================================================
-// 3. log2i 辅助 (用于 query_pixel 坐标转换, 计算 NSIDE/tile_nside 的位移)
+// 2. log2i 辅助 (用于 query_pixel 坐标转换, 计算 NSIDE/tile_nside 的位移)
 //    注: HissMetadata::to_json/from_json 与 compute_tile_depth/nside 已移至
 //    hiss_common.cpp (与 Writer 共用, 避免重复定义)
+//    注: CRC32-C 校验实现已移至 hiss_codec.cpp (通过 ChecksumRegistry 共享)
 // ============================================================================
 
 // log2 (n 为 2 的幂)
@@ -305,8 +274,13 @@ struct HissReader::Impl {
         }
 
         // b. seek 到 offset, 读取 compressed_size 字节
+        //    使用 64 位 seek 支持 >2GB 文件 (02_FROZEN §14)
         std::vector<uint8_t> comp(desc.compressed_size);
-        if (std::fseek(fp, (long)desc.offset, SEEK_SET) != 0) {
+#ifdef _WIN32
+        if (_fseeki64(fp, (__int64)desc.offset, SEEK_SET) != 0) {
+#else
+        if (fseeko(fp, (off_t)desc.offset, SEEK_SET) != 0) {
+#endif
             fprintf(stderr, "[hiss][reader] seek 失败: offset=%llu\n",
                     (unsigned long long)desc.offset);
             return -3;
@@ -321,16 +295,20 @@ struct HissReader::Impl {
         }
 
         // c. checksum 校验 (解压前校验压缩数据)
+        //    通过 ChecksumRegistry 查找算法实现 (CRC32C 内置, 其他通过注册接入)
+        //    INTERIM_BASELINE_NOT_FROZEN: 候选注册机制, 算法待 DQ-006 冻结
         if (desc.checksum_type != ChecksumType::NONE) {
-            uint64_t calc = 0;
-            if (desc.checksum_type == ChecksumType::CRC32C) {
-                calc = crc32c(comp.data(), comp.size());
-            } else if (desc.checksum_type == ChecksumType::XXHASH) {
-                // XXHASH 暂未实现, 打印警告但不阻塞
-                fprintf(stderr, "[hiss][reader] 警告: XXHASH 校验未实现, 跳过\n");
+            const ChecksumEntry* cs = ChecksumRegistry::instance().find(desc.checksum_type);
+            if (!cs) {
+                // 未注册的 checksum 类型, 报错 (避免静默跳过校验导致数据损坏未检出)
+                fprintf(stderr, "[hiss][reader] checksum 未注册: id=%u\n",
+                        (unsigned)desc.checksum_type);
+                return -6;
             }
-            if (desc.checksum_type == ChecksumType::CRC32C && calc != desc.checksum) {
-                fprintf(stderr, "[hiss][reader] CRC32C 校验失败: calc=%llx stored=%llx\n",
+            uint64_t calc = cs->compute(comp.data(), comp.size());
+            if (calc != desc.checksum) {
+                fprintf(stderr, "[hiss][reader] %s 校验失败: calc=%llx stored=%llx\n",
+                        cs->name.c_str(),
                         (unsigned long long)calc, (unsigned long long)desc.checksum);
                 return -5;
             }
@@ -458,9 +436,14 @@ int HissReader::open(const std::string& path) {
         return -1;
     }
 
-    // 获取文件大小
-    std::fseek(impl.fp, 0, SEEK_END);
-    long fsize = std::ftell(impl.fp);
+    // 获取文件大小 (使用 64 位版本支持 >2GB 文件, 02_FROZEN §14)
+#ifdef _WIN32
+    _fseeki64(impl.fp, 0, SEEK_END);
+    __int64 fsize = _ftelli64(impl.fp);
+#else
+    fseeko(impl.fp, 0, SEEK_END);
+    off_t fsize = ftello(impl.fp);
+#endif
     if (fsize < 0) {
         fprintf(stderr, "[hiss][reader] 无法获取文件大小\n");
         close();
@@ -510,7 +493,12 @@ int HissReader::open(const std::string& path) {
     }
 
     // ---- 2. 读取 Header: 网格规格 + 元数据JSON + Tile目录 ----
-    std::fseek(impl.fp, (long)impl.header_offset, SEEK_SET);
+    //  使用 64 位 seek 支持 >2GB 文件 (02_FROZEN §14)
+#ifdef _WIN32
+    _fseeki64(impl.fp, (__int64)impl.header_offset, SEEK_SET);
+#else
+    fseeko(impl.fp, (off_t)impl.header_offset, SEEK_SET);
+#endif
 
     // 2a. 网格规格 HissGridSpec (24 字节)
     uint8_t gs[kGridSpecSize];
@@ -1121,24 +1109,15 @@ int HissReader::query_pixel(double ra, double dec,
             if (support) *support = 0;
             return 0;
         }
-        // 计算 local_ipix 之前有多少个有效像素 (即数组索引)
-        size_t arr_idx = 0;
-        for (size_t b = 0; b < byte_idx; b++) {
-            // popcount of byte
-            uint8_t v = occ_raw[b];
-            while (v) { arr_idx += (v & 1); v >>= 1; }
-        }
-        // 当前字节中 bit_idx 之前的有效位
-        for (size_t b = 0; b < bit_idx; b++) {
-            arr_idx += (occ_raw[byte_idx] >> b) & 1;
-        }
-        if (arr_idx < sig_arr.size()) {
-            if (signal)  *signal = sig_arr[arr_idx];
+        // read_tile 在 BITMAP 模式下返回展开到 n_leaf_per_tile 的数组
+        // (无效像素位置已置0), occupancy 检查已确认有效, 故直接用 local_ipix 索引
+        if (local_ipix < sig_arr.size()) {
+            if (signal)  *signal = sig_arr[(size_t)local_ipix];
         } else {
             if (signal)  *signal = 0.0f;
         }
-        if (arr_idx < sup_arr.size()) {
-            if (support) *support = sup_arr[arr_idx];
+        if (local_ipix < sup_arr.size()) {
+            if (support) *support = sup_arr[(size_t)local_ipix];
         } else {
             if (support) *support = 0;
         }
@@ -1166,9 +1145,19 @@ int HissReader::query_pixel(double ra, double dec,
         }
         if (lo < n_sparse) {
             uint32_t v = read_u32_le(occ_raw.data() + lo * sizeof(uint32_t));
-            if (v == (uint32_t)local_ipix && lo < sig_arr.size()) {
-                if (signal)  *signal = sig_arr[lo];
-                if (support) *support = (lo < sup_arr.size()) ? sup_arr[lo] : 0;
+            if (v == (uint32_t)local_ipix) {
+                // read_tile 在 SPARSE_LIST 模式下返回展开到 n_leaf_per_tile 的数组
+                // (无效像素位置已置0), 故直接用 local_ipix 索引
+                if (local_ipix < sig_arr.size()) {
+                    if (signal)  *signal = sig_arr[(size_t)local_ipix];
+                } else {
+                    if (signal)  *signal = 0.0f;
+                }
+                if (local_ipix < sup_arr.size()) {
+                    if (support) *support = sup_arr[(size_t)local_ipix];
+                } else {
+                    if (support) *support = 0;
+                }
                 return 0;
             }
         }

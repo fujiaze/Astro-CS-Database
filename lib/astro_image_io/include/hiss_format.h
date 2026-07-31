@@ -320,6 +320,13 @@ public:
     HISS_EXPORT void set_experiment_transform(SubblockType type,
                                                 TransformId transform);
 
+    // 设置实验性 checksum (未冻结, 仅供实验, INTERIM_BASELINE_NOT_FROZEN)
+    // 默认: 所有子块 checksum_type=NONE (不计算校验)
+    // 实验时可启用 CRC32C 等候选算法, 通过 ChecksumRegistry 查找实现
+    // checksum 计算的是压缩后数据 (与 Reader 端一致, Reader 在解压前校验)
+    HISS_EXPORT void set_experiment_checksum(SubblockType type,
+                                               ChecksumType checksum);
+
 private:
     struct Impl;
     std::unique_ptr<Impl> pimpl_;
@@ -414,6 +421,41 @@ public:
 
     // 获取所有已注册 codec (用于 benchmark)
     HISS_EXPORT std::vector<CodecId> list() const;
+};
+
+// ============================================================================
+// 13.1 Checksum 注册表 (未冻结: DQ-006, INTERIM_BASELINE_NOT_FROZEN)
+//     允许实验性 checksum 算法通过注册接入, 默认 checksum_type=NONE
+//     CRC32C 内置 (复用 hiss_reader.cpp 的实现, 已移至 hiss_codec.cpp 共享)
+//     XXHASH 等其他算法待 DQ-006 确认后通过 register_checksum 接入
+//
+// 设计与 CodecRegistry 对称:
+//   - 头文件中仅声明类, 私有状态以文件作用域静态容器承载 (见 hiss_codec.cpp)
+//   - Meyers singleton, 首次访问时线程安全地初始化并注册内置 checksum
+//   - register/find/list 经 std::mutex 保护
+// ============================================================================
+
+using ChecksumFunc = std::function<uint64_t(const uint8_t*, size_t)>;
+
+struct ChecksumEntry {
+    ChecksumType id;
+    std::string  name;
+    ChecksumFunc compute;  // 计算校验值, 返回 uint64_t (由具体算法填充, 高位补 0)
+};
+
+class ChecksumRegistry {
+public:
+    HISS_EXPORT static ChecksumRegistry& instance();
+
+    // 注册 checksum (NONE 不允许注册, 返回 <0)
+    // 已存在则覆盖 (更新实现)
+    HISS_EXPORT int register_checksum(const ChecksumEntry& entry);
+
+    // 查找 checksum, 未找到返回 nullptr
+    HISS_EXPORT const ChecksumEntry* find(ChecksumType id) const;
+
+    // 列出所有已注册 checksum (NONE 不在列表中)
+    HISS_EXPORT std::vector<ChecksumType> list() const;
 };
 
 // ============================================================================
