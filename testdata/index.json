@@ -1,0 +1,225 @@
+{
+  "$schema": "AstroCS testdata inventory v1.0",
+  "version": "1.0",
+  "generated_at": "2026-07-31",
+  "description": "AstroCS 测试数据索引 — T1-T4 望远镜校准帧与已校准亮场数据",
+
+  "telescopes": {
+    "T1": {
+      "status": "not_available",
+      "note": "T1 数据集尚未入库；保留占位符，将来补充",
+      "datasets": []
+    },
+    "T2": {
+      "status": "available",
+      "name": "Chilescope T2",
+      "optical_tube": "ASA 500N",
+      "focal_length_mm": 1900,
+      "camera": "FLI Proline 16803",
+      "mount": "DDM85",
+      "filter_set": "Astrodon LRGBHO 50mm / 3nm Halpha",
+      "location": "智利 Chilescope 远程天文台",
+      "datasets": [
+        "LDN43_T2素材_flying_dutchman",
+        "NGC1727_T2_flying_dutchman",
+        "NGC247_T2_flying_dutchman"
+      ]
+    },
+    "T3": {
+      "status": "available",
+      "name": "Chilescope T3",
+      "optical_tube": "ASA 500N",
+      "focal_length_mm": 1900,
+      "camera": "FLI Proline 16803",
+      "mount": "DDM85",
+      "filter_set": "Astrodon LRGBHO 50mm",
+      "location": "智利 Chilescope 远程天文台",
+      "datasets": [
+        "NGC55_T3_flying_dutchman",
+        "NGC83_cluster_T3_Flying_Dutchman"
+      ]
+    },
+    "T4": {
+      "status": "available",
+      "name": "Chilescope T4",
+      "optical_tube": "Nikkor 200F2",
+      "focal_length_mm": 200,
+      "camera": "FLI Microline 16200 / Proline 16200",
+      "mount": "10 Micron GM1000HPs",
+      "filter_set": "Baader 50mm LRGB / RGBHaOIII",
+      "location": "智利 Chilescope 远程天文台",
+      "datasets": [
+        "Galaxy_Center_T4",
+        "Victory_Nebula_T4_Flying_Dutchman"
+      ]
+    }
+  },
+
+  "calibration_masters": {
+    "description": "校准母版（master bias/dark/flat）目录，目前均为空，待补充",
+    "T1": {"dir": null, "status": "not_available"},
+    "T2": {"dir": "testdata/T2 calibration files", "status": "empty"},
+    "T3": {"dir": "testdata/T3 calibration files", "status": "empty"},
+    "T4": {"dir": "testdata/T4 calibration files", "status": "empty"}
+  },
+
+  "calibrated_light_frames": {
+    "root_dir": "testdata/results",
+    "description": "已校准亮场（light frames）：每个曝光序列目录下含 01_calibrated.fits（基础校准：bias/dark/flat 扣除）与 04_calibrated_final.fits（梯度校正+测光定标后）",
+    "file_naming": {
+      "01_calibrated": "基础校准亮场，仅做 master bias/dark/flat 扣除",
+      "04_calibrated_final": "最终校准亮场，含梯度校正与测光定标",
+      "03_fsyn.json": "PSF/通量同步结果",
+      "04_quality_report.json": "质量评估报告",
+      "04_residuals_mult.csv": "多元残差表",
+      "estimator.log": "PSF 估计器日志",
+      "star_matcher.log": "星点匹配日志",
+      "gradient_fitter.log": "梯度拟合日志",
+      "image_corrector.log": "图像校正日志"
+    },
+    "directory_layout": "<dataset>/[<panel>/]<filter>/<exposure_session>/{01_calibrated.fits,04_calibrated_final.fits,...}"
+  },
+
+  "datasets": [
+    {
+      "id": "Galaxy_Center_T4",
+      "telescope": "T4",
+      "object": "Galaxy Center (银心)",
+      "is_mosaic": true,
+      "mosaic_panels": ["panel1", "panel2", "panel3"],
+      "filters": ["Red", "Green", "Blue", "H-alpha", "OIII"],
+      "observation_dates": ["2025-07-02", "2025-07-03", "2025-07-04", "2025-07-16", "2025-07-17", "2025-07-18"],
+      "total_exposure_min": {"Red": 96, "Green": 96, "Blue": 96, "H-alpha": 130, "OIII": 330},
+      "single_exposure_s": {"RGB": 180, "H-alpha": 300, "OIII": 600},
+      "info_file": "testdata/Galaxy_Center_T4/素材信息.txt",
+      "results_dir": "testdata/results/Galaxy_Center_T4",
+      "fits_count": 166,
+      "total_size_mb": 10259.79
+    },
+    {
+      "id": "LDN43_T2素材_flying_dutchman",
+      "telescope": "T2",
+      "object": "LDN43 飞天蝙蝠星云",
+      "is_mosaic": false,
+      "filters": ["Lum", "Red", "Green", "Blue", "H-alpha"],
+      "observation_dates": ["2025-05-03", "2025-05-04", "2025-05-05", "2025-05-07", "2025-05-20", "2025-06-20", "2025-07-16", "2025-07-17"],
+      "total_exposure_min": {"Lum": 100, "Red": 160, "Green": 160, "Blue": 160, "H-alpha": 160},
+      "single_exposure_s": {"Lum": 600, "RGBHa": 1200},
+      "info_file": "testdata/LDN43_T2素材_flying_dutchman/素材信息与版权约定.txt",
+      "results_dir": "testdata/results/LDN43_T2素材_flying_dutchman",
+      "fits_count": 47,
+      "total_size_mb": 3008.52
+    },
+    {
+      "id": "NGC1727_T2_flying_dutchman",
+      "telescope": "T2",
+      "object": "NGC1727 宇宙烟花秀",
+      "is_mosaic": false,
+      "filters": ["Red", "Green", "Blue", "H-alpha", "OIII"],
+      "observation_dates": ["2025-10-31", "2025-11-10", "2025-11-11", "2025-11-12", "2025-11-14", "2025-11-27", "2025-11-28", "2025-11-29", "2025-11-30", "2025-12-01", "2025-12-08", "2025-12-09", "2025-12-10", "2025-12-11"],
+      "total_exposure_min": {"Red": 120, "Green": 110, "Blue": 120, "H-alpha": 320, "OIII": 390},
+      "single_exposure_s": {"RGB": 600, "H-alpha": 1200, "OIII": 1800},
+      "info_file": "testdata/NGC1727_T2_flying_dutchman/素材信息与版权约定.txt",
+      "results_dir": "testdata/results/NGC1727_T2_flying_dutchman",
+      "fits_count": 69,
+      "total_size_mb": 4416.78
+    },
+    {
+      "id": "NGC247_T2_flying_dutchman",
+      "telescope": "T2",
+      "object": "NGC247 与博比奇链",
+      "is_mosaic": false,
+      "filters": ["Lum", "Red", "Green", "Blue", "H-alpha", "OIII"],
+      "observation_dates": ["2025-08-16", "2025-08-17", "2025-08-29", "2025-09-01", "2025-09-02", "2025-09-15", "2025-09-28", "2025-09-29", "2025-09-30", "2025-11-11"],
+      "total_exposure_min": {"Lum": 150, "Red": 90, "Green": 100, "Blue": 100, "H-alpha": 220, "OIII": 240},
+      "single_exposure_s": {"LRGB": 600, "Ha": 1200, "OIII": 1200},
+      "info_file": "testdata/NGC247_T2_flying_dutchman/素材信息与版权约定.txt",
+      "results_dir": "testdata/results/NGC247_T2_flying_dutchman",
+      "fits_count": 74,
+      "total_size_mb": 4736.83,
+      "external_source": "https://pan.baidu.com/s/1PSJiVdsnEDqjMQUC_3Ymow?pwd=N247 (提取码 N247)"
+    },
+    {
+      "id": "NGC55_T3_flying_dutchman",
+      "telescope": "T3",
+      "object": "NGC55 南鲸鱼星系",
+      "is_mosaic": false,
+      "filters": ["Lum", "Red", "Green", "Blue", "H-alpha", "OIII"],
+      "observation_dates": ["2025-07-01", "2025-07-03", "2025-07-04", "2025-07-05", "2025-07-06", "2025-08-29", "2025-09-15", "2025-10-13"],
+      "total_exposure_min": {"Lum": 150, "Red": 110, "Green": 110, "Blue": 120, "H-alpha": 320, "OIII": 280},
+      "single_exposure_s": {"LRGB": 600, "Ha": 1200, "OIII": 1200},
+      "info_file": "testdata/NGC55_T3_flying_dutchman/素材信息与版权约定.txt",
+      "results_dir": "testdata/results/NGC55_T3_flying_dutchman",
+      "fits_count": 84,
+      "total_size_mb": 5376.93
+    },
+    {
+      "id": "NGC83_cluster_T3_Flying_Dutchman",
+      "telescope": "T3",
+      "object": "NGC83 星系群",
+      "is_mosaic": false,
+      "filters": ["Lum", "Red", "Green", "Blue"],
+      "observation_dates": ["2025-07-01", "2025-10-11", "2025-10-12", "2025-10-17", "2025-10-19", "2025-10-24", "2025-10-25", "2025-11-09", "2025-11-10", "2025-11-11"],
+      "total_exposure_min": {"Lum": 210, "Red": 160, "Green": 170, "Blue": 150},
+      "single_exposure_s": {"LRGB": 600},
+      "info_file": "testdata/NGC83_cluster_T3_Flying_Dutchman/素材信息与版权约定.txt",
+      "results_dir": "testdata/results/NGC83_cluster_T3_Flying_Dutchman",
+      "fits_count": 76,
+      "total_size_mb": 4864.86
+    },
+    {
+      "id": "Victory_Nebula_T4_Flying_Dutchman",
+      "telescope": "T4",
+      "object": "Victory Nebula 胜利星云（蝘蜓座分子云）",
+      "is_mosaic": true,
+      "mosaic_panels": ["panel1", "panel2"],
+      "filters": ["Lum", "Red", "Green", "Blue"],
+      "observation_dates": ["2025-02-04", "2025-02-05", "2025-02-06", "2025-02-07", "2025-02-08", "2025-03-06"],
+      "total_exposure_min": {"Lum": 294, "Red": 132, "Green": 132, "Blue": 126},
+      "single_exposure_s": {"LRGB": 180},
+      "info_file": "testdata/Victory_Nebula_T4_Flying_Dutchman/素材信息与版权约定.txt",
+      "results_dir": "testdata/results/Victory_Nebula_T4_Flying_Dutchman",
+      "fits_count": 236,
+      "total_size_mb": 14586.25
+    }
+  ],
+
+  "external_data_dirs": {
+    "note": "以下目录在 .gitignore 中排除，不入仓库，仅供本地参考/查询",
+    "siril-1.4.3": {
+      "path": "siril-1.4.3/",
+      "size_mb": 55.20,
+      "purpose": "Siril 天文图像处理软件源码，开发时参考其实现（如 plate solving、registration 算法）"
+    },
+    "GaiaDR3": {
+      "path": "GaiaDR3/",
+      "size_gb": 41.9,
+      "purpose": "Gaia DR3 星表数据库（星表本体），plate solving 与测光参考星来源",
+      "critical": true,
+      "warning": "AI 历史上多次误删此目录，必须保留"
+    },
+    "GaiaDR3SP": {
+      "path": "GaiaDR3SP/",
+      "size_gb": 64.7,
+      "purpose": "Gaia DR3 光谱数据库（spectra），测光定标用",
+      "critical": true
+    },
+    "output": {
+      "path": "output/",
+      "size_mb": 578.67,
+      "purpose": "运行时输出目录（截图、临时结果等）"
+    }
+  },
+
+  "statistics": {
+    "total_datasets": 7,
+    "total_fits_files": 752,
+    "total_size_gb": 46.14,
+    "by_telescope": {
+      "T1": {"datasets": 0, "fits_count": 0, "size_gb": 0, "status": "not_available"},
+      "T2": {"datasets": 3, "fits_count": 190, "size_gb": 11.88},
+      "T3": {"datasets": 2, "fits_count": 160, "size_gb": 10.0},
+      "T4": {"datasets": 2, "fits_count": 402, "size_gb": 24.27}
+    }
+  }
+}

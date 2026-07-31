@@ -30,8 +30,9 @@ Debug/
 # 归档目录
 archive/
 
-# 测试数据与图像
-testdata/
+# 测试数据与图像 (testdata 目录内容全部忽略，仅 index.json 入仓库)
+testdata/*
+!testdata/index.json
 test_data/
 test_output/
 *.png
