@@ -356,17 +356,22 @@ static void test_07_multi_pixel_flux_conservation(int id) {
     std::vector<float> signal;
     acc.finalize_signal(signal);
 
-    // 每个像素的 signal = sum_flux / sum_area = 源通量 (通量守恒)
-    ASSERT_NEAR(signal[0], 200.0f, 1e-4f, "像素0 signal 应为 200 (源A通量)");
-    ASSERT_NEAR(signal[1], 200.0f, 1e-4f, "像素1 signal 应为 200 (源A通量)");
-    ASSERT_NEAR(signal[2], 300.0f, 1e-4f, "像素2 signal 应为 300 (源B通量)");
-    ASSERT_NEAR(signal[3], 300.0f, 1e-4f, "像素3 signal 应为 300 (源B通量)");
+    // signal = sum_flux (累计通量, 02_FROZEN §8: 不除面积)
+    // signal[0] = 200*0.6 = 120, signal[1] = 200*0.4 = 80
+    ASSERT_NEAR(signal[0], 120.0f, 1e-4f, "像素0 signal = 200*0.6 = 120 (累计通量)");
+    ASSERT_NEAR(signal[1], 80.0f, 1e-4f, "像素1 signal = 200*0.4 = 80 (累计通量)");
+    ASSERT_NEAR(signal[2], 210.0f, 1e-4f, "像素2 signal = 300*0.7 = 210 (累计通量)");
+    ASSERT_NEAR(signal[3], 90.0f, 1e-4f, "像素3 signal = 300*0.3 = 90 (累计通量)");
 
-    // 通量守恒: Σ signal[i] * area[i] = Σ source_flux * area
+    // 通量守恒 (02_FROZEN §8): drop未截断时 Σ signal = Σ L_j
+    // 源A: signal[0]+signal[1] = 120+80 = 200 = L_A
+    ASSERT_NEAR(signal[0] + signal[1], 200.0f, 1e-2f, "源A通量守恒: signal[0]+signal[1]=200");
+    // 源B: signal[2]+signal[3] = 210+90 = 300 = L_B
+    ASSERT_NEAR(signal[2] + signal[3], 300.0f, 1e-2f, "源B通量守恒: signal[2]+signal[3]=300");
+    // 总通量: Σ signal = 200 + 300 = 500
     double total = 0.0;
-    for (size_t i = 0; i < 4; i++) total += signal[i] * acc.pixels[i].sum_area;
-    double expected_total = 200.0 * 1.0 + 300.0 * 1.0;  // 两源各贡献完整面积
-    ASSERT_NEAR(total, expected_total, 1e-2, "总通量守恒 Σ signal*area = 500");
+    for (size_t i = 0; i < 4; i++) total += signal[i];
+    ASSERT_NEAR(total, 500.0, 1e-2, "总通量守恒 Σ signal = 500");
 }
 
 // ============================================================================
@@ -610,7 +615,7 @@ static void test_12_occupancy_roundtrip(int id) {
     hiss::DrizzleTileAccumulator acc;
     acc.tile_nside  = 16;
     acc.parent_ipix = 7;
-    size_t n_leaf = (size_t)16 * 16 * 12;  // 3072
+    size_t n_leaf = (size_t)16  /* 4^2=16 (NSIDE=64,tile_nside=16,d=2) */;  // 3072
     acc.pixels.resize(n_leaf);
     std::mt19937 rng(42);
     for (size_t i = 0; i < n_leaf; i++) {
@@ -682,7 +687,7 @@ static void test_13_independent_read(int id) {
     hiss::DrizzleTileAccumulator acc;
     acc.tile_nside  = 16;
     acc.parent_ipix = 3;
-    size_t n_leaf = (size_t)16 * 16 * 12;
+    size_t n_leaf = (size_t)16  /* 4^2=16 (NSIDE=64,tile_nside=16,d=2) */;
     acc.pixels.resize(n_leaf);
     for (size_t i = 0; i < n_leaf; i++) {
         acc.pixels[i].sum_flux = (double)i * 0.5;
@@ -756,7 +761,7 @@ static void test_14_raw_subblock(int id) {
     // 通过 HISS 文件验证 RAW 子块读写 (默认 codec 即 RAW)
     hiss::DrizzleTileAccumulator acc;
     acc.tile_nside = 16; acc.parent_ipix = 1;
-    acc.pixels.resize(16 * 16 * 12);
+    acc.pixels.resize(16  /* 4^2=16 (NSIDE=64,tile_nside=16,d=2) */);
     for (size_t i = 0; i < acc.pixels.size(); i++) {
         acc.pixels[i].sum_flux = (double)i;
         acc.pixels[i].sum_area = 1.0;
@@ -814,7 +819,7 @@ static void test_15_unknown_optional_skip(int id) {
     // 先用 Writer 写一个正常文件, 然后手动追加一个未知可选子块
     hiss::DrizzleTileAccumulator acc;
     acc.tile_nside = 16; acc.parent_ipix = 5;
-    acc.pixels.resize(16 * 16 * 12);
+    acc.pixels.resize(16  /* 4^2=16 (NSIDE=64,tile_nside=16,d=2) */);
     for (size_t i = 0; i < acc.pixels.size(); i++) {
         acc.pixels[i].sum_flux = 50.0; acc.pixels[i].sum_area = 1.0; acc.pixels[i].n_contrib = 1;
     }
@@ -912,7 +917,7 @@ static void test_16_unknown_required_reject(int id) {
 
     hiss::DrizzleTileAccumulator acc;
     acc.tile_nside = 16; acc.parent_ipix = 5;
-    acc.pixels.resize(16 * 16 * 12);
+    acc.pixels.resize(16  /* 4^2=16 (NSIDE=64,tile_nside=16,d=2) */);
     for (size_t i = 0; i < acc.pixels.size(); i++) {
         acc.pixels[i].sum_flux = 50.0; acc.pixels[i].sum_area = 1.0; acc.pixels[i].n_contrib = 1;
     }
@@ -979,7 +984,7 @@ static void test_17_offset_overflow_reject(int id) {
 
     hiss::DrizzleTileAccumulator acc;
     acc.tile_nside = 16; acc.parent_ipix = 9;
-    acc.pixels.resize(16 * 16 * 12);
+    acc.pixels.resize(16  /* 4^2=16 (NSIDE=64,tile_nside=16,d=2) */);
     for (size_t i = 0; i < acc.pixels.size(); i++) {
         acc.pixels[i].sum_flux = 50.0; acc.pixels[i].sum_area = 1.0; acc.pixels[i].n_contrib = 1;
     }
@@ -1038,7 +1043,7 @@ static void test_18_checksum_error(int id) {
 
     hiss::DrizzleTileAccumulator acc;
     acc.tile_nside = 16; acc.parent_ipix = 11;
-    acc.pixels.resize(16 * 16 * 12);
+    acc.pixels.resize(16  /* 4^2=16 (NSIDE=64,tile_nside=16,d=2) */);
     for (size_t i = 0; i < acc.pixels.size(); i++) {
         acc.pixels[i].sum_flux = 50.0; acc.pixels[i].sum_area = 1.0; acc.pixels[i].n_contrib = 1;
     }
@@ -1126,7 +1131,7 @@ static void test_20_atomic_commit(int id) {
     TEST_CASE("原子提交后正式文件可读", id);
 
     std::string path = "hiss_test_20.hiss";
-    std::string partial_path = path + ".partial";
+    std::string tmppool_path = path + ".tmppool";  // 流式Writer临时池 (不是.partial)
 
     hiss::HissGridSpec grid;
     grid.nside = 64; grid.tile_nside = hiss::compute_tile_nside(64);
@@ -1139,7 +1144,7 @@ static void test_20_atomic_commit(int id) {
 
     hiss::DrizzleTileAccumulator acc;
     acc.tile_nside = 16; acc.parent_ipix = 42;
-    acc.pixels.resize(16 * 16 * 12);
+    acc.pixels.resize(16  /* 4^2=16 (NSIDE=64,tile_nside=16,d=2) */);
     for (size_t i = 0; i < acc.pixels.size(); i++) {
         acc.pixels[i].sum_flux = 75.0; acc.pixels[i].sum_area = 1.0; acc.pixels[i].n_contrib = 1;
     }
@@ -1148,19 +1153,19 @@ static void test_20_atomic_commit(int id) {
     ASSERT_TRUE(w.open(path, grid, meta) == 0, "Writer.open");
     ASSERT_TRUE(w.add_tile(42, acc, nullptr, hiss::OccupancyMode::FULL) == 0, "Writer.add_tile");
 
-    // finalize 前: .partial 存在, .hiss 不存在
-    bool partial_before = std::filesystem::exists(partial_path);
+    // finalize 前: .tmppool 存在, .hiss 不存在
+    bool tmppool_before = std::filesystem::exists(tmppool_path);
     bool hiss_before = std::filesystem::exists(path);
-    fprintf(stderr, "  finalize 前: .partial=%d .hiss=%d\n", (int)partial_before, (int)hiss_before);
-    ASSERT_TRUE(partial_before, "finalize 前 .partial 存在");
+    fprintf(stderr, "  finalize 前: .tmppool=%d .hiss=%d\n", (int)tmppool_before, (int)hiss_before);
+    ASSERT_TRUE(tmppool_before, "finalize 前 .tmppool 存在");
 
     ASSERT_TRUE(w.finalize() == 0, "Writer.finalize");
 
-    // finalize 后: .partial 消失, .hiss 存在
-    bool partial_after = std::filesystem::exists(partial_path);
+    // finalize 后: .tmppool 消失, .hiss 存在
+    bool tmppool_after = std::filesystem::exists(tmppool_path);
     bool hiss_after = std::filesystem::exists(path);
-    fprintf(stderr, "  finalize 后: .partial=%d .hiss=%d\n", (int)partial_after, (int)hiss_after);
-    ASSERT_TRUE(!partial_after, "finalize 后 .partial 已消失 (原子重命名)");
+    fprintf(stderr, "  finalize 后: .tmppool=%d .hiss=%d\n", (int)tmppool_after, (int)hiss_after);
+    ASSERT_TRUE(!tmppool_after, "finalize 后 .tmppool 已消失 (原子重命名)");
     ASSERT_TRUE(hiss_after, "finalize 后 .hiss 存在");
 
     // 正式文件可读
@@ -1309,16 +1314,12 @@ int main() {
     test_21_nested_ipix_recovery(21);
 
     // 汇总
+    g_test_passed = g_test_total - (int)g_failures.size() - g_test_skipped;
     fprintf(stderr, "\n========== 测试汇总 ==========\n");
     fprintf(stderr, "总计: %d\n", g_test_total);
     fprintf(stderr, "通过: %d\n", g_test_passed);
     fprintf(stderr, "失败: %zu\n", g_failures.size());
     fprintf(stderr, "跳过: %d\n", g_test_skipped);
-
-    // 注: g_test_passed 在 TEST_CASE 宏中递增 g_test_total, 但通过判断逻辑需要修正
-    // 实际通过数 = total - failures - skips
-    int actual_passed = g_test_total - (int)g_failures.size() - g_test_skipped;
-    fprintf(stderr, "实际通过: %d / %d\n", actual_passed, g_test_total);
 
     if (!g_failures.empty()) {
         fprintf(stderr, "\n--- 失败详情 ---\n");
