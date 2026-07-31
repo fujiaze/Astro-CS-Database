@@ -52,6 +52,35 @@ struct LeafData {
 };
 
 // ============================================================================
+// WP-H 步骤14: HISS Header 信息 (只读, 不加载像素数据)
+// 用于 Browser 首次打开 .hiss 文件时只读 Header + Tile 目录
+// ============================================================================
+struct HissHeader {
+    uint32_t nside = 0;              // HEALPix NSIDE
+    uint32_t tile_nside = 0;         // Tile 父级 NSIDE
+    uint32_t depth = 0;              // Tile 深度 (log2(nside/tile_nside))
+    uint32_t n_leaf_per_tile = 0;    // 每个 Tile 的子叶像素数 (4^depth)
+    uint64_t n_tiles = 0;            // Tile 数量
+    uint64_t n_pix_total = 0;        // 全部 Tile 展开后的总像素数
+    std::string meta_json;           // 元数据 JSON
+    std::vector<uint64_t> tile_ipix_list;  // Tile 目录 (parent_ipix 列表)
+};
+
+// ============================================================================
+// WP-H 步骤14: HISS Tile 数据 (按需加载, malloc 分配, 用 release_tile 释放)
+// ============================================================================
+struct HissTileData {
+    uint64_t parent_ipix = 0;        // Tile 父像素 ipix
+    float* signal = nullptr;         // n_leaf_per_tile 个 float32 (malloc)
+    uint8_t* support = nullptr;      // n_leaf_per_tile 个 uint8 (malloc)
+    uint32_t n_signal = 0;           // signal/support 数组长度
+    uint8_t* snr_data = nullptr;     // n_snr_points * 8 字节 (local_ipix(u32) + snr(f32))
+    uint32_t n_snr_points = 0;       // SNR 控制点数
+
+    HissTileData() = default;
+};
+
+// ============================================================================
 // 浏览器后端类
 // ============================================================================
 class BrowserBackend {
@@ -118,6 +147,34 @@ public:
     // 释放 LeafData 内存 (malloc 分配的数据用此释放; get_all_data 返回的不要用此释放)
     void release_leaf(LeafData& leaf);
 
+    // ---- WP-H 步骤14: HISS Tile 按需加载 (新 API, 不全量加载像素) ----
+    // 加载 HISS 文件 Header (只读 Header + Tile 目录, 不加载像素数据)
+    // path: .hiss 文件路径
+    // header: 输出参数, 含 nside/tile_nside/depth/n_tiles/tile_ipix_list 等
+    // 返回: 0=成功, <0=失败
+    int load_hiss(const std::string& path, HissHeader& header);
+
+    // 读取 Tile signal (按 parent_ipix, 调用 aio_hiss_read_tile_signal)
+    // 用完后调 release_tile 释放
+    int read_tile_signal(uint64_t parent_ipix, HissTileData& tile);
+
+    // 读取 Tile support (按 parent_ipix, 调用 aio_hiss_read_tile_support)
+    int read_tile_support(uint64_t parent_ipix, HissTileData& tile);
+
+    // 读取 Tile SNR 控制点 (按 parent_ipix, 调用 aio_hiss_read_tile_snr)
+    int read_tile_snr(uint64_t parent_ipix, HissTileData& tile);
+
+    // 查询像素值 (ra/dec -> signal/support, 调用 aio_hiss_query_pixel)
+    // 返回: 0=成功, <0=失败
+    int query_pixel(double ra, double dec, float& signal, uint8_t& support);
+
+    // 释放 HissTileData 内存 (signal/support/snr_data)
+    void release_tile(HissTileData& tile);
+
+    // 获取已加载 HISS 文件的 Header (load_hiss 后可用)
+    const HissHeader& get_hiss_header() const { return hiss_header_; }
+    bool is_hiss_header_loaded() const { return hiss_header_loaded_; }
+
     // ---- HEALPix 角度计算辅助 (公开, 供 GLRenderer 使用) ----
     static void ipix_to_angle(uint32_t nside, uint64_t ipix, bool nested,
                               double& ra, double& dec);
@@ -149,6 +206,10 @@ private:
     // 数据范围 (供 ud_grade 归一化, 由 set_data_range 设置)
     float data_min_ = 0.0f;
     float data_max_ = 1.0f;
+
+    // WP-H 步骤14: 新 HISS Header (load_hiss 后可用, 与 open_file 独立)
+    HissHeader hiss_header_;
+    bool hiss_header_loaded_ = false;
 };
 
 #endif // BROWSER_BACKEND_H

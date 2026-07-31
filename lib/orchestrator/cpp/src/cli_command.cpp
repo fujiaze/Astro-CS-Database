@@ -431,24 +431,33 @@ int CliCommand::execute(int argc, char* argv[]) {
     }
 
     // spec §2.3.3 stage1: 单帧预处理 (FITS -> .hiss, stage 0-7)
+    // WP-H 步骤14: 扩展参数支持 --nside/--pixfrac/--dark/--flat/--bias/--photscal/--apply-photometry/--threads
+    // 支持两种形式:
+    //   1) orchestrator stage1 <input.fits> -o <output.hiss> [options]  (新形式)
+    //   2) orchestrator stage1 --frame <fits> --output <hiss> [options] (旧形式, 向后兼容)
     if (sub == "stage1") {
-        // orchestrator stage1 --frame <fits> --output <hiss>
-        //     [--gaia-data <dir>] [--calibration-dir <dir>]
-        //     [--filter <name>] [--config <json>] [--log-level <LEVEL>]
-        //     [--request <file>] (P04-001: request JSON 模式)
-        //     [--cancel-on-signal] (P04-004: Ctrl+C 时取消)
         std::string fits_path, output_hiss;
         std::string config_path, log_level;
         std::string request_path;
-        // 以下参数当前仅记录日志 (后续 Task 传入 stage1_config)
         std::string gaia_data, calibration_dir, filter_name;
         bool cancel_on_signal = false;  // P04-004
+
+        // WP-H 步骤14: 新增 stage1 选项
+        int nside_override = 0;          // --nside
+        double pixfrac = -1.0;           // --pixfrac (默认 -1 表示未设置, 后续用 1.0)
+        std::string dark_file, flat_file, bias_file;  // --dark/--flat/--bias
+        double photscal = 1.0;           // --photscal
+        bool apply_photometry = false;   // --apply-photometry
+        int threads = 0;                 // --threads
 
         for (int i = 2; i < argc; ++i) {
             std::string a = argv[i];
             if (a == "--frame" && i + 1 < argc) {
                 fits_path = argv[++i];
             } else if (a == "--output" && i + 1 < argc) {
+                output_hiss = argv[++i];
+            } else if (a == "-o" && i + 1 < argc) {
+                // WP-H: 新形式 -o <output>
                 output_hiss = argv[++i];
             } else if (a == "--gaia-data" && i + 1 < argc) {
                 gaia_data = argv[++i];
@@ -464,10 +473,33 @@ int CliCommand::execute(int argc, char* argv[]) {
                 request_path = argv[++i];
             } else if (a == "--cancel-on-signal") {
                 cancel_on_signal = true;  // P04-004
+            } else if (a == "--nside" && i + 1 < argc) {
+                // WP-H: 显式 NSIDE
+                nside_override = std::atoi(argv[++i]);
+            } else if (a == "--pixfrac" && i + 1 < argc) {
+                // WP-H: pixfrac 值
+                pixfrac = std::strtod(argv[i + 1], nullptr);
+                ++i;
+            } else if (a == "--dark" && i + 1 < argc) {
+                dark_file = argv[++i];
+            } else if (a == "--flat" && i + 1 < argc) {
+                flat_file = argv[++i];
+            } else if (a == "--bias" && i + 1 < argc) {
+                bias_file = argv[++i];
+            } else if (a == "--photscal" && i + 1 < argc) {
+                photscal = std::strtod(argv[i + 1], nullptr);
+                ++i;
+            } else if (a == "--apply-photometry") {
+                apply_photometry = true;
+            } else if (a == "--threads" && i + 1 < argc) {
+                threads = std::atoi(argv[++i]);
             } else if (a.rfind("--", 0) == 0) {
                 LOG_ERROR("cli", "未知参数: " + a);
                 print_usage();
                 return 1;
+            } else if (fits_path.empty()) {
+                // WP-H: 位置参数 <input.fits>
+                fits_path = a;
             } else {
                 LOG_ERROR("cli", "多余的位置参数: " + a);
                 print_usage();
@@ -487,21 +519,57 @@ int CliCommand::execute(int argc, char* argv[]) {
         }
 
         if (fits_path.empty()) {
-            LOG_ERROR("cli", "错误: stage1 缺少 --frame <fits> 参数");
+            LOG_ERROR("cli", "错误: stage1 缺少 <input.fits> 或 --frame <fits> 参数");
             print_usage();
             return 1;
         }
         if (output_hiss.empty()) {
-            LOG_ERROR("cli", "错误: stage1 缺少 --output <hiss> 参数");
+            LOG_ERROR("cli", "错误: stage1 缺少 -o <output.hiss> 或 --output <hiss> 参数");
             print_usage();
             return 1;
         }
-        // gaia_data/calibration_dir/filter_name 当前仅记录日志 (后续 Task 集成)
+
+        // WP-H 步骤14: 输入合法性检查
+        // pixfrac 必须在 (0, 1]
+        if (pixfrac >= 0.0 && (pixfrac <= 0.0 || pixfrac > 1.0)) {
+            LOG_ERROR("cli", "错误: --pixfrac 必须在 (0, 1], got " + std::to_string(pixfrac));
+            return 28;  // INPUT_INVALID
+        }
+        // NSIDE 必须是 2 的幂 (若显式指定)
+        if (nside_override > 0) {
+            int n = nside_override;
+            if (n < 16 || n > 4194304) {
+                LOG_ERROR("cli", "错误: --nside 必须在 [16, 4194304], got " + std::to_string(n));
+                return 28;
+            }
+            bool is_power_of_2 = (n > 0) && ((n & (n - 1)) == 0);
+            if (!is_power_of_2) {
+                LOG_ERROR("cli", "错误: --nside 必须是 2 的幂, got " + std::to_string(n));
+                return 28;
+            }
+        }
+        // 文件可读性检查
+        if (!fs::exists(fits_path)) {
+            LOG_ERROR("cli", "错误: 输入 FITS 文件不存在: " + fits_path);
+            return 8;  // FILE_IO_ERROR
+        }
+
+        // gaia_data/calibration_dir/filter_name 记录日志
         if (!gaia_data.empty())        LOG_INFO("cli", "stage1 gaia-data: " + gaia_data);
         if (!calibration_dir.empty())  LOG_INFO("cli", "stage1 calibration-dir: " + calibration_dir);
         if (!filter_name.empty())      LOG_INFO("cli", "stage1 filter: " + filter_name);
+        if (!dark_file.empty())        LOG_INFO("cli", "stage1 dark: " + dark_file);
+        if (!flat_file.empty())        LOG_INFO("cli", "stage1 flat: " + flat_file);
+        if (!bias_file.empty())        LOG_INFO("cli", "stage1 bias: " + bias_file);
+        LOG_INFO("cli", "stage1 nside_override: " + std::to_string(nside_override)
+                 + " pixfrac: " + std::to_string(pixfrac >= 0 ? pixfrac : 1.0)
+                 + " photscal: " + std::to_string(photscal)
+                 + " apply_photometry: " + (apply_photometry ? "true" : "false")
+                 + " threads: " + std::to_string(threads));
 
-        return cmd_stage1(fits_path, output_hiss, config_path, log_level, cancel_on_signal);
+        return cmd_stage1(fits_path, output_hiss, config_path, log_level, cancel_on_signal,
+                          nside_override, pixfrac, dark_file, flat_file, bias_file,
+                          photscal, apply_photometry, threads);
     }
 
     // spec §2.3.3 stage2: 多帧合并 (.hiss -> .hcsd, stage 8-9)
@@ -729,14 +797,187 @@ int CliCommand::cmd_status() {
 }
 
 // ============================================================================
+// WP-H 步骤14: 把 CLI 参数合并到 config_json
+// 策略: 在 JSON 对象末尾 (最后一个 '}' 前) 插入新字段
+// 若 config_json 为空或无效 JSON, 创建新 JSON 对象
+// ============================================================================
+static std::string merge_stage1_overrides_into_config(const std::string& config_json,
+                                                       int nside_override,
+                                                       double pixfrac,
+                                                       const std::string& dark_file,
+                                                       const std::string& flat_file,
+                                                       const std::string& bias_file,
+                                                       double photscal,
+                                                       bool apply_photometry,
+                                                       int threads) {
+    // 构造要追加的字段片段
+    std::vector<std::string> fields;
+    if (nside_override > 0) {
+        fields.push_back("\"nside_override\":" + std::to_string(nside_override));
+    }
+    if (pixfrac >= 0.0) {
+        // pixfrac 默认 -1 (未设置), 此处 >=0 表示用户显式指定
+        std::ostringstream oss;
+        oss << std::setprecision(6) << pixfrac;
+        fields.push_back("\"pixfrac\":" + oss.str());
+    }
+    if (!dark_file.empty()) {
+        fields.push_back("\"calibration.dark\":\"" + json_escape(dark_file) + "\"");
+    }
+    if (!flat_file.empty()) {
+        fields.push_back("\"calibration.flat\":\"" + json_escape(flat_file) + "\"");
+    }
+    if (!bias_file.empty()) {
+        fields.push_back("\"calibration.bias\":\"" + json_escape(bias_file) + "\"");
+    }
+    if (photscal != 1.0) {
+        std::ostringstream oss;
+        oss << std::setprecision(6) << photscal;
+        fields.push_back("\"photometry.photscal\":" + oss.str());
+    }
+    if (apply_photometry) {
+        fields.push_back("\"photometry.apply\":true");
+    }
+    if (threads > 0) {
+        fields.push_back("\"threads\":" + std::to_string(threads));
+    }
+
+    if (fields.empty()) {
+        return config_json;  // 无需合并
+    }
+
+    // 拼接字段
+    std::string fields_str;
+    for (size_t i = 0; i < fields.size(); ++i) {
+        if (i > 0) fields_str += ",";
+        fields_str += fields[i];
+    }
+
+    // 合并到 config_json
+    if (config_json.empty()) {
+        return "{" + fields_str + "}";
+    }
+
+    // 找到最后一个 '}' (跳过尾部空白)
+    std::string trimmed = config_json;
+    while (!trimmed.empty() && (trimmed.back() == ' ' || trimmed.back() == '\t' ||
+           trimmed.back() == '\n' || trimmed.back() == '\r')) {
+        trimmed.pop_back();
+    }
+    if (trimmed.empty() || trimmed.back() != '}') {
+        // 无效 JSON, 创建新对象
+        return "{" + fields_str + "}";
+    }
+
+    // 在最后一个 '}' 前插入字段
+    trimmed.pop_back();  // 移除 '}'
+    // 跳过 '}' 前的空白
+    while (!trimmed.empty() && (trimmed.back() == ' ' || trimmed.back() == '\t' ||
+           trimmed.back() == '\n' || trimmed.back() == '\r')) {
+        trimmed.pop_back();
+    }
+    if (trimmed.empty() || trimmed.back() == '{') {
+        // 空 JSON 对象 {}
+        return trimmed + fields_str + "}";
+    }
+    // 已有字段, 追加
+    return trimmed + "," + fields_str + "}";
+}
+
+// ============================================================================
+// WP-H 步骤14: 输出 stage1 诊断信息
+// 调用 aio_hiss_inspect 获取 Tile count, 输出 NSIDE/pixfrac/Tile/file_size/time
+// ============================================================================
+static void print_stage1_diagnostics(const std::string& output_hiss,
+                                      int nside_override, double pixfrac,
+                                      double elapsed_sec) {
+    // 文件大小
+    uintmax_t file_size = 0;
+    if (fs::exists(output_hiss)) {
+        std::error_code ec;
+        file_size = fs::file_size(output_hiss, ec);
+        if (ec) file_size = 0;
+    }
+
+    // 调用 aio_hiss_inspect 获取 Tile 信息 (通过 DllLoader)
+    uint32_t nside = 0, tile_nside = 0, depth = 0, n_leaf_per_tile = 0;
+    uint64_t n_tiles = 0, n_pix_total = 0;
+    char* meta_json = nullptr;
+    bool inspect_ok = false;
+
+    {
+        Orchestrator orch;
+        std::string err;
+        Logger::instance().set_stderr_output(false);
+        bool ok = orch.init_dlls("", err);
+        Logger::instance().set_stderr_output(true);
+        if (ok && orch.get_dll_loader().is_loaded(ModuleId::AIO)) {
+            DllLoader& loader = orch.get_dll_loader();
+            using InspectFn = int (*)(const char*, uint32_t*, uint32_t*, uint32_t*,
+                                       uint32_t*, uint64_t*, uint64_t*, char**,
+                                       uint64_t**);
+            using FreeFn = void (*)(void*);
+            auto fn_inspect = loader.get_function<InspectFn>(ModuleId::AIO, "aio_hiss_inspect");
+            auto fn_free = loader.get_function<FreeFn>(ModuleId::AIO, "aio_hio_free");
+            if (fn_inspect && fn_free) {
+                int ret = fn_inspect(output_hiss.c_str(), &nside, &tile_nside,
+                                      &depth, &n_leaf_per_tile, &n_tiles,
+                                      &n_pix_total, &meta_json, nullptr);
+                if (ret == 0) {
+                    inspect_ok = true;
+                    if (meta_json) fn_free(meta_json);
+                } else {
+                    LOG_WARN("cli", "aio_hiss_inspect 返回错误: " + std::to_string(ret) +
+                             " (诊断输出降级)");
+                }
+            }
+        }
+    }
+
+    // 输出诊断信息到 stderr (人类可读)
+    double actual_pixfrac = (pixfrac >= 0.0) ? pixfrac : 1.0;
+    std::ostringstream diag;
+    diag << "========== stage1 诊断输出 ==========\n";
+    diag << "  输出文件: " << output_hiss << "\n";
+    diag << "  NSIDE: " << (inspect_ok ? std::to_string(nside) :
+         (nside_override > 0 ? std::to_string(nside_override) : std::string("auto"))) << "\n";
+    diag << "  pixfrac: " << actual_pixfrac << "\n";
+    if (inspect_ok) {
+        diag << "  Tile count: " << n_tiles << "\n";
+        diag << "  tile_nside: " << tile_nside << "\n";
+        diag << "  depth: " << depth << "\n";
+        diag << "  n_leaf_per_tile: " << n_leaf_per_tile << "\n";
+        diag << "  n_pix_total: " << n_pix_total << "\n";
+    } else {
+        diag << "  Tile count: (inspect 不可用)\n";
+    }
+    diag << "  文件大小: " << file_size << " 字节 ("
+         << std::fixed << std::setprecision(2)
+         << (file_size / 1024.0 / 1024.0) << " MB)\n";
+    diag << "  处理时间: " << std::fixed << std::setprecision(3)
+         << elapsed_sec << " 秒\n";
+    diag << "=====================================";
+    LOG_INFO("cli", diag.str());
+}
+
+// ============================================================================
 // cmd_stage1 - spec §2.3.3 单帧预处理 (FITS -> .hiss, stage 0-7)
 // cancel_on_signal: P04-004 - true 时注册 SIGINT 处理器触发取消
+// WP-H 步骤14: 新增参数合并到 config_json, 添加诊断输出
 // ============================================================================
 int CliCommand::cmd_stage1(const std::string& fits_path,
                            const std::string& output_hiss,
                            const std::string& config_path,
                            const std::string& log_level,
-                           bool cancel_on_signal) {
+                           bool cancel_on_signal,
+                           int nside_override,
+                           double pixfrac,
+                           const std::string& dark_file,
+                           const std::string& flat_file,
+                           const std::string& bias_file,
+                           double photscal,
+                           bool apply_photometry,
+                           int threads) {
     Orchestrator orch;
 
     // P04-004: 注册 SIGINT 处理器 (如启用 --cancel-on-signal)
@@ -760,6 +1001,15 @@ int CliCommand::cmd_stage1(const std::string& fits_path,
         }
     }
 
+    // WP-H 步骤14: 把 CLI 参数合并到 config_json
+    config_json = merge_stage1_overrides_into_config(config_json,
+                                                     nside_override, pixfrac,
+                                                     dark_file, flat_file, bias_file,
+                                                     photscal, apply_photometry, threads);
+    if (!config_json.empty()) {
+        LOG_INFO("cli", "stage1 合并后 config_json: " + config_json);
+    }
+
     // 设置日志级别 (覆盖配置中的 log_level)
     if (!log_level.empty()) {
         LogLevel lvl = Logger::string_to_level(log_level);
@@ -767,9 +1017,24 @@ int CliCommand::cmd_stage1(const std::string& fits_path,
         LOG_INFO("cli", "日志级别设置为: " + log_level);
     }
 
+    // WP-H 步骤14: 记录开始时间 (用于诊断输出)
+    auto t_start = std::chrono::steady_clock::now();
+
     TaskResult r = orch.run_stage1(fits_path, output_hiss, config_json);
+
+    auto t_end = std::chrono::steady_clock::now();
+    double elapsed_sec = std::chrono::duration<double>(t_end - t_start).count();
+
     p04004_unregister_signal_handler();
     output_json_result(r);
+
+    // WP-H 步骤14: 诊断输出 (NSIDE/pixfrac/Tile count/file_size/time)
+    if (r.success) {
+        print_stage1_diagnostics(output_hiss, nside_override, pixfrac, elapsed_sec);
+    } else {
+        LOG_WARN("cli", "stage1 失败, 耗时: " + std::to_string(elapsed_sec) + " 秒");
+    }
+
     // P03-003: 使用 TaskResult.exit_code 传递细分错误码 (失败时若 exit_code=0 用 1 兜底)
     return r.success ? 0 : (r.exit_code != 0 ? r.exit_code : 1);
 }
@@ -2065,6 +2330,7 @@ void CliCommand::print_usage() {
     std::cout << "  orchestrator --help                         - 显示帮助" << std::endl;
     std::cout << "  orchestrator run <fits> [options]           - 单帧处理 (旧版 5 阶段)" << std::endl;
     std::cout << "  orchestrator run-batch <dir> [options]      - 批量处理 (旧版 5 阶段)" << std::endl;
+    std::cout << "  orchestrator stage1 <input.fits> -o <output.hiss> [options]" << std::endl;
     std::cout << "  orchestrator stage1 --frame <fits> --output <hiss> [options]" << std::endl;
     std::cout << "                                              - 单帧预处理 (stage 0-7, spec §2.3.3)" << std::endl;
     std::cout << "  orchestrator stage2 --frames <dir> --output <hcsd> [options]" << std::endl;
@@ -2084,8 +2350,18 @@ void CliCommand::print_usage() {
     std::cout << "  --log-level <LEVEL>   日志级别 (DEBUG/INFO/WARN/ERROR, 默认 INFO, Task 4)" << std::endl;
     std::cout << std::endl;
     std::cout << "stage1 选项 (单帧预处理 FITS -> .hiss):" << std::endl;
-    std::cout << "  --frame <fits>        输入 FITS 文件路径 (必选)" << std::endl;
+    std::cout << "  <input.fits>          输入 FITS 文件路径 (位置参数, 必选)" << std::endl;
+    std::cout << "  -o <output.hiss>      输出 .hiss 文件路径 (必选, 等同 --output)" << std::endl;
+    std::cout << "  --frame <fits>        输入 FITS 文件路径 (旧形式, 等同位置参数)" << std::endl;
     std::cout << "  --output <hiss>       输出 .hiss 文件路径 (必选)" << std::endl;
+    std::cout << "  --nside <N>           HEALPix NSIDE (2 的幂, 16~4194304, 0=自动)" << std::endl;
+    std::cout << "  --pixfrac <F>         像素收缩因子 (0,1], 默认 1.0" << std::endl;
+    std::cout << "  --dark <file>         暗场校准文件" << std::endl;
+    std::cout << "  --flat <file>         平场校准文件" << std::endl;
+    std::cout << "  --bias <file>         偏置校准文件" << std::endl;
+    std::cout << "  --photscal <F>        测光定标系数 (默认 1.0)" << std::endl;
+    std::cout << "  --apply-photometry    启用测光定标" << std::endl;
+    std::cout << "  --threads <N>         线程数 (0=自动检测)" << std::endl;
     std::cout << "  --gaia-data <dir>     Gaia 数据目录" << std::endl;
     std::cout << "  --calibration-dir <dir> 校准文件目录" << std::endl;
     std::cout << "  --filter <name>       滤镜名称" << std::endl;

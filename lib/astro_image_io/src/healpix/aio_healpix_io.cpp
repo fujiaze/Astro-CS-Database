@@ -486,6 +486,244 @@ AIO_EXPORT int aio_hiss_read(const char* path, uint32_t* nside, int* nested,
 }
 
 // ============================================================================
+// WP-H 步骤14: aio_hiss_inspect - 只读 Header (不加载 Tile 数据)
+// 用于 CLI 诊断输出和 Browser 首次打开
+// ============================================================================
+
+AIO_EXPORT int aio_hiss_inspect(const char* path,
+                                  uint32_t* nside,
+                                  uint32_t* tile_nside,
+                                  uint32_t* depth,
+                                  uint32_t* n_leaf_per_tile,
+                                  uint64_t* n_tiles,
+                                  uint64_t* n_pix_total,
+                                  char** meta_json,
+                                  uint64_t** tile_ipix_list) {
+    if (!path || !nside || !tile_nside || !depth || !n_leaf_per_tile ||
+        !n_tiles || !n_pix_total || !meta_json) {
+        fprintf(stderr, "[hio] hiss_inspect: 无效参数\n");
+        return HIO_ERR_PARAM;
+    }
+
+    // 初始化输出
+    *nside = 0;
+    *tile_nside = 0;
+    *depth = 0;
+    *n_leaf_per_tile = 0;
+    *n_tiles = 0;
+    *n_pix_total = 0;
+    *meta_json = nullptr;
+    if (tile_ipix_list) *tile_ipix_list = nullptr;
+
+    // 用 HissReader 打开文件 (只读 Header + Tile 目录, 不加载 Tile 数据)
+    hiss::HissReader reader;
+    if (reader.open(path) != 0) {
+        fprintf(stderr, "[hio] hiss_inspect: HissReader.open 失败: %s\n", path);
+        return HIO_ERR_FILE;
+    }
+
+    hiss::HissGridSpec grid = reader.grid();
+    hiss::HissMetadata hmeta = reader.metadata();
+    const std::vector<hiss::HissTile>& tiles = reader.tiles();
+
+    *nside = grid.nside;
+    *tile_nside = grid.tile_nside;
+    *depth = hiss::compute_tile_depth(grid.nside);
+    *n_leaf_per_tile = 1u << (2 * (*depth));  // 4^depth
+    *n_tiles = (uint64_t)tiles.size();
+    // n_pix_total: 全部 Tile 展开后的像素数 (含无效像素)
+    *n_pix_total = (uint64_t)tiles.size() * (*n_leaf_per_tile);
+
+    // 序列化 meta_json
+    std::string jsonStr = hmeta.to_json();
+    *meta_json = (char*)std::malloc(jsonStr.size() + 1);
+    if (!*meta_json) {
+        fprintf(stderr, "[hio] hiss_inspect: 分配 meta_json 内存失败\n");
+        return HIO_ERR_MEM;
+    }
+    std::memcpy(*meta_json, jsonStr.c_str(), jsonStr.size() + 1);
+
+    // WP-H 步骤14: 可选输出 Tile 目录 (parent_ipix 列表)
+    if (tile_ipix_list && !tiles.empty()) {
+        *tile_ipix_list = (uint64_t*)std::malloc(tiles.size() * sizeof(uint64_t));
+        if (!*tile_ipix_list) {
+            fprintf(stderr, "[hio] hiss_inspect: 分配 tile_ipix_list 内存失败\n");
+            std::free(*meta_json);
+            *meta_json = nullptr;
+            return HIO_ERR_MEM;
+        }
+        for (size_t i = 0; i < tiles.size(); ++i) {
+            (*tile_ipix_list)[i] = tiles[i].parent_ipix;
+        }
+    }
+
+    fprintf(stderr, "[hio] hiss_inspect: nside=%u tile_nside=%u depth=%u n_leaf=%u n_tiles=%llu: %s\n",
+            *nside, *tile_nside, *depth, *n_leaf_per_tile,
+            (unsigned long long)*n_tiles, path);
+    return HIO_OK;
+}
+
+// ============================================================================
+// WP-H 步骤14: aio_hiss_read_tile_signal - 按 Tile 读取 signal
+// ============================================================================
+
+AIO_EXPORT int aio_hiss_read_tile_signal(const char* path, uint64_t parent_ipix,
+                                           float** signal, uint32_t* n_signal) {
+    if (!path || !signal || !n_signal) {
+        fprintf(stderr, "[hio] hiss_read_tile_signal: 无效参数\n");
+        return HIO_ERR_PARAM;
+    }
+    *signal = nullptr;
+    *n_signal = 0;
+
+    hiss::HissReader reader;
+    if (reader.open(path) != 0) {
+        fprintf(stderr, "[hio] hiss_read_tile_signal: HissReader.open 失败: %s\n", path);
+        return HIO_ERR_FILE;
+    }
+
+    std::vector<float> sig_vec;
+    int ret = reader.read_tile_signal(parent_ipix, sig_vec);
+    if (ret != 0) {
+        fprintf(stderr, "[hio] hiss_read_tile_signal: read_tile_signal 失败 ret=%d parent=%llu\n",
+                ret, (unsigned long long)parent_ipix);
+        return HIO_ERR_FILE;
+    }
+
+    if (sig_vec.empty()) {
+        return HIO_OK;
+    }
+
+    *n_signal = (uint32_t)sig_vec.size();
+    *signal = (float*)std::malloc(sig_vec.size() * sizeof(float));
+    if (!*signal) {
+        fprintf(stderr, "[hio] hiss_read_tile_signal: 内存分配失败\n");
+        return HIO_ERR_MEM;
+    }
+    std::memcpy(*signal, sig_vec.data(), sig_vec.size() * sizeof(float));
+    return HIO_OK;
+}
+
+// ============================================================================
+// WP-H 步骤14: aio_hiss_read_tile_support - 按 Tile 读取 support
+// ============================================================================
+
+AIO_EXPORT int aio_hiss_read_tile_support(const char* path, uint64_t parent_ipix,
+                                            uint8_t** support, uint32_t* n_support) {
+    if (!path || !support || !n_support) {
+        fprintf(stderr, "[hio] hiss_read_tile_support: 无效参数\n");
+        return HIO_ERR_PARAM;
+    }
+    *support = nullptr;
+    *n_support = 0;
+
+    hiss::HissReader reader;
+    if (reader.open(path) != 0) {
+        fprintf(stderr, "[hio] hiss_read_tile_support: HissReader.open 失败: %s\n", path);
+        return HIO_ERR_FILE;
+    }
+
+    std::vector<uint8_t> sup_vec;
+    int ret = reader.read_tile_support(parent_ipix, sup_vec);
+    if (ret != 0) {
+        fprintf(stderr, "[hio] hiss_read_tile_support: read_tile_support 失败 ret=%d parent=%llu\n",
+                ret, (unsigned long long)parent_ipix);
+        return HIO_ERR_FILE;
+    }
+
+    if (sup_vec.empty()) {
+        return HIO_OK;
+    }
+
+    *n_support = (uint32_t)sup_vec.size();
+    *support = (uint8_t*)std::malloc(sup_vec.size());
+    if (!*support) {
+        fprintf(stderr, "[hio] hiss_read_tile_support: 内存分配失败\n");
+        return HIO_ERR_MEM;
+    }
+    std::memcpy(*support, sup_vec.data(), sup_vec.size());
+    return HIO_OK;
+}
+
+// ============================================================================
+// WP-H 步骤14: aio_hiss_read_tile_snr - 按 Tile 读取 SNR 控制点
+// 返回紧凑二进制: n_points * 8 字节, 每点 local_ipix(uint32 LE) + snr(float32 LE)
+// ============================================================================
+
+AIO_EXPORT int aio_hiss_read_tile_snr(const char* path, uint64_t parent_ipix,
+                                        uint8_t** snr_out, uint32_t* n_points) {
+    if (!path || !snr_out || !n_points) {
+        fprintf(stderr, "[hio] hiss_read_tile_snr: 无效参数\n");
+        return HIO_ERR_PARAM;
+    }
+    *snr_out = nullptr;
+    *n_points = 0;
+
+    hiss::HissReader reader;
+    if (reader.open(path) != 0) {
+        fprintf(stderr, "[hio] hiss_read_tile_snr: HissReader.open 失败: %s\n", path);
+        return HIO_ERR_FILE;
+    }
+
+    hiss::HissSnrBlock snr_block;
+    int ret = reader.read_tile_snr(parent_ipix, snr_block);
+    if (ret != 0) {
+        fprintf(stderr, "[hio] hiss_read_tile_snr: read_tile_snr 失败 ret=%d parent=%llu\n",
+                ret, (unsigned long long)parent_ipix);
+        return HIO_ERR_FILE;
+    }
+
+    if (snr_block.points.empty()) {
+        return HIO_OK;  // 无 SNR 控制点
+    }
+
+    *n_points = (uint32_t)snr_block.points.size();
+    *snr_out = (uint8_t*)std::malloc(snr_block.points.size() * 8);
+    if (!*snr_out) {
+        fprintf(stderr, "[hio] hiss_read_tile_snr: 内存分配失败\n");
+        return HIO_ERR_MEM;
+    }
+    // 序列化为 local_ipix(uint32 LE) + snr(float32 LE)
+    for (size_t i = 0; i < snr_block.points.size(); i++) {
+        uint32_t local_ipix = snr_block.points[i].local_ipix;
+        float snr_val = snr_block.points[i].snr;
+        uint8_t* p = *snr_out + i * 8;
+        std::memcpy(p, &local_ipix, 4);      // LE
+        std::memcpy(p + 4, &snr_val, 4);     // LE
+    }
+    return HIO_OK;
+}
+
+// ============================================================================
+// WP-H 步骤14: aio_hiss_query_pixel - 通过 ra/dec 查询像素值
+// 与 HissReader::query_pixel 一致
+// ============================================================================
+
+AIO_EXPORT int aio_hiss_query_pixel(const char* path, double ra, double dec,
+                                      float* signal, uint8_t* support) {
+    if (!path || !signal || !support) {
+        fprintf(stderr, "[hio] hiss_query_pixel: 无效参数\n");
+        return HIO_ERR_PARAM;
+    }
+    *signal = 0.0f;
+    *support = 0;
+
+    hiss::HissReader reader;
+    if (reader.open(path) != 0) {
+        fprintf(stderr, "[hio] hiss_query_pixel: HissReader.open 失败: %s\n", path);
+        return HIO_ERR_FILE;
+    }
+
+    int ret = reader.query_pixel(ra, dec, signal, support);
+    if (ret != 0) {
+        fprintf(stderr, "[hio] hiss_query_pixel: query_pixel 失败 ret=%d ra=%.4f dec=%.4f\n",
+                ret, ra, dec);
+        return HIO_ERR_FILE;
+    }
+    return HIO_OK;
+}
+
+// ============================================================================
 // .hcsd 写入实现 (含子叶块索引构建)
 // ============================================================================
 

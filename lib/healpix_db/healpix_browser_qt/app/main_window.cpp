@@ -9,6 +9,7 @@
 #include "abstract_view.h"
 // #include "single_frame_view.h"  // 已废弃，.hiss 改用 SphereView
 #include "sphere_view.h"
+#include "logger.h"  // WP-H: LOG_INFO/LOG_WARN
 
 #include <QMenuBar>
 #include <QMenu>
@@ -23,6 +24,17 @@
 #include <QVBoxLayout>
 #include <QWidget>
 #include <QString>
+// WP-H 步骤14: HISS Tile 浏览 UI
+#include <QListWidget>
+#include <QComboBox>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QImage>
+#include <QPixmap>
+#include <QFormLayout>
+#include <QGroupBox>
+#include <QScrollArea>
+#include <cmath>
 
 // ============================================================================
 // 构造 / 析构
@@ -44,6 +56,7 @@ MainWindow::MainWindow(QWidget* parent)
     setup_toolbar();
     setup_status_bar();
     setup_stf_panel();
+    setup_hiss_tile_panel();  // WP-H: HISS Tile 浏览面板
 
     // 占位中心 widget (无文件时显示提示)
     auto* placeholder = new QLabel("尚未打开文件\n\nFile > Open 选择 .hiss 或 .hcsd 文件", this);
@@ -164,6 +177,233 @@ void MainWindow::setup_stf_panel() {
 }
 
 // ============================================================================
+// WP-H 步骤14: HISS Tile 浏览面板
+// 左侧 Dock: Tile 列表 + 图层选择 + 2D 渲染 + ra/dec 查询
+// ============================================================================
+
+void MainWindow::setup_hiss_tile_panel() {
+    hiss_tile_dock_ = new QDockWidget("HISS Tile 浏览器", this);
+    hiss_tile_dock_->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
+
+    auto* container = new QWidget(hiss_tile_dock_);
+    auto* layout = new QVBoxLayout(container);
+    layout->setContentsMargins(4, 4, 4, 4);
+
+    // ---- Tile 列表 ----
+    auto* tile_group = new QGroupBox("Tile 目录", container);
+    auto* tile_layout = new QVBoxLayout(tile_group);
+    tile_list_widget_ = new QListWidget(tile_group);
+    tile_list_widget_->setMaximumHeight(150);
+    tile_layout->addWidget(tile_list_widget_);
+    layout->addWidget(tile_group);
+
+    // ---- 图层选择 ----
+    auto* layer_group = new QGroupBox("图层", container);
+    auto* layer_layout = new QVBoxLayout(layer_group);
+    tile_layer_combo_ = new QComboBox(layer_group);
+    tile_layer_combo_->addItem("Signal");
+    tile_layer_combo_->addItem("Support");
+    tile_layer_combo_->addItem("SNR");
+    layer_layout->addWidget(tile_layer_combo_);
+    layout->addWidget(layer_group);
+
+    // ---- 2D 渲染区域 ----
+    auto* render_group = new QGroupBox("Tile 渲染", container);
+    auto* render_layout = new QVBoxLayout(render_group);
+    tile_render_label_ = new QLabel(render_group);
+    tile_render_label_->setAlignment(Qt::AlignCenter);
+    tile_render_label_->setMinimumSize(256, 256);
+    tile_render_label_->setStyleSheet("background-color: #000; border: 1px solid #444;");
+    tile_render_label_->setText("(选择 Tile 查看)");
+    render_layout->addWidget(tile_render_label_);
+    layout->addWidget(render_group, 1);  // stretch=1 让渲染区域可扩展
+
+    // ---- ra/dec 查询 ----
+    auto* query_group = new QGroupBox("像素查询 (ra/dec)", container);
+    auto* query_form = new QFormLayout(query_group);
+    ra_input_ = new QLineEdit(query_group);
+    ra_input_->setPlaceholderText("0~360");
+    dec_input_ = new QLineEdit(query_group);
+    dec_input_->setPlaceholderText("-90~90");
+    query_form->addRow("RA (度):", ra_input_);
+    query_form->addRow("Dec (度):", dec_input_);
+
+    query_pixel_btn_ = new QPushButton("查询", query_group);
+    query_form->addRow("", query_pixel_btn_);
+
+    pixel_value_label_ = new QLabel("(未查询)", query_group);
+    pixel_value_label_->setWordWrap(true);
+    query_form->addRow("结果:", pixel_value_label_);
+    layout->addWidget(query_group);
+
+    hiss_tile_dock_->setWidget(container);
+    addDockWidget(Qt::LeftDockWidgetArea, hiss_tile_dock_);
+    hiss_tile_dock_->hide();  // 默认隐藏, 打开 .hiss 文件时显示
+
+    // 信号槽连接
+    connect(tile_list_widget_, &QListWidget::currentRowChanged,
+            this, &MainWindow::on_tile_selected);
+    connect(tile_layer_combo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &MainWindow::on_tile_layer_changed);
+    connect(query_pixel_btn_, &QPushButton::clicked,
+            this, &MainWindow::on_query_pixel_clicked);
+}
+
+// WP-H: Tile 列表选中, 读取 signal/support 数据并渲染
+void MainWindow::on_tile_selected(int row) {
+    if (row < 0 || !backend_ || !backend_->is_hiss_header_loaded()) {
+        return;
+    }
+
+    // 释放旧 Tile 数据
+    if (current_tile_signal_) {
+        // current_tile_signal_ 是 malloc 分配的, 用 free 释放
+        std::free(current_tile_signal_);
+        current_tile_signal_ = nullptr;
+    }
+    if (current_tile_support_) {
+        std::free(current_tile_support_);
+        current_tile_support_ = nullptr;
+    }
+    current_tile_n_signal_ = 0;
+    current_tile_parent_ipix_ = 0;
+
+    // 从 Tile 列表获取 parent_ipix (存在 item 的 data 中)
+    QListWidgetItem* item = tile_list_widget_->item(row);
+    if (!item) return;
+    uint64_t parent_ipix = item->data(Qt::UserRole).toULongLong();
+    current_tile_parent_ipix_ = parent_ipix;
+
+    // 读取 signal
+    HissTileData tile;
+    if (backend_->read_tile_signal(parent_ipix, tile) == 0) {
+        current_tile_signal_ = tile.signal;
+        current_tile_n_signal_ = tile.n_signal;
+    }
+    // 读取 support (可选)
+    HissTileData tile_sup;
+    if (backend_->read_tile_support(parent_ipix, tile_sup) == 0) {
+        current_tile_support_ = tile_sup.support;
+    }
+
+    render_current_tile();
+
+    QString info = QString("Tile %1: %2 像素")
+                   .arg((qulonglong)parent_ipix)
+                   .arg(current_tile_n_signal_);
+    status_view_->setText(info);
+}
+
+// WP-H: 切换图层 (signal/support/SNR), 重新渲染
+void MainWindow::on_tile_layer_changed(int index) {
+    (void)index;
+    render_current_tile();
+}
+
+// WP-H: 查询像素值 (ra/dec)
+void MainWindow::on_query_pixel_clicked() {
+    if (!backend_ || file_path_empty()) {
+        pixel_value_label_->setText("未打开文件");
+        return;
+    }
+
+    bool ra_ok = false, dec_ok = false;
+    double ra = ra_input_->text().toDouble(&ra_ok);
+    double dec = dec_input_->text().toDouble(&dec_ok);
+    if (!ra_ok || !dec_ok || ra < 0.0 || ra > 360.0 || dec < -90.0 || dec > 90.0) {
+        pixel_value_label_->setText("输入无效 (RA: 0~360, Dec: -90~90)");
+        return;
+    }
+
+    float signal = 0.0f;
+    uint8_t support = 0;
+    if (backend_->query_pixel(ra, dec, signal, support) == 0) {
+        pixel_value_label_->setText(
+            QString("signal=%1\nsupport=%2").arg(signal, 0, 'g', 6).arg((int)support));
+    } else {
+        pixel_value_label_->setText("查询失败 (像素不在数据范围内)");
+    }
+}
+
+// WP-H: 渲染当前 Tile 为灰度图
+void MainWindow::render_current_tile() {
+    if (current_tile_n_signal_ == 0) {
+        tile_render_label_->setText("(无数据)");
+        return;
+    }
+
+    int layer = tile_layer_combo_ ? tile_layer_combo_->currentIndex() : 0;
+    // NESTED 排序: Tile 内像素按 2^depth x 2^depth 块排列
+    // 简化: 按 sqrt(n) x sqrt(n) 排列 (n_leaf_per_tile 是 4^k, sqrt 是 2^k)
+    int n = (int)current_tile_n_signal_;
+    int side = (int)std::round(std::sqrt((double)n));
+    if (side < 1) side = 1;
+
+    // 计算数据范围 (自动拉伸)
+    float dmin = 1e30f, dmax = -1e30f;
+    if (layer == 0 && current_tile_signal_) {
+        // Signal 图层
+        for (uint32_t i = 0; i < current_tile_n_signal_; ++i) {
+            float v = current_tile_signal_[i];
+            if (v < dmin) dmin = v;
+            if (v > dmax) dmax = v;
+        }
+    } else if (layer == 1 && current_tile_support_) {
+        // Support 图层 (uint8)
+        for (uint32_t i = 0; i < current_tile_n_signal_; ++i) {
+            float v = (float)current_tile_support_[i];
+            if (v < dmin) dmin = v;
+            if (v > dmax) dmax = v;
+        }
+    } else {
+        tile_render_label_->setText("(该图层无数据)");
+        return;
+    }
+
+    float range = dmax - dmin;
+    if (range < 1e-6f) range = 1.0f;
+
+    // 构造 QImage (灰度 8-bit)
+    QImage img(side, side, QImage::Format_Grayscale8);
+    img.fill(0);
+
+    for (int i = 0; i < side; ++i) {
+        for (int j = 0; j < side; ++j) {
+            int idx = i * side + j;
+            if (idx >= n) break;
+            float v = 0.0f;
+            if (layer == 0 && current_tile_signal_) {
+                v = current_tile_signal_[idx];
+            } else if (layer == 1 && current_tile_support_) {
+                v = (float)current_tile_support_[idx];
+            }
+            float norm = (v - dmin) / range;
+            if (norm < 0.0f) norm = 0.0f;
+            if (norm > 1.0f) norm = 1.0f;
+            img.setPixel(j, i, (uint)(norm * 255.0f + 0.5f));
+        }
+    }
+
+    // 放大显示 (最近邻插值, 保持像素清晰)
+    int display_size = 256;
+    QPixmap pm = QPixmap::fromImage(img).scaled(display_size, display_size,
+                                                 Qt::KeepAspectRatio,
+                                                 Qt::FastTransformation);
+    tile_render_label_->setPixmap(pm);
+
+    QString layer_name = (layer == 0) ? "Signal" : (layer == 1) ? "Support" : "SNR";
+    QString info = QString("%1\n%2x%2 (n=%3)\n范围: %4~%5")
+                   .arg(layer_name).arg(side).arg(n)
+                   .arg(dmin, 0, 'g', 4).arg(dmax, 0, 'g', 4);
+    tile_render_label_->setToolTip(info);
+}
+
+// 辅助: 判断 backend 是否有打开的文件
+bool MainWindow::file_path_empty() const {
+    return backend_->get_file_path().empty();
+}
+
+// ============================================================================
 // 文件操作
 // ============================================================================
 
@@ -245,6 +485,35 @@ void MainWindow::open_file(const QString& path) {
     }
     file_info += QString("  nside=%1").arg(backend_->get_nside());
     status_file_->setText(file_info);
+
+    // WP-H 步骤14: 如果是 .hiss 文件, 加载 Tile 目录并显示 Tile 浏览面板
+    if (backend_->is_hiss()) {
+        HissHeader header;
+        if (backend_->load_hiss(path.toStdString(), header) == 0) {
+            // 填充 Tile 列表
+            tile_list_widget_->clear();
+            for (uint64_t i = 0; i < header.n_tiles; ++i) {
+                uint64_t parent_ipix = header.tile_ipix_list.empty() ? i :
+                                        header.tile_ipix_list[i];
+                QString label = QString("Tile %1: parent=%2")
+                                .arg(i).arg((qulonglong)parent_ipix);
+                auto* item = new QListWidgetItem(label);
+                item->setData(Qt::UserRole, (qulonglong)parent_ipix);
+                tile_list_widget_->addItem(item);
+            }
+            // 显示 Tile 浏览面板
+            if (hiss_tile_dock_) hiss_tile_dock_->show();
+            LOG_INFO("HISS Tile 目录已加载: %llu 个 Tile",
+                     (unsigned long long)header.n_tiles);
+        } else {
+            LOG_WARN("load_hiss 失败, Tile 浏览面板不可用");
+            if (hiss_tile_dock_) hiss_tile_dock_->hide();
+        }
+    } else {
+        // .hcsd 文件, 隐藏 Tile 浏览面板
+        if (hiss_tile_dock_) hiss_tile_dock_->hide();
+        tile_list_widget_->clear();
+    }
 }
 
 void MainWindow::on_file_close() {
@@ -262,6 +531,15 @@ void MainWindow::on_file_close() {
 
 void MainWindow::close_file() {
     disconnect_view();
+    // WP-H: 清理 HISS Tile 浏览数据
+    if (current_tile_signal_) { std::free(current_tile_signal_); current_tile_signal_ = nullptr; }
+    if (current_tile_support_) { std::free(current_tile_support_); current_tile_support_ = nullptr; }
+    current_tile_n_signal_ = 0;
+    current_tile_parent_ipix_ = 0;
+    if (tile_list_widget_) tile_list_widget_->clear();
+    if (tile_render_label_) tile_render_label_->setText("(选择 Tile 查看)");
+    if (pixel_value_label_) pixel_value_label_->setText("(未查询)");
+    if (hiss_tile_dock_) hiss_tile_dock_->hide();
     if (backend_) {
         backend_->close_file();
     }

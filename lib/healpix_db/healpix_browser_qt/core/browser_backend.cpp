@@ -174,8 +174,11 @@ int BrowserBackend::open_file(const std::string& path) {
 
     file_path_ = path;
 
-    if (std::memcmp(magic, "HISS", 4) == 0) {
+    if (std::memcmp(magic, "HISS", 4) == 0 ||
+        std::memcmp(magic, "ACSH", 4) == 0) {
         // 单帧模式 - 全量加载到内存
+        // WP-H: "ACSH" 是新 HISS 格式 (8字节 MAGIC "ACSHISS\0") 的前4字节
+        //        "HISS" 是旧格式, 两者均由 aio_hiss_read (HissReader) 统一处理
         is_hiss_ = true;
         uint32_t nside = 0;
         int nested = 0;
@@ -674,4 +677,154 @@ void BrowserBackend::release_leaf(LeafData& leaf) {
     leaf.leaf_ipix = 0;
     leaf.owned = false;
     leaf.use_u8 = false;
+}
+
+// ============================================================================
+// WP-H 步骤14: HISS Tile 按需加载 (新 API)
+// load_hiss - 只读 Header + Tile 目录, 不加载像素数据
+// read_tile_signal/support/snr - 按 parent_ipix 读取 Tile 数据
+// query_pixel - 通过 ra/dec 查询像素值
+// ============================================================================
+
+int BrowserBackend::load_hiss(const std::string& path, HissHeader& header) {
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    // 重置状态
+    hiss_header_loaded_ = false;
+    hiss_header_ = HissHeader{};
+
+    uint32_t nside = 0, tile_nside = 0, depth = 0, n_leaf_per_tile = 0;
+    uint64_t n_tiles = 0, n_pix_total = 0;
+    char* meta_json = nullptr;
+    uint64_t* tile_ipix_list = nullptr;
+
+    int ret = aio_hiss_inspect(path.c_str(), &nside, &tile_nside, &depth,
+                                &n_leaf_per_tile, &n_tiles, &n_pix_total,
+                                &meta_json, &tile_ipix_list);
+    if (ret != 0) {
+        LOG_ERROR("load_hiss: aio_hiss_inspect 失败 ret=%d path=%s", ret, path.c_str());
+        return -1;
+    }
+
+    // 填充 header
+    header.nside = nside;
+    header.tile_nside = tile_nside;
+    header.depth = depth;
+    header.n_leaf_per_tile = n_leaf_per_tile;
+    header.n_tiles = n_tiles;
+    header.n_pix_total = n_pix_total;
+    if (meta_json) {
+        header.meta_json = meta_json;
+        aio_hio_free(meta_json);
+    }
+    if (tile_ipix_list && n_tiles > 0) {
+        header.tile_ipix_list.assign(tile_ipix_list, tile_ipix_list + n_tiles);
+        aio_hio_free(tile_ipix_list);
+    }
+
+    // 保存到成员 (供 read_tile_*/query_pixel 使用)
+    file_path_ = path;
+    hiss_header_ = header;
+    hiss_header_loaded_ = true;
+
+    LOG_INFO("load_hiss: nside=%u tile_nside=%u depth=%u n_leaf=%u n_tiles=%llu path=%s",
+             nside, tile_nside, depth, n_leaf_per_tile,
+             (unsigned long long)n_tiles, path.c_str());
+    return 0;
+}
+
+int BrowserBackend::read_tile_signal(uint64_t parent_ipix, HissTileData& tile) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (file_path_.empty()) {
+        LOG_ERROR("read_tile_signal: 未打开 HISS 文件");
+        return -1;
+    }
+
+    float* signal = nullptr;
+    uint32_t n_signal = 0;
+    int ret = aio_hiss_read_tile_signal(file_path_.c_str(), parent_ipix,
+                                         &signal, &n_signal);
+    if (ret != 0) {
+        LOG_ERROR("read_tile_signal: aio_hiss_read_tile_signal 失败 ret=%d parent=%llu",
+                  ret, (unsigned long long)parent_ipix);
+        return -2;
+    }
+
+    tile.parent_ipix = parent_ipix;
+    tile.signal = signal;
+    tile.n_signal = n_signal;
+    return 0;
+}
+
+int BrowserBackend::read_tile_support(uint64_t parent_ipix, HissTileData& tile) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (file_path_.empty()) {
+        LOG_ERROR("read_tile_support: 未打开 HISS 文件");
+        return -1;
+    }
+
+    uint8_t* support = nullptr;
+    uint32_t n_support = 0;
+    int ret = aio_hiss_read_tile_support(file_path_.c_str(), parent_ipix,
+                                          &support, &n_support);
+    if (ret != 0) {
+        LOG_ERROR("read_tile_support: aio_hiss_read_tile_support 失败 ret=%d parent=%llu",
+                  ret, (unsigned long long)parent_ipix);
+        return -2;
+    }
+
+    tile.parent_ipix = parent_ipix;
+    tile.support = support;
+    if (tile.n_signal == 0) tile.n_signal = n_support;
+    return 0;
+}
+
+int BrowserBackend::read_tile_snr(uint64_t parent_ipix, HissTileData& tile) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (file_path_.empty()) {
+        LOG_ERROR("read_tile_snr: 未打开 HISS 文件");
+        return -1;
+    }
+
+    uint8_t* snr_data = nullptr;
+    uint32_t n_points = 0;
+    int ret = aio_hiss_read_tile_snr(file_path_.c_str(), parent_ipix,
+                                      &snr_data, &n_points);
+    if (ret != 0) {
+        LOG_ERROR("read_tile_snr: aio_hiss_read_tile_snr 失败 ret=%d parent=%llu",
+                  ret, (unsigned long long)parent_ipix);
+        return -2;
+    }
+
+    tile.parent_ipix = parent_ipix;
+    tile.snr_data = snr_data;
+    tile.n_snr_points = n_points;
+    return 0;
+}
+
+int BrowserBackend::query_pixel(double ra, double dec, float& signal, uint8_t& support) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (file_path_.empty()) {
+        LOG_ERROR("query_pixel: 未打开 HISS 文件");
+        return -1;
+    }
+
+    signal = 0.0f;
+    support = 0;
+    int ret = aio_hiss_query_pixel(file_path_.c_str(), ra, dec, &signal, &support);
+    if (ret != 0) {
+        LOG_ERROR("query_pixel: aio_hiss_query_pixel 失败 ret=%d ra=%.4f dec=%.4f",
+                  ret, ra, dec);
+        return -2;
+    }
+    return 0;
+}
+
+void BrowserBackend::release_tile(HissTileData& tile) {
+    if (tile.signal) { aio_hio_free(tile.signal); tile.signal = nullptr; }
+    if (tile.support) { aio_hio_free(tile.support); tile.support = nullptr; }
+    if (tile.snr_data) { aio_hio_free(tile.snr_data); tile.snr_data = nullptr; }
+    tile.n_signal = 0;
+    tile.n_snr_points = 0;
+    tile.parent_ipix = 0;
 }

@@ -73,11 +73,26 @@ private:
     // spec §2.3.3 两段流水线 CLI 命令
     // stage1: 单帧预处理 (FITS -> .hiss, stage 0-7)
     // cancel_on_signal: P04-004 标志, true 时注册 SIGINT 处理器触发取消
+    // WP-H 步骤14: 新增参数将合并到 config_json 传给 run_stage1, 不修改 run_stage1 签名
+    //   nside_override: 显式 NSIDE (0=自动)
+    //   pixfrac: 像素收缩因子 (-1.0=未设置, 后续用 1.0)
+    //   dark_file/flat_file/bias_file: 校准文件路径
+    //   photscal: 测光定标系数 (默认 1.0)
+    //   apply_photometry: 是否应用测光定标
+    //   threads: 线程数 (0=自动)
     static int cmd_stage1(const std::string& fits_path,
                           const std::string& output_hiss,
                           const std::string& config_path,
                           const std::string& log_level = "",
-                          bool cancel_on_signal = false);
+                          bool cancel_on_signal = false,
+                          int nside_override = 0,
+                          double pixfrac = -1.0,
+                          const std::string& dark_file = "",
+                          const std::string& flat_file = "",
+                          const std::string& bias_file = "",
+                          double photscal = 1.0,
+                          bool apply_photometry = false,
+                          int threads = 0);
     // stage2: 多帧合并 (.hiss -> .hcsd, stage 8-9)
     // cancel_on_signal: P04-004 标志, true 时注册 SIGINT 处理器触发取消
     static int cmd_stage2(const std::string& hiss_dir,

@@ -107,6 +107,50 @@ AIO_EXPORT int aio_hiss_read_snr_model(const char* path, uint32_t* nside, int* n
 // 释放 HioSnrModel (aio_hiss_read_snr_model 分配的内存)
 AIO_EXPORT void aio_hio_free_snr_model(HioSnrModel* model);
 
+// WP-H 步骤14: 只读 HISS Header (不加载 Tile 数据)
+// 用于 CLI 诊断输出和 Browser 首次打开 (只读 NSIDE/Tile数/元数据)
+// path - 文件路径 (UTF-8)
+// nside, tile_nside, depth, n_leaf_per_tile, n_tiles, n_pix_total - 输出参数
+// meta_json - 输出参数 (malloc 分配, 调用者负责用 aio_hio_free 释放)
+// tile_ipix_list - 输出参数 (malloc 分配 uint64 数组, 含 *n_tiles 个 parent_ipix;
+//                  可传 nullptr 跳过; 非 nullptr 时调用者负责用 aio_hio_free 释放)
+// 返回: 0=成功, <0=失败
+AIO_EXPORT int aio_hiss_inspect(const char* path,
+                                  uint32_t* nside,
+                                  uint32_t* tile_nside,
+                                  uint32_t* depth,
+                                  uint32_t* n_leaf_per_tile,
+                                  uint64_t* n_tiles,
+                                  uint64_t* n_pix_total,
+                                  char** meta_json,
+                                  uint64_t** tile_ipix_list);
+
+// WP-H 步骤14: 按 Tile 父 ipix 读取 signal (float32 数组, 已展开到 n_leaf_per_tile)
+// path - 文件路径 (UTF-8)
+// parent_ipix - Tile 父像素 NESTED ipix
+// signal - 输出参数 (malloc 分配 float32 数组, 调用者负责用 aio_hio_free 释放)
+// n_signal - 输出参数, signal 数组长度
+// 返回: 0=成功, <0=失败
+AIO_EXPORT int aio_hiss_read_tile_signal(const char* path, uint64_t parent_ipix,
+                                           float** signal, uint32_t* n_signal);
+
+// WP-H 步骤14: 按 Tile 父 ipix 读取 support (uint8 数组, 已展开到 n_leaf_per_tile)
+AIO_EXPORT int aio_hiss_read_tile_support(const char* path, uint64_t parent_ipix,
+                                            uint8_t** support, uint32_t* n_support);
+
+// WP-H 步骤14: 按 Tile 父 ipix 读取 SNR 控制点 (稀疏, local_ipix + snr)
+// snr_out - 输出参数 (malloc 分配, 每点 8 字节: local_ipix(uint32) + snr(float32))
+// n_points - 输出参数, 控制点数
+AIO_EXPORT int aio_hiss_read_tile_snr(const char* path, uint64_t parent_ipix,
+                                        uint8_t** snr_out, uint32_t* n_points);
+
+// WP-H 步骤14: 通过 ra/dec 查询像素值 (与 HissReader::query_pixel 一致)
+// ra, dec - 度
+// signal, support - 输出参数 (单个值)
+// 返回: 0=成功, <0=失败
+AIO_EXPORT int aio_hiss_query_pixel(const char* path, double ra, double dec,
+                                      float* signal, uint8_t* support);
+
 // ============================================================================
 // .hcsd 天球数据库格式 API
 // ============================================================================

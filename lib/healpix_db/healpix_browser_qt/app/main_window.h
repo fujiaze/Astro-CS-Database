@@ -16,6 +16,12 @@
 class AbstractView;
 class STFPanel;
 class QAction;
+class QDockWidget;
+class QListWidget;
+class QComboBox;
+class QLineEdit;
+class QPushButton;
+class QImage;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -41,17 +47,29 @@ private slots:
     void on_auto_stretch_clicked();
     void on_grid_toggle(bool checked);  // View > 经纬线网格 checkbox
 
+    // WP-H 步骤14: HISS Tile 浏览
+    void on_tile_selected(int row);          // Tile 列表选中
+    void on_tile_layer_changed(int index);   // signal/support/SNR 切换
+    void on_query_pixel_clicked();           // ra/dec 查询像素值
+
 private:
     void setup_menu();
     void setup_toolbar();
     void setup_status_bar();
     void setup_stf_panel();
+    void setup_hiss_tile_panel();  // WP-H: HISS Tile 浏览面板
     void open_file(const QString& path);
     void close_file();
     // 切换当前 view (单帧/球面), 同时只能显示一个
     void set_view(AbstractView* view);
     // 断开旧 view 的信号槽, 清理资源
     void disconnect_view();
+
+    // WP-H: 渲染当前 Tile 为 QImage (signal/support 两种图层)
+    void render_current_tile();
+
+    // 辅助: 判断 backend 是否有打开的文件
+    bool file_path_empty() const;
 
     // 数据源 (app 拥有所有权)
     std::unique_ptr<BrowserBackend> backend_;
@@ -69,6 +87,22 @@ private:
     QLabel* status_file_;
     QLabel* status_view_;
     QLabel* status_mouse_;
+
+    // ---- WP-H 步骤14: HISS Tile 浏览 UI ----
+    QDockWidget* hiss_tile_dock_ = nullptr;     // Tile 浏览面板 (右侧 Dock)
+    QListWidget* tile_list_widget_ = nullptr;    // Tile 目录列表
+    QComboBox*   tile_layer_combo_ = nullptr;    // 图层选择 (signal/support/SNR)
+    QLabel*      tile_render_label_ = nullptr;   // 2D 渲染区域
+    QLineEdit*   ra_input_ = nullptr;            // ra 输入框
+    QLineEdit*   dec_input_ = nullptr;           // dec 输入框
+    QPushButton* query_pixel_btn_ = nullptr;     // 查询按钮
+    QLabel*      pixel_value_label_ = nullptr;   // 查询结果显示
+
+    // 当前选中 Tile 的数据 (缓存, 切换图层时复用)
+    uint64_t current_tile_parent_ipix_ = 0;
+    float*   current_tile_signal_ = nullptr;     // malloc (由 backend 分配)
+    uint8_t* current_tile_support_ = nullptr;    // malloc
+    uint32_t current_tile_n_signal_ = 0;
 };
 
 #endif // MAIN_WINDOW_H
