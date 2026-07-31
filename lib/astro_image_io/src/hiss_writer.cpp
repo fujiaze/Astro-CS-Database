@@ -40,10 +40,10 @@ namespace hiss {
 
 // occupancy 自动选择阈值 (实验值, 未冻结, DQ-005)
 //   占用率 = n_valid / n_leaf_per_tile
-//   > OCC_FULL_THRESHOLD  → FULL (数据密集, occupancy 块反而浪费)
+//   FULL 仅当 n_valid == n_leaf_per_tile (100% 覆盖, 02_FROZEN §9)
 //   > OCC_BITMAP_THRESHOLD → BITMAP (中等稀疏, 位图比索引列表紧凑)
 //   否则                   → SPARSE_LIST (高度稀疏, 索引列表更省)
-static const double OCC_FULL_THRESHOLD   = 0.8;
+//   注意: FULL 不能使用 80% 等近似阈值 (02_FROZEN §9 红线)
 static const double OCC_BITMAP_THRESHOLD = 0.1;
 
 // ============================================================================
@@ -164,19 +164,19 @@ static int compress_and_append(HissStreamWriter& stream,
 
 // ---------------------------------------------------------------------------
 // 内部辅助: 自动选择 occupancy 模式 (步骤11)
-//   依据占用率 = n_valid / n_leaf_per_tile 自动选择:
-//     > OCC_FULL_THRESHOLD  → FULL
-//     > OCC_BITMAP_THRESHOLD → BITMAP
-//     否则                   → SPARSE_LIST
-//   阈值未冻结 (DQ-005), 仅供实验
+//   FULL 仅当 n_valid == n_leaf_per_tile (100% 覆盖, 02_FROZEN §9)
+//   否则按 OCC_BITMAP_THRESHOLD 选择 BITMAP 或 SPARSE_LIST
+//   BITMAP/SPARSE 切换阈值未冻结 (DQ-005), 仅供实验
 // ---------------------------------------------------------------------------
 
 static OccupancyMode auto_select_occupancy(uint32_t n_valid, uint32_t n_leaf_per_tile) {
     if (n_leaf_per_tile == 0) return OccupancyMode::FULL;
-    double occ = (double)n_valid / (double)n_leaf_per_tile;
-    if (occ >= OCC_FULL_THRESHOLD) {
+    // FULL 仅当 100% 覆盖 (02_FROZEN §9: 不能使用 80% 等近似阈值)
+    if (n_valid == n_leaf_per_tile) {
         return OccupancyMode::FULL;
-    } else if (occ >= OCC_BITMAP_THRESHOLD) {
+    }
+    double occ = (double)n_valid / (double)n_leaf_per_tile;
+    if (occ >= OCC_BITMAP_THRESHOLD) {
         return OccupancyMode::BITMAP;
     } else {
         return OccupancyMode::SPARSE_LIST;
@@ -282,6 +282,15 @@ int HissWriter::add_tile(uint64_t parent_ipix,
     }
 
     const size_t n_leaf = acc.pixels.size();
+
+    // 0. 写入前验证 support 合法性 (02_FROZEN §10: 明显超 1 必须报错, pixel_area<=0 硬失败)
+    int vret = acc.validate_support();
+    if (vret != 0) {
+        fprintf(stderr,
+                "[hiss][writer] add_tile 失败: support 合法性检查未通过 (parent=%llu)\n",
+                (unsigned long long)parent_ipix);
+        return -3;
+    }
 
     // 1. 生成 signal (float32) 与 support (uint8) — 全长度数组
     //    signal = 累计通量 (步骤7, finalize_signal 在 hiss_common.cpp 已修复)

@@ -37,6 +37,9 @@ struct FitsImage {
     WcsParams wcs;
     double bzero = 0.0;          // BITPIX 缩放
     double bscale = 1.0;
+    // B5 修复: 测光校准元数据 (由 PHOTOMETRIC 阶段写入 FITS header)
+    double photscal = 0.0;       // PHOTSCAL 关键字 (0=未设置)
+    int    photappl = 0;         // PHOTAPPL 关键字 (0=未应用, 1=已应用)
 };
 
 // 读取 FITS 文件

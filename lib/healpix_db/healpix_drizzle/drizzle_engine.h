@@ -21,8 +21,11 @@ struct DrizzleConfig {
     int    nside = 32768;       // HEALPix nside (nside=0 触发自动 NSIDE 计算)
     bool   nested = true;       // NESTED 或 RING (HISS 内部统一 NESTED)
     double pixfrac = 1.0;       // 像素收缩因子 (0 < pixfrac <= 1, 标准 drop 语义)
-    bool   apply_photometry = false;  // 是否已应用 Gaia 测光校准 (signal 语义)
-    double photscal = 1.0;     // 测光校准比例 (apply_photometry=true 时使用)
+    // 测光校准语义 (B5 修复): PHOTOMETRIC 阶段 (pc_calibrate_simple) 已把 photscal
+    // 乘入像素值, drizzle 不再重复应用。这两个字段仅用于元数据记录。
+    bool   apply_photometry = false;  // 测光已应用到像素 (元数据标记, drizzle 不再应用)
+    double photscal = 1.0;     // 测光校准比例 (实际应用值, 元数据记录用)
+    bool   photometry_applied_upstream = false;  // PHOTOMETRIC 阶段已应用测光校准
 };
 
 // 单个 HEALPix 像素的累加器 (float64 内部精度, 02_FROZEN §8/§10)

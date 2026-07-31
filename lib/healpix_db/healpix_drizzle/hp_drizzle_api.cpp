@@ -158,6 +158,27 @@ HP_DRIZZLE_API int hp_drizzle_fits_to_ahpx(
     config.nested   = nested ? true : false;
     config.pixfrac  = pixfrac;
 
+    // B5 修复: 从 FitsImage 读取测光校准元数据 (readFits 已解析 PHOTSCAL/PHOTAPPL)
+    // PHOTOMETRIC 阶段 (pc_calibrate_simple) 已把 photscal 乘入像素值,
+    // drizzle 不再应用 photscal, 仅记录元数据。
+    config.apply_photometry          = false;                       // drizzle 不再应用
+    config.photometry_applied_upstream = (img.photappl != 0);       // PHOTOMETRIC 阶段已应用
+    config.photscal                  = img.photscal;
+
+    // 正式 Stage1 要求 photscal 为正且有限 (FITS 文件应含 PHOTSCAL 关键字)
+    if (!std::isfinite(config.photscal) || config.photscal <= 0.0) {
+        fprintf(stderr, "[hp_drizzle_api] photscal 非法 (%.6f), FITS 文件缺少 PHOTSCAL 关键字或 "
+                        "未经过 PHOTOMETRIC 阶段校准, 正式 Stage1 拒绝生成未校准 ADU HISS\n",
+                config.photscal);
+        setErrorMsg(result, "photscal 非法 (<=0 或非有限): " + std::to_string(config.photscal) +
+                    ", FITS 文件缺少 PHOTSCAL 关键字或未经过 PHOTOMETRIC 阶段校准");
+        return 12;
+    }
+
+    fprintf(stderr, "[hp_drizzle_api] 测光元数据 photscal=%.6f photappl=%d "
+                    "(photometry_applied_upstream=%d)\n",
+            config.photscal, img.photappl, (int)config.photometry_applied_upstream);
+
     // 6. 执行 Drizzle
     DrizzleEngine engine;
     std::unordered_map<uint64_t, PixelAccumulator> accumulators;
@@ -264,6 +285,14 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: 'data' 块维度数 < 2 (n_dims=%d)\n",
                 data_blk->n_dims);
         setErrorMsg(result, "'data' 块维度数 < 2");
+        return -6;
+    }
+    // B4 修复: Stage1 只接受单色输入, 多通道 data 块 (n_dims >= 3) 硬报错
+    if (data_blk->n_dims > 2) {
+        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: 多通道输入 (n_dims=%d) 不被支持, "
+                        "Stage1 只接受单色输入\n", data_blk->n_dims);
+        setErrorMsg(result, "多通道输入 (n_dims=" + std::to_string(data_blk->n_dims)
+                  + ") 不被支持, Stage1 只接受单色输入");
         return -6;
     }
 
@@ -489,6 +518,29 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
     config.nside   = nside;
     config.nested  = nested ? true : false;
     config.pixfrac = pixfrac;
+
+    // B5 修复: 从 header KV 读取测光校准信息
+    // PHOTOMETRIC 阶段 (pc_calibrate_simple) 已把 photscal 乘入像素值,
+    // drizzle 不再应用 photscal (避免双重缩放), 仅记录元数据。
+    double photscal = aio_frame_kv_get_double(frame, "header", "PHOTSCAL", 0.0);
+    const char* photappl_str = aio_frame_kv_get(frame, "header", "PHOTAPPL");
+    int photappl = photappl_str ? std::atoi(photappl_str) : 0;
+    config.apply_photometry          = false;                  // drizzle 不再应用
+    config.photometry_applied_upstream = (photappl != 0);      // PHOTOMETRIC 阶段已应用
+    config.photscal                  = photscal;
+
+    // photscal 必须为正且有限 (正式 Stage1 流水线必经 PHOTOMETRIC 阶段)
+    if (!std::isfinite(photscal) || photscal <= 0.0) {
+        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: photscal 非法 (%.6f), "
+                        "正式 Stage1 要求 PHOTOMETRIC 阶段已应用测光校准\n", photscal);
+        setErrorMsg(result, "photscal 非法 (<=0 或非有限): " + std::to_string(photscal) +
+                    ", 正式 Stage1 要求 PHOTOMETRIC 阶段已应用测光校准");
+        return -12;
+    }
+
+    fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: 测光元数据 photscal=%.6f photappl=%d "
+                    "(photometry_applied_upstream=%d)\n",
+            photscal, photappl, (int)config.photometry_applied_upstream);
 
     // 7. 执行 Drizzle
     DrizzleEngine engine;

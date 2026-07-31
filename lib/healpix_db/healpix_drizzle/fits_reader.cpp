@@ -202,6 +202,10 @@ bool readFits(const std::string& path, FitsImage& img, std::string& error_msg) {
     int  naxis  = 0;
     int  naxis1 = 0, naxis2 = 0, naxis3 = 1;
     double bzero = 0.0, bscale = 1.0;
+    // B5 修复: 测光校准元数据
+    double photscal = 0.0;
+    int    photappl = 0;
+    bool   has_photscal = false, has_photappl = false;
 
     // WCS 字段
     double cd[4]    = {0, 0, 0, 0};
@@ -282,6 +286,9 @@ bool readFits(const std::string& path, FitsImage& img, std::string& error_msg) {
             else if (k == "B_ORDER")  { b_order  = parseInt(v); has_b_order  = true; }
             else if (k == "AP_ORDER") { ap_order = parseInt(v); has_ap_order = true; }
             else if (k == "BP_ORDER") { bp_order = parseInt(v); has_bp_order = true; }
+            // B5 修复: 读取测光校准元数据 (PHOTOMETRIC 阶段写入)
+            else if (k == "PHOTSCAL") { photscal = parseDouble(v); has_photscal = true; }
+            else if (k == "PHOTAPPL") { photappl = parseInt(v);    has_photappl = true; }
             else {
                 // SIP 系数 A_i_j / B_i_j / AP_i_j / BP_i_j
                 int si = 0, sj = 0;
@@ -505,10 +512,16 @@ bool readFits(const std::string& path, FitsImage& img, std::string& error_msg) {
     img.channels = channels;
     img.bzero    = bzero;
     img.bscale   = bscale;
+    // B5 修复: 填充测光校准元数据
+    img.photscal = has_photscal ? photscal : 0.0;
+    img.photappl = has_photappl ? photappl : 0;
 
-    fprintf(stderr, "[fits_reader] 读取成功: %s (%dx%d ch=%d BITPIX=%d WCS=%s pixels=%zu)\n",
+    fprintf(stderr, "[fits_reader] 读取成功: %s (%dx%d ch=%d BITPIX=%d WCS=%s pixels=%zu "
+                    "photscal=%s photappl=%d)\n",
             path.c_str(), width, height, channels, bitpix,
-            has_wcs ? "yes" : "no", img.pixels.size());
+            has_wcs ? "yes" : "no", img.pixels.size(),
+            has_photscal ? std::to_string(photscal).c_str() : "none",
+            img.photappl);
 
     return true;
 }

@@ -115,23 +115,37 @@ double orc_extractJsonNum(const std::string& s, size_t pos) {
 //   strategy:
 //     "1x_to_2x_drizzle" (默认): HEALPix 像素分辨率 = 1-2x 原始像素分辨率
 //     "fixed": 使用 nside_override (nside_override > 0 时优先)
-//   nside_override > 0: 用户指定优先, 直接返回
-// 返回 nside (2 的幂次方, 范围 [64, 131072])
+//     nside_override > 0: 用户指定优先, 直接返回
+//   返回 nside (2 的幂次方, 范围 [16, 4194304])
+//   规范: 自动 NSIDE 上限 2^22=4194304, Tile 父级 NSIDE 不低于 16
+//         显式合法 NSIDE 不修改、不警告
 // ============================================================================
 int calculate_nside(double cd11, double cd12, double cd21, double cd22,
                     const std::string& strategy, int nside_override) {
     // 1. 用户指定优先
     if (nside_override > 0) {
-        // 校验为 2 的幂次方且在范围内
         int n = nside_override;
-        if (n < 64) n = 64;
-        if (n > 131072) n = 131072;
-        // 若不是 2 的幂次方, 向下取到最近的 2 的幂次方
+        // 防御性: 超出 [16, 4194304] 范围截断并警告 (CLI 已校验, 此处兜底)
+        if (n < 16) {
+            LOG_WARN("orchestrator", "[NSIDE] 用户指定 nside=" + std::to_string(n)
+                     + " 低于下限 16, 截断到 16");
+            n = 16;
+        }
+        if (n > 4194304) {
+            LOG_WARN("orchestrator", "[NSIDE] 用户指定 nside=" + std::to_string(n)
+                     + " 超过上限 4194304 (2^22), 截断到 4194304");
+            n = 4194304;
+        }
+        // 若不是 2 的幂次方, 向下取到最近的 2 的幂次方并警告
         if ((n & (n - 1)) != 0) {
             int p = 1;
             while (p * 2 <= n) p *= 2;
+            int original = n;
             n = p;
+            LOG_WARN("orchestrator", "[NSIDE] 用户指定 nside=" + std::to_string(original)
+                     + " 非 2 的幂, 向下取整到 " + std::to_string(n));
         }
+        // 显式合法 NSIDE (2 的幂且在范围内): 不修改、不警告
         LOG_INFO("orchestrator", "[NSIDE] 用户指定: nside=" + std::to_string(n));
         return n;
     }
@@ -174,14 +188,15 @@ int calculate_nside(double cd11, double cd12, double cd21, double cd22,
     double nside_target = 1186.18 / target_resolution_arcsec;
 
     // 4. 找到不小于 nside_target 的最小 2 的幂次方
-    int nside = 64;
-    while (nside < nside_target && nside < 131072) {
+    //    下限 16 (Tile 父级 NSIDE 不低于 16), 上限 4194304 (2^22, 规范要求)
+    int nside = 16;
+    while (nside < nside_target && nside < 4194304) {
         nside *= 2;
     }
 
-    // 5. 限制在 [64, 131072]
-    if (nside < 64) nside = 64;
-    if (nside > 131072) nside = 131072;
+    // 5. 限制在 [16, 4194304]
+    if (nside < 16) nside = 16;
+    if (nside > 4194304) nside = 4194304;
 
     char buf[256];
     std::snprintf(buf, sizeof(buf),
@@ -2839,6 +2854,8 @@ bool Orchestrator::run_stage_read_fits(TaskResult& result) {
         ModuleId::AIO, "aio_get_width");
     auto fn_get_height = dll_loader_.get_function<int (*)(const AIOImageData*)>(
         ModuleId::AIO, "aio_get_height");
+    auto fn_get_channels = dll_loader_.get_function<int (*)(const AIOImageData*)>(
+        ModuleId::AIO, "aio_get_channels");
     auto fn_get_metadata = dll_loader_.get_function<AIOImageMetadata (*)(const AIOImageData*)>(
         ModuleId::AIO, "aio_get_metadata");
     auto fn_get_kw_count = dll_loader_.get_function<int (*)(const AIOImageData*)>(
@@ -2859,7 +2876,7 @@ bool Orchestrator::run_stage_read_fits(TaskResult& result) {
         ModuleId::AIO, "aio_frame_kv_set_double");
 
     if (!fn_read_fits || !fn_get_pixels || !fn_get_width || !fn_get_height ||
-        !fn_get_metadata || !fn_free || !fn_add_block || !fn_kv_set) {
+        !fn_get_channels || !fn_get_metadata || !fn_free || !fn_add_block || !fn_kv_set) {
         LOG_ERROR("orchestrator", "[READ_FITS] AIO 函数指针获取失败");
         result.error_msg = "[READ_FITS] AIO 函数指针获取失败";
         result.exit_code = AstroCsExitCode::GENERIC_ERROR;
@@ -2877,8 +2894,21 @@ bool Orchestrator::run_stage_read_fits(TaskResult& result) {
 
     int width = fn_get_width(image);
     int height = fn_get_height(image);
+    int channels = fn_get_channels(image);
     float* pixels = fn_get_pixels(image);
-    LOG_INFO("orchestrator", "[READ_FITS] 图像尺寸: " + std::to_string(width) + "x" + std::to_string(height));
+    LOG_INFO("orchestrator", "[READ_FITS] 图像尺寸: " + std::to_string(width) + "x"
+             + std::to_string(height) + " channels=" + std::to_string(channels));
+
+    // B4 修复: Stage1 只接受单色输入, 多通道硬报错 (禁止静默取 channel 0)
+    if (channels != 1) {
+        LOG_ERROR("orchestrator", "[READ_FITS] 错误: 多通道输入 (channels="
+                  + std::to_string(channels) + ") 不被支持, Stage1 只接受单色输入");
+        result.error_msg = "[READ_FITS] 多通道输入 (channels="
+                          + std::to_string(channels) + ") 不被支持, Stage1 只接受单色输入";
+        result.exit_code = AstroCsExitCode::INPUT_INVALID;
+        fn_free(image);
+        return false;
+    }
 
     if (width <= 0 || height <= 0 || pixels == nullptr) {
         LOG_ERROR("orchestrator", "[READ_FITS] 像素数据无效");

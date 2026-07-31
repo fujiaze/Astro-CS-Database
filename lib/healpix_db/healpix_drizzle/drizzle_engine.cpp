@@ -256,21 +256,18 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
             hp.getNside(), hp.isNested() ? 1 : 0,
             (long long)hp.getNpix(), hp.pixelResolutionArcsec());
 
-    // WP-C 步骤9: Gaia 测光比例应用日志
-    // 若 apply_photometry=true, 在 drizzle 像素值处理中对每个源像素应用
-    // pixelValue *= config.photscal (I_photo = k_photo * I_cal, 02_FROZEN §7)
-    // 此时 HISS signal 保存的累计通量已是相对测光通量, 元数据 PHOTAPPL=TRUE
-    if (config.apply_photometry) {
-        fprintf(stderr,
-                "[drizzle_engine] Applying photometry scale: photscal=%.6f "
-                "(apply_photometry=true, I_photo = k_photo * I_cal)\n",
-                config.photscal);
-    } else {
-        fprintf(stderr,
-                "[drizzle_engine] Applying photometry scale: photscal=%.6f "
-                "(apply_photometry=false, signal 保留原始 I_cal)\n",
-                config.photscal);
-    }
+    // B5 修复: Gaia 测光比例语义变更
+    // PHOTOMETRIC 阶段 (pc_calibrate_simple) 已把 photscal 乘入像素值,
+    // drizzle 不再重复应用 photscal (避免双重缩放)。
+    // apply_photometry / photometry_applied_upstream 仅作为元数据标记,
+    // 由 writeHis 写入 BUNIT/PHOTAPPL/PHOTSCAL。
+    fprintf(stderr,
+            "[drizzle_engine] Photometry status: apply_photometry=%d "
+            "photometry_applied_upstream=%d photscal=%.6f "
+            "(drizzle 不再应用 photscal, 由 PHOTOMETRIC 阶段上游处理)\n",
+            (int)config.apply_photometry,
+            (int)config.photometry_applied_upstream,
+            config.photscal);
 
     // 4. 记录开始时间
     auto tStart = std::chrono::high_resolution_clock::now();
@@ -305,13 +302,8 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
             // 跳过 NaN / Inf
             if (!std::isfinite(pixelValue)) continue;
 
-            // WP-C 步骤9: 应用 Gaia 测光比例 (I_photo = k_photo * I_cal, 02_FROZEN §7)
-            // 在跳过 NaN/Inf 之后应用, 避免对无效像素做无意义乘法
-            // photscal 默认 1.0, apply_photometry=false 时不应用 (pixelValue 保持原值)
-            // 使用 double 精度乘法, 避免大动态范围 (例如 k=1e-7) 下的 float 精度损失
-            if (config.apply_photometry) {
-                pixelValue = (float)((double)pixelValue * config.photscal);
-            }
+            // B5 修复: photscal 已由 PHOTOMETRIC 阶段 (pc_calibrate_simple) 上游应用,
+            // drizzle 不再重复应用 (避免双重缩放)。pixelValue 保持上游传入的相对通量值。
 
             // 获取 SNR
             float snrValue = 1.0f;
@@ -458,10 +450,12 @@ void DrizzleEngine::processPixel(
         if (weight <= 0.0) continue;
 
         // 通量累加 (float64 内部精度)
+        // 02_FROZEN §8: signal = Σ L_j * (a_jp / A_j_drop), 不得乘质量权重
+        // weightValue 仅作为有效性掩膜 (0=跳过, >0=参与), 不乘入 signal
         auto& acc = accum[ipix];
-        acc.sumFlux   += (double)pixelValue * weight * (double)weightValue;
-        acc.sumWeight += weight * (double)weightValue;
-        acc.sumSnrSq  += (double)snrValue * snrValue * weight * (double)weightValue;
+        acc.sumFlux   += (double)pixelValue * weight;
+        acc.sumWeight += weight;
+        acc.sumSnrSq  += (double)snrValue * snrValue * weight;
         // support: 累加球面重叠面积 a_jp (球面度), 由下游 HISS Writer 用 sumArea/A_p 归一化
         acc.sumArea   += overlap_area;
         acc.nContrib++;
@@ -534,6 +528,18 @@ bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator
 {
     error_msg.clear();
 
+    // B5 修复: 正式 Stage1 HISS 必须测光校准已应用
+    // PHOTOMETRIC 阶段 (pc_calibrate_simple) 应已把 photscal 乘入像素值,
+    // 或调用方显式设置 apply_photometry=true。两者均未设置时拒绝生成 HISS,
+    // 避免输出未校准 ADU signal 违反 02_FROZEN §7 规范。
+    if (!config.apply_photometry && !config.photometry_applied_upstream) {
+        error_msg = "正式 Stage1 HISS 要求测光校准已应用 "
+                    "(apply_photometry=false 且 photometry_applied_upstream=false), "
+                    "拒绝生成未校准 ADU signal HISS";
+        fprintf(stderr, "[drizzle_engine] writeHis: %s\n", error_msg.c_str());
+        return false;
+    }
+
     // 1. 计算 Tile 几何 (02_FROZEN §11)
     uint32_t nside = (uint32_t)config.nside;
     uint32_t depth = hiss::compute_tile_depth(nside);
@@ -592,10 +598,14 @@ bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator
     hmeta.ordering   = 1;  // NESTED
     hmeta.radesys    = 0;  // ICRS
     hmeta.pixfrac    = config.pixfrac;
+    // B5 修复: 测光已由 PHOTOMETRIC 阶段上游应用, drizzle 不再应用
+    // 元数据标记: apply_photometry || photometry_applied_upstream → PHOTAPPL=1
+    bool photometry_done = config.apply_photometry || config.photometry_applied_upstream;
     hmeta.photscal   = config.photscal;
-    hmeta.photappl   = config.apply_photometry ? 1 : 0;
-    // BUNIT: apply_photometry=true → ASTROCS_RELATIVE_FLUX (02_FROZEN §7)
-    if (config.apply_photometry) {
+    hmeta.photappl   = photometry_done ? 1 : 0;
+    // BUNIT: 测光已应用 → ASTROCS_RELATIVE_FLUX (02_FROZEN §7)
+    // 正式 Stage1 不允许输出未校准 ADU signal (验证已在函数入口完成)
+    if (photometry_done) {
         std::snprintf(hmeta.bunit, sizeof(hmeta.bunit), "ASTROCS_RELATIVE_FLUX");
     } else {
         std::snprintf(hmeta.bunit, sizeof(hmeta.bunit), "ADU");
@@ -626,6 +636,55 @@ bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator
                   stats.elapsedSec, tile_groups.size());
     hmeta.history = hist;
 
+    // B7 修复: SNR 控制点按 Tile 分组
+    // snr_model 含 ra/dec 控制点 (HioSnrControlPoint), 需转换为当前 NSIDE 的 NESTED ipix,
+    // 再拆分为 (parent_ipix, local_ipix) 按 Tile 分组存储。
+    // HISS SNR 子块格式 (02_FROZEN §17): 每点 local_ipix(uint32) + snr(float32), 8 字节
+    std::map<uint64_t, std::vector<std::pair<uint32_t, float>>> tile_snr_points;
+    if (snr_model && snr_model->n_points > 0) {
+        // 构造 HEALPix 核心 (NESTED, 用于 radec2pix 转换)
+        healpix::HealpixCore hp_snr((int)nside, true);
+        fprintf(stderr, "[drizzle_engine] SNR 控制点分组: %u 点, nside=%u depth=%u shift=%d\n",
+                snr_model->n_points, nside, depth, shift);
+
+        uint32_t n_valid = 0, n_invalid = 0;
+        for (uint32_t i = 0; i < snr_model->n_points; i++) {
+            double ra  = snr_model->points[i].ra;
+            double dec = snr_model->points[i].dec;
+            float  snr_val = snr_model->points[i].snr_psf;
+
+            // 跳过无效值 (NaN/Inf 或 ra/dec 越界)
+            if (!std::isfinite(ra) || !std::isfinite(dec) || !std::isfinite(snr_val)) {
+                n_invalid++;
+                continue;
+            }
+            if (ra < 0.0 || ra >= 360.0 || dec < -90.0 || dec > 90.0) {
+                n_invalid++;
+                continue;
+            }
+
+            // ra/dec → NESTED ipix (当前 NSIDE)
+            int64_t ipix = hp_snr.radec2pix(ra, dec);
+            if (ipix < 0) {
+                n_invalid++;
+                continue;
+            }
+
+            // 拆分为 parent_ipix 和 local_ipix (NESTED 位运算)
+            uint64_t global_ipix = (uint64_t)ipix;
+            uint64_t parent = (shift > 0) ? (global_ipix >> shift) : global_ipix;
+            uint32_t local  = (shift > 0) ? (uint32_t)(global_ipix & ((1ULL << shift) - 1)) : 0;
+
+            tile_snr_points[parent].push_back({local, snr_val});
+            n_valid++;
+        }
+
+        fprintf(stderr, "[drizzle_engine] SNR 控制点分组完成: %u 有效, %u 无效, %zu 个 Tile 含 SNR\n",
+                n_valid, n_invalid, tile_snr_points.size());
+    } else {
+        fprintf(stderr, "[drizzle_engine] 无 snr_model 或控制点数为 0, 不写 SNR 子块\n");
+    }
+
     // 5. 构造 HissWriter 并写入
     hiss::HissWriter writer;
     int wret = writer.open(outputPath, grid, hmeta);
@@ -652,9 +711,20 @@ bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator
             }
         }
 
-        // SNR: snr_model 含 ra/dec 控制点, 需 HEALPix 坐标转换才能确定 Tile 和 local_ipix
-        // 当前暂不写入 SNR (待集成测试时完善 ra/dec → ipix 转换)
+        // B7 修复: 构造当前 Tile 的 SNR 控制点块
+        // 从 tile_snr_points 查找当前 parent_ipix 的控制点, 构造 HissSnrBlock
+        hiss::HissSnrBlock snr_block_local;
         const hiss::HissSnrBlock* snr_block = nullptr;
+        auto snr_it = tile_snr_points.find(parent_ipix);
+        if (snr_it != tile_snr_points.end() && !snr_it->second.empty()) {
+            const auto& pts = snr_it->second;
+            snr_block_local.points.resize(pts.size());
+            for (size_t i = 0; i < pts.size(); i++) {
+                snr_block_local.points[i].local_ipix = pts[i].first;
+                snr_block_local.points[i].snr        = pts[i].second;
+            }
+            snr_block = &snr_block_local;
+        }
 
         // occ_mode 由 Writer 自动选择 (步骤11), 传入 FULL 作为建议 (Writer 会忽略)
         int tret = writer.add_tile(parent_ipix, acc, snr_block, hiss::OccupancyMode::FULL);
@@ -675,16 +745,10 @@ bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator
         return false;
     }
 
-    // SNR 警告 (ra/dec → ipix 转换待集成)
-    if (snr_model && snr_model->n_points > 0) {
-        fprintf(stderr,
-                "[drizzle_engine] 警告: snr_model 含 %u 控制点, ra/dec→ipix 转换待集成, "
-                "本次未写入 SNR\n", snr_model->n_points);
-    }
-
     fprintf(stderr,
-            "[drizzle_engine] 写入成功: %s (%zu Tile, signal=累计通量, 无完整 WCS)\n",
-            outputPath.c_str(), tile_groups.size());
+            "[drizzle_engine] 写入成功: %s (%zu Tile, signal=累计通量, 无完整 WCS, "
+            "SNR 控制点=%zu Tile)\n",
+            outputPath.c_str(), tile_groups.size(), tile_snr_points.size());
     return true;
 }
 
