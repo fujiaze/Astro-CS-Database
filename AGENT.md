@@ -11,11 +11,10 @@
 Astro CS Normalization Database/
 ├── lib/                    # 项目源码 (C++/Python/Go) — 唯一修改代码处
 ├── 工程控制/                # 权威工程规范、任务清单、证据
-├── tools/                  # astro_toolkit.py, gen_audit_pack.py
+├── tools/                  # 工具集 (astro_toolkit.py 等，见 §5)
 ├── testdata/                # 测试数据 + index.json 索引（只读，禁止写入运行产物）
 ├── run/                     # 运行目录（校准/Drizzle/HISS/日志/截图统一写此，gitignored）
 ├── docs/                    # 本地参考文档 [待删 — Wiki 确定后删除]
-├── memory.md                # 项目记忆 (分模块索引)
 ├── AGENT.md                 # 本文件
 ├── README.md
 ├── .gitignore
@@ -109,26 +108,81 @@ git add . && git commit -m "docs(wiki): <说明>" && git push
 
 ---
 
-## 5. 工具与提交规范
+## 5. 工具集（强制使用）
 
-### astro_toolkit.py（首选，跳过沙箱确认）
+**所有多步操作（git/编译/文件操作/校验）必须通过 `tools/astro_toolkit.py` 打包执行，禁止逐步触发 RunCommand 沙箱确认。**
+
+### 5.1 astro_toolkit.py — 主工具（强制首选）
+
+Python + JSON 配置驱动的批量操作工具，一次 RunCommand 完成多步操作。
+
 ```powershell
-python tools/astro_toolkit.py <config.json> --log <logfile>
-python tools/astro_toolkit.py --example  # 示例配置
-```
-支持操作：`git_status/git_add/git_commit/git_push/git_log/run_orchestrator/sha256/mkdir/write_file/copy_file/delete_file/list_dir`。`run_orchestrator` 自动注入 build/artifacts 和 mingw64/bin 到 PATH。
+# 查看示例配置
+python tools/astro_toolkit.py --example
 
-### vq-commit.ps1（备用）
+# 执行配置文件（推荐加 --log 落盘日志）
+python tools/astro_toolkit.py tools/my_task.json --log run/logs/toolkit.log
+```
+
+**支持的 step 类型**（JSON 数组，每元素一个 step）：
+
+| type | 说明 | 关键参数 |
+|---|---|---|
+| `git_status` | 查看工作树状态 | `repo` |
+| `git_add` | 暂存文件 | `repo`, `files[]` 或 `all: true` |
+| `git_commit` | 用 `-F` 从文件读取 message 提交 | `repo`, `message_file` |
+| `git_push` | 推送远端 | `repo`, `remote`, `branch`, `timeout_sec` |
+| `git_log` | 查看最近提交 | `repo`, `count` |
+| `run_orchestrator` | 运行 orchestrator.exe | `exe`, `args[]`, `timeout_sec`, `stdout_file`, `stderr_file` |
+| `sha256` | 计算文件 SHA-256 | `path` |
+| `mkdir` | 递归创建目录 | `path` |
+| `write_file` | 写文本文件 | `path`, `content`, `encoding` |
+| `copy_file` | 复制文件 | `src`, `dst` |
+| `delete_file` | 删除多个文件 | `paths[]` |
+| `list_dir` | 列出目录文件 | `path`, `pattern` |
+
+**特性**：`run_orchestrator` 自动注入 `build/artifacts` 与 `C:\msys64\mingw64\bin` 到 PATH；每步有 `timeout_sec` 保护；结果以 JSON 输出到 stdout，同时可落盘 `--log`；可选 `stop_on_error: true`。
+
+**典型用法**（一次完成 add + commit + push + log）：
+```json
+[
+  {"type": "git_add",    "params": {"repo": ".", "files": ["file1.cpp", "file2.h"]}},
+  {"type": "git_commit", "params": {"repo": ".", "message_file": "tools/_msg.txt"}},
+  {"type": "git_push",   "params": {"repo": ".", "branch": "main", "timeout_sec": 180}},
+  {"type": "git_log",    "params": {"repo": ".", "count": 3}}
+]
+```
+
+详细文档见 [tools/README.md](file:///tools/README.md)。
+
+### 5.2 gen_audit_pack.py — 审查包生成器
+
+```powershell
+python tools/gen_audit_pack.py --output AstroCS_<scope>_Review_YYYY-MM-DD.zip
+```
+
+用于生成 ChatGPT 二次审查的 ZIP 包（源码 + diff + 报告 + 文档）。
+
+### 5.3 vq-commit.ps1 — 备用提交脚本
+
+仅在 astro_toolkit.py 不可用时使用：
 ```powershell
 vq-commit.ps1 -MessageFile <msg.txt> -Repo "仓库路径" -Files "file1,file2"
 ```
 
-### 提交规则
+### 5.4 强制使用规则
+
+- **多步操作必须打包**：任何涉及 2 步及以上的 git/文件/编译操作，必须写一个 JSON 配置通过 astro_toolkit.py 一次执行，禁止逐步 RunCommand
+- **commit 必须用 `-F`**：避免长 message 触发扫描超时（astro_toolkit 已内置）
+- **临时 JSON/msg 文件命名**：`tools/_<task_id>_<purpose>.json` / `tools/_<task_id>_msg.txt`，使用后删除
+- **日志落盘**：每次 toolkit 调用必须加 `--log run/logs/toolkit_<YYYYMMDD>_<HHMMSS>.log`
+
+### 5.5 提交规则
+
 - **精细化 commit**：完成最小任务后必须 commit 留痕
 - **完成一阶段子任务后 push 一次**
 - **commit message 用 conventional commits**：`feat/fix/docs/chore/refactor`
-- **commit 走 `git commit -F <message_file>`**：避免长 message 触发扫描超时
-- **子 Agent 多步操作时**：写一个 JSON 配置一次 RunCommand 调用 astro_toolkit
+- **禁止 `git add -A`**：明确指定文件，避免误入 .env / 临时文件
 
 ---
 
@@ -144,8 +198,7 @@ vq-commit.ps1 -MessageFile <msg.txt> -Repo "仓库路径" -Files "file1,file2"
 - **强制使用 PowerShell 7 运行环境**（WSL 无代理，禁止 WSL 远程推送）
 - **GitHub CLI**：`C:\Users\fujia\AppData\Local\Temp\gh-cli-install\bin\gh.exe`
 - **MSYS2 MinGW64**：`C:\msys64\mingw64\bin`
-- **Commit 脚本**：`C:\Users\fujia\bin\vq-commit.ps1`
-- **记忆目录**：`c:\Users\fujia\.trae-cn\memory\projects\-f-Astro-dev-Astro-CS-Normalization-Database`
+- **Commit 脚本**：`C:\Users\fujia\bin\vq-commit.ps1`（备用，见 §5.3）
 
 ### 用户授权规则
 - 用户的自主执行授权**仅一次对话有效**，不得长期默认授权
@@ -153,15 +206,15 @@ vq-commit.ps1 -MessageFile <msg.txt> -Repo "仓库路径" -Files "file1,file2"
 - 在遇到任何不确定的情况时，**强制使用 AskUserQuestion 提问工具向用户提问**
 
 ### 模块化与日志
-- 每个模块独立建立文件夹与模块开发 memory（已在根 `memory.md` 索引）
-- 程序中加入详细日志输出，每个模块建立日志目录
+- 每个模块独立建立文件夹与开发文档
+- 程序中加入详细日志输出，每个模块建立日志目录（统一写入 `run/logs/<module>/`）
 - **禁止在单个文件堆叠上千行代码**：职责单一、模块化
 
 ---
 
 ## 7. 关键科学约束（指针）
 
-**详细冻结约束、算法参数、性能要求见 `c:\Users\fujia\.trae-cn\memory\projects\-f-Astro-dev-Astro-CS-Normalization-Database\project_memory.md` 与 GitHub Wiki。**
+**详细冻结约束、算法参数、性能要求见 GitHub Wiki（https://github.com/fujiaze/Astro-CS-Database.wiki.git）。**
 
 以下是核心红线（违反即返工）：
 
