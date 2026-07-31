@@ -1,1 +1,0 @@
-解压最新AstroCS权威开发包，读取AUTONOMOUS_ENTRY.md，安装根README并按权威Gate持续执行，仅硬阻塞或全部完成时汇报。
