@@ -10,6 +10,8 @@ GaiaDR3SP/
 
 # 日志与编译产物
 logs/
+run/*
+!run/.gitkeep
 output/
 build/
 Release/

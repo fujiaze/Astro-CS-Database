@@ -12,7 +12,8 @@ Astro CS Normalization Database/
 ├── lib/                    # 项目源码 (C++/Python/Go) — 唯一修改代码处
 ├── 工程控制/                # 权威工程规范、任务清单、证据
 ├── tools/                  # astro_toolkit.py, gen_audit_pack.py
-├── testdata/                # 测试数据 + index.json 索引
+├── testdata/                # 测试数据 + index.json 索引（只读，禁止写入运行产物）
+├── run/                     # 运行目录（校准/Drizzle/HISS/日志/截图统一写此，gitignored）
 ├── docs/                    # 本地参考文档 [待删 — Wiki 确定后删除]
 ├── memory.md                # 项目记忆 (分模块索引)
 ├── AGENT.md                 # 本文件
@@ -24,7 +25,19 @@ Astro CS Normalization Database/
 ### 关键原则
 - **`lib/` 是项目源码**：所有代码修改仅在此目录
 - **`工程控制/` 是工程控制包**：权威工程规范、任务清单、证据
+- **`testdata/` 是只读原始数据目录**：禁止向其写入任何运行产物
+- **`run/` 是唯一运行输出目录**：所有程序运行时产物（校准后亮场、Drizzle 产物、HISS 文件、日志、截图等）统一写入此目录，禁止散落到 `output/`、`testdata/results/` 等位置
 - **根目录只保留临时交付包和必要文件**：不堆积旧交付
+
+### run/ 子目录约定
+| 子目录 | 用途 |
+|--------|------|
+| `run/calibrated/<dataset>/<filter>/` | 校准后亮场（01_calibrated.fits 等） |
+| `run/drizzle/<dataset>/nside<N>/` | Drizzle 产物（HISS 文件、统计） |
+| `run/hiss/<dataset>/` | HISS 输出文件 |
+| `run/logs/<module>/<YYYYMMDD>/` | 各模块日志 |
+| `run/screenshots/` | 调试截图 |
+| `run/temp/` | 临时中间文件 |
 
 ---
 
@@ -66,13 +79,14 @@ git add . && git commit -m "docs(wiki): <说明>" && git push
 | `GaiaDR3/` | 41.9 GB | Gaia DR3 星表本体，plate solving 与测光参考星来源 | **AI 历史上多次误删，禁止删除** |
 | `GaiaDR3SP/` | 64.7 GB | Gaia DR3 光谱数据库，测光定标用 | 禁止删除 |
 | `siril-1.4.3/` | 55.2 MB | Siril 天文图像处理软件源码，开发时参考其实现 | 仅参考，不入仓库 |
-| `output/` | 578.7 MB | 运行时输出目录（截图、临时结果等） | 可定期清理 |
 
-### testdata 目录
-- 7 个数据集覆盖 T2/T3/T4 三个望远镜（T1 数据未入库，保留占位）
-- 详细索引见 `testdata/index.json`
-- 包含 `T2/T3/T4 calibration files` 三个空目录（待补充 master bias/dark/flat）
-- `testdata/results/` 下为已校准亮场（01/04_calibrated.fits）
+### testdata 目录（只读，详细索引见 `testdata/index.json`）
+- **7 个数据集**覆盖 T2/T3/T4 三个望远镜（T1 数据未入库，保留占位符）
+- **原始亮场**：`<dataset>/lights/` 下，共 710 个 `.fts` 文件（约 22.3 GB）
+- **校准母版**：`T2/T3/T4 calibration files/` 下，共 27 个 `.xisf` 文件
+  - 每个望远镜含：1 个 masterBias + 2-3 个 masterDark（按曝光时长）+ 5-6 个 masterFlat（按滤镜）
+- **滤镜品牌**：T2/T3 用 Astrodon（LRGB / LRGBHO 50mm，Halpha/OIII 3nm），T4 用 Baader（RGBHaOIII 50mm，Halpha 7nm / OIII 8.5nm）
+- **禁止向 testdata/ 写入任何运行产物**（已校准亮场、Drizzle 输出等统一写入 `run/`）
 
 ---
 

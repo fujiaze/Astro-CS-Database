@@ -1,14 +1,22 @@
 {
-  "$schema": "AstroCS testdata inventory v1.0",
-  "version": "1.0",
+  "$schema": "AstroCS testdata inventory v1.1",
+  "version": "1.1",
   "generated_at": "2026-07-31",
-  "description": "AstroCS 测试数据索引 — T1-T4 望远镜校准帧与已校准亮场数据",
+  "description": "AstroCS 测试数据索引 — T1-T4 望远镜原始帧（.fit/.fits/.fts/.xisf）与校准母版",
+
+  "frame_format_convention": {
+    "raw_light_frames": [".fit", ".fits", ".fts"],
+    "raw_master_frames": [".xisf"],
+    "note": "testdata 下所有图像文件均为原始帧或母版，不含已校准亮场；运行后的产物统一写入根目录 run/ 下，不散落到 testdata/results/ 等位置",
+    "deprecated_paths": ["testdata/results/ (已删除)", "output/ (已清理)"]
+  },
 
   "telescopes": {
     "T1": {
       "status": "not_available",
       "note": "T1 数据集尚未入库；保留占位符，将来补充",
-      "datasets": []
+      "datasets": [],
+      "calibration_masters_dir": null
     },
     "T2": {
       "status": "available",
@@ -16,14 +24,11 @@
       "optical_tube": "ASA 500N",
       "focal_length_mm": 1900,
       "camera": "FLI Proline 16803",
+      "sensor": "4096x4096",
       "mount": "DDM85",
-      "filter_set": "Astrodon LRGBHO 50mm / 3nm Halpha",
       "location": "智利 Chilescope 远程天文台",
-      "datasets": [
-        "LDN43_T2素材_flying_dutchman",
-        "NGC1727_T2_flying_dutchman",
-        "NGC247_T2_flying_dutchman"
-      ]
+      "calibration_masters_dir": "testdata/T2 calibration files",
+      "datasets": ["LDN43_T2素材_flying_dutchman", "NGC1727_T2_flying_dutchman", "NGC247_T2_flying_dutchman"]
     },
     "T3": {
       "status": "available",
@@ -31,53 +36,98 @@
       "optical_tube": "ASA 500N",
       "focal_length_mm": 1900,
       "camera": "FLI Proline 16803",
+      "sensor": "4096x4096",
       "mount": "DDM85",
-      "filter_set": "Astrodon LRGBHO 50mm",
       "location": "智利 Chilescope 远程天文台",
-      "datasets": [
-        "NGC55_T3_flying_dutchman",
-        "NGC83_cluster_T3_Flying_Dutchman"
-      ]
+      "calibration_masters_dir": "testdata/T3 calibration files",
+      "datasets": ["NGC55_T3_flying_dutchman", "NGC83_cluster_T3_Flying_Dutchman"]
     },
     "T4": {
       "status": "available",
       "name": "Chilescope T4",
       "optical_tube": "Nikkor 200F2",
       "focal_length_mm": 200,
-      "camera": "FLI Microline 16200 / Proline 16200",
+      "camera": "FLI Microline/Proline 16200",
+      "sensor": "4500x3600",
       "mount": "10 Micron GM1000HPs",
-      "filter_set": "Baader 50mm LRGB / RGBHaOIII",
       "location": "智利 Chilescope 远程天文台",
-      "datasets": [
-        "Galaxy_Center_T4",
-        "Victory_Nebula_T4_Flying_Dutchman"
-      ]
+      "calibration_masters_dir": "testdata/T4 calibration files",
+      "datasets": ["Galaxy_Center_T4", "Victory_Nebula_T4_Flying_Dutchman"]
     }
   },
 
   "calibration_masters": {
-    "description": "校准母版（master bias/dark/flat）目录，目前均为空，待补充",
-    "T1": {"dir": null, "status": "not_available"},
-    "T2": {"dir": "testdata/T2 calibration files", "status": "empty"},
-    "T3": {"dir": "testdata/T3 calibration files", "status": "empty"},
-    "T4": {"dir": "testdata/T4 calibration files", "status": "empty"}
+    "description": "校准母版（master bias/dark/flat），.xisf 格式，由 Siril 等工具从原始 bias/dark/flat 帧合成",
+    "by_telescope": {
+      "T2": {
+        "dir": "testdata/T2 calibration files",
+        "sensor": "4096x4096",
+        "bias": [
+          {"file": "masterBias_BIN-1_4096x4096.xisf", "type": "master_bias", "binning": 1, "size": "4096x4096"}
+        ],
+        "dark": [
+          {"file": "masterDark_BIN-1_4096x4096_EXPOSURE-600.00s.xisf", "type": "master_dark", "exposure_s": 600.0},
+          {"file": "masterDark_BIN-1_4096x4096_EXPOSURE-1200.00s.xisf", "type": "master_dark", "exposure_s": 1200.0},
+          {"file": "masterDark_BIN-1_4096x4096_EXPOSURE-1800.00s.xisf", "type": "master_dark", "exposure_s": 1800.0}
+        ],
+        "flat": [
+          {"file": "masterFlat_BIN-1_4096x4096_FILTER-Blue_mono.xisf", "type": "master_flat", "filter": "Blue"},
+          {"file": "masterFlat_BIN-1_4096x4096_FILTER-Green_mono.xisf", "type": "master_flat", "filter": "Green"},
+          {"file": "masterFlat_BIN-1_4096x4096_FILTER-H-alpha_mono.xisf", "type": "master_flat", "filter": "H-alpha"},
+          {"file": "masterFlat_BIN-1_4096x4096_FILTER-OIII_mono.xisf", "type": "master_flat", "filter": "OIII"},
+          {"file": "masterFlat_BIN-1_4096x4096_FILTER-Red_mono.xisf", "type": "master_flat", "filter": "Red"}
+        ]
+      },
+      "T3": {
+        "dir": "testdata/T3 calibration files",
+        "sensor": "4096x4096",
+        "bias": [
+          {"file": "masterBias_BIN-1_4096x4096.xisf", "type": "master_bias", "binning": 1, "size": "4096x4096"}
+        ],
+        "dark": [
+          {"file": "masterDark_BIN-1_4096x4096_EXPOSURE-600.00s.xisf", "type": "master_dark", "exposure_s": 600.0},
+          {"file": "masterDark_BIN-1_4096x4096_EXPOSURE-1200.00s.xisf", "type": "master_dark", "exposure_s": 1200.0}
+        ],
+        "flat": [
+          {"file": "masterFlat_BIN-1_4096x4096_FILTER-Blue_mono.xisf", "type": "master_flat", "filter": "Blue"},
+          {"file": "masterFlat_BIN-1_4096x4096_FILTER-Green_mono.xisf", "type": "master_flat", "filter": "Green"},
+          {"file": "masterFlat_BIN-1_4096x4096_FILTER-H-alpha_mono.xisf", "type": "master_flat", "filter": "H-alpha"},
+          {"file": "masterFlat_BIN-1_4096x4096_FILTER-Lum_mono.xisf", "type": "master_flat", "filter": "Lum"},
+          {"file": "masterFlat_BIN-1_4096x4096_FILTER-Oiii_mono.xisf", "type": "master_flat", "filter": "OIII"},
+          {"file": "masterFlat_BIN-1_4096x4096_FILTER-Red_mono.xisf", "type": "master_flat", "filter": "Red"}
+        ]
+      },
+      "T4": {
+        "dir": "testdata/T4 calibration files",
+        "sensor": "4500x3600",
+        "bias": [
+          {"file": "masterBias_BIN-1_4500x3600.xisf", "type": "master_bias", "binning": 1, "size": "4500x3600"}
+        ],
+        "dark": [
+          {"file": "masterDark_BIN-1_4500x3600_EXPOSURE-180.00s.xisf", "type": "master_dark", "exposure_s": 180.0},
+          {"file": "masterDark_BIN-1_4500x3600_EXPOSURE-300.00s.xisf", "type": "master_dark", "exposure_s": 300.0},
+          {"file": "masterDark_BIN-1_4500x3600_EXPOSURE-600.00s.xisf", "type": "master_dark", "exposure_s": 600.0}
+        ],
+        "flat": [
+          {"file": "masterFlat_BIN-1_4500x3600_FILTER-Blue_mono.xisf", "type": "master_flat", "filter": "Blue"},
+          {"file": "masterFlat_BIN-1_4500x3600_FILTER-Green_mono.xisf", "type": "master_flat", "filter": "Green"},
+          {"file": "masterFlat_BIN-1_4500x3600_FILTER-H-alpha_mono.xisf", "type": "master_flat", "filter": "H-alpha"},
+          {"file": "masterFlat_BIN-1_4500x3600_FILTER-Oiii_mono.xisf", "type": "master_flat", "filter": "OIII"},
+          {"file": "masterFlat_BIN-1_4500x3600_FILTER-Red_mono.xisf", "type": "master_flat", "filter": "Red"}
+        ]
+      }
+    }
   },
 
-  "calibrated_light_frames": {
-    "root_dir": "testdata/results",
-    "description": "已校准亮场（light frames）：每个曝光序列目录下含 01_calibrated.fits（基础校准：bias/dark/flat 扣除）与 04_calibrated_final.fits（梯度校正+测光定标后）",
-    "file_naming": {
-      "01_calibrated": "基础校准亮场，仅做 master bias/dark/flat 扣除",
-      "04_calibrated_final": "最终校准亮场，含梯度校正与测光定标",
-      "03_fsyn.json": "PSF/通量同步结果",
-      "04_quality_report.json": "质量评估报告",
-      "04_residuals_mult.csv": "多元残差表",
-      "estimator.log": "PSF 估计器日志",
-      "star_matcher.log": "星点匹配日志",
-      "gradient_fitter.log": "梯度拟合日志",
-      "image_corrector.log": "图像校正日志"
+  "raw_light_frames": {
+    "root_dir": "testdata/<dataset>/lights/",
+    "file_naming_pattern": "<object>_[mosaic<panel>]_<telescope>_<photographer>-<YYYYMMDD>@HHMMSS>-<exposure>s-<filter>.fts",
+    "directory_layout": {
+      "mosaic_dataset": "<dataset>/lights/panel<N>/<filter>/<filename>.fts",
+      "single_frame_dataset": "<dataset>/lights/<filename>.fts (扁平结构, 文件名含 mosaic<N> 区分 panel)"
     },
-    "directory_layout": "<dataset>/[<panel>/]<filter>/<exposure_session>/{01_calibrated.fits,04_calibrated_final.fits,...}"
+    "extension": ".fts",
+    "note": "所有 .fts 文件均为原始亮场（raw light frames），未经任何校准处理"
   },
 
   "datasets": [
@@ -85,107 +135,177 @@
       "id": "Galaxy_Center_T4",
       "telescope": "T4",
       "object": "Galaxy Center (银心)",
+      "photographer": "flying_dutchman",
       "is_mosaic": true,
       "mosaic_panels": ["panel1", "panel2", "panel3"],
-      "filters": ["Red", "Green", "Blue", "H-alpha", "OIII"],
-      "observation_dates": ["2025-07-02", "2025-07-03", "2025-07-04", "2025-07-16", "2025-07-17", "2025-07-18"],
+      "filters": [
+        {"name": "Red", "brand": "Baader", "model": "RGB 50mm", "bandwidth_nm": null},
+        {"name": "Green", "brand": "Baader", "model": "RGB 50mm", "bandwidth_nm": null},
+        {"name": "Blue", "brand": "Baader", "model": "RGB 50mm", "bandwidth_nm": null},
+        {"name": "H-alpha", "brand": "Baader", "model": "RGBHaOIII 50mm", "bandwidth_nm": 7},
+        {"name": "OIII", "brand": "Baader", "model": "RGBHaOIII 50mm", "bandwidth_nm": 8.5}
+      ],
+      "filter_wheel": "Baader 50mm RGBHaOIII",
+      "observation_dates": ["2025-07-02", "2025-07-03", "2025-07-04", "2025-07-16", "2025-07-17", "2025-07-18", "2025-07-19"],
       "total_exposure_min": {"Red": 96, "Green": 96, "Blue": 96, "H-alpha": 130, "OIII": 330},
       "single_exposure_s": {"RGB": 180, "H-alpha": 300, "OIII": 600},
       "info_file": "testdata/Galaxy_Center_T4/素材信息.txt",
-      "results_dir": "testdata/results/Galaxy_Center_T4",
-      "fits_count": 166,
-      "total_size_mb": 10259.79
+      "lights_dir": "testdata/Galaxy_Center_T4/lights",
+      "lights_count": 157,
+      "lights_size_mb": 4852.87,
+      "lights_by_panel_filter": {
+        "panel1": {"H-alpha": 9, "Blue": 11, "Green": 11, "OIII": 11, "Red": 11},
+        "panel2": {"H-alpha": 9, "Blue": 11, "Green": 13, "OIII": 11, "Red": 11},
+        "panel3": {"H-alpha": 8, "Blue": 10, "Green": 10, "OIII": 11, "Red": 10}
+      }
     },
     {
       "id": "LDN43_T2素材_flying_dutchman",
       "telescope": "T2",
       "object": "LDN43 飞天蝙蝠星云",
+      "photographer": "flying_dutchman",
       "is_mosaic": false,
-      "filters": ["Lum", "Red", "Green", "Blue", "H-alpha"],
+      "filters": [
+        {"name": "Lum", "brand": "Astrodon", "model": "LRGB 50mm", "bandwidth_nm": null},
+        {"name": "Red", "brand": "Astrodon", "model": "LRGB 50mm", "bandwidth_nm": null},
+        {"name": "Green", "brand": "Astrodon", "model": "LRGB 50mm", "bandwidth_nm": null},
+        {"name": "Blue", "brand": "Astrodon", "model": "LRGB 50mm", "bandwidth_nm": null},
+        {"name": "H-alpha", "brand": "Astrodon", "model": "3nm Halpha", "bandwidth_nm": 3}
+      ],
+      "filter_wheel": "Astrodon 50mm L,R,G,B + 3nm Halpha",
       "observation_dates": ["2025-05-03", "2025-05-04", "2025-05-05", "2025-05-07", "2025-05-20", "2025-06-20", "2025-07-16", "2025-07-17"],
       "total_exposure_min": {"Lum": 100, "Red": 160, "Green": 160, "Blue": 160, "H-alpha": 160},
       "single_exposure_s": {"Lum": 600, "RGBHa": 1200},
       "info_file": "testdata/LDN43_T2素材_flying_dutchman/素材信息与版权约定.txt",
-      "results_dir": "testdata/results/LDN43_T2素材_flying_dutchman",
-      "fits_count": 47,
-      "total_size_mb": 3008.52
+      "lights_dir": "testdata/LDN43_T2素材_flying_dutchman/lights",
+      "lights_count": 42,
+      "lights_size_mb": 1344.49,
+      "lights_by_filter": {"Lum": 10, "Red": 8, "Green": 8, "Blue": 8, "H-alpha": 8}
     },
     {
       "id": "NGC1727_T2_flying_dutchman",
       "telescope": "T2",
       "object": "NGC1727 宇宙烟花秀",
+      "photographer": "flying_dutchman",
       "is_mosaic": false,
-      "filters": ["Red", "Green", "Blue", "H-alpha", "OIII"],
+      "filters": [
+        {"name": "Red", "brand": "Astrodon", "model": "RGBHO 50mm", "bandwidth_nm": null},
+        {"name": "Green", "brand": "Astrodon", "model": "RGBHO 50mm", "bandwidth_nm": null},
+        {"name": "Blue", "brand": "Astrodon", "model": "RGBHO 50mm", "bandwidth_nm": null},
+        {"name": "H-alpha", "brand": "Astrodon", "model": "RGBHO 50mm", "bandwidth_nm": 3},
+        {"name": "OIII", "brand": "Astrodon", "model": "RGBHO 50mm", "bandwidth_nm": 3}
+      ],
+      "filter_wheel": "Astrodon RGBHO 50mm",
       "observation_dates": ["2025-10-31", "2025-11-10", "2025-11-11", "2025-11-12", "2025-11-14", "2025-11-27", "2025-11-28", "2025-11-29", "2025-11-30", "2025-12-01", "2025-12-08", "2025-12-09", "2025-12-10", "2025-12-11"],
       "total_exposure_min": {"Red": 120, "Green": 110, "Blue": 120, "H-alpha": 320, "OIII": 390},
       "single_exposure_s": {"RGB": 600, "H-alpha": 1200, "OIII": 1800},
       "info_file": "testdata/NGC1727_T2_flying_dutchman/素材信息与版权约定.txt",
-      "results_dir": "testdata/results/NGC1727_T2_flying_dutchman",
-      "fits_count": 69,
-      "total_size_mb": 4416.78
+      "lights_dir": "testdata/NGC1727_T2_flying_dutchman/lights",
+      "lights_count": 64,
+      "lights_size_mb": 2048.73,
+      "lights_by_filter": {"Red": 12, "Green": 11, "Blue": 12, "H-alpha": 16, "OIII": 13}
     },
     {
       "id": "NGC247_T2_flying_dutchman",
       "telescope": "T2",
       "object": "NGC247 与博比奇链",
+      "photographer": "flying_dutchman",
       "is_mosaic": false,
-      "filters": ["Lum", "Red", "Green", "Blue", "H-alpha", "OIII"],
+      "filters": [
+        {"name": "Lum", "brand": "Astrodon", "model": "LRGBHO 50mm", "bandwidth_nm": null},
+        {"name": "Red", "brand": "Astrodon", "model": "LRGBHO 50mm", "bandwidth_nm": null},
+        {"name": "Green", "brand": "Astrodon", "model": "LRGBHO 50mm", "bandwidth_nm": null},
+        {"name": "Blue", "brand": "Astrodon", "model": "LRGBHO 50mm", "bandwidth_nm": null},
+        {"name": "H-alpha", "brand": "Astrodon", "model": "LRGBHO 50mm", "bandwidth_nm": 3},
+        {"name": "OIII", "brand": "Astrodon", "model": "LRGBHO 50mm", "bandwidth_nm": 3}
+      ],
+      "filter_wheel": "Astrodon LRGBHO 50mm",
       "observation_dates": ["2025-08-16", "2025-08-17", "2025-08-29", "2025-09-01", "2025-09-02", "2025-09-15", "2025-09-28", "2025-09-29", "2025-09-30", "2025-11-11"],
       "total_exposure_min": {"Lum": 150, "Red": 90, "Green": 100, "Blue": 100, "H-alpha": 220, "OIII": 240},
       "single_exposure_s": {"LRGB": 600, "Ha": 1200, "OIII": 1200},
       "info_file": "testdata/NGC247_T2_flying_dutchman/素材信息与版权约定.txt",
-      "results_dir": "testdata/results/NGC247_T2_flying_dutchman",
-      "fits_count": 74,
-      "total_size_mb": 4736.83,
+      "lights_dir": "testdata/NGC247_T2_flying_dutchman/lights",
+      "lights_count": 68,
+      "lights_size_mb": 2176.78,
+      "lights_by_filter": {"Lum": 15, "Red": 9, "Green": 11, "Blue": 10, "H-alpha": 11, "OIII": 12},
       "external_source": "https://pan.baidu.com/s/1PSJiVdsnEDqjMQUC_3Ymow?pwd=N247 (提取码 N247)"
     },
     {
       "id": "NGC55_T3_flying_dutchman",
       "telescope": "T3",
       "object": "NGC55 南鲸鱼星系",
+      "photographer": "flying_dutchman",
       "is_mosaic": false,
-      "filters": ["Lum", "Red", "Green", "Blue", "H-alpha", "OIII"],
+      "filters": [
+        {"name": "Lum", "brand": "Astrodon", "model": "LRGBHO 50mm", "bandwidth_nm": null},
+        {"name": "Red", "brand": "Astrodon", "model": "LRGBHO 50mm", "bandwidth_nm": null},
+        {"name": "Green", "brand": "Astrodon", "model": "LRGBHO 50mm", "bandwidth_nm": null},
+        {"name": "Blue", "brand": "Astrodon", "model": "LRGBHO 50mm", "bandwidth_nm": null},
+        {"name": "H-alpha", "brand": "Astrodon", "model": "LRGBHO 50mm", "bandwidth_nm": 3},
+        {"name": "OIII", "brand": "Astrodon", "model": "LRGBHO 50mm", "bandwidth_nm": 3}
+      ],
+      "filter_wheel": "Astrodon LRGBHO 50mm",
       "observation_dates": ["2025-07-01", "2025-07-03", "2025-07-04", "2025-07-05", "2025-07-06", "2025-08-29", "2025-09-15", "2025-10-13"],
       "total_exposure_min": {"Lum": 150, "Red": 110, "Green": 110, "Blue": 120, "H-alpha": 320, "OIII": 280},
       "single_exposure_s": {"LRGB": 600, "Ha": 1200, "OIII": 1200},
       "info_file": "testdata/NGC55_T3_flying_dutchman/素材信息与版权约定.txt",
-      "results_dir": "testdata/results/NGC55_T3_flying_dutchman",
-      "fits_count": 84,
-      "total_size_mb": 5376.93
+      "lights_dir": "testdata/NGC55_T3_flying_dutchman/lights",
+      "lights_count": 79,
+      "lights_size_mb": 2528.9,
+      "lights_by_filter": {"Lum": 15, "Red": 11, "Green": 11, "Blue": 12, "H-alpha": 16, "OIII": 14}
     },
     {
       "id": "NGC83_cluster_T3_Flying_Dutchman",
       "telescope": "T3",
       "object": "NGC83 星系群",
+      "photographer": "flying_dutchman",
       "is_mosaic": false,
-      "filters": ["Lum", "Red", "Green", "Blue"],
+      "filters": [
+        {"name": "Lum", "brand": "Astrodon", "model": "LRGB 50mm", "bandwidth_nm": null},
+        {"name": "Red", "brand": "Astrodon", "model": "LRGB 50mm", "bandwidth_nm": null},
+        {"name": "Green", "brand": "Astrodon", "model": "LRGB 50mm", "bandwidth_nm": null},
+        {"name": "Blue", "brand": "Astrodon", "model": "LRGB 50mm", "bandwidth_nm": null}
+      ],
+      "filter_wheel": "Astrodon LRGB 50mm",
       "observation_dates": ["2025-07-01", "2025-10-11", "2025-10-12", "2025-10-17", "2025-10-19", "2025-10-24", "2025-10-25", "2025-11-09", "2025-11-10", "2025-11-11"],
       "total_exposure_min": {"Lum": 210, "Red": 160, "Green": 170, "Blue": 150},
       "single_exposure_s": {"LRGB": 600},
       "info_file": "testdata/NGC83_cluster_T3_Flying_Dutchman/素材信息与版权约定.txt",
-      "results_dir": "testdata/results/NGC83_cluster_T3_Flying_Dutchman",
-      "fits_count": 76,
-      "total_size_mb": 4864.86
+      "lights_dir": "testdata/NGC83_cluster_T3_Flying_Dutchman/lights",
+      "lights_count": 72,
+      "lights_size_mb": 2304.82,
+      "lights_by_filter": {"Lum": 22, "Red": 16, "Green": 18, "Blue": 16}
     },
     {
       "id": "Victory_Nebula_T4_Flying_Dutchman",
       "telescope": "T4",
       "object": "Victory Nebula 胜利星云（蝘蜓座分子云）",
+      "photographer": "flying_dutchman",
       "is_mosaic": true,
-      "mosaic_panels": ["panel1", "panel2"],
-      "filters": ["Lum", "Red", "Green", "Blue"],
+      "mosaic_panels": ["mosaic1", "mosaic2"],
+      "filters": [
+        {"name": "Lum", "brand": "Baader", "model": "LRGB 50mm", "bandwidth_nm": null},
+        {"name": "Red", "brand": "Baader", "model": "LRGB 50mm", "bandwidth_nm": null},
+        {"name": "Green", "brand": "Baader", "model": "LRGB 50mm", "bandwidth_nm": null},
+        {"name": "Blue", "brand": "Baader", "model": "LRGB 50mm", "bandwidth_nm": null}
+      ],
+      "filter_wheel": "Baader 50mm LRGB",
       "observation_dates": ["2025-02-04", "2025-02-05", "2025-02-06", "2025-02-07", "2025-02-08", "2025-03-06"],
       "total_exposure_min": {"Lum": 294, "Red": 132, "Green": 132, "Blue": 126},
       "single_exposure_s": {"LRGB": 180},
       "info_file": "testdata/Victory_Nebula_T4_Flying_Dutchman/素材信息与版权约定.txt",
-      "results_dir": "testdata/results/Victory_Nebula_T4_Flying_Dutchman",
-      "fits_count": 236,
-      "total_size_mb": 14586.25
+      "lights_dir": "testdata/Victory_Nebula_T4_Flying_Dutchman/lights",
+      "lights_count": 228,
+      "lights_size_mb": 7047.49,
+      "lights_by_mosaic_filter": {
+        "mosaic1": {"Lum": 52, "Red": 24, "Green": 25, "Blue": 25},
+        "mosaic2": {"Lum": 46, "Red": 20, "Green": 19, "Blue": 17}
+      }
     }
   ],
 
   "external_data_dirs": {
-    "note": "以下目录在 .gitignore 中排除，不入仓库，仅供本地参考/查询",
+    "note": "以下目录在 .gitignore 中排除，不入仓库，仅供本地参考/查询，AI 不得删除",
     "siril-1.4.3": {
       "path": "siril-1.4.3/",
       "size_mb": 55.20,
@@ -196,30 +316,44 @@
       "size_gb": 41.9,
       "purpose": "Gaia DR3 星表数据库（星表本体），plate solving 与测光参考星来源",
       "critical": true,
-      "warning": "AI 历史上多次误删此目录，必须保留"
+      "warning": "AI 历史上多次误删此目录，禁止删除"
     },
     "GaiaDR3SP": {
       "path": "GaiaDR3SP/",
       "size_gb": 64.7,
       "purpose": "Gaia DR3 光谱数据库（spectra），测光定标用",
       "critical": true
-    },
-    "output": {
-      "path": "output/",
-      "size_mb": 578.67,
-      "purpose": "运行时输出目录（截图、临时结果等）"
     }
+  },
+
+  "runtime_dir": {
+    "path": "run/",
+    "description": "所有程序运行时输出（校准后亮场、Drizzle 产物、HISS 文件、日志、截图等）统一写入根目录 run/ 下",
+    "gitignored": true,
+    "subdir_convention": {
+      "calibrated": "run/calibrated/<dataset>/<filter>/",
+      "drizzle": "run/drizzle/<dataset>/nside<N>/",
+      "hiss": "run/hiss/<dataset>/",
+      "logs": "run/logs/<module>/<YYYYMMDD>/",
+      "screenshots": "run/screenshots/"
+    },
+    "rules": [
+      "禁止将运行产物写入 testdata/ 下任何子目录（testdata 是只读的原始数据目录）",
+      "禁止将运行产物写入 output/ 等非规范目录",
+      "run/ 在 .gitignore 中排除，不入仓库"
+    ]
   },
 
   "statistics": {
     "total_datasets": 7,
-    "total_fits_files": 752,
-    "total_size_gb": 46.14,
+    "total_raw_light_frames": 710,
+    "total_raw_light_size_gb": 22.3,
+    "total_calibration_masters": 27,
     "by_telescope": {
-      "T1": {"datasets": 0, "fits_count": 0, "size_gb": 0, "status": "not_available"},
-      "T2": {"datasets": 3, "fits_count": 190, "size_gb": 11.88},
-      "T3": {"datasets": 2, "fits_count": 160, "size_gb": 10.0},
-      "T4": {"datasets": 2, "fits_count": 402, "size_gb": 24.27}
+      "T1": {"datasets": 0, "raw_frames": 0, "masters": 0, "status": "not_available"},
+      "T2": {"datasets": 3, "raw_frames": 174, "masters": 9, "raw_size_gb": 5.56},
+      "T3": {"datasets": 2, "raw_frames": 151, "masters": 9, "raw_size_gb": 4.83},
+      "T4": {"datasets": 2, "raw_frames": 385, "masters": 9, "raw_size_gb": 11.9}
     }
   }
 }
