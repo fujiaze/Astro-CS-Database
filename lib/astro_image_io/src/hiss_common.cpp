@@ -1,0 +1,250 @@
+// ============================================================================
+// hiss_common.cpp - AstroCS HISS 共享方法实现
+//
+// 本文件集中实现 hiss_format.h 中声明、被 Writer 与 Reader 共同依赖的方法,
+// 避免在 hiss_writer.cpp 和 hiss_reader.cpp 中重复定义导致链接错误。
+//
+// 包含的方法 (实现以 Writer 为权威版本):
+//   1. compute_tile_depth / compute_tile_nside (02_FROZEN §11)
+//   2. DrizzleTileAccumulator::finalize_signal / finalize_support / validate_support (§10)
+//   3. HissMetadata::to_json / from_json (§16)
+//
+// 说明:
+//   - 实现取自 hiss_writer.cpp (Writer 是权威写入方, 且带 HISS_EXPORT 标记,
+//     与 hiss_format.h 中的声明一致)
+//   - 日志前缀统一改为 [hiss][common], 体现归属文件
+//   - json_escape 为本翻译单元内部辅助函数 (static), 仅 to_json 使用
+// ============================================================================
+#include "hiss_format.h"
+
+#include <cstdio>      // fprintf, std::snprintf
+#include <cstring>     // std::memcpy
+#include <cstdint>
+#include <string>
+#include <vector>
+#include <sstream>     // std::ostringstream
+#include <cmath>       // std::lround
+
+namespace hiss {
+
+// ============================================================================
+// 内部辅助: JSON 字符串转义
+//   处理 " \ \n \r \t 及控制字符 (写入 JSON 字符串值时使用)
+// ============================================================================
+
+static std::string json_escape(const std::string& s) {
+    std::string out;
+    out.reserve(s.size() + 2);
+    for (char c : s) {
+        switch (c) {
+            case '"':  out += "\\\""; break;
+            case '\\': out += "\\\\"; break;
+            case '\n': out += "\\n";  break;
+            case '\r': out += "\\r";  break;
+            case '\t': out += "\\t";  break;
+            default:
+                if ((unsigned char)c < 0x20) {
+                    char buf[8];
+                    std::snprintf(buf, sizeof(buf), "\\u%04x", (unsigned)(unsigned char)c);
+                    out += buf;
+                } else {
+                    out += c;
+                }
+        }
+    }
+    return out;
+}
+
+// ============================================================================
+// 1. Tile 自适应层级计算 (02_FROZEN §11)
+//    d = min(9, log2(NSIDE/16))
+//    tile_nside = NSIDE / 2^d
+//    保证: 满 Tile 最多 4^9=262144 叶像素, tile_nside >= 16
+// ============================================================================
+
+HISS_EXPORT uint32_t compute_tile_depth(uint32_t nside) {
+    if (nside < 16) {
+        // NSIDE < 16 时 d=0, tile_nside = nside (整个球面一个 Tile 组)
+        return 0;
+    }
+    // nside 是 2 的幂, 用位运算求 log2(nside)
+    int log2_nside = 0;
+    uint32_t v = nside;
+    while (v > 1) { v >>= 1; log2_nside++; }
+    // log2(nside/16) = log2(nside) - 4
+    int d = log2_nside - 4;
+    if (d < 0) d = 0;
+    if (d > 9) d = 9;  // 上限 9
+    return (uint32_t)d;
+}
+
+HISS_EXPORT uint32_t compute_tile_nside(uint32_t nside) {
+    uint32_t d = compute_tile_depth(nside);
+    return nside >> d;  // nside / 2^d
+}
+
+// ============================================================================
+// 2. DrizzleTileAccumulator 方法 (02_FROZEN §10)
+//    float64 内部累加, 最终输出 float32 signal + uint8 support
+// ============================================================================
+
+// finalize_signal: 按 sum_area 归一化得 float32 通量, 无贡献像素写 0
+void DrizzleTileAccumulator::finalize_signal(std::vector<float>& signal) const {
+    signal.resize(pixels.size());
+    for (size_t i = 0; i < pixels.size(); i++) {
+        double sum_flux = pixels[i].sum_flux;
+        double sum_area = pixels[i].sum_area;
+        if (sum_area > 0.0) {
+            signal[i] = (float)(sum_flux / sum_area);
+        } else {
+            signal[i] = 0.0f;  // 无贡献像素
+        }
+    }
+}
+
+// finalize_support: S = sum_area, 钳制到 [0,1], 输出 uint8 = round(255*S)
+void DrizzleTileAccumulator::finalize_support(std::vector<uint8_t>& support) const {
+    support.resize(pixels.size());
+    for (size_t i = 0; i < pixels.size(); i++) {
+        double S = pixels[i].sum_area;
+        if (S < 0.0) S = 0.0;
+        if (S > 1.0) S = 1.0;  // 浮点误差级超限钳制
+        long v = std::lround(255.0 * S);
+        if (v < 0)   v = 0;
+        if (v > 255) v = 255;
+        support[i] = (uint8_t)v;
+    }
+}
+
+// validate_support: 检查 sum_area 在 [0,1] 范围内 (允许浮点误差)
+//   0=OK, <0=错误 (明显超 1 是错误)
+int DrizzleTileAccumulator::validate_support() const {
+    const double eps = 1e-6;
+    for (size_t i = 0; i < pixels.size(); i++) {
+        double S = pixels[i].sum_area;
+        if (S < -eps || S > 1.0 + eps) {
+            fprintf(stderr,
+                    "[hiss][common] validate_support: 像素 %zu sum_area=%g 超限 (有效范围 [0,1])\n",
+                    i, S);
+            return -1;
+        }
+    }
+    return 0;
+}
+
+// ============================================================================
+// 3. HissMetadata JSON 序列化/反序列化 (02_FROZEN §16)
+//    手写 JSON (无外部依赖), 字段固定
+// ============================================================================
+
+std::string HissMetadata::to_json() const {
+    std::ostringstream ss;
+    ss << "{";
+    ss << "\"nside\":"      << nside      << ",";
+    ss << "\"tile_nside\":" << tile_nside << ",";
+    ss << "\"ordering\":"   << ordering   << ",";
+    ss << "\"radesys\":"    << radesys    << ",";
+    ss << "\"pixfrac\":"    << pixfrac    << ",";
+    ss << "\"photscal\":"   << photscal   << ",";
+    ss << "\"photappl\":"   << photappl   << ",";
+    ss << "\"bunit\":\""    << json_escape(bunit)    << "\",";
+    ss << "\"calmode\":\""  << json_escape(calmode)  << "\",";
+    ss << "\"darkreq\":\""  << json_escape(darkreq)  << "\",";
+    ss << "\"darkmode\":\"" << json_escape(darkmode) << "\",";
+    ss << "\"darkscl\":"    << darkscl    << ",";
+    ss << "\"object\":\""   << json_escape(object)   << "\",";
+    ss << "\"date_obs\":\"" << json_escape(date_obs) << "\",";
+    ss << "\"exptime\":"    << exptime    << ",";
+    ss << "\"filter\":\""   << json_escape(filter)   << "\",";
+    ss << "\"telescop\":\"" << json_escape(telescop) << "\",";
+    ss << "\"instrume\":\"" << json_escape(instrume) << "\",";
+    ss << "\"gain\":"       << gain       << ",";
+    ss << "\"history\":\""  << json_escape(history)  << "\"";
+    ss << "}";
+    return ss.str();
+}
+
+// from_json: 简易解析 (按 "key":value 查找), 容忍字段缺失/顺序变化
+// 仅解析 to_json 生成的格式, 不追求通用 JSON 兼容
+int HissMetadata::from_json(const std::string& json) {
+    // 数字字段提取 (double 兼容整数)
+    auto get_num = [&](const std::string& key, double& out) -> bool {
+        std::string needle = "\"" + key + "\":";
+        size_t pos = json.find(needle);
+        if (pos == std::string::npos) return false;
+        pos += needle.size();
+        try {
+            size_t used = 0;
+            out = std::stod(json.substr(pos), &used);
+            return true;
+        } catch (...) {
+            return false;
+        }
+    };
+    // 字符串字段提取 (处理基本转义), 输出到 std::string
+    auto get_str = [&](const std::string& key, std::string& out) -> bool {
+        std::string needle = "\"" + key + "\":\"";
+        size_t pos = json.find(needle);
+        if (pos == std::string::npos) return false;
+        pos += needle.size();
+        size_t end = pos;
+        while (end < json.size()) {
+            if (json[end] == '\\') { end += 2; continue; }
+            if (json[end] == '"')  break;
+            end++;
+        }
+        if (end >= json.size()) return false;
+        std::string raw = json.substr(pos, end - pos);
+        // 反转义
+        out.clear();
+        for (size_t i = 0; i < raw.size(); i++) {
+            if (raw[i] == '\\' && i + 1 < raw.size()) {
+                char next = raw[i + 1];
+                switch (next) {
+                    case '"':  out += '"';  i++; break;
+                    case '\\': out += '\\'; i++; break;
+                    case 'n':  out += '\n'; i++; break;
+                    case 'r':  out += '\r'; i++; break;
+                    case 't':  out += '\t'; i++; break;
+                    default:   out += raw[i];   break;
+                }
+            } else {
+                out += raw[i];
+            }
+        }
+        return true;
+    };
+    // 拷贝到固定大小 char[] (保证终止符)
+    auto to_buf = [&](const std::string& s, char* buf, size_t buf_size) {
+        if (buf_size == 0) return;
+        size_t n = (s.size() < buf_size - 1) ? s.size() : (buf_size - 1);
+        std::memcpy(buf, s.data(), n);
+        buf[n] = '\0';
+    };
+
+    double v = 0.0;
+    std::string s;
+    if (get_num("nside", v))      nside      = (uint32_t)v;
+    if (get_num("tile_nside", v)) tile_nside = (uint32_t)v;
+    if (get_num("ordering", v))   ordering   = (int)v;
+    if (get_num("radesys", v))    radesys    = (int)v;
+    if (get_num("pixfrac", v))    pixfrac    = v;
+    if (get_num("photscal", v))   photscal   = v;
+    if (get_num("photappl", v))   photappl   = (int)v;
+    if (get_num("darkscl", v))    darkscl    = v;
+    if (get_num("exptime", v))    exptime    = v;
+    if (get_num("gain", v))       gain       = v;
+    if (get_str("bunit", s))    to_buf(s, bunit, sizeof(bunit));
+    if (get_str("calmode", s))  to_buf(s, calmode, sizeof(calmode));
+    if (get_str("darkreq", s))  to_buf(s, darkreq, sizeof(darkreq));
+    if (get_str("darkmode", s)) to_buf(s, darkmode, sizeof(darkmode));
+    if (get_str("object", s))   to_buf(s, object, sizeof(object));
+    if (get_str("date_obs", s)) to_buf(s, date_obs, sizeof(date_obs));
+    if (get_str("filter", s))   to_buf(s, filter, sizeof(filter));
+    if (get_str("telescop", s)) to_buf(s, telescop, sizeof(telescop));
+    if (get_str("instrume", s)) to_buf(s, instrume, sizeof(instrume));
+    if (get_str("history", s))  history = s;
+    return 0;
+}
+
+} // namespace hiss

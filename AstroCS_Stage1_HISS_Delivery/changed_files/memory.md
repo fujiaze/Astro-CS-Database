@@ -1432,26 +1432,6 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
   3. cached vs uncached 一致性（60组，相对误差 < 0.03%）
   4. 无 QE 与 QE=1.0 等价性（相对误差 = 0）
   5. 现有测光校准测试 5/5 PASS 无回归
-
-## 2026-07-31 Stage1/HISS 规范化交付 (Agent 任务包) ★Phase 0-6 完成★
-- **任务包**: AstroCS_Stage1_HISS_Agent_Package_2026-07-31 (20 KB, 仅文档)
-- **审计基准 commit**: 183558ad6907d1e13a56a01c33c708913d7bbdc3
-- **完成内容**:
-  - Phase 0: 仓库就地审计 (repository_audit.md)
-  - Phase 1-2: Wiki 规范更新 (10 标准页面 + 6 SUPERSEDED 标注, 见 _wiki_freeze/)
-  - Phase 3: C++ 实现
-    - HISS 格式: hiss_format.h (HissGridSpec/HissTile/HissWriter/HissReader/CodecRegistry)
-    - HISS Writer/Reader/Codec/Common: lib/astro_image_io/src/hiss_*.cpp (XISF 式 Header+attachments, 无 Footer, .partial 原子提交)
-    - 最优 Dark: lib/calibration/src/dark_optimizer.cpp (8×8 分区 + 鲁棒回归 + 5 轮 MAD + 回退)
-    - Drizzle 增强: drizzle_engine.cpp/h (自动 NSIDE, sumArea 累加, float64 内部精度)
-    - 校准 API 扩展: astro_calibration.h (Stage1Diagnostics)
-  - Phase 4: C++ 实验 (DQ-001~DQ-007 全部完成, 仅推荐不冻结)
-  - Phase 5: 正确性测试 (21/21 通过) + 性能剖析
-  - Phase 6: 精简交付 ZIP 生成
-- **交付包**: AstroCS_Stage1_HISS_Delivery/ (48 文件, 665.9 KB) + AstroCS_Stage1_HISS_Delivery_2026-07-31.zip (225.6 KB)
-- **未决项** (7 项, 见 reports/decision_queue.md): signal/support/BITMAP/SPARSE_LIST codec, 切换阈值, checksum, 子块对齐
-- **已知问题** (2 项): Writer/Reader SNR 二进制布局不一致; 未知必需子块未主动拒绝
-- **禁止事项遵守**: 未新建仓库; 未修改 Stage2; 未自动运行 710 回归; 未用 Python 代替 C++; 未冻结实验结论
 - **新增测试文件**:
   - lib/photometric_calib/cpp/test/test_spectrum_integrator.cpp（C++ 黑体光谱 F_syn 计算）
   - lib/photometric_calib/cpp/test/test_spectrum_integrator_golden.py（Python golden 对比）

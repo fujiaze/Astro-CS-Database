@@ -1,0 +1,242 @@
+[
+  {
+    "path": "00_README.md",
+    "size": 5320,
+    "sha256": "cd3c165fa83b43f88adef8fad8c27ab5c5afacdef76da03fdad055d53c592138"
+  },
+  {
+    "path": "APPLY_IN_PLACE.md",
+    "size": 4433,
+    "sha256": "1ea94b254efe352d6f2b873a8a8af7368622cf1c91ef2c6c887b21582f08237a"
+  },
+  {
+    "path": "changed_files/lib/astro_image_io/build.ps1",
+    "size": 7616,
+    "sha256": "bb740adfbf2e1e48dc5cc03068f719f650bc3a8b0559990cde3fb9ed9251a436"
+  },
+  {
+    "path": "changed_files/lib/astro_image_io/include/hiss_format.h",
+    "size": 14466,
+    "sha256": "9edf3e65b4cc060bbc1e3e47a13ff979c94485981a9a2fb114245faf2c86a8c0"
+  },
+  {
+    "path": "changed_files/lib/astro_image_io/Makefile",
+    "size": 813,
+    "sha256": "3de852c8160e1ccbc718026ec2e2adcc51a0fee947aa2e1983fbe229924d3cd0"
+  },
+  {
+    "path": "changed_files/lib/astro_image_io/memory.md",
+    "size": 10716,
+    "sha256": "6f3cdcd5602f7fbe14884010e2b6884d522f3b4f4e04da583346165aad66e851"
+  },
+  {
+    "path": "changed_files/lib/astro_image_io/src/hiss_codec.cpp",
+    "size": 12522,
+    "sha256": "bca53055c9ea27d804b503a5476073278a9d48fe89d0ea20332c251d23db5c62"
+  },
+  {
+    "path": "changed_files/lib/astro_image_io/src/hiss_common.cpp",
+    "size": 10152,
+    "sha256": "786d6ef77e1e7e24b74f0e90ae60cb829454cf30add0205eaf0df8a829943956"
+  },
+  {
+    "path": "changed_files/lib/astro_image_io/src/hiss_reader.cpp",
+    "size": 33553,
+    "sha256": "393f20ae8e474566d8c6889cdf8be883f65880ef2fcf5d0d16e776868e260e1a"
+  },
+  {
+    "path": "changed_files/lib/astro_image_io/src/hiss_writer.cpp",
+    "size": 22735,
+    "sha256": "d605f1daa3cb8dbfbf1242d4beacb2a836cf14f3bcbb11ed03e9501643b1afec"
+  },
+  {
+    "path": "changed_files/lib/calibration/build.ps1",
+    "size": 2459,
+    "sha256": "55d6bccde4bfabbeabb8e52f71dfe57c66bd518926eda5a2df69d3a807daac21"
+  },
+  {
+    "path": "changed_files/lib/calibration/include/astro_calibration.h",
+    "size": 4592,
+    "sha256": "e77624120ce4f21dec58562b2f9897e76f47ba839bac4eedddea33db6adeba2e"
+  },
+  {
+    "path": "changed_files/lib/calibration/src/dark_optimizer.cpp",
+    "size": 14796,
+    "sha256": "f32e0eb65007f055bb1de9dacbfbdc6c6c6dd7b31ab3fa3a9117dcecf221e4c9"
+  },
+  {
+    "path": "changed_files/lib/healpix_db/healpix_drizzle/drizzle_engine.cpp",
+    "size": 32545,
+    "sha256": "6984bff06686fb569580b7fc5ca2300c27b46c938279c8c1af02fb75f2d518b3"
+  },
+  {
+    "path": "changed_files/lib/healpix_db/healpix_drizzle/drizzle_engine.h",
+    "size": 5017,
+    "sha256": "00a847cbc4b1aa51f9d89ae76b517de3216b447b7285ceb2c49ac99153ace8a4"
+  },
+  {
+    "path": "changed_files/lib/healpix_db/healpix_drizzle/memory.md",
+    "size": 8970,
+    "sha256": "87ffc932277f73e414ff375689b827b7e24799f65e6942d51d453615cb9816be"
+  },
+  {
+    "path": "changed_files/memory.md",
+    "size": 138660,
+    "sha256": "e51364b95e782faca37c931d27aafe56623b76b460853c4eedd14a6538afbfcd"
+  },
+  {
+    "path": "DELETE_LIST.txt",
+    "size": 1053,
+    "sha256": "34199e2b935b926e02fb19ba9229be5488bea0c84cb5f014d742c28f2ac2d433"
+  },
+  {
+    "path": "git_diff.patch",
+    "size": 27692,
+    "sha256": "223ac196b6e29a118f199c00a8f60d60470f64fb94aad1bbd8eb07e3583db856"
+  },
+  {
+    "path": "reports/correctness_report.md",
+    "size": 13236,
+    "sha256": "db81370580a904de3a2a2ff3fd7b919181a53ec9a76831429d54b365926c07ac"
+  },
+  {
+    "path": "reports/decision_queue.md",
+    "size": 6797,
+    "sha256": "2f64de4932b8069ae59c2c9fd329b10d64d85494b8428d09fdd2383cebc74bcb"
+  },
+  {
+    "path": "reports/experiments/environment.md",
+    "size": 798,
+    "sha256": "9538678ee56f826eb8446fe7c5d19f72cb631dff1a2373d5629c5f395ebb02a4"
+  },
+  {
+    "path": "reports/experiments/raw_results.csv",
+    "size": 14761,
+    "sha256": "7e8eafd1ea832762a33994ae0f2600e0da4a43b098519b14cc72a0824b3b4a5b"
+  },
+  {
+    "path": "reports/experiments/raw_results.json",
+    "size": 63557,
+    "sha256": "7e1c77da567c7f5bc70f5a0249d8dc9938fa4ece1aadde759cc8be74533811d8"
+  },
+  {
+    "path": "reports/experiments/summary.md",
+    "size": 17567,
+    "sha256": "bf75b6245aa5da724c58376eed376bf32fcca5106593de652a8bdf485ce97c53"
+  },
+  {
+    "path": "reports/implementation_summary.md",
+    "size": 8986,
+    "sha256": "80758232d724f904699483e58d723b004b22b1e8a93e987404d42de02d8061e9"
+  },
+  {
+    "path": "reports/performance_profile.md",
+    "size": 7655,
+    "sha256": "be769ef0d4fc3e3411dc9206330006af53d9cc256f64f77aeec421af5432a88a"
+  },
+  {
+    "path": "reports/repository_audit.md",
+    "size": 7888,
+    "sha256": "c498a61b4930e63b89136bcfe94a301f7736ecf28faa505f206fe46b1bb5fb8e"
+  },
+  {
+    "path": "tests/hiss_benchmark.cpp",
+    "size": 64697,
+    "sha256": "0a57c5295de391f221f1bff0283320852adacf857385b5d74d8af217fb24ee14"
+  },
+  {
+    "path": "tests/hiss_correctness_test.cpp",
+    "size": 59333,
+    "sha256": "f52a1826937135941ecf7837d3c7fbacc7ed5315ecb0b766d7267ecf17b76614"
+  },
+  {
+    "path": "tests/hiss_writer_smoke.cpp",
+    "size": 5031,
+    "sha256": "f932e3aba057f099c2fb2917794fca6f2678001d5d8b375c157ad143108f2e5e"
+  },
+  {
+    "path": "tests/test_output.txt",
+    "size": 16616,
+    "sha256": "7aac0e8f0b7b790b535502bd965ebc88460ef041182e0a585a1c7e4243c920e5"
+  },
+  {
+    "path": "wiki/_Sidebar.md",
+    "size": 902,
+    "sha256": "39d5e4996003f2886034b18c86dc3f0f8666a69a6a1c9d74811d4b1fa2ffaedb"
+  },
+  {
+    "path": "wiki/HISS-格式规范.md",
+    "size": 4013,
+    "sha256": "ad06c63aac29a8296e8348f5ac5a78b96873165c166a218d57c9b54fb6c01653"
+  },
+  {
+    "path": "wiki/HISS-Container-and-Tiles.md",
+    "size": 2658,
+    "sha256": "850632b74866da9d17d279b4bdb20fc7de791beaffa2a8a4d2d79b70cf8ed62e"
+  },
+  {
+    "path": "wiki/HISS-Metadata.md",
+    "size": 1218,
+    "sha256": "552e00583a24266bf919892bb8a44535746d1daecba02b6ed93d31b20aefb66d"
+  },
+  {
+    "path": "wiki/Home.md",
+    "size": 2915,
+    "sha256": "c3972b93b561a291c0b9e40fd6ca410becd9cff501d871936b170de7e4e84857"
+  },
+  {
+    "path": "wiki/Stage1-待确认事项.md",
+    "size": 3111,
+    "sha256": "1093d5e83b33b53426a95dfe5c6d4ab9316016a6c493865a5cc8ef06f679845c"
+  },
+  {
+    "path": "wiki/Stage1-范围与架构.md",
+    "size": 2441,
+    "sha256": "4465b469af4ce8d239b1ae5013772d9a51c0b2462df4b74672f3efd6101516ed"
+  },
+  {
+    "path": "wiki/Stage1-开发治理.md",
+    "size": 1740,
+    "sha256": "d052f197ad30e8264fc52e9179595f7332ad53dfb1faae99ba7fca8be700271e"
+  },
+  {
+    "path": "wiki/Stage1-校准规范.md",
+    "size": 3559,
+    "sha256": "84673465ec0a77c34c49656c2d3bcc3b7b7e0ccebb69c361f537ac82ac9fb45e"
+  },
+  {
+    "path": "wiki/Stage1-Agent-Execution.md",
+    "size": 2148,
+    "sha256": "4c2ba6d13170a2f27d816da1e66649f9a13646c838dc6f4f69ecfdeb7a62d2b6"
+  },
+  {
+    "path": "wiki/Stage1-Calibration.md",
+    "size": 1594,
+    "sha256": "9ab7b5b451d816347b4d5be3bf59a222ea1747a645198bbed19b233756a74a85"
+  },
+  {
+    "path": "wiki/Stage1-Decision-Status.md",
+    "size": 2656,
+    "sha256": "82a8f1783a37fef6036d564af28cb65c7ced7086a87c2cee54e6040401dccefe"
+  },
+  {
+    "path": "wiki/Stage1-Drizzle规范.md",
+    "size": 3132,
+    "sha256": "d78b9fbad398fa651a3319204d28568ffef7f21f316886742af49ad4dfe48a49"
+  },
+  {
+    "path": "wiki/Stage1-HEALPix-Drizzle.md",
+    "size": 1907,
+    "sha256": "ff696261a59cbeb3f19de27f4d6a0ca21e68b37f6ca6b4796f1c1c39603ffe4a"
+  },
+  {
+    "path": "wiki/Stage1-Photometry-and-SNR.md",
+    "size": 1389,
+    "sha256": "79d11053a831403696d27144f3b1d85d6f7db89aa29253c001ebc8e38303c6c6"
+  },
+  {
+    "path": "wiki/Stage1-Scope-and-Pipeline.md",
+    "size": 1496,
+    "sha256": "081990fa998d0f79b8ce7d389dec0c6524d371dcc8348c39de781f295c10afbf"
+  }
+]

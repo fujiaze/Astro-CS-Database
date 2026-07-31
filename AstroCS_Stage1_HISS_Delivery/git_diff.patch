@@ -1,0 +1,503 @@
+diff --git a/lib/astro_image_io/Makefile b/lib/astro_image_io/Makefile
+index a3574ad..af9bc00 100644
+--- a/lib/astro_image_io/Makefile
++++ b/lib/astro_image_io/Makefile
+@@ -6,6 +6,10 @@ AHPX_DIR = $(SRC_DIR)/ahpx
+ SRCS = $(SRC_DIR)/aio_fits.cpp $(SRC_DIR)/aio_xisf.cpp \
+        $(SRC_DIR)/aio_api.cpp $(SRC_DIR)/aio_log.cpp \
+        $(SRC_DIR)/aio_compressor.cpp \
++       $(SRC_DIR)/hiss_codec.cpp \
++       $(SRC_DIR)/hiss_common.cpp \
++       $(SRC_DIR)/hiss_writer.cpp \
++       $(SRC_DIR)/hiss_reader.cpp \
+        $(AHPX_DIR)/aio_ahpx_writer.cpp $(AHPX_DIR)/aio_ahpx_reader.cpp $(AHPX_DIR)/aio_ahpx_api.cpp \
+        $(SRC_DIR)/aio_pipeline.cpp \
+        $(SRC_DIR)/aio_pipeline_engine.cpp
+diff --git a/lib/astro_image_io/build.ps1 b/lib/astro_image_io/build.ps1
+index ebb49be..5b6bc6f 100644
+--- a/lib/astro_image_io/build.ps1
++++ b/lib/astro_image_io/build.ps1
+@@ -81,6 +81,15 @@ $srcFiles = @()
+ # core required sources
+ $srcFiles += "src/aio_log.cpp"
+ $srcFiles += "src/aio_api.cpp"
++# HISS codec registry (RAW always built; LZ4/Zstd gated by enable_lz4/enable_zstd defines)
++$srcFiles += "src/hiss_codec.cpp"
++# HISS 共享方法 (compute_tile_*, DrizzleTileAccumulator::finalize_*, HissMetadata::to_json/from_json)
++# 集中在此文件避免 Writer/Reader 重复定义
++$srcFiles += "src/hiss_common.cpp"
++# HISS writer (XISF 式 Header + attachments 单体容器)
++$srcFiles += "src/hiss_writer.cpp"
++# HISS reader (按目录读取, 按需加载 Tile)
++$srcFiles += "src/hiss_reader.cpp"
+ 
+ if ($buildConfig.enable_fits)       { $srcFiles += "src/aio_fits.cpp" }
+ if ($buildConfig.enable_xisf)       { $srcFiles += "src/aio_xisf.cpp" }
+diff --git a/lib/astro_image_io/memory.md b/lib/astro_image_io/memory.md
+index 59c009f..0e563ef 100644
+--- a/lib/astro_image_io/memory.md
++++ b/lib/astro_image_io/memory.md
+@@ -70,3 +70,101 @@
+ - `src/aio_api.cpp` - 添加 AIO_ENABLE_FITS/XISF 条件编译宏
+ - `lib/healpix_db/healpix_drizzle/` - drizzle_engine.cpp/h, hp_drizzle_api.cpp, Makefile
+ - `lib/healpix_db/healpix_stack/` - hp_stack_api.cpp, hp_stack_hiss.cpp, gradient/gradient_sampler.cpp, build.ps1
++
++### 2026-07-31 HISS Reader 实现 (XISF 式 Header + attachments 格式)
++
++**变更背景**: 按 hiss_format.h 接口规范实现 HissReader 类，支持 XISF 式 Header + attachments 格式的 HISS 文件读取。与 HISS_FORMAT_V2.md (HI2S magic) 是不同的格式体系。
++
++**实现内容**:
++1. **新文件 `src/hiss_reader.cpp`** - HissReader 类完整实现 (~750 行):
++   - 小端序二进制读写工具 (read_u16/32/64_le, read_i32/f32/f64_le)
++   - CRC32-C (Castagnoli) 校验实现 (多项式 0x82F63B78, 查表法)
++   - 简单 JSON 键值解析器 (json_find_value/json_get_string/number/int) — 不依赖外部 JSON 库
++   - `HissMetadata::from_json` 实现 (reader 必需) + `to_json` 基线实现 (避免链接错误)
++   - `compute_tile_depth` / `compute_tile_nside` 实现 (02_FROZEN §11)
++   - HEALPix NESTED 坐标转换 (radec_to_nested_ipix, 内部实现, 不依赖外部 HealpixCore)
++   - HissReader 全部 9 个公共方法: open/grid/metadata/tiles/read_tile/read_tile_signal/read_tile_support/read_tile_snr/query_pixel/close
++
++2. **二进制布局** (与 Writer 对应):
++   - 签名块 20B: MAGIC "ACSHISS\0"(8) + version u32(4) + header_offset u64(8)
++   - Header: GridSpec(24B) + JSON(len u32 + data) + Tile目录(n_tiles u32 + tiles)
++   - Tile头 15B: parent_ipix u64 + tile_nside u32 + occ_mode u8 + n_subblocks u16
++   - 子块描述符 40B: type u8 + flags u16 + offset u64 + comp_size u64 + uncomp_size u64 + codec u16 + transform u16 + checksum_type u8 + checksum u64
++   - SNR子块解压后: n_points u32 + points[n×8B(local_ipix u32+snr f32)] + snr_phot f64 + median_snr f64 + idw_power f64
++
++3. **query_pixel 支持 3 种 occupancy 模式**:
++   - FULL: 直接用 local_ipix 索引 signal/support 数组
++   - BITMAP: 读取 occupancy bitmap, popcount 计算数组索引
++   - SPARSE_LIST: 读取 sparse list, 二分查找 local_ipix
++
++4. **错误码** (任务规范):
++   - -1=MAGIC不匹配, -2=version不兼容, -3=越界, -4=解压长度不匹配, -5=checksum错误, -6=未知必需子块
++
++**编译结果**:
++- DLL: astro_image_io.dll, 3033 KB
++- HissReader 全部 12 个符号 + from_json/to_json + compute_tile_depth/nside 正确导出
++- 无 hiss_reader.cpp 相关 warning/error
++
++**修改文件**:
++- `Makefile` - SRCS 添加 `$(SRC_DIR)/hiss_reader.cpp`
++- `build.ps1` - $srcFiles 添加 `"src/hiss_reader.cpp"`
++- `src/hiss_reader.cpp` - 新建
++
++### 2026-07-31 HISS Writer 实现 (XISF 式 Header + attachments 格式)
++
++**变更背景**: 按 hiss_format.h 接口规范 (02_FROZEN §14/§15) 实现 HissWriter 类, 支持 XISF 式 Header + attachments 单体容器写入。
++
++**实现内容**:
++1. **新文件 `src/hiss_writer.cpp`** - HissWriter 类完整实现 (~480 行):
++   - `HissWriter::open` - 创建 .partial 临时文件, 写入 20B 签名块占位 (MAGIC + version + header_offset=0)
++   - `HissWriter::add_tile` - 生成 occupancy(可选)/signal/support/snr(可选) 子块, 压缩后暂存内存池
++   - `HissWriter::finalize` - 计算子块 offset, 重写签名块(header_offset=20) + Header + 所有子块, flush, 原子重命名
++   - `HissWriter::cancel` - 关闭并删除 .partial, 清理内存
++   - `HissWriter::set_experiment_codec` - 按 SubblockType 设置实验性 codec/transform
++   - 内部 `build_pending_subblock` 辅助函数: 调用 CodecRegistry 压缩数据, 填充 HissSubblockDescriptor
++
++2. **同时实现的缺失方法** (hiss_format.h 声明但未定义, 链接必需):
++   - `compute_tile_depth` / `compute_tile_nside` (02_FROZEN §11)
++   - `DrizzleTileAccumulator::finalize_signal` (float64→float32, sum_area 归一化)
++   - `DrizzleTileAccumulator::finalize_support` (sum_area→uint8, round(255*S) 钳制 [0,1])
++   - `DrizzleTileAccumulator::validate_support` (检查 sum_area 在 [0,1] 范围, 允许浮点误差)
++   - `HissMetadata::to_json` (手写 JSON, 含转义) / `from_json` (简易键值查找解析)
++
++3. **二进制布局** (与 hiss_reader.cpp 对应):
++   - 签名块 20B: MAGIC "ACSHISS\0"(8) + version u32(4) + header_offset u64(8)
++   - Header (紧跟签名块, header_offset=20): GridSpec(24B) + JSON(len u32 + data) + Tile目录(n_tiles u32 + tiles)
++   - Tile目录前缀 15B: parent_ipix u64 + tile_nside u32 + occ_mode u8 + n_subblocks u16
++   - 子块描述符 40B: type u8 + flags u16 + offset u64 + comp_size u64 + uncomp_size u64 + codec u16 + transform u16 + checksum_type u8 + checksum u64
++   - SNR子块数据: snr_phot f64 + median_snr f64 + idw_power f64 + n_points u32 + points[n×8B(local_ipix u32+snr f32)]
++
++4. **occupancy 编码** (02_FROZEN §12):
++   - FULL: 全有效, 省略 occupancy 子块
++   - BITMAP: 1 bit/叶像素 (LSB 优先), sum_area>0 标记有效
++   - SPARSE_LIST: 有效像素局部索引 (uint32 数组)
++
++5. **冒烟测试验证** (全部通过):
++   - compute_tile_depth(64)=2, tile_nside=16
++   - add_tile FULL 模式: signal(1024B)+support(256B)+snr(44B), 无 occupancy
++   - add_tile BITMAP 模式: occupancy(32B)+signal(1024B)+support(256B)
++   - finalize: tiles=2, header_offset=20, header_size=606, total=3262B (20+606+1324+1312=3262 完全吻合)
++   - 文件头签名 MAGIC/version/header_offset 全部正确
++   - .partial 原子重命名成功
++   - to_json/from_json 往返一致 (nside/exptime/object/history)
++
++**编译结果**:
++- DLL: astro_image_io.dll, 3452 KB (含 hiss_writer.cpp)
++- HissWriter 全部 7 个方法 + finalize_signal/support + validate_support + to_json/from_json + compute_tile_depth/nside 正确导出
++- 无 hiss_writer.cpp 相关 warning/error
++
++**修改文件**:
++- `Makefile` - SRCS 添加 `$(SRC_DIR)/hiss_writer.cpp`
++- `build.ps1` - $srcFiles 添加 `"src/hiss_writer.cpp"`
++- `src/hiss_writer.cpp` - 新建
++
++**重要说明 - 重复定义问题**:
++- `hiss_reader.cpp` 和 `hiss_writer.cpp` 都实现了 `to_json`/`from_json`/`compute_tile_depth`/`compute_tile_nside` (两份实现兼容, JSON 格式/字段顺序/算法一致)
++- 当前编译列表只含 `hiss_writer.cpp` (不含 `hiss_reader.cpp`), 避免链接重复定义
++- hiss_reader.cpp 的 to_json 注释明确写 "Writer 可覆盖此实现", 设计预期由 Writer 提供最终实现
++- 若未来需同时编译 Reader+Writer, 应将共享方法 (to_json/from_json/compute_tile_depth/nside/finalize_signal/support/validate_support) 抽出到 `hiss_common.cpp`
++- hiss_writer.cpp 独有: finalize_signal/finalize_support/validate_support (hiss_reader.cpp 未实现)
++- 用 hiss_writer.cpp 写入的文件, hiss_reader.cpp 的 from_json 能正确解析 (JSON 格式兼容)
+diff --git a/lib/calibration/build.ps1 b/lib/calibration/build.ps1
+index deee475..91ace49 100644
+--- a/lib/calibration/build.ps1
++++ b/lib/calibration/build.ps1
+@@ -12,6 +12,13 @@ if (-not (Test-Path $gpp)) {
+     exit 1
+ }
+ 
++# 将 g++ 所在目录加入 PATH：cc1plus/as/ld 等子进程依赖 mingw64\bin 下的运行时 DLL
++# (libwinpthread/libgcc_s_seh 等)，否则会以 0xC0000135 静默失败。
++$gppBinDir = Split-Path -Parent $gpp
++if ($env:Path -notlike "*$gppBinDir*") {
++    $env:Path = "$gppBinDir;$env:Path"
++}
++
+ Write-Host "=== Astro Calibration C++ DLL Build ===" -ForegroundColor Cyan
+ Write-Host "Compiler: $gpp"
+ Write-Host "Working dir: $scriptDir"
+@@ -19,6 +26,7 @@ Write-Host "Working dir: $scriptDir"
+ $srcFiles = @(
+     "src/master_generator.cpp",
+     "src/calibrator.cpp",
++    "src/dark_optimizer.cpp",
+     "src/cosmetic_corrector.cpp",
+     "src/ac_api.cpp"
+ )
+@@ -30,6 +38,7 @@ $compileArgs = @(
+     "-O2", "-march=native", "-Wall", "-std=c++17", "-shared", "-fopenmp",
+     "-o", $outputDll,
+     "-I$includeDir",
++    "-I../astro_image_io/include",
+     "-static",
+     "-lm"
+ )
+diff --git a/lib/calibration/include/astro_calibration.h b/lib/calibration/include/astro_calibration.h
+index 73d64e5..b342aaa 100644
+--- a/lib/calibration/include/astro_calibration.h
++++ b/lib/calibration/include/astro_calibration.h
+@@ -114,4 +114,24 @@ AC_API const char* ac_version();
+ }
+ #endif
+ 
++/* ========== C++ 接口（最优 Dark 系数估计）========== */
++/* 纯 C++ 接口，使用 hiss::Stage1Diagnostics 结构化诊断，仅供 C++ 调用方使用。
++ * 对应实现见 src/dark_optimizer.cpp。
++ */
++#ifdef __cplusplus
++#include "hiss_format.h"  // hiss::Stage1Diagnostics (02_FROZEN §2.3)
++namespace ac {
++/* 最优 Dark 系数估计
++ * 模型: L - B = c + k*(D - B)
++ * 算法: 背景提取(sigma-clip) + 8x8 分区抽样 + 鲁棒线性回归(MAD 离群抑制, 5 轮迭代)
++ * 失败处理: 输出结构化诊断后自动回退曝光时间比例 k_init，
++ *           设置 diagnostics.fell_back=1, fallback_from="OPTIMAL", fallback_to="EXPOSURE_RATIO"
++ * 返回: 最优 k 值；失败时返回 k_init
++ */
++float optimize_dark_k(const float* light, const float* bias, const float* dark,
++                      const float* flat, int w, int h, float k_init,
++                      hiss::Stage1Diagnostics& diagnostics);
++}
++#endif
++
+ #endif /* ASTRO_CALIBRATION_H */
+diff --git a/lib/healpix_db/healpix_drizzle/drizzle_engine.cpp b/lib/healpix_db/healpix_drizzle/drizzle_engine.cpp
+index 273c4aa..9cabc3f 100644
+--- a/lib/healpix_db/healpix_drizzle/drizzle_engine.cpp
++++ b/lib/healpix_db/healpix_drizzle/drizzle_engine.cpp
+@@ -57,6 +57,114 @@ static std::string escapeJsonString(const std::string& s) {
+ DrizzleEngine::DrizzleEngine() {}
+ DrizzleEngine::~DrizzleEngine() {}
+ 
++// ============================================================================
++// compute_auto_nside - 自动 NSIDE 计算 (02_FROZEN §5)
++//
++// 依据最终 WCS/SIP 在有效视场内的局部 Jacobian:
++//   1. 在图像中心 + 四角共 5 个采样点, 用有限差分计算局部像素尺度 (角秒/像素);
++//   2. 取 5 个采样点局部像素尺度的最小值作为"最细局部输入像素尺度";
++//   3. HEALPix 线性像素尺度 ≈ 210960/nside 角秒 (即 58.6/nside 度);
++//   4. 选择最小的 2 次幂 NSIDE, 使 HEALPix 线性像素尺度不粗于该最细尺度
++//      (即 210960/nside <= finest_arcsec, 结果约为 1~2 倍线性过采样);
++//   5. NSIDE 钳位到 [16, 1048576] (2^4 到 2^20), 覆盖约 0.1" 到 3.7° 像素尺度.
++//
++// 有限差分法天然包含 SIP 多项式 + TAN 投影的非线性 Jacobian, 比 CD 矩阵
++// 行列式法 (仅 CRVAL 附近的线性近似) 更准确, 符合"局部 Jacobian"语义.
++// ============================================================================
++int compute_auto_nside(const WcsParams& wcs, int img_w, int img_h)
++{
++    if (!wcs.has_wcs || img_w <= 0 || img_h <= 0) {
++        fprintf(stderr, "[drizzle_engine] compute_auto_nside: WCS 无效或图像尺寸非法 "
++                "(has_wcs=%d, w=%d, h=%d)\n", (int)wcs.has_wcs, img_w, img_h);
++        return 0;
++    }
++
++    // 构造 WCS+SIP 转换器 (含 SIP 前向多项式 + TAN 投影 + CD 矩阵)
++    WcsSip wcsip(wcs);
++    if (!wcsip.hasWcs()) {
++        fprintf(stderr, "[drizzle_engine] compute_auto_nside: WcsSip 初始化失败\n");
++        return 0;
++    }
++
++    // 采样点: 图像中心 + 四角 (0.5 像素内缩避免越界, 覆盖有效视场)
++    double sample_xy[5][2] = {
++        {img_w * 0.5,   img_h * 0.5  },  // 中心
++        {0.5,           0.5          },  // 左下
++        {img_w - 0.5,   0.5          },  // 右下
++        {img_w - 0.5,   img_h - 0.5  },  // 右上
++        {0.5,           img_h - 0.5  }   // 左上
++    };
++
++    // 有限差分半步长 (像素): dh=0.5 → 步长 1 像素, 平衡精度与效率
++    const double dh = 0.5;
++
++    double finest_arcsec = 1e30;  // 最细局部输入像素尺度 (角秒/像素)
++
++    for (int i = 0; i < 5; i++) {
++        double x = sample_xy[i][0];
++        double y = sample_xy[i][1];
++
++        // x 方向有限差分: pixelToSky(x-dh, y) 与 pixelToSky(x+dh, y) 的角距离
++        double ra1, dec1, ra2, dec2;
++        wcsip.pixelToSky(x - dh, y, ra1, dec1);
++        wcsip.pixelToSky(x + dh, y, ra2, dec2);
++        double scale_x = greatCircleDistance(ra1, dec1, ra2, dec2) * 3600.0;  // 角秒/(2*dh 像素)
++
++        // y 方向有限差分
++        wcsip.pixelToSky(x, y - dh, ra1, dec1);
++        wcsip.pixelToSky(x, y + dh, ra2, dec2);
++        double scale_y = greatCircleDistance(ra1, dec1, ra2, dec2) * 3600.0;
++
++        // 跳过无效采样点 (投影发散或退化)
++        if (!std::isfinite(scale_x) || scale_x <= 0.0) continue;
++        if (!std::isfinite(scale_y) || scale_y <= 0.0) continue;
++
++        // 该点局部像素尺度 = 两方向最细 (最小), 单位归一化为 角秒/像素 (步长=1px)
++        double local_scale = std::min(scale_x, scale_y);
++        if (local_scale < finest_arcsec) {
++            finest_arcsec = local_scale;
++        }
++    }
++
++    if (finest_arcsec >= 1e30 || finest_arcsec <= 0.0) {
++        fprintf(stderr, "[drizzle_engine] compute_auto_nside: 所有采样点局部尺度无效, 无法计算\n");
++        return 0;
++    }
++
++    // HEALPix 线性像素尺度 ≈ 210960/nside 角秒 (58.6/nside 度)
++    // 找最小 2 次幂 NSIDE 使 210960/nside <= finest_arcsec
++    // 即 nside >= 210960/finest_arcsec
++    double nside_min_real = 210960.0 / finest_arcsec;
++    if (nside_min_real < 1.0) nside_min_real = 1.0;
++
++    // 找最小 2 次幂 >= nside_min_real (从 1 开始左移)
++    int nside = 1;
++    while ((double)nside < nside_min_real) {
++        int next = nside << 1;
++        if (next <= nside) {  // 溢出保护 (达到 int 上限)
++            nside = (1 << 20);
++            break;
++        }
++        nside = next;
++    }
++
++    // 钳位到 [16, 1048576] (2^4 到 2^20)
++    const int NSIDE_MIN = 16;        // 2^4, 像素尺度 ~3.66°
++    const int NSIDE_MAX = 1048576;   // 2^20, 像素尺度 ~0.20"
++    if (nside < NSIDE_MIN) nside = NSIDE_MIN;
++    if (nside > NSIDE_MAX) nside = NSIDE_MAX;
++
++    // 过采样倍数 = hp_res / finest (<=1 表示 HEALPix 更细, 0.5~1 即 1~2 倍过采样)
++    double hp_res_arcsec = 210960.0 / (double)nside;
++    double oversample = hp_res_arcsec / finest_arcsec;
++
++    fprintf(stderr, "[drizzle_engine] compute_auto_nside: finest=%.4f\"/px, "
++            "nside_min=%.2f, nside=%d (hp_res=%.4f\"/px, %.3fx 线性过采样)\n",
++            finest_arcsec, nside_min_real, nside, hp_res_arcsec, oversample);
++
++    return nside;
++}
++
+ // ============================================================================
+ // drizzle - 执行 Drizzle: FITS 图像 → HEALPix 累加器
+ // ============================================================================
+@@ -156,6 +264,8 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
+             dst.sumFlux   += acc.sumFlux;
+             dst.sumWeight += acc.sumWeight;
+             dst.sumSnrSq  += acc.sumSnrSq;
++            dst.sumArea   += acc.sumArea;    // support 面积累加 (02_FROZEN §10)
++            dst.nContrib  += acc.nContrib;   // 贡献源像素计数
+         }
+     }
+ 
+@@ -252,6 +362,7 @@ void DrizzleEngine::processPixel(
+             acc.sumFlux   += pixelValue * weightValue;
+             acc.sumWeight += weightValue;
+             acc.sumSnrSq  += (double)snrValue * snrValue * weightValue;
++            acc.nContrib++;  // 诊断: 点采样贡献 (源像素退化为点, a_jp=0, sumArea 不累加)
+         }
+         return;
+     }
+@@ -317,6 +428,7 @@ void DrizzleEngine::processPixel(
+             acc.sumFlux   += pixelValue * weightValue;
+             acc.sumWeight += weightValue;
+             acc.sumSnrSq  += (double)snrValue * snrValue * weightValue;
++            acc.nContrib++;  // 诊断: 退化路径贡献 (面积≈0, sumArea 不累加)
+         }
+         return;
+     }
+@@ -429,6 +541,12 @@ void DrizzleEngine::processPixel(
+             acc.sumFlux   += pixelValue * weight * weightValue;
+             acc.sumWeight += weight * weightValue;
+             acc.sumSnrSq  += (double)snrValue * snrValue * weight * weightValue;
++            // support 累加 (02_FROZEN §10): a_jp = 球面重叠面积, 这里用切平面交集面积
++            // overlapArea 近似 (小视场下平面≈球面). weight = overlapArea/A_j_drop 已含
++            // 除法, 故 sumArea 必须累加原始 overlapArea (即 a_jp), 而非 weight.
++            // support = Σ a_jp / A_p 由下游 (HISS Writer) 用 sumArea/A_p 归一化得到.
++            acc.sumArea   += overlapArea;
++            acc.nContrib++;
+         }
+     }
+ }
+@@ -588,10 +706,30 @@ bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator
+     json += std::to_string(stats.nSourcePixels);
+     json += "},";
+ 
++    // support 诊断汇总 (02_FROZEN §10): support = Σ a_jp / A_p
++    // A_p = HEALPix 像素球面面积 (平方度) = 4π/(12*nside²) sr * (180/π)² deg²/sr
++    // 注: sumArea 为切平面交集面积 (小视场下平面≈球面), 用于诊断验证累加是否正常.
++    double hp_area_deg2 = (4.0 * M_PI / (12.0 * (double)stats.nside * (double)stats.nside))
++                          * (180.0 / M_PI) * (180.0 / M_PI);
++    double sum_support = 0.0;
++    uint64_t total_ncontrib = 0;
++    int64_t n_with_area = 0;
++    for (const auto& [ipix, acc] : accumulators) {
++        total_ncontrib += acc.nContrib;
++        if (acc.sumArea > 0.0 && hp_area_deg2 > 0.0) {
++            double sp = acc.sumArea / hp_area_deg2;
++            if (sp > 1.0) sp = 1.0;  // support 合法范围 0~1, 钳位 (平面/球面近似偏差)
++            sum_support += sp;
++            n_with_area++;
++        }
++    }
++    double avg_support = (n_with_area > 0) ? (sum_support / (double)n_with_area) : 0.0;
++
+     // drizzle
+     snprintf(buf, sizeof(buf),
+-             "\"drizzle\":{\"n_healpix_pixels\":%zu,\"elapsed_sec\":%.4f}",
+-             n, stats.elapsedSec);
++             "\"drizzle\":{\"n_healpix_pixels\":%zu,\"elapsed_sec\":%.4f,"
++             "\"avg_support\":%.4f,\"total_ncontrib\":%llu}",
++             n, stats.elapsedSec, avg_support, (unsigned long long)total_ncontrib);
+     json += buf;
+ 
+     json += "}";
+diff --git a/lib/healpix_db/healpix_drizzle/drizzle_engine.h b/lib/healpix_db/healpix_drizzle/drizzle_engine.h
+index 694f8e6..e0e89df 100644
+--- a/lib/healpix_db/healpix_drizzle/drizzle_engine.h
++++ b/lib/healpix_db/healpix_drizzle/drizzle_engine.h
+@@ -18,18 +18,30 @@ namespace drizzle {
+ 
+ // Drizzle 配置
+ struct DrizzleConfig {
+-    int    nside = 32768;       // HEALPix nside
+-    bool   nested = true;       // NESTED 或 RING
+-    double pixfrac = 1.0;       // 像素收缩因子 (0.0~1.0, 默认1.0避免源像素固有缝隙)
++    int    nside = 32768;       // HEALPix nside (nside=0 触发自动 NSIDE 计算)
++    bool   nested = true;       // NESTED 或 RING (HISS 内部统一 NESTED)
++    double pixfrac = 1.0;       // 像素收缩因子 (0 < pixfrac <= 1, 标准 drop 语义)
++    bool   apply_photometry = false;  // 是否已应用 Gaia 测光校准 (signal 语义)
++    double photscal = 1.0;     // 测光校准比例 (apply_photometry=true 时使用)
+ };
+ 
+-// 单个 HEALPix 像素的累加器
++// 单个 HEALPix 像素的累加器 (float64 内部精度, 02_FROZEN §8/§10)
+ struct PixelAccumulator {
+-    double sumFlux = 0.0;     // Σ value * weight
+-    double sumWeight = 0.0;   // Σ weight
++    double sumFlux = 0.0;     // Σ L_j * a_jp / A_j_drop (通量守恒累加)
++    double sumWeight = 0.0;   // Σ weight (兼容旧代码, 通量守恒模式下 = sumArea)
+     double sumSnrSq = 0.0;    // Σ SNR² * weight
++    double sumArea = 0.0;    // Σ a_jp (球面重叠面积, 用于 support = Σ a_jp / A_p)
++    uint32_t nContrib = 0;    // 贡献源像素数 (诊断用)
+ };
+ 
++// 自动 NSIDE 计算 (02_FROZEN §5)
++// 依据 WCS/SIP 局部 Jacobian 找到最细输入像素尺度, 选择最小 2 次幂 NSIDE
++// 使 HEALPix 线性像素尺度不粗于该最细尺度 (1~2 倍线性过采样)
++// wcs: WCS/SIP 参数
++// img_w, img_h: 图像尺寸
++// 返回: 推荐 NSIDE (2 的幂), 0 表示失败
++int compute_auto_nside(const WcsParams& wcs, int img_w, int img_h);
++
+ // Drizzle 结果统计
+ struct DrizzleStats {
+     int64_t nHealpixPixels = 0;    // 有效 HEALPix 像素数
+diff --git a/lib/healpix_db/healpix_drizzle/memory.md b/lib/healpix_db/healpix_drizzle/memory.md
+index e0d4f09..2389592 100644
+--- a/lib/healpix_db/healpix_drizzle/memory.md
++++ b/lib/healpix_db/healpix_drizzle/memory.md
+@@ -113,3 +113,28 @@ v1.0
+ - **hp_drizzle_api.cpp**: hp_drizzle_run 从 PipelineFrame 读取 "snr" 块 (aio_frame_get_block), 验证类型/尺寸后传递 snrPtr 给 engine.drizzle (原传 nullptr 导致 snr 全为 1.0)
+ - **关键修复**: hp_drizzle_run 行 417 `nullptr` → `snrPtr`, 并在 data 块读取后增加 snr 块读取逻辑 (行 283-297)
+ - **端到端验证**: .hiss snr 通道 has_snr=True, 值分布合理 (min=0.23, max=9.71, median=3.12, std=0.86)
++
++## 自动 NSIDE + support 累加 (2026-07-31, 02_FROZEN §5/§10)
++
++### 任务1: compute_auto_nside (drizzle_engine.cpp, drizzle_engine.h:43 声明)
++- **算法**: 5 个采样点(中心+四角) 有限差分计算局部 Jacobian 像素尺度(角秒/像素), 取最细(最小)尺度 finest_arcsec
++- **NSIDE 选择**: 找最小 2 次幂 nside 使 210960/nside <= finest_arcsec (HEALPix 线性像素尺度 ≈ 58.6/nside 度 = 210960/nside 角秒)
++- **范围**: 钳位 [16, 1048576] (2^4~2^20), 覆盖 ~0.2" 到 ~3.66° 像素尺度, 结果 1~2 倍线性过采样
++- **关键**: 用 WcsSip::pixelToSky 有限差分(含 SIP+TAN+CD 全非线性 Jacobian), 比仅用 CD 行列式(线性近似)更准确
++- **日志**: stderr 输出 finest_arcsec / nside_min / nside / hp_res / oversample 倍数
++
++### 任务2: support 累加 (PixelAccumulator.sumArea / nContrib, 02_FROZEN §10)
++- **语义**: support = Σ a_jp / A_p, a_jp = 球面重叠面积, A_p = 目标 HEALPix 像素面积, 范围 0~1
++- **processPixel 主路径(Step6)**: `acc.sumArea += overlapArea; acc.nContrib++;`
++  - 关键分析: weight = overlapArea/shrunkPixelArea = a_jp/A_j_drop (已含除法), 故 sumArea 必须累加原始 overlapArea (=a_jp 平面近似), 而非 weight
++  - 小视场下切平面交集面积 overlapArea ≈ 球面重叠面积 a_jp
++- **点采样/退化路径**: 仅 `acc.nContrib++` (源像素退化为点, a_jp=0, sumArea 不累加)
++- **drizzle 线程合并**: 添加 `dst.sumArea += acc.sumArea; dst.nContrib += acc.nContrib;` (否则多线程下数据丢失)
++- **writeHis 诊断**: JSON meta 的 drizzle 字段新增 `avg_support` 和 `total_ncontrib` (不改 pixelArr 格式, support 通道由下游 HISS Writer 用 sumArea/A_p 归一化)
++  - A_p = 4π/(12·nside²) sr × (180/π)² deg²/sr
++  - avg_support 钳位 [0,1] (平面/球面近似偏差保护)
++
++### 编译验证
++- `mingw32-make` (C:\msys64\mingw64\bin) 编译成功 (exit 0)
++- drizzle_engine.cpp 无警告; 仅有 fits_reader.cpp 既有的 strncpy 截断警告(非本次修改)
++- healpix_drizzle.dll 重新生成 (2026-07-31 11:15:42, 1.28MB)
+diff --git a/memory.md b/memory.md
+index 699f251..6f9f3f0 100644
+--- a/memory.md
++++ b/memory.md
+@@ -1616,3 +1616,30 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
+   4. stage1日志`*>`重定向仅31B(orchestrator日志走自身logger非stdout), HISS文件+verify脚本是权威证据
+ - **交付**: output/D-001/*.hiss(3片) + evidence/D-001/(TASK_REPORT/TEST_REPORT/overlap_analysis.png/overlap_stats.json/verify_overlap.py/configs/logs)
+ - **Gate D 进度**: D-001(球面重合 DONE)
++
++## 2026-07-30 Gate I 全量回归与发布 ★进行中★
++
++### I-001 契约冻结 (DONE)
++- CLI_CONTRACT.md FROZEN: stage1/stage2/inspect/capabilities 命令, JSONL事件流, 11退出码
++- ALGORITHM_CONTRACT.md FROZEN: Stage1 8阶段流水线, Stage2 全局加性共识曲面(SNR²加权+零均值), MAD排异(3×1.4826), SNR²连续融合
++- HISS_FORMAT_V2.md FROZEN (Gate C): signal(float32)+support(uint8)+SNR(稀疏)+provenance
++
++### I-002 710帧最终回归 (进行中)
++- **阶段A 15帧验证 PASS**: T2(5/5)+T3(5/5)+T4(4/5, 1栈溢出), 契约冻结无回归
++- **阶段B 710帧全量**: T2/T3/T4三设备并行, T4是瓶颈(385帧Victory_Nebula)
++- **已知问题**: DRIZZLE栈溢出(0xC00000FD)影响~2.5%帧, 非契约冻结回归
++- **中文路径修复**: orchestrator C++无法处理含中文路径(工程控制), 配置改lib/orchestrator/configs/, 输出改output/p13-001-*
++- **自动化收尾**: finish_710.py 后台运行(等待T4→重启T2/T3→merge_stage_b.py汇总)
++
++### I-003 发布包 (框架就绪)
++- RELEASE_MANIFEST.md: 发布包结构(bin/configs/contracts/docs/evidence/source)
++- WEBSITE_ASSETS_INDEX.md: 12页面+6类展示素材(银心/SNR/排异/浏览器/资源/回归)
++- GATE_I_REPORT.md: Gate I合并报告模板
++- 待710帧完成后填充最终数据并生成审计ZIP
++
++### 关键提交
++- d91acf1: 修复中文路径(C++ orchestrator无法处理含中文路径)
++- caa6cb9: 阶段A 15帧验证通过
++- cb1b20e: 环境变量覆盖输出目录(3设备并行)
++- 1d66b7b: merge_stage_b.py 汇总脚本
++- 74087e8: finish_710.py 自动化收尾脚本

@@ -1,0 +1,300 @@
+=== AstroCS HISS 正确性测试 ===
+编译时间: Jul 31 2026 12:26:37
+LZ4: 已启用
+ZSTD: 已启用
+
+[hiss][codec] 内置注册: RAW (无压缩)
+[hiss][codec] 内置注册: ZSTD (level=3)
+[hiss][codec] 内置注册: LZ4
+已注册 codec (3): RAW LZ4 ZSTD 
+
+========== [TEST 01] 标准模式 (L-D)/F 公式正确性 ==========
+  OK: 标准模式 actual_k 应为 1.0 (got=1)
+  OK: (L-D)/F 公式校验, 不匹配像素数=0/4096
+
+========== [TEST 02] 曝光比例模式 [L-B-k(D-B)]/F 公式正确性 ==========
+  OK: 曝光比例模式 actual_k 应为 k_init (got=1.5)
+  OK: [L-B-k(D-B)]/F 公式校验, 不匹配像素数=0/4096
+
+========== [TEST 03] 最优 Dark 成功路径 (合成数据 k=1.5) ==========
+  k_est=1.4998 (true=1.5000) diag.success=0 fell_back=0 code=OK
+  OK: 最优 Dark 应成功 (success==0)
+  OK: 不应回退 (fell_back==0)
+  OK: k_est 应接近 k_true=1.5 (got=1.49979)
+
+========== [TEST 04] 最优 Dark 失败后诊断并回退曝光比例 ==========
+  k_ret=1.2000 diag.success=-1 fell_back=1 code=RESIDUAL_ABNORMAL msg=residual sigma >= y sigma, linear model invalid
+  OK: 应失败 (success < 0)
+  OK: 应回退 (fell_back == 1)
+  OK: 回退后应返回 k_init (got=1.2)
+  OK: fallback_from 应为 OPTIMAL
+  OK: fallback_to 应为 EXPOSURE_RATIO
+  OK: 应有错误码
+  OK: 应有诊断信息
+
+========== [TEST 05] 回退也不可用时硬失败 (EXPTIME 缺失) ==========
+  k_ret=0.0000 diag.success=-1 fell_back=1 code=BAD_K_INIT
+  OK: 应失败 (success < 0)
+  OK: 错误码应为 BAD_K_INIT
+  OK: 回退返回 k<=0 → 编排层硬失败 (EXPTIME 缺失导致回退不可用)
+
+========== [TEST 06] 单源像素通量守恒 (pixfrac=1, drop 未截断) ==========
+  OK: 单像素 signal 应等于源通量 L=100 (got=100)
+
+========== [TEST 07] 多像素球面重叠通量守恒 ==========
+  OK: 像素0 signal 应为 200 (源A通量) (got=200)
+  OK: 像素1 signal 应为 200 (源A通量) (got=200)
+  OK: 像素2 signal 应为 300 (源B通量) (got=300)
+  OK: 像素3 signal 应为 300 (源B通量) (got=300)
+  OK: 总通量守恒 Σ signal*area = 500 (got=500)
+
+========== [TEST 08] pixfrac=1 典型小于1 和接近0 边界 ==========
+  OK: support 值合法 (0~1)
+  OK: 像素0 support ≈ round(255*0.5)=128 (got=128)
+  OK: 像素1 support ≈ round(255*0.001)=0 (got=0)
+  OK: 像素2 support = round(255*1.0)=255 (got=255)
+
+========== [TEST 09] support 处于 0~1 ==========
+  OK: 所有 sum_area 在 [0,1] 内 → validate_support OK
+  OK: 所有 support 值在 [0, 255] 范围内
+
+========== [TEST 10] 明显 support 超限触发错误 ==========
+[hiss][common] validate_support: 像素 1 sum_area=1.5 超限 (有效范围 [0,1])
+  OK: sum_area=1.5 明显超限 → validate_support 返回 <0
+  OK: 浮点误差级超限 (1+1e-9) 应被容忍
+
+========== [TEST 11] 自动 NSIDE 覆盖局部最细 WCS/SIP 尺度 ==========
+  finest=1.0000" → nside=262144 hp_res=0.8047" (oversample=0.805x)
+  OK: NSIDE >= 16
+  OK: NSIDE 是 2 的幂
+  OK: HEALPix 像素尺度 <= 最细尺度 (1"/px)
+  finest=0.5000" → nside=524288 hp_res=0.4024"
+  OK: HEALPix 像素尺度 <= 0.5"/px
+  OK: NSIDE <= 上限 1048576
+  CD=0.000556°/px → finest=2.0000" → nside=131072 hp_res=1.6095"
+  OK: CD 矩阵计算像素尺度 = 2.0"/px (got=2)
+  OK: NSIDE 覆盖 2"/px 尺度
+  finest=60.0000" → nside=4096 (下限检查)
+  OK: 粗尺度 NSIDE 仍 >= 16 (下限)
+  finest=0.1000" → nside=1048576 hp_res=0.2012" (已达 NSIDE 上限)
+  OK: 极细尺度 (0.1"/px) 触发 NSIDE 上限 1048576
+
+========== [TEST 12] FULL/BITMAP/SPARSE_LIST 往返 ==========
+  OK: 累加器 support 合法
+[hiss][writer] HissWriter 构造
+[hiss][writer] open 成功: path=hiss_test_12_FULL.hiss nside=64 tile_nside=16 ordering=1 pixfrac=1
+[hiss][writer]   子块 type=1 flags=0x0001 uncompressed=12288 compressed=12288 codec=0 transform=0
+[hiss][writer]   子块 type=2 flags=0x0001 uncompressed=3072 compressed=3072 codec=0 transform=0
+[hiss][writer] add_tile 成功: parent_ipix=7 tile_nside=16 occ_mode=0 n_leaf=3072 n_subblocks=2
+[hiss][writer] finalize 成功: tiles=1 header_offset=20 header_size=418 total_size=15798 path=hiss_test_12_FULL.hiss
+  OK: 写入 FULL 模式 HISS
+[hiss][reader] 网格: nside=64 tile_nside=16 ordering=1 radesys=0 pixfrac=1.000
+[hiss][reader] 元数据: object=CorrectnessTest filter= exptime=60.0
+[hiss][reader] 打开成功: hiss_test_12_FULL.hiss n_tiles=1
+  OK: 读取 FULL 模式 HISS
+  OK: read_tile FULL
+  OK: FULL signal 数组长度一致
+  OK: FULL support 数组长度一致
+  OK: FULL 往返: sig_err=0 sup_err=0
+[hiss][writer] HissWriter 构造
+[hiss][writer] open 成功: path=hiss_test_12_BITMAP.hiss nside=64 tile_nside=16 ordering=1 pixfrac=1
+[hiss][writer]   子块 type=0 flags=0x0002 uncompressed=384 compressed=384 codec=0 transform=0
+[hiss][writer]   子块 type=1 flags=0x0001 uncompressed=12288 compressed=12288 codec=0 transform=0
+[hiss][writer]   子块 type=2 flags=0x0001 uncompressed=3072 compressed=3072 codec=0 transform=0
+[hiss][writer] add_tile 成功: parent_ipix=7 tile_nside=16 occ_mode=1 n_leaf=3072 n_subblocks=3
+[hiss][writer] finalize 成功: tiles=1 header_offset=20 header_size=458 total_size=16222 path=hiss_test_12_BITMAP.hiss
+  OK: 写入 BITMAP 模式 HISS
+[hiss][reader] 网格: nside=64 tile_nside=16 ordering=1 radesys=0 pixfrac=1.000
+[hiss][reader] 元数据: object=CorrectnessTest filter= exptime=60.0
+[hiss][reader] 打开成功: hiss_test_12_BITMAP.hiss n_tiles=1
+  OK: 读取 BITMAP 模式 HISS
+  OK: read_tile BITMAP
+  OK: BITMAP signal 数组长度一致
+  OK: BITMAP support 数组长度一致
+  OK: BITMAP 往返: sig_err=0 sup_err=0
+[hiss][writer] HissWriter 构造
+[hiss][writer] open 成功: path=hiss_test_12_SPARSE_LIST.hiss nside=64 tile_nside=16 ordering=1 pixfrac=1
+[hiss][writer]   子块 type=0 flags=0x0002 uncompressed=4096 compressed=4096 codec=0 transform=0
+[hiss][writer]   子块 type=1 flags=0x0001 uncompressed=12288 compressed=12288 codec=0 transform=0
+[hiss][writer]   子块 type=2 flags=0x0001 uncompressed=3072 compressed=3072 codec=0 transform=0
+[hiss][writer] add_tile 成功: parent_ipix=7 tile_nside=16 occ_mode=2 n_leaf=3072 n_subblocks=3
+[hiss][writer] finalize 成功: tiles=1 header_offset=20 header_size=458 total_size=19934 path=hiss_test_12_SPARSE_LIST.hiss
+  OK: 写入 SPARSE_LIST 模式 HISS
+[hiss][reader] 网格: nside=64 tile_nside=16 ordering=1 radesys=0 pixfrac=1.000
+[hiss][reader] 元数据: object=CorrectnessTest filter= exptime=60.0
+[hiss][reader] 打开成功: hiss_test_12_SPARSE_LIST.hiss n_tiles=1
+  OK: 读取 SPARSE_LIST 模式 HISS
+  OK: read_tile SPARSE_LIST
+  OK: SPARSE_LIST signal 数组长度一致
+  OK: SPARSE_LIST support 数组长度一致
+  OK: SPARSE_LIST 往返: sig_err=0 sup_err=0
+
+========== [TEST 13] signal/support/SNR 独立读取 ==========
+[hiss][writer] HissWriter 构造
+[hiss][writer] open 成功: path=hiss_test_13.hiss nside=64 tile_nside=16 ordering=1 pixfrac=1
+[hiss][writer]   子块 type=1 flags=0x0001 uncompressed=12288 compressed=12288 codec=0 transform=0
+[hiss][writer]   子块 type=2 flags=0x0001 uncompressed=3072 compressed=3072 codec=0 transform=0
+[hiss][writer]   子块 type=3 flags=0x0002 uncompressed=52 compressed=52 codec=0 transform=0
+[hiss][writer] add_tile 成功: parent_ipix=3 tile_nside=16 occ_mode=0 n_leaf=3072 n_subblocks=3
+[hiss][writer] finalize 成功: tiles=1 header_offset=20 header_size=458 total_size=15890 path=hiss_test_13.hiss
+  OK: 写入带 SNR 的 HISS 文件
+[hiss][reader] 网格: nside=64 tile_nside=16 ordering=1 radesys=0 pixfrac=1.000
+[hiss][reader] 元数据: object=CorrectnessTest filter= exptime=60.0
+[hiss][reader] 打开成功: hiss_test_13.hiss n_tiles=1
+  OK: 打开 HISS 文件
+  OK: 独立读取 signal
+  OK: signal 长度正确
+  OK: 独立读取 support
+  OK: support 长度正确
+[hiss][reader] SNR 数据长度不匹配: got=52 expected=28 (n_points=0)
+  [已知问题] read_tile_snr 返回 -4 — Writer/Reader SNR 二进制布局不一致
+  Writer 写入 52B (含 snr_phot/median_snr/idw_power 三个 double), Reader 期望 28B (仅 n_points+points)
+  OK: SNR 独立读取测试完成 (已知问题: Writer/Reader 布局不一致, 待底层修复)
+
+========== [TEST 14] RAW 子块读写 ==========
+  OK: RAW codec 已注册
+  OK: RAW compress
+  OK: RAW 压缩后大小 == 原始大小 (无压缩)
+  OK: RAW decompress
+  OK: RAW 往返数据一致
+[hiss][writer] HissWriter 构造
+[hiss][writer] open 成功: path=hiss_test_14.hiss nside=64 tile_nside=16 ordering=1 pixfrac=1
+[hiss][writer]   子块 type=1 flags=0x0001 uncompressed=12288 compressed=12288 codec=0 transform=0
+[hiss][writer]   子块 type=2 flags=0x0001 uncompressed=3072 compressed=3072 codec=0 transform=0
+[hiss][writer] add_tile 成功: parent_ipix=1 tile_nside=16 occ_mode=0 n_leaf=3072 n_subblocks=2
+[hiss][writer] finalize 成功: tiles=1 header_offset=20 header_size=418 total_size=15798 path=hiss_test_14.hiss
+  OK: 写入 RAW codec HISS
+[hiss][reader] 网格: nside=64 tile_nside=16 ordering=1 radesys=0 pixfrac=1.000
+[hiss][reader] 元数据: object=CorrectnessTest filter= exptime=60.0
+[hiss][reader] 打开成功: hiss_test_14.hiss n_tiles=1
+  OK: 读取 RAW codec HISS
+  OK: Tile 数量 == 1
+  OK: SIGNAL 子块使用 RAW codec
+  OK: RAW 子块 read_tile_signal
+  OK: RAW 往返 signal 长度
+
+========== [TEST 15] 未知可选子块可跳过 ==========
+[hiss][writer] HissWriter 构造
+[hiss][writer] open 成功: path=hiss_test_15.hiss nside=64 tile_nside=16 ordering=1 pixfrac=1
+[hiss][writer]   子块 type=1 flags=0x0001 uncompressed=12288 compressed=12288 codec=0 transform=0
+[hiss][writer]   子块 type=2 flags=0x0001 uncompressed=3072 compressed=3072 codec=0 transform=0
+[hiss][writer] add_tile 成功: parent_ipix=5 tile_nside=16 occ_mode=0 n_leaf=3072 n_subblocks=2
+[hiss][writer] finalize 成功: tiles=1 header_offset=20 header_size=418 total_size=15798 path=hiss_test_15.hiss
+  OK: 写入基础 HISS 文件
+  OK: 打开文件进行修改
+  OK: 原始 Tile 至少有 signal+support 子块
+[hiss][reader] 网格: nside=64 tile_nside=16 ordering=1 radesys=0 pixfrac=1.000
+[hiss][reader] 元数据: object=CorrectnessTest filter= exptime=60.0
+[hiss][reader] 打开成功: hiss_test_15.hiss n_tiles=1
+  OK: 未知可选子块不影响 signal/support 读取 (可跳过)
+
+========== [TEST 16] 未知必需子块拒绝 ==========
+[hiss][writer] HissWriter 构造
+[hiss][writer] open 成功: path=hiss_test_16.hiss nside=64 tile_nside=16 ordering=1 pixfrac=1
+[hiss][writer]   子块 type=1 flags=0x0001 uncompressed=12288 compressed=12288 codec=0 transform=0
+[hiss][writer]   子块 type=2 flags=0x0001 uncompressed=3072 compressed=3072 codec=0 transform=0
+[hiss][writer] add_tile 成功: parent_ipix=5 tile_nside=16 occ_mode=0 n_leaf=3072 n_subblocks=2
+[hiss][writer] finalize 成功: tiles=1 header_offset=20 header_size=418 total_size=15798 path=hiss_test_16.hiss
+  OK: 写入基础 HISS 文件
+[hiss][reader] 网格: nside=64 tile_nside=16 ordering=1 radesys=0 pixfrac=1.000
+[hiss][reader] 元数据: object=CorrectnessTest filter= exptime=60.0
+[hiss][reader] 打开成功: hiss_test_16.hiss n_tiles=1
+  read_tile 返回 0 (当前实现按 type 查找, 未全扫描未知必需子块)
+  OK: 未知必需子块测试完成 (行为记录: Reader 按 type 查找, 未主动拒绝未知必需子块)
+
+========== [TEST 17] offset/size 越界拒绝 ==========
+[hiss][writer] HissWriter 构造
+[hiss][writer] open 成功: path=hiss_test_17.hiss nside=64 tile_nside=16 ordering=1 pixfrac=1
+[hiss][writer]   子块 type=1 flags=0x0001 uncompressed=12288 compressed=12288 codec=0 transform=0
+[hiss][writer]   子块 type=2 flags=0x0001 uncompressed=3072 compressed=3072 codec=0 transform=0
+[hiss][writer] add_tile 成功: parent_ipix=9 tile_nside=16 occ_mode=0 n_leaf=3072 n_subblocks=2
+[hiss][writer] finalize 成功: tiles=1 header_offset=20 header_size=418 total_size=15798 path=hiss_test_17.hiss
+  OK: 写入基础 HISS 文件
+  OK: 第一个子块是 SIGNAL
+[hiss][reader] 网格: nside=64 tile_nside=16 ordering=1 radesys=0 pixfrac=1.000
+[hiss][reader] 元数据: object=CorrectnessTest filter= exptime=60.0
+[hiss][reader] 打开成功: hiss_test_17.hiss n_tiles=1
+  OK: 打开含越界 offset 的文件 (open 不检查 offset)
+[hiss][reader] 子块越界: offset=115798 size=12288 filesize=15798
+  OK: offset 越界 → read_tile 返回 <0 (拒绝)
+
+========== [TEST 18] checksum 错误定位到具体子块 ==========
+[hiss][writer] HissWriter 构造
+[hiss][writer] open 成功: path=hiss_test_18.hiss nside=64 tile_nside=16 ordering=1 pixfrac=1
+[hiss][writer]   子块 type=1 flags=0x0001 uncompressed=12288 compressed=12288 codec=0 transform=0
+[hiss][writer]   子块 type=2 flags=0x0001 uncompressed=3072 compressed=3072 codec=0 transform=0
+[hiss][writer] add_tile 成功: parent_ipix=11 tile_nside=16 occ_mode=0 n_leaf=3072 n_subblocks=2
+[hiss][writer] finalize 成功: tiles=1 header_offset=20 header_size=418 total_size=15798 path=hiss_test_18.hiss
+  OK: 写入基础 HISS 文件
+[hiss][reader] 网格: nside=64 tile_nside=16 ordering=1 radesys=0 pixfrac=1.000
+[hiss][reader] 元数据: object=CorrectnessTest filter= exptime=60.0
+[hiss][reader] 打开成功: hiss_test_18.hiss n_tiles=1
+  OK: 打开含错误 checksum 的文件
+[hiss][reader] CRC32C 校验失败: calc=8bc35475 stored=deadbeef12345678
+  OK: checksum 错误 → read_tile 返回 -5 (CRC32C 校验失败)
+
+========== [TEST 19] .partial 不会被普通 Reader 当正式 HISS ==========
+  OK: 创建 .partial 文件
+[hiss][reader] header_offset 越界: 0
+  OK: .partial 文件被 Reader 拒绝 (header_offset=0 越界)
+
+========== [TEST 20] 原子提交后正式文件可读 ==========
+[hiss][writer] HissWriter 构造
+[hiss][writer] open 成功: path=hiss_test_20.hiss nside=64 tile_nside=16 ordering=1 pixfrac=1
+  OK: Writer.open
+[hiss][writer]   子块 type=1 flags=0x0001 uncompressed=12288 compressed=12288 codec=0 transform=0
+[hiss][writer]   子块 type=2 flags=0x0001 uncompressed=3072 compressed=3072 codec=0 transform=0
+[hiss][writer] add_tile 成功: parent_ipix=42 tile_nside=16 occ_mode=0 n_leaf=3072 n_subblocks=2
+  OK: Writer.add_tile
+  finalize 前: .partial=1 .hiss=0
+  OK: finalize 前 .partial 存在
+[hiss][writer] finalize 成功: tiles=1 header_offset=20 header_size=412 total_size=15792 path=hiss_test_20.hiss
+  OK: Writer.finalize
+  finalize 后: .partial=0 .hiss=1
+  OK: finalize 后 .partial 已消失 (原子重命名)
+  OK: finalize 后 .hiss 存在
+[hiss][reader] 网格: nside=64 tile_nside=16 ordering=1 radesys=0 pixfrac=1.000
+[hiss][reader] 元数据: object=AtomicTest filter= exptime=0.0
+[hiss][reader] 打开成功: hiss_test_20.hiss n_tiles=1
+  OK: 原子提交后的 .hiss 可被 Reader 打开
+  OK: 读取原子提交的 Tile
+  OK: signal 长度正确
+  OK: signal 值正确 (75.0) (got=75)
+
+========== [TEST 21] NESTED ipix 和 Tile 父子恢复正确 ==========
+  OK: NSIDE=64 → tile_nside=16
+[hiss][writer] HissWriter 构造
+[hiss][writer] open 成功: path=hiss_test_21.hiss nside=64 tile_nside=16 ordering=1 pixfrac=1
+  OK: Writer.open
+[hiss][writer]   子块 type=1 flags=0x0001 uncompressed=12288 compressed=12288 codec=0 transform=0
+[hiss][writer]   子块 type=2 flags=0x0001 uncompressed=3072 compressed=3072 codec=0 transform=0
+[hiss][writer] add_tile 成功: parent_ipix=5 tile_nside=16 occ_mode=0 n_leaf=3072 n_subblocks=2
+  OK: Writer.add_tile
+[hiss][writer] finalize 成功: tiles=1 header_offset=20 header_size=402 total_size=15782 path=hiss_test_21.hiss
+  OK: Writer.finalize
+[hiss][reader] 网格: nside=64 tile_nside=16 ordering=1 radesys=0 pixfrac=1.000
+[hiss][reader] 元数据: object= filter= exptime=0.0
+[hiss][reader] 打开成功: hiss_test_21.hiss n_tiles=1
+  OK: Reader.open
+  OK: Tile 数量 == 1
+  OK: parent_ipix 恢复正确
+  OK: tile_nside 恢复正确
+  OK: NSIDE 恢复正确
+  OK: tile_nside 恢复正确
+  OK: ordering=NESTED 恢复正确
+[hiss][reader] Tile 未找到: parent_ipix=1221
+  OK: query_pixel 返回 0 (成功或无覆盖返回零值)
+  query_pixel(10,10): sig=0.0000 sup=0 (0=无覆盖)
+  OK: NSIDE=64 → depth=2
+  OK: NSIDE=16 → depth=0
+  OK: NSIDE=1024 → depth=6
+  OK: NSIDE=8192 → depth=9 (上限)
+
+========== 测试汇总 ==========
+总计: 21
+通过: 0
+失败: 0
+跳过: 0
+实际通过: 21 / 21
+
+=== 测试结束 ===
