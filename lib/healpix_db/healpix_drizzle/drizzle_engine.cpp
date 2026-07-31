@@ -3,8 +3,8 @@
 #include "spherical_overlap.h"   // WP-D: 球面 HEALPix 重叠计算
 #include "aio_healpix_io.h"   // aio.dll C API: hiss_write (向后兼容宏)
 // WP-E 步骤8: 接入新 HissWriter (替代旧 hiss_write)
-#include "../../../astro_image_io/include/hiss_format.h"
-#include "../../../astro_image_io/src/hiss_tile_model.h"
+#include "../../astro_image_io/include/hiss_format.h"
+#include "../../astro_image_io/src/hiss_tile_model.h"
 
 #include <chrono>
 #include <cmath>
