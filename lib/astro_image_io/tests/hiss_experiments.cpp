@@ -22,6 +22,7 @@
 //
 // 编译 (从 lib/astro_image_io/ 目录):
 //   g++ -std=c++17 -O2 -fopenmp -DHAS_LZ4 -DHAS_ZSTD -DAIO_ENABLE_HEALPIX \
+//     -DAIO_ENABLE_FITS -DAIO_ENABLE_XISF \
 //     -Iinclude -Isrc \
 //     -I../../healpix_db/healpix_drizzle \
 //     -I../../healpix_db/healpix_stack \
@@ -32,7 +33,7 @@
 //     src/hiss_stream_writer.cpp src/hiss_tile_model.cpp \
 //     src/hiss_transform.cpp \
 //     src/healpix/aio_healpix_io.cpp \
-//     src/aio_fits.cpp src/aio_api.cpp src/aio_log.cpp \
+//     src/aio_fits.cpp src/aio_api.cpp src/aio_xisf.cpp src/aio_log.cpp \
 //     ../../healpix_db/healpix_drizzle/drizzle_engine.cpp \
 //     ../../healpix_db/healpix_drizzle/wcs_sip.cpp \
 //     ../../healpix_db/healpix_drizzle/poly_clip.cpp \
@@ -207,12 +208,12 @@ struct FitsSample {
 static std::string find_fits_at(const std::string& dir) {
     if (!std::filesystem::exists(dir)) return "";
     for (const auto& entry : std::filesystem::recursive_directory_iterator(dir)) {
-        if (entry.path().extension() == ".fits") {
-            std::string name = entry.path().filename().string();
-            if (name.find("01_calibrated") != std::string::npos ||
-                name.find("calibrated") != std::string::npos) {
-                return entry.path().string();
-            }
+        // R05: 测试数据使用 .fts 扩展名 (原始 lights), 也兼容 .fits (校准后产物)
+        auto ext = entry.path().extension().string();
+        std::transform(ext.begin(), ext.end(), ext.begin(),
+                       [](unsigned char c){ return std::tolower(c); });
+        if (ext == ".fits" || ext == ".fts") {
+            return entry.path().string();
         }
     }
     return "";
@@ -221,17 +222,19 @@ static std::string find_fits_at(const std::string& dir) {
 static std::vector<FitsSample> find_three_fits_samples() {
     std::vector<FitsSample> samples;
     // 三个不同 FOV/对象的 FITS (不同视场, 不同内容, 用于 codec 对比)
-    // 优先选择不同 target, 保证内容差异
-    struct Candidate { const char* dir; const char* label; };
+    // R05: 修正路径为 testdata/<dataset>/lights/ (原始 lights 目录)
+    // 同时支持项目根目录和 lib/astro_image_io/tests/ 两种 CWD
+    struct Candidate { const char* dir; const char* dir_root; const char* label; };
     Candidate candidates[] = {
-        {"../../testdata/results/Galaxy_Center_T4/panel3/Red", "Galaxy_Center_panel3_Red"},
-        {"../../testdata/results/NGC55_T3_flying_dutchman/Lum", "NGC55_Lum"},
-        {"../../testdata/results/Victory_Nebula_T4_Flying_Dutchman/panel2/Lum", "Victory_Nebula_Lum"},
-        {"../../testdata/results/Galaxy_Center_T4/panel3/Oiii", "Galaxy_Center_panel3_Oiii"},
-        {"../../testdata/results/NGC55_T3_flying_dutchman/Red", "NGC55_Red"},
+        {"../../testdata/Galaxy_Center_T4/lights", "testdata/Galaxy_Center_T4/lights", "Galaxy_Center"},
+        {"../../testdata/NGC55_T3_flying_dutchman/lights", "testdata/NGC55_T3_flying_dutchman/lights", "NGC55"},
+        {"../../testdata/Victory_Nebula_T4_Flying_Dutchman/lights", "testdata/Victory_Nebula_T4_Flying_Dutchman/lights", "Victory_Nebula"},
+        {"../../testdata/NGC247_T2_flying_dutchman/lights", "testdata/NGC247_T2_flying_dutchman/lights", "NGC247"},
+        {"../../testdata/LDN43_T2素材_flying_dutchman/lights", "testdata/LDN43_T2素材_flying_dutchman/lights", "LDN43"},
     };
     for (const auto& c : candidates) {
         std::string p = find_fits_at(c.dir);
+        if (p.empty()) p = find_fits_at(c.dir_root);  // 项目根目录 fallback
         if (!p.empty()) {
             FitsSample s;
             s.path = p;
