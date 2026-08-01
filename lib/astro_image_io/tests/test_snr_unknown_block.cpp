@@ -332,7 +332,7 @@ static void test_snr_roundtrip_1000_points() {
 //
 // R04-B14: 新格式签名块(16B) = magic[8]+"HISS0100" + header_length(u32 LE) + feature_flags(u32 LE)
 // R04-B15: Header 为 TLV 二进制结构 (tag+flags+length+value)
-// R04-B17: 子块描述符 42B (含 ext_type_id)
+// R05-B09: 子块描述符 50B (含 ext_type_id + decoded_size)
 // ============================================================================
 static void test_unknown_required_reject() {
     fprintf(stdout, "[TEST] 未知必需子块拒绝\n");
@@ -355,19 +355,19 @@ static void test_unknown_required_reject() {
     ASSERT_TRUE(tile_dir_value_pos != SIZE_MAX, "找到 TILE_DIRECTORY TLV");
 
     // TILE_DIRECTORY value 布局:
-    //   n_tiles(4) + [parent_ipix(8) + tile_nside(4) + occ_mode(1) + n_subblocks(2) + subblocks(42*n)]
+    //   n_tiles(4) + [parent_ipix(8) + tile_nside(4) + occ_mode(1) + n_subblocks(2) + subblocks(50*n)]
     // 第一个 Tile 的 n_subblocks 在 tile_dir_value_pos + 4 + 13
     size_t n_subblocks_pos = tile_dir_value_pos + 4 + 13;
     uint16_t n_subblocks;
     std::memcpy(&n_subblocks, file_data.data() + n_subblocks_pos, 2);
     ASSERT_TRUE(n_subblocks >= 2, "原始 Tile 至少有 signal+support 子块");
 
-    // 遍历子块描述符 (R04-B17: 42B), 找到 SUPPORT (type=2) 并改为未知 type=201
-    // 描述符布局(42B): type(1)+ext_type_id(2)+flags(2)+offset(8)+comp(8)+uncomp(8)+codec(2)+transform(2)+cksum_type(1)+checksum(8)
+    // 遍历子块描述符 (R05-B09: 50B), 找到 SUPPORT (type=2) 并改为未知 type=201
+    // 描述符布局(50B): type(1)+ext_type_id(2)+flags(2)+offset(8)+comp(8)+uncomp(8)+decoded(8)+codec(2)+transform(2)+cksum_type(1)+checksum(8)
     size_t desc_start = tile_dir_value_pos + 4 + 15;  // 跳过 n_tiles + tile 头
     bool found_support = false;
     for (uint16_t i = 0; i < n_subblocks; i++) {
-        size_t desc_off = desc_start + (size_t)i * 42;
+        size_t desc_off = desc_start + (size_t)i * 50;
         uint8_t type = file_data[desc_off];
         if (type == (uint8_t)hiss::SubblockType::SUPPORT) {
             file_data[desc_off] = 201;  // 改为未知 type, flags 保持 REQUIRED
@@ -400,7 +400,7 @@ static void test_unknown_required_reject() {
 //   构造含未知 optional 子块的 HISS 文件 → Reader.open 成功, 跳过该子块
 //   读取 signal/support 仍正常工作
 //
-// R04-B14/B15/B17: 新格式 TLV Header + 42B 子块描述符
+// R04-B14/B15 + R05-B09: 新格式 TLV Header + 50B 子块描述符
 // ============================================================================
 static void test_unknown_optional_skip() {
     fprintf(stdout, "[TEST] 未知可选子块跳过\n");
@@ -411,7 +411,7 @@ static void test_unknown_optional_skip() {
     std::string path = write_test_hiss("test_unknown_opt", acc, nullptr);
     ASSERT_TRUE(!path.empty(), "写入基础 HISS 文件");
 
-    // 2. 读取文件内容, 追加一个未知可选子块描述符 (42B)
+    // 2. 读取文件内容, 追加一个未知可选子块描述符 (50B)
     std::ifstream fin(path, std::ios::binary);
     ASSERT_TRUE(fin.is_open(), "打开文件进行修改");
     std::vector<uint8_t> file_data((std::istreambuf_iterator<char>(fin)),
@@ -422,62 +422,63 @@ static void test_unknown_optional_skip() {
     size_t tile_dir_value_pos = find_tile_directory_value_pos(file_data);
     ASSERT_TRUE(tile_dir_value_pos != SIZE_MAX, "找到 TILE_DIRECTORY TLV");
 
-    // TILE_DIRECTORY value: n_tiles(4) + tile_prefix(15) + subblocks(42*n)
+    // TILE_DIRECTORY value: n_tiles(4) + tile_prefix(15) + subblocks(50*n)
     size_t n_subblocks_pos = tile_dir_value_pos + 4 + 13;
     uint16_t n_subblocks;
     std::memcpy(&n_subblocks, file_data.data() + n_subblocks_pos, 2);
     ASSERT_TRUE(n_subblocks >= 2, "原始 Tile 至少有 signal+support 子块");
 
     size_t desc_start = tile_dir_value_pos + 4 + 15;  // 第一个描述符位置
-    size_t subblocks_end = desc_start + (size_t)n_subblocks * 42;
+    size_t subblocks_end = desc_start + (size_t)n_subblocks * 50;
 
-    // 插入前, 更新现有子块描述符的 offset (+42)
-    // 原因: 插入 42B 描述符后 Header 增长 42B, 子块数据区整体后移 42B
-    // R04-B17 描述符布局(42B): type(1)+ext_type_id(2)+flags(2)+offset(8)+...
+    // 插入前, 更新现有子块描述符的 offset (+50)
+    // 原因: 插入 50B 描述符后 Header 增长 50B, 子块数据区整体后移 50B
+    // R05-B09 描述符布局(50B): type(1)+ext_type_id(2)+flags(2)+offset(8)+...
     // offset 字段在描述符内偏移 5, 长度 8
     for (uint16_t i = 0; i < n_subblocks; i++) {
-        size_t off_pos = desc_start + (size_t)i * 42 + 5;
+        size_t off_pos = desc_start + (size_t)i * 50 + 5;
         uint64_t old_off;
         std::memcpy(&old_off, file_data.data() + off_pos, 8);
-        uint64_t new_off = old_off + 42;
+        uint64_t new_off = old_off + 50;
         std::memcpy(file_data.data() + off_pos, &new_off, 8);
     }
 
-    // 构造未知可选子块描述符 (R04-B17: 42 字节)
-    // type(1)+ext_type_id(2)+flags(2)+offset(8)+comp(8)+uncomp(8)+codec(2)+transform(2)+cksum_type(1)+checksum(8)
-    uint8_t unknown_opt[42] = {0};
+    // 构造未知可选子块描述符 (R05-B09: 50 字节, 含 decoded_size)
+    // type(1)+ext_type_id(2)+flags(2)+offset(8)+comp(8)+uncomp(8)+decoded(8)+codec(2)+transform(2)+cksum_type(1)+checksum(8)
+    uint8_t unknown_opt[50] = {0};
     unknown_opt[0] = 200;  // 未知 type
     // ext_type_id = 0 (offset 1-2, 已为 0)
     uint16_t opt_flags = (uint16_t)hiss::SubblockFlags::OPTIONAL;
     std::memcpy(unknown_opt + 3, &opt_flags, 2);  // flags (offset 3-4)
     // offset 指向文件末尾 (compressed_size=0, Reader 跳过越界检查)
-    uint64_t fake_offset = file_data.size() + 42;  // 插入后的文件末尾
+    uint64_t fake_offset = file_data.size() + 50;  // 插入后的文件末尾
     std::memcpy(unknown_opt + 5, &fake_offset, 8);  // offset (offset 5-12)
     uint64_t fake_size = 0;
     std::memcpy(unknown_opt + 13, &fake_size, 8);   // compressed_size=0 (offset 13-20)
     std::memcpy(unknown_opt + 21, &fake_size, 8);   // uncompressed_size=0 (offset 21-28)
+    std::memcpy(unknown_opt + 29, &fake_size, 8);   // decoded_size=0 (offset 29-36, R05-B09)
 
     // 插入到子块描述符末尾 (Header 和数据区交界处)
-    file_data.insert(file_data.begin() + subblocks_end, unknown_opt, unknown_opt + 42);
+    file_data.insert(file_data.begin() + subblocks_end, unknown_opt, unknown_opt + 50);
 
     // 更新 n_subblocks (tile_dir_value_pos + 4 + 13)
     uint16_t new_n = (uint16_t)(n_subblocks + 1);
     std::memcpy(file_data.data() + n_subblocks_pos, &new_n, 2);
 
-    // 更新 TILE_DIRECTORY TLV 的 length (+42)
+    // 更新 TILE_DIRECTORY TLV 的 length (+50)
     // TLV 头: tag(2) + flags(1) + length(4), value 在 tile_dir_value_pos
     // length 字段在 tile_dir_value_pos - 4
     size_t tlv_length_pos = tile_dir_value_pos - 4;
     uint32_t old_tlv_len;
     std::memcpy(&old_tlv_len, file_data.data() + tlv_length_pos, 4);
-    uint32_t new_tlv_len = old_tlv_len + 42;
+    uint32_t new_tlv_len = old_tlv_len + 50;
     std::memcpy(file_data.data() + tlv_length_pos, &new_tlv_len, 4);
 
-    // 更新签名块中的 header_length (+42)
+    // 更新签名块中的 header_length (+50)
     // 签名块: magic[8] + header_length(u32 LE) @ offset 8 + feature_flags(u32 LE) @ offset 12
     uint32_t old_hlen;
     std::memcpy(&old_hlen, file_data.data() + 8, 4);
-    uint32_t new_hlen = old_hlen + 42;
+    uint32_t new_hlen = old_hlen + 50;
     std::memcpy(file_data.data() + 8, &new_hlen, 4);
 
     // 写回文件
