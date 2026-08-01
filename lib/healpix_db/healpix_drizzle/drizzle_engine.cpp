@@ -73,12 +73,86 @@ DrizzleEngine::DrizzleEngine() {}
 DrizzleEngine::~DrizzleEngine() {}
 
 // ============================================================================
+// B05 修复: 自适应四叉树 Jacobian 采样 (替代固定 9×9 网格)
+//
+// 固定 9×9 网格采样的问题: SIP 畸变极值可能落在网格点之间, 导致最细局部
+// 像素尺度被漏掉, NSIDE 估计偏小. 自适应四叉树采样在 Jacobian 梯度大的
+// 区域递归细分, 确保捕捉到最细尺度.
+//
+// 策略:
+//   1. 初始单元 = 整个图像 (内缩 margin 避免边界越界)
+//   2. 每个单元采样 4 角 + 中心 (5 点), 用有限差分计算局部像素尺度
+//   3. 若单元内 max_scale/min_scale > RATIO_THRESH 且深度 < MAX_DEPTH 且
+//      单元尺寸 > MIN_CELL_PX, 递归细分为 4 个子单元
+//   4. 否则该单元为叶节点, 采样点已记录
+//   5. 取所有有效采样点的最小局部尺度作为 finest_arcsec
+//
+// 性能: 最多 4^MAX_DEPTH 个叶单元, 每单元 5 点 × 4 次 pixelToSky = 20 次调用.
+//        MAX_DEPTH=5 → 1024 叶单元 → ~20480 次调用 (compute_auto_nside 仅调一次).
+// ============================================================================
+static const int    ADAPTIVE_MAX_DEPTH    = 5;     // 最大递归深度 (4^5=1024 叶单元)
+static const double ADAPTIVE_RATIO_THRESH = 1.5;   // 尺度比阈值 (max/min > 1.5 触发细分)
+static const double ADAPTIVE_MIN_CELL_PX  = 4.0;   // 最小单元尺寸 (像素), 避免无限细分
+
+// 递归四叉树采样: 在 [x0,x1]×[y0,y1] 区域内自适应采样局部像素尺度
+static void sample_quadtree(const WcsSip& wcsip,
+                            double x0, double y0, double x1, double y1,
+                            int depth, double dh,
+                            double& finest_arcsec,
+                            int& n_valid, int& n_invalid) {
+    // 采样 4 角 + 中心 (5 点)
+    double xs[5] = {x0, x1, x0, x1, (x0 + x1) * 0.5};
+    double ys[5] = {y0, y0, y1, y1, (y0 + y1) * 0.5};
+    double local_min = 1e30, local_max = 0.0;
+
+    for (int i = 0; i < 5; i++) {
+        // x 方向有限差分: pixelToSky(x-dh, y) 与 pixelToSky(x+dh, y) 的角距离
+        double ra1, dec1, ra2, dec2;
+        wcsip.pixelToSky(xs[i] - dh, ys[i], ra1, dec1);
+        wcsip.pixelToSky(xs[i] + dh, ys[i], ra2, dec2);
+        double sx = greatCircleDistance(ra1, dec1, ra2, dec2) * 3600.0;
+        // y 方向有限差分
+        wcsip.pixelToSky(xs[i], ys[i] - dh, ra1, dec1);
+        wcsip.pixelToSky(xs[i], ys[i] + dh, ra2, dec2);
+        double sy = greatCircleDistance(ra1, dec1, ra2, dec2) * 3600.0;
+
+        if (!std::isfinite(sx) || sx <= 0.0 || !std::isfinite(sy) || sy <= 0.0) {
+            n_invalid++;
+            continue;
+        }
+
+        double local_scale = std::min(sx, sy);
+        if (local_scale < local_min) local_min = local_scale;
+        if (local_scale > local_max) local_max = local_scale;
+        if (local_scale < finest_arcsec) finest_arcsec = local_scale;
+        n_valid++;
+    }
+
+    // 终止条件: 深度过大 / 单元过小 / 无有效数据 / 尺度均匀
+    double cell_w = x1 - x0, cell_h = y1 - y0;
+    bool too_deep  = (depth >= ADAPTIVE_MAX_DEPTH);
+    bool too_small = (cell_w < ADAPTIVE_MIN_CELL_PX || cell_h < ADAPTIVE_MIN_CELL_PX);
+    bool no_data   = (local_min >= 1e30 || local_max <= 0.0);
+    bool uniform   = (!no_data && local_max / local_min <= ADAPTIVE_RATIO_THRESH);
+
+    if (too_deep || too_small || no_data || uniform) {
+        return;
+    }
+
+    // 递归细分为 4 个子单元
+    double xm = (x0 + x1) * 0.5, ym = (y0 + y1) * 0.5;
+    sample_quadtree(wcsip, x0, y0, xm, ym, depth + 1, dh, finest_arcsec, n_valid, n_invalid);
+    sample_quadtree(wcsip, xm, y0, x1, ym, depth + 1, dh, finest_arcsec, n_valid, n_invalid);
+    sample_quadtree(wcsip, x0, ym, xm, y1, depth + 1, dh, finest_arcsec, n_valid, n_invalid);
+    sample_quadtree(wcsip, xm, ym, x1, y1, depth + 1, dh, finest_arcsec, n_valid, n_invalid);
+}
+
+// ============================================================================
 // compute_auto_nside - 自动 NSIDE 计算 (02_FROZEN §5, WP-B 步骤5 修复)
 //
 // 依据最终 WCS/SIP 在有效视场内的局部 Jacobian:
-//   1. 在图像范围内以至少 9×9 网格采样 (81 个采样点), 用有限差分计算局部像素
-//      尺度 (角秒/像素). 9×9 网格覆盖整个有效视场, 避免 SIP 畸变极值仅在边缘
-//      时被漏掉 (原 5 点采样仅中心+四角, 边缘畸变极值可能位于四角之间).
+//   1. B05 修复: 自适应四叉树采样全视场 Jacobian (替代固定 9×9 网格).
+//      在 WCS/SIP Jacobian 梯度大的区域递归细分, 确保捕捉到最细局部像素尺度.
 //   2. 取所有有效采样点局部像素尺度的最小值作为"最细局部输入像素尺度";
 //   3. HEALPix 线性像素尺度 ≈ 210960/nside 角秒 (即 58.6/nside 度);
 //   4. 选择最小的 2 次幂 NSIDE, 使 HEALPix 线性像素尺度不粗于该最细尺度
@@ -110,59 +184,26 @@ int compute_auto_nside(const WcsParams& wcs, int img_w, int img_h)
         return 0;
     }
 
-    // 9×9 网格采样 (81 个采样点)
-    // 采样点在图像范围内均匀分布, 0.5 像素内缩避免越界
-    // 与原 5 点采样相比, 9×9 网格能捕捉到 SIP 畸变极值位于边缘中间位置的情况
-    // (例如: 边缘中点的 SIP 畸变可能比四角更细)
-    const int GRID_N = 9;
+    // B05 修复: 自适应四叉树 Jacobian 采样 (替代固定 9×9 网格)
+    // 初始单元 = 整个图像 (内缩 margin 避免边界越界), 递归细分 Jacobian 梯度大的区域
     const double margin = 0.5;  // 像素内缩, 避免边界越界
-
-    // 有限差分半步长 (像素): dh=0.5 → 步长 1 像素, 平衡精度与效率
-    const double dh = 0.5;
+    const double dh = 0.5;      // 有限差分半步长 (步长=1px), 平衡精度与效率
 
     double finest_arcsec = 1e30;  // 最细局部输入像素尺度 (角秒/像素)
     int n_valid_samples = 0;      // 有效采样点计数 (诊断用)
     int n_invalid_samples = 0;    // 无效采样点计数 (诊断用)
 
-    for (int iy = 0; iy < GRID_N; iy++) {
-        // y 坐标在 [margin, img_h - margin] 范围内均匀分布
-        double y = (img_h > 1)
-            ? margin + (double)iy * (img_h - 2.0 * margin) / (double)(GRID_N - 1)
-            : (double)img_h * 0.5;
-        for (int ix = 0; ix < GRID_N; ix++) {
-            // x 坐标在 [margin, img_w - margin] 范围内均匀分布
-            double x = (img_w > 1)
-                ? margin + (double)ix * (img_w - 2.0 * margin) / (double)(GRID_N - 1)
-                : (double)img_w * 0.5;
+    // 初始采样区域: [margin, img_w-margin] × [margin, img_h-margin]
+    // 极小图像保护: 确保初始单元至少 1 像素宽
+    double x0 = margin;
+    double y0 = margin;
+    double x1 = std::max((double)img_w - margin, x0 + 1.0);
+    double y1 = std::max((double)img_h - margin, y0 + 1.0);
 
-            // x 方向有限差分: pixelToSky(x-dh, y) 与 pixelToSky(x+dh, y) 的角距离
-            double ra1, dec1, ra2, dec2;
-            wcsip.pixelToSky(x - dh, y, ra1, dec1);
-            wcsip.pixelToSky(x + dh, y, ra2, dec2);
-            double scale_x = greatCircleDistance(ra1, dec1, ra2, dec2) * 3600.0;
+    sample_quadtree(wcsip, x0, y0, x1, y1, 0, dh,
+                    finest_arcsec, n_valid_samples, n_invalid_samples);
 
-            // y 方向有限差分
-            wcsip.pixelToSky(x, y - dh, ra1, dec1);
-            wcsip.pixelToSky(x, y + dh, ra2, dec2);
-            double scale_y = greatCircleDistance(ra1, dec1, ra2, dec2) * 3600.0;
-
-            // 跳过无效采样点 (投影发散或退化)
-            if (!std::isfinite(scale_x) || scale_x <= 0.0 ||
-                !std::isfinite(scale_y) || scale_y <= 0.0) {
-                n_invalid_samples++;
-                continue;
-            }
-
-            // 该点局部像素尺度 = 两方向最细 (最小), 单位归一化为 角秒/像素 (步长=1px)
-            double local_scale = std::min(scale_x, scale_y);
-            if (local_scale < finest_arcsec) {
-                finest_arcsec = local_scale;
-            }
-            n_valid_samples++;
-        }
-    }
-
-    fprintf(stderr, "[drizzle_engine] compute_auto_nside: 9x9 网格采样完成, "
+    fprintf(stderr, "[drizzle_engine] compute_auto_nside: 自适应四叉树采样完成, "
             "有效=%d, 无效=%d\n", n_valid_samples, n_invalid_samples);
 
     if (finest_arcsec >= 1e30 || finest_arcsec <= 0.0) {
@@ -230,6 +271,19 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
         error_msg = buf;
         fprintf(stderr, "[drizzle_engine] drizzle: 拒绝非法 pixfrac (%.6f), %s\n",
                 config.pixfrac, error_msg.c_str());
+        return false;
+    }
+
+    // B03 修复: 多通道图像静默取第 0 通道是 BLOCKER
+    // HISS Stage1 只支持单通道图像, 多通道 (如 RGB) 必须由上游拆分后分别 drizzle
+    if (img.channels != 1) {
+        char buf[256];
+        snprintf(buf, sizeof(buf),
+                 "multi-channel image not supported (channels=%d), expected 1; "
+                 "split channels upstream before drizzle", img.channels);
+        error_msg = buf;
+        fprintf(stderr, "[drizzle_engine] drizzle: 拒绝多通道图像 (channels=%d)\n",
+                img.channels);
         return false;
     }
 
@@ -302,13 +356,8 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
         auto& localAccum = threadAccums[tid];
 
         for (int x = 0; x < img.width; x++) {
-            // 获取像素值 (单通道: 直接索引, RGB: 取第一通道)
-            float pixelValue;
-            if (img.channels == 1) {
-                pixelValue = img.pixels[(size_t)y * img.width + x];
-            } else {
-                pixelValue = img.pixels[((size_t)y * img.width + x) * img.channels + 0];
-            }
+            // 获取像素值 (B03 修复: 入口已校验 img.channels == 1, 多通道已硬报错)
+            float pixelValue = img.pixels[(size_t)y * img.width + x];
 
             // 跳过 NaN / Inf
             if (!std::isfinite(pixelValue)) continue;
