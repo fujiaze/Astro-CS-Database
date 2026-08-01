@@ -151,10 +151,17 @@ enum class ChecksumType : uint8_t {
 //      - 扩展类型 (EXTENSION): ext_type_id 标识扩展命名空间
 //      - Reader 遇到未知必需扩展必须拒绝 (HISS_ERR_UNKNOWN_REQUIRED)
 //
-//    磁盘格式 (42 字节, 显式小端序):
+//    R05-B09: 三长度字段 (stored/transform/decoded)
+//      - compressed_size  = stored_size    (磁盘压缩 payload 字节数)
+//      - uncompressed_size = transform_size (解压后、逆变换前字节数)
+//      - decoded_size     = decoded_size   (逆变换后最终数据字节数)
+//      transform_id==NONE 时 transform_size == decoded_size
+//      Reader 必须逐级验证三个长度
+//
+//    磁盘格式 (50 字节, 显式小端序):
 //      type(1) + ext_type_id(2) + flags(2) + offset(8) + compressed_size(8) +
-//      uncompressed_size(8) + codec_id(2) + transform_id(2) +
-//      checksum_type(1) + checksum(8) = 42
+//      uncompressed_size(8) + decoded_size(8) + codec_id(2) + transform_id(2) +
+//      checksum_type(1) + checksum(8) = 50
 // ============================================================================
 
 struct HissSubblockDescriptor {
@@ -162,8 +169,9 @@ struct HissSubblockDescriptor {
     uint16_t       ext_type_id;     // 扩展命名空间 ID (0=内置, 非0=扩展)
     uint16_t       flags;           // required/optional
     uint64_t       offset;          // 文件内偏移
-    uint64_t       compressed_size;  // 压缩后字节数
-    uint64_t       uncompressed_size; // 压缩前字节数
+    uint64_t       compressed_size;  // stored_size: 磁盘压缩 payload 字节数
+    uint64_t       uncompressed_size; // transform_size: 解压后、逆变换前字节数
+    uint64_t       decoded_size;    // decoded_size: 逆变换后最终数据字节数 (R05-B09)
     CodecId        codec_id;        // 压缩算法
     TransformId    transform_id;    // 前置变换
     ChecksumType   checksum_type;   // 校验算法
@@ -243,18 +251,55 @@ struct HissSnrBlock {
 // Header TLV tag (uint16 LE)
 #define HISS_TLV_SCHEMA_FINGERPRINT 0x0001  // schema 指纹 (required)
 #define HISS_TLV_GRID_SPEC          0x0002  // 网格规格 (required)
-#define HISS_TLV_METADATA_JSON      0x0003  // 元数据 JSON (optional, 人类可读附件)
+#define HISS_TLV_METADATA_JSON      0x0003  // 元数据 JSON (optional, 人类可读镜像)
 #define HISS_TLV_TILE_DIRECTORY     0x0004  // Tile 目录 (required)
 #define HISS_TLV_FEATURE_REQ        0x0005  // 必需特性列表 (optional)
+#define HISS_TLV_SCIENCE_METADATA   0x0006  // 科学元数据 (required, R05-B08: typed key/value)
 
 // TLV flags 位定义
 #define HISS_TLV_FLAG_REQUIRED 0x01  // 必需 TLV (未知必需 → 拒绝)
 #define HISS_TLV_FLAG_OPTIONAL 0x00  // 可选 TLV (未知可选 → 跳过)
 
-// 磁盘子块描述符大小 (字节, R04-B17: 含 ext_type_id)
+// ============================================================================
+// R05-B08: SCIENCE_METADATA TLV — typed key/value 二进制记录
+//   格式: version(u32 LE) + n_fields(u32 LE) + n_fields * field
+//   每个 field: key_id(u16 LE) + value_type(u8) + value_len(u32 LE) + value
+//   value_type: 0=uint32, 1=int32, 2=float64, 3=string(UTF-8), 4=uint8
+//   数值按显式小端序存储; 字符串无终止符, 长度由 value_len 给出
+//   JSON (HISS_TLV_METADATA_JSON) 仅作为人类可读镜像, 不得是科学语义唯一来源
+// ============================================================================
+
+// SCIENCE_METADATA 字段 key ID
+#define HISS_SCI_KEY_SIGNAL_SEMANTICS   0x0001  // uint32: signal 语义 (1=累计相对通量)
+#define HISS_SCI_KEY_SUPPORT_SEMANTICS  0x0002  // uint32: support 语义 (1=几何覆盖率[0,1])
+#define HISS_SCI_KEY_SIGNAL_DATATYPE    0x0003  // uint8:  signal 数据类型 (4=float32)
+#define HISS_SCI_KEY_SUPPORT_DATATYPE   0x0004  // uint8:  support 数据类型 (1=uint8)
+#define HISS_SCI_KEY_PHOTAPPL           0x0005  // uint8:  测光是否已应用 (1=true)
+#define HISS_SCI_KEY_PHOTSCAL           0x0006  // float64: 测光比例 (必须>0 且有限)
+#define HISS_SCI_KEY_BUNIT              0x0007  // string: 物理单位 (ASTROCS_RELATIVE_FLUX)
+#define HISS_SCI_KEY_CALMODE            0x0008  // string: 校准模式
+#define HISS_SCI_KEY_DARKSCL            0x0009  // float64: Dark 系数
+#define HISS_SCI_KEY_EXPTIME            0x000A  // float64: 曝光时间
+#define HISS_SCI_KEY_FILTER             0x000B  // string: 滤镜
+#define HISS_SCI_KEY_TELESCOP           0x000C  // string: 望远镜
+#define HISS_SCI_KEY_OBJECT             0x000D  // string: 目标
+#define HISS_SCI_KEY_DATE_OBS           0x000E  // string: 观测日期
+
+// SCIENCE_METADATA value_type 编码
+#define HISS_SCI_TYPE_UINT32  0
+#define HISS_SCI_TYPE_INT32   1
+#define HISS_SCI_TYPE_FLOAT64 2
+#define HISS_SCI_TYPE_STRING  3
+#define HISS_SCI_TYPE_UINT8   4
+
+// SCIENCE_METADATA 格式版本
+#define HISS_SCI_META_VERSION 1
+
+// 磁盘子块描述符大小 (字节, R05-B09: 含 decoded_size, 三长度字段)
 // type(1) + ext_type_id(2) + flags(2) + offset(8) + compressed_size(8) +
-// uncompressed_size(8) + codec_id(2) + transform_id(2) + checksum_type(1) + checksum(8) = 42
-#define HISS_SUBBLOCK_DESC_DISK_SIZE 42
+// uncompressed_size(8) + decoded_size(8) + codec_id(2) + transform_id(2) +
+// checksum_type(1) + checksum(8) = 50
+#define HISS_SUBBLOCK_DESC_DISK_SIZE 50
 
 // ============================================================================
 // 9. 元数据 (已冻结: 02_FROZEN §16)

@@ -48,9 +48,10 @@ static const uint32_t HISS_FEATURE_FLAGS = HISS_FEAT_TLV_HEADER;  // TLV Header 
 // HISS_SIGNATURE_SIZE 由 hiss_format.h 定义为宏 (16), 不再在此重复定义
 
 // 子块描述符固定字节数 (写入 Header 时每项大小)
-// R04-B17: 新增 ext_type_id(2), 总大小 42 字节
+// R05-B09: 新增 decoded_size(8), 总大小 50 字节 (三长度字段)
 // type(1) + ext_type_id(2) + flags(2) + offset(8) + compressed_size(8) +
-// uncompressed_size(8) + codec_id(2) + transform_id(2) + checksum_type(1) + checksum(8) = 42
+// uncompressed_size(8) + decoded_size(8) + codec_id(2) + transform_id(2) +
+// checksum_type(1) + checksum(8) = 50
 static const size_t HISS_SUBBLOCK_DESCRIPTOR_SIZE = HISS_SUBBLOCK_DESC_DISK_SIZE;
 
 // Tile 目录固定前缀字节数 (不含子块描述符)
@@ -62,11 +63,12 @@ static const size_t HISS_TLV_HEADER_SIZE = 7;
 
 // schema 指纹 (32 字节, 标识当前 HISS schema 版本)
 // Reader 用于验证 schema 兼容性; 实际指纹值由规范冻结, 这里用确定性填充
+// R05-B08/B09: schema 0002-R1 (新增 SCIENCE_METADATA TLV + decoded_size 三长度字段)
 static const uint8_t HISS_SCHEMA_FINGERPRINT[32] = {
     0xA1, 0x00, 0x72, 0x04, 0xB1, 0x00, 0x61, 0x04,
     0x48, 0x49, 0x53, 0x53, 0x2D, 0x76, 0x31, 0x2E,
     0x30, 0x2D, 0x73, 0x63, 0x68, 0x65, 0x6D, 0x61,
-    0x2D, 0x30, 0x30, 0x30, 0x31, 0x2D, 0x52, 0x30
+    0x2D, 0x30, 0x30, 0x30, 0x32, 0x2D, 0x52, 0x31
 };
 
 // 临时池复制缓冲区大小 (4MB, 减少小字节读写的系统调用开销)
@@ -98,7 +100,85 @@ struct ByteBuf {
         data.resize(off + n);
         if (n > 0) std::memcpy(data.data() + off, p, n);
     }
+    // 写入 C 字符串 (不含终止符), 返回长度
+    size_t str(const char* s) {
+        size_t n = s ? std::strlen(s) : 0;
+        bytes(s, n);
+        return n;
+    }
 };
+
+// ============================================================================
+// R05-B08: 构建 SCIENCE_METADATA TLV value (typed key/value 二进制记录)
+//   格式: version(u32) + n_fields(u32) + n_fields * field
+//   field: key_id(u16) + value_type(u8) + value_len(u32) + value
+//   JSON 仅镜像, 科学语义唯一权威来源为此 TLV
+// ============================================================================
+static void build_science_metadata(const HissMetadata& md, ByteBuf& out) {
+    // 先写入字段到临时缓冲, 统计 n_fields, 再组装
+    ByteBuf fields;
+    uint32_t n_fields = 0;
+
+    // 辅助: 添加 uint32 字段
+    auto add_u32 = [&](uint16_t key_id, uint32_t val) {
+        fields.u16(key_id);
+        fields.u8 (HISS_SCI_TYPE_UINT32);
+        fields.u32(4);
+        fields.u32(val);
+        n_fields++;
+    };
+    // 辅助: 添加 uint8 字段
+    auto add_u8 = [&](uint16_t key_id, uint8_t val) {
+        fields.u16(key_id);
+        fields.u8 (HISS_SCI_TYPE_UINT8);
+        fields.u32(1);
+        fields.u8 (val);
+        n_fields++;
+    };
+    // 辅助: 添加 float64 字段
+    auto add_f64 = [&](uint16_t key_id, double val) {
+        fields.u16(key_id);
+        fields.u8 (HISS_SCI_TYPE_FLOAT64);
+        fields.u32(8);
+        fields.f64(val);
+        n_fields++;
+    };
+    // 辅助: 添加 string 字段 (非空才添加)
+    auto add_str = [&](uint16_t key_id, const char* s) {
+        if (!s || s[0] == '\0') return;  // 空字符串不写入
+        size_t len = std::strlen(s);
+        fields.u16(key_id);
+        fields.u8 (HISS_SCI_TYPE_STRING);
+        fields.u32((uint32_t)len);
+        fields.bytes(s, len);
+        n_fields++;
+    };
+
+    // 必需字段 (Writer 必须写入)
+    add_u32(HISS_SCI_KEY_SIGNAL_SEMANTICS,  1);  // 1=累计相对通量
+    add_u32(HISS_SCI_KEY_SUPPORT_SEMANTICS, 1);  // 1=几何覆盖率[0,1]
+    add_u8 (HISS_SCI_KEY_SIGNAL_DATATYPE,   4);  // float32
+    add_u8 (HISS_SCI_KEY_SUPPORT_DATATYPE,  1);  // uint8
+    add_u8 (HISS_SCI_KEY_PHOTAPPL, (uint8_t)(md.photappl ? 1 : 0));
+    add_f64(HISS_SCI_KEY_PHOTSCAL, md.photscal);
+    add_str(HISS_SCI_KEY_BUNIT, md.bunit);
+
+    // 可选字段 (有值才写入)
+    add_str(HISS_SCI_KEY_CALMODE,  md.calmode);
+    add_f64(HISS_SCI_KEY_DARKSCL,  md.darkscl);
+    add_f64(HISS_SCI_KEY_EXPTIME,  md.exptime);
+    add_str(HISS_SCI_KEY_FILTER,   md.filter);
+    add_str(HISS_SCI_KEY_TELESCOP, md.telescop);
+    add_str(HISS_SCI_KEY_OBJECT,   md.object);
+    add_str(HISS_SCI_KEY_DATE_OBS, md.date_obs);
+
+    // 组装: version + n_fields + fields
+    out.u32(HISS_SCI_META_VERSION);
+    out.u32(n_fields);
+    if (n_fields > 0) {
+        out.bytes(fields.data.data(), fields.data.size());
+    }
+}
 
 // ============================================================================
 // 内部辅助: UTF-8 路径转宽字符 (Windows)
@@ -314,15 +394,21 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
         pimpl_->temp_pool_fp = nullptr;
     }
 
-    // 2. 计算元数据 JSON (R04-B15: JSON 作为可选人类可读附件, 非唯一权威)
+    // 2. 计算元数据 JSON (R04-B15: JSON 作为可选人类可读镜像, 非唯一权威)
+    //    R05-B08: 科学语义权威来源为 SCIENCE_METADATA TLV, JSON 仅镜像
     std::string json = metadata.to_json();
+
+    // 2a. 构建 SCIENCE_METADATA TLV value (R05-B08: typed key/value, required)
+    ByteBuf sci_meta;
+    build_science_metadata(metadata, sci_meta);
 
     // 3. 计算 TLV Header 大小
     //    每个 TLV: tag(2) + flags(1) + length(4) + value = 7 + value_size
-    //    a. SCHEMA_FINGERPRINT (required): 7 + 32 = 39
-    //    b. GRID_SPEC (required): 7 + 24 = 31
-    //    c. METADATA_JSON (optional): 7 + json.size()
-    //    d. TILE_DIRECTORY (required): 7 + (4 + Σ(15 + 42*n_subblocks))
+    //    a. SCHEMA_FINGERPRINT (required): 7 + 32
+    //    b. GRID_SPEC (required): 7 + 24
+    //    c. SCIENCE_METADATA (required): 7 + sci_meta.size()  [R05-B08]
+    //    d. METADATA_JSON (optional): 7 + json.size()
+    //    e. TILE_DIRECTORY (required): 7 + (4 + Σ(15 + 50*n_subblocks))  [R05-B09: 50字节]
     size_t tile_dir_value_size = 4;  // n_tiles (uint32)
     for (const auto& t : pimpl_->tile_dirs) {
         tile_dir_value_size += HISS_TILE_DIR_PREFIX_SIZE +
@@ -332,7 +418,8 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
     size_t header_size = 0;
     header_size += HISS_TLV_HEADER_SIZE + 32;                       // SCHEMA_FINGERPRINT
     header_size += HISS_TLV_HEADER_SIZE + 24;                       // GRID_SPEC
-    header_size += HISS_TLV_HEADER_SIZE + json.size();              // METADATA_JSON
+    header_size += HISS_TLV_HEADER_SIZE + sci_meta.data.size();     // SCIENCE_METADATA (R05-B08)
+    header_size += HISS_TLV_HEADER_SIZE + json.size();              // METADATA_JSON (镜像)
     header_size += HISS_TLV_HEADER_SIZE + tile_dir_value_size;      // TILE_DIRECTORY
 
     // 4. 调整所有子块 offset: 临时池偏移 → 最终文件偏移
@@ -364,14 +451,22 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
     hdr.u32((uint32_t)grid.radesys);
     hdr.f64(grid.pixfrac);
 
-    // c. METADATA_JSON TLV (optional) — 元数据 JSON, 人类可读附件
-    //    R04-B15: JSON 不得是科学和容器语义唯一来源, 标记 optional
+    // c. SCIENCE_METADATA TLV (required) — R05-B08: 科学语义权威来源 (typed key/value)
+    //    包含 signal/support 语义、PHOTAPPL、PHOTSCAL、BUNIT、校准模式等
+    //    JSON 仅作为人类可读镜像, 不得是科学语义唯一来源
+    hdr.u16(HISS_TLV_SCIENCE_METADATA);
+    hdr.u8 (HISS_TLV_FLAG_REQUIRED);
+    hdr.u32((uint32_t)sci_meta.data.size());
+    if (!sci_meta.data.empty()) hdr.bytes(sci_meta.data.data(), sci_meta.data.size());
+
+    // d. METADATA_JSON TLV (optional) — 元数据 JSON, 人类可读镜像
+    //    R05-B08: 科学语义权威来源为 SCIENCE_METADATA TLV, JSON 标记 optional
     hdr.u16(HISS_TLV_METADATA_JSON);
     hdr.u8 (HISS_TLV_FLAG_OPTIONAL);
     hdr.u32((uint32_t)json.size());
     if (!json.empty()) hdr.bytes(json.data(), json.size());
 
-    // d. TILE_DIRECTORY TLV (required) — Tile 目录
+    // e. TILE_DIRECTORY TLV (required) — Tile 目录
     hdr.u16(HISS_TLV_TILE_DIRECTORY);
     hdr.u8 (HISS_TLV_FLAG_REQUIRED);
     hdr.u32((uint32_t)tile_dir_value_size);
@@ -382,13 +477,14 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
         hdr.u8 ((uint8_t)t.occ_mode);
         hdr.u16((uint16_t)t.subblocks.size());
         for (const auto& sb : t.subblocks) {
-            // R04-B17: 子块描述符含 ext_type_id (42 字节)
+            // R05-B09: 子块描述符 50 字节 (含 decoded_size, 三长度字段)
             hdr.u8 ((uint8_t)sb.type);
             hdr.u16(sb.ext_type_id);             // 扩展命名空间 ID (0=内置)
             hdr.u16(sb.flags);
             hdr.u64(sb.offset);
-            hdr.u64(sb.compressed_size);
-            hdr.u64(sb.uncompressed_size);
+            hdr.u64(sb.compressed_size);          // stored_size
+            hdr.u64(sb.uncompressed_size);        // transform_size
+            hdr.u64(sb.decoded_size);             // decoded_size (R05-B09)
             hdr.u16((uint16_t)sb.codec_id);
             hdr.u16((uint16_t)sb.transform_id);
             hdr.u8 ((uint8_t)sb.checksum_type);

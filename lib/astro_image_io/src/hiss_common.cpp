@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <algorithm>   // R05-M01: std::fill
 #include <sstream>     // std::ostringstream
 #include <cmath>       // std::lround
 
@@ -109,11 +110,20 @@ void DrizzleTileAccumulator::finalize_signal(std::vector<float>& signal) const {
 //   旧错误: S = sum_area (未归一化, 假设 sum_area 已经在 [0,1])
 //   新正确: S = sum_area / A_p (A_p = pixel_area, 目标 HEALPix 像素面积, 球面度)
 //
-//   pixel_area 默认 1.0 (向后兼容); 调用方应设置为 hp.pixel_area()
+//   R05-M01: 移除 pixel_area<=0 回退到 1.0 的非法语义
+//   pixel_area<=0 时输出全零 support 并打印错误 (调用方应在调用前用 validate_support 检查)
 void DrizzleTileAccumulator::finalize_support(std::vector<uint8_t>& support) const {
     support.resize(pixels.size());
-    // A_p 必须为正, 否则视为 1.0 (避免除零)
-    const double A_p = (pixel_area > 0.0) ? pixel_area : 1.0;
+    // R05-M01: pixel_area<=0 是非法状态, 不再回退到虚构值 1.0
+    if (pixel_area <= 0.0) {
+        fprintf(stderr,
+                "[hiss][common] finalize_support: pixel_area=%g 非法 (必须 > 0), "
+                "输出全零 support (调用方应在调用前用 validate_support 检查)\n",
+                pixel_area);
+        std::fill(support.begin(), support.end(), (uint8_t)0);
+        return;
+    }
+    const double A_p = pixel_area;
     for (size_t i = 0; i < pixels.size(); i++) {
         // 归一化面积比 S = sum_area / A_p
         double S = pixels[i].sum_area / A_p;

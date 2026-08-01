@@ -64,8 +64,8 @@ static const char     kMagic[8] = { 'H','I','S','S','0','1','0','0' };
 
 // Header 子结构大小
 static const size_t kGridSpecSize   = 24;  // nside(4)+tile_nside(4)+ordering(4)+radesys(4)+pixfrac(8)
-// R04-B17: 子块描述符 42 字节 (含 ext_type_id)
-// type(1)+ext_type_id(2)+flags(2)+offset(8)+comp(8)+uncomp(8)+codec(2)+transform(2)+checksum_type(1)+checksum(8)
+// R05-B09: 子块描述符 50 字节 (含 decoded_size, 三长度字段)
+// type(1)+ext_type_id(2)+flags(2)+offset(8)+comp(8)+uncomp(8)+decoded(8)+codec(2)+transform(2)+checksum_type(1)+checksum(8)
 static const size_t kSubblockDescSize = HISS_SUBBLOCK_DESC_DISK_SIZE;
 static const size_t kTileHeaderSize  = 15;  // parent_ipix(8)+tile_nside(4)+occ_mode(1)+n_subblocks(2)
 
@@ -73,11 +73,12 @@ static const size_t kTileHeaderSize  = 15;  // parent_ipix(8)+tile_nside(4)+occ_
 static const size_t kTlvHeaderSize = 7;
 
 // schema 指纹 (必须与 Writer 一致)
+// R05-B08/B09: schema 0002-R1 (新增 SCIENCE_METADATA TLV + decoded_size 三长度字段)
 static const uint8_t kSchemaFingerprint[32] = {
     0xA1, 0x00, 0x72, 0x04, 0xB1, 0x00, 0x61, 0x04,
     0x48, 0x49, 0x53, 0x53, 0x2D, 0x76, 0x31, 0x2E,
     0x30, 0x2D, 0x73, 0x63, 0x68, 0x65, 0x6D, 0x61,
-    0x2D, 0x30, 0x30, 0x30, 0x31, 0x2D, 0x52, 0x30
+    0x2D, 0x30, 0x30, 0x30, 0x32, 0x2D, 0x52, 0x31
 };
 
 // ============================================================================
@@ -406,6 +407,29 @@ struct HissReader::Impl {
                     transform_type_name(tt), desc.uncompressed_size, out.size(), element_size);
         }
 
+        // g. R05-B09: 三长度逐级验证 (stored/transform/decoded)
+        //    transform_id == NONE 时: decoded_size 必须 == uncompressed_size (transform_size)
+        //    transform_id != NONE 时: 逆变换后 out.size() 必须 == decoded_size
+        if (desc.transform_id == TransformId::NONE) {
+            if (desc.decoded_size != desc.uncompressed_size) {
+                fprintf(stderr,
+                        "[hiss][reader] 三长度不一致 (transform=NONE): decoded=%llu != transform=%llu\n",
+                        (unsigned long long)desc.decoded_size,
+                        (unsigned long long)desc.uncompressed_size);
+                return HISS_ERR_FORMAT_VIOLATION;
+            }
+        }
+        // 逆变换后 (或无变换时): 最终输出大小必须 == decoded_size
+        if (out.size() != desc.decoded_size) {
+            fprintf(stderr,
+                    "[hiss][reader] decoded_size 不匹配: got=%zu expected=%llu "
+                    "(stored=%llu transform=%llu)\n",
+                    out.size(), (unsigned long long)desc.decoded_size,
+                    (unsigned long long)desc.compressed_size,
+                    (unsigned long long)desc.uncompressed_size);
+            return HISS_ERR_FORMAT_VIOLATION;
+        }
+
         return 0;
     }
 
@@ -536,7 +560,7 @@ int HissReader::open(const std::string& path) {
     }
 
     // 解析 TLV 项
-    bool has_grid = false, has_tiles = false, has_schema = false;
+    bool has_grid = false, has_tiles = false, has_schema = false, has_science_meta = false;
     size_t hdr_pos = 0;
     while (hdr_pos + kTlvHeaderSize <= impl.header_length) {
         uint16_t tag   = read_u16_le(hdr_buf.data() + hdr_pos);
@@ -587,9 +611,109 @@ int HissReader::open(const std::string& path) {
                 break;
             }
             case HISS_TLV_METADATA_JSON: {
-                // R04-B15: JSON 作为可选人类可读附件 (非唯一权威)
+                // R04-B15: JSON 作为可选人类可读镜像 (非唯一权威)
+                // R05-B08: 科学语义权威来源为 SCIENCE_METADATA TLV, JSON 仅镜像
                 std::string json_str((const char*)value, tlen);
                 impl.metadata.from_json(json_str);
+                break;
+            }
+            case HISS_TLV_SCIENCE_METADATA: {
+                // R05-B08: 科学元数据 (typed key/value, required)
+                // 格式: version(u32) + n_fields(u32) + n_fields * field
+                // field: key_id(u16) + value_type(u8) + value_len(u32) + value
+                if (tlen < 8) {
+                    fprintf(stderr, "[hiss][reader] SCIENCE_METADATA 长度非法: %u (< 8)\n", tlen);
+                    close();
+                    return HISS_ERR_FORMAT;
+                }
+                uint32_t sci_ver = read_u32_le(value);
+                if (sci_ver != HISS_SCI_META_VERSION) {
+                    fprintf(stderr, "[hiss][reader] SCIENCE_METADATA 版本不支持: %u\n", sci_ver);
+                    close();
+                    return HISS_ERR_UNSUPPORTED;
+                }
+                uint32_t n_fields = read_u32_le(value + 4);
+
+                // 辅助: 安全复制字符串到固定大小 char 数组
+                auto copy_str = [](const uint8_t* src, uint32_t len, char* dst, size_t dst_size) {
+                    size_t copy_len = std::min((size_t)len, dst_size - 1);
+                    std::memcpy(dst, src, copy_len);
+                    dst[copy_len] = '\0';
+                };
+
+                size_t fpos = 8;
+                for (uint32_t f = 0; f < n_fields; f++) {
+                    if (fpos + 7 > tlen) {
+                        fprintf(stderr, "[hiss][reader] SCIENCE_METADATA 字段 %u 头越界\n", f);
+                        close();
+                        return HISS_ERR_FORMAT_VIOLATION;
+                    }
+                    uint16_t key_id = read_u16_le(value + fpos);
+                    uint8_t  vtype  = value[fpos + 2];
+                    uint32_t vlen   = read_u32_le(value + fpos + 3);
+                    fpos += 7;
+                    if (fpos + vlen > tlen) {
+                        fprintf(stderr, "[hiss][reader] SCIENCE_METADATA 字段 %u value 越界\n", f);
+                        close();
+                        return HISS_ERR_FORMAT_VIOLATION;
+                    }
+                    const uint8_t* vdata = value + fpos;
+                    fpos += vlen;
+
+                    switch (key_id) {
+                        case HISS_SCI_KEY_PHOTAPPL:
+                            if (vtype == HISS_SCI_TYPE_UINT8 && vlen == 1)
+                                impl.metadata.photappl = vdata[0] ? 1 : 0;
+                            break;
+                        case HISS_SCI_KEY_PHOTSCAL:
+                            if (vtype == HISS_SCI_TYPE_FLOAT64 && vlen == 8) {
+                                uint64_t bits = read_u64_le(vdata);
+                                std::memcpy(&impl.metadata.photscal, &bits, 8);
+                            }
+                            break;
+                        case HISS_SCI_KEY_BUNIT:
+                            if (vtype == HISS_SCI_TYPE_STRING)
+                                copy_str(vdata, vlen, impl.metadata.bunit, sizeof(impl.metadata.bunit));
+                            break;
+                        case HISS_SCI_KEY_CALMODE:
+                            if (vtype == HISS_SCI_TYPE_STRING)
+                                copy_str(vdata, vlen, impl.metadata.calmode, sizeof(impl.metadata.calmode));
+                            break;
+                        case HISS_SCI_KEY_DARKSCL:
+                            if (vtype == HISS_SCI_TYPE_FLOAT64 && vlen == 8) {
+                                uint64_t bits = read_u64_le(vdata);
+                                std::memcpy(&impl.metadata.darkscl, &bits, 8);
+                            }
+                            break;
+                        case HISS_SCI_KEY_EXPTIME:
+                            if (vtype == HISS_SCI_TYPE_FLOAT64 && vlen == 8) {
+                                uint64_t bits = read_u64_le(vdata);
+                                std::memcpy(&impl.metadata.exptime, &bits, 8);
+                            }
+                            break;
+                        case HISS_SCI_KEY_FILTER:
+                            if (vtype == HISS_SCI_TYPE_STRING)
+                                copy_str(vdata, vlen, impl.metadata.filter, sizeof(impl.metadata.filter));
+                            break;
+                        case HISS_SCI_KEY_TELESCOP:
+                            if (vtype == HISS_SCI_TYPE_STRING)
+                                copy_str(vdata, vlen, impl.metadata.telescop, sizeof(impl.metadata.telescop));
+                            break;
+                        case HISS_SCI_KEY_OBJECT:
+                            if (vtype == HISS_SCI_TYPE_STRING)
+                                copy_str(vdata, vlen, impl.metadata.object, sizeof(impl.metadata.object));
+                            break;
+                        case HISS_SCI_KEY_DATE_OBS:
+                            if (vtype == HISS_SCI_TYPE_STRING)
+                                copy_str(vdata, vlen, impl.metadata.date_obs, sizeof(impl.metadata.date_obs));
+                            break;
+                        // SIGNAL_SEMANTICS/SUPPORT_SEMANTICS/SIGNAL_DATATYPE/SUPPORT_DATATYPE
+                        // 当前仅验证存在性, 值校验在下方统一进行
+                        default:
+                            break;  // 未知 key_id 跳过 (向前兼容)
+                    }
+                }
+                has_science_meta = true;
                 break;
             }
             case HISS_TLV_TILE_DIRECTORY: {
@@ -641,12 +765,13 @@ int HissReader::open(const std::string& path) {
                         desc.ext_type_id      = read_u16_le(sd + 1);   // R04-B17
                         desc.flags            = read_u16_le(sd + 3);
                         desc.offset           = read_u64_le(sd + 5);
-                        desc.compressed_size   = read_u64_le(sd + 13);
-                        desc.uncompressed_size = read_u64_le(sd + 21);
-                        desc.codec_id         = (CodecId)read_u16_le(sd + 29);
-                        desc.transform_id     = (TransformId)read_u16_le(sd + 31);
-                        desc.checksum_type    = (ChecksumType)sd[33];
-                        desc.checksum         = read_u64_le(sd + 34);
+                        desc.compressed_size   = read_u64_le(sd + 13);   // stored_size
+                        desc.uncompressed_size = read_u64_le(sd + 21);   // transform_size
+                        desc.decoded_size      = read_u64_le(sd + 29);   // decoded_size (R05-B09)
+                        desc.codec_id         = (CodecId)read_u16_le(sd + 37);
+                        desc.transform_id     = (TransformId)read_u16_le(sd + 39);
+                        desc.checksum_type    = (ChecksumType)sd[41];
+                        desc.checksum         = read_u64_le(sd + 42);
                     }
                     tpos += (size_t)n_subblocks * kSubblockDescSize;
 
@@ -701,6 +826,47 @@ int HissReader::open(const std::string& path) {
         fprintf(stderr, "[hiss][reader] 缺少 TILE_DIRECTORY TLV\n");
         close();
         return HISS_ERR_FORMAT_VIOLATION;
+    }
+    // R05-B08: SCIENCE_METADATA 为必需 TLV (科学语义权威来源, 不得仅依赖 JSON)
+    if (!has_science_meta) {
+        fprintf(stderr, "[hiss][reader] 缺少 SCIENCE_METADATA TLV (科学语义不得仅依赖 JSON)\n");
+        close();
+        return HISS_ERR_FORMAT_VIOLATION;
+    }
+
+    // R05-B08: 测光契约验证 (从 SCIENCE_METADATA 读取的字段)
+    // 正式 HISS 仅允许已测光相对通量:
+    //   PHOTAPPL=1, PHOTSCAL>0 且有限, BUNIT=ASTROCS_RELATIVE_FLUX
+    {
+        const std::string bunit_str(impl.metadata.bunit);
+        const bool is_relative_flux = (bunit_str == "ASTROCS_RELATIVE_FLUX");
+        const bool photappl = (impl.metadata.photappl != 0);
+        const bool photscal_ok = std::isfinite(impl.metadata.photscal) &&
+                                  impl.metadata.photscal > 0.0;
+
+        if (!photscal_ok) {
+            fprintf(stderr,
+                    "[hiss][reader] SCIENCE_METADATA 测光契约失败: PHOTSCAL=%.6f 非法 (必须>0 且有限)\n",
+                    impl.metadata.photscal);
+            close();
+            return HISS_ERR_FORMAT_VIOLATION;
+        }
+        if (!is_relative_flux) {
+            fprintf(stderr,
+                    "[hiss][reader] SCIENCE_METADATA 测光契约失败: BUNIT='%s' (必须 ASTROCS_RELATIVE_FLUX)\n",
+                    impl.metadata.bunit);
+            close();
+            return HISS_ERR_FORMAT_VIOLATION;
+        }
+        if (!photappl) {
+            fprintf(stderr,
+                    "[hiss][reader] SCIENCE_METADATA 测光契约失败: PHOTAPPL=0 (必须为 true)\n");
+            close();
+            return HISS_ERR_FORMAT_VIOLATION;
+        }
+        fprintf(stderr,
+                "[hiss][reader] SCIENCE_METADATA 测光契约通过: PHOTAPPL=%d PHOTSCAL=%.6f BUNIT=%s\n",
+                impl.metadata.photappl, impl.metadata.photscal, impl.metadata.bunit);
     }
 
     // 同步元数据中的网格字段

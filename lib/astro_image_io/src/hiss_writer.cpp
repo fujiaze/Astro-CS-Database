@@ -26,6 +26,7 @@
 #include <cerrno>
 #include <cstring>
 #include <cstdint>
+#include <cmath>     // R05-B07: std::isfinite (测光契约校验)
 #include <string>
 #include <vector>
 #include <memory>
@@ -124,11 +125,16 @@ static int compress_and_append(HissStreamWriter& stream,
     }
 
     // R04-B17: 内置子块 ext_type_id = 0 (非 EXTENSION 类型)
+    // R05-B09: 三长度字段 (stored/transform/decoded)
+    //   compressed_size  = stored_size    (磁盘压缩 payload, append_subblock 回填)
+    //   uncompressed_size = transform_size (解压后、逆变换前 = 变换后大小)
+    //   decoded_size     = decoded_size   (逆变换后最终数据 = 原始 data_size)
     desc.type              = type;
     desc.ext_type_id       = (uint16_t)ExtensionNamespace::BUILTIN;  // 0=内置
     desc.flags             = flags;
     desc.offset            = 0;  // append_subblock 回填
-    desc.uncompressed_size = size_to_compress;  // WP-G: 变换后大小
+    desc.uncompressed_size = size_to_compress;  // transform_size (变换后大小)
+    desc.decoded_size      = data_size;          // decoded_size (原始数据大小, 逆变换后)
     desc.transform_id      = transform_id;
     desc.checksum_type     = ChecksumType::NONE;  // 默认 NONE, 下方按 checksum_type 覆盖
     desc.checksum          = 0;
@@ -276,30 +282,69 @@ int HissWriter::open(const std::string& output_path,
         return -2;
     }
 
-    // WP-C 步骤9: 测光元数据一致性校验 (02_FROZEN §7)
+    // R05-M03: 正式 HISS 入口硬校验 — 拒绝 RING 和非 ICRS
+    //   HISS 内部统一 NESTED ordering + ICRS 坐标系 (02_FROZEN §1)
+    //   ordering: 1=NESTED (唯一合法), 0=RING (拒绝)
+    //   radesys:  0=ICRS (唯一合法), 其他=拒绝
+    //   pixfrac:  严格 (0, 1] (R05-B04 一致, 禁止 0 值和 >1)
+    if (grid.ordering != 1) {
+        fprintf(stderr,
+                "[hiss][writer] open 失败: ordering=%d 非法 (HISS 统一 NESTED, ordering 必须为 1) "
+                "(HISS_ERR_FORMAT_VIOLATION)\n", grid.ordering);
+        return -2;
+    }
+    if (grid.radesys != 0) {
+        fprintf(stderr,
+                "[hiss][writer] open 失败: radesys=%d 非法 (HISS 统一 ICRS, radesys 必须为 0) "
+                "(HISS_ERR_FORMAT_VIOLATION)\n", grid.radesys);
+        return -2;
+    }
+    if (!(grid.pixfrac > 0.0) || grid.pixfrac > 1.0) {
+        fprintf(stderr,
+                "[hiss][writer] open 失败: pixfrac=%.4f 超出范围 (0.0, 1.0] "
+                "(HISS_ERR_FORMAT_VIOLATION)\n", grid.pixfrac);
+        return -2;
+    }
+
+    // R05-B07: 测光契约硬校验 (正式 HISS 仅允许已测光相对通量)
+    // 要求: PHOTSCAL 正且有限 + BUNIT=ASTROCS_RELATIVE_FLUX + PHOTAPPL=TRUE
+    // 旧 ADU 接口隔离为非正式/废弃, 不得生成合规 HISS
     {
         const std::string bunit_str(metadata.bunit);
         const bool is_relative_flux = (bunit_str == "ASTROCS_RELATIVE_FLUX");
         const bool photappl = (metadata.photappl != 0);
 
-        if (is_relative_flux && !photappl) {
+        // 校验 1: PHOTSCAL 必须为正且有限 (无论其他字段)
+        if (!std::isfinite(metadata.photscal) || metadata.photscal <= 0.0) {
             fprintf(stderr,
-                    "[hiss][writer] open 失败: 元数据不一致 - BUNIT=%s 但 PHOTAPPL=FALSE "
-                    "(PHOTSCAL=%.6f)。BUNIT=ASTROCS_RELATIVE_FLUX 要求 signal 已应用 Gaia 测光校准 "
-                    "(PHOTAPPL=TRUE) (HISS_ERR_INVALID_STATE)\n",
-                    metadata.bunit, metadata.photscal);
+                    "[hiss][writer] open 失败: PHOTSCAL=%.6f 非法 (必须 >0 且有限)。"
+                    "正式 HISS 要求已应用 Gaia 测光校准 (HISS_ERR_INVALID_STATE)\n",
+                    metadata.photscal);
             return -2;  // HISS_ERR_INVALID_STATE
         }
 
-        fprintf(stderr,
-                "[hiss][writer] 测光元数据: PHOTAPPL=%d PHOTSCAL=%.6f BUNIT=%s (一致性 OK)\n",
-                metadata.photappl, metadata.photscal, metadata.bunit);
-
-        if (photappl && !is_relative_flux) {
+        // 校验 2: BUNIT 必须为 ASTROCS_RELATIVE_FLUX (禁止 ADU 等旧单位)
+        if (!is_relative_flux) {
             fprintf(stderr,
-                    "[hiss][writer] 警告: PHOTAPPL=TRUE 但 BUNIT=%s (建议改为 ASTROCS_RELATIVE_FLUX)\n",
+                    "[hiss][writer] open 失败: BUNIT='%s' 非法。正式 HISS signal 必须是相对通量 "
+                    "(BUNIT=ASTROCS_RELATIVE_FLUX)。ADU 等旧接口已废弃, 不得生成合规 HISS "
+                    "(HISS_ERR_INVALID_STATE)\n",
                     metadata.bunit);
+            return -2;
         }
+
+        // 校验 3: PHOTAPPL 必须为 TRUE (signal 已应用 Gaia 测光校准)
+        if (!photappl) {
+            fprintf(stderr,
+                    "[hiss][writer] open 失败: PHOTAPPL=0 但 BUNIT=ASTROCS_RELATIVE_FLUX。"
+                    "相对通量要求 signal 已应用 Gaia 测光校准 (PHOTAPPL=TRUE) "
+                    "(HISS_ERR_INVALID_STATE)\n");
+            return -2;
+        }
+
+        fprintf(stderr,
+                "[hiss][writer] 测光元数据校验通过: PHOTAPPL=%d PHOTSCAL=%.6f BUNIT=%s\n",
+                metadata.photappl, metadata.photscal, metadata.bunit);
     }
 
     pimpl_->grid     = grid;
@@ -406,11 +451,15 @@ int HissWriter::add_tile(uint64_t parent_ipix,
         }
     } else {
         // SPARSE_LIST: 保存有效像素的 local_ipix 索引列表 (uint32 数组) + 紧凑 signal/support
+        // R05-B10: 显式小端序写入 (与 Reader 端 read_u32_le 对称, 禁止 host-endian memcpy)
         occ_data.reserve(n_valid * sizeof(uint32_t));
         for (uint32_t idx : valid_indices) {
             size_t off = occ_data.size();
             occ_data.resize(off + 4);
-            std::memcpy(occ_data.data() + off, &idx, 4);
+            occ_data[off+0] = (uint8_t)(idx & 0xFF);
+            occ_data[off+1] = (uint8_t)((idx >> 8) & 0xFF);
+            occ_data[off+2] = (uint8_t)((idx >> 16) & 0xFF);
+            occ_data[off+3] = (uint8_t)((idx >> 24) & 0xFF);
         }
         signal_compact.reserve(n_valid);
         support_compact.reserve(n_valid);

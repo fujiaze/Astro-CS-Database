@@ -1,8 +1,8 @@
 CXX = g++
-CXXFLAGS = -O2 -march=native -Wall -std=c++17 -fopenmp
+CXXFLAGS = -O2 -march=native -Wall -std=c++17 -fopenmp -DAIO_ENABLE_FITS -DAIO_ENABLE_XISF
 INCLUDES = -Iinclude -Isrc
 SRC_DIR = src
-AHPX_DIR = $(SRC_DIR)/ahpx
+# R05-B12: ahpx 已废弃归档, 从构建中移除
 SRCS = $(SRC_DIR)/aio_fits.cpp $(SRC_DIR)/aio_xisf.cpp \
        $(SRC_DIR)/aio_api.cpp $(SRC_DIR)/aio_log.cpp \
        $(SRC_DIR)/aio_compressor.cpp \
@@ -13,7 +13,6 @@ SRCS = $(SRC_DIR)/aio_fits.cpp $(SRC_DIR)/aio_xisf.cpp \
        $(SRC_DIR)/hiss_writer.cpp \
        $(SRC_DIR)/hiss_stream_writer.cpp \
        $(SRC_DIR)/hiss_reader.cpp \
-       $(AHPX_DIR)/aio_ahpx_writer.cpp $(AHPX_DIR)/aio_ahpx_reader.cpp $(AHPX_DIR)/aio_ahpx_api.cpp \
        $(SRC_DIR)/aio_pipeline.cpp \
        $(SRC_DIR)/aio_pipeline_engine.cpp
 
