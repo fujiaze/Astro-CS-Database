@@ -16,6 +16,14 @@ namespace healpix { class HealpixCore; }
 
 namespace drizzle {
 
+// Drizzle 模式 (R04 FAST 实验)
+//   PRECISE: 球面 Sutherland-Hodgman + Girard 定理 (生产默认, 高精度)
+//   FAST:    切平面 gnomonic 投影 + 2D 裁剪 + 鞋带公式 (实验性, 快速近似)
+enum class DrizzleMode {
+    PRECISE = 0,   // 生产模式 (默认)
+    FAST    = 1,   // 实验模式 (仅用于对比实验, 不合并 main)
+};
+
 // Drizzle 配置
 struct DrizzleConfig {
     int    nside = 32768;       // HEALPix nside (nside=0 触发自动 NSIDE 计算)
@@ -26,6 +34,9 @@ struct DrizzleConfig {
     bool   apply_photometry = false;  // 测光已应用到像素 (元数据标记, drizzle 不再应用)
     double photscal = 1.0;     // 测光校准比例 (实际应用值, 元数据记录用)
     bool   photometry_applied_upstream = false;  // PHOTOMETRIC 阶段已应用测光校准
+    // FAST 实验参数 (mode=FAST 时生效)
+    DrizzleMode mode = DrizzleMode::PRECISE;  // Drizzle 模式 (默认 PRECISE)
+    int fast_healpix_samples = 1;             // FAST: HEALPix 边界采样段数 (建议 1-2)
 };
 
 // 单个 HEALPix 像素的累加器 (float64 内部精度, 02_FROZEN §8/§10)

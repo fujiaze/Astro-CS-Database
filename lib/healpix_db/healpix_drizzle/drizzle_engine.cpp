@@ -1,6 +1,7 @@
 #include "drizzle_engine.h"
 #include "healpix_core.h"
-#include "spherical_overlap.h"   // WP-D: 球面 HEALPix 重叠计算
+#include "spherical_overlap.h"   // WP-D: 球面 HEALPix 重叠计算 (PRECISE)
+#include "fast_overlap.h"        // R04 FAST: 切平面重叠计算 (实验性)
 #include "aio_healpix_io.h"   // aio.dll C API: hiss_write (向后兼容宏)
 // WP-E 步骤8: 接入新 HissWriter (替代旧 hiss_write)
 #include "../../astro_image_io/include/hiss_format.h"
@@ -531,6 +532,7 @@ void DrizzleEngine::processPixel(
     // ---- Step 5: 候选像素查询 (球面包围圆 + queryDisc, 不限于 1-ring) ----
     // WP-D 步骤4: 修复固定 1-ring 限制 (候选数 ≤ 48 → 可 > 48)
     // 高 NSIDE + 大源像素时, drop 跨越多个 HEALPix 像素, queryDisc 自动覆盖
+    // (PRECISE 和 FAST 共享候选查询, 保证候选召回率一致)
     std::vector<uint64_t> candidates;
     spherical::query_candidate_pixels(drop_corners, hp, candidates);
 
@@ -538,15 +540,34 @@ void DrizzleEngine::processPixel(
         return;
     }
 
-    // ---- Step 6: 对每个候选像素计算球面重叠面积, 累加通量 ----
+    // FAST 模式: 计算 drop 中心天球坐标 (作为切平面切点)
+    double drop_center_ra = 0.0, drop_center_dec = 0.0;
+    if (config.mode == DrizzleMode::FAST) {
+        wcs.pixelToSky(px, py, drop_center_ra, drop_center_dec);
+    }
+
+    // ---- Step 6: 对每个候选像素计算重叠面积, 累加通量 ----
+    // PRECISE: 球面 Sutherland-Hodgman + Girard 定理 (高精度)
+    // FAST:    切平面 gnomonic 投影 + 2D 裁剪 + 鞋带公式 (快速近似)
+    //
     // 通量守恒 (02_FROZEN §8): F_p = Σ_j L_j * (a_jp / A_j_drop)
-    //   - a_jp = 球面重叠面积 (球面度)
+    //   - a_jp = 重叠面积 (球面度)
     //   - A_j_drop = drop 球面面积 (球面度)
     //   - drop 未截断时, Σ_p a_jp = A_j_drop, 故 Σ_p F_p = L_j (通量守恒)
     // support 累加 (02_FROZEN §10): sumArea += a_jp (球面度)
     //   - support = Σ a_jp / A_p (A_p = HEALPix 像素面积, 由下游归一化)
     for (uint64_t ipix : candidates) {
-        double overlap_area = spherical::compute_overlap_area(drop_corners, hp, ipix);
+        double overlap_area;
+        if (config.mode == DrizzleMode::FAST) {
+            // FAST: 切平面近似重叠面积
+            overlap_area = fast::compute_overlap_area_fast(
+                drop_corners, hp, ipix, hp.getNside(),
+                drop_center_ra, drop_center_dec,
+                config.fast_healpix_samples);
+        } else {
+            // PRECISE: 球面精确重叠面积
+            overlap_area = spherical::compute_overlap_area(drop_corners, hp, ipix);
+        }
         if (overlap_area < 1e-20) continue;  // 不相交或面积过小
 
         // weight = a_jp / A_j_drop (标准 Drizzle 通量守恒权重)
