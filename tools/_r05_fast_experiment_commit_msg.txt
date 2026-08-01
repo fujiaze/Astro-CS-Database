@@ -1,0 +1,16 @@
+experiment(drizzle): R05 Gate E FAST C++对照实验 288 cases
+
+补齐 benchmark_precise_fast.cpp 的 FAST 对比功能:
+- 添加 fast_overlap.h 链接和 fast::compute_overlap_area_fast 调用
+- 新增 run_drizzle_fast() 函数: 共享 PRECISE 的 Step 1-5, 仅 Step 6 用 FAST 替代
+- 扩展 Comparison 结构: signal/support RMSE/P50/P95/P99/extra_pixels
+- JSONL 输出: 288 cases × 7 行 = 2016 行
+
+关键结果:
+- 平均加速比 12.37x (min 2.45x, max 39.69x)
+- FAST 最大通量误差 0.02% (远优于 1% 要求)
+- 常规尺度 (0.1"-60") 候选零漏选
+- 1° 像素切平面近似已知 tradeoff (8 cases 候选差异)
+- 不合并 main, 不冻结参数
+
+发现: PRECISE 在 1° 像素+极区有通量爆炸 (303305x), 需后续调查
