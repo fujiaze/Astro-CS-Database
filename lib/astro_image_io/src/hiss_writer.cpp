@@ -38,13 +38,10 @@ namespace hiss {
 // 内部常量
 // ============================================================================
 
-// occupancy 自动选择阈值 (实验值, 未冻结, DQ-005)
-//   占用率 = n_valid / n_leaf_per_tile
+// R04-B12: occupancy 自动选择 — 不再使用硬编码阈值
 //   FULL 仅当 n_valid == n_leaf_per_tile (100% 覆盖, 02_FROZEN §9)
-//   > OCC_BITMAP_THRESHOLD → BITMAP (中等稀疏, 位图比索引列表紧凑)
-//   否则                   → SPARSE_LIST (高度稀疏, 索引列表更省)
-//   注意: FULL 不能使用 80% 等近似阈值 (02_FROZEN §9 红线)
-static const double OCC_BITMAP_THRESHOLD = 0.1;
+//   BITMAP/SPARSE_LIST 按实际完整编码大小自动选最小者, 确定性 tie-break
+//   不冻结经验阈值 (DQ-005 由实验决定, 但生产路径不依赖固定阈值)
 
 // ============================================================================
 // HissWriter 私有实现
@@ -126,37 +123,65 @@ static int compress_and_append(HissStreamWriter& stream,
                 transform_type_name(tt), data_size, size_to_compress, element_size);
     }
 
-    // 查找 codec
-    const CodecEntry* entry = CodecRegistry::instance().find(codec_id);
-    if (!entry) {
-        fprintf(stderr, "[hiss][writer] compress_and_append: codec id=%u 未注册\n",
-                (unsigned)codec_id);
-        return -1;
-    }
-
-    // 分配压缩缓冲区并压缩 (基于变换后大小)
-    size_t bound = entry->bound(size_to_compress);
-    std::vector<uint8_t> compressed(bound);
-    size_t compressed_size = bound;
-    int ret = entry->compress(data_to_compress, size_to_compress,
-                               compressed.data(), &compressed_size);
-    if (ret != 0) {
-        fprintf(stderr, "[hiss][writer] compress_and_append: 压缩失败 ret=%d (codec=%u type=%u)\n",
-                ret, (unsigned)codec_id, (unsigned)type);
-        return -2;
-    }
-
-    // 填充描述符 (offset 由 stream.append_subblock 回填)
-    // uncompressed_size = 变换后大小 (压缩前大小), Reader 解压后需 inverse_transform 还原
+    // R04-B17: 内置子块 ext_type_id = 0 (非 EXTENSION 类型)
     desc.type              = type;
+    desc.ext_type_id       = (uint16_t)ExtensionNamespace::BUILTIN;  // 0=内置
     desc.flags             = flags;
     desc.offset            = 0;  // append_subblock 回填
-    desc.compressed_size   = compressed_size;
     desc.uncompressed_size = size_to_compress;  // WP-G: 变换后大小
-    desc.codec_id          = codec_id;
     desc.transform_id      = transform_id;
     desc.checksum_type     = ChecksumType::NONE;  // 默认 NONE, 下方按 checksum_type 覆盖
     desc.checksum          = 0;
+
+    // R04-B13: RAW 回退 — 若 codec != RAW, 压缩后若无收益则真实回退 RAW
+    //   判据: compressed_size >= size_to_compress (压缩后不小于原始)
+    //   回退: codec_id=RAW, compressed_size=size_to_compress, 写入原始数据
+    const uint8_t* final_data = data_to_compress;
+    size_t final_size = size_to_compress;
+    CodecId final_codec = codec_id;
+
+    if (codec_id != CodecId::RAW) {
+        // 查找 codec
+        const CodecEntry* entry = CodecRegistry::instance().find(codec_id);
+        if (!entry) {
+            fprintf(stderr, "[hiss][writer] compress_and_append: codec id=%u 未注册\n",
+                    (unsigned)codec_id);
+            return -1;
+        }
+
+        // 分配压缩缓冲区并压缩 (基于变换后大小)
+        size_t bound = entry->bound(size_to_compress);
+        std::vector<uint8_t> compressed(bound);
+        size_t compressed_size = bound;
+        int ret = entry->compress(data_to_compress, size_to_compress,
+                                   compressed.data(), &compressed_size);
+        if (ret != 0) {
+            fprintf(stderr, "[hiss][writer] compress_and_append: 压缩失败 ret=%d (codec=%u type=%u)\n",
+                    ret, (unsigned)codec_id, (unsigned)type);
+            return -2;
+        }
+
+        // R04-B13: 判断压缩是否有收益
+        if (compressed_size >= size_to_compress) {
+            // 压缩无收益 → 回退 RAW
+            fprintf(stderr,
+                    "[hiss][writer]   R04-B13 RAW 回退: compressed=%zu >= uncompressed=%zu → 使用 RAW\n",
+                    compressed_size, size_to_compress);
+            final_data  = data_to_compress;
+            final_size  = size_to_compress;
+            final_codec = CodecId::RAW;
+            // compressed 在此分支结束后析构, 释放内存
+        } else {
+            // 压缩有收益 → 使用压缩数据
+            final_data  = compressed.data();
+            final_size  = compressed_size;
+            final_codec = codec_id;
+        }
+    }
+    // codec_id == RAW 时, final_data/final_size/final_codec 已正确设置
+
+    desc.compressed_size = final_size;
+    desc.codec_id        = final_codec;
 
     // checksum 计算 (INTERIM_BASELINE_NOT_FROZEN)
     // 计算的是压缩后数据 (与 Reader 端一致, Reader 在解压前校验 comp.data())
@@ -168,37 +193,40 @@ static int compress_and_append(HissStreamWriter& stream,
                     (unsigned)checksum_type, (unsigned)type);
             return -4;
         }
-        desc.checksum      = cs->compute(compressed.data(), compressed_size);
+        desc.checksum      = cs->compute(final_data, final_size);
         desc.checksum_type = checksum_type;
         fprintf(stderr,
                 "[hiss][writer]   checksum %s: type=%u value=0x%016llx (comp_size=%zu)\n",
                 cs->name.c_str(), (unsigned)checksum_type,
-                (unsigned long long)desc.checksum, compressed_size);
+                (unsigned long long)desc.checksum, final_size);
     }
 
     // 立即追加到流式写入器 (写入临时池), 释放 compressed 内存
-    ret = stream.append_subblock(compressed.data(), compressed_size, desc);
+    int ret = stream.append_subblock(final_data, final_size, desc);
     if (ret != 0) {
         fprintf(stderr, "[hiss][writer] compress_and_append: append_subblock 失败 ret=%d\n", ret);
         return -3;
     }
 
-    // compressed 在此处析构, 释放内存 (步骤10: 不保留 compressed_data)
     fprintf(stderr,
-            "[hiss][writer]   子块 type=%u flags=0x%04x uncompressed=%zu compressed=%zu "
+            "[hiss][writer]   子块 type=%u ext_id=%u flags=0x%04x uncompressed=%zu compressed=%zu "
             "codec=%u transform=%u checksum_type=%u offset=%llu\n",
-            (unsigned)type, flags, size_to_compress, compressed_size,
-            (unsigned)codec_id, (unsigned)transform_id,
+            (unsigned)type, (unsigned)desc.ext_type_id, flags, size_to_compress, final_size,
+            (unsigned)final_codec, (unsigned)transform_id,
             (unsigned)desc.checksum_type,
             (unsigned long long)desc.offset);
     return 0;
 }
 
 // ---------------------------------------------------------------------------
-// 内部辅助: 自动选择 occupancy 模式 (步骤11)
+// 内部辅助: 自动选择 occupancy 模式 (R04-B12)
 //   FULL 仅当 n_valid == n_leaf_per_tile (100% 覆盖, 02_FROZEN §9)
-//   否则按 OCC_BITMAP_THRESHOLD 选择 BITMAP 或 SPARSE_LIST
-//   BITMAP/SPARSE 切换阈值未冻结 (DQ-005), 仅供实验
+//   否则按实际完整编码大小自动选 BITMAP 或 SPARSE_LIST 的最小者
+//   确定性 tie-break: 大小相等时选 BITMAP (解码更简单, 无需二分查找)
+//   不冻结经验阈值 (R04-B12 红线)
+//
+//   BITMAP 完整编码大小 = ceil(n_leaf_per_tile / 8) 字节
+//   SPARSE_LIST 完整编码大小 = n_valid * sizeof(uint32_t) 字节
 // ---------------------------------------------------------------------------
 
 static OccupancyMode auto_select_occupancy(uint32_t n_valid, uint32_t n_leaf_per_tile) {
@@ -207,12 +235,14 @@ static OccupancyMode auto_select_occupancy(uint32_t n_valid, uint32_t n_leaf_per
     if (n_valid == n_leaf_per_tile) {
         return OccupancyMode::FULL;
     }
-    double occ = (double)n_valid / (double)n_leaf_per_tile;
-    if (occ >= OCC_BITMAP_THRESHOLD) {
-        return OccupancyMode::BITMAP;
-    } else {
+    // R04-B12: 按实际完整编码大小自动选最小者
+    size_t bitmap_size  = (size_t)(n_leaf_per_tile + 7) / 8;       // 位图: 1 bit/叶像素
+    size_t sparse_size  = (size_t)n_valid * sizeof(uint32_t);      // 索引列表: 4 字节/有效像素
+    if (sparse_size < bitmap_size) {
         return OccupancyMode::SPARSE_LIST;
     }
+    // tie-break: 大小相等时选 BITMAP (解码更简单)
+    return OccupancyMode::BITMAP;
 }
 
 // ---------------------------------------------------------------------------
@@ -394,6 +424,7 @@ int HissWriter::add_tile(uint64_t parent_ipix,
     std::vector<HissSubblockDescriptor> subblocks;
 
     // 5a. occupancy 子块 (FULL 时省略; BITMAP/SPARSE_LIST 时生成)
+    //     R04-B12: occupancy 在 BITMAP/SPARSE Tile 中必须标记 REQUIRED
     //     WP-G 步骤12: 传递 element_size 供 transform 使用
     //       BITMAP: element_size=1 (原始字节, 位图)
     //       SPARSE_LIST: element_size=4 (uint32 索引数组, delta/varint 有意义)
@@ -403,7 +434,7 @@ int HissWriter::add_tile(uint64_t parent_ipix,
         int ret = compress_and_append(
             pimpl_->stream,
             SubblockType::OCCUPANCY,
-            (uint16_t)SubblockFlags::OPTIONAL,
+            (uint16_t)SubblockFlags::REQUIRED,  // R04-B12: occupancy 标记 required
             occ_data.data(), occ_data.size(),
             pimpl_->codec_for(SubblockType::OCCUPANCY),
             pimpl_->transform_for(SubblockType::OCCUPANCY),
@@ -452,19 +483,68 @@ int HissWriter::add_tile(uint64_t parent_ipix,
     }
 
     // 5d. SNR 子块 (可选, snr != nullptr 时生成)
+    //     R04-B18: block 级 estimator_id/sampling_scale/count + 点数据
     //     冻结布局 (02_FROZEN §17 + 00_COMMON_CONTRACTS §2.5):
-    //       [n_points: uint32][points: n_points * 8B]
-    //       每点: local_ipix(uint32) + snr(float32) = 8 字节
+    //       [estimator_id:  uint32 LE]   — 估计器 ID (block 级)
+    //       [sampling_scale: float32 LE] — 采样尺度 (block 级)
+    //       [n_points:      uint32 LE]   — 控制点数 (= count, block 级)
+    //       [points: n_points * 8B]      — 每点 local_ipix(uint32) + snr(float32)
+    //     重复点处理: Writer 按升序排序 local_ipix, 重复点保留首次出现 (确定性规则)
+    //     无覆盖点: 不得写入 (Stage1 映射到 Tile 后才写入, 不静默丢失)
     //     WP-G 步骤12: SNR 为混合布局, element_size=1 (transform 一般不适用于 SNR)
     if (snr) {
-        uint32_t n_points = (uint32_t)snr->points.size();
-        size_t snr_bytes = 4 + (size_t)n_points * 8;
+        // R04-B18: 确定性重复点处理 — 按 local_ipix 升序排序, 重复点保留首次出现
+        std::vector<HissSnrControlPoint> sorted_points = snr->points;
+        std::sort(sorted_points.begin(), sorted_points.end(),
+                  [](const HissSnrControlPoint& a, const HissSnrControlPoint& b) {
+                      return a.local_ipix < b.local_ipix;
+                  });
+        auto last = std::unique(sorted_points.begin(), sorted_points.end(),
+                                [](const HissSnrControlPoint& a, const HissSnrControlPoint& b) {
+                                    return a.local_ipix == b.local_ipix;
+                                });
+        sorted_points.erase(last, sorted_points.end());
+
+        uint32_t n_points = (uint32_t)sorted_points.size();
+        // R04-B18: 布局 = estimator_id(4) + sampling_scale(4) + n_points(4) + points(n*8)
+        size_t snr_bytes = 4 + 4 + 4 + (size_t)n_points * 8;
         std::vector<uint8_t> snr_data(snr_bytes);
-        std::memcpy(snr_data.data(), &n_points, 4);
+        size_t off = 0;
+        // estimator_id (uint32 LE)
+        uint32_t eid = snr->estimator_id;
+        snr_data[off+0] = (uint8_t)(eid & 0xFF);
+        snr_data[off+1] = (uint8_t)((eid >> 8) & 0xFF);
+        snr_data[off+2] = (uint8_t)((eid >> 16) & 0xFF);
+        snr_data[off+3] = (uint8_t)((eid >> 24) & 0xFF);
+        off += 4;
+        // sampling_scale (float32 LE)
+        uint32_t sbits;
+        std::memcpy(&sbits, &snr->sampling_scale, 4);
+        snr_data[off+0] = (uint8_t)(sbits & 0xFF);
+        snr_data[off+1] = (uint8_t)((sbits >> 8) & 0xFF);
+        snr_data[off+2] = (uint8_t)((sbits >> 16) & 0xFF);
+        snr_data[off+3] = (uint8_t)((sbits >> 24) & 0xFF);
+        off += 4;
+        // n_points (uint32 LE)
+        snr_data[off+0] = (uint8_t)(n_points & 0xFF);
+        snr_data[off+1] = (uint8_t)((n_points >> 8) & 0xFF);
+        snr_data[off+2] = (uint8_t)((n_points >> 16) & 0xFF);
+        snr_data[off+3] = (uint8_t)((n_points >> 24) & 0xFF);
+        off += 4;
+        // points: 每点 local_ipix(uint32 LE) + snr(float32 LE) = 8 字节
         for (uint32_t i = 0; i < n_points; i++) {
-            size_t off = 4 + (size_t)i * 8;
-            std::memcpy(snr_data.data() + off,     &snr->points[i].local_ipix, 4);
-            std::memcpy(snr_data.data() + off + 4, &snr->points[i].snr,        4);
+            uint32_t lip = sorted_points[i].local_ipix;
+            snr_data[off+0] = (uint8_t)(lip & 0xFF);
+            snr_data[off+1] = (uint8_t)((lip >> 8) & 0xFF);
+            snr_data[off+2] = (uint8_t)((lip >> 16) & 0xFF);
+            snr_data[off+3] = (uint8_t)((lip >> 24) & 0xFF);
+            uint32_t sbits2;
+            std::memcpy(&sbits2, &sorted_points[i].snr, 4);
+            snr_data[off+4] = (uint8_t)(sbits2 & 0xFF);
+            snr_data[off+5] = (uint8_t)((sbits2 >> 8) & 0xFF);
+            snr_data[off+6] = (uint8_t)((sbits2 >> 16) & 0xFF);
+            snr_data[off+7] = (uint8_t)((sbits2 >> 24) & 0xFF);
+            off += 8;
         }
         HissSubblockDescriptor desc;
         int ret = compress_and_append(
@@ -481,8 +561,10 @@ int HissWriter::add_tile(uint64_t parent_ipix,
         subblocks.push_back(desc);
 
         fprintf(stderr,
-                "[hiss][writer]   SNR 子块: 写入 %u 个控制点 (布局: n_points + %llu 字节)\n",
-                n_points, (unsigned long long)((size_t)n_points * 8));
+                "[hiss][writer]   SNR 子块: estimator_id=%u sampling_scale=%g 写入 %u 个控制点 "
+                "(去重后, 布局: eid+scale+n_points + %llu 字节)\n",
+                snr->estimator_id, snr->sampling_scale, n_points,
+                (unsigned long long)((size_t)n_points * 8));
     }
 
     // 6. 记录 Tile 目录 (只保留描述符, 不保留压缩数据 — 步骤10)
