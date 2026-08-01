@@ -45,6 +45,11 @@ int apply_photometry(const float* light, int w, int h, double photscal, float* o
         fprintf(stderr, "[photometry_apply] 失败: photscal 非有限值 (%g)\n", photscal);
         return -4;
     }
+    // R05-B07: photscal 必须 > 0 且有限 (k=0 会产生全零输出, 负值无物理意义)
+    if (photscal <= 0.0) {
+        fprintf(stderr, "[photometry_apply] 失败: photscal=%.6f 非正 (要求 > 0)\n", photscal);
+        return -5;
+    }
 
     const size_t n = (size_t)w * (size_t)h;
 
@@ -53,7 +58,7 @@ int apply_photometry(const float* light, int w, int h, double photscal, float* o
 
     // ---- 应用测光比例: I_photo = k_photo * I_cal ----
     // 使用 double 精度计算, 避免 photscal 极大/极小时 float 乘法精度损失
-    // NaN/Inf 透传: NaN * k = NaN, Inf * k = Inf (k>0) / -Inf (k<0) / NaN (k=0)
+    // NaN/Inf 透传: NaN * k = NaN, Inf * k = Inf (k>0)
     // 下游 Drizzle 会用 std::isfinite() 跳过非有限像素, 行为正确
     for (size_t i = 0; i < n; i++) {
         out[i] = (float)((double)light[i] * photscal);

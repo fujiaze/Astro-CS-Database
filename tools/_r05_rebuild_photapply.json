@@ -1,0 +1,38 @@
+[
+  {
+    "type": "run_orchestrator",
+    "params": {
+      "exe": "C:\\msys64\\mingw64\\bin\\g++.exe",
+      "args": [
+        "-std=c++17", "-O2", "-fopenmp", "-DHAS_ZSTD", "-DAIO_ENABLE_HEALPIX",
+        "-I../src", "-I../../astro_image_io/include", "-I../../astro_image_io/src",
+        "test_photometry_apply.cpp", "../src/photometry_apply.cpp",
+        "../../astro_image_io/src/hiss_codec.cpp",
+        "../../astro_image_io/src/hiss_common.cpp",
+        "../../astro_image_io/src/hiss_tile_model.cpp",
+        "../../astro_image_io/src/hiss_writer.cpp",
+        "../../astro_image_io/src/hiss_stream_writer.cpp",
+        "../../astro_image_io/src/hiss_transform.cpp",
+        "../../astro_image_io/src/hiss_reader.cpp",
+        "../../astro_image_io/src/healpix/aio_healpix_io.cpp",
+        "../../astro_image_io/src/aio_api.cpp",
+        "../../astro_image_io/src/aio_log.cpp",
+        "-lzstd", "-lm",
+        "-o", "../../run/temp/test_photometry_apply.exe"
+      ],
+      "timeout_sec": 120,
+      "stdout_file": "run/logs/r05_photapply_rebuild_stdout.log",
+      "stderr_file": "run/logs/r05_photapply_rebuild_stderr.log"
+    }
+  },
+  {
+    "type": "run_orchestrator",
+    "params": {
+      "exe": "run/temp/test_photometry_apply.exe",
+      "args": [],
+      "timeout_sec": 60,
+      "stdout_file": "run/logs/r05_photapply_rerun_stdout.log",
+      "stderr_file": "run/logs/r05_photapply_rerun_stderr.log"
+    }
+  }
+]

@@ -1,0 +1,6 @@
+fix(calibration): R05-B07 apply_photometry 拒绝 photscal<=0
+
+- photscal=0 或负值现在返回 -5 (之前返回 0 并产生全零/负值输出)
+- HissWriter::open 层面已拦截, 现在底层 apply_photometry 也强制拒绝
+- 更新 test_photometry_apply: test_photscal_0 改为验证拒绝, 新增 test_photscal_negative
+- 26/26 PASS, 无回归

@@ -11,7 +11,7 @@
 //   5. 参数校验 (nullptr/非法尺寸/NaN photscal)
 //   6. Writer 元数据一致性: apply_photometry=true  + BUNIT=ASTROCS_RELATIVE_FLUX → 成功
 //   7. Writer 元数据一致性: apply_photometry=false + BUNIT=ASTROCS_RELATIVE_FLUX → 拒绝
-//   8. Writer 元数据一致性: apply_photometry=false + BUNIT=ADU → 成功
+//   8. Writer 元数据一致性: apply_photometry=false + BUNIT=ADU → 拒绝 (R05-B07: ADU 已废弃)
 //
 // 编译 (从 tests/ 目录, 链接真实 HissWriter::open()):
 //   g++ -std=c++17 -O2 -fopenmp -DHAS_ZSTD -DAIO_ENABLE_HEALPIX \
@@ -114,7 +114,7 @@ static void test_photscal_1x() {
 }
 
 // ============================================================================
-// 测试 3: photscal=0.0 → 所有像素为 0
+// 测试 3: photscal=0.0 → 拒绝 (R05-B07: photscal 必须 > 0)
 // ============================================================================
 static void test_photscal_0() {
     const int W = 4, H = 4;
@@ -123,13 +123,20 @@ static void test_photscal_0() {
     for (int i = 0; i < W * H; i++) light[i] = (float)(i + 1);  // 非零值
 
     int rc = calibration::apply_photometry(light.data(), W, H, 0.0, out.data());
-    ASSERT_TRUE(rc == 0, "photscal=0.0: 返回值=0 (成功)");
+    ASSERT_TRUE(rc == -5, "photscal=0.0: 返回值=-5 (拒绝, R05-B07)");
+}
 
-    bool allZero = true;
-    for (int i = 0; i < W * H; i++) {
-        if (out[i] != 0.0f) { allZero = false; break; }
-    }
-    ASSERT_TRUE(allZero, "photscal=0.0: 所有像素为 0");
+// ============================================================================
+// 测试 3b: photscal=负值 → 拒绝 (R05-B07)
+// ============================================================================
+static void test_photscal_negative() {
+    const int W = 4, H = 4;
+    std::vector<float> light(W * H);
+    std::vector<float> out(W * H);
+    for (int i = 0; i < W * H; i++) light[i] = (float)(i + 1);
+
+    int rc = calibration::apply_photometry(light.data(), W, H, -1.0, out.data());
+    ASSERT_TRUE(rc == -5, "photscal=-1.0: 返回值=-5 (拒绝, R05-B07)");
 }
 
 // ============================================================================
@@ -299,7 +306,7 @@ static void test_writer_photappl_false_relative_flux() {
     // open 失败时不创建 .partial, 无需清理
 }
 
-// 测试 8: Writer: apply_photometry=false + BUNIT=ADU → 成功 (允许非测光数据)
+// 测试 8: Writer: apply_photometry=false + BUNIT=ADU → 拒绝 (R05-B07: ADU 已废弃)
 static void test_writer_photappl_false_adu() {
     hiss::HissGridSpec grid;
     grid.nside = 16;
@@ -321,11 +328,8 @@ static void test_writer_photappl_false_adu() {
     hiss::HissWriter writer;
     std::string tmp_path = "test_photometry_apply_tmp_adu.hiss";
     int rc = writer.open(tmp_path, grid, meta);
-    ASSERT_TRUE(rc == 0, "Writer: apply_photometry=false + BUNIT=ADU → open 成功 (允许非测光数据)");
-    writer.cancel();
-    std::error_code ec;
-    std::filesystem::remove(tmp_path, ec);
-    std::filesystem::remove(tmp_path + ".partial", ec);
+    ASSERT_TRUE(rc < 0, "Writer: apply_photometry=false + BUNIT=ADU → open 拒绝 (R05-B07: ADU 已废弃)");
+    // open 失败时不创建 .partial, 无需清理
 }
 
 // ============================================================================
@@ -338,6 +342,7 @@ int main() {
     test_photscal_2x();
     test_photscal_1x();
     test_photscal_0();
+    test_photscal_negative();
     test_photscal_half();
     test_invalid_args();
     test_inplace();
