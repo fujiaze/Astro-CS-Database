@@ -794,6 +794,33 @@ static void test_14_raw_subblock(int id) {
 }
 
 // ============================================================================
+// 辅助: 解析 TLV Header (R04-B14/B15), 定位 TILE_DIRECTORY value 的文件偏移
+//   签名块(16B): magic[8] + header_length(u32 LE) + feature_flags(u32 LE)
+//   TLV Header 从 offset 16 开始: tag(u16)+flags(u8)+length(u32)+value
+//   返回 TILE_DIRECTORY value 起始偏移, 失败返回 SIZE_MAX
+// ============================================================================
+static size_t find_tile_directory_value_pos(const std::vector<uint8_t>& file_data) {
+    if (file_data.size() < 16) return SIZE_MAX;
+    uint32_t header_length;
+    std::memcpy(&header_length, file_data.data() + 8, 4);
+    size_t pos = 16;  // TLV Header 起始
+    size_t header_end = 16 + header_length;
+    while (pos + 7 <= header_end) {
+        uint16_t tag;
+        std::memcpy(&tag, file_data.data() + pos, 2);
+        uint8_t  flags = file_data[pos + 2];
+        uint32_t length;
+        std::memcpy(&length, file_data.data() + pos + 3, 4);
+        pos += 7;  // 跳过 TLV 头
+        if (tag == HISS_TLV_TILE_DIRECTORY) {
+            return pos;  // value 起始位置
+        }
+        pos += length;  // 跳过 value
+    }
+    return SIZE_MAX;  // 未找到
+}
+
+// ============================================================================
 // HISS 格式测试 15: 未知可选子块可跳过
 // 构造包含未知可选子块的 HISS 文件, 验证 Reader 跳过它
 // ============================================================================
@@ -834,58 +861,69 @@ static void test_15_unknown_optional_skip(int id) {
                                     std::istreambuf_iterator<char>());
     fin.close();
 
-    // 找到 Tile 目录中的子块数量字段, 将其 +1, 并追加一个未知可选子块描述符
-    // 布局: 签名块(20) + Header(grid(24) + json_len(4) + json + n_tiles(4) + tile_dir)
-    // tile_dir: parent_ipix(8) + tile_nside(4) + occ_mode(1) + n_subblocks(2) + subblock_descs
-    // 解析 Header
-    uint64_t header_offset;
-    std::memcpy(&header_offset, file_data.data() + 12, 8);
+    // R04-B14/B15: 解析 TLV Header, 定位 TILE_DIRECTORY value
+    size_t tile_dir_value_pos = find_tile_directory_value_pos(file_data);
+    ASSERT_TRUE(tile_dir_value_pos != SIZE_MAX, "找到 TILE_DIRECTORY TLV");
 
-    size_t pos = (size_t)header_offset + 24;  // 跳过 grid
-    uint32_t json_len;
-    std::memcpy(&json_len, file_data.data() + pos, 4);
-    pos += 4 + json_len;  // 跳过 json
-    uint32_t n_tiles;
-    std::memcpy(&n_tiles, file_data.data() + pos, 4);
-    pos += 4;
-    // Tile 头
-    size_t tile_dir_pos = pos;
-    // n_subblocks 在 tile 头偏移 13 (parent_ipix(8)+tile_nside(4)+occ_mode(1)=13)
+    // TILE_DIRECTORY value: n_tiles(4) + tile_prefix(15) + subblocks(50*n)
+    // n_subblocks 在 tile_dir_value_pos + 4 + 13
+    size_t n_subblocks_pos = tile_dir_value_pos + 4 + 13;
     uint16_t n_subblocks;
-    std::memcpy(&n_subblocks, file_data.data() + tile_dir_pos + 13, 2);
+    std::memcpy(&n_subblocks, file_data.data() + n_subblocks_pos, 2);
     ASSERT_TRUE(n_subblocks >= 2, "原始 Tile 至少有 signal+support 子块");
 
-    // 在子块描述符区域之后插入一个未知可选子块描述符
-    size_t subblocks_start = tile_dir_pos + 15;  // tile 头 15 字节
-    size_t subblocks_end = subblocks_start + (size_t)n_subblocks * 40;
+    size_t desc_start = tile_dir_value_pos + 4 + 15;  // 第一个描述符位置
+    size_t subblocks_end = desc_start + (size_t)n_subblocks * 50;
 
-    // 插入前更新现有子块描述符的 offset (+40), 因 Header 增长 40B 导致数据区后移
+    // 插入前, 更新现有子块描述符的 offset (+50)
+    // 原因: 插入 50B 描述符后 Header 增长 50B, 子块数据区整体后移 50B
+    // R05-B09 描述符布局(50B): type(1)+ext_type_id(2)+flags(2)+offset(8)+...
+    // offset 字段在描述符内偏移 5, 长度 8
     for (uint16_t i = 0; i < n_subblocks; i++) {
-        size_t off_pos = subblocks_start + (size_t)i * 40 + 3;  // offset 字段在描述符内偏移 3
+        size_t off_pos = desc_start + (size_t)i * 50 + 5;
         uint64_t old_off;
         std::memcpy(&old_off, file_data.data() + off_pos, 8);
-        uint64_t new_off = old_off + 40;
+        uint64_t new_off = old_off + 50;
         std::memcpy(file_data.data() + off_pos, &new_off, 8);
     }
 
-    // 构造未知可选子块描述符 (40 字节)
-    uint8_t unknown_desc[40] = {0};
-    unknown_desc[0] = 200;  // 未知 type (非 OCCUPANCY/SIGNAL/SUPPORT/SNR/EXTENSION)
+    // 构造未知可选子块描述符 (R05-B09: 50 字节, 含 decoded_size)
+    // type(1)+ext_type_id(2)+flags(2)+offset(8)+comp(8)+uncomp(8)+decoded(8)+codec(2)+transform(2)+cksum_type(1)+checksum(8)
+    uint8_t unknown_desc[50] = {0};
+    unknown_desc[0] = 200;  // 未知 type
+    // ext_type_id = 0 (offset 1-2, 已为 0)
     uint16_t opt_flags = (uint16_t)hiss::SubblockFlags::OPTIONAL;
-    std::memcpy(unknown_desc + 1, &opt_flags, 2);
-    // offset/size: 指向文件末尾的空数据
-    uint64_t fake_offset = file_data.size();  // 指向文件末尾
-    std::memcpy(unknown_desc + 3, &fake_offset, 8);
+    std::memcpy(unknown_desc + 3, &opt_flags, 2);  // flags (offset 3-4)
+    // offset 指向文件末尾 (compressed_size=0, Reader 跳过越界检查)
+    uint64_t fake_offset = file_data.size() + 50;  // 插入后的文件末尾
+    std::memcpy(unknown_desc + 5, &fake_offset, 8);  // offset (offset 5-12)
     uint64_t fake_size = 0;
-    std::memcpy(unknown_desc + 11, &fake_size, 8);  // compressed_size=0
-    std::memcpy(unknown_desc + 19, &fake_size, 8);  // uncompressed_size=0
+    std::memcpy(unknown_desc + 13, &fake_size, 8);   // compressed_size=0 (offset 13-20)
+    std::memcpy(unknown_desc + 21, &fake_size, 8);   // uncompressed_size=0 (offset 21-28)
+    std::memcpy(unknown_desc + 29, &fake_size, 8);   // decoded_size=0 (offset 29-36, R05-B09)
 
-    // 插入到子块描述符末尾
-    file_data.insert(file_data.begin() + subblocks_end, unknown_desc, unknown_desc + 40);
+    // 插入到子块描述符末尾 (Header 和数据区交界处)
+    file_data.insert(file_data.begin() + subblocks_end, unknown_desc, unknown_desc + 50);
 
-    // 更新 n_subblocks (偏移 13)
+    // 更新 n_subblocks
     uint16_t new_n = (uint16_t)(n_subblocks + 1);
-    std::memcpy(file_data.data() + tile_dir_pos + 13, &new_n, 2);
+    std::memcpy(file_data.data() + n_subblocks_pos, &new_n, 2);
+
+    // 更新 TILE_DIRECTORY TLV 的 length (+50)
+    // TLV 头: tag(2) + flags(1) + length(4), value 在 tile_dir_value_pos
+    // length 字段在 tile_dir_value_pos - 4
+    size_t tlv_length_pos = tile_dir_value_pos - 4;
+    uint32_t old_tlv_len;
+    std::memcpy(&old_tlv_len, file_data.data() + tlv_length_pos, 4);
+    uint32_t new_tlv_len = old_tlv_len + 50;
+    std::memcpy(file_data.data() + tlv_length_pos, &new_tlv_len, 4);
+
+    // 更新签名块中的 header_length (+50)
+    // 签名块: magic[8] + header_length(u32 LE) @ offset 8 + feature_flags(u32 LE) @ offset 12
+    uint32_t old_hlen;
+    std::memcpy(&old_hlen, file_data.data() + 8, 4);
+    uint32_t new_hlen = old_hlen + 50;
+    std::memcpy(file_data.data() + 8, &new_hlen, 4);
 
     // 写回文件
     std::ofstream fout(path, std::ios::binary | std::ios::trunc);
@@ -931,24 +969,21 @@ static void test_16_unknown_required_reject(int id) {
                                     std::istreambuf_iterator<char>());
     fin.close();
 
-    uint64_t header_offset;
-    std::memcpy(&header_offset, file_data.data() + 12, 8);
-    size_t pos = (size_t)header_offset + 24;
-    uint32_t json_len;
-    std::memcpy(&json_len, file_data.data() + pos, 4);
-    pos += 4 + json_len + 4;  // 跳过 json + n_tiles
-    size_t tile_dir_pos = pos;
+    // R04-B14/B15: 解析 TLV Header, 定位 TILE_DIRECTORY value
+    size_t tile_dir_value_pos = find_tile_directory_value_pos(file_data);
+    ASSERT_TRUE(tile_dir_value_pos != SIZE_MAX, "找到 TILE_DIRECTORY TLV");
 
-    // n_subblocks 在 tile 头偏移 13 (parent_ipix(8)+tile_nside(4)+occ_mode(1)=13)
+    // TILE_DIRECTORY value: n_tiles(4) + tile_prefix(15) + subblocks(50*n)
+    size_t n_subblocks_pos = tile_dir_value_pos + 4 + 13;
     uint16_t n_subblocks;
-    std::memcpy(&n_subblocks, file_data.data() + tile_dir_pos + 13, 2);
+    std::memcpy(&n_subblocks, file_data.data() + n_subblocks_pos, 2);
     ASSERT_TRUE(n_subblocks >= 2, "原始 Tile 至少有 signal+support 子块");
 
-    // 遍历子块描述符, 找到 SUPPORT (type=2) 并改为未知 type=201
-    size_t desc_start = tile_dir_pos + 15;
+    // 遍历子块描述符 (R05-B09: 50B), 找到 SUPPORT (type=2) 并改为未知 type=201
+    size_t desc_start = tile_dir_value_pos + 4 + 15;
     bool found = false;
     for (uint16_t i = 0; i < n_subblocks; i++) {
-        size_t desc_off = desc_start + (size_t)i * 40;
+        size_t desc_off = desc_start + (size_t)i * 50;
         uint8_t type = file_data[desc_off];
         if (type == (uint8_t)hiss::SubblockType::SUPPORT) {
             file_data[desc_off] = 201;
@@ -998,39 +1033,33 @@ static void test_17_offset_overflow_reject(int id) {
                                     std::istreambuf_iterator<char>());
     fin.close();
 
-    uint64_t header_offset;
-    std::memcpy(&header_offset, file_data.data() + 12, 8);
-    size_t pos = (size_t)header_offset + 24;
-    uint32_t json_len;
-    std::memcpy(&json_len, file_data.data() + pos, 4);
-    pos += 4 + json_len + 4;  // 跳过 n_tiles
-    pos += 15;  // 跳过 tile 头
+    // R04-B14/B15: 解析 TLV Header, 定位 TILE_DIRECTORY value
+    size_t tile_dir_value_pos = find_tile_directory_value_pos(file_data);
+    ASSERT_TRUE(tile_dir_value_pos != SIZE_MAX, "找到 TILE_DIRECTORY TLV");
 
     // 第一个子块是 SIGNAL (Writer 写入顺序: [occ?] signal support [snr?])
     // FULL 模式无 occ, 第一个子块是 SIGNAL
-    // 子块描述符: type(1) + flags(2) + offset(8) @ offset+3
-    size_t sig_desc_pos = pos;  // SIGNAL 描述符起始
+    // R05-B09 描述符布局(50B): type(1)+ext_type_id(2)+flags(2)+offset(8)+...
+    // offset 字段在描述符内偏移 5
+    size_t sig_desc_pos = tile_dir_value_pos + 4 + 15;  // 跳过 n_tiles + tile 头
     uint8_t sig_type = file_data[sig_desc_pos];
     ASSERT_TRUE(sig_type == (uint8_t)hiss::SubblockType::SIGNAL, "第一个子块是 SIGNAL");
 
     // 将 offset 改为超出文件大小
     uint64_t bad_offset = file_data.size() + 100000;  // 明显越界
-    std::memcpy(file_data.data() + sig_desc_pos + 3, &bad_offset, 8);
+    std::memcpy(file_data.data() + sig_desc_pos + 5, &bad_offset, 8);
 
     std::ofstream fout(path, std::ios::binary | std::ios::trunc);
     fout.write((const char*)file_data.data(), file_data.size());
     fout.close();
 
+    // R04-B16: Reader.open 现在在解析 Tile 目录时即校验 offset/size 越界
     hiss::HissReader r;
-    ASSERT_TRUE(r.open(path) == 0, "打开含越界 offset 的文件 (open 不检查 offset)");
-
-    std::vector<float> sig;
-    std::vector<uint8_t> sup;
-    int ret = r.read_tile(9, sig, sup);
+    int open_ret = r.open(path);
     r.close();
     std::filesystem::remove(path);
 
-    ASSERT_TRUE(ret < 0, "offset 越界 → read_tile 返回 <0 (拒绝)");
+    ASSERT_TRUE(open_ret < 0, "offset 越界 → Reader.open 返回 <0 (R04-B16: open 时即拒绝)");
 }
 
 // ============================================================================
@@ -1059,20 +1088,19 @@ static void test_18_checksum_error(int id) {
                                     std::istreambuf_iterator<char>());
     fin.close();
 
-    uint64_t header_offset;
-    std::memcpy(&header_offset, file_data.data() + 12, 8);
-    size_t pos = (size_t)header_offset + 24;
-    uint32_t json_len;
-    std::memcpy(&json_len, file_data.data() + pos, 4);
-    pos += 4 + json_len + 4 + 15;  // 跳到 SIGNAL 子块描述符
+    // R04-B14/B15: 解析 TLV Header, 定位 TILE_DIRECTORY value
+    size_t tile_dir_value_pos = find_tile_directory_value_pos(file_data);
+    ASSERT_TRUE(tile_dir_value_pos != SIZE_MAX, "找到 TILE_DIRECTORY TLV");
 
-    // SIGNAL 描述符: checksum_type @ offset+31, checksum @ offset+32
-    size_t sig_desc_pos = pos;
+    // 跳到 SIGNAL 子块描述符 (n_tiles(4) + tile头(15) = 19)
+    // R05-B09 描述符布局(50B): type(1)+ext_type_id(2)+flags(2)+offset(8)+comp(8)+uncomp(8)+decoded(8)+codec(2)+transform(2)+checksum_type(1)+checksum(8)
+    // checksum_type @ offset+41, checksum @ offset+42
+    size_t sig_desc_pos = tile_dir_value_pos + 4 + 15;  // 第一个子块 (SIGNAL)
     // 设置 checksum_type = CRC32C (1)
-    file_data[sig_desc_pos + 31] = (uint8_t)hiss::ChecksumType::CRC32C;
+    file_data[sig_desc_pos + 41] = (uint8_t)hiss::ChecksumType::CRC32C;
     // 设置错误的 checksum (故意不匹配)
     uint64_t bad_checksum = 0xDEADBEEF12345678ULL;
-    std::memcpy(file_data.data() + sig_desc_pos + 32, &bad_checksum, 8);
+    std::memcpy(file_data.data() + sig_desc_pos + 42, &bad_checksum, 8);
 
     std::ofstream fout(path, std::ios::binary | std::ios::trunc);
     fout.write((const char*)file_data.data(), file_data.size());
@@ -1097,19 +1125,20 @@ static void test_18_checksum_error(int id) {
 static void test_19_partial_not_accepted(int id) {
     TEST_CASE(".partial 不会被普通 Reader 当正式 HISS", id);
 
-    // 构造一个 .partial 文件 (仅签名块占位, header_offset=0)
+    // 构造一个 .partial 文件 (仅签名块占位, header_length=0)
+    // R04-B14: 签名块(16B) = magic[8]+"HISS0100" + header_length(u32 LE) + feature_flags(u32 LE)
     std::string partial_path = "hiss_test_19.hiss.partial";
     {
         FILE* fp = std::fopen(partial_path.c_str(), "wb");
         ASSERT_TRUE(fp != nullptr, "创建 .partial 文件");
-        uint8_t sig[20] = {0};
-        const char magic[8] = {'A','C','S','H','I','S','S','\0'};
+        uint8_t sig[16] = {0};
+        const char magic[8] = {'H','I','S','S','0','1','0','0'};
         std::memcpy(sig, magic, 8);
-        uint32_t ver = 1;
-        std::memcpy(sig + 8, &ver, 4);
-        uint64_t hdr_off = 0;  // 占位, 未完成
-        std::memcpy(sig + 12, &hdr_off, 8);
-        std::fwrite(sig, 1, 20, fp);
+        uint32_t header_length = 0;  // 占位, 未完成 (Header 区为空)
+        std::memcpy(sig + 8, &header_length, 4);
+        uint32_t feature_flags = 0;
+        std::memcpy(sig + 12, &feature_flags, 4);
+        std::fwrite(sig, 1, 16, fp);
         std::fclose(fp);
     }
 
@@ -1118,9 +1147,9 @@ static void test_19_partial_not_accepted(int id) {
     r.close();
     std::filesystem::remove(partial_path);
 
-    // .partial 文件 header_offset=0, Reader 检查 header_offset + kGridSpecSize > filesize
-    // → 返回 -3 (越界)
-    ASSERT_TRUE(ret < 0, ".partial 文件被 Reader 拒绝 (header_offset=0 越界)");
+    // .partial 文件 header_length=0, Reader 检查 Header 区无法容纳 grid_spec
+    // → 返回 <0 (格式错误/越界)
+    ASSERT_TRUE(ret < 0, ".partial 文件被 Reader 拒绝 (header_length=0 无有效 Header)");
 }
 
 // ============================================================================
