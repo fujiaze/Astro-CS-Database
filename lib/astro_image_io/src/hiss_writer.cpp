@@ -225,26 +225,93 @@ static int compress_and_append(HissStreamWriter& stream,
 }
 
 // ---------------------------------------------------------------------------
-// 内部辅助: 自动选择 occupancy 模式 (R04-B12)
+// 内部辅助: 自动选择 occupancy 模式 (R04-B12, R05-M02)
 //   FULL 仅当 n_valid == n_leaf_per_tile (100% 覆盖, 02_FROZEN §9)
-//   否则按实际完整编码大小自动选 BITMAP 或 SPARSE_LIST 的最小者
+//   否则按实际压缩后大小自动选 BITMAP 或 SPARSE_LIST 的最小者
 //   确定性 tie-break: 大小相等时选 BITMAP (解码更简单, 无需二分查找)
 //   不冻结经验阈值 (R04-B12 红线)
 //
-//   BITMAP 完整编码大小 = ceil(n_leaf_per_tile / 8) 字节
-//   SPARSE_LIST 完整编码大小 = n_valid * sizeof(uint32_t) 字节
+//   R05-M02: 不再仅比较原始未压缩大小, 而是实际构造两种 occupancy 数据,
+//   经 transform + codec 压缩 (含 RAW 回退) 后比较最终 stored_size
 // ---------------------------------------------------------------------------
 
-static OccupancyMode auto_select_occupancy(uint32_t n_valid, uint32_t n_leaf_per_tile) {
+// R05-M02: 模拟 compress_and_append 的压缩流程, 返回最终 stored_size
+//   (含 transform + codec + RAW 回退), 不写入流
+static size_t trial_compressed_size(const uint8_t* data, size_t data_size,
+                                     CodecId codec_id, TransformId transform_id,
+                                     size_t element_size) {
+    // 1. transform
+    std::vector<uint8_t> transformed;
+    const uint8_t* data_to_compress = data;
+    size_t size_to_compress = data_size;
+    if (transform_id != TransformId::NONE) {
+        TransformType tt = transform_id_to_type(transform_id);
+        transformed = apply_transform(tt, data, data_size, element_size);
+        if (!transformed.empty()) {
+            data_to_compress = transformed.data();
+            size_to_compress = transformed.size();
+        }
+    }
+
+    // 2. codec 压缩 + RAW 回退
+    if (codec_id == CodecId::RAW) {
+        return size_to_compress;
+    }
+    const CodecEntry* entry = CodecRegistry::instance().find(codec_id);
+    if (!entry) {
+        return size_to_compress;  // codec 未注册, 回退 RAW
+    }
+    size_t bound = entry->bound(size_to_compress);
+    std::vector<uint8_t> compressed(bound);
+    size_t compressed_size = bound;
+    int ret = entry->compress(data_to_compress, size_to_compress,
+                               compressed.data(), &compressed_size);
+    if (ret != 0 || compressed_size >= size_to_compress) {
+        return size_to_compress;  // 压缩失败或无收益, 回退 RAW
+    }
+    return compressed_size;
+}
+
+// R05-M02: 按实际压缩后大小选择 occupancy 模式
+static OccupancyMode auto_select_occupancy_compressed(
+    uint32_t n_valid, uint32_t n_leaf_per_tile,
+    const std::vector<uint32_t>& valid_indices,
+    CodecId occ_codec, TransformId occ_transform) {
     if (n_leaf_per_tile == 0) return OccupancyMode::FULL;
-    // FULL 仅当 100% 覆盖 (02_FROZEN §9: 不能使用 80% 等近似阈值)
+    // FULL 仅当 100% 覆盖 (02_FROZEN §9)
     if (n_valid == n_leaf_per_tile) {
         return OccupancyMode::FULL;
     }
-    // R04-B12: 按实际完整编码大小自动选最小者
-    size_t bitmap_size  = (size_t)(n_leaf_per_tile + 7) / 8;       // 位图: 1 bit/叶像素
-    size_t sparse_size  = (size_t)n_valid * sizeof(uint32_t);      // 索引列表: 4 字节/有效像素
-    if (sparse_size < bitmap_size) {
+
+    // 构造 BITMAP occupancy 数据
+    std::vector<uint8_t> bitmap_data((n_leaf_per_tile + 7) / 8, 0);
+    for (uint32_t idx : valid_indices) {
+        bitmap_data[idx / 8] |= (uint8_t)(1u << (idx % 8));
+    }
+
+    // 构造 SPARSE_LIST occupancy 数据 (显式小端序 uint32)
+    std::vector<uint8_t> sparse_data;
+    sparse_data.reserve(n_valid * 4);
+    for (uint32_t idx : valid_indices) {
+        sparse_data.push_back((uint8_t)(idx & 0xFF));
+        sparse_data.push_back((uint8_t)((idx >> 8) & 0xFF));
+        sparse_data.push_back((uint8_t)((idx >> 16) & 0xFF));
+        sparse_data.push_back((uint8_t)((idx >> 24) & 0xFF));
+    }
+
+    // R05-M02: 实际压缩比较
+    size_t bitmap_stored = trial_compressed_size(
+        bitmap_data.data(), bitmap_data.size(), occ_codec, occ_transform, 1);
+    size_t sparse_stored = trial_compressed_size(
+        sparse_data.data(), sparse_data.size(), occ_codec, occ_transform, 4);
+
+    fprintf(stderr,
+            "[hiss][writer]   R05-M02 occupancy 压缩比较: "
+            "BITMAP raw=%zu stored=%zu vs SPARSE_LIST raw=%zu stored=%zu\n",
+            bitmap_data.size(), bitmap_stored,
+            sparse_data.size(), sparse_stored);
+
+    if (sparse_stored < bitmap_stored) {
         return OccupancyMode::SPARSE_LIST;
     }
     // tie-break: 大小相等时选 BITMAP (解码更简单)
@@ -419,8 +486,12 @@ int HissWriter::add_tile(uint64_t parent_ipix,
     uint32_t n_valid = (uint32_t)valid_indices.size();
 
     // 3. 自动选择 occupancy 模式 (步骤11: 不由调用方传入)
+    //    R05-M02: 按实际压缩后大小选择 (含 transform + codec + RAW 回退)
     //    忽略 occ_mode 参数, Writer 根据占用率自动选择
-    OccupancyMode auto_mode = auto_select_occupancy(n_valid, (uint32_t)n_leaf);
+    OccupancyMode auto_mode = auto_select_occupancy_compressed(
+        n_valid, (uint32_t)n_leaf, valid_indices,
+        pimpl_->codec_for(SubblockType::OCCUPANCY),
+        pimpl_->transform_for(SubblockType::OCCUPANCY));
     fprintf(stderr,
             "[hiss][writer] add_tile: parent=%llu n_leaf=%zu n_valid=%u occ_rate=%.4f "
             "传入occ_mode=%u → 自动选择=%u\n",
