@@ -371,7 +371,7 @@ std::map<std::string, double> Orchestrator::parse_stage_timeouts(const std::stri
             try {
                 double seconds = std::stod(num_str);
                 result[key] = seconds;
-                LOG_INFO("orchestrator", "P04-004: stage_timeouts[" + key + "] = " + std::to_string(seconds) + "s");
+                LOG_WARN("orchestrator", "P04-004: stage_timeouts[" + key + "] = " + std::to_string(seconds) + "s");
             } catch (...) {
                 LOG_WARN("orchestrator", "P04-004: stage_timeouts[" + key + "] 解析失败: " + num_str);
             }
@@ -3358,7 +3358,7 @@ TaskResult Orchestrator::run_stage1(const std::string& fits_path,
     auto timeouts = parse_stage_timeouts(config_json);
     if (!timeouts.empty()) {
         config_.stage_timeouts = timeouts;
-        LOG_INFO("orchestrator", "P04-004: 已加载 " + std::to_string(timeouts.size()) + " 个 stage 超时配置");
+        LOG_WARN("orchestrator", "P04-004: 已加载 " + std::to_string(timeouts.size()) + " 个 stage 超时配置");
     }
     // P04-004: 解析 allow_partial_output 配置 (默认 false, 严格原子性)
     bool allow_partial = orc_getJsonBool(config_json, "allow_partial_output", false);
@@ -3648,7 +3648,7 @@ TaskResult Orchestrator::run_stage2(const std::string& hiss_dir,
     auto timeouts = parse_stage_timeouts(config_json);
     if (!timeouts.empty()) {
         config_.stage_timeouts = timeouts;
-        LOG_INFO("orchestrator", "P04-004: 已加载 " + std::to_string(timeouts.size()) + " 个 stage 超时配置");
+        LOG_WARN("orchestrator", "P04-004: 已加载 " + std::to_string(timeouts.size()) + " 个 stage 超时配置");
     }
     // P04-004: 解析 allow_partial_output 配置 (默认 false, 严格原子性)
     bool allow_partial = orc_getJsonBool(config_json, "allow_partial_output", false);
