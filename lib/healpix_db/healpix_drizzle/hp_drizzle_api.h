@@ -63,6 +63,13 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
                                    const char* output_path,
                                    HpDrizzleResult* result);
 
+// R05-B03: 自动 NSIDE 计算 (从 PipelineFrame 的 WCS/SIP 局部 Jacobian)
+// 正式 Stage1 入口必须调用此函数计算自动 NSIDE, 禁止在 orchestrator 端用 CD 矩阵平均.
+// frame: 输入帧 (需含 "data" 块 [H,W] float32 + "header" KV 块含 WCS/SIP 字段)
+// out_nside: 输出 NSIDE (2 的幂, 范围 [16, 4194304])
+// 返回: 0=成功, 非0=失败 (WCS 无效/图像尺寸非法等)
+HP_DRIZZLE_API int hp_drizzle_compute_auto_nside(PipelineFrame* frame, int* out_nside);
+
 #ifdef __cplusplus
 }
 #endif

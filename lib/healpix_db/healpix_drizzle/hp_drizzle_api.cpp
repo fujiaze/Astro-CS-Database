@@ -32,6 +32,168 @@ static void setErrorMsg(HpDrizzleResult* result, const std::string& msg) {
 }
 
 // ============================================================================
+// R05-B03: 从 PipelineFrame header 读取完整 WCS/SIP 参数
+// 供 hp_drizzle_run 和 hp_drizzle_compute_auto_nside 共用, 确保正式 Stage1 入口
+// 使用同一 WCS 读取实现 (Wiki §2: 正式Stage1入口必须调用同一生产实现)
+// ============================================================================
+static bool read_wcs_from_frame(PipelineFrame* frame,
+                                drizzle::WcsParams& wcs,
+                                std::string& error_msg) {
+    // 读取 WCS 字段
+    double crval1 = aio_frame_kv_get_double(frame, "header", "CRVAL1", 0.0);
+    double crval2 = aio_frame_kv_get_double(frame, "header", "CRVAL2", 0.0);
+    double crpix1 = aio_frame_kv_get_double(frame, "header", "CRPIX1", 0.0);
+    double crpix2 = aio_frame_kv_get_double(frame, "header", "CRPIX2", 0.0);
+    double cd11   = aio_frame_kv_get_double(frame, "header", "CD1_1", 0.0);
+    double cd12   = aio_frame_kv_get_double(frame, "header", "CD1_2", 0.0);
+    double cd21   = aio_frame_kv_get_double(frame, "header", "CD2_1", 0.0);
+    double cd22   = aio_frame_kv_get_double(frame, "header", "CD2_2", 0.0);
+
+    // CDELT/CROTA2 备选 (无 CD 矩阵时使用)
+    double cdelt1 = aio_frame_kv_get_double(frame, "header", "CDELT1", 0.0);
+    double cdelt2 = aio_frame_kv_get_double(frame, "header", "CDELT2", 0.0);
+    double crota2 = aio_frame_kv_get_double(frame, "header", "CROTA2", 0.0);
+
+    wcs.crval[0] = crval1;
+    wcs.crval[1] = crval2;
+    wcs.crpix[0] = crpix1;
+    wcs.crpix[1] = crpix2;
+    wcs.cd[0] = cd11;
+    wcs.cd[1] = cd12;
+    wcs.cd[2] = cd21;
+    wcs.cd[3] = cd22;
+    wcs.has_wcs = false;
+
+    // CTYPE1/CTYPE2
+    const char* ctype1_str = aio_frame_kv_get(frame, "header", "CTYPE1");
+    const char* ctype2_str = aio_frame_kv_get(frame, "header", "CTYPE2");
+    if (ctype1_str) std::strncpy(wcs.ctype1, ctype1_str, sizeof(wcs.ctype1) - 1);
+    if (ctype2_str) std::strncpy(wcs.ctype2, ctype2_str, sizeof(wcs.ctype2) - 1);
+
+    // 判断是否有效 WCS: 需要 CRVAL + CRPIX + CD (或 CDELT)
+    bool has_cd = (cd11 != 0.0 || cd22 != 0.0);
+    bool has_cdelt = (cdelt1 != 0.0 && cdelt2 != 0.0);
+
+    if (has_cd) {
+        wcs.has_wcs = true;
+    } else if (has_cdelt && crval1 != 0.0 && crval2 != 0.0) {
+        // 无 CD 矩阵时, 用 CDELT+CROTA2 构造
+        const double DEG2RAD = 0.017453292519943295769;
+        double cosr = std::cos(crota2 * DEG2RAD);
+        double sinr = std::sin(crota2 * DEG2RAD);
+        wcs.cd[0] = cdelt1 * cosr;
+        wcs.cd[1] = -cdelt2 * sinr;
+        wcs.cd[2] = cdelt1 * sinr;
+        wcs.cd[3] = cdelt2 * cosr;
+        wcs.has_wcs = true;
+        fprintf(stderr, "[hp_drizzle_api] read_wcs_from_frame: 使用 CDELT+CROTA2 构造 CD 矩阵\n");
+    }
+
+    if (!wcs.has_wcs) {
+        error_msg = "header 缺少 WCS 信息 (CD 或 CDELT+CRVAL+CRPIX)";
+        return false;
+    }
+
+    fprintf(stderr, "[hp_drizzle_api] read_wcs_from_frame: WCS CRVAL=(%.6f,%.6f) CRPIX=(%.3f,%.3f) "
+            "CD=[%.3e,%.3e,%.3e,%.3e]\n",
+            wcs.crval[0], wcs.crval[1], wcs.crpix[0], wcs.crpix[1],
+            wcs.cd[0], wcs.cd[1], wcs.cd[2], wcs.cd[3]);
+
+    // 读取 SIP 系数 (若存在 A_ORDER)
+    const char* a_order_str = aio_frame_kv_get(frame, "header", "A_ORDER");
+    if (a_order_str) {
+        int a_order = atoi(a_order_str);
+        const char* b_order_str = aio_frame_kv_get(frame, "header", "B_ORDER");
+        int b_order = b_order_str ? atoi(b_order_str) : a_order;
+        wcs.sip.order = a_order;
+
+        // 读取 A_i_j / B_i_j (跳过 (0,0), i+j<=order)
+        for (int i = 0; i <= a_order; i++) {
+            for (int j = 0; j <= a_order; j++) {
+                if (i + j == 0 || i + j > a_order) continue;
+                char key[16];
+                std::snprintf(key, sizeof(key), "A_%d_%d", i, j);
+                const char* val = aio_frame_kv_get(frame, "header", key);
+                if (val) wcs.sip.a[i * 6 + j] = std::atof(val);
+
+                std::snprintf(key, sizeof(key), "B_%d_%d", i, j);
+                val = aio_frame_kv_get(frame, "header", key);
+                if (val) wcs.sip.b[i * 6 + j] = std::atof(val);
+            }
+        }
+
+        // 读取 AP_i_j / BP_i_j (逆向 SIP)
+        const char* ap_order_str = aio_frame_kv_get(frame, "header", "AP_ORDER");
+        if (ap_order_str) {
+            int ap_order = atoi(ap_order_str);
+            const char* bp_order_str = aio_frame_kv_get(frame, "header", "BP_ORDER");
+            int bp_order = bp_order_str ? atoi(bp_order_str) : ap_order;
+            wcs.sip.ap_order = ap_order;
+
+            for (int i = 0; i <= ap_order; i++) {
+                for (int j = 0; j <= ap_order; j++) {
+                    if (i + j == 0 || i + j > ap_order) continue;
+                    char key[16];
+                    std::snprintf(key, sizeof(key), "AP_%d_%d", i, j);
+                    const char* val = aio_frame_kv_get(frame, "header", key);
+                    if (val) wcs.sip.ap[i * 6 + j] = std::atof(val);
+
+                    std::snprintf(key, sizeof(key), "BP_%d_%d", i, j);
+                    val = aio_frame_kv_get(frame, "header", key);
+                    if (val) wcs.sip.bp[i * 6 + j] = std::atof(val);
+                }
+            }
+            fprintf(stderr, "[hp_drizzle_api] read_wcs_from_frame: SIP A_ORDER=%d B_ORDER=%d "
+                    "AP_ORDER=%d BP_ORDER=%d\n", a_order, b_order, ap_order, bp_order);
+        } else {
+            fprintf(stderr, "[hp_drizzle_api] read_wcs_from_frame: SIP A_ORDER=%d B_ORDER=%d "
+                    "(无逆向 AP/BP)\n", a_order, b_order);
+        }
+    }
+
+    return true;
+}
+
+// ============================================================================
+// R05-B03: 从 PipelineFrame data 块读取图像尺寸 (不拷贝像素数据)
+// 供 hp_drizzle_compute_auto_nside 使用 (仅需尺寸, 不需像素值)
+// ============================================================================
+static bool read_image_dims_from_frame(PipelineFrame* frame,
+                                       int& out_width, int& out_height,
+                                       std::string& error_msg) {
+    const AioBlock* data_blk = aio_frame_get_block(frame, "data");
+    if (!data_blk) {
+        error_msg = "frame 中缺少 'data' 块";
+        return false;
+    }
+    if (data_blk->type != AIO_BLOCK_FLOAT32) {
+        error_msg = "'data' 块类型非 FLOAT32";
+        return false;
+    }
+    if (data_blk->n_dims < 2) {
+        error_msg = "'data' 块维度数 < 2";
+        return false;
+    }
+    // Stage1 只接受单色输入
+    if (data_blk->n_dims > 2) {
+        error_msg = "多通道输入 (n_dims=" + std::to_string(data_blk->n_dims)
+                  + ") 不被支持, Stage1 只接受单色输入";
+        return false;
+    }
+
+    int height = data_blk->dims[0];
+    int width  = data_blk->dims[1];
+    if (width <= 0 || height <= 0) {
+        error_msg = "'data' 块尺寸非法: " + std::to_string(width) + "x" + std::to_string(height);
+        return false;
+    }
+
+    out_width = width;
+    out_height = height;
+    return true;
+}
+
+// ============================================================================
 // hp_drizzle_fits_to_ahpx - 执行 Drizzle: FITS → .hiss
 // ============================================================================
 HP_DRIZZLE_API int hp_drizzle_fits_to_ahpx(
@@ -60,9 +222,9 @@ HP_DRIZZLE_API int hp_drizzle_fits_to_ahpx(
         return 2;
     }
 
-    if (pixfrac < 0.0 || pixfrac > 1.0) {
-        fprintf(stderr, "[hp_drizzle_api] pixfrac=%.4f 超出范围 [0.0, 1.0]\n", pixfrac);
-        setErrorMsg(result, "pixfrac 超出范围 [0.0, 1.0]");
+    if (!(pixfrac > 0.0) || pixfrac > 1.0) {
+        fprintf(stderr, "[hp_drizzle_api] pixfrac=%.4f 超出范围 (0.0, 1.0]\n", pixfrac);
+        setErrorMsg(result, "pixfrac 超出范围 (0.0, 1.0]");
         return 3;
     }
 
@@ -252,10 +414,11 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
         return -2;
     }
 
-    if (pixfrac < 0.0 || pixfrac > 1.0) {
-        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: pixfrac=%.4f 超出范围 [0.0, 1.0]\n", pixfrac);
+    // R05-B04: pixfrac 严格范围 (0.0, 1.0] (禁止 0 值, 0 会触发点采样路径)
+    if (!(pixfrac > 0.0) || pixfrac > 1.0) {
+        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: pixfrac=%.4f 超出范围 (0.0, 1.0]\n", pixfrac);
         std::memset(result, 0, sizeof(HpDrizzleResult));
-        setErrorMsg(result, "pixfrac 超出范围 [0.0, 1.0]");
+        setErrorMsg(result, "pixfrac 超出范围 (0.0, 1.0]");
         return -3;
     }
 
@@ -313,22 +476,7 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
 
     fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: data 块 %dx%d float32\n", width, height);
 
-    // 3. 从 header KV 块读取 WCS 字段
-    double crval1 = aio_frame_kv_get_double(frame, "header", "CRVAL1", 0.0);
-    double crval2 = aio_frame_kv_get_double(frame, "header", "CRVAL2", 0.0);
-    double crpix1 = aio_frame_kv_get_double(frame, "header", "CRPIX1", 0.0);
-    double crpix2 = aio_frame_kv_get_double(frame, "header", "CRPIX2", 0.0);
-    double cd11   = aio_frame_kv_get_double(frame, "header", "CD1_1", 0.0);
-    double cd12   = aio_frame_kv_get_double(frame, "header", "CD1_2", 0.0);
-    double cd21   = aio_frame_kv_get_double(frame, "header", "CD2_1", 0.0);
-    double cd22   = aio_frame_kv_get_double(frame, "header", "CD2_2", 0.0);
-
-    // CDELT/CROTA2 备选 (无 CD 矩阵时使用)
-    double cdelt1 = aio_frame_kv_get_double(frame, "header", "CDELT1", 0.0);
-    double cdelt2 = aio_frame_kv_get_double(frame, "header", "CDELT2", 0.0);
-    double crota2 = aio_frame_kv_get_double(frame, "header", "CROTA2", 0.0);
-
-    // 4. 构造 WCS 参数
+    // 3. 构造 FitsImage (像素数据 + 尺寸)
     FitsImage img;
     img.width = width;
     img.height = height;
@@ -337,101 +485,13 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
     img.bzero = 0.0;
     img.bscale = 1.0;
 
-    WcsParams& wcs = img.wcs;
-    wcs.crval[0] = crval1;
-    wcs.crval[1] = crval2;
-    wcs.crpix[0] = crpix1;
-    wcs.crpix[1] = crpix2;
-    wcs.cd[0] = cd11;
-    wcs.cd[1] = cd12;
-    wcs.cd[2] = cd21;
-    wcs.cd[3] = cd22;
-    wcs.has_wcs = false;
-
-    // CTYPE1/CTYPE2
-    const char* ctype1_str = aio_frame_kv_get(frame, "header", "CTYPE1");
-    const char* ctype2_str = aio_frame_kv_get(frame, "header", "CTYPE2");
-    if (ctype1_str) std::strncpy(wcs.ctype1, ctype1_str, sizeof(wcs.ctype1) - 1);
-    if (ctype2_str) std::strncpy(wcs.ctype2, ctype2_str, sizeof(wcs.ctype2) - 1);
-
-    // 判断是否有效 WCS: 需要 CRVAL + CRPIX + CD (或 CDELT)
-    bool has_cd = (cd11 != 0.0 || cd22 != 0.0);
-    bool has_cdelt = (cdelt1 != 0.0 && cdelt2 != 0.0);
-
-    if (has_cd) {
-        wcs.has_wcs = true;
-    } else if (has_cdelt && crval1 != 0.0 && crval2 != 0.0) {
-        // 无 CD 矩阵时, 用 CDELT+CROTA2 构造
-        const double DEG2RAD = 0.017453292519943295769;
-        double cosr = std::cos(crota2 * DEG2RAD);
-        double sinr = std::sin(crota2 * DEG2RAD);
-        wcs.cd[0] = cdelt1 * cosr;
-        wcs.cd[1] = -cdelt2 * sinr;
-        wcs.cd[2] = cdelt1 * sinr;
-        wcs.cd[3] = cdelt2 * cosr;
-        wcs.has_wcs = true;
-        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: 使用 CDELT+CROTA2 构造 CD 矩阵\n");
-    }
-
-    if (!wcs.has_wcs) {
-        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: header 缺少 WCS 信息 (CD 或 CDELT+CRVAL+CRPIX)\n");
-        setErrorMsg(result, "header 缺少 WCS 信息");
-        return -9;
-    }
-
-    fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: WCS CRVAL=(%.6f,%.6f) CRPIX=(%.3f,%.3f) CD=[%.3e,%.3e,%.3e,%.3e]\n",
-            wcs.crval[0], wcs.crval[1], wcs.crpix[0], wcs.crpix[1],
-            wcs.cd[0], wcs.cd[1], wcs.cd[2], wcs.cd[3]);
-
-    // 5. 读取 SIP 系数 (若存在 A_ORDER)
-    const char* a_order_str = aio_frame_kv_get(frame, "header", "A_ORDER");
-    if (a_order_str) {
-        int a_order = atoi(a_order_str);
-        const char* b_order_str = aio_frame_kv_get(frame, "header", "B_ORDER");
-        int b_order = b_order_str ? atoi(b_order_str) : a_order;
-        wcs.sip.order = a_order;
-
-        // 读取 A_i_j / B_i_j (跳过 (0,0), i+j<=order)
-        for (int i = 0; i <= a_order; i++) {
-            for (int j = 0; j <= a_order; j++) {
-                if (i + j == 0 || i + j > a_order) continue;
-                char key[16];
-                std::snprintf(key, sizeof(key), "A_%d_%d", i, j);
-                const char* val = aio_frame_kv_get(frame, "header", key);
-                if (val) wcs.sip.a[i * 6 + j] = std::atof(val);
-
-                std::snprintf(key, sizeof(key), "B_%d_%d", i, j);
-                val = aio_frame_kv_get(frame, "header", key);
-                if (val) wcs.sip.b[i * 6 + j] = std::atof(val);
-            }
-        }
-
-        // 读取 AP_i_j / BP_i_j (逆向 SIP)
-        const char* ap_order_str = aio_frame_kv_get(frame, "header", "AP_ORDER");
-        if (ap_order_str) {
-            int ap_order = atoi(ap_order_str);
-            const char* bp_order_str = aio_frame_kv_get(frame, "header", "BP_ORDER");
-            int bp_order = bp_order_str ? atoi(bp_order_str) : ap_order;
-            wcs.sip.ap_order = ap_order;
-
-            for (int i = 0; i <= ap_order; i++) {
-                for (int j = 0; j <= ap_order; j++) {
-                    if (i + j == 0 || i + j > ap_order) continue;
-                    char key[16];
-                    std::snprintf(key, sizeof(key), "AP_%d_%d", i, j);
-                    const char* val = aio_frame_kv_get(frame, "header", key);
-                    if (val) wcs.sip.ap[i * 6 + j] = std::atof(val);
-
-                    std::snprintf(key, sizeof(key), "BP_%d_%d", i, j);
-                    val = aio_frame_kv_get(frame, "header", key);
-                    if (val) wcs.sip.bp[i * 6 + j] = std::atof(val);
-                }
-            }
-            fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: SIP A_ORDER=%d B_ORDER=%d AP_ORDER=%d BP_ORDER=%d\n",
-                    a_order, b_order, ap_order, bp_order);
-        } else {
-            fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: SIP A_ORDER=%d B_ORDER=%d (无逆向 AP/BP)\n",
-                    a_order, b_order);
+    // 4. 读取 WCS/SIP (R05-B03: 使用共用 helper, 确保与 compute_auto_nside 同源)
+    {
+        std::string wcsErr;
+        if (!read_wcs_from_frame(frame, img.wcs, wcsErr)) {
+            fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: %s\n", wcsErr.c_str());
+            setErrorMsg(result, wcsErr);
+            return -9;
         }
     }
 
@@ -617,5 +677,53 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
     result->pixfrac          = config.pixfrac;
     result->elapsed_sec      = stats.elapsedSec;
 
+    return 0;
+}
+
+// ============================================================================
+// hp_drizzle_compute_auto_nside - R05-B03: 自动 NSIDE 计算 (从 PipelineFrame WCS/SIP)
+//
+// 正式 Stage1 入口的唯一自动 NSIDE 生产实现 (Wiki §2):
+//   1. 从 frame data 块读取图像尺寸 (不拷贝像素);
+//   2. 从 frame header KV 读取完整 WCS/SIP (CD/CRVAL/CRPIX/CTYPE + A/B/AP/BP);
+//   3. 调用 drizzle::compute_auto_nside (自适应四叉树 Jacobian 采样);
+//   4. 返回 NSIDE (2 的幂, 范围 [16, 4194304]).
+//
+// 禁止在 orchestrator 端用 CD 矩阵平均或 1186.18/nside 公式替代.
+// ============================================================================
+HP_DRIZZLE_API int hp_drizzle_compute_auto_nside(PipelineFrame* frame, int* out_nside)
+{
+    if (!frame || !out_nside) {
+        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_compute_auto_nside: 参数非法 (frame/out_nside 为空)\n");
+        return 1;
+    }
+    *out_nside = 0;
+
+    // 1. 读取图像尺寸 (不拷贝像素)
+    int img_w = 0, img_h = 0;
+    std::string errMsg;
+    if (!read_image_dims_from_frame(frame, img_w, img_h, errMsg)) {
+        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_compute_auto_nside: %s\n", errMsg.c_str());
+        return 2;
+    }
+
+    // 2. 读取完整 WCS/SIP
+    WcsParams wcs;
+    if (!read_wcs_from_frame(frame, wcs, errMsg)) {
+        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_compute_auto_nside: %s\n", errMsg.c_str());
+        return 3;
+    }
+
+    // 3. 调用生产实现 compute_auto_nside (自适应四叉树 WCS/SIP Jacobian 采样)
+    int nside = compute_auto_nside(wcs, img_w, img_h);
+    if (nside <= 0) {
+        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_compute_auto_nside: compute_auto_nside 失败 "
+                        "(WCS 无效或 Jacobian 采样全部无效)\n");
+        return 4;
+    }
+
+    *out_nside = nside;
+    fprintf(stderr, "[hp_drizzle_api] hp_drizzle_compute_auto_nside: 成功, nside=%d "
+                    "(img=%dx%d)\n", nside, img_w, img_h);
     return 0;
 }

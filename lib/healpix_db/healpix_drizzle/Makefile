@@ -24,7 +24,10 @@
 # ============================================================================
 
 CXX = g++
-CXXFLAGS = -O3 -march=native -ffast-math -funroll-loops -Wall -std=c++17 -fopenmp
+# R05-B06: 禁用 -ffast-math (PRECISE/reference/test 不得使用)
+# -ffast-math 会破坏 IEEE 754 语义, 影响球面几何精度和通量守恒
+# FAST 实验可作为独立变量启用, 但生产构建必须禁用
+CXXFLAGS = -O2 -march=native -funroll-loops -Wall -std=c++17 -fopenmp
 
 # astro_image_io 路径变量 (提供 AIO C API + PipelineFrame + HEALPix I/O)
 # 注: healpix_io 已合并入 aio (2026-07-16 按 spec G1), aio.dll 统一提供 FITS/XISF/HEALPix I/O

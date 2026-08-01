@@ -110,101 +110,43 @@ double orc_extractJsonNum(const std::string& s, size_t pos) {
 }
 
 // ============================================================================
-// GAP-016: NSIDE 自适应计算
-// 根据原始图像采样率 (CD 矩阵) 和策略计算合适的 HEALPix nside
-//   strategy:
-//     "1x_to_2x_drizzle" (默认): HEALPix 像素分辨率 = 1-2x 原始像素分辨率
-//     "fixed": 使用 nside_override (nside_override > 0 时优先)
-//     nside_override > 0: 用户指定优先, 直接返回
-//   返回 nside (2 的幂次方, 范围 [16, 4194304])
-//   规范: 自动 NSIDE 上限 2^22=4194304, Tile 父级 NSIDE 不低于 16
-//         显式合法 NSIDE 不修改、不警告
+// R05-B03: 显式 NSIDE 硬校验 (禁止截断/取整)
+// Wiki §2: 显式NSIDE合法则原样接受，非法则硬报错，禁止截断或取整
+//
+// 返回值:
+//   >0 = 合法 NSIDE, 原样接受
+//    0 = nside_override <= 0, 调用方应走自动 NSIDE 路径
+//   -1 = 非法显式 NSIDE (error_msg 填充错误信息)
 // ============================================================================
-int calculate_nside(double cd11, double cd12, double cd21, double cd22,
-                    const std::string& strategy, int nside_override) {
-    // 1. 用户指定优先
-    if (nside_override > 0) {
-        int n = nside_override;
-        // 防御性: 超出 [16, 4194304] 范围截断并警告 (CLI 已校验, 此处兜底)
-        if (n < 16) {
-            LOG_WARN("orchestrator", "[NSIDE] 用户指定 nside=" + std::to_string(n)
-                     + " 低于下限 16, 截断到 16");
-            n = 16;
-        }
-        if (n > 4194304) {
-            LOG_WARN("orchestrator", "[NSIDE] 用户指定 nside=" + std::to_string(n)
-                     + " 超过上限 4194304 (2^22), 截断到 4194304");
-            n = 4194304;
-        }
-        // 若不是 2 的幂次方, 向下取到最近的 2 的幂次方并警告
-        if ((n & (n - 1)) != 0) {
-            int p = 1;
-            while (p * 2 <= n) p *= 2;
-            int original = n;
-            n = p;
-            LOG_WARN("orchestrator", "[NSIDE] 用户指定 nside=" + std::to_string(original)
-                     + " 非 2 的幂, 向下取整到 " + std::to_string(n));
-        }
-        // 显式合法 NSIDE (2 的幂且在范围内): 不修改、不警告
-        LOG_INFO("orchestrator", "[NSIDE] 用户指定: nside=" + std::to_string(n));
-        return n;
+int validate_explicit_nside(int nside_override, std::string& error_msg) {
+    if (nside_override <= 0) {
+        return 0;  // 自动模式, 调用方走 hp_drizzle_compute_auto_nside
     }
 
-    // 2. 从 CD 矩阵计算原始像素分辨率 (角秒/像素)
-    // CD 矩阵单位是度/像素, 转角秒需 ×3600
-    double sx = std::sqrt(cd11 * cd11 + cd21 * cd21);
-    double sy = std::sqrt(cd12 * cd12 + cd22 * cd22);
-    double pixel_scale_arcsec = 0.5 * (sx + sy) * 3600.0;
+    int n = nside_override;
 
-    // 若 CD 矩阵无效 (全 0), 回退到默认 nside=32768
-    if (pixel_scale_arcsec <= 0.0 || !std::isfinite(pixel_scale_arcsec)) {
-        LOG_WARN("orchestrator", "[NSIDE] CD 矩阵无效, 回退默认 nside=32768");
-        return 32768;
+    // 硬校验 1: 必须是 2 的幂
+    if ((n & (n - 1)) != 0) {
+        error_msg = "显式 nside=" + std::to_string(n) + " 非 2 的幂, 正式 Stage1 拒绝截断/取整";
+        LOG_ERROR("orchestrator", "[NSIDE] " + error_msg);
+        return -1;
     }
 
-    // 3. 按策略计算目标 HEALPix 像素分辨率
-    // "1x_to_2x_drizzle": 取 1-2x 中间值 1.5, 避免过采样
-    // HEALPix 像素分辨率 (arcsec) ≈ 3600*60*sqrt(3) / (3*nside) = 1186.18 / nside
-    // 反推: nside ≈ 1186.18 / target_resolution_arcsec
-    double drizzle_factor = 1.5;  // 默认 1x_to_2x_drizzle
-    if (strategy == "fixed" || strategy == "1x") {
-        drizzle_factor = 1.0;
-    } else if (strategy == "2x") {
-        drizzle_factor = 2.0;
-    } else if (strategy == "1x_to_2x_drizzle" || strategy.empty()) {
-        drizzle_factor = 1.5;
-    } else {
-        LOG_WARN("orchestrator", "[NSIDE] 未知 strategy='" + strategy + "', 使用默认 1.5x");
-        drizzle_factor = 1.5;
+    // 硬校验 2: 范围 [16, 4194304] (2^4 到 2^22)
+    if (n < 16) {
+        error_msg = "显式 nside=" + std::to_string(n) + " 低于下限 16, 正式 Stage1 拒绝截断";
+        LOG_ERROR("orchestrator", "[NSIDE] " + error_msg);
+        return -1;
+    }
+    if (n > 4194304) {
+        error_msg = "显式 nside=" + std::to_string(n) + " 超过上限 4194304 (2^22), 正式 Stage1 拒绝截断";
+        LOG_ERROR("orchestrator", "[NSIDE] " + error_msg);
+        return -1;
     }
 
-    double target_resolution_arcsec = pixel_scale_arcsec / drizzle_factor;
-    // nside = 1186.18 / target_resolution_arcsec
-    // 推导: HEALPix 像素面积 = 4π/(12*nside²) sr = π/(3*nside²) sr
-    //       像素边长 ≈ sqrt(π/(3*nside²)) rad = sqrt(π/3)/nside rad
-    //                ≈ 1.0233/nside rad ≈ 58.6/nside deg ≈ 3517.6/nside * sqrt(3)/3 arcsec
-    // 简化用: resolution_arcsec ≈ 3517.6 / nside * sqrt(3)/3 ≈ 1186.18 / nside (近似)
-    // 反推 nside ≈ 1186.18 / target_resolution_arcsec
-    double nside_target = 1186.18 / target_resolution_arcsec;
-
-    // 4. 找到不小于 nside_target 的最小 2 的幂次方
-    //    下限 16 (Tile 父级 NSIDE 不低于 16), 上限 4194304 (2^22, 规范要求)
-    int nside = 16;
-    while (nside < nside_target && nside < 4194304) {
-        nside *= 2;
-    }
-
-    // 5. 限制在 [16, 4194304]
-    if (nside < 16) nside = 16;
-    if (nside > 4194304) nside = 4194304;
-
-    char buf[256];
-    std::snprintf(buf, sizeof(buf),
-        "[NSIDE] 自适应: pixel_scale=%.3f\"/px, strategy=%s, nside=%d",
-        pixel_scale_arcsec, strategy.c_str(), nside);
-    LOG_INFO("orchestrator", std::string(buf));
-
-    return nside;
+    // 合法显式 NSIDE: 原样接受, 不修改不警告
+    LOG_INFO("orchestrator", "[NSIDE] 显式合法: nside=" + std::to_string(n));
+    return n;
 }
 
 // ============================================================================
@@ -2750,42 +2692,24 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
         return false;
     }
 
-    // GAP-016: NSIDE 自适应
-    // 1) 从 frame_ header 读取 CD 矩阵 (度/像素)
-    auto fn_kv_get_double = dll_loader_.get_function<double (*)(
-        const PipelineFrame*, const char*, const char*, double)>(
-        ModuleId::AIO, "aio_frame_kv_get_double");
-    double cd11 = 0.0, cd12 = 0.0, cd21 = 0.0, cd22 = 0.0;
-    if (fn_kv_get_double) {
-        cd11 = fn_kv_get_double(frame_, "header", "CD1_1", 0.0);
-        cd12 = fn_kv_get_double(frame_, "header", "CD1_2", 0.0);
-        cd21 = fn_kv_get_double(frame_, "header", "CD2_1", 0.0);
-        cd22 = fn_kv_get_double(frame_, "header", "CD2_2", 0.0);
-    } else {
-        LOG_WARN("orchestrator", "[DRIZZLE] aio_frame_kv_get_double 不可用, CD 矩阵取 0");
-    }
+    // R05-B03: 正式 Stage1 自动 NSIDE — 调用 hp_drizzle_compute_auto_nside (唯一生产实现)
+    // Wiki §2: 不得仅由CD矩阵平均值计算; 不得使用错误的 1186/NSIDE 尺度公式;
+    //           显式NSIDE合法则原样接受，非法则硬报错，禁止截断或取整
 
-    // 2) 从 current_config_json_ 解析 nside_strategy 和 nside_override
-    //    默认: strategy="1x_to_2x_drizzle", override=0 (自适应)
-    //    P03-002: 新增 pixfrac 解析 (默认 1.0 避免缝隙)
-    std::string nside_strategy = "1x_to_2x_drizzle";
+    // 1) 从 current_config_json_ 解析 nside_override 和 pixfrac
+    //    nside_override > 0: 显式指定, 硬校验
+    //    nside_override <= 0: 自动模式, 调用 hp_drizzle_compute_auto_nside
     int nside_override = 0;
     double pixfrac = 1.0;
     int nested = 1;
     if (!current_config_json_.empty()) {
-        size_t p = orc_findJsonKey(current_config_json_, "nside_strategy");
-        if (p != std::string::npos) {
-            std::string s = orc_extractJsonStr(current_config_json_, p);
-            if (!s.empty()) nside_strategy = s;
-        }
-        p = orc_findJsonKey(current_config_json_, "nside_override");
+        size_t p = orc_findJsonKey(current_config_json_, "nside_override");
         if (p != std::string::npos) {
             nside_override = (int)orc_extractJsonNum(current_config_json_, p);
         }
-        // P03-002: 解析 pixfrac (在 drizzle 段或顶层)
-        // 优先在 drizzle 段查找, 找不到再在顶层查找
+        // R05-B04: 解析 pixfrac, 严格范围 (0.0, 1.0] (禁止 0 值)
         double pf = orc_getJsonNum(current_config_json_, "pixfrac", -1.0);
-        if (pf >= 0.0 && pf <= 1.0) {
+        if (pf > 0.0 && pf <= 1.0) {
             pixfrac = pf;
         }
         // P03-002: 解析 nested (默认 true)
@@ -2793,13 +2717,48 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
         nested = nest_val ? 1 : 0;
     }
 
-    // 3) 计算最终 nside
-    int nside = calculate_nside(cd11, cd12, cd21, cd22, nside_strategy, nside_override);
+    // 2) 计算最终 nside: 显式硬校验 or 自动模式
+    int nside = 0;
+    {
+        std::string nsideErr;
+        int explicit_n = validate_explicit_nside(nside_override, nsideErr);
+        if (explicit_n < 0) {
+            // 非法显式 NSIDE: 硬报错 (禁止截断/取整)
+            LOG_ERROR("orchestrator", "[DRIZZLE] " + nsideErr);
+            result.error_msg = "[DRIZZLE] " + nsideErr;
+            return false;
+        } else if (explicit_n > 0) {
+            // 合法显式 NSIDE: 原样接受
+            nside = explicit_n;
+        } else {
+            // 自动模式: 调用 hp_drizzle_compute_auto_nside (唯一生产实现)
+            auto fn_compute_nside = dll_loader_.get_function<int (*)(
+                PipelineFrame*, int*)>(
+                ModuleId::DRIZZLE, "hp_drizzle_compute_auto_nside");
+            if (!fn_compute_nside) {
+                LOG_ERROR("orchestrator", "[DRIZZLE] hp_drizzle_compute_auto_nside 函数未找到 "
+                                          "(请重新构建 healpix_drizzle.dll)");
+                result.error_msg = "[DRIZZLE] hp_drizzle_compute_auto_nside 函数未找到";
+                return false;
+            }
+            int rc = fn_compute_nside(frame_, &nside);
+            if (rc != 0 || nside <= 0) {
+                LOG_ERROR("orchestrator", "[DRIZZLE] hp_drizzle_compute_auto_nside 失败 rc="
+                         + std::to_string(rc) + " (WCS 无效或 Jacobian 采样失败)");
+                result.error_msg = "[DRIZZLE] 自动 NSIDE 计算失败 (rc="
+                                 + std::to_string(rc) + ", WCS/SIP Jacobian 采样失败)";
+                return false;
+            }
+        }
+    }
+
     {
         char buf[256];
         std::snprintf(buf, sizeof(buf),
-            "[DRIZZLE] nside=%d (strategy=%s, override=%d, cd11=%.6f cd12=%.6f), pixfrac=%.3f, nested=%d",
-            nside, nside_strategy.c_str(), nside_override, cd11, cd12, pixfrac, nested);
+            "[DRIZZLE] nside=%d (override=%d, mode=%s), pixfrac=%.3f, nested=%d",
+            nside, nside_override,
+            nside_override > 0 ? "explicit" : "auto-wcs-sip-jacobian",
+            pixfrac, nested);
         LOG_INFO("orchestrator", std::string(buf));
     }
 

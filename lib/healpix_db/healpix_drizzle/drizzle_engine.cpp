@@ -211,10 +211,16 @@ int compute_auto_nside(const WcsParams& wcs, int img_w, int img_h)
         return 0;
     }
 
-    // HEALPix 线性像素尺度 ≈ 210960/nside 角秒 (58.6/nside 度)
-    // 找最小 2 次幂 NSIDE 使 210960/nside <= finest_arcsec
-    // 即 nside >= 210960/finest_arcsec
-    double nside_min_real = 210960.0 / finest_arcsec;
+    // R05-B03: HEALPix 特征尺度由像素面积公式一致计算 (禁止魔数 210960/1186.18)
+    //   HEALPix 像素面积 = 4π / (12 * nside²) sr = π / (3 * nside²) sr
+    //   特征线性尺度 = sqrt(像素面积) = sqrt(π/3) / nside rad
+    //   转角秒: sqrt(π/3) / nside * (180/π) * 3600 ≈ 211034.6 / nside arcsec
+    const double HEALPIX_SCALE_PER_NSIDE_ARCSEC =
+        std::sqrt(M_PI / 3.0) * (180.0 / M_PI) * 3600.0;  // ≈ 211034.6
+
+    // 找最小 2 次幂 NSIDE 使 HEALPix 特征尺度 <= finest_arcsec
+    // 即 nside >= HEALPIX_SCALE_PER_NSIDE_ARCSEC / finest_arcsec
+    double nside_min_real = HEALPIX_SCALE_PER_NSIDE_ARCSEC / finest_arcsec;
     if (nside_min_real < 1.0) nside_min_real = 1.0;
 
     // 找最小 2 次幂 >= nside_min_real (从 1 开始左移)
@@ -233,7 +239,7 @@ int compute_auto_nside(const WcsParams& wcs, int img_w, int img_h)
     if (nside > NSIDE_MAX) nside = NSIDE_MAX;
 
     // 过采样倍数 = hp_res / finest (<=1 表示 HEALPix 更细, 0.5~1 即 1~2 倍过采样)
-    double hp_res_arcsec = 210960.0 / (double)nside;
+    double hp_res_arcsec = HEALPIX_SCALE_PER_NSIDE_ARCSEC / (double)nside;
     double oversample = hp_res_arcsec / finest_arcsec;
 
     fprintf(stderr, "[drizzle_engine] compute_auto_nside: finest=%.6f\"/px, "
