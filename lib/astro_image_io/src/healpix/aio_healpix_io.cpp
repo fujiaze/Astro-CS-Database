@@ -281,6 +281,9 @@ AIO_EXPORT int aio_hiss_write(const char* path, uint32_t nside, int nested,
         hiss::HissMetadata hmeta;
         hmeta.nside = nside;
         hmeta.tile_nside = grid.tile_nside;
+        // R05-B07: 旧 C API 兼容层输出合规 HISS (假设输入已是相对通量)
+        hmeta.photappl = 1;
+        // bunit/photscal 用 HissMetadata 默认值 (ASTROCS_RELATIVE_FLUX / 1.0)
         hiss::HissWriter writer;
         if (writer.open(path, grid, hmeta) != 0) return HIO_ERR_FILE;
         if (writer.finalize() != 0) return HIO_ERR_FILE;
@@ -324,8 +327,9 @@ AIO_EXPORT int aio_hiss_write(const char* path, uint32_t nside, int nested,
     hmeta.ordering = 1;
     hmeta.radesys = 0;
     hmeta.pixfrac = 1.0;
-    hmeta.photappl = 0;
-    std::snprintf(hmeta.bunit, sizeof(hmeta.bunit), "ADU");
+    // R05-B07: 旧 C API 兼容层输出合规 HISS (假设输入 pixel 已是相对通量)
+    // bunit/photscal 用 HissMetadata 默认值 (ASTROCS_RELATIVE_FLUX / 1.0)
+    hmeta.photappl = 1;
 
     // 4. HissWriter 写入
     hiss::HissWriter writer;

@@ -93,23 +93,88 @@ double angular_distance(const Vec3& a, const Vec3& b) {
 }
 
 // ============================================================================
-// 球面多边形面积 (Girard 定理, 切向量法)
+// 球面多边形面积 (R05-B01: 双路径 — 小多边形切平面鞋带 / 大多边形 Girard)
 //
-// 球面 excess = Σ内角 - (n-2)π
-// 内角在顶点 B 处, 相邻顶点 A (前一), C (后一):
-//   - t_A = normalize(A - (A·B)·B)   // B 处切平面上的切向量, 指向 A
-//   - t_C = normalize(C - (C·B)·B)   // B 处切平面上的切向量, 指向 C
-//   - 有符号角 = atan2(dot(cross(t_C, t_A), B), dot(t_C, t_A))
-//   - 若 < 0, 加 2π → 内角 ∈ [0, 2π], 支持非凸多边形
+// R05-B01 根因:
+//   Girard 定理 (Area = Σ内角 - (n-2)π) 在极小球面多边形上因 catastrophic
+//   cancellation 失效: 相邻顶点 A, B 极接近时, 切向量 t = A - (A·B)·B 的
+//   有效数字严重丢失 (A·B ≈ 1.0, A - 1.0*B ≈ 0 但真实差值在 1e-7 量级),
+//   导致 normalize 后方向不准确, atan2 内角误差大, 角盈余可能为 0 或负值.
+//   这使 0.1"/px 源像素的 drop_area 计算为 0, 被 drizzle 跳过, PRECISE
+//   通量误差达 3324% (R05-B01).
 //
-// 注: 法向量法 (cross(B,A), cross(B,C)) 的内角方向不一致 (一个指内, 一个指外),
-//     导致 interior_angle = π + signed_angle 在部分顶点给出 2π - α 而非 α.
-//     切向量法直接在切平面上计算内角, 方向一致, 对凸/非凸多边形均正确.
+// 修复 (R05-B01):
+//   1. 计算多边形中心 + 最大顶点到中心角距离
+//   2. 若 < SMALL_POLYGON_THRESHOLD (60" ≈ 2.91e-4 rad):
+//      - 在中心构造切平面坐标系 (x_axis, y_axis, center=z)
+//      - 投影顶点到切平面: p = v - (v·center)·center
+//      - 鞋带公式: Area = |Σ(x_i·y_{i+1} - x_{i+1}·y_i)| / 2
+//      - 球面 vs 平面差异 O(s⁴), 对 60" 多边形 < 1e-15 (可忽略)
+//   3. 否则用 Girard 定理 (大多边形无精度问题)
+//
+// Girard 内角 (切向量法, 支持凸/非凸):
+//   t_A = normalize(A - (A·B)·B), t_C = normalize(C - (C·B)·B)
+//   有符号角 = atan2(dot(cross(t_C, t_A), B), dot(t_C, t_A)), 若<0加2π
 // ============================================================================
 double spherical_polygon_area(const std::vector<Vec3>& vertices) {
     int n = (int)vertices.size();
     if (n < 3) return 0.0;
 
+    // ---- R05-B01: 计算多边形中心 + 最大角距离 ----
+    Vec3 center = {0.0, 0.0, 0.0};
+    for (const Vec3& v : vertices) {
+        center.x += v.x; center.y += v.y; center.z += v.z;
+    }
+    center = normalize(center);
+
+    double max_angle = 0.0;
+    for (const Vec3& v : vertices) {
+        double cos_ang = dot(v, center);
+        if (cos_ang > 1.0) cos_ang = 1.0;
+        if (cos_ang < -1.0) cos_ang = -1.0;
+        double ang = std::acos(cos_ang);
+        if (ang > max_angle) max_angle = ang;
+    }
+
+    // ---- R05-B01: 小多边形路径 (切平面鞋带公式) ----
+    // 阈值 60" ≈ 2.91e-4 rad: 典型天文像素 0.1"-10" 均走此路径
+    static const double SMALL_POLYGON_THRESHOLD = 60.0 * ARCSEC_TO_RAD;
+    if (max_angle < SMALL_POLYGON_THRESHOLD) {
+        // 构造局部切平面坐标系 (center = z 轴)
+        Vec3 ref = (std::fabs(center.x) < 0.9) ? Vec3{1.0, 0.0, 0.0}
+                                                : Vec3{0.0, 1.0, 0.0};
+        Vec3 x_axis = normalize(cross(ref, center));
+        Vec3 y_axis = cross(center, x_axis);
+
+        // 鞋带公式: 2×Area = |Σ(x_i * y_{i+1} - x_{i+1} * y_i)|
+        double area2 = 0.0;
+        for (int i = 0; i < n; i++) {
+            const Vec3& v      = vertices[i];
+            const Vec3& v_next = vertices[(i + 1) % n];
+
+            // 投影到切平面: p = v - (v·center)·center
+            double d_vc      = dot(v, center);
+            double d_vc_next = dot(v_next, center);
+
+            double px = v.x - d_vc * center.x;
+            double py = v.y - d_vc * center.y;
+            double pz = v.z - d_vc * center.z;
+            double px_next = v_next.x - d_vc_next * center.x;
+            double py_next = v_next.y - d_vc_next * center.y;
+            double pz_next = v_next.z - d_vc_next * center.z;
+
+            // 切平面坐标 = dot(p, x_axis), dot(p, y_axis)
+            double sx      = px * x_axis.x + py * x_axis.y + pz * x_axis.z;
+            double sy      = px * y_axis.x + py * y_axis.y + pz * y_axis.z;
+            double sx_next = px_next * x_axis.x + py_next * x_axis.y + pz_next * x_axis.z;
+            double sy_next = px_next * y_axis.x + py_next * y_axis.y + pz_next * y_axis.z;
+
+            area2 += sx * sy_next - sx_next * sy;
+        }
+        return std::fabs(area2) * 0.5;
+    }
+
+    // ---- 大多边形路径 (Girard 定理, 原有逻辑) ----
     double angle_sum = 0.0;
     for (int i = 0; i < n; i++) {
         // 当前顶点 B, 前一顶点 A, 后一顶点 C
