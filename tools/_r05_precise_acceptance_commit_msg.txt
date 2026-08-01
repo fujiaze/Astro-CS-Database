@@ -1,0 +1,11 @@
+test(drizzle): R05 Gate D PRECISE验收矩阵 52/52 PASS
+
+新增 test_precise_acceptance.cpp, 覆盖 Gate B 全部验收项:
+- 几何正确性 (17项): 球面面积/HEALPix像素面积/通量守恒/极区/RA跨界/候选零漏选
+- 引擎集成 (19项): 整帧通量守恒/support守恒/自动NSIDE/钳位/pixfrac收缩/确定性/极区/RA跨界
+- 入口校验 (8项): pixfrac<=0拒绝/pixfrac>1拒绝/RING拒绝/多通道拒绝
+
+关键指标:
+- 通量守恒 rel_err=2.11e-13 (R04-B01 修复前为 3324%)
+- 自动NSIDE: 0.1"/px→4194304, 1"/px→262144, 60"/px→4096, 3600"/px→64
+- 多线程确定性: 3次运行完全一致
