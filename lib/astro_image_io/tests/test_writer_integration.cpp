@@ -292,8 +292,13 @@ static void test_04_sparse_roundtrip(int id) {
     const char* path = "test_sparse_roundtrip.hiss";
 
     HissGridSpec grid;
-    grid.nside = 64;
-    grid.tile_nside = compute_tile_nside(64);
+    // R04-B12: Writer 按实际编码大小自动选择 (忽略传入的 occ_mode)
+    //   BITMAP = ceil(n_leaf/8), SPARSE_LIST = n_valid*4
+    //   需 SPARSE_LIST < BITMAP: n_valid*4 < ceil(n_leaf/8)
+    // NSIDE=1024 → depth=6, tile_nside=16, n_leaf_per_tile=4^6=4096
+    //   BITMAP=512B, SPARSE_LIST(n_valid=1)=4B → 自动选 SPARSE_LIST
+    grid.nside = 1024;
+    grid.tile_nside = compute_tile_nside(1024);  // 16
     grid.ordering = 1;
     grid.radesys = 0;
     grid.pixfrac = 1.0;
@@ -305,16 +310,16 @@ static void test_04_sparse_roundtrip(int id) {
     meta.photscal = 1.0;
     std::snprintf(meta.bunit, sizeof(meta.bunit), "ASTROCS_RELATIVE_FLUX");
 
-    uint32_t n_leaf = 16;  // 4^2 = 16 for NSIDE=64
-    double A_p = 4.0 * 3.14159265358979 / (12.0 * 64.0 * 64.0);
+    uint32_t n_leaf = 4096;  // 4^6 = 4096 for NSIDE=1024
+    double A_p = 4.0 * 3.14159265358979 / (12.0 * 1024.0 * 1024.0);
 
-    // 构造极少有效像素 (SPARSE_LIST, 占用率 < 0.1)
+    // 构造极少有效像素 (1/4096 → SPARSE_LIST 自动选择)
     DrizzleTileAccumulator acc;
     acc.tile_nside = 16;
     acc.parent_ipix = 7;
     acc.pixel_area = A_p;
     acc.pixels.resize(n_leaf);
-    // 仅 1 个有效像素 (1/16 = 0.0625 < 0.1 → SPARSE_LIST)
+    // 仅 1 个有效像素: SPARSE_LIST(4B) < BITMAP(512B) → 自动选 SPARSE_LIST
     std::vector<uint32_t> valid_idx = {3};
     for (uint32_t idx : valid_idx) {
         acc.pixels[idx].sum_flux = (double)idx * 5.0;
@@ -324,13 +329,14 @@ static void test_04_sparse_roundtrip(int id) {
 
     HissWriter w;
     ASSERT_TRUE(w.open(path, grid, meta) == 0, "open 成功");
+    // Writer 忽略传入的 occ_mode, 按编码大小自动选择
     ASSERT_TRUE(w.add_tile(7, acc, nullptr, OccupancyMode::SPARSE_LIST) == 0, "add_tile SPARSE 成功");
     ASSERT_TRUE(w.finalize() == 0, "finalize 成功");
 
     HissReader r;
     ASSERT_TRUE(r.open(path) == 0, "reader.open 成功");
 
-    // 占用率 5/256 = 0.0195 < 0.1 → SPARSE_LIST
+    // n_valid=1, BITMAP=512B, SPARSE_LIST=4B → 自动选 SPARSE_LIST
     ASSERT_TRUE(r.tiles()[0].occ_mode == OccupancyMode::SPARSE_LIST,
                 "occ_mode = SPARSE_LIST (自动选择)");
 
@@ -338,8 +344,8 @@ static void test_04_sparse_roundtrip(int id) {
     std::vector<uint8_t> support;
     ASSERT_TRUE(r.read_tile(7, signal, support) == 0, "read_tile 成功");
 
-    ASSERT_TRUE(signal.size() == n_leaf, "展开后 signal 长度 = 256");
-    ASSERT_TRUE(support.size() == n_leaf, "展开后 support 长度 = 256");
+    ASSERT_TRUE(signal.size() == n_leaf, "展开后 signal 长度 = 4096");
+    ASSERT_TRUE(support.size() == n_leaf, "展开后 support 长度 = 4096");
 
     // 验证有效像素
     for (uint32_t idx : valid_idx) {
@@ -370,10 +376,10 @@ static void test_05_auto_occupancy(int id) {
     TEST_CASE("occupancy 自动选择验证 (步骤11)", id);
     using namespace hiss;
 
-    // 100% 占用 → FULL (>= 0.8)
+    // 90% 占用 → BITMAP (R04-B12: FULL 仅当 100% 覆盖)
     {
         uint32_t n_leaf = 100;
-        uint32_t n_valid = 90;  // 90% → FULL
+        uint32_t n_valid = 90;  // 90% → 非 FULL
         OccupancyMode mode; // 由 writer 内部 auto_select 决定, 通过写入+读取验证
         // 直接构造 acc 写入, 读回 occ_mode 验证
         const char* path = "test_auto_full.hiss";
@@ -402,7 +408,8 @@ static void test_05_auto_occupancy(int id) {
         r.close(); // reader 关闭文件
         // 需要手动清理 reader 资源后再删除文件
         std::filesystem::remove(path);
-        ASSERT_TRUE(mode == OccupancyMode::FULL, "90% 占用 → FULL");
+        // R04-B12: 90% 不选 FULL (需 100%), BITMAP(13B) < SPARSE_LIST(360B) → BITMAP
+        ASSERT_TRUE(mode == OccupancyMode::BITMAP, "90% 占用 → BITMAP (FULL 仅当 100%)");
     }
 
     // 30% 占用 → BITMAP (0.1 <= occ < 0.8)
@@ -514,7 +521,7 @@ static void test_06_streaming_write(int id) {
     unsigned char sig[8];
     ASSERT_TRUE(std::fread(sig, 1, 8, fp) == 8, "读取签名块");
     std::fclose(fp);
-    ASSERT_TRUE(std::memcmp(sig, "ACSHISS\0", 8) == 0, "MAGIC = ACSHISS");
+    ASSERT_TRUE(std::memcmp(sig, "HISS0100", 8) == 0, "MAGIC = HISS0100");
 
     // 验证 Tile 数
     HissReader r;
@@ -561,6 +568,7 @@ static void test_07_snr_roundtrip(int id) {
     }
 
     // SNR 控制点 (local_ipix must be < 16)
+    // R04-B18: Writer 按升序排序并去重, 读取后顺序为按 local_ipix 升序
     HissSnrBlock snr;
     snr.points.push_back({5, 12.5f});
     snr.points.push_back({10, 25.0f});
@@ -578,13 +586,13 @@ static void test_07_snr_roundtrip(int id) {
     ASSERT_TRUE(r.read_tile_snr(99, snr_read) == 0, "read_tile_snr 成功");
     ASSERT_TRUE(snr_read.points.size() == 3, "SNR 控制点数 = 3");
 
-    // 验证每点 local_ipix + snr
-    ASSERT_TRUE(snr_read.points[0].local_ipix == 5, "point[0].local_ipix = 5");
-    ASSERT_NEAR(snr_read.points[0].snr, 12.5f, 1e-5, "point[0].snr = 12.5");
-    ASSERT_TRUE(snr_read.points[1].local_ipix == 10, "point[1].local_ipix = 10");
-    ASSERT_NEAR(snr_read.points[1].snr, 25.0f, 1e-5, "point[1].snr = 25.0");
-    ASSERT_TRUE(snr_read.points[2].local_ipix == 3, "point[2].local_ipix = 3");
-    ASSERT_NEAR(snr_read.points[2].snr, 8.3f, 1e-5, "point[2].snr = 8.3");
+    // 验证每点 local_ipix + snr (Writer 排序后按 local_ipix 升序: 3, 5, 10)
+    ASSERT_TRUE(snr_read.points[0].local_ipix == 3, "point[0].local_ipix = 3 (排序后)");
+    ASSERT_NEAR(snr_read.points[0].snr, 8.3f, 1e-5, "point[0].snr = 8.3");
+    ASSERT_TRUE(snr_read.points[1].local_ipix == 5, "point[1].local_ipix = 5 (排序后)");
+    ASSERT_NEAR(snr_read.points[1].snr, 12.5f, 1e-5, "point[1].snr = 12.5");
+    ASSERT_TRUE(snr_read.points[2].local_ipix == 10, "point[2].local_ipix = 10 (排序后)");
+    ASSERT_NEAR(snr_read.points[2].snr, 25.0f, 1e-5, "point[2].snr = 25.0");
 
     r.close();
     std::filesystem::remove(path);
