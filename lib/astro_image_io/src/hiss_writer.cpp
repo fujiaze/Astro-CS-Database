@@ -145,6 +145,8 @@ static int compress_and_append(HissStreamWriter& stream,
     const uint8_t* final_data = data_to_compress;
     size_t final_size = size_to_compress;
     CodecId final_codec = codec_id;
+    // R05-FIX: compressed 必须在外层声明, 避免 if 块结束后悬空指针 (use-after-free)
+    std::vector<uint8_t> compressed;
 
     if (codec_id != CodecId::RAW) {
         // 查找 codec
@@ -157,7 +159,7 @@ static int compress_and_append(HissStreamWriter& stream,
 
         // 分配压缩缓冲区并压缩 (基于变换后大小)
         size_t bound = entry->bound(size_to_compress);
-        std::vector<uint8_t> compressed(bound);
+        compressed.resize(bound);
         size_t compressed_size = bound;
         int ret = entry->compress(data_to_compress, size_to_compress,
                                    compressed.data(), &compressed_size);
@@ -176,9 +178,10 @@ static int compress_and_append(HissStreamWriter& stream,
             final_data  = data_to_compress;
             final_size  = size_to_compress;
             final_codec = CodecId::RAW;
-            // compressed 在此分支结束后析构, 释放内存
+            // compressed 不再使用, 函数结束时自动释放
         } else {
             // 压缩有收益 → 使用压缩数据
+            // R05-FIX: compressed 在外层声明, final_data 在 append_subblock 之前始终有效
             final_data  = compressed.data();
             final_size  = compressed_size;
             final_codec = codec_id;

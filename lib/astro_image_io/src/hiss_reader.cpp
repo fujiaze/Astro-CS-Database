@@ -313,7 +313,6 @@ struct HissReader::Impl {
                 return -3;
             }
         }
-
         // c. checksum 校验 (解压前校验压缩数据)
         //    通过 ChecksumRegistry 查找算法实现 (CRC32C 内置, 其他通过注册接入)
         //    INTERIM_BASELINE_NOT_FROZEN: 候选注册机制, 算法待 DQ-006 冻结
