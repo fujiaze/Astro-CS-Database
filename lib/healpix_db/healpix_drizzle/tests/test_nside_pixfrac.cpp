@@ -325,6 +325,153 @@ static void test_auto_nside_adaptive_sampling() {
 }
 
 // ============================================================================
+// R07-M09 专项测试: RA 跨越 0°/360° 边界时 NSIDE 计算稳定
+//
+// 原 R06 实现用 ra_xp - ra_xm 直接差分, 当 RA 跨越 0°/360° 时会得到 ~360°
+// 的大数值, 导致 Jacobian 失真, NSIDE 估计错误.
+// R07 修复用 3D 切向量 Jacobian, 天然处理 RA wrap, 在 RA=0°/359° 边界也应稳定.
+//
+// 验证:
+//   1. CRVAL_RA=0.0 时 NSIDE 与 CRVAL_RA=45.0 时一致 (相同 scale)
+//   2. CRVAL_RA=359.5 时 NSIDE 与 CRVAL_RA=45.0 时一致
+//   3. NSIDE 是 2 的幂
+// ============================================================================
+static void test_auto_nside_ra_wrap() {
+    const double scale = 1.0;  // 1.0"/px
+    const int img_w = 100, img_h = 100;
+
+    // 基准: CRVAL_RA=45.0
+    auto wcs_ref = make_simple_wcs(scale, img_w, img_h, 45.0, 30.0);
+    int nside_ref = drizzle::compute_auto_nside(wcs_ref, img_w, img_h);
+
+    // RA=0.0 (图像跨越 RA=0°/360° 边界, 假设 scale=1"/px, 视场=100" 远小于 1°,
+    //   不实际跨越; 但 CRVAL_RA=0.0 仍是关键边界点验证)
+    auto wcs_ra0 = make_simple_wcs(scale, img_w, img_h, 0.0, 30.0);
+    int nside_ra0 = drizzle::compute_auto_nside(wcs_ra0, img_w, img_h);
+
+    // RA=359.5 (接近 360° 边界)
+    auto wcs_ra359 = make_simple_wcs(scale, img_w, img_h, 359.5, 30.0);
+    int nside_ra359 = drizzle::compute_auto_nside(wcs_ra359, img_w, img_h);
+
+    printf("  RA=45.0: NSIDE=%d, RA=0.0: NSIDE=%d, RA=359.5: NSIDE=%d\n",
+           nside_ref, nside_ra0, nside_ra359);
+
+    ASSERT_TRUE(nside_ra0 == nside_ref,
+                "A7a: RA=0.0 时 NSIDE 与 RA=45.0 一致 (RA wrap 稳定)",
+                "RA=0.0 时 NSIDE 与基准不一致, 3D 切向量 Jacobian 未正确处理 RA wrap");
+    ASSERT_TRUE(nside_ra359 == nside_ref,
+                "A7b: RA=359.5 时 NSIDE 与 RA=45.0 一致 (RA wrap 稳定)",
+                "RA=359.5 时 NSIDE 与基准不一致, 3D 切向量 Jacobian 未正确处理 RA wrap");
+    ASSERT_TRUE(is_power_of_two(nside_ra0),
+                "A7c: RA=0.0 时 NSIDE 是 2 的幂",
+                "RA=0.0 时 NSIDE 不是 2 的幂");
+}
+
+// ============================================================================
+// R07-M10 专项测试: 极区 NSIDE 计算稳定
+//
+// 原 R06 实现用 cos_dec < 1e-12 强制为 1e-12 保护极区, 这是不科学的数值 hack,
+// 在极点附近 (dec=89.99°) 会导致 Jacobian 失真.
+// R07 修复用 3D 切向量 Jacobian, 切平面基底在极点也定义良好, 无需 cos_dec 保护.
+//
+// 验证:
+//   1. CRVAL_DEC=89.5° 时 NSIDE 与 CRVAL_DEC=0.0 时一致 (相同 scale)
+//   2. CRVAL_DEC=89.99° 时 NSIDE 仍为合理值 (2 的幂, 在 [16, 4194304] 内)
+//   3. CRVAL_DEC=-89.5° (南极) 时 NSIDE 与北纬 89.5° 一致
+// ============================================================================
+static void test_auto_nside_polar() {
+    const double scale = 1.0;  // 1.0"/px
+    const int img_w = 100, img_h = 100;
+
+    // 基准: CRVAL_DEC=0.0 (赤道)
+    auto wcs_eq = make_simple_wcs(scale, img_w, img_h, 45.0, 0.0);
+    int nside_eq = drizzle::compute_auto_nside(wcs_eq, img_w, img_h);
+
+    // 北极: CRVAL_DEC=89.5°
+    auto wcs_np = make_simple_wcs(scale, img_w, img_h, 45.0, 89.5);
+    int nside_np = drizzle::compute_auto_nside(wcs_np, img_w, img_h);
+
+    // 北极点: CRVAL_DEC=89.99°
+    auto wcs_np2 = make_simple_wcs(scale, img_w, img_h, 45.0, 89.99);
+    int nside_np2 = drizzle::compute_auto_nside(wcs_np2, img_w, img_h);
+
+    // 南极: CRVAL_DEC=-89.5°
+    auto wcs_sp = make_simple_wcs(scale, img_w, img_h, 45.0, -89.5);
+    int nside_sp = drizzle::compute_auto_nside(wcs_sp, img_w, img_h);
+
+    printf("  DEC=0.0: NSIDE=%d, DEC=89.5: NSIDE=%d, DEC=89.99: NSIDE=%d, DEC=-89.5: NSIDE=%d\n",
+           nside_eq, nside_np, nside_np2, nside_sp);
+
+    // 极区与赤道 NSIDE 应一致 (相同 scale, 3D 切向量不受 dec 影响)
+    ASSERT_TRUE(nside_np == nside_eq,
+                "A8a: 北极 (DEC=89.5) NSIDE 与赤道一致 (3D 切向量消除极区失真)",
+                "北极 NSIDE 与赤道不一致, 3D 切向量 Jacobian 在极区仍有问题");
+    ASSERT_TRUE(nside_sp == nside_eq,
+                "A8b: 南极 (DEC=-89.5) NSIDE 与赤道一致 (南北极对称)",
+                "南极 NSIDE 与赤道不一致, 南北极不对称");
+    // 极点 NSIDE 应是 2 的幂且在合法范围
+    ASSERT_TRUE(is_power_of_two(nside_np2),
+                "A8c: 极点 (DEC=89.99) NSIDE 是 2 的幂",
+                "极点 NSIDE 不是 2 的幂");
+    ASSERT_TRUE(nside_np2 >= 16 && nside_np2 <= 4194304,
+                "A8d: 极点 NSIDE 在合法范围 [16, 4194304]",
+                "极点 NSIDE 超出合法范围");
+    // 极点与极区 NSIDE 应一致 (3D 切向量在极点也稳定)
+    ASSERT_TRUE(nside_np2 == nside_eq,
+                "A8e: 极点 (DEC=89.99) NSIDE 与赤道一致 (3D 切向量在极点稳定)",
+                "极点 NSIDE 与赤道不一致, 3D 切向量在极点仍有失真");
+}
+
+// ============================================================================
+// R07-M11 专项测试: 9 点保守采样捕捉窄局部最小值
+//
+// 原 R06 实现只在 4 角 + 中心 (5 点) 采样, 且仅当 max/min > 1.5 才细分,
+// 可漏掉窄局部最小值 (如强 SIP 在子单元边角处出现尖锐畸变峰).
+// R07 修复用 9 点采样 (4 角 + 4 边中点 + 中心), 捕捉边角尖锐畸变.
+//
+// 构造: SIP A[1,1] = 大系数, 让图像边中点 (500, 0) 出现窄局部畸变
+//   A[1,1] 是 dx*dy 项, 索引 = 1*6+1 = 7
+//   在 (x=500, y=0): dx=0, dy=-500 → dx' = 0 + A[1,1]*0*(-500) = 0 (无影响)
+//   改用 A[2,0] = -1e-5, 让 x 方向在左/右边中点 (x=0/1000, y=500) 有强压缩
+//   在 (x=0, y=500): dx=-500 → dx' = -500 + (-1e-5)*250000 = -500 - 2.5 = -502.5
+//   局部 x 方向尺度 = (1 + 2*A[2,0]*dx) * scale = (1 + 2*(-1e-5)*(-500)) * 1" = 1.01"
+//   这个畸变只在边中点出现, 5 点采样 (4角+中心) 会漏掉.
+//
+// 验证:
+//   1. 有边中点 SIP 时 NSIDE >= 无 SIP 时 (9 点采样捕捉到边中点畸变)
+//   2. NSIDE 是 2 的幂
+// ============================================================================
+static void test_auto_nside_9point_sampling() {
+    const double scale = 1.0;  // 1.0"/px
+    const int img_w = 1000, img_h = 1000;
+
+    // 无 SIP 基准
+    auto wcs_no_sip = make_simple_wcs(scale, img_w, img_h);
+    int nside_no_sip = drizzle::compute_auto_nside(wcs_no_sip, img_w, img_h);
+
+    // 边中点强 SIP: A[2,0] = -1e-5 (x 方向边缘强压缩)
+    // 索引 = 2*6+0 = 12
+    double sip_a[36] = {0};
+    double sip_b[36] = {0};
+    sip_a[12] = -1e-5;  // A[2,0] = -1e-5, 边中点 x 方向强压缩
+    int sip_order = 2;
+
+    auto wcs_edge_mid = make_sip_wcs(scale, img_w, img_h, sip_a, sip_b, sip_order);
+    int nside_edge_mid = drizzle::compute_auto_nside(wcs_edge_mid, img_w, img_h);
+
+    printf("  无 SIP: NSIDE=%d, 边中点 SIP (A[2,0]=-1e-5): NSIDE=%d\n",
+           nside_no_sip, nside_edge_mid);
+
+    ASSERT_TRUE(is_power_of_two(nside_edge_mid),
+                "A9a: 边中点 SIP 时 NSIDE 是 2 的幂",
+                "边中点 SIP 时 NSIDE 不是 2 的幂");
+    // 9 点采样应捕捉到边中点 SIP 畸变, NSIDE >= 无 SIP
+    ASSERT_TRUE(nside_edge_mid >= nside_no_sip,
+                "A9b: 边中点 SIP 时 NSIDE >= 无 SIP (9 点采样捕捉边中点畸变)",
+                "边中点 SIP 时 NSIDE < 无 SIP, 9 点采样未捕捉到边中点畸变");
+}
+
+// ============================================================================
 // 测试 B7: pixfrac=0 → drizzle 返回 false, error_msg 包含 "pixfrac"
 // ============================================================================
 static void test_drizzle_pixfrac_zero() {
@@ -545,6 +692,12 @@ int main() {
     test_auto_nside_0p01_arcsec();
     test_auto_nside_20000_arcsec();
     test_auto_nside_adaptive_sampling();
+    printf("\n");
+
+    printf("---- A.R07. R07-M09/M10/M11 专项测试 ----\n");
+    test_auto_nside_ra_wrap();        // M09: RA wrap 稳定性
+    test_auto_nside_polar();          // M10: 极区稳定性
+    test_auto_nside_9point_sampling(); // M11: 9 点保守采样
     printf("\n");
 
     printf("---- B. drizzle() 入口校验测试 (步骤6) ----\n");

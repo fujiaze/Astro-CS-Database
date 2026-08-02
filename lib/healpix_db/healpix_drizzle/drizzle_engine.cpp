@@ -79,55 +79,220 @@ DrizzleEngine::~DrizzleEngine() {}
 // 像素尺度被漏掉, NSIDE 估计偏小. 自适应四叉树采样在 Jacobian 梯度大的
 // 区域递归细分, 确保捕捉到最细尺度.
 //
-// 策略:
-//   1. 初始单元 = 整个图像 (内缩 margin 避免边界越界)
-//   2. 每个单元采样 4 角 + 中心 (5 点), 用有限差分计算局部像素尺度
-//   3. 若单元内 max_scale/min_scale > RATIO_THRESH 且深度 < MAX_DEPTH 且
-//      单元尺寸 > MIN_CELL_PX, 递归细分为 4 个子单元
-//   4. 否则该单元为叶节点, 采样点已记录
-//   5. 取所有有效采样点的最小局部尺度作为 finest_arcsec
+// R07-M09/M10/M11 修复 (3D 切向量 Jacobian + 9 点保守采样):
+//   原 R06 实现 (RA 差分 + cos_dec 保护 + 5 点采样) 缺陷:
+//     M09: ra_xp - ra_xm 直接差分在 RA 跨越 0°/360° 时产生大数值误差;
+//     M10: cos_dec < 1e-12 强制为 1e-12 是非科学极区保护, 在极点附近
+//          导致 Jacobian 数值失真;
+//     M11: 5 点采样 + ratio > 1.5 才细分, 可漏掉窄局部最小值 (如强 SIP
+//          在子单元边角处出现尖锐畸变峰).
+//   R07 修复方案:
+//     1. 改用 3D 切向量 Jacobian:
+//        - 5 邻近点 (中/左/右/上/下) 的 RA/DEC → 3D 单位向量
+//        - 以中心为切点构造局部正交基底 (east, north)
+//        - 4 邻近点投影到切平面得 (xi, eta) 坐标
+//        - 计算切平面 2×2 Jacobian 的最小奇异值
+//        - 优点: 3D 向量天然处理 RA wrap (无需 wrap 差);
+//               切平面基底在极点也定义良好 (无需 cos_dec 保护).
+//     2. 9 点保守采样: 4 角 + 4 边中点 + 中心, 捕捉边角尖锐畸变;
+//     3. 细分阈值降到 1.25: 更敏感地触发细分, 减少漏掉窄局部最小值风险.
 //
-// 性能: 最多 4^MAX_DEPTH 个叶单元, 每单元 5 点 × 4 次 pixelToSky = 20 次调用.
-//        MAX_DEPTH=5 → 1024 叶单元 → ~20480 次调用 (compute_auto_nside 仅调一次).
+// 性能: 最多 4^MAX_DEPTH 个叶单元, 每单元 9 点 × 5 次 pixelToSky = 45 次调用.
+//        MAX_DEPTH=5 → 1024 叶单元 → ~46080 次调用 (compute_auto_nside 仅调一次).
 // ============================================================================
 static const int    ADAPTIVE_MAX_DEPTH    = 5;     // 最大递归深度 (4^5=1024 叶单元)
-static const double ADAPTIVE_RATIO_THRESH = 1.5;   // 尺度比阈值 (max/min > 1.5 触发细分)
+static const double ADAPTIVE_RATIO_THRESH = 1.25;  // 尺度比阈值 (max/min > 1.25 触发细分) [R07-M11]
 static const double ADAPTIVE_MIN_CELL_PX  = 4.0;   // 最小单元尺寸 (像素), 避免无限细分
+
+// R07-M09/M10: 3D 切向量 Jacobian 辅助函数
+//
+// 局部切平面基底 (east, north):
+//   给定切点 (ra_c, dec_c) 的 3D 单位向量 c, 构造两个正交单位向量:
+//     east  = 球面切平面指向东 (RA 增大方向) 的单位向量
+//     north = 球面切平面指向北 (DEC 增大方向) 的单位向量
+//   特点: 在极点 (dec = ±90°) east 仍定义良好 (退化到任意切线方向);
+//         north 在极点退化为零向量, 但此时 c·north 的归一化处理仍能给出
+//         有效切平面坐标 (因为 4 个邻近点都偏离极点, 投影仍稳定).
+namespace {
+struct TangentBasis {
+    spherical::Vec3 center;  // 切点 3D 单位向量
+    spherical::Vec3 east;    // 东向单位向量
+    spherical::Vec3 north;   // 北向单位向量
+};
+
+// 构造切点 (ra_deg, dec_deg) 处的局部切平面基底
+inline TangentBasis make_tangent_basis(double ra_deg, double dec_deg) {
+    double ra  = ra_deg  * M_PI / 180.0;
+    double dec = dec_deg * M_PI / 180.0;
+    double cos_dec = std::cos(dec);
+    double sin_dec = std::sin(dec);
+    double cos_ra  = std::cos(ra);
+    double sin_ra  = std::sin(ra);
+
+    TangentBasis tb;
+    // 中心单位向量
+    tb.center.x = cos_dec * cos_ra;
+    tb.center.y = cos_dec * sin_ra;
+    tb.center.z = sin_dec;
+    // east = (-sin_ra, cos_ra, 0) — 模长 cos_dec, 单位化
+    //   注: 极点处 cos_dec→0, east 退化为零向量; 此时改用任意切线方向
+    double east_x = -sin_ra;
+    double east_y =  cos_ra;
+    double east_z = 0.0;
+    double east_norm = std::sqrt(east_x * east_x + east_y * east_y + east_z * east_z);
+    if (east_norm < 1e-15) {
+        // 极点: east 退化为零, 用任意正交方向 (如 (1, 0, 0) 或 (0, 1, 0))
+        // 选与 center 不平行的轴构造正交向量
+        if (std::fabs(tb.center.x) < 0.9) {
+            east_x = 1.0; east_y = 0.0; east_z = 0.0;
+        } else {
+            east_x = 0.0; east_y = 1.0; east_z = 0.0;
+        }
+        // 投影到切平面 (减去 center 分量) 并归一化
+        double proj = east_x * tb.center.x + east_y * tb.center.y + east_z * tb.center.z;
+        east_x -= proj * tb.center.x;
+        east_y -= proj * tb.center.y;
+        east_z -= proj * tb.center.z;
+        east_norm = std::sqrt(east_x * east_x + east_y * east_y + east_z * east_z);
+    }
+    tb.east.x = east_x / east_norm;
+    tb.east.y = east_y / east_norm;
+    tb.east.z = east_z / east_norm;
+    // north = center × east (右手系, 单位化后即为北向)
+    tb.north.x = tb.center.y * tb.east.z - tb.center.z * tb.east.y;
+    tb.north.y = tb.center.z * tb.east.x - tb.center.x * tb.east.z;
+    tb.north.z = tb.center.x * tb.east.y - tb.center.y * tb.east.x;
+    // north 已是单位向量 (center 和 east 都是单位向量且正交)
+    return tb;
+}
+
+// 将 3D 单位向量 v 投影到以 tb 为基底的切平面, 返回切平面坐标 (xi, eta)
+//   xi  = (v · east)  / (v · center)   — 东向坐标
+//   eta = (v · north) / (v · center)   — 北向坐标
+//   注: 标准球面 gnomonic 投影 (Tan 投影), 在中心附近线性, 4 邻近点距离
+//   中心 ≤ dh 像素 → 角度 ≤ 几角秒, gnomonic 投影线性度极高.
+inline void project_to_tangent(const spherical::Vec3& v, const TangentBasis& tb,
+                               double& xi, double& eta) {
+    double denom = spherical::dot(v, tb.center);
+    if (std::fabs(denom) < 1e-15) {
+        xi = eta = 0.0;
+        return;
+    }
+    xi  = spherical::dot(v, tb.east)  / denom;
+    eta = spherical::dot(v, tb.north) / denom;
+}
+
+// R07-M09/M10: 计算单点 3D 切向量 Jacobian 的局部像素尺度 (角秒/像素)
+//   输入: 5 邻近点 (中/左/右/上/下) 的 RA/DEC (度)
+//   输出: 局部像素尺度 (角秒/像素); 失败返回 -1.0
+//
+// 算法:
+//   1. 5 点 RA/DEC → 3D 单位向量
+//   2. 以中心点构造切平面基底 (east, north)
+//   3. 4 邻近点投影到切平面得 (xi, eta)
+//   4. 有限差分计算切平面 2×2 Jacobian:
+//        J = [[dxi/dx, dxi/dy], [deta/dx, deta/dy]]
+//   5. 最小奇异值 σ_min = sqrt(λ_min(J'J))
+//   6. local_scale = σ_min × (180/π) × 3600  (弧度/像素 → 角秒/像素)
+inline double local_scale_3d_tangent(
+    double ra_c, double dec_c,
+    double ra_xm, double dec_xm, double ra_xp, double dec_xp,
+    double ra_ym, double dec_ym, double ra_yp, double dec_yp,
+    double step_px)
+{
+    // 1. 5 点 → 3D 单位向量
+    spherical::Vec3 v_c  = spherical::radec_to_vec(ra_c,  dec_c);
+    spherical::Vec3 v_xm = spherical::radec_to_vec(ra_xm, dec_xm);
+    spherical::Vec3 v_xp = spherical::radec_to_vec(ra_xp, dec_xp);
+    spherical::Vec3 v_ym = spherical::radec_to_vec(ra_ym, dec_ym);
+    spherical::Vec3 v_yp = spherical::radec_to_vec(ra_yp, dec_yp);
+
+    // 2. 中心点切平面基底
+    TangentBasis tb = make_tangent_basis(ra_c, dec_c);
+
+    // 3. 4 邻近点投影到切平面
+    double xi_xm, eta_xm, xi_xp, eta_xp, xi_ym, eta_ym, xi_yp, eta_yp;
+    project_to_tangent(v_xm, tb, xi_xm, eta_xm);
+    project_to_tangent(v_xp, tb, xi_xp, eta_xp);
+    project_to_tangent(v_ym, tb, xi_ym, eta_ym);
+    project_to_tangent(v_yp, tb, xi_yp, eta_yp);
+
+    // 4. 有限差分 Jacobian (切平面坐标/像素)
+    //   注: 切平面坐标 (xi, eta) 由 gnomonic 投影得到, 量级为弧度
+    //       (单位向量 dot 积无量纲, 除以 dot(v, center) 后仍是弧度量级小值),
+    //       所以 J 的单位是 弧度/像素.
+    double j11 = (xi_xp  - xi_xm)  / step_px;  // dxi/dx
+    double j12 = (xi_yp  - xi_ym)  / step_px;  // dxi/dy
+    double j21 = (eta_xp - eta_xm) / step_px;  // deta/dx
+    double j22 = (eta_yp - eta_ym) / step_px;  // deta/dy
+
+    if (!std::isfinite(j11) || !std::isfinite(j12) ||
+        !std::isfinite(j21) || !std::isfinite(j22)) {
+        return -1.0;
+    }
+
+    // 5. 最小奇异值 σ_min = sqrt(λ_min(J'J))
+    double a = j11 * j11 + j21 * j21;        // J'J[0][0]
+    double b = j11 * j12 + j21 * j22;        // J'J[0][1] = J'J[1][0]
+    double d = j12 * j12 + j22 * j22;        // J'J[1][1]
+    double tr = a + d;
+    double det_j = j11 * j22 - j12 * j21;
+    double det_jtj = det_j * det_j;
+    double disc = tr * tr - 4.0 * det_jtj;
+    if (disc < 0.0) disc = 0.0;
+    double lambda_min = (tr - std::sqrt(disc)) * 0.5;
+    if (lambda_min < 0.0) lambda_min = 0.0;
+    double sigma_min = std::sqrt(lambda_min);  // 弧度/像素
+
+    // 6. 转角秒/像素 (弧度 → 角秒 = × 180/π × 3600 ≈ × 206264.806)
+    double local_scale = sigma_min * (180.0 / M_PI) * 3600.0;
+    if (!std::isfinite(local_scale) || local_scale <= 0.0) {
+        return -1.0;
+    }
+    return local_scale;
+}
+}  // namespace
 
 // 递归四叉树采样: 在 [x0,x1]×[y0,y1] 区域内自适应采样局部像素尺度
 //
-// R06-B11 修复: 用完整 2×2 Jacobian 的最小奇异值替代 min(sx, sy)
-//   原实现取 min(sx, sy) 只考虑轴向尺度, 在剪切 CD 矩阵下高估最细尺度达 22%,
-//   导致 NSIDE 偏小、HEALPix 欠采样.
-//   修复方案:
-//   1. 计算 4 个偏导: dra/dx, dra/dy, ddec/dx, ddec/dy
-//   2. RA 方向乘 cos(dec) 转为球面切平面距离
-//   3. 构造 Jacobian J = [[dra·cos(dec)/dx, dra·cos(dec)/dy],
-//                        [ddec/dx,          ddec/dy]]
-//   4. 计算最小奇异值 σ_min = sqrt(λ_min(J'J))
-//      2×2 矩阵解析公式: λ = (Tr ± sqrt(Tr²-4·Det)) / 2
-//   5. local_scale = σ_min × step (step = 2·dh)
+// R07-M09/M10/M11: 3D 切向量 Jacobian + 9 点保守采样
 static void sample_quadtree(const WcsSip& wcsip,
                             double x0, double y0, double x1, double y1,
                             int depth, double dh,
                             double& finest_arcsec,
                             int& n_valid, int& n_invalid) {
-    // 采样 4 角 + 中心 (5 点)
-    double xs[5] = {x0, x1, x0, x1, (x0 + x1) * 0.5};
-    double ys[5] = {y0, y0, y1, y1, (y0 + y1) * 0.5};
+    // R07-M11: 9 点保守采样 (4 角 + 4 边中点 + 中心)
+    //   比原 5 点采样多覆盖 4 个边中点, 捕捉边角尖锐畸变 (如强 SIP 在
+    //   单元边界中点出现窄局部最小值, 5 点采样会漏掉).
+    double xm_cell = (x0 + x1) * 0.5;
+    double ym_cell = (y0 + y1) * 0.5;
+    double xs[9] = {
+        x0, x1, x0, x1,        // 4 角 (0-3)
+        xm_cell, xm_cell,      // 左右边中点 (4-5)
+        x0, x1,                // 下上边中点 (6-7)
+        xm_cell                // 中心 (8)
+    };
+    double ys[9] = {
+        y0, y0, y1, y1,        // 4 角 (0-3)
+        y0, y1,                // 下上边中点 (左右边) (4-5)
+        ym_cell, ym_cell,      // 左右边中点 (下上边) (6-7)
+        ym_cell                // 中心 (8)
+    };
     double local_min = 1e30, local_max = 0.0;
 
-    for (int i = 0; i < 5; i++) {
-        // R06-B11: 完整 2×2 Jacobian 有限差分
-        // 4 次 pixelToSky 调用获取 (x±dh, y) 和 (x, y±dh) 的天球坐标
+    for (int i = 0; i < 9; i++) {
+        // R07-M09/M10: 3D 切向量 Jacobian (5 邻近点 pixelToSky)
+        double ra_c,  dec_c;
         double ra_xm, dec_xm, ra_xp, dec_xp;
         double ra_ym, dec_ym, ra_yp, dec_yp;
-        wcsip.pixelToSky(xs[i] - dh, ys[i], ra_xm, dec_xm);
-        wcsip.pixelToSky(xs[i] + dh, ys[i], ra_xp, dec_xp);
-        wcsip.pixelToSky(xs[i], ys[i] - dh, ra_ym, dec_ym);
-        wcsip.pixelToSky(xs[i], ys[i] + dh, ra_yp, dec_yp);
+        wcsip.pixelToSky(xs[i],         ys[i],         ra_c,  dec_c);
+        wcsip.pixelToSky(xs[i] - dh,    ys[i],         ra_xm, dec_xm);
+        wcsip.pixelToSky(xs[i] + dh,    ys[i],         ra_xp, dec_xp);
+        wcsip.pixelToSky(xs[i],         ys[i] - dh,    ra_ym, dec_ym);
+        wcsip.pixelToSky(xs[i],         ys[i] + dh,    ra_yp, dec_yp);
 
-        if (!std::isfinite(ra_xm) || !std::isfinite(dec_xm) ||
+        if (!std::isfinite(ra_c)  || !std::isfinite(dec_c)  ||
+            !std::isfinite(ra_xm) || !std::isfinite(dec_xm) ||
             !std::isfinite(ra_xp) || !std::isfinite(dec_xp) ||
             !std::isfinite(ra_ym) || !std::isfinite(dec_ym) ||
             !std::isfinite(ra_yp) || !std::isfinite(dec_yp)) {
@@ -135,43 +300,15 @@ static void sample_quadtree(const WcsSip& wcsip,
             continue;
         }
 
-        // 中心 dec 用于 cos(dec) 修正 RA 方向
-        double dec_center = (dec_xm + dec_xp + dec_ym + dec_yp) * 0.25;
-        double cos_dec = std::cos(dec_center * M_PI / 180.0);
-        if (cos_dec < 1e-12) cos_dec = 1e-12;  // 极区保护
+        // 3D 切向量 Jacobian 计算局部像素尺度
+        double step_px = 2.0 * dh;  // 有限差分总步长 (像素)
+        double local_scale = local_scale_3d_tangent(
+            ra_c, dec_c,
+            ra_xm, dec_xm, ra_xp, dec_xp,
+            ra_ym, dec_ym, ra_yp, dec_yp,
+            step_px);
 
-        // Jacobian 元素 (度/像素), RA 方向乘 cos(dec) 转为球面切平面距离
-        double step = 2.0 * dh;  // 有限差分总步长
-        double j11 = (ra_xp - ra_xm) * cos_dec / step;   // dra·cos(dec)/dx
-        double j12 = (ra_yp - ra_ym) * cos_dec / step;   // dra·cos(dec)/dy
-        double j21 = (dec_xp - dec_xm) / step;            // ddec/dx
-        double j22 = (dec_yp - dec_ym) / step;            // ddec/dy
-
-        if (!std::isfinite(j11) || !std::isfinite(j12) ||
-            !std::isfinite(j21) || !std::isfinite(j22)) {
-            n_invalid++;
-            continue;
-        }
-
-        // 最小奇异值 σ_min = sqrt(λ_min(J'J))
-        // J'J = [[j11²+j21², j11·j12+j21·j22], [j11·j12+j21·j22, j12²+j22²]]
-        double a = j11 * j11 + j21 * j21;  // J'J[0][0]
-        double b = j11 * j12 + j21 * j22;  // J'J[0][1] = J'J[1][0]
-        double d = j12 * j12 + j22 * j22;  // J'J[1][1]
-        double tr = a + d;
-        double det_j = j11 * j22 - j12 * j21;  // det(J)
-        double det_jtj = det_j * det_j;        // det(J'J) = det(J)²
-
-        // λ_min = (tr - sqrt(tr² - 4·det)) / 2
-        double disc = tr * tr - 4.0 * det_jtj;
-        if (disc < 0.0) disc = 0.0;  // 数值保护
-        double lambda_min = (tr - std::sqrt(disc)) * 0.5;
-        if (lambda_min < 0.0) lambda_min = 0.0;
-
-        double sigma_min = std::sqrt(lambda_min);  // 最小奇异值 (度/像素)
-        double local_scale = sigma_min * 3600.0;    // 转角秒/像素
-
-        if (!std::isfinite(local_scale) || local_scale <= 0.0) {
+        if (local_scale < 0.0) {
             n_invalid++;
             continue;
         }
