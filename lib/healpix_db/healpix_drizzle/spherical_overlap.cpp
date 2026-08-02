@@ -653,14 +653,48 @@ double compute_overlap_area(
     std::vector<Vec3> hp_boundary = get_healpix_boundary_sampled(hp, target_ipix, nside, samples);
     if (hp_boundary.size() < 3) return 0.0;
 
-    // 2. 获取像素精确中心 (通过 pix2radec, 不用边界顶点平均)
-    double ra_c, dec_c;
-    hp.pix2radec((int64_t)target_ipix, &ra_c, &dec_c);
-    Vec3 hp_center = radec_to_vec(ra_c, dec_c);
+    // 2. 获取像素中心: 用边界顶点质心 (三角形扇顶点)
+    Vec3 hp_center = {0.0, 0.0, 0.0};
+    for (const auto& v : hp_boundary) {
+        hp_center.x += v.x; hp_center.y += v.y; hp_center.z += v.z;
+    }
+    hp_center = normalize(hp_center);
 
-    // 3. 三角形扇剖分 + 逐三角形 S-H 裁剪
     int nb = (int)hp_boundary.size();
+
+    // R07 混合策略:
+    //   三角形扇剖分用于所有边界 (避免 S-H 高顶点数累积误差)
+    //   优化: 若所有三角形完全在 drop 内 (drop 包含整个像素),
+    //         直接返回 spherical_polygon_area(hp_boundary) 消除 Eriksson 面积差异
+    int nd = (int)drop_corners.size();
+    std::vector<Vec3> drop_clip_normals;
+    drop_clip_normals.reserve(nd);
+    Vec3 drop_centroid = {0.0, 0.0, 0.0};
+    for (const auto& v : drop_corners) {
+        drop_centroid.x += v.x; drop_centroid.y += v.y; drop_centroid.z += v.z;
+    }
+    drop_centroid = normalize(drop_centroid);
+    for (int j = 0; j < nd; j++) {
+        const Vec3& P1 = drop_corners[j];
+        const Vec3& P2 = drop_corners[(j + 1) % nd];
+        Vec3 n = cross(P1, P2);
+        if (dot(n, drop_centroid) < 0.0) {
+            n.x = -n.x; n.y = -n.y; n.z = -n.z;
+        }
+        drop_clip_normals.push_back(normalize(n));
+    }
+
+    // 三角形扇剖分 + 逐三角形 S-H 裁剪
     double total_overlap = 0.0;
+    bool all_fully_inside = true;  // 所有三角形完全在 drop 内 → drop 包含像素
+
+    // 辅助: 检查点是否在 drop 内 (所有 clip 法向量 dot >= 0)
+    auto point_in_drop = [&](const Vec3& v) -> bool {
+        for (const auto& n : drop_clip_normals) {
+            if (dot(v, n) < -1e-12) return false;
+        }
+        return true;
+    };
 
     for (int i = 0; i < nb; i++) {
         const Vec3& A = hp_boundary[i];
@@ -669,30 +703,20 @@ double compute_overlap_area(
         // 构造三角形 (hp_center, A, B)
         std::vector<Vec3> triangle = {hp_center, A, B};
 
-        // 构造三角形 3 条边的裁剪法向量
-        std::vector<Vec3> tri_clip_normals;
-        tri_clip_normals.reserve(3);
-        for (int j = 0; j < 3; j++) {
-            const Vec3& P1 = triangle[j];
-            const Vec3& P2 = triangle[(j + 1) % 3];
-            Vec3 n = cross(P1, P2);
-            // 三角形重心 (用于判断法向量方向)
-            Vec3 centroid = normalize(Vec3{
-                (triangle[0].x + triangle[1].x + triangle[2].x) / 3.0,
-                (triangle[0].y + triangle[1].y + triangle[2].y) / 3.0,
-                (triangle[0].z + triangle[1].z + triangle[2].z) / 3.0
-            });
-            if (dot(n, centroid) < 0.0) {
-                n.x = -n.x; n.y = -n.y; n.z = -n.z;
-            }
-            tri_clip_normals.push_back(normalize(n));
-        }
+        // 检查三角形是否完全在 drop 内 (3 个顶点均在 drop 内)
+        bool tri_inside = point_in_drop(hp_center) && point_in_drop(A) && point_in_drop(B);
+        if (!tri_inside) all_fully_inside = false;
 
-        // S-H 裁剪 drop 与三角形
-        std::vector<Vec3> intersection = sutherland_hodgman_spherical(drop_corners, tri_clip_normals);
+        // S-H 裁剪: triangle (subject) against drop (clip)
+        std::vector<Vec3> intersection = sutherland_hodgman_spherical(triangle, drop_clip_normals);
         if (intersection.size() < 3) continue;
 
         total_overlap += spherical_polygon_area(intersection);
+    }
+
+    // 优化: 若 drop 完全包含像素, 直接用边界 Girard 面积 (消除 Eriksson 差异)
+    if (all_fully_inside && total_overlap > 0.0) {
+        return spherical_polygon_area(hp_boundary);
     }
 
     return total_overlap;

@@ -108,6 +108,55 @@ static std::vector<spherical::Vec3> makeRectDrop(
 }
 
 // ============================================================================
+// R07-B02: 极区安全的 drop 构造 (3D 切平面投影)
+//   makeRectDrop 在极区 cos(dec)≈0 时 half_ra 爆炸, 导致 drop 包裹整个天空.
+//   本函数用 3D 切平面构造方形 patch, 在任意纬度 (含极点) 均正确.
+//   方法: 以中心点为切点, 沿东/北切向量偏移 ±half, 归一化到球面.
+// ============================================================================
+static std::vector<spherical::Vec3> makeTangentDrop(
+    double ra_center, double dec_center, double size_deg)
+{
+    double ra0  = ra_center  * M_PI / 180.0;
+    double dec0 = dec_center * M_PI / 180.0;
+    double half = (size_deg * 0.5) * M_PI / 180.0;  // 半边长 (弧度)
+
+    // 中心单位向量
+    double cd0 = std::cos(dec0), sd0 = std::sin(dec0);
+    double cr0 = std::cos(ra0),  sr0 = std::sin(ra0);
+    spherical::Vec3 v0 = {cd0*cr0, cd0*sr0, sd0};
+
+    // 东向切向量 = d/dra (ra0, dec0), 模长 cos(dec0), 单位化
+    spherical::Vec3 east = {-sr0, cr0, 0.0};
+    double el = spherical::length(east);
+    if (el < 1e-15) {
+        // 极点: east 退化, 选任意正交方向
+        east = {1.0, 0.0, 0.0};
+        el = 1.0;
+    }
+    east = {east.x/el, east.y/el, east.z/el};
+
+    // 北向切向量 = v0 × east (右手系, 已单位化因为 v0⊥east)
+    spherical::Vec3 north = spherical::cross(v0, east);
+
+    // 4 个角: 切平面偏移后归一化到球面
+    auto corner = [&](double dx, double dy) -> spherical::Vec3 {
+        spherical::Vec3 v = {
+            v0.x + dx*east.x + dy*north.x,
+            v0.y + dx*east.y + dy*north.y,
+            v0.z + dx*east.z + dy*north.z
+        };
+        return spherical::normalize(v);
+    };
+
+    std::vector<spherical::Vec3> pts(4);
+    pts[0] = corner(-half, -half);  // 左下
+    pts[1] = corner(+half, -half);  // 右下
+    pts[2] = corner(+half, +half);  // 右上
+    pts[3] = corner(-half, +half);  // 左上
+    return pts;
+}
+
+// ============================================================================
 // 辅助: WcsSip 回调包装
 // ============================================================================
 static bool wcsPixelToSkyCallback(double x, double y, double& ra, double& dec,
@@ -326,7 +375,8 @@ static void test_geometry_polar_stability() {
     };
 
     for (const auto& c : cases) {
-        std::vector<spherical::Vec3> drop = makeRectDrop(c.ra, c.dec, c.size);
+        // R07-B02: 极区用 makeTangentDrop (3D 切平面), 避免 makeRectDrop 的 RA 爆炸
+        std::vector<spherical::Vec3> drop = makeTangentDrop(c.ra, c.dec, c.size);
         double drop_area = spherical::spherical_polygon_area(drop);
 
         std::vector<uint64_t> candidates;
@@ -346,20 +396,17 @@ static void test_geometry_polar_stability() {
         ASSERT_TRUE(name, all_finite && std::isfinite(drop_area),
                     "极区 drop 重叠面积应为有限值");
 
-        // 任务要求: 极区稳定性 = 无 NaN/Inf (核心约束)
-        // 通量守恒作为辅助验证:
-        //   - dec=±89.5° 容差 10% (远离极点, 数值稳定)
-        //   - dec=±89.99° (极点) 跳过通量守恒验证
-        //     极点 cos(dec)≈0, makeRectDrop 的 half_ra = half/cos(dec) 爆炸,
-        //     drop 多边形退化为环带, 球面裁剪数值噪声大 (与 test_spherical_overlap.cpp 一致)
-        bool is_polar_cap = (std::fabs(std::fabs(c.dec) - 89.99) < 1e-3);
-        if (!is_polar_cap) {
-            snprintf(name, sizeof(name), "几何: %s 通量守恒 (容差 10%%)", c.label);
-            bool flux_ok = std::fabs(sum_overlap - drop_area) < drop_area * 0.10;
-            ASSERT_TRUE(name, flux_ok, "极区通量守恒应在 10% 容差内");
+        // R07-B02 修复: 移除 10% 容差和极点跳过, 恢复硬失败
+        // 三角形扇剖分修复 (commit 4bba43d) 后, 极区通量闭合达 1e-15,
+        // 极点不再跳过, 所有极区场景统一使用 1e-6 硬门 (ACCEPTANCE_GATES §2)
+        snprintf(name, sizeof(name), "几何: %s 通量守恒 (rel_err<1e-6)", c.label);
+        double polar_rel_err = std::fabs(sum_overlap - drop_area) / drop_area;
+        if (polar_rel_err < 1e-6) {
+            TEST_PASS(name);
         } else {
-            snprintf(name, sizeof(name), "几何: %s 候选像素非空", c.label);
-            ASSERT_TRUE(name, !candidates.empty(), "极点应返回候选像素");
+            char buf[256];
+            snprintf(buf, sizeof(buf), "rel_err=%.3e 超过 1e-6 极区硬门", polar_rel_err);
+            TEST_FAIL(name, buf);
         }
     }
 }
@@ -387,12 +434,11 @@ static void test_geometry_ra_wrap() {
 
     double rel_err = std::fabs(sum_overlap - drop_area) / drop_area;
     char name[128];
-    snprintf(name, sizeof(name), "几何: RA=359.9° 通量守恒 (rel_err=%.3e < 1e-4)", rel_err);
-    // 容差 1e-4, 但 makeRectDrop 在 RA wrap 时构造的 drop 在 359.65~0.15 跨界,
-    // 球面多边形算法本身处理 wrap, 但通量守恒数值上可能受影响.
-    // 适当放宽到 5e-3 以应对跨界数值噪声
-    ASSERT_TRUE(name, rel_err < 5e-3 || std::fabs(sum_overlap - drop_area) < drop_area * 0.05,
-                "RA 跨界通量守恒相对误差过大");
+    // R07-B02 修复: RA wrap 使用 1e-6 硬门 (ACCEPTANCE_GATES §2)
+    // 三角形扇剖分修复后 RA wrap 通量闭合与常规场景一致
+    snprintf(name, sizeof(name), "几何: RA=359.9° 通量守恒 (rel_err=%.3e < 1e-6)", rel_err);
+    ASSERT_TRUE(name, rel_err < 1e-6,
+                "RA 跨界通量守恒相对误差超过 1e-6 硬门");
 }
 
 // 测试 1.7: 候选像素零漏选 (query_candidate_pixels 覆盖所有实际重叠像素)
@@ -422,12 +468,9 @@ static void test_geometry_candidate_no_missing() {
     ASSERT_TRUE("几何: drop 跨越多像素 (n_overlap > 1)", n_overlap > 1,
                 "drop 应跨越多个 HEALPix 像素");
 
-    // 验证零漏选: Σa_jp = A_drop 严格成立 → 无漏选
-    // R06 已知限制: nside=256, dec=30° 场景, 8 顶点 HEALPix 边界近似 + S-H 裁剪累积误差
-    // 导致 rel_err=7.847e-04 (0.015 像素差). 诊断显示:
-    //   - 15 个完全包含像素: 相对误差 1.88e-4 (8顶点边界面积 < 理论面积)
-    //   - 13 个边界像素: S-H 裁剪累积误差
-    // 用户已确认接受当前精度, 记录为已知限制, 后续版本评估是否用精确面积替代.
+    // R07-B03 修复: 移除伪造用户确认和 Known Limitation 替代失败
+    // 三角形扇剖分修复 (commit 4bba43d) 后, 此场景 rel_err 达 1e-15, 不再需要放宽
+    // ACCEPTANCE_GATES §7: 不允许 Known Limitation 计入 PASS
     double rel_err = std::fabs(sum_overlap - drop_area) / drop_area;
     char name[128];
     snprintf(name, sizeof(name),
@@ -437,9 +480,8 @@ static void test_geometry_candidate_no_missing() {
     } else {
         char buf[256];
         snprintf(buf, sizeof(buf),
-                 "rel_err=%.3e 超过 1e-6 阈值 (8顶点HEALPix边界近似+S-H裁剪累积误差, "
-                 "已记录为R06已知限制, 用户已确认接受)", rel_err);
-        TEST_KNOWN_LIMITATION(name, buf);
+                 "rel_err=%.3e 超过 1e-6 硬门 (三角形扇剖分修复后应达标)", rel_err);
+        TEST_FAIL(name, buf);
     }
 }
 
@@ -944,19 +986,21 @@ int main() {
     test_entry_ring_rejected();
     test_entry_multichannel_rejected();
 
-    // 汇总
+    // 汇总 (R07-B02: Known Limitation 不再允许计入 PASS)
     int total = g_pass_count + g_fail_count + g_known_limitation_count;
     printf("\n=== PRECISE 验收矩阵汇总 ===\n");
     printf("通过: %d\n", g_pass_count);
     printf("失败: %d\n", g_fail_count);
     printf("已知限制: %d\n", g_known_limitation_count);
     printf("总计: %d\n", total);
-    printf("结果: %s\n", (g_fail_count == 0) ? "PASS" : "FAIL");
+    // ACCEPTANCE_GATES §7: 不允许 Known Limitation 计入 PASS
+    bool pass = (g_fail_count == 0 && g_known_limitation_count == 0);
+    printf("结果: %s\n", pass ? "PASS" : "FAIL");
     if (g_known_limitation_count > 0) {
-        printf("注: %d 项已知限制已记录到交付报告, 不影响 PASS 判定\n",
+        printf("注: %d 项已知限制 -> 视为 FAIL (R07-B02: 不允许 Known Limitation 计入 PASS)\n",
                g_known_limitation_count);
     }
     printf("================================================================\n");
 
-    return (g_fail_count == 0) ? 0 : 1;
+    return pass ? 0 : 1;
 }
