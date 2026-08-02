@@ -13,8 +13,9 @@ git config core.quotepath false | Out-Null
 
 # 用 git pathspec exclusion 直接得到越界文件（git 自身处理 UTF-8 中文路径）
 # 输出 = 所有改动文件 减去 允许的前缀
-$Violations = git diff --name-only HEAD -- . ':(exclude)lib/acr/' ':(exclude)工程控制/tasks/acr/' ':(exclude)工程控制/evidence/acr/'
-$Untracked = git ls-files --others --exclude-standard -- . ':(exclude)lib/acr/' ':(exclude)工程控制/tasks/acr/' ':(exclude)工程控制/evidence/acr/'
+# 注：tools/_* 为 AGENTS.md §5.4 定义的临时工具配置文件（tools/_<task_id>_<purpose>.json/.txt），使用后删除，不计入越界
+$Violations = git diff --name-only HEAD -- . ':(exclude)lib/acr/' ':(exclude)工程控制/tasks/acr/' ':(exclude)工程控制/evidence/acr/' ':(exclude)tools/_*'
+$Untracked = git ls-files --others --exclude-standard -- . ':(exclude)lib/acr/' ':(exclude)工程控制/tasks/acr/' ':(exclude)工程控制/evidence/acr/' ':(exclude)tools/_*'
 
 $allViolations = @()
 if ($Violations) { $allViolations += $Violations }

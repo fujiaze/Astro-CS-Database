@@ -1,58 +1,90 @@
 {
-  "build_dir": "lib/acr/build_evidence",
-  "ctest_registered_total": 305,
-  "discrepancy_note": "ctest -N registered 305 tests; gtest executed 304. Difference likely 1 DISABLED test case not counted by gtest PASSED/FAILED lines.",
-  "generated_at": "2026-08-02T16:07:20Z",
-  "suites": [
-    {
-      "cases_passed": 136,
-      "failed_cases": [
-        "HardwareReport.FirstCallbackWins"
-      ],
-      "cases_skipped": 0,
-      "cases_failed": 1,
-      "note": "7 executables: acr_test_api/buffer/topology/qualification/routing/scheduler/utilization",
-      "executable_count": 7,
-      "name": "unit"
-    },
-    {
-      "cases_passed": 142,
-      "cases_skipped": 0,
-      "cases_failed": 0,
-      "note": "E01-E16 via acr_test_classic",
-      "executable_count": 1,
-      "name": "classic"
-    },
-    {
-      "cases_passed": 10,
-      "cases_skipped": 0,
-      "cases_failed": 0,
-      "note": "acr_test_fault",
-      "executable_count": 1,
-      "name": "fault"
-    },
-    {
-      "cases_passed": 10,
-      "cases_skipped": 0,
-      "cases_failed": 0,
-      "note": "acr_test_sanitizer (build NOT sanitizer-enabled, run as regular smoke)",
-      "executable_count": 1,
-      "name": "sanitizer"
-    },
-    {
-      "cases_passed": 5,
-      "cases_skipped": 0,
-      "cases_failed": 0,
-      "note": "acr_test_persistence",
-      "executable_count": 1,
-      "name": "persistence"
-    }
-  ],
-  "total": {
-    "skipped": 0.0,
-    "cases": 304.0,
-    "passed": 303.0,
-    "failed": 1.0
+  "generated_at": "2026-08-02 20:10:00",
+  "head_commit": "84e60e958eb977f94ffefb01b31089840d011c91",
+  "branch": "feature/astrocompute-runtime",
+  "build_type": "Release (CPU-only, MinGW Makefiles)",
+  "ctest_overall": {
+    "total": 573,
+    "passed": 565,
+    "skipped": 8,
+    "failed": 0,
+    "duration_sec": 104.95,
+    "result": "100% tests passed, 0 tests failed out of 573",
+    "command": "cd lib/acr/build_evidence_v2 && ctest --output-on-failure"
   },
-  "schema": "acr.evidence.test_summary.v1"
+  "categories": {
+    "unit": {
+      "executables_count": 11,
+      "executables": [
+        "acr_test_api", "acr_test_buffer", "acr_test_cost", "acr_test_cpu_profile",
+        "acr_test_hardware_profile", "acr_test_qualification", "acr_test_routing",
+        "acr_test_scheduler", "acr_test_task_descriptor", "acr_test_topology",
+        "acr_test_utilization"
+      ],
+      "passed": 245,
+      "skipped": 1,
+      "failed": 0,
+      "per_executable_passed": {
+        "acr_test_api": 22,
+        "acr_test_buffer": 11,
+        "acr_test_cost": 21,
+        "acr_test_cpu_profile": 10,
+        "acr_test_hardware_profile": 33,
+        "acr_test_qualification": 15,
+        "acr_test_routing": 13,
+        "acr_test_scheduler": 31,
+        "acr_test_task_descriptor": 17,
+        "acr_test_topology": 18,
+        "acr_test_utilization": 54
+      },
+      "skipped_tests": ["ApiReduce.NoAliasDeclaration (environment-gated)"]
+    },
+    "classic": {
+      "executable": "acr_test_classic.exe",
+      "passed": 295,
+      "skipped": 0,
+      "failed": 0,
+      "note": "E01-E21 classic experiments, 24 test suites"
+    },
+    "fault": {
+      "executable": "acr_test_fault.exe",
+      "passed": 10,
+      "skipped": 0,
+      "failed": 0,
+      "note": "FaultInjection suite"
+    },
+    "sanitizer": {
+      "executables": ["acr_test_sanitizer.exe (smoke)", "acr_test_sanitizer_actual.exe (actual)"],
+      "total": 17,
+      "passed": 10,
+      "skipped": 7,
+      "failed": 0,
+      "skipped_tests": [
+        "SanitizerActual.DetectSanitizerStatus",
+        "SanitizerActual.UseAfterFreeDetected",
+        "SanitizerActual.HeapBufferOverflowDetected",
+        "SanitizerActual.StackBufferOverflowDetected",
+        "SanitizerActual.UndefinedBehaviorDetected",
+        "SanitizerActual.NullDereferenceDetected",
+        "SanitizerActual.DoubleFreeDetected"
+      ],
+      "skip_reason": "ASan unavailable: MinGW g++ 16.1.0 missing libasan. SanitizerSmoke (10 tests) still run as smoke checks."
+    },
+    "persistence": {
+      "executable": "acr_test_persistence.exe",
+      "passed": 5,
+      "skipped": 0,
+      "failed": 0
+    }
+  },
+  "totals_verification": {
+    "passed_sum": "245 + 295 + 10 + 10 + 5 = 565",
+    "skipped_sum": "1 (unit) + 7 (sanitizer) = 8",
+    "grand_total": "565 passed + 8 skipped = 573 (0 failed)"
+  },
+  "toolchain_limitations": [
+    "ASan unavailable: MinGW g++ 16.1.0 missing libasan -> 7 SanitizerActual tests SKIPPED",
+    "CUDA build disabled: nvcc 11.8 incompatible with MinGW g++ 16.1.0 host compiler -> Phase D GPU profiling SKIPPED (CPU-only build gate ADR-009)",
+    "ApiReduce.NoAliasDeclaration SKIPPED (environment-gated, not a failure)"
+  ]
 }

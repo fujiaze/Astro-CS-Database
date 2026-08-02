@@ -1,33 +1,30 @@
-=== ACR Persistence Tests ===
-Run started: 2026-08-02 16:06:05
+=== Persistence Tests ===
 [==========] Running 5 tests from 1 test suite.
 [----------] Global test environment set-up.
 [----------] 5 tests from Persistence
 [ RUN      ] Persistence.ContinuousParallelFor
 [       OK ] Persistence.ContinuousParallelFor (5000 ms)
 [ RUN      ] Persistence.Restarts100
-[       OK ] Persistence.Restarts100 (4 ms)
+[       OK ] Persistence.Restarts100 (3 ms)
 [ RUN      ] Persistence.ProfileReload
 请确保系统空载以获得准确结果（关闭其他高负载进程，未启用自动检测）
 请确保系统空载以获得准确结果（关闭其他高负载进程，未启用自动检测）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
 请确保系统空载以获得准确结果（关闭其他高负载进程，未启用自动检测）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
 请确保系统空载以获得准确结果（关闭其他高负载进程，未启用自动检测）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
 请确保系统空载以获得准确结果（关闭其他高负载进程，未启用自动检测）
-[       OK ] Persistence.ProfileReload (1088 ms)
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[       OK ] Persistence.ProfileReload (52 ms)
 [ RUN      ] Persistence.MixedParallelWorkload
 [       OK ] Persistence.MixedParallelWorkload (2000 ms)
 [ RUN      ] Persistence.BufferRepeatedAlloc
 [       OK ] Persistence.BufferRepeatedAlloc (0 ms)
-[----------] 5 tests from Persistence (8104 ms total)
+[----------] 5 tests from Persistence (7056 ms total)
 
 [----------] Global test environment tear-down
-[==========] 5 tests from 1 test suite ran. (8109 ms total)
+[==========] 5 tests from 1 test suite ran. (7056 ms total)
 [  PASSED  ] 5 tests.
---- stderr ---
-[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
-[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
-[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
-[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
-[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
-[exit code: 0]
-Run finished: 2026-08-02 16:06:14
+exit: 0

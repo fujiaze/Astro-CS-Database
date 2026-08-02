@@ -1,34 +1,50 @@
-=== ACR Sanitizer Smoke Tests ===
-Run started: 2026-08-02 16:06:05
-NOTE: build was NOT sanitizer-enabled (ACR_ENABLE_SANITIZER=OFF). Tests run as regular smoke tests.
-[==========] Running 10 tests from 1 test suite.
-[----------] Global test environment set-up.
-[----------] 10 tests from SanitizerSmoke
-[ RUN      ] SanitizerSmoke.BufferConstructDestructMove
-[       OK ] SanitizerSmoke.BufferConstructDestructMove (0 ms)
-[ RUN      ] SanitizerSmoke.EventCancelNoLeak
-[       OK ] SanitizerSmoke.EventCancelNoLeak (0 ms)
-[ RUN      ] SanitizerSmoke.ConcurrentSubmissionNoRace
-[       OK ] SanitizerSmoke.ConcurrentSubmissionNoRace (1 ms)
-[ RUN      ] SanitizerSmoke.ManyBufferAllocFree
-[       OK ] SanitizerSmoke.ManyBufferAllocFree (0 ms)
-[ RUN      ] SanitizerSmoke.BufferViewNonOwning
-[       OK ] SanitizerSmoke.BufferViewNonOwning (0 ms)
-[ RUN      ] SanitizerSmoke.ParallelReduceExceptionSafe
-[       OK ] SanitizerSmoke.ParallelReduceExceptionSafe (0 ms)
-[ RUN      ] SanitizerSmoke.EventMoveSemantics
-[       OK ] SanitizerSmoke.EventMoveSemantics (0 ms)
-[ RUN      ] SanitizerSmoke.ParallelChunksNoRace
-[       OK ] SanitizerSmoke.ParallelChunksNoRace (0 ms)
-[ RUN      ] SanitizerSmoke.ParallelTilesNoRace
-[       OK ] SanitizerSmoke.ParallelTilesNoRace (0 ms)
-[ RUN      ] SanitizerSmoke.BufferResizeRepeated
-[       OK ] SanitizerSmoke.BufferResizeRepeated (0 ms)
-[----------] 10 tests from SanitizerSmoke (21 ms total)
+Test project F:/Astro dev/Astro CS Normalization Database/run/worktrees/acr/lib/acr/build_evidence_v2
+      Start 253: E21Persistence.SanitizerDetect
+ 1/18 Test #253: E21Persistence.SanitizerDetect ................   Passed    0.01 sec
+      Start 552: SanitizerSmoke.BufferConstructDestructMove
+ 2/18 Test #552: SanitizerSmoke.BufferConstructDestructMove ....   Passed    0.01 sec
+      Start 553: SanitizerSmoke.EventCancelNoLeak
+ 3/18 Test #553: SanitizerSmoke.EventCancelNoLeak ..............   Passed    0.01 sec
+      Start 554: SanitizerSmoke.ConcurrentSubmissionNoRace
+ 4/18 Test #554: SanitizerSmoke.ConcurrentSubmissionNoRace .....   Passed    0.01 sec
+      Start 555: SanitizerSmoke.ManyBufferAllocFree
+ 5/18 Test #555: SanitizerSmoke.ManyBufferAllocFree ............   Passed    0.01 sec
+      Start 556: SanitizerSmoke.BufferViewNonOwning
+ 6/18 Test #556: SanitizerSmoke.BufferViewNonOwning ............   Passed    0.01 sec
+      Start 557: SanitizerSmoke.ParallelReduceExceptionSafe
+ 7/18 Test #557: SanitizerSmoke.ParallelReduceExceptionSafe ....   Passed    0.01 sec
+      Start 558: SanitizerSmoke.EventMoveSemantics
+ 8/18 Test #558: SanitizerSmoke.EventMoveSemantics .............   Passed    0.01 sec
+      Start 559: SanitizerSmoke.ParallelChunksNoRace
+ 9/18 Test #559: SanitizerSmoke.ParallelChunksNoRace ...........   Passed    0.01 sec
+      Start 560: SanitizerSmoke.ParallelTilesNoRace
+10/18 Test #560: SanitizerSmoke.ParallelTilesNoRace ............   Passed    0.01 sec
+      Start 561: SanitizerSmoke.BufferResizeRepeated
+11/18 Test #561: SanitizerSmoke.BufferResizeRepeated ...........   Passed    0.01 sec
+      Start 562: SanitizerActual.DetectSanitizerStatus
+12/18 Test #562: SanitizerActual.DetectSanitizerStatus .........***Skipped   0.01 sec
+      Start 563: SanitizerActual.UseAfterFreeDetected
+13/18 Test #563: SanitizerActual.UseAfterFreeDetected ..........***Skipped   0.01 sec
+      Start 564: SanitizerActual.HeapBufferOverflowDetected
+14/18 Test #564: SanitizerActual.HeapBufferOverflowDetected ....***Skipped   0.01 sec
+      Start 565: SanitizerActual.StackBufferOverflowDetected
+15/18 Test #565: SanitizerActual.StackBufferOverflowDetected ...***Skipped   0.01 sec
+      Start 566: SanitizerActual.UndefinedBehaviorDetected
+16/18 Test #566: SanitizerActual.UndefinedBehaviorDetected .....***Skipped   0.01 sec
+      Start 567: SanitizerActual.NullDereferenceDetected
+17/18 Test #567: SanitizerActual.NullDereferenceDetected .......***Skipped   0.01 sec
+      Start 568: SanitizerActual.DoubleFreeDetected
+18/18 Test #568: SanitizerActual.DoubleFreeDetected ............***Skipped   0.01 sec
 
-[----------] Global test environment tear-down
-[==========] 10 tests from 1 test suite ran. (28 ms total)
-[  PASSED  ] 10 tests.
---- stderr ---
-[exit code: 0]
-Run finished: 2026-08-02 16:06:05
+100% tests passed, 0 tests failed out of 18
+
+Total Test time (real) =   0.23 sec
+
+The following tests did not run:
+	562 - SanitizerActual.DetectSanitizerStatus (Skipped)
+	563 - SanitizerActual.UseAfterFreeDetected (Skipped)
+	564 - SanitizerActual.HeapBufferOverflowDetected (Skipped)
+	565 - SanitizerActual.StackBufferOverflowDetected (Skipped)
+	566 - SanitizerActual.UndefinedBehaviorDetected (Skipped)
+	567 - SanitizerActual.NullDereferenceDetected (Skipped)
+	568 - SanitizerActual.DoubleFreeDetected (Skipped)

@@ -1,618 +1,787 @@
-Test project F:/Astro dev/Astro CS Normalization Database/run/worktrees/acr/lib/acr/build_fix
-        Start   1: ApiParallelFor.EmptyRangeDoesNotCallKernel
-  1/305 Test   #1: ApiParallelFor.EmptyRangeDoesNotCallKernel ..................   Passed    0.01 sec
-        Start   2: ApiParallelFor.SingleElementCallsKernelOnce
-  2/305 Test   #2: ApiParallelFor.SingleElementCallsKernelOnce .................   Passed    0.01 sec
-        Start   3: ApiParallelFor.TinyRangesCorrect
-  3/305 Test   #3: ApiParallelFor.TinyRangesCorrect ............................   Passed    0.01 sec
-        Start   4: ApiParallelFor.LargeRangeCorrect
-  4/305 Test   #4: ApiParallelFor.LargeRangeCorrect ............................   Passed    0.01 sec
-        Start   5: ApiTiles.NonIntegralTileCoverageNoOverflow
-  5/305 Test   #5: ApiTiles.NonIntegralTileCoverageNoOverflow ..................   Passed    0.01 sec
-        Start   6: ApiTiles.IntegralTileCoverage
-  6/305 Test   #6: ApiTiles.IntegralTileCoverage ...............................   Passed    0.01 sec
-        Start   7: ApiFor2d.CoverAllPixels
-  7/305 Test   #7: ApiFor2d.CoverAllPixels .....................................   Passed    0.01 sec
-        Start   8: ApiReduce.SumZeroToHundred
-  8/305 Test   #8: ApiReduce.SumZeroToHundred ..................................   Passed    0.01 sec
-        Start   9: ApiReduce.IdentityOnEmptyRange
-  9/305 Test   #9: ApiReduce.IdentityOnEmptyRange ..............................   Passed    0.01 sec
-        Start  10: ApiReduce.NoAliasDeclaration
- 10/305 Test  #10: ApiReduce.NoAliasDeclaration ................................***Skipped   0.01 sec
-        Start  11: ApiBatch.CountAllItems
- 11/305 Test  #11: ApiBatch.CountAllItems ......................................   Passed    0.01 sec
-        Start  12: ApiChunks.CoverAllRanges
- 12/305 Test  #12: ApiChunks.CoverAllRanges ....................................   Passed    0.01 sec
-        Start  13: ApiRunFor.SerialCorrectness
- 13/305 Test  #13: ApiRunFor.SerialCorrectness .................................   Passed    0.01 sec
-        Start  14: ApiEvent.ImmediatelyReadyAfterParallelFor
- 14/305 Test  #14: ApiEvent.ImmediatelyReadyAfterParallelFor ...................   Passed    0.01 sec
-        Start  15: ApiEvent.WaitDoesNotBlockWhenDone
- 15/305 Test  #15: ApiEvent.WaitDoesNotBlockWhenDone ...........................   Passed    0.01 sec
-        Start  16: ApiEvent.CancelSetsCancelledFlag
- 16/305 Test  #16: ApiEvent.CancelSetsCancelledFlag ............................   Passed    0.01 sec
-        Start  17: ApiEvent.StatusOkAfterSuccess
- 17/305 Test  #17: ApiEvent.StatusOkAfterSuccess ...............................   Passed    0.01 sec
-        Start  18: ApiEvent.ExceptionKernelReturnsFailedStatus
- 18/305 Test  #18: ApiEvent.ExceptionKernelReturnsFailedStatus .................   Passed    0.01 sec
-        Start  19: ApiBufferView.ShapeStrideSubview
- 19/305 Test  #19: ApiBufferView.ShapeStrideSubview ............................   Passed    0.01 sec
-        Start  20: ApiBufferView.SubviewOutOfBoundsThrows
- 20/305 Test  #20: ApiBufferView.SubviewOutOfBoundsThrows ......................   Passed    0.01 sec
-        Start  21: ApiBuffer.ReadOnlyWriteAccess
- 21/305 Test  #21: ApiBuffer.ReadOnlyWriteAccess ...............................   Passed    0.01 sec
-        Start  22: ApiBuffer.ResizeGrowAndShrink
- 22/305 Test  #22: ApiBuffer.ResizeGrowAndShrink ...............................   Passed    0.01 sec
-        Start  23: ApiBuffer.HostLifetimeUniquePtr
- 23/305 Test  #23: ApiBuffer.HostLifetimeUniquePtr .............................   Passed    0.01 sec
-        Start  24: BufferTest.DefaultConstructEmpty
- 24/305 Test  #24: BufferTest.DefaultConstructEmpty ............................   Passed    0.01 sec
-        Start  25: BufferTest.AllocateWithCount
- 25/305 Test  #25: BufferTest.AllocateWithCount ................................   Passed    0.01 sec
-        Start  26: BufferTest.AllocateWithInit
- 26/305 Test  #26: BufferTest.AllocateWithInit .................................   Passed    0.01 sec
-        Start  27: BufferTest.IndexReadWrite
- 27/305 Test  #27: BufferTest.IndexReadWrite ...................................   Passed    0.01 sec
-        Start  28: BufferTest.ResizeGrowAndShrink
- 28/305 Test  #28: BufferTest.ResizeGrowAndShrink ..............................   Passed    0.01 sec
-        Start  29: BufferTest.ViewReturnsCorrectView
- 29/305 Test  #29: BufferTest.ViewReturnsCorrectView ...........................   Passed    0.01 sec
-        Start  30: BufferTest.ConstView
- 30/305 Test  #30: BufferTest.ConstView ........................................   Passed    0.01 sec
-        Start  31: BufferViewTest.DataCountStridePitch
- 31/305 Test  #31: BufferViewTest.DataCountStridePitch .........................   Passed    0.01 sec
-        Start  32: BufferViewTest.DefaultConstructEmpty
- 32/305 Test  #32: BufferViewTest.DefaultConstructEmpty ........................   Passed    0.01 sec
-        Start  33: BufferViewTest.SubviewNormal
- 33/305 Test  #33: BufferViewTest.SubviewNormal ................................   Passed    0.01 sec
-        Start  34: BufferViewTest.SubviewOutOfBoundsThrows
- 34/305 Test  #34: BufferViewTest.SubviewOutOfBoundsThrows .....................   Passed    0.01 sec
-        Start  35: HwlocTopology.JsonNonEmpty
- 35/305 Test  #35: HwlocTopology.JsonNonEmpty ..................................   Passed    0.02 sec
-        Start  36: HwlocTopology.AvailableOrUnavailable
- 36/305 Test  #36: HwlocTopology.AvailableOrUnavailable ........................   Passed    0.02 sec
-        Start  37: HwlocTopology.NoThrowWhenUnavailable
- 37/305 Test  #37: HwlocTopology.NoThrowWhenUnavailable ........................   Passed    0.06 sec
-        Start  38: DetectTopology.ReturnsValidJson
- 38/305 Test  #38: DetectTopology.ReturnsValidJson .............................   Passed    0.02 sec
-        Start  39: CpuIsaCaps.Sse2AlwaysOnX86_64
- 39/305 Test  #39: CpuIsaCaps.Sse2AlwaysOnX86_64 ...............................   Passed    0.01 sec
-        Start  40: CpuIsaCaps.MaskNonZeroOnX86_64
- 40/305 Test  #40: CpuIsaCaps.MaskNonZeroOnX86_64 ..............................   Passed    0.01 sec
-        Start  41: CpuIsaCaps.Avx512GateWhenUnsupported
- 41/305 Test  #41: CpuIsaCaps.Avx512GateWhenUnsupported ........................   Passed    0.01 sec
-        Start  42: CpuIsaCaps.Avx512SubsetIndependent
- 42/305 Test  #42: CpuIsaCaps.Avx512SubsetIndependent ..........................   Passed    0.01 sec
-        Start  43: CpuIsaCaps.ToJsonContainsAllIsaFields
- 43/305 Test  #43: CpuIsaCaps.ToJsonContainsAllIsaFields .......................   Passed    0.01 sec
-        Start  44: DetectIsaCaps.ReturnsValidJson
- 44/305 Test  #44: DetectIsaCaps.ReturnsValidJson ..............................   Passed    0.01 sec
-        Start  45: AxpyScalar.BaselineCorrect
- 45/305 Test  #45: AxpyScalar.BaselineCorrect ..................................   Passed    0.01 sec
-        Start  46: DispatchAxpy.MatchesScalar
- 46/305 Test  #46: DispatchAxpy.MatchesScalar ..................................   Passed    0.01 sec
-        Start  47: DispatchAxpy.EmptyRangeNoCrash
- 47/305 Test  #47: DispatchAxpy.EmptyRangeNoCrash ..............................   Passed    0.02 sec
-        Start  48: Avx512Safe.GateWhenUnsupported
- 48/305 Test  #48: Avx512Safe.GateWhenUnsupported ..............................   Passed    0.01 sec
-        Start  49: HardwareReport.NonEmptyAndSchema
- 49/305 Test  #49: HardwareReport.NonEmptyAndSchema ............................   Passed    0.02 sec
-        Start  50: HardwareReport.GpuNullWhenUnregistered
- 50/305 Test  #50: HardwareReport.GpuNullWhenUnregistered ......................   Passed    0.03 sec
-        Start  51: HardwareReport.GpuCallbackRegistered
- 51/305 Test  #51: HardwareReport.GpuCallbackRegistered ........................   Passed    0.02 sec
-        Start  52: HardwareReport.FirstCallbackWins
- 52/305 Test  #52: HardwareReport.FirstCallbackWins ............................   Passed    0.03 sec
-        Start  53: QualProfileKind.StrRoundTrip
- 53/305 Test  #53: QualProfileKind.StrRoundTrip ................................   Passed    0.01 sec
-        Start  54: QualProfileKind.ParseValid
- 54/305 Test  #54: QualProfileKind.ParseValid ..................................   Passed    0.01 sec
-        Start  55: QualProfileKind.ParseInvalid
- 55/305 Test  #55: QualProfileKind.ParseInvalid ................................   Passed    0.01 sec
-        Start  56: QualSeed.FixedSeedValue
- 56/305 Test  #56: QualSeed.FixedSeedValue .....................................   Passed    0.01 sec
-        Start  57: QualConfig.QuickProfileConfig
- 57/305 Test  #57: QualConfig.QuickProfileConfig ...............................   Passed    0.01 sec
-        Start  58: QualConfig.StandardProfileConfig
- 58/305 Test  #58: QualConfig.StandardProfileConfig ............................   Passed    0.01 sec
-        Start  59: QualConfig.FullProfileConfig
- 59/305 Test  #59: QualConfig.FullProfileConfig ................................   Passed    0.01 sec
-        Start  60: QualDriver.QuickProfileProducesResults
- 60/305 Test  #60: QualDriver.QuickProfileProducesResults ......................   Passed    0.01 sec
-        Start  61: QualGenerator.GeneratesProfileWithRoutes
- 61/305 Test  #61: QualGenerator.GeneratesProfileWithRoutes ....................   Passed    0.02 sec
-        Start  62: QualGenerator.SerializesToJson
- 62/305 Test  #62: QualGenerator.SerializesToJson ..............................   Passed    0.03 sec
-        Start  63: QualGenerator.WritesToFile
- 63/305 Test  #63: QualGenerator.WritesToFile ..................................   Passed    0.03 sec
-        Start  64: QualSha256.Deterministic
- 64/305 Test  #64: QualSha256.Deterministic ....................................   Passed    0.03 sec
-        Start  65: QualSha256.DifferentInputDifferentHash
- 65/305 Test  #65: QualSha256.DifferentInputDifferentHash ......................   Passed    0.02 sec
-        Start  66: QualSha256.KnownVector
- 66/305 Test  #66: QualSha256.KnownVector ......................................   Passed    0.02 sec
-        Start  67: QualFingerprint.SerializesToJson
- 67/305 Test  #67: QualFingerprint.SerializesToJson ............................   Passed    0.02 sec
-        Start  68: RoutingState.StrRoundTrip
- 68/305 Test  #68: RoutingState.StrRoundTrip ...................................   Passed    0.02 sec
-        Start  69: RoutingParse.ValidJson
- 69/305 Test  #69: RoutingParse.ValidJson ......................................   Passed    0.02 sec
-        Start  70: RoutingParse.MalformedJsonReturnsFalse
- 70/305 Test  #70: RoutingParse.MalformedJsonReturnsFalse ......................   Passed    0.02 sec
-        Start  71: RoutingParse.UnknownFieldSkipped
- 71/305 Test  #71: RoutingParse.UnknownFieldSkipped ............................   Passed    0.02 sec
-        Start  72: RoutingFingerprint.MatchBySha256
- 72/305 Test  #72: RoutingFingerprint.MatchBySha256 ............................   Passed    0.02 sec
-        Start  73: RoutingFingerprint.FallbackToFields
- 73/305 Test  #73: RoutingFingerprint.FallbackToFields .........................   Passed    0.02 sec
-        Start  74: RoutingResolver.MissingProfileReturnsCpuBaseline
- 74/305 Test  #74: RoutingResolver.MissingProfileReturnsCpuBaseline ............   Passed    0.01 sec
-        Start  75: RoutingResolver.CorruptProfileReturnsCpuBaseline
- 75/305 Test  #75: RoutingResolver.CorruptProfileReturnsCpuBaseline ............   Passed    0.01 sec
-        Start  76: RoutingResolver.ValidProfileResolvesRoute
- 76/305 Test  #76: RoutingResolver.ValidProfileResolvesRoute ...................   Passed    0.02 sec
-        Start  77: RoutingResolver.UnknownKernelFallsBack
- 77/305 Test  #77: RoutingResolver.UnknownKernelFallsBack ......................   Passed    0.02 sec
-        Start  78: RoutingResolver.InvalidateCacheReloadsProfile
- 78/305 Test  #78: RoutingResolver.InvalidateCacheReloadsProfile ...............   Passed    0.03 sec
-        Start  79: RoutingResolver.StatusJsonContainsFields
- 79/305 Test  #79: RoutingResolver.StatusJsonContainsFields ....................   Passed    0.01 sec
-        Start  80: RoutingResolver.SetPathAfterResolveIgnored
- 80/305 Test  #80: RoutingResolver.SetPathAfterResolveIgnored ..................   Passed    0.01 sec
-        Start  81: SchedulerCoverage.InitialAllPending
- 81/305 Test  #81: SchedulerCoverage.InitialAllPending .........................   Passed    0.01 sec
-        Start  82: SchedulerCoverage.MarkDoneIncrementsCount
- 82/305 Test  #82: SchedulerCoverage.MarkDoneIncrementsCount ...................   Passed    0.01 sec
-        Start  83: SchedulerCoverage.AllDoneAfterAllMarked
- 83/305 Test  #83: SchedulerCoverage.AllDoneAfterAllMarked .....................   Passed    0.01 sec
-        Start  84: SchedulerCoverage.PendingIndicesCorrect
- 84/305 Test  #84: SchedulerCoverage.PendingIndicesCorrect .....................   Passed    0.01 sec
-        Start  85: SchedulerCoverage.OutOfRangeSafe
- 85/305 Test  #85: SchedulerCoverage.OutOfRangeSafe ............................   Passed    0.01 sec
-        Start  86: SchedulerPartition.RangeNoOverlapComplete
- 86/305 Test  #86: SchedulerPartition.RangeNoOverlapComplete ...................   Passed    0.01 sec
-        Start  87: SchedulerPartition.RangeLastChunkClamped
- 87/305 Test  #87: SchedulerPartition.RangeLastChunkClamped ....................   Passed    0.01 sec
-        Start  88: SchedulerPartition.RangeIntoEvenSplit
- 88/305 Test  #88: SchedulerPartition.RangeIntoEvenSplit .......................   Passed    0.01 sec
-        Start  89: SchedulerPartition.RangeIntoUnevenSplit
- 89/305 Test  #89: SchedulerPartition.RangeIntoUnevenSplit .....................   Passed    0.01 sec
-        Start  90: SchedulerPartition.TilesCoverAll
- 90/305 Test  #90: SchedulerPartition.TilesCoverAll ............................   Passed    0.01 sec
-        Start  91: SchedulerPartition.TilesIntoMaxChunks
- 91/305 Test  #91: SchedulerPartition.TilesIntoMaxChunks .......................   Passed    0.01 sec
-        Start  92: SchedulerPartition.RangeEmpty
- 92/305 Test  #92: SchedulerPartition.RangeEmpty ...............................   Passed    0.01 sec
-        Start  93: SchedulerPartition.RangeZeroChunkSize
- 93/305 Test  #93: SchedulerPartition.RangeZeroChunkSize .......................   Passed    0.01 sec
-        Start  94: SchedulerQueueAware.EstimateFinishCpuNoTransfer
- 94/305 Test  #94: SchedulerQueueAware.EstimateFinishCpuNoTransfer .............   Passed    0.01 sec
-        Start  95: SchedulerQueueAware.EstimateFinishGpuWithTransfer
- 95/305 Test  #95: SchedulerQueueAware.EstimateFinishGpuWithTransfer ...........   Passed    0.01 sec
-        Start  96: SchedulerQueueAware.PickBestDeviceSelectsLowerFinish
- 96/305 Test  #96: SchedulerQueueAware.PickBestDeviceSelectsLowerFinish ........   Passed    0.01 sec
-        Start  97: SchedulerQueueAware.PickBestDeviceSkipsUnavailable
- 97/305 Test  #97: SchedulerQueueAware.PickBestDeviceSkipsUnavailable ..........   Passed    0.01 sec
-        Start  98: SchedulerQueueAware.ShouldPreferCpuForSmallData
- 98/305 Test  #98: SchedulerQueueAware.ShouldPreferCpuForSmallData .............   Passed    0.01 sec
-        Start  99: SchedulerMerger.InitAndFinalize
- 99/305 Test  #99: SchedulerMerger.InitAndFinalize .............................   Passed    0.01 sec
-        Start 100: SchedulerMerger.FinalizeWithNoLocalsReturnsIdentity
-100/305 Test #100: SchedulerMerger.FinalizeWithNoLocalsReturnsIdentity .........   Passed    0.01 sec
-        Start 101: SchedulerMerger.MultipleFinalizeStable
-101/305 Test #101: SchedulerMerger.MultipleFinalizeStable ......................   Passed    0.01 sec
-        Start 102: SchedulerFallback.ToCpuStrategy
-102/305 Test #102: SchedulerFallback.ToCpuStrategy .............................   Passed    0.01 sec
-        Start 103: SchedulerFallback.ToNextDeviceStrategy
-103/305 Test #103: SchedulerFallback.ToNextDeviceStrategy ......................   Passed    0.01 sec
-        Start 104: SchedulerFallback.NoneStrategyNoTarget
-104/305 Test #104: SchedulerFallback.NoneStrategyNoTarget ......................   Passed    0.01 sec
-        Start 105: SchedulerFallback.ToNextDeviceFallbackToCpuWhenNoOtherGpu
-105/305 Test #105: SchedulerFallback.ToNextDeviceFallbackToCpuWhenNoOtherGpu ...   Passed    0.01 sec
-        Start 106: SchedulerMixedRunner.CoverageCompleteNoRepeat
-106/305 Test #106: SchedulerMixedRunner.CoverageCompleteNoRepeat ...............   Passed    0.01 sec
-        Start 107: SchedulerMixedRunner.EmptyRangeReturnsSuccess
-107/305 Test #107: SchedulerMixedRunner.EmptyRangeReturnsSuccess ...............   Passed    0.01 sec
-        Start 108: SchedulerMixedRunner.ExceptionInChunkCountsAsFailed
-108/305 Test #108: SchedulerMixedRunner.ExceptionInChunkCountsAsFailed .........   Passed    0.01 sec
-        Start 109: SchedulerDispatcher.DispatchRangeExecutesAll
-109/305 Test #109: SchedulerDispatcher.DispatchRangeExecutesAll ................   Passed    0.01 sec
-        Start 110: SchedulerDispatcher.PickBackendSmallDataPrefersCpu
-110/305 Test #110: SchedulerDispatcher.PickBackendSmallDataPrefersCpu ..........   Passed    0.01 sec
-        Start 111: SchedulerDispatcher.HandleFailureReturnsFallbackDecision
-111/305 Test #111: SchedulerDispatcher.HandleFailureReturnsFallbackDecision ....   Passed    0.01 sec
-        Start 112: UtilCpu.DefaultTargetIs95Percent
-112/305 Test #112: UtilCpu.DefaultTargetIs95Percent ............................   Passed    0.01 sec
-        Start 113: UtilCpu.SetTargetClamped
-113/305 Test #113: UtilCpu.SetTargetClamped ....................................   Passed    0.01 sec
-        Start 114: UtilCpu.DecideRecordsActualAndError
-114/305 Test #114: UtilCpu.DecideRecordsActualAndError .........................   Passed    0.01 sec
-        Start 115: UtilCpu.BatchSizeStrategyAdjustsOnHighUtilization
-115/305 Test #115: UtilCpu.BatchSizeStrategyAdjustsOnHighUtilization ...........   Passed    0.01 sec
-        Start 116: UtilCpu.YieldStrategySetsShouldYield
-116/305 Test #116: UtilCpu.YieldStrategySetsShouldYield ........................   Passed    0.01 sec
-        Start 117: UtilCpu.StatusJsonContainsFields
-117/305 Test #117: UtilCpu.StatusJsonContainsFields ............................   Passed    0.01 sec
-        Start 118: UtilGpu.RegisterBackendAdds
-118/305 Test #118: UtilGpu.RegisterBackendAdds .................................   Passed    0.01 sec
-        Start 119: UtilGpu.RegisterBackendIdempotent
-119/305 Test #119: UtilGpu.RegisterBackendIdempotent ...........................   Passed    0.01 sec
-        Start 120: UtilGpu.DecideThrottleOnSevereExceed
-120/305 Test #120: UtilGpu.DecideThrottleOnSevereExceed ........................   Passed    0.01 sec
-        Start 121: UtilGpu.DecideLowUtilizationNoThrottle
-121/305 Test #121: UtilGpu.DecideLowUtilizationNoThrottle ......................   Passed    0.01 sec
-        Start 122: UtilMemory.ComputeLimitMinRatioAndReserve
-122/305 Test #122: UtilMemory.ComputeLimitMinRatioAndReserve ...................   Passed    0.01 sec
-        Start 123: UtilMemory.ReportDetectsExceeded
-123/305 Test #123: UtilMemory.ReportDetectsExceeded ............................   Passed    0.01 sec
-        Start 124: UtilMemory.DefaultFixedReserveIs512MB
-124/305 Test #124: UtilMemory.DefaultFixedReserveIs512MB .......................   Passed    0.01 sec
-        Start 125: UtilMemory.StatusJsonContainsFields
-125/305 Test #125: UtilMemory.StatusJsonContainsFields .........................   Passed    0.01 sec
-        Start 126: UtilIo.ZeroBudgetNoLimit
-126/305 Test #126: UtilIo.ZeroBudgetNoLimit ....................................   Passed    0.01 sec
-        Start 127: UtilIo.ExceedBudgetDetected
-127/305 Test #127: UtilIo.ExceedBudgetDetected .................................   Passed    0.01 sec
-        Start 128: UtilIo.WarnAtThreshold
-128/305 Test #128: UtilIo.WarnAtThreshold ......................................   Passed    0.01 sec
-        Start 129: UtilConfig.InitSetsAllValues
-129/305 Test #129: UtilConfig.InitSetsAllValues ................................   Passed    0.01 sec
-        Start 130: UtilConfig.UpdateHotChangesMutableOnly
-130/305 Test #130: UtilConfig.UpdateHotChangesMutableOnly ......................   Passed    0.01 sec
-        Start 131: UtilConfig.SingleFieldSettersWork
-131/305 Test #131: UtilConfig.SingleFieldSettersWork ...........................   Passed    0.01 sec
-        Start 132: UtilConfig.ReadBeforeInitReturnsDefaults
-132/305 Test #132: UtilConfig.ReadBeforeInitReturnsDefaults ....................   Passed    0.01 sec
-        Start 133: UtilTracker.RecordAndCount
-133/305 Test #133: UtilTracker.RecordAndCount ..................................   Passed    0.01 sec
-        Start 134: UtilTracker.RecentReturnsLastN
-134/305 Test #134: UtilTracker.RecentReturnsLastN ..............................   Passed    0.01 sec
-        Start 135: UtilTracker.CapacityEvictsOldest
-135/305 Test #135: UtilTracker.CapacityEvictsOldest ............................   Passed    0.01 sec
-        Start 136: UtilTracker.StatisticsComputeCorrect
-136/305 Test #136: UtilTracker.StatisticsComputeCorrect ........................   Passed    0.01 sec
-        Start 137: UtilTracker.EmptyStatsSafe
-137/305 Test #137: UtilTracker.EmptyStatsSafe ..................................   Passed    0.01 sec
-        Start 138: UtilTracker.StatusJsonContainsFields
-138/305 Test #138: UtilTracker.StatusJsonContainsFields ........................   Passed    0.01 sec
-        Start 139: E16Concurrency.MultiCaller4
-139/305 Test #139: E16Concurrency.MultiCaller4 .................................   Passed    0.02 sec
-        Start 140: E16Concurrency.MultiCaller8
-140/305 Test #140: E16Concurrency.MultiCaller8 .................................   Passed    0.02 sec
-        Start 141: E16Concurrency.CancelRepeated50
-141/305 Test #141: E16Concurrency.CancelRepeated50 .............................   Passed    0.01 sec
-        Start 142: E16Concurrency.BufferLifetime100
-142/305 Test #142: E16Concurrency.BufferLifetime100 ............................   Passed    0.01 sec
-        Start 143: E16Concurrency.Restarts100
-143/305 Test #143: E16Concurrency.Restarts100 ..................................   Passed    0.02 sec
-        Start 144: E16Concurrency.ConcurrentAtomic4
-144/305 Test #144: E16Concurrency.ConcurrentAtomic4 ............................   Passed    0.01 sec
-        Start 145: E16Concurrency.ConcurrentAtomic8
-145/305 Test #145: E16Concurrency.ConcurrentAtomic8 ............................   Passed    0.02 sec
-        Start 146: E16Concurrency.PersistentSubmit1K
-146/305 Test #146: E16Concurrency.PersistentSubmit1K ...........................   Passed    0.02 sec
-        Start 147: E15Failure.BackendUnavailable
-147/305 Test #147: E15Failure.BackendUnavailable ...............................   Passed    0.01 sec
-        Start 148: E15Failure.ProfileCorrupt
-148/305 Test #148: E15Failure.ProfileCorrupt ...................................   Passed    0.01 sec
-        Start 149: E15Failure.ProfileMissing
-149/305 Test #149: E15Failure.ProfileMissing ...................................   Passed    0.01 sec
-        Start 150: E15Failure.CancelKernel
-150/305 Test #150: E15Failure.CancelKernel .....................................   Passed    0.01 sec
-        Start 151: E15Failure.KernelException
-151/305 Test #151: E15Failure.KernelException ..................................   Passed    0.01 sec
-        Start 152: E15Failure.DeviceLost
-152/305 Test #152: E15Failure.DeviceLost .......................................   Passed    0.01 sec
-        Start 153: E14Util.Target50
-153/305 Test #153: E14Util.Target50 ............................................   Passed    0.01 sec
-        Start 154: E14Util.Target80
-154/305 Test #154: E14Util.Target80 ............................................   Passed    0.01 sec
-        Start 155: E14Util.Target95
-155/305 Test #155: E14Util.Target95 ............................................   Passed    0.01 sec
-        Start 156: E14Util.Target100
-156/305 Test #156: E14Util.Target100 ...........................................   Passed    0.01 sec
-        Start 157: E14Util.TargetClampHigh
-157/305 Test #157: E14Util.TargetClampHigh .....................................   Passed    0.02 sec
-        Start 158: E14Util.TrackerSamples
-158/305 Test #158: E14Util.TrackerSamples ......................................   Passed    0.01 sec
-        Start 159: E14Util.StrategyBatch
-159/305 Test #159: E14Util.StrategyBatch .......................................   Passed    0.02 sec
-        Start 160: E14Util.StrategyYield
-160/305 Test #160: E14Util.StrategyYield .......................................   Passed    0.01 sec
-        Start 161: E14Util.ControlLoop100
-161/305 Test #161: E14Util.ControlLoop100 ......................................   Passed    0.02 sec
-        Start 162: E14Util.ControlLoop500
-162/305 Test #162: E14Util.ControlLoop500 ......................................   Passed    0.01 sec
-        Start 163: E13Mixed.Partition4Chunks
-163/305 Test #163: E13Mixed.Partition4Chunks ...................................   Passed    0.02 sec
-        Start 164: E13Mixed.Partition8Chunks
-164/305 Test #164: E13Mixed.Partition8Chunks ...................................   Passed    0.02 sec
-        Start 165: E13Mixed.Partition16Chunks
-165/305 Test #165: E13Mixed.Partition16Chunks ..................................   Passed    0.02 sec
-        Start 166: E13Mixed.PartitionUneven
-166/305 Test #166: E13Mixed.PartitionUneven ....................................   Passed    0.01 sec
-        Start 167: E13Mixed.Dispatch10Chunks
-167/305 Test #167: E13Mixed.Dispatch10Chunks ...................................   Passed    0.01 sec
-        Start 168: E13Mixed.DispatchSmallChunk
-168/305 Test #168: E13Mixed.DispatchSmallChunk .................................   Passed    0.01 sec
-        Start 169: E13Mixed.Ratio0Pct
-169/305 Test #169: E13Mixed.Ratio0Pct ..........................................   Passed    0.01 sec
-        Start 170: E13Mixed.Ratio50Pct
-170/305 Test #170: E13Mixed.Ratio50Pct .........................................   Passed    0.01 sec
-        Start 171: E13Mixed.Ratio100Pct
-171/305 Test #171: E13Mixed.Ratio100Pct ........................................   Passed    0.01 sec
-        Start 172: E13Mixed.RatioLarge
-172/305 Test #172: E13Mixed.RatioLarge .........................................   Passed    0.01 sec
-        Start 173: E12Fft.CT_vs_naive_8
-173/305 Test #173: E12Fft.CT_vs_naive_8 ........................................   Passed    0.01 sec
-        Start 174: E12Fft.CT_vs_naive_64
-174/305 Test #174: E12Fft.CT_vs_naive_64 .......................................   Passed    0.01 sec
-        Start 175: E12Fft.CT_vs_naive_256
-175/305 Test #175: E12Fft.CT_vs_naive_256 ......................................   Passed    0.01 sec
-        Start 176: E12Fft.Roundtrip_8
-176/305 Test #176: E12Fft.Roundtrip_8 ..........................................   Passed    0.01 sec
-        Start 177: E12Fft.Roundtrip_64
-177/305 Test #177: E12Fft.Roundtrip_64 .........................................   Passed    0.01 sec
-        Start 178: E12Fft.Roundtrip_256
-178/305 Test #178: E12Fft.Roundtrip_256 ........................................   Passed    0.01 sec
-        Start 179: E12Fft.ParallelNaive16
-179/305 Test #179: E12Fft.ParallelNaive16 ......................................   Passed    0.01 sec
-        Start 180: E12Fft.ParallelNaive64
-180/305 Test #180: E12Fft.ParallelNaive64 ......................................   Passed    0.01 sec
-        Start 181: E11Gemm.Naive32x32
-181/305 Test #181: E11Gemm.Naive32x32 ..........................................   Passed    0.01 sec
-        Start 182: E11Gemm.Naive64x64
-182/305 Test #182: E11Gemm.Naive64x64 ..........................................   Passed    0.01 sec
-        Start 183: E11Gemm.NaiveRect
-183/305 Test #183: E11Gemm.NaiveRect ...........................................   Passed    0.01 sec
-        Start 184: E11Gemm.Tiled64x64_8
-184/305 Test #184: E11Gemm.Tiled64x64_8 ........................................   Passed    0.01 sec
-        Start 185: E11Gemm.TiledEdge
-185/305 Test #185: E11Gemm.TiledEdge ...........................................   Passed    0.01 sec
-        Start 186: E11Gemm.Fp64_32x32
-186/305 Test #186: E11Gemm.Fp64_32x32 ..........................................   Passed    0.01 sec
-        Start 187: E11Gemm.Fp64_64x64
-187/305 Test #187: E11Gemm.Fp64_64x64 ..........................................   Passed    0.01 sec
-        Start 188: E11Gemm.Naive128
-188/305 Test #188: E11Gemm.Naive128 ............................................   Passed    0.02 sec
-        Start 189: E10Mandelbrot.FullView64
-189/305 Test #189: E10Mandelbrot.FullView64 ....................................   Passed    0.01 sec
-        Start 190: E10Mandelbrot.FullView128
-190/305 Test #190: E10Mandelbrot.FullView128 ...................................   Passed    0.02 sec
-        Start 191: E10Mandelbrot.ZoomEdge
-191/305 Test #191: E10Mandelbrot.ZoomEdge ......................................   Passed    0.02 sec
-        Start 192: E10Mandelbrot.HighIter
-192/305 Test #192: E10Mandelbrot.HighIter ......................................   Passed    0.02 sec
-        Start 193: E10Mandelbrot.RectWide
-193/305 Test #193: E10Mandelbrot.RectWide ......................................   Passed    0.01 sec
-        Start 194: E10Mandelbrot.SmallMaxIter
-194/305 Test #194: E10Mandelbrot.SmallMaxIter ..................................   Passed    0.01 sec
-        Start 195: E10Mandelbrot.Edge10x10
-195/305 Test #195: E10Mandelbrot.Edge10x10 .....................................   Passed    0.01 sec
-        Start 196: E10Mandelbrot.Cardioid
-196/305 Test #196: E10Mandelbrot.Cardioid ......................................   Passed    0.02 sec
-        Start 197: E09GatherScatter.GatherDense1K
-197/305 Test #197: E09GatherScatter.GatherDense1K ..............................   Passed    0.01 sec
-        Start 198: E09GatherScatter.GatherSparse1K
-198/305 Test #198: E09GatherScatter.GatherSparse1K .............................   Passed    0.01 sec
-        Start 199: E09GatherScatter.GatherLarge64K
-199/305 Test #199: E09GatherScatter.GatherLarge64K .............................   Passed    0.01 sec
-        Start 200: E09GatherScatter.ScatterUnique1K
-200/305 Test #200: E09GatherScatter.ScatterUnique1K ............................   Passed    0.01 sec
-        Start 201: E09GatherScatter.ScatterUnique64K
-201/305 Test #201: E09GatherScatter.ScatterUnique64K ...........................   Passed    0.01 sec
-        Start 202: E09GatherScatter.ScatterAtomic1K
-202/305 Test #202: E09GatherScatter.ScatterAtomic1K ............................   Passed    0.01 sec
-        Start 203: E09GatherScatter.ScatterAtomic64K
-203/305 Test #203: E09GatherScatter.ScatterAtomic64K ...........................   Passed    0.01 sec
-        Start 204: E09GatherScatter.GatherMixed
-204/305 Test #204: E09GatherScatter.GatherMixed ................................   Passed    0.01 sec
-        Start 205: E08Scan.Inclusive1K
-205/305 Test #205: E08Scan.Inclusive1K .........................................   Passed    0.01 sec
-        Start 206: E08Scan.Inclusive64K
-206/305 Test #206: E08Scan.Inclusive64K ........................................   Passed    0.01 sec
-        Start 207: E08Scan.Inclusive1M
-207/305 Test #207: E08Scan.Inclusive1M .........................................   Passed    0.02 sec
-        Start 208: E08Scan.Exclusive1K
-208/305 Test #208: E08Scan.Exclusive1K .........................................   Passed    0.01 sec
-        Start 209: E08Scan.Exclusive64K
-209/305 Test #209: E08Scan.Exclusive64K ........................................   Passed    0.01 sec
-        Start 210: E08Scan.Blocked1K
-210/305 Test #210: E08Scan.Blocked1K ...........................................   Passed    0.01 sec
-        Start 211: E08Scan.Blocked64K
-211/305 Test #211: E08Scan.Blocked64K ..........................................   Passed    0.01 sec
-        Start 212: E08Scan.Max1K
-212/305 Test #212: E08Scan.Max1K ...............................................   Passed    0.01 sec
-        Start 213: E07Histogram.Chunks1K
-213/305 Test #213: E07Histogram.Chunks1K .......................................   Passed    0.01 sec
-        Start 214: E07Histogram.Chunks64K
-214/305 Test #214: E07Histogram.Chunks64K ......................................   Passed    0.01 sec
-        Start 215: E07Histogram.Chunks1M
-215/305 Test #215: E07Histogram.Chunks1M .......................................   Passed    0.01 sec
-        Start 216: E07Histogram.Atomic1K
-216/305 Test #216: E07Histogram.Atomic1K .......................................   Passed    0.01 sec
-        Start 217: E07Histogram.Atomic64K
-217/305 Test #217: E07Histogram.Atomic64K ......................................   Passed    0.01 sec
-        Start 218: E07Histogram.Atomic1M
-218/305 Test #218: E07Histogram.Atomic1M .......................................   Passed    0.04 sec
-        Start 219: E07Histogram.Skewed1K
-219/305 Test #219: E07Histogram.Skewed1K .......................................   Passed    0.01 sec
-        Start 220: E07Histogram.Skewed64K
-220/305 Test #220: E07Histogram.Skewed64K ......................................   Passed    0.01 sec
-        Start 221: E06Resample.Identity
-221/305 Test #221: E06Resample.Identity ........................................   Passed    0.01 sec
-        Start 222: E06Resample.Upscale2x
-222/305 Test #222: E06Resample.Upscale2x .......................................   Passed    0.01 sec
-        Start 223: E06Resample.DownscaleHalf
-223/305 Test #223: E06Resample.DownscaleHalf ...................................   Passed    0.01 sec
-        Start 224: E06Resample.Rotate45
-224/305 Test #224: E06Resample.Rotate45 ........................................   Passed    0.01 sec
-        Start 225: E06Resample.Translate
-225/305 Test #225: E06Resample.Translate .......................................   Passed    0.01 sec
-        Start 226: E06Resample.Edge13
-226/305 Test #226: E06Resample.Edge13 ..........................................   Passed    0.01 sec
-        Start 227: E06Resample.NonSquareRect
-227/305 Test #227: E06Resample.NonSquareRect ...................................   Passed    0.01 sec
-        Start 228: E06Resample.Large256
-228/305 Test #228: E06Resample.Large256 ........................................   Passed    0.01 sec
-        Start 229: E05Conv.Conv3x3_64
-229/305 Test #229: E05Conv.Conv3x3_64 ..........................................   Passed    0.01 sec
-        Start 230: E05Conv.Conv3x3_256
-230/305 Test #230: E05Conv.Conv3x3_256 .........................................   Passed    0.01 sec
-        Start 231: E05Conv.Conv5x5_64
-231/305 Test #231: E05Conv.Conv5x5_64 ..........................................   Passed    0.01 sec
-        Start 232: E05Conv.Conv3x3_Edge13
-232/305 Test #232: E05Conv.Conv3x3_Edge13 ......................................   Passed    0.01 sec
-        Start 233: E05Conv.Tiled3x3_64_8
-233/305 Test #233: E05Conv.Tiled3x3_64_8 .......................................   Passed    0.01 sec
-        Start 234: E05Conv.Tiled3x3_Edge10
-234/305 Test #234: E05Conv.Tiled3x3_Edge10 .....................................   Passed    0.01 sec
-        Start 235: E05Conv.Tiled5x5_128_16
-235/305 Test #235: E05Conv.Tiled5x5_128_16 .....................................   Passed    0.01 sec
-        Start 236: E05Conv.Tiled3x3_Rect
-236/305 Test #236: E05Conv.Tiled3x3_Rect .......................................   Passed    0.01 sec
-        Start 237: E04Transpose.Square64Tile4
-237/305 Test #237: E04Transpose.Square64Tile4 ..................................   Passed    0.01 sec
-        Start 238: E04Transpose.Square256Tile16
-238/305 Test #238: E04Transpose.Square256Tile16 ................................   Passed    0.01 sec
-        Start 239: E04Transpose.Rect8x32Tile4
-239/305 Test #239: E04Transpose.Rect8x32Tile4 ..................................   Passed    0.01 sec
-        Start 240: E04Transpose.Edge10x10Tile4
-240/305 Test #240: E04Transpose.Edge10x10Tile4 .................................   Passed    0.01 sec
-        Start 241: E04Transpose.Edge13x7Tile4
-241/305 Test #241: E04Transpose.Edge13x7Tile4 ..................................   Passed    0.01 sec
-        Start 242: E04Transpose.For2dSquare64
-242/305 Test #242: E04Transpose.For2dSquare64 ..................................   Passed    0.01 sec
-        Start 243: E04Transpose.For2dEdge10x10
-243/305 Test #243: E04Transpose.For2dEdge10x10 .................................   Passed    0.01 sec
-        Start 244: E04Transpose.For2dLarge512
-244/305 Test #244: E04Transpose.For2dLarge512 ..................................   Passed    0.02 sec
-        Start 245: E03Dot.Fp32Small
-245/305 Test #245: E03Dot.Fp32Small ............................................   Passed    0.01 sec
-        Start 246: E03Dot.Fp32Medium
-246/305 Test #246: E03Dot.Fp32Medium ...........................................   Passed    0.01 sec
-        Start 247: E03Dot.Fp32Large
-247/305 Test #247: E03Dot.Fp32Large ............................................   Passed    0.02 sec
-        Start 248: E03Dot.Fp64Small
-248/305 Test #248: E03Dot.Fp64Small ............................................   Passed    0.01 sec
-        Start 249: E03Dot.Fp64Medium
-249/305 Test #249: E03Dot.Fp64Medium ...........................................   Passed    0.01 sec
-        Start 250: E03Dot.Fp64Large
-250/305 Test #250: E03Dot.Fp64Large ............................................   Passed    0.02 sec
-        Start 251: E03Reduce.SumFp32Small
-251/305 Test #251: E03Reduce.SumFp32Small ......................................   Passed    0.01 sec
-        Start 252: E03Reduce.SumFp32Large
-252/305 Test #252: E03Reduce.SumFp32Large ......................................   Passed    0.02 sec
-        Start 253: E03Reduce.MaxFp32Small
-253/305 Test #253: E03Reduce.MaxFp32Small ......................................   Passed    0.01 sec
-        Start 254: E03Reduce.MaxFp32Large
-254/305 Test #254: E03Reduce.MaxFp32Large ......................................   Passed    0.01 sec
-        Start 255: E03Reduce.L2Fp32Small
-255/305 Test #255: E03Reduce.L2Fp32Small .......................................   Passed    0.01 sec
-        Start 256: E03Reduce.L2Fp32Large
-256/305 Test #256: E03Reduce.L2Fp32Large .......................................   Passed    0.01 sec
-        Start 257: E02Axpy.Fp32Small
-257/305 Test #257: E02Axpy.Fp32Small ...........................................   Passed    0.01 sec
-        Start 258: E02Axpy.Fp32Medium
-258/305 Test #258: E02Axpy.Fp32Medium ..........................................   Passed    0.01 sec
-        Start 259: E02Axpy.Fp32Large
-259/305 Test #259: E02Axpy.Fp32Large ...........................................   Passed    0.02 sec
-        Start 260: E02Axpy.Fp64Small
-260/305 Test #260: E02Axpy.Fp64Small ...........................................   Passed    0.01 sec
-        Start 261: E02Axpy.Fp64Medium
-261/305 Test #261: E02Axpy.Fp64Medium ..........................................   Passed    0.01 sec
-        Start 262: E02Axpy.Fp64Large
-262/305 Test #262: E02Axpy.Fp64Large ...........................................   Passed    0.03 sec
-        Start 263: E02Fma.Fp32Small
-263/305 Test #263: E02Fma.Fp32Small ............................................   Passed    0.01 sec
-        Start 264: E02Fma.Fp32Medium
-264/305 Test #264: E02Fma.Fp32Medium ...........................................   Passed    0.01 sec
-        Start 265: E02Fma.Fp32Large
-265/305 Test #265: E02Fma.Fp32Large ............................................   Passed    0.02 sec
-        Start 266: E02Scal.Fp32Small
-266/305 Test #266: E02Scal.Fp32Small ...........................................   Passed    0.01 sec
-        Start 267: E02Scal.Fp32Medium
-267/305 Test #267: E02Scal.Fp32Medium ..........................................   Passed    0.01 sec
-        Start 268: E02Scal.Fp32Large
-268/305 Test #268: E02Scal.Fp32Large ...........................................   Passed    0.02 sec
-        Start 269: E01Memory.CopySmall
-269/305 Test #269: E01Memory.CopySmall .........................................   Passed    0.01 sec
-        Start 270: E01Memory.CopyMedium
-270/305 Test #270: E01Memory.CopyMedium ........................................   Passed    0.01 sec
-        Start 271: E01Memory.CopyLarge
-271/305 Test #271: E01Memory.CopyLarge .........................................   Passed    0.02 sec
-        Start 272: E01Memory.ReadSmall
-272/305 Test #272: E01Memory.ReadSmall .........................................   Passed    0.01 sec
-        Start 273: E01Memory.ReadMedium
-273/305 Test #273: E01Memory.ReadMedium ........................................   Passed    0.01 sec
-        Start 274: E01Memory.ReadLarge
-274/305 Test #274: E01Memory.ReadLarge .........................................   Passed    0.01 sec
-        Start 275: E01Memory.WriteSmall
-275/305 Test #275: E01Memory.WriteSmall ........................................   Passed    0.01 sec
-        Start 276: E01Memory.WriteMedium
-276/305 Test #276: E01Memory.WriteMedium .......................................   Passed    0.01 sec
-        Start 277: E01Memory.WriteLarge
-277/305 Test #277: E01Memory.WriteLarge ........................................   Passed    0.01 sec
-        Start 278: E01Memory.TriadSmall
-278/305 Test #278: E01Memory.TriadSmall ........................................   Passed    0.01 sec
-        Start 279: E01Memory.TriadMedium
-279/305 Test #279: E01Memory.TriadMedium .......................................   Passed    0.01 sec
-        Start 280: E01Memory.TriadLarge
-280/305 Test #280: E01Memory.TriadLarge ........................................   Passed    0.02 sec
-        Start 281: FaultInjection.BackendUnavailableDegradesToCpu
-281/305 Test #281: FaultInjection.BackendUnavailableDegradesToCpu ..............   Passed    0.01 sec
-        Start 282: FaultInjection.CorruptProfileDegradesToCpu
-282/305 Test #282: FaultInjection.CorruptProfileDegradesToCpu ..................   Passed    0.01 sec
-        Start 283: FaultInjection.MissingProfileDegradesToCpu
-283/305 Test #283: FaultInjection.MissingProfileDegradesToCpu ..................   Passed    0.01 sec
-        Start 284: FaultInjection.StaleProfileContinuesWithWarning
-284/305 Test #284: FaultInjection.StaleProfileContinuesWithWarning .............   Passed    0.01 sec
-        Start 285: FaultInjection.DeviceLostTriggersReload
-285/305 Test #285: FaultInjection.DeviceLostTriggersReload .....................   Passed    0.01 sec
-        Start 286: FaultInjection.CancelRunningKernel
-286/305 Test #286: FaultInjection.CancelRunningKernel ..........................   Passed    0.01 sec
-        Start 287: FaultInjection.KernelExceptionPropagatesAsFailed
-287/305 Test #287: FaultInjection.KernelExceptionPropagatesAsFailed ............   Passed    0.01 sec
-        Start 288: FaultInjection.RoutingMissingUsesCpuBaseline
-288/305 Test #288: FaultInjection.RoutingMissingUsesCpuBaseline ................   Passed    0.01 sec
-        Start 289: FaultInjection.MixedScheduleFallbackToCpu
-289/305 Test #289: FaultInjection.MixedScheduleFallbackToCpu ...................   Passed    0.01 sec
-        Start 290: FaultInjection.ExceptionChunkCountedAsFailed
-290/305 Test #290: FaultInjection.ExceptionChunkCountedAsFailed ................   Passed    0.01 sec
-        Start 291: SanitizerSmoke.BufferConstructDestructMove
-291/305 Test #291: SanitizerSmoke.BufferConstructDestructMove ..................   Passed    0.01 sec
-        Start 292: SanitizerSmoke.EventCancelNoLeak
-292/305 Test #292: SanitizerSmoke.EventCancelNoLeak ............................   Passed    0.01 sec
-        Start 293: SanitizerSmoke.ConcurrentSubmissionNoRace
-293/305 Test #293: SanitizerSmoke.ConcurrentSubmissionNoRace ...................   Passed    0.01 sec
-        Start 294: SanitizerSmoke.ManyBufferAllocFree
-294/305 Test #294: SanitizerSmoke.ManyBufferAllocFree ..........................   Passed    0.01 sec
-        Start 295: SanitizerSmoke.BufferViewNonOwning
-295/305 Test #295: SanitizerSmoke.BufferViewNonOwning ..........................   Passed    0.01 sec
-        Start 296: SanitizerSmoke.ParallelReduceExceptionSafe
-296/305 Test #296: SanitizerSmoke.ParallelReduceExceptionSafe ..................   Passed    0.01 sec
-        Start 297: SanitizerSmoke.EventMoveSemantics
-297/305 Test #297: SanitizerSmoke.EventMoveSemantics ...........................   Passed    0.01 sec
-        Start 298: SanitizerSmoke.ParallelChunksNoRace
-298/305 Test #298: SanitizerSmoke.ParallelChunksNoRace .........................   Passed    0.01 sec
-        Start 299: SanitizerSmoke.ParallelTilesNoRace
-299/305 Test #299: SanitizerSmoke.ParallelTilesNoRace ..........................   Passed    0.01 sec
-        Start 300: SanitizerSmoke.BufferResizeRepeated
-300/305 Test #300: SanitizerSmoke.BufferResizeRepeated .........................   Passed    0.01 sec
-        Start 301: Persistence.ContinuousParallelFor
-301/305 Test #301: Persistence.ContinuousParallelFor ...........................   Passed    5.01 sec
-        Start 302: Persistence.Restarts100
-302/305 Test #302: Persistence.Restarts100 .....................................   Passed    0.03 sec
-        Start 303: Persistence.ProfileReload
-303/305 Test #303: Persistence.ProfileReload ...................................   Passed    0.18 sec
-        Start 304: Persistence.MixedParallelWorkload
-304/305 Test #304: Persistence.MixedParallelWorkload ...........................   Passed    2.01 sec
-        Start 305: Persistence.BufferRepeatedAlloc
-305/305 Test #305: Persistence.BufferRepeatedAlloc .............................   Passed    0.01 sec
+=== ACR Unit Tests ===
+Timestamp: 2026-08-02 20:07:05
+=== acr_test_api ===
+[==========] Running 23 tests from 10 test suites.
+[----------] Global test environment set-up.
+[----------] 4 tests from ApiParallelFor
+[ RUN      ] ApiParallelFor.EmptyRangeDoesNotCallKernel
+[       OK ] ApiParallelFor.EmptyRangeDoesNotCallKernel (0 ms)
+[ RUN      ] ApiParallelFor.SingleElementCallsKernelOnce
+[       OK ] ApiParallelFor.SingleElementCallsKernelOnce (0 ms)
+[ RUN      ] ApiParallelFor.TinyRangesCorrect
+[       OK ] ApiParallelFor.TinyRangesCorrect (0 ms)
+[ RUN      ] ApiParallelFor.LargeRangeCorrect
+[       OK ] ApiParallelFor.LargeRangeCorrect (1 ms)
+[----------] 4 tests from ApiParallelFor (2 ms total)
 
-100% tests passed, 0 tests failed out of 305
+[----------] 2 tests from ApiTiles
+[ RUN      ] ApiTiles.NonIntegralTileCoverageNoOverflow
+[       OK ] ApiTiles.NonIntegralTileCoverageNoOverflow (0 ms)
+[ RUN      ] ApiTiles.IntegralTileCoverage
+[       OK ] ApiTiles.IntegralTileCoverage (0 ms)
+[----------] 2 tests from ApiTiles (0 ms total)
 
-Total Test time (real) =  11.33 sec
+[----------] 1 test from ApiFor2d
+[ RUN      ] ApiFor2d.CoverAllPixels
+[       OK ] ApiFor2d.CoverAllPixels (0 ms)
+[----------] 1 test from ApiFor2d (0 ms total)
 
-The following tests did not run:
-	 10 - ApiReduce.NoAliasDeclaration (Skipped)
+[----------] 3 tests from ApiReduce
+[ RUN      ] ApiReduce.SumZeroToHundred
+[       OK ] ApiReduce.SumZeroToHundred (0 ms)
+[ RUN      ] ApiReduce.IdentityOnEmptyRange
+[       OK ] ApiReduce.IdentityOnEmptyRange (0 ms)
+[ RUN      ] ApiReduce.NoAliasDeclaration
+F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\unit\test_api.cpp:182: Skipped
+Phase B: 别名检测为声明性契约，暂不强制（待 Phase H 强化）
+
+[  SKIPPED ] ApiReduce.NoAliasDeclaration (0 ms)
+[----------] 3 tests from ApiReduce (0 ms total)
+
+[----------] 1 test from ApiBatch
+[ RUN      ] ApiBatch.CountAllItems
+[       OK ] ApiBatch.CountAllItems (0 ms)
+[----------] 1 test from ApiBatch (0 ms total)
+
+[----------] 1 test from ApiChunks
+[ RUN      ] ApiChunks.CoverAllRanges
+[       OK ] ApiChunks.CoverAllRanges (0 ms)
+[----------] 1 test from ApiChunks (0 ms total)
+
+[----------] 1 test from ApiRunFor
+[ RUN      ] ApiRunFor.SerialCorrectness
+[       OK ] ApiRunFor.SerialCorrectness (0 ms)
+[----------] 1 test from ApiRunFor (0 ms total)
+
+[----------] 5 tests from ApiEvent
+[ RUN      ] ApiEvent.ImmediatelyReadyAfterParallelFor
+[       OK ] ApiEvent.ImmediatelyReadyAfterParallelFor (0 ms)
+[ RUN      ] ApiEvent.WaitDoesNotBlockWhenDone
+[       OK ] ApiEvent.WaitDoesNotBlockWhenDone (0 ms)
+[ RUN      ] ApiEvent.CancelSetsCancelledFlag
+[       OK ] ApiEvent.CancelSetsCancelledFlag (0 ms)
+[ RUN      ] ApiEvent.StatusOkAfterSuccess
+[       OK ] ApiEvent.StatusOkAfterSuccess (0 ms)
+[ RUN      ] ApiEvent.ExceptionKernelReturnsFailedStatus
+[       OK ] ApiEvent.ExceptionKernelReturnsFailedStatus (0 ms)
+[----------] 5 tests from ApiEvent (0 ms total)
+
+[----------] 2 tests from ApiBufferView
+[ RUN      ] ApiBufferView.ShapeStrideSubview
+[       OK ] ApiBufferView.ShapeStrideSubview (0 ms)
+[ RUN      ] ApiBufferView.SubviewOutOfBoundsThrows
+[       OK ] ApiBufferView.SubviewOutOfBoundsThrows (0 ms)
+[----------] 2 tests from ApiBufferView (0 ms total)
+
+[----------] 3 tests from ApiBuffer
+[ RUN      ] ApiBuffer.ReadOnlyWriteAccess
+[       OK ] ApiBuffer.ReadOnlyWriteAccess (0 ms)
+[ RUN      ] ApiBuffer.ResizeGrowAndShrink
+[       OK ] ApiBuffer.ResizeGrowAndShrink (0 ms)
+[ RUN      ] ApiBuffer.HostLifetimeUniquePtr
+[       OK ] ApiBuffer.HostLifetimeUniquePtr (0 ms)
+[----------] 3 tests from ApiBuffer (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 23 tests from 10 test suites ran. (3 ms total)
+[  PASSED  ] 22 tests.
+[  SKIPPED ] 1 test, listed below:
+[  SKIPPED ] ApiReduce.NoAliasDeclaration
+Exit code: 0
+=== acr_test_buffer ===
+[==========] Running 11 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 7 tests from BufferTest
+[ RUN      ] BufferTest.DefaultConstructEmpty
+[       OK ] BufferTest.DefaultConstructEmpty (0 ms)
+[ RUN      ] BufferTest.AllocateWithCount
+[       OK ] BufferTest.AllocateWithCount (0 ms)
+[ RUN      ] BufferTest.AllocateWithInit
+[       OK ] BufferTest.AllocateWithInit (0 ms)
+[ RUN      ] BufferTest.IndexReadWrite
+[       OK ] BufferTest.IndexReadWrite (0 ms)
+[ RUN      ] BufferTest.ResizeGrowAndShrink
+[       OK ] BufferTest.ResizeGrowAndShrink (0 ms)
+[ RUN      ] BufferTest.ViewReturnsCorrectView
+[       OK ] BufferTest.ViewReturnsCorrectView (0 ms)
+[ RUN      ] BufferTest.ConstView
+[       OK ] BufferTest.ConstView (0 ms)
+[----------] 7 tests from BufferTest (0 ms total)
+
+[----------] 4 tests from BufferViewTest
+[ RUN      ] BufferViewTest.DataCountStridePitch
+[       OK ] BufferViewTest.DataCountStridePitch (0 ms)
+[ RUN      ] BufferViewTest.DefaultConstructEmpty
+[       OK ] BufferViewTest.DefaultConstructEmpty (0 ms)
+[ RUN      ] BufferViewTest.SubviewNormal
+[       OK ] BufferViewTest.SubviewNormal (0 ms)
+[ RUN      ] BufferViewTest.SubviewOutOfBoundsThrows
+[       OK ] BufferViewTest.SubviewOutOfBoundsThrows (0 ms)
+[----------] 4 tests from BufferViewTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 11 tests from 2 test suites ran. (0 ms total)
+[  PASSED  ] 11 tests.
+Exit code: 0
+=== acr_test_cost ===
+Running main() from C:/M/B/src/googletest-1.17.0/googletest/src/gtest_main.cc
+[==========] Running 21 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 14 tests from CostEstimator
+[ RUN      ] CostEstimator.NoProfileReturnsFallbackCpu
+[       OK ] CostEstimator.NoProfileReturnsFallbackCpu (0 ms)
+[ RUN      ] CostEstimator.NoProfileComputeCostNonZero
+[       OK ] CostEstimator.NoProfileComputeCostNonZero (0 ms)
+[ RUN      ] CostEstimator.WithCpuProfileEstimatesPerDevice
+[       OK ] CostEstimator.WithCpuProfileEstimatesPerDevice (0 ms)
+[ RUN      ] CostEstimator.WithCpuGpuProfileSelectsFaster
+[       OK ] CostEstimator.WithCpuGpuProfileSelectsFaster (0 ms)
+[ RUN      ] CostEstimator.ReductionTaskHasMergeCost
+[       OK ] CostEstimator.ReductionTaskHasMergeCost (0 ms)
+[ RUN      ] CostEstimator.ElementwiseTaskNoMergeCost
+[       OK ] CostEstimator.ElementwiseTaskNoMergeCost (0 ms)
+[ RUN      ] CostEstimator.MinEffectiveChunkNoProfile
+[       OK ] CostEstimator.MinEffectiveChunkNoProfile (0 ms)
+[ RUN      ] CostEstimator.MinEffectiveChunkWithProfile
+[       OK ] CostEstimator.MinEffectiveChunkWithProfile (0 ms)
+[ RUN      ] CostEstimator.MinEffectiveChunkGpuAtLeast4096
+[       OK ] CostEstimator.MinEffectiveChunkGpuAtLeast4096 (0 ms)
+[ RUN      ] CostEstimator.MinEffectiveChunkUnknownDevice
+[       OK ] CostEstimator.MinEffectiveChunkUnknownDevice (0 ms)
+[ RUN      ] CostEstimator.RecommendedChunkNoProfile
+[       OK ] CostEstimator.RecommendedChunkNoProfile (0 ms)
+[ RUN      ] CostEstimator.RecommendedChunkWithProfile
+[       OK ] CostEstimator.RecommendedChunkWithProfile (0 ms)
+[ RUN      ] CostEstimator.MaxChunkByMemoryNoProfile
+[       OK ] CostEstimator.MaxChunkByMemoryNoProfile (0 ms)
+[ RUN      ] CostEstimator.MaxChunkByMemoryWithProfile
+[       OK ] CostEstimator.MaxChunkByMemoryWithProfile (0 ms)
+[----------] 14 tests from CostEstimator (0 ms total)
+
+[----------] 4 tests from CurveLookupTest
+[ RUN      ] CurveLookupTest.ElementwiseMapsToMemory
+[       OK ] CurveLookupTest.ElementwiseMapsToMemory (0 ms)
+[ RUN      ] CurveLookupTest.ReductionMapsToReduction
+[       OK ] CurveLookupTest.ReductionMapsToReduction (0 ms)
+[ RUN      ] CurveLookupTest.ConvolutionDirectMapsToConvolution
+[       OK ] CurveLookupTest.ConvolutionDirectMapsToConvolution (0 ms)
+[ RUN      ] CurveLookupTest.CustomMapsToArithmetic
+[       OK ] CurveLookupTest.CustomMapsToArithmetic (0 ms)
+[----------] 4 tests from CurveLookupTest (0 ms total)
+
+[----------] 3 tests from DeviceIdBackendConversion
+[ RUN      ] DeviceIdBackendConversion.CpuDeviceId
+[       OK ] DeviceIdBackendConversion.CpuDeviceId (0 ms)
+[ RUN      ] DeviceIdBackendConversion.GpuDeviceId
+[       OK ] DeviceIdBackendConversion.GpuDeviceId (0 ms)
+[ RUN      ] DeviceIdBackendConversion.InvalidBackend
+[       OK ] DeviceIdBackendConversion.InvalidBackend (0 ms)
+[----------] 3 tests from DeviceIdBackendConversion (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 21 tests from 3 test suites ran. (0 ms total)
+[  PASSED  ] 21 tests.
+Exit code: 0
+=== acr_test_cpu_profile ===
+Running main() from C:/M/B/src/googletest-1.17.0/googletest/src/gtest_main.cc
+[==========] Running 10 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 10 tests from CpuProfileTest
+[ RUN      ] CpuProfileTest.GenerateEmptyHasCpuDevice
+[       OK ] CpuProfileTest.GenerateEmptyHasCpuDevice (13 ms)
+[ RUN      ] CpuProfileTest.FingerprintNonEmpty
+[       OK ] CpuProfileTest.FingerprintNonEmpty (8 ms)
+[ RUN      ] CpuProfileTest.CopyResultMapsToMemoryCurve
+[       OK ] CpuProfileTest.CopyResultMapsToMemoryCurve (6 ms)
+[ RUN      ] CpuProfileTest.AxpyResultMapsToArithmeticCurve
+[       OK ] CpuProfileTest.AxpyResultMapsToArithmeticCurve (6 ms)
+[ RUN      ] CpuProfileTest.DotResultMapsToReductionCurve
+[       OK ] CpuProfileTest.DotResultMapsToReductionCurve (11 ms)
+[ RUN      ] CpuProfileTest.SerializeContainsRequiredFields
+[       OK ] CpuProfileTest.SerializeContainsRequiredFields (11 ms)
+[ RUN      ] CpuProfileTest.WriteAndReadbackFile
+[       OK ] CpuProfileTest.WriteAndReadbackFile (22 ms)
+[ RUN      ] CpuProfileTest.DeviceProfilePredictionApis
+[       OK ] CpuProfileTest.DeviceProfilePredictionApis (6 ms)
+[ RUN      ] CpuProfileTest.DefaultOverheadsPresent
+[       OK ] CpuProfileTest.DefaultOverheadsPresent (6 ms)
+[ RUN      ] CpuProfileTest.NoGpuInCpuOnlyProfile
+[       OK ] CpuProfileTest.NoGpuInCpuOnlyProfile (6 ms)
+[----------] 10 tests from CpuProfileTest (100 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 1 test suite ran. (100 ms total)
+[  PASSED  ] 10 tests.
+Exit code: 0
+=== acr_test_hardware_profile ===
+Running main() from C:/M/B/src/googletest-1.17.0/googletest/src/gtest_main.cc
+[==========] Running 33 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 6 tests from CurveTest
+[ RUN      ] CurveTest.EmptyCurveReturnsZero
+[       OK ] CurveTest.EmptyCurveReturnsZero (0 ms)
+[ RUN      ] CurveTest.SinglePointReturnsConstant
+[       OK ] CurveTest.SinglePointReturnsConstant (0 ms)
+[ RUN      ] CurveTest.TwoPointsLinearInterpolation
+[       OK ] CurveTest.TwoPointsLinearInterpolation (0 ms)
+[ RUN      ] CurveTest.ExtrapolateBeyondRange
+[       OK ] CurveTest.ExtrapolateBeyondRange (0 ms)
+[ RUN      ] CurveTest.PredictThroughput
+[       OK ] CurveTest.PredictThroughput (0 ms)
+[ RUN      ] CurveTest.PredictThroughputZeroSize
+[       OK ] CurveTest.PredictThroughputZeroSize (0 ms)
+[----------] 6 tests from CurveTest (0 ms total)
+
+[----------] 12 tests from DeviceProfileTest
+[ RUN      ] DeviceProfileTest.DefaultValuesCpu
+[       OK ] DeviceProfileTest.DefaultValuesCpu (0 ms)
+[ RUN      ] DeviceProfileTest.HasGpuWhenKindGpu
+[       OK ] DeviceProfileTest.HasGpuWhenKindGpu (0 ms)
+[ RUN      ] DeviceProfileTest.PredictArithmetic
+[       OK ] DeviceProfileTest.PredictArithmetic (0 ms)
+[ RUN      ] DeviceProfileTest.PredictArithmeticMissing
+[       OK ] DeviceProfileTest.PredictArithmeticMissing (0 ms)
+[ RUN      ] DeviceProfileTest.PredictMemory
+[       OK ] DeviceProfileTest.PredictMemory (0 ms)
+[ RUN      ] DeviceProfileTest.PredictTransfer
+[       OK ] DeviceProfileTest.PredictTransfer (0 ms)
+[ RUN      ] DeviceProfileTest.PredictReduction
+[       OK ] DeviceProfileTest.PredictReduction (0 ms)
+[ RUN      ] DeviceProfileTest.GetOverhead
+[       OK ] DeviceProfileTest.GetOverhead (0 ms)
+[ RUN      ] DeviceProfileTest.GetLibrary
+[       OK ] DeviceProfileTest.GetLibrary (0 ms)
+[ RUN      ] DeviceProfileTest.GetCurveConvolution
+[       OK ] DeviceProfileTest.GetCurveConvolution (0 ms)
+[ RUN      ] DeviceProfileTest.GetCurveOverheadReturnsNull
+[       OK ] DeviceProfileTest.GetCurveOverheadReturnsNull (0 ms)
+[ RUN      ] DeviceProfileTest.PredictCostUnknownFamily
+[       OK ] DeviceProfileTest.PredictCostUnknownFamily (0 ms)
+[----------] 12 tests from DeviceProfileTest (0 ms total)
+
+[----------] 7 tests from HardwareProfileTest
+[ RUN      ] HardwareProfileTest.DefaultStateMissing
+[       OK ] HardwareProfileTest.DefaultStateMissing (0 ms)
+[ RUN      ] HardwareProfileTest.FindDeviceById
+[       OK ] HardwareProfileTest.FindDeviceById (0 ms)
+[ RUN      ] HardwareProfileTest.FindDeviceConstById
+[       OK ] HardwareProfileTest.FindDeviceConstById (0 ms)
+[ RUN      ] HardwareProfileTest.HasGpu
+[       OK ] HardwareProfileTest.HasGpu (0 ms)
+[ RUN      ] HardwareProfileTest.CpuDevice
+[       OK ] HardwareProfileTest.CpuDevice (0 ms)
+[ RUN      ] HardwareProfileTest.GpuDeviceIds
+[       OK ] HardwareProfileTest.GpuDeviceIds (0 ms)
+[ RUN      ] HardwareProfileTest.CpuDeviceNullWhenNoCpu
+[       OK ] HardwareProfileTest.CpuDeviceNullWhenNoCpu (0 ms)
+[----------] 7 tests from HardwareProfileTest (0 ms total)
+
+[----------] 8 tests from EnumStringTest
+[ RUN      ] EnumStringTest.DeviceKindStr
+[       OK ] EnumStringTest.DeviceKindStr (0 ms)
+[ RUN      ] EnumStringTest.HwPrecisionStr
+[       OK ] EnumStringTest.HwPrecisionStr (0 ms)
+[ RUN      ] EnumStringTest.MemoryLevelStr
+[       OK ] EnumStringTest.MemoryLevelStr (0 ms)
+[ RUN      ] EnumStringTest.MemoryResidencyStr
+[       OK ] EnumStringTest.MemoryResidencyStr (0 ms)
+[ RUN      ] EnumStringTest.TransferDirectionStr
+[       OK ] EnumStringTest.TransferDirectionStr (0 ms)
+[ RUN      ] EnumStringTest.MemoryTypeStr
+[       OK ] EnumStringTest.MemoryTypeStr (0 ms)
+[ RUN      ] EnumStringTest.CapabilityFamilyStr
+[       OK ] EnumStringTest.CapabilityFamilyStr (0 ms)
+[ RUN      ] EnumStringTest.HwProfileStateStr
+[       OK ] EnumStringTest.HwProfileStateStr (0 ms)
+[----------] 8 tests from EnumStringTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 33 tests from 4 test suites ran. (0 ms total)
+[  PASSED  ] 33 tests.
+Exit code: 0
+=== acr_test_qualification ===
+[==========] Running 15 tests from 7 test suites.
+[----------] Global test environment set-up.
+[----------] 3 tests from QualProfileKind
+[ RUN      ] QualProfileKind.StrRoundTrip
+[       OK ] QualProfileKind.StrRoundTrip (0 ms)
+[ RUN      ] QualProfileKind.ParseValid
+[       OK ] QualProfileKind.ParseValid (0 ms)
+[ RUN      ] QualProfileKind.ParseInvalid
+[       OK ] QualProfileKind.ParseInvalid (0 ms)
+[----------] 3 tests from QualProfileKind (0 ms total)
+
+[----------] 1 test from QualSeed
+[ RUN      ] QualSeed.FixedSeedValue
+[       OK ] QualSeed.FixedSeedValue (0 ms)
+[----------] 1 test from QualSeed (0 ms total)
+
+[----------] 3 tests from QualConfig
+[ RUN      ] QualConfig.QuickProfileConfig
+[       OK ] QualConfig.QuickProfileConfig (0 ms)
+[ RUN      ] QualConfig.StandardProfileConfig
+[       OK ] QualConfig.StandardProfileConfig (0 ms)
+[ RUN      ] QualConfig.FullProfileConfig
+[       OK ] QualConfig.FullProfileConfig (0 ms)
+[----------] 3 tests from QualConfig (0 ms total)
+
+[----------] 1 test from QualDriver
+[ RUN      ] QualDriver.QuickProfileProducesResults
+请确保系统空载以获得准确结果（关闭其他高负载进程，未启用自动检测）
+[       OK ] QualDriver.QuickProfileProducesResults (1 ms)
+[----------] 1 test from QualDriver (1 ms total)
+
+[----------] 3 tests from QualGenerator
+[ RUN      ] QualGenerator.GeneratesProfileWithRoutes
+请确保系统空载以获得准确结果（关闭其他高负载进程，未启用自动检测）
+[       OK ] QualGenerator.GeneratesProfileWithRoutes (20 ms)
+[ RUN      ] QualGenerator.SerializesToJson
+请确保系统空载以获得准确结果（关闭其他高负载进程，未启用自动检测）
+[       OK ] QualGenerator.SerializesToJson (12 ms)
+[ RUN      ] QualGenerator.WritesToFile
+请确保系统空载以获得准确结果（关闭其他高负载进程，未启用自动检测）
+[       OK ] QualGenerator.WritesToFile (14 ms)
+[----------] 3 tests from QualGenerator (47 ms total)
+
+[----------] 3 tests from QualSha256
+[ RUN      ] QualSha256.Deterministic
+[       OK ] QualSha256.Deterministic (0 ms)
+[ RUN      ] QualSha256.DifferentInputDifferentHash
+[       OK ] QualSha256.DifferentInputDifferentHash (0 ms)
+[ RUN      ] QualSha256.KnownVector
+[       OK ] QualSha256.KnownVector (0 ms)
+[----------] 3 tests from QualSha256 (0 ms total)
+
+[----------] 1 test from QualFingerprint
+[ RUN      ] QualFingerprint.SerializesToJson
+[       OK ] QualFingerprint.SerializesToJson (0 ms)
+[----------] 1 test from QualFingerprint (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 15 tests from 7 test suites ran. (48 ms total)
+[  PASSED  ] 15 tests.
+Exit code: 0
+=== acr_test_routing ===
+[==========] Running 13 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from RoutingState
+[ RUN      ] RoutingState.StrRoundTrip
+[       OK ] RoutingState.StrRoundTrip (0 ms)
+[----------] 1 test from RoutingState (0 ms total)
+
+[----------] 3 tests from RoutingParse
+[ RUN      ] RoutingParse.ValidJson
+[       OK ] RoutingParse.ValidJson (0 ms)
+[ RUN      ] RoutingParse.MalformedJsonReturnsFalse
+[       OK ] RoutingParse.MalformedJsonReturnsFalse (0 ms)
+[ RUN      ] RoutingParse.UnknownFieldSkipped
+[       OK ] RoutingParse.UnknownFieldSkipped (0 ms)
+[----------] 3 tests from RoutingParse (0 ms total)
+
+[----------] 2 tests from RoutingFingerprint
+[ RUN      ] RoutingFingerprint.MatchBySha256
+[       OK ] RoutingFingerprint.MatchBySha256 (0 ms)
+[ RUN      ] RoutingFingerprint.FallbackToFields
+[       OK ] RoutingFingerprint.FallbackToFields (0 ms)
+[----------] 2 tests from RoutingFingerprint (0 ms total)
+
+[----------] 7 tests from RoutingResolver
+[ RUN      ] RoutingResolver.MissingProfileReturnsCpuBaseline
+[       OK ] RoutingResolver.MissingProfileReturnsCpuBaseline (0 ms)
+[ RUN      ] RoutingResolver.CorruptProfileReturnsCpuBaseline
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：profile 损坏，使用 CPU baseline（routes.json 解析失败）
+[       OK ] RoutingResolver.CorruptProfileReturnsCpuBaseline (0 ms)
+[ RUN      ] RoutingResolver.ValidProfileResolvesRoute
+[ACR] 警告：profile 过期（设备指纹不匹配），继续运行（不强制重新 benchmark）
+[       OK ] RoutingResolver.ValidProfileResolvesRoute (38 ms)
+[ RUN      ] RoutingResolver.UnknownKernelFallsBack
+[ACR] 警告：profile 过期（设备指纹不匹配），继续运行（不强制重新 benchmark）
+[       OK ] RoutingResolver.UnknownKernelFallsBack (1 ms)
+[ RUN      ] RoutingResolver.InvalidateCacheReloadsProfile
+[ACR] 警告：profile 过期（设备指纹不匹配），继续运行（不强制重新 benchmark）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[       OK ] RoutingResolver.InvalidateCacheReloadsProfile (2 ms)
+[ RUN      ] RoutingResolver.StatusJsonContainsFields
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[       OK ] RoutingResolver.StatusJsonContainsFields (0 ms)
+[ RUN      ] RoutingResolver.SetPathAfterResolveIgnored
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[       OK ] RoutingResolver.SetPathAfterResolveIgnored (0 ms)
+[----------] 7 tests from RoutingResolver (43 ms total)
+
+[----------] Global test environment tear-down
+[==========] 13 tests from 4 test suites ran. (43 ms total)
+[  PASSED  ] 13 tests.
+Exit code: 0
+=== acr_test_scheduler ===
+[==========] Running 31 tests from 7 test suites.
+[----------] Global test environment set-up.
+[----------] 5 tests from SchedulerCoverage
+[ RUN      ] SchedulerCoverage.InitialAllPending
+[       OK ] SchedulerCoverage.InitialAllPending (0 ms)
+[ RUN      ] SchedulerCoverage.MarkDoneIncrementsCount
+[       OK ] SchedulerCoverage.MarkDoneIncrementsCount (0 ms)
+[ RUN      ] SchedulerCoverage.AllDoneAfterAllMarked
+[       OK ] SchedulerCoverage.AllDoneAfterAllMarked (0 ms)
+[ RUN      ] SchedulerCoverage.PendingIndicesCorrect
+[       OK ] SchedulerCoverage.PendingIndicesCorrect (0 ms)
+[ RUN      ] SchedulerCoverage.OutOfRangeSafe
+[       OK ] SchedulerCoverage.OutOfRangeSafe (0 ms)
+[----------] 5 tests from SchedulerCoverage (0 ms total)
+
+[----------] 8 tests from SchedulerPartition
+[ RUN      ] SchedulerPartition.RangeNoOverlapComplete
+[       OK ] SchedulerPartition.RangeNoOverlapComplete (0 ms)
+[ RUN      ] SchedulerPartition.RangeLastChunkClamped
+[       OK ] SchedulerPartition.RangeLastChunkClamped (0 ms)
+[ RUN      ] SchedulerPartition.RangeIntoEvenSplit
+[       OK ] SchedulerPartition.RangeIntoEvenSplit (0 ms)
+[ RUN      ] SchedulerPartition.RangeIntoUnevenSplit
+[       OK ] SchedulerPartition.RangeIntoUnevenSplit (0 ms)
+[ RUN      ] SchedulerPartition.TilesCoverAll
+[       OK ] SchedulerPartition.TilesCoverAll (0 ms)
+[ RUN      ] SchedulerPartition.TilesIntoMaxChunks
+[       OK ] SchedulerPartition.TilesIntoMaxChunks (0 ms)
+[ RUN      ] SchedulerPartition.RangeEmpty
+[       OK ] SchedulerPartition.RangeEmpty (0 ms)
+[ RUN      ] SchedulerPartition.RangeZeroChunkSize
+[       OK ] SchedulerPartition.RangeZeroChunkSize (0 ms)
+[----------] 8 tests from SchedulerPartition (0 ms total)
+
+[----------] 5 tests from SchedulerQueueAware
+[ RUN      ] SchedulerQueueAware.EstimateFinishCpuNoTransfer
+[       OK ] SchedulerQueueAware.EstimateFinishCpuNoTransfer (0 ms)
+[ RUN      ] SchedulerQueueAware.EstimateFinishGpuWithTransfer
+[       OK ] SchedulerQueueAware.EstimateFinishGpuWithTransfer (0 ms)
+[ RUN      ] SchedulerQueueAware.PickBestDeviceSelectsLowerFinish
+[       OK ] SchedulerQueueAware.PickBestDeviceSelectsLowerFinish (0 ms)
+[ RUN      ] SchedulerQueueAware.PickBestDeviceSkipsUnavailable
+[       OK ] SchedulerQueueAware.PickBestDeviceSkipsUnavailable (0 ms)
+[ RUN      ] SchedulerQueueAware.ShouldPreferCpuForSmallData
+[       OK ] SchedulerQueueAware.ShouldPreferCpuForSmallData (0 ms)
+[----------] 5 tests from SchedulerQueueAware (0 ms total)
+
+[----------] 3 tests from SchedulerMerger
+[ RUN      ] SchedulerMerger.InitAndFinalize
+[       OK ] SchedulerMerger.InitAndFinalize (0 ms)
+[ RUN      ] SchedulerMerger.FinalizeWithNoLocalsReturnsIdentity
+[       OK ] SchedulerMerger.FinalizeWithNoLocalsReturnsIdentity (0 ms)
+[ RUN      ] SchedulerMerger.MultipleFinalizeStable
+[       OK ] SchedulerMerger.MultipleFinalizeStable (0 ms)
+[----------] 3 tests from SchedulerMerger (0 ms total)
+
+[----------] 4 tests from SchedulerFallback
+[ RUN      ] SchedulerFallback.ToCpuStrategy
+[       OK ] SchedulerFallback.ToCpuStrategy (0 ms)
+[ RUN      ] SchedulerFallback.ToNextDeviceStrategy
+[       OK ] SchedulerFallback.ToNextDeviceStrategy (0 ms)
+[ RUN      ] SchedulerFallback.NoneStrategyNoTarget
+[       OK ] SchedulerFallback.NoneStrategyNoTarget (0 ms)
+[ RUN      ] SchedulerFallback.ToNextDeviceFallbackToCpuWhenNoOtherGpu
+[       OK ] SchedulerFallback.ToNextDeviceFallbackToCpuWhenNoOtherGpu (0 ms)
+[----------] 4 tests from SchedulerFallback (0 ms total)
+
+[----------] 3 tests from SchedulerMixedRunner
+[ RUN      ] SchedulerMixedRunner.CoverageCompleteNoRepeat
+[       OK ] SchedulerMixedRunner.CoverageCompleteNoRepeat (0 ms)
+[ RUN      ] SchedulerMixedRunner.EmptyRangeReturnsSuccess
+[       OK ] SchedulerMixedRunner.EmptyRangeReturnsSuccess (0 ms)
+[ RUN      ] SchedulerMixedRunner.ExceptionInChunkCountsAsFailed
+[       OK ] SchedulerMixedRunner.ExceptionInChunkCountsAsFailed (0 ms)
+[----------] 3 tests from SchedulerMixedRunner (0 ms total)
+
+[----------] 3 tests from SchedulerDispatcher
+[ RUN      ] SchedulerDispatcher.DispatchRangeExecutesAll
+[       OK ] SchedulerDispatcher.DispatchRangeExecutesAll (0 ms)
+[ RUN      ] SchedulerDispatcher.PickBackendSmallDataPrefersCpu
+[       OK ] SchedulerDispatcher.PickBackendSmallDataPrefersCpu (0 ms)
+[ RUN      ] SchedulerDispatcher.HandleFailureReturnsFallbackDecision
+[       OK ] SchedulerDispatcher.HandleFailureReturnsFallbackDecision (0 ms)
+[----------] 3 tests from SchedulerDispatcher (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 31 tests from 7 test suites ran. (0 ms total)
+[  PASSED  ] 31 tests.
+Exit code: 0
+=== acr_test_task_descriptor ===
+Running main() from C:/M/B/src/googletest-1.17.0/googletest/src/gtest_main.cc
+[==========] Running 17 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 11 tests from TaskDescriptor
+[ RUN      ] TaskDescriptor.MakeRangeDescriptorBasic
+[       OK ] TaskDescriptor.MakeRangeDescriptorBasic (0 ms)
+[ RUN      ] TaskDescriptor.MakeRangeDescriptorEmptyRange
+[       OK ] TaskDescriptor.MakeRangeDescriptorEmptyRange (0 ms)
+[ RUN      ] TaskDescriptor.MakeRangeDescriptorReversedRange
+[       OK ] TaskDescriptor.MakeRangeDescriptorReversedRange (0 ms)
+[ RUN      ] TaskDescriptor.MakeTilesDescriptorBasic
+[       OK ] TaskDescriptor.MakeTilesDescriptorBasic (0 ms)
+[ RUN      ] TaskDescriptor.MakeTilesDescriptorZeroExtent
+[       OK ] TaskDescriptor.MakeTilesDescriptorZeroExtent (0 ms)
+[ RUN      ] TaskDescriptor.MakeBatchDescriptorBasic
+[       OK ] TaskDescriptor.MakeBatchDescriptorBasic (0 ms)
+[ RUN      ] TaskDescriptor.MakeBatchDescriptorZeroItems
+[       OK ] TaskDescriptor.MakeBatchDescriptorZeroItems (0 ms)
+[ RUN      ] TaskDescriptor.MakeReduceDescriptorBasic
+[       OK ] TaskDescriptor.MakeReduceDescriptorBasic (0 ms)
+[ RUN      ] TaskDescriptor.WorkSizePriorityRangeFirst
+[       OK ] TaskDescriptor.WorkSizePriorityRangeFirst (0 ms)
+[ RUN      ] TaskDescriptor.WorkSizeExtentSecond
+[       OK ] TaskDescriptor.WorkSizeExtentSecond (0 ms)
+[ RUN      ] TaskDescriptor.WorkSizeItemCountLast
+[       OK ] TaskDescriptor.WorkSizeItemCountLast (0 ms)
+[----------] 11 tests from TaskDescriptor (0 ms total)
+
+[----------] 3 tests from PrecisionUtils
+[ RUN      ] PrecisionUtils.PrecisionStr
+[       OK ] PrecisionUtils.PrecisionStr (0 ms)
+[ RUN      ] PrecisionUtils.NumericPolicyToPrecisionFp32
+[       OK ] PrecisionUtils.NumericPolicyToPrecisionFp32 (0 ms)
+[ RUN      ] PrecisionUtils.NumericPolicyToPrecisionFp64
+[       OK ] PrecisionUtils.NumericPolicyToPrecisionFp64 (0 ms)
+[----------] 3 tests from PrecisionUtils (0 ms total)
+
+[----------] 3 tests from TaskTraitsValidation
+[ RUN      ] TaskTraitsValidation.DefaultTraitsValid
+[       OK ] TaskTraitsValidation.DefaultTraitsValid (0 ms)
+[ RUN      ] TaskTraitsValidation.ActiveFractionOutOfRange
+[       OK ] TaskTraitsValidation.ActiveFractionOutOfRange (0 ms)
+[ RUN      ] TaskTraitsValidation.ActiveFractionBoundary
+[       OK ] TaskTraitsValidation.ActiveFractionBoundary (0 ms)
+[----------] 3 tests from TaskTraitsValidation (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 17 tests from 3 test suites ran. (0 ms total)
+[  PASSED  ] 17 tests.
+Exit code: 0
+=== acr_test_topology ===
+Running main() from C:/M/B/src/googletest-1.17.0/googletest/src/gtest_main.cc
+[==========] Running 18 tests from 8 test suites.
+[----------] Global test environment set-up.
+[----------] 3 tests from HwlocTopology
+[ RUN      ] HwlocTopology.JsonNonEmpty
+[       OK ] HwlocTopology.JsonNonEmpty (2 ms)
+[ RUN      ] HwlocTopology.AvailableOrUnavailable
+[       OK ] HwlocTopology.AvailableOrUnavailable (16 ms)
+[ RUN      ] HwlocTopology.NoThrowWhenUnavailable
+[       OK ] HwlocTopology.NoThrowWhenUnavailable (10 ms)
+[----------] 3 tests from HwlocTopology (29 ms total)
+
+[----------] 1 test from DetectTopology
+[ RUN      ] DetectTopology.ReturnsValidJson
+[       OK ] DetectTopology.ReturnsValidJson (2 ms)
+[----------] 1 test from DetectTopology (2 ms total)
+
+[----------] 5 tests from CpuIsaCaps
+[ RUN      ] CpuIsaCaps.Sse2AlwaysOnX86_64
+[       OK ] CpuIsaCaps.Sse2AlwaysOnX86_64 (0 ms)
+[ RUN      ] CpuIsaCaps.MaskNonZeroOnX86_64
+[       OK ] CpuIsaCaps.MaskNonZeroOnX86_64 (0 ms)
+[ RUN      ] CpuIsaCaps.Avx512GateWhenUnsupported
+[       OK ] CpuIsaCaps.Avx512GateWhenUnsupported (0 ms)
+[ RUN      ] CpuIsaCaps.Avx512SubsetIndependent
+[       OK ] CpuIsaCaps.Avx512SubsetIndependent (0 ms)
+[ RUN      ] CpuIsaCaps.ToJsonContainsAllIsaFields
+[       OK ] CpuIsaCaps.ToJsonContainsAllIsaFields (0 ms)
+[----------] 5 tests from CpuIsaCaps (0 ms total)
+
+[----------] 1 test from DetectIsaCaps
+[ RUN      ] DetectIsaCaps.ReturnsValidJson
+[       OK ] DetectIsaCaps.ReturnsValidJson (0 ms)
+[----------] 1 test from DetectIsaCaps (0 ms total)
+
+[----------] 1 test from AxpyScalar
+[ RUN      ] AxpyScalar.BaselineCorrect
+[       OK ] AxpyScalar.BaselineCorrect (0 ms)
+[----------] 1 test from AxpyScalar (0 ms total)
+
+[----------] 2 tests from DispatchAxpy
+[ RUN      ] DispatchAxpy.MatchesScalar
+[       OK ] DispatchAxpy.MatchesScalar (0 ms)
+[ RUN      ] DispatchAxpy.EmptyRangeNoCrash
+[       OK ] DispatchAxpy.EmptyRangeNoCrash (0 ms)
+[----------] 2 tests from DispatchAxpy (0 ms total)
+
+[----------] 1 test from Avx512Safe
+[ RUN      ] Avx512Safe.GateWhenUnsupported
+[       OK ] Avx512Safe.GateWhenUnsupported (0 ms)
+[----------] 1 test from Avx512Safe (0 ms total)
+
+[----------] 4 tests from HardwareReport
+[ RUN      ] HardwareReport.NonEmptyAndSchema
+[       OK ] HardwareReport.NonEmptyAndSchema (6 ms)
+[ RUN      ] HardwareReport.GpuNullWhenUnregistered
+[       OK ] HardwareReport.GpuNullWhenUnregistered (1 ms)
+[ RUN      ] HardwareReport.GpuCallbackRegistered
+[       OK ] HardwareReport.GpuCallbackRegistered (8 ms)
+[ RUN      ] HardwareReport.FirstCallbackWins
+[       OK ] HardwareReport.FirstCallbackWins (12 ms)
+[----------] 4 tests from HardwareReport (29 ms total)
+
+[----------] Global test environment tear-down
+[==========] 18 tests from 8 test suites ran. (60 ms total)
+[  PASSED  ] 18 tests.
+Exit code: 0
+=== acr_test_utilization ===
+[==========] Running 54 tests from 8 test suites.
+[----------] Global test environment set-up.
+[----------] 5 tests from UtilSystemMetrics
+[ RUN      ] UtilSystemMetrics.CpuUtilizationReadsRealValue
+[UtilSystemMetrics.CpuUtilizationReadsRealValue] actual=0.342
+[       OK ] UtilSystemMetrics.CpuUtilizationReadsRealValue (155 ms)
+[ RUN      ] UtilSystemMetrics.CpuUtilizationRepeatedSamplesConsistent
+[UtilSystemMetrics.CpuUtilizationRepeatedSamplesConsistent] s1=0.344 s2=0.196
+[       OK ] UtilSystemMetrics.CpuUtilizationRepeatedSamplesConsistent (208 ms)
+[ RUN      ] UtilSystemMetrics.RamReadsRealValue
+[UtilSystemMetrics.RamReadsRealValue] total=65446 MB avail=39427 MB
+[       OK ] UtilSystemMetrics.RamReadsRealValue (0 ms)
+[ RUN      ] UtilSystemMetrics.GpuUtilizationReadsOrEstimates
+[acr.utilization] NVML loaded: 1 GPU device(s).
+[UtilSystemMetrics.GpuUtilizationReadsOrEstimates] NVML available, actual=0.030 estimated=0
+[       OK ] UtilSystemMetrics.GpuUtilizationReadsOrEstimates (32 ms)
+[ RUN      ] UtilSystemMetrics.GpuMemoryReadsOrEstimates
+[acr.utilization] NVML loaded: 1 GPU device(s).
+[       OK ] UtilSystemMetrics.GpuMemoryReadsOrEstimates (9 ms)
+[----------] 5 tests from UtilSystemMetrics (405 ms total)
+
+[----------] 11 tests from UtilCpu
+[ RUN      ] UtilCpu.DefaultTargetIs95Percent
+[       OK ] UtilCpu.DefaultTargetIs95Percent (0 ms)
+[ RUN      ] UtilCpu.SetTargetClamped
+[       OK ] UtilCpu.SetTargetClamped (0 ms)
+[ RUN      ] UtilCpu.SampleAndDecideReadsRealUtilization
+[UtilCpu.SampleAndDecideReadsRealUtilization] actual=0.265 error=-0.685 batch=8 yield=0
+[       OK ] UtilCpu.SampleAndDecideReadsRealUtilization (155 ms)
+[ RUN      ] UtilCpu.ControlWindowInRange100to500
+[       OK ] UtilCpu.ControlWindowInRange100to500 (0 ms)
+[ RUN      ] UtilCpu.TargetPoints50_80_95_100
+[UtilCpu.TargetPoints] target=0.50 actual=0.60 batch=1 yield=1 priority=0
+[UtilCpu.TargetPoints] target=0.80 actual=0.90 batch=1 yield=1 priority=0
+[UtilCpu.TargetPoints] target=0.95 actual=1.05 batch=1 yield=1 priority=0
+[UtilCpu.TargetPoints] target=1.00 actual=1.10 batch=1 yield=1 priority=0
+[       OK ] UtilCpu.TargetPoints50_80_95_100 (0 ms)
+[ RUN      ] UtilCpu.BatchSizeStrategyAdjustsOnHighUtilization
+[       OK ] UtilCpu.BatchSizeStrategyAdjustsOnHighUtilization (0 ms)
+[ RUN      ] UtilCpu.YieldStrategySetsShouldYield
+[       OK ] UtilCpu.YieldStrategySetsShouldYield (0 ms)
+[ RUN      ] UtilCpu.FeedbackLoopAdjustsPace
+[UtilCpu.FeedbackLoopAdjustsPace] actual=0.375 batch=8 yield=0 stride=0
+[       OK ] UtilCpu.FeedbackLoopAdjustsPace (151 ms)
+[ RUN      ] UtilCpu.WorkerParticipationRecorded
+[       OK ] UtilCpu.WorkerParticipationRecorded (0 ms)
+[ RUN      ] UtilCpu.CancelAndResponse
+[       OK ] UtilCpu.CancelAndResponse (0 ms)
+[ RUN      ] UtilCpu.StatusJsonContainsFields
+[       OK ] UtilCpu.StatusJsonContainsFields (0 ms)
+[----------] 11 tests from UtilCpu (306 ms total)
+
+[----------] 10 tests from UtilGpu
+[ RUN      ] UtilGpu.RegisterBackendAdds
+[       OK ] UtilGpu.RegisterBackendAdds (0 ms)
+[ RUN      ] UtilGpu.RegisterBackendIdempotent
+[       OK ] UtilGpu.RegisterBackendIdempotent (0 ms)
+[ RUN      ] UtilGpu.DecideThrottleOnSevereExceed
+[       OK ] UtilGpu.DecideThrottleOnSevereExceed (0 ms)
+[ RUN      ] UtilGpu.DecideLowUtilizationNoThrottle
+[       OK ] UtilGpu.DecideLowUtilizationNoThrottle (0 ms)
+[ RUN      ] UtilGpu.SampleAndDecideReadsRealOrEstimates
+[acr.utilization] NVML loaded: 1 GPU device(s).
+[UtilGpu.SampleAndDecideReadsRealOrEstimates] nvml=1 actual=0.030 estimated=0
+[       OK ] UtilGpu.SampleAndDecideReadsRealOrEstimates (17 ms)
+[ RUN      ] UtilGpu.MultiGpuIndependentControl
+[acr.utilization] NVML loaded: 1 GPU device(s).
+[       OK ] UtilGpu.MultiGpuIndependentControl (10 ms)
+[ RUN      ] UtilGpu.NoUnboundedQueue
+[       OK ] UtilGpu.NoUnboundedQueue (0 ms)
+[ RUN      ] UtilGpu.TargetPoints50_80_95_100
+[       OK ] UtilGpu.TargetPoints50_80_95_100 (0 ms)
+[ RUN      ] UtilGpu.CancelAndResponse
+[       OK ] UtilGpu.CancelAndResponse (0 ms)
+[ RUN      ] UtilGpu.StatusJsonContainsFields
+[acr.utilization] NVML loaded: 1 GPU device(s).
+[       OK ] UtilGpu.StatusJsonContainsFields (10 ms)
+[----------] 10 tests from UtilGpu (38 ms total)
+
+[----------] 7 tests from UtilMemory
+[ RUN      ] UtilMemory.ComputeLimitMinRatioAndReserve
+[       OK ] UtilMemory.ComputeLimitMinRatioAndReserve (0 ms)
+[ RUN      ] UtilMemory.DefaultFixedReserveIs512MB
+[       OK ] UtilMemory.DefaultFixedReserveIs512MB (0 ms)
+[ RUN      ] UtilMemory.DefaultRatioIs95Percent
+[       OK ] UtilMemory.DefaultRatioIs95Percent (0 ms)
+[ RUN      ] UtilMemory.SampleReadsRealRam
+[acr.utilization] NVML loaded: 1 GPU device(s).
+[UtilMemory.SampleReadsRealRam] total=65446 MB used=26038 MB limit=62174 MB exceeded=0
+[       OK ] UtilMemory.SampleReadsRealRam (9 ms)
+[ RUN      ] UtilMemory.ReportWithInjectsValues
+[acr.utilization] NVML loaded: 1 GPU device(s).
+[       OK ] UtilMemory.ReportWithInjectsValues (10 ms)
+[ RUN      ] UtilMemory.ExceedActionSuggestion
+[       OK ] UtilMemory.ExceedActionSuggestion (0 ms)
+[ RUN      ] UtilMemory.StatusJsonContainsFields
+[acr.utilization] NVML loaded: 1 GPU device(s).
+[       OK ] UtilMemory.StatusJsonContainsFields (9 ms)
+[----------] 7 tests from UtilMemory (29 ms total)
+
+[----------] 5 tests from UtilIo
+[ RUN      ] UtilIo.ZeroBudgetNoLimit
+[       OK ] UtilIo.ZeroBudgetNoLimit (0 ms)
+[ RUN      ] UtilIo.ExceedBudgetDetected
+[       OK ] UtilIo.ExceedBudgetDetected (0 ms)
+[ RUN      ] UtilIo.WarnAtThreshold
+[       OK ] UtilIo.WarnAtThreshold (0 ms)
+[ RUN      ] UtilIo.RecordIoAndSample
+[       OK ] UtilIo.RecordIoAndSample (0 ms)
+[ RUN      ] UtilIo.StatusJsonContainsFields
+[       OK ] UtilIo.StatusJsonContainsFields (0 ms)
+[----------] 5 tests from UtilIo (0 ms total)
+
+[----------] 6 tests from UtilConfig
+[ RUN      ] UtilConfig.InitSetsAllValues
+[       OK ] UtilConfig.InitSetsAllValues (0 ms)
+[ RUN      ] UtilConfig.UpdateHotChangesMutableOnly
+[       OK ] UtilConfig.UpdateHotChangesMutableOnly (0 ms)
+[ RUN      ] UtilConfig.SingleFieldSettersWork
+[       OK ] UtilConfig.SingleFieldSettersWork (0 ms)
+[ RUN      ] UtilConfig.ReadBeforeInitReturnsDefaults
+[       OK ] UtilConfig.ReadBeforeInitReturnsDefaults (0 ms)
+[ RUN      ] UtilConfig.BackendEnableDisable
+[       OK ] UtilConfig.BackendEnableDisable (0 ms)
+[ RUN      ] UtilConfig.NoCpuGpuShareField
+[       OK ] UtilConfig.NoCpuGpuShareField (0 ms)
+[----------] 6 tests from UtilConfig (0 ms total)
+
+[----------] 9 tests from UtilTracker
+[ RUN      ] UtilTracker.RecordAndCount
+[       OK ] UtilTracker.RecordAndCount (0 ms)
+[ RUN      ] UtilTracker.RecentReturnsLastN
+[       OK ] UtilTracker.RecentReturnsLastN (0 ms)
+[ RUN      ] UtilTracker.CapacityEvictsOldest
+[       OK ] UtilTracker.CapacityEvictsOldest (0 ms)
+[ RUN      ] UtilTracker.StatisticsComputeCorrect
+[       OK ] UtilTracker.StatisticsComputeCorrect (0 ms)
+[ RUN      ] UtilTracker.P95StatsCompute
+[UtilTracker.P95StatsCompute] p95_actual=0.9405 avg_actual=0.4950
+[       OK ] UtilTracker.P95StatsCompute (0 ms)
+[ RUN      ] UtilTracker.WorkerParticipationHistory
+[       OK ] UtilTracker.WorkerParticipationHistory (20 ms)
+[ RUN      ] UtilTracker.CancelledStateRecorded
+[       OK ] UtilTracker.CancelledStateRecorded (0 ms)
+[ RUN      ] UtilTracker.EmptyStatsSafe
+[       OK ] UtilTracker.EmptyStatsSafe (0 ms)
+[ RUN      ] UtilTracker.StatusJsonContainsFields
+[       OK ] UtilTracker.StatusJsonContainsFields (0 ms)
+[----------] 9 tests from UtilTracker (20 ms total)
+
+[----------] 1 test from UtilIntegration
+[ RUN      ] UtilIntegration.FeedbackLoopWithTracker
+[acr.utilization] NVML loaded: 1 GPU device(s).
+[UtilIntegration.FeedbackLoopWithTracker] samples=10 avg_actual=0.195 p95_actual=0.385
+[       OK ] UtilIntegration.FeedbackLoopWithTracker (669 ms)
+[----------] 1 test from UtilIntegration (669 ms total)
+
+[----------] Global test environment tear-down
+[==========] 54 tests from 8 test suites ran. (1469 ms total)
+[  PASSED  ] 54 tests.
+Exit code: 0

@@ -1,6 +1,2 @@
-=== git status --short ===
-Generated: 2026-08-02 16:35:47
-
-?? lib/acr/build_efg/
-?? lib/acr/build_evidence/
-?? 工程控制/evidence/acr/
+?? lib/acr/build_evidence_v2/
+?? 工程控制/evidence/acr_v2/

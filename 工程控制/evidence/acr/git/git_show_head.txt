@@ -1,82 +1,94 @@
-=== git show --stat HEAD ===
-Generated: 2026-08-02 16:35:47
-
-commit 0cf2f3f944b3e46c1cd70e450e0dded084fd246b
+commit 84e60e958eb977f94ffefb01b31089840d011c91
 Author: fujiaze <fujiaze@users.noreply.github.com>
-Date:   Sun Aug 2 15:57:50 2026 +0800
+Date:   Sun Aug 2 19:56:08 2026 +0800
 
-    test(acr): add classic experiment suite, fault injection and sanitizer tests
+    feat(acr): add CPU profiling, real utilization control and classic experiments
     
-    Phase H：16 项经典实验 E01-E16 + 故障注入 + sanitizer + 持续路线测试。
+    Phase C + G + H 完整实现：
     
-    经典实验套件（tests/classic/）：
-    - E01 Memory Copy/Read/Write/Triad
-    - E02 AXPY/FMA
-    - E03 Dot/Reduction Family
-    - E04 Tiled Matrix Transpose
-    - E05 2D Convolution（Tile halo）
-    - E06 Bilinear Affine Resampling
-    - E07 Histogram 256 bins（原子竞争）
-    - E08 Prefix Scan
-    - E09 Gather/Scatter
-    - E10 Branch Divergence（Mandelbrot）
-    - E11 GEMM（naive + tiled）
-    - E12 FFT Round-trip（naive DFT + Cooley-Tukey）
-    - E13 CPU+GPU Mixed Partition（coverage bitmap 完整不重复）
-    - E14 Resource Utilization Controller（50/80/95/100% 目标点）
-    - E15 Failure and Fallback（backend 缺失/profile corrupt/device lost）
-    - E16 Concurrency/Cancellation/Lifetime（100 次重启）
+    Phase C（CPU 画像 Benchmark）：
+    - 新增 qualification/benchmarks/：
+      - stream_benchmark.cpp：STREAM 式 CPU 内存（Copy/Scale/Add/Triad，FP32/FP64，5 ISA，多线程）
+      - arithmetic_benchmark.cpp：算术吞吐（add/mul/FMA/div/sqrt，FP32/FP64，5 ISA，依赖链 latency）
+      - reduction_benchmark.cpp：归约（sum/dot/min/max/L2/mean/variance，多精度多输入模式）
+      - thread_curve_benchmark.cpp：线程曲线（1/2/4/8/12/15/16 线程点）
+      - numa_benchmark.cpp：NUMA 本地/远端带宽
+      - benchmark_common.hpp + benchmark_main.cpp：Google Benchmark 集成
+    - profile_generator 扩展：填充 DeviceProfile.arithmetic/memory/reduction 字段
+    - 新增 tests/classic/e17_model_fit.cpp：模型拟合验证（median 相对误差 <=15%）
     
-    故障注入与 sanitizer（tests/fault/）：
-    - fault_injection.cpp：backend 缺失降级、profile 损坏处理、取消传播、异常传播
-    - sanitizer_smoke.cpp：Buffer 生命周期、Event 取消无泄漏、并发无数据竞争
-    - persistence.cpp：30 秒持续路线、100 次进程重启、profile 重载
+    Phase G（95% 资源控制，实际利用率读取）：
+    - 重写 utilization/cpu_controller.cpp：读取实际 CPU 利用率（Windows GetSystemTimes）
+    - 重写 utilization/gpu_controller.cpp：NVML 动态加载读取 GPU 利用率，不可用时队列预算估算并标记 estimated
+    - 重写 utilization/memory_budget.cpp：GlobalMemoryStatusEx 读取实际可用内存
+    - 新增 utilization/system_metrics.hpp/cpp：系统指标读取
+    - 重写 utilization/actual_tracker.cpp：记录实际平均/p95/控制误差/worker 参与历史
+    - 控制器不修改 hardware-profile（只读）
+    - 50/80/95/100% 目标点测试
     
-    CLI 运行器（tools/acr_classic_runner/）：
-    - 支持 --list/--summary/--output，输出 JSON case 级报告
+    Phase H（经典实验 E01-E21 扩展）：
+    - 扩展 E04-E16（transpose/convolution/resample/histogram/scan/gather/mandelbrot/gemm/fft）
+    - 新增 E18 动态 CPU+GPU 工作池（无 GPU 则 SKIPPED，不 CPU 模拟）
+    - 新增 E19 资源利用率控制（50/80/95/100% 目标点）
+    - 新增 E20 故障和回退（插件缺失/无画像/画像损坏/显存不足/launch失败/device lost）
+    - 新增 E21 持续与并发可靠性（30秒持续 + 重复启动 + Event 生命周期）
+    - 新增 tests/fault/sanitizer_actual.cpp：实际 sanitizer 验证（ASan 未开启时 SKIPPED）
     
-    测试结果：
-    - 经典实验 142/142 PASSED（连续 5 次稳定）
-    - 故障注入 10/10 PASSED
-    - sanitizer smoke 10/10 PASSED
-    - persistence 5/5 PASSED
-    - 容差：FP32 1e-5+5e-5*max，FP64 1e-12+1e-11*max，整数 exact
-    - 固定 seed 0xA57C5AC20260802
+    已知工具链限制：
+    - MinGW g++ 16.1.0 不支持 ASan（缺 libasan），sanitizer_actual 测试 SKIPPED
+    - Phase D CUDA backend 编译集成未通过（nvcc 11.8 vs MinGW host 不兼容），GPU 画像 SKIPPED
+    - 这些限制已如实记录，符合"无硬件/工具链不可用时 SKIPPED"规范
     
-    期间修复 3 个 bug：
-    1. scheduler/mixed_runner.cpp：CoverageBitmap::mark_done 竞争条件（多 chunk 同 word 丢失更新），改用 per-chunk success 数组
-    2. api/event.cpp：Event::cancel 无条件 mark_cancelled 覆盖 Done 状态，改为只在 Pending/Running 时改状态
-    3. include/astro/compute/acr.hpp：Buffer<T> 缺少显式 move 构造/赋值，源对象 count_ 未清零，补充显式 move 语义
-    
+    测试：573/573 通过（含 E01-E21 经典实验 + 71 新增架构测试 + 54 资源控制测试）
     path guard：仅修改 lib/acr/ 下文件，未触及任何算法目录。
 
- lib/acr/api/event.cpp                           |   9 +-
- lib/acr/include/astro/compute/acr.hpp           |  12 +
- lib/acr/memory.md                               |  19 +-
- lib/acr/tests/CMakeLists.txt                    |   4 +-
- lib/acr/tests/classic/CMakeLists.txt            |  56 +++++
- lib/acr/tests/classic/classic_common.hpp        | 300 ++++++++++++++++++++++
- lib/acr/tests/classic/classic_main.cpp          |  55 ++++
- lib/acr/tests/classic/e01_memory.cpp            | 155 ++++++++++++
- lib/acr/tests/classic/e02_axpy.cpp              | 133 ++++++++++
- lib/acr/tests/classic/e03_dot.cpp               | 172 +++++++++++++
- lib/acr/tests/classic/e04_transpose.cpp         | 117 +++++++++
- lib/acr/tests/classic/e05_convolution.cpp       | 158 ++++++++++++
- lib/acr/tests/classic/e06_resample.cpp          | 119 +++++++++
- lib/acr/tests/classic/e07_histogram.cpp         | 166 ++++++++++++
- lib/acr/tests/classic/e08_scan.cpp              | 156 ++++++++++++
- lib/acr/tests/classic/e09_gather_scatter.cpp    | 145 +++++++++++
- lib/acr/tests/classic/e10_mandelbrot.cpp        |  90 +++++++
- lib/acr/tests/classic/e11_gemm.cpp              | 149 +++++++++++
- lib/acr/tests/classic/e12_fft.cpp               | 184 ++++++++++++++
- lib/acr/tests/classic/e13_mixed.cpp             | 194 ++++++++++++++
- lib/acr/tests/classic/e14_utilization.cpp       | 171 +++++++++++++
- lib/acr/tests/classic/e15_failure.cpp           | 174 +++++++++++++
- lib/acr/tests/classic/e16_concurrency.cpp       | 184 ++++++++++++++
- lib/acr/tests/fault/CMakeLists.txt              |  42 ++++
- lib/acr/tests/fault/fault_injection.cpp         | 246 ++++++++++++++++++
- lib/acr/tests/fault/persistence.cpp             | 154 ++++++++++++
- lib/acr/tests/fault/sanitizer_smoke.cpp         | 197 +++++++++++++++
- lib/acr/tools/acr_classic_runner/CMakeLists.txt |  22 ++
- lib/acr/tools/acr_classic_runner/main.cpp       | 320 ++++++++++++++++++++++++
- 29 files changed, 3899 insertions(+), 4 deletions(-)
+ .../benchmarks/arithmetic_benchmark.cpp            | 505 +++++++++++++++
+ .../qualification/benchmarks/benchmark_common.hpp  | 332 ++++++++++
+ .../qualification/benchmarks/benchmark_main.cpp    | 102 +++
+ .../qualification/benchmarks/numa_benchmark.cpp    | 334 ++++++++++
+ .../benchmarks/reduction_benchmark.cpp             | 266 ++++++++
+ .../qualification/benchmarks/stream_benchmark.cpp  | 372 +++++++++++
+ .../benchmarks/thread_curve_benchmark.cpp          | 135 ++++
+ lib/acr/tests/CMakeLists.txt                       |   2 +-
+ lib/acr/tests/classic/CMakeLists.txt               |  13 +-
+ lib/acr/tests/classic/classic_main.cpp             |  10 +
+ lib/acr/tests/classic/e04_transpose.cpp            | 165 ++++-
+ lib/acr/tests/classic/e05_convolution.cpp          | 360 +++++++++--
+ lib/acr/tests/classic/e06_resample.cpp             | 325 ++++++++--
+ lib/acr/tests/classic/e07_histogram.cpp            | 285 ++++++---
+ lib/acr/tests/classic/e08_scan.cpp                 | 272 +++++---
+ lib/acr/tests/classic/e09_gather_scatter.cpp       | 301 ++++++---
+ lib/acr/tests/classic/e10_mandelbrot.cpp           | 146 ++++-
+ lib/acr/tests/classic/e11_gemm.cpp                 |  85 ++-
+ lib/acr/tests/classic/e12_fft.cpp                  | 149 ++++-
+ lib/acr/tests/classic/e13_mixed.cpp                | 140 +++--
+ lib/acr/tests/classic/e14_utilization.cpp          |  26 +-
+ lib/acr/tests/classic/e15_failure.cpp              | 169 +++++
+ lib/acr/tests/classic/e16_concurrency.cpp          | 123 ++++
+ lib/acr/tests/classic/e17_model_fit.cpp            | 337 ++++++++++
+ lib/acr/tests/classic/e18_workpool.cpp             | 252 ++++++++
+ lib/acr/tests/classic/e19_resource_control.cpp     | 267 ++++++++
+ lib/acr/tests/classic/e20_fault_fallback.cpp       | 368 +++++++++++
+ .../tests/classic/e21_persistence_concurrency.cpp  | 273 ++++++++
+ lib/acr/tests/fault/CMakeLists.txt                 |  11 +-
+ lib/acr/tests/fault/sanitizer_actual.cpp           | 189 ++++++
+ lib/acr/tests/unit/test_cpu_profile.cpp            | 332 ++++++++++
+ lib/acr/tests/unit/test_utilization.cpp            | 695 ++++++++++++++++++---
+ lib/acr/tools/acr_classic_runner/CMakeLists.txt    |   4 +-
+ lib/acr/tools/acr_classic_runner/main.cpp          |  12 +-
+ lib/acr/utilization/CMakeLists.txt                 |  33 +-
+ lib/acr/utilization/actual_tracker.cpp             | 217 ++++++-
+ lib/acr/utilization/actual_tracker.hpp             |  60 +-
+ lib/acr/utilization/config_hot_read.cpp            | 110 +++-
+ lib/acr/utilization/config_hot_read.hpp            |  64 +-
+ lib/acr/utilization/cpu_controller.cpp             | 236 ++++++-
+ lib/acr/utilization/cpu_controller.hpp             |  78 ++-
+ lib/acr/utilization/gpu_controller.cpp             | 223 ++++++-
+ lib/acr/utilization/gpu_controller.hpp             |  65 +-
+ lib/acr/utilization/io_budget.cpp                  |  94 ++-
+ lib/acr/utilization/io_budget.hpp                  |  22 +-
+ lib/acr/utilization/memory_budget.cpp              | 168 ++++-
+ lib/acr/utilization/memory_budget.hpp              |  80 ++-
+ lib/acr/utilization/system_metrics.cpp             | 530 ++++++++++++++++
+ lib/acr/utilization/system_metrics.hpp             | 117 ++++
+ 49 files changed, 8723 insertions(+), 731 deletions(-)
