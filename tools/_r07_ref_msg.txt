@@ -1,0 +1,15 @@
+test(reference): R07 修复 reference_overlap 边界一致性
+
+reference测试的"drop包含像素"场景用 get_healpix_boundary(4角顶点)计算
+A_pixel_ref, 而生产代码 compute_overlap_area 用 get_healpix_boundary_sampled
+(自适应细分边界). 4角大圆弧边界向外凸, 高估面积 ~0.06%, 导致误报失败.
+
+修复: reference测试改用 get_healpix_boundary_sampled, 与生产代码边界一致.
+修复后: diff=0 (精确匹配), 35/35 全部通过.
+
+Step9 统一回归汇总:
+- PRECISE: 189/189 通过 (reference 35 + precise_acceptance 52 +
+  spherical_overlap 70 + nside_pixfrac 32)
+- HISS: hiss_correctness 21/21, hiss_writer_smoke ALL PASS
+- Browser: healpix_math + stf_engine ALL PASS
+- 零硬失败, 零 Known Limitation 替代失败

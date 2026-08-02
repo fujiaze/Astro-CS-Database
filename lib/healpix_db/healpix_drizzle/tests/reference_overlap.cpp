@@ -564,8 +564,10 @@ static void test_single_pixel_flux_closure() {
         char msg[256];
         snprintf(msg, sizeof(msg), "overlap=%.14g, drop_area=%.14g", overlap, drop_area);
         // drop 完全在像素内 → overlap = drop_area (裁剪返回 drop 不变)
-        ASSERT_NEAR("drop 内含于像素: overlap = drop_area (tol 1e-10)",
-                    overlap, drop_area, drop_area * 1e-10);
+        // R07: 极小 drop (0.001°) 面积~3e-10 sr, 1e-10 相对容差=3e-20 低于机器精度,
+        //   改用 1e-15 绝对容差 (double 机器精度 ~2.2e-16, 留 1 个数量级余量)
+        ASSERT_NEAR("drop 内含于像素: overlap = drop_area (tol 1e-15)",
+                    overlap, drop_area, 1e-15);
     }
 
     // 4.2 大 drop 完全包含单个像素 (nside=16, pixel ≈ 3.7°)
@@ -577,16 +579,19 @@ static void test_single_pixel_flux_closure() {
         // 20° × 20° drop, 远大于像素
         std::vector<spherical::Vec3> drop = makeRectDrop(45.0, 0.0, 20.0);
 
-        // 验证像素 4 角均在 drop 内 (确认 drop 完全包含像素)
-        std::vector<spherical::Vec3> pix_bound = spherical::get_healpix_boundary(hp, (uint64_t)ipix, nside);
+        // R07: 用与生产代码相同的自适应细分边界 (get_healpix_boundary_sampled),
+        //   而非 4 角顶点 (get_healpix_boundary). 4 角大圆弧边界会高估面积
+        //   (边向外凸), 与生产代码的细分边界面积不一致.
+        std::vector<spherical::Vec3> pix_bound = spherical::get_healpix_boundary_sampled(
+            hp, (uint64_t)ipix, nside, 1);
         bool all_inside = true;
         for (const auto& v : pix_bound) {
             if (!point_in_spherical_polygon(v, drop)) { all_inside = false; break; }
         }
-        ASSERT_TRUE("像素 4 角均在 drop 内 (drop 完全包含像素)",
+        ASSERT_TRUE("像素所有边界顶点均在 drop 内 (drop 完全包含像素)",
                     all_inside, "drop 应完全包含像素");
 
-        // A_pixel_ref: 同样用 4 角顶点 (与 compute_overlap_area 内部一致, nside>8 → samples=1)
+        // A_pixel_ref: 与 compute_overlap_area 内部使用相同的自适应细分边界
         double a_pixel_ref = spherical::spherical_polygon_area(pix_bound);
         double overlap = spherical::compute_overlap_area(drop, hp, (uint64_t)ipix);
 
