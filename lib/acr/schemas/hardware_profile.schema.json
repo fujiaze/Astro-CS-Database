@@ -1,0 +1,121 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ACR Hardware Profile",
+  "description": "ACR 硬件画像（hardware-profile.json）。Phase E3 qualification 生成，profile 模块只读消费。包含设备指纹 + 多维能力曲线（算术/内存/传输/归约/卷积/不规则/分支/开销/库）。",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "profile_kind", "fingerprint_sha256", "devices"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "acr.hardware_profile.v1",
+      "description": "Schema 版本（profile 解析器据此识别 corrupt）"
+    },
+    "generated_at": {
+      "type": "string",
+      "pattern": "^[0-9]{8}T[0-9]{6}Z$",
+      "description": "生成时间戳 ISO 8601 简化格式 YYYYMMDDTHHMMSSZ"
+    },
+    "profile_kind": {
+      "type": "string",
+      "enum": ["quick", "standard", "full", "fallback"],
+      "description": "标定档位（fallback 为无画像时 CostEstimator 构造的 CPU-only 降级档案）"
+    },
+    "fingerprint_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "设备指纹 SHA-256 hex（与 qualification::ProfileGenerator::build_fingerprint 一致逻辑）"
+    },
+    "stale": {
+      "type": "boolean",
+      "description": "画像是否过期（指纹不匹配）。运行时由 HardwareProfileReader 设置，写入时为 false。",
+      "default": false
+    },
+    "devices": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/DeviceProfile"},
+      "minItems": 1
+    }
+  },
+  "definitions": {
+    "DeviceProfile": {
+      "type": "object",
+      "required": ["device_id", "device_name", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "device_id":             {"type": "integer", "minimum": 0, "description": "0=CPU；1..N=GPU 0..N-1"},
+        "device_name":           {"type": "string"},
+        "kind":                  {"type": "string", "enum": ["cpu", "gpu"]},
+        "total_memory_bytes":    {"type": "integer", "minimum": 0, "description": "CPU: RAM; GPU: VRAM"},
+        "available_memory_bytes":{"type": "integer", "minimum": 0},
+        "compute_units":         {"type": "integer", "minimum": 0, "description": "CPU: cores; GPU: SM"},
+        "peak_bandwidth_gbps":   {"type": "number", "minimum": 0},
+        "arithmetic":            {"type": "object", "description": "[(precision, op:isa)] → Curve",
+                                  "additionalProperties": {"$ref": "#/definitions/Curve"}},
+        "memory":                {"type": "object", "description": "[(level:residency)] → Curve",
+                                  "additionalProperties": {"$ref": "#/definitions/Curve"}},
+        "transfer":              {"type": "object", "description": "[(direction:mem_type)] → Curve",
+                                  "additionalProperties": {"$ref": "#/definitions/Curve"}},
+        "reduction":             {"type": "object", "description": "[(op:precision)] → Curve",
+                                  "additionalProperties": {"$ref": "#/definitions/Curve"}},
+        "convolution":           {"type": "object", "description": "[method:shape:precision] → Curve",
+                                  "additionalProperties": {"$ref": "#/definitions/Curve"}},
+        "irregular":             {"type": "object", "description": "[pattern:sparsity/contention] → Curve",
+                                  "additionalProperties": {"$ref": "#/definitions/Curve"}},
+        "branch":                {"type": "object", "description": "[uniformity] → Curve",
+                                  "additionalProperties": {"$ref": "#/definitions/Curve"}},
+        "overhead":              {"type": "object", "description": "submit/launch/event/alloc/merge → FixedOverhead",
+                                  "additionalProperties": {"$ref": "#/definitions/FixedOverhead"}},
+        "library":               {"type": "object", "description": "fft/gemm/... → LibraryCapability",
+                                  "additionalProperties": {"$ref": "#/definitions/LibraryCapability"}}
+      }
+    },
+    "Curve": {
+      "type": "object",
+      "description": "分段曲线（log2 尺寸上分段线性插值）。points 按 size 升序。median 单位由族决定（耗时 ns 或吞吐 GB/s）。",
+      "required": ["points"],
+      "additionalProperties": false,
+      "properties": {
+        "points": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/CurvePoint"},
+          "minItems": 1
+        }
+      }
+    },
+    "CurvePoint": {
+      "type": "object",
+      "required": ["size", "median"],
+      "additionalProperties": false,
+      "properties": {
+        "size":    {"type": "integer", "minimum": 0, "description": "问题规模（元素数或字节数）"},
+        "median":  {"type": "number", "description": "中位耗时（ns）或吞吐（GB/s），由族决定"},
+        "p95":     {"type": "number", "description": "95 分位"},
+        "mad":     {"type": "number", "description": "中位绝对偏差"}
+      }
+    },
+    "FixedOverhead": {
+      "type": "object",
+      "required": ["median_ns"],
+      "additionalProperties": false,
+      "properties": {
+        "median_ns":      {"type": "number", "minimum": 0, "description": "中位耗时（纳秒）"},
+        "p95_ns":         {"type": "number", "minimum": 0},
+        "cold_start_ns":  {"type": "number", "minimum": 0, "description": "冷启动开销（首次调用）"},
+        "warm_ns":        {"type": "number", "minimum": 0, "description": "温态开销（已初始化后）"}
+      }
+    },
+    "LibraryCapability": {
+      "type": "object",
+      "required": ["available"],
+      "additionalProperties": false,
+      "properties": {
+        "available":       {"type": "boolean"},
+        "implementation":  {"type": "string", "description": "cuFFT/FFTW/BLAS/..."},
+        "version":         {"type": "string"},
+        "size_curves":     {"type": "object", "description": "按 problem_shape → Curve",
+                            "additionalProperties": {"$ref": "#/definitions/Curve"}}
+      }
+    }
+  }
+}

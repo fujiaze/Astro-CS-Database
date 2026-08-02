@@ -6,6 +6,19 @@
 
 ## 进度
 
+### 2026-08-02 Phase B+E+F CMake 集成 + 单测补全
+- **背景**：Phase B/E/F 代码已实现但未接入 CMake，3 个新测试未注册，存在多处编译错误。
+- **修复的编译错误**：
+  1. `task_descriptor.cpp` include 路径错误：`"astro/compute/core/task_descriptor.hpp"` → `"task_descriptor.hpp"`（同目录）
+  2. `hardware_profile.hpp` 缺 `<cmath>`：`std::log2` 未声明（Curve::predict 用）
+  3. `acr.hpp` 在 `namespace detail` 内前向声明 `struct TaskDescriptor`，与 `astro::compute::TaskDescriptor`（task_descriptor.hpp 真实定义）形成名字遮蔽 → runtime.cpp 报 "incomplete type"。移除该前向声明（submit_*_with_desc 签名只用 TaskTraits，不需要 TaskDescriptor 前向声明）
+  4. `task_descriptor.hpp` 未声明 `task_traits_valid`/`task_descriptor_summary`（实现在 .cpp）→ 测试无法链接。补声明到头文件
+- **CMake 集成**：
+  - `core/CMakeLists.txt`：acr_core 加入 `task_descriptor.cpp`
+  - `tests/unit/CMakeLists.txt`：注册 3 个新测试目标（acr_test_task_descriptor 链 acr_core+acr_api；acr_test_hardware_profile 链 acr_api；acr_test_cost 链 acr_cost）
+- **清理的警告**：移除 dispatcher.cpp 未用变量 `total_work`；cost_estimator.cpp 未用变量 `bytes_per_item`（range_chunk_thunk 警告系 incomplete-type 错误级联，修复后自动消失）
+- **测试结果**：376/376 通过（1 skipped 是 Phase B 别名声明性）。新增 71 测试：test_task_descriptor 17、test_hardware_profile 33、test_cost 21。366/366 非 smoke 测试并行全通过；10 个 SanitizerSmoke 并行负载下偶发 SEGFAULT（-j1 串行 10/10 稳定通过），系预存并发测试 flaky，与本次改动无关（未触及 sanitizer/event/tiles 代码）。
+
 ### 2026-08-02 Phase A 完成
 - worktree 从 origin/main (8f50519) 创建 feature/astrocompute-runtime
 - astro_toolkit.py 自检通过（ok:true）

@@ -149,6 +149,7 @@ foreach(subdir
     api core buffers topology diagnostics
     backends/cpu backends/alpaka backends/cuda
     qualification routing scheduler utilization
+    profile cost
     tests tools/acr_benchmark tools/acr_status tools/acr_report tools/acr_invalidate
     tools/acr_classic_runner
     examples

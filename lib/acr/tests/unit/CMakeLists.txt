@@ -65,3 +65,33 @@ gtest_discover_tests(acr_test_qualification DISCOVERY_MODE PRE_TEST)
 gtest_discover_tests(acr_test_routing DISCOVERY_MODE PRE_TEST)
 gtest_discover_tests(acr_test_scheduler DISCOVERY_MODE PRE_TEST)
 gtest_discover_tests(acr_test_utilization DISCOVERY_MODE PRE_TEST)
+
+# Phase B3：TaskDescriptor 单测（task_traits_valid 在 acr_core）
+add_executable(acr_test_task_descriptor test_task_descriptor.cpp)
+target_link_libraries(acr_test_task_descriptor PRIVATE
+    acr_core acr_api GTest::gtest_main)
+target_include_directories(acr_test_task_descriptor PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../core
+)
+gtest_discover_tests(acr_test_task_descriptor DISCOVERY_MODE PRE_TEST)
+
+# Phase E1：HardwareProfile 数据结构单测（header-only，仅需 include 路径）
+add_executable(acr_test_hardware_profile test_hardware_profile.cpp)
+target_link_libraries(acr_test_hardware_profile PRIVATE
+    acr_api GTest::gtest_main)
+gtest_discover_tests(acr_test_hardware_profile DISCOVERY_MODE PRE_TEST)
+
+# Phase F1+F2：CostEstimator 单测（CostEstimator 实现在 acr_cost，传递性引入 acr_profile）
+add_executable(acr_test_cost test_cost.cpp)
+target_link_libraries(acr_test_cost PRIVATE
+    acr_cost GTest::gtest_main)
+gtest_discover_tests(acr_test_cost DISCOVERY_MODE PRE_TEST)
+
+# Phase C：CPU 画像生成与读取单测（ProfileGenerator + HardwareProfile）
+add_executable(acr_test_cpu_profile test_cpu_profile.cpp)
+target_link_libraries(acr_test_cpu_profile PRIVATE
+    acr_qualification acr_api GTest::gtest_main)
+target_include_directories(acr_test_cpu_profile PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../qualification
+)
+gtest_discover_tests(acr_test_cpu_profile DISCOVERY_MODE PRE_TEST)

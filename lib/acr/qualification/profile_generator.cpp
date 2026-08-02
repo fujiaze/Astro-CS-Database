@@ -1,5 +1,6 @@
 // lib/acr/qualification/profile_generator.cpp — Profile 生成实现
 // Phase E：聚合 + 选路 + JSON 序列化 + SHA-256 指纹。
+// Phase E3：hardware-profile.json 生成（多维能力曲线）。
 #include "profile_generator.hpp"
 #include "benchmark_driver.hpp"
 
@@ -7,9 +8,12 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <ctime>
 #include <fstream>
 #include <iomanip>
+#include <map>
 #include <sstream>
+#include <thread>
 #include <vector>
 
 #include "astro/compute/topology.hpp"
@@ -400,6 +404,450 @@ bool ProfileGenerator::write_to_file(const std::string& path,
     std::ofstream f(path, std::ios::out | std::ios::trunc);
     if (!f.is_open()) return false;
     f << serialize(bundle);
+    return f.good();
+}
+
+// ============================================================================
+// Phase E3：hardware-profile.json 生成实现
+// ============================================================================
+// 将 benchmark 结果映射到 HardwareProfile 的多维能力曲线。
+// KernelId → 能力曲线族映射：
+//   Copy    (id=1) → memory[MainMem:host:copy]
+//   Triad   (id=2) → memory[MainMem:host:triad]
+//   AXPY    (id=3) → arithmetic[fp32:add:baseline]
+//   Dot     (id=4) → reduction[dot:fp32]
+//   其他           → arithmetic[<precision>:add:baseline]（兜底）
+
+namespace {
+
+// CurvePoint 序列化
+void serialize_curve_points(std::ostringstream& os, const Curve& curve) {
+    os << "[";
+    for (std::size_t i = 0; i < curve.points.size(); ++i) {
+        const auto& p = curve.points[i];
+        if (i > 0) os << ",";
+        os << "{\"size\":" << p.size;
+        os << ",\"median\":" << p.median;
+        os << ",\"p95\":" << p.p95;
+        os << ",\"mad\":" << p.mad;
+        os << "}";
+    }
+    os << "]";
+}
+
+// FixedOverhead 序列化
+void serialize_overhead(std::ostringstream& os, const std::string& name,
+                        const FixedOverhead& oh) {
+    os << "\"" << name << "\":{";
+    os << "\"median_ns\":" << oh.median_ns;
+    os << ",\"p95_ns\":" << oh.p95_ns;
+    os << ",\"cold_start_ns\":" << oh.cold_start_ns;
+    os << ",\"warm_ns\":" << oh.warm_ns;
+    os << "}";
+}
+
+// 判断 backend 是否为 GPU
+bool is_gpu_backend(const std::string& backend) {
+    return backend.rfind("cuda", 0) == 0;
+}
+
+// backend → device_id（CPU=0；cuda:N → N+1）
+DeviceId backend_to_device_id_local(const std::string& backend) {
+    if (backend == "cpu" || backend.empty()) return kHwCpuDeviceId;
+    if (backend.rfind("cuda:", 0) == 0) {
+        try {
+            int idx = std::stoi(backend.substr(5));
+            return static_cast<DeviceId>(idx + 1);
+        } catch (...) { return kHwInvalidDeviceId; }
+    }
+    return kHwInvalidDeviceId;
+}
+
+// 精度字符串 → HwPrecision
+HwPrecision parse_hw_precision(const std::string& s) {
+    return (s == "fp64") ? HwPrecision::Fp64 : HwPrecision::Fp32;
+}
+
+} // anonymous namespace
+
+std::vector<DeviceProfile> ProfileGenerator::build_device_profiles(
+    const std::vector<KernelBenchmarkResult>& results) const {
+    // 按 backend 分组
+    std::map<std::string, std::vector<const KernelBenchmarkResult*>> by_backend;
+    for (const auto& r : results) {
+        by_backend[r.backend].push_back(&r);
+    }
+
+    // 收集 hardware_report 提取容量信息
+    std::string hw = generate_hardware_report();
+    std::string cpu_model = extract_json_field(hw, "model");
+    if (cpu_model.empty()) cpu_model = extract_json_field(hw, "cpu_model");
+    std::string cores_str = extract_json_number(hw, "cores");
+    if (cores_str.empty()) cores_str = extract_json_number(hw, "cpu_cores");
+    std::uint32_t cpu_cores = 0;
+    if (!cores_str.empty()) {
+        try { cpu_cores = static_cast<std::uint32_t>(std::stoul(cores_str)); } catch (...) {}
+    }
+    if (cpu_cores == 0) cpu_cores = static_cast<std::uint32_t>(std::thread::hardware_concurrency());
+    if (cpu_cores == 0) cpu_cores = 4;
+
+    std::string gpu_name = extract_json_field(hw, "gpu_name");
+    if (gpu_name.empty()) gpu_name = extract_json_field(hw, "name");
+    std::string vmem_str = extract_json_number(hw, "total_memory");
+    if (vmem_str.empty()) vmem_str = extract_json_number(hw, "gpu_memory_bytes");
+    std::uint64_t gpu_vmem = 0;
+    if (!vmem_str.empty()) {
+        try { gpu_vmem = std::stoull(vmem_str); } catch (...) {}
+    }
+
+    std::vector<DeviceProfile> devices;
+    for (const auto& [backend, results_for_backend] : by_backend) {
+        DeviceProfile dev;
+        dev.device_id = backend_to_device_id_local(backend);
+        if (is_gpu_backend(backend)) {
+            dev.kind = DeviceKind::Gpu;
+            dev.device_name = gpu_name.empty() ? backend : gpu_name;
+            dev.total_memory_bytes = gpu_vmem;
+            dev.available_memory_bytes = static_cast<std::size_t>(gpu_vmem * 0.9);
+            dev.compute_units = 0;  // 当前 topology 不提供 SM 数
+            dev.peak_bandwidth_gbps = 0.0;
+        } else {
+            dev.kind = DeviceKind::Cpu;
+            dev.device_name = cpu_model.empty() ? "CPU" : cpu_model;
+            dev.total_memory_bytes = 0;  // RAM 由运行时 fallback 估算
+            dev.available_memory_bytes = 0;
+            dev.compute_units = cpu_cores;
+            dev.peak_bandwidth_gbps = 0.0;
+        }
+
+        // 映射 benchmark 结果到能力曲线
+        for (const auto* r : results_for_backend) {
+            map_result_to_curves(dev, *r);
+        }
+
+        // 填充默认固定开销
+        fill_default_overheads(dev);
+
+        devices.push_back(std::move(dev));
+    }
+
+    // 如果没有任何 benchmark 结果，至少创建一个 CPU device（fallback）
+    if (devices.empty()) {
+        DeviceProfile cpu;
+        cpu.device_id = kHwCpuDeviceId;
+        cpu.device_name = cpu_model.empty() ? "CPU" : cpu_model;
+        cpu.kind = DeviceKind::Cpu;
+        cpu.compute_units = cpu_cores;
+        fill_default_overheads(cpu);
+        devices.push_back(std::move(cpu));
+    }
+
+    // 按 device_id 排序（CPU 在前，GPU 在后）
+    std::sort(devices.begin(), devices.end(),
+              [](const DeviceProfile& a, const DeviceProfile& b) {
+                  return a.device_id < b.device_id;
+              });
+    return devices;
+}
+
+void ProfileGenerator::map_result_to_curves(
+    DeviceProfile& device, const KernelBenchmarkResult& r) const {
+    // 从聚合结果构造 CurvePoint
+    // median_kernel_ns 为该 size 的中位耗时
+    CurvePoint pt;
+    pt.size = r.problem_size;
+    pt.median = static_cast<double>(r.median_kernel_ns);
+    // 估算 p95/mad（基于 stddev）
+    pt.p95 = static_cast<double>(r.median_kernel_ns) +
+             2.0 * r.stddev_kernel_ns;  // 粗略 p95 ≈ median + 2σ
+    pt.mad = r.stddev_kernel_ns * 0.6745;  // σ → MAD 转换因子
+
+    // 按 kernel_id 映射到能力曲线族
+    // KernelId: Custom=0, Copy=1, Triad=2, AXPY=3, Dot=4, Transpose=5,
+    //           Convolution2D=6, Histogram256=7, Scan=8, Gather=9, Scatter=10,
+    //           Mandelbrot=11, Gemm=12, Fft=13
+    HwPrecision prec = parse_hw_precision(r.precision);
+    std::uint32_t kid = r.kernel_id;
+
+    if (kid == 1) {  // Copy → memory[MainMem:host:copy]
+        device.memory[{MemoryLevel::MainMem, MemoryResidency::Host}].points.push_back(pt);
+    } else if (kid == 2) {  // Triad → memory[MainMem:host:triad]
+        device.memory[{MemoryLevel::MainMem, MemoryResidency::Host}].points.push_back(pt);
+    } else if (kid == 3) {  // AXPY → arithmetic[fp32:add:baseline]
+        device.arithmetic[{prec, "add:baseline"}].points.push_back(pt);
+    } else if (kid == 4) {  // Dot → reduction[dot:fp32]
+        device.reduction[{"dot", prec}].points.push_back(pt);
+    } else if (kid == 6) {  // Convolution2D → convolution[direct:default:fp32]
+        device.convolution["direct:default:" + std::string(r.precision)].points.push_back(pt);
+    } else if (kid == 7) {  // Histogram256 → irregular[histogram:uniform]
+        device.irregular["histogram:uniform"].points.push_back(pt);
+    } else if (kid == 9) {  // Gather → irregular[gather:random]
+        device.irregular["gather:random"].points.push_back(pt);
+    } else if (kid == 10) { // Scatter → irregular[scatter:random]
+        device.irregular["scatter:random"].points.push_back(pt);
+    } else if (kid == 11) { // Mandelbrot → branch[highly_variable]
+        device.branch["highly_variable"].points.push_back(pt);
+    } else if (kid == 12) { // Gemm → library[gemm]
+        LibraryCapability cap;
+        cap.available = true;
+        cap.implementation = "self-benchmark";
+        cap.size_curves["default"].points.push_back(pt);
+        device.library["gemm"] = std::move(cap);
+    } else if (kid == 13) { // Fft → library[fft]
+        LibraryCapability cap;
+        cap.available = true;
+        cap.implementation = "self-benchmark";
+        cap.size_curves["default"].points.push_back(pt);
+        device.library["fft"] = std::move(cap);
+    } else {
+        // 兜底：其他 kernel → arithmetic[<precision>:add:baseline]
+        device.arithmetic[{prec, "add:baseline"}].points.push_back(pt);
+    }
+}
+
+void ProfileGenerator::fill_default_overheads(DeviceProfile& device) const {
+    // 保守固定开销估算（因当前 benchmark_driver 不测 overhead）
+    // CPU 和 GPU 的开销差异显著
+    bool is_gpu = (device.kind == DeviceKind::Gpu);
+
+    FixedOverhead submit_oh;
+    submit_oh.median_ns = is_gpu ? 8500.0 : 1100.0;
+    submit_oh.p95_ns = is_gpu ? 9200.0 : 1800.0;
+    submit_oh.cold_start_ns = is_gpu ? 450000.0 : 95000.0;
+    submit_oh.warm_ns = is_gpu ? 6500.0 : 600.0;
+    device.overhead["submit"] = submit_oh;
+
+    FixedOverhead launch_oh;
+    launch_oh.median_ns = is_gpu ? 7800.0 : 120.0;
+    launch_oh.p95_ns = is_gpu ? 8500.0 : 200.0;
+    launch_oh.cold_start_ns = is_gpu ? 95000.0 : 8000.0;
+    launch_oh.warm_ns = is_gpu ? 6200.0 : 80.0;
+    device.overhead["launch"] = launch_oh;
+
+    FixedOverhead event_oh;
+    event_oh.median_ns = is_gpu ? 1200.0 : 220.0;
+    event_oh.p95_ns = is_gpu ? 1500.0 : 320.0;
+    event_oh.cold_start_ns = is_gpu ? 8000.0 : 5000.0;
+    event_oh.warm_ns = is_gpu ? 1000.0 : 180.0;
+    device.overhead["event"] = event_oh;
+
+    FixedOverhead alloc_oh;
+    alloc_oh.median_ns = is_gpu ? 350000.0 : 580.0;
+    alloc_oh.p95_ns = is_gpu ? 380000.0 : 950.0;
+    alloc_oh.cold_start_ns = is_gpu ? 1200000.0 : 50000.0;
+    alloc_oh.warm_ns = is_gpu ? 280000.0 : 350.0;
+    device.overhead["alloc"] = alloc_oh;
+
+    FixedOverhead merge_oh;
+    merge_oh.median_ns = is_gpu ? 850.0 : 240.0;
+    merge_oh.p95_ns = is_gpu ? 1100.0 : 380.0;
+    merge_oh.cold_start_ns = is_gpu ? 5200.0 : 12000.0;
+    merge_oh.warm_ns = is_gpu ? 720.0 : 200.0;
+    device.overhead["merge"] = merge_oh;
+}
+
+HardwareProfile ProfileGenerator::generate_hardware_profile(
+    const std::vector<KernelBenchmarkResult>& results, ProfileKind kind) const {
+    HardwareProfile hp;
+    hp.schema_version = "acr.hardware_profile.v1";
+    hp.profile_kind = profile_kind_str(kind);
+    hp.state = HwProfileState::Valid;
+    hp.stale = false;
+
+    // 设备指纹
+    DeviceFingerprint fp = build_fingerprint();
+    hp.fingerprint_sha256 = fp.sha256;
+
+    // 时间戳
+    {
+        std::time_t now = std::time(nullptr);
+        std::tm* tm = std::gmtime(&now);
+        char buf[32];
+        if (tm) {
+            std::strftime(buf, sizeof(buf), "%Y%m%dT%H%M%SZ", tm);
+            hp.generated_at = buf;
+        }
+    }
+
+    // 设备画像
+    hp.devices = build_device_profiles(results);
+
+    return hp;
+}
+
+std::string ProfileGenerator::serialize_hardware_profile(const HardwareProfile& hp) {
+    std::ostringstream os;
+    os << "{";
+    os << "\"schema_version\":\"" << esc(hp.schema_version) << "\"";
+    os << ",\"generated_at\":\"" << esc(hp.generated_at) << "\"";
+    os << ",\"profile_kind\":\"" << esc(hp.profile_kind) << "\"";
+    os << ",\"fingerprint_sha256\":\"" << esc(hp.fingerprint_sha256) << "\"";
+    os << ",\"stale\":" << (hp.stale ? "true" : "false");
+    os << ",\"devices\":[";
+
+    for (std::size_t i = 0; i < hp.devices.size(); ++i) {
+        const auto& dev = hp.devices[i];
+        if (i > 0) os << ",";
+        os << "{";
+        os << "\"device_id\":" << dev.device_id;
+        os << ",\"device_name\":\"" << esc(dev.device_name) << "\"";
+        os << ",\"kind\":\"" << device_kind_str(dev.kind) << "\"";
+        os << ",\"total_memory_bytes\":" << dev.total_memory_bytes;
+        os << ",\"available_memory_bytes\":" << dev.available_memory_bytes;
+        os << ",\"compute_units\":" << dev.compute_units;
+        os << ",\"peak_bandwidth_gbps\":" << dev.peak_bandwidth_gbps;
+
+        // arithmetic 曲线
+        if (!dev.arithmetic.empty()) {
+            os << ",\"arithmetic\":{";
+            std::size_t j = 0;
+            for (const auto& [key, curve] : dev.arithmetic) {
+                if (j > 0) os << ",";
+                os << "\"" << hw_precision_str(key.first) << ":" << key.second << "\":";
+                os << "{\"points\":";
+                serialize_curve_points(os, curve);
+                os << "}";
+                ++j;
+            }
+            os << "}";
+        }
+
+        // memory 曲线
+        if (!dev.memory.empty()) {
+            os << ",\"memory\":{";
+            std::size_t j = 0;
+            for (const auto& [key, curve] : dev.memory) {
+                if (j > 0) os << ",";
+                os << "\"" << memory_level_str(key.first) << ":"
+                   << memory_residency_str(key.second) << "\":";
+                os << "{\"points\":";
+                serialize_curve_points(os, curve);
+                os << "}";
+                ++j;
+            }
+            os << "}";
+        }
+
+        // transfer 曲线
+        if (!dev.transfer.empty()) {
+            os << ",\"transfer\":{";
+            std::size_t j = 0;
+            for (const auto& [key, curve] : dev.transfer) {
+                if (j > 0) os << ",";
+                os << "\"" << transfer_direction_str(key.first) << ":"
+                   << memory_type_str(key.second) << "\":";
+                os << "{\"points\":";
+                serialize_curve_points(os, curve);
+                os << "}";
+                ++j;
+            }
+            os << "}";
+        }
+
+        // reduction 曲线
+        if (!dev.reduction.empty()) {
+            os << ",\"reduction\":{";
+            std::size_t j = 0;
+            for (const auto& [key, curve] : dev.reduction) {
+                if (j > 0) os << ",";
+                os << "\"" << key.first << ":" << hw_precision_str(key.second) << "\":";
+                os << "{\"points\":";
+                serialize_curve_points(os, curve);
+                os << "}";
+                ++j;
+            }
+            os << "}";
+        }
+
+        // convolution 曲线
+        if (!dev.convolution.empty()) {
+            os << ",\"convolution\":{";
+            std::size_t j = 0;
+            for (const auto& [key, curve] : dev.convolution) {
+                if (j > 0) os << ",";
+                os << "\"" << esc(key) << "\":";
+                os << "{\"points\":";
+                serialize_curve_points(os, curve);
+                os << "}";
+                ++j;
+            }
+            os << "}";
+        }
+
+        // irregular 曲线
+        if (!dev.irregular.empty()) {
+            os << ",\"irregular\":{";
+            std::size_t j = 0;
+            for (const auto& [key, curve] : dev.irregular) {
+                if (j > 0) os << ",";
+                os << "\"" << esc(key) << "\":";
+                os << "{\"points\":";
+                serialize_curve_points(os, curve);
+                os << "}";
+                ++j;
+            }
+            os << "}";
+        }
+
+        // branch 曲线
+        if (!dev.branch.empty()) {
+            os << ",\"branch\":{";
+            std::size_t j = 0;
+            for (const auto& [key, curve] : dev.branch) {
+                if (j > 0) os << ",";
+                os << "\"" << esc(key) << "\":";
+                os << "{\"points\":";
+                serialize_curve_points(os, curve);
+                os << "}";
+                ++j;
+            }
+            os << "}";
+        }
+
+        // overhead
+        if (!dev.overhead.empty()) {
+            os << ",\"overhead\":{";
+            std::size_t j = 0;
+            for (const auto& [name, oh] : dev.overhead) {
+                if (j > 0) os << ",";
+                serialize_overhead(os, name, oh);
+                ++j;
+            }
+            os << "}";
+        }
+
+        // library
+        if (!dev.library.empty()) {
+            os << ",\"library\":{";
+            std::size_t j = 0;
+            for (const auto& [name, cap] : dev.library) {
+                if (j > 0) os << ",";
+                os << "\"" << esc(name) << "\":{";
+                os << "\"available\":" << (cap.available ? "true" : "false");
+                if (!cap.implementation.empty()) {
+                    os << ",\"implementation\":\"" << esc(cap.implementation) << "\"";
+                }
+                if (!cap.version.empty()) {
+                    os << ",\"version\":\"" << esc(cap.version) << "\"";
+                }
+                os << "}";
+                ++j;
+            }
+            os << "}";
+        }
+
+        os << "}";  // end device
+    }
+    os << "]";  // end devices
+    os << "}";  // end root
+    return os.str();
+}
+
+bool ProfileGenerator::write_hardware_profile_to_file(
+    const std::string& path, const HardwareProfile& hp) {
+    std::ofstream f(path, std::ios::out | std::ios::trunc);
+    if (!f.is_open()) return false;
+    f << serialize_hardware_profile(hp);
     return f.good();
 }
 

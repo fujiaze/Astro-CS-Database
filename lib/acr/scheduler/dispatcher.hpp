@@ -7,9 +7,11 @@
 //   3. 失败回退：设备失败时，未执行的 chunk 回退到 CPU，已执行的不重放
 //   4. 数据驻留成本：考虑传输成本，小数据优先 CPU
 //   5. Dispatcher 是 MixedRunner + QueueAwareEstimator + FallbackPolicy 的组合
-//   6. 公共头不暴露第三方类型
+//   6. Phase F3 增强：新增 cost-aware 调度方法（接受 CostEstimate + CurrentState）
+//   7. 公共头不暴露第三方类型
 #pragma once
 
+#include "current_state.hpp"
 #include "fallback.hpp"
 #include "mixed_runner.hpp"
 #include "partitioner.hpp"
@@ -20,6 +22,11 @@
 #include <memory>
 #include <string>
 #include <vector>
+
+namespace astro::compute {
+struct TaskDescriptor;
+namespace cost { struct CostEstimate; }
+}
 
 namespace astro::compute::scheduler {
 
@@ -32,8 +39,22 @@ struct DispatcherConfig {
     std::size_t small_data_threshold_bytes{1u << 20};  // 1 MB
 };
 
+// ===== Cost-aware 分发结果（Phase F3）=====
+struct CostAwareResult {
+    MixedRunResult run_result;          // 复用 MixedRunResult 统计
+    std::string preferred_backend;      // CostEstimator 推荐的 backend
+    std::string actual_primary_backend; // 实际执行主力 backend
+    std::size_t total_chunks{0};
+    std::size_t chunks_on_cpu{0};
+    std::size_t chunks_on_gpu{0};
+    std::size_t chunks_fallback{0};
+    bool used_cost_estimator{false};    // 是否使用了 CostEstimator
+    std::string current_state_json;     // 最终 CurrentState 快照
+};
+
 // ===== Dispatcher =====
 // 工作保持调度器：整合 MixedRunner + QueueAware + FallbackPolicy
+// Phase F3 增强：新增 cost-aware 方法（接受 CostEstimate + CurrentState）
 class Dispatcher {
 public:
     Dispatcher();
@@ -57,6 +78,22 @@ public:
     // 当设备失败时的回退决策
     FallbackDecision handle_failure(const std::string& failed_backend,
                                     const CoverageBitmap& bitmap) const;
+
+    // ===== Phase F3：Cost-aware 工作保持调度 =====
+    // 根据 CostEstimate 决定 chunk_size 和 backend 分配。
+    // 无 GPU 或画像不可用时退化为纯 CPU（与 dispatch_range 等价）。
+    // task: 任务描述（提供 work_size/precision/traits）
+    // estimate: CostEstimator 的估算结果（提供 per_device 成本和推荐块）
+    // fn: per-chunk kernel（参数：chunk_idx, begin, end, user_data）
+    // user_data: 传递给 fn 的用户数据
+    CostAwareResult dispatch_range_cost_aware(
+        const TaskDescriptor& task,
+        const cost::CostEstimate& estimate,
+        ChunkKernelFn fn, void* user_data);
+
+    // ===== CurrentState 访问（cost-aware 调度后可用）=====
+    const CurrentState& current_state() const noexcept;
+    CurrentState& current_state() noexcept;
 
     // 内部组件访问（用于测试）
     const MixedRunner& runner() const noexcept;

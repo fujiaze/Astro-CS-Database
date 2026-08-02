@@ -11,7 +11,9 @@
 //   - 异常：kernel 抛异常 → catch → mark_failed(KernelFailed, e.what())
 //   - runtime_init 幂等：首次配置生效，后续调用 no-op；shutdown 后可重新 init
 //
-// Phase F 将替换为 tbb::task_group 真正异步提交。
+// Phase B4：submit_*_with_desc 接通 CostEstimator + Dispatcher 调用链。
+//   - 无画像/无 GPU 时退化为 submit_*（CPU tbb 路径）
+//   - 有画像 + GPU 时用 Dispatcher::dispatch_range_cost_aware
 
 #include <algorithm>
 #include <atomic>
@@ -33,6 +35,9 @@
 
 #include "astro/compute/acr.hpp"
 #include "astro/compute/runtime_internal.h"
+#include "task_descriptor.hpp"
+#include "../cost/cost_estimator.hpp"
+#include "../scheduler/dispatcher.hpp"
 
 namespace astro::compute {
 
@@ -442,6 +447,258 @@ void submit_reduce(Range1D range, const void* identity, std::size_t elem_size,
         auto& s = runtime_state();
         s.arena->execute([&] {
             // identity 值（oneTBB functional 形式：range, identity_value, reduce, combine）
+            std::vector<unsigned char> identity_acc(elem_size);
+            std::memcpy(identity_acc.data(), identity, elem_size);
+            auto final_acc = tbb::parallel_reduce(
+                tbb::blocked_range<std::size_t>(range.begin, range.end, gs),
+                identity_acc,
+                [&](const tbb::blocked_range<std::size_t>& r,
+                    std::vector<unsigned char> acc) -> std::vector<unsigned char> {
+                    if (ev->cancelled.load(std::memory_order_relaxed)) return acc;
+                    reduce_fn(r.begin(), r.end(), acc.data(), user_data);
+                    return acc;
+                },
+                [&](std::vector<unsigned char> a,
+                    const std::vector<unsigned char>& b) -> std::vector<unsigned char> {
+                    combine_fn(a.data(), b.data(), user_data);
+                    return a;
+                });
+            std::memcpy(result_out, final_acc.data(), elem_size);
+        });
+    });
+
+    finalize_event(ev);
+}
+
+// ============================================================================
+// Phase B4：submit_*_with_desc 实现（CostEstimator + Dispatcher 调用链）
+// ============================================================================
+// 设计：
+//   1. 构造 TaskDescriptor
+//   2. 从 global_cost_estimator() 获取 CostEstimate
+//   3. 无画像/无 GPU → 退化为 submit_*（CPU tbb 路径）
+//   4. 有画像 + GPU → 用 Dispatcher::dispatch_range_cost_aware
+//   5. 无论走哪条路径，release_fn 都由 KernelGuard 保证调用一次
+
+// 全局 Dispatcher 单例（首次调用时初始化）
+namespace {
+scheduler::Dispatcher& global_dispatcher() {
+    static scheduler::Dispatcher inst;
+    static std::once_flag flag;
+    std::call_once(flag, []() {
+        scheduler::DispatcherConfig cfg;
+        cfg.preferred_backend = "cpu";
+        // 默认只有 CPU；GPU 设备由 future topology 探测添加
+        cfg.devices = {{"cpu", 0, 0, 50.0, true}};
+        cfg.fallback_strategy = scheduler::FallbackStrategy::ToCpu;
+        inst.configure(cfg);
+    });
+    return inst;
+}
+
+// RangeKernelFn → ChunkKernelFn 适配器
+// RangeKernelFn: void(*)(std::size_t begin, std::size_t end, void* user_data)
+// ChunkKernelFn: void(*)(std::size_t chunk_idx, std::size_t begin, std::size_t end, void* user_data)
+// 适配器忽略 chunk_idx，直接调用 RangeKernelFn
+struct RangeKernelAdapter {
+    RangeKernelFn fn;
+    void* user_data;
+};
+// 静态 thunk：从 user_data 取出 adapter，调用 fn(begin, end, original_user_data)
+// 注意：adapter 本身作为 user_data 传给 Dispatcher
+void range_chunk_thunk(std::size_t /*chunk_idx*/, std::size_t begin, std::size_t end, void* ud) {
+    RangeKernelAdapter* adapter = static_cast<RangeKernelAdapter*>(ud);
+    adapter->fn(begin, end, adapter->user_data);
+}
+} // anonymous namespace
+
+// ----- submit_range_with_desc -----
+Event submit_range_with_desc(OperationId id, Range1D range, TaskTraits traits,
+                              RangeKernelFn fn, void* user_data, ReleaseFn rel) {
+    ensure_runtime_initialized();
+    auto ev = std::make_shared<EventImpl>();
+    KernelGuard guard(ev.get(), rel, user_data);
+
+    if (ev->cancelled.load(std::memory_order_relaxed)) {
+        ev->mark_cancelled();
+        runtime_state().total_cancelled.fetch_add(1, std::memory_order_relaxed);
+        guard.release_early();
+        return Event(ev);
+    }
+
+    // 1. 构造 TaskDescriptor
+    TaskDescriptor task = make_range_descriptor(id, range, traits, Precision::Default);
+
+    // 2. 通过 CostEstimator 估算成本（接通调用链）
+    //    CostEstimate 提供 preferred_backend + recommended_chunk_size
+    cost::CostEstimate estimate;
+    try {
+        estimate = cost::global_cost_estimator().estimate(task);
+    } catch (...) {
+        // CostEstimator 异常不阻断执行，退化为默认 CPU 路径
+    }
+
+    // 3. 无 GPU 可用时走 CPU tbb 路径（与 submit_range 一致）
+    //    CostEstimate.recommended_chunk 用于 grainsize 优化
+    bool has_gpu = false;
+    for (const auto& d : global_dispatcher().current_state().backends()) {
+        if (d.rfind("cuda", 0) == 0) { has_gpu = true; break; }
+    }
+
+    if (!has_gpu || !estimate.profile_available) {
+        // CPU 路径：直接用 tbb parallel_for（与旧 API 一致）
+        // 用 CostEstimate 的 recommended_chunk 作为 grainsize 提示
+        std::uint32_t grainsize = 0;
+        for (const auto& dc : estimate.per_device) {
+            if (dc.device_id == kCpuDeviceId && dc.recommended_chunk > 0) {
+                grainsize = static_cast<std::uint32_t>(
+                    std::min(dc.recommended_chunk, static_cast<std::size_t>(UINT32_MAX)));
+                break;
+            }
+        }
+        run_kernel(ev, [&] {
+            if (range.empty()) return;
+            arena_parallel_for(range.begin, range.end, grainsize,
+                [&](const tbb::blocked_range<std::size_t>& r) {
+                    if (ev->cancelled.load(std::memory_order_relaxed)) return;
+                    fn(r.begin(), r.end(), user_data);
+                });
+        });
+    } else {
+        // GPU 可用路径：通过 Dispatcher 分发
+        // 适配 RangeKernelFn → ChunkKernelFn
+        RangeKernelAdapter adapter{fn, user_data};
+        auto result = global_dispatcher().dispatch_range_cost_aware(
+            task, estimate, range_chunk_thunk, &adapter);
+        if (!result.run_result.all_done && result.run_result.failed_chunks > 0) {
+            ev->mark_failed(StatusCode::KernelFailed,
+                            "dispatch_range_cost_aware: " + result.run_result.error_message);
+            runtime_state().total_failed.fetch_add(1, std::memory_order_relaxed);
+        }
+    }
+
+    finalize_event(ev);
+    return Event(ev);
+}
+
+// ----- submit_tiles_with_desc -----
+Event submit_tiles_with_desc(OperationId id, Extent2D extent, TileShape tile,
+                              TaskTraits traits, TileKernelFn fn,
+                              void* user_data, ReleaseFn rel) {
+    ensure_runtime_initialized();
+    auto ev = std::make_shared<EventImpl>();
+    KernelGuard guard(ev.get(), rel, user_data);
+
+    if (tile.tile_w == 0 || tile.tile_h == 0) {
+        ev->mark_failed(StatusCode::InvalidArgument, "submit_tiles_with_desc: tile size zero");
+        runtime_state().total_failed.fetch_add(1, std::memory_order_relaxed);
+        return Event(ev);
+    }
+
+    if (ev->cancelled.load(std::memory_order_relaxed)) {
+        ev->mark_cancelled();
+        runtime_state().total_cancelled.fetch_add(1, std::memory_order_relaxed);
+        guard.release_early();
+        return Event(ev);
+    }
+
+    // 构造 TaskDescriptor（诊断用）
+    TaskDescriptor task = make_tiles_descriptor(id, extent, tile, traits, Precision::Default);
+
+    // 走 CPU submit_tiles 路径
+    const std::size_t tiles_x = (extent.width + tile.tile_w - 1) / tile.tile_w;
+    const std::size_t tiles_y = (extent.height + tile.tile_h - 1) / tile.tile_h;
+    const std::size_t total_tiles = tiles_x * tiles_y;
+
+    run_kernel(ev, [&] {
+        if (total_tiles == 0) return;
+        arena_parallel_for(0, total_tiles, 0,
+            [&](const tbb::blocked_range<std::size_t>& r) {
+                if (ev->cancelled.load(std::memory_order_relaxed)) return;
+                for (std::size_t idx = r.begin(); idx < r.end(); ++idx) {
+                    if (ev->cancelled.load(std::memory_order_relaxed)) return;
+                    const std::size_t ty = idx / tiles_x;
+                    const std::size_t tx = idx % tiles_x;
+                    const std::size_t tw = (std::min)(tile.tile_w, extent.width - tx * tile.tile_w);
+                    const std::size_t th = (std::min)(tile.tile_h, extent.height - ty * tile.tile_h);
+                    fn(tx, ty, tw, th, user_data);
+                }
+            });
+    });
+
+    finalize_event(ev);
+    return Event(ev);
+}
+
+// ----- submit_batch_with_desc -----
+Event submit_batch_with_desc(OperationId id, std::size_t item_count, TaskTraits traits,
+                              ItemKernelFn fn, void* user_data, ReleaseFn rel) {
+    ensure_runtime_initialized();
+    auto ev = std::make_shared<EventImpl>();
+    KernelGuard guard(ev.get(), rel, user_data);
+
+    if (ev->cancelled.load(std::memory_order_relaxed)) {
+        ev->mark_cancelled();
+        runtime_state().total_cancelled.fetch_add(1, std::memory_order_relaxed);
+        guard.release_early();
+        return Event(ev);
+    }
+
+    // 构造 TaskDescriptor（诊断用）
+    TaskDescriptor task = make_batch_descriptor(id, item_count, traits, Precision::Default);
+
+    run_kernel(ev, [&] {
+        if (item_count == 0) return;
+        arena_parallel_for(0, item_count, 0,
+            [&](const tbb::blocked_range<std::size_t>& r) {
+                if (ev->cancelled.load(std::memory_order_relaxed)) return;
+                for (std::size_t i = r.begin(); i < r.end(); ++i) {
+                    if (ev->cancelled.load(std::memory_order_relaxed)) return;
+                    fn(i, user_data);
+                }
+            });
+    });
+
+    finalize_event(ev);
+    return Event(ev);
+}
+
+// ----- submit_reduce_with_desc -----
+void submit_reduce_with_desc(OperationId id, Range1D range, TaskTraits traits,
+                              const void* identity, std::size_t elem_size,
+                              ReduceKernelFn reduce_fn, ReduceCombineFn combine_fn,
+                              void* user_data, ReleaseFn rel, void* result_out) {
+    ensure_runtime_initialized();
+    auto ev = std::make_shared<EventImpl>();
+    KernelGuard guard(ev.get(), rel, user_data);
+
+    if (identity == nullptr || result_out == nullptr || elem_size == 0) {
+        ev->mark_failed(StatusCode::InvalidArgument,
+                        "submit_reduce_with_desc: invalid identity/result/elem_size");
+        runtime_state().total_failed.fetch_add(1, std::memory_order_relaxed);
+        return;
+    }
+
+    std::memcpy(result_out, identity, elem_size);
+
+    if (range.empty()) {
+        finalize_event(ev);
+        return;
+    }
+
+    if (ev->cancelled.load(std::memory_order_relaxed)) {
+        ev->mark_cancelled();
+        runtime_state().total_cancelled.fetch_add(1, std::memory_order_relaxed);
+        return;
+    }
+
+    // 构造 TaskDescriptor（诊断用）
+    TaskDescriptor task = make_reduce_descriptor(id, range, traits, Precision::Default);
+
+    run_kernel(ev, [&] {
+        const std::size_t gs = 64;
+        auto& s = runtime_state();
+        s.arena->execute([&] {
             std::vector<unsigned char> identity_acc(elem_size);
             std::memcpy(identity_acc.data(), identity, elem_size);
             auto final_acc = tbb::parallel_reduce(

@@ -16,8 +16,11 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <vector>
+
+#include "astro/compute/task_traits.hpp"
 
 namespace astro::compute {
 
@@ -207,6 +210,25 @@ void submit_reduce(Range1D range, const void* identity, std::size_t elem_size,
                    ReduceKernelFn reduce_fn, ReduceCombineFn combine_fn,
                    void* user_data, ReleaseFn rel, ExecutionHints hints, void* result_out);
 
+// ===== Phase B2：TaskTraits-based 新接口（接受 TaskDescriptor 字段，type-erased）=====
+// 这些接口由 runtime.cpp 实现，内部构造 TaskDescriptor 并调用 CostEstimator + Dispatcher。
+// 旧 submit_* 保留为 CPU baseline 直接路径（CostEstimator 可选 fallback）。
+// 注意：TaskDescriptor 完整类型在 core/task_descriptor.hpp 的 astro::compute 命名空间内，
+// runtime.cpp 通过 #include "task_descriptor.hpp" 获取完整类型；此处不在 detail 命名空间
+// 前向声明，避免与 astro::compute::TaskDescriptor 形成名字遮蔽。
+
+Event submit_range_with_desc(OperationId id, Range1D range, TaskTraits traits,
+                              RangeKernelFn fn, void* user_data, ReleaseFn rel);
+Event submit_tiles_with_desc(OperationId id, Extent2D extent, TileShape tile,
+                              TaskTraits traits, TileKernelFn fn,
+                              void* user_data, ReleaseFn rel);
+Event submit_batch_with_desc(OperationId id, std::size_t item_count, TaskTraits traits,
+                              ItemKernelFn fn, void* user_data, ReleaseFn rel);
+void submit_reduce_with_desc(OperationId id, Range1D range, TaskTraits traits,
+                              const void* identity, std::size_t elem_size,
+                              ReduceKernelFn reduce_fn, ReduceCombineFn combine_fn,
+                              void* user_data, ReleaseFn rel, void* result_out);
+
 } // namespace detail
 
 // ===== 模板 API 实现（内联，调用 detail::submit_*，不依赖 tbb 头）=====
@@ -339,6 +361,118 @@ Event parallel_scan(KernelId /*id*/, BufferView<T> input, BufferView<T> output, 
     delete heap;
     Event e;
     return e;
+}
+
+// ============================================================================
+// Phase B2：TaskTraits-based 公共 API（新签名，强制 TaskTraits，无 cpu_share/gpu_share）
+// ============================================================================
+// 设计：
+//   1. OperationId 是诊断/缓存标识（string_view），不是固定比例路由键
+//   2. TaskTraits 强制提供（描述任务类别/访存/强度/数值策略）
+//   3. 调用 detail::submit_*_with_desc → CostEstimator → Dispatcher → backend
+//   4. 旧 KernelId-based API 保留向后兼容（走旧 submit_* → CPU runtime）
+//   5. 公共头不暴露第三方类型（TaskDescriptor 前向声明，完整类型在 .cpp 内）
+//   6. Args 通过 lambda 捕获传递（与旧 API 一致），不直接支持可变 Args
+//      （spec 写 Args&&... 是 future-proofing，当前实现要求 kernel 单参数）
+
+// parallel_for(OperationId, Range1D, TaskTraits, KernelFn)
+// ACR 根据画像和数据驻留自动决定 CPU/GPU、块大小、并发方式。
+template<class KernelFn>
+Event parallel_for(OperationId id, Range1D range, TaskTraits traits, KernelFn&& fn) {
+    if (range.empty()) { Event e; return e; }
+    using F = std::decay_t<KernelFn>;
+    F* heap = new F(std::forward<KernelFn>(fn));
+    auto wrapper = +[](std::size_t b, std::size_t e, void* ud) {
+        F* f = static_cast<F*>(ud);
+        for (std::size_t i = b; i < e; ++i) (*f)(i);
+    };
+    auto rel = +[](void* ud) { delete static_cast<F*>(ud); };
+    return detail::submit_range_with_desc(id, range, traits, wrapper, heap, rel);
+}
+
+// parallel_tiles(OperationId, Extent2D, TileShape, TaskTraits, KernelFn)
+// ACR 负责：边缘 Tile、halo 只读视图、输出所有权、CPU/GPU 动态领取和尾部收缩。
+template<class KernelFn>
+Event parallel_tiles(OperationId id, Extent2D extent, TileShape preferred_tile,
+                     TaskTraits traits, KernelFn&& fn) {
+    if (extent.count() == 0 || preferred_tile.tile_w == 0 || preferred_tile.tile_h == 0) {
+        Event e; return e;
+    }
+    using F = std::decay_t<KernelFn>;
+    F* heap = new F(std::forward<KernelFn>(fn));
+    auto wrapper = +[](std::size_t tx, std::size_t ty, std::size_t tw, std::size_t th, void* ud) {
+        F* f = static_cast<F*>(ud);
+        (*f)(tx, ty, tw, th);
+    };
+    auto rel = +[](void* ud) { delete static_cast<F*>(ud); };
+    return detail::submit_tiles_with_desc(id, extent, preferred_tile, traits,
+                                          wrapper, heap, rel);
+}
+
+// parallel_reduce(OperationId, Range1D, TaskTraits, T identity, MapKernel, ReduceOp)
+// 每设备先产生局部结果，再按 NumericPolicy 合并。
+// 默认允许正常浮点末位差异；deterministic_merge=true 或 fp64 accumulator 走确定性路径。
+template<class T, class MapKernel, class ReduceOp>
+T parallel_reduce(OperationId id, Range1D range, TaskTraits traits, T identity,
+                  MapKernel&& map, ReduceOp&& reduce_op) {
+    if (range.empty()) return identity;
+    using F = std::decay_t<MapKernel>;
+    using R = std::decay_t<ReduceOp>;
+    struct Bundle { F map_fn; R reduce_op; };
+    Bundle* heap = new Bundle{std::forward<MapKernel>(map), std::forward<ReduceOp>(reduce_op)};
+    auto reduce_kernel = +[](std::size_t b, std::size_t e, void* acc, void* ud) {
+        Bundle* p = static_cast<Bundle*>(ud);
+        T* a = static_cast<T*>(acc);
+        for (std::size_t i = b; i < e; ++i) *a = p->reduce_op(*a, p->map_fn(i));
+    };
+    auto combine = +[](void* dst, const void* src, void* ud) {
+        Bundle* p = static_cast<Bundle*>(ud);
+        *static_cast<T*>(dst) = p->reduce_op(*static_cast<T*>(dst), *static_cast<const T*>(src));
+    };
+    auto rel = +[](void* ud) { delete static_cast<Bundle*>(ud); };
+    T result = identity;
+    detail::submit_reduce_with_desc(id, range, traits, &identity, sizeof(T),
+                                     reduce_kernel, combine, heap, rel, &result);
+    return result;
+}
+
+// parallel_batch(OperationId, item_count, TaskTraits, KernelFn)
+// 适合大量独立对象。高度不均匀时设置 uniformity=highly_variable，
+// 调度器使用更细粒度动态领取。
+template<class KernelFn>
+Event parallel_batch(OperationId id, std::size_t item_count, TaskTraits traits, KernelFn&& fn) {
+    if (item_count == 0) { Event e; return e; }
+    using F = std::decay_t<KernelFn>;
+    F* heap = new F(std::forward<KernelFn>(fn));
+    auto wrapper = +[](std::size_t idx, void* ud) {
+        F* f = static_cast<F*>(ud);
+        (*f)(idx);
+    };
+    auto rel = +[](void* ud) { delete static_cast<F*>(ud); };
+    return detail::submit_batch_with_desc(id, item_count, traits, wrapper, heap, rel);
+}
+
+// ===== Phase B2 辅助：KernelId → OperationId 转换（向后兼容）=====
+// 旧 API 用 KernelId，新 API 用 OperationId。此函数把 KernelId 转为 string_view，
+// 供旧 API 走新路径时使用（诊断/日志）。
+inline OperationId kernel_id_to_operation_id(KernelId k) noexcept {
+    switch (k) {
+        case KernelId::Custom:         return "kernel.custom";
+        case KernelId::Copy:           return "kernel.copy";
+        case KernelId::Triad:          return "kernel.triad";
+        case KernelId::AXPY:           return "kernel.axpy";
+        case KernelId::Dot:            return "kernel.dot";
+        case KernelId::Transpose:      return "kernel.transpose";
+        case KernelId::Convolution2D:  return "kernel.convolution2d";
+        case KernelId::Histogram256:   return "kernel.histogram256";
+        case KernelId::Scan:           return "kernel.scan";
+        case KernelId::Gather:         return "kernel.gather";
+        case KernelId::Scatter:        return "kernel.scatter";
+        case KernelId::Mandelbrot:     return "kernel.mandelbrot";
+        case KernelId::Gemm:           return "kernel.gemm";
+        case KernelId::Fft:            return "kernel.fft";
+    }
+    return "kernel.unknown";
 }
 
 } // namespace astro::compute
