@@ -493,28 +493,28 @@ void DrizzleEngine::processPixel(
     const double THRESH_60ARCSEC  = 60.0  * (M_PI / 180.0) / 3600.0;  // ≈ 2.91e-4 rad
     const double THRESH_600ARCSEC = 600.0 * (M_PI / 180.0) / 3600.0;  // ≈ 2.91e-3 rad
 
-    int samples_per_edge = 1;
-    if (max_edge_rad >= THRESH_600ARCSEC) {
-        samples_per_edge = 8;
-    } else if (max_edge_rad >= THRESH_60ARCSEC) {
-        samples_per_edge = 4;
-    }
+    // R08 改进3: 自适应 WCS 边细分替代固定采样
+    //   小像素 (max_edge_rad < 60"): 快速路径, 仅 4 角 (零额外 WCS 调用)
+    //   大像素: build_drop_polygon_adaptive 递归细分到 wcs_epsilon = max_edge_rad * 1e-12
+    //   消除 TAN/SIP 曲率导致的面积误差 (R07 残留 ~5e-5)
+    bool use_adaptive = (max_edge_rad >= THRESH_60ARCSEC);
 
     // 构造 drop 球面多边形顶点 (逆时针顺序, 单位向量)
     std::vector<spherical::Vec3> drop_corners;
-    if (samples_per_edge == 1) {
+    if (!use_adaptive) {
         // 快速路径: 直接用已映射的 4 角 (零额外 WCS 调用)
         drop_corners.resize(4);
         for (int i = 0; i < 4; i++) {
             drop_corners[i] = spherical::radec_to_vec(corners_ra[i], corners_dec[i]);
         }
     } else {
-        // 细分路径: 通过 build_drop_polygon_sampled 采样各边
-        // (重新映射 4 角 + 边内采样点, 4 角的重复映射开销可忽略)
-        drop_corners = spherical::build_drop_polygon_sampled(
+        // R08 改进3: 自适应 WCS 边细分 (替代固定 samples_per_edge)
+        //   src_scale_rad = max_edge_rad (源像素边长, 弧度)
+        //   wcs_epsilon = max_edge_rad * 1e-12 (相对阈值)
+        drop_corners = spherical::build_drop_polygon_adaptive(
             px, py, config.pixfrac,
             wcsPixelToSkyCallback, const_cast<WcsSip*>(&wcs),
-            samples_per_edge);
+            max_edge_rad);
         if (drop_corners.empty()) return;  // 投影失败
     }
 
