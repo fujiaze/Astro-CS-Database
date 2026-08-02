@@ -1,5 +1,5 @@
 // lib/acr/tools/acr_classic_runner/main.cpp — Phase H 经典实验运行器
-// CLI 工具：运行 E01-E16 全部经典实验，输出 JSON 报告
+// CLI 工具：运行 E01-E21 全部经典实验，输出 JSON 报告
 //
 // 用法:
 //   acr-classic-runner                          # 运行全部，JSON 输出到 stdout
@@ -46,6 +46,11 @@ extern "C" std::vector<CaseResult> run_e13();
 extern "C" std::vector<CaseResult> run_e14();
 extern "C" std::vector<CaseResult> run_e15();
 extern "C" std::vector<CaseResult> run_e16();
+extern "C" std::vector<CaseResult> run_e17();
+extern "C" std::vector<CaseResult> run_e18();
+extern "C" std::vector<CaseResult> run_e19();
+extern "C" std::vector<CaseResult> run_e20();
+extern "C" std::vector<CaseResult> run_e21();
 
 // ===== 实验元数据 =====
 struct ExperimentMeta {
@@ -71,6 +76,11 @@ static const ExperimentMeta kExperiments[] = {
     {"E14", "Resource Utilization Controller",   run_e14},
     {"E15", "Failure and Fallback",              run_e15},
     {"E16", "Concurrency/Cancellation/Lifetime", run_e16},
+    {"E17", "Hardware Profile Model Fitting",    run_e17},
+    {"E18", "Dynamic CPU+GPU Workpool",          run_e18},
+    {"E19", "Resource Utilization Control",      run_e19},
+    {"E20", "Fault and Fallback",                run_e20},
+    {"E21", "Persistence and Concurrency",       run_e21},
 };
 static constexpr std::size_t kNumExperiments = sizeof(kExperiments) / sizeof(kExperiments[0]);
 

@@ -23,11 +23,11 @@ CaseResult run_target_point(double target, double actual, const std::string& cas
     CpuController c;
     c.set_target(target);
     c.set_strategy(ControlStrategy::BatchSize);
-    auto d = c.decide(actual);
+    auto d = c.decide_with_actual(actual);
 
     auto tm = measure_timing([&] {
         // 重复 decide 验证稳定性
-        for (int i = 0; i < 10; ++i) c.decide(actual);
+        for (int i = 0; i < 10; ++i) c.decide_with_actual(actual);
     });
 
     ErrorStats err;
@@ -54,10 +54,10 @@ CaseResult run_actual_tracker(int n_samples, const std::string& case_id) {
 
     // rounds=1：tracker 累积样本，多轮会重复记录
     auto tm = measure_timing([&] {
-        t.record({0, 0.85, 0.95, -0.10, "cpu"});
-        t.record({1, 0.92, 0.95, -0.03, "cpu"});
-        t.record({2, 0.97, 0.95, +0.02, "cpu"});
-        t.record({3, 0.99, 0.95, +0.04, "cpu"});
+        t.record({0, 0.85, 0.95, -0.10, false, "cpu"});
+        t.record({1, 0.92, 0.95, -0.03, false, "cpu"});
+        t.record({2, 0.97, 0.95, +0.02, false, "cpu"});
+        t.record({3, 0.99, 0.95, +0.04, false, "cpu"});
     }, 1);
     (void)n_samples;
 
@@ -86,16 +86,16 @@ CaseResult run_strategy(ControlStrategy s, const std::string& case_id) {
     c.set_strategy(s);
 
     auto tm = measure_timing([&] {
-        c.decide(0.95);  // 高于 target
-        c.decide(0.65);  // 低于 target
-        c.decide(0.80);  // 等于 target
+        c.decide_with_actual(0.95);  // 高于 target
+        c.decide_with_actual(0.65);  // 低于 target
+        c.decide_with_actual(0.80);  // 等于 target
     });
 
     ErrorStats err;
     bool ok = true;
     // 高于 target 时应该让步/减小 batch
-    auto d_high = c.decide(0.95);
-    auto d_low = c.decide(0.65);
+    auto d_high = c.decide_with_actual(0.95);
+    auto d_low = c.decide_with_actual(0.65);
     if (s == ControlStrategy::Yield) {
         if (!d_high.should_yield) { ok = false; err.max_abs = 1.0; }
         if (d_low.should_yield) { ok = false; err.max_abs = 1.0; }
@@ -120,9 +120,9 @@ CaseResult run_control_loop(int iterations, const std::string& case_id) {
     // rounds=1：tracker 累积样本且 actual 跨轮不重置，多轮会重复记录
     auto tm = measure_timing([&] {
         for (int i = 0; i < iterations; ++i) {
-            auto d = c.decide(actual);
+            auto d = c.decide_with_actual(actual);
             tracker.record({static_cast<std::uint64_t>(i), d.actual_ratio, d.target_ratio,
-                            d.error_ratio, "cpu"});
+                            d.error_ratio, d.actual_estimated, "cpu"});
             // 模拟：batch_size 大 → actual 升高；batch_size 小 → actual 降低
             if (d.batch_size >= 4) actual += 0.05;
             else actual -= 0.02;

@@ -1,12 +1,13 @@
 // lib/acr/utilization/memory_budget.hpp — RAM/VRAM 容量限制
-// Phase G：limit = min(total*ratio, total-fixed_reserve)
-//
-// 设计（控制包 08_UTILIZATION_CONTROL_SPEC.md）：
+// Phase G（08_RESOURCE_CONTROL_SPEC.md §4）：
 //   1. RAM 限制：limit = min(total*ratio, total-fixed_reserve)
 //   2. VRAM 限制：同上公式（per-GPU 独立）
 //   3. fixed_reserve 默认 512 MB
-//   4. ratio 默认 0.9（90%）
-//   5. 公共头不暴露第三方类型
+//   4. ratio 默认 0.95（90% 是旧值，spec §1 用 0.95）
+//   5. 读取实际可用内存（GlobalMemoryStatusEx + NVML）
+//   6. 达到上限：停止新提交、缩小块、释放可重建缓存、选择低内存路径、回退其他设备或明确失败
+//   7. 控制器不修改 hardware-profile
+//   8. 公共头不暴露第三方类型（PIMPL）
 #pragma once
 
 #include <cstddef>
@@ -19,9 +20,20 @@ namespace astro::compute::utilization {
 
 // ===== 内存预算配置 =====
 struct MemoryBudgetConfig {
-    double ram_ratio{0.9};              // RAM 容量比例
-    double vram_ratio{0.9};             // VRAM 容量比例
+    double ram_ratio{0.95};              // RAM 容量比例
+    double vram_ratio{0.95};             // VRAM 容量比例
     std::uint64_t fixed_reserve_bytes{512ULL * 1024 * 1024};  // 512 MB
+};
+
+// ===== 单 GPU VRAM 预算 =====
+struct GpuMemoryBudget {
+    std::string backend;
+    std::uint64_t total_vram{0};
+    std::uint64_t limit_vram{0};
+    std::uint64_t used_vram{0};
+    bool vram_exceeded{false};
+    bool estimated{false};               // true=无 NVML 估算
+    bool valid{false};
 };
 
 // ===== 内存预算决策 =====
@@ -29,11 +41,11 @@ struct MemoryBudget {
     std::uint64_t total_ram{0};
     std::uint64_t limit_ram{0};          // RAM 限额
     std::uint64_t used_ram{0};
-    std::uint64_t total_vram{0};
-    std::uint64_t limit_vram{0};         // VRAM 限额
-    std::uint64_t used_vram{0};
+    std::uint64_t avail_ram{0};          // 实际可用（GlobalMemoryStatusEx）
     bool ram_exceeded{false};
-    bool vram_exceeded{false};
+    bool ram_valid{false};
+    // 多 GPU VRAM
+    std::vector<GpuMemoryBudget> gpus;
 };
 
 // ===== MemoryBudgetController =====
@@ -41,22 +53,54 @@ class MemoryBudgetController {
 public:
     MemoryBudgetController();
     ~MemoryBudgetController();
+    MemoryBudgetController(const MemoryBudgetController&) = delete;
+    MemoryBudgetController& operator=(const MemoryBudgetController&) = delete;
 
-    // 配置
+    // ---- 配置 ----
     void configure(const MemoryBudgetConfig& cfg) noexcept;
     const MemoryBudgetConfig& config() const noexcept;
 
-    // 设置系统总内存（RAM/VRAM），用于计算 limit
-    void set_system_memory(std::uint64_t total_ram, std::uint64_t total_vram) noexcept;
+    // ---- Backend 注册 ----
+    void register_backend(const std::string& backend);
+    std::vector<std::string> backends() const;
 
-    // 报告当前使用量，返回预算决策（是否超限）
-    MemoryBudget report(std::uint64_t used_ram, std::uint64_t used_vram) const;
+    // ---- 实际内存采样 ----
+    // 内部读取 GlobalMemoryStatusEx（RAM）+ NVML（VRAM）。
+    // used_ram 通过 GlobalMemoryStatusEx 计算（total - avail）。
+    // VRAM 通过 NVML nvmlDeviceGetMemoryInfo；无 NVML 时 estimated=true。
+    MemoryBudget sample();
 
-    // 计算 limit = min(total*ratio, total-fixed_reserve)
+    // 测试/注入接口：用外部提供的 used 值计算预算（不读取系统）。
+    // ram_total/vram_total 为 0 时使用上次采样到的系统总量。
+    MemoryBudget report_with(std::uint64_t used_ram,
+                             std::uint64_t used_vram,
+                             const std::string& backend = "cuda:0");
+
+    // ---- 限额计算 ----
+    // limit = min(total*ratio, total-fixed_reserve)
     static std::uint64_t compute_limit(std::uint64_t total, double ratio,
                                        std::uint64_t fixed_reserve) noexcept;
 
-    // 状态 JSON
+    // ---- 达到上限时的建议动作 ----
+    enum class ExceedAction {
+        None                = 0,
+        StopNewSubmit       = 1,  // 停止新提交
+        ShrinkBlock         = 2,  // 缩小块
+        ReleaseCache        = 3,  // 释放可重建缓存
+        LowMemoryPath       = 4,  // 选择低内存路径
+        FallbackOtherDevice = 5,  // 回退其他设备
+        Fail                = 6,  // 明确失败
+    };
+    // 根据超限程度建议动作
+    static ExceedAction suggest_action(std::uint64_t used,
+                                       std::uint64_t limit,
+                                       std::uint64_t total) noexcept;
+
+    // ---- NVML 状态 ----
+    bool nvml_available() const noexcept;
+    bool reload_nvml();
+
+    // ---- 状态 JSON ----
     std::string status_json() const;
 
 private:

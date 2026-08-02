@@ -1,4 +1,4 @@
-# lib/acr/tests/classic/CMakeLists.txt — Phase H 经典实验 E01-E16
+# lib/acr/tests/classic/CMakeLists.txt — Phase H 经典实验 E01-E21
 # 编译策略：
 #   1. acr_classic_experiments 静态库：所有 eXX_*.cpp（不含 main），暴露 run_eXX() 函数
 #   2. acr_test_classic 可执行文件：classic_main.cpp + 链接静态库，用于 ctest
@@ -7,7 +7,9 @@ if(NOT ACR_BUILD_TESTS)
     return()
 endif()
 
-# 实验源文件（E01-E16）
+# 实验源文件（E01-E21）
+# Phase C：新增 E17 模型拟合验证（hardware_profile.hpp Curve 留出验证）
+# Phase H：新增 E18-E21（工作池/资源控制/故障回退/持续并发可靠性）
 set(ACR_CLASSIC_SOURCES
     e01_memory.cpp
     e02_axpy.cpp
@@ -25,6 +27,11 @@ set(ACR_CLASSIC_SOURCES
     e14_utilization.cpp
     e15_failure.cpp
     e16_concurrency.cpp
+    e17_model_fit.cpp
+    e18_workpool.cpp
+    e19_resource_control.cpp
+    e20_fault_fallback.cpp
+    e21_persistence_concurrency.cpp
 )
 
 # 静态库：供 acr_test_classic 与 acr-classic-runner 复用实验逻辑
@@ -53,4 +60,4 @@ target_link_libraries(acr_test_classic PRIVATE
 )
 gtest_discover_tests(acr_test_classic DISCOVERY_MODE PRE_TEST)
 
-message(STATUS "ACR classic: E01-E16 experiments (16 files, acr_test_classic for ctest)")
+message(STATUS "ACR classic: E01-E21 experiments (21 files, acr_test_classic for ctest)")
