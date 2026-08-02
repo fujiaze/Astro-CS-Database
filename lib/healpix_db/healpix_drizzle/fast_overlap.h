@@ -117,24 +117,25 @@ std::vector<Point2D> clip_polygon_2d(
 double polygon_area_2d(const std::vector<Point2D>& poly);
 
 // ============================================================================
-// 切平面面积 → 球面度转换
+// 切平面面积 → 球面度转换 (质心近似)
 //
-// 对于以 (ra0, dec0) 为中心的切平面, 面元 dA_planar 对应的球面度为:
-//   dOmega = dA_planar * cos²(theta) / cos(dec0)
-// 其中 theta 是切点到面元的角距离.
+// R07-B08 修复: 正确的 gnomonic 投影 Jacobian
+//   dΩ = dξ dη / (1 + ξ² + η²)^(3/2)
+//   质心近似: Ω ≈ A / (1 + ξ_c² + η_c²)^(3/2)
 //
-// 但对于小区域 (高 NSIDE), cos²(theta) ≈ 1, cos(dec0) 的影响已被投影包含.
-// 简化: dOmega ≈ dA_planar (当区域远小于 1 弧度时)
-//
-// 精确转换: 对多边形质心处的 cos 因子进行校正
-//   Omega ≈ A_planar * cos_correction(center_theta)
-//   cos_correction = 1 / (1 + (xi² + eta²)/3)  (二阶近似)
-//
-// 返回: 校正后的球面度
+// 适用于小像素 (高 NSIDE). 大像素请用 planar_polygon_to_steradian.
 // ============================================================================
 double planar_area_to_steradian(double area_planar,
                                  double center_xi, double center_eta,
                                  double dec0_deg);
+
+// ============================================================================
+// 切平面多边形面积 → 球面度 (高精度, 三角剖分 + 3点 Gaussian 积分)
+//
+// 将多边形从质心三角剖分, 对每个三角形用 3 点对称 Gaussian 积分计算
+// ∫∫ dξ dη / (1 + ξ² + η²)^(3/2).
+// ============================================================================
+double planar_polygon_to_steradian(const std::vector<Point2D>& poly);
 
 // ============================================================================
 // FAST: 计算源像素 drop 与目标 HEALPix 像素的切平面重叠面积

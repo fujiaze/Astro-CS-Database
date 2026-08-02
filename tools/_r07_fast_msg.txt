@@ -1,0 +1,15 @@
+fix(fast): R07-B08/M01/M02/M03 修复 FAST 切平面重叠计算
+
+R07-B08 (BLOCKER): 面积换算公式错误
+  原: dOmega = dA * (1 + theta²/3)  (符号和系数均错)
+  新: dOmega = dA / (1 + xi² + eta²)^(3/2)  (正确 gnomonic Jacobian)
+  实现: 三角剖分 + 3点 Gaussian 积分 (planar_polygon_to_steradian)
+
+R07-M01: 裁剪假定 clip 多边形恒为 CCW
+  修复: 计算 clip 有符号面积, 自动适配 CW/CCW 方向
+
+R07-M02: 投影失败静默丢顶点
+  修复: 任一顶点投影失败 → 整多边形失败返回空
+
+R07-M03: 近平行交线返回起点
+  修复: 平行时不产生交点, 交点需在 [s,e] 区间内
