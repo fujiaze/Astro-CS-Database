@@ -21,6 +21,9 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# 启用 ctest（顶层调用，确保 build 根生成 CTestTestfile.cmake）
+enable_testing()
+
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
@@ -105,6 +108,29 @@ message(STATUS "ACR: oneTBB found via system package: ${TBB_VERSION}")
 if(ACR_BUILD_TESTS)
     find_package(GTest REQUIRED)
     message(STATUS "ACR: GoogleTest found via system package: ${GTest_VERSION}")
+endif()
+
+# === Phase C: hwloc / cpu_features 检测 ===
+# hwloc：MSYS2 mingw-w64-x86_64-hwloc 提供头+库，但无 cmake config，用 find_path/find_library
+find_path(HWLOC_INCLUDE_DIR NAMES hwloc.h)
+find_library(HWLOC_LIBRARY NAMES hwloc libhwloc)
+if(HWLOC_INCLUDE_DIR AND HWLOC_LIBRARY)
+    set(ACR_HAVE_HWLOC TRUE CACHE BOOL "hwloc available" FORCE)
+    message(STATUS "ACR: hwloc found: include=${HWLOC_INCLUDE_DIR} lib=${HWLOC_LIBRARY}")
+else()
+    set(ACR_HAVE_HWLOC FALSE CACHE BOOL "hwloc available" FORCE)
+    message(STATUS "ACR: hwloc NOT found, topology degraded to {\"status\":\"unavailable\"}")
+endif()
+
+# cpu_features：MSYS2 无包，优先 find_path；缺失则用 __builtin_cpu_supports 降级
+find_path(CPU_FEATURES_INCLUDE_DIR NAMES cpu_features/cpu_features_cache.h)
+find_library(CPU_FEATURES_LIBRARY NAMES cpu_features)
+if(CPU_FEATURES_INCLUDE_DIR AND CPU_FEATURES_LIBRARY)
+    set(ACR_HAVE_CPU_FEATURES_LIB TRUE CACHE BOOL "cpu_features lib available" FORCE)
+    message(STATUS "ACR: cpu_features lib found: ${CPU_FEATURES_LIBRARY}")
+else()
+    set(ACR_HAVE_CPU_FEATURES_LIB FALSE CACHE BOOL "cpu_features lib available" FORCE)
+    message(STATUS "ACR: cpu_features lib NOT found, fallback to __builtin_cpu_supports (GCC/Clang)")
 endif()
 
 # === 子目录（Phase B 起逐步填充，存在则添加）===

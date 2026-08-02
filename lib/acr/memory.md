@@ -31,7 +31,25 @@
 
 ## 下一阶段
 
-Phase B 完成。下一阶段：Phase C（硬件发现/ISA）+ Phase D（GPU backend）并行 subcoding agent。
+Phase C 完成。下一阶段：Phase D（GPU backend）并行 subcoding agent，Phase E（Qualification/路由）依赖 B/C/D。
+
+### 2026-08-02 Phase C 完成
+- **公共头** `include/astro/compute/topology.hpp`：IsaLevel 位掩码枚举（SSE/SSE2/SSE3/SSSE3/SSE41/SSE42/AVX/AVX2/FMA/AVX512F/CD/BW/DQ/VL）+ CpuIsaCaps（has/has_isa 安全门禁）+ HwlocTopology（PIMPL）+ detect_topology/detect_isa_caps/generate_hardware_report + GpuReportCallback 回调注册（Phase D 用）
+- **topology/hwloc_topo.cpp**：hwloc 拓扑枚举（package/core/PU/L1L2L3 cache/NUMA/PCI 设备）+ JSON 序列化。无 hwloc 时 `__has_include` 降级返回 `{"status":"unavailable"}`，不抛异常
+- **topology/cpu_features.cpp**：CpuIsaCaps 检测。无 cpu_features 库时用 `__builtin_cpu_supports`（GCC/Clang）降级。AVX-512 子集独立 bit（ADR-004 关键约束）
+- **backends/cpu/isa/{scalar,sse,avx,avx2,avx512,dispatch}.cpp**：AXPY kernel 实现。用 `__attribute__((target("...")))` 函数级启用 ISA intrinsics（TU 默认 baseline，无需全局 -mavx*）。`kernel_<name>_axpy_safe` 运行时门禁（caps 不支持返回 false 不调用，无 SIGILL）。`dispatch_axpy` 自动选最优 kernel（AVX-512 > AVX2 > AVX > SSE > scalar）
+- **diagnostics/hardware_report.cpp**：合并 topology+isa+GPU 回调为 hardware.json（schema=acr.hardware.v1）。GPU 回调用 atomic CAS 首次生效
+- **tests/unit/test_topology.cpp**：18 tests（HwlocTopology JSON/降级、CpuIsaCaps SSE2 必有/AVX-512 门禁/子集独立、AXPY dispatch 正确性、hardware_report schema/GPU 回调）
+- **依赖获取**：
+  - hwloc：MSYS2 mingw-w64-x86_64-hwloc 已装（C:/msys64/mingw64/include/hwloc.h + libhwloc.dll.a），无 cmake config，用 find_path/find_library
+  - cpu_features：MSYS2 无包，用 `__builtin_cpu_supports` 降级（g++ 16.1.0 支持）。FetchContent 未启用（ADR-008 工具链问题已知）
+- **工具链问题与解决**：
+  1. `__builtin_cpu_supports` 参数必须是字符串字面量，不能用变量传入（g++ 报 "parameter to builtin must be a string constant or literal"）。改为直接展开 14 个 if 语句
+  2. gtest_discover_tests 默认 POST_BUILD 模式在 build 时运行 exe 发现测试，但 hwloc.dll 不在 PATH 导致 discovery 失败。改用 `DISCOVERY_MODE PRE_TEST`（ctest 运行时才发现）
+  3. ctest "No tests found" 因顶层缺 `enable_testing()`。在 lib/acr/CMakeLists.txt 顶层加 enable_testing()（tests/CMakeLists.txt 也有，但顶层才生成根 CTestTestfile.cmake）
+  4. ctest 每个测试独立进程，全局变量在测试间重置。FirstCallbackWins 测试改为单测试内注册 cb1+cb2 验证 CAS 首次生效
+- **构建验证**：cmake configure (0.8s) + build 成功 + ctest 52/52 通过（1 skipped 是 Phase B 别名声明性）。path_guard 通过（所有改动在 lib/acr/ 内）
+- **本机 ISA 检测结果**：SSE/SSE2/SSE3/SSSE3/SSE4.1/SSE4.2/AVX/AVX2/FMA = true，AVX-512 全子集 = false（RTX 3060 Ti 的 CPU 不支持 AVX-512）
 
 ### 2026-08-02 Phase B 完成
 - acr.hpp 完整公共 API：parallel_for/for_2d/tiles/reduce/batch/scan/chunks/run_for + Buffer/BufferView/Event/RuntimeConfig + StatusCode/AcrError + detail::submit_* type-erased 接口
