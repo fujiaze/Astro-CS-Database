@@ -10,6 +10,8 @@ option(ACR_BUILD_HIP          "Enable HIP backend (requires ROCm)"  OFF)
 option(ACR_BUILD_SYCL         "Enable SYCL backend (requires oneAPI/DPC++)" OFF)
 option(ACR_ENABLE_STARPU      "Enable StarPU PoC (not for production)" OFF)
 option(ACR_FETCHCONTENT_FULL  "Fetch all deps via FetchContent"    ON)
+option(ACR_BUILD_CLASSIC_RUNNER "Build acr-classic-runner CLI"     ON)
+option(ACR_ENABLE_SANITIZER   "Enable ASan/UBSan (GCC/Clang)"      OFF)
 
 project(astro_compute_runtime
     VERSION 0.1.0
@@ -42,6 +44,15 @@ if(MSVC)
     add_compile_options(/W4 /permissive- /Zc:__cplusplus /EHsc /constexprSteps-1)
 else()
     add_compile_options(-Wall -Wextra -Wpedantic -Wno-unused-parameter)
+endif()
+
+# === Sanitizer 选项（Phase H）===
+# ACR_ENABLE_SANITIZER=ON 时启用 ASan + UBSan（GCC/Clang），用于 sanitizer smoke 测试
+if(ACR_ENABLE_SANITIZER AND NOT MSVC)
+    message(STATUS "ACR: Sanitizer ENABLED (ASan + UBSan)")
+    add_compile_options(-fsanitize=address,undefined -fno-sanitize-recover=all -g)
+    add_link_options(-fsanitize=address,undefined)
+    # TSan 与 ASan 互斥，单独开关（默认不启用）
 endif()
 
 # === FetchContent 依赖声明（ADR-008）===
@@ -139,6 +150,7 @@ foreach(subdir
     backends/cpu backends/alpaka backends/cuda
     qualification routing scheduler utilization
     tests tools/acr_benchmark tools/acr_status tools/acr_report tools/acr_invalidate
+    tools/acr_classic_runner
     examples
 )
     if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${subdir}/CMakeLists.txt)
@@ -156,5 +168,7 @@ message(STATUS "  Tests:          ${ACR_BUILD_TESTS}")
 message(STATUS "  Benchmark:      ${ACR_BUILD_BENCHMARK}")
 message(STATUS "  Tools:          ${ACR_BUILD_TOOLS}")
 message(STATUS "  Examples:       ${ACR_BUILD_EXAMPLES}")
+message(STATUS "  Classic runner: ${ACR_BUILD_CLASSIC_RUNNER}")
+message(STATUS "  Sanitizer:      ${ACR_ENABLE_SANITIZER}")
 message(STATUS "  FetchContent base: ${FETCHCONTENT_BASE_DIR}")
 message(STATUS "  (Phase A: deps declared but not fetched. Phase B modules MakeAvailable on demand.)")

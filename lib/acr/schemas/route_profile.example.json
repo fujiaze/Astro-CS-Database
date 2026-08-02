@@ -1,0 +1,40 @@
+{
+  "schema_version": "acr.route_profile.v1",
+  "generated_at": "20260802T120000Z",
+  "profile_kind": "standard",
+  "fingerprint": {
+    "cpu_model": "AMD Ryzen 5 5600",
+    "cpu_cores": 6,
+    "isa_mask": 511,
+    "gpu_name": "NVIDIA GeForce RTX 3060 Ti",
+    "gpu_memory_bytes": 8589934592,
+    "gpu_driver_version": "595.79",
+    "sha256": "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90"
+  },
+  "routes": [
+    {
+      "kernel_id": 4,
+      "kernel_name": "AXPY",
+      "precision": "fp32",
+      "preferred_backend": "cuda:0",
+      "expected_throughput_gbps": 312.5,
+      "reason": "fastest"
+    },
+    {
+      "kernel_id": 1,
+      "kernel_name": "Copy",
+      "precision": "fp32",
+      "preferred_backend": "cuda:0",
+      "expected_throughput_gbps": 285.4,
+      "reason": "fastest"
+    },
+    {
+      "kernel_id": 2,
+      "kernel_name": "Triad",
+      "precision": "fp32",
+      "preferred_backend": "cpu",
+      "expected_throughput_gbps": 12.8,
+      "reason": "only-avail"
+    }
+  ]
+}
