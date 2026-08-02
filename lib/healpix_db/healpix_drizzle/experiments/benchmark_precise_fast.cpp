@@ -55,6 +55,9 @@ using namespace drizzle;
 // ============================================================================
 
 // 像素尺度 → 图像尺寸 + NSIDE
+// R06 修正: 按 DATASET_MATRIX.md 正确 NSIDE (R05 用 32768/512 是错误的)
+// 高 NSIDE 场景缩小图像尺寸以控制 unordered_map 内存
+//   (0.1" + nside=4194304: 每源像素 ~1.35M HEALPix 像素)
 struct ScaleCfg {
     double arcsec;   // 角秒/像素
     int    size;     // 图像边长 (像素)
@@ -62,12 +65,12 @@ struct ScaleCfg {
     const char* label;
 };
 static const ScaleCfg kScales[] = {
-    {0.1,   64, 32768, "0p1"},
-    {0.5,   64, 32768, "0p5"},
-    {1.0,   64, 32768, "1p0"},
-    {10.0,  32, 32768, "10"},
-    {60.0,  32, 4096,  "60"},
-    {3600.0,16, 512,   "3600"},
+    {0.1,    4, 4194304, "0p1"},   // R06: 32768 → 4194304, size 64→4
+    {0.5,    8, 524288,  "0p5"},   // R06: 32768 → 524288,  size 64→8
+    {1.0,    8, 262144,  "1p0"},   // R06: 32768 → 262144,  size 64→8
+    {10.0,   8, 32768,   "10"},    // R06: size 32→8 (控制内存)
+    {60.0,   8, 4096,    "60"},    // R06: size 32→8 (控制内存)
+    {3600.0, 16,64,      "3600"},  // R06: 512 → 64
 };
 
 // pixfrac 取值
@@ -163,7 +166,7 @@ struct RunResult {
     std::string err;
 };
 
-// PRECISE 模式: 通过 DrizzleEngine 调用 (球面 Sutherland-Hodgman + Girard)
+// PRECISE 模式: 通过 DrizzleEngine 调用 (球面 Sutherland-Hodgman + Eriksson)
 static RunResult run_drizzle_precise(const FitsImage& img, const DrizzleConfig& cfg) {
     RunResult r;
     DrizzleEngine engine;
@@ -286,9 +289,10 @@ static RunResult run_drizzle_fast(const FitsImage& img, const DrizzleConfig& cfg
                 if (drop_corners.empty()) continue;
             }
 
-            // ---- Step 4: drop 球面面积 (Girard, 与 PRECISE 一致) ----
+            // ---- Step 4: drop 球面面积 (Eriksson, 与 PRECISE 一致) ----
+            // R06: 用 > 0 相对判据替代 < 1e-20 硬阈值
             double drop_area = spherical::spherical_polygon_area(drop_corners);
-            if (drop_area < 1e-20) continue;
+            if (!(drop_area > 0.0)) continue;
 
             // drop 中心天球坐标 (FAST 切平面切点)
             double center_ra, center_dec;
@@ -305,7 +309,7 @@ static RunResult run_drizzle_fast(const FitsImage& img, const DrizzleConfig& cfg
                 double overlap_area = fast::compute_overlap_area_fast(
                     drop_corners, hp, ipix, cfg.nside,
                     center_ra, center_dec, FAST_HEALPIX_SAMPLES);
-                if (overlap_area < 1e-20) continue;
+                if (!(overlap_area > 0.0)) continue;
 
                 double weight = overlap_area / drop_area;
                 if (weight <= 0.0) continue;
