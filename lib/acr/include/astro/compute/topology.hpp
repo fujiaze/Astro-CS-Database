@@ -98,6 +98,9 @@ using GpuReportCallback = std::string(*)();
 // 注册 GPU 报告回调（Phase D 调用）。线程安全，仅首次生效。
 void register_gpu_report_callback(GpuReportCallback cb);
 
+// 重置 GPU 回调为 nullptr（仅供单元测试隔离全局状态，正式运行不得调用）。
+void reset_gpu_report_callback_for_testing();
+
 // generate_hardware_report()：合并 hwloc + cpu_features + GPU 回调为完整 hardware.json。
 // schema：CPU vendor/model/stepping/ISA mask/cache/NUMA/GPU UUID/PCI/driver/compiler/build。
 std::string generate_hardware_report();

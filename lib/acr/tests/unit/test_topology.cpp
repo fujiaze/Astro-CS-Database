@@ -25,6 +25,7 @@ using astro::compute::detect_isa_caps;
 using astro::compute::detect_topology;
 using astro::compute::generate_hardware_report;
 using astro::compute::register_gpu_report_callback;
+using astro::compute::reset_gpu_report_callback_for_testing;
 
 // ===== HwlocTopology =====
 TEST(HwlocTopology, JsonNonEmpty) {
@@ -227,15 +228,18 @@ std::string test_gpu_callback() {
 } // anonymous namespace
 
 TEST(HardwareReport, GpuCallbackRegistered) {
+    reset_gpu_report_callback_for_testing();
     register_gpu_report_callback(test_gpu_callback);
     std::string r = generate_hardware_report();
     EXPECT_NE(r.find("\"test-gpu\""), std::string::npos);
+    reset_gpu_report_callback_for_testing();
 }
 
 TEST(HardwareReport, FirstCallbackWins) {
     // 首次注册生效，后续忽略（CAS 语义）
-    // 注：ctest 每个测试独立进程，全局 g_gpu_cb 初始为 nullptr，
-    // 所以本测试先注册 cb1 再注册 cb2，验证 report 仍用 cb1
+    // GoogleTest 同进程运行，前序 GpuCallbackRegistered 已污染 g_gpu_cb，
+    // 需先重置全局状态再验证 CAS 语义
+    reset_gpu_report_callback_for_testing();
     auto cb1 = []() -> std::string { return R"({"uuid":"first-cb"})"; };
     auto cb2 = []() -> std::string { return R"({"uuid":"second-cb"})"; };
     register_gpu_report_callback(cb1);
@@ -243,4 +247,6 @@ TEST(HardwareReport, FirstCallbackWins) {
     std::string r = generate_hardware_report();
     EXPECT_NE(r.find("\"first-cb\""), std::string::npos);
     EXPECT_EQ(r.find("\"second-cb\""), std::string::npos);
+    // 恢复未注册状态，避免污染后续测试
+    reset_gpu_report_callback_for_testing();
 }

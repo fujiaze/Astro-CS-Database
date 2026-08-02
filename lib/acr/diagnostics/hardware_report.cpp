@@ -49,6 +49,11 @@ void register_gpu_report_callback(GpuReportCallback cb) {
     g_gpu_cb.compare_exchange_strong(expected, cb, std::memory_order_acq_rel);
 }
 
+void reset_gpu_report_callback_for_testing() {
+    // 仅供单元测试重置全局状态，正式运行不得调用
+    g_gpu_cb.store(nullptr, std::memory_order_release);
+}
+
 std::string generate_hardware_report() {
     // 子报告
     std::string topo_json = detect_topology();
