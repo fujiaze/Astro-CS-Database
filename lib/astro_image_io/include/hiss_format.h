@@ -24,6 +24,8 @@
 #include <vector>
 #include <memory>
 #include <functional>
+#include <limits>       // std::numeric_limits (R06-B20: pixel_area 默认 NaN)
+#include <cmath>        // std::isnan
 
 #ifdef _WIN32
 #define HISS_EXPORT __declspec(dllexport)
@@ -352,7 +354,7 @@ struct HissMetadata {
 //       其中 S = sum_area / A_p, A_p = 目标 HEALPix 像素面积 (球面度)
 //
 //     A_p 通过成员变量 pixel_area 传入 (调用方在 finalize_* 前设置)。
-//     默认值 1.0 仅为向后兼容, 调用方应正确设置为 hp.pixel_area()。
+//     R06-B20 修复: 默认值改为 NaN, 未显式设置时 finalize_support 硬失败.
 // ============================================================================
 
 struct DrizzleTileAccumulator {
@@ -367,9 +369,9 @@ struct DrizzleTileAccumulator {
     uint64_t parent_ipix = 0;
 
     // 目标 HEALPix 像素面积 A_p (球面度), 用于 support 归一化
-    // 调用方需在 finalize_support/validate_support 前设置为 hp.pixel_area()
-    // 默认 1.0 仅向后兼容 (旧调用未设置时退化为 sum_area 直接作为 S)
-    double pixel_area = 1.0;
+    // R06-B20: 默认 NaN, 调用方必须在 finalize_support 前显式设置为 hp.pixel_area()
+    // 未设置时 finalize_support/validate_support 检测到 NaN 硬失败, 防止掩盖调用错误
+    double pixel_area = std::numeric_limits<double>::quiet_NaN();
 
     // 最终输出
     // signal: 直接保存累计通量 (不除面积), 无贡献像素 sum_flux=0 自然写 0

@@ -534,6 +534,11 @@ TaskResult Orchestrator::run_single(const std::string& fits_path) {
     result.success = false;
     result.frame_name = fits_path;
 
+    // R06-B13 修复: 废弃警告, 推荐使用 stage1 命令 (含 SNR 阶段的 7 阶段路径)
+    LOG_WARN("orchestrator", "[DEPRECATED] run_single 是旧版 5 阶段路径, "
+             "已补入 SNR 阶段 (R06-B13). 推荐使用 'orchestrator stage1' 命令 "
+             "获取完整 7 阶段处理 (READ_FITS→CALIBRATE→PLATESOLVE→PSF→PHOTOMETRIC→SNR→DRIZZLE)");
+
     LOG_INFO("orchestrator", "========== 开始处理: " + fits_path + " ==========");
 
     if (fits_path.empty()) {
@@ -646,6 +651,10 @@ TaskResult Orchestrator::run_single(const std::string& fits_path) {
                                       &Orchestrator::run_stage_psf, "PSF_FIT");
     ok = ok && run_stage_with_timing(PipelineStage::PHOTOMETRIC, 2,
                                       &Orchestrator::run_stage_photometric, "PHOTOMETRIC");
+    // R06-B13 修复: 补入 SNR 阶段 (stage_id=-1, 不纳入旧 4 阶段检查点编号)
+    // 与 run_stage1 的 7 阶段顺序对齐: ...→PHOTOMETRIC→SNR→DRIZZLE
+    ok = ok && run_stage_with_timing(PipelineStage::PHOTOMETRIC, -1,
+                                      &Orchestrator::run_stage_snr, "SNR");
     ok = ok && run_stage_with_timing(PipelineStage::DRIZZLE, 3,
                                       &Orchestrator::run_stage_drizzle, "DRIZZLE");
 
@@ -3028,23 +3037,27 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
     int n_stars = psf_block->dims[0];
     const double* psf_data = static_cast<const double*>(psf_block->data);
 
-    // 读取 sigma_residual (来自 photo_stats KV 块)
-    // 若读不到则用默认值 0.1 (并打 warning)
-    double sigma_residual = 0.1;
+    // R06-B14 修复: 禁止伪造 sigma_residual=0.1
+    // sigma_residual 是 PHOTOMETRIC 阶段 IRLS+Tukey 拟合的测光残差, 必须来自实际数据.
+    // 读不到时必须降级跳过 (与 sigma<=0 同等处理), 不得用伪造值继续计算.
+    double sigma_residual = 0.0;  // 初始化为 0, 触发降级
     bool sig_read = false;
     if (fn_kv_get) {
         const char* sig_str = fn_kv_get(frame_, "photo_stats", "SIGMA_RESIDUAL");
-        if (sig_str != nullptr) {
+        if (sig_str != nullptr && sig_str[0] != '\0') {
             sigma_residual = std::atof(sig_str);
             sig_read = true;
         }
-    } else {
-        // kv_get 不可用时退回 kv_get_double (无法区分读不到与值=default)
-        sigma_residual = fn_kv_get_double(frame_, "photo_stats", "SIGMA_RESIDUAL", 0.1);
-        sig_read = true;
+    } else if (fn_kv_get_double) {
+        // kv_get 不可用时退回 kv_get_double, 用 sentinel -1 检测读不到
+        sigma_residual = fn_kv_get_double(frame_, "photo_stats", "SIGMA_RESIDUAL", -1.0);
+        if (sigma_residual > 0.0) sig_read = true;
     }
-    if (!sig_read) {
-        LOG_WARN("orchestrator", "[SNR] photo_stats/SIGMA_RESIDUAL 读不到, 使用默认值 0.1");
+    if (!sig_read || sigma_residual <= 0.0) {
+        LOG_WARN("orchestrator", "[SNR] photo_stats/SIGMA_RESIDUAL 读不到或<=0, 降级跳过 "
+                 "(R06-B14: 禁止伪造 sigma=0.1)");
+        if (fn_kv_set) fn_kv_set(frame_, "photo_stats", "SNR_STATUS", "SKIPPED_NO_SIGMA");
+        return true;  // 可选 stage, 允许降级继续
     }
 
     // 从 header KV 块读取 WCS 参数

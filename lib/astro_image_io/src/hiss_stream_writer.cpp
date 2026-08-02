@@ -27,6 +27,8 @@
 #include <memory>
 #include <fstream>
 #include <filesystem>
+#include <io.h>      // _commit, _fileno (Windows)
+#include <fcntl.h>   // _O_BINARY
 
 #ifdef _WIN32
 #include <windows.h>
@@ -492,11 +494,15 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
         }
     }
 
+    // R06-B18 修复: Header 大小不一致必须硬失败, 不得仅警告继续
+    // 不一致时 offset 错位, 产出"看似合法但 offset 错误"的 HISS 文件, 且会被原子替换覆盖现有文件
     if (hdr.data.size() != header_size) {
         fprintf(stderr,
-                "[hiss][stream] finalize 警告: Header 实际大小 %zu 与预算 %zu 不符 (内部 bug)\n",
+                "[hiss][stream] finalize 失败: Header 实际大小 %zu 与预算 %zu 不符 (内部 bug), "
+                "中止写入并清理 (R06-B18)\n",
                 hdr.data.size(), header_size);
-        // 公式确定, 理论上不会走到这里; 仅记录, 不调整 offset (避免二次偏移)
+        pimpl_->opened = false;
+        return HISS_ERR_FORMAT_VIOLATION;
     }
 
     // 6. 创建最终 .partial 文件: 签名块 + Header + 子块数据(从临时池复制)
@@ -572,10 +578,44 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
         std::fclose(fp_in);
     }
 
-    // 7. flush + 关闭 .partial
+    // 7. flush + OS 级持久化同步 + 关闭 .partial
+    // R06-B19 修复: fflush 只刷 C 库缓冲, 不保证落盘; 需 OS 级 _commit/FlushFileBuffers
+    // fflush 失败必须硬失败, 不得仅警告继续 (否则产出空/截断文件后原子替换覆盖现有文件)
     if (std::fflush(fp_out) != 0) {
-        fprintf(stderr, "[hiss][stream] finalize 警告: fflush 失败\n");
+        fprintf(stderr, "[hiss][stream] finalize 失败: fflush 失败 (R06-B19: 硬失败)\n");
+        std::fclose(fp_out);
+        // 清理 .partial
+        std::error_code ec_clean;
+        std::filesystem::remove(pimpl_->partial_path, ec_clean);
+        pimpl_->opened = false;
+        return HISS_ERR_IO;
     }
+    // Windows: _commit 强制 OS 缓冲刷盘; POSIX: fdatasync
+#ifdef _WIN32
+    int fd = _fileno(fp_out);
+    if (fd >= 0) {
+        if (_commit(fd) != 0) {
+            fprintf(stderr, "[hiss][stream] finalize 失败: _commit (OS 级同步) 失败 (R06-B19)\n");
+            std::fclose(fp_out);
+            std::error_code ec_clean;
+            std::filesystem::remove(pimpl_->partial_path, ec_clean);
+            pimpl_->opened = false;
+            return HISS_ERR_IO;
+        }
+    }
+#else
+    int fd = fileno(fp_out);
+    if (fd >= 0) {
+        if (fdatasync(fd) != 0) {
+            fprintf(stderr, "[hiss][stream] finalize 失败: fdatasync 失败 (R06-B19)\n");
+            std::fclose(fp_out);
+            std::error_code ec_clean;
+            std::filesystem::remove(pimpl_->partial_path, ec_clean);
+            pimpl_->opened = false;
+            return HISS_ERR_IO;
+        }
+    }
+#endif
     std::fclose(fp_out);
 
     // 8. 删除临时池 (数据已复制到 .partial)

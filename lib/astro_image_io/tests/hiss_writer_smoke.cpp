@@ -36,6 +36,7 @@ int main() {
     DrizzleTileAccumulator acc;
     acc.tile_nside  = 16;
     acc.parent_ipix = 42;
+    acc.pixel_area  = 1.0;  // sum_area=0.7 为任意值, 用 1.0 保持测试原有行为
     acc.pixels.resize(16 * 16);
     for (size_t i = 0; i < acc.pixels.size(); i++) {
         acc.pixels[i].sum_flux = (double)i * 1.5;
@@ -86,37 +87,36 @@ int main() {
     auto fsize = std::filesystem::file_size(path);
     fprintf(stderr, "[smoke] 文件大小: %llu 字节\n", (unsigned long long)fsize);
 
-    // 7. 检查文件头签名
+    // 7. 检查文件头签名 (R04-B14: 签名块 16B = magic[8] + header_length(u32) + feature_flags(u32))
     FILE* fp = std::fopen(path, "rb");
     if (!fp) {
         fprintf(stderr, "[smoke] FAIL: 无法打开输出文件\n");
         return 1;
     }
-    unsigned char head[20];
-    if (std::fread(head, 1, 20, fp) != 20) {
+    unsigned char head[16];
+    if (std::fread(head, 1, 16, fp) != 16) {
         fprintf(stderr, "[smoke] FAIL: 读取签名块失败\n");
         std::fclose(fp);
         return 1;
     }
     std::fclose(fp);
 
-    if (std::memcmp(head, "ACSHISS\0", 8) != 0) {
+    if (std::memcmp(head, "HISS0100", 8) != 0) {
         fprintf(stderr, "[smoke] FAIL: MAGIC 不匹配\n");
         return 1;
     }
-    uint32_t ver;
-    std::memcpy(&ver, head + 8, 4);
-    if (ver != 1) {
-        fprintf(stderr, "[smoke] FAIL: version=%u (期望 1)\n", ver);
+    uint32_t header_length;
+    std::memcpy(&header_length, head + 8, 4);
+    if (header_length == 0) {
+        fprintf(stderr, "[smoke] FAIL: header_length=0 (期望非零)\n");
         return 1;
     }
-    uint64_t header_offset;
-    std::memcpy(&header_offset, head + 12, 8);
-    fprintf(stderr, "[smoke] MAGIC=OK version=%u header_offset=%llu\n",
-            ver, (unsigned long long)header_offset);
-    if (header_offset != 20) {
-        fprintf(stderr, "[smoke] FAIL: header_offset=%llu (期望 20)\n",
-                (unsigned long long)header_offset);
+    uint32_t feature_flags;
+    std::memcpy(&feature_flags, head + 12, 4);
+    fprintf(stderr, "[smoke] MAGIC=OK header_length=%u feature_flags=0x%08X\n",
+            header_length, feature_flags);
+    if ((feature_flags & HISS_FEAT_TLV_HEADER) == 0) {
+        fprintf(stderr, "[smoke] FAIL: feature_flags 缺少 TLV_HEADER 位\n");
         return 1;
     }
 

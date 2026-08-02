@@ -109,6 +109,7 @@ static hiss::DrizzleTileAccumulator make_simple_accumulator(uint32_t tile_nside,
     hiss::DrizzleTileAccumulator acc;
     acc.tile_nside  = tile_nside;
     acc.parent_ipix = parent_ipix;
+    acc.pixel_area  = 1.0;  // area_per_pixel 为任意值, 用 1.0 保持测试原有行为
     size_t n_leaf = (size_t)tile_nside * tile_nside * 12;  // 12 个 base pixel
     acc.pixels.resize(n_leaf);
     std::mt19937 rng(seed);
@@ -321,6 +322,7 @@ static void test_06_single_pixel_flux_conservation(int id) {
     hiss::DrizzleTileAccumulator acc;
     acc.tile_nside  = 16;
     acc.parent_ipix = 0;
+    acc.pixel_area  = 1.0;
     acc.pixels.resize(1);
     acc.pixels[0].sum_flux  = 100.0 * 1.0;  // L * a
     acc.pixels[0].sum_area  = 1.0;           // a (完整覆盖)
@@ -344,6 +346,7 @@ static void test_07_multi_pixel_flux_conservation(int id) {
     hiss::DrizzleTileAccumulator acc;
     acc.tile_nside  = 16;
     acc.parent_ipix = 0;
+    acc.pixel_area  = 1.0;
     acc.pixels.resize(4);
 
     // 源像素 A (通量=200) 贡献到 pixel 0 (面积 0.6) 和 pixel 1 (面积 0.4)
@@ -384,6 +387,7 @@ static void test_08_pixfrac_support_values(int id) {
     hiss::DrizzleTileAccumulator acc;
     acc.tile_nside  = 16;
     acc.parent_ipix = 0;
+    acc.pixel_area  = 1.0;
     acc.pixels.resize(3);
     // 像素0: 典型部分覆盖 (0.5)
     acc.pixels[0].sum_area = 0.5;
@@ -413,6 +417,7 @@ static void test_09_support_in_range(int id) {
     hiss::DrizzleTileAccumulator acc;
     acc.tile_nside  = 16;
     acc.parent_ipix = 0;
+    acc.pixel_area  = 1.0;
     acc.pixels.resize(100);
     std::mt19937 rng(42);
     std::uniform_real_distribution<double> uniform(0.0, 1.0);
@@ -444,6 +449,7 @@ static void test_10_support_overflow_error(int id) {
     hiss::DrizzleTileAccumulator acc;
     acc.tile_nside  = 16;
     acc.parent_ipix = 0;
+    acc.pixel_area  = 1.0;
     acc.pixels.resize(2);
     acc.pixels[0].sum_area = 0.5;   // 合法
     acc.pixels[1].sum_area = 1.5;   // 明显超 1 → 错误
@@ -455,6 +461,7 @@ static void test_10_support_overflow_error(int id) {
     hiss::DrizzleTileAccumulator acc2;
     acc2.tile_nside = 16;
     acc2.parent_ipix = 0;
+    acc2.pixel_area = 1.0;
     acc2.pixels.resize(1);
     acc2.pixels[0].sum_area = 1.0 + 1e-9;  // 浮点误差级
     int ret2 = acc2.validate_support();
@@ -615,6 +622,7 @@ static void test_12_occupancy_roundtrip(int id) {
     hiss::DrizzleTileAccumulator acc;
     acc.tile_nside  = 16;
     acc.parent_ipix = 7;
+    acc.pixel_area  = 1.0;
     size_t n_leaf = (size_t)16  /* 4^2=16 (NSIDE=64,tile_nside=16,d=2) */;  // 3072
     acc.pixels.resize(n_leaf);
     std::mt19937 rng(42);
@@ -687,6 +695,7 @@ static void test_13_independent_read(int id) {
     hiss::DrizzleTileAccumulator acc;
     acc.tile_nside  = 16;
     acc.parent_ipix = 3;
+    acc.pixel_area  = 1.0;
     size_t n_leaf = (size_t)16  /* 4^2=16 (NSIDE=64,tile_nside=16,d=2) */;
     acc.pixels.resize(n_leaf);
     for (size_t i = 0; i < n_leaf; i++) {
@@ -760,7 +769,7 @@ static void test_14_raw_subblock(int id) {
 
     // 通过 HISS 文件验证 RAW 子块读写 (默认 codec 即 RAW)
     hiss::DrizzleTileAccumulator acc;
-    acc.tile_nside = 16; acc.parent_ipix = 1;
+    acc.tile_nside = 16; acc.parent_ipix = 1; acc.pixel_area = 1.0;
     acc.pixels.resize(16  /* 4^2=16 (NSIDE=64,tile_nside=16,d=2) */);
     for (size_t i = 0; i < acc.pixels.size(); i++) {
         acc.pixels[i].sum_flux = (double)i;
@@ -845,7 +854,7 @@ static void test_15_unknown_optional_skip(int id) {
 
     // 先用 Writer 写一个正常文件, 然后手动追加一个未知可选子块
     hiss::DrizzleTileAccumulator acc;
-    acc.tile_nside = 16; acc.parent_ipix = 5;
+    acc.tile_nside = 16; acc.parent_ipix = 5; acc.pixel_area = 1.0;
     acc.pixels.resize(16  /* 4^2=16 (NSIDE=64,tile_nside=16,d=2) */);
     for (size_t i = 0; i < acc.pixels.size(); i++) {
         acc.pixels[i].sum_flux = 50.0; acc.pixels[i].sum_area = 1.0; acc.pixels[i].n_contrib = 1;
@@ -954,7 +963,7 @@ static void test_16_unknown_required_reject(int id) {
     TEST_CASE("未知必需子块拒绝", id);
 
     hiss::DrizzleTileAccumulator acc;
-    acc.tile_nside = 16; acc.parent_ipix = 5;
+    acc.tile_nside = 16; acc.parent_ipix = 5; acc.pixel_area = 1.0;
     acc.pixels.resize(16  /* 4^2=16 (NSIDE=64,tile_nside=16,d=2) */);
     for (size_t i = 0; i < acc.pixels.size(); i++) {
         acc.pixels[i].sum_flux = 50.0; acc.pixels[i].sum_area = 1.0; acc.pixels[i].n_contrib = 1;
@@ -1018,7 +1027,7 @@ static void test_17_offset_overflow_reject(int id) {
     TEST_CASE("offset/size 越界拒绝", id);
 
     hiss::DrizzleTileAccumulator acc;
-    acc.tile_nside = 16; acc.parent_ipix = 9;
+    acc.tile_nside = 16; acc.parent_ipix = 9; acc.pixel_area = 1.0;
     acc.pixels.resize(16  /* 4^2=16 (NSIDE=64,tile_nside=16,d=2) */);
     for (size_t i = 0; i < acc.pixels.size(); i++) {
         acc.pixels[i].sum_flux = 50.0; acc.pixels[i].sum_area = 1.0; acc.pixels[i].n_contrib = 1;
@@ -1071,7 +1080,7 @@ static void test_18_checksum_error(int id) {
     TEST_CASE("checksum 错误定位到具体子块", id);
 
     hiss::DrizzleTileAccumulator acc;
-    acc.tile_nside = 16; acc.parent_ipix = 11;
+    acc.tile_nside = 16; acc.parent_ipix = 11; acc.pixel_area = 1.0;
     acc.pixels.resize(16  /* 4^2=16 (NSIDE=64,tile_nside=16,d=2) */);
     for (size_t i = 0; i < acc.pixels.size(); i++) {
         acc.pixels[i].sum_flux = 50.0; acc.pixels[i].sum_area = 1.0; acc.pixels[i].n_contrib = 1;
@@ -1172,7 +1181,7 @@ static void test_20_atomic_commit(int id) {
     meta.photappl = 1; meta.photscal = 1.0;  // BUNIT=ASTROCS_RELATIVE_FLUX 要求 PHOTAPPL=TRUE
 
     hiss::DrizzleTileAccumulator acc;
-    acc.tile_nside = 16; acc.parent_ipix = 42;
+    acc.tile_nside = 16; acc.parent_ipix = 42; acc.pixel_area = 1.0;
     acc.pixels.resize(16  /* 4^2=16 (NSIDE=64,tile_nside=16,d=2) */);
     for (size_t i = 0; i < acc.pixels.size(); i++) {
         acc.pixels[i].sum_flux = 75.0; acc.pixels[i].sum_area = 1.0; acc.pixels[i].n_contrib = 1;
@@ -1243,6 +1252,7 @@ static void test_21_nested_ipix_recovery(int id) {
     hiss::DrizzleTileAccumulator acc;
     acc.tile_nside = tile_nside;
     acc.parent_ipix = parent_ipix;
+    acc.pixel_area = 1.0;  // sum_area=1.0 为任意值, 用 1.0 保持测试原有行为
     acc.pixels.resize(n_leaf);
     for (size_t i = 0; i < n_leaf; i++) {
         acc.pixels[i].sum_flux = (double)i * 0.1;

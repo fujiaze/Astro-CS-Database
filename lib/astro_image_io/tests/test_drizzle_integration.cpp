@@ -84,26 +84,27 @@ static std::string find_test_fits(const char* user_path) {
     if (user_path && user_path[0] && std::filesystem::exists(user_path)) {
         return user_path;
     }
-    // 自动搜索 testdata 目录
+    // R05: 自动搜索 testdata 目录 (原始 lights 使用 .fts 扩展名)
+    // 从 lib/astro_image_io/ 运行时, testdata 在项目根目录 ../../testdata/
     const char* search_dirs[] = {
-        "testdata/results/Galaxy_Center_T4/panel1/Blue",
-        "testdata/results/Galaxy_Center_T4/panel1/Green",
-        "testdata/results/Galaxy_Center_T4/panel1/Red",
-        "testdata/results/Galaxy_Center_T4/panel2/Blue",
-        "testdata/results/Galaxy_Center_T4/panel3/Red",
+        "../../testdata/Galaxy_Center_T4/lights",
+        "../../testdata/NGC55_T3_flying_dutchman/lights",
+        "../../testdata/Victory_Nebula_T4_Flying_Dutchman/lights",
+        "../../testdata/NGC247_T2_flying_dutchman/lights",
+        "testdata/Galaxy_Center_T4/lights",
+        "testdata/NGC55_T3_flying_dutchman/lights",
         nullptr
     };
     for (int i = 0; search_dirs[i]; ++i) {
         std::filesystem::path base(search_dirs[i]);
         if (!std::filesystem::exists(base)) continue;
-        // 递归搜索 01_calibrated.fits
+        // 递归搜索 .fts / .fits 文件
         for (const auto& entry : std::filesystem::recursive_directory_iterator(base)) {
-            if (entry.path().extension() == ".fits") {
-                std::string name = entry.path().filename().string();
-                if (name.find("01_calibrated") != std::string::npos ||
-                    name.find("calibrated") != std::string::npos) {
-                    return entry.path().string();
-                }
+            auto ext = entry.path().extension().string();
+            std::transform(ext.begin(), ext.end(), ext.begin(),
+                           [](unsigned char c){ return std::tolower(c); });
+            if (ext == ".fits" || ext == ".fts") {
+                return entry.path().string();
             }
         }
     }
@@ -208,6 +209,7 @@ static void test_03_write_his() {
     config.nested = true;
     config.pixfrac = 0.8;
     config.apply_photometry = false;
+    config.photometry_applied_upstream = true;  // R05: 模拟上游已校准
     config.photscal = 1.0;
 
     drizzle::DrizzleMeta meta;
@@ -414,6 +416,7 @@ static void test_07_lz4_roundtrip() {
     hiss::DrizzleTileAccumulator acc;
     acc.tile_nside = 16;
     acc.parent_ipix = parent_ipix;
+    acc.pixel_area = 1.0;  // sum_area=1.0f 为任意值, 用 1.0 保持测试原有行为
     size_t n_leaf = (size_t)acc.tile_nside * acc.tile_nside * 12;
     acc.pixels.resize(n_leaf);
     // 使用确定性固定值填充 (避免大数值的 float32 精度问题)
@@ -514,6 +517,7 @@ static void test_08_zstd_roundtrip() {
     hiss::DrizzleTileAccumulator acc;
     acc.tile_nside = 16;
     acc.parent_ipix = parent_ipix;
+    acc.pixel_area = 1.0;  // sum_area=1.0f 为任意值, 用 1.0 保持测试原有行为
     size_t n_leaf = (size_t)acc.tile_nside * acc.tile_nside * 12;
     acc.pixels.resize(n_leaf);
     // 使用确定性固定值填充 (与 LZ4 测试一致, 避免 float32 精度问题)

@@ -202,6 +202,17 @@ int BrowserBackend::open_file(const std::string& path) {
             return -3;
         }
 
+        // R06-B22 修复: 必需字段缺失应拒绝, 不得猜测/回退到 64
+        // nside/tile_nside 是 HISS 文件的核心结构字段, 为 0 表示文件损坏或格式非法
+        if (nside == 0 || tile_nside == 0) {
+            LOG_ERROR("HISS 文件必需字段缺失: nside=%u tile_nside=%u (必须 > 0), "
+                     "拒绝打开 (R06-B22: 不得猜测/回退)", nside, tile_nside);
+            if (meta_json) aio_hio_free(meta_json);
+            if (tile_ipix_list) aio_hio_free(tile_ipix_list);
+            file_path_.clear();
+            return -4;
+        }
+
         nside_ = nside;
         nested_ = 1;  // HISS 固定 NESTED
         n_pix_ = n_pix_total;

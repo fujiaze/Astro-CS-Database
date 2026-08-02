@@ -111,14 +111,15 @@ void DrizzleTileAccumulator::finalize_signal(std::vector<float>& signal) const {
 //   新正确: S = sum_area / A_p (A_p = pixel_area, 目标 HEALPix 像素面积, 球面度)
 //
 //   R05-M01: 移除 pixel_area<=0 回退到 1.0 的非法语义
-//   pixel_area<=0 时输出全零 support 并打印错误 (调用方应在调用前用 validate_support 检查)
+//   R06-B20: 默认值改为 NaN, !(pixel_area > 0.0) 同时捕获 NaN/<=0/未设置
+//   pixel_area 非法时输出全零 support 并打印错误 (调用方应在调用前用 validate_support 检查)
 void DrizzleTileAccumulator::finalize_support(std::vector<uint8_t>& support) const {
     support.resize(pixels.size());
-    // R05-M01: pixel_area<=0 是非法状态, 不再回退到虚构值 1.0
-    if (pixel_area <= 0.0) {
+    // R06-B20: !(pixel_area > 0.0) 同时拦截 NaN (默认未设置), <=0, Inf
+    if (!(pixel_area > 0.0) || !std::isfinite(pixel_area)) {
         fprintf(stderr,
-                "[hiss][common] finalize_support: pixel_area=%g 非法 (必须 > 0), "
-                "输出全零 support (调用方应在调用前用 validate_support 检查)\n",
+                "[hiss][common] finalize_support: pixel_area=%g 非法 (必须 > 0 且有限, "
+                "NaN 表示未设置), 输出全零 support (R06-B20)\n",
                 pixel_area);
         std::fill(support.begin(), support.end(), (uint8_t)0);
         return;
@@ -145,10 +146,11 @@ void DrizzleTileAccumulator::finalize_support(std::vector<uint8_t>& support) con
 //   新正确: 检查 sum_area / pixel_area 在 [0,1]
 int DrizzleTileAccumulator::validate_support() const {
     const double eps = 1e-6;
-    // 02_FROZEN §10: pixel_area<=0 必须硬失败, 不能回退到虚构值
-    if (pixel_area <= 0.0) {
+    // R06-B20: !(pixel_area > 0.0) 同时拦截 NaN (默认未设置), <=0, Inf
+    if (!(pixel_area > 0.0) || !std::isfinite(pixel_area)) {
         fprintf(stderr,
-                "[hiss][common] validate_support: pixel_area=%g 非法 (必须 > 0)\n",
+                "[hiss][common] validate_support: pixel_area=%g 非法 (必须 > 0 且有限, "
+                "NaN 表示未设置) (R06-B20)\n",
                 pixel_area);
         return -2;
     }

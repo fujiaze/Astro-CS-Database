@@ -154,6 +154,20 @@
       "val_min": 0.0,
       "val_max": 1.0
     },
+    "Baader 7nm H-alpha": {
+      "n_points": 21,
+      "wl_min": 640.0,
+      "wl_max": 672.0,
+      "val_min": 0.001,
+      "val_max": 0.97
+    },
+    "Baader 8.5nm OIII": {
+      "n_points": 25,
+      "wl_min": 484.0,
+      "wl_max": 518.0,
+      "val_min": 0.001,
+      "val_max": 0.98
+    },
     "Chroma B": {
       "n_points": 49,
       "wl_min": 414.0,

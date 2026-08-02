@@ -13,7 +13,7 @@
 //     ../src/hiss_writer.cpp ../src/hiss_stream_writer.cpp \
 //     ../src/hiss_reader.cpp \
 //     ../src/healpix/aio_healpix_io.cpp \
-//     ../src/aio_api.cpp ../src/aio_log.cpp \
+//     ../src/aio_log.cpp \
 //     -llz4 -lm -o test_wph_cli_browser.exe
 //
 // 运行:
