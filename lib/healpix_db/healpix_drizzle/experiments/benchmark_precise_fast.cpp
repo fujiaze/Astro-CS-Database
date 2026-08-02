@@ -233,9 +233,15 @@ static double fast_overlap_policy(
 // ============================================================================
 // B09: 独立候选验证 (低 NSIDE <= 1024)
 //
+// R07-B09: 独立候选验证
 // 从 drop 的球面包围盒 (RA/Dec 范围) 枚举所有可能的像素, 用 hp.radec2pix
-// 逐点检查, 构造独立候选集, 比较 query_candidate_pixels 结果.
+// 逐点检查. 关键: 必须检查网格点是否在 drop 多边形内部, 否则包围盒中
+// 不与 drop 重叠的像素会被误报为漏选 (原实现缺陷导致 391,116 假阳性).
 // ============================================================================
+//
+// 点在球面多边形内测试 (半空间法, 与 compute_overlap_area 一致):
+//   对 drop 每条边构造法向量 n = cross(P_i, P_{i+1}), 归一化使质心在正侧.
+//   点 v 在 drop 内当且仅当对所有法向量 n, dot(v, n) >= -epsilon.
 
 struct CandidateVerification {
     bool     verified = false;          // 是否执行了独立验证 (低 NSIDE)
@@ -257,7 +263,34 @@ static CandidateVerification verify_candidates(
     }
     cv.verified = true;
 
-    // 计算 drop 的 RA/Dec 范围 (球面向量 → 天球坐标)
+    // ---- 构造 drop 的裁剪法向量 (与 compute_overlap_area 一致) ----
+    int nd = (int)drop_corners.size();
+    spherical::Vec3 drop_centroid = {0.0, 0.0, 0.0};
+    for (const auto& v : drop_corners) {
+        drop_centroid.x += v.x; drop_centroid.y += v.y; drop_centroid.z += v.z;
+    }
+    drop_centroid = spherical::normalize(drop_centroid);
+    std::vector<spherical::Vec3> drop_normals;
+    drop_normals.reserve(nd);
+    for (int j = 0; j < nd; j++) {
+        const spherical::Vec3& P1 = drop_corners[j];
+        const spherical::Vec3& P2 = drop_corners[(j + 1) % nd];
+        spherical::Vec3 n = spherical::cross(P1, P2);
+        if (spherical::dot(n, drop_centroid) < 0.0) {
+            n.x = -n.x; n.y = -n.y; n.z = -n.z;
+        }
+        drop_normals.push_back(spherical::normalize(n));
+    }
+
+    // 点在 drop 内测试 (半空间法)
+    auto point_in_drop = [&](const spherical::Vec3& v) -> bool {
+        for (const auto& n : drop_normals) {
+            if (spherical::dot(v, n) < -1e-12) return false;
+        }
+        return true;
+    };
+
+    // ---- 计算 drop 的 RA/Dec 范围 (球面向量 → 天球坐标) ----
     double ra_min = 360.0, ra_max = 0.0;
     double dec_min = 90.0, dec_max = -90.0;
     for (const auto& v : drop_corners) {
@@ -284,30 +317,34 @@ static CandidateVerification verify_candidates(
     double dec_lo = std::max(dec_min - pad, -90.0);
     double dec_hi = std::min(dec_max + pad,  90.0);
 
+    // R07-B09 修复: 枚举网格点时必须检查点在 drop 多边形内部,
+    //   否则包围盒中不与 drop 重叠的像素会被误报为漏选.
+    auto check_grid_point = [&](double ra_use, double dec_use) {
+        spherical::Vec3 pt = spherical::radec_to_vec(ra_use, dec_use);
+        if (!point_in_drop(pt)) return;  // 不在 drop 内, 跳过
+        int64_t ipix = hp.radec2pix(ra_use, dec_use);
+        if (ipix >= 0) {
+            independent_set.insert(static_cast<uint64_t>(ipix));
+        }
+    };
+
     for (double dec = dec_lo; dec <= dec_hi; dec += step) {
         for (double ra = ra_min - pad; ra <= ra_max + pad; ra += step) {
             double ra_use = ra;
-            // 归一化 RA 到 [0, 360)
             while (ra_use < 0.0)    ra_use += 360.0;
             while (ra_use >= 360.0) ra_use -= 360.0;
-            int64_t ipix = hp.radec2pix(ra_use, dec);
-            if (ipix >= 0) {
-                independent_set.insert(static_cast<uint64_t>(ipix));
-            }
+            check_grid_point(ra_use, dec);
         }
     }
-    // RA 跨越时, 还需枚举 [0, ra_max+pad] 和 [ra_min-pad, 360) 的补充区间
-    // (上面循环已通过模运算覆盖, 但为稳妥再补一轮)
+    // RA 跨越时补充区间
     if (ra_wrap) {
         for (double dec = dec_lo; dec <= dec_hi; dec += step) {
             for (double ra = 0.0; ra <= ra_max + pad; ra += step) {
-                int64_t ipix = hp.radec2pix(ra, dec);
-                if (ipix >= 0) independent_set.insert(static_cast<uint64_t>(ipix));
+                check_grid_point(ra, dec);
             }
             for (double ra = ra_min - pad; ra < 360.0; ra += step) {
                 double ra_use = (ra < 0.0) ? ra + 360.0 : ra;
-                int64_t ipix = hp.radec2pix(ra_use, dec);
-                if (ipix >= 0) independent_set.insert(static_cast<uint64_t>(ipix));
+                check_grid_point(ra_use, dec);
             }
         }
     }
