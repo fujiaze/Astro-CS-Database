@@ -616,6 +616,30 @@ std::vector<Vec3> build_drop_polygon_sampled(
 
 // ============================================================================
 // 计算源像素 drop 与目标 HEALPix 像素的球面重叠面积
+//
+// R07 修复: 三角形扇剖分 (fan triangulation) 替代直接 S-H 裁剪
+//
+// R06 根因:
+//   直接用 HEALPix 像素边界 (自适应细分后可达 100+ 顶点) 作为 S-H 裁剪多边形,
+//   100+ 条裁剪边的数值误差在迭代中累积, 导致极区像素重叠面积系统性低估
+//   (实测 ipix 8189 低估 27%, ipix 8183 完全漏掉).
+//
+//   诊断证据 (diag_pixel_boundary.cpp):
+//     ipix 8189 (123 顶点): prod=2.496e-05, tri_fan=3.428e-05, 独立参考=3.428e-05
+//     ipix 8191 (102 顶点): prod=3.797e-06, tri_fan=3.797e-06 (含极点, 边为大圆弧)
+//
+// 修复方案:
+//   1. 获取 HEALPix 像素边界 (自适应细分, 与 R06 一致)
+//   2. 用 pix2radec 获取像素精确中心
+//   3. 以像素中心为顶点, 对边界做 fan triangulation: 三角形 (center, V[i], V[i+1])
+//   4. 对每个三角形与 drop 做 S-H 裁剪 (每个三角形仅 3 条裁剪边, 无累积误差)
+//   5. 累加所有三角形的重叠面积
+//
+// 正确性:
+//   - 三角形在球面上总是凸的, S-H 裁剪数学上精确
+//   - 三角形扇覆盖整个像素, 无缝隙无重叠
+//   - 每个三角形仅 3 条裁剪边, 数值误差不累积
+//   - 与独立参考 (L'Huilier + 高密度点采样) 结果一致 (误差 < 1e-10)
 // ============================================================================
 double compute_overlap_area(
     const std::vector<Vec3>& drop_corners,
@@ -623,63 +647,55 @@ double compute_overlap_area(
 {
     if (drop_corners.size() < 3) return 0.0;
 
-    // 1. 获取目标 HEALPix 像素边界 (自适应采样)
-    //    赤道带像素 (bighp 4-7, 或 bighp 0-3/8-11 的赤道部分) 的边在 (z, phi) 空间为
-    //    线性曲线, 在球面上既非大圆弧也非等纬度小圆弧; 用多段大圆弧近似可显著降低
-    //    单像素面积误差 (Phase C1.1/C1.2).
-    //
-    //    采样数按 NSIDE 自适应:
-    //      NSIDE <= 8 : samples=16 (低 NSIDE 像素大, 边弯曲显著, 16 采样将单像素
-    //                   面积误差从 5-20% 降至 < 0.1%; NSIDE=8 4顶点误差约 0.26%)
-    //      NSIDE > 8  : samples=1  (高 NSIDE 像素小, 4 顶点边界误差已 < 0.1%;
-    //                   采样会引入相邻像素边界缝隙, 破坏通量守恒精度, 故不采样)
-    //
-    //    注: 任务 spec Phase C1.2 建议 NSIDE<=16 用 16 采样, NSIDE<=256 用 8 采样,
-    //    NSIDE>256 用 4 采样. 但实测发现:
-    //      a) NSIDE=16 用 16 采样会使 5° drop 通量守恒从 < 1% 退化到 ~1.7%
-    //         (相邻像素采样点不完全匹配, 出现球面"缝隙")
-    //      b) NSIDE=64 用 8 采样会使通量守恒从 1e-6 退化到 1e-5
-    //    而 NSIDE>=16 时 4 顶点边界已足够精确 (NSIDE=16 误差 0.064%, NSIDE=64 仅 0.004%),
-    //    无需采样. 因此本实现将采样阈值限定在 NSIDE<=8, 优先保证通量守恒精度.
-    //    极区像素的边都是大圆弧, get_healpix_boundary_sampled 内部会自动退化为 4 顶点.
+    // 1. 获取目标 HEALPix 像素边界 (自适应细分)
     int nside = hp.getNside();
     int samples = (nside <= 8) ? 16 : 1;
     std::vector<Vec3> hp_boundary = get_healpix_boundary_sampled(hp, target_ipix, nside, samples);
     if (hp_boundary.size() < 3) return 0.0;
 
-    // 2. 构造裁剪平面法向量 (每条边一个大圆, 指向像素内部)
-    //    对于逆时针顺序的顶点 v0→v1→v2→v3:
-    //      边 (v_i → v_{i+1}) 的大圆法向量 n = cross(v_i, v_{i+1})
-    //      内部点 P 满足 dot(n, P) > 0 (因为内部在边的左侧)
-    //    HEALPix 像素中心必然在所有裁剪平面的正侧, 用此验证方向
-    Vec3 hp_center = {0.0, 0.0, 0.0};
-    for (const Vec3& v : hp_boundary) {
-        hp_center.x += v.x; hp_center.y += v.y; hp_center.z += v.z;
-    }
-    hp_center = normalize(hp_center);
+    // 2. 获取像素精确中心 (通过 pix2radec, 不用边界顶点平均)
+    double ra_c, dec_c;
+    hp.pix2radec((int64_t)target_ipix, &ra_c, &dec_c);
+    Vec3 hp_center = radec_to_vec(ra_c, dec_c);
 
-    std::vector<Vec3> clip_normals;
-    clip_normals.reserve(hp_boundary.size());
+    // 3. 三角形扇剖分 + 逐三角形 S-H 裁剪
     int nb = (int)hp_boundary.size();
+    double total_overlap = 0.0;
+
     for (int i = 0; i < nb; i++) {
         const Vec3& A = hp_boundary[i];
         const Vec3& B = hp_boundary[(i + 1) % nb];
-        Vec3 n = cross(A, B);
-        // 确保法向量指向像素内部 (与中心同侧)
-        if (dot(n, hp_center) < 0.0) {
-            n.x = -n.x; n.y = -n.y; n.z = -n.z;
+
+        // 构造三角形 (hp_center, A, B)
+        std::vector<Vec3> triangle = {hp_center, A, B};
+
+        // 构造三角形 3 条边的裁剪法向量
+        std::vector<Vec3> tri_clip_normals;
+        tri_clip_normals.reserve(3);
+        for (int j = 0; j < 3; j++) {
+            const Vec3& P1 = triangle[j];
+            const Vec3& P2 = triangle[(j + 1) % 3];
+            Vec3 n = cross(P1, P2);
+            // 三角形重心 (用于判断法向量方向)
+            Vec3 centroid = normalize(Vec3{
+                (triangle[0].x + triangle[1].x + triangle[2].x) / 3.0,
+                (triangle[0].y + triangle[1].y + triangle[2].y) / 3.0,
+                (triangle[0].z + triangle[1].z + triangle[2].z) / 3.0
+            });
+            if (dot(n, centroid) < 0.0) {
+                n.x = -n.x; n.y = -n.y; n.z = -n.z;
+            }
+            tri_clip_normals.push_back(normalize(n));
         }
-        // 法向量无需单位化 (is_inside 用符号判断), 但单位化更稳定
-        n = normalize(n);
-        clip_normals.push_back(n);
+
+        // S-H 裁剪 drop 与三角形
+        std::vector<Vec3> intersection = sutherland_hodgman_spherical(drop_corners, tri_clip_normals);
+        if (intersection.size() < 3) continue;
+
+        total_overlap += spherical_polygon_area(intersection);
     }
 
-    // 3. 球面 Sutherland-Hodgman 裁剪
-    std::vector<Vec3> intersection = sutherland_hodgman_spherical(drop_corners, clip_normals);
-    if (intersection.size() < 3) return 0.0;
-
-    // 4. 用 Girard 定理计算交集面积
-    return spherical_polygon_area(intersection);
+    return total_overlap;
 }
 
 // ============================================================================
