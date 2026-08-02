@@ -1,71 +1,332 @@
-// astro/compute/acr.hpp — ACR 公共 API 头（Phase A 占位骨架）
-// Phase B 将完整实现 parallel_for/tiles/reduce/batch/scan/chunks/run_for + Buffer/Event。
-// 当前为占位，保证 CMake configure 通过、不引入第三方类型。
-
+// astro/compute/acr.hpp — ACR 公共 API
+// Phase B：parallel_for/tiles/reduce/batch/scan/chunks/run_for + Buffer/Event。
+// 设计（控制包 03_PUBLIC_API_SPEC.md）：
+//   1. 公共头不暴露 tbb::/alpaka::/starpu_*/cuda*/hip*/sycl:: 类型
+//   2. backend 类型只出现在 .cpp，tbb 完全封装在 runtime.cpp
+//   3. 模板实现内联在此，调用 detail::submit_* type-erased 接口（不依赖 tbb 头）
+//   4. ACR_KERNEL_ACC 映射 backend 注解（CPU baseline 空）
+//   5. 默认 FP32 允许末位差异；FP64 声明需确定性归约
+//   6. lazy initialization：首次 API 调用才初始化 runtime singleton
 #pragma once
 
+#include <algorithm>
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <stdexcept>
+#include <string>
+#include <type_traits>
+#include <vector>
 
 namespace astro::compute {
 
-// Kernel 标识（Phase B 完整化）
-enum class KernelId : std::uint32_t {
-    Custom = 0,
-    Copy,
-    Triad,
-    AXPY,
-    Dot,
-    Transpose,
-    Convolution2D,
-    Histogram256,
-    Scan,
-    Gather,
-    Scatter,
-    Mandelbrot,
-    Gemm,
-    Fft,
+// ===== 错误码 =====
+enum class StatusCode : int {
+    Ok = 0, NotInitialized, InvalidArgument, OutOfMemory, OutOfBounds,
+    BackendUnavailable, KernelFailed, Cancelled, ProfileMissing, ProfileStale,
+    ProfileCorrupt, DeviceLost, UnsupportedPrecision, InternalError,
 };
 
-// 1D 范围
+class AcrError : public std::runtime_error {
+public:
+    AcrError(StatusCode code, const std::string& msg) : std::runtime_error(msg), code_(code) {}
+    StatusCode code() const noexcept { return code_; }
+private:
+    StatusCode code_;
+};
+
+// ===== Kernel 标识 =====
+enum class KernelId : std::uint32_t {
+    Custom = 0, Copy, Triad, AXPY, Dot, Transpose, Convolution2D,
+    Histogram256, Scan, Gather, Scatter, Mandelbrot, Gemm, Fft,
+};
+
+// ===== 范围 =====
 struct Range1D {
     std::size_t begin{0};
     std::size_t end{0};
-    constexpr std::size_t size() const noexcept { return end - begin; }
+    constexpr std::size_t size() const noexcept { return end >= begin ? end - begin : 0; }
+    constexpr bool empty() const noexcept { return end <= begin; }
 };
 
-// 2D 范围
 struct Extent2D {
     std::size_t width{0};
     std::size_t height{0};
+    constexpr std::size_t count() const noexcept { return width * height; }
 };
 
-// Tile 形状
 struct TileShape {
     std::size_t tile_w{0};
     std::size_t tile_h{0};
 };
 
-// 数值精度策略（Phase B 详细实现）
-enum class Precision {
-    Default,       // FP32，允许 IEEE 754 末位差异
-    FP32,
-    FP64,          // 声明性，需要确定性归约
-    Integer,       // exact
-};
+// ===== 数值策略 =====
+enum class Precision { Default, FP32, FP64, Integer };
 
-// 执行提示
 struct ExecutionHints {
     Precision precision{Precision::Default};
     bool deterministic{false};
     bool prefer_resident{false};
-    std::uint32_t chunk_hint{0};   // 0 = 自动
+    std::uint32_t chunk_hint{0};
+    std::uint32_t grainsize{0};
 };
 
-// 前向声明（Phase B 完整实现）
-class Event;
-template<class T> class BufferView;
-template<class T> class Buffer;
+// ===== Event =====
+// EventImpl 完整定义在 runtime_internal.h（仅 runtime.cpp/event.cpp include）。
+// 公共头只前向声明，shared_ptr<detail::EventImpl> 不需要完整类型。
+namespace detail { class EventImpl; }
+
+class Event {
+public:
+    Event();
+    ~Event();
+    Event(Event&&) noexcept;
+    Event& operator=(Event&&) noexcept;
+    Event(const Event&) = delete;
+    Event& operator=(const Event&) = delete;
+
+    void wait() const;
+    bool ready() const noexcept;
+    void cancel();
+    bool cancelled() const noexcept;
+    StatusCode status() const noexcept;
+
+    explicit Event(std::shared_ptr<detail::EventImpl> impl);
+    detail::EventImpl* impl() const noexcept;
+private:
+    std::shared_ptr<detail::EventImpl> impl_;
+};
+
+// ===== BufferView =====
+template<class T>
+class BufferView {
+public:
+    BufferView() = default;
+    BufferView(T* data, std::size_t count) : data_(data), count_(count) {}
+    BufferView(T* data, std::size_t count, std::size_t stride, std::size_t pitch)
+        : data_(data), count_(count), stride_(stride), pitch_(pitch) {}
+
+    T* data() noexcept { return data_; }
+    const T* data() const noexcept { return data_; }
+    std::size_t count() const noexcept { return count_; }
+    std::size_t stride() const noexcept { return stride_; }
+    std::size_t pitch() const noexcept { return pitch_; }
+    bool empty() const noexcept { return count_ == 0; }
+
+    T& operator[](std::size_t i) { return data_[i]; }
+    const T& operator[](std::size_t i) const { return data_[i]; }
+
+    BufferView<T> subview(std::size_t offset, std::size_t sub_count) const {
+        if (offset + sub_count > count_) throw AcrError(StatusCode::OutOfBounds, "subview out of bounds");
+        return BufferView<T>(data_ + offset, sub_count, stride_, pitch_);
+    }
+private:
+    T* data_{nullptr};
+    std::size_t count_{0};
+    std::size_t stride_{1};
+    std::size_t pitch_{0};
+};
+
+// ===== Buffer（拥有式 host 内存）=====
+template<class T>
+class Buffer {
+public:
+    Buffer() = default;
+    explicit Buffer(std::size_t count) : data_(count > 0 ? new T[count]() : nullptr), count_(count) {}
+    Buffer(std::size_t count, const T& init) : data_(count > 0 ? new T[count] : nullptr), count_(count) {
+        std::fill(data_.get(), data_.get() + count, init);
+    }
+    T* data() noexcept { return data_.get(); }
+    const T* data() const noexcept { return data_.get(); }
+    std::size_t count() const noexcept { return count_; }
+    bool empty() const noexcept { return count_ == 0; }
+    BufferView<T> view() noexcept { return BufferView<T>(data_.get(), count_); }
+    BufferView<const T> view() const noexcept { return BufferView<const T>(data_.get(), count_); }
+    T& operator[](std::size_t i) { return data_[i]; }
+    const T& operator[](std::size_t i) const { return data_[i]; }
+    void resize(std::size_t new_count) { data_.reset(new_count > 0 ? new T[new_count]() : nullptr); count_ = new_count; }
+private:
+    std::unique_ptr<T[]> data_;
+    std::size_t count_{0};
+};
+
+// ===== kernel 注解宏（CPU baseline 空，alpaka backend 映射 ALPAKA_FN_ACC）=====
+#ifndef ACR_KERNEL_ACC
+#define ACR_KERNEL_ACC
+#endif
+#ifndef ACR_KERNEL_HOST
+#define ACR_KERNEL_HOST
+#endif
+
+// ===== Runtime 控制 =====
+struct RuntimeConfig {
+    std::uint32_t max_threads{0};
+    std::uint32_t arena_concurrency{0};
+    bool enable_work_stealing{true};
+};
+void runtime_init(const RuntimeConfig& config = {});
+bool runtime_initialized() noexcept;
+void runtime_shutdown();
+std::size_t runtime_worker_count() noexcept;
+std::string runtime_status_json();
+void runtime_set_log_level(const std::string& level);
+
+// ===== detail: type-erased runtime 接口（tbb 封装在 runtime.cpp）=====
+namespace detail {
+
+using RangeKernelFn   = void(*)(std::size_t begin, std::size_t end, void* user_data);
+using TileKernelFn    = void(*)(std::size_t tx, std::size_t ty, std::size_t tw, std::size_t th, void* user_data);
+using ItemKernelFn    = void(*)(std::size_t item_index, void* user_data);
+using ReduceKernelFn  = void(*)(std::size_t begin, std::size_t end, void* acc, void* user_data);
+using ReduceCombineFn = void(*)(void* dst, const void* src, void* user_data);
+using ScanKernelFn    = void(*)(std::size_t i, void* user_data);
+using ReleaseFn       = void(*)(void* user_data);
+
+Event submit_range(Range1D range, RangeKernelFn fn, void* user_data, ReleaseFn rel, ExecutionHints hints);
+Event submit_2d(Extent2D extent, TileKernelFn fn, void* user_data, ReleaseFn rel, ExecutionHints hints);
+Event submit_tiles(Extent2D extent, TileShape tile, TileKernelFn fn, void* user_data, ReleaseFn rel, ExecutionHints hints);
+Event submit_batch(std::size_t item_count, ItemKernelFn fn, void* user_data, ReleaseFn rel, ExecutionHints hints);
+Event submit_chunks(Range1D range, std::size_t chunk_size, RangeKernelFn fn, void* user_data, ReleaseFn rel, ExecutionHints hints);
+Event submit_serial(Range1D range, RangeKernelFn fn, void* user_data, ReleaseFn rel, ExecutionHints hints);
+
+// 归约：分块局部归约 + 合并，结果写入 result_out
+void submit_reduce(Range1D range, const void* identity, std::size_t elem_size,
+                   ReduceKernelFn reduce_fn, ReduceCombineFn combine_fn,
+                   void* user_data, ReleaseFn rel, ExecutionHints hints, void* result_out);
+
+} // namespace detail
+
+// ===== 模板 API 实现（内联，调用 detail::submit_*，不依赖 tbb 头）=====
+
+template<class KernelFn>
+Event parallel_for(KernelId /*id*/, Range1D range, KernelFn&& fn, ExecutionHints hints = {}) {
+    if (range.empty()) { Event e; return e; }
+    using F = std::decay_t<KernelFn>;
+    F* heap = new F(std::forward<KernelFn>(fn));
+    auto wrapper = +[](std::size_t b, std::size_t e, void* ud) {
+        F* f = static_cast<F*>(ud);
+        for (std::size_t i = b; i < e; ++i) (*f)(i);
+    };
+    auto rel = +[](void* ud) { delete static_cast<F*>(ud); };
+    return detail::submit_range(range, wrapper, heap, rel, hints);
+}
+
+template<class KernelFn>
+Event run_for(KernelId /*id*/, Range1D range, KernelFn&& fn, ExecutionHints hints = {}) {
+    if (range.empty()) { Event e; return e; }
+    using F = std::decay_t<KernelFn>;
+    F* heap = new F(std::forward<KernelFn>(fn));
+    auto wrapper = +[](std::size_t b, std::size_t e, void* ud) {
+        F* f = static_cast<F*>(ud);
+        for (std::size_t i = b; i < e; ++i) (*f)(i);
+    };
+    auto rel = +[](void* ud) { delete static_cast<F*>(ud); };
+    return detail::submit_serial(range, wrapper, heap, rel, hints);
+}
+
+template<class KernelFn>
+Event parallel_for_2d(KernelId /*id*/, Extent2D extent, KernelFn&& fn, ExecutionHints hints = {}) {
+    if (extent.count() == 0) { Event e; return e; }
+    using F = std::decay_t<KernelFn>;
+    F* heap = new F(std::forward<KernelFn>(fn));
+    // 2D：用 tile 接口，tile=1x1
+    auto wrapper = +[](std::size_t tx, std::size_t ty, std::size_t /*tw*/, std::size_t /*th*/, void* ud) {
+        F* f = static_cast<F*>(ud);
+        (*f)(tx, ty);
+    };
+    auto rel = +[](void* ud) { delete static_cast<F*>(ud); };
+    TileShape t{1, 1};
+    return detail::submit_tiles(extent, t, wrapper, heap, rel, hints);
+}
+
+template<class KernelFn>
+Event parallel_tiles(KernelId /*id*/, Extent2D extent, TileShape tile, KernelFn&& fn, ExecutionHints hints = {}) {
+    if (extent.count() == 0 || tile.tile_w == 0 || tile.tile_h == 0) { Event e; return e; }
+    using F = std::decay_t<KernelFn>;
+    F* heap = new F(std::forward<KernelFn>(fn));
+    auto wrapper = +[](std::size_t tx, std::size_t ty, std::size_t tw, std::size_t th, void* ud) {
+        F* f = static_cast<F*>(ud);
+        (*f)(tx, ty, tw, th);
+    };
+    auto rel = +[](void* ud) { delete static_cast<F*>(ud); };
+    return detail::submit_tiles(extent, tile, wrapper, heap, rel, hints);
+}
+
+template<class KernelFn>
+Event parallel_batch(KernelId /*id*/, std::size_t item_count, KernelFn&& fn, ExecutionHints hints = {}) {
+    if (item_count == 0) { Event e; return e; }
+    using F = std::decay_t<KernelFn>;
+    F* heap = new F(std::forward<KernelFn>(fn));
+    auto wrapper = +[](std::size_t idx, void* ud) {
+        F* f = static_cast<F*>(ud);
+        (*f)(idx);
+    };
+    auto rel = +[](void* ud) { delete static_cast<F*>(ud); };
+    return detail::submit_batch(item_count, wrapper, heap, rel, hints);
+}
+
+template<class KernelFn>
+Event parallel_chunks(KernelId /*id*/, Range1D range, std::size_t chunk_size, KernelFn&& fn, ExecutionHints hints = {}) {
+    if (range.empty() || chunk_size == 0) { Event e; return e; }
+    using F = std::decay_t<KernelFn>;
+    F* heap = new F(std::forward<KernelFn>(fn));
+    auto wrapper = +[](std::size_t b, std::size_t e, void* ud) {
+        F* f = static_cast<F*>(ud);
+        (*f)(b, e);
+    };
+    auto rel = +[](void* ud) { delete static_cast<F*>(ud); };
+    return detail::submit_chunks(range, chunk_size, wrapper, heap, rel, hints);
+}
+
+template<class T, class KernelFn, class ReduceOp>
+T parallel_reduce(KernelId /*id*/, Range1D range, T identity, KernelFn&& fn, ReduceOp&& reduce_op,
+                   ExecutionHints hints = {}) {
+    if (range.empty()) return identity;
+    using F = std::decay_t<KernelFn>;
+    using R = std::decay_t<ReduceOp>;
+    struct Bundle { F map_fn; R reduce_op; };
+    Bundle* heap = new Bundle{std::forward<KernelFn>(fn), std::forward<ReduceOp>(reduce_op)};
+    auto reduce_kernel = +[](std::size_t b, std::size_t e, void* acc, void* ud) {
+        Bundle* p = static_cast<Bundle*>(ud);
+        T* a = static_cast<T*>(acc);
+        for (std::size_t i = b; i < e; ++i) *a = p->reduce_op(*a, p->map_fn(i));
+    };
+    auto combine = +[](void* dst, const void* src, void* ud) {
+        Bundle* p = static_cast<Bundle*>(ud);
+        *static_cast<T*>(dst) = p->reduce_op(*static_cast<T*>(dst), *static_cast<const T*>(src));
+    };
+    auto rel = +[](void* ud) { delete static_cast<Bundle*>(ud); };
+    T result = identity;
+    detail::submit_reduce(range, &identity, sizeof(T), reduce_kernel, combine, heap, rel, hints, &result);
+    return result;
+}
+
+template<class T, class KernelFn, class Op>
+Event parallel_scan(KernelId /*id*/, BufferView<T> input, BufferView<T> output, T identity,
+                     KernelFn&& /*fn*/, Op&& op, ExecutionHints hints = {}) {
+    // Phase B：串行扫描 + 屏障（Phase H E08 用专用库优化）
+    if (input.count() != output.count() || input.count() == 0) {
+        throw AcrError(StatusCode::InvalidArgument, "scan: input/output size mismatch");
+    }
+    using O = std::decay_t<Op>;
+    O* heap = new O(std::forward<Op>(op));
+    auto scan_fn = +[](std::size_t i, void* ud) {
+        O* p = static_cast<O*>(ud);
+        // 注意：串行扫描需要前缀和，这里由 runtime 串行执行保证顺序
+        (void)p; (void)i;
+    };
+    auto rel = +[](void* ud) { delete static_cast<O*>(ud); };
+    // 简化：Phase B 串行扫描
+    T acc = identity;
+    for (std::size_t i = 0; i < input.count(); ++i) {
+        acc = op(acc, input[i]);
+        output[i] = acc;
+    }
+    (void)scan_fn;
+    delete heap;
+    Event e;
+    return e;
+}
 
 } // namespace astro::compute

@@ -88,12 +88,24 @@ if(ACR_BUILD_SYCL)
     set(alpaka_ACC_GPU_SYCL_ENABLE ON CACHE BOOL "" FORCE)
 endif()
 
-# === ACR interface library（占位，Phase B 填充源码）===
+# === ACR interface library ===
 add_library(acr_options INTERFACE)
 target_include_directories(acr_options INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 target_compile_features(acr_options INTERFACE cxx_std_20)
+
+# === Phase B: 依赖获取 ===
+# ADR-008 原计划 FetchContent，但 oneTBB v2022.0.0 的 CMake 版本检测脚本
+# 与 MinGW g++ 16.1.0 不兼容（/dev/null 重定向 + 版本号解析失败）。
+# 务实 fallback：优先 MSYS2 系统包（find_package），FetchContent_Declare 仅作 ADR 记录。
+# dependency-lock.json 已记录版本差异（tbb 2023.0.0、gtest 1.17.0，来源 MSYS2）。
+find_package(TBB REQUIRED)
+message(STATUS "ACR: oneTBB found via system package: ${TBB_VERSION}")
+if(ACR_BUILD_TESTS)
+    find_package(GTest REQUIRED)
+    message(STATUS "ACR: GoogleTest found via system package: ${GTest_VERSION}")
+endif()
 
 # === 子目录（Phase B 起逐步填充，存在则添加）===
 foreach(subdir

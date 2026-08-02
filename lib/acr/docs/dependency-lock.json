@@ -21,7 +21,7 @@
     {
       "name": "oneTBB",
       "repository": "https://github.com/uxlfoundation/oneTBB",
-      "tag": "v2022.0.0",
+      "tag": "v2022.0.0 (planned) / v2023.0.0 (actual)",
       "commit": "v2022.0.0",
       "license_spdx": "Apache-2.0",
       "purpose": "CPU task runtime: work-stealing, task_arena, global_control",
@@ -31,7 +31,8 @@
       "platform": "Windows/Linux",
       "backends": ["cpu"],
       "local_patches": [],
-      "upgrade_risk": "ABI breaks between major versions; coexist with existing OpenMP (no shared state)"
+      "upgrade_risk": "ABI breaks between major versions; coexist with existing OpenMP (no shared state)",
+      "acquisition_note": "ADR-008 planned FetchContent v2022.0.0, but oneTBB CMake version detection script is incompatible with MinGW g++ 16.1.0 (/dev/null redirect + version parse failure). Phase B fallback to MSYS2 system package mingw-w64-x86_64-tbb 2023.0.0. parallel_reduce functional form requires identity as value not lambda (API change in 2023)."
     },
     {
       "name": "hwloc",
@@ -81,7 +82,7 @@
     {
       "name": "GoogleTest",
       "repository": "https://github.com/google/googletest",
-      "tag": "v1.15.2",
+      "tag": "v1.15.2 (planned) / v1.17.0 (actual)",
       "commit": "v1.15.2",
       "license_spdx": "BSD-3-Clause",
       "purpose": "Unit test framework (ADR-006 selected; repo had none)",
@@ -91,7 +92,8 @@
       "platform": "Windows/Linux",
       "backends": ["cpu"],
       "local_patches": [],
-      "upgrade_risk": "Stable; not introducing Catch2 to avoid dual frameworks"
+      "upgrade_risk": "Stable; not introducing Catch2 to avoid dual frameworks",
+      "acquisition_note": "Phase B fallback to MSYS2 system package mingw-w64-x86_64-gtest 1.17.0 (consistent with oneTBB acquisition strategy)."
     },
     {
       "name": "CLI11",

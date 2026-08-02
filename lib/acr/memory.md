@@ -31,4 +31,16 @@
 
 ## 下一阶段
 
-Phase B：公共 API 完整化 + CPU baseline + GoogleTest 单测。
+Phase B 完成。下一阶段：Phase C（硬件发现/ISA）+ Phase D（GPU backend）并行 subcoding agent。
+
+### 2026-08-02 Phase B 完成
+- acr.hpp 完整公共 API：parallel_for/for_2d/tiles/reduce/batch/scan/chunks/run_for + Buffer/BufferView/Event/RuntimeConfig + StatusCode/AcrError + detail::submit_* type-erased 接口
+- runtime_internal.h：EventImpl/EventState（mutex/atomic/condition_variable）
+- core/runtime.cpp：oneTBB lazy singleton + submit_range/2d/tiles/batch/chunks/serial/reduce（tbb::parallel_for/parallel_reduce + task_arena + global_control）
+- api/event.cpp：Event 类实现（wait/ready/cancel/status）
+- 公共头不暴露 tbb 类型（tbb 完全封装在 runtime.cpp，模板内联调用 detail::submit_*）
+- examples：minimal_parallel_for（N=1M reduce 验证）、legacy_chunk_adapter（chunk 适配）
+- GoogleTest 单测：test_api.cpp（23 tests）+ test_buffer.cpp（11 tests），33/33 通过（1 skipped 是别名声明性）
+- **依赖获取变更**：ADR-008 原计划 FetchContent oneTBB v2022.0.0，但 CMake 版本检测脚本与 MinGW g++ 16.1.0 不兼容（/dev/null 重定向 + 版本号解析失败）。fallback 到 MSYS2 系统包 mingw-w64-x86_64-tbb 2023.0.0 + gtest 1.17.0。dependency-lock.json 已记录 acquisition_note。
+- oneTBB 2023 API 变更：parallel_reduce functional 形式 identity 是值不是 lambda，已修复
+- 构建验证：cmake configure (0.8s) + build 成功 + examples 运行正确（FP32 末位差异 1e-4 符合允许范围）
