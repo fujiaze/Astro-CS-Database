@@ -606,13 +606,17 @@ static void test_sutherland_hodgman() {
 // samples_per_edge=1: 退化为 4 顶点
 // ============================================================================
 static void test_boundary_sampled_vertices() {
-    printf("\n[测试组 10] HEALPix 边界采样顶点数验证\n");
+    printf("\n[测试组 10] HEALPix 边界采样顶点数验证 (R08 自适应细分)\n");
 
-    // 10.1 赤道带像素 (bighp=4): samples_per_edge=8 → 顶点数 = 4*8 = 32
+    // R08 改进2: get_healpix_boundary_sampled 现在使用自适应细分 (忽略 samples_per_edge)
+    //   收敛阈值: hp_epsilon = hp_res_rad * 1e-12 (相对值)
+    //   最大深度: HP_ADAPTIVE_MAX_DEPTH = 8 (每边最多 256 段)
+    //   测试改为验证: 顶点数 >= 4 且面积接近理论值
+
+    // 10.1 赤道带像素: 自适应细分后顶点数 >= 4, 面积接近理论值
     {
         int nside = 4;
         healpix::HealpixCore hp(nside, true);
-        // bighp=4, 选取赤道带中心像素 (x=nside/2, y=nside/2)
         int bighp = 4;
         int x = nside / 2, y = nside / 2;
         int64_t ipix = (int64_t)bighp * (int64_t)nside * nside;
@@ -625,11 +629,16 @@ static void test_boundary_sampled_vertices() {
 
         std::vector<spherical::Vec3> b = spherical::get_healpix_boundary_sampled(hp, (uint64_t)ipix, nside, 8);
         char msg[256];
-        snprintf(msg, sizeof(msg), "赤道带像素 samples=8: 顶点数=%zu (期望 32)", b.size());
-        ASSERT_TRUE("赤道带像素 samples=8 顶点数=32", b.size() == 32, msg);
+        snprintf(msg, sizeof(msg), "赤道带像素: 顶点数=%zu (>=4)", b.size());
+        ASSERT_TRUE("赤道带像素自适应细分顶点数 >= 4", b.size() >= 4, msg);
+
+        double area = spherical::spherical_polygon_area(b);
+        double theory = 4.0 * M_PI / (12.0 * (double)nside * nside);
+        snprintf(msg, sizeof(msg), "面积=%.6e, 理论=%.6e, rel_err=%.2e", area, theory, std::fabs(area-theory)/theory);
+        ASSERT_NEAR("赤道带像素面积接近理论值", area, theory, theory * 0.01);
     }
 
-    // 10.2 赤道带像素 samples_per_edge=1 → 退化为 4 顶点
+    // 10.2 samples_per_edge 参数被忽略 (自适应细分)
     {
         int nside = 4;
         healpix::HealpixCore hp(nside, true);
@@ -644,19 +653,16 @@ static void test_boundary_sampled_vertices() {
         }
 
         std::vector<spherical::Vec3> b = spherical::get_healpix_boundary_sampled(hp, (uint64_t)ipix, nside, 1);
-        ASSERT_TRUE("赤道带像素 samples=1 退化为 4 顶点", b.size() == 4,
-                    "samples_per_edge=1 应退化为 4 顶点");
+        ASSERT_TRUE("samples_per_edge 参数被自适应细分忽略", b.size() >= 4,
+                    "自适应细分不依赖 samples_per_edge");
     }
 
-    // 10.3 极区像素 (bighp=0, 极冠): 采样后仍为 4 顶点
+    // 10.3 极区像素: 自适应细分后顶点数 >= 4
     {
         int nside = 4;
         healpix::HealpixCore hp(nside, true);
-        // bighp=0, 选取极冠区域像素 (x+y > Ns)
         int bighp = 0;
-        int x = nside, y = nside;  // x+y = 2*Ns > Ns, 在极冠内
-        // 实际像素坐标范围 [0, Ns], 取 x=Ns-1, y=Ns-1 → x+y = 2*(Ns-1) > Ns (当 Ns>=2)
-        x = nside - 1; y = nside - 1;
+        int x = nside - 1, y = nside - 1;
         int64_t ipix = (int64_t)bighp * (int64_t)nside * nside;
         int xv = x, yv = y;
         for (int i = 0; i < 32; i++) {
@@ -666,15 +672,15 @@ static void test_boundary_sampled_vertices() {
         }
 
         std::vector<spherical::Vec3> b = spherical::get_healpix_boundary_sampled(hp, (uint64_t)ipix, nside, 8);
-        ASSERT_TRUE("极区像素采样后仍为 4 顶点", b.size() == 4,
-                    "极区像素边为大圆弧, 不需要采样");
+        ASSERT_TRUE("极区像素自适应细分顶点数 >= 4", b.size() >= 4,
+                    "极区像素也使用自适应细分");
     }
 
-    // 10.4 默认参数 samples_per_edge=8
+    // 10.4 默认参数: 面积接近理论值
     {
         int nside = 16;
         healpix::HealpixCore hp(nside, true);
-        int bighp = 5;  // 赤道带
+        int bighp = 5;
         int x = nside / 2, y = nside / 2;
         int64_t ipix = (int64_t)bighp * (int64_t)nside * nside;
         int xv = x, yv = y;
@@ -685,8 +691,12 @@ static void test_boundary_sampled_vertices() {
         }
 
         std::vector<spherical::Vec3> b = spherical::get_healpix_boundary_sampled(hp, (uint64_t)ipix, nside);
-        ASSERT_TRUE("默认 samples_per_edge=8 (赤道带)", b.size() == 32,
-                    "默认参数应为 8");
+        ASSERT_TRUE("默认参数自适应细分顶点数 >= 4", b.size() >= 4,
+                    "自适应细分应返回有效边界");
+
+        double area = spherical::spherical_polygon_area(b);
+        double theory = 4.0 * M_PI / (12.0 * (double)nside * nside);
+        ASSERT_NEAR("默认参数面积接近理论值", area, theory, theory * 0.01);
     }
 }
 
@@ -950,8 +960,8 @@ static void test_drop_polygon_subdivision() {
         printf("             err(4v)=%.6e, err(32v)=%.6e\n", err1, err8);
 
         ASSERT_TRUE("TAN曲率: samples=8 比 samples=1 更精确",
-                    err8 < err1,
-                    "边细分应降低 TAN 投影曲率导致的面积误差");
+                    err8 < err1 || (err8 < 1e-15 && err1 < 1e-15),
+                    "边细分应降低 TAN 投影曲率导致的面积误差 (或两者均已达机器精度)");
     }
 
     // 13.2 SIP 畸变: 3 阶 SIP 多项式使像素边在球面上弯曲
@@ -1095,6 +1105,248 @@ static void test_drop_polygon_subdivision() {
 }
 
 // ============================================================================
+// 测试 14: R08 面积闭合验证 — < 1e-10
+//
+// R08 目标: 全场景原始面积闭合相对误差 < 1e-10
+//
+// 14.1 大圆弧 drop 闭合 (验证 compute_overlap_area 一致性):
+//   makeRectDrop 构造精确大圆弧四边形 drop, 验证 Σ overlap ≈ drop_area
+//   容差 1e-10 (机器精度级)
+//
+// 14.2 WCS TAN 投影 drop 闭合 (验证完整管线):
+//   模拟 ps3600_pf1p0_facebound_uniform 场景 (3600"/px, NSIDE=64, ra=45°, dec=0°)
+//   使用 build_drop_polygon_adaptive 构造 drop, 验证 Σ overlap ≈ drop_area
+//   容差 1e-10
+// ============================================================================
+static void test_r08_area_closure() {
+    printf("\n[测试组 14] R08 面积闭合验证 (< 1e-10)\n");
+
+    // 14.1 大圆弧 drop 闭合 — 验证 compute_overlap_area 一致性
+    {
+        int nside = 64;
+        healpix::HealpixCore hp(nside, true);
+        // 1°×1° drop 在赤道附近, 边长大圆弧
+        std::vector<spherical::Vec3> drop = makeRectDrop(45.0, 0.0, 1.0);
+        double drop_area = spherical::spherical_polygon_area(drop);
+
+        std::vector<uint64_t> candidates;
+        spherical::query_candidate_pixels(drop, hp, candidates);
+
+        double sum_overlap = 0.0;
+        for (uint64_t ipix : candidates) {
+            double a = spherical::compute_overlap_area(drop, hp, ipix);
+            if (a > 0.0) sum_overlap += a;
+        }
+
+        double closure = std::fabs(sum_overlap - drop_area) / drop_area;
+        printf("  14.1 大圆弧 drop: closure=%.3e (drop_area=%.6e, sum=%.6e, n_cand=%zu)\n",
+               closure, drop_area, sum_overlap, candidates.size());
+        ASSERT_NEAR("大圆弧 drop 闭合 < 1e-10", closure, 0.0, 1e-10);
+    }
+
+    // 14.2 WCS TAN drop 闭合 — 验证完整管线 (ps3600_pf1p0_facebound_uniform)
+    {
+        // 构造 TAN WCS: 3600"/px = 1°/px, 16×16 图像, 中心 (45°, 0°)
+        drizzle::WcsParams wcs;
+        wcs.has_wcs = true;
+        wcs.crval[0] = 45.0;
+        wcs.crval[1] = 0.0;
+        wcs.crpix[0] = 8.5;  // 1-based, 图像中心 (0-indexed 7.5 + 1)
+        wcs.crpix[1] = 8.5;
+        double scale_deg = 3600.0 / 3600.0;  // 1°/px
+        wcs.cd[0] = -scale_deg;  // RA 随 x 增大而减小
+        wcs.cd[1] = 0.0;
+        wcs.cd[2] = 0.0;
+        wcs.cd[3] = scale_deg;
+        std::strcpy(wcs.ctype1, "RA---TAN");
+        std::strcpy(wcs.ctype2, "DEC--TAN");
+        wcs.sip.order = 0;
+        wcs.sip.ap_order = 0;
+
+        drizzle::WcsSip wcsip(wcs);
+
+        int nside = 64;
+        healpix::HealpixCore hp(nside, true);
+
+        // 测试多个源像素: 中心 + 边缘
+        double max_closure = 0.0;
+        int test_pixels[][2] = {
+            {8, 8},   // 中心 (切点附近, WCS 近线性)
+            {0, 0},   // 左下角 (远离切点, TAN 曲率最大)
+            {15, 15}, // 右上角 (远离切点, TAN 曲率最大)
+            {0, 8},   // 左边缘
+            {8, 0},   // 下边缘
+        };
+        int n_test = sizeof(test_pixels) / sizeof(test_pixels[0]);
+
+        for (int t = 0; t < n_test; t++) {
+            double px = (double)test_pixels[t][0];
+            double py = (double)test_pixels[t][1];
+
+            // 估算 max_edge_rad (源像素边角跨度)
+            double ra_c[4], dec_c[4];
+            double half = 0.5;
+            double corners_xy[4][2] = {
+                {px - half, py - half}, {px + half, py - half},
+                {px + half, py + half}, {px - half, py + half}
+            };
+            for (int i = 0; i < 4; i++) {
+                wcsip.pixelToSky(corners_xy[i][0], corners_xy[i][1], ra_c[i], dec_c[i]);
+            }
+            double max_edge_rad = 0.0;
+            for (int i = 0; i < 4; i++) {
+                int j = (i + 1) % 4;
+                double dra = (ra_c[j] - ra_c[i]) * M_PI / 180.0;
+                double ddec = (dec_c[j] - dec_c[i]) * M_PI / 180.0;
+                double edge = std::sqrt(dra * dra + ddec * ddec);
+                if (edge > max_edge_rad) max_edge_rad = edge;
+            }
+
+            // R08 改进3: 自适应 WCS 边细分
+            std::vector<spherical::Vec3> drop =
+                spherical::build_drop_polygon_adaptive(
+                    px, py, 1.0,
+                    wcsPixelToSkyCallback, &wcsip,
+                    max_edge_rad);
+            if (drop.empty()) {
+                printf("  14.2 px=(%d,%d): 投影失败, 跳过\n",
+                       test_pixels[t][0], test_pixels[t][1]);
+                continue;
+            }
+
+            double drop_area = spherical::spherical_polygon_area(drop);
+            if (drop_area < 1e-20) continue;
+
+            std::vector<uint64_t> candidates;
+            spherical::query_candidate_pixels(drop, hp, candidates);
+
+            double sum_overlap = 0.0;
+            for (uint64_t ipix : candidates) {
+                double a = spherical::compute_overlap_area(drop, hp, ipix);
+                if (a > 0.0) sum_overlap += a;
+            }
+
+            double closure = std::fabs(sum_overlap - drop_area) / drop_area;
+            if (closure > max_closure) max_closure = closure;
+
+            printf("  14.2 px=(%d,%d): closure=%.3e (drop_area=%.6e, sum=%.6e, n_cand=%zu, n_drop=%zu)\n",
+                   test_pixels[t][0], test_pixels[t][1], closure,
+                   drop_area, sum_overlap, candidates.size(), drop.size());
+        }
+
+        printf("  14.2 最大 closure = %.3e\n", max_closure);
+        ASSERT_NEAR("WCS TAN drop 闭合 < 1e-10", max_closure, 0.0, 1e-10);
+
+        // 14.2b 诊断: 检查 px=(8,8) 的 WCS 边 dev 值
+        //   TAN (gnomonic) 投影理论上使平面直线 ↔ 大圆弧
+        //   R08 改进5: 用大圆弧平面偏差 (|asin(dot(n, p_mid_wcs))|) 替代球面中点偏差
+        {
+            double px = 8.0, py = 8.0;
+            double half = 0.5;
+            double corners_xy[4][2] = {
+                {px - half, py - half}, {px + half, py - half},
+                {px + half, py + half}, {px - half, py + half}
+            };
+            double ra_c[4], dec_c[4];
+            for (int i = 0; i < 4; i++) {
+                wcsip.pixelToSky(corners_xy[i][0], corners_xy[i][1], ra_c[i], dec_c[i]);
+            }
+            double max_edge_rad_diag = 0.0;
+            for (int i = 0; i < 4; i++) {
+                int j = (i + 1) % 4;
+                double dra = (ra_c[j] - ra_c[i]) * M_PI / 180.0;
+                double ddec = (dec_c[j] - dec_c[i]) * M_PI / 180.0;
+                double edge = std::sqrt(dra * dra + ddec * ddec);
+                if (edge > max_edge_rad_diag) max_edge_rad_diag = edge;
+            }
+            double wcs_eps = max_edge_rad_diag * 1e-12;
+            printf("  14.2b 诊断 px=(8,8): max_edge_rad=%.6e rad, wcs_epsilon=%.6e rad\n",
+                   max_edge_rad_diag, wcs_eps);
+
+            // 对每条边计算 dev (新旧两种方法对比)
+            double max_dev_new = 0.0;
+            double max_dev_old = 0.0;
+            for (int e = 0; e < 4; e++) {
+                int en = (e + 1) % 4;
+                spherical::Vec3 p0 = spherical::radec_to_vec(ra_c[e], dec_c[e]);
+                spherical::Vec3 p1 = spherical::radec_to_vec(ra_c[en], dec_c[en]);
+                double xm = 0.5 * (corners_xy[e][0] + corners_xy[en][0]);
+                double ym = 0.5 * (corners_xy[e][1] + corners_xy[en][1]);
+                double ra_m, dec_m;
+                wcsip.pixelToSky(xm, ym, ra_m, dec_m);
+                spherical::Vec3 p_mid_wcs = spherical::radec_to_vec(ra_m, dec_m);
+
+                // 旧方法: 球面中点偏差 (错误, gnomonic 参数化非线性)
+                spherical::Vec3 p_mid_gc = spherical::normalize(
+                    spherical::Vec3{p0.x + p1.x, p0.y + p1.y, p0.z + p1.z});
+                double dev_old = spherical::angular_distance(p_mid_wcs, p_mid_gc);
+
+                // 新方法 (R08 改进5): 大圆弧平面偏差
+                spherical::Vec3 n = spherical::normalize(spherical::cross(p0, p1));
+                double d = spherical::dot(n, p_mid_wcs);
+                if (d >  1.0) d =  1.0;
+                if (d < -1.0) d = -1.0;
+                double dev_new = std::fabs(std::asin(d));
+
+                if (dev_new > max_dev_new) max_dev_new = dev_new;
+                if (dev_old > max_dev_old) max_dev_old = dev_old;
+                printf("    边 %d→%d: dev_old=%.3e dev_new=%.3e rad (eps=%.3e, %s)\n",
+                       e, en, dev_old, dev_new, wcs_eps,
+                       (dev_new < wcs_eps ? "收敛" : "继续细分"));
+            }
+            printf("  14.2b max_dev_old=%.3e, max_dev_new=%.3e (eps=%.3e)\n",
+                   max_dev_old, max_dev_new, wcs_eps);
+        }
+    }
+
+    // 14.3 极区 drop 闭合 — 验证极区场景
+    {
+        int nside = 64;
+        healpix::HealpixCore hp(nside, true);
+        // 1°×1° drop 在 dec=80° (高纬度, HEALPix 边曲率显著)
+        std::vector<spherical::Vec3> drop = makeRectDrop(45.0, 80.0, 1.0);
+        double drop_area = spherical::spherical_polygon_area(drop);
+
+        std::vector<uint64_t> candidates;
+        spherical::query_candidate_pixels(drop, hp, candidates);
+
+        double sum_overlap = 0.0;
+        for (uint64_t ipix : candidates) {
+            double a = spherical::compute_overlap_area(drop, hp, ipix);
+            if (a > 0.0) sum_overlap += a;
+        }
+
+        double closure = std::fabs(sum_overlap - drop_area) / drop_area;
+        printf("  14.3 极区 drop (dec=80°): closure=%.3e (drop_area=%.6e, n_cand=%zu)\n",
+               closure, drop_area, candidates.size());
+        ASSERT_NEAR("极区 drop 闭合 < 1e-10", closure, 0.0, 1e-10);
+    }
+
+    // 14.4 诊断: 大圆弧 drop 在 dec=-8.5° (与 WCS px=0,0 同位置)
+    //   验证 HEALPix 边界在此纬度是否足够精确
+    {
+        int nside = 64;
+        healpix::HealpixCore hp(nside, true);
+        std::vector<spherical::Vec3> drop = makeRectDrop(53.5, -8.5, 1.0);
+        double drop_area = spherical::spherical_polygon_area(drop);
+
+        std::vector<uint64_t> candidates;
+        spherical::query_candidate_pixels(drop, hp, candidates);
+
+        double sum_overlap = 0.0;
+        for (uint64_t ipix : candidates) {
+            double a = spherical::compute_overlap_area(drop, hp, ipix);
+            if (a > 0.0) sum_overlap += a;
+        }
+
+        double closure = std::fabs(sum_overlap - drop_area) / drop_area;
+        printf("  14.4 大圆弧 drop (dec=-8.5°): closure=%.3e (n_cand=%zu)\n",
+               closure, candidates.size());
+        ASSERT_NEAR("大圆弧 drop (dec=-8.5°) 闭合 < 1e-10", closure, 0.0, 1e-10);
+    }
+}
+
+// ============================================================================
 // 主函数: 运行所有测试
 // ============================================================================
 int main() {
@@ -1115,6 +1367,7 @@ int main() {
     test_boundary_sampled_accuracy();
     test_overlap_with_sampled_boundary();
     test_drop_polygon_subdivision();
+    test_r08_area_closure();
 
     printf("\n================================================================\n");
     printf("测试汇总: %d 通过, %d 失败\n", g_pass_count, g_fail_count);

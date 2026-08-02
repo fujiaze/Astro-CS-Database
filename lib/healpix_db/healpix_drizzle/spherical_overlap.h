@@ -151,6 +151,31 @@ std::vector<Vec3> build_drop_polygon_sampled(
     int samples_per_edge);
 
 // ============================================================================
+// R08 改进3+5: 构造源像素 drop 球面多边形 (自适应 WCS 边细分)
+//
+// 对源像素 WCS/SIP 弯曲边进行自适应二分细分, 收敛条件 (R08 改进5):
+//   WCS 中点 (pixelToSky 回调) 到 (p0,p1) 大圆弧平面的角距离
+//   = |asin(dot(normalize(cross(p0,p1)), p_mid_wcs))| < wcs_epsilon
+//
+// R08 改进5 根因: 原收敛条件 "WCS 中点 vs 大圆弧球面中点" 是错误的.
+//   TAN (gnomonic) 投影保证平面直线 ↔ 大圆弧, 但平面中点 ≠ 球面中点
+//   (gnomonic 参数化非线性: c = atan(rho), 平面 t=0.5 ≠ 球面 t=0.5).
+//   新条件检查 WCS 中点是否在大圆弧平面上, 对 TAN 投影 dev≈0 (浮点精度).
+//
+// 相比 build_drop_polygon_sampled 的固定采样数, 自适应细分:
+//   - TAN 投影 (无 SIP): 快速收敛, 仅 4 角 (gnomonic 保证边是大圆弧)
+//   - SIP 投影: 递归细分到机器精度, 消除 SIP 畸变曲率面积误差
+//
+// src_scale_rad: 源像素边长 (弧度), 用于计算相对收敛阈值
+//   wcs_epsilon = src_scale_rad * 1e-12
+//   通常传入 max_edge_rad (像素四角最大边角跨度)
+// ============================================================================
+std::vector<Vec3> build_drop_polygon_adaptive(
+    double px, double py, double pixfrac,
+    PixelToSkyFn pixelToSky, void* user_data,
+    double src_scale_rad);
+
+// ============================================================================
 // 计算源像素 drop 与目标 HEALPix 像素的球面重叠面积
 //
 // drop_corners: drop 球面多边形顶点 (已通过 WCS/SIP 映射到球面, 单位向量)
