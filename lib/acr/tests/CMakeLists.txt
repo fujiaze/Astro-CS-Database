@@ -2,4 +2,6 @@
 enable_testing()
 add_subdirectory(unit)
 
-# Phase H: add_subdirectory(classic) add_subdirectory(fault)
+# Phase H: 经典实验 E01-E16 + 故障注入 + sanitizer + 持续路线
+add_subdirectory(classic)
+add_subdirectory(fault)

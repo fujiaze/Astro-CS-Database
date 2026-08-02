@@ -38,9 +38,14 @@ bool Event::ready() const noexcept {
 void Event::cancel() {
     if (impl_) {
         // 先置 cancelled 标志，让正在执行的 kernel 能观察到并提前返回；
-        // 再 mark_cancelled 通知 wait() 的等待者。
         impl_->cancelled.store(true, std::memory_order_release);
-        impl_->mark_cancelled();
+        // 只在 kernel 尚未进入终态时才 mark_cancelled。
+        // 对已成功完成（Done）的 kernel 取消应保持 Ok 状态，
+        // 对已 Failed/Cancelled 的也不覆盖已有终态。
+        auto s = impl_->state.load(std::memory_order_acquire);
+        if (s == detail::EventState::Pending || s == detail::EventState::Running) {
+            impl_->mark_cancelled();
+        }
     }
 }
 

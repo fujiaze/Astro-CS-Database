@@ -137,6 +137,18 @@ public:
     Buffer(std::size_t count, const T& init) : data_(count > 0 ? new T[count] : nullptr), count_(count) {
         std::fill(data_.get(), data_.get() + count, init);
     }
+    Buffer(Buffer&& other) noexcept
+        : data_(std::move(other.data_)), count_(other.count_) {
+        other.count_ = 0;
+    }
+    Buffer& operator=(Buffer&& other) noexcept {
+        if (this != &other) {
+            data_ = std::move(other.data_);
+            count_ = other.count_;
+            other.count_ = 0;
+        }
+        return *this;
+    }
     T* data() noexcept { return data_.get(); }
     const T* data() const noexcept { return data_.get(); }
     std::size_t count() const noexcept { return count_; }

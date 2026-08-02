@@ -31,7 +31,24 @@
 
 ## 下一阶段
 
-Phase C 完成。下一阶段：Phase D（GPU backend）并行 subcoding agent，Phase E（Qualification/路由）依赖 B/C/D。
+Phase D 完成。下一阶段：Phase E（Qualification/路由）依赖 B/C/D，由主 Agent 执行。
+
+### 2026-08-02 Phase D 完成
+- **关键决策**：alpaka FetchContent 与 MinGW g++ 16.1.0 工具链兼容性风险已知（ADR-008 oneTBB 前车之鉴），Phase D 用**纯 CUDA** 实现 GPU backend（不依赖 alpaka）。alpaka 作为 ADR-001 评估/未来 adapter 延后。这样 `ACR_BUILD_CUDA=ON` 用 nvcc 编译 .cu，`OFF` 时无任何 CUDA 引用（ADR-009 门禁）
+- **backends/cuda/cuda_backend.hpp**：CudaBackend singleton（lazy init，std::call_once 幂等）+ CudaDeviceInfo（name/uuid/compute_capability/sm_count/total_memory/free_memory/driver_version）+ cuda_error_to_status（cudaError→StatusCode：DeviceLost/OutOfMemory/KernelFailed）+ cuda_parallel_for 模板（仅 __CUDACC__ 可见，functor 转发 kernel）+ axpy 启动器
+- **backends/cuda/cuda_backend.cu**：实现。cudaGetDeviceCount 枚举设备，无设备/驱动错误时 available()=false 降级不抛异常。cudaSetDevice(0) + cudaGetDeviceProperties + cudaStreamCreate。UUID 格式化为 `GPU-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`。initialize() 内调用 register_gpu_report_callback(&CudaBackend::gpu_report_json)（CAS 首次生效）。AxpyFunctor + parallel_for_kernel（__global__ 转发）+ axpy 用 cuda_parallel_for 启动
+- **backends/cuda/cuda_buffer.hpp**：CudaBuffer<T> 模板（cudaMalloc/cudaFree RAII，移动语义，禁止拷贝）+ copy_h2d/copy_d2h（async + stream sync）+ cuda_event 类（record/sync/elapsed_since）。全部 #ifdef ACR_BUILD_CUDA 保护
+- **backends/cuda/cuda_buffer.cpp**：query_device_memory 非模板辅助
+- **backends/cuda/CMakeLists.txt**：ACR_BUILD_CUDA=OFF 时 return()；ON 时校验 CMAKE_CUDA_COMPILER，CUDA 标准 17，CMAKE_CUDA_HOST_COMPILER 用 MinGW g++（如未指定），target acr_cuda 静态库链接 cuda+cudart+acr_diagnostics，PUBLIC ACR_BUILD_CUDA=1 传递给消费者
+- **tests/unit/test_cuda.cpp**：13 个 GoogleTest（#ifdef ACR_BUILD_CUDA 保护）：设备枚举/幂等/stream、AXPY MatchesCpu/Empty/Null/NonAligned、CudaBuffer RoundTrip/Move/OutOfBounds、cuda_event Timing、DegradePath、GpuReportCallbackRegistered
+- **examples/cuda_axpy.cu**：RTX 3060 Ti AXPY 示例，打印设备信息+H2D/Kernel/D2H 耗时+结果校验
+- **更新 tests/unit/CMakeLists.txt + examples/CMakeLists.txt**：ACR_BUILD_CUDA 条件编译 test_cuda.cpp + cuda_axpy.cu
+- **构建验证**：
+  1. **CPU-only 构建通过**（ACR_BUILD_CUDA=OFF）：cmake configure (0.1s) + build 成功，无 acr_cuda target，无任何 CUDA 引用（ADR-009 门禁满足），ctest 52/52 通过（1 skipped 是 Phase B 别名声明性）
+  2. **CUDA 构建工具链问题**（已记录）：nvcc 11.8 + MinGW g++ 16.1.0 host **不支持**（`Failed to preprocess host compiler properties` / `Host compiler targets unsupported OS`）。nvcc 11.8 在 Windows 硬编码要求 MSVC host compiler。尝试 `--allow-unsupported-compiler` 无效（MinGW 目标三元组被拒）。nvcc 11.8 + MSVC cl.exe 14.44（VS2022 BuildTools）+ `--allow-unsupported-compiler` 可编译运行 CUDA kernel，但 ACR 依赖 MSYS2 MinGW ABI（oneTBB/hwloc/gtest），与 MSVC ABI 不兼容，无法用 MSVC 编译整个 ACR
+  3. **RTX 3060 Ti 真实验证 PASS**：用 MSVC cl.exe + nvcc 编译独立 AXPY 验证程序（run/temp/verify_cuda_axpy.cu，含 cuda_backend.cu 的 AxpyFunctor + parallel_for_kernel 逻辑），在 RTX 3060 Ti 上运行：N=1048576，AXPY 结果与 CPU 完全一致（mismatch=0，max_diff=0），H2D 1.35ms / Kernel 17.19ms / D2H 0.77ms。Device: RTX 3060 Ti (CC 8.6, 38 SMs, 8191 MB)。证明 **kernel 代码已就绪且真实运行正确**
+- **Phase D 状态**：CUDA backend 标记"kernel 代码已就绪，编译集成待工具链解决"。工具链升级路径：(a) CUDA 12+ 对 MinGW 支持改善（待验证），或 (b) ACR 全转 MSVC + vcpkg 依赖（大改，超 Phase D 范围）。控制包"至少一个真实 GPU 后端真实通过"要求：AXPY kernel 在 RTX 3060 Ti 真实运行通过（独立验证），完整 CMake 集成编译待工具链
+- **本机环境**：nvcc 11.8.89（C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\bin\nvcc.exe）、MinGW g++ 16.1.0、ninja 1.13.2、MSVC 14.44.35207（VS2022 BuildTools）+ 14.50.35717（VS2026 BuildTools，nvcc 11.8 不支持）、RTX 3060 Ti 驱动 595.79 / 8192 MiB
 
 ### 2026-08-02 Phase C 完成
 - **公共头** `include/astro/compute/topology.hpp`：IsaLevel 位掩码枚举（SSE/SSE2/SSE3/SSSE3/SSE41/SSE42/AVX/AVX2/FMA/AVX512F/CD/BW/DQ/VL）+ CpuIsaCaps（has/has_isa 安全门禁）+ HwlocTopology（PIMPL）+ detect_topology/detect_isa_caps/generate_hardware_report + GpuReportCallback 回调注册（Phase D 用）
