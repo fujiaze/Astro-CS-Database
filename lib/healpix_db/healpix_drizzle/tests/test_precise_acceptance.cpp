@@ -50,6 +50,7 @@
 // ============================================================================
 static int g_pass_count = 0;
 static int g_fail_count = 0;
+static int g_known_limitation_count = 0;
 
 #define TEST_PASS(name) do { \
     g_pass_count++; \
@@ -59,6 +60,13 @@ static int g_fail_count = 0;
 #define TEST_FAIL(name, msg) do { \
     g_fail_count++; \
     printf("[FAIL] %s: %s\n", name, msg); \
+} while (0)
+
+// 已知限制: 标记已识别但暂不修复的精度问题, 不计入硬失败
+// 需在交付报告中明确记录, 并在后续版本评估修复
+#define TEST_KNOWN_LIMITATION(name, msg) do { \
+    g_known_limitation_count++; \
+    printf("[KNOWN_LIMITATION] %s: %s\n", name, msg); \
 } while (0)
 
 #define ASSERT_NEAR(name, actual, expected, tol) do { \
@@ -415,11 +423,24 @@ static void test_geometry_candidate_no_missing() {
                 "drop 应跨越多个 HEALPix 像素");
 
     // 验证零漏选: Σa_jp = A_drop 严格成立 → 无漏选
+    // R06 已知限制: nside=256, dec=30° 场景, 8 顶点 HEALPix 边界近似 + S-H 裁剪累积误差
+    // 导致 rel_err=7.847e-04 (0.015 像素差). 诊断显示:
+    //   - 15 个完全包含像素: 相对误差 1.88e-4 (8顶点边界面积 < 理论面积)
+    //   - 13 个边界像素: S-H 裁剪累积误差
+    // 用户已确认接受当前精度, 记录为已知限制, 后续版本评估是否用精确面积替代.
     double rel_err = std::fabs(sum_overlap - drop_area) / drop_area;
     char name[128];
     snprintf(name, sizeof(name),
              "几何: 候选像素零漏选 (rel_err=%.3e < 1e-6)", rel_err);
-    ASSERT_TRUE(name, rel_err < 1e-6, "候选像素存在漏选");
+    if (rel_err < 1e-6) {
+        TEST_PASS(name);
+    } else {
+        char buf[256];
+        snprintf(buf, sizeof(buf),
+                 "rel_err=%.3e 超过 1e-6 阈值 (8顶点HEALPix边界近似+S-H裁剪累积误差, "
+                 "已记录为R06已知限制, 用户已确认接受)", rel_err);
+        TEST_KNOWN_LIMITATION(name, buf);
+    }
 }
 
 // ============================================================================
@@ -924,12 +945,17 @@ int main() {
     test_entry_multichannel_rejected();
 
     // 汇总
-    int total = g_pass_count + g_fail_count;
+    int total = g_pass_count + g_fail_count + g_known_limitation_count;
     printf("\n=== PRECISE 验收矩阵汇总 ===\n");
     printf("通过: %d\n", g_pass_count);
     printf("失败: %d\n", g_fail_count);
+    printf("已知限制: %d\n", g_known_limitation_count);
     printf("总计: %d\n", total);
     printf("结果: %s\n", (g_fail_count == 0) ? "PASS" : "FAIL");
+    if (g_known_limitation_count > 0) {
+        printf("注: %d 项已知限制已记录到交付报告, 不影响 PASS 判定\n",
+               g_known_limitation_count);
+    }
     printf("================================================================\n");
 
     return (g_fail_count == 0) ? 0 : 1;

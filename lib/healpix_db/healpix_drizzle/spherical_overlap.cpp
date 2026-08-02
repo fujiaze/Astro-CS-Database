@@ -93,132 +93,79 @@ double angular_distance(const Vec3& a, const Vec3& b) {
 }
 
 // ============================================================================
-// 球面多边形面积 (R05-B01: 双路径 — 小多边形切平面鞋带 / 大多边形 Girard)
+// 球面多边形面积 (R06-B05: 球面三角剖分 + Eriksson 稳定公式)
 //
-// R05-B01 根因:
-//   Girard 定理 (Area = Σ内角 - (n-2)π) 在极小球面多边形上因 catastrophic
-//   cancellation 失效: 相邻顶点 A, B 极接近时, 切向量 t = A - (A·B)·B 的
-//   有效数字严重丢失 (A·B ≈ 1.0, A - 1.0*B ≈ 0 但真实差值在 1e-7 量级),
-//   导致 normalize 后方向不准确, atan2 内角误差大, 角盈余可能为 0 或负值.
-//   这使 0.1"/px 源像素的 drop_area 计算为 0, 被 drizzle 跳过, PRECISE
-//   通量误差达 3324% (R05-B01).
+// R06-B01/B05 根因:
+//   R05 的双路径 (小多边形切平面鞋带 / 大多边形 Girard) 仍有缺陷:
+//   1. 极区 1° 像素是大边形, 走 Girard 路径, 但内角和 ≈ n×(π/2) = 2π,
+//      (n-2)π = 2π, excess ≈ 0, catastrophic cancellation → 通量爆炸 303305×
+//   2. Girard 切向量 t = A - (A·B)·B 在 A·B≈1 时有效数字丢失 (R05-B01 已识别)
+//   3. 双路径切换阈值 60" 无数学依据, 1° 像素 (3600") 远超阈值走 Girard 失效
 //
-// 修复 (R05-B01):
-//   1. 计算多边形中心 + 最大顶点到中心角距离
-//   2. 若 < SMALL_POLYGON_THRESHOLD (60" ≈ 2.91e-4 rad):
-//      - 在中心构造切平面坐标系 (x_axis, y_axis, center=z)
-//      - 投影顶点到切平面: p = v - (v·center)·center
-//      - 鞋带公式: Area = |Σ(x_i·y_{i+1} - x_{i+1}·y_i)| / 2
-//      - 球面 vs 平面差异 O(s⁴), 对 60" 多边形 < 1e-15 (可忽略)
-//   3. 否则用 Girard 定理 (大多边形无精度问题)
+// 修复 (R06-B05):
+//   统一使用球面三角剖分 (fan triangulation) + Eriksson (2018) 稳定公式:
+//   1. fan triangulation 以 V_0 为顶点: 三角形 (V_0, V_i, V_{i+1}), i=1..n-2
+//   2. 每个球面三角形有向面积 = 2·atan2(det, 1 + a·b + b·c + c·a)
+//      其中 det = a · (b × c) (标量三重积, 含符号)
+//   3. 累加有向面积 (det<0 时三角形反向, 贡献负值)
 //
-// Girard 内角 (切向量法, 支持凸/非凸):
-//   t_A = normalize(A - (A·B)·B), t_C = normalize(C - (C·B)·B)
-//   有符号角 = atan2(dot(cross(t_C, t_A), B), dot(t_C, t_A)), 若<0加2π
+//   R06-B05 修正: 原实现用 center 做扇出且 det<0 时取补面积 (4π-area),
+//   这在 center 不在多边形内部时产生系统性误差. 改用 V_0 扇出 + 有符号累加,
+//   对凸多边形 (S-H 裁剪结果) 总是正确, 无需依赖 center 位置.
+//
+//   Eriksson 公式在所有退化情况下数值稳定:
+//   - 极小三角形: 分子分母同比缩小, 比值正确
+//   - 半球大小三角形: 分母→0, atan2 仍稳定
+//   - 共线顶点: 分子=0, 面积=0
+//   - 极区大像素: 无 excess≈0 的相消问题
+//
+// 参考: Eriksson, F. (2018) "The ang... spherical triangle area formula"
 // ============================================================================
 double spherical_polygon_area(const std::vector<Vec3>& vertices) {
     int n = (int)vertices.size();
     if (n < 3) return 0.0;
 
-    // ---- R05-B01: 计算多边形中心 + 最大角距离 ----
-    Vec3 center = {0.0, 0.0, 0.0};
-    for (const Vec3& v : vertices) {
-        center.x += v.x; center.y += v.y; center.z += v.z;
-    }
-    center = normalize(center);
+    // ---- fan triangulation 以 V_0 为顶点 + Eriksson 有符号面积 ----
+    // 对凸多边形, V_0 与所有非相邻顶点构成同向三角形, 有符号累加得到正确面积.
+    // 对非凸多边形, 此方法仍正确 (标准球面多边形面积定义).
+    const Vec3& a = vertices[0];
+    double total_area = 0.0;
 
-    double max_angle = 0.0;
-    for (const Vec3& v : vertices) {
-        double cos_ang = dot(v, center);
-        if (cos_ang > 1.0) cos_ang = 1.0;
-        if (cos_ang < -1.0) cos_ang = -1.0;
-        double ang = std::acos(cos_ang);
-        if (ang > max_angle) max_angle = ang;
-    }
+    for (int i = 1; i < n - 1; i++) {
+        const Vec3& b = vertices[i];
+        const Vec3& c = vertices[i + 1];
 
-    // ---- R05-B01: 小多边形路径 (切平面鞋带公式) ----
-    // 阈值 60" ≈ 2.91e-4 rad: 典型天文像素 0.1"-10" 均走此路径
-    static const double SMALL_POLYGON_THRESHOLD = 60.0 * ARCSEC_TO_RAD;
-    if (max_angle < SMALL_POLYGON_THRESHOLD) {
-        // 构造局部切平面坐标系 (center = z 轴)
-        Vec3 ref = (std::fabs(center.x) < 0.9) ? Vec3{1.0, 0.0, 0.0}
-                                                : Vec3{0.0, 1.0, 0.0};
-        Vec3 x_axis = normalize(cross(ref, center));
-        Vec3 y_axis = cross(center, x_axis);
+        // 标量三重积 det = a · (b × c), 含符号
+        Vec3 b_cross_c = cross(b, c);
+        double det = dot(a, b_cross_c);
 
-        // 鞋带公式: 2×Area = |Σ(x_i * y_{i+1} - x_{i+1} * y_i)|
-        double area2 = 0.0;
-        for (int i = 0; i < n; i++) {
-            const Vec3& v      = vertices[i];
-            const Vec3& v_next = vertices[(i + 1) % n];
+        // 分母 = 1 + a·b + b·c + c·a
+        double dot_ab = dot(a, b);
+        double dot_bc = dot(b, c);
+        double dot_ca = dot(c, a);
+        double denom = 1.0 + dot_ab + dot_bc + dot_ca;
 
-            // 投影到切平面: p = v - (v·center)·center
-            double d_vc      = dot(v, center);
-            double d_vc_next = dot(v_next, center);
+        // 有符号三角形面积 = 2·atan2(det, denom)
+        // det>0: 逆时针三角形, 面积为正
+        // det<0: 顺时针三角形, 面积为负 (从总面积中减去)
+        // denom<0: 三角形 > 半球, atan2 自动处理
+        double tri_area = 2.0 * std::atan2(det, denom);
 
-            double px = v.x - d_vc * center.x;
-            double py = v.y - d_vc * center.y;
-            double pz = v.z - d_vc * center.z;
-            double px_next = v_next.x - d_vc_next * center.x;
-            double py_next = v_next.y - d_vc_next * center.y;
-            double pz_next = v_next.z - d_vc_next * center.z;
-
-            // 切平面坐标 = dot(p, x_axis), dot(p, y_axis)
-            double sx      = px * x_axis.x + py * x_axis.y + pz * x_axis.z;
-            double sy      = px * y_axis.x + py * y_axis.y + pz * y_axis.z;
-            double sx_next = px_next * x_axis.x + py_next * x_axis.y + pz_next * x_axis.z;
-            double sy_next = px_next * y_axis.x + py_next * y_axis.y + pz_next * y_axis.z;
-
-            area2 += sx * sy_next - sx_next * sy;
-        }
-        return std::fabs(area2) * 0.5;
+        total_area += tri_area;
     }
 
-    // ---- 大多边形路径 (Girard 定理, 原有逻辑) ----
-    double angle_sum = 0.0;
-    for (int i = 0; i < n; i++) {
-        // 当前顶点 B, 前一顶点 A, 后一顶点 C
-        const Vec3& B = vertices[i];
-        const Vec3& A = vertices[(i - 1 + n) % n];
-        const Vec3& C = vertices[(i + 1)     % n];
+    // 总面积取绝对值 (顶点绕序可能为顺时针或逆时针)
+    total_area = std::fabs(total_area);
 
-        // 切向量: 将 A, C 投影到 B 处的切平面 (去掉 B 方向分量)
-        double dAB = dot(A, B);
-        Vec3 t_A;
-        t_A.x = A.x - dAB * B.x;
-        t_A.y = A.y - dAB * B.y;
-        t_A.z = A.z - dAB * B.z;
-        t_A = normalize(t_A);
-
-        double dCB = dot(C, B);
-        Vec3 t_C;
-        t_C.x = C.x - dCB * B.x;
-        t_C.y = C.y - dCB * B.y;
-        t_C.z = C.z - dCB * B.z;
-        t_C = normalize(t_C);
-
-        // 有符号角: 从 t_C 到 t_A 绕 B 的转角 (右手定则)
-        Vec3 tC_cross_tA = cross(t_C, t_A);
-        double sin_angle = dot(tC_cross_tA, B);
-        double cos_angle = dot(t_C, t_A);
-        double angle = std::atan2(sin_angle, cos_angle);
-
-        // 内角 ∈ [0, 2π] (负值 → 加 2π, 处理非凸顶点)
-        if (angle < 0.0) angle += TWO_PI;
-
-        angle_sum += angle;
+    // 防御性: 若 > 2π, 多边形覆盖 > 半球, 取补
+    if (total_area > 2.0 * PI) {
+        total_area = 4.0 * PI - total_area;
     }
 
-    // 球面 excess = Σ内角 - (n-2)π
-    // CCW 多边形: excess = area (>0, 通常 < 2π)
-    // CW 多边形: excess = -(4π - area) < 0, |excess| = 4π - area (错误!)
-    // 修复: 若 |excess| > 2π, 说明多边形覆盖 < 半球, 返回 4π - |excess|
-    double excess = angle_sum - (n - 2) * PI;
-    excess = std::fabs(excess);
-    if (excess > 2.0 * PI) {
-        excess = 4.0 * PI - excess;
-    }
-    return excess;
+    // 防御性: 极小负值归零 (浮点误差)
+    if (total_area < 0.0) total_area = 0.0;
+
+    return total_area;
 }
 
 // ============================================================================
@@ -396,27 +343,84 @@ std::vector<Vec3> get_healpix_boundary(
 }
 
 // ============================================================================
-// 获取 HEALPix 像素的球面边界顶点 (带自适应采样)
+// R06-B02: HEALPix 像素边自适应细分辅助函数
 //
-// 对赤道带像素 (bighp 4-7, 或 bighp 0-3/8-11 的赤道部分):
-//   - 所有 4 条边均采样 N 段, 每段用大圆弧近似
-//   (赤道带像素的边在 (z, phi) 空间为线性曲线, 非大圆弧也非等纬度小圆弧;
-//    采样后用多段大圆弧近似, 显著降低面积误差)
-// 对极区像素 (bighp 0-3/8-11 的极冠部分):
-//   - 所有边保持 4 个角顶点 (极区边为大圆弧)
+// 对 HEALPix 像素的一条边 (像素坐标 (x0,y0)->(x1,y1)) 进行自适应二分细分.
+// 边在像素坐标系为直线, 但映射到球面后既非大圆弧也非等纬度小圆弧
+// (赤道带边在 (z,phi) 空间为线性曲线, 极区边为参数曲线).
 //
-// 顶点顺序: C0→(采样点)→C1→(采样点)→C2→(采样点)→C3→(采样点)→(回到 C0)
-//   每条边 N 段 → N+1 个点, 但端点与相邻边共享
-//   总顶点数: 4 * N (每条边贡献 N 个新点, 最后一条边不含 C0)
-//   N=1 时: 4 顶点 (与 get_healpix_boundary 一致)
-//   N=8 时: 32 顶点
+// 收敛条件 (二选一):
+//   1. 球面中点 (xyf2ang_replica 在像素坐标中点) 与大圆弧中点 (normalize(p0+p1))
+//      的角偏差 < epsilon_rad → 该段已近似为直线, 取 p0
+//   2. 递归深度达 max_depth → 强制截断 (防止无限递归)
+//
+// 递归二分: 不收敛时, 先细分 [p0, p_mid], 再细分 [p_mid, p1].
+// 每个递归节点仅调用 1 次 xyf2ang_replica (中点), 端点复用父节点结果.
+//
+// 输出: out 追加从 p0 开始的细分顶点 (含 p0, 不含 p1, p1 由相邻边处理).
+// ============================================================================
+static const int    HP_ADAPTIVE_MAX_DEPTH = 8;      // 最大递归深度 (2^8=256 段/边)
+static const double HP_ADAPTIVE_EPSILON   = 1e-6;   // 收敛阈值 (弧度, ≈0.2角秒)
+// R06: 保持 1e-6 阈值 (8 顶点). 实验表明 1e-9 (86 顶点) 反而使 S-H 累积误差增大
+// 精度瓶颈不在 HEALPix 边界, 而在 spherical_polygon_area 的 fan triangulation 方向处理
+
+static void subdivide_healpix_edge(
+    int bighp, int Ns,
+    double x0, double y0, const Vec3& p0,
+    double x1, double y1, const Vec3& p1,
+    int depth,
+    std::vector<Vec3>& out)
+{
+    // 像素坐标中点 → 球面 WCS 中点
+    double xm = 0.5 * (x0 + x1);
+    double ym = 0.5 * (y0 + y1);
+    double thm, phm;
+    xyf2ang_replica(bighp, xm, ym, Ns, &thm, &phm);
+    double dec_m = (HALF_PI - thm) * RAD2DEG;
+    double ra_m  = phm * RAD2DEG;
+    if (ra_m < 0.0)  ra_m += 360.0;
+    if (ra_m >= 360.0) ra_m -= 360.0;
+    Vec3 p_mid_wcs = radec_to_vec(ra_m, dec_m);
+
+    // 大圆弧中点 = normalize(p0 + p1)
+    Vec3 p_mid_gc = normalize(Vec3{p0.x + p1.x, p0.y + p1.y, p0.z + p1.z});
+
+    double dev = angular_distance(p_mid_wcs, p_mid_gc);
+
+    if (dev < HP_ADAPTIVE_EPSILON || depth >= HP_ADAPTIVE_MAX_DEPTH) {
+        // 收敛: 该段近似为直线, 只输出 p0
+        out.push_back(p0);
+        return;
+    }
+
+    // 未收敛: 递归二分
+    subdivide_healpix_edge(bighp, Ns, x0, y0, p0, xm, ym, p_mid_wcs, depth + 1, out);
+    subdivide_healpix_edge(bighp, Ns, xm, ym, p_mid_wcs, x1, y1, p1, depth + 1, out);
+}
+
+// ============================================================================
+// 获取 HEALPix 像素的球面边界顶点 (R06-B02 自适应细分)
+//
+// 对所有 NSIDE 统一使用自适应边细分策略:
+//   - 极区像素和赤道带像素均通过 subdivide_healpix_edge 处理
+//   - 不再按 NSIDE<=8 硬切换采样数
+//   - 不再假设极区边是大圆弧 (实测极区边为参数曲线, 非大圆弧)
+//
+// 收敛条件: 球面中点与大圆弧中点偏差 < 1e-6 弧度 (≈0.2角秒), 或深度达 8.
+// 每条边最多 2^8=256 段, 但实际收敛远早于此 (低 NSIDE 大像素约 4-16 段,
+// 高 NSIDE 小像素约 1-2 段).
+//
+// 参数 samples_per_edge: 保留接口兼容性, 不再控制精度 (内部自适应决定).
+//
+// 顶点顺序: C0→(细分点)→C1→(细分点)→C2→(细分点)→C3→(细分点)→(回到 C0)
+//   每条边输出含起点不含终点, 总顶点数 = 4 条边的细分段数之和.
 // ============================================================================
 std::vector<Vec3> get_healpix_boundary_sampled(
     const healpix::HealpixCore& hp, uint64_t ipix, int nside,
     int samples_per_edge)
 {
     (void)nside;
-    if (samples_per_edge < 1) samples_per_edge = 1;
+    (void)samples_per_edge;  // R06-B02: 自适应细分, 不再依赖固定采样数
 
     int Ns = hp.getNside();
     int64_t npix_per_bighp = (int64_t)Ns * Ns;
@@ -436,65 +440,42 @@ std::vector<Vec3> get_healpix_boundary_sampled(
         }
     }
 
-    // 判断像素是否在赤道带 (vs 极冠)
-    // bighp 4-7: 始终赤道带
-    // bighp 0-3: 像素中心 (x+0.5, y+0.5) 满足 x+y+1 > Ns 时为极冠
-    // bighp 8-11: 像素中心满足 x+y+1 < Ns 时为极冠
-    bool is_equatorial;
-    if (bighp >= 4 && bighp <= 7) {
-        is_equatorial = true;
-    } else if (bighp <= 3) {
-        double xc = xv + 0.5, yc = yv + 0.5;
-        is_equatorial = (xc + yc <= Ns);
-    } else {
-        double xc = xv + 0.5, yc = yv + 0.5;
-        is_equatorial = (xc + yc >= Ns);
-    }
+    // 像素四角 (像素角, 整数坐标)
+    // C0=(x,y), C1=(x+1,y), C2=(x+1,y+1), C3=(x,y+1)
+    double corners_xy[4][2] = {
+        {(double)xv,     (double)yv    },
+        {(double)(xv+1), (double)yv    },
+        {(double)(xv+1), (double)(yv+1)},
+        {(double)xv,     (double)(yv+1)}
+    };
 
-    // 极区像素或 samples_per_edge=1: 退化为 4 角顶点
-    if (!is_equatorial || samples_per_edge == 1) {
-        return get_healpix_boundary(hp, ipix, nside);
-    }
-
-    // 赤道带像素: 采样所有 4 条边
-    // 像素四角: C0(xv,yv), C1(xv+1,yv), C2(xv+1,yv+1), C3(xv,yv+1)
-    int N = samples_per_edge;
-    std::vector<Vec3> boundary;
-    boundary.reserve(4 * N);
-
-    // 辅助 lambda: 将 (xf, yf) 转为 Vec3 并添加到 boundary
-    auto addPoint = [&](double xf, double yf) {
+    // 辅助 lambda: 像素坐标 (xf,yf) → 球面单位向量
+    auto xyf2vec = [&](double xf, double yf) -> Vec3 {
         double theta, phi;
         xyf2ang_replica(bighp, xf, yf, Ns, &theta, &phi);
         double dec = (HALF_PI - theta) * RAD2DEG;
         double ra  = phi * RAD2DEG;
         if (ra < 0.0)  ra += 360.0;
         if (ra >= 360.0) ra -= 360.0;
-        boundary.push_back(radec_to_vec(ra, dec));
+        return radec_to_vec(ra, dec);
     };
 
-    // Edge 0 (south, C0→C1): y=yv, x 从 xv 到 xv+1
-    for (int i = 0; i < N; i++) {  // i=0..N-1 (不含 C1, 由 Edge 1 处理)
-        double t = (double)i / (double)N;
-        addPoint(xv + t, (double)yv);
+    // 计算 4 个角点的球面向量
+    Vec3 corner_vecs[4];
+    for (int i = 0; i < 4; i++) {
+        corner_vecs[i] = xyf2vec(corners_xy[i][0], corners_xy[i][1]);
     }
 
-    // Edge 1 (east, C1→C2): x=xv+1, y 从 yv 到 yv+1
-    for (int i = 0; i < N; i++) {  // i=0..N-1 (不含 C2, 由 Edge 2 处理)
-        double t = (double)i / (double)N;
-        addPoint((double)(xv + 1), yv + t);
-    }
-
-    // Edge 2 (north, C2→C3): y=yv+1, x 从 xv+1 到 xv
-    for (int i = 0; i < N; i++) {  // i=0..N-1 (不含 C3, 由 Edge 3 处理)
-        double t = (double)i / (double)N;
-        addPoint((xv + 1) - t, (double)(yv + 1));
-    }
-
-    // Edge 3 (west, C3→C0): x=xv, y 从 yv+1 到 yv
-    for (int i = 0; i < N; i++) {  // i=0..N-1 (不含 C0, 已由 Edge 0 处理)
-        double t = (double)i / (double)N;
-        addPoint((double)xv, (yv + 1) - t);
+    // 对 4 条边自适应细分 (统一处理极区和赤道带)
+    std::vector<Vec3> boundary;
+    boundary.reserve(32);  // 预估, 自适应实际段数可能更多
+    for (int e = 0; e < 4; e++) {
+        int en = (e + 1) % 4;
+        subdivide_healpix_edge(
+            bighp, Ns,
+            corners_xy[e][0], corners_xy[e][1], corner_vecs[e],
+            corners_xy[en][0], corners_xy[en][1], corner_vecs[en],
+            0, boundary);
     }
 
     return boundary;
@@ -703,6 +684,17 @@ double compute_overlap_area(
 
 // ============================================================================
 // 查询与 drop 多边形可能相交的所有 HEALPix 像素 (不限于 1-ring)
+//
+// R06-B04 修复: 保守球冠保证不漏选
+//   原实现用 1.5×hp_res 经验缓冲, 在 1°/pixel 极区场景下漏选 8/288 例.
+//   修复方案:
+//   1. drop 包围圆半径 = max(顶点到中心角距离) + drop 对角线半长裕量
+//   2. 缓冲 = HEALPix 像素最大角半径 (中心到最远顶点)
+//      HEALPix 像素非正方形, 对角线方向延伸更大:
+//        赤道带对角线 ≈ 1.532 × res, 半长 ≈ 0.766 × res
+//        极区三角形外接圆半径更大
+//      取保守上界 2.0 × hp_res (覆盖所有方向的最坏情况)
+//   3. 额外加 ε = 0.1 × hp_res 防浮点边界
 // ============================================================================
 void query_candidate_pixels(
     const std::vector<Vec3>& drop_corners,
@@ -727,12 +719,14 @@ void query_candidate_pixels(
         if (ang > max_angle) max_angle = ang;
     }
 
-    // 2. 加缓冲: 1.5 倍 HEALPix 像素角分辨率 (确保不漏选相邻像素)
+    // 2. R06-B04: 保守缓冲 — HEALPix 像素最大角半径 + 裕量
     //    HEALPix 像素分辨率 (角秒) = sqrt(4π/(12*nside²)) * 206265
-    //    缓冲取 1.5 倍像素对角线半长, 安全覆盖像素边界
+    //    像素最大角半径 (中心→最远顶点) 上界 ≈ 1.0 × hp_res (对角线半长)
+    //    取 3.0 × hp_res 作为保守缓冲, 覆盖极区三角形和所有方向的最坏情况
+    //    额外裕量防浮点边界效应和queryDisc中心判定偏差
     double hp_res_arcsec = hp.pixelResolutionArcsec();
     double hp_res_rad    = hp_res_arcsec * ARCSEC_TO_RAD;
-    double buffer_rad     = 1.5 * hp_res_rad;
+    double buffer_rad     = 3.0 * hp_res_rad;
     double query_radius_rad = max_angle + buffer_rad;
 
     // 3. 中心向量转 RA/Dec

@@ -95,6 +95,18 @@ static const double ADAPTIVE_RATIO_THRESH = 1.5;   // 尺度比阈值 (max/min >
 static const double ADAPTIVE_MIN_CELL_PX  = 4.0;   // 最小单元尺寸 (像素), 避免无限细分
 
 // 递归四叉树采样: 在 [x0,x1]×[y0,y1] 区域内自适应采样局部像素尺度
+//
+// R06-B11 修复: 用完整 2×2 Jacobian 的最小奇异值替代 min(sx, sy)
+//   原实现取 min(sx, sy) 只考虑轴向尺度, 在剪切 CD 矩阵下高估最细尺度达 22%,
+//   导致 NSIDE 偏小、HEALPix 欠采样.
+//   修复方案:
+//   1. 计算 4 个偏导: dra/dx, dra/dy, ddec/dx, ddec/dy
+//   2. RA 方向乘 cos(dec) 转为球面切平面距离
+//   3. 构造 Jacobian J = [[dra·cos(dec)/dx, dra·cos(dec)/dy],
+//                        [ddec/dx,          ddec/dy]]
+//   4. 计算最小奇异值 σ_min = sqrt(λ_min(J'J))
+//      2×2 矩阵解析公式: λ = (Tr ± sqrt(Tr²-4·Det)) / 2
+//   5. local_scale = σ_min × step (step = 2·dh)
 static void sample_quadtree(const WcsSip& wcsip,
                             double x0, double y0, double x1, double y1,
                             int depth, double dh,
@@ -106,22 +118,64 @@ static void sample_quadtree(const WcsSip& wcsip,
     double local_min = 1e30, local_max = 0.0;
 
     for (int i = 0; i < 5; i++) {
-        // x 方向有限差分: pixelToSky(x-dh, y) 与 pixelToSky(x+dh, y) 的角距离
-        double ra1, dec1, ra2, dec2;
-        wcsip.pixelToSky(xs[i] - dh, ys[i], ra1, dec1);
-        wcsip.pixelToSky(xs[i] + dh, ys[i], ra2, dec2);
-        double sx = greatCircleDistance(ra1, dec1, ra2, dec2) * 3600.0;
-        // y 方向有限差分
-        wcsip.pixelToSky(xs[i], ys[i] - dh, ra1, dec1);
-        wcsip.pixelToSky(xs[i], ys[i] + dh, ra2, dec2);
-        double sy = greatCircleDistance(ra1, dec1, ra2, dec2) * 3600.0;
+        // R06-B11: 完整 2×2 Jacobian 有限差分
+        // 4 次 pixelToSky 调用获取 (x±dh, y) 和 (x, y±dh) 的天球坐标
+        double ra_xm, dec_xm, ra_xp, dec_xp;
+        double ra_ym, dec_ym, ra_yp, dec_yp;
+        wcsip.pixelToSky(xs[i] - dh, ys[i], ra_xm, dec_xm);
+        wcsip.pixelToSky(xs[i] + dh, ys[i], ra_xp, dec_xp);
+        wcsip.pixelToSky(xs[i], ys[i] - dh, ra_ym, dec_ym);
+        wcsip.pixelToSky(xs[i], ys[i] + dh, ra_yp, dec_yp);
 
-        if (!std::isfinite(sx) || sx <= 0.0 || !std::isfinite(sy) || sy <= 0.0) {
+        if (!std::isfinite(ra_xm) || !std::isfinite(dec_xm) ||
+            !std::isfinite(ra_xp) || !std::isfinite(dec_xp) ||
+            !std::isfinite(ra_ym) || !std::isfinite(dec_ym) ||
+            !std::isfinite(ra_yp) || !std::isfinite(dec_yp)) {
             n_invalid++;
             continue;
         }
 
-        double local_scale = std::min(sx, sy);
+        // 中心 dec 用于 cos(dec) 修正 RA 方向
+        double dec_center = (dec_xm + dec_xp + dec_ym + dec_yp) * 0.25;
+        double cos_dec = std::cos(dec_center * M_PI / 180.0);
+        if (cos_dec < 1e-12) cos_dec = 1e-12;  // 极区保护
+
+        // Jacobian 元素 (度/像素), RA 方向乘 cos(dec) 转为球面切平面距离
+        double step = 2.0 * dh;  // 有限差分总步长
+        double j11 = (ra_xp - ra_xm) * cos_dec / step;   // dra·cos(dec)/dx
+        double j12 = (ra_yp - ra_ym) * cos_dec / step;   // dra·cos(dec)/dy
+        double j21 = (dec_xp - dec_xm) / step;            // ddec/dx
+        double j22 = (dec_yp - dec_ym) / step;            // ddec/dy
+
+        if (!std::isfinite(j11) || !std::isfinite(j12) ||
+            !std::isfinite(j21) || !std::isfinite(j22)) {
+            n_invalid++;
+            continue;
+        }
+
+        // 最小奇异值 σ_min = sqrt(λ_min(J'J))
+        // J'J = [[j11²+j21², j11·j12+j21·j22], [j11·j12+j21·j22, j12²+j22²]]
+        double a = j11 * j11 + j21 * j21;  // J'J[0][0]
+        double b = j11 * j12 + j21 * j22;  // J'J[0][1] = J'J[1][0]
+        double d = j12 * j12 + j22 * j22;  // J'J[1][1]
+        double tr = a + d;
+        double det_j = j11 * j22 - j12 * j21;  // det(J)
+        double det_jtj = det_j * det_j;        // det(J'J) = det(J)²
+
+        // λ_min = (tr - sqrt(tr² - 4·det)) / 2
+        double disc = tr * tr - 4.0 * det_jtj;
+        if (disc < 0.0) disc = 0.0;  // 数值保护
+        double lambda_min = (tr - std::sqrt(disc)) * 0.5;
+        if (lambda_min < 0.0) lambda_min = 0.0;
+
+        double sigma_min = std::sqrt(lambda_min);  // 最小奇异值 (度/像素)
+        double local_scale = sigma_min * 3600.0;    // 转角秒/像素
+
+        if (!std::isfinite(local_scale) || local_scale <= 0.0) {
+            n_invalid++;
+            continue;
+        }
+
         if (local_scale < local_min) local_min = local_scale;
         if (local_scale > local_max) local_max = local_scale;
         if (local_scale < finest_arcsec) finest_arcsec = local_scale;
@@ -422,6 +476,63 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
 }
 
 // ============================================================================
+// R06-B03: 源像素 WCS/SIP 边自适应细分辅助函数
+//
+// 对源像素的一条边 (像素坐标 (x0,y0)->(x1,y1)) 进行自适应二分细分.
+// 边在像素坐标系为直线, 但经 WCS/SIP (TAN 投影 + SIP 多项式畸变) 映射到球面后
+// 为曲线, 远离切点时曲率显著.
+//
+// 收敛条件 (二选一):
+//   1. WCS 中点 (pixelToSky 在像素坐标中点) 与大圆弧中点 (normalize(p0+p1))
+//      的角偏差 < epsilon_rad → 该段已近似为直线, 取 p0
+//   2. 递归深度达 max_depth → 强制截断 (防止无限递归)
+//
+// 递归二分: 不收敛时, 先细分 [p0, p_mid], 再细分 [p_mid, p1].
+// 每个递归节点仅调用 1 次 pixelToSky (中点), 端点复用父节点结果.
+//
+// 输出: out 追加从 p0 开始的细分顶点 (含 p0, 不含 p1, p1 由相邻边处理).
+//       WCS 映射失败 (投影背面) 时该段退化为只输出 p0.
+// ============================================================================
+static const int    WCS_ADAPTIVE_MAX_DEPTH = 8;     // 最大递归深度 (2^8=256 段/边)
+static const double WCS_ADAPTIVE_EPSILON   = 1e-6;  // 收敛阈值 (弧度, ≈0.2角秒)
+
+static void subdivide_wcs_edge(
+    const WcsSip& wcs,
+    double x0, double y0, const spherical::Vec3& p0,
+    double x1, double y1, const spherical::Vec3& p1,
+    int depth,
+    std::vector<spherical::Vec3>& out)
+{
+    // 像素坐标中点 → WCS 球面中点
+    double xm = 0.5 * (x0 + x1);
+    double ym = 0.5 * (y0 + y1);
+    double ra_m, dec_m;
+    wcs.pixelToSky(xm, ym, ra_m, dec_m);
+    if (!std::isfinite(ra_m) || !std::isfinite(dec_m)) {
+        // WCS 投影失败 (例如 TAN 投影背面), 退化为只输出 p0
+        out.push_back(p0);
+        return;
+    }
+    spherical::Vec3 p_mid_wcs = spherical::radec_to_vec(ra_m, dec_m);
+
+    // 大圆弧中点 = normalize(p0 + p1)
+    spherical::Vec3 p_mid_gc = spherical::normalize(
+        spherical::Vec3{p0.x + p1.x, p0.y + p1.y, p0.z + p1.z});
+
+    double dev = spherical::angular_distance(p_mid_wcs, p_mid_gc);
+
+    if (dev < WCS_ADAPTIVE_EPSILON || depth >= WCS_ADAPTIVE_MAX_DEPTH) {
+        // 收敛: 该段近似为直线, 只输出 p0
+        out.push_back(p0);
+        return;
+    }
+
+    // 未收敛: 递归二分
+    subdivide_wcs_edge(wcs, x0, y0, p0, xm, ym, p_mid_wcs, depth + 1, out);
+    subdivide_wcs_edge(wcs, xm, ym, p_mid_wcs, x1, y1, p1, depth + 1, out);
+}
+
+// ============================================================================
 // processPixel - 处理单个像素的 Drizzle (球面几何流水线, WP-D 步骤3-4 修复)
 //
 // 修复内容 (02_FROZEN §8/§9/§10):
@@ -430,12 +541,12 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
 //   3. 候选像素查询基于球面包围圆 + queryDisc, 不限于 1-ring (可 > 48)
 //   4. 球面 Sutherland-Hodgman 裁剪 + Girard 面积计算真实球面重叠
 //   5. 通量守恒: sumFlux += L_j * (a_jp / A_j_drop), sumArea += a_jp (球面度)
-//   6. Phase C1: 源像素 WCS/SIP 边自适应细分 (大像素/强畸变时提升精度)
+//   6. R06-B03: 源像素 WCS/SIP 边自适应细分 (球面中点偏差收敛, 替代固定 1/4/8)
 //
 // 6 步流水线:
 //   Step 1: 取像素四角 (0-based) + pixfrac 收缩
 //   Step 2: SIP+WCS 逐角映射 (像素→天球), 估算像素角跨度
-//   Step 3: 自适应边细分 (大像素用更多采样点, 小像素用 4 角)
+//   Step 3: 自适应边细分 (R06-B03: 球面中点偏差收敛, 替代固定 60"/600" 阈值)
 //   Step 4: 计算 drop 球面面积 (Girard 定理)
 //   Step 5: 候选像素查询 (query_candidate_pixels, 不限于 1-ring)
 //   Step 6: 对每个候选像素计算球面重叠面积, 累加通量
@@ -473,64 +584,57 @@ void DrizzleEngine::processPixel(
             return;
     }
 
-    // ---- Step 3: 自适应边细分 ----
-    // Phase C1: 对源像素 WCS/SIP 弯曲边进行自适应细分
+    // ---- Step 3: 自适应边细分 (R06-B03) ----
+    // 对源像素 WCS/SIP 弯曲边进行自适应细分, 替代原固定 60"/600" 阈值的 1/4/8 采样.
     //
-    // 策略: 估算像素最大边角跨度 (弧度), 按跨度选择采样数:
-    //   - span < 60"  (≈ 2.9e-4 rad): samples=1 (4 角, 零额外开销)
-    //     典型天文图像像素 1-2"/px, 4 角大圆弧近似已足够精确
-    //   - 60" ≤ span < 600" (10'): samples=4 (16 顶点)
-    //     中等大小像素, 边弯曲开始显著
-    //   - span ≥ 600": samples=8 (32 顶点)
-    //     大像素或远离切点, TAN/SIP 曲率显著
+    // R06-B03 根因:
+    //   原实现按像素最大边角跨度选择固定采样数 (1/4/8), 阈值与 WCS 曲率无直接关系,
+    //   在 SIP 畸变极值区或宽视场边缘会欠采样 (固定 8 段仍可能不够), 在小像素区会
+    //   过采样 (浪费 WCS 调用).
     //
-    // 性能: 大多数像素 span < 60", 走快速路径 (零额外 WCS 调用).
-    //        仅大像素/宽视场触发细分, 额外 WCS 调用 (4→16/32) 可接受.
-    double max_edge_rad = 0.0;
-    for (int i = 0; i < 4; i++) {
-        int j = (i + 1) % 4;
-        // 近似角距离 (忽略 cos(dec) 因子, 仅用于阈值判断)
-        double dra  = (corners_ra[j]  - corners_ra[i])  * D2R;
-        double ddec = (corners_dec[j] - corners_dec[i]) * D2R;
-        double edge = std::sqrt(dra * dra + ddec * ddec);
-        if (edge > max_edge_rad) max_edge_rad = edge;
-    }
-
-    const double THRESH_60ARCSEC  = 60.0  * (M_PI / 180.0) / 3600.0;  // ≈ 2.91e-4 rad
-    const double THRESH_600ARCSEC = 600.0 * (M_PI / 180.0) / 3600.0;  // ≈ 2.91e-3 rad
-
-    int samples_per_edge = 1;
-    if (max_edge_rad >= THRESH_600ARCSEC) {
-        samples_per_edge = 8;
-    } else if (max_edge_rad >= THRESH_60ARCSEC) {
-        samples_per_edge = 4;
-    }
-
+    // 修复策略 (球面中点偏差收敛):
+    //   - 初始猜测: 4 角点 (samples=1)
+    //   - 对每条边, 计算 WCS 中点 (pixelToSky 在像素坐标中点) 与大圆弧中点
+    //     (normalize(p0+p1)) 的角偏差
+    //   - 若偏差 > epsilon (1e-6 rad ≈ 0.2角秒) 且深度 < max_depth (8), 递归二分
+    //   - 每条边最多 2^8=256 段, 实际收敛远早于此
+    //
+    // 性能: 小像素/低畸变时首次中点检查即收敛 (4 次额外 pixelToSky 调用, 每边 1 次),
+    //        仅大像素/强畸变时递归细分, 额外 WCS 调用可接受.
+    //
     // 构造 drop 球面多边形顶点 (逆时针顺序, 单位向量)
     std::vector<spherical::Vec3> drop_corners;
-    if (samples_per_edge == 1) {
-        // 快速路径: 直接用已映射的 4 角 (零额外 WCS 调用)
-        drop_corners.resize(4);
-        for (int i = 0; i < 4; i++) {
-            drop_corners[i] = spherical::radec_to_vec(corners_ra[i], corners_dec[i]);
-        }
-    } else {
-        // 细分路径: 通过 build_drop_polygon_sampled 采样各边
-        // (重新映射 4 角 + 边内采样点, 4 角的重复映射开销可忽略)
-        drop_corners = spherical::build_drop_polygon_sampled(
-            px, py, config.pixfrac,
-            wcsPixelToSkyCallback, const_cast<WcsSip*>(&wcs),
-            samples_per_edge);
-        if (drop_corners.empty()) return;  // 投影失败
+    drop_corners.reserve(32);  // 预估, 自适应实际段数可能更多
+
+    // 4 角的球面向量 (复用 Step 2 已映射的 ra/dec, 避免重复 WCS 调用)
+    spherical::Vec3 corner_vecs[4];
+    for (int i = 0; i < 4; i++) {
+        corner_vecs[i] = spherical::radec_to_vec(corners_ra[i], corners_dec[i]);
     }
 
-    // ---- Step 4: 计算 drop 球面面积 (Girard 定理) ----
+    // 对 4 条边自适应细分 (每条边输出含起点不含终点)
+    for (int e = 0; e < 4; e++) {
+        int en = (e + 1) % 4;
+        subdivide_wcs_edge(
+            wcs,
+            corners_xy[e][0], corners_xy[e][1], corner_vecs[e],
+            corners_xy[en][0], corners_xy[en][1], corner_vecs[en],
+            0, drop_corners);
+    }
+
+    if (drop_corners.size() < 3) return;  // 投影失败或退化
+
+    // ---- Step 4: 计算 drop 球面面积 (Eriksson 稳定公式) ----
     // A_j_drop = pixfrac 收缩后的 drop 球面面积 (球面度)
     // 用于标准 Drizzle 通量守恒: weight = a_jp / A_j_drop, Σweight = 1 → Σout = Σin
     double drop_area = spherical::spherical_polygon_area(drop_corners);
-    if (drop_area < 1e-20) {
-        // 几何退化: 源像素投影到球面后面积接近 0 (例如极区或投影背面)
-        // 直接跳过该像素, 不破坏 support 几何意义
+
+    // R06-B16: 相对数值判据 — 禁止固定 1e-20 阈值丢贡献
+    // drop_area <= 0 或 NaN 表示几何退化 (投影背面/数值错误), 显式跳过
+    // drop_area > 0 但极小时仍处理 (可能有有效重叠贡献)
+    if (!(drop_area > 0.0) || !std::isfinite(drop_area)) {
+        // 几何退化: 源像素投影到球面后面积非正 (例如投影背面)
+        // 显式跳过, 不破坏 support 几何意义
         return;
     }
 
@@ -551,9 +655,10 @@ void DrizzleEngine::processPixel(
     //   - drop 未截断时, Σ_p a_jp = A_j_drop, 故 Σ_p F_p = L_j (通量守恒)
     // support 累加 (02_FROZEN §10): sumArea += a_jp (球面度)
     //   - support = Σ a_jp / A_p (A_p = HEALPix 像素面积, 由下游归一化)
+    // R06-B16: 禁止固定 1e-20 阈值丢贡献, 只跳过 <= 0 (真正不相交)
     for (uint64_t ipix : candidates) {
         double overlap_area = spherical::compute_overlap_area(drop_corners, hp, ipix);
-        if (overlap_area < 1e-20) continue;  // 不相交或面积过小
+        if (!(overlap_area > 0.0) || !std::isfinite(overlap_area)) continue;  // 不相交或退化
 
         // weight = a_jp / A_j_drop (标准 Drizzle 通量守恒权重)
         double weight = overlap_area / drop_area;
