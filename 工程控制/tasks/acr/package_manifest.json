@@ -1,0 +1,157 @@
+{
+  "package_name": "AstroCS_ACR_Branch_Control_Package_2026-08-02",
+  "package_type": "unreleased_authoritative_control_package",
+  "generated_at": "2026-08-02T17:08:00+08:00",
+  "release_version": null,
+  "authoritative": true,
+  "supersedes_parallel_versioned_control_packages": true,
+  "branch": "feature/astrocompute-runtime",
+  "scope": "ACR foundation, hardware profiling benchmarks, cost model, dynamic heterogeneous scheduling, classic experiments; no AstroCS algorithm changes",
+  "files": [
+    {
+      "path": "00_AGENT_START_PROMPT.txt",
+      "size": 184,
+      "sha256": "9ceadce6293b2dd7fabbada8df87a7b179cf2da4214d869f4a0e4cf3ab01e994"
+    },
+    {
+      "path": "00_READ_FIRST.md",
+      "size": 5862,
+      "sha256": "7706d589de67464de0fc1f9cf315941bc324ce1e2f57887fab3e2b139d2ad1ed"
+    },
+    {
+      "path": "01_FROZEN_REQUIREMENTS.md",
+      "size": 3719,
+      "sha256": "440c0235cb80dd6e768e330efb27d04e9622fa88ed359fd747445acb357ec83d"
+    },
+    {
+      "path": "02_SYSTEM_ARCHITECTURE.md",
+      "size": 3440,
+      "sha256": "5d0404a3858ad9730161171a2eb099802193597a93b10361fe9c87b2950c01f6"
+    },
+    {
+      "path": "03_PUBLIC_API_SPEC.md",
+      "size": 4493,
+      "sha256": "a0137d0d3a040ce24f984063d514078607887294f1e5657a71a6b77b146ee313"
+    },
+    {
+      "path": "04_KERNEL_MODEL_AND_LIMITS.md",
+      "size": 2249,
+      "sha256": "41a04965db72b6dc2e58864e88510b048ada85ec6cc01ea325922ed133526fa7"
+    },
+    {
+      "path": "05_OPEN_SOURCE_REUSE_PLAN.md",
+      "size": 11521,
+      "sha256": "366daf75496d65f3a7453ee2e933ef878cc40d08fd6ccfa7ff25079e28afe0c5"
+    },
+    {
+      "path": "06_QUALIFICATION_BENCHMARK_SPEC.md",
+      "size": 5993,
+      "sha256": "72548807a23b4faf9f76d48119e59b40fd32803e32f3d92c6c7c5f0fc8169a6f"
+    },
+    {
+      "path": "07_STATIC_ROUTING_AND_MIXED_EXECUTION.md",
+      "size": 3294,
+      "sha256": "992fc8c4200552400682c07474cc009ca05197b1e907164722a2dc227eab0460"
+    },
+    {
+      "path": "08_RESOURCE_CONTROL_SPEC.md",
+      "size": 1894,
+      "sha256": "41fda5c2d978617991ce472a533277d5e01245499769497912787e5e269e493b"
+    },
+    {
+      "path": "09_INTEGRATION_MIGRATION_PLAN.md",
+      "size": 1873,
+      "sha256": "19f368f5c6df8d122c32278e53a86516b4d7ec4d40b0dae1223a0624397410fd"
+    },
+    {
+      "path": "10_PHASES_TASKS_ACCEPTANCE.md",
+      "size": 3364,
+      "sha256": "8c3725ec970dd92d22d390fdc520218da6ed9607b53b20c7836a87948c9043c4"
+    },
+    {
+      "path": "11_GIT_BRANCH_AND_AGENT_RULES.md",
+      "size": 2313,
+      "sha256": "b4c3a210c2b39c9b6b2649a2cb8fd98a143df24dc08605daa4c93bd1ec13dc3e"
+    },
+    {
+      "path": "12_TEST_VALIDATION_MATRIX.md",
+      "size": 2249,
+      "sha256": "f1fc1b289d65c2f9ae4a80f31b8f448f22d59d947d973e13ed74e85227a5fa1a"
+    },
+    {
+      "path": "13_DELIVERY_PACKAGE_RULES.md",
+      "size": 3192,
+      "sha256": "746aa8e3f0e09538e01869ca967a056039306e5c9bd4b0e8425c6ce4720ead2c"
+    },
+    {
+      "path": "14_RISK_REGISTER.md",
+      "size": 1846,
+      "sha256": "540b6c24cf50df5f8bb80dcd32013d9e2c562bfbc1af08a70166477dcb6996f5"
+    },
+    {
+      "path": "15_DECISIONS.md",
+      "size": 1601,
+      "sha256": "8aac87f37fb1aa5c5a5b490b9c55261be7d52e9cf018c72f120e93d7ab7463aa"
+    },
+    {
+      "path": "16_AGENT_MASTER_INSTRUCTION.md",
+      "size": 2089,
+      "sha256": "9b99be87f35cdccc71ccee7421650bda984669a65aea5459bf25e8be52ca20e1"
+    },
+    {
+      "path": "17_CLASSIC_EXPERIMENT_SUITE.md",
+      "size": 6206,
+      "sha256": "16aa78f4b8ceeb265414748460ebe097b3dcb93a423c46ed99d92676bd711d8f"
+    },
+    {
+      "path": "18_MAIN_MERGE_AND_DORMANT_INTEGRATION.md",
+      "size": 4588,
+      "sha256": "fe1b2dae053d375f3aeaadb08e7ee78a9c2f374455a765e92964227e1201ea2a"
+    },
+    {
+      "path": "19_EXISTING_BRANCH_CORRECTION_TASKS.md",
+      "size": 2867,
+      "sha256": "ca9a5aca045548b0bc9aea27e66ae33af058c48ac95d392517211772f1b2f015"
+    },
+    {
+      "path": "CHECKLIST.md",
+      "size": 1974,
+      "sha256": "4909e7259b4788bfee8f92ac6fc87fd222b8f050eaa4e2cc66669c4c7be637cd"
+    },
+    {
+      "path": "examples/legacy_chunk_adapter.cpp",
+      "size": 848,
+      "sha256": "9b53754ec35613803ddcfcc9c940117e82b1c66fd86c92b4ef4aa76951d438c6"
+    },
+    {
+      "path": "examples/minimal_parallel_for.cpp",
+      "size": 986,
+      "sha256": "7ebc3fb9f9e3c98592d504a69709dd644e008fcce12eeb03ffc5c9bd9dd83f22"
+    },
+    {
+      "path": "include/astro/compute/acr.hpp",
+      "size": 2608,
+      "sha256": "eb171a3dc839b994d942cfa5c19c98679d4f85357fe95c133b230265a91598f1"
+    },
+    {
+      "path": "schemas/compute_config.example.yaml",
+      "size": 889,
+      "sha256": "77da93aaa108e606eb83cec87b978e60daee29c3e480dc1eff25f221f591f211"
+    },
+    {
+      "path": "schemas/hardware_profile.example.json",
+      "size": 1258,
+      "sha256": "da30d299f9ba0bceeafe8332801f8a2a1f907044d0e0694cc8649ae3a6ce0c88"
+    },
+    {
+      "path": "templates/delivery_manifest.template.json",
+      "size": 477,
+      "sha256": "d4891c95c01cb715fde03e4887f56803296c3d1f665926b11d69ca0e89ba45a3"
+    },
+    {
+      "path": "templates/git_report.template.md",
+      "size": 361,
+      "sha256": "af6440f33b18516915531bfa56ce61b08798ea4cac2270b2e16716afc86b564b"
+    }
+  ]
+}

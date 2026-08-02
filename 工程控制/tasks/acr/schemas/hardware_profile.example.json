@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "fingerprint": "sha256:example",
+  "generated_from_commit": "example-commit",
+  "devices": [
+    {
+      "id": "cpu:avx2",
+      "kind": "cpu",
+      "curves": {
+        "arithmetic": {
+          "fp32_fma_gops_by_threads": [[1, 42.0], [8, 285.0], [16, 430.0]]
+        },
+        "memory": {
+          "stream_triad_gib_s_by_bytes": [[1048576, 155.0], [268435456, 63.0]]
+        },
+        "reduction": {
+          "fp32_sum_items_s_by_items": [[1048576, 1200000000.0], [67108864, 3900000000.0]]
+        }
+      },
+      "overhead_us": {"task_submit": 1.1, "merge": 0.8}
+    },
+    {
+      "id": "cuda:0",
+      "kind": "gpu",
+      "curves": {
+        "memory": {
+          "device_triad_gib_s_by_bytes": [[1048576, 120.0], [268435456, 405.0]]
+        },
+        "transfer": {
+          "h2d_pinned_gib_s_by_bytes": [[4096, 0.18], [268435456, 12.7]],
+          "d2h_pinned_gib_s_by_bytes": [[4096, 0.16], [268435456, 13.1]]
+        },
+        "convolution": {
+          "direct_fp32_5x5_mpix_s_by_pixels": [[262144, 450.0], [16777216, 3200.0]]
+        }
+      },
+      "overhead_us": {"kernel_launch": 8.4, "event": 1.2}
+    }
+  ],
+  "model": {
+    "interpolation": "piecewise_linear_log2_size",
+    "online_updates": false
+  }
+}

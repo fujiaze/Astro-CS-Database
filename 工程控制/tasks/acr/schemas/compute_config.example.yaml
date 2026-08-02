@@ -1,0 +1,45 @@
+compute:
+  mode: auto
+
+  qualification:
+    profile: standard
+    warn_when_missing: true
+    warn_when_stale: true
+    warning_repeat: every_run
+    allow_stale_profile: true
+    online_learning: false
+
+  scheduling:
+    work_conserving: true
+    allow_cpu_gpu: true
+    allow_multi_gpu: true
+    guided_tail_shrink: true
+    hardware_profile_only: true
+
+  utilization:
+    cpu_target: 0.95
+    gpu_target: 0.95
+    io_target: 0.95
+    tolerance: 0.03
+    control_window_ms: 250
+
+  memory:
+    ram_limit: 0.95
+    ram_fixed_reserve_mib: 2048
+    vram_limit: 0.95
+    vram_fixed_reserve_mib: 512
+
+  fallback:
+    unqualified: cpu
+    stale_profile: use_with_warning
+    corrupt_profile: cpu
+    gpu_failure: cpu
+
+  backends:
+    cpu: true
+    cuda: auto
+    hip: auto
+    sycl: auto
+    starpu_optional: false
+
+# 禁止添加 cpu_share / gpu_share / device_weight 等任务比例配置。

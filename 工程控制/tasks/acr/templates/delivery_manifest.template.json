@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "project": "AstroCS",
+  "branch": "feature/astrocompute-runtime",
+  "base_commit": "<BASE_COMMIT>",
+  "result_commit": "<RESULT_COMMIT>",
+  "generated_at": "<ISO8601>",
+  "packages": [
+    {
+      "name": "<PACKAGE_NAME>",
+      "purpose": "control|source_snapshot|evidence",
+      "sha256": "<SHA256>",
+      "files": []
+    }
+  ],
+  "exclusions": [
+    ".git",
+    "build outputs",
+    "dependency caches",
+    "credentials",
+    "user data"
+  ]
+}
