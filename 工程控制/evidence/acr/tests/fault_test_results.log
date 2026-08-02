@@ -1,0 +1,43 @@
+=== ACR Fault Injection Tests ===
+Run started: 2026-08-02 16:06:04
+[==========] Running 10 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 10 tests from FaultInjection
+[ RUN      ] FaultInjection.BackendUnavailableDegradesToCpu
+[       OK ] FaultInjection.BackendUnavailableDegradesToCpu (192 ms)
+[ RUN      ] FaultInjection.CorruptProfileDegradesToCpu
+[       OK ] FaultInjection.CorruptProfileDegradesToCpu (164 ms)
+[ RUN      ] FaultInjection.MissingProfileDegradesToCpu
+[       OK ] FaultInjection.MissingProfileDegradesToCpu (192 ms)
+[ RUN      ] FaultInjection.StaleProfileContinuesWithWarning
+[       OK ] FaultInjection.StaleProfileContinuesWithWarning (220 ms)
+[ RUN      ] FaultInjection.DeviceLostTriggersReload
+[       OK ] FaultInjection.DeviceLostTriggersReload (391 ms)
+[ RUN      ] FaultInjection.CancelRunningKernel
+[       OK ] FaultInjection.CancelRunningKernel (0 ms)
+[ RUN      ] FaultInjection.KernelExceptionPropagatesAsFailed
+[       OK ] FaultInjection.KernelExceptionPropagatesAsFailed (0 ms)
+[ RUN      ] FaultInjection.RoutingMissingUsesCpuBaseline
+[       OK ] FaultInjection.RoutingMissingUsesCpuBaseline (335 ms)
+[ RUN      ] FaultInjection.MixedScheduleFallbackToCpu
+[       OK ] FaultInjection.MixedScheduleFallbackToCpu (0 ms)
+[ RUN      ] FaultInjection.ExceptionChunkCountedAsFailed
+[       OK ] FaultInjection.ExceptionChunkCountedAsFailed (0 ms)
+[----------] 10 tests from FaultInjection (1515 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 1 test suite ran. (1522 ms total)
+[  PASSED  ] 10 tests.
+--- stderr ---
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：profile 损坏，使用 CPU baseline（routes.json 解析失败）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：profile 过期（设备指纹不匹配），继续运行（不强制重新 benchmark）
+[ACR] 警告：profile 过期（设备指纹不匹配），继续运行（不强制重新 benchmark）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[exit code: 0]
+Run finished: 2026-08-02 16:06:05

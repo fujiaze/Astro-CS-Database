@@ -1,0 +1,376 @@
+=== ACR Classic Tests (E01-E16) ===
+Run started: 2026-08-02 16:05:33
+[==========] Running 142 tests from 19 test suites.
+[----------] Global test environment set-up.
+[----------] 8 tests from E16Concurrency
+[ RUN      ] E16Concurrency.MultiCaller4
+[       OK ] E16Concurrency.MultiCaller4 (2 ms)
+[ RUN      ] E16Concurrency.MultiCaller8
+[       OK ] E16Concurrency.MultiCaller8 (1 ms)
+[ RUN      ] E16Concurrency.CancelRepeated50
+[       OK ] E16Concurrency.CancelRepeated50 (0 ms)
+[ RUN      ] E16Concurrency.BufferLifetime100
+[       OK ] E16Concurrency.BufferLifetime100 (0 ms)
+[ RUN      ] E16Concurrency.Restarts100
+[       OK ] E16Concurrency.Restarts100 (2 ms)
+[ RUN      ] E16Concurrency.ConcurrentAtomic4
+[       OK ] E16Concurrency.ConcurrentAtomic4 (1 ms)
+[ RUN      ] E16Concurrency.ConcurrentAtomic8
+[       OK ] E16Concurrency.ConcurrentAtomic8 (2 ms)
+[ RUN      ] E16Concurrency.PersistentSubmit1K
+[       OK ] E16Concurrency.PersistentSubmit1K (4 ms)
+[----------] 8 tests from E16Concurrency (42 ms total)
+
+[----------] 6 tests from E15Failure
+[ RUN      ] E15Failure.BackendUnavailable
+[       OK ] E15Failure.BackendUnavailable (1143 ms)
+[ RUN      ] E15Failure.ProfileCorrupt
+[       OK ] E15Failure.ProfileCorrupt (354 ms)
+[ RUN      ] E15Failure.ProfileMissing
+[       OK ] E15Failure.ProfileMissing (57 ms)
+[ RUN      ] E15Failure.CancelKernel
+[       OK ] E15Failure.CancelKernel (0 ms)
+[ RUN      ] E15Failure.KernelException
+[       OK ] E15Failure.KernelException (0 ms)
+[ RUN      ] E15Failure.DeviceLost
+[       OK ] E15Failure.DeviceLost (126 ms)
+[----------] 6 tests from E15Failure (1684 ms total)
+
+[----------] 10 tests from E14Util
+[ RUN      ] E14Util.Target50
+[       OK ] E14Util.Target50 (0 ms)
+[ RUN      ] E14Util.Target80
+[       OK ] E14Util.Target80 (0 ms)
+[ RUN      ] E14Util.Target95
+[       OK ] E14Util.Target95 (0 ms)
+[ RUN      ] E14Util.Target100
+[       OK ] E14Util.Target100 (0 ms)
+[ RUN      ] E14Util.TargetClampHigh
+[       OK ] E14Util.TargetClampHigh (0 ms)
+[ RUN      ] E14Util.TrackerSamples
+[       OK ] E14Util.TrackerSamples (0 ms)
+[ RUN      ] E14Util.StrategyBatch
+[       OK ] E14Util.StrategyBatch (0 ms)
+[ RUN      ] E14Util.StrategyYield
+[       OK ] E14Util.StrategyYield (0 ms)
+[ RUN      ] E14Util.ControlLoop100
+[       OK ] E14Util.ControlLoop100 (0 ms)
+[ RUN      ] E14Util.ControlLoop500
+[       OK ] E14Util.ControlLoop500 (0 ms)
+[----------] 10 tests from E14Util (2 ms total)
+
+[----------] 10 tests from E13Mixed
+[ RUN      ] E13Mixed.Partition4Chunks
+[       OK ] E13Mixed.Partition4Chunks (0 ms)
+[ RUN      ] E13Mixed.Partition8Chunks
+[       OK ] E13Mixed.Partition8Chunks (0 ms)
+[ RUN      ] E13Mixed.Partition16Chunks
+[       OK ] E13Mixed.Partition16Chunks (0 ms)
+[ RUN      ] E13Mixed.PartitionUneven
+[       OK ] E13Mixed.PartitionUneven (0 ms)
+[ RUN      ] E13Mixed.Dispatch10Chunks
+[       OK ] E13Mixed.Dispatch10Chunks (0 ms)
+[ RUN      ] E13Mixed.DispatchSmallChunk
+[       OK ] E13Mixed.DispatchSmallChunk (0 ms)
+[ RUN      ] E13Mixed.Ratio0Pct
+[       OK ] E13Mixed.Ratio0Pct (0 ms)
+[ RUN      ] E13Mixed.Ratio50Pct
+[       OK ] E13Mixed.Ratio50Pct (0 ms)
+[ RUN      ] E13Mixed.Ratio100Pct
+[       OK ] E13Mixed.Ratio100Pct (0 ms)
+[ RUN      ] E13Mixed.RatioLarge
+[       OK ] E13Mixed.RatioLarge (0 ms)
+[----------] 10 tests from E13Mixed (4 ms total)
+
+[----------] 8 tests from E12Fft
+[ RUN      ] E12Fft.CT_vs_naive_8
+[       OK ] E12Fft.CT_vs_naive_8 (0 ms)
+[ RUN      ] E12Fft.CT_vs_naive_64
+[       OK ] E12Fft.CT_vs_naive_64 (0 ms)
+[ RUN      ] E12Fft.CT_vs_naive_256
+[       OK ] E12Fft.CT_vs_naive_256 (1 ms)
+[ RUN      ] E12Fft.Roundtrip_8
+[       OK ] E12Fft.Roundtrip_8 (0 ms)
+[ RUN      ] E12Fft.Roundtrip_64
+[       OK ] E12Fft.Roundtrip_64 (0 ms)
+[ RUN      ] E12Fft.Roundtrip_256
+[       OK ] E12Fft.Roundtrip_256 (0 ms)
+[ RUN      ] E12Fft.ParallelNaive16
+[       OK ] E12Fft.ParallelNaive16 (0 ms)
+[ RUN      ] E12Fft.ParallelNaive64
+[       OK ] E12Fft.ParallelNaive64 (0 ms)
+[----------] 8 tests from E12Fft (4 ms total)
+
+[----------] 8 tests from E11Gemm
+[ RUN      ] E11Gemm.Naive32x32
+[       OK ] E11Gemm.Naive32x32 (0 ms)
+[ RUN      ] E11Gemm.Naive64x64
+[       OK ] E11Gemm.Naive64x64 (0 ms)
+[ RUN      ] E11Gemm.NaiveRect
+[       OK ] E11Gemm.NaiveRect (0 ms)
+[ RUN      ] E11Gemm.Tiled64x64_8
+[       OK ] E11Gemm.Tiled64x64_8 (0 ms)
+[ RUN      ] E11Gemm.TiledEdge
+[       OK ] E11Gemm.TiledEdge (0 ms)
+[ RUN      ] E11Gemm.Fp64_32x32
+[       OK ] E11Gemm.Fp64_32x32 (0 ms)
+[ RUN      ] E11Gemm.Fp64_64x64
+[       OK ] E11Gemm.Fp64_64x64 (0 ms)
+[ RUN      ] E11Gemm.Naive128
+[       OK ] E11Gemm.Naive128 (5 ms)
+[----------] 8 tests from E11Gemm (9 ms total)
+
+[----------] 8 tests from E10Mandelbrot
+[ RUN      ] E10Mandelbrot.FullView64
+[       OK ] E10Mandelbrot.FullView64 (1 ms)
+[ RUN      ] E10Mandelbrot.FullView128
+[       OK ] E10Mandelbrot.FullView128 (3 ms)
+[ RUN      ] E10Mandelbrot.ZoomEdge
+[       OK ] E10Mandelbrot.ZoomEdge (8 ms)
+[ RUN      ] E10Mandelbrot.HighIter
+[       OK ] E10Mandelbrot.HighIter (4 ms)
+[ RUN      ] E10Mandelbrot.RectWide
+[       OK ] E10Mandelbrot.RectWide (1 ms)
+[ RUN      ] E10Mandelbrot.SmallMaxIter
+[       OK ] E10Mandelbrot.SmallMaxIter (0 ms)
+[ RUN      ] E10Mandelbrot.Edge10x10
+[       OK ] E10Mandelbrot.Edge10x10 (0 ms)
+[ RUN      ] E10Mandelbrot.Cardioid
+[       OK ] E10Mandelbrot.Cardioid (9 ms)
+[----------] 8 tests from E10Mandelbrot (31 ms total)
+
+[----------] 8 tests from E09GatherScatter
+[ RUN      ] E09GatherScatter.GatherDense1K
+[       OK ] E09GatherScatter.GatherDense1K (0 ms)
+[ RUN      ] E09GatherScatter.GatherSparse1K
+[       OK ] E09GatherScatter.GatherSparse1K (0 ms)
+[ RUN      ] E09GatherScatter.GatherLarge64K
+[       OK ] E09GatherScatter.GatherLarge64K (1 ms)
+[ RUN      ] E09GatherScatter.ScatterUnique1K
+[       OK ] E09GatherScatter.ScatterUnique1K (0 ms)
+[ RUN      ] E09GatherScatter.ScatterUnique64K
+[       OK ] E09GatherScatter.ScatterUnique64K (3 ms)
+[ RUN      ] E09GatherScatter.ScatterAtomic1K
+[       OK ] E09GatherScatter.ScatterAtomic1K (0 ms)
+[ RUN      ] E09GatherScatter.ScatterAtomic64K
+[       OK ] E09GatherScatter.ScatterAtomic64K (1 ms)
+[ RUN      ] E09GatherScatter.GatherMixed
+[       OK ] E09GatherScatter.GatherMixed (0 ms)
+[----------] 8 tests from E09GatherScatter (9 ms total)
+
+[----------] 8 tests from E08Scan
+[ RUN      ] E08Scan.Inclusive1K
+[       OK ] E08Scan.Inclusive1K (0 ms)
+[ RUN      ] E08Scan.Inclusive64K
+[       OK ] E08Scan.Inclusive64K (0 ms)
+[ RUN      ] E08Scan.Inclusive1M
+[       OK ] E08Scan.Inclusive1M (13 ms)
+[ RUN      ] E08Scan.Exclusive1K
+[       OK ] E08Scan.Exclusive1K (0 ms)
+[ RUN      ] E08Scan.Exclusive64K
+[       OK ] E08Scan.Exclusive64K (0 ms)
+[ RUN      ] E08Scan.Blocked1K
+[       OK ] E08Scan.Blocked1K (0 ms)
+[ RUN      ] E08Scan.Blocked64K
+[       OK ] E08Scan.Blocked64K (0 ms)
+[ RUN      ] E08Scan.Max1K
+[       OK ] E08Scan.Max1K (0 ms)
+[----------] 8 tests from E08Scan (19 ms total)
+
+[----------] 8 tests from E07Histogram
+[ RUN      ] E07Histogram.Chunks1K
+[       OK ] E07Histogram.Chunks1K (0 ms)
+[ RUN      ] E07Histogram.Chunks64K
+[       OK ] E07Histogram.Chunks64K (0 ms)
+[ RUN      ] E07Histogram.Chunks1M
+[       OK ] E07Histogram.Chunks1M (2 ms)
+[ RUN      ] E07Histogram.Atomic1K
+[       OK ] E07Histogram.Atomic1K (0 ms)
+[ RUN      ] E07Histogram.Atomic64K
+[       OK ] E07Histogram.Atomic64K (1 ms)
+[ RUN      ] E07Histogram.Atomic1M
+[       OK ] E07Histogram.Atomic1M (30 ms)
+[ RUN      ] E07Histogram.Skewed1K
+[       OK ] E07Histogram.Skewed1K (0 ms)
+[ RUN      ] E07Histogram.Skewed64K
+[       OK ] E07Histogram.Skewed64K (3 ms)
+[----------] 8 tests from E07Histogram (41 ms total)
+
+[----------] 8 tests from E06Resample
+[ RUN      ] E06Resample.Identity
+[       OK ] E06Resample.Identity (0 ms)
+[ RUN      ] E06Resample.Upscale2x
+[       OK ] E06Resample.Upscale2x (0 ms)
+[ RUN      ] E06Resample.DownscaleHalf
+[       OK ] E06Resample.DownscaleHalf (0 ms)
+[ RUN      ] E06Resample.Rotate45
+[       OK ] E06Resample.Rotate45 (0 ms)
+[ RUN      ] E06Resample.Translate
+[       OK ] E06Resample.Translate (0 ms)
+[ RUN      ] E06Resample.Edge13
+[       OK ] E06Resample.Edge13 (0 ms)
+[ RUN      ] E06Resample.NonSquareRect
+[       OK ] E06Resample.NonSquareRect (0 ms)
+[ RUN      ] E06Resample.Large256
+[       OK ] E06Resample.Large256 (2 ms)
+[----------] 8 tests from E06Resample (5 ms total)
+
+[----------] 8 tests from E05Conv
+[ RUN      ] E05Conv.Conv3x3_64
+[       OK ] E05Conv.Conv3x3_64 (0 ms)
+[ RUN      ] E05Conv.Conv3x3_256
+[       OK ] E05Conv.Conv3x3_256 (2 ms)
+[ RUN      ] E05Conv.Conv5x5_64
+[       OK ] E05Conv.Conv5x5_64 (0 ms)
+[ RUN      ] E05Conv.Conv3x3_Edge13
+[       OK ] E05Conv.Conv3x3_Edge13 (0 ms)
+[ RUN      ] E05Conv.Tiled3x3_64_8
+[       OK ] E05Conv.Tiled3x3_64_8 (0 ms)
+[ RUN      ] E05Conv.Tiled3x3_Edge10
+[       OK ] E05Conv.Tiled3x3_Edge10 (0 ms)
+[ RUN      ] E05Conv.Tiled5x5_128_16
+[       OK ] E05Conv.Tiled5x5_128_16 (1 ms)
+[ RUN      ] E05Conv.Tiled3x3_Rect
+[       OK ] E05Conv.Tiled3x3_Rect (0 ms)
+[----------] 8 tests from E05Conv (7 ms total)
+
+[----------] 8 tests from E04Transpose
+[ RUN      ] E04Transpose.Square64Tile4
+[       OK ] E04Transpose.Square64Tile4 (0 ms)
+[ RUN      ] E04Transpose.Square256Tile16
+[       OK ] E04Transpose.Square256Tile16 (0 ms)
+[ RUN      ] E04Transpose.Rect8x32Tile4
+[       OK ] E04Transpose.Rect8x32Tile4 (0 ms)
+[ RUN      ] E04Transpose.Edge10x10Tile4
+[       OK ] E04Transpose.Edge10x10Tile4 (0 ms)
+[ RUN      ] E04Transpose.Edge13x7Tile4
+[       OK ] E04Transpose.Edge13x7Tile4 (0 ms)
+[ RUN      ] E04Transpose.For2dSquare64
+[       OK ] E04Transpose.For2dSquare64 (0 ms)
+[ RUN      ] E04Transpose.For2dEdge10x10
+[       OK ] E04Transpose.For2dEdge10x10 (0 ms)
+[ RUN      ] E04Transpose.For2dLarge512
+[       OK ] E04Transpose.For2dLarge512 (4 ms)
+[----------] 8 tests from E04Transpose (7 ms total)
+
+[----------] 6 tests from E03Dot
+[ RUN      ] E03Dot.Fp32Small
+[       OK ] E03Dot.Fp32Small (0 ms)
+[ RUN      ] E03Dot.Fp32Medium
+[       OK ] E03Dot.Fp32Medium (0 ms)
+[ RUN      ] E03Dot.Fp32Large
+[       OK ] E03Dot.Fp32Large (5 ms)
+[ RUN      ] E03Dot.Fp64Small
+[       OK ] E03Dot.Fp64Small (0 ms)
+[ RUN      ] E03Dot.Fp64Medium
+[       OK ] E03Dot.Fp64Medium (0 ms)
+[ RUN      ] E03Dot.Fp64Large
+[       OK ] E03Dot.Fp64Large (7 ms)
+[----------] 6 tests from E03Dot (15 ms total)
+
+[----------] 6 tests from E03Reduce
+[ RUN      ] E03Reduce.SumFp32Small
+[       OK ] E03Reduce.SumFp32Small (0 ms)
+[ RUN      ] E03Reduce.SumFp32Large
+[       OK ] E03Reduce.SumFp32Large (4 ms)
+[ RUN      ] E03Reduce.MaxFp32Small
+[       OK ] E03Reduce.MaxFp32Small (0 ms)
+[ RUN      ] E03Reduce.MaxFp32Large
+[       OK ] E03Reduce.MaxFp32Large (2 ms)
+[ RUN      ] E03Reduce.L2Fp32Small
+[       OK ] E03Reduce.L2Fp32Small (0 ms)
+[ RUN      ] E03Reduce.L2Fp32Large
+[       OK ] E03Reduce.L2Fp32Large (3 ms)
+[----------] 6 tests from E03Reduce (13 ms total)
+
+[----------] 6 tests from E02Axpy
+[ RUN      ] E02Axpy.Fp32Small
+[       OK ] E02Axpy.Fp32Small (0 ms)
+[ RUN      ] E02Axpy.Fp32Medium
+[       OK ] E02Axpy.Fp32Medium (0 ms)
+[ RUN      ] E02Axpy.Fp32Large
+[       OK ] E02Axpy.Fp32Large (12 ms)
+[ RUN      ] E02Axpy.Fp64Small
+[       OK ] E02Axpy.Fp64Small (0 ms)
+[ RUN      ] E02Axpy.Fp64Medium
+[       OK ] E02Axpy.Fp64Medium (1 ms)
+[ RUN      ] E02Axpy.Fp64Large
+[       OK ] E02Axpy.Fp64Large (21 ms)
+[----------] 6 tests from E02Axpy (39 ms total)
+
+[----------] 3 tests from E02Fma
+[ RUN      ] E02Fma.Fp32Small
+[       OK ] E02Fma.Fp32Small (0 ms)
+[ RUN      ] E02Fma.Fp32Medium
+[       OK ] E02Fma.Fp32Medium (0 ms)
+[ RUN      ] E02Fma.Fp32Large
+[       OK ] E02Fma.Fp32Large (7 ms)
+[----------] 3 tests from E02Fma (9 ms total)
+
+[----------] 3 tests from E02Scal
+[ RUN      ] E02Scal.Fp32Small
+[       OK ] E02Scal.Fp32Small (0 ms)
+[ RUN      ] E02Scal.Fp32Medium
+[       OK ] E02Scal.Fp32Medium (0 ms)
+[ RUN      ] E02Scal.Fp32Large
+[       OK ] E02Scal.Fp32Large (10 ms)
+[----------] 3 tests from E02Scal (12 ms total)
+
+[----------] 12 tests from E01Memory
+[ RUN      ] E01Memory.CopySmall
+[       OK ] E01Memory.CopySmall (0 ms)
+[ RUN      ] E01Memory.CopyMedium
+[       OK ] E01Memory.CopyMedium (0 ms)
+[ RUN      ] E01Memory.CopyLarge
+[       OK ] E01Memory.CopyLarge (6 ms)
+[ RUN      ] E01Memory.ReadSmall
+[       OK ] E01Memory.ReadSmall (0 ms)
+[ RUN      ] E01Memory.ReadMedium
+[       OK ] E01Memory.ReadMedium (0 ms)
+[ RUN      ] E01Memory.ReadLarge
+[       OK ] E01Memory.ReadLarge (3 ms)
+[ RUN      ] E01Memory.WriteSmall
+[       OK ] E01Memory.WriteSmall (0 ms)
+[ RUN      ] E01Memory.WriteMedium
+[       OK ] E01Memory.WriteMedium (0 ms)
+[ RUN      ] E01Memory.WriteLarge
+[       OK ] E01Memory.WriteLarge (3 ms)
+[ RUN      ] E01Memory.TriadSmall
+[       OK ] E01Memory.TriadSmall (0 ms)
+[ RUN      ] E01Memory.TriadMedium
+[       OK ] E01Memory.TriadMedium (0 ms)
+[ RUN      ] E01Memory.TriadLarge
+[       OK ] E01Memory.TriadLarge (8 ms)
+[----------] 12 tests from E01Memory (28 ms total)
+
+[----------] Global test environment tear-down
+[==========] 142 tests from 19 test suites ran. (2002 ms total)
+[  PASSED  ] 142 tests.
+--- stderr ---
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：profile 损坏，使用 CPU baseline（routes.json 解析失败）
+[ACR] 警告：profile 损坏，使用 CPU baseline（routes.json 解析失败）
+[ACR] 警告：profile 损坏，使用 CPU baseline（routes.json 解析失败）
+[ACR] 警告：profile 损坏，使用 CPU baseline（routes.json 解析失败）
+[ACR] 警告：profile 损坏，使用 CPU baseline（routes.json 解析失败）
+[ACR] 警告：profile 损坏，使用 CPU baseline（routes.json 解析失败）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：profile 过期（设备指纹不匹配），继续运行（不强制重新 benchmark）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[exit code: 0]
+Run finished: 2026-08-02 16:05:37

@@ -1,0 +1,5 @@
+=== Path Guard Verification (committed diff origin/main...HEAD) ===
+Generated: 2026-08-02 16:35:47
+Total committed changed files: 130
+Violations (files outside lib/acr/, 工程控制/tasks/acr/, 工程控制/evidence/acr/): 0
+All committed changes are within allowed ACR paths.

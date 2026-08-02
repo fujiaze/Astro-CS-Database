@@ -1,0 +1,8 @@
+=== path_guard.ps1 execution ===
+Run started: 2026-08-02 16:34:58
+Command: pwsh -ExecutionPolicy Bypass -File lib/acr/ci/path_guard.ps1
+
+[path_guard] OK: All changes within allowed ACR paths.
+
+[exit code: 0]
+Run finished: 2026-08-02 16:34:59

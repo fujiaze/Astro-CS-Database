@@ -1,0 +1,58 @@
+{
+  "build_dir": "lib/acr/build_evidence",
+  "ctest_registered_total": 305,
+  "discrepancy_note": "ctest -N registered 305 tests; gtest executed 304. Difference likely 1 DISABLED test case not counted by gtest PASSED/FAILED lines.",
+  "generated_at": "2026-08-02T16:07:20Z",
+  "suites": [
+    {
+      "cases_passed": 136,
+      "failed_cases": [
+        "HardwareReport.FirstCallbackWins"
+      ],
+      "cases_skipped": 0,
+      "cases_failed": 1,
+      "note": "7 executables: acr_test_api/buffer/topology/qualification/routing/scheduler/utilization",
+      "executable_count": 7,
+      "name": "unit"
+    },
+    {
+      "cases_passed": 142,
+      "cases_skipped": 0,
+      "cases_failed": 0,
+      "note": "E01-E16 via acr_test_classic",
+      "executable_count": 1,
+      "name": "classic"
+    },
+    {
+      "cases_passed": 10,
+      "cases_skipped": 0,
+      "cases_failed": 0,
+      "note": "acr_test_fault",
+      "executable_count": 1,
+      "name": "fault"
+    },
+    {
+      "cases_passed": 10,
+      "cases_skipped": 0,
+      "cases_failed": 0,
+      "note": "acr_test_sanitizer (build NOT sanitizer-enabled, run as regular smoke)",
+      "executable_count": 1,
+      "name": "sanitizer"
+    },
+    {
+      "cases_passed": 5,
+      "cases_skipped": 0,
+      "cases_failed": 0,
+      "note": "acr_test_persistence",
+      "executable_count": 1,
+      "name": "persistence"
+    }
+  ],
+  "total": {
+    "skipped": 0.0,
+    "cases": 304.0,
+    "passed": 303.0,
+    "failed": 1.0
+  },
+  "schema": "acr.evidence.test_summary.v1"
+}

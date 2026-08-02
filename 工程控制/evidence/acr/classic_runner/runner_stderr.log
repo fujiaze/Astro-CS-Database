@@ -1,0 +1,48 @@
+=== acr-classic-runner execution ===
+Run started: 2026-08-02 16:18:37
+Executable: lib/acr/build_evidence/bin/acr-classic-runner.exe
+Args: --output 工程控制\evidence\acr\classic_runner\classic_report.json
+[runner] 运行 E01 Memory Copy/Read/Write/Triad ... 12/12 PASS
+[runner] 运行 E02 AXPY/FMA ... 12/12 PASS
+[runner] 运行 E03 Dot/Reduction Family ... 12/12 PASS
+[runner] 运行 E04 Tiled Matrix Transpose ... 8/8 PASS
+[runner] 运行 E05 2D Convolution ... 8/8 PASS
+[runner] 运行 E06 Bilinear Affine Resampling ... 8/8 PASS
+[runner] 运行 E07 Histogram 256 bins ... 8/8 PASS
+[runner] 运行 E08 Prefix Scan ... 8/8 PASS
+[runner] 运行 E09 Gather/Scatter ... 8/8 PASS
+[runner] 运行 E10 Branch Divergence (Mandelbrot) ... 8/8 PASS
+[runner] 运行 E11 GEMM Mature Library Adaptation ... 8/8 PASS
+[runner] 运行 E12 FFT Round-trip ... 8/8 PASS
+[runner] 运行 E13 CPU+GPU Mixed Partition ... 10/10 PASS
+[runner] 运行 E14 Resource Utilization Controller ... 10/10 PASS
+[runner] 运行 E15 Failure and Fallback ... [ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：profile 损坏，使用 CPU baseline（routes.json 解析失败）
+[ACR] 警告：profile 损坏，使用 CPU baseline（routes.json 解析失败）
+[ACR] 警告：profile 损坏，使用 CPU baseline（routes.json 解析失败）
+[ACR] 警告：profile 损坏，使用 CPU baseline（routes.json 解析失败）
+[ACR] 警告：profile 损坏，使用 CPU baseline（routes.json 解析失败）
+[ACR] 警告：profile 损坏，使用 CPU baseline（routes.json 解析失败）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：profile 过期（设备指纹不匹配），继续运行（不强制重新 benchmark）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+[ACR] 警告：未标定，使用 CPU baseline（请运行 acr-benchmark 生成 routes.json）
+6/6 PASS
+[runner] 运行 E16 Concurrency/Cancellation/Lifetime ... 8/8 PASS
+[runner] 报告已写入 ���̿���\evidence\acr\classic_runner\classic_report.json
+[exit code: 0]
+Run finished: 2026-08-02 16:18:37

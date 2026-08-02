@@ -1,0 +1,143 @@
+{
+  "generated_at": "20260802T161837Z",
+  "passed": 142,
+  "skipped": 0,
+  "pass_rate": 1,
+  "backend": "cpu",
+  "experiments": [
+    {
+      "name": "Memory Copy/Read/Write/Triad",
+      "id": "E01",
+      "cases": 12,
+      "failed": 0,
+      "passed": 12,
+      "skipped": 0
+    },
+    {
+      "name": "AXPY/FMA",
+      "id": "E02",
+      "cases": 12,
+      "failed": 0,
+      "passed": 12,
+      "skipped": 0
+    },
+    {
+      "name": "Dot/Reduction Family",
+      "id": "E03",
+      "cases": 12,
+      "failed": 0,
+      "passed": 12,
+      "skipped": 0
+    },
+    {
+      "name": "Tiled Matrix Transpose",
+      "id": "E04",
+      "cases": 8,
+      "failed": 0,
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "name": "2D Convolution",
+      "id": "E05",
+      "cases": 8,
+      "failed": 0,
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "name": "Bilinear Affine Resampling",
+      "id": "E06",
+      "cases": 8,
+      "failed": 0,
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "name": "Histogram 256 bins",
+      "id": "E07",
+      "cases": 8,
+      "failed": 0,
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "name": "Prefix Scan",
+      "id": "E08",
+      "cases": 8,
+      "failed": 0,
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "name": "Gather/Scatter",
+      "id": "E09",
+      "cases": 8,
+      "failed": 0,
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "name": "Branch Divergence (Mandelbrot)",
+      "id": "E10",
+      "cases": 8,
+      "failed": 0,
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "name": "GEMM Mature Library Adaptation",
+      "id": "E11",
+      "cases": 8,
+      "failed": 0,
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "name": "FFT Round-trip",
+      "id": "E12",
+      "cases": 8,
+      "failed": 0,
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "name": "CPU+GPU Mixed Partition",
+      "id": "E13",
+      "cases": 10,
+      "failed": 0,
+      "passed": 10,
+      "skipped": 0
+    },
+    {
+      "name": "Resource Utilization Controller",
+      "id": "E14",
+      "cases": 10,
+      "failed": 0,
+      "passed": 10,
+      "skipped": 0
+    },
+    {
+      "name": "Failure and Fallback",
+      "id": "E15",
+      "cases": 6,
+      "failed": 0,
+      "passed": 6,
+      "skipped": 0
+    },
+    {
+      "name": "Concurrency/Cancellation/Lifetime",
+      "id": "E16",
+      "cases": 8,
+      "failed": 0,
+      "passed": 8,
+      "skipped": 0
+    }
+  ],
+  "schema": "acr.evidence.classic_summary.v1",
+  "runtime_workers": 16,
+  "experiments_count": 16,
+  "total_cases": 142,
+  "failed": 0,
+  "seed": "0xA57C5AC20260802"
+}
