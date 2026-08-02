@@ -77,6 +77,50 @@ static const uint8_t HISS_SCHEMA_FINGERPRINT[32] = {
 static const size_t COPY_BUF_SIZE = 4 * 1024 * 1024;
 
 // ============================================================================
+// R07-M14: 溢出检查辅助函数
+//   size_t → uint32/uint16 转换前必须检查, 防止静默截断导致 Header/TLV 长度
+//   不一致或 subblock_count 溢出 (HISS 格式要求严格长度一致)
+//   返回: 0=成功, -1=溢出 (调用方应硬失败并清理)
+// ============================================================================
+inline int safe_size_to_u32(size_t v, const char* ctx) {
+    if (v > 0xFFFFFFFFULL) {
+        fprintf(stderr,
+                "[hiss][stream] 溢出: %s=%zu 超过 uint32 范围 (R07-M14)\n",
+                ctx ? ctx : "?", v);
+        return -1;
+    }
+    return 0;
+}
+
+inline int safe_size_to_u16(size_t v, const char* ctx) {
+    if (v > 0xFFFFULL) {
+        fprintf(stderr,
+                "[hiss][stream] 溢出: %s=%zu 超过 uint16 范围 (R07-M14)\n",
+                ctx ? ctx : "?", v);
+        return -1;
+    }
+    return 0;
+}
+
+// ============================================================================
+// R07-M13: 统一失败路径清理辅助函数
+//   所有 finalize 失败路径必须调用此函数, 确保:
+//     1. 删除 .partial 文件 (避免残留半成品)
+//     2. 删除 .tmppool 文件 (避免残留临时池)
+//   不删除已有正式文件 (atomic_replace 仅在最终成功时覆盖)
+// ============================================================================
+inline void cleanup_temp_files(const std::string& partial_path,
+                                const std::string& temp_pool_path) {
+    std::error_code ec;
+    if (!partial_path.empty()) {
+        std::filesystem::remove(partial_path, ec);
+    }
+    if (!temp_pool_path.empty()) {
+        std::filesystem::remove(temp_pool_path, ec);
+    }
+}
+
+// ============================================================================
 // 内部辅助: 小端字节追加工具 (用于构建 Header 字节流)
 // ============================================================================
 
@@ -334,7 +378,13 @@ int HissStreamWriter::append_subblock(const uint8_t* data, size_t size,
             return -3;
         }
         // 立即 flush, 确保数据落盘 (流式写入要点: 不在内存缓存)
-        std::fflush(pimpl_->temp_pool_fp);
+        // R07-M12: fflush 返回值必须检查, 失败时传播错误 (避免后续 finalize
+        //   读取到不完整数据, 产出损坏的 HISS 文件)
+        if (std::fflush(pimpl_->temp_pool_fp) != 0) {
+            fprintf(stderr,
+                    "[hiss][stream] append_subblock 失败: fflush 临时池失败 (R07-M12)\n");
+            return -4;
+        }
     }
 
     pimpl_->temp_pool_size += size;
@@ -390,9 +440,26 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
     }
 
     // 1. 关闭临时池 (确保所有数据落盘)
+    //    R07-M12: fflush/fclose 返回值必须检查, 失败时清理并硬失败
+    //    R07-M13: 失败路径统一调用 cleanup_temp_files, 避免残留半成品
     if (pimpl_->temp_pool_fp) {
-        std::fflush(pimpl_->temp_pool_fp);
-        std::fclose(pimpl_->temp_pool_fp);
+        if (std::fflush(pimpl_->temp_pool_fp) != 0) {
+            fprintf(stderr,
+                    "[hiss][stream] finalize 失败: fflush 临时池失败 (R07-M12)\n");
+            std::fclose(pimpl_->temp_pool_fp);
+            pimpl_->temp_pool_fp = nullptr;
+            cleanup_temp_files(pimpl_->partial_path, pimpl_->temp_pool_path);
+            pimpl_->opened = false;
+            return HISS_ERR_IO;
+        }
+        if (std::fclose(pimpl_->temp_pool_fp) != 0) {
+            fprintf(stderr,
+                    "[hiss][stream] finalize 失败: fclose 临时池失败 (R07-M12)\n");
+            pimpl_->temp_pool_fp = nullptr;
+            cleanup_temp_files(pimpl_->partial_path, pimpl_->temp_pool_path);
+            pimpl_->opened = false;
+            return HISS_ERR_IO;
+        }
         pimpl_->temp_pool_fp = nullptr;
     }
 
@@ -423,6 +490,27 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
     header_size += HISS_TLV_HEADER_SIZE + sci_meta.data.size();     // SCIENCE_METADATA (R05-B08)
     header_size += HISS_TLV_HEADER_SIZE + json.size();              // METADATA_JSON (镜像)
     header_size += HISS_TLV_HEADER_SIZE + tile_dir_value_size;      // TILE_DIRECTORY
+
+    // R07-M14: 溢出检查 — 所有 size_t → uint32/uint16 转换前必须检查
+    //   HISS 格式要求 TLV length (uint32)、tile_count (uint32)、subblock_count (uint16)
+    //   严格一致, 静默截断会导致 Header 大小不一致或目录损坏
+    //   溢出时硬失败并清理, 不产出损坏文件
+    if (safe_size_to_u32(header_size,            "header_size")            != 0 ||
+        safe_size_to_u32(sci_meta.data.size(),   "sci_meta_size")          != 0 ||
+        safe_size_to_u32(json.size(),            "metadata_json_size")    != 0 ||
+        safe_size_to_u32(tile_dir_value_size,    "tile_dir_value_size")    != 0 ||
+        safe_size_to_u32(pimpl_->tile_dirs.size(), "tile_count")          != 0) {
+        cleanup_temp_files(pimpl_->partial_path, pimpl_->temp_pool_path);
+        pimpl_->opened = false;
+        return HISS_ERR_FORMAT_VIOLATION;
+    }
+    for (const auto& t : pimpl_->tile_dirs) {
+        if (safe_size_to_u16(t.subblocks.size(), "subblock_count") != 0) {
+            cleanup_temp_files(pimpl_->partial_path, pimpl_->temp_pool_path);
+            pimpl_->opened = false;
+            return HISS_ERR_FORMAT_VIOLATION;
+        }
+    }
 
     // 4. 调整所有子块 offset: 临时池偏移 → 最终文件偏移
     //    最终 offset = 签名块(16) + Header大小 + 临时池偏移
@@ -496,11 +584,13 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
 
     // R06-B18 修复: Header 大小不一致必须硬失败, 不得仅警告继续
     // 不一致时 offset 错位, 产出"看似合法但 offset 错误"的 HISS 文件, 且会被原子替换覆盖现有文件
+    // R07-M13: 失败路径统一调用 cleanup_temp_files, 避免残留半成品
     if (hdr.data.size() != header_size) {
         fprintf(stderr,
                 "[hiss][stream] finalize 失败: Header 实际大小 %zu 与预算 %zu 不符 (内部 bug), "
-                "中止写入并清理 (R06-B18)\n",
+                "中止写入并清理 (R06-B18, R07-M13)\n",
                 hdr.data.size(), header_size);
+        cleanup_temp_files(pimpl_->partial_path, pimpl_->temp_pool_path);
         pimpl_->opened = false;
         return HISS_ERR_FORMAT_VIOLATION;
     }
@@ -510,6 +600,8 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
     if (!fp_out) {
         fprintf(stderr, "[hiss][stream] finalize 失败: 无法创建 .partial %s\n",
                 pimpl_->partial_path.c_str());
+        cleanup_temp_files(pimpl_->partial_path, pimpl_->temp_pool_path);
+        pimpl_->opened = false;
         return -2;
     }
 
@@ -530,6 +622,8 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
     if (std::fwrite(sig, 1, HISS_SIGNATURE_SIZE, fp_out) != HISS_SIGNATURE_SIZE) {
         fprintf(stderr, "[hiss][stream] finalize 失败: 写入签名块失败\n");
         std::fclose(fp_out);
+        cleanup_temp_files(pimpl_->partial_path, pimpl_->temp_pool_path);
+        pimpl_->opened = false;
         return -3;
     }
 
@@ -538,6 +632,8 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
         if (std::fwrite(hdr.data.data(), 1, hdr.data.size(), fp_out) != hdr.data.size()) {
             fprintf(stderr, "[hiss][stream] finalize 失败: 写入 Header 失败\n");
             std::fclose(fp_out);
+            cleanup_temp_files(pimpl_->partial_path, pimpl_->temp_pool_path);
+            pimpl_->opened = false;
             return -4;
         }
     }
@@ -549,6 +645,8 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
             fprintf(stderr, "[hiss][stream] finalize 失败: 无法打开临时池 %s\n",
                     pimpl_->temp_pool_path.c_str());
             std::fclose(fp_out);
+            cleanup_temp_files(pimpl_->partial_path, pimpl_->temp_pool_path);
+            pimpl_->opened = false;
             return -5;
         }
 
@@ -563,6 +661,8 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
                         "need=%zu got=%zu\n", chunk, nread);
                 std::fclose(fp_in);
                 std::fclose(fp_out);
+                cleanup_temp_files(pimpl_->partial_path, pimpl_->temp_pool_path);
+                pimpl_->opened = false;
                 return -6;
             }
             size_t nwritten = std::fwrite(copy_buf.data(), 1, chunk, fp_out);
@@ -571,22 +671,31 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
                         "need=%zu got=%zu\n", chunk, nwritten);
                 std::fclose(fp_in);
                 std::fclose(fp_out);
+                cleanup_temp_files(pimpl_->partial_path, pimpl_->temp_pool_path);
+                pimpl_->opened = false;
                 return -7;
             }
             remaining -= chunk;
         }
-        std::fclose(fp_in);
+        // R07-M12: fclose 返回值检查 (读取端)
+        if (std::fclose(fp_in) != 0) {
+            fprintf(stderr,
+                    "[hiss][stream] finalize 失败: fclose 临时池(读) 失败 (R07-M12)\n");
+            std::fclose(fp_out);
+            cleanup_temp_files(pimpl_->partial_path, pimpl_->temp_pool_path);
+            pimpl_->opened = false;
+            return HISS_ERR_IO;
+        }
     }
 
     // 7. flush + OS 级持久化同步 + 关闭 .partial
     // R06-B19 修复: fflush 只刷 C 库缓冲, 不保证落盘; 需 OS 级 _commit/FlushFileBuffers
     // fflush 失败必须硬失败, 不得仅警告继续 (否则产出空/截断文件后原子替换覆盖现有文件)
+    // R07-M13: 失败路径统一调用 cleanup_temp_files (清理 .partial + .tmppool)
     if (std::fflush(fp_out) != 0) {
         fprintf(stderr, "[hiss][stream] finalize 失败: fflush 失败 (R06-B19: 硬失败)\n");
         std::fclose(fp_out);
-        // 清理 .partial
-        std::error_code ec_clean;
-        std::filesystem::remove(pimpl_->partial_path, ec_clean);
+        cleanup_temp_files(pimpl_->partial_path, pimpl_->temp_pool_path);
         pimpl_->opened = false;
         return HISS_ERR_IO;
     }
@@ -597,8 +706,7 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
         if (_commit(fd) != 0) {
             fprintf(stderr, "[hiss][stream] finalize 失败: _commit (OS 级同步) 失败 (R06-B19)\n");
             std::fclose(fp_out);
-            std::error_code ec_clean;
-            std::filesystem::remove(pimpl_->partial_path, ec_clean);
+            cleanup_temp_files(pimpl_->partial_path, pimpl_->temp_pool_path);
             pimpl_->opened = false;
             return HISS_ERR_IO;
         }
@@ -609,14 +717,20 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
         if (fdatasync(fd) != 0) {
             fprintf(stderr, "[hiss][stream] finalize 失败: fdatasync 失败 (R06-B19)\n");
             std::fclose(fp_out);
-            std::error_code ec_clean;
-            std::filesystem::remove(pimpl_->partial_path, ec_clean);
+            cleanup_temp_files(pimpl_->partial_path, pimpl_->temp_pool_path);
             pimpl_->opened = false;
             return HISS_ERR_IO;
         }
     }
 #endif
-    std::fclose(fp_out);
+    // R07-M12: fclose 返回值检查 (写入端, 关键: fclose 失败可能意味着缓冲未刷盘)
+    if (std::fclose(fp_out) != 0) {
+        fprintf(stderr,
+                "[hiss][stream] finalize 失败: fclose .partial 失败 (R07-M12)\n");
+        cleanup_temp_files(pimpl_->partial_path, pimpl_->temp_pool_path);
+        pimpl_->opened = false;
+        return HISS_ERR_IO;
+    }
 
     // 8. 删除临时池 (数据已复制到 .partial)
     std::error_code ec;
@@ -628,6 +742,8 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
     if (ret != 0) {
         fprintf(stderr, "[hiss][stream] finalize 失败: 原子替换失败 %s -> %s\n",
                 pimpl_->partial_path.c_str(), pimpl_->final_path.c_str());
+        // 原子替换失败: .partial 仍存在, 清理它 (不删除已有正式文件)
+        cleanup_temp_files(pimpl_->partial_path, pimpl_->temp_pool_path);
         pimpl_->opened = false;
         return -8;
     }
