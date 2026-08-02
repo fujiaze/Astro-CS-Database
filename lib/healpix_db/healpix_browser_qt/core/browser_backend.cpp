@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <map>
 #include <unordered_map>
+#include <unordered_set>
 #include <cstdlib>
 #include <string>
 
@@ -360,22 +361,41 @@ std::vector<uint64_t> BrowserBackend::get_required_leaves(const ViewParams& view
 
     std::vector<std::pair<uint64_t, double>> candidates;  // (ipix, 角距离)
 
-    const uint32_t nside_leaf = 64;
-    const uint64_t n_leaf = 12ULL * nside_leaf * nside_leaf;  // 49152
+    // B19: 用 hiss_header_.tile_nside 替代硬编码 64
+    // 支持任意合法 tile_nside (16/64/128/8192 等), .hiss 按需模式从 Header 读取
+    uint32_t nside_leaf = 64;
+    if (is_hiss_ && hiss_header_loaded_ && hiss_header_.tile_nside > 0) {
+        nside_leaf = hiss_header_.tile_nside;
+    }
+    // .hcsd 模式无 tile_nside, 沿用 64 作为子叶层 (hcsd_read_leaf 按 nside=64 子叶读取)
+
     // 预加载范围: FOV × 1.5 + 1.0° 余量 (渲染用 FOV × 1.2, 预加载区供缩放流畅)
     // 加 1.0° 余量确保: 子叶中心在范围外但边缘在视场内的子叶也被加载
-    // nside=64 子叶约 0.92°, 半径约 0.46°, 1.0° 余量足够覆盖
     const double half_fov = view.fov_deg * 0.75 + 1.0;
 
-    for (uint64_t ipix = 0; ipix < n_leaf; ipix++) {
+    // B19: 使用 HISS 目录空间查询 (query_disc 球面圆盘), 不扫固定全天 nside=64
+    // query_disc 基于球面大圆距离, 天然处理 RA 跨越 (359°→0°) 和极区
+    std::vector<uint64_t> disc_ipix = HealpixMath::query_disc(
+        nside_leaf, view.center_ra, view.center_dec, half_fov);
+
+    // B19: 若 HISS 按需模式有 Tile 目录, 只保留文件中实际存在的 Tile (取交集)
+    // 避免对不存在的 Tile 触发无意义的 load_leaf
+    std::unordered_set<uint64_t> tile_set;
+    if (is_hiss_ && hiss_header_loaded_ && !hiss_header_.tile_ipix_list.empty()) {
+        tile_set.insert(hiss_header_.tile_ipix_list.begin(),
+                        hiss_header_.tile_ipix_list.end());
+    }
+
+    for (uint64_t ipix : disc_ipix) {
+        // 若有 Tile 目录, 过滤掉文件中不存在的 Tile
+        if (!tile_set.empty() && tile_set.find(ipix) == tile_set.end()) {
+            continue;
+        }
         double ra, dec;
         HealpixMath::pix2ang_nest(nside_leaf, ipix, ra, dec);
         double dist = HealpixMath::angular_distance(
             view.center_ra, view.center_dec, ra, dec);
-
-        if (dist < half_fov) {
-            candidates.push_back({ipix, dist});
-        }
+        candidates.push_back({ipix, dist});
     }
 
     // 按距离升序排序 (中心优先)
@@ -393,8 +413,8 @@ std::vector<uint64_t> BrowserBackend::get_required_leaves(const ViewParams& view
         result.push_back(c.first);
     }
 
-    LOG_DEBUG("get_required_leaves: 视场内候选 %zu 个, 返回 %zu 个",
-              candidates.size(), result.size());
+    LOG_DEBUG("get_required_leaves: nside_leaf=%u 视场内候选 %zu 个, 返回 %zu 个",
+              nside_leaf, candidates.size(), result.size());
     return result;
 }
 
@@ -422,20 +442,29 @@ uint32_t BrowserBackend::decide_target_nside(const ViewParams& view,
     // 略大于屏幕: 用 theta_screen * 1.0 (像素 ≈ 屏幕, 不超采样)
     double nside_ideal = 58.6 / theta_screen;
 
+    // B19: nside_target 下限改为 hiss_header_.tile_nside (支持 16/64/128/8192 等)
+    // 不再硬编码 64; .hiss 按需模式从 Header 读取 tile_nside, 其他模式 fallback 64
+    uint32_t nside_min = 64;
+    if (is_hiss_ && hiss_header_loaded_ && hiss_header_.tile_nside > 0) {
+        nside_min = hiss_header_.tile_nside;
+    }
+    // nside_min 不能超过数据 nside_ (高分辨率数据 tile_nside 可能 == nside_)
+    if (nside_min > nside_) nside_min = nside_;
+
     // 向上取整到 2 的幂 (确保 HEALPix 像素 ≤ 屏幕像素, 避免欠采样模糊)
     // 向下取整会导致多个顶点映射到同一 HEALPix 像素, 产生块状模糊
-    uint32_t nside_target = 64;
+    uint32_t nside_target = nside_min;
     while (nside_target < (uint32_t)std::ceil(nside_ideal) && nside_target < nside_) {
         nside_target <<= 1;
     }
 
-    // clamp 到 [64, nside_]
-    if (nside_target < 64) nside_target = 64;
+    // clamp 到 [nside_min, nside_]
+    if (nside_target < nside_min) nside_target = nside_min;
     if (nside_target > nside_) nside_target = nside_;
 
     LOG_DEBUG("decide_target_nside: fov=%.2f vp=%d theta_screen=%.4f°/px "
-              "nside_ideal=%.1f -> nside_target=%u (原始 %u)",
-              fov_deg, vp, theta_screen, nside_ideal, nside_target, nside_);
+              "nside_ideal=%.1f -> nside_target=%u (nside_min=%u 原始 %u)",
+              fov_deg, vp, theta_screen, nside_ideal, nside_target, nside_min, nside_);
     return nside_target;
 }
 
@@ -451,30 +480,18 @@ LeafData BrowserBackend::load_leaf(uint64_t leaf_ipix, uint32_t target_nside) {
 
     if (is_hiss_) {
         // 按需加载: 调用 aio_hiss_read_tile_signal 读取 Tile signal
-        // leaf_ipix 是 nside=64 子叶 ipix, tile_nside 通常 == 64 (HISS 设计)
+        // B19: leaf_ipix 已是 tile_nside 层的 ipix (get_required_leaves 用
+        //      hiss_header_.tile_nside 空间查询返回), 直接作为 parent_ipix
         // 每个 Tile 含 n_leaf_per_tile = 4^depth 个像素 (NESTED 排序)
         result.n_pix = 0;
         result.nside = nside_;
         result.owned = true;  // malloc/aio 分配, release_leaf 释放
 
-        uint32_t tile_nside = hiss_header_.tile_nside;
         uint32_t depth = hiss_header_.depth;
 
-        // 计算 parent_ipix (Tile 在 tile_nside 层的 ipix):
-        //   tile_nside == 64: leaf_ipix 直接作为 parent_ipix
-        //   tile_nside <  64: parent_ipix = leaf_ipix >> (2 * log2(64/tile_nside))
-        //   tile_nside >  64: 不支持 (一个 leaf 跨多个 Tile, 暂不处理)
+        // B19: leaf_ipix 与 tile_nside 同层, 直接作为 parent_ipix
+        // (不再需要 nside=64 ↔ tile_nside 的移位转换, 支持 16/64/128/8192)
         uint64_t parent_ipix = leaf_ipix;
-        if (tile_nside > 0 && tile_nside < 64) {
-            uint32_t coarse_shift = 0;
-            uint32_t ratio = 64 / tile_nside;
-            while (ratio > 1) { coarse_shift += 2; ratio >>= 1; }
-            parent_ipix = leaf_ipix >> coarse_shift;
-        } else if (tile_nside > 64) {
-            LOG_WARN("load_leaf(.hiss) tile_nside=%u > 64 不支持按子叶加载 leaf=%llu",
-                     tile_nside, (unsigned long long)leaf_ipix);
-            return result;
-        }
 
         // 调用按需 API 读取 Tile signal (只读这一个 Tile, 不加载其他 Tile)
         float* signal = nullptr;
@@ -590,15 +607,18 @@ LeafData BrowserBackend::ud_grade(const LeafData& input, uint32_t target_nside,
     if (range < 1e-6) range = 1.0;
     double inv_range = 255.0 / range;
 
-    // 按 ipix_coarse 分组, 用 uint32 累加 (速度优先, 显示用)
-    // 注: 若数据范围大, sum 可能超 uint32, 用 double 累加安全
+    // B20: signal = 累计通量 (HISS 规范: 不除面积), LOD 降采样必须求和
+    //   合并后大像素的累计通量 = 4^k 个子像素累计通量之和
+    //   (若取平均会丢失面积信息, 违反 HISS signal 语义)
+    // 注: support 是面积比 [0,255] uint8, 应独立按面积求和后归一化处理,
+    //     不在此函数中 (本函数仅处理 signal 路径, input.pixel 为 signal)
     std::unordered_map<uint64_t, std::pair<double, uint32_t>> groups;
     groups.reserve(input.n_pix >> shift + 1);
     for (uint64_t i = 0; i < input.n_pix; i++) {
         uint64_t ipix_coarse = (shift > 0) ? (input.ipix[i] >> shift) : input.ipix[i];
         auto& g = groups[ipix_coarse];
-        g.first += (double)input.pixel[i];
-        g.second += 1;
+        g.first += (double)input.pixel[i];  // signal 求和 (不取平均)
+        g.second += 1;  // 像素计数 (仅用于日志/校验, 不参与归一化)
     }
 
     result.n_pix = groups.size();
@@ -617,9 +637,10 @@ LeafData BrowserBackend::ud_grade(const LeafData& input, uint32_t target_nside,
     uint64_t idx = 0;
     for (const auto& kv : groups) {
         result.ipix[idx] = kv.first;
-        double mean = kv.second.first / (double)kv.second.second;
+        // B20: signal 降采样用求和 (非平均), 符合累计通量语义
+        double sum = kv.second.first;  // 已累加的 signal 总和 (不除以 count)
         // 归一化到 [0, 255]
-        double normalized = (mean - (double)data_min) * inv_range;
+        double normalized = (sum - (double)data_min) * inv_range;
         if (normalized < 0.0) normalized = 0.0;
         if (normalized > 255.0) normalized = 255.0;
         result.pixel_u8[idx] = (uint8_t)(normalized + 0.5);

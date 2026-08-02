@@ -38,19 +38,36 @@ namespace hiss {
 // 内部常量
 // ============================================================================
 
-// 固定签名块: MAGIC(8) + version(4) + header_offset(8) = 20 字节
-static const char     HISS_MAGIC[8] = { 'A','C','S','H','I','S','S','\0' };
-static const uint32_t HISS_VERSION  = 1;
-static const uint64_t HISS_SIGNATURE_SIZE = 20;
+// R04-B14: 固定签名块 (16 字节, 显式小端序)
+//   magic[8] = "HISS0100" (ASCII, 含容器布局标识 0100)
+//   header_length: uint32 LE (Header 区字节数, 不含签名块)
+//   feature_flags: uint32 LE (特性标志位)
+// 旧格式 (ACSHISS\0 + version + header_offset) 已废弃: 主机端序 + 无严格长度
+static const char     HISS_MAGIC[8] = { 'H','I','S','S','0','1','0','0' };
+static const uint32_t HISS_FEATURE_FLAGS = HISS_FEAT_TLV_HEADER;  // TLV Header 必需
+// HISS_SIGNATURE_SIZE 由 hiss_format.h 定义为宏 (16), 不再在此重复定义
 
 // 子块描述符固定字节数 (写入 Header 时每项大小)
-// type(1) + flags(2) + offset(8) + compressed_size(8) + uncompressed_size(8) +
-// codec_id(2) + transform_id(2) + checksum_type(1) + checksum(8) = 40
-static const size_t HISS_SUBBLOCK_DESCRIPTOR_SIZE = 40;
+// R04-B17: 新增 ext_type_id(2), 总大小 42 字节
+// type(1) + ext_type_id(2) + flags(2) + offset(8) + compressed_size(8) +
+// uncompressed_size(8) + codec_id(2) + transform_id(2) + checksum_type(1) + checksum(8) = 42
+static const size_t HISS_SUBBLOCK_DESCRIPTOR_SIZE = HISS_SUBBLOCK_DESC_DISK_SIZE;
 
 // Tile 目录固定前缀字节数 (不含子块描述符)
 // parent_ipix(8) + tile_nside(4) + occ_mode(1) + subblock_count(2) = 15
 static const size_t HISS_TILE_DIR_PREFIX_SIZE = 15;
+
+// TLV 项头大小: tag(2) + flags(1) + length(4) = 7 字节
+static const size_t HISS_TLV_HEADER_SIZE = 7;
+
+// schema 指纹 (32 字节, 标识当前 HISS schema 版本)
+// Reader 用于验证 schema 兼容性; 实际指纹值由规范冻结, 这里用确定性填充
+static const uint8_t HISS_SCHEMA_FINGERPRINT[32] = {
+    0xA1, 0x00, 0x72, 0x04, 0xB1, 0x00, 0x61, 0x04,
+    0x48, 0x49, 0x53, 0x53, 0x2D, 0x76, 0x31, 0x2E,
+    0x30, 0x2D, 0x73, 0x63, 0x68, 0x65, 0x6D, 0x61,
+    0x2D, 0x30, 0x30, 0x30, 0x31, 0x2D, 0x52, 0x30
+};
 
 // 临时池复制缓冲区大小 (4MB, 减少小字节读写的系统调用开销)
 static const size_t COPY_BUF_SIZE = 4 * 1024 * 1024;
@@ -278,8 +295,10 @@ int HissStreamWriter::record_tile(uint64_t parent_ipix, uint32_t tile_nside,
 }
 
 // ---------------------------------------------------------------------------
-// finalize: 生成 Header, 组装最终文件, flush, 原子重命名
-//   最终布局: 签名块(20B) → Header → 子块1 → 子块2 → ...
+// finalize: 生成 TLV Header, 组装最终文件, flush, 原子重命名
+//   R04-B14: 新签名块 (16B, 显式小端序): "HISS0100" + header_length(u32 LE) + feature_flags(u32 LE)
+//   R04-B15: Header 为可扩展 TLV 二进制结构, 未知可选跳过/未知必需拒绝
+//   最终布局: 签名块(16B) → TLV Header → 子块1 → 子块2 → ...
 // ---------------------------------------------------------------------------
 
 int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& metadata) {
@@ -295,20 +314,29 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
         pimpl_->temp_pool_fp = nullptr;
     }
 
-    // 2. 计算元数据 JSON
+    // 2. 计算元数据 JSON (R04-B15: JSON 作为可选人类可读附件, 非唯一权威)
     std::string json = metadata.to_json();
 
-    // 3. 计算 Header 大小
-    //    Header = 网格规格(24) + json_len(4) + json(变长) + tile_count(4) +
-    //             Σ(15 + 40 * n_subblocks)
-    size_t header_size = 24 + 4 + json.size() + 4;
+    // 3. 计算 TLV Header 大小
+    //    每个 TLV: tag(2) + flags(1) + length(4) + value = 7 + value_size
+    //    a. SCHEMA_FINGERPRINT (required): 7 + 32 = 39
+    //    b. GRID_SPEC (required): 7 + 24 = 31
+    //    c. METADATA_JSON (optional): 7 + json.size()
+    //    d. TILE_DIRECTORY (required): 7 + (4 + Σ(15 + 42*n_subblocks))
+    size_t tile_dir_value_size = 4;  // n_tiles (uint32)
     for (const auto& t : pimpl_->tile_dirs) {
-        header_size += HISS_TILE_DIR_PREFIX_SIZE +
-                       HISS_SUBBLOCK_DESCRIPTOR_SIZE * t.subblocks.size();
+        tile_dir_value_size += HISS_TILE_DIR_PREFIX_SIZE +
+                               HISS_SUBBLOCK_DESCRIPTOR_SIZE * t.subblocks.size();
     }
 
+    size_t header_size = 0;
+    header_size += HISS_TLV_HEADER_SIZE + 32;                       // SCHEMA_FINGERPRINT
+    header_size += HISS_TLV_HEADER_SIZE + 24;                       // GRID_SPEC
+    header_size += HISS_TLV_HEADER_SIZE + json.size();              // METADATA_JSON
+    header_size += HISS_TLV_HEADER_SIZE + tile_dir_value_size;      // TILE_DIRECTORY
+
     // 4. 调整所有子块 offset: 临时池偏移 → 最终文件偏移
-    //    最终 offset = 签名块(20) + Header大小 + 临时池偏移
+    //    最终 offset = 签名块(16) + Header大小 + 临时池偏移
     //    (在构建 Header 字节流之前调整, 确保写入 Header 的 offset 是最终值)
     uint64_t base_offset = HISS_SIGNATURE_SIZE + header_size;
     for (auto& t : pimpl_->tile_dirs) {
@@ -317,27 +345,46 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
         }
     }
 
-    // 5. 构建 Header 字节流
+    // 5. 构建 TLV Header 字节流 (R04-B15: 可扩展二进制 TLV 结构)
     ByteBuf hdr;
-    // a. 网格规格
+
+    // a. SCHEMA_FINGERPRINT TLV (required) — schema 版本标识
+    hdr.u16(HISS_TLV_SCHEMA_FINGERPRINT);
+    hdr.u8 (HISS_TLV_FLAG_REQUIRED);
+    hdr.u32(32);
+    hdr.bytes(HISS_SCHEMA_FINGERPRINT, 32);
+
+    // b. GRID_SPEC TLV (required) — 网格规格 (24 字节)
+    hdr.u16(HISS_TLV_GRID_SPEC);
+    hdr.u8 (HISS_TLV_FLAG_REQUIRED);
+    hdr.u32(24);
     hdr.u32(grid.nside);
     hdr.u32(grid.tile_nside);
     hdr.u32((uint32_t)grid.ordering);
     hdr.u32((uint32_t)grid.radesys);
     hdr.f64(grid.pixfrac);
-    // b. 元数据 JSON
+
+    // c. METADATA_JSON TLV (optional) — 元数据 JSON, 人类可读附件
+    //    R04-B15: JSON 不得是科学和容器语义唯一来源, 标记 optional
+    hdr.u16(HISS_TLV_METADATA_JSON);
+    hdr.u8 (HISS_TLV_FLAG_OPTIONAL);
     hdr.u32((uint32_t)json.size());
     if (!json.empty()) hdr.bytes(json.data(), json.size());
-    // c. Tile 数量
-    hdr.u32((uint32_t)pimpl_->tile_dirs.size());
-    // d. 每个 Tile 的目录
+
+    // d. TILE_DIRECTORY TLV (required) — Tile 目录
+    hdr.u16(HISS_TLV_TILE_DIRECTORY);
+    hdr.u8 (HISS_TLV_FLAG_REQUIRED);
+    hdr.u32((uint32_t)tile_dir_value_size);
+    hdr.u32((uint32_t)pimpl_->tile_dirs.size());  // n_tiles
     for (const auto& t : pimpl_->tile_dirs) {
         hdr.u64(t.parent_ipix);
         hdr.u32(t.tile_nside);
-        hdr.u8((uint8_t)t.occ_mode);
+        hdr.u8 ((uint8_t)t.occ_mode);
         hdr.u16((uint16_t)t.subblocks.size());
         for (const auto& sb : t.subblocks) {
+            // R04-B17: 子块描述符含 ext_type_id (42 字节)
             hdr.u8 ((uint8_t)sb.type);
+            hdr.u16(sb.ext_type_id);             // 扩展命名空间 ID (0=内置)
             hdr.u16(sb.flags);
             hdr.u64(sb.offset);
             hdr.u64(sb.compressed_size);
@@ -364,20 +411,27 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
         return -2;
     }
 
-    // 6a. 写入签名块 (20B: MAGIC + version + header_offset)
-    uint8_t sig[20] = {0};
-    std::memcpy(sig, HISS_MAGIC, 8);
-    uint32_t ver = HISS_VERSION;
-    std::memcpy(sig + 8, &ver, 4);
-    uint64_t header_offset = HISS_SIGNATURE_SIZE;  // Header 紧跟签名块
-    std::memcpy(sig + 12, &header_offset, 8);
+    // 6a. 写入签名块 (16B: MAGIC + header_length + feature_flags, 全显式小端序)
+    //     R04-B14: 禁止 host-endian memcpy, 所有数值显式按小端序写入
+    uint8_t sig[16] = {0};
+    std::memcpy(sig, HISS_MAGIC, 8);  // MAGIC 是字节字面量, 不涉及端序
+    uint32_t hlen = (uint32_t)header_size;
+    sig[8]  = (uint8_t)(hlen & 0xFF);          // header_length: uint32 LE
+    sig[9]  = (uint8_t)((hlen >> 8) & 0xFF);
+    sig[10] = (uint8_t)((hlen >> 16) & 0xFF);
+    sig[11] = (uint8_t)((hlen >> 24) & 0xFF);
+    uint32_t fflags = HISS_FEATURE_FLAGS;
+    sig[12] = (uint8_t)(fflags & 0xFF);        // feature_flags: uint32 LE
+    sig[13] = (uint8_t)((fflags >> 8) & 0xFF);
+    sig[14] = (uint8_t)((fflags >> 16) & 0xFF);
+    sig[15] = (uint8_t)((fflags >> 24) & 0xFF);
     if (std::fwrite(sig, 1, HISS_SIGNATURE_SIZE, fp_out) != HISS_SIGNATURE_SIZE) {
         fprintf(stderr, "[hiss][stream] finalize 失败: 写入签名块失败\n");
         std::fclose(fp_out);
         return -3;
     }
 
-    // 6b. 写入 Header
+    // 6b. 写入 TLV Header
     if (!hdr.data.empty()) {
         if (std::fwrite(hdr.data.data(), 1, hdr.data.size(), fp_out) != hdr.data.size()) {
             fprintf(stderr, "[hiss][stream] finalize 失败: 写入 Header 失败\n");
@@ -444,10 +498,9 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
 
     uint64_t total_size = base_offset + pimpl_->temp_pool_size;
     fprintf(stderr,
-            "[hiss][stream] finalize 成功: tiles=%zu header_offset=%llu header_size=%zu "
+            "[hiss][stream] finalize 成功: tiles=%zu header_size=%zu "
             "total_size=%llu path=%s\n",
             pimpl_->tile_dirs.size(),
-            (unsigned long long)header_offset,
             header_size,
             (unsigned long long)total_size,
             pimpl_->final_path.c_str());

@@ -36,6 +36,7 @@
 #include <set>
 #include <filesystem>
 #include <algorithm>
+#include <random>
 
 // ============================================================================
 // 测试框架: 轻量级断言 + 结果收集 (参考 hiss_correctness_test.cpp)
@@ -286,12 +287,13 @@ struct TestContext {
     uint32_t bitmap_n_leaf = 16;
     std::vector<uint32_t> bitmap_valid;  // 有效像素索引
 
-    // SPARSE_LIST 模式 (NSIDE=128, n_leaf=64, 5 个有效像素)
+    // SPARSE_LIST 模式 (NSIDE=256, n_leaf=256, 5 个有效像素)
+    // R04-B12: 需 SPARSE_LIST(20B) < BITMAP(32B) 才能自动选 SPARSE_LIST
     std::string sparse_path;
     std::vector<PixelLoc> sparse_pixels;
     uint64_t sparse_parent = 0;
-    uint32_t sparse_nside = 128;
-    uint32_t sparse_n_leaf = 64;
+    uint32_t sparse_nside = 256;
+    uint32_t sparse_n_leaf = 256;
     std::vector<uint32_t> sparse_valid;  // 有效像素索引 (sparse_list)
 
     // FULL 模式 (n_leaf=8, 用于越界测试)
@@ -382,7 +384,9 @@ static bool setup(TestContext& ctx) {
     {
         ctx.sparse_path = "tqp_sparse.hiss";
         ctx.sparse_parent = 0;
-        ctx.sparse_valid = {0, 16, 32, 48, 63};  // 5/64 = 7.8% < 0.1 → SPARSE_LIST
+        // R04-B12: Writer 按编码大小自动选择 (忽略传入的 occ_mode)
+        //   NSIDE=256 → n_leaf=256, BITMAP=32B, SPARSE_LIST(5点)=20B → 自动选 SPARSE_LIST
+        ctx.sparse_valid = {0, 32, 63, 128, 200};  // 5/256, sparse=20 < bitmap=32
         HissGridSpec grid; HissMetadata meta;
         make_grid_meta(ctx.sparse_nside, grid, meta);
         double A_p = pixel_area(ctx.sparse_nside);
@@ -405,6 +409,7 @@ static bool setup(TestContext& ctx) {
 
         HissWriter w;
         if (w.open(ctx.sparse_path, grid, meta) != 0) return false;
+        // Writer 忽略 occ_mode, 按编码大小自动选择
         if (w.add_tile(ctx.sparse_parent, acc, nullptr, OccupancyMode::SPARSE_LIST) != 0) return false;
         if (w.finalize() != 0) return false;
 
@@ -797,9 +802,9 @@ static void test_10_sparse_middle_index(int id, const TestContext& ctx) {
     r.close();
 }
 
-// 测试 11: SPARSE_LIST 模式 - 命中末个索引 (sparse_list.back() = 63)
+// 测试 11: SPARSE_LIST 模式 - 命中 sparse_list 中的 local_ipix=63
 static void test_11_sparse_last_index(int id, const TestContext& ctx) {
-    TEST_CASE("SPARSE_LIST 模式 - 命中末个索引 (local_ipix=63)", id);
+    TEST_CASE("SPARSE_LIST 模式 - 命中 local_ipix=63", id);
     ASSERT_TRUE(!ctx.sparse_pixels.empty(), "find_tile_pixels 找到 SPARSE Tile 像素");
 
     hiss::HissReader r;
@@ -832,7 +837,7 @@ static void test_12_sparse_miss(int id, const TestContext& ctx) {
     hiss::HissReader r;
     ASSERT_TRUE(r.open(ctx.sparse_path) == 0, "Reader.open SPARSE 文件");
 
-    // local_ipix=5 不在 sparse_list {0,16,32,48,63} 中
+    // local_ipix=5 不在 sparse_list {0,32,63,128,200} 中
     PixelLoc loc = find_pixel_loc(ctx.sparse_pixels, 5);
     ASSERT_TRUE(loc.local_ipix == 5, "找到 local_ipix=5 的 ra/dec");
 
@@ -842,7 +847,7 @@ static void test_12_sparse_miss(int id, const TestContext& ctx) {
     ASSERT_NEAR(sig, 0.0f, 1e-6, "未命中 signal = 0.0");
     ASSERT_TRUE(sup == 0, "未命中 support = 0");
 
-    // 再测一个: local_ipix=40 (在 32 和 48 之间, 不在列表中)
+    // 再测一个: local_ipix=40 (在 32 和 63 之间, 不在列表中)
     PixelLoc loc40 = find_pixel_loc(ctx.sparse_pixels, 40);
     if (loc40.local_ipix == 40) {
         float sig40 = -999.0f; uint8_t sup40 = 255;
@@ -1019,6 +1024,89 @@ static void test_15_outside_tile(int id, const TestContext& ctx) {
     r.close();
 }
 
+// 测试 16: 随机位置查询 (FULL/BITMAP/SPARSE 三种模式, 固定种子可复现)
+//   B21 回归: 补充随机位置覆盖, 与 read_tile 交叉验证 query_pixel 一致性
+static void test_16_random_positions(int id, const TestContext& ctx) {
+    TEST_CASE("随机位置查询 (FULL/BITMAP/SPARSE)", id);
+
+    std::mt19937 rng(42);  // 固定种子, 保证可复现
+
+    // ---- FULL 模式: 随机选 local_ipix ----
+    {
+        ASSERT_TRUE(!ctx.full_pixels.empty(), "FULL 像素映射非空");
+        hiss::HissReader r;
+        ASSERT_TRUE(r.open(ctx.full_path) == 0, "Reader.open FULL");
+        std::vector<float> sig_arr; std::vector<uint8_t> sup_arr;
+        ASSERT_TRUE(r.read_tile(ctx.full_parent, sig_arr, sup_arr) == 0, "FULL read_tile");
+        ASSERT_TRUE(sig_arr.size() == ctx.full_n_leaf, "FULL read_tile 长度 = 16");
+
+        int checked = 0;
+        for (int trial = 0; trial < 12 && checked < 6; trial++) {
+            uint32_t lip = rng() % ctx.full_n_leaf;
+            PixelLoc loc = find_pixel_loc(ctx.full_pixels, lip);
+            if (loc.local_ipix != lip) continue;  // 网格扫描未命中, 跳过
+            float sig = -1.0f; uint8_t sup = 0;
+            int ret = r.query_pixel(loc.ra, loc.dec, &sig, &sup);
+            ASSERT_TRUE(ret == 0, "FULL 随机 query_pixel 返回 0");
+            ASSERT_NEAR(sig, sig_arr[lip], 1e-4, "FULL 随机 query 与 read_tile signal 一致");
+            ASSERT_TRUE(sup == sup_arr[lip], "FULL 随机 query 与 read_tile support 一致");
+            checked++;
+        }
+        ASSERT_TRUE(checked > 0, "FULL 随机至少成功校验 1 个像素");
+        r.close();
+    }
+
+    // ---- BITMAP 模式: 随机选有效 local_ipix ----
+    {
+        ASSERT_TRUE(!ctx.bitmap_pixels.empty(), "BITMAP 像素映射非空");
+        hiss::HissReader r;
+        ASSERT_TRUE(r.open(ctx.bitmap_path) == 0, "Reader.open BITMAP");
+        std::vector<float> sig_arr; std::vector<uint8_t> sup_arr;
+        ASSERT_TRUE(r.read_tile(ctx.bitmap_parent, sig_arr, sup_arr) == 0, "BITMAP read_tile");
+
+        int checked = 0;
+        for (int trial = 0; trial < 12 && checked < 6; trial++) {
+            uint32_t idx = rng() % ctx.bitmap_valid.size();
+            uint32_t lip = ctx.bitmap_valid[idx];
+            PixelLoc loc = find_pixel_loc(ctx.bitmap_pixels, lip);
+            if (loc.local_ipix != lip) continue;
+            float sig = -1.0f; uint8_t sup = 0;
+            int ret = r.query_pixel(loc.ra, loc.dec, &sig, &sup);
+            ASSERT_TRUE(ret == 0, "BITMAP 随机 query_pixel 返回 0");
+            ASSERT_NEAR(sig, sig_arr[lip], 1e-4, "BITMAP 随机 query 与 read_tile signal 一致");
+            ASSERT_TRUE(sup == sup_arr[lip], "BITMAP 随机 query 与 read_tile support 一致");
+            checked++;
+        }
+        ASSERT_TRUE(checked > 0, "BITMAP 随机至少成功校验 1 个像素");
+        r.close();
+    }
+
+    // ---- SPARSE_LIST 模式: 随机选有效 local_ipix ----
+    {
+        ASSERT_TRUE(!ctx.sparse_pixels.empty(), "SPARSE 像素映射非空");
+        hiss::HissReader r;
+        ASSERT_TRUE(r.open(ctx.sparse_path) == 0, "Reader.open SPARSE");
+        std::vector<float> sig_arr; std::vector<uint8_t> sup_arr;
+        ASSERT_TRUE(r.read_tile(ctx.sparse_parent, sig_arr, sup_arr) == 0, "SPARSE read_tile");
+
+        int checked = 0;
+        for (int trial = 0; trial < 12 && checked < 6; trial++) {
+            uint32_t idx = rng() % ctx.sparse_valid.size();
+            uint32_t lip = ctx.sparse_valid[idx];
+            PixelLoc loc = find_pixel_loc(ctx.sparse_pixels, lip);
+            if (loc.local_ipix != lip) continue;
+            float sig = -1.0f; uint8_t sup = 0;
+            int ret = r.query_pixel(loc.ra, loc.dec, &sig, &sup);
+            ASSERT_TRUE(ret == 0, "SPARSE 随机 query_pixel 返回 0");
+            ASSERT_NEAR(sig, sig_arr[lip], 1e-4, "SPARSE 随机 query 与 read_tile signal 一致");
+            ASSERT_TRUE(sup == sup_arr[lip], "SPARSE 随机 query 与 read_tile support 一致");
+            checked++;
+        }
+        ASSERT_TRUE(checked > 0, "SPARSE 随机至少成功校验 1 个像素");
+        r.close();
+    }
+}
+
 // ============================================================================
 // 主函数
 // ============================================================================
@@ -1056,6 +1144,9 @@ int main() {
     test_13_zero_signal_valid_pixel(13, ctx);
     test_14_cross_tile_boundary(14, ctx);
     test_15_outside_tile(15, ctx);
+
+    // 随机位置覆盖 (16) - B21 回归
+    test_16_random_positions(16, ctx);
 
     teardown(ctx);
 

@@ -85,19 +85,34 @@ enum class OccupancyMode : uint8_t {
 
 // ============================================================================
 // 4. 子块类型 (已冻结: 02_FROZEN §13)
+//
+//    R04-B17: 扩展子块命名空间
+//      内置类型 (OCCUPANCY/SIGNAL/SUPPORT/SNR): ext_type_id = 0
+//      扩展类型 (EXTENSION): ext_type_id != 0, 标识扩展命名空间
+//      Reader 遇到未知必需扩展 (EXTENSION + ext_type_id 未知 + REQUIRED) 必须拒绝
 // ============================================================================
 
 enum class SubblockType : uint8_t {
-    OCCUPANCY  = 0,  // 占用图 (FULL 时省略)
+    OCCUPANCY  = 0,  // 占用图 (FULL 时省略; BITMAP/SPARSE 时为必需子块)
     SIGNAL     = 1,  // 已测光校准的累计通量 (float32)
     SUPPORT    = 2,  // 几何面积比例 (uint8, round(255*S))
     SNR        = 3,  // 稀疏 SNR 控制点
-    EXTENSION  = 255, // 未来可选扩展
+    EXTENSION  = 255, // 未来可选扩展 (需配合 ext_type_id 标识命名空间)
 };
 
 enum class SubblockFlags : uint16_t {
     REQUIRED = 0x0001,  // 必需子块 (未知必需块必须拒绝)
     OPTIONAL = 0x0002,  // 可选子块 (未知可选块可跳过)
+};
+
+// 内置扩展命名空间 ID (ext_type_id, 用于 EXTENSION 类型子块)
+// 0 reserved for 内置类型 (OCCUPANCY/SIGNAL/SUPPORT/SNR)
+// 1-32767: 已注册扩展命名空间
+// 32768-65535: 私有/实验扩展命名空间
+enum class ExtensionNamespace : uint16_t {
+    BUILTIN      = 0,     // 内置类型 (非 EXTENSION)
+    RESERVED_LO  = 1,     // 已注册扩展起点
+    PRIVATE_LO   = 32768, // 私有扩展起点
 };
 
 // ============================================================================
@@ -130,10 +145,21 @@ enum class ChecksumType : uint8_t {
 // ============================================================================
 // 6. 子块目录项 (已冻结: 02_FROZEN §15)
 //    每个子块独立记录所有元数据
+//
+//    R04-B17: 新增 ext_type_id 字段
+//      - 内置类型 (OCCUPANCY/SIGNAL/SUPPORT/SNR): ext_type_id = 0
+//      - 扩展类型 (EXTENSION): ext_type_id 标识扩展命名空间
+//      - Reader 遇到未知必需扩展必须拒绝 (HISS_ERR_UNKNOWN_REQUIRED)
+//
+//    磁盘格式 (42 字节, 显式小端序):
+//      type(1) + ext_type_id(2) + flags(2) + offset(8) + compressed_size(8) +
+//      uncompressed_size(8) + codec_id(2) + transform_id(2) +
+//      checksum_type(1) + checksum(8) = 42
 // ============================================================================
 
 struct HissSubblockDescriptor {
     SubblockType   type;            // 子块类型
+    uint16_t       ext_type_id;     // 扩展命名空间 ID (0=内置, 非0=扩展)
     uint16_t       flags;           // required/optional
     uint64_t       offset;          // 文件内偏移
     uint64_t       compressed_size;  // 压缩后字节数
@@ -159,10 +185,15 @@ struct HissTile {
 // 8. SNR 控制点 (已冻结: 02_FROZEN §17, 00_COMMON_CONTRACTS §2.5)
 //    每点仅 local_ipix(uint32) + snr(float32)
 //
-// SNR 子块二进制布局 (冻结, 02_FROZEN §17 + 00_COMMON_CONTRACTS §2.5):
-//   [n_points: uint32]
-//   [points: n_points * 8B]  — 每点 local_ipix(uint32) + snr(float32)
+// SNR 子块二进制布局 (R04-B18: 新增 block 级 estimator_id/sampling_scale):
+//   [estimator_id:  uint32 LE]   — 估计器 ID (block 级)
+//   [sampling_scale: float32 LE] — 采样尺度 (block 级)
+//   [n_points:      uint32 LE]   — 控制点数 (= count, block 级)
+//   [points: n_points * 8B]      — 每点 local_ipix(uint32) + snr(float32)
 //   不包含 snr_phot/median_snr/idw_power (这些是估计器状态, 不写入 HISS)
+//
+// 重复点处理: Writer 按升序排序 local_ipix, 重复点保留首次出现 (确定性规则)
+// 无覆盖点: 不得写入 (Stage1 映射到 Tile 后才写入, 不静默丢失)
 // ============================================================================
 
 struct HissSnrControlPoint {
@@ -171,17 +202,20 @@ struct HissSnrControlPoint {
 };
 
 // HissSnrBlock: SNR 子块在内存中的表示
-// 依据 02_FROZEN §17 和 00_COMMON_CONTRACTS §2.5, HISS 文件中仅保存
-// n_points + points (每点 local_ipix + snr), 不保存估计器状态量
-// (snr_phot/median_snr/idw_power)。这些状态量由 SNR 估计器自行管理,
-// 不进入 HISS 容器。
+// 依据 02_FROZEN §17 和 00_COMMON_CONTRACTS §2.5, HISS 文件中保存
+// estimator_id + sampling_scale + n_points + points (每点 local_ipix + snr),
+// 不保存估计器状态量 (snr_phot/median_snr/idw_power)。
+// R04-B18: 新增 block 级 estimator_id/sampling_scale, count = points.size()
 struct HissSnrBlock {
-    std::vector<HissSnrControlPoint> points;  // 控制点列表
+    uint32_t estimator_id = 0;        // 估计器 ID (block 级, R04-B18)
+    float    sampling_scale = 0.0f;   // 采样尺度 (block 级, R04-B18)
+    std::vector<HissSnrControlPoint> points;  // 控制点列表 (count = points.size())
 };
 
 // ============================================================================
 // 8.1 HISS 错误码 (依据 00_COMMON_CONTRACTS §3.3)
 //     Reader 在遇到未知必需子块时返回 HISS_ERR_UNKNOWN_REQUIRED
+//     R04-B16: 新增 HISS_ERR_FORMAT_VIOLATION 用于严格格式校验失败
 // ============================================================================
 #define HISS_OK                     0
 #define HISS_ERR_INVALID_ARG       -1   // 非法参数
@@ -191,6 +225,36 @@ struct HissSnrBlock {
 #define HISS_ERR_FORMAT            -5   // 格式错误
 #define HISS_ERR_UNSUPPORTED       -6   // 不支持的特性
 #define HISS_ERR_UNKNOWN_REQUIRED  -7   // 未知必需子块 (规范 §13 要求拒绝)
+#define HISS_ERR_FORMAT_VIOLATION  -8   // 严格格式校验失败 (R04-B16: 越界/重叠/重复/非法关系)
+
+// ============================================================================
+// 8.2 HISS 容器签名与 Header TLV 常量 (R04-B14/B15)
+//     签名块: magic[8]="HISS0100" + header_length(u32 LE) + feature_flags(u32 LE) = 16B
+//     Header: 一系列 TLV (tag:u16 LE + flags:u8 + length:u32 LE + value)
+// ============================================================================
+
+// 固定签名块大小 (字节)
+#define HISS_SIGNATURE_SIZE 16
+
+// feature_flags 位定义
+#define HISS_FEAT_TLV_HEADER   0x00000001u  // 使用 TLV Header (必须)
+#define HISS_FEAT_HAS_EXT_BLKS 0x00000002u  // 含扩展子块
+
+// Header TLV tag (uint16 LE)
+#define HISS_TLV_SCHEMA_FINGERPRINT 0x0001  // schema 指纹 (required)
+#define HISS_TLV_GRID_SPEC          0x0002  // 网格规格 (required)
+#define HISS_TLV_METADATA_JSON      0x0003  // 元数据 JSON (optional, 人类可读附件)
+#define HISS_TLV_TILE_DIRECTORY     0x0004  // Tile 目录 (required)
+#define HISS_TLV_FEATURE_REQ        0x0005  // 必需特性列表 (optional)
+
+// TLV flags 位定义
+#define HISS_TLV_FLAG_REQUIRED 0x01  // 必需 TLV (未知必需 → 拒绝)
+#define HISS_TLV_FLAG_OPTIONAL 0x00  // 可选 TLV (未知可选 → 跳过)
+
+// 磁盘子块描述符大小 (字节, R04-B17: 含 ext_type_id)
+// type(1) + ext_type_id(2) + flags(2) + offset(8) + compressed_size(8) +
+// uncompressed_size(8) + codec_id(2) + transform_id(2) + checksum_type(1) + checksum(8) = 42
+#define HISS_SUBBLOCK_DESC_DISK_SIZE 42
 
 // ============================================================================
 // 9. 元数据 (已冻结: 02_FROZEN §16)
@@ -264,9 +328,9 @@ struct DrizzleTileAccumulator {
 
     // 最终输出
     // signal: 直接保存累计通量 (不除面积), 无贡献像素 sum_flux=0 自然写 0
-    void finalize_signal(std::vector<float>& signal) const;   // float32, = float(sumFlux)
+    HISS_EXPORT void finalize_signal(std::vector<float>& signal) const;   // float32, = float(sumFlux)
     // support: S = sum_area / pixel_area, 钳制 [0,1], uint8 = round(255*S)
-    void finalize_support(std::vector<uint8_t>& support) const; // uint8 round(255*S/A_p)
+    HISS_EXPORT void finalize_support(std::vector<uint8_t>& support) const; // uint8 round(255*S/A_p)
     // support 范围检查 (基于归一化后的 S): 仅浮点误差级超限可钳制; 明显超 1 是错误
     HISS_EXPORT int validate_support() const; // 0=OK, <0=错误
 };

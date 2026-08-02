@@ -12,7 +12,8 @@
 //   3. SNR 往返: 1000 个控制点 → 全部一致
 //   4. 未知必需子块: Reader.open 返回 HISS_ERR_UNKNOWN_REQUIRED (-7)
 //   5. 未知可选子块: Reader.open 成功, 跳过该子块
-//   6. SNR 布局验证: SNR 子块 uncompressed_size = 4 + n_points*8
+//   6. SNR 布局验证: SNR 子块 uncompressed_size = 12 + n_points*8
+//      (R04-B18: estimator_id(4) + sampling_scale(4) + n_points(4) + points(n*8))
 //
 // 编译 (PowerShell + mingw64):
 //   $env:Path = "C:\msys64\mingw64\bin;$env:Path"
@@ -20,10 +21,10 @@
 //   g++ -std=c++17 -O2 -DHAS_LZ4 -DHAS_ZSTD `
 //       -I../include -I../src `
 //       test_snr_unknown_block.cpp `
-//       ../src/hiss_writer.cpp ../src/hiss_reader.cpp `
+//       ../src/hiss_writer.cpp ../src/hiss_stream_writer.cpp ../src/hiss_reader.cpp `
 //       ../src/hiss_codec.cpp ../src/hiss_common.cpp `
-//       ../src/hiss_tile_model.cpp `
-//       -llz4 -lzstd `
+//       ../src/hiss_tile_model.cpp ../src/hiss_transform.cpp `
+//       -llz4 -lzstd -lm `
 //       -o test_snr_unknown_block.exe
 //   ./test_snr_unknown_block.exe
 //
@@ -35,11 +36,13 @@
 #include <cstdint>
 #include <cstring>
 #include <cmath>
+#include <cstddef>
 #include <string>
 #include <vector>
 #include <filesystem>
 #include <fstream>
 #include <random>
+#include <algorithm>
 
 #include "hiss_format.h"     // HissWriter, HissReader, HissSnrBlock 等
 #include "hiss_tile_model.h" // compute_tile_nside
@@ -115,6 +118,53 @@ static hiss::DrizzleTileAccumulator make_simple_accumulator(uint64_t parent_ipix
 }
 
 // ============================================================================
+// 辅助: 模拟 Writer 的 SNR 排序去重行为, 生成预期结果
+//   R04-B18: 按 local_ipix 升序排序, 重复点保留首次出现
+// ============================================================================
+static std::vector<hiss::HissSnrControlPoint> expected_after_writer(
+    const std::vector<hiss::HissSnrControlPoint>& input) {
+    std::vector<hiss::HissSnrControlPoint> sorted = input;
+    std::sort(sorted.begin(), sorted.end(),
+              [](const hiss::HissSnrControlPoint& a, const hiss::HissSnrControlPoint& b) {
+                  return a.local_ipix < b.local_ipix;
+              });
+    auto last = std::unique(sorted.begin(), sorted.end(),
+                            [](const hiss::HissSnrControlPoint& a, const hiss::HissSnrControlPoint& b) {
+                                return a.local_ipix == b.local_ipix;
+                            });
+    sorted.erase(last, sorted.end());
+    return sorted;
+}
+
+// ============================================================================
+// 辅助: 解析新格式 (R04-B14) HISS 文件的 TLV Header,
+//   定位 TILE_DIRECTORY TLV value 的文件偏移
+//   签名块(16B): magic[8] + header_length(u32 LE) + feature_flags(u32 LE)
+//   TLV Header 从 offset 16 开始: tag(u16)+flags(u8)+length(u32)+value
+//   返回 TILE_DIRECTORY value 起始偏移, 失败返回 SIZE_MAX
+// ============================================================================
+static size_t find_tile_directory_value_pos(const std::vector<uint8_t>& file_data) {
+    if (file_data.size() < 16) return SIZE_MAX;
+    uint32_t header_length;
+    std::memcpy(&header_length, file_data.data() + 8, 4);
+    size_t pos = 16;  // TLV Header 起始
+    size_t header_end = 16 + header_length;
+    while (pos + 7 <= header_end) {
+        uint16_t tag;
+        std::memcpy(&tag, file_data.data() + pos, 2);
+        uint8_t  flags = file_data[pos + 2];
+        uint32_t length;
+        std::memcpy(&length, file_data.data() + pos + 3, 4);
+        pos += 7;  // 跳过 TLV 头
+        if (tag == HISS_TLV_TILE_DIRECTORY) {
+            return pos;  // value 起始位置
+        }
+        pos += length;  // 跳过 value
+    }
+    return SIZE_MAX;  // 未找到
+}
+
+// ============================================================================
 // 辅助: 写入测试 HISS 文件 (含可选 SNR)
 //   返回文件路径, 失败返回空字符串
 // ============================================================================
@@ -163,6 +213,9 @@ static void test_snr_roundtrip_10_points() {
         snr.points.push_back(p);
     }
 
+    // R04-B18: Writer 按升序排序并去重, 生成预期结果
+    auto expected = expected_after_writer(snr.points);
+
     // 写入 HISS 文件
     hiss::DrizzleTileAccumulator acc = make_simple_accumulator(7, 256);
     std::string path = write_test_hiss("test_snr_10pts", acc, &snr);
@@ -176,23 +229,23 @@ static void test_snr_roundtrip_10_points() {
     int ret = r.read_tile_snr(7, snr_read);
     ASSERT_EQ_INT(ret, 0, "read_tile_snr 返回 0");
 
-    ASSERT_EQ_INT(snr_read.points.size(), snr.points.size(), "n_points 一致 (10)");
+    ASSERT_EQ_INT(snr_read.points.size(), expected.size(), "n_points 一致 (排序去重后)");
 
-    // 验证每个控制点的 local_ipix 和 snr
+    // 验证每个控制点的 local_ipix 和 snr (按 Writer 排序后的顺序)
     int mismatches = 0;
-    for (size_t i = 0; i < snr.points.size() && i < snr_read.points.size(); i++) {
-        if (snr_read.points[i].local_ipix != snr.points[i].local_ipix) {
+    for (size_t i = 0; i < expected.size() && i < snr_read.points.size(); i++) {
+        if (snr_read.points[i].local_ipix != expected[i].local_ipix) {
             mismatches++;
             fprintf(stderr, "  点 %zu: local_ipix 不匹配 (got=%u, want=%u)\n",
-                    i, snr_read.points[i].local_ipix, snr.points[i].local_ipix);
+                    i, snr_read.points[i].local_ipix, expected[i].local_ipix);
         }
-        if (std::fabs(snr_read.points[i].snr - snr.points[i].snr) > 1e-6f) {
+        if (std::fabs(snr_read.points[i].snr - expected[i].snr) > 1e-6f) {
             mismatches++;
             fprintf(stderr, "  点 %zu: snr 不匹配 (got=%g, want=%g)\n",
-                    i, snr_read.points[i].snr, snr.points[i].snr);
+                    i, snr_read.points[i].snr, expected[i].snr);
         }
     }
-    ASSERT_EQ_INT(mismatches, 0, "所有控制点 local_ipix 和 snr 一致");
+    ASSERT_EQ_INT(mismatches, 0, "所有控制点 local_ipix 和 snr 一致 (排序后)");
 
     r.close();
     std::filesystem::remove(path);
@@ -241,6 +294,10 @@ static void test_snr_roundtrip_1000_points() {
         snr.points.push_back(p);
     }
 
+    // R04-B18: Writer 按升序排序并去重, 生成预期结果
+    // 1000 个点中 local_ipix = rng() % 100000, 可能有重复, 去重后 n_points < 1000
+    auto expected = expected_after_writer(snr.points);
+
     hiss::DrizzleTileAccumulator acc = make_simple_accumulator(13, 256);
     std::string path = write_test_hiss("test_snr_1000pts", acc, &snr);
     ASSERT_TRUE(!path.empty(), "写入含 1000 个 SNR 控制点的 HISS 文件");
@@ -252,15 +309,15 @@ static void test_snr_roundtrip_1000_points() {
     int ret = r.read_tile_snr(13, snr_read);
     ASSERT_EQ_INT(ret, 0, "read_tile_snr 返回 0");
 
-    ASSERT_EQ_INT(snr_read.points.size(), snr.points.size(), "n_points 一致 (1000)");
+    ASSERT_EQ_INT(snr_read.points.size(), expected.size(), "n_points 一致 (排序去重后)");
 
-    // 验证全部一致
+    // 验证全部一致 (按 Writer 排序后的顺序)
     int mismatches = 0;
-    for (size_t i = 0; i < snr.points.size() && i < snr_read.points.size(); i++) {
-        if (snr_read.points[i].local_ipix != snr.points[i].local_ipix) mismatches++;
-        if (std::fabs(snr_read.points[i].snr - snr.points[i].snr) > 1e-6f) mismatches++;
+    for (size_t i = 0; i < expected.size() && i < snr_read.points.size(); i++) {
+        if (snr_read.points[i].local_ipix != expected[i].local_ipix) mismatches++;
+        if (std::fabs(snr_read.points[i].snr - expected[i].snr) > 1e-6f) mismatches++;
     }
-    ASSERT_EQ_INT(mismatches, 0, "1000 个控制点全部一致");
+    ASSERT_EQ_INT(mismatches, 0, "控制点全部一致 (排序去重后)");
 
     r.close();
     std::filesystem::remove(path);
@@ -272,6 +329,10 @@ static void test_snr_roundtrip_1000_points() {
 //
 // 实现方式: 直接修改现有 SUPPORT 子块描述符的 type 字节为未知值 (201),
 //   保留其 REQUIRED flags。无需插入新描述符, 避免子块数据偏移问题。
+//
+// R04-B14: 新格式签名块(16B) = magic[8]+"HISS0100" + header_length(u32 LE) + feature_flags(u32 LE)
+// R04-B15: Header 为 TLV 二进制结构 (tag+flags+length+value)
+// R04-B17: 子块描述符 42B (含 ext_type_id)
 // ============================================================================
 static void test_unknown_required_reject() {
     fprintf(stdout, "[TEST] 未知必需子块拒绝\n");
@@ -289,33 +350,27 @@ static void test_unknown_required_reject() {
                                     std::istreambuf_iterator<char>());
     fin.close();
 
-    // 解析 Header 位置
-    // 布局: 签名块(20) + Header(grid(24) + json_len(4) + json + n_tiles(4) + tile_dir)
-    // tile_dir: parent_ipix(8) + tile_nside(4) + occ_mode(1) + n_subblocks(2) + subblock_descs
-    uint64_t header_offset;
-    std::memcpy(&header_offset, file_data.data() + 12, 8);
+    // R04-B14/B15: 解析 TLV Header, 定位 TILE_DIRECTORY value
+    size_t tile_dir_value_pos = find_tile_directory_value_pos(file_data);
+    ASSERT_TRUE(tile_dir_value_pos != SIZE_MAX, "找到 TILE_DIRECTORY TLV");
 
-    size_t pos = (size_t)header_offset + 24;  // 跳过 grid
-    uint32_t json_len;
-    std::memcpy(&json_len, file_data.data() + pos, 4);
-    pos += 4 + json_len;  // 跳过 json
-    pos += 4;  // 跳过 n_tiles
-    size_t tile_dir_pos = pos;
-
-    // n_subblocks 在 tile 头偏移 13 (parent_ipix(8)+tile_nside(4)+occ_mode(1)=13)
+    // TILE_DIRECTORY value 布局:
+    //   n_tiles(4) + [parent_ipix(8) + tile_nside(4) + occ_mode(1) + n_subblocks(2) + subblocks(42*n)]
+    // 第一个 Tile 的 n_subblocks 在 tile_dir_value_pos + 4 + 13
+    size_t n_subblocks_pos = tile_dir_value_pos + 4 + 13;
     uint16_t n_subblocks;
-    std::memcpy(&n_subblocks, file_data.data() + tile_dir_pos + 13, 2);
+    std::memcpy(&n_subblocks, file_data.data() + n_subblocks_pos, 2);
     ASSERT_TRUE(n_subblocks >= 2, "原始 Tile 至少有 signal+support 子块");
 
-    // 遍历子块描述符, 找到 SUPPORT (type=2) 并改为未知 type=201
-    // 描述符布局(40B): type(1)+flags(2)+offset(8)+comp(8)+uncomp(8)+codec(2)+transform(2)+cksum_type(1)+checksum(8)
-    size_t desc_start = tile_dir_pos + 15;  // 第一个描述符位置
+    // 遍历子块描述符 (R04-B17: 42B), 找到 SUPPORT (type=2) 并改为未知 type=201
+    // 描述符布局(42B): type(1)+ext_type_id(2)+flags(2)+offset(8)+comp(8)+uncomp(8)+codec(2)+transform(2)+cksum_type(1)+checksum(8)
+    size_t desc_start = tile_dir_value_pos + 4 + 15;  // 跳过 n_tiles + tile 头
     bool found_support = false;
     for (uint16_t i = 0; i < n_subblocks; i++) {
-        size_t desc_off = desc_start + (size_t)i * 40;
+        size_t desc_off = desc_start + (size_t)i * 42;
         uint8_t type = file_data[desc_off];
         if (type == (uint8_t)hiss::SubblockType::SUPPORT) {
-            file_data[desc_off] = 201;  // 改为未知 type
+            file_data[desc_off] = 201;  // 改为未知 type, flags 保持 REQUIRED
             found_support = true;
             fprintf(stderr, "  修改 Tile 子块 %u: type SUPPORT(2) → 201(未知), flags 保持 REQUIRED\n", i);
             break;
@@ -344,6 +399,8 @@ static void test_unknown_required_reject() {
 // 测试 5: 未知可选子块跳过
 //   构造含未知 optional 子块的 HISS 文件 → Reader.open 成功, 跳过该子块
 //   读取 signal/support 仍正常工作
+//
+// R04-B14/B15/B17: 新格式 TLV Header + 42B 子块描述符
 // ============================================================================
 static void test_unknown_optional_skip() {
     fprintf(stdout, "[TEST] 未知可选子块跳过\n");
@@ -354,59 +411,74 @@ static void test_unknown_optional_skip() {
     std::string path = write_test_hiss("test_unknown_opt", acc, nullptr);
     ASSERT_TRUE(!path.empty(), "写入基础 HISS 文件");
 
-    // 2. 读取文件内容, 追加一个未知可选子块描述符
+    // 2. 读取文件内容, 追加一个未知可选子块描述符 (42B)
     std::ifstream fin(path, std::ios::binary);
     ASSERT_TRUE(fin.is_open(), "打开文件进行修改");
     std::vector<uint8_t> file_data((std::istreambuf_iterator<char>(fin)),
                                     std::istreambuf_iterator<char>());
     fin.close();
 
-    uint64_t header_offset;
-    std::memcpy(&header_offset, file_data.data() + 12, 8);
-    size_t pos = (size_t)header_offset + 24;
-    uint32_t json_len;
-    std::memcpy(&json_len, file_data.data() + pos, 4);
-    pos += 4 + json_len + 4;  // 跳过 json + n_tiles
-    size_t tile_dir_pos = pos;
+    // R04-B14/B15: 解析 TLV Header, 定位 TILE_DIRECTORY value
+    size_t tile_dir_value_pos = find_tile_directory_value_pos(file_data);
+    ASSERT_TRUE(tile_dir_value_pos != SIZE_MAX, "找到 TILE_DIRECTORY TLV");
 
-    // n_subblocks 在 tile 头偏移 13 (parent_ipix(8)+tile_nside(4)+occ_mode(1)=13)
+    // TILE_DIRECTORY value: n_tiles(4) + tile_prefix(15) + subblocks(42*n)
+    size_t n_subblocks_pos = tile_dir_value_pos + 4 + 13;
     uint16_t n_subblocks;
-    std::memcpy(&n_subblocks, file_data.data() + tile_dir_pos + 13, 2);
+    std::memcpy(&n_subblocks, file_data.data() + n_subblocks_pos, 2);
     ASSERT_TRUE(n_subblocks >= 2, "原始 Tile 至少有 signal+support 子块");
 
-    size_t subblocks_end = tile_dir_pos + 15 + (size_t)n_subblocks * 40;
+    size_t desc_start = tile_dir_value_pos + 4 + 15;  // 第一个描述符位置
+    size_t subblocks_end = desc_start + (size_t)n_subblocks * 42;
 
-    // 在插入前, 更新现有子块描述符的 offset (+40)
-    // 原因: 插入 40 字节描述符后 Header 增长 40B, 子块数据区整体后移 40B
-    // 描述符布局(40B): type(1)+flags(2)+offset(8)+comp(8)+uncomp(8)+codec(2)+transform(2)+cksum_type(1)+checksum(8)
-    // offset 字段在描述符内偏移 3, 长度 8
-    size_t desc_start = tile_dir_pos + 15;
+    // 插入前, 更新现有子块描述符的 offset (+42)
+    // 原因: 插入 42B 描述符后 Header 增长 42B, 子块数据区整体后移 42B
+    // R04-B17 描述符布局(42B): type(1)+ext_type_id(2)+flags(2)+offset(8)+...
+    // offset 字段在描述符内偏移 5, 长度 8
     for (uint16_t i = 0; i < n_subblocks; i++) {
-        size_t off_pos = desc_start + (size_t)i * 40 + 3;
+        size_t off_pos = desc_start + (size_t)i * 42 + 5;
         uint64_t old_off;
         std::memcpy(&old_off, file_data.data() + off_pos, 8);
-        uint64_t new_off = old_off + 40;
+        uint64_t new_off = old_off + 42;
         std::memcpy(file_data.data() + off_pos, &new_off, 8);
     }
 
-    // 构造未知可选子块描述符 (40 字节)
-    uint8_t unknown_opt[40] = {0};
+    // 构造未知可选子块描述符 (R04-B17: 42 字节)
+    // type(1)+ext_type_id(2)+flags(2)+offset(8)+comp(8)+uncomp(8)+codec(2)+transform(2)+cksum_type(1)+checksum(8)
+    uint8_t unknown_opt[42] = {0};
     unknown_opt[0] = 200;  // 未知 type
+    // ext_type_id = 0 (offset 1-2, 已为 0)
     uint16_t opt_flags = (uint16_t)hiss::SubblockFlags::OPTIONAL;
-    std::memcpy(unknown_opt + 1, &opt_flags, 2);
-    // offset 指向文件末尾 (compressed_size=0, 无需实际数据)
-    uint64_t fake_offset = file_data.size();  // 插入前文件大小, 插入后仍在文件范围内
-    std::memcpy(unknown_opt + 3, &fake_offset, 8);
+    std::memcpy(unknown_opt + 3, &opt_flags, 2);  // flags (offset 3-4)
+    // offset 指向文件末尾 (compressed_size=0, Reader 跳过越界检查)
+    uint64_t fake_offset = file_data.size() + 42;  // 插入后的文件末尾
+    std::memcpy(unknown_opt + 5, &fake_offset, 8);  // offset (offset 5-12)
     uint64_t fake_size = 0;
-    std::memcpy(unknown_opt + 11, &fake_size, 8);  // compressed_size=0
-    std::memcpy(unknown_opt + 19, &fake_size, 8);  // uncompressed_size=0
+    std::memcpy(unknown_opt + 13, &fake_size, 8);   // compressed_size=0 (offset 13-20)
+    std::memcpy(unknown_opt + 21, &fake_size, 8);   // uncompressed_size=0 (offset 21-28)
 
     // 插入到子块描述符末尾 (Header 和数据区交界处)
-    file_data.insert(file_data.begin() + subblocks_end, unknown_opt, unknown_opt + 40);
+    file_data.insert(file_data.begin() + subblocks_end, unknown_opt, unknown_opt + 42);
 
-    // 更新 n_subblocks (偏移 13)
+    // 更新 n_subblocks (tile_dir_value_pos + 4 + 13)
     uint16_t new_n = (uint16_t)(n_subblocks + 1);
-    std::memcpy(file_data.data() + tile_dir_pos + 13, &new_n, 2);
+    std::memcpy(file_data.data() + n_subblocks_pos, &new_n, 2);
+
+    // 更新 TILE_DIRECTORY TLV 的 length (+42)
+    // TLV 头: tag(2) + flags(1) + length(4), value 在 tile_dir_value_pos
+    // length 字段在 tile_dir_value_pos - 4
+    size_t tlv_length_pos = tile_dir_value_pos - 4;
+    uint32_t old_tlv_len;
+    std::memcpy(&old_tlv_len, file_data.data() + tlv_length_pos, 4);
+    uint32_t new_tlv_len = old_tlv_len + 42;
+    std::memcpy(file_data.data() + tlv_length_pos, &new_tlv_len, 4);
+
+    // 更新签名块中的 header_length (+42)
+    // 签名块: magic[8] + header_length(u32 LE) @ offset 8 + feature_flags(u32 LE) @ offset 12
+    uint32_t old_hlen;
+    std::memcpy(&old_hlen, file_data.data() + 8, 4);
+    uint32_t new_hlen = old_hlen + 42;
+    std::memcpy(file_data.data() + 8, &new_hlen, 4);
 
     // 写回文件
     std::ofstream fout(path, std::ios::binary | std::ios::trunc);
@@ -437,11 +509,12 @@ static void test_unknown_optional_skip() {
 
 // ============================================================================
 // 测试 6: SNR 布局验证
-//   写入后检查文件中 SNR 子块的 uncompressed_size = 4 + n_points*8
+//   写入后检查文件中 SNR 子块的 uncompressed_size = 12 + n_points*8
+//   R04-B18 冻结布局: estimator_id(4) + sampling_scale(4) + n_points(4) + points(n*8)
 //   验证 SNR 子块不包含 snr_phot/median_snr/idw_power (旧布局会多 24 字节)
 // ============================================================================
 static void test_snr_layout_bytes() {
-    fprintf(stdout, "[TEST] SNR 布局验证: uncompressed_size = 4 + n_points*8\n");
+    fprintf(stdout, "[TEST] SNR 布局验证: uncompressed_size = 12 + n_points*8\n");
 
     // 构造 10 个控制点的 SNR
     hiss::HissSnrBlock snr;
@@ -472,17 +545,18 @@ static void test_snr_layout_bytes() {
     }
     ASSERT_TRUE(snr_desc != nullptr, "找到 SNR 子块描述符");
 
-    // 验证 uncompressed_size = 4 + n_points * 8 = 4 + 10*8 = 84
-    // 旧错误布局 (含 snr_phot/median_snr/idw_power) 会是 84 + 24 = 108
-    uint64_t expected_size = 4 + (uint64_t)10 * 8;  // 84
+    // 验证 uncompressed_size = 12 + n_points * 8 = 12 + 10*8 = 92
+    // R04-B18 冻结布局 (02_FROZEN §17): estimator_id(4) + sampling_scale(4) + n_points(4) + points(n*8)
+    // 旧错误布局 (含 snr_phot/median_snr/idw_power) 会是 92 + 24 = 116
+    uint64_t expected_size = 12 + (uint64_t)10 * 8;  // 92
     ASSERT_EQ_INT(snr_desc->uncompressed_size, (long)expected_size,
-                  "SNR uncompressed_size = 4 + 10*8 = 84 (不含估计器状态)");
+                  "SNR uncompressed_size = 12 + 10*8 = 92 (eid+scale+np+points)");
 
-    // 明确验证: 不等于旧错误布局 (84 + 24 = 108)
-    ASSERT_TRUE(snr_desc->uncompressed_size != 108,
-                "SNR uncompressed_size != 108 (旧错误布局含 snr_phot/median_snr/idw_power)");
+    // 明确验证: 不等于旧错误布局 (92 + 24 = 116)
+    ASSERT_TRUE(snr_desc->uncompressed_size != 116,
+                "SNR uncompressed_size != 116 (旧错误布局含 snr_phot/median_snr/idw_power)");
 
-    fprintf(stderr, "  SNR uncompressed_size=%llu (期望 %llu, 旧错误布局会是 108)\n",
+    fprintf(stderr, "  SNR uncompressed_size=%llu (期望 %llu, 旧错误布局会是 116)\n",
             (unsigned long long)snr_desc->uncompressed_size,
             (unsigned long long)expected_size);
 
