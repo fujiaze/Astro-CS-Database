@@ -210,7 +210,8 @@ int compute_auto_nside(const WcsParams& wcs, int img_w, int img_h)
 // WP-B 步骤6 修复: 入口校验
 //   1. pixfrac <= 0.0 或 pixfrac > 1.0 → 返回错误 (拒绝, 不进入"点采样快速路径")
 //   2. nested == false (RING 模式) → 返回错误 (HISS 内部统一 NESTED)
-//   3. 移除所有"点采样快速路径"代码, 任何 pixfrac 非法值都被拒绝
+//   3. img.channels != 1 → 返回错误 (R08 移植 R07-B03: 多通道图像拒绝)
+//   4. 移除所有"点采样快速路径"代码, 任何 pixfrac 非法值都被拒绝
 // ============================================================================
 bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
                             const float* snrData, const float* weightData,
@@ -238,6 +239,24 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
     if (!config.nested) {
         error_msg = "HISS requires NESTED ordering, RING not supported";
         fprintf(stderr, "[drizzle_engine] drizzle: 拒绝 RING 模式 (HISS 内部统一 NESTED)\n");
+        return false;
+    }
+
+    // R08 移植 R07-B03: 多通道图像静默取第 0 通道是 BLOCKER
+    //   HISS Stage1 只支持单通道图像, 多通道 (如 RGB) 必须由上游拆分后分别 drizzle
+    //   原实现 (main 版本) 对 channels != 1 静默取第 0 通道, 会导致:
+    //     1. 丢失非第 0 通道数据 (科学错误)
+    //     2. 像素索引 ((y*width+x)*channels+0) 与单通道索引 (y*width+x) 不一致,
+    //        若上游误传多通道数据会导致像素错位
+    //   修复: 入口硬拒绝, 要求上游显式拆分
+    if (img.channels != 1) {
+        char buf[256];
+        snprintf(buf, sizeof(buf),
+                 "multi-channel image not supported (channels=%d), expected 1; "
+                 "split channels upstream before drizzle", img.channels);
+        error_msg = buf;
+        fprintf(stderr, "[drizzle_engine] drizzle: 拒绝多通道图像 (channels=%d)\n",
+                img.channels);
         return false;
     }
 
@@ -302,13 +321,8 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
         auto& localAccum = threadAccums[tid];
 
         for (int x = 0; x < img.width; x++) {
-            // 获取像素值 (单通道: 直接索引, RGB: 取第一通道)
-            float pixelValue;
-            if (img.channels == 1) {
-                pixelValue = img.pixels[(size_t)y * img.width + x];
-            } else {
-                pixelValue = img.pixels[((size_t)y * img.width + x) * img.channels + 0];
-            }
+            // 获取像素值 (R08 移植 R07-B03: 入口已校验 img.channels == 1, 多通道已硬报错)
+            float pixelValue = img.pixels[(size_t)y * img.width + x];
 
             // 跳过 NaN / Inf
             if (!std::isfinite(pixelValue)) continue;
