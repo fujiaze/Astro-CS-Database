@@ -1,39 +1,39 @@
-# ACR 计算配置示例（compute_config.yaml）
-# Phase E：acr-benchmark / acr-status / acr-report 的可选配置文件
-# 此文件仅作示例，ACR 不强制要求运行时加载（默认值见 qualification/benchmark_driver.hpp）
-#
-# 字段说明：
-#   profile.kind    : 标定档位 quick / standard / full
-#   profile.gpu     : 是否启用 GPU benchmark（CPU-only 构建应置 false）
-#   profile.sizes   : 自定义标定问题规模列表（覆盖默认）
-#   runtime.threads : oneTBB 工作线程上限（0 = hardware_concurrency）
-#   routing.path    : routes.json 路径
-#   routing.fallback: 缺失/损坏时回退 backend（默认 cpu）
-#   utilization.cpu_target_pct   : Phase G CPU 软占用目标（50/80/95/100）
-#   utilization.gpu_target_pct   : Phase G GPU 软占用目标
-#   memory.ram_ratio_pct         : RAM 容量比例（limit = min(total*ratio, total-fixed_reserve)）
-#   memory.vram_ratio_pct        : VRAM 容量比例
-#   memory.fixed_reserve_mb      : 固定预留（MB，默认 512）
+# ACR runtime configuration example
+compute:
+  profile:
+    path: auto
+    warn_when_missing: true
+    warn_when_stale: true
+    stale_policy: allow   # allow | cpu_only | reject
+    runtime_writeback: false
 
-profile:
-  kind: standard
-  gpu: false
-  sizes: [65536, 1048576]
+  backends:
+    cpu: true
+    cuda: auto
+    hip: auto
+    sycl: auto
 
-runtime:
-  threads: 0
-  work_stealing: true
+  utilization:
+    cpu_target: 0.95
+    gpu_target: 0.95
+    io_target: 0.95
+    control_window_ms: 250
 
-routing:
-  path: ./routes.json
-  fallback: cpu
+  capacity:
+    ram_limit: 0.95
+    vram_limit: 0.95
+    ram_fixed_reserve_mib: 2048
+    vram_fixed_reserve_mib: 512
 
-utilization:
-  cpu_target_pct: 95
-  gpu_target_pct: 95
-  memory:
-    ram_ratio_pct: 90
-    vram_ratio_pct: 90
-    fixed_reserve_mb: 512
-  io:
-    budget_mbps: 0    # 0 = 不限速
+  scheduling:
+    work_conserving: true
+    online_learning: false
+    allow_cpu_gpu_mixed: true
+    allow_multi_gpu: true
+    max_queue_depth: auto
+
+  numeric:
+    default_compute: fp32
+    fast_math: false
+
+# 禁止字段：cpu_share、gpu_share、device_weight、preferred_backend
