@@ -58,6 +58,10 @@
 // snr_estimator C API (用于 run_stage_snr)
 #include "snr_estimator.h"
 
+// nlohmann/json: 替代手写 orc_findJsonKey/orc_extractJsonStr/orc_extractJsonNum 解析
+// 已通过 MSYS2 pacman 安装在 mingw64/include, Makefile 默认搜索路径即可找到
+#include <nlohmann/json.hpp>
+
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -65,48 +69,34 @@
 namespace fs = std::filesystem;
 
 // ============================================================================
-// 简易 JSON 字段提取 (避免引入 nlohmann::json 依赖)
-// 与 hp_stack_api.cpp 中的 findKey/extractNum 同风格, 文件作用域私有
+// JSON 字段提取 (基于 nlohmann/json)
+// 历史: 原 orc_findJsonKey/orc_extractJsonStr/orc_extractJsonNum 为手写字符串扫描,
+//       已替换为 nlohmann/json 解析。orc_getJsonString/Num/Bool 保留原签名以兼容
+//       stage handler 中的调用点 (约束: 不修改 orc_* 函数签名)。
+// 文件作用域私有, 与 hp_stack_api.cpp 中的 findKey/extractNum 同风格。
 // ============================================================================
 namespace {
 
-// 查找 "key": 后的值位置, 找不到返回 std::string::npos
-size_t orc_findJsonKey(const std::string& s, const std::string& key) {
-    std::string pat = "\"" + key + "\"";
-    size_t pos = s.find(pat);
-    if (pos == std::string::npos) return std::string::npos;
-    pos += pat.size();
-    // 跳过空白
-    while (pos < s.size() && (s[pos]==' '||s[pos]=='\t'||s[pos]=='\n'||s[pos]=='\r')) pos++;
-    if (pos >= s.size() || s[pos] != ':') return std::string::npos;
-    pos++;
-    // 跳过空白
-    while (pos < s.size() && (s[pos]==' '||s[pos]=='\t'||s[pos]=='\n'||s[pos]=='\r')) pos++;
-    return pos;
-}
+// 解析缓存: 同一 config_json 字符串在 stage handler 内可能被多次按字段查询,
+// 缓存解析结果避免每次调用都重新 parse 整个 JSON 文档。
+// 缓存键为原始字符串引用相等 (相同 std::string 对象或相同内容)。
+// 注意: 此缓存为文件作用域静态变量, 仅在单线程 stage 串行执行场景下使用,
+//       不适用于多线程并发解析 (orchestrator stage 串行执行, 安全)。
+nlohmann::json s_parsed_config;
+std::string s_parsed_config_src;
 
-// 从 pos 提取字符串值 (pos 指向 '"')
-std::string orc_extractJsonStr(const std::string& s, size_t pos) {
-    std::string r;
-    if (pos >= s.size() || s[pos] != '"') return r;
-    pos++;
-    while (pos < s.size() && s[pos] != '"') {
-        if (s[pos] == '\\' && pos + 1 < s.size()) { r += s[pos+1]; pos += 2; }
-        else { r += s[pos]; pos++; }
+// 解析 config_json 字符串为 nlohmann::json 对象, 带缓存。
+// 解析失败时返回空 json::object() (调用方按字段缺失处理)。
+const nlohmann::json& parse_config_cached(const std::string& s) {
+    if (s != s_parsed_config_src) {
+        try {
+            s_parsed_config = nlohmann::json::parse(s);
+        } catch (...) {
+            s_parsed_config = nlohmann::json::object();
+        }
+        s_parsed_config_src = s;
     }
-    return r;
-}
-
-// 从 pos 提取数字 (整数或浮点)
-double orc_extractJsonNum(const std::string& s, size_t pos) {
-    size_t start = pos;
-    if (pos < s.size() && s[pos] == '-') pos++;
-    while (pos < s.size()) {
-        char c = s[pos];
-        if ((c >= '0' && c <= '9') || c == '.' || c == 'e' || c == 'E' || c == '+' || c == '-') pos++;
-        else break;
-    }
-    return std::strtod(s.c_str() + start, nullptr);
+    return s_parsed_config;
 }
 
 // ============================================================================
@@ -212,27 +202,33 @@ int calculate_nside(double cd11, double cd12, double cd21, double cd22,
 // 用于 run_stage_calibrate 加载/验证 Master Bias/Dark/Flat, 输出 cal_stats
 // ============================================================================
 
-// 从 JSON 文本提取字符串字段 (复用 orc_findJsonKey/orc_extractJsonStr)
+// 从 JSON 文本提取字符串字段 (基于 nlohmann/json, 带解析缓存)
+// 字段缺失或非字符串类型时返回 ""
 std::string orc_getJsonString(const std::string& s, const std::string& key) {
-    size_t pos = orc_findJsonKey(s, key);
-    if (pos == std::string::npos) return "";
-    return orc_extractJsonStr(s, pos);
+    const auto& j = parse_config_cached(s);
+    if (j.contains(key) && !j[key].is_null() && j[key].is_string()) {
+        return j[key].get<std::string>();
+    }
+    return "";
 }
 
-// 从 JSON 文本提取数字字段 (复用 orc_findJsonKey/orc_extractJsonNum)
+// 从 JSON 文本提取数字字段 (基于 nlohmann/json, 带解析缓存)
+// 字段缺失或非数字类型时返回 def
 double orc_getJsonNum(const std::string& s, const std::string& key, double def) {
-    size_t pos = orc_findJsonKey(s, key);
-    if (pos == std::string::npos) return def;
-    return orc_extractJsonNum(s, pos);
+    const auto& j = parse_config_cached(s);
+    if (j.contains(key) && j[key].is_number()) {
+        return j[key].get<double>();
+    }
+    return def;
 }
 
-// 从 JSON 文本提取布尔字段
+// 从 JSON 文本提取布尔字段 (基于 nlohmann/json, 带解析缓存)
+// 字段缺失或非布尔类型时返回 def
 bool orc_getJsonBool(const std::string& s, const std::string& key, bool def) {
-    size_t pos = orc_findJsonKey(s, key);
-    if (pos == std::string::npos) return def;
-    while (pos < s.size() && (s[pos]==' '||s[pos]=='\t'||s[pos]=='\n'||s[pos]=='\r')) pos++;
-    if (pos + 4 <= s.size() && s[pos]=='t' && s[pos+1]=='r' && s[pos+2]=='u' && s[pos+3]=='e') return true;
-    if (pos + 5 <= s.size() && s[pos]=='f' && s[pos+1]=='a' && s[pos+2]=='l' && s[pos+3]=='s' && s[pos+4]=='e') return false;
+    const auto& j = parse_config_cached(s);
+    if (j.contains(key) && j[key].is_boolean()) {
+        return j[key].get<bool>();
+    }
     return def;
 }
 
@@ -394,45 +390,22 @@ std::map<std::string, double> Orchestrator::parse_stage_timeouts(const std::stri
     std::map<std::string, double> result;
     if (config_json.empty()) return result;
 
-    // 查找 "stage_timeouts" 字段
-    size_t pos = orc_findJsonKey(config_json, "stage_timeouts");
-    if (pos == std::string::npos) return result;
+    // 基于 nlohmann/json 解析 stage_timeouts 对象
+    const auto& j = parse_config_cached(config_json);
+    if (!j.contains("stage_timeouts") || !j["stage_timeouts"].is_object()) {
+        return result;
+    }
 
-    // 跳过空白, 期望 '{'
-    while (pos < config_json.size() && (config_json[pos]==' '||config_json[pos]=='\t'||config_json[pos]=='\n'||config_json[pos]=='\r')) pos++;
-    if (pos >= config_json.size() || config_json[pos] != '{') return result;
-    pos++; // 跳过 '{'
-
-    // 解析 "stage_name": <number> 对
-    while (pos < config_json.size()) {
-        // 跳过空白与逗号
-        while (pos < config_json.size() && (config_json[pos]==' '||config_json[pos]=='\t'||config_json[pos]=='\n'||config_json[pos]=='\r'||config_json[pos]==',')) pos++;
-        if (pos >= config_json.size() || config_json[pos] == '}') break;
-
-        // 解析 key (字符串)
-        if (config_json[pos] != '"') { pos++; continue; }
-        std::string key = orc_extractJsonStr(config_json, pos);
-        // 跳过 key 字符串
-        pos = config_json.find('"', pos + 1) + 1;
-        // 跳过空白与冒号
-        while (pos < config_json.size() && (config_json[pos]==' '||config_json[pos]=='\t'||config_json[pos]=='\n'||config_json[pos]=='\r')) pos++;
-        if (pos < config_json.size() && config_json[pos] == ':') pos++;
-        while (pos < config_json.size() && (config_json[pos]==' '||config_json[pos]=='\t'||config_json[pos]=='\n'||config_json[pos]=='\r')) pos++;
-
-        // 解析 number
-        std::string num_str;
-        while (pos < config_json.size() && (std::isdigit((unsigned char)config_json[pos]) || config_json[pos]=='.' || config_json[pos]=='-' || config_json[pos]=='+' || config_json[pos]=='e' || config_json[pos]=='E')) {
-            num_str += config_json[pos];
-            pos++;
-        }
-        if (!num_str.empty()) {
-            try {
-                double seconds = std::stod(num_str);
-                result[key] = seconds;
-                LOG_INFO("orchestrator", "P04-004: stage_timeouts[" + key + "] = " + std::to_string(seconds) + "s");
-            } catch (...) {
-                LOG_WARN("orchestrator", "P04-004: stage_timeouts[" + key + "] 解析失败: " + num_str);
-            }
+    // 遍历 "stage_name": <number> 对
+    for (auto it = j["stage_timeouts"].begin(); it != j["stage_timeouts"].end(); ++it) {
+        const std::string& key = it.key();
+        const auto& val = it.value();
+        if (val.is_number()) {
+            double seconds = val.get<double>();
+            result[key] = seconds;
+            LOG_INFO("orchestrator", "P04-004: stage_timeouts[" + key + "] = " + std::to_string(seconds) + "s");
+        } else {
+            LOG_WARN("orchestrator", "P04-004: stage_timeouts[" + key + "] 解析失败: 非 number 类型");
         }
     }
     return result;
@@ -2585,15 +2558,9 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
     double pixfrac = 1.0;
     int nested = 1;
     if (!current_config_json_.empty()) {
-        size_t p = orc_findJsonKey(current_config_json_, "nside_strategy");
-        if (p != std::string::npos) {
-            std::string s = orc_extractJsonStr(current_config_json_, p);
-            if (!s.empty()) nside_strategy = s;
-        }
-        p = orc_findJsonKey(current_config_json_, "nside_override");
-        if (p != std::string::npos) {
-            nside_override = (int)orc_extractJsonNum(current_config_json_, p);
-        }
+        std::string s = orc_getJsonString(current_config_json_, "nside_strategy");
+        if (!s.empty()) nside_strategy = s;
+        nside_override = (int)orc_getJsonNum(current_config_json_, "nside_override", 0.0);
         // P03-002: 解析 pixfrac (在 drizzle 段或顶层)
         // 优先在 drizzle 段查找, 找不到再在顶层查找
         double pf = orc_getJsonNum(current_config_json_, "pixfrac", -1.0);
@@ -2750,12 +2717,11 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
     uint8_t meta_prec = 0;
     if (meta_json && meta_json[0] != '\0') {
         std::string meta_str(meta_json);
-        // 使用 orc_findJsonKey 查找 precision_mode
-        size_t pos = orc_findJsonKey(meta_str, "precision_mode");
-        if (pos != std::string::npos) {
+        // 使用 orc_getJsonNum 查找 precision_mode
+        // precision_mode 合法值为 0 (FP32) 或 1 (FP64), 用 -1.0 作为"字段缺失"哨兵
+        double val = orc_getJsonNum(meta_str, "precision_mode", -1.0);
+        if (val >= 0.0) {
             meta_has_prec = true;
-            // 提取数字值
-            double val = orc_extractJsonNum(meta_str, pos);
             meta_prec = static_cast<uint8_t>(val);
         }
     }
@@ -3373,29 +3339,14 @@ bool Orchestrator::run_stage_gradient_sphere(TaskResult& result) {
     double winsorize_low_pct = 0.05;
     double winsorize_high_pct = 0.95;
     if (!current_config_json_.empty()) {
-        size_t p = orc_findJsonKey(current_config_json_, "sigma_clip_method");
-        if (p != std::string::npos) {
-            std::string s = orc_extractJsonStr(current_config_json_, p);
-            if (!s.empty()) sigma_clip_method = s;
-        }
-        p = orc_findJsonKey(current_config_json_, "sigma_clip_sigma");
-        if (p != std::string::npos) {
-            sigma = orc_extractJsonNum(current_config_json_, p);
-            if (sigma <= 0.0) sigma = 3.0;
-        }
-        p = orc_findJsonKey(current_config_json_, "sigma_clip_max_iter");
-        if (p != std::string::npos) {
-            int v = (int)orc_extractJsonNum(current_config_json_, p);
-            if (v > 0) max_iter = v;
-        }
-        p = orc_findJsonKey(current_config_json_, "winsorize_low_pct");
-        if (p != std::string::npos) {
-            winsorize_low_pct = orc_extractJsonNum(current_config_json_, p);
-        }
-        p = orc_findJsonKey(current_config_json_, "winsorize_high_pct");
-        if (p != std::string::npos) {
-            winsorize_high_pct = orc_extractJsonNum(current_config_json_, p);
-        }
+        std::string s = orc_getJsonString(current_config_json_, "sigma_clip_method");
+        if (!s.empty()) sigma_clip_method = s;
+        sigma = orc_getJsonNum(current_config_json_, "sigma_clip_sigma", sigma);
+        if (sigma <= 0.0) sigma = 3.0;
+        int v = (int)orc_getJsonNum(current_config_json_, "sigma_clip_max_iter", 0.0);
+        if (v > 0) max_iter = v;
+        winsorize_low_pct = orc_getJsonNum(current_config_json_, "winsorize_low_pct", winsorize_low_pct);
+        winsorize_high_pct = orc_getJsonNum(current_config_json_, "winsorize_high_pct", winsorize_high_pct);
     }
 
     LOG_INFO("orchestrator", "[GRADIENT_SPHERE] 帧数: " + std::to_string(n_frames)
