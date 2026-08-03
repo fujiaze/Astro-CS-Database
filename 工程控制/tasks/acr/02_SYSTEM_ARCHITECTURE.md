@@ -3,103 +3,137 @@
 ## 1. 分层
 
 ```text
-Future AstroCS Hotspot
+Future hotspot（本支线不接入）
         |
         | parallel_for / parallel_tiles / parallel_reduce / parallel_batch
-        | TaskDescriptor: class, size, precision, access, residency, halo...
         v
 ACR Public API
         |
-        +-- Task Descriptor & Kernel Registry
-        +-- Buffer / Residency / Event Layer
-        +-- Hardware Profile Reader
-        +-- Cost Estimator
+        +-- TaskDescriptor Builder
+        +-- Buffer / Residency / Event
+        +-- HardwareProfile Store (read-only at runtime)
+        +-- CostEstimator
         +-- Work-Conserving Dispatcher
-        +-- Utilization Budget Controller
-        +-- Diagnostics & Fallback
+        +-- Utilization & Capacity Controller
+        +-- Diagnostics / Fallback / Coverage
         |
         +--> CPU Backend
-        |      +-- oneTBB task arena
-        |      +-- baseline/scalar
-        |      +-- SSE/AVX/AVX2/AVX-512 variants
+        |      +-- oneTBB arena
+        |      +-- scalar baseline
+        |      +-- SSE / AVX / AVX2 / AVX-512 variants
         |
-        +--> Accelerator Backends
-               +-- alpaka adapter
-               +-- CUDA / HIP / SYCL optional plugins
-               +-- vendor FFT/BLAS/primitive adapters
+        +--> GPU Backends
+        |      +-- portable adapter selected by ADR
+        |      +-- CUDA / HIP / SYCL plugins
+        |
+        +--> Library Adapters
+               +-- FFT / BLAS / scan / primitives
 ```
 
-## 2. Hardware Profile，不是每 kernel 固定比例
-
-Qualification 输出一份机器级多维画像：
-
-- CPU各ISA和线程规模的算术/内存/归约曲线；
-- 每张GPU的算术、显存、原子、分支、卷积/Stencil曲线；
-- H2D、D2H、双向传输、pinned memory和启动延迟；
-- task提交、event、同步、分配和队列开销；
-- NUMA本地/远端带宽；
-- 专用库能力和workspace成本。
-
-不保存用户可编辑的 CPU/GPU权重，不以某个业务 kernel 为主键生成百分比路线。
-
-## 3. Task Descriptor
-
-任务至少描述：
-
-- `TaskClass`；
-- 工作域形状和项目数；
-- FP32/FP64及累加精度；
-- 连续、局部邻域、随机、scatter或原子访存；
-- 每项大致读写字节和计算强度等级；
-- 分支/工作量均匀性；
-- halo、稀疏度或冲突级别；
-- 输入和输出当前位置；
-- 是否可拆、是否允许CPU/GPU混合。
-
-普通算法作者优先选择预定义类别，不要求填写精确FLOP数。
-
-## 4. Cost Estimator
-
-估算每个候选设备和块大小：
+## 2. 核心数据流
 
 ```text
-T = queue_wait
-  + task_or_kernel_launch
-  + required_transfer
-  + profile_predicted_compute
-  + merge_or_sync
+API call
+  → validate TaskTraits
+  → build TaskDescriptor
+  → locate valid HardwareProfile
+  → enumerate eligible devices and chunk candidates
+  → CostEstimator predicts queue + transfer + compute + merge
+  → Dispatcher creates shared unstarted work pool
+  → CPU/GPU workers dynamically claim chunks
+  → coverage and events ensure exactly once
+  → merge or publish output residency
 ```
 
-性能项从画像的分段曲线或对数尺寸插值获取，不使用硬件理论峰值代替实测。
+无有效画像时走明确 CPU fallback，不得悄悄伪造 GPU 路由。
 
-## 5. Work-Conserving Dispatcher
+## 3. HardwareProfile
 
-- 所有合格设备拥有自己的执行队列；
+按设备保存多维能力曲线，而不是每 kernel 固定路线：
+
+- arithmetic：精度、操作、ISA/线程或 GPU；
+- memory：缓存、主存、显存、NUMA和尺寸；
+- transfer：H2D/D2H/P2P、普通/pinned、尺寸；
+- reduction：操作、精度、尺寸；
+- convolution：direct/separable/FFT、核、stride、尺寸和驻留；
+- irregular：gather/scatter/sparsity/atomic contention；
+- branch：uniformity/work variance；
+- overhead：submit/launch/event/alloc/sync/merge；
+- library：FFT/BLAS/scan adapter曲线；
+- confidence：样本范围、留出误差和低置信度标记。
+
+正式 schema 见 `schemas/hardware_profile.schema.json`。
+
+## 4. TaskDescriptor
+
+任务提供少量、稳定、可审计的特征：
+
+- TaskClass、工作域和精度；
+- 读写字节、shape、stride、halo；
+- 连续/局部/随机/scatter；
+- 稀疏度、原子冲突、分支均匀性；
+- 数据驻留；
+- 可拆性、混合设备安全性、合并策略。
+
+普通算法作者选预定义 TaskClass，不要求手算精确 FLOP。
+
+## 5. CostEstimator
+
+对每个设备与候选块估算：
+
+```text
+T_finish = queue_wait
+         + submit_or_launch
+         + transfer
+         + profile_predicted_compute
+         + merge_or_sync
+```
+
+- 画像曲线按 log2 尺寸分段插值；
+- 小任务必须计入固定开销；
+- 数据驻留优先；
+- 稀疏、原子和分支使用对应能力族；
+- 低置信度模型加安全惩罚；
+- 不能用理论峰值替代实测画像。
+
+## 6. 动态 Dispatcher
+
 - 共享未开始工作池；
-- GPU按画像领取较大批次，CPU领取较小批次；
-- 设备完成后继续领取剩余工作；
-- 尾部自动缩小批次，避免一个设备拿走过大尾块；
-- 首选设备忙时，空闲合格设备可领取工作；
-- 不移动已开始工作；
-- 不修改硬件画像；
-- 不为填满设备制造明显负收益的数据迁移。
+- CPU 和每张 GPU 独立 worker/queue；
+- 设备按成本模型领取适合自己的批次；
+- 完成后继续领取；
+- 尾部 guided 收缩；
+- 已开始块不迁移；
+- coverage ID 保证每块恰好一次；
+- 设备失效时只回收未开始块；
+- 不为“吃满”进行预计负收益的数据迁移。
 
-## 6. Buffer与驻留
+实际 CPU/GPU 完成量是运行结果，不是输入参数或持久路由。
 
-统一记录：类型、shape、stride、所有权、host/device副本、有效副本、写后失效、异步事件和Tile视图。未来可非拥有式包装PipelineFrame，但本支线不修改PipelineFrame。
+## 7. 资源控制
 
-## 7. Utilization Controller
+路由和资源控制分离：
 
-资源控制和路由分离：
+- CostEstimator 决定哪个设备更适合下一块；
+- Utilization Controller 调节队列水位和提交节奏，使 CPU/GPU 接近用户目标；
+- Capacity Controller 负责 RAM/VRAM 上限；
+- 控制器不得修改 HardwareProfile。
 
-- 路由器判断在哪执行预计更合适；
--控制器限制提交节奏、队列深度和容量，使CPU/GPU约达到配置目标；
-- 控制器不得修改画像参数。
+## 8. Lazy 与 dormant
 
-## 8. 推荐目录
+ACR 所有全局资源必须 lazy：
+
+- 普通 AstroCS 启动不创建线程；
+- 不枚举 GPU；
+- 不读取画像；
+- 不发未标定警告；
+- GPU SDK不是 CPU-only 构建强制依赖。
+
+## 9. 推荐目录
 
 ```text
-source/compute/
+lib/acr/
+  include/astro/compute/
   api/
   core/
   buffers/
@@ -107,19 +141,20 @@ source/compute/
   qualification/
     benchmarks/
     profile/
+    model_fit/
   routing/
     task_descriptor/
-    cost_model/
+    cost_estimator/
   scheduler/
+  utilization/
   backends/
     cpu/
-    alpaka/
     cuda/
     hip/
     sycl/
+    portable/
     libraries/
   diagnostics/
   cli/
-tests/compute/
-tools/acr_benchmark/
+  tests/
 ```

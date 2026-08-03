@@ -1,101 +1,98 @@
 # 底层开发阶段、任务与验收
 
-## Phase A：现有分支和依赖审计
+## Phase 0：现有分支冻结审计
 
-- 继续使用现有`feature/astrocompute-runtime`；不存在才创建；
-- 检查当前实现、Evidence和控制包差异；
-- 检查`astro_toolkit.py`并设置所有外部命令超时；
-- 建立算法路径guard；
-- 形成开源依赖ADR和锁定方案；
-- 删除/废弃固定CPU/GPU比例schema和测试。
+- 继续唯一 `feature/astrocompute-runtime`；
+- 记录 base、HEAD、remote、工作区和工具链；
+- 建立算法路径 guard；
+- 核对 AuditPack，形成代码保留/删除/迁移清单；
+- 所有命令设置超时。
 
-验收：base/current commit、差异报告、path guard、ADR、纠正清单。
+验收：审计报告、路径guard、保留代码清单、没有新仓库/版本分支。
 
-## Phase B：公共API和CPU baseline
+## Phase 1：数据模型和调用链纠正
 
-- TaskClass/TaskTraits；
-- Buffer/Event；
-- parallel_for/tiles/reduce/batch；
-- oneTBB CPU runtime；
-- baseline scalar；
-- CPU-only构建。
+- 删除/迁移 `RouteProfile`、`preferred_backend`、`routes.json`；
+- 新增 `DeviceProfile/HardwareProfile`；
+- 新增 `TaskTraits/TaskDescriptor`；
+- 公共 API 接通 `CostEstimator → Dispatcher → Backend`；
+- 无画像明确 CPU fallback。
 
-验收：API实际进入dispatcher，不得忽略OperationId/traits；单测和主线回归通过。
+验收：OperationId/traits不再被忽略；无固定业务路由；schema测试通过。
 
-## Phase C：拓扑、ISA和CPU画像
+## Phase 2：CPU画像
 
-- hwloc、cpu_features；
-- baseline/SSE/AVX/AVX2/AVX-512多版本；
-- STREAM式内存、算术、归约、线程和NUMA曲线；
-- ISA安全门禁。
+- oneTBB CPU runtime保留；
+- hwloc/cpu_features保留；
+- baseline/SSE/AVX/AVX2/AVX-512真实变体；
+- 算术、STREAM、reduction、线程、NUMA曲线；
+- Google Benchmark或ADR批准等价框架。
 
-验收：不支持ISA不执行；画像可区分ISA/线程/尺寸；baseline始终可用。
+验收：每个声明ISA有独立实现和计时；不支持ISA不执行；baseline始终可用。
 
-## Phase D：GPU backend与GPU画像
+## Phase 3：GPU backend与画像
 
-- alpaka或经ADR批准的可替换backend；
-- 至少一个真实GPU；
-- device/queue/buffer/event/copy；
-- BabelStream式显存；
-- H2D/D2H/launch/原子/分支/卷积曲线；
-- CPU-only无GPU SDK。
+- 修复真实目标工具链；
+- 至少一个GPU backend构建/运行；
+- buffer/queue/event/copy；
+- BabelStream、H2D/D2H、算术、reduction、卷积、atomic、branch；
+- CPU-only不依赖GPU SDK。
 
-验收：真实硬件日志；同一经典kernel CPU/GPU正确；无硬件不得虚报。
+验收：真实设备日志；无GPU时SKIPPED，不得模拟PASS。
 
-## Phase E：Qualification和Hardware Profile
+## Phase 4：Profile拟合与CostEstimator
 
-- acr-benchmark/status/report/invalidate；
-- 空载提示；
-- 原始数据、模型拟合、指纹和schema；
-- log尺寸分段曲线；
-- missing/stale/corrupt处理；
-- 运行时只读。
+- 原始结果、指纹、schema；
+- log尺寸曲线；
+- 留出验证和置信度；
+- queue/launch/transfer/compute/merge成本；
+- missing/stale/partial/corrupt处理；
+- 正式运行只读。
 
-验收：画像不是总分和固定比例；可重复生成；中断明确恢复/作废；无画像CPU-only。
+验收：不是总分或固定比例；预测误差报告完整。
 
-## Phase F：Cost Estimator和动态Dispatcher
+## Phase 5：动态Dispatcher
 
-- 按任务类别选择画像能力族；
-- 估算queue/launch/transfer/compute/merge；
-- 推算最小有效块和初始块；
-- CPU、单GPU、多GPU共享工作池；
+- CPU/单GPU/多GPU共享未开始工作池；
+- 画像推算块大小；
 - guided尾部收缩；
 - coverage恰好一次；
-- 故障回收未开始块。
+- 设备忙闲和故障回收；
+- 驻留与迁移成本。
 
-验收：不使用用户比例；不同任务类别选择不同设备/块；CPU/GPU真实并发；设备忙时其他设备继续工作。
+验收：真实CPU+GPU并发；无用户比例；profile hash不变。
 
-## Phase G：95%资源控制
+## Phase 6：资源控制
 
 - CPU/GPU利用率软目标；
 - RAM/VRAM限制；
+- 真实指标或明确估算；
 - 所有CPU线程可参与；
-- 资源控制不修改画像。
+- 控制器不修改画像。
 
-验收：50/80/95/100利用率目标测试；95%不等于少线程；系统可响应。
+验收：50/80/95/100目标持续负载报告；不能用人工利用率输入代替。
 
-## Phase H：经典实验和持续可靠性
+## Phase 7：经典实验与可靠性
 
-执行`17_CLASSIC_EXPERIMENT_SUITE.md`：算术、内存、归约、卷积、重采样、稀疏、原子、scan、FFT/GEMM adapter、动态混合、故障和持续运行。
+执行 `17_CLASSIC_EXPERIMENT_SUITE.md`：正确性、画像、动态Mixed、故障、持续运行和成熟库adapter。
 
-验收：必选全通过；不可用明确SKIPPED；ASan/UBSan等实际开启；无伪测试。
+验收：必选通过；硬件不可用SKIPPED；ASan/UBSan实际开启；无伪测试。
 
-## Phase I：统一Evidence和main合并
+## Phase 8：统一Evidence和main合并
 
-- 从同一干净HEAD一次生成Evidence；
-- summary、JSON、日志和commit完全一致；
-- 更新最新main并回归；
-- 按合并规范`--no-ff`合并；
-- 合并后CPU-only、主线测试和无副作用检查。
+- 同一干净HEAD一次生成全部包；
+- feature合入最新main并回归；
+- `--no-ff` 合并；
+- 合并后CPU-only、主线和无副作用测试；
+- 完整源码快照与Merge Report。
 
-验收：ACR进入main但dormant；算法目录零改动；merge report完整。
+验收：ACR进入main但dormant；算法目录零改动；所有commit字段一致。
 
 ## 共同要求
 
-- 不创建版本分支或新仓库；
-- 不推倒已有有效代码，增量修正；
+- 增量修正，不推倒有效代码；
 - 不提交空壳/TODO冒充完成；
 - 每阶段原子提交；
-- 所有外部进程有明确超时；
 - 无真实硬件不宣称运行通过；
-- 不覆盖用户未提交改动。
+- 不覆盖用户未提交改动；
+- 失败即停止合并，不停止记录和交付证据。

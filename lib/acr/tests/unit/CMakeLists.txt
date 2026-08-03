@@ -88,3 +88,14 @@ target_include_directories(acr_test_cpu_profile PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../qualification
 )
 gtest_discover_tests(acr_test_cpu_profile DISCOVERY_MODE PRE_TEST)
+
+# Phase B4：TaskTraits-based 公共 API 集成测试（Commit C）
+# 验证 parallel_for/tiles/reduce/batch 新签名接通 CostEstimator + Dispatcher，
+# OperationId/traits 不被忽略，CPU fallback 明确。
+add_executable(acr_test_api_traits test_api_traits.cpp)
+target_link_libraries(acr_test_api_traits PRIVATE
+    acr_core acr_cost acr_api GTest::gtest_main)
+target_include_directories(acr_test_api_traits PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../core
+)
+gtest_discover_tests(acr_test_api_traits DISCOVERY_MODE PRE_TEST)

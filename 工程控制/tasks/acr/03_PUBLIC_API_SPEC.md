@@ -2,21 +2,21 @@
 
 ## 1. 目标
 
-算法作者：
+未来算法作者只需：
 
-- 不写线程管理；
-- 不选择CPU或GPU；
-- 不填写CPU/GPU百分比；
-- 不处理显存传输；
-- 只写一个工作项、Tile、局部归约或独立批次逻辑；
-- 选择一个最接近的任务类别，必要时给少量特征提示。
+- 写单工作项、单 Tile、局部归约或独立批次逻辑；
+- 选择 TaskClass；
+- 必要时补充 halo、稀疏度、冲突和数值策略；
+- 调用一个 ACR 函数。
+
+算法作者不管理线程、不选设备、不填写 CPU/GPU 比例、不处理显存传输。
 
 ## 2. 核心类型
 
 ```cpp
 namespace astro::compute {
 
-using OperationId = std::string_view; // 诊断、缓存和实现兼容性标识，不是固定比例路由键
+using OperationId = std::string_view; // 诊断与实现兼容标识，不是固定路由主键
 
 enum class TaskClass {
     elementwise,
@@ -32,12 +32,15 @@ enum class TaskClass {
     batch_independent,
     fft_library,
     gemm_library,
+    scan_library,
     custom
 };
 
 enum class AccessPattern { contiguous, strided, local_neighborhood, random, scatter };
 enum class WorkUniformity { uniform, mildly_variable, highly_variable };
 enum class IntensityClass { memory_bound, balanced, compute_bound };
+
+enum class DataResidence { host, device, replicated, unknown };
 
 struct NumericPolicy {
     enum class Compute { fp32, fp64 } compute = Compute::fp32;
@@ -56,7 +59,11 @@ struct TaskTraits {
     bool splittable = true;
     bool mixed_device_safe = true;
     bool requires_atomic = false;
+
     double active_fraction_hint = 1.0;
+    double atomic_contention_hint = 0.0;
+    std::size_t bytes_read_per_item = 0;
+    std::size_t bytes_written_per_item = 0;
     std::size_t halo_x = 0;
     std::size_t halo_y = 0;
 };
@@ -78,7 +85,9 @@ template<class T> class Buffer;
 }
 ```
 
-## 3. 独立元素
+诊断 JSON 形式见 `schemas/task_descriptor.schema.json`。
+
+## 3. 接口
 
 ```cpp
 template<class Kernel, class... Args>
@@ -89,25 +98,6 @@ Event parallel_for(OperationId id,
                    Args&&... args);
 ```
 
-最小调用：
-
-```cpp
-auto e = acr::parallel_for(
-    "classic.axpy.fp32",
-    {0, n},
-    acr::TaskTraits{
-        .task_class = acr::TaskClass::elementwise,
-        .access = acr::AccessPattern::contiguous,
-        .intensity = acr::IntensityClass::memory_bound
-    },
-    AxpyItem{}, out, x, y, alpha);
-e.wait();
-```
-
-ACR根据画像和数据驻留自动决定CPU、GPU、块大小和并发方式。
-
-## 4. Tile接口
-
 ```cpp
 template<class Kernel, class... Args>
 Event parallel_tiles(OperationId id,
@@ -117,10 +107,6 @@ Event parallel_tiles(OperationId id,
                      Kernel kernel,
                      Args&&... args);
 ```
-
-ACR负责：边缘Tile、halo只读视图、输出所有权、CPU/GPU动态领取和尾部收缩。
-
-## 5. Reduce接口
 
 ```cpp
 template<class T, class MapKernel, class ReduceOp, class... Args>
@@ -133,10 +119,6 @@ T parallel_reduce(OperationId id,
                   Args&&... args);
 ```
 
-每设备先产生局部结果，再按NumericPolicy合并。默认允许正常浮点末位差异。
-
-## 6. Batch接口
-
 ```cpp
 template<class Kernel, class... Args>
 Event parallel_batch(OperationId id,
@@ -146,28 +128,51 @@ Event parallel_batch(OperationId id,
                      Args&&... args);
 ```
 
-适合大量独立对象。高度不均匀时设置 `uniformity=highly_variable`，调度器使用更细粒度动态领取。
+## 4. 强制调用链
 
-## 7. 专用原语
+所有接口必须实际进入：
 
-存在跨项依赖或冲突时，不得伪装成普通for：
-
-- prefix scan使用成熟scan adapter；
-- histogram使用局部直方图/原子专用路径；
-- FFT/GEMM调用成熟库adapter；
-- scatter必须声明冲突模型。
-
-## 8. 禁止的API
+```text
+Public API
+ → TaskDescriptorBuilder
+ → ProfileStore
+ → CostEstimator
+ → Dispatcher
+ → Backend
+```
 
 不得出现：
 
 ```cpp
-run(..., cpu_share=0.2, gpu_share=0.8);
-set_route_weight("cuda:0", 0.8);
+parallel_for(OperationId /*ignored*/, ...)
 ```
 
-用户只可配置资源占用上限、启用/禁用后端和回退策略。
+也不得在有有效画像和合格 GPU 时仍无条件直达 CPU runtime。无画像 CPU fallback 必须是显式状态和日志路径。
 
-## 9. 禁止暴露第三方类型
+## 5. 禁止 API
 
-公共头文件不得暴露 `tbb::*`、`alpaka::*`、CUDA/HIP/SYCL、StarPU或vendor handle。
+```cpp
+run(..., cpu_share = 0.2, gpu_share = 0.8);
+set_route_weight("cuda:0", 0.8);
+set_preferred_backend("kernel", "gpu");
+```
+
+用户仅可配置：
+
+- 资源目标和容量限制；
+- 启用/禁用后端；
+- stale profile策略；
+- 诊断级别和回退策略。
+
+## 6. 专用依赖任务
+
+以下不能伪装普通 `parallel_for`：
+
+- scan：成熟 scan primitive adapter；
+- histogram/scatter：局部聚合或原子专用路径；
+- FFT/GEMM：成熟库 adapter；
+- 前后项依赖：显式 DAG 或专用算法。
+
+## 7. 第三方隔离
+
+公共头文件不得暴露 `tbb::*`、alpaka、CUDA/HIP/SYCL、StarPU或 vendor handle。所有第三方依赖留在 backend/adaptor 内。

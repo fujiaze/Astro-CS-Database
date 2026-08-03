@@ -509,6 +509,45 @@ void range_chunk_thunk(std::size_t /*chunk_idx*/, std::size_t begin, std::size_t
     RangeKernelAdapter* adapter = static_cast<RangeKernelAdapter*>(ud);
     adapter->fn(begin, end, adapter->user_data);
 }
+
+// ===== Commit C 公共辅助：CostEstimator 调用 + CPU fallback 选择 =====
+// 设计（20_PHASE_I_AUDIT_ACTION_PLAN.md §3 Commit C）：
+//   1. 所有 submit_*_with_desc 必须接通 CostEstimator，不得忽略 OperationId/traits
+//   2. CostEstimator 异常不阻断执行，退化为默认 CPU 路径（grainsize=0）
+//   3. 无 GPU 或 estimate.profile_available=false 时明确走 CPU tbb 路径
+//   4. 有 GPU + 画像可用时通过 Dispatcher 派发（仅 range 路径，tiles/batch/reduce 后续接入）
+//   5. recommended_chunk 作为 CPU grainsize 提示（0 表示用 tbb 默认）
+
+// 安全调用 CostEstimator：异常时返回空 estimate（fallback）
+cost::CostEstimate estimate_cost_safely(const TaskDescriptor& task) {
+    cost::CostEstimate estimate;
+    try {
+        estimate = cost::global_cost_estimator().estimate(task);
+    } catch (...) {
+        // CostEstimator 异常不阻断执行，退化为默认 CPU 路径
+    }
+    return estimate;
+}
+
+// 从 CostEstimate 提取 CPU 推荐块作为 grainsize
+// 无 CPU 设备或 recommended_chunk=0 时返回 0（tbb 默认 grainsize）
+std::uint32_t pick_cpu_grainsize(const cost::CostEstimate& estimate) noexcept {
+    for (const auto& dc : estimate.per_device) {
+        if (dc.device_id == kCpuDeviceId && dc.recommended_chunk > 0) {
+            return static_cast<std::uint32_t>(
+                std::min(dc.recommended_chunk, static_cast<std::size_t>(UINT32_MAX)));
+        }
+    }
+    return 0;
+}
+
+// 检查 Dispatcher 是否有可用的 GPU backend
+bool has_gpu_backend() {
+    for (const auto& b : global_dispatcher().current_state().backends()) {
+        if (b.rfind("cuda", 0) == 0) return true;
+    }
+    return false;
+}
 } // anonymous namespace
 
 // ----- submit_range_with_desc -----
@@ -528,33 +567,16 @@ Event submit_range_with_desc(OperationId id, Range1D range, TaskTraits traits,
     // 1. 构造 TaskDescriptor
     TaskDescriptor task = make_range_descriptor(id, range, traits, Precision::Default);
 
-    // 2. 通过 CostEstimator 估算成本（接通调用链）
+    // 2. 通过 CostEstimator 估算成本（接通调用链，不得忽略 OperationId/traits）
     //    CostEstimate 提供 preferred_device + recommended_chunk_size
-    cost::CostEstimate estimate;
-    try {
-        estimate = cost::global_cost_estimator().estimate(task);
-    } catch (...) {
-        // CostEstimator 异常不阻断执行，退化为默认 CPU 路径
-    }
+    cost::CostEstimate estimate = estimate_cost_safely(task);
 
-    // 3. 无 GPU 可用时走 CPU tbb 路径（与 submit_range 一致）
+    // 3. 无 GPU 或画像不可用时明确走 CPU tbb 路径（CPU fallback）
     //    CostEstimate.recommended_chunk 用于 grainsize 优化
-    bool has_gpu = false;
-    for (const auto& d : global_dispatcher().current_state().backends()) {
-        if (d.rfind("cuda", 0) == 0) { has_gpu = true; break; }
-    }
-
-    if (!has_gpu || !estimate.profile_available) {
+    if (!has_gpu_backend() || !estimate.profile_available) {
         // CPU 路径：直接用 tbb parallel_for（与旧 API 一致）
         // 用 CostEstimate 的 recommended_chunk 作为 grainsize 提示
-        std::uint32_t grainsize = 0;
-        for (const auto& dc : estimate.per_device) {
-            if (dc.device_id == kCpuDeviceId && dc.recommended_chunk > 0) {
-                grainsize = static_cast<std::uint32_t>(
-                    std::min(dc.recommended_chunk, static_cast<std::size_t>(UINT32_MAX)));
-                break;
-            }
-        }
+        std::uint32_t grainsize = pick_cpu_grainsize(estimate);
         run_kernel(ev, [&] {
             if (range.empty()) return;
             arena_parallel_for(range.begin, range.end, grainsize,
@@ -601,17 +623,36 @@ Event submit_tiles_with_desc(OperationId id, Extent2D extent, TileShape tile,
         return Event(ev);
     }
 
-    // 构造 TaskDescriptor（诊断用）
+    // 构造 TaskDescriptor 并接通 CostEstimator（Commit C：不得忽略 OperationId/traits）
     TaskDescriptor task = make_tiles_descriptor(id, extent, tile, traits, Precision::Default);
+    cost::CostEstimate estimate = estimate_cost_safely(task);
 
-    // 走 CPU submit_tiles 路径
+    // 2D tiles 当前只走 CPU tbb 路径（GPU tiles 派发由 Phase F3+ 接入，需 TileKernelFn → ChunkKernelFn 适配）
+    // 用 CostEstimate.recommended_chunk 作为 grainsize 提示（按 tile 数计）
+    // 明确 CPU fallback：无 GPU 或画像不可用时 grainsize=0 走 tbb 默认
+    (void)has_gpu_backend();  // tiles 的 GPU 派发尚未接入，此处仅诊断
+    std::uint32_t grainsize = pick_cpu_grainsize(estimate);
+    // tiles 任务按 tile 数分块，grainsize 表示每分块处理的 tile 数
+    // recommended_chunk 是按元素数计，转换为 tile 数（向下取整，至少 1）
+    if (grainsize > 0 && tile.tile_w > 0 && tile.tile_h > 0) {
+        std::size_t elems_per_tile = static_cast<std::size_t>(tile.tile_w) * tile.tile_h;
+        if (elems_per_tile > 0) {
+            std::size_t tiles_per_chunk = estimate.per_device.empty()
+                ? 0 : (estimate.per_device.front().recommended_chunk / elems_per_tile);
+            grainsize = tiles_per_chunk > 0
+                ? static_cast<std::uint32_t>(std::min(tiles_per_chunk,
+                                                     static_cast<std::size_t>(UINT32_MAX)))
+                : 1u;
+        }
+    }
+
     const std::size_t tiles_x = (extent.width + tile.tile_w - 1) / tile.tile_w;
     const std::size_t tiles_y = (extent.height + tile.tile_h - 1) / tile.tile_h;
     const std::size_t total_tiles = tiles_x * tiles_y;
 
     run_kernel(ev, [&] {
         if (total_tiles == 0) return;
-        arena_parallel_for(0, total_tiles, 0,
+        arena_parallel_for(0, total_tiles, grainsize,
             [&](const tbb::blocked_range<std::size_t>& r) {
                 if (ev->cancelled.load(std::memory_order_relaxed)) return;
                 for (std::size_t idx = r.begin(); idx < r.end(); ++idx) {
@@ -643,12 +684,19 @@ Event submit_batch_with_desc(OperationId id, std::size_t item_count, TaskTraits 
         return Event(ev);
     }
 
-    // 构造 TaskDescriptor（诊断用）
+    // 构造 TaskDescriptor 并接通 CostEstimator（Commit C：不得忽略 OperationId/traits）
     TaskDescriptor task = make_batch_descriptor(id, item_count, traits, Precision::Default);
+    cost::CostEstimate estimate = estimate_cost_safely(task);
+
+    // batch 当前走 CPU tbb 路径（GPU batch 派发由 Phase F3+ 接入）
+    // 用 CostEstimate.recommended_chunk 作为 grainsize 提示（按 item 数计）
+    // 明确 CPU fallback：无 GPU 或画像不可用时 grainsize=0 走 tbb 默认
+    (void)has_gpu_backend();
+    std::uint32_t grainsize = pick_cpu_grainsize(estimate);
 
     run_kernel(ev, [&] {
         if (item_count == 0) return;
-        arena_parallel_for(0, item_count, 0,
+        arena_parallel_for(0, item_count, grainsize,
             [&](const tbb::blocked_range<std::size_t>& r) {
                 if (ev->cancelled.load(std::memory_order_relaxed)) return;
                 for (std::size_t i = r.begin(); i < r.end(); ++i) {
@@ -691,11 +739,18 @@ void submit_reduce_with_desc(OperationId id, Range1D range, TaskTraits traits,
         return;
     }
 
-    // 构造 TaskDescriptor（诊断用）
+    // 构造 TaskDescriptor 并接通 CostEstimator（Commit C：不得忽略 OperationId/traits）
     TaskDescriptor task = make_reduce_descriptor(id, range, traits, Precision::Default);
+    cost::CostEstimate estimate = estimate_cost_safely(task);
+
+    // 归约当前走 CPU tbb parallel_reduce 路径（GPU 归约需专门 reduction kernel，Phase F3+ 接入）
+    // 用 CostEstimate.recommended_chunk 作为 grainsize 提示（按元素数计）
+    // 明确 CPU fallback：无 GPU 或画像不可用时用默认 grainsize=64
+    (void)has_gpu_backend();
+    std::uint32_t grainsize = pick_cpu_grainsize(estimate);
+    const std::size_t gs = grainsize > 0 ? static_cast<std::size_t>(grainsize) : 64;
 
     run_kernel(ev, [&] {
-        const std::size_t gs = 64;
         auto& s = runtime_state();
         s.arena->execute([&] {
             std::vector<unsigned char> identity_acc(elem_size);

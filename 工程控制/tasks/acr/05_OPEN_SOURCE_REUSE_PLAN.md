@@ -1,6 +1,6 @@
 # 开源项目详细复用方案
 
-核验日期：2026-08-02。实现时必须再次检查官方 release、许可证和平台矩阵，并将最终版本或 commit 固定到仓库依赖锁定文件。禁止跟踪未固定的 `main`/`develop`。
+核验日期：2026-08-03。实现时必须再次检查官方 release、许可证和平台矩阵，并将最终版本或 commit 固定到仓库依赖锁定文件。禁止跟踪未固定的 `main`/`develop`。
 
 ## 1. 总体原则
 
@@ -207,7 +207,7 @@ Benchmark 不能替代单元测试，性能结果也不能替代正确性断言�
 
 ACR 公共 API 只暴露抽象 operation，不暴露 vendor handle。专用库不可用时，相关实验标记为 SKIPPED，不得伪报通过。
 
-## 10. StarPU：可选评估，不作为当前实现的强制依赖
+## 10. StarPU：可选评估，不作为第一版强制依赖
 
 官方：
 
@@ -218,10 +218,10 @@ StarPU 能提供 codelet、异构任务调度、数据管理、多 GPU、性能�
 
 本支线要求：
 
-- 做独立 PoC/ADR，评估能否用 worker mask、自定义 scheduler 或显式 worker 选择执行画像推算后的设备决策；
+- 做独立 PoC/ADR，评估能否用 worker mask、自定义 scheduler 或显式 worker 选择承载硬件画像；
 - 评估 Windows、Linux、CUDA、HIP 和部署成本；
 - 不允许公共 API 绑定 StarPU；
-- 当前实现即使不用 StarPU，也必须记录未采用原因；
+- 第一版即使不用 StarPU，也必须记录未采用原因；
 - 若采用，只能作为可选 runtime adapter，CPU-only 不依赖它；
 - 不为了“最大复用”强行引入与硬件画像冲突的复杂运行时。
 
