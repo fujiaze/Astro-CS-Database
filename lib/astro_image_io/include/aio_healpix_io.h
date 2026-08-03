@@ -131,8 +131,15 @@ AIO_EXPORT int aio_hiss_inspect(const char* path,
 // signal - 输出参数 (malloc 分配 float32 数组, 调用者负责用 aio_hio_free 释放)
 // n_signal - 输出参数, signal 数组长度
 // 返回: 0=成功, <0=失败
+// 注: 仅适用于 FP32 模式文件 (signal_dtype=0); FP64 文件会返回错误
 AIO_EXPORT int aio_hiss_read_tile_signal(const char* path, uint64_t parent_ipix,
                                            float** signal, uint32_t* n_signal);
+
+// R10: 按 Tile 父 ipix 读取 signal (float64 数组, FP64 模式专用)
+// 仅适用于 FP64 模式文件 (signal_dtype=1); FP32 文件会返回错误 (禁止静默转换)
+// signal - 输出参数 (malloc 分配 double 数组, 调用者负责用 aio_hio_free 释放)
+AIO_EXPORT int aio_hiss_read_tile_signal_f64(const char* path, uint64_t parent_ipix,
+                                               double** signal, uint32_t* n_signal);
 
 // WP-H 步骤14: 按 Tile 父 ipix 读取 support (uint8 数组, 已展开到 n_leaf_per_tile)
 AIO_EXPORT int aio_hiss_read_tile_support(const char* path, uint64_t parent_ipix,

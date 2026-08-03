@@ -143,7 +143,7 @@ void DrizzleTileAccumulator::finalize_support(std::vector<uint8_t>& support) con
 //   旧错误: 直接检查 sum_area 在 [0,1]
 //   新正确: 检查 sum_area / pixel_area 在 [0,1]
 int DrizzleTileAccumulator::validate_support() const {
-    const double eps = 1e-6;
+    const double eps = 1e-4;  // R10: 放宽容差, 浮点累计误差可致 S 略超 1.0
     // 02_FROZEN §10: pixel_area<=0 必须硬失败, 不能回退到虚构值
     if (pixel_area <= 0.0) {
         fprintf(stderr,

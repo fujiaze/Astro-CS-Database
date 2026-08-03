@@ -2985,20 +2985,36 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
     }
 
     // 3. 至少一个 Tile 可读取 + signal 非全零 + support 非全零
+    // R10: 根据 requested_prec 选择 FP32 或 FP64 读取函数
     using ReadTileSignalFn = int (*)(const char*, uint64_t, float**, uint32_t*);
+    using ReadTileSignalF64Fn = int (*)(const char*, uint64_t, double**, uint32_t*);
     using ReadTileSupportFn = int (*)(const char*, uint64_t, uint8_t**, uint32_t*);
     auto fn_read_signal = loader.get_function<ReadTileSignalFn>(
         ModuleId::AIO, "aio_hiss_read_tile_signal");
+    auto fn_read_signal_f64 = loader.get_function<ReadTileSignalF64Fn>(
+        ModuleId::AIO, "aio_hiss_read_tile_signal_f64");
     auto fn_read_support = loader.get_function<ReadTileSupportFn>(
         ModuleId::AIO, "aio_hiss_read_tile_support");
 
-    if (!fn_read_signal || !fn_read_support) {
-        LOG_ERROR("orchestrator", "[HISS_VERIFY] aio_hiss_read_tile_signal/support 函数未找到");
-        if (meta_json) fn_free(meta_json);
-        if (tile_ipix_list) fn_free(tile_ipix_list);
-        result.error_msg = "[HISS_VERIFY] AIO DLL 未导出 aio_hiss_read_tile_signal/support";
-        result.exit_code = AstroCsExitCode::HISS_INVALID;
-        return false;
+    bool is_fp64 = (requested_prec == 1);
+    if (is_fp64) {
+        if (!fn_read_signal_f64 || !fn_read_support) {
+            LOG_ERROR("orchestrator", "[HISS_VERIFY] aio_hiss_read_tile_signal_f64/support 函数未找到");
+            if (meta_json) fn_free(meta_json);
+            if (tile_ipix_list) fn_free(tile_ipix_list);
+            result.error_msg = "[HISS_VERIFY] AIO DLL 未导出 aio_hiss_read_tile_signal_f64/support";
+            result.exit_code = AstroCsExitCode::HISS_INVALID;
+            return false;
+        }
+    } else {
+        if (!fn_read_signal || !fn_read_support) {
+            LOG_ERROR("orchestrator", "[HISS_VERIFY] aio_hiss_read_tile_signal/support 函数未找到");
+            if (meta_json) fn_free(meta_json);
+            if (tile_ipix_list) fn_free(tile_ipix_list);
+            result.error_msg = "[HISS_VERIFY] AIO DLL 未导出 aio_hiss_read_tile_signal/support";
+            result.exit_code = AstroCsExitCode::HISS_INVALID;
+            return false;
+        }
     }
 
     // 遍历 Tile (最多检查前 10 个), 找到第一个可读且 signal/support 非全零的 Tile
@@ -3007,25 +3023,40 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
     for (uint64_t i = 0; i < tiles_to_check; ++i) {
         uint64_t parent_ipix = tile_ipix_list[i];
 
-        // 读取 signal
-        float* signal = nullptr;
-        uint32_t n_signal = 0;
-        int sig_ret = fn_read_signal(current_output_path_.c_str(), parent_ipix,
-                                      &signal, &n_signal);
-        if (sig_ret != 0 || signal == nullptr || n_signal == 0) {
-            if (signal) fn_free(signal);
-            continue;  // 尝试下一个 Tile
-        }
-
-        // 检查 signal 非全零
+        // 读取 signal (根据精度模式选择 FP32 或 FP64)
         bool has_nonzero_signal = false;
-        for (uint32_t j = 0; j < n_signal; ++j) {
-            if (signal[j] != 0.0f) {
-                has_nonzero_signal = true;
-                break;
+        uint32_t n_signal = 0;
+        if (is_fp64) {
+            double* signal_f64 = nullptr;
+            int sig_ret = fn_read_signal_f64(current_output_path_.c_str(), parent_ipix,
+                                              &signal_f64, &n_signal);
+            if (sig_ret != 0 || signal_f64 == nullptr || n_signal == 0) {
+                if (signal_f64) fn_free(signal_f64);
+                continue;
             }
+            for (uint32_t j = 0; j < n_signal; ++j) {
+                if (signal_f64[j] != 0.0) {
+                    has_nonzero_signal = true;
+                    break;
+                }
+            }
+            fn_free(signal_f64);
+        } else {
+            float* signal = nullptr;
+            int sig_ret = fn_read_signal(current_output_path_.c_str(), parent_ipix,
+                                          &signal, &n_signal);
+            if (sig_ret != 0 || signal == nullptr || n_signal == 0) {
+                if (signal) fn_free(signal);
+                continue;
+            }
+            for (uint32_t j = 0; j < n_signal; ++j) {
+                if (signal[j] != 0.0f) {
+                    has_nonzero_signal = true;
+                    break;
+                }
+            }
+            fn_free(signal);
         }
-        fn_free(signal);
 
         if (!has_nonzero_signal) {
             continue;  // signal 全零, 尝试下一个 Tile
@@ -3061,6 +3092,7 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
                  + " (parent_ipix=" + std::to_string(parent_ipix)
                  + ") 验证通过: n_signal=" + std::to_string(n_signal)
                  + " n_support=" + std::to_string(n_support)
+                 + " precision=" + (is_fp64 ? "FP64" : "FP32")
                  + " signal/support 均非全零");
         break;
     }

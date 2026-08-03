@@ -564,7 +564,7 @@ AIO_EXPORT int aio_hiss_inspect(const char* path,
 }
 
 // ============================================================================
-// WP-H 步骤14: aio_hiss_read_tile_signal - 按 Tile 读取 signal
+// WP-H 步骤14: aio_hiss_read_tile_signal - 按 Tile 读取 signal (FP32)
 // ============================================================================
 
 AIO_EXPORT int aio_hiss_read_tile_signal(const char* path, uint64_t parent_ipix,
@@ -601,6 +601,47 @@ AIO_EXPORT int aio_hiss_read_tile_signal(const char* path, uint64_t parent_ipix,
         return HIO_ERR_MEM;
     }
     std::memcpy(*signal, sig_vec.data(), sig_vec.size() * sizeof(float));
+    return HIO_OK;
+}
+
+// ============================================================================
+// R10: aio_hiss_read_tile_signal_f64 - 按 Tile 读取 signal (FP64)
+// ============================================================================
+
+AIO_EXPORT int aio_hiss_read_tile_signal_f64(const char* path, uint64_t parent_ipix,
+                                               double** signal, uint32_t* n_signal) {
+    if (!path || !signal || !n_signal) {
+        fprintf(stderr, "[hio] hiss_read_tile_signal_f64: 无效参数\n");
+        return HIO_ERR_PARAM;
+    }
+    *signal = nullptr;
+    *n_signal = 0;
+
+    hiss::HissReader reader;
+    if (reader.open(path) != 0) {
+        fprintf(stderr, "[hio] hiss_read_tile_signal_f64: HissReader.open 失败: %s\n", path);
+        return HIO_ERR_FILE;
+    }
+
+    std::vector<double> sig_vec;
+    int ret = reader.read_tile_signal_f64(parent_ipix, sig_vec);
+    if (ret != 0) {
+        fprintf(stderr, "[hio] hiss_read_tile_signal_f64: read_tile_signal_f64 失败 ret=%d parent=%llu\n",
+                ret, (unsigned long long)parent_ipix);
+        return HIO_ERR_FILE;
+    }
+
+    if (sig_vec.empty()) {
+        return HIO_OK;
+    }
+
+    *n_signal = (uint32_t)sig_vec.size();
+    *signal = (double*)std::malloc(sig_vec.size() * sizeof(double));
+    if (!*signal) {
+        fprintf(stderr, "[hio] hiss_read_tile_signal_f64: 内存分配失败\n");
+        return HIO_ERR_MEM;
+    }
+    std::memcpy(*signal, sig_vec.data(), sig_vec.size() * sizeof(double));
     return HIO_OK;
 }
 
