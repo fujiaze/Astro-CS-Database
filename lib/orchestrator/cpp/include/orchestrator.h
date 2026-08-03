@@ -159,7 +159,7 @@ namespace AstroCsExitCode {
 
 // 阶段耗时记录
 struct StageTiming {
-    PipelineStage stage;
+    PipelineStageV2 stage;   // CFG-012: 修复 stage 字段 (原误用旧枚举, 全部硬编码为 CALIBRATE)
     std::string stage_name;
     double duration_sec;
     bool success;
@@ -172,7 +172,7 @@ struct TaskResult {
     std::vector<StageTiming> timings;
     std::map<std::string, std::string> wcs_fields;   // WCS 字段
     std::map<std::string, std::string> photo_stats;  // 测光统计
-    std::string output_ahpx_path;                    // 输出 .ahpx 路径
+    std::string output_hiss_path;                    // CFG-011: 修复 (原 output_ahpx_path)
     std::string error_msg;
     // P03-003: 进程退出码 (AstroCsExitCode::SUCCESS=0 表示成功, 非零表示具体错误)
     // 失败时由各 stage handler 设置对应错误码, 由 cli_command 直接返回
@@ -218,12 +218,6 @@ public:
     // 加载配置 (从 JSON 文件读取参数)
     bool load_config(const std::string& config_path, std::string& error_msg);
 
-    // 单帧处理
-    TaskResult run_single(const std::string& fits_path);
-
-    // 批量处理 (遍历目录下 FITS 文件)
-    std::vector<TaskResult> run_batch(const std::string& dir_path);
-
     // 状态控制
     void pause();
     void resume();
@@ -232,7 +226,7 @@ public:
     // 状态查询
     TaskState get_state() const { return state_; }
     std::string get_current_frame() const { return current_frame_; }
-    PipelineStage get_current_stage() const { return current_stage_; }
+    PipelineStageV2 get_current_stage() const { return current_stage_; }
     double get_elapsed_time() const;
     size_t get_memory_usage() const;
     int get_thread_count() const;
@@ -322,7 +316,7 @@ private:
     OrchestratorConfig config_;
     std::atomic<TaskState> state_{TaskState::IDLE};
     std::string current_frame_;
-    PipelineStage current_stage_{PipelineStage::CALIBRATE};
+    PipelineStageV2 current_stage_{PipelineStageV2::CALIBRATE};
     std::mutex mutex_;
     std::thread worker_thread_;
     std::chrono::steady_clock::time_point start_time_;

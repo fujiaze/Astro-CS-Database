@@ -1,10 +1,11 @@
 # ============================================================================
 # orchestrator - C++ CLI 编排器 Makefile
-# 功能: 编译 orchestrator.exe (交互式 REPL + 单次命令执行)
+# 功能: 编译 orchestrator.exe (Phase1 JSON 入口: orchestrator.exe <stage1.json>)
 #       编译 test_dll_loader.exe (DllLoader 单元测试)
 #       编译 test_checkpoint.exe (CheckpointManager 单元测试)
 # 编译器: g++ (MSYS2), C++17, 静态链接 C++ 运行时
 # 注: 暂不链接任何 DLL (动态加载由 DllLoader 运行时完成)
+# 注: nlohmann/json 已通过 MSYS2 pacman 安装在 mingw64/include, 默认搜索路径
 # ============================================================================
 
 CXX = g++
@@ -31,22 +32,22 @@ SRC_DIR = src
 INCDIR = include
 TEST_DIR = tests
 
-# 源文件列表
+# 源文件列表 (Phase1 JSON 入口: 删除 cli_repl, 新增 json_config)
 SRCS = $(SRC_DIR)/main.cpp \
        $(SRC_DIR)/orchestrator.cpp \
        $(SRC_DIR)/dll_loader.cpp \
        $(SRC_DIR)/checkpoint.cpp \
        $(SRC_DIR)/logger.cpp \
-       $(SRC_DIR)/cli_repl.cpp \
-       $(SRC_DIR)/cli_command.cpp
+       $(SRC_DIR)/cli_command.cpp \
+       $(SRC_DIR)/json_config.cpp
 
 # 头文件列表
 HEADERS = $(INCDIR)/orchestrator.h \
           $(INCDIR)/dll_loader.h \
           $(INCDIR)/checkpoint.h \
           $(INCDIR)/logger.h \
-          $(INCDIR)/cli_repl.h \
-          $(INCDIR)/cli_command.h
+          $(INCDIR)/cli_command.h \
+          $(INCDIR)/json_config.h
 
 # 输出目标
 TARGET = orchestrator.exe
@@ -90,8 +91,8 @@ $(TEST_LOGGER): $(TEST_DIR)/test_logger.cpp $(SRC_DIR)/logger.cpp $(INCDIR)/logg
 	$(CXX) $(CXXFLAGS) -o $@ $(TEST_DIR)/test_logger.cpp $(SRC_DIR)/logger.cpp $(INCLUDES) $(LDFLAGS) -lm
 
 # ============================================================================
-# 阶段1集成测试 (Task 5): test_orchestrator_cli
-# 测试 REPL 命令、单次命令、断点续传、DLL 加载降级、日志集成
+# 阶段1集成测试: test_orchestrator_cli
+# Phase1 JSON 入口: 测试 JSON 配置解析/验证、断点续传、DLL 加载降级、日志集成
 # ============================================================================
 test_orchestrator_cli: $(TEST_ORCHESTRATOR_CLI)
 
@@ -100,14 +101,19 @@ $(TEST_ORCHESTRATOR_CLI): $(TEST_DIR)/test_orchestrator_cli.cpp \
                           $(SRC_DIR)/dll_loader.cpp \
                           $(SRC_DIR)/checkpoint.cpp \
                           $(SRC_DIR)/logger.cpp \
+                          $(SRC_DIR)/cli_command.cpp \
+                          $(SRC_DIR)/json_config.cpp \
                           $(INCDIR)/orchestrator.h \
                           $(INCDIR)/dll_loader.h \
                           $(INCDIR)/checkpoint.h \
-                          $(INCDIR)/logger.h
+                          $(INCDIR)/logger.h \
+                          $(INCDIR)/cli_command.h \
+                          $(INCDIR)/json_config.h
 	@if not exist $(TEST_DIR) mkdir $(TEST_DIR)
 	$(CXX) $(CXXFLAGS) -o $@ $(TEST_DIR)/test_orchestrator_cli.cpp \
 	    $(SRC_DIR)/orchestrator.cpp $(SRC_DIR)/dll_loader.cpp \
 	    $(SRC_DIR)/checkpoint.cpp $(SRC_DIR)/logger.cpp \
+	    $(SRC_DIR)/cli_command.cpp $(SRC_DIR)/json_config.cpp \
 	    $(INCLUDES) $(LDFLAGS) -lm
 
 # ============================================================================

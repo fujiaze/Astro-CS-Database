@@ -580,202 +580,6 @@ bool Orchestrator::load_config(const std::string& config_path, std::string& erro
 }
 
 // ============================================================================
-// run_single - 单帧端到端处理 (骨架: 串行调用 5 个阶段)
-// Task 3: 集成检查点断点续传
-//   - 如 config_.fresh_start=true, 删除现有检查点重新开始
-//   - 如存在检查点且启用检查点, 从 get_resume_stage 恢复
-//   - 每个阶段完成后调用 checkpoint_mgr_.update_stage
-//   - 全部完成后标记 fully_completed
-// ============================================================================
-TaskResult Orchestrator::run_single(const std::string& fits_path) {
-    TaskResult result;
-    result.success = false;
-    result.frame_name = fits_path;
-
-    LOG_INFO("orchestrator", "========== 开始处理: " + fits_path + " ==========");
-
-    if (fits_path.empty()) {
-        result.error_msg = "FITS 路径为空";
-        LOG_ERROR("orchestrator", result.error_msg);
-        state_ = TaskState::FAILED;
-        return result;
-    }
-
-    if (!fs::exists(fits_path)) {
-        result.error_msg = "FITS 文件不存在: " + fits_path;
-        LOG_ERROR("orchestrator", result.error_msg);
-        state_ = TaskState::FAILED;
-        return result;
-    }
-
-    // 提取帧名 (只取文件名部分作为检查点 key)
-    std::string frame_name = fs::path(fits_path).filename().string();
-
-    // Task 3: 检查点断点续传
-    int resume_stage_id = 0;  // 默认从阶段 0 开始
-    if (config_.enable_checkpoint) {
-        if (config_.fresh_start) {
-            // fresh_start 模式: 删除现有检查点重新开始
-            if (checkpoint_mgr_.exists(frame_name)) {
-                LOG_INFO("orchestrator", "fresh_start: 删除现有检查点 " + frame_name);
-                checkpoint_mgr_.remove(frame_name);
-            }
-        } else if (checkpoint_mgr_.exists(frame_name)) {
-            // 检查点存在: 检查是否已完成
-            int rs = checkpoint_mgr_.get_resume_stage(frame_name);
-            if (rs < 0) {
-                LOG_INFO("orchestrator", "检查点显示已全部完成, 跳过: " + frame_name);
-                result.success = true;
-                result.error_msg = "已通过检查点 (fully_completed)";
-                state_ = TaskState::COMPLETED;
-                return result;
-            }
-            resume_stage_id = rs;
-            LOG_INFO("orchestrator", "检查点恢复: 从阶段 " + std::to_string(resume_stage_id)
-                     + " 继续 (" + frame_name + ")");
-        }
-    }
-
-    // 进入运行状态
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        current_frame_ = fits_path;
-        current_stage_ = PipelineStage::CALIBRATE;
-        start_time_ = std::chrono::steady_clock::now();
-    }
-    state_ = TaskState::RUNNING;
-
-    // 串行调用各阶段 (骨架实现)
-    // stage_id 与 PipelineStage 对应: 0=CALIBRATE, 1=PLATESOLVE, 2=PHOTOMETRIC, 3=DRIZZLE
-    // 注: PSF_FIT 复用 PLATESOLVE 枚举, 此处单独编号 (run_stage_psf 在阶段 1 之后)
-    auto run_stage_with_timing = [&](PipelineStage stage,
-                                      int stage_id,
-                                      bool (Orchestrator::*fn)(TaskResult&),
-                                      const char* name) -> bool {
-        // 检查点续传: 跳过已完成阶段
-        if (config_.enable_checkpoint && !config_.fresh_start &&
-            stage_id < resume_stage_id) {
-            LOG_INFO("orchestrator", "---------- 阶段: " + std::string(name) + " (检查点跳过, 已完成) ----------");
-            StageTiming st;
-            st.stage = stage;
-            st.stage_name = name;
-            st.duration_sec = 0.0;
-            st.success = true;
-            result.timings.push_back(st);
-            return true;
-        }
-
-        LOG_INFO("orchestrator", "---------- 阶段: " + std::string(name) + " ----------");
-        {
-            std::lock_guard<std::mutex> lock(mutex_);
-            current_stage_ = stage;
-        }
-        auto t0 = std::chrono::steady_clock::now();
-        bool ok = (this->*fn)(result);
-        auto t1 = std::chrono::steady_clock::now();
-        double dur = std::chrono::duration<double>(t1 - t0).count();
-
-        StageTiming st;
-        st.stage = stage;
-        st.stage_name = name;
-        st.duration_sec = dur;
-        st.success = ok;
-        result.timings.push_back(st);
-        LOG_INFO("orchestrator", "[" + std::to_string(dur) + "s] " + name
-                 + (ok ? " 完成" : " 失败"));
-
-        // Task 3: 阶段完成后更新检查点 (仅对 4 个标准阶段编号)
-        if (config_.enable_checkpoint && stage_id >= 0) {
-            checkpoint_mgr_.update_stage(frame_name, stage_id, name, dur, ok);
-            if (!ok) {
-                LOG_WARN("orchestrator", "阶段失败, 检查点已保存 (可断点续传)");
-            }
-        }
-        return ok;
-    };
-
-    bool ok = true;
-    ok = ok && run_stage_with_timing(PipelineStage::CALIBRATE, 0,
-                                      &Orchestrator::run_stage_calibrate, "CALIBRATE");
-    ok = ok && run_stage_with_timing(PipelineStage::PLATESOLVE, 1,
-                                      &Orchestrator::run_stage_platesolve, "PLATESOLVE");
-    // PSF_FIT 不纳入 4 阶段检查点编号 (stage_id=-1 表示不记录检查点)
-    ok = ok && run_stage_with_timing(PipelineStage::PLATESOLVE, -1,
-                                      &Orchestrator::run_stage_psf, "PSF_FIT");
-    ok = ok && run_stage_with_timing(PipelineStage::PHOTOMETRIC, 2,
-                                      &Orchestrator::run_stage_photometric, "PHOTOMETRIC");
-    ok = ok && run_stage_with_timing(PipelineStage::DRIZZLE, 3,
-                                      &Orchestrator::run_stage_drizzle, "DRIZZLE");
-
-    result.success = ok;
-    state_ = ok ? TaskState::COMPLETED : TaskState::FAILED;
-
-    // Task 3: 全部成功后, 检查点已由 update_stage 自动标记 fully_completed
-    // (current_stage_id >= 4 时 fully_completed=true)
-    // 失败时保留检查点, 下次运行可断点续传
-
-    LOG_INFO("orchestrator", "========== 处理" + std::string(ok ? "完成 (成功)" : "失败") + " ==========");
-    return result;
-}
-
-// ============================================================================
-// run_batch - 批量处理 (遍历目录下 FITS 文件)
-// ============================================================================
-std::vector<TaskResult> Orchestrator::run_batch(const std::string& dir_path) {
-    std::vector<TaskResult> results;
-
-    LOG_INFO("orchestrator", "========== 批量处理目录: " + dir_path + " ==========");
-
-    if (dir_path.empty()) {
-        LOG_ERROR("orchestrator", "目录路径为空");
-        return results;
-    }
-
-    if (!fs::exists(dir_path) || !fs::is_directory(dir_path)) {
-        LOG_ERROR("orchestrator", "目录不存在或不是目录: " + dir_path);
-        return results;
-    }
-
-    // 收集 FITS 文件 (扩展名 .fits / .fit / .fts)
-    std::vector<std::string> fits_files;
-    for (const auto& entry : fs::directory_iterator(dir_path)) {
-        if (!entry.is_regular_file()) continue;
-        std::string ext = entry.path().extension().string();
-        // 转小写
-        std::transform(ext.begin(), ext.end(), ext.begin(),
-                       [](unsigned char c) { return std::tolower(c); });
-        if (ext == ".fits" || ext == ".fit" || ext == ".fts") {
-            fits_files.push_back(entry.path().string());
-        }
-    }
-
-    std::sort(fits_files.begin(), fits_files.end());
-    LOG_INFO("orchestrator", "发现 " + std::to_string(fits_files.size()) + " 个 FITS 文件");
-
-    // 逐个处理
-    for (size_t i = 0; i < fits_files.size(); ++i) {
-        LOG_INFO("orchestrator", "进度: " + std::to_string(i + 1) + "/" + std::to_string(fits_files.size()));
-
-        // 检查中断标志
-        if (state_ == TaskState::INTERRUPTED) {
-            LOG_WARN("orchestrator", "已中断, 跳过剩余文件");
-            break;
-        }
-
-        TaskResult r = run_single(fits_files[i]);
-        results.push_back(r);
-    }
-
-    // 汇总
-    size_t n_ok = 0;
-    for (const auto& r : results) {
-        if (r.success) ++n_ok;
-    }
-    LOG_INFO("orchestrator", "========== 批量处理完成: " + std::to_string(n_ok) + "/" + std::to_string(results.size()) + " 成功 ==========");
-    return results;
-}
-
-// ============================================================================
 // 状态控制: pause / resume / interrupt
 // ============================================================================
 void Orchestrator::pause() {
@@ -3778,7 +3582,7 @@ TaskResult Orchestrator::run_stage1(const std::string& fits_path,
     {
         std::lock_guard<std::mutex> lock(mutex_);
         current_frame_ = fits_path;
-        current_stage_ = PipelineStage::CALIBRATE;
+        current_stage_ = PipelineStageV2::CALIBRATE;
         start_time_ = std::chrono::steady_clock::now();
     }
     state_ = TaskState::RUNNING;
@@ -3815,7 +3619,7 @@ TaskResult Orchestrator::run_stage1(const std::string& fits_path,
         if (!check_stage_continue(name, result)) {
             // 记录 timings (跳过的 stage, duration=0, success=false)
             StageTiming st;
-            st.stage = PipelineStage::CALIBRATE;
+            st.stage = stage;  // CFG-012: 使用实际 stage (原硬编码为 CALIBRATE)
             st.stage_name = std::string(name) + " (skipped)";
             st.duration_sec = 0.0;
             st.success = false;
@@ -3883,7 +3687,7 @@ TaskResult Orchestrator::run_stage1(const std::string& fits_path,
         }
 
         StageTiming st;
-        st.stage = PipelineStage::CALIBRATE;  // 复用旧枚举 (StageTiming 仍用旧枚举)
+        st.stage = stage;  // CFG-012: 使用实际 stage (原硬编码为 CALIBRATE)
         st.stage_name = name;
         st.duration_sec = dur;
         st.success = ok;
@@ -3956,13 +3760,13 @@ TaskResult Orchestrator::run_stage1(const std::string& fits_path,
         if (!config_.allow_partial_output) {
             LOG_INFO("orchestrator", "P04-004: 原子性清理 - stage1 失败/取消/超时, 删除部分输出");
             cleanup_partial_output(output_hiss);
-            result.output_ahpx_path = "";
+            result.output_hiss_path = "";  // CFG-011: output_ahpx_path -> output_hiss_path
         } else {
             LOG_WARN("orchestrator", "P04-004: allow_partial_output=true, 保留部分输出: " + output_hiss);
-            result.output_ahpx_path = output_hiss;  // 标记为 partial 输出
+            result.output_hiss_path = output_hiss;  // 标记为 partial 输出
         }
     } else {
-        result.output_ahpx_path = output_hiss;
+        result.output_hiss_path = output_hiss;
     }
 
     state_ = ok ? TaskState::COMPLETED : TaskState::FAILED;
@@ -4087,7 +3891,7 @@ TaskResult Orchestrator::run_stage2(const std::string& hiss_dir,
     {
         std::lock_guard<std::mutex> lock(mutex_);
         current_frame_ = hiss_dir;
-        current_stage_ = PipelineStage::STACK;
+        current_stage_ = PipelineStageV2::STACK;
         start_time_ = std::chrono::steady_clock::now();
     }
     state_ = TaskState::RUNNING;
@@ -4099,7 +3903,7 @@ TaskResult Orchestrator::run_stage2(const std::string& hiss_dir,
         // P04-004: stage 开始前检查取消/超时
         if (!check_stage_continue(name, result)) {
             StageTiming st;
-            st.stage = PipelineStage::STACK;
+            st.stage = stage;  // CFG-012: 使用实际 stage
             st.stage_name = std::string(name) + " (skipped)";
             st.duration_sec = 0.0;
             st.success = false;
@@ -4161,7 +3965,7 @@ TaskResult Orchestrator::run_stage2(const std::string& hiss_dir,
         }
 
         StageTiming st;
-        st.stage = PipelineStage::STACK;  // stage2 使用 STACK 枚举
+        st.stage = stage;  // CFG-012: 使用实际 stage (原硬编码为 STACK)
         st.stage_name = name;
         st.duration_sec = dur;
         st.success = ok;
@@ -4209,13 +4013,13 @@ TaskResult Orchestrator::run_stage2(const std::string& hiss_dir,
         if (!config_.allow_partial_output) {
             LOG_INFO("orchestrator", "P04-004: 原子性清理 - stage2 失败/取消/超时, 删除部分输出");
             cleanup_partial_output(output_hcsd);
-            result.output_ahpx_path = "";
+            result.output_hiss_path = "";  // CFG-011: output_ahpx_path -> output_hiss_path
         } else {
             LOG_WARN("orchestrator", "P04-004: allow_partial_output=true, 保留部分输出: " + output_hcsd);
-            result.output_ahpx_path = output_hcsd;
+            result.output_hiss_path = output_hcsd;
         }
     } else {
-        result.output_ahpx_path = output_hcsd;
+        result.output_hiss_path = output_hcsd;
     }
     state_ = ok ? TaskState::COMPLETED : TaskState::FAILED;
 
