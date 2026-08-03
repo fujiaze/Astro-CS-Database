@@ -1,4 +1,4 @@
-# 资源占用控制
+# 资源占用与内存反压控制
 
 ## 1. 配置语义
 
@@ -12,65 +12,84 @@ capacity:
   vram_limit: 0.95
 ```
 
-- CPU/GPU/I/O：软利用率目标；
-- RAM/VRAM：容量上限；
-- 不表示任务切分比例；
-- 不影响 HardwareProfile 数值。
+CPU/GPU/I/O为软利用率目标；RAM/VRAM为容量上限。任何百分比都不是CPU/GPU任务份额。
 
-完整示例见 `schemas/compute_config.example.yaml`。
+## 2. 控制闭环必须包含三层
 
-## 2. CPU
+### 采样
 
-- 所有允许的逻辑线程均可进入 ACR arena；
-- 不通过永久少开一个线程实现95%；
-- 通过任务粒度、队列水位、提交节奏、worker让步和优先级控制；
-- 控制窗口建议100～500ms；
-- 线程错峰让步，禁止全线程长时间同步睡眠；
-- 记录所有 worker 是否实际参与。
-
-## 3. GPU
-
-- 通过 stream/queue深度、batch、kernel时长和提交节奏控制；
-- 显示 GPU 优先短 batch；
-- 不允许无界排队；
-- 多 GPU 独立控制；
-- 利用率目标允许稳定波动，不承诺每毫秒精确95%。
-
-## 4. 利用率来源
-
-优先使用平台可用的真实指标：
-
-- CPU：OS/performance counter 或进程 CPU时间窗口；
+- CPU：进程CPU时间窗口或OS计数器；
 - NVIDIA：NVML；
 - AMD：ROCm SMI；
-- Intel：Level Zero/oneAPI可用接口；
-- 其他：有文档的队列占用/设备busy估算。
+- Intel：Level Zero/oneAPI；
+- 无真实接口时可用明确标记的估算值。
 
-若真实API不可用，可使用可审计估算，但必须在报告中标记 `estimated=true`，不能声称真实设备利用率。
+### 决策
 
-## 5. RAM/VRAM
+控制器输出可执行动作，不只返回数学结果：
 
 ```text
-limit = min(total * ratio, total - fixed_reserve)
+ALLOW_SUBMIT
+HOLD_SUBMIT_FOR(duration)
+REDUCE_QUEUE_DEPTH
+INCREASE_QUEUE_DEPTH
+REDUCE_BATCH
+INCREASE_BATCH
+STAGGER_WORKER_YIELD
+PAUSE_DEVICE
+RESUME_DEVICE
 ```
 
-达到限制时：停止新提交、缩小块、释放可重建缓存、选择低内存路径、回退其他设备或明确失败。
+### 执行
 
-## 6. 控制闭环不是在线学习
+Dispatcher/GPU queue必须真正执行动作，并记录动作时间、持续时间和结果。
 
-控制器可以依据当前利用率调整队列深度和节奏，但不得修改：
+仅仅把chunk减半不构成95%闭环；它可能增加提交开销而不降低利用率。
 
-- 算术/内存/卷积曲线；
-- CostEstimator参数；
-- HardwareProfile；
-- Qualification原始数据。
+## 3. CPU控制
 
-## 7. 验收
+- 所有允许逻辑线程均可参与；
+- 禁止永久停用一个线程冒充95%；
+- 可采用令牌桶、提交占空窗口、arena并发窗口、错峰worker让步或低优先级；
+- 禁止所有线程同步长睡眠；
+- 报告worker参与率、平均利用率、p95、目标误差和响应延迟。
 
-在持续工作负载下测试 50%、80%、95%、100%目标：
+## 4. GPU控制
 
-- 报告实际平均、p95、误差和控制窗口；
-- 报告是否真实指标或估算；
-- 报告所有CPU worker参与；
-- 状态查询和取消保持响应；
-- 不能仅向控制器输入0.92/0.99并检查数学输出。
+- 控制stream/queue深度、batch、kernel时长和提交节奏；
+- 不允许无界排队；
+- 多GPU独立控制；
+- 显示GPU优先短batch；
+- 无GPU采样接口时不得宣称真实95%控制完成。
+
+## 5. MemoryBudget配置注入
+
+`MemoryBudgetConfig` 必须由正式 RuntimeConfig/配置文件注入，禁止在 `Dispatcher::configure()` 中悄悄重新创建默认配置覆盖用户值。
+
+每个动作必须有实际处理路径：
+
+- `StopNewSubmit`：停止该资源新claim；
+- `ShrinkBlock`：重新计算未开始块大小；
+- `ReleaseCache`：释放可重建缓存并记录字节；
+- `LowMemoryPath`：进入已注册低内存实现；
+- `FallbackOtherDevice`：重新评估未开始块；
+- `Fail`：明确错误并保留准确coverage。
+
+动作枚举只被转成字符串不算实现。
+
+## 6. 验收
+
+持续工作负载测试 50%、80%、95%、100%目标：
+
+- 真实采样或 `estimated=true`；
+- 平均、p95、控制窗口和容差；
+- 控制动作序列；
+- 所有CPU worker参与；
+- GPU队列水位；
+- RAM/VRAM峰值；
+- 状态查询、取消和系统响应；
+- HardwareProfile hash不变。
+
+不能只向控制器人工输入0.92/0.99后宣称资源控制通过。
+
+报告schema见 `schemas/resource_control_report.schema.json`。

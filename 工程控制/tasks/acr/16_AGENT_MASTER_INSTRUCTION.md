@@ -1,48 +1,18 @@
 # Agent总执行指令
 
-你正在现有 AstroCS 仓库的唯一 `feature/astrocompute-runtime` 分支继续纠正和完善 ACR。若分支存在必须继续使用，不得创建新版分支、新仓库或第二套实现。
-
-## 开始
-
-1. 记录仓库、remote、main、feature、base、HEAD和工作区；
-2. 检查 `astro_toolkit.py` 帮助、自检和可复用工具；
-3. 阅读本控制包，先读 `20_PHASE_I_AUDIT_ACTION_PLAN.md`；
-4. 建立算法路径guard；
-5. 审计现有代码，保留oneTBB、hwloc、cpu_features、CPU ISA、Buffer/Event和有效测试；
-6. 所有外部进程、编译、测试和硬件等待设置明确超时。
-
-## 绝对范围
-
-只开发 ACR API、TaskDescriptor、backend、Buffer、HardwareProfile Benchmark、模型拟合、CostEstimator、动态Dispatcher、资源控制、独立工具、经典实验、文档和CI。严禁修改任何现有算法、OpenMP、PipelineFrame、Orchestrator和正常CLI。
-
-## 必须先纠正
-
-- 删除 per-kernel `preferred_backend/routes.json`；
-- HardwareProfile取代RouteProfile；
-- OperationId/TaskTraits不得被忽略；
-- Public API真实进入CostEstimator和backend；
-- Benchmark覆盖完整能力族；
-- Mixed必须真实CPU+GPU，无GPU则SKIPPED；
-- 95%控制读取真实指标或明确估算；
-- Sanitizer实际开启；
-- Evidence统一HEAD。
-
-## 技术原则
-
-- 最大复用成熟开源库，但不重复引入重叠运行时；
-- 公共API不泄露第三方类型；
-- CPU-only永远可用；
-- GPU插件可选隔离；
-- 无画像CPU-only+非阻断警告；
-- 画像只读、无在线学习；
-- 默认FP32；
-- 默认CPU/GPU利用率目标约95%；
-- 不允许用户任务份额参数。
-
-## 合并
-
-严格执行阶段和测试矩阵。全部通过后按 `18_MAIN_MERGE_AND_DORMANT_INTEGRATION.md` 合并到main备用。未完成、真实GPU未验证、主线回归失败、算法越界或证据不一致时不得合并。
-
-## 交付
-
-按 `13_DELIVERY_PACKAGE_RULES.md` 交付控制包、完整源码快照、统一Evidence和Merge Report，不得只交diff。
+1. 只使用现有 `feature/astrocompute-runtime`，不新建仓库或版本分支。
+2. 首先读取 `00_READ_FIRST.md` 和 `21_COMMIT_F_CORRECTION_PLAN.md`。
+3. Commit F仅视为中间基础，不得宣称Cost-aware Mixed或95%闭环完成。
+4. 保留CPU采样、MemoryBudget接口和尾段缩块实验，但按计划修正命名和接线。
+5. 优先修复path guard、单一HEAD、coverage和actual执行报告。
+6. 接通 `CostEstimator → Shared Pending Pool → Backend`，不能只生成推荐字符串。
+7. 设备每次claim依据固定画像、当前队列、驻留、容量和利用率提交许可。
+8. 实现动态guided，禁止固定70/30两段作为最终方案。
+9. 资源控制必须具有真实采样、决策和执行动作；所有CPU线程仍可参与。
+10. MemoryBudget配置从RuntimeConfig注入，每种动作都必须有真实行为。
+11. 真实GPU不可用时相关测试标SKIPPED，但最终不得合并main。
+12. ASan/UBSan未实际开启时不得使用sanitizer通过措辞。
+13. 禁止修改任何AstroCS现有算法、OpenMP、Pipeline或正常CLI。
+14. 所有外部命令、构建和测试必须设置明确超时。
+15. 每阶段原子提交；失败不得伪装PASS，继续交付完整证据。
+16. 只有CHECKLIST全部通过后，才允许 `--no-ff` 合并main备用。

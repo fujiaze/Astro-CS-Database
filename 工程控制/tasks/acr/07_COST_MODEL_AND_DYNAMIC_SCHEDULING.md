@@ -1,107 +1,138 @@
 # CostEstimator 与动态异构调度
 
-## 1. 路由不是固定比例
+## 1. 基本原则
 
-HardwareProfile 不保存：
+HardwareProfile 保存分设备、分精度、分任务能力族的性能曲线，不保存固定 CPU/GPU 份额，不保存业务 kernel 的 `preferred_backend`。
+
+CostEstimator只产生预测：
 
 ```text
-CPU 18% / GPU 82%
+Estimate(device, chunk) = queue + launch + transfer + compute + merge + penalty
 ```
 
-也不保存每业务 kernel 的 `preferred_backend`。它保存各设备在不同能力族、尺寸、精度和驻留下的曲线。
+预测不是执行事实。`preferred_device`、`predicted_primary_device` 等字段不得写入 `actual_*` 字段。
 
-## 2. TaskDescriptor输入
+## 2. 必须接通的真实链路
 
-- TaskClass/OperationId；
-- 工作域、Tile、批次数和剩余块；
-- 精度和累加策略；
-- 字节读写、shape、stride、halo；
-- 连续/局部/随机/scatter；
-- 稀疏度、原子冲突、分支均匀性；
-- 输入输出驻留；
-- 是否可拆、是否允许混合；
-- 当前设备、队列、健康和容量。
+```text
+API
+→ TaskDescriptor
+→ ProfileStore
+→ CostEstimator::estimate_all_candidates()
+→ Dispatcher::claim_next(device_id)
+→ Backend::submit()
+→ Event/Completion
+→ Coverage/ExecutionStatistics
+```
 
-## 3. 候选成本
+每个设备每次领取下一块时重新读取：
+
+- 剩余 pending 块；
+- 当前队列等待；
+- 数据驻留；
+- RAM/VRAM容量；
+- 设备健康；
+- 固定 HardwareProfile；
+- 当前利用率控制器给出的提交许可。
+
+运行时不修改 HardwareProfile。
+
+## 3. Shared Pending Pool
+
+每个工作块必须有唯一 ID，并具备状态机：
+
+```text
+PENDING → CLAIMED(device, attempt) → DONE
+                         └────────→ FAILED
+FAILED 可按策略重新进入 PENDING；已成功 DONE 的块不可再次执行。
+```
+
+要求：
+
+- claim 使用原子状态转换；
+- 已开始块不跨设备迁移；
+- 设备失败只回收未开始或明确失败块；
+- coverage由实际完成事件驱动；
+- 禁止执行结束后无条件批量 `mark_done`；
+- 最终验证每块恰好一次成功完成。
+
+## 4. 候选块与设备选择
+
+设备领取时，对有限候选块计算预计完成时间：
 
 ```text
 T_finish(device, chunk) =
     queue_wait
   + submit_or_launch
   + required_transfer
-  + profile_compute(task_class, precision, size, residence)
+  + profile_compute(task_traits, size, precision, residence)
   + merge_or_sync
-  + low_confidence_penalty
+  + confidence_penalty
 ```
 
-### 映射原则
+选择预计最早完成且资源控制器允许提交的候选。禁止先选一个全局设备字符串，再让所有工作继续走 CPU runner。
 
-- elementwise：内存曲线+算术强度；
-- reduction：对应 operation/precision 曲线；
-- convolution：direct/separable/FFT、核、stride、halo和驻留；
-- sparse/atomic/branch：对应不规则能力族；
-- library：成熟 adapter曲线；
-- 小任务必须计入固定启动和传输成本。
+## 5. 动态 guided scheduling
 
-## 4. 候选块大小
+禁止固定 `70%正常块 + 30%半块` 作为最终 guided 实现。下一块大小必须依据：
 
-对 CPU/GPU 各自生成有限候选块：
+- remaining_items；
+- active_device_count；
+- 各设备画像吞吐；
+- 当前队列长度；
+- 最近尚未完成块的预计拖尾；
+- launch/submit固定开销；
+- 内存预算。
 
-- 计算时间明显大于提交开销；
-- 不超过 RAM/VRAM；
-- GPU传输收益为正；
-- Tile/halo合法；
-- 尾部可继续收缩。
+建议形式：
 
-不通过穷举全部百分比决定任务份额。
+```text
+chunk_work_time_target = clamp(k × submit_overhead, min_ms, max_ms)
+chunk_items = throughput_estimate × chunk_work_time_target
+chunk_items = shrink_when_remaining_small(chunk_items)
+```
 
-## 5. 动态工作保持
+运行时实际耗时只用于本次任务的队列状态和拖尾判断，不允许写回长期画像。
 
-1. 将工作域拆成可追踪的未开始块；
-2. CPU 和每张 GPU 根据预计完成时间领取块；
-3. 设备完成后继续领取；
-4. 设备忙而另一设备空闲时，空闲设备可领取其预计更早完成的块；
-5. 剩余工作减少时 guided收缩；
-6. 已开始块不迁移；
-7. coverage bitmap/ID确保每块恰好一次；
-8. 设备失败只回收未开始块；
-9. 实际工作量分布仅写入诊断，不持久为模型。
+## 6. 实际执行报告
 
-## 6. 数据驻留
+正式结果必须从 Backend Completion 和 coverage统计生成，至少包括：
 
-- 连续 GPU任务尽量保持 device-resident；
-- CPU参与前必须比较迁移成本；
+- predicted_first_choice；
+- actual_devices_used；
+- 每设备 claimed/done/failed块数；
+- 每设备处理元素和字节数；
+- H2D/D2H/P2P字节；
+- 实际开始/结束时间；
+- fallback原因；
+- coverage总计；
+- profile hash before/after。
+
+`actual_primary_backend` 只能由真实完成工作量最大者生成；若只执行CPU，就必须报告CPU，即使模型曾推荐GPU。
+
+schema见 `schemas/runtime_execution_report.schema.json`。
+
+## 7. 数据驻留
+
+- device-resident数据优先留在设备；
+- CPU参与前必须计入迁移成本；
 - 写入后使其他副本失效；
-- 只在依赖要求时同步；
-- 多GPU优先 P2P；不可用时比较 host staging 成本；
-- 不为提高表面利用率执行负收益迁移。
+- 多GPU优先P2P，不可用时比较host staging；
+- 不为表面利用率执行负收益迁移。
 
-## 7. Reduction
+## 8. Reduction
 
-每设备产生局部结果，最终依据 NumericPolicy 合并。FP32默认允许末位差异；FP64 accumulator和deterministic merge由任务声明。
+各设备生成局部结果，按 NumericPolicy 合并。FP32允许正常末位差异；FP64 accumulator、deterministic merge和fast-math限制由任务声明。
 
-## 8. Profile状态
+## 9. 验收
 
-- missing：CPU-only+警告；
-- stale：警告，按配置使用或CPU-only；
-- partial：只使用有效能力族；
-- corrupt：拒绝加载并回退；
-- runtime：只读，不写回。
+必须证明：
 
-## 9. 调度验证
-
-必须验证：
-
-- 同一任务类别随尺寸/驻留选择发生合理变化；
-- 小任务因开销保留 CPU；
-- device-resident大任务优先 GPU；
-- GPU预忙时 CPU继续领取；
-- CPU预忙时 GPU继续领取；
-- 多GPU独立领取；
-- 尾部不出现长时间单设备拖尾；
-- profile文件运行前后hash不变；
-- 无真实 GPU 时 Mixed 为 SKIPPED，不得 PASS。
-
-## 10. 不属于在线学习
-
-读取队列、忙闲、容量和剩余任务属于运行时调度。禁止用本次实际完成时间修改画像、拟合参数或长期权重。
+- CostEstimate改变了真实领取设备或块大小；
+- 推荐设备与实际设备分别报告；
+- GPU预忙时CPU继续领取；
+- CPU预忙时GPU继续领取；
+- 无GPU时Mixed为SKIPPED；
+- profile前后hash不变；
+- 故障块不被错误标DONE；
+- 固定70%尾段实验只能作为单元实验，不作为最终调度结论。

@@ -1,8 +1,17 @@
 # 测试与验证矩阵
 
-详细实验见 `17_CLASSIC_EXPERIMENT_SUITE.md`。
+## 1. Commit F纠正测试
 
-## 1. 构建
+- `actual_primary_backend`来自真实done工作量；
+- predicted与actual字段分开；
+- CostEstimate.per_device改变真实claim；
+- coverage包含pending/claimed/done/failed；
+- 执行失败时不得全部mark_done；
+- 固定70/30尾段实验改名，不作为guided通过证据；
+- MemoryBudget正式配置注入；
+- 每种MemoryAction有执行测试。
+
+## 2. 构建
 
 - Windows/MSVC CPU-only；
 - Linux/GCC、Clang CPU-only；
@@ -12,79 +21,54 @@
 - ASan/UBSan实际构建；
 - TSan适用CPU路径。
 
-工具链不支持的组合明确SKIPPED，不能虚报。
+## 3. HardwareProfile与CostEstimator
 
-## 2. 架构迁移
+- CPU ISA、线程、FP32/FP64；
+- STREAM、BabelStream和H2D/D2H；
+- reduction、卷积、gather/scatter/atomic/branch；
+- 固定开销；
+- 模型留出误差；
+- 小任务CPU、大device-resident任务GPU；
+- 低置信度、RAM/VRAM和queue成本；
+- profile运行前后hash不变。
 
-- 旧 `routes.json` 不再生成；
-- 无 `preferred_backend` per-kernel路由；
-- 无CPU/GPU share API/schema；
-- HardwareProfile schema有效；
-- TaskTraits真正进入CostEstimator；
-- Public API真正进入Dispatcher/backend；
-- 无画像CPU fallback明确。
+## 4. Shared Pool与Mixed
 
-## 3. HardwareProfile
-
-- CPU ISA/线程/尺寸；
-- FP32/FP64算术；
-- STREAM CPU内存；
-- BabelStream GPU显存；
-- H2D/D2H/pinned；
-- reduction；
-- direct/separable/FFT卷积；
-- gather/scatter/atomic/histogram；
-- branch/work variance；
-- submit/launch/event/alloc/merge；
-- missing/valid/stale/partial/corrupt；
-- 指纹；
-- 模型留出验证；
-- profile只读。
-
-## 4. CostEstimator
-
-- 不同任务类别映射不同能力族；
-- 尺寸、驻留和固定开销影响选择；
-- 小任务CPU、大device-resident任务GPU的合理性；
-- 低置信度惩罚；
-- RAM/VRAM约束；
-- 预测误差报告。
-
-## 5. 动态Mixed
-
-- CPU和真实GPU同时完成不同唯一块；
+- CPU与真实GPU同时完成不同唯一块；
 - 无GPU时SKIPPED；
-- 多GPU可用时独立领取；
-- coverage每块恰好一次；
+- 多GPU独立claim；
 - GPU预忙时CPU继续；
 - CPU预忙时GPU继续；
-- 尾部收缩；
-- 故障回收未开始块；
-- profile hash前后不变。
+- 动态尾部收缩；
+- 故障回收未完成块；
+- 不遗漏、不重复；
+- actual report与backend日志一致。
 
-## 6. 资源控制
+## 5. 资源控制
 
+- 50/80/95/100利用率目标；
+- 真实采样或明确估算；
+- 控制动作实际执行；
 - 所有CPU线程可参与；
-- 50/80/95/100是利用率目标；
-- 真实利用率或明确估算；
 - GPU队列水位；
-- RAM/VRAM上限；
+- RAM/VRAM所有动作；
 - 状态和取消响应；
 - 控制器不修改画像。
 
-## 7. 数值
+## 6. Evidence
 
-- FP32/FP64/FP64 accumulator；
-- NaN/Inf/signed zero/subnormal基础；
-- CPU/GPU末位差异允许；
-- integer histogram/scan exact；
-- deterministic merge；
-- fast-math gate。
+- path guard命令、完整输出、退出码；
+- `git rev-parse HEAD`等于manifest、git log tip和源码快照HEAD；
+- 工作树干净；
+- 每个测试日志包含命令、环境、开始结束、退出码；
+- SKIPPED有明确原因；
+- 不能只保存“PASSED N tests”一行摘要；
+- Evidence生成后不再提交到实现分支造成HEAD漂移。
 
-## 8. 主线
+## 7. 主线
 
 - 算法目录零diff；
-- 现有测试通过；
+- 主线测试通过；
 - CPU-only默认构建；
-- 普通启动不初始化ACR、不探测GPU、不发警告；
+- 普通启动不初始化ACR、不探测GPU、不发warning；
 - 合并后重复验证。

@@ -1,1 +1,1 @@
-继续在现有AstroCS的feature/astrocompute-runtime分支修改，读取本包00_READ_FIRST；只纠正并完善ACR底层，不改算法，不新建仓库或版本分支。
+继续在现有AstroCS的feature/astrocompute-runtime分支修改，读取本包00_READ_FIRST；按Commit F纠正计划接通真实执行链，不改算法，不建新分支。

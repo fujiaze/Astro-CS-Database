@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ACR Runtime Execution Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "task_id",
+    "predicted_first_choice",
+    "actual_devices_used",
+    "devices",
+    "coverage",
+    "profile_hash_before",
+    "profile_hash_after"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "predicted_first_choice": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "actual_primary_backend": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "actual_devices_used": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "devices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "device_id",
+          "claimed_chunks",
+          "done_chunks",
+          "failed_chunks",
+          "items_done",
+          "bytes_read",
+          "bytes_written"
+        ],
+        "properties": {
+          "device_id": {
+            "type": "string"
+          },
+          "claimed_chunks": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "done_chunks": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "failed_chunks": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "items_done": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "bytes_read": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "bytes_written": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "h2d_bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "d2h_bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "p2p_bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "start_ns": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "end_ns": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "total",
+        "pending",
+        "claimed",
+        "done",
+        "failed"
+      ],
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pending": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "claimed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "done": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "fallback_reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "profile_hash_before": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "profile_hash_after": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    }
+  }
+}

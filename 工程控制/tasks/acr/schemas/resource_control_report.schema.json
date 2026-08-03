@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ACR Resource Control Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "target",
+    "sampling",
+    "summary",
+    "actions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "target": {
+      "type": "object",
+      "required": [
+        "cpu",
+        "gpu"
+      ],
+      "properties": {
+        "cpu": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "gpu": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "sampling": {
+      "type": "object",
+      "required": [
+        "cpu_source",
+        "gpu_source",
+        "estimated"
+      ],
+      "properties": {
+        "cpu_source": {
+          "type": "string"
+        },
+        "gpu_source": {
+          "type": "string"
+        },
+        "estimated": {
+          "type": "boolean"
+        },
+        "window_ms": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "cpu_average",
+        "cpu_p95",
+        "gpu_average",
+        "gpu_p95"
+      ],
+      "properties": {
+        "cpu_average": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "cpu_p95": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "gpu_average": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "gpu_p95": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "timestamp_ns",
+          "resource",
+          "action"
+        ],
+        "properties": {
+          "timestamp_ns": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "resource": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "duration_us": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "detail": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

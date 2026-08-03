@@ -1,75 +1,54 @@
 # 当前ACR分支纠正任务
 
-本文件针对已存在的 `feature/astrocompute-runtime`。必须增量修正，禁止推倒重来。
+本文件针对现有 `feature/astrocompute-runtime`，必须增量修正。
 
-## P0：删除错误路由模型
+## P0：Commit F事实纠正
 
-1. 搜索 `RouteProfile`、`RouteEntryView`、`preferred_backend`、`routes.json`；
-2. 删除以业务 kernel 为键的固定后端推荐；
-3. 删除任何CPU/GPU share/weight schema；
-4. 保留仅用于诊断的 OperationId，不把它当固定路由表主键；
-5. 提供旧画像迁移/拒绝加载行为，禁止静默解释旧格式。
+- 提交说明降级为“资源采样与CPU尾段分块基础”；
+- `actual_primary_backend` 改为真实完成统计；
+- coverage从backend completion导入；
+- 修复path guard；
+- Evidence改为单一干净HEAD。
 
-## P0：建立新数据模型
-
-- `DeviceProfile/HardwareProfile`；
-- `TaskTraits/TaskDescriptor`；
-- `ProfileStore`；
-- `CostEstimator`；
-- profile schema与版本检查；
-- 留出误差和置信度。
-
-## P0：接通调用链
-
-此前若 `parallel_for(OperationId /*id*/, ...)` 忽略ID/traits并直达CPU，必须改为：
+## P0：接通真实执行链
 
 ```text
-API → TaskDescriptor → ProfileStore → CostEstimator → Dispatcher → Backend
+API → TaskDescriptor → ProfileStore → CostEstimator → Shared Pending Pool → Backend
 ```
 
-无画像时才进入明确CPU fallback。
+- `CostEstimate.per_device`参与每次claim；
+- 禁止CostEstimate只影响chunk和report字符串；
+- 推荐设备与实际设备分开记录；
+- 无画像才明确CPU fallback。
 
-## P1：扩展CPU画像
+## P1：动态工作池
 
-- 真实baseline/SSE/AVX/AVX2/AVX-512；
-- FP32/FP64算术；
-- STREAM内存；
-- reduction；
-- 线程/NUMA；
-- 持续负载降频；
-- Google Benchmark或ADR批准等价框架。
+- PENDING/CLAIMED/DONE/FAILED；
+- CPU和每张GPU独立worker；
+- 动态guided chunk；
+- 设备忙闲、队列和驻留；
+- 故障回收未完成块；
+- exact-once coverage。
 
-## P1：真实GPU
+## P1：资源控制
 
-- 解决现有CUDA/工具链兼容问题或通过ADR选择可维护工具链；
-- 至少一个真实GPU backend；
-- BabelStream、H2D/D2H、launch、reduction、卷积、atomic、branch；
-- CPU-only构建不依赖GPU SDK。
+- 真实CPU/GPU采样或明确估算；
+- submit gate、queue depth、batch和worker让步；
+- 所有CPU线程可参与；
+- MemoryBudget配置注入；
+- StopNewSubmit/ReleaseCache/LowMemoryPath/FallbackOtherDevice/Fail全接通。
 
-## P2：CostEstimator和动态调度
+## P2：画像和真实GPU
 
-- 能力族映射；
-- queue/launch/transfer/compute/merge成本；
-- 候选块和低置信度惩罚；
-- 共享未开始工作池；
-- CPU/多GPU领取；
-- guided尾部收缩；
-- coverage与故障回收；
-- profile运行时只读。
+- CPU ISA、FP32/FP64、STREAM、reduction；
+- 支持工具链下真实GPU；
+- BabelStream、传输、launch、卷积、atomic和branch；
+- 真实CPU+GPU Mixed。
 
-## P2：真实资源控制
+## P3：可靠性和交付
 
-- 真实CPU/GPU利用率或可审计估算；
-- 50/80/95/100目标持续负载；
-- 所有CPU worker参与；
-- RAM/VRAM限制；
-- 不能只向控制器输入人工数值。
-
-## P3：测试与Evidence
-
-- Mixed真实CPU+GPU，无GPU SKIPPED；
 - ASan/UBSan实际开启；
-- 成熟FFT/BLAS/scan adapter；
-- 同一干净HEAD一次生成全部Evidence；
+- 完整原始日志；
+- 单HEAD Evidence；
 - 算法目录path guard；
 - main合并前后回归。

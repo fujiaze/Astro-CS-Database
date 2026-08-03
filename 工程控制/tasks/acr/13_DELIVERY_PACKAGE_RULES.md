@@ -2,73 +2,75 @@
 
 ## 1. 四个逻辑交付部分
 
-### A. Control Package
+- Control Package：本权威控制包；
+- Complete Source Snapshot：目标commit完整源码，不只diff；
+- Evidence Package：完整构建、测试、画像、资源、GPU/Mixed、Sanitizer和失败日志；
+- Merge Report：base/feature/merge commit、冲突、回归和dormant状态。
 
-- 本权威控制包；
-- ADR、依赖锁和许可证；
-- API/schema/Benchmark/测试规范；
-- 风险、决策和已知限制。
+## 2. 单一干净HEAD
 
-### B. Complete Source Snapshot
+Evidence必须从目标实现HEAD的干净worktree一次生成。以下值必须完全相同：
 
-结果commit对应的完整 AstroCS 源码快照，保留原目录，足以脱离Agent仓库静态审查。不得只交diff。不得包含 `.git`、构建产物、GPU SDK、依赖缓存、旧版本副本或大型临时数据。
+- `git rev-parse HEAD`；
+- manifest.result_commit；
+- git_log首条commit；
+- source snapshot记录的HEAD；
+- diff目标HEAD；
+- test summary的HEAD。
 
-### C. Evidence Package
+Evidence生成物不得再提交到实现分支后引用旧HEAD。推荐使用临时干净worktree或外部输出目录。
 
-至少包含：
+## 3. 完整命令日志
 
-- 构建日志与工具链；
-- 单测、经典实验、真实GPU/Mixed结果；
-- Qualification原始JSON、HardwareProfile和拟合报告；
-- 利用率控制报告；
-- Sanitizer实际构建日志；
-- 故障注入；
-- path guard；
-- 主线合并前后回归；
-- SKIPPED/失败及原因。
+每个测试至少保存：
 
-### D. Merge Report
+- command；
+- working_directory；
+- environment/toolchain；
+- start/end time；
+- timeout；
+- exit_code；
+- stdout/stderr完整原文；
+- PASS/FAIL/SKIPPED和原因。
 
-base/main/feature/merge commit、冲突、测试、dormant状态、算法目录零修改和后续集成建议。
+一行“PASSED N tests”只能做索引，不能代替原始日志。
 
-## 2. 单一HEAD
+## 4. Path guard
 
-Evidence、源码快照、summary、JSON、日志、manifest和Merge Report必须来自同一干净HEAD。生成后若发生任何提交，全部重新生成。禁止混装修复前后结果。
+必须附：
 
-## 3. Manifest和哈希
+- base与result commit；
+-允许路径列表；
+- 禁止路径列表；
+- 实际changed paths；
+- 完整命令与退出码；
+- `PASS`。任何 `ABORT`、非零退出码或算法路径变更均阻断合并。
 
-每个ZIP提供：
-
-- `package_manifest.json`；
-- `SHA256SUMS.txt`；
-- 路径、大小和SHA-256；
-- 生成时间；
-- base/result/merge commit；
-- 工具版本。
-
-生成后必须重新解压并校验。
-
-## 4. 画像证据
+## 5. 实际执行证据
 
 必须包含：
 
-- 原始样本，而非只有摘要；
-- 设备/ISA/线程/尺寸/精度/驻留；
-- 模型拟合与留出误差；
-- HardwareProfile schema校验；
-- 运行前后profile hash；
-- 无GPU时Mixed标为SKIPPED。
+- predicted与actual设备分别记录；
+- per-device claimed/done/failed；
+- backend原始日志；
+- coverage；
+- 数据传输；
+- profile hash before/after；
+- 利用率控制动作；
+- RAM/VRAM动作。
 
-## 5. 依赖
+不能用推荐字符串证明GPU实际执行。
 
-提供 dependency-lock、SPDX、NOTICE和本地补丁。不得把CUDA/ROCm/oneAPI SDK和包管理器缓存装入ZIP。
+## 6. Manifest与哈希
 
-## 6. 命名
+每个ZIP提供 `package_manifest.json` 和 `SHA256SUMS.txt`，生成后重新解压、CRC与SHA-256校验。
 
-未发布项目只使用稳定权威名称：
+## 7. 命名
+
+未发布项目只使用稳定名称：
 
 ```text
 AstroCS_ACR_Control_Package.zip
 ```
 
-后续直接更新这一个包，不并列V1/V2或日期包。
+后续覆盖更新，不并列V1/V2或日期包。

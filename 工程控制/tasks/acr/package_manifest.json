@@ -1,20 +1,20 @@
 {
   "package_name": "AstroCS_ACR_Control_Package",
   "release_status": "unreleased-authoritative-control-package",
-  "generated_at": "2026-08-03T15:20:00+08:00",
+  "generated_at": "2026-08-03T20:39:00+08:00",
   "branch": "feature/astrocompute-runtime",
-  "source_audit_pack": "AstroCS_ACR_AuditPack_2026-08-02_PhaseI(5).zip",
-  "source_audit_head": "a0d7783",
+  "source_review_pack": "AstroCS_ACR_CommitF_Review_2026-08-03(1).zip",
+  "source_review_sha256": "e2b7125bc61aa1b8fba86d5ca40fde7a50ebbc20831042c2b8e4f7b2c8781a50",
   "files": [
     {
       "path": "00_AGENT_START_PROMPT.txt",
-      "bytes": 175,
-      "sha256": "ff15633a6cbac600e251dd5de89d28cd95ec029cc4c849815ed679aa7f4d32ae"
+      "bytes": 177,
+      "sha256": "3c10979464ea77a9849884cbca86a9d8b9acdd095fe9b9f40d0fc39bccafa155"
     },
     {
       "path": "00_READ_FIRST.md",
-      "bytes": 5032,
-      "sha256": "9e3c4dbf66887c9333bf06ab39fbe6242901f692b85f649ae80940896af47c22"
+      "bytes": 4609,
+      "sha256": "d342c60fb861be6718055da6b44131d5b76663f7e081ef0eb02fe6a30f838c68"
     },
     {
       "path": "01_FROZEN_REQUIREMENTS.md",
@@ -48,13 +48,13 @@
     },
     {
       "path": "07_COST_MODEL_AND_DYNAMIC_SCHEDULING.md",
-      "bytes": 3193,
-      "sha256": "47dd20e5b4a0365aea0cb30eb44d88ba1fc12a197cb98aa688e9d8d6c2a62d89"
+      "bytes": 4029,
+      "sha256": "a1fd023476c23d98fbef18e125246e7a537a11c02cf78377da794c1005b3502d"
     },
     {
       "path": "08_RESOURCE_CONTROL_SPEC.md",
-      "bytes": 2109,
-      "sha256": "c0184b449ec8f8bb6ffd2050dc0b0781b2827bc52de904148356f778b2ff7003"
+      "bytes": 2577,
+      "sha256": "33944f94966144d7099e8d009ee406dcc332afcb68c5155e2fcf7d65bbceee46"
     },
     {
       "path": "09_FUTURE_ALGORITHM_INTEGRATION_GUIDE.md",
@@ -63,8 +63,8 @@
     },
     {
       "path": "10_PHASES_TASKS_ACCEPTANCE.md",
-      "bytes": 3144,
-      "sha256": "9a327f4278ccbac3f71bba0478a10df32505c4b7585a5bec1eb598feae1a1863"
+      "bytes": 2696,
+      "sha256": "db0ef193d923c6140c084645f34e61f252a52d9f0fd15ae3bec74c0d00578c2a"
     },
     {
       "path": "11_GIT_BRANCH_AND_AGENT_RULES.md",
@@ -73,13 +73,13 @@
     },
     {
       "path": "12_TEST_VALIDATION_MATRIX.md",
-      "bytes": 2137,
-      "sha256": "fb0eebaf3594e8ff15b48eb420e17d0145efeb62d33af3fd2d58f544e15c0a19"
+      "bytes": 2057,
+      "sha256": "26439dcb2f42f559e088a28f6c6160cd7d8ef55858af74df415e3cf7d8447085"
     },
     {
       "path": "13_DELIVERY_PACKAGE_RULES.md",
-      "bytes": 1952,
-      "sha256": "de5b51413a9f7e1ab3e1559f498ed86519f558f36db8f05ad3dc6a102030d8bf"
+      "bytes": 1898,
+      "sha256": "935a07969a7904efa4a19db35890700986284654b8acc92e5be876d542215643"
     },
     {
       "path": "14_RISK_REGISTER.md",
@@ -93,8 +93,8 @@
     },
     {
       "path": "16_AGENT_MASTER_INSTRUCTION.md",
-      "bytes": 2061,
-      "sha256": "5abfe9729b6aac6b228145c810beb684890a7ea656f8c6ddafa9da6599df6a84"
+      "bytes": 1345,
+      "sha256": "44d9a54b40266eab1512301482185bfd770831b95a902825a9db56e841a9e0bd"
     },
     {
       "path": "17_CLASSIC_EXPERIMENT_SUITE.md",
@@ -108,8 +108,8 @@
     },
     {
       "path": "19_CURRENT_BRANCH_CORRECTION_TASKS.md",
-      "bytes": 2154,
-      "sha256": "436c0f8caea20871efe669e90a9d34cec2bec20f284d8b6db79f6ce00e9134b0"
+      "bytes": 1504,
+      "sha256": "60fec6c32bba38b5eaf8d35454f9eef3d33a62ce686edda54fd2e98eec741a37"
     },
     {
       "path": "20_PHASE_I_AUDIT_ACTION_PLAN.md",
@@ -117,9 +117,19 @@
       "sha256": "f283a2338e3b30f8a4a64053a8e6954b4534a2bdcf5565badc270476bcde8f92"
     },
     {
+      "path": "21_COMMIT_F_CORRECTION_PLAN.md",
+      "bytes": 3144,
+      "sha256": "6ea6a3761ddb69b89313ebea716515870e11d647890c9a32d979ec4c0f9aff6c"
+    },
+    {
       "path": "CHECKLIST.md",
-      "bytes": 1999,
-      "sha256": "2cbda26f629b57bb09ff52d76ae926efaef0d6b78bfff48bc3fb7b4c485035e4"
+      "bytes": 2320,
+      "sha256": "a41793b864c239556b0eb1e12b98fd4d6c23d9e5202d3a6c90b69c672f0c5e86"
+    },
+    {
+      "path": "audits/COMMIT_F_AUDIT.md",
+      "bytes": 8419,
+      "sha256": "815a383a63206b99e9f70cb8dee508e2098888cdacfd23eb55e3e11683af9edd"
     },
     {
       "path": "examples/README.md",
@@ -143,8 +153,8 @@
     },
     {
       "path": "schemas/evidence_manifest.schema.json",
-      "bytes": 2008,
-      "sha256": "845229c69518b362fb0643f0eb19322711fc624a1484a3eb5930c8b6a68e3f24"
+      "bytes": 2598,
+      "sha256": "8a2dc0f2ed168e2fec566b32c3798b54ce876495dc060e323a49a9409bec7169"
     },
     {
       "path": "schemas/hardware_profile.schema.json",
@@ -152,9 +162,24 @@
       "sha256": "179cba4020625f35ade64444e97f48c992c7690b360d090803eeac2fa1082b79"
     },
     {
+      "path": "schemas/resource_control_report.schema.json",
+      "bytes": 2511,
+      "sha256": "3616221d83e4a5334fe8aa9be681175872896d0f6ff0ad911d8718463c2b04ae"
+    },
+    {
+      "path": "schemas/runtime_execution_report.schema.json",
+      "bytes": 3268,
+      "sha256": "20411e7bd5e492e29b5d81f851a7a71af8fe01a94aeb59ff19aeeddaf44222c7"
+    },
+    {
       "path": "schemas/task_descriptor.schema.json",
       "bytes": 2756,
       "sha256": "b47401c47c67933e55d3c74931f255758374d6192c15aa73744b805063a27567"
+    },
+    {
+      "path": "templates/evidence_command_record.template.json",
+      "bytes": 337,
+      "sha256": "905b2147d2ae7b627ca60c6979edf16dfc9b3b5afe45c85a54456b4b372e68bb"
     },
     {
       "path": "templates/evidence_index.template.md",
@@ -165,6 +190,11 @@
       "path": "templates/merge_report.template.md",
       "bytes": 484,
       "sha256": "140a7e04c5fc620cb8c33e8b2d7edeb5829ab4dcf241fd41e3549392d729ce9a"
+    },
+    {
+      "path": "templates/path_guard_report.template.md",
+      "bytes": 177,
+      "sha256": "abf18a630c608d7a8d030399e6861a0e89500913e7cb345a7fdf82c5e5ef9914"
     }
   ]
 }

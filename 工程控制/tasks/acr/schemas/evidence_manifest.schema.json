@@ -12,7 +12,10 @@
     "working_tree_clean",
     "generated_at",
     "artifacts",
-    "tests"
+    "tests",
+    "source_snapshot_commit",
+    "git_log_tip",
+    "path_guard"
   ],
   "properties": {
     "schema_version": {
@@ -98,6 +101,34 @@
           }
         },
         "additionalProperties": false
+      }
+    },
+    "source_snapshot_commit": {
+      "type": "string",
+      "minLength": 7
+    },
+    "git_log_tip": {
+      "type": "string",
+      "minLength": 7
+    },
+    "path_guard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "exit_code",
+        "log"
+      ],
+      "properties": {
+        "status": {
+          "const": "PASS"
+        },
+        "exit_code": {
+          "const": 0
+        },
+        "log": {
+          "type": "string"
+        }
       }
     }
   }
