@@ -18,6 +18,7 @@
 #include "partitioner.hpp"
 #include "queue_aware.hpp"
 #include "reduction_merger.hpp"
+#include "shared_work_pool.hpp"
 
 #include "../core/task_descriptor.hpp"
 #include "../cost/cost_estimator.hpp"
@@ -728,6 +729,186 @@ TEST(SchedulerDispatcherCostAware, ActualBackendNoneWhenAllFail) {
     // 无成功块 → actual 为 none
     EXPECT_EQ(r.actual_primary_backend, "none");
     EXPECT_TRUE(r.actual_devices_used.empty());
+    astro::compute::runtime_shutdown();
+}
+
+// ============================================================================
+// F-fix 2: SharedWorkPool 单元测试
+// ============================================================================
+
+TEST(SharedWorkPool, InitCreatesCorrectBlocks) {
+    SharedWorkPool pool;
+    pool.init(0, 100, 25);
+    EXPECT_EQ(pool.total_blocks(), 4u);
+    EXPECT_EQ(pool.pending_count(), 4u);
+    EXPECT_EQ(pool.done_count(), 0u);
+    EXPECT_EQ(pool.failed_count(), 0u);
+    EXPECT_FALSE(pool.all_done());
+    // 验证块范围
+    const auto& blocks = pool.blocks();
+    EXPECT_EQ(blocks[0].begin, 0u);
+    EXPECT_EQ(blocks[0].end, 25u);
+    EXPECT_EQ(blocks[3].begin, 75u);
+    EXPECT_EQ(blocks[3].end, 100u);
+}
+
+TEST(SharedWorkPool, ClaimNextReturnsUniqueBlocks) {
+    SharedWorkPool pool;
+    pool.init(0, 100, 25);
+    auto* b1 = pool.claim_next("cpu");
+    auto* b2 = pool.claim_next("cpu");
+    ASSERT_NE(b1, nullptr);
+    ASSERT_NE(b2, nullptr);
+    EXPECT_NE(b1->id, b2->id);
+    EXPECT_EQ(pool.pending_count(), 2u);
+    EXPECT_EQ(pool.claimed_count(), 2u);
+}
+
+TEST(SharedWorkPool, MarkDoneUpdatesStatus) {
+    SharedWorkPool pool;
+    pool.init(0, 100, 25);
+    auto* b = pool.claim_next("cpu");
+    ASSERT_NE(b, nullptr);
+    pool.mark_done(b->id);
+    EXPECT_EQ(pool.done_count(), 1u);
+    EXPECT_EQ(pool.pending_count(), 3u);
+    EXPECT_FALSE(pool.all_done());
+}
+
+TEST(SharedWorkPool, MarkFailedAndReclaim) {
+    SharedWorkPool pool;
+    pool.init(0, 100, 25);
+    auto* b = pool.claim_next("cpu");
+    ASSERT_NE(b, nullptr);
+    pool.mark_failed(b->id);
+    EXPECT_EQ(pool.failed_count(), 1u);
+    EXPECT_EQ(pool.pending_count(), 3u);
+    // 回收失败块
+    std::size_t reclaimed = pool.reclaim_failed();
+    EXPECT_EQ(reclaimed, 1u);
+    EXPECT_EQ(pool.pending_count(), 4u);
+    EXPECT_EQ(pool.failed_count(), 0u);
+}
+
+TEST(SharedWorkPool, AllDoneWhenAllComplete) {
+    SharedWorkPool pool;
+    pool.init(0, 100, 25);
+    // 领取并完成所有块
+    for (std::size_t i = 0; i < 4; ++i) {
+        auto* b = pool.claim_next("cpu");
+        ASSERT_NE(b, nullptr);
+        pool.mark_done(b->id);
+    }
+    EXPECT_TRUE(pool.all_done());
+    EXPECT_EQ(pool.done_count(), 4u);
+}
+
+TEST(SharedWorkPool, NoWorkLeftWhenNoPendingOrFailed) {
+    SharedWorkPool pool;
+    pool.init(0, 100, 25);
+    for (std::size_t i = 0; i < 4; ++i) {
+        auto* b = pool.claim_next("cpu");
+        ASSERT_NE(b, nullptr);
+        pool.mark_done(b->id);
+    }
+    EXPECT_TRUE(pool.no_work_left());
+}
+
+TEST(SharedWorkPool, DoneBitmapCorrect) {
+    SharedWorkPool pool;
+    pool.init(0, 100, 25);
+    // 顺序领取：第一个块和第二个块
+    auto* b1 = pool.claim_next("cpu");
+    auto* b2 = pool.claim_next("cpu");
+    ASSERT_NE(b1, nullptr);
+    ASSERT_NE(b2, nullptr);
+    pool.mark_done(b1->id);
+    pool.mark_done(b2->id);
+    auto bm = pool.done_bitmap();
+    ASSERT_EQ(bm.size(), 4u);
+    EXPECT_TRUE(bm[b1->id]);
+    EXPECT_TRUE(bm[b2->id]);
+    EXPECT_NE(b1->id, b2->id);
+}
+
+TEST(SharedWorkPool, SuggestNextChunk) {
+    SharedWorkPool pool;
+    pool.init(0, 1000, 100);
+    // 10 blocks, all pending
+    std::size_t chunk = pool.suggest_next_chunk(2, 10, 200);
+    // remaining = 10, n_devices = 2 → 10 / (2*2) = 2
+    EXPECT_GE(chunk, 10u);
+    EXPECT_LE(chunk, 200u);
+}
+
+TEST(SharedWorkPool, EmptyRange) {
+    SharedWorkPool pool;
+    pool.init(0, 0, 25);
+    EXPECT_EQ(pool.total_blocks(), 0u);
+    EXPECT_TRUE(pool.all_done());
+    EXPECT_EQ(pool.claim_next("cpu"), nullptr);
+}
+
+// ============================================================================
+// F-fix 2: Dispatcher 通过 SharedWorkPool 执行
+// ============================================================================
+
+TEST(SchedulerDispatcherCostAware, SharedPoolExecutionCompletesAll) {
+    // 验证 Dispatcher 通过 SharedWorkPool 执行时所有块完成
+    astro::compute::runtime_init();
+    Dispatcher d;
+    DispatcherConfig cfg;
+    cfg.devices = {{"cpu", 0, 0, 50.0, true}};
+    cfg.enable_utilization = false;
+    cfg.enable_fixed_tail_chunking = false;
+    d.configure(cfg);
+
+    astro::compute::TaskDescriptor task;
+    task.range = astro::compute::Range1D{0, 1000};
+
+    auto est = make_cpu_only_estimate(100);
+    std::vector<int> data(1000, 0);
+    auto fn = +[](std::size_t, std::size_t b, std::size_t e, void* ud) {
+        auto* d = static_cast<std::vector<int>*>(ud);
+        for (std::size_t i = b; i < e; ++i) (*d)[i] = 1;
+    };
+    auto r = d.dispatch_range_cost_aware(task, est, fn, &data);
+    EXPECT_TRUE(r.run_result.all_done);
+    EXPECT_EQ(r.actual_primary_backend, "cpu");
+    EXPECT_EQ(r.coverage.done, r.coverage.total);
+    EXPECT_EQ(r.coverage.failed, 0u);
+    // 完整覆盖
+    int total = std::accumulate(data.begin(), data.end(), 0);
+    EXPECT_EQ(total, 1000);
+    astro::compute::runtime_shutdown();
+}
+
+TEST(SchedulerDispatcherCostAware, SharedPoolFailedBlocksNotDone) {
+    // 验证通过 SharedWorkPool 执行时失败块不标 DONE
+    astro::compute::runtime_init();
+    Dispatcher d;
+    DispatcherConfig cfg;
+    cfg.devices = {{"cpu", 0, 0, 50.0, true}};
+    cfg.enable_utilization = false;
+    cfg.enable_fixed_tail_chunking = false;
+    d.configure(cfg);
+
+    astro::compute::TaskDescriptor task;
+    task.range = astro::compute::Range1D{0, 100};
+
+    auto est = make_cpu_only_estimate(25);
+    std::vector<int> data(100, 0);
+    auto fn = +[](std::size_t, std::size_t b, std::size_t e, void* ud) {
+        auto* d = static_cast<std::vector<int>*>(ud);
+        for (std::size_t i = b; i < e; ++i) {
+            if (i >= 50) throw std::runtime_error("intentional failure");
+            (*d)[i] = 1;
+        }
+    };
+    auto r = d.dispatch_range_cost_aware(task, est, fn, &data);
+    EXPECT_FALSE(r.run_result.all_done);
+    EXPECT_GT(r.coverage.failed, 0u);
+    EXPECT_LT(r.coverage.done, r.coverage.total);
     astro::compute::runtime_shutdown();
 }
 

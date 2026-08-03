@@ -7,13 +7,17 @@
 //   - coverage 从 MixedRunner.last_coverage() 真实导入，不无条件 mark_done
 //   - 固定尾段实验改名为 fixed_tail_chunking（不冒充动态 guided）
 #include "dispatcher.hpp"
+#include "shared_work_pool.hpp"
 
 #include "../core/task_descriptor.hpp"
 #include "../cost/cost_estimator.hpp"
 #include "../utilization/cpu_controller.hpp"
 #include "../utilization/memory_budget.hpp"
 
+#include "astro/compute/acr.hpp"
+
 #include <algorithm>
+#include <atomic>
 #include <vector>
 
 namespace astro::compute::scheduler {
@@ -27,6 +31,8 @@ struct Dispatcher::Impl {
     // F-fix 4：utilization + memory budget
     std::unique_ptr<utilization::CpuController> cpu_ctrl;
     std::unique_ptr<utilization::MemoryBudgetController> mem_ctrl;
+    // F-fix 2：SharedWorkPool
+    SharedWorkPool pool;
 
     std::string pick_backend_impl(const TaskEstimate& task) const {
         // 小数据优先 CPU
@@ -112,6 +118,68 @@ struct Dispatcher::Impl {
             case utilization::MemoryBudgetController::ExceedAction::FallbackOtherDevice: return "fallback";
             case utilization::MemoryBudgetController::ExceedAction::Fail: return "fail";
             default: return "unknown";
+        }
+    }
+
+    // F-fix 2：通过 SharedWorkPool 执行（CostEstimator 驱动）
+    // 从 pool claim_next 领取块，执行并标记结果。
+    // 失败块可回收（reclaim_failed）。
+    MixedRunResult execute_via_pool(std::size_t begin, std::size_t end,
+                                    std::size_t chunk_size,
+                                    ChunkKernelFn fn, void* user_data) {
+        pool.init(begin, end, chunk_size);
+        MixedRunResult r;
+        r.total_chunks = pool.total_blocks();
+
+        if (r.total_chunks == 0) {
+            r.all_done = true;
+            return r;
+        }
+
+        // 使用 parallel_batch 从 pool claim 并执行
+        // 每个 task 尝试 claim_next 一个块，成功则执行
+        std::atomic<std::size_t> executed{0}, failed{0};
+        Event ev = astro::compute::parallel_batch(
+            astro::compute::KernelId::Custom, r.total_chunks,
+            [&](std::size_t) {
+                auto* block = pool.claim_next("cpu");
+                if (!block) return;
+                try {
+                    fn(block->id, block->begin, block->end, user_data);
+                    pool.mark_done(block->id);
+                    executed.fetch_add(1, std::memory_order_relaxed);
+                } catch (...) {
+                    pool.mark_failed(block->id);
+                    failed.fetch_add(1, std::memory_order_relaxed);
+                }
+            });
+        (void)ev;
+
+        r.executed_on_cpu = executed.load();
+        r.failed_chunks = failed.load();
+        r.all_done = pool.all_done();
+        return r;
+    }
+
+    // F-fix 1：从 SharedWorkPool 的真实统计生成 CoverageStats
+    static CoverageStats coverage_from_pool(const SharedWorkPool& p) {
+        CoverageStats cs;
+        cs.total = p.total_blocks();
+        cs.done = p.done_count();
+        cs.failed = p.failed_count();
+        cs.claimed = cs.done + cs.failed;
+        cs.pending = (cs.total > cs.claimed) ? (cs.total - cs.claimed) : 0;
+        return cs;
+    }
+
+    // F-fix 1：从 SharedWorkPool 导入 coverage 到 CurrentState
+    void import_pool_coverage() {
+        const auto& blocks = pool.blocks();
+        current_state.init_coverage(blocks.size());
+        for (std::size_t i = 0; i < blocks.size(); ++i) {
+            if (blocks[i].status.load(std::memory_order_relaxed) == WorkBlockStatus::Done) {
+                current_state.coverage().mark_done(i);
+            }
         }
     }
 };
@@ -286,8 +354,8 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
             result.fixed_tail_chunking_used = true;
             result.fixed_tail_min_chunk = tail_chunk;
         } else {
-            auto r = impl_->runner.run_range(begin, end, chunk_size, fn, user_data);
-            result.run_result = r;
+            // F-fix 2：正常路径通过 SharedWorkPool 执行（CostEstimator 驱动）
+            result.run_result = impl_->execute_via_pool(begin, end, chunk_size, fn, user_data);
         }
 
         // F-fix 1：actual_primary_backend 由真实完成统计生成
@@ -304,9 +372,16 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
         result.chunks_on_gpu = result.run_result.executed_on_gpu;
         result.chunks_fallback = result.run_result.fallback_chunks;
 
-        // F-fix 1：coverage 从真实执行导入（不无条件 mark_done）
-        impl_->import_real_coverage(result.run_result);
-        result.coverage = Impl::coverage_from_result(result.run_result);
+        // F-fix 2：coverage 从 SharedWorkPool 真实导入（不无条件 mark_done）
+        if (use_fixed_tail) {
+            // fixed_tail 仍用 runner，coverage 从 runner 导入
+            impl_->import_real_coverage(result.run_result);
+            result.coverage = Impl::coverage_from_result(result.run_result);
+        } else {
+            // 正常路径从 pool 导入
+            impl_->import_pool_coverage();
+            result.coverage = Impl::coverage_from_pool(impl_->pool);
+        }
 
         // F-fix 4：执行后采样 CPU 利用率
         if (impl_->cpu_ctrl) {
@@ -319,8 +394,9 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
         return result;
     }
 
-    // Cost-aware 路径（有 GPU）
-    auto r = impl_->runner.run_range(begin, end, chunk_size, fn, user_data);
+    // F-fix 2：Cost-aware 路径也通过 SharedWorkPool 执行
+    // CostEstimate 已影响 chunk_size，进而影响 pool 的块划分
+    auto r = impl_->execute_via_pool(begin, end, chunk_size, fn, user_data);
     result.run_result = r;
 
     // F-fix 1：actual_primary_backend 由真实完成统计生成
@@ -335,9 +411,9 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
     result.chunks_on_gpu = r.executed_on_gpu;
     result.chunks_fallback = r.fallback_chunks;
 
-    // F-fix 1：coverage 从真实执行导入
-    impl_->import_real_coverage(r);
-    result.coverage = Impl::coverage_from_result(r);
+    // F-fix 2：coverage 从 SharedWorkPool 导入
+    impl_->import_pool_coverage();
+    result.coverage = Impl::coverage_from_pool(impl_->pool);
 
     // 更新 CurrentState 设备统计
     if (auto* cpu_state = impl_->current_state.find_device("cpu")) {

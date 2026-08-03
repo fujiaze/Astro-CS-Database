@@ -8,6 +8,7 @@ add_library(acr_scheduler STATIC
     mixed_runner.cpp
     dispatcher.cpp
     current_state.cpp
+    shared_work_pool.cpp
 )
 target_link_libraries(acr_scheduler PUBLIC
     acr_options
