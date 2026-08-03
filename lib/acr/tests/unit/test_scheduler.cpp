@@ -19,6 +19,9 @@
 #include "queue_aware.hpp"
 #include "reduction_merger.hpp"
 
+#include "../core/task_descriptor.hpp"
+#include "../cost/cost_estimator.hpp"
+
 #include <algorithm>
 #include <atomic>
 #include <numeric>
@@ -439,6 +442,163 @@ TEST(SchedulerDispatcher, HandleFailureReturnsFallbackDecision) {
     EXPECT_EQ(dec.strategy, FallbackStrategy::ToCpu);
     EXPECT_EQ(dec.target_backend, "cpu");
     EXPECT_EQ(dec.pending_chunks.size(), 4u);
+}
+
+// ============================================================================
+// Dispatcher::dispatch_range_cost_aware (Commit F)
+// ============================================================================
+
+// 辅助：构造 CPU-only CostEstimate（profile_available=false → 纯 CPU 路径）
+static astro::compute::cost::CostEstimate make_cpu_only_estimate(std::size_t recommended_chunk) {
+    astro::compute::cost::CostEstimate est;
+    est.profile_available = false;
+    astro::compute::cost::DeviceCost cpu_cost;
+    cpu_cost.device_id = astro::compute::kCpuDeviceId;
+    cpu_cost.backend = "cpu";
+    cpu_cost.feasible = true;
+    cpu_cost.recommended_chunk = recommended_chunk;
+    cpu_cost.profile_available = false;
+    est.per_device.push_back(cpu_cost);
+    est.preferred_device = astro::compute::kCpuDeviceId;
+    return est;
+}
+
+TEST(SchedulerDispatcherCostAware, CpuOnlyExecutesAll) {
+    astro::compute::runtime_init();
+    Dispatcher d;
+    DispatcherConfig cfg;
+    cfg.devices = {{"cpu", 0, 0, 50.0, true}};
+    cfg.enable_utilization = false;  // 禁用 utilization 以走简单路径
+    cfg.enable_guided_tail = false;
+    d.configure(cfg);
+
+    astro::compute::TaskDescriptor task;
+    task.range = astro::compute::Range1D{0, 100};
+
+    auto est = make_cpu_only_estimate(25);
+    std::vector<int> data(100, 0);
+    auto fn = +[](std::size_t, std::size_t b, std::size_t e, void* ud) {
+        auto* d = static_cast<std::vector<int>*>(ud);
+        for (std::size_t i = b; i < e; ++i) (*d)[i] = 1;
+    };
+    auto r = d.dispatch_range_cost_aware(task, est, fn, &data);
+    EXPECT_TRUE(r.run_result.all_done);
+    EXPECT_EQ(r.actual_primary_backend, "cpu");
+    EXPECT_GT(r.total_chunks, 0u);
+    int total = std::accumulate(data.begin(), data.end(), 0);
+    EXPECT_EQ(total, 100);
+    astro::compute::runtime_shutdown();
+}
+
+TEST(SchedulerDispatcherCostAware, GuidedTailSplitsRange) {
+    astro::compute::runtime_init();
+    Dispatcher d;
+    DispatcherConfig cfg;
+    cfg.devices = {{"cpu", 0, 0, 50.0, true}};
+    cfg.enable_utilization = true;
+    cfg.enable_guided_tail = true;
+    cfg.guided_tail_threshold = 0.7;
+    cfg.min_effective_chunk = 256;
+    d.configure(cfg);
+
+    // 范围需 > min_effective_chunk * 4 = 1024 才触发分段
+    astro::compute::TaskDescriptor task;
+    task.range = astro::compute::Range1D{0, 10000};
+
+    auto est = make_cpu_only_estimate(500);
+    std::vector<int> data(10000, 0);
+    auto fn = +[](std::size_t, std::size_t b, std::size_t e, void* ud) {
+        auto* d = static_cast<std::vector<int>*>(ud);
+        for (std::size_t i = b; i < e; ++i) (*d)[i] = 1;
+    };
+    auto r = d.dispatch_range_cost_aware(task, est, fn, &data);
+    EXPECT_TRUE(r.run_result.all_done);
+    EXPECT_TRUE(r.guided_tail_used);
+    EXPECT_GE(r.guided_min_chunk, cfg.min_effective_chunk);
+    // 完整覆盖
+    int total = std::accumulate(data.begin(), data.end(), 0);
+    EXPECT_EQ(total, 10000);
+    astro::compute::runtime_shutdown();
+}
+
+TEST(SchedulerDispatcherCostAware, GuidedTailDisabledNoSplit) {
+    astro::compute::runtime_init();
+    Dispatcher d;
+    DispatcherConfig cfg;
+    cfg.devices = {{"cpu", 0, 0, 50.0, true}};
+    cfg.enable_utilization = true;
+    cfg.enable_guided_tail = false;  // 禁用
+    cfg.min_effective_chunk = 256;
+    d.configure(cfg);
+
+    astro::compute::TaskDescriptor task;
+    task.range = astro::compute::Range1D{0, 10000};
+
+    auto est = make_cpu_only_estimate(500);
+    std::vector<int> data(10000, 0);
+    auto fn = +[](std::size_t, std::size_t b, std::size_t e, void* ud) {
+        auto* d = static_cast<std::vector<int>*>(ud);
+        for (std::size_t i = b; i < e; ++i) (*d)[i] = 1;
+    };
+    auto r = d.dispatch_range_cost_aware(task, est, fn, &data);
+    EXPECT_TRUE(r.run_result.all_done);
+    EXPECT_FALSE(r.guided_tail_used);
+    int total = std::accumulate(data.begin(), data.end(), 0);
+    EXPECT_EQ(total, 10000);
+    astro::compute::runtime_shutdown();
+}
+
+TEST(SchedulerDispatcherCostAware, MemoryActionPopulated) {
+    astro::compute::runtime_init();
+    Dispatcher d;
+    DispatcherConfig cfg;
+    cfg.devices = {{"cpu", 0, 0, 50.0, true}};
+    cfg.enable_utilization = true;
+    cfg.enable_guided_tail = true;
+    d.configure(cfg);
+
+    astro::compute::TaskDescriptor task;
+    task.range = astro::compute::Range1D{0, 1000};
+
+    auto est = make_cpu_only_estimate(100);
+    std::vector<int> data(1000, 0);
+    auto fn = +[](std::size_t, std::size_t b, std::size_t e, void* ud) {
+        auto* d = static_cast<std::vector<int>*>(ud);
+        for (std::size_t i = b; i < e; ++i) (*d)[i] = 1;
+    };
+    auto r = d.dispatch_range_cost_aware(task, est, fn, &data);
+    EXPECT_TRUE(r.run_result.all_done);
+    // mem_action 应被填充（非空字符串）
+    EXPECT_FALSE(r.mem_action.empty());
+    // 正常内存条件下应为 "none"
+    EXPECT_EQ(r.mem_action, "none");
+    astro::compute::runtime_shutdown();
+}
+
+TEST(SchedulerDispatcherCostAware, CurrentStateJsonPopulated) {
+    astro::compute::runtime_init();
+    Dispatcher d;
+    DispatcherConfig cfg;
+    cfg.devices = {{"cpu", 0, 0, 50.0, true}};
+    cfg.enable_utilization = false;
+    cfg.enable_guided_tail = false;
+    d.configure(cfg);
+
+    astro::compute::TaskDescriptor task;
+    task.range = astro::compute::Range1D{0, 500};
+
+    auto est = make_cpu_only_estimate(100);
+    std::vector<int> data(500, 0);
+    auto fn = +[](std::size_t, std::size_t b, std::size_t e, void* ud) {
+        auto* d = static_cast<std::vector<int>*>(ud);
+        for (std::size_t i = b; i < e; ++i) (*d)[i] = 1;
+    };
+    auto r = d.dispatch_range_cost_aware(task, est, fn, &data);
+    EXPECT_TRUE(r.run_result.all_done);
+    EXPECT_FALSE(r.current_state_json.empty());
+    // JSON 应包含 "cpu" 设备
+    EXPECT_NE(r.current_state_json.find("cpu"), std::string::npos);
+    astro::compute::runtime_shutdown();
 }
 
 // ============================================================================

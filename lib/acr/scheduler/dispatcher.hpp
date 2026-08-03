@@ -9,6 +9,8 @@
 //   5. Dispatcher 是 MixedRunner + QueueAwareEstimator + FallbackPolicy 的组合
 //   6. Phase F3 增强：新增 cost-aware 调度方法（接受 CostEstimate + CurrentState）
 //   7. 公共头不暴露第三方类型
+//   8. Commit F：接入 CpuController（95% 软目标）+ MemoryBudgetController（RAM/VRAM 预算）
+//      + guided 尾部收缩（completion > 70% 时 chunk_size 动态缩小）
 #pragma once
 
 #include "current_state.hpp"
@@ -26,6 +28,7 @@
 namespace astro::compute {
 struct TaskDescriptor;
 namespace cost { struct CostEstimate; }
+namespace utilization { class CpuController; class MemoryBudgetController; }
 }
 
 namespace astro::compute::scheduler {
@@ -36,6 +39,12 @@ struct DispatcherConfig {
     FallbackStrategy fallback_strategy{FallbackStrategy::ToCpu};
     // 小数据阈值：bytes 总数小于此值时优先 CPU
     std::size_t small_data_threshold_bytes{1u << 20};  // 1 MB
+    // Commit F：utilization + guided 配置
+    double cpu_target_ratio{0.95};       // CPU 利用率软目标（95%）
+    bool enable_utilization{true};        // 是否启用 utilization 反压
+    bool enable_guided_tail{true};        // 是否启用 guided 尾部收缩
+    double guided_tail_threshold{0.7};   // completion_ratio > 此值时开始收缩
+    std::size_t min_effective_chunk{256}; // guided 收缩下限
 };
 
 // ===== Cost-aware 分发结果（Phase F3）=====
@@ -48,6 +57,12 @@ struct CostAwareResult {
     std::size_t chunks_fallback{0};
     bool used_cost_estimator{false};    // 是否使用了 CostEstimator
     std::string current_state_json;     // 最终 CurrentState 快照
+    // Commit F：utilization + guided 报告
+    double cpu_actual_ratio{0.0};       // 最后一次采样的 CPU 实际利用率
+    bool cpu_actual_valid{false};       // actual_ratio 是否有效
+    std::string mem_action;            // 内存预算建议动作（none/shrink/stop/fail）
+    bool guided_tail_used{false};       // 是否触发了 guided 尾部收缩
+    std::size_t guided_min_chunk{0};   // guided 收缩到的最小块
 };
 
 // ===== Dispatcher =====
