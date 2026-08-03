@@ -45,12 +45,11 @@ struct MixedRunner::Impl {
         }
 
         // 简化策略：
-        // - 若首选 backend 是 CPU（或 enable_gpu=false），全部走 CPU
-        // - 若首选是 GPU，理论上应分发部分到 GPU；但 CUDA 集成待 Phase H
+        // - enable_gpu=false 时全部走 CPU
+        // - enable_gpu=true 时理论上应分发部分到 GPU；但 CUDA 集成待 Phase H
         //   此处全部走 CPU + 标记 fallback_chunks=total
         bool use_cpu = true;
-        if (cfg.enable_gpu && !cfg.preferred_backend.empty() &&
-            cfg.preferred_backend.rfind("cuda", 0) == 0) {
+        if (cfg.enable_gpu) {
             // GPU 路径占位（Phase H 接入真实 CUDA 后分发）
             use_cpu = true;
             r.fallback_chunks = chunks.size();

@@ -1,15 +1,12 @@
 // lib/acr/qualification/profile_generator.hpp — 从 benchmark 结果生成画像
-// Phase E：聚合样本 → 选最优 backend → 生成 ProfileBundle → 序列化 JSON。
-// Phase E3：新增 hardware-profile.json 生成（多维能力曲线，新权威路径）。
+// Phase E3：聚合样本 → 生成 HardwareProfile → 序列化 hardware-profile.json（多维能力曲线）。
 //
 // 设计：
 //   1. profile_generator 不修改 benchmark 原始样本，仅做 median/stddev 聚合
-//   2. 路由选择：每个 (kernel, precision) 选 throughput 最大的 backend；无 backend 时回退 CPU
-//   3. 设备指纹：调用 generate_hardware_report 提取关键字段并 SHA-256
-//   4. JSON 序列化手写（与 diagnostics/hardware_report.cpp 风格一致，无第三方依赖）
-//   5. 生成 routes.json 是只读档案：运行时不修改
-//   6. Phase E3：hardware-profile.json 是新权威路径，routes.json 保留向后兼容
-//      benchmark 结果按 kernel 类型映射到对应能力曲线族（Copy/Triad→memory，AXPY→arithmetic，Dot→reduction）
+//   2. 设备指纹：调用 generate_hardware_report 提取关键字段并 SHA-256
+//   3. JSON 序列化手写（与 diagnostics/hardware_report.cpp 风格一致，无第三方依赖）
+//   4. hardware-profile.json 是只读档案：运行时不修改
+//   5. benchmark 结果按 kernel 类型映射到对应能力曲线族（Copy/Triad→memory，AXPY→arithmetic，Dot→reduction）
 #pragma once
 
 #include "profile_schema.hpp"
@@ -29,17 +26,6 @@ class ProfileGenerator {
 public:
     ProfileGenerator();
     ~ProfileGenerator();
-
-    // 从 benchmark 结果 + 当前硬件生成 ProfileBundle
-    // 硬件指纹从 topology 获取（CPU 型号/核心/ISA/GPU）
-    ProfileBundle generate(const std::vector<KernelBenchmarkResult>& results,
-                           ProfileKind kind) const;
-
-    // 序列化为 JSON 字符串（routes.json 格式，向后兼容）
-    static std::string serialize(const ProfileBundle& bundle);
-
-    // 写入文件（覆盖，routes.json 格式）
-    static bool write_to_file(const std::string& path, const ProfileBundle& bundle);
 
     // ===== Phase E3：生成 HardwareProfile（hardware-profile.json，新权威路径）=====
     // 从 benchmark 结果 + 当前硬件生成 HardwareProfile。

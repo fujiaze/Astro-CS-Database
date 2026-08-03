@@ -117,64 +117,6 @@ TEST(QualDriver, QuickProfileProducesResults) {
 }
 
 // ============================================================================
-// ProfileGenerator 生成 + 序列化
-// ============================================================================
-
-TEST(QualGenerator, GeneratesProfileWithRoutes) {
-    runtime_init();
-    BenchmarkDriver driver;
-    driver.configure(make_default_config(ProfileKind::Quick, false));
-    auto results = driver.run();
-    ProfileGenerator gen;
-    auto bundle = gen.generate(results, ProfileKind::Quick);
-    EXPECT_EQ(bundle.schema_version, "acr.route_profile.v1");
-    EXPECT_FALSE(bundle.generated_at.empty());
-    EXPECT_FALSE(bundle.fingerprint.sha256.empty());
-    // routes 至少包含测过的 kernel
-    EXPECT_GE(bundle.routes.size(), 1u);
-    for (const auto& r : bundle.routes) {
-        EXPECT_FALSE(r.preferred_backend.empty());
-    }
-    runtime_shutdown();
-}
-
-TEST(QualGenerator, SerializesToJson) {
-    runtime_init();
-    BenchmarkDriver driver;
-    driver.configure(make_default_config(ProfileKind::Quick, false));
-    auto results = driver.run();
-    ProfileGenerator gen;
-    auto bundle = gen.generate(results, ProfileKind::Quick);
-    std::string json = ProfileGenerator::serialize(bundle);
-    EXPECT_NE(json.find("\"schema_version\":\"acr.route_profile.v1\""), std::string::npos);
-    EXPECT_NE(json.find("\"fingerprint\":"), std::string::npos);
-    EXPECT_NE(json.find("\"routes\":"), std::string::npos);
-    EXPECT_NE(json.find("\"profile_kind\":\"quick\""), std::string::npos);
-    runtime_shutdown();
-}
-
-TEST(QualGenerator, WritesToFile) {
-    runtime_init();
-    BenchmarkDriver driver;
-    driver.configure(make_default_config(ProfileKind::Quick, false));
-    auto results = driver.run();
-    ProfileGenerator gen;
-    auto bundle = gen.generate(results, ProfileKind::Quick);
-    const char* path = "acr_test_qual_profile.json";
-    ASSERT_TRUE(ProfileGenerator::write_to_file(path, bundle));
-    // 验证文件可读
-    std::ifstream f(path);
-    ASSERT_TRUE(f.is_open());
-    std::string content((std::istreambuf_iterator<char>(f)),
-                         std::istreambuf_iterator<char>());
-    EXPECT_FALSE(content.empty());
-    EXPECT_NE(content.find("acr.route_profile.v1"), std::string::npos);
-    f.close();
-    std::remove(path);
-    runtime_shutdown();
-}
-
-// ============================================================================
 // SHA-256 哈希确定性
 // ============================================================================
 

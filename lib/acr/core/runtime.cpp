@@ -487,7 +487,6 @@ scheduler::Dispatcher& global_dispatcher() {
     static std::once_flag flag;
     std::call_once(flag, []() {
         scheduler::DispatcherConfig cfg;
-        cfg.preferred_backend = "cpu";
         // 默认只有 CPU；GPU 设备由 future topology 探测添加
         cfg.devices = {{"cpu", 0, 0, 50.0, true}};
         cfg.fallback_strategy = scheduler::FallbackStrategy::ToCpu;
@@ -530,7 +529,7 @@ Event submit_range_with_desc(OperationId id, Range1D range, TaskTraits traits,
     TaskDescriptor task = make_range_descriptor(id, range, traits, Precision::Default);
 
     // 2. 通过 CostEstimator 估算成本（接通调用链）
-    //    CostEstimate 提供 preferred_backend + recommended_chunk_size
+    //    CostEstimate 提供 preferred_device + recommended_chunk_size
     cost::CostEstimate estimate;
     try {
         estimate = cost::global_cost_estimator().estimate(task);

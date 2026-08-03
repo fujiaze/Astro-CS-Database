@@ -1,6 +1,5 @@
 // lib/acr/tests/classic/e20_fault_fallback.cpp — E20 故障和回退
-// 规范 E20：插件缺失、无画像、画像损坏/过期、显存不足、launch失败、
-//   设备lost模拟、分配失败、取消、异常、profile只读。
+// 规范 E20：显存不足、launch失败、分配失败、取消、异常、
 //   未开始块回收，已完成块不重复。
 // 聚焦于 Dispatcher/MixedRunner 的 fallback 行为。
 #include "classic_common.hpp"
@@ -11,8 +10,6 @@
 #include <fallback.hpp>
 #include <mixed_runner.hpp>
 #include <partitioner.hpp>
-#include <route_profile.hpp>
-#include <static_router.hpp>
 
 #include <atomic>
 #include <cstdio>
@@ -24,93 +21,9 @@
 
 using namespace astro::compute;
 using namespace astro::compute::classic;
-using namespace astro::compute::routing;
 using namespace astro::compute::scheduler;
 
 namespace {
-
-// 插件缺失：CUDA backend 不可用时降级到 CPU
-CaseResult run_plugin_missing(const std::string& case_id) {
-    StaticRouteResolver r;
-    r.set_profile_path("./nonexistent_e20_plugin.json");
-    auto res = r.resolve(KernelId::AXPY);
-
-    auto tm = measure_timing([&] { r.resolve(KernelId::AXPY); }, 5);
-
-    ErrorStats err;
-    bool ok = res.missing && res.backend == "cpu" && res.reason == "missing-profile";
-    if (!ok) err.max_abs = 1.0;
-    return make_result("E20", case_id, "integer", 1, ok, err, tm,
-                       ok ? "PASS" : "FAIL",
-                       ok ? "" : "plugin missing degradation failed",
-                       "cpu", "cpu");
-}
-
-// 无画像：无 routes.json → CPU baseline
-CaseResult run_no_profile(const std::string& case_id) {
-    StaticRouteResolver r;
-    r.set_profile_path("./nonexistent_e20_noprofile.json");
-    auto res = r.resolve(KernelId::AXPY);
-
-    auto tm = measure_timing([&] { r.resolve(KernelId::AXPY); }, 5);
-
-    ErrorStats err;
-    bool ok = res.missing && res.backend == "cpu";
-    if (!ok) err.max_abs = 1.0;
-    return make_result("E20", case_id, "integer", 1, ok, err, tm,
-                       ok ? "PASS" : "FAIL",
-                       ok ? "" : "no profile degradation failed",
-                       "cpu", "cpu");
-}
-
-// 画像损坏：JSON 解析失败 → CPU baseline
-CaseResult run_profile_corrupt(const std::string& case_id) {
-    const char* path = "acr_e20_corrupt.json";
-    {
-        std::ofstream f(path);
-        f << "{ this is >>> NOT <<< valid json ]]]";
-    }
-    StaticRouteResolver r;
-    r.set_profile_path(path);
-    auto res = r.resolve(KernelId::AXPY);
-    std::remove(path);
-
-    auto tm = measure_timing([&] { r.resolve(KernelId::AXPY); }, 5);
-
-    ErrorStats err;
-    bool ok = res.corrupt && res.backend == "cpu" && res.reason == "corrupt";
-    if (!ok) err.max_abs = 1.0;
-    return make_result("E20", case_id, "integer", 1, ok, err, tm,
-                       ok ? "PASS" : "FAIL",
-                       ok ? "" : "corrupt profile degradation failed",
-                       "cpu", "cpu");
-}
-
-// 画像过期：指纹不匹配 → 警告 + 继续运行
-CaseResult run_profile_stale(const std::string& case_id) {
-    const char* path = "acr_e20_stale.json";
-    {
-        std::ofstream f(path);
-        f << R"({"schema_version":"acr.route_profile.v1","generated_at":"20260802T120000Z","profile_kind":"standard",)"
-          R"("fingerprint":{"cpu_model":"X","cpu_cores":4,"isa_mask":1,"gpu_name":"","gpu_memory_bytes":0,"gpu_driver_version":"","sha256":"e20stale"}},)"
-          R"("routes":[]})";
-    }
-    StaticRouteResolver r;
-    r.set_profile_path(path);
-    auto res = r.resolve(KernelId::AXPY);
-    std::remove(path);
-
-    auto tm = measure_timing([&] { r.resolve(KernelId::AXPY); }, 5);
-
-    ErrorStats err;
-    bool ok = (!res.missing) && (!res.corrupt) &&
-              (res.stale || res.reason == "profile" || res.reason == "stale");
-    if (!ok) err.max_abs = 1.0;
-    return make_result("E20", case_id, "integer", 1, ok, err, tm,
-                       ok ? "PASS" : "FAIL",
-                       ok ? "" : "stale profile not detected",
-                       "cpu", "cpu");
-}
 
 // 显存不足/OOM 模拟：分配大 Buffer，验证不崩溃
 CaseResult run_oom_simulation(const std::string& case_id) {
@@ -147,36 +60,6 @@ CaseResult run_launch_failure(const std::string& case_id) {
     return make_result("E20", case_id, "integer", 100, ok, err, tm,
                        ok ? "PASS" : "FAIL",
                        ok ? "" : "launch failure not propagated as KernelFailed",
-                       "cpu", "cpu");
-}
-
-// device lost 模拟：invalidate → reload
-CaseResult run_device_lost(const std::string& case_id) {
-    const char* path = "acr_e20_device_lost.json";
-    {
-        std::ofstream f(path);
-        f << R"({"schema_version":"acr.route_profile.v1","generated_at":"20260802T120000Z","profile_kind":"standard",)"
-          R"("fingerprint":{"cpu_model":"X","cpu_cores":4,"isa_mask":1,"gpu_name":"","gpu_memory_bytes":0,"gpu_driver_version":"","sha256":"e20devlost"}},)"
-          R"("routes":[]})";
-    }
-    StaticRouteResolver r;
-    r.set_profile_path(path);
-    auto res1 = r.resolve(KernelId::AXPY);
-    std::remove(path);
-    r.invalidate_cache();
-    auto res2 = r.resolve(KernelId::AXPY);
-
-    auto tm = measure_timing([&] {
-        r.invalidate_cache();
-        r.resolve(KernelId::AXPY);
-    }, 5);
-
-    ErrorStats err;
-    bool ok = !res1.missing && res2.missing;
-    if (!ok) err.max_abs = 1.0;
-    return make_result("E20", case_id, "integer", 1, ok, err, tm,
-                       ok ? "PASS" : "FAIL",
-                       ok ? "" : "device lost recovery failed",
                        "cpu", "cpu");
 }
 
@@ -239,38 +122,6 @@ CaseResult run_exception_propagation(const std::string& case_id) {
                        "cpu", "cpu");
 }
 
-// profile 只读：resolve 后 profile 文件不被修改
-CaseResult run_profile_readonly(const std::string& case_id) {
-    const char* path = "acr_e20_readonly.json";
-    {
-        std::ofstream f(path);
-        f << R"({"schema_version":"acr.route_profile.v1","generated_at":"20260802T120000Z","profile_kind":"standard",)"
-          R"("fingerprint":{"cpu_model":"X","cpu_cores":4,"isa_mask":1,"gpu_name":"","gpu_memory_bytes":0,"gpu_driver_version":"","sha256":"e20ro"}},)"
-          R"("routes":[]})";
-    }
-    std::string before;
-    { std::ifstream f(path); std::getline(f, before); }
-
-    StaticRouteResolver r;
-    r.set_profile_path(path);
-    r.resolve(KernelId::AXPY);
-    r.resolve(KernelId::Copy);
-
-    std::string after;
-    { std::ifstream f(path); std::getline(f, after); }
-    std::remove(path);
-
-    auto tm = measure_timing([&] { r.resolve(KernelId::AXPY); }, 5);
-
-    ErrorStats err;
-    bool ok = (before == after);
-    if (!ok) err.max_abs = 1.0;
-    return make_result("E20", case_id, "integer", 1, ok, err, tm,
-                       ok ? "PASS" : "FAIL",
-                       ok ? "" : "profile modified during resolve",
-                       "cpu", "cpu");
-}
-
 // 未开始块回收，已完成块不重复：FallbackPolicy 验证
 CaseResult run_fallback_no_replay(const std::string& case_id) {
     // 创建 coverage bitmap，标记部分 chunk 已完成
@@ -304,7 +155,6 @@ CaseResult run_mixed_fallback_to_cpu(const std::string& case_id) {
     runtime_init();
     Dispatcher d;
     DispatcherConfig cfg;
-    cfg.preferred_backend = "cpu";
     cfg.fallback_strategy = FallbackStrategy::ToCpu;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
     d.configure(cfg);
@@ -335,33 +185,21 @@ CaseResult run_mixed_fallback_to_cpu(const std::string& case_id) {
 
 } // anonymous namespace
 
-TEST(E20Fault, PluginMissing)     { auto r = run_plugin_missing("plugin_missing");           ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
-TEST(E20Fault, NoProfile)         { auto r = run_no_profile("no_profile");                   ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
-TEST(E20Fault, ProfileCorrupt)    { auto r = run_profile_corrupt("profile_corrupt");         ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
-TEST(E20Fault, ProfileStale)      { auto r = run_profile_stale("profile_stale");             ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
 TEST(E20Fault, OomSimulation)     { auto r = run_oom_simulation("oom_simulation");           ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
 TEST(E20Fault, LaunchFailure)     { auto r = run_launch_failure("launch_failure");           ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
-TEST(E20Fault, DeviceLost)        { auto r = run_device_lost("device_lost");                 ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
 TEST(E20Fault, AllocFailure)      { auto r = run_allocation_failure("allocation_failure");   ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
 TEST(E20Fault, CancelKernel)      { auto r = run_cancel_kernel("cancel_kernel");             ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
 TEST(E20Fault, ExceptionProp)     { auto r = run_exception_propagation("exception_propagation"); ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
-TEST(E20Fault, ProfileReadonly)   { auto r = run_profile_readonly("profile_readonly");       ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
 TEST(E20Fault, FallbackNoReplay)  { auto r = run_fallback_no_replay("fallback_no_replay");    ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
 TEST(E20Fault, MixedFallbackCpu)  { auto r = run_mixed_fallback_to_cpu("mixed_fallback_to_cpu"); ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
 
 extern "C" std::vector<CaseResult> run_e20() {
     return {
-        run_plugin_missing("plugin_missing"),
-        run_no_profile("no_profile"),
-        run_profile_corrupt("profile_corrupt"),
-        run_profile_stale("profile_stale"),
         run_oom_simulation("oom_simulation"),
         run_launch_failure("launch_failure"),
-        run_device_lost("device_lost"),
         run_allocation_failure("allocation_failure"),
         run_cancel_kernel("cancel_kernel"),
         run_exception_propagation("exception_propagation"),
-        run_profile_readonly("profile_readonly"),
         run_fallback_no_replay("fallback_no_replay"),
         run_mixed_fallback_to_cpu("mixed_fallback_to_cpu"),
     };

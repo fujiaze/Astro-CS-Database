@@ -67,7 +67,6 @@ struct DeviceCost {
 struct CostEstimate {
     std::vector<DeviceCost> per_device;     // 每个候选设备的成本
     DeviceId preferred_device{kHwInvalidDeviceId};   // 最优设备
-    std::string preferred_backend;          // 最优 backend 字符串
     std::size_t total_work_size{0};         // 总工作量（元素数）
     bool profile_available{false};          // 是否有画像（任一设备有曲线即 true）
     bool profile_stale{false};              // 画像是否过期

@@ -1,16 +1,14 @@
 // lib/acr/tests/classic/e15_failure.cpp — E15 Failure and Fallback
-// 验证能力：backend 缺失 / profile corrupt / device lost / 取消 / 异常传播
+// 验证能力：backend 缺失 / device lost / 取消 / 异常传播
 // 扩展（规范 E20 故障和回退）：
-//   - 分配失败/OOM 模拟 / profile 只读验证 / 混合调度异常 chunk / profile stale 指纹
-// 用 routing StaticRouteResolver 验证 profile 三态；用 parallel_for 异常 kernel 验证 KernelFailed。
+//   - 分配失败/OOM 模拟 / 混合调度异常 chunk
+// 用 parallel_for 异常 kernel 验证 KernelFailed。
 #include "classic_common.hpp"
 
 #include <gtest/gtest.h>
 
 #include <dispatcher.hpp>
 #include <mixed_runner.hpp>
-#include <route_profile.hpp>
-#include <static_router.hpp>
 
 #include <cstdio>
 #include <fstream>
@@ -20,69 +18,9 @@
 
 using namespace astro::compute;
 using namespace astro::compute::classic;
-using namespace astro::compute::routing;
 using namespace astro::compute::scheduler;
 
 namespace {
-
-// backend 缺失：无 GPU 时 CUDA backend 不可用 → StatusCode::BackendUnavailable
-CaseResult run_backend_unavailable(const std::string& case_id) {
-    // ACR_BUILD_CUDA=OFF 时，CUDA backend 不可用
-    // 通过 routing missing profile → CPU baseline 验证降级路径
-    StaticRouteResolver r;
-    r.set_profile_path("./nonexistent_e15_backend.json");
-    auto res = r.resolve(KernelId::AXPY);
-
-    auto tm = measure_timing([&] { r.resolve(KernelId::AXPY); }, 5);
-
-    ErrorStats err;
-    bool ok = res.missing && res.backend == "cpu" && res.reason == "missing-profile";
-    if (!ok) err.max_abs = 1.0;
-    return make_result("E15", case_id, "integer", 1, ok, err, tm,
-                       ok ? "PASS" : "FAIL",
-                       ok ? "" : "backend unavailable degradation failed",
-                       "cpu", "cpu");
-}
-
-// profile corrupt：JSON 解析失败 → CPU baseline + 警告
-CaseResult run_profile_corrupt(const std::string& case_id) {
-    const char* path = "acr_e15_corrupt_profile.json";
-    {
-        std::ofstream f(path);
-        f << "{ this is >>> NOT <<< valid json ]]]";
-    }
-    StaticRouteResolver r;
-    r.set_profile_path(path);
-    auto res = r.resolve(KernelId::AXPY);
-
-    auto tm = measure_timing([&] { r.resolve(KernelId::AXPY); }, 5);
-    std::remove(path);
-
-    ErrorStats err;
-    bool ok = res.corrupt && res.backend == "cpu" && res.reason == "corrupt";
-    if (!ok) err.max_abs = 1.0;
-    return make_result("E15", case_id, "integer", 1, ok, err, tm,
-                       ok ? "PASS" : "FAIL",
-                       ok ? "" : "corrupt profile degradation failed",
-                       "cpu", "cpu");
-}
-
-// profile missing：无 routes.json → CPU baseline + 警告
-CaseResult run_profile_missing(const std::string& case_id) {
-    StaticRouteResolver r;
-    r.set_profile_path("./nonexistent_e15_missing.json");
-    auto res = r.resolve(KernelId::AXPY);
-
-    auto tm = measure_timing([&] { r.resolve(KernelId::AXPY); }, 5);
-
-    ErrorStats err;
-    bool ok = res.missing && res.backend == "cpu";
-    if (!ok) err.max_abs = 1.0;
-    return make_result("E15", case_id, "integer", 1, ok, err, tm,
-                       ok ? "PASS" : "FAIL",
-                       ok ? "" : "missing profile degradation failed",
-                       "cpu", "cpu");
-}
 
 // 取消正在执行的 kernel（同步模式下 kernel 已完成，cancel 设置标志）
 CaseResult run_cancel_kernel(const std::string& case_id) {
@@ -126,38 +64,6 @@ CaseResult run_kernel_exception(const std::string& case_id) {
                        "cpu", "cpu");
 }
 
-// device lost 模拟：通过 invalidation 触发 profile reload
-CaseResult run_device_lost(const std::string& case_id) {
-    const char* path = "acr_e15_device_lost.json";
-    {
-        std::ofstream f(path);
-        f << R"({"schema_version":"acr.route_profile.v1","generated_at":"20260802T120000Z","profile_kind":"standard",)"
-          R"("fingerprint":{"cpu_model":"X","cpu_cores":4,"isa_mask":1,"gpu_name":"","gpu_memory_bytes":0,"gpu_driver_version":"","sha256":"devlost"}},)"
-          R"("routes":[]})";
-    }
-    StaticRouteResolver r;
-    r.set_profile_path(path);
-    auto res1 = r.resolve(KernelId::AXPY);
-    // 模拟 device lost：删除 profile + invalidate
-    std::remove(path);
-    r.invalidate_cache();
-    auto res2 = r.resolve(KernelId::AXPY);
-
-    auto tm = measure_timing([&] {
-        r.invalidate_cache();
-        r.resolve(KernelId::AXPY);
-    }, 5);
-
-    ErrorStats err;
-    // res1 应该非 missing（profile 存在），res2 应该 missing（profile 已删除）
-    bool ok = !res1.missing && res2.missing;
-    if (!ok) err.max_abs = 1.0;
-    return make_result("E15", case_id, "integer", 1, ok, err, tm,
-                       ok ? "PASS" : "FAIL",
-                       ok ? "" : "device lost recovery failed",
-                       "cpu", "cpu");
-}
-
 // 分配失败/OOM 模拟：尝试分配超大 Buffer，验证不崩溃
 CaseResult run_allocation_failure(const std::string& case_id) {
     auto tm = measure_timing([&] {
@@ -180,53 +86,11 @@ CaseResult run_allocation_failure(const std::string& case_id) {
                        "cpu", "cpu");
 }
 
-// profile 只读验证：resolve 后 profile 文件不被修改
-CaseResult run_profile_readonly(const std::string& case_id) {
-    const char* path = "acr_e15_readonly.json";
-    {
-        std::ofstream f(path);
-        f << R"({"schema_version":"acr.route_profile.v1","generated_at":"20260802T120000Z","profile_kind":"standard",)"
-          R"("fingerprint":{"cpu_model":"X","cpu_cores":4,"isa_mask":1,"gpu_name":"","gpu_memory_bytes":0,"gpu_driver_version":"","sha256":"readonly"}},)"
-          R"("routes":[]})";
-    }
-    // 读取文件内容（resolve 前）
-    std::string content_before;
-    {
-        std::ifstream f(path);
-        std::getline(f, content_before);
-    }
-
-    StaticRouteResolver r;
-    r.set_profile_path(path);
-    r.resolve(KernelId::AXPY);
-    r.resolve(KernelId::Copy);
-    r.resolve(KernelId::Triad);
-
-    // 读取文件内容（resolve 后）
-    std::string content_after;
-    {
-        std::ifstream f(path);
-        std::getline(f, content_after);
-    }
-    std::remove(path);
-
-    auto tm = measure_timing([&] { r.resolve(KernelId::AXPY); }, 5);
-
-    ErrorStats err;
-    bool ok = (content_before == content_after);
-    if (!ok) err.max_abs = 1.0;
-    return make_result("E15", case_id, "integer", 1, ok, err, tm,
-                       ok ? "PASS" : "FAIL",
-                       ok ? "" : "profile was modified during resolve",
-                       "cpu", "cpu");
-}
-
 // 混合调度中异常 chunk 被计为 failed
 CaseResult run_mixed_schedule_exception(const std::string& case_id) {
     runtime_init();
     MixedRunner runner;
     MixedRunnerConfig cfg;
-    cfg.preferred_backend = "cpu";
     cfg.enable_gpu = false;
     runner.configure(cfg);
     std::vector<int> data(100, 0);
@@ -253,37 +117,10 @@ CaseResult run_mixed_schedule_exception(const std::string& case_id) {
                        "cpu", "cpu");
 }
 
-// profile stale：指纹不匹配 → 警告 + 继续运行
-CaseResult run_profile_stale(const std::string& case_id) {
-    const char* path = "acr_e15_stale.json";
-    {
-        std::ofstream f(path);
-        f << R"({"schema_version":"acr.route_profile.v1","generated_at":"20260802T120000Z","profile_kind":"standard",)"
-          R"("fingerprint":{"cpu_model":"X","cpu_cores":4,"isa_mask":1,"gpu_name":"","gpu_memory_bytes":0,"gpu_driver_version":"","sha256":"fakesha_stale"}},)"
-          R"("routes":[]})";
-    }
-    StaticRouteResolver r;
-    r.set_profile_path(path);
-    auto res = r.resolve(KernelId::AXPY);
-    std::remove(path);
-
-    auto tm = measure_timing([&] { r.resolve(KernelId::AXPY); }, 5);
-
-    ErrorStats err;
-    // stale 或 profile（取决于当前机器指纹是否恰好匹配）
-    bool ok = (!res.missing) && (!res.corrupt) && (res.stale || res.reason == "profile" || res.reason == "stale");
-    if (!ok) err.max_abs = 1.0;
-    return make_result("E15", case_id, "integer", 1, ok, err, tm,
-                       ok ? "PASS" : "FAIL",
-                       ok ? "" : "stale profile detection failed",
-                       "cpu", "cpu");
-}
-
 // 取消正在执行的调度
 CaseResult run_cancel_dispatch(const std::string& case_id) {
     Dispatcher d;
     DispatcherConfig cfg;
-    cfg.preferred_backend = "cpu";
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
     cfg.fallback_strategy = FallbackStrategy::ToCpu;
     d.configure(cfg);
@@ -314,30 +151,18 @@ CaseResult run_cancel_dispatch(const std::string& case_id) {
 
 } // anonymous namespace
 
-TEST(E15Failure, BackendUnavailable) { auto r = run_backend_unavailable("backend_unavailable"); ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
-TEST(E15Failure, ProfileCorrupt)     { auto r = run_profile_corrupt("profile_corrupt");         ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
-TEST(E15Failure, ProfileMissing)     { auto r = run_profile_missing("profile_missing");         ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
 TEST(E15Failure, CancelKernel)       { auto r = run_cancel_kernel("cancel_kernel");             ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
 TEST(E15Failure, KernelException)    { auto r = run_kernel_exception("kernel_exception");       ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
-TEST(E15Failure, DeviceLost)         { auto r = run_device_lost("device_lost");                 ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
 TEST(E15Failure, AllocationFailure)  { auto r = run_allocation_failure("allocation_failure");   ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
-TEST(E15Failure, ProfileReadonly)    { auto r = run_profile_readonly("profile_readonly");       ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
 TEST(E15Failure, MixedScheduleExc)   { auto r = run_mixed_schedule_exception("mixed_schedule_exception"); ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
-TEST(E15Failure, ProfileStale)       { auto r = run_profile_stale("profile_stale");             ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
 TEST(E15Failure, CancelDispatch)     { auto r = run_cancel_dispatch("cancel_dispatch");         ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
 
 extern "C" std::vector<CaseResult> run_e15() {
     return {
-        run_backend_unavailable("backend_unavailable"),
-        run_profile_corrupt("profile_corrupt"),
-        run_profile_missing("profile_missing"),
         run_cancel_kernel("cancel_kernel"),
         run_kernel_exception("kernel_exception"),
-        run_device_lost("device_lost"),
         run_allocation_failure("allocation_failure"),
-        run_profile_readonly("profile_readonly"),
         run_mixed_schedule_exception("mixed_schedule_exception"),
-        run_profile_stale("profile_stale"),
         run_cancel_dispatch("cancel_dispatch"),
     };
 }

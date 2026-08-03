@@ -1,5 +1,5 @@
 # lib/acr/scheduler/CMakeLists.txt — Phase F Work-Conserving Dispatcher
-# 链接 acr_api（parallel_batch 执行 chunks）+ acr_cost（CostEstimator）+ acr_routing（路由决策可选）
+# 链接 acr_api（parallel_batch 执行 chunks）+ acr_cost（CostEstimator）
 add_library(acr_scheduler STATIC
     partitioner.cpp
     queue_aware.cpp

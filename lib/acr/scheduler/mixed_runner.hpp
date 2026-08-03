@@ -41,7 +41,6 @@ struct MixedRunResult {
 struct MixedRunnerConfig {
     bool enable_gpu{false};                  // 是否启用 GPU（CPU-only 构建应 false）
     std::vector<std::string> gpu_backends;   // ["cuda:0", "cuda:1"] 等
-    std::string preferred_backend{"cpu"};    // 路由首选
     FallbackStrategy fallback_strategy{FallbackStrategy::ToCpu};
 };
 

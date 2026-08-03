@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.24)
 # ACR_BUILD_* 选项（ADR-009 CPU-only build gate）
 option(ACR_BUILD_TESTS        "Build ACR unit tests"               ON)
 option(ACR_BUILD_BENCHMARK    "Build acr-benchmark tool"           ON)
-option(ACR_BUILD_TOOLS        "Build acr-status/report/invalidate" ON)
+option(ACR_BUILD_TOOLS        "Build acr-status/report" ON)
 option(ACR_BUILD_EXAMPLES     "Build standalone examples"          ON)
 option(ACR_BUILD_CUDA         "Enable CUDA backend (requires CUDA SDK)" OFF)
 option(ACR_BUILD_HIP          "Enable HIP backend (requires ROCm)"  OFF)
@@ -148,9 +148,9 @@ endif()
 foreach(subdir
     api core buffers topology diagnostics
     backends/cpu backends/alpaka backends/cuda
-    qualification routing scheduler utilization
+    qualification scheduler utilization
     profile cost
-    tests tools/acr_benchmark tools/acr_status tools/acr_report tools/acr_invalidate
+    tests tools/acr_benchmark tools/acr_status tools/acr_report
     tools/acr_classic_runner
     examples
 )

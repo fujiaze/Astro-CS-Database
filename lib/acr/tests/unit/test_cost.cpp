@@ -104,7 +104,6 @@ TEST(CostEstimator, NoProfileReturnsFallbackCpu) {
     CostEstimate ce = est.estimate(task);
     EXPECT_FALSE(ce.profile_available);
     EXPECT_EQ(ce.fallback_reason, "no-profile");
-    EXPECT_EQ(ce.preferred_backend, "cpu");
     EXPECT_EQ(ce.preferred_device, kHwCpuDeviceId);
     EXPECT_EQ(ce.per_device.size(), 1u);
     EXPECT_FALSE(ce.per_device[0].profile_available);
@@ -148,7 +147,6 @@ TEST(CostEstimator, WithCpuGpuProfileSelectsFaster) {
     EXPECT_EQ(ce.per_device.size(), 2u);
     // 应选总成本更低的设备
     EXPECT_NE(ce.preferred_device, kHwInvalidDeviceId);
-    EXPECT_FALSE(ce.preferred_backend.empty());
 }
 
 TEST(CostEstimator, ReductionTaskHasMergeCost) {

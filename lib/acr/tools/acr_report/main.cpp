@@ -1,12 +1,11 @@
 // lib/acr/tools/acr_report/main.cpp — acr-report CLI
-// Phase E：生成 JSON 报告（hardware + routing + qualification 摘要）。
+// Phase E：生成 JSON 报告（hardware + hardware-profile 摘要）。
 //
 // 用法：
 //   acr-report [--profile <path>] [--output <path>]
 //
-// 默认 --profile ./routes.json --output -（stdout）
-#include "static_router.hpp"
-#include "route_profile.hpp"
+// 默认 --profile ./hardware-profile.json --output -（stdout）
+#include "profile_reader.hpp"
 
 #include "astro/compute/acr.hpp"
 #include "astro/compute/topology.hpp"
@@ -24,13 +23,13 @@ void print_usage() {
         "acr-report: 生成 ACR JSON 报告\n"
         "用法: acr-report [options]\n"
         "Options:\n"
-        "  --profile <path>   routes.json 路径 (默认 routes.json)\n"
+        "  --profile <path>   hardware-profile.json 路径 (默认 hardware-profile.json)\n"
         "  --output <path>    输出路径 (默认 - = stdout)\n"
         "  --help, -h         显示帮助\n");
 }
 
 struct Args {
-    std::string profile{"routes.json"};
+    std::string profile{"hardware-profile.json"};
     std::string output{"-"};
     bool help{false};
 };
@@ -63,15 +62,15 @@ int main(int argc, char** argv) {
     if (args.help) { print_usage(); return 0; }
 
     std::string hw = astro::compute::generate_hardware_report();
-    astro::compute::routing::StaticRouteResolver resolver;
-    resolver.set_profile_path(args.profile);
-    resolver.resolve(astro::compute::KernelId::Custom);
-    std::string routing = resolver.status_json();
+    astro::compute::profile::HardwareProfileReader reader;
+    reader.set_profile_path(args.profile);
+    (void)reader.get_profile();
+    std::string profile_status = reader.status_json();
 
     std::string report = "{\"schema\":\"acr.report.v1\",\"hardware\":";
     report += hw;
-    report += ",\"routing\":";
-    report += routing;
+    report += ",\"profile\":";
+    report += profile_status;
     report += "}";
 
     if (args.output == "-") {

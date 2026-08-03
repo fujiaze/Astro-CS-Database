@@ -73,34 +73,13 @@ struct DeviceFingerprint {
 
 // ===== Profile 三态 =====
 enum class ProfileState : std::uint8_t {
-    Missing  = 0,   // 无 routes.json
+    Missing  = 0,   // 无 hardware-profile.json
     Stale    = 1,   // 指纹不匹配
     Corrupt  = 2,   // JSON 解析失败
     Valid    = 3,   // 指纹匹配且 JSON 合法
 };
 
 const char* profile_state_str(ProfileState s) noexcept;
-
-// ===== 路由条目（profile 中每个 kernel 的最优 backend 选择）=====
-struct RouteEntry {
-    std::uint32_t kernel_id{0};
-    std::string kernel_name;
-    std::string precision;            // "fp32" / "fp64"
-    std::string preferred_backend;    // profile 推荐的 backend
-    double expected_throughput_gbps{0.0};
-    std::string reason;               // "fastest" / "only-avail" / "cpu-baseline"
-};
-
-// ===== Profile Bundle（完整 routes.json 的内存表示）=====
-struct ProfileBundle {
-    std::string schema_version{"acr.route_profile.v1"};
-    std::string generated_at;         // ISO 8601 时间戳
-    ProfileKind profile_kind{ProfileKind::Standard};
-    DeviceFingerprint fingerprint;
-    std::vector<RouteEntry> routes;
-    std::vector<KernelBenchmarkResult> raw_results;  // Full profile 才填
-    std::string to_json() const;
-};
 
 // ===== SHA-256 工具（qualification 内部使用）=====
 // 提供 SHA-256 哈希的 hex 字符串（32 字节 = 64 hex 字符）。

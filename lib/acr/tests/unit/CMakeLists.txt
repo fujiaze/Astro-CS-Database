@@ -13,7 +13,7 @@ target_include_directories(acr_test_topology PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../backends/cpu
 )
 
-# Phase E：qualification + routing 单测
+# Phase E：qualification 单测
 add_executable(acr_test_qualification test_qualification.cpp)
 target_link_libraries(acr_test_qualification PRIVATE
     acr_qualification acr_api GTest::gtest_main)
@@ -21,14 +21,8 @@ target_include_directories(acr_test_qualification PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../qualification
 )
 
-add_executable(acr_test_routing test_routing.cpp)
-target_link_libraries(acr_test_routing PRIVATE
-    acr_routing acr_diagnostics GTest::gtest_main)
-target_include_directories(acr_test_routing PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../routing
-)
-
 # Phase F：scheduler 单测
+
 add_executable(acr_test_scheduler test_scheduler.cpp)
 target_link_libraries(acr_test_scheduler PRIVATE
     acr_scheduler acr_api GTest::gtest_main)
@@ -62,7 +56,6 @@ gtest_discover_tests(acr_test_api     DISCOVERY_MODE PRE_TEST)
 gtest_discover_tests(acr_test_buffer  DISCOVERY_MODE PRE_TEST)
 gtest_discover_tests(acr_test_topology DISCOVERY_MODE PRE_TEST)
 gtest_discover_tests(acr_test_qualification DISCOVERY_MODE PRE_TEST)
-gtest_discover_tests(acr_test_routing DISCOVERY_MODE PRE_TEST)
 gtest_discover_tests(acr_test_scheduler DISCOVERY_MODE PRE_TEST)
 gtest_discover_tests(acr_test_utilization DISCOVERY_MODE PRE_TEST)
 

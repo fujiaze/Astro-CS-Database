@@ -46,7 +46,6 @@ CaseResult run_partition_split(std::size_t total, std::size_t chunk_count,
 
     MixedRunner runner;
     MixedRunnerConfig cfg;
-    cfg.preferred_backend = "cpu";
     cfg.enable_gpu = false;
     runner.configure(cfg);
 
@@ -92,7 +91,6 @@ CaseResult run_dispatcher_split(std::size_t total, std::size_t chunk_size,
     std::vector<int> data(total, 0);
 
     DispatcherConfig dcfg;
-    dcfg.preferred_backend = "cpu";
     dcfg.devices = {{"cpu", 0, 0, 50.0, true}};
     dcfg.fallback_strategy = FallbackStrategy::ToCpu;
     Dispatcher d;
@@ -139,7 +137,6 @@ CaseResult run_real_mixed(std::size_t total, std::size_t chunk_size,
     std::vector<int> data(total, 0);
     MixedRunner runner;
     MixedRunnerConfig cfg;
-    cfg.preferred_backend = "cpu";  // 路由首选 CPU，但允许 GPU 领取
     cfg.enable_gpu = true;
     cfg.gpu_backends = {"cuda:0"};
     cfg.fallback_strategy = FallbackStrategy::ToCpu;
@@ -183,7 +180,6 @@ CaseResult run_workpool_dynamic(std::size_t total, std::size_t chunk_size,
     // GPU 可用时：创建大量带唯一 ID 的 chunk，CPU+GPU 并发领取
     std::vector<int> data(total, 0);
     DispatcherConfig dcfg;
-    dcfg.preferred_backend = "cpu";
     dcfg.devices = {{"cpu", 0, 0, 50.0, true}, {"cuda:0", 0, 0, 80.0, true}};
     dcfg.fallback_strategy = FallbackStrategy::ToCpu;
     Dispatcher d;

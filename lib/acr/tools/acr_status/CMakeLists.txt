@@ -6,10 +6,10 @@ endif()
 
 add_executable(acr-status main.cpp)
 target_link_libraries(acr-status PRIVATE
-    acr_routing
+    acr_profile
     acr_diagnostics
 )
 target_include_directories(acr-status PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../routing
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../profile
 )
 message(STATUS "ACR tool: acr-status")

@@ -44,12 +44,10 @@ target_link_libraries(acr_classic_experiments
     PRIVATE
         acr_scheduler
         acr_utilization
-        acr_routing
 )
 target_include_directories(acr_classic_experiments PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../scheduler
     ${CMAKE_CURRENT_SOURCE_DIR}/../../utilization
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../routing
 )
 
 # ctest 可执行文件（classic_main.cpp 提供 main，不链接 gtest_main）

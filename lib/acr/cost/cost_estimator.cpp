@@ -502,7 +502,6 @@ CostEstimate CostEstimator::estimate(const TaskDescriptor& task) const {
         DeviceCost cpu_cost = estimate_for_device(task, kHwCpuDeviceId);
         est.per_device.push_back(std::move(cpu_cost));
         est.preferred_device = kHwCpuDeviceId;
-        est.preferred_backend = "cpu";
     } else {
         est.profile_available = true;
         if (hp->state == HwProfileState::Stale) {
@@ -519,23 +518,19 @@ CostEstimate CostEstimator::estimate(const TaskDescriptor& task) const {
         // 选最优（总成本最低的可行设备）
         double best_cost = std::numeric_limits<double>::max();
         DeviceId best_dev = kHwInvalidDeviceId;
-        std::string best_backend;
         for (const auto& dc : est.per_device) {
             if (!dc.feasible) continue;
             if (dc.total_cost_ns < best_cost) {
                 best_cost = dc.total_cost_ns;
                 best_dev = dc.device_id;
-                best_backend = dc.backend;
             }
         }
         // 无可行设备时回退 CPU
         if (best_dev == kHwInvalidDeviceId) {
             est.preferred_device = kHwCpuDeviceId;
-            est.preferred_backend = "cpu";
             est.fallback_reason = "no-feasible-device";
         } else {
             est.preferred_device = best_dev;
-            est.preferred_backend = best_backend;
         }
     }
 
@@ -543,7 +538,7 @@ CostEstimate CostEstimator::estimate(const TaskDescriptor& task) const {
     std::ostringstream os;
     os << "CostEstimate{work=" << est.total_work_size
        << ",profile=" << (est.profile_available ? "yes" : "no")
-       << ",preferred=" << est.preferred_backend
+       << ",preferred=" << device_id_to_backend(est.preferred_device)
        << ",devices=" << est.per_device.size() << "}";
     est.estimate_summary = os.str();
 

@@ -7,12 +7,10 @@ endif()
 add_executable(acr_test_fault fault_injection.cpp)
 target_link_libraries(acr_test_fault PRIVATE
     acr_api
-    acr_routing
     acr_scheduler
     GTest::gtest
 )
 target_include_directories(acr_test_fault PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../routing
     ${CMAKE_CURRENT_SOURCE_DIR}/../../scheduler
 )
 gtest_discover_tests(acr_test_fault DISCOVERY_MODE PRE_TEST)
@@ -38,12 +36,12 @@ gtest_discover_tests(acr_test_sanitizer_actual DISCOVERY_MODE PRE_TEST)
 add_executable(acr_test_persistence persistence.cpp)
 target_link_libraries(acr_test_persistence PRIVATE
     acr_api
-    acr_routing
+    acr_profile
     acr_qualification
     GTest::gtest
 )
 target_include_directories(acr_test_persistence PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../routing
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../profile
     ${CMAKE_CURRENT_SOURCE_DIR}/../../qualification
 )
 gtest_discover_tests(acr_test_persistence DISCOVERY_MODE PRE_TEST)

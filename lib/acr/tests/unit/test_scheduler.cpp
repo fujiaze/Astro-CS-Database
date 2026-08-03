@@ -331,7 +331,6 @@ TEST(SchedulerMixedRunner, CoverageCompleteNoRepeat) {
     astro::compute::runtime_init();
     MixedRunner runner;
     MixedRunnerConfig cfg;
-    cfg.preferred_backend = "cpu";
     runner.configure(cfg);
 
     struct UD { std::vector<int>* data; std::atomic<int>* count; };
@@ -374,7 +373,6 @@ TEST(SchedulerMixedRunner, ExceptionInChunkCountsAsFailed) {
     astro::compute::runtime_init();
     MixedRunner runner;
     MixedRunnerConfig cfg;
-    cfg.preferred_backend = "cpu";
     runner.configure(cfg);
     std::vector<int> data(100, 0);
     auto fn = +[](std::size_t, std::size_t b, std::size_t e, void* ud) {
@@ -397,7 +395,6 @@ TEST(SchedulerDispatcher, DispatchRangeExecutesAll) {
     astro::compute::runtime_init();
     Dispatcher d;
     DispatcherConfig cfg;
-    cfg.preferred_backend = "cpu";
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
     d.configure(cfg);
 

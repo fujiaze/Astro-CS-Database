@@ -2,14 +2,13 @@
 // 测试：
 //   1. 持续 parallel_for 路线（循环提交小任务，默认 5 秒，可通过 ACR_PERSIST_DURATION_SEC 环境变量配置）
 //   2. 多次进程重启模拟（runtime_init → shutdown → init 循环 100 次）
-//   3. profile 重载（生成 profile → 读取 → 作废 → 重新生成）
+//   3. profile 重载（生成 hardware-profile.json → 读取 → 作废 → 重新生成）
 #include <gtest/gtest.h>
 
 #include <benchmark_driver.hpp>
 #include <profile_generator.hpp>
 #include <profile_schema.hpp>
-#include <route_profile.hpp>
-#include <static_router.hpp>
+#include <profile_reader.hpp>
 
 #include <atomic>
 #include <chrono>
@@ -22,7 +21,7 @@
 #include "astro/compute/acr.hpp"
 
 using namespace astro::compute;
-using namespace astro::compute::routing;
+using namespace astro::compute::profile;
 using namespace astro::compute::qualification;
 
 namespace {
@@ -77,32 +76,36 @@ TEST(Persistence, Restarts100) {
 }
 
 // ============================================================================
-// 3. profile 重载（生成 → 读取 → 作废 → 重新生成）
+// 3. profile 重载（生成 hardware-profile.json → 读取 → 作废 → 重新生成）
 // ============================================================================
 TEST(Persistence, ProfileReload) {
     const char* path = "acr_persistence_profile.json";
     for (int i = 0; i < 5; ++i) {
-        // 生成 profile
+        // 生成 hardware-profile.json
         runtime_init();
         BenchmarkDriver driver;
         auto cfg = make_default_config(ProfileKind::Quick, /*enable_gpu=*/false);
         driver.configure(cfg);
         auto results = driver.run();
-        ProfileBundle bundle = ProfileGenerator{}.generate(results, ProfileKind::Quick);
-        ASSERT_TRUE(ProfileGenerator::write_to_file(path, bundle));
+        HardwareProfile hp = ProfileGenerator{}.generate_hardware_profile(results, ProfileKind::Quick);
+        ASSERT_TRUE(ProfileGenerator::write_hardware_profile_to_file(path, hp));
 
         // 读取 profile
-        StaticRouteResolver r;
+        HardwareProfileReader r;
         r.set_profile_path(path);
-        auto res = r.resolve(KernelId::AXPY);
-        EXPECT_FALSE(res.missing);
-        EXPECT_FALSE(res.corrupt);
+        const HardwareProfile* loaded = r.get_profile();
+        // 三态：指纹匹配则 Valid，否则 Stale（仍非 nullptr）
+        EXPECT_NE(loaded, nullptr);
+        EXPECT_NE(r.profile_state(), HwProfileState::Missing);
+        EXPECT_NE(r.profile_state(), HwProfileState::Corrupt);
 
         // 作废 profile
         std::remove(path);
         r.invalidate_cache();
-        auto res2 = r.resolve(KernelId::AXPY);
-        EXPECT_TRUE(res2.missing);
+        // 重新读取：文件不存在 → Missing
+        const HardwareProfile* reloaded = r.get_profile();
+        EXPECT_EQ(reloaded, nullptr);
+        EXPECT_EQ(r.profile_state(), HwProfileState::Missing);
 
         runtime_shutdown();
     }

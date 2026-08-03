@@ -50,8 +50,7 @@ struct Dispatcher::Impl {
     }
 
     std::string pick_backend_from_estimate(const cost::CostEstimate& estimate) const {
-        if (!estimate.preferred_backend.empty()) return estimate.preferred_backend;
-        return "cpu";
+        return cost::device_id_to_backend(estimate.preferred_device);
     }
 };
 
@@ -62,7 +61,6 @@ void Dispatcher::configure(const DispatcherConfig& cfg) {
     impl_->cfg = cfg;
     impl_->fallback_policy.set_strategy(cfg.fallback_strategy);
     MixedRunnerConfig mcfg;
-    mcfg.preferred_backend = cfg.preferred_backend;
     mcfg.fallback_strategy = cfg.fallback_strategy;
     // 从 devices 提取 GPU backends
     std::vector<std::string> backend_names;
@@ -109,7 +107,6 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
     const cost::CostEstimate& estimate,
     ChunkKernelFn fn, void* user_data) {
     CostAwareResult result;
-    result.preferred_backend = impl_->pick_backend_from_estimate(estimate);
     result.used_cost_estimator = estimate.profile_available;
 
     // 决定 chunk_size
@@ -153,10 +150,10 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
     }
 
     // Cost-aware 路径：当前实现仍走 MixedRunner（GPU 真实执行由 backend 提供）
-    // CostEstimator 已决定 chunk_size 和 preferred_backend，MixedRunner 据此分发
+    // CostEstimator 已决定 chunk_size 和 preferred_device，MixedRunner 据此分发
     auto r = impl_->runner.run_range(begin, end, chunk_size, fn, user_data);
     result.run_result = r;
-    result.actual_primary_backend = result.preferred_backend;
+    result.actual_primary_backend = impl_->pick_backend_from_estimate(estimate);
     result.total_chunks = r.total_chunks;
     result.chunks_on_cpu = r.executed_on_cpu;
     result.chunks_on_gpu = r.executed_on_gpu;

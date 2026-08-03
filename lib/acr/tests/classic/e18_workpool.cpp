@@ -60,7 +60,6 @@ CaseResult run_workpool_coverage(std::size_t total, std::size_t chunk_size,
     std::atomic<int> unique_ids{0};
 
     DispatcherConfig dcfg;
-    dcfg.preferred_backend = "cpu";
     dcfg.devices = {{"cpu", 0, 0, 50.0, true}, {"cuda:0", 0, 0, 80.0, true}};
     dcfg.fallback_strategy = FallbackStrategy::ToCpu;
     Dispatcher d;

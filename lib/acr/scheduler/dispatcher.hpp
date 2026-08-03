@@ -32,7 +32,6 @@ namespace astro::compute::scheduler {
 
 // ===== Dispatcher 配置 =====
 struct DispatcherConfig {
-    std::string preferred_backend{"cpu"};        // 路由首选
     std::vector<DeviceState> devices;            // 可用设备列表
     FallbackStrategy fallback_strategy{FallbackStrategy::ToCpu};
     // 小数据阈值：bytes 总数小于此值时优先 CPU
@@ -42,7 +41,6 @@ struct DispatcherConfig {
 // ===== Cost-aware 分发结果（Phase F3）=====
 struct CostAwareResult {
     MixedRunResult run_result;          // 复用 MixedRunResult 统计
-    std::string preferred_backend;      // CostEstimator 推荐的 backend
     std::string actual_primary_backend; // 实际执行主力 backend
     std::size_t total_chunks{0};
     std::size_t chunks_on_cpu{0};

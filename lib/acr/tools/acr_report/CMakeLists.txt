@@ -5,10 +5,10 @@ endif()
 
 add_executable(acr-report main.cpp)
 target_link_libraries(acr-report PRIVATE
-    acr_routing
+    acr_profile
     acr_diagnostics
 )
 target_include_directories(acr-report PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../routing
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../profile
 )
 message(STATUS "ACR tool: acr-report")
