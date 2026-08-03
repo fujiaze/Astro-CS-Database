@@ -2629,6 +2629,14 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     fn_kv_set_double(frame_, "photo_stats", "MATCH_DIST_P90", diag.match_distance_p90);
     fn_kv_set_double(frame_, "photo_stats", "MATCH_DIST_MAX", diag.match_distance_max);
 
+    // B5 修复一致性: 写入 PHOTSCAL/PHOTAPPL 到 header (供 DRIZZLE 阶段读取)
+    // PHOTOMETRIC 阶段已把 scale 乘入像素值 (上方 data 块替换),
+    // drizzle 仅需 header 中的 PHOTSCAL 元数据记录, 不再重复应用 (避免双重缩放)。
+    fn_kv_set_double(frame_, "header", "PHOTSCAL", out_scale);
+    fn_kv_set(frame_, "header", "PHOTAPPL", "1");
+    LOG_INFO("orchestrator", "[PHOTOMETRIC] PHOTSCAL 已写入 header: "
+             + std::to_string(out_scale) + ", PHOTAPPL=1");
+
     // P12-001 子任务B: 同步 photo_stats 到 result.photo_stats (供 CLI quality_metric 事件使用)
     // 注: run_stage1 销毁 frame_ 后 KV 块不可访问, 故在此复制到 TaskResult
     result.photo_stats["STATUS"] = "OK";
@@ -2741,7 +2749,7 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
     // 获取函数指针
     auto fn_drizzle = dll_loader_.get_function<int (*)(
         PipelineFrame*, int, int, double,
-        const char*, HpDrizzleResult*)>(
+        const char*, HpDrizzleResult*, int)>(
         ModuleId::DRIZZLE, "hp_drizzle_run");
 
     if (!fn_drizzle) {
@@ -2806,12 +2814,30 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
     // 调用 hp_drizzle_run
     // P03-002: pixfrac 从 config 读取 (默认 1.0), nested 从 config 读取 (默认 true)
     // output_path = current_output_path_ (.hiss 路径)
+    // R10: 通过 header KV "PRECISION" 传递精度模式给 drizzle DLL
+    //      "fp32" (默认) 或 "fp64", drizzle DLL 写入 HISS metadata precision_mode 字段
+    auto fn_kv_set = dll_loader_.get_function<int (*)(
+        PipelineFrame*, const char*, const char*, const char*)>(
+        ModuleId::AIO, "aio_frame_kv_set");
+    if (fn_kv_set && frame_) {
+        const char* prec_str = (config_.precision == PrecisionMode::FP64) ? "fp64" : "fp32";
+        int kv_ret = fn_kv_set(frame_, "header", "PRECISION", prec_str);
+        if (kv_ret != 0) {
+            LOG_WARN("orchestrator", "[DRIZZLE] 设置 PRECISION header KV 失败 (rc="
+                     + std::to_string(kv_ret) + "), drizzle 将使用默认 FP32");
+        } else {
+            LOG_INFO("orchestrator", "[DRIZZLE] PRECISION header KV 设为: " + std::string(prec_str));
+        }
+    }
+
     HpDrizzleResult driz_result;
     std::memset(&driz_result, 0, sizeof(HpDrizzleResult));
-    LOG_INFO("orchestrator", "[DRIZZLE] 输出: " + current_output_path_);
+    LOG_INFO("orchestrator", "[DRIZZLE] 输出: " + current_output_path_
+             + " precision=" + (config_.precision == PrecisionMode::FP64 ? "FP64" : "FP32"));
 
     int ret = fn_drizzle(frame_, nside, nested, pixfrac,
-                         current_output_path_.c_str(), &driz_result);
+                         current_output_path_.c_str(), &driz_result,
+                         static_cast<int>(config_.precision));
     if (ret != 0) {
         std::string err = driz_result.error_msg[0] != '\0'
             ? std::string(driz_result.error_msg)
@@ -2825,6 +2851,234 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
     LOG_INFO("orchestrator", "[DRIZZLE] 完成: n_healpix=" + std::to_string(driz_result.n_healpix_pixels)
              + " n_source=" + std::to_string(driz_result.n_source_pixels)
              + " 耗时=" + std::to_string(driz_result.elapsed_sec) + "s");
+    return true;
+}
+
+// ============================================================================
+// stage 7: HISS_VERIFY - 验证 drizzle 输出的 .hiss 文件完整性
+// R10: 同时验证 metadata 中 precision_mode 与请求一致
+// 验证项:
+//   1. 文件可正常打开 (aio_hiss_inspect 返回 0)
+//   2. metadata 中 precision_mode 与请求一致 (若 metadata 包含该字段)
+//   3. 至少一个 Tile 可读取 (aio_hiss_read_tile_signal)
+//   4. signal 数据非全零
+//   5. support 数据非全零 (aio_hiss_read_tile_support)
+// ============================================================================
+bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
+    LOG_INFO("orchestrator", "[HISS_VERIFY] 开始: " + current_output_path_);
+
+    // AIO DLL 是必需模块
+    if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::AIO)) {
+        LOG_ERROR("orchestrator", "[HISS_VERIFY] AIO DLL 未加载 (必需模块)");
+        result.error_msg = "[HISS_VERIFY] AIO DLL 未加载 (必需模块)";
+        result.exit_code = AstroCsExitCode::DLL_LOAD_FAILED;
+        return false;
+    }
+
+    // 输出文件必须存在
+    if (current_output_path_.empty()) {
+        LOG_ERROR("orchestrator", "[HISS_VERIFY] 输出 .hiss 路径为空");
+        result.error_msg = "[HISS_VERIFY] 输出 .hiss 路径为空";
+        result.exit_code = AstroCsExitCode::HISS_INVALID;
+        return false;
+    }
+    if (!fs::exists(current_output_path_)) {
+        LOG_ERROR("orchestrator", "[HISS_VERIFY] .hiss 文件不存在: " + current_output_path_);
+        result.error_msg = "[HISS_VERIFY] .hiss 文件不存在: " + current_output_path_;
+        result.exit_code = AstroCsExitCode::HISS_INVALID;
+        return false;
+    }
+
+    DllLoader& loader = dll_loader_;
+
+    // 1. 调用 aio_hiss_inspect 验证文件可打开 + 获取 Tile 列表
+    using InspectFn = int (*)(const char*, uint32_t*, uint32_t*, uint32_t*,
+                               uint32_t*, uint64_t*, uint64_t*, char**, uint64_t**);
+    using FreeFn = void (*)(void*);
+    auto fn_inspect = loader.get_function<InspectFn>(ModuleId::AIO, "aio_hiss_inspect");
+    auto fn_free = loader.get_function<FreeFn>(ModuleId::AIO, "aio_hio_free");
+
+    if (!fn_inspect || !fn_free) {
+        LOG_ERROR("orchestrator", "[HISS_VERIFY] aio_hiss_inspect/aio_hio_free 函数未找到");
+        result.error_msg = "[HISS_VERIFY] AIO DLL 未导出 aio_hiss_inspect/aio_hio_free";
+        result.exit_code = AstroCsExitCode::HISS_INVALID;
+        return false;
+    }
+
+    uint32_t nside = 0, tile_nside = 0, depth = 0, n_leaf_per_tile = 0;
+    uint64_t n_tiles = 0, n_pix_total = 0;
+    char* meta_json = nullptr;
+    uint64_t* tile_ipix_list = nullptr;
+
+    int inspect_ret = fn_inspect(current_output_path_.c_str(), &nside, &tile_nside,
+                                  &depth, &n_leaf_per_tile, &n_tiles,
+                                  &n_pix_total, &meta_json, &tile_ipix_list);
+    if (inspect_ret != 0) {
+        LOG_ERROR("orchestrator", "[HISS_VERIFY] aio_hiss_inspect 失败 (rc="
+                 + std::to_string(inspect_ret) + "): " + current_output_path_);
+        result.error_msg = "[HISS_VERIFY] aio_hiss_inspect 失败 (rc="
+                         + std::to_string(inspect_ret) + ")";
+        result.exit_code = AstroCsExitCode::HISS_INVALID;
+        return false;
+    }
+
+    LOG_INFO("orchestrator", "[HISS_VERIFY] 文件可打开: nside=" + std::to_string(nside)
+             + " tile_nside=" + std::to_string(tile_nside)
+             + " depth=" + std::to_string(depth)
+             + " n_tiles=" + std::to_string(n_tiles)
+             + " n_pix_total=" + std::to_string(n_pix_total));
+
+    if (n_tiles == 0) {
+        LOG_ERROR("orchestrator", "[HISS_VERIFY] .hiss 文件无 Tile (n_tiles=0)");
+        if (meta_json) fn_free(meta_json);
+        if (tile_ipix_list) fn_free(tile_ipix_list);
+        result.error_msg = "[HISS_VERIFY] .hiss 文件无 Tile (n_tiles=0)";
+        result.exit_code = AstroCsExitCode::HISS_INVALID;
+        return false;
+    }
+
+    // 2. 验证 metadata 中 precision_mode (若字段存在)
+    // R10: precision_mode 字段 0=FP32, 1=FP64
+    // 若 metadata 不含 precision_mode 字段, 视为默认 FP32 (向后兼容)
+    // FP64 请求时若 metadata 无 precision_mode, 输出 WARN (FP64 兼容模式)
+    uint8_t requested_prec = static_cast<uint8_t>(config_.precision);
+    bool meta_has_prec = false;
+    uint8_t meta_prec = 0;
+    if (meta_json && meta_json[0] != '\0') {
+        std::string meta_str(meta_json);
+        // 使用 orc_findJsonKey 查找 precision_mode
+        size_t pos = orc_findJsonKey(meta_str, "precision_mode");
+        if (pos != std::string::npos) {
+            meta_has_prec = true;
+            // 提取数字值
+            double val = orc_extractJsonNum(meta_str, pos);
+            meta_prec = static_cast<uint8_t>(val);
+        }
+    }
+
+    if (meta_has_prec) {
+        if (meta_prec != requested_prec) {
+            LOG_ERROR("orchestrator", "[HISS_VERIFY] precision_mode 不匹配: metadata="
+                     + std::to_string(meta_prec) + " requested="
+                     + std::to_string(requested_prec));
+            if (meta_json) fn_free(meta_json);
+            if (tile_ipix_list) fn_free(tile_ipix_list);
+            result.error_msg = "[HISS_VERIFY] precision_mode 不匹配: metadata="
+                             + std::to_string(meta_prec) + " requested="
+                             + std::to_string(requested_prec);
+            result.exit_code = AstroCsExitCode::HISS_INVALID;
+            return false;
+        }
+        LOG_INFO("orchestrator", "[HISS_VERIFY] precision_mode 匹配: "
+                 + std::to_string(meta_prec) + " ("
+                 + (requested_prec == 1 ? "FP64" : "FP32") + ")");
+    } else {
+        // metadata 无 precision_mode 字段
+        if (requested_prec == 1) {
+            // FP64 请求但 metadata 无 precision_mode (drizzle DLL 未更新)
+            LOG_WARN("orchestrator", "[HISS_VERIFY] metadata 无 precision_mode 字段, "
+                     "FP64 请求但 metadata 未记录 precision_mode (drizzle DLL 可能未更新)");
+        } else {
+            LOG_INFO("orchestrator", "[HISS_VERIFY] metadata 无 precision_mode 字段, "
+                     "默认 FP32 (与请求一致)");
+        }
+    }
+
+    // 3. 至少一个 Tile 可读取 + signal 非全零 + support 非全零
+    using ReadTileSignalFn = int (*)(const char*, uint64_t, float**, uint32_t*);
+    using ReadTileSupportFn = int (*)(const char*, uint64_t, uint8_t**, uint32_t*);
+    auto fn_read_signal = loader.get_function<ReadTileSignalFn>(
+        ModuleId::AIO, "aio_hiss_read_tile_signal");
+    auto fn_read_support = loader.get_function<ReadTileSupportFn>(
+        ModuleId::AIO, "aio_hiss_read_tile_support");
+
+    if (!fn_read_signal || !fn_read_support) {
+        LOG_ERROR("orchestrator", "[HISS_VERIFY] aio_hiss_read_tile_signal/support 函数未找到");
+        if (meta_json) fn_free(meta_json);
+        if (tile_ipix_list) fn_free(tile_ipix_list);
+        result.error_msg = "[HISS_VERIFY] AIO DLL 未导出 aio_hiss_read_tile_signal/support";
+        result.exit_code = AstroCsExitCode::HISS_INVALID;
+        return false;
+    }
+
+    // 遍历 Tile (最多检查前 10 个), 找到第一个可读且 signal/support 非全零的 Tile
+    bool verified = false;
+    uint64_t tiles_to_check = (n_tiles < 10) ? n_tiles : 10;
+    for (uint64_t i = 0; i < tiles_to_check; ++i) {
+        uint64_t parent_ipix = tile_ipix_list[i];
+
+        // 读取 signal
+        float* signal = nullptr;
+        uint32_t n_signal = 0;
+        int sig_ret = fn_read_signal(current_output_path_.c_str(), parent_ipix,
+                                      &signal, &n_signal);
+        if (sig_ret != 0 || signal == nullptr || n_signal == 0) {
+            if (signal) fn_free(signal);
+            continue;  // 尝试下一个 Tile
+        }
+
+        // 检查 signal 非全零
+        bool has_nonzero_signal = false;
+        for (uint32_t j = 0; j < n_signal; ++j) {
+            if (signal[j] != 0.0f) {
+                has_nonzero_signal = true;
+                break;
+            }
+        }
+        fn_free(signal);
+
+        if (!has_nonzero_signal) {
+            continue;  // signal 全零, 尝试下一个 Tile
+        }
+
+        // 读取 support
+        uint8_t* support = nullptr;
+        uint32_t n_support = 0;
+        int sup_ret = fn_read_support(current_output_path_.c_str(), parent_ipix,
+                                       &support, &n_support);
+        if (sup_ret != 0 || support == nullptr || n_support == 0) {
+            if (support) fn_free(support);
+            continue;  // 尝试下一个 Tile
+        }
+
+        // 检查 support 非全零
+        bool has_nonzero_support = false;
+        for (uint32_t j = 0; j < n_support; ++j) {
+            if (support[j] != 0) {
+                has_nonzero_support = true;
+                break;
+            }
+        }
+        fn_free(support);
+
+        if (!has_nonzero_support) {
+            continue;  // support 全零, 尝试下一个 Tile
+        }
+
+        // 验证通过
+        verified = true;
+        LOG_INFO("orchestrator", "[HISS_VERIFY] Tile #" + std::to_string(i)
+                 + " (parent_ipix=" + std::to_string(parent_ipix)
+                 + ") 验证通过: n_signal=" + std::to_string(n_signal)
+                 + " n_support=" + std::to_string(n_support)
+                 + " signal/support 均非全零");
+        break;
+    }
+
+    // 释放 inspect 分配的内存
+    if (meta_json) fn_free(meta_json);
+    if (tile_ipix_list) fn_free(tile_ipix_list);
+
+    if (!verified) {
+        LOG_ERROR("orchestrator", "[HISS_VERIFY] 前 " + std::to_string(tiles_to_check)
+                 + " 个 Tile 均未通过验证 (不可读或 signal/support 全零)");
+        result.error_msg = "[HISS_VERIFY] 无可读 Tile 或 signal/support 全零 (检查了前 "
+                         + std::to_string(tiles_to_check) + " 个 Tile)";
+        result.exit_code = AstroCsExitCode::HISS_INVALID;
+        return false;
+    }
+
+    LOG_INFO("orchestrator", "[HISS_VERIFY] 完成: .hiss 文件验证通过");
     return true;
 }
 
@@ -3410,6 +3664,27 @@ TaskResult Orchestrator::run_stage1(const std::string& fits_path,
     // P04-004: 记录输出路径 (用于失败/取消/超时时的原子清理)
     current_output_file_ = output_hiss;
 
+    // R10: 解析 precision 配置 (默认 FP32, 支持 "fp32"/"fp64" 或 0/1)
+    // CLI --precision 参数已合并到 config_json, 此处统一解析
+    {
+        std::string prec_str = orc_getJsonString(config_json, "precision");
+        if (!prec_str.empty()) {
+            std::string prec_lower = prec_str;
+            std::transform(prec_lower.begin(), prec_lower.end(), prec_lower.begin(),
+                           [](unsigned char c) { return std::tolower(c); });
+            if (prec_lower == "fp64" || prec_lower == "1") {
+                config_.precision = PrecisionMode::FP64;
+                LOG_INFO("orchestrator", "R10: precision 模式设为 FP64 (metadata 将记录 precision_mode=1)");
+            } else if (prec_lower == "fp32" || prec_lower == "0") {
+                config_.precision = PrecisionMode::FP32;
+                LOG_INFO("orchestrator", "R10: precision 模式设为 FP32 (默认)");
+            } else {
+                LOG_WARN("orchestrator", "R10: 未知 precision 值 '" + prec_str
+                         + "', 使用默认 FP32");
+            }
+        }
+    }
+
     // P04-004: 原子性范围守卫 - 任何失败路径 (包括参数校验/DLL加载/stage失败/取消/超时)
     // 都在函数退出时检查并清理部分输出 (除非 allow_partial_output=true 或已成功)
     // 使用 RAII 模式, 析构函数在函数返回时自动调用, 覆盖所有 return 路径
@@ -3609,6 +3884,7 @@ TaskResult Orchestrator::run_stage1(const std::string& fits_path,
                 case PipelineStageV2::PHOTOMETRIC: result.exit_code = AstroCsExitCode::GENERIC_ERROR; break;
                 case PipelineStageV2::SNR:         result.exit_code = AstroCsExitCode::GENERIC_ERROR; break;
                 case PipelineStageV2::DRIZZLE:     result.exit_code = AstroCsExitCode::DRIZZLE_FAILED; break;
+                case PipelineStageV2::HISS_VERIFY: result.exit_code = AstroCsExitCode::HISS_INVALID; break;
                 default:                            result.exit_code = AstroCsExitCode::GENERIC_ERROR; break;
             }
         }
@@ -3630,6 +3906,8 @@ TaskResult Orchestrator::run_stage1(const std::string& fits_path,
                                    &Orchestrator::run_stage_snr);
     ok = ok && run_v2_with_timing(PipelineStageV2::DRIZZLE,     "DRIZZLE",
                                    &Orchestrator::run_stage_drizzle);
+    ok = ok && run_v2_with_timing(PipelineStageV2::HISS_VERIFY, "HISS_VERIFY",
+                                   &Orchestrator::run_stage_hiss_verify);
 
     // 销毁 PipelineFrame (无论成功失败)
     if (frame_ != nullptr && fn_frame_destroy) {

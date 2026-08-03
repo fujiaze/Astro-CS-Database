@@ -57,11 +57,13 @@ HP_DRIZZLE_API int hp_drizzle_fits_to_ahpx(
 // pixfrac: 像素收缩因子 (0.0~1.0)
 // output_path: 输出 .hiss 文件路径 (nullptr 则不写文件, 仅返回统计; 若以 .ahpx 结尾会自动改为 .hiss)
 // result: 输出结果统计与错误信息
+// precision_mode: R10 精度模式 (0=FP32 默认, 1=FP64; -1 表示未指定, 从 header KV "PRECISION" 读取)
 // 返回: 0=成功, 非0=失败
 HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
                                    int nside, int nested, double pixfrac,
                                    const char* output_path,
-                                   HpDrizzleResult* result);
+                                   HpDrizzleResult* result,
+                                   int precision_mode);
 
 #ifdef __cplusplus
 }

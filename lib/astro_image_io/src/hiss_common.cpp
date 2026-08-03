@@ -105,6 +105,15 @@ void DrizzleTileAccumulator::finalize_signal(std::vector<float>& signal) const {
     }
 }
 
+// finalize_signal_f64: FP64 模式, 直接输出 float64 累计通量 (无精度损失)
+//   R10: 与 finalize_signal 语义一致, 但保留 double 精度
+void DrizzleTileAccumulator::finalize_signal_f64(std::vector<double>& signal) const {
+    signal.resize(pixels.size());
+    for (size_t i = 0; i < pixels.size(); i++) {
+        signal[i] = pixels[i].sum_flux;
+    }
+}
+
 // finalize_support: S = sum_area / pixel_area, 钳制 [0,1], uint8 = round(255*S)
 //   旧错误: S = sum_area (未归一化, 假设 sum_area 已经在 [0,1])
 //   新正确: S = sum_area / A_p (A_p = pixel_area, 目标 HEALPix 像素面积, 球面度)
@@ -183,7 +192,9 @@ std::string HissMetadata::to_json() const {
     ss << "\"telescop\":\"" << json_escape(telescop) << "\",";
     ss << "\"instrume\":\"" << json_escape(instrume) << "\",";
     ss << "\"gain\":"       << gain       << ",";
-    ss << "\"history\":\""  << json_escape(history)  << "\"";
+    ss << "\"history\":\""  << json_escape(history)  << "\",";
+    ss << "\"precision_mode\":" << (unsigned)precision_mode << ",";
+    ss << "\"signal_dtype\":"   << (unsigned)signal_dtype;
     ss << "}";
     return ss.str();
 }
@@ -268,6 +279,9 @@ int HissMetadata::from_json(const std::string& json) {
     if (get_str("telescop", s)) to_buf(s, telescop, sizeof(telescop));
     if (get_str("instrume", s)) to_buf(s, instrume, sizeof(instrume));
     if (get_str("history", s))  history = s;
+    // R10: precision_mode/signal_dtype (缺失时默认 0=FP32, 向后兼容)
+    if (get_num("precision_mode", v)) precision_mode = (uint8_t)v;
+    if (get_num("signal_dtype", v))   signal_dtype   = (uint8_t)v;
     return 0;
 }
 

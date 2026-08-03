@@ -66,7 +66,7 @@ _MODULE_PATHS = [
     "calibration/python",
     "plate_solve/python",
     "plate_solve/archive/vector_method/python/python",
-    "photometric_calib/flux_calibrator/python",
+    "photometric_calib/python",
     "healpix_db/healpix_drizzle",
     "dynamic_psf/python",
     "star_detector/python",

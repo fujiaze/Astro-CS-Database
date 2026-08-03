@@ -80,6 +80,7 @@ private:
     //   photscal: 测光定标系数 (默认 1.0)
     //   apply_photometry: 是否应用测光定标
     //   threads: 线程数 (0=自动)
+    // R10: precision_mode: 精度模式 ("fp32"/"fp64", 默认 "fp32")
     static int cmd_stage1(const std::string& fits_path,
                           const std::string& output_hiss,
                           const std::string& config_path,
@@ -92,7 +93,8 @@ private:
                           const std::string& bias_file = "",
                           double photscal = 1.0,
                           bool apply_photometry = false,
-                          int threads = 0);
+                          int threads = 0,
+                          const std::string& precision_mode = "fp32");
     // stage2: 多帧合并 (.hiss -> .hcsd, stage 8-9)
     // cancel_on_signal: P04-004 标志, true 时注册 SIGINT 处理器触发取消
     static int cmd_stage2(const std::string& hiss_dir,

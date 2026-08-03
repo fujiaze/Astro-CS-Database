@@ -946,6 +946,15 @@ bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator
                   stats.elapsedSec, tile_groups.size());
     hmeta.history = hist;
 
+    // R10: 精度模式写入 metadata (precision_mode + signal_dtype)
+    //   config.precision_mode: 0=FP32 (binary32), 1=FP64 (binary64)
+    //   signal_dtype 与 precision_mode 一致 (0=float32, 1=float64)
+    //   FP64 模式: signal 子块输出 float64, metadata 记录 precision_mode=1, signal_dtype=1
+    hmeta.precision_mode = config.precision_mode;
+    hmeta.signal_dtype   = config.precision_mode;
+    fprintf(stderr, "[drizzle_engine] precision_mode=%u (0=FP32, 1=FP64), signal_dtype=%u\n",
+            (unsigned)hmeta.precision_mode, (unsigned)hmeta.signal_dtype);
+
     // B7 修复: SNR 控制点按 Tile 分组
     // snr_model 含 ra/dec 控制点 (HioSnrControlPoint), 需转换为当前 NSIDE 的 NESTED ipix,
     // 再拆分为 (parent_ipix, local_ipix) 按 Tile 分组存储。
@@ -1037,7 +1046,13 @@ bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator
         }
 
         // occ_mode 由 Writer 自动选择 (步骤11), 传入 FULL 作为建议 (Writer 会忽略)
-        int tret = writer.add_tile(parent_ipix, acc, snr_block, hiss::OccupancyMode::FULL);
+        // R10: 根据 precision_mode 选择 add_tile (FP32) 或 add_tile_f64 (FP64)
+        int tret;
+        if (config.precision_mode == 1) {
+            tret = writer.add_tile_f64(parent_ipix, acc, snr_block, hiss::OccupancyMode::FULL);
+        } else {
+            tret = writer.add_tile(parent_ipix, acc, snr_block, hiss::OccupancyMode::FULL);
+        }
         if (tret != 0) {
             error_msg = "HissWriter.add_tile 失败 (rc=" + std::to_string(tret) +
                         ") parent=" + std::to_string(parent_ipix);

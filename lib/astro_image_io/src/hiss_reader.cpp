@@ -882,6 +882,15 @@ HissMetadata HissReader::metadata() const {
     return pimpl_->metadata;
 }
 
+// R10: 查询 precision mode 和 signal dtype
+uint8_t HissReader::precision_mode() const {
+    return pimpl_->metadata.precision_mode;
+}
+
+uint8_t HissReader::signal_dtype() const {
+    return pimpl_->metadata.signal_dtype;
+}
+
 const std::vector<HissTile>& HissReader::tiles() const {
     return pimpl_->tiles;
 }
@@ -899,6 +908,14 @@ int HissReader::read_tile(uint64_t parent_ipix,
                            std::vector<float>& signal,
                            std::vector<uint8_t>& support) const {
     const Impl& impl = *pimpl_;
+
+    // R10: FP64 文件禁止用 float32 接口读取 (禁止静默转换)
+    if (impl.metadata.signal_dtype == 1) {
+        fprintf(stderr,
+                "[hiss][reader] read_tile 失败: 文件为 FP64 模式 (signal_dtype=1), "
+                "请使用 read_tile_signal_f64 读取 float64 signal (禁止静默转换)\n");
+        return HISS_ERR_UNSUPPORTED;
+    }
 
     // 定位 Tile
     size_t idx;
@@ -1050,6 +1067,14 @@ int HissReader::read_tile_signal(uint64_t parent_ipix,
                                   std::vector<float>& signal) const {
     const Impl& impl = *pimpl_;
 
+    // R10: FP64 文件禁止用 float32 接口读取 (禁止静默转换)
+    if (impl.metadata.signal_dtype == 1) {
+        fprintf(stderr,
+                "[hiss][reader] read_tile_signal 失败: 文件为 FP64 模式 (signal_dtype=1), "
+                "请使用 read_tile_signal_f64 读取 float64 signal (禁止静默转换)\n");
+        return HISS_ERR_UNSUPPORTED;
+    }
+
     size_t idx;
     if (impl.find_tile(parent_ipix, &idx) != 0) return -1;
     const HissTile& tile = impl.tiles[idx];
@@ -1104,6 +1129,100 @@ int HissReader::read_tile_signal(uint64_t parent_ipix,
     if (ret != 0) return ret;
 
     signal.assign(n_leaf_per_tile, 0.0f);
+    if (tile.occ_mode == OccupancyMode::BITMAP) {
+        size_t compact_idx = 0;
+        for (uint32_t i = 0; i < n_leaf_per_tile; i++) {
+            size_t byte_idx = i / 8;
+            size_t bit_idx  = i % 8;
+            bool valid = (byte_idx < occ_raw.size()) && ((occ_raw[byte_idx] >> bit_idx) & 1);
+            if (valid) {
+                if (compact_idx < signal_compact.size()) signal[i] = signal_compact[compact_idx];
+                compact_idx++;
+            }
+        }
+    } else { // SPARSE_LIST
+        size_t n_sparse = occ_raw.size() / sizeof(uint32_t);
+        for (size_t i = 0; i < n_sparse; i++) {
+            uint32_t local_ipix = read_u32_le(occ_raw.data() + i * sizeof(uint32_t));
+            if (local_ipix < n_leaf_per_tile && i < signal_compact.size()) {
+                signal[local_ipix] = signal_compact[i];
+            }
+        }
+    }
+    return 0;
+}
+
+// ----------------------------------------------------------------------------
+// read_tile_signal_f64(): 只读 signal (float64, R10 FP64 模式)
+//   若文件 signal_dtype=1 (FP64), 直接返回 float64 数据
+//   若文件 signal_dtype=0 (FP32), 返回错误 (禁止静默转换)
+//   展开逻辑与 read_tile_signal 一致 (FULL/BITMAP/SPARSE_LIST)
+// ----------------------------------------------------------------------------
+int HissReader::read_tile_signal_f64(uint64_t parent_ipix,
+                                      std::vector<double>& signal) const {
+    const Impl& impl = *pimpl_;
+
+    // R10: FP32 文件禁止用 float64 接口读取 (禁止静默转换)
+    if (impl.metadata.signal_dtype == 0) {
+        fprintf(stderr,
+                "[hiss][reader] read_tile_signal_f64 失败: 文件为 FP32 模式 (signal_dtype=0), "
+                "请使用 read_tile_signal 读取 float32 signal (禁止静默转换)\n");
+        return HISS_ERR_UNSUPPORTED;
+    }
+
+    size_t idx;
+    if (impl.find_tile(parent_ipix, &idx) != 0) return -1;
+    const HissTile& tile = impl.tiles[idx];
+
+    const HissSubblockDescriptor* sig_desc = Impl::find_subblock(tile, SubblockType::SIGNAL);
+    if (!sig_desc) {
+        fprintf(stderr, "[hiss][reader] Tile %llu 无 SIGNAL 子块\n",
+                (unsigned long long)parent_ipix);
+        return -6;
+    }
+
+    // 读取并解压 SIGNAL (element_size=8 for float64)
+    std::vector<uint8_t> sig_raw;
+    int ret = impl.read_subblock(*sig_desc, sig_raw, sizeof(double));
+    if (ret != 0) return ret;
+
+    // 转换 signal: float64 数组 (紧凑)
+    size_t n_sig = sig_raw.size() / sizeof(double);
+    std::vector<double> signal_compact(n_sig);
+    for (size_t i = 0; i < n_sig; i++) {
+        signal_compact[i] = read_f64_le(sig_raw.data() + i * sizeof(double));
+    }
+
+    // 计算 n_leaf_per_tile 并按 occ_mode 展开 (与 read_tile_signal 一致)
+    uint32_t n_leaf_per_tile = 0;
+    if (impl.grid.nside > 0 && tile.tile_nside > 0 && impl.grid.nside >= tile.tile_nside) {
+        uint32_t ratio = impl.grid.nside / tile.tile_nside;
+        if (ratio > 0) n_leaf_per_tile = ratio * ratio;
+    }
+    if (n_leaf_per_tile == 0) {
+        fprintf(stderr,
+                "[hiss][reader] read_tile_signal_f64: n_leaf_per_tile=0 (nside=%u tile_nside=%u)\n",
+                impl.grid.nside, tile.tile_nside);
+        return HISS_ERR_FORMAT_VIOLATION;
+    }
+    if (tile.occ_mode == OccupancyMode::FULL) {
+        signal = std::move(signal_compact);
+        return 0;
+    }
+
+    // BITMAP / SPARSE_LIST: 需读 occupancy 展开到 n_leaf_per_tile
+    const HissSubblockDescriptor* occ_desc = Impl::find_subblock(tile, SubblockType::OCCUPANCY);
+    if (!occ_desc) {
+        fprintf(stderr, "[hiss][reader] Tile %llu occ_mode=%u 但无 OCCUPANCY 子块\n",
+                (unsigned long long)parent_ipix, (unsigned)tile.occ_mode);
+        return HISS_ERR_FORMAT_VIOLATION;
+    }
+    size_t occ_elem_size = (tile.occ_mode == OccupancyMode::SPARSE_LIST) ? sizeof(uint32_t) : 1;
+    std::vector<uint8_t> occ_raw;
+    ret = impl.read_subblock(*occ_desc, occ_raw, occ_elem_size);
+    if (ret != 0) return ret;
+
+    signal.assign(n_leaf_per_tile, 0.0);
     if (tile.occ_mode == OccupancyMode::BITMAP) {
         size_t compact_idx = 0;
         for (uint32_t i = 0; i < n_leaf_per_tile; i++) {

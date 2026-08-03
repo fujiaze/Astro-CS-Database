@@ -449,6 +449,7 @@ int CliCommand::execute(int argc, char* argv[]) {
         double photscal = 1.0;           // --photscal
         bool apply_photometry = false;   // --apply-photometry
         int threads = 0;                 // --threads
+        std::string precision_mode = "fp32";  // R10: --precision (fp32/fp64, 默认 fp32)
 
         for (int i = 2; i < argc; ++i) {
             std::string a = argv[i];
@@ -493,6 +494,17 @@ int CliCommand::execute(int argc, char* argv[]) {
                 apply_photometry = true;
             } else if (a == "--threads" && i + 1 < argc) {
                 threads = std::atoi(argv[++i]);
+            } else if (a == "--precision" && i + 1 < argc) {
+                // R10: 精度模式 (fp32/fp64)
+                precision_mode = argv[++i];
+                // 转小写
+                std::transform(precision_mode.begin(), precision_mode.end(),
+                               precision_mode.begin(),
+                               [](unsigned char c) { return std::tolower(c); });
+                if (precision_mode != "fp32" && precision_mode != "fp64") {
+                    LOG_ERROR("cli", "错误: --precision 必须为 fp32 或 fp64, got " + precision_mode);
+                    return 28;  // INPUT_INVALID
+                }
             } else if (a.rfind("--", 0) == 0) {
                 LOG_ERROR("cli", "未知参数: " + a);
                 print_usage();
@@ -565,11 +577,12 @@ int CliCommand::execute(int argc, char* argv[]) {
                  + " pixfrac: " + std::to_string(pixfrac >= 0 ? pixfrac : 1.0)
                  + " photscal: " + std::to_string(photscal)
                  + " apply_photometry: " + (apply_photometry ? "true" : "false")
-                 + " threads: " + std::to_string(threads));
+                 + " threads: " + std::to_string(threads)
+                 + " precision: " + precision_mode);
 
         return cmd_stage1(fits_path, output_hiss, config_path, log_level, cancel_on_signal,
                           nside_override, pixfrac, dark_file, flat_file, bias_file,
-                          photscal, apply_photometry, threads);
+                          photscal, apply_photometry, threads, precision_mode);
     }
 
     // spec §2.3.3 stage2: 多帧合并 (.hiss -> .hcsd, stage 8-9)
@@ -800,6 +813,7 @@ int CliCommand::cmd_status() {
 // WP-H 步骤14: 把 CLI 参数合并到 config_json
 // 策略: 在 JSON 对象末尾 (最后一个 '}' 前) 插入新字段
 // 若 config_json 为空或无效 JSON, 创建新 JSON 对象
+// R10: 新增 precision 字段合并
 // ============================================================================
 static std::string merge_stage1_overrides_into_config(const std::string& config_json,
                                                        int nside_override,
@@ -809,7 +823,8 @@ static std::string merge_stage1_overrides_into_config(const std::string& config_
                                                        const std::string& bias_file,
                                                        double photscal,
                                                        bool apply_photometry,
-                                                       int threads) {
+                                                       int threads,
+                                                       const std::string& precision_mode) {
     // 构造要追加的字段片段
     std::vector<std::string> fields;
     if (nside_override > 0) {
@@ -840,6 +855,10 @@ static std::string merge_stage1_overrides_into_config(const std::string& config_
     }
     if (threads > 0) {
         fields.push_back("\"threads\":" + std::to_string(threads));
+    }
+    // R10: precision 模式 (非默认 fp32 时合并, 或始终合并以保证可追溯性)
+    if (!precision_mode.empty()) {
+        fields.push_back("\"precision\":\"" + json_escape(precision_mode) + "\"");
     }
 
     if (fields.empty()) {
@@ -977,7 +996,8 @@ int CliCommand::cmd_stage1(const std::string& fits_path,
                            const std::string& bias_file,
                            double photscal,
                            bool apply_photometry,
-                           int threads) {
+                           int threads,
+                           const std::string& precision_mode) {
     Orchestrator orch;
 
     // P04-004: 注册 SIGINT 处理器 (如启用 --cancel-on-signal)
@@ -1005,7 +1025,8 @@ int CliCommand::cmd_stage1(const std::string& fits_path,
     config_json = merge_stage1_overrides_into_config(config_json,
                                                      nside_override, pixfrac,
                                                      dark_file, flat_file, bias_file,
-                                                     photscal, apply_photometry, threads);
+                                                     photscal, apply_photometry, threads,
+                                                     precision_mode);
     if (!config_json.empty()) {
         LOG_INFO("cli", "stage1 合并后 config_json: " + config_json);
     }
@@ -1966,8 +1987,11 @@ int CliCommand::cmd_capabilities() {
     std::cout << "    {\"name\":\"photometric_calib\",\"version\":\"" << photometric_ver << "\",\"capabilities\":[\"calibrate\"]}," << std::endl;
     std::cout << "    {\"name\":\"gaia_client\",\"version\":\"" << gaia_client_ver << "\",\"capabilities\":[\"cone_search\",\"query_spectrum\"]}" << std::endl;
     std::cout << "  ]," << std::endl;
-    // P04-003: stages 数组 (两段流水线 8 个 stage, spec §2.3.2)
-    std::cout << "  \"stages\": [\"READ_FITS\",\"CALIBRATE\",\"PLATESOLVE\",\"PSF\",\"PHOTOMETRIC\",\"SNR\",\"DRIZZLE\",\"STACK\"]," << std::endl;
+    // P04-003: stages 数组 (两段流水线 stage, spec §2.3.2)
+    // R10: 新增 HISS_VERIFY (drizzle 后验证 .hiss 文件完整性)
+    std::cout << "  \"stages\": [\"READ_FITS\",\"CALIBRATE\",\"PLATESOLVE\",\"PSF\",\"PHOTOMETRIC\",\"SNR\",\"DRIZZLE\",\"HISS_VERIFY\",\"STACK\"]," << std::endl;
+    // R10: 支持的精度模式
+    std::cout << "  \"precision_modes\": [\"fp32\",\"fp64\"]," << std::endl;
     std::cout << "  \"commands\": [\"run\", \"run-batch\", \"stage1\", \"stage2\", "
               << "\"inspect\", \"capabilities\", \"status\"]," << std::endl;
     std::cout << "  \"request_commands\": [\"stage1\", \"stage2\", \"inspect\"],"
@@ -2362,6 +2386,7 @@ void CliCommand::print_usage() {
     std::cout << "  --photscal <F>        测光定标系数 (默认 1.0)" << std::endl;
     std::cout << "  --apply-photometry    启用测光定标" << std::endl;
     std::cout << "  --threads <N>         线程数 (0=自动检测)" << std::endl;
+    std::cout << "  --precision <mode>    精度模式 (fp32|fp64, 默认 fp32)" << std::endl;
     std::cout << "  --gaia-data <dir>     Gaia 数据目录" << std::endl;
     std::cout << "  --calibration-dir <dir> 校准文件目录" << std::endl;
     std::cout << "  --filter <name>       滤镜名称" << std::endl;

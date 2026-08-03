@@ -10,7 +10,7 @@
 //   - 独立子块: occupancy/signal/support/SNR/extension
 //   - 每子块独立 codec/transform/checksum
 //   - RAW 必须可用, 其他 codec 通过注册接口接入
-//   - 内部 float64 几何, signal 最终 float32, support 最终 uint8
+//   - 内部 float64 几何, signal 最终 float32 (FP32 默认) 或 float64 (FP64 模式), support 最终 uint8
 //   - NESTED ordering, ICRS 坐标系
 //
 // 未冻结事项 (见 Wiki Stage1-Decision-Status.md):
@@ -94,7 +94,7 @@ enum class OccupancyMode : uint8_t {
 
 enum class SubblockType : uint8_t {
     OCCUPANCY  = 0,  // 占用图 (FULL 时省略; BITMAP/SPARSE 时为必需子块)
-    SIGNAL     = 1,  // 已测光校准的累计通量 (float32)
+    SIGNAL     = 1,  // 已测光校准的累计通量 (float32 或 float64, 取决于 metadata 中的 signal_dtype)
     SUPPORT    = 2,  // 几何面积比例 (uint8, round(255*S))
     SNR        = 3,  // 稀疏 SNR 控制点
     EXTENSION  = 255, // 未来可选扩展 (需配合 ext_type_id 标识命名空间)
@@ -292,6 +292,10 @@ struct HissMetadata {
     // 历史/诊断
     std::string history;
 
+    // 精度模式 (R10: FP32/FP64 双模式)
+    uint8_t precision_mode = 0;  // 0=FP32 (binary32), 1=FP64 (binary64)
+    uint8_t signal_dtype = 0;    // 0=float32, 1=float64 (与 precision_mode 一致)
+
     // 序列化为 JSON (用于 Header)
     HISS_EXPORT std::string to_json() const;
     HISS_EXPORT int from_json(const std::string& json);
@@ -329,6 +333,8 @@ struct DrizzleTileAccumulator {
     // 最终输出
     // signal: 直接保存累计通量 (不除面积), 无贡献像素 sum_flux=0 自然写 0
     HISS_EXPORT void finalize_signal(std::vector<float>& signal) const;   // float32, = float(sumFlux)
+    // FP64 模式: 直接输出 float64 signal (不损失精度)
+    HISS_EXPORT void finalize_signal_f64(std::vector<double>& signal) const; // float64, = sumFlux
     // support: S = sum_area / pixel_area, 钳制 [0,1], uint8 = round(255*S)
     HISS_EXPORT void finalize_support(std::vector<uint8_t>& support) const; // uint8 round(255*S/A_p)
     // support 范围检查 (基于归一化后的 S): 仅浮点误差级超限可钳制; 明显超 1 是错误
@@ -365,6 +371,15 @@ public:
                               const DrizzleTileAccumulator& acc,
                               const HissSnrBlock* snr,
                               OccupancyMode occ_mode);
+
+    // FP64 模式: 添加 Tile 数据 (float64 signal)
+    // 与 add_tile 类似, 但 signal 子块写入 float64 数据
+    // 调用后 metadata 中的 precision_mode/signal_dtype 自动设置为 1 (FP64)
+    // 返回 0=成功, <0=失败
+    HISS_EXPORT int add_tile_f64(uint64_t parent_ipix,
+                                  const DrizzleTileAccumulator& acc,
+                                  const HissSnrBlock* snr,
+                                  OccupancyMode occ_mode);
 
     // 完成写入: 生成 Header, 组装 .partial, flush, 原子重命名
     // 返回 0=成功, <0=失败
@@ -418,6 +433,12 @@ public:
     HISS_EXPORT HissGridSpec grid() const;
     HISS_EXPORT HissMetadata metadata() const;
 
+    // 查询 precision mode 和 signal dtype (R10: FP32/FP64 双模式)
+    // precision_mode: 0=FP32, 1=FP64
+    // signal_dtype: 0=float32, 1=float64
+    HISS_EXPORT uint8_t precision_mode() const;
+    HISS_EXPORT uint8_t signal_dtype() const;
+
     // 获取 Tile 列表
     HISS_EXPORT const std::vector<HissTile>& tiles() const;
 
@@ -433,6 +454,12 @@ public:
     // 只读 signal
     HISS_EXPORT int read_tile_signal(uint64_t parent_ipix,
                                       std::vector<float>& signal) const;
+
+    // FP64 模式: 只读 signal (float64)
+    // 若文件 signal_dtype=1 (FP64), 直接返回 float64 数据
+    // 若文件 signal_dtype=0 (FP32), 返回错误 (禁止静默转换)
+    HISS_EXPORT int read_tile_signal_f64(uint64_t parent_ipix,
+                                          std::vector<double>& signal) const;
 
     // 只读 support
     HISS_EXPORT int read_tile_support(uint64_t parent_ipix,

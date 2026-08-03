@@ -43,12 +43,13 @@ enum class PipelineStage {
 };
 
 // ============================================================================
-// 新版管线阶段枚举 (spec §2.3.2 两段流水线 9 节点)
+// 新版管线阶段枚举 (spec §2.3.2 两段流水线 10 节点)
 // 2026-07-18: 归档 GRADIENT_2D 节点 (stage1 不做曲面拟合和图像亮度修正,
 //             那是 stage2 马赛克阶段的事; PHOTOMETRIC 已完成测光坐标系校准)
+// 2026-08-03: 新增 HISS_VERIFY 阶段 (drizzle 后验证 .hiss 文件完整性)
 // 供 stage1/stage2 CLI 命令使用
-// 第一段: 单帧预处理 (stage 0-6, FITS -> .hiss)
-// 第二段: 多帧合并 (stage 7-8, .hiss -> .hcsd)
+// 第一段: 单帧预处理 (stage 0-7, FITS -> .hiss)
+// 第二段: 多帧合并 (stage 8-9, .hiss -> .hcsd)
 // ============================================================================
 enum class PipelineStageV2 {
     // 第一段: 单帧预处理
@@ -59,9 +60,22 @@ enum class PipelineStageV2 {
     PHOTOMETRIC     = 4,  // photometric_calib.dll (F_syn 积分 + IRLS+Tukey 求 scale + 应用到图像)
     SNR             = 5,  // snr_estimator.dll (异常值剔除 + 测光不确定度 + 帧SNR基准)
     DRIZZLE         = 6,  // healpix_drizzle.dll (nside 1-2x, SNR同步转换, 落盘 .hiss)
+    HISS_VERIFY     = 7,  // 验证 .hiss 文件完整性 (可打开/metadata 正确/Tile 可读/signal/support 非全零)
     // 第二段: 多帧合并
-    GRADIENT_SPHERE = 7,  // healpix_stack.dll hp_stack_gradient_corrected (球面梯度校准)
-    STACK           = 8   // healpix_stack.dll (Winsorized sigma clip + SNR²加权叠加 -> .hcsd)
+    GRADIENT_SPHERE = 8,  // healpix_stack.dll hp_stack_gradient_corrected (球面梯度校准)
+    STACK           = 9   // healpix_stack.dll (Winsorized sigma clip + SNR²加权叠加 -> .hcsd)
+};
+
+// ============================================================================
+// 精度模式 (R10: FP32/FP64 双模式)
+// FP32 (默认): signal 子块为 IEEE 754 binary32 (float)
+// FP64:        signal 子块为 IEEE 754 binary64 (double), 精度模式写入 HISS metadata
+//              drizzle engine 内部已用 double 累加, FP64 模式下 signal 输出 float64
+//              (通过 hp_drizzle_run precision_mode 参数传递, HissWriter::add_tile_f64 输出)
+// ============================================================================
+enum class PrecisionMode : uint8_t {
+    FP32 = 0,  // IEEE 754 binary32 (默认)
+    FP64 = 1,  // IEEE 754 binary64
 };
 
 // 任务状态
@@ -187,6 +201,10 @@ struct OrchestratorConfig {
     // false (默认): 严格原子性, 取消/超时时删除部分输出
     // true: 取消/超时时保留已生成的部分输出 (标记 partial=true)
     bool allow_partial_output = false;
+
+    // R10: 精度模式 (FP32 默认, FP64 高精度模式)
+    // 传播到 drizzle 和 HISS 写入, 写入 .hiss metadata 的 precision_mode 字段
+    PrecisionMode precision = PrecisionMode::FP32;
 };
 
 // ============================================================================
@@ -240,6 +258,12 @@ public:
 
     // P04-004: 设置是否允许 partial 输出 (取消/超时时保留部分结果)
     void set_allow_partial_output(bool allow) { config_.allow_partial_output = allow; }
+
+    // R10: 设置精度模式 (FP32/FP64), 传播到 drizzle 和 HISS 写入
+    void set_precision(PrecisionMode mode) { config_.precision = mode; }
+
+    // R10: 获取当前精度模式
+    PrecisionMode get_precision() const { return config_.precision; }
 
     // P04-004: 取消 token - 请求取消当前运行
     // 线程安全: 设置 cancel_token_ 为 true, 各 stage 检查后停止
@@ -379,9 +403,12 @@ private:
     bool run_stage_read_fits(TaskResult& result);
     // stage 5: SNR (snr_estimator.dll)
     bool run_stage_snr(TaskResult& result);
-    // stage 7: GRADIENT_SPHERE (healpix_stack.dll hp_stack_gradient_corrected)
+    // stage 7: HISS_VERIFY (验证 drizzle 输出的 .hiss 文件完整性)
+    // R10: 同时验证 metadata 中 precision_mode 与请求一致
+    bool run_stage_hiss_verify(TaskResult& result);
+    // stage 8: GRADIENT_SPHERE (healpix_stack.dll hp_stack_gradient_corrected)
     bool run_stage_gradient_sphere(TaskResult& result);
-    // stage 8: STACK (healpix_stack.dll, Winsorized sigma clip + SNR²加权叠加)
+    // stage 9: STACK (healpix_stack.dll, Winsorized sigma clip + SNR²加权叠加)
     bool run_stage_stack(TaskResult& result);
 
     // 辅助方法

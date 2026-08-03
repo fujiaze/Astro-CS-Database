@@ -233,7 +233,8 @@ HP_DRIZZLE_API int hp_drizzle_fits_to_ahpx(
 HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
                                    int nside, int nested, double pixfrac,
                                    const char* output_path,
-                                   HpDrizzleResult* result)
+                                   HpDrizzleResult* result,
+                                   int precision_mode)
 {
     // 1. 参数校验
     if (!frame || !result) {
@@ -541,6 +542,30 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
     fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: 测光元数据 photscal=%.6f photappl=%d "
                     "(photometry_applied_upstream=%d)\n",
             photscal, photappl, (int)config.photometry_applied_upstream);
+
+    // R10: 精度模式设置
+    //   precision_mode 参数优先 (0=FP32, 1=FP64)
+    //   若参数为 -1 (未指定), 从 header KV "PRECISION" 读取 (向后兼容)
+    //   写入 HISS metadata precision_mode/signal_dtype 字段
+    if (precision_mode == 0 || precision_mode == 1) {
+        config.precision_mode = (uint8_t)precision_mode;
+        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: precision=%s (参数指定)\n",
+                precision_mode == 1 ? "FP64" : "FP32");
+    } else {
+        const char* prec_str = aio_frame_kv_get(frame, "header", "PRECISION");
+        if (prec_str) {
+            if (std::strcmp(prec_str, "fp64") == 0) {
+                config.precision_mode = 1;
+                fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: precision=FP64 (header KV PRECISION=fp64)\n");
+            } else {
+                config.precision_mode = 0;
+                fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: precision=FP32 (header KV PRECISION='%s')\n", prec_str);
+            }
+        } else {
+            config.precision_mode = 0;
+            fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: header 无 PRECISION 字段, 默认 FP32\n");
+        }
+    }
 
     // 7. 执行 Drizzle
     DrizzleEngine engine;
