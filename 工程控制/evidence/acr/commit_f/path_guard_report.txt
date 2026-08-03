@@ -1,0 +1,1 @@
+[path_guard] ABORT. If already committed, run 'git reset HEAD~1'.

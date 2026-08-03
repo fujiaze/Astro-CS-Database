@@ -1,0 +1,113 @@
+{
+  "timestamp": "2026-08-03 19:36:36",
+  "total_passed": 545,
+  "total_failed": 0,
+  "total_skipped": 8,
+  "details": [
+    {
+      "Test": "acr_test_api",
+      "Passed": 22,
+      "Failed": 0,
+      "Skipped": 1,
+      "Log": "acr_test_api.log"
+    },
+    {
+      "Test": "acr_test_buffer",
+      "Passed": 11,
+      "Failed": 0,
+      "Skipped": 0,
+      "Log": "acr_test_buffer.log"
+    },
+    {
+      "Test": "acr_test_topology",
+      "Passed": 18,
+      "Failed": 0,
+      "Skipped": 0,
+      "Log": "acr_test_topology.log"
+    },
+    {
+      "Test": "acr_test_qualification",
+      "Passed": 12,
+      "Failed": 0,
+      "Skipped": 0,
+      "Log": "acr_test_qualification.log"
+    },
+    {
+      "Test": "acr_test_scheduler",
+      "Passed": 36,
+      "Failed": 0,
+      "Skipped": 0,
+      "Log": "acr_test_scheduler.log"
+    },
+    {
+      "Test": "acr_test_utilization",
+      "Passed": 54,
+      "Failed": 0,
+      "Skipped": 0,
+      "Log": "acr_test_utilization.log"
+    },
+    {
+      "Test": "acr_test_task_descriptor",
+      "Passed": 17,
+      "Failed": 0,
+      "Skipped": 0,
+      "Log": "acr_test_task_descriptor.log"
+    },
+    {
+      "Test": "acr_test_hardware_profile",
+      "Passed": 33,
+      "Failed": 0,
+      "Skipped": 0,
+      "Log": "acr_test_hardware_profile.log"
+    },
+    {
+      "Test": "acr_test_cost",
+      "Passed": 21,
+      "Failed": 0,
+      "Skipped": 0,
+      "Log": "acr_test_cost.log"
+    },
+    {
+      "Test": "acr_test_cpu_profile",
+      "Passed": 10,
+      "Failed": 0,
+      "Skipped": 0,
+      "Log": "acr_test_cpu_profile.log"
+    },
+    {
+      "Test": "acr_test_api_traits",
+      "Passed": 14,
+      "Failed": 0,
+      "Skipped": 0,
+      "Log": "acr_test_api_traits.log"
+    },
+    {
+      "Test": "acr_test_classic",
+      "Passed": 283,
+      "Failed": 0,
+      "Skipped": 0,
+      "Log": "acr_test_classic.log"
+    },
+    {
+      "Test": "acr_test_fault",
+      "Passed": 4,
+      "Failed": 0,
+      "Skipped": 0,
+      "Log": "acr_test_fault.log"
+    },
+    {
+      "Test": "acr_test_sanitizer",
+      "Passed": 10,
+      "Failed": 0,
+      "Skipped": 0,
+      "Log": "acr_test_sanitizer.log"
+    },
+    {
+      "Test": "acr_test_sanitizer_actual",
+      "Passed": 0,
+      "Failed": 0,
+      "Skipped": 7,
+      "Log": "acr_test_sanitizer_actual.log"
+    }
+  ]
+}
