@@ -39,30 +39,47 @@ struct DispatcherConfig {
     FallbackStrategy fallback_strategy{FallbackStrategy::ToCpu};
     // 小数据阈值：bytes 总数小于此值时优先 CPU
     std::size_t small_data_threshold_bytes{1u << 20};  // 1 MB
-    // Commit F：utilization + guided 配置
+    // Commit F-fix 4：utilization 配置
     double cpu_target_ratio{0.95};       // CPU 利用率软目标（95%）
     bool enable_utilization{true};        // 是否启用 utilization 反压
-    bool enable_guided_tail{true};        // 是否启用 guided 尾部收缩
-    double guided_tail_threshold{0.7};   // completion_ratio > 此值时开始收缩
-    std::size_t min_effective_chunk{256}; // guided 收缩下限
+    // F-fix 1：固定尾段实验（审计要求改名为 fixed_tail_chunking）
+    // 注意：这不是动态 guided scheduling，仅是固定比例尾段缩块实验
+    bool enable_fixed_tail_chunking{false};     // 默认关闭（审计要求）
+    double fixed_tail_threshold{0.7};           // 固定阈值（仅实验用）
+    std::size_t min_effective_chunk{256};       // 缩块下限
 };
 
-// ===== Cost-aware 分发结果（Phase F3）=====
+// ===== Coverage 统计（从真实执行事件生成）=====
+struct CoverageStats {
+    std::size_t total{0};
+    std::size_t pending{0};
+    std::size_t claimed{0};
+    std::size_t done{0};
+    std::size_t failed{0};
+};
+
+// ===== Cost-aware 分发结果（Phase F3 + F-fix 1）=====
 struct CostAwareResult {
     MixedRunResult run_result;          // 复用 MixedRunResult 统计
-    std::string actual_primary_backend; // 实际执行主力 backend
+    // F-fix 1：预测与实际分开报告
+    std::string predicted_primary_backend;  // CostEstimator 预测的最优设备
+    std::string actual_primary_backend;     // 实际执行主力 backend（由真实完成统计生成）
+    std::vector<std::string> actual_devices_used;  // 实际参与执行的所有设备
     std::size_t total_chunks{0};
     std::size_t chunks_on_cpu{0};
     std::size_t chunks_on_gpu{0};
     std::size_t chunks_fallback{0};
     bool used_cost_estimator{false};    // 是否使用了 CostEstimator
     std::string current_state_json;     // 最终 CurrentState 快照
-    // Commit F：utilization + guided 报告
+    // F-fix 1：coverage 从真实执行导入
+    CoverageStats coverage;
+    // F-fix 4：utilization + memory 报告
     double cpu_actual_ratio{0.0};       // 最后一次采样的 CPU 实际利用率
     bool cpu_actual_valid{false};       // actual_ratio 是否有效
     std::string mem_action;            // 内存预算建议动作（none/shrink/stop/fail）
-    bool guided_tail_used{false};       // 是否触发了 guided 尾部收缩
-    std::size_t guided_min_chunk{0};   // guided 收缩到的最小块
+    // F-fix 1：固定尾段实验标记（不是动态 guided）
+    bool fixed_tail_chunking_used{false};  // 是否使用了固定尾段缩块实验
+    std::size_t fixed_tail_min_chunk{0};   // 固定尾段缩到的最小块
 };
 
 // ===== Dispatcher =====

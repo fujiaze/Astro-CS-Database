@@ -1,7 +1,11 @@
 // lib/acr/scheduler/dispatcher.cpp — Dispatcher 实现
-// Phase F3：增强 cost-aware 工作保持调度。
-// Commit F：接入 CpuController（95% 软目标）+ MemoryBudgetController（RAM/VRAM 预算）
-//           + guided 尾部收缩（completion > 70% 时 chunk_size 动态缩小）
+// Phase F3 + F-fix 1：cost-aware 调度 + 真实执行报告
+//
+// F-fix 1 修正：
+//   - actual_primary_backend 由真实完成统计生成，不从预测值填写
+//   - predicted_primary_backend 单独保留
+//   - coverage 从 MixedRunner.last_coverage() 真实导入，不无条件 mark_done
+//   - 固定尾段实验改名为 fixed_tail_chunking（不冒充动态 guided）
 #include "dispatcher.hpp"
 
 #include "../core/task_descriptor.hpp"
@@ -20,47 +24,84 @@ struct Dispatcher::Impl {
     QueueAwareEstimator estimator;
     FallbackPolicy fallback_policy;
     CurrentState current_state;
-    // Commit F：utilization + memory budget
+    // F-fix 4：utilization + memory budget
     std::unique_ptr<utilization::CpuController> cpu_ctrl;
     std::unique_ptr<utilization::MemoryBudgetController> mem_ctrl;
 
     std::string pick_backend_impl(const TaskEstimate& task) const {
         // 小数据优先 CPU
         if (task.bytes_per_chunk * task.chunk_count < cfg.small_data_threshold_bytes) {
-            // 检查 CPU 是否可用
             for (const auto& d : cfg.devices) {
                 if (d.backend == "cpu" && d.available) return "cpu";
             }
         }
-        // 工作保持：选 finish 最短的可用设备
         std::string best = estimator.pick_best_device(cfg.devices, task);
-        if (best.empty()) {
-            // 没有可用设备，回退 CPU（即使 unavailable 也走 CPU）
-            return "cpu";
-        }
+        if (best.empty()) return "cpu";
         return best;
     }
 
-    // Phase F3：从 CostEstimate 提取推荐块大小和 backend
     std::size_t pick_chunk_size_from_estimate(const cost::CostEstimate& estimate) const {
-        // 优先用 preferred_device 的 recommended_chunk
         for (const auto& dc : estimate.per_device) {
             if (dc.device_id == estimate.preferred_device && dc.recommended_chunk > 0) {
                 return dc.recommended_chunk;
             }
         }
-        // 兜底：取第一个可行设备的推荐块
         for (const auto& dc : estimate.per_device) {
             if (dc.feasible && dc.recommended_chunk > 0) return dc.recommended_chunk;
         }
-        return 65536;  // 默认
+        return 65536;
     }
 
-    std::string pick_backend_from_estimate(const cost::CostEstimate& estimate) const {
+    // F-fix 1：预测设备由 CostEstimate 推算
+    std::string predict_backend_from_estimate(const cost::CostEstimate& estimate) const {
         return cost::device_id_to_backend(estimate.preferred_device);
     }
 
-    // Commit F：将 ExceedAction 转为字符串
+    // F-fix 1：实际主力 backend 由真实完成统计生成
+    static std::string actual_backend_from_stats(std::size_t on_cpu,
+                                                  std::size_t on_gpu,
+                                                  std::size_t fallback) {
+        // 实际执行主力 = 完成块数最多的设备
+        if (on_cpu >= on_gpu && on_cpu > 0) return "cpu";
+        if (on_gpu > on_cpu && on_gpu > 0) return "cuda:0";
+        // fallback 块也算 CPU 执行
+        if (fallback > 0) return "cpu";
+        return "none";
+    }
+
+    // F-fix 1：实际使用的设备列表
+    static std::vector<std::string> actual_devices_from_stats(std::size_t on_cpu,
+                                                               std::size_t on_gpu) {
+        std::vector<std::string> devices;
+        if (on_cpu > 0) devices.push_back("cpu");
+        if (on_gpu > 0) devices.push_back("cuda:0");
+        return devices;
+    }
+
+    // F-fix 1：从 MixedRunner 的真实 coverage 导入 CurrentState
+    void import_real_coverage(const MixedRunResult& r) {
+        const auto& real_bm = runner.last_coverage();
+        current_state.init_coverage(r.total_chunks);
+        // 只标记真正完成的 chunk（失败/未开始不标 DONE）
+        for (std::size_t i = 0; i < r.total_chunks && i < real_bm.chunk_count(); ++i) {
+            if (real_bm.is_done(i)) {
+                current_state.coverage().mark_done(i);
+            }
+        }
+    }
+
+    // F-fix 1：从 MixedRunResult 生成 CoverageStats
+    static CoverageStats coverage_from_result(const MixedRunResult& r) {
+        CoverageStats cs;
+        cs.total = r.total_chunks;
+        cs.done = r.executed_on_cpu + r.executed_on_gpu;
+        cs.failed = r.failed_chunks;
+        cs.pending = (r.total_chunks > cs.done + cs.failed) ?
+                     (r.total_chunks - cs.done - cs.failed) : 0;
+        cs.claimed = cs.done + cs.failed;  // 已领取 = 已完成 + 已失败
+        return cs;
+    }
+
     static std::string action_to_string(utilization::MemoryBudgetController::ExceedAction a) {
         switch (a) {
             case utilization::MemoryBudgetController::ExceedAction::None: return "none";
@@ -76,7 +117,6 @@ struct Dispatcher::Impl {
 };
 
 Dispatcher::Dispatcher() : impl_(std::make_unique<Impl>()) {
-    // Commit F：初始化 utilization 控制器
     impl_->cpu_ctrl = std::make_unique<utilization::CpuController>();
     impl_->mem_ctrl = std::make_unique<utilization::MemoryBudgetController>();
 }
@@ -87,7 +127,6 @@ void Dispatcher::configure(const DispatcherConfig& cfg) {
     impl_->fallback_policy.set_strategy(cfg.fallback_strategy);
     MixedRunnerConfig mcfg;
     mcfg.fallback_strategy = cfg.fallback_strategy;
-    // 从 devices 提取 GPU backends
     std::vector<std::string> backend_names;
     for (const auto& d : cfg.devices) {
         backend_names.push_back(d.backend);
@@ -99,14 +138,12 @@ void Dispatcher::configure(const DispatcherConfig& cfg) {
     impl_->runner.configure(mcfg);
     impl_->current_state.init_devices(backend_names);
 
-    // Commit F：配置 utilization 控制器
     if (impl_->cfg.enable_utilization && impl_->cpu_ctrl) {
         impl_->cpu_ctrl->set_target(cfg.cpu_target_ratio);
     }
     if (impl_->mem_ctrl) {
         utilization::MemoryBudgetConfig mbcfg;
         impl_->mem_ctrl->configure(mbcfg);
-        // 注册 GPU backends 用于 VRAM 监控
         for (const auto& bn : mcfg.gpu_backends) {
             impl_->mem_ctrl->register_backend(bn);
         }
@@ -139,13 +176,16 @@ FallbackDecision Dispatcher::handle_failure(const std::string& failed_backend,
     return impl_->fallback_policy.decide(failed_backend, bitmap, available);
 }
 
-// ===== Phase F3：Cost-aware 工作保持调度 =====
+// ===== Phase F3 + F-fix 1：Cost-aware 调度 =====
 CostAwareResult Dispatcher::dispatch_range_cost_aware(
     const TaskDescriptor& task,
     const cost::CostEstimate& estimate,
     ChunkKernelFn fn, void* user_data) {
     CostAwareResult result;
     result.used_cost_estimator = estimate.profile_available;
+
+    // F-fix 1：预测设备由 CostEstimate 推算（单独保留）
+    result.predicted_primary_backend = impl_->predict_backend_from_estimate(estimate);
 
     // 决定 chunk_size
     std::size_t chunk_size = impl_->pick_chunk_size_from_estimate(estimate);
@@ -157,7 +197,6 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
         begin = task.range.begin;
         end = task.range.end;
     } else if (task.extent.count() > 0) {
-        // 2D 任务线性化为 1D（按 tile 索引）
         begin = 0;
         end = task.extent.count();
     } else {
@@ -165,13 +204,13 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
         end = task.item_count;
     }
 
-    // Commit F：执行前采样 CPU 利用率（建立基线）
+    // F-fix 4：执行前采样 CPU 利用率（建立基线）
     utilization::CpuControlDecision cpu_dec;
     if (impl_->cfg.enable_utilization && impl_->cpu_ctrl) {
         cpu_dec = impl_->cpu_ctrl->sample_and_decide();
     }
 
-    // Commit F：执行前检查内存预算
+    // F-fix 4：执行前检查内存预算
     utilization::MemoryBudgetController::ExceedAction mem_action =
         utilization::MemoryBudgetController::ExceedAction::None;
     if (impl_->mem_ctrl) {
@@ -179,6 +218,8 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
         mem_action = utilization::MemoryBudgetController::suggest_action(
             mem_budget.used_ram, mem_budget.limit_ram, mem_budget.total_ram);
         result.mem_action = Impl::action_to_string(mem_action);
+    } else {
+        result.mem_action = "none";
     }
 
     // 内存预算失败：直接返回
@@ -186,6 +227,7 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
         result.run_result.all_done = false;
         result.run_result.error_message = "memory budget exceeded (Fail)";
         result.actual_primary_backend = "none";
+        result.coverage = Impl::coverage_from_result(result.run_result);
         return result;
     }
     // 内存预算要求缩小块
@@ -193,52 +235,44 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
         chunk_size = std::max(chunk_size / 2, impl_->cfg.min_effective_chunk);
     }
 
-    // 无 GPU 可用时退化为纯 CPU dispatch_range
+    // 无 GPU 可用时退化为纯 CPU
     bool has_gpu = false;
     for (const auto& d : impl_->cfg.devices) {
         if (d.backend.rfind("cuda", 0) == 0 && d.available) { has_gpu = true; break; }
     }
+
+    // F-fix 1：固定尾段实验（审计改名为 fixed_tail_chunking，不冒充 guided）
+    const bool use_fixed_tail =
+        impl_->cfg.enable_fixed_tail_chunking &&
+        (end > begin) &&
+        (end - begin) > impl_->cfg.min_effective_chunk * 4;
+
     if (!has_gpu || !estimate.profile_available) {
         // 纯 CPU 路径
-        result.actual_primary_backend = "cpu";
-
-        // Commit F：guided 尾部收缩分段执行
-        const bool can_split =
-            impl_->cfg.enable_guided_tail &&
-            impl_->cfg.enable_utilization &&
-            (end > begin) &&
-            (end - begin) > impl_->cfg.min_effective_chunk * 4;
-
-        if (can_split) {
-            // 分段：第一阶段正常 chunk_size 执行 [begin, split_point)
+        if (use_fixed_tail) {
+            // 固定尾段实验：分两段，后段缩块（仅实验，不是动态 guided）
             std::size_t split_point = begin + static_cast<std::size_t>(
-                (end - begin) * impl_->cfg.guided_tail_threshold);
+                (end - begin) * impl_->cfg.fixed_tail_threshold);
 
             auto r1 = impl_->runner.run_range(begin, split_point, chunk_size, fn, user_data);
 
-            // 中间采样 CPU 利用率
+            // 中间采样
             if (impl_->cpu_ctrl) {
                 cpu_dec = impl_->cpu_ctrl->sample_and_decide();
             }
-            // 中间检查内存预算
             if (impl_->mem_ctrl) {
                 auto mem_budget = impl_->mem_ctrl->sample();
                 mem_action = utilization::MemoryBudgetController::suggest_action(
                     mem_budget.used_ram, mem_budget.limit_ram, mem_budget.total_ram);
             }
 
-            // 第二阶段：guided 收缩 chunk_size
-            std::size_t guided_chunk = std::max(chunk_size / 2, impl_->cfg.min_effective_chunk);
-            // 内存紧张：进一步收缩
+            // 第二段：固定缩块
+            std::size_t tail_chunk = std::max(chunk_size / 2, impl_->cfg.min_effective_chunk);
             if (mem_action == utilization::MemoryBudgetController::ExceedAction::ShrinkBlock) {
-                guided_chunk = std::max(guided_chunk / 2, impl_->cfg.min_effective_chunk);
-            }
-            // CPU 利用率超目标 +5%：收缩以让步
-            if (cpu_dec.valid && cpu_dec.actual_ratio > impl_->cfg.cpu_target_ratio + 0.05) {
-                guided_chunk = std::max(guided_chunk / 2, impl_->cfg.min_effective_chunk);
+                tail_chunk = std::max(tail_chunk / 2, impl_->cfg.min_effective_chunk);
             }
 
-            auto r2 = impl_->runner.run_range(split_point, end, guided_chunk, fn, user_data);
+            auto r2 = impl_->runner.run_range(split_point, end, tail_chunk, fn, user_data);
 
             // 合并结果
             result.run_result.total_chunks = r1.total_chunks + r2.total_chunks;
@@ -249,23 +283,32 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
             result.run_result.all_done = r1.all_done && r2.all_done;
             result.run_result.error_message = r2.error_message.empty() ? r1.error_message : r2.error_message;
 
-            result.guided_tail_used = true;
-            result.guided_min_chunk = guided_chunk;
+            result.fixed_tail_chunking_used = true;
+            result.fixed_tail_min_chunk = tail_chunk;
         } else {
             auto r = impl_->runner.run_range(begin, end, chunk_size, fn, user_data);
             result.run_result = r;
         }
 
+        // F-fix 1：actual_primary_backend 由真实完成统计生成
+        result.actual_primary_backend = Impl::actual_backend_from_stats(
+            result.run_result.executed_on_cpu,
+            result.run_result.executed_on_gpu,
+            result.run_result.fallback_chunks);
+        result.actual_devices_used = Impl::actual_devices_from_stats(
+            result.run_result.executed_on_cpu,
+            result.run_result.executed_on_gpu);
+
         result.total_chunks = result.run_result.total_chunks;
         result.chunks_on_cpu = result.run_result.executed_on_cpu;
         result.chunks_on_gpu = result.run_result.executed_on_gpu;
         result.chunks_fallback = result.run_result.fallback_chunks;
-        impl_->current_state.init_coverage(result.total_chunks);
-        for (std::size_t i = 0; i < result.total_chunks; ++i) {
-            impl_->current_state.coverage().mark_done(i);
-        }
 
-        // Commit F：执行后采样 CPU 利用率
+        // F-fix 1：coverage 从真实执行导入（不无条件 mark_done）
+        impl_->import_real_coverage(result.run_result);
+        result.coverage = Impl::coverage_from_result(result.run_result);
+
+        // F-fix 4：执行后采样 CPU 利用率
         if (impl_->cpu_ctrl) {
             cpu_dec = impl_->cpu_ctrl->sample_and_decide();
             result.cpu_actual_ratio = cpu_dec.actual_ratio;
@@ -276,21 +319,27 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
         return result;
     }
 
-    // Cost-aware 路径：当前实现仍走 MixedRunner（GPU 真实执行由 backend 提供）
-    // CostEstimator 已决定 chunk_size 和 preferred_device，MixedRunner 据此分发
+    // Cost-aware 路径（有 GPU）
     auto r = impl_->runner.run_range(begin, end, chunk_size, fn, user_data);
     result.run_result = r;
-    result.actual_primary_backend = impl_->pick_backend_from_estimate(estimate);
+
+    // F-fix 1：actual_primary_backend 由真实完成统计生成
+    // 不从 estimate.preferred_device 填写
+    result.actual_primary_backend = Impl::actual_backend_from_stats(
+        r.executed_on_cpu, r.executed_on_gpu, r.fallback_chunks);
+    result.actual_devices_used = Impl::actual_devices_from_stats(
+        r.executed_on_cpu, r.executed_on_gpu);
+
     result.total_chunks = r.total_chunks;
     result.chunks_on_cpu = r.executed_on_cpu;
     result.chunks_on_gpu = r.executed_on_gpu;
     result.chunks_fallback = r.fallback_chunks;
 
-    // 更新 CurrentState
-    impl_->current_state.init_coverage(r.total_chunks);
-    for (std::size_t i = 0; i < r.total_chunks; ++i) {
-        impl_->current_state.coverage().mark_done(i);
-    }
+    // F-fix 1：coverage 从真实执行导入
+    impl_->import_real_coverage(r);
+    result.coverage = Impl::coverage_from_result(r);
+
+    // 更新 CurrentState 设备统计
     if (auto* cpu_state = impl_->current_state.find_device("cpu")) {
         cpu_state->chunks_completed.store(r.executed_on_cpu, std::memory_order_relaxed);
     }
@@ -302,7 +351,7 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
         }
     }
 
-    // Commit F：执行后采样 CPU 利用率
+    // F-fix 4：执行后采样 CPU 利用率
     if (impl_->cpu_ctrl) {
         cpu_dec = impl_->cpu_ctrl->sample_and_decide();
         result.cpu_actual_ratio = cpu_dec.actual_ratio;
