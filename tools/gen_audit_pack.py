@@ -1,3 +1,8 @@
+# NON_PRODUCTION_TOOL_ONLY
+# This file is NOT part of the production pipeline.
+# It is a development/testing/research tool only.
+# The production pipeline uses orchestrator.exe <stage1.json> exclusively.
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """生成 AstroCS v1.1 审计包。"""

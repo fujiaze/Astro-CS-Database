@@ -1,3 +1,8 @@
+# NON_PRODUCTION_TOOL_ONLY
+# This file is NOT part of the production pipeline.
+# It is a development/testing/research tool only.
+# The production pipeline uses orchestrator.exe <stage1.json> exclusively.
+
 """
 test_healpix_stack.py - healpix_stack 模块单元测试
 

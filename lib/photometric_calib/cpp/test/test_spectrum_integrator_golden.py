@@ -1,3 +1,8 @@
+# NON_PRODUCTION_TOOL_ONLY
+# This file is NOT part of the production pipeline.
+# It is a development/testing/research tool only.
+# The production pipeline uses orchestrator.exe <stage1.json> exclusively.
+
 # -*- coding: utf-8 -*-
 """
 test_spectrum_integrator_golden.py - P12-003 光谱积分与响应曲线无回归测试

@@ -1,3 +1,8 @@
+# NON_PRODUCTION_TOOL_ONLY
+# This file is NOT part of the production pipeline.
+# It is a development/testing/research tool only.
+# The production pipeline uses orchestrator.exe <stage1.json> exclusively.
+
 # -*- coding: utf-8 -*-
 """生成 WCS 投影精度可视化图
 展示 Gaia 星投影位置 (红十字) 与图像实际星点在不同径向距离下的对齐情况

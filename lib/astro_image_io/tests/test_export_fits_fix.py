@@ -1,3 +1,8 @@
+# NON_PRODUCTION_TOOL_ONLY
+# This file is NOT part of the production pipeline.
+# It is a development/testing/research tool only.
+# The production pipeline uses orchestrator.exe <stage1.json> exclusively.
+
 """
 测试 aio_frame_export_block_fits 修复 (SIMPLE逻辑值 + 大端字节序)
 功能: 验证导出的 FITS 文件可被 astropy 正确读取, 数据值非垃圾

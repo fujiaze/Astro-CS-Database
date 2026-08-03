@@ -1,3 +1,8 @@
+# NON_PRODUCTION_TOOL_ONLY
+# This file is NOT part of the production pipeline.
+# It is a development/testing/research tool only.
+# The production pipeline uses orchestrator.exe <stage1.json> exclusively.
+
 """
 astro_image_io 命名块容器模型测试
 功能: 验证 PipelineFrame 的块管理/KV/缓存/导出/引擎功能

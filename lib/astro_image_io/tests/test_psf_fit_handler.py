@@ -1,3 +1,8 @@
+# NON_PRODUCTION_TOOL_ONLY
+# This file is NOT part of the production pipeline.
+# It is a development/testing/research tool only.
+# The production pipeline uses orchestrator.exe <stage1.json> exclusively.
+
 """
 测试 psf_fit_handler
 功能: 验证 PSF 拟合 handler 的逻辑（star_det 块读取、data 块读取、psf 块写入）

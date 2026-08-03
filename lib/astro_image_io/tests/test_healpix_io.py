@@ -1,3 +1,8 @@
+# NON_PRODUCTION_TOOL_ONLY
+# This file is NOT part of the production pipeline.
+# It is a development/testing/research tool only.
+# The production pipeline uses orchestrator.exe <stage1.json> exclusively.
+
 # test_healpix_io.py - healpix_io.dll 往返测试
 # 功能: 验证 .hiss / .hcsd 格式的写入和读取一致性
 # 用途: 确认 healpix_io C++ DLL 的 5 个 API 函数正确工作
