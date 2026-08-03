@@ -44,12 +44,19 @@ if(ACR_BUILD_BENCHMARK)
     endif()
 
     # 微基准源文件（Google Benchmark 注册的 benchmark）
+    # Commit E：补全 transfer/convolution/irregular/atomic/branch/overhead benchmark
     set(ACR_BENCHMARK_SOURCES
         benchmarks/stream_benchmark.cpp
         benchmarks/arithmetic_benchmark.cpp
         benchmarks/reduction_benchmark.cpp
         benchmarks/thread_curve_benchmark.cpp
         benchmarks/numa_benchmark.cpp
+        benchmarks/transfer_benchmark.cpp
+        benchmarks/convolution_benchmark.cpp
+        benchmarks/irregular_benchmark.cpp
+        benchmarks/atomic_benchmark.cpp
+        benchmarks/branch_benchmark.cpp
+        benchmarks/overhead_benchmark.cpp
     )
 
     # OBJECT 库：所有 Google Benchmark 注册（不含 main）

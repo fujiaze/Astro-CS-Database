@@ -53,14 +53,22 @@ struct LCG {
 // KernelId 名称表
 const char* kernel_name(std::uint32_t id) {
     switch (static_cast<KernelId>(id)) {
-        case KernelId::Copy:        return "Copy";
-        case KernelId::Triad:       return "Triad";
-        case KernelId::AXPY:        return "AXPY";
-        case KernelId::Dot:         return "Dot";
+        case KernelId::Copy:          return "Copy";
+        case KernelId::Triad:         return "Triad";
+        case KernelId::AXPY:          return "AXPY";
+        case KernelId::Dot:           return "Dot";
+        case KernelId::Transpose:     return "Transpose";
         case KernelId::Convolution2D: return "Convolution2D";
-        case KernelId::Gemm:        return "Gemm";
-        default:                    return "Custom";
+        case KernelId::Histogram256:  return "Histogram256";
+        case KernelId::Scan:          return "Scan";
+        case KernelId::Gather:        return "Gather";
+        case KernelId::Scatter:       return "Scatter";
+        case KernelId::Mandelbrot:    return "Mandelbrot";
+        case KernelId::Gemm:          return "Gemm";
+        case KernelId::Fft:           return "Fft";
+        case KernelId::Custom:        return "Custom";
     }
+    return "Custom";
 }
 
 } // anonymous namespace
@@ -195,6 +203,161 @@ std::uint64_t BenchmarkDriver::run_cpu_copy(std::size_t n) {
     return elapsed_nanos(t0, t1);
 }
 
+// ===== Commit E：补充 kernel 实现 =====
+// 这些 kernel 供 profile_generator 生成多维能力曲线（reduction/convolution/irregular/branch/transfer/overhead）。
+// 实现保持简洁：用 parallel_for 调度，返回 kernel 执行时间（纳秒）。
+
+std::uint64_t BenchmarkDriver::run_cpu_dot(std::size_t n) {
+    std::vector<float> x(n), y(n);
+    fill_input(x.data(), n, BENCHMARK_FIXED_SEED);
+    fill_input(y.data(), n, BENCHMARK_FIXED_SEED ^ 0x9E3779B97F4A7C15ULL);
+    auto t0 = SteadyClock::now();
+    float dot = 0.0f;
+    astro::compute::parallel_for(
+        KernelId::Dot, Range1D{0, n},
+        [&](std::size_t i) { dot += x[i] * y[i]; });
+    auto t1 = SteadyClock::now();
+    volatile float sink = dot;
+    (void)sink;
+    return elapsed_nanos(t0, t1);
+}
+
+std::uint64_t BenchmarkDriver::run_cpu_conv2d(std::size_t n) {
+    // n 作为图像边长（正方形图像），3x3 卷积核
+    const std::size_t ks = 3;
+    const std::size_t half = ks / 2;
+    std::vector<float> img(n * n), out(n * n), kernel(ks * ks);
+    fill_input(img.data(), n * n, BENCHMARK_FIXED_SEED);
+    fill_input(kernel.data(), ks * ks, BENCHMARK_FIXED_SEED ^ 0xCAFEBABE);
+    auto t0 = SteadyClock::now();
+    astro::compute::parallel_for(
+        KernelId::Convolution2D, Range1D{0, n * n},
+        [&](std::size_t idx) {
+            std::size_t r = idx / n, c = idx % n;
+            float sum = 0.0f;
+            for (std::size_t ki = 0; ki < ks; ++ki) {
+                for (std::size_t kj = 0; kj < ks; ++kj) {
+                    std::size_t ri = (r + ki >= half && r + ki < n + half) ? r + ki - half : 0;
+                    std::size_t ci = (c + kj >= half && c + kj < n + half) ? c + kj - half : 0;
+                    if (ri < n && ci < n) {
+                        sum += img[ri * n + ci] * kernel[ki * ks + kj];
+                    }
+                }
+            }
+            out[idx] = sum;
+        });
+    auto t1 = SteadyClock::now();
+    volatile float sink = out[0];
+    (void)sink;
+    return elapsed_nanos(t0, t1);
+}
+
+std::uint64_t BenchmarkDriver::run_cpu_histogram(std::size_t n) {
+    std::vector<float> data(n);
+    fill_input(data.data(), n, BENCHMARK_FIXED_SEED);
+    std::vector<std::uint32_t> bins(256, 0);
+    auto t0 = SteadyClock::now();
+    astro::compute::parallel_for(
+        KernelId::Histogram256, Range1D{0, n},
+        [&](std::size_t i) {
+            // 映射 [-1, 1) → [0, 256)
+            std::uint32_t bin = static_cast<std::uint32_t>((data[i] + 1.0f) * 128.0f);
+            if (bin >= 256) bin = 255;
+            // 非原子递增（单线程安全；多线程用 atomic 版本在 benchmark 中测）
+            ++bins[bin];
+        });
+    auto t1 = SteadyClock::now();
+    volatile std::uint32_t sink = bins[0];
+    (void)sink;
+    return elapsed_nanos(t0, t1);
+}
+
+std::uint64_t BenchmarkDriver::run_cpu_gather(std::size_t n) {
+    std::vector<float> src(n), dst(n);
+    std::vector<std::size_t> indices(n);
+    fill_input(src.data(), n, BENCHMARK_FIXED_SEED);
+    // 生成确定性随机索引
+    LCG rng(BENCHMARK_FIXED_SEED ^ 0x6A741234ULL);
+    for (std::size_t i = 0; i < n; ++i) {
+        indices[i] = rng.next() % n;
+    }
+    auto t0 = SteadyClock::now();
+    astro::compute::parallel_for(
+        KernelId::Gather, Range1D{0, n},
+        [&](std::size_t i) { dst[i] = src[indices[i]]; });
+    auto t1 = SteadyClock::now();
+    volatile float sink = dst[0];
+    (void)sink;
+    return elapsed_nanos(t0, t1);
+}
+
+std::uint64_t BenchmarkDriver::run_cpu_scatter(std::size_t n) {
+    std::vector<float> src(n), dst(n);
+    std::vector<std::size_t> indices(n);
+    fill_input(src.data(), n, BENCHMARK_FIXED_SEED);
+    LCG rng(BENCHMARK_FIXED_SEED ^ 0x5C415678ULL);
+    for (std::size_t i = 0; i < n; ++i) {
+        indices[i] = rng.next() % n;
+    }
+    auto t0 = SteadyClock::now();
+    astro::compute::parallel_for(
+        KernelId::Scatter, Range1D{0, n},
+        [&](std::size_t i) { dst[indices[i]] = src[i]; });
+    auto t1 = SteadyClock::now();
+    volatile float sink = dst[0];
+    (void)sink;
+    return elapsed_nanos(t0, t1);
+}
+
+std::uint64_t BenchmarkDriver::run_cpu_mandelbrot(std::size_t n) {
+    // n x n 网格的 Mandelbrot 迭代（分支发散）
+    std::vector<std::uint32_t> result(n * n);
+    const std::uint32_t max_iter = 256;
+    auto t0 = SteadyClock::now();
+    astro::compute::parallel_for(
+        KernelId::Mandelbrot, Range1D{0, n * n},
+        [&](std::size_t idx) {
+            std::size_t r = idx / n, c = idx % n;
+            double cre = -2.0 + 3.0 * static_cast<double>(c) / static_cast<double>(n);
+            double cim = -1.5 + 3.0 * static_cast<double>(r) / static_cast<double>(n);
+            double zr = 0.0, zi = 0.0;
+            std::uint32_t iter = 0;
+            while (iter < max_iter && zr * zr + zi * zi < 4.0) {
+                double new_zr = zr * zr - zi * zi + cre;
+                zi = 2.0 * zr * zi + cim;
+                zr = new_zr;
+                ++iter;
+            }
+            result[idx] = iter;
+        });
+    auto t1 = SteadyClock::now();
+    volatile std::uint32_t sink = result[0];
+    (void)sink;
+    return elapsed_nanos(t0, t1);
+}
+
+std::uint64_t BenchmarkDriver::run_cpu_transfer(std::size_t n) {
+    // memcpy 传输带宽（CPU 内存层级）
+    std::vector<float> src(n), dst(n);
+    fill_input(src.data(), n, BENCHMARK_FIXED_SEED);
+    auto t0 = SteadyClock::now();
+    std::memcpy(dst.data(), src.data(), n * sizeof(float));
+    auto t1 = SteadyClock::now();
+    volatile float sink = dst[0];
+    (void)sink;
+    return elapsed_nanos(t0, t1);
+}
+
+std::uint64_t BenchmarkDriver::run_cpu_overhead_submit(std::size_t n) {
+    // parallel_for 提交开销：最小工作负载（单元素），测量调度固定开销
+    auto t0 = SteadyClock::now();
+    astro::compute::parallel_for(
+        KernelId::Custom, Range1D{0, 1},
+        [n](std::size_t) { (void)n; });
+    auto t1 = SteadyClock::now();
+    return elapsed_nanos(t0, t1);
+}
+
 RawBenchmarkSample BenchmarkDriver::measure_once(std::uint32_t kernel_id,
                                                   const std::string& backend,
                                                   std::size_t problem_size,
@@ -204,9 +367,17 @@ RawBenchmarkSample BenchmarkDriver::measure_once(std::uint32_t kernel_id,
     if (backend == "cpu") {
         std::uint64_t k = 0;
         switch (static_cast<KernelId>(kernel_id)) {
-            case KernelId::AXPY:  k = run_cpu_axpy(problem_size);  break;
-            case KernelId::Triad: k = run_cpu_triad(problem_size); break;
-            case KernelId::Copy:  k = run_cpu_copy(problem_size);  break;
+            case KernelId::AXPY:         k = run_cpu_axpy(problem_size);           break;
+            case KernelId::Triad:        k = run_cpu_triad(problem_size);          break;
+            case KernelId::Copy:         k = run_cpu_copy(problem_size);          break;
+            case KernelId::Dot:          k = run_cpu_dot(problem_size);           break;
+            case KernelId::Convolution2D: k = run_cpu_conv2d(problem_size);        break;
+            case KernelId::Histogram256: k = run_cpu_histogram(problem_size);     break;
+            case KernelId::Gather:       k = run_cpu_gather(problem_size);         break;
+            case KernelId::Scatter:      k = run_cpu_scatter(problem_size);       break;
+            case KernelId::Mandelbrot:   k = run_cpu_mandelbrot(problem_size);     break;
+            case KernelId::Transpose:   k = run_cpu_transfer(problem_size);      break;
+            case KernelId::Custom:      k = run_cpu_overhead_submit(problem_size); break;
             default:
                 // 未实现的 kernel 跳过（median=0，路由器视为不支持）
                 return s;
@@ -253,12 +424,23 @@ std::vector<KernelBenchmarkResult> BenchmarkDriver::run() {
         " gpu=" + (cfg_.enable_gpu ? "on" : "off"));
 
     std::vector<KernelBenchmarkResult> results;
-    // 标定 kernel 列表：Copy, AXPY, Triad（FP32）
+    // Commit E：标定 kernel 列表覆盖多维能力曲线族
+    //   memory(Copy/Triad) + arithmetic(AXPY) + reduction(Dot) +
+    //   convolution(Convolution2D) + irregular(Histogram/Gather/Scatter) +
+    //   branch(Mandelbrot) + transfer(Transpose→memcpy) + overhead(Custom→submit)
     struct Spec { std::uint32_t id; std::size_t bpe; };
     const Spec specs[] = {
-        { static_cast<std::uint32_t>(KernelId::Copy),  sizeof(float) },
-        { static_cast<std::uint32_t>(KernelId::AXPY),  sizeof(float) },
-        { static_cast<std::uint32_t>(KernelId::Triad), sizeof(float) },
+        { static_cast<std::uint32_t>(KernelId::Copy),           sizeof(float) },
+        { static_cast<std::uint32_t>(KernelId::AXPY),           sizeof(float) },
+        { static_cast<std::uint32_t>(KernelId::Triad),          sizeof(float) },
+        { static_cast<std::uint32_t>(KernelId::Dot),            sizeof(float) },
+        { static_cast<std::uint32_t>(KernelId::Convolution2D),  sizeof(float) },
+        { static_cast<std::uint32_t>(KernelId::Histogram256),   sizeof(float) },
+        { static_cast<std::uint32_t>(KernelId::Gather),         sizeof(float) },
+        { static_cast<std::uint32_t>(KernelId::Scatter),       sizeof(float) },
+        { static_cast<std::uint32_t>(KernelId::Mandelbrot),     sizeof(float) },
+        { static_cast<std::uint32_t>(KernelId::Transpose),     sizeof(float) }, // transfer
+        { static_cast<std::uint32_t>(KernelId::Custom),         sizeof(float) }, // overhead_submit
     };
     // backend 列表：始终测 CPU；GPU 测量仅在 enable_gpu 且 ACR_BUILD_CUDA 时（此处占位）
     std::vector<std::string> backends;

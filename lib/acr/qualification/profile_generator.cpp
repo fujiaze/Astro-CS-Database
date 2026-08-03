@@ -438,6 +438,9 @@ void ProfileGenerator::map_result_to_curves(
         device.arithmetic[{prec, "add:baseline"}].points.push_back(pt);
     } else if (kid == 4) {  // Dot → reduction[dot:fp32]
         device.reduction[{"dot", prec}].points.push_back(pt);
+    } else if (kid == 5) {  // Transpose → transfer (CPU memcpy 带宽)
+        // Commit E：用 Transpose kernel_id 标记 CPU 内存传输带宽
+        device.transfer[{TransferDirection::Bidir, MemoryType::HostPlain}].points.push_back(pt);
     } else if (kid == 6) {  // Convolution2D → convolution[direct:default:fp32]
         device.convolution["direct:default:" + std::string(r.precision)].points.push_back(pt);
     } else if (kid == 7) {  // Histogram256 → irregular[histogram:uniform]
@@ -460,6 +463,13 @@ void ProfileGenerator::map_result_to_curves(
         cap.implementation = "self-benchmark";
         cap.size_curves["default"].points.push_back(pt);
         device.library["fft"] = std::move(cap);
+    } else if (kid == 0) { // Custom → overhead[submit]（Commit E：测量真实 parallel_for 提交开销）
+        FixedOverhead submit_oh;
+        submit_oh.median_ns = pt.median;
+        submit_oh.p95_ns = pt.p95;
+        submit_oh.cold_start_ns = pt.p95;  // 首次调用可能冷启动
+        submit_oh.warm_ns = pt.median;      // 后续调用温态
+        device.overhead["submit"] = submit_oh;
     } else {
         // 兜底：其他 kernel → arithmetic[<precision>:add:baseline]
         device.arithmetic[{prec, "add:baseline"}].points.push_back(pt);
@@ -467,16 +477,20 @@ void ProfileGenerator::map_result_to_curves(
 }
 
 void ProfileGenerator::fill_default_overheads(DeviceProfile& device) const {
-    // 保守固定开销估算（因当前 benchmark_driver 不测 overhead）
-    // CPU 和 GPU 的开销差异显著
+    // 保守固定开销估算：仅填充未被 benchmark 测量的 overhead 项
+    // Commit E：submit 现在由 benchmark_driver 测量（kid=0 Custom），
+    //   其余 launch/event/alloc/merge 仍用保守估算待后续 benchmark 补充。
     bool is_gpu = (device.kind == DeviceKind::Gpu);
 
-    FixedOverhead submit_oh;
-    submit_oh.median_ns = is_gpu ? 8500.0 : 1100.0;
-    submit_oh.p95_ns = is_gpu ? 9200.0 : 1800.0;
-    submit_oh.cold_start_ns = is_gpu ? 450000.0 : 95000.0;
-    submit_oh.warm_ns = is_gpu ? 6500.0 : 600.0;
-    device.overhead["submit"] = submit_oh;
+    // submit：仅当未被测量时才填默认值
+    if (device.overhead.find("submit") == device.overhead.end()) {
+        FixedOverhead submit_oh;
+        submit_oh.median_ns = is_gpu ? 8500.0 : 1100.0;
+        submit_oh.p95_ns = is_gpu ? 9200.0 : 1800.0;
+        submit_oh.cold_start_ns = is_gpu ? 450000.0 : 95000.0;
+        submit_oh.warm_ns = is_gpu ? 6500.0 : 600.0;
+        device.overhead["submit"] = submit_oh;
+    }
 
     FixedOverhead launch_oh;
     launch_oh.median_ns = is_gpu ? 7800.0 : 120.0;

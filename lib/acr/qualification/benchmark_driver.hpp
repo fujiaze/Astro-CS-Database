@@ -80,6 +80,16 @@ private:
     // CPU Copy kernel：y[i] = x[i]
     std::uint64_t run_cpu_copy(std::size_t n);
 
+    // Commit E：补充 kernel（供 profile_generator 生成多维能力曲线）
+    std::uint64_t run_cpu_dot(std::size_t n);           // 归约 → reduction[dot:fp32]
+    std::uint64_t run_cpu_conv2d(std::size_t n);        // 卷积 → convolution[direct:default:fp32]
+    std::uint64_t run_cpu_histogram(std::size_t n);      // 直方图 → irregular[histogram:uniform]
+    std::uint64_t run_cpu_gather(std::size_t n);        // 随机读 → irregular[gather:random]
+    std::uint64_t run_cpu_scatter(std::size_t n);       // 随机写 → irregular[scatter:random]
+    std::uint64_t run_cpu_mandelbrot(std::size_t n);    // 分支 → branch[highly_variable]
+    std::uint64_t run_cpu_transfer(std::size_t n);      // 传输 → transfer[host:host_plain]
+    std::uint64_t run_cpu_overhead_submit(std::size_t n); // 开销 → overhead[submit]
+
     // 生成确定性输入（用固定 seed 的 LCG）
     void fill_input(float* dst, std::size_t n, std::uint64_t seed);
     void fill_input(double* dst, std::size_t n, std::uint64_t seed);
