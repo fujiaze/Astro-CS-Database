@@ -10,6 +10,10 @@ endif()
 # 实验源文件（E01-E21）
 # Phase C：新增 E17 模型拟合验证（hardware_profile.hpp Curve 留出验证）
 # Phase H：新增 E18-E21（工作池/资源控制/故障回退/持续并发可靠性）
+# Commit D（20_PHASE_I_AUDIT_ACTION_PLAN.md §6 重命名）：
+#   e13_mixed.cpp → cpu_partition_coverage.cpp（CPU-only build 下 enable_gpu=false）
+#   e14_utilization.cpp → controller_math_unit.cpp（仅验证数学函数，非真实利用率）
+#   注意：run_e13/run_e14 函数名保留（extern "C" 接口，classic_main.cpp 依赖序号调度）
 set(ACR_CLASSIC_SOURCES
     e01_memory.cpp
     e02_axpy.cpp
@@ -23,8 +27,8 @@ set(ACR_CLASSIC_SOURCES
     e10_mandelbrot.cpp
     e11_gemm.cpp
     e12_fft.cpp
-    e13_mixed.cpp
-    e14_utilization.cpp
+    cpu_partition_coverage.cpp
+    controller_math_unit.cpp
     e15_failure.cpp
     e16_concurrency.cpp
     e17_model_fit.cpp

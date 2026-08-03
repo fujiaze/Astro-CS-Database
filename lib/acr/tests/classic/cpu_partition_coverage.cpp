@@ -1,4 +1,7 @@
-// lib/acr/tests/classic/e13_mixed.cpp — E13 CPU+GPU Mixed Partition
+// lib/acr/tests/classic/cpu_partition_coverage.cpp — CPU Partition Coverage
+// 原 e13_mixed.cpp（按 20_PHASE_I_AUDIT_ACTION_PLAN.md §6 重命名）
+// 重命名理由：CPU-only build 下 enable_gpu=false，测试内容是 CPU partition coverage
+//   而非真实 CPU+GPU Mixed；真实 Mixed 需 GPU 可用，无 GPU 时 SKIPPED。
 // 验证能力：coverage bitmap 完整不重复 + 真实 Mixed（无 GPU 则 SKIPPED）
 // 重写（规范 §6 真实 Mixed）：
 //   1. 删除 CPU 模拟 GPU 比例路径（run_cpu_gpu_ratio 已移除）

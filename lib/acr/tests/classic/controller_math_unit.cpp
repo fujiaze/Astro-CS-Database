@@ -1,6 +1,9 @@
-// lib/acr/tests/classic/e14_utilization.cpp — E14 Resource Utilization Controller
-// 验证能力：50/80/95/100% 目标点
-// 用 CpuController + ActualTracker 验证记录实际利用率（不伪报）。
+// lib/acr/tests/classic/controller_math_unit.cpp — Controller Math Unit
+// 原 e14_utilization.cpp（按 20_PHASE_I_AUDIT_ACTION_PLAN.md §6 重命名）
+// 重命名理由：本测试仅用 decide_with_actual 注入人工值验证 CpuController/ActualTracker
+//   的数学函数正确性，不读取真实利用率；真实利用率读取在 tests/unit/test_utilization.cpp。
+// 验证能力：50/80/95/100% 目标点数学正确性
+// 用 CpuController + ActualTracker 验证数学函数（非真实利用率）。
 #include "classic_common.hpp"
 
 #include <gtest/gtest.h>

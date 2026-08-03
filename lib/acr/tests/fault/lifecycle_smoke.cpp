@@ -1,6 +1,10 @@
-// lib/acr/tests/fault/sanitizer_smoke.cpp — Phase H sanitizer 烟雾测试
-// 验证：内存泄漏 / use-after-free / 竞态
-// 设计：这些测试在 ASan/UBSan/TSan 下应当全部通过（无报错）。
+// lib/acr/tests/fault/lifecycle_smoke.cpp — Lifecycle Smoke
+// 原 sanitizer_smoke.cpp（按 20_PHASE_I_AUDIT_ACTION_PLAN.md §6 重命名）
+// 重命名理由：CMake 未开启 -fsanitize flag，本测试不验证 sanitizer 是否开启，
+//   仅做 Buffer/Event/并发生命周期的功能烟雾测试；sanitizer 验证在 sanitizer_actual.cpp。
+// 验证：内存泄漏 / use-after-free / 竞态（功能层面，非 sanitizer 层面）
+// 设计：这些测试在 ASan/UBSan/TSan 下应当全部通过（无报错），但本文件不强制 sanitizer 开启。
+// 真正的 sanitizer 验证需 ACR_BUILD_SANITIZER=ON 编译 sanitizer_actual.cpp。
 // 测试内容：
 //   1. Buffer 生命周期（构造、析构、move）
 //   2. Event 取消时无泄漏
