@@ -1,0 +1,107 @@
+{
+  "passed_executables": 13,
+  "total_tests_passed": 279,
+  "failed_executables": 0,
+  "details": [
+    {
+      "passed": 14,
+      "status": "PASS",
+      "name": "acr_test_api_traits.exe",
+      "failed": 0
+    },
+    {
+      "passed": 22,
+      "status": "PASS",
+      "name": "acr_test_api.exe",
+      "failed": 0
+    },
+    {
+      "passed": 11,
+      "status": "PASS",
+      "name": "acr_test_buffer.exe",
+      "failed": 0
+    },
+    {
+      "passed": 0,
+      "status": "TIMEOUT",
+      "name": "acr_test_classic.exe",
+      "failed": 0
+    },
+    {
+      "passed": 21,
+      "status": "PASS",
+      "name": "acr_test_cost.exe",
+      "failed": 0
+    },
+    {
+      "passed": 10,
+      "status": "PASS",
+      "name": "acr_test_cpu_profile.exe",
+      "failed": 0
+    },
+    {
+      "passed": 4,
+      "status": "PASS",
+      "name": "acr_test_fault.exe",
+      "failed": 0
+    },
+    {
+      "passed": 33,
+      "status": "PASS",
+      "name": "acr_test_hardware_profile.exe",
+      "failed": 0
+    },
+    {
+      "passed": 0,
+      "status": "TIMEOUT",
+      "name": "acr_test_persistence.exe",
+      "failed": 0
+    },
+    {
+      "passed": 0,
+      "status": "TIMEOUT",
+      "name": "acr_test_qualification.exe",
+      "failed": 0
+    },
+    {
+      "passed": 0,
+      "status": "PASS",
+      "name": "acr_test_sanitizer_actual.exe",
+      "failed": 0
+    },
+    {
+      "passed": 10,
+      "status": "PASS",
+      "name": "acr_test_sanitizer.exe",
+      "failed": 0
+    },
+    {
+      "passed": 65,
+      "status": "PASS",
+      "name": "acr_test_scheduler.exe",
+      "failed": 0
+    },
+    {
+      "passed": 17,
+      "status": "PASS",
+      "name": "acr_test_task_descriptor.exe",
+      "failed": 0
+    },
+    {
+      "passed": 18,
+      "status": "PASS",
+      "name": "acr_test_topology.exe",
+      "failed": 0
+    },
+    {
+      "passed": 54,
+      "status": "PASS",
+      "name": "acr_test_utilization.exe",
+      "failed": 0
+    }
+  ],
+  "head": "024c87c95a1759ef17412078a9b142df70e59974",
+  "total_tests_failed": 0,
+  "timeout_executables": 3,
+  "total_executables": 16
+}

@@ -1,0 +1,160 @@
+[==========] Running 54 tests from 8 test suites.
+[----------] Global test environment set-up.
+[----------] 5 tests from UtilSystemMetrics
+[ RUN      ] UtilSystemMetrics.CpuUtilizationReadsRealValue
+[UtilSystemMetrics.CpuUtilizationReadsRealValue] actual=0.438
+[       OK ] UtilSystemMetrics.CpuUtilizationReadsRealValue (162 ms)
+[ RUN      ] UtilSystemMetrics.CpuUtilizationRepeatedSamplesConsistent
+[UtilSystemMetrics.CpuUtilizationRepeatedSamplesConsistent] s1=0.380 s2=0.348
+[       OK ] UtilSystemMetrics.CpuUtilizationRepeatedSamplesConsistent (209 ms)
+[ RUN      ] UtilSystemMetrics.RamReadsRealValue
+[UtilSystemMetrics.RamReadsRealValue] total=65446 MB avail=47522 MB
+[       OK ] UtilSystemMetrics.RamReadsRealValue (0 ms)
+[ RUN      ] UtilSystemMetrics.GpuUtilizationReadsOrEstimates
+[acr.utilization] NVML loaded: 1 GPU device(s).
+[UtilSystemMetrics.GpuUtilizationReadsOrEstimates] NVML available, actual=0.030 estimated=0
+[       OK ] UtilSystemMetrics.GpuUtilizationReadsOrEstimates (55 ms)
+[ RUN      ] UtilSystemMetrics.GpuMemoryReadsOrEstimates
+[acr.utilization] NVML loaded: 1 GPU device(s).
+[       OK ] UtilSystemMetrics.GpuMemoryReadsOrEstimates (11 ms)
+[----------] 5 tests from UtilSystemMetrics (456 ms total)
+
+[----------] 11 tests from UtilCpu
+[ RUN      ] UtilCpu.DefaultTargetIs95Percent
+[       OK ] UtilCpu.DefaultTargetIs95Percent (0 ms)
+[ RUN      ] UtilCpu.SetTargetClamped
+[       OK ] UtilCpu.SetTargetClamped (0 ms)
+[ RUN      ] UtilCpu.SampleAndDecideReadsRealUtilization
+[UtilCpu.SampleAndDecideReadsRealUtilization] actual=0.545 error=-0.405 batch=8 yield=0
+[       OK ] UtilCpu.SampleAndDecideReadsRealUtilization (164 ms)
+[ RUN      ] UtilCpu.ControlWindowInRange100to500
+[       OK ] UtilCpu.ControlWindowInRange100to500 (0 ms)
+[ RUN      ] UtilCpu.TargetPoints50_80_95_100
+[UtilCpu.TargetPoints] target=0.50 actual=0.60 batch=1 yield=1 priority=0
+[UtilCpu.TargetPoints] target=0.80 actual=0.90 batch=1 yield=1 priority=0
+[UtilCpu.TargetPoints] target=0.95 actual=1.05 batch=1 yield=1 priority=0
+[UtilCpu.TargetPoints] target=1.00 actual=1.10 batch=1 yield=1 priority=0
+[       OK ] UtilCpu.TargetPoints50_80_95_100 (0 ms)
+[ RUN      ] UtilCpu.BatchSizeStrategyAdjustsOnHighUtilization
+[       OK ] UtilCpu.BatchSizeStrategyAdjustsOnHighUtilization (0 ms)
+[ RUN      ] UtilCpu.YieldStrategySetsShouldYield
+[       OK ] UtilCpu.YieldStrategySetsShouldYield (0 ms)
+[ RUN      ] UtilCpu.FeedbackLoopAdjustsPace
+[UtilCpu.FeedbackLoopAdjustsPace] actual=0.489 batch=8 yield=0 stride=0
+[       OK ] UtilCpu.FeedbackLoopAdjustsPace (162 ms)
+[ RUN      ] UtilCpu.WorkerParticipationRecorded
+[       OK ] UtilCpu.WorkerParticipationRecorded (0 ms)
+[ RUN      ] UtilCpu.CancelAndResponse
+[       OK ] UtilCpu.CancelAndResponse (0 ms)
+[ RUN      ] UtilCpu.StatusJsonContainsFields
+[       OK ] UtilCpu.StatusJsonContainsFields (0 ms)
+[----------] 11 tests from UtilCpu (339 ms total)
+
+[----------] 10 tests from UtilGpu
+[ RUN      ] UtilGpu.RegisterBackendAdds
+[       OK ] UtilGpu.RegisterBackendAdds (0 ms)
+[ RUN      ] UtilGpu.RegisterBackendIdempotent
+[       OK ] UtilGpu.RegisterBackendIdempotent (0 ms)
+[ RUN      ] UtilGpu.DecideThrottleOnSevereExceed
+[       OK ] UtilGpu.DecideThrottleOnSevereExceed (0 ms)
+[ RUN      ] UtilGpu.DecideLowUtilizationNoThrottle
+[       OK ] UtilGpu.DecideLowUtilizationNoThrottle (0 ms)
+[ RUN      ] UtilGpu.SampleAndDecideReadsRealOrEstimates
+[acr.utilization] NVML loaded: 1 GPU device(s).
+[UtilGpu.SampleAndDecideReadsRealOrEstimates] nvml=1 actual=0.080 estimated=0
+[       OK ] UtilGpu.SampleAndDecideReadsRealOrEstimates (22 ms)
+[ RUN      ] UtilGpu.MultiGpuIndependentControl
+[acr.utilization] NVML loaded: 1 GPU device(s).
+[       OK ] UtilGpu.MultiGpuIndependentControl (14 ms)
+[ RUN      ] UtilGpu.NoUnboundedQueue
+[       OK ] UtilGpu.NoUnboundedQueue (0 ms)
+[ RUN      ] UtilGpu.TargetPoints50_80_95_100
+[       OK ] UtilGpu.TargetPoints50_80_95_100 (0 ms)
+[ RUN      ] UtilGpu.CancelAndResponse
+[       OK ] UtilGpu.CancelAndResponse (0 ms)
+[ RUN      ] UtilGpu.StatusJsonContainsFields
+[acr.utilization] NVML loaded: 1 GPU device(s).
+[       OK ] UtilGpu.StatusJsonContainsFields (25 ms)
+[----------] 10 tests from UtilGpu (74 ms total)
+
+[----------] 7 tests from UtilMemory
+[ RUN      ] UtilMemory.ComputeLimitMinRatioAndReserve
+[       OK ] UtilMemory.ComputeLimitMinRatioAndReserve (0 ms)
+[ RUN      ] UtilMemory.DefaultFixedReserveIs512MB
+[       OK ] UtilMemory.DefaultFixedReserveIs512MB (0 ms)
+[ RUN      ] UtilMemory.DefaultRatioIs95Percent
+[       OK ] UtilMemory.DefaultRatioIs95Percent (0 ms)
+[ RUN      ] UtilMemory.SampleReadsRealRam
+[acr.utilization] NVML loaded: 1 GPU device(s).
+[UtilMemory.SampleReadsRealRam] total=65446 MB used=17953 MB limit=62174 MB exceeded=0
+[       OK ] UtilMemory.SampleReadsRealRam (20 ms)
+[ RUN      ] UtilMemory.ReportWithInjectsValues
+[acr.utilization] NVML loaded: 1 GPU device(s).
+[       OK ] UtilMemory.ReportWithInjectsValues (14 ms)
+[ RUN      ] UtilMemory.ExceedActionSuggestion
+[       OK ] UtilMemory.ExceedActionSuggestion (0 ms)
+[ RUN      ] UtilMemory.StatusJsonContainsFields
+[acr.utilization] NVML loaded: 1 GPU device(s).
+[       OK ] UtilMemory.StatusJsonContainsFields (12 ms)
+[----------] 7 tests from UtilMemory (57 ms total)
+
+[----------] 5 tests from UtilIo
+[ RUN      ] UtilIo.ZeroBudgetNoLimit
+[       OK ] UtilIo.ZeroBudgetNoLimit (0 ms)
+[ RUN      ] UtilIo.ExceedBudgetDetected
+[       OK ] UtilIo.ExceedBudgetDetected (0 ms)
+[ RUN      ] UtilIo.WarnAtThreshold
+[       OK ] UtilIo.WarnAtThreshold (0 ms)
+[ RUN      ] UtilIo.RecordIoAndSample
+[       OK ] UtilIo.RecordIoAndSample (0 ms)
+[ RUN      ] UtilIo.StatusJsonContainsFields
+[       OK ] UtilIo.StatusJsonContainsFields (0 ms)
+[----------] 5 tests from UtilIo (5 ms total)
+
+[----------] 6 tests from UtilConfig
+[ RUN      ] UtilConfig.InitSetsAllValues
+[       OK ] UtilConfig.InitSetsAllValues (0 ms)
+[ RUN      ] UtilConfig.UpdateHotChangesMutableOnly
+[       OK ] UtilConfig.UpdateHotChangesMutableOnly (0 ms)
+[ RUN      ] UtilConfig.SingleFieldSettersWork
+[       OK ] UtilConfig.SingleFieldSettersWork (0 ms)
+[ RUN      ] UtilConfig.ReadBeforeInitReturnsDefaults
+[       OK ] UtilConfig.ReadBeforeInitReturnsDefaults (0 ms)
+[ RUN      ] UtilConfig.BackendEnableDisable
+[       OK ] UtilConfig.BackendEnableDisable (0 ms)
+[ RUN      ] UtilConfig.NoCpuGpuShareField
+[       OK ] UtilConfig.NoCpuGpuShareField (0 ms)
+[----------] 6 tests from UtilConfig (7 ms total)
+
+[----------] 9 tests from UtilTracker
+[ RUN      ] UtilTracker.RecordAndCount
+[       OK ] UtilTracker.RecordAndCount (0 ms)
+[ RUN      ] UtilTracker.RecentReturnsLastN
+[       OK ] UtilTracker.RecentReturnsLastN (0 ms)
+[ RUN      ] UtilTracker.CapacityEvictsOldest
+[       OK ] UtilTracker.CapacityEvictsOldest (0 ms)
+[ RUN      ] UtilTracker.StatisticsComputeCorrect
+[       OK ] UtilTracker.StatisticsComputeCorrect (0 ms)
+[ RUN      ] UtilTracker.P95StatsCompute
+[UtilTracker.P95StatsCompute] p95_actual=0.9405 avg_actual=0.4950
+[       OK ] UtilTracker.P95StatsCompute (0 ms)
+[ RUN      ] UtilTracker.WorkerParticipationHistory
+[       OK ] UtilTracker.WorkerParticipationHistory (35 ms)
+[ RUN      ] UtilTracker.CancelledStateRecorded
+[       OK ] UtilTracker.CancelledStateRecorded (0 ms)
+[ RUN      ] UtilTracker.EmptyStatsSafe
+[       OK ] UtilTracker.EmptyStatsSafe (0 ms)
+[ RUN      ] UtilTracker.StatusJsonContainsFields
+[       OK ] UtilTracker.StatusJsonContainsFields (0 ms)
+[----------] 9 tests from UtilTracker (47 ms total)
+
+[----------] 1 test from UtilIntegration
+[ RUN      ] UtilIntegration.FeedbackLoopWithTracker
+[acr.utilization] NVML loaded: 1 GPU device(s).
+[UtilIntegration.FeedbackLoopWithTracker] samples=10 avg_actual=0.335 p95_actual=0.780
+[       OK ] UtilIntegration.FeedbackLoopWithTracker (670 ms)
+[----------] 1 test from UtilIntegration (681 ms total)
+
+[----------] Global test environment tear-down
+[==========] 54 tests from 8 test suites ran. (1685 ms total)
+[  PASSED  ] 54 tests.

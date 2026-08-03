@@ -1,0 +1,66 @@
+Running main() from C:/M/B/src/googletest-1.17.0/googletest/src/gtest_main.cc
+[==========] Running 18 tests from 8 test suites.
+[----------] Global test environment set-up.
+[----------] 3 tests from HwlocTopology
+[ RUN      ] HwlocTopology.JsonNonEmpty
+[       OK ] HwlocTopology.JsonNonEmpty (16 ms)
+[ RUN      ] HwlocTopology.AvailableOrUnavailable
+[       OK ] HwlocTopology.AvailableOrUnavailable (28 ms)
+[ RUN      ] HwlocTopology.NoThrowWhenUnavailable
+[       OK ] HwlocTopology.NoThrowWhenUnavailable (17 ms)
+[----------] 3 tests from HwlocTopology (73 ms total)
+
+[----------] 1 test from DetectTopology
+[ RUN      ] DetectTopology.ReturnsValidJson
+[       OK ] DetectTopology.ReturnsValidJson (3 ms)
+[----------] 1 test from DetectTopology (5 ms total)
+
+[----------] 5 tests from CpuIsaCaps
+[ RUN      ] CpuIsaCaps.Sse2AlwaysOnX86_64
+[       OK ] CpuIsaCaps.Sse2AlwaysOnX86_64 (0 ms)
+[ RUN      ] CpuIsaCaps.MaskNonZeroOnX86_64
+[       OK ] CpuIsaCaps.MaskNonZeroOnX86_64 (0 ms)
+[ RUN      ] CpuIsaCaps.Avx512GateWhenUnsupported
+[       OK ] CpuIsaCaps.Avx512GateWhenUnsupported (0 ms)
+[ RUN      ] CpuIsaCaps.Avx512SubsetIndependent
+[       OK ] CpuIsaCaps.Avx512SubsetIndependent (0 ms)
+[ RUN      ] CpuIsaCaps.ToJsonContainsAllIsaFields
+[       OK ] CpuIsaCaps.ToJsonContainsAllIsaFields (0 ms)
+[----------] 5 tests from CpuIsaCaps (2 ms total)
+
+[----------] 1 test from DetectIsaCaps
+[ RUN      ] DetectIsaCaps.ReturnsValidJson
+[       OK ] DetectIsaCaps.ReturnsValidJson (0 ms)
+[----------] 1 test from DetectIsaCaps (0 ms total)
+
+[----------] 1 test from AxpyScalar
+[ RUN      ] AxpyScalar.BaselineCorrect
+[       OK ] AxpyScalar.BaselineCorrect (0 ms)
+[----------] 1 test from AxpyScalar (0 ms total)
+
+[----------] 2 tests from DispatchAxpy
+[ RUN      ] DispatchAxpy.MatchesScalar
+[       OK ] DispatchAxpy.MatchesScalar (0 ms)
+[ RUN      ] DispatchAxpy.EmptyRangeNoCrash
+[       OK ] DispatchAxpy.EmptyRangeNoCrash (0 ms)
+[----------] 2 tests from DispatchAxpy (1 ms total)
+
+[----------] 1 test from Avx512Safe
+[ RUN      ] Avx512Safe.GateWhenUnsupported
+[       OK ] Avx512Safe.GateWhenUnsupported (0 ms)
+[----------] 1 test from Avx512Safe (0 ms total)
+
+[----------] 4 tests from HardwareReport
+[ RUN      ] HardwareReport.NonEmptyAndSchema
+[       OK ] HardwareReport.NonEmptyAndSchema (21 ms)
+[ RUN      ] HardwareReport.GpuNullWhenUnregistered
+[       OK ] HardwareReport.GpuNullWhenUnregistered (15 ms)
+[ RUN      ] HardwareReport.GpuCallbackRegistered
+[       OK ] HardwareReport.GpuCallbackRegistered (10 ms)
+[ RUN      ] HardwareReport.FirstCallbackWins
+[       OK ] HardwareReport.FirstCallbackWins (7 ms)
+[----------] 4 tests from HardwareReport (57 ms total)
+
+[----------] Global test environment tear-down
+[==========] 18 tests from 8 test suites ran. (156 ms total)
+[  PASSED  ] 18 tests.

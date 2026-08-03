@@ -1,0 +1,55 @@
+Running main() from C:/M/B/src/googletest-1.17.0/googletest/src/gtest_main.cc
+[==========] Running 14 tests from 7 test suites.
+[----------] Global test environment set-up.
+[----------] 4 tests from ApiTraitsParallelFor
+[ RUN      ] ApiTraitsParallelFor.EmptyRangeNoCall
+[       OK ] ApiTraitsParallelFor.EmptyRangeNoCall (0 ms)
+[ RUN      ] ApiTraitsParallelFor.SingleElementCorrect
+[       OK ] ApiTraitsParallelFor.SingleElementCorrect (268 ms)
+[ RUN      ] ApiTraitsParallelFor.LargeRangeAllVisited
+[       OK ] ApiTraitsParallelFor.LargeRangeAllVisited (0 ms)
+[ RUN      ] ApiTraitsParallelFor.ResultsMatchOldApi
+[       OK ] ApiTraitsParallelFor.ResultsMatchOldApi (0 ms)
+[----------] 4 tests from ApiTraitsParallelFor (282 ms total)
+
+[----------] 2 tests from ApiTraitsParallelTiles
+[ RUN      ] ApiTraitsParallelTiles.FullCoverageNoOverflow
+[       OK ] ApiTraitsParallelTiles.FullCoverageNoOverflow (0 ms)
+[ RUN      ] ApiTraitsParallelTiles.ConvolutionTraitsSupported
+[       OK ] ApiTraitsParallelTiles.ConvolutionTraitsSupported (0 ms)
+[----------] 2 tests from ApiTraitsParallelTiles (1 ms total)
+
+[----------] 3 tests from ApiTraitsParallelReduce
+[ RUN      ] ApiTraitsParallelReduce.SumCorrect
+[       OK ] ApiTraitsParallelReduce.SumCorrect (0 ms)
+[ RUN      ] ApiTraitsParallelReduce.EmptyRangeReturnsIdentity
+[       OK ] ApiTraitsParallelReduce.EmptyRangeReturnsIdentity (0 ms)
+[ RUN      ] ApiTraitsParallelReduce.MaxCorrect
+[       OK ] ApiTraitsParallelReduce.MaxCorrect (0 ms)
+[----------] 3 tests from ApiTraitsParallelReduce (1 ms total)
+
+[----------] 2 tests from ApiTraitsParallelBatch
+[ RUN      ] ApiTraitsParallelBatch.AllItemsProcessed
+[       OK ] ApiTraitsParallelBatch.AllItemsProcessed (0 ms)
+[ RUN      ] ApiTraitsParallelBatch.ZeroItemsNoCall
+[       OK ] ApiTraitsParallelBatch.ZeroItemsNoCall (0 ms)
+[----------] 2 tests from ApiTraitsParallelBatch (1 ms total)
+
+[----------] 1 test from ApiTraitsCpuFallback
+[ RUN      ] ApiTraitsCpuFallback.NoProfileStillCorrect
+[       OK ] ApiTraitsCpuFallback.NoProfileStillCorrect (0 ms)
+[----------] 1 test from ApiTraitsCpuFallback (0 ms total)
+
+[----------] 1 test from ApiTraitsCallChain
+[ RUN      ] ApiTraitsCallChain.RuntimeStatusReflectsActivity
+[       OK ] ApiTraitsCallChain.RuntimeStatusReflectsActivity (0 ms)
+[----------] 1 test from ApiTraitsCallChain (0 ms total)
+
+[----------] 1 test from ApiTraitsTaskClass
+[ RUN      ] ApiTraitsTaskClass.AllTaskClassesCallable
+[       OK ] ApiTraitsTaskClass.AllTaskClassesCallable (0 ms)
+[----------] 1 test from ApiTraitsTaskClass (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 14 tests from 7 test suites ran. (298 ms total)
+[  PASSED  ] 14 tests.

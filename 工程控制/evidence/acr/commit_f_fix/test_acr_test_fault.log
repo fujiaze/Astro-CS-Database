@@ -1,0 +1,16 @@
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from FaultInjection
+[ RUN      ] FaultInjection.CancelRunningKernel
+[       OK ] FaultInjection.CancelRunningKernel (0 ms)
+[ RUN      ] FaultInjection.KernelExceptionPropagatesAsFailed
+[       OK ] FaultInjection.KernelExceptionPropagatesAsFailed (0 ms)
+[ RUN      ] FaultInjection.MixedScheduleFallbackToCpu
+[       OK ] FaultInjection.MixedScheduleFallbackToCpu (0 ms)
+[ RUN      ] FaultInjection.ExceptionChunkCountedAsFailed
+[       OK ] FaultInjection.ExceptionChunkCountedAsFailed (0 ms)
+[----------] 4 tests from FaultInjection (15 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (24 ms total)
+[  PASSED  ] 4 tests.

@@ -1,0 +1,29 @@
+Running main() from C:/M/B/src/googletest-1.17.0/googletest/src/gtest_main.cc
+[==========] Running 10 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 10 tests from CpuProfileTest
+[ RUN      ] CpuProfileTest.GenerateEmptyHasCpuDevice
+[       OK ] CpuProfileTest.GenerateEmptyHasCpuDevice (18 ms)
+[ RUN      ] CpuProfileTest.FingerprintNonEmpty
+[       OK ] CpuProfileTest.FingerprintNonEmpty (7 ms)
+[ RUN      ] CpuProfileTest.CopyResultMapsToMemoryCurve
+[       OK ] CpuProfileTest.CopyResultMapsToMemoryCurve (66 ms)
+[ RUN      ] CpuProfileTest.AxpyResultMapsToArithmeticCurve
+[       OK ] CpuProfileTest.AxpyResultMapsToArithmeticCurve (49 ms)
+[ RUN      ] CpuProfileTest.DotResultMapsToReductionCurve
+[       OK ] CpuProfileTest.DotResultMapsToReductionCurve (13 ms)
+[ RUN      ] CpuProfileTest.SerializeContainsRequiredFields
+[       OK ] CpuProfileTest.SerializeContainsRequiredFields (30 ms)
+[ RUN      ] CpuProfileTest.WriteAndReadbackFile
+[       OK ] CpuProfileTest.WriteAndReadbackFile (21 ms)
+[ RUN      ] CpuProfileTest.DeviceProfilePredictionApis
+[       OK ] CpuProfileTest.DeviceProfilePredictionApis (42 ms)
+[ RUN      ] CpuProfileTest.DefaultOverheadsPresent
+[       OK ] CpuProfileTest.DefaultOverheadsPresent (62 ms)
+[ RUN      ] CpuProfileTest.NoGpuInCpuOnlyProfile
+[       OK ] CpuProfileTest.NoGpuInCpuOnlyProfile (29 ms)
+[----------] 10 tests from CpuProfileTest (359 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 1 test suite ran. (366 ms total)
+[  PASSED  ] 10 tests.

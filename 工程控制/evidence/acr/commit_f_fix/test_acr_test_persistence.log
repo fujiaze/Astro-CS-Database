@@ -1,0 +1,9 @@
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from Persistence
+[ RUN      ] Persistence.ContinuousParallelFor
+[       OK ] Persistence.ContinuousParallelFor (5000 ms)
+[ RUN      ] Persistence.Restarts100
+[       OK ] Persistence.Restarts100 (4 ms)
+[ RUN      ] Persistence.ProfileReload
+请确保系统空载以获得准确结果（关闭其他高负载进程，未启用自动检测）
