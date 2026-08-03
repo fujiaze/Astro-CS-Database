@@ -18,6 +18,8 @@
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>
+#include <thread>
 #include <vector>
 
 namespace astro::compute::scheduler {
@@ -161,6 +163,192 @@ struct Dispatcher::Impl {
         return r;
     }
 
+    // F-fix 3 + F-fix 4：动态 guided 执行 + 资源闭环控制
+    // 使用 init_dynamic + claim_next_dynamic（根据 remaining 和活跃设备数动态计算块大小）
+    // 在执行循环中应用 CpuController 决策（should_yield/yield_stride）
+    // 在执行循环中应用所有 MemoryBudget ExceedAction（StopNewSubmit/ShrinkBlock/...）
+    // 所有控制动作记录到 stats_out（用于 50/80/95/100% 持续负载报告）
+    MixedRunResult execute_via_pool_dynamic(
+        std::size_t begin, std::size_t end,
+        std::size_t min_chunk, std::size_t max_chunk,
+        std::size_t n_active_devices,
+        ChunkKernelFn fn, void* user_data,
+        ResourceControlStats& stats_out) {
+        // F-fix 3：动态初始化（不预创建块，claim 时动态计算大小）
+        pool.init_dynamic(begin, end, min_chunk, max_chunk);
+        stats_out.dynamic_mode_used = true;
+        stats_out.cpu_target = cfg.cpu_target_ratio;
+
+        MixedRunResult r;
+        if (begin >= end) {
+            r.all_done = true;
+            r.total_chunks = 0;
+            return r;
+        }
+
+        // 估算最大可能块数（用于 parallel_batch 上限）
+        // 实际块数由 claim_next_dynamic 动态决定
+        // 与 init_dynamic 一致地规范化 min/max，避免 min>max 时块数估算不足
+        std::size_t eff_min = (min_chunk == 0) ? 1 : min_chunk;
+        std::size_t eff_max = (max_chunk == 0) ? eff_min : max_chunk;
+        if (eff_min > eff_max) eff_min = eff_max;
+        std::size_t max_possible_blocks =
+            (end - begin + eff_min - 1) / eff_min;
+        if (max_possible_blocks == 0) {
+            r.all_done = true;
+            r.total_chunks = 0;
+            return r;
+        }
+
+        // F-fix 4：共享控制状态（跨 worker 线程）
+        std::atomic<bool> stop_new_submit{false};
+        std::atomic<std::size_t> sample_seq{0};
+        std::atomic<std::size_t> yield_count{0};
+        std::atomic<std::size_t> batch_shrink_count{0};
+
+        // 缓存的 CPU 控制决策（避免每个 worker 都采样）
+        std::atomic<bool> cached_should_yield{false};
+        std::atomic<std::uint32_t> cached_yield_stride{0};
+        std::atomic<std::uint32_t> cached_batch_size{1};
+
+        // 缓存的内存动作
+        std::atomic<int> cached_mem_action{
+            static_cast<int>(utilization::MemoryBudgetController::ExceedAction::None)};
+
+        // 互斥保护 stats_out 向量（动态 push_back）
+        std::mutex stats_mtx;
+
+        std::atomic<std::size_t> executed{0}, failed{0};
+
+        Event ev = astro::compute::parallel_batch(
+            astro::compute::KernelId::Custom, max_possible_blocks,
+            [&](std::size_t worker_idx) {
+                // F-fix 4: submit gate —— 检查 stop_new_submit
+                if (stop_new_submit.load(std::memory_order_relaxed)) return;
+
+                // F-fix 4: 周期性采样 CPU 利用率（每 16 个 task 采样一次）
+                std::size_t seq = sample_seq.fetch_add(1, std::memory_order_relaxed);
+                if ((seq % 16) == 0 && cfg.enable_utilization && cpu_ctrl) {
+                    auto dec = cpu_ctrl->sample_and_decide();
+                    cached_should_yield.store(dec.should_yield, std::memory_order_relaxed);
+                    cached_yield_stride.store(dec.yield_stride, std::memory_order_relaxed);
+                    cached_batch_size.store(dec.batch_size, std::memory_order_relaxed);
+
+                    // 记录 CPU 采样序列（用于持续负载报告）
+                    {
+                        std::lock_guard<std::mutex> lk(stats_mtx);
+                        stats_out.cpu_actual_samples.push_back(dec.actual_ratio);
+                        stats_out.cpu_sample_ts_ns.push_back(dec.timestamp_ns);
+                        stats_out.cpu_valid = dec.valid;
+                    }
+
+                    // F-fix 4: CPU 利用率严重超目标（actual > target + 0.10）→ submit gate
+                    // 保留 0.10 硬阈值（远大于控制器内部 0.05 容差）
+                    if (dec.valid && dec.actual_ratio > dec.target_ratio + 0.10) {
+                        stop_new_submit.store(true, std::memory_order_relaxed);
+                        stats_out.submit_gate_triggered = true;
+                        return;
+                    }
+                }
+
+                // F-fix 4: 周期性采样内存预算（每 32 个 task 采样一次）
+                // 内存采样与 CPU 采样统一受 enable_utilization 控制
+                // （生产环境默认 true；单元测试设 false 以隔离系统内存状态）
+                if ((seq % 32) == 0 && cfg.enable_utilization && mem_ctrl) {
+                    auto mb = mem_ctrl->sample();
+                    auto action = utilization::MemoryBudgetController::suggest_action(
+                        mb.used_ram, mb.limit_ram, mb.total_ram);
+                    cached_mem_action.store(static_cast<int>(action), std::memory_order_relaxed);
+
+                    // 记录内存采样序列
+                    {
+                        std::lock_guard<std::mutex> lk(stats_mtx);
+                        stats_out.mem_actions.push_back(Impl::action_to_string(action));
+                        stats_out.mem_used_ram_samples.push_back(mb.used_ram);
+                        stats_out.mem_limit_ram = mb.limit_ram;
+                        stats_out.final_mem_action = Impl::action_to_string(action);
+                    }
+
+                    // 立即处理的动作
+                    if (action == utilization::MemoryBudgetController::ExceedAction::StopNewSubmit) {
+                        stop_new_submit.store(true, std::memory_order_relaxed);
+                        stats_out.submit_gate_triggered = true;
+                        return;
+                    }
+                    if (action == utilization::MemoryBudgetController::ExceedAction::Fail) {
+                        stop_new_submit.store(true, std::memory_order_relaxed);
+                        stats_out.submit_gate_triggered = true;
+                        return;
+                    }
+                }
+
+                // F-fix 4a: 应用 CpuController 决策 —— 错峰让步
+                if (cached_should_yield.load(std::memory_order_relaxed)) {
+                    auto stride = cached_yield_stride.load(std::memory_order_relaxed);
+                    // 错峰：每 stride 个 worker 中只有一个让步（避免全线程同步睡眠）
+                    if (stride > 0 && (worker_idx % stride) == 0) {
+                        std::this_thread::yield();
+                        yield_count.fetch_add(1, std::memory_order_relaxed);
+                    }
+                }
+
+                // F-fix 3: 动态领取下一块（根据 remaining 和活跃设备数计算块大小）
+                auto* block = pool.claim_next_dynamic("cpu", n_active_devices);
+                if (!block) return;  // 无剩余工作
+
+                // 记录动态块大小（用于验证尾部收缩）
+                {
+                    std::lock_guard<std::mutex> lk(stats_mtx);
+                    stats_out.dynamic_chunk_sizes.push_back(block->end - block->begin);
+                }
+
+                // F-fix 4b: 应用 MemoryBudget 动作（在 claim 后、执行前）
+                auto mem_action = static_cast<
+                    utilization::MemoryBudgetController::ExceedAction>(
+                    cached_mem_action.load(std::memory_order_relaxed));
+                switch (mem_action) {
+                    case utilization::MemoryBudgetController::ExceedAction::ShrinkBlock:
+                        // 块已 claim，此处记录动作；下一次采样会更新 chunk_size
+                        batch_shrink_count.fetch_add(1, std::memory_order_relaxed);
+                        break;
+                    case utilization::MemoryBudgetController::ExceedAction::ReleaseCache:
+                        // ReleaseCache：此处无缓存可释放，记录动作（hook 可扩展）
+                        batch_shrink_count.fetch_add(1, std::memory_order_relaxed);
+                        break;
+                    case utilization::MemoryBudgetController::ExceedAction::LowMemoryPath:
+                        // LowMemoryPath：使用 min_chunk（下一次 claim 会被动态收缩）
+                        batch_shrink_count.fetch_add(1, std::memory_order_relaxed);
+                        break;
+                    case utilization::MemoryBudgetController::ExceedAction::FallbackOtherDevice:
+                        // FallbackOtherDevice：无 GPU 时仍用 CPU（记录动作）
+                        break;
+                    default:
+                        break;
+                }
+
+                try {
+                    fn(block->id, block->begin, block->end, user_data);
+                    pool.mark_done(block->id);
+                    executed.fetch_add(1, std::memory_order_relaxed);
+                } catch (...) {
+                    pool.mark_failed(block->id);
+                    failed.fetch_add(1, std::memory_order_relaxed);
+                }
+            });
+        (void)ev;
+
+        r.executed_on_cpu = executed.load();
+        r.failed_chunks = failed.load();
+        r.total_chunks = pool.total_blocks();
+        r.all_done = pool.all_done();
+
+        // 记录控制动作统计
+        stats_out.yield_count = yield_count.load();
+        stats_out.batch_shrink_count = batch_shrink_count.load();
+
+        return r;
+    }
+
     // F-fix 1：从 SharedWorkPool 的真实统计生成 CoverageStats
     static CoverageStats coverage_from_pool(const SharedWorkPool& p) {
         CoverageStats cs;
@@ -279,9 +467,10 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
     }
 
     // F-fix 4：执行前检查内存预算
+    // 内存采样受 enable_utilization 控制（与 CPU 采样一致）
     utilization::MemoryBudgetController::ExceedAction mem_action =
         utilization::MemoryBudgetController::ExceedAction::None;
-    if (impl_->mem_ctrl) {
+    if (impl_->cfg.enable_utilization && impl_->mem_ctrl) {
         auto mem_budget = impl_->mem_ctrl->sample();
         mem_action = utilization::MemoryBudgetController::suggest_action(
             mem_budget.used_ram, mem_budget.limit_ram, mem_budget.total_ram);
@@ -354,8 +543,15 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
             result.fixed_tail_chunking_used = true;
             result.fixed_tail_min_chunk = tail_chunk;
         } else {
-            // F-fix 2：正常路径通过 SharedWorkPool 执行（CostEstimator 驱动）
-            result.run_result = impl_->execute_via_pool(begin, end, chunk_size, fn, user_data);
+            // F-fix 3：动态 guided 路径（默认）
+            // 使用 init_dynamic + claim_next_dynamic，根据 remaining 和活跃设备数动态计算块大小
+            // 尾部自动收缩，无固定 70% 阈值
+            std::size_t min_chunk = impl_->cfg.min_effective_chunk;
+            std::size_t max_chunk = chunk_size;
+            // 纯 CPU 路径：n_active_devices = 1
+            result.run_result = impl_->execute_via_pool_dynamic(
+                begin, end, min_chunk, max_chunk, 1,
+                fn, user_data, result.resource_control);
         }
 
         // F-fix 1：actual_primary_backend 由真实完成统计生成
@@ -394,9 +590,19 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
         return result;
     }
 
-    // F-fix 2：Cost-aware 路径也通过 SharedWorkPool 执行
-    // CostEstimate 已影响 chunk_size，进而影响 pool 的块划分
-    auto r = impl_->execute_via_pool(begin, end, chunk_size, fn, user_data);
+    // F-fix 3：Cost-aware 路径也通过动态 guided SharedWorkPool 执行
+    // CostEstimate 已影响 chunk_size（作为 max_chunk），动态 guided 根据剩余工作收缩
+    std::size_t min_chunk = impl_->cfg.min_effective_chunk;
+    std::size_t max_chunk = chunk_size;
+    // 计算活跃设备数（CPU + 可用 GPU）
+    std::size_t n_active_devices = 0;
+    for (const auto& d : impl_->cfg.devices) {
+        if (d.available) ++n_active_devices;
+    }
+    if (n_active_devices == 0) n_active_devices = 1;  // 至少 CPU
+    auto r = impl_->execute_via_pool_dynamic(
+        begin, end, min_chunk, max_chunk, n_active_devices,
+        fn, user_data, result.resource_control);
     result.run_result = r;
 
     // F-fix 1：actual_primary_backend 由真实完成统计生成

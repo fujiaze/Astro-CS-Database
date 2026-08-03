@@ -100,14 +100,27 @@ class SharedWorkPool {
 public:
     SharedWorkPool() = default;
 
-    // 初始化：按 chunk_size 拆分 [begin, end)
+    // 初始化：按 chunk_size 拆分 [begin, end)（固定块大小模式）
     void init(std::size_t begin, std::size_t end, std::size_t chunk_size);
 
-    // ===== 领取下一块 =====
+    // F-fix 3：动态初始化（不预创建块，claim 时动态计算大小）
+    // min_chunk: 最小块大小（避免过小块）
+    // max_chunk: 最大块大小（初始/上限）
+    void init_dynamic(std::size_t begin, std::size_t end,
+                      std::size_t min_chunk, std::size_t max_chunk);
+
+    // ===== 领取下一块（固定块大小模式）=====
     // 原子状态转换 Pending → Claimed
     // 返回指向 WorkBlock 的指针；nullptr 表示无 pending 块
     // device_id: 领取此块的设备标识
     WorkBlock* claim_next(const std::string& device_id);
+
+    // F-fix 3：动态领取下一块（根据剩余工作和活跃设备数计算块大小）
+    // 块大小随剩余工作减少而逐步收缩（guided scheduling）
+    // n_active_devices: 当前活跃设备数
+    // 返回指向 WorkBlock 的指针；nullptr 表示无剩余工作
+    WorkBlock* claim_next_dynamic(const std::string& device_id,
+                                   std::size_t n_active_devices);
 
     // ===== 标记完成 =====
     void mark_done(std::size_t id);
@@ -143,10 +156,17 @@ public:
 
     // ===== 动态 chunk 大小 =====
     // F-fix 3：根据剩余工作和活跃设备数建议下一块大小
-    // chunk = max(min_chunk, remaining / (2 * n_active_devices))
+    // guided: chunk = clamp(remaining / (2 * n_active_devices), min_chunk, max_chunk)
+    // 当 remaining 很小时，chunk 自动收缩到 min_chunk
     std::size_t suggest_next_chunk(std::size_t n_active_devices,
                                     std::size_t min_chunk,
                                     std::size_t max_chunk) const noexcept;
+
+    // F-fix 3：是否为动态模式
+    bool is_dynamic() const noexcept { return dynamic_mode_; }
+
+    // F-fix 3：剩余工作量（动态模式）
+    std::size_t remaining_work() const noexcept;
 
     // ===== 重置 =====
     void reset();
@@ -155,6 +175,16 @@ private:
     std::vector<WorkBlock> blocks_;
     std::atomic<std::size_t> next_claim_index_{0};
     mutable std::mutex mtx_;  // 保护 reclaim_failed 等需要遍历的操作
+
+    // F-fix 3：动态模式状态
+    bool dynamic_mode_{false};
+    std::size_t range_begin_{0};
+    std::size_t range_end_{0};
+    std::size_t dyn_min_chunk_{256};
+    std::size_t dyn_max_chunk_{65536};
+    std::atomic<std::size_t> dyn_cursor_{0};     // 下一个块的起始位置
+    std::atomic<std::size_t> dyn_next_id_{0};     // 下一个块 ID
+    std::mutex dyn_mtx_;  // 保护 blocks_.push_back（动态模式）
 };
 
 } // namespace astro::compute::scheduler

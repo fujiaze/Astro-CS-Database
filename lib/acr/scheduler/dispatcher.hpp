@@ -58,6 +58,33 @@ struct CoverageStats {
     std::size_t failed{0};
 };
 
+// ===== F-fix 4: 资源闭环控制统计 =====
+// 记录执行过程中的 CPU 利用率采样序列、内存预算动作序列和控制动作统计。
+// 用于生成 50/80/95/100% 持续负载报告（验收：不能用人工样本代替）。
+struct ResourceControlStats {
+    // ---- CPU 利用率采样序列 ----
+    std::vector<double> cpu_actual_samples;       // 每次采样的 actual_ratio
+    std::vector<std::uint64_t> cpu_sample_ts_ns;  // 采样时间戳(ns)
+    double cpu_target{0.0};                       // 目标利用率
+    bool cpu_valid{false};                         // actual 是否有效
+
+    // ---- CPU 控制动作统计 ----
+    std::size_t yield_count{0};                    // 错峰让步次数
+    std::size_t batch_shrink_count{0};             // 批次缩小次数
+    bool submit_gate_triggered{false};             // submit gate 是否触发
+
+    // ---- 内存预算采样序列 ----
+    std::vector<std::string> mem_actions;          // 每次采样的动作序列
+    std::vector<std::uint64_t> mem_used_ram_samples;  // 每次采样的 used_ram
+    std::uint64_t mem_limit_ram{0};                // RAM 限额
+    std::string final_mem_action{"none"};         // 最终动作
+
+    // ---- F-fix 3: 动态 guided 块大小序列 ----
+    // 每次 claim_next_dynamic 返回的块大小，用于验证尾部收缩
+    std::vector<std::size_t> dynamic_chunk_sizes;
+    bool dynamic_mode_used{false};                // 是否使用了动态 guided 模式
+};
+
 // ===== Cost-aware 分发结果（Phase F3 + F-fix 1）=====
 struct CostAwareResult {
     MixedRunResult run_result;          // 复用 MixedRunResult 统计
@@ -73,10 +100,12 @@ struct CostAwareResult {
     std::string current_state_json;     // 最终 CurrentState 快照
     // F-fix 1：coverage 从真实执行导入
     CoverageStats coverage;
-    // F-fix 4：utilization + memory 报告
+    // F-fix 4：utilization + memory 报告（保留兼容字段）
     double cpu_actual_ratio{0.0};       // 最后一次采样的 CPU 实际利用率
     bool cpu_actual_valid{false};       // actual_ratio 是否有效
     std::string mem_action;            // 内存预算建议动作（none/shrink/stop/fail）
+    // F-fix 4：完整资源控制统计
+    ResourceControlStats resource_control;
     // F-fix 1：固定尾段实验标记（不是动态 guided）
     bool fixed_tail_chunking_used{false};  // 是否使用了固定尾段缩块实验
     std::size_t fixed_tail_min_chunk{0};   // 固定尾段缩到的最小块

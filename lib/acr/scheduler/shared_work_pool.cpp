@@ -8,6 +8,7 @@ namespace astro::compute::scheduler {
 void SharedWorkPool::init(std::size_t begin, std::size_t end, std::size_t chunk_size) {
     blocks_.clear();
     next_claim_index_.store(0, std::memory_order_relaxed);
+    dynamic_mode_ = false;
 
     if (begin >= end || chunk_size == 0) return;
 
@@ -15,6 +16,30 @@ void SharedWorkPool::init(std::size_t begin, std::size_t end, std::size_t chunk_
     for (std::size_t pos = begin; pos < end; pos += chunk_size) {
         std::size_t chunk_end = std::min(pos + chunk_size, end);
         blocks_.emplace_back(id++, pos, chunk_end);
+    }
+}
+
+// F-fix 3：动态初始化
+void SharedWorkPool::init_dynamic(std::size_t begin, std::size_t end,
+                                   std::size_t min_chunk, std::size_t max_chunk) {
+    blocks_.clear();
+    next_claim_index_.store(0, std::memory_order_relaxed);
+    dynamic_mode_ = true;
+    range_begin_ = begin;
+    range_end_ = end;
+    dyn_min_chunk_ = (min_chunk == 0) ? 1 : min_chunk;
+    dyn_max_chunk_ = (max_chunk == 0) ? dyn_min_chunk_ : max_chunk;
+    // 规范化：确保 min <= max（避免 min=256/max=25 矛盾配置导致块覆盖整个 range）
+    if (dyn_min_chunk_ > dyn_max_chunk_) {
+        dyn_min_chunk_ = dyn_max_chunk_;
+    }
+    dyn_cursor_.store(begin, std::memory_order_relaxed);
+    dyn_next_id_.store(0, std::memory_order_relaxed);
+
+    // 预分配空间（避免动态 push_back 时重分配）
+    if (end > begin && dyn_min_chunk_ > 0) {
+        std::size_t max_blocks = (end - begin + dyn_min_chunk_ - 1) / dyn_min_chunk_;
+        blocks_.reserve(max_blocks);
     }
 }
 
@@ -32,6 +57,42 @@ WorkBlock* SharedWorkPool::claim_next(const std::string& device_id) {
         }
     }
     return nullptr;  // 无 Pending 块
+}
+
+// F-fix 3：动态领取下一块
+WorkBlock* SharedWorkPool::claim_next_dynamic(const std::string& device_id,
+                                               std::size_t n_active_devices) {
+    if (!dynamic_mode_) return nullptr;
+
+    // 计算剩余工作
+    std::size_t cursor = dyn_cursor_.load(std::memory_order_acquire);
+    if (cursor >= range_end_) return nullptr;
+
+    // guided: chunk = clamp(remaining / (2 * n_devices), min, max)
+    std::size_t remaining = range_end_ - cursor;
+    std::size_t n_dev = (n_active_devices == 0) ? 1 : n_active_devices;
+    std::size_t chunk = remaining / (2 * n_dev);
+    // 尾部收缩：剩余小于 2*min_chunk 时用 min_chunk（必须在 max clamp 之前）
+    if (remaining < dyn_min_chunk_ * 2) chunk = dyn_min_chunk_;
+    if (chunk < dyn_min_chunk_) chunk = dyn_min_chunk_;
+    if (chunk > dyn_max_chunk_) chunk = dyn_max_chunk_;
+
+    // 原子推进 cursor
+    std::size_t old_cursor = dyn_cursor_.fetch_add(chunk, std::memory_order_acq_rel);
+    if (old_cursor >= range_end_) return nullptr;  // 已被其他 worker 领完
+
+    std::size_t block_end = std::min(old_cursor + chunk, range_end_);
+    if (block_end <= old_cursor) return nullptr;
+
+    // 创建新块（mutex 保护 push_back）
+    std::size_t block_id = dyn_next_id_.fetch_add(1, std::memory_order_relaxed);
+    {
+        std::lock_guard<std::mutex> lk(dyn_mtx_);
+        blocks_.emplace_back(block_id, old_cursor, block_end);
+        auto& block = blocks_.back();
+        block.try_claim(device_id);
+        return &blocks_.back();
+    }
 }
 
 void SharedWorkPool::mark_done(std::size_t id) {
@@ -133,6 +194,14 @@ std::size_t SharedWorkPool::suggest_next_chunk(std::size_t n_active_devices,
     if (suggested < min_chunk) suggested = min_chunk;
     if (suggested > max_chunk) suggested = max_chunk;
     return suggested;
+}
+
+// F-fix 3：剩余工作量（动态模式）
+std::size_t SharedWorkPool::remaining_work() const noexcept {
+    if (!dynamic_mode_) return 0;
+    std::size_t cursor = dyn_cursor_.load(std::memory_order_relaxed);
+    if (cursor >= range_end_) return 0;
+    return range_end_ - cursor;
 }
 
 void SharedWorkPool::reset() {
