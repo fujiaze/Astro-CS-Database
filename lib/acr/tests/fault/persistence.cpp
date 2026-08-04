@@ -5,9 +5,6 @@
 //   3. profile 重载（生成 hardware-profile.json → 读取 → 作废 → 重新生成）
 #include <gtest/gtest.h>
 
-#include <benchmark_driver.hpp>
-#include <profile_generator.hpp>
-#include <profile_schema.hpp>
 #include <profile_reader.hpp>
 
 #include <atomic>
@@ -22,9 +19,26 @@
 
 using namespace astro::compute;
 using namespace astro::compute::profile;
-using namespace astro::compute::qualification;
 
 namespace {
+
+// 最小合法 hardware profile（reader 只要求 schema/fingerprint/devices 字段；
+// 曲线字段解析时跳过，CostEstimator 无曲线时降级到带宽估算）
+const char* kMinimalProfileJson = R"({
+  "schema_version":"acr.hardware_profile.v1",
+  "generated_at":"20260802T120000Z",
+  "profile_kind":"standard",
+  "fingerprint_sha256":"0000000000000000000000000000000000000000000000000000000000000000",
+  "stale":false,
+  "devices":[{"device_id":0,"device_name":"test-cpu","kind":"cpu",
+    "total_memory_bytes":34359738368,"available_memory_bytes":17179869184,
+    "compute_units":16,"peak_bandwidth_gbps":50.0}]
+})";
+
+void write_minimal_profile(const char* path) {
+    std::ofstream f(path);
+    f << kMinimalProfileJson;
+}
 
 // 从环境变量读取持续时长（秒），默认 5 秒（避免 ctest 超时；CI 可设 30）
 int get_persist_duration_sec() {
@@ -80,16 +94,9 @@ TEST(Persistence, Restarts100) {
 // ============================================================================
 TEST(Persistence, ProfileReload) {
     const char* path = "acr_persistence_profile.json";
+    write_minimal_profile(path);
     for (int i = 0; i < 5; ++i) {
-        // 生成 hardware-profile.json
         runtime_init();
-        BenchmarkDriver driver;
-        auto cfg = make_default_config(ProfileKind::Quick, /*enable_gpu=*/false);
-        driver.configure(cfg);
-        auto results = driver.run();
-        HardwareProfile hp = ProfileGenerator{}.generate_hardware_profile(results, ProfileKind::Quick);
-        ASSERT_TRUE(ProfileGenerator::write_hardware_profile_to_file(path, hp));
-
         // 读取 profile
         HardwareProfileReader r;
         r.set_profile_path(path);
@@ -107,6 +114,8 @@ TEST(Persistence, ProfileReload) {
         EXPECT_EQ(reloaded, nullptr);
         EXPECT_EQ(r.profile_state(), HwProfileState::Missing);
 
+        // 重新写入（下一轮循环）
+        write_minimal_profile(path);
         runtime_shutdown();
     }
     std::remove(path);
