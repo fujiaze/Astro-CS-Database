@@ -303,21 +303,18 @@ int main(int argc, char* argv[]) {
             std::string("{\"config_sha256\":\"") + config.config_sha256 + "\"}",
             "", -1, -1.0, "ok");
 
-        // 5. 构建 run_stage1 兼容的 config_json (桥接层)
-        std::string compat_config_json = build_compat_config_json(config);
-
-        // 6. 创建 Orchestrator 并注册 SIGINT 处理器
+        // 5. 创建 Orchestrator 并注册 SIGINT 处理器
         Orchestrator orch;
         p04004_register_signal_handler(&orch, true);
+
+        // 6. typed Stage1Config 直接驱动 (无 compat flat JSON 桥)
+        orch.set_stage1_config(config);
 
         // 7. 执行 stage1 流水线
         LOG_INFO("main", "输入 FITS: " + config.input.light);
         LOG_INFO("main", "输出 HISS: " + config.output.hiss);
 
-        TaskResult result = orch.run_stage1(
-            config.input.light,
-            config.output.hiss,
-            compat_config_json);
+        TaskResult result = orch.run_stage1(config);
 
         // 8. 注销信号处理器
         p04004_unregister_signal_handler();
@@ -327,7 +324,8 @@ int main(int argc, char* argv[]) {
             CliCommand::output_jsonl_event_ex(
                 "completed", job_id, "", 1.0,
                 "stage1 completed successfully",
-                std::string("{\"output_hiss\":\"") + result.output_hiss_path + "\"}",
+                std::string("{\"output_hiss\":\"") + result.output_hiss_path
+                + "\",\"completed_to_gate\":\"" + result.completed_to_gate + "\"}",
                 "", result.exit_code, -1.0, "ok");
         } else {
             std::string error_json = std::string("{\"code\":\"") +

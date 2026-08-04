@@ -1682,61 +1682,17 @@ void test_part7_sha256_and_config_hash() {
         ASSERT_TRUE(h_a != h_b, "不同配置产生不同 SHA256");
     }
 
-    // 测试 9: build_compat_config_json 返回有效 JSON 含期望键
+    // 测试 9: 内嵌 Schema 为 v1.1, 含 $schema 属性与 nside/browser_verify 阶段
+    // (R11: compat flat JSON 桥已删除, 该测试改为 Schema 一致性)
     {
-        Stage1Config config;
-        config.schema_version = "1.0";
-        config.pipeline = "stage1";
-        config.precision = PrecisionMode::FP64;
-        config.input.light = "test.fts";
-        config.input.master_bias = "bias.xisf";
-        config.input.master_dark = "dark.xisf";
-        config.input.master_flat = "flat.xisf";
-        config.calibration.mode = "standard";
-        config.calibration.light_exposure_s = 180.0;
-        config.calibration.dark_exposure_s = 0.0;
-        config.platesolve.gaia_catalog = "GaiaDR3";
-        config.platesolve.max_stars = 2000;
-        config.platesolve.initial_ra_deg = 12.5;
-        config.platesolve.initial_dec_deg = -45.3;
-        config.psf.fit_radius = 8;
-        config.psf.max_iterations = 100;
-        config.psf.tolerance = 1e-6;
-        config.photometric.gaia_spectra = "GaiaDR3SP";
-        config.photometric.filter_response = "filters.json";
-        config.photometric.qe_curve = "qe.json";
-        config.snr.estimator_id = 1;
-        config.snr.sampling_scale = 1.0;
-        config.drizzle.mode = "precise";
-        config.drizzle.pixfrac = 0.8;
-        config.drizzle.nside_mode = "explicit";
-        config.drizzle.nside_value = 1024;
-        config.drizzle.ordering = "nested";
-        config.output.hiss = "out.hiss";
-        config.output.log = "run.log";
-        config.output.diagnostics_dir = "diag";
-        config.output.overwrite = false;
-        config.execution.stop_after = "hiss_verify";
-        config.execution.threads = 8;
-        config.execution.stage_timeout_sec["calibrate"] = 60.0;
-
-        std::string compat = build_compat_config_json(config);
-        ASSERT_FALSE(compat.empty(), "build_compat_config_json 返回非空");
-        ASSERT_CONTAINS(compat, "precision", "compat JSON 含 precision");
-        ASSERT_CONTAINS(compat, "fp64", "compat JSON 含 fp64");
-        ASSERT_CONTAINS(compat, "gaia_data_dir", "compat JSON 含 gaia_data_dir");
-        ASSERT_CONTAINS(compat, "gaia_catalog", "compat JSON 含 gaia_catalog");
-        ASSERT_CONTAINS(compat, "master_bias_path", "compat JSON 含 master_bias_path");
-        ASSERT_CONTAINS(compat, "max_stars", "compat JSON 含 max_stars");
-        ASSERT_CONTAINS(compat, "fit_radius", "compat JSON 含 fit_radius");
-        ASSERT_CONTAINS(compat, "nside_strategy", "compat JSON 含 nside_strategy");
-        ASSERT_CONTAINS(compat, "pixfrac", "compat JSON 含 pixfrac");
-        ASSERT_CONTAINS(compat, "nested", "compat JSON 含 nested");
-        ASSERT_CONTAINS(compat, "light_exposure_s", "compat JSON 含 light_exposure_s");
-        ASSERT_CONTAINS(compat, "stage_timeouts", "compat JSON 含 stage_timeouts");
-        // explicit nside 应映射为 fixed 策略
-        ASSERT_CONTAINS(compat, "\"nside_strategy\":\"fixed\"", "explicit nside 映射为 fixed 策略");
-        ASSERT_CONTAINS(compat, "\"nside_override\":1024", "nside_value=1024 映射为 nside_override");
+        std::string schema = get_stage1_schema_json();
+        ASSERT_FALSE(schema.empty(), "内嵌 Schema 非空");
+        ASSERT_CONTAINS(schema, "\"1.1\"", "schema_version 为 1.1");
+        ASSERT_CONTAINS(schema, "\"$schema\"", "Schema 允许 $schema 属性 (CFG-101 已修)");
+        ASSERT_CONTAINS(schema, "\"nside\"", "stop_after 含 nside 阶段");
+        ASSERT_CONTAINS(schema, "\"browser_verify\"", "stop_after 含 browser_verify 阶段");
+        std::string sh = get_stage1_schema_sha256();
+        ASSERT_FALSE(sh.empty(), "内嵌 Schema SHA256 非空");
     }
 
     // 测试 10: P04-004 SIGINT 信号处理器注册/注销 (单元测试, 不触发实际信号)

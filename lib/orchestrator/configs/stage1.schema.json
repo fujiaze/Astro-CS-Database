@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://astrocs.local/schema/stage1-1.0.json",
+  "$id": "https://astrocs.local/schema/stage1-1.1.json",
   "title": "AstroCS Stage1 Job",
   "type": "object",
   "additionalProperties": false,
@@ -19,8 +19,11 @@
     "execution"
   ],
   "properties": {
+    "$schema": {
+      "type": "string"
+    },
     "schema_version": {
-      "const": "1.0"
+      "const": "1.1"
     },
     "pipeline": {
       "const": "stage1"
@@ -71,7 +74,8 @@
       "required": [
         "mode",
         "light_exposure_s",
-        "dark_exposure_s"
+        "dark_exposure_s",
+        "fallback"
       ],
       "properties": {
         "mode": {
@@ -86,10 +90,8 @@
           "exclusiveMinimum": 0
         },
         "dark_exposure_s": {
-          "type": [
-            "number",
-            "null"
-          ]
+          "type": "number",
+          "exclusiveMinimum": 0
         },
         "fallback": {
           "enum": [
@@ -104,7 +106,9 @@
       "additionalProperties": false,
       "required": [
         "gaia_catalog",
-        "max_stars"
+        "max_stars",
+        "initial_ra_deg",
+        "initial_dec_deg"
       ],
       "properties": {
         "gaia_catalog": {
@@ -119,7 +123,9 @@
           "type": [
             "number",
             "null"
-          ]
+          ],
+          "minimum": 0,
+          "exclusiveMaximum": 360
         },
         "initial_dec_deg": {
           "type": [
@@ -142,7 +148,7 @@
       "properties": {
         "fit_radius": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 1
         },
         "max_iterations": {
           "type": "integer",
@@ -296,6 +302,7 @@
             "psf",
             "photometric",
             "snr",
+            "nside",
             "drizzle",
             "hiss_verify",
             "browser_verify"
@@ -307,12 +314,130 @@
         },
         "stage_timeout_sec": {
           "type": "object",
-          "additionalProperties": {
-            "type": "number",
-            "exclusiveMinimum": 0
+          "additionalProperties": false,
+          "required": [
+            "read",
+            "calibrate",
+            "platesolve",
+            "psf",
+            "photometric",
+            "snr",
+            "nside",
+            "drizzle",
+            "hiss_verify",
+            "browser_verify"
+          ],
+          "properties": {
+            "read": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "calibrate": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "platesolve": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "psf": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "photometric": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "snr": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "nside": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "drizzle": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "hiss_verify": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "browser_verify": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
           }
         }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "calibration": {
+            "properties": {
+              "mode": {
+                "const": "standard"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "input": {
+            "properties": {
+              "master_dark": {
+                "type": "string",
+                "minLength": 1
+              },
+              "master_flat": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "calibration": {
+            "properties": {
+              "mode": {
+                "enum": [
+                  "optimal",
+                  "exposure_ratio"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "input": {
+            "properties": {
+              "master_bias": {
+                "type": "string",
+                "minLength": 1
+              },
+              "master_dark": {
+                "type": "string",
+                "minLength": 1
+              },
+              "master_flat": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

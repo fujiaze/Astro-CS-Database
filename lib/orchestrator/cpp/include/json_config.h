@@ -1,12 +1,13 @@
 // ============================================================================
 // json_config.h - Stage1 JSON 配置解析与 Schema 验证
-// 功能: 解析 stage1.json 配置文件, 使用 nlohmann/json 进行严格 Schema 验证
-//       将结构化 Stage1Config 桥接为 run_stage1 所需的兼容 config_json 字符串
+// 功能: 解析 stage1.json 配置文件, 使用 nlohmann-json-schema-validator v2.4.0
+//       进行正式 Draft 2020-12 Schema 验证 (单一权威, 无手写重复规则)
+//       typed Stage1Config 直接驱动各 stage (无 compat flat JSON 桥)
 //
 // 设计说明:
 //   - 唯一入口: orchestrator.exe <stage1.json>
 //   - JSON 中的相对路径基于 JSON 文件所在目录解析为绝对路径
-//   - Schema 验证规则与 stage1.schema.json 一致 (additionalProperties:false)
+//   - Schema 验证规则与 stage1.schema.json (v1.1) 一致
 //   - 验证通过后, config 中所有路径字段均为绝对路径
 // ============================================================================
 
@@ -18,7 +19,7 @@
 
 // Stage1 JSON 配置 (对应 stage1.schema.json)
 struct Stage1Config {
-    std::string schema_version = "1.0";
+    std::string schema_version = "1.1";
     std::string pipeline = "stage1";
     PrecisionMode precision = PrecisionMode::FP32;
 
@@ -99,9 +100,8 @@ bool validate_stage1_schema(const std::string& json_path, std::string& error_msg
 // 打印 Schema JSON (用于 --print-schema)
 std::string get_stage1_schema_json();
 
+// 计算内嵌 Schema JSON 的 SHA256 (与磁盘 schema 一致性测试用)
+std::string get_stage1_schema_sha256();
+
 // 计算规范化配置 SHA256 (基于序列化后的规范 JSON 文本)
 std::string compute_config_sha256(const Stage1Config& config);
-
-// 将 Stage1Config 序列化为 run_stage1 兼容的 flat config_json 字符串
-// (桥接层: 新嵌套 schema -> 旧 flat key, 供 orc_* 文本查找的 stage handler 使用)
-std::string build_compat_config_json(const Stage1Config& config);

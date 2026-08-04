@@ -24,6 +24,9 @@
 #include "checkpoint.h"
 #include "logger.h"
 
+// 前向声明 (完整定义在 json_config.h, 避免循环包含)
+struct Stage1Config;
+
 // PipelineFrame 命名块容器 (stage1 流水线帧)
 // 位于 lib/astro_image_io/include/, 需 Makefile 添加 -I 路径
 // 重命名 aio_pipeline.h 的 PipelineStage typedef 为 AioPipelineStage,
@@ -59,11 +62,13 @@ enum class PipelineStageV2 {
     PSF             = 3,  // dynamic_psf.dll (PSF 拟合)
     PHOTOMETRIC     = 4,  // photometric_calib.dll (F_syn 积分 + IRLS+Tukey 求 scale + 应用到图像)
     SNR             = 5,  // snr_estimator.dll (异常值剔除 + 测光不确定度 + 帧SNR基准)
-    DRIZZLE         = 6,  // healpix_drizzle.dll (nside 1-2x, SNR同步转换, 落盘 .hiss)
-    HISS_VERIFY     = 7,  // 验证 .hiss 文件完整性 (可打开/metadata 正确/Tile 可读/signal/support 非全零)
+    NSIDE           = 6,  // 计算/验证 HEALPix NSIDE (auto 推导或 explicit 校验)
+    DRIZZLE         = 7,  // healpix_drizzle.dll (nside 1-2x, SNR同步转换, 落盘 .hiss)
+    HISS_VERIFY     = 8,  // 验证 .hiss 文件完整性 (全 Tile/子块 signal/support/SNR/metadata)
+    BROWSER_VERIFY  = 9,  // Browser 后端双精度读取/查询验证 (Qt GUI 另有独立测试)
     // 第二段: 多帧合并
-    GRADIENT_SPHERE = 8,  // healpix_stack.dll hp_stack_gradient_corrected (球面梯度校准)
-    STACK           = 9   // healpix_stack.dll (Winsorized sigma clip + SNR²加权叠加 -> .hcsd)
+    GRADIENT_SPHERE = 10, // healpix_stack.dll hp_stack_gradient_corrected (球面梯度校准)
+    STACK           = 11  // healpix_stack.dll (Winsorized sigma clip + SNR²加权叠加 -> .hcsd)
 };
 
 // ============================================================================
@@ -169,6 +174,9 @@ struct StageTiming {
 struct TaskResult {
     bool success;
     std::string frame_name;
+    // 逐 Gate 停止时记录: 已执行到哪个 stage (如 "calibrate"/"hiss_verify")
+    // 完整运行并成功时为 "complete"
+    std::string completed_to_gate;
     std::vector<StageTiming> timings;
     std::map<std::string, std::string> wcs_fields;   // WCS 字段
     std::map<std::string, std::string> photo_stats;  // 测光统计
@@ -213,6 +221,9 @@ struct OrchestratorConfig {
 class Orchestrator {
 public:
     Orchestrator();
+
+    // R11: typed Stage1Config 直接驱动 (无 compat flat JSON 桥)
+    void set_stage1_config(const Stage1Config& cfg);
     ~Orchestrator();
 
     // 加载配置 (从 JSON 文件读取参数)
@@ -296,11 +307,8 @@ public:
     // 参数:
     //   fits_path: 输入 FITS 文件路径
     //   output_hiss: 输出 .hiss 文件路径
-    //   config_json: stage1 配置 JSON (含 gaia_data_dir, calibration_dir, filter 等)
-    // 返回: TaskResult (success=true 表示全部 8 个 stage 执行成功)
-    TaskResult run_stage1(const std::string& fits_path,
-                          const std::string& output_hiss,
-                          const std::string& config_json = "");
+    // R11: 唯一正式入口 (typed 配置直接驱动)
+    TaskResult run_stage1(const Stage1Config& cfg);
 
     // stage2: 多帧合并 (.hiss -> .hcsd, stage 8-9)
     // 参数:
@@ -362,6 +370,10 @@ private:
     // GAP-016/GAP-017: run_stage_drizzle 读 nside_strategy/nside_override,
     //                  run_stage_gradient_sphere 读 sigma_clip_method 等
     std::string current_config_json_;
+    // R11: typed Stage1 配置 (正式入口直接驱动, 替代 flat 字符串)
+    std::unique_ptr<Stage1Config> stage1_cfg_;
+    // R11: NSIDE 阶段计算/验证结果 (供 DRIZZLE 与证据引用)
+    int nside_used_ = 0;
     // P03-002: 从 config 解析的 Gaia 数据目录 (init_platesolve_env 使用)
     // 空时默认为 project_root_dir_/GaiaDR3SP
     std::string config_gaia_data_dir_;
@@ -397,9 +409,13 @@ private:
     bool run_stage_read_fits(TaskResult& result);
     // stage 5: SNR (snr_estimator.dll)
     bool run_stage_snr(TaskResult& result);
+    // stage 6: NSIDE (计算/验证 HEALPix NSIDE)
+    bool run_stage_nside(TaskResult& result);
     // stage 7: HISS_VERIFY (验证 drizzle 输出的 .hiss 文件完整性)
     // R10: 同时验证 metadata 中 precision_mode 与请求一致
     bool run_stage_hiss_verify(TaskResult& result);
+    // stage 9: BROWSER_VERIFY (Browser 后端双精度读取/查询验证)
+    bool run_stage_browser_verify(TaskResult& result);
     // stage 8: GRADIENT_SPHERE (healpix_stack.dll hp_stack_gradient_corrected)
     bool run_stage_gradient_sphere(TaskResult& result);
     // stage 9: STACK (healpix_stack.dll, Winsorized sigma clip + SNR²加权叠加)

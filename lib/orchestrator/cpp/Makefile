@@ -14,6 +14,7 @@ CXXFLAGS = -O2 -std=c++17 -Wall -fopenmp
 # 其余 -I 路径: 各 DLL 模块头文件 (orchestrator.cpp stage handler 调用所需)
 # Makefile 位于 lib/orchestrator/cpp/, ../../ 解析到 lib/
 # -I../../common/include: PrecisionContext / AstroScalarType 双精度 ABI 头文件
+# -Ithird_party/json-schema-validator: nlohmann-json-schema-validator v2.4.0 (vendor, 正式 Schema validator)
 INCLUDES = -Iinclude \
            -I../../common/include \
            -I../../astro_image_io/include \
@@ -24,7 +25,8 @@ INCLUDES = -Iinclude \
            -I../../healpix_db/healpix_drizzle \
            -I../../healpix_db/healpix_stack \
            -I../../gaia_xpsd_client/src \
-           -I../../star_detector/include
+           -I../../star_detector/include \
+           -Ithird_party/json-schema-validator
 # -Wl,--stack,33554432: 设置 EXE 主线程栈为 32MB
 # (P13-002: nanoflann divideTree 递归在偏斜 3D 数据上深度可达数百层,
 #  DLL 中的代码使用调用线程的栈, -Wl,--stack 对 DLL 无效, 必须设置 EXE 栈)
@@ -42,6 +44,15 @@ SRCS = $(SRC_DIR)/main.cpp \
        $(SRC_DIR)/logger.cpp \
        $(SRC_DIR)/cli_command.cpp \
        $(SRC_DIR)/json_config.cpp
+
+# nlohmann-json-schema-validator v2.4.0 (vendor: third_party/json-schema-validator)
+JSV_DIR = third_party/json-schema-validator
+JSV_SRCS = $(JSV_DIR)/json-uri.cpp \
+           $(JSV_DIR)/json-validator.cpp \
+           $(JSV_DIR)/json-patch.cpp \
+           $(JSV_DIR)/smtp-address-validator.cpp \
+           $(JSV_DIR)/string-format-check.cpp \
+           $(JSV_DIR)/json-schema-draft7.json.cpp
 
 # 头文件列表
 HEADERS = $(INCDIR)/orchestrator.h \
@@ -63,7 +74,7 @@ TEST_ORCHESTRATOR_CLI = $(TEST_DIR)/test_orchestrator_cli.exe
 all: $(TARGET)
 
 $(TARGET): $(SRCS) $(HEADERS)
-	$(CXX) $(CXXFLAGS) -o $@ $(SRCS) $(INCLUDES) $(LDFLAGS) -lm
+	$(CXX) $(CXXFLAGS) -o $@ $(SRCS) $(JSV_SRCS) $(INCLUDES) $(LDFLAGS) -lm
 
 # ============================================================================
 # DllLoader 单元测试
@@ -105,6 +116,7 @@ $(TEST_ORCHESTRATOR_CLI): $(TEST_DIR)/test_orchestrator_cli.cpp \
                           $(SRC_DIR)/logger.cpp \
                           $(SRC_DIR)/cli_command.cpp \
                           $(SRC_DIR)/json_config.cpp \
+                          $(JSV_SRCS) \
                           $(INCDIR)/orchestrator.h \
                           $(INCDIR)/dll_loader.h \
                           $(INCDIR)/checkpoint.h \
@@ -115,7 +127,7 @@ $(TEST_ORCHESTRATOR_CLI): $(TEST_DIR)/test_orchestrator_cli.cpp \
 	$(CXX) $(CXXFLAGS) -o $@ $(TEST_DIR)/test_orchestrator_cli.cpp \
 	    $(SRC_DIR)/orchestrator.cpp $(SRC_DIR)/dll_loader.cpp \
 	    $(SRC_DIR)/checkpoint.cpp $(SRC_DIR)/logger.cpp \
-	    $(SRC_DIR)/cli_command.cpp $(SRC_DIR)/json_config.cpp \
+	    $(SRC_DIR)/cli_command.cpp $(SRC_DIR)/json_config.cpp $(JSV_SRCS) \
 	    $(INCLUDES) $(LDFLAGS) -lm
 
 # ============================================================================

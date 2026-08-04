@@ -1,11 +1,11 @@
 {
   "$schema": "../schemas/stage1.schema.json",
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "pipeline": "stage1",
   "precision": "fp32",
   "input": {
     "light": "../data/light.fits",
-    "master_bias": "../data/master_bias.xisf",
+    "master_bias": null,
     "master_dark": "../data/master_dark.xisf",
     "master_flat": "../data/master_flat.xisf"
   },
@@ -54,14 +54,15 @@
     "threads": 0,
     "stage_timeout_sec": {
       "read": 60,
-      "calibrate": 120,
+      "calibrate": 180,
       "platesolve": 300,
-      "psf": 120,
+      "psf": 180,
       "photometric": 300,
-      "snr": 120,
-      "drizzle": 900,
-      "hiss_verify": 120,
-      "browser_verify": 120
+      "snr": 180,
+      "nside": 120,
+      "drizzle": 1200,
+      "hiss_verify": 180,
+      "browser_verify": 180
     }
   }
 }

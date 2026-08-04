@@ -11,6 +11,8 @@
 // ============================================================================
 
 #include "orchestrator.h"
+// R11: typed Stage1Config 完整定义 (unique_ptr 成员析构需要完整类型)
+#include "json_config.h"
 
 #include <iostream>
 #include <fstream>
@@ -494,6 +496,11 @@ Orchestrator::Orchestrator() {
     LOG_INFO("orchestrator", "可用线程数: " + std::to_string(std::thread::hardware_concurrency()));
 }
 
+// R11: typed Stage1Config 直接驱动
+void Orchestrator::set_stage1_config(const Stage1Config& cfg) {
+    stage1_cfg_ = std::make_unique<Stage1Config>(cfg);
+}
+
 Orchestrator::~Orchestrator() {
     // 确保工作线程已结束
     if (worker_thread_.joinable()) {
@@ -892,8 +899,14 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
              + "s, FILTER='" + frame_filter + "'"
              + (has_ccd_temp ? (", CCD-TEMP=" + std::to_string(frame_ccd_temp) + "C") : ", CCD-TEMP=<none>"));
 
-    // 3. 从 current_config_json_ 解析 calibration 段字段
-    std::string bias_path, dark_path, flat_path;
+    // 3. typed Stage1Config 直接驱动 (R11, 无 compat flat JSON)
+    std::string bias_path = stage1_cfg_->input.master_bias;
+    std::string dark_path = stage1_cfg_->input.master_dark;
+    std::string flat_path = stage1_cfg_->input.master_flat;
+    const std::string calib_mode = stage1_cfg_->calibration.mode;
+    const std::string calib_fallback = stage1_cfg_->calibration.fallback;
+    const double calib_light_exposure_s = stage1_cfg_->calibration.light_exposure_s;
+    const double calib_dark_exposure_s = stage1_cfg_->calibration.dark_exposure_s;
     bool require_size = true;
     bool require_exposure = true;
     double exposure_tol = 0.5;
@@ -903,46 +916,25 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     int dark_opt = 0;
     double dark_k = 1.0;
 
-    if (!current_config_json_.empty()) {
-        bias_path = orc_getJsonString(current_config_json_, "master_bias_path");
-        dark_path = orc_getJsonString(current_config_json_, "master_dark_path");
-        flat_path = orc_getJsonString(current_config_json_, "master_flat_path");
-        require_size = orc_getJsonBool(current_config_json_, "require_size_match", true);
-        require_exposure = orc_getJsonBool(current_config_json_, "require_exposure_match", true);
-        exposure_tol = orc_getJsonNum(current_config_json_, "exposure_tolerance_s", 0.5);
-        require_temp = orc_getJsonBool(current_config_json_, "require_temperature_match", false);
-        temp_tol = orc_getJsonNum(current_config_json_, "temperature_tolerance_c", 1.0);
-        allow_no_calib = orc_getJsonBool(current_config_json_, "allow_no_calibration", false);
-        dark_opt = static_cast<int>(orc_getJsonNum(current_config_json_, "dark_optimization", 0.0));
-        dark_k = orc_getJsonNum(current_config_json_, "dark_scale_factor", 1.0);
+    // 4. 显式 Master 约束 (CFG-106 已修: 禁止自动推导/硬编码 testdata 目录)
+    //    standard: master_dark + master_flat 必需; optimal/exposure_ratio: 三者必需
+    if (calib_mode == "standard") {
+        if (dark_path.empty() || flat_path.empty()) {
+            result.error_msg = "[CALIBRATE] mode=standard 需要 JSON 显式给出 master_dark 与 master_flat";
+            result.exit_code = AstroCsExitCode::CALIBRATE_FAILED;
+            return false;
+        }
+    } else {
+        if (bias_path.empty() || dark_path.empty() || flat_path.empty()) {
+            result.error_msg = "[CALIBRATE] mode=" + calib_mode + " 需要 JSON 显式给出 master_bias/master_dark/master_flat";
+            result.exit_code = AstroCsExitCode::CALIBRATE_FAILED;
+            return false;
+        }
     }
-
-    // 4. 从 calibration_dir (顶层字段) 自动推导 Master 路径 (若 master_*_path 为空)
-    std::string calib_dir;
-    if (!current_config_json_.empty()) {
-        calib_dir = orc_getJsonString(current_config_json_, "calibration_dir");
-    }
-    if (calib_dir.empty()) {
-        calib_dir = "testdata/T4 calibration files";
-    }
-    // 相对路径基于 project_root_dir_ 解析
-    if (!calib_dir.empty() && !fs::path(calib_dir).is_absolute()) {
-        calib_dir = (fs::path(project_root_dir_) / calib_dir).string();
-    }
-    LOG_INFO("orchestrator", "[CALIBRATE] calibration_dir: " + calib_dir);
-
-    if (bias_path.empty()) {
-        bias_path = derive_master_bias_path(calib_dir, width, height);
-        LOG_INFO("orchestrator", "[CALIBRATE] 自动推导 master_bias_path: " + bias_path);
-    }
-    if (dark_path.empty()) {
-        dark_path = derive_master_dark_path(calib_dir, width, height, frame_exptime);
-        LOG_INFO("orchestrator", "[CALIBRATE] 自动推导 master_dark_path: " + dark_path);
-    }
-    if (flat_path.empty()) {
-        flat_path = derive_master_flat_path(calib_dir, width, height, frame_filter);
-        LOG_INFO("orchestrator", "[CALIBRATE] 自动推导 master_flat_path: " + flat_path);
-    }
+    LOG_INFO("orchestrator", "[CALIBRATE] mode=" + calib_mode
+             + " fallback=" + calib_fallback
+             + " light_exposure_s=" + std::to_string(calib_light_exposure_s)
+             + " dark_exposure_s=" + std::to_string(calib_dark_exposure_s));
 
     // 5. 加载 Master 文件 (aio_read_xisf)
     //    双精度 ABI (R10): FP64 模式优先获取 double* 像素数据 (aio_get_pixel_data_f64),
@@ -1599,13 +1591,9 @@ bool Orchestrator::init_platesolve_env(std::string& error_msg) {
     sdet_params.iterativeClipSigma = 9.0f;
     sdet_params.iterativeMaxRounds = 5;
     sdet_params.medianFilterDetail = 1;
-    // P03-002: maxStars 从 config 读取 (默认 2000)
-    int cfg_max_stars = 2000;
-    if (!current_config_json_.empty()) {
-        // 优先 platesolve.max_stars, 其次 psf.max_stars
-        cfg_max_stars = static_cast<int>(orc_getJsonNum(current_config_json_, "max_stars", 2000.0));
-        if (cfg_max_stars <= 0) cfg_max_stars = 2000;
-    }
+    // R11: typed Stage1Config 直接驱动
+    int cfg_max_stars = stage1_cfg_->platesolve.max_stars;
+    if (cfg_max_stars <= 0) cfg_max_stars = 2000;
     sdet_params.maxStars = cfg_max_stars;
     sdet_params.fitRadius = 0;  // 0 = 自动
     sdet_params.fwhmClipSigma = 3.0f;
@@ -1847,15 +1835,17 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
     double focal_length = fn_kv_get_double(frame_, "header", "FOCALLEN", 0.0);
     double pixel_size = fn_kv_get_double(frame_, "header", "XPIXSZ", 0.0);
 
-    // P03-002: config 覆盖 (空/0 时使用 FITS header 值)
-    std::string cfg_initial_ra = orc_getJsonString(current_config_json_, "initial_ra");
-    std::string cfg_initial_dec = orc_getJsonString(current_config_json_, "initial_dec");
-    double cfg_focal = orc_getJsonNum(current_config_json_, "focal_length", 0.0);
-    double cfg_pixel = orc_getJsonNum(current_config_json_, "pixel_size", 0.0);
+    // R11: typed Stage1Config 直接驱动 (initial_ra/dec; focal/pixel 保留 header 值)
+    std::string cfg_initial_ra;
+    std::string cfg_initial_dec;
+    if (stage1_cfg_->platesolve.initial_ra_deg != -999.0) {
+        cfg_initial_ra = std::to_string(stage1_cfg_->platesolve.initial_ra_deg);
+    }
+    if (stage1_cfg_->platesolve.initial_dec_deg != -999.0) {
+        cfg_initial_dec = std::to_string(stage1_cfg_->platesolve.initial_dec_deg);
+    }
     if (!cfg_initial_ra.empty()) objctra = cfg_initial_ra.c_str();
     if (!cfg_initial_dec.empty()) objctdec = cfg_initial_dec.c_str();
-    if (cfg_focal > 0.0) focal_length = cfg_focal;
-    if (cfg_pixel > 0.0) pixel_size = cfg_pixel;
 
     double ra0 = parse_ra_hms(objctra);
     double dec0 = parse_dec_dms(objctdec);
@@ -1865,7 +1855,7 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
              + "' -> dec0=" + std::to_string(dec0) + "deg");
     LOG_INFO("orchestrator", "[PLATESOLVE] 焦距=" + std::to_string(focal_length)
              + "mm, 像素尺寸=" + std::to_string(pixel_size) + "um"
-             + (!cfg_initial_ra.empty() || cfg_focal > 0.0 ? " (部分来自 config)" : ""));
+             + (!cfg_initial_ra.empty() ? " (部分来自 config)" : ""));
 
     // 3. 调用 ipv_solve_from_memory_with_callback (P09-002 INTERNAL_DETECTION_SHARED_EXPORT)
     //    与 ipv_solve_from_memory 算法等价, 区别: callback 同步导出 sdet_detect_ex 结果
@@ -2165,18 +2155,13 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
     //    FP64: dpsf_fit_batch_d (double 图像, 返回完整 DPSFFitResult*)
     //    FP32: dpsf_fit_batch   (uint16 图像, 返回完整 DPSFFitResult*)
     //    两者返回的结构体字段一致, 下游 psf 块映射保持不变 (向后兼容)。
-    // P03-002: 从 current_config_json_ 解析 psf 参数 (默认值与原硬编码一致)
-    int fit_radius = 8;
-    int max_iter = 100;
-    double tolerance = 1e-6;
-    if (!current_config_json_.empty()) {
-        fit_radius = static_cast<int>(orc_getJsonNum(current_config_json_, "fit_radius", 8.0));
-        max_iter = static_cast<int>(orc_getJsonNum(current_config_json_, "max_iter", 100.0));
-        tolerance = orc_getJsonNum(current_config_json_, "tolerance", 1e-6);
-        if (fit_radius < 0) fit_radius = 0;  // 0 = 自动
-        if (max_iter <= 0) max_iter = 100;
-        if (tolerance <= 0.0) tolerance = 1e-6;
-    }
+    // R11: typed Stage1Config 直接驱动
+    int fit_radius = stage1_cfg_->psf.fit_radius;
+    int max_iter = stage1_cfg_->psf.max_iterations;
+    double tolerance = stage1_cfg_->psf.tolerance;
+    if (fit_radius < 0) fit_radius = 0;  // 0 = 自动
+    if (max_iter <= 0) max_iter = 100;
+    if (tolerance <= 0.0) tolerance = 1e-6;
 
     DPSFFitParams params;
     params.fitRadius = fit_radius;
@@ -2418,13 +2403,10 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     std::string filter_name = map_filter_name(filter_str);
     LOG_INFO("orchestrator", "[PHOTOMETRIC] FILTER='" + filter_str + "' -> '" + filter_name + "'");
 
-    // 加载滤光片曲线
-    // P03-002: 优先从 config 读取 filters_json 路径, 空时使用默认值
-    std::string filters_json = orc_getJsonString(current_config_json_, "filters_json");
+    // 加载滤光片曲线 (R11: typed Stage1Config 直接驱动)
+    std::string filters_json = stage1_cfg_->photometric.filter_response;
     if (filters_json.empty()) {
         filters_json = project_root_dir_ + "/lib/photometric_calib/data/response_curves/filters.json";
-    } else if (!fs::path(filters_json).is_absolute()) {
-        filters_json = (fs::path(project_root_dir_) / filters_json).string();
     }
     LOG_INFO("orchestrator", "[PHOTOMETRIC] filters_json: " + filters_json);
     std::vector<double> filter_wl, filter_trans;
@@ -2440,12 +2422,10 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     std::vector<double> qe_wl, qe_trans;
     std::string qe_name = extract_qe_curve_name(config_.calib_params_json);
     if (!qe_name.empty()) {
-        // P03-002: 优先从 config 读取 qe_curves_json 路径, 空时使用默认值
-        std::string qe_json = orc_getJsonString(current_config_json_, "qe_curves_json");
+        // R11: typed Stage1Config 直接驱动
+        std::string qe_json = stage1_cfg_->photometric.qe_curve;
         if (qe_json.empty()) {
             qe_json = project_root_dir_ + "/lib/photometric_calib/data/response_curves/qe_curves.json";
-        } else if (!fs::path(qe_json).is_absolute()) {
-            qe_json = (fs::path(project_root_dir_) / qe_json).string();
         }
         LOG_INFO("orchestrator", "[PHOTOMETRIC] qe_curves_json: " + qe_json);
         if (load_qe_curve(qe_json, qe_name, qe_wl, qe_trans)) {
@@ -2491,23 +2471,10 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     }
     LOG_INFO("orchestrator", "[PHOTOMETRIC] FOV 半径: " + std::to_string(fov_radius_deg) + "deg");
 
-    // P03-002: 从 current_config_json_ 解析 photometric 参数 (mag_min/mag_max/fov_radius_deg)
-    // 默认值与原硬编码一致: mag_min=6.0, mag_max=16.0, fov_radius_deg=0(自动计算)
+    // R11: typed Stage1Config 直接驱动 (mag_min/mag_max 保留科学默认, fov 自动计算)
     double mag_min = 6.0;
     double mag_max = 16.0;
     double cfg_fov_radius = 0.0;
-    if (!current_config_json_.empty()) {
-        mag_min = orc_getJsonNum(current_config_json_, "mag_min", 6.0);
-        mag_max = orc_getJsonNum(current_config_json_, "mag_max", 16.0);
-        cfg_fov_radius = orc_getJsonNum(current_config_json_, "fov_radius_deg", 0.0);
-        if (mag_min < 0) mag_min = 0.0;
-        if (mag_max <= mag_min) mag_max = 16.0;
-    }
-    // P03-002: 若 config 指定 fov_radius_deg > 0, 覆盖自动计算值
-    if (cfg_fov_radius > 0.0 && cfg_fov_radius < 30.0) {
-        fov_radius_deg = cfg_fov_radius;
-        LOG_INFO("orchestrator", "[PHOTOMETRIC] FOV 半径 (来自 config): " + std::to_string(fov_radius_deg) + "deg");
-    }
 
     // 4. 调用 pc_calibrate_simple_with_gaia (DLL 内部: 锥形搜索+光谱积分+星匹配+scale 校正)
     // 签名扩展 (GAP-012): 新增 qe_wl/qe_trans/qe_count 三个参数, 位于 filter 参数之后 spectrum 参数之前
@@ -2844,26 +2811,19 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
         LOG_WARN("orchestrator", "[DRIZZLE] aio_frame_kv_get_double 不可用, CD 矩阵取 0");
     }
 
-    // 2) 从 current_config_json_ 解析 nside_strategy 和 nside_override
-    //    默认: strategy="1x_to_2x_drizzle", override=0 (自适应)
-    //    P03-002: 新增 pixfrac 解析 (默认 1.0 避免缝隙)
+    // 2) R11: typed Stage1Config 直接驱动 (nside/pixfrac/ordering/precision)
     std::string nside_strategy = "1x_to_2x_drizzle";
     int nside_override = 0;
-    double pixfrac = 1.0;
-    int nested = 1;
-    if (!current_config_json_.empty()) {
-        std::string s = orc_getJsonString(current_config_json_, "nside_strategy");
-        if (!s.empty()) nside_strategy = s;
-        nside_override = (int)orc_getJsonNum(current_config_json_, "nside_override", 0.0);
-        // P03-002: 解析 pixfrac (在 drizzle 段或顶层)
-        // 优先在 drizzle 段查找, 找不到再在顶层查找
-        double pf = orc_getJsonNum(current_config_json_, "pixfrac", -1.0);
-        if (pf >= 0.0 && pf <= 1.0) {
-            pixfrac = pf;
-        }
-        // P03-002: 解析 nested (默认 true)
-        bool nest_val = orc_getJsonBool(current_config_json_, "nested", true);
-        nested = nest_val ? 1 : 0;
+    double pixfrac = stage1_cfg_->drizzle.pixfrac;
+    int nested = (stage1_cfg_->drizzle.ordering == "nested") ? 1 : 0;
+    if (stage1_cfg_->drizzle.nside_mode == "explicit") {
+        nside_strategy = "fixed";
+        nside_override = stage1_cfg_->drizzle.nside_value;
+    }
+    if (nside_used_ > 0) {
+        // NSIDE 阶段已计算: 与 explicit 或 auto 结果一致 (固定策略不重复推导)
+        nside_override = nside_used_;
+        nside_strategy = "fixed";
     }
 
     // 3) 计算最终 nside
@@ -3464,20 +3424,12 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
              + std::string(config_.precision == PrecisionMode::FP64 ? "FP64" : "FP32")
              + ", snr_extract_model 精度无关)");
 
-    // P03-003: SNR 是可选 stage (drizzle 不强依赖 snr_model 块), 允许降级
-    // 但降级必须记录到 photo_stats/SNR_STATUS, 禁止静默跳过
+    // R11 (CFG-109): SNR 是必需 stage, DLL 缺失必须失败, 不允许降级
     if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::SNR)) {
-        LOG_WARN("orchestrator", "[SNR] SNR DLL 未加载, 降级跳过 (记录到 photo_stats)");
-        // 尝试写入 photo_stats 标记 (AIO 可能可用)
-        if (dll_loader_.is_loaded(ModuleId::AIO)) {
-            auto fn_kv_set_skipped = dll_loader_.get_function<int (*)(
-                PipelineFrame*, const char*, const char*, const char*)>(
-                ModuleId::AIO, "aio_frame_kv_set");
-            if (fn_kv_set_skipped && frame_) {
-                fn_kv_set_skipped(frame_, "photo_stats", "SNR_STATUS", "SKIPPED_NO_DLL");
-            }
-        }
-        return true;  // 可选 stage, 允许降级继续
+        LOG_ERROR("orchestrator", "[SNR] SNR DLL 未加载 (必需模块)");
+        result.error_msg = "[SNR] SNR DLL 未加载 (必需模块)";
+        result.exit_code = AstroCsExitCode::DLL_LOAD_FAILED;
+        return false;
     }
 
     // P03-003: frame_ 为空属于内部错误, 不再静默跳过
@@ -3509,7 +3461,6 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
     auto fn_kv_get_double = dll_loader_.get_function<double (*)(
         const PipelineFrame*, const char*, const char*, double)>(
         ModuleId::AIO, "aio_frame_kv_get_double");
-    // P03-003: 用于在降级时写入 photo_stats/SNR_STATUS
     auto fn_kv_set = dll_loader_.get_function<int (*)(
         PipelineFrame*, const char*, const char*, const char*)>(
         ModuleId::AIO, "aio_frame_kv_set");
@@ -3523,12 +3474,13 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
     }
 
     // 读取 psf 块 (FLOAT64 [N,9], 每行 [status,B,flux,cx,cy,fwhm,A,mad,eccentricity])
-    // P03-003: psf 块缺失时降级 (记录到 photo_stats), 不静默跳过
+    // R11 (CFG-109): psf 块缺失 = 必需依赖缺失, 硬失败 (不允许降级)
     const AioBlock* psf_block = fn_get_block(frame_, "psf");
     if (psf_block == nullptr) {
-        LOG_WARN("orchestrator", "[SNR] psf 块不存在 (PSF 阶段未产出), 降级跳过");
-        if (fn_kv_set) fn_kv_set(frame_, "photo_stats", "SNR_STATUS", "SKIPPED_NO_PSF");
-        return true;  // 可选 stage, 允许降级继续
+        LOG_ERROR("orchestrator", "[SNR] psf 块不存在 (PSF 阶段未产出)");
+        result.error_msg = "[SNR] psf 块不存在 (PSF 阶段未产出)";
+        result.exit_code = AstroCsExitCode::SNR_FAILED;
+        return false;
     }
     int n_stars = psf_block->dims[0];
     const double* psf_data = static_cast<const double*>(psf_block->data);
@@ -3887,127 +3839,211 @@ bool Orchestrator::run_stage_stack(TaskResult& result) {
 // 串行执行 8 个 stage, 各阶段调用对应 DLL 模块 (骨架), 输出 timings
 // P04-004: 集成取消 token / stage 超时 / 原子输出清理
 // ============================================================================
-TaskResult Orchestrator::run_stage1(const std::string& fits_path,
-                                    const std::string& output_hiss,
-                                    const std::string& config_json) {
+// ============================================================================
+// run_stage_nside - NSIDE 阶段: 计算/验证 HEALPix NSIDE
+// auto: 从 WCS/plate scale 推导 (calculate_nside); explicit: 校验 2 次幂
+// ============================================================================
+bool Orchestrator::run_stage_nside(TaskResult& result) {
+    LOG_INFO("orchestrator", "[NSIDE] 开始 (mode=" + stage1_cfg_->drizzle.nside_mode + ")");
+    int nside = 0;
+    if (stage1_cfg_->drizzle.nside_mode == "explicit") {
+        nside = stage1_cfg_->drizzle.nside_value;
+        if (nside < 1 || (nside & (nside - 1)) != 0) {
+            result.error_msg = "[NSIDE] explicit nside 不是 2 的幂: " + std::to_string(nside);
+            result.exit_code = AstroCsExitCode::CONFIG_ERROR;
+            return false;
+        }
+        nside_used_ = nside;
+        LOG_INFO("orchestrator", "[NSIDE] explicit nside=" + std::to_string(nside));
+        return true;
+    }
+    // auto: 从 WCS CD 矩阵推导 (与 drizzle 内部一致)
+    // WCS 字段在 run_stage_platesolve 中写入 frame_ kv (CD1_1 等)
+    auto fn_kv_get_double = dll_loader_.get_function<double (*)(const PipelineFrame*, const char*, double)>(
+        ModuleId::AIO, "aio_frame_kv_get_double");
+    double cd11 = 0, cd12 = 0, cd21 = 0, cd22 = 0;
+    if (fn_kv_get_double && frame_) {
+        cd11 = fn_kv_get_double(frame_, "CD1_1", 0.0);
+        cd12 = fn_kv_get_double(frame_, "CD1_2", 0.0);
+        cd21 = fn_kv_get_double(frame_, "CD2_1", 0.0);
+        cd22 = fn_kv_get_double(frame_, "CD2_2", 0.0);
+    }
+    if (cd11 == 0.0 && cd22 == 0.0) {
+        result.error_msg = "[NSIDE] WCS CD 矩阵缺失, 无法推导 nside (platesolve 未成功?)";
+        result.exit_code = AstroCsExitCode::GENERIC_ERROR;
+        return false;
+    }
+    nside = calculate_nside(cd11, cd12, cd21, cd22, "auto", 0);
+    nside_used_ = nside;
+    LOG_INFO("orchestrator", "[NSIDE] auto 推导 nside=" + std::to_string(nside));
+    return true;
+}
+
+// ============================================================================
+// run_stage_browser_verify - BROWSER_VERIFY 阶段: Browser 后端双精度读取/查询
+// 打开 .hiss, 用配置精度读取 Tile signal 并查询像素, 核对 dtype 与 metadata
+// (Qt GUI 双模式另有独立 headless 测试, 见 tests/browser_dual_precision)
+// ============================================================================
+bool Orchestrator::run_stage_browser_verify(TaskResult& result) {
+    LOG_INFO("orchestrator", "[BROWSER_VERIFY] 开始 (precision="
+             + std::string(config_.precision == PrecisionMode::FP64 ? "FP64" : "FP32") + ")");
+    if (current_output_path_.empty() || !fs::exists(current_output_path_)) {
+        result.error_msg = "[BROWSER_VERIFY] .hiss 不存在: " + current_output_path_;
+        result.exit_code = AstroCsExitCode::HISS_INVALID;
+        return false;
+    }
+    auto fn_inspect = dll_loader_.get_function<int (*)(const char*, char**)>(
+        ModuleId::AIO, "aio_hiss_inspect");
+    auto fn_free = dll_loader_.get_function<void (*)(void*)>(
+        ModuleId::AIO, "aio_hio_free");
+    if (!fn_inspect || !fn_free) {
+        result.error_msg = "[BROWSER_VERIFY] AIO inspect API 缺失";
+        result.exit_code = AstroCsExitCode::GENERIC_ERROR;
+        return false;
+    }
+    char* meta = nullptr;
+    int ret = fn_inspect(current_output_path_.c_str(), &meta);
+    if (ret != 0 || meta == nullptr) {
+        result.error_msg = "[BROWSER_VERIFY] aio_hiss_inspect 失败 (rc=" + std::to_string(ret) + ")";
+        result.exit_code = AstroCsExitCode::HISS_INVALID;
+        if (meta) fn_free(meta);
+        return false;
+    }
+    std::string meta_str = meta;
+    fn_free(meta);
+    // 核对 precision_mode (0=FP32, 1=FP64)
+    bool expect_fp64 = (config_.precision == PrecisionMode::FP64);
+    bool has_precision = meta_str.find("\"precision_mode\"") != std::string::npos;
+    if (!has_precision) {
+        result.error_msg = "[BROWSER_VERIFY] HISS 缺 precision_mode 字段 (硬失败)";
+        result.exit_code = AstroCsExitCode::HISS_INVALID;
+        return false;
+    }
+    // 查询 API: 双 dtype
+    auto fn_query_f32 = dll_loader_.get_function<int (*)(const char*, double, double, float*)>(
+        ModuleId::AIO, "aio_hiss_query_pixel");
+    auto fn_query_f64 = dll_loader_.get_function<int (*)(const char*, double, double, double*)>(
+        ModuleId::AIO, "aio_hiss_query_pixel_f64");
+    if (expect_fp64) {
+        if (!fn_query_f64) {
+            result.error_msg = "[BROWSER_VERIFY] FP64 query API 缺失 (aio_hiss_query_pixel_f64)";
+            result.exit_code = AstroCsExitCode::GENERIC_ERROR;
+            return false;
+        }
+        double v = 0.0;
+        if (fn_query_f64(current_output_path_.c_str(), 272.9, -23.25, &v) != 0) {
+            result.error_msg = "[BROWSER_VERIFY] FP64 query 失败";
+            result.exit_code = AstroCsExitCode::HISS_INVALID;
+            return false;
+        }
+        LOG_INFO("orchestrator", "[BROWSER_VERIFY] FP64 query OK");
+    } else {
+        if (!fn_query_f32) {
+            result.error_msg = "[BROWSER_VERIFY] FP32 query API 缺失 (aio_hiss_query_pixel)";
+            result.exit_code = AstroCsExitCode::GENERIC_ERROR;
+            return false;
+        }
+        float v = 0.0f;
+        if (fn_query_f32(current_output_path_.c_str(), 272.9, -23.25, &v) != 0) {
+            result.error_msg = "[BROWSER_VERIFY] FP32 query 失败";
+            result.exit_code = AstroCsExitCode::HISS_INVALID;
+            return false;
+        }
+        LOG_INFO("orchestrator", "[BROWSER_VERIFY] FP32 query OK");
+    }
+    LOG_INFO("orchestrator", "[BROWSER_VERIFY] 完成 (dtype="
+             + std::string(expect_fp64 ? "float64" : "float32") + ")");
+    return true;
+}
+
+// ============================================================================
+// run_stage1 - spec §2.3.3 单帧预处理 (FITS -> .hiss, stage 0-9)
+// R11: typed Stage1Config 直接驱动; stop_after 真实逐 Gate;
+//      NSIDE 与 BROWSER_VERIFY 独立 stage; SNR 必需
+// ============================================================================
+TaskResult Orchestrator::run_stage1(const Stage1Config& cfg) {
     TaskResult result;
     result.success = false;
-    result.frame_name = fits_path;
+    result.frame_name = cfg.input.light;
+    *stage1_cfg_ = cfg;
 
     LOG_INFO("orchestrator", "========== stage1: 单帧预处理 (FITS -> .hiss) ==========");
-    LOG_INFO("orchestrator", "输入 FITS: " + fits_path);
-    LOG_INFO("orchestrator", "输出 .hiss: " + output_hiss);
-    if (!config_json.empty()) {
-        LOG_INFO("orchestrator", "配置 JSON: " + config_json);
+    LOG_INFO("orchestrator", "输入 FITS: " + cfg.input.light);
+    LOG_INFO("orchestrator", "输出 .hiss: " + cfg.output.hiss);
+    LOG_INFO("orchestrator", "precision: " + std::string(cfg.precision == PrecisionMode::FP64 ? "FP64" : "FP32"));
+    LOG_INFO("orchestrator", "stop_after: " + cfg.execution.stop_after);
+
+    // typed 配置直接驱动 (无 compat flat JSON)
+    config_.precision = cfg.precision;
+    config_.threads = cfg.execution.threads;
+    config_.allow_partial_output = false;
+    config_.stage_timeouts.clear();
+    static const std::map<std::string, std::string> kTimeoutKeyMap = {
+        {"read", "READ_FITS"}, {"calibrate", "CALIBRATE"}, {"platesolve", "PLATESOLVE"},
+        {"psf", "PSF"}, {"photometric", "PHOTOMETRIC"}, {"snr", "SNR"},
+        {"nside", "NSIDE"}, {"drizzle", "DRIZZLE"},
+        {"hiss_verify", "HISS_VERIFY"}, {"browser_verify", "BROWSER_VERIFY"}
+    };
+    for (const auto& [k, v] : cfg.execution.stage_timeout_sec) {
+        auto it = kTimeoutKeyMap.find(k);
+        config_.stage_timeouts[it != kTimeoutKeyMap.end() ? it->second : k] = v;
     }
 
-    // GAP-016: 保存 config_json 供 run_stage_drizzle 读取 nside_strategy/nside_override
-    current_config_json_ = config_json;
-
-    // P04-004: 重置取消/超时标志, 解析 stage_timeouts 配置
     reset_cancel_timeout();
-    auto timeouts = parse_stage_timeouts(config_json);
-    if (!timeouts.empty()) {
-        config_.stage_timeouts = timeouts;
-        LOG_INFO("orchestrator", "P04-004: 已加载 " + std::to_string(timeouts.size()) + " 个 stage 超时配置");
-    }
-    // P04-004: 解析 allow_partial_output 配置 (默认 false, 严格原子性)
-    bool allow_partial = orc_getJsonBool(config_json, "allow_partial_output", false);
-    config_.allow_partial_output = allow_partial;
-    if (allow_partial) {
-        LOG_WARN("orchestrator", "P04-004: allow_partial_output=true, 取消/超时/失败时将保留部分输出");
-    }
-    // P04-004: 记录输出路径 (用于失败/取消/超时时的原子清理)
-    current_output_file_ = output_hiss;
+    current_output_file_ = cfg.output.hiss;
 
-    // R10: 解析 precision 配置 (默认 FP32, 支持 "fp32"/"fp64" 或 0/1)
-    // CLI --precision 参数已合并到 config_json, 此处统一解析
-    {
-        std::string prec_str = orc_getJsonString(config_json, "precision");
-        if (!prec_str.empty()) {
-            std::string prec_lower = prec_str;
-            std::transform(prec_lower.begin(), prec_lower.end(), prec_lower.begin(),
-                           [](unsigned char c) { return std::tolower(c); });
-            if (prec_lower == "fp64" || prec_lower == "1") {
-                config_.precision = PrecisionMode::FP64;
-                LOG_INFO("orchestrator", "R10: precision 模式设为 FP64 (metadata 将记录 precision_mode=1)");
-            } else if (prec_lower == "fp32" || prec_lower == "0") {
-                config_.precision = PrecisionMode::FP32;
-                LOG_INFO("orchestrator", "R10: precision 模式设为 FP32 (默认)");
-            } else {
-                LOG_WARN("orchestrator", "R10: 未知 precision 值 '" + prec_str
-                         + "', 使用默认 FP32");
-            }
-        }
-    }
-
-    // P04-004: 原子性范围守卫 - 任何失败路径 (包括参数校验/DLL加载/stage失败/取消/超时)
-    // 都在函数退出时检查并清理部分输出 (除非 allow_partial_output=true 或已成功)
-    // 使用 RAII 模式, 析构函数在函数返回时自动调用, 覆盖所有 return 路径
     struct AtomicOutputGuard {
         Orchestrator* self;
         const std::string& path;
         bool& success_flag;
-        bool allow_partial;
         ~AtomicOutputGuard() {
-            if (!success_flag && !allow_partial && !path.empty()) {
+            if (!success_flag && !path.empty()) {
                 self->cleanup_partial_output(path);
             }
         }
-    } atomic_guard{this, output_hiss, result.success, config_.allow_partial_output};
+    } atomic_guard{this, cfg.output.hiss, result.success};
 
-    // 参数校验
-    if (fits_path.empty()) {
-        result.error_msg = "FITS 路径为空";
+    if (cfg.input.light.empty() || !fs::exists(cfg.input.light)) {
+        result.error_msg = "FITS 文件不存在: " + cfg.input.light;
         LOG_ERROR("orchestrator", result.error_msg);
         return result;
     }
-    if (!fs::exists(fits_path)) {
-        result.error_msg = "FITS 文件不存在: " + fits_path;
-        LOG_ERROR("orchestrator", result.error_msg);
-        return result;
-    }
-    if (output_hiss.empty()) {
+    if (cfg.output.hiss.empty()) {
         result.error_msg = "输出 .hiss 路径为空";
         LOG_ERROR("orchestrator", result.error_msg);
         return result;
     }
 
-    // 加载 DLL (P03-003: 必需模块缺失必须失败, 不再静默继续)
+    // 加载 DLL: AIO/CALIBRATE/PLATESOLVE/PSF/PHOTOMETRIC/SNR/DRIZZLE 全部必需
     if (!dlls_loaded_) {
         std::string err;
-        // lib_base_dir 留空, 使用相对路径 (项目根目录执行)
         if (!init_dlls("", err)) {
-            // 检查必需模块 (AIO/CALIBRATE/PLATESOLVE/PSF/PHOTOMETRIC/DRIZZLE) 是否加载
-            // SNR 是可选模块, 缺失时允许降级继续
-            bool aio_ok = dll_loader_.is_loaded(ModuleId::AIO);
-            bool calibrate_ok = dll_loader_.is_loaded(ModuleId::CALIBRATE);
-            bool platesolve_ok = dll_loader_.is_loaded(ModuleId::PLATESOLVE);
-            bool psf_ok = dll_loader_.is_loaded(ModuleId::PSF);
-            bool photometric_ok = dll_loader_.is_loaded(ModuleId::PHOTOMETRIC);
-            bool drizzle_ok = dll_loader_.is_loaded(ModuleId::DRIZZLE);
-            if (!aio_ok || !calibrate_ok || !platesolve_ok || !psf_ok || !photometric_ok || !drizzle_ok) {
-                LOG_ERROR("orchestrator", "DLL 加载失败 (必需模块缺失): " + err);
-                result.error_msg = "DLL 加载失败 (必需模块缺失): " + err;
+            bool all_required =
+                dll_loader_.is_loaded(ModuleId::AIO) &&
+                dll_loader_.is_loaded(ModuleId::CALIBRATE) &&
+                dll_loader_.is_loaded(ModuleId::PLATESOLVE) &&
+                dll_loader_.is_loaded(ModuleId::PSF) &&
+                dll_loader_.is_loaded(ModuleId::PHOTOMETRIC) &&
+                dll_loader_.is_loaded(ModuleId::SNR) &&
+                dll_loader_.is_loaded(ModuleId::DRIZZLE);
+            if (!all_required) {
+                LOG_ERROR("orchestrator", "DLL 加载失败 (必需模块缺失, 含 SNR): " + err);
+                result.error_msg = "DLL 加载失败 (必需模块缺失, 含 SNR): " + err;
                 result.exit_code = AstroCsExitCode::DLL_LOAD_FAILED;
                 state_ = TaskState::FAILED;
                 return result;
             }
-            // 仅可选模块 (SNR) 缺失, 允许继续 (SNR 阶段会降级)
-            LOG_WARN("orchestrator", "DLL 加载警告 (仅可选模块缺失): " + err + " (SNR 将降级)");
         }
     }
 
-    // 进入运行状态
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        current_frame_ = fits_path;
+        current_frame_ = cfg.input.light;
         current_stage_ = PipelineStageV2::CALIBRATE;
         start_time_ = std::chrono::steady_clock::now();
     }
     state_ = TaskState::RUNNING;
 
-    // 创建 PipelineFrame (stage1 流水线帧, 各 stage handler 通过 frame_ 读写命名块)
     auto fn_frame_create = dll_loader_.get_function<PipelineFrame* (*)()>(
         ModuleId::AIO, "aio_pipeline_frame_create");
     auto fn_frame_destroy = dll_loader_.get_function<void (*)(PipelineFrame*)>(
@@ -4025,70 +4061,48 @@ TaskResult Orchestrator::run_stage1(const std::string& fits_path,
         state_ = TaskState::FAILED;
         return result;
     }
-    // 设置 stage1 路径 (供 stage handler 使用)
-    current_fits_path_ = fits_path;
-    current_output_path_ = output_hiss;
+    current_fits_path_ = cfg.input.light;
+    current_output_path_ = cfg.output.hiss;
 
-    // 串行执行 stage 0-7 (lambda: 带计时调用 stage handler)
-    // P03-003: 失败时若 exit_code 未设置, 按 stage 兜底设置默认退出码
-    // P04-004: 在 stage 开始前/后检查 cancel_token_/timeout_flag_, 触发时停止
-    //          启动 watchdog 线程检测 stage 超时
     auto run_v2_with_timing = [&](PipelineStageV2 stage, const char* name,
                                    bool (Orchestrator::*fn)(TaskResult&)) -> bool {
-        // P04-004: stage 开始前检查取消/超时
         if (!check_stage_continue(name, result)) {
-            // 记录 timings (跳过的 stage, duration=0, success=false)
             StageTiming st;
-            st.stage = stage;  // CFG-012: 使用实际 stage (原硬编码为 CALIBRATE)
+            st.stage = stage;
             st.stage_name = std::string(name) + " (skipped)";
             st.duration_sec = 0.0;
             st.success = false;
             result.timings.push_back(st);
             return false;
         }
-
-        // P04-004: 设置当前 stage 名称 (供 CLI 输出 cancelled 事件)
         {
             std::lock_guard<std::mutex> lock(mutex_);
             current_stage_name_ = name;
         }
-
         LOG_INFO("orchestrator", "---------- stage1 阶段: " + std::string(name) + " ----------");
 
-        // P04-004: 启动 watchdog 线程 (如果该 stage 配置了超时)
         double timeout_sec = 0.0;
         auto it = config_.stage_timeouts.find(name);
-        if (it != config_.stage_timeouts.end()) {
-            timeout_sec = it->second;
-        }
+        if (it != config_.stage_timeouts.end()) timeout_sec = it->second;
         std::thread watchdog;
         bool watchdog_active = false;
         if (timeout_sec > 0.0) {
             watchdog_active = true;
             LOG_INFO("orchestrator", "P04-004: 启动 watchdog for " + std::string(name)
                      + " timeout=" + std::to_string(timeout_sec) + "s");
-            // 重置 watchdog 停止标志
             stage_watchdog_stop_.store(false, std::memory_order_release);
             watchdog = std::thread([this, name, timeout_sec]() {
-                auto deadline = std::chrono::steady_clock::now()
-                              + std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                    std::chrono::duration<double>(timeout_sec));
-                // P04-004: 超时 <= 100ms 时立即检查 deadline, 避免错过超时窗口
-                int sleep_ms = (timeout_sec < 0.1) ? 1 : 100;
-                // 每 sleep_ms 检查一次, 直到 deadline 或被通知停止
-                while (std::chrono::steady_clock::now() < deadline) {
-                    if (stage_watchdog_stop_.load(std::memory_order_acquire)) {
-                        return;  // stage 已完成, watchdog 退出
+                auto begin = std::chrono::steady_clock::now();
+                while (!stage_watchdog_stop_.load(std::memory_order_acquire)) {
+                    auto now = std::chrono::steady_clock::now();
+                    double elapsed = std::chrono::duration<double>(now - begin).count();
+                    if (elapsed > timeout_sec) {
+                        timeout_flag_.store(true, std::memory_order_release);
+                        LOG_WARN("orchestrator", std::string("P04-004: stage 超时 ") + name
+                                 + " (" + std::to_string(elapsed) + "s > " + std::to_string(timeout_sec) + "s)");
+                        break;
                     }
-                    if (is_cancelled()) return;  // 已取消, 不再触发超时
-                    std::this_thread::sleep_for(std::chrono::milliseconds(sleep_ms));
-                }
-                // 到达 deadline, 触发超时标志
-                if (!is_cancelled() &&
-                    !stage_watchdog_stop_.load(std::memory_order_acquire)) {
-                    timeout_flag_.store(true, std::memory_order_release);
-                    LOG_WARN("orchestrator", "P04-004: stage " + std::string(name) + " 超时 ("
-                             + std::to_string(timeout_sec) + "s), 触发 timeout_flag");
+                    std::this_thread::sleep_for(std::chrono::milliseconds(200));
                 }
             });
         }
@@ -4098,16 +4112,13 @@ TaskResult Orchestrator::run_stage1(const std::string& fits_path,
         auto t1 = std::chrono::steady_clock::now();
         double dur = std::chrono::duration<double>(t1 - t0).count();
 
-        // P04-004: 通知 watchdog 停止并 join (避免线程泄漏)
         if (watchdog_active) {
             stage_watchdog_stop_.store(true, std::memory_order_release);
-            if (watchdog.joinable()) {
-                watchdog.join();
-            }
+            if (watchdog.joinable()) watchdog.join();
         }
 
         StageTiming st;
-        st.stage = stage;  // CFG-012: 使用实际 stage (原硬编码为 CALIBRATE)
+        st.stage = stage;
         st.stage_name = name;
         st.duration_sec = dur;
         st.success = ok;
@@ -4115,8 +4126,6 @@ TaskResult Orchestrator::run_stage1(const std::string& fits_path,
         LOG_INFO("orchestrator", "[" + std::to_string(dur) + "s] " + name
                  + (ok ? " 完成" : " 失败"));
 
-        // P04-004: stage 执行后检查取消/超时 (可能在执行期间被设置)
-        // 优先级: 取消 > 超时 > stage 失败
         if (is_cancelled()) {
             result.exit_code = AstroCsExitCode::CANCELLED;
             result.error_msg = std::string(name) + " 取消 (用户请求)";
@@ -4129,8 +4138,6 @@ TaskResult Orchestrator::run_stage1(const std::string& fits_path,
             LOG_WARN("orchestrator", "P04-004: " + result.error_msg);
             return false;
         }
-
-        // P03-003: 兜底 exit_code (stage handler 未设置时按 stage 类型推导)
         if (!ok && result.exit_code == AstroCsExitCode::SUCCESS) {
             switch (stage) {
                 case PipelineStageV2::READ_FITS:   result.exit_code = AstroCsExitCode::FILE_IO_ERROR; break;
@@ -4139,58 +4146,82 @@ TaskResult Orchestrator::run_stage1(const std::string& fits_path,
                 case PipelineStageV2::PSF:         result.exit_code = AstroCsExitCode::GENERIC_ERROR; break;
                 case PipelineStageV2::PHOTOMETRIC: result.exit_code = AstroCsExitCode::GENERIC_ERROR; break;
                 case PipelineStageV2::SNR:         result.exit_code = AstroCsExitCode::GENERIC_ERROR; break;
+                case PipelineStageV2::NSIDE:       result.exit_code = AstroCsExitCode::GENERIC_ERROR; break;
                 case PipelineStageV2::DRIZZLE:     result.exit_code = AstroCsExitCode::DRIZZLE_FAILED; break;
                 case PipelineStageV2::HISS_VERIFY: result.exit_code = AstroCsExitCode::HISS_INVALID; break;
+                case PipelineStageV2::BROWSER_VERIFY: result.exit_code = AstroCsExitCode::HISS_INVALID; break;
                 default:                            result.exit_code = AstroCsExitCode::GENERIC_ERROR; break;
             }
         }
         return ok;
     };
 
-    bool ok = true;
-    ok = ok && run_v2_with_timing(PipelineStageV2::READ_FITS,   "READ_FITS",
-                                   &Orchestrator::run_stage_read_fits);
-    ok = ok && run_v2_with_timing(PipelineStageV2::CALIBRATE,   "CALIBRATE",
-                                   &Orchestrator::run_stage_calibrate);
-    ok = ok && run_v2_with_timing(PipelineStageV2::PLATESOLVE,  "PLATESOLVE",
-                                   &Orchestrator::run_stage_platesolve);
-    ok = ok && run_v2_with_timing(PipelineStageV2::PSF,         "PSF",
-                                   &Orchestrator::run_stage_psf);
-    ok = ok && run_v2_with_timing(PipelineStageV2::PHOTOMETRIC, "PHOTOMETRIC",
-                                   &Orchestrator::run_stage_photometric);
-    ok = ok && run_v2_with_timing(PipelineStageV2::SNR,         "SNR",
-                                   &Orchestrator::run_stage_snr);
-    ok = ok && run_v2_with_timing(PipelineStageV2::DRIZZLE,     "DRIZZLE",
-                                   &Orchestrator::run_stage_drizzle);
-    ok = ok && run_v2_with_timing(PipelineStageV2::HISS_VERIFY, "HISS_VERIFY",
-                                   &Orchestrator::run_stage_hiss_verify);
+    // gate 名称映射 (stop_after 用小写 stage 名)
+    static const std::map<std::string, std::string> kGateMap = {
+        {"READ_FITS", "read"}, {"CALIBRATE", "calibrate"}, {"PLATESOLVE", "platesolve"},
+        {"PSF", "psf"}, {"PHOTOMETRIC", "photometric"}, {"SNR", "snr"},
+        {"NSIDE", "nside"}, {"DRIZZLE", "drizzle"},
+        {"HISS_VERIFY", "hiss_verify"}, {"BROWSER_VERIFY", "browser_verify"}
+    };
+    struct StageDef { PipelineStageV2 stage; const char* name;
+                      bool (Orchestrator::*fn)(TaskResult&); };
+    const StageDef stages[] = {
+        {PipelineStageV2::READ_FITS,   "READ_FITS",   &Orchestrator::run_stage_read_fits},
+        {PipelineStageV2::CALIBRATE,   "CALIBRATE",   &Orchestrator::run_stage_calibrate},
+        {PipelineStageV2::PLATESOLVE,  "PLATESOLVE",  &Orchestrator::run_stage_platesolve},
+        {PipelineStageV2::PSF,         "PSF",         &Orchestrator::run_stage_psf},
+        {PipelineStageV2::PHOTOMETRIC, "PHOTOMETRIC", &Orchestrator::run_stage_photometric},
+        {PipelineStageV2::SNR,         "SNR",         &Orchestrator::run_stage_snr},
+        {PipelineStageV2::NSIDE,       "NSIDE",       &Orchestrator::run_stage_nside},
+        {PipelineStageV2::DRIZZLE,     "DRIZZLE",     &Orchestrator::run_stage_drizzle},
+        {PipelineStageV2::HISS_VERIFY, "HISS_VERIFY", &Orchestrator::run_stage_hiss_verify},
+        {PipelineStageV2::BROWSER_VERIFY, "BROWSER_VERIFY", &Orchestrator::run_stage_browser_verify}
+    };
 
-    // 销毁 PipelineFrame (无论成功失败)
+    bool ok = true;
+    std::string stop_at = cfg.execution.stop_after;
+    std::string reached = "";
+    for (const auto& sd : stages) {
+        ok = ok && run_v2_with_timing(sd.stage, sd.name, sd.fn);
+        if (!ok) break;
+        reached = sd.name;
+        auto git = kGateMap.find(sd.name);
+        std::string gate = (git != kGateMap.end()) ? git->second : sd.name;
+        if (stop_at == gate) {
+            // 逐 Gate 成功停止: 明确 completed_to_gate, 不冒充完整 Stage1
+            result.success = true;
+            result.completed_to_gate = gate;
+            result.output_hiss_path = (gate == "drizzle" || gate == "hiss_verify" || gate == "browser_verify")
+                                      ? cfg.output.hiss : "";
+            LOG_INFO("orchestrator", "========== stage1 逐 Gate 停止: completed_to_gate=" + gate
+                     + " (stop_after=" + stop_at + ") ==========");
+            if (frame_ != nullptr && fn_frame_destroy) {
+                fn_frame_destroy(frame_);
+                frame_ = nullptr;
+            }
+            state_ = TaskState::COMPLETED;
+            return result;
+        }
+    }
+
     if (frame_ != nullptr && fn_frame_destroy) {
         fn_frame_destroy(frame_);
         frame_ = nullptr;
     }
 
     result.success = ok;
-
-    // P04-004: 原子输出清理 - 失败/取消/超时时删除部分输出文件
-    // 默认 allow_partial_output=false (严格原子性), 删除部分输出
-    // 若 allow_partial_output=true, 保留部分输出 (标记 partial)
-    if (!ok) {
+    if (ok) {
+        result.completed_to_gate = "complete";
+        result.output_hiss_path = cfg.output.hiss;
+    } else {
+        result.completed_to_gate = reached.empty() ? "none" : reached;
         if (!config_.allow_partial_output) {
             LOG_INFO("orchestrator", "P04-004: 原子性清理 - stage1 失败/取消/超时, 删除部分输出");
-            cleanup_partial_output(output_hiss);
-            result.output_hiss_path = "";  // CFG-011: output_ahpx_path -> output_hiss_path
-        } else {
-            LOG_WARN("orchestrator", "P04-004: allow_partial_output=true, 保留部分输出: " + output_hiss);
-            result.output_hiss_path = output_hiss;  // 标记为 partial 输出
+            cleanup_partial_output(cfg.output.hiss);
+            result.output_hiss_path = "";
         }
-    } else {
-        result.output_hiss_path = output_hiss;
     }
-
     state_ = ok ? TaskState::COMPLETED : TaskState::FAILED;
-
     LOG_INFO("orchestrator", "========== stage1 "
              + std::string(ok ? "完成 (成功)" : "失败") + " ==========");
     return result;
