@@ -7,6 +7,7 @@
 
 #include "astro/compute/acr.hpp"
 #include "classic_common.hpp"
+#include "../fault/exit_safe.hpp"
 
 // run_eXX 定义在 acr_classic_experiments 静态库，extern "C" 避免名称修饰
 extern "C" std::vector<astro::compute::classic::CaseResult> run_e01();
@@ -60,6 +61,5 @@ int main(int argc, char** argv) {
     [[maybe_unused]] volatile auto p21 = &run_e21;
 
     int result = RUN_ALL_TESTS();
-    astro::compute::runtime_shutdown();
-    return result;
+    astro::compute::test::exit_after_tests(result);
 }

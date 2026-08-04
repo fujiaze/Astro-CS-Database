@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "astro/compute/acr.hpp"
+#include "exit_safe.hpp"
 
 using namespace astro::compute;
 using namespace astro::compute::scheduler;
@@ -102,6 +103,5 @@ int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     astro::compute::runtime_init();
     int result = RUN_ALL_TESTS();
-    astro::compute::runtime_shutdown();
-    return result;
+    astro::compute::test::exit_after_tests(result);
 }

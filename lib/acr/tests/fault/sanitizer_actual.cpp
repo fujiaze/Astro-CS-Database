@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <new>
 #include <string>
+#include "exit_safe.hpp"
 
 // ===== sanitizer 编译时检测 =====
 #if defined(__has_feature)
@@ -185,5 +186,5 @@ int main(int argc, char** argv) {
     // death test 使用 threadsafe 模式
     ::testing::FLAGS_gtest_death_test_style = "threadsafe";
     int result = RUN_ALL_TESTS();
-    return result;
+    astro::compute::test::exit_after_tests(result);
 }
