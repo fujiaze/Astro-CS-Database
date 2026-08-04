@@ -107,3 +107,9 @@ target_include_directories(acr_test_api_traits PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../core
 )
 gtest_discover_tests(acr_test_api_traits DISCOVERY_MODE PRE_TEST)
+
+# 23 号计划 §1：KernelRegistry（可加速 ABI 分层）
+add_executable(acr_test_kernel_registry test_kernel_registry.cpp)
+target_link_libraries(acr_test_kernel_registry PRIVATE
+    acr_api GTest::gtest_main)
+gtest_discover_tests(acr_test_kernel_registry DISCOVERY_MODE PRE_TEST)

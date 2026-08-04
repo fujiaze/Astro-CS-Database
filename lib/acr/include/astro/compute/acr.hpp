@@ -374,9 +374,25 @@ Event parallel_scan(KernelId /*id*/, BufferView<T> input, BufferView<T> output, 
 //   5. 公共头不暴露第三方类型（TaskDescriptor 前向声明，完整类型在 .cpp 内）
 //   6. Args 通过 lambda 捕获传递（与旧 API 一致），不直接支持可变 Args
 //      （spec 写 Args&&... 是 future-proofing，当前实现要求 kernel 单参数）
+//
+// ============================================================================
+// 23 号计划 §1：CPU-only compatibility API 标记
+// ----------------------------------------------------------------------------
+// 以下 parallel_for/parallel_tiles/parallel_reduce/parallel_batch 接受普通
+// C++ lambda / 函数对象 / host 函数指针，它们**只能作为 CPU 兼容执行入口**，
+// 不能直接作为 CUDA/HIP/SYCL device kernel 执行。
+//
+// 可加速路径必须使用：
+//   OperationId + KernelRegistration + KernelInvocation + KernelRegistry
+// （见 include/astro/compute/kernel_registry.hpp）。
+// Dispatcher 只会把 invocation 交给 supports() 为 true 的 executor；
+// 设备 launcher 缺失时回退 CPU 并如实报告，不得静默伪装 GPU 执行。
+// ============================================================================
 
 // parallel_for(OperationId, Range1D, TaskTraits, KernelFn)
 // ACR 根据画像和数据驻留自动决定 CPU/GPU、块大小、并发方式。
+// [CPU-ONLY compatibility API] host lambda 不能直接作为 CUDA kernel 执行；
+// 需要设备加速时通过 KernelRegistry 注册设备 launcher。
 template<class KernelFn>
 Event parallel_for(OperationId id, Range1D range, TaskTraits traits, KernelFn&& fn) {
     if (range.empty()) { Event e; return e; }
@@ -392,6 +408,7 @@ Event parallel_for(OperationId id, Range1D range, TaskTraits traits, KernelFn&& 
 
 // parallel_tiles(OperationId, Extent2D, TileShape, TaskTraits, KernelFn)
 // ACR 负责：边缘 Tile、halo 只读视图、输出所有权、CPU/GPU 动态领取和尾部收缩。
+// [CPU-ONLY compatibility API] 同上。
 template<class KernelFn>
 Event parallel_tiles(OperationId id, Extent2D extent, TileShape preferred_tile,
                      TaskTraits traits, KernelFn&& fn) {
@@ -412,6 +429,7 @@ Event parallel_tiles(OperationId id, Extent2D extent, TileShape preferred_tile,
 // parallel_reduce(OperationId, Range1D, TaskTraits, T identity, MapKernel, ReduceOp)
 // 每设备先产生局部结果，再按 NumericPolicy 合并。
 // 默认允许正常浮点末位差异；deterministic_merge=true 或 fp64 accumulator 走确定性路径。
+// [CPU-ONLY compatibility API] host map/reduce 不能直接作为 CUDA kernel 执行。
 template<class T, class MapKernel, class ReduceOp>
 T parallel_reduce(OperationId id, Range1D range, TaskTraits traits, T identity,
                   MapKernel&& map, ReduceOp&& reduce_op) {
@@ -439,6 +457,7 @@ T parallel_reduce(OperationId id, Range1D range, TaskTraits traits, T identity,
 // parallel_batch(OperationId, item_count, TaskTraits, KernelFn)
 // 适合大量独立对象。高度不均匀时设置 uniformity=highly_variable，
 // 调度器使用更细粒度动态领取。
+// [CPU-ONLY compatibility API] 同上。
 template<class KernelFn>
 Event parallel_batch(OperationId id, std::size_t item_count, TaskTraits traits, KernelFn&& fn) {
     if (item_count == 0) { Event e; return e; }
