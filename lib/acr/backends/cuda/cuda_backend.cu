@@ -29,8 +29,8 @@ StatusCode cuda_error_to_status(cudaError_t err) noexcept {
         case cudaErrorMemoryAllocation:
         case cudaErrorLaunchOutOfResources:
             return StatusCode::OutOfMemory;
-        case cudaErrorDeviceUnavailable:
-        case cudaErrorIllegalDevice:
+        case cudaErrorDevicesUnavailable:
+        case cudaErrorInvalidDevice:
         case cudaErrorDeviceUninitialized:
         case cudaErrorInsufficientDriver:
         case cudaErrorNoDevice:
@@ -72,7 +72,7 @@ std::atomic<bool> g_callback_registered{false};
 
 // 格式化 GPU UUID（16 字节 → GPU-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx）
 std::string format_uuid(const cudaUUID_t& uuid) {
-    const unsigned char* b = uuid.bytes;
+    const unsigned char* b = reinterpret_cast<const unsigned char*>(uuid.bytes);
     char buf[64] = {0};
     std::snprintf(buf, sizeof(buf),
                   "GPU-%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-"

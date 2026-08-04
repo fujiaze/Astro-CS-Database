@@ -3,6 +3,7 @@
 #ifdef ACR_BUILD_CUDA
 
 #include "cuda_buffer.hpp"
+#include "cuda_backend.hpp"  // cuda_error_to_status 声明
 
 namespace astro::compute::cuda {
 

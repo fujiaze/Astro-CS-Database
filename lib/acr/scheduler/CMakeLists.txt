@@ -17,6 +17,10 @@ target_link_libraries(acr_scheduler PUBLIC
     acr_cost
     acr_utilization
 )
+# F-fix 8: ACR_BUILD_CUDA=ON 时链接 acr_cuda（CudaExecutor 真实 GPU 执行器）
+if(ACR_BUILD_CUDA)
+    target_link_libraries(acr_scheduler PUBLIC acr_cuda)
+endif()
 target_include_directories(acr_scheduler PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/../include
     ${CMAKE_CURRENT_SOURCE_DIR}

@@ -96,8 +96,12 @@ ExecutorRegistry ExecutorRegistry::create_cpu_only() {
 ExecutorRegistry ExecutorRegistry::create_auto() {
     ExecutorRegistry registry;
     registry.register_executor(std::make_unique<CpuExecutor>("cpu", 65536, 256));
-    // CUDA executor 在 ACR_BUILD_CUDA=ON 时由 cuda_executor_factory 注册
-    // 此处不直接包含 CUDA header（避免 CPU-only 构建引入 CUDA 依赖）
+#ifdef ACR_BUILD_CUDA
+    // F-fix 8: ACR_BUILD_CUDA=ON 时追加 CudaExecutor（真实 GPU 执行器）
+    // 无 CUDA 设备时 append_cuda_executors 内部跳过，调用者继续使用 CPU executor
+    extern void append_cuda_executors(ExecutorRegistry&);
+    append_cuda_executors(registry);
+#endif
     return registry;
 }
 

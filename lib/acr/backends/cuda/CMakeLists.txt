@@ -31,6 +31,7 @@ endif()
 add_library(acr_cuda STATIC
     cuda_backend.cu
     cuda_buffer.cpp
+    cuda_executor.cpp
 )
 target_link_libraries(acr_cuda PUBLIC
     acr_options
@@ -40,12 +41,18 @@ target_include_directories(acr_cuda PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/../../include
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
+# F-fix 8: CUDA runtime headers + scheduler 头文件路径
+# cuda_executor.cpp include "scheduler/device_executor.hpp"，需 lib/acr/ 根目录
+target_include_directories(acr_cuda PRIVATE
+    ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../..  # lib/acr/ 根目录
+)
 # ACR_BUILD_CUDA 传递给消费者（test/example 源文件用 #ifdef 保护）
 target_compile_definitions(acr_cuda PUBLIC ACR_BUILD_CUDA=1)
 
-# nvcc 选项：-O2 + 让 host 编译器用 C++17 + 抑制 deprecated 警告
+# nvcc 选项：-O2 + 让 host 编译器用 C++17 + /utf-8 + 抑制 deprecated 警告
 target_compile_options(acr_cuda PRIVATE
-    $<$<COMPILE_LANGUAGE:CUDA>:-O2 -Xcompiler=-std=c++17 -Wno-deprecated-gpu-targets>
+    $<$<COMPILE_LANGUAGE:CUDA>:-O2 -Xcompiler=-std=c++17 -Xcompiler=/utf-8 -Wno-deprecated-gpu-targets>
 )
 
 # CUDA runtime 库链接（cuda + cudart）

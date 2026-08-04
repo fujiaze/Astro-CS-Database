@@ -21,6 +21,9 @@ project(astro_compute_runtime
 # C++20（alpaka 1.2.0 要求）
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# F-fix 8: CUDA 11.8 不支持 C++20，CUDA 标准设为 17
+set(CMAKE_CUDA_STANDARD 17)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # 启用 ctest（顶层调用，确保 build 根生成 CTestTestfile.cmake）
@@ -41,7 +44,10 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${ACR_LIB_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${ACR_LIB_DIR})
 
 if(MSVC)
-    add_compile_options(/W4 /permissive- /Zc:__cplusplus /EHsc /constexprSteps-1)
+    # F-fix 8: MSVC 特有 flags 只设到 CMAKE_CXX_FLAGS，不对 CUDA 生效
+    # （nvcc 不识别 slash 格式，会把 /W4 等当成输入文件路径）
+    # /utf-8 让 cl 用 UTF-8 解析源文件（含中文注释）
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4 /permissive- /Zc:__cplusplus /EHsc /utf-8")
 else()
     add_compile_options(-Wall -Wextra -Wpedantic -Wno-unused-parameter)
 endif()
@@ -114,11 +120,25 @@ target_compile_features(acr_options INTERFACE cxx_std_20)
 # 与 MinGW g++ 16.1.0 不兼容（/dev/null 重定向 + 版本号解析失败）。
 # 务实 fallback：优先 MSYS2 系统包（find_package），FetchContent_Declare 仅作 ADR 记录。
 # dependency-lock.json 已记录版本差异（tbb 2023.0.0、gtest 1.17.0，来源 MSYS2）。
-find_package(TBB REQUIRED)
-message(STATUS "ACR: oneTBB found via system package: ${TBB_VERSION}")
+find_package(TBB QUIET)
+if(TBB_FOUND)
+    message(STATUS "ACR: oneTBB found via system package: ${TBB_VERSION}")
+else()
+    message(STATUS "ACR: TBB system package not found, using FetchContent (oneTBB v2022.0.0)")
+    set(TBB_TEST OFF CACHE BOOL "" FORCE)
+    set(TBB_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(TBB_STRICT OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(onetbb)
+endif()
 if(ACR_BUILD_TESTS)
-    find_package(GTest REQUIRED)
-    message(STATUS "ACR: GoogleTest found via system package: ${GTest_VERSION}")
+    find_package(GTest QUIET)
+    if(GTest_FOUND)
+        message(STATUS "ACR: GoogleTest found via system package: ${GTest_VERSION}")
+    else()
+        message(STATUS "ACR: GTest system package not found, using FetchContent (googletest v1.15.2)")
+        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+        FetchContent_MakeAvailable(googletest)
+    endif()
 endif()
 
 # === Phase C: hwloc / cpu_features 检测 ===
