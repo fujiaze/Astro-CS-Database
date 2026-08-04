@@ -14,6 +14,7 @@
 #pragma once
 
 #include "current_state.hpp"
+#include "device_executor.hpp"
 #include "fallback.hpp"
 #include "mixed_runner.hpp"
 #include "partitioner.hpp"
@@ -47,6 +48,14 @@ struct DispatcherConfig {
     bool enable_fixed_tail_chunking{false};     // 默认关闭（审计要求）
     double fixed_tail_threshold{0.7};           // 固定阈值（仅实验用）
     std::size_t min_effective_chunk{256};       // 缩块下限
+    // F-fix 6 + F-fix 7：设备执行器注册表（可选）
+    // 如果提供且包含多个可用 executor，Dispatcher 会通过 execute_via_executors 执行：
+    //   - 每个空闲 executor 按自身推荐块大小领取工作块
+    //   - 设备忙时不等待，其他空闲设备继续领取
+    //   - actual_primary_backend 从真实完成统计生成
+    // 为空或仅 CPU executor 时退化为旧路径（向后兼容）
+    // 禁止用户提供 CPU/GPU 比例：分配由 executor.available() + claim_next_dynamic 决定
+    std::shared_ptr<ExecutorRegistry> executors;
 };
 
 // ===== Coverage 统计（从真实执行事件生成）=====
@@ -146,6 +155,17 @@ public:
     // fn: per-chunk kernel（参数：chunk_idx, begin, end, user_data）
     // user_data: 传递给 fn 的用户数据
     CostAwareResult dispatch_range_cost_aware(
+        const TaskDescriptor& task,
+        const cost::CostEstimate& estimate,
+        ChunkKernelFn fn, void* user_data);
+
+    // ===== F-fix 6 + F-fix 7：通过 DeviceExecutor 执行（多设备工作保持）=====
+    // 如果配置了多个 executor，每个空闲 executor 按自身推荐块大小领取工作块。
+    // 设备忙时不等待：其他空闲设备继续领取。
+    // actual_primary_backend 从每个 executor 的真实完成统计生成。
+    // 无 executor 或仅 CPU 时退化为旧路径（dispatch_range_cost_aware）。
+    // 禁止用户提供 CPU/GPU 比例：分配由 executor.available() + claim_next_dynamic 决定。
+    CostAwareResult dispatch_via_executors(
         const TaskDescriptor& task,
         const cost::CostEstimate& estimate,
         ChunkKernelFn fn, void* user_data);

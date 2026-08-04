@@ -9,6 +9,7 @@ add_library(acr_scheduler STATIC
     dispatcher.cpp
     current_state.cpp
     shared_work_pool.cpp
+    device_executor.cpp
 )
 target_link_libraries(acr_scheduler PUBLIC
     acr_options
