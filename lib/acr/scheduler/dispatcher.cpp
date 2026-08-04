@@ -678,6 +678,13 @@ struct Dispatcher::Impl {
         std::vector<std::atomic<std::size_t>> exec_items(n_exec);
         std::vector<std::atomic<std::size_t>> exec_bytes(n_exec);
         std::vector<std::atomic<std::uint64_t>> exec_elapsed(n_exec);
+        // 23 号计划 §4/§6：首轮领取公平门——每个 executor 至少先领取一块，
+        // 之后才允许任意设备连续领取。防止快速 CPU worker 在慢设备（GPU）线程
+        // 首次领取前耗尽整个池，保证真实 Mixed 确定发生（cpu_done>0 && gpu_done>0）。
+        std::vector<std::atomic<bool>> first_claimed(n_exec);
+        std::atomic<std::size_t> first_round_made{0};
+        std::atomic<bool> first_round_done{false};
+        for (auto& f : first_claimed) f.store(false, std::memory_order_relaxed);
         for (auto& a : exec_done) a.store(0, std::memory_order_relaxed);
         for (auto& a : exec_failed) a.store(0, std::memory_order_relaxed);
         for (auto& a : exec_items) a.store(0, std::memory_order_relaxed);
@@ -895,6 +902,23 @@ struct Dispatcher::Impl {
                                 cpu_ctrl->mark_worker_idle(worker_id);
                             }
                             break;
+                        }
+                        // 首轮公平门（仅影响每个 executor 的第一块之前）
+                        if (!first_round_done.load(std::memory_order_acquire)) {
+                            if (!first_claimed[i].exchange(true,
+                                                           std::memory_order_acq_rel)) {
+                                if (first_round_made.fetch_add(1,
+                                                std::memory_order_acq_rel) + 1 ==
+                                    n_exec) {
+                                    first_round_done.store(true,
+                                                           std::memory_order_release);
+                                }
+                            } else {
+                                while (!first_round_done.load(
+                                           std::memory_order_acquire)) {
+                                    std::this_thread::yield();
+                                }
+                            }
                         }
                         if (gpu_ctrl && exec->backend_type().rfind("cuda", 0) == 0) {
                             gpu_ctrl->report_queue_depth(
