@@ -24,7 +24,7 @@ $SRCS = @(
     "ipv_solver", "ipv_entry"
 )
 
-$CXXFLAGS = "-std=c++17", "-O3", "-ffast-math", "-funroll-loops", "-march=native", "-Wall", "-Wextra", "-DIPV_EXPORTS", "-D__USE_MINGW_ANSI_STDIO=1", "-mstackrealign", "-fopenmp"
+	$CXXFLAGS = "-std=c++17", "-O3", "-funroll-loops", "-march=native", "-Wall", "-Wextra", "-DIPV_EXPORTS", "-D__USE_MINGW_ANSI_STDIO=1", "-mstackrealign", "-fopenmp"
 $INCLUDES = "-Iinclude"
 
 Write-Host "=== 编译 IPV DLL ===" -ForegroundColor Cyan
@@ -69,7 +69,7 @@ $obj_args = $obj_files -join " "
 
 $psi = New-Object System.Diagnostics.ProcessStartInfo
 $psi.FileName = $GXX
-$psi.Arguments = "-std=c++17 -O3 -ffast-math -funroll-loops -march=native -D__USE_MINGW_ANSI_STDIO=1 -fopenmp -shared $obj_args -o ipv_solver.dll -lkernel32"
+	$psi.Arguments = "-std=c++17 -O3 -funroll-loops -march=native -D__USE_MINGW_ANSI_STDIO=1 -fopenmp -shared $obj_args -o ipv_solver.dll -lkernel32"
 $psi.WorkingDirectory = $IPV_DIR
 $psi.UseShellExecute = $false
 $psi.RedirectStandardError = $true

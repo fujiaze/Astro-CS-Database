@@ -3858,15 +3858,16 @@ bool Orchestrator::run_stage_nside(TaskResult& result) {
         return true;
     }
     // auto: 从 WCS CD 矩阵推导 (与 drizzle 内部一致)
-    // WCS 字段在 run_stage_platesolve 中写入 frame_ kv (CD1_1 等)
-    auto fn_kv_get_double = dll_loader_.get_function<double (*)(const PipelineFrame*, const char*, double)>(
+    // WCS 字段在 run_stage_platesolve 中写入 frame_ header kv (CD1_1 等)
+    auto fn_kv_get_double = dll_loader_.get_function<double (*)(
+        const PipelineFrame*, const char*, const char*, double)>(
         ModuleId::AIO, "aio_frame_kv_get_double");
     double cd11 = 0, cd12 = 0, cd21 = 0, cd22 = 0;
     if (fn_kv_get_double && frame_) {
-        cd11 = fn_kv_get_double(frame_, "CD1_1", 0.0);
-        cd12 = fn_kv_get_double(frame_, "CD1_2", 0.0);
-        cd21 = fn_kv_get_double(frame_, "CD2_1", 0.0);
-        cd22 = fn_kv_get_double(frame_, "CD2_2", 0.0);
+        cd11 = fn_kv_get_double(frame_, "header", "CD1_1", 0.0);
+        cd12 = fn_kv_get_double(frame_, "header", "CD1_2", 0.0);
+        cd21 = fn_kv_get_double(frame_, "header", "CD2_1", 0.0);
+        cd22 = fn_kv_get_double(frame_, "header", "CD2_2", 0.0);
     }
     if (cd11 == 0.0 && cd22 == 0.0) {
         result.error_msg = "[NSIDE] WCS CD 矩阵缺失, 无法推导 nside (platesolve 未成功?)";
@@ -3892,7 +3893,9 @@ bool Orchestrator::run_stage_browser_verify(TaskResult& result) {
         result.exit_code = AstroCsExitCode::HISS_INVALID;
         return false;
     }
-    auto fn_inspect = dll_loader_.get_function<int (*)(const char*, char**)>(
+    auto fn_inspect = dll_loader_.get_function<int (*)(
+        const char*, uint32_t*, uint32_t*, uint32_t*, uint32_t*,
+        uint64_t*, uint64_t*, char**, uint64_t**)>(
         ModuleId::AIO, "aio_hiss_inspect");
     auto fn_free = dll_loader_.get_function<void (*)(void*)>(
         ModuleId::AIO, "aio_hio_free");
@@ -3902,15 +3905,21 @@ bool Orchestrator::run_stage_browser_verify(TaskResult& result) {
         return false;
     }
     char* meta = nullptr;
-    int ret = fn_inspect(current_output_path_.c_str(), &meta);
+    uint32_t nside = 0, tile_nside = 0, depth = 0, n_leaf_per_tile = 0;
+    uint64_t n_tiles = 0, n_pix_total = 0;
+    uint64_t* tile_ipix_list = nullptr;
+    int ret = fn_inspect(current_output_path_.c_str(), &nside, &tile_nside, &depth,
+                         &n_leaf_per_tile, &n_tiles, &n_pix_total, &meta, &tile_ipix_list);
     if (ret != 0 || meta == nullptr) {
         result.error_msg = "[BROWSER_VERIFY] aio_hiss_inspect 失败 (rc=" + std::to_string(ret) + ")";
         result.exit_code = AstroCsExitCode::HISS_INVALID;
         if (meta) fn_free(meta);
+        if (tile_ipix_list) fn_free(tile_ipix_list);
         return false;
     }
     std::string meta_str = meta;
     fn_free(meta);
+    if (tile_ipix_list) fn_free(tile_ipix_list);
     // 核对 precision_mode (0=FP32, 1=FP64)
     bool expect_fp64 = (config_.precision == PrecisionMode::FP64);
     bool has_precision = meta_str.find("\"precision_mode\"") != std::string::npos;
@@ -3920,9 +3929,11 @@ bool Orchestrator::run_stage_browser_verify(TaskResult& result) {
         return false;
     }
     // 查询 API: 双 dtype
-    auto fn_query_f32 = dll_loader_.get_function<int (*)(const char*, double, double, float*)>(
+    auto fn_query_f32 = dll_loader_.get_function<int (*)(
+        const char*, double, double, float*, uint8_t*)>(
         ModuleId::AIO, "aio_hiss_query_pixel");
-    auto fn_query_f64 = dll_loader_.get_function<int (*)(const char*, double, double, double*)>(
+    auto fn_query_f64 = dll_loader_.get_function<int (*)(
+        const char*, double, double, double*, uint8_t*)>(
         ModuleId::AIO, "aio_hiss_query_pixel_f64");
     if (expect_fp64) {
         if (!fn_query_f64) {
@@ -3931,7 +3942,8 @@ bool Orchestrator::run_stage_browser_verify(TaskResult& result) {
             return false;
         }
         double v = 0.0;
-        if (fn_query_f64(current_output_path_.c_str(), 272.9, -23.25, &v) != 0) {
+        uint8_t sup = 0;
+        if (fn_query_f64(current_output_path_.c_str(), 272.9, -23.25, &v, &sup) != 0) {
             result.error_msg = "[BROWSER_VERIFY] FP64 query 失败";
             result.exit_code = AstroCsExitCode::HISS_INVALID;
             return false;
@@ -3944,7 +3956,8 @@ bool Orchestrator::run_stage_browser_verify(TaskResult& result) {
             return false;
         }
         float v = 0.0f;
-        if (fn_query_f32(current_output_path_.c_str(), 272.9, -23.25, &v) != 0) {
+        uint8_t sup = 0;
+        if (fn_query_f32(current_output_path_.c_str(), 272.9, -23.25, &v, &sup) != 0) {
             result.error_msg = "[BROWSER_VERIFY] FP32 query 失败";
             result.exit_code = AstroCsExitCode::HISS_INVALID;
             return false;

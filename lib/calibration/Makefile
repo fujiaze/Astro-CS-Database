@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -O3 -march=native -ffast-math -funroll-loops -fopenmp -Wall -std=c++17
+CXXFLAGS = -O3 -march=native -funroll-loops -fopenmp -Wall -std=c++17
 INCLUDES = -Icpp
 SRC_DIR = cpp
 SRCS = $(SRC_DIR)/cosmetic_corrector.cpp
