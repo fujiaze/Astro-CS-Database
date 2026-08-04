@@ -1,19 +1,24 @@
-// lib/acr/scheduler/shared_work_pool.hpp — 共享工作池（F-fix 2）
+// lib/acr/scheduler/shared_work_pool.hpp — 共享工作池（F-fix 5 重构）
 //
-// CostEstimator 驱动的 Shared Pending Pool（控制包 07_COST_MODEL §3）：
-//   1. 工作块状态机：PENDING → CLAIMED(device, attempt) → DONE / FAILED
-//   2. FAILED 可重新进入 PENDING；已 DONE 不可再次执行
-//   3. claim 使用原子状态转换
-//   4. 已开始块不跨设备迁移
-//   5. 设备失败只回收未开始或明确失败块
-//   6. coverage 由实际完成事件驱动
-//   7. 禁止执行结束后无条件批量 mark_done
-//   8. 最终验证每块恰好一次成功完成
+// F-fix 5 重构目标：
+//   1. 禁止动态增长 std::vector<WorkBlock> 后返回裸指针；
+//   2. block_id 与预分配槽位一一对应，锁外不分配 ID、锁内不乱序插入；
+//   3. claim 返回值令牌 WorkToken{id, begin, end, generation, device_id}；
+//   4. 状态存储采用预分配槽位（init 时 reserve，不再 push_back）；
+//   5. 统计用原子计数器，不遍历 vector；
+//   6. 并发安全：所有状态转换用 atomic CAS，无锁读取安全。
+//
+// 设计（控制包 07_COST_MODEL §3 + 22_FIX_REVIEW_CORRECTION_PLAN §F-fix 5）：
+//   - 固定模式：init 时预创建所有块，reserve 后不再增长
+//   - 动态模式：init_dynamic 预分配最大可能槽位数，claim 时填充 begin/end
+//   - WorkToken 是值类型，拷贝返回，不依赖池内地址
+//   - generation 防止 ABA：claim 时递增，mark_done 时验证
 #pragma once
 
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -28,163 +33,214 @@ enum class WorkBlockStatus : std::uint8_t {
     Failed   = 3,   // 执行失败（可重新入池）
 };
 
-// ===== 单个工作块 =====
-struct WorkBlock {
-    std::size_t id{0};              // 唯一 ID
+// ===== 值令牌（claim 成功后返回，不依赖池内地址）=====
+struct WorkToken {
+    std::size_t id{0};              // 槽位 ID（与 slots_[id] 一一对应）
     std::size_t begin{0};           // 范围起始
     std::size_t end{0};             // 范围结束
+    std::uint64_t generation{0};    // 代际标记（防止 ABA）
+    std::string device_id;          // 领取此块的设备
+
+    bool valid() const noexcept { return end > begin; }
+    std::size_t size() const noexcept { return end - begin; }
+};
+
+// ===== 预分配槽位（地址稳定，atomic 状态）=====
+struct WorkSlot {
+    std::size_t id{0};
+    std::atomic<std::size_t> begin{0};       // 动态模式 claim 时写入
+    std::atomic<std::size_t> end{0};         // 动态模式 claim 时写入
     std::atomic<WorkBlockStatus> status{WorkBlockStatus::Pending};
-    std::string claimed_device;     // 领取此块的设备
-    int attempt_count{0};           // 尝试次数
+    std::atomic<std::uint64_t> generation{0}; // 每次 claim 递增
+    std::atomic<int> attempt_count{0};
+    // claimed_device 只在 claim 时写，后续只读（通过 generation 保证可见性）
+    // 用 atomic 避免数据竞争
+    std::atomic<const char*> claimed_device{nullptr};  // 指向外部静态字符串
 
-    WorkBlock() = default;
-    WorkBlock(std::size_t id_, std::size_t b, std::size_t e)
-        : id(id_), begin(b), end(e) {}
+    WorkSlot() = default;
 
-    // 显式移动构造（atomic 不可拷贝）
-    WorkBlock(WorkBlock&& other) noexcept
-        : id(other.id), begin(other.begin), end(other.end),
-          status(other.status.load(std::memory_order_relaxed)),
-          claimed_device(std::move(other.claimed_device)),
-          attempt_count(other.attempt_count) {}
-    WorkBlock& operator=(WorkBlock&& other) noexcept {
-        id = other.id;
-        begin = other.begin;
-        end = other.end;
-        status.store(other.status.load(std::memory_order_relaxed), std::memory_order_relaxed);
-        claimed_device = std::move(other.claimed_device);
-        attempt_count = other.attempt_count;
-        return *this;
-    }
-    WorkBlock(const WorkBlock&) = delete;
-    WorkBlock& operator=(const WorkBlock&) = delete;
+    // 禁止拷贝/移动（atomic 不可拷贝）
+    WorkSlot(const WorkSlot&) = delete;
+    WorkSlot& operator=(const WorkSlot&) = delete;
+    WorkSlot(WorkSlot&&) = delete;
+    WorkSlot& operator=(WorkSlot&&) = delete;
 
     // 原子状态转换：Pending → Claimed
-    bool try_claim(const std::string& device_id) {
+    bool try_claim(const char* device_id_cstr, std::uint64_t expected_gen) {
         WorkBlockStatus expected = WorkBlockStatus::Pending;
         if (status.compare_exchange_strong(expected, WorkBlockStatus::Claimed,
                                             std::memory_order_acq_rel)) {
-            claimed_device = device_id;
-            ++attempt_count;
+            // 验证代际（防止 ABA：Failed→Pending 后旧 token 误标记）
+            // generation 在 reclaim 时递增，claim 时验证
+            std::uint64_t cur_gen = generation.load(std::memory_order_acquire);
+            if (cur_gen != expected_gen) {
+                // 代际不匹配，回滚状态
+                status.store(WorkBlockStatus::Pending, std::memory_order_release);
+                return false;
+            }
+            claimed_device.store(device_id_cstr, std::memory_order_release);
+            attempt_count.fetch_add(1, std::memory_order_relaxed);
             return true;
         }
         return false;
     }
 
-    // 标记完成：Claimed → Done
-    bool try_mark_done() {
+    // 标记完成：Claimed → Done（验证 generation）
+    bool try_mark_done(std::uint64_t expected_gen) {
         WorkBlockStatus expected = WorkBlockStatus::Claimed;
-        return status.compare_exchange_strong(expected, WorkBlockStatus::Done,
-                                               std::memory_order_acq_rel);
+        if (status.compare_exchange_strong(expected, WorkBlockStatus::Done,
+                                            std::memory_order_acq_rel)) {
+            std::uint64_t cur_gen = generation.load(std::memory_order_acquire);
+            if (cur_gen != expected_gen) {
+                // 代际不匹配，回滚
+                status.store(WorkBlockStatus::Claimed, std::memory_order_release);
+                return false;
+            }
+            return true;
+        }
+        return false;
     }
 
-    // 标记失败：Claimed → Failed（可重新入池）
-    bool try_mark_failed() {
+    // 标记失败：Claimed → Failed（验证 generation）
+    bool try_mark_failed(std::uint64_t expected_gen) {
         WorkBlockStatus expected = WorkBlockStatus::Claimed;
-        return status.compare_exchange_strong(expected, WorkBlockStatus::Failed,
-                                               std::memory_order_acq_rel);
+        if (status.compare_exchange_strong(expected, WorkBlockStatus::Failed,
+                                            std::memory_order_acq_rel)) {
+            std::uint64_t cur_gen = generation.load(std::memory_order_acquire);
+            if (cur_gen != expected_gen) {
+                status.store(WorkBlockStatus::Claimed, std::memory_order_release);
+                return false;
+            }
+            return true;
+        }
+        return false;
     }
 
-    // 重新入池：Failed → Pending
+    // 重新入池：Failed → Pending（递增 generation，使旧 token 失效）
     bool try_reclaim() {
         WorkBlockStatus expected = WorkBlockStatus::Failed;
-        return status.compare_exchange_strong(expected, WorkBlockStatus::Pending,
-                                               std::memory_order_acq_rel);
+        if (status.compare_exchange_strong(expected, WorkBlockStatus::Pending,
+                                            std::memory_order_acq_rel)) {
+            generation.fetch_add(1, std::memory_order_release);
+            return true;
+        }
+        return false;
     }
 };
 
 // ===== SharedWorkPool =====
 // 共享工作池：所有设备从此池领取未开始的工作块。
-// CostEstimator 驱动：每次 claim 时可选择最优设备和块大小。
+// F-fix 5：预分配槽位 + WorkToken 值令牌，无并发 vector 增长。
 class SharedWorkPool {
 public:
     SharedWorkPool() = default;
+    ~SharedWorkPool();
 
     // 初始化：按 chunk_size 拆分 [begin, end)（固定块大小模式）
+    // 预分配所有槽位，reserve 后不再增长
     void init(std::size_t begin, std::size_t end, std::size_t chunk_size);
 
-    // F-fix 3：动态初始化（不预创建块，claim 时动态计算大小）
-    // min_chunk: 最小块大小（避免过小块）
-    // max_chunk: 最大块大小（初始/上限）
+    // 动态初始化：预分配最大可能槽位数
+    // max_slots = (end - begin + min_chunk - 1) / min_chunk
+    // claim 时填充 begin/end（guided scheduling）
     void init_dynamic(std::size_t begin, std::size_t end,
                       std::size_t min_chunk, std::size_t max_chunk);
 
     // ===== 领取下一块（固定块大小模式）=====
-    // 原子状态转换 Pending → Claimed
-    // 返回指向 WorkBlock 的指针；nullptr 表示无 pending 块
-    // device_id: 领取此块的设备标识
-    WorkBlock* claim_next(const std::string& device_id);
+    // 返回 WorkToken（值拷贝）；invalid token 表示无 pending 块
+    WorkToken claim_next(const std::string& device_id);
 
-    // F-fix 3：动态领取下一块（根据剩余工作和活跃设备数计算块大小）
-    // 块大小随剩余工作减少而逐步收缩（guided scheduling）
-    // n_active_devices: 当前活跃设备数
-    // 返回指向 WorkBlock 的指针；nullptr 表示无剩余工作
-    WorkBlock* claim_next_dynamic(const std::string& device_id,
-                                   std::size_t n_active_devices);
+    // ===== 动态领取下一块 =====
+    // 根据剩余工作和活跃设备数计算块大小（guided scheduling）
+    // 返回 WorkToken（值拷贝）；invalid token 表示无剩余工作
+    WorkToken claim_next_dynamic(const std::string& device_id,
+                                 std::size_t n_active_devices);
 
-    // ===== 标记完成 =====
+    // ===== 标记完成（验证 generation）=====
+    bool mark_done(std::size_t id, std::uint64_t generation);
+    // 兼容旧接口（不验证 generation，用于旧测试过渡）
     void mark_done(std::size_t id);
 
-    // ===== 标记失败 =====
-    // 失败块可重新入池（try_reclaim）
+    // ===== 标记失败（验证 generation）=====
+    bool mark_failed(std::size_t id, std::uint64_t generation);
+    // 兼容旧接口
     void mark_failed(std::size_t id);
 
     // ===== 回收失败块 =====
-    // 将所有 Failed 块重新设为 Pending
+    // 将所有 Failed 块重新设为 Pending（递增 generation）
     std::size_t reclaim_failed();
 
-    // ===== 统计 =====
+    // ===== 统计（原子计数器，无遍历）=====
     std::size_t total_blocks() const noexcept;
     std::size_t pending_count() const noexcept;
     std::size_t claimed_count() const noexcept;
     std::size_t done_count() const noexcept;
     std::size_t failed_count() const noexcept;
 
-    // 检查是否全部完成（所有块为 Done）
+    // 检查是否全部完成
     bool all_done() const noexcept;
 
     // 检查是否没有可领取的块（无 Pending 且无 Failed）
     bool no_work_left() const noexcept;
 
-    // 获取块引用（用于执行）
-    const std::vector<WorkBlock>& blocks() const noexcept { return blocks_; }
-    std::vector<WorkBlock>& blocks() noexcept { return blocks_; }
+    // 获取块状态（只读，用于测试验证）
+    WorkBlockStatus slot_status(std::size_t id) const;
+    std::size_t slot_begin(std::size_t id) const;
+    std::size_t slot_end(std::size_t id) const;
+    std::uint64_t slot_generation(std::size_t id) const;
 
     // 获取 done 位图（与 CoverageBitmap 兼容）
-    // done[i] = (blocks_[i].status == Done)
     std::vector<bool> done_bitmap() const;
 
     // ===== 动态 chunk 大小 =====
-    // F-fix 3：根据剩余工作和活跃设备数建议下一块大小
-    // guided: chunk = clamp(remaining / (2 * n_active_devices), min_chunk, max_chunk)
-    // 当 remaining 很小时，chunk 自动收缩到 min_chunk
     std::size_t suggest_next_chunk(std::size_t n_active_devices,
                                     std::size_t min_chunk,
                                     std::size_t max_chunk) const noexcept;
 
-    // F-fix 3：是否为动态模式
+    // 是否为动态模式
     bool is_dynamic() const noexcept { return dynamic_mode_; }
 
-    // F-fix 3：剩余工作量（动态模式）
+    // 剩余工作量（动态模式）
     std::size_t remaining_work() const noexcept;
+
+    // 实际使用的槽位数（动态模式）
+    std::size_t active_slot_count() const noexcept;
 
     // ===== 重置 =====
     void reset();
 
 private:
-    std::vector<WorkBlock> blocks_;
-    std::atomic<std::size_t> next_claim_index_{0};
-    mutable std::mutex mtx_;  // 保护 reclaim_failed 等需要遍历的操作
+    // 预分配槽位（reserve 后不再增长，地址稳定）
+    // 使用 unique_ptr 包裹，避免 vector<WorkSlot> 的 WorkSlot 不可移动问题
+    std::vector<std::unique_ptr<WorkSlot>> slots_;
+    std::size_t capacity_{0};               // 预分配槽位数
 
-    // F-fix 3：动态模式状态
+    // 固定模式
+    std::size_t total_blocks_{0};            // 实际块数
+
+    // 固定模式 claim 游标
+    std::atomic<std::size_t> next_claim_index_{0};
+
+    // 动态模式状态
     bool dynamic_mode_{false};
     std::size_t range_begin_{0};
     std::size_t range_end_{0};
-    std::size_t dyn_min_chunk_{256};
+    std::size_t dyn_min_chunk_{1};
     std::size_t dyn_max_chunk_{65536};
-    std::atomic<std::size_t> dyn_cursor_{0};     // 下一个块的起始位置
-    std::atomic<std::size_t> dyn_next_id_{0};     // 下一个块 ID
-    std::mutex dyn_mtx_;  // 保护 blocks_.push_back（动态模式）
+    std::atomic<std::size_t> dyn_cursor_{0};     // 工作分配游标（range 内位置）
+    std::atomic<std::size_t> next_slot_{0};      // 下一个可用槽位索引
+
+    // 原子统计（无遍历）
+    std::atomic<std::size_t> done_count_{0};
+    std::atomic<std::size_t> failed_count_{0};
+    std::atomic<std::size_t> claimed_count_{0};
+
+    // reclaim_failed 需要遍历（加锁保护）
+    mutable std::mutex reclaim_mtx_;
+
+    // 获取槽位指针（边界检查）
+    WorkSlot* get_slot(std::size_t id);
+    const WorkSlot* get_slot(std::size_t id) const;
 };
 
 } // namespace astro::compute::scheduler

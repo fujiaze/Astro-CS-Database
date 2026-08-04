@@ -25,9 +25,13 @@
 
 #include <algorithm>
 #include <atomic>
+#include <mutex>
 #include <numeric>
+#include <set>
 #include <stdexcept>
 #include <string>
+#include <thread>
+#include <utility>
 #include <vector>
 
 #include "astro/compute/acr.hpp"
@@ -743,22 +747,21 @@ TEST(SharedWorkPool, InitCreatesCorrectBlocks) {
     EXPECT_EQ(pool.done_count(), 0u);
     EXPECT_EQ(pool.failed_count(), 0u);
     EXPECT_FALSE(pool.all_done());
-    // 验证块范围
-    const auto& blocks = pool.blocks();
-    EXPECT_EQ(blocks[0].begin, 0u);
-    EXPECT_EQ(blocks[0].end, 25u);
-    EXPECT_EQ(blocks[3].begin, 75u);
-    EXPECT_EQ(blocks[3].end, 100u);
+    // 验证块范围（通过 slot 查询接口）
+    EXPECT_EQ(pool.slot_begin(0), 0u);
+    EXPECT_EQ(pool.slot_end(0), 25u);
+    EXPECT_EQ(pool.slot_begin(3), 75u);
+    EXPECT_EQ(pool.slot_end(3), 100u);
 }
 
 TEST(SharedWorkPool, ClaimNextReturnsUniqueBlocks) {
     SharedWorkPool pool;
     pool.init(0, 100, 25);
-    auto* b1 = pool.claim_next("cpu");
-    auto* b2 = pool.claim_next("cpu");
-    ASSERT_NE(b1, nullptr);
-    ASSERT_NE(b2, nullptr);
-    EXPECT_NE(b1->id, b2->id);
+    auto b1 = pool.claim_next("cpu");
+    auto b2 = pool.claim_next("cpu");
+    ASSERT_TRUE(b1.valid());
+    ASSERT_TRUE(b2.valid());
+    EXPECT_NE(b1.id, b2.id);
     EXPECT_EQ(pool.pending_count(), 2u);
     EXPECT_EQ(pool.claimed_count(), 2u);
 }
@@ -766,9 +769,9 @@ TEST(SharedWorkPool, ClaimNextReturnsUniqueBlocks) {
 TEST(SharedWorkPool, MarkDoneUpdatesStatus) {
     SharedWorkPool pool;
     pool.init(0, 100, 25);
-    auto* b = pool.claim_next("cpu");
-    ASSERT_NE(b, nullptr);
-    pool.mark_done(b->id);
+    auto b = pool.claim_next("cpu");
+    ASSERT_TRUE(b.valid());
+    pool.mark_done(b.id);
     EXPECT_EQ(pool.done_count(), 1u);
     EXPECT_EQ(pool.pending_count(), 3u);
     EXPECT_FALSE(pool.all_done());
@@ -777,9 +780,9 @@ TEST(SharedWorkPool, MarkDoneUpdatesStatus) {
 TEST(SharedWorkPool, MarkFailedAndReclaim) {
     SharedWorkPool pool;
     pool.init(0, 100, 25);
-    auto* b = pool.claim_next("cpu");
-    ASSERT_NE(b, nullptr);
-    pool.mark_failed(b->id);
+    auto b = pool.claim_next("cpu");
+    ASSERT_TRUE(b.valid());
+    pool.mark_failed(b.id);
     EXPECT_EQ(pool.failed_count(), 1u);
     EXPECT_EQ(pool.pending_count(), 3u);
     // 回收失败块
@@ -794,9 +797,9 @@ TEST(SharedWorkPool, AllDoneWhenAllComplete) {
     pool.init(0, 100, 25);
     // 领取并完成所有块
     for (std::size_t i = 0; i < 4; ++i) {
-        auto* b = pool.claim_next("cpu");
-        ASSERT_NE(b, nullptr);
-        pool.mark_done(b->id);
+        auto b = pool.claim_next("cpu");
+        ASSERT_TRUE(b.valid());
+        pool.mark_done(b.id);
     }
     EXPECT_TRUE(pool.all_done());
     EXPECT_EQ(pool.done_count(), 4u);
@@ -806,9 +809,9 @@ TEST(SharedWorkPool, NoWorkLeftWhenNoPendingOrFailed) {
     SharedWorkPool pool;
     pool.init(0, 100, 25);
     for (std::size_t i = 0; i < 4; ++i) {
-        auto* b = pool.claim_next("cpu");
-        ASSERT_NE(b, nullptr);
-        pool.mark_done(b->id);
+        auto b = pool.claim_next("cpu");
+        ASSERT_TRUE(b.valid());
+        pool.mark_done(b.id);
     }
     EXPECT_TRUE(pool.no_work_left());
 }
@@ -817,17 +820,17 @@ TEST(SharedWorkPool, DoneBitmapCorrect) {
     SharedWorkPool pool;
     pool.init(0, 100, 25);
     // 顺序领取：第一个块和第二个块
-    auto* b1 = pool.claim_next("cpu");
-    auto* b2 = pool.claim_next("cpu");
-    ASSERT_NE(b1, nullptr);
-    ASSERT_NE(b2, nullptr);
-    pool.mark_done(b1->id);
-    pool.mark_done(b2->id);
+    auto b1 = pool.claim_next("cpu");
+    auto b2 = pool.claim_next("cpu");
+    ASSERT_TRUE(b1.valid());
+    ASSERT_TRUE(b2.valid());
+    pool.mark_done(b1.id);
+    pool.mark_done(b2.id);
     auto bm = pool.done_bitmap();
     ASSERT_EQ(bm.size(), 4u);
-    EXPECT_TRUE(bm[b1->id]);
-    EXPECT_TRUE(bm[b2->id]);
-    EXPECT_NE(b1->id, b2->id);
+    EXPECT_TRUE(bm[b1.id]);
+    EXPECT_TRUE(bm[b2.id]);
+    EXPECT_NE(b1.id, b2.id);
 }
 
 TEST(SharedWorkPool, SuggestNextChunk) {
@@ -845,7 +848,7 @@ TEST(SharedWorkPool, EmptyRange) {
     pool.init(0, 0, 25);
     EXPECT_EQ(pool.total_blocks(), 0u);
     EXPECT_TRUE(pool.all_done());
-    EXPECT_EQ(pool.claim_next("cpu"), nullptr);
+    EXPECT_FALSE(pool.claim_next("cpu").valid());
 }
 
 // ============================================================================
@@ -931,12 +934,12 @@ TEST(SharedWorkPoolDynamic, InitDynamicDoesNotPreCreateBlocks) {
 TEST(SharedWorkPoolDynamic, ClaimNextDynamicReturnsBlocks) {
     SharedWorkPool pool;
     pool.init_dynamic(0, 1000, 100, 500);
-    auto* b1 = pool.claim_next_dynamic("cpu", 1);
-    ASSERT_NE(b1, nullptr);
-    EXPECT_GE(b1->end - b1->begin, 100u);  // 至少 min_chunk
-    EXPECT_LE(b1->end - b1->begin, 500u);  // 至多 max_chunk
-    EXPECT_EQ(b1->begin, 0u);
-    // 块已创建
+    auto b1 = pool.claim_next_dynamic("cpu", 1);
+    ASSERT_TRUE(b1.valid());
+    EXPECT_GE(b1.end - b1.begin, 100u);  // 至少 min_chunk
+    EXPECT_LE(b1.end - b1.begin, 500u);  // 至多 max_chunk
+    EXPECT_EQ(b1.begin, 0u);
+    // 块已创建（动态模式 total_blocks 返回 active_slot_count）
     EXPECT_EQ(pool.total_blocks(), 1u);
     EXPECT_EQ(pool.claimed_count(), 1u);
 }
@@ -947,10 +950,10 @@ TEST(SharedWorkPoolDynamic, ClaimNextDynamicShrinksTail) {
     pool.init_dynamic(0, 1000, 50, 500);
     std::vector<std::size_t> chunk_sizes;
     while (true) {
-        auto* b = pool.claim_next_dynamic("cpu", 1);
-        if (!b) break;
-        chunk_sizes.push_back(b->end - b->begin);
-        pool.mark_done(b->id);
+        auto b = pool.claim_next_dynamic("cpu", 1);
+        if (!b.valid()) break;
+        chunk_sizes.push_back(b.end - b.begin);
+        pool.mark_done(b.id);
     }
     // 应该有多个块
     EXPECT_GT(chunk_sizes.size(), 1u);
@@ -974,10 +977,10 @@ TEST(SharedWorkPoolDynamic, ClaimNextDynamicNoOverlapNoOmission) {
     pool.init_dynamic(0, 1000, 100, 300);
     std::vector<std::pair<std::size_t, std::size_t>> ranges;
     while (true) {
-        auto* b = pool.claim_next_dynamic("cpu", 1);
-        if (!b) break;
-        ranges.emplace_back(b->begin, b->end);
-        pool.mark_done(b->id);
+        auto b = pool.claim_next_dynamic("cpu", 1);
+        if (!b.valid()) break;
+        ranges.emplace_back(b.begin, b.end);
+        pool.mark_done(b.id);
     }
     // 排序范围
     std::sort(ranges.begin(), ranges.end());
@@ -999,17 +1002,17 @@ TEST(SharedWorkPoolDynamic, ClaimNextDynamicMultiDevice) {
     // 多设备场景：n_active_devices > 1 时，块大小应更小（更细粒度分配）
     SharedWorkPool pool1;
     pool1.init_dynamic(0, 1000, 50, 500);
-    auto* b1 = pool1.claim_next_dynamic("cpu", 1);  // 1 个设备
+    auto b1 = pool1.claim_next_dynamic("cpu", 1);  // 1 个设备
 
     SharedWorkPool pool2;
     pool2.init_dynamic(0, 1000, 50, 500);
-    auto* b2 = pool2.claim_next_dynamic("cpu", 4);  // 4 个设备
+    auto b2 = pool2.claim_next_dynamic("cpu", 4);  // 4 个设备
 
-    ASSERT_NE(b1, nullptr);
-    ASSERT_NE(b2, nullptr);
+    ASSERT_TRUE(b1.valid());
+    ASSERT_TRUE(b2.valid());
     // 多设备时，块大小应 <= 单设备（更细粒度）
-    std::size_t sz1 = b1->end - b1->begin;
-    std::size_t sz2 = b2->end - b2->begin;
+    std::size_t sz1 = b1.end - b1.begin;
+    std::size_t sz2 = b2.end - b2.begin;
     // guided: chunk = remaining / (2 * n_devices)
     // 1 设备：1000 / 2 = 500（capped to max=500）
     // 4 设备：1000 / 8 = 125
@@ -1020,7 +1023,7 @@ TEST(SharedWorkPoolDynamic, EmptyRangeReturnsSuccess) {
     SharedWorkPool pool;
     pool.init_dynamic(100, 100, 50, 100);  // 空范围
     EXPECT_EQ(pool.remaining_work(), 0u);
-    EXPECT_EQ(pool.claim_next_dynamic("cpu", 1), nullptr);
+    EXPECT_FALSE(pool.claim_next_dynamic("cpu", 1).valid());
     EXPECT_TRUE(pool.all_done());
 }
 
@@ -1303,6 +1306,197 @@ TEST(SchedulerDispatcherCostAware, FixedTailExperimentStillAvailable) {
     int total = std::accumulate(data.begin(), data.end(), 0);
     EXPECT_EQ(total, 1000);
     astro::compute::runtime_shutdown();
+}
+
+// ============================================================================
+// F-fix 5: 并发安全测试（线程交错 + 100 轮高并发压力）
+// 验收：线程交错下 ID/槽位/状态无错位；100 轮高并发无重叠/无遗漏/每块恰完成一次
+// ============================================================================
+
+TEST(SharedWorkPoolConcurrency, ThreadInterleavingNoIdMismatch) {
+    // 线程交错测试：A 先 claim 后暂停，B claim 下一块并先完成
+    // 验证 ID、槽位、状态完全对应，无 ID 错位
+    // 用 std::atomic + std::this_thread::yield 模拟 barrier（不依赖 <barrier>）
+    SharedWorkPool pool;
+    pool.init(0, 100, 25);  // 4 blocks: [0,25), [25,50), [50,75), [75,100)
+
+    std::atomic<int> phase{0};
+    // phase 流转：0→1 (A 已 claim) →2 (B 已 claim+mark_done) →3 (A 已 mark_done)
+    WorkToken token_a, token_b;
+
+    std::thread thread_a([&]() {
+        token_a = pool.claim_next("A");
+        phase.store(1, std::memory_order_release);
+        // 等 B 完成 claim + mark_done
+        while (phase.load(std::memory_order_acquire) < 2) {
+            std::this_thread::yield();
+        }
+        // A 最后 mark_done（B 先完成）
+        pool.mark_done(token_a.id);
+        phase.store(3, std::memory_order_release);
+    });
+
+    std::thread thread_b([&]() {
+        // 等 A claim 完成
+        while (phase.load(std::memory_order_acquire) < 1) {
+            std::this_thread::yield();
+        }
+        token_b = pool.claim_next("B");
+        // B 先 mark_done（在 A 之前完成）
+        pool.mark_done(token_b.id);
+        phase.store(2, std::memory_order_release);
+    });
+
+    thread_a.join();
+    thread_b.join();
+
+    ASSERT_TRUE(token_a.valid());
+    ASSERT_TRUE(token_b.valid());
+    // ID 不冲突
+    EXPECT_NE(token_a.id, token_b.id);
+    // device_id 与令牌一致
+    EXPECT_EQ(token_a.device_id, "A");
+    EXPECT_EQ(token_b.device_id, "B");
+    // 槽位状态：两者都应为 Done
+    EXPECT_EQ(pool.slot_status(token_a.id), WorkBlockStatus::Done);
+    EXPECT_EQ(pool.slot_status(token_b.id), WorkBlockStatus::Done);
+    // ID 与槽位范围严格对应（无错位）
+    EXPECT_EQ(pool.slot_begin(token_a.id), token_a.begin);
+    EXPECT_EQ(pool.slot_end(token_a.id), token_a.end);
+    EXPECT_EQ(pool.slot_begin(token_b.id), token_b.begin);
+    EXPECT_EQ(pool.slot_end(token_b.id), token_b.end);
+    // 范围不重叠
+    EXPECT_LE(token_a.begin, token_a.end);
+    EXPECT_LE(token_b.begin, token_b.end);
+    bool overlap = (token_a.begin < token_b.end) && (token_b.begin < token_a.end);
+    EXPECT_FALSE(overlap);
+    // done_count 应为 2
+    EXPECT_EQ(pool.done_count(), 2u);
+    EXPECT_EQ(pool.failed_count(), 0u);
+}
+
+TEST(SharedWorkPoolConcurrency, Stress100RoundsFixedMode) {
+    // 100 轮高并发压力测试（固定模式）
+    // 验证：无块重叠（每个 item 恰好被处理一次）、无块遗漏、
+    //       每块恰好完成一次、done_count == total_blocks
+    constexpr int kRounds = 100;
+    constexpr std::size_t kTotal = 1000;
+    constexpr std::size_t kChunkSize = 50;  // 20 blocks
+    constexpr int kThreads = 4;
+
+    for (int round = 0; round < kRounds; ++round) {
+        SharedWorkPool pool;
+        pool.init(0, kTotal, kChunkSize);
+        const std::size_t expected_blocks = (kTotal + kChunkSize - 1) / kChunkSize;
+        EXPECT_EQ(pool.total_blocks(), expected_blocks);
+
+        // processed[i] 记录 item i 被处理次数（用于检测重叠/遗漏）
+        std::vector<int> processed(kTotal, 0);
+        std::mutex mtx;
+        std::vector<std::size_t> claimed_ids;
+
+        std::vector<std::thread> threads;
+        threads.reserve(kThreads);
+        for (int t = 0; t < kThreads; ++t) {
+            threads.emplace_back([&]() {
+                while (true) {
+                    WorkToken token = pool.claim_next("cpu");
+                    if (!token.valid()) break;
+                    // 标记处理（不同线程处理不重叠的范围，无数据竞争）
+                    for (std::size_t i = token.begin; i < token.end; ++i) {
+                        processed[i] += 1;
+                    }
+                    {
+                        std::lock_guard<std::mutex> lk(mtx);
+                        claimed_ids.push_back(token.id);
+                    }
+                    pool.mark_done(token.id);
+                }
+            });
+        }
+        for (auto& th : threads) th.join();
+
+        // 验证：所有块完成
+        EXPECT_TRUE(pool.all_done()) << "Round " << round << " not all done";
+        EXPECT_EQ(pool.total_blocks(), expected_blocks) << "Round " << round;
+        EXPECT_EQ(pool.done_count(), pool.total_blocks()) << "Round " << round;
+        EXPECT_EQ(pool.failed_count(), 0u) << "Round " << round;
+        EXPECT_EQ(pool.pending_count(), 0u) << "Round " << round;
+
+        // 验证：无块重叠、无块遗漏（每个 item 恰好被处理一次）
+        for (std::size_t i = 0; i < kTotal; ++i) {
+            EXPECT_EQ(processed[i], 1)
+                << "Round " << round << " element " << i
+                << " processed " << processed[i] << " times";
+        }
+
+        // 验证：claim 次数 == total_blocks（无遗漏）
+        EXPECT_EQ(claimed_ids.size(), expected_blocks) << "Round " << round;
+
+        // 验证：每个 slot ID 恰好被 claim 一次（无重复 claim）
+        std::set<std::size_t> unique_ids(claimed_ids.begin(), claimed_ids.end());
+        EXPECT_EQ(unique_ids.size(), expected_blocks) << "Round " << round;
+        EXPECT_EQ(claimed_ids.size(), unique_ids.size()) << "Round " << round;
+    }
+}
+
+TEST(SharedWorkPoolConcurrency, Stress100RoundsDynamicMode) {
+    // 100 轮高并发压力测试（动态 guided 模式）
+    // 验证：无块重叠、无块遗漏、每块恰好完成一次、done_count == total_blocks
+    constexpr int kRounds = 100;
+    constexpr std::size_t kTotal = 1000;
+    constexpr std::size_t kMinChunk = 50;
+    constexpr std::size_t kMaxChunk = 200;
+    constexpr int kThreads = 4;
+
+    for (int round = 0; round < kRounds; ++round) {
+        SharedWorkPool pool;
+        pool.init_dynamic(0, kTotal, kMinChunk, kMaxChunk);
+
+        std::vector<int> processed(kTotal, 0);
+        std::mutex mtx;
+        std::vector<std::size_t> claimed_ids;
+
+        std::vector<std::thread> threads;
+        threads.reserve(kThreads);
+        for (int t = 0; t < kThreads; ++t) {
+            threads.emplace_back([&]() {
+                while (true) {
+                    WorkToken token = pool.claim_next_dynamic("cpu", kThreads);
+                    if (!token.valid()) break;
+                    for (std::size_t i = token.begin; i < token.end; ++i) {
+                        processed[i] += 1;
+                    }
+                    {
+                        std::lock_guard<std::mutex> lk(mtx);
+                        claimed_ids.push_back(token.id);
+                    }
+                    pool.mark_done(token.id);
+                }
+            });
+        }
+        for (auto& th : threads) th.join();
+
+        // 验证：所有块完成
+        EXPECT_TRUE(pool.all_done()) << "Round " << round << " not all done";
+        EXPECT_EQ(pool.done_count(), pool.total_blocks()) << "Round " << round;
+        EXPECT_EQ(pool.failed_count(), 0u) << "Round " << round;
+
+        // 验证：无块重叠、无块遗漏
+        for (std::size_t i = 0; i < kTotal; ++i) {
+            EXPECT_EQ(processed[i], 1)
+                << "Round " << round << " element " << i
+                << " processed " << processed[i] << " times";
+        }
+
+        // 验证：claim 次数 == total_blocks
+        EXPECT_EQ(claimed_ids.size(), pool.total_blocks()) << "Round " << round;
+
+        // 验证：每个 slot ID 恰好被 claim 一次
+        std::set<std::size_t> unique_ids(claimed_ids.begin(), claimed_ids.end());
+        EXPECT_EQ(unique_ids.size(), claimed_ids.size()) << "Round " << round;
+        EXPECT_EQ(unique_ids.size(), pool.total_blocks()) << "Round " << round;
+    }
 }
 
 // ============================================================================

@@ -139,19 +139,19 @@ struct Dispatcher::Impl {
         }
 
         // 使用 parallel_batch 从 pool claim 并执行
-        // 每个 task 尝试 claim_next 一个块，成功则执行
+        // F-fix 5: 使用 WorkToken 值令牌，不依赖池内地址
         std::atomic<std::size_t> executed{0}, failed{0};
         Event ev = astro::compute::parallel_batch(
             astro::compute::KernelId::Custom, r.total_chunks,
             [&](std::size_t) {
-                auto* block = pool.claim_next("cpu");
-                if (!block) return;
+                auto token = pool.claim_next("cpu");
+                if (!token.valid()) return;
                 try {
-                    fn(block->id, block->begin, block->end, user_data);
-                    pool.mark_done(block->id);
+                    fn(token.id, token.begin, token.end, user_data);
+                    pool.mark_done(token.id, token.generation);
                     executed.fetch_add(1, std::memory_order_relaxed);
                 } catch (...) {
-                    pool.mark_failed(block->id);
+                    pool.mark_failed(token.id, token.generation);
                     failed.fetch_add(1, std::memory_order_relaxed);
                 }
             });
@@ -293,13 +293,14 @@ struct Dispatcher::Impl {
                 }
 
                 // F-fix 3: 动态领取下一块（根据 remaining 和活跃设备数计算块大小）
-                auto* block = pool.claim_next_dynamic("cpu", n_active_devices);
-                if (!block) return;  // 无剩余工作
+                // F-fix 5: 使用 WorkToken 值令牌
+                auto token = pool.claim_next_dynamic("cpu", n_active_devices);
+                if (!token.valid()) return;  // 无剩余工作
 
                 // 记录动态块大小（用于验证尾部收缩）
                 {
                     std::lock_guard<std::mutex> lk(stats_mtx);
-                    stats_out.dynamic_chunk_sizes.push_back(block->end - block->begin);
+                    stats_out.dynamic_chunk_sizes.push_back(token.size());
                 }
 
                 // F-fix 4b: 应用 MemoryBudget 动作（在 claim 后、执行前）
@@ -327,11 +328,11 @@ struct Dispatcher::Impl {
                 }
 
                 try {
-                    fn(block->id, block->begin, block->end, user_data);
-                    pool.mark_done(block->id);
+                    fn(token.id, token.begin, token.end, user_data);
+                    pool.mark_done(token.id, token.generation);
                     executed.fetch_add(1, std::memory_order_relaxed);
                 } catch (...) {
-                    pool.mark_failed(block->id);
+                    pool.mark_failed(token.id, token.generation);
                     failed.fetch_add(1, std::memory_order_relaxed);
                 }
             });
@@ -361,11 +362,12 @@ struct Dispatcher::Impl {
     }
 
     // F-fix 1：从 SharedWorkPool 导入 coverage 到 CurrentState
+    // F-fix 5: 使用 done_bitmap 而非 pool.blocks()
     void import_pool_coverage() {
-        const auto& blocks = pool.blocks();
-        current_state.init_coverage(blocks.size());
-        for (std::size_t i = 0; i < blocks.size(); ++i) {
-            if (blocks[i].status.load(std::memory_order_relaxed) == WorkBlockStatus::Done) {
+        auto bm = pool.done_bitmap();
+        current_state.init_coverage(bm.size());
+        for (std::size_t i = 0; i < bm.size(); ++i) {
+            if (bm[i]) {
                 current_state.coverage().mark_done(i);
             }
         }
