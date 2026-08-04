@@ -122,3 +122,12 @@ target_include_directories(acr_test_work_pool PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../scheduler
 )
 gtest_discover_tests(acr_test_work_pool DISCOVERY_MODE PRE_TEST)
+
+# 23 号计划 §3：DeviceExecutor（真实执行 + 统计回填）
+add_executable(acr_test_device_executor test_device_executor.cpp)
+target_link_libraries(acr_test_device_executor PRIVATE
+    acr_scheduler acr_api GTest::gtest_main)
+target_include_directories(acr_test_device_executor PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../scheduler
+)
+gtest_discover_tests(acr_test_device_executor DISCOVERY_MODE PRE_TEST)

@@ -159,11 +159,20 @@ TEST(KernelRegistry, InvalidRegistrationRejected) {
 TEST(KernelRegistry, ConcurrentAccessSafe) {
     KernelRegistry reg;
     std::atomic<bool> stop{false};
+    std::atomic<bool> go{false};
+    std::atomic<int> ready{0};
     std::atomic<std::size_t> found{0};
+
+    // 先注册（保证 find 非空），再启动并发读者
+    ASSERT_TRUE(reg.register_kernel(make_axpy_registration(false)));
 
     std::vector<std::thread> readers;
     for (int t = 0; t < 4; ++t) {
         readers.emplace_back([&] {
+            while (!go.load(std::memory_order_acquire)) {
+                std::this_thread::yield();
+            }
+            ready.fetch_add(1, std::memory_order_release);
             while (!stop.load(std::memory_order_relaxed)) {
                 if (reg.find("kernel.axpy") != nullptr) {
                     found.fetch_add(1, std::memory_order_relaxed);
@@ -172,10 +181,16 @@ TEST(KernelRegistry, ConcurrentAccessSafe) {
         });
     }
 
+    // 并发重复注册（返回 false，但必须线程安全、不破坏已有注册）
+    go.store(true, std::memory_order_release);
+    // 等所有读者进入 find 循环，保证并发读与注册真正重叠
+    while (ready.load(std::memory_order_acquire) < 4) {
+        std::this_thread::yield();
+    }
     for (int i = 0; i < 100; ++i) {
         KernelRegistration reg_axpy = make_axpy_registration(false);
         reg_axpy.id = "kernel.axpy";
-        reg.register_kernel(reg_axpy);  // 重复注册返回 false，但并发安全
+        reg.register_kernel(reg_axpy);
     }
     stop.store(true, std::memory_order_relaxed);
     for (auto& th : readers) th.join();

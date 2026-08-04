@@ -1,31 +1,52 @@
-// lib/acr/scheduler/device_executor.cpp — 设备执行器实现（F-fix 6）
+// lib/acr/scheduler/device_executor.cpp — 设备执行器实现（23 号计划 §3）
 //
-// CpuExecutor：直接调用 kernel function 执行工作块
-// ExecutorRegistry：管理设备列表
+// CpuExecutor：通过 KernelRegistry 的 CPU launcher 执行 KernelInvocation，
+// SubmitHandle 记录真实 device/items/bytes/duration。
 #include "device_executor.hpp"
 
-#include <atomic>
+#include "astro/compute/kernel_registry.hpp"
+#include "../cost/cost_estimator.hpp"
+
 #include <chrono>
 #include <memory>
-
-// F-fix 8: forward declare append_cuda_executors（实现在 backends/cuda/cuda_executor.cpp）
-// 必须在 astro::compute::cuda 命名空间，与定义一致；不可声明在 scheduler 命名空间，
-// 否则链接器找不到符号（LNK2019）。
-#ifdef ACR_BUILD_CUDA
-namespace astro::compute::cuda {
-void append_cuda_executors(scheduler::ExecutorRegistry& registry);
-} // namespace astro::compute::cuda
-#endif
+#include <string>
 
 namespace astro::compute::scheduler {
+
+// CUDA 桥接执行器追加函数（23 号计划 §3）。
+// 默认 weak no-op：CPU-only 构建无 CUDA 桥接；
+// 启用 ACR_CUDA_BRIDGE 时由 backends/cuda/cuda_bridge_loader.cpp 提供强定义。
+__attribute__((weak)) void try_append_cuda_bridge_executors(ExecutorRegistry&) {}
+
+namespace {
+
+// 从 invocation traits 估算单元素字节数（真实完成字节报告）
+inline std::size_t bytes_per_item(const KernelInvocation& inv) noexcept {
+    return inv.traits.bytes_read_per_item + inv.traits.bytes_written_per_item;
+}
+
+} // anonymous namespace
 
 // ===== CpuExecutor =====
 CpuExecutor::CpuExecutor(const std::string& id,
                          std::size_t recommended_chunk,
-                         std::size_t min_chunk)
-    : id_(id)
+                         std::size_t min_chunk,
+                         const KernelRegistry* registry)
+    : id_str_(id)
     , recommended_chunk_(recommended_chunk)
-    , min_chunk_(min_chunk) {}
+    , min_chunk_(min_chunk)
+    , registry_(registry) {
+    id_ = (id == "cpu") ? kHwCpuDeviceId : cost::backend_to_device_id(id);
+    if (id_ == kHwInvalidDeviceId) id_ = kHwCpuDeviceId;
+}
+
+const KernelRegistry* CpuExecutor::registry() const {
+    return registry_ ? registry_ : &global_kernel_registry();
+}
+
+bool CpuExecutor::supports(OperationId op) const {
+    return registry()->supports(op, "cpu");
+}
 
 QueueState CpuExecutor::queue_state() const {
     QueueState qs;
@@ -35,12 +56,16 @@ QueueState CpuExecutor::queue_state() const {
     return qs;
 }
 
-SubmitResult CpuExecutor::submit(const WorkToken& token,
-                                   const KernelInvocation& invocation) {
-    SubmitResult result;
-    if (!token.valid() || !invocation.fn) {
+SubmitHandle CpuExecutor::submit(const WorkToken& token,
+                                 const KernelInvocation& invocation) {
+    SubmitHandle result;
+    result.device = id_;
+    result.op_id = std::string(invocation.id);
+    result.attempt = token.attempt;
+
+    if (!token.valid()) {
         result.status = SubmitStatus::Rejected;
-        result.error = "invalid token or null kernel";
+        result.error = "invalid token";
         return result;
     }
     if (!available_) {
@@ -48,22 +73,31 @@ SubmitResult CpuExecutor::submit(const WorkToken& token,
         result.error = "cpu executor not available";
         return result;
     }
+    const KernelRegistration* reg = registry()->find(invocation.id);
+    if (reg == nullptr || reg->cpu == nullptr) {
+        // 设备 launcher 缺失：拒绝（调用方必须回退并如实报告）
+        result.status = SubmitStatus::Rejected;
+        result.error = "operation not registered for cpu: " + std::string(invocation.id);
+        return result;
+    }
 
     pending_count_.fetch_add(1, std::memory_order_relaxed);
-
-    auto start = std::chrono::high_resolution_clock::now();
+    const auto start = std::chrono::high_resolution_clock::now();
     try {
-        invocation.fn(token.id, token.begin, token.end, invocation.user_data);
+        reg->cpu(invocation, nullptr);
         result.status = SubmitStatus::Ok;
         result.items_done = token.size();
+        result.bytes_done = token.size() * bytes_per_item(invocation);
+    } catch (const std::exception& e) {
+        result.status = SubmitStatus::Failed;
+        result.error = std::string("cpu kernel exception: ") + e.what();
     } catch (...) {
         result.status = SubmitStatus::Failed;
-        result.error = "kernel exception";
+        result.error = "cpu kernel unknown exception";
     }
-    auto end = std::chrono::high_resolution_clock::now();
-    result.elapsed_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
-        end - start).count();
-
+    const auto end = std::chrono::high_resolution_clock::now();
+    result.elapsed_ns = static_cast<std::uint64_t>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count());
     pending_count_.fetch_sub(1, std::memory_order_relaxed);
     return result;
 }
@@ -98,20 +132,20 @@ DeviceExecutor* ExecutorRegistry::find(const std::string& device_id) const {
 
 ExecutorRegistry ExecutorRegistry::create_cpu_only() {
     ExecutorRegistry registry;
-    registry.register_executor(std::make_unique<CpuExecutor>("cpu", 65536, 256));
+    registry.register_executor(
+        std::make_unique<CpuExecutor>("cpu", 65536, 256));
     return registry;
 }
 
 ExecutorRegistry ExecutorRegistry::create_auto() {
     ExecutorRegistry registry;
-    registry.register_executor(std::make_unique<CpuExecutor>("cpu", 65536, 256));
-#ifdef ACR_BUILD_CUDA
-    // F-fix 8: ACR_BUILD_CUDA=ON 时追加 CudaExecutor（真实 GPU 执行器）
-    // 无 CUDA 设备时 append_cuda_executors 内部跳过，调用者继续使用 CPU executor
-    // 注意：append_cuda_executors 定义在 astro::compute::cuda 命名空间，
-    // 必须用全限定名声明，否则会被解析到当前 scheduler 命名空间（链接器找不到符号）
-    astro::compute::cuda::append_cuda_executors(registry);
-#endif
+    registry.register_executor(
+        std::make_unique<CpuExecutor>("cpu", 65536, 256));
+    // 23 号计划 §3：GPU 不可用时不创建 executor（运行时探测，不得仅凭编译宏）。
+    // CUDA 桥接加载由 backends/cuda/cuda_bridge_loader 实现：
+    //   - 探测 acr_cuda_bridge.dll（MSVC+nvcc 构建）与真实设备；
+    //   - 无 DLL / 无设备 → 不注册 CudaExecutor，继续使用 CPU executor。
+    try_append_cuda_bridge_executors(registry);
     return registry;
 }
 

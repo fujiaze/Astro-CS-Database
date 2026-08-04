@@ -89,6 +89,8 @@ struct TaskTraits {
     bool mixed_device_safe{true};      // 是否可 CPU+GPU 混合执行
     bool requires_atomic{false};       // 是否需要原子冲突处理
     double active_fraction_hint{1.0};  // active 比例（sparse 任务 0.01~0.5）
+    std::size_t bytes_read_per_item{0};   // 每工作项读取字节（传输/带宽估算与执行报告用）
+    std::size_t bytes_written_per_item{0};// 每工作项写入字节
     std::size_t halo_x{0};             // x 方向 halo（stencil/conv）
     std::size_t halo_y{0};             // y 方向 halo
 };

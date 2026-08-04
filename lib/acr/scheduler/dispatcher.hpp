@@ -164,17 +164,6 @@ public:
         const cost::CostEstimate& estimate,
         ChunkKernelFn fn, void* user_data);
 
-    // ===== F-fix 6 + F-fix 7：通过 DeviceExecutor 执行（多设备工作保持）=====
-    // 如果配置了多个 executor，每个空闲 executor 按自身推荐块大小领取工作块。
-    // 设备忙时不等待：其他空闲设备继续领取。
-    // actual_primary_backend 从每个 executor 的真实完成统计生成。
-    // 无 executor 或仅 CPU 时退化为旧路径（dispatch_range_cost_aware）。
-    // 禁止用户提供 CPU/GPU 比例：分配由 executor.available() + claim_next_dynamic 决定。
-    CostAwareResult dispatch_via_executors(
-        const TaskDescriptor& task,
-        const cost::CostEstimate& estimate,
-        ChunkKernelFn fn, void* user_data);
-
     // ===== CurrentState 访问（cost-aware 调度后可用）=====
     const CurrentState& current_state() const noexcept;
     CurrentState& current_state() noexcept;
