@@ -1,0 +1,318 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://astrocs.local/schema/stage1-1.0.json",
+  "title": "AstroCS Stage1 Job",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "pipeline",
+    "precision",
+    "input",
+    "calibration",
+    "platesolve",
+    "psf",
+    "photometric",
+    "snr",
+    "drizzle",
+    "output",
+    "execution"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "pipeline": {
+      "const": "stage1"
+    },
+    "precision": {
+      "enum": [
+        "fp32",
+        "fp64"
+      ]
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "light",
+        "master_bias",
+        "master_dark",
+        "master_flat"
+      ],
+      "properties": {
+        "light": {
+          "type": "string",
+          "minLength": 1
+        },
+        "master_bias": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "master_dark": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "master_flat": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "calibration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "light_exposure_s",
+        "dark_exposure_s"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "standard",
+            "optimal",
+            "exposure_ratio"
+          ]
+        },
+        "light_exposure_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "dark_exposure_s": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fallback": {
+          "enum": [
+            "exposure_ratio",
+            "fail"
+          ]
+        }
+      }
+    },
+    "platesolve": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gaia_catalog",
+        "max_stars"
+      ],
+      "properties": {
+        "gaia_catalog": {
+          "type": "string",
+          "minLength": 1
+        },
+        "max_stars": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "initial_ra_deg": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "initial_dec_deg": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": -90,
+          "maximum": 90
+        }
+      }
+    },
+    "psf": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fit_radius",
+        "max_iterations",
+        "tolerance"
+      ],
+      "properties": {
+        "fit_radius": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_iterations": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "tolerance": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "photometric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gaia_spectra",
+        "filter_response",
+        "qe_curve"
+      ],
+      "properties": {
+        "gaia_spectra": {
+          "type": "string",
+          "minLength": 1
+        },
+        "filter_response": {
+          "type": "string",
+          "minLength": 1
+        },
+        "qe_curve": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "snr": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "estimator_id",
+        "sampling_scale"
+      ],
+      "properties": {
+        "estimator_id": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sampling_scale": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "drizzle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "pixfrac",
+        "nside",
+        "ordering"
+      ],
+      "properties": {
+        "mode": {
+          "const": "precise"
+        },
+        "pixfrac": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "ordering": {
+          "const": "nested"
+        },
+        "nside": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "mode"
+              ],
+              "properties": {
+                "mode": {
+                  "const": "auto"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "mode",
+                "value"
+              ],
+              "properties": {
+                "mode": {
+                  "const": "explicit"
+                },
+                "value": {
+                  "type": "integer",
+                  "minimum": 16,
+                  "maximum": 4194304
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hiss",
+        "log",
+        "diagnostics_dir",
+        "overwrite"
+      ],
+      "properties": {
+        "hiss": {
+          "type": "string",
+          "minLength": 1
+        },
+        "log": {
+          "type": "string",
+          "minLength": 1
+        },
+        "diagnostics_dir": {
+          "type": "string",
+          "minLength": 1
+        },
+        "overwrite": {
+          "type": "boolean"
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stop_after",
+        "threads",
+        "stage_timeout_sec"
+      ],
+      "properties": {
+        "stop_after": {
+          "enum": [
+            "read",
+            "calibrate",
+            "platesolve",
+            "psf",
+            "photometric",
+            "snr",
+            "drizzle",
+            "hiss_verify",
+            "browser_verify"
+          ]
+        },
+        "threads": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stage_timeout_sec": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        }
+      }
+    }
+  }
+}

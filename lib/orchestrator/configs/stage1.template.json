@@ -1,0 +1,67 @@
+{
+  "$schema": "../schemas/stage1.schema.json",
+  "schema_version": "1.0",
+  "pipeline": "stage1",
+  "precision": "fp32",
+  "input": {
+    "light": "../data/light.fits",
+    "master_bias": "../data/master_bias.xisf",
+    "master_dark": "../data/master_dark.xisf",
+    "master_flat": "../data/master_flat.xisf"
+  },
+  "calibration": {
+    "mode": "standard",
+    "light_exposure_s": 180.0,
+    "dark_exposure_s": 180.0,
+    "fallback": "exposure_ratio"
+  },
+  "platesolve": {
+    "gaia_catalog": "../catalogs/GaiaDR3",
+    "max_stars": 2000,
+    "initial_ra_deg": null,
+    "initial_dec_deg": null
+  },
+  "psf": {
+    "fit_radius": 8,
+    "max_iterations": 100,
+    "tolerance": 1e-06
+  },
+  "photometric": {
+    "gaia_spectra": "../catalogs/GaiaDR3SP",
+    "filter_response": "../responses/filter_red.json",
+    "qe_curve": "../responses/camera_qe.json"
+  },
+  "snr": {
+    "estimator_id": 1,
+    "sampling_scale": 1.0
+  },
+  "drizzle": {
+    "mode": "precise",
+    "pixfrac": 1.0,
+    "nside": {
+      "mode": "auto"
+    },
+    "ordering": "nested"
+  },
+  "output": {
+    "hiss": "../output/frame.hiss",
+    "log": "../output/frame.log.jsonl",
+    "diagnostics_dir": "../output/diagnostics",
+    "overwrite": false
+  },
+  "execution": {
+    "stop_after": "hiss_verify",
+    "threads": 0,
+    "stage_timeout_sec": {
+      "read": 60,
+      "calibrate": 120,
+      "platesolve": 300,
+      "psf": 120,
+      "photometric": 300,
+      "snr": 120,
+      "drizzle": 900,
+      "hiss_verify": 120,
+      "browser_verify": 120
+    }
+  }
+}
