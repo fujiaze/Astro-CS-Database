@@ -1,0 +1,403 @@
+[==========] Running 7 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 7 tests from SanitizerActual
+[ RUN      ] SanitizerActual.DetectSanitizerStatus
+[       OK ] SanitizerActual.DetectSanitizerStatus (3 ms)
+[ RUN      ] SanitizerActual.UseAfterFreeDetected
+F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src/gtest-port.cc(859): error: Failed
+Syntax error at index 14 in simple regular expression "use-after-free|heap-use-after-free|AddressSanitizer": '|' is unsupported.
+
+F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src/gtest-port.cc(859): error: Failed
+Syntax error at index 34 in simple regular expression "use-after-free|heap-use-after-free|AddressSanitizer": '|' is unsupported.
+
+F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp(75): error: Death test: { int* p = new int(42); delete p; volatile int x = *p; (void)x; std::exit(0); }
+    Result: died but not with expected error.
+  Expected: contains regular expression "use-after-free|heap-use-after-free|AddressSanitizer"
+Actual msg:
+[  DEATH   ] =================================================================
+[  DEATH   ] ==22340==ERROR: AddressSanitizer: heap-use-after-free on address 0x125463aa46d0 at pc 0x7ff7be3f383f bp 0x00aa535ceaf0 sp 0x00aa535ceaf0
+[  DEATH   ] READ of size 4 at 0x125463aa46d0 thread T0
+[  DEATH   ]     #0 0x7ff7be3f383e in SanitizerActual_UseAfterFreeDetected_Test::TestBody(void) F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp:68
+[  DEATH   ]     #1 0x7ff7be481fd7 in testing::internal::HandleSehExceptionsInMethodIfSupported<class testing::Test, void>(class testing::Test *, void (__cdecl testing::Test::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2631
+[  DEATH   ]     #2 0x7ff7be481883 in testing::internal::HandleExceptionsInMethodIfSupported<class testing::Test, void>(class testing::Test *, void (__cdecl testing::Test::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2674
+[  DEATH   ]     #3 0x7ff7be41fde2 in testing::Test::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2713
+[  DEATH   ]     #4 0x7ff7be4218b6 in testing::TestInfo::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2859
+[  DEATH   ]     #5 0x7ff7be4230d4 in testing::TestSuite::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:3037
+[  DEATH   ]     #6 0x7ff7be435600 in testing::internal::UnitTestImpl::RunAllTests(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:5967
+[  DEATH   ]     #7 0x7ff7be482097 in testing::internal::HandleSehExceptionsInMethodIfSupported<class testing::internal::UnitTestImpl, bool>(class testing::internal::UnitTestImpl *, bool (__cdecl testing::internal::UnitTestImpl::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2631
+[  DEATH   ]     #8 0x7ff7be481e97 in testing::internal::HandleExceptionsInMethodIfSupported<class testing::internal::UnitTestImpl, bool>(class testing::internal::UnitTestImpl *, bool (__cdecl testing::internal::UnitTestImpl::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2674
+[  DEATH   ]     #9 0x7ff7be4249c4 in testing::UnitTest::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:5546
+[  DEATH   ]     #10 0x7ff7be401920 in RUN_ALL_TESTS(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\include\gtest\gtest.h:2334
+[  DEATH   ]     #11 0x7ff7be3f5833 in main F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp:187
+[  DEATH   ]     #12 0x7ff7be564f88 in invoke_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:78
+[  DEATH   ]     #13 0x7ff7be564ed1 in __scrt_common_main_seh D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+[  DEATH   ]     #14 0x7ff7be564d8d in __scrt_common_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:330
+[  DEATH   ]     #15 0x7ff7be564ffd in mainCRTStartup D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_main.cpp:16
+[  DEATH   ]     #16 0x7ffd8d22ccb6  (C:\WINDOWS\System32\KERNEL32.DLL+0x18002ccb6)
+[  DEATH   ]     #17 0x7ffd8efead6b  (C:\WINDOWS\SYSTEM32\ntdll.dll+0x1800aad6b)
+[  DEATH   ] 
+[  DEATH   ] 0x125463aa46d0 is located 0 bytes inside of 4-byte region [0x125463aa46d0,0x125463aa46d4)
+[  DEATH   ] freed by thread T0 here:
+[  DEATH   ]     #0 0x7ff7be563e83 in operator delete(void *, unsigned __int64) D:\a\_work\1\s\src\vctools\asan\llvm\compiler-rt\lib\asan\asan_win_delete_scalar_size_thunk.cpp:41
+[  DEATH   ]     #1 0x7ff7be3f3820 in SanitizerActual_UseAfterFreeDetected_Test::TestBody(void) F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp:68
+[  DEATH   ]     #2 0x7ff7be481fd7 in testing::internal::HandleSehExceptionsInMethodIfSupported<class testing::Test, void>(class testing::Test *, void (__cdecl testing::Test::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2631
+[  DEATH   ]     #3 0x7ff7be481883 in testing::internal::HandleExceptionsInMethodIfSupported<class testing::Test, void>(class testing::Test *, void (__cdecl testing::Test::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2674
+[  DEATH   ]     #4 0x7ff7be41fde2 in testing::Test::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2713
+[  DEATH   ]     #5 0x7ff7be4218b6 in testing::TestInfo::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2859
+[  DEATH   ]     #6 0x7ff7be4230d4 in testing::TestSuite::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:3037
+[  DEATH   ]     #7 0x7ff7be435600 in testing::internal::UnitTestImpl::RunAllTests(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:5967
+[  DEATH   ]     #8 0x7ff7be482097 in testing::internal::HandleSehExceptionsInMethodIfSupported<class testing::internal::UnitTestImpl, bool>(class testing::internal::UnitTestImpl *, bool (__cdecl testing::internal::UnitTestImpl::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2631
+[  DEATH   ]     #9 0x7ff7be481e97 in testing::internal::HandleExceptionsInMethodIfSupported<class testing::internal::UnitTestImpl, bool>(class testing::internal::UnitTestImpl *, bool (__cdecl testing::internal::UnitTestImpl::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2674
+[  DEATH   ]     #10 0x7ff7be4249c4 in testing::UnitTest::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:5546
+[  DEATH   ]     #11 0x7ff7be401920 in RUN_ALL_TESTS(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\include\gtest\gtest.h:2334
+[  DEATH   ]     #12 0x7ff7be3f5833 in main F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp:187
+[  DEATH   ]     #13 0x7ff7be564f88 in invoke_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:78
+[  DEATH   ]     #14 0x7ff7be564ed1 in __scrt_common_main_seh D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+[  DEATH   ]     #15 0x7ff7be564d8d in __scrt_common_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:330
+[  DEATH   ]     #16 0x7ff7be564ffd in mainCRTStartup D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_main.cpp:16
+[  DEATH   ]     #17 0x7ffd8d22ccb6  (C:\WINDOWS\System32\KERNEL32.DLL+0x18002ccb6)
+[  DEATH   ]     #18 0x7ffd8efead6b  (C:\WINDOWS\SYSTEM32\ntdll.dll+0x1800aad6b)
+[  DEATH   ] 
+[  DEATH   ] previously allocated by thread T0 here:
+[  DEATH   ]     #0 0x7ff7be563d65 in operator new(unsigned __int64) D:\a\_work\1\s\src\vctools\asan\llvm\compiler-rt\lib\asan\asan_win_new_scalar_thunk.cpp:40
+[  DEATH   ]     #1 0x7ff7be3f3782 in SanitizerActual_UseAfterFreeDetected_Test::TestBody(void) F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp:68
+[  DEATH   ]     #2 0x7ff7be481fd7 in testing::internal::HandleSehExceptionsInMethodIfSupported<class testing::Test, void>(class testing::Test *, void (__cdecl testing::Test::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2631
+[  DEATH   ]     #3 0x7ff7be481883 in testing::internal::HandleExceptionsInMethodIfSupported<class testing::Test, void>(class testing::Test *, void (__cdecl testing::Test::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2674
+[  DEATH   ]     #4 0x7ff7be41fde2 in testing::Test::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2713
+[  DEATH   ]     #5 0x7ff7be4218b6 in testing::TestInfo::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2859
+[  DEATH   ]     #6 0x7ff7be4230d4 in testing::TestSuite::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:3037
+[  DEATH   ]     #7 0x7ff7be435600 in testing::internal::UnitTestImpl::RunAllTests(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:5967
+[  DEATH   ]     #8 0x7ff7be482097 in testing::internal::HandleSehExceptionsInMethodIfSupported<class testing::internal::UnitTestImpl, bool>(class testing::internal::UnitTestImpl *, bool (__cdecl testing::internal::UnitTestImpl::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2631
+[  DEATH   ]     #9 0x7ff7be481e97 in testing::internal::HandleExceptionsInMethodIfSupported<class testing::internal::UnitTestImpl, bool>(class testing::internal::UnitTestImpl *, bool (__cdecl testing::internal::UnitTestImpl::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2674
+[  DEATH   ]     #10 0x7ff7be4249c4 in testing::UnitTest::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:5546
+[  DEATH   ]     #11 0x7ff7be401920 in RUN_ALL_TESTS(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\include\gtest\gtest.h:2334
+[  DEATH   ]     #12 0x7ff7be3f5833 in main F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp:187
+[  DEATH   ]     #13 0x7ff7be564f88 in invoke_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:78
+[  DEATH   ]     #14 0x7ff7be564ed1 in __scrt_common_main_seh D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+[  DEATH   ]     #15 0x7ff7be564d8d in __scrt_common_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:330
+[  DEATH   ]     #16 0x7ff7be564ffd in mainCRTStartup D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_main.cpp:16
+[  DEATH   ]     #17 0x7ffd8d22ccb6  (C:\WINDOWS\System32\KERNEL32.DLL+0x18002ccb6)
+[  DEATH   ]     #18 0x7ffd8efead6b  (C:\WINDOWS\SYSTEM32\ntdll.dll+0x1800aad6b)
+[  DEATH   ] 
+[  DEATH   ] SUMMARY: AddressSanitizer: heap-use-after-free F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp:68 in SanitizerActual_UseAfterFreeDetected_Test::TestBody(void)
+[  DEATH   ] Shadow bytes around the buggy address:
+[  DEATH   ]   0x049af01d4880: fa fa fd fd fa fa fd fd fa fa fd fd fa fa fd fd
+[  DEATH   ]   0x049af01d4890: fa fa fd fd fa fa fd fd fa fa fd fd fa fa fd fd
+[  DEATH   ]   0x049af01d48a0: fa fa fd fd fa fa fd fd fa fa fd fd fa fa fd fd
+[  DEATH   ]   0x049af01d48b0: fa fa fd fd fa fa fd fd fa fa fd fd fa fa 00 00
+[  DEATH   ]   0x049af01d48c0: fa fa 00 00 fa fa 00 00 fa fa fd fd fa fa fd fd
+[  DEATH   ] =>0x049af01d48d0: fa fa fd fd fa fa 00 00 fa fa[fd]fa fa fa fa fa
+[  DEATH   ]   0x049af01d48e0: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+[  DEATH   ]   0x049af01d48f0: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+[  DEATH   ]   0x049af01d4900: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+[  DEATH   ]   0x049af01d4910: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+[  DEATH   ]   0x049af01d4920: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+[  DEATH   ] Shadow byte legend (one shadow byte represents 8 application bytes):
+[  DEATH   ]   Addressable:           00
+[  DEATH   ]   Partially addressable: 01 02 03 04 05 06 07 
+[  DEATH   ]   Heap left redzone:       fa
+[  DEATH   ]   Freed heap region:       fd
+[  DEATH   ]   Stack left redzone:      f1
+[  DEATH   ]   Stack mid redzone:       f2
+[  DEATH   ]   Stack right redzone:     f3
+[  DEATH   ]   Stack after return:      f5
+[  DEATH   ]   Stack use after scope:   f8
+[  DEATH   ]   Global redzone:          f9
+[  DEATH   ]   Global init order:       f6
+[  DEATH   ]   Poisoned by user:        f7
+[  DEATH   ]   Container overflow:      fc
+[  DEATH   ]   Array cookie:            ac
+[  DEATH   ]   Intra object redzone:    bb
+[  DEATH   ]   ASan internal:           fe
+[  DEATH   ]   Left alloca redzone:     ca
+[  DEATH   ]   Right alloca redzone:    cb
+[  DEATH   ] ==22340==ABORTING
+[  DEATH   ] 
+
+[  FAILED  ] SanitizerActual.UseAfterFreeDetected (239 ms)
+[ RUN      ] SanitizerActual.HeapBufferOverflowDetected
+F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src/gtest-port.cc(859): error: Failed
+Syntax error at index 20 in simple regular expression "heap-buffer-overflow|AddressSanitizer": '|' is unsupported.
+
+F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp(96): error: Death test: { char* p = new char[16]; volatile char x = p[32]; (void)x; delete[] p; std::exit(0); }
+    Result: died but not with expected error.
+  Expected: contains regular expression "heap-buffer-overflow|AddressSanitizer"
+Actual msg:
+[  DEATH   ] =================================================================
+[  DEATH   ] ==14140==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x11a6c1da4370 at pc 0x7ff7be3f3f04 bp 0x007ce2f1ebe0 sp 0x007ce2f1ebe0
+[  DEATH   ] READ of size 1 at 0x11a6c1da4370 thread T0
+[  DEATH   ]     #0 0x7ff7be3f3f03 in SanitizerActual_HeapBufferOverflowDetected_Test::TestBody(void) F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp:89
+[  DEATH   ]     #1 0x7ff7be481fd7 in testing::internal::HandleSehExceptionsInMethodIfSupported<class testing::Test, void>(class testing::Test *, void (__cdecl testing::Test::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2631
+[  DEATH   ]     #2 0x7ff7be481883 in testing::internal::HandleExceptionsInMethodIfSupported<class testing::Test, void>(class testing::Test *, void (__cdecl testing::Test::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2674
+[  DEATH   ]     #3 0x7ff7be41fde2 in testing::Test::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2713
+[  DEATH   ]     #4 0x7ff7be4218b6 in testing::TestInfo::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2859
+[  DEATH   ]     #5 0x7ff7be4230d4 in testing::TestSuite::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:3037
+[  DEATH   ]     #6 0x7ff7be435600 in testing::internal::UnitTestImpl::RunAllTests(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:5967
+[  DEATH   ]     #7 0x7ff7be482097 in testing::internal::HandleSehExceptionsInMethodIfSupported<class testing::internal::UnitTestImpl, bool>(class testing::internal::UnitTestImpl *, bool (__cdecl testing::internal::UnitTestImpl::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2631
+[  DEATH   ]     #8 0x7ff7be481e97 in testing::internal::HandleExceptionsInMethodIfSupported<class testing::internal::UnitTestImpl, bool>(class testing::internal::UnitTestImpl *, bool (__cdecl testing::internal::UnitTestImpl::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2674
+[  DEATH   ]     #9 0x7ff7be4249c4 in testing::UnitTest::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:5546
+[  DEATH   ]     #10 0x7ff7be401920 in RUN_ALL_TESTS(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\include\gtest\gtest.h:2334
+[  DEATH   ]     #11 0x7ff7be3f5833 in main F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp:187
+[  DEATH   ]     #12 0x7ff7be564f88 in invoke_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:78
+[  DEATH   ]     #13 0x7ff7be564ed1 in __scrt_common_main_seh D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+[  DEATH   ]     #14 0x7ff7be564d8d in __scrt_common_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:330
+[  DEATH   ]     #15 0x7ff7be564ffd in mainCRTStartup D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_main.cpp:16
+[  DEATH   ]     #16 0x7ffd8d22ccb6  (C:\WINDOWS\System32\KERNEL32.DLL+0x18002ccb6)
+[  DEATH   ]     #17 0x7ffd8efead6b  (C:\WINDOWS\SYSTEM32\ntdll.dll+0x1800aad6b)
+[  DEATH   ] 
+[  DEATH   ] 0x11a6c1da4370 is located 16 bytes to the right of 16-byte region [0x11a6c1da4350,0x11a6c1da4360)
+[  DEATH   ] allocated by thread T0 here:
+[  DEATH   ]     #0 0x7ff7be563f2e in operator new[](unsigned __int64) D:\a\_work\1\s\src\vctools\asan\llvm\compiler-rt\lib\asan\asan_win_new_array_thunk.cpp:41
+[  DEATH   ]     #1 0x7ff7be3f3eb2 in SanitizerActual_HeapBufferOverflowDetected_Test::TestBody(void) F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp:89
+[  DEATH   ]     #2 0x7ff7be481fd7 in testing::internal::HandleSehExceptionsInMethodIfSupported<class testing::Test, void>(class testing::Test *, void (__cdecl testing::Test::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2631
+[  DEATH   ]     #3 0x7ff7be481883 in testing::internal::HandleExceptionsInMethodIfSupported<class testing::Test, void>(class testing::Test *, void (__cdecl testing::Test::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2674
+[  DEATH   ]     #4 0x7ff7be41fde2 in testing::Test::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2713
+[  DEATH   ]     #5 0x7ff7be4218b6 in testing::TestInfo::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2859
+[  DEATH   ]     #6 0x7ff7be4230d4 in testing::TestSuite::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:3037
+[  DEATH   ]     #7 0x7ff7be435600 in testing::internal::UnitTestImpl::RunAllTests(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:5967
+[  DEATH   ]     #8 0x7ff7be482097 in testing::internal::HandleSehExceptionsInMethodIfSupported<class testing::internal::UnitTestImpl, bool>(class testing::internal::UnitTestImpl *, bool (__cdecl testing::internal::UnitTestImpl::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2631
+[  DEATH   ]     #9 0x7ff7be481e97 in testing::internal::HandleExceptionsInMethodIfSupported<class testing::internal::UnitTestImpl, bool>(class testing::internal::UnitTestImpl *, bool (__cdecl testing::internal::UnitTestImpl::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2674
+[  DEATH   ]     #10 0x7ff7be4249c4 in testing::UnitTest::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:5546
+[  DEATH   ]     #11 0x7ff7be401920 in RUN_ALL_TESTS(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\include\gtest\gtest.h:2334
+[  DEATH   ]     #12 0x7ff7be3f5833 in main F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp:187
+[  DEATH   ]     #13 0x7ff7be564f88 in invoke_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:78
+[  DEATH   ]     #14 0x7ff7be564ed1 in __scrt_common_main_seh D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+[  DEATH   ]     #15 0x7ff7be564d8d in __scrt_common_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:330
+[  DEATH   ]     #16 0x7ff7be564ffd in mainCRTStartup D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_main.cpp:16
+[  DEATH   ]     #17 0x7ffd8d22ccb6  (C:\WINDOWS\System32\KERNEL32.DLL+0x18002ccb6)
+[  DEATH   ]     #18 0x7ffd8efead6b  (C:\WINDOWS\SYSTEM32\ntdll.dll+0x1800aad6b)
+[  DEATH   ] 
+[  DEATH   ] SUMMARY: AddressSanitizer: heap-buffer-overflow F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp:89 in SanitizerActual_HeapBufferOverflowDetected_Test::TestBody(void)
+[  DEATH   ] Shadow bytes around the buggy address:
+[  DEATH   ]   0x03d79a134810: fa fa fd fd fa fa fd fd fa fa fd fd fa fa fd fd
+[  DEATH   ]   0x03d79a134820: fa fa fd fd fa fa fd fd fa fa 00 00 fa fa 00 00
+[  DEATH   ]   0x03d79a134830: fa fa fd fd fa fa fd fd fa fa 00 00 fa fa fd fd
+[  DEATH   ]   0x03d79a134840: fa fa fd fd fa fa fd fd fa fa fd fd fa fa fd fd
+[  DEATH   ]   0x03d79a134850: fa fa fd fd fa fa 00 00 fa fa 00 00 fa fa 00 00
+[  DEATH   ] =>0x03d79a134860: fa fa 00 00 fa fa 00 00 fa fa 00 00 fa fa[fa]fa
+[  DEATH   ]   0x03d79a134870: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+[  DEATH   ]   0x03d79a134880: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+[  DEATH   ]   0x03d79a134890: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+[  DEATH   ]   0x03d79a1348a0: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+[  DEATH   ]   0x03d79a1348b0: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+[  DEATH   ] Shadow byte legend (one shadow byte represents 8 application bytes):
+[  DEATH   ]   Addressable:           00
+[  DEATH   ]   Partially addressable: 01 02 03 04 05 06 07 
+[  DEATH   ]   Heap left redzone:       fa
+[  DEATH   ]   Freed heap region:       fd
+[  DEATH   ]   Stack left redzone:      f1
+[  DEATH   ]   Stack mid redzone:       f2
+[  DEATH   ]   Stack right redzone:     f3
+[  DEATH   ]   Stack after return:      f5
+[  DEATH   ]   Stack use after scope:   f8
+[  DEATH   ]   Global redzone:          f9
+[  DEATH   ]   Global init order:       f6
+[  DEATH   ]   Poisoned by user:        f7
+[  DEATH   ]   Container overflow:      fc
+[  DEATH   ]   Array cookie:            ac
+[  DEATH   ]   Intra object redzone:    bb
+[  DEATH   ]   ASan internal:           fe
+[  DEATH   ]   Left alloca redzone:     ca
+[  DEATH   ]   Right alloca redzone:    cb
+[  DEATH   ] ==14140==ABORTING
+[  DEATH   ] 
+
+[  FAILED  ] SanitizerActual.HeapBufferOverflowDetected (183 ms)
+[ RUN      ] SanitizerActual.StackBufferOverflowDetected
+F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src/gtest-port.cc(859): error: Failed
+Syntax error at index 21 in simple regular expression "stack-buffer-overflow|AddressSanitizer": '|' is unsupported.
+
+F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp(115): error: Death test: { char buf[16]; volatile char x = buf[32]; (void)x; std::exit(0); }
+    Result: died but not with expected error.
+  Expected: contains regular expression "stack-buffer-overflow|AddressSanitizer"
+Actual msg:
+[  DEATH   ] =================================================================
+[  DEATH   ] ==36368==ERROR: AddressSanitizer: stack-buffer-overflow on address 0x00e5edf7e990 at pc 0x7ff7be3f4622 bp 0x00e5edf7e870 sp 0x00e5edf7e870
+[  DEATH   ] READ of size 1 at 0x00e5edf7e990 thread T0
+[  DEATH   ]     #0 0x7ff7be3f4621 in SanitizerActual_StackBufferOverflowDetected_Test::TestBody(void) F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp:109
+[  DEATH   ]     #1 0x7ff7be481fd7 in testing::internal::HandleSehExceptionsInMethodIfSupported<class testing::Test, void>(class testing::Test *, void (__cdecl testing::Test::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2631
+[  DEATH   ]     #2 0x7ff7be481883 in testing::internal::HandleExceptionsInMethodIfSupported<class testing::Test, void>(class testing::Test *, void (__cdecl testing::Test::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2674
+[  DEATH   ]     #3 0x7ff7be41fde2 in testing::Test::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2713
+[  DEATH   ]     #4 0x7ff7be4218b6 in testing::TestInfo::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2859
+[  DEATH   ]     #5 0x7ff7be4230d4 in testing::TestSuite::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:3037
+[  DEATH   ]     #6 0x7ff7be435600 in testing::internal::UnitTestImpl::RunAllTests(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:5967
+[  DEATH   ]     #7 0x7ff7be482097 in testing::internal::HandleSehExceptionsInMethodIfSupported<class testing::internal::UnitTestImpl, bool>(class testing::internal::UnitTestImpl *, bool (__cdecl testing::internal::UnitTestImpl::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2631
+[  DEATH   ]     #8 0x7ff7be481e97 in testing::internal::HandleExceptionsInMethodIfSupported<class testing::internal::UnitTestImpl, bool>(class testing::internal::UnitTestImpl *, bool (__cdecl testing::internal::UnitTestImpl::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2674
+[  DEATH   ]     #9 0x7ff7be4249c4 in testing::UnitTest::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:5546
+[  DEATH   ]     #10 0x7ff7be401920 in RUN_ALL_TESTS(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\include\gtest\gtest.h:2334
+[  DEATH   ]     #11 0x7ff7be3f5833 in main F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp:187
+[  DEATH   ]     #12 0x7ff7be564f88 in invoke_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:78
+[  DEATH   ]     #13 0x7ff7be564ed1 in __scrt_common_main_seh D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+[  DEATH   ]     #14 0x7ff7be564d8d in __scrt_common_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:330
+[  DEATH   ]     #15 0x7ff7be564ffd in mainCRTStartup D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_main.cpp:16
+[  DEATH   ]     #16 0x7ffd8d22ccb6  (C:\WINDOWS\System32\KERNEL32.DLL+0x18002ccb6)
+[  DEATH   ]     #17 0x7ffd8efead6b  (C:\WINDOWS\SYSTEM32\ntdll.dll+0x1800aad6b)
+[  DEATH   ] 
+[  DEATH   ] Address 0x00e5edf7e990 is located in stack of thread T0 at offset 240 in frame
+[  DEATH   ]     #0 0x7ff7be3f417f in SanitizerActual_StackBufferOverflowDetected_Test::TestBody(void) F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp:108
+[  DEATH   ] 
+[  DEATH   ]   This frame has 8 object(s):
+[  DEATH   ]     [32, 72) 'compiler temporary'
+[  DEATH   ]     [48, 56) 'gtest_dt'
+[  DEATH   ]     [64, 88) 'compiler temporary'
+[  DEATH   ]     [80, 88) 'gtest_dt_ptr'
+[  DEATH   ]     [96, 104) 'gtest_sentinel'
+[  DEATH   ]     [112, 128) 'buf'
+[  DEATH   ]     [128, 136) 'compiler temporary'
+[  DEATH   ]     [144, 152) 'compiler temporary' <== Memory access at offset 240 overflows this variable
+[  DEATH   ] HINT: this may be a false positive if your program uses some custom stack unwind mechanism, swapcontext or vfork
+[  DEATH   ]       (longjmp, SEH and C++ exceptions *are* supported)
+[  DEATH   ] SUMMARY: AddressSanitizer: stack-buffer-overflow F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp:109 in SanitizerActual_StackBufferOverflowDetected_Test::TestBody(void)
+[  DEATH   ] Shadow bytes around the buggy address:
+[  DEATH   ]   0x02855b16fce0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[  DEATH   ]   0x02855b16fcf0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[  DEATH   ]   0x02855b16fd00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[  DEATH   ]   0x02855b16fd10: 00 00 00 00 f1 f1 f1 f1 00 00 00 00 00 f2 f2 f2
+[  DEATH   ]   0x02855b16fd20: f2 00 f2 00 00 00 f2 f2 f2 f2 00 f2 00 f2 00 00
+[  DEATH   ] =>0x02855b16fd30: f2 f2[f2]f2 f8 f2 f8 f3 f3 f3 f3 00 00 00 00 00
+[  DEATH   ]   0x02855b16fd40: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[  DEATH   ]   0x02855b16fd50: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[  DEATH   ]   0x02855b16fd60: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[  DEATH   ]   0x02855b16fd70: 00 00 00 00 00 00 00 00 f1 f1 f1 f1 00 00 00 00
+[  DEATH   ]   0x02855b16fd80: 00 f2 f2 f2 f2 00 00 00 00 00 f3 f3 f3 f3 00 00
+[  DEATH   ] Shadow byte legend (one shadow byte represents 8 application bytes):
+[  DEATH   ]   Addressable:           00
+[  DEATH   ]   Partially addressable: 01 02 03 04 05 06 07 
+[  DEATH   ]   Heap left redzone:       fa
+[  DEATH   ]   Freed heap region:       fd
+[  DEATH   ]   Stack left redzone:      f1
+[  DEATH   ]   Stack mid redzone:       f2
+[  DEATH   ]   Stack right redzone:     f3
+[  DEATH   ]   Stack after return:      f5
+[  DEATH   ]   Stack use after scope:   f8
+[  DEATH   ]   Global redzone:          f9
+[  DEATH   ]   Global init order:       f6
+[  DEATH   ]   Poisoned by user:        f7
+[  DEATH   ]   Container overflow:      fc
+[  DEATH   ]   Array cookie:            ac
+[  DEATH   ]   Intra object redzone:    bb
+[  DEATH   ]   ASan internal:           fe
+[  DEATH   ]   Left alloca redzone:     ca
+[  DEATH   ]   Right alloca redzone:    cb
+[  DEATH   ] ==36368==ABORTING
+[  DEATH   ] 
+
+[  FAILED  ] SanitizerActual.StackBufferOverflowDetected (159 ms)
+[ RUN      ] SanitizerActual.UndefinedBehaviorDetected
+F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp(139): Skipped
+UBSan not enabled, skipping UB trigger test
+
+[  SKIPPED ] SanitizerActual.UndefinedBehaviorDetected (0 ms)
+[ RUN      ] SanitizerActual.NullDereferenceDetected
+F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src/gtest-port.cc(859): error: Failed
+Syntax error at index 4 in simple regular expression "SEGV|null|AddressSanitizer|UBSan": '|' is unsupported.
+
+F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src/gtest-port.cc(859): error: Failed
+Syntax error at index 9 in simple regular expression "SEGV|null|AddressSanitizer|UBSan": '|' is unsupported.
+
+F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src/gtest-port.cc(859): error: Failed
+Syntax error at index 26 in simple regular expression "SEGV|null|AddressSanitizer|UBSan": '|' is unsupported.
+
+F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp(154): error: Death test: { int* p = nullptr; volatile int x = *p; (void)x; std::exit(0); }
+    Result: died but not with expected error.
+  Expected: contains regular expression "SEGV|null|AddressSanitizer|UBSan"
+Actual msg:
+[  DEATH   ] 
+
+[  FAILED  ] SanitizerActual.NullDereferenceDetected (71 ms)
+[ RUN      ] SanitizerActual.DoubleFreeDetected
+F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src/gtest-port.cc(859): error: Failed
+Syntax error at index 11 in simple regular expression "double-free|AddressSanitizer|alloc-dealloc-mismatch": '|' is unsupported.
+
+F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src/gtest-port.cc(859): error: Failed
+Syntax error at index 28 in simple regular expression "double-free|AddressSanitizer|alloc-dealloc-mismatch": '|' is unsupported.
+
+F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp(172): error: Death test: { int* p = new int(42); delete p; delete p; std::exit(0); }
+    Result: died but not with expected error.
+  Expected: contains regular expression "double-free|AddressSanitizer|alloc-dealloc-mismatch"
+Actual msg:
+[  DEATH   ] =================================================================
+[  DEATH   ] ==18692==ERROR: AddressSanitizer: attempting double-free on 0x120b514a46d0 in thread T0:
+[  DEATH   ]     #0 0x7ff7be563e83 in operator delete(void *, unsigned __int64) D:\a\_work\1\s\src\vctools\asan\llvm\compiler-rt\lib\asan\asan_win_delete_scalar_size_thunk.cpp:41
+[  DEATH   ]     #1 0x7ff7be3f55d3 in SanitizerActual_DoubleFreeDetected_Test::TestBody(void) F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp:167
+[  DEATH   ]     #2 0x7ff7be481fd7 in testing::internal::HandleSehExceptionsInMethodIfSupported<class testing::Test, void>(class testing::Test *, void (__cdecl testing::Test::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2631
+[  DEATH   ]     #3 0x7ff7be481883 in testing::internal::HandleExceptionsInMethodIfSupported<class testing::Test, void>(class testing::Test *, void (__cdecl testing::Test::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2674
+[  DEATH   ]     #4 0x7ff7be41fde2 in testing::Test::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2713
+[  DEATH   ]     #5 0x7ff7be4218b6 in testing::TestInfo::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2859
+[  DEATH   ]     #6 0x7ff7be4230d4 in testing::TestSuite::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:3037
+[  DEATH   ]     #7 0x7ff7be435600 in testing::internal::UnitTestImpl::RunAllTests(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:5967
+[  DEATH   ]     #8 0x7ff7be482097 in testing::internal::HandleSehExceptionsInMethodIfSupported<class testing::internal::UnitTestImpl, bool>(class testing::internal::UnitTestImpl *, bool (__cdecl testing::internal::UnitTestImpl::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2631
+[  DEATH   ]     #9 0x7ff7be481e97 in testing::internal::HandleExceptionsInMethodIfSupported<class testing::internal::UnitTestImpl, bool>(class testing::internal::UnitTestImpl *, bool (__cdecl testing::internal::UnitTestImpl::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2674
+[  DEATH   ]     #10 0x7ff7be4249c4 in testing::UnitTest::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:5546
+[  DEATH   ]     #11 0x7ff7be401920 in RUN_ALL_TESTS(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\include\gtest\gtest.h:2334
+[  DEATH   ]     #12 0x7ff7be3f5833 in main F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp:187
+[  DEATH   ]     #13 0x7ff7be564f88 in invoke_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:78
+[  DEATH   ]     #14 0x7ff7be564ed1 in __scrt_common_main_seh D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+[  DEATH   ]     #15 0x7ff7be564d8d in __scrt_common_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:330
+[  DEATH   ]     #16 0x7ff7be564ffd in mainCRTStartup D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_main.cpp:16
+[  DEATH   ]     #17 0x7ffd8d22ccb6  (C:\WINDOWS\System32\KERNEL32.DLL+0x18002ccb6)
+[  DEATH   ]     #18 0x7ffd8efead6b  (C:\WINDOWS\SYSTEM32\ntdll.dll+0x1800aad6b)
+[  DEATH   ] 
+[  DEATH   ] 0x120b514a46d0 is located 0 bytes inside of 4-byte region [0x120b514a46d0,0x120b514a46d4)
+[  DEATH   ] freed by thread T0 here:
+[  DEATH   ]     #0 0x7ff7be563e83 in operator delete(void *, unsigned __int64) D:\a\_work\1\s\src\vctools\asan\llvm\compiler-rt\lib\asan\asan_win_delete_scalar_size_thunk.cpp:41
+[  DEATH   ]     #1 0x7ff7be3f55b0 in SanitizerActual_DoubleFreeDetected_Test::TestBody(void) F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp:167
+[  DEATH   ]     #2 0x7ff7be481fd7 in testing::internal::HandleSehExceptionsInMethodIfSupported<class testing::Test, void>(class testing::Test *, void (__cdecl testing::Test::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2631
+[  DEATH   ]     #3 0x7ff7be481883 in testing::internal::HandleExceptionsInMethodIfSupported<class testing::Test, void>(class testing::Test *, void (__cdecl testing::Test::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2674
+[  DEATH   ]     #4 0x7ff7be41fde2 in testing::Test::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2713
+[  DEATH   ]     #5 0x7ff7be4218b6 in testing::TestInfo::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2859
+[  DEATH   ]     #6 0x7ff7be4230d4 in testing::TestSuite::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:3037
+[  DEATH   ]     #7 0x7ff7be435600 in testing::internal::UnitTestImpl::RunAllTests(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:5967
+[  DEATH   ]     #8 0x7ff7be482097 in testing::internal::HandleSehExceptionsInMethodIfSupported<class testing::internal::UnitTestImpl, bool>(class testing::internal::UnitTestImpl *, bool (__cdecl testing::internal::UnitTestImpl::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2631
+[  DEATH   ]     #9 0x7ff7be481e97 in testing::internal::HandleExceptionsInMethodIfSupported<class testing::internal::UnitTestImpl, bool>(class testing::internal::UnitTestImpl *, bool (__cdecl testing::internal::UnitTestImpl::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2674
+[  DEATH   ]     #10 0x7ff7be4249c4 in testing::UnitTest::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:5546
+[  DEATH   ]     #11 0x7ff7be401920 in RUN_ALL_TESTS(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\include\gtest\gtest.h:2334
+[  DEATH   ]     #12 0x7ff7be3f5833 in main F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp:187
+[  DEATH   ]     #13 0x7ff7be564f88 in invoke_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:78
+[  DEATH   ]     #14 0x7ff7be564ed1 in __scrt_common_main_seh D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+[  DEATH   ]     #15 0x7ff7be564d8d in __scrt_common_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:330
+[  DEATH   ]     #16 0x7ff7be564ffd in mainCRTStartup D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_main.cpp:16
+[  DEATH   ]     #17 0x7ffd8d22ccb6  (C:\WINDOWS\System32\KERNEL32.DLL+0x18002ccb6)
+[  DEATH   ]     #18 0x7ffd8efead6b  (C:\WINDOWS\SYSTEM32\ntdll.dll+0x1800aad6b)
+[  DEATH   ] 
+[  DEATH   ] previously allocated by thread T0 here:
+[  DEATH   ]     #0 0x7ff7be563d65 in operator new(unsigned __int64) D:\a\_work\1\s\src\vctools\asan\llvm\compiler-rt\lib\asan\asan_win_new_scalar_thunk.cpp:40
+[  DEATH   ]     #1 0x7ff7be3f5512 in SanitizerActual_DoubleFreeDetected_Test::TestBody(void) F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp:167
+[  DEATH   ]     #2 0x7ff7be481fd7 in testing::internal::HandleSehExceptionsInMethodIfSupported<class testing::Test, void>(class testing::Test *, void (__cdecl testing::Test::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2631
+[  DEATH   ]     #3 0x7ff7be481883 in testing::internal::HandleExceptionsInMethodIfSupported<class testing::Test, void>(class testing::Test *, void (__cdecl testing::Test::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2674
+[  DEATH   ]     #4 0x7ff7be41fde2 in testing::Test::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2713
+[  DEATH   ]     #5 0x7ff7be4218b6 in testing::TestInfo::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2859
+[  DEATH   ]     #6 0x7ff7be4230d4 in testing::TestSuite::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:3037
+[  DEATH   ]     #7 0x7ff7be435600 in testing::internal::UnitTestImpl::RunAllTests(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:5967
+[  DEATH   ]     #8 0x7ff7be482097 in testing::internal::HandleSehExceptionsInMethodIfSupported<class testing::internal::UnitTestImpl, bool>(class testing::internal::UnitTestImpl *, bool (__cdecl testing::internal::UnitTestImpl::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2631
+[  DEATH   ]     #9 0x7ff7be481e97 in testing::internal::HandleExceptionsInMethodIfSupported<class testing::internal::UnitTestImpl, bool>(class testing::internal::UnitTestImpl *, bool (__cdecl testing::internal::UnitTestImpl::*)(void), char const *) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:2674
+[  DEATH   ]     #10 0x7ff7be4249c4 in testing::UnitTest::Run(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\src\gtest.cc:5546
+[  DEATH   ]     #11 0x7ff7be401920 in RUN_ALL_TESTS(void) F:\Astro dev\Astro CS Normalization Database\run\acr_build_asan\_deps\googletest-src\googletest\include\gtest\gtest.h:2334
+[  DEATH   ]     #12 0x7ff7be3f5833 in main F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\tests\fault\sanitizer_actual.cpp:187
+[  DEATH   ]     #13 0x7ff7be564f88 in invoke_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:78
+[  DEATH   ]     #14 0x7ff7be564ed1 in __scrt_common_main_seh D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+[  DEATH   ]     #15 0x7ff7be564d8d in __scrt_common_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:330
+[  DEATH   ]     #16 0x7ff7be564ffd in mainCRTStartup D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_main.cpp:16
+[  DEATH   ]     #17 0x7ffd8d22ccb6  (C:\WINDOWS\System32\KERNEL32.DLL+0x18002ccb6)
+[  DEATH   ]     #18 0x7ffd8efead6b  (C:\WINDOWS\SYSTEM32\ntdll.dll+0x1800aad6b)
+[  DEATH   ] 
+[  DEATH   ] SUMMARY: AddressSanitizer: double-free D:\a\_work\1\s\src\vctools\asan\llvm\compiler-rt\lib\asan\asan_win_delete_scalar_size_thunk.cpp:41 in operator delete(void *, unsigned __int64)
+[  DEATH   ] ==18692==ABORTING
+[  DEATH   ] 
+
+[  FAILED  ] SanitizerActual.DoubleFreeDetected (221 ms)
+[----------] 7 tests from SanitizerActual (880 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 1 test suite ran. (882 ms total)
+[  PASSED  ] 1 test.
+[  SKIPPED ] 1 test, listed below:
+[  SKIPPED ] SanitizerActual.UndefinedBehaviorDetected
+[  FAILED  ] 5 tests, listed below:
+[  FAILED  ] SanitizerActual.UseAfterFreeDetected
+[  FAILED  ] SanitizerActual.HeapBufferOverflowDetected
+[  FAILED  ] SanitizerActual.StackBufferOverflowDetected
+[  FAILED  ] SanitizerActual.NullDereferenceDetected
+[  FAILED  ] SanitizerActual.DoubleFreeDetected
+
+ 5 FAILED TESTS

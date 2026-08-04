@@ -1,0 +1,37 @@
+ASan Build Configuration
+========================
+
+Build Directory: f:\Astro dev\Astro CS Normalization Database\run\acr_build_asan
+Toolchain: MSVC 19.40 (VS 2022 BuildTools) + Ninja + Debug
+Generator: Ninja (single-config, no --config needed)
+
+CMake Configuration:
+  cmake -S . -B <build_dir> -G Ninja \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DACR_BUILD_CUDA=OFF \
+    -DACR_BUILD_TESTS=ON \
+    -DCMAKE_CXX_FLAGS="/fsanitize=address /Zi /Od /utf-8" \
+    -DCMAKE_C_FLAGS="/fsanitize=address /Zi /Od /utf-8" \
+    -DCMAKE_EXE_LINKER_FLAGS="/INCREMENTAL:NO"
+
+Flags Explanation:
+  /fsanitize=address  — Enable AddressSanitizer (MSVC)
+  /Zi                  — Debug info (required by ASan)
+  /Od                  — Disable optimization (improves ASan stack traces)
+  /utf-8               — UTF-8 source encoding (中文 comments)
+  /INCREMENTAL:NO     — Linker compatibility with ASan
+
+CUDA: OFF (MSVC ASan does not support CUDA)
+UBSan: Not supported by MSVC (only GCC/Clang)
+TSan: Not supported by MSVC
+
+Runtime DLLs Required:
+  - clang_rt.asan_dynamic-x86_64.dll
+    (C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.40.33807\bin\Hostx64\x64)
+  - MSVCP140D.dll, VCRUNTIME140D.dll, VCRUNTIME140_1D.dll, ucrtbased.dll
+    (C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Redist\MSVC\14.40.33807\debug_nonredist\x64\Microsoft.VC143.DebugCRT)
+  - tbb12_debug.dll
+    (<build_dir>\msvc_19.40_cxx20_64_md_debug)
+
+Build Result: SUCCESS
+Test Executables Built: 15 (acr_test_api, acr_test_buffer, acr_test_topology, ...)
