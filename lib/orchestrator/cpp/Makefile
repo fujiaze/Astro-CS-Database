@@ -13,7 +13,9 @@ CXXFLAGS = -O2 -std=c++17 -Wall -fopenmp
 # -Iinclude: orchestrator 自身头文件
 # 其余 -I 路径: 各 DLL 模块头文件 (orchestrator.cpp stage handler 调用所需)
 # Makefile 位于 lib/orchestrator/cpp/, ../../ 解析到 lib/
+# -I../../common/include: PrecisionContext / AstroScalarType 双精度 ABI 头文件
 INCLUDES = -Iinclude \
+           -I../../common/include \
            -I../../astro_image_io/include \
            -I../../plate_solve/cpp/ipv/include \
            -I../../dynamic_psf/include \

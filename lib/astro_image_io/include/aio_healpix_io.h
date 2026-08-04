@@ -158,6 +158,15 @@ AIO_EXPORT int aio_hiss_read_tile_snr(const char* path, uint64_t parent_ipix,
 AIO_EXPORT int aio_hiss_query_pixel(const char* path, double ra, double dec,
                                       float* signal, uint8_t* support);
 
+// R10: 通过 ra/dec 查询像素值 (FP64 版本, 与 HissReader::query_pixel_f64 一致)
+// 仅适用于 FP64 模式文件 (signal_dtype=1); FP32 文件会返回错误 (禁止静默转换)
+// ra, dec - 度
+// signal - 输出参数 (单个 double 值, 调用者负责分配 sizeof(double))
+// support - 输出参数 (单个 uint8_t 值)
+// 返回: 0=成功, <0=失败
+AIO_EXPORT int aio_hiss_query_pixel_f64(const char* path, double ra, double dec,
+                                          double* signal, uint8_t* support);
+
 // ============================================================================
 // .hcsd 天球数据库格式 API
 // ============================================================================

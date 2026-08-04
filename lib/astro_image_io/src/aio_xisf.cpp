@@ -1,6 +1,7 @@
 #include "aio_xisf.h"
 #include "aio_log.h"
 #include "aio_util.h"
+#include "precision_context.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -239,6 +240,105 @@ static float *convert_xisf_pixels(const uint8_t *raw, size_t n_pixels, const XIS
     return out;
 }
 
+// ============================================================================
+// convert_xisf_pixels_f64 - 将原始 XISF 像素转换为 double 数组 (FP64 模式)
+// 与 convert_xisf_pixels 对应, 但输出 double, 不损失精度:
+//   - Float64: 直接拷贝, 零精度损失
+//   - Float32: float -> double 提升, 不损失精度
+//   - 整数类型: 整数 -> double, 不损失精度
+// 返回 malloc 分配的 double 数组 (调用方负责 free), 失败返回 nullptr
+// ============================================================================
+static double *convert_xisf_pixels_f64(const uint8_t *raw, size_t n_pixels,
+                                       const XISFSampleFormat &sf, int do_swap) {
+    double *out = (double *)malloc(n_pixels * sizeof(double));
+    if (!out) return nullptr;
+
+    switch (sf.dtype_size) {
+    case 1:
+        if (sf.is_float) {
+            for (size_t i = 0; i < n_pixels; i++) out[i] = 0.0;
+        } else {
+            for (size_t i = 0; i < n_pixels; i++) out[i] = (double)raw[i];
+        }
+        break;
+
+    case 2: {
+        const uint16_t *src = (const uint16_t *)raw;
+        for (size_t i = 0; i < n_pixels; i++) {
+            uint16_t v = src[i];
+            if (do_swap) { uint8_t *p = (uint8_t *)&v; uint8_t t = p[0]; p[0] = p[1]; p[1] = t; }
+            out[i] = (double)v;
+        }
+        break;
+    }
+
+    case 4: {
+        if (sf.is_float) {
+            const float *src = (const float *)raw;
+            for (size_t i = 0; i < n_pixels; i++) {
+                float v = src[i];
+                if (do_swap) {
+                    uint8_t *p = (uint8_t *)&v;
+                    uint8_t t; t = p[0]; p[0] = p[3]; p[3] = t;
+                    t = p[1]; p[1] = p[2]; p[2] = t;
+                }
+                out[i] = (double)v;
+            }
+        } else {
+            const uint32_t *src = (const uint32_t *)raw;
+            for (size_t i = 0; i < n_pixels; i++) {
+                uint32_t v = src[i];
+                if (do_swap) {
+                    uint8_t *p = (uint8_t *)&v;
+                    uint8_t t; t = p[0]; p[0] = p[3]; p[3] = t;
+                    t = p[1]; p[1] = p[2]; p[2] = t;
+                }
+                out[i] = (double)(int32_t)v;
+            }
+        }
+        break;
+    }
+
+    case 8: {
+        if (sf.is_float) {
+            const double *src = (const double *)raw;
+            for (size_t i = 0; i < n_pixels; i++) {
+                double v = src[i];
+                if (do_swap) {
+                    uint8_t *p = (uint8_t *)&v;
+                    uint8_t t; t = p[0]; p[0] = p[7]; p[7] = t;
+                    t = p[1]; p[1] = p[6]; p[6] = t;
+                    t = p[2]; p[2] = p[5]; p[5] = t;
+                    t = p[3]; p[3] = p[4]; p[4] = t;
+                }
+                out[i] = v;  // double 直接拷贝, 零精度损失
+            }
+        } else {
+            const uint64_t *src = (const uint64_t *)raw;
+            for (size_t i = 0; i < n_pixels; i++) {
+                uint64_t v = src[i];
+                if (do_swap) {
+                    uint8_t *p = (uint8_t *)&v;
+                    uint8_t t; t = p[0]; p[0] = p[7]; p[7] = t;
+                    t = p[1]; p[1] = p[6]; p[6] = t;
+                    t = p[2]; p[2] = p[5]; p[5] = t;
+                    t = p[3]; p[3] = p[4]; p[4] = t;
+                }
+                out[i] = (double)(int64_t)v;
+            }
+        }
+        break;
+    }
+
+    default:
+        aio_log(AIO_LOG_ERROR, "XISF", "Unsupported dtype_size: %d", sf.dtype_size);
+        free(out);
+        return nullptr;
+    }
+
+    return out;
+}
+
 static void build_xisf_metadata(const std::vector<AIOFITSKeyword> &keywords,
                                  int w, int h, int channels,
                                  const XISFSampleFormat &sf,
@@ -401,25 +501,57 @@ int xisf_read_file(const char *path, AIOImageData *out) {
     aio_log(AIO_LOG_INFO, "XISF", "Byte order: file=%s system=%s swap=%d",
             img_info.byte_order.c_str(), is_le ? "little" : "big", do_swap);
 
-    float *pixel_data = convert_xisf_pixels(raw.data(), n_pixels, sf, do_swap);
-    if (!pixel_data) {
-        aio_log(AIO_LOG_ERROR, "XISF", "Pixel conversion failed");
-        return -1;
-    }
+    // 双精度 ABI: 根据 PrecisionContext 决定读取到 data (FP32) 还是 data_f64 (FP64)
+    // FP64 模式下, double 输入直接存储到 data_f64, 不再降级到 float32
+    // FP32 模式保持历史行为 (向后兼容)
+    bool is_fp64 = PrecisionContext::instance().is_fp64();
 
-    if (c > 1) {
-        float *gray = (float *)malloc((size_t)w * h * sizeof(float));
-        if (gray) {
-            for (int y = 0; y < h; y++)
-                for (int x = 0; x < w; x++)
-                    gray[y * w + x] = pixel_data[0 * w * h + y * w + x];
-            free(pixel_data);
-            pixel_data = gray;
-            c = 1;
+    if (is_fp64) {
+        double *pixel_data_f64 = convert_xisf_pixels_f64(raw.data(), n_pixels, sf, do_swap);
+        if (!pixel_data_f64) {
+            aio_log(AIO_LOG_ERROR, "XISF", "Pixel conversion (FP64) failed");
+            return -1;
         }
-    }
 
-    out->data = pixel_data;
+        if (c > 1) {
+            double *gray = (double *)malloc((size_t)w * h * sizeof(double));
+            if (gray) {
+                for (int y = 0; y < h; y++)
+                    for (int x = 0; x < w; x++)
+                        gray[y * w + x] = pixel_data_f64[0 * w * h + y * w + x];
+                free(pixel_data_f64);
+                pixel_data_f64 = gray;
+                c = 1;
+            }
+        }
+
+        out->data = nullptr;
+        out->data_f64 = pixel_data_f64;
+        out->dtype = 1;  // FP64 (与 AstroScalarType::FP64 一致)
+        aio_log(AIO_LOG_INFO, "XISF", "FP64 mode: pixels stored in data_f64 (no float32 downgrade)");
+    } else {
+        float *pixel_data = convert_xisf_pixels(raw.data(), n_pixels, sf, do_swap);
+        if (!pixel_data) {
+            aio_log(AIO_LOG_ERROR, "XISF", "Pixel conversion failed");
+            return -1;
+        }
+
+        if (c > 1) {
+            float *gray = (float *)malloc((size_t)w * h * sizeof(float));
+            if (gray) {
+                for (int y = 0; y < h; y++)
+                    for (int x = 0; x < w; x++)
+                        gray[y * w + x] = pixel_data[0 * w * h + y * w + x];
+                free(pixel_data);
+                pixel_data = gray;
+                c = 1;
+            }
+        }
+
+        out->data = pixel_data;
+        out->data_f64 = nullptr;
+        out->dtype = 0;  // FP32 (与 AstroScalarType::FP32 一致)
+    }
     out->width = w;
     out->height = h;
     out->channels = c;

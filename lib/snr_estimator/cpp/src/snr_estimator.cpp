@@ -202,6 +202,171 @@ SNR_API int snr_estimate(const float* data, int h, int w,
 }
 
 // ============================================================================
+// snr_estimate_f64: FP64 版本 (R10 双精度 ABI)
+//
+// 与 snr_estimate 逻辑完全一致 (data 参数实际未参与 SNR 计算, 仅作 nullptr/尺寸校验),
+// 此处为 ABI 一致性提供 double* 入口, 便于 FP64 管线统一调用 _f64 后缀接口.
+// 输出 out_snr 仍为 float32 (HISS SNR 子块格式已冻结, 见 02_FROZEN §17).
+// ============================================================================
+SNR_API int snr_estimate_f64(const double* data, int h, int w,
+                             const double* psf, int n_stars,
+                             double sigma_residual,
+                             float* out_snr) {
+    // ---- nullptr 检查 (返回 3) ----
+    if (data == nullptr || out_snr == nullptr || psf == nullptr) {
+        fprintf(stderr, "[snr_f64] error: null pointer (data=%p out_snr=%p psf=%p)\n",
+                (const void*)data, (void*)out_snr, (const void*)psf);
+        return 3;
+    }
+
+    int N = h * w;
+    if (h <= 0 || w <= 0 || N <= 0) {
+        fprintf(stderr, "[snr_f64] error: invalid image size h=%d w=%d\n", h, w);
+        return 3;
+    }
+
+    // ---- 退化路径: sigma_residual <= 0 (返回 2, 全填 1.0) ----
+    if (sigma_residual <= 0.0) {
+        fprintf(stderr, "[snr_f64] degenerate: sigma_residual=%g <= 0, fill 1.0\n",
+                sigma_residual);
+        #pragma omp parallel for num_threads(16) schedule(static)
+        for (int i = 0; i < N; ++i) {
+            out_snr[i] = 1.0f;
+        }
+        return 2;
+    }
+
+    // ---- SNR_phot 全帧常数 ----
+    const double LN10 = 2.302585092994045684017991454684;
+    double snr_phot = 1.0 / (LN10 * sigma_residual);
+    fprintf(stderr, "[snr_f64] SNR_phot = 1/(ln(10)*sigma) = 1/(%.6f*%.6f) = %.6f\n",
+            LN10, sigma_residual, snr_phot);
+
+    // ---- 退化路径: n_stars <= 0 (返回 1, 全填 SNR_phot) ----
+    if (n_stars <= 0) {
+        fprintf(stderr, "[snr_f64] degenerate: n_stars=%d <= 0, fill SNR_phot=%.6f\n",
+                n_stars, snr_phot);
+        #pragma omp parallel for num_threads(16) schedule(static)
+        for (int i = 0; i < N; ++i) {
+            out_snr[i] = (float)snr_phot;
+        }
+        return 1;
+    }
+
+    // ---- 收集有效 PSF 星 ----
+    // 跳过 status!=0 或 A<=B 或 mad<=0
+    std::vector<double> star_x, star_y, star_snr;
+    star_x.reserve(n_stars);
+    star_y.reserve(n_stars);
+    star_snr.reserve(n_stars);
+    int n_skip_status = 0;
+    int n_skip_ab = 0;
+    int n_skip_mad = 0;
+
+    for (int i = 0; i < n_stars; ++i) {
+        const double* row = psf + i * 9;
+        double status = row[0];
+        double B = row[1];
+        double cx = row[3];
+        double cy = row[4];
+        double A = row[6];
+        double mad = row[7];
+
+        if (status != 0.0) { ++n_skip_status; continue; }
+        if (A <= B) { ++n_skip_ab; continue; }
+        if (mad <= 0.0) { ++n_skip_mad; continue; }
+
+        double s = (A - B) / mad;
+        star_x.push_back(cx);
+        star_y.push_back(cy);
+        star_snr.push_back(s);
+    }
+
+    int n_valid = (int)star_x.size();
+    int n_skipped = n_skip_status + n_skip_ab + n_skip_mad;
+    fprintf(stderr, "[snr_f64] PSF stars: total=%d valid=%d skipped=%d "
+            "(status=%d A<=B=%d mad<=0=%d)\n",
+            n_stars, n_valid, n_skipped, n_skip_status, n_skip_ab, n_skip_mad);
+
+    // ---- 无有效星退化: 全填 SNR_phot (返回 1) ----
+    if (n_valid <= 0) {
+        fprintf(stderr, "[snr_f64] no valid PSF stars, fill SNR_phot=%.6f\n", snr_phot);
+        #pragma omp parallel for num_threads(16) schedule(static)
+        for (int i = 0; i < N; ++i) {
+            out_snr[i] = (float)snr_phot;
+        }
+        return 1;
+    }
+
+    // ---- median(SNR_psf) ----
+    std::vector<double> snr_copy = star_snr;
+    double median_snr = medianValue(snr_copy);
+    fprintf(stderr, "[snr_f64] median(SNR_psf) = %.6f (n_valid=%d)\n", median_snr, n_valid);
+
+    if (median_snr <= 0.0) {
+        fprintf(stderr, "[snr_f64] warning: median(SNR_psf)=%.6f <= 0, fallback fill SNR_phot\n",
+                median_snr);
+        #pragma omp parallel for num_threads(16) schedule(static)
+        for (int i = 0; i < N; ++i) {
+            out_snr[i] = (float)snr_phot;
+        }
+        return 1;
+    }
+
+    // ---- IDW 搜索半径 = FOV 对角线像素 ----
+    double radius = std::sqrt((double)w * (double)w + (double)h * (double)h);
+    double radius2 = radius * radius;
+    fprintf(stderr, "[snr_f64] IDW: power=2.0 radius=%.2f px (FOV diagonal), image=%dx%d\n",
+            radius, w, h);
+
+    // ---- 并行 IDW 插值 ----
+    const double EPS2 = 1e-6;
+    const double* px = star_x.data();
+    const double* py = star_y.data();
+    const double* ps = star_snr.data();
+
+    #pragma omp parallel for num_threads(16) schedule(static)
+    for (int y = 0; y < h; ++y) {
+        for (int x = 0; x < w; ++x) {
+            double sum_w = 0.0;
+            double sum_v = 0.0;
+            bool has_neighbor = false;
+
+            for (int i = 0; i < n_valid; ++i) {
+                double dx = (double)x - px[i];
+                double dy = (double)y - py[i];
+                double dist2 = dx * dx + dy * dy;
+                if (dist2 > radius2) continue;
+                if (dist2 < EPS2) {
+                    sum_w = 1.0;
+                    sum_v = ps[i];
+                    has_neighbor = true;
+                    break;
+                }
+                double wgt = 1.0 / dist2;
+                sum_w += wgt;
+                sum_v += wgt * ps[i];
+                has_neighbor = true;
+            }
+
+            double snr_psf;
+            if (has_neighbor) {
+                snr_psf = sum_v / sum_w;
+            } else {
+                snr_psf = median_snr;
+            }
+
+            double snr = snr_phot * (snr_psf / median_snr);
+            out_snr[y * w + x] = (float)snr;
+        }
+    }
+
+    fprintf(stderr, "[snr_f64] done: SNR = SNR_phot(%.6f) * (SNR_psf/median(%.6f)), "
+            "n_valid=%d, returned 0\n", snr_phot, median_snr, n_valid);
+    return 0;
+}
+
+// ============================================================================
 // SIP 前向多项式求值 (复用 healpix_drizzle/wcs_sip.cpp 算法)
 //
 // 系数按 coeffs[i*6+j] 存储, 对应 dx^i * dy^j

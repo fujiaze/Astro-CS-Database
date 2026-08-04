@@ -1,4 +1,4 @@
-// browser_backend.cpp - HEALPix 浏览器数据后端实现 (healpix_browser_qt)
+﻿// browser_backend.cpp - HEALPix 浏览器数据后端实现 (healpix_browser_qt)
 // 功能: 管理 .hiss/.hcsd 文件, 按需加载子叶, 视角相关压缩, ud_grade 降采样
 // 用途: 为 GLRenderer 提供数据源, 无 Qt 依赖, 无 HTTP 服务器
 // 依赖: astro_image_io.dll (aio_hiss_read/aio_hcsd_read/aio_hcsd_read_leaf/aio_hio_free, 旧 API 通过兼容宏)
@@ -23,6 +23,9 @@
 // ============================================================================
 // 构造 / 析构
 // ============================================================================
+
+// R10 forward declaration
+static bool detect_fp64_from_meta(const char* meta_json);
 
 BrowserBackend::BrowserBackend()
     : is_hiss_(false), nside_(0), n_pix_(0), nested_(1),
@@ -160,6 +163,8 @@ int BrowserBackend::open_file(const std::string& path) {
     // 重置 HISS Header (避免旧文件 Header 残留)
     hiss_header_ = HissHeader{};
     hiss_header_loaded_ = false;
+    // R10: 重置精度模式标志 (避免旧文件残留)
+    is_fp64_ = false;
 
     // 读取前 4 字节 Magic 判断格式
     std::ifstream f(path, std::ios::binary);
@@ -233,6 +238,8 @@ int BrowserBackend::open_file(const std::string& path) {
                 }
                 filter_ = val;
             }
+            // R10: 检测精度模式 (signal_dtype=1 或 precision_mode="fp64")
+            is_fp64_ = detect_fp64_from_meta(meta_json);
             hiss_header_.meta_json = meta_json;
             aio_hio_free(meta_json);
         }
@@ -318,6 +325,8 @@ void BrowserBackend::close_file() {
     // 重置 HISS Header (按需模式状态)
     hiss_header_ = HissHeader{};
     hiss_header_loaded_ = false;
+    // R10: 重置精度模式标志
+    is_fp64_ = false;
 }
 
 // ============================================================================
@@ -800,6 +809,37 @@ void BrowserBackend::release_leaf(LeafData& leaf) {
 }
 
 // ============================================================================
+// R10: 从 HISS metadata JSON 检测 FP64 精度模式
+// 匹配以下两种字段之一 (任一命中即为 FP64):
+//   "signal_dtype": 1   (0=float32, 1=float64)
+//   "precision_mode": "fp64"
+// 使用字符串查找而非完整 JSON 解析, 避免引入 JSON 依赖
+// ============================================================================
+static bool detect_fp64_from_meta(const char* meta_json) {
+    if (meta_json == nullptr) return false;
+
+    // 检查 "signal_dtype" : 1
+    const char* key_dtype = "\"signal_dtype\"";
+    const char* p = std::strstr(meta_json, key_dtype);
+    if (p) {
+        p += std::strlen(key_dtype);
+        while (*p && (*p == ' ' || *p == ':' || *p == '"')) p++;
+        if (*p == '1') return true;
+    }
+
+    // 检查 "precision_mode": "fp64"
+    const char* key_prec = "\"precision_mode\"";
+    p = std::strstr(meta_json, key_prec);
+    if (p) {
+        p += std::strlen(key_prec);
+        while (*p && (*p == ' ' || *p == ':' || *p == '"')) p++;
+        if (std::strncmp(p, "fp64", 4) == 0) return true;
+    }
+
+    return false;
+}
+
+// ============================================================================
 // WP-H 步骤14: HISS Tile 按需加载 (新 API)
 // load_hiss - 只读 Header + Tile 目录, 不加载像素数据
 // read_tile_signal/support/snr - 按 parent_ipix 读取 Tile 数据
@@ -812,6 +852,7 @@ int BrowserBackend::load_hiss(const std::string& path, HissHeader& header) {
     // 重置状态
     hiss_header_loaded_ = false;
     hiss_header_ = HissHeader{};
+    is_fp64_ = false;
 
     uint32_t nside = 0, tile_nside = 0, depth = 0, n_leaf_per_tile = 0;
     uint64_t n_tiles = 0, n_pix_total = 0;
@@ -834,6 +875,8 @@ int BrowserBackend::load_hiss(const std::string& path, HissHeader& header) {
     header.n_tiles = n_tiles;
     header.n_pix_total = n_pix_total;
     if (meta_json) {
+        // R10: 检测精度模式 (signal_dtype=1 或 precision_mode="fp64")
+        is_fp64_ = detect_fp64_from_meta(meta_json);
         header.meta_json = meta_json;
         aio_hio_free(meta_json);
     }
@@ -940,8 +983,55 @@ int BrowserBackend::query_pixel(double ra, double dec, float& signal, uint8_t& s
     return 0;
 }
 
+// ============================================================================
+// R10: FP64 路径 - read_tile_signal_f64 / query_pixel_f64
+// 仅适用于 FP64 模式文件 (signal_dtype=1); FP32 文件由 AIO 返回错误, 禁止静默转换
+// ============================================================================
+
+int BrowserBackend::read_tile_signal_f64(uint64_t parent_ipix, HissTileData& tile) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (file_path_.empty()) {
+        LOG_ERROR("read_tile_signal_f64: 未打开 HISS 文件");
+        return -1;
+    }
+
+    double* signal = nullptr;
+    uint32_t n_signal = 0;
+    int ret = aio_hiss_read_tile_signal_f64(file_path_.c_str(), parent_ipix,
+                                              &signal, &n_signal);
+    if (ret != 0) {
+        LOG_ERROR("read_tile_signal_f64: aio_hiss_read_tile_signal_f64 失败 ret=%d parent=%llu",
+                  ret, (unsigned long long)parent_ipix);
+        return -2;
+    }
+
+    tile.parent_ipix = parent_ipix;
+    tile.signal_f64 = signal;
+    tile.n_signal = n_signal;
+    return 0;
+}
+
+int BrowserBackend::query_pixel_f64(double ra, double dec, double& signal, uint8_t& support) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (file_path_.empty()) {
+        LOG_ERROR("query_pixel_f64: 未打开 HISS 文件");
+        return -1;
+    }
+
+    signal = 0.0;
+    support = 0;
+    int ret = aio_hiss_query_pixel_f64(file_path_.c_str(), ra, dec, &signal, &support);
+    if (ret != 0) {
+        LOG_ERROR("query_pixel_f64: aio_hiss_query_pixel_f64 失败 ret=%d ra=%.4f dec=%.4f",
+                  ret, ra, dec);
+        return -2;
+    }
+    return 0;
+}
+
 void BrowserBackend::release_tile(HissTileData& tile) {
     if (tile.signal) { aio_hio_free(tile.signal); tile.signal = nullptr; }
+    if (tile.signal_f64) { aio_hio_free(tile.signal_f64); tile.signal_f64 = nullptr; }
     if (tile.support) { aio_hio_free(tile.support); tile.support = nullptr; }
     if (tile.snr_data) { aio_hio_free(tile.snr_data); tile.snr_data = nullptr; }
     tile.n_signal = 0;

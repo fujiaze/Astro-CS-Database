@@ -135,4 +135,47 @@ void calibrate(const float* light, int w, int h,
     if (actual_k) *actual_k = k;
 }
 
+// ======================== 双精度 ABI (FP64) ========================
+// calibrate_d - double 版本校准 (R10)
+//
+// 与 calibrate (float) 逻辑完全一致, 仅数据类型改为 double。
+// FP64 模式下像素级算术 (light-bias-K*(dark-bias))/flat 在 double 上运行,
+// 不降级到 float32 (精度关键路径)。
+//
+// dark_opt=0: out = (light - dark) / flat            （Dark 已含 Bias）
+// dark_opt=1: out = (light - bias - K*(dark-bias)) / flat
+void calibrate_d(const double* light, int w, int h,
+                 const double* dark, const double* flat, const double* bias,
+                 double* out, int dark_opt, double k_init, double* actual_k) {
+    if (!light || !out || w <= 0 || h <= 0) {
+        if (actual_k) *actual_k = k_init;
+        return;
+    }
+
+    int n = w * h;
+    double k = k_init;
+
+    if (dark_opt == 1 && bias && dark) {
+        // 暗场优化模式：K = t_light / t_dark，直接应用 (light - bias - K*(dark-bias)) / flat
+        #pragma omp parallel for schedule(static) num_threads(16)
+        for (int i = 0; i < n; i++) {
+            double v = light[i] - bias[i] - k * (dark[i] - bias[i]);
+            if (flat) v /= std::max(flat[i], 0.1);
+            out[i] = v;
+        }
+    } else {
+        // 标准模式：Dark 已含 Bias，直接 (light - dark) / flat
+        k = 1.0;
+        #pragma omp parallel for schedule(static) num_threads(16)
+        for (int i = 0; i < n; i++) {
+            double v = light[i];
+            if (dark) v -= dark[i];
+            if (flat) v /= std::max(flat[i], 0.1);
+            out[i] = v;
+        }
+    }
+
+    if (actual_k) *actual_k = k;
+}
+
 } // namespace ac

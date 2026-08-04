@@ -30,7 +30,11 @@ struct WcsParams {
 
 // FITS 图像数据
 struct FitsImage {
-    std::vector<float> pixels;   // 像素数据 (float32, HWC 排列)
+    std::vector<float>  pixels;       // 像素数据 (float32, HWC 排列) — FP32 路径
+    std::vector<double> pixels_f64;   // 像素数据 (float64, HWC 排列) — FP64 路径
+                                      //   FP64 模式下由 hp_drizzle_run 从 FLOAT64 data 块填充,
+                                      //   drizzle_f64 从此字段读取像素值 (不降级到 float32)
+    bool   use_f64 = false;           // 标记当前使用哪种精度 (true=pixels_f64, false=pixels)
     int    width = 0;
     int    height = 0;
     int    channels = 1;         // 1=单通道, 3=RGB

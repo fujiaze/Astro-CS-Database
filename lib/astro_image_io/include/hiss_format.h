@@ -474,6 +474,14 @@ public:
     HISS_EXPORT int query_pixel(double ra, double dec,
                                 float* signal, uint8_t* support) const;
 
+    // R10: 查询某位置的 signal (FP64) / support
+    // 仅适用于 FP64 模式文件 (signal_dtype=1); FP32 文件会返回错误 (禁止静默转换)
+    // ra, dec - 度
+    // signal - 输出参数 (单个 double 值)
+    // support - 输出参数 (单个 uint8_t 值, 与 FP32 版本一致)
+    HISS_EXPORT int query_pixel_f64(double ra, double dec,
+                                    double* signal, uint8_t* support) const;
+
     // 关闭文件
     HISS_EXPORT void close();
 

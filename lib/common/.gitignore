@@ -1,0 +1,14 @@
+# 编译产物
+*.exe
+*.o
+*.obj
+*.dll
+*.lib
+*.exp
+*.pdb
+
+# 临时/调试文件
+*.tmp
+err*.txt
+stderr*.txt
+stdout*.txt

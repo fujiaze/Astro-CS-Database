@@ -37,6 +37,21 @@ SNR_API int snr_estimate(const float* data, int h, int w,
                          float* out_snr);
 
 // ============================================================================
+// FP64 版本 (R10 双精度 ABI 改造)
+//
+// 与 snr_estimate 逻辑一致, 仅 data 类型由 float 改为 double.
+// 输出 out_snr 仍为 float32 (HISS SNR 子块格式已冻结为 float32, 见 02_FROZEN §17;
+// SNR 是诊断值不是科学累加值, 精度损失可接受).
+//
+// 注意: 本接口保留用于测试/调试, 管线中不再调用 (改用 snr_extract_model, 后者
+//       仅依赖 PSF double 参数, 与图像精度无关, 无需 f64 变体).
+// ============================================================================
+SNR_API int snr_estimate_f64(const double* data, int h, int w,
+                             const double* psf, int n_stars,
+                             double sigma_residual,
+                             float* out_snr);
+
+// ============================================================================
 // SIP 前向系数 (A/B 多项式, 用于 pixel→sky 方向)
 // 系数按 a[i*6+j] 存储, 对应 dx^i * dy^j, 下三角 i+j<=order
 // 阶数上限 5 (36 元素), 与 FITS SIP 标准和 healpix_drizzle/wcs_sip.h 一致

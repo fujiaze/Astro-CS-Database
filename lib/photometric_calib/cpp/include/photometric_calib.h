@@ -154,6 +154,54 @@ PC_API int pc_calibrate_simple_with_gaia(
     double* out_sigma_residual,
     PhotometricDiag* out_diag);
 
+// ============================================================================
+// FP64 版本 (R10 双精度 ABI 改造)
+//
+// 与上方 float32 版本参数完全一致, 仅 pixels 与 out_pixels 类型由 float 改为 double.
+// 内部复用相同的 WcsTransform / StarMatcher (IRLS+Tukey) 逻辑, scale/sigma_residual 仍为 double.
+// 图像校正: out[i] = pixels[i] * scale (double 精度累加, 不损失有效数字).
+//
+// 使用约定:
+//   - PrecisionContext::is_fp64() 为 true 时, orchestrator 调用本接口
+//   - 输入 pixels 必须来自 PipelineFrame 的 FLOAT64 data 块 (AIO_BLOCK_FLOAT64)
+//   - 输出 out_pixels 写回时也使用 AIO_BLOCK_FLOAT64
+//   - 禁止静默转换: float32 数据应走 pc_calibrate_simple_with_gaia, 不要先转 double 再调本接口
+// ============================================================================
+PC_API int pc_calibrate_simple_f64(
+    const double* pixels, int width, int height,
+    const double* gaia_ra, const double* gaia_dec,
+    const double* gaia_mag, const double* gaia_fsyn, int n_gaia,
+    const double* psf_cx, const double* psf_cy,
+    const double* psf_flux, const int* psf_status, int n_psf,
+    const double* qe_wl, const double* qe_trans, int qe_count,
+    double crval1, double crval2, double crpix1, double crpix2,
+    double cd11, double cd12, double cd21, double cd22,
+    int sip_order,
+    const double* sip_a, const double* sip_b,
+    const double* sip_ap, const double* sip_bp,
+    double* out_pixels, int* out_n_matched, double* out_scale_factor,
+    double* out_sigma_residual,
+    PhotometricDiag* out_diag);
+
+PC_API int pc_calibrate_simple_with_gaia_f64(
+    void* gaia_client_handle,
+    double ra_center, double dec_center, double radius_deg,
+    double mag_min, double mag_max,
+    const double* filter_wl, const double* filter_trans, int filter_count,
+    const double* qe_wl, const double* qe_trans, int qe_count,
+    const double* spectrum_wl, int spectrum_count,
+    const double* pixels, int width, int height,
+    const double* psf_cx, const double* psf_cy,
+    const double* psf_flux, const int* psf_status, int n_psf,
+    double crval1, double crval2, double crpix1, double crpix2,
+    double cd11, double cd12, double cd21, double cd22,
+    int sip_order,
+    const double* sip_a, const double* sip_b,
+    const double* sip_ap, const double* sip_bp,
+    double* out_pixels, int* out_n_matched, double* out_scale_factor,
+    double* out_sigma_residual,
+    PhotometricDiag* out_diag);
+
 #ifdef __cplusplus
 }
 #endif

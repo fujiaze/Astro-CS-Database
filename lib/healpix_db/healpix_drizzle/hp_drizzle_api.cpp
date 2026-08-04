@@ -269,19 +269,23 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
     fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: 开始 (nside=%d, nested=%d, pixfrac=%.4f, output=%s)\n",
             nside, nested ? 1 : 0, pixfrac, output_path ? output_path : "(null)");
 
-    // 2. 读取 data 块 (float32[H,W])
+    // 2. 读取 data 块 (支持 FLOAT32[H,W] 和 FLOAT64[H,W])
+    //    双精度 ABI (R10): FP64 模式下 data 块为 FLOAT64, 走 drizzle_f64 路径
+    //                      FP32 模式下 data 块为 FLOAT32, 走 drizzle 路径 (向后兼容)
     const AioBlock* data_blk = aio_frame_get_block(frame, "data");
     if (!data_blk) {
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: frame 中缺少 'data' 块\n");
         setErrorMsg(result, "frame 中缺少 'data' 块");
         return -4;
     }
-    if (data_blk->type != AIO_BLOCK_FLOAT32) {
-        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: 'data' 块类型非 FLOAT32 (type=%d)\n",
+    // 解除 FLOAT32 硬限制: 接受 FLOAT32 或 FLOAT64
+    if (data_blk->type != AIO_BLOCK_FLOAT32 && data_blk->type != AIO_BLOCK_FLOAT64) {
+        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: 'data' 块类型非 FLOAT32/FLOAT64 (type=%d)\n",
                 (int)data_blk->type);
-        setErrorMsg(result, "'data' 块类型非 FLOAT32");
+        setErrorMsg(result, "'data' 块类型非 FLOAT32/FLOAT64 (type=" + std::to_string((int)data_blk->type) + ")");
         return -5;
     }
+    bool data_is_f64 = (data_blk->type == AIO_BLOCK_FLOAT64);
     if (data_blk->n_dims < 2) {
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: 'data' 块维度数 < 2 (n_dims=%d)\n",
                 data_blk->n_dims);
@@ -305,14 +309,14 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
         return -7;
     }
 
-    const float* pixels = (const float*)data_blk->data;
-    if (!pixels) {
+    if (!data_blk->data) {
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: 'data' 块数据指针为空\n");
         setErrorMsg(result, "'data' 块数据指针为空");
         return -8;
     }
 
-    fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: data 块 %dx%d float32\n", width, height);
+    fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: data 块 %dx%d %s\n", width, height,
+            data_is_f64 ? "float64" : "float32");
 
     // 3. 从 header KV 块读取 WCS 字段
     double crval1 = aio_frame_kv_get_double(frame, "header", "CRVAL1", 0.0);
@@ -329,12 +333,23 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
     double cdelt2 = aio_frame_kv_get_double(frame, "header", "CDELT2", 0.0);
     double crota2 = aio_frame_kv_get_double(frame, "header", "CROTA2", 0.0);
 
-    // 4. 构造 WCS 参数
+    // 4. 构造 WCS 参数 + 像素数据
+    //    双精度 ABI: 根据 data 块类型填充 pixels (float32) 或 pixels_f64 (float64)
+    //    FP64 模式下 pixels_f64 被填充, use_f64=true, drizzle_f64 从此字段读取
+    //    FP32 模式下 pixels 被填充, use_f64=false, drizzle 从此字段读取 (向后兼容)
     FitsImage img;
     img.width = width;
     img.height = height;
     img.channels = 1;
-    img.pixels.assign(pixels, pixels + (size_t)width * height);
+    if (data_is_f64) {
+        const double* pixels_f64 = (const double*)data_blk->data;
+        img.pixels_f64.assign(pixels_f64, pixels_f64 + (size_t)width * height);
+        img.use_f64 = true;
+    } else {
+        const float* pixels_f32 = (const float*)data_blk->data;
+        img.pixels.assign(pixels_f32, pixels_f32 + (size_t)width * height);
+        img.use_f64 = false;
+    }
     img.bzero = 0.0;
     img.bscale = 1.0;
 
@@ -568,12 +583,24 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
     }
 
     // 7. 执行 Drizzle
+    //    双精度 ABI: 根据 data 块类型选择 drizzle (FP32) 或 drizzle_f64 (FP64)
+    //    FP64 模式: 从 img.pixels_f64 (double) 读取像素, 不降级到 float32
+    //    FP32 模式: 从 img.pixels (float) 读取像素 (向后兼容)
     DrizzleEngine engine;
     std::unordered_map<uint64_t, PixelAccumulator> accumulators;
     DrizzleStats stats;
     std::string errMsg;
 
-    if (!engine.drizzle(img, config, snrPtr, nullptr, accumulators, stats, errMsg)) {
+    bool drizzle_ok;
+    if (img.use_f64) {
+        drizzle_ok = engine.drizzle_f64(img, config, snrPtr, nullptr, accumulators, stats, errMsg);
+        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: 调用 drizzle_f64 (FP64 路径)\n");
+    } else {
+        drizzle_ok = engine.drizzle(img, config, snrPtr, nullptr, accumulators, stats, errMsg);
+        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: 调用 drizzle (FP32 路径)\n");
+    }
+
+    if (!drizzle_ok) {
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: Drizzle 失败: %s\n", errMsg.c_str());
         setErrorMsg(result, "Drizzle 失败: " + errMsg);
         return -10;

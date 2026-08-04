@@ -765,6 +765,35 @@ AIO_EXPORT int aio_hiss_query_pixel(const char* path, double ra, double dec,
 }
 
 // ============================================================================
+// R10: aio_hiss_query_pixel_f64 - 通过 ra/dec 查询像素值 (FP64 版本)
+// 仅适用于 FP64 模式文件 (signal_dtype=1); FP32 文件会返回错误 (禁止静默转换)
+// ============================================================================
+
+AIO_EXPORT int aio_hiss_query_pixel_f64(const char* path, double ra, double dec,
+                                          double* signal, uint8_t* support) {
+    if (!path || !signal || !support) {
+        fprintf(stderr, "[hio] hiss_query_pixel_f64: 无效参数\n");
+        return HIO_ERR_PARAM;
+    }
+    *signal = 0.0;
+    *support = 0;
+
+    hiss::HissReader reader;
+    if (reader.open(path) != 0) {
+        fprintf(stderr, "[hio] hiss_query_pixel_f64: HissReader.open 失败: %s\n", path);
+        return HIO_ERR_FILE;
+    }
+
+    int ret = reader.query_pixel_f64(ra, dec, signal, support);
+    if (ret != 0) {
+        fprintf(stderr, "[hio] hiss_query_pixel_f64: query_pixel_f64 失败 ret=%d ra=%.4f dec=%.4f\n",
+                ret, ra, dec);
+        return HIO_ERR_FILE;
+    }
+    return HIO_OK;
+}
+
+// ============================================================================
 // .hcsd 写入实现 (含子叶块索引构建)
 // ============================================================================
 

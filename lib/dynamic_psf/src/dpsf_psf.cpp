@@ -210,10 +210,14 @@ static double compute_trimmed_mad(const SamplePixel* samples, int m, const doubl
     return sum / (hi - lo);
 }
 
-int moffat4_fit(const float* image, int width, int height,
-                double cx, double cy,
-                int rect_x0, int rect_y0, int rect_x1, int rect_y1,
-                DPSFFitResult* result) {
+// 模板版本: 支持 float/double 输入 (R10 双精度 ABI 改造)
+// ImageT = float  -> moffat4_fit (向后兼容)
+// ImageT = double -> moffat4_fit_d (双精度, 不降级)
+template<typename ImageT>
+static int moffat4_fit_tmpl(const ImageT* image, int width, int height,
+                            double cx, double cy,
+                            int rect_x0, int rect_y0, int rect_x1, int rect_y1,
+                            DPSFFitResult* result) {
     auto t0 = std::chrono::high_resolution_clock::now();
     std::memset(result, 0, sizeof(DPSFFitResult));
     result->status = DPSF_FIT_INVALID_PARAMS;
@@ -390,6 +394,25 @@ int moffat4_fit(const float* image, int width, int height,
     return result->status;
 }
 
+// float 版本 (向后兼容, 原有签名)
+int moffat4_fit(const float* image, int width, int height,
+                double cx, double cy,
+                int rect_x0, int rect_y0, int rect_x1, int rect_y1,
+                DPSFFitResult* result) {
+    return moffat4_fit_tmpl<float>(image, width, height, cx, cy,
+                                    rect_x0, rect_y0, rect_x1, rect_y1, result);
+}
+
+// double 版本 (双精度 ABI, R10 新增)
+// FP64 模式下采样像素值直接为 double, 不降级到 float32 (精度关键路径)
+int moffat4_fit_d(const double* image, int width, int height,
+                  double cx, double cy,
+                  int rect_x0, int rect_y0, int rect_x1, int rect_y1,
+                  DPSFFitResult* result) {
+    return moffat4_fit_tmpl<double>(image, width, height, cx, cy,
+                                     rect_x0, rect_y0, rect_x1, rect_y1, result);
+}
+
 DPSF_EXPORT int dpsf_fit(const uint16_t *image, int width, int height,
                           double cx, double cy,
                           const DPSFFitParams *params,
@@ -526,6 +549,90 @@ DPSF_EXPORT void dpsf_free_results(DPSFFitResult *results) {
 }
 
 // ============================================================================
+// dpsf_fit_batch_d (双精度 ABI, R10 新增)
+//
+// 与 dpsf_fit_batch (uint16) 逻辑一致, 仅 image 数据类型从 uint16 改为 double。
+// FP64 模式下直接在 double 图像上裁剪局部 patch 送入 moffat4_fit_d (double 拟合),
+// 不创建整张 uint16/float 图像, 不降级 (精度关键路径)。
+// 返回完整 DPSFFitResult 结构体 (含 status/flux/mad/eccentricity 等全部字段),
+// 供 orchestrator 写出与 FP32 路径一致的 psf 块布局。
+// ============================================================================
+DPSF_EXPORT int dpsf_fit_batch_d(const double *image, int width, int height,
+                                 const double *cx_array, const double *cy_array, int count,
+                                 const DPSFFitParams *params,
+                                 DPSFFitResult **out_results) {
+    auto t0 = std::chrono::high_resolution_clock::now();
+
+    if (!image || !cx_array || !cy_array || !params || !out_results || count <= 0) {
+        dpsf_log(LOG_ERROR, "DPSF", "dpsf_fit_batch_d: invalid arguments");
+        return -1;
+    }
+
+    dpsf_log(LOG_INFO, "DPSF", "dpsf_fit_batch_d: %d points, %dx%d image (FP64), fitRadius=%d",
+           count, width, height, params->fitRadius);
+
+    DPSFFitResult *results = (DPSFFitResult *)malloc(count * sizeof(DPSFFitResult));
+    if (!results) {
+        dpsf_log(LOG_ERROR, "DPSF", "dpsf_fit_batch_d: failed to allocate results");
+        return -1;
+    }
+
+    int fitRadius = params->fitRadius;
+    int success_count = 0;
+
+#pragma omp parallel for schedule(dynamic) reduction(+:success_count)
+    for (int i = 0; i < count; i++) {
+        double cx = cx_array[i];
+        double cy = cy_array[i];
+
+        int x0 = std::max(0, static_cast<int>(cx) - fitRadius);
+        int y0 = std::max(0, static_cast<int>(cy) - fitRadius);
+        int x1 = std::min(width, static_cast<int>(cx) + fitRadius + 1);
+        int y1 = std::min(height, static_cast<int>(cy) + fitRadius + 1);
+
+        int rw = x1 - x0;
+        int rh = y1 - y0;
+
+        if (rw <= 0 || rh <= 0) {
+            std::memset(&results[i], 0, sizeof(DPSFFitResult));
+            results[i].status = DPSF_FIT_INVALID_PARAMS;
+            continue;
+        }
+
+        // FP64 路径: 直接从 double 图像裁剪 patch (不降级到 float32)
+        std::vector<double> patch((size_t)rw * rh);
+        for (int y = y0; y < y1; y++) {
+            for (int x = x0; x < x1; x++) {
+                patch[(y - y0) * rw + (x - x0)] = image[(size_t)y * width + x];
+            }
+        }
+
+        double local_cx = cx - x0;
+        double local_cy = cy - y0;
+
+        moffat4_fit_d(patch.data(), rw, rh, local_cx, local_cy, 0, 0, rw, rh, &results[i]);
+
+        if (results[i].status == DPSF_FIT_OK || results[i].status == DPSF_FIT_ITERATION_LIMIT) {
+            results[i].cx += x0;
+            results[i].cy += y0;
+        }
+
+        if (results[i].status == DPSF_FIT_OK) {
+            success_count++;
+        }
+    }
+
+    *out_results = results;
+
+    auto t1 = std::chrono::high_resolution_clock::now();
+    double elapsed = std::chrono::duration<double>(t1 - t0).count();
+    dpsf_log(LOG_INFO, "DPSF", "dpsf_fit_batch_d done: %d/%d success, %.3f s (FP64)",
+           success_count, count, elapsed);
+
+    return 0;
+}
+
+// ============================================================================
 // dpsf_fit_batch_f32 (P02-005, v1.1)
 //
 // float32 PSF 批量拟合, 消费 star_det v1 (FLOAT64 [N,6])。
@@ -648,6 +755,127 @@ DPSF_EXPORT int dpsf_fit_batch_f32(
     double elapsed = std::chrono::duration<double>(t1 - t0).count();
     dpsf_log(LOG_INFO, "DPSF",
              "dpsf_fit_batch_f32 done: %d/%d valid, schema=%s, %.3f s",
+             success_count, n_detections, DPSF_STAR_DET_SCHEMA_V1, elapsed);
+
+    return 0;
+}
+
+// ============================================================================
+// dpsf_fit_batch_f64 (双精度 ABI, R10 新增)
+//
+// double PSF 批量拟合, 消费 star_det v1 (FLOAT64 [N,6])。
+// 与 dpsf_fit_batch_f32 逻辑一致, 仅 image 数据类型从 float 改为 double。
+// 内部调用 moffat4_fit_d, 采样像素值直接为 double (不降级到 float32)。
+// ============================================================================
+DPSF_EXPORT int dpsf_fit_batch_f64(
+    const double *image,
+    int width,
+    int height,
+    const double *detections,
+    int n_detections,
+    const DPSFFitParams *params,
+    double *out_psf_params,
+    int *out_n_valid
+) {
+    auto t0 = std::chrono::high_resolution_clock::now();
+
+    // ---- 参数校验 ----
+    if (!image || !detections || !out_psf_params || !out_n_valid ||
+        width <= 0 || height <= 0 || n_detections <= 0) {
+        dpsf_log(LOG_ERROR, "DPSF",
+                 "dpsf_fit_batch_f64: invalid arguments (image=%p detections=%p out=%p n_valid=%p w=%d h=%d n=%d)",
+                 image, detections, out_psf_params, out_n_valid, width, height, n_detections);
+        return -1;
+    }
+
+    // ---- 默认参数 ----
+    DPSFFitParams default_params;
+    default_params.fitRadius = 8;
+    default_params.maxIter = 200;
+    default_params.tolerance = 1e-8;
+    const DPSFFitParams *p = params ? params : &default_params;
+    int fitRadius = p->fitRadius;
+
+    // ---- 记录消费的 schema / count ----
+    dpsf_log(LOG_INFO, "DPSF",
+             "dpsf_fit_batch_f64: consume schema=%s count=%d img=%dx%d fitRadius=%d (FP64)",
+             DPSF_STAR_DET_SCHEMA_V1, n_detections, width, height, fitRadius);
+
+    // ---- 初始化输出: 全部置 NaN, n_valid=0 ----
+    const double nan_val = std::numeric_limits<double>::quiet_NaN();
+    for (int i = 0; i < n_detections * 9; i++) {
+        out_psf_params[i] = nan_val;
+    }
+    *out_n_valid = 0;
+
+    int success_count = 0;
+
+    // ---- OpenMP 并行批量拟合 (FP64: 直接从 double 图像裁剪 patch) ----
+    #pragma omp parallel for schedule(dynamic) reduction(+:success_count)
+    for (int i = 0; i < n_detections; i++) {
+        const double *row = detections + (size_t)i * 6;
+        double cx = row[0];
+        double cy = row[1];
+
+        int x0 = std::max(0, static_cast<int>(cx) - fitRadius);
+        int y0 = std::max(0, static_cast<int>(cy) - fitRadius);
+        int x1 = std::min(width,  static_cast<int>(cx) + fitRadius + 1);
+        int y1 = std::min(height, static_cast<int>(cy) + fitRadius + 1);
+
+        int rw = x1 - x0;
+        int rh = y1 - y0;
+
+        double *out_row = out_psf_params + (size_t)i * 9;
+
+        if (rw <= 0 || rh <= 0) {
+            dpsf_log(LOG_DEBUG, "DPSF",
+                     "dpsf_fit_batch_f64: star %d empty rect cx=%.2f cy=%.2f", i, cx, cy);
+            continue;
+        }
+
+        // FP64 路径: 直接从 double 图像裁剪 patch (不降级到 float32)
+        std::vector<double> patch((size_t)rw * rh);
+        for (int y = y0; y < y1; y++) {
+            for (int x = x0; x < x1; x++) {
+                patch[(y - y0) * rw + (x - x0)] = image[(size_t)y * width + x];
+            }
+        }
+
+        double local_cx = cx - x0;
+        double local_cy = cy - y0;
+
+        DPSFFitResult result;
+        moffat4_fit_d(patch.data(), rw, rh, local_cx, local_cy, 0, 0, rw, rh, &result);
+
+        if (result.status == DPSF_FIT_OK || result.status == DPSF_FIT_ITERATION_LIMIT) {
+            result.cx += x0;
+            result.cy += y0;
+        }
+
+        if (result.status == DPSF_FIT_OK) {
+            out_row[0] = result.B;
+            out_row[1] = result.A;
+            out_row[2] = result.cx;
+            out_row[3] = result.cy;
+            out_row[4] = result.sx;
+            out_row[5] = result.sy;
+            out_row[6] = result.theta;
+            out_row[7] = result.fwhm_x;
+            out_row[8] = result.fwhm_y;
+            success_count++;
+        } else {
+            dpsf_log(LOG_DEBUG, "DPSF",
+                     "dpsf_fit_batch_f64: star %d fit failed status=%d cx=%.2f cy=%.2f",
+                     i, result.status, cx, cy);
+        }
+    }
+
+    *out_n_valid = success_count;
+
+    auto t1 = std::chrono::high_resolution_clock::now();
+    double elapsed = std::chrono::duration<double>(t1 - t0).count();
+    dpsf_log(LOG_INFO, "DPSF",
+             "dpsf_fit_batch_f64 done: %d/%d valid, schema=%s, %.3f s (FP64)",
              success_count, n_detections, DPSF_STAR_DET_SCHEMA_V1, elapsed);
 
     return 0;

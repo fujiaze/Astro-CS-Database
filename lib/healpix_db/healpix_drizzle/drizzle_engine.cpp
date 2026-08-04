@@ -622,6 +622,164 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
 }
 
 // ============================================================================
+// drizzle_f64 - 执行 Drizzle (FP64 路径): FITS 图像 (double 像素) → HEALPix 累加器
+//
+// 双精度 ABI 改造 (R10):
+//   - 与 drizzle (FP32) 完全相同的几何/累加逻辑, 仅像素值类型不同
+//   - 从 img.pixels_f64 (double) 读取像素值, 不降级到 float32
+//   - processPixel_f64 直接用 double pixelValue 累加到 PixelAccumulator.sumFlux (double)
+//   - snrData / weightData 仍为 float (SNR 重建与权重掩膜不需要 FP64)
+// ============================================================================
+bool DrizzleEngine::drizzle_f64(const FitsImage& img, const DrizzleConfig& config,
+                                 const float* snrData, const float* weightData,
+                                 std::unordered_map<uint64_t, PixelAccumulator>& accumulators,
+                                 DrizzleStats& stats, std::string& error_msg)
+{
+    error_msg.clear();
+    accumulators.clear();
+
+    // ---- 入口参数校验 (与 drizzle 一致) ----
+    if (config.pixfrac <= 0.0 || config.pixfrac > 1.0) {
+        char buf[256];
+        snprintf(buf, sizeof(buf), "pixfrac must be in (0, 1], got %.6f", config.pixfrac);
+        error_msg = buf;
+        fprintf(stderr, "[drizzle_engine] drizzle_f64: 拒绝非法 pixfrac (%.6f), %s\n",
+                config.pixfrac, error_msg.c_str());
+        return false;
+    }
+
+    if (!config.nested) {
+        error_msg = "HISS requires NESTED ordering, RING not supported";
+        fprintf(stderr, "[drizzle_engine] drizzle_f64: 拒绝 RING 模式 (HISS 内部统一 NESTED)\n");
+        return false;
+    }
+
+    if (img.channels != 1) {
+        char buf[256];
+        snprintf(buf, sizeof(buf),
+                 "multi-channel image not supported (channels=%d), expected 1; "
+                 "split channels upstream before drizzle", img.channels);
+        error_msg = buf;
+        fprintf(stderr, "[drizzle_engine] drizzle_f64: 拒绝多通道图像 (channels=%d)\n",
+                img.channels);
+        return false;
+    }
+
+    // FP64 路径专用校验: pixels_f64 必须已填充
+    if (img.pixels_f64.empty()) {
+        error_msg = "FP64 drizzle 要求 img.pixels_f64 已填充 (use_f64=true)";
+        fprintf(stderr, "[drizzle_engine] drizzle_f64: %s\n", error_msg.c_str());
+        return false;
+    }
+
+    if (!img.wcs.has_wcs) {
+        error_msg = "图像无 WCS 信息, 无法 drizzle";
+        fprintf(stderr, "[drizzle_engine] drizzle_f64: %s\n", error_msg.c_str());
+        return false;
+    }
+    if (img.width <= 0 || img.height <= 0) {
+        error_msg = "图像尺寸非法";
+        fprintf(stderr, "[drizzle_engine] drizzle_f64: %s\n", error_msg.c_str());
+        return false;
+    }
+
+    // 2. 构造 WCS 转换器
+    WcsSip wcs(img.wcs);
+    if (!wcs.hasWcs()) {
+        error_msg = "WcsSip 初始化失败";
+        fprintf(stderr, "[drizzle_engine] drizzle_f64: %s\n", error_msg.c_str());
+        return false;
+    }
+
+    // 3. 构造 HEALPix 核心
+    healpix::HealpixCore hp(config.nside, config.nested);
+    fprintf(stderr, "[drizzle_engine] drizzle_f64: HEALPix nside=%d nested=%d npix=%lld res=%.2f\"\n",
+            hp.getNside(), hp.isNested() ? 1 : 0,
+            (long long)hp.getNpix(), hp.pixelResolutionArcsec());
+
+    fprintf(stderr,
+            "[drizzle_engine] drizzle_f64: Photometry apply=%d applied_upstream=%d photscal=%.6f "
+            "(drizzle 不应用 photscal, 由 PHOTOMETRIC 阶段上游处理)\n",
+            (int)config.apply_photometry,
+            (int)config.photometry_applied_upstream,
+            config.photscal);
+
+    // 4. 记录开始时间
+    auto tStart = std::chrono::high_resolution_clock::now();
+
+    // 5. OpenMP 并行 Drizzle (FP64 路径: 从 img.pixels_f64 读取 double)
+    const int NUM_THREADS = 16;
+    omp_set_num_threads(NUM_THREADS);
+    std::vector<std::unordered_map<uint64_t, PixelAccumulator>> threadAccums(NUM_THREADS);
+    for (auto& acc : threadAccums) {
+        acc.reserve(1 << 22);  // 4M 桶
+    }
+
+    int64_t nSourcePixels = 0;
+
+    #pragma omp parallel for schedule(guided) reduction(+:nSourcePixels)
+    for (int y = 0; y < img.height; y++) {
+        int tid = omp_get_thread_num();
+        auto& localAccum = threadAccums[tid];
+
+        for (int x = 0; x < img.width; x++) {
+            // FP64 路径: 直接读取 double 像素值 (不降级到 float32)
+            double pixelValue = img.pixels_f64[(size_t)y * img.width + x];
+
+            // 跳过 NaN / Inf
+            if (!std::isfinite(pixelValue)) continue;
+
+            // 获取 SNR (仍为 float, SNR 重建精度足够)
+            float snrValue = 1.0f;
+            if (snrData) {
+                snrValue = snrData[(size_t)y * img.width + x];
+                if (!std::isfinite(snrValue)) continue;
+            }
+
+            // 获取权重 (仍为 float, 权重掩膜精度足够)
+            float weightValue = 1.0f;
+            if (weightData) {
+                weightValue = weightData[(size_t)y * img.width + x];
+                if (!std::isfinite(weightValue) || weightValue <= 0.0f) continue;
+            }
+
+            nSourcePixels++;
+
+            // 调用 FP64 版本的 processPixel
+            processPixel_f64((double)x, (double)y, pixelValue, snrValue, weightValue,
+                             wcs, config, hp, localAccum);
+        }
+    }
+
+    // 6. 合并所有线程的 localAccum 到全局 accumulators
+    for (int t = 0; t < NUM_THREADS; t++) {
+        for (auto& [ipix, acc] : threadAccums[t]) {
+            auto& dst = accumulators[ipix];
+            dst.sumFlux   += acc.sumFlux;
+            dst.sumWeight += acc.sumWeight;
+            dst.sumSnrSq  += acc.sumSnrSq;
+            dst.sumArea   += acc.sumArea;
+            dst.nContrib  += acc.nContrib;
+        }
+    }
+
+    // 7. 计算统计信息
+    auto tEnd = std::chrono::high_resolution_clock::now();
+    double elapsedSec = std::chrono::duration<double>(tEnd - tStart).count();
+
+    stats.nHealpixPixels = (int64_t)accumulators.size();
+    stats.nSourcePixels  = nSourcePixels;
+    stats.nside          = config.nside;
+    stats.nested         = config.nested;
+    stats.elapsedSec     = elapsedSec;
+
+    fprintf(stderr, "[drizzle_engine] drizzle_f64 完成: %lld 源像素 → %lld HEALPix 像素, 耗时 %.3fs\n",
+            (long long)nSourcePixels, (long long)accumulators.size(), elapsedSec);
+
+    return true;
+}
+
+// ============================================================================
 // processPixel - 处理单个像素的 Drizzle (球面几何流水线, WP-D 步骤3-4 修复)
 //
 // 修复内容 (02_FROZEN §8/§9/§10):
@@ -767,6 +925,102 @@ void DrizzleEngine::processPixel(
         acc.sumWeight += weight;
         acc.sumSnrSq  += (double)snrValue * snrValue * weight;
         // support: 累加球面重叠面积 a_jp (球面度), 由下游 HISS Writer 用 sumArea/A_p 归一化
+        acc.sumArea   += overlap_area;
+        acc.nContrib++;
+    }
+}
+
+// ============================================================================
+// processPixel_f64 - 处理单个像素的 Drizzle (FP64 路径, 球面几何流水线)
+//
+// 双精度 ABI 改造 (R10):
+//   - 与 processPixel (FP32) 完全相同的几何逻辑 (Step 1-6)
+//   - 仅 pixelValue 类型不同: double (FP64) vs float (FP32)
+//   - 通量累加: acc.sumFlux += pixelValue * weight (pixelValue 已是 double, 无需转换)
+//   - snrValue / weightValue 仍为 float (与 drizzle_f64 一致)
+// ============================================================================
+void DrizzleEngine::processPixel_f64(
+    double px, double py,
+    double pixelValue,
+    float snrValue,
+    float weightValue,
+    const WcsSip& wcs,
+    const DrizzleConfig& config,
+    const healpix::HealpixCore& hp,
+    std::unordered_map<uint64_t, PixelAccumulator>& accum) const
+{
+    // ---- Step 1: 取像素四角 (0-based) + pixfrac 收缩 ----
+    double half = 0.5 * config.pixfrac;
+    double corners_xy[4][2] = {
+        {px - half, py - half},
+        {px + half, py - half},
+        {px + half, py + half},
+        {px - half, py + half}
+    };
+
+    // ---- Step 2: SIP+WCS 逐角映射 (像素→天球) ----
+    double corners_ra[4], corners_dec[4];
+    for (int i = 0; i < 4; i++) {
+        wcs.pixelToSky(corners_xy[i][0], corners_xy[i][1],
+                       corners_ra[i], corners_dec[i]);
+        if (!std::isfinite(corners_ra[i]) || !std::isfinite(corners_dec[i]))
+            return;
+    }
+
+    // ---- Step 3: 自适应边细分 ----
+    double max_edge_rad = 0.0;
+    for (int i = 0; i < 4; i++) {
+        int j = (i + 1) % 4;
+        double dra  = (corners_ra[j]  - corners_ra[i])  * D2R;
+        double ddec = (corners_dec[j] - corners_dec[i]) * D2R;
+        double edge = std::sqrt(dra * dra + ddec * ddec);
+        if (edge > max_edge_rad) max_edge_rad = edge;
+    }
+
+    const double THRESH_60ARCSEC  = 60.0  * (M_PI / 180.0) / 3600.0;
+    bool use_adaptive = (max_edge_rad >= THRESH_60ARCSEC);
+
+    std::vector<spherical::Vec3> drop_corners;
+    if (!use_adaptive) {
+        drop_corners.resize(4);
+        for (int i = 0; i < 4; i++) {
+            drop_corners[i] = spherical::radec_to_vec(corners_ra[i], corners_dec[i]);
+        }
+    } else {
+        drop_corners = spherical::build_drop_polygon_adaptive(
+            px, py, config.pixfrac,
+            wcsPixelToSkyCallback, const_cast<WcsSip*>(&wcs),
+            max_edge_rad);
+        if (drop_corners.empty()) return;
+    }
+
+    // ---- Step 4: 计算 drop 球面面积 (Girard 定理) ----
+    double drop_area = spherical::spherical_polygon_area(drop_corners);
+    if (drop_area < 1e-20) {
+        return;
+    }
+
+    // ---- Step 5: 候选像素查询 ----
+    std::vector<uint64_t> candidates;
+    spherical::query_candidate_pixels(drop_corners, hp, candidates);
+
+    if (candidates.empty()) {
+        return;
+    }
+
+    // ---- Step 6: 对每个候选像素计算球面重叠面积, 累加通量 (FP64) ----
+    for (uint64_t ipix : candidates) {
+        double overlap_area = spherical::compute_overlap_area(drop_corners, hp, ipix);
+        if (overlap_area < 1e-20) continue;
+
+        double weight = overlap_area / drop_area;
+        if (weight <= 0.0) continue;
+
+        // FP64 通量累加: pixelValue 已是 double, 直接累加 (不降级到 float32)
+        auto& acc = accum[ipix];
+        acc.sumFlux   += pixelValue * weight;
+        acc.sumWeight += weight;
+        acc.sumSnrSq  += (double)snrValue * snrValue * weight;
         acc.sumArea   += overlap_area;
         acc.nContrib++;
     }

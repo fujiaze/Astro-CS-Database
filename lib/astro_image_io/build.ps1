@@ -132,19 +132,35 @@ Write-Host ""
 Write-Host "Output: $outputDll"
 Write-Host ""
 
-# Build compile args string (direct concatenation, avoid splatting issues)
-$compilerArgs = "-O2 -std=c++17 -Wall -fopenmp -shared -o $outputDll -Iinclude -Isrc"
-foreach ($d in $defines) { $compilerArgs += " $d" }
-foreach ($s in $srcFiles) { $compilerArgs += " $s" }
-$compilerArgs += " -static-libgcc -static-libstdc++"
-foreach ($l in $libs) { $compilerArgs += " $l" }
+# Build compile args via += (避免 @() 数组字面量中 $outputDll 被解析为 null 的问题)
+# -I../common/include: PrecisionContext / AstroScalarType 双精度 ABI 头文件
+$cmdArgs = @()
+$cmdArgs += "-O2"
+$cmdArgs += "-std=c++17"
+$cmdArgs += "-Wall"
+$cmdArgs += "-fopenmp"
+$cmdArgs += "-shared"
+$cmdArgs += "-o"
+$cmdArgs += $outputDll
+$cmdArgs += "-Iinclude"
+$cmdArgs += "-Isrc"
+$cmdArgs += "-I../common/include"
+foreach ($d in $defines) { $cmdArgs += $d }
+foreach ($s in $srcFiles) { $cmdArgs += $s }
+$cmdArgs += "-static-libgcc"
+$cmdArgs += "-static-libstdc++"
+foreach ($l in $libs) { $cmdArgs += $l }
+
+# 用 [string]::Join 生成参数字符串 (避免 PowerShell splatting/子表达式解析问题)
+$argString = [string]::Join(' ', $cmdArgs)
 
 Write-Host "Compile command:"
-Write-Host "  g++ $compilerArgs"
+Write-Host "  g++ $argString"
 Write-Host ""
 
-# Execute (args already concatenated as string)
-$output = & $gpp $compilerArgs.Split(' ') 2>&1
+# 用 & 运算符直接调用 g++ (避免 Start-Process 的 stdout/stderr 死锁)
+# PowerShell 会自动将 $cmdArgs 数组展开为单独的参数传递给 g++
+$output = & $gpp $cmdArgs 2>&1
 $exitCode = $LASTEXITCODE
 
 if ($output) {

@@ -313,6 +313,36 @@ double compute_array_std(const float* data, int64_t n, double mean) {
     return std::sqrt(sum_sq / static_cast<double>(n));
 }
 
+// 双精度 ABI (R10): double 版本统计函数 (重载)
+// FP64 模式下直接在 double 上计算统计, 不降级到 float32
+double compute_array_mean(const double* data, int64_t n) {
+    if (!data || n <= 0) return 0.0;
+    double sum = 0.0;
+    for (int64_t i = 0; i < n; ++i) sum += data[i];
+    return sum / static_cast<double>(n);
+}
+
+double compute_array_median(const double* data, int64_t n) {
+    if (!data || n <= 0) return 0.0;
+    std::vector<double> tmp(data, data + n);
+    int64_t mid = n / 2;
+    std::nth_element(tmp.begin(), tmp.begin() + mid, tmp.end());
+    if (n % 2 == 1) return tmp[mid];
+    double hi = tmp[mid];
+    double lo = *std::max_element(tmp.begin(), tmp.begin() + mid);
+    return (hi + lo) * 0.5;
+}
+
+double compute_array_std(const double* data, int64_t n, double mean) {
+    if (!data || n <= 0) return 0.0;
+    double sum_sq = 0.0;
+    for (int64_t i = 0; i < n; ++i) {
+        double d = data[i] - mean;
+        sum_sq += d * d;
+    }
+    return std::sqrt(sum_sq / static_cast<double>(n));
+}
+
 } // anonymous namespace
 
 // ============================================================================
@@ -750,11 +780,18 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     }
 
     // 获取函数指针 (CALIBRATE + AIO)
+    // 双精度 ABI (R10): FP64 模式下需要 ac_calibrate_frame_f64 和 aio_get_pixel_data_f64
+    bool use_fp64 = (config_.precision == PrecisionMode::FP64);
     auto fn_calibrate = dll_loader_.get_function<int (*)(
         const float*, int, int,
         const float*, const float*, const float*,
         float*, int, float, float*)>(
         ModuleId::CALIBRATE, "ac_calibrate_frame");
+    auto fn_calibrate_f64 = dll_loader_.get_function<int (*)(
+        const double*, int, int,
+        const double*, const double*, const double*,
+        double*, int, double, double*)>(
+        ModuleId::CALIBRATE, "ac_calibrate_frame_f64");
     auto fn_get_block_data = dll_loader_.get_function<void* (*)(const PipelineFrame*, const char*)>(
         ModuleId::AIO, "aio_frame_get_block_data");
     auto fn_get_block = dll_loader_.get_function<const AioBlock* (*)(const PipelineFrame*, const char*)>(
@@ -782,6 +819,9 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
         ModuleId::AIO, "aio_read_xisf");
     auto fn_get_pixels = dll_loader_.get_function<float* (*)(const AIOImageData*)>(
         ModuleId::AIO, "aio_get_pixel_data");
+    // 双精度 ABI: FP64 模式下获取 double* 像素数据
+    auto fn_get_pixels_f64 = dll_loader_.get_function<double* (*)(const AIOImageData*)>(
+        ModuleId::AIO, "aio_get_pixel_data_f64");
     auto fn_get_width = dll_loader_.get_function<int (*)(const AIOImageData*)>(
         ModuleId::AIO, "aio_get_width");
     auto fn_get_height = dll_loader_.get_function<int (*)(const AIOImageData*)>(
@@ -791,17 +831,23 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     auto fn_free_image = dll_loader_.get_function<void (*)(AIOImageData*)>(
         ModuleId::AIO, "aio_free_image_data");
 
-    if (!fn_calibrate || !fn_get_block_data || !fn_get_block || !fn_remove_block ||
+    if (!fn_get_block_data || !fn_get_block || !fn_remove_block ||
         !fn_add_block_move || !fn_kv_get || !fn_kv_get_double || !fn_kv_set || !fn_kv_set_double ||
         !fn_read_xisf || !fn_get_pixels || !fn_get_width || !fn_get_height ||
-        !fn_get_metadata || !fn_free_image) {
-        LOG_ERROR("orchestrator", "[CALIBRATE] 函数指针获取失败");
+        !fn_get_metadata || !fn_free_image ||
+        // FP64 模式需要 f64 函数指针
+        (use_fp64 && (!fn_calibrate_f64 || !fn_get_pixels_f64)) ||
+        // FP32 模式需要 f32 函数指针
+        (!use_fp64 && !fn_calibrate)) {
+        LOG_ERROR("orchestrator", "[CALIBRATE] 函数指针获取失败"
+                  + std::string(use_fp64 ? " (FP64 模式需要 ac_calibrate_frame_f64/aio_get_pixel_data_f64)" : ""));
         result.error_msg = "[CALIBRATE] 函数指针获取失败";
         result.exit_code = AstroCsExitCode::GENERIC_ERROR;
         return false;
     }
 
-    // 1. 从 frame_ 读取 data 块 (FLOAT32 [H,W])
+    // 1. 从 frame_ 读取 data 块
+    //    双精度 ABI (R10): FP64 模式下 data 块为 FLOAT64 [H,W], FP32 模式下为 FLOAT32 [H,W]
     //    P03-003: data 是必需块 (READ_FITS 产出), 缺失必须失败 (退出码 3)
     const AioBlock* data_block = fn_get_block(frame_, "data");
     if (data_block == nullptr) {
@@ -812,11 +858,20 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     }
     int width = data_block->dims[1];
     int height = data_block->dims[0];
-    float* light = static_cast<float*>(data_block->data);
     int64_t n_pix = static_cast<int64_t>(width) * height;
+    // 双精度 ABI: 根据 data 块类型选择指针
+    // FP64 模式: light_f64 指向 FLOAT64 data (不降级)
+    // FP32 模式: light_f32 指向 FLOAT32 data (向后兼容)
+    float* light_f32 = nullptr;
+    double* light_f64 = nullptr;
+    if (use_fp64) {
+        light_f64 = static_cast<double*>(data_block->data);
+    } else {
+        light_f32 = static_cast<float*>(data_block->data);
+    }
 
     LOG_INFO("orchestrator", "[CALIBRATE] 图像: " + std::to_string(width) + "x" + std::to_string(height)
-             + " (" + std::to_string(n_pix) + " 像素)");
+             + " (" + std::to_string(n_pix) + " 像素, " + (use_fp64 ? "FP64" : "FP32") + ")");
 
     // 2. 从 frame_ header KV 读取帧元数据 (EXPTIME, FILTER, CCD-TEMP)
     double frame_exptime = fn_kv_get_double(frame_, "header", "EXPTIME", 0.0);
@@ -886,12 +941,19 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     }
 
     // 5. 加载 Master 文件 (aio_read_xisf)
+    //    双精度 ABI (R10): FP64 模式优先获取 double* 像素数据 (aio_get_pixel_data_f64),
+    //    若文件只有 float32 则转换为 double (临时缓冲区持有)
     AIOImageData* bias_img = nullptr;
     AIOImageData* dark_img = nullptr;
     AIOImageData* flat_img = nullptr;
-    float* master_bias = nullptr;
-    float* master_dark = nullptr;
-    float* master_flat = nullptr;
+    float* master_bias_f32 = nullptr;
+    float* master_dark_f32 = nullptr;
+    float* master_flat_f32 = nullptr;
+    double* master_bias_f64 = nullptr;
+    double* master_dark_f64 = nullptr;
+    double* master_flat_f64 = nullptr;
+    // FP64 模式下从 float32 转换的临时缓冲区 (需在函数作用域保持有效)
+    std::vector<double> bias_convert, dark_convert, flat_convert;
     int bias_w = 0, bias_h = 0;
     int dark_w = 0, dark_h = 0;
     int flat_w = 0, flat_h = 0;
@@ -900,7 +962,8 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     bool dark_has_temp = false;
 
     auto load_master = [&](const std::string& path, AIOImageData*& img,
-                           float*& pix, int& w, int& h) -> bool {
+                           float*& pix_f32, double*& pix_f64, int& w, int& h,
+                           std::vector<double>& convert_buf) -> bool {
         if (path.empty()) return false;
         if (!fs::exists(path)) {
             LOG_WARN("orchestrator", "[CALIBRATE] Master 文件不存在: " + path);
@@ -913,15 +976,29 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
         }
         w = fn_get_width(img);
         h = fn_get_height(img);
-        pix = fn_get_pixels(img);
+        // 双精度 ABI: FP64 模式优先获取 double* 数据 (不降级)
+        if (use_fp64) {
+            pix_f64 = fn_get_pixels_f64(img);
+            if (!pix_f64) {
+                // 文件只有 float32, 转换为 double (临时缓冲区持有)
+                pix_f32 = fn_get_pixels(img);
+                if (pix_f32) {
+                    convert_buf.assign(pix_f32, pix_f32 + (size_t)w * h);
+                    pix_f64 = convert_buf.data();
+                }
+            }
+        } else {
+            pix_f32 = fn_get_pixels(img);
+        }
         LOG_INFO("orchestrator", "[CALIBRATE] 加载 Master: " + path
-                 + " (" + std::to_string(w) + "x" + std::to_string(h) + ")");
+                 + " (" + std::to_string(w) + "x" + std::to_string(h)
+                 + (use_fp64 ? " FP64" : " FP32") + ")");
         return true;
     };
 
-    bool has_bias = load_master(bias_path, bias_img, master_bias, bias_w, bias_h);
-    bool has_dark = load_master(dark_path, dark_img, master_dark, dark_w, dark_h);
-    bool has_flat = load_master(flat_path, flat_img, master_flat, flat_w, flat_h);
+    bool has_bias = load_master(bias_path, bias_img, master_bias_f32, master_bias_f64, bias_w, bias_h, bias_convert);
+    bool has_dark = load_master(dark_path, dark_img, master_dark_f32, master_dark_f64, dark_w, dark_h, dark_convert);
+    bool has_flat = load_master(flat_path, flat_img, master_flat_f32, master_flat_f64, flat_w, flat_h, flat_convert);
 
     // 6. 验证 Master 文件 (尺寸/曝光/温度)
     bool validation_ok = true;
@@ -1019,8 +1096,15 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     }
 
     // 8. 分配输出缓冲 (ac_calibrate_frame 要求调用者分配)
-    float* out = static_cast<float*>(std::malloc(n_pix * sizeof(float)));
-    if (out == nullptr) {
+    //    双精度 ABI (R10): FP64 模式分配 double*, FP32 模式分配 float*
+    float* out_f32 = nullptr;
+    double* out_f64 = nullptr;
+    if (use_fp64) {
+        out_f64 = static_cast<double*>(std::malloc(n_pix * sizeof(double)));
+    } else {
+        out_f32 = static_cast<float*>(std::malloc(n_pix * sizeof(float)));
+    }
+    if ((use_fp64 && !out_f64) || (!use_fp64 && !out_f32)) {
         LOG_ERROR("orchestrator", "[CALIBRATE] 分配输出缓冲失败");
         result.error_msg = "[CALIBRATE] 分配输出缓冲失败";
         result.exit_code = AstroCsExitCode::GENERIC_ERROR;
@@ -1031,21 +1115,31 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     }
 
     // 9. 调用 ac_calibrate_frame (实际应用 Bias/Dark/Flat)
-    float actual_k = 0.0f;
-    LOG_INFO("orchestrator", "[CALIBRATE] 调用 ac_calibrate_frame: dark_opt="
-             + std::to_string(dark_opt) + ", k_init=" + std::to_string(dark_k)
+    //    双精度 ABI (R10): FP64 模式调用 ac_calibrate_frame_f64 (double 像素算术, 不降级)
+    float actual_k_f32 = 0.0f;
+    double actual_k_f64 = 0.0;
+    LOG_INFO("orchestrator", "[CALIBRATE] 调用 ac_calibrate_frame" + std::string(use_fp64 ? "_f64" : "")
+             + ": dark_opt=" + std::to_string(dark_opt) + ", k_init=" + std::to_string(dark_k)
              + ", has_bias=" + (has_bias ? "true" : "false")
              + ", has_dark=" + (has_dark ? "true" : "false")
              + ", has_flat=" + (has_flat ? "true" : "false"));
-    int ret = fn_calibrate(light, width, height,
-                           master_dark, master_flat, master_bias,
-                           out, dark_opt, static_cast<float>(dark_k), &actual_k);
+    int ret;
+    if (use_fp64) {
+        ret = fn_calibrate_f64(light_f64, width, height,
+                               master_dark_f64, master_flat_f64, master_bias_f64,
+                               out_f64, dark_opt, dark_k, &actual_k_f64);
+    } else {
+        ret = fn_calibrate(light_f32, width, height,
+                           master_dark_f32, master_flat_f32, master_bias_f32,
+                           out_f32, dark_opt, static_cast<float>(dark_k), &actual_k_f32);
+    }
 
     if (ret != 0) {
         LOG_ERROR("orchestrator", "[CALIBRATE] ac_calibrate_frame 失败: ret=" + std::to_string(ret));
         result.error_msg = "[CALIBRATE] ac_calibrate_frame 失败: ret=" + std::to_string(ret);
         result.exit_code = AstroCsExitCode::CALIBRATE_FAILED;
-        std::free(out);
+        if (out_f32) std::free(out_f32);
+        if (out_f64) std::free(out_f64);
         if (bias_img) fn_free_image(bias_img);
         if (dark_img) fn_free_image(dark_img);
         if (flat_img) fn_free_image(flat_img);
@@ -1053,15 +1147,34 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     }
 
     // 10. 计算校准前/后图像统计 + Master 均值
-    double light_mean = compute_array_mean(light, n_pix);
-    double light_median = compute_array_median(light, n_pix);
-    double light_std = compute_array_std(light, n_pix, light_mean);
-    double out_mean = compute_array_mean(out, n_pix);
-    double out_median = compute_array_median(out, n_pix);
-    double out_std = compute_array_std(out, n_pix, out_mean);
-    double bias_mean = has_bias ? compute_array_mean(master_bias, n_pix) : 0.0;
-    double dark_mean = has_dark ? compute_array_mean(master_dark, n_pix) : 0.0;
-    double flat_mean = has_flat ? compute_array_mean(master_flat, n_pix) : 0.0;
+    //     双精度 ABI: FP64 模式使用 double* 版本的统计函数 (重载)
+    double light_mean, light_median, light_std;
+    double out_mean, out_median, out_std;
+    double bias_mean, dark_mean, flat_mean;
+    double actual_k;
+    if (use_fp64) {
+        light_mean = compute_array_mean(light_f64, n_pix);
+        light_median = compute_array_median(light_f64, n_pix);
+        light_std = compute_array_std(light_f64, n_pix, light_mean);
+        out_mean = compute_array_mean(out_f64, n_pix);
+        out_median = compute_array_median(out_f64, n_pix);
+        out_std = compute_array_std(out_f64, n_pix, out_mean);
+        bias_mean = has_bias ? compute_array_mean(master_bias_f64, n_pix) : 0.0;
+        dark_mean = has_dark ? compute_array_mean(master_dark_f64, n_pix) : 0.0;
+        flat_mean = has_flat ? compute_array_mean(master_flat_f64, n_pix) : 0.0;
+        actual_k = actual_k_f64;
+    } else {
+        light_mean = compute_array_mean(light_f32, n_pix);
+        light_median = compute_array_median(light_f32, n_pix);
+        light_std = compute_array_std(light_f32, n_pix, light_mean);
+        out_mean = compute_array_mean(out_f32, n_pix);
+        out_median = compute_array_median(out_f32, n_pix);
+        out_std = compute_array_std(out_f32, n_pix, out_mean);
+        bias_mean = has_bias ? compute_array_mean(master_bias_f32, n_pix) : 0.0;
+        dark_mean = has_dark ? compute_array_mean(master_dark_f32, n_pix) : 0.0;
+        flat_mean = has_flat ? compute_array_mean(master_flat_f32, n_pix) : 0.0;
+        actual_k = static_cast<double>(actual_k_f32);
+    }
 
     LOG_INFO("orchestrator", "[CALIBRATE] 校准统计: light_mean=" + std::to_string(light_mean)
              + " -> out_mean=" + std::to_string(out_mean)
@@ -1072,21 +1185,30 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
 
     // 11. 替换 data 块 (转移所有权)
     //     P03-003: data 块写回失败必须返回非零 (退出码 3, 必需块缺失)
+    //     双精度 ABI: FP64 模式写回 FLOAT64, FP32 模式写回 FLOAT32
     fn_remove_block(frame_, "data");
     int dims[2] = {height, width};
-    ret = fn_add_block_move(frame_, "data", AIO_BLOCK_FLOAT32,
-                            out, n_pix, dims, 2, "校准后 Light 像素 (Bias/Dark/Flat 已应用)");
+    if (use_fp64) {
+        ret = fn_add_block_move(frame_, "data", AIO_BLOCK_FLOAT64,
+                                out_f64, n_pix, dims, 2,
+                                "校准后 Light 像素 (FP64, Bias/Dark/Flat 已应用)");
+    } else {
+        ret = fn_add_block_move(frame_, "data", AIO_BLOCK_FLOAT32,
+                                out_f32, n_pix, dims, 2,
+                                "校准后 Light 像素 (Bias/Dark/Flat 已应用)");
+    }
     if (ret != 0) {
         LOG_ERROR("orchestrator", "[CALIBRATE] 写回 data 块失败: ret=" + std::to_string(ret));
         result.error_msg = "[CALIBRATE] 写回 data 块失败";
         result.exit_code = AstroCsExitCode::BLOCK_MISSING;
-        std::free(out);
+        if (out_f32) std::free(out_f32);
+        if (out_f64) std::free(out_f64);
         if (bias_img) fn_free_image(bias_img);
         if (dark_img) fn_free_image(dark_img);
         if (flat_img) fn_free_image(flat_img);
         return false;
     }
-    // out 所有权已转移给 frame_
+    // out_f32/out_f64 所有权已转移给 frame_
 
     // 12. 写入 cal_stats KV 块 (P03-001 交付物)
     fn_kv_set(frame_, "cal_stats", "STATUS", "OK");
@@ -1947,7 +2069,13 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
         return false;
     }
 
-    // 1. 读取 data 块 (FLOAT32 [H,W]) → 转为 UINT16 (dpsf_fit_batch 要求 uint16)
+    // 双精度 ABI: 根据 config_.precision (与 PrecisionContext 一致) 选择像素数据源
+    // FP64 模式: data 块为 FLOAT64, 直接使用 double 图像 (不降级到 uint16/float32),
+    //            调用 dpsf_fit_batch_d 在 double 上裁剪 patch 拟合。
+    // FP32 模式: data 块为 FLOAT32, 转为 UINT16 调用 dpsf_fit_batch (向后兼容)。
+    bool use_fp64 = (config_.precision == PrecisionMode::FP64);
+
+    // 1. 读取 data 块 (FP32: FLOAT32→UINT16; FP64: FLOAT64 直接使用)
     const AioBlock* data_block = fn_get_block(frame_, "data");
     if (data_block == nullptr) {
         LOG_ERROR("orchestrator", "[PSF] data 块不存在");
@@ -1956,21 +2084,39 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
     }
     int height = data_block->dims[0];
     int width = data_block->dims[1];
-    const float* pixels = static_cast<const float*>(data_block->data);
     int64_t n_pix = static_cast<int64_t>(width) * height;
-    LOG_INFO("orchestrator", "[PSF] 图像: " + std::to_string(width) + "x" + std::to_string(height));
+    LOG_INFO("orchestrator", "[PSF] 图像: " + std::to_string(width) + "x" + std::to_string(height)
+             + " mode=" + (use_fp64 ? "FP64" : "FP32"));
 
-    uint16_t* pixels_u16 = static_cast<uint16_t*>(std::malloc(n_pix * sizeof(uint16_t)));
-    if (pixels_u16 == nullptr) {
-        LOG_ERROR("orchestrator", "[PSF] 分配 uint16 缓冲失败");
-        result.error_msg = "[PSF] 分配 uint16 缓冲失败";
-        return false;
-    }
-    for (int64_t i = 0; i < n_pix; ++i) {
-        float v = pixels[i];
-        if (v < 0.0f) v = 0.0f;
-        if (v > 65535.0f) v = 65535.0f;
-        pixels_u16[i] = static_cast<uint16_t>(v);
+    const double* pixels_f64 = nullptr;   // FP64 路径 (指向 data 块内部, 不持有所有权)
+    uint16_t* pixels_u16 = nullptr;       // FP32 路径 (本函数 malloc, 需 free; FP64 时为 null)
+
+    if (use_fp64) {
+        pixels_f64 = static_cast<const double*>(data_block->data);
+        if (pixels_f64 == nullptr) {
+            LOG_ERROR("orchestrator", "[PSF] data 块 data 为空 (FP64)");
+            result.error_msg = "[PSF] data 块 data 为空 (FP64)";
+            return false;
+        }
+    } else {
+        const float* pixels_f32 = static_cast<const float*>(data_block->data);
+        if (pixels_f32 == nullptr) {
+            LOG_ERROR("orchestrator", "[PSF] data 块 data 为空 (FP32)");
+            result.error_msg = "[PSF] data 块 data 为空 (FP32)";
+            return false;
+        }
+        pixels_u16 = static_cast<uint16_t*>(std::malloc(n_pix * sizeof(uint16_t)));
+        if (pixels_u16 == nullptr) {
+            LOG_ERROR("orchestrator", "[PSF] 分配 uint16 缓冲失败");
+            result.error_msg = "[PSF] 分配 uint16 缓冲失败";
+            return false;
+        }
+        for (int64_t i = 0; i < n_pix; ++i) {
+            float v = pixels_f32[i];
+            if (v < 0.0f) v = 0.0f;
+            if (v > 65535.0f) v = 65535.0f;
+            pixels_u16[i] = static_cast<uint16_t>(v);
+        }
     }
 
     // 2. 读取 star_det 块 (FLOAT32 [N,4]: x, y, flux, mag)
@@ -1994,22 +2140,10 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
         cy_arr[i] = static_cast<double>(star_det_data[i * 4 + 1]);
     }
 
-    // 3. 调用 dpsf_fit_batch
-    auto fn_fit_batch = dll_loader_.get_function<int (*)(
-        const uint16_t*, int, int,
-        const double*, const double*, int,
-        const DPSFFitParams*, DPSFFitResult**)>(
-        ModuleId::PSF, "dpsf_fit_batch");
-    auto fn_free_results = dll_loader_.get_function<void (*)(DPSFFitResult*)>(
-        ModuleId::PSF, "dpsf_free_results");
-
-    if (!fn_fit_batch || !fn_free_results) {
-        LOG_ERROR("orchestrator", "[PSF] dpsf_fit_batch/dpsf_free_results 函数未找到");
-        result.error_msg = "[PSF] DPSF 函数指针获取失败";
-        std::free(pixels_u16);
-        return false;
-    }
-
+    // 3. 获取 PSF 拟合函数指针并按精度模式调用
+    //    FP64: dpsf_fit_batch_d (double 图像, 返回完整 DPSFFitResult*)
+    //    FP32: dpsf_fit_batch   (uint16 图像, 返回完整 DPSFFitResult*)
+    //    两者返回的结构体字段一致, 下游 psf 块映射保持不变 (向后兼容)。
     // P03-002: 从 current_config_json_ 解析 psf 参数 (默认值与原硬编码一致)
     int fit_radius = 8;
     int max_iter = 100;
@@ -2028,17 +2162,62 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
     params.maxIter = max_iter;
     params.tolerance = tolerance;
 
-    {
-        char buf[128];
-        std::snprintf(buf, sizeof(buf), "[PSF] 调用 dpsf_fit_batch (fitRadius=%d, maxIter=%d, tol=%.1e) ...",
-            fit_radius, max_iter, tolerance);
-        LOG_INFO("orchestrator", std::string(buf));
+    auto fn_free_results = dll_loader_.get_function<void (*)(DPSFFitResult*)>(
+        ModuleId::PSF, "dpsf_free_results");
+    if (!fn_free_results) {
+        LOG_ERROR("orchestrator", "[PSF] dpsf_free_results 函数未找到");
+        result.error_msg = "[PSF] dpsf_free_results 函数未找到";
+        std::free(pixels_u16);  // FP32 时非 null, FP64 时为 null (free nullptr 安全)
+        return false;
     }
+
     DPSFFitResult* results = nullptr;
-    int ret = fn_fit_batch(pixels_u16, width, height,
+    int ret;
+    if (use_fp64) {
+        auto fn_fit_batch_d = dll_loader_.get_function<int (*)(
+            const double*, int, int,
+            const double*, const double*, int,
+            const DPSFFitParams*, DPSFFitResult**)>(
+            ModuleId::PSF, "dpsf_fit_batch_d");
+        if (!fn_fit_batch_d) {
+            LOG_ERROR("orchestrator", "[PSF] dpsf_fit_batch_d 函数未找到 (FP64)");
+            result.error_msg = "[PSF] dpsf_fit_batch_d 函数未找到 (FP64)";
+            return false;
+        }
+        {
+            char buf[160];
+            std::snprintf(buf, sizeof(buf),
+                "[PSF] 调用 dpsf_fit_batch_d (FP64, fitRadius=%d, maxIter=%d, tol=%.1e) ...",
+                fit_radius, max_iter, tolerance);
+            LOG_INFO("orchestrator", std::string(buf));
+        }
+        ret = fn_fit_batch_d(pixels_f64, width, height,
+                             cx_arr.data(), cy_arr.data(), n_stars,
+                             &params, &results);
+    } else {
+        auto fn_fit_batch = dll_loader_.get_function<int (*)(
+            const uint16_t*, int, int,
+            const double*, const double*, int,
+            const DPSFFitParams*, DPSFFitResult**)>(
+            ModuleId::PSF, "dpsf_fit_batch");
+        if (!fn_fit_batch) {
+            LOG_ERROR("orchestrator", "[PSF] dpsf_fit_batch 函数未找到");
+            result.error_msg = "[PSF] dpsf_fit_batch 函数未找到";
+            std::free(pixels_u16);
+            return false;
+        }
+        {
+            char buf[128];
+            std::snprintf(buf, sizeof(buf),
+                "[PSF] 调用 dpsf_fit_batch (fitRadius=%d, maxIter=%d, tol=%.1e) ...",
+                fit_radius, max_iter, tolerance);
+            LOG_INFO("orchestrator", std::string(buf));
+        }
+        ret = fn_fit_batch(pixels_u16, width, height,
                            cx_arr.data(), cy_arr.data(), n_stars,
                            &params, &results);
-    std::free(pixels_u16);  // 图像不再需要
+        std::free(pixels_u16);  // uint16 图像不再需要 (FP32 路径)
+    }
 
     if (ret != 0 || results == nullptr) {
         LOG_ERROR("orchestrator", "[PSF] dpsf_fit_batch 失败: ret=" + std::to_string(ret));
@@ -2158,7 +2337,8 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
         return false;
     }
 
-    // 1. 读取 data 块 (FLOAT32 [H,W])
+    // 1. 读取 data 块 ([H,W])
+    //    R10: FP64 模式下 data 块为 FLOAT64 (double), 否则为 FLOAT32 (float)
     const AioBlock* data_block = fn_get_block(frame_, "data");
     if (data_block == nullptr) {
         LOG_ERROR("orchestrator", "[PHOTOMETRIC] data 块不存在");
@@ -2167,8 +2347,23 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     }
     int height = data_block->dims[0];
     int width = data_block->dims[1];
-    const float* pixels = static_cast<const float*>(data_block->data);
-    LOG_INFO("orchestrator", "[PHOTOMETRIC] 图像: " + std::to_string(width) + "x" + std::to_string(height));
+    const bool use_fp64 = (config_.precision == PrecisionMode::FP64);
+    const float* pixels_f32 = nullptr;
+    const double* pixels_f64 = nullptr;
+    if (use_fp64) {
+        if (data_block->type != AIO_BLOCK_FLOAT64) {
+            LOG_ERROR("orchestrator", "[PHOTOMETRIC] FP64 模式但 data 块非 FLOAT64 (type="
+                     + std::to_string((int)data_block->type) + "), 上游阶段未按精度模式产出");
+            result.error_msg = "[PHOTOMETRIC] FP64 模式 data 块类型不匹配";
+            result.exit_code = AstroCsExitCode::MODULE_ABI_UNSUPPORTED;
+            return false;
+        }
+        pixels_f64 = static_cast<const double*>(data_block->data);
+        LOG_INFO("orchestrator", "[PHOTOMETRIC] 图像(FP64): " + std::to_string(width) + "x" + std::to_string(height));
+    } else {
+        pixels_f32 = static_cast<const float*>(data_block->data);
+        LOG_INFO("orchestrator", "[PHOTOMETRIC] 图像: " + std::to_string(width) + "x" + std::to_string(height));
+    }
 
     // 2. 读取 psf 块 (FLOAT64 [N,9])
     //    P03-003: psf 是必需块 (PSF 阶段产出), 缺失必须失败 (退出码 3)
@@ -2295,36 +2490,12 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
 
     // 4. 调用 pc_calibrate_simple_with_gaia (DLL 内部: 锥形搜索+光谱积分+星匹配+scale 校正)
     // 签名扩展 (GAP-012): 新增 qe_wl/qe_trans/qe_count 三个参数, 位于 filter 参数之后 spectrum 参数之前
-    auto fn_pc_calib = dll_loader_.get_function<int (*)(
-        void*, double, double, double, double, double,
-        const double*, const double*, int,
-        const double*, const double*, int,
-        const double*, int,
-        const float*, int, int,
-        const double*, const double*, const double*, const int*, int,
-        double, double, double, double, double, double, double, double,
-        int, const double*, const double*, const double*, const double*,
-        float*, int*, double*, double*, PhotometricDiag*)>(
-        ModuleId::PHOTOMETRIC, "pc_calibrate_simple_with_gaia");
-
-    if (!fn_pc_calib) {
-        LOG_ERROR("orchestrator", "[PHOTOMETRIC] pc_calibrate_simple_with_gaia 函数未找到");
-        result.error_msg = "[PHOTOMETRIC] pc_calibrate_simple_with_gaia 函数未找到";
-        return false;
-    }
-
+    // R10: FP64 模式调用 _f64 变体 (pixels/out_pixels 为 double*)
     int64_t n_pix = static_cast<int64_t>(width) * height;
-    float* out_pixels = static_cast<float*>(std::malloc(n_pix * sizeof(float)));
-    if (out_pixels == nullptr) {
-        LOG_ERROR("orchestrator", "[PHOTOMETRIC] 分配输出缓冲失败");
-        result.error_msg = "[PHOTOMETRIC] 分配输出缓冲失败";
-        return false;
-    }
-
     int out_n_matched = 0;
     double out_scale = 0.0, out_sigma = 0.0;
-    // P12-001: 分阶段诊断结构体 (出参, DLL 内部填充 8 阶段字段)
     PhotometricDiag diag = {};
+    int ret = 0;
 
     // SIP 指针 (无 SIP 时传 nullptr)
     const double* sip_a_ptr = (wcs.sip_order > 0) ? wcs.sip_a : nullptr;
@@ -2332,51 +2503,153 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     const double* sip_ap_ptr = (wcs.has_ap) ? wcs.sip_ap : nullptr;
     const double* sip_bp_ptr = (wcs.has_ap) ? wcs.sip_bp : nullptr;
 
-    {
-        char buf[160];
-        std::snprintf(buf, sizeof(buf),
-            "[PHOTOMETRIC] 调用 pc_calibrate_simple_with_gaia (mag_min=%.1f, mag_max=%.1f, fov=%.3fdeg) ...",
-            mag_min, mag_max, fov_radius_deg);
-        LOG_INFO("orchestrator", std::string(buf));
-    }
-    int ret = fn_pc_calib(
-        reinterpret_cast<void*>(reinterpret_cast<GaiaClient*>(gaia_client_handle_)),
-        wcs.crval1, wcs.crval2, fov_radius_deg,
-        mag_min, mag_max,  // P03-002: 从 config 读取 (DLL 内部会自适应迭代)
-        filter_wl.data(), filter_trans.data(), (int)filter_wl.size(),
-        qe_wl.empty() ? nullptr : qe_wl.data(),
-        qe_trans.empty() ? nullptr : qe_trans.data(),
-        (int)qe_wl.size(),
-        spectrum_wl.data(), (int)spectrum_wl.size(),
-        pixels, width, height,
-        psf_cx.data(), psf_cy.data(), psf_flux.data(), psf_status.data(), n_psf,
-        wcs.crval1, wcs.crval2, wcs.crpix1, wcs.crpix2,
-        wcs.cd11, wcs.cd12, wcs.cd21, wcs.cd22,
-        wcs.sip_order, sip_a_ptr, sip_b_ptr, sip_ap_ptr, sip_bp_ptr,
-        out_pixels, &out_n_matched, &out_scale, &out_sigma, &diag);
+    if (use_fp64) {
+        // R10: FP64 路径 - pc_calibrate_simple_with_gaia_f64
+        auto fn_pc_calib_f64 = dll_loader_.get_function<int (*)(
+            void*, double, double, double, double, double,
+            const double*, const double*, int,
+            const double*, const double*, int,
+            const double*, int,
+            const double*, int, int,
+            const double*, const double*, const double*, const int*, int,
+            double, double, double, double, double, double, double, double,
+            int, const double*, const double*, const double*, const double*,
+            double*, int*, double*, double*, PhotometricDiag*)>(
+            ModuleId::PHOTOMETRIC, "pc_calibrate_simple_with_gaia_f64");
 
-    if (ret != 0) {
-        LOG_ERROR("orchestrator", "[PHOTOMETRIC] pc_calibrate_simple_with_gaia 失败: ret=" + std::to_string(ret));
-        result.error_msg = "[PHOTOMETRIC] pc_calibrate_simple_with_gaia 失败: ret=" + std::to_string(ret);
-        std::free(out_pixels);
-        return false;
-    }
+        if (!fn_pc_calib_f64) {
+            LOG_ERROR("orchestrator", "[PHOTOMETRIC] pc_calibrate_simple_with_gaia_f64 函数未找到 (FP64 模式)");
+            result.error_msg = "[PHOTOMETRIC] pc_calibrate_simple_with_gaia_f64 函数未找到";
+            result.exit_code = AstroCsExitCode::MODULE_ABI_UNSUPPORTED;
+            return false;
+        }
 
-    LOG_INFO("orchestrator", "[PHOTOMETRIC] 完成: n_matched=" + std::to_string(out_n_matched)
-             + ", scale=" + std::to_string(out_scale)
-             + ", sigma_residual=" + std::to_string(out_sigma));
+        double* out_pixels_f64 = static_cast<double*>(std::malloc(n_pix * sizeof(double)));
+        if (out_pixels_f64 == nullptr) {
+            LOG_ERROR("orchestrator", "[PHOTOMETRIC] 分配输出缓冲(FP64)失败");
+            result.error_msg = "[PHOTOMETRIC] 分配输出缓冲(FP64)失败";
+            return false;
+        }
 
-    // 5. 更新 data 块 (替换为标定后像素, 转移所有权)
-    fn_remove_block(frame_, "data");
-    int dims[2] = {height, width};
-    int r = fn_add_block_move(frame_, "data", AIO_BLOCK_FLOAT32,
-                              out_pixels, n_pix, dims, 2,
-                              "测光标定后像素 (I_cal = I * scale)");
-    if (r != 0) {
-        LOG_ERROR("orchestrator", "[PHOTOMETRIC] 更新 data 块失败: ret=" + std::to_string(r));
-        result.error_msg = "[PHOTOMETRIC] 更新 data 块失败";
-        std::free(out_pixels);
-        return false;
+        {
+            char buf[160];
+            std::snprintf(buf, sizeof(buf),
+                "[PHOTOMETRIC] 调用 pc_calibrate_simple_with_gaia_f64 (mag_min=%.1f, mag_max=%.1f, fov=%.3fdeg, FP64) ...",
+                mag_min, mag_max, fov_radius_deg);
+            LOG_INFO("orchestrator", std::string(buf));
+        }
+        ret = fn_pc_calib_f64(
+            reinterpret_cast<void*>(reinterpret_cast<GaiaClient*>(gaia_client_handle_)),
+            wcs.crval1, wcs.crval2, fov_radius_deg,
+            mag_min, mag_max,
+            filter_wl.data(), filter_trans.data(), (int)filter_wl.size(),
+            qe_wl.empty() ? nullptr : qe_wl.data(),
+            qe_trans.empty() ? nullptr : qe_trans.data(),
+            (int)qe_wl.size(),
+            spectrum_wl.data(), (int)spectrum_wl.size(),
+            pixels_f64, width, height,
+            psf_cx.data(), psf_cy.data(), psf_flux.data(), psf_status.data(), n_psf,
+            wcs.crval1, wcs.crval2, wcs.crpix1, wcs.crpix2,
+            wcs.cd11, wcs.cd12, wcs.cd21, wcs.cd22,
+            wcs.sip_order, sip_a_ptr, sip_b_ptr, sip_ap_ptr, sip_bp_ptr,
+            out_pixels_f64, &out_n_matched, &out_scale, &out_sigma, &diag);
+
+        if (ret != 0) {
+            LOG_ERROR("orchestrator", "[PHOTOMETRIC] pc_calibrate_simple_with_gaia_f64 失败: ret=" + std::to_string(ret));
+            result.error_msg = "[PHOTOMETRIC] pc_calibrate_simple_with_gaia_f64 失败: ret=" + std::to_string(ret);
+            std::free(out_pixels_f64);
+            return false;
+        }
+
+        LOG_INFO("orchestrator", "[PHOTOMETRIC] 完成(FP64): n_matched=" + std::to_string(out_n_matched)
+                 + ", scale=" + std::to_string(out_scale)
+                 + ", sigma_residual=" + std::to_string(out_sigma));
+
+        // 5. 更新 data 块 (FP64, 转移所有权)
+        fn_remove_block(frame_, "data");
+        int dims[2] = {height, width};
+        int r = fn_add_block_move(frame_, "data", AIO_BLOCK_FLOAT64,
+                                  out_pixels_f64, n_pix * (int64_t)sizeof(double), dims, 2,
+                                  "测光标定后像素 FP64 (I_cal = I * scale)");
+        if (r != 0) {
+            LOG_ERROR("orchestrator", "[PHOTOMETRIC] 更新 data 块(FP64)失败: ret=" + std::to_string(r));
+            result.error_msg = "[PHOTOMETRIC] 更新 data 块(FP64)失败";
+            std::free(out_pixels_f64);
+            return false;
+        }
+    } else {
+        // FP32 路径 (原逻辑保留)
+        auto fn_pc_calib = dll_loader_.get_function<int (*)(
+            void*, double, double, double, double, double,
+            const double*, const double*, int,
+            const double*, const double*, int,
+            const double*, int,
+            const float*, int, int,
+            const double*, const double*, const double*, const int*, int,
+            double, double, double, double, double, double, double, double,
+            int, const double*, const double*, const double*, const double*,
+            float*, int*, double*, double*, PhotometricDiag*)>(
+            ModuleId::PHOTOMETRIC, "pc_calibrate_simple_with_gaia");
+
+        if (!fn_pc_calib) {
+            LOG_ERROR("orchestrator", "[PHOTOMETRIC] pc_calibrate_simple_with_gaia 函数未找到");
+            result.error_msg = "[PHOTOMETRIC] pc_calibrate_simple_with_gaia 函数未找到";
+            return false;
+        }
+
+        float* out_pixels = static_cast<float*>(std::malloc(n_pix * sizeof(float)));
+        if (out_pixels == nullptr) {
+            LOG_ERROR("orchestrator", "[PHOTOMETRIC] 分配输出缓冲失败");
+            result.error_msg = "[PHOTOMETRIC] 分配输出缓冲失败";
+            return false;
+        }
+
+        {
+            char buf[160];
+            std::snprintf(buf, sizeof(buf),
+                "[PHOTOMETRIC] 调用 pc_calibrate_simple_with_gaia (mag_min=%.1f, mag_max=%.1f, fov=%.3fdeg) ...",
+                mag_min, mag_max, fov_radius_deg);
+            LOG_INFO("orchestrator", std::string(buf));
+        }
+        ret = fn_pc_calib(
+            reinterpret_cast<void*>(reinterpret_cast<GaiaClient*>(gaia_client_handle_)),
+            wcs.crval1, wcs.crval2, fov_radius_deg,
+            mag_min, mag_max,
+            filter_wl.data(), filter_trans.data(), (int)filter_wl.size(),
+            qe_wl.empty() ? nullptr : qe_wl.data(),
+            qe_trans.empty() ? nullptr : qe_trans.data(),
+            (int)qe_wl.size(),
+            spectrum_wl.data(), (int)spectrum_wl.size(),
+            pixels_f32, width, height,
+            psf_cx.data(), psf_cy.data(), psf_flux.data(), psf_status.data(), n_psf,
+            wcs.crval1, wcs.crval2, wcs.crpix1, wcs.crpix2,
+            wcs.cd11, wcs.cd12, wcs.cd21, wcs.cd22,
+            wcs.sip_order, sip_a_ptr, sip_b_ptr, sip_ap_ptr, sip_bp_ptr,
+            out_pixels, &out_n_matched, &out_scale, &out_sigma, &diag);
+
+        if (ret != 0) {
+            LOG_ERROR("orchestrator", "[PHOTOMETRIC] pc_calibrate_simple_with_gaia 失败: ret=" + std::to_string(ret));
+            result.error_msg = "[PHOTOMETRIC] pc_calibrate_simple_with_gaia 失败: ret=" + std::to_string(ret);
+            std::free(out_pixels);
+            return false;
+        }
+
+        LOG_INFO("orchestrator", "[PHOTOMETRIC] 完成: n_matched=" + std::to_string(out_n_matched)
+                 + ", scale=" + std::to_string(out_scale)
+                 + ", sigma_residual=" + std::to_string(out_sigma));
+
+        // 5. 更新 data 块 (替换为标定后像素, 转移所有权)
+        fn_remove_block(frame_, "data");
+        int dims[2] = {height, width};
+        int r = fn_add_block_move(frame_, "data", AIO_BLOCK_FLOAT32,
+                                  out_pixels, n_pix, dims, 2,
+                                  "测光标定后像素 (I_cal = I * scale)");
+        if (r != 0) {
+            LOG_ERROR("orchestrator", "[PHOTOMETRIC] 更新 data 块失败: ret=" + std::to_string(r));
+            result.error_msg = "[PHOTOMETRIC] 更新 data 块失败";
+            std::free(out_pixels);
+            return false;
+        }
     }
     // out_pixels 所有权已转移给 frame_
 
@@ -2906,6 +3179,11 @@ bool Orchestrator::run_stage_read_fits(TaskResult& result) {
         ModuleId::AIO, "aio_read_fits");
     auto fn_get_pixels = dll_loader_.get_function<float* (*)(const AIOImageData*)>(
         ModuleId::AIO, "aio_get_pixel_data");
+    // 双精度 ABI: FP64 模式下获取 double 像素数据与 dtype
+    auto fn_get_pixels_f64 = dll_loader_.get_function<double* (*)(const AIOImageData*)>(
+        ModuleId::AIO, "aio_get_pixel_data_f64");
+    auto fn_get_dtype = dll_loader_.get_function<uint8_t (*)(const AIOImageData*)>(
+        ModuleId::AIO, "aio_get_dtype");
     auto fn_get_width = dll_loader_.get_function<int (*)(const AIOImageData*)>(
         ModuleId::AIO, "aio_get_width");
     auto fn_get_height = dll_loader_.get_function<int (*)(const AIOImageData*)>(
@@ -2931,9 +3209,13 @@ bool Orchestrator::run_stage_read_fits(TaskResult& result) {
         PipelineFrame*, const char*, const char*, double)>(
         ModuleId::AIO, "aio_frame_kv_set_double");
 
+    // FP64 模式下, aio_get_pixel_data_f64 / aio_get_dtype 为必需 (双精度 ABI 契约)
+    bool need_fp64 = (config_.precision == PrecisionMode::FP64);
     if (!fn_read_fits || !fn_get_pixels || !fn_get_width || !fn_get_height ||
-        !fn_get_channels || !fn_get_metadata || !fn_free || !fn_add_block || !fn_kv_set) {
-        LOG_ERROR("orchestrator", "[READ_FITS] AIO 函数指针获取失败");
+        !fn_get_channels || !fn_get_metadata || !fn_free || !fn_add_block || !fn_kv_set ||
+        (need_fp64 && (!fn_get_pixels_f64 || !fn_get_dtype))) {
+        LOG_ERROR("orchestrator", "[READ_FITS] AIO 函数指针获取失败"
+                  + std::string(need_fp64 ? " (FP64 模式需要 aio_get_pixel_data_f64/aio_get_dtype)" : ""));
         result.error_msg = "[READ_FITS] AIO 函数指针获取失败";
         result.exit_code = AstroCsExitCode::GENERIC_ERROR;
         return false;
@@ -2951,9 +3233,22 @@ bool Orchestrator::run_stage_read_fits(TaskResult& result) {
     int width = fn_get_width(image);
     int height = fn_get_height(image);
     int channels = fn_get_channels(image);
-    float* pixels = fn_get_pixels(image);
+    // 双精度 ABI: 根据 config_.precision (与 PrecisionContext 一致) 选择像素数据源
+    // FP64 模式: pixels_f64 = data_f64 (double, 不降级), 创建 FLOAT64 data 块
+    // FP32 模式: pixels = data (float, 向后兼容), 创建 FLOAT32 data 块
+    bool use_fp64 = (config_.precision == PrecisionMode::FP64);
+    float* pixels = nullptr;
+    double* pixels_f64 = nullptr;
+    uint8_t dtype = 0;
+    if (fn_get_dtype) dtype = fn_get_dtype(image);
+    if (use_fp64) {
+        pixels_f64 = fn_get_pixels_f64(image);
+    } else {
+        pixels = fn_get_pixels(image);
+    }
     LOG_INFO("orchestrator", "[READ_FITS] 图像尺寸: " + std::to_string(width) + "x"
-             + std::to_string(height) + " channels=" + std::to_string(channels));
+             + std::to_string(height) + " channels=" + std::to_string(channels)
+             + " dtype=" + std::to_string(dtype) + " mode=" + (use_fp64 ? "FP64" : "FP32"));
 
     // B4 修复: Stage1 只接受单色输入, 多通道硬报错 (禁止静默取 channel 0)
     if (channels != 1) {
@@ -2966,20 +3261,31 @@ bool Orchestrator::run_stage_read_fits(TaskResult& result) {
         return false;
     }
 
-    if (width <= 0 || height <= 0 || pixels == nullptr) {
-        LOG_ERROR("orchestrator", "[READ_FITS] 像素数据无效");
+    // 像素指针校验: FP64 模式检查 pixels_f64, FP32 模式检查 pixels
+    if (width <= 0 || height <= 0 ||
+        (use_fp64 ? (pixels_f64 == nullptr) : (pixels == nullptr))) {
+        LOG_ERROR("orchestrator", "[READ_FITS] 像素数据无效"
+                  + std::string(use_fp64 ? " (FP64: data_f64 为空)" : " (FP32: data 为空)"));
         result.error_msg = "[READ_FITS] 像素数据无效";
         result.exit_code = AstroCsExitCode::FILE_IO_ERROR;
         fn_free(image);
         return false;
     }
 
-    // 添加 data 块 (FLOAT32 [H,W], 拷贝)
+    // 添加 data 块 (按精度模式选择 FLOAT32 / FLOAT64, 拷贝)
     // P03-003: data 是必需块, 写入失败必须返回非零 (退出码 3)
+    // 约束: FP64 模式下 data 块必须是 FLOAT64 (不是 FLOAT32 降级)
     int dims[2] = {height, width};
-    int ret = fn_add_block(frame_, "data", AIO_BLOCK_FLOAT32,
+    int ret;
+    if (use_fp64) {
+        ret = fn_add_block(frame_, "data", AIO_BLOCK_FLOAT64,
+                           pixels_f64, static_cast<int64_t>(width) * height,
+                           dims, 2, "校准前 Light 像素 (FP64, 无降级)");
+    } else {
+        ret = fn_add_block(frame_, "data", AIO_BLOCK_FLOAT32,
                            pixels, static_cast<int64_t>(width) * height,
                            dims, 2, "校准前 Light 像素");
+    }
     if (ret != 0) {
         LOG_ERROR("orchestrator", "[READ_FITS] 添加 data 块失败: ret=" + std::to_string(ret));
         result.error_msg = "[READ_FITS] 添加 data 块失败";
@@ -3054,7 +3360,12 @@ bool Orchestrator::run_stage_read_fits(TaskResult& result) {
 // 旧版 snr_estimate 输出稠密 SNR 图写 "snr" 块, 但 drizzle 阶段只识别 "snr_model" 块,
 // 导致 SNR²加权链路断裂。改为稀疏控制点随 drizzle 一起转球面坐标落盘 .hiss
 bool Orchestrator::run_stage_snr(TaskResult& result) {
-    LOG_INFO("orchestrator", "[SNR] 开始");
+    // R10: snr_extract_model 仅依赖 PSF (double*) 参数, 与图像精度模式无关
+    //      (SNR 控制点为稀疏采样值, 非累加量, float32 足够; HISS SNR 子块格式已冻结为 float32)
+    //      此处仅记录精度模式供日志追踪, 不做 f32/f64 分发
+    LOG_INFO("orchestrator", "[SNR] 开始 (precision="
+             + std::string(config_.precision == PrecisionMode::FP64 ? "FP64" : "FP32")
+             + ", snr_extract_model 精度无关)");
 
     // P03-003: SNR 是可选 stage (drizzle 不强依赖 snr_model 块), 允许降级
     // 但降级必须记录到 photo_stats/SNR_STATUS, 禁止静默跳过

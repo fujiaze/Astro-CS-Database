@@ -102,6 +102,10 @@ AIO_EXPORT AIOImageMetadata aio_read_metadata(const char *path);
 AIO_EXPORT int aio_write_fits(const AIOImageData *image, const char *path);
 
 AIO_EXPORT float *aio_get_pixel_data(const AIOImageData *image);
+// 双精度 ABI: 获取 FP64 像素数据 (FP64 模式下返回 data_f64, FP32 模式返回 nullptr)
+AIO_EXPORT double *aio_get_pixel_data_f64(const AIOImageData *image);
+// 双精度 ABI: 获取 dtype (0=FP32, 1=FP64, 与 AstroScalarType 一致)
+AIO_EXPORT uint8_t aio_get_dtype(const AIOImageData *image);
 AIO_EXPORT int aio_get_width(const AIOImageData *image);
 AIO_EXPORT int aio_get_height(const AIOImageData *image);
 AIO_EXPORT int aio_get_channels(const AIOImageData *image);

@@ -102,6 +102,51 @@ AC_API int ac_correct_frame(
     int method, int max_structure_size,
     int* out_hot, int* out_cold);
 
+/* ========== 双精度 ABI (FP64) ==========
+ *
+ * 双精度 ABI 改造 (R10): FP64 模式下全链路使用 double, 不降级到 float32。
+ *   - ac_calibrate_frame_f64: 像素级算术 (light-bias-K*(dark-bias))/flat 在 double 上运行,
+ *     不降级 (精度关键路径)。
+ *   - ac_generate_master_bias_f64 / dark_f64 / flat_f64 / ac_correct_frame_f64:
+ *     统计/mask 操作, 内部将 double 输入转 float 调用 f32 实现, 输出转回 double。
+ *     (这些函数用于 master 帧预生成与坏点修复, orchestrator 的 run_stage_calibrate
+ *      不调用它们, 因此不影响 FP64 全链路精度。)
+ * 向后兼容: 原有 float32 API 保留不变。
+ */
+
+AC_API int ac_generate_master_bias_f64(
+    const double* stack, int n_frames, int width, int height,
+    double* out,
+    double sigma_low, double sigma_high, int max_iterations,
+    int combine);
+
+AC_API int ac_generate_master_dark_f64(
+    const double* stack, int n_frames, int width, int height,
+    double* out,
+    double sigma_low, double sigma_high, int max_iterations,
+    int combine);
+
+AC_API int ac_generate_master_flat_f64(
+    const double* flat_stack, int n_frames, int width, int height,
+    const double* master_bias,
+    double* out,
+    double sigma_low, double sigma_high, int max_iterations);
+
+AC_API int ac_calibrate_frame_f64(
+    const double* light, int width, int height,
+    const double* master_dark, const double* master_flat, const double* master_bias,
+    double* out,
+    int dark_optimization, double dark_scale_factor,
+    double* actual_k);
+
+AC_API int ac_correct_frame_f64(
+    const double* data, int width, int height,
+    const double* master_dark, const double* master_bias,
+    double* out,
+    double hot_sigma, double cold_sigma,
+    int method, int max_structure_size,
+    int* out_hot, int* out_cold);
+
 /* ========== 工具 ========== */
 
 /* 设置OpenMP线程数 */

@@ -16,7 +16,12 @@ static AIOImageData *alloc_image_data() {
     AIOImageData *img = (AIOImageData *)calloc(1, sizeof(AIOImageData));
     if (!img) {
         aio_log(AIO_LOG_ERROR, "API", "Failed to allocate AIOImageData");
+        return nullptr;
     }
+    // 显式初始化双精度 ABI 字段 (calloc 已清零, 此处显式赋值以明示意图形与防御性编程)
+    img->data = nullptr;
+    img->data_f64 = nullptr;
+    img->dtype = 0;  // 默认 FP32 (与 AstroScalarType::FP32 一致)
     return img;
 }
 
@@ -134,6 +139,18 @@ AIO_EXPORT float *aio_get_pixel_data(const AIOImageData *image) {
     return image->data;
 }
 
+// 双精度 ABI: 获取 FP64 像素数据 (FP64 模式下 data_f64 非空, FP32 模式返回 nullptr)
+AIO_EXPORT double *aio_get_pixel_data_f64(const AIOImageData *image) {
+    if (!image) return nullptr;
+    return image->data_f64;
+}
+
+// 双精度 ABI: 获取 dtype (0=FP32, 1=FP64, 与 AstroScalarType 一致)
+AIO_EXPORT uint8_t aio_get_dtype(const AIOImageData *image) {
+    if (!image) return 0;
+    return image->dtype;
+}
+
 AIO_EXPORT int aio_get_width(const AIOImageData *image) {
     if (!image) return 0;
     return image->width;
@@ -206,7 +223,9 @@ AIO_EXPORT double aio_wcs_rotation_deg(const AIOWCSKeywords *wcs) {
 
 AIO_EXPORT void aio_free_image_data(AIOImageData *image) {
     if (!image) return;
+    // 双精度 ABI: 同时释放 data 与 data_f64 (二者互斥, 但均需检查)
     if (image->data) free(image->data);
+    if (image->data_f64) free(image->data_f64);
     if (image->keywords) free(image->keywords);
     free(image);
 }

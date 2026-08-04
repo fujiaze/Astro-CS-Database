@@ -1,6 +1,7 @@
 #include "aio_fits.h"
 #include "aio_log.h"
 #include "aio_util.h"
+#include "precision_context.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -258,6 +259,85 @@ static float *convert_to_float32(const uint8_t *raw, size_t n_pixels, int bitpix
     return out;
 }
 
+// ============================================================================
+// convert_to_float64 - 将原始像素转换为 double 数组 (FP64 模式)
+// 与 convert_to_float32 对应, 但输出 double, 不损失精度:
+//   - BITPIX=-64 (double): 直接拷贝, 零精度损失
+//   - BITPIX=-32 (float) : float -> double 提升, 不损失精度
+//   - 整数类型           : 整数 -> double, 不损失精度 (在 double 表示范围内)
+// 返回 malloc 分配的 double 数组 (调用方负责 free), 失败返回 nullptr
+// ============================================================================
+static double *convert_to_float64(const uint8_t *raw, size_t n_pixels, int bitpix) {
+    double *out = (double *)malloc(n_pixels * sizeof(double));
+    if (!out) return nullptr;
+
+    int do_swap = needs_swap();
+
+    switch (bitpix) {
+    case 8:
+        for (size_t i = 0; i < n_pixels; i++)
+            out[i] = (double)raw[i];
+        break;
+
+    case 16: {
+        const int16_t *src = (const int16_t *)raw;
+        for (size_t i = 0; i < n_pixels; i++) {
+            int16_t v = src[i];
+            if (do_swap) swap_bytes_16(&v);
+            out[i] = (double)v;
+        }
+        break;
+    }
+
+    case 32: {
+        const int32_t *src = (const int32_t *)raw;
+        for (size_t i = 0; i < n_pixels; i++) {
+            int32_t v = src[i];
+            if (do_swap) swap_bytes_32(&v);
+            out[i] = (double)v;
+        }
+        break;
+    }
+
+    case -32: {
+        const float *src = (const float *)raw;
+        for (size_t i = 0; i < n_pixels; i++) {
+            float v = src[i];
+            if (do_swap) swap_bytes_32(&v);
+            out[i] = (double)v;
+        }
+        break;
+    }
+
+    case -64: {
+        const double *src = (const double *)raw;
+        for (size_t i = 0; i < n_pixels; i++) {
+            double v = src[i];
+            if (do_swap) swap_bytes_64(&v);
+            out[i] = v;  // double 直接拷贝, 零精度损失
+        }
+        break;
+    }
+
+    case 20: {
+        const uint16_t *src = (const uint16_t *)raw;
+        for (size_t i = 0; i < n_pixels; i++) {
+            uint16_t v = src[i];
+            if (do_swap) swap_bytes_16(&v);
+            out[i] = (double)v;
+        }
+        break;
+    }
+
+    default:
+        aio_log(AIO_LOG_ERROR, "FITS", "Unsupported BITPIX: %d", bitpix);
+        free(out);
+        return nullptr;
+    }
+
+    return out;
+}
+
 static void build_metadata(const FITSHeader &hdr, AIOImageMetadata &meta) {
     auto find_kw = [&](const char *name) -> const char* {
         for (auto &kw : hdr.keywords) {
@@ -428,32 +508,71 @@ int fits_read_file(const char *path, AIOImageData *out) {
         aio_log(AIO_LOG_WARN, "FITS", "Data read incomplete: %zu/%zu bytes", nread, hdr.data_size);
     }
 
-    float *pixel_data = convert_to_float32(raw.data(), n_pixels, hdr.bitpix);
-    if (!pixel_data) {
-        aio_log(AIO_LOG_ERROR, "FITS", "Pixel conversion failed");
-        return -1;
-    }
+    // 双精度 ABI: 根据 PrecisionContext 决定读取到 data (FP32) 还是 data_f64 (FP64)
+    // FP64 模式下, double 输入直接存储到 data_f64, 不再降级到 float32
+    // FP32 模式保持历史行为 (向后兼容)
+    bool is_fp64 = PrecisionContext::instance().is_fp64();
 
-    if (hdr.bscale != 1.0 || hdr.bzero != 0.0) {
-        aio_log(AIO_LOG_INFO, "FITS", "Applying BSCALE=%.6f BZERO=%.6f", hdr.bscale, hdr.bzero);
-        for (size_t i = 0; i < n_pixels; i++) {
-            pixel_data[i] = (float)(hdr.bscale * (double)pixel_data[i] + hdr.bzero);
+    if (is_fp64) {
+        double *pixel_data_f64 = convert_to_float64(raw.data(), n_pixels, hdr.bitpix);
+        if (!pixel_data_f64) {
+            aio_log(AIO_LOG_ERROR, "FITS", "Pixel conversion (FP64) failed");
+            return -1;
         }
-    }
 
-    if (c > 1) {
-        float *gray = (float *)malloc((size_t)w * h * sizeof(float));
-        if (gray) {
-            for (int y = 0; y < h; y++)
-                for (int x = 0; x < w; x++)
-                    gray[y * w + x] = pixel_data[0 * w * h + y * w + x];
-            free(pixel_data);
-            pixel_data = gray;
-            c = 1;
+        if (hdr.bscale != 1.0 || hdr.bzero != 0.0) {
+            aio_log(AIO_LOG_INFO, "FITS", "Applying BSCALE=%.6f BZERO=%.6f (FP64)", hdr.bscale, hdr.bzero);
+            for (size_t i = 0; i < n_pixels; i++) {
+                pixel_data_f64[i] = hdr.bscale * pixel_data_f64[i] + hdr.bzero;
+            }
         }
-    }
 
-    out->data = pixel_data;
+        if (c > 1) {
+            double *gray = (double *)malloc((size_t)w * h * sizeof(double));
+            if (gray) {
+                for (int y = 0; y < h; y++)
+                    for (int x = 0; x < w; x++)
+                        gray[y * w + x] = pixel_data_f64[0 * w * h + y * w + x];
+                free(pixel_data_f64);
+                pixel_data_f64 = gray;
+                c = 1;
+            }
+        }
+
+        out->data = nullptr;
+        out->data_f64 = pixel_data_f64;
+        out->dtype = 1;  // FP64 (与 AstroScalarType::FP64 一致)
+        aio_log(AIO_LOG_INFO, "FITS", "FP64 mode: pixels stored in data_f64 (no float32 downgrade)");
+    } else {
+        float *pixel_data = convert_to_float32(raw.data(), n_pixels, hdr.bitpix);
+        if (!pixel_data) {
+            aio_log(AIO_LOG_ERROR, "FITS", "Pixel conversion failed");
+            return -1;
+        }
+
+        if (hdr.bscale != 1.0 || hdr.bzero != 0.0) {
+            aio_log(AIO_LOG_INFO, "FITS", "Applying BSCALE=%.6f BZERO=%.6f", hdr.bscale, hdr.bzero);
+            for (size_t i = 0; i < n_pixels; i++) {
+                pixel_data[i] = (float)(hdr.bscale * (double)pixel_data[i] + hdr.bzero);
+            }
+        }
+
+        if (c > 1) {
+            float *gray = (float *)malloc((size_t)w * h * sizeof(float));
+            if (gray) {
+                for (int y = 0; y < h; y++)
+                    for (int x = 0; x < w; x++)
+                        gray[y * w + x] = pixel_data[0 * w * h + y * w + x];
+                free(pixel_data);
+                pixel_data = gray;
+                c = 1;
+            }
+        }
+
+        out->data = pixel_data;
+        out->data_f64 = nullptr;
+        out->dtype = 0;  // FP32 (与 AstroScalarType::FP32 一致)
+    }
     out->width = w;
     out->height = h;
     out->channels = c;

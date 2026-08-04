@@ -27,6 +27,7 @@
 #include "orchestrator.h"
 #include "cli_command.h"  // for p04004_register_signal_handler / output_jsonl_event_ex
 #include "logger.h"
+#include "precision_context.h"  // PrecisionContext 全局精度上下文 (双精度 ABI)
 
 #include <filesystem>
 
@@ -138,6 +139,17 @@ int main(int argc, char* argv[]) {
         if (parse_ret != 0) {
             fprintf(stderr, "Config error: %s\n", err.c_str());
             return AstroCsExitCode::CONFIG_ERROR;
+        }
+
+        // 1.5 接入 PrecisionContext (双精度 ABI):
+        // 由 orchestrator 在启动阶段根据配置设置一次, 所有模块共享.
+        // AIO (FITS/XISF 读取) 在此之后查询 PrecisionContext 决定 data/data_f64.
+        if (config.precision == PrecisionMode::FP64) {
+            PrecisionContext::instance().set_scalar_type(AstroScalarType::FP64);
+            fprintf(stderr, "[main] PrecisionContext set to FP64 (float64, no downgrade)\n");
+        } else {
+            PrecisionContext::instance().set_scalar_type(AstroScalarType::FP32);
+            fprintf(stderr, "[main] PrecisionContext set to FP32 (default)\n");
         }
 
         // 2. 初始化日志 (日志目录取 config.output.log 的父目录)

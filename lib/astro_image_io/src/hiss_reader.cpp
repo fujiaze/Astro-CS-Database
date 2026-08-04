@@ -1533,6 +1533,147 @@ int HissReader::query_pixel(double ra, double dec,
 }
 
 // ----------------------------------------------------------------------------
+// query_pixel_f64(): 查询某位置的 signal (FP64) / support
+// R10 双精度 ABI: 仅适用于 FP64 模式文件 (signal_dtype=1)
+//   逻辑与 query_pixel 一致, 但调用 read_tile_signal_f64 / read_tile_support
+//   禁止静默转换: FP32 文件必须用 query_pixel
+// ----------------------------------------------------------------------------
+int HissReader::query_pixel_f64(double ra, double dec,
+                                double* signal, uint8_t* support) const {
+    const Impl& impl = *pimpl_;
+
+    // R10: FP32 文件禁止用 float64 接口读取 (禁止静默转换)
+    if (impl.metadata.signal_dtype == 0) {
+        fprintf(stderr,
+                "[hiss][reader] query_pixel_f64 失败: 文件为 FP32 模式 (signal_dtype=0), "
+                "请使用 query_pixel 读取 float32 signal (禁止静默转换)\n");
+        return HISS_ERR_UNSUPPORTED;
+    }
+
+    if (impl.grid.nside == 0 || impl.grid.tile_nside == 0) {
+        fprintf(stderr, "[hiss][reader] query_pixel_f64: 网格未初始化\n");
+        return -1;
+    }
+
+    // 1. ra/dec → 全局 NESTED ipix (在 NSIDE 级别)
+    uint64_t global_ipix = radec_to_nested_ipix(ra, dec, impl.grid.nside);
+
+    // 2. 计算 parent_ipix 和 local_ipix
+    int shift = 2 * (log2i(impl.grid.nside) - log2i(impl.grid.tile_nside));
+    if (shift < 0) shift = 0;
+    uint64_t parent_ipix = global_ipix >> shift;
+    uint64_t local_ipix  = global_ipix & ((1ULL << shift) - 1);
+
+    // 3. 定位 Tile
+    size_t idx;
+    if (impl.find_tile(parent_ipix, &idx) != 0) {
+        // 该位置不在任何 Tile 中 (无覆盖)
+        if (signal)  *signal = 0.0;
+        if (support) *support = 0;
+        return 0;
+    }
+    const HissTile& tile = impl.tiles[idx];
+
+    // 4. 读取 signal (FP64) / support
+    std::vector<double> sig_arr;
+    std::vector<uint8_t> sup_arr;
+    int ret = read_tile_signal_f64(parent_ipix, sig_arr);
+    if (ret != 0) return ret;
+    ret = read_tile_support(parent_ipix, sup_arr);
+    if (ret != 0) return ret;
+
+    // 5. 根据 occupancy 模式定位像素 (逻辑与 query_pixel 一致)
+    if (tile.occ_mode == OccupancyMode::FULL) {
+        if (local_ipix < sig_arr.size()) {
+            if (signal)  *signal = sig_arr[(size_t)local_ipix];
+        } else {
+            if (signal)  *signal = 0.0;
+        }
+        if (local_ipix < sup_arr.size()) {
+            if (support) *support = sup_arr[(size_t)local_ipix];
+        } else {
+            if (support) *support = 0;
+        }
+    } else if (tile.occ_mode == OccupancyMode::BITMAP) {
+        const HissSubblockDescriptor* occ_desc = Impl::find_subblock(tile, SubblockType::OCCUPANCY);
+        if (!occ_desc) {
+            if (signal)  *signal = 0.0;
+            if (support) *support = 0;
+            return 0;
+        }
+        std::vector<uint8_t> occ_raw;
+        ret = impl.read_subblock(*occ_desc, occ_raw);
+        if (ret != 0) return ret;
+
+        size_t byte_idx = (size_t)(local_ipix / 8);
+        size_t bit_idx  = (size_t)(local_ipix % 8);
+        if (byte_idx >= occ_raw.size()) {
+            if (signal)  *signal = 0.0;
+            if (support) *support = 0;
+            return 0;
+        }
+        bool valid = (occ_raw[byte_idx] >> bit_idx) & 1;
+        if (!valid) {
+            if (signal)  *signal = 0.0;
+            if (support) *support = 0;
+            return 0;
+        }
+        if (local_ipix < sig_arr.size()) {
+            if (signal)  *signal = sig_arr[(size_t)local_ipix];
+        } else {
+            if (signal)  *signal = 0.0;
+        }
+        if (local_ipix < sup_arr.size()) {
+            if (support) *support = sup_arr[(size_t)local_ipix];
+        } else {
+            if (support) *support = 0;
+        }
+    } else if (tile.occ_mode == OccupancyMode::SPARSE_LIST) {
+        const HissSubblockDescriptor* occ_desc = Impl::find_subblock(tile, SubblockType::OCCUPANCY);
+        if (!occ_desc) {
+            if (signal)  *signal = 0.0;
+            if (support) *support = 0;
+            return 0;
+        }
+        std::vector<uint8_t> occ_raw;
+        ret = impl.read_subblock(*occ_desc, occ_raw, sizeof(uint32_t));
+        if (ret != 0) return ret;
+
+        size_t n_sparse = occ_raw.size() / sizeof(uint32_t);
+        size_t lo = 0, hi = n_sparse;
+        while (lo < hi) {
+            size_t mid = (lo + hi) / 2;
+            uint32_t v = read_u32_le(occ_raw.data() + mid * sizeof(uint32_t));
+            if (v < (uint32_t)local_ipix) lo = mid + 1;
+            else hi = mid;
+        }
+        if (lo < n_sparse) {
+            uint32_t v = read_u32_le(occ_raw.data() + lo * sizeof(uint32_t));
+            if (v == (uint32_t)local_ipix) {
+                if (local_ipix < sig_arr.size()) {
+                    if (signal)  *signal = sig_arr[(size_t)local_ipix];
+                } else {
+                    if (signal)  *signal = 0.0;
+                }
+                if (local_ipix < sup_arr.size()) {
+                    if (support) *support = sup_arr[(size_t)local_ipix];
+                } else {
+                    if (support) *support = 0;
+                }
+                return 0;
+            }
+        }
+        if (signal)  *signal = 0.0;
+        if (support) *support = 0;
+    } else {
+        if (signal)  *signal = 0.0;
+        if (support) *support = 0;
+    }
+
+    return 0;
+}
+
+// ----------------------------------------------------------------------------
 // close(): 关闭文件, 清理内存
 // ----------------------------------------------------------------------------
 void HissReader::close() {

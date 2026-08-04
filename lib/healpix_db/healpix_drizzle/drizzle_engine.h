@@ -71,8 +71,8 @@ public:
     DrizzleEngine();
     ~DrizzleEngine();
 
-    // 执行 Drizzle: FITS 图像 → HEALPix 累加器
-    // img: 输入 FITS 图像 (含 WCS)
+    // 执行 Drizzle: FITS 图像 → HEALPix 累加器 (FP32 路径, 读 img.pixels)
+    // img: 输入 FITS 图像 (含 WCS, 像素在 img.pixels float32)
     // config: Drizzle 配置
     // snrData: 可选 SNR 图 (W*H float, nullptr 则用 1.0)
     // weightData: 可选权重图 (W*H float, nullptr 则用 1.0)
@@ -83,6 +83,17 @@ public:
                  const float* snrData, const float* weightData,
                  std::unordered_map<uint64_t, PixelAccumulator>& accumulators,
                  DrizzleStats& stats, std::string& error_msg);
+
+    // 执行 Drizzle: FITS 图像 → HEALPix 累加器 (FP64 路径, 读 img.pixels_f64)
+    // 双精度 ABI: FP64 模式下从 img.pixels_f64 (double) 读取像素值, 不降级到 float32
+    // 其余逻辑 (WCS / 球面几何 / 累加器) 与 drizzle 完全一致, 仅像素值类型不同
+    // img: 输入 FITS 图像 (含 WCS, 像素在 img.pixels_f64 float64)
+    // config: Drizzle 配置 (precision_mode 应为 1=FP64)
+    // snrData / weightData: 仍为 float (SNR 重建与权重掩膜, 不需要 FP64)
+    bool drizzle_f64(const FitsImage& img, const DrizzleConfig& config,
+                     const float* snrData, const float* weightData,
+                     std::unordered_map<uint64_t, PixelAccumulator>& accumulators,
+                     DrizzleStats& stats, std::string& error_msg);
 
     // 将累加器归一化并写入 .hiss 文件
     // accumulators: Drizzle 输出的累加器
@@ -103,7 +114,7 @@ public:
                   std::string& error_msg);
 
 private:
-    // 处理单个像素的 Drizzle (6步流水线)
+    // 处理单个像素的 Drizzle (6步流水线) — FP32 路径
     void processPixel(
         double px, double py,           // 像素中心 (0-based)
         float pixelValue,                // 像素值
@@ -113,6 +124,20 @@ private:
         const DrizzleConfig& config,     // 配置
         const healpix::HealpixCore& hp,  // HEALPix 核心
         std::unordered_map<uint64_t, PixelAccumulator>& accum  // 累加器
+    ) const;
+
+    // 处理单个像素的 Drizzle (6步流水线) — FP64 路径
+    // 双精度 ABI: pixelValue 为 double, 直接累加到 PixelAccumulator.sumFlux (double)
+    // snrValue / weightValue 仍为 float (SNR 重建与权重掩膜不需要 FP64)
+    void processPixel_f64(
+        double px, double py,
+        double pixelValue,
+        float snrValue,
+        float weightValue,
+        const WcsSip& wcs,
+        const DrizzleConfig& config,
+        const healpix::HealpixCore& hp,
+        std::unordered_map<uint64_t, PixelAccumulator>& accum
     ) const;
 
     // 获取 HEALPix 像素的四角球面坐标

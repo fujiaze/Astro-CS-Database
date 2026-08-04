@@ -105,6 +105,80 @@ DPSF_EXPORT int dpsf_fit_batch_f32(
     int *out_n_valid
 );
 
+// ============================================================================
+// double PSF 拟合 API (双精度 ABI, R10 新增)
+//
+// 双精度 ABI 改造: FP64 模式下全链路使用 double, 不降级到 float32。
+// 与 dpsf_fit_batch_f32 逻辑一致, 仅 image 数据类型从 float 改为 double。
+// 内部 moffat4_fit_d 直接在 double 上采样像素, 拟合使用 double (不降级)。
+//
+// 输入:
+//   image         - float64 图像数据 [height*width], 行主序 (row-major)
+//   width         - 图像宽度 (像素)
+//   height        - 图像高度 (像素)
+//   detections    - star_det v1 检测结果, FLOAT64 [N,6]
+//   n_detections  - 检测到的星点数 N
+//   params        - 拟合参数 (fitRadius/maxIter/tolerance), 可为 NULL 使用默认值
+//
+// 输出:
+//   out_psf_params - PSF 参数缓冲区, 调用者分配, 大小 = N * 9 * sizeof(double)
+//                    失败的拟合所有字段置为 NaN。
+//   out_n_valid    - 成功拟合的星点数 (status == DPSF_FIT_OK)
+//
+// 返回值:
+//   0  - 成功完成批量拟合 (不要求每颗星都成功, 看 out_n_valid)
+//   -1 - 参数错误 (空指针/尺寸非法)
+// ============================================================================
+DPSF_EXPORT int dpsf_fit_batch_f64(
+    const double *image,
+    int width,
+    int height,
+    const double *detections,
+    int n_detections,
+    const DPSFFitParams *params,
+    double *out_psf_params,
+    int *out_n_valid
+);
+
+// ============================================================================
+// double PSF 批量拟合 API (返回完整 DPSFFitResult 结构体, 双精度 ABI R10 新增)
+//
+// 与 dpsf_fit_batch (uint16) 接口形态一致: 接收独立 cx/cy 数组, 返回
+// DPSFFitResult* (含全部字段: status/B/A/cx/cy/sx/sy/theta/fwhm_x/fwhm_y/
+// mad/flux/eccentricity), 调用者用 dpsf_free_results 释放。
+//
+// 用途: orchestrator FP64 路径。FP64 模式下 data 块为 FLOAT64, 直接传入 double
+// 图像 (不降级到 uint16/float32), 内部 moffat4_fit_d 在 double 上裁剪 patch
+// 并拟合。返回完整结构体使 orchestrator 能写出与 FP32 路径完全一致的 psf 块
+// 布局 (status,B,flux,cx,cy,fwhm,A,mad,eccentricity), 不破坏下游 SNR/PHOTOMETRIC。
+//
+// 输入:
+//   image    - float64 图像数据 [height*width], 行主序 (row-major)
+//   width    - 图像宽度 (像素)
+//   height   - 图像高度 (像素)
+//   cx_array - 各星点中心 x 坐标 (图像坐标系)
+//   cy_array - 各星点中心 y 坐标 (图像坐标系)
+//   count    - 星点数 N
+//   params   - 拟合参数 (fitRadius/maxIter/tolerance), 可为 NULL 使用默认值
+//
+// 输出:
+//   out_results - DPSFFitResult 数组 (调用者用 dpsf_free_results 释放)
+//
+// 返回值:
+//   0  - 成功完成批量拟合 (不要求每颗星都成功, 看 results[i].status)
+//   -1 - 参数错误 (空指针/尺寸非法)
+// ============================================================================
+DPSF_EXPORT int dpsf_fit_batch_d(
+    const double *image,
+    int width,
+    int height,
+    const double *cx_array,
+    const double *cy_array,
+    int count,
+    const DPSFFitParams *params,
+    DPSFFitResult **out_results
+);
+
 #ifdef __cplusplus
 }
 #endif
