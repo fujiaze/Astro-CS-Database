@@ -37,7 +37,6 @@ make
 
 - `lib/` — 项目源码（C++ 模块，唯一修改代码处）
 - `工程控制/` — 工程规范、任务清单、证据
-- `tools/` — 工具集（astro_toolkit.py）
 - `testdata/` — 只读原始数据（710 帧 + 校准母版）
 - `run/` — 唯一运行输出目录（日志、校准、Drizzle、HISS）
 - `AstroCS.wiki/` — 本地 Wiki 克隆

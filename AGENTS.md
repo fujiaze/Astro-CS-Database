@@ -5,7 +5,6 @@
 Astro CS Normalization Database/
 ├── lib/                    # 项目源码 (C++/Python/Go) — 唯一修改代码处
 ├── 工程控制/                # 权威工程规范、任务清单、证据
-├── tools/                  # 工具集 (astro_toolkit.py 等，见 §5)
 ├── testdata/                # 测试数据 + index.json 索引（只读，禁止写入运行产物）
 ├── run/                     # 运行目录（校准/Drizzle/HISS/日志/截图统一写此，gitignored）
 ├── docs/                    # 本地参考文档 [待删 — Wiki 确定后删除]
@@ -161,5 +160,4 @@ $env:Path = "C:\msys64\mingw64\bin;$env:Path"
 g++ --version          # 16.1.0
 make --version         # 4.4.1
 .\lib\orchestrator\cpp\orchestrator.exe --version   # AstroCS Orchestrator 2.0
-python tools\astro_toolkit.py --help                # 用默认 python (3.10.11)
 ```
