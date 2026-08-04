@@ -81,6 +81,27 @@ typedef struct {
 } SnrWcsParams;
 
 // ============================================================================
+// SNR-001: SNR 丢弃原因枚举 (SNR 不得静默丢点)
+// 每个未写入 HISS 的 SNR 控制点必须有唯一原因分类。
+// 值 0=未丢弃(已写入); 1-127=SNR 阶段丢弃(snr_extract_model 内部过滤);
+// 128-254=Drizzle 阶段丢弃(写入 HISS 时); 255=其他未知原因。
+// ============================================================================
+typedef enum {
+    SNR_DROP_NOT_DROPPED      = 0,    // 已写入 (有效控制点)
+    // SNR 阶段丢弃 (snr_extract_model 内部过滤)
+    SNR_DROP_OUTSIDE_TILE     = 1,    // 点不在任何 Tile 范围内 (drizzle 阶段判断)
+    SNR_DROP_NO_OVERLAP       = 2,    // 点所在 Tile 无 signal 覆盖 (drizzle 阶段判断)
+    SNR_DROP_INVALID_PSF      = 3,    // PSF 拟合失败: status != 0 或 mad <= 0
+    SNR_DROP_INVALID_WCS      = 4,    // WCS 转换失败
+    SNR_DROP_ZERO_FLUX        = 5,    // 通量为零 / 振幅不足 (A <= B)
+    SNR_DROP_DUPLICATE_IPIX   = 6,    // 重复 local_ipix (保留首次, drizzle 阶段)
+    SNR_DROP_OTHER            = 255   // 其他未知原因
+} SnrDropReason;
+
+// SNR 丢弃原因计数数组大小 (覆盖 0-255 全部枚举值)
+#define SNR_DROP_REASON_COUNT 256
+
+// ============================================================================
 // SNR 控制点 (球面坐标 + snr_psf 值)
 // ============================================================================
 typedef struct {

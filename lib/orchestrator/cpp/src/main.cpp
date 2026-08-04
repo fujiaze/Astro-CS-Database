@@ -6,6 +6,7 @@
 //   - --version: 打印版本
 //   - --print-schema: 打印 stage1.schema.json
 //   - --validate <json>: 仅验证 Schema, 不执行
+//   - --inspect <hiss>: 输出 HISS 文件 metadata (含 precision_mode/signal_dtype)
 //   - <stage1.json>: 解析配置 + Schema 验证 + 执行 stage1 流水线
 //
 // 设计说明:
@@ -30,6 +31,7 @@
 #include "precision_context.h"  // PrecisionContext 全局精度上下文 (双精度 ABI)
 
 #include <filesystem>
+#include <nlohmann/json.hpp>  // --inspect: 解析 HISS metadata JSON
 
 // ASTROCS_GIT_COMMIT: 编译时可由 -D 传入, 否则使用占位符
 #ifndef ASTROCS_GIT_COMMIT
@@ -45,6 +47,7 @@ static void print_usage() {
     printf("       orchestrator.exe --version\n");
     printf("       orchestrator.exe --print-schema\n");
     printf("       orchestrator.exe --validate <stage1.json>\n");
+    printf("       orchestrator.exe --inspect <file.hiss>\n");
 }
 
 static void print_help() {
@@ -62,11 +65,121 @@ static void print_help() {
     printf("  --version             Show version information\n");
     printf("  --print-schema        Print the stage1 JSON schema to stdout\n");
     printf("  --validate <json>     Validate a stage1 JSON file (exit 0=VALID, 1=INVALID)\n");
+    printf("  --inspect <hiss>      Inspect a HISS file (metadata, precision, tile info)\n");
 }
 
 static void print_version() {
     printf("AstroCS Orchestrator 2.0 (Phase1 JSON entry)\n");
     printf("git commit: %s\n", ASTROCS_GIT_COMMIT);
+}
+
+// ============================================================================
+// --inspect <hiss_file>: 输出 HISS 文件完整 metadata (HISS-002: 含 precision)
+// 非正式命令 (类似 --validate), 仅用于诊断/调试, 不在正式流水线中使用.
+// 加载 AIO DLL, 调用 aio_hiss_inspect, 输出 precision_mode/signal_dtype 等字段.
+// ============================================================================
+static int inspect_hiss_file(const std::string& hiss_path) {
+    namespace fs = std::filesystem;
+
+    if (!fs::exists(hiss_path)) {
+        fprintf(stderr, "Error: HISS file not found: %s\n", hiss_path.c_str());
+        return 1;
+    }
+
+    // 自动推导项目根目录 (与 Orchestrator::init_dlls 一致)
+    // orchestrator.exe 位于 <root>/lib/orchestrator/cpp/, 向上 4 级得到 <root>
+    std::string base_dir;
+#ifdef _WIN32
+    char exe_path[MAX_PATH] = {0};
+    if (GetModuleFileNameA(nullptr, exe_path, MAX_PATH) > 0) {
+        std::string ep(exe_path);
+        size_t pos = std::string::npos;
+        for (int i = 0; i < 4; ++i) {
+            pos = ep.find_last_of("\\/", pos == std::string::npos ? std::string::npos : pos - 1);
+            if (pos == std::string::npos) break;
+        }
+        if (pos != std::string::npos) {
+            base_dir = ep.substr(0, pos);
+        }
+    }
+#endif
+    if (base_dir.empty()) base_dir = ".";
+
+    // 加载 AIO DLL (astro_image_io.dll)
+    DllLoader loader;
+    if (!loader.load_module(ModuleId::AIO, base_dir)) {
+        fprintf(stderr, "Error: Failed to load AIO DLL from %s\n", base_dir.c_str());
+        fprintf(stderr, "  %s\n", loader.get_error(ModuleId::AIO).c_str());
+        return AstroCsExitCode::DLL_LOAD_FAILED;
+    }
+
+    // 获取 aio_hiss_inspect / aio_hio_free 函数指针
+    using InspectFn = int (*)(const char*, uint32_t*, uint32_t*, uint32_t*,
+                               uint32_t*, uint64_t*, uint64_t*, char**, uint64_t**);
+    using FreeFn = void (*)(void*);
+    auto fn_inspect = loader.get_function<InspectFn>(ModuleId::AIO, "aio_hiss_inspect");
+    auto fn_free = loader.get_function<FreeFn>(ModuleId::AIO, "aio_hio_free");
+
+    if (!fn_inspect || !fn_free) {
+        fprintf(stderr, "Error: AIO DLL does not export aio_hiss_inspect/aio_hio_free\n");
+        return AstroCsExitCode::GENERIC_ERROR;
+    }
+
+    uint32_t nside = 0, tile_nside = 0, depth = 0, n_leaf_per_tile = 0;
+    uint64_t n_tiles = 0, n_pix_total = 0;
+    char* meta_json = nullptr;
+    uint64_t* tile_ipix_list = nullptr;
+
+    int ret = fn_inspect(hiss_path.c_str(), &nside, &tile_nside,
+                          &depth, &n_leaf_per_tile, &n_tiles,
+                          &n_pix_total, &meta_json, &tile_ipix_list);
+    if (ret != 0) {
+        fprintf(stderr, "Error: aio_hiss_inspect failed (rc=%d): %s\n", ret, hiss_path.c_str());
+        return 1;
+    }
+
+    // 解析 metadata JSON 提取 precision_mode / signal_dtype (HISS-002)
+    uint8_t precision_mode = 0;
+    uint8_t signal_dtype = 0;
+    bool has_precision = false;
+    if (meta_json && meta_json[0] != '\0') {
+        try {
+            nlohmann::json j = nlohmann::json::parse(meta_json);
+            if (j.contains("precision_mode")) {
+                precision_mode = j["precision_mode"].get<uint8_t>();
+                has_precision = true;
+            }
+            if (j.contains("signal_dtype")) {
+                signal_dtype = j["signal_dtype"].get<uint8_t>();
+            }
+        } catch (...) {
+            // JSON 解析失败, 仅输出原始 JSON
+        }
+    }
+
+    // 输出完整 metadata
+    printf("=== HISS Inspect ===\n");
+    printf("file:            %s\n", hiss_path.c_str());
+    printf("nside:           %u\n", nside);
+    printf("tile_nside:      %u\n", tile_nside);
+    printf("depth:           %u\n", depth);
+    printf("n_leaf_per_tile: %u\n", n_leaf_per_tile);
+    printf("n_tiles:         %llu\n", (unsigned long long)n_tiles);
+    printf("n_pix_total:     %llu\n", (unsigned long long)n_pix_total);
+    printf("precision_mode:  %u (%s)\n", precision_mode,
+           has_precision ? (precision_mode == 1 ? "FP64" : "FP32") : "not set (default FP32)");
+    printf("signal_dtype:    %u (%s)\n", signal_dtype,
+           signal_dtype == 1 ? "float64" : "float32");
+    if (meta_json && meta_json[0] != '\0') {
+        printf("--- metadata JSON ---\n");
+        printf("%s\n", meta_json);
+    }
+
+    // 释放 inspect 分配的内存
+    if (meta_json) fn_free(meta_json);
+    if (tile_ipix_list) fn_free(tile_ipix_list);
+
+    return 0;
 }
 
 // ============================================================================
@@ -119,6 +232,16 @@ int main(int argc, char* argv[]) {
             printf("INVALID: %s\n", err.c_str());
             return 1;
         }
+    }
+
+    // --inspect <hiss_file> (HISS-002: 输出 precision_mode/signal_dtype 等完整 metadata)
+    if (arg1 == "--inspect") {
+        if (argc != 3) {
+            fprintf(stderr, "Error: --inspect requires a HISS file argument\n");
+            print_usage();
+            return AstroCsExitCode::CONFIG_ERROR;
+        }
+        return inspect_hiss_file(argv[2]);
     }
 
     // 以 -- 开头的未知选项

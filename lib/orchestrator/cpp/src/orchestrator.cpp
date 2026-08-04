@@ -2900,13 +2900,20 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
 
 // ============================================================================
 // stage 7: HISS_VERIFY - 验证 drizzle 输出的 .hiss 文件完整性
+// TEST-003/TEST-004: 全 Tile 遍历验证 (不再只检查前 10 个 Tile)
 // R10: 同时验证 metadata 中 precision_mode 与请求一致
 // 验证项:
 //   1. 文件可正常打开 (aio_hiss_inspect 返回 0)
 //   2. metadata 中 precision_mode 与请求一致 (若 metadata 包含该字段)
-//   3. 至少一个 Tile 可读取 (aio_hiss_read_tile_signal)
-//   4. signal 数据非全零
-//   5. support 数据非全零 (aio_hiss_read_tile_support)
+//   3. 全 Tile 遍历: 每个 Tile 必须通过以下验证
+//      a. required 子块 (SIGNAL + SUPPORT) — read_tile_* 找不到子块返回错误
+//      b. checksum — HissReader::read_subblock 内部校验
+//      c. occupancy 与 compact 长度一致 — HissReader 按 occ_mode 展开时验证
+//      d. dtype 与 metadata precision_mode 一致 — HissReader 拒绝静默转换
+//      e. signal 中不得有 NaN/Inf — 显式检查
+//   4. 至少一个 Tile 有非零 signal (汇总后检查)
+//   5. 任何 Tile 失败都硬失败 (返回 HISS_INVALID)
+//   6. 输出全 Tile 验证汇总 (n_tiles, n_passed, n_failed, n_signal_nonzero, n_support_nonzero)
 // ============================================================================
 bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
     LOG_INFO("orchestrator", "[HISS_VERIFY] 开始: " + current_output_path_);
@@ -3060,28 +3067,51 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
         }
     }
 
-    // 遍历 Tile (最多检查前 10 个), 找到第一个可读且 signal/support 非全零的 Tile
-    bool verified = false;
-    uint64_t tiles_to_check = (n_tiles < 10) ? n_tiles : 10;
-    for (uint64_t i = 0; i < tiles_to_check; ++i) {
+    // 3. 遍历全部 Tile 验证 (TEST-003/TEST-004: 不再只检查前 10 个)
+    // 每个 Tile 验证项 (HissReader 隐式验证 + 显式检查):
+    //   a. required 子块 (SIGNAL + SUPPORT) — read_tile_signal/support 找不到子块返回错误
+    //   b. checksum — read_subblock 内部校验, 不匹配返回 HISS_ERR_CHECKSUM
+    //   c. occupancy 与 compact 长度一致 — HissReader 按 occ_mode 展开时验证
+    //   d. dtype 与 metadata precision_mode 一致 — HissReader 拒绝静默转换 (FP32/FP64 互斥)
+    //   e. signal 中不得有 NaN/Inf — 显式检查
+    //   f. 至少一个 Tile 有非零 signal — 汇总后检查
+    uint64_t n_passed = 0, n_failed = 0;
+    uint64_t n_signal_nonzero = 0, n_support_nonzero = 0;
+    bool has_nonzero_signal = false;
+
+    for (uint64_t i = 0; i < n_tiles; ++i) {
         uint64_t parent_ipix = tile_ipix_list[i];
 
         // 读取 signal (根据精度模式选择 FP32 或 FP64)
-        bool has_nonzero_signal = false;
+        // 隐式验证: SIGNAL 子块存在 + checksum + occupancy 展开 + dtype 一致
         uint32_t n_signal = 0;
+        bool tile_signal_nonzero = false;
+        bool tile_has_naninf = false;
+
         if (is_fp64) {
             double* signal_f64 = nullptr;
             int sig_ret = fn_read_signal_f64(current_output_path_.c_str(), parent_ipix,
                                               &signal_f64, &n_signal);
             if (sig_ret != 0 || signal_f64 == nullptr || n_signal == 0) {
+                LOG_ERROR("orchestrator", "[HISS_VERIFY] Tile #" + std::to_string(i)
+                         + " (parent_ipix=" + std::to_string(parent_ipix)
+                         + ") signal 读取失败 (rc=" + std::to_string(sig_ret)
+                         + ") — 子块缺失/checksum/occupancy/dtype 验证失败");
                 if (signal_f64) fn_free(signal_f64);
-                continue;
+                if (meta_json) fn_free(meta_json);
+                if (tile_ipix_list) fn_free(tile_ipix_list);
+                result.error_msg = "[HISS_VERIFY] Tile #" + std::to_string(i)
+                                 + " (parent_ipix=" + std::to_string(parent_ipix)
+                                 + ") signal 读取失败 (子块/checksum/occupancy/dtype)";
+                result.exit_code = AstroCsExitCode::HISS_INVALID;
+                return false;
             }
             for (uint32_t j = 0; j < n_signal; ++j) {
-                if (signal_f64[j] != 0.0) {
-                    has_nonzero_signal = true;
+                if (std::isnan(signal_f64[j]) || std::isinf(signal_f64[j])) {
+                    tile_has_naninf = true;
                     break;
                 }
+                if (signal_f64[j] != 0.0) tile_signal_nonzero = true;
             }
             fn_free(signal_f64);
         } else {
@@ -3089,71 +3119,108 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
             int sig_ret = fn_read_signal(current_output_path_.c_str(), parent_ipix,
                                           &signal, &n_signal);
             if (sig_ret != 0 || signal == nullptr || n_signal == 0) {
+                LOG_ERROR("orchestrator", "[HISS_VERIFY] Tile #" + std::to_string(i)
+                         + " (parent_ipix=" + std::to_string(parent_ipix)
+                         + ") signal 读取失败 (rc=" + std::to_string(sig_ret)
+                         + ") — 子块缺失/checksum/occupancy/dtype 验证失败");
                 if (signal) fn_free(signal);
-                continue;
+                if (meta_json) fn_free(meta_json);
+                if (tile_ipix_list) fn_free(tile_ipix_list);
+                result.error_msg = "[HISS_VERIFY] Tile #" + std::to_string(i)
+                                 + " (parent_ipix=" + std::to_string(parent_ipix)
+                                 + ") signal 读取失败 (子块/checksum/occupancy/dtype)";
+                result.exit_code = AstroCsExitCode::HISS_INVALID;
+                return false;
             }
             for (uint32_t j = 0; j < n_signal; ++j) {
-                if (signal[j] != 0.0f) {
-                    has_nonzero_signal = true;
+                if (std::isnan(signal[j]) || std::isinf(signal[j])) {
+                    tile_has_naninf = true;
                     break;
                 }
+                if (signal[j] != 0.0f) tile_signal_nonzero = true;
             }
             fn_free(signal);
         }
 
-        if (!has_nonzero_signal) {
-            continue;  // signal 全零, 尝试下一个 Tile
+        if (tile_has_naninf) {
+            LOG_ERROR("orchestrator", "[HISS_VERIFY] Tile #" + std::to_string(i)
+                     + " (parent_ipix=" + std::to_string(parent_ipix)
+                     + ") signal 含 NaN/Inf — 数据完整性违规");
+            if (meta_json) fn_free(meta_json);
+            if (tile_ipix_list) fn_free(tile_ipix_list);
+            result.error_msg = "[HISS_VERIFY] Tile #" + std::to_string(i)
+                             + " (parent_ipix=" + std::to_string(parent_ipix)
+                             + ") signal 含 NaN/Inf";
+            result.exit_code = AstroCsExitCode::HISS_INVALID;
+            return false;
         }
 
-        // 读取 support
+        // 读取 support (隐式验证: SUPPORT 子块存在 + checksum + occupancy 展开)
         uint8_t* support = nullptr;
         uint32_t n_support = 0;
         int sup_ret = fn_read_support(current_output_path_.c_str(), parent_ipix,
                                        &support, &n_support);
         if (sup_ret != 0 || support == nullptr || n_support == 0) {
+            LOG_ERROR("orchestrator", "[HISS_VERIFY] Tile #" + std::to_string(i)
+                     + " (parent_ipix=" + std::to_string(parent_ipix)
+                     + ") support 读取失败 (rc=" + std::to_string(sup_ret)
+                     + ") — 子块缺失/checksum/occupancy 验证失败");
             if (support) fn_free(support);
-            continue;  // 尝试下一个 Tile
+            if (meta_json) fn_free(meta_json);
+            if (tile_ipix_list) fn_free(tile_ipix_list);
+            result.error_msg = "[HISS_VERIFY] Tile #" + std::to_string(i)
+                             + " (parent_ipix=" + std::to_string(parent_ipix)
+                             + ") support 读取失败 (子块/checksum/occupancy)";
+            result.exit_code = AstroCsExitCode::HISS_INVALID;
+            return false;
         }
 
-        // 检查 support 非全零
-        bool has_nonzero_support = false;
+        // support 非全零检查 (uint8 不会有 NaN/Inf)
+        bool tile_support_nonzero = false;
         for (uint32_t j = 0; j < n_support; ++j) {
             if (support[j] != 0) {
-                has_nonzero_support = true;
+                tile_support_nonzero = true;
                 break;
             }
         }
         fn_free(support);
 
-        if (!has_nonzero_support) {
-            continue;  // support 全零, 尝试下一个 Tile
-        }
+        if (tile_signal_nonzero) { ++n_signal_nonzero; has_nonzero_signal = true; }
+        if (tile_support_nonzero) { ++n_support_nonzero; }
+        ++n_passed;
 
-        // 验证通过
-        verified = true;
         LOG_INFO("orchestrator", "[HISS_VERIFY] Tile #" + std::to_string(i)
                  + " (parent_ipix=" + std::to_string(parent_ipix)
                  + ") 验证通过: n_signal=" + std::to_string(n_signal)
                  + " n_support=" + std::to_string(n_support)
                  + " precision=" + (is_fp64 ? "FP64" : "FP32")
-                 + " signal/support 均非全零");
-        break;
+                 + " signal_nonzero=" + (tile_signal_nonzero ? "Y" : "N")
+                 + " support_nonzero=" + (tile_support_nonzero ? "Y" : "N"));
     }
 
     // 释放 inspect 分配的内存
     if (meta_json) fn_free(meta_json);
     if (tile_ipix_list) fn_free(tile_ipix_list);
 
-    if (!verified) {
-        LOG_ERROR("orchestrator", "[HISS_VERIFY] 前 " + std::to_string(tiles_to_check)
-                 + " 个 Tile 均未通过验证 (不可读或 signal/support 全零)");
-        result.error_msg = "[HISS_VERIFY] 无可读 Tile 或 signal/support 全零 (检查了前 "
-                         + std::to_string(tiles_to_check) + " 个 Tile)";
+    // 至少一个 Tile 有非零 signal
+    if (!has_nonzero_signal) {
+        LOG_ERROR("orchestrator", "[HISS_VERIFY] 全部 " + std::to_string(n_tiles)
+                 + " 个 Tile 的 signal 均为全零 — 数据完整性违规");
+        result.error_msg = "[HISS_VERIFY] 全部 " + std::to_string(n_tiles)
+                         + " 个 Tile 的 signal 均为全零";
         result.exit_code = AstroCsExitCode::HISS_INVALID;
         return false;
     }
 
-    LOG_INFO("orchestrator", "[HISS_VERIFY] 完成: .hiss 文件验证通过");
+    // 全 Tile 验证汇总报告
+    LOG_INFO("orchestrator", "[HISS_VERIFY] 全 Tile 验证汇总: n_tiles=" + std::to_string(n_tiles)
+             + " n_passed=" + std::to_string(n_passed)
+             + " n_failed=" + std::to_string(n_failed)
+             + " n_signal_nonzero=" + std::to_string(n_signal_nonzero)
+             + " n_support_nonzero=" + std::to_string(n_support_nonzero)
+             + " precision=" + (is_fp64 ? "FP64" : "FP32"));
+
+    LOG_INFO("orchestrator", "[HISS_VERIFY] 完成: .hiss 文件验证通过 (全 Tile 遍历)");
     return true;
 }
 
@@ -3550,6 +3617,67 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
              + ", snr_phot=" + std::to_string(model.snr_phot)
              + ", median_snr=" + std::to_string(model.median_snr)
              + ", idw_power=" + std::to_string(model.idw_power));
+
+    // SNR-001: 丢弃原因分类 (SNR 不得静默丢点)
+    // 重新遍历 PSF 数据, 对每个未写入 HISS 的控制点分类丢弃原因。
+    // 检查顺序与 snr_estimator.cpp snr_extract_model 一致:
+    //   1. status != 0 → INVALID_PSF (PSF 拟合失败)
+    //   2. A <= B      → ZERO_FLUX (振幅不足/净通量 <= 0)
+    //   3. mad <= 0     → INVALID_PSF (残差 MAD 非正)
+    //   4. 否则         → NOT_DROPPED (有效控制点, 已写入)
+    // 注: OUTSIDE_TILE/NO_OVERLAP/DUPLICATE_IPIX 在 drizzle 阶段判断, 此处为 0
+    {
+        uint32_t drop_counts[SNR_DROP_REASON_COUNT] = {};
+        uint32_t n_total = static_cast<uint32_t>(n_stars);
+        uint32_t n_valid = model.n_points;
+        uint32_t n_dropped = 0;
+
+        for (int i = 0; i < n_stars; ++i) {
+            const double* row = psf_data + i * 9;
+            double status = row[0];
+            double B = row[1];
+            double A = row[6];
+            double mad = row[7];
+
+            uint8_t reason = SNR_DROP_NOT_DROPPED;
+            if (status != 0.0) {
+                reason = SNR_DROP_INVALID_PSF;
+            } else if (A <= B) {
+                reason = SNR_DROP_ZERO_FLUX;
+            } else if (mad <= 0.0) {
+                reason = SNR_DROP_INVALID_PSF;
+            }
+            ++drop_counts[reason];
+            if (reason != SNR_DROP_NOT_DROPPED) ++n_dropped;
+        }
+
+        LOG_INFO("orchestrator", "[SNR] 丢弃原因汇总: n_total=" + std::to_string(n_total)
+                 + " n_valid=" + std::to_string(n_valid)
+                 + " n_dropped=" + std::to_string(n_dropped)
+                 + " {NOT_DROPPED=" + std::to_string(drop_counts[SNR_DROP_NOT_DROPPED])
+                 + " INVALID_PSF=" + std::to_string(drop_counts[SNR_DROP_INVALID_PSF])
+                 + " ZERO_FLUX=" + std::to_string(drop_counts[SNR_DROP_ZERO_FLUX])
+                 + " OUTSIDE_TILE=" + std::to_string(drop_counts[SNR_DROP_OUTSIDE_TILE])
+                 + " NO_OVERLAP=" + std::to_string(drop_counts[SNR_DROP_NO_OVERLAP])
+                 + " INVALID_WCS=" + std::to_string(drop_counts[SNR_DROP_INVALID_WCS])
+                 + " DUPLICATE_IPIX=" + std::to_string(drop_counts[SNR_DROP_DUPLICATE_IPIX])
+                 + " OTHER=" + std::to_string(drop_counts[SNR_DROP_OTHER]) + "}");
+
+        // 写入 photo_stats KV (供诊断和后续阶段查询)
+        if (fn_kv_set) {
+            std::string s_total = std::to_string(n_total);
+            std::string s_valid = std::to_string(n_valid);
+            std::string s_dropped = std::to_string(n_dropped);
+            std::string s_inv_psf = std::to_string(drop_counts[SNR_DROP_INVALID_PSF]);
+            std::string s_zero_flux = std::to_string(drop_counts[SNR_DROP_ZERO_FLUX]);
+            fn_kv_set(frame_, "photo_stats", "SNR_N_TOTAL", s_total.c_str());
+            fn_kv_set(frame_, "photo_stats", "SNR_N_VALID", s_valid.c_str());
+            fn_kv_set(frame_, "photo_stats", "SNR_N_DROPPED", s_dropped.c_str());
+            fn_kv_set(frame_, "photo_stats", "SNR_DROP_INVALID_PSF", s_inv_psf.c_str());
+            fn_kv_set(frame_, "photo_stats", "SNR_DROP_ZERO_FLUX", s_zero_flux.c_str());
+            fn_kv_set(frame_, "photo_stats", "SNR_STATUS", "OK");
+        }
+    }
 
     // 序列化 SnrModel 到 "snr_model" 块 (AIO_BLOCK_RAW 类型)
     // 格式 (与 hp_drizzle_api.cpp 行 409-480 期望一致):
