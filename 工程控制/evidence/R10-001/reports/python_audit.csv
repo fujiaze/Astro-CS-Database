@@ -1,0 +1,19 @@
+path,category,production_reachable,imports_dll,has_main,action,new_path,nonproduction_marker,build_reference,documentation_reference,evidence
+lib/astro_image_io/tests/test_export_fits_fix.py,test,NO,NO,YES,KEEP_NONPRODUCTION,lib/astro_image_io/tests/test_export_fits_fix.py,YES,,,# NON_PRODUCTION_TOOL_ONLY
+lib/astro_image_io/tests/test_healpix_io.py,test,NO,YES,YES,KEEP_NONPRODUCTION,lib/astro_image_io/tests/test_healpix_io.py,YES,,,# NON_PRODUCTION_TOOL_ONLY
+lib/astro_image_io/tests/test_healpix_io_py.py,test,NO,YES,YES,KEEP_NONPRODUCTION,lib/astro_image_io/tests/test_healpix_io_py.py,YES,,,# NON_PRODUCTION_TOOL_ONLY
+lib/astro_image_io/tests/test_pipeline_blocks.py,test,NO,NO,YES,KEEP_NONPRODUCTION,lib/astro_image_io/tests/test_pipeline_blocks.py,YES,,,# NON_PRODUCTION_TOOL_ONLY
+lib/astro_image_io/tests/test_psf_fit_handler.py,test,NO,YES,YES,KEEP_NONPRODUCTION,lib/astro_image_io/tests/test_psf_fit_handler.py,YES,,,# NON_PRODUCTION_TOOL_ONLY
+lib/healpix_db/healpix_drizzle/tests/test_drizzle.py,test,NO,YES,NO,KEEP_NONPRODUCTION,lib/healpix_db/healpix_drizzle/tests/test_drizzle.py,YES,,,# NON_PRODUCTION_TOOL_ONLY
+lib/healpix_db/healpix_drizzle/tests/test_pipeline_adapter.py,test,NO,YES,NO,KEEP_NONPRODUCTION,lib/healpix_db/healpix_drizzle/tests/test_pipeline_adapter.py,YES,,,# NON_PRODUCTION_TOOL_ONLY
+lib/healpix_db/healpix_stack/tests/test_gradient_synthetic.py,test,NO,YES,YES,KEEP_NONPRODUCTION,lib/healpix_db/healpix_stack/tests/test_gradient_synthetic.py,YES,,,# NON_PRODUCTION_TOOL_ONLY
+lib/healpix_db/healpix_stack/tests/test_healpix_stack.py,test,NO,YES,NO,KEEP_NONPRODUCTION,lib/healpix_db/healpix_stack/tests/test_healpix_stack.py,YES,,,# NON_PRODUCTION_TOOL_ONLY
+lib/healpix_db/healpix_stack/tests/test_hp_stack_hiss.py,test,NO,NO,YES,KEEP_NONPRODUCTION,lib/healpix_db/healpix_stack/tests/test_hp_stack_hiss.py,YES,,,# NON_PRODUCTION_TOOL_ONLY
+lib/orchestrator/tests/__init__.py,test,NO,NO,NO,KEEP_NONPRODUCTION,lib/orchestrator/tests/__init__.py,YES,,,# NON_PRODUCTION_TOOL_ONLY
+lib/orchestrator/tests/test_orchestrator_e2e.py,test,NO,YES,YES,KEEP_NONPRODUCTION,lib/orchestrator/tests/test_orchestrator_e2e.py,YES,,,# NON_PRODUCTION_TOOL_ONLY
+lib/photometric_calib/cpp/test/test_energy_conservation.py,test,NO,YES,YES,KEEP_NONPRODUCTION,lib/photometric_calib/cpp/test/test_energy_conservation.py,YES,,,# NON_PRODUCTION_TOOL_ONLY
+lib/photometric_calib/cpp/test/test_photometric_calib.py,test,NO,YES,YES,KEEP_NONPRODUCTION,lib/photometric_calib/cpp/test/test_photometric_calib.py,YES,,,# NON_PRODUCTION_TOOL_ONLY
+lib/photometric_calib/cpp/test/test_spectrum_integrator_golden.py,test,NO,YES,YES,KEEP_NONPRODUCTION,lib/photometric_calib/cpp/test/test_spectrum_integrator_golden.py,YES,,,# NON_PRODUCTION_TOOL_ONLY
+lib/photometric_calib/tools/diag_gradient_report.py,research_tool,NO,NO,YES,KEEP_NONPRODUCTION,lib/photometric_calib/tools/diag_gradient_report.py,YES,,,# NON_PRODUCTION_TOOL_ONLY
+lib/plate_solve/tools/diag_projection_plot.py,research_tool,NO,NO,YES,KEEP_NONPRODUCTION,lib/plate_solve/tools/diag_projection_plot.py,YES,,,# NON_PRODUCTION_TOOL_ONLY
+lib/snr_estimator/test/test_snr_estimator.py,test,NO,YES,YES,KEEP_NONPRODUCTION,lib/snr_estimator/test/test_snr_estimator.py,YES,,,# NON_PRODUCTION_TOOL_ONLY
