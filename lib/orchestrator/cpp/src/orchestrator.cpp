@@ -3026,6 +3026,10 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
         ModuleId::AIO, "aio_hiss_read_tile_signal_f64");
     auto fn_read_support = loader.get_function<ReadTileSupportFn>(
         ModuleId::AIO, "aio_hiss_read_tile_support");
+    // R11 (HISS-103): 读取每 Tile SNR 控制点并核对
+    using ReadTileSnrFn = int (*)(const char*, uint64_t, uint8_t**, uint32_t*);
+    auto fn_read_snr = loader.get_function<ReadTileSnrFn>(
+        ModuleId::AIO, "aio_hiss_read_tile_snr");
 
     bool is_fp64 = (requested_prec == 1);
     if (is_fp64) {
@@ -3058,6 +3062,7 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
     //   f. 至少一个 Tile 有非零 signal — 汇总后检查
     uint64_t n_passed = 0, n_failed = 0;
     uint64_t n_signal_nonzero = 0, n_support_nonzero = 0;
+    uint64_t n_snr_points_total = 0, n_tiles_with_snr = 0;
     bool has_nonzero_signal = false;
 
     for (uint64_t i = 0; i < n_tiles; ++i) {
@@ -3166,6 +3171,21 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
         }
         fn_free(support);
 
+        // R11 (HISS-103): 读取 SNR 控制点 (稀疏, 每点 8 字节: local_ipix uint32 + snr float32)
+        uint8_t* snr_buf = nullptr;
+        uint32_t n_snr = 0;
+        if (fn_read_snr) {
+            int snr_ret = fn_read_snr(current_output_path_.c_str(), parent_ipix,
+                                      &snr_buf, &n_snr);
+            // SNR 稀疏 (仅 ~254/285 Tile 含 SNR 子块): 读不到 = 该 Tile 无 SNR, 跳过
+            // 最终汇总检查 n_snr_points_total>0 保证 SNR 数据整体存在 (HISS-103)
+            if (n_snr > 0) {
+                n_snr_points_total += n_snr;
+                ++n_tiles_with_snr;
+            }
+            if (snr_buf) fn_free(snr_buf);
+        }
+
         if (tile_signal_nonzero) { ++n_signal_nonzero; has_nonzero_signal = true; }
         if (tile_support_nonzero) { ++n_support_nonzero; }
         ++n_passed;
@@ -3174,6 +3194,7 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
                  + " (parent_ipix=" + std::to_string(parent_ipix)
                  + ") 验证通过: n_signal=" + std::to_string(n_signal)
                  + " n_support=" + std::to_string(n_support)
+                 + " n_snr=" + std::to_string(n_snr)
                  + " precision=" + (is_fp64 ? "FP64" : "FP32")
                  + " signal_nonzero=" + (tile_signal_nonzero ? "Y" : "N")
                  + " support_nonzero=" + (tile_support_nonzero ? "Y" : "N"));
@@ -3193,12 +3214,22 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
         return false;
     }
 
+    // R11 (HISS-103): SNR 控制点必须存在 (SNR 是必需 stage)
+    if (n_snr_points_total == 0) {
+        LOG_ERROR("orchestrator", "[HISS_VERIFY] 全部 Tile 无 SNR 控制点 — SNR 数据缺失");
+        result.error_msg = "[HISS_VERIFY] 全部 Tile 无 SNR 控制点";
+        result.exit_code = AstroCsExitCode::HISS_INVALID;
+        return false;
+    }
+
     // 全 Tile 验证汇总报告
     LOG_INFO("orchestrator", "[HISS_VERIFY] 全 Tile 验证汇总: n_tiles=" + std::to_string(n_tiles)
              + " n_passed=" + std::to_string(n_passed)
              + " n_failed=" + std::to_string(n_failed)
              + " n_signal_nonzero=" + std::to_string(n_signal_nonzero)
              + " n_support_nonzero=" + std::to_string(n_support_nonzero)
+             + " n_snr_points=" + std::to_string(n_snr_points_total)
+             + " n_tiles_with_snr=" + std::to_string(n_tiles_with_snr)
              + " precision=" + (is_fp64 ? "FP64" : "FP32"));
 
     LOG_INFO("orchestrator", "[HISS_VERIFY] 完成: .hiss 文件验证通过 (全 Tile 遍历)");
