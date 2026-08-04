@@ -156,6 +156,12 @@ public:
     WorkToken claim_next_dynamic(const std::string& device_id,
                                  std::size_t n_active_devices);
 
+    // F-fix 9: 运行时调整动态模式的最大块大小（线程安全）。
+    // 用于资源闭环控制：CpuController/MemoryBudget 建议缩小时，
+    // 通过此接口让后续 claim_next_dynamic 使用更小的 max_chunk。
+    // 仅动态模式生效；max_chunk 会被 clamp 到 [dyn_min_chunk_, +inf)。
+    void set_dynamic_max_chunk(std::size_t max_chunk) noexcept;
+
     // ===== 标记完成（验证 generation）=====
     bool mark_done(std::size_t id, std::uint64_t generation);
     // 兼容旧接口（不验证 generation，用于旧测试过渡）
@@ -226,7 +232,8 @@ private:
     std::size_t range_begin_{0};
     std::size_t range_end_{0};
     std::size_t dyn_min_chunk_{1};
-    std::size_t dyn_max_chunk_{65536};
+    // F-fix 9: 改为 atomic 以支持运行时通过 set_dynamic_max_chunk 调整
+    std::atomic<std::size_t> dyn_max_chunk_{65536};
     std::atomic<std::size_t> dyn_cursor_{0};     // 工作分配游标（range 内位置）
     std::atomic<std::size_t> next_slot_{0};      // 下一个可用槽位索引
 

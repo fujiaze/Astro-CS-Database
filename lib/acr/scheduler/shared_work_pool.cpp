@@ -69,10 +69,11 @@ void SharedWorkPool::init_dynamic(std::size_t begin, std::size_t end,
 
     // 规范化 min <= max
     dyn_min_chunk_ = (min_chunk == 0) ? 1 : min_chunk;
-    dyn_max_chunk_ = (max_chunk == 0) ? dyn_min_chunk_ : max_chunk;
-    if (dyn_min_chunk_ > dyn_max_chunk_) {
-        dyn_min_chunk_ = dyn_max_chunk_;
+    std::size_t eff_max = (max_chunk == 0) ? dyn_min_chunk_ : max_chunk;
+    if (dyn_min_chunk_ > eff_max) {
+        dyn_min_chunk_ = eff_max;
     }
+    dyn_max_chunk_.store(eff_max, std::memory_order_relaxed);
 
     range_begin_ = begin;
     range_end_ = end;
@@ -157,7 +158,9 @@ WorkToken SharedWorkPool::claim_next_dynamic(const std::string& device_id,
         // 尾部收缩：剩余小于 2*min_chunk 时用 min_chunk
         if (remaining < dyn_min_chunk_ * 2) chunk = dyn_min_chunk_;
         if (chunk < dyn_min_chunk_) chunk = dyn_min_chunk_;
-        if (chunk > dyn_max_chunk_) chunk = dyn_max_chunk_;
+        // F-fix 9: dyn_max_chunk_ 现为 atomic，运行时可调（set_dynamic_max_chunk）
+        std::size_t dyn_max = dyn_max_chunk_.load(std::memory_order_relaxed);
+        if (chunk > dyn_max) chunk = dyn_max;
 
         std::size_t new_cursor = cursor + chunk;
         if (new_cursor > range_end_) new_cursor = range_end_;
@@ -199,6 +202,15 @@ WorkToken SharedWorkPool::claim_next_dynamic(const std::string& device_id,
         }
         // CAS 失败，cursor 已更新，重试
     }
+}
+
+// F-fix 9: 运行时调整动态模式的最大块大小（线程安全）
+void SharedWorkPool::set_dynamic_max_chunk(std::size_t max_chunk) noexcept {
+    if (!dynamic_mode_) return;
+    // clamp 到 [dyn_min_chunk_, +inf)，避免小于 min 导致块大小不规范
+    std::size_t min_c = dyn_min_chunk_;
+    if (max_chunk < min_c) max_chunk = min_c;
+    dyn_max_chunk_.store(max_chunk, std::memory_order_relaxed);
 }
 
 // ===== 标记完成 =====
@@ -416,7 +428,7 @@ void SharedWorkPool::reset() {
     range_begin_ = 0;
     range_end_ = 0;
     dyn_min_chunk_ = 1;
-    dyn_max_chunk_ = 65536;
+    dyn_max_chunk_.store(65536, std::memory_order_relaxed);
     dyn_cursor_.store(0, std::memory_order_relaxed);
     next_slot_.store(0, std::memory_order_relaxed);
     next_claim_index_.store(0, std::memory_order_relaxed);

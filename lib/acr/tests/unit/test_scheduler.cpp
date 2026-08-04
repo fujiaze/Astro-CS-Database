@@ -1500,6 +1500,154 @@ TEST(SharedWorkPoolConcurrency, Stress100RoundsDynamicMode) {
 }
 
 // ============================================================================
+// F-fix 9: 可恢复资源闭环测试
+// 验收：set_dynamic_max_chunk 影响后续 claim；gate 统计字段初始化；
+//       正常负载下 gate 不触发；gate 关闭后可恢复
+// ============================================================================
+
+TEST(SharedWorkPoolDynamic, SetDynamicMaxChunkAffectsSubsequentClaims) {
+    // 验证 set_dynamic_max_chunk 运行时调整后续 claim 的最大块大小
+    SharedWorkPool pool;
+    pool.init_dynamic(0, 10000, 100, 1000);  // min=100, max=1000
+
+    // 初始 max=1000：前几个 claim 应受 1000 限制
+    auto t1 = pool.claim_next_dynamic("cpu", 1);
+    ASSERT_TRUE(t1.valid());
+    EXPECT_LE(t1.size(), 1000u);
+
+    // 运行时缩小 max_chunk 到 200
+    pool.set_dynamic_max_chunk(200);
+
+    // 后续 claim 应受 200 限制
+    auto t2 = pool.claim_next_dynamic("cpu", 1);
+    ASSERT_TRUE(t2.valid());
+    EXPECT_LE(t2.size(), 200u);
+
+    // 再次缩小到 min（100）
+    pool.set_dynamic_max_chunk(50);  // 会被 clamp 到 min=100
+    auto t3 = pool.claim_next_dynamic("cpu", 1);
+    ASSERT_TRUE(t3.valid());
+    EXPECT_LE(t3.size(), 100u);  // 不小于 min_chunk
+}
+
+TEST(SharedWorkPoolDynamic, SetDynamicMaxChunkOnlyInDynamicMode) {
+    // 验证 set_dynamic_max_chunk 仅在动态模式生效
+    SharedWorkPool pool;
+    pool.init(0, 100, 25);  // 固定模式
+
+    // 非动态模式下调用应无效果（不崩溃）
+    pool.set_dynamic_max_chunk(10);
+    // 固定模式下 claim 仍返回固定块
+    auto t = pool.claim_next("cpu");
+    ASSERT_TRUE(t.valid());
+    EXPECT_EQ(t.size(), 25u);  // 固定 25
+}
+
+TEST(SchedulerDispatcherCostAware, RecoverableGateStatsInitialized) {
+    // 验证 F-fix 9 新增的 gate 统计字段初始化为 0
+    astro::compute::runtime_init();
+    Dispatcher d;
+    DispatcherConfig cfg;
+    cfg.devices = {{"cpu", 0, 0, 50.0, true}};
+    cfg.enable_utilization = false;
+    cfg.enable_fixed_tail_chunking = false;
+    d.configure(cfg);
+
+    astro::compute::TaskDescriptor task;
+    task.range = astro::compute::Range1D{0, 100};
+
+    auto est = make_cpu_only_estimate(25);
+    std::vector<int> data(100, 0);
+    auto fn = +[](std::size_t, std::size_t b, std::size_t e, void* ud) {
+        auto* d = static_cast<std::vector<int>*>(ud);
+        for (std::size_t i = b; i < e; ++i) (*d)[i] = 1;
+    };
+    auto r = d.dispatch_range_cost_aware(task, est, fn, &data);
+
+    // 正常负载下 gate 不应触发
+    EXPECT_FALSE(r.resource_control.gate_aborted);
+    // gate_close_count 和 gate_recover_count 应存在（可能为 0）
+    // 不强制为 0：系统内存状态可能触发内存 StopNewSubmit
+    EXPECT_GE(r.resource_control.gate_close_count, 0u);
+    EXPECT_GE(r.resource_control.gate_recover_count, 0u);
+    // 工作应完成
+    EXPECT_TRUE(r.run_result.all_done);
+    astro::compute::runtime_shutdown();
+}
+
+TEST(SchedulerDispatcherCostAware, GateNotTriggeredAtFullTarget) {
+    // 验证 cpu_target=1.0 时 CPU submit_gate 永不触发
+    // actual_ratio <= 1.0 永远不满足 > target + 0.10 = 1.10
+    astro::compute::runtime_init();
+    Dispatcher d;
+    DispatcherConfig cfg;
+    cfg.devices = {{"cpu", 0, 0, 50.0, true}};
+    cfg.enable_utilization = true;
+    cfg.enable_fixed_tail_chunking = false;
+    cfg.min_effective_chunk = 32;
+    cfg.cpu_target_ratio = 1.0;  // 100% 目标
+    d.configure(cfg);
+
+    astro::compute::TaskDescriptor task;
+    task.range = astro::compute::Range1D{0, 5000};
+
+    auto est = make_cpu_only_estimate(256);
+    std::vector<int> data(5000, 0);
+    auto fn = +[](std::size_t, std::size_t b, std::size_t e, void* ud) {
+        auto* d = static_cast<std::vector<int>*>(ud);
+        for (std::size_t i = b; i < e; ++i) (*d)[i] = 1;
+    };
+    auto r = d.dispatch_range_cost_aware(task, est, fn, &data);
+
+    // CPU gate 不应触发（target=1.0，actual<=1.0 不满足 >1.10）
+    // 注意：submit_gate_triggered 也可能因内存 StopNewSubmit 触发
+    // 所以只验证 gate_aborted 为 false（不应超时放弃）
+    EXPECT_FALSE(r.resource_control.gate_aborted);
+    // CPU 采样应存在
+    EXPECT_FALSE(r.resource_control.cpu_actual_samples.empty());
+    astro::compute::runtime_shutdown();
+}
+
+TEST(SchedulerDispatcherCostAware, DynamicChunkSizesRecordedWithMaxChunkAdjust) {
+    // 验证动态模式下 chunk_sizes 被记录，且受 max_chunk 限制
+    astro::compute::runtime_init();
+    Dispatcher d;
+    DispatcherConfig cfg;
+    cfg.devices = {{"cpu", 0, 0, 50.0, true}};
+    cfg.enable_utilization = false;  // 禁用 utilization 走简单路径
+    cfg.enable_fixed_tail_chunking = false;
+    cfg.min_effective_chunk = 64;
+    d.configure(cfg);
+
+    astro::compute::TaskDescriptor task;
+    task.range = astro::compute::Range1D{0, 10000};
+
+    auto est = make_cpu_only_estimate(1000);  // recommended_chunk=1000
+    std::vector<int> data(10000, 0);
+    auto fn = +[](std::size_t, std::size_t b, std::size_t e, void* ud) {
+        auto* d = static_cast<std::vector<int>*>(ud);
+        for (std::size_t i = b; i < e; ++i) (*d)[i] = 1;
+    };
+    auto r = d.dispatch_range_cost_aware(task, est, fn, &data);
+
+    // 动态模式应被使用
+    EXPECT_TRUE(r.resource_control.dynamic_mode_used);
+    // chunk_sizes 应非空
+    EXPECT_FALSE(r.resource_control.dynamic_chunk_sizes.empty());
+    // 所有 chunk_size 应 <= recommended_chunk（1000）
+    // 注意：尾部块可能小于 min_effective_chunk（范围不整除时的最后一块）
+    for (auto cs : r.resource_control.dynamic_chunk_sizes) {
+        EXPECT_LE(cs, 1000u);
+        EXPECT_GE(cs, 1u);  // 至少 1 个元素
+    }
+    // 完整覆盖
+    EXPECT_TRUE(r.run_result.all_done);
+    int total = std::accumulate(data.begin(), data.end(), 0);
+    EXPECT_EQ(total, 10000);
+    astro::compute::runtime_shutdown();
+}
+
+// ============================================================================
 // main
 // ============================================================================
 

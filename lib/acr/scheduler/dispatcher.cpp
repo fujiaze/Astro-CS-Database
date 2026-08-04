@@ -19,10 +19,98 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cstdint>
+#include <functional>
 #include <thread>
 #include <vector>
 
 namespace astro::compute::scheduler {
+
+// ============================================================================
+// F-fix 9: 可恢复的 submit gate（带迟滞 + 超时放弃）
+// ----------------------------------------------------------------------------
+// 替代旧的 std::atomic<bool> stop_new_submit（一旦 true 永久停止）。
+// 行为：
+//   - close():       gate 关闭（可恢复）。CPU > target+0.10 或 MemoryBudget
+//                    StopNewSubmit 时触发。
+//   - close_permanent(): gate 永久关闭（MemoryBudget Fail 时触发）。
+//   - try_recover(): 迟滞恢复。当 CPU 降到 target-0.05 以下且内存动作
+//                    不是 stop/fail 时重新开放 gate。
+//   - gate 关闭时不立即返回，而是等待一小段时间（10ms × 重试次数）后
+//     检查是否恢复；持续关闭超过 5 秒才最终放弃剩余工作。
+// ============================================================================
+struct RecoverableGate {
+    std::atomic<bool> closed{false};
+    std::atomic<bool> permanent_fail{false};   // Fail 动作标记，永久关闭
+    std::atomic<std::uint64_t> close_ts_ns{0}; // 最近一次关闭时间戳
+    std::atomic<std::uint64_t> close_count{0}; // 关闭次数（含重关闭）
+    std::atomic<std::uint64_t> recover_count{0};
+
+    bool should_submit() const noexcept {
+        return !closed.load(std::memory_order_relaxed) &&
+               !permanent_fail.load(std::memory_order_relaxed);
+    }
+
+    bool is_permanent_fail() const noexcept {
+        return permanent_fail.load(std::memory_order_relaxed);
+    }
+
+    // 关闭 gate（可恢复）。返回是否真的发生了状态转换。
+    bool close() noexcept {
+        if (permanent_fail.load(std::memory_order_relaxed)) return false;
+        bool expected = false;
+        if (closed.compare_exchange_strong(expected, true,
+                                            std::memory_order_acq_rel)) {
+            close_ts_ns.store(now_ns(), std::memory_order_relaxed);
+            close_count.fetch_add(1, std::memory_order_relaxed);
+            return true;
+        }
+        return false;
+    }
+
+    // 永久关闭 gate（MemoryBudget Fail）
+    void close_permanent() noexcept {
+        permanent_fail.store(true, std::memory_order_relaxed);
+        bool expected = false;
+        if (closed.compare_exchange_strong(expected, true,
+                                            std::memory_order_acq_rel)) {
+            close_ts_ns.store(now_ns(), std::memory_order_relaxed);
+            close_count.fetch_add(1, std::memory_order_relaxed);
+        }
+    }
+
+    // 尝试恢复 gate（带迟滞）。返回是否真的发生了状态转换。
+    bool try_recover(double cpu_actual, double cpu_target,
+                     const std::string& mem_action) noexcept {
+        if (permanent_fail.load(std::memory_order_relaxed)) return false;
+        if (!closed.load(std::memory_order_relaxed)) return false;
+        // 迟滞：CPU 降到 target-0.05 以下且内存恢复（非 stop/fail）
+        if (cpu_actual < cpu_target - 0.05 &&
+            mem_action != "stop" && mem_action != "fail") {
+            bool expected = true;
+            if (closed.compare_exchange_strong(expected, false,
+                                                std::memory_order_acq_rel)) {
+                recover_count.fetch_add(1, std::memory_order_relaxed);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // gate 关闭时长（ns）。gate 已开放时返回 0。
+    std::uint64_t closed_duration_ns() const noexcept {
+        if (!closed.load(std::memory_order_relaxed)) return 0;
+        std::uint64_t ts = close_ts_ns.load(std::memory_order_relaxed);
+        if (ts == 0) return 0;
+        return now_ns() - ts;
+    }
+
+    static std::uint64_t now_ns() noexcept {
+        using namespace std::chrono;
+        return static_cast<std::uint64_t>(
+            duration_cast<nanoseconds>(steady_clock::now().time_since_epoch()).count());
+    }
+};
 
 struct Dispatcher::Impl {
     DispatcherConfig cfg;
@@ -37,6 +125,9 @@ struct Dispatcher::Impl {
     SharedWorkPool pool;
     // F-fix 6 + F-fix 7：设备执行器注册表（多设备工作保持）
     std::shared_ptr<ExecutorRegistry> executors;
+    // F-fix 9: ReleaseCache 动作的回调（可选）。
+    // 由外部注册（如缓存模块），MemoryBudget ReleaseCache 时调用。
+    std::function<void()> cache_release_hook;
 
     std::string pick_backend_impl(const TaskEstimate& task) const {
         // 小数据优先 CPU
@@ -204,11 +295,21 @@ struct Dispatcher::Impl {
         return r;
     }
 
-    // F-fix 3 + F-fix 4：动态 guided 执行 + 资源闭环控制
+    // F-fix 3 + F-fix 4 + F-fix 9：动态 guided 执行 + 可恢复资源闭环控制
     // 使用 init_dynamic + claim_next_dynamic（根据 remaining 和活跃设备数动态计算块大小）
-    // 在执行循环中应用 CpuController 决策（should_yield/yield_stride）
-    // 在执行循环中应用所有 MemoryBudget ExceedAction（StopNewSubmit/ShrinkBlock/...）
-    // 所有控制动作记录到 stats_out（用于 50/80/95/100% 持续负载报告）
+    // 在执行循环中应用 CpuController 决策（should_yield/yield_stride/batch_size）
+    // 在执行循环中应用所有 MemoryBudget ExceedAction，且动作必须实际改变执行：
+    //   - ShrinkBlock: 缩小 current_max_chunk（×0.8，不小于 min_chunk）
+    //   - ReleaseCache: 调用 cache_release_hook（若有）
+    //   - LowMemoryPath: current_max_chunk = min_chunk
+    //   - FallbackOtherDevice: 标记当前设备不可用（多设备由 execute_via_executors 处理）
+    //   - StopNewSubmit: 关闭 RecoverableGate（可恢复）
+    //   - Fail: 永久关闭 gate
+    // F-fix 9 关键改动：
+    //   - stop_new_submit（atomic<bool>）→ RecoverableGate（带迟滞 + 超时放弃）
+    //   - cached_batch_size 实际用于调整 current_max_chunk（→ pool.set_dynamic_max_chunk）
+    //   - gate 关闭时不立即返回，而是等待 10ms×kGateWaitRetries 后检查恢复；
+    //     持续关闭超过 kGateTimeoutNs（5 秒）才最终放弃剩余工作。
     MixedRunResult execute_via_pool_dynamic(
         std::size_t begin, std::size_t end,
         std::size_t min_chunk, std::size_t max_chunk,
@@ -241,8 +342,13 @@ struct Dispatcher::Impl {
             return r;
         }
 
-        // F-fix 4：共享控制状态（跨 worker 线程）
-        std::atomic<bool> stop_new_submit{false};
+        // F-fix 9: 可恢复的 submit gate（替代旧 stop_new_submit）
+        RecoverableGate gate;
+
+        // F-fix 9: 动态 current_max_chunk（所有 worker 共享，通过 pool 同步）
+        // 初始为 eff_max；CpuController/MemoryBudget 建议会缩小它
+        std::atomic<std::size_t> current_max_chunk{eff_max};
+
         std::atomic<std::size_t> sample_seq{0};
         std::atomic<std::size_t> yield_count{0};
         std::atomic<std::size_t> batch_shrink_count{0};
@@ -261,11 +367,31 @@ struct Dispatcher::Impl {
 
         std::atomic<std::size_t> executed{0}, failed{0};
 
+        // F-fix 9: gate 等待参数
+        constexpr int kGateWaitRetries = 5;             // 每次重试等 10ms，最多 5 次（50ms）
+        constexpr std::uint64_t kGateTimeoutNs =
+            5ULL * 1000 * 1000 * 1000;                  // 5 秒超时放弃
+
+        // F-fix 9: gate 关闭时的等待 + 超时放弃逻辑
+        auto wait_for_gate = [&]() -> bool {
+            if (gate.is_permanent_fail()) return false;
+            if (gate.should_submit()) return true;
+            for (int i = 0; i < kGateWaitRetries; ++i) {
+                if (gate.should_submit()) return true;
+                // 持续关闭超过阈值 → 放弃
+                if (gate.closed_duration_ns() > kGateTimeoutNs) {
+                    return false;
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
+            return gate.should_submit();
+        };
+
         Event ev = astro::compute::parallel_batch(
             astro::compute::KernelId::Custom, max_possible_blocks,
             [&](std::size_t worker_idx) {
-                // F-fix 4: submit gate —— 检查 stop_new_submit
-                if (stop_new_submit.load(std::memory_order_relaxed)) return;
+                // F-fix 9: submit gate —— 不立即返回，短等待 + 超时放弃
+                if (!wait_for_gate()) return;
 
                 // F-fix 4: 周期性采样 CPU 利用率（每 16 个 task 采样一次）
                 std::size_t seq = sample_seq.fetch_add(1, std::memory_order_relaxed);
@@ -283,12 +409,51 @@ struct Dispatcher::Impl {
                         stats_out.cpu_valid = dec.valid;
                     }
 
-                    // F-fix 4: CPU 利用率严重超目标（actual > target + 0.10）→ submit gate
+                    // F-fix 9: 先尝试恢复 gate（带迟滞）
+                    auto mem_act_cached = static_cast<
+                        utilization::MemoryBudgetController::ExceedAction>(
+                        cached_mem_action.load(std::memory_order_relaxed));
+                    std::string mem_act_str = Impl::action_to_string(mem_act_cached);
+                    if (gate.try_recover(dec.actual_ratio, dec.target_ratio, mem_act_str)) {
+                        stats_out.gate_recover_count++;
+                    }
+
+                    // F-fix 9: CPU 利用率严重超目标（actual > target + 0.10）→ 关闭 gate
                     // 保留 0.10 硬阈值（远大于控制器内部 0.05 容差）
                     if (dec.valid && dec.actual_ratio > dec.target_ratio + 0.10) {
-                        stop_new_submit.store(true, std::memory_order_relaxed);
-                        stats_out.submit_gate_triggered = true;
-                        return;
+                        if (gate.close()) {
+                            stats_out.submit_gate_triggered = true;
+                            stats_out.gate_close_count++;
+                        }
+                        // 不立即返回：让下面的 wait_for_gate 处理等待/恢复
+                    }
+
+                    // F-fix 9: 实际使用 cached_batch_size —— 调整 current_max_chunk
+                    // batch_size 是 CpuController 建议的并发批次大小（1-8）：
+                    //   - bs<=1: CPU 过载，缩小 current_max_chunk 到 1/4
+                    //   - bs<=2: 偏高，缩小到 1/2
+                    //   - bs<=4: 保持
+                    //   - bs>4:  CPU 偏低，向 max_chunk 增长
+                    std::uint32_t bs = dec.batch_size;
+                    if (bs > 0) {
+                        std::size_t cur = current_max_chunk.load(std::memory_order_relaxed);
+                        std::size_t new_max = cur;
+                        if (bs <= 1) {
+                            new_max = std::max(cur / 4, eff_min);
+                        } else if (bs <= 2) {
+                            new_max = std::max(cur / 2, eff_min);
+                        } else if (bs <= 4) {
+                            new_max = cur;  // 保持
+                        } else {
+                            // 朝着 max_chunk 增长（不超 eff_max）
+                            if (cur < eff_max) {
+                                new_max = std::min(eff_max, cur + (eff_max - cur) / 2);
+                            }
+                        }
+                        if (new_max != cur && new_max >= eff_min) {
+                            current_max_chunk.store(new_max, std::memory_order_relaxed);
+                            pool.set_dynamic_max_chunk(new_max);
+                        }
                     }
                 }
 
@@ -310,18 +475,55 @@ struct Dispatcher::Impl {
                         stats_out.final_mem_action = Impl::action_to_string(action);
                     }
 
-                    // 立即处理的动作
-                    if (action == utilization::MemoryBudgetController::ExceedAction::StopNewSubmit) {
-                        stop_new_submit.store(true, std::memory_order_relaxed);
-                        stats_out.submit_gate_triggered = true;
-                        return;
+                    // F-fix 9: MemoryBudget 动作实际执行（改变 current_max_chunk / gate）
+                    std::size_t cur = current_max_chunk.load(std::memory_order_relaxed);
+                    std::size_t new_max = cur;
+                    switch (action) {
+                        case utilization::MemoryBudgetController::ExceedAction::ShrinkBlock:
+                            // 缩小为 0.8 倍，不小于 min_chunk
+                            new_max = std::max((cur * 4) / 5, eff_min);
+                            batch_shrink_count.fetch_add(1, std::memory_order_relaxed);
+                            break;
+                        case utilization::MemoryBudgetController::ExceedAction::ReleaseCache:
+                            // F-fix 9: 调用注册的 cache release hook（如果有）
+                            if (cache_release_hook) {
+                                try { cache_release_hook(); } catch (...) {}
+                            }
+                            batch_shrink_count.fetch_add(1, std::memory_order_relaxed);
+                            break;
+                        case utilization::MemoryBudgetController::ExceedAction::LowMemoryPath:
+                            // F-fix 9: 设置为 min_chunk
+                            new_max = eff_min;
+                            batch_shrink_count.fetch_add(1, std::memory_order_relaxed);
+                            break;
+                        case utilization::MemoryBudgetController::ExceedAction::FallbackOtherDevice:
+                            // F-fix 9: 标记当前设备不可用（如果有其他设备）
+                            // 此处仅 CPU 路径，无其他设备可回退；多设备由 execute_via_executors 处理
+                            break;
+                        case utilization::MemoryBudgetController::ExceedAction::StopNewSubmit:
+                            // F-fix 9: 关闭 gate（可恢复）
+                            if (gate.close()) {
+                                stats_out.submit_gate_triggered = true;
+                                stats_out.gate_close_count++;
+                            }
+                            break;
+                        case utilization::MemoryBudgetController::ExceedAction::Fail:
+                            // F-fix 9: 永久关闭 gate
+                            gate.close_permanent();
+                            stats_out.submit_gate_triggered = true;
+                            stats_out.gate_close_count++;
+                            break;
+                        default:
+                            break;
                     }
-                    if (action == utilization::MemoryBudgetController::ExceedAction::Fail) {
-                        stop_new_submit.store(true, std::memory_order_relaxed);
-                        stats_out.submit_gate_triggered = true;
-                        return;
+                    if (new_max != cur && new_max >= eff_min) {
+                        current_max_chunk.store(new_max, std::memory_order_relaxed);
+                        pool.set_dynamic_max_chunk(new_max);
                     }
                 }
+
+                // F-fix 9: 再检查 gate（CPU/内存采样可能已关闭它）
+                if (!wait_for_gate()) return;
 
                 // F-fix 4a: 应用 CpuController 决策 —— 错峰让步
                 if (cached_should_yield.load(std::memory_order_relaxed)) {
@@ -335,6 +537,7 @@ struct Dispatcher::Impl {
 
                 // F-fix 3: 动态领取下一块（根据 remaining 和活跃设备数计算块大小）
                 // F-fix 5: 使用 WorkToken 值令牌
+                // F-fix 9: claim 使用 current_max_chunk（通过 pool.set_dynamic_max_chunk 同步）
                 auto token = pool.claim_next_dynamic("cpu", n_active_devices);
                 if (!token.valid()) return;  // 无剩余工作
 
@@ -342,30 +545,6 @@ struct Dispatcher::Impl {
                 {
                     std::lock_guard<std::mutex> lk(stats_mtx);
                     stats_out.dynamic_chunk_sizes.push_back(token.size());
-                }
-
-                // F-fix 4b: 应用 MemoryBudget 动作（在 claim 后、执行前）
-                auto mem_action = static_cast<
-                    utilization::MemoryBudgetController::ExceedAction>(
-                    cached_mem_action.load(std::memory_order_relaxed));
-                switch (mem_action) {
-                    case utilization::MemoryBudgetController::ExceedAction::ShrinkBlock:
-                        // 块已 claim，此处记录动作；下一次采样会更新 chunk_size
-                        batch_shrink_count.fetch_add(1, std::memory_order_relaxed);
-                        break;
-                    case utilization::MemoryBudgetController::ExceedAction::ReleaseCache:
-                        // ReleaseCache：此处无缓存可释放，记录动作（hook 可扩展）
-                        batch_shrink_count.fetch_add(1, std::memory_order_relaxed);
-                        break;
-                    case utilization::MemoryBudgetController::ExceedAction::LowMemoryPath:
-                        // LowMemoryPath：使用 min_chunk（下一次 claim 会被动态收缩）
-                        batch_shrink_count.fetch_add(1, std::memory_order_relaxed);
-                        break;
-                    case utilization::MemoryBudgetController::ExceedAction::FallbackOtherDevice:
-                        // FallbackOtherDevice：无 GPU 时仍用 CPU（记录动作）
-                        break;
-                    default:
-                        break;
                 }
 
                 try {
@@ -387,6 +566,12 @@ struct Dispatcher::Impl {
         // 记录控制动作统计
         stats_out.yield_count = yield_count.load();
         stats_out.batch_shrink_count = batch_shrink_count.load();
+        stats_out.gate_close_count = gate.close_count.load();
+        stats_out.gate_recover_count = gate.recover_count.load();
+        // gate 仍关闭且超时 → 标记为放弃
+        if (gate.closed.load() && gate.closed_duration_ns() > kGateTimeoutNs) {
+            stats_out.gate_aborted = true;
+        }
 
         return r;
     }

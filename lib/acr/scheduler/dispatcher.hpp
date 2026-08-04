@@ -82,6 +82,11 @@ struct ResourceControlStats {
     std::size_t batch_shrink_count{0};             // 批次缩小次数
     bool submit_gate_triggered{false};             // submit gate 是否触发
 
+    // ---- F-fix 9: 可恢复 submit gate 统计 ----
+    std::size_t gate_close_count{0};               // gate 关闭次数（含重关闭）
+    std::size_t gate_recover_count{0};             // gate 恢复次数
+    bool gate_aborted{false};                      // gate 超时放弃剩余工作
+
     // ---- 内存预算采样序列 ----
     std::vector<std::string> mem_actions;          // 每次采样的动作序列
     std::vector<std::uint64_t> mem_used_ram_samples;  // 每次采样的 used_ram
