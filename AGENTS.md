@@ -164,8 +164,14 @@ cd lib\healpix_db\healpix_browser_qt; cmake -G Ninja -B build; ninja -C build
 
 ## 统一工具链（唯一入口，2026-08-04 确定）
 
-整个项目只用**一条**工具链，入口是根目录 `toolchain.ps1`。任何会话不得自建工具脚本
-（旧的 `tools/astro_toolkit.py` 已删除，不再使用），避免不同对话各自搭环境造成冲突。
+整个项目只用**一套**工具链：
+
+- `toolchain.ps1`（根目录）：环境/自检/编译/运行/审核包入口；
+- `tools/astro_toolkit.py`：工程批处理工具（git/编译/文件操作打包执行，已恢复为强制工具，
+  由 2026-08-04 控制包明确要求保留，**不得删除**）；
+- 规范 Python：`py -3.12`；C++ 工具链：MSYS2 MinGW64（见下方规范值）。
+
+任何会话不得自建替代工具脚本，避免不同对话各自搭环境造成冲突。
 
 ```powershell
 .\toolchain.ps1 check              # 自检工具版本（g++/make/cmake/ninja/git/gh/python/nlohmann/orchestrator）
