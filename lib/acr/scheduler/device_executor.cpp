@@ -8,6 +8,15 @@
 #include <chrono>
 #include <memory>
 
+// F-fix 8: forward declare append_cuda_executors（实现在 backends/cuda/cuda_executor.cpp）
+// 必须在 astro::compute::cuda 命名空间，与定义一致；不可声明在 scheduler 命名空间，
+// 否则链接器找不到符号（LNK2019）。
+#ifdef ACR_BUILD_CUDA
+namespace astro::compute::cuda {
+void append_cuda_executors(scheduler::ExecutorRegistry& registry);
+} // namespace astro::compute::cuda
+#endif
+
 namespace astro::compute::scheduler {
 
 // ===== CpuExecutor =====
@@ -99,8 +108,9 @@ ExecutorRegistry ExecutorRegistry::create_auto() {
 #ifdef ACR_BUILD_CUDA
     // F-fix 8: ACR_BUILD_CUDA=ON 时追加 CudaExecutor（真实 GPU 执行器）
     // 无 CUDA 设备时 append_cuda_executors 内部跳过，调用者继续使用 CPU executor
-    extern void append_cuda_executors(ExecutorRegistry&);
-    append_cuda_executors(registry);
+    // 注意：append_cuda_executors 定义在 astro::compute::cuda 命名空间，
+    // 必须用全限定名声明，否则会被解析到当前 scheduler 命名空间（链接器找不到符号）
+    astro::compute::cuda::append_cuda_executors(registry);
 #endif
     return registry;
 }

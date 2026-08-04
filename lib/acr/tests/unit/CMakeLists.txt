@@ -40,11 +40,19 @@ target_include_directories(acr_test_utilization PRIVATE
 
 # Phase D：CUDA backend 单测（ACR_BUILD_CUDA=ON 时编译，OFF 时跳过）
 # test_cuda.cpp 用 g++ 编译（CXX），链接 acr_cuda（PUBLIC 传递 cuda/cudart + ACR_BUILD_CUDA）
+# F-fix 8: 链接 acr_scheduler 以测试真实 CPU+GPU Mixed 执行（dispatch_via_executors）
 if(ACR_BUILD_CUDA)
     add_executable(acr_test_cuda test_cuda.cpp)
-    target_link_libraries(acr_test_cuda PRIVATE acr_cuda GTest::gtest_main)
+    target_link_libraries(acr_test_cuda PRIVATE
+        acr_cuda
+        acr_scheduler
+        acr_api
+        GTest::gtest_main)
     target_include_directories(acr_test_cuda PRIVATE
         ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../scheduler
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../backends/cuda
+        ${CMAKE_CURRENT_SOURCE_DIR}/../..  # lib/acr/ 根目录（cuda_executor.hpp 引用 scheduler/）
     )
     gtest_discover_tests(acr_test_cuda DISCOVERY_MODE PRE_TEST)
 endif()
