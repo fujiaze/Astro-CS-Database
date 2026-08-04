@@ -141,3 +141,13 @@ target_include_directories(acr_test_invocation_dispatch PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../cost
 )
 gtest_discover_tests(acr_test_invocation_dispatch DISCOVERY_MODE PRE_TEST)
+
+# 23 号计划 §5：可恢复时间窗资源闭环
+add_executable(acr_test_resource_control test_resource_control.cpp)
+target_link_libraries(acr_test_resource_control PRIVATE
+    acr_scheduler acr_utilization acr_cost acr_api GTest::gtest_main)
+target_include_directories(acr_test_resource_control PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../scheduler
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../utilization
+)
+gtest_discover_tests(acr_test_resource_control DISCOVERY_MODE PRE_TEST)

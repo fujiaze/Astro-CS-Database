@@ -22,6 +22,7 @@
 #include "reduction_merger.hpp"
 
 #include <cstddef>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -29,7 +30,12 @@
 namespace astro::compute {
 struct TaskDescriptor;
 namespace cost { struct CostEstimate; }
-namespace utilization { class CpuController; class MemoryBudgetController; }
+namespace utilization {
+class CpuController;
+class MemoryBudgetController;
+struct CpuControlDecision;
+struct MemoryBudget;
+}
 }
 
 namespace astro::compute::scheduler {
@@ -48,6 +54,8 @@ struct DispatcherConfig {
     bool enable_fixed_tail_chunking{false};     // 默认关闭（审计要求）
     double fixed_tail_threshold{0.7};           // 固定阈值（仅实验用）
     std::size_t min_effective_chunk{256};       // 缩块下限
+    // 23 号计划 §5：CPU 控制时间窗（100-500ms；0=使用默认 200ms）
+    std::uint32_t control_window_ms{0};
     // F-fix 6 + F-fix 7：设备执行器注册表（可选）
     // 如果提供且包含多个可用 executor，Dispatcher 会通过 execute_via_executors 执行：
     //   - 每个空闲 executor 按自身推荐块大小领取工作块
@@ -56,6 +64,13 @@ struct DispatcherConfig {
     // 为空或仅 CPU executor 时退化为旧路径（向后兼容）
     // 禁止用户提供 CPU/GPU 比例：分配由 executor.available() + claim_next_dynamic 决定
     std::shared_ptr<ExecutorRegistry> executors;
+
+    // ===== 23 号计划 §5：采样注入缝隙（测试/诊断用）=====
+    // 生产路径为 null，使用真实控制器（CpuController::sample_and_decide /
+    // MemoryBudgetController::sample）。测试可注入确定性的采样序列，
+    // 驱动 gate close/recover 与内存动作，验证闭环行为。
+    std::function<utilization::CpuControlDecision()> cpu_sampler_override;
+    std::function<utilization::MemoryBudget()> memory_sampler_override;
 };
 
 // ===== Coverage 统计（从真实执行事件生成）=====
@@ -81,6 +96,9 @@ struct ResourceControlStats {
     std::size_t yield_count{0};                    // 错峰让步次数
     std::size_t batch_shrink_count{0};             // 批次缩小次数
     bool submit_gate_triggered{false};             // submit gate 是否触发
+    std::vector<std::string> control_actions;      // 已执行控制动作序列（诊断/证据）
+    std::uint32_t workers_registered{0};           // 注册参与 worker 数
+    std::uint32_t workers_active{0};               // 结束时活跃 worker 数
 
     // ---- F-fix 9: 可恢复 submit gate 统计 ----
     std::size_t gate_close_count{0};               // gate 关闭次数（含重关闭）
@@ -134,6 +152,9 @@ public:
     ~Dispatcher();
 
     void configure(const DispatcherConfig& cfg);
+
+    // 注册缓存释放 hook（MemoryBudget ReleaseCache 动作时调用）
+    void set_cache_release_hook(std::function<void()> hook);
 
     // 分发 range 任务（自动拆分 + 调度）
     MixedRunResult dispatch_range(std::size_t begin, std::size_t end,

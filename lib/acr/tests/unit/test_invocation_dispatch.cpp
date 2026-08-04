@@ -85,8 +85,9 @@ cost::CostEstimate make_estimate(DeviceId device, std::size_t rec,
 // ===== 调度验证用 mock 设备（不冒充真实 GPU；仅验证调度与块大小）=====
 class MockSchedulingExecutor : public DeviceExecutor {
 public:
-    MockSchedulingExecutor(std::size_t rec, std::size_t min_chunk)
-        : rec_(rec), min_chunk_(min_chunk) {}
+    MockSchedulingExecutor(std::size_t rec, std::size_t min_chunk,
+                           std::atomic<bool>* on_first_submit = nullptr)
+        : rec_(rec), min_chunk_(min_chunk), on_first_submit_(on_first_submit) {}
 
     DeviceId id() const override { return static_cast<DeviceId>(1); }
     std::string device_id() const override { return "cuda:0"; }
@@ -115,6 +116,9 @@ public:
         h.items_done = token.size();
         h.bytes_done = token.size() * 2 * sizeof(float);
         h.elapsed_ns = 1000;
+        if (on_first_submit_ && !first_submit_.exchange(false)) {
+            on_first_submit_->store(true, std::memory_order_release);
+        }
         {
             std::lock_guard<std::mutex> lk(mtx_);
             submitted_sizes_.push_back(token.size());
@@ -130,15 +134,40 @@ public:
 private:
     std::size_t rec_;
     std::size_t min_chunk_;
+    std::atomic<bool>* on_first_submit_;
+    std::atomic<bool> first_submit_{true};
     mutable std::mutex mtx_;
     std::vector<std::size_t> submitted_sizes_;
+};
+
+// 门控 CPU executor：首次提交前等待 mock/GPU 已至少提交一次，
+// 保证 Mixed 测试中 CPU 与 mock 都完成非零工作（消除线程启动竞争）。
+class GatedCpuExecutor : public CpuExecutor {
+public:
+    GatedCpuExecutor(std::size_t rec, std::size_t min_chunk,
+                     std::atomic<bool>* gpu_started)
+        : CpuExecutor("cpu", rec, min_chunk), gpu_started_(gpu_started) {}
+
+    SubmitHandle submit(const WorkToken& token,
+                        const KernelInvocation& invocation) override {
+        // 所有 CPU 提交都等待 mock 至少完成一次提交，
+        // 避免 8 个 CPU worker 在 mock 线程启动前耗尽整个池
+        while (gpu_started_ && !gpu_started_->load(std::memory_order_acquire)) {
+            std::this_thread::yield();
+        }
+        return CpuExecutor::submit(token, invocation);
+    }
+
+private:
+    std::atomic<bool>* gpu_started_;
 };
 
 // 返回 mock 指针（注册表持有所有权；调用方保留 raw 指针观察）
 MockSchedulingExecutor* make_mock_executor(ExecutorRegistry& reg,
                                            std::size_t rec,
-                                           std::size_t min_chunk) {
-    auto* mock = new MockSchedulingExecutor(rec, min_chunk);
+                                           std::size_t min_chunk,
+                                           std::atomic<bool>* on_first_submit = nullptr) {
+    auto* mock = new MockSchedulingExecutor(rec, min_chunk, on_first_submit);
     reg.register_executor(std::unique_ptr<DeviceExecutor>(mock));
     return mock;
 }
@@ -195,9 +224,11 @@ TEST(DispatchInvocation, PerDeviceClaimsDifferAndBothComplete) {
     std::vector<float> y(kN, 2.0f);
 
     auto regs = std::make_shared<ExecutorRegistry>();
-    regs->register_executor(std::make_unique<CpuExecutor>("cpu", 64, 16));
+    std::atomic<bool> gpu_started{false};
+    regs->register_executor(
+        std::make_unique<GatedCpuExecutor>(64, 16, &gpu_started));
     MockSchedulingExecutor* mock =
-        make_mock_executor(*regs, 1024, 64);  // GPU 推荐块大得多
+        make_mock_executor(*regs, 1024, 64, &gpu_started);  // GPU 推荐块大得多
 
     Dispatcher d;
     DispatcherConfig cfg;
