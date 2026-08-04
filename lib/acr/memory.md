@@ -6,6 +6,75 @@
 
 ## 进度
 
+### 2026-08-04 第二版 Fix Review 纠正（23 号计划，控制包 SHA eb0a0535...0853）
+
+**执行入口**：`23_SECOND_FIX_REVIEW_CORRECTION_PLAN.md`（审计对象
+`AstroCS_ACR_Fix_Review_2026-08-03(2).zip`，结论禁止合并 main）。
+
+**已完成（按计划章节）**：
+1. **§1 内核 ABI 分层**（`refactor(acr): separate cpu callbacks...` 0a3de3d）：
+   - `include/astro/compute/kernel_registry.hpp`：KernelRegistration（OperationId +
+     KernelArgSchema + Cpu/Cuda/Hip launcher + NumericPolicy）、KernelInvocation
+     （id/domain/buffers/scalars/traits/token_id）、KernelRegistry（稳定节点存储、
+     线程安全）；
+   - acr.hpp 的 lambda API 明确标记 CPU-only compatibility；
+   - 8 项单测：host callback 不得标记 GPU-capable、设备 launcher 缺失回退并如实报告等。
+2. **§2 动态工作池重写**（`fix(acr): replace dynamic vector blocks...` e5a700a）：
+   - WorkToken 按值返回 {id, begin, end, claimant(DeviceId), attempt}；
+   - 预分配槽位（slot[i].id==i）消除 ID/槽位错配，CAS cursor 领取 + retry queue；
+   - 完成判据 cursor>=end && inflight==0 && retry 空 && failed_terminal==0 &&
+     completed_items==end-begin；
+   - 专项测试：强制 A/B 逆序交错、gate 关闭不漏项、1000 轮压力、失败回收/重复领取、
+     exactly-once（test_work_pool.cpp）。
+3. **§3 真实 DeviceExecutor**（d0cc723）：
+   - DeviceExecutor{id, supports, queue_state, submit(WorkToken, KernelInvocation)}，
+     SubmitHandle 记录真实 device/items/bytes/duration/fallback；
+   - CpuExecutor 经 KernelRegistry CPU launcher 真实执行；
+   - 移除 dispatch_range_cost_aware 的伪 GPU 分支（旧 lambda 路径明确 CPU-only）。
+4. **§4 CostEstimator 驱动每设备领取**（5065e8d）：
+   - `CostEstimator::compute_requested_items`（设备吞吐/队列/剩余工作/内存上限）；
+   - `Dispatcher::dispatch_invocation`：每 executor 独立 claim，CPU 多 worker、
+     GPU 单 worker，实际统计来自 SubmitHandle；无 executor 支持 op 时如实失败；
+   - 全局 Dispatcher 接入 ExecutorRegistry::create_auto()。
+5. **§5 可恢复时间窗资源闭环**（f738fdf）：
+   - 100-500ms 时间窗采样（不按 task 计数），首次采样立即到期；
+   - worker 注册 active/idle；gate 迟滞 close→wait→re-sample→reopen，
+     关闭期间等待不丢工作（修复 50ms 即放弃缺陷）；
+   - batch size/claim size 实际进入执行链；MemoryBudget 全动作接入
+     （StopNewSubmit 可恢复/ShrinkBlock/ReleaseCache hook/LowMemoryPath/
+     FallbackOtherDevice/Fail 保准确 coverage）；GpuController 连接 executor 队列；
+   - 失败块重试 attempt 上限（修复无限重试 TIMEOUT）；9 项闭环测试。
+6. **§3/§1.4/§6 CUDA 桥接与经典内核**（56874dd）：
+   - C ABI 桥接 DLL（MSVC+nvcc 构建，仓库外输出 run/temp/cuda_bridge/）：
+     AXPY/COPY/REDUCE/CONV3x3 真实 GPU kernel（RTX 3060 Ti 实测通过）；
+   - MinGW 侧加载器运行时探测（无 DLL/设备不注册 executor，不靠编译宏）；
+   - classic_kernels 注册 Copy/AXPY/Reduction/Convolution CPU+CUDA launcher；
+   - dispatch_invocation 增加 worker 启动屏障；E18 经典实验改走 KernelRegistry +
+     dispatch_invocation，真实 Mixed 断言 cpu_done>0 && gpu_done>0；
+   - 9 项 CUDA/经典测试全通过（含真实 CPU+GPU Mixed）。
+7. **§6 测试纠正**（cb6444d）：
+   - Persistence.ProfileReload 修复 TIMEOUT（最小合法 profile 循环，1.4s）；
+   - MSVC /fsanitize=address 验证程序（真实 shared_work_pool.cpp +
+     kernel_registry.cpp）：1000 轮压力无 ASan 错误、故意 UAF 被检出；
+8. **§7 Evidence 清理**（7c67328）：删除仓库内旧 Evidence（工程控制/evidence/acr/），
+   改为仓库外生成（run/evidence/）。
+
+**测试结果（2026-08-04 全量）**：623/623 通过（8 项 SanitizerActual 在 MinGW 构建
+SKIPPED——本机无 ASan 运行库，真实 ASan 由 MSVC 独立验证提供；1 项 ApiReduce 别名
+声明性 SKIPPED）。无失败、无 TIMEOUT、无 SEGFAULT。
+
+**合并门禁状态**：核心审计阻断项已修复（Kernel ABI 分层、稳定 WorkToken、真实
+CPU/CUDA executor、每设备 cost 领取、时间窗资源闭环、真实 CPU+GPU Mixed、
+GTEST_SKIP、ASan 实际开启、外部单 HEAD Evidence 生成中）。**尚未合并 main**
+（待 Evidence 完整性复核与最终门禁评估）。
+
+**已知限制**：
+- UBSan/TSan：本机 MinGW（g++/clang）无运行库，不可用（如实记录，阻断项之一）；
+- CUDA 桥接 DLL 用 nvcc 11.8 + MSVC 14.50 + `-D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH`
+  构建，属仓库外工具链产物，不纳入 MinGW 构建；
+- 经典 Reduction 的 CUDA launcher 按 token_id 写入独立 partials 区域，merge 阶段
+  需累加全部 partials（E18 已实现）。
+
 ### 2026-08-02 Phase B+E+F CMake 集成 + 单测补全
 - **背景**：Phase B/E/F 代码已实现但未接入 CMake，3 个新测试未注册，存在多处编译错误。
 - **修复的编译错误**：
