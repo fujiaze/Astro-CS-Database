@@ -162,3 +162,12 @@ target_include_directories(acr_test_cuda_bridge PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../..
 )
 gtest_discover_tests(acr_test_cuda_bridge DISCOVERY_MODE PRE_TEST)
+
+# 23 号计划 §6：持续负载资源闭环（50/80/95/100% 各 30s，真实采样）
+add_executable(acr_test_resource_sustained test_resource_sustained.cpp)
+target_link_libraries(acr_test_resource_sustained PRIVATE
+    acr_scheduler acr_cost acr_api GTest::gtest_main)
+target_include_directories(acr_test_resource_sustained PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../scheduler
+)
+gtest_discover_tests(acr_test_resource_sustained DISCOVERY_MODE PRE_TEST)

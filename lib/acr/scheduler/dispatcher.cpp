@@ -350,8 +350,14 @@ struct Dispatcher::Impl {
             stats_out.control_actions.push_back(action);
         };
 
+        // worker 槽位上限（16）：batch item 即 worker 槽位，每个 item 内 while 循环
+        // 连续领取多块；避免按最大可能块数创建任务导致大量空转 worker（注册/采样膨胀）。
+        const std::size_t worker_slots = std::min(
+            max_possible_blocks,
+            std::max<std::size_t>(1,
+                std::min<std::size_t>(16, std::thread::hardware_concurrency())));
         Event ev = astro::compute::parallel_batch(
-            astro::compute::KernelId::Custom, max_possible_blocks,
+            astro::compute::KernelId::Custom, worker_slots,
             [&](std::size_t worker_idx) {
                 // 23 号计划 §5：worker 注册（所有 CPU 逻辑线程均可参与）
                 std::uint32_t worker_id = 0;
@@ -360,6 +366,15 @@ struct Dispatcher::Impl {
                     worker_id = cpu_ctrl->register_worker();
                     registered = true;
                 }
+                struct WorkerCleanup {
+                    utilization::CpuController* ctrl;
+                    std::uint32_t id;
+                    bool registered;
+                    ~WorkerCleanup() {
+                        if (ctrl && registered) ctrl->unregister_worker(id);
+                    }
+                } cleanup{cpu_ctrl.get(), worker_id, registered};
+                (void)cleanup;
 
                 const auto cpu_window = std::chrono::milliseconds(
                     cpu_ctrl ? cpu_ctrl->control_window_ms() : 200);
@@ -386,6 +401,12 @@ struct Dispatcher::Impl {
                             stats_out.cpu_actual_samples.push_back(dec.actual_ratio);
                             stats_out.cpu_sample_ts_ns.push_back(dec.timestamp_ns);
                             stats_out.cpu_valid = dec.valid;
+                            if (cpu_ctrl) {
+                                auto part = cpu_ctrl->worker_participation();
+                                if (part.registered_count > stats_out.workers_registered) {
+                                    stats_out.workers_registered = part.registered_count;
+                                }
+                            }
                         }
 
                         // 迟滞恢复：CPU 降到 target-0.05 以下且内存未 stop/fail
@@ -564,8 +585,12 @@ struct Dispatcher::Impl {
         // 23 号计划 §5：worker 参与记录
         if (cfg.enable_utilization && cpu_ctrl) {
             auto part = cpu_ctrl->worker_participation();
-            stats_out.workers_registered = part.registered_count;
-            stats_out.workers_active = part.active_count;
+            if (part.registered_count > stats_out.workers_registered) {
+                stats_out.workers_registered = part.registered_count;
+            }
+            if (part.active_count > stats_out.workers_active) {
+                stats_out.workers_active = part.active_count;
+            }
         }
 
         return r;
@@ -970,8 +995,12 @@ struct Dispatcher::Impl {
         }
         if (cfg.enable_utilization && cpu_ctrl) {
             auto part = cpu_ctrl->worker_participation();
-            stats_out.workers_registered = part.registered_count;
-            stats_out.workers_active = part.active_count;
+            if (part.registered_count > stats_out.workers_registered) {
+                stats_out.workers_registered = part.registered_count;
+            }
+            if (part.active_count > stats_out.workers_active) {
+                stats_out.workers_active = part.active_count;
+            }
         }
 
         // 4. 汇总真实统计
