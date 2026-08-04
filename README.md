@@ -17,12 +17,11 @@ AstroCS 是一个原生天文图像处理内核（C++/DLL），将真实 FITS �
 
 ## 构建
 
-编译环境（MSYS2 MinGW64 g++ 16.1.0、C++17、依赖库与坑点）见 [AGENTS.md](AGENTS.md) 的“编译环境”一节。快速开始：
+统一工具链唯一入口是 `toolchain.ps1`（环境/自检/编译/运行/审核包），规范与坑点见 [AGENTS.md](AGENTS.md) 的“统一工具链”一节。快速开始：
 
 ```powershell
-$env:Path = "C:\msys64\mingw64\bin;$env:Path"
-cd lib\orchestrator\cpp
-make
+.\toolchain.ps1 check
+.\toolchain.ps1 build
 ```
 
 ## 唯一运行示例

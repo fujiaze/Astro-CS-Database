@@ -5,10 +5,10 @@
 Astro CS Normalization Database/
 ├── lib/                    # 项目源码 (C++/Python/Go) — 唯一修改代码处
 ├── 工程控制/                # 权威工程规范、任务清单、证据
+├── toolchain.ps1           # 统一工具链唯一入口（环境/编译/运行/审核包）
 ├── testdata/                # 测试数据 + index.json 索引（只读，禁止写入运行产物）
 ├── run/                     # 运行目录（校准/Drizzle/HISS/日志/截图统一写此，gitignored）
-├── docs/                    # 本地参考文档 [待删 — Wiki 确定后删除]
-├── AGENT.md                 # 本文件
+├── AGENTS.md                # 本文件
 ├── README.md
 ├── .gitignore
 
@@ -19,6 +19,7 @@ Astro CS Normalization Database/
 - **`testdata/` 是只读原始数据目录**：禁止向其写入任何运行产物
 - **`run/` 是唯一运行输出目录**：所有程序运行时产物（校准后亮场、Drizzle 产物、HISS 文件、日志、截图等）统一写入此目录，禁止散落到 `output/`、`testdata/results/` 等位置
 - **根目录只保留临时交付包和必要文件**：不堆积旧交付
+- **根目录 ACR 控制包/审核包禁止删除**：`AstroCS_ACR_Control_Package(2).zip`、`AstroCS_ACR_Fix_Review_2026-08-03.zip`、`AstroCS_ACR_Fix_Review_2026-08-04.zip`、`AstroCS_ACR_Fix_Review/`、`_new_control_pack/` 一律保留，任何会话不得删除
 
 ### run/ 子目录约定
 
@@ -111,13 +112,13 @@ Astro CS Normalization Database/
 | Git | 2.53.0 | 系统 Git |
 | PowerShell | 7.6.3 | 项目强制使用 PowerShell 7，禁用 WSL |
 | GitHub CLI | 2.63.2 | `C:\Users\fujia\AppData\Local\Temp\gh-cli-install\bin\gh.exe` |
-| Python（工具/测试用） | 3.10.11 | 默认 `python` 即 TRAE 自带：`C:\Users\fujia\AppData\Roaming\TRAE SOLO CN\...\python.exe` |
+| Python（工具/测试用，规范） | 3.12.2 | 唯一规范 Python：`C:\Users\fujia\AppData\Local\Programs\Python\Python312\python.exe`（`py -3.12`，numpy 1.26.4） |
 
 ### PATH 与 Python 坑点（重要，勿重复踩）
 
 - 编译前必须设置：`$env:Path = "C:\msys64\mingw64\bin;$env:Path"`
-- **注意**：加上 MSYS2 PATH 后 `python` 会解析到 MSYS2 自带的 Python 3.14.5，**不要用它运行 astro_toolkit.py 或任何 Python 脚本**
-- 跑 Python 工具时：用默认 `python`（3.10.11）或 `py -3.12`（`C:\Users\fujia\AppData\Local\Programs\Python\Python312`）
+- **注意**：加上 MSYS2 PATH 后 `python` 会解析到 MSYS2 自带的 Python 3.14.5，**不要用它运行任何 Python 脚本**
+- 跑 Python 脚本时一律用规范 Python：`py -3.12` 或 `C:\Users\fujia\AppData\Local\Programs\Python\Python312\python.exe`（`toolchain.ps1` 里已固化，用 `Get-AstroCSPython`）
 - orchestrator.exe 为静态链接（`-static`），**运行不依赖 MSYS2 PATH**；DLL 模块由 DllLoader 按相对路径动态加载，重新编译后无需手工复制
 
 ### 编译顺序（模块依赖）
@@ -156,8 +157,45 @@ cd lib\healpix_db\healpix_browser_qt; cmake -G Ninja -B build; ninja -C build
 ### 环境验证命令
 
 ```powershell
-$env:Path = "C:\msys64\mingw64\bin;$env:Path"
-g++ --version          # 16.1.0
-make --version         # 4.4.1
-.\lib\orchestrator\cpp\orchestrator.exe --version   # AstroCS Orchestrator 2.0
+.\toolchain.ps1 check   # 一键自检全部工具版本
 ```
+
+---
+
+## 统一工具链（唯一入口，2026-08-04 确定）
+
+整个项目只用**一条**工具链，入口是根目录 `toolchain.ps1`。任何会话不得自建工具脚本
+（旧的 `tools/astro_toolkit.py` 已删除，不再使用），避免不同对话各自搭环境造成冲突。
+
+```powershell
+.\toolchain.ps1 check              # 自检工具版本（g++/make/cmake/ninja/git/gh/python/nlohmann/orchestrator）
+.\toolchain.ps1 build              # 按依赖顺序编译全部模块（healpix_stack 冻结跳过）
+.\toolchain.ps1 run <stage1.json>  # 运行 orchestrator（唯一正式入口）
+.\toolchain.ps1 review -Topic <主题> [-Date <YYYYMMDD>]   # 生成审核交付包
+```
+
+规范值（已固化在脚本内，勿改）：
+
+- C++ 工具链：MSYS2 MinGW64 `C:\msys64\mingw64\bin`（g++ 16.1.0 / GNU Make 4.4.1 / CMake 4.3.2 / Ninja 1.13.2）
+- 规范 Python：`py -3.12` = `C:\Users\fujia\AppData\Local\Programs\Python\Python312\python.exe`（numpy 1.26.4）
+- GitHub CLI：`C:\Users\fujia\AppData\Local\Temp\gh-cli-install\bin\gh.exe`
+
+## 审核包工作流（控制包 → 执行 → 审核包）
+
+用户把 GPT 工程控制包放到根目录作为启动提示词，执行完成后提交新的审核包。命名规范：
+
+| 类型 | 命名 | 示例 |
+| --- | --- | --- |
+| 输入控制包（GPT→项目） | `AstroCS_Control_<主题>_<YYYYMMDD>.zip` | `AstroCS_Control_JSONOrchestratorDualPrecision_20260804.zip` |
+| 输出审核包（项目→GPT） | `AstroCS_Review_<主题>_<YYYYMMDD>.zip` | `AstroCS_Review_JSONOrchestratorTrueDualPrecision_20260804.zip` |
+
+执行流程：
+
+1. 用户把 GPT 工程包放根目录（内含 `00_START_PROMPT.txt` / `START_HERE.md`）
+2. 解压到 `run/temp/<包名>/`，先读 `START_HERE.md` + `control/EXECUTION_ORDER.md` + `delivery/ACCEPTANCE_CHECKLIST.md`
+3. 先读 Wiki 与 audit 再执行；最小任务 commit、阶段完成 push 一次
+4. 全部完成后 `.\toolchain.ps1 review -Topic <主题>` 生成审核包到根目录（含 Wiki/源码/证据/日志/git refs/SHA256）
+5. 回复中给出：审核包路径 + SHA256 + 关键验证结果；不宣称超出包内范围的内容
+
+**禁止删除清单**（根目录）：ACR 控制包与审核包（ZIP 与展开目录）、R10 控制包、
+当前审核包、外部数据目录 `GaiaDR3/` `GaiaDR3SP/` `siril-1.4.3/`。
