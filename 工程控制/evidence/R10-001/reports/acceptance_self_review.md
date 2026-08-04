@@ -27,11 +27,11 @@
 | 21 | 仅一张真实帧逐 Gate | ✅ | T4 Red 单帧，未跑批量 |
 | 22 | 正式测试零失败 | ✅ | FP32/FP64 gate 均 exit_code=0 |
 | 23 | Wiki 与 README 无权威冲突 | ✅ | Wiki 已同步；README SSOT 声明已删 |
-| 24 | source 无生成产物 | ⏳ 8c | 源码树清理中 |
-| 25 | SHA256 列出全部交付文件 | ⏳ 8c | 交付 ZIP 生成时产出 |
+| 24 | source 无生成产物 | ✅ | 源码树已清理（lib/ 忽略产物 201 项，保护归档/模块 DLL）；交付 source 经 git archive 生成，0 个 exe/dll/o |
+| 25 | SHA256 列出全部交付文件 | ✅ | `run/temp/r10_delivery/SHA256SUMS.txt` 390 项全部校验通过；ZIP 见交付包 |
 | 26 | 所有外部进程有 timeout | ✅ | stage_timeout_sec（read..browser_verify） |
 | 27 | 未宣称整个 Phase1 已完成 | ✅ | 文档统一声明"尚未闭合" |
 
 ## 结论
 
-25/27 项已闭合；第 24/25 项随阶段 8c（源码清理 + 交付 ZIP + SHA256 清单）完成后闭合。
+27/27 项全部闭合。
