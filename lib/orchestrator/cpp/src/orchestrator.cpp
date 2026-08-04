@@ -154,8 +154,14 @@ int calculate_nside(double cd11, double cd12, double cd21, double cd22,
 
     // 3. 按策略计算目标 HEALPix 像素分辨率
     // "1x_to_2x_drizzle": 取 1-2x 中间值 1.5, 避免过采样
-    // HEALPix 像素分辨率 (arcsec) ≈ 3600*60*sqrt(3) / (3*nside) = 1186.18 / nside
-    // 反推: nside ≈ 1186.18 / target_resolution_arcsec
+    //
+    // R10 修复: 旧常数 1186.18 错误 (与 drizzle_engine.cpp 的 compute_auto_nside 不一致),
+    //           导致 nside 比正确值小约 178 倍 (6.3"/px 输入算出 512 而非 ~65536).
+    // 正确公式 (与 drizzle_engine.cpp R05-B03 一致, 禁止魔数 210960/1186.18):
+    //   HEALPix 像素面积 = 4π / (12 * nside²) sr = π / (3 * nside²) sr
+    //   特征线性尺度 = sqrt(像素面积) = sqrt(π/3) / nside rad
+    //   转角秒: sqrt(π/3) / nside * (180/π) * 3600 ≈ 211034.6 / nside arcsec
+    //   反推: nside ≈ 211034.6 / target_resolution_arcsec
     double drizzle_factor = 1.5;  // 默认 1x_to_2x_drizzle
     if (strategy == "fixed" || strategy == "1x") {
         drizzle_factor = 1.0;
@@ -169,13 +175,11 @@ int calculate_nside(double cd11, double cd12, double cd21, double cd22,
     }
 
     double target_resolution_arcsec = pixel_scale_arcsec / drizzle_factor;
-    // nside = 1186.18 / target_resolution_arcsec
-    // 推导: HEALPix 像素面积 = 4π/(12*nside²) sr = π/(3*nside²) sr
-    //       像素边长 ≈ sqrt(π/(3*nside²)) rad = sqrt(π/3)/nside rad
-    //                ≈ 1.0233/nside rad ≈ 58.6/nside deg ≈ 3517.6/nside * sqrt(3)/3 arcsec
-    // 简化用: resolution_arcsec ≈ 3517.6 / nside * sqrt(3)/3 ≈ 1186.18 / nside (近似)
-    // 反推 nside ≈ 1186.18 / target_resolution_arcsec
-    double nside_target = 1186.18 / target_resolution_arcsec;
+    // 标准C++不保证 M_PI 宏存在, 用 std::acos(-1.0) 派生 π (与 drizzle_engine.cpp 一致)
+    const double PI = std::acos(-1.0);
+    const double HEALPIX_SCALE_PER_NSIDE_ARCSEC =
+        std::sqrt(PI / 3.0) * (180.0 / PI) * 3600.0;  // ≈ 211034.6
+    double nside_target = HEALPIX_SCALE_PER_NSIDE_ARCSEC / target_resolution_arcsec;
 
     // 4. 找到不小于 nside_target 的最小 2 的幂次方
     //    下限 16 (Tile 父级 NSIDE 不低于 16), 上限 4194304 (2^22, 规范要求)
@@ -1804,8 +1808,10 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
         return false;
     }
 
-    // 1. 读取 data 块 (FLOAT32 [H,W])
+    // 1. 读取 data 块 (FLOAT32 或 FLOAT64 [H,W])
     //    P03-003: data 是必需块 (CALIBRATE 产出), 缺失必须失败 (退出码 3)
+    //    R10 修复: FP64 模式下 data 块为 FLOAT64, 需转换为 float* 供 PlateSolve 使用
+    //    (PlateSolve 星点检测不需要 FP64 精度, float 足够)
     const AioBlock* data_block = fn_get_block(frame_, "data");
     if (data_block == nullptr) {
         LOG_ERROR("orchestrator", "[PLATESOLVE] data 块不存在 (必需块)");
@@ -1815,7 +1821,22 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
     }
     int height = data_block->dims[0];
     int width = data_block->dims[1];
-    const float* pixels = static_cast<const float*>(data_block->data);
+    // R10: 检查 data 块类型, FP64 模式下转换为 float 供 PlateSolve 使用
+    const float* pixels = nullptr;
+    std::vector<float> pixels_fp32_buffer;  // FP64→FP32 转换缓冲区
+    if (data_block->type == AIO_BLOCK_FLOAT64) {
+        // FP64 模式: 将 double* 转换为 float* (PlateSolve 星点检测不需要 FP64 精度)
+        const double* pixels_f64 = static_cast<const double*>(data_block->data);
+        size_t n_pixels = static_cast<size_t>(width) * height;
+        pixels_fp32_buffer.resize(n_pixels);
+        for (size_t i = 0; i < n_pixels; i++) {
+            pixels_fp32_buffer[i] = static_cast<float>(pixels_f64[i]);
+        }
+        pixels = pixels_fp32_buffer.data();
+        LOG_INFO("orchestrator", "[PLATESOLVE] data 块为 FLOAT64, 已转换为 FLOAT32 供星点检测使用");
+    } else {
+        pixels = static_cast<const float*>(data_block->data);
+    }
     LOG_INFO("orchestrator", "[PLATESOLVE] 图像: " + std::to_string(width) + "x" + std::to_string(height));
 
     // 2. 从 header KV 读取初始指向 (OBJCTRA/OBJCTDEC/FOCALLEN/XPIXSZ)
@@ -3246,6 +3267,9 @@ bool Orchestrator::run_stage_read_fits(TaskResult& result) {
         ModuleId::AIO, "aio_read_fits");
     auto fn_get_pixels = dll_loader_.get_function<float* (*)(const AIOImageData*)>(
         ModuleId::AIO, "aio_get_pixel_data");
+    // R10 修复: 显式设置 AIO 模块精度模式 (PrecisionContext 单例不跨 DLL 共享)
+    auto fn_set_precision = dll_loader_.get_function<void (*)(int)>(
+        ModuleId::AIO, "aio_set_precision_mode");
     // 双精度 ABI: FP64 模式下获取 double 像素数据与 dtype
     auto fn_get_pixels_f64 = dll_loader_.get_function<double* (*)(const AIOImageData*)>(
         ModuleId::AIO, "aio_get_pixel_data_f64");
@@ -3286,6 +3310,12 @@ bool Orchestrator::run_stage_read_fits(TaskResult& result) {
         result.error_msg = "[READ_FITS] AIO 函数指针获取失败";
         result.exit_code = AstroCsExitCode::GENERIC_ERROR;
         return false;
+    }
+
+    // R10 修复: 在读取 FITS 之前, 显式设置 AIO 模块精度模式
+    // (PrecisionContext 单例在 EXE/DLL 边界不共享, 必须通过导出 API 传递)
+    if (fn_set_precision) {
+        fn_set_precision(need_fp64 ? 1 : 0);
     }
 
     // 读取 FITS 文件

@@ -1221,6 +1221,7 @@ bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator
                 snr_model->n_points, nside, depth, shift);
 
         uint32_t n_valid = 0, n_invalid = 0;
+        uint32_t drop_nan = 0, drop_radec_range = 0, drop_radec2pix = 0;
         for (uint32_t i = 0; i < snr_model->n_points; i++) {
             double ra  = snr_model->points[i].ra;
             double dec = snr_model->points[i].dec;
@@ -1229,10 +1230,17 @@ bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator
             // 跳过无效值 (NaN/Inf 或 ra/dec 越界)
             if (!std::isfinite(ra) || !std::isfinite(dec) || !std::isfinite(snr_val)) {
                 n_invalid++;
+                drop_nan++;
                 continue;
             }
             if (ra < 0.0 || ra >= 360.0 || dec < -90.0 || dec > 90.0) {
                 n_invalid++;
+                drop_radec_range++;
+                // R10 诊断: 打印前 5 个越界点的实际值, 用于根因分析
+                if (drop_radec_range <= 5) {
+                    fprintf(stderr, "[drizzle_engine] SNR 越界点[%u]: idx=%u ra=%.6f dec=%.6f snr=%.4f\n",
+                            drop_radec_range, i, ra, dec, snr_val);
+                }
                 continue;
             }
 
@@ -1240,6 +1248,7 @@ bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator
             int64_t ipix = hp_snr.radec2pix(ra, dec);
             if (ipix < 0) {
                 n_invalid++;
+                drop_radec2pix++;
                 continue;
             }
 
@@ -1254,6 +1263,8 @@ bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator
 
         fprintf(stderr, "[drizzle_engine] SNR 控制点分组完成: %u 有效, %u 无效, %zu 个 Tile 含 SNR\n",
                 n_valid, n_invalid, tile_snr_points.size());
+        fprintf(stderr, "[drizzle_engine] SNR 丢弃原因分类: NaN/Inf=%u, ra/dec越界=%u, radec2pix失败=%u\n",
+                drop_nan, drop_radec_range, drop_radec2pix);
     } else {
         fprintf(stderr, "[drizzle_engine] 无 snr_model 或控制点数为 0, 不写 SNR 子块\n");
     }

@@ -1,8 +1,10 @@
 #include "aio_fits.h"
 #include "aio_log.h"
 #include "aio_util.h"
-#include "precision_context.h"
 #include <cstdio>
+
+// R10 修复: AIO 模块内部精度模式查询 (替代跨 DLL 的 PrecisionContext)
+extern "C" int aio_internal_is_fp64();
 #include <cstdlib>
 #include <cstring>
 #include <cmath>
@@ -508,10 +510,9 @@ int fits_read_file(const char *path, AIOImageData *out) {
         aio_log(AIO_LOG_WARN, "FITS", "Data read incomplete: %zu/%zu bytes", nread, hdr.data_size);
     }
 
-    // 双精度 ABI: 根据 PrecisionContext 决定读取到 data (FP32) 还是 data_f64 (FP64)
-    // FP64 模式下, double 输入直接存储到 data_f64, 不再降级到 float32
-    // FP32 模式保持历史行为 (向后兼容)
-    bool is_fp64 = PrecisionContext::instance().is_fp64();
+    // 双精度 ABI: 根据 AIO 模块精度模式决定读取到 data (FP32) 还是 data_f64 (FP64)
+    // R10 修复: 使用 aio_internal_is_fp64() 替代 PrecisionContext (DLL 边界不共享)
+    bool is_fp64 = (aio_internal_is_fp64() != 0);
 
     if (is_fp64) {
         double *pixel_data_f64 = convert_to_float64(raw.data(), n_pixels, hdr.bitpix);

@@ -373,12 +373,19 @@ static void subdivide_healpix_edge(
     int depth,
     std::vector<Vec3>& out)
 {
-    // R08 改进2: 自适应细分阈值相对化 — hp_res_rad * 1e-12
-    //   hp_res_rad = sqrt(π/(3·Ns²)) 是 HEALPix 像素边长 (弧度)
-    //   NSIDE=64 时 hp_res_rad ≈ 0.01595 rad, hp_epsilon ≈ 1.6e-14 rad
-    //   每条边会细分到 ~256 段, 弧弦误差降到 ~1e-15
+    // R10 修复: HEALPix 边细分阈值从 1e-12 改为 1e-6
+    //   根因: hp_res_rad * 1e-12 对非大圆弧的 HEALPix 边永远不收敛.
+    //   HEALPix 赤道带等纬度边是小圆 (非大圆弧), 经线边才是大圆弧.
+    //   等纬度边的角距离偏差 ≈ sin(dec)*L²/8 (L=hp_res_rad):
+    //     NSIDE=65536: L=1.56e-5, 偏差≈1.2e-11, 旧阈值1.56e-17 → 永不收敛
+    //     导致每边递归到 MAX_DEPTH=8 (256段/边, 1024顶点/像素),
+    //     compute_overlap_area 极慢 (16.2M源像素×20候选×1024三角形=332B次操作).
+    //   新阈值 1e-6 (相对值): NSIDE=65536→1.56e-11, 1-2次二分收敛 (2-4段/边);
+    //   弧弦误差 < 1e-6*hp_res ≈ 3e-6角秒, 远超 support uint8 量化精度(0.4%).
+    //   注: WCS 边 (subdivide_wcs_edge) 用大圆弧平面偏差法 (dafa200 改进5),
+    //       因 TAN 投影直线↔大圆弧; HEALPix 边非大圆弧, 用角距离法更合适.
     double hp_res_rad = std::sqrt(PI / (3.0 * (double)Ns * (double)Ns));
-    double hp_epsilon = hp_res_rad * 1e-12;
+    double hp_epsilon = hp_res_rad * 1e-6;
 
     // 像素坐标中点 → 球面 WCS 中点
     double xm = 0.5 * (x0 + x1);
@@ -394,6 +401,8 @@ static void subdivide_healpix_edge(
     // 大圆弧中点 = normalize(p0 + p1)
     Vec3 p_mid_gc = normalize(Vec3{p0.x + p1.x, p0.y + p1.y, p0.z + p1.z});
 
+    // 角距离法: 反映 HEALPix 边偏离两端点大圆弧的程度
+    //   经线边 (大圆弧) → dev≈0, 0次二分; 等纬度边 (小圆) → dev>0, 递归细分
     double dev = angular_distance(p_mid_wcs, p_mid_gc);
 
     if (dev < hp_epsilon || depth >= HP_ADAPTIVE_MAX_DEPTH) {

@@ -103,12 +103,19 @@ typedef enum {
 
 // ============================================================================
 // SNR 控制点 (球面坐标 + snr_psf 值)
+// R10 修复: 添加 #pragma pack(1) 确保 sizeof==20, 与 HioSnrControlPoint 二进制布局一致
+//   根因: 未打包时 sizeof(SnrControlPoint)=24 (4字节尾部填充),
+//         但 orchestrator 序列化用 memcpy(dst, points, n*20) 按 20 字节连续拷贝,
+//         导致从第 2 个点起 ra/dec 错位, 产生 1609 个"越界"点.
 // ============================================================================
+#pragma pack(push, 1)
 typedef struct {
     double ra;       // 球面赤经 (度)
     double dec;      // 球面赤纬 (度)
     float  snr_psf;  // (A-B)/mad (无量纲)
 } SnrControlPoint;
+#pragma pack(pop)
+static_assert(sizeof(SnrControlPoint) == 20, "SnrControlPoint must be 20 bytes (packed, matches HioSnrControlPoint)");
 
 // ============================================================================
 // SNR 模型 (稀疏控制点 + 全局参数)

@@ -93,6 +93,10 @@ typedef struct {
 
 typedef struct AIOImageData AIOImageData;
 
+// 双精度 ABI: 显式设置 AIO 模块精度模式 (1=FP64, 0=FP32)
+// R10 修复: PrecisionContext 单例在 DLL 边界不共享, 必须通过显式 API 传递精度
+AIO_EXPORT void aio_set_precision_mode(int is_fp64);
+
 AIO_EXPORT AIOImageData *aio_read(const char *path);
 AIO_EXPORT AIOImageData *aio_read_fits(const char *path);
 AIO_EXPORT AIOImageData *aio_read_xisf(const char *path);
