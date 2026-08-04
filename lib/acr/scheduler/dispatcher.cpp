@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <barrier>
 #include <chrono>
 #include <cstdint>
 #include <functional>
@@ -685,6 +686,24 @@ struct Dispatcher::Impl {
 
         constexpr std::uint32_t kMaxAttempts = 4;  // 重试上限（防确定性失败死循环）
 
+        // 23 号计划 §4：worker 数（CPU 可用配置覆盖；GPU 单 worker）
+        std::vector<std::size_t> workers_per_exec(n_exec);
+        std::size_t total_workers = 0;
+        for (std::size_t i = 0; i < n_exec; ++i) {
+            if (supported[i]->backend_type() == "cpu") {
+                workers_per_exec[i] =
+                    cfg.invocation_cpu_workers > 0
+                        ? cfg.invocation_cpu_workers
+                        : std::min<std::size_t>(8, std::thread::hardware_concurrency());
+            } else {
+                workers_per_exec[i] = 1;
+            }
+            total_workers += workers_per_exec[i];
+        }
+        // 启动屏障：所有 executor worker 同时开始领取（消除首领取偏差，
+        // 保证 CPU 与 GPU 都能拿到非零工作，不被单方先耗尽）
+        std::barrier start_barrier(total_workers);
+
         // ===== 23 号计划 §5：可恢复资源闭环（时间窗采样 + 迟滞 gate）=====
         RecoverableGate gate;
         std::atomic<std::size_t> current_max_chunk{max_chunk};
@@ -712,13 +731,10 @@ struct Dispatcher::Impl {
         std::vector<std::thread> workers;
         for (std::size_t i = 0; i < n_exec; ++i) {
             DeviceExecutor* exec = supported[i];
-            // CPU 多 worker 用满多核；GPU 单 worker（submit 已同步）
-            const std::size_t n_workers =
-                (exec->backend_type() == "cpu")
-                    ? std::min<std::size_t>(8, std::thread::hardware_concurrency())
-                    : 1;
+            const std::size_t n_workers = workers_per_exec[i];
             for (std::size_t w = 0; w < n_workers; ++w) {
                 workers.emplace_back([&, i, exec] {
+                    start_barrier.arrive_and_wait();
                     std::uint32_t worker_id = 0;
                     bool registered = false;
                     if (cfg.enable_utilization && cpu_ctrl &&
@@ -890,6 +906,7 @@ struct Dispatcher::Impl {
                         // 每个 token 一个独立 invocation（domain 为 token 范围）
                         KernelInvocation inv = invocation;
                         inv.domain = WorkDomain{token.begin, token.end};
+                        inv.token_id = token.id;
                         SubmitHandle handle = exec->submit(token, inv);
                         if (handle.status == SubmitStatus::Ok) {
                             pool.mark_done(token);

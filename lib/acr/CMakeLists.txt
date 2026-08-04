@@ -174,7 +174,7 @@ endif()
 # === 子目录（Phase B 起逐步填充，存在则添加）===
 foreach(subdir
     api core buffers topology diagnostics
-    backends/cpu backends/alpaka backends/cuda
+    backends/cpu backends/alpaka backends/cuda backends/classic
     qualification scheduler utilization
     profile cost
     tests tools/acr_benchmark tools/acr_status tools/acr_report

@@ -16,6 +16,7 @@ target_link_libraries(acr_scheduler PUBLIC
     acr_api
     acr_cost
     acr_utilization
+    acr_cuda_bridge_loader
 )
 # F-fix 8: ACR_BUILD_CUDA=ON 时链接 acr_cuda（CudaExecutor 真实 GPU 执行器）
 if(ACR_BUILD_CUDA)

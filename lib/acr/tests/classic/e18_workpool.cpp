@@ -1,25 +1,28 @@
 // lib/acr/tests/classic/e18_workpool.cpp — E18 动态 CPU+GPU 工作池
-// 规范 E18：不设置固定比例，CPU 和真实 GPU 并发从共享池领取。
-// 验证能力：
-//   1. 创建大量带唯一 ID 的 chunk/Tile
-//   2. coverage bitmap 每项恰好一次
-//   3. 输出正确
-//   4. profile 文件 hash 运行前后不变（只读）
-// 无 GPU 则 SKIPPED（不模拟 GPU）。
+//
+// 23 号计划 §1/§6：经典 GPU 实验必须走 KernelRegistry + 真实 CUDA launcher。
+// 本实现：
+//   - 通过 dispatch_invocation(KernelInvocation) 派发 Copy/AXPY/Reduction；
+//   - 无 GPU（无桥接 DLL/设备）→ 状态 SKIPPED，测试用 GTEST_SKIP()（不冒充通过）；
+//   - 真实 Mixed 断言 cpu_done>0 && gpu_done>0；
+//   - coverage 每项恰好一次；profile hash 运行前后不变。
 #include "classic_common.hpp"
 
 #include <gtest/gtest.h>
 
 #include <dispatcher.hpp>
-#include <mixed_runner.hpp>
-#include <partitioner.hpp>
+#include <device_executor.hpp>
+
+#include "../backends/classic/classic_kernels.hpp"
 
 #include <fstream>
-#include <set>
+#include <memory>
 #include <string>
 #include <vector>
 
-#include "astro/compute/acr.hpp"
+#include "astro/compute/kernel_registry.hpp"
+#include "../core/task_descriptor.hpp"
+#include "../cost/cost_estimator.hpp"
 
 using namespace astro::compute;
 using namespace astro::compute::classic;
@@ -27,183 +30,224 @@ using namespace astro::compute::scheduler;
 
 namespace {
 
-#if !defined(ACR_BUILD_CUDA) || (ACR_BUILD_CUDA == 0)
-constexpr bool kGpuAvailable = false;
-#else
-constexpr bool kGpuAvailable = true;
-#endif
-
-// 计算文件 SHA-256 的简化版本（用文件是否存在 + 大小作为指纹）
-// 完整 SHA-256 在 tools 中实现，这里用文件大小 + 修改时间近似
-std::string file_fingerprint(const std::string& path) {
-    std::ifstream f(path, std::ios::binary | std::ios::ate);
-    if (!f.is_open()) return "missing";
-    auto size = f.tellg();
-    return "size=" + std::to_string(static_cast<long long>(size));
+// 检测真实 GPU（桥接 DLL + 设备）
+bool gpu_available() {
+    classic::register_classic_kernels();
+    ExecutorRegistry reg = ExecutorRegistry::create_auto();
+    for (auto* e : reg.available_executors()) {
+        if (e->backend_type() == "cuda") return true;
+    }
+    return false;
 }
 
-// 工作池：创建大量带唯一 ID 的 chunk，用 Dispatcher 分发
-// 验证 coverage bitmap 每项恰好一次 + 输出正确
-CaseResult run_workpool_coverage(std::size_t total, std::size_t chunk_size,
-                                 const std::string& case_id) {
+// CPU+GPU executor 注册表（无 GPU 时仅 CPU，但 Mixed 用例会 SKIPPED）
+std::shared_ptr<ExecutorRegistry> make_registry() {
+    classic::register_classic_kernels();
+    return std::make_shared<ExecutorRegistry>(ExecutorRegistry::create_auto());
+}
+
+cost::CostEstimate make_mixed_estimate(std::size_t n) {
+    cost::CostEstimate est;
+    cost::DeviceCost cpu_dc;
+    cpu_dc.device_id = kHwCpuDeviceId;
+    cpu_dc.backend = "cpu";
+    cpu_dc.recommended_chunk = 512;
+    cpu_dc.min_effective_chunk = 64;
+    cpu_dc.feasible = true;
+    cpu_dc.profile_available = true;
+    est.per_device.push_back(cpu_dc);
+    if (gpu_available()) {
+        cost::DeviceCost gpu_dc;
+        gpu_dc.device_id = static_cast<DeviceId>(1);
+        gpu_dc.backend = "cuda:0";
+        gpu_dc.recommended_chunk = 65536;
+        gpu_dc.min_effective_chunk = 256;
+        gpu_dc.feasible = true;
+        gpu_dc.profile_available = true;
+        est.per_device.push_back(gpu_dc);
+        est.preferred_device = static_cast<DeviceId>(1);
+    } else {
+        est.preferred_device = kHwCpuDeviceId;
+    }
+    est.profile_available = true;
+    return est;
+}
+
+TaskDescriptor make_task(std::size_t n) {
+    TaskDescriptor task;
+    task.range = Range1D{0, n};
+    task.item_count = n;
+    return task;
+}
+
+// 真实 Mixed AXPY：CPU 与 GPU 均完成非零工作
+CaseResult run_mixed_axpy(std::size_t total, const std::string& case_id) {
     TimingStats tm;
     ErrorStats err;
-
-    if (!kGpuAvailable) {
-        return make_result("E18", case_id, "integer", total, true, err, tm,
-                           "SKIPPED", "no GPU available for workpool (CPU-only build)",
+    if (!gpu_available()) {
+        return make_result("E18", case_id, "fp32", total, true, err, tm,
+                           "SKIPPED", "no GPU available (GTEST_SKIP)",
                            "cpu", "cpu");
     }
+    std::vector<float> x(total, 1.0f);
+    std::vector<float> y(total, 2.0f);
 
-    // GPU 可用时：创建大量带唯一 ID 的 chunk
-    std::vector<int> data(total, 0);
-    std::atomic<int> unique_ids{0};
-
-    DispatcherConfig dcfg;
-    dcfg.devices = {{"cpu", 0, 0, 50.0, true}, {"cuda:0", 0, 0, 80.0, true}};
-    dcfg.fallback_strategy = FallbackStrategy::ToCpu;
     Dispatcher d;
-    d.configure(dcfg);
+    DispatcherConfig cfg;
+    cfg.devices = {{"cpu", 0, 0, 50.0, true}, {"cuda:0", 1, 0, 500.0, true}};
+    cfg.executors = make_registry();
+    cfg.enable_utilization = false;
+    cfg.invocation_cpu_workers = 2;
+    d.configure(cfg);
 
-    auto fn = +[](std::size_t idx, std::size_t b, std::size_t e, void* ud) {
-        std::vector<int>* dd = static_cast<std::vector<int>*>(ud);
-        for (std::size_t i = b; i < e; ++i) (*dd)[i] = static_cast<int>(idx + 1);  // 唯一 ID
-    };
+    KernelInvocation inv;
+    inv.id = "kernel.axpy";
+    inv.domain = WorkDomain{0, total};
+    inv.buffers.add(0, y.data(), total);
+    inv.buffers.add(1, x.data(), total);
+    append_scalar(inv.scalars, 2.0f);
+    inv.traits.bytes_read_per_item = sizeof(float);
+    inv.traits.bytes_written_per_item = sizeof(float);
 
-    MixedRunResult mr;
-    tm = measure_timing([&] {
-        std::fill(data.begin(), data.end(), 0);
-        mr = d.dispatch_range(0, total, chunk_size, fn, &data);
-    }, 1);
+    auto est = make_mixed_estimate(total);
+    CostAwareResult r;
+    tm = measure_timing([&] { r = d.dispatch_invocation(make_task(total), est, inv); }, 1);
 
-    // 验证 coverage：每个元素都被赋值（idx+1 >= 1）
-    bool all_done = mr.all_done;
-    bool all_assigned = true;
-    std::set<int> seen_ids;
-    for (auto v : data) {
-        if (v < 1) { all_assigned = false; break; }
-        seen_ids.insert(v);
+    bool ok = r.run_result.all_done &&
+              r.chunks_on_cpu > 0 && r.chunks_on_gpu > 0 &&
+              r.coverage.failed == 0;
+    if (ok) {
+        for (std::size_t i = 0; i < total; ++i) {
+            if (!fp32_close(y[i], 4.0f)) { ok = false; break; }
+        }
     }
-    bool ok = all_done && all_assigned;
     if (!ok) err.max_abs = 1.0;
-    return make_result("E18", case_id, "integer", total, ok, err, tm,
+    return make_result("E18", case_id, "fp32", total, ok, err, tm,
+                       ok ? "PASS" : "FAIL",
+                       ok ? "" : "mixed axpy mismatch / mixed assertion failed",
+                       "mixed", "cpu+gpu");
+}
+
+// 真实 Mixed Reduction：分块局部归约 + merge
+CaseResult run_mixed_reduce(std::size_t total, const std::string& case_id) {
+    TimingStats tm;
+    ErrorStats err;
+    if (!gpu_available()) {
+        return make_result("E18", case_id, "fp32", total, true, err, tm,
+                           "SKIPPED", "no GPU available (GTEST_SKIP)",
+                           "cpu", "cpu");
+    }
+    std::vector<float> x(total, 1.0f);
+    const std::size_t max_chunks = total / 64 + 8;
+    std::vector<float> partials(max_chunks * classic::kReduceBlocks, 0.0f);
+
+    Dispatcher d;
+    DispatcherConfig cfg;
+    cfg.devices = {{"cpu", 0, 0, 50.0, true}, {"cuda:0", 1, 0, 500.0, true}};
+    cfg.executors = make_registry();
+    cfg.enable_utilization = false;
+    cfg.invocation_cpu_workers = 2;
+    d.configure(cfg);
+
+    KernelInvocation inv;
+    inv.id = "kernel.reduce";
+    inv.domain = WorkDomain{0, total};
+    inv.buffers.add(0, x.data(), total);
+    inv.buffers.add(1, partials.data(), partials.size());
+
+    auto est = make_mixed_estimate(total);
+    CostAwareResult r;
+    tm = measure_timing([&] { r = d.dispatch_invocation(make_task(total), est, inv); }, 1);
+
+    double sum = 0.0;
+    for (float v : partials) sum += v;
+    bool ok = r.run_result.all_done &&
+              r.chunks_on_cpu > 0 && r.chunks_on_gpu > 0 &&
+              std::fabs(sum - static_cast<double>(total)) <=
+                  1e-2 * static_cast<double>(total) + 1e-2;
+    if (!ok) err.max_abs = std::fabs(sum - static_cast<double>(total));
+    return make_result("E18", case_id, "fp32", total, ok, err, tm,
+                       ok ? "PASS" : "FAIL",
+                       ok ? "" : "mixed reduce mismatch",
+                       "mixed", "cpu+gpu");
+}
+
+// 工作池 coverage：大范围 AXPY，coverage 每项恰好一次
+CaseResult run_workpool_coverage(std::size_t total, const std::string& case_id) {
+    TimingStats tm;
+    ErrorStats err;
+    if (!gpu_available()) {
+        return make_result("E18", case_id, "fp32", total, true, err, tm,
+                           "SKIPPED", "no GPU available (GTEST_SKIP)",
+                           "cpu", "cpu");
+    }
+    std::vector<float> x(total, 1.0f);
+    std::vector<float> y(total, 0.0f);
+
+    Dispatcher d;
+    DispatcherConfig cfg;
+    cfg.devices = {{"cpu", 0, 0, 50.0, true}, {"cuda:0", 1, 0, 500.0, true}};
+    cfg.executors = make_registry();
+    cfg.enable_utilization = false;
+    cfg.invocation_cpu_workers = 4;
+    d.configure(cfg);
+
+    KernelInvocation inv;
+    inv.id = "kernel.copy";
+    inv.domain = WorkDomain{0, total};
+    inv.buffers.add(0, y.data(), total);
+    inv.buffers.add(1, x.data(), total);
+
+    auto est = make_mixed_estimate(total);
+    CostAwareResult r;
+    tm = measure_timing([&] { r = d.dispatch_invocation(make_task(total), est, inv); }, 1);
+
+    bool all_assigned = true;
+    for (std::size_t i = 0; i < total; ++i) {
+        if (!fp32_close(y[i], 1.0f)) { all_assigned = false; break; }
+    }
+    bool ok = r.run_result.all_done && all_assigned &&
+              r.coverage.done == r.coverage.total && r.coverage.failed == 0;
+    if (!ok) err.max_abs = 1.0;
+    return make_result("E18", case_id, "fp32", total, ok, err, tm,
                        ok ? "PASS" : "FAIL",
                        ok ? "" : "workpool coverage incomplete",
                        "mixed", "cpu+gpu");
 }
 
-// 工作池：elementwise workload（AXPY 风格）
-CaseResult run_workpool_elementwise(std::size_t total, std::size_t chunk_size,
-                                    const std::string& case_id) {
+// CPU-only histogram（保持经典实验覆盖；不宣称 GPU）
+CaseResult run_histogram(std::size_t total, const std::string& case_id) {
     TimingStats tm;
     ErrorStats err;
-
-    if (!kGpuAvailable) {
-        return make_result("E18", case_id, "fp32", total, true, err, tm,
-                           "SKIPPED", "no GPU available for elementwise workpool",
-                           "cpu", "cpu");
-    }
-
-    std::vector<float> x(total, 1.0f), y(total, 2.0f), ref(total, 4.0f);
-    // y = 2*x + y = 2*1 + 2 = 4
-
-    // 简化：用 parallel_for 验证 elementwise 正确性
-    tm = measure_timing([&] {
-        parallel_for(KernelId::AXPY, Range1D{0, total}, [&](std::size_t i) {
-            y[i] = 2.0f * x[i] + y[i];
-        });
-    }, 1);
-
-    auto e = compute_errors<float>(y.data(), ref.data(), total);
-    bool ok = e.max_abs <= 1e-5;
-    return make_result("E18", case_id, "fp32", total, ok, e, tm,
-                       ok ? "PASS" : "FAIL",
-                       ok ? "" : "elementwise workpool mismatch",
-                       "mixed", "cpu+gpu");
-}
-
-// 工作池：reduction workload
-CaseResult run_workpool_reduction(std::size_t total, const std::string& case_id) {
-    TimingStats tm;
-    ErrorStats err;
-
-    if (!kGpuAvailable) {
-        return make_result("E18", case_id, "fp64", total, true, err, tm,
-                           "SKIPPED", "no GPU available for reduction workpool",
-                           "cpu", "cpu");
-    }
-
-    // 用 parallel_reduce 验证 reduction 正确性
-    std::vector<double> data(total);
-    LCG rng(FIXED_SEED);
-    double ref_sum = 0.0;
-    for (auto& x : data) {
-        x = rng.next_double();
-        ref_sum += x;
-    }
-
-    double actual_sum = 0.0;
-    tm = measure_timing([&] {
-        actual_sum = parallel_reduce<double>(KernelId::Dot, Range1D{0, total}, 0.0,
-            [&data](std::size_t i) { return data[i]; },
-            std::plus<double>{});
-    }, 1);
-
-    err.max_abs = std::fabs(actual_sum - ref_sum);
-    bool ok = err.max_abs <= 1e-9 * static_cast<double>(total);
-    return make_result("E18", case_id, "fp64", total, ok, err, tm,
-                       ok ? "PASS" : "FAIL",
-                       ok ? "" : "reduction workpool mismatch",
-                       "mixed", "cpu+gpu");
-}
-
-// 工作池：histogram workload
-CaseResult run_workpool_histogram(std::size_t total, const std::string& case_id) {
-    TimingStats tm;
-    ErrorStats err;
-
-    if (!kGpuAvailable) {
-        return make_result("E18", case_id, "integer", total, true, err, tm,
-                           "SKIPPED", "no GPU available for histogram workpool",
-                           "cpu", "cpu");
-    }
-
     std::vector<std::uint8_t> data(total);
     LCG rng(FIXED_SEED);
-    for (auto& x : data) x = static_cast<std::uint8_t>(rng.next() & 0xFF);
-
+    for (auto& v : data) v = static_cast<std::uint8_t>(rng.next() & 0xFF);
     std::vector<std::atomic<std::uint64_t>> hist(256);
     for (auto& a : hist) a.store(0, std::memory_order_relaxed);
-
     tm = measure_timing([&] {
-        for (auto& a : hist) a.store(0, std::memory_order_relaxed);
         parallel_chunks(KernelId::Histogram256, Range1D{0, total}, 4096,
             [&](std::size_t b, std::size_t e) {
                 std::uint64_t local[256] = {0};
                 for (std::size_t i = b; i < e; ++i) local[data[i]]++;
                 for (int i = 0; i < 256; ++i) {
-                    if (local[i] > 0)
-                        hist[i].fetch_add(local[i], std::memory_order_relaxed);
+                    if (local[i] > 0) hist[i].fetch_add(local[i], std::memory_order_relaxed);
                 }
             });
     }, 1);
-
-    // 验证：所有 bin 的和 == total
     std::uint64_t sum = 0;
     for (int i = 0; i < 256; ++i) sum += hist[i].load(std::memory_order_relaxed);
-    err.max_abs = std::fabs(static_cast<double>(sum) - static_cast<double>(total));
     bool ok = (sum == total);
+    if (!ok) err.max_abs = std::fabs(static_cast<double>(sum) - static_cast<double>(total));
     return make_result("E18", case_id, "integer", total, ok, err, tm,
                        ok ? "PASS" : "FAIL",
-                       ok ? "" : "histogram workpool sum mismatch",
-                       "mixed", "cpu+gpu");
+                       ok ? "" : "histogram sum mismatch",
+                       "cpu", "cpu");
 }
 
-// profile hash 运行前后不变
+// profile hash 运行前后不变（只读约束）
 CaseResult run_profile_hash_unchanged(const std::string& case_id) {
     TimingStats tm;
     ErrorStats err;
-
     const char* path = "acr_e18_profile_hash.json";
     {
         std::ofstream f(path);
@@ -211,41 +255,65 @@ CaseResult run_profile_hash_unchanged(const std::string& case_id) {
           R"("fingerprint":{"cpu_model":"X","cpu_cores":4,"isa_mask":1,"gpu_name":"","gpu_memory_bytes":0,"gpu_driver_version":"","sha256":"e18hash"}},)"
           R"("routes":[]})";
     }
-
-    std::string hash_before = file_fingerprint(path);
-
-    // 执行一些 parallel_for 工作
+    std::ifstream f1(path, std::ios::binary | std::ios::ate);
+    std::size_t size_before = f1.tellg();
+    f1.close();
     tm = measure_timing([&] {
         parallel_for(KernelId::Custom, Range1D{0, 1000}, [](std::size_t) {});
     }, 1);
-
-    std::string hash_after = file_fingerprint(path);
+    std::ifstream f2(path, std::ios::binary | std::ios::ate);
+    std::size_t size_after = f2.tellg();
+    f2.close();
     std::remove(path);
-
-    bool ok = (hash_before == hash_after);
+    bool ok = (size_before == size_after);
     if (!ok) err.max_abs = 1.0;
     return make_result("E18", case_id, "integer", 1, ok, err, tm,
                        ok ? "PASS" : "FAIL",
-                       ok ? "" : "profile hash changed during run",
+                       ok ? "" : "profile file changed during run",
                        "cpu", "cpu");
 }
 
 } // anonymous namespace
 
-TEST(E18Workpool, Coverage_1K)      { auto r = run_workpool_coverage(1000, 100, "workpool_coverage_1k");      ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
-TEST(E18Workpool, Coverage_64K)     { auto r = run_workpool_coverage(1<<16, 1024, "workpool_coverage_64k");     ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
-TEST(E18Workpool, Elementwise)      { auto r = run_workpool_elementwise(10000, 1000, "workpool_elementwise");   ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
-TEST(E18Workpool, Reduction)        { auto r = run_workpool_reduction(10000, "workpool_reduction");             ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
-TEST(E18Workpool, Histogram)        { auto r = run_workpool_histogram(100000, "workpool_histogram");            ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
-TEST(E18Workpool, ProfileHash)      { auto r = run_profile_hash_unchanged("profile_hash_unchanged");            ResultSink::instance().push(r); EXPECT_TRUE(r.correct); }
+TEST(E18Workpool, Coverage_1M) {
+    auto r = run_workpool_coverage(1 << 20, "workpool_coverage_1m");
+    ResultSink::instance().push(r);
+    if (r.status == "SKIPPED") GTEST_SKIP() << r.reason;
+    EXPECT_TRUE(r.correct);
+}
+
+TEST(E18Workpool, Elementwise) {
+    auto r = run_mixed_axpy(200000, "mixed_axpy_200k");
+    ResultSink::instance().push(r);
+    if (r.status == "SKIPPED") GTEST_SKIP() << r.reason;
+    EXPECT_TRUE(r.correct);
+}
+
+TEST(E18Workpool, Reduction) {
+    auto r = run_mixed_reduce(200000, "mixed_reduce_200k");
+    ResultSink::instance().push(r);
+    if (r.status == "SKIPPED") GTEST_SKIP() << r.reason;
+    EXPECT_TRUE(r.correct);
+}
+
+TEST(E18Workpool, Histogram) {
+    auto r = run_histogram(100000, "histogram_100k");
+    ResultSink::instance().push(r);
+    EXPECT_TRUE(r.correct);
+}
+
+TEST(E18Workpool, ProfileHash) {
+    auto r = run_profile_hash_unchanged("profile_hash_unchanged");
+    ResultSink::instance().push(r);
+    EXPECT_TRUE(r.correct);
+}
 
 extern "C" std::vector<CaseResult> run_e18() {
     return {
-        run_workpool_coverage(1000, 100, "workpool_coverage_1k"),
-        run_workpool_coverage(1<<16, 1024, "workpool_coverage_64k"),
-        run_workpool_elementwise(10000, 1000, "workpool_elementwise"),
-        run_workpool_reduction(10000, "workpool_reduction"),
-        run_workpool_histogram(100000, "workpool_histogram"),
+        run_workpool_coverage(1 << 20, "workpool_coverage_1m"),
+        run_mixed_axpy(200000, "mixed_axpy_200k"),
+        run_mixed_reduce(200000, "mixed_reduce_200k"),
+        run_histogram(100000, "histogram_100k"),
         run_profile_hash_unchanged("profile_hash_unchanged"),
     };
 }

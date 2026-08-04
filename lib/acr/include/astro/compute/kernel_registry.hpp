@@ -93,6 +93,8 @@ struct KernelInvocation {
     BufferBindingList buffers;     // buffer 绑定
     ScalarArgBlob scalars;         // 标量参数
     TaskTraits traits{};           // 任务特征（数值策略等）
+    std::uint64_t token_id{0};     // 执行时由 executor 回填的工作块 token id
+                                   // （归约等需要按块定位输出的 kernel 使用）
 };
 
 // ===== 参数 schema（注册时声明，执行时校验）=====

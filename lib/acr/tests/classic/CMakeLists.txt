@@ -44,6 +44,7 @@ target_include_directories(acr_classic_experiments PUBLIC ${CMAKE_CURRENT_SOURCE
 target_link_libraries(acr_classic_experiments
     PUBLIC
         acr_api
+        acr_classic_kernels
         GTest::gtest
     PRIVATE
         acr_scheduler

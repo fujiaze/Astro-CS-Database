@@ -1,12 +1,28 @@
-# lib/acr/backends/cuda/CMakeLists.txt — CUDA backend（Phase D）
-# ACR_BUILD_CUDA=ON 时启用 nvcc 编译 .cu，OFF 时此目录不编译任何内容（ADR-009）。
+# lib/acr/backends/cuda/CMakeLists.txt — CUDA backend
 #
-# 设计：
-#   - target acr_cuda 静态库：cuda_backend.cu + cuda_buffer.cpp
-#   - 链接 cuda + cudart（CUDA runtime）
-#   - 依赖 acr_diagnostics（register_gpu_report_callback）+ acr_options（公共头）
-#   - PUBLIC ACR_BUILD_CUDA 编译定义传递给消费者（test/example）
-#   - nvcc 11.8：CUDA 标准 17，host 编译器用 MinGW g++（CMAKE_CUDA_HOST_COMPILER）
+# 设计（23 号计划 §3）：
+#   - acr_cuda_bridge_loader：MinGW 侧 DLL 加载器（始终编译；运行时探测
+#     acr_cuda_bridge.dll，无 DLL/设备时不注册 GPU executor，不依赖编译宏）；
+#   - acr_cuda：nvcc 直接编译的 CUDA backend（ACR_BUILD_CUDA=ON 时才启用）。
+#
+# 桥接 DLL 本体（acr_cuda_bridge.dll）用 MSVC+nvcc 在仓库外构建，
+# 构建命令见 backends/cuda/bridge/ 头文件注释与证据。
+add_library(acr_cuda_bridge_loader STATIC cuda_bridge_loader.cpp)
+target_link_libraries(acr_cuda_bridge_loader PUBLIC acr_options)
+target_include_directories(acr_cuda_bridge_loader PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/bridge
+    ${CMAKE_CURRENT_SOURCE_DIR}/../..  # lib/acr/ 根目录（scheduler/ 头）
+)
+target_link_libraries(acr_cuda_bridge_loader PRIVATE ${CMAKE_DL_LIBS})
+message(STATUS "ACR CUDA bridge loader: enabled (runtime probe, CPU-only when DLL absent)")
+
+if(NOT ACR_BUILD_CUDA)
+    return()
+endif()
+
+# nvcc 编译的 CUDA backend（ADR-009：OFF 时无任何 CUDA 引用）
 if(NOT ACR_BUILD_CUDA)
     return()
 endif()

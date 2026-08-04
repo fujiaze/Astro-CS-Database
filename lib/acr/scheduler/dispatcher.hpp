@@ -56,6 +56,8 @@ struct DispatcherConfig {
     std::size_t min_effective_chunk{256};       // 缩块下限
     // 23 号计划 §5：CPU 控制时间窗（100-500ms；0=使用默认 200ms）
     std::uint32_t control_window_ms{0};
+    // 23 号计划 §4：invocation 路径 CPU executor 的 worker 数（0=auto min(8,hw)）
+    std::size_t invocation_cpu_workers{0};
     // F-fix 6 + F-fix 7：设备执行器注册表（可选）
     // 如果提供且包含多个可用 executor，Dispatcher 会通过 execute_via_executors 执行：
     //   - 每个空闲 executor 按自身推荐块大小领取工作块
