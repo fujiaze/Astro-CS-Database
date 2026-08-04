@@ -1,1 +1,1 @@
-继续在现有AstroCS的feature/astrocompute-runtime分支修改，读取本包00_READ_FIRST；按Commit F纠正计划接通真实执行链，不改算法，不建新分支。
+继续在现有feature/astrocompute-runtime分支，读取00_READ_FIRST和22_FIX_REVIEW_CORRECTION_PLAN；修复真实设备执行、并发工作池与证据，不改算法。

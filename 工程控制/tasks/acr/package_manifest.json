@@ -1,6 +1,6 @@
 {
   "package_name": "AstroCS_ACR_Control_Package",
-  "release_status": "unreleased-authoritative-control-package",
+  "release_status": "unreleased",
   "generated_at": "2026-08-03T20:39:00+08:00",
   "branch": "feature/astrocompute-runtime",
   "source_review_pack": "AstroCS_ACR_CommitF_Review_2026-08-03(1).zip",
@@ -196,5 +196,18 @@
       "bytes": 177,
       "sha256": "abf18a630c608d7a8d030399e6861a0e89500913e7cb345a7fdf82c5e5ef9914"
     }
+  ],
+  "versioning": "none; overwrite this single authoritative package",
+  "updated_at": "2026-08-04",
+  "latest_audit": "audits/FIX_REVIEW_AUDIT.md",
+  "current_priority_plan": "22_FIX_REVIEW_CORRECTION_PLAN.md",
+  "merge_to_main_allowed": false,
+  "merge_blockers": [
+    "dynamic work pool concurrency safety not proven",
+    "real per-device executor chain not connected",
+    "real CPU+GPU mixed execution not verified",
+    "95% sustained resource-control loop not verified",
+    "sanitizers not run",
+    "single clean HEAD evidence not produced"
   ]
 }

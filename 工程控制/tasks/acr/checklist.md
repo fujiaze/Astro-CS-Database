@@ -72,3 +72,22 @@
 - [ ] 最新main回归通过
 - [ ] 合并后普通启动无ACR副作用
 - [ ] 全部完成后才允许 `--no-ff` 合并main
+
+
+## Fix Review新增硬门禁
+
+- [ ] 动态池不返回指向并发增长容器的裸指针
+- [ ] block id与稳定槽位永久一致
+- [ ] 强制线程交错和高并发压力测试通过
+- [ ] CPU与每个GPU均有真实DeviceExecutor
+- [ ] 每设备使用自己的CostEstimate和claim块大小
+- [ ] GPU数量不再只影响CPU块大小
+- [ ] actual设备ID来自真实completion event，无`cuda:0`硬编码
+- [ ] submit gate可关闭、等待并恢复，不遗留未完成块
+- [ ] cached batch/queue决策实际进入执行链
+- [ ] MemoryBudget每种声明动作均实际执行或明确unsupported
+- [ ] 50/80/95/100持续负载每档至少30秒
+- [ ] Fix Evidence无旧HEAD混装
+- [ ] `git status --porcelain`为空
+- [ ] 无TIMEOUT被统计为PASS
+- [ ] UTF-8路径SHA-256可完整复核

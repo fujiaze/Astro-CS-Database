@@ -1,7 +1,7 @@
 # Agent总执行指令
 
 1. 只使用现有 `feature/astrocompute-runtime`，不新建仓库或版本分支。
-2. 首先读取 `00_READ_FIRST.md` 和 `21_COMMIT_F_CORRECTION_PLAN.md`。
+2. 首先读取 `00_READ_FIRST.md` 和 `22_FIX_REVIEW_CORRECTION_PLAN.md`；后者为当前最高优先级。
 3. Commit F仅视为中间基础，不得宣称Cost-aware Mixed或95%闭环完成。
 4. 保留CPU采样、MemoryBudget接口和尾段缩块实验，但按计划修正命名和接线。
 5. 优先修复path guard、单一HEAD、coverage和actual执行报告。
@@ -16,3 +16,7 @@
 14. 所有外部命令、构建和测试必须设置明确超时。
 15. 每阶段原子提交；失败不得伪装PASS，继续交付完整证据。
 16. 只有CHECKLIST全部通过后，才允许 `--no-ff` 合并main备用。
+
+17. 动态SharedWorkPool未消除ID/索引错位与容器数据竞争前，不得继续叠加调度功能。
+18. GPU可用数量不得只用于块大小计算；必须由真实DeviceExecutor领取并完成工作。
+19. TIMEOUT不得统计为PASS，Evidence工作树必须为空且所有HEAD完全一致。

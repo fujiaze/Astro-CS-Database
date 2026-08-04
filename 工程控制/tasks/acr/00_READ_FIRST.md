@@ -1,6 +1,6 @@
 # AstroCS ACR 底层支线开发控制包
 
-更新时间：2026-08-03  
+更新时间：2026-08-04  
 唯一开发分支：`feature/astrocompute-runtime`  
 最终归宿：全部底层验收通过后合并到 `main` 备用。  
 发布状态：未发布；本包无版本号，后续只覆盖更新这一份权威控制包。
@@ -8,14 +8,16 @@
 ## 0. 工程启动词
 
 ```text
-继续在现有AstroCS的feature/astrocompute-runtime分支修改，读取本包00_READ_FIRST；按Commit F纠正计划接通真实执行链，不改算法，不建新分支。
+继续在现有feature/astrocompute-runtime分支，读取00_READ_FIRST和22_FIX_REVIEW_CORRECTION_PLAN；修复真实设备执行、并发工作池与证据，不改算法。
 ```
 
 同样内容见 `00_AGENT_START_PROMPT.txt`。分支已存在时必须继续增量修改；禁止新建仓库、日期分支、`-v2` 分支或第二套 ACR。
 
 ## 1. 当前审计状态
 
-最新审计对象：`AstroCS_ACR_CommitF_Review_2026-08-03(1).zip`。
+最新审计对象：`AstroCS_ACR_Fix_Review_2026-08-03.zip`。
+
+最新审计结论见`audits/FIX_REVIEW_AUDIT.md`，当前最高优先级执行入口为`22_FIX_REVIEW_CORRECTION_PLAN.md`。
 
 Commit F 可以保留为以下中间基础：
 
@@ -94,7 +96,8 @@ CostEstimator 的职责是估算；Dispatcher 的职责是执行。任何“推�
 ## 5. 阅读顺序
 
 1. `01_FROZEN_REQUIREMENTS.md`
-2. `21_COMMIT_F_CORRECTION_PLAN.md`
+2. `22_FIX_REVIEW_CORRECTION_PLAN.md`
+3. `21_COMMIT_F_CORRECTION_PLAN.md`
 3. `19_CURRENT_BRANCH_CORRECTION_TASKS.md`
 4. `07_COST_MODEL_AND_DYNAMIC_SCHEDULING.md`
 5. `08_RESOURCE_CONTROL_SPEC.md`

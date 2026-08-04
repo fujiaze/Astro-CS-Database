@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ACR Device Execution Report",
+  "type": "object",
+  "required": ["task_id", "devices", "coverage", "all_done"],
+  "properties": {
+    "task_id": {"type": "string"},
+    "predicted_primary_device": {"type": "string"},
+    "actual_primary_device": {"type": "string"},
+    "devices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["device_id", "chunks_done", "items_done", "failures", "elapsed_ns"],
+        "properties": {
+          "device_id": {"type": "string"},
+          "chunks_done": {"type": "integer", "minimum": 0},
+          "items_done": {"type": "integer", "minimum": 0},
+          "failures": {"type": "integer", "minimum": 0},
+          "elapsed_ns": {"type": "integer", "minimum": 0},
+          "estimated": {"type": "boolean"}
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "required": ["pending", "claimed", "done", "failed"],
+      "properties": {
+        "pending": {"type": "integer", "minimum": 0},
+        "claimed": {"type": "integer", "minimum": 0},
+        "done": {"type": "integer", "minimum": 0},
+        "failed": {"type": "integer", "minimum": 0}
+      }
+    },
+    "all_done": {"type": "boolean"}
+  }
+}
