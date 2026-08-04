@@ -254,28 +254,51 @@ std::string find_orchestrator_exe() {
 // 辅助: 写入有效的 stage1.json 配置文件
 // 返回: 文件路径
 // ============================================================================
+// 查找包含 testdata/Galaxy_Center_T4 的项目根 (从 cwd 向上)
+static std::string find_project_root() {
+    fs::path cur = fs::absolute(fs::current_path());
+    for (int i = 0; i < 8; ++i) {
+        fs::path light = cur / "testdata" / "Galaxy_Center_T4" / "lights" / "panel3"
+                         / "Galaxy_Center_mosaic3_T4_flying_dutchman-20250718@001638-180S-Red.fts";
+        if (fs::exists(light)) {
+            return cur.string();
+        }
+        cur = cur.parent_path();
+    }
+    return fs::absolute(fs::current_path()).string();
+}
+
 static std::string write_valid_stage1_json(const std::string& tmpdir,
                                             const std::string& filename = "stage1.json") {
     std::string path = tmpdir + "/" + filename;
+    std::string root = find_project_root();
+    std::replace(root.begin(), root.end(), '\\', '/');
+    std::string light = root + "/testdata/Galaxy_Center_T4/lights/panel3/Galaxy_Center_mosaic3_T4_flying_dutchman-20250718@001638-180S-Red.fts";
+    std::string mb = root + "/testdata/T4 calibration files/masterBias_BIN-1_4500x3600.xisf";
+    std::string md = root + "/testdata/T4 calibration files/masterDark_BIN-1_4500x3600_EXPOSURE-180.00s.xisf";
+    std::string mf = root + "/testdata/T4 calibration files/masterFlat_BIN-1_4500x3600_FILTER-Red_mono.xisf";
     std::ofstream ofs(path);
     ofs << "{"
-        << "\"schema_version\":\"1.0\","
+        << "\"schema_version\":\"1.1\","
         << "\"pipeline\":\"stage1\","
         << "\"precision\":\"fp32\","
         << "\"input\":{"
-        <<   "\"light\":\"nonexistent_frame.fts\","
-        <<   "\"master_bias\":null,"
-        <<   "\"master_dark\":null,"
-        <<   "\"master_flat\":null"
+        <<   "\"light\":\"" << light << "\","
+        <<   "\"master_bias\":\"" << mb << "\","
+        <<   "\"master_dark\":\"" << md << "\","
+        <<   "\"master_flat\":\"" << mf << "\""
         << "},"
         << "\"calibration\":{"
         <<   "\"mode\":\"standard\","
         <<   "\"light_exposure_s\":180.0,"
-        <<   "\"dark_exposure_s\":null"
+        <<   "\"dark_exposure_s\":180.0,"
+        <<   "\"fallback\":\"exposure_ratio\""
         << "},"
         << "\"platesolve\":{"
         <<   "\"gaia_catalog\":\"GaiaDR3\","
-        <<   "\"max_stars\":2000"
+        <<   "\"max_stars\":2000,"
+        <<   "\"initial_ra_deg\":null,"
+        <<   "\"initial_dec_deg\":null"
         << "},"
         << "\"psf\":{"
         <<   "\"fit_radius\":8,"
@@ -306,7 +329,11 @@ static std::string write_valid_stage1_json(const std::string& tmpdir,
         << "\"execution\":{"
         <<   "\"stop_after\":\"hiss_verify\","
         <<   "\"threads\":0,"
-        <<   "\"stage_timeout_sec\":{}"
+        <<   "\"stage_timeout_sec\":{"
+        <<     "\"read\":60,\"calibrate\":120,\"platesolve\":300,\"psf\":120,"
+        <<     "\"photometric\":300,\"snr\":120,\"nside\":120,\"drizzle\":1800,"
+        <<     "\"hiss_verify\":120,\"browser_verify\":120"
+        <<   "}"
         << "}"
         << "}";
     ofs.close();
@@ -491,10 +518,12 @@ void test_part2_schema_validation_and_parsing() {
         ss << ifs.rdbuf();
         std::string content = ss.str();
         ifs.close();
-        // 将 "schema_version":"1.0" 替换为 "schema_version":"2.0"
-        size_t pos = content.find("\"schema_version\":\"1.0\"");
+        // 将 "schema_version":"1.1" 替换为 "schema_version":"2.0"
+        const std::string old_sv = "\"schema_version\":\"1.1\"";
+        const std::string new_sv = "\"schema_version\":\"2.0\"";
+        size_t pos = content.find(old_sv);
         if (pos != std::string::npos) {
-            content.replace(pos, 22, "\"schema_version\":\"2.0\"");
+            content.replace(pos, old_sv.length(), new_sv);
         }
         std::string bad_path = tmpdir + "/bad_version.json";
         std::ofstream ofs(bad_path);
@@ -560,9 +589,13 @@ void test_part2_schema_validation_and_parsing() {
         ss << ifs.rdbuf();
         std::string content = ss.str();
         ifs.close();
-        size_t pos = content.find("\"light\":\"nonexistent_frame.fts\"");
+        // 找到 "light":"<绝对路径>" 并替换为空串
+        size_t pos = content.find("\"light\":\"");
         if (pos != std::string::npos) {
-            content.replace(pos, 31, "\"light\":\"\"");
+            size_t end = content.find("\"", pos + 9);
+            if (end != std::string::npos) {
+                content.replace(pos, end - pos + 1, "\"light\":\"\"");
+            }
         }
         std::string bad_path = tmpdir + "/empty_light.json";
         std::ofstream ofs(bad_path);
@@ -667,24 +700,19 @@ void test_part2_schema_validation_and_parsing() {
 
     // 测试 12: execution.stop_after 非法值验证失败
     {
-        std::string path = tmpdir + "/bad_stop_after.json";
+        std::string path = write_valid_stage1_json(tmpdir, "bad_stop_after.json");
+        std::ifstream ifs(path);
+        std::stringstream ss;
+        ss << ifs.rdbuf();
+        std::string content = ss.str();
+        ifs.close();
+        const std::string old_str = "\"stop_after\":\"hiss_verify\"";
+        size_t pos = content.find(old_str);
+        if (pos != std::string::npos) {
+            content.replace(pos, old_str.length(), "\"stop_after\":\"invalid_stage\"");
+        }
         std::ofstream ofs(path);
-        ofs << "{\"schema_version\":\"1.0\",\"pipeline\":\"stage1\","
-            << "\"precision\":\"fp32\","
-            << "\"input\":{\"light\":\"x.fts\",\"master_bias\":null,"
-            << "\"master_dark\":null,\"master_flat\":null},"
-            << "\"calibration\":{\"mode\":\"standard\","
-            << "\"light_exposure_s\":1.0,\"dark_exposure_s\":null},"
-            << "\"platesolve\":{\"gaia_catalog\":\"G\",\"max_stars\":1},"
-            << "\"psf\":{\"fit_radius\":8,\"max_iterations\":100,\"tolerance\":1e-6},"
-            << "\"photometric\":{\"gaia_spectra\":\"s\",\"filter_response\":\"f\",\"qe_curve\":\"q\"},"
-            << "\"snr\":{\"estimator_id\":1,\"sampling_scale\":1.0},"
-            << "\"drizzle\":{\"mode\":\"precise\",\"pixfrac\":1.0,"
-            << "\"nside\":{\"mode\":\"auto\"},\"ordering\":\"nested\"},"
-            << "\"output\":{\"hiss\":\"o.hiss\",\"log\":\"o.log\","
-            << "\"diagnostics_dir\":\"o\",\"overwrite\":false},"
-            << "\"execution\":{\"stop_after\":\"invalid_stage\",\"threads\":0,"
-            << "\"stage_timeout_sec\":{}}}";
+        ofs << content;
         ofs.close();
         bool ok = validate_stage1_schema(path, err);
         ASSERT_FALSE(ok, "stop_after=invalid_stage 验证失败");
@@ -708,7 +736,7 @@ void test_part2_schema_validation_and_parsing() {
         Stage1Config config;
         int ret = parse_stage1_config(path, config, err);
         ASSERT_EQ(ret, 0, "parse_stage1_config 成功返回 0");
-        ASSERT_EQ(config.schema_version, std::string("1.0"), "schema_version 填充正确");
+        ASSERT_EQ(config.schema_version, std::string("1.1"), "schema_version 填充正确");
         ASSERT_EQ(config.pipeline, std::string("stage1"), "pipeline 填充正确");
         ASSERT_TRUE(config.precision == PrecisionMode::FP32, "precision 填充为 FP32");
         ASSERT_EQ(config.calibration.mode, std::string("standard"), "calibration.mode 填充正确");
@@ -722,25 +750,36 @@ void test_part2_schema_validation_and_parsing() {
 
     // 测试 15: parse_stage1_config 将相对路径解析为绝对路径
     {
-        std::string path = tmpdir + "/relpath_test.json";
+        // 写入项目根目录, 使相对路径 "testdata/..." 真实存在 (runtime path check)
+        std::string root = find_project_root();
+        std::replace(root.begin(), root.end(), '\\', '/');
+        std::string path = root + "/_relpath_test.json";
         std::ofstream ofs(path);
         ofs << "{"
-            << "\"schema_version\":\"1.0\",\"pipeline\":\"stage1\",\"precision\":\"fp64\","
-            << "\"input\":{\"light\":\"relative/light.fts\",\"master_bias\":null,"
-            << "\"master_dark\":null,\"master_flat\":null},"
+            << "\"schema_version\":\"1.1\",\"pipeline\":\"stage1\",\"precision\":\"fp64\","
+            << "\"input\":{\"light\":\"testdata/Galaxy_Center_T4/lights/panel3/Galaxy_Center_mosaic3_T4_flying_dutchman-20250718@001638-180S-Red.fts\","
+            << "\"master_bias\":\"testdata/T4 calibration files/masterBias_BIN-1_4500x3600.xisf\","
+            << "\"master_dark\":\"testdata/T4 calibration files/masterDark_BIN-1_4500x3600_EXPOSURE-180.00s.xisf\","
+            << "\"master_flat\":\"testdata/T4 calibration files/masterFlat_BIN-1_4500x3600_FILTER-Red_mono.xisf\"},"
             << "\"calibration\":{\"mode\":\"standard\","
-            << "\"light_exposure_s\":120.0,\"dark_exposure_s\":null},"
-            << "\"platesolve\":{\"gaia_catalog\":\"catalog/GaiaDR3\",\"max_stars\":500},"
+            << "\"light_exposure_s\":120.0,\"dark_exposure_s\":120.0,"
+            << "\"fallback\":\"exposure_ratio\"},"
+            << "\"platesolve\":{\"gaia_catalog\":\"GaiaDR3\",\"max_stars\":500,"
+            << "\"initial_ra_deg\":null,\"initial_dec_deg\":null},"
             << "\"psf\":{\"fit_radius\":4,\"max_iterations\":50,\"tolerance\":1e-5},"
-            << "\"photometric\":{\"gaia_spectra\":\"data/GaiaDR3SP\","
-            << "\"filter_response\":\"cfg/filters.json\",\"qe_curve\":\"cfg/qe.json\"},"
+            << "\"photometric\":{\"gaia_spectra\":\"GaiaDR3SP\","
+            << "\"filter_response\":\"lib/photometric_calib/data/response_curves/filters.json\","
+            << "\"qe_curve\":\"lib/photometric_calib/data/response_curves/qe_curves.json\"},"
             << "\"snr\":{\"estimator_id\":2,\"sampling_scale\":0.5},"
             << "\"drizzle\":{\"mode\":\"precise\",\"pixfrac\":0.8,"
             << "\"nside\":{\"mode\":\"explicit\",\"value\":512},\"ordering\":\"nested\"},"
-            << "\"output\":{\"hiss\":\"output/result.hiss\",\"log\":\"output/run.log\","
-            << "\"diagnostics_dir\":\"output/diag\",\"overwrite\":true},"
+            << "\"output\":{\"hiss\":\"run/temp/r11_delivery/relpath_out.hiss\","
+            << "\"log\":\"run/temp/r11_delivery/relpath_run.log\","
+            << "\"diagnostics_dir\":\"run/temp/r11_delivery/relpath_diag\",\"overwrite\":true},"
             << "\"execution\":{\"stop_after\":\"drizzle\",\"threads\":4,"
-            << "\"stage_timeout_sec\":{\"calibrate\":60.0,\"drizzle\":300.0}}"
+            << "\"stage_timeout_sec\":{\"read\":60,\"calibrate\":60.0,\"platesolve\":300,"
+            << "\"psf\":120,\"photometric\":300,\"snr\":120,\"nside\":120,"
+            << "\"drizzle\":300.0,\"hiss_verify\":120,\"browser_verify\":120}}"
             << "}";
         ofs.close();
 
@@ -752,7 +791,7 @@ void test_part2_schema_validation_and_parsing() {
         // Windows 上 fs::weakly_canonical 会将 '/' 转为 '\', 需要规范化后比较
         std::string normalized_light = config.input.light;
         std::replace(normalized_light.begin(), normalized_light.end(), '\\', '/');
-        ASSERT_TRUE(normalized_light.find("relative/light.fts") != std::string::npos,
+        ASSERT_TRUE(normalized_light.find("Galaxy_Center_T4") != std::string::npos,
                     "input.light 包含原始相对路径片段");
         ASSERT_TRUE(fs::path(config.input.light).is_absolute(),
                     "input.light 解析为绝对路径");
@@ -768,13 +807,15 @@ void test_part2_schema_validation_and_parsing() {
         ASSERT_EQ(config.drizzle.nside_mode, std::string("explicit"), "nside_mode=explicit");
         ASSERT_EQ(config.drizzle.nside_value, 512, "nside_value=512");
 
-        // 验证 stage_timeout_sec
-        ASSERT_EQ(config.execution.stage_timeout_sec.size(), static_cast<size_t>(2),
-                  "stage_timeout_sec 含 2 个条目");
+        // 验证 stage_timeout_sec (v1.1 schema 要求全部 10 键)
+        ASSERT_EQ(config.execution.stage_timeout_sec.size(), static_cast<size_t>(10),
+                  "stage_timeout_sec 含 10 个条目");
         ASSERT_EQ(config.execution.stage_timeout_sec["calibrate"], 60.0,
                   "stage_timeout_sec.calibrate=60.0");
         ASSERT_EQ(config.execution.stage_timeout_sec["drizzle"], 300.0,
                   "stage_timeout_sec.drizzle=300.0");
+        std::error_code ec;
+        fs::remove(path, ec);  // 清理根目录临时配置文件
     }
 
     // 测试 16: parse_stage1_config 计算 SHA256 (64 位十六进制)
@@ -1435,27 +1476,19 @@ void test_part6_json_entry_stage1_execution() {
         std::string json_a = write_valid_stage1_json(tmpdir, "diff_a.json");
         std::string json_b = tmpdir + "/diff_b.json";
         {
+            // 基于合法 v1.1 配置, 仅改 precision 为 fp64, 得到不同 sha256
+            std::ifstream ifs(json_a);
+            std::stringstream ss;
+            ss << ifs.rdbuf();
+            std::string content = ss.str();
+            ifs.close();
+            const std::string old_p = "\"precision\":\"fp32\"";
+            size_t ppos = content.find(old_p);
+            if (ppos != std::string::npos) {
+                content.replace(ppos, old_p.length(), "\"precision\":\"fp64\"");
+            }
             std::ofstream ofs(json_b);
-            ofs << "{"
-                << "\"schema_version\":\"1.0\",\"pipeline\":\"stage1\",\"precision\":\"fp64\","
-                << "\"input\":{\"light\":\"different.fts\",\"master_bias\":null,"
-                << "\"master_dark\":null,\"master_flat\":null},"
-                << "\"calibration\":{\"mode\":\"standard\","
-                << "\"light_exposure_s\":300.0,\"dark_exposure_s\":null},"
-                << "\"platesolve\":{\"gaia_catalog\":\"GaiaDR3\",\"max_stars\":1000},"
-                << "\"psf\":{\"fit_radius\":4,\"max_iterations\":50,\"tolerance\":1e-5},"
-                << "\"photometric\":{\"gaia_spectra\":\"GaiaDR3SP\","
-                << "\"filter_response\":\"f.json\",\"qe_curve\":\"q.json\"},"
-                << "\"snr\":{\"estimator_id\":2,\"sampling_scale\":2.0},"
-                << "\"drizzle\":{\"mode\":\"precise\",\"pixfrac\":0.5,"
-                << "\"nside\":{\"mode\":\"auto\"},\"ordering\":\"nested\"},"
-                << "\"output\":{\"hiss\":\"" << tmpdir << "/b.hiss\","
-                << "\"log\":\"" << tmpdir << "/b.log\","
-                << "\"diagnostics_dir\":\"" << tmpdir << "/diag\","
-                << "\"overwrite\":false},"
-                << "\"execution\":{\"stop_after\":\"drizzle\",\"threads\":4,"
-                << "\"stage_timeout_sec\":{}}"
-                << "}";
+            ofs << content;
             ofs.close();
         }
 
