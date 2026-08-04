@@ -402,6 +402,38 @@ std::size_t CostEstimator::compute_max_chunk_by_memory(const TaskDescriptor& tas
     return compute_max_chunk_by_memory_impl(task, *dev);
 }
 
+// ===== 23 号计划 §4：每设备块大小推算 =====
+// 目标批次时长 × 设备吞吐 → requested_items；队列越深块越小；尾部收缩。
+// 只使用该设备的 DeviceCost（每 executor 独立），与设备数量无关。
+std::size_t CostEstimator::compute_requested_items(
+    const DeviceCost& cost, std::size_t remaining,
+    std::size_t queue_depth) const noexcept {
+    if (remaining == 0) return 0;
+
+    std::size_t base = cost.recommended_chunk;
+    if (base == 0) base = kDefaultRecommendedChunk;
+
+    // 队列越深，块越小（控制提交节奏与拖尾延迟）
+    if (queue_depth > 0) {
+        base /= (queue_depth + 1);
+    }
+    // 尾部收缩：剩余不足 2 块时直接取剩余
+    if (remaining < base * 2) {
+        base = remaining;
+    }
+    // 受该设备内存上限约束
+    if (cost.max_chunk_by_memory > 0 && base > cost.max_chunk_by_memory) {
+        base = cost.max_chunk_by_memory;
+    }
+    // 不小于该设备最小有效块
+    if (cost.min_effective_chunk > 0 && base < cost.min_effective_chunk) {
+        base = cost.min_effective_chunk;
+    }
+    if (base > remaining) base = remaining;
+    if (base == 0) base = 1;
+    return base;
+}
+
 // ===== 单设备成本估算 =====
 DeviceCost CostEstimator::estimate_for_device(const TaskDescriptor& task,
                                                DeviceId device) const {

@@ -164,6 +164,19 @@ public:
         const cost::CostEstimate& estimate,
         ChunkKernelFn fn, void* user_data);
 
+    // ===== 23 号计划 §3/§4：可加速 KernelInvocation 派发 =====
+    // 把 KernelInvocation 交给支持其 OperationId 的 DeviceExecutor；
+    // 每个 executor 按自身 CostEstimate（recommended_chunk/队列/剩余工作）
+    // 独立计算 requested_items 并动态领取；CPU 与 GPU 可同时领取，
+    // 设备忙时不阻塞其他空闲设备；禁止用户提供 CPU/GPU 比例。
+    // 无 executor 支持该 op 时如实失败（不伪装 CPU/GPU 执行）。
+    // 注意：本路径只接受 KernelRegistry 注册过的可加速 kernel；
+    // 旧 lambda/ChunkKernelFn 走 dispatch_range_cost_aware（CPU-only）。
+    CostAwareResult dispatch_invocation(
+        const TaskDescriptor& task,
+        const cost::CostEstimate& estimate,
+        const KernelInvocation& invocation);
+
     // ===== CurrentState 访问（cost-aware 调度后可用）=====
     const CurrentState& current_state() const noexcept;
     CurrentState& current_state() noexcept;

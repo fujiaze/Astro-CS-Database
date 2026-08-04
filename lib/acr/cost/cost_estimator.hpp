@@ -120,6 +120,14 @@ public:
     // ===== 单设备成本估算（不含 queue_wait，queue_wait 由 Dispatcher 运行时填）=====
     DeviceCost estimate_for_device(const TaskDescriptor& task, DeviceId device) const;
 
+    // ===== 23 号计划 §4：每设备块大小推算 =====
+    // 每个 executor 每次领取前用自身 DeviceCost + 当前队列 + 剩余工作计算
+    // requested_items（目标批次时长 × 吞吐，队列越深块越小，尾部收缩）。
+    // 禁止用一个全局推荐块分发给所有设备；GPU 数量不得折算 CPU 块大小。
+    std::size_t compute_requested_items(const DeviceCost& cost,
+                                        std::size_t remaining,
+                                        std::size_t queue_depth = 0) const noexcept;
+
     // ===== 成本模型常量（公开，便于测试调整）=====
     static constexpr std::size_t kDefaultMinChunk = 1024;          // 默认最小块
     static constexpr std::size_t kDefaultRecommendedChunk = 65536; // 默认推荐块

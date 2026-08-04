@@ -131,3 +131,13 @@ target_include_directories(acr_test_device_executor PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../scheduler
 )
 gtest_discover_tests(acr_test_device_executor DISCOVERY_MODE PRE_TEST)
+
+# 23 号计划 §4：CostEstimator 驱动的每设备动态领取（dispatch_invocation）
+add_executable(acr_test_invocation_dispatch test_invocation_dispatch.cpp)
+target_link_libraries(acr_test_invocation_dispatch PRIVATE
+    acr_scheduler acr_cost acr_api GTest::gtest_main)
+target_include_directories(acr_test_invocation_dispatch PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../scheduler
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../cost
+)
+gtest_discover_tests(acr_test_invocation_dispatch DISCOVERY_MODE PRE_TEST)

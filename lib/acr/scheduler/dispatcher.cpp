@@ -563,6 +563,204 @@ struct Dispatcher::Impl {
             }
         }
     }
+
+    // ===== 23 号计划 §3/§4：通过 DeviceExecutor 执行 KernelInvocation =====
+    // 每个 executor 按自身 DeviceCost（recommended_chunk + 队列 + 剩余工作）
+    // 计算 requested_items 并独立 claim；CPU/GPU 同时领取，设备忙时不等待。
+    // 实际统计（device/items/bytes/duration）来自 SubmitHandle（真实完成）。
+    struct InvocationExecStats {
+        std::string device_id;
+        std::string backend_type;
+        std::size_t done_blocks{0};
+        std::size_t failed_blocks{0};
+        std::size_t items_done{0};
+        std::size_t bytes_done{0};
+        std::uint64_t elapsed_ns{0};
+    };
+
+    // 从 estimate 取某设备的 DeviceCost；缺失时用 executor 默认值（fallback）
+    static const cost::DeviceCost* find_device_cost(
+        const cost::CostEstimate& estimate, DeviceId device) {
+        for (const auto& dc : estimate.per_device) {
+            if (dc.device_id == device) return &dc;
+        }
+        return nullptr;
+    }
+
+    MixedRunResult execute_invocation_via_executors(
+        const KernelInvocation& invocation,
+        const cost::CostEstimate& estimate,
+        ResourceControlStats& stats_out,
+        std::vector<InvocationExecStats>& per_exec_stats_out,
+        std::vector<std::string>& actual_devices_out) {
+        MixedRunResult r;
+        r.total_chunks = 0;
+        r.all_done = false;
+
+        const std::size_t begin = invocation.domain.begin;
+        const std::size_t end = invocation.domain.end;
+        if (begin >= end) {
+            r.all_done = true;
+            return r;
+        }
+
+        // 1. 收集支持该 OperationId 的可用 executor
+        auto all = executors ? executors->available_executors()
+                             : std::vector<DeviceExecutor*>{};
+        std::vector<DeviceExecutor*> supported;
+        for (auto* exec : all) {
+            if (exec && exec->supports(invocation.id)) {
+                supported.push_back(exec);
+            }
+        }
+        if (supported.empty()) {
+            // 无 executor 支持该 op：如实失败（不伪装 CPU/GPU 执行）
+            r.error_message = "no executor supports operation: " +
+                              std::string(invocation.id);
+            return r;
+        }
+
+        // 2. 池参数：min = 各 executor 最小有效块的最小值；
+        //    max = 各 executor 推荐块的最大值（每设备按自身 requested_items 领取）
+        std::size_t min_chunk = supported[0]->min_effective_chunk();
+        std::size_t max_chunk = supported[0]->recommended_chunk();
+        for (auto* exec : supported) {
+            const cost::DeviceCost* dc = find_device_cost(estimate, exec->id());
+            const std::size_t rec =
+                dc && dc->recommended_chunk > 0 ? dc->recommended_chunk
+                                                : exec->recommended_chunk();
+            min_chunk = std::min(min_chunk, exec->min_effective_chunk());
+            max_chunk = std::max(max_chunk, rec);
+        }
+        if (min_chunk == 0) min_chunk = 1;
+        if (max_chunk == 0) max_chunk = min_chunk;
+        if (min_chunk > max_chunk) min_chunk = max_chunk;
+
+        pool.init_dynamic(begin, end, min_chunk, max_chunk);
+        stats_out.dynamic_mode_used = true;
+        stats_out.cpu_target = cfg.cpu_target_ratio;
+
+        // 3. 每个 executor 一个或多个 worker 线程循环领取执行
+        const std::size_t n_exec = supported.size();
+        per_exec_stats_out.assign(n_exec, InvocationExecStats{});
+        std::vector<std::atomic<std::size_t>> exec_done(n_exec);
+        std::vector<std::atomic<std::size_t>> exec_failed(n_exec);
+        std::vector<std::atomic<std::size_t>> exec_items(n_exec);
+        std::vector<std::atomic<std::size_t>> exec_bytes(n_exec);
+        std::vector<std::atomic<std::uint64_t>> exec_elapsed(n_exec);
+        for (auto& a : exec_done) a.store(0, std::memory_order_relaxed);
+        for (auto& a : exec_failed) a.store(0, std::memory_order_relaxed);
+        for (auto& a : exec_items) a.store(0, std::memory_order_relaxed);
+        for (auto& a : exec_bytes) a.store(0, std::memory_order_relaxed);
+        for (auto& a : exec_elapsed) a.store(0, std::memory_order_relaxed);
+
+        constexpr std::uint32_t kMaxAttempts = 4;  // 重试上限（防确定性失败死循环）
+
+        std::vector<std::thread> workers;
+        for (std::size_t i = 0; i < n_exec; ++i) {
+            DeviceExecutor* exec = supported[i];
+            // CPU 多 worker 用满多核；GPU 单 worker（submit 已同步）
+            const std::size_t n_workers =
+                (exec->backend_type() == "cpu")
+                    ? std::min<std::size_t>(8, std::thread::hardware_concurrency())
+                    : 1;
+            for (std::size_t w = 0; w < n_workers; ++w) {
+                workers.emplace_back([&, i, exec] {
+                    while (true) {
+                        const cost::DeviceCost* dc =
+                            find_device_cost(estimate, exec->id());
+                        const std::size_t remaining = pool.remaining_work();
+                        if (remaining == 0 && pool.retry_pending_count() == 0) {
+                            break;
+                        }
+                        const std::size_t requested =
+                            cost::global_cost_estimator().compute_requested_items(
+                                dc ? *dc : fallback_cost(exec),
+                                remaining,
+                                exec->queue_state().depth);
+                        auto token = pool.claim_next_dynamic(exec->id(), requested);
+                        if (!token.valid()) break;
+
+                        // 每个 token 一个独立 invocation（domain 为 token 范围）
+                        KernelInvocation inv = invocation;
+                        inv.domain = WorkDomain{token.begin, token.end};
+                        SubmitHandle handle = exec->submit(token, inv);
+                        if (handle.status == SubmitStatus::Ok) {
+                            pool.mark_done(token);
+                            exec_done[i].fetch_add(1, std::memory_order_relaxed);
+                            exec_items[i].fetch_add(
+                                handle.items_done, std::memory_order_relaxed);
+                            exec_bytes[i].fetch_add(
+                                handle.bytes_done, std::memory_order_relaxed);
+                            exec_elapsed[i].fetch_add(
+                                handle.elapsed_ns, std::memory_order_relaxed);
+                        } else {
+                            // Rejected（op 不支持/设备不可用）→ 终态失败；
+                            // kernel 执行失败 → 重试（attempt 上限内）
+                            const bool retryable =
+                                (handle.status != SubmitStatus::Rejected) &&
+                                (token.attempt < kMaxAttempts);
+                            pool.mark_failed(token, retryable);
+                            exec_failed[i].fetch_add(1, std::memory_order_relaxed);
+                        }
+                    }
+                });
+            }
+        }
+        for (auto& th : workers) th.join();
+        for (auto* exec : supported) exec->sync();
+
+        // 4. 汇总真实统计
+        std::size_t total_done = 0;
+        std::size_t total_failed = 0;
+        for (std::size_t i = 0; i < n_exec; ++i) {
+            const std::size_t d = exec_done[i].load(std::memory_order_relaxed);
+            const std::size_t f = exec_failed[i].load(std::memory_order_relaxed);
+            per_exec_stats_out[i].done_blocks = d;
+            per_exec_stats_out[i].failed_blocks = f;
+            per_exec_stats_out[i].device_id = supported[i]->device_id();
+            per_exec_stats_out[i].backend_type = supported[i]->backend_type();
+            per_exec_stats_out[i].items_done =
+                exec_items[i].load(std::memory_order_relaxed);
+            per_exec_stats_out[i].bytes_done =
+                exec_bytes[i].load(std::memory_order_relaxed);
+            per_exec_stats_out[i].elapsed_ns =
+                exec_elapsed[i].load(std::memory_order_relaxed);
+            if (d > 0) {
+                actual_devices_out.push_back(supported[i]->device_id());
+            }
+            total_done += d;
+            total_failed += f;
+        }
+
+        r.total_chunks = pool.total_blocks();
+        r.executed_on_cpu = 0;
+        r.executed_on_gpu = 0;
+        for (std::size_t i = 0; i < n_exec; ++i) {
+            if (supported[i]->backend_type() == "cpu") {
+                r.executed_on_cpu += per_exec_stats_out[i].done_blocks;
+            } else if (supported[i]->backend_type().rfind("cuda", 0) == 0) {
+                r.executed_on_gpu += per_exec_stats_out[i].done_blocks;
+            }
+        }
+        r.failed_chunks = total_failed;
+        r.all_done = pool.all_done();
+        (void)total_done;
+        return r;
+    }
+
+    // 无 DeviceCost 时的 fallback 成本（用 executor 自身推荐值）
+    static cost::DeviceCost fallback_cost(const DeviceExecutor* exec) {
+        cost::DeviceCost dc;
+        dc.device_id = exec->id();
+        dc.backend = exec->backend_type();
+        dc.recommended_chunk = exec->recommended_chunk();
+        dc.min_effective_chunk = exec->min_effective_chunk();
+        dc.feasible = exec->available();
+        dc.profile_available = false;
+        dc.reason = "fallback-executor-default";
+        return dc;
+    }
 };
 
 Dispatcher::Dispatcher() : impl_(std::make_unique<Impl>()) {
@@ -830,6 +1028,78 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
         result.cpu_actual_valid = cpu_dec.valid;
     }
 
+    result.current_state_json = impl_->current_state.status_json();
+    return result;
+}
+
+// ===== 23 号计划 §3/§4：可加速 KernelInvocation 派发 =====
+CostAwareResult Dispatcher::dispatch_invocation(
+    const TaskDescriptor& task,
+    const cost::CostEstimate& estimate,
+    const KernelInvocation& invocation) {
+    CostAwareResult result;
+    result.used_cost_estimator = estimate.profile_available;
+    result.predicted_primary_backend = impl_->predict_backend_from_estimate(estimate);
+
+    // 工作域来自 invocation（token 子域在 executor worker 内拆分）
+    const std::size_t begin = invocation.domain.begin;
+    const std::size_t end = invocation.domain.end;
+    (void)task;
+
+    std::vector<Impl::InvocationExecStats> per_exec_stats;
+    std::vector<std::string> actual_devices;
+    auto r = impl_->execute_invocation_via_executors(
+        invocation, estimate, result.resource_control, per_exec_stats, actual_devices);
+    result.run_result = r;
+    result.actual_devices_used = actual_devices;
+
+    // actual_primary_backend：真实完成工作量（items/bytes）最大者
+    {
+        std::size_t best_items = 0;
+        std::size_t best_bytes = 0;
+        for (const auto& s : per_exec_stats) {
+            best_items += s.items_done;
+            best_bytes += s.bytes_done;
+        }
+        if (best_items == 0 && best_bytes == 0 && r.failed_chunks > 0) {
+            result.actual_primary_backend = "none";
+        } else if (r.executed_on_gpu > 0 && r.executed_on_gpu > r.executed_on_cpu) {
+            result.actual_primary_backend = actual_devices.empty()
+                ? "cuda" : actual_devices.front();
+        } else if (r.executed_on_cpu > 0) {
+            result.actual_primary_backend = "cpu";
+        } else {
+            result.actual_primary_backend = "none";
+        }
+    }
+
+    result.total_chunks = r.total_chunks;
+    result.chunks_on_cpu = r.executed_on_cpu;
+    result.chunks_on_gpu = r.executed_on_gpu;
+    result.chunks_fallback = r.fallback_chunks;
+
+    impl_->import_pool_coverage();
+    result.coverage = Impl::coverage_from_pool(impl_->pool);
+
+    // 更新 CurrentState（基于真实完成，按 device_id 匹配）
+    if (auto* cpu_state = impl_->current_state.find_device("cpu")) {
+        cpu_state->chunks_completed.store(r.executed_on_cpu, std::memory_order_relaxed);
+    }
+    for (const auto& s : per_exec_stats) {
+        if (s.backend_type.rfind("cuda", 0) == 0) {
+            if (auto* gpu_state = impl_->current_state.find_device(s.device_id)) {
+                gpu_state->chunks_completed.store(
+                    s.done_blocks, std::memory_order_relaxed);
+            }
+        }
+    }
+
+    // 执行后采样 CPU 利用率
+    if (impl_->cpu_ctrl) {
+        auto cpu_dec = impl_->cpu_ctrl->sample_and_decide();
+        result.cpu_actual_ratio = cpu_dec.actual_ratio;
+        result.cpu_actual_valid = cpu_dec.valid;
+    }
     result.current_state_json = impl_->current_state.status_json();
     return result;
 }

@@ -487,9 +487,13 @@ scheduler::Dispatcher& global_dispatcher() {
     static std::once_flag flag;
     std::call_once(flag, []() {
         scheduler::DispatcherConfig cfg;
-        // 默认只有 CPU；GPU 设备由 future topology 探测添加
+        // 默认只有 CPU（legacy lambda API 为 CPU-only compatibility 路径）；
+        // 可加速 KernelInvocation 路径通过 executor 注册表（create_auto 运行时
+        // 探测 CUDA 桥接，无 GPU 时仅 CPU executor）。
         cfg.devices = {{"cpu", 0, 0, 50.0, true}};
         cfg.fallback_strategy = scheduler::FallbackStrategy::ToCpu;
+        cfg.executors = std::make_shared<scheduler::ExecutorRegistry>(
+            scheduler::ExecutorRegistry::create_auto());
         inst.configure(cfg);
     });
     return inst;
