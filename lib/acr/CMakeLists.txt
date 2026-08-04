@@ -37,6 +37,13 @@ if(NOT CMAKE_GENERATOR AND CMAKE_HOST_WIN32)
     set(CMAKE_GENERATOR "MinGW Makefiles" CACHE STRING "" FORCE)
 endif()
 
+# MinGW：加大可执行文件主线程栈保留（与 orchestrator -Wl,--stack,33554432 同思路）。
+# 原因：oneTBB 在 MinGW 下的 teardown 偶发 0xC00000FD（栈溢出，负载相关）。
+# 保留 16MB 仅增加虚拟地址保留，不提交物理内存。
+if(MINGW AND NOT MSVC)
+    add_link_options(-Wl,--stack,16777216)
+endif()
+
 set(ACR_OUTPUT_DIR ${CMAKE_BINARY_DIR}/bin)
 set(ACR_LIB_DIR    ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${ACR_OUTPUT_DIR})

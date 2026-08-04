@@ -276,14 +276,14 @@ struct Dispatcher::Impl {
         Event ev = astro::compute::parallel_batch(
             astro::compute::KernelId::Custom, r.total_chunks,
             [&](std::size_t) {
-                auto token = pool.claim_next("cpu");
+                auto token = pool.claim_next(kHwCpuDeviceId);
                 if (!token.valid()) return;
                 try {
                     fn(token.id, token.begin, token.end, user_data);
-                    pool.mark_done(token.id, token.generation);
+                    pool.mark_done(token);
                     executed.fetch_add(1, std::memory_order_relaxed);
                 } catch (...) {
-                    pool.mark_failed(token.id, token.generation);
+                    pool.mark_failed(token);
                     failed.fetch_add(1, std::memory_order_relaxed);
                 }
             });
@@ -313,7 +313,6 @@ struct Dispatcher::Impl {
     MixedRunResult execute_via_pool_dynamic(
         std::size_t begin, std::size_t end,
         std::size_t min_chunk, std::size_t max_chunk,
-        std::size_t n_active_devices,
         ChunkKernelFn fn, void* user_data,
         ResourceControlStats& stats_out) {
         // F-fix 3：动态初始化（不预创建块，claim 时动态计算大小）
@@ -535,11 +534,16 @@ struct Dispatcher::Impl {
                     }
                 }
 
-                // F-fix 3: 动态领取下一块（根据 remaining 和活跃设备数计算块大小）
-                // F-fix 5: 使用 WorkToken 值令牌
-                // F-fix 9: claim 使用 current_max_chunk（通过 pool.set_dynamic_max_chunk 同步）
-                auto token = pool.claim_next_dynamic("cpu", n_active_devices);
-                if (!token.valid()) return;  // 无剩余工作
+        // F-fix 3 + 23 号计划 §2：动态领取下一块
+        // F-fix 5: 使用 WorkToken 值令牌
+        // F-fix 9 + 23 号计划 §5：requested_items 实际使用 current_max_chunk
+        //   （CpuController batch_size / MemoryBudget ShrinkBlock 都通过它生效）
+        // 23 号计划 §4：块大小来自本设备 cost estimate（CPU-only 路径即当前 max_chunk），
+        //   不再由 n_active_devices（GPU 数量）折算。
+        auto token = pool.claim_next_dynamic(
+            kHwCpuDeviceId,
+            current_max_chunk.load(std::memory_order_relaxed));
+        if (!token.valid()) return;  // 无剩余工作
 
                 // 记录动态块大小（用于验证尾部收缩）
                 {
@@ -549,10 +553,10 @@ struct Dispatcher::Impl {
 
                 try {
                     fn(token.id, token.begin, token.end, user_data);
-                    pool.mark_done(token.id, token.generation);
+                    pool.mark_done(token);
                     executed.fetch_add(1, std::memory_order_relaxed);
                 } catch (...) {
-                    pool.mark_failed(token.id, token.generation);
+                    pool.mark_failed(token);
                     failed.fetch_add(1, std::memory_order_relaxed);
                 }
             });
@@ -596,7 +600,7 @@ struct Dispatcher::Impl {
             std::size_t fb_min = cfg.min_effective_chunk;
             std::size_t fb_max = 65536;
             return execute_via_pool_dynamic(
-                begin, end, fb_min, fb_max, 1,
+                begin, end, fb_min, fb_max,
                 fn, user_data, stats_out);
         }
 
@@ -651,8 +655,11 @@ struct Dispatcher::Impl {
                 DeviceExecutor* exec = available[exec_idx];
                 if (!exec || !exec->available()) return;
 
-                // claim token（按 exec 的 device_id 标记领取者）
-                auto token = pool.claim_next_dynamic(exec->device_id(), n_executors);
+                // 23 号计划 §4：每个 executor 按自身推荐块大小领取
+                // （推荐块来自该设备的 CostEstimate；claimant 用 DeviceId）
+                auto token = pool.claim_next_dynamic(
+                    cost::backend_to_device_id(exec->device_id()),
+                    exec->recommended_chunk());
                 if (!token.valid()) return;  // 无剩余工作
 
                 // 记录动态块大小（用于验证尾部收缩）
@@ -668,7 +675,7 @@ struct Dispatcher::Impl {
                 auto sresult = exec->submit(token, inv);
 
                 if (sresult.status == SubmitStatus::Ok) {
-                    pool.mark_done(token.id, token.generation);
+                    pool.mark_done(token);
                     total_done.fetch_add(1, std::memory_order_relaxed);
                     per_exec_done[exec_idx].fetch_add(1, std::memory_order_relaxed);
                     const std::string& bt = exec->backend_type();
@@ -678,7 +685,7 @@ struct Dispatcher::Impl {
                         gpu_done.fetch_add(1, std::memory_order_relaxed);
                     }
                 } else {
-                    pool.mark_failed(token.id, token.generation);
+                    pool.mark_failed(token);
                     total_failed.fetch_add(1, std::memory_order_relaxed);
                 }
             });
@@ -956,9 +963,8 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
             // 尾部自动收缩，无固定 70% 阈值
             std::size_t min_chunk = impl_->cfg.min_effective_chunk;
             std::size_t max_chunk = chunk_size;
-            // 纯 CPU 路径：n_active_devices = 1
             result.run_result = impl_->execute_via_pool_dynamic(
-                begin, end, min_chunk, max_chunk, 1,
+                begin, end, min_chunk, max_chunk,
                 fn, user_data, result.resource_control);
         }
 
@@ -1002,14 +1008,8 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
     // CostEstimate 已影响 chunk_size（作为 max_chunk），动态 guided 根据剩余工作收缩
     std::size_t min_chunk = impl_->cfg.min_effective_chunk;
     std::size_t max_chunk = chunk_size;
-    // 计算活跃设备数（CPU + 可用 GPU）
-    std::size_t n_active_devices = 0;
-    for (const auto& d : impl_->cfg.devices) {
-        if (d.available) ++n_active_devices;
-    }
-    if (n_active_devices == 0) n_active_devices = 1;  // 至少 CPU
     auto r = impl_->execute_via_pool_dynamic(
-        begin, end, min_chunk, max_chunk, n_active_devices,
+        begin, end, min_chunk, max_chunk,
         fn, user_data, result.resource_control);
     result.run_result = r;
 
