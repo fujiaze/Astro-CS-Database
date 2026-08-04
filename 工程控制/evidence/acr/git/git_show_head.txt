@@ -1,94 +1,22 @@
-commit 84e60e958eb977f94ffefb01b31089840d011c91
-Author: fujiaze <fujiaze@users.noreply.github.com>
-Date:   Sun Aug 2 19:56:08 2026 +0800
+commit 09c8e3683d2553cafddaf2d1b313ff19a51cad95
+Author:     fujiaze <fujiaze@users.noreply.github.com>
+AuthorDate: Tue Aug 4 15:02:28 2026 +0800
+Commit:     fujiaze <fujiaze@users.noreply.github.com>
+CommitDate: Tue Aug 4 15:02:28 2026 +0800
 
-    feat(acr): add CPU profiling, real utilization control and classic experiments
+    feat(acr): UTF-8 safe SHA-256 manifest tool for evidence (F-fix 10)
     
-    Phase C + G + H 完整实现：
+    添加 lib/acr/ci/sha256_utf8.py：UTF-8 安全的 SHA-256 清单生成与验证
+    工具，解决审计 #9（中文路径编码错误）。
     
-    Phase C（CPU 画像 Benchmark）：
-    - 新增 qualification/benchmarks/：
-      - stream_benchmark.cpp：STREAM 式 CPU 内存（Copy/Scale/Add/Triad，FP32/FP64，5 ISA，多线程）
-      - arithmetic_benchmark.cpp：算术吞吐（add/mul/FMA/div/sqrt，FP32/FP64，5 ISA，依赖链 latency）
-      - reduction_benchmark.cpp：归约（sum/dot/min/max/L2/mean/variance，多精度多输入模式）
-      - thread_curve_benchmark.cpp：线程曲线（1/2/4/8/12/15/16 线程点）
-      - numa_benchmark.cpp：NUMA 本地/远端带宽
-      - benchmark_common.hpp + benchmark_main.cpp：Google Benchmark 集成
-    - profile_generator 扩展：填充 DeviceProfile.arithmetic/memory/reduction 字段
-    - 新增 tests/classic/e17_model_fit.cpp：模型拟合验证（median 相对误差 <=15%）
+    特性：
+    - 递归收集目录下所有文件，跳过 .git
+    - 路径强制 UTF-8 解码（含中文路径）
+    - 同时输出 JSON + 文本格式清单
+    - verify 模式复核每个文件哈希
+    - generate-and-verify 模式一次完成
     
-    Phase G（95% 资源控制，实际利用率读取）：
-    - 重写 utilization/cpu_controller.cpp：读取实际 CPU 利用率（Windows GetSystemTimes）
-    - 重写 utilization/gpu_controller.cpp：NVML 动态加载读取 GPU 利用率，不可用时队列预算估算并标记 estimated
-    - 重写 utilization/memory_budget.cpp：GlobalMemoryStatusEx 读取实际可用内存
-    - 新增 utilization/system_metrics.hpp/cpp：系统指标读取
-    - 重写 utilization/actual_tracker.cpp：记录实际平均/p95/控制误差/worker 参与历史
-    - 控制器不修改 hardware-profile（只读）
-    - 50/80/95/100% 目标点测试
-    
-    Phase H（经典实验 E01-E21 扩展）：
-    - 扩展 E04-E16（transpose/convolution/resample/histogram/scan/gather/mandelbrot/gemm/fft）
-    - 新增 E18 动态 CPU+GPU 工作池（无 GPU 则 SKIPPED，不 CPU 模拟）
-    - 新增 E19 资源利用率控制（50/80/95/100% 目标点）
-    - 新增 E20 故障和回退（插件缺失/无画像/画像损坏/显存不足/launch失败/device lost）
-    - 新增 E21 持续与并发可靠性（30秒持续 + 重复启动 + Event 生命周期）
-    - 新增 tests/fault/sanitizer_actual.cpp：实际 sanitizer 验证（ASan 未开启时 SKIPPED）
-    
-    已知工具链限制：
-    - MinGW g++ 16.1.0 不支持 ASan（缺 libasan），sanitizer_actual 测试 SKIPPED
-    - Phase D CUDA backend 编译集成未通过（nvcc 11.8 vs MinGW host 不兼容），GPU 画像 SKIPPED
-    - 这些限制已如实记录，符合"无硬件/工具链不可用时 SKIPPED"规范
-    
-    测试：573/573 通过（含 E01-E21 经典实验 + 71 新增架构测试 + 54 资源控制测试）
-    path guard：仅修改 lib/acr/ 下文件，未触及任何算法目录。
-
- .../benchmarks/arithmetic_benchmark.cpp            | 505 +++++++++++++++
- .../qualification/benchmarks/benchmark_common.hpp  | 332 ++++++++++
- .../qualification/benchmarks/benchmark_main.cpp    | 102 +++
- .../qualification/benchmarks/numa_benchmark.cpp    | 334 ++++++++++
- .../benchmarks/reduction_benchmark.cpp             | 266 ++++++++
- .../qualification/benchmarks/stream_benchmark.cpp  | 372 +++++++++++
- .../benchmarks/thread_curve_benchmark.cpp          | 135 ++++
- lib/acr/tests/CMakeLists.txt                       |   2 +-
- lib/acr/tests/classic/CMakeLists.txt               |  13 +-
- lib/acr/tests/classic/classic_main.cpp             |  10 +
- lib/acr/tests/classic/e04_transpose.cpp            | 165 ++++-
- lib/acr/tests/classic/e05_convolution.cpp          | 360 +++++++++--
- lib/acr/tests/classic/e06_resample.cpp             | 325 ++++++++--
- lib/acr/tests/classic/e07_histogram.cpp            | 285 ++++++---
- lib/acr/tests/classic/e08_scan.cpp                 | 272 +++++---
- lib/acr/tests/classic/e09_gather_scatter.cpp       | 301 ++++++---
- lib/acr/tests/classic/e10_mandelbrot.cpp           | 146 ++++-
- lib/acr/tests/classic/e11_gemm.cpp                 |  85 ++-
- lib/acr/tests/classic/e12_fft.cpp                  | 149 ++++-
- lib/acr/tests/classic/e13_mixed.cpp                | 140 +++--
- lib/acr/tests/classic/e14_utilization.cpp          |  26 +-
- lib/acr/tests/classic/e15_failure.cpp              | 169 +++++
- lib/acr/tests/classic/e16_concurrency.cpp          | 123 ++++
- lib/acr/tests/classic/e17_model_fit.cpp            | 337 ++++++++++
- lib/acr/tests/classic/e18_workpool.cpp             | 252 ++++++++
- lib/acr/tests/classic/e19_resource_control.cpp     | 267 ++++++++
- lib/acr/tests/classic/e20_fault_fallback.cpp       | 368 +++++++++++
- .../tests/classic/e21_persistence_concurrency.cpp  | 273 ++++++++
- lib/acr/tests/fault/CMakeLists.txt                 |  11 +-
- lib/acr/tests/fault/sanitizer_actual.cpp           | 189 ++++++
- lib/acr/tests/unit/test_cpu_profile.cpp            | 332 ++++++++++
- lib/acr/tests/unit/test_utilization.cpp            | 695 ++++++++++++++++++---
- lib/acr/tools/acr_classic_runner/CMakeLists.txt    |   4 +-
- lib/acr/tools/acr_classic_runner/main.cpp          |  12 +-
- lib/acr/utilization/CMakeLists.txt                 |  33 +-
- lib/acr/utilization/actual_tracker.cpp             | 217 ++++++-
- lib/acr/utilization/actual_tracker.hpp             |  60 +-
- lib/acr/utilization/config_hot_read.cpp            | 110 +++-
- lib/acr/utilization/config_hot_read.hpp            |  64 +-
- lib/acr/utilization/cpu_controller.cpp             | 236 ++++++-
- lib/acr/utilization/cpu_controller.hpp             |  78 ++-
- lib/acr/utilization/gpu_controller.cpp             | 223 ++++++-
- lib/acr/utilization/gpu_controller.hpp             |  65 +-
- lib/acr/utilization/io_budget.cpp                  |  94 ++-
- lib/acr/utilization/io_budget.hpp                  |  22 +-
- lib/acr/utilization/memory_budget.cpp              | 168 ++++-
- lib/acr/utilization/memory_budget.hpp              |  80 ++-
- lib/acr/utilization/system_metrics.cpp             | 530 ++++++++++++++++
- lib/acr/utilization/system_metrics.hpp             | 117 ++++
- 49 files changed, 8723 insertions(+), 731 deletions(-)
+    用法：
+      python sha256_utf8.py generate <dir> <out.json>
+      python sha256_utf8.py verify <manifest.json>
+      python sha256_utf8.py generate-and-verify <dir> <out.json>

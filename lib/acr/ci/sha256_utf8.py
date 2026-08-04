@@ -148,12 +148,12 @@ def main():
         output_file = sys.argv[3] if len(sys.argv) > 3 else 'sha256_manifest.json'
         stats = generate_manifest(root_dir, output_file)
         print(f"Generated: {stats['total_files']} files, {stats['total_bytes']} bytes")
-        print(f"Errors: {stats['error_count']}")
+        print(f"Errors: {stats.get('error_count', 0)}")
         print(f"Output: {stats['output_json']} + {stats['output_text']}")
-        if stats['errors']:
+        if stats.get('errors'):
             for e in stats['errors'][:5]:
                 print(f"  ERROR: {e['path']}: {e['error']}")
-        sys.exit(0 if stats['error_count'] == 0 else 1)
+        sys.exit(0 if stats.get('error_count', 0) == 0 else 1)
 
     elif mode == 'verify':
         manifest_file = sys.argv[2]

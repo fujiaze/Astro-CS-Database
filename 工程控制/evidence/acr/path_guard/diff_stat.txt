@@ -1,0 +1,92 @@
+warning: in the working copy of '工程控制/evidence/acr/git/git_log.txt', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of '工程控制/evidence/acr/git/git_show_head.txt', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of '工程控制/evidence/acr/git/git_status.txt', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of '工程控制/evidence/acr/git/head_commit.txt', CRLF will be replaced by LF the next time Git touches it
+ lib/acr/CMakeLists.txt                             |   30 +-
+ lib/acr/backends/cuda/CMakeLists.txt               |   11 +-
+ lib/acr/backends/cuda/cuda_backend.cu              |    6 +-
+ lib/acr/backends/cuda/cuda_buffer.cpp              |    1 +
+ lib/acr/backends/cuda/cuda_executor.cpp            |  196 ++++
+ lib/acr/backends/cuda/cuda_executor.hpp            |   73 ++
+ lib/acr/ci/sha256_utf8.py                          |  197 ++++
+ lib/acr/scheduler/CMakeLists.txt                   |    5 +
+ lib/acr/scheduler/device_executor.cpp              |  118 ++
+ lib/acr/scheduler/device_executor.hpp              |  147 +++
+ lib/acr/scheduler/dispatcher.cpp                   |  586 +++++++++-
+ lib/acr/scheduler/dispatcher.hpp                   |   25 +
+ lib/acr/scheduler/shared_work_pool.cpp             |   22 +-
+ lib/acr/scheduler/shared_work_pool.hpp             |    9 +-
+ lib/acr/tests/unit/CMakeLists.txt                  |   10 +-
+ lib/acr/tests/unit/test_cuda.cpp                   |  318 +++++-
+ lib/acr/tests/unit/test_scheduler.cpp              |  148 +++
+ 工程控制/evidence/acr/EVIDENCE_INDEX.md            |  194 ----
+ 工程控制/evidence/acr/benchmark/benchmark_list.txt |    1 -
+ .../evidence/acr/benchmark/benchmark_smoke.log     |  229 ----
+ .../evidence/acr/classic_runner/classic_report.json |    1 -
+ .../acr/classic_runner/classic_runner_stdout.log   |   99 --
+ .../evidence/acr/classic_runner/classic_summary.json |  143 ---
+ .../evidence/acr/classic_runner/runner_stderr.log  |   48 -
+ 工程控制/evidence/acr/commit_f/build_config.json   |   13 -
+ .../evidence/acr/commit_f/commit_g_skipped_reason.txt |   19 -
+ 工程控制/evidence/acr/commit_f/git_head.txt        |    1 -
+ 工程控制/evidence/acr/commit_f/git_log.txt         |    1 -
+ .../evidence/acr/commit_f/path_guard_report.txt    |    1 -
+ 工程控制/evidence/acr/commit_f/test_summary.json   |  113 --
+ .../evidence/acr/commit_f_fix/evidence_manifest.json |   48 -
+ 工程控制/evidence/acr/commit_f_fix/git_head.txt    |    1 -
+ 工程控制/evidence/acr/commit_f_fix/git_log.txt     |    1 -
+ 工程控制/evidence/acr/commit_f_fix/git_status.txt  |    1 -
+ .../evidence/acr/commit_f_fix/path_guard_report.txt |    1 -
+ .../evidence/acr/commit_f_fix/test_acr_test_api.log |   86 --
+ .../acr/commit_f_fix/test_acr_test_api.log.err     |    0
+ .../acr/commit_f_fix/test_acr_test_api_traits.log  |   55 -
+ .../acr/commit_f_fix/test_acr_test_api_traits.log.err |    1 -
+ .../evidence/acr/commit_f_fix/test_acr_test_buffer.log |   33 -
+ .../acr/commit_f_fix/test_acr_test_buffer.log.err  |    0
+ .../acr/commit_f_fix/test_acr_test_classic.log     |  281 -----
+ .../acr/commit_f_fix/test_acr_test_classic.log.err |    0
+ .../evidence/acr/commit_f_fix/test_acr_test_cost.log |   57 -
+ .../acr/commit_f_fix/test_acr_test_cost.log.err    |    0
+ .../acr/commit_f_fix/test_acr_test_cpu_profile.log |   29 -
+ .../acr/commit_f_fix/test_acr_test_cpu_profile.log.err |    0
+ .../evidence/acr/commit_f_fix/test_acr_test_fault.log |   16 -
+ .../acr/commit_f_fix/test_acr_test_fault.log.err   |    0
+ .../commit_f_fix/test_acr_test_hardware_profile.log |   84 --
+ .../test_acr_test_hardware_profile.log.err         |    0
+ .../acr/commit_f_fix/test_acr_test_persistence.log |    9 -
+ .../acr/commit_f_fix/test_acr_test_persistence.log.err |    0
+ .../acr/commit_f_fix/test_acr_test_qualification.log |   28 -
+ .../commit_f_fix/test_acr_test_qualification.log.err |    0
+ .../acr/commit_f_fix/test_acr_test_sanitizer.log   |   28 -
+ .../acr/commit_f_fix/test_acr_test_sanitizer.log.err |    0
+ .../commit_f_fix/test_acr_test_sanitizer_actual.log |   51 -
+ .../test_acr_test_sanitizer_actual.log.err         |    0
+ .../acr/commit_f_fix/test_acr_test_scheduler.log   |  171 ---
+ .../acr/commit_f_fix/test_acr_test_scheduler.log.err |    0
+ .../acr/commit_f_fix/test_acr_test_task_descriptor.log |   49 -
+ .../commit_f_fix/test_acr_test_task_descriptor.log.err |    0
+ .../acr/commit_f_fix/test_acr_test_topology.log    |   66 --
+ .../acr/commit_f_fix/test_acr_test_topology.log.err |    0
+ .../acr/commit_f_fix/test_acr_test_utilization.log |  160 ---
+ .../acr/commit_f_fix/test_acr_test_utilization.log.err |    0
+ .../evidence/acr/commit_f_fix/test_summary.json    |  107 --
+ 工程控制/evidence/acr/git/base_commit.txt          |   11 -
+ 工程控制/evidence/acr/git/git_log.txt              |   21 +-
+ 工程控制/evidence/acr/git/git_show_head.txt        |  108 +-
+ 工程控制/evidence/acr/git/git_status.txt           |   94 +-
+ 工程控制/evidence/acr/git/head_commit.txt          |    2 +-
+ 工程控制/evidence/acr/merge_report_draft.md        |  268 -----
+ .../acr/path_guard/committed_diff_path_check.txt   |    5 -
+ .../evidence/acr/path_guard/git_diff_name_only.txt |  211 ----
+ 工程控制/evidence/acr/path_guard/git_diff_stat.txt |  212 ----
+ .../evidence/acr/path_guard/path_guard_report.txt  |   35 -
+ .../evidence/acr/tests/classic_test_results.log    |  747 -------------
+ 工程控制/evidence/acr/tests/ctest_full_output.log  | 1161 --------------------
+ 工程控制/evidence/acr/tests/ctest_test_list.txt    |  576 ----------
+ 工程控制/evidence/acr/tests/fault_test_results.log |   41 -
+ .../evidence/acr/tests/persistence_test_results.log |   30 -
+ .../evidence/acr/tests/sanitizer_test_results.log  |   50 -
+ 工程控制/evidence/acr/tests/test_summary.json      |   90 --
+ 工程控制/evidence/acr/tests/unit_test_results.log  |  787 -------------
+ 工程控制/evidence/acr/toolchain_limitations.md     |   81 --
+ 87 files changed, 1960 insertions(+), 6698 deletions(-)

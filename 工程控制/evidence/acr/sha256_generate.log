@@ -1,0 +1,4 @@
+  File "F:\Astro dev\Astro CS Normalization Database\run\worktrees\acr\lib\acr\ci\sha256_utf8.py", line 158
+    elif mode == 'verify':
+    ^^^^
+SyntaxError: invalid syntax

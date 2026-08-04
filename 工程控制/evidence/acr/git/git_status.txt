@@ -1,2 +1,92 @@
-?? lib/acr/build_evidence_v2/
-?? 工程控制/evidence/acr_v2/
+On branch feature/astrocompute-runtime
+Your branch is up to date with 'origin/feature/astrocompute-runtime'.
+
+Changes not staged for commit:
+  (use "git add/rm <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   lib/acr/ci/sha256_utf8.py
+	deleted:    工程控制/evidence/acr/EVIDENCE_INDEX.md
+	deleted:    工程控制/evidence/acr/benchmark/benchmark_list.txt
+	deleted:    工程控制/evidence/acr/benchmark/benchmark_smoke.log
+	deleted:    工程控制/evidence/acr/classic_runner/classic_report.json
+	deleted:    工程控制/evidence/acr/classic_runner/classic_runner_stdout.log
+	deleted:    工程控制/evidence/acr/classic_runner/classic_summary.json
+	deleted:    工程控制/evidence/acr/classic_runner/runner_stderr.log
+	deleted:    工程控制/evidence/acr/commit_f/build_config.json
+	deleted:    工程控制/evidence/acr/commit_f/commit_g_skipped_reason.txt
+	deleted:    工程控制/evidence/acr/commit_f/git_head.txt
+	deleted:    工程控制/evidence/acr/commit_f/git_log.txt
+	deleted:    工程控制/evidence/acr/commit_f/path_guard_report.txt
+	deleted:    工程控制/evidence/acr/commit_f/test_summary.json
+	deleted:    工程控制/evidence/acr/commit_f_fix/evidence_manifest.json
+	deleted:    工程控制/evidence/acr/commit_f_fix/git_head.txt
+	deleted:    工程控制/evidence/acr/commit_f_fix/git_log.txt
+	deleted:    工程控制/evidence/acr/commit_f_fix/git_status.txt
+	deleted:    工程控制/evidence/acr/commit_f_fix/path_guard_report.txt
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_api.log
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_api.log.err
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_api_traits.log
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_api_traits.log.err
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_buffer.log
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_buffer.log.err
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_classic.log
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_classic.log.err
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_cost.log
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_cost.log.err
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_cpu_profile.log
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_cpu_profile.log.err
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_fault.log
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_fault.log.err
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_hardware_profile.log
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_hardware_profile.log.err
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_persistence.log
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_persistence.log.err
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_qualification.log
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_qualification.log.err
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_sanitizer.log
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_sanitizer.log.err
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_sanitizer_actual.log
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_sanitizer_actual.log.err
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_scheduler.log
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_scheduler.log.err
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_task_descriptor.log
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_task_descriptor.log.err
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_topology.log
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_topology.log.err
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_utilization.log
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_acr_test_utilization.log.err
+	deleted:    工程控制/evidence/acr/commit_f_fix/test_summary.json
+	deleted:    工程控制/evidence/acr/git/base_commit.txt
+	modified:   工程控制/evidence/acr/git/git_log.txt
+	modified:   工程控制/evidence/acr/git/git_show_head.txt
+	modified:   工程控制/evidence/acr/git/git_status.txt
+	modified:   工程控制/evidence/acr/git/head_commit.txt
+	deleted:    工程控制/evidence/acr/merge_report_draft.md
+	deleted:    工程控制/evidence/acr/path_guard/committed_diff_path_check.txt
+	deleted:    工程控制/evidence/acr/path_guard/git_diff_name_only.txt
+	deleted:    工程控制/evidence/acr/path_guard/git_diff_stat.txt
+	deleted:    工程控制/evidence/acr/path_guard/path_guard_report.txt
+	deleted:    工程控制/evidence/acr/tests/classic_test_results.log
+	deleted:    工程控制/evidence/acr/tests/ctest_full_output.log
+	deleted:    工程控制/evidence/acr/tests/ctest_test_list.txt
+	deleted:    工程控制/evidence/acr/tests/fault_test_results.log
+	deleted:    工程控制/evidence/acr/tests/persistence_test_results.log
+	deleted:    工程控制/evidence/acr/tests/sanitizer_test_results.log
+	deleted:    工程控制/evidence/acr/tests/test_summary.json
+	deleted:    工程控制/evidence/acr/tests/unit_test_results.log
+	deleted:    工程控制/evidence/acr/toolchain_limitations.md
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	tools/_gen_evidence.bat
+	tools/_gen_evidence.ps1
+	tools/_test_bat.bat
+	宸ョ▼鎺у埗/
+	工程控制/evidence/acr/generation_timestamp.txt
+	工程控制/evidence/acr/git/git_status_porcelain.txt
+	工程控制/evidence/acr/path_guard/changed_files.txt
+	工程控制/evidence/acr/path_guard/diff_stat.txt
+	工程控制/evidence/acr/sha256_generate.log
+	工程控制/evidence/acr/sha256_verify.log
+
+no changes added to commit (use "git add" and/or "git commit -a")

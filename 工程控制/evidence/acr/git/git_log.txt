@@ -1,11 +1,10 @@
-84e60e9 feat(acr): add CPU profiling, real utilization control and classic experiments
-d238b4d refactor(acr): add task traits, hardware profile and cost-based dispatcher
-49ea5c1 docs(acr): replace fixed-share routing with hardware profiling
-a0d7783 docs(acr): add evidence package draft for Phase A-H
-cc097a2 fix(acr): fix HardwareReport.FirstCallbackWins test isolation
-0cf2f3f test(acr): add classic experiment suite, fault injection and sanitizer tests
-bdefe79 feat(acr): add qualification, routing, scheduler and utilization controller
-103c0b0 feat(acr): add portable accelerator backend
-1544f44 feat(acr): add topology and ISA discovery
-35a3843 feat(acr): add public API and CPU baseline runtime
-f8d749e docs(acr): freeze bottom-only scope and dependency ADRs
+09c8e36 feat(acr): UTF-8 safe SHA-256 manifest tool for evidence (F-fix 10)
+248080f fix(acr): make CudaExecutor truly execute user kernel for real Mixed (F-fix 8)
+67123a4 feat(acr): real CudaExecutor for true GPU mixed execution (F-fix 8)
+45022dc feat(acr): implement recoverable utilization and memory backpressure (F-fix 9)
+56f95a8 feat(acr): introduce real per-device executors and cost-driven claims (F-fix 6 + F-fix 7)
+a664f87 fix(acr): make dynamic work pool concurrency-safe (F-fix 5)
+12fb99f docs(acr): 同步 Fix Review 控制包（22_FIX_REVIEW_CORRECTION_PLAN + schemas + audits）
+bc665a4 docs(acr): 添加 F-fix 3+4 单一 HEAD Evidence
+024c87c docs(acr): 同步 Commit F 纠正控制包（21_COMMIT_F_CORRECTION_PLAN + schemas + audits）
+97df146 feat(acr): dynamic guided scheduling + resource control closed loop (F-fix 3 + F-fix 4)
