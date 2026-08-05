@@ -223,19 +223,30 @@ T compute_overlap_area(
     const std::vector<Vec3T<T>>& drop_corners,
     const healpix::HealpixCore& hp, uint64_t target_ipix);
 
-// R11 (阶段7): drop 几何预计算 (包围圆 + 裁剪法向量), 供 compute_overlap_area_g 复用
-//   避免每候选重复构造 (高 NSIDE 下每源像素 ~10 候选 → 显著降低三角函数开销)
-struct DropGeometry {
-    std::vector<Vec3> corners;        // double 内部
-    std::vector<Vec3> clip_normals;   // 归一化裁剪平面法向量
-    Vec3 center;                      // drop 包围圆中心 (归一化)
-    double max_angle = 0.0;           // drop 顶点到中心最大角距离 (弧度)
+// R11 (阶段7 + 本控制包 TRUE_SCALAR_PRECISE): drop 几何预计算模板
+//   Scalar=float 实例: 向量/法向量/角距离/面积类型贯穿 float (数据存储为
+//   IEEE binary32; 数值运算内部提升保稳定, 见实现说明)
+//   Scalar=double 实例: 全 double
+template <typename Scalar>
+struct DropGeometryT {
+    std::vector<Vec3T<Scalar>> corners;        // Scalar 存储
+    std::vector<Vec3T<Scalar>> clip_normals;   // 归一化裁剪平面法向量
+    Vec3T<Scalar> center;                      // drop 包围圆中心 (归一化)
+    double max_angle = 0.0;                    // 顶点到中心最大角距离 (弧度, 双精度计算)
+    // 内部 double 精度缓存 (构建时一次, S-H/判定使用; 避免 float 存储舍入
+    // 导致微小几何判定翻转, 且不逐候选重建)
+    std::vector<Vec3> clip_normals_d;
+    Vec3 center_d;
 };
 
-DropGeometry build_drop_geometry(const std::vector<Vec3>& drop_corners);
+template <typename Scalar>
+DropGeometryT<Scalar> build_drop_geometry(
+    const std::vector<Vec3T<Scalar>>& drop_corners,
+    const std::vector<Vec3>* corners_dbl = nullptr);
 
-// 使用预计算 drop 几何的重叠面积 (与 compute_overlap_area 语义一致)
-double compute_overlap_area_g(const DropGeometry& g,
+// 使用预计算 drop 几何的重叠面积 (Scalar 实例; 返回 Scalar)
+template <typename Scalar>
+Scalar compute_overlap_area_g(const DropGeometryT<Scalar>& g,
                               const healpix::HealpixCore& hp, uint64_t target_ipix);
 
 // ============================================================================

@@ -1043,7 +1043,8 @@ void DrizzleEngine::processPixelTiled(
         {px - half, py + half}
     };
 
-    // ---- Step 2: SIP+WCS 逐角映射 (像素→天球, double 几何内核) ----
+    // ---- Step 2: SIP+WCS 逐角映射 (像素→天球; WCS 双精度接口,
+    // 几何数据存储为 Scalar — 见 processPixelSharedTiled) ----
     double corners_ra[4], corners_dec[4];
     for (int i = 0; i < 4; i++) {
         wcs.pixelToSky(corners_xy[i][0], corners_xy[i][1],
@@ -1077,7 +1078,7 @@ void DrizzleEngine::processPixelSharedTiled(
             return;
     }
 
-    // ---- Step 3: 自适应边细分 ----
+    // ---- Step 3: 自适应边细分 (double 计算, 阈值判断) ----
     double max_edge_rad = 0.0;
     for (int i = 0; i < 4; i++) {
         int j = (i + 1) % 4;
@@ -1090,32 +1091,41 @@ void DrizzleEngine::processPixelSharedTiled(
     const double THRESH_60ARCSEC  = 60.0  * (M_PI / 180.0) / 3600.0;
     bool use_adaptive = (max_edge_rad >= THRESH_60ARCSEC);
 
-    std::vector<spherical::Vec3> drop_corners;
+    // 几何数据 Scalar 存储 + double 精度源 (WCS 角点):
+    //   类型贯穿 float/double; 方向判定/缓存由 double 角点保证
+    //   (float 存储的 ~1e-7 舍入在 6.3\" 尺度会导致 clip 法向量方向翻转)
+    std::vector<spherical::Vec3T<Scalar>> drop_corners;
+    std::vector<spherical::Vec3> drop_corners_d;
     if (!use_adaptive) {
         drop_corners.resize(4);
+        drop_corners_d.resize(4);
         for (int i = 0; i < 4; i++) {
-            drop_corners[i] = spherical::radec_to_vec<double>(corners_ra[i], corners_dec[i]);
+            spherical::Vec3 v = spherical::radec_to_vec<double>(corners_ra[i], corners_dec[i]);
+            drop_corners_d[i] = v;
+            drop_corners[i] = {Scalar(v.x), Scalar(v.y), Scalar(v.z)};
         }
     } else {
-        drop_corners = spherical::build_drop_polygon_adaptive<double>(
-            px, py, config.pixfrac,
+        drop_corners = spherical::build_drop_polygon_adaptive<Scalar>(
+            Scalar(px), Scalar(py), Scalar(config.pixfrac),
             wcsPixelToSkyCallback, const_cast<WcsSip*>(&wcs),
             max_edge_rad);
         if (drop_corners.empty()) return;
     }
 
     // ---- Step 4: 计算 drop 球面面积 (Girard 定理) ----
-    double drop_area = spherical::spherical_polygon_area<double>(drop_corners);
-    if (drop_area < 1e-20) {
+    Scalar drop_area = spherical::spherical_polygon_area<Scalar>(drop_corners);
+    if (drop_area < Scalar(1e-20)) {
         return;
     }
 
-    // R11 (阶段7): 预计算 drop 几何 (包围圆/裁剪法向量), 供所有候选复用
-    spherical::DropGeometry drop_geom = spherical::build_drop_geometry(drop_corners);
+    // R11 (阶段7 + TRUE_SCALAR_PRECISE): 预计算 drop 几何 (Scalar 实例)
+    spherical::DropGeometryT<Scalar> drop_geom =
+        spherical::build_drop_geometry<Scalar>(drop_corners,
+                                               use_adaptive ? nullptr : &drop_corners_d);
 
     // ---- Step 5: 候选像素查询 ----
     std::vector<uint64_t> candidates;
-    spherical::query_candidate_pixels_fast<double>(drop_corners, hp, candidates);
+    spherical::query_candidate_pixels_fast<Scalar>(drop_corners, hp, candidates);
     if (candidates.empty()) {
         return;
     }
@@ -1125,11 +1135,11 @@ void DrizzleEngine::processPixelSharedTiled(
     //   leaf 由 NESTED 位运算拆分为 (parent_ipix, local_ipix):
     //     parent = ipix >> (2*depth), local = ipix & mask
     for (uint64_t ipix : candidates) {
-        double overlap_area = spherical::compute_overlap_area_g(drop_geom, hp, ipix);
-        if (overlap_area < 1e-20) continue;
+        Scalar overlap_area = spherical::compute_overlap_area_g<Scalar>(drop_geom, hp, ipix);
+        if (overlap_area < Scalar(1e-20)) continue;
 
-        double weight = overlap_area / drop_area;
-        if (weight <= 0.0) continue;
+        Scalar weight = overlap_area / drop_area;
+        if (weight <= Scalar(0)) continue;
 
         uint64_t parent = (shift > 0) ? (ipix >> shift) : ipix;
         uint32_t local  = (shift > 0) ? (uint32_t)(ipix & mask) : 0u;
@@ -1242,7 +1252,8 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
         int tid = omp_get_thread_num();
         auto& tileMap = threadTiles[tid];
 
-        // R11: 预计算本行底/顶两行网格顶点的天球坐标 (double 几何内核, 每顶点一次)
+        // R11: 预计算本行底/顶两行网格顶点的天球坐标 (WCS double 精度, 每顶点一次;
+        // 几何数据在 processPixelSharedTiled 内转 Scalar 存储)
         thread_local std::vector<double> bot_ra, bot_dec, top_ra, top_dec;
         if (shared_vertices) {
             bot_ra.resize(img.width + 1); bot_dec.resize(img.width + 1);

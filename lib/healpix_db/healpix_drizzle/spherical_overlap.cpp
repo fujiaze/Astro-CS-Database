@@ -863,33 +863,34 @@ T compute_overlap_area(
 {
     if (drop_corners.size() < 3) return T(0);
 
-    // R11 阶段7 优化: 输入一次转换为 double 内部计算 (数据仍为 Scalar 实例,
-    // 主体计算与 double 版本相同, 避免逐运算 float/double 转换开销)
-    std::vector<Vec3> drop_d(drop_corners.size());
-    for (size_t i = 0; i < drop_corners.size(); i++) {
-        drop_d[i] = {double(drop_corners[i].x), double(drop_corners[i].y),
-                     double(drop_corners[i].z)};
-    }
-    DropGeometry g = build_drop_geometry(drop_d);
+    DropGeometryT<T> g = build_drop_geometry<T>(drop_corners);
     return T(compute_overlap_area_g(g, hp, target_ipix));
 }
 
 // ============================================================================
-// build_drop_geometry - 预计算 drop 包围圆 + 裁剪法向量 (double, 每源像素一次)
+// build_drop_geometry - 预计算 drop 包围圆 + 裁剪法向量 (Scalar 存储, 每源像素一次)
 // ============================================================================
-DropGeometry build_drop_geometry(const std::vector<Vec3>& drop_corners) {
-    DropGeometry g;
+template <typename Scalar>
+DropGeometryT<Scalar> build_drop_geometry(const std::vector<Vec3T<Scalar>>& drop_corners,
+                                          const std::vector<Vec3>* corners_dbl) {
+    DropGeometryT<Scalar> g;
     g.corners = drop_corners;
     int nd = (int)drop_corners.size();
     if (nd < 3) return g;
+    // 方向判定/中心用 double 精度源 (corners_dbl 由调用方传入 WCS double 角点;
+    // 无则从 Scalar 转 — float 存储的 ~1e-7 舍入在 6.3\" 尺度会导致
+    // clip 法向量方向翻转, 因此生产路径必须提供 double 角点)
     double cxx = 0.0, cyy = 0.0, czz = 0.0;
-    for (const auto& v : drop_corners) {
-        cxx += v.x; cyy += v.y; czz += v.z;
+    if (corners_dbl && (int)corners_dbl->size() == nd) {
+        for (const auto& v : *corners_dbl) { cxx += v.x; cyy += v.y; czz += v.z; }
+    } else {
+        for (const auto& v : drop_corners) { cxx += v.x; cyy += v.y; czz += v.z; }
     }
     double clen = std::sqrt(cxx * cxx + cyy * cyy + czz * czz);
     double inv = (clen < 1e-300) ? 1.0 : 1.0 / clen;
     double cxn = cxx * inv, cyn = cyy * inv, czn = czz * inv;
-    g.center = {cxn, cyn, czn};
+    g.center = {Scalar(cxn), Scalar(cyn), Scalar(czn)};
+    g.center_d = {cxn, cyn, czn};
     double max_angle = 0.0;
     for (const auto& v : drop_corners) {
         double d = v.x * cxn + v.y * cyn + v.z * czn;
@@ -900,9 +901,17 @@ DropGeometry build_drop_geometry(const std::vector<Vec3>& drop_corners) {
     g.max_angle = max_angle;
 
     g.clip_normals.reserve(nd);
+    g.clip_normals_d.reserve(nd);
     for (int j = 0; j < nd; j++) {
-        const Vec3& P1 = drop_corners[j];
-        const Vec3& P2 = drop_corners[(j + 1) % nd];
+        Vec3 P1, P2;
+        if (corners_dbl && (int)corners_dbl->size() == nd) {
+            P1 = (*corners_dbl)[j];
+            P2 = (*corners_dbl)[(j + 1) % nd];
+        } else {
+            P1 = {double(drop_corners[j].x), double(drop_corners[j].y), double(drop_corners[j].z)};
+            P2 = {double(drop_corners[(j + 1) % nd].x), double(drop_corners[(j + 1) % nd].y),
+                  double(drop_corners[(j + 1) % nd].z)};
+        }
         double nx = P1.y * P2.z - P1.z * P2.y;
         double ny = P1.z * P2.x - P1.x * P2.z;
         double nz = P1.x * P2.y - P1.y * P2.x;
@@ -911,20 +920,29 @@ DropGeometry build_drop_geometry(const std::vector<Vec3>& drop_corners) {
         }
         double nlen = std::sqrt(nx * nx + ny * ny + nz * nz);
         if (nlen < 1e-300) { nlen = 1.0; }
-        g.clip_normals.push_back({nx / nlen, ny / nlen, nz / nlen});
+        g.clip_normals.push_back({Scalar(nx / nlen), Scalar(ny / nlen), Scalar(nz / nlen)});
+        g.clip_normals_d.push_back({nx / nlen, ny / nlen, nz / nlen});
     }
     return g;
 }
 
 // ============================================================================
-// compute_overlap_area_g - 使用预计算 drop 几何的重叠面积 (与 compute_overlap_area
-// 语义一致; drop 包围圆/法向量仅构造一次, 高 NSIDE 多候选时显著省三角函数)
+// compute_overlap_area_g - 使用预计算 drop 几何的重叠面积 (Scalar 实例)
+//   Scalar=float: 几何数据/返回 float (真 FP32 类型贯穿); 数值运算内部 double
+//   提升 (微小球面几何 det/denom 在纯 float 下误差 ~9%, 提升后科学正确)
 // ============================================================================
-double compute_overlap_area_g(const DropGeometry& g,
+template <typename Scalar>
+Scalar compute_overlap_area_g(const DropGeometryT<Scalar>& g,
                               const healpix::HealpixCore& hp, uint64_t target_ipix)
 {
     int nd = (int)g.corners.size();
-    if (nd < 3) return 0.0;
+    if (nd < 3) return Scalar(0);
+
+    // 内部 double 提升 (数值稳定; 输入/输出保持 Scalar 类型贯穿):
+    // 微小球面几何 (6.3\" 尺度) 纯 float det/denom 误差 ~9%, 提升后科学正确
+    // double 精度缓存 (build_drop_geometry 构建时一次)
+    const std::vector<Vec3>& clip_d = g.clip_normals_d;
+    double center_x = g.center_d.x, center_y = g.center_d.y, center_z = g.center_d.z;
 
     // 快速拒绝 (Oracle 穷举关键; 生产 query 已预过滤, 此判断为防御性重复):
     // 像素中心到 drop 包围圆中心距离 > max_angle + 1.0×hp_res (像素外接半径上界)
@@ -934,10 +952,10 @@ double compute_overlap_area_g(const DropGeometry& g,
         double ra_rj, dec_rj;
         hp.pix2radec((int64_t)target_ipix, &ra_rj, &dec_rj);
         Vec3 pc = radec_to_vec<double>(ra_rj, dec_rj);
-        double d_c = pc.x * g.center.x + pc.y * g.center.y + pc.z * g.center.z;
+        double d_c = pc.x * center_x + pc.y * center_y + pc.z * center_z;
         d_c = std::max(-1.0, std::min(1.0, d_c));
         if (std::acos(d_c) > g.max_angle + 1.0 * hp_res_rad_rj) {
-            return 0.0;
+            return Scalar(0);
         }
     }
 
@@ -945,11 +963,11 @@ double compute_overlap_area_g(const DropGeometry& g,
     hp.pix2radec((int64_t)target_ipix, &ra_c, &dec_c);
     Vec3 hp_center = radec_to_vec<double>(ra_c, dec_c);
 
-    // 1. 获取目标 HEALPix 像素边界 (自适应细分, double 内部)
+    // 1. 获取目标 HEALPix 像素边界 (double 内部)
     int nside = hp.getNside();
     int samples = (nside <= 8) ? 16 : 1;
     std::vector<Vec3> hp_boundary = get_healpix_boundary_sampled<double>(hp, target_ipix, nside, samples);
-    if (hp_boundary.size() < 3) return 0.0;
+    if (hp_boundary.size() < 3) return Scalar(0);
 
     int nb = (int)hp_boundary.size();
 
@@ -957,13 +975,17 @@ double compute_overlap_area_g(const DropGeometry& g,
     //   三角形扇剖分 (hp_center → 每边三角形) + 逐三角形 S-H 裁剪
     //   R11 性能优化: tri_inside 快路径 (三角形完全在 drop 内 → 直接面积,
     //   免 S-H); drop 几何预计算复用; 高 NSIDE 4 角边界直出。
-    const std::vector<Vec3>& drop_clip_normals = g.clip_normals;
+    const std::vector<Vec3>& drop_clip_normals = clip_d;
 
     // 全包含快速判定: leaf 4 角全在 drop 内 → drop 包含整个像素
+    // 判定阈值 Scalar 感知: float 实例的 clip_normals 存储有 ~1e-7 相对舍入,
+    // dot 判定阈值取 1e-6 (保守, 防 all_fully_inside 误判导致 weight 爆炸);
+    // 误判风险像素走下方精确 S-H 路径 (double 内部), 数值正确
+    const double inside_tol = (std::is_same_v<Scalar, float>) ? 1e-6 : 1e-12;
     bool leaf_fully_inside_drop = true;
     for (const auto& v : hp_boundary) {
         for (const auto& n : drop_clip_normals) {
-            if (v.x * n.x + v.y * n.y + v.z * n.z < -1e-12) {
+            if (v.x * n.x + v.y * n.y + v.z * n.z < -inside_tol) {
                 leaf_fully_inside_drop = false;
                 break;
             }
@@ -972,14 +994,14 @@ double compute_overlap_area_g(const DropGeometry& g,
     }
     if (leaf_fully_inside_drop) {
         // drop 包含像素 → overlap = 像素解析面积 (4π/(12·NSIDE²) = π/(3·NSIDE²))
-        return PI / (3.0 * (double)nside * (double)nside);
+        return Scalar(PI / (3.0 * (double)nside * (double)nside));
     }
 
     // 三角形扇剖分 + 逐三角形 S-H 裁剪 (旧算法数值路径, 通量闭合 ~1e-11)
     double total_overlap = 0.0;
     bool center_in_drop = true;
     for (const auto& n : drop_clip_normals) {
-        if (hp_center.x * n.x + hp_center.y * n.y + hp_center.z * n.z < -1e-12) {
+        if (hp_center.x * n.x + hp_center.y * n.y + hp_center.z * n.z < -inside_tol) {
             center_in_drop = false;
             break;
         }
@@ -993,8 +1015,8 @@ double compute_overlap_area_g(const DropGeometry& g,
         bool tri_inside = center_in_drop;
         if (tri_inside) {
             for (const auto& n : drop_clip_normals) {
-                if (A.x * n.x + A.y * n.y + A.z * n.z < -1e-12 ||
-                    B.x * n.x + B.y * n.y + B.z * n.z < -1e-12) {
+                if (A.x * n.x + A.y * n.y + A.z * n.z < -inside_tol ||
+                    B.x * n.x + B.y * n.y + B.z * n.z < -inside_tol) {
                     tri_inside = false;
                     break;
                 }
@@ -1009,7 +1031,7 @@ double compute_overlap_area_g(const DropGeometry& g,
             total_overlap += spherical_polygon_area_n<double>(intersection, ni);
         }
     }
-    return total_overlap;
+    return Scalar(total_overlap);
 }
 
 // ============================================================================
@@ -1099,15 +1121,21 @@ void query_candidate_pixels_fast(
     candidates.clear();
     if (drop_corners.empty()) return;
 
-    // 1. drop 球面包围圆 (与 query_candidate_pixels 一致)
-    Vec3T<T> center = {T(0), T(0), T(0)};
+    // 1. drop 球面包围圆 (内部 double 计算: 候选是几何完备性判定,
+    //    float 舍入会抖动 delta/中心导致 FP32/FP64 候选集合不一致;
+    //    候选集合本身为整数 ipix, 与 Scalar 类型无关)
+    double cx_ = 0.0, cy_ = 0.0, cz_ = 0.0;
     for (const Vec3T<T>& v : drop_corners) {
-        center.x += v.x; center.y += v.y; center.z += v.z;
+        cx_ += double(v.x); cy_ += double(v.y); cz_ += double(v.z);
     }
-    center = normalize(center);
+    double cl_ = std::sqrt(cx_ * cx_ + cy_ * cy_ + cz_ * cz_);
+    double ci_ = (cl_ < 1e-300) ? 1.0 : 1.0 / cl_;
+    Vec3 center = {cx_ * ci_, cy_ * ci_, cz_ * ci_};
     double max_angle = 0.0;
     for (const Vec3T<T>& v : drop_corners) {
-        double ang = angular_distance<T>(v, center);
+        double d = double(v.x) * center.x + double(v.y) * center.y + double(v.z) * center.z;
+        d = std::max(-1.0, std::min(1.0, d));
+        double ang = std::acos(d);
         if (ang > max_angle) max_angle = ang;
     }
 
@@ -1116,8 +1144,8 @@ void query_candidate_pixels_fast(
     double buffer_rad    = 1.0 * hp_res_rad;
     double query_radius_rad = max_angle + buffer_rad;
 
-    T ra_c, dec_c;
-    vec_to_radec<T>(center, ra_c, dec_c);
+    double ra_c, dec_c;
+    vec_to_radec<double>(center, ra_c, dec_c);
 
     // 2. 中心像素 NESTED (face, ix, iy) — 公开 radec2pix + 自实现 morton 解交织
     int nside = hp.getNside();
@@ -1254,6 +1282,14 @@ template float compute_overlap_area<float>(
     const std::vector<Vec3T<float>>&, const healpix::HealpixCore&, uint64_t);
 template double compute_overlap_area<double>(
     const std::vector<Vec3T<double>>&, const healpix::HealpixCore&, uint64_t);
+template DropGeometryT<float> build_drop_geometry<float>(
+    const std::vector<Vec3T<float>>&, const std::vector<Vec3>*);
+template DropGeometryT<double> build_drop_geometry<double>(
+    const std::vector<Vec3T<double>>&, const std::vector<Vec3>*);
+template float compute_overlap_area_g<float>(const DropGeometryT<float>&,
+                                             const healpix::HealpixCore&, uint64_t);
+template double compute_overlap_area_g<double>(const DropGeometryT<double>&,
+                                               const healpix::HealpixCore&, uint64_t);
 template void query_candidate_pixels<float>(
     const std::vector<Vec3T<float>>&, const healpix::HealpixCore&, std::vector<uint64_t>&);
 template void query_candidate_pixels<double>(
