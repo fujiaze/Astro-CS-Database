@@ -954,8 +954,9 @@ void query_candidate_pixels_fast(
 
     double hp_res_arcsec = hp.pixelResolutionArcsec();
     double hp_res_rad    = hp_res_arcsec * ARCSEC_TO_RAD;
-    // 1.2×hp_res 像素外接半径上界 (收紧原 3.0×, 控制包要求保守但不浪费)
-    double buffer_rad    = 1.2 * hp_res_rad;
+    // 1.0×hp_res 像素外接半径上界 (代码原注释: 中心→最远顶点上界≈1.0×res;
+    // 原 3.0× 过保守; 预过滤已保证零漏选)
+    double buffer_rad    = 1.0 * hp_res_rad;
     double query_radius_rad = max_angle + buffer_rad;
 
     double ra_c, dec_c;
