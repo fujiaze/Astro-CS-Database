@@ -926,6 +926,21 @@ double compute_overlap_area_g(const DropGeometry& g,
     int nd = (int)g.corners.size();
     if (nd < 3) return 0.0;
 
+    // 快速拒绝 (Oracle 穷举关键; 生产 query 已预过滤, 此判断为防御性重复):
+    // 像素中心到 drop 包围圆中心距离 > max_angle + 1.0×hp_res (像素外接半径上界)
+    // → 必然不相交, 跳过边界获取/S-H (避免极区大像素细分开销)
+    double hp_res_rad_rj = hp.pixelResolutionArcsec() * ARCSEC_TO_RAD;
+    {
+        double ra_rj, dec_rj;
+        hp.pix2radec((int64_t)target_ipix, &ra_rj, &dec_rj);
+        Vec3 pc = radec_to_vec<double>(ra_rj, dec_rj);
+        double d_c = pc.x * g.center.x + pc.y * g.center.y + pc.z * g.center.z;
+        d_c = std::max(-1.0, std::min(1.0, d_c));
+        if (std::acos(d_c) > g.max_angle + 1.0 * hp_res_rad_rj) {
+            return 0.0;
+        }
+    }
+
     double ra_c, dec_c;
     hp.pix2radec((int64_t)target_ipix, &ra_c, &dec_c);
     Vec3 hp_center = radec_to_vec<double>(ra_c, dec_c);
@@ -1132,13 +1147,20 @@ void query_candidate_pixels_fast(
     if (delta < 0) delta = 0;
     if (delta > nside - 1) delta = nside - 1;
 
-    // 4. 直接枚举 (face, ix, iy) 正方形包围盒 (NESTED, 去重天然保证)
+    // 4. 边界判断 + 枚举 (控制包 CANDIDATE_QUERY_REPAIR):
+    //    仅当枚举包围盒完全位于中心 base face 内部时, 才允许 face 内快速枚举
+    //    (可证明不会跨 face, 零漏选由 Oracle 矩阵验证)。
+    //    包围盒触及 face 边界/角/极区接缝时, 回退保守 PRECISE 候选
+    //    (query_candidate_pixels: queryDisc 圆盘, 天然跨 face, buffer 3.0×hp_res)。
+    //    禁止只裁剪中心 face (会漏相邻 face 真相交像素)。
     int x0 = ix0 - delta, x1 = ix0 + delta;
     int y0 = iy0 - delta, y1 = iy0 + delta;
-    if (x0 < 0) x0 = 0;
-    if (y0 < 0) y0 = 0;
-    if (x1 > nside - 1) x1 = nside - 1;
-    if (y1 > nside - 1) y1 = nside - 1;
+    if (x0 < 0 || y0 < 0 || x1 > nside - 1 || y1 > nside - 1) {
+        // 边界回退: 保守 inclusive 查询 (跨 face / 极区 / RA 跨界均安全)
+        query_candidate_pixels<T>(drop_corners, hp, candidates);
+        return;
+    }
+    // 快速路径统计: 单 face 内部枚举 (无跨 face)
     candidates.reserve((size_t)(x1 - x0 + 1) * (y1 - y0 + 1));
     // NESTED morton 交织 (标准位操作, 纯数学, 不依赖 healpix_core 私有接口)
     auto morton = [](int x, int y) -> uint64_t {
@@ -1166,8 +1188,9 @@ void query_candidate_pixels_fast(
         }
     }
     // 5. 圆心距离预过滤 (保守: 像素中心在查询圆盘内才保留)
-    //    查询圆盘半径 = max_angle + 1.2×hp_res 已覆盖像素外接圆上界, 零漏选;
-    //    过滤掉正方形包围盒的边角, 大幅减少后续 compute_overlap_area 昂贵调用。
+    //    查询圆盘半径 = max_angle + 1.0×hp_res (像素外接圆半径上界;
+    //    零漏选由候选 Oracle 矩阵对全部 face/NSIDE 验证)。
+    //    过滤掉正方形包围盒的边角, 减少后续 compute_overlap_area 调用。
     double cos_lim = std::cos(double(query_radius_rad));
     std::vector<uint64_t> filtered;
     filtered.reserve(candidates.size());
