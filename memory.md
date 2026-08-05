@@ -1768,3 +1768,24 @@ SHA256 81009fc5b32d0c34ac62522dc48e7dd1b619aeff2b7333b5027abc5fdc7a7d5a
 **结论: Drizzle 算法结构冻结推迟** — 核心正确性已加固, 但用户要求的
 尺度矩阵与广域大畸变验收未完成, 下一轮重新设计验收方法后再冻结。
 ACR worktree 本轮未触碰 (并行 ACR 会话推进至 f8cba99, worktree 干净)。
+
+### Drizzle Phase1 最终冻结 (2026-08-05, main 8114a1f)
+
+冻结控制包: AstroCS_Drizzle_Phase1_Final_Freeze_Pack_2026-08-05
+(SHA256 2496db457f1bb73404155851a5436f6d419d7ba59155943ae75d71cc44a1567b)
+
+**执行 (main, 不开分支, 未触碰 ACR/FAST/Stage2):**
+- Wiki 同步 (冻结 spec/验收 spec/项目状态, wiki 9d48f4e) + 冲突文档清理
+- 冻结验收 drizzle_freeze_test 39/39: coverage/hole Oracle (false hole/fill=0)、
+  采样率 0.1~10"/px 代表点、pixfrac 0.6/0.8/1.0 + 扩展、视场代表点、
+  Sphere→Plane 双向最小闭合、HISS Writer/Reader 往返
+- 性能: 完整真实单帧 (4500×3600@65536, pixfrac=0.8) Drizzle 28.6s
+  (硬门 ≤60s, 目标 ≤30s)
+- 真实帧集成: Stage1 exit=0, HISS_VERIFY 285/285 Tile
+  (完整帧历史 3 次 + 本轮 1 次 = 4, 如实计数)
+
+**结论: Phase1 基础算法 (Drizzle/HISS 单帧球面投影) 闭合** — 可进入下一阶段
+(Phase2 多帧积分/HICS), 不扩展到 ACR/FAST/Stage2。
+
+交付包: AstroCS_Delivery_Drizzle_Phase1_Final_20260805.zip
+SHA256 2793f2875cf8da81761cf808e9c701419c655df8a925498496487032ba05af1e
