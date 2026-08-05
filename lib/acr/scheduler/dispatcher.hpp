@@ -146,6 +146,22 @@ struct CostAwareResult {
     // F-fix 1：固定尾段实验标记（不是动态 guided）
     bool fixed_tail_chunking_used{false};  // 是否使用了固定尾段缩块实验
     std::size_t fixed_tail_min_chunk{0};   // 固定尾段缩到的最小块
+
+    // 24 号计划 §3：每设备真实完成统计（仅由 completion 产生）
+    struct PerDeviceStats {
+        std::string device_id;              // "cpu" / "cuda:0"
+        std::string backend;                // "cpu" / "cuda"
+        std::size_t items_done{0};          // 完成元素数
+        std::size_t bytes_read{0};          // 实际读取字节
+        std::size_t bytes_written{0};       // 实际写入字节
+        std::size_t blocks_done{0};         // 完成块数
+        std::uint64_t active_duration_ns{0};    // 有效执行时间
+        std::uint64_t queue_wait_ns{0};         // 队列等待
+        std::uint64_t transfer_duration_ns{0};  // 传输耗时
+        std::size_t fallback_count{0};          // 回退次数
+        std::size_t error_count{0};             // 错误/失败次数
+    };
+    std::vector<PerDeviceStats> per_device_stats;
 };
 
 // ===== Dispatcher =====

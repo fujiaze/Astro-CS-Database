@@ -401,6 +401,8 @@ CostAwareResult dispatch_with(DispatcherConfig cfg,
     inv.buffers.add(0, y.data(), n);
     inv.buffers.add(1, x.data(), n);
     append_scalar(inv.scalars, 2.0f);
+    inv.traits.bytes_read_per_item = sizeof(float);
+    inv.traits.bytes_written_per_item = sizeof(float);
     return d.dispatch_invocation(make_task(n), est, inv);
 }
 
@@ -449,4 +451,80 @@ TEST(DispatchInvocation, ForceAllSupportedForTestOnly) {
     EXPECT_TRUE(r.run_result.all_done);
     EXPECT_GT(r.chunks_on_gpu, 0u);   // 测试开关强制 mock 参与
     EXPECT_GT(r.chunks_on_cpu, 0u);
+}
+
+// ============================================================================
+// 6. actual_primary 反例（24 号计划 §3）：按真实 items/bytes，禁止 executor 顺序
+// ============================================================================
+namespace {
+
+cost::CostEstimate make_dual_estimate_chunks(std::size_t cpu_rec,
+                                             std::size_t gpu_rec) {
+    cost::CostEstimate est;
+    cost::DeviceCost cpu_dc;
+    cpu_dc.device_id = kHwCpuDeviceId;
+    cpu_dc.backend = "cpu";
+    cpu_dc.recommended_chunk = cpu_rec;
+    cpu_dc.min_effective_chunk = 64;
+    cpu_dc.feasible = true;
+    cpu_dc.profile_available = true;
+    est.per_device.push_back(cpu_dc);
+    cost::DeviceCost gpu_dc;
+    gpu_dc.device_id = static_cast<DeviceId>(1);
+    gpu_dc.backend = "cuda:0";
+    gpu_dc.recommended_chunk = gpu_rec;
+    gpu_dc.min_effective_chunk = 64;
+    gpu_dc.feasible = true;
+    gpu_dc.profile_available = true;
+    est.per_device.push_back(gpu_dc);
+    est.preferred_device = static_cast<DeviceId>(1);
+    est.profile_available = true;
+    return est;
+}
+
+} // anonymous namespace
+
+TEST(DispatchInvocation, ActualPrimaryGpuWhenGpuItemsMore) {
+    // GPU 块大（rec 65536）、CPU 块小（rec 256）→ GPU 完成 items 更多
+    auto est = make_dual_estimate_chunks(256, 65536);
+    auto r = dispatch_with(DispatcherConfig{}, make_cpu_mock_registry(), 1 << 20, est);
+    ASSERT_TRUE(r.run_result.all_done);
+    ASSERT_EQ(r.per_device_stats.size(), 2u);
+    std::size_t cpu_items = 0, gpu_items = 0;
+    for (const auto& s : r.per_device_stats) {
+        if (s.backend == "cpu") cpu_items = s.items_done;
+        else if (s.backend == "cuda") gpu_items = s.items_done;
+    }
+    EXPECT_GT(gpu_items, cpu_items);
+    EXPECT_EQ(r.actual_primary_backend, "cuda:0");
+}
+
+TEST(DispatchInvocation, ActualPrimaryCpuWhenCpuItemsMore) {
+    // CPU 块大（rec 65536）、GPU 块小（rec 256）→ CPU 完成 items 更多
+    auto est = make_dual_estimate_chunks(65536, 256);
+    auto r = dispatch_with(DispatcherConfig{}, make_cpu_mock_registry(), 1 << 20, est);
+    ASSERT_TRUE(r.run_result.all_done);
+    ASSERT_EQ(r.per_device_stats.size(), 2u);
+    std::size_t cpu_items = 0, gpu_items = 0;
+    for (const auto& s : r.per_device_stats) {
+        if (s.backend == "cpu") cpu_items = s.items_done;
+        else if (s.backend == "cuda") gpu_items = s.items_done;
+    }
+    EXPECT_GT(cpu_items, gpu_items);
+    EXPECT_EQ(r.actual_primary_backend, "cpu");
+}
+
+TEST(DispatchInvocation, PerDeviceStatsFromCompletions) {
+    auto est = make_dual_estimate_chunks(1024, 65536);
+    auto r = dispatch_with(DispatcherConfig{}, make_cpu_mock_registry(), 1 << 20, est);
+    ASSERT_TRUE(r.run_result.all_done);
+    std::size_t total_items = 0;
+    for (const auto& s : r.per_device_stats) {
+        total_items += s.items_done;
+        // bytes_read/written 来自 traits（axpy：read=4, write=4 per item）
+        EXPECT_EQ(s.bytes_read, s.items_done * 4);
+        EXPECT_EQ(s.bytes_written, s.items_done * 4);
+        EXPECT_GT(s.blocks_done, 0u);  // 参与设备均有真实完成块
+    }
+    EXPECT_EQ(total_items, 1u << 20);  // 全部 items 均来自 completion
 }

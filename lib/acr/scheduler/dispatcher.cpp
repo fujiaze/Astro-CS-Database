@@ -646,6 +646,8 @@ struct Dispatcher::Impl {
         std::size_t failed_blocks{0};
         std::size_t items_done{0};
         std::size_t bytes_done{0};
+        std::size_t bytes_read{0};
+        std::size_t bytes_written{0};
         std::uint64_t elapsed_ns{0};
     };
 
@@ -755,6 +757,8 @@ struct Dispatcher::Impl {
         std::vector<std::atomic<std::size_t>> exec_failed(n_exec);
         std::vector<std::atomic<std::size_t>> exec_items(n_exec);
         std::vector<std::atomic<std::size_t>> exec_bytes(n_exec);
+        std::vector<std::atomic<std::size_t>> exec_bytes_read(n_exec);
+        std::vector<std::atomic<std::size_t>> exec_bytes_written(n_exec);
         std::vector<std::atomic<std::uint64_t>> exec_elapsed(n_exec);
         // 23 号计划 §4/§6：首轮领取公平门——每个 executor 至少先领取一块，
         // 之后才允许任意设备连续领取。防止快速 CPU worker 在慢设备（GPU）线程
@@ -767,6 +771,8 @@ struct Dispatcher::Impl {
         for (auto& a : exec_failed) a.store(0, std::memory_order_relaxed);
         for (auto& a : exec_items) a.store(0, std::memory_order_relaxed);
         for (auto& a : exec_bytes) a.store(0, std::memory_order_relaxed);
+        for (auto& a : exec_bytes_read) a.store(0, std::memory_order_relaxed);
+        for (auto& a : exec_bytes_written) a.store(0, std::memory_order_relaxed);
         for (auto& a : exec_elapsed) a.store(0, std::memory_order_relaxed);
 
         constexpr std::uint32_t kMaxAttempts = 4;  // 重试上限（防确定性失败死循环）
@@ -1018,6 +1024,12 @@ struct Dispatcher::Impl {
                                     handle.items_done, std::memory_order_relaxed);
                                 exec_bytes[i].fetch_add(
                                     handle.bytes_done, std::memory_order_relaxed);
+                                exec_bytes_read[i].fetch_add(
+                                    handle.items_done * invocation.traits.bytes_read_per_item,
+                                    std::memory_order_relaxed);
+                                exec_bytes_written[i].fetch_add(
+                                    handle.items_done * invocation.traits.bytes_written_per_item,
+                                    std::memory_order_relaxed);
                                 exec_elapsed[i].fetch_add(
                                     handle.elapsed_ns, std::memory_order_relaxed);
                             } else {
@@ -1076,6 +1088,10 @@ struct Dispatcher::Impl {
                 exec_items[i].load(std::memory_order_relaxed);
             per_exec_stats_out[i].bytes_done =
                 exec_bytes[i].load(std::memory_order_relaxed);
+            per_exec_stats_out[i].bytes_read =
+                exec_bytes_read[i].load(std::memory_order_relaxed);
+            per_exec_stats_out[i].bytes_written =
+                exec_bytes_written[i].load(std::memory_order_relaxed);
             per_exec_stats_out[i].elapsed_ns =
                 exec_elapsed[i].load(std::memory_order_relaxed);
             if (d > 0) {
@@ -1419,24 +1435,48 @@ CostAwareResult Dispatcher::dispatch_invocation(
     result.run_result = r;
     result.actual_devices_used = actual_devices;
 
-    // actual_primary_backend：真实完成工作量（items/bytes）最大者
+    // 24 号计划 §3：actual_primary 按每设备真实 items_done 最大者确定；
+    // 相同则比较实际处理字节，再相同比较有效执行时间。禁止用
+    // actual_devices.front() 或 executor 顺序代替统计结果。
     {
-        std::size_t best_items = 0;
-        std::size_t best_bytes = 0;
+        const Impl::InvocationExecStats* best = nullptr;
         for (const auto& s : per_exec_stats) {
-            best_items += s.items_done;
-            best_bytes += s.bytes_done;
+            if (s.items_done == 0 && s.done_blocks == 0) continue;
+            if (best == nullptr) { best = &s; continue; }
+            if (s.items_done > best->items_done) {
+                best = &s;
+            } else if (s.items_done == best->items_done) {
+                const std::size_t s_bytes = s.bytes_read + s.bytes_written;
+                const std::size_t b_bytes = best->bytes_read + best->bytes_written;
+                if (s_bytes > b_bytes) {
+                    best = &s;
+                } else if (s_bytes == b_bytes && s.elapsed_ns > best->elapsed_ns) {
+                    best = &s;
+                }
+            }
         }
-        if (best_items == 0 && best_bytes == 0 && r.failed_chunks > 0) {
+        if (best == nullptr) {
             result.actual_primary_backend = "none";
-        } else if (r.executed_on_gpu > 0 && r.executed_on_gpu > r.executed_on_cpu) {
-            result.actual_primary_backend = actual_devices.empty()
-                ? "cuda" : actual_devices.front();
-        } else if (r.executed_on_cpu > 0) {
-            result.actual_primary_backend = "cpu";
+        } else if (best->backend_type.rfind("cuda", 0) == 0) {
+            result.actual_primary_backend = best->device_id;  // 如 "cuda:0"
         } else {
-            result.actual_primary_backend = "none";
+            result.actual_primary_backend = best->backend_type;  // "cpu"
         }
+    }
+
+    // 24 号计划 §3：输出完整 per-device 真实统计
+    result.per_device_stats.clear();
+    for (const auto& s : per_exec_stats) {
+        CostAwareResult::PerDeviceStats pds;
+        pds.device_id = s.device_id;
+        pds.backend = s.backend_type;
+        pds.items_done = s.items_done;
+        pds.bytes_read = s.bytes_read;
+        pds.bytes_written = s.bytes_written;
+        pds.blocks_done = s.done_blocks;
+        pds.active_duration_ns = s.elapsed_ns;
+        pds.error_count = s.failed_blocks;
+        result.per_device_stats.push_back(pds);
     }
 
     result.total_chunks = r.total_chunks;
