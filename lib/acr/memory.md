@@ -46,6 +46,19 @@
    - GPU 采样/queue/throttle/batch 进入 invocation 正式循环；
    - CudaBridgeExecutor 真实 queue_state（pending 计数）；
    - 所有 CPU 逻辑线程可参与（移除 min(8,hw) 静态上限）。
+6. **统一 Benchmark→HardwareProfile 管线**（086df45）：
+   - BenchmarkDriver 经桥接执行真实 GPU 微基准（AXPY/Triad/Copy/Dot→reduce/
+     Convolution2D→conv3x3），消除 GPU 占位/零样本；不支持的维度如实跳过；
+   - Raw 记录增加 ISA/线程维度；ProfileGenerator 先聚合再映射曲线（修复
+     median 恒 0）；GPU 名称/指纹优先 bridge 真实设备名；
+   - BenchmarkConfig 支持 kernel 定向微基准；holdout 预测验证测试
+     （acr_test_profile_holdout）；
+   - `acr-benchmark --gpu quick` 实测生成 CPU+GPU 双设备真实 profile
+     （RTX 3060 Ti 曲线 median>0）。
+7. **Sanitizer 扩展**（997cf4c）：MSVC ASan 覆盖 shared_work_pool、
+   kernel_registry、device_executor（CpuExecutor 提交+契约拒绝）、
+   cpu_controller、system_metrics；Dispatcher/ProfileBuilder 因
+   oneTBB/hwloc MinGW ABI 依赖无法纳入，如实记录。
 
 **已知限制（如实）**：
 - CPU/GPU 利用率目标闭环未达标且不再作为本轮门禁（见决策）；
