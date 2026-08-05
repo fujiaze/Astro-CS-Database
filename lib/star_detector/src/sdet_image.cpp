@@ -191,6 +191,102 @@ void sdet_gaussian_blur_yvv(const float* src, float* dst, int w, int h, double s
     }
 }
 
+// ============================================================================
+// sdet_gaussian_blur_yvv_d - FP64 变体 (R11, PREC-108): double 图像, 无 float 降级
+// 与 float 版逻辑一致, 系数/缓冲/递归全部 double
+// ============================================================================
+void sdet_gaussian_blur_yvv_d(const double* src, double* dst, int w, int h, double sigma) {
+    if (sigma <= 0.5 || w < 4 || h < 4) {
+        // 退化路径: 直接复制 (浮点高斯在该参数下近似恒等)
+        for (int64_t i = 0; i < (int64_t)w * h; i++) dst[i] = src[i];
+        return;
+    }
+
+    double q;
+    if (sigma < 2.5) {
+        q = 3.97156 - 4.14554 * std::sqrt(1.0 - 0.26891 * sigma);
+    } else {
+        q = 0.98711 * sigma - 0.96330;
+    }
+    double b0 = 1.57825 + 2.44413 * q + 1.4281 * q * q + 0.422205 * q * q * q;
+    double b1 = 2.44413 * q + 2.85619 * q * q + 1.26661 * q * q * q;
+    double b2 = -1.4281 * q * q - 1.26661 * q * q * q;
+    double b3 = 0.422205 * q * q * q;
+    double B = 1.0 - (b1 + b2 + b3) / b0;
+    b1 /= b0;
+    b2 /= b0;
+    b3 /= b0;
+
+    double M[3][3];
+    M[0][0] = -b3 * b1 + 1.0 - b3 * b3 - b2;
+    M[0][1] = (b3 + b1) * (b2 + b3 * b1);
+    M[0][2] = b3 * (b1 + b3 * b2);
+    M[1][0] = b1 + b3 * b2;
+    M[1][1] = -(b2 - 1.0) * (b2 + b3 * b1);
+    M[1][2] = -(b3 * b1 + b3 * b3 + b2 - 1.0) * b3;
+    M[2][0] = b3 * b1 + b2 + b1 * b1 - b2 * b2;
+    M[2][1] = b1 * b2 + b3 * b2 * b2 - b1 * b3 * b3 - b3 * b3 * b3 - b3 * b2 + b3;
+    M[2][2] = b3 * (b1 + b3 * b2);
+
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            M[i][j] *= (1.0 + b2 + (b1 - b3) * b3);
+            M[i][j] /= (1.0 + b1 - b2 + b3) * (1.0 - b1 - b2 - b3);
+        }
+    }
+
+    std::vector<double> tmp((size_t)w * h);
+
+    #pragma omp parallel for schedule(static)
+    for (int y = 0; y < h; y++) {
+        const double* srow = src + (size_t)y * w;
+        double* trow = tmp.data() + (size_t)y * w;
+
+        trow[0] = srow[0] * (B + b1 + b2 + b3);
+        trow[1] = B * srow[1] + b1 * trow[0] + srow[0] * (b2 + b3);
+        trow[2] = B * srow[2] + b1 * trow[1] + b2 * trow[0] + b3 * srow[0];
+        for (int x = 3; x < w; x++) {
+            trow[x] = B * srow[x] + b1 * trow[x - 1] + b2 * trow[x - 2] + b3 * trow[x - 3];
+        }
+
+        double sW = srow[w - 1];
+        double temp2Wm1 = sW + M[0][0] * (trow[w - 1] - sW) + M[0][1] * (trow[w - 2] - sW) + M[0][2] * (trow[w - 3] - sW);
+        double temp2W   = sW + M[1][0] * (trow[w - 1] - sW) + M[1][1] * (trow[w - 2] - sW) + M[1][2] * (trow[w - 3] - sW);
+        double temp2Wp1 = sW + M[2][0] * (trow[w - 1] - sW) + M[2][1] * (trow[w - 2] - sW) + M[2][2] * (trow[w - 3] - sW);
+
+        trow[w - 1] = temp2Wm1;
+        trow[w - 2] = B * trow[w - 2] + b1 * trow[w - 1] + b2 * temp2W + b3 * temp2Wp1;
+        trow[w - 3] = B * trow[w - 3] + b1 * trow[w - 2] + b2 * trow[w - 1] + b3 * temp2W;
+
+        for (int x = w - 4; x >= 0; x--) {
+            trow[x] = B * trow[x] + b1 * trow[x + 1] + b2 * trow[x + 2] + b3 * trow[x + 3];
+        }
+    }
+
+    #pragma omp parallel for schedule(static)
+    for (int x = 0; x < w; x++) {
+        dst[0 * w + x] = tmp[0 * w + x] * (B + b1 + b2 + b3);
+        dst[1 * w + x] = B * tmp[1 * w + x] + b1 * dst[0 * w + x] + tmp[0 * w + x] * (b2 + b3);
+        dst[2 * w + x] = B * tmp[2 * w + x] + b1 * dst[1 * w + x] + b2 * dst[0 * w + x] + b3 * tmp[0 * w + x];
+        for (int y = 3; y < h; y++) {
+            dst[(size_t)y * w + x] = B * tmp[(size_t)y * w + x] + b1 * dst[(size_t)(y - 1) * w + x] + b2 * dst[(size_t)(y - 2) * w + x] + b3 * dst[(size_t)(y - 3) * w + x];
+        }
+
+        double sH = tmp[(size_t)(h - 1) * w + x];
+        double temp2Hm1 = sH + M[0][0] * (dst[(size_t)(h - 1) * w + x] - sH) + M[0][1] * (dst[(size_t)(h - 2) * w + x] - sH) + M[0][2] * (dst[(size_t)(h - 3) * w + x] - sH);
+        double temp2H   = sH + M[1][0] * (dst[(size_t)(h - 1) * w + x] - sH) + M[1][1] * (dst[(size_t)(h - 2) * w + x] - sH) + M[1][2] * (dst[(size_t)(h - 3) * w + x] - sH);
+        double temp2Hp1 = sH + M[2][0] * (dst[(size_t)(h - 1) * w + x] - sH) + M[2][1] * (dst[(size_t)(h - 2) * w + x] - sH) + M[2][2] * (dst[(size_t)(h - 3) * w + x] - sH);
+
+        dst[(size_t)(h - 1) * w + x] = temp2Hm1;
+        dst[(size_t)(h - 2) * w + x] = B * dst[(size_t)(h - 2) * w + x] + b1 * dst[(size_t)(h - 1) * w + x] + b2 * temp2H + b3 * temp2Hp1;
+        dst[(size_t)(h - 3) * w + x] = B * dst[(size_t)(h - 3) * w + x] + b1 * dst[(size_t)(h - 2) * w + x] + b2 * dst[(size_t)(h - 1) * w + x] + b3 * temp2H;
+
+        for (int y = h - 4; y >= 0; y--) {
+            dst[(size_t)y * w + x] = B * dst[(size_t)y * w + x] + b1 * dst[(size_t)(y + 1) * w + x] + b2 * dst[(size_t)(y + 2) * w + x] + b3 * dst[(size_t)(y + 3) * w + x];
+        }
+    }
+}
+
 void sdet_median_filter_3x3(const float* src, float* dst, int w, int h) {
     #pragma omp parallel for schedule(static)
     for (int y = 0; y < h; y++) {
@@ -395,6 +491,34 @@ float sdet_robust_mad(const float* data, int n) {
     }
     float mad = sdet_robust_median(deviations.data(), n);
     return mad * 1.4826f;
+}
+
+// ============================================================================
+// sdet_robust_median_d / sdet_robust_mad_d - FP64 变体 (R11, PREC-108)
+// ============================================================================
+double sdet_robust_median_d(const double* data, int n) {
+    if (n <= 0) return 0.0;
+    std::vector<double> tmp(data, data + n);
+    std::nth_element(tmp.begin(), tmp.begin() + n / 2, tmp.end());
+    if (n % 2 == 0) {
+        double a = tmp[n / 2 - 1];
+        double b = tmp[n / 2];
+        std::nth_element(tmp.begin(), tmp.begin() + n / 2 - 1, tmp.begin() + n / 2);
+        a = tmp[n / 2 - 1];
+        return (a + b) * 0.5;
+    }
+    return tmp[n / 2];
+}
+
+double sdet_robust_mad_d(const double* data, int n) {
+    if (n <= 0) return 0.0;
+    double med = sdet_robust_median_d(data, n);
+    std::vector<double> deviations(n);
+    for (int i = 0; i < n; i++) {
+        deviations[i] = std::fabs(data[i] - med);
+    }
+    double mad = sdet_robust_median_d(deviations.data(), n);
+    return mad * 1.4826;
 }
 
 void sdet_downsample(const float* src, int sw, int sh, float* dst, int dw, int dh) {
