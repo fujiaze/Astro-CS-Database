@@ -152,6 +152,15 @@ target_include_directories(acr_test_resource_control PRIVATE
 )
 gtest_discover_tests(acr_test_resource_control DISCOVERY_MODE PRE_TEST)
 
+# 24 号计划 §1：统一 Benchmark→Profile 管线 holdout 预测验证
+add_executable(acr_test_profile_holdout test_profile_holdout.cpp)
+target_link_libraries(acr_test_profile_holdout PRIVATE
+    acr_qualification acr_cost acr_api GTest::gtest_main)
+target_include_directories(acr_test_profile_holdout PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../qualification
+)
+gtest_discover_tests(acr_test_profile_holdout DISCOVERY_MODE PRE_TEST)
+
 # 23 号计划 §3/§6：CUDA 桥接真实 GPU（无 GPU/桥接时 GTEST_SKIP）
 add_executable(acr_test_cuda_bridge test_cuda_bridge.cpp)
 target_link_libraries(acr_test_cuda_bridge PRIVATE

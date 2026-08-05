@@ -12,10 +12,12 @@ target_link_libraries(acr_qualification PUBLIC
     acr_options
     acr_api
     acr_diagnostics
+    acr_cuda_bridge_loader
 )
 target_include_directories(acr_qualification PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/../include
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../backends/cuda
 )
 message(STATUS "ACR qualification: benchmark_driver + profile_generator + hardware_profile (Phase E3)")
 

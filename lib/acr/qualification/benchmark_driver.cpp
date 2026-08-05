@@ -2,12 +2,15 @@
 // Phase E：CPU AXPY/Triad/Copy 微基准；GPU benchmark 占位（ACR_BUILD_CUDA=OFF 时不执行）。
 #include "benchmark_driver.hpp"
 
+#include "../backends/cuda/bridge/cuda_bridge_api.hpp"
+
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <iomanip>
+#include <thread>
 #include <sstream>
 #include <vector>
 
@@ -130,7 +133,13 @@ BenchmarkConfig make_default_config(ProfileKind kind, bool enable_gpu) noexcept 
 
 // ===== BenchmarkDriver =====
 BenchmarkDriver::BenchmarkDriver() = default;
-BenchmarkDriver::~BenchmarkDriver() = default;
+BenchmarkDriver::~BenchmarkDriver() {
+    if (gpu_handle_) {
+        auto& api = cuda::bridge::api();
+        if (api.executor_destroy) api.executor_destroy(gpu_handle_);
+        gpu_handle_ = nullptr;
+    }
+}
 
 void BenchmarkDriver::configure(const BenchmarkConfig& cfg) {
     cfg_ = cfg;
@@ -388,11 +397,18 @@ RawBenchmarkSample BenchmarkDriver::measure_once(std::uint32_t kernel_id,
         // resident 仅 Full：CPU 上 resident == kernel（数据已在缓存/内存）
         s.resident_ns = measure_resident ? k : 0;
     } else if (backend.rfind("cuda", 0) == 0) {
-        // GPU benchmark 占位：ACR_BUILD_CUDA=OFF 时不执行；ON 时由 Phase F/H 集成
-        // 这里返回零样本，profile_generator 会跳过该 backend
-        s.kernel_ns = 0;
+        // 24 号计划 §1：GPU 真实微基准（真实 CUDA kernel 计时，非占位）
+        bool supported = false;
+        std::uint64_t gpu_ns = run_gpu_kernel(kernel_id, problem_size, supported);
+        if (!supported || gpu_ns == 0) {
+            // 桥接不可用或不支持该维度：如实跳过（不产生零吞吐伪样本）
+            return s;
+        }
+        // 同步单 stream：桥接 elapsed 含 H2D + launch + D2H；未分离传输，
+        // kernel_ns 记 total（传输分离留待异步多 stream 支持）
+        s.kernel_ns = gpu_ns;
         s.transfer_ns = 0;
-        s.total_ns = 0;
+        s.total_ns = gpu_ns;
         s.resident_ns = 0;
     }
 
@@ -451,6 +467,11 @@ std::vector<KernelBenchmarkResult> BenchmarkDriver::run() {
     }
 
     for (const auto& spec : specs) {
+        if (!cfg_.kernel_ids.empty() &&
+            std::find(cfg_.kernel_ids.begin(), cfg_.kernel_ids.end(),
+                      spec.id) == cfg_.kernel_ids.end()) {
+            continue;  // 定向微基准：跳过未列出的 kernel
+        }
         for (std::size_t sz : cfg_.problem_sizes) {
             for (const auto& backend : backends) {
                 KernelBenchmarkResult r;
@@ -458,6 +479,11 @@ std::vector<KernelBenchmarkResult> BenchmarkDriver::run() {
                 r.kernel_name = kernel_name(spec.id);
                 r.backend = backend;
                 r.precision = "fp32";
+                // 24 号计划 §1：原始记录区分实现维度
+                r.isa = (backend == "cpu") ? detect_best_isa() : "gpu";
+                r.threads = (backend == "cpu")
+                    ? static_cast<std::uint32_t>(std::thread::hardware_concurrency())
+                    : 0;
                 r.problem_size = sz;
                 r.bytes_per_element = spec.bpe;
 
@@ -489,6 +515,81 @@ std::vector<KernelBenchmarkResult> BenchmarkDriver::run() {
 
 const std::string& BenchmarkDriver::last_log() const noexcept {
     return log_;
+}
+
+// ===== GPU 真实微基准（24 号计划 §1，经桥接 DLL）=====
+std::uint64_t BenchmarkDriver::run_gpu_kernel(std::uint32_t kernel_id,
+                                               std::size_t n, bool& supported) {
+    supported = false;
+    cuda::bridge::ensure_bridge_loaded();  // 触发 DLL 加载（幂等）
+    auto& api = cuda::bridge::api();
+    if (!api.loaded()) return 0;
+    if (!gpu_probe_once_) {
+        gpu_probe_once_ = true;
+        const char* err = nullptr;
+        if (api.init(&err) <= 0) return 0;
+    }
+    if (gpu_handle_ == nullptr) {
+        const char* err = nullptr;
+        gpu_handle_ = api.executor_create(0, 65536, 256, &err);
+        if (gpu_handle_ == nullptr) return 0;
+    }
+
+    std::vector<float> x(n, 1.0f);
+    std::vector<float> y(n, 2.0f);
+    std::uint64_t elapsed = 0;
+    const char* err = nullptr;
+    int rc = 1;
+    switch (static_cast<KernelId>(kernel_id)) {
+        case KernelId::AXPY:
+        case KernelId::Triad:  // Triad 用 axpy 内核近似（写回同数组）
+            rc = api.submit_axpy(gpu_handle_, 0, n, y.data(), x.data(), 2.0f,
+                                 &elapsed, &err);
+            supported = true;
+            break;
+        case KernelId::Copy:
+            rc = api.submit_copy(gpu_handle_, 0, n, y.data(), x.data(),
+                                 &elapsed, &err);
+            supported = true;
+            break;
+        case KernelId::Dot: {
+            std::vector<double> partials(256, 0.0);
+            rc = api.submit_reduce(gpu_handle_, 0, n, x.data(), partials.data(),
+                                   256, 0, &elapsed, &err);
+            supported = true;
+            break;
+        }
+        case KernelId::Convolution2D: {
+            // 3x3 卷积：构造 w×h 图像（w*h >= n），测量 n 个输出元素
+            std::size_t w = static_cast<std::size_t>(
+                std::sqrt(static_cast<double>(n)));
+            if (w * w < n) ++w;
+            std::size_t h = (n + w - 1) / w;
+            std::vector<float> img(w * h, 1.0f);
+            float k9[9] = {1, 0, -1, 2, 0, -2, 1, 0, -1};
+            rc = api.submit_conv3x3(gpu_handle_, 0, n, y.data(), img.data(),
+                                    w, h, k9, &elapsed, &err);
+            supported = true;
+            break;
+        }
+        default:
+            return 0;  // 桥接未提供该维度 kernel → 如实跳过
+    }
+    return (rc == 0) ? elapsed : 0;
+}
+
+// ===== 本机最优 ISA 探测（原始记录维度）=====
+std::string BenchmarkDriver::detect_best_isa() {
+#if defined(__x86_64__) || defined(_M_X64)
+#if defined(__GNUC__) || defined(__clang__)
+    if (__builtin_cpu_supports("avx512f")) return "avx512";
+    if (__builtin_cpu_supports("avx2")) return "avx2";
+    if (__builtin_cpu_supports("avx")) return "avx";
+    if (__builtin_cpu_supports("sse4.2")) return "sse4.2";
+    if (__builtin_cpu_supports("sse2")) return "sse2";
+#endif
+#endif
+    return "baseline";
 }
 
 } // namespace astro::compute::qualification

@@ -37,6 +37,9 @@ struct BenchmarkConfig {
     bool collect_resident{false};
     // 是否启用 GPU benchmark（CPU-only 构建应置 false）
     bool enable_gpu{false};
+    // 24 号计划 §1：kernel 过滤（空=测全部 specs；非空=只测列出的 KernelId）
+    // 用于 holdout 验证/定向微基准，避免全量 kernel 的内存与时长开销
+    std::vector<std::uint32_t> kernel_ids;
 };
 
 // 根据档位生成默认配置
@@ -62,6 +65,9 @@ public:
 private:
     BenchmarkConfig cfg_;
     std::string log_;
+    // 24 号计划 §1：GPU 真实微基准（经桥接 DLL，惰性探测）
+    void* gpu_handle_{nullptr};
+    bool gpu_probe_once_{false};
 
     // 单个 kernel × size × backend 的一次测量
     RawBenchmarkSample measure_once(std::uint32_t kernel_id,
@@ -79,6 +85,15 @@ private:
 
     // CPU Copy kernel：y[i] = x[i]
     std::uint64_t run_cpu_copy(std::size_t n);
+
+    // GPU 真实 kernel（AXPY/Copy/Dot→reduce/Convolution2D→conv3x3）：
+    // 经 cuda::bridge::api() 启动真实 CUDA kernel，返回含 H2D/launch/D2H 的
+    // 实测耗时（ns）；不支持的 kernel 或桥接不可用时 supported=false 返回 0。
+    std::uint64_t run_gpu_kernel(std::uint32_t kernel_id, std::size_t n,
+                                 bool& supported);
+
+    // 本机最优 ISA（baseline/sse2/sse4.2/avx/avx2/avx512；GPU 记录为 "gpu"）
+    static std::string detect_best_isa();
 
     // Commit E：补充 kernel（供 profile_generator 生成多维能力曲线）
     std::uint64_t run_cpu_dot(std::size_t n);           // 归约 → reduction[dot:fp32]

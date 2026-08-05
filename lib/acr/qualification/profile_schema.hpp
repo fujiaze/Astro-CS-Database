@@ -48,6 +48,9 @@ struct KernelBenchmarkResult {
     std::string kernel_name;          // 人类可读名（"AXPY"/"Triad"/...）
     std::string backend;              // "cpu" / "cuda:0" / "cuda:1" / ...
     std::string precision;            // "fp32" / "fp64"
+    // 24 号计划 §1：原始记录区分实现维度
+    std::string isa;                  // "baseline"/"sse"/"avx"/"avx2"/"avx512"（GPU 为 "gpu"）
+    std::uint32_t threads{0};         // 参与线程数（0=默认全部；GPU 为 0）
     std::size_t problem_size{0};      // 元素数
     std::size_t bytes_per_element{0}; // 字节数（fp32=4, fp64=8）
     std::vector<RawBenchmarkSample> samples;  // 多轮原始样本

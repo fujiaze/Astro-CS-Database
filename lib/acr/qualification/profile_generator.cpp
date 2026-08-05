@@ -4,6 +4,8 @@
 #include "profile_generator.hpp"
 #include "benchmark_driver.hpp"
 
+#include "../backends/cuda/bridge/cuda_bridge_api.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -19,6 +21,22 @@
 #include "astro/compute/topology.hpp"
 
 namespace astro::compute::qualification {
+
+namespace {
+
+// GPU 名称：优先 bridge 真实设备名（主 MinGW 构建无 CudaBackend 回调，
+// hardware_report 的 gpu 字段为 null，不能 fallback 到 compiler 的 "name"）
+std::string detect_gpu_name() {
+    cuda::bridge::ensure_bridge_loaded();
+    auto& api = cuda::bridge::api();
+    if (!api.loaded()) return "";
+    const char* err = nullptr;
+    if (api.init(&err) <= 0) return "";
+    const char* n = api.device_name(0);
+    return n ? std::string(n) : "";
+}
+
+} // anonymous namespace
 
 namespace {
 
@@ -252,6 +270,7 @@ DeviceFingerprint ProfileGenerator::build_fingerprint() const {
     }
     // GPU 字段（无 GPU 时为空）
     fp.gpu_name = extract_json_field(hw, "gpu_name");
+    if (fp.gpu_name.empty()) fp.gpu_name = detect_gpu_name();
     if (fp.gpu_name.empty()) fp.gpu_name = extract_json_field(hw, "name");
     std::string vmem = extract_json_number(hw, "total_memory");
     if (vmem.empty()) vmem = extract_json_number(hw, "gpu_memory_bytes");
@@ -353,6 +372,7 @@ std::vector<DeviceProfile> ProfileGenerator::build_device_profiles(
     if (cpu_cores == 0) cpu_cores = 4;
 
     std::string gpu_name = extract_json_field(hw, "gpu_name");
+    if (gpu_name.empty()) gpu_name = detect_gpu_name();
     if (gpu_name.empty()) gpu_name = extract_json_field(hw, "name");
     std::string vmem_str = extract_json_number(hw, "total_memory");
     if (vmem_str.empty()) vmem_str = extract_json_number(hw, "gpu_memory_bytes");
@@ -523,6 +543,12 @@ void ProfileGenerator::fill_default_overheads(DeviceProfile& device) const {
 
 HardwareProfile ProfileGenerator::generate_hardware_profile(
     const std::vector<KernelBenchmarkResult>& results, ProfileKind kind) const {
+    // 先聚合原始样本（median/stddev），否则曲线 median 恒 0
+    std::vector<KernelBenchmarkResult> aggregated = results;
+    for (auto& r : aggregated) {
+        aggregate(r);
+    }
+
     HardwareProfile hp;
     hp.schema_version = "acr.hardware_profile.v1";
     hp.profile_kind = profile_kind_str(kind);
@@ -545,7 +571,7 @@ HardwareProfile ProfileGenerator::generate_hardware_profile(
     }
 
     // 设备画像
-    hp.devices = build_device_profiles(results);
+    hp.devices = build_device_profiles(aggregated);
 
     return hp;
 }
