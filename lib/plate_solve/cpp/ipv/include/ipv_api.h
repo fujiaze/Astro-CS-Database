@@ -177,6 +177,23 @@ IPV_API int ipv_solve_from_memory_with_callback(
     IpvWcsResult* result          // 输出结果
 );
 
+// R11 (PREC-108): FP64 内存求解 (double 图像, 不降级 float/uint16)
+// 算法与 ipv_solve_from_memory_with_callback 完全一致
+IPV_API int ipv_solve_from_memory_with_callback_d(
+    void* solver,
+    const double* pixels,         // 像素数据 (float64, row-major)
+    int width,
+    int height,
+    double ra0,
+    double dec0,
+    double focal_length_mm,
+    double pixel_size_um,
+    const IpvParams* params,
+    IpvDetectionCallback callback,
+    void* user_data,
+    IpvWcsResult* result
+);
+
 // 获取默认参数
 IPV_API void ipv_get_default_params(IpvParams* params);
 

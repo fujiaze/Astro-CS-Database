@@ -210,6 +210,20 @@ public:
         WcsFitResult* result
     );
 
+    // R11 (PREC-108): FP64 内存求解 (double 图像, 不降级 float/uint16)
+    void solve_from_memory_with_callback_f64(
+        const double* pixels,
+        int width, int height,
+        double ra0,
+        double dec0,
+        double focal_length_mm,
+        double pixel_size_um,
+        const IPVSolverParams& params,
+        DetectionSinkFn callback,
+        void* user_data,
+        WcsFitResult* result
+    );
+
     // ========================================================================
     // P11-004 v1.3: 权威 inlier 导出接口 (供 WCS Gate v2 双层闭环)
     //

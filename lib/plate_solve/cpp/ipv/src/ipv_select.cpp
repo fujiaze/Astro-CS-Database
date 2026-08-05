@@ -77,6 +77,12 @@ typedef int (*sdet_detect_ex_fn)(
     double** out_x, double** out_y, float** out_flux, int** out_saturated,
     float** out_mag, int** out_has_saturated, int* out_count,
     const char** extra_names, int extra_count, float*** out_extras);
+// R11 (PREC-108): FP64 检测入口 (double 图像)
+typedef int (*sdet_detect_ex_f64_fn)(
+    void* handle, const double* image, int width, int height,
+    double** out_x, double** out_y, float** out_flux, int** out_saturated,
+    float** out_mag, int** out_has_saturated, int* out_count,
+    const char** extra_names, int extra_count, float*** out_extras);
 typedef void (*sdet_free_detect_ex_fn)(
     double* x, double* y, float* flux, int* saturated,
     float* mag, int* has_saturated,
@@ -104,6 +110,7 @@ struct DllApi {
 
     HMODULE sdet_dll = nullptr;
     sdet_detect_ex_fn sdet_detect_ex = nullptr;
+    sdet_detect_ex_f64_fn sdet_detect_ex_f64 = nullptr;
     sdet_free_detect_ex_fn sdet_free_ex = nullptr;
 
     HMODULE gaia_dll = nullptr;
@@ -145,8 +152,9 @@ static bool load_dlls(Logger* logger) {
         return false;
     }
     g_dll.sdet_detect_ex = (sdet_detect_ex_fn)GetProcAddress(g_dll.sdet_dll, "sdet_detect_ex");
+    g_dll.sdet_detect_ex_f64 = (sdet_detect_ex_f64_fn)GetProcAddress(g_dll.sdet_dll, "sdet_detect_ex_f64");
     g_dll.sdet_free_ex = (sdet_free_detect_ex_fn)GetProcAddress(g_dll.sdet_dll, "sdet_free_detect_ex");
-    if (!g_dll.sdet_detect_ex || !g_dll.sdet_free_ex) {
+    if (!g_dll.sdet_detect_ex || !g_dll.sdet_detect_ex_f64 || !g_dll.sdet_free_ex) {
         if (logger) logger->error("ipv_select: star_detector 函数符号解析失败");
         g_dll.load_failed = true;
         return false;
@@ -1479,8 +1487,10 @@ int ipv_select_from_detections(
 //   - callback 为 NULL 时行为与 ipv_select_from_memory 完全一致
 // ============================================================================
 
-int ipv_select_from_memory_with_callback(
-    const float* pixels,
+// R11 (PREC-108): 选星核心模板双实例 (T=float 原行为, T=double FP64 不降级)
+template <typename T>
+static int ipv_select_from_memory_with_callback_impl(
+    const T* pixels,
     int width, int height,
     double ra, double dec,
     double focal_length_mm,
@@ -1532,35 +1542,49 @@ int ipv_select_from_memory_with_callback(
     // --- Step 1: 使用传入的内存像素数据 (不读文件) ---
     int img_w = width;
     int img_h = height;
-    const float* pixel_data = pixels;
+    const T* pixel_data = pixels;
     if (logger) {
         char buf[256];
         std::snprintf(buf, sizeof(buf), "Step 1: 使用内存像素数据 %d×%d", img_w, img_h);
         logger->info(buf);
     }
 
-    // 转 uint16 (star_detector 需要 uint16_t*)
-    std::vector<uint16_t> img_u16(static_cast<size_t>(img_w) * img_h);
-    for (size_t i = 0; i < img_u16.size(); ++i) {
-        float v = pixel_data[i];
-        if (v < 0.0f) v = 0.0f;
-        if (v > 65535.0f) v = 65535.0f;
-        img_u16[i] = static_cast<uint16_t>(v);
+    // T=float: 转 uint16 (旧行为); T=double: 直接用 double 图像, 不降级
+    std::vector<uint16_t> img_u16;
+    if constexpr (std::is_same_v<T, float>) {
+        img_u16.resize(static_cast<size_t>(img_w) * img_h);
+        for (size_t i = 0; i < img_u16.size(); ++i) {
+            float v = pixel_data[i];
+            if (v < 0.0f) v = 0.0f;
+            if (v > 65535.0f) v = 65535.0f;
+            img_u16[i] = static_cast<uint16_t>(v);
+        }
     }
 
     // --- Step 2: 星点检测 ---
-    if (logger) logger->info("Step 2: 星点检测 (sdet_detect_ex)");
+    if (logger) logger->info(std::is_same_v<T, float>
+        ? "Step 2: 星点检测 (sdet_detect_ex)"
+        : "Step 2: 星点检测 (sdet_detect_ex_f64, double 不降级)");
     double *det_x = nullptr, *det_y = nullptr;
     float *det_flux = nullptr;
     int *det_sat = nullptr;
     float *det_mag = nullptr;
     int *det_has_sat = nullptr;
     int det_count = 0;
-    int det_ret = g_dll.sdet_detect_ex(
-        detector_handle, img_u16.data(), img_w, img_h,
-        &det_x, &det_y, &det_flux, &det_sat,
-        &det_mag, &det_has_sat, &det_count,
-        nullptr, 0, nullptr);
+    int det_ret;
+    if constexpr (std::is_same_v<T, float>) {
+        det_ret = g_dll.sdet_detect_ex(
+            detector_handle, img_u16.data(), img_w, img_h,
+            &det_x, &det_y, &det_flux, &det_sat,
+            &det_mag, &det_has_sat, &det_count,
+            nullptr, 0, nullptr);
+    } else {
+        det_ret = g_dll.sdet_detect_ex_f64(
+            detector_handle, pixel_data, img_w, img_h,
+            &det_x, &det_y, &det_flux, &det_sat,
+            &det_mag, &det_has_sat, &det_count,
+            nullptr, 0, nullptr);
+    }
     if (det_ret != 0 || det_count <= 0) {
         if (logger) logger->error("ipv_select_from_memory_with_callback: 星点检测失败或未检测到星");
         if (det_x || det_y || det_flux || det_sat || det_mag || det_has_sat) {
@@ -1795,6 +1819,47 @@ int ipv_select_from_memory_with_callback(
     output.success = true;
     if (logger) logger->info("=== ipv_select_from_memory_with_callback 完成 (INTERNAL_DETECTION_SHARED_EXPORT) ===");
     return 0;
+}
+
+// ============================================================================
+// ipv_select_from_memory_with_callback - FP32 入口 (float 图像, 原 ABI 兼容)
+// ============================================================================
+int ipv_select_from_memory_with_callback(
+    const float* pixels,
+    int width, int height,
+    double ra, double dec,
+    double focal_length_mm,
+    double pixel_size_um,
+    const IPVSolverParams& params,
+    DetectionSinkFn callback,
+    void* user_data,
+    StarSelection& output,
+    Logger* logger)
+{
+    return ipv_select_from_memory_with_callback_impl<float>(
+        pixels, width, height, ra, dec, focal_length_mm, pixel_size_um,
+        params, callback, user_data, output, logger);
+}
+
+// ============================================================================
+// ipv_select_from_memory_with_callback_f64 - FP64 入口 (double 图像)
+//   R11 (PREC-108): double 图像直接检测, 不转 uint16/float
+// ============================================================================
+int ipv_select_from_memory_with_callback_f64(
+    const double* pixels,
+    int width, int height,
+    double ra, double dec,
+    double focal_length_mm,
+    double pixel_size_um,
+    const IPVSolverParams& params,
+    DetectionSinkFn callback,
+    void* user_data,
+    StarSelection& output,
+    Logger* logger)
+{
+    return ipv_select_from_memory_with_callback_impl<double>(
+        pixels, width, height, ra, dec, focal_length_mm, pixel_size_um,
+        params, callback, user_data, output, logger);
 }
 
 } // namespace ipv

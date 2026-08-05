@@ -463,9 +463,10 @@ int do_solve_from_detections_v1_impl(
 }
 
 // 路径 B 实现 (INTERNAL_DETECTION_SHARED_EXPORT): 带 callback 的内存求解 (保持原有检测 + 导出检测结果)
-int do_solve_from_memory_with_callback_impl(
+template <typename T>
+static int do_solve_from_memory_with_callback_impl(
     ipv::IPVSolver* s,
-    const float* pixels,
+    const T* pixels,
     int width, int height,
     double ra0, double dec0,
     double focal_length_mm, double pixel_size_um,
@@ -483,14 +484,25 @@ int do_solve_from_memory_with_callback_impl(
         if (callback != nullptr) {
             sink_fn = reinterpret_cast<ipv::DetectionSinkFn>(callback);
         }
-        s->solve_from_memory_with_callback(
-            pixels, width, height,
-            ra0, dec0,
-            focal_length_mm, pixel_size_um,
-            sp,
-            sink_fn, user_data,
-            &wcs
-        );
+        if constexpr (std::is_same_v<T, float>) {
+            s->solve_from_memory_with_callback(
+                pixels, width, height,
+                ra0, dec0,
+                focal_length_mm, pixel_size_um,
+                sp,
+                sink_fn, user_data,
+                &wcs
+            );
+        } else {
+            s->solve_from_memory_with_callback_f64(
+                pixels, width, height,
+                ra0, dec0,
+                focal_length_mm, pixel_size_um,
+                sp,
+                sink_fn, user_data,
+                &wcs
+            );
+        }
         to_c_result(wcs, result);
     } catch (const std::bad_alloc& e) {
         set_error_msg(result->error_msg, sizeof(result->error_msg), e.what());
@@ -589,4 +601,49 @@ IPV_API int ipv_solve_from_memory_with_callback(
                                                    ra0, dec0,
                                                    focal_length_mm, pixel_size_um,
                                                    sp, callback, user_data, result);
+}
+
+// ============================================================================
+// ipv_solve_from_memory_with_callback_d - FP64 内存求解 (double 图像)
+// R11 (PREC-108): double 图像直接检测 (sdet_detect_ex_f64), 不降级 float/uint16
+// ============================================================================
+IPV_API int ipv_solve_from_memory_with_callback_d(
+    void* solver,
+    const double* pixels,
+    int width,
+    int height,
+    double ra0,
+    double dec0,
+    double focal_length_mm,
+    double pixel_size_um,
+    const IpvParams* params,
+    IpvDetectionCallback callback,
+    void* user_data,
+    IpvWcsResult* result
+) {
+    if (result) {
+        std::memset(result, 0, sizeof(IpvWcsResult));
+    }
+
+    if (solver == nullptr || pixels == nullptr || result == nullptr) {
+        if (result) {
+            set_error_msg(result->error_msg, sizeof(result->error_msg),
+                          "无效参数: solver/pixels/result 为空");
+        }
+        return 0;
+    }
+
+    if (width <= 0 || height <= 0) {
+        set_error_msg(result->error_msg, sizeof(result->error_msg),
+                      "无效参数: width/height 必须为正数");
+        return 0;
+    }
+
+    ipv::IPVSolver* s = static_cast<ipv::IPVSolver*>(solver);
+    ipv::IPVSolverParams sp = to_solver_params(params);
+    return do_solve_from_memory_with_callback_impl<double>(
+        s, pixels, width, height,
+        ra0, dec0,
+        focal_length_mm, pixel_size_um,
+        sp, callback, user_data, result);
 }

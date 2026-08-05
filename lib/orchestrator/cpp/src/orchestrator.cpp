@@ -1800,8 +1800,8 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
 
     // 1. 读取 data 块 (FLOAT32 或 FLOAT64 [H,W])
     //    P03-003: data 是必需块 (CALIBRATE 产出), 缺失必须失败 (退出码 3)
-    //    R10 修复: FP64 模式下 data 块为 FLOAT64, 需转换为 float* 供 PlateSolve 使用
-    //    (PlateSolve 星点检测不需要 FP64 精度, float 足够)
+    //    R11 (PREC-108): FP64 模式下 data 块为 FLOAT64, 直接使用 double 供星点检测,
+    //    禁止转换为 float (控制包: FP64 星点检测转 float 为 BLOCKER)
     const AioBlock* data_block = fn_get_block(frame_, "data");
     if (data_block == nullptr) {
         LOG_ERROR("orchestrator", "[PLATESOLVE] data 块不存在 (必需块)");
@@ -1811,19 +1811,13 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
     }
     int height = data_block->dims[0];
     int width = data_block->dims[1];
-    // R10: 检查 data 块类型, FP64 模式下转换为 float 供 PlateSolve 使用
+    // R11 (PREC-108): 检查 data 块类型; FP64 模式保留 double 像素 (不转 float)
+    bool platesolve_fp64 = (data_block->type == AIO_BLOCK_FLOAT64);
     const float* pixels = nullptr;
-    std::vector<float> pixels_fp32_buffer;  // FP64→FP32 转换缓冲区
-    if (data_block->type == AIO_BLOCK_FLOAT64) {
-        // FP64 模式: 将 double* 转换为 float* (PlateSolve 星点检测不需要 FP64 精度)
-        const double* pixels_f64 = static_cast<const double*>(data_block->data);
-        size_t n_pixels = static_cast<size_t>(width) * height;
-        pixels_fp32_buffer.resize(n_pixels);
-        for (size_t i = 0; i < n_pixels; i++) {
-            pixels_fp32_buffer[i] = static_cast<float>(pixels_f64[i]);
-        }
-        pixels = pixels_fp32_buffer.data();
-        LOG_INFO("orchestrator", "[PLATESOLVE] data 块为 FLOAT64, 已转换为 FLOAT32 供星点检测使用");
+    const double* pixels_f64 = nullptr;
+    if (platesolve_fp64) {
+        pixels_f64 = static_cast<const double*>(data_block->data);
+        LOG_INFO("orchestrator", "[PLATESOLVE] data 块为 FLOAT64, 直接使用 double 供星点检测 (PREC-108, 不降级)");
     } else {
         pixels = static_cast<const float*>(data_block->data);
     }
@@ -1862,15 +1856,24 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
     // 3. 调用 ipv_solve_from_memory_with_callback (P09-002 INTERNAL_DETECTION_SHARED_EXPORT)
     //    与 ipv_solve_from_memory 算法等价, 区别: callback 同步导出 sdet_detect_ex 结果
     //    callback 为 NULL 时行为与 ipv_solve_from_memory 完全一致
+    //    R11 (PREC-108): FP64 模式加载 ipv_solve_from_memory_with_callback_d (double 图像)
     auto fn_ipv_solve_cb = dll_loader_.get_function<int (*)(
         void*, const float*, int, int, double, double, double, double,
         const IpvParams*, IpvDetectionCallback, void*, IpvWcsResult*)>(
         ModuleId::PLATESOLVE, "ipv_solve_from_memory_with_callback");
+    auto fn_ipv_solve_cb_d = dll_loader_.get_function<int (*)(
+        void*, const double*, int, int, double, double, double, double,
+        const IpvParams*, IpvDetectionCallback, void*, IpvWcsResult*)>(
+        ModuleId::PLATESOLVE, "ipv_solve_from_memory_with_callback_d");
     auto fn_get_default_params = dll_loader_.get_function<void (*)(IpvParams*)>(
         ModuleId::PLATESOLVE, "ipv_get_default_params");
 
-    if (!fn_ipv_solve_cb || !fn_get_default_params) {
-        LOG_ERROR("orchestrator", "[PLATESOLVE] ipv 函数指针获取失败 (ipv_solve_from_memory_with_callback)");
+    if ((!platesolve_fp64 && !fn_ipv_solve_cb) ||
+        (platesolve_fp64 && !fn_ipv_solve_cb_d) ||
+        !fn_get_default_params) {
+        LOG_ERROR("orchestrator", "[PLATESOLVE] ipv 函数指针获取失败 "
+                  "(ipv_solve_from_memory_with_callback"
+                  + std::string(platesolve_fp64 ? "_d (FP64)" : "") + ")");
         result.error_msg = "[PLATESOLVE] ipv 函数指针获取失败 (INTERNAL_DETECTION_SHARED_EXPORT)";
         result.exit_code = AstroCsExitCode::GENERIC_ERROR;
         return false;
@@ -1889,11 +1892,21 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
     // P09-002 INTERNAL_DETECTION_SHARED_EXPORT: callback 上下文, 用于接收 sdet_detect_ex 检测结果
     PathBCallbackCtx cb_ctx;
 
-    LOG_INFO("orchestrator", "[PLATESOLVE] 调用 ipv_solve_from_memory_with_callback (INTERNAL_DETECTION_SHARED_EXPORT callback 导出) ...");
-    int ret = fn_ipv_solve_cb(ipv_solver_handle_,
+    LOG_INFO("orchestrator", "[PLATESOLVE] 调用 ipv_solve_from_memory_with_callback"
+             + std::string(platesolve_fp64 ? "_d (FP64)" : "") +
+             " (INTERNAL_DETECTION_SHARED_EXPORT callback 导出) ...");
+    int ret;
+    if (platesolve_fp64) {
+        ret = fn_ipv_solve_cb_d(ipv_solver_handle_,
+                                pixels_f64, width, height,
+                                ra0, dec0, focal_length, pixel_size,
+                                &params, path_b_detection_callback, &cb_ctx, &wcs_result);
+    } else {
+        ret = fn_ipv_solve_cb(ipv_solver_handle_,
                               pixels, width, height,
                               ra0, dec0, focal_length, pixel_size,
                               &params, path_b_detection_callback, &cb_ctx, &wcs_result);
+    }
 
     LOG_INFO("orchestrator", "[PLATESOLVE] callback 导出: n_detected=" + std::to_string(cb_ctx.n_detected)
              + ", copied=" + (cb_ctx.copied ? "true" : "false")

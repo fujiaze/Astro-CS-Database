@@ -187,6 +187,20 @@ int ipv_select_from_memory_with_callback(
     Logger* logger = nullptr
 );
 
+// R11 (PREC-108): FP64 选星 (double 图像, 不降级 uint16/float)
+int ipv_select_from_memory_with_callback_f64(
+    const double* pixels,
+    int width, int height,
+    double ra, double dec,
+    double focal_length_mm,
+    double pixel_size_um,
+    const IPVSolverParams& params,
+    DetectionSinkFn callback,
+    void* user_data,
+    StarSelection& output,
+    Logger* logger = nullptr
+);
+
 } // namespace ipv
 
 #endif // IPV_SELECT_H

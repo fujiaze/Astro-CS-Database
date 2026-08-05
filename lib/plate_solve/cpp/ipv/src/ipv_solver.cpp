@@ -1508,6 +1508,66 @@ void IPVSolver::solve_from_memory_with_callback(
     logger_.info("==== IPVSolver::solve_from_memory_with_callback 完成 (INTERNAL_DETECTION_SHARED_EXPORT) ====");
 }
 
+// ============================================================================
+// solve_from_memory_with_callback_f64 - FP64 内存求解 (double 图像)
+// R11 (PREC-108): 与 float 版算法一致, double 图像直接检测, 不降级
+// ============================================================================
+void IPVSolver::solve_from_memory_with_callback_f64(
+    const double* pixels,
+    int width, int height,
+    double ra0,
+    double dec0,
+    double focal_length_mm,
+    double pixel_size_um,
+    const IPVSolverParams& params,
+    DetectionSinkFn callback,
+    void* user_data,
+    WcsFitResult* result
+) {
+    // 失败结果
+    WcsFitResult fail_result{};
+    fail_result.trans_order = 0;
+
+    // 1. 初始化日志
+    if (params.log_dir != nullptr && params.log_dir[0] != '\0') {
+        std::string dir(params.log_dir);
+        while (!dir.empty() && (dir.back() == '/' || dir.back() == '\\')) {
+            dir.pop_back();
+        }
+        logger_.init(dir + "/ipv_solver.log");
+        init_triangle_logger(dir + "/ipv_triangle.log");
+        init_itertrans_logger(dir + "/ipv_itertrans.log");
+    }
+
+    logger_.info("==== IPVSolver::solve_from_memory_with_callback_f64 开始 (FP64, INTERNAL_DETECTION_SHARED_EXPORT) ====");
+    logger_.infof("  pixels=%dx%d (double 内存数据, 不降级)", width, height);
+    logger_.infof("  ra0=%.6f deg, dec0=%.6f deg", ra0, dec0);
+    logger_.infof("  focal_length=%.3f mm, pixel_size=%.3f um",
+                  focal_length_mm, pixel_size_um);
+
+    // 2. 选星 (FP64: double 图像直接检测)
+    IPVSolverParams p_adapt = params;
+    p_adapt.img_n_target = 60;
+
+    StarSelection selection;
+    int ret = ipv_select_from_memory_with_callback_f64(
+        pixels, width, height,
+        ra0, dec0, focal_length_mm, pixel_size_um,
+        p_adapt, callback, user_data,
+        selection, &logger_);
+
+    if (ret != 0 || !selection.success) {
+        logger_.error("ipv_select_from_memory_with_callback_f64 失败, 终止求解");
+        *result = fail_result;
+        return;
+    }
+
+    // 3. 选星后通用求解流程
+    solve_post_select(selection, params, ra0, dec0, result);
+
+    logger_.info("==== IPVSolver::solve_from_memory_with_callback_f64 完成 ====");
+}
+
 // ===========================================================================
 // P11-004 v1.3: 权威 inlier 缓存实现
 //
