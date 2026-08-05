@@ -464,6 +464,12 @@ DPSF_EXPORT int dpsf_fit(const uint16_t *image, int width, int height,
     return ret;
 }
 
+// 前向声明 (float32 拟合核心, 定义在 dpsf_fit_batch 之后)
+static int fit_batch_float_image(const float *float_image, int width, int height,
+                                 const double *cx_array, const double *cy_array, int count,
+                                 const DPSFFitParams *params,
+                                 DPSFFitResult **out_results);
+
 DPSF_EXPORT int dpsf_fit_batch(const uint16_t *image, int width, int height,
                                 const double *cx_array, const double *cy_array, int count,
                                 const DPSFFitParams *params,
@@ -484,9 +490,25 @@ DPSF_EXPORT int dpsf_fit_batch(const uint16_t *image, int width, int height,
         float_image[i] = static_cast<float>(image[i]);
     }
 
+    return fit_batch_float_image(float_image.data(), width, height,
+                                 cx_array, cy_array, count, params, out_results);
+}
+
+// ============================================================================
+// fit_batch_float_image - float32 图像批量 PSF 拟合核心 (R11)
+// 输出 DPSFFitResult* (status/B/flux/cx/cy/fwhm/A/mad/eccentricity), 与 dpsf_fit_batch 一致
+// ============================================================================
+static int fit_batch_float_image(const float *float_image, int width, int height,
+                                 const double *cx_array, const double *cy_array, int count,
+                                 const DPSFFitParams *params,
+                                 DPSFFitResult **out_results) {
+    if (!float_image || !cx_array || !cy_array || !params || !out_results || count <= 0) {
+        dpsf_log(LOG_ERROR, "DPSF", "fit_batch_float_image: invalid arguments");
+        return -1;
+    }
     DPSFFitResult *results = (DPSFFitResult *)malloc(count * sizeof(DPSFFitResult));
     if (!results) {
-        dpsf_log(LOG_ERROR, "DPSF", "dpsf_fit_batch: failed to allocate results");
+        dpsf_log(LOG_ERROR, "DPSF", "fit_batch_float_image: failed to allocate results");
         return -1;
     }
 
@@ -536,12 +558,32 @@ DPSF_EXPORT int dpsf_fit_batch(const uint16_t *image, int width, int height,
 
     *out_results = results;
 
-    auto t1 = std::chrono::high_resolution_clock::now();
-    double elapsed = std::chrono::duration<double>(t1 - t0).count();
-    dpsf_log(LOG_INFO, "DPSF", "dpsf_fit_batch done: %d/%d success, %.3f s",
-           success_count, count, elapsed);
+    dpsf_log(LOG_INFO, "DPSF", "fit_batch_float_image done: %d/%d success",
+           success_count, count);
 
     return 0;
+}
+
+// ============================================================================
+// dpsf_fit_batch_f - float32 图像直通拟合 (R11, PREC-105: 无 uint16 有损转换)
+// ============================================================================
+DPSF_EXPORT int dpsf_fit_batch_f(const float *image, int width, int height,
+                                 const double *cx_array, const double *cy_array, int count,
+                                 const DPSFFitParams *params,
+                                 DPSFFitResult **out_results) {
+    auto t0 = std::chrono::high_resolution_clock::now();
+    if (!image || !cx_array || !cy_array || !params || !out_results || count <= 0) {
+        dpsf_log(LOG_ERROR, "DPSF", "dpsf_fit_batch_f: invalid arguments");
+        return -1;
+    }
+    dpsf_log(LOG_INFO, "DPSF", "dpsf_fit_batch_f: %d points, %dx%d image, fitRadius=%d (float32)",
+             count, width, height, params->fitRadius);
+    int ret = fit_batch_float_image(image, width, height,
+                                    cx_array, cy_array, count, params, out_results);
+    auto t1 = std::chrono::high_resolution_clock::now();
+    double elapsed = std::chrono::duration<double>(t1 - t0).count();
+    dpsf_log(LOG_INFO, "DPSF", "dpsf_fit_batch_f done: %.3f s", elapsed);
+    return ret;
 }
 
 DPSF_EXPORT void dpsf_free_results(DPSFFitResult *results) {

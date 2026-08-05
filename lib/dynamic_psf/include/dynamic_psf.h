@@ -47,9 +47,19 @@ DPSF_EXPORT int dpsf_fit(const uint16_t *image, int width, int height,
                           DPSFFitResult *result);
 
 DPSF_EXPORT int dpsf_fit_batch(const uint16_t *image, int width, int height,
-                                const double *cx_array, const double *cy_array, int count,
-                                const DPSFFitParams *params,
-                                DPSFFitResult **out_results);
+                                  const double *cx_array, const double *cy_array, int count,
+                                  const DPSFFitParams *params,
+                                  DPSFFitResult **out_results);
+
+// ============================================================================
+// float32 PSF 拟合 API (R11, PREC-105): 与 dpsf_fit_batch 相同输出布局,
+// 但直接消费 float32 图像 (不经过 uint16 有损转换/clip)。
+// 输出 DPSFFitResult* (status/B/flux/cx/cy/fwhm/A/mad/eccentricity), 用 dpsf_free_results 释放。
+// ============================================================================
+DPSF_EXPORT int dpsf_fit_batch_f(const float *image, int width, int height,
+                                  const double *cx_array, const double *cy_array, int count,
+                                  const DPSFFitParams *params,
+                                  DPSFFitResult **out_results);
 
 DPSF_EXPORT void dpsf_free_results(DPSFFitResult *results);
 

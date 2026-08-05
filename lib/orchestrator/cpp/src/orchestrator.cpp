@@ -2100,7 +2100,7 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
              + " mode=" + (use_fp64 ? "FP64" : "FP32"));
 
     const double* pixels_f64 = nullptr;   // FP64 路径 (指向 data 块内部, 不持有所有权)
-    uint16_t* pixels_u16 = nullptr;       // FP32 路径 (本函数 malloc, 需 free; FP64 时为 null)
+    const float* pixels_f32 = nullptr;    // FP32 路径 (R11: 直接使用 float 数据, 不转 uint16)
 
     if (use_fp64) {
         pixels_f64 = static_cast<const double*>(data_block->data);
@@ -2110,23 +2110,11 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
             return false;
         }
     } else {
-        const float* pixels_f32 = static_cast<const float*>(data_block->data);
+        pixels_f32 = static_cast<const float*>(data_block->data);
         if (pixels_f32 == nullptr) {
             LOG_ERROR("orchestrator", "[PSF] data 块 data 为空 (FP32)");
             result.error_msg = "[PSF] data 块 data 为空 (FP32)";
             return false;
-        }
-        pixels_u16 = static_cast<uint16_t*>(std::malloc(n_pix * sizeof(uint16_t)));
-        if (pixels_u16 == nullptr) {
-            LOG_ERROR("orchestrator", "[PSF] 分配 uint16 缓冲失败");
-            result.error_msg = "[PSF] 分配 uint16 缓冲失败";
-            return false;
-        }
-        for (int64_t i = 0; i < n_pix; ++i) {
-            float v = pixels_f32[i];
-            if (v < 0.0f) v = 0.0f;
-            if (v > 65535.0f) v = 65535.0f;
-            pixels_u16[i] = static_cast<uint16_t>(v);
         }
     }
 
@@ -2137,7 +2125,6 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
         LOG_ERROR("orchestrator", "[PSF] star_det 块不存在或为空 (必需块, PLATESOLVE 应产出)");
         result.error_msg = "[PSF] star_det 块不存在或为空 (必需块)";
         result.exit_code = AstroCsExitCode::BLOCK_MISSING;
-        std::free(pixels_u16);
         return false;
     }
     int n_stars = star_det_block->dims[0];
@@ -2173,7 +2160,6 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
     if (!fn_free_results) {
         LOG_ERROR("orchestrator", "[PSF] dpsf_free_results 函数未找到");
         result.error_msg = "[PSF] dpsf_free_results 函数未找到";
-        std::free(pixels_u16);  // FP32 时非 null, FP64 时为 null (free nullptr 安全)
         return false;
     }
 
@@ -2201,28 +2187,28 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
                              cx_arr.data(), cy_arr.data(), n_stars,
                              &params, &results);
     } else {
-        auto fn_fit_batch = dll_loader_.get_function<int (*)(
-            const uint16_t*, int, int,
+        // R11 (PREC-105): FP32 直接使用 float32 图像 (dpsf_fit_batch_f),
+        // 不再经过 uint16 有损转换
+        auto fn_fit_batch_f = dll_loader_.get_function<int (*)(
+            const float*, int, int,
             const double*, const double*, int,
             const DPSFFitParams*, DPSFFitResult**)>(
-            ModuleId::PSF, "dpsf_fit_batch");
-        if (!fn_fit_batch) {
-            LOG_ERROR("orchestrator", "[PSF] dpsf_fit_batch 函数未找到");
-            result.error_msg = "[PSF] dpsf_fit_batch 函数未找到";
-            std::free(pixels_u16);
+            ModuleId::PSF, "dpsf_fit_batch_f");
+        if (!fn_fit_batch_f) {
+            LOG_ERROR("orchestrator", "[PSF] dpsf_fit_batch_f 函数未找到");
+            result.error_msg = "[PSF] dpsf_fit_batch_f 函数未找到";
             return false;
         }
         {
             char buf[128];
             std::snprintf(buf, sizeof(buf),
-                "[PSF] 调用 dpsf_fit_batch (fitRadius=%d, maxIter=%d, tol=%.1e) ...",
+                "[PSF] 调用 dpsf_fit_batch_f (FP32 float 图像, fitRadius=%d, maxIter=%d, tol=%.1e) ...",
                 fit_radius, max_iter, tolerance);
             LOG_INFO("orchestrator", std::string(buf));
         }
-        ret = fn_fit_batch(pixels_u16, width, height,
-                           cx_arr.data(), cy_arr.data(), n_stars,
-                           &params, &results);
-        std::free(pixels_u16);  // uint16 图像不再需要 (FP32 路径)
+        ret = fn_fit_batch_f(pixels_f32, width, height,
+                             cx_arr.data(), cy_arr.data(), n_stars,
+                             &params, &results);
     }
 
     if (ret != 0 || results == nullptr) {
