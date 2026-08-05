@@ -362,10 +362,13 @@ OperationProfile FocusedBenchmark::build_profile(
                             (ns_per_byte > 0.0)
                                 ? 1.0 / ns_per_byte : 0.0;  // bytes/ns = GB/s
                         op.transfer.h2d_fixed_us =
-                            static_cast<double>(h2d_med.front()) / 1000.0 -
-                            op.transfer.h2d_gbps *
-                                static_cast<double>(
-                                    transfer_.sizes_bytes.front());
+                            (static_cast<double>(h2d_med.front()) -
+                             ns_per_byte *
+                                 static_cast<double>(
+                                     transfer_.sizes_bytes.front())) / 1000.0;
+                        if (op.transfer.h2d_fixed_us < 0.0) {
+                            op.transfer.h2d_fixed_us = 0.0;
+                        }
                     }
                 }
                 if (d2h_med.size() >= 2) {
@@ -380,10 +383,13 @@ OperationProfile FocusedBenchmark::build_profile(
                             (ns_per_byte > 0.0)
                                 ? 1.0 / ns_per_byte : 0.0;
                         op.transfer.d2h_fixed_us =
-                            static_cast<double>(d2h_med.front()) / 1000.0 -
-                            op.transfer.d2h_gbps *
-                                static_cast<double>(
-                                    transfer_.sizes_bytes.front());
+                            (static_cast<double>(d2h_med.front()) -
+                             ns_per_byte *
+                                 static_cast<double>(
+                                     transfer_.sizes_bytes.front())) / 1000.0;
+                        if (op.transfer.d2h_fixed_us < 0.0) {
+                            op.transfer.d2h_fixed_us = 0.0;
+                        }
                     }
                 }
             }
