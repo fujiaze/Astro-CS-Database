@@ -34,6 +34,26 @@ compute-sanitizer/MSVC ASan、业务算法零修改。
 MixedRoutePlanner（独立块大小/边际收益门/尾段停止慢设备）→ ResidencyManager
 与内存预算完善 → 聚焦测试与单一干净 HEAD Evidence。
 
+**聚焦版 5 个提交已完成（2026-08-05）**：
+1. `0030c3a` refactor(acr): focus runtime on target pixel operations——
+   RouteMode/PartitionKind、5 个目标 OperationId、KernelInvocation partition/mode；
+2. `3a40596` bench(acr): add focused operation profiles——桥接新增
+   dense_accumulate_fp64acc/drizzle_scatter/chain/launch_event/transfer_h2d/
+   transfer_d2h；5 个合成 Operation（CPU+GPU）；OperationProfile（符合
+   operation_profile.schema.json）；acr-benchmark-focused 工具；
+3. `fe98df3` feat(acr): tune mixed chunk routing and tail gating——
+   MixedRoutePlanner（独立块大小、host/resident 阈值、边际收益门）；
+4. `380aae3` feat(acr): reuse residency and finish memory budget——
+   ResidencyManager（Host/Device/Both/dirty）、pinned 独立记账、ReleaseCache
+   返回字节、Shrink 循环重估；
+5. `78101ae` test(acr): add focused qualification evidence——真实 Mixed
+   （CPU+GPU 均非零）、AutoMixed ≤ 最佳模式 10%（实测 1.02x）、Auto 自然退化。
+
+**验证结果（2026-08-05）**：全量 ctest 597/597 通过（0 failed，SKIPPED 如实）；
+focused 测试 4+4+3 全过；真实 RTX 3060 Ti Mixed 正确。期间修复 planner 边际
+收益门与首轮公平门死锁（聚焦版禁用强制公平门）、CPU/GPU 实测速率对比与
+兜底清尾，避免慢设备拖尾与工作丢失。
+
 ### 2026-08-05 25 号计划执行（控制包 SHA 755278bf...5f98）
 
 **执行入口**：`25_SECOND_FIX_IMPLEMENTATION_REVIEW_CORRECTION_PLAN.md`（外部
