@@ -42,6 +42,33 @@ struct PixelAccumulator {
     uint32_t nContrib = 0;    // 贡献源像素数 (诊断用)
 };
 
+// R11 (阶段6): Tile 局部累加器的叶像素累加单元 (字段语义与 PixelAccumulator 一致,
+// 保证与旧每-leaf unordered_map 路径逐位兼容; 正式 HISS 输出仅消费
+// sumFlux/sumArea/nContrib, sumWeight/sumSnrSq 保留供诊断与兼容展开)
+struct TileLeafAccumulator {
+    double sumFlux = 0.0;
+    double sumWeight = 0.0;
+    double sumSnrSq = 0.0;
+    double sumArea = 0.0;
+    uint32_t nContrib = 0;
+};
+
+// R11 (阶段6): Tile 局部累加器 (控制包 TILE_ACCUMULATOR_DESIGN)
+//   线程本地 map 以 parent_ipix 为 key; leaf 用 NESTED 位运算得到 local_ipix,
+//   直接连续数组寻址 (禁止每-leaf unordered_map)
+struct TileAccumulator {
+    uint64_t parent_ipix = 0;
+    std::vector<TileLeafAccumulator> pixels;  // 按 local_ipix 索引 (按需增长)
+    std::vector<uint32_t> touched;            // 已触发的 local_ipix (合并/展开用)
+
+    TileLeafAccumulator& leaf(uint32_t local) {
+        if (local >= pixels.size()) pixels.resize((size_t)local + 1);
+        TileLeafAccumulator& acc = pixels[local];
+        if (acc.nContrib == 0) touched.push_back(local);  // 首触记录
+        return acc;
+    }
+};
+
 // 自动 NSIDE 计算 (02_FROZEN §5)
 // 依据 WCS/SIP 局部 Jacobian 找到最细输入像素尺度, 选择最小 2 次幂 NSIDE
 // 使 HEALPix 线性像素尺度不粗于该最细尺度 (1~2 倍线性过采样)
@@ -81,6 +108,8 @@ public:
     // stats: 输出统计信息
     // error_msg: 错误信息
     // 返回: 成功/失败
+    // R11 (阶段6): 内部改为 Tile 级累加, 合并后展开为 leaf map 的兼容包装;
+    // 正式写入路径请使用 drizzleTiled + writeHisTiles (取消全局 leaf map)
     bool drizzle(const FitsImage& img, const DrizzleConfig& config,
                  const float* snrData, const float* weightData,
                  std::unordered_map<uint64_t, PixelAccumulator>& accumulators,
@@ -96,6 +125,20 @@ public:
                      const float* snrData, const float* weightData,
                      std::unordered_map<uint64_t, PixelAccumulator>& accumulators,
                      DrizzleStats& stats, std::string& error_msg);
+
+    // R11 (阶段6): Tile 级 Drizzle (正式路径, 取消全局 leaf map 与逐 key merge)
+    //   输出: tiles 为按 parent_ipix 分组、叶像素连续数组寻址的累加结果
+    //   (FP32 路径: 读 img.pixels float32; FP64 路径由 drizzleTiled_f64 提供)
+    bool drizzleTiled(const FitsImage& img, const DrizzleConfig& config,
+                      const float* snrData, const float* weightData,
+                      std::vector<TileAccumulator>& tiles,
+                      DrizzleStats& stats, std::string& error_msg);
+
+    // FP64 Tile 级 Drizzle (读 img.pixels_f64 double, 不降级到 float32)
+    bool drizzleTiled_f64(const FitsImage& img, const DrizzleConfig& config,
+                          const float* snrData, const float* weightData,
+                          std::vector<TileAccumulator>& tiles,
+                          DrizzleStats& stats, std::string& error_msg);
 
     // 将累加器归一化并写入 .hiss 文件
     // accumulators: Drizzle 输出的累加器
@@ -115,48 +158,51 @@ public:
                   const HioSnrModel* snr_model,
                   std::string& error_msg);
 
+    // R11 (阶段6): 将 Tile 级累加结果直接写入 .hiss (流式, 不恢复全局 leaf map)
+    //   与 writeHis 语义一致, 但输入为 TileAccumulator 列表
+    bool writeHisTiles(const std::vector<TileAccumulator>& tiles,
+                       const DrizzleStats& stats, const WcsParams& wcs,
+                       const DrizzleConfig& config, const DrizzleMeta& meta,
+                       const std::string& fitsPath,
+                       const std::string& outputPath,
+                       const HioSnrModel* snr_model,
+                       std::string& error_msg);
+
 private:
-    // 处理单个像素的 Drizzle (6步流水线) — FP32 路径
-    void processPixel(
+    // R11 (阶段6): 处理单个像素的 Drizzle (6步流水线) — 模板双实例 (Scalar=float/double)
+    //   tileMap: 线程本地 Tile 累加 map (key=parent_ipix)
+    //   shift/mask: NESTED 位运算 (leaf_ipix >> shift = parent, leaf_ipix & mask = local)
+    template <typename Scalar>
+    void processPixelTiled(
         double px, double py,           // 像素中心 (0-based)
-        float pixelValue,                // 像素值
+        Scalar pixelValue,               // 像素值 (float=FP32, double=FP64)
         float snrValue,                  // SNR
         float weightValue,               // 权重
         const WcsSip& wcs,               // WCS 转换器
         const DrizzleConfig& config,     // 配置
         const healpix::HealpixCore& hp,  // HEALPix 核心
-        std::unordered_map<uint64_t, PixelAccumulator>& accum  // 累加器
-    ) const;
-
-    // 处理单个像素的 Drizzle (6步流水线) — FP64 路径
-    // 双精度 ABI: pixelValue 为 double, 直接累加到 PixelAccumulator.sumFlux (double)
-    // snrValue / weightValue 仍为 float (SNR 重建与权重掩膜不需要 FP64)
-    void processPixel_f64(
-        double px, double py,
-        double pixelValue,
-        float snrValue,
-        float weightValue,
-        const WcsSip& wcs,
-        const DrizzleConfig& config,
-        const healpix::HealpixCore& hp,
-        std::unordered_map<uint64_t, PixelAccumulator>& accum
+        uint32_t shift, uint64_t mask,   // NESTED tile 位运算
+        std::unordered_map<uint64_t, TileAccumulator>& tileMap  // 线程本地 tile 累加
     ) const;
 
     // R11: 共享顶点路径 (pixfrac=1): 接收预计算的 4 角球面坐标, 跳过逐像素 WCS 角点变换
-    void processPixelShared(
+    template <typename Scalar>
+    void processPixelSharedTiled(
         double px, double py,
-        float pixelValue, float snrValue, float weightValue,
+        Scalar pixelValue, float snrValue, float weightValue,
         const double corners_ra[4], const double corners_dec[4],
         const WcsSip& wcs, const DrizzleConfig& config,
         const healpix::HealpixCore& hp,
-        std::unordered_map<uint64_t, PixelAccumulator>& accum) const;
-    void processPixelShared_f64(
-        double px, double py,
-        double pixelValue, float snrValue, float weightValue,
-        const double corners_ra[4], const double corners_dec[4],
-        const WcsSip& wcs, const DrizzleConfig& config,
-        const healpix::HealpixCore& hp,
-        std::unordered_map<uint64_t, PixelAccumulator>& accum) const;
+        uint32_t shift, uint64_t mask,
+        std::unordered_map<uint64_t, TileAccumulator>& tileMap) const;
+
+    // R11 (阶段6): Tile 级 Drizzle 内部实现 (模板 Scalar=float/double)
+    template <typename Scalar>
+    bool drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& config,
+                          const float* snrData, const float* weightData,
+                          const Scalar* pixels,
+                          std::vector<TileAccumulator>& tiles,
+                          DrizzleStats& stats, std::string& error_msg);
 
     // 获取 HEALPix 像素的四角球面坐标
     void getHealpixCorners(const healpix::HealpixCore& hp, int64_t ipix,

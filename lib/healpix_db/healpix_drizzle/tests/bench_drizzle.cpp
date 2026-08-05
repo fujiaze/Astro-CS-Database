@@ -65,14 +65,14 @@ int main(int argc, char** argv) {
     if (argc >= 5) cfg.threads = atoi(argv[4]);
 
     DrizzleEngine engine;
-    std::unordered_map<uint64_t, PixelAccumulator> acc;
+    std::vector<TileAccumulator> tiles;
     DrizzleStats stats;
     std::string err;
 
     auto t0 = std::chrono::steady_clock::now();
     bool ok = (prec == 1)
-        ? engine.drizzle_f64(img, cfg, nullptr, nullptr, acc, stats, err)
-        : engine.drizzle(img, cfg, nullptr, nullptr, acc, stats, err);
+        ? engine.drizzleTiled_f64(img, cfg, nullptr, nullptr, tiles, stats, err)
+        : engine.drizzleTiled(img, cfg, nullptr, nullptr, tiles, stats, err);
     auto t1 = std::chrono::steady_clock::now();
     double wall = std::chrono::duration<double>(t1 - t0).count();
 
@@ -80,14 +80,18 @@ int main(int argc, char** argv) {
         fprintf(stderr, "drizzle failed: %s\n", err.c_str());
         return 1;
     }
+    size_t n_leaf = 0;
     double total_flux = 0.0;
-    for (const auto& [ipix, pa] : acc) {
-        total_flux += pa.sumFlux;
+    for (const auto& tile : tiles) {
+        n_leaf += tile.touched.size();
+        for (uint32_t local : tile.touched) {
+            total_flux += tile.pixels[local].sumFlux;
+        }
     }
     printf("{\"input_pixels\":%d,\"output_pixels\":%zu,\"nside\":%d,"
            "\"precision\":\"%s\",\"wall_s\":%.4f,\"elapsed_engine_s\":%.4f,"
            "\"threads\":%d,\"config_threads\":%d,\"total_flux\":%.6f,\"status\":\"%s\"}\n",
-           size * size, acc.size(), stats.nside,
+           size * size, n_leaf, stats.nside,
            prec ? "fp64" : "fp32", wall, stats.elapsedSec,
            omp_get_max_threads(), cfg.threads, total_flux, ok ? "PASS" : "FAIL");
     return 0;
