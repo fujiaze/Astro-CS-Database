@@ -53,6 +53,15 @@ SDET_EXPORT int sdet_detect_ex(StarDetectorHandle handle,
                                 int *out_count,
                                 const char **extra_names, int extra_count, float ***out_extras);
 
+// R11 (PREC-108 第二步): FP64 星点检测 (double 图像, 全程 double 不降级 float32)
+// 输出布局与 sdet_detect_ex 完全一致; 返回 0=成功, -1=参数错误
+SDET_EXPORT int sdet_detect_ex_f64(StarDetectorHandle handle,
+                                    const double *image, int width, int height,
+                                    double **out_x, double **out_y, float **out_flux, int **out_saturated,
+                                    float **out_mag, int **out_has_saturated,
+                                    int *out_count,
+                                    const char **extra_names, int extra_count, float ***out_extras);
+
 SDET_EXPORT void sdet_free_detect_ex(double *x, double *y, float *flux, int *saturated,
                                        float *mag, int *has_saturated,
                                        float **extras, int extra_count);

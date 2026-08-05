@@ -18,6 +18,7 @@
 #include <chrono>
 #include <algorithm>
 #include <vector>
+#include <type_traits>
 #include <cmath>
 #include <set>
 #include <unordered_map>
@@ -299,11 +300,12 @@ bool sdet_gauss_solve(int n, const double* A, const double* b, double* x) {
 //   输入: image (原始像素), rect (box), cx/cy (候选中心), bkg0, sat_threshold
 //   输出: fit_result (B, A, cx, cy, sx, sy, theta, fwhm_x/y, mad=rmse)
 //   返回: SDET_FIT_OK / SDET_FIT_NO_CONVERGENCE / SDET_FIT_INVALID_PARAMS
-static int sdet_lm_fit(const float* image, int width,
-                           int rect_x0, int rect_y0, int rect_x1, int rect_y1,
-                           double cx, double cy, double bkg0, double sat_threshold,
-                           const SamplePixel* samples, int m,
-                           bool has_saturated, InternalFitResult* result) {
+template <typename T>
+static int sdet_lm_fit(const T* image, int width,
+                       int rect_x0, int rect_y0, int rect_x1, int rect_y1,
+                       double cx, double cy, double bkg0, double sat_threshold,
+                       const SamplePixel* samples, int m,
+                       bool has_saturated, InternalFitResult* result) {
     const size_t n = (size_t)m;
     const size_t p = 7;  // Gaussian: 7 参数
 
@@ -396,8 +398,8 @@ static int sdet_lm_fit(const float* image, int width,
     fdf.p = p;
     fdf.params = &pdata;
 
-    const gsl_multifit_nlinear_type* T = gsl_multifit_nlinear_trust;
-    gsl_multifit_nlinear_workspace* work = gsl_multifit_nlinear_alloc(T, &fdf_params, n, p);
+    const gsl_multifit_nlinear_type* nlin_type = gsl_multifit_nlinear_trust;
+    gsl_multifit_nlinear_workspace* work = gsl_multifit_nlinear_alloc(nlin_type, &fdf_params, n, p);
     if (!work) return SDET_FIT_INVALID_PARAMS;
 
     gsl_multifit_nlinear_init(&x.vector, &fdf, work);
@@ -732,48 +734,66 @@ double sdet_compute_trimmed_mad(const SamplePixel* samples, int m, const double*
 // V4.27 阶段B: 背景噪声估计 (FnNoise1_ushort 算法)
 // 算法: 行差分 -> sigma-clip(3次,5.0) -> stdev -> 中位数 -> *0.7071
 // 注意: sdet_robust_mad 返回值已含 *1.4826 (即 sigma 估计), 直接用作 dsigma
-static float sdet_compute_bgnoise(const float* img, int width, int height) {
+template <typename T>
+static T sdet_compute_bgnoise(const T* img, int width, int height) {
     if (width < 2 || height < 1) return 0.0f;
-    std::vector<float> row_stdevs(height);
+    std::vector<T> row_stdevs(height);
     #pragma omp parallel for schedule(static) num_threads(16)
     for (int y = 0; y < height; y++) {
-        const float* row = img + y * width;
-        std::vector<float> diffs(width - 1);
+        const T* row = img + y * width;
+        std::vector<T> diffs(width - 1);
         for (int x = 1; x < width; x++) {
             diffs[x-1] = row[x] - row[x-1];
         }
-        float dmed = sdet_robust_median(diffs.data(), (int)diffs.size());
-        float dsigma = sdet_robust_mad(diffs.data(), (int)diffs.size());
-        std::vector<float> clipped;
+        T dmed, dsigma;
+        if constexpr (std::is_same_v<T, float>) {
+            dmed = sdet_robust_median(diffs.data(), (int)diffs.size());
+            dsigma = sdet_robust_mad(diffs.data(), (int)diffs.size());
+        } else {
+            dmed = sdet_robust_median_d(diffs.data(), (int)diffs.size());
+            dsigma = sdet_robust_mad_d(diffs.data(), (int)diffs.size());
+        }
+        std::vector<T> clipped;
         for (int iter = 0; iter < 3; iter++) {
             clipped.clear();
-            float lo = dmed - 5.0f * dsigma;
-            float hi = dmed + 5.0f * dsigma;
-            for (float v : diffs) {
+            T lo = dmed - T(5.0) * dsigma;
+            T hi = dmed + T(5.0) * dsigma;
+            for (T v : diffs) {
                 if (v >= lo && v <= hi) clipped.push_back(v);
             }
             if (clipped.size() < 2) break;
-            dmed = sdet_robust_median(clipped.data(), (int)clipped.size());
-            dsigma = sdet_robust_mad(clipped.data(), (int)clipped.size());
+            if constexpr (std::is_same_v<T, float>) {
+                dmed = sdet_robust_median(clipped.data(), (int)clipped.size());
+                dsigma = sdet_robust_mad(clipped.data(), (int)clipped.size());
+            } else {
+                dmed = sdet_robust_median_d(clipped.data(), (int)clipped.size());
+                dsigma = sdet_robust_mad_d(clipped.data(), (int)clipped.size());
+            }
         }
         if (clipped.size() < 2) {
-            row_stdevs[y] = 0.0f;
+            row_stdevs[y] = T(0);
         } else {
             double sum = 0.0;
-            for (float v : clipped) sum += v;
+            for (T v : clipped) sum += (double)v;
             double mean = sum / clipped.size();
             double var = 0.0;
-            for (float v : clipped) var += (v - mean) * (v - mean);
-            row_stdevs[y] = (float)std::sqrt(var / clipped.size());
+            for (T v : clipped) var += ((double)v - mean) * ((double)v - mean);
+            row_stdevs[y] = (T)std::sqrt(var / clipped.size());
         }
     }
-    float med_stdev = sdet_robust_median(row_stdevs.data(), height);
-    return med_stdev * 0.70710678f;  // 1/sqrt(2)
+    T med_stdev;
+    if constexpr (std::is_same_v<T, float>) {
+        med_stdev = sdet_robust_median(row_stdevs.data(), height);
+    } else {
+        med_stdev = sdet_robust_median_d(row_stdevs.data(), height);
+    }
+    return med_stdev * T(0.70710678);  // 1/sqrt(2)
 }
 
 // V4.55: 新增 init_sx/init_sy 参数, 用候选阶段 Sr/Sc 作为初始 σ
 // V4.58: 新增 bg_init 参数, 用全局中位数作为 B 初始值
-int sdet_moffat4_fit(const float* image, int width, int height,
+template <typename T>
+int sdet_moffat4_fit(const T* image, int width, int height,
                      double cx, double cy,
                      int rect_x0, int rect_y0, int rect_x1, int rect_y1,
                      InternalFitResult* result, LMWorkspace* ws = nullptr,
@@ -880,10 +900,10 @@ int sdet_moffat4_fit(const float* image, int width, int height,
 
     bool has_saturated = (sat_threshold > 0.0 && m < rw * rh);
 
-    int gsl_status = sdet_lm_fit(image, width,
-                                      rect_x0, rect_y0, rect_x1, rect_y1,
-                                      cx, cy, bkg0, sat_threshold,
-                                      samples.data(), m, has_saturated, result);
+    int gsl_status = sdet_lm_fit<T>(image, width,
+                                    rect_x0, rect_y0, rect_x1, rect_y1,
+                                    cx, cy, bkg0, sat_threshold,
+                                    samples.data(), m, has_saturated, result);
 
     if (gsl_status != SDET_FIT_OK) {
         return gsl_status;
@@ -1880,39 +1900,37 @@ SDET_EXPORT void sdet_free_debug_maps(float *maps)
     free(maps);
 }
 
-SDET_EXPORT int sdet_detect_ex(StarDetectorHandle handle,
-                                const uint16_t *image, int width, int height,
-                                double **out_x, double **out_y, float **out_flux, int **out_saturated,
-                                float **out_mag, int **out_has_saturated,
-                                int *out_count,
-                                const char **extra_names, int extra_count, float ***out_extras)
+// R11 (PREC-108 第二步): sdet_detect_impl - 星点检测核心 (模板双实例)
+//   T=float  : 与旧 sdet_detect_ex 行为逐位一致 (uint16→float 由入口包装完成)
+//   T=double : FP64 模式 (输入 double 校准图, 全程 double 检测, 不降级 float32)
+template <typename T>
+static int sdet_detect_impl(StarDetectorHandle handle,
+                            const T *image, int width, int height,
+                            double **out_x, double **out_y, float **out_flux, int **out_saturated,
+                            float **out_mag, int **out_has_saturated,
+                            int *out_count,
+                            const char **extra_names, int extra_count, float ***out_extras)
 {
     auto t0 = std::chrono::high_resolution_clock::now();
     auto t_last = t0;
-    sdet_log(SDET_LOG_INFO, "SDET", "sdet_detect_ex start: %dx%d", width, height);
+    sdet_log(SDET_LOG_INFO, "SDET", "sdet_detect_impl start: %dx%d", width, height);
 
     if (!handle || !image || !out_x || !out_y || !out_flux || !out_saturated || !out_count) return -1;
 
     const SDetParams &params = handle->internal.params;
     size_t n = (size_t)width * height;
 
-    // 阶段1: uint16→float32转换
-    std::vector<float> fimg(n);
-    #pragma omp parallel for schedule(static) num_threads(16)
-    for (int i = 0; i < (int)n; i++) {
-        fimg[i] = static_cast<float>(image[i]);
-    }
-    auto t1 = std::chrono::high_resolution_clock::now();
-    sdet_log(SDET_LOG_DEBUG, "SDET", "[1] uint16→float: %.1f ms", std::chrono::duration<double, std::milli>(t1 - t_last).count());
-    t_last = t1;
-
     handle->internal.width = width;
     handle->internal.height = height;
 
-    // 阶段2: 原图高斯平滑
+    // 阶段2: 原图高斯平滑 (T 版本: float=YvV, double=YvV_d)
     // 使用 Young-van Vliet 递归 IIR 高斯滤波
-    std::vector<float> smooth(n);
-    sdet_gaussian_blur_yvv(fimg.data(), smooth.data(), width, height, 2.0);
+    std::vector<T> smooth(n);
+    if constexpr (std::is_same_v<T, float>) {
+        sdet_gaussian_blur_yvv(image, smooth.data(), width, height, 2.0);
+    } else {
+        sdet_gaussian_blur_yvv_d(image, smooth.data(), width, height, 2.0);
+    }
     auto t2 = std::chrono::high_resolution_clock::now();
     sdet_log(SDET_LOG_DEBUG, "SDET", "[2] Gaussian YvV smooth (sigma=2.0): %.1f ms",
              std::chrono::duration<double, std::milli>(t2 - t_last).count());
@@ -1920,9 +1938,14 @@ SDET_EXPORT int sdet_detect_ex(StarDetectorHandle handle,
 
     // 阶段3: 全局阈值
     // star_finder.c:80,201: threshold = stat->median + sigma*5.0*stat->bgnoise (sigma=1.0)
-    float bgnoise = sdet_compute_bgnoise(fimg.data(), width, height);
-    float img_median = sdet_robust_median(fimg.data(), (int)n);
-    float threshold = img_median + 5.0f * bgnoise;
+    T bgnoise = sdet_compute_bgnoise<T>(image, width, height);
+    T img_median;
+    if constexpr (std::is_same_v<T, float>) {
+        img_median = sdet_robust_median(image, (int)n);
+    } else {
+        img_median = sdet_robust_median_d(image, (int)n);
+    }
+    T threshold = img_median + T(5.0) * bgnoise;
     sdet_log(SDET_LOG_INFO, "SDET", "peaker: median=%.4f bgnoise=%.4f threshold=%.4f (median+5*bgnoise)",
              img_median, bgnoise, threshold);
     auto t3 = std::chrono::high_resolution_clock::now();
@@ -1964,7 +1987,7 @@ SDET_EXPORT int sdet_detect_ex(StarDetectorHandle handle,
     const double bg = (double)img_median;
     double maxi = 0.0;
     for (size_t i = 0; i < n; i++) {
-        if (fimg[i] > maxi) maxi = fimg[i];
+        if (image[i] > maxi) maxi = image[i];
     }
     const float norm = 65535.0f;  // uint16 归一化值
     const double dynrange = std::min(maxi, (double)norm) - bg;
@@ -1988,7 +2011,7 @@ SDET_EXPORT int sdet_detect_ex(StarDetectorHandle handle,
 
     for (int y = r; y < height - r; y++) {
         for (int x = r; x < width - r; x++) {
-            float pixel = smooth[(size_t)y * width + x];
+            T pixel = smooth[(size_t)y * width + x];
             if (pixel <= threshold) continue;
             dbg_pass_threshold++;
 
@@ -1998,7 +2021,7 @@ SDET_EXPORT int sdet_detect_ex(StarDetectorHandle handle,
             for (int yy = y - r; yy <= y + r && bingo; yy++) {
                 for (int xx = x - r; xx <= x + r; xx++) {
                     if (xx == x && yy == y) continue;
-                    float neighbor = smooth[(size_t)yy * width + xx];
+                    T neighbor = smooth[(size_t)yy * width + xx];
                     if (neighbor > pixel) { bingo = false; break; }
                     else if (neighbor == pixel) {
                         // 平局决胜: 取左上半平面为唯一极大值 (star_finder.c:296-300)
@@ -2016,13 +2039,13 @@ SDET_EXPORT int sdet_detect_ex(StarDetectorHandle handle,
             // (2) 3x3 邻域亮度验证 (star_finder.c:312-333)
             int xx = x - r;  // 原始 x
             int yy = y;
-            float pixel0 = fimg[(size_t)yy * width + xx];  // 原图中心像素
+            T pixel0 = image[(size_t)yy * width + xx];  // 原图中心像素
             double meanhigh = 0.0, minhigh = 1e30;
             count = 0;
             for (int ny = y - 1; ny <= y + 1; ny++) {
                 for (int nx = xx - 1; nx <= xx + 1; nx++) {
                     if (nx == xx && ny == y) continue;  // 中心像素
-                    float neighbor = fimg[(size_t)ny * width + nx];  // 原图
+                    T neighbor = image[(size_t)ny * width + nx];  // 原图
                     if (neighbor >= threshold) {
                         if (neighbor < minhigh) minhigh = neighbor;
                         meanhigh += neighbor;
@@ -2041,8 +2064,8 @@ SDET_EXPORT int sdet_detect_ex(StarDetectorHandle handle,
 
             // (3) 饱和星 edge-walking 精确定位中心 (star_finder.c:346-409)
             bool has_saturated = false;
-            float sat = 0.0f;
-            float r0 = 0.0f, c0 = 0.0f;
+            T sat = T(0);
+            T r0 = T(0), c0 = T(0);
 
             // V4.51-debug: 统计饱和判断中间变量
             bool cond_meanhigh = (meanhigh - bg >= minsatlevel);
@@ -2053,19 +2076,19 @@ SDET_EXPORT int sdet_detect_ex(StarDetectorHandle handle,
             if (meanhigh - bg < minsatlevel || pixel0 - minhigh > satrange) {
                 // 非饱和: 简单一阶导数 (star_finder.c:347-354)
                 dbg_nonsat++;
-                float d1rl = pixel - smooth[(size_t)yy * width + xx - 1];
-                float d1rr = smooth[(size_t)yy * width + xx + 1] - pixel;
-                float d1cu = pixel - smooth[(size_t)(yy - 1) * width + xx];
-                float d1cd = smooth[(size_t)(yy + 1) * width + xx] - pixel;
-                float denom_r = d1rr - d1rl;
-                float denom_c = d1cd - d1cu;
-                r0 = (std::abs(denom_r) < 1e-20f) ? -0.5f : -0.5f - d1rl / denom_r;
-                c0 = (std::abs(denom_c) < 1e-20f) ? -0.5f : -0.5f - d1cu / denom_c;
+                T d1rl = pixel - smooth[(size_t)yy * width + xx - 1];
+                T d1rr = smooth[(size_t)yy * width + xx + 1] - pixel;
+                T d1cu = pixel - smooth[(size_t)(yy - 1) * width + xx];
+                T d1cd = smooth[(size_t)(yy + 1) * width + xx] - pixel;
+                T denom_r = d1rr - d1rl;
+                T denom_c = d1cd - d1cu;
+                r0 = (std::abs(denom_r) < T(1e-20)) ? T(-0.5) : T(-0.5) - d1rl / denom_r;
+                c0 = (std::abs(denom_c) < T(1e-20)) ? T(-0.5) : T(-0.5) - d1cu / denom_c;
             } else {
                 // 饱和: edge-walking (star_finder.c:355-409)
                 has_saturated = true;
                 dbg_sat_both++;
-                sat = std::min(pixel0, norm) - (float)satrange;
+                sat = std::min(pixel0, T(norm)) - T(satrange);
                 int i = 0, j = 0;
                 int xr = 0, xl = 0, yu = 0, yd = 0;
 
@@ -2119,83 +2142,83 @@ SDET_EXPORT int sdet_detect_ex(StarDetectorHandle handle,
             }
 
             // (4) 二阶导数零交叉估计 (star_finder.c:411-492)
-            float srr = 0.0f, srl = 0.0f, scd = 0.0f, scu = 0.0f;
-            float Arr = 0.0f, Arl = 0.0f, Acd = 0.0f, Acu = 0.0f;
+            T srr = T(0), srl = T(0), scd = T(0), scu = T(0);
+            T Arr = T(0), Arl = T(0), Acd = T(0), Acu = T(0);
 
             // Row-wise moving right (star_finder.c:416-431)
             {
                 int i = 0;
                 if (has_saturated) while (xx + i < width && smooth[(size_t)yy * width + xx + i] > sat) i++;
                 if (xx + i >= width - 2) continue;  // largely saturated close to border
-                float d2rr  = smooth[(size_t)yy * width + xx + i + 1] + smooth[(size_t)yy * width + xx + i - 1] - 2 * smooth[(size_t)yy * width + xx + i    ];
-                float d2rrr = smooth[(size_t)yy * width + xx + i + 2] + smooth[(size_t)yy * width + xx + i    ] - 2 * smooth[(size_t)yy * width + xx + i + 1];
+                T d2rr  = smooth[(size_t)yy * width + xx + i + 1] + smooth[(size_t)yy * width + xx + i - 1] - T(2) * smooth[(size_t)yy * width + xx + i    ];
+                T d2rrr = smooth[(size_t)yy * width + xx + i + 2] + smooth[(size_t)yy * width + xx + i    ] - T(2) * smooth[(size_t)yy * width + xx + i + 1];
                 while ((d2rrr < 0) && ((xx + i + 2) < width - 1)) {
                     i++;
                     d2rr = d2rrr;
                     d2rrr = smooth[(size_t)yy * width + xx + i + 2] + smooth[(size_t)yy * width + xx + i] - 2 * smooth[(size_t)yy * width + xx + i + 1];
                 }
-                float denom = d2rrr - d2rr;
-                srr = (std::abs(denom) < 1e-20f) ? (float)i - r0 : (float)i - d2rr / denom - r0;
-                float d1rr = smooth[(size_t)yy * width + xx + i] - smooth[(size_t)yy * width + xx + i - 1];
-                Arr = -d1rr * srr * (float)SQRT_EXP1;
+                T denom = d2rrr - d2rr;
+                srr = (std::abs(denom) < T(1e-20)) ? T(i) - r0 : T(i) - d2rr / denom - r0;
+                T d1rr = smooth[(size_t)yy * width + xx + i] - smooth[(size_t)yy * width + xx + i - 1];
+                Arr = -d1rr * srr * T(SQRT_EXP1);
             }
             // Row-wise moving left (star_finder.c:434-449)
             {
                 int i = 0;
                 if (has_saturated) while (xx - i > 0 && smooth[(size_t)yy * width + xx - i] > sat) i++;
                 if (xx - i <= 2) continue;
-                float d2rl  = smooth[(size_t)yy * width + xx - i - 1] + smooth[(size_t)yy * width + xx - i + 1] - 2 * smooth[(size_t)yy * width + xx - i    ];
-                float d2rll = smooth[(size_t)yy * width + xx - i - 2] + smooth[(size_t)yy * width + xx - i    ] - 2 * smooth[(size_t)yy * width + xx - i - 1];
+                T d2rl  = smooth[(size_t)yy * width + xx - i - 1] + smooth[(size_t)yy * width + xx - i + 1] - T(2) * smooth[(size_t)yy * width + xx - i    ];
+                T d2rll = smooth[(size_t)yy * width + xx - i - 2] + smooth[(size_t)yy * width + xx - i    ] - T(2) * smooth[(size_t)yy * width + xx - i - 1];
                 while ((d2rll < 0) && ((xx - i - 2) > 1)) {
                     i++;
                     d2rl = d2rll;
                     d2rll = smooth[(size_t)yy * width + xx - i - 2] + smooth[(size_t)yy * width + xx - i] - 2 * smooth[(size_t)yy * width + xx - i - 1];
                 }
-                float denom = d2rll - d2rl;
-                srl = (std::abs(denom) < 1e-20f) ? (float)(-i) - r0 : -((float)i - d2rl / denom) - r0;
-                float d1rl = smooth[(size_t)yy * width + xx - i] - smooth[(size_t)yy * width + xx - i + 1];
-                Arl = d1rl * srl * (float)SQRT_EXP1;
+                T denom = d2rll - d2rl;
+                srl = (std::abs(denom) < T(1e-20)) ? T(-i) - r0 : -((T)i - d2rl / denom) - r0;
+                T d1rl = smooth[(size_t)yy * width + xx - i] - smooth[(size_t)yy * width + xx - i + 1];
+                Arl = d1rl * srl * T(SQRT_EXP1);
             }
             // Column-wise moving down (star_finder.c:452-467)
             {
                 int i = 0;
                 if (has_saturated) while (yy + i < height && smooth[(size_t)(yy + i) * width + xx] > sat) i++;
                 if (yy + i >= height - 2) continue;
-                float d2cd  = smooth[(size_t)(yy + i + 1) * width + xx] + smooth[(size_t)(yy + i - 1) * width + xx] - 2 * smooth[(size_t)(yy + i    ) * width + xx];
-                float d2cdd = smooth[(size_t)(yy + i + 2) * width + xx] + smooth[(size_t)(yy + i    ) * width + xx] - 2 * smooth[(size_t)(yy + i + 1) * width + xx];
+                T d2cd  = smooth[(size_t)(yy + i + 1) * width + xx] + smooth[(size_t)(yy + i - 1) * width + xx] - T(2) * smooth[(size_t)(yy + i    ) * width + xx];
+                T d2cdd = smooth[(size_t)(yy + i + 2) * width + xx] + smooth[(size_t)(yy + i    ) * width + xx] - T(2) * smooth[(size_t)(yy + i + 1) * width + xx];
                 while ((d2cdd < 0) && ((yy + i + 2) < height - 1)) {
                     i++;
                     d2cd = d2cdd;
                     d2cdd = smooth[(size_t)(yy + i + 2) * width + xx] + smooth[(size_t)(yy + i) * width + xx] - 2 * smooth[(size_t)(yy + i + 1) * width + xx];
                 }
-                float denom = d2cdd - d2cd;
-                scd = (std::abs(denom) < 1e-20f) ? (float)i - c0 : (float)i - d2cd / denom - c0;
-                float d1cd = smooth[(size_t)(yy + i) * width + xx] - smooth[(size_t)(yy + i - 1) * width + xx];
-                Acd = -d1cd * scd * (float)SQRT_EXP1;
+                T denom = d2cdd - d2cd;
+                scd = (std::abs(denom) < T(1e-20)) ? T(i) - c0 : T(i) - d2cd / denom - c0;
+                T d1cd = smooth[(size_t)(yy + i) * width + xx] - smooth[(size_t)(yy + i - 1) * width + xx];
+                Acd = -d1cd * scd * T(SQRT_EXP1);
             }
             // Column-wise moving up (star_finder.c:470-485)
             {
                 int i = 0;
                 if (has_saturated) while (yy - i > 0 && smooth[(size_t)(yy - i) * width + xx] > sat) i++;
                 if (yy - i <= 2) continue;
-                float d2cu  = smooth[(size_t)(yy - i - 1) * width + xx] + smooth[(size_t)(yy - i + 1) * width + xx] - 2 * smooth[(size_t)(yy - i    ) * width + xx];
-                float d2cuu = smooth[(size_t)(yy - i - 2) * width + xx] + smooth[(size_t)(yy - i    ) * width + xx] - 2 * smooth[(size_t)(yy - i - 1) * width + xx];
+                T d2cu  = smooth[(size_t)(yy - i - 1) * width + xx] + smooth[(size_t)(yy - i + 1) * width + xx] - T(2) * smooth[(size_t)(yy - i    ) * width + xx];
+                T d2cuu = smooth[(size_t)(yy - i - 2) * width + xx] + smooth[(size_t)(yy - i    ) * width + xx] - T(2) * smooth[(size_t)(yy - i - 1) * width + xx];
                 while ((d2cuu < 0) && ((yy - i - 2) > 1)) {
                     i++;
                     d2cu = d2cuu;
                     d2cuu = smooth[(size_t)(yy - i - 2) * width + xx] + smooth[(size_t)(yy - i) * width + xx] - 2 * smooth[(size_t)(yy - i - 1) * width + xx];
                 }
-                float denom = d2cuu - d2cu;
-                scu = (std::abs(denom) < 1e-20f) ? (float)(-i) - c0 : -((float)i - d2cu / denom) - c0;
-                float d1cu = smooth[(size_t)(yy - i) * width + xx] - smooth[(size_t)(yy - i + 1) * width + xx];
-                Acu = d1cu * scu * (float)SQRT_EXP1;
+                T denom = d2cuu - d2cu;
+                scu = (std::abs(denom) < T(1e-20)) ? T(-i) - c0 : -((T)i - d2cu / denom) - c0;
+                T d1cu = smooth[(size_t)(yy - i) * width + xx] - smooth[(size_t)(yy - i + 1) * width + xx];
+                Acu = d1cu * scu * T(SQRT_EXP1);
             }
 
             // Smoothed PSF estimators (star_finder.c:488-492)
-            float Sr = 0.5f * (-srl + srr);
-            float Ar = 0.5f * (Arl + Arr);
-            float Sc = 0.5f * (-scu + scd);
-            float Ac = 0.5f * (Acu + Acd);
+            T Sr = T(0.5) * (-srl + srr);
+            T Ar = T(0.5) * (Arl + Arr);
+            T Sc = T(0.5) * (-scu + scd);
+            T Ac = T(0.5) * (Acu + Acd);
 
             // (5) R computation (star_finder.c:495-510)
             int Rr = (int)std::ceil(s_factor * (double)Sr);
@@ -2211,17 +2234,17 @@ SDET_EXPORT int sdet_detect_ex(StarDetectorHandle handle,
             if (R < 1) R = 1;
 
             // (6) 对称性质量检查 (star_finder.c:513-518)
-            float minArAc = std::min(std::abs(Ar), std::abs(Ac));
-            float maxArAc = std::max(std::abs(Ar), std::abs(Ac));
-            float dA = (minArAc > 1e-20f) ? maxArAc / minArAc : 1e30f;
-            float msrl = std::max(-srl, srr);
-            float lsrl = std::min(-srl, srr);
-            float dSr = (lsrl > 1e-20f) ? msrl / lsrl : 1e30f;
-            float mscu = std::max(-scu, scd);
-            float lscu = std::min(-scu, scd);
-            float dSc = (lscu > 1e-20f) ? mscu / lscu : 1e30f;
+            T minArAc = std::min(std::abs(Ar), std::abs(Ac));
+            T maxArAc = std::max(std::abs(Ar), std::abs(Ac));
+            T dA = (minArAc > T(1e-20)) ? maxArAc / minArAc : T(1e30);
+            T msrl = std::max(-srl, srr);
+            T lsrl = std::min(-srl, srr);
+            T dSr = (lsrl > T(1e-20)) ? msrl / lsrl : T(1e30);
+            T mscu = std::max(-scu, scd);
+            T lscu = std::min(-scu, scd);
+            T dSc = (lscu > T(1e-20)) ? mscu / lscu : T(1e30);
             // relax_checks=false (default): dA>2 || dSr>2 || dSc>2 || max(Ar,Ac)<locthreshold
-            if (dA > 2.0f || dSr > 2.0f || dSc > 2.0f || maxArAc < (float)locthreshold)
+            if (dA > T(2) || dSr > T(2) || dSc > T(2) || maxArAc < T(locthreshold))
                 continue;
 
             // (7) candidate_is_duplicate (star_finder.c:521, 149-160)
@@ -2334,11 +2357,11 @@ SDET_EXPORT int sdet_detect_ex(StarDetectorHandle handle,
             //   之前 IPv 非饱和候选 sat_mask=0 不过滤, 导致含饱和像素的星 A 被拉高 (Galaxy_Center +79)
             double sat_mask = (double)candidates[i].sat;
 
-            sdet_moffat4_fit(fimg.data(), width, height,
-                             candidates[i].cx, candidates[i].cy,
-                             rx0, ry0, rx1, ry1, &fit_results[i], &ws, sat_mask,
-                             (double)candidates[i].sx, (double)candidates[i].sy,
-                             (double)img_median);
+            sdet_moffat4_fit<T>(image, width, height,
+                                candidates[i].cx, candidates[i].cy,
+                                rx0, ry0, rx1, ry1, &fit_results[i], &ws, sat_mask,
+                                (double)candidates[i].sx, (double)candidates[i].sy,
+                                (double)img_median);
             if (fit_results[i].status == SDET_FIT_OK) fit_ok_count++;
         }
     }
@@ -2472,7 +2495,7 @@ SDET_EXPORT int sdet_detect_ex(StarDetectorHandle handle,
             double box_sum = 0.0;
             for (int yy = my0; yy < my1; yy++) {
                 for (int xx = mx0; xx < mx1; xx++) {
-                    box_sum += (double)fimg[yy * width + xx] - local_B;
+                    box_sum += (double)image[yy * width + xx] - local_B;
                 }
             }
             rec.mag = (box_sum > 0.0) ? -2.5f * log10f((float)box_sum) : NAN;
@@ -2589,6 +2612,49 @@ SDET_EXPORT int sdet_detect_ex(StarDetectorHandle handle,
     sdet_log(SDET_LOG_INFO, "SDET", "sdet_detect_ex done: %d stars (sat=%d normal=%d), %.3f s",
              result_count, sat_count, normal_count, elapsed);
     return 0;
+}
+
+// ============================================================================
+// sdet_detect_ex - FP32 入口 (uint16 原始图像, 兼容旧 ABI)
+//   内部 uint16→float32 转换后调用 sdet_detect_impl<float> (行为与旧版逐位一致)
+// ============================================================================
+SDET_EXPORT int sdet_detect_ex(StarDetectorHandle handle,
+                               const uint16_t *image, int width, int height,
+                               double **out_x, double **out_y, float **out_flux, int **out_saturated,
+                               float **out_mag, int **out_has_saturated,
+                               int *out_count,
+                               const char **extra_names, int extra_count, float ***out_extras)
+{
+    if (!handle || !image || width <= 0 || height <= 0) return -1;
+    size_t n = (size_t)width * height;
+    std::vector<float> fimg(n);
+    #pragma omp parallel for schedule(static) num_threads(16)
+    for (int i = 0; i < (int)n; i++) {
+        fimg[i] = static_cast<float>(image[i]);
+    }
+    return sdet_detect_impl<float>(handle, fimg.data(), width, height,
+                                   out_x, out_y, out_flux, out_saturated,
+                                   out_mag, out_has_saturated, out_count,
+                                   extra_names, extra_count, out_extras);
+}
+
+// ============================================================================
+// sdet_detect_ex_f64 - FP64 入口 (double 校准图像)
+//   R11 (PREC-108 第二步): 全程 double 检测, 不降级 float32
+//   输出接口与 sdet_detect_ex 一致 (out_flux/mag float, 下游协议兼容)
+// ============================================================================
+SDET_EXPORT int sdet_detect_ex_f64(StarDetectorHandle handle,
+                                   const double *image, int width, int height,
+                                   double **out_x, double **out_y, float **out_flux, int **out_saturated,
+                                   float **out_mag, int **out_has_saturated,
+                                   int *out_count,
+                                   const char **extra_names, int extra_count, float ***out_extras)
+{
+    if (!handle || !image || width <= 0 || height <= 0) return -1;
+    return sdet_detect_impl<double>(handle, image, width, height,
+                                    out_x, out_y, out_flux, out_saturated,
+                                    out_mag, out_has_saturated, out_count,
+                                    extra_names, extra_count, out_extras);
 }
 
 SDET_EXPORT void sdet_free_detect_ex(double *x, double *y, float *flux, int *saturated,
