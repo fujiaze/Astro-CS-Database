@@ -1,19 +1,16 @@
-# lib/acr/utilization/CMakeLists.txt — Phase G 95% 软占用控制器
+# lib/acr/utilization/CMakeLists.txt — 26 号计划 §2/§9 资源边界
 #
-# 真实利用率读取：
-#   - CPU: GetSystemTimes（Windows API）
-#   - RAM: GlobalMemoryStatusEx（Windows API）
-#   - GPU/VRAM: NVML 动态加载（可选，ACR_ENABLE_NVML=ON 时尝试；OFF 时仅队列预算估算）
-#
-# 纠正清单 §7：不接受人工输入 actual_ratio，必须读取实际值或明确标记估算。
-option(ACR_ENABLE_NVML "Enable NVML dynamic loading for GPU utilization (graceful fallback if nvml.dll missing)" ON)
+# CPU/GPU 精确利用率控制已撤销并移除（CpuController/GpuController/IoBudget 删除）。
+# 只保留：
+#   - system_metrics：RAM/VRAM 真实读取（GlobalMemoryStatusEx + NVML 动态加载）
+#   - memory_budget：RAM/每 GPU VRAM 容量预算、峰值估算与反压动作
+#   - config_hot_read：配置热读取（内存比例/保留量/backend 启用）
+#   - actual_tracker：诊断 telemetry（不影响 claim/路由/PASS/FAIL）
+option(ACR_ENABLE_NVML "Enable NVML dynamic loading for GPU memory read (graceful fallback if nvml.dll missing)" ON)
 
 add_library(acr_utilization STATIC
     system_metrics.cpp
-    cpu_controller.cpp
-    gpu_controller.cpp
     memory_budget.cpp
-    io_budget.cpp
     config_hot_read.cpp
     actual_tracker.cpp
 )
@@ -30,10 +27,10 @@ endif()
 # ACR_ENABLE_NVML=ON 时定义 ACR_HAVE_NVML 宏（当前实现总是动态加载，宏仅用于日志标记）
 if(ACR_ENABLE_NVML)
     target_compile_definitions(acr_utilization PUBLIC ACR_ENABLE_NVML=1)
-    message(STATUS "ACR utilization: NVML dynamic loading ENABLED (graceful fallback if nvml.dll missing)")
+    message(STATUS "ACR memory budget: NVML dynamic loading ENABLED (graceful fallback if nvml.dll missing)")
 else()
     target_compile_definitions(acr_utilization PUBLIC ACR_ENABLE_NVML=0)
-    message(STATUS "ACR utilization: NVML DISABLED, GPU utilization estimated from queue budget only")
+    message(STATUS "ACR memory budget: NVML DISABLED, GPU VRAM estimated")
 endif()
 
 target_link_libraries(acr_utilization PUBLIC
@@ -45,4 +42,4 @@ target_include_directories(acr_utilization PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-message(STATUS "ACR utilization: real CPU/RAM read (GetSystemTimes/GlobalMemoryStatusEx) + NVML dynamic + queue-budget fallback")
+message(STATUS "ACR memory budget: real RAM/VRAM read (GlobalMemoryStatusEx + NVML dynamic)")

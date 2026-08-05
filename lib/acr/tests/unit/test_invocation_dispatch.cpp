@@ -19,7 +19,6 @@
 #include "astro/compute/kernel_registry.hpp"
 #include "../core/task_descriptor.hpp"
 #include "../cost/cost_estimator.hpp"
-#include "../utilization/cpu_controller.hpp"
 
 using namespace astro::compute;
 using namespace astro::compute::scheduler;
@@ -197,7 +196,7 @@ TEST(DispatchInvocation, CpuOnlyExecutesAll) {
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
     cfg.executors = regs;
-    cfg.enable_utilization = false;
+    cfg.enable_memory_budget = false;
     d.configure(cfg);
 
     auto est = make_estimate(kHwCpuDeviceId, 256, 64);
@@ -235,7 +234,7 @@ TEST(DispatchInvocation, PerDeviceClaimsDifferAndBothComplete) {
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}, {"cuda:0", 1, 0, 500.0, true}};
     cfg.executors = regs;
-    cfg.enable_utilization = false;
+    cfg.enable_memory_budget = false;
     d.configure(cfg);
 
     // 每设备独立成本：CPU 推荐 64，GPU 推荐 1024
@@ -293,7 +292,7 @@ TEST(DispatchInvocation, UnsupportedOperationFailsHonestly) {
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
     cfg.executors = regs;
-    cfg.enable_utilization = false;
+    cfg.enable_memory_budget = false;
     d.configure(cfg);
 
     auto est = make_estimate(kHwCpuDeviceId, 64, 16);
@@ -323,19 +322,7 @@ TEST(DispatchInvocation, PeakBudgetShrinkChangesClaims) {
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
     cfg.executors = regs;
-    cfg.enable_utilization = true;
-    cfg.control_window_ms = 100;
-    cfg.cpu_sampler_override = [] {
-        utilization::CpuControlDecision dec;
-        dec.batch_size = 8;
-        dec.queue_depth = 1;
-        dec.should_yield = false;
-        dec.yield_stride = 1;
-        dec.target_ratio = 0.95;
-        dec.actual_ratio = 0.20;
-        dec.valid = true;
-        return dec;
-    };
+    cfg.enable_memory_budget = true;
     cfg.memory_sampler_override = [] {
         utilization::MemoryBudget m;
         m.total_ram = 100000000;
@@ -380,7 +367,7 @@ TEST(DispatchInvocation, CostEstimateChangesClaimSize) {
         DispatcherConfig cfg;
         cfg.devices = {{"cpu", 0, 0, 50.0, true}};
         cfg.executors = regs;
-        cfg.enable_utilization = false;
+        cfg.enable_memory_budget = false;
         d.configure(cfg);
         auto est = make_estimate(kHwCpuDeviceId, rec, 16);
         auto inv = make_axpy_invocation(x, y);
@@ -448,7 +435,7 @@ CostAwareResult dispatch_with(DispatcherConfig cfg,
     Dispatcher d;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}, {"cuda:0", 1, 0, 500.0, true}};
     cfg.executors = regs;
-    cfg.enable_utilization = false;
+    cfg.enable_memory_budget = false;
     d.configure(cfg);
     std::vector<float> x(n, 1.0f);
     std::vector<float> y(n, 0.0f);

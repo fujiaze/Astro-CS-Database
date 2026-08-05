@@ -43,12 +43,10 @@ extern "C" std::vector<CaseResult> run_e10();
 extern "C" std::vector<CaseResult> run_e11();
 extern "C" std::vector<CaseResult> run_e12();
 extern "C" std::vector<CaseResult> run_e13();
-extern "C" std::vector<CaseResult> run_e14();
 extern "C" std::vector<CaseResult> run_e15();
 extern "C" std::vector<CaseResult> run_e16();
 extern "C" std::vector<CaseResult> run_e17();
 extern "C" std::vector<CaseResult> run_e18();
-extern "C" std::vector<CaseResult> run_e19();
 extern "C" std::vector<CaseResult> run_e20();
 extern "C" std::vector<CaseResult> run_e21();
 
@@ -73,12 +71,10 @@ static const ExperimentMeta kExperiments[] = {
     {"E11", "GEMM Mature Library Adaptation",    run_e11},
     {"E12", "FFT Round-trip",                    run_e12},
     {"E13", "CPU+GPU Mixed Partition",           run_e13},
-    {"E14", "Resource Utilization Controller",   run_e14},
     {"E15", "Failure and Fallback",              run_e15},
     {"E16", "Concurrency/Cancellation/Lifetime", run_e16},
     {"E17", "Hardware Profile Model Fitting",    run_e17},
     {"E18", "Dynamic CPU+GPU Workpool",          run_e18},
-    {"E19", "Resource Utilization Control",      run_e19},
     {"E20", "Fault and Fallback",                run_e20},
     {"E21", "Persistence and Concurrency",       run_e21},
 };

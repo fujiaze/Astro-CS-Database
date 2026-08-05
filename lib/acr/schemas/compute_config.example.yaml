@@ -13,11 +13,8 @@ compute:
     hip: auto
     sycl: auto
 
-  utilization:
-    cpu_target: 0.95
-    gpu_target: 0.95
-    io_target: 0.95
-    control_window_ms: 250
+  # 26 号计划 §2：CPU/GPU/IO 精确利用率目标已撤销，不再配置
+  # （调度器 work-conserving，不承诺、不控制精确利用率）
 
   capacity:
     ram_limit: 0.95

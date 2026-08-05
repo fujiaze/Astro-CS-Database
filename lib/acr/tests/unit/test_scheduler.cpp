@@ -476,7 +476,7 @@ TEST(SchedulerDispatcherCostAware, CpuOnlyExecutesAll) {
     Dispatcher d;
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
-    cfg.enable_utilization = false;  // 禁用 utilization 以走简单路径
+    cfg.enable_memory_budget = false;  // 禁用 utilization 以走简单路径
     cfg.enable_fixed_tail_chunking = false;
     d.configure(cfg);
 
@@ -503,7 +503,7 @@ TEST(SchedulerDispatcherCostAware, FixedTailChunkingSplitsRange) {
     Dispatcher d;
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
-    cfg.enable_utilization = true;
+    cfg.enable_memory_budget = true;
     cfg.enable_fixed_tail_chunking = true;
     cfg.fixed_tail_threshold = 0.7;
     cfg.min_effective_chunk = 256;
@@ -534,7 +534,7 @@ TEST(SchedulerDispatcherCostAware, FixedTailChunkingDisabledNoSplit) {
     Dispatcher d;
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
-    cfg.enable_utilization = false;  // 不验证资源控制，隔离系统状态
+    cfg.enable_memory_budget = false;  // 不验证资源控制，隔离系统状态
     cfg.enable_fixed_tail_chunking = false;  // 禁用
     cfg.min_effective_chunk = 256;
     d.configure(cfg);
@@ -561,7 +561,7 @@ TEST(SchedulerDispatcherCostAware, MemoryActionPopulated) {
     Dispatcher d;
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
-    cfg.enable_utilization = true;
+    cfg.enable_memory_budget = true;
     cfg.enable_fixed_tail_chunking = true;
     d.configure(cfg);
 
@@ -587,7 +587,7 @@ TEST(SchedulerDispatcherCostAware, CurrentStateJsonPopulated) {
     Dispatcher d;
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
-    cfg.enable_utilization = false;
+    cfg.enable_memory_budget = false;
     cfg.enable_fixed_tail_chunking = false;
     d.configure(cfg);
 
@@ -619,7 +619,7 @@ TEST(SchedulerDispatcherCostAware, PredictedVsActualBackend) {
     Dispatcher d;
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
-    cfg.enable_utilization = false;
+    cfg.enable_memory_budget = false;
     cfg.enable_fixed_tail_chunking = false;
     d.configure(cfg);
 
@@ -653,7 +653,7 @@ TEST(SchedulerDispatcherCostAware, CoverageFromRealExecution) {
     Dispatcher d;
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
-    cfg.enable_utilization = false;
+    cfg.enable_memory_budget = false;
     cfg.enable_fixed_tail_chunking = false;
     d.configure(cfg);
 
@@ -682,7 +682,7 @@ TEST(SchedulerDispatcherCostAware, CoverageReflectsFailures) {
     Dispatcher d;
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
-    cfg.enable_utilization = false;
+    cfg.enable_memory_budget = false;
     cfg.enable_fixed_tail_chunking = false;
     d.configure(cfg);
 
@@ -716,7 +716,7 @@ TEST(SchedulerDispatcherCostAware, ActualBackendNoneWhenAllFail) {
     Dispatcher d;
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
-    cfg.enable_utilization = false;
+    cfg.enable_memory_budget = false;
     cfg.enable_fixed_tail_chunking = false;
     d.configure(cfg);
 
@@ -869,7 +869,7 @@ TEST(SchedulerDispatcherCostAware, SharedPoolExecutionCompletesAll) {
     Dispatcher d;
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
-    cfg.enable_utilization = false;
+    cfg.enable_memory_budget = false;
     cfg.enable_fixed_tail_chunking = false;
     d.configure(cfg);
 
@@ -899,7 +899,7 @@ TEST(SchedulerDispatcherCostAware, SharedPoolFailedBlocksNotDone) {
     Dispatcher d;
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
-    cfg.enable_utilization = false;
+    cfg.enable_memory_budget = false;
     cfg.enable_fixed_tail_chunking = false;
     d.configure(cfg);
 
@@ -1058,7 +1058,7 @@ TEST(SchedulerDispatcherCostAware, DynamicModeCompletesAll) {
     Dispatcher d;
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
-    cfg.enable_utilization = false;
+    cfg.enable_memory_budget = false;
     cfg.enable_fixed_tail_chunking = false;
     cfg.min_effective_chunk = 64;
     d.configure(cfg);
@@ -1091,7 +1091,7 @@ TEST(SchedulerDispatcherCostAware, DynamicModeRecordsChunkSizes) {
     Dispatcher d;
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
-    cfg.enable_utilization = false;
+    cfg.enable_memory_budget = false;
     cfg.enable_fixed_tail_chunking = false;
     cfg.min_effective_chunk = 32;
     d.configure(cfg);
@@ -1129,7 +1129,7 @@ TEST(SchedulerDispatcherCostAware, DynamicModeTailConvergence) {
     Dispatcher d;
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
-    cfg.enable_utilization = false;
+    cfg.enable_memory_budget = false;
     cfg.enable_fixed_tail_chunking = false;
     cfg.min_effective_chunk = 16;
     d.configure(cfg);
@@ -1163,7 +1163,7 @@ TEST(SchedulerDispatcherCostAware, DynamicModeNoOverlapNoOmission) {
     Dispatcher d;
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
-    cfg.enable_utilization = false;
+    cfg.enable_memory_budget = false;
     cfg.enable_fixed_tail_chunking = false;
     cfg.min_effective_chunk = 25;
     d.configure(cfg);
@@ -1187,25 +1187,22 @@ TEST(SchedulerDispatcherCostAware, DynamicModeNoOverlapNoOmission) {
 }
 
 // ============================================================================
-// F-fix 4: 资源闭环控制测试
-// 验收：50/80/95/100持续负载报告；不能用人工样本代替
+// 26 号计划 §2/§9：内存预算反压记录测试（CPU/GPU 利用率控制已移除）
 // ============================================================================
 
-TEST(SchedulerDispatcherCostAware, ResourceControlRecordsCpuSamples) {
-    // 验证资源控制记录 CPU 采样序列
-    // 注意：设为 100% 目标避免 CI 环境 submit_gate 误触发
+TEST(SchedulerDispatcherCostAware, ResourceControlRecordsMemBudget) {
+    // 验证资源控制记录内存预算采样序列与峰值估算
     astro::compute::runtime_init();
     Dispatcher d;
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
-    cfg.enable_utilization = true;   // 启用 utilization 采样
+    cfg.enable_memory_budget = true;
     cfg.enable_fixed_tail_chunking = false;
     cfg.min_effective_chunk = 32;
-    cfg.cpu_target_ratio = 1.0;       // 100% 目标，避免 submit_gate 误触发
     d.configure(cfg);
 
     astro::compute::TaskDescriptor task;
-    task.range = astro::compute::Range1D{0, 5000};  // 足够大的范围以触发多次采样
+    task.range = astro::compute::Range1D{0, 5000};
 
     auto est = make_cpu_only_estimate(256);
     std::vector<int> data(5000, 0);
@@ -1214,19 +1211,9 @@ TEST(SchedulerDispatcherCostAware, ResourceControlRecordsCpuSamples) {
         for (std::size_t i = b; i < e; ++i) (*d)[i] = 1;
     };
     auto r = d.dispatch_range_cost_aware(task, est, fn, &data);
-    // 不强制 all_done：系统内存使用可能导致 StopNewSubmit 触发（这是正确行为）
-    // CPU 采样序列应非空（启用了 utilization）
-    EXPECT_FALSE(r.resource_control.cpu_actual_samples.empty());
-    // 应记录目标比例
-    EXPECT_GT(r.resource_control.cpu_target, 0.0);
-    // 至少有一次有效采样（可能首次基线无效）
-    bool has_valid = false;
-    for (auto ratio : r.resource_control.cpu_actual_samples) {
-        EXPECT_GE(ratio, 0.0);
-        EXPECT_LE(ratio, 1.0);
-        if (ratio > 0.0) has_valid = true;
-    }
-    (void)has_valid;  // CI 环境可能采样为 0，不强制 has_valid
+    // 内存采样序列应非空（启用了 memory budget）
+    EXPECT_FALSE(r.resource_control.mem_actions.empty());
+    EXPECT_GT(r.resource_control.mem_limit_ram, 0u);
     astro::compute::runtime_shutdown();
 }
 
@@ -1237,10 +1224,9 @@ TEST(SchedulerDispatcherCostAware, ResourceControlRecordsMemActions) {
     Dispatcher d;
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
-    cfg.enable_utilization = true;   // 启用内存采样
+    cfg.enable_memory_budget = true;   // 启用内存采样
     cfg.enable_fixed_tail_chunking = false;
     cfg.min_effective_chunk = 32;
-    cfg.cpu_target_ratio = 1.0;       // 设为 100% 避免 CPU submit_gate 误触发
     d.configure(cfg);
 
     astro::compute::TaskDescriptor task;
@@ -1267,16 +1253,13 @@ TEST(SchedulerDispatcherCostAware, ResourceControlRecordsMemActions) {
 
 TEST(SchedulerDispatcherCostAware, ResourceControlSubmitGateNotTriggeredNormalLoad) {
     // 验证正常负载下 submit gate 不触发
-    // 设为 100% 目标，确保 actual_ratio (<=1.0) 永远不大于 target + 0.10
-    // 注意：仅验证 CPU submit_gate 不触发；内存 StopNewSubmit 可能因系统状态触发
     astro::compute::runtime_init();
     Dispatcher d;
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
-    cfg.enable_utilization = true;
+    cfg.enable_memory_budget = true;
     cfg.enable_fixed_tail_chunking = false;
     cfg.min_effective_chunk = 32;
-    cfg.cpu_target_ratio = 1.0;  // 100% 目标，CPU submit_gate 永不触发
     d.configure(cfg);
 
     astro::compute::TaskDescriptor task;
@@ -1289,11 +1272,9 @@ TEST(SchedulerDispatcherCostAware, ResourceControlSubmitGateNotTriggeredNormalLo
         for (std::size_t i = b; i < e; ++i) (*d)[i] = 1;
     };
     auto r = d.dispatch_range_cost_aware(task, est, fn, &data);
-    // 不强制 all_done：系统内存使用可能导致 StopNewSubmit 触发（这是正确行为）
-    // CPU submit_gate 不应触发（target=1.0，actual<=1.0 永不满足 >1.10）
-    // 注意：submit_gate_triggered 也包含内存 StopNewSubmit 的情况
-    // 这里仅验证资源控制记录存在
-    EXPECT_FALSE(r.resource_control.cpu_actual_samples.empty());
+    // 小任务 + 默认内存预算：全部完成且 gate 不触发
+    EXPECT_TRUE(r.run_result.all_done);
+    EXPECT_FALSE(r.resource_control.gate_aborted);
     astro::compute::runtime_shutdown();
 }
 
@@ -1303,7 +1284,7 @@ TEST(SchedulerDispatcherCostAware, FixedTailExperimentStillAvailable) {
     Dispatcher d;
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
-    cfg.enable_utilization = false;
+    cfg.enable_memory_budget = false;
     cfg.enable_fixed_tail_chunking = true;   // 启用 fixed_tail 实验
     cfg.fixed_tail_threshold = 0.7;
     cfg.min_effective_chunk = 32;
@@ -1379,7 +1360,7 @@ TEST(SchedulerDispatcherCostAware, RecoverableGateStatsInitialized) {
     Dispatcher d;
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
-    cfg.enable_utilization = false;
+    cfg.enable_memory_budget = false;
     cfg.enable_fixed_tail_chunking = false;
     d.configure(cfg);
 
@@ -1406,16 +1387,14 @@ TEST(SchedulerDispatcherCostAware, RecoverableGateStatsInitialized) {
 }
 
 TEST(SchedulerDispatcherCostAware, GateNotTriggeredAtFullTarget) {
-    // 验证 cpu_target=1.0 时 CPU submit_gate 永不触发
-    // actual_ratio <= 1.0 永远不满足 > target + 0.10 = 1.10
+    // 26 号计划 §2：无 CPU 利用率 gate；验证小任务在默认内存预算下完成
     astro::compute::runtime_init();
     Dispatcher d;
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
-    cfg.enable_utilization = true;
+    cfg.enable_memory_budget = true;
     cfg.enable_fixed_tail_chunking = false;
     cfg.min_effective_chunk = 32;
-    cfg.cpu_target_ratio = 1.0;  // 100% 目标
     d.configure(cfg);
 
     astro::compute::TaskDescriptor task;
@@ -1429,12 +1408,8 @@ TEST(SchedulerDispatcherCostAware, GateNotTriggeredAtFullTarget) {
     };
     auto r = d.dispatch_range_cost_aware(task, est, fn, &data);
 
-    // CPU gate 不应触发（target=1.0，actual<=1.0 不满足 >1.10）
-    // 注意：submit_gate_triggered 也可能因内存 StopNewSubmit 触发
-    // 所以只验证 gate_aborted 为 false（不应超时放弃）
+    // 内存预算默认开启；正常负载不应导致 gate 超时放弃
     EXPECT_FALSE(r.resource_control.gate_aborted);
-    // CPU 采样应存在
-    EXPECT_FALSE(r.resource_control.cpu_actual_samples.empty());
     astro::compute::runtime_shutdown();
 }
 
@@ -1444,7 +1419,7 @@ TEST(SchedulerDispatcherCostAware, DynamicChunkSizesRecordedWithMaxChunkAdjust) 
     Dispatcher d;
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}};
-    cfg.enable_utilization = false;  // 禁用 utilization 走简单路径
+    cfg.enable_memory_budget = false;  // 禁用 utilization 走简单路径
     cfg.enable_fixed_tail_chunking = false;
     cfg.min_effective_chunk = 64;
     d.configure(cfg);

@@ -1,4 +1,6 @@
 # lib/acr/tests/classic/CMakeLists.txt — Phase H 经典实验 E01-E21
+# 26 号计划 §2：E14 controller_math_unit.cpp 与 E19 e19_resource_control.cpp
+# （CPU/GPU 利用率控制测试）已删除；run_e14 接口保留为空占位。
 # 编译策略：
 #   1. acr_classic_experiments 静态库：所有 eXX_*.cpp（不含 main），暴露 run_eXX() 函数
 #   2. acr_test_classic 可执行文件：classic_main.cpp + 链接静态库，用于 ctest
@@ -12,7 +14,7 @@ endif()
 # Phase H：新增 E18-E21（工作池/资源控制/故障回退/持续并发可靠性）
 # Commit D（20_PHASE_I_AUDIT_ACTION_PLAN.md §6 重命名）：
 #   e13_mixed.cpp → cpu_partition_coverage.cpp（CPU-only build 下 enable_gpu=false）
-#   e14_utilization.cpp → controller_math_unit.cpp（仅验证数学函数，非真实利用率）
+#   e14_utilization 已删除（26 号计划 §2）
 #   注意：run_e13/run_e14 函数名保留（extern "C" 接口，classic_main.cpp 依赖序号调度）
 set(ACR_CLASSIC_SOURCES
     e01_memory.cpp
@@ -28,12 +30,10 @@ set(ACR_CLASSIC_SOURCES
     e11_gemm.cpp
     e12_fft.cpp
     cpu_partition_coverage.cpp
-    controller_math_unit.cpp
     e15_failure.cpp
     e16_concurrency.cpp
     e17_model_fit.cpp
     e18_workpool.cpp
-    e19_resource_control.cpp
     e20_fault_fallback.cpp
     e21_persistence_concurrency.cpp
 )

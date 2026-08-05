@@ -23,12 +23,10 @@ extern "C" std::vector<astro::compute::classic::CaseResult> run_e10();
 extern "C" std::vector<astro::compute::classic::CaseResult> run_e11();
 extern "C" std::vector<astro::compute::classic::CaseResult> run_e12();
 extern "C" std::vector<astro::compute::classic::CaseResult> run_e13();
-extern "C" std::vector<astro::compute::classic::CaseResult> run_e14();
 extern "C" std::vector<astro::compute::classic::CaseResult> run_e15();
 extern "C" std::vector<astro::compute::classic::CaseResult> run_e16();
 extern "C" std::vector<astro::compute::classic::CaseResult> run_e17();
 extern "C" std::vector<astro::compute::classic::CaseResult> run_e18();
-extern "C" std::vector<astro::compute::classic::CaseResult> run_e19();
 extern "C" std::vector<astro::compute::classic::CaseResult> run_e20();
 extern "C" std::vector<astro::compute::classic::CaseResult> run_e21();
 
@@ -51,12 +49,10 @@ int main(int argc, char** argv) {
     [[maybe_unused]] volatile auto p11 = &run_e11;
     [[maybe_unused]] volatile auto p12 = &run_e12;
     [[maybe_unused]] volatile auto p13 = &run_e13;
-    [[maybe_unused]] volatile auto p14 = &run_e14;
     [[maybe_unused]] volatile auto p15 = &run_e15;
     [[maybe_unused]] volatile auto p16 = &run_e16;
     [[maybe_unused]] volatile auto p17 = &run_e17;
     [[maybe_unused]] volatile auto p18 = &run_e18;
-    [[maybe_unused]] volatile auto p19 = &run_e19;
     [[maybe_unused]] volatile auto p20 = &run_e20;
     [[maybe_unused]] volatile auto p21 = &run_e21;
 

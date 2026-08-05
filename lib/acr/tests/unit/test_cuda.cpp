@@ -435,7 +435,7 @@ TEST(MixedCpuGpuExecution, RealGpuCompletesSomeBlocks) {
         {"cuda:0", 0, 0, 100.0, true},
     };
     cfg.executors = registry;
-    cfg.enable_utilization = false;
+    cfg.enable_memory_budget = false;
     cfg.enable_fixed_tail_chunking = false;
     cfg.min_effective_chunk = 64;
     d.configure(cfg);
@@ -522,7 +522,7 @@ TEST(MixedCpuGpuExecution, BlocksExecutedExactlyOnce) {
             {"cuda:0", 0, 0, 100.0, true},
         };
         cfg.executors = registry;
-        cfg.enable_utilization = false;
+        cfg.enable_memory_budget = false;
         cfg.enable_fixed_tail_chunking = false;
         cfg.min_effective_chunk = 32;
         d.configure(cfg);

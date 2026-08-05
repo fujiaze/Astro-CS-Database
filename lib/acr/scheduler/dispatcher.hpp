@@ -9,8 +9,8 @@
 //   5. Dispatcher 是 MixedRunner + QueueAwareEstimator + FallbackPolicy 的组合
 //   6. Phase F3 增强：新增 cost-aware 调度方法（接受 CostEstimate + CurrentState）
 //   7. 公共头不暴露第三方类型
-//   8. Commit F：接入 CpuController（95% 软目标）+ MemoryBudgetController（RAM/VRAM 预算）
-//      + guided 尾部收缩（completion > 70% 时 chunk_size 动态缩小）
+//   8. 26 号计划 §2：移除 CPU/GPU 精确利用率控制（用户已撤销）；
+//      只保留 MemoryBudgetController（RAM/VRAM 容量预算与反压），独立开关。
 #pragma once
 
 #include "current_state.hpp"
@@ -32,10 +32,8 @@ namespace astro::compute {
 struct TaskDescriptor;
 namespace cost { struct CostEstimate; }
 namespace utilization {
-class CpuController;
 class MemoryBudgetController;
 struct MemoryBudgetConfig;
-struct CpuControlDecision;
 struct MemoryBudget;
 }
 }
@@ -48,16 +46,11 @@ struct DispatcherConfig {
     FallbackStrategy fallback_strategy{FallbackStrategy::ToCpu};
     // 小数据阈值：bytes 总数小于此值时优先 CPU
     std::size_t small_data_threshold_bytes{1u << 20};  // 1 MB
-    // Commit F-fix 4：utilization 配置
-    double cpu_target_ratio{0.95};       // CPU 利用率软目标（95%）
-    bool enable_utilization{true};        // 是否启用 utilization 反压
     // F-fix 1：固定尾段实验（审计要求改名为 fixed_tail_chunking）
     // 注意：这不是动态 guided scheduling，仅是固定比例尾段缩块实验
     bool enable_fixed_tail_chunking{false};     // 默认关闭（审计要求）
     double fixed_tail_threshold{0.7};           // 固定阈值（仅实验用）
     std::size_t min_effective_chunk{256};       // 缩块下限
-    // 23 号计划 §5：CPU 控制时间窗（100-500ms；0=使用默认 200ms）
-    std::uint32_t control_window_ms{0};
     // 23 号计划 §4：invocation 路径 CPU executor 的 worker 数（0=auto min(8,hw)）
     std::size_t invocation_cpu_workers{0};
     // 24 号计划 §2：生产调度按 Eligible Device Set 筛选（feasible/最小有效规模/收益）。
@@ -67,6 +60,9 @@ struct DispatcherConfig {
     // 显式提供时由 configure 注入；未提供时使用默认配置（ram/vram 0.95）。
     utilization::MemoryBudgetConfig memory_budget{};
     bool memory_budget_explicit{false};
+    // 26 号计划 §2/§9：MemoryBudget 独立开关（与利用率控制彻底解耦）。
+    // 默认开启；关闭诊断采样不得关闭内存保护。
+    bool enable_memory_budget{true};
     // F-fix 6 + F-fix 7：设备执行器注册表（可选）
     // 如果提供且包含多个可用 executor，Dispatcher 会通过 execute_via_executors 执行：
     //   - 每个空闲 executor 按自身推荐块大小领取工作块
@@ -76,11 +72,9 @@ struct DispatcherConfig {
     // 禁止用户提供 CPU/GPU 比例：分配由 executor.available() + claim_next_dynamic 决定
     std::shared_ptr<ExecutorRegistry> executors;
 
-    // ===== 23 号计划 §5：采样注入缝隙（测试/诊断用）=====
-    // 生产路径为 null，使用真实控制器（CpuController::sample_and_decide /
-    // MemoryBudgetController::sample）。测试可注入确定性的采样序列，
-    // 驱动 gate close/recover 与内存动作，验证闭环行为。
-    std::function<utilization::CpuControlDecision()> cpu_sampler_override;
+    // ===== 26 号计划 §9：内存采样注入缝隙（测试/诊断用）=====
+    // 生产路径为 null，使用 MemoryBudgetController::sample()。测试可注入
+    // 确定性的内存采样序列，驱动内存 gate close/recover 与动作，验证闭环。
     std::function<utilization::MemoryBudget()> memory_sampler_override;
 };
 
@@ -93,23 +87,14 @@ struct CoverageStats {
     std::size_t failed{0};
 };
 
-// ===== F-fix 4: 资源闭环控制统计 =====
-// 记录执行过程中的 CPU 利用率采样序列、内存预算动作序列和控制动作统计。
-// 用于生成 50/80/95/100% 持续负载报告（验收：不能用人工样本代替）。
+// ===== 26 号计划 §2/§9：内存预算控制统计 =====
+// 记录执行过程中的内存预算采样序列、动作序列和控制动作统计。
+// CPU/GPU 利用率控制已移除：不再采样、不再记录、不影响 claim 与路由。
 struct ResourceControlStats {
-    // ---- CPU 利用率采样序列 ----
-    std::vector<double> cpu_actual_samples;       // 每次采样的 actual_ratio
-    std::vector<std::uint64_t> cpu_sample_ts_ns;  // 采样时间戳(ns)
-    double cpu_target{0.0};                       // 目标利用率
-    bool cpu_valid{false};                         // actual 是否有效
-
-    // ---- CPU 控制动作统计 ----
-    std::size_t yield_count{0};                    // 错峰让步次数
-    std::size_t batch_shrink_count{0};             // 批次缩小次数
+    // ---- 内存预算动作统计 ----
+    std::size_t batch_shrink_count{0};             // 缩块次数
     bool submit_gate_triggered{false};             // submit gate 是否触发
     std::vector<std::string> control_actions;      // 已执行控制动作序列（诊断/证据）
-    std::uint32_t workers_registered{0};           // 注册参与 worker 数
-    std::uint32_t workers_active{0};               // 结束时活跃 worker 数
 
     // ---- F-fix 9: 可恢复 submit gate 统计 ----
     std::size_t gate_close_count{0};               // gate 关闭次数（含重关闭）
@@ -149,9 +134,7 @@ struct CostAwareResult {
     std::string current_state_json;     // 最终 CurrentState 快照
     // F-fix 1：coverage 从真实执行导入
     CoverageStats coverage;
-    // F-fix 4：utilization + memory 报告（保留兼容字段）
-    double cpu_actual_ratio{0.0};       // 最后一次采样的 CPU 实际利用率
-    bool cpu_actual_valid{false};       // actual_ratio 是否有效
+    // 26 号计划 §2：内存预算建议动作（none/shrink/stop/fail 等）
     std::string mem_action;            // 内存预算建议动作（none/shrink/stop/fail）
     // F-fix 4：完整资源控制统计
     ResourceControlStats resource_control;

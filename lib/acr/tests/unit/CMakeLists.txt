@@ -182,13 +182,5 @@ target_include_directories(acr_test_cuda_bridge_chunk PRIVATE
 )
 gtest_discover_tests(acr_test_cuda_bridge_chunk DISCOVERY_MODE PRE_TEST)
 
-# 23 号计划 §6：持续负载资源闭环（50/80/95/100% 各 30s，真实采样）。
-# 2026-08-05 决策：利用率目标闭环不作为常规 ctest 门禁（Windows 无软限制系统
-# API；降预算后单线程任务会被拖死）。本测试改为证据阶段单独运行
-# （acr_test_resource_sustained.exe，超时 600s），不注册到常规 ctest。
-add_executable(acr_test_resource_sustained test_resource_sustained.cpp)
-target_link_libraries(acr_test_resource_sustained PRIVATE
-    acr_scheduler acr_cost acr_api GTest::gtest_main)
-target_include_directories(acr_test_resource_sustained PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../scheduler
-)
+# 26 号计划 §2：CPU/GPU 50/80/95/100% 持续负载利用率测试已删除
+# （用户撤销精确利用率控制；acr_test_resource_sustained.cpp 已移除）。

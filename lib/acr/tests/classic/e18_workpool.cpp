@@ -96,7 +96,7 @@ CaseResult run_mixed_axpy(std::size_t total, const std::string& case_id) {
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}, {"cuda:0", 1, 0, 500.0, true}};
     cfg.executors = make_registry();
-    cfg.enable_utilization = false;
+    cfg.enable_memory_budget = false;
     cfg.invocation_cpu_workers = 2;
     d.configure(cfg);
 
@@ -145,7 +145,7 @@ CaseResult run_mixed_reduce(std::size_t total, const std::string& case_id) {
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}, {"cuda:0", 1, 0, 500.0, true}};
     cfg.executors = make_registry();
-    cfg.enable_utilization = false;
+    cfg.enable_memory_budget = false;
     cfg.invocation_cpu_workers = 2;
     d.configure(cfg);
 
@@ -190,7 +190,7 @@ CaseResult run_workpool_coverage(std::size_t total, const std::string& case_id) 
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}, {"cuda:0", 1, 0, 500.0, true}};
     cfg.executors = make_registry();
-    cfg.enable_utilization = false;
+    cfg.enable_memory_budget = false;
     cfg.invocation_cpu_workers = 4;
     d.configure(cfg);
 

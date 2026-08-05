@@ -1,11 +1,7 @@
 // lib/acr/utilization/config_hot_read.hpp — 配置热读取边界
-// Phase G（08_RESOURCE_CONTROL_SPEC.md §6）：
-//   1. 区分可热更新 vs 静态配置
-//   2. 可热更新：utilization target、io_budget、memory_ratio、backend enable、fallback policy
-//   3. 静态：thread count、GPU device、ISA level
-//   4. 热读取线程安全（atomic + mutex）
-//   5. **不得提供 CPU/GPU share 参数**（spec §6 明确禁止）
-//   6. 公共头不暴露第三方类型
+// 26 号计划 §2：CPU/GPU/IO 利用率目标已移除（用户撤销精确利用率控制）。
+// 只保留内存容量（RAM/VRAM 比例、固定保留量）、backend 启用与回退策略。
+// **不得提供 CPU/GPU share 或利用率目标参数**。
 #pragma once
 
 #include <atomic>
@@ -35,22 +31,16 @@ enum class FallbackPolicy : std::uint8_t {
 // ===== 热读取配置项 =====
 struct HotConfig {
     // ---- HotMutable ----
-    // 资源利用率目标（不是任务比例！spec §1 明确：不表示 CPU/GPU 任务比例）
-    double cpu_target_ratio{0.95};
-    double gpu_target_ratio{0.95};
-    double io_target_ratio{0.95};   // I/O 软目标
     // 容量上限
     double ram_ratio{0.95};
     double vram_ratio{0.95};
-    std::uint64_t memory_fixed_reserve_bytes{512ULL * 1024 * 1024};
-    double io_budget_mbps{0.0};
+    // 26 号计划 §9：RAM/VRAM 独立固定保留量（RAM 2048MiB、VRAM 512MiB 默认）
+    std::uint64_t ram_fixed_reserve_bytes{2048ULL * 1024 * 1024};
+    std::uint64_t vram_fixed_reserve_bytes{512ULL * 1024 * 1024};
     // backend 启用（"cuda:0" → true/false）
     std::unordered_map<std::string, bool> backend_enabled;
     // 回退策略
     FallbackPolicy fallback_policy{FallbackPolicy::BestEffort};
-    // 控制窗口
-    std::uint32_t cpu_control_window_ms{200};
-    std::uint32_t gpu_max_queue_depth{8};
 
     // ---- ColdStatic（仅启动时设，运行时冻结）----
     std::uint32_t max_threads{0};     // 0 = 自动（hardware profile 决定）
@@ -82,15 +72,10 @@ public:
     HotConfig read() const;
 
     // ---- 单项热更新便捷接口 ----
-    void set_cpu_target(double ratio) noexcept;
-    void set_gpu_target(double ratio) noexcept;
-    void set_io_target(double ratio) noexcept;
     void set_ram_ratio(double ratio) noexcept;
     void set_vram_ratio(double ratio) noexcept;
-    void set_io_budget(double mbps) noexcept;
-    void set_memory_reserve(std::uint64_t bytes) noexcept;
-    void set_cpu_control_window_ms(std::uint32_t ms) noexcept;
-    void set_gpu_max_queue_depth(std::uint32_t depth) noexcept;
+    void set_ram_reserve(std::uint64_t bytes) noexcept;
+    void set_vram_reserve(std::uint64_t bytes) noexcept;
     void set_fallback_policy(FallbackPolicy policy) noexcept;
 
     // backend 启用/禁用（热更新）

@@ -110,7 +110,7 @@ TEST(CudaBridge, GpuOnlyAxpyMatchesCpu) {
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}, {"cuda:0", 1, 0, 500.0, true}};
     cfg.executors = make_gpu_only_registry();
-    cfg.enable_utilization = false;
+    cfg.enable_memory_budget = false;
     d.configure(cfg);
 
     KernelInvocation inv;
@@ -151,7 +151,7 @@ TEST(CudaBridge, RealMixedCpuAndGpu) {
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}, {"cuda:0", 1, 0, 500.0, true}};
     cfg.executors = make_cpu_plus_gpu_registry();
-    cfg.enable_utilization = false;
+    cfg.enable_memory_budget = false;
     cfg.invocation_cpu_workers = 2;
     d.configure(cfg);
 
@@ -212,7 +212,7 @@ TEST(CudaBridge, CopyReduceConvMatchCpu) {
         DispatcherConfig cfg;
         cfg.devices = {{"cpu", 0, 0, 50.0, true}, {"cuda:0", 1, 0, 500.0, true}};
         cfg.executors = make_gpu_only_registry();
-        cfg.enable_utilization = false;
+        cfg.enable_memory_budget = false;
         d.configure(cfg);
         KernelInvocation inv;
         inv.id = "kernel.copy";
@@ -234,7 +234,7 @@ TEST(CudaBridge, CopyReduceConvMatchCpu) {
         DispatcherConfig cfg;
         cfg.devices = {{"cpu", 0, 0, 50.0, true}, {"cuda:0", 1, 0, 500.0, true}};
         cfg.executors = make_gpu_only_registry();
-        cfg.enable_utilization = false;
+        cfg.enable_memory_budget = false;
         d.configure(cfg);
         KernelInvocation inv;
         inv.id = "kernel.reduce";
@@ -266,7 +266,7 @@ TEST(CudaBridge, CopyReduceConvMatchCpu) {
         DispatcherConfig cfg;
         cfg.devices = {{"cpu", 0, 0, 50.0, true}, {"cuda:0", 1, 0, 500.0, true}};
         cfg.executors = make_gpu_only_registry();
-        cfg.enable_utilization = false;
+        cfg.enable_memory_budget = false;
         d.configure(cfg);
         KernelInvocation inv;
         inv.id = "kernel.conv3x3";

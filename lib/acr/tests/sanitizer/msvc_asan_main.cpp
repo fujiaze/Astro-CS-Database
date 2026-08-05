@@ -3,9 +3,9 @@
 // 背景：本机 MinGW（g++/clang）均无 ASan/UBSan 运行库（libasan/libubsan/
 // clang_rt.asan 缺失），完整 ACR（oneTBB 等 MinGW ABI 依赖）无法 ASan 构建。
 // 但 ACR 的不依赖 oneTBB/MinGW 库的组件——共享工作池（shared_work_pool.cpp）、
-// KernelRegistry（kernel_registry.cpp）、CpuExecutor（device_executor.cpp）、
-// CPU 控制器（utilization/cpu_controller.cpp + system_metrics.cpp）——可用
-// MSVC 14.50 + /fsanitize=address 编译真实源码做 ASan 验证。
+// KernelRegistry（kernel_registry.cpp）、CpuExecutor（device_executor.cpp）——
+// 可用 MSVC 14.50 + /fsanitize=address 编译真实源码做 ASan 验证。
+// 26 号计划 §2：CPU 利用率控制器已删除，不再纳入 ASan 覆盖。
 //
 // 用法：
 //   acr_sanitizer_msvc.exe            # 运行工作池/注册表压力 + 并发测试
@@ -18,7 +18,6 @@
 //     <acr>/scheduler/shared_work_pool.cpp \
 //     <acr>/api/kernel_registry.cpp \
 //     <acr>/scheduler/device_executor.cpp \
-//     <acr>/utilization/cpu_controller.cpp \
 //     <acr>/utilization/system_metrics.cpp \
 //     <acr>/tests/sanitizer/msvc_asan_main.cpp \
 //     /link /out:acr_sanitizer_msvc.exe
@@ -31,7 +30,6 @@
 #include "scheduler/shared_work_pool.hpp"
 #include "scheduler/device_executor.hpp"
 #include "astro/compute/kernel_registry.hpp"
-#include "utilization/cpu_controller.hpp"
 
 using astro::compute::KernelInvocation;
 using astro::compute::kHwCpuDeviceId;
@@ -199,33 +197,6 @@ int run_cpu_executor_and_contract() {
     return 0;
 }
 
-// ===== CPU 控制器：decide 循环 + worker 注册/注销（24 号计划 §4 基础）=====
-int run_cpu_controller() {
-    astro::compute::utilization::CpuController ctrl;
-    ctrl.set_target(0.5);
-    auto w1 = ctrl.register_worker();
-    auto w2 = ctrl.register_worker();
-    double budget = 1.0;
-    for (int i = 0; i < 2000; ++i) {
-        const double actual = (i % 3 == 0) ? 0.9 : 0.1;  // 高低交替
-        auto d = ctrl.decide_with_actual(actual);
-        if (i == 0) budget = d.active_budget;
-        if (d.active_budget < 0.25 || d.active_budget > 1.0) {
-            std::fprintf(stderr, "budget out of range: %f\n", d.active_budget);
-            return 1;
-        }
-    }
-    auto part = ctrl.worker_participation();
-    if (part.registered_count != 2u) {
-        std::fprintf(stderr, "worker registration mismatch: %u\n", part.registered_count);
-        return 1;
-    }
-    ctrl.unregister_worker(w1);
-    ctrl.unregister_worker(w2);
-    std::printf("cpu_controller: OK (2000 decisions + worker lifecycle, no ASan errors)\n");
-    return 0;
-}
-
 // ===== 故意 UAF：ASan 应检测并终止进程 =====
 int trigger_uaf() {
     int* p = new int(42);
@@ -245,12 +216,11 @@ int main(int argc, char** argv) {
     const int r1 = run_work_pool_stress();
     const int r2 = run_registry_concurrent();
     const int r3 = run_cpu_executor_and_contract();
-    const int r4 = run_cpu_controller();
-    if (r1 != 0 || r2 != 0 || r3 != 0 || r4 != 0) {
+    if (r1 != 0 || r2 != 0 || r3 != 0) {
         std::fprintf(stderr, "ACR MSVC ASan stress FAILED\n");
         return 1;
     }
     std::printf("ACR MSVC ASan stress PASSED "
-                "(work pool + registry + cpu executor/contract + controller)\n");
+                "(work pool + registry + cpu executor/contract)\n");
     return 0;
 }
