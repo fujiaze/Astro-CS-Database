@@ -114,16 +114,16 @@ TEST(ResourceControl, TimeWindowSamplesAndWorkersRegistered) {
 }
 
 // ============================================================================
-// 2. gate 迟滞：close → wait → re-sample → reopen，不丢工作
+// 2. CPU 并发许可升降（24 号计划 §4）：过载降预算、恢复升预算，不丢工作
 // ============================================================================
-TEST(ResourceControl, GateCloseWaitRecoverNoWorkLoss) {
+TEST(ResourceControl, CpuBudgetAdjustsAndNoWorkLoss) {
     DispatcherConfig cfg;
     cfg.enable_utilization = true;
     cfg.control_window_ms = 100;
     auto cpu_calls = std::make_shared<std::atomic<int>>(0);
     cfg.cpu_sampler_override = [cpu_calls] {
-        // 前 2 次采样高负载（> target+0.10=0.60）→ 关闭 gate；
-        // 之后低负载（< target-0.05=0.45）→ 迟滞恢复
+        // 前 2 次采样高负载（> target+0.05）→ 降低活跃预算；
+        // 之后低负载（< target-0.05）→ 恢复预算
         const bool high =
             cpu_calls->fetch_add(1, std::memory_order_relaxed) < 2;
         return make_cpu_decision(high ? 0.95 : 0.20, 0.50);
@@ -135,16 +135,8 @@ TEST(ResourceControl, GateCloseWaitRecoverNoWorkLoss) {
     auto r = run_dispatch(cfg, 100000, 1024);
     EXPECT_TRUE(r.run_result.all_done);          // 不漏项
     EXPECT_EQ(r.coverage.done, r.coverage.total);
-    EXPECT_GT(r.resource_control.gate_close_count, 0u);
-    EXPECT_GT(r.resource_control.gate_recover_count, 0u);
+    EXPECT_GT(r.resource_control.cpu_actual_samples.size(), 0u);
     EXPECT_FALSE(r.resource_control.gate_aborted);
-    bool has_close = false, has_recover = false;
-    for (const auto& a : r.resource_control.control_actions) {
-        if (a == "gate_close") has_close = true;
-        if (a == "gate_recover") has_recover = true;
-    }
-    EXPECT_TRUE(has_close);
-    EXPECT_TRUE(has_recover);
 }
 
 // ============================================================================

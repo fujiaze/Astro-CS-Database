@@ -6,6 +6,51 @@
 
 ## 进度
 
+### 2026-08-05 24 号计划执行（控制包 SHA 755278bf...5f98）
+
+**执行入口**：`24_SECOND_FIX_IMPLEMENTATION_CORRECTION_PLAN.md`（审计对象
+`AstroCS_Review_SecondFixReview_20260805(1).zip`，HEAD 2bda708）。
+
+**重要决策（2026-08-05，用户明确指示）**：
+- **利用率目标闭环（50/80/95/100 稳态误差 ≤0.05）不作为本轮验收门禁**。
+  原因：Windows 没有可直接调用的系统 API 软限制进程 CPU 占用率（Job Object
+  `JOBOBJECT_CPU_RATE_CONTROL_INFORMATION` 只有硬配额且作用于整个 Job，不是
+  软目标闭环）。保留已实现的"真实采样（GetSystemTimes）+ 可调并发许可
+  （active_budget 可升可降）+ GPU 决策进执行循环 + 真实队列状态"作为基础能力，
+  sustained 测试降级为报告型（每档 ≥30s、采样/参与/动作如实输出），
+  不承诺目标达标，也不作为合并门禁。
+- 优先把底层跑通：Benchmark→Profile 统一管线、Eligible Device Set、actual
+  统计、NumericPolicy/Invocation 契约、WorkToken attempt 原子化、Sanitizer、
+  Evidence。
+
+**已完成（24 号计划）**：
+1. **WorkToken attempt 原子化**（f0eda29）：status+attempt 合并单原子 state，
+   完成/失败单次 CAS 验证，消除 ABA 窗口；Dispatcher 检查 mark_done/mark_failed
+   返回值，ledger 拒绝不累计完成量；确定性 ABA 交错测试。
+2. **NumericPolicy/Invocation 契约**（be7c68b）：validate_invocation 统一校验
+   buffer/scalar/domain/backend launcher/NumericPolicy；ScalarArgBlob 改 memcpy
+   对齐读取（read_scalar）；Reduction 实现真实 FP64 累加（CPU double、CUDA
+   partials double + atomicAdd），声明与实现一致；桥接 REDUCE ABI 改 double。
+3. **Eligible Device Set**（4ff8866）：生产调度按 feasible/最小有效规模/收益/
+   profile 有效性筛选，无 profile GPU 不参与，首轮公平门只在入选设备间；
+   force_all_supported_executors 为测试专用开关。
+4. **actual 统计修复**（0f1d394）：每设备 items/bytes_read/bytes_written/
+   blocks/active_duration/error_count 来自 completion；actual_primary 按
+   items_done 最大（tie-break bytes/时长），禁止 actual_devices.front()；
+   CPU 块多/GPU 块大反例测试。
+5. **资源控制基础改造**（未提交，随 24 号计划）：
+   - 采样修正：GetSystemTimes 极短窗口 delta_total==0 返回无效样本，
+     仅记录 valid 采样；
+   - active_budget 可升可降并发许可（阈值 0-1，±0.05 误差带），取代
+     "actual > target+0.10 关闭全局 gate"（95%/100% 永不触发缺陷）；
+   - GPU 采样/queue/throttle/batch 进入 invocation 正式循环；
+   - CudaBridgeExecutor 真实 queue_state（pending 计数）；
+   - 所有 CPU 逻辑线程可参与（移除 min(8,hw) 静态上限）。
+
+**已知限制（如实）**：
+- CPU/GPU 利用率目标闭环未达标且不再作为本轮门禁（见决策）；
+- UBSan/TSan 本机不可用（MinGW/clang 无运行库）。
+
 ### 2026-08-04 第二版 Fix Review 纠正（23 号计划，控制包 SHA eb0a0535...0853）
 
 **执行入口**：`23_SECOND_FIX_REVIEW_CORRECTION_PLAN.md`（审计对象

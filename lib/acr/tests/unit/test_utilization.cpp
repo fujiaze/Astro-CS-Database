@@ -235,6 +235,21 @@ TEST(UtilCpu, YieldStrategySetsShouldYield) {
     EXPECT_FALSE(d.should_yield);
 }
 
+// 24 号计划 §4：active_budget 可升可降（并发许可，阈值 0-1）
+TEST(UtilCpu, ActiveBudgetRisesAndFalls) {
+    CpuController c;
+    c.set_target(0.50);
+    auto d1 = c.decide_with_actual(0.95);  // 高负载 → 降预算
+    EXPECT_LT(d1.active_budget, 1.0);
+    auto d2 = c.decide_with_actual(0.95);  // 持续高 → 继续降
+    EXPECT_LT(d2.active_budget, d1.active_budget);
+    auto d3 = c.decide_with_actual(0.10);  // 低负载 → 升预算
+    EXPECT_GT(d3.active_budget, d2.active_budget);
+    // 预算始终在 [0.25, 1.0]（下限保留至少 25% 并发）
+    EXPECT_GE(d3.active_budget, 0.25);
+    EXPECT_LE(d3.active_budget, 1.0);
+}
+
 // 控制器反馈闭环：读取实际值 → 调节提交节奏
 TEST(UtilCpu, FeedbackLoopAdjustsPace) {
     CpuController c;

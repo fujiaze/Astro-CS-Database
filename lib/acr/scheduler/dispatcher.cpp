@@ -329,6 +329,9 @@ struct Dispatcher::Impl {
         std::atomic<bool> cached_should_yield{false};
         std::atomic<std::uint32_t> cached_yield_stride{0};
         std::atomic<std::uint32_t> cached_batch_size{1};
+        // 24 号计划 §4：CPU 活跃预算（并发许可）与占用计数
+        std::atomic<double> cached_active_budget{1.0};
+        std::atomic<std::size_t> active_workers{0};
 
         // 缓存的内存动作
         std::atomic<int> cached_mem_action{
@@ -408,8 +411,11 @@ struct Dispatcher::Impl {
                         cached_batch_size.store(dec.batch_size, std::memory_order_relaxed);
                         {
                             std::lock_guard<std::mutex> lk(stats_mtx);
-                            stats_out.cpu_actual_samples.push_back(dec.actual_ratio);
-                            stats_out.cpu_sample_ts_ns.push_back(dec.timestamp_ns);
+                            // 仅记录有效采样（首次基线/短窗口无效样本不进入统计）
+                            if (dec.valid) {
+                                stats_out.cpu_actual_samples.push_back(dec.actual_ratio);
+                                stats_out.cpu_sample_ts_ns.push_back(dec.timestamp_ns);
+                            }
                             stats_out.cpu_valid = dec.valid;
                             if (cpu_ctrl) {
                                 auto part = cpu_ctrl->worker_participation();
@@ -429,14 +435,10 @@ struct Dispatcher::Impl {
                             stats_out.gate_recover_count++;
                             record_action("gate_recover");
                         }
-                        // CPU 严重超目标 → 关闭 gate（可恢复）
-                        if (dec.valid && dec.actual_ratio > dec.target_ratio + 0.10) {
-                            if (gate.close()) {
-                                stats_out.submit_gate_triggered = true;
-                                stats_out.gate_close_count++;
-                                record_action("gate_close");
-                            }
-                        }
+                        // 24 号计划 §4：CPU 利用率不再用全局 gate（95%/100% 永不触发），
+                        // 改用 active_budget 并发许可（可升可降）
+                        cached_active_budget.store(dec.active_budget,
+                                                   std::memory_order_relaxed);
                         // batch_size → current_max_chunk（claim size 实际生效）
                         std::uint32_t bs = dec.batch_size;
                         if (bs > 0) {
@@ -545,6 +547,27 @@ struct Dispatcher::Impl {
                         }
                     }
 
+                    // 24 号计划 §4：CPU 并发许可（活跃预算，可升可降）。
+                    // 占用计数超过预算 → 让步后重试（不丢工作）；预算由控制器
+                    // 基于误差带实时调整，取代全局 gate 振荡。
+                    bool has_active_slot = false;
+                    if (cfg.enable_utilization && registered) {
+                        const double budget =
+                            cached_active_budget.load(std::memory_order_relaxed);
+                        const std::size_t allowed = std::max<std::size_t>(
+                            1, static_cast<std::size_t>(
+                                   budget * static_cast<double>(worker_slots)));
+                        const std::size_t occ =
+                            active_workers.fetch_add(1, std::memory_order_relaxed) + 1;
+                        if (occ > allowed) {
+                            active_workers.fetch_sub(1, std::memory_order_relaxed);
+                            std::this_thread::yield();
+                            yield_count.fetch_add(1, std::memory_order_relaxed);
+                            continue;
+                        }
+                        has_active_slot = true;
+                    }
+
                     if (registered && cpu_ctrl) {
                         cpu_ctrl->mark_worker_active(worker_id);
                     }
@@ -553,6 +576,9 @@ struct Dispatcher::Impl {
                         kHwCpuDeviceId,
                         current_max_chunk.load(std::memory_order_relaxed));
                     if (!token.valid()) {
+                        if (has_active_slot) {
+                            active_workers.fetch_sub(1, std::memory_order_relaxed);
+                        }
                         if (registered && cpu_ctrl) {
                             cpu_ctrl->mark_worker_idle(worker_id);
                         }
@@ -579,6 +605,9 @@ struct Dispatcher::Impl {
                             failed.fetch_add(1, std::memory_order_relaxed);
                         }
                         if (!retryable) break;  // 终态失败：不再重试该块
+                    }
+                    if (has_active_slot) {
+                        active_workers.fetch_sub(1, std::memory_order_relaxed);
                     }
                 }
             });
@@ -785,7 +814,7 @@ struct Dispatcher::Impl {
                 workers_per_exec[i] =
                     cfg.invocation_cpu_workers > 0
                         ? cfg.invocation_cpu_workers
-                        : std::min<std::size_t>(8, std::thread::hardware_concurrency());
+                        : std::thread::hardware_concurrency();  // 全线程可参与
             } else {
                 workers_per_exec[i] = 1;
             }
@@ -800,6 +829,9 @@ struct Dispatcher::Impl {
         std::atomic<std::size_t> current_max_chunk{max_chunk};
         std::atomic<int> cached_mem_action{
             static_cast<int>(utilization::MemoryBudgetController::ExceedAction::None)};
+        // 24 号计划 §4：CPU 活跃预算（并发许可）与占用计数
+        std::atomic<double> cached_active_budget{1.0};
+        std::atomic<std::size_t> active_workers{0};
         std::mutex stats_mtx;
         std::atomic<std::size_t> yield_count{0};
         std::atomic<std::size_t> batch_shrink_count{0};
@@ -846,9 +878,32 @@ struct Dispatcher::Impl {
                         std::chrono::steady_clock::now() - cpu_window;
                     auto last_mem_sample =
                         std::chrono::steady_clock::now() - mem_window;
+                    const auto gpu_window = std::chrono::milliseconds(200);
+                    auto last_gpu_sample =
+                        std::chrono::steady_clock::now() - gpu_window;
+                    std::atomic<bool> cached_gpu_throttle{false};
+                    std::atomic<std::uint32_t> cached_gpu_batch{1};
 
                     while (true) {
                         const auto now = std::chrono::steady_clock::now();
+
+                        // ---- GPU 采样（24 号计划 §4.3：进入正式执行循环）----
+                        if (cfg.enable_utilization && gpu_ctrl &&
+                            exec->backend_type().rfind("cuda", 0) == 0 &&
+                            (now - last_gpu_sample) >= gpu_window) {
+                            last_gpu_sample = now;
+                            auto gdec = gpu_ctrl->sample_and_decide(exec->device_id());
+                            cached_gpu_throttle.store(gdec.throttle,
+                                                      std::memory_order_relaxed);
+                            cached_gpu_batch.store(
+                                gdec.batch_size > 0 ? gdec.batch_size : 1u,
+                                std::memory_order_relaxed);
+                            if (gdec.queue_depth > 0) {
+                                gpu_ctrl->report_queue_depth(
+                                    exec->device_id(), gdec.queue_depth);
+                            }
+                            record_action("gpu_sample");
+                        }
 
                         // ---- CPU 时间窗采样 + gate 迟滞 ----
                         if (cfg.enable_utilization &&
@@ -857,8 +912,10 @@ struct Dispatcher::Impl {
                             auto dec = sample_cpu();
                             {
                                 std::lock_guard<std::mutex> lk(stats_mtx);
-                                stats_out.cpu_actual_samples.push_back(dec.actual_ratio);
-                                stats_out.cpu_sample_ts_ns.push_back(dec.timestamp_ns);
+                                if (dec.valid) {
+                                    stats_out.cpu_actual_samples.push_back(dec.actual_ratio);
+                                    stats_out.cpu_sample_ts_ns.push_back(dec.timestamp_ns);
+                                }
                                 stats_out.cpu_valid = dec.valid;
                             }
                             auto mem_act_cached = static_cast<
@@ -871,14 +928,9 @@ struct Dispatcher::Impl {
                                 stats_out.gate_recover_count++;
                                 record_action("gate_recover");
                             }
-                            if (dec.valid &&
-                                dec.actual_ratio > dec.target_ratio + 0.10) {
-                                if (gate.close()) {
-                                    stats_out.submit_gate_triggered = true;
-                                    stats_out.gate_close_count++;
-                                    record_action("gate_close");
-                                }
-                            }
+                            // 24 号计划 §4：CPU 不再用全局 gate，改用 active_budget
+                            cached_active_budget.store(dec.active_budget,
+                                                       std::memory_order_relaxed);
                         }
 
                         // ---- 内存时间窗采样 + MemoryBudget 动作 ----
@@ -959,6 +1011,26 @@ struct Dispatcher::Impl {
                             continue;
                         }
 
+                        // 24 号计划 §4：CPU 并发许可（仅 CPU executor；GPU 不占用）
+                        bool has_active_slot = false;
+                        if (cfg.enable_utilization && registered &&
+                            exec->backend_type() == "cpu") {
+                            const double budget =
+                                cached_active_budget.load(std::memory_order_relaxed);
+                            const std::size_t allowed = std::max<std::size_t>(
+                                1, static_cast<std::size_t>(
+                                       budget * static_cast<double>(total_workers)));
+                            const std::size_t occ =
+                                active_workers.fetch_add(1, std::memory_order_relaxed) + 1;
+                            if (occ > allowed) {
+                                active_workers.fetch_sub(1, std::memory_order_relaxed);
+                                std::this_thread::yield();
+                                yield_count.fetch_add(1, std::memory_order_relaxed);
+                                continue;
+                            }
+                            has_active_slot = true;
+                        }
+
                         if (registered && cpu_ctrl) {
                             cpu_ctrl->mark_worker_active(worker_id);
                         }
@@ -966,6 +1038,9 @@ struct Dispatcher::Impl {
                             find_device_cost(estimate, exec->id());
                         const std::size_t remaining = pool.remaining_work();
                         if (remaining == 0 && pool.retry_pending_count() == 0) {
+                            if (has_active_slot) {
+                                active_workers.fetch_sub(1, std::memory_order_relaxed);
+                            }
                             if (registered && cpu_ctrl) {
                                 cpu_ctrl->mark_worker_idle(worker_id);
                             }
@@ -980,8 +1055,24 @@ struct Dispatcher::Impl {
                         const std::size_t max_c =
                             current_max_chunk.load(std::memory_order_relaxed);
                         if (requested > max_c) requested = max_c;
+                        // 24 号计划 §4.3：GPU throttle 与 batch 决策进入正式执行
+                        if (exec->backend_type().rfind("cuda", 0) == 0) {
+                            if (cached_gpu_throttle.load(std::memory_order_relaxed)) {
+                                std::this_thread::sleep_for(std::chrono::milliseconds(2));
+                                continue;
+                            }
+                            const std::uint32_t batch =
+                                cached_gpu_batch.load(std::memory_order_relaxed);
+                            if (batch > 1) {
+                                requested /= batch;  // 批次控制 chunk 大小
+                                if (requested == 0) requested = 1;
+                            }
+                        }
                         auto token = pool.claim_next_dynamic(exec->id(), requested);
                         if (!token.valid()) {
+                            if (has_active_slot) {
+                                active_workers.fetch_sub(1, std::memory_order_relaxed);
+                            }
                             if (registered && cpu_ctrl) {
                                 cpu_ctrl->mark_worker_idle(worker_id);
                             }
@@ -1045,6 +1136,9 @@ struct Dispatcher::Impl {
                             if (pool.mark_failed(token, retryable)) {
                                 exec_failed[i].fetch_add(1, std::memory_order_relaxed);
                             }
+                        }
+                        if (has_active_slot) {
+                            active_workers.fetch_sub(1, std::memory_order_relaxed);
                         }
                     }
                     if (registered && cpu_ctrl) {

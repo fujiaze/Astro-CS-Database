@@ -134,7 +134,14 @@ public:
     bool supports(OperationId op) const override {
         return global_kernel_registry().supports(op, "cuda");
     }
-    QueueState queue_state() const override { return QueueState{0, 0.0, false}; }
+    QueueState queue_state() const override {
+        // 24 号计划 §4.3：真实队列状态（提交中/排队）
+        QueueState qs;
+        qs.depth = pending_count_.load(std::memory_order_relaxed);
+        qs.load = (qs.depth > 0) ? 1.0 : 0.0;
+        qs.busy = (qs.depth > 0);
+        return qs;
+    }
     std::size_t recommended_chunk() const override { return 65536; }
     std::size_t min_effective_chunk() const override { return 256; }
     std::string name() const override { return name_; }
@@ -164,6 +171,7 @@ public:
             h.error = "cuda executor not available";
             return h;
         }
+        pending_count_.fetch_add(1, std::memory_order_relaxed);
         cuda::bridge::set_tls_handle(handle_);
         try {
             (*reg->cuda)(invocation, nullptr);
@@ -180,6 +188,7 @@ public:
             h.status = SubmitStatus::Failed;
             h.error = "cuda kernel unknown failure";
         }
+        pending_count_.fetch_sub(1, std::memory_order_relaxed);
         return h;
     }
 
@@ -191,6 +200,7 @@ private:
     void* handle_{nullptr};
     int device_{0};
     std::string name_;
+    std::atomic<std::size_t> pending_count_{0};
 };
 
 } // anonymous namespace

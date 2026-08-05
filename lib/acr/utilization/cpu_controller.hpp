@@ -48,6 +48,11 @@ struct CpuControlDecision {
     double actual_ratio{0.0};          // 当前实际比例（GetSystemTimes 实读）
     bool actual_estimated{false};      // 实际值是否为估算（CPU 永远 false）
     double error_ratio{0.0};           // 控制误差 = actual - target
+    // 24 号计划 §4：活跃 worker 预算（0..1），控制器可升可降：
+    //   过载（actual > target+0.05）→ 降预算；欠载（actual < target-0.05）→ 升预算。
+    // Dispatcher 用该预算限制同时活跃的 worker 数量（并发许可），
+    // 取代全局全开/全关 gate 造成的利用率振荡。
+    double active_budget{1.0};
     bool valid{false};                 // actual 是否有效（首次采样无基线时 false）
     std::uint64_t timestamp_ns{0};
 };

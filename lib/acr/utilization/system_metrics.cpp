@@ -284,7 +284,9 @@ CpuUtilizationSample SystemMetrics::read_cpu_utilization() {
     }
     std::uint64_t delta_total = delta_kernel + delta_user;
     if (delta_total == 0) {
-        out.valid = true;
+        // 极短窗口内系统计数器未变化（tick 粒度）：不是合法 0% 样本，
+        // 标记无效，调用方不得记录为实际利用率。
+        out.valid = false;
         out.ratio = 0.0;
         return out;
     }

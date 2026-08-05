@@ -55,6 +55,8 @@ struct CpuController::Impl {
     mutable std::atomic<double> last_error{0.0};
     mutable std::atomic<bool> last_valid{false};
     mutable std::atomic<std::uint64_t> last_ts{0};
+    // 24 号计划 §4：活跃 worker 预算状态（可升可降）
+    mutable std::atomic<double> last_active_budget{1.0};
 
     // 控制策略核心：根据 actual vs target 做决策
     CpuControlDecision decide_impl(double actual_ratio, bool estimated, bool valid) {
@@ -77,6 +79,7 @@ struct CpuController::Impl {
             d.priority = -1;
             d.should_yield = true;
             d.yield_stride = 1;
+            d.active_budget = last_active_budget.load(std::memory_order_relaxed);
             return d;
         }
 
@@ -85,6 +88,7 @@ struct CpuController::Impl {
             d.batch_size = 1;
             d.queue_depth = 1;
             d.should_yield = false;
+            d.active_budget = last_active_budget.load(std::memory_order_relaxed);
             return d;
         }
 
@@ -95,6 +99,18 @@ struct CpuController::Impl {
         const double tolerance = 0.05;
         bool too_high = actual_ratio > d.target_ratio + tolerance;
         bool too_low = actual_ratio < d.target_ratio - tolerance;
+
+        // 24 号计划 §4：活跃预算按误差带升降（下限 0.25：至少保留 25% 并发，
+        // 避免降到单线程导致任务被拖死；上限 1.0）。
+        // 取代“actual > target+0.10 关闭全局 gate”（95%/100% 永不触发的问题）。
+        double budget = last_active_budget.load(std::memory_order_relaxed);
+        if (too_high) {
+            budget = std::max(0.25, budget - 0.15);
+        } else if (too_low) {
+            budget = std::min(1.0, budget + 0.15);
+        }
+        last_active_budget.store(budget, std::memory_order_relaxed);
+        d.active_budget = budget;
 
         // 错峰让步步幅：基于活跃 worker 数（>=1），让 worker 轮流让步
         std::uint32_t active_workers = 0;
