@@ -543,20 +543,16 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
     // 4. 记录开始时间
     auto tStart = std::chrono::high_resolution_clock::now();
 
-    // 5. OpenMP 并行 Drizzle
-    // schedule(guided): 动态分配迭代块, 初始大块减少调度开销, 后期小块保证负载均衡
-    // 比 schedule(dynamic, 64) 更适合 drizzle 这种处理时间不均匀的场景
-    const int NUM_THREADS = 16;
-    omp_set_num_threads(NUM_THREADS);
-    std::vector<std::unordered_map<uint64_t, PixelAccumulator>> threadAccums(NUM_THREADS);
-    // 预分配哈希表桶, 减少 rehash 开销 (假设每帧约 60M HEALPix 像素, 每线程约 4M)
-    for (auto& acc : threadAccums) {
-        acc.reserve(1 << 22);  // 4M 桶
-    }
+    // 5. OpenMP 并行 Drizzle (R11: 线程数来自配置, 禁止硬编码 16)
+    // schedule(static): 连续 Y 条带静态分配, 保留天区空间局部性 (控制包禁止 guided)
+    int num_threads = (config.threads > 0) ? config.threads : omp_get_max_threads();
+    omp_set_num_threads(num_threads);
+    std::vector<std::unordered_map<uint64_t, PixelAccumulator>> threadAccums(num_threads);
+    // R11: 不再预分配每线程 4M 桶 (67M 桶内存浪费), 让 map 按需增长
 
     int64_t nSourcePixels = 0;
 
-    #pragma omp parallel for schedule(guided) reduction(+:nSourcePixels)
+    #pragma omp parallel for schedule(static) reduction(+:nSourcePixels)
     for (int y = 0; y < img.height; y++) {
         int tid = omp_get_thread_num();
         auto& localAccum = threadAccums[tid];
@@ -594,7 +590,7 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
     }
 
     // 6. 合并所有线程的 localAccum 到全局 accumulators
-    for (int t = 0; t < NUM_THREADS; t++) {
+    for (int t = 0; t < num_threads; t++) {
         for (auto& [ipix, acc] : threadAccums[t]) {
             auto& dst = accumulators[ipix];
             dst.sumFlux   += acc.sumFlux;
@@ -708,16 +704,14 @@ bool DrizzleEngine::drizzle_f64(const FitsImage& img, const DrizzleConfig& confi
     auto tStart = std::chrono::high_resolution_clock::now();
 
     // 5. OpenMP 并行 Drizzle (FP64 路径: 从 img.pixels_f64 读取 double)
-    const int NUM_THREADS = 16;
-    omp_set_num_threads(NUM_THREADS);
-    std::vector<std::unordered_map<uint64_t, PixelAccumulator>> threadAccums(NUM_THREADS);
-    for (auto& acc : threadAccums) {
-        acc.reserve(1 << 22);  // 4M 桶
-    }
+    // R11: 线程数来自配置, static 调度, 不预分配 4M 桶
+    int num_threads = (config.threads > 0) ? config.threads : omp_get_max_threads();
+    omp_set_num_threads(num_threads);
+    std::vector<std::unordered_map<uint64_t, PixelAccumulator>> threadAccums(num_threads);
 
     int64_t nSourcePixels = 0;
 
-    #pragma omp parallel for schedule(guided) reduction(+:nSourcePixels)
+    #pragma omp parallel for schedule(static) reduction(+:nSourcePixels)
     for (int y = 0; y < img.height; y++) {
         int tid = omp_get_thread_num();
         auto& localAccum = threadAccums[tid];
@@ -752,7 +746,7 @@ bool DrizzleEngine::drizzle_f64(const FitsImage& img, const DrizzleConfig& confi
     }
 
     // 6. 合并所有线程的 localAccum 到全局 accumulators
-    for (int t = 0; t < NUM_THREADS; t++) {
+    for (int t = 0; t < num_threads; t++) {
         for (auto& [ipix, acc] : threadAccums[t]) {
             auto& dst = accumulators[ipix];
             dst.sumFlux   += acc.sumFlux;

@@ -62,6 +62,7 @@ int main(int argc, char** argv) {
     cfg.nested = true;
     cfg.pixfrac = 1.0;
     cfg.precision_mode = (uint8_t)prec;
+    if (argc >= 5) cfg.threads = atoi(argv[4]);
 
     DrizzleEngine engine;
     std::unordered_map<uint64_t, PixelAccumulator> acc;
@@ -81,9 +82,9 @@ int main(int argc, char** argv) {
     }
     printf("{\"input_pixels\":%d,\"output_pixels\":%zu,\"nside\":%d,"
            "\"precision\":\"%s\",\"wall_s\":%.4f,\"elapsed_engine_s\":%.4f,"
-           "\"threads\":%d,\"status\":\"%s\"}\n",
+           "\"threads\":%d,\"config_threads\":%d,\"status\":\"%s\"}\n",
            size * size, acc.size(), stats.nside,
            prec ? "fp64" : "fp32", wall, stats.elapsedSec,
-           omp_get_max_threads(), ok ? "PASS" : "FAIL");
+           omp_get_max_threads(), cfg.threads, ok ? "PASS" : "FAIL");
     return 0;
 }

@@ -29,6 +29,8 @@ struct DrizzleConfig {
     // R10: 精度模式 (0=FP32 binary32 默认, 1=FP64 binary64)
     // FP64 模式: signal 子块输出 float64, metadata 记录 precision_mode=1, signal_dtype=1
     uint8_t precision_mode = 0;
+    // R11: 线程数 (0=自动 omp_get_max_threads; 禁止硬编码 16)
+    int threads = 0;
 };
 
 // 单个 HEALPix 像素的累加器 (float64 内部精度, 02_FROZEN §8/§10)
