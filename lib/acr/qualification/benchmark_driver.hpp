@@ -71,6 +71,7 @@ private:
 
     // 单个 kernel × size × backend 的一次测量
     RawBenchmarkSample measure_once(std::uint32_t kernel_id,
+                                    const std::string& variant,
                                     const std::string& backend,
                                     std::size_t problem_size,
                                     std::size_t bytes_per_elem,
@@ -86,6 +87,19 @@ private:
     // CPU Copy kernel：y[i] = x[i]
     std::uint64_t run_cpu_copy(std::size_t n);
 
+    // CPU Dot：每 chunk 独立 FP64 partial + 唯一槽位 + 串行 merge（无数据竞争）
+    std::uint64_t run_cpu_dot(std::size_t n);
+    // CPU Histogram：variant = hist_tls（thread-local bins+merge）/
+    //   hist_atomic（共享 atomic bins）
+    std::uint64_t run_cpu_histogram(std::size_t n, const std::string& variant);
+    // CPU Scatter：variant = scatter_perm（无冲突置换）/
+    //   scatter_atomic（atomic 写）
+    std::uint64_t run_cpu_scatter(std::size_t n, const std::string& variant);
+    // CPU 3x3 卷积：n = 总输出元素数（与 GPU 语义一致），w=ceil(sqrt(n))
+    std::uint64_t run_cpu_conv2d(std::size_t n);
+    // CPU Mandelbrot：n = 总网格元素数
+    std::uint64_t run_cpu_mandelbrot(std::size_t n);
+
     // GPU 真实 kernel（AXPY/Copy/Dot→reduce/Convolution2D→conv3x3）：
     // 经 cuda::bridge::api() 启动真实 CUDA kernel，返回含 H2D/launch/D2H 的
     // 实测耗时（ns）；不支持的 kernel 或桥接不可用时 supported=false 返回 0。
@@ -96,12 +110,7 @@ private:
     static std::string detect_best_isa();
 
     // Commit E：补充 kernel（供 profile_generator 生成多维能力曲线）
-    std::uint64_t run_cpu_dot(std::size_t n);           // 归约 → reduction[dot:fp32]
-    std::uint64_t run_cpu_conv2d(std::size_t n);        // 卷积 → convolution[direct:default:fp32]
-    std::uint64_t run_cpu_histogram(std::size_t n);      // 直方图 → irregular[histogram:uniform]
     std::uint64_t run_cpu_gather(std::size_t n);        // 随机读 → irregular[gather:random]
-    std::uint64_t run_cpu_scatter(std::size_t n);       // 随机写 → irregular[scatter:random]
-    std::uint64_t run_cpu_mandelbrot(std::size_t n);    // 分支 → branch[highly_variable]
     std::uint64_t run_cpu_transfer(std::size_t n);      // 传输 → transfer[host:host_plain]
     std::uint64_t run_cpu_overhead_submit(std::size_t n); // 开销 → overhead[submit]
 
