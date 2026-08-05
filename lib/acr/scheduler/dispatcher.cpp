@@ -119,13 +119,16 @@ struct Dispatcher::Impl {
     std::unique_ptr<utilization::MemoryBudgetController> mem_ctrl;
     // 聚焦版（08 号计划 §5）：OperationProfile 驱动的 Mixed 路由规划
     MixedRoutePlanner planner;
+    // 聚焦版（08 号计划 §6）：数据驻留状态（Host/Device/Both/dirty）
+    ResidencyManager residency;
     // F-fix 2：SharedWorkPool
     SharedWorkPool pool;
     // F-fix 6 + F-fix 7：设备执行器注册表（多设备工作保持）
     std::shared_ptr<ExecutorRegistry> executors;
     // F-fix 9: ReleaseCache 动作的回调（可选）。
     // 由外部注册（如缓存模块），MemoryBudget ReleaseCache 时调用。
-    std::function<void()> cache_release_hook;
+    // 返回实际释放字节数（06 号规范 §7）
+    std::function<std::size_t()> cache_release_hook;
 
     std::string pick_backend_impl(const TaskEstimate& task) const {
         // 小数据优先 CPU
@@ -418,7 +421,14 @@ struct Dispatcher::Impl {
                                 break;
                             case utilization::MemoryBudgetController::ExceedAction::ReleaseCache:
                                 if (cache_release_hook) {
-                                    try { cache_release_hook(); } catch (...) {}
+                                    try {
+                                        const std::size_t freed =
+                                            cache_release_hook();
+                                        if (freed > 0) {
+                                            record_action("release_cache:" +
+                                                           std::to_string(freed));
+                                        }
+                                    } catch (...) {}
                                 }
                                 batch_shrink_count.fetch_add(1, std::memory_order_relaxed);
                                 record_action("release_cache");
@@ -519,7 +529,14 @@ struct Dispatcher::Impl {
                                     break;
                                 case utilization::MemoryBudgetController::ExceedAction::ReleaseCache:
                                     if (cache_release_hook) {
-                                        try { cache_release_hook(); } catch (...) {}
+                                        try {
+                                            const std::size_t freed =
+                                                cache_release_hook();
+                                            if (freed > 0) {
+                                                record_action("release_cache:" +
+                                                               std::to_string(freed));
+                                            }
+                                        } catch (...) {}
                                     }
                                     pre_requested = std::max(
                                         (pre_requested * 4) / 5, eff_min);
@@ -708,7 +725,8 @@ struct Dispatcher::Impl {
         const cost::CostEstimate& estimate,
         ResourceControlStats& stats_out,
         std::vector<InvocationExecStats>& per_exec_stats_out,
-        std::vector<std::string>& actual_devices_out) {
+        std::vector<std::string>& actual_devices_out,
+        bool data_resident = false) {
         MixedRunResult r;
         r.total_chunks = 0;
         r.all_done = false;
@@ -882,7 +900,14 @@ struct Dispatcher::Impl {
                                     break;
                                 case utilization::MemoryBudgetController::ExceedAction::ReleaseCache:
                                     if (cache_release_hook) {
-                                        try { cache_release_hook(); } catch (...) {}
+                                        try {
+                                            const std::size_t freed =
+                                                cache_release_hook();
+                                            if (freed > 0) {
+                                                record_action("release_cache:" +
+                                                               std::to_string(freed));
+                                            }
+                                        } catch (...) {}
                                     }
                                     batch_shrink_count.fetch_add(1, std::memory_order_relaxed);
                                     record_action("release_cache");
@@ -947,7 +972,7 @@ struct Dispatcher::Impl {
                         std::size_t requested = 0;
                         const auto plan = planner.plan(
                             std::string(invocation.id), remaining,
-                            /*data_resident=*/false);
+                            data_resident);
                         if (plan.profile_available) {
                             requested =
                                 (exec->backend_type() == "cpu")
@@ -990,11 +1015,15 @@ struct Dispatcher::Impl {
                         if (cfg.enable_memory_budget && mem_ctrl) {
                             const bool is_gpu =
                                 exec->backend_type().rfind("cuda", 0) == 0;
-                            const std::uint64_t peak =
-                                Impl::estimate_claim_peak_bytes(
-                                    requested, invocation.traits, is_gpu);
                             bool pre_skip = false;
-                            if (peak > 0) {
+                            // 06 号规范 §7.1/§7.4：Shrink 后循环重估，
+                            // 直到满足预算或达到最小块（上限 8 次）
+                            for (int shrink_guard = 0; shrink_guard < 8;
+                                 ++shrink_guard) {
+                                const std::uint64_t peak =
+                                    Impl::estimate_claim_peak_bytes(
+                                        requested, invocation.traits, is_gpu);
+                                if (peak == 0) break;
                                 utilization::MemoryBudget cached_mb_copy;
                                 bool cached_ok = false;
                                 {
@@ -1040,6 +1069,7 @@ struct Dispatcher::Impl {
                                             Impl::action_to_string(pre_action));
                                     }
                                 }
+                                bool stop_loop = false;
                                 switch (pre_action) {
                                     case utilization::MemoryBudgetController::ExceedAction::ShrinkBlock:
                                         requested = std::max(
@@ -1047,27 +1077,41 @@ struct Dispatcher::Impl {
                                         batch_shrink_count.fetch_add(
                                             1, std::memory_order_relaxed);
                                         record_action("shrink_block");
+                                        // 缩小后继续循环重估
+                                        if (requested <= min_chunk) {
+                                            stop_loop = true;
+                                        }
                                         break;
                                     case utilization::MemoryBudgetController::ExceedAction::ReleaseCache:
                                         if (cache_release_hook) {
-                                            try { cache_release_hook(); } catch (...) {}
+                                            try {
+                                            const std::size_t freed =
+                                                cache_release_hook();
+                                            if (freed > 0) {
+                                                record_action("release_cache:" +
+                                                               std::to_string(freed));
+                                            }
+                                        } catch (...) {}
                                         }
                                         requested = std::max(
                                             (requested * 4) / 5, min_chunk);
                                         batch_shrink_count.fetch_add(
                                             1, std::memory_order_relaxed);
                                         record_action("release_cache");
+                                        // 释放后重新采样和重算（循环）
                                         break;
                                     case utilization::MemoryBudgetController::ExceedAction::LowMemoryPath:
                                         requested = min_chunk;
                                         batch_shrink_count.fetch_add(
                                             1, std::memory_order_relaxed);
                                         record_action("low_memory_path");
+                                        stop_loop = true;
                                         break;
                                     case utilization::MemoryBudgetController::ExceedAction::FallbackOtherDevice:
                                         // 工作留在 pool，由其他 executor 领取
                                         record_action("fallback_other_device");
                                         pre_skip = true;
+                                        stop_loop = true;
                                         break;
                                     case utilization::MemoryBudgetController::ExceedAction::StopNewSubmit:
                                         if (gate.close()) {
@@ -1076,6 +1120,7 @@ struct Dispatcher::Impl {
                                             record_action("stop_new_submit");
                                         }
                                         pre_skip = true;
+                                        stop_loop = true;
                                         break;
                                     case utilization::MemoryBudgetController::ExceedAction::Fail:
                                         gate.close_permanent();
@@ -1083,23 +1128,26 @@ struct Dispatcher::Impl {
                                         stats_out.gate_close_count++;
                                         record_action("fail");
                                         pre_skip = true;
+                                        stop_loop = true;
                                         break;
                                     default:
+                                        stop_loop = true;
                                         break;
                                 }
-                                if (pre_skip) {
-                                    if (gate.is_permanent_fail()) break;
-                                    std::this_thread::sleep_for(
-                                        std::chrono::milliseconds(10));
-                                    continue;
-                                }
-                                if (requested <
-                                    current_max_chunk.load(
-                                        std::memory_order_relaxed)) {
-                                    current_max_chunk.store(
-                                        requested, std::memory_order_relaxed);
-                                    pool.set_dynamic_max_chunk(requested);
-                                }
+                                if (stop_loop) break;
+                            }
+                            if (pre_skip) {
+                                if (gate.is_permanent_fail()) break;
+                                std::this_thread::sleep_for(
+                                    std::chrono::milliseconds(10));
+                                continue;
+                            }
+                            if (requested <
+                                current_max_chunk.load(
+                                    std::memory_order_relaxed)) {
+                                current_max_chunk.store(
+                                    requested, std::memory_order_relaxed);
+                                pool.set_dynamic_max_chunk(requested);
                             }
                         }
                         auto token = pool.claim_next_dynamic(exec->id(), requested);
@@ -1235,7 +1283,7 @@ Dispatcher::Dispatcher() : impl_(std::make_unique<Impl>()) {
 }
 Dispatcher::~Dispatcher() = default;
 
-void Dispatcher::set_cache_release_hook(std::function<void()> hook) {
+void Dispatcher::set_cache_release_hook(std::function<std::size_t()> hook) {
     impl_->cache_release_hook = std::move(hook);
 }
 
@@ -1494,12 +1542,40 @@ CostAwareResult Dispatcher::dispatch_invocation(
     const std::size_t end = invocation.domain.end;
     (void)task;
 
+    // 聚焦版（08 号计划 §6）：注册输入 buffer 到 ResidencyManager，
+    // 查询输入是否已在 GPU 显存（决定 host/resident 路由阈值）
+    bool data_resident = false;
+    for (const auto& binding : invocation.buffers.bindings) {
+        const std::string key = "buf-" +
+            std::to_string(reinterpret_cast<std::uintptr_t>(binding.data));
+        impl_->residency.register_buffer(key, binding.count);
+    }
+    {
+        const auto* input = invocation.buffers.find(1);
+        if (input != nullptr) {
+            const std::string key = "buf-" +
+                std::to_string(reinterpret_cast<std::uintptr_t>(input->data));
+            data_resident = impl_->residency.is_device_valid(key, "cuda:0");
+        }
+    }
+
     std::vector<Impl::InvocationExecStats> per_exec_stats;
     std::vector<std::string> actual_devices;
     auto r = impl_->execute_invocation_via_executors(
-        invocation, estimate, result.resource_control, per_exec_stats, actual_devices);
+        invocation, estimate, result.resource_control, per_exec_stats,
+        actual_devices, data_resident);
     result.run_result = r;
     result.actual_devices_used = actual_devices;
+
+    // 执行后更新驻留状态：GPU 参与 → 输入视为已驻留（复用），输出回 host
+    if (r.executed_on_gpu > 0) {
+        for (const auto& binding : invocation.buffers.bindings) {
+            const std::string key = "buf-" +
+                std::to_string(reinterpret_cast<std::uintptr_t>(binding.data));
+            impl_->residency.mark_uploaded(key);
+            impl_->residency.mark_downloaded(key);
+        }
+    }
 
     // 24 号计划 §3：actual_primary 按每设备真实 items_done 最大者确定；
     // 相同则比较实际处理字节，再相同比较有效执行时间。禁止用

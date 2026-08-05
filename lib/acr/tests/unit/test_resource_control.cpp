@@ -114,7 +114,10 @@ TEST(ResourceControl, ReleaseCacheHookCalled) {
     };
     d.configure(cfg);
     std::atomic<int> release_calls{0};
-    d.set_cache_release_hook([&] { release_calls.fetch_add(1); });
+    d.set_cache_release_hook([&]() -> std::size_t {
+        release_calls.fetch_add(1);
+        return 1024;  // 释放 1KB（Evidence 记录实际释放字节）
+    });
 
     TaskDescriptor task;
     task.range = Range1D{0, 100000};

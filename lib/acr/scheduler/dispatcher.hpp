@@ -20,6 +20,7 @@
 #include "mixed_route_planner.hpp"
 #include "partitioner.hpp"
 #include "queue_aware.hpp"
+#include "residency_manager.hpp"
 #include "reduction_merger.hpp"
 #include "../utilization/memory_budget.hpp"
 
@@ -180,7 +181,8 @@ public:
     void configure(const DispatcherConfig& cfg);
 
     // 注册缓存释放 hook（MemoryBudget ReleaseCache 动作时调用）
-    void set_cache_release_hook(std::function<void()> hook);
+    // 返回实际释放字节数（06 号规范 §7：释放后重新采样和重算）
+    void set_cache_release_hook(std::function<std::size_t()> hook);
 
     // 分发 range 任务（自动拆分 + 调度）
     MixedRunResult dispatch_range(std::size_t begin, std::size_t end,

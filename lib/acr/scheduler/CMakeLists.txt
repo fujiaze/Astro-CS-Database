@@ -11,6 +11,7 @@ add_library(acr_scheduler STATIC
     shared_work_pool.cpp
     device_executor.cpp
     mixed_route_planner.cpp
+    residency_manager.cpp
 )
 target_link_libraries(acr_scheduler PUBLIC
     acr_options

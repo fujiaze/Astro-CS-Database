@@ -101,6 +101,11 @@ MemoryBudget MemoryBudgetController::sample() {
                  ? (ram.total_bytes - ram.avail_bytes) : 0;
     m.limit_ram = compute_limit(m.total_ram, impl_->cfg.ram_ratio,
                                 impl_->cfg.ram_fixed_reserve_bytes);
+    m.pinned_limit = compute_limit(m.total_ram, impl_->cfg.pinned_ratio,
+                                   impl_->cfg.pinned_fixed_reserve_bytes);
+    // pinned staging 是 RAM 的一部分；默认按 RAM 用量估算
+    m.pinned_used = std::min(m.used_ram, m.pinned_limit);
+    m.pinned_valid = ram.valid;
     m.ram_exceeded = (m.used_ram > m.limit_ram);
     m.ram_valid = ram.valid;
 
@@ -162,6 +167,10 @@ MemoryBudget MemoryBudgetController::report_with(std::uint64_t used_ram,
     m.used_ram = used_ram;
     m.limit_ram = compute_limit(total_ram, impl_->cfg.ram_ratio,
                                 impl_->cfg.ram_fixed_reserve_bytes);
+    m.pinned_limit = compute_limit(total_ram, impl_->cfg.pinned_ratio,
+                                   impl_->cfg.pinned_fixed_reserve_bytes);
+    m.pinned_used = std::min(used_ram, m.pinned_limit);
+    m.pinned_valid = true;
     m.ram_exceeded = (used_ram > m.limit_ram);
     m.ram_valid = true;
 
@@ -176,6 +185,28 @@ MemoryBudget MemoryBudgetController::report_with(std::uint64_t used_ram,
     g.estimated = true;  // 注入接口标记估算
     g.valid = true;
     m.gpus.push_back(g);
+    return m;
+}
+
+MemoryBudget MemoryBudgetController::report_pinned(
+    std::uint64_t used_pinned, std::uint64_t total_ram_for_limit) {
+    MemoryBudget m;
+    std::uint64_t total = total_ram_for_limit;
+    if (total == 0) {
+        MemorySample ram = impl_->metrics.read_ram();
+        total = ram.total_bytes;
+        std::lock_guard<std::mutex> lk(impl_->mtx);
+        impl_->last_total_ram = total;
+    }
+    m.total_ram = total;
+    m.limit_ram = compute_limit(total, impl_->cfg.ram_ratio,
+                                impl_->cfg.ram_fixed_reserve_bytes);
+    m.pinned_limit = compute_limit(total, impl_->cfg.pinned_ratio,
+                                   impl_->cfg.pinned_fixed_reserve_bytes);
+    m.pinned_used = used_pinned;
+    m.pinned_valid = true;
+    m.pinned_exceeded = (used_pinned > m.pinned_limit);
+    m.ram_valid = true;
     return m;
 }
 

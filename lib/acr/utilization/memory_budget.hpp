@@ -22,8 +22,10 @@ namespace astro::compute::utilization {
 struct MemoryBudgetConfig {
     double ram_ratio{0.95};               // RAM 容量比例
     double vram_ratio{0.95};              // VRAM 容量比例
+    double pinned_ratio{0.95};            // pinned staging 容量比例（默认与 RAM 一致）
     std::uint64_t ram_fixed_reserve_bytes{2048ULL * 1024 * 1024};  // 2048 MiB
     std::uint64_t vram_fixed_reserve_bytes{512ULL * 1024 * 1024};  // 512 MiB
+    std::uint64_t pinned_fixed_reserve_bytes{256ULL * 1024 * 1024}; // 256 MiB
 };
 
 // ===== 单 GPU VRAM 预算 =====
@@ -45,6 +47,11 @@ struct MemoryBudget {
     std::uint64_t avail_ram{0};          // 实际可用（GlobalMemoryStatusEx）
     bool ram_exceeded{false};
     bool ram_valid{false};
+    // 06 号规范 §5：pinned staging 独立记账（默认并入 RAM 采样，可注入）
+    std::uint64_t pinned_limit{0};
+    std::uint64_t pinned_used{0};
+    bool pinned_valid{false};
+    bool pinned_exceeded{false};
     // 多 GPU VRAM
     std::vector<GpuMemoryBudget> gpus;
 };
@@ -76,6 +83,10 @@ public:
     MemoryBudget report_with(std::uint64_t used_ram,
                              std::uint64_t used_vram,
                              const std::string& backend = "cuda:0");
+
+    // 06 号规范 §5：pinned staging 注入（独立于 RAM 的记账）
+    MemoryBudget report_pinned(std::uint64_t used_pinned,
+                               std::uint64_t total_ram_for_limit = 0);
 
     // ---- 限额计算 ----
     // limit = min(total*ratio, total-fixed_reserve)

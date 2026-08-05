@@ -180,6 +180,16 @@ target_include_directories(acr_test_mixed_route PRIVATE
 )
 gtest_discover_tests(acr_test_mixed_route DISCOVERY_MODE PRE_TEST)
 
+# 08 号计划 §6：数据驻留与 pinned 内存预算
+add_executable(acr_test_residency test_residency.cpp)
+target_link_libraries(acr_test_residency PRIVATE
+    acr_scheduler acr_utilization GTest::gtest_main)
+target_include_directories(acr_test_residency PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../scheduler
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../utilization
+)
+gtest_discover_tests(acr_test_residency DISCOVERY_MODE PRE_TEST)
+
 # 23 号计划 §3/§6：CUDA 桥接真实 GPU（无 GPU/桥接时 GTEST_SKIP）
 add_executable(acr_test_cuda_bridge test_cuda_bridge.cpp)
 target_link_libraries(acr_test_cuda_bridge PRIVATE
