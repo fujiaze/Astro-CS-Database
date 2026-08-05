@@ -8,6 +8,7 @@
     "schema_version",
     "pipeline",
     "precision",
+    "gaia_data_dir",
     "input",
     "calibration",
     "platesolve",
@@ -33,6 +34,11 @@
         "fp32",
         "fp64"
       ]
+    },
+    "gaia_data_dir": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Gaia DR3SP 光谱数据库目录 (必须由配置文件引入, 不硬编码默认路径)"
     },
     "input": {
       "type": "object",

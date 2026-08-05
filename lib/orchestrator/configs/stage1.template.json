@@ -3,6 +3,7 @@
   "schema_version": "1.1",
   "pipeline": "stage1",
   "precision": "fp32",
+  "gaia_data_dir": "../GaiaDR3SP",
   "input": {
     "light": "../data/light.fits",
     "master_bias": null,

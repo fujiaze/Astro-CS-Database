@@ -549,11 +549,13 @@ bool Orchestrator::load_config(const std::string& config_path, std::string& erro
     config_.calib_params_json = content;
 
     // 默认日志目录与输出目录 (若配置中未指定)
+    // 2026-08-05 规范: 运行产物统一写 run/ (AGENTS); 数据库/数据文件路径一律
+    // 由 stage1.json 引入; 此处仅修正默认目录到 run/ 约定, 不再默认到 lib/ 或 output/
     if (config_.log_dir.empty()) {
-        config_.log_dir = "lib/orchestrator/logs";
+        config_.log_dir = "run/logs/orchestrator";
     }
     if (config_.output_dir.empty()) {
-        config_.output_dir = "output";
+        config_.output_dir = "run";
     }
 
     // Task 3: 设置检查点目录为 <output_dir>/.checkpoint/
@@ -582,7 +584,7 @@ bool Orchestrator::load_config(const std::string& config_path, std::string& erro
              + (config_.threads == 0 ? " (0=自动检测)" : ""));
 
     // P03-002: 解析 gaia_data_dir (顶层字段, 用于 init_platesolve_env)
-    // 空时在 init_platesolve_env 中默认为 project_root_dir_/GaiaDR3SP
+    // 2026-08-05 规范: 数据库位置必须由 stage1.json 引入; 缺失时 PLATESOLVE 硬失败
     std::string cfg_gaia_dir = orc_getJsonString(content, "gaia_data_dir");
     if (!cfg_gaia_dir.empty()) {
         config_gaia_data_dir_ = cfg_gaia_dir;
@@ -1551,19 +1553,19 @@ bool Orchestrator::init_platesolve_env(std::string& error_msg) {
         cleanup_platesolve_env();
         return false;
     }
-    // P03-002: 优先使用 config 中配置的 gaia_data_dir
-    std::string gaia_data_dir;
-    if (!config_gaia_data_dir_.empty()) {
-        gaia_data_dir = config_gaia_data_dir_;
-        // 相对路径基于 project_root_dir_ 解析
-        if (!fs::path(gaia_data_dir).is_absolute()) {
-            gaia_data_dir = (fs::path(project_root_dir_) / gaia_data_dir).string();
-        }
-    } else {
-        gaia_data_dir = project_root_dir_ + "/GaiaDR3SP";
+    // P03-002: 数据库位置必须由 stage1.json 配置引入 (gaia_data_dir, typed 配置
+    // 已解析为绝对路径, 相对 JSON 文件目录); 禁止硬编码默认路径
+    // (2026-08-05 规范: 数据库之类的位置一律配置驱动)
+    if (stage1_cfg_ == nullptr || stage1_cfg_->gaia_data_dir.empty()) {
+        error_msg = "stage1.json 必须配置 gaia_data_dir (Gaia DR3SP 光谱数据库目录), "
+                    "禁止使用默认路径";
+        LOG_ERROR("orchestrator", "[PLATESOLVE] " + error_msg);
+        cleanup_platesolve_env();
+        return false;
     }
+    const std::string& gaia_data_dir = stage1_cfg_->gaia_data_dir;
     LOG_INFO("orchestrator", "[PLATESOLVE] Gaia 数据目录: " + gaia_data_dir
-             + (config_gaia_data_dir_.empty() ? " (默认)" : " (来自 config)"));
+             + " (来自 config)");
     GaiaClient* gaia_client = fn_gaia_create_ex(gaia_data_dir.c_str(), GAIA_DB_DR3SP);
     if (gaia_client == nullptr) {
         error_msg = "GaiaClient 创建失败 (data_dir=" + gaia_data_dir + ")";
@@ -1876,8 +1878,8 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
 
     IpvParams params;
     fn_get_default_params(&params);
-    // 设置日志目录 (lib/plate_solve/logs)
-    std::string log_dir = project_root_dir_ + "/lib/plate_solve/logs";
+    // 设置日志目录 (2026-08-05 规范: 运行产物统一写 run/logs/, 不再写 lib/)
+    std::string log_dir = project_root_dir_ + "/run/logs/plate_solve";
     std::memset(params.log_dir, 0, sizeof(params.log_dir));
     std::strncpy(params.log_dir, log_dir.c_str(), sizeof(params.log_dir) - 1);
 
@@ -2389,10 +2391,14 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     std::string filter_name = map_filter_name(filter_str);
     LOG_INFO("orchestrator", "[PHOTOMETRIC] FILTER='" + filter_str + "' -> '" + filter_name + "'");
 
-    // 加载滤光片曲线 (R11: typed Stage1Config 直接驱动)
+    // 加载滤光片曲线 (R11: typed Stage1Config 直接驱动; schema 已必需
+    // filter_response, 缺失时硬失败, 禁止默认路径兜底)
     std::string filters_json = stage1_cfg_->photometric.filter_response;
     if (filters_json.empty()) {
-        filters_json = project_root_dir_ + "/lib/photometric_calib/data/response_curves/filters.json";
+        LOG_ERROR("orchestrator", "[PHOTOMETRIC] 配置缺少 photometric.filter_response "
+                  "(滤光片响应曲线路径必须由 stage1.json 引入)");
+        result.error_msg = "[PHOTOMETRIC] 配置缺少 photometric.filter_response";
+        return false;
     }
     LOG_INFO("orchestrator", "[PHOTOMETRIC] filters_json: " + filters_json);
     std::vector<double> filter_wl, filter_trans;
@@ -2411,7 +2417,10 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
         // R11: typed Stage1Config 直接驱动
         std::string qe_json = stage1_cfg_->photometric.qe_curve;
         if (qe_json.empty()) {
-            qe_json = project_root_dir_ + "/lib/photometric_calib/data/response_curves/qe_curves.json";
+            LOG_ERROR("orchestrator", "[PHOTOMETRIC] 配置缺少 photometric.qe_curve "
+                      "(QE 曲线路径必须由 stage1.json 引入)");
+            result.error_msg = "[PHOTOMETRIC] 配置缺少 photometric.qe_curve";
+            return false;
         }
         LOG_INFO("orchestrator", "[PHOTOMETRIC] qe_curves_json: " + qe_json);
         if (load_qe_curve(qe_json, qe_name, qe_wl, qe_trans)) {

@@ -375,7 +375,8 @@ private:
     // R11: NSIDE 阶段计算/验证结果 (供 DRIZZLE 与证据引用)
     int nside_used_ = 0;
     // P03-002: 从 config 解析的 Gaia 数据目录 (init_platesolve_env 使用)
-    // 空时默认为 project_root_dir_/GaiaDR3SP
+    // 2026-08-05 规范: 数据库位置必须由 stage1.json 的 gaia_data_dir 引入,
+    // 缺失时 PLATESOLVE 硬失败 (禁止默认路径)
     std::string config_gaia_data_dir_;
 
     // ========================================================================
@@ -384,7 +385,7 @@ private:
     //       这些 DLL 不在 DllLoader 的 10 模块枚举中, 需在 run_stage_platesolve
     //       首次执行时单独加载并创建句柄, 复用至 Orchestrator 析构.
     // ========================================================================
-    std::string project_root_dir_;            // 项目根目录 (GaiaDR3SP 数据目录推导基准)
+    std::string project_root_dir_;            // 项目根目录 (相对路径解析基准)
     void* gaia_client_dll_handle_ = nullptr;  // gaia_client.dll 的 HMODULE
     void* star_detector_dll_handle_ = nullptr;// star_detector.dll 的 HMODULE
     intptr_t gaia_client_handle_ = 0;         // GaiaClient* (由 gaia_client_create_ex 返回)

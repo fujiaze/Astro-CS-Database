@@ -41,6 +41,7 @@ static const char* STAGE1_SCHEMA_JSON = R"JSON(
     "schema_version",
     "pipeline",
     "precision",
+    "gaia_data_dir",
     "input",
     "calibration",
     "platesolve",
@@ -66,6 +67,11 @@ static const char* STAGE1_SCHEMA_JSON = R"JSON(
         "fp32",
         "fp64"
       ]
+    },
+    "gaia_data_dir": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Gaia DR3SP 光谱数据库目录 (必须由配置文件引入, 不硬编码默认路径)"
     },
     "input": {
       "type": "object",
@@ -639,6 +645,7 @@ int parse_stage1_config(const std::string& json_path, Stage1Config& config, std:
     config.schema_version = root["schema_version"].get<std::string>();
     config.pipeline = root["pipeline"].get<std::string>();
     config.precision = (root["precision"] == "fp64") ? PrecisionMode::FP64 : PrecisionMode::FP32;
+    config.gaia_data_dir = resolve_path(root["gaia_data_dir"].get<std::string>(), base_dir);
 
     config.input.light = resolve_path(root["input"]["light"].get<std::string>(), base_dir);
     config.input.master_bias = root["input"]["master_bias"].is_null() ? "" :
@@ -709,6 +716,7 @@ std::string compute_config_sha256(const Stage1Config& config) {
     j["schema_version"] = config.schema_version;
     j["pipeline"] = config.pipeline;
     j["precision"] = (config.precision == PrecisionMode::FP64) ? "fp64" : "fp32";
+    j["gaia_data_dir"] = config.gaia_data_dir;
 
     j["input"] = {
         {"light", config.input.light},

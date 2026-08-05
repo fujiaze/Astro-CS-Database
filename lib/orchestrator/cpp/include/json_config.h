@@ -22,6 +22,7 @@ struct Stage1Config {
     std::string schema_version = "1.1";
     std::string pipeline = "stage1";
     PrecisionMode precision = PrecisionMode::FP32;
+    std::string gaia_data_dir;             // 必填: Gaia DR3SP 光谱数据库目录 (配置引入)
 
     struct Input {
         std::string light;          // 必填, 非空
