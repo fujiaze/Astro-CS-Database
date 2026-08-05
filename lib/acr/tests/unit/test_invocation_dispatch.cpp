@@ -304,7 +304,7 @@ TEST(DispatchInvocation, UnsupportedOperationFailsHonestly) {
     EXPECT_EQ(result.actual_primary_backend, "none");
     EXPECT_EQ(result.coverage.done, 0u);
     EXPECT_FALSE(result.run_result.error_message.empty());
-    EXPECT_NE(result.run_result.error_message.find("no executor supports"),
+    EXPECT_NE(result.run_result.error_message.find("no eligible executor"),
               std::string::npos);
 }
 
@@ -336,4 +336,117 @@ TEST(DispatchInvocation, CostEstimateChangesClaimSize) {
     const std::size_t chunks_small = run_with_rec(64);    // 小块 → 多块
     EXPECT_GT(chunks_large, 0u);
     EXPECT_GT(chunks_small, chunks_large);
+}
+
+// ============================================================================
+// 5. Eligible Device Set（24 号计划 §2）：不可行/低收益/小任务/无 profile GPU 不参与
+// ============================================================================
+namespace {
+
+// 构造带指定 GPU DeviceCost 的 estimate（CPU 恒可行）
+cost::CostEstimate make_dual_estimate(bool gpu_feasible,
+                                      bool gpu_profile,
+                                      std::size_t gpu_min_chunk,
+                                      double gpu_compute_ns,
+                                      double gpu_overhead_ns) {
+    cost::CostEstimate est;
+    cost::DeviceCost cpu_dc;
+    cpu_dc.device_id = kHwCpuDeviceId;
+    cpu_dc.backend = "cpu";
+    cpu_dc.recommended_chunk = 1024;
+    cpu_dc.min_effective_chunk = 64;
+    cpu_dc.feasible = true;
+    cpu_dc.profile_available = true;
+    est.per_device.push_back(cpu_dc);
+    cost::DeviceCost gpu_dc;
+    gpu_dc.device_id = static_cast<DeviceId>(1);
+    gpu_dc.backend = "cuda:0";
+    gpu_dc.recommended_chunk = 65536;
+    gpu_dc.min_effective_chunk = gpu_min_chunk;
+    gpu_dc.feasible = gpu_feasible;
+    gpu_dc.profile_available = gpu_profile;
+    gpu_dc.compute_cost_ns = gpu_compute_ns;
+    gpu_dc.launch_cost_ns = gpu_overhead_ns / 2;
+    gpu_dc.transfer_cost_ns = gpu_overhead_ns / 2;
+    gpu_dc.merge_cost_ns = 0;
+    est.per_device.push_back(gpu_dc);
+    est.preferred_device = static_cast<DeviceId>(1);
+    est.profile_available = true;
+    return est;
+}
+
+// 注册 mock GPU + 真 CPU，返回 registry
+std::shared_ptr<ExecutorRegistry> make_cpu_mock_registry() {
+    register_axpy_kernel();
+    auto regs = std::make_shared<ExecutorRegistry>();
+    regs->register_executor(std::make_unique<CpuExecutor>("cpu", 1024, 64));
+    make_mock_executor(*regs, 65536, 256);
+    return regs;
+}
+
+CostAwareResult dispatch_with(DispatcherConfig cfg,
+                              std::shared_ptr<ExecutorRegistry> regs,
+                              std::size_t n,
+                              const cost::CostEstimate& est) {
+    Dispatcher d;
+    cfg.devices = {{"cpu", 0, 0, 50.0, true}, {"cuda:0", 1, 0, 500.0, true}};
+    cfg.executors = regs;
+    cfg.enable_utilization = false;
+    d.configure(cfg);
+    std::vector<float> x(n, 1.0f);
+    std::vector<float> y(n, 0.0f);
+    KernelInvocation inv;
+    inv.id = "kernel.axpy";
+    inv.domain = WorkDomain{0, n};
+    inv.buffers.add(0, y.data(), n);
+    inv.buffers.add(1, x.data(), n);
+    append_scalar(inv.scalars, 2.0f);
+    return d.dispatch_invocation(make_task(n), est, inv);
+}
+
+} // anonymous namespace
+
+TEST(DispatchInvocation, InfeasibleGpuExcluded) {
+    auto est = make_dual_estimate(/*feasible=*/false, true, 256, 1e6, 1e3);
+    auto r = dispatch_with(DispatcherConfig{}, make_cpu_mock_registry(), 1 << 18, est);
+    EXPECT_TRUE(r.run_result.all_done);
+    EXPECT_EQ(r.chunks_on_gpu, 0u);   // infeasible GPU 不参与
+    EXPECT_GT(r.chunks_on_cpu, 0u);
+}
+
+TEST(DispatchInvocation, SmallTaskExcludesGpu) {
+    // GPU min_effective_chunk = 1M > 任务规模 64K → GPU 不参与
+    auto est = make_dual_estimate(true, true, 1u << 20, 1e6, 1e3);
+    auto r = dispatch_with(DispatcherConfig{}, make_cpu_mock_registry(), 1 << 16, est);
+    EXPECT_TRUE(r.run_result.all_done);
+    EXPECT_EQ(r.chunks_on_gpu, 0u);
+    EXPECT_GT(r.chunks_on_cpu, 0u);
+}
+
+TEST(DispatchInvocation, NoProfileGpuExcluded) {
+    auto est = make_dual_estimate(true, /*profile=*/false, 256, 1e6, 1e3);
+    auto r = dispatch_with(DispatcherConfig{}, make_cpu_mock_registry(), 1 << 18, est);
+    EXPECT_TRUE(r.run_result.all_done);
+    EXPECT_EQ(r.chunks_on_gpu, 0u);   // 无有效 profile 的 GPU 不参与生产
+    EXPECT_GT(r.chunks_on_cpu, 0u);
+}
+
+TEST(DispatchInvocation, NoBenefitGpuExcluded) {
+    // compute(1e3) <= overhead(2e3) → 无收益 → GPU 不参与
+    auto est = make_dual_estimate(true, true, 256, 1e3, 2e3);
+    auto r = dispatch_with(DispatcherConfig{}, make_cpu_mock_registry(), 1 << 18, est);
+    EXPECT_TRUE(r.run_result.all_done);
+    EXPECT_EQ(r.chunks_on_gpu, 0u);
+    EXPECT_GT(r.chunks_on_cpu, 0u);
+}
+
+TEST(DispatchInvocation, ForceAllSupportedForTestOnly) {
+    // 测试专用开关：即使 infeasible 也强制参与（仅调度验证；生产必须 false）
+    auto est = make_dual_estimate(/*feasible=*/false, true, 256, 1e6, 1e3);
+    DispatcherConfig cfg;
+    cfg.force_all_supported_executors = true;
+    auto r = dispatch_with(cfg, make_cpu_mock_registry(), 1 << 18, est);
+    EXPECT_TRUE(r.run_result.all_done);
+    EXPECT_GT(r.chunks_on_gpu, 0u);   // 测试开关强制 mock 参与
+    EXPECT_GT(r.chunks_on_cpu, 0u);
 }

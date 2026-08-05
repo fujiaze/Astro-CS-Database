@@ -658,6 +658,39 @@ struct Dispatcher::Impl {
         return nullptr;
     }
 
+    // 24 号计划 §2：Eligible Device Set 判定。
+    // 设备必须：有成本数据、feasible、任务规模达到最小有效块、预计收益覆盖
+    // 启动/传输/同步/merge 成本（成本明细非零时判定）、GPU 必须有有效 profile
+    // （无 profile 的 GPU 不参与生产执行；CPU 无 profile 走明确保守回退）。
+    static bool is_executor_eligible(DeviceExecutor* exec,
+                                     const cost::DeviceCost* dc,
+                                     std::size_t task_size,
+                                     bool force_all) {
+        if (force_all) return true;  // 测试专用：仅调度验证
+        if (dc == nullptr) return false;
+        if (!dc->feasible) return false;
+        const std::size_t min_chunk =
+            std::max(exec->min_effective_chunk(), dc->min_effective_chunk);
+        if (min_chunk > 0 && task_size < min_chunk) {
+            return false;  // 任务规模未达到最小有效块
+        }
+        // 收益判定：仅当成本明细非零时执行（避免占位/测试成本全零误伤）
+        if (dc->profile_available &&
+            (dc->launch_cost_ns > 0 || dc->transfer_cost_ns > 0 ||
+             dc->merge_cost_ns > 0)) {
+            const double overhead =
+                dc->launch_cost_ns + dc->transfer_cost_ns + dc->merge_cost_ns;
+            if (dc->compute_cost_ns <= overhead) {
+                return false;  // 预计无收益
+            }
+        }
+        // GPU 必须有有效 profile；无 profile 的 GPU 不参与生产（CPU 可保守回退）
+        if (exec->backend_type().rfind("cuda", 0) == 0 && !dc->profile_available) {
+            return false;
+        }
+        return true;
+    }
+
     MixedRunResult execute_invocation_via_executors(
         const KernelInvocation& invocation,
         const cost::CostEstimate& estimate,
@@ -675,18 +708,22 @@ struct Dispatcher::Impl {
             return r;
         }
 
-        // 1. 收集支持该 OperationId 的可用 executor
+        // 1. 收集支持该 OperationId 且满足 Eligible Device Set 的 executor
         auto all = executors ? executors->available_executors()
                              : std::vector<DeviceExecutor*>{};
         std::vector<DeviceExecutor*> supported;
+        const std::size_t task_size = end - begin;
         for (auto* exec : all) {
-            if (exec && exec->supports(invocation.id)) {
+            if (exec && exec->supports(invocation.id) &&
+                is_executor_eligible(exec, find_device_cost(estimate, exec->id()),
+                                     task_size,
+                                     cfg.force_all_supported_executors)) {
                 supported.push_back(exec);
             }
         }
         if (supported.empty()) {
-            // 无 executor 支持该 op：如实失败（不伪装 CPU/GPU 执行）
-            r.error_message = "no executor supports operation: " +
+            // 无 eligible executor：如实失败（不伪装 CPU/GPU 执行）
+            r.error_message = "no eligible executor for operation: " +
                               std::string(invocation.id);
             return r;
         }

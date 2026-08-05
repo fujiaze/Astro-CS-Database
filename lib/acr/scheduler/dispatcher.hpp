@@ -58,6 +58,9 @@ struct DispatcherConfig {
     std::uint32_t control_window_ms{0};
     // 23 号计划 §4：invocation 路径 CPU executor 的 worker 数（0=auto min(8,hw)）
     std::size_t invocation_cpu_workers{0};
+    // 24 号计划 §2：生产调度按 Eligible Device Set 筛选（feasible/最小有效规模/收益）。
+    // 测试专用：置 true 时绕过筛选（仅用于 Mixed 调度验证，生产必须保持 false）。
+    bool force_all_supported_executors{false};
     // F-fix 6 + F-fix 7：设备执行器注册表（可选）
     // 如果提供且包含多个可用 executor，Dispatcher 会通过 execute_via_executors 执行：
     //   - 每个空闲 executor 按自身推荐块大小领取工作块
