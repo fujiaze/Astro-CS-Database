@@ -61,13 +61,13 @@ ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_copy(
     float* y, const float* x,
     uint64_t* elapsed_ns, const char** last_error);
 
-// 归约：partials[chunk_index * blocks + blockIdx] = sum(x[begin..end) 的 block 和)
+// 归约（FP64 累加）：partials[chunk_index * blocks + blockIdx] = sum(x[begin..end) 的 block 和)
 // blocks_per_chunk 固定（如 256），merge 阶段累加全部 partials。
 ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_reduce(
     void* handle,
     size_t begin, size_t end,
     const float* x,
-    float* partials,
+    double* partials,
     size_t blocks_per_chunk,
     uint64_t chunk_index,
     uint64_t* elapsed_ns, const char** last_error);

@@ -20,6 +20,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -79,11 +80,15 @@ void append_scalar(ScalarArgBlob& blob, const T& value) {
     blob.bytes.insert(blob.bytes.end(), p, p + sizeof(T));
 }
 
-// 读取 blob 中偏移 offset 处的标量（安全边界检查，越界返回 nullptr）
+// 安全读取 blob 中偏移 offset 处的标量。
+// 24 号计划 §5.2：使用 memcpy 拷贝到对齐局部变量，禁止 reinterpret_cast 可能
+// 产生的未对齐访问（C++ UB）。越界返回 nullopt。
 template<class T>
-const T* scalar_at(const ScalarArgBlob& blob, std::size_t offset) noexcept {
-    if (offset + sizeof(T) > blob.bytes.size()) return nullptr;
-    return reinterpret_cast<const T*>(blob.bytes.data() + offset);
+std::optional<T> read_scalar(const ScalarArgBlob& blob, std::size_t offset) noexcept {
+    if (offset + sizeof(T) > blob.bytes.size()) return std::nullopt;
+    T v{};
+    std::memcpy(&v, blob.bytes.data() + offset, sizeof(T));
+    return v;
 }
 
 // ===== KernelInvocation：一次可加速执行的最小描述 =====
@@ -160,6 +165,18 @@ private:
     std::vector<std::unique_ptr<Node>> nodes_;
     std::unordered_map<std::string, Node*> by_id_;
 };
+
+// ===== Invocation 契约校验（24 号计划 §5.2）=====
+// Executor 提交前统一验证：
+//   - OperationId 一致；
+//   - buffer_count / scalar_bytes 与 KernelArgSchema 一致；
+//   - domain 非空；
+//   - 目标 backend 的 launcher 已注册；
+//   - 调用方 NumericPolicy 与注册声明一致（声明必须反映 launcher 真实行为）。
+// 返回空串表示通过；否则返回错误描述（Executor 应 Rejected）。
+std::string validate_invocation(const KernelRegistration& reg,
+                                const KernelInvocation& inv,
+                                const std::string& backend);
 
 // ===== 全局默认注册表（经典实验 CPU launcher 注册于此）=====
 // 由 classic backend 模块（lib/acr/backends/classic）在首次使用时惰性注册。

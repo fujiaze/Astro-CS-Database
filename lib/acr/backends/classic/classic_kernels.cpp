@@ -33,12 +33,12 @@ void cpu_axpy_launcher(const KernelInvocation& inv, void*) {
     const BufferBinding* yb = inv.buffers.find(0);
     const BufferBinding* xb = inv.buffers.find(1);
     if (!yb || !xb) throw std::runtime_error("axpy: missing buffers");
-    const float* a = scalar_at<float>(inv.scalars, 0);
+    auto a = read_scalar<float>(inv.scalars, 0);
     if (!a) throw std::runtime_error("axpy: missing alpha");
     float* y = static_cast<float*>(yb->data);
     const float* x = static_cast<const float*>(xb->data);
     for (std::size_t i = inv.domain.begin; i < inv.domain.end; ++i) {
-        y[i] = (*a) * x[i] + y[i];
+        y[i] = *a * x[i] + y[i];
     }
 }
 
@@ -47,8 +47,9 @@ void cpu_reduce_launcher(const KernelInvocation& inv, void*) {
     const BufferBinding* pb = inv.buffers.find(1);
     if (!xb || !pb) throw std::runtime_error("reduce: missing buffers");
     const float* x = static_cast<const float*>(xb->data);
-    float* partials = static_cast<float*>(pb->data);
-    float sum = 0.0f;
+    // 24 号计划 §5.1：声明 FP64 accumulator，必须真实 FP64 局部累加
+    double* partials = static_cast<double*>(pb->data);
+    double sum = 0.0;
     for (std::size_t i = inv.domain.begin; i < inv.domain.end; ++i) {
         sum += x[i];
     }
@@ -60,10 +61,17 @@ void cpu_conv3x3_launcher(const KernelInvocation& inv, void*) {
     const BufferBinding* yb = inv.buffers.find(0);
     const BufferBinding* xb = inv.buffers.find(1);
     if (!yb || !xb) throw std::runtime_error("conv: missing buffers");
-    const size_t* width = scalar_at<size_t>(inv.scalars, 0);
-    const size_t* height = scalar_at<size_t>(inv.scalars, sizeof(size_t));
-    const float* k = scalar_at<float>(inv.scalars, 2 * sizeof(size_t));
-    if (!width || !height || !k) throw std::runtime_error("conv: missing scalars");
+    auto width = read_scalar<size_t>(inv.scalars, 0);
+    auto height = read_scalar<size_t>(inv.scalars, sizeof(size_t));
+    float k[9];
+    bool k_ok = true;
+    for (int i = 0; i < 9; ++i) {
+        auto kv = read_scalar<float>(inv.scalars, 2 * sizeof(size_t) + i * sizeof(float));
+        if (!kv) { k_ok = false; break; }
+        k[i] = *kv;
+    }
+    if (!width || !height) throw std::runtime_error("conv: missing scalars");
+    if (!k_ok) throw std::runtime_error("conv: missing kernel9");
     float* y = static_cast<float*>(yb->data);
     const float* x = static_cast<const float*>(xb->data);
     const int w = static_cast<int>(*width);
@@ -109,7 +117,7 @@ void cuda_axpy_launcher(const KernelInvocation& inv, void*) {
     if (!h || !api.loaded()) throw std::runtime_error("cuda bridge not available");
     const BufferBinding* yb = inv.buffers.find(0);
     const BufferBinding* xb = inv.buffers.find(1);
-    const float* a = scalar_at<float>(inv.scalars, 0);
+    auto a = read_scalar<float>(inv.scalars, 0);
     if (!yb || !xb || !a) throw std::runtime_error("cuda axpy: missing args");
     std::uint64_t elapsed = 0;
     const char* err = nullptr;
@@ -133,7 +141,7 @@ void cuda_reduce_launcher(const KernelInvocation& inv, void*) {
     const int rc = api.submit_reduce(
         h, inv.domain.begin, inv.domain.end,
         static_cast<const float*>(xb->data),
-        static_cast<float*>(pb->data),
+        static_cast<double*>(pb->data),
         kReduceBlocks, inv.token_id, &elapsed, &err);
     if (rc != 0) throw std::runtime_error(err ? err : "cuda reduce failed");
     cuda::bridge::set_tls_elapsed(elapsed);
@@ -145,10 +153,16 @@ void cuda_conv3x3_launcher(const KernelInvocation& inv, void*) {
     if (!h || !api.loaded()) throw std::runtime_error("cuda bridge not available");
     const BufferBinding* yb = inv.buffers.find(0);
     const BufferBinding* xb = inv.buffers.find(1);
-    const size_t* width = scalar_at<size_t>(inv.scalars, 0);
-    const size_t* height = scalar_at<size_t>(inv.scalars, sizeof(size_t));
-    const float* k = scalar_at<float>(inv.scalars, 2 * sizeof(size_t));
-    if (!yb || !xb || !width || !height || !k) {
+    auto width = read_scalar<size_t>(inv.scalars, 0);
+    auto height = read_scalar<size_t>(inv.scalars, sizeof(size_t));
+    float k[9];
+    bool k_ok = true;
+    for (int i = 0; i < 9; ++i) {
+        auto kv = read_scalar<float>(inv.scalars, 2 * sizeof(size_t) + i * sizeof(float));
+        if (!kv) { k_ok = false; break; }
+        k[i] = *kv;
+    }
+    if (!yb || !xb || !width || !height || !k_ok) {
         throw std::runtime_error("cuda conv: missing args");
     }
     std::uint64_t elapsed = 0;

@@ -7,7 +7,7 @@
 //   copy          : buffers[0]=y, buffers[1]=x
 //   axpy          : buffers[0]=y, buffers[1]=x, scalars[0]=float alpha
 //   reduce        : buffers[0]=x, buffers[1]=partials,
-//                   partials 大小 = total_chunks * kReduceBlocks，
+//                   partials 为 double（FP64 累加），大小 = total_chunks * kReduceBlocks，
 //                   每 chunk 写 partials[token_id*kReduceBlocks .. +kReduceBlocks)
 //   conv3x3       : buffers[0]=y, buffers[1]=x（w*h 行主序），
 //                   scalars: size_t width, size_t height, float kernel9[9]

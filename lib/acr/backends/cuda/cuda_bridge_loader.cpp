@@ -151,6 +151,14 @@ public:
             h.error = "no cuda launcher registered: " + std::string(invocation.id);
             return h;
         }
+        // 24 号计划 §5.2：提交前统一契约校验
+        const std::string contract_err =
+            validate_invocation(*reg, invocation, "cuda");
+        if (!contract_err.empty()) {
+            h.status = SubmitStatus::Rejected;
+            h.error = "invocation contract violation: " + contract_err;
+            return h;
+        }
         if (!available()) {
             h.status = SubmitStatus::Rejected;
             h.error = "cuda executor not available";

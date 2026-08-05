@@ -80,6 +80,13 @@ SubmitHandle CpuExecutor::submit(const WorkToken& token,
         result.error = "operation not registered for cpu: " + std::string(invocation.id);
         return result;
     }
+    // 24 号计划 §5.2：提交前统一契约校验（buffer/scalar/domain/numeric）
+    const std::string contract_err = validate_invocation(*reg, invocation, "cpu");
+    if (!contract_err.empty()) {
+        result.status = SubmitStatus::Rejected;
+        result.error = "invocation contract violation: " + contract_err;
+        return result;
+    }
 
     pending_count_.fetch_add(1, std::memory_order_relaxed);
     const auto start = std::chrono::high_resolution_clock::now();

@@ -24,7 +24,7 @@ struct BridgeApi {
                        float*, const float*,
                        std::uint64_t*, const char**){nullptr};
     int (*submit_reduce)(void*, std::size_t, std::size_t,
-                         const float*, float*, std::size_t,
+                         const float*, double*, std::size_t,
                          std::uint64_t, std::uint64_t*, const char**){nullptr};
     int (*submit_conv3x3)(void*, std::size_t, std::size_t,
                           float*, const float*, std::size_t, std::size_t,

@@ -30,12 +30,12 @@ void cpu_axpy_launcher(const KernelInvocation& inv, void* /*user_data*/) {
     const BufferBinding* xb = inv.buffers.find(1);
     ASSERT_NE(yb, nullptr);
     ASSERT_NE(xb, nullptr);
-    const float* a = scalar_at<float>(inv.scalars, 0);
-    ASSERT_NE(a, nullptr);
+    auto a = read_scalar<float>(inv.scalars, 0);
+    ASSERT_TRUE(a.has_value());
     float* y = static_cast<float*>(yb->data);
     const float* x = static_cast<const float*>(xb->data);
     for (std::size_t i = inv.domain.begin; i < inv.domain.end; ++i) {
-        y[i] = (*a) * x[i] + y[i];
+        y[i] = *a * x[i] + y[i];
     }
 }
 

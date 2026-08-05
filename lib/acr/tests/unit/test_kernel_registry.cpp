@@ -24,12 +24,12 @@ void cpu_axpy_launcher(const KernelInvocation& inv, void* /*user_data*/) {
     const BufferBinding* xb = inv.buffers.find(1);
     ASSERT_NE(yb, nullptr);
     ASSERT_NE(xb, nullptr);
-    const float* a = scalar_at<float>(inv.scalars, 0);
-    ASSERT_NE(a, nullptr);
+    auto a = read_scalar<float>(inv.scalars, 0);
+    ASSERT_TRUE(a.has_value());
     float* y = static_cast<float*>(yb->data);
     const float* x = static_cast<const float*>(xb->data);
     for (std::size_t i = inv.domain.begin; i < inv.domain.end; ++i) {
-        y[i] = (*a) * x[i] + y[i];
+        y[i] = *a * x[i] + y[i];
     }
 }
 
@@ -210,4 +210,65 @@ TEST(KernelRegistry, GlobalRegistryAccessible) {
     EXPECT_TRUE(reg.register_kernel(r));
     EXPECT_NE(reg.find("kernel.global_probe"), nullptr);
     EXPECT_TRUE(reg.supports("kernel.global_probe", "cpu"));
+}
+
+// ============================================================================
+// 9. Invocation 契约校验（24 号计划 §5.2）
+// ============================================================================
+TEST(KernelRegistry, InvocationContractValidation) {
+    KernelRegistry reg;
+    ASSERT_TRUE(reg.register_kernel(make_axpy_registration(false)));
+    const KernelRegistration* r = reg.find("kernel.axpy");
+    ASSERT_NE(r, nullptr);
+
+    constexpr std::size_t kN = 16;
+    std::vector<float> x(kN, 1.0f);
+    std::vector<float> y(kN, 2.0f);
+
+    KernelInvocation ok_inv;
+    ok_inv.id = "kernel.axpy";
+    ok_inv.domain = WorkDomain{0, kN};
+    ok_inv.buffers.add(0, y.data(), kN);
+    ok_inv.buffers.add(1, x.data(), kN);
+    append_scalar(ok_inv.scalars, 2.0f);
+    EXPECT_TRUE(validate_invocation(*r, ok_inv, "cpu").empty());
+
+    // buffer 数错误
+    KernelInvocation bad_buffers = ok_inv;
+    bad_buffers.buffers.bindings.pop_back();
+    EXPECT_FALSE(validate_invocation(*r, bad_buffers, "cpu").empty());
+
+    // scalar 字节错误（缺 alpha）
+    KernelInvocation bad_scalars = ok_inv;
+    bad_scalars.scalars.bytes.clear();
+    EXPECT_FALSE(validate_invocation(*r, bad_scalars, "cpu").empty());
+
+    // 空 domain
+    KernelInvocation bad_domain = ok_inv;
+    bad_domain.domain = WorkDomain{5, 5};
+    EXPECT_FALSE(validate_invocation(*r, bad_domain, "cpu").empty());
+
+    // NumericPolicy 与注册不一致（声明 FP64 累加而注册 FP32）
+    KernelInvocation bad_numeric = ok_inv;
+    bad_numeric.traits.numeric.accumulator = NumericPolicy::Accumulator::fp64;
+    EXPECT_FALSE(validate_invocation(*r, bad_numeric, "cpu").empty());
+
+    // cuda launcher 缺失 → cuda backend 校验失败
+    EXPECT_FALSE(validate_invocation(*r, ok_inv, "cuda").empty());
+}
+
+// ============================================================================
+// 10. ScalarArgBlob 对齐读取（memcpy，无 reinterpret_cast）
+// ============================================================================
+TEST(KernelRegistry, ScalarReadUnalignedSafe) {
+    ScalarArgBlob blob;
+    // 先写 1 字节填充，再写 double，验证偏移非对齐也能安全读取
+    blob.bytes.push_back(0xAB);
+    const double value = 3.141592653589793;
+    append_scalar(blob, value);
+    auto out = read_scalar<double>(blob, 1);
+    ASSERT_TRUE(out.has_value());
+    EXPECT_DOUBLE_EQ(*out, value);
+    // 越界返回 nullopt
+    EXPECT_FALSE(read_scalar<double>(blob, 100).has_value());
 }

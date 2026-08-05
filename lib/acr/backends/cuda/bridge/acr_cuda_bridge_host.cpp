@@ -16,7 +16,7 @@ void acr_launch_axpy(float* y, const float* x, float alpha,
                      size_t begin, size_t n, cudaStream_t stream);
 void acr_launch_copy(float* y, const float* x,
                      size_t begin, size_t n, cudaStream_t stream);
-void acr_launch_reduce(const float* x, float* partials,
+void acr_launch_reduce(const float* x, double* partials,
                        size_t begin, size_t n,
                        size_t chunk_index, size_t blocks_per_chunk,
                        cudaStream_t stream);
@@ -44,7 +44,7 @@ struct CudaExecutorHandle {
     std::mutex mtx;
     float* d_x{nullptr};
     float* d_y{nullptr};
-    float* d_partials{nullptr};
+    double* d_partials{nullptr};
     float* d_kernel{nullptr};
     size_t scratch_count{0};
     size_t partials_count{0};
@@ -59,6 +59,16 @@ cudaError_t ensure_buffer(float** buf, size_t& current, size_t needed) {
     *buf = nullptr;
     current = 0;
     cudaError_t err = cudaMalloc(buf, needed * sizeof(float));
+    if (err == cudaSuccess) current = needed;
+    return err;
+}
+
+cudaError_t ensure_buffer(double** buf, size_t& current, size_t needed) {
+    if (*buf != nullptr && current >= needed) return cudaSuccess;
+    if (*buf != nullptr) cudaFree(*buf);
+    *buf = nullptr;
+    current = 0;
+    cudaError_t err = cudaMalloc(buf, needed * sizeof(double));
     if (err == cudaSuccess) current = needed;
     return err;
 }
@@ -243,7 +253,7 @@ extern "C" int acr_cuda_executor_submit_copy(void* handle,
 extern "C" int acr_cuda_executor_submit_reduce(void* handle,
                                                size_t begin, size_t end,
                                                const float* x,
-                                               float* partials,
+                                               double* partials,
                                                size_t blocks_per_chunk,
                                                uint64_t chunk_index,
                                                uint64_t* elapsed_ns,
@@ -263,11 +273,11 @@ extern "C" int acr_cuda_executor_submit_reduce(void* handle,
         if (err != cudaSuccess) return err;
         cudaMemcpyAsync(h->d_x, x + begin, n * sizeof(float),
                         cudaMemcpyHostToDevice, h->stream);
-        cudaMemsetAsync(h->d_partials, 0, blocks_per_chunk * sizeof(float), h->stream);
+        cudaMemsetAsync(h->d_partials, 0, blocks_per_chunk * sizeof(double), h->stream);
         acr_launch_reduce(h->d_x, h->d_partials, 0, n,
                           static_cast<size_t>(chunk_index), blocks_per_chunk, h->stream);
         cudaMemcpyAsync(partials + chunk_index * blocks_per_chunk, h->d_partials,
-                        blocks_per_chunk * sizeof(float),
+                        blocks_per_chunk * sizeof(double),
                         cudaMemcpyDeviceToHost, h->stream);
         return cudaStreamSynchronize(h->stream);
     }, elapsed_ns, last_error);

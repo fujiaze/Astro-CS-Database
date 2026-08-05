@@ -229,7 +229,7 @@ TEST(CudaBridge, CopyReduceConvMatchCpu) {
     {
         std::vector<float> x(kN, 1.0f);
         const std::size_t max_chunks = kN / 256 + 8;
-        std::vector<float> partials(max_chunks * classic::kReduceBlocks, 0.0f);
+        std::vector<double> partials(max_chunks * classic::kReduceBlocks, 0.0);
         Dispatcher d;
         DispatcherConfig cfg;
         cfg.devices = {{"cpu", 0, 0, 50.0, true}, {"cuda:0", 1, 0, 500.0, true}};
@@ -241,11 +241,13 @@ TEST(CudaBridge, CopyReduceConvMatchCpu) {
         inv.domain = WorkDomain{0, kN};
         inv.buffers.add(0, x.data(), kN);
         inv.buffers.add(1, partials.data(), partials.size());
+        // 注册声明 FP64 accumulator（24 号计划 §5.1）
+        inv.traits.numeric.accumulator = NumericPolicy::Accumulator::fp64;
         auto r = d.dispatch_invocation(
             make_task(kN), make_estimate(static_cast<DeviceId>(1), 65536, 256), inv);
         ASSERT_TRUE(r.run_result.all_done);
         double total = 0.0;
-        for (float v : partials) total += v;
+        for (double v : partials) total += v;
         EXPECT_NEAR(total, static_cast<double>(kN), 1e-2);
     }
 

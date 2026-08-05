@@ -19,12 +19,12 @@ __global__ void acr_copy_kernel(float* y, const float* x,
     if (i < begin + n) y[i] = x[i];
 }
 
-__global__ void acr_reduce_kernel(const float* x, float* partials,
+__global__ void acr_reduce_kernel(const float* x, double* partials,
                                   size_t begin, size_t n,
                                   size_t chunk_index, size_t blocks_per_chunk) {
-    extern __shared__ float sdata[];
+    extern __shared__ double sdata[];  // FP64 局部累加（24 号计划 §5.1）
     const size_t i = begin + blockIdx.x * blockDim.x + threadIdx.x;
-    sdata[threadIdx.x] = (i < begin + n) ? x[i] : 0.0f;
+    sdata[threadIdx.x] = (i < begin + n) ? static_cast<double>(x[i]) : 0.0;
     __syncthreads();
     for (int stride = blockDim.x / 2; stride > 0; stride >>= 1) {
         if (threadIdx.x < static_cast<unsigned>(stride)) {
@@ -83,12 +83,12 @@ void acr_launch_copy(float* y, const float* x,
     acr_copy_kernel<<<grid_size(n), kThreads, 0, stream>>>(y, x, begin, n);
 }
 
-void acr_launch_reduce(const float* x, float* partials,
+void acr_launch_reduce(const float* x, double* partials,
                        size_t begin, size_t n,
                        size_t chunk_index, size_t blocks_per_chunk,
                        cudaStream_t stream) {
     acr_reduce_kernel<<<static_cast<int>(blocks_per_chunk), kThreads,
-                        kThreads * sizeof(float), stream>>>(
+                        kThreads * sizeof(double), stream>>>(
         x, partials, begin, n, chunk_index, blocks_per_chunk);
 }
 

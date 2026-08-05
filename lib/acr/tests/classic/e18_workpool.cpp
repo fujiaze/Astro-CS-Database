@@ -139,7 +139,7 @@ CaseResult run_mixed_reduce(std::size_t total, const std::string& case_id) {
     }
     std::vector<float> x(total, 1.0f);
     const std::size_t max_chunks = total / 64 + 8;
-    std::vector<float> partials(max_chunks * classic::kReduceBlocks, 0.0f);
+    std::vector<double> partials(max_chunks * classic::kReduceBlocks, 0.0);
 
     Dispatcher d;
     DispatcherConfig cfg;
@@ -154,13 +154,15 @@ CaseResult run_mixed_reduce(std::size_t total, const std::string& case_id) {
     inv.domain = WorkDomain{0, total};
     inv.buffers.add(0, x.data(), total);
     inv.buffers.add(1, partials.data(), partials.size());
+    // 注册声明 FP64 accumulator（24 号计划 §5.1）
+    inv.traits.numeric.accumulator = NumericPolicy::Accumulator::fp64;
 
     auto est = make_mixed_estimate(total);
     CostAwareResult r;
     tm = measure_timing([&] { r = d.dispatch_invocation(make_task(total), est, inv); }, 1);
 
     double sum = 0.0;
-    for (float v : partials) sum += v;
+    for (double v : partials) sum += v;
     bool ok = r.run_result.all_done &&
               r.chunks_on_cpu > 0 && r.chunks_on_gpu > 0 &&
               std::fabs(sum - static_cast<double>(total)) <=

@@ -6,6 +6,43 @@
 
 namespace astro::compute {
 
+std::string validate_invocation(const KernelRegistration& reg,
+                                const KernelInvocation& inv,
+                                const std::string& backend) {
+    if (inv.id != reg.id) {
+        return "operation id mismatch: invocation=" + std::string(inv.id) +
+               ", registered=" + std::string(reg.id);
+    }
+    if (inv.buffers.size() != reg.args.buffer_count) {
+        return "buffer count mismatch: expected " +
+               std::to_string(reg.args.buffer_count) + ", got " +
+               std::to_string(inv.buffers.size());
+    }
+    if (inv.scalars.bytes.size() != reg.args.scalar_bytes) {
+        return "scalar bytes mismatch: expected " +
+               std::to_string(reg.args.scalar_bytes) + ", got " +
+               std::to_string(inv.scalars.bytes.size());
+    }
+    if (inv.domain.empty()) {
+        return "empty domain";
+    }
+    if (backend == "cpu" && reg.cpu == nullptr) {
+        return "no cpu launcher registered for operation";
+    }
+    if (backend.rfind("cuda", 0) == 0 && !reg.cuda.has_value()) {
+        return "no cuda launcher registered for operation";
+    }
+    // 24 号计划 §5.1：调用方 NumericPolicy 必须与注册声明一致
+    // （注册声明必须反映 launcher 的真实数值行为）
+    if (inv.traits.numeric.compute != reg.numeric.compute ||
+        inv.traits.numeric.accumulator != reg.numeric.accumulator ||
+        inv.traits.numeric.deterministic_merge != reg.numeric.deterministic_merge ||
+        inv.traits.numeric.allow_fast_math != reg.numeric.allow_fast_math) {
+        return "numeric policy mismatch with registration";
+    }
+    return "";
+}
+
 bool KernelRegistry::register_kernel(const KernelRegistration& reg) {
     if (reg.id.empty() || reg.cpu == nullptr) {
         // 至少需要一个 CPU launcher；空 id 拒绝注册
