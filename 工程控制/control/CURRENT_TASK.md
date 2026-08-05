@@ -1,5 +1,18 @@
 # 当前任务
 
+## ACR 状态（2026-08-05 25 号计划完成）
+
+**feature/astrocompute-runtime 分支（不合并 main）**：25 号计划
+`docs/ACR_25_SECOND_FIX_IMPLEMENTATION_REVIEW_CORRECTION_PLAN.md`（外部控制包
+`AstroCS_ACR_Control_Package(6).zip`，SHA `755278bfd7c227aaea7e894a58f9bf860b73d09b4adb40416b644b7e267b5f98`）。
+8 个原子提交已完成（Benchmark 无竞争内核/工作负载等价 → CUDA 容量与分块卷积 →
+full qualification 与真实设备元数据 → profile key 与传输成本 → 跨设备 holdout →
+RAM/VRAM 预算与内存反压 → compute-sanitizer/CPU ASan 证据 → 单 HEAD Evidence）。
+全量 ctest 641/641 通过（CUDA 真实运行），path guard PASS，证据仓库外生成
+（`run/evidence/acr_25plan_20260805/`）。已知限制（schema 版本差异、UBSan/TSan
+不可用、利用率闭环按用户要求移除）已如实记录。审核包
+`AstroCS_Review_SecondFixImplementationReview_20260805.zip` 位于根目录。
+
 ## 状态 (2026-07-29 更新)
 
 **P13-002 进行中** — 运行全部 TestData Stage1

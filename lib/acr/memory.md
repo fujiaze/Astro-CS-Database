@@ -6,6 +6,67 @@
 
 ## 进度
 
+### 2026-08-05 25 号计划执行（控制包 SHA 755278bf...5f98）
+
+**执行入口**：`25_SECOND_FIX_IMPLEMENTATION_REVIEW_CORRECTION_PLAN.md`（外部
+控制包 6；仓库内副本 `工程控制/docs/ACR_25_SECOND_FIX_IMPLEMENTATION_REVIEW_CORRECTION_PLAN.md`）。
+
+**用户方向（2026-08-05）**：不再实现 CPU/GPU 50/80/95/100 利用率精确闭环
+（Windows 无软限制系统 API），需求移除；只保留 RAM/VRAM 容量预算与反压；
+优先把底层跑通（Benchmark/成本模型/CUDA 分块/内存预算），不改算法。
+
+**已完成（25 号计划 §10 原子提交顺序）**：
+1. `fix(acr): make qualification kernels race-free and workload-equivalent`
+   （3b7c545）：Dot 每 chunk 独立 FP64 partial + merge；Histogram 分
+   hist_tls/hist_atomic；Scatter 分 scatter_perm/scatter_atomic；卷积/Mandelbrot
+   统一 problem_size=总工作项；新增 BenchmarkWorkloadDescriptor + variant 字段。
+2. `fix(acr): harden cuda bridge capacities and chunked convolution`
+   （fd42381）：d_x/d_y/d_partials/d_kernel/d_image 独立容量记账；分块卷积
+   全局输出索引 + chunk-local 写；reduce grid 对齐。
+3. `feat(acr): full qualification fields, raw records and real device metadata`
+   （410b0e7）：Curve/Point 加 source/qualified/sample_count/confidence；
+   quick 标 diagnostic_only=true；raw_benchmark_records.json；桥接导出
+   acr_cuda_device_memory/compute（显存/SM/CC）。
+4. `fix(acr): align profile keys residency and cost-estimator transfer accounting`
+   （659fa24）：memory key 改 (level,residency,operation)；reduction sum/dot
+   分离；profile_available 仅命中 qualified measured 曲线；传输成本按单块字节。
+5. `test(acr): add cross-device holdout and routing qualification`
+   （37a871d）：4 拟合点 + 3 插值 holdout + 1 外推；CPU AXPY/Dot 与真实 GPU；
+   排序正确率 ≥90%（实测 100%）；AXPY 波动如实标 unqualified。
+6. `feat(acr): enforce ram vram budgets and recoverable memory backpressure`
+   （ead5f95）：MemoryBudgetConfig 分离 RAM 2048MiB/VRAM 512MiB 固定保留；
+   每次 claim 前按输入/输出/临时/双缓冲/传输 staging/partial/merge 估算峰值，
+   动作 ShrinkBlock/StopNewSubmit/ReleaseCache/LowMemoryPath/
+   FallbackOtherDevice/Fail 全部真实进入执行链；ResourceControlStats 记录
+   mem_peak_estimates/mem_peak_actions/mem_vram_actions/mem_peak_max；
+   3 项新测试（Peak*）全通过。
+7. `test(acr): add compute-sanitizer and cpu sanitizer evidence runner`
+   （a388209）：tests/sanitizer/run_acr_sanitizers.ps1 统一运行 MSVC ASan
+   （4 组件）与 compute-sanitizer memcheck/racecheck（warm-up + 明确 timeout +
+   exit code 记录）；memcheck 0 errors、racecheck 0 hazards。
+8. `test(acr): mark unstable holdout curves unqualified instead of flaky assert`
+   （3740405）：sum reduction holdout 波动大（0.11~0.67 随运行浮动），改为
+   如实标 qualified/unqualified（reduction merge 开销主导论证），不再 flaky 断言。
+
+**验证结果（2026-08-05）**：
+- 全量 ctest（ACR_CUDA_BRIDGE_DLL 注入，CUDA 真实运行）：641/641 通过，
+  0 失败；8 SKIPPED（SanitizerActual×7 因 MinGW 无 ASan + ApiReduce 1 项）。
+- full Benchmark（CPU+GPU，RTX 3060 Ti）：56 条记录、每曲线 10 样本 × 3 尺寸、
+  qualified=true、source=measured。
+- compute-sanitizer：memcheck 0 errors（多块卷积 + 独立扩缩容）、
+  racecheck 0 hazards。
+- MSVC ASan：SharedWorkPool 1000 轮 + Registry 并发 + CpuExecutor 契约 +
+  CpuController 2000 决策无错误；故意 UAF 被检出。
+
+**已知限制（如实）**：
+- 仓库/控制包 hardware_profile.schema.json（1.0）未随 v1 生成格式同步；
+  raw_benchmark_records.json 未对齐新增 raw_benchmark_record.schema.json
+  （缺 record_id/result_validation/source 等）——schema 差异已写入
+  run/evidence/acr_25plan_20260805/profile/schema_report.md，未伪装通过。
+- UBSan/TSan 本机仍不可用（MinGW/clang 无运行库）；Dispatcher/ProfileBuilder
+  因 oneTBB/hwloc MinGW ABI 依赖未纳入 MSVC ASan，如实记录。
+- CPU/GPU 利用率精确闭环已按用户要求移除，不做测试、不做门禁。
+
 ### 2026-08-05 24 号计划执行（控制包 SHA 755278bf...5f98）
 
 **执行入口**：`24_SECOND_FIX_IMPLEMENTATION_CORRECTION_PLAN.md`（审计对象
