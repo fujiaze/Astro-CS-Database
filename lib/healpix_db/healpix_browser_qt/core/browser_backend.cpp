@@ -951,10 +951,13 @@ int BrowserBackend::read_tile_snr(uint64_t parent_ipix, HissTileData& tile) {
 
     uint8_t* snr_data = nullptr;
     uint32_t n_points = 0;
-    int ret = aio_hiss_read_tile_snr(file_path_.c_str(), parent_ipix,
-                                      &snr_data, &n_points);
+    // R11 (PREC-109): 按文件精度选择 SNR 读取 (FP64 文件 SNR 为 f64 存储, 12B/点)
+    int ret = is_fp64_
+        ? aio_hiss_read_tile_snr_f64(file_path_.c_str(), parent_ipix, &snr_data, &n_points)
+        : aio_hiss_read_tile_snr(file_path_.c_str(), parent_ipix, &snr_data, &n_points);
     if (ret != 0) {
-        LOG_ERROR("read_tile_snr: aio_hiss_read_tile_snr 失败 ret=%d parent=%llu",
+        LOG_ERROR("read_tile_snr: aio_hiss_read_tile_snr%s 失败 ret=%d parent=%llu",
+                  is_fp64_ ? "_f64" : "",
                   ret, (unsigned long long)parent_ipix);
         return -2;
     }

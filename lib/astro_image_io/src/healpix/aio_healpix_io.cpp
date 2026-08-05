@@ -736,6 +736,54 @@ AIO_EXPORT int aio_hiss_read_tile_snr(const char* path, uint64_t parent_ipix,
 }
 
 // ============================================================================
+// R11: aio_hiss_read_tile_snr_f64 - 读取 FP64 SNR 控制点 (snr_dtype=1 文件)
+// 返回紧凑二进制: n_points * 12 字节, 每点 local_ipix(uint32 LE) + snr(float64 LE)
+// f32 文件返回错误 (禁止静默转换)
+// ============================================================================
+AIO_EXPORT int aio_hiss_read_tile_snr_f64(const char* path, uint64_t parent_ipix,
+                                            uint8_t** snr_out, uint32_t* n_points) {
+    if (!path || !snr_out || !n_points) {
+        fprintf(stderr, "[hio] hiss_read_tile_snr_f64: 无效参数\n");
+        return HIO_ERR_PARAM;
+    }
+    *snr_out = nullptr;
+    *n_points = 0;
+
+    hiss::HissReader reader;
+    if (reader.open(path) != 0) {
+        fprintf(stderr, "[hio] hiss_read_tile_snr_f64: HissReader.open 失败: %s\n", path);
+        return HIO_ERR_FILE;
+    }
+
+    hiss::HissSnrBlockF64 snr_block;
+    int ret = reader.read_tile_snr_f64(parent_ipix, snr_block);
+    if (ret != 0) {
+        fprintf(stderr, "[hio] hiss_read_tile_snr_f64: read_tile_snr_f64 失败 ret=%d parent=%llu\n",
+                ret, (unsigned long long)parent_ipix);
+        return HIO_ERR_FILE;
+    }
+
+    if (snr_block.points.empty()) {
+        return HIO_OK;  // 无 SNR 控制点
+    }
+
+    *n_points = (uint32_t)snr_block.points.size();
+    *snr_out = (uint8_t*)std::malloc(snr_block.points.size() * 12);
+    if (!*snr_out) {
+        fprintf(stderr, "[hio] hiss_read_tile_snr_f64: 内存分配失败\n");
+        return HIO_ERR_MEM;
+    }
+    for (size_t i = 0; i < snr_block.points.size(); i++) {
+        uint32_t local_ipix = snr_block.points[i].local_ipix;
+        double snr_val = snr_block.points[i].snr;
+        uint8_t* p = *snr_out + i * 12;
+        std::memcpy(p, &local_ipix, 4);   // LE
+        std::memcpy(p + 4, &snr_val, 8);  // LE (f64)
+    }
+    return HIO_OK;
+}
+
+// ============================================================================
 // WP-H 步骤14: aio_hiss_query_pixel - 通过 ra/dec 查询像素值
 // 与 HissReader::query_pixel 一致
 // ============================================================================

@@ -330,6 +330,83 @@ int HissWriter::open(const std::string& output_path,
 //   5. 压缩后立即写入临时池 (步骤10), 不保留 compressed_data
 // ---------------------------------------------------------------------------
 
+
+// ============================================================================
+// write_snr_subblock - SNR 子块序列化 (R11: snr_dtype 0=f32 8B/点, 1=f64 12B/点)
+// 布局: [estimator_id u32][sampling_scale f32][n_points u32] + points
+//   f32: local_ipix(u32) + snr(f32) = 8B;  f64: local_ipix(u32) + snr(f64) = 12B
+// ============================================================================
+static int write_snr_subblock(const HissSnrBlock* snr, uint8_t snr_dtype,
+                              std::vector<HissSubblockDescriptor>& subblocks,
+                              HissStreamWriter& stream,
+                              CodecId codec_id, TransformId transform_id,
+                              ChecksumType checksum_type) {
+    if (!snr) return 0;
+    std::vector<HissSnrControlPoint> sorted_points = snr->points;
+    std::sort(sorted_points.begin(), sorted_points.end(),
+              [](const HissSnrControlPoint& a, const HissSnrControlPoint& b) {
+                  return a.local_ipix < b.local_ipix;
+              });
+    auto last = std::unique(sorted_points.begin(), sorted_points.end(),
+                            [](const HissSnrControlPoint& a, const HissSnrControlPoint& b) {
+                                return a.local_ipix == b.local_ipix;
+                            });
+    sorted_points.erase(last, sorted_points.end());
+
+    uint32_t n_points = (uint32_t)sorted_points.size();
+    size_t point_bytes = (snr_dtype == 1) ? 12 : 8;
+    size_t snr_bytes = 4 + 4 + 4 + (size_t)n_points * point_bytes;
+    std::vector<uint8_t> snr_data(snr_bytes);
+    size_t off = 0;
+    uint32_t eid = snr->estimator_id;
+    snr_data[off+0] = (uint8_t)(eid & 0xFF);
+    snr_data[off+1] = (uint8_t)((eid >> 8) & 0xFF);
+    snr_data[off+2] = (uint8_t)((eid >> 16) & 0xFF);
+    snr_data[off+3] = (uint8_t)((eid >> 24) & 0xFF);
+    off += 4;
+    uint32_t sbits;
+    std::memcpy(&sbits, &snr->sampling_scale, 4);
+    snr_data[off+0] = (uint8_t)(sbits & 0xFF);
+    snr_data[off+1] = (uint8_t)((sbits >> 8) & 0xFF);
+    snr_data[off+2] = (uint8_t)((sbits >> 16) & 0xFF);
+    snr_data[off+3] = (uint8_t)((sbits >> 24) & 0xFF);
+    off += 4;
+    snr_data[off+0] = (uint8_t)(n_points & 0xFF);
+    snr_data[off+1] = (uint8_t)((n_points >> 8) & 0xFF);
+    snr_data[off+2] = (uint8_t)((n_points >> 16) & 0xFF);
+    snr_data[off+3] = (uint8_t)((n_points >> 24) & 0xFF);
+    off += 4;
+    for (uint32_t i = 0; i < n_points; i++) {
+        uint32_t lip = sorted_points[i].local_ipix;
+        snr_data[off+0] = (uint8_t)(lip & 0xFF);
+        snr_data[off+1] = (uint8_t)((lip >> 8) & 0xFF);
+        snr_data[off+2] = (uint8_t)((lip >> 16) & 0xFF);
+        snr_data[off+3] = (uint8_t)((lip >> 24) & 0xFF);
+        off += 4;
+        if (snr_dtype == 1) {
+            double s = (double)sorted_points[i].snr;
+            std::memcpy(snr_data.data() + off, &s, 8);
+            off += 8;
+        } else {
+            uint32_t sbits2;
+            std::memcpy(&sbits2, &sorted_points[i].snr, 4);
+            snr_data[off+0] = (uint8_t)(sbits2 & 0xFF);
+            snr_data[off+1] = (uint8_t)((sbits2 >> 8) & 0xFF);
+            snr_data[off+2] = (uint8_t)((sbits2 >> 16) & 0xFF);
+            snr_data[off+3] = (uint8_t)((sbits2 >> 24) & 0xFF);
+            off += 4;
+        }
+    }
+    HissSubblockDescriptor desc;
+    int ret = compress_and_append(
+        stream, SubblockType::SNR, (uint16_t)SubblockFlags::OPTIONAL,
+        snr_data.data(), snr_data.size(),
+        codec_id, transform_id, checksum_type, 1, desc);
+    if (ret != 0) return ret;
+    subblocks.push_back(desc);
+    return 0;
+}
+
 int HissWriter::add_tile(uint64_t parent_ipix,
                          const DrizzleTileAccumulator& acc,
                          const HissSnrBlock* snr,
@@ -482,89 +559,13 @@ int HissWriter::add_tile(uint64_t parent_ipix,
         subblocks.push_back(desc);
     }
 
-    // 5d. SNR 子块 (可选, snr != nullptr 时生成)
-    //     R04-B18: block 级 estimator_id/sampling_scale/count + 点数据
-    //     冻结布局 (02_FROZEN §17 + 00_COMMON_CONTRACTS §2.5):
-    //       [estimator_id:  uint32 LE]   — 估计器 ID (block 级)
-    //       [sampling_scale: float32 LE] — 采样尺度 (block 级)
-    //       [n_points:      uint32 LE]   — 控制点数 (= count, block 级)
-    //       [points: n_points * 8B]      — 每点 local_ipix(uint32) + snr(float32)
-    //     重复点处理: Writer 按升序排序 local_ipix, 重复点保留首次出现 (确定性规则)
-    //     无覆盖点: 不得写入 (Stage1 映射到 Tile 后才写入, 不静默丢失)
-    //     WP-G 步骤12: SNR 为混合布局, element_size=1 (transform 一般不适用于 SNR)
+    // 5d. SNR 子块 (可选, snr_dtype=0 f32)
     if (snr) {
-        // R04-B18: 确定性重复点处理 — 按 local_ipix 升序排序, 重复点保留首次出现
-        std::vector<HissSnrControlPoint> sorted_points = snr->points;
-        std::sort(sorted_points.begin(), sorted_points.end(),
-                  [](const HissSnrControlPoint& a, const HissSnrControlPoint& b) {
-                      return a.local_ipix < b.local_ipix;
-                  });
-        auto last = std::unique(sorted_points.begin(), sorted_points.end(),
-                                [](const HissSnrControlPoint& a, const HissSnrControlPoint& b) {
-                                    return a.local_ipix == b.local_ipix;
-                                });
-        sorted_points.erase(last, sorted_points.end());
-
-        uint32_t n_points = (uint32_t)sorted_points.size();
-        // R04-B18: 布局 = estimator_id(4) + sampling_scale(4) + n_points(4) + points(n*8)
-        size_t snr_bytes = 4 + 4 + 4 + (size_t)n_points * 8;
-        std::vector<uint8_t> snr_data(snr_bytes);
-        size_t off = 0;
-        // estimator_id (uint32 LE)
-        uint32_t eid = snr->estimator_id;
-        snr_data[off+0] = (uint8_t)(eid & 0xFF);
-        snr_data[off+1] = (uint8_t)((eid >> 8) & 0xFF);
-        snr_data[off+2] = (uint8_t)((eid >> 16) & 0xFF);
-        snr_data[off+3] = (uint8_t)((eid >> 24) & 0xFF);
-        off += 4;
-        // sampling_scale (float32 LE)
-        uint32_t sbits;
-        std::memcpy(&sbits, &snr->sampling_scale, 4);
-        snr_data[off+0] = (uint8_t)(sbits & 0xFF);
-        snr_data[off+1] = (uint8_t)((sbits >> 8) & 0xFF);
-        snr_data[off+2] = (uint8_t)((sbits >> 16) & 0xFF);
-        snr_data[off+3] = (uint8_t)((sbits >> 24) & 0xFF);
-        off += 4;
-        // n_points (uint32 LE)
-        snr_data[off+0] = (uint8_t)(n_points & 0xFF);
-        snr_data[off+1] = (uint8_t)((n_points >> 8) & 0xFF);
-        snr_data[off+2] = (uint8_t)((n_points >> 16) & 0xFF);
-        snr_data[off+3] = (uint8_t)((n_points >> 24) & 0xFF);
-        off += 4;
-        // points: 每点 local_ipix(uint32 LE) + snr(float32 LE) = 8 字节
-        for (uint32_t i = 0; i < n_points; i++) {
-            uint32_t lip = sorted_points[i].local_ipix;
-            snr_data[off+0] = (uint8_t)(lip & 0xFF);
-            snr_data[off+1] = (uint8_t)((lip >> 8) & 0xFF);
-            snr_data[off+2] = (uint8_t)((lip >> 16) & 0xFF);
-            snr_data[off+3] = (uint8_t)((lip >> 24) & 0xFF);
-            uint32_t sbits2;
-            std::memcpy(&sbits2, &sorted_points[i].snr, 4);
-            snr_data[off+4] = (uint8_t)(sbits2 & 0xFF);
-            snr_data[off+5] = (uint8_t)((sbits2 >> 8) & 0xFF);
-            snr_data[off+6] = (uint8_t)((sbits2 >> 16) & 0xFF);
-            snr_data[off+7] = (uint8_t)((sbits2 >> 24) & 0xFF);
-            off += 8;
-        }
-        HissSubblockDescriptor desc;
-        int ret = compress_and_append(
-            pimpl_->stream,
-            SubblockType::SNR,
-            (uint16_t)SubblockFlags::OPTIONAL,
-            snr_data.data(), snr_data.size(),
-            pimpl_->codec_for(SubblockType::SNR),
-            pimpl_->transform_for(SubblockType::SNR),
-            pimpl_->checksum_for(SubblockType::SNR),
-            1,  // element_size=1 (混合布局, 按字节处理)
-            desc);
+        int ret = write_snr_subblock(snr, 0, subblocks, pimpl_->stream,
+                                     pimpl_->codec_for(SubblockType::SNR),
+                                     pimpl_->transform_for(SubblockType::SNR),
+                                     pimpl_->checksum_for(SubblockType::SNR));
         if (ret != 0) return ret;
-        subblocks.push_back(desc);
-
-        fprintf(stderr,
-                "[hiss][writer]   SNR 子块: estimator_id=%u sampling_scale=%g 写入 %u 个控制点 "
-                "(去重后, 布局: eid+scale+n_points + %llu 字节)\n",
-                snr->estimator_id, snr->sampling_scale, n_points,
-                (unsigned long long)((size_t)n_points * 8));
     }
 
     // 6. 记录 Tile 目录 (只保留描述符, 不保留压缩数据 — 步骤10)
@@ -606,7 +607,7 @@ int HissWriter::add_tile_f64(uint64_t parent_ipix,
     pimpl_->metadata.precision_mode = 1;
     pimpl_->metadata.signal_dtype   = 1;
     // R11: FP64 模式下科学 metadata 浮点 dtype 随模式 (PREC-110)
-    // 注: snr_dtype 保持 0 — FP64 SNR 子块(12B/点)尚未实现, 不可虚报
+    pimpl_->metadata.snr_dtype = 1;  // R11: FP64 SNR 子块(12B/点)
     pimpl_->metadata.metadata_float_dtype = 1;
 
     const size_t n_leaf = acc.pixels.size();
@@ -736,68 +737,13 @@ int HissWriter::add_tile_f64(uint64_t parent_ipix,
         subblocks.push_back(desc);
     }
 
-    // 5d. SNR 子块 (可选)
+    // 5d. SNR 子块 (可选, snr_dtype=1 f64, R11 PREC-109)
     if (snr) {
-        std::vector<HissSnrControlPoint> sorted_points = snr->points;
-        std::sort(sorted_points.begin(), sorted_points.end(),
-                  [](const HissSnrControlPoint& a, const HissSnrControlPoint& b) {
-                      return a.local_ipix < b.local_ipix;
-                  });
-        auto last = std::unique(sorted_points.begin(), sorted_points.end(),
-                                [](const HissSnrControlPoint& a, const HissSnrControlPoint& b) {
-                                    return a.local_ipix == b.local_ipix;
-                                });
-        sorted_points.erase(last, sorted_points.end());
-
-        uint32_t n_points = (uint32_t)sorted_points.size();
-        size_t snr_bytes = 4 + 4 + 4 + (size_t)n_points * 8;
-        std::vector<uint8_t> snr_data(snr_bytes);
-        size_t off = 0;
-        uint32_t eid = snr->estimator_id;
-        snr_data[off+0] = (uint8_t)(eid & 0xFF);
-        snr_data[off+1] = (uint8_t)((eid >> 8) & 0xFF);
-        snr_data[off+2] = (uint8_t)((eid >> 16) & 0xFF);
-        snr_data[off+3] = (uint8_t)((eid >> 24) & 0xFF);
-        off += 4;
-        uint32_t sbits;
-        std::memcpy(&sbits, &snr->sampling_scale, 4);
-        snr_data[off+0] = (uint8_t)(sbits & 0xFF);
-        snr_data[off+1] = (uint8_t)((sbits >> 8) & 0xFF);
-        snr_data[off+2] = (uint8_t)((sbits >> 16) & 0xFF);
-        snr_data[off+3] = (uint8_t)((sbits >> 24) & 0xFF);
-        off += 4;
-        snr_data[off+0] = (uint8_t)(n_points & 0xFF);
-        snr_data[off+1] = (uint8_t)((n_points >> 8) & 0xFF);
-        snr_data[off+2] = (uint8_t)((n_points >> 16) & 0xFF);
-        snr_data[off+3] = (uint8_t)((n_points >> 24) & 0xFF);
-        off += 4;
-        for (uint32_t i = 0; i < n_points; i++) {
-            uint32_t lip = sorted_points[i].local_ipix;
-            snr_data[off+0] = (uint8_t)(lip & 0xFF);
-            snr_data[off+1] = (uint8_t)((lip >> 8) & 0xFF);
-            snr_data[off+2] = (uint8_t)((lip >> 16) & 0xFF);
-            snr_data[off+3] = (uint8_t)((lip >> 24) & 0xFF);
-            uint32_t sbits2;
-            std::memcpy(&sbits2, &sorted_points[i].snr, 4);
-            snr_data[off+4] = (uint8_t)(sbits2 & 0xFF);
-            snr_data[off+5] = (uint8_t)((sbits2 >> 8) & 0xFF);
-            snr_data[off+6] = (uint8_t)((sbits2 >> 16) & 0xFF);
-            snr_data[off+7] = (uint8_t)((sbits2 >> 24) & 0xFF);
-            off += 8;
-        }
-        HissSubblockDescriptor desc;
-        int ret = compress_and_append(
-            pimpl_->stream,
-            SubblockType::SNR,
-            (uint16_t)SubblockFlags::OPTIONAL,
-            snr_data.data(), snr_data.size(),
-            pimpl_->codec_for(SubblockType::SNR),
-            pimpl_->transform_for(SubblockType::SNR),
-            pimpl_->checksum_for(SubblockType::SNR),
-            1,
-            desc);
+        int ret = write_snr_subblock(snr, 1, subblocks, pimpl_->stream,
+                                     pimpl_->codec_for(SubblockType::SNR),
+                                     pimpl_->transform_for(SubblockType::SNR),
+                                     pimpl_->checksum_for(SubblockType::SNR));
         if (ret != 0) return ret;
-        subblocks.push_back(desc);
     }
 
     // 6. 记录 Tile 目录

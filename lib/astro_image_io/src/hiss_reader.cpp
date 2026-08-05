@@ -1337,6 +1337,14 @@ int HissReader::read_tile_support(uint64_t parent_ipix,
 int HissReader::read_tile_snr(uint64_t parent_ipix, HissSnrBlock& snr) const {
     const Impl& impl = *pimpl_;
 
+    // R11 (PREC-109): snr_dtype=1 (f64) 文件禁止用 f32 接口读取 (禁止静默转换)
+    if (impl.metadata.snr_dtype == 1) {
+        fprintf(stderr,
+                "[hiss][reader] read_tile_snr 失败: 文件 SNR 为 FP64 (snr_dtype=1), "
+                "请使用 read_tile_snr_f64 (禁止静默转换)\n");
+        return HISS_ERR_UNSUPPORTED;
+    }
+
     size_t idx;
     if (impl.find_tile(parent_ipix, &idx) != 0) return -1;
     const HissTile& tile = impl.tiles[idx];
@@ -1384,6 +1392,64 @@ int HissReader::read_tile_snr(uint64_t parent_ipix, HissSnrBlock& snr) const {
             "[hiss][reader]   SNR 子块: estimator_id=%u sampling_scale=%g 读取 %u 个控制点\n",
             snr.estimator_id, snr.sampling_scale, n_points);
 
+    return 0;
+}
+
+// ============================================================================
+// read_tile_snr_f64 - 读取 FP64 SNR 控制点 (R11, 每点 12B: local_ipix u32 + snr f64)
+// ============================================================================
+int HissReader::read_tile_snr_f64(uint64_t parent_ipix, HissSnrBlockF64& snr) const {
+    const Impl& impl = *pimpl_;
+
+    // R11 (PREC-109): snr_dtype=0 (f32) 文件禁止用 f64 接口读取
+    if (impl.metadata.snr_dtype != 1) {
+        fprintf(stderr,
+                "[hiss][reader] read_tile_snr_f64 失败: 文件 SNR 为 FP32 (snr_dtype=0), "
+                "请使用 read_tile_snr (禁止静默转换)\n");
+        return HISS_ERR_UNSUPPORTED;
+    }
+
+    size_t idx;
+    if (impl.find_tile(parent_ipix, &idx) != 0) return -1;
+    const HissTile& tile = impl.tiles[idx];
+
+    const HissSubblockDescriptor* snr_desc = Impl::find_subblock(tile, SubblockType::SNR);
+    if (!snr_desc) {
+        fprintf(stderr, "[hiss][reader] Tile %llu 无 SNR 子块\n",
+                (unsigned long long)parent_ipix);
+        return -6;
+    }
+
+    std::vector<uint8_t> raw;
+    int ret = impl.read_subblock(*snr_desc, raw);
+    if (ret != 0) return ret;
+
+    if (raw.size() < 12) {
+        fprintf(stderr, "[hiss][reader] SNR 数据过短: %zu (最小 12)\n", raw.size());
+        return HISS_ERR_FORMAT_VIOLATION;
+    }
+
+    snr.estimator_id   = read_u32_le(raw.data() + 0);
+    snr.sampling_scale = read_f32_le(raw.data() + 4);
+    uint32_t n_points  = read_u32_le(raw.data() + 8);
+
+    size_t expected = 12 + (size_t)n_points * 12;  // f64: 每点 12 字节
+    if (raw.size() != expected) {
+        fprintf(stderr, "[hiss][reader] SNR(f64) 数据长度不匹配: got=%zu expected=%zu (n_points=%u)\n",
+                raw.size(), expected, n_points);
+        return HISS_ERR_FORMAT_VIOLATION;
+    }
+
+    snr.points.resize(n_points);
+    const uint8_t* p = raw.data() + 12;
+    for (uint32_t i = 0; i < n_points; i++) {
+        snr.points[i].local_ipix = read_u32_le(p);
+        uint64_t bits = read_u64_le(p + 4);
+        double s;
+        std::memcpy(&s, &bits, sizeof(double));
+        snr.points[i].snr = s;
+        p += 12;
+    }
     return 0;
 }
 

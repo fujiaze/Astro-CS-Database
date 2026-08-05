@@ -201,6 +201,12 @@ struct HissSnrControlPoint {
     float    snr;         // SNR 值
 };
 
+// R11: FP64 SNR 控制点 (HISS snr_dtype=1, 每点 12B: local_ipix u32 + snr f64)
+struct HissSnrControlPointF64 {
+    uint32_t local_ipix;
+    double   snr;
+};
+
 // HissSnrBlock: SNR 子块在内存中的表示
 // 依据 02_FROZEN §17 和 00_COMMON_CONTRACTS §2.5, HISS 文件中保存
 // estimator_id + sampling_scale + n_points + points (每点 local_ipix + snr),
@@ -210,6 +216,13 @@ struct HissSnrBlock {
     uint32_t estimator_id = 0;        // 估计器 ID (block 级, R04-B18)
     float    sampling_scale = 0.0f;   // 采样尺度 (block 级, R04-B18)
     std::vector<HissSnrControlPoint> points;  // 控制点列表 (count = points.size())
+};
+
+// R11: FP64 SNR 块 (snr_dtype=1)
+struct HissSnrBlockF64 {
+    uint32_t estimator_id = 0;
+    float    sampling_scale = 0.0f;
+    std::vector<HissSnrControlPointF64> points;
 };
 
 // ============================================================================
@@ -471,6 +484,10 @@ public:
     // 读取 SNR 控制点
     HISS_EXPORT int read_tile_snr(uint64_t parent_ipix,
                                    HissSnrBlock& snr) const;
+
+    // R11: 读取 FP64 SNR 控制点 (仅 snr_dtype=1 文件; f32 文件返回错误, 禁止静默转换)
+    HISS_EXPORT int read_tile_snr_f64(uint64_t parent_ipix,
+                                       HissSnrBlockF64& snr) const;
 
     // 查询某位置的 signal/support (通过 NSIDE/NESTED/ICRS 定位)
     // ra, dec - 度

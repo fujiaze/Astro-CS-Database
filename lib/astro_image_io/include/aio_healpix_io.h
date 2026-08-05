@@ -151,6 +151,12 @@ AIO_EXPORT int aio_hiss_read_tile_support(const char* path, uint64_t parent_ipix
 AIO_EXPORT int aio_hiss_read_tile_snr(const char* path, uint64_t parent_ipix,
                                         uint8_t** snr_out, uint32_t* n_points);
 
+// R11: 按 Tile 读取 SNR 控制点 (FP64, snr_dtype=1 文件专用)
+// snr_out - 输出参数 (malloc 分配, 每点 12 字节: local_ipix uint32 LE + snr float64 LE)
+// 仅适用于 snr_dtype=1 文件; f32 文件返回错误 (禁止静默转换)
+AIO_EXPORT int aio_hiss_read_tile_snr_f64(const char* path, uint64_t parent_ipix,
+                                            uint8_t** snr_out, uint32_t* n_points);
+
 // WP-H 步骤14: 通过 ra/dec 查询像素值 (与 HissReader::query_pixel 一致)
 // ra, dec - 度
 // signal, support - 输出参数 (单个值)

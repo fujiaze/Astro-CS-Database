@@ -3015,6 +3015,9 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
     using ReadTileSnrFn = int (*)(const char*, uint64_t, uint8_t**, uint32_t*);
     auto fn_read_snr = loader.get_function<ReadTileSnrFn>(
         ModuleId::AIO, "aio_hiss_read_tile_snr");
+    // R11 (PREC-109): FP64 文件 SNR 为 f64 存储, 必须用 f64 读取 API
+    auto fn_read_snr_f64 = loader.get_function<ReadTileSnrFn>(
+        ModuleId::AIO, "aio_hiss_read_tile_snr_f64");
 
     bool is_fp64 = (requested_prec == 1);
     if (is_fp64) {
@@ -3156,12 +3159,13 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
         }
         fn_free(support);
 
-        // R11 (HISS-103): 读取 SNR 控制点 (稀疏, 每点 8 字节: local_ipix uint32 + snr float32)
+        // R11 (HISS-103): 读取 SNR 控制点 (按文件 dtype 选择 f32 8B/点 或 f64 12B/点)
         uint8_t* snr_buf = nullptr;
         uint32_t n_snr = 0;
-        if (fn_read_snr) {
-            int snr_ret = fn_read_snr(current_output_path_.c_str(), parent_ipix,
-                                      &snr_buf, &n_snr);
+        auto snr_api = is_fp64 ? fn_read_snr_f64 : fn_read_snr;
+        if (snr_api) {
+            int snr_ret = snr_api(current_output_path_.c_str(), parent_ipix,
+                                  &snr_buf, &n_snr);
             // SNR 稀疏 (仅 ~254/285 Tile 含 SNR 子块): 读不到 = 该 Tile 无 SNR, 跳过
             // 最终汇总检查 n_snr_points_total>0 保证 SNR 数据整体存在 (HISS-103)
             if (n_snr > 0) {

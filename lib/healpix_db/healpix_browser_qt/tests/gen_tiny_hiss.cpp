@@ -50,10 +50,20 @@ static bool write_one(const std::string& path, bool f64) {
         acc.pixels[i].n_contrib = 1;
     }
 
+    // 确定性 SNR 控制点 (f32 写 8B/点, f64 写 12B/点, 由 writer 按 snr_dtype 决定)
+    hiss::HissSnrBlock snr;
+    snr.estimator_id = 1;
+    snr.sampling_scale = 1.0f;
+    snr.points = {
+        {0u, 12.5f},
+        {5u, 200.25f},
+        {15u, 0.125f}
+    };
+
     HissWriter w;
     if (w.open(path.c_str(), grid, meta) != 0) return false;
-    int rc = f64 ? w.add_tile_f64(42, acc, nullptr, OccupancyMode::FULL)
-                 : w.add_tile(42, acc, nullptr, OccupancyMode::FULL);
+    int rc = f64 ? w.add_tile_f64(42, acc, &snr, OccupancyMode::FULL)
+                 : w.add_tile(42, acc, &snr, OccupancyMode::FULL);
     if (rc != 0) return false;
     if (w.finalize() != 0) return false;
     return true;
