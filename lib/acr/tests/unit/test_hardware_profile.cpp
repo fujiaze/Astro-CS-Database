@@ -96,9 +96,10 @@ TEST(DeviceProfileTest, PredictArithmeticMissing) {
 
 TEST(DeviceProfileTest, PredictMemory) {
     DeviceProfile dev;
-    dev.memory[{MemoryLevel::MainMem, MemoryResidency::Host}].points.push_back(
+    dev.memory[{MemoryLevel::MainMem, MemoryResidency::Host, "copy"}].points.push_back(
         {1048576, 68000.0, 72000.0, 1500.0});
-    double cost = dev.predict_memory(MemoryLevel::MainMem, MemoryResidency::Host, 1048576);
+    double cost = dev.predict_memory(MemoryLevel::MainMem, MemoryResidency::Host,
+                                     "copy", 1048576);
     EXPECT_DOUBLE_EQ(cost, 68000.0);
 }
 

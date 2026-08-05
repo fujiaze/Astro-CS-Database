@@ -93,8 +93,9 @@ private:
     // CPU Copy kernel：y[i] = x[i]
     std::uint64_t run_cpu_copy(std::size_t n);
 
-    // CPU Dot：每 chunk 独立 FP64 partial + 唯一槽位 + 串行 merge（无数据竞争）
-    std::uint64_t run_cpu_dot(std::size_t n);
+    // CPU Dot/Sum：每 chunk 独立 FP64 partial + 唯一槽位 + 串行 merge（无数据竞争）；
+    // variant="sum" 时只累加 x[i]（sum 曲线），否则为 dot（x·y 曲线）
+    std::uint64_t run_cpu_dot(std::size_t n, const std::string& variant);
     // CPU Histogram：variant = hist_tls（thread-local bins+merge）/
     //   hist_atomic（共享 atomic bins）
     std::uint64_t run_cpu_histogram(std::size_t n, const std::string& variant);

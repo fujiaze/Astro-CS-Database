@@ -509,17 +509,26 @@ void ProfileGenerator::map_result_to_curves(
     HwPrecision prec = parse_hw_precision(r.precision);
     std::uint32_t kid = r.kernel_id;
 
-    if (kid == 1) {  // Copy → memory[MainMem:host:copy]
-        auto& c = device.memory[{MemoryLevel::MainMem, MemoryResidency::Host}];
+    // 25 号计划 §4：内存曲线按 (level, residency, operation) 区分；
+    // GPU 显存曲线不标 host MainMem
+    const MemoryLevel mem_level =
+        (device.kind == DeviceKind::Gpu) ? MemoryLevel::Vram : MemoryLevel::MainMem;
+    const MemoryResidency mem_res =
+        (device.kind == DeviceKind::Gpu) ? MemoryResidency::Device : MemoryResidency::Host;
+    if (kid == 1) {  // Copy → memory[level:res:copy]
+        auto& c = device.memory[{mem_level, mem_res, "copy"}];
         mark_measured(c, pt); c.points.push_back(pt);
-    } else if (kid == 2) {  // Triad → memory[MainMem:host:triad]
-        auto& c = device.memory[{MemoryLevel::MainMem, MemoryResidency::Host}];
+    } else if (kid == 2) {  // Triad → memory[level:res:triad]
+        auto& c = device.memory[{mem_level, mem_res, "triad"}];
         mark_measured(c, pt); c.points.push_back(pt);
     } else if (kid == 3) {  // AXPY → arithmetic[fp32:add:baseline]
         auto& c = device.arithmetic[{prec, "add:baseline"}];
         mark_measured(c, pt); c.points.push_back(pt);
-    } else if (kid == 4) {  // Dot → reduction[dot:fp32]
-        auto& c = device.reduction[{"dot", prec}];
+    } else if (kid == 4) {  // Dot → reduction[sum:fp32] / reduction[dot:fp32]
+        // 25 号计划 §4：sum 与 dot 是不同曲线；GPU Dot kernel 实为 sum(x)
+        const std::string red_op =
+            (r.variant == "dot" && device.kind != DeviceKind::Gpu) ? "dot" : "sum";
+        auto& c = device.reduction[{red_op, prec}];
         mark_measured(c, pt); c.points.push_back(pt);
     } else if (kid == 5) {  // Transpose → transfer (CPU memcpy 带宽)
         // Commit E：用 Transpose kernel_id 标记 CPU 内存传输带宽
@@ -692,8 +701,9 @@ std::string ProfileGenerator::serialize_hardware_profile(const HardwareProfile& 
             std::size_t j = 0;
             for (const auto& [key, curve] : dev.memory) {
                 if (j > 0) os << ",";
-                os << "\"" << memory_level_str(key.first) << ":"
-                   << memory_residency_str(key.second) << "\":";
+                os << "\"" << memory_level_str(std::get<0>(key)) << ":"
+                   << memory_residency_str(std::get<1>(key)) << ":"
+                   << std::get<2>(key) << "\":";
                 serialize_curve(os, curve);
                 ++j;
             }

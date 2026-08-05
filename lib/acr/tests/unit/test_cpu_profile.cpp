@@ -74,6 +74,7 @@ KernelBenchmarkResult make_dot_result(std::size_t n, double ns) {
     KernelBenchmarkResult r;
     r.kernel_id = 4;  // Dot → reduction curve
     r.kernel_name = "dot_fp32";
+    r.variant = "dot";  // 25 号计划 §4：dot 与 sum 是不同曲线
     r.backend = "cpu";
     r.precision = "fp32";
     r.problem_size = n;
@@ -159,9 +160,9 @@ TEST(CpuProfileTest, CopyResultMapsToMemoryCurve) {
     const DeviceProfile* cpu = hp.find_device(kHwCpuDeviceId);
     ASSERT_NE(cpu, nullptr);
 
-    // memory curve 应包含 {MainMem, Host}
-    auto it = cpu->memory.find({MemoryLevel::MainMem, MemoryResidency::Host});
-    ASSERT_NE(it, cpu->memory.end()) << "memory[MainMem:Host] curve missing";
+    // memory curve 应包含 {MainMem, Host, copy}
+    auto it = cpu->memory.find({MemoryLevel::MainMem, MemoryResidency::Host, "copy"});
+    ASSERT_NE(it, cpu->memory.end()) << "memory[MainMem:Host:copy] curve missing";
     EXPECT_GE(it->second.points.size(), 1u);
     // 第一个点应是 4KB
     EXPECT_EQ(it->second.points[0].size, 4u * 1024u);
@@ -282,11 +283,13 @@ TEST(CpuProfileTest, DeviceProfilePredictionApis) {
     ASSERT_NE(cpu, nullptr);
 
     // predict_memory：4KB 应接近 100ns
-    double pred_4k = cpu->predict_memory(MemoryLevel::MainMem, MemoryResidency::Host, 4 * 1024);
+    double pred_4k = cpu->predict_memory(MemoryLevel::MainMem, MemoryResidency::Host,
+                                         "copy", 4 * 1024);
     EXPECT_NEAR(pred_4k, 100.0, 5.0);
 
     // 8KB 应在 100 和 1500 之间线性插值
-    double pred_8k = cpu->predict_memory(MemoryLevel::MainMem, MemoryResidency::Host, 8 * 1024);
+    double pred_8k = cpu->predict_memory(MemoryLevel::MainMem, MemoryResidency::Host,
+                                         "copy", 8 * 1024);
     EXPECT_GT(pred_8k, 100.0);
     EXPECT_LT(pred_8k, 1500.0);
 }

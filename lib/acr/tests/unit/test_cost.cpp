@@ -41,6 +41,16 @@ HardwareProfile make_test_profile_with_cpu_only() {
     merge_oh.median_ns = 200.0;
     merge_oh.warm_ns = 150.0;
     cpu.overhead["merge"] = merge_oh;
+    // 25 号计划 §5.1：profile_available 需要当前任务命中合格 measured 曲线
+    Curve mem;
+    mem.source = "measured";
+    mem.qualified = true;
+    CurvePoint p1;
+    p1.size = 1024; p1.median = 100.0; p1.sample_count = 7; p1.confidence = 1.0;
+    CurvePoint p2;
+    p2.size = 1u << 20; p2.median = 60000.0; p2.sample_count = 7; p2.confidence = 1.0;
+    mem.points = {p1, p2};
+    cpu.memory[{MemoryLevel::MainMem, MemoryResidency::Host, "triad"}] = mem;
     hp.devices.push_back(std::move(cpu));
     return hp;
 }
@@ -58,6 +68,15 @@ HardwareProfile make_test_profile_with_cpu_gpu() {
     FixedOverhead submit_oh;
     submit_oh.median_ns = 8500.0;
     submit_oh.warm_ns = 6500.0;
+    Curve gmem;
+    gmem.source = "measured";
+    gmem.qualified = true;
+    CurvePoint gp1;
+    gp1.size = 1024; gp1.median = 50.0; gp1.sample_count = 7; gp1.confidence = 1.0;
+    CurvePoint gp2;
+    gp2.size = 1u << 20; gp2.median = 2000.0; gp2.sample_count = 7; gp2.confidence = 1.0;
+    gmem.points = {gp1, gp2};
+    gpu.memory[{MemoryLevel::Vram, MemoryResidency::Device, "triad"}] = gmem;
     gpu.overhead["submit"] = submit_oh;
     FixedOverhead launch_oh;
     launch_oh.median_ns = 7800.0;

@@ -220,7 +220,8 @@ std::uint64_t BenchmarkDriver::run_cpu_copy(std::size_t n) {
 // 这些 kernel 供 profile_generator 生成多维能力曲线（reduction/convolution/irregular/branch/transfer/overhead）。
 // 实现保持简洁：用 parallel_for 调度，返回 kernel 执行时间（纳秒）。
 
-std::uint64_t BenchmarkDriver::run_cpu_dot(std::size_t n) {
+std::uint64_t BenchmarkDriver::run_cpu_dot(std::size_t n,
+                                            const std::string& variant) {
     std::vector<float> x(n), y(n);
     fill_input(x.data(), n, BENCHMARK_FIXED_SEED);
     fill_input(y.data(), n, BENCHMARK_FIXED_SEED ^ 0x9E3779B97F4A7C15ULL);
@@ -235,8 +236,14 @@ std::uint64_t BenchmarkDriver::run_cpu_dot(std::size_t n) {
         KernelId::Dot, Range1D{0, n}, chunk,
         [&](std::size_t b, std::size_t e) {
             double local = 0.0;
-            for (std::size_t i = b; i < e; ++i) {
-                local += static_cast<double>(x[i]) * static_cast<double>(y[i]);
+            if (variant == "sum") {
+                for (std::size_t i = b; i < e; ++i) {
+                    local += static_cast<double>(x[i]);
+                }
+            } else {
+                for (std::size_t i = b; i < e; ++i) {
+                    local += static_cast<double>(x[i]) * static_cast<double>(y[i]);
+                }
             }
             const std::size_t slot =
                 slots.fetch_add(1, std::memory_order_relaxed);
@@ -249,7 +256,9 @@ std::uint64_t BenchmarkDriver::run_cpu_dot(std::size_t n) {
     {
         double ref = 0.0;
         for (std::size_t i = 0; i < n; ++i) {
-            ref += static_cast<double>(x[i]) * static_cast<double>(y[i]);
+            ref += (variant == "sum")
+                ? static_cast<double>(x[i])
+                : static_cast<double>(x[i]) * static_cast<double>(y[i]);
         }
         const double rel = std::fabs(ref) > 1e-30
             ? std::fabs(dot - ref) / std::fabs(ref) : std::fabs(dot - ref);
@@ -504,7 +513,7 @@ RawBenchmarkSample BenchmarkDriver::measure_once(std::uint32_t kernel_id,
             case KernelId::AXPY:         k = run_cpu_axpy(problem_size);           break;
             case KernelId::Triad:        k = run_cpu_triad(problem_size);          break;
             case KernelId::Copy:         k = run_cpu_copy(problem_size);          break;
-            case KernelId::Dot:          k = run_cpu_dot(problem_size);           break;
+            case KernelId::Dot:          k = run_cpu_dot(problem_size, variant);  break;
             case KernelId::Convolution2D: k = run_cpu_conv2d(problem_size);        break;
             case KernelId::Histogram256: k = run_cpu_histogram(problem_size, variant); break;
             case KernelId::Gather:       k = run_cpu_gather(problem_size);         break;
@@ -577,6 +586,7 @@ std::vector<KernelBenchmarkResult> BenchmarkDriver::run() {
         { static_cast<std::uint32_t>(KernelId::AXPY),           sizeof(float), "" },
         { static_cast<std::uint32_t>(KernelId::Triad),          sizeof(float), "" },
         { static_cast<std::uint32_t>(KernelId::Dot),            sizeof(float), "dot" },
+        { static_cast<std::uint32_t>(KernelId::Dot),            sizeof(float), "sum" },
         { static_cast<std::uint32_t>(KernelId::Convolution2D),  sizeof(float), "conv3x3" },
         { static_cast<std::uint32_t>(KernelId::Histogram256),   sizeof(float), "hist_tls" },
         { static_cast<std::uint32_t>(KernelId::Histogram256),   sizeof(float), "hist_atomic" },

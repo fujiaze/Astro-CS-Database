@@ -57,6 +57,7 @@ struct DeviceCost {
     // 可行性
     bool feasible{true};                    // 是否可行（VRAM 不够/设备不可用则 false）
     bool profile_available{false};          // 该设备是否有画像曲线
+    std::string profile_fallback_reason;    // 25 号计划 §5.1：无合格曲线时的原因
     std::string reason;                     // 诊断说明（"fallback-peak"/"profile-curve"/...）
 
     // 预计吞吐（GB/s，诊断用）
@@ -158,6 +159,7 @@ struct CurveLookup {
     CurveKey key;
     MemoryLevel mem_level{MemoryLevel::MainMem};
     MemoryResidency residency{MemoryResidency::Host};
+    std::string op;               // 内存曲线操作（copy/triad/...），25 号计划 §4
     HwPrecision precision{HwPrecision::Fp32};
     bool valid{false};
 };

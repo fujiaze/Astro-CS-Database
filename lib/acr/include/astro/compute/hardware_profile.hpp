@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <map>
 #include <string>
+#include <tuple>
 #include <vector>
 
 namespace astro::compute {
@@ -179,7 +180,9 @@ struct DeviceProfile {
 
     // 多维能力曲线（按族组织，key 是族内子类型）
     std::map<std::pair<HwPrecision, std::string>, Curve> arithmetic;     // [(precision, op:isa)]
-    std::map<std::pair<MemoryLevel, MemoryResidency>, Curve> memory;     // [(level, residency)]
+    // 25 号计划 §4：内存曲线按 (level, residency, operation) 区分
+    // （Copy 与 Triad 不混入同一曲线；GPU 显存不标 host MainMem）
+    std::map<std::tuple<MemoryLevel, MemoryResidency, std::string>, Curve> memory;
     std::map<std::pair<TransferDirection, MemoryType>, Curve> transfer;  // [(direction, mem_type)]
     std::map<std::pair<std::string, HwPrecision>, Curve> reduction;      // [(op, precision)]
     std::map<CurveKey, Curve> convolution;                                // [method:shape:precision]
@@ -232,9 +235,10 @@ struct DeviceProfile {
         return it != arithmetic.end() ? it->second.predict(size) : 0.0;
     }
 
-    // 内存成本查询：level + residency → 耗时 ns
-    double predict_memory(MemoryLevel level, MemoryResidency res, std::size_t size) const {
-        auto it = memory.find({level, res});
+    // 内存成本查询：level + residency + operation → 耗时 ns
+    double predict_memory(MemoryLevel level, MemoryResidency res,
+                          const std::string& operation, std::size_t size) const {
+        auto it = memory.find({level, res, operation});
         return it != memory.end() ? it->second.predict(size) : 0.0;
     }
 

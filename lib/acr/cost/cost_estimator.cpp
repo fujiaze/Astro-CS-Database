@@ -36,6 +36,7 @@ CurveLookup make_curve_lookup(const TaskDescriptor& task) noexcept {
             lk.key = std::string(memory_level_str(MemoryLevel::MainMem)) + ":triad";
             lk.mem_level = MemoryLevel::MainMem;
             lk.residency = MemoryResidency::Host;
+            lk.op = "triad";
             lk.valid = true;
             break;
         case TaskClass::reduction:
@@ -113,8 +114,10 @@ CurveLookup make_curve_lookup(const TaskDescriptor& task) noexcept {
 // 优先用画像曲线；无曲线时用峰值带宽估算。
 double estimate_compute_cost(const TaskDescriptor& task, const DeviceProfile& dev,
                               const CurveLookup& lk, std::size_t chunk_size,
-                              bool& used_profile_curve) {
+                              bool& used_profile_curve,
+                              bool& used_qualified_curve) {
     used_profile_curve = false;
+    used_qualified_curve = false;
     std::size_t work = chunk_size;
     if (work == 0) work = task.work_size();
     if (work == 0) return 0.0;
@@ -129,23 +132,50 @@ double estimate_compute_cost(const TaskDescriptor& task, const DeviceProfile& de
                 // 去掉前缀 "fp32:" 或 "fp64:"
                 auto colon = op_isa.find(':');
                 if (colon != std::string::npos) op_isa = op_isa.substr(colon + 1);
-                curve_cost = dev.predict_arithmetic(lk.precision, op_isa, work);
+                auto it = dev.arithmetic.find({lk.precision, op_isa});
+                if (it != dev.arithmetic.end()) {
+                    curve_cost = it->second.predict(work);
+                    used_qualified_curve = it->second.qualified;
+                }
                 break;
             }
             case CapabilityFamily::Memory:
-                curve_cost = dev.predict_memory(lk.mem_level, lk.residency, work);
+                // 25 号计划 §4：内存曲线按 (level, residency, op) 区分；
+                // GPU 用显存/设备驻留
+                {
+                    MemoryLevel lvl = lk.mem_level;
+                    MemoryResidency res = lk.residency;
+                    std::string op = lk.op.empty() ? "triad" : lk.op;
+                    if (dev.kind == DeviceKind::Gpu) {
+                        lvl = MemoryLevel::Vram;
+                        res = MemoryResidency::Device;
+                    }
+                    curve_cost = dev.predict_memory(lvl, res, op, work);
+                    const Curve* c = dev.memory.count({lvl, res, op})
+                        ? &dev.memory.at({lvl, res, op}) : nullptr;
+                    if (c) used_qualified_curve = c->qualified;
+                }
                 break;
             case CapabilityFamily::Transfer:
                 // transfer 不在 compute 中算
                 break;
             case CapabilityFamily::Reduction:
-                curve_cost = dev.predict_reduction(lk.key, lk.precision, work);
+                {
+                    auto it = dev.reduction.find({lk.key, lk.precision});
+                    if (it != dev.reduction.end()) {
+                        curve_cost = it->second.predict(work);
+                        used_qualified_curve = it->second.qualified;
+                    }
+                }
                 break;
             case CapabilityFamily::Convolution:
             case CapabilityFamily::Irregular:
             case CapabilityFamily::Branch: {
                 const Curve* c = dev.get_curve(lk.family, lk.key);
-                if (c) curve_cost = c->predict(work);
+                if (c) {
+                    curve_cost = c->predict(work);
+                    used_qualified_curve = c->qualified;
+                }
                 break;
             }
             case CapabilityFamily::Overhead:
@@ -154,13 +184,20 @@ double estimate_compute_cost(const TaskDescriptor& task, const DeviceProfile& de
                 const LibraryCapability* cap = dev.get_library(lk.key);
                 if (cap) {
                     auto it = cap->size_curves.find("default");
-                    if (it != cap->size_curves.end()) curve_cost = it->second.predict(work);
+                    if (it != cap->size_curves.end()) {
+                        curve_cost = it->second.predict(work);
+                        used_qualified_curve = it->second.qualified;
+                    }
                 }
                 break;
             }
         }
         if (curve_cost > 0.0) {
             used_profile_curve = true;
+            if (!used_qualified_curve) {
+                // 命中曲线但未合格（quick 或样本不足）：按合格曲线缺失处理
+                used_profile_curve = false;
+            }
             return curve_cost;
         }
     }
@@ -198,19 +235,33 @@ double estimate_transfer_cost(const TaskDescriptor& task, const DeviceProfile& g
         return 0.0;
     }
 
-    std::size_t work = chunk_size > 0 ? chunk_size : task.work_size();
-    std::size_t bytes = task.bytes_per_item > 0 ? (task.bytes_per_item * work) :
-                        (task.bytes_read + task.bytes_written);
-    if (bytes == 0) bytes = work * 8;
+    // 25 号计划 §5.2：传输字节必须是“单块”字节，禁止任务总量 × 块数重复放大
+    const std::size_t work = chunk_size > 0 ? chunk_size : task.work_size();
+    const std::size_t total_work = task.work_size();
+    std::size_t per_chunk_bytes = 0;
+    if (task.bytes_per_item > 0) {
+        per_chunk_bytes = task.bytes_per_item * work;
+    } else if (total_work > 0) {
+        per_chunk_bytes = (task.bytes_read + task.bytes_written) * work / total_work;
+    } else {
+        per_chunk_bytes = work * 8;
+    }
+    if (per_chunk_bytes == 0) per_chunk_bytes = work * 8;
+    const std::size_t read_bytes_per_chunk =
+        task.bytes_read > 0 && total_work > 0
+            ? task.bytes_read * work / total_work : per_chunk_bytes / 2;
+    const std::size_t write_bytes_per_chunk =
+        task.bytes_written > 0 && total_work > 0
+            ? task.bytes_written * work / total_work : per_chunk_bytes / 2;
 
     // 优先查画像传输曲线
     // CPU→GPU 用 H2D + D2H 双向
     double h2d_cost = gpu_dev.predict_transfer(TransferDirection::H2D,
                                                  MemoryType::HostPinned,
-                                                 task.bytes_read > 0 ? task.bytes_read : bytes / 2);
+                                                 read_bytes_per_chunk);
     double d2h_cost = gpu_dev.predict_transfer(TransferDirection::D2H,
                                                  MemoryType::HostPlain,
-                                                 task.bytes_written > 0 ? task.bytes_written : bytes / 2);
+                                                 write_bytes_per_chunk);
     if (h2d_cost > 0.0 || d2h_cost > 0.0) {
         used_profile_curve = true;
         return h2d_cost + d2h_cost;
@@ -218,7 +269,7 @@ double estimate_transfer_cost(const TaskDescriptor& task, const DeviceProfile& g
 
     // Fallback：用 PCIe 带宽估算
     double pcie_gbps = CostEstimator::kGpuFallbackPcieGbps;
-    double cost_ns = static_cast<double>(bytes) / pcie_gbps;
+    double cost_ns = static_cast<double>(per_chunk_bytes) / pcie_gbps;
     if (cost_ns < 0.0) cost_ns = 0.0;
     return cost_ns;
 }
@@ -305,7 +356,9 @@ std::size_t CostEstimator::compute_min_effective_chunk(const TaskDescriptor& tas
     CurveLookup lk = make_curve_lookup(task);
     if (lk.valid) {
         bool used = false;
-        double sample_cost = estimate_compute_cost(task, *dev, lk, 1024, used);
+        bool used_qualified = false;
+        double sample_cost = estimate_compute_cost(task, *dev, lk, 1024,
+                                                   used, used_qualified);
         if (sample_cost > 0.0) {
             compute_per_elem_ns = sample_cost / 1024.0;
         }
@@ -365,7 +418,9 @@ std::size_t CostEstimator::compute_recommended_chunk(const TaskDescriptor& task,
     CurveLookup lk = make_curve_lookup(task);
     if (lk.valid) {
         bool used = false;
-        double sample_cost = estimate_compute_cost(task, *dev, lk, 1024, used);
+        bool used_qualified = false;
+        double sample_cost = estimate_compute_cost(task, *dev, lk, 1024,
+                                                   used, used_qualified);
         if (sample_cost > 0.0) compute_per_elem_ns = sample_cost / 1024.0;
     }
     if (compute_per_elem_ns <= 0.0 || launch_ns <= 0.0) {
@@ -476,8 +531,11 @@ DeviceCost CostEstimator::estimate_for_device(const TaskDescriptor& task,
     }
 
     dc.device_name = dev->device_name;
-    dc.profile_available = (dev->peak_bandwidth_gbps > 0.0) ||
-                           (dev->get_overhead("submit") != nullptr);
+    // 25 号计划 §5.1：profile_available 仅当“当前任务命中合格（full、样本>=7）
+    // measured 曲线”时为真；默认开销/峰值带宽不算合格画像。
+    // （在成本计算后由 used_compute_qualified 更新）
+    dc.profile_available = false;
+    dc.profile_fallback_reason = "no-qualified-curve-for-task";
 
     std::size_t work = task.work_size();
     std::size_t bytes = task.bytes_per_item > 0 ? (task.bytes_per_item * work) :
@@ -496,9 +554,12 @@ DeviceCost CostEstimator::estimate_for_device(const TaskDescriptor& task,
     if (chunk == 0) chunk = 1;
 
     CurveLookup lk = make_curve_lookup(task);
-    bool used_curve = false;
-    double per_chunk_compute = estimate_compute_cost(task, *dev, lk, chunk, used_curve);
-    double per_chunk_transfer = estimate_transfer_cost(task, *dev, chunk, used_curve);
+    bool used_compute_curve = false, used_compute_qualified = false;
+    bool used_transfer_curve = false;
+    double per_chunk_compute = estimate_compute_cost(
+        task, *dev, lk, chunk, used_compute_curve, used_compute_qualified);
+    double per_chunk_transfer = estimate_transfer_cost(
+        task, *dev, chunk, used_transfer_curve);
     double per_chunk_launch = estimate_launch_cost(*dev);
     double per_chunk_merge = estimate_merge_cost(task, *dev);
 
@@ -511,7 +572,12 @@ DeviceCost CostEstimator::estimate_for_device(const TaskDescriptor& task,
     dc.total_cost_ns = dc.compute_cost_ns + dc.transfer_cost_ns +
                        dc.launch_cost_ns + dc.merge_cost_ns;
 
-    dc.reason = used_curve ? "profile-curve" : "fallback-peak";
+    dc.reason = used_compute_curve ? "profile-curve" : "fallback-peak";
+    dc.profile_available = used_compute_qualified;
+    if (!used_compute_qualified) {
+        dc.profile_fallback_reason =
+            used_compute_curve ? "curve-not-qualified" : "no-curve-for-task";
+    }
     dc.feasible = (dc.max_chunk_by_memory > 0) && (chunk <= dc.max_chunk_by_memory);
 
     if (dc.compute_cost_ns > 0.0) {
