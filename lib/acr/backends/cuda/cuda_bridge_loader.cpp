@@ -104,6 +104,16 @@ void ensure_bridge_loaded() {
         ok &= load_symbol(mod, "acr_cuda_executor_submit_copy", g_api.submit_copy);
         ok &= load_symbol(mod, "acr_cuda_executor_submit_reduce", g_api.submit_reduce);
         ok &= load_symbol(mod, "acr_cuda_executor_submit_conv3x3", g_api.submit_conv3x3);
+        // 聚焦版（08 号计划 §3）：目标合成 Operation（旧 DLL 缺失时整体视为不可用）
+        ok &= load_symbol(mod, "acr_cuda_executor_submit_dense_accumulate_fp64acc",
+                          g_api.submit_dense_accumulate_fp64acc);
+        ok &= load_symbol(mod, "acr_cuda_executor_submit_drizzle_scatter",
+                          g_api.submit_drizzle_scatter);
+        ok &= load_symbol(mod, "acr_cuda_executor_submit_chain", g_api.submit_chain);
+        ok &= load_symbol(mod, "acr_cuda_executor_submit_launch_event",
+                          g_api.submit_launch_event);
+        ok &= load_symbol(mod, "acr_cuda_executor_transfer_h2d", g_api.transfer_h2d);
+        ok &= load_symbol(mod, "acr_cuda_executor_transfer_d2h", g_api.transfer_d2h);
         if (!ok) {
             g_api = BridgeApi{};  // 符号缺失：视为不可用
         }

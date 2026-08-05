@@ -7,6 +7,9 @@
 add_library(acr_qualification STATIC
     benchmark_driver.cpp
     profile_generator.cpp
+    focused/focused_operations.cpp
+    focused/operation_profile.cpp
+    focused/focused_benchmark.cpp
 )
 target_link_libraries(acr_qualification PUBLIC
     acr_options
@@ -94,5 +97,21 @@ if(ACR_BUILD_BENCHMARK)
     set_target_properties(acr-benchmark-gb PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${ACR_OUTPUT_DIR}
     )
-    message(STATUS "ACR qualification: acr-benchmark-gb (Google Benchmark driver, JSON output)")
+message(STATUS "ACR qualification: acr-benchmark-gb (Google Benchmark driver, JSON output)")
 endif()
+
+# ============================================================================
+# 聚焦版（08 号计划 §4）：acr-benchmark-focused
+# 只测目标像素 Operation 与基础传输，输出 OperationProfile（schema 校验通过）。
+# ============================================================================
+add_executable(acr-benchmark-focused
+    focused/acr_benchmark_focused_main.cpp
+)
+target_link_libraries(acr-benchmark-focused PRIVATE
+    acr_qualification
+    acr_api
+)
+set_target_properties(acr-benchmark-focused PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${ACR_OUTPUT_DIR}
+)
+message(STATUS "ACR qualification: acr-benchmark-focused (OperationProfile, 08 号计划)")

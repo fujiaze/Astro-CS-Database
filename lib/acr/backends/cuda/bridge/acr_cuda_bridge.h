@@ -89,6 +89,52 @@ ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_conv3x3(
     const float* kernel9,
     uint64_t* elapsed_ns, const char** last_error);
 
+// ===== 聚焦版（08 号计划 §3）：目标合成 Operation 内核 =====
+// 积分/Drizzle 类逐像素算法的 GPU 实现；全部同步语义，elapsed_ns 为真实耗时。
+
+// Dense pixel accumulate（FP32 输入 + FP64 累加器）：
+//   y[i] = (double)y[i] + x[i]（累加在 double 中进行，结果写回 float y）
+ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_dense_accumulate_fp64acc(
+    void* handle,
+    size_t begin, size_t end,
+    float* y, const float* x,
+    uint64_t* elapsed_ns, const char** last_error);
+
+// Drizzle-like scatter/accumulate（FP64 累加）：
+//   partials[bin(x[i])] += x[i]（bin 由确定性 hash 计算，原子加）
+//   bins 为输出桶数（如 256/1024），host 侧提供 partials（double*）
+ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_drizzle_scatter(
+    void* handle,
+    size_t begin, size_t end,
+    const float* x, double* partials, size_t bins,
+    uint64_t* elapsed_ns, const char** last_error);
+
+// Resident chain：连续两个 GPU 算子，只上传一次、最后下载一次。
+//   y[i] = x[i] + 1（显存写）→ z[i] = y[i] * 2（显存读）→ z 返回 host
+ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_chain(
+    void* handle,
+    size_t begin, size_t end,
+    float* z, const float* x,
+    uint64_t* elapsed_ns, const char** last_error);
+
+// Launch/event/sync 固定开销：空 kernel 启动 + event record + sync
+ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_launch_event(
+    void* handle,
+    size_t begin, size_t end,
+    uint64_t* elapsed_ns, const char** last_error);
+
+// 纯传输：H2D 上传 host_bytes 字节到设备暂存（不计算）
+ACR_CUDA_BRIDGE_API int acr_cuda_executor_transfer_h2d(
+    void* handle,
+    size_t host_bytes, const void* host,
+    uint64_t* elapsed_ns, const char** last_error);
+
+// 纯传输：D2H 下载 device_bytes 字节到 host
+ACR_CUDA_BRIDGE_API int acr_cuda_executor_transfer_d2h(
+    void* handle,
+    size_t device_bytes, void* host,
+    uint64_t* elapsed_ns, const char** last_error);
+
 #ifdef __cplusplus
 }
 #endif

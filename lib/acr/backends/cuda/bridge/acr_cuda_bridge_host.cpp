@@ -24,6 +24,16 @@ void acr_launch_conv3x3(float* y, const float* x,
                         size_t begin, size_t n,
                         size_t width, size_t height,
                         const float* k, cudaStream_t stream);
+// 聚焦版（08 号计划 §3）：目标合成内核 launch
+void acr_launch_dense_accumulate_fp64acc(float* y, const float* x,
+                                         size_t begin, size_t n,
+                                         cudaStream_t stream);
+void acr_launch_drizzle_scatter(const float* x, double* partials,
+                                size_t begin, size_t n, size_t bins,
+                                cudaStream_t stream);
+void acr_launch_chain(float* y, float* z, const float* x,
+                      size_t begin, size_t n, cudaStream_t stream);
+void acr_launch_empty(size_t begin, size_t n, cudaStream_t stream);
 }
 
 namespace {
@@ -54,6 +64,14 @@ struct CudaExecutorHandle {
     size_t d_kernel_capacity{0};
     float* d_image{nullptr};   // 卷积整图输入（独立缓冲）
     size_t d_image_capacity{0};
+    // 聚焦版：chain 中间值 + drizzle 输出桶（独立容量）
+    float* d_z{nullptr};
+    size_t d_z_capacity{0};
+    double* d_bins{nullptr};
+    size_t d_bins_capacity{0};
+    // 纯传输暂存（H2D/D2H 测量）
+    void* d_staging{nullptr};
+    size_t d_staging_bytes{0};
 };
 
 constexpr int kReduceBlocks = 256;
@@ -208,6 +226,9 @@ extern "C" void acr_cuda_executor_destroy(void* handle) {
     if (h->d_partials) cudaFree(h->d_partials);
     if (h->d_kernel) cudaFree(h->d_kernel);
     if (h->d_image) cudaFree(h->d_image);
+    if (h->d_z) cudaFree(h->d_z);
+    if (h->d_bins) cudaFree(h->d_bins);
+    if (h->d_staging) cudaFree(h->d_staging);
     if (h->stream) cudaStreamDestroy(h->stream);
     delete h;
 }
@@ -362,6 +383,159 @@ extern "C" int acr_cuda_executor_submit_conv3x3(void* handle,
         acr_launch_conv3x3(h->d_y, h->d_image, begin, n, width, height,
                            h->d_kernel, h->stream);
         cudaMemcpyAsync(y + begin, h->d_y, n * sizeof(float),
+                        cudaMemcpyDeviceToHost, h->stream);
+        return cudaStreamSynchronize(h->stream);
+    }, elapsed_ns, last_error);
+}
+
+// ===== 聚焦版（08 号计划 §3）：目标合成 Operation =====
+
+// Dense pixel accumulate（FP32 输入 + FP64 累加器）
+extern "C" int acr_cuda_executor_submit_dense_accumulate_fp64acc(
+    void* handle, size_t begin, size_t end,
+    float* y, const float* x,
+    uint64_t* elapsed_ns, const char** last_error) {
+    if (handle == nullptr || y == nullptr || x == nullptr || begin >= end) {
+        if (last_error) *last_error = set_error_msg("invalid args");
+        return 1;
+    }
+    auto* h = static_cast<CudaExecutorHandle*>(handle);
+    std::lock_guard<std::mutex> lk(h->mtx);
+    const size_t n = end - begin;
+    return submit_impl(h, [&]() -> cudaError_t {
+        cudaError_t err = ensure_buffer(&h->d_x, h->d_x_capacity, n);
+        if (err != cudaSuccess) return err;
+        err = ensure_buffer(&h->d_y, h->d_y_capacity, n);
+        if (err != cudaSuccess) return err;
+        cudaMemcpyAsync(h->d_x, x + begin, n * sizeof(float),
+                        cudaMemcpyHostToDevice, h->stream);
+        cudaMemcpyAsync(h->d_y, y + begin, n * sizeof(float),
+                        cudaMemcpyHostToDevice, h->stream);
+        acr_launch_dense_accumulate_fp64acc(h->d_y, h->d_x, 0, n, h->stream);
+        cudaMemcpyAsync(y + begin, h->d_y, n * sizeof(float),
+                        cudaMemcpyDeviceToHost, h->stream);
+        return cudaStreamSynchronize(h->stream);
+    }, elapsed_ns, last_error);
+}
+
+// Drizzle-like scatter/accumulate（FP64 原子累计）
+extern "C" int acr_cuda_executor_submit_drizzle_scatter(
+    void* handle, size_t begin, size_t end,
+    const float* x, double* partials, size_t bins,
+    uint64_t* elapsed_ns, const char** last_error) {
+    if (handle == nullptr || x == nullptr || partials == nullptr ||
+        begin >= end || bins == 0) {
+        if (last_error) *last_error = set_error_msg("invalid args");
+        return 1;
+    }
+    auto* h = static_cast<CudaExecutorHandle*>(handle);
+    std::lock_guard<std::mutex> lk(h->mtx);
+    const size_t n = end - begin;
+    return submit_impl(h, [&]() -> cudaError_t {
+        cudaError_t err = ensure_buffer(&h->d_x, h->d_x_capacity, n);
+        if (err != cudaSuccess) return err;
+        err = ensure_buffer(&h->d_bins, h->d_bins_capacity, bins);
+        if (err != cudaSuccess) return err;
+        cudaMemcpyAsync(h->d_x, x + begin, n * sizeof(float),
+                        cudaMemcpyHostToDevice, h->stream);
+        cudaMemsetAsync(h->d_bins, 0, bins * sizeof(double), h->stream);
+        acr_launch_drizzle_scatter(h->d_x, h->d_bins, 0, n, bins, h->stream);
+        cudaMemcpyAsync(partials, h->d_bins, bins * sizeof(double),
+                        cudaMemcpyDeviceToHost, h->stream);
+        return cudaStreamSynchronize(h->stream);
+    }, elapsed_ns, last_error);
+}
+
+// Resident chain：一次上传、两个 kernel、一次下载
+extern "C" int acr_cuda_executor_submit_chain(
+    void* handle, size_t begin, size_t end,
+    float* z, const float* x,
+    uint64_t* elapsed_ns, const char** last_error) {
+    if (handle == nullptr || z == nullptr || x == nullptr || begin >= end) {
+        if (last_error) *last_error = set_error_msg("invalid args");
+        return 1;
+    }
+    auto* h = static_cast<CudaExecutorHandle*>(handle);
+    std::lock_guard<std::mutex> lk(h->mtx);
+    const size_t n = end - begin;
+    return submit_impl(h, [&]() -> cudaError_t {
+        cudaError_t err = ensure_buffer(&h->d_x, h->d_x_capacity, n);
+        if (err != cudaSuccess) return err;
+        err = ensure_buffer(&h->d_y, h->d_y_capacity, n);
+        if (err != cudaSuccess) return err;
+        err = ensure_buffer(&h->d_z, h->d_z_capacity, n);
+        if (err != cudaSuccess) return err;
+        cudaMemcpyAsync(h->d_x, x + begin, n * sizeof(float),
+                        cudaMemcpyHostToDevice, h->stream);
+        acr_launch_chain(h->d_y, h->d_z, h->d_x, 0, n, h->stream);
+        cudaMemcpyAsync(z + begin, h->d_z, n * sizeof(float),
+                        cudaMemcpyDeviceToHost, h->stream);
+        return cudaStreamSynchronize(h->stream);
+    }, elapsed_ns, last_error);
+}
+
+// Launch/event/sync 固定开销
+extern "C" int acr_cuda_executor_submit_launch_event(
+    void* handle, size_t begin, size_t end,
+    uint64_t* elapsed_ns, const char** last_error) {
+    if (handle == nullptr || begin >= end) {
+        if (last_error) *last_error = set_error_msg("invalid args");
+        return 1;
+    }
+    auto* h = static_cast<CudaExecutorHandle*>(handle);
+    std::lock_guard<std::mutex> lk(h->mtx);
+    const size_t n = end - begin;
+    return submit_impl(h, [&]() -> cudaError_t {
+        acr_launch_empty(0, n, h->stream);
+        return cudaStreamSynchronize(h->stream);
+    }, elapsed_ns, last_error);
+}
+
+// 纯 H2D 传输（host_bytes 字节 → 设备暂存）
+extern "C" int acr_cuda_executor_transfer_h2d(
+    void* handle, size_t host_bytes, const void* host,
+    uint64_t* elapsed_ns, const char** last_error) {
+    if (handle == nullptr || host == nullptr || host_bytes == 0) {
+        if (last_error) *last_error = set_error_msg("invalid args");
+        return 1;
+    }
+    auto* h = static_cast<CudaExecutorHandle*>(handle);
+    std::lock_guard<std::mutex> lk(h->mtx);
+    return submit_impl(h, [&]() -> cudaError_t {
+        if (h->d_staging == nullptr || h->d_staging_bytes < host_bytes) {
+            if (h->d_staging) cudaFree(h->d_staging);
+            h->d_staging = nullptr;
+            h->d_staging_bytes = 0;
+            cudaError_t err = cudaMalloc(&h->d_staging, host_bytes);
+            if (err != cudaSuccess) return err;
+            h->d_staging_bytes = host_bytes;
+        }
+        cudaMemcpyAsync(h->d_staging, host, host_bytes,
+                        cudaMemcpyHostToDevice, h->stream);
+        return cudaStreamSynchronize(h->stream);
+    }, elapsed_ns, last_error);
+}
+
+// 纯 D2H 传输（设备暂存 → host）
+extern "C" int acr_cuda_executor_transfer_d2h(
+    void* handle, size_t device_bytes, void* host,
+    uint64_t* elapsed_ns, const char** last_error) {
+    if (handle == nullptr || host == nullptr || device_bytes == 0) {
+        if (last_error) *last_error = set_error_msg("invalid args");
+        return 1;
+    }
+    auto* h = static_cast<CudaExecutorHandle*>(handle);
+    std::lock_guard<std::mutex> lk(h->mtx);
+    return submit_impl(h, [&]() -> cudaError_t {
+        if (h->d_staging == nullptr || h->d_staging_bytes < device_bytes) {
+            if (h->d_staging) cudaFree(h->d_staging);
+            h->d_staging = nullptr;
+            h->d_staging_bytes = 0;
+            cudaError_t err = cudaMalloc(&h->d_staging, device_bytes);
+            if (err != cudaSuccess) return err;
+            h->d_staging_bytes = device_bytes;
+        }
+        cudaMemcpyAsync(host, h->d_staging, device_bytes,
                         cudaMemcpyDeviceToHost, h->stream);
         return cudaStreamSynchronize(h->stream);
     }, elapsed_ns, last_error);

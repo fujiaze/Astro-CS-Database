@@ -31,6 +31,22 @@ struct BridgeApi {
     int (*submit_conv3x3)(void*, std::size_t, std::size_t,
                           float*, const float*, std::size_t, std::size_t,
                           const float*, std::uint64_t*, const char**){nullptr};
+    // 聚焦版（08 号计划 §3）：目标合成 Operation
+    int (*submit_dense_accumulate_fp64acc)(void*, std::size_t, std::size_t,
+                                           float*, const float*,
+                                           std::uint64_t*, const char**){nullptr};
+    int (*submit_drizzle_scatter)(void*, std::size_t, std::size_t,
+                                  const float*, double*, std::size_t,
+                                  std::uint64_t*, const char**){nullptr};
+    int (*submit_chain)(void*, std::size_t, std::size_t,
+                        float*, const float*,
+                        std::uint64_t*, const char**){nullptr};
+    int (*submit_launch_event)(void*, std::size_t, std::size_t,
+                               std::uint64_t*, const char**){nullptr};
+    int (*transfer_h2d)(void*, std::size_t, const void*,
+                        std::uint64_t*, const char**){nullptr};
+    int (*transfer_d2h)(void*, std::size_t, void*,
+                        std::uint64_t*, const char**){nullptr};
 
     bool loaded() const noexcept { return init != nullptr; }
 };

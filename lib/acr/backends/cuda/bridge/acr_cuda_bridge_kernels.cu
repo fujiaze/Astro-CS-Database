@@ -70,6 +70,50 @@ __global__ void acr_conv3x3_kernel(float* y, const float* x,
     y[idx] = acc;  // chunk-local 输出槽位
 }
 
+// ===== 聚焦版（08 号计划 §3）：目标合成内核 =====
+// Dense pixel accumulate：FP32 输入 + FP64 累加器
+__global__ void acr_dense_accumulate_fp64acc_kernel(float* y, const float* x,
+                                                     size_t begin, size_t n) {
+    const size_t i = begin + blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < begin + n) {
+        const double acc = static_cast<double>(y[i]) + static_cast<double>(x[i]);
+        y[i] = static_cast<float>(acc);
+    }
+}
+
+// Drizzle-like scatter：确定性 hash 桶 + FP64 原子累加
+__device__ __forceinline__ size_t acr_hash_bin(size_t i, size_t bins) {
+    size_t h = i;
+    h ^= h >> 17; h *= 0xed5ad4bbU; h ^= h >> 11;
+    return h % bins;
+}
+
+__global__ void acr_drizzle_scatter_kernel(const float* x, double* partials,
+                                            size_t begin, size_t n,
+                                            size_t bins) {
+    const size_t i = begin + blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < begin + n) {
+        const size_t b = acr_hash_bin(i, bins);
+        atomicAdd(&partials[b], static_cast<double>(x[i]));
+    }
+}
+
+// Resident chain：y[i] = x[i]+1 → z[i] = y[i]*2（两个 kernel，显存中间值）
+__global__ void acr_chain_k1_kernel(float* y, const float* x,
+                                    size_t begin, size_t n) {
+    const size_t i = begin + blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < begin + n) y[i] = x[i] + 1.0f;
+}
+
+__global__ void acr_chain_k2_kernel(float* z, const float* y,
+                                    size_t begin, size_t n) {
+    const size_t i = begin + blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < begin + n) z[i] = y[i] * 2.0f;
+}
+
+// 空 kernel：launch/event/sync 固定开销
+__global__ void acr_empty_kernel(size_t /*begin*/, size_t /*n*/) {}
+
 constexpr int kThreads = 256;
 
 inline int grid_size(size_t n) {
@@ -102,6 +146,30 @@ void acr_launch_conv3x3(float* y, const float* x,
                         const float* k, cudaStream_t stream) {
     acr_conv3x3_kernel<<<grid_size(n), kThreads, 0, stream>>>(
         y, x, begin, n, width, height, k);
+}
+
+void acr_launch_dense_accumulate_fp64acc(float* y, const float* x,
+                                         size_t begin, size_t n,
+                                         cudaStream_t stream) {
+    acr_dense_accumulate_fp64acc_kernel<<<grid_size(n), kThreads, 0, stream>>>(
+        y, x, begin, n);
+}
+
+void acr_launch_drizzle_scatter(const float* x, double* partials,
+                                size_t begin, size_t n, size_t bins,
+                                cudaStream_t stream) {
+    acr_drizzle_scatter_kernel<<<grid_size(n), kThreads, 0, stream>>>(
+        x, partials, begin, n, bins);
+}
+
+void acr_launch_chain(float* y, float* z, const float* x,
+                      size_t begin, size_t n, cudaStream_t stream) {
+    acr_chain_k1_kernel<<<grid_size(n), kThreads, 0, stream>>>(y, x, begin, n);
+    acr_chain_k2_kernel<<<grid_size(n), kThreads, 0, stream>>>(z, y, begin, n);
+}
+
+void acr_launch_empty(size_t begin, size_t n, cudaStream_t stream) {
+    acr_empty_kernel<<<grid_size(n), kThreads, 0, stream>>>(begin, n);
 }
 
 } // extern "C"
