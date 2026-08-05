@@ -22,6 +22,21 @@
 
 namespace spherical {
 
+// R12 (性能 profile): overlap 路径统计 (仅统计, 不改变逻辑; 由 drizzle_engine 汇总)
+static thread_local long long g_tl_n_quick = 0;
+static thread_local long long g_tl_n_fully = 0;
+static thread_local long long g_tl_n_dropin = 0;
+static thread_local long long g_tl_n_sh = 0;
+
+long long profile_overlap_path_counts(long long* fully, long long* dropin,
+                                      long long* sh) {
+    long long q = g_tl_n_quick;
+    if (fully) *fully = g_tl_n_fully;
+    if (dropin) *dropin = g_tl_n_dropin;
+    if (sh) *sh = g_tl_n_sh;
+    return q;
+}
+
 // ============================================================================
 // 常量
 // ============================================================================
@@ -406,11 +421,12 @@ std::vector<Vec3T<T>> get_healpix_boundary(
         double theta, phi;
         // 调用 xyf2ang_replica 计算角点 (整数坐标直接作为浮点 xf/yf, 不加 0.5)
         xyf2ang_replica(bighp, (double)corners[i].x, (double)corners[i].y, Ns, &theta, &phi);
-        double dec = (HALF_PI - theta) * RAD2DEG;
-        double ra  = phi * RAD2DEG;
-        if (ra < 0.0)  ra += 360.0;
-        if (ra >= 360.0) ra -= 360.0;
-        boundary.push_back(radec_to_vec<T>(T(ra), T(dec)));
+        // R12 (性能): xyf2ang 已返回弧度 (theta, phi), 直接构造单位向量
+        //   (x=sinθcosφ, y=sinθsinφ, z=cosθ), 跳过 ra/dec 度往返转换
+        //   与 radec_to_vec 数值等价 (误差 ~1e-16, 不影响任何门限)
+        double st = std::sin(theta), ct = std::cos(theta);
+        double sp = std::sin(phi),  cp = std::cos(phi);
+        boundary.push_back({T(st * cp), T(st * sp), T(ct)});
     }
 
     return boundary;
@@ -1027,21 +1043,20 @@ Scalar compute_overlap_area_g(const DropGeometryT<Scalar>& g,
     // 快速拒绝 (Oracle 穷举关键; 生产 query 已预过滤, 此判断为防御性重复):
     // 像素中心到 drop 包围圆中心距离 > max_angle + 1.0×hp_res (像素外接半径上界)
     // → 必然不相交, 跳过边界获取/S-H (避免极区大像素细分开销)
+    // R12 (性能): 像素中心只求一次 (pix2radec + radec_to_vec), 快速拒绝与
+    // hp_center 复用同一向量 (原实现重复计算两次)
     double hp_res_rad_rj = hp.pixelResolutionArcsec() * ARCSEC_TO_RAD;
-    {
-        double ra_rj, dec_rj;
-        hp.pix2radec((int64_t)target_ipix, &ra_rj, &dec_rj);
-        Vec3 pc = radec_to_vec<double>(ra_rj, dec_rj);
-        double d_c = pc.x * center_x + pc.y * center_y + pc.z * center_z;
-        d_c = std::max(-1.0, std::min(1.0, d_c));
-        if (std::acos(d_c) > g.max_angle + 1.0 * hp_res_rad_rj) {
-            return Scalar(0);
-        }
-    }
-
     double ra_c, dec_c;
     hp.pix2radec((int64_t)target_ipix, &ra_c, &dec_c);
     Vec3 hp_center = radec_to_vec<double>(ra_c, dec_c);
+    {
+        double d_c = hp_center.x * center_x + hp_center.y * center_y + hp_center.z * center_z;
+        d_c = std::max(-1.0, std::min(1.0, d_c));
+        if (std::acos(d_c) > g.max_angle + 1.0 * hp_res_rad_rj) {
+            g_tl_n_quick++;
+            return Scalar(0);
+        }
+    }
 
     // 1. 获取目标 HEALPix 像素边界 (double 内部)
     int nside = hp.getNside();
@@ -1057,16 +1072,17 @@ Scalar compute_overlap_area_g(const DropGeometryT<Scalar>& g,
     //   免 S-H); drop 几何预计算复用; 高 NSIDE 4 角边界直出。
     const std::vector<Vec3>& drop_clip_normals = clip_d;
 
-    // 全包含快速判定: leaf 4 角全在 drop 内 → drop 包含整个像素
     // 判定在 double 缓存 (clip_normals_d / center_d) 上进行, 与 Scalar 存储
-    // 无关, 因此 FP32/FP64 实例必须使用同一容差:
-    //   - 1e-6 (float 专用) 会把 dot ∈ [-1e-6, 0) 的边界外顶点误判为内部,
-    //     使部分覆盖边缘 leaf 被误判为全包含 → FP32 高估 (L2 65536 差异源之一)
-    //   - 1e-12 仅覆盖 double 累积舍入, 不会产生可观测偏差
+    // 无关, FP32/FP64 实例必须使用同一容差: 1e-12 仅覆盖 double 舍入。
+    // 注 (R12): 凸分离快速判定 (drop 全在像素某边外 / 像素全在 drop 某边外)
+    // 已移除 — 球面像素边界的支撑线无法精确表示 (细分小段不是支撑线,
+    // 主 4 角大圆弧与真实边界内缩/外扩不定), 任何近似支撑线的分离判定都会
+    // 在边界附近误杀真实相交的 drop (L0 NSIDE=64 实测通量丢失 0.6%)。
+    // 保留数学安全的快路径: 快速拒绝 (包围圆) / leaf_fully / drop_inside。
     const double inside_tol = 1e-12;
     bool leaf_fully_inside_drop = true;
-    for (const auto& v : hp_boundary) {
-        for (const auto& n : drop_clip_normals) {
+    for (const auto& n : drop_clip_normals) {
+        for (const auto& v : hp_boundary) {
             if (v.x * n.x + v.y * n.y + v.z * n.z < -inside_tol) {
                 leaf_fully_inside_drop = false;
                 break;
@@ -1076,16 +1092,15 @@ Scalar compute_overlap_area_g(const DropGeometryT<Scalar>& g,
     }
     if (leaf_fully_inside_drop) {
         // drop 包含像素 → overlap = 像素解析面积 (4π/(12·NSIDE²) = π/(3·NSIDE²))
+        g_tl_n_fully++;
         return Scalar(PI / (3.0 * (double)nside * (double)nside));
     }
 
-    // R12 (阶段4): 对称快路径 — drop 完全位于目标像素内 → overlap = drop_area
-    //   原 S-H (像素三角形扇 x drop 边) 在 drop 完全在像素内时会重算 drop 角点:
-    //   像素边大圆与 drop 边大圆在赤道带接近平行, 交点固定绝对误差 ~1e-11 rad,
-    //   相对误差与 drop 尺寸成反比 (0.01\" 实测 4.6e-4, 0.1\" 1.5e-5)。
-    //   改为直接判定 drop 全部角点在像素 4 半空间内, 返回 double 精度 drop_area:
-    //   overlap ≡ drop_area → weight = 1 精确, 且免去整个 S-H (性能不降反升)。
-    //   此路径对任何"drop 完全在像素内"的场景都适用, 不限于小 drop。
+    // R12 (阶段4): drop 完全位于目标像素内 → overlap = drop_area (weight=1 精确)
+    //   原 S-H (像素三角形扇 x drop 边) 会重算 drop 角点: 像素边大圆与
+    //   drop 边大圆在赤道带接近平行, 交点固定绝对误差 ~1e-11 rad, 相对
+    //   误差与 drop 尺寸成反比 (0.01\" 实测 4.6e-4) → 必须免 S-H。
+    //   判定用真实细分边界 (精确, 不依赖任何支撑线近似)。
     {
         bool drop_inside_pixel = true;
         for (int i = 0; i < nb; i++) {
@@ -1095,26 +1110,45 @@ Scalar compute_overlap_area_g(const DropGeometryT<Scalar>& g,
             double ny = P1.z * P2.x - P1.x * P2.z;
             double nz = P1.x * P2.y - P1.y * P2.x;
             double nl = std::sqrt(nx * nx + ny * ny + nz * nz);
-            if (nl < 1e-12) { drop_inside_pixel = false; break; }  // 退化边, 放弃快路径
+            if (nl < 1e-12) { drop_inside_pixel = false; break; }
             nx /= nl; ny /= nl; nz /= nl;
             if (nx * hp_center.x + ny * hp_center.y + nz * hp_center.z < 0.0) {
                 nx = -nx; ny = -ny; nz = -nz;
             }
+            double min_d = 1e9;
             for (const auto& v : g.corners_d) {
-                if (v.x * nx + v.y * ny + v.z * nz < -inside_tol) {
-                    drop_inside_pixel = false;
-                    break;
-                }
+                double d = v.x * nx + v.y * ny + v.z * nz;
+                if (d < min_d) min_d = d;
             }
-            if (!drop_inside_pixel) break;
+            if (min_d < -inside_tol) { drop_inside_pixel = false; break; }
         }
         if (drop_inside_pixel) {
+            g_tl_n_dropin++;
             return Scalar(g.drop_area);
         }
     }
 
     // 三角形扇剖分 + 逐三角形 S-H 裁剪 (旧算法数值路径, 通量闭合 ~1e-11)
+    g_tl_n_sh++;
     double total_overlap = 0.0;
+    // R12 (性能): 高 NSIDE 生产路径 (边界 4 角, 凸四边形) 用一次四边形 S-H
+    //   代替 4 次三角形扇裁剪 — 数学等价 (凸∩凸 = 一次 S-H 交集),
+    //   S-H 顶点处理量约为三角形扇的 1/4 (4 subject 顶点 vs 4x3)
+    if (nb == 4) {
+        Vec3 intersection[16];
+        int ni = sutherland_hodgman_spherical_fixed(
+            hp_boundary.data(), 4, drop_clip_normals, intersection, 16);
+        if (ni >= 3) {
+            if (g.max_angle < 1e-3) {
+                total_overlap = planar_polygon_area_n(intersection, ni, &g.center_d);
+            } else {
+                total_overlap = spherical_polygon_area_n<double>(intersection, ni);
+            }
+        }
+        return Scalar(total_overlap);
+    }
+
+    // 低 NSIDE (细分边界, subject 可 >16 顶点): 保持三角形扇
     bool center_in_drop = true;
     for (const auto& n : drop_clip_normals) {
         if (hp_center.x * n.x + hp_center.y * n.y + hp_center.z * n.z < -inside_tol) {
@@ -1331,14 +1365,15 @@ void query_candidate_pixels_fast(
         };
         return spread((uint32_t)x) | (spread((uint32_t)y) << 1);
     };
-    // 4b. 平面圆预过滤 (整数运算, 无三角函数): 面内 (ix,iy)→球面映射单调,
-    //     d_plane > delta → d_sph > delta×hp_res ≥ query_radius → 不可能相交。
-    //     减少后续 pix2ang 精确过滤调用 (49 → ~21)。
-    double r2 = (double)delta * (double)delta;
+    // 4b. 不再做平面圆预过滤 (R12 修复):
+    //     面内 (ix,iy)→球面映射在菱形网格对角线方向不单调 — 平面距离
+    //     sqrt(2) 的对角像素其球面距离可能 < query_radius, 平面圆
+    //     dx²+dy²>delta² 会把它误滤 → 候选漏选 (低 NSIDE 像素角点场景
+    //     实测: drop 质心落在 4 像素公共角附近, 真实相交像素在对角方向
+    //     被滤, 通量丢失 0.6%)。整个包围盒 (2delta+1)² 全枚举,
+    //     由下方精确球面圆心距离过滤负责去重/裁剪, 所有 NSIDE 统一正确。
     for (int iy = y0; iy <= y1; ++iy) {
         for (int ix = x0; ix <= x1; ++ix) {
-            int dx = ix - ix0, dy = iy - iy0;
-            if ((double)(dx * dx + dy * dy) > r2) continue;
             uint64_t ipix = (uint64_t)face * nside64 * nside64 + morton(ix, iy);
             candidates.push_back(ipix);
         }

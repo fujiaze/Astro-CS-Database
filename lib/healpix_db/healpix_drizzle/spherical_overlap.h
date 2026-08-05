@@ -253,6 +253,11 @@ template <typename Scalar>
 Scalar compute_overlap_area_g(const DropGeometryT<Scalar>& g,
                               const healpix::HealpixCore& hp, uint64_t target_ipix);
 
+// R12 (性能 profile): overlap 路径计数 (quick=相离, fully=drop 包含像素,
+// dropin=drop 在像素内, sh=部分相交 S-H); 仅统计, 不改变逻辑
+long long profile_overlap_path_counts(long long* fully, long long* dropin,
+                                      long long* sh);
+
 // ============================================================================
 // 查询与 drop 多边形可能相交的所有 HEALPix 像素 (不限于 1-ring)
 //

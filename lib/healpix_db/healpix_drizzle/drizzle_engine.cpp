@@ -20,6 +20,15 @@
 
 namespace drizzle {
 
+// R12 (性能 profile): OpenMP 线程池 thread_local 阶段计时 (仅统计, 不改变逻辑)
+static thread_local double g_tl_prof_cand = 0.0;
+static thread_local double g_tl_prof_overlap = 0.0;
+static thread_local long long g_tl_n_quick = 0;      // 快速拒绝命中 (相离)
+static thread_local long long g_tl_n_fully = 0;      // drop 包含像素 (leaf_fully_inside)
+static thread_local long long g_tl_n_dropin = 0;     // drop 完全在像素内
+static thread_local long long g_tl_n_sh = 0;         // S-H 部分相交
+static thread_local long long g_tl_n_cand = 0;       // 候选总数
+
 // 度 → 弧度
 static const double D2R = 0.017453292519943295769;
 
@@ -1157,7 +1166,10 @@ void DrizzleEngine::processPixelSharedTiled(
     // FP32/FP64 候选一致且不因 float 存储舍入漏选 (float 1e-7 误差在
     // NSIDE=65536 下会使 query_radius/delta 抖动 → 通量丢失)
     std::vector<uint64_t> candidates;
+    auto t_c0 = std::chrono::high_resolution_clock::now();
     spherical::query_candidate_pixels_fast<double>(drop_double, hp, candidates);
+    g_tl_prof_cand += std::chrono::duration<double>(
+        std::chrono::high_resolution_clock::now() - t_c0).count();
     if (candidates.empty()) {
         return;
     }
@@ -1166,6 +1178,7 @@ void DrizzleEngine::processPixelSharedTiled(
     //   通量守恒 (02_FROZEN §8): F_p = Σ_j L_j * (a_jp / A_j_drop)
     //   leaf 由 NESTED 位运算拆分为 (parent_ipix, local_ipix):
     //     parent = ipix >> (2*depth), local = ipix & mask
+    auto t_o0 = std::chrono::high_resolution_clock::now();
     for (uint64_t ipix : candidates) {
         Scalar overlap_area = spherical::compute_overlap_area_g<Scalar>(drop_geom, hp, ipix);
         if (overlap_area < Scalar(1e-20)) continue;
@@ -1184,6 +1197,8 @@ void DrizzleEngine::processPixelSharedTiled(
         acc.sumArea   += Scalar(overlap_area);
         acc.nContrib++;
     }
+    g_tl_prof_overlap += std::chrono::duration<double>(
+        std::chrono::high_resolution_clock::now() - t_o0).count();
 }
 
 // ============================================================================
@@ -1279,7 +1294,11 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     int64_t nSourcePixels = 0;
     const bool shared_vertices = (config.pixfrac == 1.0);
 
-    #pragma omp parallel for schedule(static) reduction(+:nSourcePixels)
+    // R12 (性能): 阶段计时 profile (仅统计, 不改变逻辑)
+    double prof_geom_s = 0.0, prof_cand_s = 0.0, prof_overlap_s = 0.0;
+    double prof_wcs_s = 0.0;
+
+    #pragma omp parallel for schedule(static) reduction(+:nSourcePixels,prof_geom_s,prof_cand_s,prof_overlap_s,prof_wcs_s)
     for (int y = 0; y < img.height; y++) {
         int tid = omp_get_thread_num();
         auto& tileMap = threadTiles[tid];
@@ -1288,12 +1307,15 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
         // 几何数据在 processPixelSharedTiled 内转 Scalar 存储)
         thread_local std::vector<double> bot_ra, bot_dec, top_ra, top_dec;
         if (shared_vertices) {
+            auto t_wcs0 = std::chrono::high_resolution_clock::now();
             bot_ra.resize(img.width + 1); bot_dec.resize(img.width + 1);
             top_ra.resize(img.width + 1); top_dec.resize(img.width + 1);
             for (int vx = 0; vx <= img.width; vx++) {
                 wcs.pixelToSky(vx - 0.5, y - 0.5, bot_ra[vx], bot_dec[vx]);
                 wcs.pixelToSky(vx - 0.5, y + 0.5, top_ra[vx], top_dec[vx]);
             }
+            prof_wcs_s += std::chrono::duration<double>(
+                std::chrono::high_resolution_clock::now() - t_wcs0).count();
         }
 
         for (int x = 0; x < img.width; x++) {
@@ -1317,11 +1339,17 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
             if (shared_vertices) {
                 double cr[4] = {bot_ra[x], bot_ra[x + 1], top_ra[x + 1], top_ra[x]};
                 double cd[4] = {bot_dec[x], bot_dec[x + 1], top_dec[x + 1], top_dec[x]};
+                auto t_g = std::chrono::high_resolution_clock::now();
                 processPixelSharedTiled((double)x, (double)y, pixelValue, snrValue, weightValue,
                                         cr, cd, wcs, config, hp, (uint32_t)shift, mask, tileMap);
+                prof_geom_s += std::chrono::duration<double>(
+                    std::chrono::high_resolution_clock::now() - t_g).count();
             } else {
+                auto t_g = std::chrono::high_resolution_clock::now();
                 processPixelTiled((double)x, (double)y, pixelValue, snrValue, weightValue,
                                   wcs, config, hp, (uint32_t)shift, mask, tileMap);
+                prof_geom_s += std::chrono::duration<double>(
+                    std::chrono::high_resolution_clock::now() - t_g).count();
             }
         }
     }
@@ -1363,6 +1391,33 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     stats.nested         = config.nested;
     stats.elapsedSec     = elapsedSec;
 
+    // R12 (性能 profile): 汇总线程池 thread_local 阶段计时
+    double prof_cand_t = 0.0, prof_overlap_t = 0.0;
+#pragma omp parallel
+    {
+#pragma omp atomic
+        prof_cand_t += g_tl_prof_cand;
+#pragma omp atomic
+        prof_overlap_t += g_tl_prof_overlap;
+    }
+    // overlap 路径统计 (spherical_overlap 内 thread_local)
+    long long n_quick = 0, n_fully = 0, n_dropin = 0, n_sh = 0;
+#pragma omp parallel reduction(+:n_quick,n_fully,n_dropin,n_sh)
+    {
+        long long f = 0, d = 0, s = 0;
+        n_quick += spherical::profile_overlap_path_counts(&f, &d, &s);
+        n_fully += f;
+        n_dropin += d;
+        n_sh += s;
+    }
+    fprintf(stderr,
+            "[drizzle_engine][profile] wcs=%.3fs geom=%.3fs cand=%.3fs overlap=%.3fs "
+            "| paths quick=%lld fully=%lld dropin=%lld sh=%lld "
+            "(threads=%d, %.1fM px)\n",
+            prof_wcs_s, prof_geom_s, prof_cand_t, prof_overlap_t,
+            (long long)n_quick, (long long)n_fully, (long long)n_dropin,
+            (long long)n_sh, num_threads,
+            (double)nSourcePixels / 1e6);
     fprintf(stderr, "[drizzle_engine] 完成: %lld 源像素 → %lld HEALPix 像素 (%zu Tile), 耗时 %.3fs\n",
             (long long)nSourcePixels, (long long)nHealpixPixels, tiles.size(), elapsedSec);
     return true;
