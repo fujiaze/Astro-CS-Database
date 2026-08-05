@@ -17,6 +17,7 @@
 #include "device_executor.hpp"
 #include "fallback.hpp"
 #include "mixed_runner.hpp"
+#include "mixed_route_planner.hpp"
 #include "partitioner.hpp"
 #include "queue_aware.hpp"
 #include "reduction_merger.hpp"
@@ -31,6 +32,7 @@
 namespace astro::compute {
 struct TaskDescriptor;
 namespace cost { struct CostEstimate; }
+namespace qualification::focused { struct OperationProfile; }
 namespace utilization {
 class MemoryBudgetController;
 struct MemoryBudgetConfig;
@@ -63,6 +65,14 @@ struct DispatcherConfig {
     // 26 号计划 §2/§9：MemoryBudget 独立开关（与利用率控制彻底解耦）。
     // 默认开启；关闭诊断采样不得关闭内存保护。
     bool enable_memory_budget{true};
+    // 聚焦版（08 号计划 §5）：路由模式与 OperationProfile 驱动规划。
+    // route_mode 默认 AutoMixed；CpuOnly/GpuOnly 用于对照/回退。
+    // operation_profile 为空时走保守 CPU fallback（不伪造 GPU 路由）。
+    RouteMode route_mode{RouteMode::AutoMixed};
+    const qualification::focused::OperationProfile* operation_profile{nullptr};
+    // 运行时实测每 item 耗时反馈（本次运行 completion 统计；不写回 Profile）
+    double cpu_measured_ns_per_item{0.0};
+    double gpu_measured_ns_per_item{0.0};
     // F-fix 6 + F-fix 7：设备执行器注册表（可选）
     // 如果提供且包含多个可用 executor，Dispatcher 会通过 execute_via_executors 执行：
     //   - 每个空闲 executor 按自身推荐块大小领取工作块

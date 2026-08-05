@@ -117,6 +117,8 @@ struct Dispatcher::Impl {
     CurrentState current_state;
     // 26 号计划 §2/§9：只保留 MemoryBudget（独立开关，与利用率解耦）
     std::unique_ptr<utilization::MemoryBudgetController> mem_ctrl;
+    // 聚焦版（08 号计划 §5）：OperationProfile 驱动的 Mixed 路由规划
+    MixedRoutePlanner planner;
     // F-fix 2：SharedWorkPool
     SharedWorkPool pool;
     // F-fix 6 + F-fix 7：设备执行器注册表（多设备工作保持）
@@ -724,6 +726,16 @@ struct Dispatcher::Impl {
         std::vector<DeviceExecutor*> supported;
         const std::size_t task_size = end - begin;
         for (auto* exec : all) {
+            // 聚焦版 RouteMode（08 号计划 §3/§5）：
+            // CpuOnly/GpuOnly 强制只启用一类设备（对照/回退/资格测试）
+            if (cfg.route_mode == RouteMode::CpuOnly &&
+                exec->backend_type() != "cpu") {
+                continue;
+            }
+            if (cfg.route_mode == RouteMode::GpuOnly &&
+                exec->backend_type() == "cpu") {
+                continue;
+            }
             if (exec && exec->supports(invocation.id) &&
                 is_executor_eligible(exec, find_device_cost(estimate, exec->id()),
                                      task_size,
@@ -929,11 +941,44 @@ struct Dispatcher::Impl {
                         if (remaining == 0 && pool.retry_pending_count() == 0) {
                             break;
                         }
-                        std::size_t requested =
-                            cost::global_cost_estimator().compute_requested_items(
-                                dc ? *dc : fallback_cost(exec),
-                                remaining,
-                                exec->queue_state().depth);
+                        // 聚焦版（08 号计划 §5）：OperationProfile 驱动规划
+                        // 决定 CPU/GPU 独立块大小与边际收益门；无合格 Profile
+                        // 时回退旧 CostEstimator 路径（保守 CPU fallback）。
+                        std::size_t requested = 0;
+                        const auto plan = planner.plan(
+                            std::string(invocation.id), remaining,
+                            /*data_resident=*/false);
+                        if (plan.profile_available) {
+                            requested =
+                                (exec->backend_type() == "cpu")
+                                    ? plan.cpu_chunk_items
+                                    : plan.gpu_chunk_items;
+                            if (requested == 0) requested = 1;
+                            // 运行时完成时间只用于本次队列/尾部判断
+                            // （不写回 Profile，不跨运行学习）
+                            double measured_ns = 0.0;
+                            const std::size_t done_items =
+                                exec_items[i].load(std::memory_order_relaxed);
+                            const auto done_elapsed =
+                                exec_elapsed[i].load(std::memory_order_relaxed);
+                            if (done_items > 0 && done_elapsed > 0) {
+                                measured_ns =
+                                    static_cast<double>(done_elapsed) /
+                                    static_cast<double>(done_items);
+                            }
+                            // 边际收益门：预计拖尾的设备停止新 claim
+                            if (!MixedRoutePlanner::should_claim(
+                                    plan, exec->backend_type(), remaining,
+                                    exec->queue_state().depth, measured_ns)) {
+                                break;  // 停止该设备本轮 claim
+                            }
+                        } else {
+                            requested =
+                                cost::global_cost_estimator().compute_requested_items(
+                                    dc ? *dc : fallback_cost(exec),
+                                    remaining,
+                                    exec->queue_state().depth);
+                        }
                         // 资源闭环：claim size 受当前 max_chunk 约束（ShrinkBlock 等）
                         const std::size_t max_c =
                             current_max_chunk.load(std::memory_order_relaxed);
@@ -1197,6 +1242,8 @@ void Dispatcher::set_cache_release_hook(std::function<void()> hook) {
 void Dispatcher::configure(const DispatcherConfig& cfg) {
     impl_->cfg = cfg;
     impl_->executors = cfg.executors;  // F-fix 6 + F-fix 7
+    // 聚焦版：OperationProfile 驱动规划（nullptr=保守 CPU fallback）
+    impl_->planner.set_profile(cfg.operation_profile);
     impl_->fallback_policy.set_strategy(cfg.fallback_strategy);
     MixedRunnerConfig mcfg;
     mcfg.fallback_strategy = cfg.fallback_strategy;

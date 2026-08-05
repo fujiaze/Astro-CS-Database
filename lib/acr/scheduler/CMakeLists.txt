@@ -10,6 +10,7 @@ add_library(acr_scheduler STATIC
     current_state.cpp
     shared_work_pool.cpp
     device_executor.cpp
+    mixed_route_planner.cpp
 )
 target_link_libraries(acr_scheduler PUBLIC
     acr_options
@@ -28,5 +29,6 @@ target_include_directories(acr_scheduler PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/../core
     ${CMAKE_CURRENT_SOURCE_DIR}/../cost
     ${CMAKE_CURRENT_SOURCE_DIR}/../utilization
+    ${CMAKE_CURRENT_SOURCE_DIR}/../qualification
 )
 message(STATUS "ACR scheduler: dispatcher + partitioner + mixed_runner + queue_aware + fallback + reduction_merger + current_state + utilization/guided_tail/memory_budget (Phase F3+F4+Commit F)")
