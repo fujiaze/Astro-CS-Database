@@ -2990,15 +2990,14 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
                  + std::to_string(meta_prec) + " ("
                  + (requested_prec == 1 ? "FP64" : "FP32") + ")");
     } else {
-        // metadata 无 precision_mode 字段
-        if (requested_prec == 1) {
-            // FP64 请求但 metadata 无 precision_mode (drizzle DLL 未更新)
-            LOG_WARN("orchestrator", "[HISS_VERIFY] metadata 无 precision_mode 字段, "
-                     "FP64 请求但 metadata 未记录 precision_mode (drizzle DLL 可能未更新)");
-        } else {
-            LOG_INFO("orchestrator", "[HISS_VERIFY] metadata 无 precision_mode 字段, "
-                     "默认 FP32 (与请求一致)");
-        }
+        // R11 (HISS-101): 正式验证缺 precision_mode 字段一律硬失败
+        // (旧文件兼容只能走独立 legacy 读取, 不得让正式 Phase1 验证软通过)
+        LOG_ERROR("orchestrator", "[HISS_VERIFY] metadata 缺 precision_mode 字段 (硬失败)");
+        if (meta_json) fn_free(meta_json);
+        if (tile_ipix_list) fn_free(tile_ipix_list);
+        result.error_msg = "[HISS_VERIFY] metadata 缺 precision_mode 字段 (硬失败)";
+        result.exit_code = AstroCsExitCode::HISS_INVALID;
+        return false;
     }
 
     // 3. 至少一个 Tile 可读取 + signal 非全零 + support 非全零
