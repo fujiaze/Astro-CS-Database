@@ -75,16 +75,28 @@ WcsSip::WcsSip(const WcsParams& wcs) : m_wcs(wcs), m_hasWcs(wcs.has_wcs) {
 //
 // 公式: result = Σ_{i+j<=order} coeffs[i*6+j] * dx^i * dy^j
 // ============================================================================
-double WcsSip::evalSip(const double* coeffs, double dx, double dy, int order) {
-    if (order <= 0) return 0.0;
+template <typename T>
+T WcsSip::evalSipT(const double* coeffs, T dx, T dy, int order) {
+    if (order <= 0) return T(0);
 
-    double result = 0.0;
+    T result = T(0);
+    // 整数幂递推 (与旧 evalSip 的 std::pow(dx, i) 整数指数一致, 避免
+    // pow(double,double) 的 exp/log 舍入差异 — 模板化不得改变 FP64 数值)
+    T pdx = T(1);
     for (int i = 0; i <= order; i++) {
+        T pdy = T(1);
         for (int j = 0; j <= order - i; j++) {
-            result += coeffs[i * 6 + j] * std::pow(dx, i) * std::pow(dy, j);
+            result += T(coeffs[i * 6 + j]) * pdx * pdy;
+            pdy *= dy;
         }
+        pdx *= dx;
     }
     return result;
+}
+
+// 兼容包装 (double 实例, skyToPixel 逆向 SIP 使用)
+double WcsSip::evalSip(const double* coeffs, double dx, double dy, int order) {
+    return evalSipT<double>(coeffs, dx, dy, order);
 }
 
 // ============================================================================
@@ -108,51 +120,51 @@ double WcsSip::evalSip(const double* coeffs, double dx, double dy, int order) {
 //   - asin 参数钳位到 [-1, 1] 避免浮点误差
 //   - RA 归一化到 [0, 360)
 // ============================================================================
-void WcsSip::tanIntermediateToWorld(double xi, double eta,
-                                     double& ra, double& dec) const {
-    const double ra0_deg  = m_wcs.crval[0];
-    const double dec0_deg = m_wcs.crval[1];
+template <typename T>
+void WcsSip::tanIntermediateToWorldT(T xi, T eta, T& ra, T& dec) const {
+    const T ra0_deg  = T(m_wcs.crval[0]);
+    const T dec0_deg = T(m_wcs.crval[1]);
 
     // 中间坐标 → 弧度
-    const double xi_rad  = xi  * D2R;
-    const double eta_rad = eta * D2R;
+    const T xi_rad  = xi  * T(D2R);
+    const T eta_rad = eta * T(D2R);
 
     // rho = 投影平面上的径向距离 (弧度)
-    const double rho = std::sqrt(xi_rad * xi_rad + eta_rad * eta_rad);
+    const T rho = std::sqrt(xi_rad * xi_rad + eta_rad * eta_rad);
 
     // 切点本身, 直接返回投影中心
-    if (rho < 1e-12) {
+    if (rho < T(1e-12)) {
         ra  = ra0_deg;
         dec = dec0_deg;
         return;
     }
 
-    const double dec0_rad = dec0_deg * D2R;
-    const double sdec0 = std::sin(dec0_rad);
-    const double cdec0 = std::cos(dec0_rad);
+    const T dec0_rad = dec0_deg * T(D2R);
+    const T sdec0 = std::sin(dec0_rad);
+    const T cdec0 = std::cos(dec0_rad);
 
-    const double c    = std::atan(rho);
-    const double sinc = std::sin(c);
-    const double cosc = std::cos(c);
+    const T c    = std::atan(rho);
+    const T sinc = std::sin(c);
+    const T cosc = std::cos(c);
 
     // dec = asin(cos(c)*sin(dec0) + eta*sin(c)*cos(dec0)/rho)
-    double sin_dec = cosc * sdec0 + eta_rad * sinc * cdec0 / rho;
+    T sin_dec = cosc * sdec0 + eta_rad * sinc * cdec0 / rho;
     // 数值保护: asin 参数可能因浮点误差略微超出 [-1, 1]
-    if (sin_dec >  1.0) sin_dec =  1.0;
-    if (sin_dec < -1.0) sin_dec = -1.0;
-    const double dec_rad = std::asin(sin_dec);
+    if (sin_dec >  T(1)) sin_dec =  T(1);
+    if (sin_dec < -T(1)) sin_dec = -T(1);
+    const T dec_rad = std::asin(sin_dec);
 
     // ra = ra0 + atan2(xi*sin(c), rho*cos(dec0)*cos(c) - eta*sin(dec0)*sin(c))
-    const double dra = std::atan2(xi_rad * sinc,
-                                  rho * cdec0 * cosc - eta_rad * sdec0 * sinc);
-    double ra_rad = ra0_deg * D2R + dra;
+    const T dra = std::atan2(xi_rad * sinc,
+                             rho * cdec0 * cosc - eta_rad * sdec0 * sinc);
+    T ra_rad = ra0_deg * T(D2R) + dra;
 
     // 归一化 RA 到 [0, 2π)
-    while (ra_rad < 0.0)           ra_rad += 2.0 * M_PI;
-    while (ra_rad >= 2.0 * M_PI)   ra_rad -= 2.0 * M_PI;
+    while (ra_rad < T(0))              ra_rad += T(2.0 * M_PI);
+    while (ra_rad >= T(2.0 * M_PI))    ra_rad -= T(2.0 * M_PI);
 
-    ra  = ra_rad * R2D;
-    dec = dec_rad * R2D;
+    ra  = ra_rad * T(R2D);
+    dec = dec_rad * T(R2D);
 }
 
 // ============================================================================
@@ -221,36 +233,42 @@ void WcsSip::tanWorldToIntermediate(double ra, double dec,
 //   3. CD 矩阵: xi = cd[0]*dx' + cd[1]*dy', eta = cd[2]*dx' + cd[3]*dy'
 //   4. TAN 反投影: (xi, eta) → (RA, Dec)
 // ============================================================================
-void WcsSip::pixelToSky(double x, double y, double& ra, double& dec) const {
+template <typename T>
+void WcsSip::pixelToSkyT(T x, T y, T& ra, T& dec) const {
     if (!m_hasWcs) {
         WCS_LOG("错误: pixelToSky 调用时 WCS 无效, 返回零值");
-        ra = 0.0;
-        dec = 0.0;
+        ra = T(0);
+        dec = T(0);
         return;
     }
 
     // 1. 归一化像素坐标 (0-based)
     //    CRPIX 是 1-based, 输入 x/y 是 0-based
     //    dx = x - (CRPIX1 - 1) = x - CRPIX1 + 1
-    double dx = x - (m_wcs.crpix[0] - 1.0);
-    double dy = y - (m_wcs.crpix[1] - 1.0);
+    T dx = x - T(m_wcs.crpix[0] - 1.0);
+    T dy = y - T(m_wcs.crpix[1] - 1.0);
 
     // 2. 前向 SIP 修正 (A/B)
     //    FITS 标准: A/B 是前向多项式, 用于像素 → 中间坐标方向
     //    U = dx + A(dx, dy), V = dy + B(dx, dy)
     if (m_wcs.sip.order > 0) {
-        double f = evalSip(m_wcs.sip.a, dx, dy, m_wcs.sip.order);
-        double g = evalSip(m_wcs.sip.b, dx, dy, m_wcs.sip.order);
+        T f = evalSipT<T>(m_wcs.sip.a, dx, dy, m_wcs.sip.order);
+        T g = evalSipT<T>(m_wcs.sip.b, dx, dy, m_wcs.sip.order);
         dx += f;
         dy += g;
     }
 
     // 3. CD 矩阵: 像素 → 中间世界坐标 (度)
-    double xi  = m_wcs.cd[0] * dx + m_wcs.cd[1] * dy;
-    double eta = m_wcs.cd[2] * dx + m_wcs.cd[3] * dy;
+    T xi  = T(m_wcs.cd[0]) * dx + T(m_wcs.cd[1]) * dy;
+    T eta = T(m_wcs.cd[2]) * dx + T(m_wcs.cd[3]) * dy;
 
     // 4. TAN 反投影: 中间坐标 → 天球
-    tanIntermediateToWorld(xi, eta, ra, dec);
+    tanIntermediateToWorldT<T>(xi, eta, ra, dec);
+}
+
+// 兼容包装 (double 实例, 旧调用方)
+void WcsSip::pixelToSky(double x, double y, double& ra, double& dec) const {
+    pixelToSkyT<double>(x, y, ra, dec);
 }
 
 // ============================================================================
@@ -314,5 +332,15 @@ void WcsSip::pixelToSkyBatch(const double* xy, int count, double* radec) const {
                    radec[i * 2], radec[i * 2 + 1]);
     }
 }
+
+// ============================================================================
+// R11 阶段7: 显式实例化 FP32/FP64 双实例 (真 Scalar WCS 几何)
+// ============================================================================
+template void WcsSip::pixelToSkyT<float>(float, float, float&, float&) const;
+template void WcsSip::pixelToSkyT<double>(double, double, double&, double&) const;
+template float WcsSip::evalSipT<float>(const double*, float, float, int);
+template double WcsSip::evalSipT<double>(const double*, double, double, int);
+template void WcsSip::tanIntermediateToWorldT<float>(float, float, float&, float&) const;
+template void WcsSip::tanIntermediateToWorldT<double>(double, double, double&, double&) const;
 
 } // namespace drizzle

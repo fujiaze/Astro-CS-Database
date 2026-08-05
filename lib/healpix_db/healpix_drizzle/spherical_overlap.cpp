@@ -41,55 +41,66 @@ static void xyf2ang_replica(int bighp, double xf, double yf, int Ns,
                             double* theta, double* phi);
 
 // ============================================================================
-// 基本向量运算
+// 基本向量运算 (R11 阶段7: template<typename T> 双实例 float/double)
 // ============================================================================
-Vec3 cross(const Vec3& a, const Vec3& b) {
-    Vec3 r;
-    r.x = a.y * b.z - a.z * b.y;
-    r.y = a.z * b.x - a.x * b.z;
-    r.z = a.x * b.y - a.y * b.x;
+template <typename T>
+Vec3T<T> cross(const Vec3T<T>& a, const Vec3T<T>& b) {
+    Vec3T<T> r;
+    // 数值提升: 内部 double 累加, 防止 float 在微小几何下方向符号翻转
+    r.x = T(double(a.y) * b.z - double(a.z) * b.y);
+    r.y = T(double(a.z) * b.x - double(a.x) * b.z);
+    r.z = T(double(a.x) * b.y - double(a.y) * b.x);
     return r;
 }
 
-double dot(const Vec3& a, const Vec3& b) {
-    return a.x * b.x + a.y * b.y + a.z * b.z;
+template <typename T>
+T dot(const Vec3T<T>& a, const Vec3T<T>& b) {
+    return T(double(a.x) * b.x + double(a.y) * b.y + double(a.z) * b.z);
 }
 
-double length(const Vec3& v) {
-    return std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+template <typename T>
+T length(const Vec3T<T>& v) {
+    return T(std::sqrt(double(v.x) * v.x + double(v.y) * v.y + double(v.z) * v.z));
 }
 
-Vec3 normalize(const Vec3& v) {
-    double len = length(v);
+template <typename T>
+Vec3T<T> normalize(const Vec3T<T>& v) {
+    double len = std::sqrt(double(v.x) * v.x + double(v.y) * v.y + double(v.z) * v.z);
     if (len < 1e-300) {
         // 退化向量, 返回北极作为安全默认
-        return {0.0, 0.0, 1.0};
+        return {T(0), T(0), T(1)};
     }
     double inv = 1.0 / len;
-    return {v.x * inv, v.y * inv, v.z * inv};
+    return {T(v.x * inv), T(v.y * inv), T(v.z * inv)};
 }
 
-Vec3 radec_to_vec(double ra_deg, double dec_deg) {
-    double ra  = ra_deg  * DEG2RAD;
-    double dec = dec_deg * DEG2RAD;
+template <typename T>
+Vec3T<T> radec_to_vec(T ra_deg, T dec_deg) {
+    // 数值提升: double 三角函数, 输出 T 存储 (Scalar 实例, 精度稳健)
+    double ra  = double(ra_deg)  * DEG2RAD;
+    double dec = double(dec_deg) * DEG2RAD;
     double cd = std::cos(dec);
-    return { cd * std::cos(ra), cd * std::sin(ra), std::sin(dec) };
+    return { T(cd * std::cos(ra)), T(cd * std::sin(ra)), T(std::sin(dec)) };
 }
 
-void vec_to_radec(const Vec3& v, double& ra_deg, double& dec_deg) {
-    Vec3 u = normalize(v);
-    double dec = std::asin(std::max(-1.0, std::min(1.0, u.z)));
-    double ra  = std::atan2(u.y, u.x);
+template <typename T>
+void vec_to_radec(const Vec3T<T>& v, T& ra_deg, T& dec_deg) {
+    double len = std::sqrt(double(v.x) * v.x + double(v.y) * v.y + double(v.z) * v.z);
+    double inv = (len < 1e-300) ? 1.0 : 1.0 / len;
+    double ux = v.x * inv, uy = v.y * inv, uz = v.z * inv;
+    double dec = std::asin(std::max(-1.0, std::min(1.0, uz)));
+    double ra  = std::atan2(uy, ux);
     if (ra < 0.0) ra += TWO_PI;
     if (ra >= TWO_PI) ra -= TWO_PI;
-    dec_deg = dec * RAD2DEG;
-    ra_deg  = ra  * RAD2DEG;
+    dec_deg = T(dec * RAD2DEG);
+    ra_deg  = T(ra  * RAD2DEG);
 }
 
-double angular_distance(const Vec3& a, const Vec3& b) {
-    double d = dot(a, b);
+template <typename T>
+T angular_distance(const Vec3T<T>& a, const Vec3T<T>& b) {
+    double d = double(a.x) * b.x + double(a.y) * b.y + double(a.z) * b.z;
     d = std::max(-1.0, std::min(1.0, d));
-    return std::acos(d);
+    return T(std::acos(d));
 }
 
 // ============================================================================
@@ -121,28 +132,31 @@ double angular_distance(const Vec3& a, const Vec3& b) {
 //
 // 参考: Eriksson, F. (2018) "The ang... spherical triangle area formula"
 // ============================================================================
-double spherical_polygon_area(const std::vector<Vec3>& vertices) {
+template <typename T>
+T spherical_polygon_area(const std::vector<Vec3T<T>>& vertices) {
     int n = (int)vertices.size();
-    if (n < 3) return 0.0;
+    if (n < 3) return T(0);
 
     // ---- fan triangulation 以 V_0 为顶点 + Eriksson 有符号面积 ----
     // 对凸多边形, V_0 与所有非相邻顶点构成同向三角形, 有符号累加得到正确面积.
     // 对非凸多边形, 此方法仍正确 (标准球面多边形面积定义).
-    const Vec3& a = vertices[0];
+    const Vec3T<T>& a = vertices[0];
     double total_area = 0.0;
 
     for (int i = 1; i < n - 1; i++) {
-        const Vec3& b = vertices[i];
-        const Vec3& c = vertices[i + 1];
+        const Vec3T<T>& b = vertices[i];
+        const Vec3T<T>& c = vertices[i + 1];
 
         // 标量三重积 det = a · (b × c), 含符号
-        Vec3 b_cross_c = cross(b, c);
-        double det = dot(a, b_cross_c);
+        double bx = double(b.y) * c.z - double(b.z) * c.y;
+        double by = double(b.z) * c.x - double(b.x) * c.z;
+        double bz = double(b.x) * c.y - double(b.y) * c.x;
+        double det = double(a.x) * bx + double(a.y) * by + double(a.z) * bz;
 
         // 分母 = 1 + a·b + b·c + c·a
-        double dot_ab = dot(a, b);
-        double dot_bc = dot(b, c);
-        double dot_ca = dot(c, a);
+        double dot_ab = double(a.x) * b.x + double(a.y) * b.y + double(a.z) * b.z;
+        double dot_bc = double(b.x) * c.x + double(b.y) * c.y + double(b.z) * c.z;
+        double dot_ca = double(c.x) * a.x + double(c.y) * a.y + double(c.z) * a.z;
         double denom = 1.0 + dot_ab + dot_bc + dot_ca;
 
         // 有符号三角形面积 = 2·atan2(det, denom)
@@ -165,7 +179,7 @@ double spherical_polygon_area(const std::vector<Vec3>& vertices) {
     // 防御性: 极小负值归零 (浮点误差)
     if (total_area < 0.0) total_area = 0.0;
 
-    return total_area;
+    return T(total_area);
 }
 
 // ============================================================================
@@ -183,61 +197,64 @@ double spherical_polygon_area(const std::vector<Vec3>& vertices) {
 //   - 两大圆交点 = ±normalize(cross(n_edge, n_clip))
 //   - 选择 dot(I, S+E) > 0 的那个 (位于 S, E 之间)
 // ============================================================================
-static inline bool is_inside(const Vec3& v, const Vec3& n) {
+template <typename T>
+static inline bool is_inside(const Vec3T<T>& v, const Vec3T<T>& n) {
     // dot(n, v) >= 0 表示在保留侧 (含边界)
-    return dot(n, v) >= -1e-15;
+    return dot(n, v) >= T(-1e-15);
 }
 
-static Vec3 compute_intersection(const Vec3& S, const Vec3& E, const Vec3& n_clip) {
+template <typename T>
+static Vec3T<T> compute_intersection(const Vec3T<T>& S, const Vec3T<T>& E, const Vec3T<T>& n_clip) {
     // 边 (S→E) 所在大圆法向量
-    Vec3 n_edge = cross(S, E);
+    Vec3T<T> n_edge = cross(S, E);
     // 两大圆交点 (两个候选)
-    Vec3 cross_nc = cross(n_edge, n_clip);
-    Vec3 I = normalize(cross_nc);
+    Vec3T<T> cross_nc = cross(n_edge, n_clip);
+    Vec3T<T> I = normalize(cross_nc);
 
     // 选择位于 S, E 之间的那个 (dot(I, S+E) > 0)
-    if (dot(I, S) + dot(I, E) < 0.0) {
+    if (dot(I, S) + dot(I, E) < T(0)) {
         I.x = -I.x; I.y = -I.y; I.z = -I.z;
     }
     return I;
 }
 
-std::vector<Vec3> sutherland_hodgman_spherical(
-    const std::vector<Vec3>& subject,
-    const std::vector<Vec3>& clip_plane_normals)
+template <typename T>
+std::vector<Vec3T<T>> sutherland_hodgman_spherical(
+    const std::vector<Vec3T<T>>& subject,
+    const std::vector<Vec3T<T>>& clip_plane_normals)
 {
     if (subject.size() < 3) return {};
     if (clip_plane_normals.empty()) return subject;
 
-    std::vector<Vec3> output = subject;
+    std::vector<Vec3T<T>> output = subject;
 
-    for (const Vec3& n : clip_plane_normals) {
+    for (const Vec3T<T>& n : clip_plane_normals) {
         if (output.empty()) break;
 
-        Vec3 nrm = normalize(n);
-        std::vector<Vec3> input = output;
+        Vec3T<T> nrm = normalize(n);
+        std::vector<Vec3T<T>> input = output;
         output.clear();
         output.reserve(input.size() + 1);
 
         int m = (int)input.size();
         for (int i = 0; i < m; i++) {
-            const Vec3& S = input[(i - 1 + m) % m];  // 前一顶点 (S-H 经典: S=E_prev)
-            const Vec3& E = input[i];                 // 当前顶点
+            const Vec3T<T>& S = input[(i - 1 + m) % m];  // 前一顶点 (S-H 经典: S=E_prev)
+            const Vec3T<T>& E = input[i];                 // 当前顶点
             // 注: Sutherland-Hodgman 经典实现遍历边 (S, E) = (input[i-1], input[i])
             // 这里改写为更直观的 (S, E) = (current, next) 等价形式, 但保持顶点遍历顺序一致
-            bool S_in = is_inside(S, nrm);
-            bool E_in = is_inside(E, nrm);
+            bool S_in = is_inside<T>(S, nrm);
+            bool E_in = is_inside<T>(E, nrm);
 
             if (E_in) {
                 if (!S_in) {
                     // S 外 E 内: 输出交点 I, 再输出 E
-                    output.push_back(compute_intersection(S, E, nrm));
+                    output.push_back(compute_intersection<T>(S, E, nrm));
                 }
                 output.push_back(E);
             } else {
                 if (S_in) {
                     // S 内 E 外: 只输出交点 I
-                    output.push_back(compute_intersection(S, E, nrm));
+                    output.push_back(compute_intersection<T>(S, E, nrm));
                 }
                 // S 外 E 外: 不输出
             }
@@ -264,11 +281,12 @@ std::vector<Vec3> sutherland_hodgman_spherical(
 // 极区像素一角可能退化 (如北极 bighp 0..3 的 C3 角), 但仍返回 4 个顶点 (退化角会
 // 重合, 不影响凸性).
 // ============================================================================
-std::vector<Vec3> get_healpix_boundary(
+template <typename T>
+std::vector<Vec3T<T>> get_healpix_boundary(
     const healpix::HealpixCore& hp, uint64_t ipix, int nside)
 {
     (void)nside;  // 使用 hp.getNside(), 参数保留接口一致性
-    std::vector<Vec3> boundary;
+    std::vector<Vec3T<T>> boundary;
     boundary.reserve(4);
 
     // 通过 pix2xy 获取 (bighp, x, y)
@@ -336,7 +354,7 @@ std::vector<Vec3> get_healpix_boundary(
         double ra  = phi * RAD2DEG;
         if (ra < 0.0)  ra += 360.0;
         if (ra >= 360.0) ra -= 360.0;
-        boundary.push_back(radec_to_vec(ra, dec));
+        boundary.push_back(radec_to_vec<T>(T(ra), T(dec)));
     }
 
     return boundary;
@@ -366,12 +384,13 @@ static const int    HP_ADAPTIVE_MAX_DEPTH = 8;      // 临时回退到 R06 深�
 //   R06 实测固定 1e-9 (86 顶点) 会使 S-H 累积误差增大, 但 R08 配合改进1 (解析面积)
 //   和改进4 (精确中心) 后, 高细分不再进入 spherical_polygon_area, 累积误差问题消除
 
+template <typename T>
 static void subdivide_healpix_edge(
     int bighp, int Ns,
-    double x0, double y0, const Vec3& p0,
-    double x1, double y1, const Vec3& p1,
+    double x0, double y0, const Vec3T<double>& p0,
+    double x1, double y1, const Vec3T<double>& p1,
     int depth,
-    std::vector<Vec3>& out)
+    std::vector<Vec3T<T>>& out)
 {
     // R10 修复: HEALPix 边细分阈值从 1e-12 改为 1e-6
     //   根因: hp_res_rad * 1e-12 对非大圆弧的 HEALPix 边永远不收敛.
@@ -396,24 +415,28 @@ static void subdivide_healpix_edge(
     double ra_m  = phm * RAD2DEG;
     if (ra_m < 0.0)  ra_m += 360.0;
     if (ra_m >= 360.0) ra_m -= 360.0;
-    Vec3 p_mid_wcs = radec_to_vec(ra_m, dec_m);
+    Vec3T<double> p_mid_wcs = radec_to_vec<double>(ra_m, dec_m);
 
     // 大圆弧中点 = normalize(p0 + p1)
-    Vec3 p_mid_gc = normalize(Vec3{p0.x + p1.x, p0.y + p1.y, p0.z + p1.z});
+    Vec3T<double> p_mid_gc = normalize(Vec3T<double>{p0.x + p1.x, p0.y + p1.y, p0.z + p1.z});
 
-    // 角距离法: 反映 HEALPix 边偏离两端点大圆弧的程度
-    //   经线边 (大圆弧) → dev≈0, 0次二分; 等纬度边 (小圆) → dev>0, 递归细分
-    double dev = angular_distance(p_mid_wcs, p_mid_gc);
+    // 角距离法: 反映 HEALPix 边偏离两端点大圆弧的程度 (double 计算,
+    // 防 angular_distance<T> 的 float 返回截断 ~1e-7 导致永不收敛)
+    double dev_cos = double(p_mid_wcs.x) * p_mid_gc.x +
+                     double(p_mid_wcs.y) * p_mid_gc.y +
+                     double(p_mid_wcs.z) * p_mid_gc.z;
+    dev_cos = std::max(-1.0, std::min(1.0, dev_cos));
+    double dev = std::acos(dev_cos);
 
     if (dev < hp_epsilon || depth >= HP_ADAPTIVE_MAX_DEPTH) {
         // 收敛: 该段近似为直线, 只输出 p0
-        out.push_back(p0);
+        out.push_back({T(p0.x), T(p0.y), T(p0.z)});
         return;
     }
 
     // 未收敛: 递归二分
-    subdivide_healpix_edge(bighp, Ns, x0, y0, p0, xm, ym, p_mid_wcs, depth + 1, out);
-    subdivide_healpix_edge(bighp, Ns, xm, ym, p_mid_wcs, x1, y1, p1, depth + 1, out);
+    subdivide_healpix_edge<T>(bighp, Ns, x0, y0, p0, xm, ym, p_mid_wcs, depth + 1, out);
+    subdivide_healpix_edge<T>(bighp, Ns, xm, ym, p_mid_wcs, x1, y1, p1, depth + 1, out);
 }
 
 // ============================================================================
@@ -433,7 +456,8 @@ static void subdivide_healpix_edge(
 // 顶点顺序: C0→(细分点)→C1→(细分点)→C2→(细分点)→C3→(细分点)→(回到 C0)
 //   每条边输出含起点不含终点, 总顶点数 = 4 条边的细分段数之和.
 // ============================================================================
-std::vector<Vec3> get_healpix_boundary_sampled(
+template <typename T>
+std::vector<Vec3T<T>> get_healpix_boundary_sampled(
     const healpix::HealpixCore& hp, uint64_t ipix, int nside,
     int samples_per_edge)
 {
@@ -467,29 +491,24 @@ std::vector<Vec3> get_healpix_boundary_sampled(
         {(double)xv,     (double)(yv+1)}
     };
 
-    // 辅助 lambda: 像素坐标 (xf,yf) → 球面单位向量
-    auto xyf2vec = [&](double xf, double yf) -> Vec3 {
+    // 计算 4 个角点的球面向量 (double 内部, 细分收敛; 输出转 T)
+    Vec3T<double> corner_vecs[4];
+    for (int i = 0; i < 4; i++) {
         double theta, phi;
-        xyf2ang_replica(bighp, xf, yf, Ns, &theta, &phi);
+        xyf2ang_replica(bighp, corners_xy[i][0], corners_xy[i][1], Ns, &theta, &phi);
         double dec = (HALF_PI - theta) * RAD2DEG;
         double ra  = phi * RAD2DEG;
         if (ra < 0.0)  ra += 360.0;
         if (ra >= 360.0) ra -= 360.0;
-        return radec_to_vec(ra, dec);
-    };
-
-    // 计算 4 个角点的球面向量
-    Vec3 corner_vecs[4];
-    for (int i = 0; i < 4; i++) {
-        corner_vecs[i] = xyf2vec(corners_xy[i][0], corners_xy[i][1]);
+        corner_vecs[i] = radec_to_vec<double>(ra, dec);
     }
 
     // 对 4 条边自适应细分 (统一处理极区和赤道带)
-    std::vector<Vec3> boundary;
+    std::vector<Vec3T<T>> boundary;
     boundary.reserve(32);  // 预估, 自适应实际段数可能更多
     for (int e = 0; e < 4; e++) {
         int en = (e + 1) % 4;
-        subdivide_healpix_edge(
+        subdivide_healpix_edge<T>(
             bighp, Ns,
             corners_xy[e][0], corners_xy[e][1], corner_vecs[e],
             corners_xy[en][0], corners_xy[en][1], corner_vecs[en],
@@ -589,17 +608,18 @@ static void xyf2ang_replica(int bighp, double xf, double yf, int Ns,
 //
 // samples_per_edge=1: 退化为 4 个角顶点 (t=0 for each edge)
 // ============================================================================
-std::vector<Vec3> build_drop_polygon_sampled(
-    double px, double py, double pixfrac,
+template <typename T>
+std::vector<Vec3T<T>> build_drop_polygon_sampled(
+    T px, T py, T pixfrac,
     PixelToSkyFn pixelToSky, void* user_data,
     int samples_per_edge)
 {
-    std::vector<Vec3> result;
+    std::vector<Vec3T<T>> result;
 
     if (samples_per_edge < 1) samples_per_edge = 1;
 
     // pixfrac 收缩后的四角
-    double half = 0.5 * pixfrac;
+    T half = T(0.5) * pixfrac;
     double corners[4][2] = {
         {px - half, py - half},  // 0: 左下
         {px + half, py - half},  // 1: 右下
@@ -625,7 +645,7 @@ std::vector<Vec3> build_drop_polygon_sampled(
             if (!pixelToSky(x, y, ra, dec, user_data)) {
                 return {};  // 投影失败, 返回空向量
             }
-            result.push_back(radec_to_vec(ra, dec));
+            result.push_back(radec_to_vec<T>(T(ra), T(dec)));
         }
     }
 
@@ -655,13 +675,14 @@ std::vector<Vec3> build_drop_polygon_sampled(
 // ============================================================================
 static const int WCS_ADAPTIVE_MAX_DEPTH = 12;
 
+template <typename T>
 static void subdivide_wcs_edge(
-    double x0, double y0, const Vec3& p0,
-    double x1, double y1, const Vec3& p1,
+    double x0, double y0, const Vec3T<double>& p0,
+    double x1, double y1, const Vec3T<double>& p1,
     int depth,
     double wcs_epsilon,
     PixelToSkyFn pixelToSky, void* user_data,
-    std::vector<Vec3>& out)
+    std::vector<Vec3T<T>>& out)
 {
     // 像素坐标中点
     double xm = 0.5 * (x0 + x1);
@@ -670,31 +691,31 @@ static void subdivide_wcs_edge(
     // WCS 中点 (通过 pixelToSky 回调映射)
     double ra_m, dec_m;
     if (!pixelToSky(xm, ym, ra_m, dec_m, user_data)) {
-        out.push_back(p0);
+        out.push_back({T(p0.x), T(p0.y), T(p0.z)});
         return;
     }
-    Vec3 p_mid_wcs = radec_to_vec(ra_m, dec_m);
+    Vec3T<double> p_mid_wcs = radec_to_vec<double>(ra_m, dec_m);
 
     // R08 改进5: 大圆弧平面偏差检验
     //   n = normalize(cross(p0, p1)) 是过 p0, p1 的大圆弧所在平面的法向量
     //   dot(n, p_mid_wcs) = 0 ⟺ p_mid_wcs 在大圆弧平面上 ⟺ WCS 边是大圆弧
     //   角距离 = |asin(dot(n, p_mid_wcs))|
-    Vec3 n = normalize(cross(p0, p1));
-    double d = dot(n, p_mid_wcs);
+    Vec3T<double> n = normalize(cross(p0, p1));
+    double d = double(n.x) * p_mid_wcs.x + double(n.y) * p_mid_wcs.y + double(n.z) * p_mid_wcs.z;
     if (d >  1.0) d =  1.0;
     if (d < -1.0) d = -1.0;
     double dev = std::fabs(std::asin(d));
 
     if (dev < wcs_epsilon || depth >= WCS_ADAPTIVE_MAX_DEPTH) {
-        out.push_back(p0);
+        out.push_back({T(p0.x), T(p0.y), T(p0.z)});
         return;
     }
 
     // 未收敛: 递归二分
-    subdivide_wcs_edge(x0, y0, p0, xm, ym, p_mid_wcs, depth + 1,
-                       wcs_epsilon, pixelToSky, user_data, out);
-    subdivide_wcs_edge(xm, ym, p_mid_wcs, x1, y1, p1, depth + 1,
-                       wcs_epsilon, pixelToSky, user_data, out);
+    subdivide_wcs_edge<T>(x0, y0, p0, xm, ym, p_mid_wcs, depth + 1,
+                          wcs_epsilon, pixelToSky, user_data, out);
+    subdivide_wcs_edge<T>(xm, ym, p_mid_wcs, x1, y1, p1, depth + 1,
+                          wcs_epsilon, pixelToSky, user_data, out);
 }
 
 // ============================================================================
@@ -703,12 +724,13 @@ static void subdivide_wcs_edge(
 // 对每条 WCS 边递归细分直到收敛, 消除 TAN/SIP 投影曲率导致的面积误差.
 // 小像素自动收敛 (仅 4 角), 大像素递归细分到机器精度.
 // ============================================================================
-std::vector<Vec3> build_drop_polygon_adaptive(
-    double px, double py, double pixfrac,
+template <typename T>
+std::vector<Vec3T<T>> build_drop_polygon_adaptive(
+    T px, T py, T pixfrac,
     PixelToSkyFn pixelToSky, void* user_data,
-    double src_scale_rad)
+    T src_scale_rad)
 {
-    double half = 0.5 * pixfrac;
+    T half = T(0.5) * pixfrac;
     double corners_xy[4][2] = {
         {px - half, py - half},  // 0: 左下
         {px + half, py - half},  // 1: 右下
@@ -716,25 +738,25 @@ std::vector<Vec3> build_drop_polygon_adaptive(
         {px - half, py + half}   // 3: 左上
     };
 
-    // 映射 4 角到球面
-    Vec3 corner_vecs[4];
+    // 映射 4 角到球面 (double 内部, 细分收敛; 输出转 T)
+    Vec3T<double> corner_vecs[4];
     for (int i = 0; i < 4; i++) {
         double ra, dec;
         if (!pixelToSky(corners_xy[i][0], corners_xy[i][1], ra, dec, user_data)) {
             return {};
         }
-        corner_vecs[i] = radec_to_vec(ra, dec);
+        corner_vecs[i] = radec_to_vec<double>(ra, dec);
     }
 
-    // R08 改进3: 相对阈值 = src_scale_rad * 1e-12
-    double wcs_epsilon = src_scale_rad * 1e-12;
+    // R08 改进3: 相对阈值 = src_scale_rad * 1e-12 (double, 防 float 截断收敛失效)
+    double wcs_epsilon = double(src_scale_rad) * 1e-12;
 
     // 对 4 条边自适应细分
-    std::vector<Vec3> result;
+    std::vector<Vec3T<T>> result;
     result.reserve(32);
     for (int e = 0; e < 4; e++) {
         int en = (e + 1) % 4;
-        subdivide_wcs_edge(
+        subdivide_wcs_edge<T>(
             corners_xy[e][0], corners_xy[e][1], corner_vecs[e],
             corners_xy[en][0], corners_xy[en][1], corner_vecs[en],
             0, wcs_epsilon, pixelToSky, user_data,
@@ -771,24 +793,33 @@ std::vector<Vec3> build_drop_polygon_adaptive(
 //   - 每个三角形仅 3 条裁剪边, 数值误差不累积
 //   - 与独立参考 (L'Huilier + 高密度点采样) 结果一致 (误差 < 1e-10)
 // ============================================================================
-double compute_overlap_area(
-    const std::vector<Vec3>& drop_corners,
+template <typename T>
+T compute_overlap_area(
+    const std::vector<Vec3T<T>>& drop_corners,
     const healpix::HealpixCore& hp, uint64_t target_ipix)
 {
-    if (drop_corners.size() < 3) return 0.0;
+    if (drop_corners.size() < 3) return T(0);
 
-    // 1. 获取目标 HEALPix 像素边界 (自适应细分)
+    // R11 阶段7 优化: 输入一次转换为 double 内部计算 (数据仍为 Scalar 实例,
+    // 主体计算与 double 版本相同, 避免逐运算 float/double 转换开销)
+    std::vector<Vec3T<double>> drop_d(drop_corners.size());
+    for (size_t i = 0; i < drop_corners.size(); i++) {
+        drop_d[i] = {double(drop_corners[i].x), double(drop_corners[i].y),
+                     double(drop_corners[i].z)};
+    }
+
+    // 1. 获取目标 HEALPix 像素边界 (自适应细分, double 内部)
     int nside = hp.getNside();
     int samples = (nside <= 8) ? 16 : 1;
-    std::vector<Vec3> hp_boundary = get_healpix_boundary_sampled(hp, target_ipix, nside, samples);
-    if (hp_boundary.size() < 3) return 0.0;
+    std::vector<Vec3T<double>> hp_boundary = get_healpix_boundary_sampled<double>(hp, target_ipix, nside, samples);
+    if (hp_boundary.size() < 3) return T(0);
 
     // R08 改进4: 用 hp.pix2radec 获取像素精确中心 (替代边界顶点质心)
     //   边界顶点质心在大像素/极区场景下偏离真实中心, 引入 fan triangulation 系统误差
     //   pix2radec 返回 HEALPix 数学定义的像素中心, 精确到机器精度
     double ra_c, dec_c;
     hp.pix2radec((int64_t)target_ipix, &ra_c, &dec_c);
-    Vec3 hp_center = radec_to_vec(ra_c, dec_c);
+    Vec3T<double> hp_center = radec_to_vec<double>(ra_c, dec_c);
 
     int nb = (int)hp_boundary.size();
 
@@ -796,22 +827,28 @@ double compute_overlap_area(
     //   三角形扇剖分用于所有边界 (避免 S-H 高顶点数累积误差)
     //   优化: 若所有三角形完全在 drop 内 (drop 包含整个像素),
     //         直接返回 spherical_polygon_area(hp_boundary) 消除 Eriksson 面积差异
-    int nd = (int)drop_corners.size();
-    std::vector<Vec3> drop_clip_normals;
+    int nd = (int)drop_d.size();
+    std::vector<Vec3T<double>> drop_clip_normals;
     drop_clip_normals.reserve(nd);
-    Vec3 drop_centroid = {0.0, 0.0, 0.0};
-    for (const auto& v : drop_corners) {
-        drop_centroid.x += v.x; drop_centroid.y += v.y; drop_centroid.z += v.z;
+    double cxx = 0.0, cyy = 0.0, czz = 0.0;
+    for (const auto& v : drop_d) {
+        cxx += v.x; cyy += v.y; czz += v.z;
     }
-    drop_centroid = normalize(drop_centroid);
+    double clen = std::sqrt(cxx * cxx + cyy * cyy + czz * czz);
+    double inv = (clen < 1e-300) ? 1.0 : 1.0 / clen;
+    double cxn = cxx * inv, cyn = cyy * inv, czn = czz * inv;
     for (int j = 0; j < nd; j++) {
-        const Vec3& P1 = drop_corners[j];
-        const Vec3& P2 = drop_corners[(j + 1) % nd];
-        Vec3 n = cross(P1, P2);
-        if (dot(n, drop_centroid) < 0.0) {
-            n.x = -n.x; n.y = -n.y; n.z = -n.z;
+        const Vec3T<double>& P1 = drop_d[j];
+        const Vec3T<double>& P2 = drop_d[(j + 1) % nd];
+        double nx = P1.y * P2.z - P1.z * P2.y;
+        double ny = P1.z * P2.x - P1.x * P2.z;
+        double nz = P1.x * P2.y - P1.y * P2.x;
+        if (nx * cxn + ny * cyn + nz * czn < 0.0) {
+            nx = -nx; ny = -ny; nz = -nz;
         }
-        drop_clip_normals.push_back(normalize(n));
+        double nlen = std::sqrt(nx * nx + ny * ny + nz * nz);
+        if (nlen < 1e-300) { nlen = 1.0; }
+        drop_clip_normals.push_back({nx / nlen, ny / nlen, nz / nlen});
     }
 
     // 三角形扇剖分 + 逐三角形 S-H 裁剪
@@ -819,29 +856,30 @@ double compute_overlap_area(
     bool all_fully_inside = true;  // 所有三角形完全在 drop 内 → drop 包含像素
 
     // 辅助: 检查点是否在 drop 内 (所有 clip 法向量 dot >= 0)
-    auto point_in_drop = [&](const Vec3& v) -> bool {
+    auto point_in_drop = [&](const Vec3T<double>& v) -> bool {
         for (const auto& n : drop_clip_normals) {
-            if (dot(v, n) < -1e-12) return false;
+            double d = v.x * n.x + v.y * n.y + v.z * n.z;
+            if (d < -1e-12) return false;
         }
         return true;
     };
 
     for (int i = 0; i < nb; i++) {
-        const Vec3& A = hp_boundary[i];
-        const Vec3& B = hp_boundary[(i + 1) % nb];
+        const Vec3T<double>& A = hp_boundary[i];
+        const Vec3T<double>& B = hp_boundary[(i + 1) % nb];
 
         // 构造三角形 (hp_center, A, B)
-        std::vector<Vec3> triangle = {hp_center, A, B};
+        std::vector<Vec3T<double>> triangle = {hp_center, A, B};
 
         // 检查三角形是否完全在 drop 内 (3 个顶点均在 drop 内)
         bool tri_inside = point_in_drop(hp_center) && point_in_drop(A) && point_in_drop(B);
         if (!tri_inside) all_fully_inside = false;
 
         // S-H 裁剪: triangle (subject) against drop (clip)
-        std::vector<Vec3> intersection = sutherland_hodgman_spherical(triangle, drop_clip_normals);
+        std::vector<Vec3T<double>> intersection = sutherland_hodgman_spherical<double>(triangle, drop_clip_normals);
         if (intersection.size() < 3) continue;
 
-        total_overlap += spherical_polygon_area(intersection);
+        total_overlap += spherical_polygon_area<double>(intersection);
     }
 
     // R08 改进1: 若 drop 完全包含像素, 直接用 HEALPix 解析面积 (机器精度)
@@ -849,10 +887,10 @@ double compute_overlap_area(
     // 消除 spherical_polygon_area 的 fan triangulation 数值误差 (R07 残留 ~1e-5)
     if (all_fully_inside && total_overlap > 0.0) {
         double analytic_area = PI / (3.0 * (double)nside * (double)nside);
-        return analytic_area;
+        return T(analytic_area);
     }
 
-    return total_overlap;
+    return T(total_overlap);
 }
 
 // ============================================================================
@@ -869,8 +907,9 @@ double compute_overlap_area(
 //      取保守上界 2.0 × hp_res (覆盖所有方向的最坏情况)
 //   3. 额外加 ε = 0.1 × hp_res 防浮点边界
 // ============================================================================
+template <typename T>
 void query_candidate_pixels(
-    const std::vector<Vec3>& drop_corners,
+    const std::vector<Vec3T<T>>& drop_corners,
     const healpix::HealpixCore& hp,
     std::vector<uint64_t>& candidates)
 {
@@ -880,15 +919,15 @@ void query_candidate_pixels(
     // 1. 计算 drop 多边形的球面包围圆
     //    中心 = 所有顶点向量的平均 (归一化)
     //    半径 = 最大顶点到中心的角距离
-    Vec3 center = {0.0, 0.0, 0.0};
-    for (const Vec3& v : drop_corners) {
+    Vec3T<T> center = {T(0), T(0), T(0)};
+    for (const Vec3T<T>& v : drop_corners) {
         center.x += v.x; center.y += v.y; center.z += v.z;
     }
     center = normalize(center);
 
     double max_angle = 0.0;
-    for (const Vec3& v : drop_corners) {
-        double ang = angular_distance(v, center);
+    for (const Vec3T<T>& v : drop_corners) {
+        double ang = angular_distance<T>(v, center);
         if (ang > max_angle) max_angle = ang;
     }
 
@@ -902,9 +941,9 @@ void query_candidate_pixels(
     double buffer_rad     = 3.0 * hp_res_rad;
     double query_radius_rad = max_angle + buffer_rad;
 
-    // 3. 中心向量转 RA/Dec
-    double ra_c, dec_c;
-    vec_to_radec(center, ra_c, dec_c);
+    // 3. 中心向量转 RA/Dec (T 类型, vec_to_radec 模板推导)
+    T ra_c, dec_c;
+    vec_to_radec<T>(center, ra_c, dec_c);
 
     // 4. 用 hp.queryDisc 查询圆盘内所有像素
     double query_radius_arcsec = query_radius_rad * RAD_TO_ARCSEC;
@@ -932,8 +971,9 @@ void query_candidate_pixels(
 //   直接枚举 NESTED (face, ix, iy) 正方形包围盒内的像素 (整数位操作, 无 BFS/邻居展开),
 //   不做距离剔除 (允许少量 false positives, 由 overlap 精确计算过滤) → 零漏选。
 // ============================================================================
+template <typename T>
 void query_candidate_pixels_fast(
-    const std::vector<Vec3>& drop_corners,
+    const std::vector<Vec3T<T>>& drop_corners,
     const healpix::HealpixCore& hp,
     std::vector<uint64_t>& candidates)
 {
@@ -941,14 +981,14 @@ void query_candidate_pixels_fast(
     if (drop_corners.empty()) return;
 
     // 1. drop 球面包围圆 (与 query_candidate_pixels 一致)
-    Vec3 center = {0.0, 0.0, 0.0};
-    for (const Vec3& v : drop_corners) {
+    Vec3T<T> center = {T(0), T(0), T(0)};
+    for (const Vec3T<T>& v : drop_corners) {
         center.x += v.x; center.y += v.y; center.z += v.z;
     }
     center = normalize(center);
     double max_angle = 0.0;
-    for (const Vec3& v : drop_corners) {
-        double ang = angular_distance(v, center);
+    for (const Vec3T<T>& v : drop_corners) {
+        double ang = angular_distance<T>(v, center);
         if (ang > max_angle) max_angle = ang;
     }
 
@@ -959,8 +999,8 @@ void query_candidate_pixels_fast(
     double buffer_rad    = 1.0 * hp_res_rad;
     double query_radius_rad = max_angle + buffer_rad;
 
-    double ra_c, dec_c;
-    vec_to_radec(center, ra_c, dec_c);
+    T ra_c, dec_c;
+    vec_to_radec<T>(center, ra_c, dec_c);
 
     // 2. 中心像素 NESTED (face, ix, iy) — 公开 radec2pix + 自实现 morton 解交织
     int nside = hp.getNside();
@@ -1021,7 +1061,7 @@ void query_candidate_pixels_fast(
     // 5. 圆心距离预过滤 (保守: 像素中心在查询圆盘内才保留)
     //    查询圆盘半径 = max_angle + 1.2×hp_res 已覆盖像素外接圆上界, 零漏选;
     //    过滤掉正方形包围盒的边角, 大幅减少后续 compute_overlap_area 昂贵调用。
-    double cos_lim = std::cos(query_radius_rad);
+    double cos_lim = std::cos(double(query_radius_rad));
     std::vector<uint64_t> filtered;
     filtered.reserve(candidates.size());
     for (uint64_t ipix : candidates) {
@@ -1038,5 +1078,57 @@ void query_candidate_pixels_fast(
     candidates.swap(filtered);
     std::sort(candidates.begin(), candidates.end());
 }
+
+// ============================================================================
+// R11 阶段7: 显式实例化 FP32/FP64 双实例 (真 Scalar 模板, 不共享固定 double 内核)
+// ============================================================================
+template Vec3T<float> cross<float>(const Vec3T<float>&, const Vec3T<float>&);
+template Vec3T<double> cross<double>(const Vec3T<double>&, const Vec3T<double>&);
+template float dot<float>(const Vec3T<float>&, const Vec3T<float>&);
+template double dot<double>(const Vec3T<double>&, const Vec3T<double>&);
+template float length<float>(const Vec3T<float>&);
+template double length<double>(const Vec3T<double>&);
+template Vec3T<float> normalize<float>(const Vec3T<float>&);
+template Vec3T<double> normalize<double>(const Vec3T<double>&);
+template Vec3T<float> radec_to_vec<float>(float, float);
+template Vec3T<double> radec_to_vec<double>(double, double);
+template void vec_to_radec<float>(const Vec3T<float>&, float&, float&);
+template void vec_to_radec<double>(const Vec3T<double>&, double&, double&);
+template float angular_distance<float>(const Vec3T<float>&, const Vec3T<float>&);
+template double angular_distance<double>(const Vec3T<double>&, const Vec3T<double>&);
+template float spherical_polygon_area<float>(const std::vector<Vec3T<float>>&);
+template double spherical_polygon_area<double>(const std::vector<Vec3T<double>>&);
+template std::vector<Vec3T<float>> sutherland_hodgman_spherical<float>(
+    const std::vector<Vec3T<float>>&, const std::vector<Vec3T<float>>&);
+template std::vector<Vec3T<double>> sutherland_hodgman_spherical<double>(
+    const std::vector<Vec3T<double>>&, const std::vector<Vec3T<double>>&);
+template std::vector<Vec3T<float>> get_healpix_boundary<float>(
+    const healpix::HealpixCore&, uint64_t, int);
+template std::vector<Vec3T<double>> get_healpix_boundary<double>(
+    const healpix::HealpixCore&, uint64_t, int);
+template std::vector<Vec3T<float>> get_healpix_boundary_sampled<float>(
+    const healpix::HealpixCore&, uint64_t, int, int);
+template std::vector<Vec3T<double>> get_healpix_boundary_sampled<double>(
+    const healpix::HealpixCore&, uint64_t, int, int);
+template std::vector<Vec3T<float>> build_drop_polygon_sampled<float>(
+    float, float, float, PixelToSkyFn, void*, int);
+template std::vector<Vec3T<double>> build_drop_polygon_sampled<double>(
+    double, double, double, PixelToSkyFn, void*, int);
+template std::vector<Vec3T<float>> build_drop_polygon_adaptive<float>(
+    float, float, float, PixelToSkyFn, void*, float);
+template std::vector<Vec3T<double>> build_drop_polygon_adaptive<double>(
+    double, double, double, PixelToSkyFn, void*, double);
+template float compute_overlap_area<float>(
+    const std::vector<Vec3T<float>>&, const healpix::HealpixCore&, uint64_t);
+template double compute_overlap_area<double>(
+    const std::vector<Vec3T<double>>&, const healpix::HealpixCore&, uint64_t);
+template void query_candidate_pixels<float>(
+    const std::vector<Vec3T<float>>&, const healpix::HealpixCore&, std::vector<uint64_t>&);
+template void query_candidate_pixels<double>(
+    const std::vector<Vec3T<double>>&, const healpix::HealpixCore&, std::vector<uint64_t>&);
+template void query_candidate_pixels_fast<float>(
+    const std::vector<Vec3T<float>>&, const healpix::HealpixCore&, std::vector<uint64_t>&);
+template void query_candidate_pixels_fast<double>(
+    const std::vector<Vec3T<double>>&, const healpix::HealpixCore&, std::vector<uint64_t>&);
 
 } // namespace spherical

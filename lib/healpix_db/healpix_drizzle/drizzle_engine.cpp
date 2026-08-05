@@ -545,7 +545,7 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
 
     // R11 (阶段6): 正式路径为 Tile 级累加 (drizzleTiledImpl, 不恢复全局 leaf map)
     // 本函数为兼容包装: 调用 Tile 级实现后展开为 leaf map (供旧调用方/测试使用)
-    std::vector<TileAccumulator> tiles;
+    std::vector<TileAccumulatorT<float>> tiles;
     if (!drizzleTiledImpl<float>(img, config, snrData, weightData,
                                  img.pixels.data(), tiles, stats, error_msg)) {
         return false;
@@ -559,7 +559,7 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
         uint64_t parent = tile.parent_ipix;
         for (uint32_t local : tile.touched) {
             if (local >= tile.pixels.size()) continue;
-            const TileLeafAccumulator& s = tile.pixels[local];
+            const TileLeafAccumulatorT<float>& s = tile.pixels[local];
             uint64_t ipix = (shift > 0) ? ((parent << shift) | local) : parent;
             PixelAccumulator& d = accumulators[ipix];
             d.sumFlux   = s.sumFlux;
@@ -664,7 +664,7 @@ bool DrizzleEngine::drizzle_f64(const FitsImage& img, const DrizzleConfig& confi
 
     // R11 (阶段6): 正式路径为 Tile 级累加 (drizzleTiledImpl<double>, 不降级到 float32)
     // 本函数为兼容包装: 调用 Tile 级实现后展开为 leaf map (供旧调用方/测试使用)
-    std::vector<TileAccumulator> tiles;
+    std::vector<TileAccumulatorT<double>> tiles;
     if (!drizzleTiledImpl<double>(img, config, snrData, weightData,
                                   img.pixels_f64.data(), tiles, stats, error_msg)) {
         return false;
@@ -678,7 +678,7 @@ bool DrizzleEngine::drizzle_f64(const FitsImage& img, const DrizzleConfig& confi
         uint64_t parent = tile.parent_ipix;
         for (uint32_t local : tile.touched) {
             if (local >= tile.pixels.size()) continue;
-            const TileLeafAccumulator& s = tile.pixels[local];
+            const TileLeafAccumulatorT<double>& s = tile.pixels[local];
             uint64_t ipix = (shift > 0) ? ((parent << shift) | local) : parent;
             PixelAccumulator& d = accumulators[ipix];
             d.sumFlux   = s.sumFlux;
@@ -1032,7 +1032,7 @@ void DrizzleEngine::processPixelTiled(
     const DrizzleConfig& config,
     const healpix::HealpixCore& hp,
     uint32_t shift, uint64_t mask,
-    std::unordered_map<uint64_t, TileAccumulator>& tileMap) const
+    std::unordered_map<uint64_t, TileAccumulatorT<Scalar>>& tileMap) const
 {
     // ---- Step 1: 取像素四角 (0-based) + pixfrac 收缩 ----
     double half = 0.5 * config.pixfrac;
@@ -1043,7 +1043,7 @@ void DrizzleEngine::processPixelTiled(
         {px - half, py + half}
     };
 
-    // ---- Step 2: SIP+WCS 逐角映射 (像素→天球) ----
+    // ---- Step 2: SIP+WCS 逐角映射 (像素→天球, double 几何内核) ----
     double corners_ra[4], corners_dec[4];
     for (int i = 0; i < 4; i++) {
         wcs.pixelToSky(corners_xy[i][0], corners_xy[i][1],
@@ -1069,7 +1069,7 @@ void DrizzleEngine::processPixelSharedTiled(
     const WcsSip& wcs, const DrizzleConfig& config,
     const healpix::HealpixCore& hp,
     uint32_t shift, uint64_t mask,
-    std::unordered_map<uint64_t, TileAccumulator>& tileMap) const
+    std::unordered_map<uint64_t, TileAccumulatorT<Scalar>>& tileMap) const
 {
     // 角点有限性检查
     for (int i = 0; i < 4; i++) {
@@ -1094,10 +1094,10 @@ void DrizzleEngine::processPixelSharedTiled(
     if (!use_adaptive) {
         drop_corners.resize(4);
         for (int i = 0; i < 4; i++) {
-            drop_corners[i] = spherical::radec_to_vec(corners_ra[i], corners_dec[i]);
+            drop_corners[i] = spherical::radec_to_vec<double>(corners_ra[i], corners_dec[i]);
         }
     } else {
-        drop_corners = spherical::build_drop_polygon_adaptive(
+        drop_corners = spherical::build_drop_polygon_adaptive<double>(
             px, py, config.pixfrac,
             wcsPixelToSkyCallback, const_cast<WcsSip*>(&wcs),
             max_edge_rad);
@@ -1105,14 +1105,14 @@ void DrizzleEngine::processPixelSharedTiled(
     }
 
     // ---- Step 4: 计算 drop 球面面积 (Girard 定理) ----
-    double drop_area = spherical::spherical_polygon_area(drop_corners);
+    double drop_area = spherical::spherical_polygon_area<double>(drop_corners);
     if (drop_area < 1e-20) {
         return;
     }
 
     // ---- Step 5: 候选像素查询 ----
     std::vector<uint64_t> candidates;
-    spherical::query_candidate_pixels_fast(drop_corners, hp, candidates);
+    spherical::query_candidate_pixels_fast<double>(drop_corners, hp, candidates);
     if (candidates.empty()) {
         return;
     }
@@ -1122,7 +1122,7 @@ void DrizzleEngine::processPixelSharedTiled(
     //   leaf 由 NESTED 位运算拆分为 (parent_ipix, local_ipix):
     //     parent = ipix >> (2*depth), local = ipix & mask
     for (uint64_t ipix : candidates) {
-        double overlap_area = spherical::compute_overlap_area(drop_corners, hp, ipix);
+        double overlap_area = spherical::compute_overlap_area<double>(drop_corners, hp, ipix);
         if (overlap_area < 1e-20) continue;
 
         double weight = overlap_area / drop_area;
@@ -1132,13 +1132,13 @@ void DrizzleEngine::processPixelSharedTiled(
         uint32_t local  = (shift > 0) ? (uint32_t)(ipix & mask) : 0u;
 
         // 线程本地 map 以 parent_ipix 为 key; leaf 连续数组寻址 (禁止每-leaf unordered_map)
-        TileAccumulator& tile = tileMap[parent];
+        TileAccumulatorT<Scalar>& tile = tileMap[parent];
         if (tile.touched.empty()) tile.parent_ipix = parent;  // 首触时记录 parent (operator[] 默认 0)
-        TileLeafAccumulator& acc = tile.leaf(local);
-        acc.sumFlux   += (double)pixelValue * weight;
-        acc.sumWeight += weight;
-        acc.sumSnrSq  += (double)snrValue * snrValue * weight;
-        acc.sumArea   += overlap_area;
+        TileLeafAccumulatorT<Scalar>& acc = tile.leaf(local);
+        acc.sumFlux   += Scalar(pixelValue * weight);
+        acc.sumWeight += Scalar(weight);
+        acc.sumSnrSq  += Scalar(snrValue) * Scalar(snrValue) * Scalar(weight);
+        acc.sumArea   += Scalar(overlap_area);
         acc.nContrib++;
     }
 }
@@ -1155,7 +1155,7 @@ template <typename Scalar>
 bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& config,
                                      const float* snrData, const float* weightData,
                                      const Scalar* pixels,
-                                     std::vector<TileAccumulator>& tiles,
+                                     std::vector<TileAccumulatorT<Scalar>>& tiles,
                                      DrizzleStats& stats, std::string& error_msg)
 {
     error_msg.clear();
@@ -1231,7 +1231,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     // 5. OpenMP 并行 Drizzle (R11: 线程数来自配置, static 调度, 不预分配 4M 桶)
     int num_threads = (config.threads > 0) ? config.threads : omp_get_max_threads();
     omp_set_num_threads(num_threads);
-    std::vector<std::unordered_map<uint64_t, TileAccumulator>> threadTiles(num_threads);
+    std::vector<std::unordered_map<uint64_t, TileAccumulatorT<Scalar>>> threadTiles(num_threads);
 
     int64_t nSourcePixels = 0;
     const bool shared_vertices = (config.pixfrac == 1.0);
@@ -1241,7 +1241,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
         int tid = omp_get_thread_num();
         auto& tileMap = threadTiles[tid];
 
-        // R11: 预计算本行底/顶两行网格顶点的天球坐标 (每顶点一次, 相邻像素共享)
+        // R11: 预计算本行底/顶两行网格顶点的天球坐标 (double 几何内核, 每顶点一次)
         thread_local std::vector<double> bot_ra, bot_dec, top_ra, top_dec;
         if (shared_vertices) {
             bot_ra.resize(img.width + 1); bot_dec.resize(img.width + 1);
@@ -1290,8 +1290,8 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
             if (dst.touched.empty()) dst.parent_ipix = parent;
             for (uint32_t local : tile.touched) {
                 if (local >= dst.pixels.size()) dst.pixels.resize((size_t)local + 1);
-                TileLeafAccumulator& d = dst.pixels[local];
-                const TileLeafAccumulator& s = tile.pixels[local];
+                TileLeafAccumulatorT<Scalar>& d = dst.pixels[local];
+                const TileLeafAccumulatorT<Scalar>& s = tile.pixels[local];
                 if (d.nContrib == 0) dst.touched.push_back(local);
                 d.sumFlux   += s.sumFlux;
                 d.sumWeight += s.sumWeight;
@@ -1331,7 +1331,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
 // ============================================================================
 bool DrizzleEngine::drizzleTiled(const FitsImage& img, const DrizzleConfig& config,
                                  const float* snrData, const float* weightData,
-                                 std::vector<TileAccumulator>& tiles,
+                                 std::vector<TileAccumulatorT<float>>& tiles,
                                  DrizzleStats& stats, std::string& error_msg)
 {
     return drizzleTiledImpl<float>(img, config, snrData, weightData,
@@ -1344,7 +1344,7 @@ bool DrizzleEngine::drizzleTiled(const FitsImage& img, const DrizzleConfig& conf
 // ============================================================================
 bool DrizzleEngine::drizzleTiled_f64(const FitsImage& img, const DrizzleConfig& config,
                                      const float* snrData, const float* weightData,
-                                     std::vector<TileAccumulator>& tiles,
+                                     std::vector<TileAccumulatorT<double>>& tiles,
                                      DrizzleStats& stats, std::string& error_msg)
 {
     return drizzleTiledImpl<double>(img, config, snrData, weightData,
@@ -1356,13 +1356,14 @@ bool DrizzleEngine::drizzleTiled_f64(const FitsImage& img, const DrizzleConfig& 
 //   与 writeHis 语义一致 (signal=累计通量, support=sum_area/A_p, SNR 按 Tile 分组),
 //   仅输入结构不同: tiles 已按 parent_ipix 组织, 直接逐 Tile 构造并写入
 // ============================================================================
-bool DrizzleEngine::writeHisTiles(const std::vector<TileAccumulator>& tiles,
-                                  const DrizzleStats& stats, const WcsParams& wcs,
-                                  const DrizzleConfig& config, const DrizzleMeta& meta,
-                                  const std::string& fitsPath,
-                                  const std::string& outputPath,
-                                  const HioSnrModel* snr_model,
-                                  std::string& error_msg)
+template <typename Scalar>
+bool DrizzleEngine::writeHisTilesT(const std::vector<TileAccumulatorT<Scalar>>& tiles,
+                                   const DrizzleStats& stats, const WcsParams& wcs,
+                                   const DrizzleConfig& config, const DrizzleMeta& meta,
+                                   const std::string& fitsPath,
+                                   const std::string& outputPath,
+                                   const HioSnrModel* snr_model,
+                                   std::string& error_msg)
 {
     error_msg.clear();
 
@@ -1487,8 +1488,8 @@ bool DrizzleEngine::writeHisTiles(const std::vector<TileAccumulator>& tiles,
         acc.pixels.resize(n_leaf_per_tile);
         for (uint32_t local : tile.touched) {
             if (local >= tile.pixels.size()) continue;
-            acc.pixels[local].sum_flux  = tile.pixels[local].sumFlux;
-            acc.pixels[local].sum_area  = tile.pixels[local].sumArea;
+            acc.pixels[local].sum_flux  = static_cast<double>(tile.pixels[local].sumFlux);
+            acc.pixels[local].sum_area  = static_cast<double>(tile.pixels[local].sumArea);
             acc.pixels[local].n_contrib = tile.pixels[local].nContrib;
         }
 
@@ -1531,5 +1532,30 @@ bool DrizzleEngine::writeHisTiles(const std::vector<TileAccumulator>& tiles,
             outputPath.c_str(), n_tiles, tile_snr_points.size());
     return true;
 }
+
+// 兼容包装 (double 实例, 旧调用方)
+bool DrizzleEngine::writeHisTiles(const std::vector<TileAccumulator>& tiles,
+                                  const DrizzleStats& stats, const WcsParams& wcs,
+                                  const DrizzleConfig& config, const DrizzleMeta& meta,
+                                  const std::string& fitsPath,
+                                  const std::string& outputPath,
+                                  const HioSnrModel* snr_model,
+                                  std::string& error_msg)
+{
+    return writeHisTilesT<double>(tiles, stats, wcs, config, meta, fitsPath, outputPath,
+                                  snr_model, error_msg);
+}
+
+// ============================================================================
+// R11 阶段7: 显式实例化 FP32/FP64 Tile 写入 (跨 TU 链接)
+// ============================================================================
+template bool DrizzleEngine::writeHisTilesT<float>(
+    const std::vector<TileAccumulatorT<float>>&, const DrizzleStats&, const WcsParams&,
+    const DrizzleConfig&, const DrizzleMeta&, const std::string&, const std::string&,
+    const HioSnrModel*, std::string&);
+template bool DrizzleEngine::writeHisTilesT<double>(
+    const std::vector<TileAccumulatorT<double>>&, const DrizzleStats&, const WcsParams&,
+    const DrizzleConfig&, const DrizzleMeta&, const std::string&, const std::string&,
+    const HioSnrModel*, std::string&);
 
 } // namespace drizzle

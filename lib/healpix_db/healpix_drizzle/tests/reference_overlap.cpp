@@ -578,7 +578,7 @@ static void test_single_pixel_flux_closure() {
         std::vector<spherical::Vec3> drop = makeRectDrop(45.0, 0.0, 20.0);
 
         // 验证像素 4 角均在 drop 内 (确认 drop 完全包含像素)
-        std::vector<spherical::Vec3> pix_bound = spherical::get_healpix_boundary(hp, (uint64_t)ipix, nside);
+        std::vector<spherical::Vec3> pix_bound = spherical::get_healpix_boundary<double>(hp, (uint64_t)ipix, nside);
         bool all_inside = true;
         for (const auto& v : pix_bound) {
             if (!point_in_spherical_polygon(v, drop)) { all_inside = false; break; }
@@ -607,7 +607,7 @@ static void test_single_pixel_flux_closure() {
 //   - support_p = a_jp / A_p ∈ [0, 1]  (A_p 用与 compute_overlap_area 一致的边界面积)
 //   - Σ (support_p × A_p) = A_drop (面积守恒)
 //
-// 注: A_p 用 spherical_polygon_area(get_healpix_boundary(hp, ipix, nside)),
+// 注: A_p 用 spherical_polygon_area(get_healpix_boundary<double>(hp, ipix, nside)),
 //     与 compute_overlap_area 内部使用的边界一致 (nside>8 → samples=1 → 4 角顶点).
 //     理论面积 4π/(12·nside²) 与大圆弧边界面积有微小差异 (赤道带小圆弧近似),
 //     用边界面积可保证 support ∈ [0, 1] 精确成立 (重叠 ≤ 像素自身面积).
@@ -637,7 +637,7 @@ static void test_support_area() {
         n_overlap++;
 
         // A_p_boundary: 与 compute_overlap_area 内部一致的边界面积
-        std::vector<spherical::Vec3> pb = spherical::get_healpix_boundary(hp, ipix, nside);
+        std::vector<spherical::Vec3> pb = spherical::get_healpix_boundary<double>(hp, ipix, nside);
         double a_p_boundary = spherical::spherical_polygon_area(pb);
 
         double support = a_jp / a_p_boundary;

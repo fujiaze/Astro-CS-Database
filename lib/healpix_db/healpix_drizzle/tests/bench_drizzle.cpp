@@ -65,14 +65,18 @@ int main(int argc, char** argv) {
     if (argc >= 5) cfg.threads = atoi(argv[4]);
 
     DrizzleEngine engine;
-    std::vector<TileAccumulator> tiles;
+    std::vector<TileAccumulatorT<float>> tiles_f32;
+    std::vector<TileAccumulatorT<double>> tiles_f64;
     DrizzleStats stats;
     std::string err;
 
     auto t0 = std::chrono::steady_clock::now();
-    bool ok = (prec == 1)
-        ? engine.drizzleTiled_f64(img, cfg, nullptr, nullptr, tiles, stats, err)
-        : engine.drizzleTiled(img, cfg, nullptr, nullptr, tiles, stats, err);
+    bool ok;
+    if (prec == 1) {
+        ok = engine.drizzleTiled_f64(img, cfg, nullptr, nullptr, tiles_f64, stats, err);
+    } else {
+        ok = engine.drizzleTiled(img, cfg, nullptr, nullptr, tiles_f32, stats, err);
+    }
     auto t1 = std::chrono::steady_clock::now();
     double wall = std::chrono::duration<double>(t1 - t0).count();
 
@@ -82,10 +86,17 @@ int main(int argc, char** argv) {
     }
     size_t n_leaf = 0;
     double total_flux = 0.0;
-    for (const auto& tile : tiles) {
-        n_leaf += tile.touched.size();
-        for (uint32_t local : tile.touched) {
-            total_flux += tile.pixels[local].sumFlux;
+    if (prec == 1) {
+        for (const auto& tile : tiles_f64) {
+            n_leaf += tile.touched.size();
+            for (uint32_t local : tile.touched)
+                total_flux += tile.pixels[local].sumFlux;
+        }
+    } else {
+        for (const auto& tile : tiles_f32) {
+            n_leaf += tile.touched.size();
+            for (uint32_t local : tile.touched)
+                total_flux += tile.pixels[local].sumFlux;
         }
     }
     printf("{\"input_pixels\":%d,\"output_pixels\":%zu,\"nside\":%d,"

@@ -178,7 +178,7 @@ static void test_healpix_pixel_area() {
             if (!xv && !yv) break;
         }
 
-        std::vector<spherical::Vec3> boundary = spherical::get_healpix_boundary(hp, (uint64_t)ipix, nside);
+        std::vector<spherical::Vec3> boundary = spherical::get_healpix_boundary<double>(hp, (uint64_t)ipix, nside);
         double area = spherical::spherical_polygon_area(boundary);
 
         // 高 NSIDE 容差 5% (赤道带小圆弧边界近似误差)
@@ -196,7 +196,7 @@ static void test_healpix_pixel_area() {
         int n_valid = 0;
         for (int64_t ipix = 0; ipix < npix; ipix++) {
             std::vector<spherical::Vec3> boundary =
-                spherical::get_healpix_boundary(hp, (uint64_t)ipix, nside);
+                spherical::get_healpix_boundary<double>(hp, (uint64_t)ipix, nside);
             double area = spherical::spherical_polygon_area(boundary);
             if (area > 0.0) {
                 total_area += area;
@@ -627,7 +627,7 @@ static void test_boundary_sampled_vertices() {
             if (!xv && !yv) break;
         }
 
-        std::vector<spherical::Vec3> b = spherical::get_healpix_boundary_sampled(hp, (uint64_t)ipix, nside, 8);
+        std::vector<spherical::Vec3> b = spherical::get_healpix_boundary_sampled<double>(hp, (uint64_t)ipix, nside, 8);
         char msg[256];
         snprintf(msg, sizeof(msg), "赤道带像素: 顶点数=%zu (>=4)", b.size());
         ASSERT_TRUE("赤道带像素自适应细分顶点数 >= 4", b.size() >= 4, msg);
@@ -652,7 +652,7 @@ static void test_boundary_sampled_vertices() {
             if (!xv && !yv) break;
         }
 
-        std::vector<spherical::Vec3> b = spherical::get_healpix_boundary_sampled(hp, (uint64_t)ipix, nside, 1);
+        std::vector<spherical::Vec3> b = spherical::get_healpix_boundary_sampled<double>(hp, (uint64_t)ipix, nside, 1);
         ASSERT_TRUE("samples_per_edge 参数被自适应细分忽略", b.size() >= 4,
                     "自适应细分不依赖 samples_per_edge");
     }
@@ -671,7 +671,7 @@ static void test_boundary_sampled_vertices() {
             if (!xv && !yv) break;
         }
 
-        std::vector<spherical::Vec3> b = spherical::get_healpix_boundary_sampled(hp, (uint64_t)ipix, nside, 8);
+        std::vector<spherical::Vec3> b = spherical::get_healpix_boundary_sampled<double>(hp, (uint64_t)ipix, nside, 8);
         ASSERT_TRUE("极区像素自适应细分顶点数 >= 4", b.size() >= 4,
                     "极区像素也使用自适应细分");
     }
@@ -690,7 +690,7 @@ static void test_boundary_sampled_vertices() {
             if (!xv && !yv) break;
         }
 
-        std::vector<spherical::Vec3> b = spherical::get_healpix_boundary_sampled(hp, (uint64_t)ipix, nside);
+        std::vector<spherical::Vec3> b = spherical::get_healpix_boundary_sampled<double>(hp, (uint64_t)ipix, nside);
         ASSERT_TRUE("默认参数自适应细分顶点数 >= 4", b.size() >= 4,
                     "自适应细分应返回有效边界");
 
@@ -739,13 +739,13 @@ static void test_boundary_sampled_accuracy() {
 
             // 4 顶点边界
             std::vector<spherical::Vec3> b4 =
-                spherical::get_healpix_boundary(hp, (uint64_t)ipix, nside);
+                spherical::get_healpix_boundary<double>(hp, (uint64_t)ipix, nside);
             double area_4 = spherical::spherical_polygon_area(b4);
             double err_4 = std::fabs(area_4 - theory) / theory;
 
             // 16 段采样边界
             std::vector<spherical::Vec3> b16 =
-                spherical::get_healpix_boundary_sampled(hp, (uint64_t)ipix, nside, 16);
+                spherical::get_healpix_boundary_sampled<double>(hp, (uint64_t)ipix, nside, 16);
             double area_16 = spherical::spherical_polygon_area(b16);
             double err_16 = std::fabs(area_16 - theory) / theory;
 
@@ -774,11 +774,11 @@ static void test_boundary_sampled_accuracy() {
         uint64_t ipix = 4;  // NSIDE=1, bighp=4
 
         std::vector<spherical::Vec3> b8 =
-            spherical::get_healpix_boundary_sampled(hp, ipix, nside, 8);
+            spherical::get_healpix_boundary_sampled<double>(hp, ipix, nside, 8);
         double err_8 = std::fabs(spherical::spherical_polygon_area(b8) - theory) / theory;
 
         std::vector<spherical::Vec3> b16 =
-            spherical::get_healpix_boundary_sampled(hp, ipix, nside, 16);
+            spherical::get_healpix_boundary_sampled<double>(hp, ipix, nside, 16);
         double err_16 = std::fabs(spherical::spherical_polygon_area(b16) - theory) / theory;
 
         printf("    NSIDE=1 单调性: 8采样 err=%.4f%%, 16采样 err=%.4f%%\n",
@@ -798,10 +798,10 @@ static void test_boundary_sampled_accuracy() {
 
         double total_4 = 0.0, total_16 = 0.0;
         for (int64_t ipix = 0; ipix < npix; ipix++) {
-            std::vector<spherical::Vec3> b4 = spherical::get_healpix_boundary(hp, (uint64_t)ipix, nside);
+            std::vector<spherical::Vec3> b4 = spherical::get_healpix_boundary<double>(hp, (uint64_t)ipix, nside);
             total_4 += spherical::spherical_polygon_area(b4);
 
-            std::vector<spherical::Vec3> b16 = spherical::get_healpix_boundary_sampled(hp, (uint64_t)ipix, nside, 16);
+            std::vector<spherical::Vec3> b16 = spherical::get_healpix_boundary_sampled<double>(hp, (uint64_t)ipix, nside, 16);
             total_16 += spherical::spherical_polygon_area(b16);
         }
 

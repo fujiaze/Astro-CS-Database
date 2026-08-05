@@ -180,8 +180,9 @@ HP_DRIZZLE_API int hp_drizzle_fits_to_ahpx(
             config.photscal, img.photappl, (int)config.photometry_applied_upstream);
 
     // 6. 执行 Drizzle (R11 阶段6: Tile 级累加, 正式路径不恢复全局 leaf map)
+    //    FP32: Scalar=float 真 FP32 累计 (阶段7)
     DrizzleEngine engine;
-    std::vector<drizzle::TileAccumulator> tiles;
+    std::vector<drizzle::TileAccumulatorT<float>> tiles;
     DrizzleStats stats;
 
     if (!engine.drizzleTiled(img, config, snrPtr, weightPtr, tiles, stats, errMsg)) {
@@ -201,8 +202,8 @@ HP_DRIZZLE_API int hp_drizzle_fits_to_ahpx(
         }
     }
     DrizzleMeta meta;  // FITS 路径无 header KV, meta 留空
-    if (!engine.writeHisTiles(tiles, stats, img.wcs, config, meta, fits_path, hissPath,
-                              nullptr, errMsg)) {
+    if (!engine.writeHisTilesT<float>(tiles, stats, img.wcs, config, meta, fits_path, hissPath,
+                                      nullptr, errMsg)) {
         fprintf(stderr, "[hp_drizzle_api] 写入 .hiss 失败: %s\n", errMsg.c_str());
         setErrorMsg(result, "写入 .hiss 失败: " + errMsg);
         return 11;
@@ -586,16 +587,17 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
     //    双精度 ABI: 根据 data 块类型选择 drizzleTiled (FP32) 或 drizzleTiled_f64 (FP64)
     //    FP64 模式: 从 img.pixels_f64 (double) 读取像素, 不降级到 float32
     DrizzleEngine engine;
-    std::vector<drizzle::TileAccumulator> tiles;
+    std::vector<drizzle::TileAccumulatorT<float>> tiles_f32;
+    std::vector<drizzle::TileAccumulatorT<double>> tiles_f64;
     DrizzleStats stats;
     std::string errMsg;
 
     bool drizzle_ok;
     if (img.use_f64) {
-        drizzle_ok = engine.drizzleTiled_f64(img, config, snrPtr, nullptr, tiles, stats, errMsg);
+        drizzle_ok = engine.drizzleTiled_f64(img, config, snrPtr, nullptr, tiles_f64, stats, errMsg);
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: 调用 drizzleTiled_f64 (FP64 路径)\n");
     } else {
-        drizzle_ok = engine.drizzleTiled(img, config, snrPtr, nullptr, tiles, stats, errMsg);
+        drizzle_ok = engine.drizzleTiled(img, config, snrPtr, nullptr, tiles_f32, stats, errMsg);
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: 调用 drizzleTiled (FP32 路径)\n");
     }
 
@@ -651,8 +653,12 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: 写入 .hiss (filter=%s, exptime=%.1f, date=%s, fits_meta=%zu)\n",
                 meta.filter.c_str(), meta.exposure_s, meta.obs_time.c_str(), meta.fits_meta.size());
 
-        if (!engine.writeHisTiles(tiles, stats, img.wcs, config, meta, sourcePath, hissPath,
-                                  snrModelPtr, errMsg)) {
+        bool write_ok = img.use_f64
+            ? engine.writeHisTilesT<double>(tiles_f64, stats, img.wcs, config, meta,
+                                            sourcePath, hissPath, snrModelPtr, errMsg)
+            : engine.writeHisTilesT<float>(tiles_f32, stats, img.wcs, config, meta,
+                                           sourcePath, hissPath, snrModelPtr, errMsg);
+        if (!write_ok) {
             fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: 写入 .hiss 失败: %s\n", errMsg.c_str());
             setErrorMsg(result, "写入 .hiss 失败: " + errMsg);
             return -11;

@@ -31,28 +31,39 @@
 namespace spherical {
 
 // ============================================================================
-// 球面向量 (单位向量)
+// 球面向量 (单位向量) — 模板双实例 (R11 阶段7: 真 FP32/FP64 Scalar 几何)
+//   Vec3T<float>  : FP32 科学路径 (IEEE binary32 全链)
+//   Vec3T<double> : FP64 科学路径 (IEEE binary64, 与旧 Vec3 一致)
 // ============================================================================
-struct Vec3 {
-    double x, y, z;
+template <typename T>
+struct Vec3T {
+    T x, y, z;
 };
+using Vec3 = Vec3T<double>;  // 向后兼容别名 (旧调用方仍用 double)
 
 // ---- 基本向量运算 ----
-Vec3   cross(const Vec3& a, const Vec3& b);
-double dot(const Vec3& a, const Vec3& b);
-Vec3   normalize(const Vec3& v);
-double length(const Vec3& v);
+template <typename T>
+Vec3T<T> cross(const Vec3T<T>& a, const Vec3T<T>& b);
+template <typename T>
+T dot(const Vec3T<T>& a, const Vec3T<T>& b);
+template <typename T>
+Vec3T<T> normalize(const Vec3T<T>& v);
+template <typename T>
+T length(const Vec3T<T>& v);
 
 // 球面坐标(度) → 笛卡尔单位向量
 // ra_deg: 赤经 [0, 360), dec_deg: 赤纬 [-90, +90]
-Vec3 radec_to_vec(double ra_deg, double dec_deg);
+template <typename T>
+Vec3T<T> radec_to_vec(T ra_deg, T dec_deg);
 
 // 笛卡尔向量 → 球面坐标(度)
 // 返回 ra_deg ∈ [0, 360), dec_deg ∈ [-90, +90]
-void vec_to_radec(const Vec3& v, double& ra_deg, double& dec_deg);
+template <typename T>
+void vec_to_radec(const Vec3T<T>& v, T& ra_deg, T& dec_deg);
 
 // 两单位向量的角距离(弧度)
-double angular_distance(const Vec3& a, const Vec3& b);
+template <typename T>
+T angular_distance(const Vec3T<T>& a, const Vec3T<T>& b);
 
 // ============================================================================
 // 球面多边形面积 (Girard 定理 / 球面 excess 公式)
@@ -63,7 +74,8 @@ double angular_distance(const Vec3& a, const Vec3& b);
 //
 // 精度: float64, 已知球面多边形面积误差 < 1e-10
 // ============================================================================
-double spherical_polygon_area(const std::vector<Vec3>& vertices);
+template <typename T>
+T spherical_polygon_area(const std::vector<Vec3T<T>>& vertices);
 
 // ============================================================================
 // 球面 Sutherland-Hodgman 多边形裁剪
@@ -78,9 +90,10 @@ double spherical_polygon_area(const std::vector<Vec3>& vertices);
 //   - 与裁剪大圆 (法向量 n) 的交点 = ±normalize(cross(n_edge, n_clip))
 //   - 选择位于 S, E 之间的交点 (dot(intersection, S+E) > 0)
 // ============================================================================
-std::vector<Vec3> sutherland_hodgman_spherical(
-    const std::vector<Vec3>& subject,
-    const std::vector<Vec3>& clip_plane_normals);
+template <typename T>
+std::vector<Vec3T<T>> sutherland_hodgman_spherical(
+    const std::vector<Vec3T<T>>& subject,
+    const std::vector<Vec3T<T>>& clip_plane_normals);
 
 // ============================================================================
 // 获取 HEALPix 像素的球面边界顶点
@@ -92,7 +105,8 @@ std::vector<Vec3> sutherland_hodgman_spherical(
 // ipix: 像素 NESTED 索引
 // nside: NSIDE (冗余参数, 与 hp.getNside() 一致, 保留接口一致性)
 // ============================================================================
-std::vector<Vec3> get_healpix_boundary(
+template <typename T>
+std::vector<Vec3T<T>> get_healpix_boundary(
     const healpix::HealpixCore& hp, uint64_t ipix, int nside);
 
 // ============================================================================
@@ -113,7 +127,8 @@ std::vector<Vec3> get_healpix_boundary(
 // nside: NSIDE (冗余参数, 与 hp.getNside() 一致)
 // samples_per_edge: 每条边的采样段数 (>=1)
 // ============================================================================
-std::vector<Vec3> get_healpix_boundary_sampled(
+template <typename T>
+std::vector<Vec3T<T>> get_healpix_boundary_sampled(
     const healpix::HealpixCore& hp, uint64_t ipix, int nside,
     int samples_per_edge = 8);
 
@@ -145,8 +160,9 @@ typedef bool (*PixelToSkyFn)(double px, double py, double& ra, double& dec,
 // samples_per_edge: 每条边的采样段数 (>=1)
 // 返回: 球面多边形顶点 (逆时针, 单位向量). 投影失败时返回空向量.
 // ============================================================================
-std::vector<Vec3> build_drop_polygon_sampled(
-    double px, double py, double pixfrac,
+template <typename T>
+std::vector<Vec3T<T>> build_drop_polygon_sampled(
+    T px, T py, T pixfrac,
     PixelToSkyFn pixelToSky, void* user_data,
     int samples_per_edge);
 
@@ -170,10 +186,11 @@ std::vector<Vec3> build_drop_polygon_sampled(
 //   wcs_epsilon = src_scale_rad * 1e-12
 //   通常传入 max_edge_rad (像素四角最大边角跨度)
 // ============================================================================
-std::vector<Vec3> build_drop_polygon_adaptive(
-    double px, double py, double pixfrac,
+template <typename T>
+std::vector<Vec3T<T>> build_drop_polygon_adaptive(
+    T px, T py, T pixfrac,
     PixelToSkyFn pixelToSky, void* user_data,
-    double src_scale_rad);
+    T src_scale_rad);
 
 // ============================================================================
 // 计算源像素 drop 与目标 HEALPix 像素的球面重叠面积
@@ -189,8 +206,9 @@ std::vector<Vec3> build_drop_polygon_adaptive(
 //   3. 用球面 Sutherland-Hodgman 裁剪 drop 多边形
 //   4. 用 Girard 定理计算交集面积
 // ============================================================================
-double compute_overlap_area(
-    const std::vector<Vec3>& drop_corners,
+template <typename T>
+T compute_overlap_area(
+    const std::vector<Vec3T<T>>& drop_corners,
     const healpix::HealpixCore& hp, uint64_t target_ipix);
 
 // ============================================================================
@@ -206,16 +224,18 @@ double compute_overlap_area(
 //   3. 用 hp.queryDisc 查询圆盘内所有像素
 //   4. 高 NSIDE + 大源像素时, 候选数可远 > 48
 // ============================================================================
+template <typename T>
 void query_candidate_pixels(
-    const std::vector<Vec3>& drop_corners,
+    const std::vector<Vec3T<T>>& drop_corners,
     const healpix::HealpixCore& hp,
     std::vector<uint64_t>& candidates);
 
 // R11: NESTED 直接候选枚举 (替代 queryDisc BFS)
 // 保守覆盖: drop 包围圆 + 1.2×hp_res 像素外接半径 (零漏选, 允许少量 false positives)
 // 与 query_candidate_pixels 语义一致, 供 pixfrac=1 共享顶点路径使用
+template <typename T>
 void query_candidate_pixels_fast(
-    const std::vector<Vec3>& drop_corners,
+    const std::vector<Vec3T<T>>& drop_corners,
     const healpix::HealpixCore& hp,
     std::vector<uint64_t>& candidates);
 
