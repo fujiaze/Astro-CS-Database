@@ -551,11 +551,24 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
     // R11: 不再预分配每线程 4M 桶 (67M 桶内存浪费), 让 map 按需增长
 
     int64_t nSourcePixels = 0;
+    // R11: pixfrac=1 时使用共享顶点路径 (每网格顶点一次 WCS 变换)
+    const bool shared_vertices = (config.pixfrac == 1.0);
 
     #pragma omp parallel for schedule(static) reduction(+:nSourcePixels)
     for (int y = 0; y < img.height; y++) {
         int tid = omp_get_thread_num();
         auto& localAccum = threadAccums[tid];
+
+        // R11: 预计算本行底/顶两行网格顶点的天球坐标 (每顶点一次, 相邻像素共享)
+        thread_local std::vector<double> bot_ra, bot_dec, top_ra, top_dec;
+        if (shared_vertices) {
+            bot_ra.resize(img.width + 1); bot_dec.resize(img.width + 1);
+            top_ra.resize(img.width + 1); top_dec.resize(img.width + 1);
+            for (int vx = 0; vx <= img.width; vx++) {
+                wcs.pixelToSky(vx - 0.5, y - 0.5, bot_ra[vx], bot_dec[vx]);
+                wcs.pixelToSky(vx - 0.5, y + 0.5, top_ra[vx], top_dec[vx]);
+            }
+        }
 
         for (int x = 0; x < img.width; x++) {
             // 获取像素值 (R08 移植 R07-B03: 入口已校验 img.channels == 1, 多通道已硬报错)
@@ -583,9 +596,16 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
 
             nSourcePixels++;
 
-            // 调用 6 步流水线
-            processPixel((double)x, (double)y, pixelValue, snrValue, weightValue,
-                         wcs, config, hp, localAccum);
+            // R11: 6 步流水线 (pixfrac=1 共享顶点, 否则原路径)
+            if (shared_vertices) {
+                double cr[4] = {bot_ra[x], bot_ra[x + 1], top_ra[x + 1], top_ra[x]};
+                double cd[4] = {bot_dec[x], bot_dec[x + 1], top_dec[x + 1], top_dec[x]};
+                processPixelShared((double)x, (double)y, pixelValue, snrValue, weightValue,
+                                   cr, cd, wcs, config, hp, localAccum);
+            } else {
+                processPixel((double)x, (double)y, pixelValue, snrValue, weightValue,
+                             wcs, config, hp, localAccum);
+            }
         }
     }
 
@@ -710,11 +730,24 @@ bool DrizzleEngine::drizzle_f64(const FitsImage& img, const DrizzleConfig& confi
     std::vector<std::unordered_map<uint64_t, PixelAccumulator>> threadAccums(num_threads);
 
     int64_t nSourcePixels = 0;
+    // R11: pixfrac=1 时使用共享顶点路径 (每网格顶点一次 WCS 变换)
+    const bool shared_vertices = (config.pixfrac == 1.0);
 
     #pragma omp parallel for schedule(static) reduction(+:nSourcePixels)
     for (int y = 0; y < img.height; y++) {
         int tid = omp_get_thread_num();
         auto& localAccum = threadAccums[tid];
+
+        // R11: 预计算本行底/顶两行网格顶点的天球坐标 (每顶点一次, 相邻像素共享)
+        thread_local std::vector<double> bot_ra, bot_dec, top_ra, top_dec;
+        if (shared_vertices) {
+            bot_ra.resize(img.width + 1); bot_dec.resize(img.width + 1);
+            top_ra.resize(img.width + 1); top_dec.resize(img.width + 1);
+            for (int vx = 0; vx <= img.width; vx++) {
+                wcs.pixelToSky(vx - 0.5, y - 0.5, bot_ra[vx], bot_dec[vx]);
+                wcs.pixelToSky(vx - 0.5, y + 0.5, top_ra[vx], top_dec[vx]);
+            }
+        }
 
         for (int x = 0; x < img.width; x++) {
             // FP64 路径: 直接读取 double 像素值 (不降级到 float32)
@@ -739,9 +772,16 @@ bool DrizzleEngine::drizzle_f64(const FitsImage& img, const DrizzleConfig& confi
 
             nSourcePixels++;
 
-            // 调用 FP64 版本的 processPixel
-            processPixel_f64((double)x, (double)y, pixelValue, snrValue, weightValue,
-                             wcs, config, hp, localAccum);
+            // R11: 6 步流水线 (pixfrac=1 共享顶点, 否则原路径)
+            if (shared_vertices) {
+                double cr[4] = {bot_ra[x], bot_ra[x + 1], top_ra[x + 1], top_ra[x]};
+                double cd[4] = {bot_dec[x], bot_dec[x + 1], top_dec[x + 1], top_dec[x]};
+                processPixelShared_f64((double)x, (double)y, pixelValue, snrValue, weightValue,
+                                       cr, cd, wcs, config, hp, localAccum);
+            } else {
+                processPixel_f64((double)x, (double)y, pixelValue, snrValue, weightValue,
+                                 wcs, config, hp, localAccum);
+            }
         }
     }
 
@@ -825,6 +865,27 @@ void DrizzleEngine::processPixel(
             return;
     }
 
+    // R11: Steps 3-6 由 processPixelShared 处理 (共享顶点路径复用)
+    processPixelShared(px, py, pixelValue, snrValue, weightValue,
+                       corners_ra, corners_dec, wcs, config, hp, accum);
+}
+// ============================================================================
+// processPixelShared - 处理单个像素的 Drizzle Steps 3-6 (FP32)
+// R11: 接收预计算的 4 角球面坐标 (pixfrac=1 顶点复用), 其余逻辑与 processPixel 一致
+// ============================================================================
+void DrizzleEngine::processPixelShared(
+    double px, double py,
+    float pixelValue, float snrValue, float weightValue,
+    const double corners_ra[4], const double corners_dec[4],
+    const WcsSip& wcs, const DrizzleConfig& config,
+    const healpix::HealpixCore& hp,
+    std::unordered_map<uint64_t, PixelAccumulator>& accum) const
+{
+    // 角点有限性检查 (原 processPixel Step 2, 共享路径需保留)
+    for (int i = 0; i < 4; i++) {
+        if (!std::isfinite(corners_ra[i]) || !std::isfinite(corners_dec[i]))
+            return;
+    }
     // ---- Step 3: 自适应边细分 ----
     // Phase C1: 对源像素 WCS/SIP 弯曲边进行自适应细分
     //
@@ -924,6 +985,7 @@ void DrizzleEngine::processPixel(
     }
 }
 
+
 // ============================================================================
 // processPixel_f64 - 处理单个像素的 Drizzle (FP64 路径, 球面几何流水线)
 //
@@ -961,6 +1023,27 @@ void DrizzleEngine::processPixel_f64(
             return;
     }
 
+    // R11: Steps 3-6 由 processPixelShared_f64 处理 (共享顶点路径复用)
+    processPixelShared_f64(px, py, pixelValue, snrValue, weightValue,
+                           corners_ra, corners_dec, wcs, config, hp, accum);
+}
+// ============================================================================
+// processPixelShared_f64 - 处理单个像素的 Drizzle Steps 3-6 (FP64)
+// R11: 接收预计算的 4 角球面坐标 (pixfrac=1 顶点复用)
+// ============================================================================
+void DrizzleEngine::processPixelShared_f64(
+    double px, double py,
+    double pixelValue, float snrValue, float weightValue,
+    const double corners_ra[4], const double corners_dec[4],
+    const WcsSip& wcs, const DrizzleConfig& config,
+    const healpix::HealpixCore& hp,
+    std::unordered_map<uint64_t, PixelAccumulator>& accum) const
+{
+    // 角点有限性检查 (原 processPixel_f64 Step 2, 共享路径需保留)
+    for (int i = 0; i < 4; i++) {
+        if (!std::isfinite(corners_ra[i]) || !std::isfinite(corners_dec[i]))
+            return;
+    }
     // ---- Step 3: 自适应边细分 ----
     double max_edge_rad = 0.0;
     for (int i = 0; i < 4; i++) {
@@ -1019,6 +1102,7 @@ void DrizzleEngine::processPixel_f64(
         acc.nContrib++;
     }
 }
+
 
 // ============================================================================
 // getHealpixCorners - 获取 HEALPix 像素的四角球面坐标

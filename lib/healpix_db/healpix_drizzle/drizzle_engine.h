@@ -142,6 +142,22 @@ private:
         std::unordered_map<uint64_t, PixelAccumulator>& accum
     ) const;
 
+    // R11: 共享顶点路径 (pixfrac=1): 接收预计算的 4 角球面坐标, 跳过逐像素 WCS 角点变换
+    void processPixelShared(
+        double px, double py,
+        float pixelValue, float snrValue, float weightValue,
+        const double corners_ra[4], const double corners_dec[4],
+        const WcsSip& wcs, const DrizzleConfig& config,
+        const healpix::HealpixCore& hp,
+        std::unordered_map<uint64_t, PixelAccumulator>& accum) const;
+    void processPixelShared_f64(
+        double px, double py,
+        double pixelValue, float snrValue, float weightValue,
+        const double corners_ra[4], const double corners_dec[4],
+        const WcsSip& wcs, const DrizzleConfig& config,
+        const healpix::HealpixCore& hp,
+        std::unordered_map<uint64_t, PixelAccumulator>& accum) const;
+
     // 获取 HEALPix 像素的四角球面坐标
     void getHealpixCorners(const healpix::HealpixCore& hp, int64_t ipix,
                            double ra0, double dec0,
