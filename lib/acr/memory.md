@@ -6,6 +6,34 @@
 
 ## 进度
 
+### 2026-08-05 聚焦版控制包（SHA 56f74f2e...eac14，08 号计划）
+
+**执行入口**：`08_CURRENT_EXECUTION_PLAN.md`（控制包 8；仓库内副本
+`工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE/`）。旧 20—26 号计划全部失效。
+
+**定位收缩**：ACR 是积分/Drizzle 类重负载逐像素算法的 CPU+GPU 动态混合
+分块与数据驻留优化层。不做通用硬件画像、不扩展无关 gather/branch/全部
+ISA 线程矩阵、不做 CPU/GPU 精确利用率控制。解析/元数据/稀疏小任务不接入。
+
+**保留**：KernelRegistry/KernelInvocation/DeviceExecutor、真实 CPU/CUDA 执行、
+动态工作池与 WorkToken、CUDA 独立容量与多块卷积、RAM/VRAM 预算骨架、
+compute-sanitizer/MSVC ASan、业务算法零修改。
+
+**本轮完成（聚焦版提交 1）**：
+- 删除生产路径 CPU/GPU 精确利用率控制（CpuController/GpuController/IoBudget
+  及 50/80/95/100 目标测试），MemoryBudget 独立 enable_memory_budget 开关
+  （5123949，对应 08 号计划 §2 清理错误方向）；
+- 定义 RouteMode（AutoMixed/CpuOnly/GpuOnly）与 PartitionKind
+  （IndependentOutputTiles/PrivatePartialThenMerge）；
+- 定义 5 个目标合成 OperationId（dense_pixel_accumulate fp32/fp64acc、
+  pixel_reduce fp64acc、drizzle_like_scatter fp64acc、resident_chain）；
+- KernelInvocation 增加 partition/mode 字段；
+- 控制包 8 已同步到仓库控制目录并记录 SHA。
+
+**待办（08 号计划 §3—§9）**：目标 Operation 合成套件 → OperationProfile →
+MixedRoutePlanner（独立块大小/边际收益门/尾段停止慢设备）→ ResidencyManager
+与内存预算完善 → 聚焦测试与单一干净 HEAD Evidence。
+
 ### 2026-08-05 25 号计划执行（控制包 SHA 755278bf...5f98）
 
 **执行入口**：`25_SECOND_FIX_IMPLEMENTATION_REVIEW_CORRECTION_PLAN.md`（外部

@@ -10,6 +10,8 @@
 //   6. mixed_device_safe=true 表示任务可在 CPU+GPU 混合执行（无设备间依赖）
 //   7. requires_atomic=true 表示需要原子冲突处理（histogram/scatter）
 //   8. halo_x/halo_y 用于 stencil_2d/convolution 的边界处理
+//   9. 聚焦版（08 号计划）：RouteMode/PartitionKind 定义混合路由与分块契约，
+//      目标 OperationId 常量仅覆盖积分/Drizzle 类重负载像素算法
 //
 // 注意：OperationId 用 string_view，调用方必须保证字符串字面量生命周期；
 //       TaskDescriptor 内部会复制为 std::string 以保证安全。
@@ -74,6 +76,40 @@ struct NumericPolicy {
     bool deterministic_merge{false};  // 归并需要确定性（FP64 accumulator 或 deterministic 标志）
     bool allow_fast_math{false};      // 允许 fast-math（可能牺牲精度）
 };
+
+// ===== 聚焦版（08 号计划）：路由模式 =====
+// 正常生产模式为 AutoMixed；CpuOnly/GpuOnly 只用于 correctness 对照、
+// Benchmark、故障隔离和明确回退。AutoMixed 允许按边际收益自然退化为
+// 仅一种设备，但不得使用固定 CPU/GPU 比例。
+enum class RouteMode : std::uint8_t {
+    AutoMixed = 0,   // 正常生产模式
+    CpuOnly   = 1,   // 调试/对照/回退
+    GpuOnly   = 2,   // 调试/对照/资格测试
+};
+
+// ===== 聚焦版（08 号计划）：分块契约 =====
+// 算法明确如何安全拆分：
+//   IndependentOutputTiles：每个块拥有独立输出区域（积分优先）
+//   PrivatePartialThenMerge：设备/块写私有部分结果，最终明确合并（Drizzle 类）
+// 禁止多个设备无协议地并发写同一输出。
+enum class PartitionKind : std::uint8_t {
+    IndependentOutputTiles = 0,
+    PrivatePartialThenMerge = 1,
+};
+
+// ===== 聚焦版目标 OperationId（08 号计划 §3）=====
+// 当前底层合成测试至少覆盖以下 Operation；未来真实算法接入后使用真实
+// OperationId 和同一注册机制替换对应合成 Profile。
+inline constexpr std::string_view kOpDensePixelAccumulateFp32 =
+    "synthetic.dense_pixel_accumulate.fp32";
+inline constexpr std::string_view kOpDensePixelAccumulateFp64Acc =
+    "synthetic.dense_pixel_accumulate.fp64acc";
+inline constexpr std::string_view kOpPixelReduceFp64Acc =
+    "synthetic.pixel_reduce.fp64acc";
+inline constexpr std::string_view kOpDrizzleLikeScatterFp64Acc =
+    "synthetic.drizzle_like_scatter.fp64acc";
+inline constexpr std::string_view kOpResidentChain =
+    "synthetic.resident_chain";
 
 // ===== TaskTraits：任务特征描述 =====
 // 算法作者在 parallel_for/tiles/reduce/batch 调用点提供。
