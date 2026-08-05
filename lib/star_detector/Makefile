@@ -14,7 +14,7 @@ CXX = g++
 # 编译标志
 # -O3 最高优化
 # -march=native 启用本机 CPU 指令集 (AVX2 等)
-# -ffast-math 允许 IEEE 不精确优化 (浮点加速, 天文图像可接受)
+# 注意: 不启用 -ffast-math (R11 控制包要求, 禁止 IEEE 不精确优化)
 # -fopenmp OpenMP 并行
 # -funroll-loops 循环展开
 CXXFLAGS_COMMON = -Wall -std=c++17 -fopenmp -march=native \

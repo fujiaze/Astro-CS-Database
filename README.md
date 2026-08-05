@@ -6,8 +6,8 @@ AstroCS 是一个原生天文图像处理内核（C++/DLL），将真实 FITS �
 
 - 当前阶段：Phase1 架构纠正（R10）——**尚未整体闭合**
 - 正式科学运行只有唯一入口：`orchestrator.exe <stage1.json>`
-- 已完成：JSON 唯一入口与严格 Schema、生产 Python 封装删除、全链路 FP32/FP64 双精度、合成数据与单帧逐 Gate 验证
-- 未完成：710 帧全量回归、Stage2 梯度/叠加、FAST 研究、ACR 接入
+- 已完成：JSON 唯一入口与严格 Schema、生产 Python 封装删除、HISS signal FP32/FP64 双精度、合成数据与单帧逐 Gate 验证
+- 未完成：全链路 FP32/FP64 数值双精度（上游/SNR/HISS metadata 仍混合）、PRECISE Drizzle 性能重构、710 帧全量回归、Stage2/FAST/ACR
 
 ## 权威文档
 
