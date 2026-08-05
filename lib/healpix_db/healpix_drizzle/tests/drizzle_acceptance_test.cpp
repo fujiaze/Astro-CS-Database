@@ -6,7 +6,9 @@
 //   B. pixfrac {0.1,0.25,0.5,1.0} x 过采样率 {1,2,3,4} (输入尺度 vs NSIDE):
 //      FP64 能量守恒 + FP32 vs FP64 逐 leaf
 //   C. 球面<->平面双向投影: skyToPixel(pixelToSky(x,y)) 往返 (导出需要)
-//   D. 数值类型证据: 生产路径仅 IEEE float32/float64 (sizeof 自动输出)
+//   D. 尺度 x NSIDE 矩阵 (0.5"/1"/2"/3" 大气视宁度常见 + 对应 NSIDE)
+//   E. 广域大畸变矩阵 (T4 真实 WCS + 合成广域 SIP5 + 广域极区/RA 跨 0)
+//   F. 数值类型证据: 生产路径仅 IEEE float32/float64 (sizeof 自动输出)
 //
 // 能量守恒定义: Σ output signal = Σ input calibrated signal (Gate P3,
 //   无有效域截断; FP64 参考 < 1e-7, FP32 vs FP64 逐 leaf < 1e-5)
@@ -187,6 +189,152 @@ static void acceptance_oversample(FILE* jsonl) {
 }
 
 // ============================================================================
+// 验收 D: 尺度 x NSIDE 矩阵 (大气视宁度常见 0.5"~3" + 对应 NSIDE)
+// ============================================================================
+static void acceptance_scale_nside(FILE* jsonl) {
+    printf("=== D. 尺度 x NSIDE 矩阵 (0.5\"/1\"/2\"/3\") ===\n");
+    const int size = 128;
+    // 尺度(角秒) -> 对应 NSIDE (compute_auto_nside 合理映射, hp_res ≈ 尺度/2~5)
+    struct SN { double scale; int nside; };
+    const SN sn[] = {
+        {0.5, 2097152},   // hp_res 0.10"
+        {1.0, 1048576},   // hp_res 0.20"
+        {2.0, 262144},    // hp_res 0.80"
+        {3.0, 131072},    // hp_res 1.61"
+    };
+    for (const auto& s : sn) {
+        WcsParams w;
+        w.has_wcs = true;
+        std::strncpy(w.ctype1, "RA---TAN-SIP", 15);
+        std::strncpy(w.ctype2, "DEC--TAN-SIP", 15);
+        w.crval[0] = 272.886595; w.crval[1] = -23.254083;
+        w.crpix[0] = size / 2.0 + 0.5; w.crpix[1] = size / 2.0 + 0.5;
+        double deg = s.scale / 3600.0;
+        w.cd[0] = -deg; w.cd[1] = 0.0; w.cd[2] = 0.0; w.cd[3] = deg;
+        double rel64, maxrel32; int missing;
+        char tag[64];
+        snprintf(tag, sizeof(tag), "scale%.1f_n%d", s.scale, s.nside);
+        run_case(jsonl, tag, w, size, s.nside, 1.0, &rel64, &maxrel32, &missing);
+        char msg[160];
+        snprintf(msg, sizeof(msg),
+                 "[%s] FP64 闭合 %.3e (<1e-6)", tag, rel64);
+        CHECK(rel64 < 1e-6, msg);
+        snprintf(msg, sizeof(msg),
+                 "[%s] FP32 vs FP64 %.3e (<1e-5, missing=%d)",
+                 tag, maxrel32, missing);
+        CHECK(maxrel32 < 1e-5 && missing == 0, msg);
+    }
+}
+
+// ============================================================================
+// 验收 E: 广域大畸变矩阵 (T4 真实 WCS + 合成广域 SIP5 + 广域极区/RA0)
+// ============================================================================
+static void acceptance_wide(FILE* jsonl) {
+    printf("=== E. 广域大畸变矩阵 ===\n");
+    // E1: T4 真实 WCS (galaxy_crop_1024: SIP3 + 旋转 CD @ 6.3\"/px)
+    {
+        WcsParams w;
+        w.has_wcs = true;
+        std::strncpy(w.ctype1, "RA---TAN-SIP", 15);
+        std::strncpy(w.ctype2, "DEC--TAN-SIP", 15);
+        w.crval[0] = 272.886466; w.crval[1] = -23.253959;
+        w.crpix[0] = 128.5; w.crpix[1] = 128.5;
+        w.cd[0] = -1.75196308338273e-3; w.cd[1] = 6.72134327695741e-6;
+        w.cd[2] = -6.8440658325384e-6;  w.cd[3] = -1.75204861875677e-3;
+        w.sip.order = 3;
+        w.sip.a[1] = 1.0e-7; w.sip.a[3] = -1.5e-7; w.sip.a[7] = 1.8e-7;
+        w.sip.b[1] = -1.2e-7; w.sip.b[5] = 1.0e-7; w.sip.b[8] = 1.5e-7;
+        double rel64, maxrel32; int missing;
+        run_case(jsonl, "wide_t4", w, 256, 65536, 1.0,
+                 &rel64, &maxrel32, &missing);
+        char msg[160];
+        snprintf(msg, sizeof(msg), "[wide_t4] FP64 闭合 %.3e (<1e-7)", rel64);
+        CHECK(rel64 < 1e-7, msg);
+        snprintf(msg, sizeof(msg),
+                 "[wide_t4] FP32 vs FP64 %.3e (<1e-5, missing=%d)",
+                 maxrel32, missing);
+        CHECK(maxrel32 < 1e-5 && missing == 0, msg);
+    }
+    // E2: 合成广域 SIP5 (1024^2 @ 6.3\" = 1.79° 视场, 旋转 CD + 大畸变,
+    //     视场边缘 SIP 畸变 > 1 像素)
+    {
+        const int size = 1024;
+        WcsParams w;
+        w.has_wcs = true;
+        std::strncpy(w.ctype1, "RA---TAN-SIP", 15);
+        std::strncpy(w.ctype2, "DEC--TAN-SIP", 15);
+        w.crval[0] = 272.886595; w.crval[1] = -23.254083;
+        w.crpix[0] = size / 2.0 + 0.5; w.crpix[1] = size / 2.0 + 0.5;
+        double s = 6.3 / 3600.0;
+        double c = std::cos(18.0 * 3.141592653589793 / 180.0);
+        double sn = std::sin(18.0 * 3.141592653589793 / 180.0);
+        w.cd[0] = -s * c; w.cd[1] = s * sn;
+        w.cd[2] = -s * sn; w.cd[3] = -s * c;
+        // 广域大畸变 SIP order 5 (视场边缘畸变 > 1 像素 @ 2048^2)
+        w.sip.order = 5;
+        // 线性剪切 + 三次/五次畸变 (dx~512 时三次项 ~1.3 像素)
+        w.sip.a[0] = 8.0e-5; w.sip.a[6] = 2.0e-7; w.sip.a[12] = -1.0e-8;
+        w.sip.a[1] = -6.0e-5; w.sip.a[7] = 1.5e-7; w.sip.a[18] = 5.0e-13;
+        w.sip.b[1] = 1.0e-4; w.sip.b[7] = -2.0e-7; w.sip.b[14] = 8.0e-9;
+        w.sip.b[5] = -7.0e-5; w.sip.b[8] = 1.8e-7; w.sip.b[20] = -3.0e-13;
+        double rel64, maxrel32; int missing;
+        run_case(jsonl, "wide_sip5", w, size, 65536, 1.0,
+                 &rel64, &maxrel32, &missing);
+        char msg[160];
+        snprintf(msg, sizeof(msg), "[wide_sip5] FP64 闭合 %.3e (<1e-7)", rel64);
+        CHECK(rel64 < 1e-7, msg);
+        snprintf(msg, sizeof(msg),
+                 "[wide_sip5] FP32 vs FP64 %.3e (<1e-5, missing=%d)",
+                 maxrel32, missing);
+        CHECK(maxrel32 < 1e-5 && missing == 0, msg);
+    }
+    // E3: 广域近极 (CRVAL dec=89.5°, 图像边缘更接近极点)
+    {
+        const int size = 1024;
+        WcsParams w;
+        w.has_wcs = true;
+        std::strncpy(w.ctype1, "RA---TAN-SIP", 15);
+        std::strncpy(w.ctype2, "DEC--TAN-SIP", 15);
+        w.crval[0] = 0.0; w.crval[1] = 89.5;
+        w.crpix[0] = size / 2.0 + 0.5; w.crpix[1] = size / 2.0 + 0.5;
+        double s = 3.0 / 3600.0;
+        w.cd[0] = -s; w.cd[1] = 0.0; w.cd[2] = 0.0; w.cd[3] = s;
+        double rel64, maxrel32; int missing;
+        run_case(jsonl, "wide_polar", w, size, 65536, 1.0,
+                 &rel64, &maxrel32, &missing);
+        char msg[160];
+        snprintf(msg, sizeof(msg), "[wide_polar] FP64 闭合 %.3e (<1e-7)", rel64);
+        CHECK(rel64 < 1e-7, msg);
+        snprintf(msg, sizeof(msg),
+                 "[wide_polar] FP32 vs FP64 %.3e (<1e-5, missing=%d)",
+                 maxrel32, missing);
+        CHECK(maxrel32 < 1e-5 && missing == 0, msg);
+    }
+    // E4: 广域 RA 跨 0 (CRVAL ra=0, 图像横跨 RA 0 边界)
+    {
+        const int size = 1024;
+        WcsParams w;
+        w.has_wcs = true;
+        std::strncpy(w.ctype1, "RA---TAN-SIP", 15);
+        std::strncpy(w.ctype2, "DEC--TAN-SIP", 15);
+        w.crval[0] = 0.0; w.crval[1] = 0.0;
+        w.crpix[0] = size / 2.0 + 0.5; w.crpix[1] = size / 2.0 + 0.5;
+        double s = 6.3 / 3600.0;
+        w.cd[0] = -s; w.cd[1] = 0.0; w.cd[2] = 0.0; w.cd[3] = s;
+        double rel64, maxrel32; int missing;
+        run_case(jsonl, "wide_ra0", w, size, 65536, 1.0,
+                 &rel64, &maxrel32, &missing);
+        char msg[160];
+        snprintf(msg, sizeof(msg), "[wide_ra0] FP64 闭合 %.3e (<1e-7)", rel64);
+        CHECK(rel64 < 1e-7, msg);
+        snprintf(msg, sizeof(msg),
+                 "[wide_ra0] FP32 vs FP64 %.3e (<1e-5, missing=%d)",
+                 maxrel32, missing);
+        CHECK(maxrel32 < 1e-5 && missing == 0, msg);
+    }
+}
+
+// ============================================================================
 // 验收 C: 球面<->平面双向投影往返
 // ============================================================================
 static void acceptance_bidirectional(FILE* jsonl) {
@@ -286,6 +434,8 @@ int main(int argc, char** argv) {
     acceptance_types();
     acceptance_position(f);
     acceptance_oversample(f);
+    acceptance_scale_nside(f);
+    acceptance_wide(f);
     acceptance_bidirectional(f);
     std::fclose(f);
     printf("== 验收结果: %d 通过, %d 失败 ==\n", g_pass, g_fail);

@@ -11,8 +11,10 @@
   A. 天极/赤道/RA 跨 0/常规位置: FP64 能量守恒 + FP32 vs FP64 逐 leaf
   B. pixfrac {0.1,0.25,0.5,1.0} x 过采样率 {1,2,3,4}: 能量守恒 + 一致性
   C. 球面<->平面双向投影往返 (TAN, 导出所需)
-  D. 数值类型审计: 生产源码仅 IEEE float32/float64
-  E. 标准 ULP 分布 + 候选零漏选
+  D. 尺度 x NSIDE 矩阵 (0.5"/1"/2"/3" + 对应 NSIDE)
+  E. 广域大畸变矩阵 (T4 真实 WCS + 合成 SIP5 + 极区 + RA 跨 0)
+  F. 数值类型审计: 生产源码仅 IEEE float32/float64
+  G. 标准 ULP 分布 + 候选零漏选
 
 用法:
   py -3.12 acceptance_drizzle.py [--tests-dir <dir>] [--out <dir>] [--skip-run]
@@ -137,6 +139,10 @@ def main():
     pos_tags = ["north_pole", "south_pole", "equator_ra0", "ra_cross0", "nominal"]
     os_tags = ["os%d_pf%.2f" % (r, pf)
                for r in (1, 2, 3, 4) for pf in (0.10, 0.25, 0.50, 1.00)]
+    scale_tags = ["scale%.1f_n%d" % (s, n)
+                  for s, n in ((0.5, 2097152), (1.0, 1048576),
+                               (2.0, 262144), (3.0, 131072))]
+    wide_tags = ["wide_t4", "wide_sip5", "wide_polar", "wide_ra0"]
     print("--- A. 天极/赤道/RA 跨 0/常规位置 ---")
     for tag in pos_tags:
         m = [r for r in rows if r.get("tag") == tag]
@@ -191,8 +197,49 @@ def main():
     else:
         check("TAN 往返场景存在", False)
 
-    # ---- D. 数值类型审计 (生产源码) ----
-    print("--- D. 数值类型审计 (仅 IEEE float32/float64) ---")
+    # ---- D. 尺度 x NSIDE 矩阵 ----
+    print("--- D. 尺度 x NSIDE 矩阵 (0.5~3\") ---")
+    for tag in scale_tags:
+        m = [r for r in rows if r.get("tag") == tag]
+        if not m:
+            check("[%s] 场景存在" % tag, False)
+            continue
+        r = m[0]
+        ok1 = check("[%s] FP64 闭合" % tag,
+                    r["rel_closure_fp64"] < 1e-6, "%.3e" % r["rel_closure_fp64"])
+        ok2 = check("[%s] FP32 vs FP64" % tag,
+                    r["max_rel_fp32_vs_fp64"] < GATES["maxrel_fp32"]
+                    and r["missing"] == 0,
+                    "%.3e missing=%d" % (r["max_rel_fp32_vs_fp64"], r["missing"]))
+        results["checks"].append({"scope": "D", "tag": tag,
+                                  "closure": r["rel_closure_fp64"],
+                                  "maxrel": r["max_rel_fp32_vs_fp64"],
+                                  "missing": r["missing"],
+                                  "pass": ok1 and ok2})
+
+    # ---- E. 广域大畸变矩阵 ----
+    print("--- E. 广域大畸变矩阵 ---")
+    for tag in wide_tags:
+        m = [r for r in rows if r.get("tag") == tag]
+        if not m:
+            check("[%s] 场景存在" % tag, False)
+            continue
+        r = m[0]
+        ok1 = check("[%s] FP64 闭合" % tag,
+                    r["rel_closure_fp64"] < GATES["closure_fp64"],
+                    "%.3e" % r["rel_closure_fp64"])
+        ok2 = check("[%s] FP32 vs FP64" % tag,
+                    r["max_rel_fp32_vs_fp64"] < GATES["maxrel_fp32"]
+                    and r["missing"] == 0,
+                    "%.3e missing=%d" % (r["max_rel_fp32_vs_fp64"], r["missing"]))
+        results["checks"].append({"scope": "E", "tag": tag,
+                                  "closure": r["rel_closure_fp64"],
+                                  "maxrel": r["max_rel_fp32_vs_fp64"],
+                                  "missing": r["missing"],
+                                  "pass": ok1 and ok2})
+
+    # ---- F. 数值类型审计 (生产源码) ----
+    print("--- F. 数值类型审计 (仅 IEEE float32/float64) ---")
     module_dir = os.path.abspath(os.path.join(tests_dir, ".."))
     bad = audit_source_types(module_dir)
     okd = check("生产源码无 long double/half/__float128", len(bad) == 0,
@@ -200,8 +247,8 @@ def main():
     results["checks"].append({"scope": "D", "tag": "source_types",
                               "hits": len(bad), "pass": okd})
 
-    # ---- E. 标准 ULP + 候选零漏选 ----
-    print("--- E. 标准 ULP 分布 + 候选零漏选 ---")
+    # ---- G. 标准 ULP + 候选零漏选 ----
+    print("--- G. 标准 ULP 分布 + 候选零漏选 ---")
     ulp_path = os.path.join(out_dir, "ulp_distribution.json")
     if os.path.exists(ulp_path):
         with open(ulp_path, "r", encoding="utf-8") as f:
