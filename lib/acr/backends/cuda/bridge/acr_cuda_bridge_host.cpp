@@ -143,6 +143,42 @@ extern "C" const char* acr_cuda_bridge_device_name(int device) {
     return name.c_str();
 }
 
+extern "C" int acr_cuda_device_memory(int device, uint64_t* total_bytes,
+                                      uint64_t* free_bytes,
+                                      const char** last_error) {
+    cudaError_t err = cudaSetDevice(device);
+    if (err != cudaSuccess) {
+        if (last_error) *last_error = set_error(err);
+        return 1;
+    }
+    size_t total = 0, free = 0;
+    err = cudaMemGetInfo(&free, &total);
+    if (err != cudaSuccess) {
+        if (last_error) *last_error = set_error(err);
+        return 1;
+    }
+    if (total_bytes) *total_bytes = total;
+    if (free_bytes) *free_bytes = free;
+    if (last_error) *last_error = nullptr;
+    return 0;
+}
+
+extern "C" int acr_cuda_device_compute(int device, int* sm_count,
+                                       int* cc_major, int* cc_minor,
+                                       const char** last_error) {
+    cudaDeviceProp prop;
+    cudaError_t err = cudaGetDeviceProperties(&prop, device);
+    if (err != cudaSuccess) {
+        if (last_error) *last_error = set_error(err);
+        return 1;
+    }
+    if (sm_count) *sm_count = prop.multiProcessorCount;
+    if (cc_major) *cc_major = prop.major;
+    if (cc_minor) *cc_minor = prop.minor;
+    if (last_error) *last_error = nullptr;
+    return 0;
+}
+
 // ===== Executor =====
 extern "C" void* acr_cuda_executor_create(int device, size_t /*rec*/,
                                           size_t /*min*/, const char** last_error) {

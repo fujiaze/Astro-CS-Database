@@ -13,6 +13,8 @@ struct BridgeApi {
     int (*init)(const char**){nullptr};
     int (*device_count)(){nullptr};
     const char* (*device_name)(int){nullptr};
+    int (*device_memory)(int, std::uint64_t*, std::uint64_t*, const char**){nullptr};
+    int (*device_compute)(int, int*, int*, int*, const char**){nullptr};
     void* (*executor_create)(int, std::size_t, std::size_t, const char**){nullptr};
     void (*executor_destroy)(void*){nullptr};
     int (*executor_available)(void*){nullptr};

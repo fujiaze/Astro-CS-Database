@@ -35,6 +35,14 @@ ACR_CUDA_BRIDGE_API int acr_cuda_bridge_init(const char** last_error);
 ACR_CUDA_BRIDGE_API int acr_cuda_bridge_device_count(void);
 ACR_CUDA_BRIDGE_API const char* acr_cuda_bridge_device_name(int device);
 
+// 25 号计划 §3.4：真实设备元数据（显存、SM/CU、计算能力）
+ACR_CUDA_BRIDGE_API int acr_cuda_device_memory(
+    int device, uint64_t* total_bytes, uint64_t* free_bytes,
+    const char** last_error);
+ACR_CUDA_BRIDGE_API int acr_cuda_device_compute(
+    int device, int* sm_count, int* cc_major, int* cc_minor,
+    const char** last_error);
+
 // ===== Executor 句柄 =====
 // recommended_chunk/min_chunk 用于预分配设备缓冲（AXPY/COPY/CONV 按块工作）。
 ACR_CUDA_BRIDGE_API void* acr_cuda_executor_create(

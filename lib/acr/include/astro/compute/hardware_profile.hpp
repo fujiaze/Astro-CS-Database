@@ -106,11 +106,17 @@ struct CurvePoint {
     double median{0.0};      // 中位耗时（纳秒）或吞吐（GB/s），由曲线族决定
     double p95{0.0};         // 95 分位
     double mad{0.0};         // 中位绝对偏差（稳定性指标）
+    // 25 号计划 §3.3：样本数与置信度（合格判定依据）
+    std::uint32_t sample_count{0};   // 正式样本数（不含预热）
+    double confidence{0.0};          // 1 - mad/median（0..1；无样本为 0）
 };
 
 // ===== Curve：分段曲线（log2 尺寸上分段线性插值）=====
 struct Curve {
     std::vector<CurvePoint> points;  // 按 size 升序
+    // 25 号计划 §3.3：曲线来源与资格
+    std::string source{"unavailable"};  // "measured" | "estimated" | "unavailable"
+    bool qualified{false};              // 仅 full 标定且 sample_count>=7 的 measured 曲线
 
     // 预测给定 size 的值（分段线性插值；log2 尺寸）
     // 空曲线返回 0.0；size 超出范围用端点外推。
@@ -153,6 +159,8 @@ struct FixedOverhead {
     double p95_ns{0.0};        // 95 分位
     double cold_start_ns{0.0}; // 冷启动开销（首次调用）
     double warm_ns{0.0};       // 温态开销（已初始化后）
+    // 25 号计划 §3.3：固定开销默认估算标记（非实测）
+    std::string source{"estimated"};
 };
 
 // ===== LibraryCapability：库能力（fft/gemm/...）=====
@@ -281,6 +289,8 @@ struct HardwareProfile {
     std::string fingerprint_sha256;
     std::string generated_at;       // ISO 8601 简化
     std::string profile_kind;       // "quick" / "standard" / "full"
+    // 25 号计划 §3.1：quick 标定仅作冒烟/诊断，不得用于生产路由
+    bool diagnostic_only{false};
     HwProfileState state{HwProfileState::Missing};
     bool stale{false};
     std::vector<DeviceProfile> devices;

@@ -82,6 +82,16 @@ int main(int argc, char** argv) {
     auto results = driver.run();
     std::fprintf(stdout, "[acr-benchmark] 采集 %zu 条结果记录\n", results.size());
 
+    // 25 号计划 §3.2：导出原始记录 JSON（每次原始耗时）
+    const std::string raw_path = "raw_benchmark_records.json";
+    if (!astro::compute::qualification::BenchmarkDriver::write_raw_records_json(
+            raw_path, results)) {
+        std::fprintf(stderr, "error: 无法写入 %s\n", raw_path.c_str());
+        astro::compute::runtime_shutdown();
+        return 2;
+    }
+    std::fprintf(stdout, "[acr-benchmark] 原始记录已写入 %s\n", raw_path.c_str());
+
     // 生成 HardwareProfile（hardware-profile.json，新权威路径）
     astro::compute::qualification::ProfileGenerator gen;
     auto hp = gen.generate_hardware_profile(results, args.kind);

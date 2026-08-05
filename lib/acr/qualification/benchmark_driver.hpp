@@ -62,6 +62,12 @@ public:
     // 最后一次运行的日志（ human-readable ）
     const std::string& last_log() const noexcept;
 
+    // 25 号计划 §3.2：导出原始记录 JSON（保存每次原始耗时，非聚合）
+    // 返回 false 表示写入失败。
+    static bool write_raw_records_json(
+        const std::string& path,
+        const std::vector<KernelBenchmarkResult>& results);
+
 private:
     BenchmarkConfig cfg_;
     std::string log_;

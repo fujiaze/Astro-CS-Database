@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <fstream>
 #include <iomanip>
 #include <atomic>
 #include <numeric>
@@ -124,7 +125,8 @@ BenchmarkConfig make_default_config(ProfileKind kind, bool enable_gpu) noexcept 
             cfg.collect_resident = false;
             break;
         case ProfileKind::Full:
-            cfg.problem_sizes = { 1u << 14, 1u << 18, 1u << 22 }; // 16K, 256K, 4M
+            // 25 号计划 §3.2：覆盖 L1/L2、L3、主存区间（64K/1M/4M 元素）
+            cfg.problem_sizes = { 1u << 16, 1u << 20, 1u << 22 }; // 64K, 1M, 4M
             cfg.warmup_rounds = 3;
             cfg.measure_rounds = 10;
             cfg.collect_resident = true;
@@ -664,6 +666,51 @@ std::vector<KernelBenchmarkResult> BenchmarkDriver::run() {
 
 const std::string& BenchmarkDriver::last_log() const noexcept {
     return log_;
+}
+
+// ===== 原始记录 JSON 导出（25 号计划 §3.2）=====
+bool BenchmarkDriver::write_raw_records_json(
+    const std::string& path,
+    const std::vector<KernelBenchmarkResult>& results) {
+    std::ofstream f(path);
+    if (!f.is_open()) return false;
+    f << "{\"records\":[";
+    for (std::size_t i = 0; i < results.size(); ++i) {
+        const auto& r = results[i];
+        if (i > 0) f << ",";
+        f << "{\"kernel_id\":" << r.kernel_id;
+        f << ",\"kernel_name\":\"" << r.kernel_name << "\"";
+        f << ",\"variant\":\"" << r.variant << "\"";
+        f << ",\"backend\":\"" << r.backend << "\"";
+        f << ",\"precision\":\"" << r.precision << "\"";
+        f << ",\"isa\":\"" << r.isa << "\"";
+        f << ",\"threads\":" << r.threads;
+        f << ",\"problem_size\":" << r.problem_size;
+        f << ",\"bytes_per_element\":" << r.bytes_per_element;
+        f << ",\"workload\":{"
+          << "\"logical_items\":" << r.workload.logical_items
+          << ",\"width\":" << r.workload.width
+          << ",\"height\":" << r.workload.height
+          << ",\"input_bytes\":" << r.workload.input_bytes
+          << ",\"output_bytes\":" << r.workload.output_bytes
+          << ",\"operation_count\":" << r.workload.operation_count
+          << ",\"kernel_shape\":\"" << r.workload.kernel_shape << "\""
+          << ",\"precision\":\"" << r.workload.precision << "\""
+          << ",\"residency\":\"" << r.workload.residency << "\""
+          << ",\"boundary_mode\":\"" << r.workload.boundary_mode << "\"}";
+        f << ",\"samples\":[";
+        for (std::size_t j = 0; j < r.samples.size(); ++j) {
+            const auto& s = r.samples[j];
+            if (j > 0) f << ",";
+            f << "{\"kernel_ns\":" << s.kernel_ns
+              << ",\"transfer_ns\":" << s.transfer_ns
+              << ",\"total_ns\":" << s.total_ns
+              << ",\"throughput_gbps\":" << s.throughput_gbps << "}";
+        }
+        f << "]}";
+    }
+    f << "]}";
+    return true;
 }
 
 // ===== GPU 真实微基准（24 号计划 §1，经桥接 DLL）=====

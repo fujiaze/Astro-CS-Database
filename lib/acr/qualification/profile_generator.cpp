@@ -6,6 +6,14 @@
 
 #include "../backends/cuda/bridge/cuda_bridge_api.hpp"
 
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -310,9 +318,20 @@ void serialize_curve_points(std::ostringstream& os, const Curve& curve) {
         os << ",\"median\":" << p.median;
         os << ",\"p95\":" << p.p95;
         os << ",\"mad\":" << p.mad;
+        os << ",\"sample_count\":" << p.sample_count;
+        os << ",\"confidence\":" << p.confidence;
         os << "}";
     }
     os << "]";
+}
+
+// 曲线对象序列化（含来源与资格标记，25 号计划 §3.3）
+void serialize_curve(std::ostringstream& os, const Curve& curve) {
+    os << "{\"source\":\"" << esc(curve.source) << "\"";
+    os << ",\"qualified\":" << (curve.qualified ? "true" : "false");
+    os << ",\"points\":";
+    serialize_curve_points(os, curve);
+    os << "}";
 }
 
 // FixedOverhead 序列化
@@ -323,6 +342,7 @@ void serialize_overhead(std::ostringstream& os, const std::string& name,
     os << ",\"p95_ns\":" << oh.p95_ns;
     os << ",\"cold_start_ns\":" << oh.cold_start_ns;
     os << ",\"warm_ns\":" << oh.warm_ns;
+    os << ",\"source\":\"" << esc(oh.source) << "\"";
     os << "}";
 }
 
@@ -351,7 +371,8 @@ HwPrecision parse_hw_precision(const std::string& s) {
 } // anonymous namespace
 
 std::vector<DeviceProfile> ProfileGenerator::build_device_profiles(
-    const std::vector<KernelBenchmarkResult>& results) const {
+    const std::vector<KernelBenchmarkResult>& results,
+    ProfileKind kind) const {
     // 按 backend 分组
     std::map<std::string, std::vector<const KernelBenchmarkResult*>> by_backend;
     for (const auto& r : results) {
@@ -388,22 +409,44 @@ std::vector<DeviceProfile> ProfileGenerator::build_device_profiles(
         if (is_gpu_backend(backend)) {
             dev.kind = DeviceKind::Gpu;
             dev.device_name = gpu_name.empty() ? backend : gpu_name;
-            dev.total_memory_bytes = gpu_vmem;
-            dev.available_memory_bytes = static_cast<std::size_t>(gpu_vmem * 0.9);
-            dev.compute_units = 0;  // 当前 topology 不提供 SM 数
+            // 25 号计划 §3.4：真实 GPU 元数据（显存/SM/CC，经桥接查询）
+            std::uint64_t g_total = 0, g_free = 0;
+            int g_sm = 0, g_cc_maj = 0, g_cc_min = 0;
+            cuda::bridge::ensure_bridge_loaded();
+            auto& bapi = cuda::bridge::api();
+            if (bapi.loaded() && bapi.device_memory && bapi.device_compute) {
+                const char* berr = nullptr;
+                const int dev_idx = static_cast<int>(dev.device_id) - 1;
+                if (bapi.device_memory(dev_idx, &g_total, &g_free, &berr) == 0) {
+                    dev.total_memory_bytes = static_cast<std::size_t>(g_total);
+                    dev.available_memory_bytes = static_cast<std::size_t>(g_free);
+                }
+                if (bapi.device_compute(dev_idx, &g_sm, &g_cc_maj, &g_cc_min,
+                                        &berr) == 0) {
+                    dev.compute_units = static_cast<std::uint32_t>(g_sm);
+                }
+            }
+            if (dev.total_memory_bytes == 0) {
+                dev.total_memory_bytes = static_cast<std::size_t>(gpu_vmem);
+            }
             dev.peak_bandwidth_gbps = 0.0;
         } else {
             dev.kind = DeviceKind::Cpu;
             dev.device_name = cpu_model.empty() ? "CPU" : cpu_model;
-            dev.total_memory_bytes = 0;  // RAM 由运行时 fallback 估算
-            dev.available_memory_bytes = 0;
+            // 25 号计划 §3.4：真实 CPU RAM（GlobalMemoryStatusEx）
+            MEMORYSTATUSEX ms{};
+            ms.dwLength = sizeof(ms);
+            if (GlobalMemoryStatusEx(&ms)) {
+                dev.total_memory_bytes = static_cast<std::size_t>(ms.ullTotalPhys);
+                dev.available_memory_bytes = static_cast<std::size_t>(ms.ullAvailPhys);
+            }
             dev.compute_units = cpu_cores;
             dev.peak_bandwidth_gbps = 0.0;
         }
 
         // 映射 benchmark 结果到能力曲线
         for (const auto* r : results_for_backend) {
-            map_result_to_curves(dev, *r);
+            map_result_to_curves(dev, *r, kind);
         }
 
         // 填充默认固定开销
@@ -432,7 +475,8 @@ std::vector<DeviceProfile> ProfileGenerator::build_device_profiles(
 }
 
 void ProfileGenerator::map_result_to_curves(
-    DeviceProfile& device, const KernelBenchmarkResult& r) const {
+    DeviceProfile& device, const KernelBenchmarkResult& r,
+    ProfileKind kind) const {
     // 从聚合结果构造 CurvePoint
     // median_kernel_ns 为该 size 的中位耗时
     CurvePoint pt;
@@ -442,6 +486,21 @@ void ProfileGenerator::map_result_to_curves(
     pt.p95 = static_cast<double>(r.median_kernel_ns) +
              2.0 * r.stddev_kernel_ns;  // 粗略 p95 ≈ median + 2σ
     pt.mad = r.stddev_kernel_ns * 0.6745;  // σ → MAD 转换因子
+    // 25 号计划 §3.3：样本数与置信度
+    pt.sample_count = static_cast<std::uint32_t>(r.samples.size());
+    pt.confidence = (r.median_kernel_ns > 0)
+        ? std::max(0.0, 1.0 - r.stddev_kernel_ns /
+                             static_cast<double>(r.median_kernel_ns))
+        : 0.0;
+    // 曲线来源与资格：仅 full 标定且每点样本数>=7 的 measured 曲线合格
+    auto mark_measured = [kind](Curve& c, const CurvePoint& p) {
+        c.source = "measured";
+        const bool pt_ok = (kind == ProfileKind::Full) && (p.sample_count >= 7);
+        c.qualified = pt_ok;
+        for (const auto& old : c.points) {
+            if (old.sample_count < 7) c.qualified = false;
+        }
+    };
 
     // 按 kernel_id 映射到能力曲线族
     // KernelId: Custom=0, Copy=1, Triad=2, AXPY=3, Dot=4, Transpose=5,
@@ -451,37 +510,49 @@ void ProfileGenerator::map_result_to_curves(
     std::uint32_t kid = r.kernel_id;
 
     if (kid == 1) {  // Copy → memory[MainMem:host:copy]
-        device.memory[{MemoryLevel::MainMem, MemoryResidency::Host}].points.push_back(pt);
+        auto& c = device.memory[{MemoryLevel::MainMem, MemoryResidency::Host}];
+        mark_measured(c, pt); c.points.push_back(pt);
     } else if (kid == 2) {  // Triad → memory[MainMem:host:triad]
-        device.memory[{MemoryLevel::MainMem, MemoryResidency::Host}].points.push_back(pt);
+        auto& c = device.memory[{MemoryLevel::MainMem, MemoryResidency::Host}];
+        mark_measured(c, pt); c.points.push_back(pt);
     } else if (kid == 3) {  // AXPY → arithmetic[fp32:add:baseline]
-        device.arithmetic[{prec, "add:baseline"}].points.push_back(pt);
+        auto& c = device.arithmetic[{prec, "add:baseline"}];
+        mark_measured(c, pt); c.points.push_back(pt);
     } else if (kid == 4) {  // Dot → reduction[dot:fp32]
-        device.reduction[{"dot", prec}].points.push_back(pt);
+        auto& c = device.reduction[{"dot", prec}];
+        mark_measured(c, pt); c.points.push_back(pt);
     } else if (kid == 5) {  // Transpose → transfer (CPU memcpy 带宽)
         // Commit E：用 Transpose kernel_id 标记 CPU 内存传输带宽
-        device.transfer[{TransferDirection::Bidir, MemoryType::HostPlain}].points.push_back(pt);
-    } else if (kid == 6) {  // Convolution2D → convolution[direct:default:fp32]
-        device.convolution["direct:default:" + std::string(r.precision)].points.push_back(pt);
+        auto& c = device.transfer[{TransferDirection::Bidir, MemoryType::HostPlain}];
+        mark_measured(c, pt); c.points.push_back(pt);
+    } else if (kid == 6) {  // Convolution2D → convolution[direct:3x3:fp32]
+        auto& c = device.convolution["direct:3x3:" + std::string(r.precision)];
+        mark_measured(c, pt); c.points.push_back(pt);
     } else if (kid == 7) {  // Histogram256 → irregular[histogram:uniform]
-        device.irregular["histogram:uniform"].points.push_back(pt);
+        auto& c = device.irregular["histogram:uniform"];
+        mark_measured(c, pt); c.points.push_back(pt);
     } else if (kid == 9) {  // Gather → irregular[gather:random]
-        device.irregular["gather:random"].points.push_back(pt);
+        auto& c = device.irregular["gather:random"];
+        mark_measured(c, pt); c.points.push_back(pt);
     } else if (kid == 10) { // Scatter → irregular[scatter:random]
-        device.irregular["scatter:random"].points.push_back(pt);
+        auto& c = device.irregular["scatter:random"];
+        mark_measured(c, pt); c.points.push_back(pt);
     } else if (kid == 11) { // Mandelbrot → branch[highly_variable]
-        device.branch["highly_variable"].points.push_back(pt);
+        auto& c = device.branch["highly_variable"];
+        mark_measured(c, pt); c.points.push_back(pt);
     } else if (kid == 12) { // Gemm → library[gemm]
         LibraryCapability cap;
         cap.available = true;
         cap.implementation = "self-benchmark";
-        cap.size_curves["default"].points.push_back(pt);
+        auto& c = cap.size_curves["default"];
+        mark_measured(c, pt); c.points.push_back(pt);
         device.library["gemm"] = std::move(cap);
     } else if (kid == 13) { // Fft → library[fft]
         LibraryCapability cap;
         cap.available = true;
         cap.implementation = "self-benchmark";
-        cap.size_curves["default"].points.push_back(pt);
+        auto& c = cap.size_curves["default"];
+        mark_measured(c, pt); c.points.push_back(pt);
         device.library["fft"] = std::move(cap);
     } else if (kid == 0) { // Custom → overhead[submit]（Commit E：测量真实 parallel_for 提交开销）
         FixedOverhead submit_oh;
@@ -492,7 +563,8 @@ void ProfileGenerator::map_result_to_curves(
         device.overhead["submit"] = submit_oh;
     } else {
         // 兜底：其他 kernel → arithmetic[<precision>:add:baseline]
-        device.arithmetic[{prec, "add:baseline"}].points.push_back(pt);
+        auto& c = device.arithmetic[{prec, "add:baseline"}];
+        mark_measured(c, pt); c.points.push_back(pt);
     }
 }
 
@@ -552,6 +624,8 @@ HardwareProfile ProfileGenerator::generate_hardware_profile(
     HardwareProfile hp;
     hp.schema_version = "acr.hardware_profile.v1";
     hp.profile_kind = profile_kind_str(kind);
+    // 25 号计划 §3.1：quick 标定仅作冒烟/诊断
+    hp.diagnostic_only = (kind == ProfileKind::Quick);
     hp.state = HwProfileState::Valid;
     hp.stale = false;
 
@@ -571,7 +645,7 @@ HardwareProfile ProfileGenerator::generate_hardware_profile(
     }
 
     // 设备画像
-    hp.devices = build_device_profiles(aggregated);
+    hp.devices = build_device_profiles(aggregated, kind);
 
     return hp;
 }
@@ -582,6 +656,7 @@ std::string ProfileGenerator::serialize_hardware_profile(const HardwareProfile& 
     os << "\"schema_version\":\"" << esc(hp.schema_version) << "\"";
     os << ",\"generated_at\":\"" << esc(hp.generated_at) << "\"";
     os << ",\"profile_kind\":\"" << esc(hp.profile_kind) << "\"";
+    os << ",\"diagnostic_only\":" << (hp.diagnostic_only ? "true" : "false");
     os << ",\"fingerprint_sha256\":\"" << esc(hp.fingerprint_sha256) << "\"";
     os << ",\"stale\":" << (hp.stale ? "true" : "false");
     os << ",\"devices\":[";
@@ -605,9 +680,7 @@ std::string ProfileGenerator::serialize_hardware_profile(const HardwareProfile& 
             for (const auto& [key, curve] : dev.arithmetic) {
                 if (j > 0) os << ",";
                 os << "\"" << hw_precision_str(key.first) << ":" << key.second << "\":";
-                os << "{\"points\":";
-                serialize_curve_points(os, curve);
-                os << "}";
+                serialize_curve(os, curve);
                 ++j;
             }
             os << "}";
@@ -621,9 +694,7 @@ std::string ProfileGenerator::serialize_hardware_profile(const HardwareProfile& 
                 if (j > 0) os << ",";
                 os << "\"" << memory_level_str(key.first) << ":"
                    << memory_residency_str(key.second) << "\":";
-                os << "{\"points\":";
-                serialize_curve_points(os, curve);
-                os << "}";
+                serialize_curve(os, curve);
                 ++j;
             }
             os << "}";
@@ -637,9 +708,7 @@ std::string ProfileGenerator::serialize_hardware_profile(const HardwareProfile& 
                 if (j > 0) os << ",";
                 os << "\"" << transfer_direction_str(key.first) << ":"
                    << memory_type_str(key.second) << "\":";
-                os << "{\"points\":";
-                serialize_curve_points(os, curve);
-                os << "}";
+                serialize_curve(os, curve);
                 ++j;
             }
             os << "}";
@@ -652,9 +721,7 @@ std::string ProfileGenerator::serialize_hardware_profile(const HardwareProfile& 
             for (const auto& [key, curve] : dev.reduction) {
                 if (j > 0) os << ",";
                 os << "\"" << key.first << ":" << hw_precision_str(key.second) << "\":";
-                os << "{\"points\":";
-                serialize_curve_points(os, curve);
-                os << "}";
+                serialize_curve(os, curve);
                 ++j;
             }
             os << "}";
@@ -667,9 +734,7 @@ std::string ProfileGenerator::serialize_hardware_profile(const HardwareProfile& 
             for (const auto& [key, curve] : dev.convolution) {
                 if (j > 0) os << ",";
                 os << "\"" << esc(key) << "\":";
-                os << "{\"points\":";
-                serialize_curve_points(os, curve);
-                os << "}";
+                serialize_curve(os, curve);
                 ++j;
             }
             os << "}";
@@ -682,9 +747,7 @@ std::string ProfileGenerator::serialize_hardware_profile(const HardwareProfile& 
             for (const auto& [key, curve] : dev.irregular) {
                 if (j > 0) os << ",";
                 os << "\"" << esc(key) << "\":";
-                os << "{\"points\":";
-                serialize_curve_points(os, curve);
-                os << "}";
+                serialize_curve(os, curve);
                 ++j;
             }
             os << "}";
@@ -697,9 +760,7 @@ std::string ProfileGenerator::serialize_hardware_profile(const HardwareProfile& 
             for (const auto& [key, curve] : dev.branch) {
                 if (j > 0) os << ",";
                 os << "\"" << esc(key) << "\":";
-                os << "{\"points\":";
-                serialize_curve_points(os, curve);
-                os << "}";
+                serialize_curve(os, curve);
                 ++j;
             }
             os << "}";

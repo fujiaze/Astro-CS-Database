@@ -94,6 +94,8 @@ void ensure_bridge_loaded() {
         ok &= load_symbol(mod, "acr_cuda_bridge_init", g_api.init);
         ok &= load_symbol(mod, "acr_cuda_bridge_device_count", g_api.device_count);
         ok &= load_symbol(mod, "acr_cuda_bridge_device_name", g_api.device_name);
+        ok &= load_symbol(mod, "acr_cuda_device_memory", g_api.device_memory);
+        ok &= load_symbol(mod, "acr_cuda_device_compute", g_api.device_compute);
         ok &= load_symbol(mod, "acr_cuda_executor_create", g_api.executor_create);
         ok &= load_symbol(mod, "acr_cuda_executor_destroy", g_api.executor_destroy);
         ok &= load_symbol(mod, "acr_cuda_executor_available", g_api.executor_available);

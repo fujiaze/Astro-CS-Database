@@ -56,12 +56,14 @@ private:
     // Phase E3：从 benchmark 结果构建 DeviceProfile 列表（按 backend 分组）
     // CPU backend ("cpu") → device_id=0；GPU backend ("cuda:N") → device_id=N+1
     std::vector<DeviceProfile> build_device_profiles(
-        const std::vector<KernelBenchmarkResult>& results) const;
+        const std::vector<KernelBenchmarkResult>& results,
+        ProfileKind kind) const;
 
     // Phase E3：将单个 KernelBenchmarkResult 映射到 DeviceProfile 的能力曲线
     // 按 kernel_id 决定族与 key，更新 device 的对应曲线
     void map_result_to_curves(DeviceProfile& device,
-                              const KernelBenchmarkResult& r) const;
+                              const KernelBenchmarkResult& r,
+                              ProfileKind kind) const;
 
     // Phase E3：填充固定开销（保守估算，因当前 benchmark_driver 不测 overhead）
     void fill_default_overheads(DeviceProfile& device) const;
