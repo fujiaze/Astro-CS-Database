@@ -1703,3 +1703,31 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 - 审核包: `AstroCS_Review_PRECISE_Performance_Closure_20260805.zip`
   (SHA256 f7fd7ae824d6fe2e6c076ed5782fe23a2c2b4ef72e26f7ee4117d9aec6e258dd)
 - 交付目录: `run/temp/nd_delivery_final/AstroCS_Delivery_PRECISE_Performance_Closure/`
+
+## 2026-08-05 主线收尾: StarDetector/PlateSolve FP64 + 配置驱动化 + SNR 对账 ★阶段 A 闭合★
+
+### 用户要求
+数据库之类的位置应由配置文件 (stage1.json) 引入, 不硬编译。
+
+### 配置驱动化 (c0afc0d)
+- schema (磁盘 + json_config.cpp 内嵌) 顶层新增必需 gaia_data_dir; 缺失硬失败
+- Stage1Config.gaia_data_dir typed 解析 (相对 JSON 目录转绝对, 与其余路径基准一致)
+- PHOTOMETRIC filter_response/qe_curve 缺失硬失败 (移除默认路径兜底)
+- 默认目录修正 (AGENTS run/ 约定): log_dir→run/logs/orchestrator,
+  output_dir→run, ipv 日志→run/logs/plate_solve
+
+### StarDetector/PlateSolve FP64 (PREC-108 第二步, 640a70f + 4f3e2fe)
+- sdet_detect_impl<T> 模板双实例; 新增 sdet_detect_ex_f64 (double 全程检测不降级)
+- 辅助函数模板化 (bgnoise/lm_fit/moffat4); 复用 _d 原语
+- ipv_solve_from_memory_with_callback_d (double 入口) + orchestrator FP64 分支
+  (不再 double→float 转换)
+- 验证: 合成星图 FP32/FP64 星数一致/坐标差 0/通量差 0.2;
+  真实帧 PLATESOLVE FP64 2000 星 rms=0.262" exit=0; FP32 回归 rms=0.258"
+
+### SNR 逐点对账 (590c5e3)
+- snr_reconcile_test 合成对账 5/5: FP32/FP64 PSF→控制点数量一致,
+  snr_psf 逐点相对差 0, snr_phot/median_snr 一致
+
+### 提交 (main)
+- c0afc0d 配置驱动化; 590c5e3 SNR 对账; 640a70f StarDetector FP64;
+  4f3e2fe ipv/orch FP64 接线
