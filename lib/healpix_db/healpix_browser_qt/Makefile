@@ -12,7 +12,7 @@ CORE_SRCS = core/healpix_math.cpp core/stf_engine.cpp core/browser_backend.cpp c
 CORE_OBJS = $(CORE_SRCS:.cpp=.o)
 
 # 测试
-TESTS = tests/test_healpix_math.exe tests/test_stf_engine.exe tests/test_browser_backend.exe
+TESTS = tests/test_healpix_math.exe tests/test_stf_engine.exe tests/test_browser_backend.exe tests/test_browser_dual_dtype.exe
 
 .PHONY: all clean tests core run_tests
 
@@ -36,6 +36,9 @@ tests/test_stf_engine.exe: tests/test_stf_engine.cpp core/stf_engine.cpp
 	$(CXX) $(CXXFLAGS) $(addprefix -I,$(INCDIR)) -o $@ $^
 
 tests/test_browser_backend.exe: tests/test_browser_backend.cpp core/browser_backend.cpp core/healpix_math.cpp
+	$(CXX) $(CXXFLAGS) $(addprefix -I,$(INCDIR)) -I$(AIO_DIR)/include -o $@ $^ -L$(AIO_DIR) -lastro_image_io
+
+tests/test_browser_dual_dtype.exe: tests/test_browser_dual_dtype.cpp core/browser_backend.cpp core/healpix_math.cpp
 	$(CXX) $(CXXFLAGS) $(addprefix -I,$(INCDIR)) -I$(AIO_DIR)/include -o $@ $^ -L$(AIO_DIR) -lastro_image_io
 
 tests: $(TESTS)

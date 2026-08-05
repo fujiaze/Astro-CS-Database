@@ -261,6 +261,10 @@ void MainWindow::on_tile_selected(int row) {
         std::free(current_tile_signal_);
         current_tile_signal_ = nullptr;
     }
+    if (current_tile_signal_f64_) {
+        std::free(current_tile_signal_f64_);
+        current_tile_signal_f64_ = nullptr;
+    }
     if (current_tile_support_) {
         std::free(current_tile_support_);
         current_tile_support_ = nullptr;
@@ -274,11 +278,18 @@ void MainWindow::on_tile_selected(int row) {
     uint64_t parent_ipix = item->data(Qt::UserRole).toULongLong();
     current_tile_parent_ipix_ = parent_ipix;
 
-    // 读取 signal
+    // 读取 signal (按文件精度模式选择 FP32/FP64, R11 HISS-105)
     HissTileData tile;
-    if (backend_->read_tile_signal(parent_ipix, tile) == 0) {
-        current_tile_signal_ = tile.signal;
-        current_tile_n_signal_ = tile.n_signal;
+    if (backend_->is_fp64()) {
+        if (backend_->read_tile_signal_f64(parent_ipix, tile) == 0) {
+            current_tile_signal_f64_ = tile.signal_f64;
+            current_tile_n_signal_ = tile.n_signal;
+        }
+    } else {
+        if (backend_->read_tile_signal(parent_ipix, tile) == 0) {
+            current_tile_signal_ = tile.signal;
+            current_tile_n_signal_ = tile.n_signal;
+        }
     }
     // 读取 support (可选)
     HissTileData tile_sup;
@@ -315,13 +326,23 @@ void MainWindow::on_query_pixel_clicked() {
         return;
     }
 
-    float signal = 0.0f;
     uint8_t support = 0;
-    if (backend_->query_pixel(ra, dec, signal, support) == 0) {
-        pixel_value_label_->setText(
-            QString("signal=%1\nsupport=%2").arg(signal, 0, 'g', 6).arg((int)support));
+    if (backend_->is_fp64()) {
+        double signal = 0.0;
+        if (backend_->query_pixel_f64(ra, dec, signal, support) == 0) {
+            pixel_value_label_->setText(
+                QString("signal=%1 (FP64)\nsupport=%2").arg(signal, 0, 'g', 6).arg((int)support));
+        } else {
+            pixel_value_label_->setText("查询失败 (像素不在数据范围内)");
+        }
     } else {
-        pixel_value_label_->setText("查询失败 (像素不在数据范围内)");
+        float signal = 0.0f;
+        if (backend_->query_pixel(ra, dec, signal, support) == 0) {
+            pixel_value_label_->setText(
+                QString("signal=%1 (FP32)\nsupport=%2").arg(signal, 0, 'g', 6).arg((int)support));
+        } else {
+            pixel_value_label_->setText("查询失败 (像素不在数据范围内)");
+        }
     }
 }
 
@@ -341,10 +362,11 @@ void MainWindow::render_current_tile() {
 
     // 计算数据范围 (自动拉伸)
     float dmin = 1e30f, dmax = -1e30f;
-    if (layer == 0 && current_tile_signal_) {
-        // Signal 图层
+    if (layer == 0 && (current_tile_signal_ || current_tile_signal_f64_)) {
+        // Signal 图层 (FP32 或 FP64 缓冲)
         for (uint32_t i = 0; i < current_tile_n_signal_; ++i) {
-            float v = current_tile_signal_[i];
+            float v = current_tile_signal_f64_ ? (float)current_tile_signal_f64_[i]
+                                               : current_tile_signal_[i];
             if (v < dmin) dmin = v;
             if (v > dmax) dmax = v;
         }
@@ -372,8 +394,9 @@ void MainWindow::render_current_tile() {
             int idx = i * side + j;
             if (idx >= n) break;
             float v = 0.0f;
-            if (layer == 0 && current_tile_signal_) {
-                v = current_tile_signal_[idx];
+            if (layer == 0 && (current_tile_signal_ || current_tile_signal_f64_)) {
+                v = current_tile_signal_f64_ ? (float)current_tile_signal_f64_[idx]
+                                             : current_tile_signal_[idx];
             } else if (layer == 1 && current_tile_support_) {
                 v = (float)current_tile_support_[idx];
             }

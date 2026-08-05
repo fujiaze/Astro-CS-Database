@@ -101,6 +101,7 @@ private:
     // 当前选中 Tile 的数据 (缓存, 切换图层时复用)
     uint64_t current_tile_parent_ipix_ = 0;
     float*   current_tile_signal_ = nullptr;     // malloc (由 backend 分配)
+    double*  current_tile_signal_f64_ = nullptr; // FP64 模式 signal (malloc, R11)
     uint8_t* current_tile_support_ = nullptr;    // malloc
     uint32_t current_tile_n_signal_ = 0;
 };
