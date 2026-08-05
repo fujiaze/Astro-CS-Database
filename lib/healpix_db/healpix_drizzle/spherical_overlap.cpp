@@ -891,12 +891,26 @@ DropGeometryT<Scalar> build_drop_geometry(const std::vector<Vec3T<Scalar>>& drop
     double cxn = cxx * inv, cyn = cyy * inv, czn = czz * inv;
     g.center = {Scalar(cxn), Scalar(cyn), Scalar(czn)};
     g.center_d = {cxn, cyn, czn};
+    // max_angle 必须从 double 精度角点源计算 (corners_dbl 优先, 无则提升 Scalar):
+    //   float 存储角点含 ~1e-7 长度舍入, 对 6.3\" 尺度小 drop 其真实角距仅
+    //   ~2e-5 rad (cos 偏差 ~2e-10), 舍入噪声会淹没真实值, 使 max_angle 被
+    //   钳制为 0 (→ 快速拒绝误杀边缘 leaf) 或膨胀 ~10 倍 (→ 候选集合扩大),
+    //   直接导致 FP32 边缘 leaf 通量塌缩 (L2 NSIDE=65536 实测 445→3e-5)。
     double max_angle = 0.0;
-    for (const auto& v : drop_corners) {
-        double d = v.x * cxn + v.y * cyn + v.z * czn;
-        d = std::max(-1.0, std::min(1.0, d));
-        double ang = std::acos(d);
-        if (ang > max_angle) max_angle = ang;
+    if (corners_dbl && (int)corners_dbl->size() == nd) {
+        for (const auto& v : *corners_dbl) {
+            double d = v.x * cxn + v.y * cyn + v.z * czn;
+            d = std::max(-1.0, std::min(1.0, d));
+            double ang = std::acos(d);
+            if (ang > max_angle) max_angle = ang;
+        }
+    } else {
+        for (const auto& v : drop_corners) {
+            double d = double(v.x) * cxn + double(v.y) * cyn + double(v.z) * czn;
+            d = std::max(-1.0, std::min(1.0, d));
+            double ang = std::acos(d);
+            if (ang > max_angle) max_angle = ang;
+        }
     }
     g.max_angle = max_angle;
 
@@ -978,10 +992,12 @@ Scalar compute_overlap_area_g(const DropGeometryT<Scalar>& g,
     const std::vector<Vec3>& drop_clip_normals = clip_d;
 
     // 全包含快速判定: leaf 4 角全在 drop 内 → drop 包含整个像素
-    // 判定阈值 Scalar 感知: float 实例的 clip_normals 存储有 ~1e-7 相对舍入,
-    // dot 判定阈值取 1e-6 (保守, 防 all_fully_inside 误判导致 weight 爆炸);
-    // 误判风险像素走下方精确 S-H 路径 (double 内部), 数值正确
-    const double inside_tol = (std::is_same_v<Scalar, float>) ? 1e-6 : 1e-12;
+    // 判定在 double 缓存 (clip_normals_d / center_d) 上进行, 与 Scalar 存储
+    // 无关, 因此 FP32/FP64 实例必须使用同一容差:
+    //   - 1e-6 (float 专用) 会把 dot ∈ [-1e-6, 0) 的边界外顶点误判为内部,
+    //     使部分覆盖边缘 leaf 被误判为全包含 → FP32 高估 (L2 65536 差异源之一)
+    //   - 1e-12 仅覆盖 double 累积舍入, 不会产生可观测偏差
+    const double inside_tol = 1e-12;
     bool leaf_fully_inside_drop = true;
     for (const auto& v : hp_boundary) {
         for (const auto& n : drop_clip_normals) {

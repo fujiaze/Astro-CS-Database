@@ -51,7 +51,7 @@ static std::vector<uint64_t> oracle_exhaustive(const std::vector<spherical::Vec3
                                                const healpix::HealpixCore& hp) {
     std::vector<uint64_t> truth;
     int64_t npix = hp.getNpix();
-    spherical::DropGeometry g = spherical::build_drop_geometry(drop);
+    spherical::DropGeometryT<double> g = spherical::build_drop_geometry<double>(drop);
     for (int64_t ip = 0; ip < npix; ip++) {
         if (spherical::compute_overlap_area_g(g, hp, (uint64_t)ip) > 0.0)
             truth.push_back((uint64_t)ip);
@@ -64,7 +64,7 @@ static std::vector<uint64_t> oracle_high_nside(const std::vector<spherical::Vec3
                                                const healpix::HealpixCore& hp) {
     std::vector<uint64_t> superset;
     spherical::query_candidate_pixels<double>(drop, hp, superset);
-    spherical::DropGeometry g = spherical::build_drop_geometry(drop);
+    spherical::DropGeometryT<double> g = spherical::build_drop_geometry<double>(drop);
     std::vector<uint64_t> truth;
     for (uint64_t ip : superset)
         if (spherical::compute_overlap_area_g(g, hp, ip) > 0.0)

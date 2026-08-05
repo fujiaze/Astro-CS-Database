@@ -56,7 +56,9 @@ int main(int argc, char** argv) {
            (int)img.pixels_f64.size(), n_finite, sum_in);
 
     DrizzleConfig cfg;
-    cfg.nside = 2048; cfg.nested = true; cfg.pixfrac = 1.0;
+    cfg.nside = 65536;   // 生产 NSIDE (控制包: 不再用 2048 替代生产条件)
+    cfg.nested = true;
+    cfg.pixfrac = 1.0;
     cfg.precision_mode = 1; cfg.threads = 16;
     DrizzleEngine engine;
     DrizzleStats stats; 

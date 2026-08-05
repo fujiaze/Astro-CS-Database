@@ -86,17 +86,33 @@ int main(int argc, char** argv) {
     }
     size_t n_leaf = 0;
     double total_flux = 0.0;
+    double min_area = 1e300, max_area = 0.0;
+    double min_flux = 1e300, max_flux = 0.0;
     if (prec == 1) {
         for (const auto& tile : tiles_f64) {
             n_leaf += tile.touched.size();
-            for (uint32_t local : tile.touched)
+            for (uint32_t local : tile.touched) {
                 total_flux += tile.pixels[local].sumFlux;
+                double a = tile.pixels[local].sumArea;
+                double f = tile.pixels[local].sumFlux;
+                if (a < min_area) min_area = a;
+                if (a > max_area) max_area = a;
+                if (f < min_flux) min_flux = f;
+                if (f > max_flux) max_flux = f;
+            }
         }
     } else {
         for (const auto& tile : tiles_f32) {
             n_leaf += tile.touched.size();
-            for (uint32_t local : tile.touched)
+            for (uint32_t local : tile.touched) {
                 total_flux += tile.pixels[local].sumFlux;
+                double a = tile.pixels[local].sumArea;
+                double f = tile.pixels[local].sumFlux;
+                if (a < min_area) min_area = a;
+                if (a > max_area) max_area = a;
+                if (f < min_flux) min_flux = f;
+                if (f > max_flux) max_flux = f;
+            }
         }
     }
     printf("{\"input_pixels\":%d,\"output_pixels\":%zu,\"nside\":%d,"
@@ -105,5 +121,7 @@ int main(int argc, char** argv) {
            size * size, n_leaf, stats.nside,
            prec ? "fp64" : "fp32", wall, stats.elapsedSec,
            omp_get_max_threads(), cfg.threads, total_flux, ok ? "PASS" : "FAIL");
+    fprintf(stderr, "[bench] min_area=%.6g max_area=%.6g min_flux=%.6g max_flux=%.6g\n",
+            min_area, max_area, min_flux, max_flux);
     return 0;
 }
