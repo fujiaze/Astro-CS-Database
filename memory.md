@@ -1740,3 +1740,31 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 - Wiki 同步 (9 页, 独立仓库 48d9006) + 主仓库 wiki 指针 (308d59b)
 - 审核包更新: AstroCS_Review_PRECISE_Performance_Closure_20260805.zip
   (SHA256 b78291cf67843eef4d31f4bcb0bbcfff5b66d28b28c26e5a44c6f577f9ccf921)
+
+### PRECISE 正确性加固会话 (2026-08-05, main c748077→34c52ba)
+
+控制包: AstroCS_PRECISE_Correctness_Hardening_Phase1_Baseline
+(SHA256 88ffc6862c12c7819fa08e1faaf5645f39da95c3d42a28610644327b693e6c34)
+
+**已完成并验证 (Drizzle 模块, lib/healpix_db/healpix_drizzle):**
+- 候选零漏选 9003/9003 (12 face 边角/极区/RA0/pixfrac/0.1"~1°/NSIDE 16~4194304)
+- L0 16/16, L2 5/5 (T4 裁剪 1024²@65536), 科学矩阵 180/180
+- Python/numpy 全面验收 (acceptance_drizzle.py): 位置/过采样/双向投影/类型/ULP
+- 修复: FP32 max_angle/drop_area double 源; 尺度感知切平面面积;
+  drop 完全包含快路径; use_adaptive 球面角距 (近极/RA0);
+  候选平面圆预过滤缺陷; 移除不可靠凸分离优化
+- 性能: 1024²@65536 wall 3.05s→1.85s (-39%)
+
+**未完成 (下一轮工程包需仔细设计验收方法):**
+- 尺度×NSIDE 矩阵 (0.5"~3"+NSIDE 2^17~2^21) 与广域大畸变矩阵
+  (T4 真实 WCS/SIP5/广域极区/RA0) 场景已实现 (drizzle_acceptance_test),
+  运行超时未验证
+- L3 HISS 验证; 最终一次完整 FP32 单帧; 广域候选/Gate P5
+
+**审核包 (当前状态快照, 未完成项如实标注):**
+AstroCS_Review_PRECISE_Correctness_Phase1_Baseline_20260805.zip
+SHA256 81009fc5b32d0c34ac62522dc48e7dd1b619aeff2b7333b5027abc5fdc7a7d5a
+
+**结论: Drizzle 算法结构冻结推迟** — 核心正确性已加固, 但用户要求的
+尺度矩阵与广域大畸变验收未完成, 下一轮重新设计验收方法后再冻结。
+ACR worktree 本轮未触碰 (并行 ACR 会话推进至 f8cba99, worktree 干净)。
