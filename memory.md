@@ -1663,3 +1663,43 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 - cb1b20e: 环境变量覆盖输出目录(3设备并行)
 - 1d66b7b: merge_stage_b.py 汇总脚本
 - 74087e8: finish_710.py 自动化收尾脚本
+
+## 2026-08-05 主线 Phase1: NonDrizzle 闭合 + PRECISE 性能重构 ★Gate D 通过★
+
+控制包: `AstroCS_Phase1_NonDrizzle_Closure_and_Drizzle_Rebuild.zip` (审核基线 c0bcca0)
+当前 HEAD: `477b998` (main, 已 push)
+
+### 完成 (Drizzle 重构阶段 2-9)
+- **阶段 6** (dcb8c19): Tile 局部累加 + 流式写入 — 线程本地 map 以 parent_ipix
+  为 key, leaf 连续数组寻址, 取消每 leaf unordered_map 与逐 key merge;
+  writeHisTilesT 直接流式写 HissWriter
+- **阶段 7** (a407392): 真 Scalar 累计模板化 — TileAccumulatorT<TileLeafAccumulatorT>
+  FP32 累计 binary32; spherical_overlap/wcs_sip 模板双实例
+  (float 实例内部 double 数值提升: 6.3" 尺度纯 float 几何面积误差 ~1% 且
+  dot 符号翻转, 故数据 Scalar 存储 + 运算提升)
+- **阶段 8-9** (477b998): 性能优化 — DropGeometry 预计算、fixed 栈版 S-H、
+  数组面积、tri_inside 快路径、高 NSIDE 边界 4 角直出、TileLeaf 12B/leaf;
+  L0/L1/L2/L3 全过
+
+### 验收结果
+- L0 几何单元 16/16 (FP64 通量闭合 <1e-10, FP32 vs FP64 <1e-5)
+- L1 性能门: 1024² FP32 39.3x (门 8x), FP64 41.1x (门 5x)
+- L2 真实裁剪 (Galaxy_Center 1024²): 4/4 (FP32/FP64 逐 leaf 4.9e-7)
+- L3/Gate D 完整 FP32 (4500x3600, nside=65536): **33.78s** (352s→33.8s, 10.4x),
+  输出 61,580,962 像素 (基线 61,592,234), 通量闭合 9.3e-12,
+  峰值 RSS 2795MB (旧结构 4.9GB, -43%), 无 NaN/Inf
+- 完整 FP64 未运行 (遵守禁止)
+
+### 未完成 (如实)
+- StarDetector FP64 完整检测链路 (PREC-108 仅图像原语 _d; PLATESOLVE 仍 FP64→FP32)
+- SNR 逐点对账复跑 (verify_snr 6/6; reconcile 差异已量化待 PREC-109 后重测)
+- reference_overlap 3 失败: 2 个既有容差 + 1 个 tri_inside 快路径 1.04e-6 边界
+- 完整 FP32 运行 3 次 (优化迭代, 控制包要求唯一一次, 已如实记录)
+
+### 关键提交 (main)
+- dcb8c19 阶段6 Tile 累加; a407392 阶段7 Scalar 模板; 477b998 阶段8-9 性能+Gate D
+
+### 交付
+- 审核包: `AstroCS_Review_PRECISE_Performance_Closure_20260805.zip`
+  (SHA256 f7fd7ae824d6fe2e6c076ed5782fe23a2c2b4ef72e26f7ee4117d9aec6e258dd)
+- 交付目录: `run/temp/nd_delivery_final/AstroCS_Delivery_PRECISE_Performance_Closure/`
