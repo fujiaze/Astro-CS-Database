@@ -41,12 +41,16 @@ __global__ void acr_reduce_kernel(const float* x, double* partials,
     }
 }
 
+// 25 号计划 §2.2：分块卷积使用全局输出索引读图、chunk-local 索引写输出。
+// begin 为全局像素偏移（读图坐标 = begin + idx），输出写入 y[idx]（chunk 局部），
+// host 侧把 d_y 拷贝回 y + begin。x 始终为完整输入图像（整图 H2D）。
 __global__ void acr_conv3x3_kernel(float* y, const float* x,
                                    size_t begin, size_t n,
                                    size_t width, size_t height,
                                    const float* k) {
-    const size_t p = begin + blockIdx.x * blockDim.x + threadIdx.x;
-    if (p >= begin + n) return;
+    const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    const size_t p = begin + idx;   // 全局输出像素
     const int px = static_cast<int>(p % width);
     const int py = static_cast<int>(p / width);
     float acc = 0.0f;
@@ -63,7 +67,7 @@ __global__ void acr_conv3x3_kernel(float* y, const float* x,
             acc += x[src] * k[(dy + 1) * 3 + (dx + 1)];
         }
     }
-    y[p] = acc;
+    y[idx] = acc;  // chunk-local 输出槽位
 }
 
 constexpr int kThreads = 256;

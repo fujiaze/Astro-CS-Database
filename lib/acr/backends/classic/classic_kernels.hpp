@@ -17,8 +17,11 @@
 
 namespace astro::compute::classic {
 
-// 归约每 chunk 的 block 数（CUDA kernel 与 merge 阶段共用）
-constexpr std::size_t kReduceBlocks = 256;
+// 归约每 chunk 的 partial 槽位跨度（span）。
+// CUDA kernel grid 块数 = ceil(chunk_items / 256)，实际写入
+// partials[chunk_index*span + blockIdx]（blockIdx < span）；
+// merge 阶段遍历整个 span（未写槽为 0）。
+constexpr std::size_t kReduceBlocks = 1024;
 
 // 注册 Copy/AXPY/Reduction/Convolution 的 CPU+CUDA launcher（幂等，call_once）
 void register_classic_kernels();

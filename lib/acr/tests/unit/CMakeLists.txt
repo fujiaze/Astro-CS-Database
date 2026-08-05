@@ -172,6 +172,16 @@ target_include_directories(acr_test_cuda_bridge PRIVATE
 )
 gtest_discover_tests(acr_test_cuda_bridge DISCOVERY_MODE PRE_TEST)
 
+# 25 号计划 §2：CUDA 分块卷积与独立缓冲容量（无 GPU 时 GTEST_SKIP）
+add_executable(acr_test_cuda_bridge_chunk test_cuda_bridge_chunk.cpp)
+target_link_libraries(acr_test_cuda_bridge_chunk PRIVATE
+    acr_cuda_bridge_loader acr_api GTest::gtest_main)
+target_include_directories(acr_test_cuda_bridge_chunk PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../backends/cuda
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../backends/cuda/bridge
+)
+gtest_discover_tests(acr_test_cuda_bridge_chunk DISCOVERY_MODE PRE_TEST)
+
 # 23 号计划 §6：持续负载资源闭环（50/80/95/100% 各 30s，真实采样）。
 # 2026-08-05 决策：利用率目标闭环不作为常规 ctest 门禁（Windows 无软限制系统
 # API；降预算后单线程任务会被拖死）。本测试改为证据阶段单独运行

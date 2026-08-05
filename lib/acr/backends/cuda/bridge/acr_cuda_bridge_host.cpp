@@ -42,13 +42,18 @@ struct CudaExecutorHandle {
     int device{0};
     cudaStream_t stream{nullptr};
     std::mutex mtx;
+    // 25 号计划 §2.1：每个设备缓冲区独立容量记账，
+    // 禁止 d_x/d_y 或 d_partials/d_kernel 共享一个计数器
     float* d_x{nullptr};
+    size_t d_x_capacity{0};
     float* d_y{nullptr};
+    size_t d_y_capacity{0};
     double* d_partials{nullptr};
+    size_t d_partials_capacity{0};
     float* d_kernel{nullptr};
-    size_t scratch_count{0};
-    size_t partials_count{0};
-    size_t image_count{0};
+    size_t d_kernel_capacity{0};
+    float* d_image{nullptr};   // 卷积整图输入（独立缓冲）
+    size_t d_image_capacity{0};
 };
 
 constexpr int kReduceBlocks = 256;
@@ -166,6 +171,7 @@ extern "C" void acr_cuda_executor_destroy(void* handle) {
     if (h->d_y) cudaFree(h->d_y);
     if (h->d_partials) cudaFree(h->d_partials);
     if (h->d_kernel) cudaFree(h->d_kernel);
+    if (h->d_image) cudaFree(h->d_image);
     if (h->stream) cudaStreamDestroy(h->stream);
     delete h;
 }
@@ -207,9 +213,9 @@ extern "C" int acr_cuda_executor_submit_axpy(void* handle,
     std::lock_guard<std::mutex> lk(h->mtx);
     const size_t n = end - begin;
     return submit_impl(h, [&]() -> cudaError_t {
-        cudaError_t err = ensure_buffer(&h->d_x, h->scratch_count, n);
+        cudaError_t err = ensure_buffer(&h->d_x, h->d_x_capacity, n);
         if (err != cudaSuccess) return err;
-        err = ensure_buffer(&h->d_y, h->scratch_count, n);
+        err = ensure_buffer(&h->d_y, h->d_y_capacity, n);
         if (err != cudaSuccess) return err;
         cudaMemcpyAsync(h->d_x, x + begin, n * sizeof(float),
                         cudaMemcpyHostToDevice, h->stream);
@@ -236,9 +242,9 @@ extern "C" int acr_cuda_executor_submit_copy(void* handle,
     std::lock_guard<std::mutex> lk(h->mtx);
     const size_t n = end - begin;
     return submit_impl(h, [&]() -> cudaError_t {
-        cudaError_t err = ensure_buffer(&h->d_x, h->scratch_count, n);
+        cudaError_t err = ensure_buffer(&h->d_x, h->d_x_capacity, n);
         if (err != cudaSuccess) return err;
-        err = ensure_buffer(&h->d_y, h->scratch_count, n);
+        err = ensure_buffer(&h->d_y, h->d_y_capacity, n);
         if (err != cudaSuccess) return err;
         cudaMemcpyAsync(h->d_x, x + begin, n * sizeof(float),
                         cudaMemcpyHostToDevice, h->stream);
@@ -254,7 +260,7 @@ extern "C" int acr_cuda_executor_submit_reduce(void* handle,
                                                size_t begin, size_t end,
                                                const float* x,
                                                double* partials,
-                                               size_t blocks_per_chunk,
+                                               size_t blocks_per_chunk,  // 槽位跨度（≥实际块数）
                                                uint64_t chunk_index,
                                                uint64_t* elapsed_ns,
                                                const char** last_error) {
@@ -266,18 +272,24 @@ extern "C" int acr_cuda_executor_submit_reduce(void* handle,
     auto* h = static_cast<CudaExecutorHandle*>(handle);
     std::lock_guard<std::mutex> lk(h->mtx);
     const size_t n = end - begin;
+    // 25 号计划：grid 块数 = ceil(n / 256)（覆盖整个 chunk，不再固定 256）
+    const size_t blocks = (n + 255) / 256;
+    if (blocks == 0 || blocks_per_chunk < blocks) {
+        if (last_error) *last_error = set_error_msg("reduce span too small");
+        return 1;
+    }
     return submit_impl(h, [&]() -> cudaError_t {
-        cudaError_t err = ensure_buffer(&h->d_x, h->scratch_count, n);
+        cudaError_t err = ensure_buffer(&h->d_x, h->d_x_capacity, n);
         if (err != cudaSuccess) return err;
-        err = ensure_buffer(&h->d_partials, h->partials_count, blocks_per_chunk);
+        err = ensure_buffer(&h->d_partials, h->d_partials_capacity, blocks);
         if (err != cudaSuccess) return err;
         cudaMemcpyAsync(h->d_x, x + begin, n * sizeof(float),
                         cudaMemcpyHostToDevice, h->stream);
-        cudaMemsetAsync(h->d_partials, 0, blocks_per_chunk * sizeof(double), h->stream);
+        cudaMemsetAsync(h->d_partials, 0, blocks * sizeof(double), h->stream);
         acr_launch_reduce(h->d_x, h->d_partials, 0, n,
                           static_cast<size_t>(chunk_index), blocks_per_chunk, h->stream);
         cudaMemcpyAsync(partials + chunk_index * blocks_per_chunk, h->d_partials,
-                        blocks_per_chunk * sizeof(double),
+                        blocks * sizeof(double),
                         cudaMemcpyDeviceToHost, h->stream);
         return cudaStreamSynchronize(h->stream);
     }, elapsed_ns, last_error);
@@ -301,17 +313,17 @@ extern "C" int acr_cuda_executor_submit_conv3x3(void* handle,
     const size_t n = end - begin;
     const size_t image = width * height;
     return submit_impl(h, [&]() -> cudaError_t {
-        cudaError_t err = ensure_buffer(&h->d_x, h->image_count, image);
+        cudaError_t err = ensure_buffer(&h->d_image, h->d_image_capacity, image);
         if (err != cudaSuccess) return err;
-        err = ensure_buffer(&h->d_y, h->scratch_count, n);
+        err = ensure_buffer(&h->d_y, h->d_y_capacity, n);
         if (err != cudaSuccess) return err;
-        err = ensure_buffer(&h->d_kernel, h->partials_count, 9);
+        err = ensure_buffer(&h->d_kernel, h->d_kernel_capacity, 9);
         if (err != cudaSuccess) return err;
-        cudaMemcpyAsync(h->d_x, x, image * sizeof(float),
+        cudaMemcpyAsync(h->d_image, x, image * sizeof(float),
                         cudaMemcpyHostToDevice, h->stream);
         cudaMemcpyAsync(h->d_kernel, kernel9, 9 * sizeof(float),
                         cudaMemcpyHostToDevice, h->stream);
-        acr_launch_conv3x3(h->d_y, h->d_x, 0, n, width, height,
+        acr_launch_conv3x3(h->d_y, h->d_image, begin, n, width, height,
                            h->d_kernel, h->stream);
         cudaMemcpyAsync(y + begin, h->d_y, n * sizeof(float),
                         cudaMemcpyDeviceToHost, h->stream);
