@@ -44,8 +44,7 @@ void SharedWorkPool::init(std::size_t begin, std::size_t end,
         const std::size_t e = std::min(b + chunk_size, end);
         slot->begin.store(b, std::memory_order_relaxed);
         slot->end.store(e, std::memory_order_relaxed);
-        slot->status.store(WorkBlockStatus::Pending, std::memory_order_relaxed);
-        slot->attempt_count.store(0, std::memory_order_relaxed);
+        slot->state.store(0, std::memory_order_relaxed);  // Pending + attempt 0
         slot->claimant.store(kHwInvalidDeviceId, std::memory_order_relaxed);
         slots_.push_back(std::move(slot));
     }
@@ -77,8 +76,7 @@ void SharedWorkPool::init_dynamic(std::size_t begin, std::size_t end,
     for (std::size_t i = 0; i < max_slots; ++i) {
         auto slot = std::make_unique<WorkSlot>();
         slot->id = i;
-        slot->status.store(WorkBlockStatus::Pending, std::memory_order_relaxed);
-        slot->attempt_count.store(0, std::memory_order_relaxed);
+        slot->state.store(0, std::memory_order_relaxed);  // Pending + attempt 0
         slot->claimant.store(kHwInvalidDeviceId, std::memory_order_relaxed);
         slots_.push_back(std::move(slot));
     }
@@ -382,7 +380,7 @@ bool SharedWorkPool::no_work_left() const noexcept {
 WorkBlockStatus SharedWorkPool::slot_status(std::size_t id) const {
     const WorkSlot* slot = get_slot(id);
     if (!slot) return WorkBlockStatus::Failed;
-    return slot->status.load(std::memory_order_acquire);
+    return slot->status();
 }
 
 std::size_t SharedWorkPool::slot_begin(std::size_t id) const {
@@ -400,8 +398,7 @@ std::size_t SharedWorkPool::slot_end(std::size_t id) const {
 std::uint32_t SharedWorkPool::slot_attempt(std::size_t id) const {
     const WorkSlot* slot = get_slot(id);
     if (!slot) return 0;
-    return static_cast<std::uint32_t>(
-        slot->attempt_count.load(std::memory_order_acquire));
+    return slot->attempt();
 }
 
 DeviceId SharedWorkPool::slot_claimant(std::size_t id) const {
@@ -415,7 +412,7 @@ std::vector<bool> SharedWorkPool::done_bitmap() const {
     std::vector<bool> bm(n, false);
     for (std::size_t i = 0; i < n && i < slots_.size(); ++i) {
         if (!slots_[i]) continue;
-        if (slots_[i]->status.load(std::memory_order_acquire) == WorkBlockStatus::Done) {
+        if (slots_[i]->status() == WorkBlockStatus::Done) {
             bm[i] = true;
         }
     }

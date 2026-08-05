@@ -225,6 +225,7 @@ struct Dispatcher::Impl {
     MixedRunResult execute_via_pool(std::size_t begin, std::size_t end,
                                     std::size_t chunk_size,
                                     ChunkKernelFn fn, void* user_data) {
+        constexpr std::uint32_t kMaxAttempts = 4;  // 失败重试上限
         pool.init(begin, end, chunk_size);
         MixedRunResult r;
         r.total_chunks = pool.total_blocks();
@@ -244,11 +245,20 @@ struct Dispatcher::Impl {
                 if (!token.valid()) return;
                 try {
                     fn(token.id, token.begin, token.end, user_data);
-                    pool.mark_done(token);
-                    executed.fetch_add(1, std::memory_order_relaxed);
+                    // 24 号计划 §6：ledger 拒绝（旧 attempt 等）不得累计完成量
+                    if (pool.mark_done(token)) {
+                        executed.fetch_add(1, std::memory_order_relaxed);
+                    } else {
+                        // 重新入池重试（由其他 worker 领取）
+                        pool.mark_failed(token, /*retryable=*/true);
+                        failed.fetch_add(1, std::memory_order_relaxed);
+                    }
                 } catch (...) {
-                    pool.mark_failed(token);
-                    failed.fetch_add(1, std::memory_order_relaxed);
+                    const bool retryable = token.attempt < kMaxAttempts;
+                    if (pool.mark_failed(token, retryable)) {
+                        failed.fetch_add(1, std::memory_order_relaxed);
+                    }
+                    if (!retryable) return;
                 }
             });
         (void)ev;
@@ -554,14 +564,20 @@ struct Dispatcher::Impl {
                     }
                     try {
                         fn(token.id, token.begin, token.end, user_data);
-                        pool.mark_done(token);
-                        executed.fetch_add(1, std::memory_order_relaxed);
+                        // 24 号计划 §6：ledger 拒绝不得累计完成量
+                        if (pool.mark_done(token)) {
+                            executed.fetch_add(1, std::memory_order_relaxed);
+                        } else {
+                            pool.mark_failed(token, /*retryable=*/true);
+                            failed.fetch_add(1, std::memory_order_relaxed);
+                        }
                     } catch (...) {
                         // 失败块进入 retry queue 可重试，但 attempt 有上限
                         // （防确定性失败死循环导致 TIMEOUT）
                         const bool retryable = token.attempt < kMaxAttempts;
-                        pool.mark_failed(token, retryable);
-                        failed.fetch_add(1, std::memory_order_relaxed);
+                        if (pool.mark_failed(token, retryable)) {
+                            failed.fetch_add(1, std::memory_order_relaxed);
+                        }
                         if (!retryable) break;  // 终态失败：不再重试该块
                     }
                 }
@@ -958,22 +974,28 @@ struct Dispatcher::Impl {
                         inv.token_id = token.id;
                         SubmitHandle handle = exec->submit(token, inv);
                         if (handle.status == SubmitStatus::Ok) {
-                            pool.mark_done(token);
-                            exec_done[i].fetch_add(1, std::memory_order_relaxed);
-                            exec_items[i].fetch_add(
-                                handle.items_done, std::memory_order_relaxed);
-                            exec_bytes[i].fetch_add(
-                                handle.bytes_done, std::memory_order_relaxed);
-                            exec_elapsed[i].fetch_add(
-                                handle.elapsed_ns, std::memory_order_relaxed);
+                            // 24 号计划 §6：ledger 拒绝不得累计 actual 统计
+                            if (pool.mark_done(token)) {
+                                exec_done[i].fetch_add(1, std::memory_order_relaxed);
+                                exec_items[i].fetch_add(
+                                    handle.items_done, std::memory_order_relaxed);
+                                exec_bytes[i].fetch_add(
+                                    handle.bytes_done, std::memory_order_relaxed);
+                                exec_elapsed[i].fetch_add(
+                                    handle.elapsed_ns, std::memory_order_relaxed);
+                            } else {
+                                pool.mark_failed(token, /*retryable=*/true);
+                                exec_failed[i].fetch_add(1, std::memory_order_relaxed);
+                            }
                         } else {
                             // Rejected（op 不支持/设备不可用）→ 终态失败；
                             // kernel 执行失败 → 重试（attempt 上限内）
                             const bool retryable =
                                 (handle.status != SubmitStatus::Rejected) &&
                                 (token.attempt < kMaxAttempts);
-                            pool.mark_failed(token, retryable);
-                            exec_failed[i].fetch_add(1, std::memory_order_relaxed);
+                            if (pool.mark_failed(token, retryable)) {
+                                exec_failed[i].fetch_add(1, std::memory_order_relaxed);
+                            }
                         }
                     }
                     if (registered && cpu_ctrl) {

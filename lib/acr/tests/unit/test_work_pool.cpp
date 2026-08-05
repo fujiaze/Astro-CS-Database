@@ -210,6 +210,45 @@ TEST(WorkPoolConcurrency, FailureReclaimAndReclaim) {
 }
 
 // ============================================================================
+// 4b. 确定性 ABA 交错：旧 attempt 延迟完成 vs 新 attempt 已领取同一范围
+// ============================================================================
+TEST(WorkPoolConcurrency, StaleAttemptCannotChangeNewState) {
+    SharedWorkPool pool;
+    pool.init_dynamic(0, 1000, 100, 1000);
+
+    // A 领取 [0,1000) attempt=1，然后失败进入 retry queue
+    auto t1 = pool.claim_next_dynamic(kHwCpuDeviceId, 1000);
+    ASSERT_TRUE(t1.valid());
+    EXPECT_EQ(t1.attempt, 1u);
+    EXPECT_TRUE(pool.mark_failed(t1));
+
+    // B 线程领取同一范围（attempt=2）并完成
+    std::atomic<bool> b_done{false};
+    std::thread b([&] {
+        auto t2 = pool.claim_next_dynamic(kGpu0, 1000);
+        ASSERT_TRUE(t2.valid());
+        EXPECT_EQ(t2.begin, t1.begin);
+        EXPECT_EQ(t2.end, t1.end);
+        EXPECT_EQ(t2.attempt, 2u);
+        EXPECT_TRUE(pool.mark_done(t2));
+        b_done.store(true, std::memory_order_release);
+    });
+
+    // A 等待 B 完成后再尝试用旧 token 完成（延迟完成）
+    while (!b_done.load(std::memory_order_acquire)) {
+        std::this_thread::yield();
+    }
+    EXPECT_FALSE(pool.mark_done(t1));  // 旧 attempt 不能改变新状态
+    EXPECT_EQ(pool.slot_status(t1.id), WorkBlockStatus::Done);  // 仍为新 attempt 的 Done
+    EXPECT_EQ(pool.slot_attempt(t1.id), 2u);
+    b.join();
+
+    EXPECT_TRUE(pool.all_done());
+    EXPECT_EQ(pool.completed_items(), 1000u);
+    EXPECT_EQ(pool.retry_pending_count(), 0u);
+}
+
+// ============================================================================
 // 5. 每个 item 恰好一次（并发多设备 claim）
 // ============================================================================
 TEST(WorkPoolConcurrency, ExactOncePerItemConcurrent) {

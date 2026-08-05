@@ -54,10 +54,14 @@ struct WorkToken {
 // ===== 预分配槽位（地址稳定，原子状态）=====
 struct WorkSlot {
     std::size_t id{0};
-    std::atomic<std::size_t> begin{0};
+    // 24 号计划 §6：状态 + attempt 合并为单个原子（低 2 位 status，高 32 位 attempt）。
+    // 完成/失败验证必须在一次 CAS 中同时校验 status 与 attempt，
+    // 消除“先改状态再检查 attempt、不匹配回滚”的 ABA 窗口：
+    //   旧 token（旧 attempt）与新 attempt 并发时，expected 打包值不匹配 → CAS 失败，
+    //   旧 token 无法改变新 attempt 的状态。
+    std::atomic<std::uint64_t> state{0};
+    std::atomic<std::size_t> begin{0};          // claim 时写入（release 发布）
     std::atomic<std::size_t> end{0};
-    std::atomic<WorkBlockStatus> status{WorkBlockStatus::Pending};
-    std::atomic<int> attempt_count{0};          // 每次领取递增（防 ABA）
     std::atomic<DeviceId> claimant{kHwInvalidDeviceId};
 
     WorkSlot() = default;
@@ -66,68 +70,88 @@ struct WorkSlot {
     WorkSlot(WorkSlot&&) = delete;
     WorkSlot& operator=(WorkSlot&&) = delete;
 
-    // Pending → Claimed（写入 begin/end 后 release 发布）
-    // 返回新 attempt（调用方写入 token）
+    static constexpr std::uint64_t kStatusMask = 0x3ull;
+    static constexpr std::uint64_t kAttemptShift = 2;
+
+    static constexpr std::uint64_t pack(WorkBlockStatus s,
+                                        std::uint32_t attempt) noexcept {
+        return (static_cast<std::uint64_t>(attempt) << kAttemptShift) |
+               static_cast<std::uint64_t>(static_cast<std::uint8_t>(s));
+    }
+    static constexpr WorkBlockStatus status_of(std::uint64_t v) noexcept {
+        return static_cast<WorkBlockStatus>(v & kStatusMask);
+    }
+    static constexpr std::uint32_t attempt_of(std::uint64_t v) noexcept {
+        return static_cast<std::uint32_t>(v >> kAttemptShift);
+    }
+
+    WorkBlockStatus status() const noexcept {
+        return status_of(state.load(std::memory_order_acquire));
+    }
+    std::uint32_t attempt() const noexcept {
+        return attempt_of(state.load(std::memory_order_acquire));
+    }
+
+    // Pending → Claimed（先写入范围，再 CAS 发布；返回新 attempt，0=失败）
     std::uint32_t try_claim(DeviceId device, std::size_t b, std::size_t e) {
-        WorkBlockStatus expected = WorkBlockStatus::Pending;
-        if (!status.compare_exchange_strong(expected, WorkBlockStatus::Claimed,
-                                             std::memory_order_acq_rel)) {
-            return 0;
-        }
         begin.store(b, std::memory_order_relaxed);
         end.store(e, std::memory_order_relaxed);
         claimant.store(device, std::memory_order_relaxed);
-        return static_cast<std::uint32_t>(
-            attempt_count.fetch_add(1, std::memory_order_relaxed) + 1);
+        std::uint64_t expected = state.load(std::memory_order_relaxed);
+        while (status_of(expected) == WorkBlockStatus::Pending) {
+            const std::uint32_t next = attempt_of(expected) + 1;
+            const std::uint64_t desired = pack(WorkBlockStatus::Claimed, next);
+            if (state.compare_exchange_weak(expected, desired,
+                                             std::memory_order_acq_rel)) {
+                return next;
+            }
+        }
+        return 0;
     }
 
-    // Failed → Claimed（retry 领取；返回新 attempt）
+    // Failed → Claimed（retry 领取；返回新 attempt，0=失败）
     std::uint32_t try_reclaim_claim(DeviceId device) {
-        WorkBlockStatus expected = WorkBlockStatus::Failed;
-        if (!status.compare_exchange_strong(expected, WorkBlockStatus::Claimed,
-                                             std::memory_order_acq_rel)) {
-            return 0;
-        }
         claimant.store(device, std::memory_order_relaxed);
-        return static_cast<std::uint32_t>(
-            attempt_count.fetch_add(1, std::memory_order_relaxed) + 1);
+        std::uint64_t expected = state.load(std::memory_order_relaxed);
+        while (status_of(expected) == WorkBlockStatus::Failed) {
+            const std::uint32_t next = attempt_of(expected) + 1;
+            const std::uint64_t desired = pack(WorkBlockStatus::Claimed, next);
+            if (state.compare_exchange_weak(expected, desired,
+                                             std::memory_order_acq_rel)) {
+                return next;
+            }
+        }
+        return 0;
     }
 
-    // Claimed → Done（验证 attempt，防 ABA）
+    // Claimed → Done：status 与 attempt 单次 CAS 原子验证（防 ABA）
     bool try_mark_done(std::uint32_t expected_attempt) {
-        WorkBlockStatus expected = WorkBlockStatus::Claimed;
-        if (!status.compare_exchange_strong(expected, WorkBlockStatus::Done,
-                                             std::memory_order_acq_rel)) {
-            return false;
-        }
-        if (attempt_count.load(std::memory_order_acquire) !=
-            static_cast<int>(expected_attempt)) {
-            status.store(WorkBlockStatus::Claimed, std::memory_order_release);
-            return false;
-        }
-        return true;
+        std::uint64_t expected = pack(WorkBlockStatus::Claimed, expected_attempt);
+        const std::uint64_t desired = pack(WorkBlockStatus::Done, expected_attempt);
+        return state.compare_exchange_strong(expected, desired,
+                                             std::memory_order_acq_rel);
     }
 
-    // Claimed → Failed（验证 attempt，防 ABA）
+    // Claimed → Failed：status 与 attempt 单次 CAS 原子验证（防 ABA）
     bool try_mark_failed(std::uint32_t expected_attempt) {
-        WorkBlockStatus expected = WorkBlockStatus::Claimed;
-        if (!status.compare_exchange_strong(expected, WorkBlockStatus::Failed,
-                                             std::memory_order_acq_rel)) {
-            return false;
-        }
-        if (attempt_count.load(std::memory_order_acquire) !=
-            static_cast<int>(expected_attempt)) {
-            status.store(WorkBlockStatus::Claimed, std::memory_order_release);
-            return false;
-        }
-        return true;
+        std::uint64_t expected = pack(WorkBlockStatus::Claimed, expected_attempt);
+        const std::uint64_t desired = pack(WorkBlockStatus::Failed, expected_attempt);
+        return state.compare_exchange_strong(expected, desired,
+                                             std::memory_order_acq_rel);
     }
 
-    // Failed → Pending（重新入池）
+    // Failed → Pending（重新入池，attempt 保持不变）
     bool try_reclaim() {
-        WorkBlockStatus expected = WorkBlockStatus::Failed;
-        return status.compare_exchange_strong(expected, WorkBlockStatus::Pending,
-                                               std::memory_order_acq_rel);
+        std::uint64_t expected = state.load(std::memory_order_relaxed);
+        while (status_of(expected) == WorkBlockStatus::Failed) {
+            const std::uint64_t desired =
+                pack(WorkBlockStatus::Pending, attempt_of(expected));
+            if (state.compare_exchange_weak(expected, desired,
+                                             std::memory_order_acq_rel)) {
+                return true;
+            }
+        }
+        return false;
     }
 };
 
