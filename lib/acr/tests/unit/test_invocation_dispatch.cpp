@@ -19,6 +19,7 @@
 #include "astro/compute/kernel_registry.hpp"
 #include "../core/task_descriptor.hpp"
 #include "../cost/cost_estimator.hpp"
+#include "../utilization/cpu_controller.hpp"
 
 using namespace astro::compute;
 using namespace astro::compute::scheduler;
@@ -306,6 +307,62 @@ TEST(DispatchInvocation, UnsupportedOperationFailsHonestly) {
     EXPECT_FALSE(result.run_result.error_message.empty());
     EXPECT_NE(result.run_result.error_message.find("no eligible executor"),
               std::string::npos);
+}
+
+// ============================================================================
+// 25 号计划 §7：invocation 路径 claim 前内存峰值估算触发 ShrinkBlock
+// ============================================================================
+TEST(DispatchInvocation, PeakBudgetShrinkChangesClaims) {
+    register_axpy_kernel();
+    constexpr std::size_t kN = 4096;
+    std::vector<float> x(kN, 1.0f);
+    std::vector<float> y(kN, 2.0f);
+
+    auto regs = std::make_shared<ExecutorRegistry>(ExecutorRegistry::create_cpu_only());
+    Dispatcher d;
+    DispatcherConfig cfg;
+    cfg.devices = {{"cpu", 0, 0, 50.0, true}};
+    cfg.executors = regs;
+    cfg.enable_utilization = true;
+    cfg.control_window_ms = 100;
+    cfg.cpu_sampler_override = [] {
+        utilization::CpuControlDecision dec;
+        dec.batch_size = 8;
+        dec.queue_depth = 1;
+        dec.should_yield = false;
+        dec.yield_stride = 1;
+        dec.target_ratio = 0.95;
+        dec.actual_ratio = 0.20;
+        dec.valid = true;
+        return dec;
+    };
+    cfg.memory_sampler_override = [] {
+        utilization::MemoryBudget m;
+        m.total_ram = 100000000;
+        m.limit_ram = 10000000;
+        m.used_ram = 10500000;  // used + peak(≈4.2KB) 轻微超限 → ShrinkBlock
+        m.ram_valid = true;
+        m.ram_exceeded = true;
+        return m;
+    };
+    d.configure(cfg);
+
+    auto est = make_estimate(kHwCpuDeviceId, 256, 64);
+    auto inv = make_axpy_invocation(x, y);
+    auto result = d.dispatch_invocation(make_task(kN), est, inv);
+
+    // 缩块不丢工作且结果正确
+    EXPECT_TRUE(result.run_result.all_done);
+    EXPECT_EQ(result.coverage.done, result.coverage.total);
+    EXPECT_FALSE(result.resource_control.mem_peak_estimates.empty());
+    bool has_peak_shrink = false;
+    for (const auto& a : result.resource_control.mem_peak_actions) {
+        if (a == "shrink") has_peak_shrink = true;
+    }
+    EXPECT_TRUE(has_peak_shrink);
+    for (std::size_t i = 0; i < kN; ++i) {
+        EXPECT_FLOAT_EQ(y[i], 4.0f);
+    }
 }
 
 // ============================================================================

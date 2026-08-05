@@ -465,10 +465,11 @@ TEST(UtilMemory, ComputeLimitMinRatioAndReserve) {
     EXPECT_EQ(MemoryBudgetController::compute_limit(50, 0.9, 100), 0u);
 }
 
-TEST(UtilMemory, DefaultFixedReserveIs512MB) {
+TEST(UtilMemory, DefaultFixedReserveIs2048RamAnd512Vram) {
     MemoryBudgetController c;
     auto cfg = c.config();
-    EXPECT_EQ(cfg.fixed_reserve_bytes, 512ULL * 1024 * 1024);
+    EXPECT_EQ(cfg.ram_fixed_reserve_bytes, 2048ULL * 1024 * 1024);
+    EXPECT_EQ(cfg.vram_fixed_reserve_bytes, 512ULL * 1024 * 1024);
 }
 
 TEST(UtilMemory, DefaultRatioIs95Percent) {
@@ -485,10 +486,10 @@ TEST(UtilMemory, SampleReadsRealRam) {
     EXPECT_GT(m.total_ram, 0u);
     EXPECT_LE(m.used_ram, m.total_ram);
     EXPECT_LE(m.avail_ram, m.total_ram);
-    // limit 应满足 limit = min(total*0.95, total-512MB)
+    // limit 应满足 limit = min(total*0.95, total-2048MiB)
     std::uint64_t expected_limit = std::min(
         static_cast<std::uint64_t>(m.total_ram * 0.95),
-        m.total_ram - 512ULL * 1024 * 1024);
+        m.total_ram - 2048ULL * 1024 * 1024);
     EXPECT_EQ(m.limit_ram, expected_limit);
     std::printf("[UtilMemory.SampleReadsRealRam] total=%llu MB used=%llu MB limit=%llu MB exceeded=%d\n",
                 static_cast<unsigned long long>(m.total_ram / (1024 * 1024)),
@@ -502,7 +503,8 @@ TEST(UtilMemory, ReportWithInjectsValues) {
     MemoryBudgetConfig cfg;
     cfg.ram_ratio = 0.9;
     cfg.vram_ratio = 0.8;
-    cfg.fixed_reserve_bytes = 100;
+    cfg.ram_fixed_reserve_bytes = 100;
+    cfg.vram_fixed_reserve_bytes = 100;
     c.configure(cfg);
     // 先 sample 一次获取系统总量
     c.sample();

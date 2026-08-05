@@ -2,7 +2,7 @@
 // Phase G（08_RESOURCE_CONTROL_SPEC.md §4）：
 //   1. RAM 限制：limit = min(total*ratio, total-fixed_reserve)
 //   2. VRAM 限制：同上公式（per-GPU 独立）
-//   3. fixed_reserve 默认 512 MB
+//   3. 25 号计划 §7：RAM 固定保留默认 2048 MiB，VRAM 固定保留默认 512 MiB
 //   4. ratio 默认 0.95（90% 是旧值，spec §1 用 0.95）
 //   5. 读取实际可用内存（GlobalMemoryStatusEx + NVML）
 //   6. 达到上限：停止新提交、缩小块、释放可重建缓存、选择低内存路径、回退其他设备或明确失败
@@ -20,9 +20,10 @@ namespace astro::compute::utilization {
 
 // ===== 内存预算配置 =====
 struct MemoryBudgetConfig {
-    double ram_ratio{0.95};              // RAM 容量比例
-    double vram_ratio{0.95};             // VRAM 容量比例
-    std::uint64_t fixed_reserve_bytes{512ULL * 1024 * 1024};  // 512 MB
+    double ram_ratio{0.95};               // RAM 容量比例
+    double vram_ratio{0.95};              // VRAM 容量比例
+    std::uint64_t ram_fixed_reserve_bytes{2048ULL * 1024 * 1024};  // 2048 MiB
+    std::uint64_t vram_fixed_reserve_bytes{512ULL * 1024 * 1024};  // 512 MiB
 };
 
 // ===== 单 GPU VRAM 预算 =====

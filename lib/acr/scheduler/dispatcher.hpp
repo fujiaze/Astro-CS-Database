@@ -20,6 +20,7 @@
 #include "partitioner.hpp"
 #include "queue_aware.hpp"
 #include "reduction_merger.hpp"
+#include "../utilization/memory_budget.hpp"
 
 #include <cstddef>
 #include <functional>
@@ -33,6 +34,7 @@ namespace cost { struct CostEstimate; }
 namespace utilization {
 class CpuController;
 class MemoryBudgetController;
+struct MemoryBudgetConfig;
 struct CpuControlDecision;
 struct MemoryBudget;
 }
@@ -61,6 +63,10 @@ struct DispatcherConfig {
     // 24 号计划 §2：生产调度按 Eligible Device Set 筛选（feasible/最小有效规模/收益）。
     // 测试专用：置 true 时绕过筛选（仅用于 Mixed 调度验证，生产必须保持 false）。
     bool force_all_supported_executors{false};
+    // 25 号计划 §7：正式 MemoryBudget 配置注入（RAM/VRAM 容量上限）。
+    // 显式提供时由 configure 注入；未提供时使用默认配置（ram/vram 0.95）。
+    utilization::MemoryBudgetConfig memory_budget{};
+    bool memory_budget_explicit{false};
     // F-fix 6 + F-fix 7：设备执行器注册表（可选）
     // 如果提供且包含多个可用 executor，Dispatcher 会通过 execute_via_executors 执行：
     //   - 每个空闲 executor 按自身推荐块大小领取工作块
@@ -115,6 +121,12 @@ struct ResourceControlStats {
     std::vector<std::uint64_t> mem_used_ram_samples;  // 每次采样的 used_ram
     std::uint64_t mem_limit_ram{0};                // RAM 限额
     std::string final_mem_action{"none"};         // 最终动作
+    // 25 号计划 §7：claim 前内存峰值估算与预算动作原始记录
+    // （输入/输出/临时/双缓冲/传输 staging/partial/merge 峰值 + 对应动作）
+    std::vector<std::uint64_t> mem_peak_estimates;  // 每次 claim 前估算的峰值字节
+    std::vector<std::string> mem_peak_actions;      // 每次 claim 前估算触发的动作
+    std::vector<std::string> mem_vram_actions;      // GPU VRAM 预算动作序列
+    std::uint64_t mem_peak_max{0};                  // 峰值估算最大值（证据用）
 
     // ---- F-fix 3: 动态 guided 块大小序列 ----
     // 每次 claim_next_dynamic 返回的块大小，用于验证尾部收缩

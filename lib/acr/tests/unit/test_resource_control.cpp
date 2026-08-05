@@ -257,3 +257,96 @@ TEST(ResourceControl, MemoryFailKeepsAccurateCoverage) {
     }
     EXPECT_TRUE(has_fail);
 }
+
+// ============================================================================
+// 7. 25 号计划 §7：claim 前峰值估算（输入/输出/双缓冲/临时区等）触发
+//    ShrinkBlock，缩块不丢工作
+// ============================================================================
+TEST(ResourceControl, PeakEstimateShrinkChangesClaims) {
+    DispatcherConfig cfg;
+    cfg.enable_utilization = true;
+    cfg.control_window_ms = 100;
+    cfg.cpu_sampler_override = [] {
+        return make_cpu_decision(0.20, 0.95);
+    };
+    cfg.memory_sampler_override = [] {
+        // used=10.5MB，limit=10MB，peak≈16.7KB → used+peak 轻微超限
+        // （over_ratio ∈ [0.05,0.15)）→ ShrinkBlock
+        return make_memory(10500000, 10000000, 100000000);
+    };
+
+    runtime_init();
+    Dispatcher d;
+    cfg.devices = {{"cpu", 0, 0, 50.0, true}};
+    cfg.fallback_strategy = FallbackStrategy::ToCpu;
+    d.configure(cfg);
+
+    TaskDescriptor task;
+    task.range = Range1D{0, 100000};
+    task.traits.bytes_read_per_item = 4;
+    task.traits.bytes_written_per_item = 4;
+    auto est = make_cpu_only_estimate(1024);
+    std::vector<int> data(100000, 0);
+    auto fn = +[](std::size_t, std::size_t b, std::size_t e, void* ud) {
+        auto* d = static_cast<std::vector<int>*>(ud);
+        for (std::size_t i = b; i < e; ++i) (*d)[i] = 1;
+    };
+    auto r = d.dispatch_range_cost_aware(task, est, fn, &data);
+    runtime_shutdown();
+
+    EXPECT_TRUE(r.run_result.all_done);
+    EXPECT_EQ(r.coverage.done, r.coverage.total);
+    // 峰值估算与动作均有原始记录
+    EXPECT_FALSE(r.resource_control.mem_peak_estimates.empty());
+    bool has_peak_shrink = false;
+    for (const auto& a : r.resource_control.mem_peak_actions) {
+        if (a == "shrink") has_peak_shrink = true;
+    }
+    EXPECT_TRUE(has_peak_shrink);
+    EXPECT_GT(r.resource_control.mem_peak_max, 0u);
+}
+
+// ============================================================================
+// 8. 25 号计划 §7：claim 前峰值估算超限到 Fail：保留准确未完成范围
+// ============================================================================
+TEST(ResourceControl, PeakFailKeepsAccurateCoverage) {
+    DispatcherConfig cfg;
+    cfg.enable_utilization = true;
+    cfg.control_window_ms = 100;
+    cfg.cpu_sampler_override = [] {
+        return make_cpu_decision(0.20, 0.95);
+    };
+    cfg.memory_sampler_override = [] {
+        // used=19.99MB，limit=10MB，total=20MB；used+peak ≈ 20.006MB ≥ total
+        // → Fail（over_ratio ≥ 0.30 且达到总量）
+        return make_memory(19990000, 10000000, 20000000);
+    };
+
+    runtime_init();
+    Dispatcher d;
+    cfg.devices = {{"cpu", 0, 0, 50.0, true}};
+    cfg.fallback_strategy = FallbackStrategy::ToCpu;
+    d.configure(cfg);
+
+    TaskDescriptor task;
+    task.range = Range1D{0, 100000};
+    task.traits.bytes_read_per_item = 4;
+    task.traits.bytes_written_per_item = 4;
+    auto est = make_cpu_only_estimate(1024);
+    std::vector<int> data(100000, 0);
+    auto fn = +[](std::size_t, std::size_t b, std::size_t e, void* ud) {
+        auto* d = static_cast<std::vector<int>*>(ud);
+        for (std::size_t i = b; i < e; ++i) (*d)[i] = 1;
+    };
+    auto r = d.dispatch_range_cost_aware(task, est, fn, &data);
+    runtime_shutdown();
+
+    EXPECT_FALSE(r.run_result.all_done);
+    // 不得把未完成工作标记为 done（准确 coverage）
+    EXPECT_EQ(r.coverage.done, 0u);
+    bool has_fail = false;
+    for (const auto& a : r.resource_control.mem_peak_actions) {
+        if (a == "fail") has_fail = true;
+    }
+    EXPECT_TRUE(has_fail);
+}

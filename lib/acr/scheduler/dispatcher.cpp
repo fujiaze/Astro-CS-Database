@@ -219,6 +219,30 @@ struct Dispatcher::Impl {
         }
     }
 
+    // 25 号计划 §7：claim 前内存峰值估算。
+    // 覆盖输入、输出、传输 staging（GPU）、双缓冲、临时区（halo/tile）、
+    // reduction partial 与 merge 缓冲；返回单次 claim 的保守峰值字节。
+    static std::uint64_t estimate_claim_peak_bytes(
+        std::size_t items, const TaskTraits& traits, bool is_gpu) noexcept {
+        if (items == 0) return 0;
+        const std::uint64_t read_bytes =
+            static_cast<std::uint64_t>(items) * traits.bytes_read_per_item;
+        const std::uint64_t write_bytes =
+            static_cast<std::uint64_t>(items) * traits.bytes_written_per_item;
+        const std::uint64_t io = read_bytes + write_bytes;
+        if (io == 0) return 0;  // 无每项字节信息时不参与 claim 前预算
+        const std::uint64_t staging = is_gpu ? io : 0;      // 传输 staging（GPU）
+        const std::uint64_t double_buf = io;                // 双缓冲
+        const std::uint64_t temp = read_bytes / 12 + 1;     // halo/tile 临时区
+        const bool is_reduction =
+            (traits.task_class == TaskClass::reduction);
+        const std::uint64_t partial =
+            is_reduction ? (256u * 1024) : 0;               // reduction partial
+        const std::uint64_t merge =
+            is_reduction ? (256u * 1024) : 0;               // reduction merge
+        return io + staging + double_buf + temp + partial + merge;
+    }
+
     // F-fix 2：通过 SharedWorkPool 执行（CostEstimator 驱动）
     // 从 pool claim_next 领取块，执行并标记结果。
     // 失败块可回收（reclaim_failed）。
@@ -288,7 +312,10 @@ struct Dispatcher::Impl {
         std::size_t begin, std::size_t end,
         std::size_t min_chunk, std::size_t max_chunk,
         ChunkKernelFn fn, void* user_data,
-        ResourceControlStats& stats_out) {
+        ResourceControlStats& stats_out,
+        const TaskTraits* traits = nullptr) {
+        // traits（可选）：提供每项字节信息时，在每次 claim 前执行内存峰值
+        // 预算检查（25 号计划 §7）；nullptr 时仅依赖 200ms 系统采样。
         // F-fix 3：动态初始化（不预创建块，claim 时动态计算大小）
         pool.init_dynamic(begin, end, min_chunk, max_chunk);
         stats_out.dynamic_mode_used = true;
@@ -336,6 +363,10 @@ struct Dispatcher::Impl {
         // 缓存的内存动作
         std::atomic<int> cached_mem_action{
             static_cast<int>(utilization::MemoryBudgetController::ExceedAction::None)};
+        // 25 号计划 §7：claim 前预算检查复用最近一次系统采样缓存
+        // （200ms 窗口内不重复读系统内存，峰值估算始终实时计算）
+        utilization::MemoryBudget cached_mb;
+        std::atomic<bool> cached_mb_valid{false};
 
         // 互斥保护 stats_out 向量（动态 push_back）
         std::mutex stats_mtx;
@@ -472,6 +503,9 @@ struct Dispatcher::Impl {
                                                 std::memory_order_relaxed);
                         {
                             std::lock_guard<std::mutex> lk(stats_mtx);
+                            // 缓存最近系统采样，供 claim 前峰值预算检查复用
+                            cached_mb = mb;
+                            cached_mb_valid.store(true, std::memory_order_relaxed);
                             stats_out.mem_actions.push_back(Impl::action_to_string(action));
                             stats_out.mem_used_ram_samples.push_back(mb.used_ram);
                             stats_out.mem_limit_ram = mb.limit_ram;
@@ -570,6 +604,106 @@ struct Dispatcher::Impl {
 
                     if (registered && cpu_ctrl) {
                         cpu_ctrl->mark_worker_active(worker_id);
+                    }
+                    // ---- 25 号计划 §7：claim 前内存峰值预算检查 ----
+                    // 提供 traits（每项字节信息）时，按输入/输出/临时/双缓冲/
+                    // staging/partial/merge 峰值估算 + 最近系统采样判断动作；
+                    // 动作必须真实改变执行（缩块/停提交/释放缓存/回退/失败）。
+                    if (traits && cfg.enable_utilization && mem_ctrl) {
+                        std::size_t pre_requested =
+                            current_max_chunk.load(std::memory_order_relaxed);
+                        const std::uint64_t peak = Impl::estimate_claim_peak_bytes(
+                            pre_requested, *traits, /*is_gpu=*/false);
+                        bool pre_skip = false;
+                        if (peak > 0) {
+                            utilization::MemoryBudget cached_mb_copy;
+                            bool cached_ok = false;
+                            {
+                                std::lock_guard<std::mutex> lk(stats_mtx);
+                                cached_ok = cached_mb_valid.load(
+                                    std::memory_order_relaxed);
+                                cached_mb_copy = cached_mb;
+                            }
+                            utilization::MemoryBudgetController::ExceedAction pre_action =
+                                utilization::MemoryBudgetController::ExceedAction::None;
+                            if (cached_ok && cached_mb_copy.ram_valid &&
+                                cached_mb_copy.limit_ram > 0) {
+                                pre_action =
+                                    utilization::MemoryBudgetController::suggest_action(
+                                        cached_mb_copy.used_ram + peak,
+                                        cached_mb_copy.limit_ram,
+                                        cached_mb_copy.total_ram);
+                            }
+                            {
+                                std::lock_guard<std::mutex> lk(stats_mtx);
+                                stats_out.mem_peak_estimates.push_back(peak);
+                                stats_out.mem_peak_max =
+                                    std::max(stats_out.mem_peak_max, peak);
+                                stats_out.mem_peak_actions.push_back(
+                                    Impl::action_to_string(pre_action));
+                            }
+                            switch (pre_action) {
+                                case utilization::MemoryBudgetController::ExceedAction::ShrinkBlock:
+                                    pre_requested = std::max(
+                                        (pre_requested * 4) / 5, eff_min);
+                                    batch_shrink_count.fetch_add(
+                                        1, std::memory_order_relaxed);
+                                    record_action("shrink_block");
+                                    break;
+                                case utilization::MemoryBudgetController::ExceedAction::ReleaseCache:
+                                    if (cache_release_hook) {
+                                        try { cache_release_hook(); } catch (...) {}
+                                    }
+                                    pre_requested = std::max(
+                                        (pre_requested * 4) / 5, eff_min);
+                                    batch_shrink_count.fetch_add(
+                                        1, std::memory_order_relaxed);
+                                    record_action("release_cache");
+                                    break;
+                                case utilization::MemoryBudgetController::ExceedAction::LowMemoryPath:
+                                    pre_requested = eff_min;
+                                    batch_shrink_count.fetch_add(
+                                        1, std::memory_order_relaxed);
+                                    record_action("low_memory_path");
+                                    break;
+                                case utilization::MemoryBudgetController::ExceedAction::FallbackOtherDevice:
+                                    // CPU-only 路径无其他设备：缩小块继续
+                                    pre_requested = std::max(
+                                        (pre_requested * 4) / 5, eff_min);
+                                    record_action("fallback_other_device");
+                                    break;
+                                case utilization::MemoryBudgetController::ExceedAction::StopNewSubmit:
+                                    if (gate.close()) {
+                                        stats_out.submit_gate_triggered = true;
+                                        stats_out.gate_close_count++;
+                                        record_action("stop_new_submit");
+                                    }
+                                    pre_skip = true;
+                                    break;
+                                case utilization::MemoryBudgetController::ExceedAction::Fail:
+                                    gate.close_permanent();
+                                    stats_out.submit_gate_triggered = true;
+                                    stats_out.gate_close_count++;
+                                    record_action("fail");
+                                    pre_skip = true;
+                                    break;
+                                default:
+                                    break;
+                            }
+                            if (pre_skip) {
+                                if (gate.is_permanent_fail()) break;
+                                std::this_thread::sleep_for(
+                                    std::chrono::milliseconds(10));
+                                continue;
+                            }
+                            const std::size_t cur_max =
+                                current_max_chunk.load(std::memory_order_relaxed);
+                            if (pre_requested != cur_max && pre_requested >= eff_min) {
+                                current_max_chunk.store(
+                                    pre_requested, std::memory_order_relaxed);
+                                pool.set_dynamic_max_chunk(pre_requested);
+                            }
+                        }
                     }
                     // 23 号计划 §5：requested_items 实际使用 current_max_chunk
                     auto token = pool.claim_next_dynamic(
@@ -829,6 +963,9 @@ struct Dispatcher::Impl {
         std::atomic<std::size_t> current_max_chunk{max_chunk};
         std::atomic<int> cached_mem_action{
             static_cast<int>(utilization::MemoryBudgetController::ExceedAction::None)};
+        // 25 号计划 §7：claim 前预算检查复用最近一次系统采样缓存
+        utilization::MemoryBudget cached_mb;
+        std::atomic<bool> cached_mb_valid{false};
         // 24 号计划 §4：CPU 活跃预算（并发许可）与占用计数
         std::atomic<double> cached_active_budget{1.0};
         std::atomic<std::size_t> active_workers{0};
@@ -945,6 +1082,9 @@ struct Dispatcher::Impl {
                                                     std::memory_order_relaxed);
                             {
                                 std::lock_guard<std::mutex> lk(stats_mtx);
+                                // 缓存最近系统采样，供 claim 前峰值预算检查复用
+                                cached_mb = mb;
+                                cached_mb_valid.store(true, std::memory_order_relaxed);
                                 stats_out.mem_actions.push_back(
                                     Impl::action_to_string(action));
                                 stats_out.mem_used_ram_samples.push_back(mb.used_ram);
@@ -1066,6 +1206,125 @@ struct Dispatcher::Impl {
                             if (batch > 1) {
                                 requested /= batch;  // 批次控制 chunk 大小
                                 if (requested == 0) requested = 1;
+                            }
+                        }
+                        // ---- 25 号计划 §7：claim 前内存峰值预算检查 ----
+                        // 按输入/输出/临时/双缓冲/传输 staging/partial/merge
+                        // 峰值估算 + 最近系统采样判断动作；动作必须真实改变执行
+                        // （缩块/停提交/释放缓存/低内存路径/回退其他设备/失败）。
+                        if (cfg.enable_utilization && mem_ctrl) {
+                            const bool is_gpu =
+                                exec->backend_type().rfind("cuda", 0) == 0;
+                            const std::uint64_t peak =
+                                Impl::estimate_claim_peak_bytes(
+                                    requested, invocation.traits, is_gpu);
+                            bool pre_skip = false;
+                            if (peak > 0) {
+                                utilization::MemoryBudget cached_mb_copy;
+                                bool cached_ok = false;
+                                {
+                                    std::lock_guard<std::mutex> lk(stats_mtx);
+                                    cached_ok = cached_mb_valid.load(
+                                        std::memory_order_relaxed);
+                                    cached_mb_copy = cached_mb;
+                                }
+                                utilization::MemoryBudgetController::ExceedAction pre_action =
+                                    utilization::MemoryBudgetController::ExceedAction::None;
+                                if (cached_ok && is_gpu) {
+                                    for (const auto& g : cached_mb_copy.gpus) {
+                                        if (g.backend == exec->device_id() &&
+                                            g.valid && g.limit_vram > 0) {
+                                            pre_action =
+                                                utilization::MemoryBudgetController::
+                                                    suggest_action(
+                                                        g.used_vram + peak,
+                                                        g.limit_vram,
+                                                        g.total_vram);
+                                            break;
+                                        }
+                                    }
+                                } else if (cached_ok &&
+                                           cached_mb_copy.ram_valid &&
+                                           cached_mb_copy.limit_ram > 0) {
+                                    pre_action =
+                                        utilization::MemoryBudgetController::
+                                            suggest_action(
+                                                cached_mb_copy.used_ram + peak,
+                                                cached_mb_copy.limit_ram,
+                                                cached_mb_copy.total_ram);
+                                }
+                                {
+                                    std::lock_guard<std::mutex> lk(stats_mtx);
+                                    stats_out.mem_peak_estimates.push_back(peak);
+                                    stats_out.mem_peak_max =
+                                        std::max(stats_out.mem_peak_max, peak);
+                                    stats_out.mem_peak_actions.push_back(
+                                        Impl::action_to_string(pre_action));
+                                    if (is_gpu) {
+                                        stats_out.mem_vram_actions.push_back(
+                                            Impl::action_to_string(pre_action));
+                                    }
+                                }
+                                switch (pre_action) {
+                                    case utilization::MemoryBudgetController::ExceedAction::ShrinkBlock:
+                                        requested = std::max(
+                                            (requested * 4) / 5, min_chunk);
+                                        batch_shrink_count.fetch_add(
+                                            1, std::memory_order_relaxed);
+                                        record_action("shrink_block");
+                                        break;
+                                    case utilization::MemoryBudgetController::ExceedAction::ReleaseCache:
+                                        if (cache_release_hook) {
+                                            try { cache_release_hook(); } catch (...) {}
+                                        }
+                                        requested = std::max(
+                                            (requested * 4) / 5, min_chunk);
+                                        batch_shrink_count.fetch_add(
+                                            1, std::memory_order_relaxed);
+                                        record_action("release_cache");
+                                        break;
+                                    case utilization::MemoryBudgetController::ExceedAction::LowMemoryPath:
+                                        requested = min_chunk;
+                                        batch_shrink_count.fetch_add(
+                                            1, std::memory_order_relaxed);
+                                        record_action("low_memory_path");
+                                        break;
+                                    case utilization::MemoryBudgetController::ExceedAction::FallbackOtherDevice:
+                                        // 工作留在 pool，由其他 executor 领取
+                                        record_action("fallback_other_device");
+                                        pre_skip = true;
+                                        break;
+                                    case utilization::MemoryBudgetController::ExceedAction::StopNewSubmit:
+                                        if (gate.close()) {
+                                            stats_out.submit_gate_triggered = true;
+                                            stats_out.gate_close_count++;
+                                            record_action("stop_new_submit");
+                                        }
+                                        pre_skip = true;
+                                        break;
+                                    case utilization::MemoryBudgetController::ExceedAction::Fail:
+                                        gate.close_permanent();
+                                        stats_out.submit_gate_triggered = true;
+                                        stats_out.gate_close_count++;
+                                        record_action("fail");
+                                        pre_skip = true;
+                                        break;
+                                    default:
+                                        break;
+                                }
+                                if (pre_skip) {
+                                    if (gate.is_permanent_fail()) break;
+                                    std::this_thread::sleep_for(
+                                        std::chrono::milliseconds(10));
+                                    continue;
+                                }
+                                if (requested <
+                                    current_max_chunk.load(
+                                        std::memory_order_relaxed)) {
+                                    current_max_chunk.store(
+                                        requested, std::memory_order_relaxed);
+                                    pool.set_dynamic_max_chunk(requested);
+                                }
                             }
                         }
                         auto token = pool.claim_next_dynamic(exec->id(), requested);
@@ -1260,8 +1519,11 @@ void Dispatcher::configure(const DispatcherConfig& cfg) {
         }
     }
     if (impl_->mem_ctrl) {
-        utilization::MemoryBudgetConfig mbcfg;
-        impl_->mem_ctrl->configure(mbcfg);
+        // 25 号计划 §7：MemoryBudget 配置由 DispatcherConfig 显式注入；
+        // 未显式提供时使用默认配置（禁止 configure 内悄悄覆盖用户值）
+        impl_->mem_ctrl->configure(cfg.memory_budget_explicit
+                                       ? cfg.memory_budget
+                                       : utilization::MemoryBudgetConfig{});
         for (const auto& bn : mcfg.gpu_backends) {
             impl_->mem_ctrl->register_backend(bn);
         }
@@ -1421,7 +1683,7 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
             std::size_t max_chunk = chunk_size;
             result.run_result = impl_->execute_via_pool_dynamic(
                 begin, end, min_chunk, max_chunk,
-                fn, user_data, result.resource_control);
+                fn, user_data, result.resource_control, &task.traits);
         }
 
         // F-fix 1：actual_primary_backend 由真实完成统计生成
@@ -1466,7 +1728,7 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
     std::size_t max_chunk = chunk_size;
     auto r = impl_->execute_via_pool_dynamic(
         begin, end, min_chunk, max_chunk,
-        fn, user_data, result.resource_control);
+        fn, user_data, result.resource_control, &task.traits);
     result.run_result = r;
 
     // F-fix 1：actual_primary_backend 由真实完成统计生成

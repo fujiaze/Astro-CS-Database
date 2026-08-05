@@ -99,7 +99,8 @@ MemoryBudget MemoryBudgetController::sample() {
     m.avail_ram = ram.avail_bytes;
     m.used_ram = (ram.total_bytes > ram.avail_bytes)
                  ? (ram.total_bytes - ram.avail_bytes) : 0;
-    m.limit_ram = compute_limit(m.total_ram, impl_->cfg.ram_ratio, impl_->cfg.fixed_reserve_bytes);
+    m.limit_ram = compute_limit(m.total_ram, impl_->cfg.ram_ratio,
+                                impl_->cfg.ram_fixed_reserve_bytes);
     m.ram_exceeded = (m.used_ram > m.limit_ram);
     m.ram_valid = ram.valid;
 
@@ -115,7 +116,8 @@ MemoryBudget MemoryBudgetController::sample() {
         g.backend = v.backend;
         g.total_vram = v.total_bytes;
         g.used_vram = v.used_bytes;
-        g.limit_vram = compute_limit(v.total_bytes, impl_->cfg.vram_ratio, impl_->cfg.fixed_reserve_bytes);
+        g.limit_vram = compute_limit(v.total_bytes, impl_->cfg.vram_ratio,
+                                     impl_->cfg.vram_fixed_reserve_bytes);
         g.vram_exceeded = (v.valid && v.used_bytes > g.limit_vram);
         g.estimated = v.estimated;
         g.valid = v.valid;
@@ -158,7 +160,8 @@ MemoryBudget MemoryBudgetController::report_with(std::uint64_t used_ram,
     }
     m.total_ram = total_ram;
     m.used_ram = used_ram;
-    m.limit_ram = compute_limit(total_ram, impl_->cfg.ram_ratio, impl_->cfg.fixed_reserve_bytes);
+    m.limit_ram = compute_limit(total_ram, impl_->cfg.ram_ratio,
+                                impl_->cfg.ram_fixed_reserve_bytes);
     m.ram_exceeded = (used_ram > m.limit_ram);
     m.ram_valid = true;
 
@@ -167,7 +170,8 @@ MemoryBudget MemoryBudgetController::report_with(std::uint64_t used_ram,
     g.backend = backend;
     g.total_vram = total_vram;
     g.used_vram = used_vram;
-    g.limit_vram = compute_limit(total_vram, impl_->cfg.vram_ratio, impl_->cfg.fixed_reserve_bytes);
+    g.limit_vram = compute_limit(total_vram, impl_->cfg.vram_ratio,
+                                 impl_->cfg.vram_fixed_reserve_bytes);
     g.vram_exceeded = (used_vram > g.limit_vram);
     g.estimated = true;  // 注入接口标记估算
     g.valid = true;
@@ -189,7 +193,8 @@ std::string MemoryBudgetController::status_json() const {
     os << "{";
     os << "\"ram_ratio\":" << impl_->cfg.ram_ratio;
     os << ",\"vram_ratio\":" << impl_->cfg.vram_ratio;
-    os << ",\"fixed_reserve_bytes\":" << impl_->cfg.fixed_reserve_bytes;
+    os << ",\"ram_fixed_reserve_bytes\":" << impl_->cfg.ram_fixed_reserve_bytes;
+    os << ",\"vram_fixed_reserve_bytes\":" << impl_->cfg.vram_fixed_reserve_bytes;
     os << ",\"last_total_ram\":" << impl_->last_total_ram;
     os << ",\"last_total_vram\":" << impl_->last_total_vram;
     os << ",\"nvml_available\":" << (impl_->metrics.nvml_available() ? "true" : "false");
