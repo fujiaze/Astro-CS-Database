@@ -870,6 +870,43 @@ T compute_overlap_area(
 // ============================================================================
 // build_drop_geometry - 预计算 drop 包围圆 + 裁剪法向量 (Scalar 存储, 每源像素一次)
 // ============================================================================
+// 微小多边形切平面面积 (R12 阶段4):
+//   球面面积 = 切平面有向叉积和 × (1 + O(θ²)), θ=max_angle。
+//   θ < 1e-3 rad 时偏差 < 4e-8, 而 double 球面 Eriksson 的 det = a·(b×c)
+//   在 θ~1e-7 rad 时是 ~1e-8 项相消到 ~1e-15 的差, 噪声 ~1e-4~5e-5
+//   (0.01\"~0.1\" drop 实测)。切平面坐标避免相消, 误差仅剩表示层
+//   ~1e-9 相对。对微小 drop 是"不加精度、不加计算量"的数值稳定替代。
+// 顶点数组版 (c 为切平面法向/中心, 由调用方传入; 为空则用质心)
+static double planar_polygon_area_n(const Vec3* pts, int n, const Vec3* center = nullptr) {
+    if (n < 3) return 0.0;
+    Vec3 c = center ? *center : Vec3{0, 0, 0};
+    if (!center) {
+        for (int i = 0; i < n; i++) { c.x += pts[i].x; c.y += pts[i].y; c.z += pts[i].z; }
+    }
+    double cl = std::sqrt(c.x * c.x + c.y * c.y + c.z * c.z);
+    if (cl < 1e-300) return 0.0;
+    c.x /= cl; c.y /= cl; c.z /= cl;
+    double sum = 0.0;
+    for (int i = 0; i < n; i++) {
+        const Vec3& p = pts[i];
+        const Vec3& q = pts[(i + 1) % n];
+        // 投影到切平面 (垂直于 c)
+        double dp = p.x * c.x + p.y * c.y + p.z * c.z;
+        double dq = q.x * c.x + q.y * c.y + q.z * c.z;
+        double ux = p.x - dp * c.x, uy = p.y - dp * c.y, uz = p.z - dp * c.z;
+        double vx = q.x - dq * c.x, vy = q.y - dq * c.y, vz = q.z - dq * c.z;
+        // (u × v) · c = 有向面积元
+        sum += (uy * vz - uz * vy) * c.x +
+               (uz * vx - ux * vz) * c.y +
+               (ux * vy - uy * vx) * c.z;
+    }
+    return 0.5 * std::fabs(sum);
+}
+
+static double planar_polygon_area(const std::vector<Vec3>& pts) {
+    return planar_polygon_area_n(pts.data(), (int)pts.size());
+}
+
 template <typename Scalar>
 DropGeometryT<Scalar> build_drop_geometry(const std::vector<Vec3T<Scalar>>& drop_corners,
                                           const std::vector<Vec3>* corners_dbl) {
@@ -877,6 +914,35 @@ DropGeometryT<Scalar> build_drop_geometry(const std::vector<Vec3T<Scalar>>& drop
     g.corners = drop_corners;
     int nd = (int)drop_corners.size();
     if (nd < 3) return g;
+    // double 角点缓存 (drop_area / 完全包含判定的几何源)
+    g.corners_d.resize(nd);
+    if (corners_dbl && (int)corners_dbl->size() == nd) {
+        g.corners_d = *corners_dbl;
+    } else {
+        for (int j = 0; j < nd; j++)
+            g.corners_d[j] = {double(drop_corners[j].x),
+                              double(drop_corners[j].y),
+                              double(drop_corners[j].z)};
+    }
+    // drop 面积 (double 源, 构建时一次; 供小 drop 完全包含快路径)
+    //   尺度感知: max_angle 暂以临时中心近似估计 (下面精确计算后不重复)
+    //   微小 drop (角跨度 < 1e-3 rad ≈ 206\") 用切平面 2D 面积 (数值稳定);
+    //   大 drop 用球面 Eriksson (double 在 θ > 1e-3 时噪声 < 1e-7 可忽略)
+    {
+        double cx0 = 0.0, cy0 = 0.0, cz0 = 0.0;
+        for (const auto& v : g.corners_d) { cx0 += v.x; cy0 += v.y; cz0 += v.z; }
+        double l0 = std::sqrt(cx0 * cx0 + cy0 * cy0 + cz0 * cz0);
+        if (l0 > 1e-300) { cx0 /= l0; cy0 /= l0; cz0 /= l0; }
+        double ang0 = 0.0;
+        for (const auto& v : g.corners_d) {
+            double d = v.x * cx0 + v.y * cy0 + v.z * cz0;
+            d = std::max(-1.0, std::min(1.0, d));
+            ang0 = std::max(ang0, std::acos(d));
+        }
+        g.drop_area = (ang0 < 1e-3)
+            ? planar_polygon_area(g.corners_d)
+            : spherical_polygon_area<double>(g.corners_d);
+    }
     // 方向判定/中心用 double 精度源 (corners_dbl 由调用方传入 WCS double 角点;
     // 无则从 Scalar 转 — float 存储的 ~1e-7 舍入在 6.3\" 尺度会导致
     // clip 法向量方向翻转, 因此生产路径必须提供 double 角点)
@@ -1013,6 +1079,40 @@ Scalar compute_overlap_area_g(const DropGeometryT<Scalar>& g,
         return Scalar(PI / (3.0 * (double)nside * (double)nside));
     }
 
+    // R12 (阶段4): 对称快路径 — drop 完全位于目标像素内 → overlap = drop_area
+    //   原 S-H (像素三角形扇 x drop 边) 在 drop 完全在像素内时会重算 drop 角点:
+    //   像素边大圆与 drop 边大圆在赤道带接近平行, 交点固定绝对误差 ~1e-11 rad,
+    //   相对误差与 drop 尺寸成反比 (0.01\" 实测 4.6e-4, 0.1\" 1.5e-5)。
+    //   改为直接判定 drop 全部角点在像素 4 半空间内, 返回 double 精度 drop_area:
+    //   overlap ≡ drop_area → weight = 1 精确, 且免去整个 S-H (性能不降反升)。
+    //   此路径对任何"drop 完全在像素内"的场景都适用, 不限于小 drop。
+    {
+        bool drop_inside_pixel = true;
+        for (int i = 0; i < nb; i++) {
+            const Vec3& P1 = hp_boundary[i];
+            const Vec3& P2 = hp_boundary[(i + 1) % nb];
+            double nx = P1.y * P2.z - P1.z * P2.y;
+            double ny = P1.z * P2.x - P1.x * P2.z;
+            double nz = P1.x * P2.y - P1.y * P2.x;
+            double nl = std::sqrt(nx * nx + ny * ny + nz * nz);
+            if (nl < 1e-12) { drop_inside_pixel = false; break; }  // 退化边, 放弃快路径
+            nx /= nl; ny /= nl; nz /= nl;
+            if (nx * hp_center.x + ny * hp_center.y + nz * hp_center.z < 0.0) {
+                nx = -nx; ny = -ny; nz = -nz;
+            }
+            for (const auto& v : g.corners_d) {
+                if (v.x * nx + v.y * ny + v.z * nz < -inside_tol) {
+                    drop_inside_pixel = false;
+                    break;
+                }
+            }
+            if (!drop_inside_pixel) break;
+        }
+        if (drop_inside_pixel) {
+            return Scalar(g.drop_area);
+        }
+    }
+
     // 三角形扇剖分 + 逐三角形 S-H 裁剪 (旧算法数值路径, 通量闭合 ~1e-11)
     double total_overlap = 0.0;
     bool center_in_drop = true;
@@ -1044,7 +1144,16 @@ Scalar compute_overlap_area_g(const DropGeometryT<Scalar>& g,
             Vec3 intersection[16];
             int ni = sutherland_hodgman_spherical_fixed(triangle, 3, drop_clip_normals, intersection, 16);
             if (ni < 3) continue;
-            total_overlap += spherical_polygon_area_n<double>(intersection, ni);
+            // 面积与 drop_area 同一尺度感知策略 (R12):
+            //   drop 微小 (max_angle < 1e-3 rad) 时交集也是微小多边形,
+            //   用切平面面积 (与 g.drop_area 表示一致, 避免 weight 偏差);
+            //   大 drop 用球面 Eriksson
+            if (g.max_angle < 1e-3) {
+                total_overlap += planar_polygon_area_n(
+                    intersection, ni, &g.center_d);
+            } else {
+                total_overlap += spherical_polygon_area_n<double>(intersection, ni);
+            }
         }
     }
     return Scalar(total_overlap);

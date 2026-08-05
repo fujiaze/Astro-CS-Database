@@ -233,6 +233,10 @@ struct DropGeometryT {
     std::vector<Vec3T<Scalar>> clip_normals;   // 归一化裁剪平面法向量
     Vec3T<Scalar> center;                      // drop 包围圆中心 (归一化)
     double max_angle = 0.0;                    // 顶点到中心最大角距离 (弧度, 双精度计算)
+    // R12 (阶段4): drop 球面面积 (double 精度源, 构建时一次; 小 drop 完全包含
+    // 快路径直接返回, 避免 S-H 角点重算误差) + double 角点缓存
+    double drop_area = 0.0;
+    std::vector<Vec3> corners_d;
     // 内部 double 精度缓存 (构建时一次, S-H/判定使用; 避免 float 存储舍入
     // 导致微小几何判定翻转, 且不逐候选重建)
     std::vector<Vec3> clip_normals_d;

@@ -1130,21 +1130,18 @@ void DrizzleEngine::processPixelSharedTiled(
     const std::vector<spherical::Vec3>& drop_double =
         use_adaptive ? drop_corners_promoted : drop_corners_d;
 
-    // 面积从 double 精度角点源计算再转 Scalar:
+    // R11 (阶段7 + TRUE_SCALAR_PRECISE): 预计算 drop 几何 (Scalar 实例)
+    //   build_drop_geometry 内部从 double 角点源计算 drop_area (g.drop_area):
     //   float 存储角点的 ~1e-7 长度舍入在 6.3\" 尺度 drop 上造成面积误差
     //   ~0.05% (实测 ratio 0.9995~1.0002), 更小尺度 (1\"/px) 误差更大,
     //   会系统性偏置 weight = overlap/drop_area, 使 FP32/FP64 通量不一致。
-    //   (overlap 已由 build_drop_geometry 的 double 缓存保证; 面积同理)
-    double drop_area_d = spherical::spherical_polygon_area<double>(drop_double);
-    Scalar drop_area = Scalar(drop_area_d);
-    if (drop_area < Scalar(1e-20)) {
-        return;
-    }
-
-    // R11 (阶段7 + TRUE_SCALAR_PRECISE): 预计算 drop 几何 (Scalar 实例)
     spherical::DropGeometryT<Scalar> drop_geom =
         spherical::build_drop_geometry<Scalar>(drop_corners,
                                                use_adaptive ? nullptr : &drop_corners_d);
+    Scalar drop_area = Scalar(drop_geom.drop_area);
+    if (drop_area < Scalar(1e-20)) {
+        return;
+    }
 
     // ---- Step 5: 候选像素查询 ----
     // 候选集合为整数 ipix, 与 Scalar 无关; 使用 double 源角点计算保证
