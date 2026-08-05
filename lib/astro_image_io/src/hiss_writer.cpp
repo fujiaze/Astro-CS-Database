@@ -605,6 +605,9 @@ int HissWriter::add_tile_f64(uint64_t parent_ipix,
     // R10: 标记文件为 FP64 模式
     pimpl_->metadata.precision_mode = 1;
     pimpl_->metadata.signal_dtype   = 1;
+    // R11: FP64 模式下科学 metadata 浮点 dtype 随模式 (PREC-110)
+    // 注: snr_dtype 保持 0 — FP64 SNR 子块(12B/点)尚未实现, 不可虚报
+    pimpl_->metadata.metadata_float_dtype = 1;
 
     const size_t n_leaf = acc.pixels.size();
 

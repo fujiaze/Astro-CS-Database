@@ -194,7 +194,9 @@ std::string HissMetadata::to_json() const {
     ss << "\"gain\":"       << gain       << ",";
     ss << "\"history\":\""  << json_escape(history)  << "\",";
     ss << "\"precision_mode\":" << (unsigned)precision_mode << ",";
-    ss << "\"signal_dtype\":"   << (unsigned)signal_dtype;
+    ss << "\"signal_dtype\":"   << (unsigned)signal_dtype << ",";
+    ss << "\"snr_dtype\":"      << (unsigned)snr_dtype << ",";
+    ss << "\"metadata_float_dtype\":" << (unsigned)metadata_float_dtype;
     ss << "}";
     return ss.str();
 }
@@ -282,6 +284,9 @@ int HissMetadata::from_json(const std::string& json) {
     // R10: precision_mode/signal_dtype (缺失时默认 0=FP32, 向后兼容)
     if (get_num("precision_mode", v)) precision_mode = (uint8_t)v;
     if (get_num("signal_dtype", v))   signal_dtype   = (uint8_t)v;
+    // R11: snr_dtype / metadata_float_dtype (缺失时默认 0=float32, 向后兼容)
+    if (get_num("snr_dtype", v))            snr_dtype            = (uint8_t)v;
+    if (get_num("metadata_float_dtype", v)) metadata_float_dtype = (uint8_t)v;
     return 0;
 }
 

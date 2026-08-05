@@ -295,6 +295,9 @@ struct HissMetadata {
     // 精度模式 (R10: FP32/FP64 双模式)
     uint8_t precision_mode = 0;  // 0=FP32 (binary32), 1=FP64 (binary64)
     uint8_t signal_dtype = 0;    // 0=float32, 1=float64 (与 precision_mode 一致)
+    // R11: SNR 稀疏控制点与科学 metadata 浮点 dtype (HISS-102 / PREC-110)
+    uint8_t snr_dtype = 0;           // 0=float32 (snr 值), 1=float64
+    uint8_t metadata_float_dtype = 0; // 0=float32, 1=float64 (随 precision_mode)
 
     // 序列化为 JSON (用于 Header)
     HISS_EXPORT std::string to_json() const;
