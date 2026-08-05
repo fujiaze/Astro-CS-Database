@@ -93,4 +93,9 @@ void reference_drizzle_scatter(const std::vector<float>& x,
 void reference_resident_chain(const std::vector<float>& x,
                               std::vector<float>& z);
 
+// ===== KernelRegistry 注册（CPU + CUDA launcher）=====
+// 供 dispatch_invocation / Mixed 测试使用。幂等（可多次调用）。
+// launcher 处理 invocation.domain 子域（chunk 范围）。
+void register_focused_kernels();
+
 } // namespace astro::compute::qualification::focused

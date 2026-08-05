@@ -121,10 +121,16 @@ TEST(MixedRoute, TailGateStopsSlowDevice) {
 
     // 快 CPU（实测 0.5ns/item）→ 继续 claim
     EXPECT_TRUE(MixedRoutePlanner::should_claim(
-        plan, "cpu", 1u << 20, 0, 0.5));
-    // 慢 CPU（实测 10ns/item，远超 GPU 清空时间）→ 停止 claim
+        plan, "cpu", 1u << 20, 0, 0.5, 1.5, true));
+    // 慢 CPU（实测 10ns/item）vs 更快 GPU（0.5）→ 停止 claim
     EXPECT_FALSE(MixedRoutePlanner::should_claim(
-        plan, "cpu", 1u << 20, 0, 10.0));
+        plan, "cpu", 1u << 20, 0, 10.0, 0.5, true));
+    // 该设备是最快的 → 允许清尾（即使 remaining 大）
+    EXPECT_TRUE(MixedRoutePlanner::should_claim(
+        plan, "gpu", 1u << 20, 0, 0.2, 10.0, true));
+    // 未执行过（无实测）→ 允许首块建立实测
+    EXPECT_TRUE(MixedRoutePlanner::should_claim(
+        plan, "gpu", 1u << 20, 0, 0.0, 0.0, false));
 }
 
 // ============================================================================

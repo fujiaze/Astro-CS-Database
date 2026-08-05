@@ -62,7 +62,9 @@ public:
                              const std::string& device_backend,
                              std::size_t remaining,
                              std::size_t queue_depth,
-                             double device_measured_ns_per_item);
+                             double device_measured_ns_per_item,
+                             double other_measured_ns_per_item,
+                             bool device_has_measured_work);
 
 private:
     struct Impl;

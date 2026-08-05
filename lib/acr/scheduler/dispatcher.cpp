@@ -863,6 +863,8 @@ struct Dispatcher::Impl {
                     const auto mem_window = std::chrono::milliseconds(200);
                     auto last_mem_sample =
                         std::chrono::steady_clock::now() - mem_window;
+                    // 边际收益门等待轮次（兜底清尾）
+                    int tail_wait_rounds = 0;
 
                     while (true) {
                         const auto now = std::chrono::steady_clock::now();
@@ -981,21 +983,46 @@ struct Dispatcher::Impl {
                             if (requested == 0) requested = 1;
                             // 运行时完成时间只用于本次队列/尾部判断
                             // （不写回 Profile，不跨运行学习）
-                            double measured_ns = 0.0;
-                            const std::size_t done_items =
-                                exec_items[i].load(std::memory_order_relaxed);
-                            const auto done_elapsed =
-                                exec_elapsed[i].load(std::memory_order_relaxed);
-                            if (done_items > 0 && done_elapsed > 0) {
-                                measured_ns =
-                                    static_cast<double>(done_elapsed) /
-                                    static_cast<double>(done_items);
+                            auto measured_for = [&](std::size_t idx) -> double {
+                                const std::size_t items =
+                                    exec_items[idx].load(
+                                        std::memory_order_relaxed);
+                                const auto el =
+                                    exec_elapsed[idx].load(
+                                        std::memory_order_relaxed);
+                                return (items > 0 && el > 0)
+                                    ? static_cast<double>(el) /
+                                          static_cast<double>(items)
+                                    : 0.0;
+                            };
+                            const double measured_ns = measured_for(i);
+                            // 另一设备实测速率（用于边际收益对比）
+                            double other_measured_ns = 0.0;
+                            for (std::size_t j = 0; j < n_exec; ++j) {
+                                if (j != i &&
+                                    supported[j]->backend_type() !=
+                                        exec->backend_type()) {
+                                    other_measured_ns = measured_for(j);
+                                    break;
+                                }
                             }
                             // 边际收益门：预计拖尾的设备停止新 claim
                             if (!MixedRoutePlanner::should_claim(
                                     plan, exec->backend_type(), remaining,
-                                    exec->queue_state().depth, measured_ns)) {
-                                break;  // 停止该设备本轮 claim
+                                    exec->queue_state().depth, measured_ns,
+                                    other_measured_ns,
+                                    measured_for(i) > 0.0)) {
+                                // 停止该设备新 claim，但不退出：等待观察
+                                // 快设备清尾；连续拒绝达阈值时兜底强制清尾，
+                                // 保证剩余工作不会因所有设备退出而丢失。
+                                if (++tail_wait_rounds >= 20) {
+                                    tail_wait_rounds = 0;
+                                    // 兜底：强制 claim（清尾保证）
+                                } else {
+                                    std::this_thread::sleep_for(
+                                        std::chrono::milliseconds(5));
+                                    continue;
+                                }
                             }
                         } else {
                             requested =
@@ -1154,8 +1181,12 @@ struct Dispatcher::Impl {
                         if (!token.valid()) {
                             break;
                         }
-                        // 首轮公平门（仅影响每个 executor 的第一块之前）
-                        if (!first_round_done.load(std::memory_order_acquire)) {
+                        // 首轮公平门（仅影响每个 executor 的第一块之前）。
+                        // 聚焦版：OperationProfile 规划模式（08 号计划 §5）下
+                        // 禁用强制公平门——由 planner 的边际收益门决定设备是否
+                        // 参与，避免慢设备被公平门阻塞导致死锁。
+                        if (!cfg.operation_profile &&
+                            !first_round_done.load(std::memory_order_acquire)) {
                             if (!first_claimed[i].exchange(true,
                                                            std::memory_order_acq_rel)) {
                                 if (first_round_made.fetch_add(1,

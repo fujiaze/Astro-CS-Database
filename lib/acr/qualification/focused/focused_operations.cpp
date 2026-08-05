@@ -1,13 +1,16 @@
 // lib/acr/qualification/focused/focused_operations.cpp — 聚焦目标合成 Operation 实现
 #include "focused_operations.hpp"
 
+#include "astro/compute/kernel_registry.hpp"
 #include "astro/compute/task_traits.hpp"
 #include "../backends/cuda/bridge/cuda_bridge_api.hpp"
 
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
 #include <mutex>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -41,6 +44,14 @@ std::size_t hash_bin(std::size_t i, std::size_t bins) noexcept {
     std::size_t h = i;
     h ^= h >> 17; h *= 0xed5ad4bbULL; h ^= h >> 11;
     return h % bins;
+}
+
+FocusedOp op_from_id(std::string_view id) noexcept {
+    if (id == kOpDensePixelAccumulateFp32) return FocusedOp::DenseAccumulateFp32;
+    if (id == kOpDensePixelAccumulateFp64Acc) return FocusedOp::DenseAccumulateFp64Acc;
+    if (id == kOpPixelReduceFp64Acc) return FocusedOp::PixelReduceFp64Acc;
+    if (id == kOpDrizzleLikeScatterFp64Acc) return FocusedOp::DrizzleScatterFp64Acc;
+    return FocusedOp::ResidentChain;
 }
 
 } // anonymous namespace
@@ -277,6 +288,177 @@ void reference_resident_chain(const std::vector<float>& x,
                               std::vector<float>& z) {
     const std::size_t n = x.size();
     for (std::size_t i = 0; i < n; ++i) z[i] = (x[i] + 1.0f) * 2.0f;
+}
+
+namespace {
+
+// ===== KernelRegistry launcher（处理 chunk 子域）=====
+void cpu_dense_launcher(const KernelInvocation& inv, void*, bool fp64_acc) {
+    const BufferBinding* yb = inv.buffers.find(0);
+    const BufferBinding* xb = inv.buffers.find(1);
+    if (!yb || !xb) throw std::runtime_error("dense: missing buffers");
+    float* y = static_cast<float*>(yb->data);
+    const float* x = static_cast<const float*>(xb->data);
+    for (std::size_t i = inv.domain.begin; i < inv.domain.end; ++i) {
+        if (fp64_acc) {
+            y[i] = static_cast<float>(
+                static_cast<double>(y[i]) + static_cast<double>(x[i]));
+        } else {
+            y[i] += x[i];
+        }
+    }
+}
+
+void cpu_dense_fp32_launcher(const KernelInvocation& inv, void* ud) {
+    cpu_dense_launcher(inv, ud, false);
+}
+
+void cpu_dense_fp64acc_launcher(const KernelInvocation& inv, void* ud) {
+    cpu_dense_launcher(inv, ud, true);
+}
+
+void cpu_reduce_launcher(const KernelInvocation& inv, void*) {
+    const BufferBinding* xb = inv.buffers.find(0);
+    const BufferBinding* pb = inv.buffers.find(1);
+    if (!xb || !pb) throw std::runtime_error("reduce: missing buffers");
+    const float* x = static_cast<const float*>(xb->data);
+    double* partials = static_cast<double*>(pb->data);
+    double sum = 0.0;
+    for (std::size_t i = inv.domain.begin; i < inv.domain.end; ++i) {
+        sum += static_cast<double>(x[i]);
+    }
+    partials[inv.token_id] += sum;  // 私有槽位（PrivatePartialThenMerge）
+}
+
+void cpu_drizzle_launcher(const KernelInvocation& inv, void*) {
+    const BufferBinding* xb = inv.buffers.find(0);
+    const BufferBinding* pb = inv.buffers.find(1);
+    if (!xb || !pb) throw std::runtime_error("drizzle: missing buffers");
+    auto bins = read_scalar<std::size_t>(inv.scalars, 0);
+    if (!bins || *bins == 0) throw std::runtime_error("drizzle: missing bins");
+    const float* x = static_cast<const float*>(xb->data);
+    double* partials = static_cast<double*>(pb->data);
+    for (std::size_t i = inv.domain.begin; i < inv.domain.end; ++i) {
+        partials[hash_bin(i, *bins)] += static_cast<double>(x[i]);
+    }
+}
+
+void cpu_chain_launcher(const KernelInvocation& inv, void*) {
+    const BufferBinding* zb = inv.buffers.find(0);
+    const BufferBinding* xb = inv.buffers.find(1);
+    if (!zb || !xb) throw std::runtime_error("chain: missing buffers");
+    float* z = static_cast<float*>(zb->data);
+    const float* x = static_cast<const float*>(xb->data);
+    for (std::size_t i = inv.domain.begin; i < inv.domain.end; ++i) {
+        z[i] = (x[i] + 1.0f) * 2.0f;
+    }
+}
+
+// CUDA launcher（经桥接 TLS 句柄；桥接不可用时抛异常 → 如实 Failed）
+void cuda_launcher(const KernelInvocation& inv, void*, FocusedOp op) {
+    using namespace astro::compute::cuda::bridge;
+    auto& api = astro::compute::cuda::bridge::api();
+    if (!api.loaded()) throw std::runtime_error("cuda bridge not loaded");
+    void* h = get_tls_handle();
+    if (!h) throw std::runtime_error("no cuda handle");
+    std::vector<float> y(inv.domain.size(), 2.0f);
+    std::vector<float> x(inv.domain.size());
+    const BufferBinding* yb = inv.buffers.find(0);
+    const BufferBinding* xb = inv.buffers.find(1);
+    if (!yb || !xb) throw std::runtime_error("cuda: missing buffers");
+    const float* xsrc = static_cast<const float*>(xb->data);
+    const float* ysrc = static_cast<const float*>(yb->data);
+    std::memcpy(y.data(), ysrc + inv.domain.begin,
+                inv.domain.size() * sizeof(float));
+    std::memcpy(x.data(), xsrc + inv.domain.begin,
+                inv.domain.size() * sizeof(float));
+    std::uint64_t el = 0;
+    const char* err = nullptr;
+    int rc = 1;
+    switch (op) {
+        case FocusedOp::DenseAccumulateFp32:
+            rc = api.submit_axpy(h, 0, inv.domain.size(), y.data(), x.data(),
+                                 1.0f, &el, &err);
+            break;
+        case FocusedOp::DenseAccumulateFp64Acc:
+            rc = api.submit_dense_accumulate_fp64acc(
+                h, 0, inv.domain.size(), y.data(), x.data(), &el, &err);
+            break;
+        case FocusedOp::PixelReduceFp64Acc: {
+            const std::size_t blocks = (inv.domain.size() + 255) / 256;
+            std::vector<double> partials(blocks, 0.0);
+            rc = api.submit_reduce(h, 0, inv.domain.size(), x.data(),
+                                   partials.data(), blocks, 0, &el, &err);
+            if (rc == 0) {
+                double sum = 0.0;
+                for (double v : partials) sum += v;
+                const BufferBinding* pb = inv.buffers.find(1);
+                if (pb) {
+                    static_cast<double*>(pb->data)[inv.token_id] += sum;
+                }
+            }
+            break;
+        }
+        case FocusedOp::DrizzleScatterFp64Acc: {
+            auto bins = read_scalar<std::size_t>(inv.scalars, 0);
+            const std::size_t nb = bins ? *bins : 256;
+            const BufferBinding* pb = inv.buffers.find(1);
+            if (!pb) throw std::runtime_error("cuda: missing partials");
+            rc = api.submit_drizzle_scatter(
+                h, 0, inv.domain.size(), x.data(),
+                static_cast<double*>(pb->data), nb, &el, &err);
+            break;
+        }
+        case FocusedOp::ResidentChain:
+            rc = api.submit_chain(h, 0, inv.domain.size(), y.data(), x.data(),
+                                  &el, &err);
+            break;
+    }
+    if (rc != 0) {
+        throw std::runtime_error(err ? err : "cuda kernel failed");
+    }
+    // 写回 y（dense/chain）
+    if (op == FocusedOp::DenseAccumulateFp32 ||
+        op == FocusedOp::DenseAccumulateFp64Acc ||
+        op == FocusedOp::ResidentChain) {
+        float* ydst = static_cast<float*>(yb->data);
+        std::memcpy(ydst + inv.domain.begin, y.data(),
+                    inv.domain.size() * sizeof(float));
+    }
+    set_tls_elapsed(el);
+}
+
+} // anonymous namespace
+
+void register_focused_kernels() {
+    static std::once_flag flag;
+    std::call_once(flag, [] {
+        // CUDA launcher 必须是静态函数指针（不能捕获）
+        auto cuda_dispatch = +[](const KernelInvocation& inv, void* ud) {
+            cuda_launcher(inv, ud, op_from_id(inv.id));
+        };
+        auto reg = [](const char* id, CpuKernelLauncher cpu,
+                      CudaKernelLauncher cuda,
+                      std::size_t buf_count, std::size_t scalar_bytes) {
+            KernelRegistration r;
+            r.id = id;
+            r.args.buffer_count = buf_count;
+            r.args.scalar_bytes = scalar_bytes;
+            r.cpu = cpu;
+            r.cuda = cuda;
+            global_kernel_registry().register_kernel(r);
+        };
+        reg("synthetic.dense_pixel_accumulate.fp32",
+            &cpu_dense_fp32_launcher, cuda_dispatch, 2, 0);
+        reg("synthetic.dense_pixel_accumulate.fp64acc",
+            &cpu_dense_fp64acc_launcher, cuda_dispatch, 2, 0);
+        reg("synthetic.pixel_reduce.fp64acc",
+            &cpu_reduce_launcher, cuda_dispatch, 2, 0);
+        reg("synthetic.drizzle_like_scatter.fp64acc",
+            &cpu_drizzle_launcher, cuda_dispatch, 2, sizeof(std::size_t));
+        reg("synthetic.resident_chain",
+            &cpu_chain_launcher, cuda_dispatch, 2, 0);
+    });
 }
 
 } // namespace astro::compute::qualification::focused

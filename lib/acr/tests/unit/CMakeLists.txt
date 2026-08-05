@@ -190,6 +190,16 @@ target_include_directories(acr_test_residency PRIVATE
 )
 gtest_discover_tests(acr_test_residency DISCOVERY_MODE PRE_TEST)
 
+# 08 号计划 §7：聚焦 Mixed 能力与性能验收（真实 GPU）
+add_executable(acr_test_focused_mixed test_focused_mixed.cpp)
+target_link_libraries(acr_test_focused_mixed PRIVATE
+    acr_scheduler acr_qualification acr_cost acr_api GTest::gtest_main)
+target_include_directories(acr_test_focused_mixed PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../scheduler
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../qualification
+)
+gtest_discover_tests(acr_test_focused_mixed DISCOVERY_MODE PRE_TEST)
+
 # 23 号计划 §3/§6：CUDA 桥接真实 GPU（无 GPU/桥接时 GTEST_SKIP）
 add_executable(acr_test_cuda_bridge test_cuda_bridge.cpp)
 target_link_libraries(acr_test_cuda_bridge PRIVATE
