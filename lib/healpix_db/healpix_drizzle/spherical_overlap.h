@@ -77,6 +77,10 @@ T angular_distance(const Vec3T<T>& a, const Vec3T<T>& b);
 template <typename T>
 T spherical_polygon_area(const std::vector<Vec3T<T>>& vertices);
 
+// R11 (阶段7): 顶点数组版球面多边形面积 (内环无 vector 分配; 与 vector 版等价)
+template <typename T>
+T spherical_polygon_area_n(const Vec3T<T>* vertices, int n);
+
 // ============================================================================
 // 球面 Sutherland-Hodgman 多边形裁剪
 //
@@ -94,6 +98,14 @@ template <typename T>
 std::vector<Vec3T<T>> sutherland_hodgman_spherical(
     const std::vector<Vec3T<T>>& subject,
     const std::vector<Vec3T<T>>& clip_plane_normals);
+
+// R11 (阶段7): 固定容量球面 S-H 裁剪 (栈 buffer, 内环无堆分配)
+//   subject/输出 最多 16 顶点 (drop 4 角 × 裁剪 4 边 → 交集 ≤ 8 顶点, 留裕量)
+//   返回输出顶点数 (0 = 无交集); 等价于 sutherland_hodgman_spherical
+int sutherland_hodgman_spherical_fixed(
+    const Vec3* subject, int n_subject,
+    const std::vector<Vec3>& clip_plane_normals,
+    Vec3* out, int max_out);
 
 // ============================================================================
 // 获取 HEALPix 像素的球面边界顶点
@@ -210,6 +222,21 @@ template <typename T>
 T compute_overlap_area(
     const std::vector<Vec3T<T>>& drop_corners,
     const healpix::HealpixCore& hp, uint64_t target_ipix);
+
+// R11 (阶段7): drop 几何预计算 (包围圆 + 裁剪法向量), 供 compute_overlap_area_g 复用
+//   避免每候选重复构造 (高 NSIDE 下每源像素 ~10 候选 → 显著降低三角函数开销)
+struct DropGeometry {
+    std::vector<Vec3> corners;        // double 内部
+    std::vector<Vec3> clip_normals;   // 归一化裁剪平面法向量
+    Vec3 center;                      // drop 包围圆中心 (归一化)
+    double max_angle = 0.0;           // drop 顶点到中心最大角距离 (弧度)
+};
+
+DropGeometry build_drop_geometry(const std::vector<Vec3>& drop_corners);
+
+// 使用预计算 drop 几何的重叠面积 (与 compute_overlap_area 语义一致)
+double compute_overlap_area_g(const DropGeometry& g,
+                              const healpix::HealpixCore& hp, uint64_t target_ipix);
 
 // ============================================================================
 // 查询与 drop 多边形可能相交的所有 HEALPix 像素 (不限于 1-ring)

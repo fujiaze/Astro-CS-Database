@@ -45,12 +45,11 @@ struct PixelAccumulator {
 // R11 (阶段7): Tile 局部累加器的叶像素累加单元 (模板双实例 Scalar=float/double)
 //   FP32 模式: sumFlux/sumArea 为 IEEE binary32 (真 FP32 累计, 不共享 double)
 //   FP64 模式: IEEE binary64 (与旧 PixelAccumulator 语义一致)
-//   字段语义与 PixelAccumulator 一致; 正式 HISS 输出仅消费 sumFlux/sumArea/nContrib
+//   控制包 TILE_ACCUMULATOR_DESIGN: release 只保留 sumFlux/sumArea/nContrib;
+//   sumWeight/sumSnrSq 为诊断字段, 已移除 (每 leaf 20B→12B, 完整帧 RSS -40%)
 template <typename Scalar>
 struct TileLeafAccumulatorT {
     Scalar sumFlux = Scalar(0);
-    Scalar sumWeight = Scalar(0);
-    Scalar sumSnrSq = Scalar(0);
     Scalar sumArea = Scalar(0);
     uint32_t nContrib = 0;
 };

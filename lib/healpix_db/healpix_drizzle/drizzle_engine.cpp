@@ -563,8 +563,8 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
             uint64_t ipix = (shift > 0) ? ((parent << shift) | local) : parent;
             PixelAccumulator& d = accumulators[ipix];
             d.sumFlux   = s.sumFlux;
-            d.sumWeight = s.sumWeight;
-            d.sumSnrSq  = s.sumSnrSq;
+            d.sumWeight = 0.0;   // 诊断字段已移除 (release 精简)
+            d.sumSnrSq  = 0.0;
             d.sumArea   = s.sumArea;
             d.nContrib  = s.nContrib;
         }
@@ -682,8 +682,8 @@ bool DrizzleEngine::drizzle_f64(const FitsImage& img, const DrizzleConfig& confi
             uint64_t ipix = (shift > 0) ? ((parent << shift) | local) : parent;
             PixelAccumulator& d = accumulators[ipix];
             d.sumFlux   = s.sumFlux;
-            d.sumWeight = s.sumWeight;
-            d.sumSnrSq  = s.sumSnrSq;
+            d.sumWeight = 0.0;   // 诊断字段已移除 (release 精简)
+            d.sumSnrSq  = 0.0;
             d.sumArea   = s.sumArea;
             d.nContrib  = s.nContrib;
         }
@@ -1110,6 +1110,9 @@ void DrizzleEngine::processPixelSharedTiled(
         return;
     }
 
+    // R11 (阶段7): 预计算 drop 几何 (包围圆/裁剪法向量), 供所有候选复用
+    spherical::DropGeometry drop_geom = spherical::build_drop_geometry(drop_corners);
+
     // ---- Step 5: 候选像素查询 ----
     std::vector<uint64_t> candidates;
     spherical::query_candidate_pixels_fast<double>(drop_corners, hp, candidates);
@@ -1122,7 +1125,7 @@ void DrizzleEngine::processPixelSharedTiled(
     //   leaf 由 NESTED 位运算拆分为 (parent_ipix, local_ipix):
     //     parent = ipix >> (2*depth), local = ipix & mask
     for (uint64_t ipix : candidates) {
-        double overlap_area = spherical::compute_overlap_area<double>(drop_corners, hp, ipix);
+        double overlap_area = spherical::compute_overlap_area_g(drop_geom, hp, ipix);
         if (overlap_area < 1e-20) continue;
 
         double weight = overlap_area / drop_area;
@@ -1136,8 +1139,6 @@ void DrizzleEngine::processPixelSharedTiled(
         if (tile.touched.empty()) tile.parent_ipix = parent;  // 首触时记录 parent (operator[] 默认 0)
         TileLeafAccumulatorT<Scalar>& acc = tile.leaf(local);
         acc.sumFlux   += Scalar(pixelValue * weight);
-        acc.sumWeight += Scalar(weight);
-        acc.sumSnrSq  += Scalar(snrValue) * Scalar(snrValue) * Scalar(weight);
         acc.sumArea   += Scalar(overlap_area);
         acc.nContrib++;
     }
@@ -1294,8 +1295,6 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
                 const TileLeafAccumulatorT<Scalar>& s = tile.pixels[local];
                 if (d.nContrib == 0) dst.touched.push_back(local);
                 d.sumFlux   += s.sumFlux;
-                d.sumWeight += s.sumWeight;
-                d.sumSnrSq  += s.sumSnrSq;
                 d.sumArea   += s.sumArea;
                 d.nContrib  += s.nContrib;
             }
