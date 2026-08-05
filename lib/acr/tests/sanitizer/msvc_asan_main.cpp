@@ -2,9 +2,10 @@
 //
 // 背景：本机 MinGW（g++/clang）均无 ASan/UBSan 运行库（libasan/libubsan/
 // clang_rt.asan 缺失），完整 ACR（oneTBB 等 MinGW ABI 依赖）无法 ASan 构建。
-// 但 ACR 最关键的并发组件——共享工作池（shared_work_pool.cpp）与 KernelRegistry
-// （kernel_registry.cpp）——只依赖标准库，可用 MSVC 14.50 + /fsanitize=address
-// 编译真实源码做 ASan 验证。
+// 但 ACR 的不依赖 oneTBB/MinGW 库的组件——共享工作池（shared_work_pool.cpp）、
+// KernelRegistry（kernel_registry.cpp）、CpuExecutor（device_executor.cpp）、
+// CPU 控制器（utilization/cpu_controller.cpp + system_metrics.cpp）——可用
+// MSVC 14.50 + /fsanitize=address 编译真实源码做 ASan 验证。
 //
 // 用法：
 //   acr_sanitizer_msvc.exe            # 运行工作池/注册表压力 + 并发测试
@@ -13,8 +14,12 @@
 // 构建（证据命令）：
 //   vcvars64 && cl /nologo /std:c++20 /O2 /fsanitize=address /I <acr>/include \
 //     /I <acr>/scheduler \
+//     /I <acr> \
 //     <acr>/scheduler/shared_work_pool.cpp \
 //     <acr>/api/kernel_registry.cpp \
+//     <acr>/scheduler/device_executor.cpp \
+//     <acr>/utilization/cpu_controller.cpp \
+//     <acr>/utilization/system_metrics.cpp \
 //     <acr>/tests/sanitizer/msvc_asan_main.cpp \
 //     /link /out:acr_sanitizer_msvc.exe
 #include <cstdio>
@@ -24,12 +29,16 @@
 #include <vector>
 
 #include "scheduler/shared_work_pool.hpp"
+#include "scheduler/device_executor.hpp"
 #include "astro/compute/kernel_registry.hpp"
+#include "utilization/cpu_controller.hpp"
 
 using astro::compute::KernelInvocation;
 using astro::compute::kHwCpuDeviceId;
 using astro::compute::scheduler::SharedWorkPool;
 using astro::compute::scheduler::WorkToken;
+using astro::compute::scheduler::CpuExecutor;
+using astro::compute::scheduler::SubmitStatus;
 
 namespace {
 
@@ -122,6 +131,101 @@ int run_registry_concurrent() {
     return 0;
 }
 
+// ===== CpuExecutor 真实提交 + 契约校验（24 号计划 §5）=====
+int run_cpu_executor_and_contract() {
+    astro::compute::KernelRegistry reg;
+    {
+        astro::compute::KernelRegistration r;
+        r.id = "kernel.axpy";
+        r.args.buffer_count = 2;
+        r.args.scalar_bytes = sizeof(float);
+        r.cpu = +[](const KernelInvocation& inv, void*) {
+            const auto* yb = inv.buffers.find(0);
+            const auto* xb = inv.buffers.find(1);
+            auto a = astro::compute::read_scalar<float>(inv.scalars, 0);
+            if (!yb || !xb || !a) throw std::runtime_error("bad axpy invocation");
+            float* y = static_cast<float*>(yb->data);
+            const float* x = static_cast<const float*>(xb->data);
+            for (std::size_t i = inv.domain.begin; i < inv.domain.end; ++i) {
+                y[i] = *a * x[i] + y[i];
+            }
+        };
+        if (!reg.register_kernel(r)) { std::fprintf(stderr, "register failed\n"); return 1; }
+    }
+
+    CpuExecutor exec("cpu", 1024, 64, &reg);
+    constexpr std::size_t kN = 256;
+    std::vector<float> x(kN, 1.0f);
+    std::vector<float> y(kN, 2.0f);
+    KernelInvocation inv;
+    inv.id = "kernel.axpy";
+    inv.domain = astro::compute::WorkDomain{0, kN};
+    inv.buffers.add(0, y.data(), kN);
+    inv.buffers.add(1, x.data(), kN);
+    astro::compute::append_scalar(inv.scalars, 2.0f);
+
+    WorkToken token;
+    token.id = 0;
+    token.begin = 0;
+    token.end = kN;
+    token.claimant = kHwCpuDeviceId;
+    token.attempt = 1;
+
+    auto h = exec.submit(token, inv);
+    if (h.status != SubmitStatus::Ok) {
+        std::fprintf(stderr, "cpu executor submit failed: %s\n", h.error.c_str());
+        return 1;
+    }
+    for (std::size_t i = 0; i < kN; ++i) {
+        if (y[i] != 4.0f) { std::fprintf(stderr, "axpy result wrong\n"); return 1; }
+    }
+
+    // 契约拒绝路径：buffer 数错误、scalar 缺失、numeric 不匹配 → Rejected
+    KernelInvocation bad = inv;
+    bad.buffers.bindings.pop_back();
+    auto h1 = exec.submit(token, bad);
+    if (h1.status != SubmitStatus::Rejected) {
+        std::fprintf(stderr, "buffer-count contract not rejected\n");
+        return 1;
+    }
+    KernelInvocation bad_num = inv;
+    bad_num.traits.numeric.accumulator = astro::compute::NumericPolicy::Accumulator::fp64;
+    auto h2 = exec.submit(token, bad_num);
+    if (h2.status != SubmitStatus::Rejected) {
+        std::fprintf(stderr, "numeric-policy contract not rejected\n");
+        return 1;
+    }
+    std::printf("cpu_executor_contract: OK (submit + 2 reject paths, no ASan errors)\n");
+    return 0;
+}
+
+// ===== CPU 控制器：decide 循环 + worker 注册/注销（24 号计划 §4 基础）=====
+int run_cpu_controller() {
+    astro::compute::utilization::CpuController ctrl;
+    ctrl.set_target(0.5);
+    auto w1 = ctrl.register_worker();
+    auto w2 = ctrl.register_worker();
+    double budget = 1.0;
+    for (int i = 0; i < 2000; ++i) {
+        const double actual = (i % 3 == 0) ? 0.9 : 0.1;  // 高低交替
+        auto d = ctrl.decide_with_actual(actual);
+        if (i == 0) budget = d.active_budget;
+        if (d.active_budget < 0.25 || d.active_budget > 1.0) {
+            std::fprintf(stderr, "budget out of range: %f\n", d.active_budget);
+            return 1;
+        }
+    }
+    auto part = ctrl.worker_participation();
+    if (part.registered_count != 2u) {
+        std::fprintf(stderr, "worker registration mismatch: %u\n", part.registered_count);
+        return 1;
+    }
+    ctrl.unregister_worker(w1);
+    ctrl.unregister_worker(w2);
+    std::printf("cpu_controller: OK (2000 decisions + worker lifecycle, no ASan errors)\n");
+    return 0;
+}
+
 // ===== 故意 UAF：ASan 应检测并终止进程 =====
 int trigger_uaf() {
     int* p = new int(42);
@@ -140,10 +244,13 @@ int main(int argc, char** argv) {
     }
     const int r1 = run_work_pool_stress();
     const int r2 = run_registry_concurrent();
-    if (r1 != 0 || r2 != 0) {
+    const int r3 = run_cpu_executor_and_contract();
+    const int r4 = run_cpu_controller();
+    if (r1 != 0 || r2 != 0 || r3 != 0 || r4 != 0) {
         std::fprintf(stderr, "ACR MSVC ASan stress FAILED\n");
         return 1;
     }
-    std::printf("ACR MSVC ASan stress PASSED (work pool + registry)\n");
+    std::printf("ACR MSVC ASan stress PASSED "
+                "(work pool + registry + cpu executor/contract + controller)\n");
     return 0;
 }
