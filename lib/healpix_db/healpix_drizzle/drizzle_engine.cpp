@@ -1079,12 +1079,21 @@ void DrizzleEngine::processPixelSharedTiled(
     }
 
     // ---- Step 3: 自适应边细分 (double 计算, 阈值判断) ----
+    // 边跨度必须用真实球面角距 (R12 阶段4 修复):
+    //   - RA 跨 0 的像素: 裸 Δra 未环绕修正 → 359.98° (6.28 rad) 误判整圈
+    //   - 近极像素: 裸 Δra 被 1/cos(dec) 放大 (dec=89.4° 时 6.4" 真实跨度
+    //     被算成 617") → 误触发自适应细分
+    //   球面角距天然处理环绕与极区因子, 只有真实跨度 >= 60" 才走自适应
     double max_edge_rad = 0.0;
     for (int i = 0; i < 4; i++) {
         int j = (i + 1) % 4;
-        double dra  = (corners_ra[j]  - corners_ra[i])  * D2R;
-        double ddec = (corners_dec[j] - corners_dec[i]) * D2R;
-        double edge = std::sqrt(dra * dra + ddec * ddec);
+        spherical::Vec3 va = spherical::radec_to_vec<double>(
+            corners_ra[i], corners_dec[i]);
+        spherical::Vec3 vb = spherical::radec_to_vec<double>(
+            corners_ra[j], corners_dec[j]);
+        double d = va.x * vb.x + va.y * vb.y + va.z * vb.z;
+        d = std::max(-1.0, std::min(1.0, d));
+        double edge = std::acos(d);
         if (edge > max_edge_rad) max_edge_rad = edge;
     }
 
