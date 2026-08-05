@@ -1731,3 +1731,12 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 ### 提交 (main)
 - c0afc0d 配置驱动化; 590c5e3 SNR 对账; 640a70f StarDetector FP64;
   4f3e2fe ipv/orch FP64 接线
+
+### 收尾 (828abd3 + 308d59b)
+- 完整 Stage1 HISS 端到端验证: 完整帧 nside=2048 stop_after=hiss_verify,
+  HISS_VERIFY 10/10 Tile, 1929 SNR 点, exit=0 (Gate D HISS 验证项闭合)
+- FP32 ULP 分布报告: L2 裁剪 p50≈0.8 ULP, p95≈2.6, max≈4.9 (<1e-5)
+- 交付 configs/ 完善 (synthetic/crop/final_full_fp32) + FINAL_SELF_REVIEW 更新
+- Wiki 同步 (9 页, 独立仓库 48d9006) + 主仓库 wiki 指针 (308d59b)
+- 审核包更新: AstroCS_Review_PRECISE_Performance_Closure_20260805.zip
+  (SHA256 b78291cf67843eef4d31f4bcb0bbcfff5b66d28b28c26e5a44c6f577f9ccf921)
