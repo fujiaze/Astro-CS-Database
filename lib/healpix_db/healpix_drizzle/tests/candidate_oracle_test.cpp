@@ -18,6 +18,8 @@
 #include <vector>
 #include <algorithm>
 #include <string>
+#include <cstdio>
+#include <chrono>
 
 static const double PI_ = 3.14159265358979323846;
 static int g_pass = 0, g_fail = 0;
@@ -73,17 +75,23 @@ static std::vector<uint64_t> oracle_high_nside(const std::vector<spherical::Vec3
 }
 
 // 单 case: 构造 drop + Oracle + fast, 断言 false_negatives == 0
+// 输出 JSONL 证据 (控制包 CANDIDATE_RESULT.jsonl 模板)
+static FILE* g_jsonl = nullptr;
 static void run_case(const char* loc, double ra, double dec,
                      double scale_arcsec, double pixfrac, int nside) {
     g_total_cases++;
     std::vector<spherical::Vec3> drop = make_drop(ra, dec, scale_arcsec, pixfrac);
     healpix::HealpixCore hp(nside, true);
 
+    auto t0 = std::chrono::steady_clock::now();
     std::vector<uint64_t> truth = (nside <= 32)
         ? oracle_exhaustive(drop, hp)
         : oracle_high_nside(drop, hp);
+    bool used_fallback = false;
     std::vector<uint64_t> fast;
-    spherical::query_candidate_pixels_fast<double>(drop, hp, fast);
+    spherical::query_candidate_pixels_fast<double>(drop, hp, fast, &used_fallback);
+    auto t1 = std::chrono::steady_clock::now();
+    double wall_us = std::chrono::duration<double, std::micro>(t1 - t0).count();
 
     // false negatives: truth 中不在 fast 里的
     std::vector<uint64_t> sorted_fast = fast;
@@ -99,6 +107,17 @@ static void run_case(const char* loc, double ra, double dec,
     for (uint64_t ip : fast) {
         if (!std::binary_search(sorted_truth.begin(), sorted_truth.end(), ip)) fp++;
     }
+    if (g_jsonl) {
+        fprintf(g_jsonl,
+                "{\"case_id\":\"%s_n%d_pf%.2f\",\"nside\":%d,\"pixfrac\":%.2f,"
+                "\"scale_arcsec\":%.4f,\"location\":\"%s\","
+                "\"production_path\":\"%s\",\"oracle_true_count\":%zu,"
+                "\"candidate_count\":%zu,\"false_negatives\":%d,"
+                "\"false_positives\":%d,\"wall_us\":%.1f}\n",
+                loc, nside, pixfrac, nside, pixfrac, scale_arcsec, loc,
+                used_fallback ? "boundary_fallback" : "fast_interior",
+                truth.size(), fast.size(), fn, fp, wall_us);
+    }
     char msg[256];
     if (fn > 0) {
         snprintf(msg, sizeof(msg),
@@ -111,11 +130,19 @@ static void run_case(const char* loc, double ra, double dec,
     }
 }
 
-int main() {
+int main(int argc, char** argv) {
     printf("=== 候选零漏选 Oracle 矩阵 ===\n");
-    const double scales[] = {0.1, 1.0, 10.0, 60.0};  // 1° 尺度在 L0/高NSIDE 层单独覆盖
+    const char* jsonl_path = (argc > 1)
+        ? argv[1]
+        : "run/temp/precise_hardening/candidate_matrix.jsonl";
+    g_jsonl = std::fopen(jsonl_path, "w");
+    if (g_jsonl) printf("  JSONL 证据: %s\n", jsonl_path);
+    else printf("  [WARN] 无法写 JSONL: %s\n", jsonl_path);
+    const double scales[] = {0.1, 1.0, 10.0, 60.0, 3600.0};  // 0.1" ~ 1°
     const double pixfracs[] = {0.1, 0.25, 0.5, 1.0};
-    const int nside_oracle = 16;  // 全像素 Oracle 快路径 (3072 像素); 高 NSIDE 由保守参考矩阵覆盖
+    const int nsides[] = {16, 32, 64, 128};
+    // 16/32: 全像素穷举 Oracle (12288/49152 像素); 64/128: 保守参考
+    // (queryDisc buffer 3.0 + overlap>0 判定), 矩阵覆盖随 NSIDE 保持完整
 
     // 12 base face 中心 (nside=1 像素中心) + 边/角构造位置
     // 用 nside=8 枚举 face 边界附近像素中心作为边/角场景
@@ -187,19 +214,46 @@ int main() {
         }
     }
 
-    // 矩阵: 位置 × 尺度 × pixfrac
+    // 构造场景: NSIDE=4194304 (2^22, 生产上限, hp_res≈0.05")
+    //   - 12 face 中心 × 尺度 {0.1", 1", 10"} × pixfrac {0.1, 1.0}
+    //   - RA 跨 0 + 南北极 × 1" × pixfrac 1.0
+    //   参考 = 保守 queryDisc (buffer 3.0×hp_res) + overlap>0
+    {
+        healpix::HealpixCore hp1b(1, true);
+        for (int64_t ip = 0; ip < 12; ip++) {
+            double th, ph;
+            hp1b.pix2ang(ip, &th, &ph);
+            char name[32];
+            snprintf(name, sizeof(name), "face%d_center", (int)ip);
+            for (double sc : {0.1, 1.0, 10.0}) {
+                run_case(name, ph * (180.0 / PI_), 90.0 - th * (180.0 / PI_),
+                         sc, 0.1, 4194304);
+                run_case(name, ph * (180.0 / PI_), 90.0 - th * (180.0 / PI_),
+                         sc, 1.0, 4194304);
+            }
+        }
+        run_case("ra_cross0", 359.999, 0.0, 1.0, 1.0, 4194304);
+        run_case("north_pole", 0.0, 89.99, 1.0, 1.0, 4194304);
+        run_case("south_pole", 0.0, -89.99, 1.0, 1.0, 4194304);
+    }
+
+    // 矩阵: 位置 × 尺度 × pixfrac × NSIDE {16,32,64,128}
     long long case_no = 0;
     for (const auto& [loc, pos] : positions) {
         for (double scale : scales) {
             for (double pf : pixfracs) {
-                run_case(loc.c_str(), pos.first, pos.second, scale, pf, nside_oracle);
-                case_no++;
-                if (case_no % 200 == 0) {
-                    printf("  ... %lld cases done (pass=%d fail=%d)\n", case_no, g_pass, g_fail);
+                for (int nside : nsides) {
+                    run_case(loc.c_str(), pos.first, pos.second, scale, pf, nside);
+                    case_no++;
+                    if (case_no % 400 == 0) {
+                        printf("  ... %lld cases done (pass=%d fail=%d)\n",
+                               case_no, g_pass, g_fail);
+                    }
                 }
             }
         }
     }
+    if (g_jsonl) std::fclose(g_jsonl);
     printf("== 候选 Oracle 矩阵: %d 通过, %d 失败 (cases=%lld/%lld) ==\n",
            g_pass, g_fail, case_no, g_total_cases);
     return g_fail == 0 ? 0 : 1;

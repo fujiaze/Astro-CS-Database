@@ -1132,9 +1132,11 @@ template <typename T>
 void query_candidate_pixels_fast(
     const std::vector<Vec3T<T>>& drop_corners,
     const healpix::HealpixCore& hp,
-    std::vector<uint64_t>& candidates)
+    std::vector<uint64_t>& candidates,
+    bool* used_fallback)
 {
     candidates.clear();
+    if (used_fallback) *used_fallback = false;
     if (drop_corners.empty()) return;
 
     // 1. drop 球面包围圆 (内部 double 计算: 候选是几何完备性判定,
@@ -1202,6 +1204,7 @@ void query_candidate_pixels_fast(
     if (x0 < 0 || y0 < 0 || x1 > nside - 1 || y1 > nside - 1) {
         // 边界回退: 保守 inclusive 查询 (跨 face / 极区 / RA 跨界均安全)
         query_candidate_pixels<T>(drop_corners, hp, candidates);
+        if (used_fallback) *used_fallback = true;
         return;
     }
     // 快速路径统计: 单 face 内部枚举 (无跨 face)
@@ -1311,8 +1314,10 @@ template void query_candidate_pixels<float>(
 template void query_candidate_pixels<double>(
     const std::vector<Vec3T<double>>&, const healpix::HealpixCore&, std::vector<uint64_t>&);
 template void query_candidate_pixels_fast<float>(
-    const std::vector<Vec3T<float>>&, const healpix::HealpixCore&, std::vector<uint64_t>&);
+    const std::vector<Vec3T<float>>&, const healpix::HealpixCore&,
+    std::vector<uint64_t>&, bool*);
 template void query_candidate_pixels_fast<double>(
-    const std::vector<Vec3T<double>>&, const healpix::HealpixCore&, std::vector<uint64_t>&);
+    const std::vector<Vec3T<double>>&, const healpix::HealpixCore&,
+    std::vector<uint64_t>&, bool*);
 
 } // namespace spherical

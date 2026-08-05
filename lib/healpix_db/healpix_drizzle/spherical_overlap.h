@@ -275,7 +275,8 @@ template <typename T>
 void query_candidate_pixels_fast(
     const std::vector<Vec3T<T>>& drop_corners,
     const healpix::HealpixCore& hp,
-    std::vector<uint64_t>& candidates);
+    std::vector<uint64_t>& candidates,
+    bool* used_fallback = nullptr);
 
 } // namespace spherical
 
