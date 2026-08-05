@@ -13,6 +13,7 @@
 #include "hiss_format.h"
 #include <cstdio>
 #include <cmath>
+#include <algorithm>
 #include <vector>
 #include <string>
 #include <map>
@@ -96,6 +97,7 @@ int main(int argc, char** argv) {
     }
     double max_rel = 0.0;
     int n32 = 0, n_missing = 0;
+    std::vector<double> rel_diffs;
     for (const auto& tile : t32) {
         for (uint32_t local : tile.touched) {
             uint64_t ipix = (tile.parent_ipix << shift) | local;
@@ -105,6 +107,7 @@ int main(int argc, char** argv) {
             double r = std::fabs((double)tile.pixels[local].sumFlux - it->second) /
                        std::max(std::fabs(it->second), 1.0);
             if (r > max_rel) max_rel = r;
+            rel_diffs.push_back(r);
         }
     }
     snprintf(name, sizeof(name), "FP32 vs FP64 逐 leaf 最大相对差 %.3e (<1e-5, n32=%d)",
@@ -112,6 +115,29 @@ int main(int argc, char** argv) {
     CHECK(max_rel < 1e-5, name);
     snprintf(name, sizeof(name), "FP32 leaf 均可在 FP64 找到 (missing=%d)", n_missing);
     CHECK(n_missing == 0, name);
+
+    // R11: FP32 ULP/相对误差分布报告 (控制包 B 门: FP32 误差分布)
+    if (!rel_diffs.empty()) {
+        std::sort(rel_diffs.begin(), rel_diffs.end());
+        auto pct = [&](double p) {
+            size_t idx = (size_t)(p * (double)rel_diffs.size());
+            if (idx >= rel_diffs.size()) idx = rel_diffs.size() - 1;
+            return rel_diffs[idx];
+        };
+        double sum = 0.0;
+        for (double v : rel_diffs) sum += v;
+        double mean = sum / (double)rel_diffs.size();
+        // float32 相对精度 ULP ≈ 2^-24 ≈ 5.96e-8 (归一化到 [0.5,1) 时 1 ULP)
+        // 相对误差 / 1e-7 近似为 ULP 倍数 (保守, 1e-7 ≈ 1.68 ULP)
+        printf("  FP32 vs FP64 逐 leaf 误差分布 (n=%zu):\n", rel_diffs.size());
+        printf("    mean=%.3e  p50=%.3e  p90=%.3e  p95=%.3e  p99=%.3e  max=%.3e\n",
+               mean, pct(0.50), pct(0.90), pct(0.95), pct(0.99), rel_diffs.back());
+        printf("    近似 ULP (相对 1e-7): p50=%.1f  p95=%.1f  max=%.1f\n",
+               pct(0.50) / 1e-7, pct(0.95) / 1e-7, rel_diffs.back() / 1e-7);
+        char name2[160];
+        snprintf(name2, sizeof(name2), "误差分布: p95=%.3e < 1e-5 (float 累计精度内)", pct(0.95));
+        CHECK(pct(0.95) < 1e-5, name2);
+    }
 
     printf("== L2 结果: %d 通过, %d 失败 ==\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;
