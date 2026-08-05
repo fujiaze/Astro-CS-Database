@@ -4,12 +4,15 @@ AstroCS 是一个原生天文图像处理内核（C++/DLL），将真实 FITS �
 
 ## 当前状态
 
-- 当前阶段：Phase1 NonDrizzle 闭合 + PRECISE 性能重构——**Drizzle 部分闭合，整体未闭合**
+- 当前阶段：**Phase1 Drizzle 基础算法最终冻结**（2026-08-05，按
+  `AstroCS_Drizzle_Phase1_Final_Freeze_Pack_2026-08-05` 执行）
 - 正式科学运行只有唯一入口：`orchestrator.exe <stage1.json>`
-- 已完成：JSON 唯一入口与严格 Schema、生产 Python 封装删除、HISS signal FP32/FP64 双精度、合成数据与单帧逐 Gate 验证
-- 已完成（2026-08-05）：PRECISE Drizzle 重构（Tile 累加 + 流式写入 + 真 Scalar 模板），
-  L0/L1/L2/L3 全过（完整 FP32 33.8s，Gate D 通过）
-- 未完成：StarDetector/PlateSolve FP64 完整链路、SNR 逐点对账复跑、710 帧全量回归、Stage2/FAST/ACR
+- 已完成：JSON 唯一入口与严格 Schema、HISS signal FP32/FP64 数据面、
+  候选零漏选（9003/9003）、L0/L2、科学矩阵（180/180）、Sphere→Plane 双向底层
+- Phase1 边界：单帧平面 → HEALPix 球面 → HISS（Plane→Sphere 主路径）；
+  Phase2 = 多帧积分/HICS/马赛克；Phase3 = 球面→平面导出（底层双向已冻结）
+- 未完成（不在本轮）：Stage2 / FAST / ACR、710 帧全量回归
+- 严格科学验收以**合成真值数据**为主；真实 testdata 仅辅助/性能/集成验证
 
 ## 权威文档
 
