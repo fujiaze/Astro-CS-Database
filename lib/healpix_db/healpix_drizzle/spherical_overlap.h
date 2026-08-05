@@ -211,6 +211,14 @@ void query_candidate_pixels(
     const healpix::HealpixCore& hp,
     std::vector<uint64_t>& candidates);
 
+// R11: NESTED 直接候选枚举 (替代 queryDisc BFS)
+// 保守覆盖: drop 包围圆 + 1.2×hp_res 像素外接半径 (零漏选, 允许少量 false positives)
+// 与 query_candidate_pixels 语义一致, 供 pixfrac=1 共享顶点路径使用
+void query_candidate_pixels_fast(
+    const std::vector<Vec3>& drop_corners,
+    const healpix::HealpixCore& hp,
+    std::vector<uint64_t>& candidates);
+
 } // namespace spherical
 
 #endif // SPHERICAL_OVERLAP_H

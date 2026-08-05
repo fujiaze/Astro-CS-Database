@@ -951,7 +951,7 @@ void DrizzleEngine::processPixelShared(
     // WP-D 步骤4: 修复固定 1-ring 限制 (候选数 ≤ 48 → 可 > 48)
     // 高 NSIDE + 大源像素时, drop 跨越多个 HEALPix 像素, queryDisc 自动覆盖
     std::vector<uint64_t> candidates;
-    spherical::query_candidate_pixels(drop_corners, hp, candidates);
+    spherical::query_candidate_pixels_fast(drop_corners, hp, candidates);
 
     if (candidates.empty()) {
         return;
@@ -1079,7 +1079,7 @@ void DrizzleEngine::processPixelShared_f64(
 
     // ---- Step 5: 候选像素查询 ----
     std::vector<uint64_t> candidates;
-    spherical::query_candidate_pixels(drop_corners, hp, candidates);
+    spherical::query_candidate_pixels_fast(drop_corners, hp, candidates);
 
     if (candidates.empty()) {
         return;

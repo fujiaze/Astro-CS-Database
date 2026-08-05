@@ -80,11 +80,15 @@ int main(int argc, char** argv) {
         fprintf(stderr, "drizzle failed: %s\n", err.c_str());
         return 1;
     }
+    double total_flux = 0.0;
+    for (const auto& [ipix, pa] : acc) {
+        total_flux += pa.sumFlux;
+    }
     printf("{\"input_pixels\":%d,\"output_pixels\":%zu,\"nside\":%d,"
            "\"precision\":\"%s\",\"wall_s\":%.4f,\"elapsed_engine_s\":%.4f,"
-           "\"threads\":%d,\"config_threads\":%d,\"status\":\"%s\"}\n",
+           "\"threads\":%d,\"config_threads\":%d,\"total_flux\":%.6f,\"status\":\"%s\"}\n",
            size * size, acc.size(), stats.nside,
            prec ? "fp64" : "fp32", wall, stats.elapsedSec,
-           omp_get_max_threads(), cfg.threads, ok ? "PASS" : "FAIL");
+           omp_get_max_threads(), cfg.threads, total_flux, ok ? "PASS" : "FAIL");
     return 0;
 }

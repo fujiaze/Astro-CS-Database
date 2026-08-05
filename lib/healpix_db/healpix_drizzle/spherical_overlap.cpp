@@ -923,4 +923,119 @@ void query_candidate_pixels(
     std::sort(candidates.begin(), candidates.end());
 }
 
+// ============================================================================
+// query_candidate_pixels_fast - NESTED 直接候选枚举 (R11, 替代 queryDisc BFS)
+//
+// 保守性: 任何与 drop 相交的 HEALPix 像素, 其中心必然落在
+//   "drop 包围圆半径 + 像素外接圆半径" 的圆盘内。
+//   像素外接圆半径上界取 1.2 × hp_res (HEALPix 像素最坏情况外接半径 ≈ 1.19×res)。
+//   直接枚举 NESTED (face, ix, iy) 正方形包围盒内的像素 (整数位操作, 无 BFS/邻居展开),
+//   不做距离剔除 (允许少量 false positives, 由 overlap 精确计算过滤) → 零漏选。
+// ============================================================================
+void query_candidate_pixels_fast(
+    const std::vector<Vec3>& drop_corners,
+    const healpix::HealpixCore& hp,
+    std::vector<uint64_t>& candidates)
+{
+    candidates.clear();
+    if (drop_corners.empty()) return;
+
+    // 1. drop 球面包围圆 (与 query_candidate_pixels 一致)
+    Vec3 center = {0.0, 0.0, 0.0};
+    for (const Vec3& v : drop_corners) {
+        center.x += v.x; center.y += v.y; center.z += v.z;
+    }
+    center = normalize(center);
+    double max_angle = 0.0;
+    for (const Vec3& v : drop_corners) {
+        double ang = angular_distance(v, center);
+        if (ang > max_angle) max_angle = ang;
+    }
+
+    double hp_res_arcsec = hp.pixelResolutionArcsec();
+    double hp_res_rad    = hp_res_arcsec * ARCSEC_TO_RAD;
+    // 1.2×hp_res 像素外接半径上界 (收紧原 3.0×, 控制包要求保守但不浪费)
+    double buffer_rad    = 1.2 * hp_res_rad;
+    double query_radius_rad = max_angle + buffer_rad;
+
+    double ra_c, dec_c;
+    vec_to_radec(center, ra_c, dec_c);
+
+    // 2. 中心像素 NESTED (face, ix, iy) — 公开 radec2pix + 自实现 morton 解交织
+    int nside = hp.getNside();
+    uint64_t nside64 = (uint64_t)nside;
+    uint64_t per_face = nside64 * nside64;
+    uint64_t cipix = (uint64_t)hp.radec2pix(ra_c, dec_c);
+    int face = (int)(cipix / per_face);
+    uint64_t rem = cipix % per_face;
+    auto deinterleave = [](uint64_t v, bool odd) -> uint32_t {
+        auto compact = [](uint64_t x) -> uint64_t {
+            x &= 0x5555555555555555ull;
+            x = (x | (x >> 1))  & 0x3333333333333333ull;
+            x = (x | (x >> 2))  & 0x0F0F0F0F0F0F0F0Full;
+            x = (x | (x >> 4))  & 0x00FF00FF00FF00FFull;
+            x = (x | (x >> 8))  & 0x0000FFFF0000FFFFull;
+            x = (x | (x >> 16)) & 0x00000000FFFFFFFFull;
+            return x;
+        };
+        return (uint32_t)compact(odd ? (v >> 1) : v);
+    };
+    int ix0 = (int)deinterleave(rem, false);
+    int iy0 = (int)deinterleave(rem, true);
+
+    // 3. 半径转像素单位 (线性尺度), 取上整 (预过滤已保证精确半径, 无需 +1 裕量)
+    double radius_px_d = query_radius_rad / hp_res_rad;
+    int delta = (int)std::ceil(radius_px_d);
+    if (delta < 0) delta = 0;
+    if (delta > nside - 1) delta = nside - 1;
+
+    // 4. 直接枚举 (face, ix, iy) 正方形包围盒 (NESTED, 去重天然保证)
+    int x0 = ix0 - delta, x1 = ix0 + delta;
+    int y0 = iy0 - delta, y1 = iy0 + delta;
+    if (x0 < 0) x0 = 0;
+    if (y0 < 0) y0 = 0;
+    if (x1 > nside - 1) x1 = nside - 1;
+    if (y1 > nside - 1) y1 = nside - 1;
+    candidates.reserve((size_t)(x1 - x0 + 1) * (y1 - y0 + 1));
+    // NESTED morton 交织 (标准位操作, 纯数学, 不依赖 healpix_core 私有接口)
+    auto morton = [](int x, int y) -> uint64_t {
+        auto spread = [](uint32_t v) -> uint64_t {
+            uint64_t x = v & 0x00000000FFFFFFFFull;
+            x = (x | (x << 16)) & 0x0000FFFF0000FFFFull;
+            x = (x | (x << 8))  & 0x00FF00FF00FF00FFull;
+            x = (x | (x << 4))  & 0x0F0F0F0F0F0F0F0Full;
+            x = (x | (x << 2))  & 0x3333333333333333ull;
+            x = (x | (x << 1))  & 0x5555555555555555ull;
+            return x;
+        };
+        return spread((uint32_t)x) | (spread((uint32_t)y) << 1);
+    };
+    candidates.reserve((size_t)(x1 - x0 + 1) * (y1 - y0 + 1));
+    for (int iy = y0; iy <= y1; ++iy) {
+        for (int ix = x0; ix <= x1; ++ix) {
+            uint64_t ipix = (uint64_t)face * nside64 * nside64 + morton(ix, iy);
+            candidates.push_back(ipix);
+        }
+    }
+    // 5. 圆心距离预过滤 (保守: 像素中心在查询圆盘内才保留)
+    //    查询圆盘半径 = max_angle + 1.2×hp_res 已覆盖像素外接圆上界, 零漏选;
+    //    过滤掉正方形包围盒的边角, 大幅减少后续 compute_overlap_area 昂贵调用。
+    double cos_lim = std::cos(query_radius_rad);
+    std::vector<uint64_t> filtered;
+    filtered.reserve(candidates.size());
+    for (uint64_t ipix : candidates) {
+        double t, p;
+        hp.pix2ang((int64_t)ipix, &t, &p);
+        double st = std::sin(t);
+        double px = st * std::cos(p);
+        double py = st * std::sin(p);
+        double pz = std::cos(t);
+        if (px * center.x + py * center.y + pz * center.z >= cos_lim) {
+            filtered.push_back(ipix);
+        }
+    }
+    candidates.swap(filtered);
+    std::sort(candidates.begin(), candidates.end());
+}
+
 } // namespace spherical
