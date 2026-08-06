@@ -94,13 +94,14 @@ bool MixedRoutePlanner::should_claim(const MixedRoutePlan& plan,
                                      std::size_t queue_depth,
                                      double device_measured_ns_per_item,
                                      double other_measured_ns_per_item,
-                                     bool device_has_measured_work) {
+                                     bool allow_first_block) {
     if (!plan.profile_available || remaining == 0) {
         return plan.profile_available && remaining > 0;
     }
-    // 尚未执行过任何块的设备：允许领取首块以建立真实实测
-    // （无实测时 Profile 乐观速率会误判，导致某设备被过早排除）
-    if (!device_has_measured_work) return true;
+    // ForcedMixed：允许未执行设备领取首块（仅正确性测试）。
+    // Auto：禁止“每设备先领一块”（05 号规范 §2），无实测时用保守 Profile。
+    const bool has_measured = device_measured_ns_per_item > 0.0;
+    if (!has_measured && allow_first_block) return true;
     const bool is_cpu = (device_backend == "cpu");
     // 该设备预计完成"下一块"的耗时
     const std::size_t chunk = is_cpu ? plan.cpu_chunk_items
@@ -112,7 +113,8 @@ bool MixedRoutePlanner::should_claim(const MixedRoutePlan& plan,
         is_cpu ? plan.cpu_ns_per_item : plan.gpu_ns_per_item;
     const double other_profile_ns =
         is_cpu ? plan.gpu_ns_per_item : plan.cpu_ns_per_item;
-    const double per_item = device_measured_ns_per_item;
+    const double per_item = has_measured
+        ? device_measured_ns_per_item : profile_ns * 10.0;
     const double other_per_item = (other_measured_ns_per_item > 0.0)
         ? other_measured_ns_per_item : other_profile_ns * 10.0;
     // 两台设备完成剩余工作的总时间（实测/Profile 速率）

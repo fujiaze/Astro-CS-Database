@@ -743,6 +743,13 @@ struct Dispatcher::Impl {
                              : std::vector<DeviceExecutor*>{};
         std::vector<DeviceExecutor*> supported;
         const std::size_t task_size = end - begin;
+        // 聚焦版 v2（05 号规范 §2）：Auto 模式在 worker 启动前执行收益门。
+        // GPU 只有在当前路径（host/resident）eligible 且任务规模达到
+        // min_profitable_items 时才进入 worker 集合；不满足则不启动 worker。
+        const auto auto_plan = (cfg.operation_profile != nullptr)
+            ? planner.plan(std::string(invocation.id), task_size,
+                           data_resident)
+            : MixedRoutePlan{};
         for (auto* exec : all) {
             // 聚焦版 RouteMode（08 号计划 §3/§5）：
             // CpuOnly/GpuOnly 强制只启用一类设备（对照/回退/资格测试）
@@ -753,6 +760,19 @@ struct Dispatcher::Impl {
             if (cfg.route_mode == RouteMode::GpuOnly &&
                 exec->backend_type() == "cpu") {
                 continue;
+            }
+            // Auto 前置收益门（仅 AutoMixed 且非 ForcedMixed）：
+            // GPU 无合格路径或规模不足时不得进入 worker 集合；
+            // CpuOnly/GpuOnly 是强制对照模式，不受收益门限制。
+            if (cfg.route_mode == RouteMode::AutoMixed &&
+                cfg.operation_profile != nullptr &&
+                !cfg.force_all_supported_executors &&
+                exec->backend_type().rfind("cuda", 0) == 0) {
+                if (!auto_plan.profile_available) continue;
+                const std::size_t min_items = data_resident
+                    ? auto_plan.gpu_min_resident_items
+                    : auto_plan.gpu_min_host_items;
+                if (min_items > 0 && task_size < min_items) continue;
             }
             if (exec && exec->supports(invocation.id) &&
                 is_executor_eligible(exec, find_device_cost(estimate, exec->id()),
@@ -863,8 +883,6 @@ struct Dispatcher::Impl {
                     const auto mem_window = std::chrono::milliseconds(200);
                     auto last_mem_sample =
                         std::chrono::steady_clock::now() - mem_window;
-                    // 边际收益门等待轮次（兜底清尾）
-                    int tail_wait_rounds = 0;
 
                     while (true) {
                         const auto now = std::chrono::steady_clock::now();
@@ -1006,24 +1024,16 @@ struct Dispatcher::Impl {
                                     break;
                                 }
                             }
-                            // 边际收益门：预计拖尾的设备停止新 claim
-                            if (!MixedRoutePlanner::should_claim(
-                                    plan, exec->backend_type(), remaining,
-                                    exec->queue_state().depth, measured_ns,
-                                    other_measured_ns,
-                                    measured_for(i) > 0.0)) {
-                                // 停止该设备新 claim，但不退出：等待观察
-                                // 快设备清尾；连续拒绝达阈值时兜底强制清尾，
-                                // 保证剩余工作不会因所有设备退出而丢失。
-                                if (++tail_wait_rounds >= 20) {
-                                    tail_wait_rounds = 0;
-                                    // 兜底：强制 claim（清尾保证）
-                                } else {
-                                    std::this_thread::sleep_for(
-                                        std::chrono::milliseconds(5));
-                                    continue;
-                                }
-                            }
+                    // 边际收益门（05 号规范 §4/§5）：预计拖尾的设备停止新
+                    // claim，由最快设备清尾；Auto 不得强制慢设备重新领取。
+                    // ForcedMixed（force_all）保留首块参与（仅正确性测试）。
+                    if (!MixedRoutePlanner::should_claim(
+                            plan, exec->backend_type(), remaining,
+                            exec->queue_state().depth, measured_ns,
+                            other_measured_ns,
+                            cfg.force_all_supported_executors)) {
+                        break;  // 停止该设备 claim（Auto：最快设备清尾）
+                    }
                         } else {
                             requested =
                                 cost::global_cost_estimator().compute_requested_items(

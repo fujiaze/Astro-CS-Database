@@ -216,7 +216,8 @@ std::size_t FocusedBenchmark::run(FocusedProfileKind kind, bool enable_gpu) {
 
         // ---- 候选块实测（08 号计划 §2：替代硬编码 64K/1M）----
         {
-            const std::size_t cpu_cands[] = {1u << 14, 1u << 16, 1u << 18};
+            // 候选块：覆盖缓存友好 / 稳定吞吐 / 大规模三档，避免过小块
+            const std::size_t cpu_cands[] = {1u << 16, 1u << 18, 1u << 20};
             for (std::size_t c : cpu_cands) {
                 std::vector<std::uint64_t> samples;
                 std::vector<float> xc(c), yc(c, 2.0f);
@@ -232,7 +233,7 @@ std::size_t FocusedBenchmark::run(FocusedProfileKind kind, bool enable_gpu) {
                     static_cast<double>(median_of(samples)));
             }
             if (enable_gpu) {
-                const std::size_t gpu_cands[] = {1u << 18, 1u << 20, 1u << 22};
+                const std::size_t gpu_cands[] = {1u << 19, 1u << 20, 1u << 22};
                 for (std::size_t c : gpu_cands) {
                     std::vector<std::uint64_t> samples;
                     for (int r = 0; r < 5; ++r) {
@@ -534,12 +535,22 @@ OperationProfile FocusedBenchmark::build_profile(
             ? 0.0 : fit_intercept(sizes, m.cpu_ns, cpu_slope) / 1000.0;
         op.cpu.fixed_us = std::max(0.0, cpu_fixed);  // 截距可为负 → clamp 0
         op.cpu.ns_per_item = cpu_slope;
-        // 候选块：选每块耗时最低（吞吐稳定区）
+        // 候选块：选每 item 耗时最低（吞吐稳定区）；并列时选较大块
+        // （减少块数，降低调度开销与尾部风险）
         if (!m.cpu_chunk_candidates.empty()) {
             std::size_t best = 0;
             for (std::size_t i = 1; i < m.cpu_chunk_candidates.size(); ++i) {
-                if (m.cpu_chunk_ns_per_block[i] <
-                    m.cpu_chunk_ns_per_block[best]) best = i;
+                const double a =
+                    m.cpu_chunk_ns_per_block[best] /
+                    static_cast<double>(m.cpu_chunk_candidates[best]);
+                const double b =
+                    m.cpu_chunk_ns_per_block[i] /
+                    static_cast<double>(m.cpu_chunk_candidates[i]);
+                if (b < a * 0.95) best = i;       // 明显更快 → 换
+                else if (b <= a * 1.05) {
+                    if (m.cpu_chunk_candidates[i] >
+                        m.cpu_chunk_candidates[best]) best = i;  // 吞吐接近取大块
+                }
             }
             op.cpu.recommended_chunk_items = m.cpu_chunk_candidates[best];
             op.cpu.minimum_chunk_items =
@@ -563,8 +574,17 @@ OperationProfile FocusedBenchmark::build_profile(
             if (!m.gpu_chunk_candidates.empty()) {
                 std::size_t best = 0;
                 for (std::size_t i = 1; i < m.gpu_chunk_candidates.size(); ++i) {
-                    if (m.gpu_chunk_ns_per_block[i] <
-                        m.gpu_chunk_ns_per_block[best]) best = i;
+                    const double a =
+                        m.gpu_chunk_ns_per_block[best] /
+                        static_cast<double>(m.gpu_chunk_candidates[best]);
+                    const double b =
+                        m.gpu_chunk_ns_per_block[i] /
+                        static_cast<double>(m.gpu_chunk_candidates[i]);
+                    if (b < a * 0.95) best = i;
+                    else if (b <= a * 1.05) {
+                        if (m.gpu_chunk_candidates[i] >
+                            m.gpu_chunk_candidates[best]) best = i;
+                    }
                 }
                 op.gpu.recommended_chunk_items = m.gpu_chunk_candidates[best];
                 op.gpu.minimum_chunk_items =

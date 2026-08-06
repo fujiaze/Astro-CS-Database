@@ -130,9 +130,12 @@ TEST(MixedRoute, TailGateStopsSlowDevice) {
     // 该设备是最快的 → 允许清尾（即使 remaining 大）
     EXPECT_TRUE(MixedRoutePlanner::should_claim(
         plan, "gpu", 1u << 20, 0, 0.2, 10.0, true));
-    // 未执行过（无实测）→ 允许首块建立实测
+    // Auto 模式（allow_first_block=false）：无实测时用保守 Profile 判断
     EXPECT_TRUE(MixedRoutePlanner::should_claim(
         plan, "gpu", 1u << 20, 0, 0.0, 0.0, false));
+    // ForcedMixed（allow_first_block=true）：未执行设备允许首块
+    EXPECT_TRUE(MixedRoutePlanner::should_claim(
+        plan, "gpu", 1u << 20, 0, 0.0, 0.0, true));
 }
 
 // ============================================================================

@@ -177,14 +177,14 @@ TEST(FocusedMixed, AutoMixedWithinTenPercentOfBest) {
         return sec;
     };
 
-    // 各模式 3 次取中位（降低系统负载噪声）
+    // 各模式 5 次取中位（降低系统负载噪声）
     auto median_ms = [&](RouteMode m) -> double {
         std::vector<double> times;
-        for (int i = 0; i < 3; ++i) {
+        for (int i = 0; i < 5; ++i) {
             times.push_back(run_mode(m) * 1000.0);
         }
         std::sort(times.begin(), times.end());
-        return times[1];
+        return times[2];
     };
 
     const double cpu_ms = median_ms(RouteMode::CpuOnly);
