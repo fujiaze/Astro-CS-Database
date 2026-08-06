@@ -1331,17 +1331,7 @@ struct Dispatcher::Impl {
                         inv.attempt = token.attempt;
                         // 聚焦版 v3：输入已 prefetch → launcher 走 resident 路径
                         inv.input_resident = data_resident;
-                        std::fprintf(stderr,
-                                     "[%zu,%zu)\n",
-                                     exec->backend_type().c_str(),
-                                     static_cast<unsigned long long>(token.id),
-                                     token.begin, token.end);
-                        std::fflush(stderr);
                         SubmitHandle handle = exec->submit(token, inv);
-                        std::fprintf(stderr,
-                                     exec->backend_type().c_str(),
-                                     static_cast<int>(handle.status));
-                        std::fflush(stderr);
                         if (handle.status == SubmitStatus::Ok) {
                             // 24 号计划 §6：ledger 拒绝不得累计 actual 统计
                             if (pool.mark_done(token)) {
@@ -1835,7 +1825,6 @@ CostAwareResult Dispatcher::dispatch_invocation(
             for (auto* e : impl_->executors->available_executors()) {
                 if (e->backend_type().rfind("cuda", 0) == 0 &&
                     e->prefetch_inputs(input_hosts, input_bytes)) {
-                    std::fflush(stderr);
                     data_resident = true;
                     for (std::size_t i = 0; i < input_keys.size(); ++i) {
                         if (!was_resident[i]) {
@@ -1850,13 +1839,11 @@ CostAwareResult Dispatcher::dispatch_invocation(
         }
     }
 
-    std::fflush(stderr);
     std::vector<Impl::InvocationExecStats> per_exec_stats;
     std::vector<std::string> actual_devices;
     auto r = impl_->execute_invocation_via_executors(
         invocation, estimate, result.resource_control, per_exec_stats,
         actual_devices, data_resident);
-    std::fflush(stderr);
     result.run_result = r;
     result.actual_devices_used = actual_devices;
 
