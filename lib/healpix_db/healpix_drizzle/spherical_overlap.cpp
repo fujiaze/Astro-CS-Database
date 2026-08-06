@@ -22,6 +22,16 @@
 
 namespace spherical {
 
+// R13 (Phase1 Final Closure, CAND-001): HEALPix 像素外接半径安全系数
+//   像素外接半径 = 中心到最远角点的大圆角距。全像素扫描证明 (NSIDE
+//   16/32/64/128/256 穷举, scan_circumradius):
+//     nside=256 全局最大 = 1.043827 x hp_res @ (ra=89.8°, dec=-41.81°)
+//     (极区/赤道交界, HEALPix 像素最畸变区域), 随 NSIDE 单调收敛于 ~1.044
+//   生产快速候选与 overlap 快速拒绝必须使用 >1.044 的缓冲:
+//   取 1.1 x hp_res (约 5% 裕量覆盖浮点/边界数值效应)。
+//   旧代码用 1.0 x hp_res 会在像素角区域漏选 (CAND-001, 实测比例 1.044 > 1.0)。
+static const double HP_CIRCUMRADIUS_FACTOR = 1.1;
+
 // R12 (性能 profile): overlap 路径统计 (仅统计, 不改变逻辑; 由 drizzle_engine 汇总)
 static thread_local long long g_tl_n_quick = 0;
 static thread_local long long g_tl_n_fully = 0;
@@ -1052,7 +1062,7 @@ Scalar compute_overlap_area_g(const DropGeometryT<Scalar>& g,
     {
         double d_c = hp_center.x * center_x + hp_center.y * center_y + hp_center.z * center_z;
         d_c = std::max(-1.0, std::min(1.0, d_c));
-        if (std::acos(d_c) > g.max_angle + 1.0 * hp_res_rad_rj) {
+        if (std::acos(d_c) > g.max_angle + HP_CIRCUMRADIUS_FACTOR * hp_res_rad_rj) {
             g_tl_n_quick++;
             return Scalar(0);
         }
@@ -1233,7 +1243,8 @@ void query_candidate_pixels(
 
     // 2. R06-B04: 保守缓冲 — HEALPix 像素最大角半径 + 裕量
     //    HEALPix 像素分辨率 (角秒) = sqrt(4π/(12*nside²)) * 206265
-    //    像素最大角半径 (中心→最远顶点) 上界 ≈ 1.0 × hp_res (对角线半长)
+    //    像素最大角半径 (中心→最远顶点) 实测上界 = 1.044 × hp_res
+    //    (全像素扫描 @dec=±41.81°; R13 CAND-001 证明)
     //    取 3.0 × hp_res 作为保守缓冲, 覆盖极区三角形和所有方向的最坏情况
     //    额外裕量防浮点边界效应和queryDisc中心判定偏差
     double hp_res_arcsec = hp.pixelResolutionArcsec();
@@ -1302,7 +1313,7 @@ void query_candidate_pixels_fast(
 
     double hp_res_arcsec = hp.pixelResolutionArcsec();
     double hp_res_rad    = hp_res_arcsec * ARCSEC_TO_RAD;
-    double buffer_rad    = 1.0 * hp_res_rad;
+    double buffer_rad    = HP_CIRCUMRADIUS_FACTOR * hp_res_rad;
     double query_radius_rad = max_angle + buffer_rad;
 
     double ra_c, dec_c;
@@ -1333,6 +1344,34 @@ void query_candidate_pixels_fast(
     // 3. 半径转像素单位 (线性尺度), 取上整 (预过滤已保证精确半径, 无需 +1 裕量)
     double radius_px_d = query_radius_rad / hp_res_rad;
     int delta = (int)std::ceil(radius_px_d);
+    if (delta < 0) delta = 0;
+    if (delta > nside - 1) delta = nside - 1;
+
+    // R13 (Phase1 Final Closure, CAND-001): 面内畸变与极冠回退。
+    //   HEALPix face 内 (ix,iy) 平面距离与球面角距不成正比, 面内畸变率
+    //   (面内 1 像素对应球面角距 / hp_res) 实测 (scan_face_distortion,
+    //   nside=512 全 face 网格扫描):
+    //     - 赤道带内部 (离极冠边界 >0.2Ns): 0.9999 x hp_res (无畸变)
+    //     - 极冠边界带 (<0.08Ns):           0.874 x hp_res (畸变 1.14x)
+    //     - 极冠像素:                       0.798 x hp_res (畸变 1.25x)
+    //   → 快速路径仅用于赤道带 (畸变 ≤1.14), delta 乘 1.15 安全系数;
+    //     极冠 (bighp 0-3 的 ix+iy>Ns, bighp 8-11 的 ix+iy<Ns) 回退球面查询
+    //     (queryDisc 3.0 buffer, 与面内畸变无关, 天然正确)。
+    bool in_polar_cap = false;
+    if (face <= 3)      in_polar_cap = (ix0 + iy0 > nside);
+    else if (face >= 8) in_polar_cap = (ix0 + iy0 < nside);
+    // 中心像素在赤道侧但枚举盒可能延伸进极冠 (畸变 0.798, 需 1.25x > 1.15)
+    // → |ix0+iy0-Ns| <= 2*delta 时回退 (极冠边界窄带, 回退占比极小)
+    bool box_touches_polar = false;
+    if (face <= 3 || face >= 8)
+        box_touches_polar = std::abs((ix0 + iy0) - nside) <= 2 * delta;
+    if (in_polar_cap || box_touches_polar) {
+        query_candidate_pixels<T>(drop_corners, hp, candidates);
+        if (used_fallback) *used_fallback = true;
+        return;
+    }
+    // 赤道带: 面内畸变安全系数 1.15 (实测最坏 1.14 @ 极冠边界带 <0.08Ns)
+    delta = (int)std::ceil(radius_px_d * 1.15);
     if (delta < 0) delta = 0;
     if (delta > nside - 1) delta = nside - 1;
 
