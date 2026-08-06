@@ -17,6 +17,7 @@
 #include <cstdlib>
 #include <mutex>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace astro::compute::cuda::bridge {
@@ -167,6 +168,26 @@ public:
     std::size_t recommended_chunk() const override { return 65536; }
     std::size_t min_effective_chunk() const override { return 256; }
     std::string name() const override { return name_; }
+    // 聚焦版 v3（08 号计划 §3）：真实驻留执行。
+    // prefetch_input 经桥接上传整帧到本 executor 的 device buffer 并记录
+    // device view；input_resident 供 Dispatcher 判断是否已驻留。
+    bool prefetch_input(const void* host, std::size_t bytes) override {
+        if (host == nullptr || bytes == 0) return false;
+        auto& api = cuda::bridge::api();
+        if (!api.upload_persistent) return false;
+        std::uint64_t el = 0;
+        const char* err = nullptr;
+        if (api.upload_persistent(handle_, 0, bytes / sizeof(float),
+                                  static_cast<const float*>(host),
+                                  &el, &err) != 0) {
+            return false;
+        }
+        views_[host] = bytes;
+        return true;
+    }
+    bool input_resident(const void* host) const override {
+        return views_.find(host) != views_.end();
+    }
 
     SubmitHandle submit(const WorkToken& token,
                         const KernelInvocation& invocation) override {
@@ -222,6 +243,8 @@ private:
     void* handle_{nullptr};
     int device_{0};
     std::string name_;
+    // host 输入指针 → 已驻留字节（真实 device view 缓存）
+    std::unordered_map<const void*, std::size_t> views_;
     std::atomic<std::size_t> pending_count_{0};
 };
 

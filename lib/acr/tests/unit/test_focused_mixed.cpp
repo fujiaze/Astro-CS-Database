@@ -32,6 +32,9 @@ using astro::compute::qualification::focused::OperationProfile;
 
 namespace {
 
+// 前置声明（reduce/drizzle 全路径测试定义位于文件前部）
+void run_reduce_drizzle_paths(const char* op_id, bool drizzle);
+
 bool gpu_available() {
     astro::compute::cuda::bridge::ensure_bridge_loaded();
     auto& api = astro::compute::cuda::bridge::api();
@@ -79,6 +82,23 @@ std::vector<float> make_input(std::size_t n) {
 
 // ============================================================================
 // 1. Mixed 能力：CPU 与真实 GPU 均完成非零工作（无固定份额）
+// ============================================================================
+TEST(FocusedMixed, ReducePrivatePartialAllPaths) {
+    astro::compute::runtime_init();
+    run_reduce_drizzle_paths("synthetic.pixel_reduce.fp64acc", /*drizzle=*/false);
+    astro::compute::runtime_shutdown();
+}
+
+TEST(FocusedMixed, DrizzlePrivatePartialAllPaths) {
+    astro::compute::runtime_init();
+    run_reduce_drizzle_paths("synthetic.drizzle_like_scatter.fp64acc",
+                             /*drizzle=*/true);
+    astro::compute::runtime_shutdown();
+}
+
+// ============================================================================
+// 7. Dispatcher 真实驻留：prefetch 后 launcher 走 resident 路径
+//    （08 号计划 §3：一次 upload、多 token resident、结果正确）
 // ============================================================================
 TEST(FocusedMixed, CpuAndGpuBothWork) {
     if (!gpu_available()) {
@@ -282,16 +302,50 @@ void run_reduce_drizzle_paths(const char* op_id, bool drizzle) {
 
 } // anonymous namespace
 
-TEST(FocusedMixed, ReducePrivatePartialAllPaths) {
-    astro::compute::runtime_init();
-    run_reduce_drizzle_paths("synthetic.pixel_reduce.fp64acc", /*drizzle=*/false);
-    astro::compute::runtime_shutdown();
-}
 
-TEST(FocusedMixed, DrizzlePrivatePartialAllPaths) {
+
+TEST(FocusedMixed, DispatcherPrefetchThenResidentExecution) {
+    if (!gpu_available()) {
+        GTEST_SKIP() << "no CUDA bridge/device; skipped";
+    }
     astro::compute::runtime_init();
-    run_reduce_drizzle_paths("synthetic.drizzle_like_scatter.fp64acc",
-                             /*drizzle=*/true);
+    astro::compute::qualification::focused::register_focused_kernels();
+    auto regs = std::make_shared<ExecutorRegistry>(
+        ExecutorRegistry::create_auto());
+    // 显式 prefetch（模拟外部/首次调用已驻留）
+    const std::size_t n = 1u << 20;
+    auto x = make_input(n);
+    for (auto* e : regs->available_executors()) {
+        if (e->backend_type().rfind("cuda", 0) == 0) {
+            ASSERT_TRUE(e->prefetch_input(x.data(), x.size() * sizeof(float)));
+            EXPECT_TRUE(e->input_resident(x.data()));
+        }
+    }
+    Dispatcher d;
+    DispatcherConfig cfg;
+    cfg.devices = {{"cpu", 0, 0, 50.0, true}, {"cuda:0", 1, 0, 500.0, true}};
+    cfg.executors = regs;
+    cfg.force_all_supported_executors = true;  // 保证 GPU 参与（ForcedMixed）
+    cfg.route_mode = RouteMode::AutoMixed;
+    d.configure(cfg);
+
+    std::vector<float> y(n, 2.0f);
+    KernelInvocation inv;
+    inv.id = "synthetic.dense_pixel_accumulate.fp32";
+    inv.domain = WorkDomain{0, n};
+    inv.buffers.add(0, y.data(), y.size());
+    inv.buffers.add(1, x.data(), x.size());
+    inv.traits.bytes_read_per_item = 4;
+    inv.traits.bytes_written_per_item = 4;
+    inv.partition = PartitionKind::IndependentOutputTiles;
+    auto est = make_estimate(1u << 16, 1u << 18);
+    auto r = d.dispatch_invocation(make_task(n), est, inv);
+    EXPECT_TRUE(r.run_result.all_done);
+    EXPECT_GT(r.chunks_on_gpu, 0u);
+    // 结果正确（resident 路径：d_x 复用 + 多 token 提交）
+    for (std::size_t i = 0; i < n; i += (n / 16)) {
+        EXPECT_FLOAT_EQ(y[i], 2.0f + x[i]);
+    }
     astro::compute::runtime_shutdown();
 }
 

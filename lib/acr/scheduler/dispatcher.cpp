@@ -1264,6 +1264,8 @@ struct Dispatcher::Impl {
                         KernelInvocation inv = invocation;
                         inv.domain = WorkDomain{token.begin, token.end};
                         inv.token_id = token.id;
+                        // 聚焦版 v3：输入已 prefetch → launcher 走 resident 路径
+                        inv.input_resident = data_resident;
                         SubmitHandle handle = exec->submit(token, inv);
                         if (handle.status == SubmitStatus::Ok) {
                             // 24 号计划 §6：ledger 拒绝不得累计 actual 统计
@@ -1676,6 +1678,26 @@ CostAwareResult Dispatcher::dispatch_invocation(
         }
     }
 
+    // 聚焦版 v3（08 号计划 §3）：worker 启动前真实 prefetch。
+    // 输入未驻留且存在 GPU executor 时，经 CudaBridgeExecutor 上传整帧一次
+    // 并建立 device view；launcher 据此走 resident 提交（跳过逐块 H2D）。
+    // 删除执行后再补传输入的旧逻辑。
+    const auto* input = invocation.buffers.find(reduce_like ? 0 : 1);
+    if (input != nullptr && !data_resident && impl_->executors) {
+        const std::string key = "buf-" +
+            std::to_string(reinterpret_cast<std::uintptr_t>(input->data));
+        for (auto* e : impl_->executors->available_executors()) {
+            if (e->backend_type().rfind("cuda", 0) == 0 &&
+                e->prefetch_input(input->data,
+                                  input->count * sizeof(float))) {
+                data_resident = true;
+                impl_->residency.mark_uploaded(key);
+                impl_->residency.mark_device_allocated(key);
+                break;
+            }
+        }
+    }
+
     std::vector<Impl::InvocationExecStats> per_exec_stats;
     std::vector<std::string> actual_devices;
     auto r = impl_->execute_invocation_via_executors(
@@ -1684,36 +1706,11 @@ CostAwareResult Dispatcher::dispatch_invocation(
     result.run_result = r;
     result.actual_devices_used = actual_devices;
 
-    // 聚焦版 v2：真实驻留驱动。
-    //  - GPU 参与且输入未驻留：经桥接真实上传整帧一次（共享输入复用）；
+    // 聚焦版 v3：真实驻留驱动。
+    //  - 输入已在 worker 启动前 prefetch（真实一次上传）；
     //  - 输出经同步桥接真实 D2H 一次；
-    //  - 禁止机械地"每 buffer 先 uploaded 再 downloaded"。
+    //  - 不再执行后补传输入。
     if (r.executed_on_gpu > 0) {
-        const auto* input = invocation.buffers.find(reduce_like ? 0 : 1);
-        if (input != nullptr) {
-            const std::string key = "buf-" +
-                std::to_string(reinterpret_cast<std::uintptr_t>(input->data));
-            if (!data_resident) {
-                // 真实整帧上传（dispatcher 桥接句柄；同步语义下仅计一次）
-                void* h = impl_->ensure_bridge_handle();
-                if (h != nullptr) {
-                    using namespace astro::compute::cuda::bridge;
-                    auto& api = astro::compute::cuda::bridge::api();
-                    std::uint64_t el = 0;
-                    const char* err = nullptr;
-                    const std::size_t n = invocation.domain.size();
-                    if (api.upload_persistent &&
-                        api.upload_persistent(h, 0, n,
-                            static_cast<const float*>(input->data),
-                            &el, &err) == 0) {
-                        impl_->residency.mark_uploaded(key);
-                        impl_->residency.mark_device_allocated(key);
-                    }
-                }
-            }
-            // 输入已驻留（复用）：不再重复上传
-            impl_->residency.mark_device_allocated(key);
-        }
         const auto* output = invocation.buffers.find(reduce_like ? 1 : 0);
         if (output != nullptr) {
             // 同步桥接执行完成后输出已 D2H（真实下载一次）

@@ -101,6 +101,8 @@ struct KernelInvocation {
     // 聚焦版（08 号计划）：分块契约与路由模式
     PartitionKind partition{PartitionKind::IndependentOutputTiles};
     RouteMode mode{RouteMode::AutoMixed};
+    // 聚焦版 v3（08 号计划 §3）：输入是否已在设备显存（launcher 用 resident 路径）
+    bool input_resident{false};
     std::uint64_t token_id{0};     // 执行时由 executor 回填的工作块 token id
                                    // （归约等需要按块定位输出的 kernel 使用）
 };

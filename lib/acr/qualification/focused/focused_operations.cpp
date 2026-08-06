@@ -429,6 +429,64 @@ void cuda_launcher(const KernelInvocation& inv, void*, FocusedOp op) {
     if (!api.loaded()) throw std::runtime_error("cuda bridge not loaded");
     void* h = get_tls_handle();
     if (!h) throw std::runtime_error("no cuda handle");
+    // 聚焦版 v3（08 号计划 §3）：输入已驻留 → resident 提交路径。
+    // 不创建每 token host vector、不逐块 H2D；d_x 已在 worker 启动前
+    // prefetch 整帧，桥接 resident 提交用 d_x + begin 复用。
+    if (inv.input_resident) {
+        std::uint64_t rel = 0;
+        const char* rerr = nullptr;
+        int rrc = 1;
+        switch (op) {
+            case FocusedOp::DenseAccumulateFp32:
+            case FocusedOp::DenseAccumulateFp64Acc: {
+                const BufferBinding* yb = inv.buffers.find(0);
+                if (!yb) throw std::runtime_error("cuda: missing y");
+                rrc = api.submit_dense_accumulate_resident(
+                    h, inv.domain.begin, inv.domain.end,
+                    static_cast<float*>(yb->data), &rel, &rerr);
+                break;
+            }
+            case FocusedOp::PixelReduceFp64Acc: {
+                const std::size_t blocks = (inv.domain.size() + 255) / 256;
+                const BufferBinding* pb = inv.buffers.find(1);
+                if (!pb) throw std::runtime_error("cuda: missing partials");
+                std::vector<double> host_part(blocks, 0.0);
+                rrc = api.submit_reduce_resident(
+                    h, inv.domain.begin, inv.domain.end,
+                    host_part.data(), blocks, 0, &rel, &rerr);
+                if (rrc == 0) {
+                    double sum = 0.0;
+                    for (double v : host_part) sum += v;
+                    static_cast<double*>(pb->data)[inv.token_id] += sum;
+                }
+                break;
+            }
+            case FocusedOp::DrizzleScatterFp64Acc: {
+                auto bins = read_scalar<std::size_t>(inv.scalars, 0);
+                const std::size_t nb = bins ? *bins : 256;
+                const BufferBinding* pb = inv.buffers.find(1);
+                if (!pb) throw std::runtime_error("cuda: missing partials");
+                rrc = api.submit_drizzle_scatter_resident(
+                    h, inv.domain.begin, inv.domain.end,
+                    static_cast<double*>(pb->data) + inv.token_id * nb,
+                    nb, &rel, &rerr);
+                break;
+            }
+            case FocusedOp::ResidentChain: {
+                const BufferBinding* zb = inv.buffers.find(0);
+                if (!zb) throw std::runtime_error("cuda: missing z");
+                rrc = api.submit_chain_resident(
+                    h, inv.domain.begin, inv.domain.end,
+                    static_cast<float*>(zb->data), &rel, &rerr);
+                break;
+            }
+        }
+        set_tls_elapsed(rel);
+        if (rrc != 0) {
+            throw std::runtime_error(rerr ? rerr : "cuda resident kernel failed");
+        }
+        return;
+    }
     std::vector<float> y(inv.domain.size(), 2.0f);
     std::vector<float> x(inv.domain.size());
     // buffer 布局（与 CPU launcher 一致）：
