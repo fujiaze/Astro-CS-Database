@@ -11,3 +11,6 @@ if(ACR_BUILD_CUDA)
     target_link_libraries(acr_example_cuda_axpy PRIVATE acr_cuda)
     target_compile_definitions(acr_example_cuda_axpy PRIVATE ACR_BUILD_CUDA=1)
 endif()
+
+# ACR 架构冻结（07 号计划 C）：加权积分合成 Mixed 样例
+add_subdirectory(weighted_integration)
