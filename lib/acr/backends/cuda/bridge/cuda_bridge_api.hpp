@@ -50,6 +50,9 @@ struct BridgeApi {
     // 聚焦版 v2：resident 持久上传与提交
     int (*upload_persistent)(void*, std::size_t, std::size_t,
                              const float*, std::uint64_t*, const char**){nullptr};
+    int (*upload_persistent_slot)(void*, int, std::size_t, std::size_t,
+                                  const float*, std::uint64_t*,
+                                  const char**){nullptr};
     int (*submit_dense_accumulate_resident)(void*, std::size_t, std::size_t,
                                             float*, std::uint64_t*, const char**){nullptr};
     int (*submit_reduce_resident)(void*, std::size_t, std::size_t,
@@ -60,6 +63,18 @@ struct BridgeApi {
                                            std::uint64_t*, const char**){nullptr};
     int (*submit_chain_resident)(void*, std::size_t, std::size_t,
                                  float*, std::uint64_t*, const char**){nullptr};
+    // ACR 架构冻结（07 号计划 C）：加权积分 + GPU 内部通道
+    int (*submit_weighted_integration)(void*, std::size_t, std::size_t,
+                                       float*, const float*, const float*,
+                                       std::size_t, std::size_t,
+                                       std::uint64_t*, const char**){nullptr};
+    int (*submit_weighted_integration_resident)(void*, std::size_t, std::size_t,
+                                                float*, std::size_t, std::size_t,
+                                                std::uint64_t*,
+                                                const char**){nullptr};
+    int (*configure_streams)(void*, int, const char**){nullptr};
+    int (*stream_count)(void*){nullptr};
+    int (*upload_count)(void*, int){nullptr};
 
     bool loaded() const noexcept { return init != nullptr; }
 };

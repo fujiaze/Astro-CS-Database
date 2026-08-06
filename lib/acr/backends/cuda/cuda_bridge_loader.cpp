@@ -13,6 +13,7 @@
 
 #include <windows.h>
 
+#include <array>
 #include <atomic>
 #include <cstdlib>
 #include <mutex>
@@ -125,6 +126,19 @@ void ensure_bridge_loaded() {
                           g_api.submit_drizzle_scatter_resident);
         ok &= load_symbol(mod, "acr_cuda_executor_submit_chain_resident",
                           g_api.submit_chain_resident);
+        ok &= load_symbol(mod, "acr_cuda_executor_upload_persistent_slot",
+                          g_api.upload_persistent_slot);
+        ok &= load_symbol(mod, "acr_cuda_executor_submit_weighted_integration",
+                          g_api.submit_weighted_integration);
+        ok &= load_symbol(
+            mod, "acr_cuda_executor_submit_weighted_integration_resident",
+            g_api.submit_weighted_integration_resident);
+        ok &= load_symbol(mod, "acr_cuda_executor_configure_streams",
+                          g_api.configure_streams);
+        ok &= load_symbol(mod, "acr_cuda_executor_stream_count",
+                          g_api.stream_count);
+        ok &= load_symbol(mod, "acr_cuda_executor_upload_count",
+                          g_api.upload_count);
         if (!ok) {
             g_api = BridgeApi{};  // 符号缺失：视为不可用
         }
@@ -183,10 +197,84 @@ public:
             return false;
         }
         views_[host] = bytes;
+        slot_host_[0] = host;
         return true;
+    }
+    // ACR 架构冻结（07 号计划 C）：hosts 是本次执行需要的完整输入集合
+    // （加权积分 = {frames, weights}）。已驻留（同 host 指针）复用不重传；
+    // 新输入分配槽位：优先空槽，否则覆盖"不属于本次集合"的旧槽位
+    // （resident-reuse 场景：frames 保持 slot0，新 weights 覆盖 slot1）。
+    bool prefetch_inputs(const std::vector<const void*>& hosts,
+                         const std::vector<std::size_t>& bytes) override {
+        auto& api = cuda::bridge::api();
+        if (!api.upload_persistent_slot) {
+            return DeviceExecutor::prefetch_inputs(hosts, bytes);
+        }
+        // 本次集合中仍被占用的槽位（不能被覆盖）
+        bool in_set[2] = {false, false};
+        for (const void* h : hosts) {
+            for (int s = 0; s < 2; ++s) {
+                if (slot_host_[s] != nullptr && slot_host_[s] == h) {
+                    in_set[s] = true;
+                }
+            }
+        }
+        bool all_ok = true;
+        for (std::size_t i = 0; i < hosts.size(); ++i) {
+            if (hosts[i] == nullptr || bytes[i] == 0) { all_ok = false; break; }
+            if (views_.find(hosts[i]) != views_.end()) continue;  // 已驻留复用
+            int slot = -1;
+            for (int s = 0; s < 2; ++s) {       // 优先空槽
+                if (slot_host_[s] == nullptr) { slot = s; break; }
+            }
+            if (slot < 0) {                     // 覆盖本次集合外的旧槽位
+                for (int s = 0; s < 2; ++s) {
+                    if (!in_set[s]) { slot = s; break; }
+                }
+            }
+            if (slot < 0) { all_ok = false; break; }
+            std::uint64_t el = 0;
+            const char* err = nullptr;
+            if (api.upload_persistent_slot(
+                    handle_, slot, 0, bytes[i] / sizeof(float),
+                    static_cast<const float*>(hosts[i]), &el, &err) != 0) {
+                all_ok = false;
+                break;
+            }
+            // 槽位被覆盖时，清除旧 host 的驻留记录（避免 reuse 循环回旧输入
+            // 时误判"已驻留"而使用被覆盖的 device buffer）
+            if (slot_host_[slot] != nullptr &&
+                slot_host_[slot] != hosts[i]) {
+                views_.erase(slot_host_[slot]);
+            }
+            views_[hosts[i]] = bytes[i];
+            slot_host_[slot] = hosts[i];
+        }
+        return all_ok;
     }
     bool input_resident(const void* host) const override {
         return views_.find(host) != views_.end();
+    }
+    // ACR 架构冻结（01_ARCHITECTURE_FREEZE.md §5）：内部 stream 槽位数
+    std::size_t max_in_flight() const override {
+        auto& api = cuda::bridge::api();
+        return (handle_ && api.stream_count)
+            ? static_cast<std::size_t>(api.stream_count(handle_)) : 1;
+    }
+    bool set_streams(std::size_t count) override {
+        auto& api = cuda::bridge::api();
+        if (!handle_ || !api.configure_streams) return false;
+        const char* err = nullptr;
+        return api.configure_streams(handle_, static_cast<int>(count),
+                                     &err) == 0;
+    }
+    // persistent 槽位真实上传次数（来自桥接 handle，与 Dispatcher 复用路径一致）
+    std::uint64_t slot_upload_count(int slot) const override {
+        auto& api = cuda::bridge::api();
+        if (!handle_ || !api.upload_count || (slot != 0 && slot != 1)) {
+            return 0;
+        }
+        return static_cast<std::uint64_t>(api.upload_count(handle_, slot));
     }
 
     SubmitHandle submit(const WorkToken& token,
@@ -245,6 +333,8 @@ private:
     std::string name_;
     // host 输入指针 → 已驻留字节（真实 device view 缓存）
     std::unordered_map<const void*, std::size_t> views_;
+    // persistent 槽位 → 已驻留 host 指针（slot 0 = d_x，slot 1 = d_w）
+    std::array<const void*, 2> slot_host_{nullptr, nullptr};
     std::atomic<std::size_t> pending_count_{0};
 };
 

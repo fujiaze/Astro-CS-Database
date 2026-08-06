@@ -34,6 +34,13 @@ void acr_launch_drizzle_scatter(const float* x, double* partials,
 void acr_launch_chain(float* y, float* z, const float* x,
                       size_t begin, size_t n, cudaStream_t stream);
 void acr_launch_empty(size_t begin, size_t n, cudaStream_t stream);
+void acr_launch_weighted_integration(const float* frames,
+                                     const float* weights,
+                                     size_t frame_count,
+                                     size_t pixel_count,
+                                     size_t begin, size_t n,
+                                     float* output,
+                                     cudaStream_t stream);
 }
 
 namespace {
@@ -51,6 +58,11 @@ const char* set_error_msg(const char* msg) {
 struct CudaExecutorHandle {
     int device{0};
     cudaStream_t stream{nullptr};
+    // ACR 架构冻结（01_ARCHITECTURE_FREEZE.md §5）：每 GPU 一个 executor，
+    // 内部 1..3 个 stream 通道；streams[0] 与 stream 同指针（向后兼容）。
+    cudaStream_t streams[3]{nullptr, nullptr, nullptr};
+    int stream_count{1};
+    std::size_t next_stream{0};
     std::mutex mtx;
     // 25 号计划 §2.1：每个设备缓冲区独立容量记账，
     // 禁止 d_x/d_y 或 d_partials/d_kernel 共享一个计数器
@@ -69,6 +81,13 @@ struct CudaExecutorHandle {
     size_t d_z_capacity{0};
     double* d_bins{nullptr};
     size_t d_bins_capacity{0};
+    // 加权积分：weights（slot 1 persistent）与输出
+    float* d_w{nullptr};
+    size_t d_w_capacity{0};
+    float* d_out{nullptr};
+    size_t d_out_capacity{0};
+    // persistent 槽位真实上传次数（slot 0/1；验收 resident-reuse）
+    uint64_t upload_count[2]{0, 0};
     // 纯传输暂存（H2D/D2H 测量）
     void* d_staging{nullptr};
     size_t d_staging_bytes{0};
@@ -112,6 +131,12 @@ int submit_impl(CudaExecutorHandle* h, F&& body,
         cudaEvent_t ev_start, ev_end;
         cudaEventCreate(&ev_start);
         cudaEventCreate(&ev_end);
+        // ACR 架构冻结：stream 轮转（内部通道共享 GPU 队列/预算，非多设备）
+        if (h->stream_count > 0) {
+            h->stream = h->streams[
+                h->next_stream % static_cast<std::size_t>(h->stream_count)];
+            ++h->next_stream;
+        }
         cudaEventRecord(ev_start, h->stream);
         err = body();
         cudaEventRecord(ev_end, h->stream);
@@ -213,6 +238,8 @@ extern "C" void* acr_cuda_executor_create(int device, size_t /*rec*/,
         delete h;
         return nullptr;
     }
+    h->streams[0] = h->stream;
+    h->stream_count = 1;
     if (last_error) *last_error = nullptr;
     return h;
 }
@@ -228,8 +255,13 @@ extern "C" void acr_cuda_executor_destroy(void* handle) {
     if (h->d_image) cudaFree(h->d_image);
     if (h->d_z) cudaFree(h->d_z);
     if (h->d_bins) cudaFree(h->d_bins);
+    if (h->d_w) cudaFree(h->d_w);
+    if (h->d_out) cudaFree(h->d_out);
     if (h->d_staging) cudaFree(h->d_staging);
-    if (h->stream) cudaStreamDestroy(h->stream);
+    for (int i = 0; i < h->stream_count; ++i) {
+        if (h->streams[i]) cudaStreamDestroy(h->streams[i]);
+    }
+    h->stream = nullptr;
     delete h;
 }
 
@@ -246,7 +278,13 @@ extern "C" int acr_cuda_executor_sync(void* handle, const char** last_error) {
     }
     auto* h = static_cast<CudaExecutorHandle*>(handle);
     std::lock_guard<std::mutex> lk(h->mtx);
-    cudaError_t err = cudaStreamSynchronize(h->stream);
+    cudaError_t err = cudaSuccess;
+    for (int i = 0; i < h->stream_count; ++i) {
+        if (h->streams[i]) {
+            cudaError_t e = cudaStreamSynchronize(h->streams[i]);
+            if (e != cudaSuccess && err == cudaSuccess) err = e;
+        }
+    }
     if (err != cudaSuccess) {
         if (last_error) *last_error = set_error(err);
         return 1;
@@ -555,13 +593,15 @@ extern "C" int acr_cuda_executor_upload_persistent(
     const size_t n = end - begin;
     // 持久上传：整帧 [begin, end) 保存到 d_x[begin..end)，
     // 供后续 resident 提交以 d_x + begin 复用（共享输入只上传一次）
-    return submit_impl(h, [&]() -> cudaError_t {
+    const int rc = submit_impl(h, [&]() -> cudaError_t {
         cudaError_t err = ensure_buffer(&h->d_x, h->d_x_capacity, end);
         if (err != cudaSuccess) return err;
         cudaMemcpyAsync(h->d_x, x + begin, n * sizeof(float),
                         cudaMemcpyHostToDevice, h->stream);
         return cudaStreamSynchronize(h->stream);
     }, elapsed_ns, last_error);
+    if (rc == 0) ++h->upload_count[0];
+    return rc;
 }
 
 extern "C" int acr_cuda_executor_submit_dense_accumulate_resident(
@@ -664,4 +704,140 @@ extern "C" int acr_cuda_executor_submit_chain_resident(
                         cudaMemcpyDeviceToHost, h->stream);
         return cudaStreamSynchronize(h->stream);
     }, elapsed_ns, last_error);
+}
+
+// ===== ACR 架构冻结（07 号计划 C）：加权积分 =====
+// 上传并保留到指定 persistent 槽位（slot 0 = d_x；slot 1 = d_w）。
+extern "C" int acr_cuda_executor_upload_persistent_slot(
+    void* handle, int slot, size_t begin, size_t end,
+    const float* x,
+    uint64_t* elapsed_ns, const char** last_error) {
+    if (handle == nullptr || x == nullptr || begin >= end ||
+        (slot != 0 && slot != 1)) {
+        if (last_error) *last_error = set_error_msg("invalid args");
+        return 1;
+    }
+    auto* h = static_cast<CudaExecutorHandle*>(handle);
+    std::lock_guard<std::mutex> lk(h->mtx);
+    const size_t n = end - begin;
+    const int rc = submit_impl(h, [&]() -> cudaError_t {
+        float** buf = (slot == 0) ? &h->d_x : &h->d_w;
+        size_t* cap = (slot == 0) ? &h->d_x_capacity : &h->d_w_capacity;
+        cudaError_t err = ensure_buffer(buf, *cap, end);
+        if (err != cudaSuccess) return err;
+        cudaMemcpyAsync(*buf, x + begin, n * sizeof(float),
+                        cudaMemcpyHostToDevice, h->stream);
+        return cudaStreamSynchronize(h->stream);
+    }, elapsed_ns, last_error);
+    if (rc == 0) ++h->upload_count[slot];
+    return rc;
+}
+
+// 加权积分 host roundtrip：整帧 H2D + kernel + 输出范围 D2H
+extern "C" int acr_cuda_executor_submit_weighted_integration(
+    void* handle, size_t begin, size_t end,
+    float* output,
+    const float* frames, const float* weights,
+    size_t frame_count, size_t pixel_count,
+    uint64_t* elapsed_ns, const char** last_error) {
+    if (handle == nullptr || output == nullptr || frames == nullptr ||
+        weights == nullptr || begin >= end ||
+        frame_count == 0 || pixel_count == 0) {
+        if (last_error) *last_error = set_error_msg("invalid args");
+        return 1;
+    }
+    auto* h = static_cast<CudaExecutorHandle*>(handle);
+    std::lock_guard<std::mutex> lk(h->mtx);
+    const size_t n = end - begin;
+    const size_t total = frame_count * pixel_count;
+    return submit_impl(h, [&]() -> cudaError_t {
+        cudaError_t err = ensure_buffer(&h->d_x, h->d_x_capacity, total);
+        if (err != cudaSuccess) return err;
+        err = ensure_buffer(&h->d_w, h->d_w_capacity, frame_count);
+        if (err != cudaSuccess) return err;
+        err = ensure_buffer(&h->d_out, h->d_out_capacity, end);
+        if (err != cudaSuccess) return err;
+        cudaMemcpyAsync(h->d_x, frames, total * sizeof(float),
+                        cudaMemcpyHostToDevice, h->stream);
+        cudaMemcpyAsync(h->d_w, weights, frame_count * sizeof(float),
+                        cudaMemcpyHostToDevice, h->stream);
+        acr_launch_weighted_integration(h->d_x, h->d_w,
+                                        frame_count, pixel_count,
+                                        begin, n, h->d_out, h->stream);
+        cudaMemcpyAsync(output + begin, h->d_out, n * sizeof(float),
+                        cudaMemcpyDeviceToHost, h->stream);
+        return cudaStreamSynchronize(h->stream);
+    }, elapsed_ns, last_error);
+}
+
+// 加权积分 resident：frames/weights 已驻留（slot 0/1），只 launch + D2H
+extern "C" int acr_cuda_executor_submit_weighted_integration_resident(
+    void* handle, size_t begin, size_t end,
+    float* output,
+    size_t frame_count, size_t pixel_count,
+    uint64_t* elapsed_ns, const char** last_error) {
+    if (handle == nullptr || output == nullptr || begin >= end ||
+        frame_count == 0 || pixel_count == 0) {
+        if (last_error) *last_error = set_error_msg("invalid args");
+        return 1;
+    }
+    auto* h = static_cast<CudaExecutorHandle*>(handle);
+    std::lock_guard<std::mutex> lk(h->mtx);
+    const size_t n = end - begin;
+    return submit_impl(h, [&]() -> cudaError_t {
+        cudaError_t err = ensure_buffer(&h->d_out, h->d_out_capacity, end);
+        if (err != cudaSuccess) return err;
+        // d_x（frames）/d_w（weights）已整帧驻留；只 launch + D2H 输出范围
+        acr_launch_weighted_integration(h->d_x, h->d_w,
+                                        frame_count, pixel_count,
+                                        begin, n, h->d_out, h->stream);
+        cudaMemcpyAsync(output + begin, h->d_out, n * sizeof(float),
+                        cudaMemcpyDeviceToHost, h->stream);
+        return cudaStreamSynchronize(h->stream);
+    }, elapsed_ns, last_error);
+}
+
+// ===== ACR 架构冻结（01_ARCHITECTURE_FREEZE.md §5）：GPU 内部通道 =====
+// 每 GPU 只有一个 executor；stream 是 executor 内部通道（1..3），
+// 共享同一 GPU 队列、显存预算与成本模型。禁止把多个 stream 报告为多张 GPU。
+extern "C" int acr_cuda_executor_configure_streams(
+    void* handle, int stream_count, const char** last_error) {
+    if (handle == nullptr || stream_count < 1 || stream_count > 3) {
+        if (last_error) *last_error = set_error_msg("stream_count must be 1..3");
+        return 1;
+    }
+    auto* h = static_cast<CudaExecutorHandle*>(handle);
+    std::lock_guard<std::mutex> lk(h->mtx);
+    cudaError_t err = cudaSetDevice(h->device);
+    if (err != cudaSuccess) {
+        if (last_error) *last_error = set_error(err);
+        return 1;
+    }
+    for (int i = 1; i < stream_count; ++i) {
+        if (h->streams[i] == nullptr) {
+            err = cudaStreamCreate(&h->streams[i]);
+            if (err != cudaSuccess) {
+                if (last_error) *last_error = set_error(err);
+                return 1;
+            }
+        }
+    }
+    h->stream_count = stream_count;
+    h->stream = h->streams[0];
+    if (last_error) *last_error = nullptr;
+    return 0;
+}
+
+extern "C" int acr_cuda_executor_stream_count(void* handle) {
+    if (handle == nullptr) return 0;
+    auto* h = static_cast<CudaExecutorHandle*>(handle);
+    std::lock_guard<std::mutex> lk(h->mtx);
+    return h->stream_count;
+}
+
+extern "C" int acr_cuda_executor_upload_count(void* handle, int slot) {
+    if (handle == nullptr || (slot != 0 && slot != 1)) return 0;
+    auto* h = static_cast<CudaExecutorHandle*>(handle);
+    std::lock_guard<std::mutex> lk(h->mtx);
+    return static_cast<int>(h->upload_count[slot]);
 }

@@ -146,6 +146,16 @@ ACR_CUDA_BRIDGE_API int acr_cuda_executor_upload_persistent(
     const float* x,
     uint64_t* elapsed_ns, const char** last_error);
 
+// 上传并保留到指定 persistent 槽位（slot 0 = d_x；slot 1 = d_w）。
+// 加权积分需要 frames（d_x）与 weights（d_w）两个输入分别驻留；
+// 其他 Operation 使用 slot 0 保持向后兼容。
+ACR_CUDA_BRIDGE_API int acr_cuda_executor_upload_persistent_slot(
+    void* handle,
+    int slot,
+    size_t begin, size_t end,
+    const float* x,
+    uint64_t* elapsed_ns, const char** last_error);
+
 // resident dense accumulate：d_x 已驻留，y 输出 D2H
 ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_dense_accumulate_resident(
     void* handle,
@@ -173,6 +183,40 @@ ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_chain_resident(
     size_t begin, size_t end,
     float* z,
     uint64_t* elapsed_ns, const char** last_error);
+
+// ===== ACR 架构冻结（07 号计划 C）：加权积分 =====
+// synthetic.weighted_integration.fp64acc：FP32 输入/权重、FP64 累加、FP32 输出。
+// frame-major 连续输入：frames[f * pixel_count + p]，权重 weights[f]。
+// 每个输出像素 p：output[p] = Σ_f weight[f]*frame[f,p] / Σ_f weight[f]。
+// 同步语义：H2D(整帧) → launch → D2H(输出范围)；elapsed_ns 为真实耗时。
+ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_weighted_integration(
+    void* handle,
+    size_t begin, size_t end,
+    float* output,
+    const float* frames, const float* weights,
+    size_t frame_count, size_t pixel_count,
+    uint64_t* elapsed_ns, const char** last_error);
+
+// 加权积分 resident：frames/weights 已驻留（upload_persistent_slot 0/1），
+// 只 launch（输出范围 D2H 物化）。
+ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_weighted_integration_resident(
+    void* handle,
+    size_t begin, size_t end,
+    float* output,
+    size_t frame_count, size_t pixel_count,
+    uint64_t* elapsed_ns, const char** last_error);
+
+// ===== ACR 架构冻结（01_ARCHITECTURE_FREEZE.md §5）：GPU 内部通道 =====
+// 每 GPU 只有一个 executor；stream 只是 executor 内部通道（1..3），
+// 共享同一 GPU 队列、显存预算与成本模型。禁止把多个 stream 报告为多张 GPU。
+ACR_CUDA_BRIDGE_API int acr_cuda_executor_configure_streams(
+    void* handle, int stream_count, const char** last_error);
+ACR_CUDA_BRIDGE_API int acr_cuda_executor_stream_count(void* handle);
+
+// persistent 槽位（0 = frames/d_x，1 = weights/d_w）的真实上传次数
+// （resident-reuse 验收：同一帧栈多次调用时 frames 上传必须保持 1）。
+ACR_CUDA_BRIDGE_API int acr_cuda_executor_upload_count(
+    void* handle, int slot);
 
 #ifdef __cplusplus
 }

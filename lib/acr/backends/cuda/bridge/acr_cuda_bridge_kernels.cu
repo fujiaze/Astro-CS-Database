@@ -114,6 +114,32 @@ __global__ void acr_chain_k2_kernel(float* z, const float* y,
 // 空 kernel：launch/event/sync 固定开销
 __global__ void acr_empty_kernel(size_t /*begin*/, size_t /*n*/) {}
 
+// ===== ACR 架构冻结（07 号计划 C）：加权积分（FP64 累加）=====
+// output[p] = Σ_f weight[f]*frame[f,p] / Σ_f weight[f]
+// frames 为整帧驻留（d_frames，frame-major）；weights 为驻留权重（d_weights）。
+// 输出按 chunk-local 索引写 d_out[idx]，host 侧拷贝回 output + begin
+// （与分块卷积同一全局偏移 + chunk-local 写约定）。
+__global__ void acr_weighted_integration_kernel(
+    const float* __restrict__ frames,
+    const float* __restrict__ weights,
+    size_t frame_count,
+    size_t pixel_count,
+    size_t begin,
+    size_t n,
+    float* __restrict__ output) {
+    const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    const size_t p = begin + idx;
+    double numerator = 0.0;
+    double denominator = 0.0;
+    for (size_t f = 0; f < frame_count; ++f) {
+        const double w = static_cast<double>(weights[f]);
+        numerator += w * static_cast<double>(frames[f * pixel_count + p]);
+        denominator += w;
+    }
+    output[idx] = static_cast<float>(numerator / denominator);
+}
+
 constexpr int kThreads = 256;
 
 inline int grid_size(size_t n) {
@@ -170,6 +196,17 @@ void acr_launch_chain(float* y, float* z, const float* x,
 
 void acr_launch_empty(size_t begin, size_t n, cudaStream_t stream) {
     acr_empty_kernel<<<grid_size(n), kThreads, 0, stream>>>(begin, n);
+}
+
+void acr_launch_weighted_integration(const float* frames,
+                                     const float* weights,
+                                     size_t frame_count,
+                                     size_t pixel_count,
+                                     size_t begin, size_t n,
+                                     float* output,
+                                     cudaStream_t stream) {
+    acr_weighted_integration_kernel<<<grid_size(n), kThreads, 0, stream>>>(
+        frames, weights, frame_count, pixel_count, begin, n, output);
 }
 
 } // extern "C"
