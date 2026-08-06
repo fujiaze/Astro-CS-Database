@@ -153,11 +153,40 @@ TEST(FocusedMixed, AutoDegradesForSmallTask) {
     astro::compute::qualification::focused::register_focused_kernels();
     auto regs = std::make_shared<ExecutorRegistry>(
         ExecutorRegistry::create_auto());
+    // 构造"测量可信但 GPU host 无收益"的 profile（dense qualified、
+    // host_path_eligible=false）→ Auto 排除 GPU
+    OperationProfile profile;
+    profile.profile_state = "qualified";
+    profile.fingerprint_cpu = "test-cpu";
+    profile.fingerprint_compiler = "test";
+    profile.fingerprint_runtime_kernel_hash = "0123456789abcdef";
+    OperationProfile::Operation op;
+    op.operation_id = "synthetic.dense_pixel_accumulate.fp32";
+    op.precision = "fp32";
+    op.accumulator = "fp32";
+    op.qualified = true;
+    op.qualification_reason = "measured-qualified";
+    op.sample_range = {1u << 18, 1u << 26, 7};
+    op.cpu.ns_per_item = 1.0;
+    op.cpu.recommended_chunk_items = 65536;
+    op.cpu.minimum_chunk_items = 1024;
+    op.gpu.ns_per_item = 2.0;   // GPU 慢 → host 无收益
+    op.gpu.fixed_us = 100.0;
+    op.gpu.recommended_chunk_items = 1u << 20;
+    op.gpu.minimum_chunk_items = 1u << 14;
+    op.gpu.host_path_eligible = false;
+    op.gpu.resident_path_eligible = false;
+    op.transfer.h2d_gbps = 10.0;
+    op.transfer.d2h_gbps = 10.0;
+    op.memory.host_bytes_per_item = 8.0;
+    op.memory.device_bytes_per_item = 8.0;
+    profile.operations.push_back(op);
     Dispatcher d;
     DispatcherConfig cfg;
     cfg.devices = {{"cpu", 0, 0, 50.0, true}, {"cuda:0", 1, 0, 500.0, true}};
     cfg.executors = regs;
     cfg.route_mode = RouteMode::AutoMixed;
+    cfg.operation_profile = &profile;
     d.configure(cfg);
 
     const std::size_t n = 4096;  // 小任务：GPU 传输不划算
@@ -173,8 +202,9 @@ TEST(FocusedMixed, AutoDegradesForSmallTask) {
     auto est = make_estimate(256, 1024);
     auto r = d.dispatch_invocation(make_task(n), est, inv);
     EXPECT_TRUE(r.run_result.all_done);
-    // 小任务无 OperationProfile 时走 CPU；允许 GPU 不参与但结果正确
+    // 小任务：Auto 不允许 GPU 参与（无收益），结果正确
     EXPECT_EQ(r.coverage.done, r.coverage.total);
+    EXPECT_EQ(r.chunks_on_gpu, 0u);
     for (std::size_t i = 0; i < n; ++i) {
         EXPECT_FLOAT_EQ(y[i], 2.0f + x[i]);
     }
