@@ -97,6 +97,20 @@ enum class PartitionKind : std::uint8_t {
     PrivatePartialThenMerge = 1,
 };
 
+// ===== 聚焦版（ACR 架构冻结 01_ARCHITECTURE_FREEZE.md §3）：驻留策略 =====
+// 业务调用只提交一次 Operation，不指定 CPU/GPU 比例、不管理 CUDA stream、
+// 不直接分配设备份额；输入/输出的驻留策略由调用方在 Invocation 上显式声明：
+//   HostOnly        — 只从 host 访问（小数据/一次性任务默认）
+//   PreferDevice    — 输入允许跨调用驻留，worker 启动前真实 prefetch
+//   KeepDevice      — 中间结果/输出保留在 device（后续算子复用）
+//   MaterializeHost — 最终必须物化到 host（GPU 拥有范围 D2H 合并）
+enum class ResidencyPolicy : std::uint8_t {
+    HostOnly = 0,
+    PreferDevice = 1,
+    KeepDevice = 2,
+    MaterializeHost = 3,
+};
+
 // ===== 聚焦版目标 OperationId（08 号计划 §3）=====
 // 当前底层合成测试至少覆盖以下 Operation；未来真实算法接入后使用真实
 // OperationId 和同一注册机制替换对应合成 Profile。
@@ -110,6 +124,10 @@ inline constexpr std::string_view kOpDrizzleLikeScatterFp64Acc =
     "synthetic.drizzle_like_scatter.fp64acc";
 inline constexpr std::string_view kOpResidentChain =
     "synthetic.resident_chain";
+// ACR 架构冻结（07 号计划 C）：加权积分最小接入样例（IndependentOutputTiles）。
+// FP32 输入/权重、FP64 累加、FP32 输出；帧栈 frame-major 连续布局。
+inline constexpr std::string_view kOpWeightedIntegrationFp64Acc =
+    "synthetic.weighted_integration.fp64acc";
 
 // ===== TaskTraits：任务特征描述 =====
 // 算法作者在 parallel_for/tiles/reduce/batch 调用点提供。

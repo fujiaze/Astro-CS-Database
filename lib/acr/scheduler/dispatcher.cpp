@@ -29,6 +29,30 @@
 namespace astro::compute::scheduler {
 
 // ============================================================================
+// ACR 架构冻结（01_ARCHITECTURE_FREEZE.md §4）：Invocation buffer 角色布局
+// ----------------------------------------------------------------------------
+// 由 OperationId 决定（与 KernelRegistry launcher 的 buffer 约定一致）：
+//   dense/chain/weighted_integration：buffer0=输出（独占范围）、
+//                                      buffer1..N-1=只读输入
+//   reduce/drizzle：                    buffer0=只读输入、
+//                                      buffer1=私有 partial（读改写）
+// Dispatcher 按此布局决定 prefetch 目标与 GPU 输出物化目标。
+// ============================================================================
+struct InvocationBufferLayout {
+    std::vector<std::size_t> inputs;    // 只读输入 buffer index（prefetch 目标）
+    std::vector<std::size_t> outputs;   // 输出 buffer index（D2H/物化目标）
+};
+
+InvocationBufferLayout layout_for_invocation(const KernelInvocation& inv) {
+    const bool reduce_like =
+        (inv.id == kOpPixelReduceFp64Acc ||
+         inv.id == kOpDrizzleLikeScatterFp64Acc);
+    if (reduce_like) return {{0}, {1}};
+    if (inv.id == kOpWeightedIntegrationFp64Acc) return {{1, 2}, {0}};
+    return {{1}, {0}};
+}
+
+// ============================================================================
 // F-fix 9: 可恢复的 submit gate（带迟滞 + 超时放弃）
 // ----------------------------------------------------------------------------
 // 替代旧的 std::atomic<bool> stop_new_submit（一旦 true 永久停止）。
@@ -1007,6 +1031,23 @@ struct Dispatcher::Impl {
                             find_device_cost(estimate, exec->id());
                         const std::size_t remaining = pool.remaining_work();
                         if (remaining == 0 && pool.retry_pending_count() == 0) {
+                            // 首轮公平门（无 OperationProfile 时启用）：池已被
+                            // 其他设备抢空时，本 executor 无首块可领也必须参与
+                            // 公平门计数并解除等待（否则其他 worker 无限等待
+                            // first_round_done 造成死锁）。
+                            if (!cfg.operation_profile &&
+                                !first_round_done.load(
+                                    std::memory_order_acquire)) {
+                                if (!first_claimed[i].exchange(
+                                        true, std::memory_order_acq_rel)) {
+                                    if (first_round_made.fetch_add(
+                                            1, std::memory_order_acq_rel) + 1 >=
+                                        n_exec) {
+                                        first_round_done.store(
+                                            true, std::memory_order_release);
+                                    }
+                                }
+                            }
                             break;
                         }
                         // 聚焦版（08 号计划 §5）：OperationProfile 驱动规划
@@ -1242,6 +1283,24 @@ struct Dispatcher::Impl {
                         }
                         auto token = pool.claim_next_dynamic(exec->id(), requested);
                         if (!token.valid()) {
+                            // 首轮公平门（无 OperationProfile 时启用）：每个
+                            // executor 至少 claim 一块后才允许任意设备连续领取。
+                            // 若池已被其他设备抢空（本 executor 无首块可领），
+                            // 也必须参与公平门计数并解除等待——否则其他 worker
+                            // 会无限等待 first_round_done 造成死锁（fix: 慢设备
+                            // 首块让位后由最快设备清尾，公平门自然结束）。
+                            if (!cfg.operation_profile &&
+                                !first_round_done.load(std::memory_order_acquire)) {
+                                if (!first_claimed[i].exchange(
+                                        true, std::memory_order_acq_rel)) {
+                                    if (first_round_made.fetch_add(
+                                            1, std::memory_order_acq_rel) + 1 >=
+                                        n_exec) {
+                                        first_round_done.store(
+                                            true, std::memory_order_release);
+                                    }
+                                }
+                            }
                             break;
                         }
                         // 首轮公平门（仅影响每个 executor 的第一块之前）。
@@ -1272,7 +1331,17 @@ struct Dispatcher::Impl {
                         inv.attempt = token.attempt;
                         // 聚焦版 v3：输入已 prefetch → launcher 走 resident 路径
                         inv.input_resident = data_resident;
+                        std::fprintf(stderr,
+                                     "[%zu,%zu)\n",
+                                     exec->backend_type().c_str(),
+                                     static_cast<unsigned long long>(token.id),
+                                     token.begin, token.end);
+                        std::fflush(stderr);
                         SubmitHandle handle = exec->submit(token, inv);
+                        std::fprintf(stderr,
+                                     exec->backend_type().c_str(),
+                                     static_cast<int>(handle.status));
+                        std::fflush(stderr);
                         if (handle.status == SubmitStatus::Ok) {
                             // 24 号计划 §6：ledger 拒绝不得累计 actual 统计
                             if (pool.mark_done(token)) {
@@ -1315,6 +1384,53 @@ struct Dispatcher::Impl {
             }
         }
         for (auto& th : workers) th.join();
+        // ACR 架构冻结（05 号规范 §2）：工作保持——禁止漏算。
+        // should_claim 的 makespan 优化在实测速率噪声/双方互斥拒绝时可能让
+        // 所有 worker 停止 claim 而池仍有剩余（all_done=false 静默漏算）。
+        // 兜底：worker 全部退出后，由第一个可用 executor 按剩余工作清尾，
+        // 保证 completed==total 判据成立；不改变 Auto 生产路由语义。
+        if (!pool.all_done() && pool.remaining_work() > 0) {
+            for (std::size_t i = 0; i < n_exec; ++i) {
+                DeviceExecutor* exec = supported[i];
+                if (!exec->available()) continue;
+                while (true) {
+                    const std::size_t rem = pool.remaining_work();
+                    if (rem == 0) break;
+                    auto token = pool.claim_next_dynamic(exec->id(), rem);
+                    if (!token.valid()) break;
+                    KernelInvocation inv2 = invocation;
+                    inv2.domain = WorkDomain{token.begin, token.end};
+                    inv2.token_id = token.id;
+                    inv2.attempt = token.attempt;
+                    inv2.input_resident = data_resident;
+                    SubmitHandle h2 = exec->submit(token, inv2);
+                    if (h2.status == SubmitStatus::Ok &&
+                        pool.mark_done(token)) {
+                        exec_done[i].fetch_add(1, std::memory_order_relaxed);
+                        exec_items[i].fetch_add(
+                            h2.items_done, std::memory_order_relaxed);
+                        exec_bytes[i].fetch_add(
+                            h2.bytes_done, std::memory_order_relaxed);
+                        exec_bytes_read[i].fetch_add(
+                            h2.items_done *
+                                invocation.traits.bytes_read_per_item,
+                            std::memory_order_relaxed);
+                        exec_bytes_written[i].fetch_add(
+                            h2.items_done *
+                                invocation.traits.bytes_written_per_item,
+                            std::memory_order_relaxed);
+                        exec_elapsed[i].fetch_add(
+                            h2.elapsed_ns, std::memory_order_relaxed);
+                    } else {
+                        pool.mark_failed(token, /*retryable=*/false);
+                        exec_failed[i].fetch_add(
+                            1, std::memory_order_relaxed);
+                        break;  // 失败停止兜底（避免死循环）
+                    }
+                }
+                if (pool.all_done()) break;
+            }
+        }
         for (auto* exec : supported) exec->sync();
 
         // 记录资源控制统计
@@ -1654,61 +1770,93 @@ CostAwareResult Dispatcher::dispatch_invocation(
     const std::size_t end = invocation.domain.end;
     (void)task;
 
-    // 聚焦版 v2（08 号计划 §4/06 号规范 §1）：注册 buffer（真实字节数 +
+    // ACR 架构冻结（01_ARCHITECTURE_FREEZE.md §4）：注册 buffer（真实字节数 +
     // 访问模式），查询输入是否已在 GPU 显存（决定 host/resident 阈值）。
-    // buffer 布局（与 focused launcher 一致）：
-    //   dense/chain：buffer0=输出(read_write)、buffer1=输入(read)
-    //   reduce/drizzle：buffer0=输入(read)、buffer1=partials(read_write)
-    const bool reduce_like =
-        (invocation.id == kOpPixelReduceFp64Acc ||
-         invocation.id == kOpDrizzleLikeScatterFp64Acc);
+    // buffer 布局由 OperationId 统一决定（见 layout_for_invocation）。
+    const InvocationBufferLayout layout = layout_for_invocation(invocation);
     bool data_resident = false;
     for (std::size_t bi = 0; bi < invocation.buffers.bindings.size(); ++bi) {
         const auto& binding = invocation.buffers.bindings[bi];
-        const std::string key = "buf-" +
-            std::to_string(reinterpret_cast<std::uintptr_t>(binding.data));
+        const std::string key = binding.stable_key.empty()
+            ? "buf-" +
+                  std::to_string(
+                      reinterpret_cast<std::uintptr_t>(binding.data))
+            : binding.stable_key;
         // 元素数 × float 字节（聚焦内核 buffer 均为 float*）
         const std::size_t bytes = binding.count * sizeof(float);
         const bool is_output =
-            reduce_like ? (bi == 1) : (bi == 0);
-        const BufferAccess access = is_output
-            ? BufferAccess::ReadWrite : BufferAccess::Read;
+            std::find(layout.outputs.begin(), layout.outputs.end(), bi) !=
+            layout.outputs.end();
+        const bool is_read_write =
+            binding.role == BufferRole::ReadWrite ||
+            (is_output && invocation.partition ==
+                              PartitionKind::PrivatePartialThenMerge);
+        const BufferAccess access = is_read_write
+            ? BufferAccess::ReadWrite
+            : (is_output ? BufferAccess::Write : BufferAccess::Read);
         impl_->residency.register_buffer(key, bytes, access);
     }
     {
-        const auto* input = invocation.buffers.find(reduce_like ? 0 : 1);
+        const auto* input = !layout.inputs.empty()
+            ? invocation.buffers.find(layout.inputs.front())
+            : nullptr;
         if (input != nullptr) {
-            const std::string key = "buf-" +
-                std::to_string(reinterpret_cast<std::uintptr_t>(input->data));
+            const std::string key = input->stable_key.empty()
+                ? "buf-" + std::to_string(
+                                reinterpret_cast<std::uintptr_t>(input->data))
+                : input->stable_key;
             data_resident = impl_->residency.is_device_valid(key, "cuda:0");
         }
     }
 
-    // 聚焦版 v3（08 号计划 §3）：worker 启动前真实 prefetch。
-    // 输入未驻留且存在 GPU executor 时，经 CudaBridgeExecutor 上传整帧一次
-    // 并建立 device view；launcher 据此走 resident 提交（跳过逐块 H2D）。
-    // 删除执行后再补传输入的旧逻辑。
-    const auto* input = invocation.buffers.find(reduce_like ? 0 : 1);
-    if (input != nullptr && !data_resident && impl_->executors) {
-        const std::string key = "buf-" +
-            std::to_string(reinterpret_cast<std::uintptr_t>(input->data));
-        for (auto* e : impl_->executors->available_executors()) {
-            if (e->backend_type().rfind("cuda", 0) == 0 &&
-                e->prefetch_input(input->data,
-                                  input->count * sizeof(float))) {
-                data_resident = true;
-                impl_->residency.mark_uploaded(key);
-                impl_->residency.mark_device_allocated(key);
-                break;
+    // ACR 架构冻结（07 号计划 C）：worker 启动前真实 prefetch 全部只读输入。
+    // 传入完整输入集合让 executor 决定复用/替换（resident-reuse 时 frames
+    // 已驻留复用、新 weights 覆盖旧权重槽位，不重复上传整帧）。
+    // 仅对本次实际新上传的输入 mark_uploaded（避免重复记账）。
+    if (!layout.inputs.empty() && impl_->executors) {
+        std::vector<const void*> input_hosts;
+        std::vector<std::size_t> input_bytes;
+        std::vector<std::string> input_keys;
+        std::vector<bool> was_resident;
+        for (std::size_t idx : layout.inputs) {
+            const auto* b = invocation.buffers.find(idx);
+            if (b == nullptr) continue;
+            const std::string key = b->stable_key.empty()
+                ? "buf-" + std::to_string(
+                               reinterpret_cast<std::uintptr_t>(b->data))
+                : b->stable_key;
+            input_hosts.push_back(b->data);
+            input_bytes.push_back(b->count * sizeof(float));
+            input_keys.push_back(key);
+            was_resident.push_back(
+                impl_->residency.is_device_valid(key, "cuda:0"));
+        }
+        if (!input_hosts.empty()) {
+            for (auto* e : impl_->executors->available_executors()) {
+                if (e->backend_type().rfind("cuda", 0) == 0 &&
+                    e->prefetch_inputs(input_hosts, input_bytes)) {
+                    std::fflush(stderr);
+                    data_resident = true;
+                    for (std::size_t i = 0; i < input_keys.size(); ++i) {
+                        if (!was_resident[i]) {
+                            impl_->residency.mark_uploaded(input_keys[i]);
+                            impl_->residency.mark_device_allocated(
+                                input_keys[i]);
+                        }
+                    }
+                    break;
+                }
             }
         }
     }
 
+    std::fflush(stderr);
     std::vector<Impl::InvocationExecStats> per_exec_stats;
     std::vector<std::string> actual_devices;
     auto r = impl_->execute_invocation_via_executors(
         invocation, estimate, result.resource_control, per_exec_stats,
         actual_devices, data_resident);
+    std::fflush(stderr);
     result.run_result = r;
     result.actual_devices_used = actual_devices;
 
@@ -1717,11 +1865,15 @@ CostAwareResult Dispatcher::dispatch_invocation(
     //  - 输出经同步桥接真实 D2H 一次；
     //  - 不再执行后补传输入。
     if (r.executed_on_gpu > 0) {
-        const auto* output = invocation.buffers.find(reduce_like ? 1 : 0);
+        const auto* output = !layout.outputs.empty()
+            ? invocation.buffers.find(layout.outputs.front())
+            : nullptr;
         if (output != nullptr) {
             // 同步桥接执行完成后输出已 D2H（真实下载一次）
-            const std::string key = "buf-" +
-                std::to_string(reinterpret_cast<std::uintptr_t>(output->data));
+            const std::string key = output->stable_key.empty()
+                ? "buf-" + std::to_string(
+                                reinterpret_cast<std::uintptr_t>(output->data))
+                : output->stable_key;
             impl_->residency.mark_downloaded(key);
         }
     }

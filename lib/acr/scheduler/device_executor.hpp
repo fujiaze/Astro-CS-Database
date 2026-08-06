@@ -79,6 +79,29 @@ public:
         return false;
     }
     virtual bool input_resident(const void* /*host*/) const { return false; }
+    // ACR 架构冻结（01_ARCHITECTURE_FREEZE.md §3）：一次预取多个输入
+    // （如加权积分的 frames + weights）。默认逐输入调用 prefetch_input；
+    // 需要组合上传的 executor（如 CUDA 桥接整帧+权重一次上传）可重写。
+    virtual bool prefetch_inputs(
+        const std::vector<const void*>& hosts,
+        const std::vector<std::size_t>& bytes) {
+        if (hosts.size() != bytes.size()) return false;
+        bool all_ok = true;
+        for (std::size_t i = 0; i < hosts.size(); ++i) {
+            if (!prefetch_input(hosts[i], bytes[i])) all_ok = false;
+        }
+        return all_ok;
+    }
+
+    // ACR 架构冻结（01_ARCHITECTURE_FREEZE.md §5）：每 GPU 只有一个 executor，
+    // 内部可容纳的 in-flight 槽位数（stream 数）。CPU 默认 1（多 worker 由
+    // Dispatcher 管理）；CUDA executor 返回其内部 stream 槽位数。
+    virtual std::size_t max_in_flight() const { return 1; }
+    // 配置 executor 内部 stream 通道数（GPU 专用；默认返回 false=不支持）。
+    virtual bool set_streams(std::size_t /*count*/) { return false; }
+    // persistent 槽位真实上传次数（slot 0 = frames/d_x，slot 1 = weights/d_w）。
+    // resident-reuse 验收：同一帧栈多次调用时 frames 上传必须保持 1。
+    virtual std::uint64_t slot_upload_count(int /*slot*/) const { return 0; }
 
     // 提交一个工作块执行。
     // 同步设备（CPU）：直接执行并返回真实完成统计；

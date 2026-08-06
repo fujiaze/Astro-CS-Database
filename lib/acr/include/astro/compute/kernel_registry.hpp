@@ -27,6 +27,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace astro::compute {
@@ -42,6 +43,16 @@ struct WorkDomain {
     constexpr bool empty() const noexcept { return end <= begin; }
 };
 
+// ===== Buffer 角色（ACR 架构冻结 01_ARCHITECTURE_FREEZE.md §4 / 02 号规范 §4）=====
+// 业务适配器必须显式声明每个 buffer 的角色：只读输入、只写输出或读改写。
+// 禁止只在状态表写“resident”，而 launcher 仍逐 token 创建 host vector
+// 重复 H2D/D2H（Dispatcher 按角色决定 prefetch 与物化路径）。
+enum class BufferRole : std::uint8_t {
+    Input = 0,       // 只读输入（可跨块/跨调用驻留复用）
+    Output = 1,      // 只写输出（CPU/GPU 各自独占范围）
+    ReadWrite = 2,   // 读改写（accumulate / partials）
+};
+
 // ===== Buffer 绑定 =====
 // 对 CPU executor：data 是 host 指针；
 // 对 CUDA executor：data 是设备指针（由 executor 驻留解析）。
@@ -50,14 +61,22 @@ struct BufferBinding {
     void* data{nullptr};       // host/device 指针（executor 解析）
     std::size_t count{0};      // 元素数
     std::size_t stride{1};     // 元素步长（默认连续）
+    BufferRole role{BufferRole::Input};  // buffer 角色（Dispatcher prefetch/物化依据）
+    std::uint64_t generation{0};         // host 修改代数（驻留复用失效判断）
+    std::string stable_key;              // 可选稳定键（默认空 → 用 data 指针）
 };
 
 struct BufferBindingList {
     std::vector<BufferBinding> bindings;
 
     void add(std::size_t index, void* data, std::size_t count,
-             std::size_t stride = 1) {
-        bindings.push_back(BufferBinding{index, data, count, stride});
+             std::size_t stride = 1,
+             BufferRole role = BufferRole::Input,
+             std::uint64_t generation = 0,
+             std::string stable_key = {}) {
+        bindings.push_back(
+            BufferBinding{index, data, count, stride, role, generation,
+                          std::move(stable_key)});
     }
     const BufferBinding* find(std::size_t index) const {
         for (const auto& b : bindings) {
@@ -103,6 +122,10 @@ struct KernelInvocation {
     RouteMode mode{RouteMode::AutoMixed};
     // 聚焦版 v3（08 号计划 §3）：输入是否已在设备显存（launcher 用 resident 路径）
     bool input_resident{false};
+    // ACR 架构冻结（01_ARCHITECTURE_FREEZE.md §3）：调用方声明的输入/输出驻留策略。
+    // 默认 MaterializeHost（结果必须回到 host）；PreferDevice/KeepDevice 由
+    // 业务适配器在需要跨调用驻留时显式声明。
+    ResidencyPolicy residency_policy{ResidencyPolicy::MaterializeHost};
     std::uint64_t token_id{0};     // 执行时由 executor 回填的工作块 token id
                                    // （归约等需要按块定位输出的 kernel 使用）
     std::uint32_t attempt{0};      // 当前领取尝试次数（重试时 partial 需清零）
