@@ -32,6 +32,13 @@
 #include <windows.h>
 #endif
 
+// R13 (HISS_IO_REPAIR): 逐 Tile/逐 subblock 日志降级 (与 hiss_writer.cpp 一致)
+#ifdef HISS_VERBOSE
+#define HISS_DLOG(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
+#else
+#define HISS_DLOG(fmt, ...) do {} while (0)
+#endif
+
 namespace hiss {
 
 // ============================================================================
@@ -289,31 +296,48 @@ int HissStreamWriter::append_subblock(const uint8_t* data, size_t size,
             fprintf(stderr, "[hiss][stream] append_subblock: data 为空但 size=%zu\n", size);
             return -2;
         }
+#ifdef HISS_PROFILE
+        auto tp_w = std::chrono::steady_clock::now();
+#endif
         size_t written = std::fwrite(data, 1, size, pimpl_->temp_pool_fp);
         if (written != size) {
             fprintf(stderr, "[hiss][stream] append_subblock: 写入不足 need=%zu got=%zu\n",
                     size, written);
+            fprintf(stderr, "[hiss][stream]   ferror=%d errno=%d (file=%s)\n",
+                    std::ferror(pimpl_->temp_pool_fp), errno,
+                    pimpl_->temp_pool_path.c_str());
+            std::clearerr(pimpl_->temp_pool_fp);
             return -3;
         }
         // 立即 flush, 确保数据落盘 (流式写入要点: 不在内存缓存)
         // R08 移植 R07-M12: fflush 返回值必须检查, 失败时传播错误 (避免后续 finalize
         //   读取到不完整数据, 产出损坏的 HISS 文件)
+#ifdef HISS_PROFILE
+        auto tp_f = std::chrono::steady_clock::now();
+#endif
         if (std::fflush(pimpl_->temp_pool_fp) != 0) {
             fprintf(stderr,
                     "[hiss][stream] append_subblock 失败: fflush 临时池失败 (R07-M12)\n");
             return -4;
         }
+#ifdef HISS_PROFILE
+        fprintf(stderr, "[hiss][prof] append_subblock: fwrite=%.2f ms fflush=%.2f ms (size=%zu)\n",
+                std::chrono::duration<double, std::milli>(
+                    std::chrono::steady_clock::now() - tp_w).count(),
+                std::chrono::duration<double, std::milli>(
+                    std::chrono::steady_clock::now() - tp_f).count(),
+                size);
+#endif
     }
 
     pimpl_->temp_pool_size += size;
     desc.compressed_size = size;
 
-    fprintf(stderr,
-            "[hiss][stream]   append_subblock: type=%u offset=%llu size=%zu "
-            "codec=%u transform=%u checksum_type=%u\n",
-            (unsigned)desc.type, (unsigned long long)desc.offset,
-            size, (unsigned)desc.codec_id, (unsigned)desc.transform_id,
-            (unsigned)desc.checksum_type);
+    HISS_DLOG("[hiss][stream]   append_subblock: type=%u offset=%llu size=%zu "
+              "codec=%u transform=%u checksum_type=%u\n",
+              (unsigned)desc.type, (unsigned long long)desc.offset,
+              size, (unsigned)desc.codec_id, (unsigned)desc.transform_id,
+              (unsigned)desc.checksum_type);
     return 0;
 }
 
@@ -335,10 +359,9 @@ int HissStreamWriter::record_tile(uint64_t parent_ipix, uint32_t tile_nside,
     td.occ_mode    = occ_mode;
     td.subblocks   = std::move(subblocks);
 
-    fprintf(stderr,
-            "[hiss][stream]   record_tile: parent=%llu tile_nside=%u occ_mode=%u n_subblocks=%zu\n",
-            (unsigned long long)td.parent_ipix, td.tile_nside,
-            (unsigned)td.occ_mode, td.subblocks.size());
+    HISS_DLOG("[hiss][stream]   record_tile: parent=%llu tile_nside=%u occ_mode=%u n_subblocks=%zu\n",
+              (unsigned long long)td.parent_ipix, td.tile_nside,
+              (unsigned)td.occ_mode, td.subblocks.size());
 
     pimpl_->tile_dirs.push_back(std::move(td));
     return 0;

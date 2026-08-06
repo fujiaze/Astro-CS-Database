@@ -22,9 +22,18 @@
 #include "hiss_tile_model.h"  // make_tile_geometry (用于自动选择时的 n_leaf_per_tile)
 #include "hiss_transform.h"   // WP-G 步骤12: apply_transform (压缩前正向变换)
 
+#include <chrono>
 #include <cstdio>
 #include <cerrno>
 #include <cstring>
+
+// R13 (HISS_IO_REPAIR): 逐 Tile/逐 subblock 日志降级 — 仅编译期 HISS_VERBOSE
+// 启用时输出 (正常模式 INFO 只保留阶段/汇总/错误, 避免 stderr 写文件拖慢写入)
+#ifdef HISS_VERBOSE
+#define HISS_DLOG(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
+#else
+#define HISS_DLOG(fmt, ...) do {} while (0)
+#endif
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -60,6 +69,17 @@ struct HissWriter::Impl {
     // INTERIM_BASELINE_NOT_FROZEN: 候选注册机制, 算法待 DQ-006 冻结
     std::map<SubblockType, ChecksumType> experiment_checksums;
 
+    // R13 (HISS_IO_REPAIR): 可复用缓冲 — 避免每 Tile 反复分配 1MB 级数组。
+    //   大 tiles (NSIDE=65536 满 Tile 262144 leaf) 下, drizzle 后堆已碎片化,
+    //   每 Tile 的 signal/support/valid/compressed 分配实测拖慢写入 (1024² 10ms
+    //   vs 4096² 378ms/Tile); 复用缓冲消除该开销。
+    std::vector<float>   buf_signal_full;
+    std::vector<uint8_t> buf_support_full;
+    std::vector<uint32_t> buf_valid;
+    std::vector<float>   buf_signal_compact;
+    std::vector<uint8_t> buf_support_compact;
+    std::vector<uint8_t> buf_occ_data;
+
     CodecId codec_for(SubblockType t) const {
         auto it = experiment_codecs.find(t);
         return it != experiment_codecs.end() ? it->second.first : CodecId::RAW;
@@ -93,6 +113,9 @@ static int compress_and_append(HissStreamWriter& stream,
                                 ChecksumType checksum_type,
                                 size_t element_size,
                                 HissSubblockDescriptor& desc) {
+#ifdef HISS_PROFILE
+    auto tp0 = std::chrono::steady_clock::now();
+#endif
     // WP-G 步骤12: 在压缩前执行正向变换 (若 transform_id != NONE)
     // 变换后的数据作为压缩输入, uncompressed_size 记录变换后大小
     std::vector<uint8_t> transformed;
@@ -100,16 +123,23 @@ static int compress_and_append(HissStreamWriter& stream,
     size_t size_to_compress = data_size;
 
     if (transform_id != TransformId::NONE) {
+        auto tp1 = std::chrono::steady_clock::now();
         TransformType tt = transform_id_to_type(transform_id);
         transformed = apply_transform(tt, data, data_size, element_size);
+#ifdef HISS_PROFILE
+        fprintf(stderr, "[hiss][prof] transform %s: %.2f ms\n",
+                transform_type_name(tt),
+                std::chrono::duration<double, std::milli>(
+                    std::chrono::steady_clock::now() - tp1).count());
+#endif
 
         // 校验: 非空输入变换后不应为空 (空输入的 DELTA_VARINT 输出 4 字节, 不为空)
         if (transformed.empty() && data_size > 0) {
-            fprintf(stderr,
-                    "[hiss][writer] compress_and_append: transform 失败 type=%s(%u) "
-                    "element_size=%zu data_size=%zu\n",
-                    transform_type_name(tt), (unsigned)transform_id,
-                    element_size, data_size);
+        fprintf(stderr,
+                "[hiss][writer] compress_and_append: transform 失败 type=%s(%u) "
+                "element_size=%zu data_size=%zu\n",
+                transform_type_name(tt), (unsigned)transform_id,
+                element_size, data_size);
             return -1;
         }
         // 空输入 + DELTA_VARINT: transformed 为 4 字节 [0,0,0,0], data_size=0
@@ -118,9 +148,8 @@ static int compress_and_append(HissStreamWriter& stream,
         data_to_compress = transformed.data();
         size_to_compress = transformed.size();
 
-        fprintf(stderr,
-                "[hiss][writer]   transform %s: %zu → %zu 字节 (element_size=%zu)\n",
-                transform_type_name(tt), data_size, size_to_compress, element_size);
+        HISS_DLOG("[hiss][writer]   transform %s: %zu -> %zu 字节 (element_size=%zu)\n",
+                  transform_type_name(tt), data_size, size_to_compress, element_size);
     }
 
     // R04-B17: 内置子块 ext_type_id = 0 (非 EXTENSION 类型)
@@ -139,8 +168,13 @@ static int compress_and_append(HissStreamWriter& stream,
     const uint8_t* final_data = data_to_compress;
     size_t final_size = size_to_compress;
     CodecId final_codec = codec_id;
+    // R13: 压缩缓冲提升到函数作用域 — 原实现在 if 块内声明, else 分支
+    //   final_data=compressed.data() 在块结束后成为悬垂指针, append_subblock
+    //   读取已析构内存 → fwrite EINVAL (启用 ZSTD 后写入失败)。
+    std::vector<uint8_t> compressed_buf;
 
     if (codec_id != CodecId::RAW) {
+        auto tp2 = std::chrono::steady_clock::now();
         // 查找 codec
         const CodecEntry* entry = CodecRegistry::instance().find(codec_id);
         if (!entry) {
@@ -151,10 +185,17 @@ static int compress_and_append(HissStreamWriter& stream,
 
         // 分配压缩缓冲区并压缩 (基于变换后大小)
         size_t bound = entry->bound(size_to_compress);
-        std::vector<uint8_t> compressed(bound);
+        compressed_buf.resize(bound);
         size_t compressed_size = bound;
         int ret = entry->compress(data_to_compress, size_to_compress,
-                                   compressed.data(), &compressed_size);
+                                   compressed_buf.data(), &compressed_size);
+#ifdef HISS_PROFILE
+        fprintf(stderr, "[hiss][prof] compress %u: %.2f ms (in=%zu out=%zu)\n",
+                (unsigned)codec_id,
+                std::chrono::duration<double, std::milli>(
+                    std::chrono::steady_clock::now() - tp2).count(),
+                size_to_compress, compressed_size);
+#endif
         if (ret != 0) {
             fprintf(stderr, "[hiss][writer] compress_and_append: 压缩失败 ret=%d (codec=%u type=%u)\n",
                     ret, (unsigned)codec_id, (unsigned)type);
@@ -164,16 +205,14 @@ static int compress_and_append(HissStreamWriter& stream,
         // R04-B13: 判断压缩是否有收益
         if (compressed_size >= size_to_compress) {
             // 压缩无收益 → 回退 RAW
-            fprintf(stderr,
-                    "[hiss][writer]   R04-B13 RAW 回退: compressed=%zu >= uncompressed=%zu → 使用 RAW\n",
-                    compressed_size, size_to_compress);
+            HISS_DLOG("[hiss][writer]   R04-B13 RAW 回退: compressed=%zu >= uncompressed=%zu -> 使用 RAW\n",
+                      compressed_size, size_to_compress);
             final_data  = data_to_compress;
             final_size  = size_to_compress;
             final_codec = CodecId::RAW;
-            // compressed 在此分支结束后析构, 释放内存
         } else {
             // 压缩有收益 → 使用压缩数据
-            final_data  = compressed.data();
+            final_data  = compressed_buf.data();
             final_size  = compressed_size;
             final_codec = codec_id;
         }
@@ -208,13 +247,12 @@ static int compress_and_append(HissStreamWriter& stream,
         return -3;
     }
 
-    fprintf(stderr,
-            "[hiss][writer]   子块 type=%u ext_id=%u flags=0x%04x uncompressed=%zu compressed=%zu "
-            "codec=%u transform=%u checksum_type=%u offset=%llu\n",
-            (unsigned)type, (unsigned)desc.ext_type_id, flags, size_to_compress, final_size,
-            (unsigned)final_codec, (unsigned)transform_id,
-            (unsigned)desc.checksum_type,
-            (unsigned long long)desc.offset);
+    HISS_DLOG("[hiss][writer]   子块 type=%u ext_id=%u flags=0x%04x uncompressed=%zu compressed=%zu "
+              "codec=%u transform=%u checksum_type=%u offset=%llu\n",
+              (unsigned)type, (unsigned)desc.ext_type_id, flags, size_to_compress, final_size,
+              (unsigned)final_codec, (unsigned)transform_id,
+              (unsigned)desc.checksum_type,
+              (unsigned long long)desc.offset);
     return 0;
 }
 
@@ -304,6 +342,31 @@ int HissWriter::open(const std::string& output_path,
 
     pimpl_->grid     = grid;
     pimpl_->metadata = metadata;
+
+    // R13 (HISS_IO_REPAIR): 默认压缩配置 — 仅当调用方未显式设置 codec 时启用。
+    //   生产 HISS 此前 experiment_codecs 为空 → 全部 RAW (316MB 未压缩)。
+    //   启用 ZSTD + BYTE_SHUFFLE (signal float32/64 shuffle 后压缩率高)；
+    //   support/occupancy/snr 用 ZSTD (uint8 数据 zstd 直接压缩高效)。
+    //   调用方 set_experiment_codec 可覆盖 (优先显式配置)。
+    if (pimpl_->experiment_codecs.empty()) {
+        CodecRegistry& reg = CodecRegistry::instance();
+        if (reg.find(CodecId::ZSTD)) {
+            pimpl_->experiment_codecs[SubblockType::SIGNAL] =
+                {CodecId::ZSTD, TransformId::BYTE_SHUFFLE};
+            pimpl_->experiment_codecs[SubblockType::SUPPORT] =
+                {CodecId::ZSTD, TransformId::NONE};
+            pimpl_->experiment_codecs[SubblockType::OCCUPANCY] =
+                {CodecId::ZSTD, TransformId::NONE};
+            pimpl_->experiment_codecs[SubblockType::SNR] =
+                {CodecId::ZSTD, TransformId::NONE};
+            fprintf(stderr,
+                    "[hiss][writer] 默认压缩: ZSTD (signal=BYTE_SHUFFLE) 已启用 "
+                    "(R13 HISS_IO_REPAIR)\n");
+        } else {
+            fprintf(stderr,
+                    "[hiss][writer] 警告: ZSTD codec 未注册 (HAS_ZSTD 未编译), 保持 RAW\n");
+        }
+    }
 
     // 初始化流式写入器 (创建临时子块池)
     int ret = pimpl_->stream.open(output_path);
@@ -411,6 +474,9 @@ int HissWriter::add_tile(uint64_t parent_ipix,
                          const DrizzleTileAccumulator& acc,
                          const HissSnrBlock* snr,
                          OccupancyMode occ_mode) {
+#ifdef HISS_PROFILE
+    auto tp_add0 = std::chrono::steady_clock::now();
+#endif
     if (!pimpl_->opened) {
         fprintf(stderr, "[hiss][writer] add_tile 失败: 会话未打开\n");
         return -1;
@@ -434,14 +500,26 @@ int HissWriter::add_tile(uint64_t parent_ipix,
     // 1. 生成 signal (float32) 与 support (uint8) — 全长度数组
     //    signal = 累计通量 (步骤7, finalize_signal 在 hiss_common.cpp 已修复)
     //    support = 面积比 (finalize_support 用 pixel_area 归一化)
-    std::vector<float>   signal_full;
-    std::vector<uint8_t> support_full;
+    std::vector<float>&   signal_full   = pimpl_->buf_signal_full;
+    std::vector<uint8_t>& support_full  = pimpl_->buf_support_full;
+#ifdef HISS_PROFILE
+    auto tp_fs = std::chrono::steady_clock::now();
+#endif
     acc.finalize_signal(signal_full);
     acc.finalize_support(support_full);
+#ifdef HISS_PROFILE
+    fprintf(stderr, "[hiss][prof] finalize_signal/support: %.2f ms\n",
+            std::chrono::duration<double, std::milli>(
+                std::chrono::steady_clock::now() - tp_fs).count());
+#endif
 
     // 2. 统计有效像素并收集索引
     //    有效定义: sum_area > 0 (有贡献的像素)
-    std::vector<uint32_t> valid_indices;
+    std::vector<uint32_t>& valid_indices = pimpl_->buf_valid;
+#ifdef HISS_PROFILE
+    auto tp_vi = std::chrono::steady_clock::now();
+#endif
+    valid_indices.clear();
     valid_indices.reserve(n_leaf);
     for (size_t i = 0; i < n_leaf; i++) {
         if (acc.pixels[i].sum_area > 0.0) {
@@ -449,26 +527,35 @@ int HissWriter::add_tile(uint64_t parent_ipix,
         }
     }
     uint32_t n_valid = (uint32_t)valid_indices.size();
+#ifdef HISS_PROFILE
+    fprintf(stderr, "[hiss][prof] valid 扫描: %.2f ms (n_valid=%u)\n",
+            std::chrono::duration<double, std::milli>(
+                std::chrono::steady_clock::now() - tp_vi).count(), n_valid);
+#endif
 
     // 3. 自动选择 occupancy 模式 (步骤11: 不由调用方传入)
     //    忽略 occ_mode 参数, Writer 根据占用率自动选择
     OccupancyMode auto_mode = auto_select_occupancy(n_valid, (uint32_t)n_leaf);
-    fprintf(stderr,
-            "[hiss][writer] add_tile: parent=%llu n_leaf=%zu n_valid=%u occ_rate=%.4f "
-            "传入occ_mode=%u → 自动选择=%u\n",
-            (unsigned long long)parent_ipix, n_leaf, n_valid,
-            (n_leaf > 0) ? (double)n_valid / (double)n_leaf : 0.0,
-            (unsigned)occ_mode, (unsigned)auto_mode);
+    HISS_DLOG("[hiss][writer] add_tile: parent=%llu n_leaf=%zu n_valid=%u occ_rate=%.4f "
+              "occ_mode=%u -> auto=%u\n",
+              (unsigned long long)parent_ipix, n_leaf, n_valid,
+              (n_leaf > 0) ? (double)n_valid / (double)n_leaf : 0.0,
+              (unsigned)occ_mode, (unsigned)auto_mode);
 
     // 4. 根据 occupancy 模式构造紧凑 signal/support 数组和 occupancy 数据
-    std::vector<float>   signal_compact;   // BITMAP/SPARSE: n_valid 个值; FULL: n_leaf 个值
-    std::vector<uint8_t> support_compact;  // 同上
-    std::vector<uint8_t> occ_data;         // occupancy 子块数据
+    std::vector<float>&   signal_compact  = pimpl_->buf_signal_compact;
+    std::vector<uint8_t>& support_compact = pimpl_->buf_support_compact;
+    std::vector<uint8_t>& occ_data        = pimpl_->buf_occ_data;
+    signal_compact.clear();
+    support_compact.clear();
+    occ_data.clear();
+
+#ifdef HISS_PROFILE
+    auto tp_compact = std::chrono::steady_clock::now();
+#endif
 
     if (auto_mode == OccupancyMode::FULL) {
-        // FULL: 保存全部 n_leaf 个值, 无 occupancy 子块
-        signal_compact  = std::move(signal_full);
-        support_compact = std::move(support_full);
+        // FULL: 直接使用 signal_full/support_full (无 occupancy 子块, 复用缓冲)
     } else if (auto_mode == OccupancyMode::BITMAP) {
         // BITMAP: 1 bit/叶像素 (LSB 优先), 只保存有效像素的 signal/support
         occ_data.assign((n_leaf + 7) / 8, 0);
@@ -496,6 +583,12 @@ int HissWriter::add_tile(uint64_t parent_ipix,
             support_compact.push_back(support_full[idx]);
         }
     }
+#ifdef HISS_PROFILE
+    fprintf(stderr, "[hiss][prof] compact 构建: %.2f ms (mode=%u)\n",
+            std::chrono::duration<double, std::milli>(
+                std::chrono::steady_clock::now() - tp_compact).count(),
+            (unsigned)auto_mode);
+#endif
 
     // 5. 压缩并追加子块到流式写入器 (步骤10: 立即写入临时池)
     std::vector<HissSubblockDescriptor> subblocks;
@@ -525,13 +618,15 @@ int HissWriter::add_tile(uint64_t parent_ipix,
     // 5b. signal 子块 (必需) — 只含有效像素的紧凑数组 (BITMAP/SPARSE) 或全长度 (FULL)
     //     WP-G 步骤12: element_size=sizeof(float)=4, 适用于 BYTE_SHUFFLE/DELTA/DELTA_VARINT
     {
-        size_t sig_bytes = signal_compact.size() * sizeof(float);
+        const auto& sig_use = (auto_mode == OccupancyMode::FULL)
+            ? signal_full : signal_compact;
+        size_t sig_bytes = sig_use.size() * sizeof(float);
         HissSubblockDescriptor desc;
         int ret = compress_and_append(
             pimpl_->stream,
             SubblockType::SIGNAL,
             (uint16_t)SubblockFlags::REQUIRED,
-            (const uint8_t*)signal_compact.data(), sig_bytes,
+            (const uint8_t*)sig_use.data(), sig_bytes,
             pimpl_->codec_for(SubblockType::SIGNAL),
             pimpl_->transform_for(SubblockType::SIGNAL),
             pimpl_->checksum_for(SubblockType::SIGNAL),
@@ -544,12 +639,14 @@ int HissWriter::add_tile(uint64_t parent_ipix,
     // 5c. support 子块 (必需) — 只含有效像素的紧凑数组 (BITMAP/SPARSE) 或全长度 (FULL)
     //     WP-G 步骤12: element_size=1 (uint8), BYTE_SHUFFLE 为 no-op, DELTA/DELTA_VARINT 可用
     {
+        const auto& sup_use = (auto_mode == OccupancyMode::FULL)
+            ? support_full : support_compact;
         HissSubblockDescriptor desc;
         int ret = compress_and_append(
             pimpl_->stream,
             SubblockType::SUPPORT,
             (uint16_t)SubblockFlags::REQUIRED,
-            support_compact.data(), support_compact.size(),
+            sup_use.data(), sup_use.size(),
             pimpl_->codec_for(SubblockType::SUPPORT),
             pimpl_->transform_for(SubblockType::SUPPORT),
             pimpl_->checksum_for(SubblockType::SUPPORT),
@@ -576,11 +673,15 @@ int HissWriter::add_tile(uint64_t parent_ipix,
         return ret;
     }
 
-    fprintf(stderr,
-            "[hiss][writer] add_tile 成功: parent_ipix=%llu tile_nside=%u occ_mode=%u "
-            "n_leaf=%zu n_valid=%u n_subblocks=%zu\n",
-            (unsigned long long)parent_ipix, acc.tile_nside, (unsigned)auto_mode,
-            n_leaf, n_valid, subblocks.size());
+    HISS_DLOG("[hiss][writer] add_tile 成功: parent_ipix=%llu tile_nside=%u occ_mode=%u "
+              "n_leaf=%zu n_valid=%u n_subblocks=%zu\n",
+              (unsigned long long)parent_ipix, acc.tile_nside, (unsigned)auto_mode,
+              n_leaf, n_valid, subblocks.size());
+#ifdef HISS_PROFILE
+    fprintf(stderr, "[hiss][prof] add_tile 总计: %.2f ms\n",
+            std::chrono::duration<double, std::milli>(
+                std::chrono::steady_clock::now() - tp_add0).count());
+#endif
     return 0;
 }
 
