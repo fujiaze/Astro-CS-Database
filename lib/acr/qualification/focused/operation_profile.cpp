@@ -78,6 +78,7 @@ std::string serialize_operation_profile(const OperationProfile& p) {
         o["precision"] = op.precision;
         o["accumulator"] = op.accumulator;
         o["qualified"] = op.qualified;
+        o["qualification_reason"] = op.qualification_reason;
         o["sample_range"]["min_items"] = op.sample_range.min_items;
         o["sample_range"]["max_items"] = op.sample_range.max_items;
         o["sample_range"]["repeats"] = op.sample_range.repeats;
@@ -169,6 +170,10 @@ bool read_operation_profile_from_file(const std::string& path,
         if (o.contains("precision")) op.precision = o["precision"].get<std::string>();
         if (o.contains("accumulator")) op.accumulator = o["accumulator"].get<std::string>();
         if (o.contains("qualified")) op.qualified = o["qualified"].get<bool>();
+        if (o.contains("qualification_reason")) {
+            op.qualification_reason =
+                o["qualification_reason"].get<std::string>();
+        }
         if (o.contains("sample_range")) {
             const auto& sr = o["sample_range"];
             if (sr.contains("min_items")) op.sample_range.min_items = sr["min_items"].get<std::size_t>();
@@ -254,6 +259,10 @@ bool validate_operation_profile(const OperationProfile& p,
         }
         if (op.sample_range.repeats < 3) {
             error = "sample_range.repeats < 3: " + op.operation_id;
+            return false;
+        }
+        if (op.qualified && op.qualification_reason.empty()) {
+            error = "qualified but no qualification_reason: " + op.operation_id;
             return false;
         }
         if (op.cpu.ns_per_item <= 0.0) {

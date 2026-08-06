@@ -45,6 +45,7 @@ struct OperationProfile {
         std::string precision{"fp32"};     // fp32/fp64
         std::string accumulator{"none"};   // fp32/fp64/none
         bool qualified{false};
+        std::string qualification_reason;  // "measured-qualified"/"error-limit"/...
 
         struct SampleRange {
             std::size_t min_items{0};

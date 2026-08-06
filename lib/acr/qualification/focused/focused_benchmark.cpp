@@ -332,10 +332,10 @@ double predict_ns(const std::vector<std::size_t>& sizes,
 
 void FocusedBenchmark::qualify(FocusedProfileKind kind,
                                OperationProfile& profile) const {
-    // 08 号计划 §2：每 Operation 独立资格。
+    // 08 号计划 §1：Operation.qualified 表示"画像测量可信"；
+    // GPU 路径收益由 host/resident_path_eligible 独立表示（V2 审计 §2）。
     //   - leave-one-out 真实预测误差（禁止伪零）
-    //   - CPU/GPU 曲线均有效
-    //   - 至少一条 GPU 路径（host/resident）存在真实收益交叉点
+    //   - CPU 曲线有效（GPU 未实测时仍可 qualified，稳定走 CPU）
     //   - standard 档才可 qualified；quick 仅 diagnostic
     const auto& sizes = focused_size_sequence();
     const double kMedianLimit = 0.30;
@@ -343,8 +343,9 @@ void FocusedBenchmark::qualify(FocusedProfileKind kind,
     for (auto& op : profile.operations) {
         const FocusedMeasuredOp* m = measured(op_id_to_enum(op.operation_id));
         op.qualified = false;
-        if (!m || m->cpu_ns.size() < 2 ||
-            m->gpu_resident_ns.size() != m->cpu_ns.size()) {
+        op.qualification_reason.clear();
+        if (!m || m->cpu_ns.size() < 2) {
+            op.qualification_reason = "insufficient-samples";
             continue;
         }
         // ---- leave-one-out CPU 误差 ----
@@ -372,45 +373,66 @@ void FocusedBenchmark::qualify(FocusedProfileKind kind,
                 cpu_errs[static_cast<std::size_t>(
                     0.95 * static_cast<double>(cpu_errs.size() - 1))];
         }
-        // ---- leave-one-out GPU resident 误差 ----
+        // ---- leave-one-out GPU resident 误差（仅当 GPU 实测）----
         std::vector<double> gpu_errs;
-        for (std::size_t i = 0; i < sizes.size(); ++i) {
-            std::vector<std::size_t> fit_sz;
-            std::vector<std::uint64_t> fit_ns;
-            for (std::size_t j = 0; j < sizes.size(); ++j) {
-                if (j == i) continue;
-                fit_sz.push_back(sizes[j]);
-                fit_ns.push_back(m->gpu_resident_ns[j]);
+        const bool gpu_curve_ok =
+            m->gpu_resident_ns.size() == m->cpu_ns.size() &&
+            m->gpu_resident_ns[0] > 0;
+        if (gpu_curve_ok) {
+            for (std::size_t i = 0; i < sizes.size(); ++i) {
+                std::vector<std::size_t> fit_sz;
+                std::vector<std::uint64_t> fit_ns;
+                for (std::size_t j = 0; j < sizes.size(); ++j) {
+                    if (j == i) continue;
+                    fit_sz.push_back(sizes[j]);
+                    fit_ns.push_back(m->gpu_resident_ns[j]);
+                }
+                const double slope = fit_slope(fit_sz, fit_ns);
+                const double inter = fit_intercept(fit_sz, fit_ns, slope);
+                const double pred = inter + slope * static_cast<double>(sizes[i]);
+                const double actual = static_cast<double>(m->gpu_resident_ns[i]);
+                if (actual > 0.0 && pred > 0.0) {
+                    gpu_errs.push_back(std::fabs(pred - actual) / actual);
+                }
             }
-            const double slope = fit_slope(fit_sz, fit_ns);
-            const double inter = fit_intercept(fit_sz, fit_ns, slope);
-            const double pred = inter + slope * static_cast<double>(sizes[i]);
-            const double actual = static_cast<double>(m->gpu_resident_ns[i]);
-            if (actual > 0.0 && pred > 0.0) {
-                gpu_errs.push_back(std::fabs(pred - actual) / actual);
+            if (!gpu_errs.empty()) {
+                std::sort(gpu_errs.begin(), gpu_errs.end());
+                op.gpu.median_error_ratio = gpu_errs[gpu_errs.size() / 2];
+                op.gpu.p95_error_ratio =
+                    gpu_errs[static_cast<std::size_t>(
+                        0.95 * static_cast<double>(gpu_errs.size() - 1))];
             }
         }
-        if (!gpu_errs.empty()) {
-            std::sort(gpu_errs.begin(), gpu_errs.end());
-            op.gpu.median_error_ratio = gpu_errs[gpu_errs.size() / 2];
-            op.gpu.p95_error_ratio =
-                gpu_errs[static_cast<std::size_t>(
-                    0.95 * static_cast<double>(gpu_errs.size() - 1))];
-        }
-        // ---- 资格判定 ----
-        const bool gpu_curve_ok = m->gpu_resident_ns[0] > 0;
-        const bool gpu_path_ok =
-            op.gpu.host_path_eligible || op.gpu.resident_path_eligible;
+        // ---- 资格判定：测量可信即 qualified（GPU 收益独立由 eligible 表达）----
         const bool cpu_err_ok =
             op.cpu.median_error_ratio <= kMedianLimit &&
             op.cpu.p95_error_ratio <= kP95Limit;
-        const bool gpu_err_ok =
-            op.gpu.median_error_ratio <= kMedianLimit &&
-            op.gpu.p95_error_ratio <= kP95Limit;
-        if (kind == FocusedProfileKind::Standard && gpu_curve_ok &&
-            gpu_path_ok && cpu_err_ok && gpu_err_ok) {
+        const bool gpu_err_ok = !gpu_curve_ok ||
+            (op.gpu.median_error_ratio <= kMedianLimit &&
+             op.gpu.p95_error_ratio <= kP95Limit);
+        if (kind == FocusedProfileKind::Standard && cpu_err_ok && gpu_err_ok) {
             op.qualified = true;
+            op.qualification_reason = "measured-qualified";
+        } else if (kind != FocusedProfileKind::Standard) {
+            op.qualification_reason = "diagnostic-only";
+        } else if (!cpu_err_ok) {
+            op.qualification_reason = "cpu-error-limit";
+        } else {
+            op.qualification_reason = "gpu-error-limit";
         }
+    }
+    // ---- 顶层状态按全部 Operation 重算（08 号计划 §1）----
+    std::size_t qualified_count = 0;
+    for (const auto& op : profile.operations) {
+        if (op.qualified) ++qualified_count;
+    }
+    if (qualified_count == profile.operations.size() &&
+        !profile.operations.empty()) {
+        profile.profile_state = "qualified";
+    } else if (qualified_count > 0) {
+        profile.profile_state = "partial";
+    } else {
+        profile.profile_state = "diagnostic";
     }
 }
 
@@ -531,9 +553,10 @@ OperationProfile FocusedBenchmark::build_profile(
         // ---- CPU / GPU resident / GPU host 线性拟合（08 号计划 §2）----
         const double cpu_slope = fit_slope(sizes, m.cpu_ns);
         // 固定开销来自拟合截距（04 号规范 §4：禁止用最小尺寸总耗时）
-        const double cpu_fixed = m.cpu_ns.empty()
-            ? 0.0 : fit_intercept(sizes, m.cpu_ns, cpu_slope) / 1000.0;
-        op.cpu.fixed_us = std::max(0.0, cpu_fixed);  // 截距可为负 → clamp 0
+        // 内部计算统一使用 ns（交叉点单位修正，08 号计划 §1）
+        const double cpu_fixed_ns = m.cpu_ns.empty()
+            ? 0.0 : fit_intercept(sizes, m.cpu_ns, cpu_slope);
+        op.cpu.fixed_us = std::max(0.0, cpu_fixed_ns / 1000.0);
         op.cpu.ns_per_item = cpu_slope;
         // 候选块：选每 item 耗时最低（吞吐稳定区）；并列时选较大块
         // （减少块数，降低调度开销与尾部风险）
@@ -565,9 +588,9 @@ OperationProfile FocusedBenchmark::build_profile(
             !m.gpu_resident_ns.empty() && m.gpu_resident_ns[0] > 0;
         if (gpu_measured) {
             const double res_slope = fit_slope(sizes, m.gpu_resident_ns);
-            const double res_fixed =
-                fit_intercept(sizes, m.gpu_resident_ns, res_slope) / 1000.0;
-            op.gpu.fixed_us = std::max(0.0, res_fixed);
+            const double res_fixed_ns =
+                fit_intercept(sizes, m.gpu_resident_ns, res_slope);
+            op.gpu.fixed_us = std::max(0.0, res_fixed_ns / 1000.0);
             op.gpu.ns_per_item = res_slope;
             op.gpu.device_id = "cuda:0";
             // 候选块
@@ -613,13 +636,15 @@ OperationProfile FocusedBenchmark::build_profile(
             const double transfer_slope =
                 (h2d_slope_ns + d2h_slope_ns) * bytes_per_item;
             const double host_slope = res_slope + transfer_slope;
-            const double host_fixed =
-                std::max(0.0, res_fixed) + op.transfer.h2d_fixed_us +
-                op.transfer.d2h_fixed_us;
+            const double host_fixed_ns =
+                std::max(0.0, res_fixed_ns) +
+                op.transfer.h2d_fixed_us * 1000.0 +
+                op.transfer.d2h_fixed_us * 1000.0;
             // resident 路径：GPU 渐近边际 < CPU 且存在交叉点 n* > 0
+            // 单位修正：fixed 用 ns（不再用 us 与 ns 斜率直接相除）
             if (res_slope < cpu_slope) {
                 double nstar =
-                    (cpu_fixed - res_fixed) / (res_slope - cpu_slope);
+                    (cpu_fixed_ns - res_fixed_ns) / (res_slope - cpu_slope);
                 if (nstar <= 0.0) nstar = 1.0;  // GPU 全程更快 → 最小规模即收益
                 op.gpu.resident_path_eligible = true;
                 op.gpu.min_profitable_items_resident =
@@ -628,7 +653,7 @@ OperationProfile FocusedBenchmark::build_profile(
             // host 路径：host 总斜率 < CPU 斜率且存在交叉点
             if (host_slope < cpu_slope) {
                 double nstar =
-                    (cpu_fixed - host_fixed) / (host_slope - cpu_slope);
+                    (cpu_fixed_ns - host_fixed_ns) / (host_slope - cpu_slope);
                 if (nstar <= 0.0) nstar = 1.0;
                 op.gpu.host_path_eligible = true;
                 op.gpu.min_profitable_items_host =
