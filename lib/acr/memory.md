@@ -379,3 +379,50 @@ Phase D 完成。下一阶段：Phase E（Qualification/路由）依赖 B/C/D，
 单独 -shuffle 7/7 全过（GPU 环境退化时 ctest 内 drizzle 偶发 flaky，已单独复跑
 通过并如实记录）；standard Profile schema PASS（dense GPU 无收益 ineligible、
 pixel_reduce/drizzle resident 阈值单位正确：百万级）。
+
+### 2026-08-06 ACR 架构冻结 + 加权积分合成 Mixed 样例（控制包 b98d38f8...efb8a）
+
+**执行入口**：`07_CURRENT_EXECUTION_PLAN.md`（新控制包）。基线
+`AstroCS_Review_ACRFocusedV3_20260806`（HEAD 610d7b6）。目标：不改 Phase1/
+真实业务算法，冻结 ACR 面向重负载逐像素算法的架构，并完成独立加权积分合成
+Mixed 样例，形成"允许开始修改业务代码"的最终 Evidence。
+
+**架构冻结落实**：
+- `ResidencyPolicy`（HostOnly/PreferDevice/KeepDevice/MaterializeHost）、
+  `BufferRole`（Input/Output/ReadWrite）+ BufferBinding generation/stable_key、
+  KernelInvocation.residency_policy（task_traits.hpp / kernel_registry.hpp）；
+- DeviceExecutor 增加 max_in_flight/set_streams/slot_upload_count 与
+  prefetch_inputs（多输入组合上传）；每 GPU 单 executor、内部 1..3 stream
+  （桥接 configure_streams/stream_count）；
+- Dispatcher buffer 布局按 OperationId 泛化（weighted_integration：buffer0=
+  输出、buffer1=frames、buffer2=weights）；prefetch 传完整输入集合、仅新上传
+  输入记账；首轮公平门修复（池空时 break 也参与计数，消除死锁）；工作保持
+  兜底（should_claim 双拒时由可用 executor 清尾，禁止漏算）。
+
+**加权积分样例（synthetic.weighted_integration.fp64acc）**：
+- `examples/weighted_integration/`：common（数据/逐像素核心/误差）、kernels
+  （Serial/OpenMP 参考 + CPU/CUDA launcher 注册，无嵌套 OpenMP）、benchmark
+  （quick/standard/full、serial/openmp/acr_cpu/gpu_host/gpu_resident/
+  forced_mixed/auto_mixed/auto_mixed_reuse、2 warmup + 7 repeats、median/
+  min/p90、weighted_integration_report.schema.json）；
+- 桥接新增 weighted_integration host/resident 提交 + upload_persistent_slot
+  （slot0=frames、slot1=weights）+ 真实上传计数 upload_count；
+- `tests/integration/`：CorrectnessQuickAllPaths（全模式 + 非整除尾块）、
+  ForcedMixedBothNonZero、ResidentReuseFramesUploadOnce（frames 上传保持 1）、
+  StreamConsistency（1/2 stream 结果一致）。
+
+**验证（2026-08-06）**：
+- 全量 ctest 298/298 通过（291 passed + 7 SanitizerActual 准确跳过）；
+- standard Benchmark：correctness=PASS、performance=QUALIFIED、
+  READY_FOR_BUSINESS_ADAPTER=true（中/大 case Auto 相对 OpenMP ≥1.05x）；
+- compute-sanitizer：memcheck 0 errors、racecheck 0 hazards；
+- 真实 RTX 3060 Ti：CPU+GPU Mixed 双方非零、resident-reuse frames 上传 1 次、
+  1/2 stream 结果一致。
+
+**已知限制（如实）**：
+- GPU 连续负载后 ctest 全量中 GPU 测试偶发 flaky（CTest 单进程独立复跑通过）；
+- 桥接仍为同步语义；多 stream 为轮转分派，in-flight 槽位按 stream 数暴露，
+  未实现跨 stream 异步重叠；
+- UBSan/TSan 本机不可用（SanitizerActual 7 项准确跳过）；
+- staging ledger 为容量账本；加权积分 benchmark 的 h2d/d2h 计数来自
+  Dispatcher/桥接真实传输统计。

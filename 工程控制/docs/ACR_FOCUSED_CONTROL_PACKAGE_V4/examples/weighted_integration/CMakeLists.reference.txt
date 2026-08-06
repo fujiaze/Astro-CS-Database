@@ -1,0 +1,24 @@
+# Adapt target names to current repository layout.
+add_executable(acr_weighted_integration_benchmark
+    weighted_integration_benchmark.cpp
+    weighted_integration_cpu.cpp)
+target_link_libraries(acr_weighted_integration_benchmark
+    PRIVATE acr_api acr_scheduler OpenMP::OpenMP_CXX)
+
+if(ACR_BUILD_CUDA)
+    target_sources(acr_weighted_integration_benchmark
+        PRIVATE weighted_integration_cuda.cu)
+    target_link_libraries(acr_weighted_integration_benchmark
+        PRIVATE acr_cuda)
+endif()
+
+add_test(NAME acr_weighted_integration_correctness_quick
+    COMMAND acr_weighted_integration_benchmark
+      --preset quick --correctness-only
+      --case-timeout-s 60 --overall-timeout-s 180
+      --output weighted_integration_quick.json)
+set_tests_properties(acr_weighted_integration_correctness_quick PROPERTIES
+    TIMEOUT 180 LABELS "acr;weighted-integration;quick")
+
+# ForcedMixed, resident reuse and stream consistency may be separate tests.
+# With no CUDA device, mark them SKIPPED using the repository's established code.

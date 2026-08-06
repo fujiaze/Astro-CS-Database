@@ -1,0 +1,270 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ACR Weighted Integration Benchmark Report",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "operation_id",
+    "preset",
+    "environment",
+    "cases",
+    "qualification"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "operation_id": {
+      "const": "synthetic.weighted_integration.fp64acc"
+    },
+    "preset": {
+      "enum": [
+        "quick",
+        "standard",
+        "full"
+      ]
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "environment": {
+      "type": "object",
+      "required": [
+        "git_head",
+        "build_type",
+        "cpu",
+        "gpu",
+        "openmp_threads"
+      ],
+      "properties": {
+        "git_head": {
+          "type": "string",
+          "minLength": 7
+        },
+        "build_type": {
+          "const": "Release"
+        },
+        "cpu": {
+          "type": "string"
+        },
+        "gpu": {
+          "type": "string"
+        },
+        "openmp_threads": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "acr_cpu_workers": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "gpu_available": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    },
+    "qualification": {
+      "type": "object",
+      "required": [
+        "correctness",
+        "performance",
+        "ready_for_business_adapter"
+      ],
+      "properties": {
+        "correctness": {
+          "enum": [
+            "PASS",
+            "FAIL"
+          ]
+        },
+        "performance": {
+          "enum": [
+            "QUALIFIED",
+            "PERFORMANCE_NOT_QUALIFIED",
+            "NOT_RUN"
+          ]
+        },
+        "ready_for_business_adapter": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "modeResult": {
+      "type": "object",
+      "required": [
+        "mode",
+        "status",
+        "median_ms",
+        "max_abs_error",
+        "relative_l2_error"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "serial",
+            "openmp",
+            "acr_cpu",
+            "gpu_host",
+            "gpu_resident",
+            "forced_mixed",
+            "auto_mixed",
+            "auto_mixed_reuse"
+          ]
+        },
+        "status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "SKIPPED_NO_GPU",
+            "SKIPPED_CAPACITY",
+            "TIMEOUT"
+          ]
+        },
+        "median_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "min_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "p90_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "speedup_vs_openmp": {
+          "type": "number",
+          "minimum": 0
+        },
+        "max_abs_error": {
+          "type": "number",
+          "minimum": 0
+        },
+        "relative_l2_error": {
+          "type": "number",
+          "minimum": 0
+        },
+        "cpu_items": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "gpu_items": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cpu_chunks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "gpu_chunks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "gpu_streams": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "max_in_flight": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "h2d_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "d2h_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "h2d_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "d2h_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resident_reuse_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "peak_ram_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "peak_vram_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "route_reason": {
+          "type": "string"
+        },
+        "chunk_sizes": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "case": {
+      "type": "object",
+      "required": [
+        "width",
+        "height",
+        "frame_count",
+        "pixel_count",
+        "modes"
+      ],
+      "properties": {
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "frame_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "pixel_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "input_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "modes": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/modeResult"
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

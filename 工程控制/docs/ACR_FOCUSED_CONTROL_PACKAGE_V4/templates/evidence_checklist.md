@@ -1,0 +1,25 @@
+# Weighted Integration Evidence Checklist
+
+- [ ] final git HEAD and branch
+- [ ] clean status
+- [ ] path guard PASS
+- [ ] control package SHA
+- [ ] CPU-only configure/build log
+- [ ] CUDA configure/build log
+- [ ] complete CTest log and summary
+- [ ] quick JSON and schema validation
+- [ ] standard JSON and schema validation
+- [ ] OperationProfile used by Auto
+- [ ] OpenMP thread count and ACR CPU worker count
+- [ ] CPU/GPU model, driver, compiler and build flags
+- [ ] raw timing repeats, not only median
+- [ ] actual CPU/GPU item/chunk counts
+- [ ] stream/in-flight counts
+- [ ] H2D/D2H counts and bytes
+- [ ] resident-reuse frames upload count=1
+- [ ] RAM/VRAM estimates and capacity skips
+- [ ] correctness error metrics
+- [ ] memcheck and racecheck logs
+- [ ] timeout commands and exit codes
+- [ ] READY_FOR_BUSINESS_ADAPTER conclusion and reason
+- [ ] UTF-8 SHA256SUMS
