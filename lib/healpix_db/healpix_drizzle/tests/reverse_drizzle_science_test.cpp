@@ -250,6 +250,8 @@ struct CaseResult {
     double fp32_max_rel = 0.0;
     double total_in = 0.0, total_out = 0.0;
     double total_covered_area_out = 0.0;
+    double uniform_rel_std = 0.0;   // 均匀场表面亮度逐像素相对标准差
+    double output_min = 0.0;        // fp64 输出最小值
     int inner_pixels = 0;
 };
 
@@ -298,22 +300,20 @@ static CaseResult run_case(const WcsParams& w, int W, int H, int nside,
     double denom_s = 0, err_s = 0, denom_c = 0, err_c = 0;
     double denom_sb = 0, err_sb = 0;
     double max_v = 0.0;
-    // 像素球面面积 (独立参考, 常数场 SB 自洽用)
+    // 像素球面面积 (独立参考: 常数场 SB 自洽 + 均匀场 rel_std)
     std::vector<double> pixel_area;
-    if (pixfrac < 1.0) {
-        WcsSip wcs(w);
-        Ctx ctx{&wcs};
-        double scale = 0.5 * (std::sqrt(w.cd[0]*w.cd[0]+w.cd[2]*w.cd[2]) +
-                              std::sqrt(w.cd[1]*w.cd[1]+w.cd[3]*w.cd[3])) * PI / 180.0;
-        pixel_area.resize((size_t)W*H);
-        for (int y = 0; y < H; y++)
-            for (int x = 0; x < W; x++) {
-                auto fp = spherical::build_drop_polygon_adaptive<double>(
-                    (double)x, (double)y, 1.0, cb, &ctx, scale);
-                pixel_area[(size_t)y*W + x] = fp.size() >= 3
-                    ? spherical::spherical_polygon_area(fp) : 0.0;
-            }
-    }
+    WcsSip wcs(w);
+    Ctx ctx{&wcs};
+    double scale = 0.5 * (std::sqrt(w.cd[0]*w.cd[0]+w.cd[2]*w.cd[2]) +
+                          std::sqrt(w.cd[1]*w.cd[1]+w.cd[3]*w.cd[3])) * PI / 180.0;
+    pixel_area.resize((size_t)W*H);
+    for (int y = 0; y < H; y++)
+        for (int x = 0; x < W; x++) {
+            auto fp = spherical::build_drop_polygon_adaptive<double>(
+                (double)x, (double)y, 1.0, cb, &ctx, scale);
+            pixel_area[(size_t)y*W + x] = fp.size() >= 3
+                ? spherical::spherical_polygon_area(fp) : 0.0;
+        }
 
     // 预扫描 inner 像素 max|v| (fill 相对阈值基准)
     for (int y = 0; y < H; y++)
@@ -323,13 +323,23 @@ static CaseResult run_case(const WcsParams& w, int W, int H, int nside,
             if (std::fabs(vv) > max_v) max_v = std::fabs(vv);
         }
 
+    // 均匀场 rel_std (inner): std((v/A_p - B0)/B0)
+    double sb_sum = 0.0, sb_sum2 = 0.0; int sb_n = 0;
+    double min_v = 1e300;
     for (int y = 0; y < H; y++)
         for (int x = 0; x < W; x++) {
             size_t i = (size_t)y*W + x;
             double t = truth[i];
             double v = ro64.signal[i];
             double cv = ro64.coverage[i];
+            if (v < min_v) min_v = v;
             if (!inner(x, y)) continue;
+            double ap = pixel_area[i];
+            if (ap > 0 && std::fabs(B0) > 0.0) {
+                double sb = v / ap;   // 表面亮度 (信号/球面面积)
+                double rel = (sb - B0) / B0;
+                sb_sum += rel; sb_sum2 += rel * rel; sb_n++;
+            }
             cr.inner_pixels++;
             if (pixfrac >= 1.0) {
                 if (t > 0) { denom_s += t; err_s += std::fabs(v - t); }
@@ -349,7 +359,8 @@ static CaseResult run_case(const WcsParams& w, int W, int H, int nside,
                         err_sb += std::fabs(v - sb_expected);
                     }
                 }
-                if (cv > 1e-3 && v <= 1e-12) ++cr.false_hole;
+                // 负值场: hole = 有覆盖但 |signal|≈0 (v 可为负)
+                if (cv > 1e-3 && std::fabs(v) <= 1e-12) ++cr.false_hole;
                 if (cv <= 1e-6 && v > 1e-6 * max_v)
                     ++cr.false_fill;
             }
@@ -364,6 +375,12 @@ static CaseResult run_case(const WcsParams& w, int W, int H, int nside,
     cr.total_in = ro64.total_signal_in;
     cr.total_out = ro64.total_signal_out;
     cr.total_covered_area_out = ro64.total_covered_area_out;
+    cr.output_min = min_v;
+    if (sb_n > 0) {
+        double mean = sb_sum / sb_n;
+        double var = std::max(0.0, sb_sum2 / sb_n - mean * mean);
+        cr.uniform_rel_std = std::sqrt(var);
+    }
     return cr;
 }
 
@@ -386,7 +403,7 @@ int main() {
         return 1000.0 + 300.0 * (0.6*v.x + 0.8*v.z);
     };
     auto B_neg = [](const Vec3& v) -> double {
-        return -500.0 + 1500.0 * (v.z > 0 ? v.z : 0.0);
+        return -500.0 + 100.0 * v.z;   // dec=+30° → z≈0.5 → 全程负值
     };
     // compact_source: 高斯源位于场景 CRVAL 方向 (capture)
     auto make_bump = [](double ra0, double dec0) {
@@ -407,6 +424,14 @@ int main() {
     w_sip.sip.b[0*6+3] = -4e-5;
     w_sip.sip.ap[3*6+0] = -5e-5;
     w_sip.sip.bp[0*6+3] = 4e-5;
+    // SIP order 5 (最高阶项必须真实影响输出)
+    // 系数尺度: dx∈[-48,48] (96px 图), dx^5≈2.5e8 → 1e-11 deg ≈ 1.4px 边缘位移
+    WcsParams w_sip5 = w_c;
+    w_sip5.sip.order = 5; w_sip5.sip.ap_order = 5;
+    w_sip5.sip.a[5*6+0] = 1e-11;    // dx^5
+    w_sip5.sip.b[0*6+5] = -8e-12;   // dy^5
+    w_sip5.sip.ap[5*6+0] = -1e-11;
+    w_sip5.sip.bp[0*6+5] = 8e-12;
 
     Scene scenes[] = {
         {"constant_sphere", w_c, B_const, true, 1000.0, Vec3{0,0,0}, 8192},
@@ -414,13 +439,14 @@ int main() {
         {"compact_source",  make_wcs(272.886595, -10.0, 6.3, W),
                             make_bump(272.886595, -10.0), false, 0.0, Vec3{0,0,0}, 32768},
         {"negative_field",  make_wcs(272.886595, 30.0, 6.3, W),
-                            B_neg, true, -500.0, Vec3{0,0,1500.0}, 8192},
+                            B_neg, true, -500.0, Vec3{0,0,100.0}, 8192},
         {"cross_face",      make_wcs(273.7, -41.8, 6.3, W), B_const, true, 1000.0, Vec3{0,0,0}, 8192},
         {"ra0",             make_wcs(0.0, 0.0, 6.3, W), B_const, true, 1000.0, Vec3{0,0,0}, 8192},
         {"polar",           make_wcs(0.0, 89.5, 6.3, W), B_const, true, 1000.0, Vec3{0,0,0}, 8192},
         {"rotated_cd",      make_wcs(272.886595, -23.254083, 6.3, W, 30.0),
                             B_const, true, 1000.0, Vec3{0,0,0}, 8192},
         {"sip_edge",        w_sip, B_const, true, 1000.0, Vec3{0,0,0}, 8192},
+        {"sip5_edge",       w_sip5, B_const, true, 1000.0, Vec3{0,0,0}, 8192},
     };
 
     const double pixfracs[] = {0.6, 0.8, 1.0};
@@ -441,7 +467,9 @@ int main() {
                            std::strcmp(sc.name, "ra0") == 0 ||
                            std::strcmp(sc.name, "polar") == 0 ||
                            std::strcmp(sc.name, "rotated_cd") == 0 ||
-                           std::strcmp(sc.name, "sip_edge") == 0);
+                           std::strcmp(sc.name, "sip_edge") == 0 ||
+                           std::strcmp(sc.name, "sip5_edge") == 0);
+            bool constant_field = (sc.c.x == 0.0 && sc.c.y == 0.0 && sc.c.z == 0.0);
             double tol = smooth ? 1e-5 : 1e-3;
             bool ok;
             char msg[512];
@@ -449,17 +477,20 @@ int main() {
                 ok = cr.signal_rel_err < tol &&
                      cr.coverage_rel_err < 2e-3 &&
                      cr.false_hole == 0 && cr.false_fill == 0 &&
-                     cr.fp32_max_rel < 5e-4;
+                     cr.fp32_max_rel < 5e-4 &&
+                     (!constant_field || cr.uniform_rel_std < 1e-4);
                 snprintf(msg, sizeof(msg),
-                         "[%s %s] signal_rel=%.3e(<%.0e) cov_rel=%.3e hole=%d "
-                         "fill=%d fp32rel=%.2e inner=%d",
+                         "[%s %s] signal_rel=%.3e(<%.0e) cov_rel=%.3e "
+                         "uni_rel_std=%.3e hole=%d fill=%d fp32rel=%.2e inner=%d",
                          sc.name, pf_names[pi], cr.signal_rel_err, tol,
-                         cr.coverage_rel_err, cr.false_hole, cr.false_fill,
+                         cr.coverage_rel_err, cr.uniform_rel_std,
+                         cr.false_hole, cr.false_fill,
                          cr.fp32_max_rel, cr.inner_pixels);
             } else {
                 ok = cr.sb_err < 2e-3 &&
                      cr.false_hole == 0 && cr.false_fill == 0 &&
-                     cr.total_out <= cr.total_in * (1.0 + 1e-12) &&
+                     std::fabs(cr.total_out) <=
+                         std::fabs(cr.total_in) * (1.0 + 1e-12) &&
                      cr.fp32_max_rel < 5e-4;
                 snprintf(msg, sizeof(msg),
                          "[%s %s] sb_err=%.3e(<2e-3) hole=%d fill=%d "
@@ -472,6 +503,86 @@ int main() {
             CHECK(ok, msg);
             if (!ok) all_ok = false;
         }
+    }
+
+    // ---- MICROFIX #2: 真实负值场 (dec=+30°, B=-500+100z ≈ -450, 全程为负) ----
+    {
+        WcsParams w = make_wcs(272.886595, 30.0, 6.3, W);
+        const double pfs2[] = {0.6, 0.8, 1.0};
+        const char* pf2n[] = {"pf=0.6", "pf=0.8", "pf=1.0"};
+        bool all_ok = true;
+        char msg[512];
+        for (int pi = 0; pi < 3; pi++) {
+            double pf = pfs2[pi];
+            std::vector<uint64_t> ipix; std::vector<double> sig, sup;
+            make_leaves(w, W, H, NSIDE, pf, B_neg, true, -500.0,
+                        Vec3{0,0,100.0}, ipix, sig, sup);
+            double input_min = 1e300, neg_in = 0.0;
+            for (double s : sig) {
+                if (s < input_min) input_min = s;
+                if (s < 0) neg_in += s;
+            }
+            ReverseDrizzleInput rin;
+            rin.nside = NSIDE; rin.nested = true;
+            rin.leaf_ipix = ipix; rin.leaf_signal = sig;
+            rin.leaf_support = sup;
+            rin.wcs = w; rin.target_width = W; rin.target_height = H;
+            rin.pixfrac = pf; rin.output_fp64 = true;
+            ReverseDrizzle rdz; ReverseDrizzleOutput ro64, ro32; std::string e4;
+            bool ok64 = rdz.run(rin, ro64, e4);
+            ReverseDrizzleInput rin32 = rin;
+            rin32.leaf_signal.clear();
+            rin32.leaf_signal_f32.assign(sig.begin(), sig.end());
+            rin32.output_fp64 = false;
+            bool ok32 = rdz.run(rin32, ro32, e4);
+            double out_min64 = 1e300, out_min32 = 1e30f;
+            double neg_out64 = 0.0, neg_out32 = 0.0f;
+            for (size_t i = 0; i < ro64.signal.size(); i++) {
+                if (ro64.signal[i] < out_min64) out_min64 = ro64.signal[i];
+                if (ro64.signal[i] < 0) neg_out64 += ro64.signal[i];
+                if (ro32.signal_f32[i] < out_min32) out_min32 = ro32.signal_f32[i];
+                if (ro32.signal_f32[i] < 0) neg_out32 += ro32.signal_f32[i];
+            }
+            snprintf(msg, sizeof(msg),
+                     "[negative_field %s] in_min=%.4g out64_min=%.4g out32_min=%.4g "
+                     "neg_in=%.4g neg_out64=%.4g neg_out32=%.4g",
+                     pf2n[pi], input_min, out_min64, out_min32,
+                     neg_in, neg_out64, neg_out32);
+            bool ok = ok64 && ok32 && input_min < 0.0 && neg_in < 0.0 &&
+                      out_min64 < 0.0 && out_min32 < 0.0f &&
+                      neg_out64 < 0.0 && neg_out32 < 0.0f;
+            CHECK(ok, msg);
+            if (!ok) all_ok = false;
+        }
+        (void)all_ok;
+    }
+
+    // ---- MICROFIX #3: SIP order 5 最高阶项必须实际影响输出 ----
+    {
+        std::vector<uint64_t> ipix; std::vector<double> sig, sup;
+        make_leaves(w_sip5, W, H, NSIDE, 1.0, B_const, true, 1000.0,
+                    Vec3{0,0,0}, ipix, sig, sup);
+        WcsParams w5_zero = w_sip5;
+        w5_zero.sip.a[5*6+0] = 0.0; w5_zero.sip.b[0*6+5] = 0.0;
+        w5_zero.sip.ap[5*6+0] = 0.0; w5_zero.sip.bp[0*6+5] = 0.0;
+        ReverseDrizzle rdz; ReverseDrizzleOutput ro5, ro0; std::string e5;
+        ReverseDrizzleInput rin;
+        rin.nside = NSIDE; rin.nested = true;
+        rin.leaf_ipix = ipix; rin.leaf_signal = sig; rin.leaf_support = sup;
+        rin.target_width = W; rin.target_height = H;
+        rin.pixfrac = 1.0; rin.output_fp64 = true;
+        rin.wcs = w_sip5;
+        bool ok5 = rdz.run(rin, ro5, e5);
+        rin.wcs = w5_zero;
+        bool ok0 = rdz.run(rin, ro0, e5);
+        double diff = 0.0;
+        for (size_t i = 0; i < ro5.signal.size(); i++)
+            diff += std::fabs(ro5.signal[i] - ro0.signal[i]);
+        char msg[256];
+        snprintf(msg, sizeof(msg),
+                 "[sip5 最高阶项] run5=%d run0=%d Σ|Δsignal|=%.6e (>0)",
+                 ok5 ? 1 : 0, ok0 ? 1 : 0, diff);
+        CHECK(ok5 && ok0 && diff > 0.0, msg);
     }
 
     // ---- partial_support: HISS signal 已含覆盖 (sumFlux), support 按均匀

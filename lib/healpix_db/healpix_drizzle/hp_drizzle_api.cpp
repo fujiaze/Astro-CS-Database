@@ -58,6 +58,11 @@ HP_DRIZZLE_API int hp_drizzle_reverse_run(
         setReverseErr(result, "reverse: 输入参数非法 (n_leaf/尺寸/ipix)");
         return 4;
     }
+    // REV-105: 两种 signal 同时提供 → 拒绝 (C ABI 层, 与 ReverseDrizzle::run 一致)
+    if (in->leaf_signal_f32 && in->leaf_signal_f64) {
+        setReverseErr(result, "reverse: 必须且只能提供一种 signal (f32 或 f64)");
+        return 5;
+    }
 
     ReverseDrizzleInput rin;
     rin.nside = (uint32_t)in->nside;
@@ -76,8 +81,15 @@ HP_DRIZZLE_API int hp_drizzle_reverse_run(
     w.crpix[0] = in->crpix[0]; w.crpix[1] = in->crpix[1];
     w.cd[0] = in->cd[0]; w.cd[1] = in->cd[1];
     w.cd[2] = in->cd[2]; w.cd[3] = in->cd[3];
-    w.sip.order = std::max(0, std::min(4, (int)in->sip_order));
-    w.sip.ap_order = std::max(0, std::min(4, (int)in->sip_ap_order));
+    // MICROFIX #3: SIP order 正式支持 0~5 (6×6 系数数组), 非法值硬失败,
+    // 禁止静默截断 (6×6 系数数组, 非法值硬失败)
+    if (in->sip_order < 0 || in->sip_order > 5 ||
+        in->sip_ap_order < 0 || in->sip_ap_order > 5) {
+        setReverseErr(result, "reverse: SIP order 必须在 [0,5]");
+        return 6;
+    }
+    w.sip.order = (int)in->sip_order;
+    w.sip.ap_order = (int)in->sip_ap_order;
     for (int k = 0; k < 36; k++) {
         w.sip.a[k] = in->sip_a[k];  w.sip.b[k] = in->sip_b[k];
         w.sip.ap[k] = in->sip_ap[k]; w.sip.bp[k] = in->sip_bp[k];

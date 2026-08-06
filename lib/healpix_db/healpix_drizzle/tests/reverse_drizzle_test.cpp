@@ -62,8 +62,9 @@ int main() {
     const int size = 64, nside = 65536;
     const double pf = 0.8;
 
-    // ---- 1. 均匀平面源 ----
+    // ---- 1. 均匀平面源 (MICROFIX #4: pf=1.0 无空隙往返, rel_std ≤1e-4 冻结门) ----
     {
+        const double pf1 = 1.0;
         WcsParams w = make_wcs(272.886595, -23.254083, 6.3, size);
         FitsImage img;
         img.width = size; img.height = size; img.channels = 1;
@@ -71,12 +72,12 @@ int main() {
         img.pixels.resize((size_t)size * size, 1000.0f);
         img.pixels_f64.resize((size_t)size * size, 1000.0);
         std::vector<uint64_t> ipix; std::vector<double> sig; std::string err;
-        forward(img, nside, pf, ipix, sig, err);
+        forward(img, nside, pf1, ipix, sig, err);
         ReverseDrizzleInput rin;
         rin.nside = nside; rin.nested = true;
         rin.leaf_ipix = ipix; rin.leaf_signal = sig;
         rin.wcs = w; rin.target_width = size; rin.target_height = size;
-        rin.pixfrac = pf; rin.output_fp64 = true;
+        rin.pixfrac = pf1; rin.output_fp64 = true;
         ReverseDrizzle rdz;
         ReverseDrizzleOutput rout;
         if (!rdz.run(rin, rout, err)) {
@@ -92,9 +93,9 @@ int main() {
             double sd = std::sqrt(std::max(0.0, sum2 / n - mean * mean));
             char msg[160];
             snprintf(msg, sizeof(msg),
-                     "[均匀恢复] mean=%.2f rel_std=%.3e (<5e-2, 正反向面积分配固有涨落)",
+                     "[均匀恢复 pf=1.0] mean=%.4f rel_std=%.3e (≤1e-4 冻结门)",
                      mean, sd / mean);
-            CHECK(std::fabs(mean - 1000.0) / 1000.0 < 1e-2 && sd / mean < 5e-2, msg);
+            CHECK(std::fabs(mean - 1000.0) / 1000.0 < 1e-3 && sd / mean < 1e-4, msg);
         }
     }
 
@@ -143,8 +144,9 @@ int main() {
             }
         double off = std::sqrt((sx/sw - cx) * (sx/sw - cx) +
                                (sy/sw - cy) * (sy/sw - cy));
-        snprintf(msg, sizeof(msg), "[质心恢复] offset %.3f px (<0.5)", off);
-        CHECK(off < 0.5, msg);
+        // MICROFIX #4: 质心 ≤0.01 目标像素
+        snprintf(msg, sizeof(msg), "[质心恢复] offset %.4f px (≤0.01px)", off);
+        CHECK(off < 0.01, msg);
         // FP32 输出
         rin.output_fp64 = false;
         ReverseDrizzleOutput rout32;

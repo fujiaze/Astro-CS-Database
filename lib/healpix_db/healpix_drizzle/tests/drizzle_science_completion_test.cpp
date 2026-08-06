@@ -351,9 +351,38 @@ static void test_psf_photometry() {
     double truth_4sig = F * (1.0 - std::exp(-(4.0 * 4.0) / 2.0));
     char msg[160];
     snprintf(msg, sizeof(msg),
-             "[孔径测光 4σ] out=%.6g truth=%.6g rel=%.3e (<1e-3)",
+             "[孔径测光 4σ] out=%.6g truth=%.6g rel=%.3e (<1e-3, 冻结≤0.1%%)",
              flux_in, truth_4sig, std::fabs(flux_in - truth_4sig) / truth_4sig);
     CHECK(std::fabs(flux_in - truth_4sig) / truth_4sig < 1e-3, msg);
+    // MICROFIX #4: 2/3/4 × FWHM 球面孔径积分误差 ≤0.1% (解析高斯圆内能量)
+    {
+        const double fwhm_px = 2.3548 * sigma;   // 像素
+        const double k_list[3] = {2.0, 3.0, 4.0};
+        for (int ki = 0; ki < 3; ki++) {
+            double k = k_list[ki];
+            double r_px = k * fwhm_px;
+            double aper_rad_k = r_px * s * PI_ / 180.0;   // 弧度
+            double flux_k = 0;
+            for (const auto& t : t64)
+                for (uint32_t local : t.touched) {
+                    uint64_t ip = (t.parent_ipix << shift) | local;
+                    double ra, dec;
+                    hp.pix2radec((int64_t)ip, &ra, &dec);
+                    double dra = (ra - ra0) * PI_ / 180.0;
+                    double ddec = (dec - dec0) * PI_ / 180.0;
+                    double dist = std::sqrt(
+                        dra * dra * std::cos(dec0 * PI_ / 180.0) *
+                        std::cos(dec0 * PI_ / 180.0) + ddec * ddec);
+                    if (dist <= aper_rad_k) flux_k += (double)t.pixels[local].sumFlux;
+                }
+            double truth_k = F * (1.0 - std::exp(-(r_px * r_px) / (2.0 * sigma * sigma)));
+            double rel_k = std::fabs(flux_k - truth_k) / truth_k;
+            snprintf(msg, sizeof(msg),
+                     "[孔径测光 %.0f×FWHM] out=%.6g truth=%.6g rel=%.3e (<1e-3)",
+                     k, flux_k, truth_k, rel_k);
+            CHECK(rel_k < 1e-3, msg);
+        }
+    }
     // 质心 (signal 加权, 球面近似的平面质心应回到源中心)
     double sx = 0, sy = 0, sw = 0;
     for (const auto& t : t64)
@@ -368,8 +397,9 @@ static void test_psf_photometry() {
             sx += v * x; sy += v * y; sw += v;
         }
     double cen_off = std::sqrt((sx/sw)*(sx/sw) + (sy/sw)*(sy/sw));
-    snprintf(msg, sizeof(msg), "[质心偏差] %.3f\" (<2\")", cen_off);
-    CHECK(cen_off < 2.0, msg);
+    // MICROFIX #4: 质心 ≤0.01 目标像素 (= 0.01×6.3\" = 0.063\")
+    snprintf(msg, sizeof(msg), "[质心偏差] %.4f\" (≤0.063\" = 0.01px)", cen_off);
+    CHECK(cen_off < 0.063, msg);
     // PSF 二阶矩 / FWHM / 椭率 (合成高斯已知: FWHM=2.355σ, e=0)
     double mxx = 0, myy = 0, mxy = 0;
     for (const auto& t : t64)
@@ -389,13 +419,14 @@ static void test_psf_photometry() {
     double fwhm_meas = 2.3548 * rms_meas;
     double fwhm_truth = 2.3548 * sigma * s * 3600.0;  // 角秒
     snprintf(msg, sizeof(msg),
-             "[PSF FWHM] %.3f\" vs 真值 %.3f\" rel=%.3e (<5%%)",
+             "[PSF FWHM] %.3f\" vs 真值 %.3f\" rel=%.3e (≤1%%)",
              fwhm_meas, fwhm_truth, std::fabs(fwhm_meas - fwhm_truth) / fwhm_truth);
-    CHECK(std::fabs(fwhm_meas - fwhm_truth) / fwhm_truth < 0.05, msg);
+    CHECK(std::fabs(fwhm_meas - fwhm_truth) / fwhm_truth < 0.01, msg);
     double e = std::sqrt((mxx - myy) * (mxx - myy) + 4.0 * mxy * mxy) /
                (mxx + myy + 1e-30);
-    snprintf(msg, sizeof(msg), "[椭率] |e|=%.4f (<0.05, 圆形真值 e=0)", e);
-    CHECK(e < 0.05, msg);
+    // MICROFIX #4: 椭率 ≤0.005 (冻结门)
+    snprintf(msg, sizeof(msg), "[椭率] |e|=%.5f (≤0.005, 圆形真值 e=0)", e);
+    CHECK(e < 0.005, msg);
 }
 
 // ============================================================================

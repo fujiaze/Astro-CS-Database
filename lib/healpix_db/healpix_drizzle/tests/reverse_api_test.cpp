@@ -150,8 +150,39 @@ int main(int argc, char** argv) {
              rc, sum32, nz32);
     CHECK(rc == 0 && nz32 > 0 && sum32 > 0, msg);
 
-    // ---- 非法输入 → 明确错误码 ----
+    // ---- MICROFIX #3: SIP order 5 支持 + order 6 硬失败 ----
     in.output_fp64 = 1; in.leaf_signal_f32 = nullptr; in.leaf_signal_f64 = sig64.data();
+    in.sip_order = 5; in.sip_ap_order = 5;
+    std::memset(in.sip_a, 0, sizeof(in.sip_a));
+    std::memset(in.sip_b, 0, sizeof(in.sip_b));
+    std::memset(in.sip_ap, 0, sizeof(in.sip_ap));
+    std::memset(in.sip_bp, 0, sizeof(in.sip_bp));
+    in.sip_a[5*6+0] = 1e-11; in.sip_b[0*6+5] = -8e-12;
+    in.sip_ap[5*6+0] = -1e-11; in.sip_bp[0*6+5] = 8e-12;
+    rc = fn_run(&in, sig_out.data(), cov_out.data(), &res);
+    double sum5 = 0;
+    for (double v : sig_out) sum5 += v;
+    snprintf(msg, sizeof(msg), "SIP order5 run rc=%d Σ=%.6g (接受)", rc, sum5);
+    CHECK(rc == 0 && sum5 > 0, msg);
+    // order5 系数置零 → 输出应不同 (最高阶项实际影响)
+    HpReverseDrizzleInput in5z = in;
+    in5z.sip_a[5*6+0] = 0.0; in5z.sip_b[0*6+5] = 0.0;
+    in5z.sip_ap[5*6+0] = 0.0; in5z.sip_bp[0*6+5] = 0.0;
+    std::vector<double> sig0((size_t)W*H, 0.0), cov0((size_t)W*H, 0.0);
+    rc = fn_run(&in5z, sig0.data(), cov0.data(), &res);
+    double diff = 0;
+    for (size_t i = 0; i < sig_out.size(); i++) diff += std::fabs(sig_out[i] - sig0[i]);
+    snprintf(msg, sizeof(msg), "SIP5 系数置零 Σ|Δ|=%.6e (>0, 最高阶项有影响)", diff);
+    CHECK(rc == 0 && diff > 0.0, msg);
+    // order 6 → 硬失败
+    HpReverseDrizzleInput in6 = in;
+    in6.sip_order = 6;
+    rc = fn_run(&in6, sig_out.data(), cov_out.data(), &res);
+    snprintf(msg, sizeof(msg), "SIP order=6 拒绝 rc=%d err=%s", rc, res.error_msg);
+    CHECK(rc != 0, msg);
+    in.sip_order = 0; in.sip_ap_order = 0;
+
+    // ---- 非法输入 → 明确错误码 ----
     HpReverseDrizzleInput bad = in;
     bad.pixfrac = 0.0;
     int rc_bad = fn_run(&bad, sig_out.data(), cov_out.data(), &res);
