@@ -1789,3 +1789,15 @@ ACR worktree 本轮未触碰 (并行 ACR 会话推进至 f8cba99, worktree 干�
 
 交付包: AstroCS_Delivery_Drizzle_Phase1_Final_20260805.zip
 SHA256 2793f2875cf8da81761cf808e9c701419c655df8a925498496487032ba05af1e
+
+### 冻结包收尾补充 (2026-08-06, ded4933)
+
+ACCEPTANCE_CHECKLIST 补齐两项:
+- Browser 路径: healpix_browser_qt 构建成功 + 加载 HISS (nside=65536,
+  pixfrac=0.8) 通过 (responding=True, 正常关闭)
+- 科学保真 (Layer B): 均匀背景表面亮度 rel_std 2.4e-6、点源总通量 rel 2.8e-10、
+  梯度背景闭合 7e-11 → 冻结验收 39/39 → 42/42
+
+交付包已更新 (AstroCS_Delivery_Drizzle_Phase1_Final_20260805.zip,
+含 T7 + Browser 证据)。注: 2026-08-06 早间 GitHub push 因 SSL/TLS 网络
+临时故障未完成 (本地已提交 ded4933 + wiki c199ee9), 需重试推送。
