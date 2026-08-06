@@ -9,6 +9,7 @@
 
 #include "residency_manager.hpp"
 #include "memory_budget.hpp"
+#include "pinned_ledger.hpp"
 
 #include <string>
 
@@ -128,4 +129,24 @@ TEST(Residency, SharedInputUploadedOnce) {
     EXPECT_EQ(m.download_count("shared_input"), 1u);
     EXPECT_EQ(m.total_uploads(), 1u);
     EXPECT_EQ(m.total_downloads(), 1u);
+}
+
+// ============================================================================
+// 7. 真实 pinned reservation ledger（06 号规范 §4）
+// ============================================================================
+TEST(Residency, PinnedLedgerReserveRelease) {
+    PinnedLedger ledger;
+    ledger.configure(4096);
+    EXPECT_EQ(ledger.limit(), 4096u);
+    EXPECT_TRUE(ledger.reserve(2048));
+    EXPECT_TRUE(ledger.reserve(2048));
+    EXPECT_FALSE(ledger.reserve(1));   // 超限拒绝（不记账）
+    EXPECT_EQ(ledger.used(), 4096u);
+    ledger.release(2048);
+    EXPECT_EQ(ledger.used(), 2048u);
+    EXPECT_TRUE(ledger.reserve(1024));
+    ledger.release(4096);              // 释放超过已用 → clamp 0
+    EXPECT_EQ(ledger.used(), 0u);
+    std::string j = ledger.status_json();
+    EXPECT_NE(j.find("\"limit_bytes\":4096"), std::string::npos);
 }

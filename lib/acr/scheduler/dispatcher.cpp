@@ -13,6 +13,7 @@
 #include "../cost/cost_estimator.hpp"
 #include "../backends/cuda/bridge/cuda_bridge_api.hpp"
 #include "../utilization/memory_budget.hpp"
+#include "../utilization/pinned_ledger.hpp"
 
 #include "astro/compute/acr.hpp"
 
@@ -122,6 +123,8 @@ struct Dispatcher::Impl {
     MixedRoutePlanner planner;
     // 聚焦版（08 号计划 §6）：数据驻留状态（Host/Device/Both/dirty）
     ResidencyManager residency;
+    // 聚焦版 v2（08 号计划 §6）：真实 pinned staging reservation ledger
+    utilization::PinnedLedger pinned_ledger;
     // 聚焦版 v2（08 号计划 §4）：dispatcher 级桥接句柄（整帧上传复用）
     void* bridge_handle{nullptr};
 
@@ -1203,6 +1206,35 @@ struct Dispatcher::Impl {
                                 pool.set_dynamic_max_chunk(requested);
                             }
                         }
+                        // ---- 聚焦版 v2：pinned staging reserve（GPU）----
+                        // 真实 reservation ledger；预算不足时缩小块重试一次
+                        if (cfg.enable_memory_budget &&
+                            exec->backend_type().rfind("cuda", 0) == 0) {
+                            const std::size_t staging =
+                                requested * invocation.traits.bytes_read_per_item +
+                                requested * invocation.traits.bytes_written_per_item;
+                            if (staging > 0 &&
+                                !pinned_ledger.reserve(staging)) {
+                                const std::size_t shrunk =
+                                    std::max(requested / 2, min_chunk);
+                                if (shrunk < requested &&
+                                    pinned_ledger.reserve(
+                                        shrunk *
+                                        (invocation.traits.bytes_read_per_item +
+                                         invocation.traits.bytes_written_per_item))) {
+                                    requested = shrunk;
+                                    batch_shrink_count.fetch_add(
+                                        1, std::memory_order_relaxed);
+                                    record_action("pinned_shrink");
+                                } else {
+                                    // pinned 预算不足：跳过该块（等释放）
+                                    record_action("pinned_wait");
+                                    std::this_thread::sleep_for(
+                                        std::chrono::milliseconds(10));
+                                    continue;
+                                }
+                            }
+                        }
                         auto token = pool.claim_next_dynamic(exec->id(), requested);
                         if (!token.valid()) {
                             break;
@@ -1262,6 +1294,13 @@ struct Dispatcher::Impl {
                             if (pool.mark_failed(token, retryable)) {
                                 exec_failed[i].fetch_add(1, std::memory_order_relaxed);
                             }
+                        }
+                        // 释放该块的 pinned staging（真实记账闭环）
+                        if (cfg.enable_memory_budget &&
+                            exec->backend_type().rfind("cuda", 0) == 0) {
+                            pinned_ledger.release(
+                                requested * invocation.traits.bytes_read_per_item +
+                                requested * invocation.traits.bytes_written_per_item);
                         }
                     }
                 });
@@ -1372,6 +1411,14 @@ void Dispatcher::configure(const DispatcherConfig& cfg) {
         for (const auto& bn : mcfg.gpu_backends) {
             impl_->mem_ctrl->register_backend(bn);
         }
+        // 聚焦版 v2：pinned ledger limit 来自 MemoryBudget 配置
+        const auto& mcfg_budget = cfg.memory_budget_explicit
+            ? cfg.memory_budget : utilization::MemoryBudgetConfig{};
+        const std::uint64_t total_ram = impl_->mem_ctrl->sample().total_ram;
+        impl_->pinned_ledger.configure(
+            utilization::MemoryBudgetController::compute_limit(
+                total_ram, mcfg_budget.pinned_ratio,
+                mcfg_budget.pinned_fixed_reserve_bytes));
     }
 }
 
