@@ -3041,6 +3041,49 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
     auto fn_read_snr_f64 = loader.get_function<ReadTileSnrFn>(
         ModuleId::AIO, "aio_hiss_read_tile_snr_f64");
 
+    // R13 (HISS_IO_REPAIR): Verify 单句柄 — 打开一次, 遍历全部 Tile
+    // (旧实现每 Tile 构造 Reader 反复打开文件, 完整帧 HISS_VERIFY 130s)
+    using OpenSessionFn = void* (*)(const char*, uint32_t*, uint32_t*, uint64_t*);
+    using ReadSigSessFn = int (*)(void*, uint64_t, float**, uint32_t*);
+    using ReadSigF64SessFn = int (*)(void*, uint64_t, double**, uint32_t*);
+    using ReadSupSessFn = int (*)(void*, uint64_t, uint8_t**, uint32_t*);
+    using ReadSnrSessFn = int (*)(void*, uint64_t, uint8_t**, uint32_t*);
+    using CloseSessionFn = void (*)(void*);
+    auto fn_open_session = loader.get_function<OpenSessionFn>(
+        ModuleId::AIO, "aio_hiss_open_session");
+    auto fn_read_signal_sess = loader.get_function<ReadSigSessFn>(
+        ModuleId::AIO, "aio_hiss_read_tile_signal_session");
+    auto fn_read_signal_f64_sess = loader.get_function<ReadSigF64SessFn>(
+        ModuleId::AIO, "aio_hiss_read_tile_signal_f64_session");
+    auto fn_read_support_sess = loader.get_function<ReadSupSessFn>(
+        ModuleId::AIO, "aio_hiss_read_tile_support_session");
+    auto fn_read_snr_sess = loader.get_function<ReadSnrSessFn>(
+        ModuleId::AIO, "aio_hiss_read_tile_snr_session");
+    auto fn_read_snr_f64_sess = loader.get_function<ReadSnrSessFn>(
+        ModuleId::AIO, "aio_hiss_read_tile_snr_f64_session");
+    auto fn_close_session = loader.get_function<CloseSessionFn>(
+        ModuleId::AIO, "aio_hiss_close_session");
+    if (!fn_open_session || !fn_close_session ||
+        !fn_read_signal_sess || !fn_read_support_sess) {
+        LOG_ERROR("orchestrator", "[HISS_VERIFY] session API 未找到 (aio_hiss_*_session)");
+        if (meta_json) fn_free(meta_json);
+        if (tile_ipix_list) fn_free(tile_ipix_list);
+        result.error_msg = "[HISS_VERIFY] session API 未找到";
+        result.exit_code = AstroCsExitCode::HISS_INVALID;
+        return false;
+    }
+    void* session = fn_open_session(current_output_path_.c_str(),
+                                    nullptr, nullptr, nullptr);
+    if (!session) {
+        LOG_ERROR("orchestrator", "[HISS_VERIFY] session 打开失败: "
+                 + current_output_path_);
+        if (meta_json) fn_free(meta_json);
+        if (tile_ipix_list) fn_free(tile_ipix_list);
+        result.error_msg = "[HISS_VERIFY] session 打开失败";
+        result.exit_code = AstroCsExitCode::HISS_INVALID;
+        return false;
+    }
+
     bool is_fp64 = (requested_prec == 1);
     if (is_fp64) {
         if (!fn_read_signal_f64 || !fn_read_support) {
@@ -3086,8 +3129,8 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
 
         if (is_fp64) {
             double* signal_f64 = nullptr;
-            int sig_ret = fn_read_signal_f64(current_output_path_.c_str(), parent_ipix,
-                                              &signal_f64, &n_signal);
+            int sig_ret = fn_read_signal_f64_sess(session, parent_ipix,
+                                                  &signal_f64, &n_signal);
             if (sig_ret != 0 || signal_f64 == nullptr || n_signal == 0) {
                 LOG_ERROR("orchestrator", "[HISS_VERIFY] Tile #" + std::to_string(i)
                          + " (parent_ipix=" + std::to_string(parent_ipix)
@@ -3112,8 +3155,8 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
             fn_free(signal_f64);
         } else {
             float* signal = nullptr;
-            int sig_ret = fn_read_signal(current_output_path_.c_str(), parent_ipix,
-                                          &signal, &n_signal);
+            int sig_ret = fn_read_signal_sess(session, parent_ipix,
+                                              &signal, &n_signal);
             if (sig_ret != 0 || signal == nullptr || n_signal == 0) {
                 LOG_ERROR("orchestrator", "[HISS_VERIFY] Tile #" + std::to_string(i)
                          + " (parent_ipix=" + std::to_string(parent_ipix)
@@ -3154,8 +3197,8 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
         // 读取 support (隐式验证: SUPPORT 子块存在 + checksum + occupancy 展开)
         uint8_t* support = nullptr;
         uint32_t n_support = 0;
-        int sup_ret = fn_read_support(current_output_path_.c_str(), parent_ipix,
-                                       &support, &n_support);
+        int sup_ret = fn_read_support_sess(session, parent_ipix,
+                                           &support, &n_support);
         if (sup_ret != 0 || support == nullptr || n_support == 0) {
             LOG_ERROR("orchestrator", "[HISS_VERIFY] Tile #" + std::to_string(i)
                      + " (parent_ipix=" + std::to_string(parent_ipix)
@@ -3184,10 +3227,9 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
         // R11 (HISS-103): 读取 SNR 控制点 (按文件 dtype 选择 f32 8B/点 或 f64 12B/点)
         uint8_t* snr_buf = nullptr;
         uint32_t n_snr = 0;
-        auto snr_api = is_fp64 ? fn_read_snr_f64 : fn_read_snr;
-        if (snr_api) {
-            int snr_ret = snr_api(current_output_path_.c_str(), parent_ipix,
-                                  &snr_buf, &n_snr);
+        auto snr_api_sess = is_fp64 ? fn_read_snr_f64_sess : fn_read_snr_sess;
+        if (snr_api_sess) {
+            int snr_ret = snr_api_sess(session, parent_ipix, &snr_buf, &n_snr);
             // SNR 稀疏 (仅 ~254/285 Tile 含 SNR 子块): 读不到 = 该 Tile 无 SNR, 跳过
             // 最终汇总检查 n_snr_points_total>0 保证 SNR 数据整体存在 (HISS-103)
             if (n_snr > 0) {
@@ -3214,6 +3256,7 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
     // 释放 inspect 分配的内存
     if (meta_json) fn_free(meta_json);
     if (tile_ipix_list) fn_free(tile_ipix_list);
+    if (session) fn_close_session(session);
 
     // 至少一个 Tile 有非零 signal
     if (!has_nonzero_signal) {

@@ -157,6 +157,28 @@ AIO_EXPORT int aio_hiss_read_tile_snr(const char* path, uint64_t parent_ipix,
 AIO_EXPORT int aio_hiss_read_tile_snr_f64(const char* path, uint64_t parent_ipix,
                                             uint8_t** snr_out, uint32_t* n_points);
 
+// R13 (HISS_IO_REPAIR): Session API — 打开一次, 遍历全部 Tile (Verify 单句柄)
+//   旧 aio_hiss_read_tile_* 每个 Tile 重新构造 Reader (反复打开文件, 完整帧
+//   HISS_VERIFY 130s)。session 保持文件句柄与目录解析结果, 逐 Tile 读取。
+// aio_hiss_open_session: 打开文件并解析 Header/目录一次, 返回句柄 (失败返回 nullptr)
+//   nside/tile_nside/n_tiles 可选输出 (可为 nullptr)
+AIO_EXPORT void* aio_hiss_open_session(const char* path,
+                                         uint32_t* nside, uint32_t* tile_nside,
+                                         uint64_t* n_tiles);
+// 逐 Tile 读取 (与 aio_hiss_read_tile_* 同语义, 但复用 session 句柄)
+AIO_EXPORT int aio_hiss_read_tile_signal_session(void* session, uint64_t parent_ipix,
+                                                   float** signal, uint32_t* n_signal);
+AIO_EXPORT int aio_hiss_read_tile_signal_f64_session(void* session, uint64_t parent_ipix,
+                                                       double** signal, uint32_t* n_signal);
+AIO_EXPORT int aio_hiss_read_tile_support_session(void* session, uint64_t parent_ipix,
+                                                    uint8_t** support, uint32_t* n_support);
+AIO_EXPORT int aio_hiss_read_tile_snr_session(void* session, uint64_t parent_ipix,
+                                                uint8_t** snr_out, uint32_t* n_points);
+AIO_EXPORT int aio_hiss_read_tile_snr_f64_session(void* session, uint64_t parent_ipix,
+                                                    uint8_t** snr_out, uint32_t* n_points);
+// 关闭并释放 session
+AIO_EXPORT void aio_hiss_close_session(void* session);
+
 // WP-H 步骤14: 通过 ra/dec 查询像素值 (与 HissReader::query_pixel 一致)
 // ra, dec - 度
 // signal, support - 输出参数 (单个值)

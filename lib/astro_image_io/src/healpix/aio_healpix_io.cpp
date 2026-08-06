@@ -605,6 +605,122 @@ AIO_EXPORT int aio_hiss_read_tile_signal(const char* path, uint64_t parent_ipix,
 }
 
 // ============================================================================
+// R13 (HISS_IO_REPAIR): Session API — Verify 单句柄遍历全部 Tile
+// ============================================================================
+
+AIO_EXPORT void* aio_hiss_open_session(const char* path,
+                                         uint32_t* nside, uint32_t* tile_nside,
+                                         uint64_t* n_tiles) {
+    if (!path) return nullptr;
+    auto* reader = new (std::nothrow) hiss::HissReader();
+    if (!reader) return nullptr;
+    if (reader->open(path) != 0) {
+        delete reader;
+        return nullptr;
+    }
+    if (nside) *nside = reader->grid().nside;
+    if (tile_nside) *tile_nside = reader->grid().tile_nside;
+    if (n_tiles) *n_tiles = reader->tiles().size();
+    return reader;
+}
+
+AIO_EXPORT int aio_hiss_read_tile_signal_session(void* session, uint64_t parent_ipix,
+                                                   float** signal, uint32_t* n_signal) {
+    if (!session || !signal || !n_signal) return HIO_ERR_PARAM;
+    *signal = nullptr; *n_signal = 0;
+    auto* reader = static_cast<hiss::HissReader*>(session);
+    std::vector<float> v;
+    int ret = reader->read_tile_signal(parent_ipix, v);
+    if (ret != 0) return HIO_ERR_FILE;
+    if (v.empty()) return HIO_OK;
+    *n_signal = (uint32_t)v.size();
+    *signal = (float*)std::malloc(v.size() * sizeof(float));
+    if (!*signal) return HIO_ERR_MEM;
+    std::memcpy(*signal, v.data(), v.size() * sizeof(float));
+    return HIO_OK;
+}
+
+AIO_EXPORT int aio_hiss_read_tile_signal_f64_session(void* session, uint64_t parent_ipix,
+                                                       double** signal, uint32_t* n_signal) {
+    if (!session || !signal || !n_signal) return HIO_ERR_PARAM;
+    *signal = nullptr; *n_signal = 0;
+    auto* reader = static_cast<hiss::HissReader*>(session);
+    std::vector<double> v;
+    int ret = reader->read_tile_signal_f64(parent_ipix, v);
+    if (ret != 0) return HIO_ERR_FILE;
+    if (v.empty()) return HIO_OK;
+    *n_signal = (uint32_t)v.size();
+    *signal = (double*)std::malloc(v.size() * sizeof(double));
+    if (!*signal) return HIO_ERR_MEM;
+    std::memcpy(*signal, v.data(), v.size() * sizeof(double));
+    return HIO_OK;
+}
+
+AIO_EXPORT int aio_hiss_read_tile_support_session(void* session, uint64_t parent_ipix,
+                                                    uint8_t** support, uint32_t* n_support) {
+    if (!session || !support || !n_support) return HIO_ERR_PARAM;
+    *support = nullptr; *n_support = 0;
+    auto* reader = static_cast<hiss::HissReader*>(session);
+    std::vector<uint8_t> v;
+    int ret = reader->read_tile_support(parent_ipix, v);
+    if (ret != 0) return HIO_ERR_FILE;
+    if (v.empty()) return HIO_OK;
+    *n_support = (uint32_t)v.size();
+    *support = (uint8_t*)std::malloc(v.size());
+    if (!*support) return HIO_ERR_MEM;
+    std::memcpy(*support, v.data(), v.size());
+    return HIO_OK;
+}
+
+AIO_EXPORT int aio_hiss_read_tile_snr_session(void* session, uint64_t parent_ipix,
+                                                uint8_t** snr_out, uint32_t* n_points) {
+    if (!session || !snr_out || !n_points) return HIO_ERR_PARAM;
+    *snr_out = nullptr; *n_points = 0;
+    auto* reader = static_cast<hiss::HissReader*>(session);
+    hiss::HissSnrBlock snr;
+    int ret = reader->read_tile_snr(parent_ipix, snr);
+    if (ret != 0) return HIO_ERR_FILE;
+    if (snr.points.empty()) return HIO_OK;
+    *n_points = (uint32_t)snr.points.size();
+    *snr_out = (uint8_t*)std::malloc(snr.points.size() * 8);
+    if (!*snr_out) return HIO_ERR_MEM;
+    for (size_t i = 0; i < snr.points.size(); i++) {
+        uint32_t local_ipix = snr.points[i].local_ipix;
+        float snr_val = snr.points[i].snr;
+        uint8_t* p = *snr_out + i * 8;
+        std::memcpy(p, &local_ipix, 4);
+        std::memcpy(p + 4, &snr_val, 4);
+    }
+    return HIO_OK;
+}
+
+AIO_EXPORT int aio_hiss_read_tile_snr_f64_session(void* session, uint64_t parent_ipix,
+                                                    uint8_t** snr_out, uint32_t* n_points) {
+    if (!session || !snr_out || !n_points) return HIO_ERR_PARAM;
+    *snr_out = nullptr; *n_points = 0;
+    auto* reader = static_cast<hiss::HissReader*>(session);
+    hiss::HissSnrBlockF64 snr;
+    int ret = reader->read_tile_snr_f64(parent_ipix, snr);
+    if (ret != 0) return HIO_ERR_FILE;
+    if (snr.points.empty()) return HIO_OK;
+    *n_points = (uint32_t)snr.points.size();
+    *snr_out = (uint8_t*)std::malloc(snr.points.size() * 12);
+    if (!*snr_out) return HIO_ERR_MEM;
+    for (size_t i = 0; i < snr.points.size(); i++) {
+        uint32_t local_ipix = snr.points[i].local_ipix;
+        double snr_val = snr.points[i].snr;
+        uint8_t* p = *snr_out + i * 12;
+        std::memcpy(p, &local_ipix, 4);
+        std::memcpy(p + 4, &snr_val, 8);
+    }
+    return HIO_OK;
+}
+
+AIO_EXPORT void aio_hiss_close_session(void* session) {
+    if (session) delete static_cast<hiss::HissReader*>(session);
+}
+
+// ============================================================================
 // R10: aio_hiss_read_tile_signal_f64 - 按 Tile 读取 signal (FP64)
 // ============================================================================
 
