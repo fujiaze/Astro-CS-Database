@@ -667,3 +667,9 @@ spec: .trae/specs/orchestrator-cpp-cli/spec.md (阶段1: 集成测试 - 阶段1�
 - core 超 30s 目标 0.56s (硬门 60s 通过): 候选安全上界 1.25 使快速候选盒
   增大 ~9% (换零漏选解析证明), 已如实记录;
 - 本轮运行 1 次完整 FP32 (MAX=1 合规); 反向 API 未接入编排器 (无 Phase3)。
+
+## 2026-08-06 Phase1 最终签字 (HEAD eb52e06)
+
+- 完整 Stage1 证据复用 6f7bba7 (50.37s), 本任务 0 次完整帧;
+- 反向 C ABI 微修正 (SIP order 0~5 + order6 拒绝) 不影响编排器路径;
+- Phase1 基础算法闭合, 未进入 ACR/Stage2。

@@ -1862,3 +1862,34 @@ core 30.556s / write 10.7s / verify 0.789s / DRIZZLE 41.3s / Stage1 50.37s;
 注意: core 超 30s 目标 0.56s (硬门 60s 通过, 因候选盒 1.25 增大 ~9%)。
 
 审核包: `AstroCS_Review_Phase1_Signoff_20260806.zip`
+
+## 2026-08-06 主线 Phase1 最终签字微修正 ★基础算法闭合★ (控制包 a4a175eb)
+
+控制包: `AstroCS_Phase1_Final_Signoff_Microfix.zip`
+交付 HEAD: `eb52e06` (main, 已 push) | Wiki: `6739028` (master, 已 push)
+
+### 审核结论 (条件接受)
+正向 PRECISE / Tile 结构 / HISS / 单 JSON 编排器 / 完整 Stage1 50.37s 正式
+接受并冻结; 剩余 5 项微型修正后签字闭合。
+
+### 微修正 (eb52e06)
+- Wiki 统一: Reverse_Drizzle / Phase1_Drizzle_Freeze_Spec 覆盖为唯一权威
+  partial support 公式 (output_signal += signal×a/A_drop; output_covered_area
+  += f×a), 删除旧 surface_brightness 公式; Project_Status 替换为"已闭合";
+- 真实负值场: B=-500+100z @ dec=+30° 全程为负; input/output_min<0,
+  negative_flux fp32/fp64, pixfrac 0.6/0.8/1.0; 负场 hole 判定改 |signal|;
+- SIP order 0~5 正式支持 (C ABI 校验, order6 硬失败), order5 影响测试 +
+  sip5_edge 场景;
+- 严格阈值: 质心 ≤0.01px / FWHM ≤1% / 椭率 ≤0.005 / 均匀场 rel_std ≤1e-4
+  (constant 实测 4.4e-9) / 2/3/4×FWHM 孔径 ≤0.1%;
+- 可复现交付: healpix_stack + astro_image_io 源码、build_all.ps1、
+  dependency_map、exact_commands.csv (完整命令)、source_sha256、
+  reused_final_run (50.37s 未重跑)。
+
+### 微型测试 (HEAD eb52e06 全零失败)
+科学矩阵 37/37 | 科学补齐 16/16 | DLL API 11/11 | 反向 5/5 |
+候选 9003 | 独立 Oracle 5502 | 冻结 42 | 矩阵 180 | L0 16 | L2 5 | 球面 76。
+
+完整 FP32 本任务 0 次 (复用 6f7bba7 的 50.37s 证据)。
+
+审核包: `AstroCS_Review_Phase1_FINAL_SIGNOFF_20260806.zip`

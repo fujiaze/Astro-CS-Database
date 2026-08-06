@@ -186,3 +186,14 @@ v1.0
 
 ### 最终签字 (50.37s)
 完整 FP32 1 次: core 30.556s (超 30s 目标 0.56s) / Stage1 50.37s 全硬门通过。
+
+## 2026-08-06 最终签字微修正 (控制包 a4a175eb, HEAD eb52e06) ★闭合★
+
+- negative_field: B=-500+100z (全程为负) + input/output_min + negative_flux
+  fp32/fp64 + pixfrac 0.6/0.8/1.0; 负值场 hole 判定用 |signal|, 守恒按绝对值;
+- SIP order 0~5: C ABI 校验 (hp_drizzle_api), order6 硬失败; reverse 测试
+  sip5_edge 场景 + order5 最高阶项影响断言;
+- 严格阈值: 质心≤0.01px / FWHM≤1% / 椭率≤0.005 / 均匀场≤1e-4 /
+  2/3/4×FWHM 孔径≤0.1%;
+- 微型测试全零失败: 科学矩阵 37/37, 科学补齐 16/16, API 11/11, 反向 5/5。
+- Phase1 基础算法已闭合 (main eb52e06, wiki 6739028); 完整帧 0 次重跑。
