@@ -54,6 +54,33 @@ focused 测试 4+4+3 全过；真实 RTX 3060 Ti Mixed 正确。期间修复 pla
 收益门与首轮公平门死锁（聚焦版禁用强制公平门）、CPU/GPU 实测速率对比与
 兜底清尾，避免慢设备拖尾与工作丢失。
 
+### 2026-08-06 聚焦版 v2（控制包 9，SHA 65685119...93d77）
+
+**执行入口**：`08_CURRENT_EXECUTION_PLAN.md`（v2）。审计
+`ACR_FOCUSED_REVIEW.md` 确认 8 项阻断，全部已修复：
+1. `40c9d21`：OperationProfile 改用 nlohmann 层级解析（禁止字符串搜索同名键），
+   完整 roundtrip（CPU/GPU/transfer/memory/eligibility/指纹逐字段），
+   真实运行指纹（编译器宏 + 内核地址 hash）；
+2. `3cbd998`：桥接新增 resident 持久上传与提交；真实 CPU/GPU resident/host
+   三条曲线；拟合截距固定开销；候选块实测（替代硬编码 64K/1M）；真实交叉点
+   （无收益路径 ineligible + null 阈值）；leave-one-out 真实误差；
+   每 Operation 独立 qualified；
+3. `cc1d692`：Auto 前置收益门（worker 启动前按 Profile 筛选 GPU，host/resident
+   阈值 + 规模检查）；Auto 禁止强制首块；删除慢设备固定轮次强制清尾；
+   ForcedMixed 保留首块参与（仅正确性）；
+4. `83291ad`：ResidencyManager 真实字节/access/generation/device allocation；
+   dispatcher 经桥接真实整帧上传（共享输入只上传一次）与真实 D2H；
+   禁止机械 uploaded→downloaded；桥接 resident 提交支持整帧 view 复用；
+5. `233359d`：reduce/drizzle 每 token 私有 partial + 明确 merge；
+   CPU/GPU 全路径（CpuOnly/GpuOnly/ForcedMixed）正确性测试；
+6. `eba1c23`：pinned staging 真实 reservation ledger（reserve/release/limit）；
+   claim 前 reserve、预算不足缩块/等待、完成后 release。
+
+**验证结果（2026-08-06）**：全量 ctest 603/603 通过；focused 测试
+（operation/mixed_route/residency/focused_mixed）全过；standard Profile
+通过 schema（无收益 GPU 路径如实 ineligible）；真实 GPU 复用测试
+（upload 一次 + 多块 resident 提交）通过。
+
 ### 2026-08-05 25 号计划执行（控制包 SHA 755278bf...5f98）
 
 **执行入口**：`25_SECOND_FIX_IMPLEMENTATION_REVIEW_CORRECTION_PLAN.md`（外部
