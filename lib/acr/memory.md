@@ -419,6 +419,13 @@ Mixed 样例，形成"允许开始修改业务代码"的最终 Evidence。
 - 真实 RTX 3060 Ti：CPU+GPU Mixed 双方非零、resident-reuse frames 上传 1 次、
   1/2 stream 结果一致。
 
+**性能修复（2026-08-06）**：Dispatcher invocation worker 循环残留两处调试
+fprintf（`fprintf(stderr, "[%zu,%zu)\n", backend, ...)` 与
+`fprintf(stderr, backend, status)`）——每块执行 2 次同步 stderr I/O + fflush，
+16 个 CPU worker 并发写 stderr 竞争，导致 ACR CPU 路径比 OpenMP 慢约 50 倍
+（512² acr_cpu 162ms → 3.3ms）。移除后 standard 全 PASS（2048² Auto
+11.4ms vs OpenMP 14.25ms，≥1.05x），性能资格 QUALIFIED。
+
 **已知限制（如实）**：
 - GPU 连续负载后 ctest 全量中 GPU 测试偶发 flaky（CTest 单进程独立复跑通过）；
 - 桥接仍为同步语义；多 stream 为轮转分派，in-flight 槽位按 stream 数暴露，
