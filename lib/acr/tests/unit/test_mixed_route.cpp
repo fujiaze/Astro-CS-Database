@@ -124,7 +124,8 @@ TEST(MixedRoute, TailGateStopsSlowDevice) {
     // 快 CPU（实测 0.5ns/item）→ 继续 claim
     EXPECT_TRUE(MixedRoutePlanner::should_claim(
         plan, "cpu", 1u << 20, 0, 0.5, 1.5, true));
-    // 慢 CPU（实测 10ns/item）vs 更快 GPU（0.5）→ 停止 claim
+    // 慢 CPU（实测 10ns/item，chunk=64K：block=655us）vs GPU（0.5，剩余
+    // 500us）→ 小块也无法在 GPU 清空前完成 → 停止 claim
     EXPECT_FALSE(MixedRoutePlanner::should_claim(
         plan, "cpu", 1u << 20, 0, 10.0, 0.5, true));
     // 该设备是最快的 → 允许清尾（即使 remaining 大）
@@ -136,6 +137,48 @@ TEST(MixedRoute, TailGateStopsSlowDevice) {
     // ForcedMixed（allow_first_block=true）：未执行设备允许首块
     EXPECT_TRUE(MixedRoutePlanner::should_claim(
         plan, "gpu", 1u << 20, 0, 0.0, 0.0, true));
+}
+
+// ============================================================================
+// 5. makespan 模型：异速 CPU/GPU 仍可 Mixed（V2 审计 §4）
+// ============================================================================
+TEST(MixedRoute, HeterogeneousSpeedMixedAllowed) {
+    OperationProfile p = make_qualified_profile();
+    p.operations[0].cpu.ns_per_item = 5.0;    // CPU 慢
+    p.operations[0].gpu.ns_per_item = 0.1;    // GPU 快 50 倍
+    p.operations[0].gpu.host_path_eligible = true;
+    p.operations[0].gpu.min_profitable_items_host = 1;
+    MixedRoutePlanner planner;
+    planner.set_profile(&p);
+    const auto plan = planner.plan(
+        "synthetic.dense_pixel_accumulate.fp32", 10u << 20,
+        /*data_resident=*/false);
+    ASSERT_TRUE(plan.profile_available);
+    // CPU 小块（16K × 5ns = 80us）能在 GPU 清空剩余（0.1×~10M = 1ms）前
+    // 完成 → 允许 CPU 参与（异速 Mixed 有收益）
+    EXPECT_TRUE(MixedRoutePlanner::should_claim(
+        plan, "cpu", 10u << 20, 0, 5.0, 0.1, false));
+    // 但若 remaining 很小（GPU 即将清空），CPU 小块无法提前完成 → 停止
+    EXPECT_FALSE(MixedRoutePlanner::should_claim(
+        plan, "cpu", 1u << 12, 0, 5.0, 0.1, false));
+}
+
+// ============================================================================
+// 6. 收益阈值不覆盖推荐块（V2 审计 §3）
+// ============================================================================
+TEST(MixedRoute, ThresholdDoesNotOverrideRecommendedChunk) {
+    OperationProfile p = make_qualified_profile();
+    // 推荐 GPU 块 1M；收益阈值很小（resident）
+    p.operations[0].gpu.recommended_chunk_items = 1u << 20;
+    p.operations[0].gpu.resident_path_eligible = true;
+    p.operations[0].gpu.min_profitable_items_resident = 1000;
+    MixedRoutePlanner planner;
+    planner.set_profile(&p);
+    const auto res_plan = planner.plan(
+        "synthetic.dense_pixel_accumulate.fp32", 1u << 26,
+        /*data_resident=*/true);
+    ASSERT_TRUE(res_plan.profile_available);
+    EXPECT_EQ(res_plan.gpu_chunk_items, 1u << 20);  // 不被 1000 覆盖
 }
 
 // ============================================================================

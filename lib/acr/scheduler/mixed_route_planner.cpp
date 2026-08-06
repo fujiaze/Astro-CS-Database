@@ -72,10 +72,8 @@ MixedRoutePlan MixedRoutePlanner::plan(const std::string& operation_id,
             r.reason = "resident-path-not-eligible";
             return r;
         }
-        r.gpu_chunk_items = std::min(
-            r.gpu_chunk_items,
-            std::max<std::size_t>(op->gpu.minimum_chunk_items,
-                                  r.gpu_min_resident_items));
+        // 收益阈值只决定 GPU 是否参与（前置门），不修改实测推荐块
+        // （V2 审计 §3：禁止 threshold 覆盖 recommended chunk）
         r.reason = "profile-resident";
     } else {
         if (!op->gpu.host_path_eligible) {
@@ -117,24 +115,24 @@ bool MixedRoutePlanner::should_claim(const MixedRoutePlan& plan,
         ? device_measured_ns_per_item : profile_ns * 10.0;
     const double other_per_item = (other_measured_ns_per_item > 0.0)
         ? other_measured_ns_per_item : other_profile_ns * 10.0;
-    // 两台设备完成剩余工作的总时间（实测/Profile 速率）
-    const double fastest_ns_per_item =
-        std::min(per_item, other_per_item);
-    const double slowest_ns_per_item =
-        std::max(per_item, other_per_item);
-    const double fast_remaining_ns =
-        fastest_ns_per_item * static_cast<double>(remaining);
-    const double slow_remaining_ns =
-        slowest_ns_per_item * static_cast<double>(remaining);
-    // 边际收益门（05 号规范 §4）：慢设备参与会形成尾部时停止其新 claim。
-    // 若该设备是最快的（含唯一设备清尾），始终允许继续。
-    const bool device_is_fastest =
-        (per_item <= other_per_item);
-    if (device_is_fastest) return true;
-    // 慢设备：仅当速率与最快设备接近（×1.05）时参与 Mixed；
-    // 显著慢的设备停止新 claim（08 号计划 §7：只有实测 Mixed 有边际收益
-    // 才允许 Mixed，否则 Auto 自然退化为最快设备）
-    return slow_remaining_ns <= fast_remaining_ns * 1.05;
+    // makespan 模型（08 号计划 §2 / V2 审计 §4）：
+    //   无该设备下一块：makespan0 = 另一设备完成剩余
+    //   有该设备下一块：该设备完成 chunk，另一设备完成剩余
+    //                 makespan1 = max(block_ns, other × (remaining - chunk))
+    //   若 makespan1 < makespan0 → 允许 claim（缩短总完工时间）。
+    // 异速设备（如 GPU 快很多、CPU 处理一小块并提前完成）也能 Mixed。
+    const double block_ns =
+        per_item * static_cast<double>(chunk) +
+        (is_cpu ? 0.0 : plan.gpu_fixed_ns);
+    const double without_ns =
+        other_per_item * static_cast<double>(remaining);
+    const double rem_after =
+        (remaining > chunk) ? static_cast<double>(remaining - chunk) : 0.0;
+    const double other_after_ns = other_per_item * rem_after;
+    const double with_ns = std::max(block_ns, other_after_ns);
+    if (with_ns < without_ns) return true;
+    // 该设备是最快的（含唯一设备清尾）：必须允许它清空剩余
+    return per_item <= other_per_item;
 }
 
 } // namespace astro::compute::scheduler
