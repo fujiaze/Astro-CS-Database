@@ -27,11 +27,37 @@ std::uint64_t median_of(std::vector<std::uint64_t> v) {
     return v[v.size() / 2];
 }
 
-// CPU 指纹（CPU 名 + ISA + 线程数）
+// 真实运行指纹（04 号规范 §7）：编译器宏 + 运行环境线程数 + 内核地址 hash
+std::string compiler_fingerprint() {
+#if defined(_MSC_VER)
+    return std::string("msvc-") + std::to_string(_MSC_VER);
+#elif defined(__clang__)
+    return std::string("clang-") + std::to_string(__clang_major__) + "." +
+           std::to_string(__clang_minor__);
+#elif defined(__GNUC__)
+    return std::string("gcc-") + std::to_string(__GNUC__) + "." +
+           std::to_string(__GNUC_MINOR__) + "." + std::to_string(__GNUC_PATCHLEVEL__);
+#else
+    return "unknown-compiler";
+#endif
+}
+
+// CPU 指纹（处理器线程数 + 可执行能力，来自实际运行环境）
 std::string cpu_fingerprint() {
-    std::string f = "cpu-";
+    std::string f = "cpu-hw-";
     f += std::to_string(std::thread::hardware_concurrency());
     f += "t";
+    // ISA 能力（真实运行环境检测）
+    try {
+        const std::string isa = astro::compute::detect_isa_caps();
+        if (isa.find("avx512") != std::string::npos) f += "-avx512";
+        else if (isa.find("avx2") != std::string::npos) f += "-avx2";
+        else if (isa.find("avx") != std::string::npos) f += "-avx";
+        else if (isa.find("sse") != std::string::npos) f += "-sse";
+        f += "-caps" + std::to_string(isa.size());
+    } catch (...) {
+        f += "-isa-unknown";
+    }
     return f;
 }
 
@@ -45,8 +71,21 @@ std::string gpu_fingerprint() {
 }
 
 std::string kernel_hash() {
-    // 编译时指纹：固定 seed + 目标操作集合
-    return "acr-focused-ops-20260805-v1";
+    // 运行时内核地址 hash：反映实际加载的二进制（禁止硬编码 seed）
+    std::uint64_t h = 0x9E3779B97F4A7C15ULL;
+    auto mix = [&h](const void* p) {
+        std::uint64_t v = reinterpret_cast<std::uintptr_t>(p);
+        v ^= v >> 23; v *= 0x2127599bf4325c37ULL; v ^= v >> 47;
+        h ^= v + 0x9E3779B97F4A7C15ULL + (h << 6) + (h >> 2);
+    };
+    // 目标 Operation 内核族（与注册 launcher 对应）
+    mix(reinterpret_cast<const void*>(&run_cpu_operation));
+    mix(reinterpret_cast<const void*>(&run_gpu_operation));
+    mix(reinterpret_cast<const void*>(&fill_uniform_fp32));
+    char buf[24];
+    std::snprintf(buf, sizeof(buf), "%016llx",
+                  static_cast<unsigned long long>(h));
+    return std::string("acr-kernels-") + buf;
 }
 
 } // anonymous namespace
@@ -244,7 +283,7 @@ OperationProfile FocusedBenchmark::build_profile(
         (kind == FocusedProfileKind::Standard && gpu_available)
             ? "qualified" : "diagnostic";
     p.fingerprint_cpu = cpu_fingerprint();
-    p.fingerprint_compiler = "minGW-g++-16.1-C++20";
+    p.fingerprint_compiler = compiler_fingerprint();
     p.fingerprint_runtime_kernel_hash = kernel_hash();
     const std::string gpu = gpu_fingerprint();
     if (gpu != "none") p.fingerprint_gpus.push_back(gpu);
@@ -312,7 +351,10 @@ OperationProfile FocusedBenchmark::build_profile(
                     ? 8000.0 : static_cast<double>(
                         median_of(transfer_.launch_ns));
             const double gpu_ns_per = op.gpu.ns_per_item;
+            // 临时 eligibility/阈值：提交 2 将按真实 CPU/GPU/transfer 模型重算
             if (gpu_ns_per > 0.0) {
+                op.gpu.host_path_eligible = true;
+                op.gpu.resident_path_eligible = true;
                 op.gpu.min_profitable_items_host =
                     static_cast<std::size_t>((launch_ns * 10.0) / gpu_ns_per);
                 op.gpu.min_profitable_items_resident =
@@ -328,8 +370,10 @@ OperationProfile FocusedBenchmark::build_profile(
             op.gpu.device_id = "cuda:0";
             op.gpu.recommended_chunk_items = 1u << 20;
             op.gpu.minimum_chunk_items = 1u << 14;
-            op.gpu.min_profitable_items_host = 0;
-            op.gpu.min_profitable_items_resident = 0;
+            op.gpu.host_path_eligible = false;
+            op.gpu.resident_path_eligible = false;
+            op.gpu.min_profitable_items_host = std::nullopt;
+            op.gpu.min_profitable_items_resident = std::nullopt;
         }
         // 传输（H2D/D2H 线性拟合）
         if (!transfer_.h2d_ns.empty()) {

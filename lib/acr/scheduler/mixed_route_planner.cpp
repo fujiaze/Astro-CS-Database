@@ -61,15 +61,28 @@ MixedRoutePlan MixedRoutePlanner::plan(const std::string& operation_id,
         }
     }
     // host/resident 不同 GPU 阈值（05 §4：resident 阈值更低）
-    r.gpu_min_host_items = op->gpu.min_profitable_items_host;
-    r.gpu_min_resident_items = op->gpu.min_profitable_items_resident;
+    r.gpu_min_host_items = op->gpu.min_profitable_items_host
+                               ? op->gpu.min_profitable_items_host.value() : 0;
+    r.gpu_min_resident_items = op->gpu.min_profitable_items_resident
+                                   ? op->gpu.min_profitable_items_resident.value()
+                                   : 0;
     if (data_resident) {
+        if (!op->gpu.resident_path_eligible) {
+            r.profile_available = false;
+            r.reason = "resident-path-not-eligible";
+            return r;
+        }
         r.gpu_chunk_items = std::min(
             r.gpu_chunk_items,
             std::max<std::size_t>(op->gpu.minimum_chunk_items,
                                   r.gpu_min_resident_items));
         r.reason = "profile-resident";
     } else {
+        if (!op->gpu.host_path_eligible) {
+            r.profile_available = false;
+            r.reason = "host-path-not-eligible";
+            return r;
+        }
         r.reason = "profile-host";
     }
     return r;

@@ -1,0 +1,302 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "astrocs.acr.operation-profile.schema.json",
+  "title": "AstroCS ACR Focused Operation Profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_state",
+    "fingerprint",
+    "operations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "acr-operation-profile-1"
+    },
+    "profile_state": {
+      "enum": [
+        "diagnostic",
+        "qualified",
+        "stale",
+        "partial"
+      ]
+    },
+    "fingerprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cpu",
+        "gpus",
+        "compiler",
+        "runtime_kernel_hash"
+      ],
+      "properties": {
+        "cpu": {
+          "type": "string",
+          "minLength": 1
+        },
+        "gpus": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "compiler": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runtime_kernel_hash": {
+          "type": "string",
+          "minLength": 16
+        }
+      }
+    },
+    "operations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "operation_id",
+          "precision",
+          "accumulator",
+          "qualified",
+          "sample_range",
+          "cpu",
+          "gpu",
+          "transfer",
+          "memory"
+        ],
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "precision": {
+            "enum": [
+              "fp32",
+              "fp64"
+            ]
+          },
+          "accumulator": {
+            "enum": [
+              "fp32",
+              "fp64",
+              "none"
+            ]
+          },
+          "qualified": {
+            "type": "boolean"
+          },
+          "sample_range": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "min_items",
+              "max_items",
+              "repeats"
+            ],
+            "properties": {
+              "min_items": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "max_items": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "repeats": {
+                "type": "integer",
+                "minimum": 3
+              }
+            }
+          },
+          "cpu": {
+            "$ref": "#/$defs/deviceCurve"
+          },
+          "gpu": {
+            "$ref": "#/$defs/gpuCurve"
+          },
+          "transfer": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "h2d_fixed_us",
+              "h2d_gbps",
+              "d2h_fixed_us",
+              "d2h_gbps"
+            ],
+            "properties": {
+              "h2d_fixed_us": {
+                "type": "number",
+                "minimum": 0
+              },
+              "h2d_gbps": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "d2h_fixed_us": {
+                "type": "number",
+                "minimum": 0
+              },
+              "d2h_gbps": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            }
+          },
+          "memory": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "host_bytes_per_item",
+              "device_bytes_per_item",
+              "fixed_host_bytes",
+              "fixed_device_bytes"
+            ],
+            "properties": {
+              "host_bytes_per_item": {
+                "type": "number",
+                "minimum": 0
+              },
+              "device_bytes_per_item": {
+                "type": "number",
+                "minimum": 0
+              },
+              "fixed_host_bytes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "fixed_device_bytes": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "deviceCurve": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fixed_us",
+        "ns_per_item",
+        "recommended_chunk_items",
+        "minimum_chunk_items",
+        "median_error_ratio",
+        "p95_error_ratio"
+      ],
+      "properties": {
+        "fixed_us": {
+          "type": "number",
+          "minimum": 0
+        },
+        "ns_per_item": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "recommended_chunk_items": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimum_chunk_items": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "median_error_ratio": {
+          "type": "number",
+          "minimum": 0
+        },
+        "p95_error_ratio": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "gpuCurve": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fixed_us",
+        "ns_per_item",
+        "recommended_chunk_items",
+        "minimum_chunk_items",
+        "median_error_ratio",
+        "p95_error_ratio",
+        "device_id",
+        "launch_us",
+        "min_profitable_items_host",
+        "min_profitable_items_resident",
+        "host_path_eligible",
+        "resident_path_eligible"
+      ],
+      "properties": {
+        "fixed_us": {
+          "type": "number",
+          "minimum": 0
+        },
+        "ns_per_item": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "recommended_chunk_items": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimum_chunk_items": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "median_error_ratio": {
+          "type": "number",
+          "minimum": 0
+        },
+        "p95_error_ratio": {
+          "type": "number",
+          "minimum": 0
+        },
+        "device_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "launch_us": {
+          "type": "number",
+          "minimum": 0
+        },
+        "min_profitable_items_host": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "min_profitable_items_resident": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "host_path_eligible": {
+          "type": "boolean"
+        },
+        "resident_path_eligible": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

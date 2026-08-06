@@ -12,6 +12,7 @@
 #pragma once
 
 #include <cstddef>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -55,8 +56,11 @@ struct OperationProfile {
         struct GpuCurve : DeviceCurve {
             std::string device_id{"cuda:0"};
             double launch_us{0.0};
-            std::size_t min_profitable_items_host{0};
-            std::size_t min_profitable_items_resident{0};
+            // null = 该路径不存在收益交叉点（不适用于 Auto 路由）
+            std::optional<std::size_t> min_profitable_items_host;
+            std::optional<std::size_t> min_profitable_items_resident;
+            bool host_path_eligible{false};
+            bool resident_path_eligible{false};
         } gpu;
 
         struct Transfer {

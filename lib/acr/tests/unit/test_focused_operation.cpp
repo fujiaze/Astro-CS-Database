@@ -145,13 +145,76 @@ TEST(FocusedOperation, ProfileRoundTrip) {
     ASSERT_TRUE(write_operation_profile_to_file(tmp, p));
     OperationProfile q;
     ASSERT_TRUE(read_operation_profile_from_file(tmp, q));
+    // 顶层与指纹逐字段
     EXPECT_EQ(q.schema_version, p.schema_version);
     EXPECT_EQ(q.profile_state, p.profile_state);
+    EXPECT_EQ(q.fingerprint_cpu, p.fingerprint_cpu);
+    EXPECT_EQ(q.fingerprint_compiler, p.fingerprint_compiler);
+    EXPECT_EQ(q.fingerprint_runtime_kernel_hash,
+              p.fingerprint_runtime_kernel_hash);
+    EXPECT_EQ(q.fingerprint_gpus.size(), p.fingerprint_gpus.size());
     EXPECT_EQ(q.operations.size(), p.operations.size());
     for (std::size_t i = 0; i < p.operations.size(); ++i) {
         EXPECT_EQ(q.operations[i].operation_id, p.operations[i].operation_id);
+        EXPECT_EQ(q.operations[i].precision, p.operations[i].precision);
+        EXPECT_EQ(q.operations[i].accumulator, p.operations[i].accumulator);
+        EXPECT_EQ(q.operations[i].qualified, p.operations[i].qualified);
+        EXPECT_EQ(q.operations[i].sample_range.min_items,
+                  p.operations[i].sample_range.min_items);
+        EXPECT_EQ(q.operations[i].sample_range.max_items,
+                  p.operations[i].sample_range.max_items);
+        EXPECT_EQ(q.operations[i].sample_range.repeats,
+                  p.operations[i].sample_range.repeats);
+        // CPU 曲线
+        EXPECT_DOUBLE_EQ(q.operations[i].cpu.fixed_us,
+                         p.operations[i].cpu.fixed_us);
         EXPECT_NEAR(q.operations[i].cpu.ns_per_item,
                     p.operations[i].cpu.ns_per_item, 1e-6);
+        EXPECT_EQ(q.operations[i].cpu.recommended_chunk_items,
+                  p.operations[i].cpu.recommended_chunk_items);
+        EXPECT_EQ(q.operations[i].cpu.minimum_chunk_items,
+                  p.operations[i].cpu.minimum_chunk_items);
+        // GPU 曲线（含 eligibility 与 nullable 阈值）
+        EXPECT_DOUBLE_EQ(q.operations[i].gpu.fixed_us,
+                         p.operations[i].gpu.fixed_us);
+        EXPECT_NEAR(q.operations[i].gpu.ns_per_item,
+                    p.operations[i].gpu.ns_per_item, 1e-6);
+        EXPECT_EQ(q.operations[i].gpu.recommended_chunk_items,
+                  p.operations[i].gpu.recommended_chunk_items);
+        EXPECT_EQ(q.operations[i].gpu.minimum_chunk_items,
+                  p.operations[i].gpu.minimum_chunk_items);
+        EXPECT_EQ(q.operations[i].gpu.device_id, p.operations[i].gpu.device_id);
+        EXPECT_EQ(q.operations[i].gpu.host_path_eligible,
+                  p.operations[i].gpu.host_path_eligible);
+        EXPECT_EQ(q.operations[i].gpu.resident_path_eligible,
+                  p.operations[i].gpu.resident_path_eligible);
+        EXPECT_EQ(q.operations[i].gpu.min_profitable_items_host.has_value(),
+                  p.operations[i].gpu.min_profitable_items_host.has_value());
+        if (q.operations[i].gpu.min_profitable_items_host.has_value()) {
+            EXPECT_EQ(q.operations[i].gpu.min_profitable_items_host.value(),
+                      p.operations[i].gpu.min_profitable_items_host.value());
+        }
+        EXPECT_EQ(
+            q.operations[i].gpu.min_profitable_items_resident.has_value(),
+            p.operations[i].gpu.min_profitable_items_resident.has_value());
+        if (q.operations[i].gpu.min_profitable_items_resident.has_value()) {
+            EXPECT_EQ(
+                q.operations[i].gpu.min_profitable_items_resident.value(),
+                p.operations[i].gpu.min_profitable_items_resident.value());
+        }
+        // transfer / memory
+        EXPECT_DOUBLE_EQ(q.operations[i].transfer.h2d_fixed_us,
+                         p.operations[i].transfer.h2d_fixed_us);
+        EXPECT_DOUBLE_EQ(q.operations[i].transfer.h2d_gbps,
+                         p.operations[i].transfer.h2d_gbps);
+        EXPECT_DOUBLE_EQ(q.operations[i].transfer.d2h_fixed_us,
+                         p.operations[i].transfer.d2h_fixed_us);
+        EXPECT_DOUBLE_EQ(q.operations[i].transfer.d2h_gbps,
+                         p.operations[i].transfer.d2h_gbps);
+        EXPECT_DOUBLE_EQ(q.operations[i].memory.host_bytes_per_item,
+                         p.operations[i].memory.host_bytes_per_item);
+        EXPECT_EQ(q.operations[i].memory.fixed_device_bytes,
+                  p.operations[i].memory.fixed_device_bytes);
     }
     astro::compute::runtime_shutdown();
 }

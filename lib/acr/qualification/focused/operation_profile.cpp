@@ -1,9 +1,19 @@
 // lib/acr/qualification/focused/operation_profile.cpp — OperationProfile 序列化/校验
+//
+// 聚焦版 v2（08 号计划 §1/§7）：
+//   - 使用 nlohmann/json 做可靠对象层级解析（禁止字符串搜索同名键）；
+//   - 完整 roundtrip：CPU/GPU 曲线、transfer、memory、eligibility、nullable 阈值、
+//     GPU 数组与指纹逐字段一致；
+//   - 指纹来自实际运行环境（编译器宏 + 内核函数地址 hash）。
 #include "operation_profile.hpp"
 
-#include <cmath>
+#include <nlohmann/json.hpp>
+
+#include <cstddef>
+#include <cstdint>
 #include <cstdio>
-#include <sstream>
+#include <functional>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -11,97 +21,92 @@ namespace astro::compute::qualification::focused {
 
 namespace {
 
-std::string json_escape(const std::string& s) {
-    std::string out;
-    out.reserve(s.size());
-    for (char c : s) {
-        switch (c) {
-            case '"':  out += "\\\""; break;
-            case '\\': out += "\\\\"; break;
-            case '\n': out += "\\n"; break;
-            case '\r': out += "\\r"; break;
-            case '\t': out += "\\t"; break;
-            default:   out += c; break;
-        }
-    }
-    return out;
+// 设备曲线 → JSON 对象
+nlohmann::json device_curve_json(const OperationProfile::DeviceCurve& c) {
+    nlohmann::json j;
+    j["fixed_us"] = c.fixed_us;
+    j["ns_per_item"] = c.ns_per_item;
+    j["recommended_chunk_items"] = c.recommended_chunk_items;
+    j["minimum_chunk_items"] = c.minimum_chunk_items;
+    j["median_error_ratio"] = c.median_error_ratio;
+    j["p95_error_ratio"] = c.p95_error_ratio;
+    return j;
 }
 
-void write_device_curve(std::ostringstream& os, const char* key,
-                        const OperationProfile::DeviceCurve& c) {
-    os << "\"" << key << "\":{"
-       << "\"fixed_us\":" << c.fixed_us
-       << ",\"ns_per_item\":" << c.ns_per_item
-       << ",\"recommended_chunk_items\":" << c.recommended_chunk_items
-       << ",\"minimum_chunk_items\":" << c.minimum_chunk_items
-       << ",\"median_error_ratio\":" << c.median_error_ratio
-       << ",\"p95_error_ratio\":" << c.p95_error_ratio
-       << "}";
+// 从 JSON 对象读取设备曲线（层级访问，避免同名键串读）
+OperationProfile::DeviceCurve device_curve_from_json(const nlohmann::json& j) {
+    OperationProfile::DeviceCurve c;
+    if (j.contains("fixed_us")) c.fixed_us = j["fixed_us"].get<double>();
+    if (j.contains("ns_per_item")) c.ns_per_item = j["ns_per_item"].get<double>();
+    if (j.contains("recommended_chunk_items")) {
+        c.recommended_chunk_items =
+            j["recommended_chunk_items"].get<std::size_t>();
+    }
+    if (j.contains("minimum_chunk_items")) {
+        c.minimum_chunk_items = j["minimum_chunk_items"].get<std::size_t>();
+    }
+    if (j.contains("median_error_ratio")) {
+        c.median_error_ratio = j["median_error_ratio"].get<double>();
+    }
+    if (j.contains("p95_error_ratio")) {
+        c.p95_error_ratio = j["p95_error_ratio"].get<double>();
+    }
+    return c;
+}
+
+// 可选阈值：null → std::nullopt
+std::optional<std::size_t> opt_size_from_json(const nlohmann::json& j,
+                                              const char* key) {
+    if (!j.contains(key) || j[key].is_null()) return std::nullopt;
+    return j[key].get<std::size_t>();
 }
 
 } // anonymous namespace
 
 std::string serialize_operation_profile(const OperationProfile& p) {
-    std::ostringstream os;
-    os.precision(15);  // double 精度序列化（避免 roundtrip 误差）
-    os << "{";
-    os << "\"schema_version\":\"" << json_escape(p.schema_version) << "\"";
-    os << ",\"profile_state\":\"" << json_escape(p.profile_state) << "\"";
-    os << ",\"fingerprint\":{";
-    os << "\"cpu\":\"" << json_escape(p.fingerprint_cpu) << "\"";
-    os << ",\"gpus\":[";
-    for (std::size_t i = 0; i < p.fingerprint_gpus.size(); ++i) {
-        if (i > 0) os << ",";
-        os << "\"" << json_escape(p.fingerprint_gpus[i]) << "\"";
+    nlohmann::json root;
+    root["schema_version"] = p.schema_version;
+    root["profile_state"] = p.profile_state;
+    root["fingerprint"]["cpu"] = p.fingerprint_cpu;
+    root["fingerprint"]["gpus"] = p.fingerprint_gpus;
+    root["fingerprint"]["compiler"] = p.fingerprint_compiler;
+    root["fingerprint"]["runtime_kernel_hash"] =
+        p.fingerprint_runtime_kernel_hash;
+    for (const auto& op : p.operations) {
+        nlohmann::json o;
+        o["operation_id"] = op.operation_id;
+        o["precision"] = op.precision;
+        o["accumulator"] = op.accumulator;
+        o["qualified"] = op.qualified;
+        o["sample_range"]["min_items"] = op.sample_range.min_items;
+        o["sample_range"]["max_items"] = op.sample_range.max_items;
+        o["sample_range"]["repeats"] = op.sample_range.repeats;
+        o["cpu"] = device_curve_json(op.cpu);
+        o["gpu"] = device_curve_json(op.gpu);
+        o["gpu"]["device_id"] = op.gpu.device_id;
+        o["gpu"]["launch_us"] = op.gpu.launch_us;
+        o["gpu"]["min_profitable_items_host"] =
+            op.gpu.min_profitable_items_host.has_value()
+                ? nlohmann::json(op.gpu.min_profitable_items_host.value())
+                : nlohmann::json(nullptr);
+        o["gpu"]["min_profitable_items_resident"] =
+            op.gpu.min_profitable_items_resident.has_value()
+                ? nlohmann::json(op.gpu.min_profitable_items_resident.value())
+                : nlohmann::json(nullptr);
+        o["gpu"]["host_path_eligible"] = op.gpu.host_path_eligible;
+        o["gpu"]["resident_path_eligible"] = op.gpu.resident_path_eligible;
+        o["transfer"]["h2d_fixed_us"] = op.transfer.h2d_fixed_us;
+        o["transfer"]["h2d_gbps"] = op.transfer.h2d_gbps;
+        o["transfer"]["d2h_fixed_us"] = op.transfer.d2h_fixed_us;
+        o["transfer"]["d2h_gbps"] = op.transfer.d2h_gbps;
+        o["memory"]["host_bytes_per_item"] = op.memory.host_bytes_per_item;
+        o["memory"]["device_bytes_per_item"] =
+            op.memory.device_bytes_per_item;
+        o["memory"]["fixed_host_bytes"] = op.memory.fixed_host_bytes;
+        o["memory"]["fixed_device_bytes"] = op.memory.fixed_device_bytes;
+        root["operations"].push_back(std::move(o));
     }
-    os << "]";
-    os << ",\"compiler\":\"" << json_escape(p.fingerprint_compiler) << "\"";
-    os << ",\"runtime_kernel_hash\":\""
-       << json_escape(p.fingerprint_runtime_kernel_hash) << "\"";
-    os << "}";
-    os << ",\"operations\":[";
-    for (std::size_t i = 0; i < p.operations.size(); ++i) {
-        const auto& op = p.operations[i];
-        if (i > 0) os << ",";
-        os << "{";
-        os << "\"operation_id\":\"" << json_escape(op.operation_id) << "\"";
-        os << ",\"precision\":\"" << json_escape(op.precision) << "\"";
-        os << ",\"accumulator\":\"" << json_escape(op.accumulator) << "\"";
-        os << ",\"qualified\":" << (op.qualified ? "true" : "false");
-        os << ",\"sample_range\":{"
-           << "\"min_items\":" << op.sample_range.min_items
-           << ",\"max_items\":" << op.sample_range.max_items
-           << ",\"repeats\":" << op.sample_range.repeats << "},";
-        write_device_curve(os, "cpu", op.cpu);
-        os << ",\"gpu\":{";
-        os << "\"fixed_us\":" << op.gpu.fixed_us
-           << ",\"ns_per_item\":" << op.gpu.ns_per_item
-           << ",\"recommended_chunk_items\":" << op.gpu.recommended_chunk_items
-           << ",\"minimum_chunk_items\":" << op.gpu.minimum_chunk_items
-           << ",\"median_error_ratio\":" << op.gpu.median_error_ratio
-           << ",\"p95_error_ratio\":" << op.gpu.p95_error_ratio
-           << ",\"device_id\":\"" << json_escape(op.gpu.device_id) << "\""
-           << ",\"launch_us\":" << op.gpu.launch_us
-           << ",\"min_profitable_items_host\":" << op.gpu.min_profitable_items_host
-           << ",\"min_profitable_items_resident\":"
-           << op.gpu.min_profitable_items_resident
-           << "}";
-        os << ",\"transfer\":{"
-           << "\"h2d_fixed_us\":" << op.transfer.h2d_fixed_us
-           << ",\"h2d_gbps\":" << op.transfer.h2d_gbps
-           << ",\"d2h_fixed_us\":" << op.transfer.d2h_fixed_us
-           << ",\"d2h_gbps\":" << op.transfer.d2h_gbps
-           << "}";
-        os << ",\"memory\":{"
-           << "\"host_bytes_per_item\":" << op.memory.host_bytes_per_item
-           << ",\"device_bytes_per_item\":" << op.memory.device_bytes_per_item
-           << ",\"fixed_host_bytes\":" << op.memory.fixed_host_bytes
-           << ",\"fixed_device_bytes\":" << op.memory.fixed_device_bytes
-           << "}";
-        os << "}";
-    }
-    os << "]}";
-    return os.str();
+    return root.dump();
 }
 
 bool write_operation_profile_to_file(const std::string& path,
@@ -127,112 +132,92 @@ bool read_operation_profile_from_file(const std::string& path,
     std::fread(s.data(), 1, static_cast<std::size_t>(len), f);
     std::fclose(f);
 
-    // 轻量字段提取（本实现只读取本项目生成的 JSON）
-    auto find_str = [&](const std::string& key) -> std::string {
-        std::string pat = "\"" + key + "\":\"";
-        std::size_t p = s.find(pat);
-        if (p == std::string::npos) return "";
-        p += pat.size();
-        std::size_t q = s.find('"', p);
-        if (q == std::string::npos) return "";
-        return s.substr(p, q - p);
-    };
-    auto find_num = [&](const std::string& key) -> double {
-        std::string pat = "\"" + key + "\":";
-        std::size_t p = s.find(pat);
-        if (p == std::string::npos) return 0.0;
-        p += pat.size();
-        return std::strtod(s.c_str() + p, nullptr);
-    };
-    auto find_int = [&](const std::string& key) -> std::size_t {
-        return static_cast<std::size_t>(find_num(key));
-    };
-    auto find_bool = [&](const std::string& key) -> bool {
-        std::string pat = "\"" + key + "\":";
-        std::size_t p = s.find(pat);
-        if (p == std::string::npos) return false;
-        return s.compare(p + pat.size(), 4, "true") == 0;
-    };
-
-    out = OperationProfile{};
-    out.schema_version = find_str("schema_version");
-    out.profile_state = find_str("profile_state");
-    out.fingerprint_cpu = find_str("cpu");
-    out.fingerprint_compiler = find_str("compiler");
-    out.fingerprint_runtime_kernel_hash = find_str("runtime_kernel_hash");
-
-    // 逐 operation 提取（项目生成格式：每个 operation 一个连续 JSON 对象）
-    std::string op_pat = "\"operation_id\":\"";
-    std::size_t pos = 0;
-    while ((pos = s.find(op_pat, pos)) != std::string::npos) {
-        OperationProfile::Operation op;
-        std::size_t id_start = pos + op_pat.size();
-        std::size_t id_end = s.find('"', id_start);
-        if (id_end == std::string::npos) break;
-        op.operation_id = s.substr(id_start, id_end - id_start);
-        // 该 operation 的局部搜索区间 [pos, 下一个 operation_id 或结尾)
-        std::size_t next = s.find(op_pat, id_end);
-        std::string seg = (next == std::string::npos)
-            ? s.substr(pos) : s.substr(pos, next - pos);
-        auto seg_find_str = [&](const std::string& key) -> std::string {
-            std::string pat = "\"" + key + "\":\"";
-            std::size_t p = seg.find(pat);
-            if (p == std::string::npos) return "";
-            p += pat.size();
-            std::size_t q = seg.find('"', p);
-            return (q == std::string::npos) ? "" : seg.substr(p, q - p);
-        };
-        auto seg_find_num = [&](const std::string& key) -> double {
-            std::string pat = "\"" + key + "\":";
-            std::size_t p = seg.find(pat);
-            if (p == std::string::npos) return 0.0;
-            p += pat.size();
-            return std::strtod(seg.c_str() + p, nullptr);
-        };
-        auto seg_find_int = [&](const std::string& key) -> std::size_t {
-            return static_cast<std::size_t>(seg_find_num(key));
-        };
-        auto seg_find_bool = [&](const std::string& key) -> bool {
-            std::string pat = "\"" + key + "\":";
-            std::size_t p = seg.find(pat);
-            if (p == std::string::npos) return false;
-            return seg.compare(p + pat.size(), 4, "true") == 0;
-        };
-        op.precision = seg_find_str("precision");
-        op.accumulator = seg_find_str("accumulator");
-        op.qualified = seg_find_bool("qualified");
-        op.sample_range.min_items = seg_find_int("min_items");
-        op.sample_range.max_items = seg_find_int("max_items");
-        op.sample_range.repeats = seg_find_int("repeats");
-        op.cpu.fixed_us = seg_find_num("fixed_us");
-        op.cpu.ns_per_item = seg_find_num("ns_per_item");
-        op.cpu.recommended_chunk_items = seg_find_int("recommended_chunk_items");
-        op.cpu.minimum_chunk_items = seg_find_int("minimum_chunk_items");
-        op.cpu.median_error_ratio = seg_find_num("median_error_ratio");
-        op.cpu.p95_error_ratio = seg_find_num("p95_error_ratio");
-        op.gpu.fixed_us = seg_find_num("fixed_us");
-        op.gpu.ns_per_item = seg_find_num("ns_per_item");
-        op.gpu.recommended_chunk_items = seg_find_int("recommended_chunk_items");
-        op.gpu.minimum_chunk_items = seg_find_int("minimum_chunk_items");
-        op.gpu.median_error_ratio = seg_find_num("median_error_ratio");
-        op.gpu.p95_error_ratio = seg_find_num("p95_error_ratio");
-        op.gpu.device_id = seg_find_str("device_id");
-        op.gpu.launch_us = seg_find_num("launch_us");
-        op.gpu.min_profitable_items_host =
-            seg_find_int("min_profitable_items_host");
-        op.gpu.min_profitable_items_resident =
-            seg_find_int("min_profitable_items_resident");
-        op.transfer.h2d_fixed_us = seg_find_num("h2d_fixed_us");
-        op.transfer.h2d_gbps = seg_find_num("h2d_gbps");
-        op.transfer.d2h_fixed_us = seg_find_num("d2h_fixed_us");
-        op.transfer.d2h_gbps = seg_find_num("d2h_gbps");
-        op.memory.host_bytes_per_item = seg_find_num("host_bytes_per_item");
-        op.memory.device_bytes_per_item = seg_find_num("device_bytes_per_item");
-        op.memory.fixed_host_bytes = seg_find_int("fixed_host_bytes");
-        op.memory.fixed_device_bytes = seg_find_int("fixed_device_bytes");
-        out.operations.push_back(std::move(op));
-        pos = id_end;
+    nlohmann::json root;
+    try {
+        root = nlohmann::json::parse(s);
+    } catch (...) {
+        return false;
     }
+    if (!root.is_object() || !root.contains("operations")) return false;
+
+    OperationProfile p;
+    if (root.contains("schema_version")) {
+        p.schema_version = root["schema_version"].get<std::string>();
+    }
+    if (root.contains("profile_state")) {
+        p.profile_state = root["profile_state"].get<std::string>();
+    }
+    if (root.contains("fingerprint")) {
+        const auto& fp = root["fingerprint"];
+        if (fp.contains("cpu")) p.fingerprint_cpu = fp["cpu"].get<std::string>();
+        if (fp.contains("compiler")) {
+            p.fingerprint_compiler = fp["compiler"].get<std::string>();
+        }
+        if (fp.contains("runtime_kernel_hash")) {
+            p.fingerprint_runtime_kernel_hash =
+                fp["runtime_kernel_hash"].get<std::string>();
+        }
+        if (fp.contains("gpus") && fp["gpus"].is_array()) {
+            for (const auto& g : fp["gpus"]) {
+                p.fingerprint_gpus.push_back(g.get<std::string>());
+            }
+        }
+    }
+    for (const auto& o : root["operations"]) {
+        OperationProfile::Operation op;
+        op.operation_id = o.at("operation_id").get<std::string>();
+        if (o.contains("precision")) op.precision = o["precision"].get<std::string>();
+        if (o.contains("accumulator")) op.accumulator = o["accumulator"].get<std::string>();
+        if (o.contains("qualified")) op.qualified = o["qualified"].get<bool>();
+        if (o.contains("sample_range")) {
+            const auto& sr = o["sample_range"];
+            if (sr.contains("min_items")) op.sample_range.min_items = sr["min_items"].get<std::size_t>();
+            if (sr.contains("max_items")) op.sample_range.max_items = sr["max_items"].get<std::size_t>();
+            if (sr.contains("repeats")) op.sample_range.repeats = sr["repeats"].get<std::size_t>();
+        }
+        if (o.contains("cpu")) op.cpu = device_curve_from_json(o["cpu"]);
+        if (o.contains("gpu")) {
+            const auto& g = o["gpu"];
+            const OperationProfile::DeviceCurve base =
+                device_curve_from_json(g);
+            // 基类字段逐项复制（GpuCurve 继承 DeviceCurve，不能直接切片赋值）
+            op.gpu.fixed_us = base.fixed_us;
+            op.gpu.ns_per_item = base.ns_per_item;
+            op.gpu.recommended_chunk_items = base.recommended_chunk_items;
+            op.gpu.minimum_chunk_items = base.minimum_chunk_items;
+            op.gpu.median_error_ratio = base.median_error_ratio;
+            op.gpu.p95_error_ratio = base.p95_error_ratio;
+            if (g.contains("device_id")) op.gpu.device_id = g["device_id"].get<std::string>();
+            if (g.contains("launch_us")) op.gpu.launch_us = g["launch_us"].get<double>();
+            op.gpu.min_profitable_items_host =
+                opt_size_from_json(g, "min_profitable_items_host");
+            op.gpu.min_profitable_items_resident =
+                opt_size_from_json(g, "min_profitable_items_resident");
+            if (g.contains("host_path_eligible")) {
+                op.gpu.host_path_eligible = g["host_path_eligible"].get<bool>();
+            }
+            if (g.contains("resident_path_eligible")) {
+                op.gpu.resident_path_eligible =
+                    g["resident_path_eligible"].get<bool>();
+            }
+        }
+        if (o.contains("transfer")) {
+            const auto& t = o["transfer"];
+            if (t.contains("h2d_fixed_us")) op.transfer.h2d_fixed_us = t["h2d_fixed_us"].get<double>();
+            if (t.contains("h2d_gbps")) op.transfer.h2d_gbps = t["h2d_gbps"].get<double>();
+            if (t.contains("d2h_fixed_us")) op.transfer.d2h_fixed_us = t["d2h_fixed_us"].get<double>();
+            if (t.contains("d2h_gbps")) op.transfer.d2h_gbps = t["d2h_gbps"].get<double>();
+        }
+        if (o.contains("memory")) {
+            const auto& m = o["memory"];
+            if (m.contains("host_bytes_per_item")) op.memory.host_bytes_per_item = m["host_bytes_per_item"].get<double>();
+            if (m.contains("device_bytes_per_item")) op.memory.device_bytes_per_item = m["device_bytes_per_item"].get<double>();
+            if (m.contains("fixed_host_bytes")) op.memory.fixed_host_bytes = m["fixed_host_bytes"].get<std::size_t>();
+            if (m.contains("fixed_device_bytes")) op.memory.fixed_device_bytes = m["fixed_device_bytes"].get<std::size_t>();
+        }
+        p.operations.push_back(std::move(op));
+    }
+    out = std::move(p);
     return !out.operations.empty();
 }
 
@@ -291,6 +276,27 @@ bool validate_operation_profile(const OperationProfile& p,
         }
         if (op.transfer.h2d_gbps <= 0.0 || op.transfer.d2h_gbps <= 0.0) {
             error = "transfer bandwidth missing: " + op.operation_id;
+            return false;
+        }
+        // eligibility 一致性：eligible 路径必须有有限收益阈值；反之必须 null
+        if (op.gpu.host_path_eligible &&
+            !op.gpu.min_profitable_items_host.has_value()) {
+            error = "host eligible but threshold null: " + op.operation_id;
+            return false;
+        }
+        if (op.gpu.resident_path_eligible &&
+            !op.gpu.min_profitable_items_resident.has_value()) {
+            error = "resident eligible but threshold null: " + op.operation_id;
+            return false;
+        }
+        if (!op.gpu.host_path_eligible &&
+            op.gpu.min_profitable_items_host.has_value()) {
+            error = "host ineligible but threshold set: " + op.operation_id;
+            return false;
+        }
+        if (!op.gpu.resident_path_eligible &&
+            op.gpu.min_profitable_items_resident.has_value()) {
+            error = "resident ineligible but threshold set: " + op.operation_id;
             return false;
         }
     }

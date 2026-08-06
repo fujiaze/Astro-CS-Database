@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "astrocs.acr.execution-report.schema.json",
+  "title": "AstroCS ACR Mixed Execution Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "operation_id",
+    "route_mode",
+    "total_items",
+    "completed_items",
+    "devices",
+    "transfer",
+    "coverage",
+    "result"
+  ],
+  "properties": {
+    "operation_id": {
+      "type": "string"
+    },
+    "route_mode": {
+      "enum": [
+        "auto_mixed",
+        "cpu_only",
+        "gpu_only",
+        "forced_mixed"
+      ]
+    },
+    "total_items": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "completed_items": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "devices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "device_id",
+          "kind",
+          "items",
+          "blocks",
+          "queue_ns",
+          "compute_ns",
+          "merge_ns",
+          "first_chunk_items",
+          "last_chunk_items",
+          "stop_claim_reason"
+        ],
+        "properties": {
+          "device_id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "cpu",
+              "gpu"
+            ]
+          },
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "blocks": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "queue_ns": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "compute_ns": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "merge_ns": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "first_chunk_items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "last_chunk_items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "stop_claim_reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "transfer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "h2d_bytes",
+        "d2h_bytes",
+        "h2d_count",
+        "d2h_count",
+        "resident_reuse_count"
+      ],
+      "properties": {
+        "h2d_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "d2h_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "h2d_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "d2h_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resident_reuse_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pending",
+        "claimed",
+        "done",
+        "failed",
+        "duplicate_completions"
+      ],
+      "properties": {
+        "pending": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "claimed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "done": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "duplicate_completions": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "result": {
+      "enum": [
+        "success",
+        "fallback_success",
+        "failed",
+        "cancelled"
+      ]
+    }
+  }
+}

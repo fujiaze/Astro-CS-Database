@@ -70,6 +70,8 @@ OperationProfile make_qualified_profile() {
     op.gpu.fixed_us = 10.0;
     op.gpu.recommended_chunk_items = 1u << 20;
     op.gpu.minimum_chunk_items = 1u << 14;
+    op.gpu.host_path_eligible = true;
+    op.gpu.resident_path_eligible = true;
     op.gpu.min_profitable_items_host = 100000;
     op.gpu.min_profitable_items_resident = 40000;
     op.transfer.h2d_gbps = 10.0;
