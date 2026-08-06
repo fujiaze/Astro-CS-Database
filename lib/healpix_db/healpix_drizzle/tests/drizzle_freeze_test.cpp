@@ -8,6 +8,7 @@
 //   T4 视场代表点: 小 / 中 / 宽(15° 边缘 patch)
 //   T5 Sphere -> Plane 双向底层最小闭合 (坐标往返 + leaf 覆盖一致)
 //   T6 HISS Writer/Reader 往返
+//   T7 科学保真 (Layer B): 均匀背景保持均匀 + 点源总通量守恒
 // 硬门: FP64 通量闭合 < 1e-6 (主域), FP32/FP64 逐 leaf < 1e-5, missing=0
 // ============================================================================
 #include "drizzle_engine.h"
@@ -409,6 +410,109 @@ static void test_hiss_roundtrip() {
     std::free(ripix); std::free(rpix); std::free(rsnr); std::free(rmeta);
 }
 
+// ============================================================================
+// T7: 科学保真 (Layer B)
+// ============================================================================
+static void test_science_fidelity() {
+    printf("=== T7: 科学保真 (均匀背景 + 点源总通量) ===\n");
+    const int size = 128, nside = 65536;
+    // 1) 均匀背景: 常数 1000。源像素网格与 HEALPix 网格未对齐导致每个 leaf
+    //    的覆盖权重有几何涨落 (signal=1000 x Σweight), 但表面亮度应均匀:
+    //    signal / sumArea = 1000 / drop_area = 常数 (rel_std 小)。
+    //    这验证 drizzle 不引入非物理的亮度不均匀 (无接缝/系统性偏差)。
+    {
+        WcsParams w = make_wcs(272.886595, -23.254083, 6.3, size);
+        FitsImage img;
+        img.width = size; img.height = size; img.channels = 1;
+        img.wcs = w;
+        img.pixels.resize((size_t)size * size, 1000.0f);
+        img.pixels_f64.resize((size_t)size * size, 1000.0);
+        DrizzleConfig cfg;
+        cfg.nside = nside; cfg.nested = true; cfg.pixfrac = 0.8;
+        cfg.precision_mode = 1; cfg.threads = 16;
+        DrizzleEngine engine;
+        std::vector<TileAccumulatorT<double>> t64;
+        DrizzleStats st; std::string err;
+        engine.drizzleTiled_f64(img, cfg, nullptr, nullptr, t64, st, err);
+        double sum = 0, sum2 = 0; size_t n = 0;
+        for (const auto& t : t64)
+            for (uint32_t local : t.touched) {
+                double v = (double)t.pixels[local].sumFlux;
+                double a = (double)t.pixels[local].sumArea;
+                if (a <= 0) continue;
+                double surf = v / a;   // 表面亮度 = signal / 覆盖面积
+                sum += surf; sum2 += surf * surf; n++;
+            }
+        double mean = sum / n;
+        double stddev = std::sqrt(std::max(0.0, sum2 / n - mean * mean));
+        char msg[160];
+        snprintf(msg, sizeof(msg),
+                 "[uniform bg] signal/sumArea n=%zu mean=%.6g rel_std=%.3e (<1e-3)",
+                 n, mean, stddev / mean);
+        CHECK(n > 0 && stddev / mean < 1e-3, msg);
+    }
+    // 2) 点源总通量: 背景 0 + 单高斯星 (离散总通量 F), 输出全部 leaf 积分 ≈ F
+    {
+        WcsParams w = make_wcs(272.886595, -23.254083, 6.3, size);
+        FitsImage img;
+        img.width = size; img.height = size; img.channels = 1;
+        img.wcs = w;
+        img.pixels.resize((size_t)size * size, 0.0f);
+        img.pixels_f64.resize((size_t)size * size, 0.0);
+        const double cx = size * 0.5, cy = size * 0.5, sigma = 2.5, amp = 1000.0;
+        double F = 0.0;
+        for (int y = 0; y < size; ++y)
+            for (int x = 0; x < size; ++x) {
+                double dx = x - cx, dy = y - cy;
+                double v = amp * std::exp(-(dx * dx + dy * dy) / (2.0 * sigma * sigma));
+                img.pixels[(size_t)y * size + x] = (float)v;
+                img.pixels_f64[(size_t)y * size + x] = v;
+                F += v;
+            }
+        DrizzleConfig cfg;
+        cfg.nside = nside; cfg.nested = true; cfg.pixfrac = 0.8;
+        cfg.precision_mode = 1; cfg.threads = 16;
+        DrizzleEngine engine;
+        std::vector<TileAccumulatorT<double>> t64;
+        DrizzleStats st; std::string err;
+        engine.drizzleTiled_f64(img, cfg, nullptr, nullptr, t64, st, err);
+        double out = 0;
+        for (const auto& t : t64)
+            for (uint32_t local : t.touched)
+                out += (double)t.pixels[local].sumFlux;
+        char msg[160];
+        snprintf(msg, sizeof(msg),
+                 "[point source] F=%.6g out=%.6g rel=%.3e (<1e-6)",
+                 F, out, std::fabs(out - F) / F);
+        CHECK(std::fabs(out - F) / F < 1e-6, msg);
+    }
+    // 3) 梯度背景 (make_synth 含常数底+梯度+高斯): 无 NaN/负值, 能量守恒
+    {
+        WcsParams w = make_wcs(272.886595, -23.254083, 6.3, size);
+        FitsImage img;
+        double sum_in = make_synth(img, w, size);
+        DrizzleConfig cfg;
+        cfg.nside = nside; cfg.nested = true; cfg.pixfrac = 0.8;
+        cfg.precision_mode = 1; cfg.threads = 16;
+        DrizzleEngine engine;
+        std::vector<TileAccumulatorT<double>> t64;
+        DrizzleStats st; std::string err;
+        engine.drizzleTiled_f64(img, cfg, nullptr, nullptr, t64, st, err);
+        double sum_out = 0; bool bad = false;
+        for (const auto& t : t64)
+            for (uint32_t local : t.touched) {
+                double v = (double)t.pixels[local].sumFlux;
+                if (!std::isfinite(v) || v < 0) bad = true;
+                sum_out += v;
+            }
+        char msg[160];
+        snprintf(msg, sizeof(msg),
+                 "[gradient bg] 无 NaN/负值, 闭合 rel=%.3e (<1e-6)",
+                 std::fabs(sum_out - sum_in) / sum_in);
+        CHECK(!bad && std::fabs(sum_out - sum_in) / sum_in < 1e-6, msg);
+    }
+}
+
 int main() {
     printf("=== Drizzle Phase1 最终冻结验收 (合成真值) ===\n");
     test_coverage_oracle();
@@ -417,6 +521,7 @@ int main() {
     test_fov();
     test_reverse();
     test_hiss_roundtrip();
+    test_science_fidelity();
     printf("== 冻结验收结果: %d 通过, %d 失败 ==\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;
 }
