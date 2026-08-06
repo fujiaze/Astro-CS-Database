@@ -18,8 +18,10 @@
 #include <vector>
 
 #include "astro/compute/acr.hpp"
+#include "astro/compute/kernel_registry.hpp"
 
 using namespace astro::compute::qualification::focused;
+using namespace astro::compute;
 
 namespace {
 
@@ -216,5 +218,38 @@ TEST(FocusedOperation, ProfileRoundTrip) {
         EXPECT_EQ(q.operations[i].memory.fixed_device_bytes,
                   p.operations[i].memory.fixed_device_bytes);
     }
+    astro::compute::runtime_shutdown();
+}
+
+// ============================================================================
+// 5. partial 重试清零（08 号计划 §4）：attempt>0 不重复累计
+// ============================================================================
+TEST(FocusedOperation, RetryClearsPrivatePartial) {
+    astro::compute::runtime_init();
+    register_focused_kernels();
+    const std::size_t n = 1u << 12;
+    std::vector<float> x(n);
+    fill_uniform_fp32(x.data(), n, kSeed);
+    std::vector<double> partials(256, 0.0);
+
+    KernelInvocation inv;
+    inv.id = "synthetic.pixel_reduce.fp64acc";
+    inv.domain = WorkDomain{0, n};
+    inv.buffers.add(0, x.data(), x.size());
+    inv.buffers.add(1, partials.data(), partials.size());
+    inv.token_id = 7;
+
+    const KernelRegistration* reg = global_kernel_registry().find(inv.id);
+    ASSERT_NE(reg, nullptr);
+    ASSERT_NE(reg->cpu, nullptr);
+    // 第一次执行（attempt=0）
+    inv.attempt = 0;
+    reg->cpu(inv, nullptr);
+    const double first = partials[7];
+    ASSERT_NE(first, 0.0);
+    // 重试（attempt=1）：清零后重加，不重复累计
+    inv.attempt = 1;
+    reg->cpu(inv, nullptr);
+    EXPECT_DOUBLE_EQ(partials[7], first);
     astro::compute::runtime_shutdown();
 }

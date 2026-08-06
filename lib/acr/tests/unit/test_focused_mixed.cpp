@@ -232,9 +232,10 @@ void run_reduce_drizzle_paths(const char* op_id, bool drizzle) {
         ExecutorRegistry::create_auto());
     const std::size_t n = 1u << 18;  // 256K
     const std::size_t bins = 64;
-    // 动态池槽位数 = ceil(range / min_chunk)；range=256K、min_chunk 最小 64
-    // → 最多 4096 个槽位，token_id 可达 4095（partials 需覆盖）
-    const std::size_t kMaxTokens = 4096;
+    // partial scratch 契约（08 号计划 §4）：按工作量与最小块精确计算，
+    // 禁止按常数猜测。min_chunk = est 的最小高效块（256）。
+    const std::size_t kMaxTokens =
+        astro::compute::qualification::focused::partial_slots_for(n, 256);
     auto x = make_input(n);
     std::vector<float> dummy_y(n, 0.0f);
 

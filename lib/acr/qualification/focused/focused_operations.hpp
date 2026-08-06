@@ -119,4 +119,10 @@ void merge_drizzle_partials(const double* token_partials,
 double merge_reduce_partials(const double* token_partials,
                              std::size_t token_count);
 
+// ===== partial scratch 契约（08 号计划 §4）=====
+// 按工作量与最小高效块计算所需 token 槽位数（调用方据此分配 partial buffer，
+// 禁止按常数猜测）。槽位数 = ceil(work_size / min_chunk) + 1（防边界）。
+std::size_t partial_slots_for(std::size_t work_size,
+                              std::size_t min_chunk);
+
 } // namespace astro::compute::qualification::focused

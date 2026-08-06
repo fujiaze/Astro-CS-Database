@@ -1264,6 +1264,7 @@ struct Dispatcher::Impl {
                         KernelInvocation inv = invocation;
                         inv.domain = WorkDomain{token.begin, token.end};
                         inv.token_id = token.id;
+                        inv.attempt = token.attempt;
                         // 聚焦版 v3：输入已 prefetch → launcher 走 resident 路径
                         inv.input_resident = data_resident;
                         SubmitHandle handle = exec->submit(token, inv);

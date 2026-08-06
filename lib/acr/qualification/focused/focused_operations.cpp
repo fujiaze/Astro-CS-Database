@@ -392,6 +392,8 @@ void cpu_reduce_launcher(const KernelInvocation& inv, void*) {
     for (std::size_t i = inv.domain.begin; i < inv.domain.end; ++i) {
         sum += static_cast<double>(x[i]);
     }
+    // attempt>0（重试）：清零槽位，避免重复累计（08 号计划 §4）
+    if (inv.attempt > 0) partials[inv.token_id] = 0.0;
     partials[inv.token_id] += sum;  // 私有槽位（PrivatePartialThenMerge）
 }
 
@@ -406,6 +408,10 @@ void cpu_drizzle_launcher(const KernelInvocation& inv, void*) {
     // 每 token 私有桶：partials[token_id * bins + bin]（06 号规范 §3：
     // 禁止多个 CPU worker 并发写同一 bins 数组）
     double* local = partials + inv.token_id * (*bins);
+    // attempt>0（重试）：清零本地桶，避免重复累计
+    if (inv.attempt > 0) {
+        std::memset(local, 0, (*bins) * sizeof(double));
+    }
     for (std::size_t i = inv.domain.begin; i < inv.domain.end; ++i) {
         local[hash_bin(i, *bins)] += static_cast<double>(x[i]);
     }
@@ -457,7 +463,10 @@ void cuda_launcher(const KernelInvocation& inv, void*, FocusedOp op) {
                 if (rrc == 0) {
                     double sum = 0.0;
                     for (double v : host_part) sum += v;
-                    static_cast<double*>(pb->data)[inv.token_id] += sum;
+                    double* slot =
+                        static_cast<double*>(pb->data) + inv.token_id;
+                    if (inv.attempt > 0) *slot = 0.0;  // 重试清零
+                    *slot += sum;
                 }
                 break;
             }
@@ -530,7 +539,10 @@ void cuda_launcher(const KernelInvocation& inv, void*, FocusedOp op) {
                 for (double v : partials) sum += v;
                 const BufferBinding* pb = inv.buffers.find(1);
                 if (pb) {
-                    static_cast<double*>(pb->data)[inv.token_id] += sum;
+                    double* slot =
+                        static_cast<double*>(pb->data) + inv.token_id;
+                    if (inv.attempt > 0) *slot = 0.0;  // 重试清零
+                    *slot += sum;
                 }
             }
             break;
@@ -617,6 +629,13 @@ double merge_reduce_partials(const double* token_partials,
         total += token_partials[t];
     }
     return total;
+}
+
+std::size_t partial_slots_for(std::size_t work_size,
+                              std::size_t min_chunk) {
+    if (work_size == 0) return 1;
+    if (min_chunk == 0) min_chunk = 1;
+    return (work_size + min_chunk - 1) / min_chunk + 1;
 }
 
 } // namespace astro::compute::qualification::focused
