@@ -659,3 +659,11 @@ spec: .trae/specs/orchestrator-cpp-cli/spec.md (阶段1: 集成测试 - 阶段1�
 - PRECISE 核心 26.8s / HISS 写入 9.9s / Verify 0.802s / DRIZZLE 36.7s /
   完整 Stage1 45.43s (硬门 75s, 目标 60s);
 - 配置 final_single_frame_fp32.json (绝对路径, CFG-001 修复后无路径重复)。
+
+## 2026-08-06 签字修正最终验收 (HEAD 6f7bba7)
+
+- 完整 FP32 50.37s (core 30.556s / write 10.7s / verify 0.789s /
+  DRIZZLE 41.3s), 285/285 Tile, exit 0;
+- core 超 30s 目标 0.56s (硬门 60s 通过): 候选安全上界 1.25 使快速候选盒
+  增大 ~9% (换零漏选解析证明), 已如实记录;
+- 本轮运行 1 次完整 FP32 (MAX=1 合规); 反向 API 未接入编排器 (无 Phase3)。

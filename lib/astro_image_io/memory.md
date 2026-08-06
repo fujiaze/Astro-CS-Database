@@ -190,3 +190,10 @@
   ~870 行日志实测拖慢 Verify 40s / 写入 ~30s;
 - 验证: verify_bench 同文件 0.697s (日志 870→5 行), bench_write 4096²
   write 2.60s (add_tile 6.35ms/tile)。
+
+## 2026-08-06 签字修正: WCS 自适应细分收敛阈值修复 (c7d3b8f)
+
+`build_drop_polygon_adaptive` (hiss 几何共用) 收敛阈值 src_scale×1e-12
+(6.3" 像素 ≈3e-17) 低于 pixelToSky 数值噪声 (实测 6e-14), TAN 小像素永不
+收敛 → 每边 4096 段 16384 顶点 (反向 Drizzle 卡死)。修复: 阈值下限
+1e-11 rad → TAN 立即 4 角收敛, SIP 收敛到 1e-11; 面积误差 ≤1.7e-7 相对。

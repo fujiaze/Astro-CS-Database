@@ -160,3 +160,29 @@ v1.0
 - 完整 FP32 45.43s (核心 26.8s + 写入 9.9s + Verify 0.8s), 285/285 Tile;
 - 已知: test_spherical_overlap 历史遗留失败 (大多边形面积边界, 非门禁);
   drizzle_acceptance_test 未纳入快速回归。
+
+## 2026-08-06 签字修正 (控制包 f9ec0955, HEAD 6f7bba7)
+
+### 反向 Drizzle 正式集成 + 球面语义 (ed50c33)
+- Makefile SRCS 加入 reverse_drizzle.cpp; C ABI hp_drizzle_reverse_run +
+  capability 0x3f + version 1.0.0;
+- 球面面积权重 (禁止 2D 投影面积): leaf 自适应边界 + pixfrac slerp 收缩 +
+  target footprint (build_drop_polygon_adaptive) + 球面 overlap;
+- support 均匀覆盖假设 → coverage; HISS signal 含 sumFlux 不重复计入;
+- FP32→FP32 真实 float 累计; 严格校验; 统计字段全填充。
+
+### 候选安全/几何加固 (c7d3b8f)
+- HP_CIRCUMRADIUS_FACTOR 1.1 → 1.25 (解析上界: 赤道带 ≤1.007×hp_res,
+  极区经验 1.044, +浮点裕量); 极冠回退收紧 (盒触及极冠即回退);
+  delta 系数 1.15 → 1.25 (解析 1.127);
+- build_drop_polygon_adaptive 收敛阈值下限 1e-11 rad: TAN 小像素此前永不
+  收敛 (16384 顶点) → 现 4 角收敛;
+- spherical_polygon_area >半球多边形返回 NaN (冻结契约, 测试同步)。
+
+### 测试 (6f7bba7)
+- reverse_drizzle_science_test 30/30 (解析真值: Eriksson + 向量面积);
+- reverse_api_test 8/8 (DLL 动态加载); oracle_edge_crossing_test
+  124 真相交 0 漏报; test_spherical_overlap 76/76 (红灯清零)。
+
+### 最终签字 (50.37s)
+完整 FP32 1 次: core 30.556s (超 30s 目标 0.56s) / Stage1 50.37s 全硬门通过。

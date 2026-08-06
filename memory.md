@@ -1836,3 +1836,29 @@ HISS 285/285 Tile 验证通过, ZSTD 压缩开启。科学门全部零失败
 - drizzle_acceptance_test 未纳入快速回归 (每轮 20-40 分钟)。
 
 审核包: `AstroCS_Review_Phase1_Final_Closure_20260806.zip`
+
+## 2026-08-06 主线 Phase1 签字修正 (Reverse Drizzle / 独立 Oracle, 控制包 f9ec0955)
+
+控制包: `AstroCS_Phase1_Signoff_Correction_ReverseDrizzle_Oracle.zip`
+交付 HEAD: `6f7bba7` (main, 已 push) | Wiki: `460b003` (master, 已 push)
+
+### 完成
+- 反向 Drizzle 正式集成 (ed50c33): reverse_drizzle.cpp 入 Makefile SRCS;
+  hp_drizzle_api 增加 hp_drizzle_reverse_run + capability(0x3f) + version(1.0.0);
+- 球面面积语义重写: leaf 边界自适应 + pixfrac slerp 收缩 + target footprint
+  WCS/SIP 自适应 + 球面 overlap (fan triangulation + S-H + Girard);
+  support 按均匀覆盖假设影响 coverage; FP32→FP32 真实 float 累计;
+  输入严格校验 (含 WCS dec/CD 物理范围, 防病态值卡死); 统计字段全填充;
+- 候选安全/几何加固 (c7d3b8f): circumradius 1.1→1.25 (解析上界+裕量),
+  极冠回退收紧, WCS 收敛阈值下限 1e-11 (修复 TAN 16384 顶点卡死),
+  spherical_polygon_area >半球返回 NaN 契约;
+- 测试 (6f7bba7): 解析球面科学矩阵 30/30 (常数 4e-9/梯度 7.5e-6/源 6.4e-5/
+  负值 1.2e-4), DLL API 8/8, 独立 edge-cross/sliver Oracle 124 真相交 0 漏报,
+  test_spherical_overlap 历史红灯清零 76/76。
+
+### 最终完整 FP32 签字 (50.37s)
+core 30.556s / write 10.7s / verify 0.789s / DRIZZLE 41.3s / Stage1 50.37s;
+285/285 Tile; 运行 1 次 (MAX=1 合规)。
+注意: core 超 30s 目标 0.56s (硬门 60s 通过, 因候选盒 1.25 增大 ~9%)。
+
+审核包: `AstroCS_Review_Phase1_Signoff_20260806.zip`
