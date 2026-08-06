@@ -355,3 +355,27 @@ Phase D 完成。下一阶段：Phase E（Qualification/路由）依赖 B/C/D，
 - **依赖获取变更**：ADR-008 原计划 FetchContent oneTBB v2022.0.0，但 CMake 版本检测脚本与 MinGW g++ 16.1.0 不兼容（/dev/null 重定向 + 版本号解析失败）。fallback 到 MSYS2 系统包 mingw-w64-x86_64-tbb 2023.0.0 + gtest 1.17.0。dependency-lock.json 已记录 acquisition_note。
 - oneTBB 2023 API 变更：parallel_reduce functional 形式 identity 是值不是 lambda，已修复
 - 构建验证：cmake configure (0.8s) + build 成功 + examples 运行正确（FP32 末位差异 1e-4 符合允许范围）
+
+
+### 2026-08-06 聚焦版 v3（控制包 10，SHA 52843aee...e0e1a）
+
+**执行入口**：`08_CURRENT_EXECUTION_PLAN.md`（v3）。审计 `ACR_FOCUSED_V2_REVIEW.md`
+确认 6 类阻断，修复如下：
+1. `a36c482`：成本单位统一 ns（交叉点 fixed 转 ns，消除 1000 倍误差）；
+   qualified 与 GPU eligible 分离（测量可信即 qualified）；顶层 state 按全部
+   Operation 重算；qualification_reason；host 路径用真实输入/输出字节。
+2. `c00266e`：makespan 模型（有/无该设备块的预计总完工时间）支持异速
+   CPU/GPU Mixed；收益阈值不再覆盖推荐块。
+3. `5e62ef5`：Dispatcher 真实驻留执行——worker 启动前 prefetch（CudaBridgeExecutor
+   真实上传 + device view），launcher 按 input_resident 走 resident 提交
+   （跳过逐块 H2D），删除执行后补传。
+4. `c8dc867`：partial scratch 契约（partial_slots_for 精确槽位）、attempt 重试
+   清零（不重复累计）。
+5. `3ec62c3`：PinnedLedger 更名 StagingLedger；resident 峰值不重复计整帧 H2D。
+6. `41797b3` + 后续：qualified CPU-only 路由断言、Dispatcher prefetch 集成测试、
+   GPU 测试顺序稳定化（RUN_SERIAL + focused_mixed 注册前移）。
+
+**验证（2026-08-06）**：全量 ctest 607/607（-j 2 通过一次）；focused_mixed
+单独 -shuffle 7/7 全过（GPU 环境退化时 ctest 内 drizzle 偶发 flaky，已单独复跑
+通过并如实记录）；standard Profile schema PASS（dense GPU 无收益 ineligible、
+pixel_reduce/drizzle resident 阈值单位正确：百万级）。

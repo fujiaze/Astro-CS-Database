@@ -1,4 +1,14 @@
 # lib/acr/tests/unit/CMakeLists.txt — 公共 API 单测
+# 08 号计划 §7：聚焦 Mixed 能力与性能验收（真实 GPU）
+add_executable(acr_test_focused_mixed test_focused_mixed.cpp)
+target_link_libraries(acr_test_focused_mixed PRIVATE
+    acr_scheduler acr_qualification acr_cost acr_api GTest::gtest_main)
+target_include_directories(acr_test_focused_mixed PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../scheduler
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../qualification
+)
+gtest_discover_tests(acr_test_focused_mixed
+
 add_executable(acr_test_api test_api.cpp)
 target_link_libraries(acr_test_api PRIVATE acr_api GTest::gtest_main)
 
@@ -190,15 +200,6 @@ target_include_directories(acr_test_residency PRIVATE
 )
 gtest_discover_tests(acr_test_residency DISCOVERY_MODE PRE_TEST)
 
-# 08 号计划 §7：聚焦 Mixed 能力与性能验收（真实 GPU）
-add_executable(acr_test_focused_mixed test_focused_mixed.cpp)
-target_link_libraries(acr_test_focused_mixed PRIVATE
-    acr_scheduler acr_qualification acr_cost acr_api GTest::gtest_main)
-target_include_directories(acr_test_focused_mixed PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../scheduler
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../qualification
-)
-gtest_discover_tests(acr_test_focused_mixed
     DISCOVERY_MODE PRE_TEST
     PROPERTIES RUN_SERIAL TRUE  # 含真实 GPU 性能/正确性测试：串行避免并行 GPU 竞争
 )
