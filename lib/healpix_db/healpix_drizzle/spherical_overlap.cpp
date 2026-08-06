@@ -30,7 +30,14 @@ namespace spherical {
 //   生产快速候选与 overlap 快速拒绝必须使用 >1.044 的缓冲:
 //   取 1.1 x hp_res (约 5% 裕量覆盖浮点/边界数值效应)。
 //   旧代码用 1.0 x hp_res 会在像素角区域漏选 (CAND-001, 实测比例 1.044 > 1.0)。
-static const double HP_CIRCUMRADIUS_FACTOR = 1.1;
+// 签字修正 (ORACLE_HARDENING): 像素外接半径安全上界。
+//   解析上界 (赤道带, |z|<=2/3): 中心到最远顶点 ≤ 1.007×hp_res
+//     (半对角线: Δz=2/(3nside), Δφ·cos z=π/(4nside), arc≤sqrt(4/9+π²/16)/nside
+//      ≈1.0302/nside ≈ 1.0068×hp_res, hp_res=sqrt(π/3)/nside≈1.0233/nside);
+//   极区 (bighp 0-3/8-11 极冠) 经验最坏 1.044×hp_res (dec≈±41.81°, 附 scan 证据);
+//   取固定保守上界 1.25×hp_res (覆盖两者 + 浮点舍入), 快速路径依赖该上界,
+//   扫描 (scan_circumradius) 仅作为附加证据。
+static const double HP_CIRCUMRADIUS_FACTOR = 1.25;
 
 // R12 (性能 profile): overlap 路径统计 (仅统计, 不改变逻辑; 由 drizzle_engine 汇总)
 static thread_local long long g_tl_n_quick = 0;
@@ -166,6 +173,35 @@ T spherical_polygon_area(const std::vector<Vec3T<T>>& vertices) {
 template <typename T>
 T spherical_polygon_area_n(const Vec3T<T>* vertices, int n) {
     if (n < 3) return T(0);
+
+    // ---- 签字修正: 冻结契约 (wiki/Reverse_Drizzle.md) ----
+    // 仅支持包含在开半球内的简单多边形。环绕超过半球的多边形
+    // (如 1/4 球面大四边形 {(1,0,0),(0,1,0),(-1,0,0),(0,0,1)}) 面积无定义,
+    // 返回 NaN 明确"API 不支持", 不再返回误导性的 0 或错误面积。
+    // 判定: 顶点质心方向 c, 若存在顶点到 c 角距 ≥ π/2 - tol, 则多边形
+    // 未包含在开半球内 (凸多边形包含于开半球 ⇔ 归一化质心在凸包内 ⇔
+    // 所有顶点到质心角距 < π/2)。
+    {
+        double cx = 0.0, cy = 0.0, cz = 0.0;
+        for (int i = 0; i < n; i++) {
+            cx += double(vertices[i].x);
+            cy += double(vertices[i].y);
+            cz += double(vertices[i].z);
+        }
+        double clen = std::sqrt(cx * cx + cy * cy + cz * cz);
+        if (clen < 1e-12) return T(NAN);   // 质心退化 (环绕/对称) → 不支持
+        double inv = 1.0 / clen;
+        double max_ang = 0.0;
+        for (int i = 0; i < n; i++) {
+            double d = (double(vertices[i].x) * cx +
+                        double(vertices[i].y) * cy +
+                        double(vertices[i].z) * cz) * inv;
+            d = std::max(-1.0, std::min(1.0, d));
+            double ang = std::acos(d);
+            if (ang > max_ang) max_ang = ang;
+        }
+        if (max_ang >= 0.5 * PI - 1e-12) return T(NAN);
+    }
 
     // ---- fan triangulation 以 V_0 为顶点 + Eriksson 有符号面积 ----
     // 对凸多边形, V_0 与所有非相邻顶点构成同向三角形, 有符号累加得到正确面积.
@@ -838,7 +874,14 @@ std::vector<Vec3T<T>> build_drop_polygon_adaptive(
     }
 
     // R08 改进3: 相对阈值 = src_scale_rad * 1e-12 (double, 防 float 截断收敛失效)
-    double wcs_epsilon = double(src_scale_rad) * 1e-12;
+    // 签字修正 (REV-107): 阈值不得低于 pixelToSky 数值噪声。实测 TAN 边中点
+    //   对大圆弧平面的偏差 ~6e-14 rad (WCS 映射数值误差累积), 若阈值低于该
+    //   噪声则永不收敛 → 每边递归到深度 12 (4096 段), 像素 footprint 16384
+    //   顶点, 反向 Drizzle 卡死。
+    //   下限 1e-11 rad: TAN 立即收敛 (4 角); SIP 曲线偏差 < max(1e-11,
+    //   src_scale×1e-12) 即收敛; 面积误差 ~eps/(2·src_scale) ≤ 1.7e-7 相对
+    //   (src_scale=6.3"), 远低于任何科学门。
+    double wcs_epsilon = std::max(double(src_scale_rad) * 1e-12, 1e-11);
 
     // 对 4 条边自适应细分
     std::vector<Vec3T<T>> result;
@@ -1354,17 +1397,23 @@ void query_candidate_pixels_fast(
     //     - 赤道带内部 (离极冠边界 >0.2Ns): 0.9999 x hp_res (无畸变)
     //     - 极冠边界带 (<0.08Ns):           0.874 x hp_res (畸变 1.14x)
     //     - 极冠像素:                       0.798 x hp_res (畸变 1.25x)
-    //   → 快速路径仅用于赤道带 (畸变 ≤1.14), delta 乘 1.15 安全系数;
+    //   → 快速路径仅用于赤道带, delta 乘 1.25 安全系数 (签字修正
+    //     ORACLE_HARDENING: 赤道带 |z|<=2/3 面内畸变解析上界
+    //     ds/dx_face=(1/nside)·sqrt(4/9+π²cos²θ/16), 最坏在 z=±2/3:
+    //     cosθ=sqrt(5/9), sqrt(4/9+5π²/144)≈0.8872 → 面距离/球面角距
+    //     ≤1/0.8872≈1.127; 经验扫描最坏 1.14; 取 1.25 覆盖解析+浮点);
     //     极冠 (bighp 0-3 的 ix+iy>Ns, bighp 8-11 的 ix+iy<Ns) 回退球面查询
     //     (queryDisc 3.0 buffer, 与面内畸变无关, 天然正确)。
     bool in_polar_cap = false;
     if (face <= 3)      in_polar_cap = (ix0 + iy0 > nside);
     else if (face >= 8) in_polar_cap = (ix0 + iy0 < nside);
-    // 中心像素在赤道侧但枚举盒可能延伸进极冠 (畸变 0.798, 需 1.25x > 1.15)
-    // → |ix0+iy0-Ns| <= 2*delta 时回退 (极冠边界窄带, 回退占比极小)
+    // 中心像素在赤道侧但枚举盒可能延伸进极冠 (解析上界仅对赤道带成立,
+    // 极冠畸变 1.25x 无安全系数) → 枚举盒任何像素触及极冠即回退保守路径。
+    //   face 0-3:  极冠 = ix+iy > Ns, 盒最大 ix+iy = ix0+iy0+2*delta
+    //   face 8-11: 极冠 = ix+iy < Ns, 盒最小 ix+iy = ix0+iy0-2*delta
     bool box_touches_polar = false;
-    if (face <= 3 || face >= 8)
-        box_touches_polar = std::abs((ix0 + iy0) - nside) <= 2 * delta;
+    if (face <= 3)      box_touches_polar = ((ix0 + iy0) + 2 * delta >= nside);
+    else if (face >= 8) box_touches_polar = ((ix0 + iy0) - 2 * delta <= nside);
     if (in_polar_cap || box_touches_polar) {
         query_candidate_pixels<T>(drop_corners, hp, candidates);
         if (used_fallback) *used_fallback = true;
