@@ -431,11 +431,21 @@ void cuda_launcher(const KernelInvocation& inv, void*, FocusedOp op) {
     if (!h) throw std::runtime_error("no cuda handle");
     std::vector<float> y(inv.domain.size(), 2.0f);
     std::vector<float> x(inv.domain.size());
-    const BufferBinding* yb = inv.buffers.find(0);
-    const BufferBinding* xb = inv.buffers.find(1);
+    // buffer 布局（与 CPU launcher 一致）：
+    //   dense/chain：buffer0=y 输出、buffer1=x 输入
+    //   reduce/drizzle：buffer0=x 输入、buffer1=partials
+    const bool input_is_buf1 =
+        (op != FocusedOp::PixelReduceFp64Acc &&
+         op != FocusedOp::DrizzleScatterFp64Acc);
+    const BufferBinding* yb = inv.buffers.find(
+        (op == FocusedOp::PixelReduceFp64Acc ||
+         op == FocusedOp::DrizzleScatterFp64Acc) ? 0 : 0);
+    const BufferBinding* xb = inv.buffers.find(input_is_buf1 ? 1 : 0);
     if (!yb || !xb) throw std::runtime_error("cuda: missing buffers");
     const float* xsrc = static_cast<const float*>(xb->data);
-    const float* ysrc = static_cast<const float*>(yb->data);
+    const float* ysrc = (op == FocusedOp::PixelReduceFp64Acc ||
+                         op == FocusedOp::DrizzleScatterFp64Acc)
+        ? xsrc : static_cast<const float*>(yb->data);
     std::memcpy(y.data(), ysrc + inv.domain.begin,
                 inv.domain.size() * sizeof(float));
     std::memcpy(x.data(), xsrc + inv.domain.begin,

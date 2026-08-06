@@ -1648,7 +1648,12 @@ CostAwareResult Dispatcher::dispatch_invocation(
 
     // 聚焦版 v2（08 号计划 §4/06 号规范 §1）：注册 buffer（真实字节数 +
     // 访问模式），查询输入是否已在 GPU 显存（决定 host/resident 阈值）。
-    // buffer 0 = 输出（read_write），buffer 1 = 输入（read），其余 read。
+    // buffer 布局（与 focused launcher 一致）：
+    //   dense/chain：buffer0=输出(read_write)、buffer1=输入(read)
+    //   reduce/drizzle：buffer0=输入(read)、buffer1=partials(read_write)
+    const bool reduce_like =
+        (invocation.id == kOpPixelReduceFp64Acc ||
+         invocation.id == kOpDrizzleLikeScatterFp64Acc);
     bool data_resident = false;
     for (std::size_t bi = 0; bi < invocation.buffers.bindings.size(); ++bi) {
         const auto& binding = invocation.buffers.bindings[bi];
@@ -1656,12 +1661,14 @@ CostAwareResult Dispatcher::dispatch_invocation(
             std::to_string(reinterpret_cast<std::uintptr_t>(binding.data));
         // 元素数 × float 字节（聚焦内核 buffer 均为 float*）
         const std::size_t bytes = binding.count * sizeof(float);
-        const BufferAccess access = (bi == 0)
+        const bool is_output =
+            reduce_like ? (bi == 1) : (bi == 0);
+        const BufferAccess access = is_output
             ? BufferAccess::ReadWrite : BufferAccess::Read;
         impl_->residency.register_buffer(key, bytes, access);
     }
     {
-        const auto* input = invocation.buffers.find(1);
+        const auto* input = invocation.buffers.find(reduce_like ? 0 : 1);
         if (input != nullptr) {
             const std::string key = "buf-" +
                 std::to_string(reinterpret_cast<std::uintptr_t>(input->data));
@@ -1682,7 +1689,7 @@ CostAwareResult Dispatcher::dispatch_invocation(
     //  - 输出经同步桥接真实 D2H 一次；
     //  - 禁止机械地"每 buffer 先 uploaded 再 downloaded"。
     if (r.executed_on_gpu > 0) {
-        const auto* input = invocation.buffers.find(1);
+        const auto* input = invocation.buffers.find(reduce_like ? 0 : 1);
         if (input != nullptr) {
             const std::string key = "buf-" +
                 std::to_string(reinterpret_cast<std::uintptr_t>(input->data));
@@ -1707,7 +1714,7 @@ CostAwareResult Dispatcher::dispatch_invocation(
             // 输入已驻留（复用）：不再重复上传
             impl_->residency.mark_device_allocated(key);
         }
-        const auto* output = invocation.buffers.find(0);
+        const auto* output = invocation.buffers.find(reduce_like ? 1 : 0);
         if (output != nullptr) {
             // 同步桥接执行完成后输出已 D2H（真实下载一次）
             const std::string key = "buf-" +

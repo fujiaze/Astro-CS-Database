@@ -198,7 +198,10 @@ target_include_directories(acr_test_focused_mixed PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../scheduler
     ${CMAKE_CURRENT_SOURCE_DIR}/../../qualification
 )
-gtest_discover_tests(acr_test_focused_mixed DISCOVERY_MODE PRE_TEST)
+gtest_discover_tests(acr_test_focused_mixed
+    DISCOVERY_MODE PRE_TEST
+    PROPERTIES RUN_SERIAL TRUE  # 含真实 GPU 性能/正确性测试：串行避免并行 GPU 竞争
+)
 
 # 23 号计划 §3/§6：CUDA 桥接真实 GPU（无 GPU/桥接时 GTEST_SKIP）
 add_executable(acr_test_cuda_bridge test_cuda_bridge.cpp)
