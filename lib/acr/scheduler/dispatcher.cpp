@@ -13,7 +13,7 @@
 #include "../cost/cost_estimator.hpp"
 #include "../backends/cuda/bridge/cuda_bridge_api.hpp"
 #include "../utilization/memory_budget.hpp"
-#include "../utilization/pinned_ledger.hpp"
+#include "../utilization/staging_ledger.hpp"
 
 #include "astro/compute/acr.hpp"
 
@@ -124,7 +124,7 @@ struct Dispatcher::Impl {
     // 聚焦版（08 号计划 §6）：数据驻留状态（Host/Device/Both/dirty）
     ResidencyManager residency;
     // 聚焦版 v2（08 号计划 §6）：真实 pinned staging reservation ledger
-    utilization::PinnedLedger pinned_ledger;
+    utilization::StagingLedger staging_ledger;
     // 聚焦版 v2（08 号计划 §4）：dispatcher 级桥接句柄（整帧上传复用）
     void* bridge_handle{nullptr};
 
@@ -240,7 +240,8 @@ struct Dispatcher::Impl {
     // 覆盖输入、输出、传输 staging（GPU）、双缓冲、临时区（halo/tile）、
     // reduction partial 与 merge 缓冲；返回单次 claim 的保守峰值字节。
     static std::uint64_t estimate_claim_peak_bytes(
-        std::size_t items, const TaskTraits& traits, bool is_gpu) noexcept {
+        std::size_t items, const TaskTraits& traits, bool is_gpu,
+        bool data_resident = false) noexcept {
         if (items == 0) return 0;
         const std::uint64_t read_bytes =
             static_cast<std::uint64_t>(items) * traits.bytes_read_per_item;
@@ -248,7 +249,10 @@ struct Dispatcher::Impl {
             static_cast<std::uint64_t>(items) * traits.bytes_written_per_item;
         const std::uint64_t io = read_bytes + write_bytes;
         if (io == 0) return 0;  // 无每项字节信息时不参与 claim 前预算
-        const std::uint64_t staging = is_gpu ? io : 0;      // 传输 staging（GPU）
+        // 传输 staging（GPU）：输入已驻留时不重复计整帧 H2D（08 号计划 §5），
+        // 只计输出 D2H staging
+        const std::uint64_t staging =
+            is_gpu ? (data_resident ? write_bytes : io) : 0;
         const std::uint64_t double_buf = io;                // 双缓冲
         const std::uint64_t temp = read_bytes / 12 + 1;     // halo/tile 临时区
         const bool is_reduction =
@@ -1078,7 +1082,8 @@ struct Dispatcher::Impl {
                                  ++shrink_guard) {
                                 const std::uint64_t peak =
                                     Impl::estimate_claim_peak_bytes(
-                                        requested, invocation.traits, is_gpu);
+                                        requested, invocation.traits, is_gpu,
+                                        data_resident);
                                 if (peak == 0) break;
                                 utilization::MemoryBudget cached_mb_copy;
                                 bool cached_ok = false;
@@ -1214,21 +1219,21 @@ struct Dispatcher::Impl {
                                 requested * invocation.traits.bytes_read_per_item +
                                 requested * invocation.traits.bytes_written_per_item;
                             if (staging > 0 &&
-                                !pinned_ledger.reserve(staging)) {
+                                !staging_ledger.reserve(staging)) {
                                 const std::size_t shrunk =
                                     std::max(requested / 2, min_chunk);
                                 if (shrunk < requested &&
-                                    pinned_ledger.reserve(
+                                    staging_ledger.reserve(
                                         shrunk *
                                         (invocation.traits.bytes_read_per_item +
                                          invocation.traits.bytes_written_per_item))) {
                                     requested = shrunk;
                                     batch_shrink_count.fetch_add(
                                         1, std::memory_order_relaxed);
-                                    record_action("pinned_shrink");
+                                    record_action("staging_shrink");
                                 } else {
                                     // pinned 预算不足：跳过该块（等释放）
-                                    record_action("pinned_wait");
+                                    record_action("staging_wait");
                                     std::this_thread::sleep_for(
                                         std::chrono::milliseconds(10));
                                     continue;
@@ -1301,7 +1306,7 @@ struct Dispatcher::Impl {
                         // 释放该块的 pinned staging（真实记账闭环）
                         if (cfg.enable_memory_budget &&
                             exec->backend_type().rfind("cuda", 0) == 0) {
-                            pinned_ledger.release(
+                            staging_ledger.release(
                                 requested * invocation.traits.bytes_read_per_item +
                                 requested * invocation.traits.bytes_written_per_item);
                         }
@@ -1418,7 +1423,7 @@ void Dispatcher::configure(const DispatcherConfig& cfg) {
         const auto& mcfg_budget = cfg.memory_budget_explicit
             ? cfg.memory_budget : utilization::MemoryBudgetConfig{};
         const std::uint64_t total_ram = impl_->mem_ctrl->sample().total_ram;
-        impl_->pinned_ledger.configure(
+        impl_->staging_ledger.configure(
             utilization::MemoryBudgetController::compute_limit(
                 total_ram, mcfg_budget.pinned_ratio,
                 mcfg_budget.pinned_fixed_reserve_bytes));

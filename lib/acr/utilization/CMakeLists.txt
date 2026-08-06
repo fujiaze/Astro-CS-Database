@@ -11,7 +11,7 @@ option(ACR_ENABLE_NVML "Enable NVML dynamic loading for GPU memory read (gracefu
 add_library(acr_utilization STATIC
     system_metrics.cpp
     memory_budget.cpp
-    pinned_ledger.cpp
+    staging_ledger.cpp
     config_hot_read.cpp
     actual_tracker.cpp
 )

@@ -9,7 +9,7 @@
 
 #include "residency_manager.hpp"
 #include "memory_budget.hpp"
-#include "pinned_ledger.hpp"
+#include "staging_ledger.hpp"
 
 #include <string>
 
@@ -134,8 +134,8 @@ TEST(Residency, SharedInputUploadedOnce) {
 // ============================================================================
 // 7. 真实 pinned reservation ledger（06 号规范 §4）
 // ============================================================================
-TEST(Residency, PinnedLedgerReserveRelease) {
-    PinnedLedger ledger;
+TEST(Residency, StagingLedgerReserveRelease) {
+    StagingLedger ledger;
     ledger.configure(4096);
     EXPECT_EQ(ledger.limit(), 4096u);
     EXPECT_TRUE(ledger.reserve(2048));

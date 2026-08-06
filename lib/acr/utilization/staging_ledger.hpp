@@ -1,8 +1,8 @@
-// lib/acr/utilization/pinned_ledger.hpp — ACR pinned staging reservation ledger
+// lib/acr/utilization/staging_ledger.hpp — ACR staging reservation ledger
 //
 // 聚焦版 v2（08 号计划 §6 / 06 号规范 §4）：
-//   pinned 不能用系统 RAM 总用量近似；由 ACR 自己的 reservation ledger
-//   记录实际 pinned staging 分配/释放。
+//   staging 不能用系统 RAM 总用量近似；由 ACR 自己的 reservation ledger
+//   记录实际 staging 分配/释放。
 #pragma once
 
 #include <cstddef>
@@ -12,15 +12,15 @@
 
 namespace astro::compute::utilization {
 
-// ===== PinnedLedger =====
+// ===== StagingLedger =====
 // 线程安全。只记账（本轮同步语义下由调用方确保实际分配）；
 // limit 来自 MemoryBudgetConfig.pinned_ratio + pinned_fixed_reserve。
-class PinnedLedger {
+class StagingLedger {
 public:
-    PinnedLedger();
-    ~PinnedLedger();
-    PinnedLedger(const PinnedLedger&) = delete;
-    PinnedLedger& operator=(const PinnedLedger&) = delete;
+    StagingLedger();
+    ~StagingLedger();
+    StagingLedger(const StagingLedger&) = delete;
+    StagingLedger& operator=(const StagingLedger&) = delete;
 
     // 设置上限（字节）；0 表示未配置（默认不限制）
     void configure(std::size_t limit_bytes) noexcept;
