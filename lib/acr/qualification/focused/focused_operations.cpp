@@ -403,8 +403,11 @@ void cpu_drizzle_launcher(const KernelInvocation& inv, void*) {
     if (!bins || *bins == 0) throw std::runtime_error("drizzle: missing bins");
     const float* x = static_cast<const float*>(xb->data);
     double* partials = static_cast<double*>(pb->data);
+    // 每 token 私有桶：partials[token_id * bins + bin]（06 号规范 §3：
+    // 禁止多个 CPU worker 并发写同一 bins 数组）
+    double* local = partials + inv.token_id * (*bins);
     for (std::size_t i = inv.domain.begin; i < inv.domain.end; ++i) {
-        partials[hash_bin(i, *bins)] += static_cast<double>(x[i]);
+        local[hash_bin(i, *bins)] += static_cast<double>(x[i]);
     }
 }
 
@@ -469,9 +472,11 @@ void cuda_launcher(const KernelInvocation& inv, void*, FocusedOp op) {
             const std::size_t nb = bins ? *bins : 256;
             const BufferBinding* pb = inv.buffers.find(1);
             if (!pb) throw std::runtime_error("cuda: missing partials");
+            // 每 token 私有桶（与 CPU launcher 同布局：token_id * bins 偏移）
+            double* part =
+                static_cast<double*>(pb->data) + inv.token_id * nb;
             rc = api.submit_drizzle_scatter(
-                h, 0, inv.domain.size(), x.data(),
-                static_cast<double*>(pb->data), nb, &el, &err);
+                h, 0, inv.domain.size(), x.data(), part, nb, &el, &err);
             break;
         }
         case FocusedOp::ResidentChain:
@@ -524,6 +529,26 @@ void register_focused_kernels() {
         reg("synthetic.resident_chain",
             &cpu_chain_launcher, cuda_dispatch, 2, 0);
     });
+}
+
+void merge_drizzle_partials(const double* token_partials,
+                            std::size_t token_count,
+                            std::size_t bins,
+                            double* out) {
+    for (std::size_t t = 0; t < token_count; ++t) {
+        for (std::size_t b = 0; b < bins; ++b) {
+            out[b] += token_partials[t * bins + b];
+        }
+    }
+}
+
+double merge_reduce_partials(const double* token_partials,
+                             std::size_t token_count) {
+    double total = 0.0;
+    for (std::size_t t = 0; t < token_count; ++t) {
+        total += token_partials[t];
+    }
+    return total;
 }
 
 } // namespace astro::compute::qualification::focused

@@ -109,4 +109,14 @@ void reference_resident_chain(const std::vector<float>& x,
 // launcher 处理 invocation.domain 子域（chunk 范围）。
 void register_focused_kernels();
 
+// ===== 私有 partial 明确 merge（06 号规范 §3）=====
+// drizzle：各 token 私有桶 [token_id*bins, (token_id+1)*bins) → 合并到 out
+void merge_drizzle_partials(const double* token_partials,
+                            std::size_t token_count,
+                            std::size_t bins,
+                            double* out);
+// reduction：各 token 私有 partial[token_id] → 累加到 out（标量引用）
+double merge_reduce_partials(const double* token_partials,
+                             std::size_t token_count);
+
 } // namespace astro::compute::qualification::focused

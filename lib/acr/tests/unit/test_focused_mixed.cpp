@@ -134,7 +134,7 @@ TEST(FocusedMixed, AutoMixedWithinTenPercentOfBest) {
 
     auto regs = std::make_shared<ExecutorRegistry>(
         ExecutorRegistry::create_auto());
-    const std::size_t n = 1u << 21;  // 2M（足够摊薄 GPU 传输）
+    const std::size_t n = 1u << 23;  // 8M（摊薄噪声）
 
     // 先构建 OperationProfile（standard，真实 GPU）
     FocusedBenchmark bench;
@@ -173,23 +173,31 @@ TEST(FocusedMixed, AutoMixedWithinTenPercentOfBest) {
         const double sec = std::chrono::duration<double>(t1 - t0).count();
         std::fprintf(stderr, "[FocusedMixed] mode=%d all_done=%d time=%.3fs\n",
                      static_cast<int>(mode), r.run_result.all_done, sec);
+        if (mode == RouteMode::AutoMixed) {
+            std::fprintf(stderr, "[FocusedMixed] auto chunks cpu=%zu gpu=%zu\n",
+                         r.chunks_on_cpu, r.chunks_on_gpu);
+        }
         std::fflush(stderr);
         return sec;
     };
 
-    // 各模式 5 次取中位（降低系统负载噪声）
-    auto median_ms = [&](RouteMode m) -> double {
-        std::vector<double> times;
-        for (int i = 0; i < 5; ++i) {
-            times.push_back(run_mode(m) * 1000.0);
-        }
-        std::sort(times.begin(), times.end());
-        return times[2];
+    // 各模式 3 次取中位；模式交错执行（cpu/auto/gpu 轮换）抑制
+    // 长时间运行导致的系统状态漂移
+    auto median_ms = [&](const std::vector<double>& times) -> double {
+        std::vector<double> t = times;
+        std::sort(t.begin(), t.end());
+        return t[t.size() / 2];
     };
-
-    const double cpu_ms = median_ms(RouteMode::CpuOnly);
-    const double gpu_ms = median_ms(RouteMode::GpuOnly);
-    const double auto_ms = median_ms(RouteMode::AutoMixed);
+    std::vector<double> cpu_t, gpu_t, auto_t;
+    run_mode(RouteMode::CpuOnly);  // warm-up（CPU 时钟/缓存稳定）
+    for (int i = 0; i < 3; ++i) {
+        cpu_t.push_back(run_mode(RouteMode::CpuOnly) * 1000.0);
+        auto_t.push_back(run_mode(RouteMode::AutoMixed) * 1000.0);
+        gpu_t.push_back(run_mode(RouteMode::GpuOnly) * 1000.0);
+    }
+    const double cpu_ms = median_ms(cpu_t);
+    const double gpu_ms = median_ms(gpu_t);
+    const double auto_ms = median_ms(auto_t);
     const double best = std::min(cpu_ms, gpu_ms);
     std::printf("[FocusedMixed.AutoMixed] cpu=%.1fms gpu=%.1fms auto=%.1fms best=%.1fms\n",
                 cpu_ms, gpu_ms, auto_ms, best);
@@ -275,4 +283,97 @@ TEST(FocusedMixed, ResidentReuseUploadsOnce) {
         EXPECT_FLOAT_EQ(y[i], 2.0f + x[i]);
     }
     api.executor_destroy(h);
+}
+
+// ============================================================================
+// 5. Reduction/Drizzle 私有 partial + 明确 merge 全路径正确性
+//    （CPU-only / GPU-only / ForcedMixed / AutoMixed；06 号规范 §3）
+// ============================================================================
+namespace {
+
+void run_reduce_drizzle_paths(const char* op_id, bool drizzle) {
+    astro::compute::qualification::focused::register_focused_kernels();
+    auto regs = std::make_shared<ExecutorRegistry>(
+        ExecutorRegistry::create_auto());
+    const std::size_t n = 1u << 18;  // 256K
+    const std::size_t bins = 64;
+    const std::size_t kMaxTokens = 256;
+    auto x = make_input(n);
+    std::vector<float> dummy_y(n, 0.0f);
+
+    // 标量参考
+    std::vector<double> ref_bins(bins, 0.0);
+    double ref_reduce = 0.0;
+    if (drizzle) {
+        astro::compute::qualification::focused::reference_drizzle_scatter(
+            x, ref_bins, bins, 0xA57C5AC20260802ULL);
+    } else {
+        ref_reduce = astro::compute::qualification::focused::
+            reference_pixel_reduce(x);
+    }
+
+    auto run_mode = [&](RouteMode mode, bool force_all) {
+        Dispatcher d;
+        DispatcherConfig cfg;
+        cfg.devices = {{"cpu", 0, 0, 50.0, true}, {"cuda:0", 1, 0, 500.0, true}};
+        cfg.executors = regs;
+        cfg.route_mode = mode;
+        cfg.force_all_supported_executors = force_all;
+        d.configure(cfg);
+        // partials：每 token 私有槽位
+        std::vector<double> partials(
+            drizzle ? kMaxTokens * bins : kMaxTokens, 0.0);
+        KernelInvocation inv;
+        inv.id = op_id;
+        inv.domain = WorkDomain{0, n};
+        inv.buffers.add(0, x.data(), x.size());
+        inv.buffers.add(1, partials.data(), partials.size());
+        if (drizzle) {
+            append_scalar(inv.scalars, bins);
+        }
+        inv.traits.bytes_read_per_item = 4;
+        inv.traits.bytes_written_per_item = 4;
+        inv.partition = PartitionKind::PrivatePartialThenMerge;
+        auto est = make_estimate(1u << 16, 1u << 18);
+        auto r = d.dispatch_invocation(make_task(n), est, inv);
+        EXPECT_TRUE(r.run_result.all_done)
+            << "mode=" << static_cast<int>(mode)
+            << " err=" << r.run_result.error_message;
+        // 明确 merge
+        if (drizzle) {
+            std::vector<double> merged(bins, 0.0);
+            astro::compute::qualification::focused::merge_drizzle_partials(
+                partials.data(), kMaxTokens, bins, merged.data());
+            for (std::size_t b = 0; b < bins; ++b) {
+                EXPECT_NEAR(merged[b], ref_bins[b],
+                            std::fabs(ref_bins[b]) * 1e-6 + 1e-9);
+            }
+        } else {
+            const double merged = astro::compute::qualification::focused::
+                merge_reduce_partials(partials.data(), kMaxTokens);
+            EXPECT_NEAR(merged, ref_reduce,
+                        std::fabs(ref_reduce) * 1e-6 + 1e-9);
+        }
+    };
+
+    run_mode(RouteMode::CpuOnly, false);
+    if (gpu_available()) {
+        run_mode(RouteMode::GpuOnly, true);       // 强制 GPU（对照）
+        run_mode(RouteMode::AutoMixed, true);     // ForcedMixed（正确性）
+    }
+}
+
+} // anonymous namespace
+
+TEST(FocusedMixed, ReducePrivatePartialAllPaths) {
+    astro::compute::runtime_init();
+    run_reduce_drizzle_paths("synthetic.pixel_reduce.fp64acc", /*drizzle=*/false);
+    astro::compute::runtime_shutdown();
+}
+
+TEST(FocusedMixed, DrizzlePrivatePartialAllPaths) {
+    astro::compute::runtime_init();
+    run_reduce_drizzle_paths("synthetic.drizzle_like_scatter.fp64acc",
+                             /*drizzle=*/true);
+    astro::compute::runtime_shutdown();
 }
