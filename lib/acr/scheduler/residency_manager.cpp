@@ -20,6 +20,15 @@ const char* residency_state_str(ResidencyState s) noexcept {
     return "unknown";
 }
 
+const char* buffer_access_str(BufferAccess a) noexcept {
+    switch (a) {
+        case BufferAccess::Read:      return "read";
+        case BufferAccess::Write:     return "write";
+        case BufferAccess::ReadWrite: return "read_write";
+    }
+    return "unknown";
+}
+
 struct ResidencyManager::Impl {
     mutable std::mutex mtx;
     std::unordered_map<std::string, BufferResidency> buffers;
@@ -32,10 +41,12 @@ ResidencyManager::ResidencyManager()
 ResidencyManager::~ResidencyManager() = default;
 
 void ResidencyManager::register_buffer(const std::string& key,
-                                       std::size_t bytes) {
+                                       std::size_t bytes,
+                                       BufferAccess access) {
     std::lock_guard<std::mutex> lk(impl_->mtx);
     auto& b = impl_->buffers[key];
     b.bytes = bytes;
+    b.access = access;
     if (b.state == ResidencyState::DeviceValid ||
         b.state == ResidencyState::DeviceDirty) {
         // 保留现有驻留状态
@@ -51,6 +62,7 @@ void ResidencyManager::mark_host_dirty(const std::string& key) {
     } else {
         b.state = ResidencyState::HostValid;
     }
+    ++b.generation;  // host 修改代数递增（复用失效）
 }
 
 void ResidencyManager::mark_device_dirty(const std::string& key) {
@@ -78,6 +90,23 @@ void ResidencyManager::mark_downloaded(const std::string& key) {
     b.state = ResidencyState::HostValid;
     ++b.download_count;
     ++impl_->total_downloads;
+}
+
+void ResidencyManager::mark_device_allocated(const std::string& key) {
+    std::lock_guard<std::mutex> lk(impl_->mtx);
+    impl_->buffers[key].device_allocated = true;
+}
+
+bool ResidencyManager::is_device_allocated(const std::string& key) const {
+    std::lock_guard<std::mutex> lk(impl_->mtx);
+    auto it = impl_->buffers.find(key);
+    return it != impl_->buffers.end() && it->second.device_allocated;
+}
+
+std::uint64_t ResidencyManager::generation(const std::string& key) const {
+    std::lock_guard<std::mutex> lk(impl_->mtx);
+    auto it = impl_->buffers.find(key);
+    return (it == impl_->buffers.end()) ? 0 : it->second.generation;
 }
 
 bool ResidencyManager::is_device_valid(const std::string& key,

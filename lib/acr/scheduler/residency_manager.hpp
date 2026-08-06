@@ -28,14 +28,26 @@ enum class ResidencyState : std::uint8_t {
 
 const char* residency_state_str(ResidencyState s) noexcept;
 
+// ===== Buffer 访问模式（06 号规范 §1）=====
+enum class BufferAccess : std::uint8_t {
+    Read = 0,        // 只读输入（可跨块复用）
+    Write = 1,       // 只写输出
+    ReadWrite = 2,   // 读改写（accumulate）
+};
+
+const char* buffer_access_str(BufferAccess a) noexcept;
+
 // ===== 单 Buffer 驻留记录 =====
 struct BufferResidency {
     ResidencyState state{ResidencyState::HostValid};
     std::string device_id{"cuda:0"};   // 最近驻留设备
     std::size_t bytes{0};
+    BufferAccess access{BufferAccess::Read};
+    std::uint64_t generation{0};       // host 修改代数（复用失效判断）
     std::uint64_t last_upload_ns{0};   // 最近上传时间戳（诊断）
     std::uint64_t upload_count{0};     // 实际上传次数
     std::uint64_t download_count{0};   // 实际下载次数
+    bool device_allocated{false};      // 后端是否保留 device allocation
 };
 
 // ===== ResidencyManager =====
@@ -45,8 +57,9 @@ public:
     ResidencyManager();
     ~ResidencyManager();
 
-    // 注册/更新 buffer 大小
-    void register_buffer(const std::string& key, std::size_t bytes);
+    // 注册/更新 buffer（真实字节数与访问模式）
+    void register_buffer(const std::string& key, std::size_t bytes,
+                         BufferAccess access = BufferAccess::Read);
 
     // 标记 host 修改（输入更新 → device 副本失效）
     void mark_host_dirty(const std::string& key);
@@ -59,6 +72,13 @@ public:
 
     // 下载后：host 有效
     void mark_downloaded(const std::string& key);
+
+    // 后端确认保留 device allocation（真实 buffer 缓存）
+    void mark_device_allocated(const std::string& key);
+    bool is_device_allocated(const std::string& key) const;
+
+    // host 修改代数（供 generation 复用失效判断）
+    std::uint64_t generation(const std::string& key) const;
 
     // 查询：该 buffer 是否已在指定设备显存（可复用，无需再上传）
     bool is_device_valid(const std::string& key,

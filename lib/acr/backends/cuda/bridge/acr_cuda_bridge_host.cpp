@@ -553,8 +553,10 @@ extern "C" int acr_cuda_executor_upload_persistent(
     auto* h = static_cast<CudaExecutorHandle*>(handle);
     std::lock_guard<std::mutex> lk(h->mtx);
     const size_t n = end - begin;
+    // 持久上传：整帧 [begin, end) 保存到 d_x[begin..end)，
+    // 供后续 resident 提交以 d_x + begin 复用（共享输入只上传一次）
     return submit_impl(h, [&]() -> cudaError_t {
-        cudaError_t err = ensure_buffer(&h->d_x, h->d_x_capacity, n);
+        cudaError_t err = ensure_buffer(&h->d_x, h->d_x_capacity, end);
         if (err != cudaSuccess) return err;
         cudaMemcpyAsync(h->d_x, x + begin, n * sizeof(float),
                         cudaMemcpyHostToDevice, h->stream);
@@ -574,13 +576,14 @@ extern "C" int acr_cuda_executor_submit_dense_accumulate_resident(
     std::lock_guard<std::mutex> lk(h->mtx);
     const size_t n = end - begin;
     return submit_impl(h, [&]() -> cudaError_t {
-        cudaError_t err = ensure_buffer(&h->d_y, h->d_y_capacity, n);
+        cudaError_t err = ensure_buffer(&h->d_y, h->d_y_capacity, end);
         if (err != cudaSuccess) return err;
-        // d_x 已驻留（upload_persistent 保证容量）
-        cudaMemcpyAsync(h->d_y, y + begin, n * sizeof(float),
+        // d_x 已整帧驻留（upload_persistent）；y 初值从 host 传入
+        cudaMemcpyAsync(h->d_y + begin, y + begin, n * sizeof(float),
                         cudaMemcpyHostToDevice, h->stream);  // y 初值上传
-        acr_launch_dense_accumulate_fp64acc(h->d_y, h->d_x, 0, n, h->stream);
-        cudaMemcpyAsync(y + begin, h->d_y, n * sizeof(float),
+        acr_launch_dense_accumulate_fp64acc(h->d_y + begin, h->d_x + begin,
+                                            0, n, h->stream);
+        cudaMemcpyAsync(y + begin, h->d_y + begin, n * sizeof(float),
                         cudaMemcpyDeviceToHost, h->stream);
         return cudaStreamSynchronize(h->stream);
     }, elapsed_ns, last_error);
@@ -607,7 +610,7 @@ extern "C" int acr_cuda_executor_submit_reduce_resident(
         cudaError_t err = ensure_buffer(&h->d_partials, h->d_partials_capacity, blocks);
         if (err != cudaSuccess) return err;
         cudaMemsetAsync(h->d_partials, 0, blocks * sizeof(double), h->stream);
-        acr_launch_reduce(h->d_x, h->d_partials, 0, n,
+        acr_launch_reduce(h->d_x + begin, h->d_partials, 0, n,
                           static_cast<size_t>(chunk_index), blocks_per_chunk, h->stream);
         cudaMemcpyAsync(partials + chunk_index * blocks_per_chunk, h->d_partials,
                         blocks * sizeof(double),
@@ -631,7 +634,7 @@ extern "C" int acr_cuda_executor_submit_drizzle_scatter_resident(
         cudaError_t err = ensure_buffer(&h->d_bins, h->d_bins_capacity, bins);
         if (err != cudaSuccess) return err;
         cudaMemsetAsync(h->d_bins, 0, bins * sizeof(double), h->stream);
-        acr_launch_drizzle_scatter(h->d_x, h->d_bins, 0, n, bins, h->stream);
+        acr_launch_drizzle_scatter(h->d_x + begin, h->d_bins, 0, n, bins, h->stream);
         cudaMemcpyAsync(partials, h->d_bins, bins * sizeof(double),
                         cudaMemcpyDeviceToHost, h->stream);
         return cudaStreamSynchronize(h->stream);
@@ -650,13 +653,14 @@ extern "C" int acr_cuda_executor_submit_chain_resident(
     std::lock_guard<std::mutex> lk(h->mtx);
     const size_t n = end - begin;
     return submit_impl(h, [&]() -> cudaError_t {
-        cudaError_t err = ensure_buffer(&h->d_y, h->d_y_capacity, n);
+        cudaError_t err = ensure_buffer(&h->d_y, h->d_y_capacity, end);
         if (err != cudaSuccess) return err;
-        err = ensure_buffer(&h->d_z, h->d_z_capacity, n);
+        err = ensure_buffer(&h->d_z, h->d_z_capacity, end);
         if (err != cudaSuccess) return err;
         // d_x 已驻留；两个 kernel 全程显存；只下载最终 z
-        acr_launch_chain(h->d_y, h->d_z, h->d_x, 0, n, h->stream);
-        cudaMemcpyAsync(z + begin, h->d_z, n * sizeof(float),
+        acr_launch_chain(h->d_y + begin, h->d_z + begin, h->d_x + begin,
+                         0, n, h->stream);
+        cudaMemcpyAsync(z + begin, h->d_z + begin, n * sizeof(float),
                         cudaMemcpyDeviceToHost, h->stream);
         return cudaStreamSynchronize(h->stream);
     }, elapsed_ns, last_error);

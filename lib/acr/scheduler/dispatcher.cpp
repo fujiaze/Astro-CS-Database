@@ -11,6 +11,7 @@
 
 #include "../core/task_descriptor.hpp"
 #include "../cost/cost_estimator.hpp"
+#include "../backends/cuda/bridge/cuda_bridge_api.hpp"
 #include "../utilization/memory_budget.hpp"
 
 #include "astro/compute/acr.hpp"
@@ -121,6 +122,21 @@ struct Dispatcher::Impl {
     MixedRoutePlanner planner;
     // 聚焦版（08 号计划 §6）：数据驻留状态（Host/Device/Both/dirty）
     ResidencyManager residency;
+    // 聚焦版 v2（08 号计划 §4）：dispatcher 级桥接句柄（整帧上传复用）
+    void* bridge_handle{nullptr};
+
+    // 惰性获取 dispatcher 桥接句柄（用于真实整帧上传/下载）
+    void* ensure_bridge_handle() {
+        if (bridge_handle != nullptr) return bridge_handle;
+        using namespace astro::compute::cuda::bridge;
+        ensure_bridge_loaded();
+        auto& api = astro::compute::cuda::bridge::api();
+        if (!api.loaded()) return nullptr;
+        const char* err = nullptr;
+        if (api.init(&err) <= 0) return nullptr;
+        bridge_handle = api.executor_create(0, 65536, 256, &err);
+        return bridge_handle;
+    }
     // F-fix 2：SharedWorkPool
     SharedWorkPool pool;
     // F-fix 6 + F-fix 7：设备执行器注册表（多设备工作保持）
@@ -1583,13 +1599,19 @@ CostAwareResult Dispatcher::dispatch_invocation(
     const std::size_t end = invocation.domain.end;
     (void)task;
 
-    // 聚焦版（08 号计划 §6）：注册输入 buffer 到 ResidencyManager，
-    // 查询输入是否已在 GPU 显存（决定 host/resident 路由阈值）
+    // 聚焦版 v2（08 号计划 §4/06 号规范 §1）：注册 buffer（真实字节数 +
+    // 访问模式），查询输入是否已在 GPU 显存（决定 host/resident 阈值）。
+    // buffer 0 = 输出（read_write），buffer 1 = 输入（read），其余 read。
     bool data_resident = false;
-    for (const auto& binding : invocation.buffers.bindings) {
+    for (std::size_t bi = 0; bi < invocation.buffers.bindings.size(); ++bi) {
+        const auto& binding = invocation.buffers.bindings[bi];
         const std::string key = "buf-" +
             std::to_string(reinterpret_cast<std::uintptr_t>(binding.data));
-        impl_->residency.register_buffer(key, binding.count);
+        // 元素数 × float 字节（聚焦内核 buffer 均为 float*）
+        const std::size_t bytes = binding.count * sizeof(float);
+        const BufferAccess access = (bi == 0)
+            ? BufferAccess::ReadWrite : BufferAccess::Read;
+        impl_->residency.register_buffer(key, bytes, access);
     }
     {
         const auto* input = invocation.buffers.find(1);
@@ -1608,12 +1630,41 @@ CostAwareResult Dispatcher::dispatch_invocation(
     result.run_result = r;
     result.actual_devices_used = actual_devices;
 
-    // 执行后更新驻留状态：GPU 参与 → 输入视为已驻留（复用），输出回 host
+    // 聚焦版 v2：真实驻留驱动。
+    //  - GPU 参与且输入未驻留：经桥接真实上传整帧一次（共享输入复用）；
+    //  - 输出经同步桥接真实 D2H 一次；
+    //  - 禁止机械地"每 buffer 先 uploaded 再 downloaded"。
     if (r.executed_on_gpu > 0) {
-        for (const auto& binding : invocation.buffers.bindings) {
+        const auto* input = invocation.buffers.find(1);
+        if (input != nullptr) {
             const std::string key = "buf-" +
-                std::to_string(reinterpret_cast<std::uintptr_t>(binding.data));
-            impl_->residency.mark_uploaded(key);
+                std::to_string(reinterpret_cast<std::uintptr_t>(input->data));
+            if (!data_resident) {
+                // 真实整帧上传（dispatcher 桥接句柄；同步语义下仅计一次）
+                void* h = impl_->ensure_bridge_handle();
+                if (h != nullptr) {
+                    using namespace astro::compute::cuda::bridge;
+                    auto& api = astro::compute::cuda::bridge::api();
+                    std::uint64_t el = 0;
+                    const char* err = nullptr;
+                    const std::size_t n = invocation.domain.size();
+                    if (api.upload_persistent &&
+                        api.upload_persistent(h, 0, n,
+                            static_cast<const float*>(input->data),
+                            &el, &err) == 0) {
+                        impl_->residency.mark_uploaded(key);
+                        impl_->residency.mark_device_allocated(key);
+                    }
+                }
+            }
+            // 输入已驻留（复用）：不再重复上传
+            impl_->residency.mark_device_allocated(key);
+        }
+        const auto* output = invocation.buffers.find(0);
+        if (output != nullptr) {
+            // 同步桥接执行完成后输出已 D2H（真实下载一次）
+            const std::string key = "buf-" +
+                std::to_string(reinterpret_cast<std::uintptr_t>(output->data));
             impl_->residency.mark_downloaded(key);
         }
     }

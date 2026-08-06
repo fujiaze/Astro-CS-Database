@@ -88,3 +88,44 @@ TEST(Residency, PinnedBudgetIndependent) {
     auto m2 = c.report_pinned(3000, 4096);
     EXPECT_TRUE(m2.pinned_exceeded);
 }
+
+// ============================================================================
+// 5. 真实字节/访问模式/代数（06 号规范 §1）
+// ============================================================================
+TEST(Residency, BytesAccessAndGeneration) {
+    ResidencyManager m;
+    m.register_buffer("frame", 4096 * 4, BufferAccess::Read);
+    EXPECT_EQ(m.upload_count("frame"), 0u);
+    // host 修改 → generation 递增（device 副本失效）
+    m.mark_uploaded("frame");
+    const std::uint64_t g0 = m.generation("frame");
+    m.mark_host_dirty("frame");
+    EXPECT_GT(m.generation("frame"), g0);
+    EXPECT_TRUE(m.needs_upload("frame", "cuda:0"));
+    m.mark_uploaded("frame");
+    EXPECT_EQ(m.upload_count("frame"), 2u);
+    // device allocation 标记
+    m.mark_device_allocated("frame");
+    EXPECT_TRUE(m.is_device_allocated("frame"));
+}
+
+// ============================================================================
+// 6. 整帧复用：只读输入上传一次，跨块不再重复上传（06 号规范 §2）
+// ============================================================================
+TEST(Residency, SharedInputUploadedOnce) {
+    ResidencyManager m;
+    m.register_buffer("shared_input", 1u << 20, BufferAccess::Read);
+    // 第一个 GPU 块：需要上传
+    EXPECT_TRUE(m.needs_upload("shared_input", "cuda:0"));
+    m.mark_uploaded("shared_input");
+    m.mark_device_allocated("shared_input");
+    // 后续块：已驻留且 generation 未变 → 复用（不再上传）
+    EXPECT_FALSE(m.needs_upload("shared_input", "cuda:0"));
+    EXPECT_EQ(m.upload_count("shared_input"), 1u);
+    // 输出：同步 D2H 一次
+    m.mark_device_dirty("shared_input");
+    m.mark_downloaded("shared_input");
+    EXPECT_EQ(m.download_count("shared_input"), 1u);
+    EXPECT_EQ(m.total_uploads(), 1u);
+    EXPECT_EQ(m.total_downloads(), 1u);
+}

@@ -237,3 +237,42 @@ TEST(FocusedMixed, AutoDegradesForSmallTask) {
     }
     astro::compute::runtime_shutdown();
 }
+
+// ============================================================================
+// 4. 真实驻留复用：共享输入只上传一次，跨 GPU 块复用（06 号规范 §2）
+// ============================================================================
+TEST(FocusedMixed, ResidentReuseUploadsOnce) {
+    if (!gpu_available()) {
+        GTEST_SKIP() << "no CUDA bridge/device; skipped";
+    }
+    using namespace astro::compute::cuda::bridge;
+    ensure_bridge_loaded();
+    auto& api = astro::compute::cuda::bridge::api();
+    ASSERT_TRUE(api.loaded() && api.upload_persistent &&
+                api.submit_dense_accumulate_resident);
+    const char* err = nullptr;
+    ASSERT_GT(api.init(&err), 0);
+    void* h = api.executor_create(0, 65536, 256, &err);
+    ASSERT_NE(h, nullptr);
+
+    const std::size_t n = 1u << 20;  // 1M 整帧
+    std::vector<float> x(n);
+    astro::compute::qualification::focused::fill_uniform_fp32(
+        x.data(), n, 0xA57C5AC20260802ULL);
+    std::vector<float> y(n, 2.0f);
+    std::uint64_t el = 0;
+
+    // 上传整帧一次
+    ASSERT_EQ(api.upload_persistent(h, 0, n, x.data(), &el, &err), 0);
+    // 多个 GPU 块 resident 提交（复用 d_x，不重复整帧上传）
+    const std::size_t block = n / 4;
+    for (std::size_t b = 0; b < n; b += block) {
+        ASSERT_EQ(api.submit_dense_accumulate_resident(
+                      h, b, b + block, y.data(), &el, &err), 0);
+    }
+    // 结果正确（每块 y += x）
+    for (std::size_t i = 0; i < n; ++i) {
+        EXPECT_FLOAT_EQ(y[i], 2.0f + x[i]);
+    }
+    api.executor_destroy(h);
+}
