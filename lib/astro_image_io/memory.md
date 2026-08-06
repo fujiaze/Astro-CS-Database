@@ -168,3 +168,25 @@
 - 若未来需同时编译 Reader+Writer, 应将共享方法 (to_json/from_json/compute_tile_depth/nside/finalize_signal/support/validate_support) 抽出到 `hiss_common.cpp`
 - hiss_writer.cpp 独有: finalize_signal/finalize_support/validate_support (hiss_reader.cpp 未实现)
 - 用 hiss_writer.cpp 写入的文件, hiss_reader.cpp 的 from_json 能正确解析 (JSON 格式兼容)
+
+## 2026-08-06 R13 HISS_IO_REPAIR 性能闭合 (commit 450e78c/83c4696/6babe22)
+
+### 写入侧 (450e78c)
+- 生产 HISS 此前 `experiment_codecs` 为空默认 RAW (316MB 未压缩) → open 默认
+  ZSTD (signal=BYTE_SHUFFLE, support/occ/snr=ZSTD), 显式 set_experiment_codec 可覆盖;
+- zstd 悬垂指针修复 (compressed_buf 提升到函数作用域);
+- Tile 级可复用缓冲 (signal/support/valid/occ) 消除每 Tile 1MB 级分配;
+- 逐 Tile/逐子块日志包进 HISS_DLOG (编译期 HISS_VERBOSE)。
+
+### Verify 侧 (83c4696)
+- 新增 session API: aio_hiss_open_session / read_tile_{signal,support,snr}[_f64]_session /
+  close_session, Reader 打开一次遍历全部 Tile;
+- orchestrator HISS_VERIFY 由 130s → 0.85s。
+
+### 日志门控 (6babe22) — 完整帧 129s → 45.43s 的关键一步
+- hiss_reader.cpp 成功路径 (inverse_transform/网格/元数据/打开成功/SNR 子块/
+  无 SNR) 与 hiss_transform.cpp 全部逐调用日志改为 HISS_DLOG 门控;
+- 根因: stderr 重定向文件时每条 fprintf 写盘 + 防病毒扫描, 285 Tile 的
+  ~870 行日志实测拖慢 Verify 40s / 写入 ~30s;
+- 验证: verify_bench 同文件 0.697s (日志 870→5 行), bench_write 4096²
+  write 2.60s (add_tile 6.35ms/tile)。

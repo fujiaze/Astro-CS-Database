@@ -138,3 +138,25 @@ v1.0
 - `mingw32-make` (C:\msys64\mingw64\bin) 编译成功 (exit 0)
 - drizzle_engine.cpp 无警告; 仅有 fits_reader.cpp 既有的 strncpy 截断警告(非本次修改)
 - healpix_drizzle.dll 重新生成 (2026-07-31 11:15:42, 1.28MB)
+
+## 2026-08-06 R13 Phase1 最终闭合 (控制包 23b37298, HEAD 6babe22)
+
+### CAND-001 候选安全 (a50a97a)
+- 快速候选外接半径 1.0 → 1.1×hp_res; 全像素扫描证明最坏外接 ≈1.044×hp_res;
+- 面内畸变修复: 极冠/边界回退保守路径 + 赤道区 delta×1.15;
+- 独立 Oracle: oracle_independent_test 5502/5502 零漏选 (12 face 边/角/极区/RA 跨界)。
+
+### SCI/DOMAIN 科学补齐 (1344c93)
+- 真 15° 边缘 (patch 距投影中心 >7°)、强 SIP、pixfrac 0.6/0.8 空洞独立 Oracle、
+  孔径/质心/FWHM/椭率、负值保持、余量 0.0503245(NSIDE=4194304)～
+  12.883074(NSIDE=16384)″/px。
+
+### REV-001 反向 Drizzle (7f02d2f)
+- reverse_drizzle.{h,cpp}: HEALPix footprint → 平面候选 → 精确面积重叠 →
+  signal 面积分配 + support, FP32/FP64 数据面; 通量闭合 4.4e-10, 质心 0px。
+
+### 最终验收 (2026-08-06)
+- 科学门全过: 候选 9003 / Oracle 5502 / 冻结 42 / 科学 13 / 矩阵 180 / L0 16 / L2 5 / 反向 5;
+- 完整 FP32 45.43s (核心 26.8s + 写入 9.9s + Verify 0.8s), 285/285 Tile;
+- 已知: test_spherical_overlap 历史遗留失败 (大多边形面积边界, 非门禁);
+  drizzle_acceptance_test 未纳入快速回归。

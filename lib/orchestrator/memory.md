@@ -643,3 +643,19 @@ spec: .trae/specs/orchestrator-cpp-cli/spec.md (阶段1: 集成测试 - 阶段1�
 - **commit**: 0610c00 (证据交付), 代码变更含于 a4290d8 (P03-004)
 - **残留风险**: 测试环境 DLL 全部加载失败 (code 126), 退出码 2/3/4/5/6 需真实 DLL 环境补充验证
 
+## 2026-08-06 R13 Phase1 最终闭合 (HEAD 6babe22, 完整帧 45.43s)
+
+### HISS_VERIFY 单句柄 session (83c4696)
+- orchestrator.cpp run_stage_hiss_verify 改用 aio_hiss_open_session +
+  read_tile_{signal,support,snr}[_f64]_session, 打开一次遍历 285 Tile;
+  HISS_VERIFY 130s → 0.85s (bench)。
+
+### 逐 Tile 日志降级 (6babe22, 与 83c4696 同一修复链)
+- 移除 verify 循环内逐 Tile LOG_INFO (Logger 每条 flush 写盘);
+- 配合 astro_image_io 的 Reader/Transform HISS_DLOG 门控,
+  完整帧 HISS_VERIFY 40.4s → 0.802s。
+
+### 完整 Stage1 计时 (最终 FP32 验收, 15:57)
+- PRECISE 核心 26.8s / HISS 写入 9.9s / Verify 0.802s / DRIZZLE 36.7s /
+  完整 Stage1 45.43s (硬门 75s, 目标 60s);
+- 配置 final_single_frame_fp32.json (绝对路径, CFG-001 修复后无路径重复)。

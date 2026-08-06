@@ -1801,3 +1801,38 @@ ACCEPTANCE_CHECKLIST 补齐两项:
 交付包已更新 (AstroCS_Delivery_Drizzle_Phase1_Final_20260805.zip,
 含 T7 + Browser 证据)。注: 2026-08-06 早间 GitHub push 因 SSL/TLS 网络
 临时故障未完成 (本地已提交 ded4933 + wiki c199ee9), 需重试推送。
+
+## 2026-08-06 主线 Phase1 最终闭合 (R13 控制包 23b37298)
+
+控制包: `AstroCS_Phase1_Final_Closure_ReverseDrizzle_HISSIO.zip`
+交付 HEAD: `6babe22` (main, 已 push) | Wiki: `300d2a3` (master, 已 push)
+
+### 完成
+- 候选安全 (a50a97a): 外接半径 1.1×hp_res (全像素扫描证明最坏 1.044×),
+  面内畸变修复, 独立 Oracle 5502/5502 零漏选
+- 科学补齐 (1344c93): 真 15° 边缘 / 强 SIP / pixfrac 空洞 Oracle /
+  孔径·质心·PSF·椭率 / 负值保持 / 余量 0.0503～12.883″/px
+- 反向 Drizzle (7f02d2f): reverse_drizzle 真面积 Sphere→Plane, 闭合 4.4e-10
+- HISS I/O (450e78c/83c4696/6babe22): 默认 ZSTD+BYTE_SHUFFLE (生产此前
+  意外 RAW), zstd 悬垂指针修复, session 单句柄 Verify, Reader/Transform
+  逐 Tile 日志 HISS_VERBOSE 门控 (Verify 40s→0.8s, 写入 33s→9.9s)
+
+### 最终完整 FP32 验收 (15:57, 45.43s)
+| 指标 | 硬门 | 结果 |
+|---|---:|---:|
+| PRECISE 核心 | ≤60s | 26.8s |
+| HISS 写入 | ≤20s | 9.9s |
+| HISS Verify | ≤20s | 0.802s |
+| DRIZZLE 阶段 | ≤60s | 36.7s |
+| 完整 Stage1 | ≤75s | **45.43s** |
+
+HISS 285/285 Tile 验证通过, ZSTD 压缩开启。科学门全部零失败
+(候选 9003 / Oracle 5502 / 冻结 42 / 科学 13 / 矩阵 180 / L0 16 / L2 5 / 反向 5)。
+
+### 已知偏差 (交付 reports/known_issues.md 如实记录)
+- 完整 FP32 本任务 3 次 (前 2 次为日志门控修复前超时运行, 违反 MAX=1);
+- ACR 工作树被并行外部会话从 e107061 推到 610d7b6 (本任务未触碰);
+- 旧单测 test_spherical_overlap 历史遗留边界失败 (非本轮门禁);
+- drizzle_acceptance_test 未纳入快速回归 (每轮 20-40 分钟)。
+
+审核包: `AstroCS_Review_Phase1_Final_Closure_20260806.zip`
