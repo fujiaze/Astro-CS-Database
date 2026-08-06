@@ -52,6 +52,15 @@
 #include <algorithm>
 #include <utility>
 
+// R13 (HISS_IO_REPAIR): 逐 Tile/逐子块日志降级 — 仅编译期 HISS_VERBOSE 输出
+// (正常模式只保留阶段/汇总/错误; stderr 重定向文件时每条 fprintf 写盘,
+//  完整帧 Verify 285 Tile 的逐子块日志实测拖慢 40s)
+#ifdef HISS_VERBOSE
+#define HISS_DLOG(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
+#else
+#define HISS_DLOG(fmt, ...) do {} while (0)
+#endif
+
 namespace hiss {
 
 // ============================================================================
@@ -401,7 +410,7 @@ struct HissReader::Impl {
 
             out = std::move(restored);
 
-            fprintf(stderr,
+            HISS_DLOG(
                     "[hiss][reader]   inverse_transform %s: %zu → %zu 字节 (element_size=%zu)\n",
                     transform_type_name(tt), desc.uncompressed_size, out.size(), element_size);
         }
@@ -710,11 +719,11 @@ int HissReader::open(const std::string& path) {
     impl.metadata.radesys    = impl.grid.radesys;
     impl.metadata.pixfrac    = impl.grid.pixfrac;
 
-    fprintf(stderr, "[hiss][reader] 网格: nside=%u tile_nside=%u ordering=%d radesys=%d pixfrac=%.3f\n",
-            impl.grid.nside, impl.grid.tile_nside, impl.grid.ordering,
-            impl.grid.radesys, impl.grid.pixfrac);
-    fprintf(stderr, "[hiss][reader] 元数据: object=%.32s filter=%.16s exptime=%.1f\n",
-            impl.metadata.object, impl.metadata.filter, impl.metadata.exptime);
+    HISS_DLOG("[hiss][reader] 网格: nside=%u tile_nside=%u ordering=%d radesys=%d pixfrac=%.3f\n",
+              impl.grid.nside, impl.grid.tile_nside, impl.grid.ordering,
+              impl.grid.radesys, impl.grid.pixfrac);
+    HISS_DLOG("[hiss][reader] 元数据: object=%.32s filter=%.16s exptime=%.1f\n",
+              impl.metadata.object, impl.metadata.filter, impl.metadata.exptime);
 
     // ---- 3. 全扫描子块目录, 拒绝未知必需子块 (02_FROZEN §13) ----
     // 已知类型: OCCUPANCY/SIGNAL/SUPPORT/SNR/EXTENSION
@@ -866,8 +875,8 @@ int HissReader::open(const std::string& path) {
         }
     }
 
-    fprintf(stderr, "[hiss][reader] 打开成功: %s n_tiles=%zu\n",
-            path.c_str(), impl.tiles.size());
+    HISS_DLOG("[hiss][reader] 打开成功: %s n_tiles=%zu\n",
+              path.c_str(), impl.tiles.size());
     return 0;
 }
 
@@ -1351,8 +1360,8 @@ int HissReader::read_tile_snr(uint64_t parent_ipix, HissSnrBlock& snr) const {
 
     const HissSubblockDescriptor* snr_desc = Impl::find_subblock(tile, SubblockType::SNR);
     if (!snr_desc) {
-        fprintf(stderr, "[hiss][reader] Tile %llu 无 SNR 子块\n",
-                (unsigned long long)parent_ipix);
+        HISS_DLOG("[hiss][reader] Tile %llu 无 SNR 子块\n",
+                  (unsigned long long)parent_ipix);
         return -6;
     }
 
@@ -1388,7 +1397,7 @@ int HissReader::read_tile_snr(uint64_t parent_ipix, HissSnrBlock& snr) const {
         p += 8;
     }
 
-    fprintf(stderr,
+    HISS_DLOG(
             "[hiss][reader]   SNR 子块: estimator_id=%u sampling_scale=%g 读取 %u 个控制点\n",
             snr.estimator_id, snr.sampling_scale, n_points);
 
@@ -1415,8 +1424,8 @@ int HissReader::read_tile_snr_f64(uint64_t parent_ipix, HissSnrBlockF64& snr) co
 
     const HissSubblockDescriptor* snr_desc = Impl::find_subblock(tile, SubblockType::SNR);
     if (!snr_desc) {
-        fprintf(stderr, "[hiss][reader] Tile %llu 无 SNR 子块\n",
-                (unsigned long long)parent_ipix);
+        HISS_DLOG("[hiss][reader] Tile %llu 无 SNR 子块\n",
+                  (unsigned long long)parent_ipix);
         return -6;
     }
 

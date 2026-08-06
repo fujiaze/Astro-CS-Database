@@ -3243,14 +3243,8 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
         if (tile_support_nonzero) { ++n_support_nonzero; }
         ++n_passed;
 
-        LOG_INFO("orchestrator", "[HISS_VERIFY] Tile #" + std::to_string(i)
-                 + " (parent_ipix=" + std::to_string(parent_ipix)
-                 + ") 验证通过: n_signal=" + std::to_string(n_signal)
-                 + " n_support=" + std::to_string(n_support)
-                 + " n_snr=" + std::to_string(n_snr)
-                 + " precision=" + (is_fp64 ? "FP64" : "FP32")
-                 + " signal_nonzero=" + (tile_signal_nonzero ? "Y" : "N")
-                 + " support_nonzero=" + (tile_support_nonzero ? "Y" : "N"));
+        // R13 (HISS_IO_REPAIR): 逐 Tile 日志降级 — Logger 每条 flush 写盘,
+        // 285 Tile 日志拖慢 verify (130s 中大部分); 只保留阶段/汇总
     }
 
     // 释放 inspect 分配的内存

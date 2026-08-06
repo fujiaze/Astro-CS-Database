@@ -24,6 +24,15 @@
 #include <cstdio>
 #include <cstring>
 
+// R13 (HISS_IO_REPAIR): 逐调用日志降级 — 仅编译期 HISS_VERBOSE 输出
+// (正常模式只保留阶段/汇总/错误; stderr 重定向文件时每条 fprintf 写盘,
+//  285 Tile 的 forward/inverse 逐调用日志会拖慢写入与 Verify)
+#ifdef HISS_VERBOSE
+#define HISS_DLOG(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
+#else
+#define HISS_DLOG(fmt, ...) do {} while (0)
+#endif
+
 namespace hiss {
 
 // ============================================================================
@@ -136,7 +145,7 @@ static std::vector<uint8_t> apply_byte_shuffle(const uint8_t* data,
         }
     }
 
-    fprintf(stderr,
+    HISS_DLOG(
             "[hiss][transform] BYTE_SHUFFLE forward: data_size=%zu element_size=%zu n_elements=%zu\n",
             data_size, element_size, n_elements);
     return output;
@@ -167,7 +176,7 @@ static std::vector<uint8_t> inverse_byte_shuffle(const uint8_t* data,
         }
     }
 
-    fprintf(stderr,
+    HISS_DLOG(
             "[hiss][transform] BYTE_SHUFFLE inverse: data_size=%zu element_size=%zu n_elements=%zu\n",
             data_size, element_size, n_elements);
     return output;
@@ -214,7 +223,7 @@ static std::vector<uint8_t> apply_delta(const uint8_t* data,
         prev = curr;
     }
 
-    fprintf(stderr,
+    HISS_DLOG(
             "[hiss][transform] DELTA forward: data_size=%zu element_size=%zu n_elements=%zu\n",
             data_size, element_size, n_elements);
     return output;
@@ -260,7 +269,7 @@ static std::vector<uint8_t> inverse_delta(const uint8_t* data,
         write_element_le(output.data() + i * element_size, accum, element_size);
     }
 
-    fprintf(stderr,
+    HISS_DLOG(
             "[hiss][transform] DELTA inverse: data_size=%zu element_size=%zu n_elements=%zu\n",
             data_size, element_size, n_elements);
     return output;
@@ -342,7 +351,7 @@ static std::vector<uint8_t> apply_delta_varint(const uint8_t* data,
     // 空输入: 输出仅含 n_elements=0 的前缀 (4 字节)
     if (data_size == 0) {
         std::vector<uint8_t> output(4, 0);
-        fprintf(stderr,
+        HISS_DLOG(
                 "[hiss][transform] DELTA_VARINT forward: 空输入 → n_elements=0 (4 字节)\n");
         return output;
     }
@@ -393,7 +402,7 @@ static std::vector<uint8_t> apply_delta_varint(const uint8_t* data,
         prev = curr;
     }
 
-    fprintf(stderr,
+    HISS_DLOG(
             "[hiss][transform] DELTA_VARINT forward: data_size=%zu → output_size=%zu "
             "element_size=%zu n_elements=%zu\n",
             data_size, output.size(), element_size, n_elements);
@@ -440,7 +449,7 @@ static std::vector<uint8_t> inverse_delta_varint(const uint8_t* data,
 
     // n_elements=0: 输出为空 (有效情况)
     if (n_elements == 0) {
-        fprintf(stderr,
+        HISS_DLOG(
                 "[hiss][transform] DELTA_VARINT inverse: n_elements=0 → 空输出\n");
         return {};
     }
@@ -468,7 +477,7 @@ static std::vector<uint8_t> inverse_delta_varint(const uint8_t* data,
         write_element_le(output.data() + i * element_size, accum, element_size);
     }
 
-    fprintf(stderr,
+    HISS_DLOG(
             "[hiss][transform] DELTA_VARINT inverse: data_size=%zu → output_size=%zu "
             "element_size=%zu n_elements=%u\n",
             data_size, output_size, element_size, n_elements);
