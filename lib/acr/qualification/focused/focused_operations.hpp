@@ -74,6 +74,17 @@ bool run_gpu_operation(FocusedOp op,
                        std::uint64_t& elapsed_ns,
                        std::uint64_t& transfer_ns);
 
+// GPU resident 测量：数据先上传一次并保留，之后只 launch（必要时 D2H 输出）。
+// elapsed_ns 为 launch+sync（含必要 D2H）；transfer_ns 记录本测量内传输。
+// 返回 false=不支持/不可用。
+bool run_gpu_operation_resident(FocusedOp op,
+                                const std::vector<float>& x,
+                                std::vector<float>& y,
+                                std::vector<double>& partials,
+                                std::size_t bins,
+                                std::uint64_t& elapsed_ns,
+                                std::uint64_t& transfer_ns);
+
 // ===== 确定性数据填充（CPU/GPU 同源）=====
 void fill_uniform_fp32(float* p, std::size_t n, std::uint64_t seed);
 

@@ -540,3 +540,124 @@ extern "C" int acr_cuda_executor_transfer_d2h(
         return cudaStreamSynchronize(h->stream);
     }, elapsed_ns, last_error);
 }
+
+// ===== 聚焦版 v2：resident 持久上传与提交 =====
+extern "C" int acr_cuda_executor_upload_persistent(
+    void* handle, size_t begin, size_t end,
+    const float* x,
+    uint64_t* elapsed_ns, const char** last_error) {
+    if (handle == nullptr || x == nullptr || begin >= end) {
+        if (last_error) *last_error = set_error_msg("invalid args");
+        return 1;
+    }
+    auto* h = static_cast<CudaExecutorHandle*>(handle);
+    std::lock_guard<std::mutex> lk(h->mtx);
+    const size_t n = end - begin;
+    return submit_impl(h, [&]() -> cudaError_t {
+        cudaError_t err = ensure_buffer(&h->d_x, h->d_x_capacity, n);
+        if (err != cudaSuccess) return err;
+        cudaMemcpyAsync(h->d_x, x + begin, n * sizeof(float),
+                        cudaMemcpyHostToDevice, h->stream);
+        return cudaStreamSynchronize(h->stream);
+    }, elapsed_ns, last_error);
+}
+
+extern "C" int acr_cuda_executor_submit_dense_accumulate_resident(
+    void* handle, size_t begin, size_t end,
+    float* y,
+    uint64_t* elapsed_ns, const char** last_error) {
+    if (handle == nullptr || y == nullptr || begin >= end) {
+        if (last_error) *last_error = set_error_msg("invalid args");
+        return 1;
+    }
+    auto* h = static_cast<CudaExecutorHandle*>(handle);
+    std::lock_guard<std::mutex> lk(h->mtx);
+    const size_t n = end - begin;
+    return submit_impl(h, [&]() -> cudaError_t {
+        cudaError_t err = ensure_buffer(&h->d_y, h->d_y_capacity, n);
+        if (err != cudaSuccess) return err;
+        // d_x 已驻留（upload_persistent 保证容量）
+        cudaMemcpyAsync(h->d_y, y + begin, n * sizeof(float),
+                        cudaMemcpyHostToDevice, h->stream);  // y 初值上传
+        acr_launch_dense_accumulate_fp64acc(h->d_y, h->d_x, 0, n, h->stream);
+        cudaMemcpyAsync(y + begin, h->d_y, n * sizeof(float),
+                        cudaMemcpyDeviceToHost, h->stream);
+        return cudaStreamSynchronize(h->stream);
+    }, elapsed_ns, last_error);
+}
+
+extern "C" int acr_cuda_executor_submit_reduce_resident(
+    void* handle, size_t begin, size_t end,
+    double* partials, size_t blocks_per_chunk, uint64_t chunk_index,
+    uint64_t* elapsed_ns, const char** last_error) {
+    if (handle == nullptr || partials == nullptr || begin >= end ||
+        blocks_per_chunk == 0) {
+        if (last_error) *last_error = set_error_msg("invalid args");
+        return 1;
+    }
+    auto* h = static_cast<CudaExecutorHandle*>(handle);
+    std::lock_guard<std::mutex> lk(h->mtx);
+    const size_t n = end - begin;
+    const size_t blocks = (n + 255) / 256;
+    if (blocks == 0 || blocks_per_chunk < blocks) {
+        if (last_error) *last_error = set_error_msg("reduce span too small");
+        return 1;
+    }
+    return submit_impl(h, [&]() -> cudaError_t {
+        cudaError_t err = ensure_buffer(&h->d_partials, h->d_partials_capacity, blocks);
+        if (err != cudaSuccess) return err;
+        cudaMemsetAsync(h->d_partials, 0, blocks * sizeof(double), h->stream);
+        acr_launch_reduce(h->d_x, h->d_partials, 0, n,
+                          static_cast<size_t>(chunk_index), blocks_per_chunk, h->stream);
+        cudaMemcpyAsync(partials + chunk_index * blocks_per_chunk, h->d_partials,
+                        blocks * sizeof(double),
+                        cudaMemcpyDeviceToHost, h->stream);
+        return cudaStreamSynchronize(h->stream);
+    }, elapsed_ns, last_error);
+}
+
+extern "C" int acr_cuda_executor_submit_drizzle_scatter_resident(
+    void* handle, size_t begin, size_t end,
+    double* partials, size_t bins,
+    uint64_t* elapsed_ns, const char** last_error) {
+    if (handle == nullptr || partials == nullptr || begin >= end || bins == 0) {
+        if (last_error) *last_error = set_error_msg("invalid args");
+        return 1;
+    }
+    auto* h = static_cast<CudaExecutorHandle*>(handle);
+    std::lock_guard<std::mutex> lk(h->mtx);
+    const size_t n = end - begin;
+    return submit_impl(h, [&]() -> cudaError_t {
+        cudaError_t err = ensure_buffer(&h->d_bins, h->d_bins_capacity, bins);
+        if (err != cudaSuccess) return err;
+        cudaMemsetAsync(h->d_bins, 0, bins * sizeof(double), h->stream);
+        acr_launch_drizzle_scatter(h->d_x, h->d_bins, 0, n, bins, h->stream);
+        cudaMemcpyAsync(partials, h->d_bins, bins * sizeof(double),
+                        cudaMemcpyDeviceToHost, h->stream);
+        return cudaStreamSynchronize(h->stream);
+    }, elapsed_ns, last_error);
+}
+
+extern "C" int acr_cuda_executor_submit_chain_resident(
+    void* handle, size_t begin, size_t end,
+    float* z,
+    uint64_t* elapsed_ns, const char** last_error) {
+    if (handle == nullptr || z == nullptr || begin >= end) {
+        if (last_error) *last_error = set_error_msg("invalid args");
+        return 1;
+    }
+    auto* h = static_cast<CudaExecutorHandle*>(handle);
+    std::lock_guard<std::mutex> lk(h->mtx);
+    const size_t n = end - begin;
+    return submit_impl(h, [&]() -> cudaError_t {
+        cudaError_t err = ensure_buffer(&h->d_y, h->d_y_capacity, n);
+        if (err != cudaSuccess) return err;
+        err = ensure_buffer(&h->d_z, h->d_z_capacity, n);
+        if (err != cudaSuccess) return err;
+        // d_x 已驻留；两个 kernel 全程显存；只下载最终 z
+        acr_launch_chain(h->d_y, h->d_z, h->d_x, 0, n, h->stream);
+        cudaMemcpyAsync(z + begin, h->d_z, n * sizeof(float),
+                        cudaMemcpyDeviceToHost, h->stream);
+        return cudaStreamSynchronize(h->stream);
+    }, elapsed_ns, last_error);
+}

@@ -135,6 +135,45 @@ ACR_CUDA_BRIDGE_API int acr_cuda_executor_transfer_d2h(
     size_t device_bytes, void* host,
     uint64_t* elapsed_ns, const char** last_error);
 
+// ===== 聚焦版 v2（08 号计划 §2/§4）：resident 持久上传与提交 =====
+// 数据先上传到设备并保留（persistent d_x），后续 resident 提交跳过 H2D，
+// 只 launch（必要时 D2H 输出）——用于真实 resident 曲线测量与驻留复用。
+
+// 上传并保留到 d_x（persistent buffer）；再次调用同一范围视为已驻留复用
+ACR_CUDA_BRIDGE_API int acr_cuda_executor_upload_persistent(
+    void* handle,
+    size_t begin, size_t end,
+    const float* x,
+    uint64_t* elapsed_ns, const char** last_error);
+
+// resident dense accumulate：d_x 已驻留，y 输出 D2H
+ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_dense_accumulate_resident(
+    void* handle,
+    size_t begin, size_t end,
+    float* y,
+    uint64_t* elapsed_ns, const char** last_error);
+
+// resident pixel reduce：d_x 已驻留，partials D2H
+ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_reduce_resident(
+    void* handle,
+    size_t begin, size_t end,
+    double* partials, size_t blocks_per_chunk, uint64_t chunk_index,
+    uint64_t* elapsed_ns, const char** last_error);
+
+// resident drizzle scatter：d_x 已驻留，partials D2H
+ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_drizzle_scatter_resident(
+    void* handle,
+    size_t begin, size_t end,
+    double* partials, size_t bins,
+    uint64_t* elapsed_ns, const char** last_error);
+
+// resident chain：d_x 已驻留，两个 kernel 全程显存，只下载最终 z
+ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_chain_resident(
+    void* handle,
+    size_t begin, size_t end,
+    float* z,
+    uint64_t* elapsed_ns, const char** last_error);
+
 #ifdef __cplusplus
 }
 #endif

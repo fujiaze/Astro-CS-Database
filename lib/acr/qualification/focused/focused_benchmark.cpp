@@ -27,6 +27,35 @@ std::uint64_t median_of(std::vector<std::uint64_t> v) {
     return v[v.size() / 2];
 }
 
+// 最小二乘斜率（ns/item）：y = intercept + slope * x
+double fit_slope(const std::vector<std::size_t>& sizes,
+                 const std::vector<std::uint64_t>& ns) {
+    if (sizes.size() != ns.size() || sizes.size() < 2) return 0.0;
+    double sx = 0.0, sy = 0.0, sxx = 0.0, sxy = 0.0;
+    const std::size_t n = sizes.size();
+    for (std::size_t i = 0; i < n; ++i) {
+        const double x = static_cast<double>(sizes[i]);
+        const double y = static_cast<double>(ns[i]);
+        sx += x; sy += y; sxx += x * x; sxy += x * y;
+    }
+    const double denom = static_cast<double>(n) * sxx - sx * sx;
+    if (std::fabs(denom) < 1e-12) return 0.0;
+    return (static_cast<double>(n) * sxy - sx * sy) / denom;
+}
+
+double fit_intercept(const std::vector<std::size_t>& sizes,
+                     const std::vector<std::uint64_t>& ns,
+                     double slope) {
+    if (sizes.empty()) return 0.0;
+    double sy = 0.0, sx = 0.0;
+    const std::size_t n = sizes.size();
+    for (std::size_t i = 0; i < n; ++i) {
+        sy += static_cast<double>(ns[i]);
+        sx += static_cast<double>(sizes[i]);
+    }
+    return (sy - slope * sx) / static_cast<double>(n);
+}
+
 // 真实运行指纹（04 号规范 §7）：编译器宏 + 运行环境线程数 + 内核地址 hash
 std::string compiler_fingerprint() {
 #if defined(_MSC_VER)
@@ -121,7 +150,7 @@ std::size_t FocusedBenchmark::run(FocusedProfileKind kind, bool enable_gpu) {
             std::vector<double> partials(256, 0.0);
             fill_uniform_fp32(x.data(), n, 0xA57C5AC20260802ULL);
 
-            // CPU 测量（3 预热 + 7 有效）
+            // ---- CPU 测量（3 预热 + 7 有效）----
             for (int w = 0; w < kWarmup; ++w) {
                 run_cpu_operation(op, x, y, partials, 256);
             }
@@ -134,37 +163,90 @@ std::size_t FocusedBenchmark::run(FocusedProfileKind kind, bool enable_gpu) {
             }
             m.cpu_ns.push_back(median_of(cpu_samples));
 
-            // GPU 测量（可用时）
+            // ---- GPU host roundtrip 与 resident 测量（可用时）----
             if (enable_gpu) {
-                std::vector<std::uint64_t> gpu_samples;
+                std::vector<std::uint64_t> host_samples, res_samples;
                 std::uint64_t el = 0, tr = 0;
                 bool supported = false;
                 for (int w = 0; w < kWarmup; ++w) {
-                    supported = run_gpu_operation(op, x, y, partials, 256,
-                                                  el, tr);
+                    supported = run_gpu_operation(op, x, y, partials, 256, el, tr);
                     if (!supported) break;
                 }
                 if (supported) {
                     for (int r = 0; r < kRepeats; ++r) {
                         std::fill(y.begin(), y.end(), 2.0f);
                         std::fill(partials.begin(), partials.end(), 0.0);
-                        if (run_gpu_operation(op, x, y, partials, 256,
-                                              el, tr)) {
-                            gpu_samples.push_back(el);
+                        if (run_gpu_operation(op, x, y, partials, 256, el, tr)) {
+                            host_samples.push_back(el);
                         }
                     }
                 }
-                if (!gpu_samples.empty()) {
-                    m.gpu_ns.push_back(median_of(gpu_samples));
-                    // 当前桥接为同步语义：resident 近似为端到端
-                    m.gpu_resident_ns.push_back(median_of(gpu_samples));
+                // resident：真实上传一次 + resident 提交
+                bool res_supported = false;
+                for (int w = 0; w < kWarmup; ++w) {
+                    res_supported = run_gpu_operation_resident(
+                        op, x, y, partials, 256, el, tr);
+                    if (!res_supported) break;
+                }
+                if (res_supported) {
+                    for (int r = 0; r < kRepeats; ++r) {
+                        std::fill(y.begin(), y.end(), 2.0f);
+                        std::fill(partials.begin(), partials.end(), 0.0);
+                        if (run_gpu_operation_resident(
+                                op, x, y, partials, 256, el, tr)) {
+                            res_samples.push_back(el);
+                        }
+                    }
+                }
+                if (!host_samples.empty()) {
+                    m.gpu_host_ns.push_back(median_of(host_samples));
                 } else {
-                    m.gpu_ns.push_back(0);
+                    m.gpu_host_ns.push_back(0);
+                }
+                if (!res_samples.empty()) {
+                    m.gpu_resident_ns.push_back(median_of(res_samples));
+                } else {
                     m.gpu_resident_ns.push_back(0);
                 }
             } else {
-                m.gpu_ns.push_back(0);
+                m.gpu_host_ns.push_back(0);
                 m.gpu_resident_ns.push_back(0);
+            }
+        }
+
+        // ---- 候选块实测（08 号计划 §2：替代硬编码 64K/1M）----
+        {
+            const std::size_t cpu_cands[] = {1u << 14, 1u << 16, 1u << 18};
+            for (std::size_t c : cpu_cands) {
+                std::vector<std::uint64_t> samples;
+                std::vector<float> xc(c), yc(c, 2.0f);
+                std::vector<double> pb(256, 0.0);
+                fill_uniform_fp32(xc.data(), c, 0xA57C5AC20260802ULL);
+                for (int r = 0; r < 5; ++r) {
+                    std::fill(yc.begin(), yc.end(), 2.0f);
+                    std::fill(pb.begin(), pb.end(), 0.0);
+                    samples.push_back(run_cpu_operation(op, xc, yc, pb, 256));
+                }
+                m.cpu_chunk_candidates.push_back(c);
+                m.cpu_chunk_ns_per_block.push_back(
+                    static_cast<double>(median_of(samples)));
+            }
+            if (enable_gpu) {
+                const std::size_t gpu_cands[] = {1u << 18, 1u << 20, 1u << 22};
+                for (std::size_t c : gpu_cands) {
+                    std::vector<std::uint64_t> samples;
+                    for (int r = 0; r < 5; ++r) {
+                        std::vector<float> xc(c), yc(c, 2.0f);
+                        std::vector<double> pb(256, 0.0);
+                        fill_uniform_fp32(xc.data(), c, 0xA57C5AC20260802ULL);
+                        std::uint64_t el = 0, tr = 0;
+                        run_gpu_operation(op, xc, yc, pb, 256, el, tr);
+                        samples.push_back(el);
+                    }
+                    m.gpu_chunk_candidates.push_back(c);
+                    m.gpu_chunk_ns_per_block.push_back(
+                        static_cast<double>(median_of(samples)));
+                }
             }
         }
         ops_.push_back(std::move(m));
@@ -249,13 +331,85 @@ double predict_ns(const std::vector<std::size_t>& sizes,
 
 void FocusedBenchmark::qualify(FocusedProfileKind kind,
                                OperationProfile& profile) const {
-    // 资格标记：standard → qualified；quick → diagnostic（不用于生产路由）。
-    // 真实留出误差由测试阶段独立测量并写回 profile（见 focused qualification
-    // 测试）；此处不做模型自洽冒充。
+    // 08 号计划 §2：每 Operation 独立资格。
+    //   - leave-one-out 真实预测误差（禁止伪零）
+    //   - CPU/GPU 曲线均有效
+    //   - 至少一条 GPU 路径（host/resident）存在真实收益交叉点
+    //   - standard 档才可 qualified；quick 仅 diagnostic
+    const auto& sizes = focused_size_sequence();
+    const double kMedianLimit = 0.30;
+    const double kP95Limit = 0.60;
     for (auto& op : profile.operations) {
         const FocusedMeasuredOp* m = measured(op_id_to_enum(op.operation_id));
-        if (!m || m->cpu_ns.size() < 2) { op.qualified = false; continue; }
-        op.qualified = (kind == FocusedProfileKind::Standard);
+        op.qualified = false;
+        if (!m || m->cpu_ns.size() < 2 ||
+            m->gpu_resident_ns.size() != m->cpu_ns.size()) {
+            continue;
+        }
+        // ---- leave-one-out CPU 误差 ----
+        std::vector<double> cpu_errs;
+        for (std::size_t i = 0; i < sizes.size(); ++i) {
+            std::vector<std::size_t> fit_sz;
+            std::vector<std::uint64_t> fit_ns;
+            for (std::size_t j = 0; j < sizes.size(); ++j) {
+                if (j == i) continue;
+                fit_sz.push_back(sizes[j]);
+                fit_ns.push_back(m->cpu_ns[j]);
+            }
+            const double slope = fit_slope(fit_sz, fit_ns);
+            const double inter = fit_intercept(fit_sz, fit_ns, slope);
+            const double pred = inter + slope * static_cast<double>(sizes[i]);
+            const double actual = static_cast<double>(m->cpu_ns[i]);
+            if (actual > 0.0 && pred > 0.0) {
+                cpu_errs.push_back(std::fabs(pred - actual) / actual);
+            }
+        }
+        if (!cpu_errs.empty()) {
+            std::sort(cpu_errs.begin(), cpu_errs.end());
+            op.cpu.median_error_ratio = cpu_errs[cpu_errs.size() / 2];
+            op.cpu.p95_error_ratio =
+                cpu_errs[static_cast<std::size_t>(
+                    0.95 * static_cast<double>(cpu_errs.size() - 1))];
+        }
+        // ---- leave-one-out GPU resident 误差 ----
+        std::vector<double> gpu_errs;
+        for (std::size_t i = 0; i < sizes.size(); ++i) {
+            std::vector<std::size_t> fit_sz;
+            std::vector<std::uint64_t> fit_ns;
+            for (std::size_t j = 0; j < sizes.size(); ++j) {
+                if (j == i) continue;
+                fit_sz.push_back(sizes[j]);
+                fit_ns.push_back(m->gpu_resident_ns[j]);
+            }
+            const double slope = fit_slope(fit_sz, fit_ns);
+            const double inter = fit_intercept(fit_sz, fit_ns, slope);
+            const double pred = inter + slope * static_cast<double>(sizes[i]);
+            const double actual = static_cast<double>(m->gpu_resident_ns[i]);
+            if (actual > 0.0 && pred > 0.0) {
+                gpu_errs.push_back(std::fabs(pred - actual) / actual);
+            }
+        }
+        if (!gpu_errs.empty()) {
+            std::sort(gpu_errs.begin(), gpu_errs.end());
+            op.gpu.median_error_ratio = gpu_errs[gpu_errs.size() / 2];
+            op.gpu.p95_error_ratio =
+                gpu_errs[static_cast<std::size_t>(
+                    0.95 * static_cast<double>(gpu_errs.size() - 1))];
+        }
+        // ---- 资格判定 ----
+        const bool gpu_curve_ok = m->gpu_resident_ns[0] > 0;
+        const bool gpu_path_ok =
+            op.gpu.host_path_eligible || op.gpu.resident_path_eligible;
+        const bool cpu_err_ok =
+            op.cpu.median_error_ratio <= kMedianLimit &&
+            op.cpu.p95_error_ratio <= kP95Limit;
+        const bool gpu_err_ok =
+            op.gpu.median_error_ratio <= kMedianLimit &&
+            op.gpu.p95_error_ratio <= kP95Limit;
+        if (kind == FocusedProfileKind::Standard && gpu_curve_ok &&
+            gpu_path_ok && cpu_err_ok && gpu_err_ok) {
+            op.qualified = true;
+        }
     }
 }
 
@@ -277,7 +431,9 @@ OperationProfile FocusedBenchmark::build_profile(
     // GPU 未实测（未启用/不可用）时只能产生 diagnostic profile
     bool gpu_available = false;
     for (const auto& m : ops_) {
-        if (!m.gpu_ns.empty() && m.gpu_ns[0] > 0) { gpu_available = true; break; }
+        if (!m.gpu_resident_ns.empty() && m.gpu_resident_ns[0] > 0) {
+            gpu_available = true; break;
+        }
     }
     p.profile_state =
         (kind == FocusedProfileKind::Standard && gpu_available)
@@ -300,88 +456,11 @@ OperationProfile FocusedBenchmark::build_profile(
         op.sample_range.max_items = m.max_items;
         op.sample_range.repeats = kRepeats;
 
-        // CPU 曲线：固定_us=0（CPU 无 launch），ns_per_item=中位斜率
-        if (!m.cpu_ns.empty() && m.cpu_ns[0] > 0) {
-            std::vector<double> slope;
-            for (std::size_t i = 1; i < m.cpu_ns.size(); ++i) {
-                const double dn = static_cast<double>(m.cpu_ns[i]) -
-                                  static_cast<double>(m.cpu_ns[i - 1]);
-                const double ds = static_cast<double>(sizes[i] - sizes[i - 1]);
-                if (ds > 0) slope.push_back(dn / ds);
-            }
-            if (!slope.empty()) {
-                std::sort(slope.begin(), slope.end());
-                op.cpu.ns_per_item = slope[slope.size() / 2];
-            } else {
-                op.cpu.ns_per_item =
-                    static_cast<double>(m.cpu_ns[0]) /
-                    static_cast<double>(std::max<std::size_t>(1, sizes[0]));
-            }
-            op.cpu.recommended_chunk_items = 1u << 16;  // 64K（缓存友好）
-            op.cpu.minimum_chunk_items = 1u << 10;      // 1K
-        }
-        // GPU 曲线
-        if (!m.gpu_ns.empty() && m.gpu_ns[0] > 0) {
-            std::vector<double> slope;
-            for (std::size_t i = 1; i < m.gpu_ns.size(); ++i) {
-                if (m.gpu_ns[i] > m.gpu_ns[i - 1]) {
-                    const double dn = static_cast<double>(m.gpu_ns[i]) -
-                                      static_cast<double>(m.gpu_ns[i - 1]);
-                    const double ds =
-                        static_cast<double>(sizes[i] - sizes[i - 1]);
-                    if (ds > 0) slope.push_back(dn / ds);
-                }
-            }
-            if (!slope.empty()) {
-                std::sort(slope.begin(), slope.end());
-                op.gpu.ns_per_item = slope[slope.size() / 2];
-            } else {
-                op.gpu.ns_per_item =
-                    static_cast<double>(m.gpu_ns[0]) /
-                    static_cast<double>(std::max<std::size_t>(1, sizes[0]));
-            }
-            op.gpu.fixed_us =
-                static_cast<double>(m.gpu_ns[0]) / 1000.0;
-            op.gpu.device_id = "cuda:0";
-            op.gpu.recommended_chunk_items = 1u << 20;   // 1M
-            op.gpu.minimum_chunk_items = 1u << 14;       // 16K
-            // 最小收益规模：由 launch/传输固定开销与每 item 耗时推算
-            const double launch_ns =
-                transfer_.launch_ns.empty()
-                    ? 8000.0 : static_cast<double>(
-                        median_of(transfer_.launch_ns));
-            const double gpu_ns_per = op.gpu.ns_per_item;
-            // 临时 eligibility/阈值：提交 2 将按真实 CPU/GPU/transfer 模型重算
-            if (gpu_ns_per > 0.0) {
-                op.gpu.host_path_eligible = true;
-                op.gpu.resident_path_eligible = true;
-                op.gpu.min_profitable_items_host =
-                    static_cast<std::size_t>((launch_ns * 10.0) / gpu_ns_per);
-                op.gpu.min_profitable_items_resident =
-                    static_cast<std::size_t>((launch_ns * 4.0) / gpu_ns_per);
-            }
-        } else {
-            // GPU 未实测：保守估算占位（schema 要求 ns_per_item>0）；
-            // qualified 由 qualify() 置 false，state 保持 diagnostic
-            op.gpu.ns_per_item =
-                (op.cpu.ns_per_item > 0.0) ? op.cpu.ns_per_item * 10.0 + 1.0
-                                           : 100.0;
-            op.gpu.fixed_us = 100.0;
-            op.gpu.device_id = "cuda:0";
-            op.gpu.recommended_chunk_items = 1u << 20;
-            op.gpu.minimum_chunk_items = 1u << 14;
-            op.gpu.host_path_eligible = false;
-            op.gpu.resident_path_eligible = false;
-            op.gpu.min_profitable_items_host = std::nullopt;
-            op.gpu.min_profitable_items_resident = std::nullopt;
-        }
-        // 传输（H2D/D2H 线性拟合）
+        // ---- 传输模型（H2D/D2H 线性拟合；先于交叉点计算）----
         if (!transfer_.h2d_ns.empty()) {
-            // 每尺寸中位
             std::size_t nsz = transfer_.sizes_bytes.size();
             if (nsz > 0) {
-                const std::size_t step =
-                    transfer_.h2d_ns.size() / nsz;
+                const std::size_t step = transfer_.h2d_ns.size() / nsz;
                 std::vector<std::uint64_t> h2d_med, d2h_med;
                 for (std::size_t i = 0; i < nsz; ++i) {
                     std::vector<std::uint64_t> h, d;
@@ -393,7 +472,6 @@ OperationProfile FocusedBenchmark::build_profile(
                     h2d_med.push_back(median_of(h));
                     d2h_med.push_back(median_of(d));
                 }
-                // 斜率（ns/byte）与固定延迟
                 if (h2d_med.size() >= 2) {
                     const double dn =
                         static_cast<double>(h2d_med.back() - h2d_med.front());
@@ -403,8 +481,7 @@ OperationProfile FocusedBenchmark::build_profile(
                     if (ds > 0.0) {
                         const double ns_per_byte = dn / ds;
                         op.transfer.h2d_gbps =
-                            (ns_per_byte > 0.0)
-                                ? 1.0 / ns_per_byte : 0.0;  // bytes/ns = GB/s
+                            (ns_per_byte > 0.0) ? 1.0 / ns_per_byte : 0.0;
                         op.transfer.h2d_fixed_us =
                             (static_cast<double>(h2d_med.front()) -
                              ns_per_byte *
@@ -424,8 +501,7 @@ OperationProfile FocusedBenchmark::build_profile(
                     if (ds > 0.0) {
                         const double ns_per_byte = dn / ds;
                         op.transfer.d2h_gbps =
-                            (ns_per_byte > 0.0)
-                                ? 1.0 / ns_per_byte : 0.0;
+                            (ns_per_byte > 0.0) ? 1.0 / ns_per_byte : 0.0;
                         op.transfer.d2h_fixed_us =
                             (static_cast<double>(d2h_med.front()) -
                              ns_per_byte *
@@ -438,19 +514,118 @@ OperationProfile FocusedBenchmark::build_profile(
                 }
             }
         } else {
-            // GPU 未实测：保守传输占位（schema 要求带宽>0；state=diagnostic）
             op.transfer.h2d_gbps = 1.0;
             op.transfer.d2h_gbps = 1.0;
             op.transfer.h2d_fixed_us = 100.0;
             op.transfer.d2h_fixed_us = 100.0;
         }
-        // 内存
+        // ---- 内存公式（先于交叉点计算）----
         op.memory.host_bytes_per_item =
             static_cast<double>(focused_input_bytes_per_item(m.op));
         op.memory.device_bytes_per_item =
             static_cast<double>(focused_input_bytes_per_item(m.op));
-        op.memory.fixed_device_bytes = 1u << 20;  // 1MB 暂存
+        op.memory.fixed_device_bytes = 1u << 20;
         op.memory.fixed_host_bytes = 1u << 20;
+
+        // ---- CPU / GPU resident / GPU host 线性拟合（08 号计划 §2）----
+        const double cpu_slope = fit_slope(sizes, m.cpu_ns);
+        // 固定开销来自拟合截距（04 号规范 §4：禁止用最小尺寸总耗时）
+        const double cpu_fixed = m.cpu_ns.empty()
+            ? 0.0 : fit_intercept(sizes, m.cpu_ns, cpu_slope) / 1000.0;
+        op.cpu.fixed_us = std::max(0.0, cpu_fixed);  // 截距可为负 → clamp 0
+        op.cpu.ns_per_item = cpu_slope;
+        // 候选块：选每块耗时最低（吞吐稳定区）
+        if (!m.cpu_chunk_candidates.empty()) {
+            std::size_t best = 0;
+            for (std::size_t i = 1; i < m.cpu_chunk_candidates.size(); ++i) {
+                if (m.cpu_chunk_ns_per_block[i] <
+                    m.cpu_chunk_ns_per_block[best]) best = i;
+            }
+            op.cpu.recommended_chunk_items = m.cpu_chunk_candidates[best];
+            op.cpu.minimum_chunk_items =
+                m.cpu_chunk_candidates.front() / 4;
+            if (op.cpu.minimum_chunk_items == 0) op.cpu.minimum_chunk_items = 1;
+        } else {
+            op.cpu.recommended_chunk_items = 1u << 16;
+            op.cpu.minimum_chunk_items = 1u << 10;
+        }
+
+        const bool gpu_measured =
+            !m.gpu_resident_ns.empty() && m.gpu_resident_ns[0] > 0;
+        if (gpu_measured) {
+            const double res_slope = fit_slope(sizes, m.gpu_resident_ns);
+            const double res_fixed =
+                fit_intercept(sizes, m.gpu_resident_ns, res_slope) / 1000.0;
+            op.gpu.fixed_us = std::max(0.0, res_fixed);
+            op.gpu.ns_per_item = res_slope;
+            op.gpu.device_id = "cuda:0";
+            // 候选块
+            if (!m.gpu_chunk_candidates.empty()) {
+                std::size_t best = 0;
+                for (std::size_t i = 1; i < m.gpu_chunk_candidates.size(); ++i) {
+                    if (m.gpu_chunk_ns_per_block[i] <
+                        m.gpu_chunk_ns_per_block[best]) best = i;
+                }
+                op.gpu.recommended_chunk_items = m.gpu_chunk_candidates[best];
+                op.gpu.minimum_chunk_items =
+                    m.gpu_chunk_candidates.front() / 4;
+                if (op.gpu.minimum_chunk_items == 0) {
+                    op.gpu.minimum_chunk_items = 1;
+                }
+            } else {
+                op.gpu.recommended_chunk_items = 1u << 20;
+                op.gpu.minimum_chunk_items = 1u << 14;
+            }
+            // 交叉点（04 号规范 §4）：
+            //   T_cpu(n)  = cpu_fixed + cpu_slope*n
+            //   T_res(n)  = res_fixed + res_slope*n
+            //   T_host(n) = res_fixed + res_slope*n
+            //               + h2d(n) + d2h(n)（传输固定 + 斜率）
+            const double h2d_slope_ns =
+                (op.transfer.h2d_gbps > 0.0)
+                    ? 1.0 / op.transfer.h2d_gbps : 0.0;  // ns/byte
+            const double d2h_slope_ns =
+                (op.transfer.d2h_gbps > 0.0)
+                    ? 1.0 / op.transfer.d2h_gbps : 0.0;
+            const double bytes_per_item =
+                std::max(1.0, static_cast<double>(
+                    focused_input_bytes_per_item(m.op)));
+            const double transfer_slope =
+                (h2d_slope_ns + d2h_slope_ns) * bytes_per_item;
+            const double host_slope = res_slope + transfer_slope;
+            const double host_fixed =
+                std::max(0.0, res_fixed) + op.transfer.h2d_fixed_us +
+                op.transfer.d2h_fixed_us;
+            // resident 路径：GPU 渐近边际 < CPU 且存在交叉点 n* > 0
+            if (res_slope < cpu_slope) {
+                double nstar =
+                    (cpu_fixed - res_fixed) / (res_slope - cpu_slope);
+                if (nstar <= 0.0) nstar = 1.0;  // GPU 全程更快 → 最小规模即收益
+                op.gpu.resident_path_eligible = true;
+                op.gpu.min_profitable_items_resident =
+                    static_cast<std::size_t>(nstar) + 1;
+            }
+            // host 路径：host 总斜率 < CPU 斜率且存在交叉点
+            if (host_slope < cpu_slope) {
+                double nstar =
+                    (cpu_fixed - host_fixed) / (host_slope - cpu_slope);
+                if (nstar <= 0.0) nstar = 1.0;
+                op.gpu.host_path_eligible = true;
+                op.gpu.min_profitable_items_host =
+                    static_cast<std::size_t>(nstar) + 1;
+            }
+        } else {
+            // GPU 未实测：不适用路径（null 阈值）
+            op.gpu.ns_per_item = cpu_slope * 10.0 + 1.0;  // schema 要求 >0
+            op.gpu.fixed_us = 100.0;
+            op.gpu.device_id = "cuda:0";
+            op.gpu.recommended_chunk_items = 1u << 20;
+            op.gpu.minimum_chunk_items = 1u << 14;
+            op.gpu.host_path_eligible = false;
+            op.gpu.resident_path_eligible = false;
+            op.gpu.min_profitable_items_host = std::nullopt;
+            op.gpu.min_profitable_items_resident = std::nullopt;
+        }
         p.operations.push_back(std::move(op));
     }
     return p;

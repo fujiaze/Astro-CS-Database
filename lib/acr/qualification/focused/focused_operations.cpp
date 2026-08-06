@@ -253,6 +253,71 @@ bool run_gpu_operation(FocusedOp op,
     return true;
 }
 
+bool run_gpu_operation_resident(FocusedOp op,
+                                const std::vector<float>& x,
+                                std::vector<float>& y,
+                                std::vector<double>& partials,
+                                std::size_t bins,
+                                std::uint64_t& elapsed_ns,
+                                std::uint64_t& transfer_ns) {
+    using namespace astro::compute::cuda::bridge;
+    ensure_bridge_loaded();
+    auto& api = astro::compute::cuda::bridge::api();
+    if (!api.loaded() || !api.upload_persistent ||
+        !api.submit_dense_accumulate_resident ||
+        !api.submit_reduce_resident ||
+        !api.submit_drizzle_scatter_resident ||
+        !api.submit_chain_resident) {
+        return false;
+    }
+    static void* gpu_handle = nullptr;
+    if (gpu_handle == nullptr) {
+        const char* err = nullptr;
+        if (api.init(&err) <= 0) return false;
+        gpu_handle = api.executor_create(0, 65536, 256, &err);
+        if (gpu_handle == nullptr) return false;
+    }
+    const std::size_t n = x.size();
+    std::uint64_t el = 0, tr = 0;
+    const char* err = nullptr;
+    // 上传一次（persistent），作为本次 resident 测量的传输
+    if (api.upload_persistent(gpu_handle, 0, n, x.data(), &tr, &err) != 0) {
+        return false;
+    }
+    int rc = 1;
+    switch (op) {
+        case FocusedOp::DenseAccumulateFp32:
+        case FocusedOp::DenseAccumulateFp64Acc:
+            rc = api.submit_dense_accumulate_resident(
+                gpu_handle, 0, n, y.data(), &el, &err);
+            break;
+        case FocusedOp::PixelReduceFp64Acc: {
+            const std::size_t blocks = (n + 255) / 256;
+            std::vector<double> host_partials(blocks, 0.0);
+            rc = api.submit_reduce_resident(
+                gpu_handle, 0, n, host_partials.data(), blocks, 0, &el, &err);
+            if (rc == 0) {
+                double total = 0.0;
+                for (double v : host_partials) total += v;
+                if (!partials.empty()) partials[0] = total;
+            }
+            break;
+        }
+        case FocusedOp::DrizzleScatterFp64Acc:
+            rc = api.submit_drizzle_scatter_resident(
+                gpu_handle, 0, n, partials.data(), bins, &el, &err);
+            break;
+        case FocusedOp::ResidentChain:
+            rc = api.submit_chain_resident(
+                gpu_handle, 0, n, y.data(), &el, &err);
+            break;
+    }
+    if (rc != 0) return false;
+    elapsed_ns = el;
+    transfer_ns = tr;
+    return true;
+}
+
 void reference_dense_accumulate(const std::vector<float>& x,
                                 std::vector<float>& y,
                                 bool fp64_acc) {

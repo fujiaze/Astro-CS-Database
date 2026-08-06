@@ -47,6 +47,19 @@ struct BridgeApi {
                         std::uint64_t*, const char**){nullptr};
     int (*transfer_d2h)(void*, std::size_t, void*,
                         std::uint64_t*, const char**){nullptr};
+    // 聚焦版 v2：resident 持久上传与提交
+    int (*upload_persistent)(void*, std::size_t, std::size_t,
+                             const float*, std::uint64_t*, const char**){nullptr};
+    int (*submit_dense_accumulate_resident)(void*, std::size_t, std::size_t,
+                                            float*, std::uint64_t*, const char**){nullptr};
+    int (*submit_reduce_resident)(void*, std::size_t, std::size_t,
+                                  double*, std::size_t, std::uint64_t,
+                                  std::uint64_t*, const char**){nullptr};
+    int (*submit_drizzle_scatter_resident)(void*, std::size_t, std::size_t,
+                                           double*, std::size_t,
+                                           std::uint64_t*, const char**){nullptr};
+    int (*submit_chain_resident)(void*, std::size_t, std::size_t,
+                                 float*, std::uint64_t*, const char**){nullptr};
 
     bool loaded() const noexcept { return init != nullptr; }
 };

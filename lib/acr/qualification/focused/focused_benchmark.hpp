@@ -31,9 +31,14 @@ struct FocusedMeasuredOp {
     FocusedOp op{};
     std::size_t min_items{0};
     std::size_t max_items{0};
-    std::vector<std::uint64_t> cpu_ns;     // 每尺寸 CPU 耗时（中位）
-    std::vector<std::uint64_t> gpu_ns;     // 每尺寸 GPU 端到端（host_roundtrip）
-    std::vector<std::uint64_t> gpu_resident_ns;  // resident 计算（当前=端到端近似）
+    std::vector<std::uint64_t> cpu_ns;           // CPU 全量（中位）
+    std::vector<std::uint64_t> gpu_resident_ns;  // GPU resident（launch+compute+D2H）
+    std::vector<std::uint64_t> gpu_host_ns;      // GPU host roundtrip（H2D+launch+D2H）
+    // 候选块实测（吞吐稳定区选择，替代硬编码 64K/1M）
+    std::vector<std::size_t> cpu_chunk_candidates;  // 候选块大小
+    std::vector<double> cpu_chunk_ns_per_block;     // 每块耗时（中位）
+    std::vector<std::size_t> gpu_chunk_candidates;
+    std::vector<double> gpu_chunk_ns_per_block;
 };
 
 // ===== 传输/开销测量 =====

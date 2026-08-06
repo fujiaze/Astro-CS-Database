@@ -114,6 +114,16 @@ void ensure_bridge_loaded() {
                           g_api.submit_launch_event);
         ok &= load_symbol(mod, "acr_cuda_executor_transfer_h2d", g_api.transfer_h2d);
         ok &= load_symbol(mod, "acr_cuda_executor_transfer_d2h", g_api.transfer_d2h);
+        ok &= load_symbol(mod, "acr_cuda_executor_upload_persistent",
+                          g_api.upload_persistent);
+        ok &= load_symbol(mod, "acr_cuda_executor_submit_dense_accumulate_resident",
+                          g_api.submit_dense_accumulate_resident);
+        ok &= load_symbol(mod, "acr_cuda_executor_submit_reduce_resident",
+                          g_api.submit_reduce_resident);
+        ok &= load_symbol(mod, "acr_cuda_executor_submit_drizzle_scatter_resident",
+                          g_api.submit_drizzle_scatter_resident);
+        ok &= load_symbol(mod, "acr_cuda_executor_submit_chain_resident",
+                          g_api.submit_chain_resident);
         if (!ok) {
             g_api = BridgeApi{};  // 符号缺失：视为不可用
         }
