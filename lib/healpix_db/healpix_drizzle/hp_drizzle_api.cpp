@@ -8,6 +8,7 @@
 #include "drizzle_engine.h"
 #include "fits_reader.h"
 #include "wcs_sip.h"
+#include "reverse_drizzle.h"
 #include "astro_image_io.h"   // aio_frame_get_block / aio_frame_kv_get
 #include "gradient/snr_evaluator.h"  // SnrEvaluator (KD-tree IDW 重建逐像素 SNR)
 #include "aio_healpix_io.h"         // HioSnrModel, HioSnrControlPoint (向后兼容宏)
@@ -21,6 +22,119 @@
 #include <algorithm>
 
 using namespace drizzle;
+
+// ============================================================================
+// 反向 Drizzle (Sphere -> Plane) 正式 C ABI (签字修正 REV-101)
+// ============================================================================
+
+static void setReverseErr(HpReverseDrizzleResult* result,
+                          const std::string& msg) {
+    if (!result) return;
+    size_t n = msg.copy(result->error_msg, sizeof(result->error_msg) - 1);
+    result->error_msg[n] = '\0';
+}
+
+HP_DRIZZLE_API int hp_drizzle_reverse_run(
+    const HpReverseDrizzleInput* in,
+    void* signal_out,
+    void* coverage_out,
+    HpReverseDrizzleResult* result)
+{
+    if (!in || !result) {
+        fprintf(stderr, "[hp_drizzle_api] reverse: 参数非法 (in/result 不能为空)\n");
+        return 1;
+    }
+    std::memset(result, 0, sizeof(HpReverseDrizzleResult));
+    if (!signal_out || !coverage_out) {
+        setReverseErr(result, "reverse: signal_out/coverage_out 不能为空");
+        return 2;
+    }
+    if (in->nested != 1) {
+        setReverseErr(result, "reverse: 仅支持 NESTED (nested=1)");
+        return 3;
+    }
+    if (in->n_leaf < 0 || in->target_width <= 0 || in->target_height <= 0 ||
+        (in->leaf_ipix == nullptr && in->n_leaf > 0)) {
+        setReverseErr(result, "reverse: 输入参数非法 (n_leaf/尺寸/ipix)");
+        return 4;
+    }
+
+    ReverseDrizzleInput rin;
+    rin.nside = (uint32_t)in->nside;
+    rin.nested = true;
+    rin.target_width = in->target_width;
+    rin.target_height = in->target_height;
+    rin.pixfrac = in->pixfrac;
+    rin.output_fp64 = in->output_fp64 != 0;
+    rin.no_data_as_zero = in->no_data_as_zero != 0;
+
+    WcsParams& w = rin.wcs;
+    w.has_wcs = true;
+    std::strncpy(w.ctype1, "RA---TAN-SIP", sizeof(w.ctype1) - 1);
+    std::strncpy(w.ctype2, "DEC--TAN-SIP", sizeof(w.ctype2) - 1);
+    w.crval[0] = in->crval[0]; w.crval[1] = in->crval[1];
+    w.crpix[0] = in->crpix[0]; w.crpix[1] = in->crpix[1];
+    w.cd[0] = in->cd[0]; w.cd[1] = in->cd[1];
+    w.cd[2] = in->cd[2]; w.cd[3] = in->cd[3];
+    w.sip.order = std::max(0, std::min(4, (int)in->sip_order));
+    w.sip.ap_order = std::max(0, std::min(4, (int)in->sip_ap_order));
+    for (int k = 0; k < 36; k++) {
+        w.sip.a[k] = in->sip_a[k];  w.sip.b[k] = in->sip_b[k];
+        w.sip.ap[k] = in->sip_ap[k]; w.sip.bp[k] = in->sip_bp[k];
+    }
+
+    if (in->n_leaf > 0) {
+        rin.leaf_ipix.assign(in->leaf_ipix, in->leaf_ipix + in->n_leaf);
+        if (in->leaf_signal_f32) {
+            rin.leaf_signal_f32.assign(in->leaf_signal_f32,
+                                       in->leaf_signal_f32 + in->n_leaf);
+        } else if (in->leaf_signal_f64) {
+            rin.leaf_signal.assign(in->leaf_signal_f64,
+                                   in->leaf_signal_f64 + in->n_leaf);
+        }
+        if (in->leaf_support) {
+            rin.leaf_support.assign(in->leaf_support,
+                                    in->leaf_support + in->n_leaf);
+        }
+    }
+
+    ReverseDrizzle rdz;
+    ReverseDrizzleOutput rout;
+    std::string err;
+    if (!rdz.run(rin, rout, err)) {
+        setReverseErr(result, err);
+        return 5;
+    }
+
+    const size_t npix = (size_t)in->target_width * in->target_height;
+    if (rin.output_fp64) {
+        std::memcpy(signal_out, rout.signal.data(), npix * sizeof(double));
+        std::memcpy(coverage_out, rout.coverage.data(), npix * sizeof(double));
+    } else {
+        std::memcpy(signal_out, rout.signal_f32.data(), npix * sizeof(float));
+        std::memcpy(coverage_out, rout.coverage_f32.data(), npix * sizeof(float));
+    }
+    result->n_source_leaf = rout.n_source_leaf;
+    result->n_target_pixel_touched = rout.n_target_pixel_touched;
+    result->n_candidates = rout.n_candidates;
+    result->n_overlaps = rout.n_overlaps;
+    result->total_signal_in = rout.total_signal_in;
+    result->total_signal_out = rout.total_signal_out;
+    result->total_covered_area_in = rout.total_covered_area_in;
+    result->total_covered_area_out = rout.total_covered_area_out;
+    result->n_invalid_ipix = rout.n_invalid_ipix;
+    result->n_nonfinite = rout.n_nonfinite;
+    result->n_skipped_outside = rout.n_skipped_outside;
+    return 0;
+}
+
+HP_DRIZZLE_API uint32_t hp_drizzle_reverse_capability(void) {
+    return 0x01u | 0x02u | 0x04u | 0x08u | 0x10u | 0x20u;
+}
+
+HP_DRIZZLE_API const char* hp_drizzle_reverse_version(void) {
+    return "1.0.0";
+}
 
 // ============================================================================
 // 辅助: 将 std::string 错误信息拷贝到 result->error_msg (截断到 511 字节)
