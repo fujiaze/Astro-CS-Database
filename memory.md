@@ -1893,3 +1893,32 @@ core 30.556s / write 10.7s / verify 0.789s / DRIZZLE 41.3s / Stage1 50.37s;
 完整 FP32 本任务 0 次 (复用 6f7bba7 的 50.37s 证据)。
 
 审核包: `AstroCS_Review_Phase1_FINAL_SIGNOFF_20260806.zip`
+
+## 2026-08-07 主线 Phase1 彻底冻结验证 (控制包 3a39428e)
+
+控制包: `AstroCS_Phase1_Complete_Freeze_Validation.zip`
+
+### 独立复测结论
+9513 项检查直接通过; 发现 8 个 BLOCKER (cache OOM/事务/负计数/move 校验,
+star_det FP64 缩窄丢列, FP64 SNR 伪精度, snr_model 未对齐, 旧配置混入)。
+
+### BLOCKER 修复 (3502e49, main 已 push)
+- PipelineFrame cache 两阶段提交 + n_dims>4 硬失败 + 负/超大 n_blocks 拒绝 +
+  溢出/资源上限 (单块 4GiB/整帧 16GiB) + move 共享 validator + 原子保存;
+- star_det 权威 FLOAT64[N,6] + PSF 兼容视图 FLOAT32[N,4] (显式, 带误差统计);
+- snr_model 版本化 v1 (magic/version/dtype/stride/payload/checksum),
+  FP64 模式 snr_psf double 计算并存储; snr_extract_model_v2 / buildF64 /
+  HioSnrModelF64 / HissWriter::add_tile_f64_snr; 全链路 memcpy 对齐安全,
+  兼容旧 v0;
+- 5 个旧格式 JSON + stage2_config 迁入 configs/archive, 活动目录唯一 Schema PASS;
+- aio_abi_info / aio_alloc / aio_realloc / aio_free 导出。
+
+### 回归 (修复后)
+候选 9003 / 冻结 42 / 矩阵 180 / L0 16 / L2 5 / 球面 76 / 反向科学 37 /
+DLL API 11 / 契约 28 全部零失败。
+
+### 环境限制
+- MSYS2 MinGW 无 ASan/UBSan 运行库, sanitizer 门需在具备 clang/LLVM 或
+  Linux 容器环境执行 (包内 evidence 为审核容器产物);
+- gh.exe 被清理, 改用 Windows 凭据读取的 git 凭证助手推送 (main 已同步;
+  wiki 待网络恢复)。
