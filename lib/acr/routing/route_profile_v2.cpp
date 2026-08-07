@@ -91,8 +91,10 @@ nlohmann::json path_json(const RoutePath& p) {
     j["validated_domain"]["frame_counts"] = p.frame_counts;
     j["validated_domain"]["allow_tail_extrapolation"] =
         p.allow_tail_extrapolation;
-    j["interpolation"] = "piecewise-log2-items-linear-frames";
+    j["interpolation_id"] = p.interpolation_id;
+    j["holdout_count"] = p.holdout_count;
     j["median_error_ratio"] = p.median_error_ratio;
+    j["max_error_ratio"] = p.max_error_ratio;
     j["p95_error_ratio"] = p.p95_error_ratio;
     return j;
 }
@@ -126,6 +128,15 @@ RoutePath path_from_json(const nlohmann::json& j) {
     }
     if (j.contains("median_error_ratio")) {
         p.median_error_ratio = j["median_error_ratio"].get<double>();
+    }
+    if (j.contains("max_error_ratio")) {
+        p.max_error_ratio = j["max_error_ratio"].get<double>();
+    }
+    if (j.contains("interpolation_id")) {
+        p.interpolation_id = j["interpolation_id"].get<std::string>();
+    }
+    if (j.contains("holdout_count")) {
+        p.holdout_count = j["holdout_count"].get<std::size_t>();
     }
     if (j.contains("p95_error_ratio")) {
         p.p95_error_ratio = j["p95_error_ratio"].get<double>();
@@ -165,13 +176,17 @@ std::string serialize_route_profile_v2(const RouteProfileV2& profile) {
             o["chunk_service_curves"]["cpu"].push_back(
                 {{"chunk_items", c.chunk_items},
                  {"frame_count", c.frame_count},
-                 {"median_ms", c.median_ms}});
+                 {"median_service_ms", c.median_service_ms},
+                 {"p90_service_ms", c.p90_service_ms},
+                 {"sample_count", c.sample_count}});
         }
         for (const auto& c : op.gpu_chunk_service) {
             o["chunk_service_curves"]["gpu"].push_back(
                 {{"chunk_items", c.chunk_items},
                  {"frame_count", c.frame_count},
-                 {"median_ms", c.median_ms}});
+                 {"median_service_ms", c.median_service_ms},
+                 {"p90_service_ms", c.p90_service_ms},
+                 {"sample_count", c.sample_count}});
         }
         o["mixed_overhead"]["fixed_ms"] = op.mixed_fixed_overhead_ms;
         o["mixed_overhead"]["per_token_ms"] = op.mixed_per_token_ms;
@@ -272,7 +287,9 @@ bool read_route_profile_v2_from_file(const std::string& path,
                     op.cpu_chunk_service.push_back(
                         {c.value("chunk_items", 0u),
                          c.value("frame_count", 0u),
-                         c.value("median_ms", 0.0)});
+                         c.value("median_service_ms", 0.0),
+                         c.value("p90_service_ms", 0.0),
+                         c.value("sample_count", 0u)});
                 }
             }
             if (cc.contains("gpu") && cc["gpu"].is_array()) {
@@ -280,7 +297,9 @@ bool read_route_profile_v2_from_file(const std::string& path,
                     op.gpu_chunk_service.push_back(
                         {c.value("chunk_items", 0u),
                          c.value("frame_count", 0u),
-                         c.value("median_ms", 0.0)});
+                         c.value("median_service_ms", 0.0),
+                         c.value("p90_service_ms", 0.0),
+                         c.value("sample_count", 0u)});
                 }
             }
         }

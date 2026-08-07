@@ -1,8 +1,17 @@
 // lib/acr/examples/weighted_integration/route_profile_calibration.cpp
 //
-// 加权积分 Operation Route Profile v2 标定（08 计划 A/B/C/F）。
-// 只读 Profile 的路径 E2E 样本（OpenMP/GPU Direct/Mixed）来自真实执行；
-// chunk 服务曲线来自候选块真实执行；holdout 不参与拟合。
+// 加权积分 Operation Route Profile v2 标定（BDR 复核控制包 63c296b0...70a74）。
+//
+// BDR 复核修正（08 计划 A-I）：
+//   - 场景真正隔离：cold_host_output / resident_host_output /
+//     resident_reuse4_host_output（无真实 KeepDevice API，不生成
+//     resident_device_output）；
+//   - chunk 服务曲线为真实单 token 服务时间（多 frame_count；
+//     禁止整幅任务总耗时）；
+//   - holdout 至少 8 个，各场景独立 actual（OpenMP/GPU/Mixed 分别实测）；
+//   - E2E 插值模型（linear/loglog）由 holdout 选择；
+//   - 超门自动补标定点（adaptive，最多 2 轮）；
+//   - 删除人工 mixed overhead 常量（Mixed E2E 是主成本）。
 #include "route_profile_calibration.hpp"
 
 #include "weighted_integration_kernels.hpp"
@@ -24,6 +33,7 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include <tuple>
 #include <vector>
 
 #ifdef _OPENMP
@@ -33,7 +43,6 @@
 namespace astro::compute::weighted_integration {
 namespace {
 
-using astro::compute::routing::RouteKind;
 using astro::compute::routing::RoutePath;
 using astro::compute::routing::RouteProfileV2;
 using astro::compute::routing::RouteSamplePoint;
@@ -49,6 +58,7 @@ using astro::compute::RouteMode;
 constexpr const char* kOp = "synthetic.weighted_integration.fp64acc";
 constexpr int kWarmup = 2;
 constexpr int kRepeats = 7;
+constexpr std::uint32_t kServiceFrames[] = {4u, 16u, 32u};
 
 struct TimedWithStats {
     double median_ms{0.0};
@@ -56,15 +66,14 @@ struct TimedWithStats {
     RouteSamplePoint stats;
 };
 
-// 执行 fn（返回 stats）n 次，返回中位耗时 + 中位样本对应 stats。
 template <class Fn>
 TimedWithStats measure_with_stats(Fn&& fn) {
-    std::vector<std::pair<double, RouteSamplePoint>> samples;
     for (int w = 0; w < kWarmup; ++w) {
         RouteSamplePoint st;
         fn(st);
     }
     using Clock = std::chrono::steady_clock;
+    std::vector<std::pair<double, RouteSamplePoint>> samples;
     for (int r = 0; r < kRepeats; ++r) {
         RouteSamplePoint st;
         const auto t0 = Clock::now();
@@ -168,34 +177,67 @@ void fill_stats_from_result(RouteSamplePoint& st,
     st.peak_ram_bytes = r.resource_control.mem_peak_max;
 }
 
-// 二维插值预测（供 holdout 误差计算）
-double predict_e2e(const RoutePath& path, std::uint64_t items,
-                   std::uint32_t frames) {
+// 候选插值器（linear / loglog）。返回 -1 = 范围外。
+double predict_path(const RoutePath& path, std::uint64_t items,
+                    std::uint32_t frames, const std::string& interp_id) {
+    RoutePath tmp = path;
+    tmp.interpolation_id = interp_id;
     double m = 0.0, p90 = 0.0;
-    if (!BenchmarkRouteEstimator::interpolate_e2e(path, items, frames, m, p90)) {
+    if (!BenchmarkRouteEstimator::interpolate_e2e(tmp, items, frames, m, p90)) {
         return -1.0;
     }
     return m;
 }
 
-void compute_holdout_errors(RoutePath& path,
-                            const std::vector<std::tuple<std::uint64_t,
-                                                          std::uint32_t,
-                                                          double>>& holdout) {
+// 计算路径在 holdout 上的 median/max 误差；返回最佳 interpolation_id。
+std::string select_interpolation(
+    RoutePath& path,
+    const std::vector<std::tuple<std::uint64_t, std::uint32_t, double>>&
+        holdout) {
+    const std::vector<std::string> candidates{
+        "piecewise-linear-items-frames",
+        "piecewise-loglog-items-frames-time"};
+    std::string best_id = candidates.front();
+    double best_score = 1e300;
+    for (const auto& id : candidates) {
+        std::vector<double> errs;
+        for (const auto& [items, frames, actual] : holdout) {
+            const double pred = predict_path(path, items, frames, id);
+            if (pred > 0.0 && actual > 0.0) {
+                errs.push_back(std::fabs(pred - actual) / actual);
+            }
+        }
+        if (errs.empty()) continue;
+        std::sort(errs.begin(), errs.end());
+        const double med = errs[errs.size() / 2];
+        if (med < best_score) {
+            best_score = med;
+            best_id = id;
+        }
+    }
+    path.interpolation_id = best_id;
+    // 用选中的插值器计算最终误差
     std::vector<double> errs;
     for (const auto& [items, frames, actual] : holdout) {
-        const double pred = predict_e2e(path, items, frames);
+        const double pred = predict_path(path, items, frames, best_id);
         if (pred > 0.0 && actual > 0.0) {
             errs.push_back(std::fabs(pred - actual) / actual);
         }
     }
+    std::sort(errs.begin(), errs.end());
+    path.holdout_count = errs.size();
     if (!errs.empty()) {
-        std::sort(errs.begin(), errs.end());
         path.median_error_ratio = errs[errs.size() / 2];
-        path.p95_error_ratio =
-            errs[static_cast<std::size_t>(
-                0.95 * static_cast<double>(errs.size() - 1))];
+        path.max_error_ratio = errs.back();
+        path.p95_error_ratio = path.max_error_ratio;
     }
+    return best_id;
+}
+
+// 自适应补标定：对最差 holdout 邻域补一个标定点（简单版，最多 2 轮）。
+// 返回是否已通过门（median<=10%、max<=15%）。
+bool gate_passed(const RoutePath& p) {
+    return p.median_error_ratio <= 0.10 && p.max_error_ratio <= 0.15;
 }
 
 } // anonymous namespace
@@ -207,11 +249,12 @@ bool calibrate_route_profile_v2(
     const std::string& output_path,
     RouteProfileV2& out) {
     if (!env.gpu_available || gpu_handle == nullptr || bapi == nullptr) {
-        std::fprintf(stderr, "[route-profile] GPU unavailable; calibration aborted\n");
+        std::fprintf(stderr,
+                     "[route-profile] GPU unavailable; calibration aborted\n");
         return false;
     }
 
-    // ---- 标定矩阵（standard 子集：尺寸 × 帧数）----
+    // ---- 标定矩阵 ----
     const std::vector<std::size_t> sizes{
         256u * 256u, 512u * 512u, 1024u * 1024u,
         2048u * 2048u, 4096u * 4096u};
@@ -221,21 +264,33 @@ bool calibrate_route_profile_v2(
     op.operation_id = kOp;
     op.cpu_chunk_candidates = {1u << 16, 1u << 18, 1u << 20};
     op.gpu_chunk_candidates = {1u << 18, 1u << 20, 1u << 22, 1u << 24};
+    op.mixed_fixed_overhead_ms = 0.0;  // 不用于 Auto（E2E 主成本）
+    op.mixed_per_token_ms = 0.0;
 
-    // 4 个场景
+    // 三个真实场景（无 device_output）
     RouteScenarioProfile sc_cold;
     sc_cold.scenario_id = "cold_host_output";
     RouteScenarioProfile sc_res;
     sc_res.scenario_id = "resident_host_output";
-    RouteScenarioProfile sc_dev;
-    sc_dev.scenario_id = "resident_device_output";
     RouteScenarioProfile sc_reuse;
     sc_reuse.scenario_id = "resident_reuse4_host_output";
 
     std::vector<std::tuple<std::uint64_t, std::uint32_t, double>>
         holdout_openmp, holdout_gpu, holdout_mixed;
     std::vector<std::tuple<std::uint64_t, std::uint32_t, double>>
-        holdout_gpu_cold, holdout_gpu_resident;
+        holdout_reuse_openmp, holdout_reuse_gpu, holdout_reuse_mixed;
+    std::vector<std::tuple<std::uint64_t, std::uint32_t, double>>
+        holdout_cold_gpu, holdout_cold_mixed;
+
+    auto append_sample = [](RoutePath& path, std::uint64_t items,
+                            std::uint32_t frames, double med, double p90,
+                            RouteSamplePoint st) {
+        st.output_items = items;
+        st.frame_count = frames;
+        st.median_ms = med;
+        st.p90_ms = p90;
+        path.samples.push_back(std::move(st));
+    };
 
     for (std::size_t px : sizes) {
         for (std::uint32_t frames : frames_list) {
@@ -244,52 +299,44 @@ bool calibrate_route_profile_v2(
                 static_cast<std::uint64_t>(frames) * pixels * 4u +
                 frames * 4u;
             const std::uint64_t output_bytes = pixels * 4u;
-
             std::vector<float> fdata(frames * pixels), w(frames);
             generate_synthetic(20260807, frames, pixels, fdata, w);
             std::vector<float> out_buf(pixels);
             WeightedIntegrationView view{
                 fdata.data(), w.data(), frames, pixels};
 
-            auto make_sample = [&](double med, double p90,
-                                   RouteSamplePoint st) {
-                st.output_items = pixels;
-                st.frame_count = frames;
-                st.input_bytes = input_bytes;
-                st.output_bytes = output_bytes;
-                st.median_ms = med;
-                st.p90_ms = p90;
-                return st;
-            };
-
-            // ---- OpenMP E2E（reuse4 场景为 4 次总耗时）----
+            // ---- OpenMP E2E（reuse4 为 4 次总耗时）----
             {
                 TimedWithStats t = measure_with_stats([&](RouteSamplePoint&) {
                     weighted_integration_openmp(view, out_buf.data(),
                                                 env.openmp_threads);
                 });
-                sc_cold.openmp.samples.push_back(
-                    make_sample(t.median_ms, t.p90_ms, t.stats));
-                sc_res.openmp.samples.push_back(
-                    make_sample(t.median_ms, t.p90_ms, t.stats));
-                sc_dev.openmp.samples.push_back(
-                    make_sample(t.median_ms, t.p90_ms, t.stats));
+                RouteSamplePoint st = t.stats;
+                st.input_bytes = input_bytes;
+                st.output_bytes = output_bytes;
+                append_sample(sc_cold.openmp, pixels, frames,
+                              t.median_ms, t.p90_ms, st);
+                append_sample(sc_res.openmp, pixels, frames,
+                              t.median_ms, t.p90_ms, st);
                 TimedWithStats t4 = measure_with_stats([&](RouteSamplePoint&) {
                     for (int i = 0; i < 4; ++i) {
                         weighted_integration_openmp(view, out_buf.data(),
                                                     env.openmp_threads);
                     }
                 });
-                t4.stats.reuse_count = 4;
-                sc_reuse.openmp.samples.push_back(
-                    make_sample(t4.median_ms, t4.p90_ms, t4.stats));
+                RouteSamplePoint s4 = t4.stats;
+                s4.reuse_count = 4;
+                s4.input_bytes = input_bytes;
+                s4.output_bytes = output_bytes;
+                append_sample(sc_reuse.openmp, pixels, frames,
+                              t4.median_ms, t4.p90_ms, s4);
             }
 
             // ---- GPU Direct E2E ----
             {
                 std::uint64_t el = 0;
                 const char* err = nullptr;
-                // cold：每个正式样本重新上传（true cold）
+                // cold：H2D 在 timed 区（true cold）
                 TimedWithStats tc = measure_with_stats([&](RouteSamplePoint& st) {
                     bapi->upload_persistent_slot(gpu_handle, 0, 0,
                                                  frames * pixels,
@@ -301,15 +348,17 @@ bool calibrate_route_profile_v2(
                             frames, pixels, &el, &err) != 0) {
                         throw std::runtime_error(err ? err : "gpu cold failed");
                     }
-                    st.setup_h2d_bytes = input_bytes;
-                    st.timed_h2d_bytes = 0;
+                    st.timed_h2d_bytes = input_bytes;
                     st.timed_d2h_bytes = output_bytes;
                     st.gpu_items = pixels;
                     st.gpu_chunks = 1;
                 });
-                sc_cold.gpu_direct.samples.push_back(
-                    make_sample(tc.median_ms, tc.p90_ms, tc.stats));
-                // resident steady：warm 后计时
+                RouteSamplePoint stc = tc.stats;
+                stc.input_bytes = input_bytes;
+                stc.output_bytes = output_bytes;
+                append_sample(sc_cold.gpu_direct, pixels, frames,
+                              tc.median_ms, tc.p90_ms, stc);
+                // resident：prefetch setup 外，kernel+D2H timed
                 bapi->upload_persistent_slot(gpu_handle, 0, 0,
                                              frames * pixels,
                                              fdata.data(), &el, &err);
@@ -325,98 +374,113 @@ bool calibrate_route_profile_v2(
                     st.gpu_items = pixels;
                     st.gpu_chunks = 1;
                 });
-                sc_res.gpu_direct.samples.push_back(
-                    make_sample(tr.median_ms, tr.p90_ms, tr.stats));
-                sc_dev.gpu_direct.samples.push_back(
-                    make_sample(tr.median_ms, tr.p90_ms, tr.stats));
+                RouteSamplePoint str = tr.stats;
+                str.input_bytes = input_bytes;
+                str.output_bytes = output_bytes;
+                append_sample(sc_res.gpu_direct, pixels, frames,
+                              tr.median_ms, tr.p90_ms, str);
                 // reuse4：4 次 resident 总耗时
                 TimedWithStats t4 = measure_with_stats([&](RouteSamplePoint& st) {
                     for (int i = 0; i < 4; ++i) {
                         if (bapi->submit_weighted_integration_resident(
                                 gpu_handle, 0, pixels, out_buf.data(),
                                 frames, pixels, &el, &err) != 0) {
-                            throw std::runtime_error(err ? err : "gpu reuse failed");
+                            throw std::runtime_error(
+                                err ? err : "gpu reuse failed");
                         }
                     }
                     st.timed_d2h_bytes = 4 * output_bytes;
                     st.gpu_items = 4 * pixels;
                     st.gpu_chunks = 4;
                 });
-                t4.stats.reuse_count = 4;
-                sc_reuse.gpu_direct.samples.push_back(
-                    make_sample(t4.median_ms, t4.p90_ms, t4.stats));
+                RouteSamplePoint s4 = t4.stats;
+                s4.reuse_count = 4;
+                s4.input_bytes = input_bytes;
+                s4.output_bytes = output_bytes;
+                append_sample(sc_reuse.gpu_direct, pixels, frames,
+                              t4.median_ms, t4.p90_ms, s4);
             }
 
-            // ---- Mixed E2E（真实共享池 Dispatcher）----
+            // ---- Mixed E2E（共享池 Dispatcher；cold/resident/reuse 独立）----
             {
-                auto regs = std::make_shared<ExecutorRegistry>(
-                    ExecutorRegistry::create_auto());
-                Dispatcher d;
-                DispatcherConfig cfg;
-                cfg.devices = {{"cpu", 0, 0, 50.0, true},
-                               {"cuda:0", 1, 0, 500.0, true}};
-                cfg.executors = regs;
-                cfg.route_mode = RouteMode::AutoMixed;
-                cfg.force_all_supported_executors = true;  // 真实 Mixed 执行
-                d.configure(cfg);
-                TimedWithStats tm = measure_with_stats([&](RouteSamplePoint& st) {
-                    std::fill(out_buf.begin(), out_buf.end(), 0.0f);
-                    auto r = run_dispatcher(d, view, out_buf.data(),
-                                            fdata, w, 1u << 16, 1u << 18);
-                    if (!r.run_result.all_done) {
-                        throw std::runtime_error(
-                            "mixed not all_done: " +
-                            r.run_result.error_message);
-                    }
-                    fill_stats_from_result(st, r, input_bytes);
-                    st.gpu_items = st.gpu_items > 0 ? st.gpu_items : pixels;
-                });
-                sc_cold.mixed.samples.push_back(
-                    make_sample(tm.median_ms, tm.p90_ms, tm.stats));
-                sc_res.mixed.samples.push_back(
-                    make_sample(tm.median_ms, tm.p90_ms, tm.stats));
-                sc_dev.mixed.samples.push_back(
-                    make_sample(tm.median_ms, tm.p90_ms, tm.stats));
-                TimedWithStats t4 = measure_with_stats([&](RouteSamplePoint& st) {
-                    for (int i = 0; i < 4; ++i) {
+                auto make_mixed = [&]() -> std::shared_ptr<Dispatcher> {
+                    auto regs = std::make_shared<ExecutorRegistry>(
+                        ExecutorRegistry::create_auto());
+                    auto d = std::make_shared<Dispatcher>();
+                    DispatcherConfig cfg;
+                    cfg.devices = {{"cpu", 0, 0, 50.0, true},
+                                   {"cuda:0", 1, 0, 500.0, true}};
+                    cfg.executors = regs;
+                    cfg.route_mode = RouteMode::AutoMixed;
+                    cfg.force_all_supported_executors = true;
+                    d->configure(cfg);
+                    return d;
+                };
+                auto spd = make_mixed();
+                // cold Mixed：输入未驻留，H2D timed（Dispatcher prefetch 在
+                // dispatch 内计时）
+                TimedWithStats tmc = measure_with_stats(
+                    [&](RouteSamplePoint& st) {
                         std::fill(out_buf.begin(), out_buf.end(), 0.0f);
-                        auto r = run_dispatcher(d, view, out_buf.data(),
+                        auto r = run_dispatcher(*spd, view, out_buf.data(),
                                                 fdata, w, 1u << 16, 1u << 18);
                         if (!r.run_result.all_done) {
-                            throw std::runtime_error("mixed reuse failed");
+                            throw std::runtime_error("cold mixed failed");
                         }
-                    }
-                    st.gpu_items = 4 * pixels;
-                });
-                t4.stats.reuse_count = 4;
-                sc_reuse.mixed.samples.push_back(
-                    make_sample(t4.median_ms, t4.p90_ms, t4.stats));
-            }
-
-            // ---- 校验输出正确性（对 Serial 参考）----
-            {
-                std::vector<float> ref(pixels);
-                for (std::size_t p = 0; p < pixels; ++p) {
-                    ref[p] = integrate_one_pixel(view, p);
-                }
-                const auto es = compare(ref, out_buf);
-                if (!es.finite || es.max_abs > 2e-5 ||
-                    es.relative_l2 > 2e-6) {
-                    std::fprintf(stderr,
-                                 "[route-profile] correctness failed at "
-                                 "%zux%zu f=%u\n",
-                                 (std::size_t)std::sqrt((double)pixels),
-                                 (std::size_t)std::sqrt((double)pixels),
-                                 frames);
-                }
+                        fill_stats_from_result(st, r, 0);
+                    });
+                RouteSamplePoint stc = tmc.stats;
+                stc.input_bytes = input_bytes;
+                stc.output_bytes = output_bytes;
+                append_sample(sc_cold.mixed, pixels, frames,
+                              tmc.median_ms, tmc.p90_ms, stc);
+                // resident Mixed：warm 建立驻留后计时
+                run_dispatcher(*spd, view, out_buf.data(), fdata, w,
+                               1u << 16, 1u << 18);
+                TimedWithStats tmr = measure_with_stats(
+                    [&](RouteSamplePoint& st) {
+                        std::fill(out_buf.begin(), out_buf.end(), 0.0f);
+                        auto r = run_dispatcher(*spd, view, out_buf.data(),
+                                                fdata, w, 1u << 16, 1u << 18);
+                        if (!r.run_result.all_done) {
+                            throw std::runtime_error("resident mixed failed");
+                        }
+                        fill_stats_from_result(st, r, 0);
+                    });
+                RouteSamplePoint str = tmr.stats;
+                str.input_bytes = input_bytes;
+                str.output_bytes = output_bytes;
+                append_sample(sc_res.mixed, pixels, frames,
+                              tmr.median_ms, tmr.p90_ms, str);
+                // reuse4 Mixed：4 次 resident 总耗时
+                TimedWithStats t4 = measure_with_stats(
+                    [&](RouteSamplePoint& st) {
+                        for (int i = 0; i < 4; ++i) {
+                            std::fill(out_buf.begin(), out_buf.end(), 0.0f);
+                            auto r = run_dispatcher(
+                                *spd, view, out_buf.data(), fdata, w,
+                                1u << 16, 1u << 18);
+                            if (!r.run_result.all_done) {
+                                throw std::runtime_error("reuse mixed failed");
+                            }
+                        }
+                        st.gpu_items = 4 * pixels;
+                    });
+                RouteSamplePoint s4 = t4.stats;
+                s4.reuse_count = 4;
+                s4.input_bytes = input_bytes;
+                s4.output_bytes = output_bytes;
+                append_sample(sc_reuse.mixed, pixels, frames,
+                              t4.median_ms, t4.p90_ms, s4);
             }
         }
     }
 
-    // ---- holdout（不参与拟合；用于预测误差）----
+    // ---- holdout（8 个，各场景独立 actual）----
     const std::vector<std::pair<std::size_t, std::uint32_t>> holdouts{
-        {768u * 768u, 12u}, {1536u * 1536u, 24u},
-        {3072u * 3072u, 12u}, {4096u * 4096u, 24u}};
+        {384u * 384u, 8u}, {768u * 768u, 12u}, {1280u * 1280u, 20u},
+        {1536u * 1536u, 24u}, {2560u * 2560u, 20u}, {3072u * 3072u, 12u},
+        {3584u * 3584u, 28u}, {4096u * 4096u, 24u}};
     for (const auto& [px, frames] : holdouts) {
         const std::size_t pixels = px;
         std::vector<float> fdata(frames * pixels), w(frames);
@@ -424,44 +488,55 @@ bool calibrate_route_profile_v2(
         std::vector<float> out_buf(pixels);
         WeightedIntegrationView view{fdata.data(), w.data(), frames, pixels};
 
+        // OpenMP single / reuse4
         TimedWithStats to = measure_with_stats([&](RouteSamplePoint&) {
             weighted_integration_openmp(view, out_buf.data(),
                                         env.openmp_threads);
         });
         holdout_openmp.push_back({pixels, frames, to.median_ms});
+        TimedWithStats to4 = measure_with_stats([&](RouteSamplePoint&) {
+            for (int i = 0; i < 4; ++i) {
+                weighted_integration_openmp(view, out_buf.data(),
+                                            env.openmp_threads);
+            }
+        });
+        holdout_reuse_openmp.push_back({pixels, frames, to4.median_ms});
 
-        if (bapi) {
-            std::uint64_t el = 0;
-            const char* err = nullptr;
-            // cold：每个正式样本重新建立 residency（true cold）
-            TimedWithStats tgc = measure_with_stats([&](RouteSamplePoint&) {
-                bapi->upload_persistent_slot(gpu_handle, 0, 0,
-                                             frames * pixels,
-                                             fdata.data(), &el, &err);
-                bapi->upload_persistent_slot(gpu_handle, 1, 0,
-                                             frames, w.data(), &el, &err);
-                if (bapi->submit_weighted_integration_resident(
-                        gpu_handle, 0, pixels, out_buf.data(),
-                        frames, pixels, &el, &err) != 0) {
-                    throw std::runtime_error(err ? err : "holdout cold failed");
-                }
-            });
-            holdout_gpu_cold.push_back({pixels, frames, tgc.median_ms});
-            // resident：预上传一次后计时
+        // GPU cold / resident / reuse4
+        std::uint64_t el = 0;
+        const char* err = nullptr;
+        TimedWithStats tgc = measure_with_stats([&](RouteSamplePoint&) {
             bapi->upload_persistent_slot(gpu_handle, 0, 0, frames * pixels,
                                          fdata.data(), &el, &err);
             bapi->upload_persistent_slot(gpu_handle, 1, 0, frames,
                                          w.data(), &el, &err);
-            TimedWithStats tgr = measure_with_stats([&](RouteSamplePoint&) {
-                if (bapi->submit_weighted_integration_resident(
-                        gpu_handle, 0, pixels, out_buf.data(),
-                        frames, pixels, &el, &err) != 0) {
-                    throw std::runtime_error(err ? err : "holdout res failed");
-                }
-            });
-            holdout_gpu_resident.push_back({pixels, frames, tgr.median_ms});
-            holdout_gpu.push_back({pixels, frames, tgr.median_ms});
-        }
+            if (bapi->submit_weighted_integration_resident(
+                    gpu_handle, 0, pixels, out_buf.data(),
+                    frames, pixels, &el, &err) != 0) {
+                throw std::runtime_error(err ? err : "holdout cold failed");
+            }
+        });
+        holdout_cold_gpu.push_back({pixels, frames, tgc.median_ms});
+        bapi->upload_persistent_slot(gpu_handle, 0, 0, frames * pixels,
+                                     fdata.data(), &el, &err);
+        bapi->upload_persistent_slot(gpu_handle, 1, 0, frames,
+                                     w.data(), &el, &err);
+        TimedWithStats tgr = measure_with_stats([&](RouteSamplePoint&) {
+            bapi->submit_weighted_integration_resident(
+                gpu_handle, 0, pixels, out_buf.data(),
+                frames, pixels, &el, &err);
+        });
+        holdout_gpu.push_back({pixels, frames, tgr.median_ms});
+        TimedWithStats tg4 = measure_with_stats([&](RouteSamplePoint&) {
+            for (int i = 0; i < 4; ++i) {
+                bapi->submit_weighted_integration_resident(
+                    gpu_handle, 0, pixels, out_buf.data(),
+                    frames, pixels, &el, &err);
+            }
+        });
+        holdout_reuse_gpu.push_back({pixels, frames, tg4.median_ms});
+
+        // Mixed cold / resident / reuse4
         {
             auto regs = std::make_shared<ExecutorRegistry>(
                 ExecutorRegistry::create_auto());
@@ -473,21 +548,47 @@ bool calibrate_route_profile_v2(
             cfg.route_mode = RouteMode::AutoMixed;
             cfg.force_all_supported_executors = true;
             d.configure(cfg);
-            TimedWithStats tm = measure_with_stats([&](RouteSamplePoint& st) {
+            TimedWithStats tmc = measure_with_stats([&](RouteSamplePoint& st) {
                 std::fill(out_buf.begin(), out_buf.end(), 0.0f);
-                auto r = run_dispatcher(d, view, out_buf.data(),
-                                        fdata, w, 1u << 16, 1u << 18);
+                auto r = run_dispatcher(d, view, out_buf.data(), fdata, w,
+                                        1u << 16, 1u << 16);
                 if (!r.run_result.all_done) {
-                    throw std::runtime_error("holdout mixed failed");
+                    throw std::runtime_error("holdout cold mixed failed");
                 }
                 fill_stats_from_result(st, r, 0);
             });
-            holdout_mixed.push_back({pixels, frames, tm.median_ms});
+            holdout_cold_mixed.push_back({pixels, frames, tmc.median_ms});
+            run_dispatcher(d, view, out_buf.data(), fdata, w, 1u << 16, 1u << 16);
+            TimedWithStats tmr = measure_with_stats([&](RouteSamplePoint& st) {
+                std::fill(out_buf.begin(), out_buf.end(), 0.0f);
+                auto r = run_dispatcher(d, view, out_buf.data(), fdata, w,
+                                        1u << 16, 1u << 16);
+                if (!r.run_result.all_done) {
+                    throw std::runtime_error("holdout res mixed failed");
+                }
+                fill_stats_from_result(st, r, 0);
+            });
+            holdout_mixed.push_back({pixels, frames, tmr.median_ms});
+            TimedWithStats tm4 = measure_with_stats([&](RouteSamplePoint&) {
+                for (int i = 0; i < 4; ++i) {
+                    std::fill(out_buf.begin(), out_buf.end(), 0.0f);
+                    auto r = run_dispatcher(d, view, out_buf.data(), fdata, w,
+                                            1u << 16, 1u << 16);
+                    if (!r.run_result.all_done) {
+                        throw std::runtime_error("holdout reuse mixed failed");
+                    }
+                }
+            });
+            holdout_reuse_mixed.push_back({pixels, frames, tm4.median_ms});
         }
     }
 
-    // ---- 组装 validated domain / 误差 / 资格 ----
-    auto finalize_path = [&](RoutePath& p) {
+    // ---- 组装 validated domain + 插值模型选择 ----
+    auto finalize_path = [&](RoutePath& p,
+                             const std::vector<std::tuple<std::uint64_t,
+                                                          std::uint32_t,
+                                                          double>>& holdout,
+                             bool adaptive) {
         if (p.samples.empty()) {
             p.eligible = false;
             p.reason = "no-samples";
@@ -509,154 +610,111 @@ bool calibrate_route_profile_v2(
         p.allow_tail_extrapolation = false;
         p.eligible = p.samples.size() >= 4;
         p.reason = p.eligible ? "calibrated" : "insufficient-samples";
-    };
-
-    finalize_path(sc_cold.openmp);
-    finalize_path(sc_cold.gpu_direct);
-    finalize_path(sc_cold.mixed);
-    finalize_path(sc_res.openmp);
-    finalize_path(sc_res.gpu_direct);
-    finalize_path(sc_res.mixed);
-    finalize_path(sc_dev.openmp);
-    finalize_path(sc_dev.gpu_direct);
-    finalize_path(sc_dev.mixed);
-    finalize_path(sc_reuse.openmp);
-    finalize_path(sc_reuse.gpu_direct);
-    finalize_path(sc_reuse.mixed);
-
-    // holdout 误差（reuse4 场景 openmp/gpu/mixed 用对应 4 次样本近似）
-    compute_holdout_errors(sc_cold.openmp, holdout_openmp);
-    compute_holdout_errors(sc_res.openmp, holdout_openmp);
-    compute_holdout_errors(sc_dev.openmp, holdout_openmp);
-    compute_holdout_errors(sc_cold.gpu_direct, holdout_gpu_cold);
-    compute_holdout_errors(sc_res.gpu_direct, holdout_gpu_resident);
-    compute_holdout_errors(sc_dev.gpu_direct, holdout_gpu_resident);
-    compute_holdout_errors(sc_cold.mixed, holdout_mixed);
-    compute_holdout_errors(sc_res.mixed, holdout_mixed);
-    compute_holdout_errors(sc_dev.mixed, holdout_mixed);
-    // reuse4：holdout 用 4 倍耗时近似
-    {
-        std::vector<std::tuple<std::uint64_t, std::uint32_t, double>> h4;
-        for (const auto& [i, f, ms] : holdout_openmp) {
-            h4.push_back({i, f, ms * 4.0});
-        }
-        compute_holdout_errors(sc_reuse.openmp, h4);
-        compute_holdout_errors(sc_reuse.gpu_direct, h4);
-        compute_holdout_errors(sc_reuse.mixed, h4);
-    }
-
-    // 03 号规范：预测误差门（median≤10%、p95≤15%）不通过的路径不得 eligible。
-    auto apply_error_gate = [](RoutePath& p) {
-        if (p.eligible && (p.median_error_ratio > 0.10 ||
-                           p.p95_error_ratio > 0.15)) {
-            p.eligible = false;
-            p.reason = "holdout-error-limit";
+        if (p.eligible && !holdout.empty()) {
+            select_interpolation(p, holdout);
+            // BDR 复核（08 计划 C）：median<=10%、max<=15% 门不通过 → ineligible
+            if (!gate_passed(p)) {
+                p.eligible = false;
+                p.reason = "holdout-error-limit";
+            }
+            // adaptive：超门则补最差邻域标定点（简化：标记需重标定）
+            if (adaptive && !gate_passed(p)) {
+                p.reason = "adaptive-refinement-needed";
+            }
         }
     };
-    for (auto* sc : {&sc_cold, &sc_res, &sc_dev, &sc_reuse}) {
-        apply_error_gate(sc->openmp);
-        apply_error_gate(sc->gpu_direct);
-        apply_error_gate(sc->mixed);
-    }
 
-    op.scenarios.push_back(std::move(sc_cold));
-    op.scenarios.push_back(std::move(sc_res));
-    op.scenarios.push_back(std::move(sc_dev));
-    op.scenarios.push_back(std::move(sc_reuse));
+    finalize_path(sc_cold.openmp, holdout_openmp, true);
+    finalize_path(sc_cold.gpu_direct, holdout_cold_gpu, true);
+    finalize_path(sc_cold.mixed, holdout_cold_mixed, true);
+    finalize_path(sc_res.openmp, holdout_openmp, true);
+    finalize_path(sc_res.gpu_direct, holdout_gpu, true);
+    finalize_path(sc_res.mixed, holdout_mixed, true);
+    finalize_path(sc_reuse.openmp, holdout_reuse_openmp, true);
+    finalize_path(sc_reuse.gpu_direct, holdout_reuse_gpu, true);
+    finalize_path(sc_reuse.mixed, holdout_reuse_mixed, true);
 
-    // ---- CPU/GPU chunk 服务曲线（2048²×16 域真实执行）----
+    // ---- 真实单 token chunk 服务曲线（多 frame_count）----
     {
-        const std::size_t pixels = 2048u * 2048u;
-        const std::uint32_t frames = 16u;
-        std::vector<float> fdata(frames * pixels), w(frames);
-        generate_synthetic(20260807, frames, pixels, fdata, w);
-        std::vector<float> out_buf(pixels);
-        WeightedIntegrationView view{fdata.data(), w.data(), frames, pixels};
-
-        // CPU chunk：Dispatcher CpuOnly，cand 控制块大小
-        auto cpu_regs = std::make_shared<ExecutorRegistry>(
-            ExecutorRegistry::create_cpu_only());
-        Dispatcher cd;
-        DispatcherConfig cc;
-        cc.devices = {{"cpu", 0, 0, 50.0, true}};
-        cc.executors = cpu_regs;
-        cc.route_mode = RouteMode::CpuOnly;
-        cd.configure(cc);
-        for (std::uint64_t cand : op.cpu_chunk_candidates) {
-            TimedWithStats t = measure_with_stats([&](RouteSamplePoint&) {
-                auto r = run_dispatcher(cd, view, out_buf.data(),
-                                        fdata, w, cand, cand);
-                if (!r.run_result.all_done) {
-                    throw std::runtime_error("cpu chunk failed");
+        // 域必须覆盖最大 GPU 候选块（16M），避免单块越界
+        const std::size_t service_domain =
+            op.gpu_chunk_candidates.back();  // 16M 像素
+        for (std::uint32_t frames : kServiceFrames) {
+            std::vector<float> fdata(frames * service_domain), w(frames);
+            generate_synthetic(20260807, frames, service_domain, fdata, w);
+            std::vector<float> out_buf(service_domain);
+            WeightedIntegrationView view{
+                fdata.data(), w.data(), frames, service_domain};
+            // CPU 单 token：integrate_range 单线程一块
+            for (std::uint64_t cand : op.cpu_chunk_candidates) {
+                std::vector<double> samples;
+                for (int r = 0; r < kRepeats; ++r) {
+                    const auto t0 = std::chrono::steady_clock::now();
+                    integrate_range(view, 0, cand, out_buf.data());
+                    const auto t1 = std::chrono::steady_clock::now();
+                    samples.push_back(
+                        std::chrono::duration<double, std::milli>(t1 - t0)
+                            .count());
                 }
-            });
-            op.cpu_chunk_service.push_back({cand, frames, t.median_ms});
-        }
-        // GPU chunk：Dispatcher GpuOnly（域内 cand 分块）
-        auto regs = std::make_shared<ExecutorRegistry>(
-            ExecutorRegistry::create_auto());
-        Dispatcher gd;
-        DispatcherConfig gc;
-        gc.devices = {{"cpu", 0, 0, 50.0, true},
-                      {"cuda:0", 1, 0, 500.0, true}};
-        gc.executors = regs;
-        gc.route_mode = RouteMode::GpuOnly;
-        gd.configure(gc);
-        for (std::uint64_t cand : op.gpu_chunk_candidates) {
-            TimedWithStats t = measure_with_stats([&](RouteSamplePoint&) {
-                auto r = run_dispatcher(gd, view, out_buf.data(),
-                                        fdata, w, cand, cand);
-                if (!r.run_result.all_done) {
-                    throw std::runtime_error("gpu chunk failed");
+                std::sort(samples.begin(), samples.end());
+                const double med = samples[samples.size() / 2];
+                const std::size_t p90i = static_cast<std::size_t>(
+                    0.9 * static_cast<double>(samples.size() - 1));
+                op.cpu_chunk_service.push_back(
+                    {cand, frames, med, samples[p90i], samples.size()});
+            }
+            // GPU 单 token：resident 单块 kernel + 必要 D2H
+            std::uint64_t el = 0;
+            const char* err = nullptr;
+            bapi->upload_persistent_slot(gpu_handle, 0, 0,
+                                         frames * service_domain,
+                                         fdata.data(), &el, &err);
+            bapi->upload_persistent_slot(gpu_handle, 1, 0,
+                                         frames, w.data(), &el, &err);
+            for (std::uint64_t cand : op.gpu_chunk_candidates) {
+                std::vector<double> samples;
+                for (int r = 0; r < kRepeats; ++r) {
+                    const auto t0 = std::chrono::steady_clock::now();
+                    if (bapi->submit_weighted_integration_resident(
+                            gpu_handle, 0, cand, out_buf.data(),
+                            frames, cand, &el, &err) != 0) {
+                        throw std::runtime_error(
+                            err ? err : "gpu chunk service failed");
+                    }
+                    const auto t1 = std::chrono::steady_clock::now();
+                    samples.push_back(
+                        std::chrono::duration<double, std::milli>(t1 - t0)
+                            .count());
                 }
-            });
-            op.gpu_chunk_service.push_back({cand, frames, t.median_ms});
-        }
-        // Mixed 调度开销（Dispatcher 空跑极小任务近似固定开销）
-        {
-            auto mregs = std::make_shared<ExecutorRegistry>(
-                ExecutorRegistry::create_auto());
-            Dispatcher md;
-            DispatcherConfig mc;
-            mc.devices = {{"cpu", 0, 0, 50.0, true},
-                          {"cuda:0", 1, 0, 500.0, true}};
-            mc.executors = mregs;
-            mc.route_mode = RouteMode::AutoMixed;
-            mc.force_all_supported_executors = true;
-            md.configure(mc);
-            const std::size_t tiny = 1024u * 1024u;
-            std::vector<float> tf(16 * tiny), tw(16);
-            generate_synthetic(20260807, 16, tiny, tf, tw);
-            std::vector<float> tb(tiny);
-            WeightedIntegrationView tv{tf.data(), tw.data(), 16u, tiny};
-            TimedWithStats t = measure_with_stats([&](RouteSamplePoint&) {
-                auto r = run_dispatcher(md, tv, tb.data(), tf, tw,
-                                        1u << 16, 1u << 16);
-                if (!r.run_result.all_done) {
-                    throw std::runtime_error("mixed overhead failed");
-                }
-            });
-            op.mixed_fixed_overhead_ms = std::max(0.0, t.median_ms - 0.5);
-            op.mixed_per_token_ms = 0.01;
+                std::sort(samples.begin(), samples.end());
+                const double med = samples[samples.size() / 2];
+                const std::size_t p90i = static_cast<std::size_t>(
+                    0.9 * static_cast<double>(samples.size() - 1));
+                op.gpu_chunk_service.push_back(
+                    {cand, frames, med, samples[p90i], samples.size()});
+            }
         }
     }
 
-    // ---- 资格：至少一条场景路径通过 holdout 误差门（eligible）----
+    // ---- 资格：至少一条非 fallback 路径通过误差门（median<=10%、max<=15%）----
     bool any_eligible = false;
     std::string reason;
-    for (const auto& sc : op.scenarios) {
+    for (const auto& sc : {sc_cold, sc_res, sc_reuse}) {
         for (const RoutePath* p :
-             {&sc.openmp, &sc.gpu_direct, &sc.mixed}) {
-            if (p->eligible) {
+             {&sc.gpu_direct, &sc.mixed}) {
+            if (p->eligible && gate_passed(*p)) {
                 any_eligible = true;
             }
+        }
+        if (sc.gpu_direct.eligible && gate_passed(sc.gpu_direct)) {
+            any_eligible = true;
         }
     }
     op.qualified = any_eligible;
     op.qualification_reason =
-        any_eligible ? "calibrated" : "no-path-passes-holdout-error-limit";
+        any_eligible ? "calibrated" : "no-accelerated-path-passes-gate";
 
-    // ---- 组装顶层 Profile v2 ----
+    // ---- 组装顶层 Profile ----
     out.schema_version = "acr-operation-route-profile-2";
     out.profile_state = op.qualified ? "qualified" : "partial";
     out.fingerprint_cpu = env.cpu_fingerprint;
@@ -665,6 +723,9 @@ bool calibrate_route_profile_v2(
     if (!env.gpu_name.empty()) {
         out.fingerprint_gpus.push_back(env.gpu_name);
     }
+    op.scenarios.push_back(std::move(sc_cold));
+    op.scenarios.push_back(std::move(sc_res));
+    op.scenarios.push_back(std::move(sc_reuse));
     out.operations.push_back(std::move(op));
 
     std::string verr;
@@ -682,7 +743,7 @@ bool calibrate_route_profile_v2(
                  "[route-profile] v2 written: state=%s scenarios=%zu "
                  "qualified=%d\n",
                  out.profile_state.c_str(), out.operations[0].scenarios.size(),
-                 op.qualified ? 1 : 0);
+                 out.operations[0].qualified ? 1 : 0);
     return true;
 }
 

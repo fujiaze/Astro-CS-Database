@@ -24,28 +24,52 @@ std::vector<const RouteSamplePoint*> samples_for_frames(
     return out;
 }
 
-// 单个 frame_count 下的 log2-items 分段线性插值
+// 单个 frame_count 下的 items 曲线插值（按 interpolation_id 选模型）
 bool interpolate_items_curve(const std::vector<const RouteSamplePoint*>& pts,
                              std::uint64_t output_items,
-                             double& ms) {
+                             const std::string& interpolation_id,
+                             double& ms, double& p90) {
     if (pts.empty()) return false;
-    const double x = std::log2(static_cast<double>(output_items));
+    const bool loglog =
+        (interpolation_id == "piecewise-loglog-items-frames-time");
+    // items 轴：linear 用原值；loglog 用 log2
+    const double x =
+        loglog ? std::log2(static_cast<double>(output_items))
+               : static_cast<double>(output_items);
     if (output_items <= pts.front()->output_items) {
         ms = pts.front()->median_ms;
+        p90 = pts.front()->p90_ms;
         return output_items >= pts.front()->output_items;
     }
     if (output_items >= pts.back()->output_items) {
         ms = pts.back()->median_ms;
+        p90 = pts.back()->p90_ms;
         return output_items <= pts.back()->output_items;
     }
     for (std::size_t i = 1; i < pts.size(); ++i) {
-        const double x0 = std::log2(static_cast<double>(pts[i - 1]->output_items));
-        const double x1 = std::log2(static_cast<double>(pts[i]->output_items));
+        const double x0 =
+            loglog ? std::log2(static_cast<double>(pts[i - 1]->output_items))
+                   : static_cast<double>(pts[i - 1]->output_items);
+        const double x1 =
+            loglog ? std::log2(static_cast<double>(pts[i]->output_items))
+                   : static_cast<double>(pts[i]->output_items);
         if (x <= x1) {
             const double f =
                 (x1 - x0) > 1e-12 ? (x - x0) / (x1 - x0) : 0.0;
-            ms = pts[i - 1]->median_ms +
-                 f * (pts[i]->median_ms - pts[i - 1]->median_ms);
+            // loglog 在 log(time) 空间插值；linear 在 time 空间插值
+            if (loglog) {
+                const double lt0 = std::log2(std::max(pts[i - 1]->median_ms, 1e-9));
+                const double lt1 = std::log2(std::max(pts[i]->median_ms, 1e-9));
+                ms = std::exp2(lt0 + f * (lt1 - lt0));
+                const double lp0 = std::log2(std::max(pts[i - 1]->p90_ms, 1e-9));
+                const double lp1 = std::log2(std::max(pts[i]->p90_ms, 1e-9));
+                p90 = std::exp2(lp0 + f * (lp1 - lp0));
+            } else {
+                ms = pts[i - 1]->median_ms +
+                     f * (pts[i]->median_ms - pts[i - 1]->median_ms);
+                p90 = pts[i - 1]->p90_ms +
+                      f * (pts[i]->p90_ms - pts[i - 1]->p90_ms);
+            }
             return true;
         }
     }
@@ -102,10 +126,11 @@ bool BenchmarkRouteEstimator::interpolate_e2e(
         auto pts = samples_for_frames(path, frame_count);
         if (pts.empty()) return false;
         double m = 0.0;
-        if (!interpolate_items_curve(pts, output_items, m)) return false;
+        if (!interpolate_items_curve(pts, output_items, path.interpolation_id,
+                                     m, p90_ms)) {
+            return false;
+        }
         median_ms = m;
-        // p90：同 items 曲线末样本 p90 近似
-        p90_ms = pts.back()->p90_ms;
         return true;
     }
     // 相邻两帧数之间插值
@@ -117,11 +142,17 @@ bool BenchmarkRouteEstimator::interpolate_e2e(
         static_cast<double>(f1 - f0);
     auto p0 = samples_for_frames(path, f0);
     auto p1 = samples_for_frames(path, f1);
-    double m0 = 0.0, m1 = 0.0;
-    if (!interpolate_items_curve(p0, output_items, m0)) return false;
-    if (!interpolate_items_curve(p1, output_items, m1)) return false;
+    double m0 = 0.0, m1 = 0.0, p0v = 0.0, p1v = 0.0;
+    if (!interpolate_items_curve(p0, output_items, path.interpolation_id,
+                                 m0, p0v)) {
+        return false;
+    }
+    if (!interpolate_items_curve(p1, output_items, path.interpolation_id,
+                                 m1, p1v)) {
+        return false;
+    }
     median_ms = m0 + w * (m1 - m0);
-    p90_ms = p0.back()->p90_ms + w * (p1.back()->p90_ms - p0.back()->p90_ms);
+    p90_ms = p0v + w * (p1v - p0v);
     return true;
 }
 
@@ -153,7 +184,7 @@ double BenchmarkRouteEstimator::simulate_mixed(
     const auto gpu_pts = filter(gpu_curve);
     if (cpu_pts.empty() || gpu_pts.empty()) return -1.0;
 
-    // chunk 服务时间插值：按 chunk_items 线性（log2）插值
+    // chunk 服务时间插值：按 chunk_items 在 log2 空间插值
     auto service_ms = [](const std::vector<ChunkServicePoint>& pts,
                          std::uint64_t chunk) -> double {
         std::vector<const ChunkServicePoint*> sorted;
@@ -163,25 +194,29 @@ double BenchmarkRouteEstimator::simulate_mixed(
                       return a->chunk_items < b->chunk_items;
                   });
         if (chunk <= sorted.front()->chunk_items) {
-            return sorted.front()->median_ms;
+            return sorted.front()->median_service_ms;
         }
         if (chunk >= sorted.back()->chunk_items) {
-            return sorted.back()->median_ms;
+            return sorted.back()->median_service_ms;
         }
         for (std::size_t i = 1; i < sorted.size(); ++i) {
             if (chunk <= sorted[i]->chunk_items) {
-                const double x0 = static_cast<double>(sorted[i - 1]->chunk_items);
-                const double x1 = static_cast<double>(sorted[i]->chunk_items);
+                const double x0 =
+                    std::log2(static_cast<double>(sorted[i - 1]->chunk_items));
+                const double x1 =
+                    std::log2(static_cast<double>(sorted[i]->chunk_items));
                 const double f =
                     (x1 - x0) > 1e-12
-                        ? static_cast<double>(chunk - sorted[i - 1]->chunk_items) /
-                              (x1 - x0)
+                        ? (std::log2(static_cast<double>(chunk)) - x0) / (x1 - x0)
                         : 0.0;
-                return sorted[i - 1]->median_ms +
-                       f * (sorted[i]->median_ms - sorted[i - 1]->median_ms);
+                const double s0 = sorted[i - 1]->median_service_ms;
+                const double s1 = sorted[i]->median_service_ms;
+                const double l0 = std::log2(std::max(s0, 1e-9));
+                const double l1 = std::log2(std::max(s1, 1e-9));
+                return std::exp2(l0 + f * (l1 - l0));
             }
         }
-        return sorted.back()->median_ms;
+        return sorted.back()->median_service_ms;
     };
 
     // 搜索 CPU×GPU 候选块组合的最小模拟 makespan
@@ -200,12 +235,8 @@ double BenchmarkRouteEstimator::simulate_mixed(
                 const std::uint64_t take =
                     std::min(chunk, remaining);
                 const double svc = (cpu_ready <= gpu_ready)
-                    ? service_ms(cpu_pts, c.chunk_items) *
-                          (static_cast<double>(take) /
-                           static_cast<double>(c.chunk_items))
-                    : service_ms(gpu_pts, g.chunk_items) *
-                          (static_cast<double>(take) /
-                           static_cast<double>(g.chunk_items));
+                    ? service_ms(cpu_pts, take)
+                    : service_ms(gpu_pts, take);
                 if (cpu_ready <= gpu_ready) {
                     cpu_ready += svc;
                 } else {
@@ -275,9 +306,11 @@ RouteDecision BenchmarkRouteEstimator::decide(
                             request.frame_count, med, p90)) {
             p.feasible = true;
             p.predicted_ms = med;
-            p.error_bound_ms = p90 * sc->openmp.p95_error_ratio;
+            p.error_bound_ms = med * sc->openmp.max_error_ratio;
             p.queue_delay_ms = request.queues.cpu_delay_ms;
-            p.score_ms = med + p.queue_delay_ms + p.error_bound_ms;
+            p.score_ms =
+                med * (1.0 + sc->openmp.max_error_ratio) +
+                p.queue_delay_ms;
             p.reason = "profile-e2e";
         } else {
             p.feasible = false;
@@ -300,9 +333,11 @@ RouteDecision BenchmarkRouteEstimator::decide(
             vram_ok) {
             p.feasible = true;
             p.predicted_ms = med;
-            p.error_bound_ms = p90 * sc->gpu_direct.p95_error_ratio;
+            p.error_bound_ms = med * sc->gpu_direct.max_error_ratio;
             p.queue_delay_ms = request.queues.gpu_delay_ms;
-            p.score_ms = med + p.queue_delay_ms + p.error_bound_ms;
+            p.score_ms =
+                med * (1.0 + sc->gpu_direct.max_error_ratio) +
+                p.queue_delay_ms;
             p.reason = "profile-e2e";
         } else if (!vram_ok) {
             p.feasible = false;
@@ -321,21 +356,34 @@ RouteDecision BenchmarkRouteEstimator::decide(
             request.memory.vram_available_bytes == 0 ||
             request.output_bytes + request.input_bytes <=
                 request.memory.vram_available_bytes;
+        // BDR 复核（08 计划 E）：真实 Mixed E2E 插值是主成本；
+        // chunk simulator 只做分块与排队修正。
+        double base = 0.0, base_p90 = 0.0;
+        const bool has_e2e = sc->mixed.eligible &&
+            interpolate_e2e(sc->mixed, request.output_items,
+                            request.frame_count, base, base_p90);
         std::uint64_t cpu_chunk = 0, gpu_chunk = 0;
-        const double makespan = simulate_mixed(
+        const double sim0 = simulate_mixed(
+            op->cpu_chunk_service, op->gpu_chunk_service,
+            request.output_items, request.frame_count,
+            0.0, 0.0,
+            cpu_chunk, gpu_chunk);
+        std::uint64_t cpu_chunk_q = 0, gpu_chunk_q = 0;
+        const double simq = simulate_mixed(
             op->cpu_chunk_service, op->gpu_chunk_service,
             request.output_items, request.frame_count,
             request.queues.cpu_delay_ms, request.queues.gpu_delay_ms,
-            cpu_chunk, gpu_chunk);
-        if (sc->mixed.eligible && makespan >= 0.0 && vram_ok) {
+            cpu_chunk_q, gpu_chunk_q);
+        if (has_e2e && sim0 >= 0.0 && simq >= 0.0 && vram_ok) {
             p.feasible = true;
-            p.predicted_ms = makespan + op->mixed_fixed_overhead_ms;
-            p.error_bound_ms = makespan * sc->mixed.p95_error_ratio;
-            p.queue_delay_ms = 0.0;  // 已计入模拟初值
-            p.score_ms = p.predicted_ms + p.error_bound_ms;
-            d.cpu_chunk_items = cpu_chunk;
-            d.gpu_chunk_items = gpu_chunk;
-            p.reason = "mixed-simulation";
+            p.predicted_ms =
+                base + std::max(0.0, simq - sim0);
+            p.error_bound_ms = base * sc->mixed.max_error_ratio;
+            p.queue_delay_ms = 0.0;  // 已计入 simq-sim0
+            p.score_ms = p.predicted_ms * (1.0 + sc->mixed.max_error_ratio);
+            d.cpu_chunk_items = cpu_chunk_q;
+            d.gpu_chunk_items = gpu_chunk_q;
+            p.reason = "mixed-e2e-plus-queue-correction";
         } else if (!vram_ok) {
             p.feasible = false;
             p.reason = "vram-insufficient";

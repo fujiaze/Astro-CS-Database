@@ -1118,7 +1118,8 @@ int main(int argc, char** argv) {
         }
     }  // for (ci : cases)
     // =====================================================================
-    // Route Replay（08 计划 F：holdout 路由回放）
+    // =====================================================================
+    // Route Replay 三场景（08 计划 G：cold / resident / reuse4）
     // =====================================================================
     nlohmann::json route_replay = nlohmann::json::array();
     bool replay_all_within_10 = true;
@@ -1128,129 +1129,173 @@ int main(int argc, char** argv) {
         const std::vector<std::pair<std::size_t, std::uint32_t>> holdouts{
             {768u * 768u, 12u}, {1536u * 1536u, 24u},
             {3072u * 3072u, 12u}, {4096u * 4096u, 24u}};
-        for (const auto& [px, frames] : holdouts) {
-            const std::size_t pixels = px;
-            std::vector<float> fdata(frames * pixels), w(frames);
-            generate_synthetic(20260807, frames, pixels, fdata, w);
-            std::vector<float> out(pixels);
-            WeightedIntegrationView view{
-                fdata.data(), w.data(), frames, pixels};
+        struct SceneSpec {
+            const char* id;
+            routing::InputResidency res;
+            std::uint32_t reuse;
+        };
+        const SceneSpec scenes[] = {
+            {"cold", routing::InputResidency::HostOnly, 1u},
+            {"resident", routing::InputResidency::DeviceResident, 1u},
+            {"reuse4", routing::InputResidency::DeviceResident, 4u},
+        };
+        for (const auto& scene : scenes) {
+            for (const auto& [px, frames] : holdouts) {
+                const std::size_t pixels = px;
+                std::vector<float> fdata(frames * pixels), w(frames);
+                generate_synthetic(20260807, frames, pixels, fdata, w);
+                std::vector<float> out(pixels);
+                WeightedIntegrationView view{
+                    fdata.data(), w.data(), frames, pixels};
 
-            Timed to = measure(
-                [&] { weighted_integration_openmp(view, out.data(),
-                                                  env.openmp_threads); },
-                args.warmup, args.repeats);
-            std::uint64_t el = 0;
-            const char* err = nullptr;
-            bapi->upload_persistent_slot(gpu_handle, 0, 0,
-                                         frames * pixels,
-                                         fdata.data(), &el, &err);
-            bapi->upload_persistent_slot(gpu_handle, 1, 0,
-                                         frames, w.data(), &el, &err);
-            Timed tg = measure(
-                [&] {
-                    bapi->submit_weighted_integration_resident(
-                        gpu_handle, 0, pixels, out.data(),
-                        frames, pixels, &el, &err);
-                },
-                args.warmup, args.repeats);
-            Timed tm;
-            {
-                auto regs = std::make_shared<ExecutorRegistry>(
-                    ExecutorRegistry::create_auto());
-                Dispatcher d;
-                DispatcherConfig cfg;
-                cfg.devices = {{"cpu", 0, 0, 50.0, true},
-                               {"cuda:0", 1, 0, 500.0, true}};
-                cfg.executors = regs;
-                cfg.route_mode = RouteMode::AutoMixed;
-                cfg.force_all_supported_executors = true;
-                d.configure(cfg);
-                tm = measure(
+                const auto repeats = scene.reuse;
+                Timed to = measure(
                     [&] {
-                        std::fill(out.begin(), out.end(), 0.0f);
-                        auto r = run_weighted_via_dispatcher(
-                            d, view, out.data(), fdata, w,
-                            1u << 16, 1u << 16);
-                        if (!r.run_result.all_done) {
-                            throw std::runtime_error(
-                                "replay mixed failed");
+                        for (std::uint32_t r = 0; r < repeats; ++r) {
+                            weighted_integration_openmp(view, out.data(),
+                                                        env.openmp_threads);
                         }
                     },
                     args.warmup, args.repeats);
-            }
+                std::uint64_t el = 0;
+                const char* err = nullptr;
+                Timed tg;
+                if (scene.res == routing::InputResidency::HostOnly) {
+                    tg = measure(
+                        [&] {
+                            for (std::uint32_t r = 0; r < repeats; ++r) {
+                                bapi->upload_persistent_slot(
+                                    gpu_handle, 0, 0, frames * pixels,
+                                    fdata.data(), &el, &err);
+                                bapi->upload_persistent_slot(
+                                    gpu_handle, 1, 0, frames,
+                                    w.data(), &el, &err);
+                                bapi->submit_weighted_integration_resident(
+                                    gpu_handle, 0, pixels, out.data(),
+                                    frames, pixels, &el, &err);
+                            }
+                        },
+                        args.warmup, args.repeats);
+                } else {
+                    bapi->upload_persistent_slot(gpu_handle, 0, 0,
+                                                 frames * pixels,
+                                                 fdata.data(), &el, &err);
+                    bapi->upload_persistent_slot(gpu_handle, 1, 0,
+                                                 frames, w.data(), &el, &err);
+                    tg = measure(
+                        [&] {
+                            for (std::uint32_t r = 0; r < repeats; ++r) {
+                                bapi->submit_weighted_integration_resident(
+                                    gpu_handle, 0, pixels, out.data(),
+                                    frames, pixels, &el, &err);
+                            }
+                        },
+                        args.warmup, args.repeats);
+                }
+                Timed tm;
+                {
+                    auto regs = std::make_shared<ExecutorRegistry>(
+                        ExecutorRegistry::create_auto());
+                    Dispatcher d;
+                    DispatcherConfig cfg;
+                    cfg.devices = {{"cpu", 0, 0, 50.0, true},
+                                   {"cuda:0", 1, 0, 500.0, true}};
+                    cfg.executors = regs;
+                    cfg.route_mode = RouteMode::AutoMixed;
+                    cfg.force_all_supported_executors = true;
+                    d.configure(cfg);
+                    if (scene.res == routing::InputResidency::DeviceResident) {
+                        run_weighted_via_dispatcher(d, view, out.data(),
+                                                    fdata, w, 1u << 16, 1u << 16);
+                    }
+                    tm = measure(
+                        [&] {
+                            for (std::uint32_t r = 0; r < repeats; ++r) {
+                                std::fill(out.begin(), out.end(), 0.0f);
+                                auto rr = run_weighted_via_dispatcher(
+                                    d, view, out.data(), fdata, w,
+                                    1u << 16, 1u << 16);
+                                if (!rr.run_result.all_done) {
+                                    throw std::runtime_error(
+                                        "replay mixed failed");
+                                }
+                            }
+                        },
+                        args.warmup, args.repeats);
+                }
 
-            routing::BenchmarkRouteEstimator est;
-            est.set_profile(&route_profile);
-            routing::RouteRequest req;
-            req.operation_id = kOp;
-            req.output_items = pixels;
-            req.frame_count = frames;
-            req.input_bytes = fdata.size() * sizeof(float) +
-                              w.size() * sizeof(float);
-            req.output_bytes = pixels * sizeof(float);
-            req.input_residency = routing::InputResidency::DeviceResident;
-            req.output_policy = routing::OutputMaterialization::HostRequired;
-            req.reuse_count_hint = 1;
-            const auto dec = est.decide(req);
+                routing::BenchmarkRouteEstimator est;
+                est.set_profile(&route_profile);
+                routing::RouteRequest req;
+                req.operation_id = kOp;
+                req.output_items = pixels;
+                req.frame_count = frames;
+                req.input_bytes = fdata.size() * sizeof(float) +
+                                  w.size() * sizeof(float);
+                req.output_bytes = pixels * sizeof(float);
+                req.input_residency = scene.res;
+                req.output_policy = routing::OutputMaterialization::HostRequired;
+                req.reuse_count_hint = scene.reuse;
+                const auto dec = est.decide(req);
 
-            const double auto_ms =
-                dec.chosen == routing::RouteKind::OpenMP
-                    ? to.total_median_ms
-                    : dec.chosen == routing::RouteKind::GpuDirect
-                          ? tg.total_median_ms
-                          : tm.total_median_ms;
-            const double best = std::min(
-                {to.total_median_ms, tg.total_median_ms, tm.total_median_ms});
-            const std::string best_route =
-                (best == to.total_median_ms)
-                    ? "legacy_openmp"
-                    : (best == tg.total_median_ms) ? "gpu_direct" : "mixed";
-            const bool within = auto_ms <= best * 1.10;
-            if (!within) {
-                replay_all_within_10 = false;
-                replay_slowest = std::to_string(pixels) + "x" +
-                                 std::to_string(frames);
+                const double auto_ms =
+                    dec.chosen == routing::RouteKind::OpenMP
+                        ? to.total_median_ms
+                        : dec.chosen == routing::RouteKind::GpuDirect
+                              ? tg.total_median_ms
+                              : tm.total_median_ms;
+                const double best = std::min(
+                    {to.total_median_ms, tg.total_median_ms, tm.total_median_ms});
+                const std::string best_route =
+                    (best == to.total_median_ms)
+                        ? "legacy_openmp"
+                        : (best == tg.total_median_ms) ? "gpu_direct" : "mixed";
+                const bool within = auto_ms <= best * 1.10;
+                if (!within) {
+                    replay_all_within_10 = false;
+                    replay_slowest = std::string(scene.id) + " " +
+                                     std::to_string(pixels) + "x" +
+                                     std::to_string(frames);
+                }
+                route_replay.push_back({
+                    {"scenario", std::string(scene.id) + "_host_output"},
+                    {"output_items", pixels},
+                    {"frame_count", frames},
+                    {"predictions", nlohmann::json::array({
+                        {{"route", "legacy_openmp"},
+                         {"predicted_ms", dec.openmp.feasible ? dec.openmp.predicted_ms : 0.0},
+                         {"error_bound_ms", dec.openmp.error_bound_ms},
+                         {"score_ms", dec.openmp.score_ms},
+                         {"feasible", dec.openmp.feasible}},
+                        {{"route", "gpu_direct"},
+                         {"predicted_ms", dec.gpu_direct.feasible ? dec.gpu_direct.predicted_ms : 0.0},
+                         {"error_bound_ms", dec.gpu_direct.error_bound_ms},
+                         {"score_ms", dec.gpu_direct.score_ms},
+                         {"feasible", dec.gpu_direct.feasible}},
+                        {{"route", "mixed"},
+                         {"predicted_ms", dec.mixed.feasible ? dec.mixed.predicted_ms : 0.0},
+                         {"error_bound_ms", dec.mixed.error_bound_ms},
+                         {"score_ms", dec.mixed.score_ms},
+                         {"feasible", dec.mixed.feasible}},
+                    })},
+                    {"chosen", dec.chosen == routing::RouteKind::OpenMP
+                                   ? "legacy_openmp"
+                                   : dec.chosen == routing::RouteKind::GpuDirect
+                                         ? "gpu_direct"
+                                         : "mixed"},
+                    {"reason", dec.reason},
+                    {"chosen_actual_ms", auto_ms},
+                    {"actual_best_ms", best},
+                    {"actual_best", best_route},
+                    {"actual_openmp_ms", to.total_median_ms},
+                    {"actual_gpu_ms", tg.total_median_ms},
+                    {"actual_mixed_ms", tm.total_median_ms},
+                    {"within_best_10pct", within},
+                });
             }
-            route_replay.push_back({
-                {"scenario", "resident_host_output"},
-                {"output_items", pixels},
-                {"frame_count", frames},
-                {"predictions", nlohmann::json::array({
-                    {{"route", "legacy_openmp"},
-                     {"predicted_ms", dec.openmp.feasible ? dec.openmp.predicted_ms : 0.0},
-                     {"error_bound_ms", dec.openmp.error_bound_ms},
-                     {"score_ms", dec.openmp.score_ms},
-                     {"feasible", dec.openmp.feasible}},
-                    {{"route", "gpu_direct"},
-                     {"predicted_ms", dec.gpu_direct.feasible ? dec.gpu_direct.predicted_ms : 0.0},
-                     {"error_bound_ms", dec.gpu_direct.error_bound_ms},
-                     {"score_ms", dec.gpu_direct.score_ms},
-                     {"feasible", dec.gpu_direct.feasible}},
-                    {{"route", "mixed"},
-                     {"predicted_ms", dec.mixed.feasible ? dec.mixed.predicted_ms : 0.0},
-                     {"error_bound_ms", dec.mixed.error_bound_ms},
-                     {"score_ms", dec.mixed.score_ms},
-                     {"feasible", dec.mixed.feasible}},
-                })},
-                {"chosen", dec.chosen == routing::RouteKind::OpenMP
-                               ? "legacy_openmp"
-                               : dec.chosen == routing::RouteKind::GpuDirect
-                                     ? "gpu_direct"
-                                     : "mixed"},
-                {"reason", dec.reason},
-                {"chosen_actual_ms", auto_ms},
-                {"actual_best_ms", best},
-                {"actual_best", best_route},
-                {"actual_openmp_ms", to.total_median_ms},
-                {"actual_gpu_ms", tg.total_median_ms},
-                {"actual_mixed_ms", tm.total_median_ms},
-                {"within_best_10pct", within},
-            });
         }
     }
     report["route_replay"] = route_replay;
-
     // =====================================================================
     // 资格判定（08 计划 E：最佳合理模式 + 10% 门禁 + 1.05x）
     // =====================================================================
@@ -1339,24 +1384,63 @@ int main(int argc, char** argv) {
         correctness_pass && route_profile_ready &&
         qualification["performance"] == "QUALIFIED";
     qualification["reason"] = perf_reason;
-    // schema 1.3 gates（08 计划 A-F / 07 号规范）
+    // schema 1.3 gates（08 计划 H：从 Profile/replay 实际字段自动计算）
     const bool perf_mode = !args.correctness_only && args.preset != "quick";
-    qualification["gates"]["true_cold_semantics"] = true;
-    qualification["gates"]["median_sample_stats_aligned"] = true;
-    qualification["gates"]["scenario_isolation"] = true;
-    qualification["gates"]["direct_gpu_reuse4_present"] = true;
+    bool cold_timed_h2d = false;
+    bool reuse4_gpu_present = false;
+    bool stats_aligned = true;
+    std::size_t scenario_count = 0;
+    if (route_profile_ready && !route_profile.operations.empty()) {
+        const auto& op = route_profile.operations.front();
+        scenario_count = op.scenarios.size();
+        for (const auto& sc : op.scenarios) {
+            if (sc.scenario_id == "cold_host_output") {
+                for (const auto& s : sc.gpu_direct.samples) {
+                    if (s.timed_h2d_bytes > 0) cold_timed_h2d = true;
+                }
+            }
+            if (sc.scenario_id == "resident_reuse4_host_output" &&
+                !sc.gpu_direct.samples.empty()) {
+                reuse4_gpu_present = true;
+            }
+            for (const auto* p : {&sc.openmp, &sc.gpu_direct, &sc.mixed}) {
+                for (const auto& s : p->samples) {
+                    if (s.median_ms <= 0.0 || s.p90_ms <= 0.0) {
+                        stats_aligned = false;
+                    }
+                }
+            }
+        }
+    }
+    auto scene_within = [&](const std::string& scene_id) {
+        bool ok = true;
+        for (const auto& r : route_replay) {
+            if (r["scenario"].get<std::string>() == scene_id &&
+                r["within_best_10pct"] != true) {
+                ok = false;
+            }
+        }
+        return perf_mode && ok;
+    };
+    qualification["gates"]["true_cold_semantics"] =
+        perf_mode && cold_timed_h2d;
+    qualification["gates"]["median_sample_stats_aligned"] = stats_aligned;
+    qualification["gates"]["scenario_isolation"] =
+        perf_mode && scenario_count == 3;
+    qualification["gates"]["direct_gpu_reuse4_present"] =
+        reuse4_gpu_present;
     qualification["gates"]["metrics_complete"] = true;
     qualification["gates"]["profile_threshold_validated"] = true;
     qualification["gates"]["auto_cold_within_best_10pct"] =
-        perf_mode ? replay_all_within_10 : false;
+        scene_within("cold_host_output");
     qualification["gates"]["auto_resident_within_best_10pct"] =
-        perf_mode ? replay_all_within_10 : false;
+        scene_within("resident_host_output");
     qualification["gates"]["auto_reuse4_within_best_10pct"] =
-        perf_mode ? replay_all_within_10 : false;
+        scene_within("reuse4_host_output");
     qualification["gates"]["positive_resident_speedup_present"] =
-        perf_mode ? perf_ok : false;
+        perf_mode && perf_ok;
     qualification["gates"]["single_stream_semantics_verified"] = true;
-    qualification["gates"]["three_clean_ctest_runs"] = false;  // 本轮如实：1 次 GPU flaky
+    qualification["gates"]["three_clean_ctest_runs"] = false;  // 本轮如实
     report["qualification"] = qualification;
     for (auto& jj : case_jsons) {
         report["cases"].push_back(jj);
@@ -1371,6 +1455,45 @@ int main(int argc, char** argv) {
             return 4;
         }
         f << report.dump(1) << "\n";
+    }
+    // Evidence 自动一致性（08 计划 A）：summary 由最终 JSON 自动生成，
+    // 禁止手写 README 性能摘要。
+    {
+        nlohmann::json summary;
+        summary["profile_state"] =
+            route_profile_ready ? route_profile.profile_state : "diagnostic";
+        summary["operation_qualified"] =
+            route_profile_ready && !route_profile.operations.empty()
+                ? route_profile.operations.front().qualified
+                : false;
+        summary["scenario_eligibility"] = nlohmann::json::array();
+        if (route_profile_ready && !route_profile.operations.empty()) {
+            for (const auto& sc : route_profile.operations.front().scenarios) {
+                nlohmann::json sj;
+                sj["scenario_id"] = sc.scenario_id;
+                sj["openmp_eligible"] = sc.openmp.eligible;
+                sj["openmp_median_error"] = sc.openmp.median_error_ratio;
+                sj["openmp_max_error"] = sc.openmp.max_error_ratio;
+                sj["gpu_eligible"] = sc.gpu_direct.eligible;
+                sj["gpu_median_error"] = sc.gpu_direct.median_error_ratio;
+                sj["gpu_max_error"] = sc.gpu_direct.max_error_ratio;
+                sj["mixed_eligible"] = sc.mixed.eligible;
+                sj["mixed_median_error"] = sc.mixed.median_error_ratio;
+                sj["mixed_max_error"] = sc.mixed.max_error_ratio;
+                summary["scenario_eligibility"].push_back(std::move(sj));
+            }
+        }
+        summary["replay_within_best_10pct"] = replay_all_within_10;
+        summary["replay_slowest"] = replay_slowest;
+        summary["gates"] = qualification["gates"];
+        summary["correctness"] = qualification["correctness"];
+        summary["performance"] = qualification["performance"];
+        summary["ready_for_business_adapter"] =
+            qualification["ready_for_business_adapter"];
+        std::ofstream sf(args.output + ".summary.json");
+        if (sf) {
+            sf << summary.dump(1) << "\n";
+        }
     }
     std::printf("[weighted] preset=%s correctness=%s perf=%s profile=%d "
                 "-> %s\n",

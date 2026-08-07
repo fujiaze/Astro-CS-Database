@@ -126,7 +126,12 @@ struct RoutePath {
     std::uint64_t max_output_items{0};
     std::vector<std::uint32_t> frame_counts;
     bool allow_tail_extrapolation{false};
+    // BDR 复核（08 计划 B/C）：插值模型由 holdout 选择；误差用 median/max。
+    std::string interpolation_id{
+        "piecewise-linear-items-frames"};  // 或 piecewise-loglog-items-frames-time
+    std::size_t holdout_count{0};
     double median_error_ratio{0.0};
+    double max_error_ratio{0.0};
     double p95_error_ratio{0.0};
 };
 
@@ -142,7 +147,9 @@ struct RouteScenarioProfile {
 struct ChunkServicePoint {
     std::uint64_t chunk_items{0};
     std::uint32_t frame_count{0};
-    double median_ms{0.0};
+    double median_service_ms{0.0};   // 真实单 token/chunk 服务时间
+    double p90_service_ms{0.0};
+    std::size_t sample_count{0};
 };
 
 // Operation 级画像
