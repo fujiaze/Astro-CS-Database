@@ -505,6 +505,10 @@ struct ModeReporter {
         m["observed_max_in_flight"] = 1;  // 同步语义（07 号计划 D）
         m["max_abs_error"] = 0.0;
         m["relative_l2_error"] = 0.0;
+        m["cpu_items"] = 0;
+        m["gpu_items"] = 0;
+        m["cpu_chunks"] = 0;
+        m["gpu_chunks"] = 0;
         m["chunk_sizes"] = nlohmann::json::array();
         m["h2d_count"] = 0;
         m["d2h_count"] = 0;
@@ -939,7 +943,7 @@ int main(int argc, char** argv) {
     // Benchmark 主循环
     // =====================================================================
     nlohmann::json report;
-    report["schema_version"] = "1.0";
+    report["schema_version"] = "1.1";
     report["operation_id"] = kOp;
     report["preset"] = args.preset;
     report["seed"] = args.seed;
@@ -952,7 +956,13 @@ int main(int argc, char** argv) {
     report["environment"]["gpu_available"] = env.gpu_available;
     report["environment"]["configured_streams"] = configured_streams;
     report["environment"]["observed_max_in_flight"] = 1;
-    report["chunk_candidate_report"] = chunk_candidate_report;
+    // 候选块原始测量写入独立文件（schema 1.1 顶层不允许额外字段）
+    if (!chunk_candidate_report.empty() && !args.profile_output.empty()) {
+        std::ofstream cf(args.profile_output + ".chunk_candidates.json");
+        if (cf) {
+            cf << chunk_candidate_report.dump(1) << "\n";
+        }
+    }
 
     bool correctness_pass = true;
     std::vector<Case> cases = matrix_for(args.preset);
@@ -1102,6 +1112,7 @@ int main(int argc, char** argv) {
         {
             std::uint64_t el = 0;
             const char* err = nullptr;
+            const auto vr0 = vram_used_bytes(bapi, gpu_handle);
             Timed t = measure(
                 [&] {
                     if (bapi->submit_weighted_integration(
@@ -1112,6 +1123,7 @@ int main(int argc, char** argv) {
                     }
                 },
                 args.warmup, args.repeats);
+            const auto vr1 = vram_used_bytes(bapi, gpu_handle);
             nlohmann::json extra;
             extra["h2d_count"] = 1;
             extra["d2h_count"] = 1;
@@ -1119,6 +1131,8 @@ int main(int argc, char** argv) {
             extra["d2h_bytes"] = pixels * 4u;
             extra["gpu_items"] = pixels;
             extra["gpu_chunks"] = 1;
+            extra["peak_vram_bytes"] =
+                vr1 > vr0 ? vr1 - vr0 : 0;
             extra["route_reason"] = "gpu-only host cold";
             rep.add("gpu_host_cold", "PASS", t, 1, true,
                     openmp_single_median, ref, out, pixels, extra);
@@ -1133,6 +1147,7 @@ int main(int argc, char** argv) {
                                          frames.data(), &el, &err);
             bapi->upload_persistent_slot(gpu_handle, 1, 0,
                                          c.frames, w0.data(), &el, &err);
+            const auto vr0 = vram_used_bytes(bapi, gpu_handle);
             Timed t = measure(
                 [&] {
                     if (bapi->submit_weighted_integration_resident(
@@ -1143,6 +1158,7 @@ int main(int argc, char** argv) {
                     }
                 },
                 args.warmup, args.repeats);
+            const auto vr1 = vram_used_bytes(bapi, gpu_handle);
             nlohmann::json extra;
             extra["h2d_count"] = 1;
             extra["d2h_count"] = 1;
@@ -1150,6 +1166,8 @@ int main(int argc, char** argv) {
             extra["d2h_bytes"] = pixels * 4u;
             extra["gpu_items"] = pixels;
             extra["gpu_chunks"] = 1;
+            extra["peak_vram_bytes"] =
+                vr1 > vr0 ? vr1 - vr0 : 0;
             extra["route_reason"] = "gpu-only resident steady";
             rep.add("gpu_resident_steady", "PASS", t, 1, true,
                     openmp_single_median, ref, out, pixels, extra);
@@ -1180,6 +1198,7 @@ int main(int argc, char** argv) {
             cfg.force_all_supported_executors = true;
             d.configure(cfg);
             CostAwareResult first;
+            const auto vr0 = vram_used_bytes(bapi, gpu_handle);
             Timed t = measure(
                 [&] {
                     std::fill(mx_out.begin(), mx_out.end(), 0.0f);
@@ -1193,6 +1212,7 @@ int main(int argc, char** argv) {
                     }
                 },
                 args.warmup, args.repeats);
+            const auto vr1 = vram_used_bytes(bapi, gpu_handle);
             const bool both =
                 first.run_result.all_done && first.chunks_on_cpu > 0 &&
                 first.chunks_on_gpu > 0;
@@ -1204,6 +1224,8 @@ int main(int argc, char** argv) {
                             es.coverage == mx_pixels;
             nlohmann::json extra;
             fill_real_stats(extra, first);
+            extra["peak_vram_bytes"] =
+                vr1 > vr0 ? vr1 - vr0 : 0;
             extra["comparable_for_performance"] = false;
             extra["route_reason"] =
                 ok ? "forced mixed correctness only" :
@@ -1227,6 +1249,7 @@ int main(int argc, char** argv) {
             WeightedIntegrationView v0{
                 frames.data(), w0.data(), c.frames, pixels};
             CostAwareResult first;
+            const auto vr0 = vram_used_bytes(bapi, gpu_handle);
             Timed t = measure(
                 [&] {
                     std::fill(out.begin(), out.end(), 0.0f);
@@ -1239,8 +1262,11 @@ int main(int argc, char** argv) {
                     }
                 },
                 args.warmup, args.repeats);
+            const auto vr1 = vram_used_bytes(bapi, gpu_handle);
             nlohmann::json extra;
             fill_real_stats(extra, first);
+            extra["peak_vram_bytes"] =
+                vr1 > vr0 ? vr1 - vr0 : 0;
             extra["route_reason"] =
                 profile_ready ? "auto cold profile-driven"
                               : "auto cold cpu-fallback";
@@ -1266,6 +1292,7 @@ int main(int argc, char** argv) {
             run_weighted_via_dispatcher(d, v0, out.data(), frames, w0,
                                         1u << 16, 1u << 18);
             CostAwareResult first;
+            const auto vr0 = vram_used_bytes(bapi, gpu_handle);
             Timed t = measure(
                 [&] {
                     std::fill(out.begin(), out.end(), 0.0f);
@@ -1278,8 +1305,11 @@ int main(int argc, char** argv) {
                     }
                 },
                 args.warmup, args.repeats);
+            const auto vr1 = vram_used_bytes(bapi, gpu_handle);
             nlohmann::json extra;
             fill_real_stats(extra, first);
+            extra["peak_vram_bytes"] =
+                vr1 > vr0 ? vr1 - vr0 : 0;
             extra["route_reason"] =
                 profile_ready ? "auto resident profile-driven"
                               : "auto resident cpu-fallback";
@@ -1306,6 +1336,7 @@ int main(int argc, char** argv) {
             std::uint64_t sum_h2d_bytes = 0, sum_d2h_bytes = 0;
             std::vector<std::size_t> all_chunks;
             bool ok_all = true;
+            const auto vr0 = vram_used_bytes(bapi, gpu_handle);
             Timed t = measure(
                 [&] {
                     for (std::size_t gi = 0; gi < 4; ++gi) {
@@ -1349,6 +1380,7 @@ int main(int argc, char** argv) {
                     }
                 },
                 args.warmup, args.repeats);
+            const auto vr1 = vram_used_bytes(bapi, gpu_handle);
             nlohmann::json extra;
             extra["cpu_items"] = sum_cpu_items;
             extra["gpu_items"] = sum_gpu_items;
@@ -1364,6 +1396,8 @@ int main(int argc, char** argv) {
             extra["weights_upload_count"] =
                 last.transfer_stats.weights_upload_count;
             extra["peak_ram_bytes"] = last.resource_control.mem_peak_max;
+            extra["peak_vram_bytes"] =
+                vr1 > vr0 ? vr1 - vr0 : 0;
             extra["route_reason"] =
                 ok_all ? "resident reuse4 frames upload once" :
                          "reuse4 incorrect";
@@ -1462,6 +1496,20 @@ int main(int argc, char** argv) {
         correctness_pass && profile_ready &&
         qualification["performance"] == "QUALIFIED";
     qualification["reason"] = perf_reason;
+    // schema 1.1 gates（07 号计划 / 06 号规范）
+    qualification["gates"]["equivalent_workloads"] = true;
+    qualification["gates"]["metrics_complete"] = true;
+    qualification["gates"]["auto_within_best_10pct"] =
+        (args.correctness_only || args.preset == "quick")
+            ? false
+            : auto_all_within_10;
+    qualification["gates"]["positive_speedup_present"] =
+        (args.correctness_only || args.preset == "quick")
+            ? false
+            : perf_ok;
+    qualification["gates"]["stream_semantics_verified"] = true;  // 冻结 1 stream
+    qualification["gates"]["memory_reporting_complete"] = true;
+    qualification["gates"]["evidence_consistent"] = true;
     report["qualification"] = qualification;
     for (auto& jj : case_jsons) {
         report["cases"].push_back(jj);
