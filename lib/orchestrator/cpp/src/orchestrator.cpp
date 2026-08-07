@@ -726,6 +726,34 @@ bool Orchestrator::init_dlls(const std::string& lib_base_dir, std::string& error
     bool ok = dll_loader_.load_all(base_dir);
     dlls_loaded_ = ok;
 
+    // Gate 1 (Dataflow_ABI_Contract): AIO 是共享 ABI 基础, 结构不匹配硬失败
+    if (dlls_loaded_ && dll_loader_.is_loaded(ModuleId::AIO)) {
+        auto fn_abi = dll_loader_.get_function<const AstroAbiInfo* (*)(void)>(
+            ModuleId::AIO, "aio_abi_info");
+        if (!fn_abi) {
+            error_msg = "AIO 未导出 aio_abi_info (ABI 握手失败)";
+            LOG_ERROR("orchestrator", error_msg);
+            dlls_loaded_ = false;
+        } else {
+            const AstroAbiInfo* abi = fn_abi();
+            bool abi_ok = abi &&
+                          abi->abi_version == 1 &&
+                          abi->pointer_size == sizeof(void*) &&
+                          abi->pipeline_frame_size == sizeof(PipelineFrame) &&
+                          abi->aio_block_size == sizeof(AioBlock) &&
+                          abi->aio_kv_entry_size == sizeof(AioKVEntry);
+            if (!abi_ok) {
+                error_msg = "AIO ABI 不匹配 (硬失败, 不再继续)";
+                LOG_ERROR("orchestrator", error_msg);
+                dlls_loaded_ = false;
+            } else {
+                LOG_INFO("orchestrator", "AIO ABI 握手通过: abi_version=" +
+                         std::to_string(abi->abi_version) + " struct_size=" +
+                         std::to_string(abi->struct_size));
+            }
+        }
+    }
+
     if (!ok) {
         // 收集所有失败模块的错误信息 (spec §2.3.2 9 节点, 2026-07-18 归档 GRADIENT_2D)
         std::stringstream ss;
@@ -3816,7 +3844,7 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
     std::memcpy(p, &reserved, 1);                         p += 1;
     std::memcpy(p, &point_stride, 2);                     p += 2;
     std::memcpy(p, &n_points, 4);                         p += 4;
-    uint64_t payload_bytes = 4 + (uint64_t)n_points * point_stride + 24;
+    uint64_t payload_bytes = (uint64_t)n_points * point_stride + 24;
     std::memcpy(p, &payload_bytes, 8);                    p += 8;
     // checksum (FNV-1a 32, 覆盖 [points + trailing])
     uint32_t checksum = 2166136261u;

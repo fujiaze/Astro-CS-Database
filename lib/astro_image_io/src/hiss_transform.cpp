@@ -437,6 +437,14 @@ static std::vector<uint8_t> inverse_delta_varint(const uint8_t* data,
                           ((uint32_t)data[3] << 24);
 
     size_t output_size = (size_t)n_elements * element_size;
+    // Gate 4 fuzz: DELTA_VARINT n_elements 前缀可被损坏为巨大值, 防巨额分配
+    if (output_size > HISS_MAX_SUBBLOCK_UNCOMPRESSED ||
+        (n_elements > 0 && output_size / (size_t)n_elements != (size_t)element_size)) {
+        fprintf(stderr,
+                "[hiss][transform] DELTA_VARINT inverse: 输出大小超限 %zu\n",
+                output_size);
+        return {};
+    }
 
     // expected_output_size 非 0 时校验
     if (expected_output_size != 0 && expected_output_size != output_size) {

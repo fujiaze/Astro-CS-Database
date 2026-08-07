@@ -269,6 +269,12 @@ struct HissSnrBlockF64 {
 // uncompressed_size(8) + codec_id(2) + transform_id(2) + checksum_type(1) + checksum(8) = 42
 #define HISS_SUBBLOCK_DESC_DISK_SIZE 42
 
+// 冻结资源上限 (Gate 4 fuzz): 单子块解压大小上限 64 MiB
+// (生产最大子块: NSIDE=2^22 Tile signal f64 = 262144*8 = 2 MiB, 留 32 倍裕量)
+#define HISS_MAX_SUBBLOCK_UNCOMPRESSED (64ull << 20)
+// HISS 网格 NSIDE 上限 (冻结支持域, 2^14~2^22 高 NSIDE 门)
+#define HISS_MAX_NSIDE (1u << 22)
+
 // ============================================================================
 // 9. 元数据 (已冻结: 02_FROZEN §16)
 //    精简 FITS 风格, 不保存完整 WCS/SIP

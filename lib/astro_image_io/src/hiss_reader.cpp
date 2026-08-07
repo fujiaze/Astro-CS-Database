@@ -350,6 +350,14 @@ struct HissReader::Impl {
             return -6;
         }
 
+        // BLOCKER-DF-005 (fuzz 发现): 解压大小资源上限, 防止损坏头触发
+        // 巨额分配/慢路径 (如 uncompressed_size 被改为 8 GiB)
+        if (desc.uncompressed_size > HISS_MAX_SUBBLOCK_UNCOMPRESSED) {
+            fprintf(stderr, "[hiss][reader] 子块解压大小超限: %llu (上限 %llu)\n",
+                    (unsigned long long)desc.uncompressed_size,
+                    (unsigned long long)HISS_MAX_SUBBLOCK_UNCOMPRESSED);
+            return -6;
+        }
         out.resize(desc.uncompressed_size);
         size_t out_size = desc.uncompressed_size;
         int ret = codec->decompress(comp.data(), comp.size(),
@@ -592,6 +600,19 @@ int HissReader::open(const std::string& path) {
                 impl.grid.ordering   = read_i32_le(value + 8);
                 impl.grid.radesys    = read_i32_le(value + 12);
                 impl.grid.pixfrac    = read_f64_le(value + 16);
+                // Gate 4 fuzz: NSIDE 冻结域上限 (防损坏头触发巨额 n_leaf 分配)
+                if (impl.grid.nside == 0 || impl.grid.nside > HISS_MAX_NSIDE ||
+                    impl.grid.tile_nside == 0 ||
+                    impl.grid.tile_nside > impl.grid.nside ||
+                    (impl.grid.nside & (impl.grid.nside - 1)) != 0 ||
+                    (impl.grid.tile_nside & (impl.grid.tile_nside - 1)) != 0) {
+                    fprintf(stderr,
+                            "[hiss][reader] GRID_SPEC 非法: nside=%u tile_nside=%u "
+                            "(上限 %u, 需 2 的幂且 tile<=nside)\n",
+                            impl.grid.nside, impl.grid.tile_nside, HISS_MAX_NSIDE);
+                    close();
+                    return HISS_ERR_FORMAT_VIOLATION;
+                }
                 has_grid = true;
                 break;
             }

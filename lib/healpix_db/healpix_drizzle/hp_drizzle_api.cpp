@@ -631,7 +631,7 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
                 std::memcpy(&payload_bytes, raw + 16, 8);
                 std::memcpy(&stored_cs, raw + 24, 4);
                 size_t expect_stride = (vd == 1) ? 24 : 20;
-                uint64_t expect_payload = 4 + (uint64_t)n_points * expect_stride + 24;
+                uint64_t expect_payload = (uint64_t)n_points * expect_stride + 24;
                 bool header_ok = (version == 1 && (vd == 0 || vd == 1) &&
                                   stride == expect_stride &&
                                   payload_bytes == expect_payload &&
