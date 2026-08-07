@@ -1,0 +1,61 @@
+{
+  "n_stars": 1050,
+  "selfcheck": {
+    "n": 1050,
+    "G_median_absdiff": 0.00407723138129068,
+    "BP_median_absdiff": 0.008131237996209961,
+    "RP_median_absdiff": 0.0017654307116341528,
+    "G_p95_absdiff": 0.04488681295936706
+  },
+  "mag_stats": {
+    "G": {
+      "n": 1050,
+      "median_diff_mag": 0.0005838655792906877,
+      "median_absdiff_mag": 0.0007197789704171953,
+      "p95_absdiff_mag": 0.007752123491371064,
+      "max_absdiff_mag": 0.040353078227362005
+    },
+    "BP": {
+      "n": 1050,
+      "median_diff_mag": -0.0006067403341809552,
+      "median_absdiff_mag": 0.0006677512565680388,
+      "p95_absdiff_mag": 0.0024903601874381545,
+      "max_absdiff_mag": 0.027583019044541857
+    },
+    "RP": {
+      "n": 1050,
+      "median_diff_mag": 0.0011923397851951734,
+      "median_absdiff_mag": 0.0013708238735752332,
+      "p95_absdiff_mag": 0.00895428749084388,
+      "max_absdiff_mag": 0.04244141110618216
+    }
+  },
+  "color_stats": {
+    "BP_G": {
+      "n": 1050,
+      "median_diff_mag": -0.0012070986001297968,
+      "p90_absdiff_mag": 0.005709503468779787,
+      "p95_absdiff_mag": 0.008049113970504606,
+      "max_absdiff_mag": 0.058878265680959885
+    },
+    "G_RP": {
+      "n": 1050,
+      "median_diff_mag": -0.0005392344105814573,
+      "p90_absdiff_mag": 0.0012336472654617125,
+      "p95_absdiff_mag": 0.0013878284161297214,
+      "max_absdiff_mag": 0.004908618301875833
+    },
+    "BP_RP": {
+      "n": 1050,
+      "median_diff_mag": -0.0017585396680921406,
+      "p90_absdiff_mag": 0.0069348472465740945,
+      "p95_absdiff_mag": 0.009178612321607452,
+      "max_absdiff_mag": 0.05932832464143445
+    }
+  },
+  "cpp_validation": {
+    "n": 5,
+    "max_rel_diff": 4.513168622631445e-05
+  },
+  "passband_source": "F:\\Astro dev\\Astro CS Normalization Database\\lib\\photometric_calib\\cpp\\test\\gate4_dr3sp_gaiaxpy\\GaiaEDR3_passband.dat"
+}

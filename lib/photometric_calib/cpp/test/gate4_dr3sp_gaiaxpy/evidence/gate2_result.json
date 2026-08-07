@@ -1,0 +1,37 @@
+{
+  "results": {
+    "astrocs_production_path": {
+      "n_matched": 109,
+      "centroid_median_px": 0.7701382981823749,
+      "centroid_p95_px": 1.1528986035412487,
+      "flux_median_rel": 0.0021012859130402945,
+      "flux_p95_rel": 0.016799846826087032,
+      "fwhm_median_rel": 0.0016681781928058728,
+      "ell_median": 0.1142162965532541
+    },
+    "photutils": {
+      "n_matched": 104,
+      "centroid_median_px": 0.004719151971911133,
+      "centroid_p95_px": 0.03997009361034349,
+      "flux_median_rel": 0.006320988087688687,
+      "flux_p95_rel": 0.04971139434054011,
+      "fwhm_median_rel": 0.02433045347001398,
+      "ell_median": 0.14337048081011947
+    },
+    "astrocs_converged_init": {
+      "n_matched": 109,
+      "centroid_median_px": 0.004050294149607052,
+      "centroid_p95_px": 0.022787555733850093
+    }
+  },
+  "gates": {
+    "centroid_p95_le_0.01px_converged": false,
+    "fwhm_median_le_1pct": true,
+    "ell_median_le_0.005": false,
+    "flux_median_le_1pct": true,
+    "photutils_oracle_centroid_p95_le_0.05px": true
+  },
+  "convention_note": "star_detector/DPSF 坐标 = array index + 0.5 (像素中心, FITS 约定); Photutils DAOStarFinder = array index 约定. 对比时分别使用对应真值约定.",
+  "blocker": "BLOCKER (PSF-001): dpsf_fit_batch_f32 以 sdet 像素中心坐标 (truth+0.5) 为初始时, LM 收敛到整数像素中心 (误差 ~0.5px); 以整数为初始则精确收敛 (<=0.01px). 最小复现: Moffat4 星 truth=(315.045,443.485), sdet=(315.545,443.985), fit(sdet init)=(315.002,443.002), fit(int init)=(315.547,443.985). 影响: 生产路径 PSF 质心系统性 ~0.5px 偏差. 按修改预算作为 BLOCKER 记录, 不在此包修改冻结的 PSF 数学 (需单独 BLOCKER 修复周期 + 模块回归).",
+  "model": "Moffat4(beta=4) 合成真值"
+}
