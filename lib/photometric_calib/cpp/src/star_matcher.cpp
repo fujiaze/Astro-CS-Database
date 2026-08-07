@@ -318,6 +318,8 @@ std::vector<StarMatch> StarMatcher::matchWithKdTree(
         m.f_instr = psf_flux[j];
         m.f_syn = gaia_fsyn[g];
         m.gaia_mag = gaia_mag[g];
+        m.psf_idx = j;   // Phase1 v2: 回连 PSF 星行号 (star_id)
+        m.gaia_idx = g;  // Phase1 v2: Gaia/DR3SP 星索引
         matches.push_back(m);
         match_distances.push_back(std::sqrt(forward_dist2[k]));
 
@@ -376,7 +378,8 @@ std::vector<StarMatch> StarMatcher::matchWithKdTree(
 std::vector<StarMatch> StarMatcher::cleanAndScale(
     const std::vector<StarMatch>& matches, double mag_tolerance,
     double* out_scale_factor, double* out_sigma_residual,
-    PhotometricDiag* out_diag) {
+    PhotometricDiag* out_diag,
+    std::vector<int>* out_match_reasons) {
 
     int n_in = (int)matches.size();
     LOG_INFO("[star_matcher] cleanAndScale: 输入 %d 颗, 星等容忍 %.2f mag",
@@ -384,6 +387,9 @@ std::vector<StarMatch> StarMatcher::cleanAndScale(
 
     if (out_scale_factor) *out_scale_factor = 1.0;
     if (out_sigma_residual) *out_sigma_residual = 0.0;
+    // Phase1 v2: per-match reason 数组 (0=inlier, 1=mag-rejected, 2=IRLS-outlier,
+    //            3=invalid flux/non-finite, 4=not-in-consistent-set, 5=unmatched)
+    if (out_match_reasons) out_match_reasons->assign((size_t)n_in, 5);
 
     if (n_in == 0) {
         return {};
@@ -411,6 +417,9 @@ std::vector<StarMatch> StarMatcher::cleanAndScale(
 
     if (r_vals.empty()) {
         LOG_INFO("[star_matcher] 警告: 无有效匹配星 (F_instr/F_syn<=0 或无效值)");
+        if (out_match_reasons) {
+            for (int i = 0; i < n_in; ++i) (*out_match_reasons)[(size_t)i] = 3;
+        }
         if (out_diag) {
             out_diag->rejected_quality = n_in;  // 全部因 F<=0/非有限 被拒绝
             out_diag->fit_used = 0;
@@ -435,7 +444,16 @@ std::vector<StarMatch> StarMatcher::cleanAndScale(
             mag_consistent_idx.push_back(valid_idx[k]);
             r_consistent.push_back(r_vals[k]);
         } else {
+            if (out_match_reasons) (*out_match_reasons)[(size_t)valid_idx[k]] = 1;
             n_mag_rejected++;
+        }
+    }
+    if (out_match_reasons) {
+        // 标记有效但未进入一致集的原因已在上面处理; 标记无效 flux 的行
+        std::vector<char> in_valid((size_t)n_in, 0);
+        for (int v : valid_idx) in_valid[(size_t)v] = 1;
+        for (int i = 0; i < n_in; ++i) {
+            if (!in_valid[(size_t)i]) (*out_match_reasons)[(size_t)i] = 3;
         }
     }
     LOG_INFO("[star_matcher] 星等一致性: 通过 %d, 拒绝 %d (median_delta=%.4f, tol=%.2f mag)",
@@ -522,8 +540,10 @@ std::vector<StarMatch> StarMatcher::cleanAndScale(
         double u = (S > 0.0) ? (r - location) / cS : 0.0;
         if (S <= 0.0 || std::fabs(u) < 1.0) {
             cleaned.push_back(matches[mag_consistent_idx[k]]);
+            if (out_match_reasons) (*out_match_reasons)[(size_t)mag_consistent_idx[k]] = 0;
             r_inliers.push_back(r);
         } else {
+            if (out_match_reasons) (*out_match_reasons)[(size_t)mag_consistent_idx[k]] = 2;
             n_irls_outlier++;
         }
     }
@@ -596,7 +616,8 @@ std::vector<StarMatch> StarMatcher::matchAndClean(
     double match_radius_px, double mag_tolerance,
     double* out_scale_factor, double* out_sigma_residual,
     PhotometricDiag* out_diag,
-    int frame_width, int frame_height) {
+    int frame_width, int frame_height,
+    std::vector<int>* out_match_reasons) {
 
     // P12-001: 初始化诊断结构体 (全 0)
     initDiag(out_diag);
@@ -606,7 +627,8 @@ std::vector<StarMatch> StarMatcher::matchAndClean(
         psf_cx, psf_cy, psf_flux, psf_status, n_psf, match_radius_px,
         out_diag, frame_width, frame_height);
 
-    return cleanAndScale(matches, mag_tolerance, out_scale_factor, out_sigma_residual, out_diag);
+    return cleanAndScale(matches, mag_tolerance, out_scale_factor, out_sigma_residual,
+                         out_diag, out_match_reasons);
 }
 
 } // namespace pc

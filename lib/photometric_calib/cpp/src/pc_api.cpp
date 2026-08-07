@@ -18,6 +18,7 @@ extern "C" {
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <limits>
 #include <vector>
 
 #ifdef _OPENMP
@@ -722,4 +723,391 @@ int pc_calibrate_simple_with_gaia_f64(
     std::fprintf(stderr, "[pc_api] ====== pc_calibrate_simple_with_gaia_f64 完成: n_matched=%d, scale=%.6e, sigma_residual=%.6f ======\n",
                 n_matched, scale, sigma_residual);
     return 0;
+}
+
+// ============================================================================
+// Phase1 Full Freeze v2: 权威 with_gaia 模板实现 (per-star match 导出)
+// 与 pc_calibrate_simple_with_gaia[_f64] 科学逻辑完全一致 (锥形搜索 -> F_syn 积分
+// -> WCS 投影 -> 双向 KD-tree 匹配 -> IRLS+Tukey 清洗 -> scale 校正), 额外:
+//   psf_star_ids - 输入 PSF star_id [n_psf] (可为 nullptr)
+//   out_records  - 输出 PcMatchRecord [n_psf] (可为 nullptr = 旧行为)
+// 旧版 with_gaia 保留为 ABI 兼容封装 (不导出 per-star 记录)。
+// ============================================================================
+namespace {
+
+// 本地 DR3SP 身份 (XPSD 不保存 Gaia source_id, 用位置量化哈希; wiki/06 审计结论)
+int64_t make_dr3sp_id(double ra, double dec) {
+    int64_t qra = static_cast<int64_t>(std::llround(ra * 10000.0));
+    int64_t qdec = static_cast<int64_t>(std::llround(dec * 10000.0));
+    uint64_t h = static_cast<uint64_t>(qra) * 0x9E3779B97F4A7C15ULL
+                 ^ (static_cast<uint64_t>(qdec) + 0xBF58476D1CE4E5B9ULL);
+    h ^= h >> 33;
+    h *= 0xFF51AFD7ED558CCDULL;
+    h ^= h >> 33;
+    return static_cast<int64_t>(h);
+}
+
+template<typename T>
+int run_with_gaia_impl(
+    void* gaia_client_handle,
+    double ra_center, double dec_center, double radius_deg,
+    double mag_min, double mag_max,
+    const double* filter_wl, const double* filter_trans, int filter_count,
+    const double* qe_wl, const double* qe_trans, int qe_count,
+    const double* spectrum_wl, int spectrum_count,
+    const T* pixels, int width, int height,
+    const double* psf_cx, const double* psf_cy,
+    const double* psf_flux, const int* psf_status, int n_psf,
+    const int64_t* psf_star_ids, PcMatchRecord* out_records,
+    double crval1, double crval2, double crpix1, double crpix2,
+    double cd11, double cd12, double cd21, double cd22,
+    int sip_order,
+    const double* sip_a, const double* sip_b,
+    const double* sip_ap, const double* sip_bp,
+    T* out_pixels, int* out_n_matched, double* out_scale_factor,
+    double* out_sigma_residual,
+    PhotometricDiag* out_diag) {
+
+    std::fprintf(stderr, "[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 开始 ======\n");
+#ifdef _OPENMP
+    std::fprintf(stderr, "[pc_api] OpenMP线程数: %d\n", omp_get_max_threads());
+#endif
+
+    if (out_diag) {
+        std::memset(out_diag, 0, sizeof(PhotometricDiag));
+    }
+
+    if (pixels == nullptr || out_pixels == nullptr ||
+        out_n_matched == nullptr || out_scale_factor == nullptr) {
+        std::fprintf(stderr, "[pc_api] 错误: 输出指针为空\n");
+        return -1;
+    }
+    if (width <= 0 || height <= 0) {
+        std::fprintf(stderr, "[pc_api] 错误: 图像尺寸无效 (%dx%d)\n", width, height);
+        return -1;
+    }
+    if (gaia_client_handle == nullptr) {
+        std::fprintf(stderr, "[pc_api] 错误: gaia_client_handle 为空\n");
+        return -2;
+    }
+    if (filter_wl == nullptr || filter_trans == nullptr || filter_count <= 0) {
+        std::fprintf(stderr, "[pc_api] 错误: 滤光片参数无效\n");
+        return -1;
+    }
+    if (spectrum_wl == nullptr || spectrum_count <= 0) {
+        std::fprintf(stderr, "[pc_api] 错误: 光谱波长参数无效\n");
+        return -1;
+    }
+
+    GaiaClient* client = static_cast<GaiaClient*>(gaia_client_handle);
+
+    // 退化情形: 无 PSF 星 -> 恒等校正
+    if (n_psf <= 0 || psf_cx == nullptr || psf_cy == nullptr ||
+        psf_flux == nullptr || psf_status == nullptr) {
+        std::fprintf(stderr, "[pc_api] 退化: 无PSF星, scale=1.0\n");
+        *out_scale_factor = 1.0;
+        *out_n_matched = 0;
+        if (out_sigma_residual) *out_sigma_residual = 0.0;
+        if (out_records) {
+            for (int i = 0; i < n_psf; ++i) {
+                out_records[i].star_id = psf_star_ids ? psf_star_ids[i] : 0;
+                out_records[i].dr3sp_id = 0;
+                out_records[i].reference_flux = 0.0;
+                out_records[i].residual = std::numeric_limits<double>::quiet_NaN();
+                out_records[i].status = 3;
+                out_records[i].reject_reason = 6;
+            }
+        }
+        #pragma omp parallel for schedule(static)
+        for (int i = 0; i < width * height; ++i) {
+            out_pixels[i] = pixels[i];
+        }
+        return 0;
+    }
+
+    LOG_INFO("锥形搜索: ra=%.4f dec=%.4f r=%.3f mag_min=%.1f (自适应迭代 mag_max, 不缩小半径)",
+             ra_center, dec_center, radius_deg, mag_min);
+
+    // ---- 1. gaia_client 锥形搜索带光谱 (自适应迭代星等) ----
+    static const double mag_max_arr[] = {12.0, 13.0, 14.0, 15.0, 16.0};
+    GaiaSpectrumStar* spec_stars = nullptr;
+    uint8_t* spectra_buf = nullptr;
+    int n_gaia = 0;
+    int rc = 0;
+
+    for (int i = 0; i < 5; ++i) {
+        double mag_max_try = mag_max_arr[i];
+        LOG_INFO("自适应星等查询: mag_max=%.1f", mag_max_try);
+
+        rc = gaia_client_cone_search_with_spectrum(
+            client, ra_center, dec_center, radius_deg, mag_min, mag_max_try,
+            &spec_stars, &spectra_buf, &n_gaia);
+
+        if (rc != 0) {
+            LOG_ERROR("锥形搜索失败 rc=%d, mag_max=%.1f", rc, mag_max_try);
+            if (spec_stars) { free(spec_stars); spec_stars = nullptr; }
+            if (spectra_buf) { free(spectra_buf); spectra_buf = nullptr; }
+            return -3;
+        }
+
+        LOG_INFO("自适应星等查询: mag_max=%.1f, n_gaia=%d", mag_max_try, n_gaia);
+
+        if (n_gaia >= 2000 || i == 4) {
+            LOG_INFO("自适应星等查询完成: mag_max=%.1f, n_gaia=%d", mag_max_try, n_gaia);
+            break;
+        }
+
+        if (spec_stars) { free(spec_stars); spec_stars = nullptr; }
+        if (spectra_buf) { free(spectra_buf); spectra_buf = nullptr; }
+    }
+
+    if (n_gaia <= 0 || spec_stars == nullptr) {
+        LOG_INFO("无光谱星 (n_gaia=%d), 退化: scale=1.0", n_gaia);
+        *out_scale_factor = 1.0;
+        *out_n_matched = 0;
+        if (out_sigma_residual) *out_sigma_residual = 0.0;
+        if (out_records) {
+            for (int i = 0; i < n_psf; ++i) {
+                out_records[i].star_id = psf_star_ids ? psf_star_ids[i] : 0;
+                out_records[i].dr3sp_id = 0;
+                out_records[i].reference_flux = 0.0;
+                out_records[i].residual = std::numeric_limits<double>::quiet_NaN();
+                out_records[i].status = 0;
+                out_records[i].reject_reason = 5;
+            }
+        }
+        #pragma omp parallel for schedule(static)
+        for (int i = 0; i < width * height; ++i) {
+            out_pixels[i] = pixels[i];
+        }
+        if (spec_stars) { free(spec_stars); spec_stars = nullptr; }
+        if (spectra_buf) { free(spectra_buf); spectra_buf = nullptr; }
+        return 0;
+    }
+
+    int wl_start = 0, wl_step = 0, spec_count_from_db = 0;
+    gaia_client_get_spectrum_params(client, &wl_start, &wl_step, &spec_count_from_db);
+    int spec_stride = spec_count_from_db > 0 ? spec_count_from_db : spectrum_count;
+    if (spec_count_from_db != spectrum_count) {
+        std::fprintf(stderr, "[pc_api] 警告: DB光谱点数 %d != 传入 spectrum_count %d, 使用DB值\n",
+                    spec_count_from_db, spectrum_count);
+    }
+    if (spec_count_from_db <= 0) {
+        spec_count_from_db = spectrum_count;
+        spec_stride = spectrum_count;
+    }
+    std::fprintf(stderr, "[pc_api] 搜索到 %d 颗光谱星, 光谱点数=%d (wl_start=%d, wl_step=%d)\n",
+                n_gaia, spec_stride, wl_start, wl_step);
+
+    // ---- 2. 预处理滤光片曲线 + QE 曲线 ----
+    photo_calib::SpectrumIntegratorCache filter_cache = photo_calib::prepare_filter_cache(
+        filter_wl, filter_trans, filter_count,
+        qe_wl, qe_trans, qe_count,
+        spectrum_wl, spectrum_count);
+    if (filter_cache.spectrum_wl.empty()) {
+        LOG_ERROR("滤光片/QE 预处理失败, 退化: scale=1.0");
+        *out_scale_factor = 1.0;
+        *out_n_matched = 0;
+        if (out_sigma_residual) *out_sigma_residual = 0.0;
+        #pragma omp parallel for schedule(static)
+        for (int i = 0; i < width * height; ++i) {
+            out_pixels[i] = pixels[i];
+        }
+        free(spec_stars);
+        free(spectra_buf);
+        return 0;
+    }
+    LOG_INFO("滤光片/QE 预处理完成: filter=%d 点, qe=%d 点 -> 光谱 %d 点",
+             filter_count, qe_count, spectrum_count);
+
+    // ---- 3. OpenMP 16 线程并行计算 F_syn (复用缓存) ----
+    std::vector<double> f_syn_values(n_gaia, 0.0);
+    int n_valid_fsyn = 0;
+
+    #pragma omp parallel for num_threads(16) schedule(dynamic, 64) reduction(+:n_valid_fsyn)
+    for (int i = 0; i < n_gaia; ++i) {
+        const uint8_t* spec_i = spectra_buf + (size_t)i * spec_stride;
+        f_syn_values[i] = photo_calib::compute_f_syn_cached(
+            filter_cache, spec_i, spec_stride, spec_stars[i].magG);
+        if (f_syn_values[i] > 0.0 && std::isfinite(f_syn_values[i])) {
+            ++n_valid_fsyn;
+        }
+    }
+    std::fprintf(stderr, "[pc_api] F_syn 并行计算完成: %d/%d 颗有效\n", n_valid_fsyn, n_gaia);
+
+    if (out_diag) {
+        out_diag->spectrum_rows_total = n_gaia;
+        out_diag->valid_fsyn = n_valid_fsyn;
+        LOG_INFO("[pc_api] P12-001 阶段1: spectrum_rows_total=%d, valid_fsyn=%d",
+                 n_gaia, n_valid_fsyn);
+    }
+
+    // ---- 4. 构造 Gaia ra/dec/mag/fsyn 数组 ----
+    std::vector<double> gaia_ra(n_gaia), gaia_dec(n_gaia), gaia_mag(n_gaia), gaia_fsyn(n_gaia);
+    for (int i = 0; i < n_gaia; ++i) {
+        gaia_ra[i]   = spec_stars[i].ra;
+        gaia_dec[i]  = spec_stars[i].dec;
+        gaia_mag[i]  = spec_stars[i].magG;
+        gaia_fsyn[i] = f_syn_values[i];
+    }
+
+    // ---- 5. 构造 WCS 转换器 ----
+    pc::WcsTransform wcs(crval1, crval2, crpix1, crpix2,
+                         cd11, cd12, cd21, cd22,
+                         sip_order, sip_a, sip_b, sip_ap, sip_bp);
+
+    // ---- 6. 星-图匹配 + IRLS/Tukey 清洗 ----
+    pc::StarMatcher matcher;
+    double scale = 1.0;
+    double sigma_residual = 0.0;
+    std::vector<int> match_reasons;
+    std::vector<pc::StarMatch> raw_matches = matcher.matchWithKdTree(
+        wcs,
+        gaia_ra.data(), gaia_dec.data(), gaia_mag.data(), gaia_fsyn.data(), n_gaia,
+        psf_cx, psf_cy, psf_flux, psf_status, n_psf,
+        2.0, out_diag, width, height);
+    std::vector<pc::StarMatch> matches = matcher.cleanAndScale(
+        raw_matches, 3.0, &scale, &sigma_residual, out_diag,
+        out_records ? &match_reasons : nullptr);
+
+    int n_matched = (int)matches.size();
+    std::fprintf(stderr, "[pc_api] 匹配+清洗完成: %d 颗, scale=%.6e, sigma_residual=%.6f\n",
+                n_matched, scale, sigma_residual);
+
+    // ---- 6.1 Phase1 v2: per-star photometric match records ----
+    if (out_records != nullptr) {
+        for (int i = 0; i < n_psf; ++i) {
+            PcMatchRecord& rec = out_records[i];
+            rec.star_id = psf_star_ids ? psf_star_ids[i] : 0;
+            rec.dr3sp_id = 0;
+            rec.reference_flux = 0.0;
+            rec.residual = std::numeric_limits<double>::quiet_NaN();
+            rec.status = 0;
+            rec.reject_reason = 5;
+            if (psf_status[i] != 0) {
+                rec.status = 3;
+                rec.reject_reason = 6;  // psf-invalid
+                continue;
+            }
+            int mi = -1;
+            for (size_t k = 0; k < raw_matches.size(); ++k) {
+                if (raw_matches[k].psf_idx == i) { mi = (int)k; break; }
+            }
+            if (mi < 0) {
+                rec.status = 0;
+                rec.reject_reason = 4;  // no spatial match
+                continue;
+            }
+            const pc::StarMatch& sm = raw_matches[(size_t)mi];
+            rec.dr3sp_id = make_dr3sp_id(gaia_ra[sm.gaia_idx], gaia_dec[sm.gaia_idx]);
+            rec.reference_flux = sm.f_syn;
+            if (sm.f_instr > 0.0 && sm.f_syn > 0.0) {
+                rec.residual = std::log10(sm.f_instr / sm.f_syn);
+            }
+            int reason = ((size_t)mi < match_reasons.size()) ? match_reasons[(size_t)mi] : 5;
+            if (reason == 0) {
+                rec.status = 1;
+                rec.reject_reason = 0;
+            } else {
+                rec.status = 2;
+                rec.reject_reason = reason;
+            }
+        }
+    }
+
+    // ---- 7. 图像校正: I_cal = I * scale ----
+    int total = width * height;
+    #pragma omp parallel for schedule(static)
+    for (int i = 0; i < total; ++i) {
+        out_pixels[i] = pixels[i] * scale;
+    }
+
+    *out_n_matched = n_matched;
+    *out_scale_factor = scale;
+    if (out_sigma_residual) *out_sigma_residual = sigma_residual;
+
+    free(spec_stars);
+    free(spectra_buf);
+
+    std::fprintf(stderr, "[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 完成: "
+                 "n_matched=%d, scale=%.6e, sigma_residual=%.6f ======\n",
+                n_matched, scale, sigma_residual);
+    return 0;
+}
+
+} // namespace
+
+// ============================================================================
+// Phase1 Full Freeze v2: per-star 导出的 with_gaia 变体 (F32 / F64)
+// ============================================================================
+PC_API int pc_calibrate_simple_with_gaia_v2(
+    void* gaia_client_handle,
+    double ra_center, double dec_center, double radius_deg,
+    double mag_min, double mag_max,
+    const double* filter_wl, const double* filter_trans, int filter_count,
+    const double* qe_wl, const double* qe_trans, int qe_count,
+    const double* spectrum_wl, int spectrum_count,
+    const float* pixels, int width, int height,
+    const double* psf_cx, const double* psf_cy,
+    const double* psf_flux, const int* psf_status, int n_psf,
+    const int64_t* psf_star_ids, PcMatchRecord* out_records,
+    double crval1, double crval2, double crpix1, double crpix2,
+    double cd11, double cd12, double cd21, double cd22,
+    int sip_order,
+    const double* sip_a, const double* sip_b,
+    const double* sip_ap, const double* sip_bp,
+    float* out_pixels, int* out_n_matched, double* out_scale_factor,
+    double* out_sigma_residual,
+    PhotometricDiag* out_diag) {
+
+    return run_with_gaia_impl<float>(
+        gaia_client_handle, ra_center, dec_center, radius_deg,
+        mag_min, mag_max,
+        filter_wl, filter_trans, filter_count,
+        qe_wl, qe_trans, qe_count,
+        spectrum_wl, spectrum_count,
+        pixels, width, height,
+        psf_cx, psf_cy, psf_flux, psf_status, n_psf,
+        psf_star_ids, out_records,
+        crval1, crval2, crpix1, crpix2,
+        cd11, cd12, cd21, cd22,
+        sip_order, sip_a, sip_b, sip_ap, sip_bp,
+        out_pixels, out_n_matched, out_scale_factor,
+        out_sigma_residual, out_diag);
+}
+
+PC_API int pc_calibrate_simple_with_gaia_f64_v2(
+    void* gaia_client_handle,
+    double ra_center, double dec_center, double radius_deg,
+    double mag_min, double mag_max,
+    const double* filter_wl, const double* filter_trans, int filter_count,
+    const double* qe_wl, const double* qe_trans, int qe_count,
+    const double* spectrum_wl, int spectrum_count,
+    const double* pixels, int width, int height,
+    const double* psf_cx, const double* psf_cy,
+    const double* psf_flux, const int* psf_status, int n_psf,
+    const int64_t* psf_star_ids, PcMatchRecord* out_records,
+    double crval1, double crval2, double crpix1, double crpix2,
+    double cd11, double cd12, double cd21, double cd22,
+    int sip_order,
+    const double* sip_a, const double* sip_b,
+    const double* sip_ap, const double* sip_bp,
+    double* out_pixels, int* out_n_matched, double* out_scale_factor,
+    double* out_sigma_residual,
+    PhotometricDiag* out_diag) {
+
+    return run_with_gaia_impl<double>(
+        gaia_client_handle, ra_center, dec_center, radius_deg,
+        mag_min, mag_max,
+        filter_wl, filter_trans, filter_count,
+        qe_wl, qe_trans, qe_count,
+        spectrum_wl, spectrum_count,
+        pixels, width, height,
+        psf_cx, psf_cy, psf_flux, psf_status, n_psf,
+        psf_star_ids, out_records,
+        crval1, crval2, crpix1, crpix2,
+        cd11, cd12, cd21, cd22,
+        sip_order, sip_a, sip_b, sip_ap, sip_bp,
+        out_pixels, out_n_matched, out_scale_factor,
+        out_sigma_residual, out_diag);
 }

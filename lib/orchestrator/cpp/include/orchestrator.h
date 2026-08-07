@@ -53,13 +53,16 @@ enum class PipelineStage {
 // 供 stage1/stage2 CLI 命令使用
 // 第一段: 单帧预处理 (stage 0-7, FITS -> .hiss)
 // 第二段: 多帧合并 (stage 8-9, .hiss -> .hcsd)
+// 2026-08-07 (Phase1 Full Freeze v2): 重排星点链 —
+//   PSF/STAR_MEASURE 必须先于 PLATESOLVE (单次权威检测 + instrumental flux),
+//   PLATESOLVE 消费同一批星 (ipv_solve_from_detections_v1), 禁止 PlateSolve 重检测。
 // ============================================================================
 enum class PipelineStageV2 {
     // 第一段: 单帧预处理
     READ_FITS       = 0,  // aio_read_fits -> PipelineFrame
     CALIBRATE       = 1,  // calibration.dll (dark/bias/flat + 坏点修复)
-    PLATESOLVE      = 2,  // ipv_solver.dll (WCS/SIP)
-    PSF             = 3,  // dynamic_psf.dll (PSF 拟合)
+    PSF             = 2,  // dynamic_psf.dll + star_detector.dll (检测 + PSF 拟合 + stable star_id)
+    PLATESOLVE      = 3,  // ipv_solver.dll (WCS/SIP, 消费 PSF 星点, 不重检测)
     PHOTOMETRIC     = 4,  // photometric_calib.dll (F_syn 积分 + IRLS+Tukey 求 scale + 应用到图像)
     SNR             = 5,  // snr_estimator.dll (异常值剔除 + 测光不确定度 + 帧SNR基准)
     NSIDE           = 6,  // 计算/验证 HEALPix NSIDE (auto 推导或 explicit 校验)

@@ -44,6 +44,20 @@ struct PhotometricDiag {
 };
 
 // ============================================================================
+// Phase1 Full Freeze v2: per-star photometric match record
+// 供 orchestrator 生成 photometric_match 块 (star_id 贯穿 PSF→PlateSolve→Photometric→SNR)
+// ============================================================================
+typedef struct {
+    int64_t star_id;        // PSF star_id (输入 psf_star_ids 原样回传)
+    int64_t dr3sp_id;       // 本地 DR3SP 身份 (XPSD 无 source_id, 用位置量化哈希; 见 wiki/06)
+    double reference_flux;  // F_syn (目标通带合成流量)
+    double residual;        // r = log10(F_instr/F_syn) (未匹配时为 NaN)
+    int32_t status;         // 0=unmatched, 1=matched+used, 2=matched+rejected, 3=psf-invalid
+    int32_t reject_reason;  // 0=used, 1=mag-rejected, 2=IRLS-outlier, 3=invalid-flux,
+                            // 4=no-spatial-match, 5=unmatched-other, 6=psf-invalid
+} PcMatchRecord;
+
+// ============================================================================
 // 简化版测光校准 C API (GAP-012 + GAP-013 改进版)
 //
 // 功能: WCS投影Gaia星 -> KD-tree匹配PSF星 -> 星等一致性过滤
@@ -193,6 +207,53 @@ PC_API int pc_calibrate_simple_with_gaia_f64(
     const double* pixels, int width, int height,
     const double* psf_cx, const double* psf_cy,
     const double* psf_flux, const int* psf_status, int n_psf,
+    double crval1, double crval2, double crpix1, double crpix2,
+    double cd11, double cd12, double cd21, double cd22,
+    int sip_order,
+    const double* sip_a, const double* sip_b,
+    const double* sip_ap, const double* sip_bp,
+    double* out_pixels, int* out_n_matched, double* out_scale_factor,
+    double* out_sigma_residual,
+    PhotometricDiag* out_diag);
+
+// ============================================================================
+// Phase1 Full Freeze v2: 带 per-star match 导出的 with_gaia 变体
+// 与 pc_calibrate_simple_with_gaia 逻辑完全一致, 额外输出:
+//   psf_star_ids - PSF 星 stable star_id [n_psf] (输入, 可为 nullptr)
+//   out_records  - PcMatchRecord [n_psf] (输出, 可为 nullptr = 与旧版行为一致)
+// 返回码与旧版一致。
+// ============================================================================
+PC_API int pc_calibrate_simple_with_gaia_v2(
+    void* gaia_client_handle,
+    double ra_center, double dec_center, double radius_deg,
+    double mag_min, double mag_max,
+    const double* filter_wl, const double* filter_trans, int filter_count,
+    const double* qe_wl, const double* qe_trans, int qe_count,
+    const double* spectrum_wl, int spectrum_count,
+    const float* pixels, int width, int height,
+    const double* psf_cx, const double* psf_cy,
+    const double* psf_flux, const int* psf_status, int n_psf,
+    const int64_t* psf_star_ids, PcMatchRecord* out_records,
+    double crval1, double crval2, double crpix1, double crpix2,
+    double cd11, double cd12, double cd21, double cd22,
+    int sip_order,
+    const double* sip_a, const double* sip_b,
+    const double* sip_ap, const double* sip_bp,
+    float* out_pixels, int* out_n_matched, double* out_scale_factor,
+    double* out_sigma_residual,
+    PhotometricDiag* out_diag);
+
+PC_API int pc_calibrate_simple_with_gaia_f64_v2(
+    void* gaia_client_handle,
+    double ra_center, double dec_center, double radius_deg,
+    double mag_min, double mag_max,
+    const double* filter_wl, const double* filter_trans, int filter_count,
+    const double* qe_wl, const double* qe_trans, int qe_count,
+    const double* spectrum_wl, int spectrum_count,
+    const double* pixels, int width, int height,
+    const double* psf_cx, const double* psf_cy,
+    const double* psf_flux, const int* psf_status, int n_psf,
+    const int64_t* psf_star_ids, PcMatchRecord* out_records,
     double crval1, double crval2, double crpix1, double crpix2,
     double cd11, double cd12, double cd21, double cd22,
     int sip_order,

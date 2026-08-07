@@ -24,6 +24,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <functional>
+#include <unordered_set>
 
 // 重命名 aio_pipeline.h 的 PipelineStage typedef 为 AioPipelineStage,
 // 避免与 orchestrator.h 的 enum class PipelineStage 冲突
@@ -384,8 +385,8 @@ std::string Orchestrator::stage_name_v2(PipelineStageV2 stage) {
     switch (stage) {
         case PipelineStageV2::READ_FITS:       return "READ_FITS";
         case PipelineStageV2::CALIBRATE:       return "CALIBRATE";
-        case PipelineStageV2::PLATESOLVE:      return "PLATESOLVE";
         case PipelineStageV2::PSF:             return "PSF";
+        case PipelineStageV2::PLATESOLVE:      return "PLATESOLVE";
         case PipelineStageV2::PHOTOMETRIC:     return "PHOTOMETRIC";
         case PipelineStageV2::SNR:             return "SNR";
         case PipelineStageV2::DRIZZLE:         return "DRIZZLE";
@@ -1729,52 +1730,61 @@ void Orchestrator::cleanup_platesolve_env() {
     platesolve_env_ready_ = false;
 }
 
-// ============================================================================
-// P09-002 INTERNAL_DETECTION_SHARED_EXPORT: callback 导出 sdet_detect_ex 检测结果
-// (历史命名: P02-003 路径 B; 正式命名见 capabilities["internal_detection_shared_export"])
-// ============================================================================
-// INTERNAL_DETECTION_SHARED_EXPORT callback 上下文 (POD-like, 供 C callback 通过 user_data 访问)
-// star_det v1 格式: FLOAT64 [N,6] (x_px, y_px, flux, mag, saturated, has_saturated)
 namespace {
-struct PathBCallbackCtx {
-    std::vector<double> detections_buf;  // 复制的检测结果 [N*6]
-    int n_detected = 0;
-    bool copied = false;
-};
+// ============================================================================
+// make_stable_star_id - stable star_id (Phase1 Full Freeze v2)
+// 规则 (wiki/05_STAR_MEASUREMENT_SHARED_DATA.md):
+//   - 帧内唯一且不可复用;
+//   - 与行号无关 (不依赖数组下标, 排序变化不得造成无法对账);
+//   - 由检测位置确定性派生 (量化 x/y 后混合哈希)。
+// 碰撞时 (极罕见) 在低 16 位叠加递增偏移, 保证帧内唯一。
+// ============================================================================
+uint64_t make_stable_star_id(double x, double y) {
+    uint64_t qx = static_cast<uint64_t>(std::llround(x * 1024.0));
+    uint64_t qy = static_cast<uint64_t>(std::llround(y * 1024.0));
+    uint64_t h = qx * 0x9E3779B97F4A7C15ULL ^ (qy + 0xBF58476D1CE4E5B9ULL);
+    h ^= h >> 33;
+    h *= 0xFF51AFD7ED558CCDULL;
+    h ^= h >> 33;
+    return h;
+}
 
-// INTERNAL_DETECTION_SHARED_EXPORT callback 函数 (签名匹配 IpvDetectionCallback)
-// 在 sdet_detect_ex 之后、选星之前同步调用; 返回后源指针失效, 必须在此复制
-void path_b_detection_callback(const double* detections, int n_detections, void* user_data) {
-    PathBCallbackCtx* ctx = static_cast<PathBCallbackCtx*>(user_data);
-    if (ctx == nullptr) return;
-    if (detections == nullptr || n_detections <= 0) {
-        ctx->n_detected = 0;
-        ctx->copied = false;
-        return;
+// 生成帧内唯一 star_id 序列 (位置哈希, 碰撞时低 16 位递增)
+void assign_stable_star_ids(const double* x, const double* y, int n,
+                            std::vector<int64_t>& out_ids) {
+    out_ids.resize(static_cast<size_t>(n));
+    std::unordered_set<uint64_t> used;
+    used.reserve(static_cast<size_t>(n) * 2);
+    for (int i = 0; i < n; ++i) {
+        uint64_t id = make_stable_star_id(x[i], y[i]);
+        uint64_t base = id & 0xFFFFFFFFFFFF0000ULL;  // 保留高 48 位
+        uint16_t offset = static_cast<uint16_t>(id & 0xFFFFULL);
+        while (used.find(id) != used.end()) {
+            offset = static_cast<uint16_t>(offset + 1);
+            id = base | static_cast<uint64_t>(offset);
+        }
+        used.insert(id);
+        out_ids[static_cast<size_t>(i)] = static_cast<int64_t>(id);
     }
-    // 立即复制检测结果到本地缓冲区 (callback 返回后源指针失效)
-    ctx->detections_buf.assign(
-        detections, detections + static_cast<size_t>(n_detections) * 6);
-    ctx->n_detected = n_detections;
-    ctx->copied = true;
 }
 }  // namespace
 
 // ============================================================================
-// run_stage_platesolve - PLATESOLVE 阶段实现 (ipv_solver.dll 内存接口)
-// 流程 (P09-002 INTERNAL_DETECTION_SHARED_EXPORT, 历史 P02-003 路径 B: callback 导出):
-//   1. 读取 PipelineFrame "data" 块 (FLOAT32 [H,W])
-//   2. 读取 "header" KV 块的 OBJCTRA/OBJCTDEC/FOCALLEN/XPIXSZ
-//   3. 调用 ipv_solve_from_memory_with_callback 求解 WCS+SIP
-//      (内部 sdet_detect_ex 仅调用 1 次, callback 同步导出检测结果)
-//   4. 将 WCS+SIP 结果写回 "header" KV 块
-//   5. 用 callback 导出的检测结果写入 "star_det" 块 (FLOAT32 [N,4])
-//      (避免原路径在 PLATESOLVE 内显式第二次调用 sdet_detect_ex)
-//   6. (可选) 写入 "gaia_cat" 块 (FLOAT64 [N,3]: ra,dec,mag)
-// 约束: 必须使用 OBJCTRA/OBJCTDEC 作为初始指向, 无论是否已有 WCS 数据
+// run_stage_platesolve - PLATESOLVE 阶段 (Phase1 Full Freeze v2 修订流水线)
+// 修订流水线: CALIBRATE -> PSF/STAR_MEASURE -> PLATESOLVE -> PHOTOMETRIC -> SNR
+// 职责:
+//   1. 读取 PSF/STAR_MEASURE 产出的权威 star_det 块 (FLOAT64 [N,6], 禁止重检测)
+//   2. 读取 "data" 块仅获取图像尺寸 (不用于检测)
+//   3. 读取 "header" KV 块的 OBJCTRA/OBJCTDEC/FOCALLEN/XPIXSZ 作为初始指向
+//   4. 调用 ipv_solve_from_detections_v1 求解 WCS+SIP (跳过 sdet_detect_ex)
+//   5. 将 WCS+SIP 结果写回 "header" KV 块
+// 约束:
+//   - 一帧只做一次权威检测 (PSF 阶段), 本阶段不得调用 sdet_detect_ex;
+//   - 不得改写 star_det / star_measurements / psf 块;
+//   - 必须使用 OBJCTRA/OBJCTDEC 作为初始指向, 无论是否已有 WCS 数据。
 // ============================================================================
 bool Orchestrator::run_stage_platesolve(TaskResult& result) {
-    LOG_INFO("orchestrator", "[PLATESOLVE] 开始");
+    LOG_INFO("orchestrator", "[PLATESOLVE] 开始 (消费 PSF 星点, ipv_solve_from_detections_v1)");
 
     // P03-003: PLATESOLVE 是必需 stage, DLL 未加载必须失败 (退出码 2)
     if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::PLATESOLVE)) {
@@ -1831,10 +1841,9 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
         return false;
     }
 
-    // 1. 读取 data 块 (FLOAT32 或 FLOAT64 [H,W])
+    // 1. 读取 data 块仅获取图像尺寸 (FLOAT32 或 FLOAT64 [H,W])
     //    P03-003: data 是必需块 (CALIBRATE 产出), 缺失必须失败 (退出码 3)
-    //    R11 (PREC-108): FP64 模式下 data 块为 FLOAT64, 直接使用 double 供星点检测,
-    //    禁止转换为 float (控制包: FP64 星点检测转 float 为 BLOCKER)
+    //    本阶段不再读取像素做检测 (检测已在 PSF/STAR_MEASURE 完成)
     const AioBlock* data_block = fn_get_block(frame_, "data");
     if (data_block == nullptr) {
         LOG_ERROR("orchestrator", "[PLATESOLVE] data 块不存在 (必需块)");
@@ -1844,17 +1853,31 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
     }
     int height = data_block->dims[0];
     int width = data_block->dims[1];
-    // R11 (PREC-108): 检查 data 块类型; FP64 模式保留 double 像素 (不转 float)
-    bool platesolve_fp64 = (data_block->type == AIO_BLOCK_FLOAT64);
-    const float* pixels = nullptr;
-    const double* pixels_f64 = nullptr;
-    if (platesolve_fp64) {
-        pixels_f64 = static_cast<const double*>(data_block->data);
-        LOG_INFO("orchestrator", "[PLATESOLVE] data 块为 FLOAT64, 直接使用 double 供星点检测 (PREC-108, 不降级)");
-    } else {
-        pixels = static_cast<const float*>(data_block->data);
-    }
     LOG_INFO("orchestrator", "[PLATESOLVE] 图像: " + std::to_string(width) + "x" + std::to_string(height));
+
+    // 1.1 读取 PSF/STAR_MEASURE 产出的权威 star_det 块 (FLOAT64 [N,6])
+    //     P03-003: star_det 是必需块 (PSF 应产出), 缺失必须失败 (退出码 3)
+    //     格式: x_px, y_px, flux, mag, saturated, has_saturated
+    const AioBlock* star_det_block = fn_get_block(frame_, "star_det");
+    if (star_det_block == nullptr || star_det_block->dims[0] <= 0) {
+        LOG_ERROR("orchestrator", "[PLATESOLVE] star_det 块不存在或为空 "
+                  "(必需块, PSF/STAR_MEASURE 应产出; 修订流水线禁止 PlateSolve 重检测)");
+        result.error_msg = "[PLATESOLVE] star_det 块不存在或为空 (必需块, PSF/STAR_MEASURE 应产出)";
+        result.exit_code = AstroCsExitCode::BLOCK_MISSING;
+        return false;
+    }
+    if (star_det_block->type != AIO_BLOCK_FLOAT64 || star_det_block->dims[1] != 6) {
+        LOG_ERROR("orchestrator", "[PLATESOLVE] star_det 块格式错误 "
+                  "(需要 FLOAT64 [N,6], 实际 type=" + std::to_string((int)star_det_block->type)
+                  + " dims=[" + std::to_string(star_det_block->dims[0]) + ","
+                  + std::to_string(star_det_block->dims[1]) + "])");
+        result.error_msg = "[PLATESOLVE] star_det 块格式错误 (需要 FLOAT64 [N,6])";
+        result.exit_code = AstroCsExitCode::MODULE_ABI_UNSUPPORTED;
+        return false;
+    }
+    int n_det = star_det_block->dims[0];
+    const double* detections = static_cast<const double*>(star_det_block->data);
+    LOG_INFO("orchestrator", "[PLATESOLVE] 消费 PSF 星点: " + std::to_string(n_det) + " 颗 (不重检测)");
 
     // 2. 从 header KV 读取初始指向 (OBJCTRA/OBJCTDEC/FOCALLEN/XPIXSZ)
     //    约束: 必须使用 OBJCTRA/OBJCTDEC 作为初始指向, 无论是否已有 WCS 数据
@@ -1886,28 +1909,19 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
              + "mm, 像素尺寸=" + std::to_string(pixel_size) + "um"
              + (!cfg_initial_ra.empty() ? " (部分来自 config)" : ""));
 
-    // 3. 调用 ipv_solve_from_memory_with_callback (P09-002 INTERNAL_DETECTION_SHARED_EXPORT)
-    //    与 ipv_solve_from_memory 算法等价, 区别: callback 同步导出 sdet_detect_ex 结果
-    //    callback 为 NULL 时行为与 ipv_solve_from_memory 完全一致
-    //    R11 (PREC-108): FP64 模式加载 ipv_solve_from_memory_with_callback_d (double 图像)
-    auto fn_ipv_solve_cb = dll_loader_.get_function<int (*)(
-        void*, const float*, int, int, double, double, double, double,
-        const IpvParams*, IpvDetectionCallback, void*, IpvWcsResult*)>(
-        ModuleId::PLATESOLVE, "ipv_solve_from_memory_with_callback");
-    auto fn_ipv_solve_cb_d = dll_loader_.get_function<int (*)(
-        void*, const double*, int, int, double, double, double, double,
-        const IpvParams*, IpvDetectionCallback, void*, IpvWcsResult*)>(
-        ModuleId::PLATESOLVE, "ipv_solve_from_memory_with_callback_d");
+    // 3. 调用 ipv_solve_from_detections_v1 (P02-002 路径 A)
+    //    与 ipv_solve_from_memory 算法等价, 仅跳过 sdet_detect_ex (检测已在 PSF 完成)
+    auto fn_ipv_solve_det = dll_loader_.get_function<int (*)(
+        void*, const double*, int, int, int, double, double, double, double,
+        const IpvParams*, IpvWcsResult*)>(
+        ModuleId::PLATESOLVE, "ipv_solve_from_detections_v1");
     auto fn_get_default_params = dll_loader_.get_function<void (*)(IpvParams*)>(
         ModuleId::PLATESOLVE, "ipv_get_default_params");
 
-    if ((!platesolve_fp64 && !fn_ipv_solve_cb) ||
-        (platesolve_fp64 && !fn_ipv_solve_cb_d) ||
-        !fn_get_default_params) {
+    if (!fn_ipv_solve_det || !fn_get_default_params) {
         LOG_ERROR("orchestrator", "[PLATESOLVE] ipv 函数指针获取失败 "
-                  "(ipv_solve_from_memory_with_callback"
-                  + std::string(platesolve_fp64 ? "_d (FP64)" : "") + ")");
-        result.error_msg = "[PLATESOLVE] ipv 函数指针获取失败 (INTERNAL_DETECTION_SHARED_EXPORT)";
+                  "(ipv_solve_from_detections_v1 / ipv_get_default_params)");
+        result.error_msg = "[PLATESOLVE] ipv 函数指针获取失败 (路径 A: detections 求解)";
         result.exit_code = AstroCsExitCode::GENERIC_ERROR;
         return false;
     }
@@ -1922,28 +1936,12 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
     IpvWcsResult wcs_result;
     std::memset(&wcs_result, 0, sizeof(wcs_result));
 
-    // P09-002 INTERNAL_DETECTION_SHARED_EXPORT: callback 上下文, 用于接收 sdet_detect_ex 检测结果
-    PathBCallbackCtx cb_ctx;
-
-    LOG_INFO("orchestrator", "[PLATESOLVE] 调用 ipv_solve_from_memory_with_callback"
-             + std::string(platesolve_fp64 ? "_d (FP64)" : "") +
-             " (INTERNAL_DETECTION_SHARED_EXPORT callback 导出) ...");
-    int ret;
-    if (platesolve_fp64) {
-        ret = fn_ipv_solve_cb_d(ipv_solver_handle_,
-                                pixels_f64, width, height,
-                                ra0, dec0, focal_length, pixel_size,
-                                &params, path_b_detection_callback, &cb_ctx, &wcs_result);
-    } else {
-        ret = fn_ipv_solve_cb(ipv_solver_handle_,
-                              pixels, width, height,
-                              ra0, dec0, focal_length, pixel_size,
-                              &params, path_b_detection_callback, &cb_ctx, &wcs_result);
-    }
-
-    LOG_INFO("orchestrator", "[PLATESOLVE] callback 导出: n_detected=" + std::to_string(cb_ctx.n_detected)
-             + ", copied=" + (cb_ctx.copied ? "true" : "false")
-             + ", wcs_result.n_detected=" + std::to_string(wcs_result.n_detected));
+    LOG_INFO("orchestrator", "[PLATESOLVE] 调用 ipv_solve_from_detections_v1 "
+             "(n_stars=" + std::to_string(n_det) + ", 跳过 sdet_detect_ex) ...");
+    int ret = fn_ipv_solve_det(ipv_solver_handle_, detections, n_det,
+                               width, height,
+                               ra0, dec0, focal_length, pixel_size,
+                               &params, &wcs_result);
 
     if (ret != 1 || wcs_result.success != 1) {
         std::string err = wcs_result.error_msg[0] != '\0'
@@ -2026,97 +2024,13 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
         LOG_INFO("orchestrator", "[PLATESOLVE] 无 SIP 系数 (sip_order=0)");
     }
 
-    // 6. 写入 star_det 权威块 (FLOAT64 [N,6]) + PSF 兼容视图 (FLOAT32 [N,4])
-    //    P09-002 INTERNAL_DETECTION_SHARED_EXPORT (历史 P02-003 路径 B):
-    //       使用 callback 导出的检测结果 (避免原路径第二次 sdet_detect_ex)
-    //    原路径: ipv_solve_from_memory 内部 sdet_detect_ex (1次) + 此处显式 sdet_detect_ex (2次)
-    //    INTERNAL_DETECTION_SHARED_EXPORT: ipv_solve_from_memory_with_callback 内部 sdet_detect_ex (1次) + callback 导出
-    //    sdet_detect_ex 调用次数: 2 -> 1, 减少重复计算和内存占用
-    //    P03-003: star_det 是必需块 (PSF 依赖), 写入失败必须返回非零退出码
-    //    BLOCKER-TYPE-001: 权威块保留 FP64 全精度与饱和列, 禁止隐式 F64→F32;
-    //    PSF 兼容视图显式生成 (不覆盖权威块), 转换误差记入日志。
-    if (fn_add_block && fn_remove_block && cb_ctx.copied && cb_ctx.n_detected > 0
-        && !cb_ctx.detections_buf.empty()) {
-        int64_t n_stars = cb_ctx.n_detected;
-        const double* det = cb_ctx.detections_buf.data();
-        // 6.1 权威块: star_det FLOAT64 [N,6] (x,y,flux,mag,saturated,has_saturated)
-        double* star_det64 = static_cast<double*>(std::malloc(
-            (size_t)n_stars * 6 * sizeof(double)));
-        if (star_det64 == nullptr) {
-            LOG_ERROR("orchestrator", "[PLATESOLVE] 分配 star_det FLOAT64 缓冲失败 (必需块)");
-            result.error_msg = "[PLATESOLVE] 分配 star_det 缓冲失败";
-            result.exit_code = AstroCsExitCode::GENERIC_ERROR;
-            return false;
-        }
-        std::memcpy(star_det64, det, (size_t)n_stars * 6 * sizeof(double));
-        int dims6[2] = {static_cast<int>(n_stars), 6};
-        fn_remove_block(frame_, "star_det");
-        int r6 = fn_add_block(frame_, "star_det", AIO_BLOCK_FLOAT64,
-                              star_det64, n_stars * 6, dims6, 2,
-                              "星点检测权威块 (FLOAT64 [N,6]: x,y,flux,mag,saturated,has_saturated)");
-        std::free(star_det64);
-        if (r6 != 0) {
-            LOG_ERROR("orchestrator", "[PLATESOLVE] star_det 权威块写入失败 (必需块): ret="
-                     + std::to_string(r6));
-            result.error_msg = "[PLATESOLVE] star_det 权威块写入失败 (必需块)";
-            result.exit_code = AstroCsExitCode::BLOCK_MISSING;
-            return false;
-        }
-        // 6.2 PSF 兼容视图: star_det_psf_compat FLOAT32 [N,4] (x,y,flux,mag) + 误差统计
-        float* star_det32 = static_cast<float*>(std::malloc(
-            (size_t)n_stars * 4 * sizeof(float)));
-        double max_rel = 0.0;
-        if (star_det32 != nullptr) {
-            for (int64_t i = 0; i < n_stars; ++i) {
-                for (int c = 0; c < 4; ++c) {
-                    double v = det[i * 6 + c];
-                    float f = static_cast<float>(v);
-                    star_det32[i * 4 + c] = f;
-                    double rel = std::fabs((double)f - v) /
-                                 std::max(std::fabs(v), 1e-30);
-                    if (rel > max_rel) max_rel = rel;
-                }
-            }
-            int dims4[2] = {static_cast<int>(n_stars), 4};
-            fn_remove_block(frame_, "star_det_psf_compat");
-            int r4 = fn_add_block(frame_, "star_det_psf_compat", AIO_BLOCK_FLOAT32,
-                                  star_det32, n_stars * 4, dims4, 2,
-                                  "PSF 兼容视图 (FLOAT32 [N,4]: x,y,flux,mag; 显式生成, 不覆盖权威块)");
-            std::free(star_det32);
-            if (r4 != 0) {
-                LOG_WARN("orchestrator", "[PLATESOLVE] star_det_psf_compat 兼容视图写入失败 "
-                         "(可选, PSF 将回退读权威块): ret=" + std::to_string(r4));
-            }
-            char buf[192];
-            std::snprintf(buf, sizeof(buf),
-                "[PLATESOLVE] star_det 权威 FLOAT64[N,6] + psf_compat FLOAT32[N,4] 已写入 "
-                "(%lld 颗星), 兼容转换最大相对误差=%.3e",
-                (long long)n_stars, max_rel);
-            LOG_INFO("orchestrator", std::string(buf));
-        } else {
-            LOG_WARN("orchestrator", "[PLATESOLVE] star_det_psf_compat 兼容视图分配失败 "
-                     "(可选, PSF 将回退读权威块)");
-        }
-    } else {
-        // P03-003: callback 未导出检测结果, star_det 必需块缺失, 必须失败
-        LOG_ERROR("orchestrator", "[PLATESOLVE] callback 未导出检测结果 (n_detected="
-                 + std::to_string(cb_ctx.n_detected) + ", copied="
-                 + (cb_ctx.copied ? "true" : "false")
-                 + "), star_det 必需块未写入");
-        result.error_msg = "[PLATESOLVE] callback 未导出检测结果, star_det 必需块未写入";
-        result.exit_code = AstroCsExitCode::BLOCK_MISSING;
-        return false;
-    }
+    // 6. star_det / star_det_psf_compat / star_measurements 均由 PSF/STAR_MEASURE 阶段产出,
+    //    本阶段不重写 (修订流水线: 一帧只做一次权威检测和一次权威 instrumental flux 测量)。
+    LOG_INFO("orchestrator", "[PLATESOLVE] star_det 块由 PSF/STAR_MEASURE 产出, 未重写 "
+             "(检测次数保持 1 次)");
 
     // P02-006: 删除无消费者 gaia_cat 二次查询
-    // 原代码在 PLATESOLVE 求解完成后, 调用 gaia_client_cone_search_for_solver 写 "gaia_cat" 块,
-    // 但下游 stage (PSF / PHOTOMETRIC / SNR / DRIZZLE) 均未读取 "gaia_cat" 块, 属于无消费者死代码。
-    // 区分两条 Gaia 查询语义 (docs/05 §9):
-    //   - Astrometry query: PLATESOLVE 内部由 ipv_solve_from_memory_with_callback 完成
-    //     (匹配星等几何 + WCS 求解), 结果以 star_det / WCS 形式落盘, 不需要 gaia_cat。
-    //   - Photometry query: PHOTOMETRIC 阶段独立调用 pc_calibrate_simple_with_gaia,
-    //     内部按需 cone search + DR3SP 光谱 + 滤光片 + QE 积分, 不依赖 gaia_cat 块。
-    // 删除此处二次查询可节省一次 cone search 调用 (GaiaClient 进程内缓存仍按 TTL 命中)。
+    // 上游未再产生 gaia_cat 块; 测光查询由 PHOTOMETRIC 阶段按需完成。
 
     LOG_INFO("orchestrator", "[PLATESOLVE] 完成");
     return true;
@@ -2195,38 +2109,137 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
         }
     }
 
-    // 2. 读取 star_det (权威 FLOAT64 [N,6] 或 PSF 兼容视图 FLOAT32 [N,4])
-    //    P03-003: star_det 是必需块, 缺失必须失败 (退出码 3)
-    //    BLOCKER-TYPE-001: 优先读 star_det_psf_compat (F32[N,4]); 无兼容视图时
-    //    回退读权威 FLOAT64[N,6] 的 x/y (double→double, 无隐式缩窄)
-    const AioBlock* star_det_block = fn_get_block(frame_, "star_det");
-    if (star_det_block == nullptr || star_det_block->dims[0] <= 0) {
-        LOG_ERROR("orchestrator", "[PSF] star_det 块不存在或为空 (必需块, PLATESOLVE 应产出)");
-        result.error_msg = "[PSF] star_det 块不存在或为空 (必需块)";
-        result.exit_code = AstroCsExitCode::BLOCK_MISSING;
+    // 2. 初始化 PLATESOLVE 环境 (star_detector 句柄, 后续 PLATESOLVE/PHOTOMETRIC/SNR 复用)
+    if (!platesolve_env_ready_) {
+        std::string err;
+        if (!init_platesolve_env(err)) {
+            LOG_ERROR("orchestrator", "[PSF] init_platesolve_env 失败 (star_detector 不可用): " + err);
+            result.error_msg = "[PSF] " + err;
+            return false;
+        }
+    }
+
+    // 2.1 star_detector C API (sdet_detect_ex / sdet_detect_ex_f64 / sdet_free_detect_ex)
+    HMODULE sdet_dll = static_cast<HMODULE>(star_detector_dll_handle_);
+    using sdet_ex_fn = int (*)(StarDetectorHandle, const uint16_t*, int, int,
+                               double**, double**, float**, int**, float**, int**,
+                               int*, const char**, int, float***);
+    auto fn_sdet_ex = reinterpret_cast<sdet_ex_fn>(
+        GetProcAddress(sdet_dll, "sdet_detect_ex"));
+    using sdet_ex_f64_fn = int (*)(StarDetectorHandle, const double*, int, int,
+                                   double**, double**, float**, int**, float**, int**,
+                                   int*, const char**, int, float***);
+    auto fn_sdet_ex_f64 = reinterpret_cast<sdet_ex_f64_fn>(
+        GetProcAddress(sdet_dll, "sdet_detect_ex_f64"));
+    using sdet_free_fn = void (*)(double*, double*, float*, int*, float*, int*, float**, int);
+    auto fn_sdet_free = reinterpret_cast<sdet_free_fn>(
+        GetProcAddress(sdet_dll, "sdet_free_detect_ex"));
+    if (!fn_sdet_ex || !fn_sdet_ex_f64 || !fn_sdet_free) {
+        LOG_ERROR("orchestrator", "[PSF] star_detector 函数指针获取失败");
+        result.error_msg = "[PSF] star_detector 函数指针获取失败";
+        result.exit_code = AstroCsExitCode::GENERIC_ERROR;
         return false;
     }
-    int n_stars = star_det_block->dims[0];
-    const AioBlock* sd = fn_get_block(frame_, "star_det_psf_compat");
-    if (sd == nullptr || sd->dims[0] != n_stars || sd->data == nullptr) {
-        sd = star_det_block;
-    }
-    LOG_INFO("orchestrator", "[PSF] star_det: " + std::to_string(n_stars) + " 颗星");
 
-    // 提取 cx/cy 数组 (double, dpsf_fit_batch 要求)
-    std::vector<double> cx_arr(n_stars), cy_arr(n_stars);
-    if (sd->type == AIO_BLOCK_FLOAT64) {
-        const double* d = static_cast<const double*>(sd->data);
-        for (int i = 0; i < n_stars; ++i) {
-            cx_arr[i] = d[i * 6 + 0];
-            cy_arr[i] = d[i * 6 + 1];
-        }
+    // 2.2 星点检测 (修订流水线: 一帧只做一次权威检测, 发生在 PSF/STAR_MEASURE)
+    //     FP32: float -> uint16 clamp (与 ipv_select_from_memory 转换一致);
+    //     FP64: 全程 double (sdet_detect_ex_f64, 不降级)
+    double *det_x = nullptr, *det_y = nullptr;
+    float *det_flux = nullptr;
+    int *det_sat = nullptr;
+    float *det_mag = nullptr;
+    int *det_has_sat = nullptr;
+    int det_count = 0;
+    int det_ret = 0;
+    std::vector<uint16_t> img_u16;
+    if (use_fp64) {
+        det_ret = fn_sdet_ex_f64(reinterpret_cast<StarDetectorHandle>(sdet_handle_),
+                                 pixels_f64, width, height,
+                                 &det_x, &det_y, &det_flux, &det_sat,
+                                 &det_mag, &det_has_sat, &det_count,
+                                 nullptr, 0, nullptr);
     } else {
-        const float* f = static_cast<const float*>(sd->data);
-        for (int i = 0; i < n_stars; ++i) {
-            cx_arr[i] = static_cast<double>(f[i * 4 + 0]);
-            cy_arr[i] = static_cast<double>(f[i * 4 + 1]);
+        img_u16.resize(static_cast<size_t>(width) * height);
+        for (size_t i = 0; i < img_u16.size(); ++i) {
+            float v = pixels_f32[i];
+            if (v < 0.0f) v = 0.0f;
+            if (v > 65535.0f) v = 65535.0f;
+            img_u16[i] = static_cast<uint16_t>(v);
         }
+        det_ret = fn_sdet_ex(reinterpret_cast<StarDetectorHandle>(sdet_handle_),
+                             img_u16.data(), width, height,
+                             &det_x, &det_y, &det_flux, &det_sat,
+                             &det_mag, &det_has_sat, &det_count,
+                             nullptr, 0, nullptr);
+    }
+    if (det_ret != 0 || det_count <= 0) {
+        LOG_ERROR("orchestrator", "[PSF] 星点检测失败或未检测到星 (ret=" + std::to_string(det_ret)
+                 + ", count=" + std::to_string(det_count) + ")");
+        result.error_msg = "[PSF] 星点检测失败或未检测到星";
+        result.exit_code = AstroCsExitCode::STAR_DETECT_FAILED;
+        if (det_x || det_y || det_flux || det_sat || det_mag || det_has_sat) {
+            fn_sdet_free(det_x, det_y, det_flux, det_sat, det_mag, det_has_sat, nullptr, 0);
+        }
+        return false;
+    }
+    int n_stars = det_count;
+    LOG_INFO("orchestrator", "[PSF] 检测完成: " + std::to_string(n_stars) + " 颗星 (mode="
+             + (use_fp64 ? "FP64" : "FP32") + ")");
+
+    // 2.3 权威 star_det 块 (FLOAT64 [N,6]) + PSF 兼容视图 (FLOAT32 [N,4])
+    //     BLOCKER-TYPE-001: 权威块保留 FP64 全精度与饱和列, 禁止隐式 F64→F32
+    std::vector<double> star_det64(static_cast<size_t>(n_stars) * 6);
+    std::vector<float> star_det32(static_cast<size_t>(n_stars) * 4);
+    double max_compat_rel = 0.0;
+    for (int i = 0; i < n_stars; ++i) {
+        star_det64[static_cast<size_t>(i) * 6 + 0] = det_x[i];
+        star_det64[static_cast<size_t>(i) * 6 + 1] = det_y[i];
+        star_det64[static_cast<size_t>(i) * 6 + 2] = static_cast<double>(det_flux[i]);
+        star_det64[static_cast<size_t>(i) * 6 + 3] = static_cast<double>(det_mag[i]);
+        star_det64[static_cast<size_t>(i) * 6 + 4] = static_cast<double>(det_sat[i]);
+        star_det64[static_cast<size_t>(i) * 6 + 5] = static_cast<double>(det_has_sat[i]);
+        for (int c = 0; c < 4; ++c) {
+            double v = star_det64[static_cast<size_t>(i) * 6 + c];
+            float f = static_cast<float>(v);
+            star_det32[static_cast<size_t>(i) * 4 + c] = f;
+            double rel = std::fabs((double)f - v) / std::max(std::fabs(v), 1e-30);
+            if (rel > max_compat_rel) max_compat_rel = rel;
+        }
+    }
+    int dims6[2] = {n_stars, 6};
+    fn_remove_block(frame_, "star_det");
+    int r6 = fn_add_block(frame_, "star_det", AIO_BLOCK_FLOAT64,
+                          star_det64.data(), static_cast<int64_t>(n_stars) * 6, dims6, 2,
+                          "星点检测权威块 (FLOAT64 [N,6]: x,y,flux,mag,saturated,has_saturated; PSF/STAR_MEASURE 产出)");
+    if (r6 != 0) {
+        LOG_ERROR("orchestrator", "[PSF] star_det 权威块写入失败 (必需块): ret=" + std::to_string(r6));
+        result.error_msg = "[PSF] star_det 权威块写入失败 (必需块)";
+        result.exit_code = AstroCsExitCode::BLOCK_MISSING;
+        fn_sdet_free(det_x, det_y, det_flux, det_sat, det_mag, det_has_sat, nullptr, 0);
+        return false;
+    }
+    int dims4[2] = {n_stars, 4};
+    fn_remove_block(frame_, "star_det_psf_compat");
+    int r4 = fn_add_block(frame_, "star_det_psf_compat", AIO_BLOCK_FLOAT32,
+                          star_det32.data(), static_cast<int64_t>(n_stars) * 4, dims4, 2,
+                          "PSF 兼容视图 (FLOAT32 [N,4]: x,y,flux,mag; 显式生成, 不覆盖权威块)");
+    if (r4 != 0) {
+        LOG_WARN("orchestrator", "[PSF] star_det_psf_compat 兼容视图写入失败 "
+                 "(可选, 下游回退读权威块): ret=" + std::to_string(r4));
+    }
+    LOG_INFO("orchestrator", "[PSF] star_det 权威 FLOAT64[N,6] + psf_compat FLOAT32[N,4] 已写入 "
+             "(" + std::to_string(n_stars) + " 颗星), 兼容转换最大相对误差="
+             + std::to_string(max_compat_rel));
+
+    // 2.4 stable star_id (位置哈希, 行无关, 帧内唯一; wiki/05 契约)
+    std::vector<int64_t> star_ids;
+    assign_stable_star_ids(det_x, det_y, n_stars, star_ids);
+
+    // 2.5 cx/cy (double, dpsf_fit_batch 要求)
+    std::vector<double> cx_arr(n_stars), cy_arr(n_stars);
+    for (int i = 0; i < n_stars; ++i) {
+        cx_arr[i] = det_x[i];
+        cy_arr[i] = det_y[i];
     }
 
     // 3. 获取 PSF 拟合函数指针并按精度模式调用
@@ -2342,7 +2355,6 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
         row[7] = r.mad;
         row[8] = r.eccentricity;
     }
-    fn_free_results(results);
 
     int dims[2] = {n_stars, 9};
     fn_remove_block(frame_, "psf");
@@ -2353,12 +2365,70 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
         LOG_ERROR("orchestrator", "[PSF] 写入 psf 块失败: ret=" + std::to_string(r));
         result.error_msg = "[PSF] 写入 psf 块失败";
         std::free(psf_data);
+        fn_free_results(results);
         return false;
     }
-    std::free(psf_data);  // add_block 已拷贝
 
-    LOG_INFO("orchestrator", "[PSF] 完成: " + std::to_string(n_stars) + " 颗星, "
-             + std::to_string(n_ok) + " 成功");
+    // 5. 写入 star_measurements 权威块 (FLOAT64 [N,15], schema astrocs-star-measurements-1)
+    //    列含义:
+    //      [0]=star_id (int64 as double), [1]=x, [2]=y,
+    //      [3]=flux_inst (PSF integrated flux), [4]=flux_uncertainty (PSF mad proxy),
+    //      [5]=background (PSF B), [6]=psf_status, [7]=fwhm,
+    //      [8]=A, [9]=B, [10]=mad, [11]=eccentricity,
+    //      [12]=mag (detector), [13]=saturated, [14]=has_saturated
+    //    说明: PSF 当前不输出独立 background_rms, SNR 使用 A/B/mad (与冻结 SNR 定义一致);
+    //          下游必须通过 star_id 连接, 禁止通过数组行号隐式连接。
+    {
+        const int kSmCols = 15;
+        std::vector<double> sm(static_cast<size_t>(n_stars) * kSmCols, 0.0);
+        for (int i = 0; i < n_stars; ++i) {
+            const double* prow = psf_data + static_cast<size_t>(i) * 9;
+            double* row = sm.data() + static_cast<size_t>(i) * kSmCols;
+            row[0] = static_cast<double>(star_ids[static_cast<size_t>(i)]);
+            row[1] = cx_arr[static_cast<size_t>(i)];
+            row[2] = cy_arr[static_cast<size_t>(i)];
+            row[3] = prow[2];  // flux
+            row[4] = prow[7];  // mad (uncertainty proxy)
+            row[5] = prow[1];  // B (background)
+            row[6] = prow[0];  // status
+            row[7] = prow[5];  // fwhm
+            row[8] = prow[6];  // A
+            row[9] = prow[1];  // B
+            row[10] = prow[7]; // mad
+            row[11] = prow[8]; // eccentricity
+            row[12] = static_cast<double>(det_mag[i]);
+            row[13] = static_cast<double>(det_sat[i]);
+            row[14] = static_cast<double>(det_has_sat[i]);
+        }
+        int sm_dims[2] = {n_stars, kSmCols};
+        fn_remove_block(frame_, "star_measurements");
+        int sm_ret = fn_add_block(frame_, "star_measurements", AIO_BLOCK_FLOAT64,
+                                  sm.data(), static_cast<int64_t>(n_stars) * kSmCols,
+                                  sm_dims, 2,
+                                  "星点权威测量块 (FLOAT64 [N,15]: star_id,x,y,flux_inst,flux_unc,"
+                                  "background,psf_status,fwhm,A,B,mad,eccentricity,mag,saturated,has_saturated)");
+        if (sm_ret != 0) {
+            LOG_ERROR("orchestrator", "[PSF] star_measurements 块写入失败 (必需块): ret="
+                     + std::to_string(sm_ret));
+            result.error_msg = "[PSF] star_measurements 块写入失败 (必需块)";
+            result.exit_code = AstroCsExitCode::BLOCK_MISSING;
+            fn_free_results(results);
+            std::free(psf_data);
+            fn_sdet_free(det_x, det_y, det_flux, det_sat, det_mag, det_has_sat, nullptr, 0);
+            return false;
+        }
+        LOG_INFO("orchestrator", "[PSF] star_measurements 权威块已写入 (FLOAT64 [N,15], "
+                 + std::to_string(n_stars) + " 颗星)");
+    }
+
+    fn_free_results(results);
+    std::free(psf_data);  // psf 块与 star_measurements 均已拷贝
+
+    // 释放检测缓冲 (star_det/star_measurements 已拷贝进 PipelineFrame)
+    fn_sdet_free(det_x, det_y, det_flux, det_sat, det_mag, det_has_sat, nullptr, 0);
+
+    LOG_INFO("orchestrator", "[PSF/STAR_MEASURE] 完成: " + std::to_string(n_stars) + " 颗星, "
+             + std::to_string(n_ok) + " PSF 成功, stable star_id 已分配");
     return true;
 }
 
@@ -2473,6 +2543,22 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
         psf_cy[i] = row[4];
     }
 
+    // 2.1 读取 star_measurements 权威块 (FLOAT64 [N,15], col0=star_id)
+    //     Phase1 v2: Photometric 匹配结果通过 star_id 回连, 禁止数组行号隐式连接
+    std::vector<int64_t> psf_star_ids(n_psf, 0);
+    std::vector<PcMatchRecord> match_records(static_cast<size_t>(n_psf));
+    const AioBlock* sm_block = fn_get_block(frame_, "star_measurements");
+    if (sm_block != nullptr && sm_block->type == AIO_BLOCK_FLOAT64 &&
+        sm_block->dims[0] == n_psf && sm_block->dims[1] >= 1) {
+        const double* smd = static_cast<const double*>(sm_block->data);
+        for (int i = 0; i < n_psf; ++i) {
+            psf_star_ids[i] = static_cast<int64_t>(smd[i * sm_block->dims[1]]);
+        }
+    } else {
+        LOG_WARN("orchestrator", "[PHOTOMETRIC] star_measurements 块缺失或格式不符, "
+                 "star_id 置 0 (per-star lineage 将不可用)");
+    }
+
     // 3. 从 header KV 读取 FILTER + WCS + SIP
     std::string filter_str;
     const char* filter_cstr = fn_kv_get(frame_, "header", "FILTER");
@@ -2576,7 +2662,7 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     const double* sip_bp_ptr = (wcs.has_ap) ? wcs.sip_bp : nullptr;
 
     if (use_fp64) {
-        // R10: FP64 路径 - pc_calibrate_simple_with_gaia_f64
+        // R10 + Phase1 v2: FP64 路径 - pc_calibrate_simple_with_gaia_f64_v2 (per-star 导出)
         auto fn_pc_calib_f64 = dll_loader_.get_function<int (*)(
             void*, double, double, double, double, double,
             const double*, const double*, int,
@@ -2584,14 +2670,15 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
             const double*, int,
             const double*, int, int,
             const double*, const double*, const double*, const int*, int,
+            const int64_t*, PcMatchRecord*,
             double, double, double, double, double, double, double, double,
             int, const double*, const double*, const double*, const double*,
             double*, int*, double*, double*, PhotometricDiag*)>(
-            ModuleId::PHOTOMETRIC, "pc_calibrate_simple_with_gaia_f64");
+            ModuleId::PHOTOMETRIC, "pc_calibrate_simple_with_gaia_f64_v2");
 
         if (!fn_pc_calib_f64) {
-            LOG_ERROR("orchestrator", "[PHOTOMETRIC] pc_calibrate_simple_with_gaia_f64 函数未找到 (FP64 模式)");
-            result.error_msg = "[PHOTOMETRIC] pc_calibrate_simple_with_gaia_f64 函数未找到";
+            LOG_ERROR("orchestrator", "[PHOTOMETRIC] pc_calibrate_simple_with_gaia_f64_v2 函数未找到 (FP64 模式)");
+            result.error_msg = "[PHOTOMETRIC] pc_calibrate_simple_with_gaia_f64_v2 函数未找到";
             result.exit_code = AstroCsExitCode::MODULE_ABI_UNSUPPORTED;
             return false;
         }
@@ -2606,7 +2693,7 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
         {
             char buf[160];
             std::snprintf(buf, sizeof(buf),
-                "[PHOTOMETRIC] 调用 pc_calibrate_simple_with_gaia_f64 (mag_min=%.1f, mag_max=%.1f, fov=%.3fdeg, FP64) ...",
+                "[PHOTOMETRIC] 调用 pc_calibrate_simple_with_gaia_f64_v2 (mag_min=%.1f, mag_max=%.1f, fov=%.3fdeg, FP64, per-star) ...",
                 mag_min, mag_max, fov_radius_deg);
             LOG_INFO("orchestrator", std::string(buf));
         }
@@ -2621,6 +2708,7 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
             spectrum_wl.data(), (int)spectrum_wl.size(),
             pixels_f64, width, height,
             psf_cx.data(), psf_cy.data(), psf_flux.data(), psf_status.data(), n_psf,
+            psf_star_ids.data(), match_records.data(),
             wcs.crval1, wcs.crval2, wcs.crpix1, wcs.crpix2,
             wcs.cd11, wcs.cd12, wcs.cd21, wcs.cd22,
             wcs.sip_order, sip_a_ptr, sip_b_ptr, sip_ap_ptr, sip_bp_ptr,
@@ -2650,7 +2738,7 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
             return false;
         }
     } else {
-        // FP32 路径 (原逻辑保留)
+        // FP32 路径 (Phase1 v2: per-star 导出)
         auto fn_pc_calib = dll_loader_.get_function<int (*)(
             void*, double, double, double, double, double,
             const double*, const double*, int,
@@ -2658,14 +2746,15 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
             const double*, int,
             const float*, int, int,
             const double*, const double*, const double*, const int*, int,
+            const int64_t*, PcMatchRecord*,
             double, double, double, double, double, double, double, double,
             int, const double*, const double*, const double*, const double*,
             float*, int*, double*, double*, PhotometricDiag*)>(
-            ModuleId::PHOTOMETRIC, "pc_calibrate_simple_with_gaia");
+            ModuleId::PHOTOMETRIC, "pc_calibrate_simple_with_gaia_v2");
 
         if (!fn_pc_calib) {
-            LOG_ERROR("orchestrator", "[PHOTOMETRIC] pc_calibrate_simple_with_gaia 函数未找到");
-            result.error_msg = "[PHOTOMETRIC] pc_calibrate_simple_with_gaia 函数未找到";
+            LOG_ERROR("orchestrator", "[PHOTOMETRIC] pc_calibrate_simple_with_gaia_v2 函数未找到");
+            result.error_msg = "[PHOTOMETRIC] pc_calibrate_simple_with_gaia_v2 函数未找到";
             return false;
         }
 
@@ -2679,7 +2768,7 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
         {
             char buf[160];
             std::snprintf(buf, sizeof(buf),
-                "[PHOTOMETRIC] 调用 pc_calibrate_simple_with_gaia (mag_min=%.1f, mag_max=%.1f, fov=%.3fdeg) ...",
+                "[PHOTOMETRIC] 调用 pc_calibrate_simple_with_gaia_v2 (mag_min=%.1f, mag_max=%.1f, fov=%.3fdeg, per-star) ...",
                 mag_min, mag_max, fov_radius_deg);
             LOG_INFO("orchestrator", std::string(buf));
         }
@@ -2694,6 +2783,7 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
             spectrum_wl.data(), (int)spectrum_wl.size(),
             pixels_f32, width, height,
             psf_cx.data(), psf_cy.data(), psf_flux.data(), psf_status.data(), n_psf,
+            psf_star_ids.data(), match_records.data(),
             wcs.crval1, wcs.crval2, wcs.crpix1, wcs.crpix2,
             wcs.cd11, wcs.cd12, wcs.cd21, wcs.cd22,
             wcs.sip_order, sip_a_ptr, sip_b_ptr, sip_ap_ptr, sip_bp_ptr,
@@ -2724,6 +2814,53 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
         }
     }
     // out_pixels 所有权已转移给 frame_
+
+    // 6.0 Phase1 v2: 写入 photometric_match 权威块 (FLOAT64 [N,6])
+    //     col0=star_id, col1=dr3sp_id, col2=reference_flux(F_syn),
+    //     col3=residual(log10(F_instr/F_syn), NaN=未匹配), col4=status, col5=reject_reason
+    //     star_id 贯穿 PSF→PlateSolve→Photometric→SNR (禁止数组行号隐式连接)
+    if (!match_records.empty() && fn_add_block_move) {
+        double* pm = static_cast<double*>(std::malloc(
+            static_cast<size_t>(n_psf) * 6 * sizeof(double)));
+        if (pm == nullptr) {
+            LOG_ERROR("orchestrator", "[PHOTOMETRIC] 分配 photometric_match 块失败 (可选块)");
+        } else {
+        int n_used = 0, n_rejected = 0, n_unmatched = 0;
+        for (int i = 0; i < n_psf; ++i) {
+            const PcMatchRecord& rec = match_records[static_cast<size_t>(i)];
+            double* row = pm + static_cast<size_t>(i) * 6;
+            row[0] = static_cast<double>(rec.star_id);
+            row[1] = static_cast<double>(rec.dr3sp_id);
+            row[2] = rec.reference_flux;
+            row[3] = rec.residual;
+            row[4] = static_cast<double>(rec.status);
+            row[5] = static_cast<double>(rec.reject_reason);
+            if (rec.status == 1) ++n_used;
+            else if (rec.status == 2) ++n_rejected;
+            else ++n_unmatched;
+        }
+        int pm_dims[2] = {n_psf, 6};
+        fn_remove_block(frame_, "photometric_match");
+        int pm_ret = fn_add_block_move(frame_, "photometric_match", AIO_BLOCK_FLOAT64,
+                                       pm, static_cast<int64_t>(n_psf) * 6,
+                                       pm_dims, 2,
+                                       "Photometric per-star 匹配块 (FLOAT64 [N,6]: star_id,dr3sp_id,"
+                                       "reference_flux,residual,status,reject_reason)");
+        if (pm_ret == 0) {
+            LOG_INFO("orchestrator", "[PHOTOMETRIC] photometric_match 块已写入 (N="
+                     + std::to_string(n_psf) + ", used=" + std::to_string(n_used)
+                     + ", rejected=" + std::to_string(n_rejected)
+                     + ", unmatched=" + std::to_string(n_unmatched) + ")");
+        } else {
+            LOG_WARN("orchestrator", "[PHOTOMETRIC] photometric_match 块写入失败 (可选块): ret="
+                     + std::to_string(pm_ret));
+            std::free(pm);
+        }
+        }
+    } else {
+        LOG_WARN("orchestrator", "[PHOTOMETRIC] match_records 为空或 fn_add_block_move 缺失, "
+                 "photometric_match 块未写入");
+    }
 
     // 6. 写入 photo_stats KV 块 (N_MATCHED, SCALE_FACTOR, SIGMA_RESIDUAL 供 SNR 使用)
     fn_kv_set(frame_, "photo_stats", "STATUS", "OK");
@@ -4367,8 +4504,10 @@ TaskResult Orchestrator::run_stage1(const Stage1Config& cfg) {
     const StageDef stages[] = {
         {PipelineStageV2::READ_FITS,   "READ_FITS",   &Orchestrator::run_stage_read_fits},
         {PipelineStageV2::CALIBRATE,   "CALIBRATE",   &Orchestrator::run_stage_calibrate},
-        {PipelineStageV2::PLATESOLVE,  "PLATESOLVE",  &Orchestrator::run_stage_platesolve},
+        // Phase1 Full Freeze v2: 修订流水线 PSF/STAR_MEASURE 先于 PLATESOLVE
+        // (单次权威检测 + instrumental flux; PlateSolve 消费同一批星, 禁止重检测)
         {PipelineStageV2::PSF,         "PSF",         &Orchestrator::run_stage_psf},
+        {PipelineStageV2::PLATESOLVE,  "PLATESOLVE",  &Orchestrator::run_stage_platesolve},
         {PipelineStageV2::PHOTOMETRIC, "PHOTOMETRIC", &Orchestrator::run_stage_photometric},
         {PipelineStageV2::SNR,         "SNR",         &Orchestrator::run_stage_snr},
         {PipelineStageV2::NSIDE,       "NSIDE",       &Orchestrator::run_stage_nside},

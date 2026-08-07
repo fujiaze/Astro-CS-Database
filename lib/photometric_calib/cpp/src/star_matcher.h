@@ -16,6 +16,8 @@ struct StarMatch {
     double f_instr;   // 仪器流量 (PSF flux)
     double f_syn;     // 合成流量 (Gaia)
     double gaia_mag;  // Gaia G 星等 (GAP-013: 用于星等一致性检查与日志)
+    int psf_idx = -1; // PSF 星原始行号 (Phase1 v2: 供 per-star lineage 回连 star_id)
+    int gaia_idx = -1;// Gaia 星索引 (Phase1 v2: 供 per-star DR3SP lineage)
 };
 
 // 星-图匹配器: Gaia星 <-> PSF拟合星
@@ -58,9 +60,12 @@ public:
         double* out_scale_factor = nullptr,
         double* out_sigma_residual = nullptr,
         PhotometricDiag* out_diag = nullptr,
-        int frame_width = 0, int frame_height = 0);
+        int frame_width = 0, int frame_height = 0,
+        std::vector<int>* out_match_reasons = nullptr);
 
-private:
+    // Phase1 Full Freeze v2: matchWithKdTree / cleanAndScale 提升为 public,
+    // 供 pc_api.cpp 的 run_with_gaia_impl 同时获取全量匹配与清洗后 inliers
+    // (per-star lineage: star_id + DR3SP id + residual + used/reject)。
     // KD-tree 最近邻匹配: 对 Gaia 星像素坐标建 KD-tree, 对每颗 PSF 有效星找最近邻 Gaia 星
     // 返回匹配列表(未清洗)
     // out_diag (可为 nullptr): 填充阶段2/3/4/6/8 字段
@@ -85,7 +90,8 @@ private:
         const std::vector<StarMatch>& matches, double mag_tolerance,
         double* out_scale_factor = nullptr,
         double* out_sigma_residual = nullptr,
-        PhotometricDiag* out_diag = nullptr);
+        PhotometricDiag* out_diag = nullptr,
+        std::vector<int>* out_match_reasons = nullptr);
 };
 
 } // namespace pc
