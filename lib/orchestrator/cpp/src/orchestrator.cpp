@@ -34,6 +34,10 @@
 
 // AIO 图像数据结构与元数据 (用于 run_stage_read_fits)
 #include "astro_image_io.h"
+// IVOA HiPS 写入器 (Phase1 Full Freeze v2, HiPS 迁移)
+#include "aio_hips.h"
+// HioSnrModel / HISS SNR 模型结构
+#include "aio_healpix_io.h"
 
 // healpix_drizzle C API (用于 run_stage_drizzle)
 #include "hp_drizzle_api.h"
@@ -2986,6 +2990,161 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     return true;
 }
 
+// ============================================================================
+// write_hips_from_hiss - 从 HISS 文件写 IVOA HiPS (Phase1 Full Freeze v2)
+// 唯一 AIO: aio_hips_write 在 astro_image_io.dll 实现。
+// HiPS 语义: signal = F/A, support = A/A_cell (HISS signal=F, support=round(255·S))。
+// 输出目录: <hiss 路径去扩展名>.hips/
+// ============================================================================
+static bool write_hips_from_hiss(DllLoader& loader,
+                                 const std::string& hiss_path,
+                                 const std::string& hips_dir,
+                                 bool fp64,
+                                 std::string& err) {
+    using InspectFn = int (*)(const char*, uint32_t*, uint32_t*, uint32_t*,
+                              uint32_t*, uint64_t*, uint64_t*, char**, uint64_t**);
+    using OpenSessFn = void* (*)(const char*, uint32_t*, uint32_t*, uint64_t*);
+    using ReadSigFn = int (*)(void*, uint64_t, float**, uint32_t*);
+    using ReadSigF64Fn = int (*)(void*, uint64_t, double**, uint32_t*);
+    using ReadSupFn = int (*)(void*, uint64_t, uint8_t**, uint32_t*);
+    using CloseFn = void (*)(void*);
+    using FreeFn = void (*)(void*);
+    using ReadSnrModelFn = int (*)(const char*, uint32_t*, int*, uint64_t*,
+                                   uint64_t**, float**, HioSnrModel**, char**);
+    using FreeSnrFn = void (*)(HioSnrModel*);
+    using HipsWriteFn = int (*)(const char*, uint32_t, uint32_t,
+                                const AioHipsTile*, int, int,
+                                const AioHipsSnrPoint*, int,
+                                const char*, const char*, int);
+
+    auto fn_inspect = loader.get_function<InspectFn>(ModuleId::AIO, "aio_hiss_inspect");
+    auto fn_open = loader.get_function<OpenSessFn>(ModuleId::AIO, "aio_hiss_open_session");
+    auto fn_read_sig = loader.get_function<ReadSigFn>(ModuleId::AIO, "aio_hiss_read_tile_signal_session");
+    auto fn_read_sig64 = loader.get_function<ReadSigF64Fn>(ModuleId::AIO, "aio_hiss_read_tile_signal_f64_session");
+    auto fn_read_sup = loader.get_function<ReadSupFn>(ModuleId::AIO, "aio_hiss_read_tile_support_session");
+    auto fn_close = loader.get_function<CloseFn>(ModuleId::AIO, "aio_hiss_close_session");
+    auto fn_free = loader.get_function<FreeFn>(ModuleId::AIO, "aio_hio_free");
+    auto fn_read_snr = loader.get_function<ReadSnrModelFn>(ModuleId::AIO, "aio_hiss_read_snr_model");
+    auto fn_free_snr = loader.get_function<FreeSnrFn>(ModuleId::AIO, "aio_hio_free_snr_model");
+    auto fn_hips = loader.get_function<HipsWriteFn>(ModuleId::AIO, "aio_hips_write");
+
+    if (!fn_inspect || !fn_open || !fn_read_sig || !fn_read_sup ||
+        !fn_close || !fn_free || !fn_hips) {
+        err = "HiPS 所需 AIO 函数指针缺失 (aio_hips_write / hiss session API)";
+        return false;
+    }
+
+    uint32_t nside = 0, tile_nside = 0, depth = 0, n_leaf = 0;
+    uint64_t n_tiles = 0, n_pix_total = 0;
+    char* meta_json = nullptr;
+    uint64_t* ipix_list = nullptr;
+    if (fn_inspect(hiss_path.c_str(), &nside, &tile_nside, &depth, &n_leaf,
+                   &n_tiles, &n_pix_total, &meta_json, &ipix_list) != 0 ||
+        n_tiles == 0) {
+        err = "aio_hiss_inspect 失败或空 Tile";
+        if (meta_json) fn_free(meta_json);
+        if (ipix_list) fn_free(ipix_list);
+        return false;
+    }
+
+    void* session = fn_open(hiss_path.c_str(), nullptr, nullptr, nullptr);
+    if (!session) {
+        err = "HISS session 打开失败";
+        if (meta_json) fn_free(meta_json);
+        if (ipix_list) fn_free(ipix_list);
+        return false;
+    }
+
+    std::vector<AioHipsTile> tiles((size_t)n_tiles);
+    std::vector<std::vector<float>> sig32((size_t)n_tiles);
+    std::vector<std::vector<double>> sig64((size_t)n_tiles);
+    std::vector<std::vector<uint8_t>> sup((size_t)n_tiles);
+    for (uint64_t t = 0; t < n_tiles; ++t) {
+        float* s32 = nullptr;
+        double* s64 = nullptr;
+        uint8_t* su = nullptr;
+        uint32_t ns = 0, nsu = 0;
+        int r = fp64 ? fn_read_sig64(session, ipix_list[t], &s64, &ns)
+                     : fn_read_sig(session, ipix_list[t], &s32, &ns);
+        int r2 = fn_read_sup(session, ipix_list[t], &su, &nsu);
+        if (r != 0 || r2 != 0 || ns == 0 || nsu == 0 || ns != nsu) {
+            err = "Tile 读取失败 t=" + std::to_string(t);
+            if (s32) fn_free(s32);
+            if (s64) fn_free(s64);
+            if (su) fn_free(su);
+            fn_close(session);
+            if (meta_json) fn_free(meta_json);
+            if (ipix_list) fn_free(ipix_list);
+            return false;
+        }
+        tiles[(size_t)t].parent_ipix = ipix_list[t];
+        tiles[(size_t)t].depth = depth;
+        if (fp64) {
+            sig64[(size_t)t].assign(s64, s64 + ns);
+            for (size_t i = 0; i < (size_t)ns; ++i) {
+                double sfrac = su[i] / 255.0;
+                sig64[(size_t)t][i] = sfrac > 1e-6 ? (sig64[(size_t)t][i] / sfrac) : 0.0;
+            }
+            tiles[(size_t)t].signal = sig64[(size_t)t].data();
+        } else {
+            sig32[(size_t)t].assign(s32, s32 + ns);
+            for (size_t i = 0; i < (size_t)ns; ++i) {
+                double sfrac = su[i] / 255.0;
+                sig32[(size_t)t][i] = static_cast<float>(
+                    sfrac > 1e-6 ? (sig32[(size_t)t][i] / sfrac) : 0.0);
+            }
+            tiles[(size_t)t].signal = sig32[(size_t)t].data();
+        }
+        sup[(size_t)t].assign(su, su + nsu);
+        tiles[(size_t)t].support = sup[(size_t)t].data();
+        if (s32) fn_free(s32);
+        if (s64) fn_free(s64);
+        if (su) fn_free(su);
+    }
+    fn_close(session);
+    if (meta_json) fn_free(meta_json);
+    if (ipix_list) fn_free(ipix_list);
+
+    // SNR catalogue 控制点
+    std::vector<AioHipsSnrPoint> snr_pts;
+    if (fn_read_snr && fn_free_snr) {
+        uint32_t snside = 0; int snested = 1; uint64_t snpix = 0;
+        uint64_t* sipix = nullptr; float* spix = nullptr;
+        HioSnrModel* model = nullptr; char* smeta = nullptr;
+        if (fn_read_snr(hiss_path.c_str(), &snside, &snested, &snpix,
+                        &sipix, &spix, &model, &smeta) == 0 && model) {
+            snr_pts.resize(model->n_points);
+            for (uint32_t i = 0; i < model->n_points; ++i) {
+                snr_pts[(size_t)i].ra_deg = model->points[i].ra;
+                snr_pts[(size_t)i].dec_deg = model->points[i].dec;
+                snr_pts[(size_t)i].snr = model->points[i].snr_psf;
+                snr_pts[(size_t)i].source_id = (int64_t)i + 1;
+            }
+            fn_free_snr(model);
+        }
+        if (sipix) fn_free(sipix);
+        if (spix) fn_free(spix);
+        if (smeta) fn_free(smeta);
+    }
+
+    // signal = F/A (在读取时已除以 support 比例), support = A/A_cell 字节
+    int hr = fn_hips(hips_dir.c_str(), nside, 512,
+                     tiles.data(), (int)n_tiles,
+                     fp64 ? 1 : 0,
+                     snr_pts.empty() ? nullptr : snr_pts.data(),
+                     (int)snr_pts.size(),
+                     "ivo://astrocs/phase1",
+                     "AstroCS Phase1 HiPS", 0);
+    if (hr != 0) {
+        auto fn_hips_err = loader.get_function<const char* (*)(void)>(
+            ModuleId::AIO, "aio_hips_last_error");
+        err = "aio_hips_write 失败: " +
+              std::string(fn_hips_err ? fn_hips_err() : "?");
+        return false;
+    }
+    return true;
+}
+
 bool Orchestrator::run_stage_drizzle(TaskResult& result) {
     LOG_INFO("orchestrator", "[DRIZZLE] 开始");
 
@@ -3097,6 +3256,33 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
     LOG_INFO("orchestrator", "[DRIZZLE] 完成: n_healpix=" + std::to_string(driz_result.n_healpix_pixels)
              + " n_source=" + std::to_string(driz_result.n_source_pixels)
              + " 耗时=" + std::to_string(driz_result.elapsed_sec) + "s");
+
+    // Phase1 Full Freeze v2 (HiPS 迁移): 由唯一 AIO 写 IVOA HiPS
+    // (HISS 保留为迁移对账与 Browser 兼容, 标记 deprecated)
+    {
+        std::string hips_dir = current_output_path_;
+        if (hips_dir.size() > 5 &&
+            hips_dir.compare(hips_dir.size() - 5, 5, ".hiss") == 0) {
+            hips_dir = hips_dir.substr(0, hips_dir.size() - 5) + ".hips";
+        } else {
+            hips_dir += ".hips";
+        }
+        std::string hips_err;
+        auto t0 = std::chrono::steady_clock::now();
+        bool hips_ok = write_hips_from_hiss(dll_loader_, current_output_path_,
+                                            hips_dir,
+                                            config_.precision == PrecisionMode::FP64,
+                                            hips_err);
+        auto t1 = std::chrono::steady_clock::now();
+        double hips_sec = std::chrono::duration<double>(t1 - t0).count();
+        if (hips_ok) {
+            LOG_INFO("orchestrator", "[DRIZZLE] HiPS 已写入: " + hips_dir
+                     + " (" + std::to_string(hips_sec) + "s)");
+        } else {
+            LOG_WARN("orchestrator", "[DRIZZLE] HiPS 写入失败 (HISS 仍有效): "
+                     + hips_err + " (耗时 " + std::to_string(hips_sec) + "s)");
+        }
+    }
     return true;
 }
 

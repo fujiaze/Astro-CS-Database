@@ -9,7 +9,7 @@
 # ============================================================================
 
 CXX = g++
-CXXFLAGS = -O2 -std=c++17 -Wall -fopenmp
+CXXFLAGS = -O2 -std=c++17 -Wall -fopenmp -DAIO_ENABLE_HEALPIX
 # -Iinclude: orchestrator 自身头文件
 # 其余 -I 路径: 各 DLL 模块头文件 (orchestrator.cpp stage handler 调用所需)
 # Makefile 位于 lib/orchestrator/cpp/, ../../ 解析到 lib/

@@ -16,6 +16,7 @@ SRCS = $(SRC_DIR)/aio_fits.cpp $(SRC_DIR)/aio_xisf.cpp \
        $(SRC_DIR)/hiss_writer.cpp \
        $(SRC_DIR)/hiss_stream_writer.cpp \
        $(SRC_DIR)/hiss_reader.cpp \
+       $(SRC_DIR)/hips/aio_hips_writer.cpp \
        $(SRC_DIR)/healpix/aio_healpix_io.cpp \
        $(AHPX_DIR)/aio_ahpx_writer.cpp $(AHPX_DIR)/aio_ahpx_reader.cpp $(AHPX_DIR)/aio_ahpx_api.cpp \
        $(SRC_DIR)/aio_pipeline.cpp \
