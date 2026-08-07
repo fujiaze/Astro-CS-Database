@@ -247,7 +247,7 @@ static int validate_snr_model(const uint8_t* raw, size_t raw_size) {
         }
         if (cs != stored_cs) return -2;
         for (uint32_t i = 0; i < n_points; i++) {
-            const uint8_t* pt = body + 4 + (size_t)i * expect_stride;
+            const uint8_t* pt = body + (size_t)i * expect_stride;
             double ra, dec;
             std::memcpy(&ra, pt, 8);
             std::memcpy(&dec, pt + 8, 8);

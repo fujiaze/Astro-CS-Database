@@ -855,9 +855,11 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     auto fn_kv_set_double = dll_loader_.get_function<int (*)(
         PipelineFrame*, const char*, const char*, double)>(
         ModuleId::AIO, "aio_frame_kv_set_double");
-    // AIO 读取 .xisf Master 文件函数
+    // AIO 读取 Master 文件函数 (XISF 优先, FITS 回退 — Gate 5 数据流修复)
     auto fn_read_xisf = dll_loader_.get_function<AIOImageData* (*)(const char*)>(
         ModuleId::AIO, "aio_read_xisf");
+    auto fn_read_fits = dll_loader_.get_function<AIOImageData* (*)(const char*)>(
+        ModuleId::AIO, "aio_read_fits");
     auto fn_get_pixels = dll_loader_.get_function<float* (*)(const AIOImageData*)>(
         ModuleId::AIO, "aio_get_pixel_data");
     // 双精度 ABI: FP64 模式下获取 double* 像素数据
@@ -996,6 +998,9 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
             return false;
         }
         img = fn_read_xisf(path.c_str());
+        if (img == nullptr && fn_read_fits) {
+            img = fn_read_fits(path.c_str());   // FITS Master 回退
+        }
         if (img == nullptr) {
             LOG_ERROR("orchestrator", "[CALIBRATE] 读取 Master 文件失败: " + path);
             return false;
@@ -3823,8 +3828,8 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
     //   [snr_phot: f64][median_snr: f64][idw_power: f64]
     uint32_t n_points = model.n_points;
     uint32_t point_stride = (model.value_dtype == 1) ? 24 : 20;
-    size_t payload_size = 4 + 4 + 2 + 4 + 8 + 4 +
-                          (size_t)n_points * point_stride + 24;
+    // header = magic4+version4+vd1+res1+stride2+n4+payload8+cs4 = 28
+    size_t payload_size = 28 + (size_t)n_points * point_stride + 24;
     // fn_add_block_move 要求 data 必须是 malloc 分配 (frame 用 free() 释放)
     uint8_t* buffer = static_cast<uint8_t*>(std::malloc(payload_size));
     if (buffer == nullptr) {

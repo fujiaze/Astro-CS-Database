@@ -653,7 +653,7 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
                         std::vector<double> cp_ra(n_points), cp_dec(n_points);
                         std::vector<double> cp_snr_f64(n_points);
                         for (uint32_t i = 0; i < n_points; i++) {
-                            const uint8_t* pt = body + 4 + (size_t)i * expect_stride;
+                            const uint8_t* pt = body + (size_t)i * expect_stride;
                             std::memcpy(&cp_ra[i], pt, 8);
                             std::memcpy(&cp_dec[i], pt + 8, 8);
                             if (vd == 1) {
@@ -665,7 +665,7 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
                             }
                         }
                         double snr_phot, median_snr, idw_power;
-                        const uint8_t* tail = body + 4 + (size_t)n_points * expect_stride;
+                        const uint8_t* tail = body + (size_t)n_points * expect_stride;
                         std::memcpy(&snr_phot, tail, 8);
                         std::memcpy(&median_snr, tail + 8, 8);
                         std::memcpy(&idw_power, tail + 16, 8);
