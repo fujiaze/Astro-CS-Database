@@ -43,21 +43,22 @@ MixedRoutePlan MixedRoutePlanner::plan(const std::string& operation_id,
     }
     r.profile_available = true;
     r.cpu_ns_per_item = op->cpu.ns_per_item;
+    r.cpu_fixed_ns = op->cpu.fixed_us * 1000.0;
     r.gpu_ns_per_item = op->gpu.ns_per_item;
     r.gpu_fixed_ns = op->gpu.fixed_us * 1000.0 +
                      op->gpu.launch_us * 1000.0;
     r.cpu_chunk_items = op->cpu.recommended_chunk_items;
     r.gpu_chunk_items = op->gpu.recommended_chunk_items;
-    // 尾段自动缩块（05 §5）：remaining 较小时候选块按剩余/活跃设备数缩小，
-    // 但保持最小高效块。
+    // 尾段自动缩块（05 §5）：块不超过剩余工作，保持最小高效块。
+    // 不强制 "剩余一半"（避免 GPU-only 场景把整帧任务拆成多次 kernel，
+    // 徒增 launch/D2H 开销）；混合场景由 Dispatcher 的 makespan claim 与
+    // 首轮公平门决定设备参与。
     if (remaining > 0) {
-        if (r.cpu_chunk_items > remaining / 2) {
-            r.cpu_chunk_items =
-                std::max(op->cpu.minimum_chunk_items, remaining / 2);
+        if (r.cpu_chunk_items > remaining) {
+            r.cpu_chunk_items = remaining;
         }
-        if (r.gpu_chunk_items > remaining / 2) {
-            r.gpu_chunk_items =
-                std::max(op->gpu.minimum_chunk_items, remaining / 2);
+        if (r.gpu_chunk_items > remaining) {
+            r.gpu_chunk_items = remaining;
         }
     }
     // host/resident 不同 GPU 阈值（05 §4：resident 阈值更低）
@@ -123,7 +124,7 @@ bool MixedRoutePlanner::should_claim(const MixedRoutePlan& plan,
     // 异速设备（如 GPU 快很多、CPU 处理一小块并提前完成）也能 Mixed。
     const double block_ns =
         per_item * static_cast<double>(chunk) +
-        (is_cpu ? 0.0 : plan.gpu_fixed_ns);
+        (is_cpu ? plan.cpu_fixed_ns : plan.gpu_fixed_ns);
     const double without_ns =
         other_per_item * static_cast<double>(remaining);
     const double rem_after =

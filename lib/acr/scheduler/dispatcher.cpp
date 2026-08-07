@@ -839,13 +839,31 @@ struct Dispatcher::Impl {
         //    max = 各 executor 推荐块的最大值（每设备按自身 requested_items 领取）
         std::size_t min_chunk = supported[0]->min_effective_chunk();
         std::size_t max_chunk = supported[0]->recommended_chunk();
-        for (auto* exec : supported) {
-            const cost::DeviceCost* dc = find_device_cost(estimate, exec->id());
-            const std::size_t rec =
-                dc && dc->recommended_chunk > 0 ? dc->recommended_chunk
-                                                : exec->recommended_chunk();
-            min_chunk = std::min(min_chunk, exec->min_effective_chunk());
-            max_chunk = std::max(max_chunk, rec);
+        if (cfg.operation_profile != nullptr &&
+            auto_plan.profile_available) {
+            // ACR 架构冻结（07 号计划 C/E）：Auto+Profile 时块大小来自
+            // OperationProfile（不变量来自调用方 estimate，避免把候选块
+            // 或默认值覆盖实测推荐块）。
+            min_chunk = std::min(
+                min_chunk, std::min(auto_plan.cpu_chunk_items,
+                                    auto_plan.gpu_chunk_items));
+            max_chunk = std::max(auto_plan.cpu_chunk_items,
+                                 auto_plan.gpu_chunk_items);
+            for (auto* exec : supported) {
+                min_chunk = std::min(
+                    min_chunk, exec->min_effective_chunk());
+            }
+        } else {
+            for (auto* exec : supported) {
+                const cost::DeviceCost* dc =
+                    find_device_cost(estimate, exec->id());
+                const std::size_t rec =
+                    dc && dc->recommended_chunk > 0
+                        ? dc->recommended_chunk
+                        : exec->recommended_chunk();
+                min_chunk = std::min(min_chunk, exec->min_effective_chunk());
+                max_chunk = std::max(max_chunk, rec);
+            }
         }
         if (min_chunk == 0) min_chunk = 1;
         if (max_chunk == 0) max_chunk = min_chunk;
@@ -886,14 +904,56 @@ struct Dispatcher::Impl {
         std::size_t total_workers = 0;
         for (std::size_t i = 0; i < n_exec; ++i) {
             if (supported[i]->backend_type() == "cpu") {
+                // ACR 架构冻结（07 号计划 E）：Auto+Profile 场景，worker 启动前
+                // 预判 CPU 是否可能缩短总完工时间（用 Profile 值估算）：
+                //   CPU 一块完成时间 < GPU 清空剩余的时间 → CPU 才启动。
+                //   否则 CPU 不启动（自然 GPU-only），避免 16 个 CPU worker
+                //   线程创建/调度固定开销拖慢小任务 Auto（实测 512² Auto
+                //   曾慢于 GPU resident 约 11 倍）。
+                bool cpu_skip = false;
+                if (cfg.route_mode == RouteMode::AutoMixed &&
+                    cfg.operation_profile != nullptr &&
+                    auto_plan.profile_available) {
+                    // Profile 的 cpu_ns_per_item 是 ACR CPU 全量并行吞吐
+                    // （多 worker 分摊）；而每个 CPU 块由单个 worker 单线程
+                    // 串行执行，单线程成本 ≈ 并行吞吐 × worker 数。
+                    const double cpu_single_ns =
+                        auto_plan.cpu_ns_per_item *
+                        static_cast<double>(
+                            std::thread::hardware_concurrency());
+                    const double cpu_block_ns =
+                        cpu_single_ns *
+                            static_cast<double>(auto_plan.cpu_chunk_items) +
+                        auto_plan.cpu_fixed_ns;
+                    const double gpu_rest_ns =
+                        auto_plan.gpu_ns_per_item *
+                            static_cast<double>(task_size) +
+                        auto_plan.gpu_fixed_ns;
+                    // 保守参与门：CPU 一块必须显著快于 GPU 清空剩余
+                    // （×0.35 折扣 Profile 预测误差与 CPU 线程启动开销；
+                    // 加权 GPU 明显占优时
+                    // Auto 自然 GPU-only，避免 16 个 CPU worker 拖慢）。
+                    cpu_skip = (cpu_block_ns >= gpu_rest_ns * 0.35);
+                }
                 workers_per_exec[i] =
-                    cfg.invocation_cpu_workers > 0
-                        ? cfg.invocation_cpu_workers
-                        : std::thread::hardware_concurrency();  // 全线程可参与
+                    cpu_skip ? 0
+                             : (cfg.invocation_cpu_workers > 0
+                                    ? cfg.invocation_cpu_workers
+                                    : std::thread::hardware_concurrency());
             } else {
                 workers_per_exec[i] = 1;
             }
             total_workers += workers_per_exec[i];
+        }
+        if (total_workers == 0) {
+            // 防御：所有设备都被预判排除时回退 CPU 单 worker（禁止漏算）
+            for (std::size_t i = 0; i < n_exec; ++i) {
+                if (supported[i]->backend_type() == "cpu") {
+                    workers_per_exec[i] = 1;
+                    total_workers = 1;
+                    break;
+                }
+            }
         }
         // 启动屏障：所有 executor worker 同时开始领取（消除首领取偏差，
         // 保证 CPU 与 GPU 都能拿到非零工作，不被单方先耗尽）
@@ -1303,6 +1363,12 @@ struct Dispatcher::Impl {
                             }
                             break;
                         }
+                        {
+                            std::lock_guard<std::mutex> lk(stats_mtx);
+                            // 真实领取块序列（07 号计划 B：chunk 统计）
+                            stats_out.dynamic_chunk_sizes.push_back(
+                                token.size());
+                        }
                         // 首轮公平门（仅影响每个 executor 的第一块之前）。
                         // 聚焦版：OperationProfile 规划模式（08 号计划 §5）下
                         // 禁用强制公平门——由 planner 的边际收益门决定设备是否
@@ -1388,6 +1454,7 @@ struct Dispatcher::Impl {
                     if (rem == 0) break;
                     auto token = pool.claim_next_dynamic(exec->id(), rem);
                     if (!token.valid()) break;
+                    stats_out.dynamic_chunk_sizes.push_back(token.size());
                     KernelInvocation inv2 = invocation;
                     inv2.domain = WorkDomain{token.begin, token.end};
                     inv2.token_id = token.id;
@@ -1803,6 +1870,14 @@ CostAwareResult Dispatcher::dispatch_invocation(
     // 传入完整输入集合让 executor 决定复用/替换（resident-reuse 时 frames
     // 已驻留复用、新 weights 覆盖旧权重槽位，不重复上传整帧）。
     // 仅对本次实际新上传的输入 mark_uploaded（避免重复记账）。
+    std::uint64_t h2d_bytes_this = 0;
+    const auto slot_counts = [&]() -> std::pair<std::uint64_t, std::uint64_t> {
+        if (!impl_->executors) return {0, 0};
+        auto* cuda = impl_->executors->find("cuda:0");
+        if (cuda == nullptr) return {0, 0};
+        return {cuda->slot_upload_count(0), cuda->slot_upload_count(1)};
+    };
+    const auto slot_before = slot_counts();
     if (!layout.inputs.empty() && impl_->executors) {
         std::vector<const void*> input_hosts;
         std::vector<std::size_t> input_bytes;
@@ -1828,6 +1903,7 @@ CostAwareResult Dispatcher::dispatch_invocation(
                     data_resident = true;
                     for (std::size_t i = 0; i < input_keys.size(); ++i) {
                         if (!was_resident[i]) {
+                            h2d_bytes_this += input_bytes[i];
                             impl_->residency.mark_uploaded(input_keys[i]);
                             impl_->residency.mark_device_allocated(
                                 input_keys[i]);
@@ -1846,6 +1922,15 @@ CostAwareResult Dispatcher::dispatch_invocation(
         actual_devices, data_resident);
     result.run_result = r;
     result.actual_devices_used = actual_devices;
+    // ACR 架构冻结（07 号计划 B）：真实传输统计。
+    // h2d：本 dispatch 组合 prefetch 实际上传字节（仅新上传输入）；
+    // d2h：每 GPU 块同步物化一次输出范围（同步桥接语义）。
+    result.transfer_stats.h2d_count = (h2d_bytes_this > 0) ? 1 : 0;
+    result.transfer_stats.h2d_bytes = h2d_bytes_this;
+    result.transfer_stats.d2h_count = r.executed_on_gpu;
+    const auto slot_after = slot_counts();
+    result.transfer_stats.frames_upload_count = slot_after.first;
+    result.transfer_stats.weights_upload_count = slot_after.second;
 
     // 聚焦版 v3：真实驻留驱动。
     //  - 输入已在 worker 启动前 prefetch（真实一次上传）；
@@ -1907,6 +1992,27 @@ CostAwareResult Dispatcher::dispatch_invocation(
         pds.active_duration_ns = s.elapsed_ns;
         pds.error_count = s.failed_blocks;
         result.per_device_stats.push_back(pds);
+    }
+    // ACR 架构冻结（07 号计划 B）：GPU 输出物化字节 = GPU items × 输出每项字节
+    // （同步桥接每块 D2H 其拥有范围；输出元素为 float）。
+    {
+        std::uint64_t gpu_items = 0;
+        for (const auto& pds : result.per_device_stats) {
+            if (pds.backend.rfind("cuda", 0) == 0) {
+                gpu_items += pds.items_done;
+            }
+        }
+        const auto* out_buf = !layout.outputs.empty()
+            ? invocation.buffers.find(layout.outputs.front()) : nullptr;
+        std::size_t out_bytes_per_item = sizeof(float);
+        if (out_buf != nullptr && invocation.domain.size() > 0) {
+            out_bytes_per_item =
+                std::max<std::size_t>(
+                    1, out_buf->count / invocation.domain.size()) *
+                sizeof(float);
+        }
+        result.transfer_stats.d2h_bytes =
+            gpu_items * out_bytes_per_item;
     }
 
     result.total_chunks = r.total_chunks;

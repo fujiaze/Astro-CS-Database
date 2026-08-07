@@ -168,6 +168,18 @@ struct CostAwareResult {
         std::size_t error_count{0};             // 错误/失败次数
     };
     std::vector<PerDeviceStats> per_device_stats;
+
+    // ACR 架构冻结（07 号计划 B）：真实传输统计。
+    // 来自本 dispatch 的 prefetch（实际上传输入）与 GPU 输出物化
+    // （每 GPU 块一次 D2H），以及桥接 persistent 槽位真实上传计数。
+    struct TransferStats {
+        std::uint64_t h2d_count{0};            // 本 dispatch 组合 prefetch 次数
+        std::uint64_t d2h_count{0};            // 本 dispatch GPU 输出物化次数
+        std::uint64_t h2d_bytes{0};            // 本 dispatch 实际上传字节
+        std::uint64_t d2h_bytes{0};            // 本 dispatch GPU 物化输出字节
+        std::uint64_t frames_upload_count{0};  // frames（slot0）上传次数（累计）
+        std::uint64_t weights_upload_count{0}; // weights（slot1）上传次数（累计）
+    } transfer_stats;
 };
 
 // ===== Dispatcher =====

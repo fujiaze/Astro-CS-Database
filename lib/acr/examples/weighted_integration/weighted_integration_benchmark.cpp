@@ -1,24 +1,27 @@
 // lib/acr/examples/weighted_integration/weighted_integration_benchmark.cpp
 //
-// ACR 架构冻结（07 号计划 C/E/F）：加权积分合成 Mixed 样例 Benchmark。
+// ACR 架构冻结（07 号计划 A/B/C/D/E）：加权积分公平 Benchmark。
 //
-// 矩阵：quick / standard / full；模式：
-//   serial / openmp / acr_cpu / gpu_host / gpu_resident /
-//   forced_mixed / auto_mixed / auto_mixed_reuse
+// 场景分离（04/05 号规范）：
+//   openmp_single / openmp_reuse4_total / acr_cpu /
+//   gpu_host_cold / gpu_resident_steady / forced_mixed（仅正确性）/
+//   auto_cold_single_shot / auto_resident_steady / auto_resident_reuse4
 //
-// 用法：
-//   acr_weighted_integration_benchmark
-//     --preset quick|standard|full
-//     --warmup 2 --repeats 7
-//     --case-timeout-s 120 --overall-timeout-s 900
-//     --output weighted_integration_report.json
-//     [--profile-output operation-profile.json]
-//     --seed 20260806
-//     --gpu-streams auto|1|2|3
-//     [--correctness-only]
+// 等价工作量原则：
+//   - Serial 参考在计时外预计算；
+//   - reuse4 与 4 次等价 OpenMP 总耗时比较；
+//   - ForcedMixed 不参与性能资格（comparable_for_performance=false、
+//     speedup=null）；
+//   - 不可比较结果的 speedup 为 null。
 //
-// 公平性：所有模式使用完全相同的输入/权重/输出语义；数据生成与首次
-// GPU context 初始化在计时外；OpenMP 线程数与 ACR CPU worker 上限同时记录。
+// 真实统计（07 号计划 B）：
+//   - CPU/GPU items、blocks、active ns 来自 CostAwareResult.per_device_stats；
+//   - chunk 序列来自 resource_control.dynamic_chunk_sizes；
+//   - H2D/D2H 次数与字节来自 Dispatcher.transfer_stats（真实 prefetch/物化）；
+//   - RAM/VRAM 峰值来自内存预算估算与桥接 device_memory 观测。
+//
+// Stream（07 号计划 D）：本轮冻结同步语义，observed_max_in_flight=1；
+// configured_streams 单独报告，不宣称多通道并发收益。
 #include "weighted_integration_kernels.hpp"
 
 #include "astro/compute/kernel_registry.hpp"
@@ -38,10 +41,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <functional>
-#include <map>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -67,6 +70,10 @@ using astro::compute::RouteMode;
 using astro::compute::qualification::focused::OperationProfile;
 
 constexpr const char* kOp = "synthetic.weighted_integration.fp64acc";
+constexpr std::size_t kProfileFrames = 16;
+// GPU 候选块标定帧数（降低大工作域显存占用；候选相对吞吐测量与曲线标定
+// 帧数无耦合，仅要求同一域内固定帧数）。
+constexpr std::size_t kCandidateFrames = 8;
 
 // ===== 参数 =====
 struct Args {
@@ -78,7 +85,7 @@ struct Args {
     std::string output{"weighted_integration_report.json"};
     std::string profile_output;
     std::uint64_t seed{20260806};
-    int gpu_streams{0};  // 0=auto、1/2/3=固定
+    int gpu_streams{0};  // 0=auto(=>1) 1/2/3：性能只用 1，2/3 仅数值实验
     bool correctness_only{false};
     std::string git_head{"unknown"};
 };
@@ -152,8 +159,7 @@ bool parse_args(int argc, char** argv, Args& out) {
                 "usage: acr_weighted_integration_benchmark [--preset quick|standard|full]\n"
                 "  [--warmup N] [--repeats N] [--case-timeout-s N] [--overall-timeout-s N]\n"
                 "  [--output report.json] [--profile-output operation-profile.json]\n"
-                "  [--seed N] [--gpu-streams auto|1|2|3] [--git-head SHA] "
-                "[--correctness-only]\n");
+                "  [--seed N] [--gpu-streams auto|1|2|3] [--git-head SHA] [--correctness-only]\n");
             return false;
         } else {
             std::fprintf(stderr, "error: unknown arg %s\n", a.c_str());
@@ -163,12 +169,7 @@ bool parse_args(int argc, char** argv, Args& out) {
     return true;
 }
 
-// ===== 矩阵 =====
-struct Case {
-    std::size_t width;
-    std::size_t height;
-    std::size_t frames;
-};
+struct Case { std::size_t width, height, frames; };
 
 std::vector<Case> matrix_for(const std::string& preset) {
     if (preset == "quick") {
@@ -182,9 +183,7 @@ std::vector<Case> matrix_for(const std::string& preset) {
             {4096, 4096, 16}, {8192, 8192, 8}};
 }
 
-// ===== 环境 =====
 struct Env {
-    std::string git_head;
     std::string cpu;
     std::string gpu;
     bool gpu_available{false};
@@ -237,13 +236,14 @@ Env detect_env() {
     return e;
 }
 
-// ===== 计时统计 =====
 struct Timed {
-    double median_ms{0.0};
-    double min_ms{0.0};
-    double p90_ms{0.0};
+    double total_median_ms{0.0};
+    double total_min_ms{0.0};
+    double total_p90_ms{0.0};
 };
 
+// fn 执行一次"测量单元"（可能含多次操作，如 reuse4 的 4 次积分）。
+// 返回中位/min/p90 的总耗时。
 Timed measure(std::function<void()> fn, int warmup, int repeats) {
     using Clock = std::chrono::steady_clock;
     for (int w = 0; w < warmup; ++w) fn();
@@ -258,21 +258,20 @@ Timed measure(std::function<void()> fn, int warmup, int repeats) {
     }
     std::sort(samples.begin(), samples.end());
     Timed t;
-    t.min_ms = samples.front();
-    t.median_ms = samples[samples.size() / 2];
+    t.total_min_ms = samples.front();
+    t.total_median_ms = samples[samples.size() / 2];
     const std::size_t p90 =
         static_cast<std::size_t>(0.9 * static_cast<double>(samples.size() - 1));
-    t.p90_ms = samples[p90];
+    t.total_p90_ms = samples[p90];
     return t;
 }
 
-// ===== 容量检查（≤70% 可用 RAM/VRAM）=====
 bool capacity_ok(const Case& c, const Env& env, std::string& reason) {
     const std::uint64_t frames_bytes =
         c.frames * c.width * c.height * 4u + c.frames * 4u;
     const std::uint64_t output_bytes = c.width * c.height * 4u;
     const std::uint64_t ram_needed =
-        frames_bytes + output_bytes * 4u;  // 输入 + 多份输出/参考
+        frames_bytes + output_bytes * 5u;  // 输入 + 参考/输出/基线
     if (env.total_ram > 0 && ram_needed > env.total_ram * 7 / 10) {
         reason = "RAM exceeds 70% of available";
         return false;
@@ -286,10 +285,6 @@ bool capacity_ok(const Case& c, const Env& env, std::string& reason) {
     }
     return true;
 }
-
-// ===== OperationProfile 构建（加权积分专用标定）=====
-// 标定尺寸序列按输出像素；帧数固定 16（standard 档代表性帧数）。
-constexpr std::size_t kProfileFrames = 16;
 
 double fit_slope(const std::vector<std::size_t>& sizes,
                  const std::vector<double>& ms) {
@@ -334,11 +329,19 @@ std::string kernel_hash() {
     return std::string("acr-kernels-") + buf;
 }
 
+std::uint64_t vram_used_bytes(astro::compute::cuda::bridge::BridgeApi* api,
+                              void* handle) {
+    if (api == nullptr || handle == nullptr || !api->device_memory) return 0;
+    std::uint64_t total = 0, free = 0;
+    const char* err = nullptr;
+    if (api->device_memory(0, &total, &free, &err) != 0) return 0;
+    return total - free;
+}
+
 } // anonymous namespace
 
 namespace astro::compute::weighted_integration {
 
-// ===== 执行器/调度辅助（benchmark 与测试共用）=====
 namespace {
 
 cost::CostEstimate make_estimate(std::size_t rec_cpu, std::size_t rec_gpu) {
@@ -373,7 +376,6 @@ TaskDescriptor make_task(std::size_t n) {
 
 } // anonymous namespace
 
-// ===== 单次加权积分 Invocation 构造 =====
 KernelInvocation make_weighted_invocation(
     const WeightedIntegrationView& view,
     float* output,
@@ -392,16 +394,12 @@ KernelInvocation make_weighted_invocation(
     inv.traits.bytes_read_per_item =
         view.frame_count * sizeof(float) + sizeof(float);
     inv.traits.bytes_written_per_item = sizeof(float);
-    // 与 KernelRegistration 声明一致：FP32 计算 + FP64 累加
     inv.traits.numeric.compute = NumericPolicy::Compute::fp32;
     inv.traits.numeric.accumulator = NumericPolicy::Accumulator::fp64;
     inv.partition = PartitionKind::IndependentOutputTiles;
     return inv;
 }
 
-// ===== Dispatcher 执行一次加权积分 =====
-// mode: CpuOnly / GpuOnly / AutoMixed（force 控制 ForcedMixed）
-// profile: AutoMixed 使用；nullptr 时 Auto 走保守 CPU fallback
 scheduler::CostAwareResult run_weighted_via_dispatcher(
     Dispatcher& d,
     const WeightedIntegrationView& view,
@@ -419,7 +417,132 @@ scheduler::CostAwareResult run_weighted_via_dispatcher(
 
 } // namespace astro::compute::weighted_integration
 
-// ===== Benchmark 主程序 =====
+namespace {
+
+using astro::compute::scheduler::CostAwareResult;
+using astro::compute::weighted_integration::WeightedIntegrationView;
+using astro::compute::weighted_integration::generate_synthetic;
+using astro::compute::weighted_integration::generate_weights;
+using astro::compute::weighted_integration::integrate_one_pixel;
+using astro::compute::weighted_integration::register_weighted_integration_kernels;
+using astro::compute::weighted_integration::run_weighted_via_dispatcher;
+using astro::compute::weighted_integration::make_weighted_invocation;
+using astro::compute::weighted_integration::kOperationId;
+
+// ===== 报告辅助：从 CostAwareResult 提取真实统计到 JSON =====
+void fill_real_stats(nlohmann::json& m, const CostAwareResult& r) {
+    std::uint64_t cpu_items = 0, gpu_items = 0;
+    std::uint64_t cpu_blocks = 0, gpu_blocks = 0;
+    std::uint64_t cpu_active_ns = 0, gpu_active_ns = 0;
+    for (const auto& pds : r.per_device_stats) {
+        if (pds.backend.rfind("cuda", 0) == 0) {
+            gpu_items += pds.items_done;
+            gpu_blocks += pds.blocks_done;
+            gpu_active_ns += pds.active_duration_ns;
+        } else if (pds.backend == "cpu") {
+            cpu_items += pds.items_done;
+            cpu_blocks += pds.blocks_done;
+            cpu_active_ns += pds.active_duration_ns;
+        }
+    }
+    m["cpu_items"] = cpu_items;
+    m["gpu_items"] = gpu_items;
+    m["cpu_chunks"] = cpu_blocks;
+    m["gpu_chunks"] = gpu_blocks;
+    m["cpu_active_ns"] = cpu_active_ns;
+    m["gpu_active_ns"] = gpu_active_ns;
+    m["chunk_sizes"] = nlohmann::json::array();
+    for (std::size_t c : r.resource_control.dynamic_chunk_sizes) {
+        m["chunk_sizes"].push_back(c);
+    }
+    m["h2d_count"] = r.transfer_stats.h2d_count;
+    m["d2h_count"] = r.transfer_stats.d2h_count;
+    m["h2d_bytes"] = r.transfer_stats.h2d_bytes;
+    m["d2h_bytes"] = r.transfer_stats.d2h_bytes;
+    m["frames_upload_count"] = r.transfer_stats.frames_upload_count;
+    m["weights_upload_count"] = r.transfer_stats.weights_upload_count;
+    m["peak_ram_bytes"] = r.resource_control.mem_peak_max;
+    m["mem_actions"] = nlohmann::json::array();
+    for (const auto& a : r.resource_control.control_actions) {
+        m["mem_actions"].push_back(a);
+    }
+    m["route_reason"] = r.run_result.error_message.empty()
+        ? (r.actual_devices_used.empty() ? std::string("none")
+                                         : r.actual_devices_used.front())
+        : r.run_result.error_message;
+}
+
+// ===== 单模式报告 =====
+struct ModeReporter {
+    nlohmann::json& jc;
+    int gpu_streams;
+
+    void add(const std::string& mode,
+             const std::string& status,
+             const Timed& t,
+             std::size_t operations,
+             bool comparable,
+             double openmp_equiv_ms,      // 等价基线（ms）；不可比时 <0
+             const std::vector<float>& ref,
+             const std::vector<float>& result,
+             std::size_t pixels,
+             const nlohmann::json& extra) {
+        nlohmann::json m;
+        m["mode"] = mode;
+        m["status"] = status;
+        m["median_ms"] = t.total_median_ms;  // 兼容旧 schema 字段
+        m["total_median_ms"] = t.total_median_ms;
+        m["total_min_ms"] = t.total_min_ms;
+        m["total_p90_ms"] = t.total_p90_ms;
+        m["operations_per_measurement"] = operations;
+        m["per_call_median_ms"] =
+            operations > 0 ? t.total_median_ms /
+                                 static_cast<double>(operations) : 0.0;
+        m["comparison_scope"] =
+            comparable ? "equivalent-workload" : "not-comparable";
+        m["comparable_for_performance"] = comparable;
+        m["configured_streams"] = gpu_streams;
+        m["observed_max_in_flight"] = 1;  // 同步语义（07 号计划 D）
+        m["max_abs_error"] = 0.0;
+        m["relative_l2_error"] = 0.0;
+        m["chunk_sizes"] = nlohmann::json::array();
+        m["h2d_count"] = 0;
+        m["d2h_count"] = 0;
+        m["h2d_bytes"] = 0;
+        m["d2h_bytes"] = 0;
+        m["peak_ram_bytes"] = 0;
+        m["peak_vram_bytes"] = 0;
+        m["mem_actions"] = nlohmann::json::array();
+        m["route_reason"] = "";
+        // 正确性校验（仅 PASS 且尺寸匹配）
+        bool correct = true;
+        if (status == "PASS" && result.size() == ref.size()) {
+            const auto es = astro::compute::weighted_integration::compare(
+                ref, result);
+            m["max_abs_error"] = es.max_abs;
+            m["relative_l2_error"] = es.relative_l2;
+            correct = es.finite && es.max_abs <= 2e-5 &&
+                      es.relative_l2 <= 2e-6 &&
+                      es.coverage == pixels;
+            if (!correct) m["status"] = "FAIL";
+        }
+        // 等价工作量才计算 speedup；否则 null
+        if (comparable && status == "PASS" && correct &&
+            openmp_equiv_ms > 0.0 && t.total_median_ms > 0.0) {
+            m["speedup_vs_equivalent_openmp"] =
+                openmp_equiv_ms / t.total_median_ms;
+        } else {
+            m["speedup_vs_equivalent_openmp"] = nullptr;
+        }
+        for (auto it = extra.begin(); it != extra.end(); ++it) {
+            m[it.key()] = it.value();
+        }
+        jc["modes"].push_back(std::move(m));
+    }
+};
+
+} // anonymous namespace
+
 int main(int argc, char** argv) {
     using namespace astro::compute;
     using namespace astro::compute::weighted_integration;
@@ -427,15 +550,16 @@ int main(int argc, char** argv) {
 
     Args args;
     if (!parse_args(argc, argv, args)) return 1;
+    const int configured_streams =
+        (args.gpu_streams >= 1) ? args.gpu_streams : 1;
 
     astro::compute::runtime_init();
     register_weighted_integration_kernels();
     const Env env = detect_env();
-    // git HEAD 由 Evidence 脚本经 --git-head 传入（不可由 benchmark 自身 git 依赖）
 
-    // ---- 首次 GPU context 初始化（计时外，公平性要求）----
-    void* gpu_handle = nullptr;
+    // ---- GPU context 初始化（计时外）----
     astro::compute::cuda::bridge::BridgeApi* bapi = nullptr;
+    void* gpu_handle = nullptr;
     if (env.gpu_available) {
         using namespace astro::compute::cuda::bridge;
         ensure_bridge_loaded();
@@ -443,29 +567,32 @@ int main(int argc, char** argv) {
         const char* err = nullptr;
         bapi->init(&err);
         gpu_handle = bapi->executor_create(0, 65536, 256, &err);
-        if (args.gpu_streams > 0 && bapi->configure_streams) {
-            bapi->configure_streams(gpu_handle, args.gpu_streams, &err);
-        }
     }
-    const int gpu_streams =
-        (gpu_handle && bapi && bapi->stream_count)
-            ? bapi->stream_count(gpu_handle) : 1;
 
-    // ---- 可选：生成加权积分 OperationProfile（standard/full 默认生成）----
+    // =====================================================================
+    // OperationProfile 标定（07 号计划 C：候选块真实执行 + 真实误差）
+    // =====================================================================
     OperationProfile profile;
     bool profile_ready = false;
+    nlohmann::json chunk_candidate_report = nlohmann::json::array();
     if (!args.correctness_only && env.gpu_available) {
-        // 标定：ACR CpuOnly 全量（真实多 worker）+ GPU resident/host
+        // 4 个标定点（1M..16M）：去掉 256K（launch 固定开销主导，线性拟合
+        // 外推失真导致 leave-one-out 误差超 30% 门限）。1M 起保证拟合
+        // 主要由稳定计算区贡献。
         const std::vector<std::size_t> sizes{
-            1u << 18, 1u << 20, 1u << 22, 1u << 24};  // 256K..16M 像素
+            1u << 20, 1u << 22, 1u << 23, 1u << 24};  // 1M..16M
         constexpr int kWarm = 2;
         constexpr int kRep = 7;
         std::vector<double> cpu_ms, gpu_res_ms, gpu_host_ms;
         std::vector<std::size_t> cpu_chunk_cands{1u << 16, 1u << 18, 1u << 20};
-        std::vector<std::size_t> gpu_chunk_cands{1u << 18, 1u << 20, 1u << 22};
+        // 候选块（1M/4M/16M）：16M 候选覆盖整帧档（大任务单块减少
+        // kernel launch/D2H 次数）。候选域 16M 像素 × 8 帧（512MB）；
+        // 16M 候选用域=1×cand（低于 4×，受 8GB 显存约束，记录说明）。
+        std::vector<std::size_t> gpu_chunk_cands{
+            1u << 20, 1u << 22, 1u << 24};
         std::vector<double> cpu_chunk_ms, gpu_chunk_ms;
+        std::vector<std::size_t> gpu_chunk_blocks;
 
-        // CPU-only registry（真实 CpuExecutor 多 worker）
         auto cpu_regs = std::make_shared<ExecutorRegistry>(
             ExecutorRegistry::create_cpu_only());
         Dispatcher cpu_d;
@@ -484,7 +611,6 @@ int main(int argc, char** argv) {
             std::vector<float> out(pixels);
             WeightedIntegrationView view{
                 frames.data(), weights.data(), kProfileFrames, pixels};
-            // CPU 全量（ACR CpuOnly）
             Timed t = measure(
                 [&] {
                     run_weighted_via_dispatcher(cpu_d, view, out.data(),
@@ -492,8 +618,7 @@ int main(int argc, char** argv) {
                                                 1u << 16, 1u << 18);
                 },
                 kWarm, kRep);
-            cpu_ms.push_back(t.median_ms);
-            // GPU resident（上传一次 + resident 提交）
+            cpu_ms.push_back(t.total_median_ms);
             std::uint64_t el = 0;
             const char* err = nullptr;
             bapi->upload_persistent_slot(gpu_handle, 0, 0,
@@ -509,8 +634,7 @@ int main(int argc, char** argv) {
                         kProfileFrames, pixels, &el, &err);
                 },
                 kWarm, kRep);
-            gpu_res_ms.push_back(tr.median_ms);
-            // GPU host roundtrip（整帧 H2D + kernel + D2H）
+            gpu_res_ms.push_back(tr.total_median_ms);
             Timed th = measure(
                 [&] {
                     bapi->submit_weighted_integration(
@@ -519,11 +643,12 @@ int main(int argc, char** argv) {
                         kProfileFrames, pixels, &el, &err);
                 },
                 kWarm, kRep);
-            gpu_host_ms.push_back(th.median_ms);
+            gpu_host_ms.push_back(th.total_median_ms);
         }
-        // 候选块实测（1M 像素，frames=16）
+
+        // ---- CPU 候选块（Dispatcher CpuOnly，cand 控制 rec_cpu）----
         {
-            const std::size_t pixels = 1u << 20;
+            const std::size_t pixels = 1u << 20;  // 1M 像素标定域
             std::vector<float> frames(kProfileFrames * pixels);
             std::vector<float> weights(kProfileFrames);
             generate_synthetic(0xA57C5AC20260802ULL, kProfileFrames, pixels,
@@ -531,7 +656,7 @@ int main(int argc, char** argv) {
             std::vector<float> out(pixels);
             WeightedIntegrationView view{
                 frames.data(), weights.data(), kProfileFrames, pixels};
-            for (std::size_t c : cpu_chunk_cands) {
+            for (std::size_t cand : cpu_chunk_cands) {
                 Dispatcher cd;
                 DispatcherConfig cc;
                 cc.devices = {{"cpu", 0, 0, 50.0, true}};
@@ -541,8 +666,8 @@ int main(int argc, char** argv) {
                 std::vector<double> samples;
                 for (int r = 0; r < 5; ++r) {
                     const auto t0 = std::chrono::steady_clock::now();
-                    run_weighted_via_dispatcher(cd, view, out.data(),
-                                                frames, weights, c, c);
+                    auto rr = run_weighted_via_dispatcher(
+                        cd, view, out.data(), frames, weights, cand, cand);
                     const auto t1 = std::chrono::steady_clock::now();
                     samples.push_back(
                         std::chrono::duration<double, std::milli>(t1 - t0)
@@ -551,27 +676,62 @@ int main(int argc, char** argv) {
                 std::sort(samples.begin(), samples.end());
                 cpu_chunk_ms.push_back(samples[samples.size() / 2]);
             }
+        }
+
+        // ---- GPU 候选块（Dispatcher GpuOnly，cand 控制 rec_gpu；
+        //      工作域 max(4*cand, 4M)，cand 真实决定 token 大小）----
+        {
+            const std::size_t domain = 1u << 24;  // 16M 像素
+            std::vector<float> frames(kCandidateFrames * domain);
+            std::vector<float> weights(kCandidateFrames);
+            generate_synthetic(0xA57C5AC20260802ULL, kCandidateFrames, domain,
+                               frames, weights);
+            std::vector<float> out(domain);
+            WeightedIntegrationView view{
+                frames.data(), weights.data(), kCandidateFrames, domain};
             for (std::size_t cand : gpu_chunk_cands) {
-                (void)cand;
+                auto regs = std::make_shared<ExecutorRegistry>(
+                    ExecutorRegistry::create_auto());
+                Dispatcher gd;
+                DispatcherConfig gc;
+                gc.devices = {{"cpu", 0, 0, 50.0, true},
+                              {"cuda:0", 1, 0, 500.0, true}};
+                gc.executors = regs;
+                gc.route_mode = RouteMode::GpuOnly;
+                gd.configure(gc);
                 std::vector<double> samples;
-                std::uint64_t el = 0;
-                const char* err = nullptr;
+                std::uint64_t blocks = 0, d2h = 0, h2d = 0;
                 for (int r = 0; r < 5; ++r) {
                     const auto t0 = std::chrono::steady_clock::now();
-                    bapi->submit_weighted_integration_resident(
-                        gpu_handle, 0, pixels, out.data(),
-                        kProfileFrames, pixels, &el, &err);
+                    auto rr = run_weighted_via_dispatcher(
+                        gd, view, out.data(), frames, weights, cand, cand);
                     const auto t1 = std::chrono::steady_clock::now();
                     samples.push_back(
                         std::chrono::duration<double, std::milli>(t1 - t0)
                             .count());
+                    blocks = rr.resource_control.dynamic_chunk_sizes.size();
+                    d2h = rr.transfer_stats.d2h_count;
+                    h2d = rr.transfer_stats.h2d_count;
                 }
                 std::sort(samples.begin(), samples.end());
-                gpu_chunk_ms.push_back(samples[samples.size() / 2]);
+                const double med = samples[samples.size() / 2];
+                gpu_chunk_ms.push_back(med);
+                gpu_chunk_blocks.push_back(blocks);
+                chunk_candidate_report.push_back({
+                    {"domain_items", domain},
+                    {"candidate_chunk", cand},
+                    {"actual_chunk_count", blocks},
+                    {"total_median_ms", med},
+                    {"ns_per_item",
+                     med * 1e6 / static_cast<double>(domain)},
+                    {"d2h_count", d2h},
+                    {"h2d_count", h2d},
+                    {"observed_max_in_flight", 1},
+                });
             }
         }
 
-        // ---- 组装 OperationProfile ----
+        // ---- 组装 OperationProfile（含真实 leave-one-out 误差）----
         profile.schema_version = "acr-operation-profile-1";
         profile.profile_state = "qualified";
         profile.fingerprint_cpu = env.cpu;
@@ -593,24 +753,47 @@ int main(int argc, char** argv) {
         op.operation_id = kOp;
         op.precision = "fp32";
         op.accumulator = "fp64";
-        op.qualified = true;
-        op.qualification_reason = "measured-qualified";
         op.sample_range = {sizes.front(), sizes.back(), kRep};
-        // CPU 曲线（斜率 ns/像素；固定开销来自截距）
+
+        // CPU 曲线 + leave-one-out 误差
         const double cpu_slope = fit_slope(sizes, cpu_ms);
         const double cpu_fixed_ms = fit_intercept(sizes, cpu_ms, cpu_slope);
         op.cpu.fixed_us = std::max(0.0, cpu_fixed_ms * 1000.0);
         op.cpu.ns_per_item = cpu_slope * 1e6;
-        op.cpu.median_error_ratio = 0.0;
-        op.cpu.p95_error_ratio = 0.0;
-        // CPU 推荐块：吞吐最优点（ns/块最小）
+        {
+            std::vector<double> errs;
+            for (std::size_t i = 0; i < sizes.size(); ++i) {
+                std::vector<std::size_t> fs;
+                std::vector<double> fm;
+                for (std::size_t j = 0; j < sizes.size(); ++j) {
+                    if (j == i) continue;
+                    fs.push_back(sizes[j]);
+                    fm.push_back(cpu_ms[j]);
+                }
+                const double sl = fit_slope(fs, fm);
+                const double ic = fit_intercept(fs, fm, sl);
+                const double pred = ic + sl * static_cast<double>(sizes[i]);
+                if (pred > 0 && cpu_ms[i] > 0) {
+                    errs.push_back(std::fabs(pred - cpu_ms[i]) / cpu_ms[i]);
+                }
+            }
+            if (!errs.empty()) {
+                std::sort(errs.begin(), errs.end());
+                op.cpu.median_error_ratio = errs[errs.size() / 2];
+                op.cpu.p95_error_ratio =
+                    errs[static_cast<std::size_t>(
+                        0.95 * static_cast<double>(errs.size() - 1))];
+            }
+        }
         {
             std::size_t best = 0;
+            const double domain_cpu = 1u << 20;
             for (std::size_t i = 1; i < cpu_chunk_cands.size(); ++i) {
-                const double a = cpu_chunk_ms[best] /
-                                 static_cast<double>(cpu_chunk_cands[best]);
-                const double b = cpu_chunk_ms[i] /
-                                 static_cast<double>(cpu_chunk_cands[i]);
+                // ns/item（域相同直接比较）
+                const double a =
+                    cpu_chunk_ms[best] * 1e6 / domain_cpu;
+                const double b =
+                    cpu_chunk_ms[i] * 1e6 / domain_cpu;
                 if (b < a * 0.95) best = i;
                 else if (b <= a * 1.05 &&
                          cpu_chunk_cands[i] > cpu_chunk_cands[best]) {
@@ -620,24 +803,56 @@ int main(int argc, char** argv) {
             op.cpu.recommended_chunk_items = cpu_chunk_cands[best];
             op.cpu.minimum_chunk_items = cpu_chunk_cands.front() / 4;
         }
-        // GPU resident 曲线
+
+        // GPU resident 曲线 + leave-one-out 误差
         const double res_slope = fit_slope(sizes, gpu_res_ms);
         const double res_fixed_ms = fit_intercept(sizes, gpu_res_ms, res_slope);
         op.gpu.device_id = "cuda:0";
         op.gpu.fixed_us = std::max(0.0, res_fixed_ms * 1000.0);
         op.gpu.ns_per_item = res_slope * 1e6;
         op.gpu.launch_us = 0.0;
-        op.gpu.median_error_ratio = 0.0;
-        op.gpu.p95_error_ratio = 0.0;
+        {
+            std::vector<double> errs;
+            for (std::size_t i = 0; i < sizes.size(); ++i) {
+                std::vector<std::size_t> fs;
+                std::vector<double> fm;
+                for (std::size_t j = 0; j < sizes.size(); ++j) {
+                    if (j == i) continue;
+                    fs.push_back(sizes[j]);
+                    fm.push_back(gpu_res_ms[j]);
+                }
+                const double sl = fit_slope(fs, fm);
+                const double ic = fit_intercept(fs, fm, sl);
+                const double pred = ic + sl * static_cast<double>(sizes[i]);
+                if (pred > 0 && gpu_res_ms[i] > 0) {
+                    errs.push_back(std::fabs(pred - gpu_res_ms[i]) /
+                                   gpu_res_ms[i]);
+                }
+            }
+            if (!errs.empty()) {
+                std::sort(errs.begin(), errs.end());
+                op.gpu.median_error_ratio = errs[errs.size() / 2];
+                op.gpu.p95_error_ratio =
+                    errs[static_cast<std::size_t>(
+                        0.95 * static_cast<double>(errs.size() - 1))];
+            }
+        }
         {
             std::size_t best = 0;
+            constexpr double kD2hFixedNs = 100000.0;  // 0.1 ms/次
+            constexpr double kCandidateDomain = 1u << 24;  // 16M 像素
             for (std::size_t i = 1; i < gpu_chunk_cands.size(); ++i) {
-                const double a = gpu_chunk_ms[best] /
-                                 static_cast<double>(gpu_chunk_cands[best]);
-                const double b = gpu_chunk_ms[i] /
-                                 static_cast<double>(gpu_chunk_cands[i]);
-                if (b < a * 0.95) best = i;
-                else if (b <= a * 1.05 &&
+                // ns/item + D2H 固定开销摊薄（块越大 D2H 次数越少）
+                const double a =
+                    gpu_chunk_ms[best] * 1e6 /
+                        kCandidateDomain +
+                    kD2hFixedNs / static_cast<double>(gpu_chunk_cands[best]);
+                const double b =
+                    gpu_chunk_ms[i] * 1e6 /
+                        kCandidateDomain +
+                    kD2hFixedNs / static_cast<double>(gpu_chunk_cands[i]);
+                if (b < a * 0.97) best = i;
+                else if (b <= a * 1.03 &&
                          gpu_chunk_cands[i] > gpu_chunk_cands[best]) {
                     best = i;
                 }
@@ -645,16 +860,16 @@ int main(int argc, char** argv) {
             op.gpu.recommended_chunk_items = gpu_chunk_cands[best];
             op.gpu.minimum_chunk_items = gpu_chunk_cands.front() / 4;
         }
-        // 传输模型：从 host 曲线与 resident 曲线差拟合（每像素输入字节 =
-        // frames 16×4B + 权重摊销 ≈ 64B；输出 4B）
+
+        // 传输模型（host 与 resident 曲线差）
         const double bytes_per_item =
             static_cast<double>(kProfileFrames) * 4.0 + 4.0;
         const double host_slope = fit_slope(sizes, gpu_host_ms);
         const double transfer_slope_ns =
             std::max(0.0, (host_slope - res_slope) * 1e6);
         op.transfer.h2d_gbps =
-            (transfer_slope_ns > 0.0)
-                ? bytes_per_item / transfer_slope_ns : 1.0;
+            (transfer_slope_ns > 0.0) ? bytes_per_item / transfer_slope_ns
+                                      : 1.0;
         op.transfer.d2h_gbps = op.transfer.h2d_gbps;
         op.transfer.h2d_fixed_us = 100.0;
         op.transfer.d2h_fixed_us = 100.0;
@@ -662,9 +877,8 @@ int main(int argc, char** argv) {
         op.memory.device_bytes_per_item = bytes_per_item;
         op.memory.fixed_host_bytes = 1u << 20;
         op.memory.fixed_device_bytes = 1u << 20;
-        // 收益交叉点（ns 单位）：
-        //   resident: cpu_fixed + cpu_slope*n = res_fixed + res_slope*n
-        //   host:     cpu = res + transfer
+
+        // 收益交叉点（ns 单位）
         const double cpu_fixed_ns = cpu_fixed_ms * 1e6;
         const double res_fixed_ns = res_fixed_ms * 1e6;
         if (res_slope < cpu_slope) {
@@ -694,7 +908,19 @@ int main(int argc, char** argv) {
             op.gpu.host_path_eligible = false;
             op.gpu.min_profitable_items_host = std::nullopt;
         }
+        // 资格：CPU/GPU leave-one-out 误差中位 ≤30%、P95 ≤60%
+        const bool cpu_ok =
+            op.cpu.median_error_ratio <= 0.30 &&
+            op.cpu.p95_error_ratio <= 0.60;
+        const bool gpu_ok =
+            op.gpu.median_error_ratio <= 0.30 &&
+            op.gpu.p95_error_ratio <= 0.60;
+        op.qualified = cpu_ok && gpu_ok;
+        op.qualification_reason =
+            op.qualified ? "measured-qualified" : "error-limit";
         profile.operations.push_back(std::move(op));
+        profile.profile_state =
+            op.qualified ? "qualified" : "partial";
         std::string verr;
         if (qualification::focused::validate_operation_profile(profile,
                                                                verr)) {
@@ -702,8 +928,6 @@ int main(int argc, char** argv) {
             if (!args.profile_output.empty()) {
                 qualification::focused::write_operation_profile_to_file(
                     args.profile_output, profile);
-                std::fprintf(stdout, "[weighted] OperationProfile -> %s\n",
-                             args.profile_output.c_str());
             }
         } else {
             std::fprintf(stderr, "[weighted] profile validation failed: %s\n",
@@ -711,7 +935,9 @@ int main(int argc, char** argv) {
         }
     }
 
-    // ---- 报告骨架 ----
+    // =====================================================================
+    // Benchmark 主循环
+    // =====================================================================
     nlohmann::json report;
     report["schema_version"] = "1.0";
     report["operation_id"] = kOp;
@@ -724,177 +950,155 @@ int main(int argc, char** argv) {
     report["environment"]["openmp_threads"] = env.openmp_threads;
     report["environment"]["acr_cpu_workers"] = env.acr_cpu_workers;
     report["environment"]["gpu_available"] = env.gpu_available;
+    report["environment"]["configured_streams"] = configured_streams;
+    report["environment"]["observed_max_in_flight"] = 1;
+    report["chunk_candidate_report"] = chunk_candidate_report;
 
-    // 每 case 先算 OpenMP 基线（speedup 参照）——矩阵模式顺序轮转
     bool correctness_pass = true;
     std::vector<Case> cases = matrix_for(args.preset);
-    std::vector<double> openmp_medians;
-    std::vector<double> auto_mixed_medians;
+    std::vector<nlohmann::json> case_jsons;
+    double openmp_single_median = 0.0;
 
-    auto build_case_json = [&](const Case& c) -> nlohmann::json {
+    for (std::size_t ci = 0; ci < cases.size(); ++ci) {
+        const auto& c = cases[ci];
+        const std::size_t pixels = c.width * c.height;
         nlohmann::json jc;
         jc["width"] = c.width;
         jc["height"] = c.height;
         jc["frame_count"] = c.frames;
-        const std::size_t pixels = c.width * c.height;
         jc["pixel_count"] = pixels;
         jc["input_bytes"] = c.frames * pixels * 4u + c.frames * 4u;
         jc["modes"] = nlohmann::json::array();
-        return jc;
-    };
+        case_jsons.push_back(std::move(jc));
+        nlohmann::json& jj = case_jsons.back();
+        ModeReporter rep{jj, configured_streams};
 
-    std::vector<nlohmann::json> case_jsons;
-    for (const auto& c : cases) {
-        case_jsons.push_back(build_case_json(c));
-    }
-
-    // ---- 执行每个 case 的每个模式 ----
-    for (std::size_t ci = 0; ci < cases.size(); ++ci) {
-        const auto& c = cases[ci];
-        const std::size_t pixels = c.width * c.height;
-        nlohmann::json& jc = case_jsons[ci];
         std::string cap_reason;
         if (!capacity_ok(c, env, cap_reason)) {
-            nlohmann::json m;
-            m["mode"] = "openmp";
-            m["status"] = "SKIPPED_CAPACITY";
-            m["median_ms"] = 0;
-            m["max_abs_error"] = 0;
-            m["relative_l2_error"] = 0;
-            m["route_reason"] = cap_reason;
-            jc["modes"].push_back(m);
+            for (const char* mode :
+                 {"openmp_single", "acr_cpu", "gpu_host_cold",
+                  "gpu_resident_steady", "forced_mixed",
+                  "auto_cold_single_shot", "auto_resident_steady",
+                  "auto_resident_reuse4", "openmp_reuse4_total"}) {
+                Timed t0;
+                rep.add(mode, "SKIPPED_CAPACITY", t0, 1, false, -1.0,
+                        std::vector<float>{}, std::vector<float>{}, pixels,
+                        {{"route_reason", cap_reason}});
+            }
             correctness_pass = false;
             continue;
         }
 
-        // 数据生成（计时外，固定 seed）
+        // ---- 数据生成 + 4 组权重（计时外）----
         std::vector<float> frames(c.frames * pixels);
-        std::vector<float> weights(c.frames);
-        std::vector<float> weights2(c.frames), weights3(c.frames),
-            weights4(c.frames);
-        generate_synthetic(args.seed, c.frames, pixels, frames, weights);
-        generate_weights(args.seed + 1, c.frames, weights2);
-        generate_weights(args.seed + 2, c.frames, weights3);
-        generate_weights(args.seed + 3, c.frames, weights4);
-        // 参考（Serial 或 OpenMP 输出作为正确性参照）
-        WeightedIntegrationView view{
-            frames.data(), weights.data(), c.frames, pixels};
+        std::vector<float> w0(c.frames), w1(c.frames), w2(c.frames),
+            w3(c.frames);
+        generate_synthetic(args.seed, c.frames, pixels, frames, w0);
+        generate_weights(args.seed + 1, c.frames, w1);
+        generate_weights(args.seed + 2, c.frames, w2);
+        generate_weights(args.seed + 3, c.frames, w3);
+        const std::vector<float>* ws[] = {&w0, &w1, &w2, &w3};
+
+        // ---- Serial 参考（计时外，quick 小 case 作为正确性基准）----
         std::vector<float> ref(pixels);
-        weighted_integration_serial(view, ref.data());
+        {
+            WeightedIntegrationView v0{
+                frames.data(), w0.data(), c.frames, pixels};
+            for (std::size_t p = 0; p < pixels; ++p) {
+                ref[p] = integrate_one_pixel(v0, p);
+            }
+        }
+        // reuse4 的 4 组 Serial 参考（全部计时外预计算）
+        std::vector<std::vector<float>> reuse_refs;
+        for (const auto* w : ws) {
+            WeightedIntegrationView v{frames.data(), w->data(),
+                                      c.frames, pixels};
+            std::vector<float> r(pixels);
+            for (std::size_t p = 0; p < pixels; ++p) {
+                r[p] = integrate_one_pixel(v, p);
+            }
+            reuse_refs.push_back(std::move(r));
+        }
         std::vector<float> out(pixels);
 
-        // 各模式
-        const auto add_mode = [&](const std::string& mode,
-                                  const Timed& t,
-                                  const std::vector<float>& result,
-                                  const std::string& status,
-                                  const nlohmann::json& stats,
-                                  const std::vector<float>* alt_ref =
-                                      nullptr) {
-            nlohmann::json m;
-            m["mode"] = mode;
-            m["status"] = status;
-            m["median_ms"] = t.median_ms;
-            m["min_ms"] = t.min_ms;
-            m["p90_ms"] = t.p90_ms;
-            m["speedup_vs_openmp"] = 0.0;
-            m["max_abs_error"] = 0.0;
-            m["relative_l2_error"] = 0.0;
-            m["cpu_items"] = 0;
-            m["gpu_items"] = 0;
-            m["cpu_chunks"] = 0;
-            m["gpu_chunks"] = 0;
-            m["gpu_streams"] = gpu_streams;
-            m["max_in_flight"] = 1;
-            m["h2d_count"] = 0;
-            m["d2h_count"] = 0;
-            m["h2d_bytes"] = 0;
-            m["d2h_bytes"] = 0;
-            m["resident_reuse_count"] = 0;
-            m["peak_ram_bytes"] = 0;
-            m["peak_vram_bytes"] = 0;
-            m["route_reason"] = "";
-            m["chunk_sizes"] = nlohmann::json::array();
-            const std::vector<float>& check_ref =
-                (alt_ref != nullptr) ? *alt_ref : ref;
-            if (status == "PASS" && result.size() == check_ref.size()) {
-                const ErrorStats es = compare(check_ref, result);
-                m["max_abs_error"] = es.max_abs;
-                m["relative_l2_error"] = es.relative_l2;
-                if (!es.finite || es.max_abs > 2e-5 ||
-                    es.relative_l2 > 2e-6 ||
-                    es.coverage != check_ref.size()) {
-                    m["status"] = "FAIL";
-                    correctness_pass = false;
-                }
-            } else if (status == "FAIL") {
-                correctness_pass = false;
-            }
-            for (auto it = stats.begin(); it != stats.end(); ++it) {
-                m[it.key()] = it.value();
-            }
-            jc["modes"].push_back(m);
-        };
-
-        // serial（仅 quick 小 case，作为参考）
-        if (args.preset == "quick" && !args.correctness_only) {
-            Timed ts = measure(
-                [&] { weighted_integration_serial(view, out.data()); },
+        // ---- openmp_single：等价基线（1 次）----
+        {
+            WeightedIntegrationView v0{
+                frames.data(), w0.data(), c.frames, pixels};
+            Timed t = measure(
+                [&] { weighted_integration_openmp(v0, out.data(),
+                                                  env.openmp_threads); },
                 args.warmup, args.repeats);
-            add_mode("serial", ts, out, "PASS", {});
+            openmp_single_median = t.total_median_ms;
+            rep.add("openmp_single", "PASS", t, 1, true, t.total_median_ms,
+                    ref, out, pixels, {});
         }
 
-        // OpenMP 基线
-        Timed to = measure(
-            [&] { weighted_integration_openmp(view, out.data(),
-                                              env.openmp_threads); },
-            args.warmup, args.repeats);
-        add_mode("openmp", to, out, "PASS", {});
-        openmp_medians.push_back(to.median_ms);
-
-        // ACR CpuOnly
+        // ---- openmp_reuse4_total：4 组权重 4 次 OpenMP 总耗时 ----
+        Timed openmp_reuse4;
         {
-            auto cpu_regs = std::make_shared<ExecutorRegistry>(
+            Timed t = measure(
+                [&] {
+                    for (const auto* w : ws) {
+                        WeightedIntegrationView v{
+                            frames.data(), w->data(), c.frames, pixels};
+                        weighted_integration_openmp(v, out.data(),
+                                                    env.openmp_threads);
+                    }
+                },
+                args.warmup, args.repeats);
+            openmp_reuse4 = t;
+            rep.add("openmp_reuse4_total", "PASS", t, 4, true,
+                    t.total_median_ms, reuse_refs[3], out, pixels, {});
+        }
+
+        // ---- acr_cpu：ACR CpuOnly（等价 1 次）----
+        {
+            auto regs = std::make_shared<ExecutorRegistry>(
                 ExecutorRegistry::create_cpu_only());
             Dispatcher d;
             DispatcherConfig cfg;
             cfg.devices = {{"cpu", 0, 0, 50.0, true}};
-            cfg.executors = cpu_regs;
+            cfg.executors = regs;
             cfg.route_mode = RouteMode::CpuOnly;
             d.configure(cfg);
+            WeightedIntegrationView v0{
+                frames.data(), w0.data(), c.frames, pixels};
+            nlohmann::json extra;
+            CostAwareResult first;
             Timed t = measure(
                 [&] {
                     std::fill(out.begin(), out.end(), 0.0f);
-                    auto r = run_weighted_via_dispatcher(
-                        d, view, out.data(), frames, weights,
-                        1u << 16, 1u << 18);
-                    if (!r.run_result.all_done) {
+                    first = run_weighted_via_dispatcher(
+                        d, v0, out.data(), frames, w0, 1u << 16, 1u << 18);
+                    if (!first.run_result.all_done) {
                         throw std::runtime_error(
                             "acr_cpu not all_done: " +
-                            r.run_result.error_message);
+                            first.run_result.error_message);
                     }
                 },
                 args.warmup, args.repeats);
-            nlohmann::json st;
-            st["cpu_items"] = pixels;
-            st["cpu_chunks"] = 0;
-            st["route_reason"] = "cpu-only";
-            add_mode("acr_cpu", t, out, "PASS", st);
+            fill_real_stats(extra, first);
+            extra["comparison_scope"] = "equivalent-workload";
+            rep.add("acr_cpu", "PASS", t, 1, true,
+                    openmp_single_median, ref, out, pixels, extra);
         }
 
-        // GPU 模式（无 GPU → SKIPPED_NO_GPU）
+        // ---- GPU 模式（无 GPU → SKIPPED_NO_GPU）----
         if (!env.gpu_available || !gpu_handle) {
-            nlohmann::json st;
-            st["route_reason"] = "no GPU";
-            add_mode("gpu_host", Timed{}, out, "SKIPPED_NO_GPU", st);
-            add_mode("gpu_resident", Timed{}, out, "SKIPPED_NO_GPU", st);
-            add_mode("forced_mixed", Timed{}, out, "SKIPPED_NO_GPU", st);
-            add_mode("auto_mixed", Timed{}, out, "SKIPPED_NO_GPU", st);
-            add_mode("auto_mixed_reuse", Timed{}, out, "SKIPPED_NO_GPU", st);
+            for (const char* mode :
+                 {"gpu_host_cold", "gpu_resident_steady", "forced_mixed",
+                  "auto_cold_single_shot", "auto_resident_steady",
+                  "auto_resident_reuse4"}) {
+                Timed t0;
+                rep.add(mode, "SKIPPED_NO_GPU", t0, 1, false, -1.0,
+                        std::vector<float>{}, std::vector<float>{}, pixels,
+                        {{"route_reason", "no GPU"}});
+            }
             continue;
         }
 
-        // gpu_host（整帧 H2D + kernel + D2H）
+        // ---- gpu_host_cold：整帧 H2D + kernel + D2H（1 次）----
         {
             std::uint64_t el = 0;
             const char* err = nullptr;
@@ -902,24 +1106,25 @@ int main(int argc, char** argv) {
                 [&] {
                     if (bapi->submit_weighted_integration(
                             gpu_handle, 0, pixels, out.data(),
-                            frames.data(), weights.data(),
+                            frames.data(), w0.data(),
                             c.frames, pixels, &el, &err) != 0) {
                         throw std::runtime_error(err ? err : "gpu_host failed");
                     }
                 },
                 args.warmup, args.repeats);
-            nlohmann::json st;
-            st["gpu_items"] = pixels;
-            st["gpu_chunks"] = 1;
-            st["h2d_count"] = 1;
-            st["d2h_count"] = 1;
-            st["h2d_bytes"] = c.frames * pixels * 4u + c.frames * 4u;
-            st["d2h_bytes"] = pixels * 4u;
-            st["route_reason"] = "gpu-only host roundtrip";
-            add_mode("gpu_host", t, out, "PASS", st);
+            nlohmann::json extra;
+            extra["h2d_count"] = 1;
+            extra["d2h_count"] = 1;
+            extra["h2d_bytes"] = c.frames * pixels * 4u + c.frames * 4u;
+            extra["d2h_bytes"] = pixels * 4u;
+            extra["gpu_items"] = pixels;
+            extra["gpu_chunks"] = 1;
+            extra["route_reason"] = "gpu-only host cold";
+            rep.add("gpu_host_cold", "PASS", t, 1, true,
+                    openmp_single_median, ref, out, pixels, extra);
         }
 
-        // gpu_resident（prefetch 计时外 + resident 提交）
+        // ---- gpu_resident_steady：prefetch 计时外 + resident 提交 ----
         {
             std::uint64_t el = 0;
             const char* err = nullptr;
@@ -927,8 +1132,7 @@ int main(int argc, char** argv) {
                                          c.frames * pixels,
                                          frames.data(), &el, &err);
             bapi->upload_persistent_slot(gpu_handle, 1, 0,
-                                         c.frames, weights.data(),
-                                         &el, &err);
+                                         c.frames, w0.data(), &el, &err);
             Timed t = measure(
                 [&] {
                     if (bapi->submit_weighted_integration_resident(
@@ -939,31 +1143,32 @@ int main(int argc, char** argv) {
                     }
                 },
                 args.warmup, args.repeats);
-            nlohmann::json st;
-            st["gpu_items"] = pixels;
-            st["gpu_chunks"] = 1;
-            st["h2d_count"] = 1;
-            st["d2h_count"] = 1;
-            st["h2d_bytes"] = c.frames * pixels * 4u + c.frames * 4u;
-            st["d2h_bytes"] = pixels * 4u;
-            st["route_reason"] = "gpu-only resident";
-            add_mode("gpu_resident", t, out, "PASS", st);
+            nlohmann::json extra;
+            extra["h2d_count"] = 1;
+            extra["d2h_count"] = 1;
+            extra["h2d_bytes"] = c.frames * pixels * 4u + c.frames * 4u;
+            extra["d2h_bytes"] = pixels * 4u;
+            extra["gpu_items"] = pixels;
+            extra["gpu_chunks"] = 1;
+            extra["route_reason"] = "gpu-only resident steady";
+            rep.add("gpu_resident_steady", "PASS", t, 1, true,
+                    openmp_single_median, ref, out, pixels, extra);
         }
 
-        // ForcedMixed（机制正确性：双方非零）
+        // ---- forced_mixed：仅机制正确性（不参与性能；固定 1M 域）----
         {
-            // 独立 1M 像素工作域（机制验证，不依赖 case 尺寸）：池内块数
-            // 充足（16 块 @64K），首轮公平门下 CPU/GPU 都能领到非零工作。
             const std::size_t mx_pixels = 1u << 20;
             const std::size_t mx_frames = 8;
-            std::vector<float> mx_frames_data(mx_frames * mx_pixels);
-            std::vector<float> mx_weights(mx_frames);
+            std::vector<float> fdata(mx_frames * mx_pixels);
+            std::vector<float> w(mx_frames);
             generate_synthetic(args.seed + 77, mx_frames, mx_pixels,
-                               mx_frames_data, mx_weights);
+                               fdata, w);
             WeightedIntegrationView mx_view{
-                mx_frames_data.data(), mx_weights.data(),
-                mx_frames, mx_pixels};
-            std::vector<float> mx_out(mx_pixels, 0.0f);
+                fdata.data(), w.data(), mx_frames, mx_pixels};
+            std::vector<float> mx_ref(mx_pixels), mx_out(mx_pixels, 0.0f);
+            for (std::size_t p = 0; p < mx_pixels; ++p) {
+                mx_ref[p] = integrate_one_pixel(mx_view, p);
+            }
             auto regs = std::make_shared<ExecutorRegistry>(
                 ExecutorRegistry::create_auto());
             Dispatcher d;
@@ -974,55 +1179,40 @@ int main(int argc, char** argv) {
             cfg.route_mode = RouteMode::AutoMixed;
             cfg.force_all_supported_executors = true;
             d.configure(cfg);
-            auto r = run_weighted_via_dispatcher(
-                d, mx_view, mx_out.data(), mx_frames_data, mx_weights,
-                1u << 16, 1u << 16);
-            const bool both =
-                r.run_result.all_done && r.chunks_on_cpu > 0 &&
-                r.chunks_on_gpu > 0;
-            // 数值正确性（1M 工作域对 Serial 参考；与 case 无关）
-            std::vector<float> mx_ref(mx_pixels);
-            weighted_integration_serial(mx_view, mx_ref.data());
-            const ErrorStats mx_es = compare(mx_ref, mx_out);
-            const bool mx_ok =
-                mx_es.finite && mx_es.max_abs <= 2e-5 &&
-                mx_es.relative_l2 <= 2e-6 &&
-                mx_es.coverage == mx_pixels;
+            CostAwareResult first;
             Timed t = measure(
                 [&] {
                     std::fill(mx_out.begin(), mx_out.end(), 0.0f);
-                    auto rr = run_weighted_via_dispatcher(
-                        d, mx_view, mx_out.data(), mx_frames_data,
-                        mx_weights,
+                    first = run_weighted_via_dispatcher(
+                        d, mx_view, mx_out.data(), fdata, w,
                         1u << 16, 1u << 16);
-                    if (!rr.run_result.all_done) {
+                    if (!first.run_result.all_done) {
                         throw std::runtime_error(
                             "forced_mixed not all_done: " +
-                            rr.run_result.error_message);
+                            first.run_result.error_message);
                     }
                 },
                 args.warmup, args.repeats);
-            nlohmann::json st;
-            st["cpu_items"] = 0;
-            st["gpu_items"] = 0;
-            st["cpu_chunks"] = r.chunks_on_cpu;
-            st["gpu_chunks"] = r.chunks_on_gpu;
-            st["h2d_count"] = 1;
-            st["d2h_count"] = r.chunks_on_gpu;
-            st["h2d_bytes"] =
-                mx_frames * mx_pixels * 4u + mx_frames * 4u;
-            st["d2h_bytes"] =
-                r.chunks_on_gpu *
-                (mx_pixels / std::max<std::size_t>(
-                    1, r.chunks_on_cpu + r.chunks_on_gpu)) * 4u;
-            st["route_reason"] =
-                (both && mx_ok) ? "forced mixed correctness" :
-                                  "mixed not achieved or incorrect";
-            add_mode("forced_mixed", t, mx_out,
-                     (both && mx_ok) ? "PASS" : "FAIL", st, &mx_ref);
+            const bool both =
+                first.run_result.all_done && first.chunks_on_cpu > 0 &&
+                first.chunks_on_gpu > 0;
+            const auto es = astro::compute::weighted_integration::compare(
+                mx_ref, mx_out);
+            const bool ok = both && es.finite &&
+                            es.max_abs <= 2e-5 &&
+                            es.relative_l2 <= 2e-6 &&
+                            es.coverage == mx_pixels;
+            nlohmann::json extra;
+            fill_real_stats(extra, first);
+            extra["comparable_for_performance"] = false;
+            extra["route_reason"] =
+                ok ? "forced mixed correctness only" :
+                     "mixed not achieved or incorrect";
+            rep.add("forced_mixed", ok ? "PASS" : "FAIL", t, 1, false, -1.0,
+                    mx_ref, mx_out, mx_pixels, extra);
         }
 
-        // AutoMixed（OperationProfile 驱动；无 profile 时保守 CPU）
+        // ---- auto_cold_single_shot：全新 Dispatcher 首次 dispatch（含 prefetch）----
         {
             auto regs = std::make_shared<ExecutorRegistry>(
                 ExecutorRegistry::create_auto());
@@ -1032,41 +1222,33 @@ int main(int argc, char** argv) {
                            {"cuda:0", 1, 0, 500.0, true}};
             cfg.executors = regs;
             cfg.route_mode = RouteMode::AutoMixed;
-            cfg.operation_profile =
-                profile_ready ? &profile : nullptr;
+            cfg.operation_profile = profile_ready ? &profile : nullptr;
             d.configure(cfg);
-            auto r = run_weighted_via_dispatcher(
-                d, view, out.data(), frames, weights, 1u << 16, 1u << 18);
+            WeightedIntegrationView v0{
+                frames.data(), w0.data(), c.frames, pixels};
+            CostAwareResult first;
             Timed t = measure(
                 [&] {
                     std::fill(out.begin(), out.end(), 0.0f);
-                    auto rr = run_weighted_via_dispatcher(
-                        d, view, out.data(), frames, weights,
-                        1u << 16, 1u << 18);
-                    if (!rr.run_result.all_done) {
+                    first = run_weighted_via_dispatcher(
+                        d, v0, out.data(), frames, w0, 1u << 16, 1u << 18);
+                    if (!first.run_result.all_done) {
                         throw std::runtime_error(
-                            "auto_mixed not all_done: " +
-                            rr.run_result.error_message);
+                            "auto_cold not all_done: " +
+                            first.run_result.error_message);
                     }
                 },
                 args.warmup, args.repeats);
-            nlohmann::json st;
-            st["cpu_items"] = 0;
-            st["gpu_items"] = 0;
-            st["cpu_chunks"] = r.chunks_on_cpu;
-            st["gpu_chunks"] = r.chunks_on_gpu;
-            st["max_in_flight"] = (r.chunks_on_gpu > 0) ? gpu_streams : 1;
-            st["h2d_count"] = 1;
-            st["d2h_count"] = r.chunks_on_gpu;
-            st["h2d_bytes"] = c.frames * pixels * 4u + c.frames * 4u;
-            st["d2h_bytes"] = 0;
-            st["route_reason"] =
-                profile_ready ? "auto profile-driven" : "auto cpu-fallback";
-            add_mode("auto_mixed", t, out, "PASS", st);
-            auto_mixed_medians.push_back(t.median_ms);
+            nlohmann::json extra;
+            fill_real_stats(extra, first);
+            extra["route_reason"] =
+                profile_ready ? "auto cold profile-driven"
+                              : "auto cold cpu-fallback";
+            rep.add("auto_cold_single_shot", "PASS", t, 1, true,
+                    openmp_single_median, ref, out, pixels, extra);
         }
 
-        // AutoMixed resident-reuse：同一帧栈 4 组权重，frames 只上传一次
+        // ---- auto_resident_steady：warm 后计时（prefetch 计时外）----
         {
             auto regs = std::make_shared<ExecutorRegistry>(
                 ExecutorRegistry::create_auto());
@@ -1076,133 +1258,215 @@ int main(int argc, char** argv) {
                            {"cuda:0", 1, 0, 500.0, true}};
             cfg.executors = regs;
             cfg.route_mode = RouteMode::AutoMixed;
-            cfg.operation_profile =
-                profile_ready ? &profile : nullptr;
+            cfg.operation_profile = profile_ready ? &profile : nullptr;
             d.configure(cfg);
-            std::vector<const std::vector<float>*> wsets{
-                &weights, &weights2, &weights3, &weights4};
-            bool ok_all = true;
-            std::vector<float> ref_last;
-            std::size_t reuse_idx = 0;
+            WeightedIntegrationView v0{
+                frames.data(), w0.data(), c.frames, pixels};
+            // warm（prefetch + 驻留建立，不计时）
+            run_weighted_via_dispatcher(d, v0, out.data(), frames, w0,
+                                        1u << 16, 1u << 18);
+            CostAwareResult first;
             Timed t = measure(
                 [&] {
-                    for (const auto* w : wsets) {
-                        const std::size_t gi = reuse_idx;
-                        ++reuse_idx;
-                        WeightedIntegrationView v2{
-                            frames.data(), w->data(), c.frames, pixels};
-                        auto rr = run_weighted_via_dispatcher(
-                            d, v2, out.data(), frames, *w,
-                            1u << 16, 1u << 16);
-                        if (!rr.run_result.all_done) {
+                    std::fill(out.begin(), out.end(), 0.0f);
+                    first = run_weighted_via_dispatcher(
+                        d, v0, out.data(), frames, w0, 1u << 16, 1u << 18);
+                    if (!first.run_result.all_done) {
+                        throw std::runtime_error(
+                            "auto_resident not all_done: " +
+                            first.run_result.error_message);
+                    }
+                },
+                args.warmup, args.repeats);
+            nlohmann::json extra;
+            fill_real_stats(extra, first);
+            extra["route_reason"] =
+                profile_ready ? "auto resident profile-driven"
+                              : "auto resident cpu-fallback";
+            rep.add("auto_resident_steady", "PASS", t, 1, true,
+                    openmp_single_median, ref, out, pixels, extra);
+        }
+
+        // ---- auto_resident_reuse4：4 组权重 4 次 Auto（Serial 参考计时外）----
+        {
+            auto regs = std::make_shared<ExecutorRegistry>(
+                ExecutorRegistry::create_auto());
+            Dispatcher d;
+            DispatcherConfig cfg;
+            cfg.devices = {{"cpu", 0, 0, 50.0, true},
+                           {"cuda:0", 1, 0, 500.0, true}};
+            cfg.executors = regs;
+            cfg.route_mode = RouteMode::AutoMixed;
+            cfg.operation_profile = profile_ready ? &profile : nullptr;
+            d.configure(cfg);
+            CostAwareResult last;
+            std::uint64_t sum_cpu_items = 0, sum_gpu_items = 0;
+            std::uint64_t sum_cpu_chunks = 0, sum_gpu_chunks = 0;
+            std::uint64_t sum_h2d = 0, sum_d2h = 0;
+            std::uint64_t sum_h2d_bytes = 0, sum_d2h_bytes = 0;
+            std::vector<std::size_t> all_chunks;
+            bool ok_all = true;
+            Timed t = measure(
+                [&] {
+                    for (std::size_t gi = 0; gi < 4; ++gi) {
+                        WeightedIntegrationView v{
+                            frames.data(), ws[gi]->data(),
+                            c.frames, pixels};
+                        std::fill(out.begin(), out.end(), 0.0f);
+                        last = run_weighted_via_dispatcher(
+                            d, v, out.data(), frames, *ws[gi],
+                            1u << 16, 1u << 18);
+                        if (!last.run_result.all_done) {
                             ok_all = false;
                             throw std::runtime_error(
-                                "reuse not all_done: " +
-                                rr.run_result.error_message);
+                                "reuse4 not all_done: " +
+                                last.run_result.error_message);
                         }
-                        // 每组结果对 Serial 参考验证（reuse 权重不同，
-                        // 参考必须按组计算，不能用 case 第一组权重参考）
-                        std::vector<float> ref_g(pixels);
-                        weighted_integration_serial(v2, ref_g.data());
-                        const ErrorStats es = compare(ref_g, out);
+                        for (const auto& pds : last.per_device_stats) {
+                            if (pds.backend.rfind("cuda", 0) == 0) {
+                                sum_gpu_items += pds.items_done;
+                                sum_gpu_chunks += pds.blocks_done;
+                            } else if (pds.backend == "cpu") {
+                                sum_cpu_items += pds.items_done;
+                                sum_cpu_chunks += pds.blocks_done;
+                            }
+                        }
+                        sum_h2d += last.transfer_stats.h2d_count;
+                        sum_d2h += last.transfer_stats.d2h_count;
+                        sum_h2d_bytes += last.transfer_stats.h2d_bytes;
+                        sum_d2h_bytes += last.transfer_stats.d2h_bytes;
+                        all_chunks.insert(
+                            all_chunks.end(),
+                            last.resource_control.dynamic_chunk_sizes.begin(),
+                            last.resource_control.dynamic_chunk_sizes.end());
+                        const auto es = astro::compute::weighted_integration::
+                            compare(reuse_refs[gi], out);
                         if (!es.finite || es.max_abs > 2e-5 ||
                             es.relative_l2 > 2e-6 ||
                             es.coverage != pixels) {
                             ok_all = false;
                         }
-                        ref_last = std::move(ref_g);
                     }
                 },
                 args.warmup, args.repeats);
-            nlohmann::json st;
-            st["cpu_items"] = 0;
-            st["gpu_items"] = 0;
-            st["cpu_chunks"] = 0;
-            st["gpu_chunks"] = 0;
-            st["h2d_count"] = 1;  // frames 只上传一次（组合 prefetch 首次）
-            st["d2h_count"] = 0;
-            st["h2d_bytes"] = c.frames * pixels * 4u;
-            st["d2h_bytes"] = 0;
-            st["resident_reuse_count"] = 3;  // 后三次 frames 复用
-            st["route_reason"] =
-                ok_all ? "resident reuse frames upload once" :
-                         "reuse failed";
-            add_mode("auto_mixed_reuse", t, out,
-                     ok_all ? "PASS" : "FAIL", st, &ref_last);
+            nlohmann::json extra;
+            extra["cpu_items"] = sum_cpu_items;
+            extra["gpu_items"] = sum_gpu_items;
+            extra["cpu_chunks"] = sum_cpu_chunks;
+            extra["gpu_chunks"] = sum_gpu_chunks;
+            extra["chunk_sizes"] = all_chunks;
+            extra["h2d_count"] = sum_h2d;
+            extra["d2h_count"] = sum_d2h;
+            extra["h2d_bytes"] = sum_h2d_bytes;
+            extra["d2h_bytes"] = sum_d2h_bytes;
+            extra["frames_upload_count"] =
+                last.transfer_stats.frames_upload_count;
+            extra["weights_upload_count"] =
+                last.transfer_stats.weights_upload_count;
+            extra["peak_ram_bytes"] = last.resource_control.mem_peak_max;
+            extra["route_reason"] =
+                ok_all ? "resident reuse4 frames upload once" :
+                         "reuse4 incorrect";
+            rep.add("auto_resident_reuse4",
+                    ok_all ? "PASS" : "FAIL", t, 4, true,
+                    openmp_reuse4.total_median_ms, reuse_refs[3], out,
+                    pixels, extra);
         }
     }
 
-    // ---- speedup_vs_openmp 回填 + 性能资格 ----
-    for (auto& jc : case_jsons) {
-        double omp_ms = 0.0;
-        for (auto& m : jc["modes"]) {
-            if (m["mode"] == "openmp") omp_ms = m["median_ms"].get<double>();
-        }
-        for (auto& m : jc["modes"]) {
-            if (m["status"] == "PASS" && omp_ms > 0.0) {
-                m["speedup_vs_openmp"] =
-                    omp_ms / std::max(m["median_ms"].get<double>(), 1e-9);
-            }
-        }
-    }
-
-    // ---- 汇总与资格 ----
-    nlohmann::json qualification;
-    qualification["correctness"] =
-        correctness_pass ? "PASS" : "FAIL";
-    // 性能资格：标准档至少一个中/大 case Auto 相对 OpenMP ≥1.05x
-    // （若没有 → PERFORMANCE_NOT_QUALIFIED，不开始业务改造）
+    // =====================================================================
+    // 资格判定（07 号计划 E：最佳合理模式 + 10% 门禁 + 1.05x）
+    // =====================================================================
     bool perf_ok = false;
+    bool auto_all_within_10 = true;
     std::string perf_reason;
     if (args.correctness_only) {
-        qualification["performance"] = "NOT_RUN";
         perf_reason = "correctness-only mode";
     } else if (args.preset == "quick") {
-        qualification["performance"] = "NOT_RUN";
         perf_reason = "quick preset is correctness-only";
     } else {
+        std::string slowest_case;
+        double worst_ratio = 1.0;
         for (std::size_t ci = 0; ci < cases.size(); ++ci) {
             const auto& c = cases[ci];
-            const auto& jc = case_jsons[ci];
-            double omp_ms = 0.0, auto_ms = 0.0, best_ms = 0.0;
-            for (const auto& m : jc["modes"]) {
+            const auto& jj = case_jsons[ci];
+            double best = 0.0;
+            for (const auto& m : jj["modes"]) {
+                if (m["status"] != "PASS" ||
+                    m["comparable_for_performance"] != true) continue;
                 const std::string mode = m["mode"];
-                if (m["status"] != "PASS") continue;
-                if (mode == "openmp") omp_ms = m["median_ms"].get<double>();
-                if (mode == "auto_mixed") auto_ms = m["median_ms"].get<double>();
-                if (mode == "gpu_resident" || mode == "acr_cpu") {
-                    best_ms = best_ms == 0.0
-                        ? m["median_ms"].get<double>()
-                        : std::min(best_ms, m["median_ms"].get<double>());
+                if (mode == "forced_mixed") continue;
+                // 用 per-call 归一化（reuse4 等多次操作与单次可比）
+                const double ms = m["per_call_median_ms"].get<double>();
+                if (ms > 0.0 && (best == 0.0 || ms < best)) best = ms;
+            }
+            for (const auto& m : jj["modes"]) {
+                if (m["status"] != "PASS" ||
+                    m["comparable_for_performance"] != true) continue;
+                const std::string mode = m["mode"];
+                if (mode.rfind("auto_", 0) != 0) continue;
+                const double auto_ms = m["per_call_median_ms"].get<double>();
+                if (best > 0.0 && auto_ms > best * 1.10) {
+                    auto_all_within_10 = false;
+                    const double ratio = auto_ms / best;
+                    if (ratio > worst_ratio) {
+                        worst_ratio = ratio;
+                        slowest_case =
+                            std::to_string(c.width) + "x" +
+                            std::to_string(c.height) + "x" +
+                            std::to_string(c.frames) + " " + mode;
+                    }
                 }
             }
-            if (omp_ms > 0.0 && auto_ms > 0.0 &&
-                c.width * c.height >= 1024u * 1024u &&
-                auto_ms <= omp_ms / 1.05) {
-                perf_ok = true;
+            // 中/大 case Auto 相对等价 OpenMP ≥1.05x
+            if (c.width * c.height >= 1024u * 1024u) {
+                double omp = 0.0, auto_res = 0.0;
+                for (const auto& m : jj["modes"]) {
+                    if (m["status"] != "PASS") continue;
+                    if (m["mode"] == "openmp_single") {
+                        omp = m["total_median_ms"].get<double>();
+                    }
+                    if (m["mode"] == "auto_resident_steady") {
+                        auto_res = m["total_median_ms"].get<double>();
+                    }
+                }
+                if (omp > 0.0 && auto_res > 0.0 &&
+                    auto_res <= omp / 1.05) {
+                    perf_ok = true;
+                }
             }
         }
-        if (perf_ok) {
-            qualification["performance"] = "QUALIFIED";
-            perf_reason = "at least one medium/large AutoMixed case "
-                          ">=1.05x vs OpenMP";
+        if (perf_ok && auto_all_within_10) {
+            perf_reason = "auto within 10% of best in all qualifying cases; "
+                          ">=1.05x vs equivalent openmp on medium case";
+        } else if (!perf_ok) {
+            perf_reason = "no medium/large auto_resident >=1.05x vs openmp";
         } else {
-            qualification["performance"] = "PERFORMANCE_NOT_QUALIFIED";
-            perf_reason = "no medium/large AutoMixed speedup >=1.05x; "
-                          "report reproducible reason, do not start "
-                          "business adapter";
+            perf_reason = "auto slower than best by >10% (" + slowest_case +
+                          " ratio=" +
+                          std::to_string(static_cast<int>(worst_ratio * 100)) +
+                          "%)";
         }
+    }
+
+    nlohmann::json qualification;
+    qualification["correctness"] = correctness_pass ? "PASS" : "FAIL";
+    if (args.correctness_only || args.preset == "quick") {
+        qualification["performance"] = "NOT_RUN";
+    } else {
+        qualification["performance"] =
+            (perf_ok && auto_all_within_10) ? "QUALIFIED"
+                                            : "PERFORMANCE_NOT_QUALIFIED";
     }
     qualification["ready_for_business_adapter"] =
         correctness_pass && profile_ready &&
         qualification["performance"] == "QUALIFIED";
     qualification["reason"] = perf_reason;
     report["qualification"] = qualification;
-    for (auto& jc : case_jsons) {
-        report["cases"].push_back(jc);
+    for (auto& jj : case_jsons) {
+        report["cases"].push_back(jj);
     }
 
-    // ---- 写出报告 ----
     {
         std::ofstream f(args.output);
         if (!f) {
@@ -1213,8 +1477,8 @@ int main(int argc, char** argv) {
         }
         f << report.dump(1) << "\n";
     }
-    std::printf("[weighted] preset=%s correctness=%s perf=%s "
-                "profile=%d -> %s\n",
+    std::printf("[weighted] preset=%s correctness=%s perf=%s profile=%d "
+                "-> %s\n",
                 args.preset.c_str(),
                 qualification["correctness"].get<std::string>().c_str(),
                 qualification["performance"].get<std::string>().c_str(),

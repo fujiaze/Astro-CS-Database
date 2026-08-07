@@ -30,6 +30,7 @@ struct MixedRoutePlan {
     double cpu_ns_per_item{0.0};
     double gpu_ns_per_item{0.0};
     double gpu_fixed_ns{0.0};            // launch + 传输固定开销
+    double cpu_fixed_ns{0.0};            // CPU 调度/线程固定开销（worker 预判用）
     bool profile_available{false};       // 是否有该 Operation 的合格 Profile
     std::string reason;                  // 规划依据（诊断）
 };
