@@ -370,7 +370,7 @@ static void test_hiss_roundtrip() {
     meta.exposure_s = 180.0;
     const char* hiss_path = "run/temp/freeze_test.hiss";
     if (!engine.writeHisTilesT(t32, st, img.wcs, cfg, meta,
-                               "", hiss_path, nullptr, err)) {
+                               "", hiss_path, nullptr, nullptr, err)) {
         CHECK(false, ("writeHisTilesT 失败: " + err).c_str());
         return;
     }

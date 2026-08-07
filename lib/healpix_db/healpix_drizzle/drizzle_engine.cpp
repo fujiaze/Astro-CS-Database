@@ -1460,6 +1460,7 @@ bool DrizzleEngine::writeHisTilesT(const std::vector<TileAccumulatorT<Scalar>>& 
                                    const std::string& fitsPath,
                                    const std::string& outputPath,
                                    const HioSnrModel* snr_model,
+                                   const HioSnrModelF64* snr_model_f64,
                                    std::string& error_msg)
 {
     error_msg.clear();
@@ -1540,7 +1541,9 @@ bool DrizzleEngine::writeHisTilesT(const std::vector<TileAccumulatorT<Scalar>>& 
             (unsigned)hmeta.precision_mode, (unsigned)hmeta.signal_dtype);
 
     // 3. SNR 控制点按 Tile 分组 (与 writeHis 一致)
+    //    BLOCKER-TYPE-002: FP64 模式使用 HioSnrModelF64 (double snr)
     std::map<uint64_t, std::vector<std::pair<uint32_t, float>>> tile_snr_points;
+    std::map<uint64_t, std::vector<std::pair<uint32_t, double>>> tile_snr_points_f64;
     if (snr_model && snr_model->n_points > 0) {
         healpix::HealpixCore hp_snr((int)nside, true);
         uint32_t n_valid = 0, n_invalid = 0;
@@ -1563,6 +1566,30 @@ bool DrizzleEngine::writeHisTilesT(const std::vector<TileAccumulatorT<Scalar>>& 
             n_valid++;
         }
         fprintf(stderr, "[drizzle_engine] writeHisTiles: SNR 控制点 %u 有效, %u 无效\n",
+                n_valid, n_invalid);
+    } else if (snr_model_f64 && snr_model_f64->n_points > 0) {
+        healpix::HealpixCore hp_snr((int)nside, true);
+        uint32_t n_valid = 0, n_invalid = 0;
+        for (uint32_t i = 0; i < snr_model_f64->n_points; i++) {
+            double ra = snr_model_f64->points[i].ra;
+            double dec = snr_model_f64->points[i].dec;
+            double snr_val = snr_model_f64->points[i].snr_psf;
+            if (!std::isfinite(ra) || !std::isfinite(dec) || !std::isfinite(snr_val)) {
+                n_invalid++; continue;
+            }
+            if (ra < 0.0 || ra >= 360.0 || dec < -90.0 || dec > 90.0) {
+                n_invalid++; continue;
+            }
+            int64_t ipix = hp_snr.radec2pix(ra, dec);
+            if (ipix < 0) { n_invalid++; continue; }
+            uint64_t global_ipix = (uint64_t)ipix;
+            uint64_t parent = (shift > 0) ? (global_ipix >> shift) : global_ipix;
+            uint32_t local = (shift > 0)
+                ? (uint32_t)(global_ipix & ((1ULL << shift) - 1)) : 0;
+            tile_snr_points_f64[parent].push_back({local, snr_val});
+            n_valid++;
+        }
+        fprintf(stderr, "[drizzle_engine] writeHisTiles: SNR FP64 控制点 %u 有效, %u 无效\n",
                 n_valid, n_invalid);
     }
 
@@ -1592,20 +1619,41 @@ bool DrizzleEngine::writeHisTilesT(const std::vector<TileAccumulatorT<Scalar>>& 
 
         hiss::HissSnrBlock snr_block_local;
         const hiss::HissSnrBlock* snr_block = nullptr;
-        auto snr_it = tile_snr_points.find(tile.parent_ipix);
-        if (snr_it != tile_snr_points.end() && !snr_it->second.empty()) {
-            const auto& pts = snr_it->second;
-            snr_block_local.points.resize(pts.size());
-            for (size_t i = 0; i < pts.size(); i++) {
-                snr_block_local.points[i].local_ipix = pts[i].first;
-                snr_block_local.points[i].snr        = pts[i].second;
+        hiss::HissSnrBlockF64 snr_block_f64_local;
+        const hiss::HissSnrBlockF64* snr_block_f64 = nullptr;
+        if (snr_model_f64 && config.precision_mode == 1) {
+            auto it = tile_snr_points_f64.find(tile.parent_ipix);
+            if (it != tile_snr_points_f64.end() && !it->second.empty()) {
+                const auto& pts = it->second;
+                snr_block_f64_local.points.resize(pts.size());
+                for (size_t i = 0; i < pts.size(); i++) {
+                    snr_block_f64_local.points[i].local_ipix = pts[i].first;
+                    snr_block_f64_local.points[i].snr        = pts[i].second;
+                }
+                snr_block_f64 = &snr_block_f64_local;
             }
-            snr_block = &snr_block_local;
+        } else {
+            auto snr_it = tile_snr_points.find(tile.parent_ipix);
+            if (snr_it != tile_snr_points.end() && !snr_it->second.empty()) {
+                const auto& pts = snr_it->second;
+                snr_block_local.points.resize(pts.size());
+                for (size_t i = 0; i < pts.size(); i++) {
+                    snr_block_local.points[i].local_ipix = pts[i].first;
+                    snr_block_local.points[i].snr        = pts[i].second;
+                }
+                snr_block = &snr_block_local;
+            }
         }
 
         int tret;
         if (config.precision_mode == 1) {
-            tret = writer.add_tile_f64(tile.parent_ipix, acc, snr_block, hiss::OccupancyMode::FULL);
+            if (snr_block_f64) {
+                tret = writer.add_tile_f64_snr(tile.parent_ipix, acc, snr_block_f64,
+                                               hiss::OccupancyMode::FULL);
+            } else {
+                tret = writer.add_tile_f64(tile.parent_ipix, acc, snr_block,
+                                           hiss::OccupancyMode::FULL);
+            }
         } else {
             tret = writer.add_tile(tile.parent_ipix, acc, snr_block, hiss::OccupancyMode::FULL);
         }
@@ -1640,7 +1688,7 @@ bool DrizzleEngine::writeHisTiles(const std::vector<TileAccumulator>& tiles,
                                   std::string& error_msg)
 {
     return writeHisTilesT<double>(tiles, stats, wcs, config, meta, fitsPath, outputPath,
-                                  snr_model, error_msg);
+                                  snr_model, nullptr, error_msg);
 }
 
 // ============================================================================
@@ -1649,10 +1697,10 @@ bool DrizzleEngine::writeHisTiles(const std::vector<TileAccumulator>& tiles,
 template bool DrizzleEngine::writeHisTilesT<float>(
     const std::vector<TileAccumulatorT<float>>&, const DrizzleStats&, const WcsParams&,
     const DrizzleConfig&, const DrizzleMeta&, const std::string&, const std::string&,
-    const HioSnrModel*, std::string&);
+    const HioSnrModel*, const HioSnrModelF64*, std::string&);
 template bool DrizzleEngine::writeHisTilesT<double>(
     const std::vector<TileAccumulatorT<double>>&, const DrizzleStats&, const WcsParams&,
     const DrizzleConfig&, const DrizzleMeta&, const std::string&, const std::string&,
-    const HioSnrModel*, std::string&);
+    const HioSnrModel*, const HioSnrModelF64*, std::string&);
 
 } // namespace drizzle

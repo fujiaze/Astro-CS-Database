@@ -1993,48 +1993,77 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
         LOG_INFO("orchestrator", "[PLATESOLVE] 无 SIP 系数 (sip_order=0)");
     }
 
-    // 6. 写入 star_det 块 (FLOAT32 [N,4]: x, y, flux, mag)
+    // 6. 写入 star_det 权威块 (FLOAT64 [N,6]) + PSF 兼容视图 (FLOAT32 [N,4])
     //    P09-002 INTERNAL_DETECTION_SHARED_EXPORT (历史 P02-003 路径 B):
     //       使用 callback 导出的检测结果 (避免原路径第二次 sdet_detect_ex)
     //    原路径: ipv_solve_from_memory 内部 sdet_detect_ex (1次) + 此处显式 sdet_detect_ex (2次)
     //    INTERNAL_DETECTION_SHARED_EXPORT: ipv_solve_from_memory_with_callback 内部 sdet_detect_ex (1次) + callback 导出
     //    sdet_detect_ex 调用次数: 2 -> 1, 减少重复计算和内存占用
     //    P03-003: star_det 是必需块 (PSF 依赖), 写入失败必须返回非零退出码
+    //    BLOCKER-TYPE-001: 权威块保留 FP64 全精度与饱和列, 禁止隐式 F64→F32;
+    //    PSF 兼容视图显式生成 (不覆盖权威块), 转换误差记入日志。
     if (fn_add_block && fn_remove_block && cb_ctx.copied && cb_ctx.n_detected > 0
         && !cb_ctx.detections_buf.empty()) {
         int64_t n_stars = cb_ctx.n_detected;
-        float* star_det = static_cast<float*>(std::malloc(n_stars * 4 * sizeof(float)));
-        if (star_det == nullptr) {
-            LOG_ERROR("orchestrator", "[PLATESOLVE] 分配 star_det 缓冲失败 (必需块)");
+        const double* det = cb_ctx.detections_buf.data();
+        // 6.1 权威块: star_det FLOAT64 [N,6] (x,y,flux,mag,saturated,has_saturated)
+        double* star_det64 = static_cast<double*>(std::malloc(
+            (size_t)n_stars * 6 * sizeof(double)));
+        if (star_det64 == nullptr) {
+            LOG_ERROR("orchestrator", "[PLATESOLVE] 分配 star_det FLOAT64 缓冲失败 (必需块)");
             result.error_msg = "[PLATESOLVE] 分配 star_det 缓冲失败";
             result.exit_code = AstroCsExitCode::GENERIC_ERROR;
             return false;
         }
-        for (int64_t i = 0; i < n_stars; ++i) {
-            // star_det v1: [x_px, y_px, flux, mag, saturated, has_saturated] (FLOAT64)
-            // star_det 块: [x, y, flux, mag] (FLOAT32, PSF 期望格式)
-            star_det[i * 4 + 0] = static_cast<float>(cb_ctx.detections_buf[i * 6 + 0]);  // x
-            star_det[i * 4 + 1] = static_cast<float>(cb_ctx.detections_buf[i * 6 + 1]);  // y
-            star_det[i * 4 + 2] = static_cast<float>(cb_ctx.detections_buf[i * 6 + 2]);  // flux
-            star_det[i * 4 + 3] = static_cast<float>(cb_ctx.detections_buf[i * 6 + 3]);  // mag
-        }
-        int dims[2] = {static_cast<int>(n_stars), 4};
+        std::memcpy(star_det64, det, (size_t)n_stars * 6 * sizeof(double));
+        int dims6[2] = {static_cast<int>(n_stars), 6};
         fn_remove_block(frame_, "star_det");
-        int r = fn_add_block(frame_, "star_det", AIO_BLOCK_FLOAT32,
-                             star_det, n_stars * 4, dims, 2,
-                             "星点检测结果 (INTERNAL_DETECTION_SHARED_EXPORT callback 导出): x,y,flux,mag");
-        if (r == 0) {
-            LOG_INFO("orchestrator", "[PLATESOLVE] star_det 块已写入 (INTERNAL_DETECTION_SHARED_EXPORT): "
-                     + std::to_string(n_stars) + " 颗星");
-        } else {
-            LOG_ERROR("orchestrator", "[PLATESOLVE] star_det 块写入失败 (必需块): add_block ret="
-                     + std::to_string(r));
-            result.error_msg = "[PLATESOLVE] star_det 块写入失败 (必需块)";
+        int r6 = fn_add_block(frame_, "star_det", AIO_BLOCK_FLOAT64,
+                              star_det64, n_stars * 6, dims6, 2,
+                              "星点检测权威块 (FLOAT64 [N,6]: x,y,flux,mag,saturated,has_saturated)");
+        std::free(star_det64);
+        if (r6 != 0) {
+            LOG_ERROR("orchestrator", "[PLATESOLVE] star_det 权威块写入失败 (必需块): ret="
+                     + std::to_string(r6));
+            result.error_msg = "[PLATESOLVE] star_det 权威块写入失败 (必需块)";
             result.exit_code = AstroCsExitCode::BLOCK_MISSING;
-            std::free(star_det);
             return false;
         }
-        std::free(star_det);
+        // 6.2 PSF 兼容视图: star_det_psf_compat FLOAT32 [N,4] (x,y,flux,mag) + 误差统计
+        float* star_det32 = static_cast<float*>(std::malloc(
+            (size_t)n_stars * 4 * sizeof(float)));
+        double max_rel = 0.0;
+        if (star_det32 != nullptr) {
+            for (int64_t i = 0; i < n_stars; ++i) {
+                for (int c = 0; c < 4; ++c) {
+                    double v = det[i * 6 + c];
+                    float f = static_cast<float>(v);
+                    star_det32[i * 4 + c] = f;
+                    double rel = std::fabs((double)f - v) /
+                                 std::max(std::fabs(v), 1e-30);
+                    if (rel > max_rel) max_rel = rel;
+                }
+            }
+            int dims4[2] = {static_cast<int>(n_stars), 4};
+            fn_remove_block(frame_, "star_det_psf_compat");
+            int r4 = fn_add_block(frame_, "star_det_psf_compat", AIO_BLOCK_FLOAT32,
+                                  star_det32, n_stars * 4, dims4, 2,
+                                  "PSF 兼容视图 (FLOAT32 [N,4]: x,y,flux,mag; 显式生成, 不覆盖权威块)");
+            std::free(star_det32);
+            if (r4 != 0) {
+                LOG_WARN("orchestrator", "[PLATESOLVE] star_det_psf_compat 兼容视图写入失败 "
+                         "(可选, PSF 将回退读权威块): ret=" + std::to_string(r4));
+            }
+            char buf[192];
+            std::snprintf(buf, sizeof(buf),
+                "[PLATESOLVE] star_det 权威 FLOAT64[N,6] + psf_compat FLOAT32[N,4] 已写入 "
+                "(%lld 颗星), 兼容转换最大相对误差=%.3e",
+                (long long)n_stars, max_rel);
+            LOG_INFO("orchestrator", std::string(buf));
+        } else {
+            LOG_WARN("orchestrator", "[PLATESOLVE] star_det_psf_compat 兼容视图分配失败 "
+                     "(可选, PSF 将回退读权威块)");
+        }
     } else {
         // P03-003: callback 未导出检测结果, star_det 必需块缺失, 必须失败
         LOG_ERROR("orchestrator", "[PLATESOLVE] callback 未导出检测结果 (n_detected="
@@ -2133,8 +2162,10 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
         }
     }
 
-    // 2. 读取 star_det 块 (FLOAT32 [N,4]: x, y, flux, mag)
-    //    P03-003: star_det 是必需块 (PLATESOLVE INTERNAL_DETECTION_SHARED_EXPORT 产出), 缺失必须失败 (退出码 3)
+    // 2. 读取 star_det (权威 FLOAT64 [N,6] 或 PSF 兼容视图 FLOAT32 [N,4])
+    //    P03-003: star_det 是必需块, 缺失必须失败 (退出码 3)
+    //    BLOCKER-TYPE-001: 优先读 star_det_psf_compat (F32[N,4]); 无兼容视图时
+    //    回退读权威 FLOAT64[N,6] 的 x/y (double→double, 无隐式缩窄)
     const AioBlock* star_det_block = fn_get_block(frame_, "star_det");
     if (star_det_block == nullptr || star_det_block->dims[0] <= 0) {
         LOG_ERROR("orchestrator", "[PSF] star_det 块不存在或为空 (必需块, PLATESOLVE 应产出)");
@@ -2143,14 +2174,26 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
         return false;
     }
     int n_stars = star_det_block->dims[0];
-    const float* star_det_data = static_cast<const float*>(star_det_block->data);
+    const AioBlock* sd = fn_get_block(frame_, "star_det_psf_compat");
+    if (sd == nullptr || sd->dims[0] != n_stars || sd->data == nullptr) {
+        sd = star_det_block;
+    }
     LOG_INFO("orchestrator", "[PSF] star_det: " + std::to_string(n_stars) + " 颗星");
 
     // 提取 cx/cy 数组 (double, dpsf_fit_batch 要求)
     std::vector<double> cx_arr(n_stars), cy_arr(n_stars);
-    for (int i = 0; i < n_stars; ++i) {
-        cx_arr[i] = static_cast<double>(star_det_data[i * 4 + 0]);
-        cy_arr[i] = static_cast<double>(star_det_data[i * 4 + 1]);
+    if (sd->type == AIO_BLOCK_FLOAT64) {
+        const double* d = static_cast<const double*>(sd->data);
+        for (int i = 0; i < n_stars; ++i) {
+            cx_arr[i] = d[i * 6 + 0];
+            cy_arr[i] = d[i * 6 + 1];
+        }
+    } else {
+        const float* f = static_cast<const float*>(sd->data);
+        for (int i = 0; i < n_stars; ++i) {
+            cx_arr[i] = static_cast<double>(f[i * 4 + 0]);
+            cy_arr[i] = static_cast<double>(f[i * 4 + 1]);
+        }
     }
 
     // 3. 获取 PSF 拟合函数指针并按精度模式调用
@@ -3496,12 +3539,11 @@ bool Orchestrator::run_stage_read_fits(TaskResult& result) {
 // 旧版 snr_estimate 输出稠密 SNR 图写 "snr" 块, 但 drizzle 阶段只识别 "snr_model" 块,
 // 导致 SNR²加权链路断裂。改为稀疏控制点随 drizzle 一起转球面坐标落盘 .hiss
 bool Orchestrator::run_stage_snr(TaskResult& result) {
-    // R10: snr_extract_model 仅依赖 PSF (double*) 参数, 与图像精度模式无关
-    //      (SNR 控制点为稀疏采样值, 非累加量, float32 足够; HISS SNR 子块格式已冻结为 float32)
-    //      此处仅记录精度模式供日志追踪, 不做 f32/f64 分发
+    // BLOCKER-TYPE-002: snr_extract_model_v2 按精度模式输出 FP32/FP64 SNR
+    // 控制点 (value_dtype=1 时 snr_psf 为 double 计算并存储, 非 float 扩展)
     LOG_INFO("orchestrator", "[SNR] 开始 (precision="
              + std::string(config_.precision == PrecisionMode::FP64 ? "FP64" : "FP32")
-             + ", snr_extract_model 精度无关)");
+             + ", snr_extract_model_v2 精度感知)");
 
     // R11 (CFG-109): SNR 是必需 stage, DLL 缺失必须失败, 不允许降级
     if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::SNR)) {
@@ -3519,13 +3561,15 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
         return false;
     }
 
-    // 获取函数指针 (GAP-011: 改用 snr_extract_model / snr_free_model)
-    auto fn_extract = dll_loader_.get_function<int (*)(
-        const double*, int, double,
-        const SnrWcsParams*, SnrModel*)>(
-        ModuleId::SNR, "snr_extract_model");
-    auto fn_free = dll_loader_.get_function<void (*)(SnrModel*)>(
-        ModuleId::SNR, "snr_free_model");
+    // 获取函数指针 (GAP-011: snr_extract_model / snr_free_model;
+    // BLOCKER-TYPE-002: v2 支持 FP64 SNR 真实存储)
+    using ExtractV2Fn = int (*)(const double*, int, double,
+                                const SnrWcsParams*, int, SnrModelV2*);
+    using FreeV2Fn = void (*)(SnrModelV2*);
+    auto fn_extract_v2 = dll_loader_.get_function<ExtractV2Fn>(
+        ModuleId::SNR, "snr_extract_model_v2");
+    auto fn_free_v2 = dll_loader_.get_function<FreeV2Fn>(
+        ModuleId::SNR, "snr_free_model_v2");
     auto fn_get_block = dll_loader_.get_function<const AioBlock* (*)(const PipelineFrame*, const char*)>(
         ModuleId::AIO, "aio_frame_get_block");
     auto fn_remove_block = dll_loader_.get_function<int (*)(PipelineFrame*, const char*)>(
@@ -3544,7 +3588,7 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
         PipelineFrame*, const char*, const char*, const char*)>(
         ModuleId::AIO, "aio_frame_kv_set");
 
-    if (!fn_extract || !fn_free || !fn_get_block || !fn_remove_block
+    if (!fn_extract_v2 || !fn_free_v2 || !fn_get_block || !fn_remove_block
         || !fn_add_block_move || !fn_kv_get_double) {
         LOG_ERROR("orchestrator", "[SNR] 函数指针获取失败");
         result.error_msg = "[SNR] 函数指针获取失败";
@@ -3652,9 +3696,12 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
              + " SIP(a_order=" + std::to_string(wcs.sip.a_order)
              + ", b_order=" + std::to_string(wcs.sip.b_order) + ")");
 
-    // 调用 snr_extract_model 提取稀疏控制点
-    SnrModel model = {};
-    int ret = fn_extract(psf_data, n_stars, sigma_residual, &wcs, &model);
+    // 调用 snr_extract_model_v2 提取稀疏控制点 (BLOCKER-TYPE-002:
+    // FP64 模式 snr_psf 以 double 计算并存储, 非 float 扩展)
+    SnrModelV2 model = {};
+    int value_dtype = (config_.precision == PrecisionMode::FP64) ? 1 : 0;
+    int ret = fn_extract_v2(psf_data, n_stars, sigma_residual, &wcs,
+                            value_dtype, &model);
     if (ret == 1) {
         // n_stars<=0 或无有效星 (status==0, A>B, mad>0)
         LOG_WARN("orchestrator", "[SNR] n_stars<=0 或无有效星, 降级跳过 snr_model 块");
@@ -3740,28 +3787,55 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
         }
     }
 
-    // 序列化 SnrModel 到 "snr_model" 块 (AIO_BLOCK_RAW 类型)
-    // 格式 (与 hp_drizzle_api.cpp 行 409-480 期望一致):
-    //   [n_points:   uint32 (4B)]
-    //   [points:     n_points × 20B]  // SnrControlPoint: ra(double 8B)+dec(double 8B)+snr_psf(float 4B)
-    //   [snr_phot:   double 8B]
-    //   [median_snr: double 8B]
-    //   [idw_power:  double 8B]
-    // 总字节数 = 4 + n_points*20 + 24
+    // 序列化 SnrModelV2 到 "snr_model" 块 (AIO_BLOCK_RAW, 版本化 v1 头)
+    // 格式 (BLOCKER-STRUCT-001/002):
+    //   [magic: "SNRM" 4B][version: u32=1][value_dtype: u8][reserved: u8]
+    //   [point_stride: u16][n_points: u32][payload_bytes: u64][checksum: u32]
+    //   [points: n_points × stride]   // stride=20 (f32 snr) / 24 (f64 snr)
+    //   [snr_phot: f64][median_snr: f64][idw_power: f64]
     uint32_t n_points = model.n_points;
-    size_t payload_size = 4 + (size_t)n_points * 20 + 24;
+    uint32_t point_stride = (model.value_dtype == 1) ? 24 : 20;
+    size_t payload_size = 4 + 4 + 2 + 4 + 8 + 4 +
+                          (size_t)n_points * point_stride + 24;
     // fn_add_block_move 要求 data 必须是 malloc 分配 (frame 用 free() 释放)
     uint8_t* buffer = static_cast<uint8_t*>(std::malloc(payload_size));
     if (buffer == nullptr) {
         LOG_ERROR("orchestrator", "[SNR] 分配 snr_model 缓冲失败 (size=" + std::to_string(payload_size) + ")");
         result.error_msg = "[SNR] 分配 snr_model 缓冲失败";
         result.exit_code = AstroCsExitCode::GENERIC_ERROR;
-        fn_free(&model);
+        fn_free_v2(&model);
         return false;
     }
     uint8_t* p = buffer;
-    std::memcpy(p, &n_points, 4);                          p += 4;
-    std::memcpy(p, model.points, (size_t)n_points * 20);  p += (size_t)n_points * 20;
+    std::memcpy(p, "SNRM", 4);                            p += 4;
+    uint32_t version = 1;
+    std::memcpy(p, &version, 4);                          p += 4;
+    uint8_t vd = model.value_dtype;
+    std::memcpy(p, &vd, 1);                               p += 1;
+    uint8_t reserved = 0;
+    std::memcpy(p, &reserved, 1);                         p += 1;
+    std::memcpy(p, &point_stride, 2);                     p += 2;
+    std::memcpy(p, &n_points, 4);                         p += 4;
+    uint64_t payload_bytes = 4 + (uint64_t)n_points * point_stride + 24;
+    std::memcpy(p, &payload_bytes, 8);                    p += 8;
+    // checksum (FNV-1a 32, 覆盖 [points + trailing])
+    uint32_t checksum = 2166136261u;
+    const uint8_t* pts = reinterpret_cast<const uint8_t*>(model.points);
+    for (size_t i = 0; i < (size_t)n_points * point_stride; ++i) {
+        checksum ^= pts[i];
+        checksum *= 16777619u;
+    }
+    const double trailing[3] = {model.snr_phot, model.median_snr, model.idw_power};
+    for (int t = 0; t < 3; ++t) {
+        const uint8_t* q = reinterpret_cast<const uint8_t*>(&trailing[t]);
+        for (int k = 0; k < 8; ++k) {
+            checksum ^= q[k];
+            checksum *= 16777619u;
+        }
+    }
+    std::memcpy(p, &checksum, 4);                         p += 4;
+    std::memcpy(p, model.points, (size_t)n_points * point_stride);
+    p += (size_t)n_points * point_stride;
     std::memcpy(p, &model.snr_phot, 8);                   p += 8;
     std::memcpy(p, &model.median_snr, 8);                 p += 8;
     std::memcpy(p, &model.idw_power, 8);                  p += 8;
@@ -3776,13 +3850,13 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
         LOG_WARN("orchestrator", "[SNR] 写入 snr_model 块失败 (可选块), 降级跳过: ret=" + std::to_string(wr));
         if (fn_kv_set) fn_kv_set(frame_, "photo_stats", "SNR_STATUS", "SKIPPED_WRITE_FAILED");
         std::free(buffer);
-        fn_free(&model);
+        fn_free_v2(&model);
         return true;  // 可选块写入失败, 允许降级继续
     }
     // buffer 所有权已转移给 frame_, 不能再 free
 
-    // 释放 SnrModel 内部资源 (points 数组, 由 snr_estimator DLL 分配)
-    fn_free(&model);
+    // 释放 SnrModelV2 内部资源 (points 数组, 由 snr_estimator DLL 分配)
+    fn_free_v2(&model);
 
     LOG_INFO("orchestrator", "[SNR] 完成 (snr_model 块已写入, payload=" + std::to_string(payload_size) + "B)");
     return true;

@@ -171,6 +171,7 @@ public:
                        const std::string& fitsPath,
                        const std::string& outputPath,
                        const HioSnrModel* snr_model,
+                       const HioSnrModelF64* snr_model_f64,
                        std::string& error_msg);
 
     // 兼容包装 (double 实例, 旧调用方)

@@ -470,6 +470,67 @@ static int write_snr_subblock(const HissSnrBlock* snr, uint8_t snr_dtype,
     return 0;
 }
 
+// FP64 SNR 子块 (BLOCKER-TYPE-002): 直接序列化 f64 控制点, 非 float 扩展
+static int write_snr_subblock_f64(const HissSnrBlockF64* snr,
+                                  std::vector<HissSubblockDescriptor>& subblocks,
+                                  HissStreamWriter& stream,
+                                  CodecId codec_id, TransformId transform_id,
+                                  ChecksumType checksum_type) {
+    if (!snr) return 0;
+    std::vector<HissSnrControlPointF64> sorted_points = snr->points;
+    std::sort(sorted_points.begin(), sorted_points.end(),
+              [](const HissSnrControlPointF64& a, const HissSnrControlPointF64& b) {
+                  return a.local_ipix < b.local_ipix;
+              });
+    auto last = std::unique(sorted_points.begin(), sorted_points.end(),
+                            [](const HissSnrControlPointF64& a, const HissSnrControlPointF64& b) {
+                                return a.local_ipix == b.local_ipix;
+                            });
+    sorted_points.erase(last, sorted_points.end());
+
+    uint32_t n_points = (uint32_t)sorted_points.size();
+    size_t snr_bytes = 4 + 4 + 4 + (size_t)n_points * 12;   // 12B/点 (f64)
+    std::vector<uint8_t> snr_data(snr_bytes);
+    size_t off = 0;
+    uint32_t eid = snr->estimator_id;
+    snr_data[off+0] = (uint8_t)(eid & 0xFF);
+    snr_data[off+1] = (uint8_t)((eid >> 8) & 0xFF);
+    snr_data[off+2] = (uint8_t)((eid >> 16) & 0xFF);
+    snr_data[off+3] = (uint8_t)((eid >> 24) & 0xFF);
+    off += 4;
+    uint32_t sbits;
+    std::memcpy(&sbits, &snr->sampling_scale, 4);
+    snr_data[off+0] = (uint8_t)(sbits & 0xFF);
+    snr_data[off+1] = (uint8_t)((sbits >> 8) & 0xFF);
+    snr_data[off+2] = (uint8_t)((sbits >> 16) & 0xFF);
+    snr_data[off+3] = (uint8_t)((sbits >> 24) & 0xFF);
+    off += 4;
+    snr_data[off+0] = (uint8_t)(n_points & 0xFF);
+    snr_data[off+1] = (uint8_t)((n_points >> 8) & 0xFF);
+    snr_data[off+2] = (uint8_t)((n_points >> 16) & 0xFF);
+    snr_data[off+3] = (uint8_t)((n_points >> 24) & 0xFF);
+    off += 4;
+    for (uint32_t i = 0; i < n_points; i++) {
+        uint32_t lip = sorted_points[i].local_ipix;
+        snr_data[off+0] = (uint8_t)(lip & 0xFF);
+        snr_data[off+1] = (uint8_t)((lip >> 8) & 0xFF);
+        snr_data[off+2] = (uint8_t)((lip >> 16) & 0xFF);
+        snr_data[off+3] = (uint8_t)((lip >> 24) & 0xFF);
+        off += 4;
+        double s = sorted_points[i].snr;
+        std::memcpy(snr_data.data() + off, &s, 8);
+        off += 8;
+    }
+    HissSubblockDescriptor desc;
+    int ret = compress_and_append(
+        stream, SubblockType::SNR, (uint16_t)SubblockFlags::OPTIONAL,
+        snr_data.data(), snr_data.size(),
+        codec_id, transform_id, checksum_type, 1, desc);
+    if (ret != 0) return ret;
+    subblocks.push_back(desc);
+    return 0;
+}
+
 int HissWriter::add_tile(uint64_t parent_ipix,
                          const DrizzleTileAccumulator& acc,
                          const HissSnrBlock* snr,
@@ -860,6 +921,136 @@ int HissWriter::add_tile_f64(uint64_t parent_ipix,
             "n_leaf=%zu n_valid=%u n_subblocks=%zu [FP64]\n",
             (unsigned long long)parent_ipix, acc.tile_nside, (unsigned)auto_mode,
             n_leaf, n_valid, subblocks.size());
+    return 0;
+}
+
+// ---------------------------------------------------------------------------
+// add_tile_f64_snr: FP64 模式 + FP64 SNR 控制点 (BLOCKER-TYPE-002)
+//   signal 子块 float64; SNR 子块直接写 f64 控制点 (非 float 扩展)
+// ---------------------------------------------------------------------------
+int HissWriter::add_tile_f64_snr(uint64_t parent_ipix,
+                                  const DrizzleTileAccumulator& acc,
+                                  const HissSnrBlockF64* snr,
+                                  OccupancyMode occ_mode) {
+    if (!pimpl_->opened) {
+        fprintf(stderr, "[hiss][writer] add_tile_f64_snr 失败: 会话未打开\n");
+        return -1;
+    }
+    if (acc.tile_nside == 0) {
+        fprintf(stderr, "[hiss][writer] add_tile_f64_snr 失败: acc.tile_nside=0 非法\n");
+        return -2;
+    }
+    pimpl_->metadata.precision_mode = 1;
+    pimpl_->metadata.signal_dtype   = 1;
+    pimpl_->metadata.snr_dtype      = 1;
+    pimpl_->metadata.metadata_float_dtype = 1;
+
+    const size_t n_leaf = acc.pixels.size();
+    int vret = acc.validate_support();
+    if (vret != 0) {
+        fprintf(stderr, "[hiss][writer] add_tile_f64_snr 失败: support 校验未通过 (parent=%llu)\n",
+                (unsigned long long)parent_ipix);
+        return -3;
+    }
+
+    std::vector<double>  signal_full;
+    std::vector<uint8_t> support_full;
+    acc.finalize_signal_f64(signal_full);
+    acc.finalize_support(support_full);
+
+    std::vector<uint32_t> valid_indices;
+    valid_indices.reserve(n_leaf);
+    for (size_t i = 0; i < n_leaf; i++) {
+        if (acc.pixels[i].sum_area > 0.0) valid_indices.push_back((uint32_t)i);
+    }
+    uint32_t n_valid = (uint32_t)valid_indices.size();
+    OccupancyMode auto_mode = auto_select_occupancy(n_valid, (uint32_t)n_leaf);
+
+    std::vector<double>  signal_compact;
+    std::vector<uint8_t> support_compact;
+    std::vector<uint8_t> occ_data;
+    if (auto_mode == OccupancyMode::FULL) {
+        signal_compact  = std::move(signal_full);
+        support_compact = std::move(support_full);
+    } else if (auto_mode == OccupancyMode::BITMAP) {
+        occ_data.assign((n_leaf + 7) / 8, 0);
+        for (uint32_t idx : valid_indices) occ_data[idx / 8] |= (uint8_t)(1u << (idx % 8));
+        signal_compact.reserve(n_valid); support_compact.reserve(n_valid);
+        for (uint32_t idx : valid_indices) {
+            signal_compact.push_back(signal_full[idx]);
+            support_compact.push_back(support_full[idx]);
+        }
+    } else {
+        occ_data.reserve(n_valid * sizeof(uint32_t));
+        for (uint32_t idx : valid_indices) {
+            size_t off = occ_data.size();
+            occ_data.resize(off + 4);
+            std::memcpy(occ_data.data() + off, &idx, 4);
+        }
+        signal_compact.reserve(n_valid); support_compact.reserve(n_valid);
+        for (uint32_t idx : valid_indices) {
+            signal_compact.push_back(signal_full[idx]);
+            support_compact.push_back(support_full[idx]);
+        }
+    }
+
+    std::vector<HissSubblockDescriptor> subblocks;
+    if (auto_mode != OccupancyMode::FULL) {
+        size_t occ_elem_size = (auto_mode == OccupancyMode::SPARSE_LIST) ? 4 : 1;
+        HissSubblockDescriptor desc;
+        int ret = compress_and_append(
+            pimpl_->stream, SubblockType::OCCUPANCY,
+            (uint16_t)SubblockFlags::REQUIRED,
+            occ_data.data(), occ_data.size(),
+            pimpl_->codec_for(SubblockType::OCCUPANCY),
+            pimpl_->transform_for(SubblockType::OCCUPANCY),
+            pimpl_->checksum_for(SubblockType::OCCUPANCY),
+            occ_elem_size, desc);
+        if (ret != 0) return ret;
+        subblocks.push_back(desc);
+    }
+    {
+        size_t sig_bytes = signal_compact.size() * sizeof(double);
+        HissSubblockDescriptor desc;
+        int ret = compress_and_append(
+            pimpl_->stream, SubblockType::SIGNAL,
+            (uint16_t)SubblockFlags::REQUIRED,
+            (const uint8_t*)signal_compact.data(), sig_bytes,
+            pimpl_->codec_for(SubblockType::SIGNAL),
+            pimpl_->transform_for(SubblockType::SIGNAL),
+            pimpl_->checksum_for(SubblockType::SIGNAL),
+            sizeof(double), desc);
+        if (ret != 0) return ret;
+        subblocks.push_back(desc);
+    }
+    {
+        HissSubblockDescriptor desc;
+        int ret = compress_and_append(
+            pimpl_->stream, SubblockType::SUPPORT,
+            (uint16_t)SubblockFlags::REQUIRED,
+            support_compact.data(), support_compact.size(),
+            pimpl_->codec_for(SubblockType::SUPPORT),
+            pimpl_->transform_for(SubblockType::SUPPORT),
+            pimpl_->checksum_for(SubblockType::SUPPORT),
+            sizeof(uint8_t), desc);
+        if (ret != 0) return ret;
+        subblocks.push_back(desc);
+    }
+    if (snr) {
+        int ret = write_snr_subblock_f64(
+            snr, subblocks, pimpl_->stream,
+            pimpl_->codec_for(SubblockType::SNR),
+            pimpl_->transform_for(SubblockType::SNR),
+            pimpl_->checksum_for(SubblockType::SNR));
+        if (ret != 0) return ret;
+    }
+    int ret = pimpl_->stream.record_tile(parent_ipix, acc.tile_nside, auto_mode,
+                                          std::move(subblocks));
+    if (ret != 0) return ret;
+    fprintf(stderr,
+            "[hiss][writer] add_tile_f64_snr 成功: parent_ipix=%llu n_valid=%u "
+            "n_subblocks=%zu [FP64+FP64-SNR]\n",
+            (unsigned long long)parent_ipix, n_valid, subblocks.size());
     return 0;
 }
 

@@ -48,6 +48,16 @@ typedef struct {
     char value[256];
 } AioKVEntry;
 
+/* ===========================================================================
+ * 冻结资源上限 (BLOCKER-DF-001: 防止损坏输入触发异常分配)
+ * =========================================================================== */
+#define AIO_CACHE_MAX_BLOCKS      65536
+#define AIO_CACHE_MAX_DIMS        4
+#define AIO_CACHE_MAX_BLOCK_BYTES (1LL << 32)   /* 4 GiB / 单块 */
+#define AIO_CACHE_MAX_FRAME_BYTES (1LL << 34)   /* 16 GiB / 整帧 */
+#define AIO_CACHE_MAX_STR_LEN     65535         /* name/description/KV 上限 */
+#define AIO_BLOCK_NAME_MAX        63            /* AioBlock.name[64] 实际上限 */
+
 /* 命名块 */
 typedef struct {
     char          name[64];        /* 块名 (如 "header", "data", "psf") */
@@ -67,6 +77,27 @@ typedef struct {
     int       stages_completed; /* 阶段完成位掩码 */
 } PipelineFrame;
 
+/* ===========================================================================
+ * ABI 握手信息 (Dataflow_ABI_Contract)
+ * =========================================================================== */
+typedef struct {
+    uint32_t abi_version;
+    uint32_t struct_size;
+    uint32_t pointer_size;
+    uint32_t enum_fingerprint;
+    uint32_t pipeline_frame_size;
+    uint32_t aio_block_size;
+    uint32_t aio_kv_entry_size;
+    uint64_t capability_bits;
+    char     build_id[64];
+} AstroAbiInfo;
+
+/* capability bits */
+#define AIO_CAP_BASIC        0x00000001u
+#define AIO_CAP_CACHE_V1     0x00000002u
+#define AIO_CAP_ALLOCATOR    0x00000004u
+#define AIO_CAP_FP64         0x00000008u
+
 /* 旧版 PipelineStageFn 已废弃，保留别名以兼容 */
 typedef int (*PipelineStageFn)(const PipelineFrame* input, PipelineFrame* output, const void* params, char* error_msg, int error_capacity);
 
@@ -77,6 +108,14 @@ typedef int (*PipelineStageFn)(const PipelineFrame* input, PipelineFrame* output
 AIO_EXPORT PipelineFrame* aio_pipeline_frame_create(void);
 AIO_EXPORT void aio_pipeline_frame_destroy(PipelineFrame* frame);
 AIO_EXPORT size_t aio_pipeline_frame_memory_usage(const PipelineFrame* frame);
+
+/* ABI 握手: 返回 AIO 模块 ABI 信息 (调用方检查 abi_version/struct_size/指针宽度) */
+AIO_EXPORT const AstroAbiInfo* aio_abi_info(void);
+
+/* 规范化分配器 (跨 DLL 边界): add_block_move 只接受 aio_alloc 创建的 buffer */
+AIO_EXPORT void* aio_alloc(size_t size);
+AIO_EXPORT void* aio_realloc(void* ptr, size_t size);
+AIO_EXPORT void  aio_free(void* ptr);
 
 /* ===========================================================================
  * 块管理 API
@@ -90,8 +129,9 @@ AIO_EXPORT int aio_frame_add_block(PipelineFrame* frame,
     const int* dims, int n_dims,
     const char* description);
 
-/* 添加块（转移数据所有权，frame 接管 free）
- * data 必须是 malloc 分配的 (不能用 new[])，frame 用 free() 释放
+/* 添加块（转移数据所有权，frame 接管释放）
+ * data 必须是 aio_alloc() 分配的 (不能用 new[] 或跨 CRT malloc)，
+ * frame 用 aio_free() 释放; 未知 type / 负 count / 非法 dims 在接管前拒绝
  * 返回: 0=成功, 非0=失败 */
 AIO_EXPORT int aio_frame_add_block_move(PipelineFrame* frame,
     const char* name, AioBlockType type,
@@ -232,7 +272,8 @@ AIO_EXPORT int aio_pipeline_export_xml(const PipelineFrame* frame,
  * | weight        | FLOAT32  | [H,W]        | 权重图                            |
  * | snr           | FLOAT32  | [H,W]        | 信噪比图                          |
  * | psf           | FLOAT64  | [6]          | PSF 模型参数                      |
- * | star_det      | FLOAT32  | [N,4]        | 星点检测 (x,y,flux,mag)          |
+ * | star_det      | FLOAT64  | [N,6]        | 星点检测权威块 (x,y,flux,mag,saturated,has_saturated) |
+ * | star_det_psf_compat | FLOAT32 | [N,4] | PSF 兼容视图 (x,y,flux,mag, 显式生成) |
  * | gaia_cat      | FLOAT64  | [N,3]        | Gaia 星表 (ra,dec,mag)           |
  * | grad_map      | FLOAT32  | [H,W]        | 梯度图 M_map                      |
  * | cal_stats     | KV       | [N_kv]       | 校准统计信息                       |

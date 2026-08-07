@@ -43,6 +43,16 @@ typedef struct {
 #pragma pack(pop)
 static_assert(sizeof(HioSnrControlPoint) == 20, "HioSnrControlPoint must be 20 bytes");
 
+// FP64 SNR 控制点 (BLOCKER-TYPE-002: snr_psf 保留 double 精度)
+#pragma pack(push, 1)
+typedef struct {
+    double ra;       // 球面赤经 (度)
+    double dec;      // 球面赤纬 (度)
+    double snr_psf;  // (A-B)/mad (double)
+} HioSnrControlPointF64;
+#pragma pack(pop)
+static_assert(sizeof(HioSnrControlPointF64) == 24, "HioSnrControlPointF64 must be 24 bytes");
+
 // SNR 模型 (稀疏控制点 + 全局参数, 用于 I/O 序列化)
 // 对应 snr_format=1 的二进制布局:
 //   [n_points: uint32]
@@ -55,6 +65,15 @@ typedef struct {
     double   median_snr;            // median(snr_psf) 归一化基准
     double   idw_power;             // IDW 幂次 (默认 2.0)
 } HioSnrModel;
+
+// FP64 SNR 模型 (value_dtype=1, 控制点为 HioSnrControlPointF64)
+typedef struct {
+    uint32_t n_points;
+    HioSnrControlPointF64* points;
+    double   snr_phot;
+    double   median_snr;
+    double   idw_power;
+} HioSnrModelF64;
 
 // 写入 .hiss 文件 (snr_format=0, 逐像素 SNR)
 // path - 文件路径 (UTF-8)

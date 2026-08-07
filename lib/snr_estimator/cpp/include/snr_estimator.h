@@ -118,6 +118,33 @@ typedef struct {
 static_assert(sizeof(SnrControlPoint) == 20, "SnrControlPoint must be 20 bytes (packed, matches HioSnrControlPoint)");
 
 // ============================================================================
+// FP64 SNR 控制点 (BLOCKER-TYPE-002: FP64 模式 SNR 值保留 double 精度)
+// ============================================================================
+#pragma pack(push, 1)
+typedef struct {
+    double ra;       // 球面赤经 (度)
+    double dec;      // 球面赤纬 (度)
+    double snr_psf;  // (A-B)/mad (无量纲, double 精度)
+} SnrControlPointF64;
+#pragma pack(pop)
+static_assert(sizeof(SnrControlPointF64) == 24, "SnrControlPointF64 must be 24 bytes");
+
+// ============================================================================
+// SNR 模型 v2 (版本化, 支持 F32/F64 SNR 值)
+//   value_dtype: 0 = points 指向 SnrControlPoint[] (f32 snr)
+//                1 = points 指向 SnrControlPointF64[] (f64 snr)
+// ============================================================================
+typedef struct {
+    uint32_t n_points;
+    uint8_t  value_dtype;
+    uint8_t  reserved[3];
+    void*    points;           // 按 value_dtype 解释
+    double   snr_phot;
+    double   median_snr;
+    double   idw_power;
+} SnrModelV2;
+
+// ============================================================================
 // SNR 模型 (稀疏控制点 + 全局参数)
 //
 // SNR(ra,dec) = snr_phot × (IDW_spherical(points, query) / median_snr)
@@ -151,10 +178,19 @@ SNR_API int snr_extract_model(const double* psf, int n_stars,
                                const SnrWcsParams* wcs,
                                SnrModel* out_model);
 
+// v2: 提取稀疏 SNR 控制点模型, value_dtype=0 (f32) / 1 (f64) 真实存储。
+// FP64 模式下 snr_psf 为 double 计算并 double 存储 (非 float 扩展)。
+SNR_API int snr_extract_model_v2(const double* psf, int n_stars,
+                                  double sigma_residual,
+                                  const SnrWcsParams* wcs,
+                                  int value_dtype,
+                                  SnrModelV2* out_model);
+
 // ============================================================================
 // snr_free_model - 释放 SnrModel 内部资源
 // ============================================================================
 SNR_API void snr_free_model(SnrModel* model);
+SNR_API void snr_free_model_v2(SnrModelV2* model);
 
 #ifdef __cplusplus
 }

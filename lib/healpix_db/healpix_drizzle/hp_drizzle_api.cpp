@@ -329,7 +329,7 @@ HP_DRIZZLE_API int hp_drizzle_fits_to_ahpx(
     }
     DrizzleMeta meta;  // FITS 路径无 header KV, meta 留空
     if (!engine.writeHisTilesT<float>(tiles, stats, img.wcs, config, meta, fits_path, hissPath,
-                                      nullptr, errMsg)) {
+                                      nullptr, nullptr, errMsg)) {
         fprintf(stderr, "[hp_drizzle_api] 写入 .hiss 失败: %s\n", errMsg.c_str());
         setErrorMsg(result, "写入 .hiss 失败: " + errMsg);
         return 11;
@@ -584,72 +584,190 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
     //     注: 必须在 img.wcs 构造完成后执行 (pixelToSkyBatch 需要 WCS)
     const float* snrPtr = nullptr;
     std::vector<float> snrRebuilt;       // 重建的逐像素 SNR (生命周期需覆盖 drizzle 调用)
-    HioSnrModel snrModelData = {};       // 用于 writeHis (生命周期需覆盖 writeHis 调用)
+    HioSnrModel snrModelData = {};       // f32 模型 (writeHis 用, 对齐拷贝)
+    HioSnrModelF64 snrModelDataF64 = {}; // f64 模型 (BLOCKER-TYPE-002)
     const HioSnrModel* snrModelPtr = nullptr;
+    const HioSnrModelF64* snrModelF64Ptr = nullptr;
+    // 重建 SNR 的公共部分 (lambda, nPix 由调用点确定)
+    auto rebuild_snr = [&](gradient::SnrEvaluator& evaluator,
+                           size_t nPix, uint32_t n_points,
+                           const double* cp_ra, const double* cp_dec) -> void {
+        std::vector<double> xy(nPix * 2), radec(nPix * 2);
+        for (size_t i = 0; i < nPix; i++) {
+            int x = (int)(i % (size_t)width);
+            int y = (int)(i / (size_t)width);
+            xy[i * 2] = (double)x;
+            xy[i * 2 + 1] = (double)y;
+        }
+        WcsSip wcsBatch(img.wcs);
+        wcsBatch.pixelToSkyBatch(xy.data(), (int)nPix, radec.data());
+        std::vector<double> qra(nPix), qdec(nPix);
+        for (size_t i = 0; i < nPix; i++) {
+            qra[i] = radec[i * 2];
+            qdec[i] = radec[i * 2 + 1];
+        }
+        snrRebuilt.resize(nPix);
+        evaluator.evaluateBatch(qra.data(), qdec.data(), nPix, snrRebuilt.data());
+        snrPtr = snrRebuilt.data();
+        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: SNR 重建完成 (%zu 像素, %u 控制点)\n",
+                nPix, n_points);
+    };
     {
         const AioBlock* snr_blk = aio_frame_get_block(frame, "snr_model");
         if (snr_blk && snr_blk->type == AIO_BLOCK_RAW && snr_blk->data && snr_blk->count >= 4) {
             const uint8_t* raw = (const uint8_t*)snr_blk->data;
-            uint32_t n_points = *(const uint32_t*)raw;
-            size_t expected = 4 + (size_t)n_points * sizeof(HioSnrControlPoint) + 24;
-            if (n_points > 0 && (size_t)snr_blk->count >= expected) {
-                // 解析稀疏模型 (零拷贝: points 指针直接指向块数据)
-                snrModelData.n_points   = n_points;
-                snrModelData.points     = (HioSnrControlPoint*)(raw + 4);
-                snrModelData.snr_phot   = *(const double*)(raw + 4 + (size_t)n_points * 20);
-                snrModelData.median_snr = *(const double*)(raw + 4 + (size_t)n_points * 20 + 8);
-                snrModelData.idw_power  = *(const double*)(raw + 4 + (size_t)n_points * 20 + 16);
-                snrModelPtr = &snrModelData;
-
-                fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: snr_model 块加载: n_points=%u, "
-                                "snr_phot=%.4f, median_snr=%.4f, idw_power=%.2f\n",
-                        n_points, snrModelData.snr_phot, snrModelData.median_snr,
-                        snrModelData.idw_power);
-
-                // 拆分控制点数组 → SnrEvaluator.build
-                std::vector<double> cp_ra(n_points), cp_dec(n_points);
-                std::vector<float>  cp_snr(n_points);
-                for (uint32_t i = 0; i < n_points; i++) {
-                    cp_ra[i]  = snrModelData.points[i].ra;
-                    cp_dec[i] = snrModelData.points[i].dec;
-                    cp_snr[i] = snrModelData.points[i].snr_psf;
-                }
-
-                gradient::SnrEvaluator evaluator;
-                if (evaluator.build(n_points, cp_ra.data(), cp_dec.data(), cp_snr.data(),
-                                    snrModelData.snr_phot, snrModelData.median_snr,
-                                    snrModelData.idw_power)) {
-                    // 批量像素→球面→SNR 重建
-                    size_t nPix = (size_t)width * height;
-                    std::vector<double> xy(nPix * 2), radec(nPix * 2);
-                    for (int y = 0; y < height; y++) {
-                        for (int x = 0; x < width; x++) {
-                            xy[(y * width + x) * 2]     = (double)x;
-                            xy[(y * width + x) * 2 + 1] = (double)y;
-                        }
-                    }
-
-                    WcsSip wcsBatch(img.wcs);
-                    wcsBatch.pixelToSkyBatch(xy.data(), (int)nPix, radec.data());
-
-                    std::vector<double> qra(nPix), qdec(nPix);
-                    for (size_t i = 0; i < nPix; i++) {
-                        qra[i]  = radec[i * 2];
-                        qdec[i] = radec[i * 2 + 1];
-                    }
-
-                    snrRebuilt.resize(nPix);
-                    evaluator.evaluateBatch(qra.data(), qdec.data(), nPix, snrRebuilt.data());
-                    snrPtr = snrRebuilt.data();
-
-                    fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: SNR 重建完成 (%zu 像素)\n", nPix);
+            size_t raw_size = (size_t)snr_blk->count;
+            bool is_v1 = (raw_size >= 28 && std::memcmp(raw, "SNRM", 4) == 0);
+            size_t nPix = (size_t)width * height;
+            if (is_v1) {
+                // 版本化 v1 头: magic4 + version4 + vd1 + res1 + stride2 + n4 + payload8 + cs4
+                uint32_t version = 0, n_points = 0, stored_cs = 0;
+                uint64_t payload_bytes = 0;
+                uint16_t stride = 0;
+                uint8_t vd = raw[8];
+                std::memcpy(&version, raw + 4, 4);
+                std::memcpy(&stride, raw + 10, 2);
+                std::memcpy(&n_points, raw + 12, 4);
+                std::memcpy(&payload_bytes, raw + 16, 8);
+                std::memcpy(&stored_cs, raw + 24, 4);
+                size_t expect_stride = (vd == 1) ? 24 : 20;
+                uint64_t expect_payload = 4 + (uint64_t)n_points * expect_stride + 24;
+                bool header_ok = (version == 1 && (vd == 0 || vd == 1) &&
+                                  stride == expect_stride &&
+                                  payload_bytes == expect_payload &&
+                                  raw_size >= 28 + payload_bytes);
+                if (!header_ok) {
+                    fprintf(stderr, "[hp_drizzle_api] snr_model v1 头非法 (version=%u vd=%u "
+                                    "stride=%u payload=%llu n=%u)\n",
+                            version, vd, stride, (unsigned long long)payload_bytes, n_points);
                 } else {
-                    fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: SnrEvaluator build 失败, snr=1.0\n");
+                    const uint8_t* body = raw + 28;
+                    uint32_t cs = 2166136261u;
+                    for (size_t i = 0; i < (size_t)payload_bytes; i++) {
+                        cs ^= body[i];
+                        cs *= 16777619u;
+                    }
+                    if (cs != stored_cs) {
+                        fprintf(stderr, "[hp_drizzle_api] snr_model v1 checksum 不匹配\n");
+                    } else if (n_points > 0) {
+                        std::vector<double> cp_ra(n_points), cp_dec(n_points);
+                        std::vector<double> cp_snr_f64(n_points);
+                        for (uint32_t i = 0; i < n_points; i++) {
+                            const uint8_t* pt = body + 4 + (size_t)i * expect_stride;
+                            std::memcpy(&cp_ra[i], pt, 8);
+                            std::memcpy(&cp_dec[i], pt + 8, 8);
+                            if (vd == 1) {
+                                std::memcpy(&cp_snr_f64[i], pt + 16, 8);
+                            } else {
+                                float s;
+                                std::memcpy(&s, pt + 16, 4);
+                                cp_snr_f64[i] = (double)s;
+                            }
+                        }
+                        double snr_phot, median_snr, idw_power;
+                        const uint8_t* tail = body + 4 + (size_t)n_points * expect_stride;
+                        std::memcpy(&snr_phot, tail, 8);
+                        std::memcpy(&median_snr, tail + 8, 8);
+                        std::memcpy(&idw_power, tail + 16, 8);
+                        if (vd == 1) {
+                            // 对齐拷贝到 HioSnrModelF64 (writeHis 用, 避免未对齐读取)
+                            snrModelDataF64.n_points = n_points;
+                            snrModelDataF64.points = (HioSnrControlPointF64*)std::malloc(
+                                (size_t)n_points * sizeof(HioSnrControlPointF64));
+                            if (snrModelDataF64.points) {
+                                for (uint32_t i = 0; i < n_points; i++) {
+                                    snrModelDataF64.points[i].ra = cp_ra[i];
+                                    snrModelDataF64.points[i].dec = cp_dec[i];
+                                    snrModelDataF64.points[i].snr_psf = cp_snr_f64[i];
+                                }
+                                snrModelDataF64.snr_phot = snr_phot;
+                                snrModelDataF64.median_snr = median_snr;
+                                snrModelDataF64.idw_power = idw_power;
+                                snrModelF64Ptr = &snrModelDataF64;
+                                gradient::SnrEvaluator evaluator;
+                                if (evaluator.buildF64(n_points, cp_ra.data(), cp_dec.data(),
+                                                       cp_snr_f64.data(), snr_phot,
+                                                       median_snr, idw_power)) {
+                                    rebuild_snr(evaluator, nPix, n_points,
+                                                cp_ra.data(), cp_dec.data());
+                                }
+                            }
+                        } else {
+                            snrModelData.n_points = n_points;
+                            snrModelData.points = (HioSnrControlPoint*)std::malloc(
+                                (size_t)n_points * sizeof(HioSnrControlPoint));
+                            if (snrModelData.points) {
+                                for (uint32_t i = 0; i < n_points; i++) {
+                                    snrModelData.points[i].ra = cp_ra[i];
+                                    snrModelData.points[i].dec = cp_dec[i];
+                                    snrModelData.points[i].snr_psf = (float)cp_snr_f64[i];
+                                }
+                                snrModelData.snr_phot = snr_phot;
+                                snrModelData.median_snr = median_snr;
+                                snrModelData.idw_power = idw_power;
+                                snrModelPtr = &snrModelData;
+                                std::vector<float> cp_snr(n_points);
+                                for (uint32_t i = 0; i < n_points; i++)
+                                    cp_snr[i] = (float)cp_snr_f64[i];
+                                gradient::SnrEvaluator evaluator;
+                                if (evaluator.build(n_points, cp_ra.data(), cp_dec.data(),
+                                                    cp_snr.data(), snr_phot,
+                                                    median_snr, idw_power)) {
+                                    rebuild_snr(evaluator, nPix, n_points,
+                                                cp_ra.data(), cp_dec.data());
+                                }
+                            }
+                        }
+                        fprintf(stderr, "[hp_drizzle_api] snr_model v1 加载: n=%u dtype=%u "
+                                        "snr_phot=%.4f median=%.4f power=%.2f\n",
+                                n_points, vd, snr_phot, median_snr, idw_power);
+                    }
                 }
             } else {
-                fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: snr_model 块数据不完整 "
-                                "(count=%lld, expected>=%zu)\n",
-                        (long long)snr_blk->count, expected);
+                // 旧 v0 兼容: [n_points u32][points n×20B][snr_phot f64][median f64][idw f64]
+                // 全部 memcpy 安全读取 (BLOCKER-STRUCT-001: 禁止未对齐强转解引用)
+                uint32_t n_points = 0;
+                std::memcpy(&n_points, raw, 4);
+                size_t expected = 4 + (size_t)n_points * 20 + 24;
+                if (n_points == 0 || raw_size < expected) {
+                    fprintf(stderr, "[hp_drizzle_api] snr_model v0 块不完整 (count=%lld)\n",
+                            (long long)snr_blk->count);
+                } else {
+                    std::vector<double> cp_ra(n_points), cp_dec(n_points);
+                    std::vector<float> cp_snr(n_points);
+                    for (uint32_t i = 0; i < n_points; i++) {
+                        const uint8_t* pt = raw + 4 + (size_t)i * 20;
+                        std::memcpy(&cp_ra[i], pt, 8);
+                        std::memcpy(&cp_dec[i], pt + 8, 8);
+                        std::memcpy(&cp_snr[i], pt + 16, 4);
+                    }
+                    double snr_phot, median_snr, idw_power;
+                    const uint8_t* tail = raw + 4 + (size_t)n_points * 20;
+                    std::memcpy(&snr_phot, tail, 8);
+                    std::memcpy(&median_snr, tail + 8, 8);
+                    std::memcpy(&idw_power, tail + 16, 8);
+                    snrModelData.n_points = n_points;
+                    snrModelData.points = (HioSnrControlPoint*)std::malloc(
+                        (size_t)n_points * sizeof(HioSnrControlPoint));
+                    if (snrModelData.points) {
+                        for (uint32_t i = 0; i < n_points; i++) {
+                            snrModelData.points[i].ra = cp_ra[i];
+                            snrModelData.points[i].dec = cp_dec[i];
+                            snrModelData.points[i].snr_psf = cp_snr[i];
+                        }
+                        snrModelData.snr_phot = snr_phot;
+                        snrModelData.median_snr = median_snr;
+                        snrModelData.idw_power = idw_power;
+                        snrModelPtr = &snrModelData;
+                        gradient::SnrEvaluator evaluator;
+                        if (evaluator.build(n_points, cp_ra.data(), cp_dec.data(),
+                                            cp_snr.data(), snr_phot,
+                                            median_snr, idw_power)) {
+                            rebuild_snr(evaluator, nPix, n_points,
+                                        cp_ra.data(), cp_dec.data());
+                        }
+                    }
+                }
             }
         } else {
             fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: 无 snr_model 块, 使用 nullptr (snr=1.0)\n");
@@ -781,9 +899,13 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
 
         bool write_ok = img.use_f64
             ? engine.writeHisTilesT<double>(tiles_f64, stats, img.wcs, config, meta,
-                                            sourcePath, hissPath, snrModelPtr, errMsg)
+                                            sourcePath, hissPath, snrModelPtr,
+                                            snrModelF64Ptr, errMsg)
             : engine.writeHisTilesT<float>(tiles_f32, stats, img.wcs, config, meta,
-                                           sourcePath, hissPath, snrModelPtr, errMsg);
+                                           sourcePath, hissPath, snrModelPtr,
+                                           nullptr, errMsg);
+        std::free(snrModelData.points);
+        std::free(snrModelDataF64.points);
         if (!write_ok) {
             fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: 写入 .hiss 失败: %s\n", errMsg.c_str());
             setErrorMsg(result, "写入 .hiss 失败: " + errMsg);

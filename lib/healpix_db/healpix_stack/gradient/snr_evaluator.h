@@ -55,6 +55,15 @@ public:
                double median_snr,
                double idw_power);
 
+    // FP64 控制点版本 (BLOCKER-TYPE-002): snr_psf 以 double 存储并参与评估
+    bool buildF64(uint32_t n_points,
+                  const double* ra_arr,
+                  const double* dec_arr,
+                  const double* snr_psf_arr,
+                  double snr_phot,
+                  double median_snr,
+                  double idw_power);
+
     // ========================================================================
     // evaluate - 单点 SNR 评估
     //

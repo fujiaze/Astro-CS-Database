@@ -397,6 +397,13 @@ public:
                                   const HissSnrBlock* snr,
                                   OccupancyMode occ_mode);
 
+    // FP64 模式 + FP64 SNR 控制点 (BLOCKER-TYPE-002):
+    // signal 子块 float64, SNR 子块直接写 f64 控制点 (12B/点, snr_dtype=1)
+    HISS_EXPORT int add_tile_f64_snr(uint64_t parent_ipix,
+                                     const DrizzleTileAccumulator& acc,
+                                     const HissSnrBlockF64* snr,
+                                     OccupancyMode occ_mode);
+
     // 完成写入: 生成 Header, 组装 .partial, flush, 原子重命名
     // 返回 0=成功, <0=失败
     HISS_EXPORT int finalize();

@@ -68,6 +68,12 @@ struct SnrEvaluator::Impl {
     std::vector<double> ra_arr;
     std::vector<double> dec_arr;
     std::vector<float>  snr_psf_arr;
+    std::vector<double> snr_psf_f64_arr;   // BLOCKER-TYPE-002: f64 控制点
+    bool use_f64_snr = false;
+
+    double snrAt(size_t idx) const {
+        return use_f64_snr ? snr_psf_f64_arr[idx] : (double)snr_psf_arr[idx];
+    }
 
     // nanoflann KD-tree 类型定义
     // PointCloudAdaptor: 将 points3d 包装为 nanoflann 可用的数据源
@@ -142,6 +148,8 @@ bool SnrEvaluator::build(uint32_t n_points,
     impl_->ra_arr.clear();
     impl_->dec_arr.clear();
     impl_->snr_psf_arr.clear();
+    impl_->snr_psf_f64_arr.clear();
+    impl_->use_f64_snr = false;
 
     built_ = false;
     n_points_ = 0;
@@ -196,6 +204,60 @@ bool SnrEvaluator::build(uint32_t n_points,
 }
 
 // ============================================================================
+// buildF64 - FP64 控制点版本 (BLOCKER-TYPE-002)
+// ============================================================================
+bool SnrEvaluator::buildF64(uint32_t n_points,
+                             const double* ra_arr,
+                             const double* dec_arr,
+                             const double* snr_psf_arr,
+                             double snr_phot,
+                             double median_snr,
+                             double idw_power) {
+    if (impl_->tree) {
+        delete impl_->tree;
+        impl_->tree = nullptr;
+    }
+    impl_->points3d.clear();
+    impl_->ra_arr.clear();
+    impl_->dec_arr.clear();
+    impl_->snr_psf_arr.clear();
+    impl_->snr_psf_f64_arr.clear();
+    impl_->use_f64_snr = false;
+
+    built_ = false;
+    n_points_ = 0;
+    if (n_points == 0 || !ra_arr || !dec_arr || !snr_psf_arr) return false;
+
+    impl_->points3d.reserve(n_points);
+    impl_->ra_arr.reserve(n_points);
+    impl_->dec_arr.reserve(n_points);
+    impl_->snr_psf_f64_arr.reserve(n_points);
+
+    uint32_t valid = 0;
+    for (uint32_t i = 0; i < n_points; i++) {
+        if (!std::isfinite(ra_arr[i]) || !std::isfinite(dec_arr[i]) ||
+            !std::isfinite(snr_psf_arr[i])) continue;
+        impl_->points3d.push_back(radecToVec3(ra_arr[i], dec_arr[i]));
+        impl_->ra_arr.push_back(ra_arr[i]);
+        impl_->dec_arr.push_back(dec_arr[i]);
+        impl_->snr_psf_f64_arr.push_back(snr_psf_arr[i]);
+        valid++;
+    }
+    if (valid == 0) return false;
+
+    impl_->use_f64_snr = true;
+    impl_->buildTree();
+    n_points_   = valid;
+    snr_phot_   = snr_phot;
+    median_snr_ = (median_snr > 0.0) ? median_snr : 1.0;
+    idw_power_  = (idw_power > 0.0) ? idw_power : 2.0;
+    built_      = true;
+    fprintf(stderr, "[snr_evaluator] buildF64 成功: %u 控制点 (double snr)\n",
+            n_points_);
+    return true;
+}
+
+// ============================================================================
 // evaluate - 单点 SNR 评估
 // ============================================================================
 float SnrEvaluator::evaluate(double ra, double dec) const {
@@ -225,13 +287,13 @@ float SnrEvaluator::evaluate(double ra, double dec) const {
 
         // γ→0: 查询点与控制点重合, 直接返回该控制点的 snr_psf
         if (gamma < 1e-10) {
-            double snr_psf = impl_->snr_psf_arr[idx];
+            double snr_psf = impl_->snrAt(idx);
             return static_cast<float>(snr_phot_ * snr_psf / median_snr_);
         }
 
         double w = 1.0 / std::pow(gamma, idw_power_);
         w_sum  += w;
-        ws_sum += w * impl_->snr_psf_arr[idx];
+        ws_sum += w * impl_->snrAt(idx);
     }
 
     if (w_sum <= 0.0) return 0.0f;
@@ -285,14 +347,14 @@ void SnrEvaluator::evaluateBatch(const double* ra_arr,
                                                    impl_->dec_arr[idx]);
 
             if (gamma < 1e-10) {
-                ws_sum = impl_->snr_psf_arr[idx];
+                ws_sum = impl_->snrAt(idx);
                 w_sum = 1.0;
                 break;
             }
 
             double w = 1.0 / std::pow(gamma, idw_power_);
             w_sum  += w;
-            ws_sum += w * impl_->snr_psf_arr[idx];
+            ws_sum += w * impl_->snrAt(idx);
         }
 
         if (w_sum <= 0.0) {
