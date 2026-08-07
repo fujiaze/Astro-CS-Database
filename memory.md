@@ -1942,3 +1942,18 @@ DLL API 11 / 契约 28 全部零失败。
 Phase1 科学核心通过, 数据流/缓存/精度契约修复完成并验证; 由于
 Sanitizer 门在本机 MinGW 不可用且最终完整帧未授权, 状态保持
 "重新验证中", 未写"彻底冻结"。
+
+## 2026-08-07 根目录清理
+
+根目录历史工程包/审核包过多, 已归档到 `archive_deliverables/`
+(control_packs / review_packs / delivery_packs / acr 四类 + README),
+内容完整保留未删除, 可随时移回根目录。
+
+根目录仅保留每个系列最新:
+- Phase1 控制包: `AstroCS_Phase1_Complete_Freeze_Validation.zip`
+- Phase1 审核包: `AstroCS_Review_Phase1_COMPLETE_FREEZE_20260807.zip` (+sha256)
+- ACR 控制包: `AstroCS_ACR_Control_Package(20260807-090241).zip`
+- ACR 审核包: `AstroCS_Review_ACRBenchmarkDrivenRouting_20260807.zip` (+sha256)
+
+注: AGENTS.md 历史禁止删除的 ACR 项 (ACR_Control_Package(2) 等、
+AstroCS_ACR_Fix_Review/、_new_control_pack/) 以归档形式完整保留。
