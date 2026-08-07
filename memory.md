@@ -1922,3 +1922,23 @@ DLL API 11 / 契约 28 全部零失败。
   Linux 容器环境执行 (包内 evidence 为审核容器产物);
 - gh.exe 被清理, 改用 Windows 凭据读取的 git 凭证助手推送 (main 已同步;
   wiki 待网络恢复)。
+
+### 后续修复 (3502e49 之后, chain/fuzz 迭代)
+- dataflow_fuzz.cpp (Gate 4): cache 10000 / HISS 10000 / JSON 5000 /
+  snr_model 5000 固定种子变异, 本机 8694/0 通过; 发现并修复:
+  HISS reader 解压大小上限 (64MiB) + NSIDE<=2^22 校验 + DELTA_VARINT
+  输出上限 (fuzz 超时/OOM 风险);
+- orchestrator AIO ABI 握手 (aio_abi_info, 结构不匹配硬失败);
+- T4 裁剪链端到端 (1024², fp32/fp64 → hiss_verify) exit 0:
+  star_det 权威 FLOAT64[N,6] + compat F32[N,4] (转换误差 5.7e-8 日志),
+  snr_model v1 (fp64 dtype=1, HISS snr_dtype=1 12B/点 真 f64),
+  24/24 Tile, SNR 989 点; 修复 FITS master 回退 + payload_size 28
+  (原 26 少 2 字节堆溢出) + v1 points/tail 偏移;
+- 真实数据辅助矩阵: T2/T3 (NGC247/NGC55 Red 600s) fp32 → NSIDE 65536
+  exit 0; T4_CROP_FP32/FP64 → hiss_verify exit 0; T1 无数据 (占位);
+  T4 完整 FP32 未运行 (pre_full_run_gate 未全绿: ASan 工具链不可用)。
+
+### 当前状态
+Phase1 科学核心通过, 数据流/缓存/精度契约修复完成并验证; 由于
+Sanitizer 门在本机 MinGW 不可用且最终完整帧未授权, 状态保持
+"重新验证中", 未写"彻底冻结"。
