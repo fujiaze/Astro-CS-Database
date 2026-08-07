@@ -170,10 +170,10 @@ std::string serialize_route_profile_v2(const RouteProfileV2& profile) {
             sj["mixed"] = path_json(sc.mixed);
             o["scenarios"].push_back(std::move(sj));
         }
-        o["chunk_service_curves"]["cpu"] = nlohmann::json::array();
-        o["chunk_service_curves"]["gpu"] = nlohmann::json::array();
+        o["cpu_chunk_service"] = nlohmann::json::array();
+        o["gpu_chunk_service"] = nlohmann::json::array();
         for (const auto& c : op.cpu_chunk_service) {
-            o["chunk_service_curves"]["cpu"].push_back(
+            o["cpu_chunk_service"].push_back(
                 {{"chunk_items", c.chunk_items},
                  {"frame_count", c.frame_count},
                  {"median_service_ms", c.median_service_ms},
@@ -181,7 +181,7 @@ std::string serialize_route_profile_v2(const RouteProfileV2& profile) {
                  {"sample_count", c.sample_count}});
         }
         for (const auto& c : op.gpu_chunk_service) {
-            o["chunk_service_curves"]["gpu"].push_back(
+            o["gpu_chunk_service"].push_back(
                 {{"chunk_items", c.chunk_items},
                  {"frame_count", c.frame_count},
                  {"median_service_ms", c.median_service_ms},
@@ -280,7 +280,35 @@ bool read_route_profile_v2_from_file(const std::string& path,
                 op.scenarios.push_back(std::move(sp));
             }
         }
-        if (o.contains("chunk_service_curves")) {
+        auto read_chunk_service = [&](const nlohmann::json& arr,
+                                      bool gpu) {
+            if (arr.is_array()) {
+                for (const auto& c : arr) {
+                    if (gpu) {
+                        op.gpu_chunk_service.push_back(
+                            {c.value("chunk_items", 0u),
+                             c.value("frame_count", 0u),
+                             c.value("median_service_ms", 0.0),
+                             c.value("p90_service_ms", 0.0),
+                             c.value("sample_count", 0u)});
+                    } else {
+                        op.cpu_chunk_service.push_back(
+                            {c.value("chunk_items", 0u),
+                             c.value("frame_count", 0u),
+                             c.value("median_service_ms", 0.0),
+                             c.value("p90_service_ms", 0.0),
+                             c.value("sample_count", 0u)});
+                    }
+                }
+            }
+        };
+        if (o.contains("cpu_chunk_service")) {
+            read_chunk_service(o["cpu_chunk_service"], false);
+        }
+        if (o.contains("gpu_chunk_service")) {
+            read_chunk_service(o["gpu_chunk_service"], true);
+        }
+        if (o.contains("chunk_service_curves")) {  // 兼容旧布局
             const auto& cc = o["chunk_service_curves"];
             if (cc.contains("cpu") && cc["cpu"].is_array()) {
                 for (const auto& c : cc["cpu"]) {
