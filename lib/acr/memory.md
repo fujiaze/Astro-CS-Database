@@ -433,3 +433,36 @@ fprintf（`fprintf(stderr, "[%zu,%zu)\n", backend, ...)` 与
 - UBSan/TSan 本机不可用（SanitizerActual 7 项准确跳过）；
 - staging ledger 为容量账本；加权积分 benchmark 的 h2d/d2h 计数来自
   Dispatcher/桥接真实传输统计。
+
+### 2026-08-07 加权积分 Benchmark 公平化与真实统计（控制包 cd5b19e1...facc）
+
+**审计结论**：架构方向冻结（ARCHITECTURE_DIRECTION_FROZEN=true），但
+READY_FOR_BUSINESS_ADAPTER=false。本轮修正 Benchmark 口径、真实统计、
+GPU 候选块标定、stream 决策与 Auto 路由。
+
+**已完成**：
+- Benchmark 场景分离：openmp_single / openmp_reuse4_total / acr_cpu /
+  gpu_host_cold / gpu_resident_steady / forced_mixed（仅正确性，
+  comparable=false、speedup=null）/ auto_cold_single_shot /
+  auto_resident_steady / auto_resident_reuse4（Serial 参考计时外预计算，
+  与 4 次等价 OpenMP 比较）；speedup 仅等价工作量计算，否则 null。
+- 真实统计：CPU/GPU items、blocks、active ns 来自 per_device_stats；
+  chunk 序列来自 resource_control.dynamic_chunk_sizes（invocation 路径补齐）；
+  H2D/D2H 次数/字节来自 transfer_stats（真实 prefetch/物化）；
+  Dispatcher 修复 invocation 路径动态块记录与 Auto CPU 预判（CPU 无收益
+  不启动 16 个 worker）。
+- GPU 候选块真实执行：cand 控制 token 大小（1M/4M/16M），域 16M，
+  记录块数/ns-item/D2H 次数，推荐块含 D2H 摊薄（16M 整帧档）。
+- Profile 标定 4 点（1M..16M）改善 leave-one-out 误差；误差字段真实非 0；
+  qualified 与 eligible 语义正确。
+- Stream 冻结：同步语义，observed_max_in_flight=1，configured_streams
+  单独报告，不宣称多通道并发收益。
+- ctest -j2 稳定：fault/sanitizer/persistence 加 RUN_SERIAL。
+- sha256_utf8.py 可移植：相对 POSIX 路径 + 验证根可显式指定。
+
+**Auto 性能现状（如实）**：Auto 已自然退化为 GPU-only（CPU 预判）、
+推荐块 16M 整帧；但 Dispatcher 每 dispatch 固定开销（worker 线程创建、
+采样、调度约 0.3-2ms）使 Auto 距 gpu_resident 直连基线 >10%，
+standard 性能资格 PERFORMANCE_NOT_QUALIFIED（2048² Auto 6.3ms vs
+OpenMP 15.1ms，相对 OpenMP ≥2×，但 10% 门禁按直连基线判定未过）。
+READY_FOR_BUSINESS_ADAPTER=false。
