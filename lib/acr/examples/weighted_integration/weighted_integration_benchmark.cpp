@@ -23,6 +23,7 @@
 // Stream（07 号计划 D）：本轮冻结同步语义，observed_max_in_flight=1；
 // configured_streams 单独报告，不宣称多通道并发收益。
 #include "weighted_integration_kernels.hpp"
+#include "route_profile_calibration.hpp"
 
 #include "astro/compute/kernel_registry.hpp"
 #include "astro/compute/task_traits.hpp"
@@ -32,6 +33,8 @@
 #include "../core/task_descriptor.hpp"
 #include "../cost/cost_estimator.hpp"
 #include "../backends/cuda/bridge/cuda_bridge_api.hpp"
+#include "../../routing/route_profile_v2.hpp"
+#include "../../routing/benchmark_route_estimator.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -576,366 +579,30 @@ int main(int argc, char** argv) {
     // =====================================================================
     // OperationProfile 标定（07 号计划 C：候选块真实执行 + 真实误差）
     // =====================================================================
-    OperationProfile profile;
-    bool profile_ready = false;
-    nlohmann::json chunk_candidate_report = nlohmann::json::array();
-    if (!args.correctness_only && env.gpu_available) {
-        // 4 个标定点（1M..16M）：去掉 256K（launch 固定开销主导，线性拟合
-        // 外推失真导致 leave-one-out 误差超 30% 门限）。1M 起保证拟合
-        // 主要由稳定计算区贡献。
-        const std::vector<std::size_t> sizes{
-            1u << 20, 1u << 22, 1u << 23, 1u << 24};  // 1M..16M
-        constexpr int kWarm = 2;
-        constexpr int kRep = 7;
-        std::vector<double> cpu_ms, gpu_res_ms, gpu_host_ms;
-        std::vector<std::size_t> cpu_chunk_cands{1u << 16, 1u << 18, 1u << 20};
-        // 候选块（1M/4M/16M）：16M 候选覆盖整帧档（大任务单块减少
-        // kernel launch/D2H 次数）。候选域 16M 像素 × 8 帧（512MB）；
-        // 16M 候选用域=1×cand（低于 4×，受 8GB 显存约束，记录说明）。
-        std::vector<std::size_t> gpu_chunk_cands{
-            1u << 20, 1u << 22, 1u << 24};
-        std::vector<double> cpu_chunk_ms, gpu_chunk_ms;
-        std::vector<std::size_t> gpu_chunk_blocks;
-
-        auto cpu_regs = std::make_shared<ExecutorRegistry>(
-            ExecutorRegistry::create_cpu_only());
-        Dispatcher cpu_d;
-        DispatcherConfig cpu_cfg;
-        cpu_cfg.devices = {{"cpu", 0, 0, 50.0, true}};
-        cpu_cfg.executors = cpu_regs;
-        cpu_cfg.route_mode = RouteMode::CpuOnly;
-        cpu_d.configure(cpu_cfg);
-
-        for (std::size_t n : sizes) {
-            const std::size_t pixels = n;
-            std::vector<float> frames(kProfileFrames * pixels);
-            std::vector<float> weights(kProfileFrames);
-            generate_synthetic(0xA57C5AC20260802ULL, kProfileFrames, pixels,
-                               frames, weights);
-            std::vector<float> out(pixels);
-            WeightedIntegrationView view{
-                frames.data(), weights.data(), kProfileFrames, pixels};
-            Timed t = measure(
-                [&] {
-                    run_weighted_via_dispatcher(cpu_d, view, out.data(),
-                                                frames, weights,
-                                                1u << 16, 1u << 18);
-                },
-                kWarm, kRep);
-            cpu_ms.push_back(t.total_median_ms);
-            std::uint64_t el = 0;
-            const char* err = nullptr;
-            bapi->upload_persistent_slot(gpu_handle, 0, 0,
-                                         kProfileFrames * pixels,
-                                         frames.data(), &el, &err);
-            bapi->upload_persistent_slot(gpu_handle, 1, 0,
-                                         kProfileFrames, weights.data(),
-                                         &el, &err);
-            Timed tr = measure(
-                [&] {
-                    bapi->submit_weighted_integration_resident(
-                        gpu_handle, 0, pixels, out.data(),
-                        kProfileFrames, pixels, &el, &err);
-                },
-                kWarm, kRep);
-            gpu_res_ms.push_back(tr.total_median_ms);
-            Timed th = measure(
-                [&] {
-                    bapi->submit_weighted_integration(
-                        gpu_handle, 0, pixels, out.data(),
-                        frames.data(), weights.data(),
-                        kProfileFrames, pixels, &el, &err);
-                },
-                kWarm, kRep);
-            gpu_host_ms.push_back(th.total_median_ms);
-        }
-
-        // ---- CPU 候选块（Dispatcher CpuOnly，cand 控制 rec_cpu）----
-        {
-            const std::size_t pixels = 1u << 20;  // 1M 像素标定域
-            std::vector<float> frames(kProfileFrames * pixels);
-            std::vector<float> weights(kProfileFrames);
-            generate_synthetic(0xA57C5AC20260802ULL, kProfileFrames, pixels,
-                               frames, weights);
-            std::vector<float> out(pixels);
-            WeightedIntegrationView view{
-                frames.data(), weights.data(), kProfileFrames, pixels};
-            for (std::size_t cand : cpu_chunk_cands) {
-                Dispatcher cd;
-                DispatcherConfig cc;
-                cc.devices = {{"cpu", 0, 0, 50.0, true}};
-                cc.executors = cpu_regs;
-                cc.route_mode = RouteMode::CpuOnly;
-                cd.configure(cc);
-                std::vector<double> samples;
-                for (int r = 0; r < 5; ++r) {
-                    const auto t0 = std::chrono::steady_clock::now();
-                    auto rr = run_weighted_via_dispatcher(
-                        cd, view, out.data(), frames, weights, cand, cand);
-                    const auto t1 = std::chrono::steady_clock::now();
-                    samples.push_back(
-                        std::chrono::duration<double, std::milli>(t1 - t0)
-                            .count());
-                }
-                std::sort(samples.begin(), samples.end());
-                cpu_chunk_ms.push_back(samples[samples.size() / 2]);
-            }
-        }
-
-        // ---- GPU 候选块（Dispatcher GpuOnly，cand 控制 rec_gpu；
-        //      工作域 max(4*cand, 4M)，cand 真实决定 token 大小）----
-        {
-            const std::size_t domain = 1u << 24;  // 16M 像素
-            std::vector<float> frames(kCandidateFrames * domain);
-            std::vector<float> weights(kCandidateFrames);
-            generate_synthetic(0xA57C5AC20260802ULL, kCandidateFrames, domain,
-                               frames, weights);
-            std::vector<float> out(domain);
-            WeightedIntegrationView view{
-                frames.data(), weights.data(), kCandidateFrames, domain};
-            for (std::size_t cand : gpu_chunk_cands) {
-                auto regs = std::make_shared<ExecutorRegistry>(
-                    ExecutorRegistry::create_auto());
-                Dispatcher gd;
-                DispatcherConfig gc;
-                gc.devices = {{"cpu", 0, 0, 50.0, true},
-                              {"cuda:0", 1, 0, 500.0, true}};
-                gc.executors = regs;
-                gc.route_mode = RouteMode::GpuOnly;
-                gd.configure(gc);
-                std::vector<double> samples;
-                std::uint64_t blocks = 0, d2h = 0, h2d = 0;
-                for (int r = 0; r < 5; ++r) {
-                    const auto t0 = std::chrono::steady_clock::now();
-                    auto rr = run_weighted_via_dispatcher(
-                        gd, view, out.data(), frames, weights, cand, cand);
-                    const auto t1 = std::chrono::steady_clock::now();
-                    samples.push_back(
-                        std::chrono::duration<double, std::milli>(t1 - t0)
-                            .count());
-                    blocks = rr.resource_control.dynamic_chunk_sizes.size();
-                    d2h = rr.transfer_stats.d2h_count;
-                    h2d = rr.transfer_stats.h2d_count;
-                }
-                std::sort(samples.begin(), samples.end());
-                const double med = samples[samples.size() / 2];
-                gpu_chunk_ms.push_back(med);
-                gpu_chunk_blocks.push_back(blocks);
-                chunk_candidate_report.push_back({
-                    {"domain_items", domain},
-                    {"candidate_chunk", cand},
-                    {"actual_chunk_count", blocks},
-                    {"total_median_ms", med},
-                    {"ns_per_item",
-                     med * 1e6 / static_cast<double>(domain)},
-                    {"d2h_count", d2h},
-                    {"h2d_count", h2d},
-                    {"observed_max_in_flight", 1},
-                });
-            }
-        }
-
-        // ---- 组装 OperationProfile（含真实 leave-one-out 误差）----
-        profile.schema_version = "acr-operation-profile-1";
-        profile.profile_state = "qualified";
-        profile.fingerprint_cpu = env.cpu;
-        profile.fingerprint_compiler =
+    // =====================================================================
+    // Route Profile v2 标定（Benchmark 驱动路由，控制包 d026ea30...c178537）
+    // =====================================================================
+    routing::RouteProfileV2 route_profile;
+    bool route_profile_ready = false;
+    if (!args.correctness_only && env.gpu_available && gpu_handle && bapi) {
+        CalibrationEnv cen;
+        cen.cpu_fingerprint = env.cpu;
+        cen.gpu_name = env.gpu;
+        cen.compiler =
 #if defined(_MSC_VER)
             "msvc-" + std::to_string(_MSC_VER);
-#elif defined(__clang__)
-            "clang";
 #elif defined(__GNUC__)
             "gcc-" + std::to_string(__GNUC__) + "." +
             std::to_string(__GNUC_MINOR__);
 #else
             "unknown";
 #endif
-        profile.fingerprint_runtime_kernel_hash = kernel_hash();
-        profile.fingerprint_gpus.push_back(env.gpu);
-
-        OperationProfile::Operation op;
-        op.operation_id = kOp;
-        op.precision = "fp32";
-        op.accumulator = "fp64";
-        op.sample_range = {sizes.front(), sizes.back(), kRep};
-
-        // CPU 曲线 + leave-one-out 误差
-        const double cpu_slope = fit_slope(sizes, cpu_ms);
-        const double cpu_fixed_ms = fit_intercept(sizes, cpu_ms, cpu_slope);
-        op.cpu.fixed_us = std::max(0.0, cpu_fixed_ms * 1000.0);
-        op.cpu.ns_per_item = cpu_slope * 1e6;
-        {
-            std::vector<double> errs;
-            for (std::size_t i = 0; i < sizes.size(); ++i) {
-                std::vector<std::size_t> fs;
-                std::vector<double> fm;
-                for (std::size_t j = 0; j < sizes.size(); ++j) {
-                    if (j == i) continue;
-                    fs.push_back(sizes[j]);
-                    fm.push_back(cpu_ms[j]);
-                }
-                const double sl = fit_slope(fs, fm);
-                const double ic = fit_intercept(fs, fm, sl);
-                const double pred = ic + sl * static_cast<double>(sizes[i]);
-                if (pred > 0 && cpu_ms[i] > 0) {
-                    errs.push_back(std::fabs(pred - cpu_ms[i]) / cpu_ms[i]);
-                }
-            }
-            if (!errs.empty()) {
-                std::sort(errs.begin(), errs.end());
-                op.cpu.median_error_ratio = errs[errs.size() / 2];
-                op.cpu.p95_error_ratio =
-                    errs[static_cast<std::size_t>(
-                        0.95 * static_cast<double>(errs.size() - 1))];
-            }
-        }
-        {
-            std::size_t best = 0;
-            const double domain_cpu = 1u << 20;
-            for (std::size_t i = 1; i < cpu_chunk_cands.size(); ++i) {
-                // ns/item（域相同直接比较）
-                const double a =
-                    cpu_chunk_ms[best] * 1e6 / domain_cpu;
-                const double b =
-                    cpu_chunk_ms[i] * 1e6 / domain_cpu;
-                if (b < a * 0.95) best = i;
-                else if (b <= a * 1.05 &&
-                         cpu_chunk_cands[i] > cpu_chunk_cands[best]) {
-                    best = i;
-                }
-            }
-            op.cpu.recommended_chunk_items = cpu_chunk_cands[best];
-            op.cpu.minimum_chunk_items = cpu_chunk_cands.front() / 4;
-        }
-
-        // GPU resident 曲线 + leave-one-out 误差
-        const double res_slope = fit_slope(sizes, gpu_res_ms);
-        const double res_fixed_ms = fit_intercept(sizes, gpu_res_ms, res_slope);
-        op.gpu.device_id = "cuda:0";
-        op.gpu.fixed_us = std::max(0.0, res_fixed_ms * 1000.0);
-        op.gpu.ns_per_item = res_slope * 1e6;
-        op.gpu.launch_us = 0.0;
-        {
-            std::vector<double> errs;
-            for (std::size_t i = 0; i < sizes.size(); ++i) {
-                std::vector<std::size_t> fs;
-                std::vector<double> fm;
-                for (std::size_t j = 0; j < sizes.size(); ++j) {
-                    if (j == i) continue;
-                    fs.push_back(sizes[j]);
-                    fm.push_back(gpu_res_ms[j]);
-                }
-                const double sl = fit_slope(fs, fm);
-                const double ic = fit_intercept(fs, fm, sl);
-                const double pred = ic + sl * static_cast<double>(sizes[i]);
-                if (pred > 0 && gpu_res_ms[i] > 0) {
-                    errs.push_back(std::fabs(pred - gpu_res_ms[i]) /
-                                   gpu_res_ms[i]);
-                }
-            }
-            if (!errs.empty()) {
-                std::sort(errs.begin(), errs.end());
-                op.gpu.median_error_ratio = errs[errs.size() / 2];
-                op.gpu.p95_error_ratio =
-                    errs[static_cast<std::size_t>(
-                        0.95 * static_cast<double>(errs.size() - 1))];
-            }
-        }
-        {
-            std::size_t best = 0;
-            constexpr double kD2hFixedNs = 100000.0;  // 0.1 ms/次
-            constexpr double kCandidateDomain = 1u << 24;  // 16M 像素
-            for (std::size_t i = 1; i < gpu_chunk_cands.size(); ++i) {
-                // ns/item + D2H 固定开销摊薄（块越大 D2H 次数越少）
-                const double a =
-                    gpu_chunk_ms[best] * 1e6 /
-                        kCandidateDomain +
-                    kD2hFixedNs / static_cast<double>(gpu_chunk_cands[best]);
-                const double b =
-                    gpu_chunk_ms[i] * 1e6 /
-                        kCandidateDomain +
-                    kD2hFixedNs / static_cast<double>(gpu_chunk_cands[i]);
-                if (b < a * 0.97) best = i;
-                else if (b <= a * 1.03 &&
-                         gpu_chunk_cands[i] > gpu_chunk_cands[best]) {
-                    best = i;
-                }
-            }
-            op.gpu.recommended_chunk_items = gpu_chunk_cands[best];
-            op.gpu.minimum_chunk_items = gpu_chunk_cands.front() / 4;
-        }
-
-        // 传输模型（host 与 resident 曲线差）
-        const double bytes_per_item =
-            static_cast<double>(kProfileFrames) * 4.0 + 4.0;
-        const double host_slope = fit_slope(sizes, gpu_host_ms);
-        const double transfer_slope_ns =
-            std::max(0.0, (host_slope - res_slope) * 1e6);
-        op.transfer.h2d_gbps =
-            (transfer_slope_ns > 0.0) ? bytes_per_item / transfer_slope_ns
-                                      : 1.0;
-        op.transfer.d2h_gbps = op.transfer.h2d_gbps;
-        op.transfer.h2d_fixed_us = 100.0;
-        op.transfer.d2h_fixed_us = 100.0;
-        op.memory.host_bytes_per_item = bytes_per_item;
-        op.memory.device_bytes_per_item = bytes_per_item;
-        op.memory.fixed_host_bytes = 1u << 20;
-        op.memory.fixed_device_bytes = 1u << 20;
-
-        // 收益交叉点（ns 单位）
-        const double cpu_fixed_ns = cpu_fixed_ms * 1e6;
-        const double res_fixed_ns = res_fixed_ms * 1e6;
-        if (res_slope < cpu_slope) {
-            double nstar =
-                (cpu_fixed_ns - res_fixed_ns) /
-                ((res_slope - cpu_slope) * 1e6);
-            if (nstar <= 0.0) nstar = 1.0;
-            op.gpu.resident_path_eligible = true;
-            op.gpu.min_profitable_items_resident =
-                static_cast<std::size_t>(nstar) + 1;
-        } else {
-            op.gpu.resident_path_eligible = false;
-            op.gpu.min_profitable_items_resident = std::nullopt;
-        }
-        const double host_fixed_ns =
-            res_fixed_ns + op.transfer.h2d_fixed_us * 1000.0 +
-            op.transfer.d2h_fixed_us * 1000.0;
-        if (host_slope < cpu_slope) {
-            double nstar =
-                (cpu_fixed_ns - host_fixed_ns) /
-                ((host_slope - cpu_slope) * 1e6);
-            if (nstar <= 0.0) nstar = 1.0;
-            op.gpu.host_path_eligible = true;
-            op.gpu.min_profitable_items_host =
-                static_cast<std::size_t>(nstar) + 1;
-        } else {
-            op.gpu.host_path_eligible = false;
-            op.gpu.min_profitable_items_host = std::nullopt;
-        }
-        // 资格：CPU/GPU leave-one-out 误差中位 ≤30%、P95 ≤60%
-        const bool cpu_ok =
-            op.cpu.median_error_ratio <= 0.30 &&
-            op.cpu.p95_error_ratio <= 0.60;
-        const bool gpu_ok =
-            op.gpu.median_error_ratio <= 0.30 &&
-            op.gpu.p95_error_ratio <= 0.60;
-        op.qualified = cpu_ok && gpu_ok;
-        op.qualification_reason =
-            op.qualified ? "measured-qualified" : "error-limit";
-        profile.operations.push_back(std::move(op));
-        profile.profile_state =
-            op.qualified ? "qualified" : "partial";
-        std::string verr;
-        if (qualification::focused::validate_operation_profile(profile,
-                                                               verr)) {
-            profile_ready = true;
-            if (!args.profile_output.empty()) {
-                qualification::focused::write_operation_profile_to_file(
-                    args.profile_output, profile);
-            }
-        } else {
-            std::fprintf(stderr, "[weighted] profile validation failed: %s\n",
-                         verr.c_str());
+        cen.kernel_hash = kernel_hash();
+        cen.openmp_threads = env.openmp_threads;
+        cen.gpu_available = env.gpu_available;
+        if (!args.profile_output.empty()) {
+            route_profile_ready = calibrate_route_profile_v2(
+                cen, gpu_handle, bapi, args.profile_output, route_profile);
         }
     }
 
@@ -956,14 +623,6 @@ int main(int argc, char** argv) {
     report["environment"]["gpu_available"] = env.gpu_available;
     report["environment"]["configured_streams"] = configured_streams;
     report["environment"]["observed_max_in_flight"] = 1;
-    // 候选块原始测量写入独立文件（schema 1.1 顶层不允许额外字段）
-    if (!chunk_candidate_report.empty() && !args.profile_output.empty()) {
-        std::ofstream cf(args.profile_output + ".chunk_candidates.json");
-        if (cf) {
-            cf << chunk_candidate_report.dump(1) << "\n";
-        }
-    }
-
     bool correctness_pass = true;
     std::vector<Case> cases = matrix_for(args.preset);
     std::vector<nlohmann::json> case_jsons;
@@ -1234,147 +893,164 @@ int main(int argc, char** argv) {
                     mx_ref, mx_out, mx_pixels, extra);
         }
 
-        // ---- auto_cold_single_shot：全新 Dispatcher 首次 dispatch（含 prefetch）----
-        {
+        // ---- Auto（Benchmark 驱动路由：estimator 决策 OpenMP/GPU/Mixed）----
+        // make_auto_fn：按 RouteRequest + Profile v2 预测选择候选路径并返回
+        // 每调用执行体（OpenMP 走现有路径；GPU Direct 走 bridge fast path，
+        // 不创建 CPU worker；Mixed 走共享池 Dispatcher）。
+        auto make_auto_fn = [&](const WeightedIntegrationView& vw,
+                                float* obuf,
+                                const std::vector<float>& fr,
+                                const std::vector<float>& wt,
+                                routing::InputResidency res,
+                                routing::OutputMaterialization opol,
+                                std::uint32_t reuse_hint,
+                                std::string& route_reason)
+            -> std::function<void()> {
+            routing::RouteRequest req;
+            req.operation_id = kOp;
+            req.output_items = vw.pixel_count;
+            req.frame_count = vw.frame_count;
+            req.input_bytes = fr.size() * sizeof(float) + wt.size() * sizeof(float);
+            req.output_bytes = vw.pixel_count * sizeof(float);
+            req.input_residency = res;
+            req.output_policy = opol;
+            req.reuse_count_hint = reuse_hint;
+            routing::BenchmarkRouteEstimator est;
+            est.set_profile(route_profile_ready ? &route_profile : nullptr);
+            const auto dec = est.decide(req);
+            const char* rn = dec.chosen == routing::RouteKind::OpenMP ? "openmp"
+                : dec.chosen == routing::RouteKind::GpuDirect ? "gpu_direct"
+                                                             : "mixed";
+            route_reason = std::string(rn) + ":" + dec.reason;
+            if (dec.chosen == routing::RouteKind::OpenMP) {
+                return [&] {
+                    weighted_integration_openmp(vw, obuf, env.openmp_threads);
+                };
+            } else if (dec.chosen == routing::RouteKind::GpuDirect) {
+                return [&] {
+                    std::uint64_t el = 0;
+                    const char* err = nullptr;
+                    if (res == routing::InputResidency::HostOnly) {
+                        bapi->upload_persistent_slot(gpu_handle, 0, 0,
+                                                     vw.frame_count * vw.pixel_count,
+                                                     fr.data(), &el, &err);
+                        bapi->upload_persistent_slot(gpu_handle, 1, 0,
+                                                     vw.frame_count, wt.data(),
+                                                     &el, &err);
+                    }
+                    if (bapi->submit_weighted_integration_resident(
+                            gpu_handle, 0, vw.pixel_count, obuf,
+                            vw.frame_count, vw.pixel_count, &el, &err) != 0) {
+                        throw std::runtime_error(err ? err : "auto gpu failed");
+                    }
+                };
+            }
+            // Mixed：共享池 Dispatcher（捕获移动语义）
             auto regs = std::make_shared<ExecutorRegistry>(
                 ExecutorRegistry::create_auto());
-            Dispatcher d;
+            // std::function 需可拷贝 callable：shared_ptr 持有 Dispatcher
+            // （默认构造 + configure；Dispatcher 移动构造被 unique_ptr 抑制）
+            auto spd = std::make_shared<Dispatcher>();
             DispatcherConfig cfg;
             cfg.devices = {{"cpu", 0, 0, 50.0, true},
                            {"cuda:0", 1, 0, 500.0, true}};
             cfg.executors = regs;
             cfg.route_mode = RouteMode::AutoMixed;
-            cfg.operation_profile = profile_ready ? &profile : nullptr;
-            d.configure(cfg);
+            cfg.force_all_supported_executors = true;
+            spd->configure(cfg);
+            return [&, spd]() mutable {
+                std::fill(obuf, obuf + vw.pixel_count, 0.0f);
+                auto r = run_weighted_via_dispatcher(
+                    *spd, vw, obuf, fr, wt, 1u << 16, 1u << 16);
+                if (!r.run_result.all_done) {
+                    throw std::runtime_error("auto mixed not all_done: " +
+                                             r.run_result.error_message);
+                }
+            };
+        };
+
+        // ---- auto_cold_single_shot：estimator 决策，单次（cold 含 prefetch）----
+        {
+            std::string route_reason;
             WeightedIntegrationView v0{
                 frames.data(), w0.data(), c.frames, pixels};
-            CostAwareResult first;
+            auto fn = make_auto_fn(v0, out.data(), frames, w0,
+                                   routing::InputResidency::HostOnly,
+                                   routing::OutputMaterialization::HostRequired,
+                                   1, route_reason);
             const auto vr0 = vram_used_bytes(bapi, gpu_handle);
-            Timed t = measure(
-                [&] {
-                    std::fill(out.begin(), out.end(), 0.0f);
-                    first = run_weighted_via_dispatcher(
-                        d, v0, out.data(), frames, w0, 1u << 16, 1u << 18);
-                    if (!first.run_result.all_done) {
-                        throw std::runtime_error(
-                            "auto_cold not all_done: " +
-                            first.run_result.error_message);
-                    }
-                },
-                args.warmup, args.repeats);
+            Timed t = measure(fn, args.warmup, args.repeats);
             const auto vr1 = vram_used_bytes(bapi, gpu_handle);
             nlohmann::json extra;
-            fill_real_stats(extra, first);
-            extra["peak_vram_bytes"] =
-                vr1 > vr0 ? vr1 - vr0 : 0;
-            extra["route_reason"] =
-                profile_ready ? "auto cold profile-driven"
-                              : "auto cold cpu-fallback";
+            extra["route_reason"] = route_reason;
+            extra["peak_vram_bytes"] = vr1 > vr0 ? vr1 - vr0 : 0;
+            extra["observed_max_in_flight"] = 1;
             rep.add("auto_cold_single_shot", "PASS", t, 1, true,
                     openmp_single_median, ref, out, pixels, extra);
         }
 
-        // ---- auto_resident_steady：warm 后计时（prefetch 计时外）----
+        // ---- auto_resident_steady：warm 建立驻留后计时 ----
         {
-            auto regs = std::make_shared<ExecutorRegistry>(
-                ExecutorRegistry::create_auto());
-            Dispatcher d;
-            DispatcherConfig cfg;
-            cfg.devices = {{"cpu", 0, 0, 50.0, true},
-                           {"cuda:0", 1, 0, 500.0, true}};
-            cfg.executors = regs;
-            cfg.route_mode = RouteMode::AutoMixed;
-            cfg.operation_profile = profile_ready ? &profile : nullptr;
-            d.configure(cfg);
+            std::string route_reason;
             WeightedIntegrationView v0{
                 frames.data(), w0.data(), c.frames, pixels};
-            // warm（prefetch + 驻留建立，不计时）
-            run_weighted_via_dispatcher(d, v0, out.data(), frames, w0,
-                                        1u << 16, 1u << 18);
-            CostAwareResult first;
+            // warm：建立 frames 驻留（GPU 路径）
+            std::uint64_t el = 0;
+            const char* err = nullptr;
+            bapi->upload_persistent_slot(gpu_handle, 0, 0,
+                                         c.frames * pixels,
+                                         frames.data(), &el, &err);
+            bapi->upload_persistent_slot(gpu_handle, 1, 0,
+                                         c.frames, w0.data(), &el, &err);
+            auto fn = make_auto_fn(v0, out.data(), frames, w0,
+                                   routing::InputResidency::DeviceResident,
+                                   routing::OutputMaterialization::HostRequired,
+                                   1, route_reason);
             const auto vr0 = vram_used_bytes(bapi, gpu_handle);
-            Timed t = measure(
-                [&] {
-                    std::fill(out.begin(), out.end(), 0.0f);
-                    first = run_weighted_via_dispatcher(
-                        d, v0, out.data(), frames, w0, 1u << 16, 1u << 18);
-                    if (!first.run_result.all_done) {
-                        throw std::runtime_error(
-                            "auto_resident not all_done: " +
-                            first.run_result.error_message);
-                    }
-                },
-                args.warmup, args.repeats);
+            Timed t = measure(fn, args.warmup, args.repeats);
             const auto vr1 = vram_used_bytes(bapi, gpu_handle);
             nlohmann::json extra;
-            fill_real_stats(extra, first);
-            extra["peak_vram_bytes"] =
-                vr1 > vr0 ? vr1 - vr0 : 0;
-            extra["route_reason"] =
-                profile_ready ? "auto resident profile-driven"
-                              : "auto resident cpu-fallback";
+            extra["route_reason"] = route_reason;
+            extra["peak_vram_bytes"] = vr1 > vr0 ? vr1 - vr0 : 0;
+            extra["observed_max_in_flight"] = 1;
             rep.add("auto_resident_steady", "PASS", t, 1, true,
                     openmp_single_median, ref, out, pixels, extra);
         }
 
         // ---- auto_resident_reuse4：4 组权重 4 次 Auto（Serial 参考计时外）----
         {
-            auto regs = std::make_shared<ExecutorRegistry>(
-                ExecutorRegistry::create_auto());
-            Dispatcher d;
-            DispatcherConfig cfg;
-            cfg.devices = {{"cpu", 0, 0, 50.0, true},
-                           {"cuda:0", 1, 0, 500.0, true}};
-            cfg.executors = regs;
-            cfg.route_mode = RouteMode::AutoMixed;
-            cfg.operation_profile = profile_ready ? &profile : nullptr;
-            d.configure(cfg);
-            CostAwareResult last;
-            std::uint64_t sum_cpu_items = 0, sum_gpu_items = 0;
-            std::uint64_t sum_cpu_chunks = 0, sum_gpu_chunks = 0;
-            std::uint64_t sum_h2d = 0, sum_d2h = 0;
-            std::uint64_t sum_h2d_bytes = 0, sum_d2h_bytes = 0;
-            std::vector<std::size_t> all_chunks;
+            std::string route_reason;
+            WeightedIntegrationView v0{
+                frames.data(), w0.data(), c.frames, pixels};
+            std::uint64_t el = 0;
+            const char* err = nullptr;
+            bapi->upload_persistent_slot(gpu_handle, 0, 0,
+                                         c.frames * pixels,
+                                         frames.data(), &el, &err);
+            bapi->upload_persistent_slot(gpu_handle, 1, 0,
+                                         c.frames, w0.data(), &el, &err);
+            auto fn = make_auto_fn(v0, out.data(), frames, w0,
+                                   routing::InputResidency::DeviceResident,
+                                   routing::OutputMaterialization::HostRequired,
+                                   4, route_reason);
             bool ok_all = true;
             const auto vr0 = vram_used_bytes(bapi, gpu_handle);
             Timed t = measure(
                 [&] {
                     for (std::size_t gi = 0; gi < 4; ++gi) {
                         WeightedIntegrationView v{
-                            frames.data(), ws[gi]->data(),
-                            c.frames, pixels};
+                            frames.data(), ws[gi]->data(), c.frames, pixels};
                         std::fill(out.begin(), out.end(), 0.0f);
-                        last = run_weighted_via_dispatcher(
-                            d, v, out.data(), frames, *ws[gi],
-                            1u << 16, 1u << 18);
-                        if (!last.run_result.all_done) {
-                            ok_all = false;
-                            throw std::runtime_error(
-                                "reuse4 not all_done: " +
-                                last.run_result.error_message);
-                        }
-                        for (const auto& pds : last.per_device_stats) {
-                            if (pds.backend.rfind("cuda", 0) == 0) {
-                                sum_gpu_items += pds.items_done;
-                                sum_gpu_chunks += pds.blocks_done;
-                            } else if (pds.backend == "cpu") {
-                                sum_cpu_items += pds.items_done;
-                                sum_cpu_chunks += pds.blocks_done;
-                            }
-                        }
-                        sum_h2d += last.transfer_stats.h2d_count;
-                        sum_d2h += last.transfer_stats.d2h_count;
-                        sum_h2d_bytes += last.transfer_stats.h2d_bytes;
-                        sum_d2h_bytes += last.transfer_stats.d2h_bytes;
-                        all_chunks.insert(
-                            all_chunks.end(),
-                            last.resource_control.dynamic_chunk_sizes.begin(),
-                            last.resource_control.dynamic_chunk_sizes.end());
+                        auto one = make_auto_fn(
+                            v, out.data(), frames, *ws[gi],
+                            routing::InputResidency::DeviceResident,
+                            routing::OutputMaterialization::HostRequired,
+                            4, route_reason);
+                        one();
                         const auto es = astro::compute::weighted_integration::
                             compare(reuse_refs[gi], out);
                         if (!es.finite || es.max_abs > 2e-5 ||
-                            es.relative_l2 > 2e-6 ||
-                            es.coverage != pixels) {
+                            es.relative_l2 > 2e-6 || es.coverage != pixels) {
                             ok_all = false;
                         }
                     }
@@ -1382,34 +1058,134 @@ int main(int argc, char** argv) {
                 args.warmup, args.repeats);
             const auto vr1 = vram_used_bytes(bapi, gpu_handle);
             nlohmann::json extra;
-            extra["cpu_items"] = sum_cpu_items;
-            extra["gpu_items"] = sum_gpu_items;
-            extra["cpu_chunks"] = sum_cpu_chunks;
-            extra["gpu_chunks"] = sum_gpu_chunks;
-            extra["chunk_sizes"] = all_chunks;
-            extra["h2d_count"] = sum_h2d;
-            extra["d2h_count"] = sum_d2h;
-            extra["h2d_bytes"] = sum_h2d_bytes;
-            extra["d2h_bytes"] = sum_d2h_bytes;
-            extra["frames_upload_count"] =
-                last.transfer_stats.frames_upload_count;
-            extra["weights_upload_count"] =
-                last.transfer_stats.weights_upload_count;
-            extra["peak_ram_bytes"] = last.resource_control.mem_peak_max;
-            extra["peak_vram_bytes"] =
-                vr1 > vr0 ? vr1 - vr0 : 0;
-            extra["route_reason"] =
-                ok_all ? "resident reuse4 frames upload once" :
-                         "reuse4 incorrect";
-            rep.add("auto_resident_reuse4",
-                    ok_all ? "PASS" : "FAIL", t, 4, true,
-                    openmp_reuse4.total_median_ms, reuse_refs[3], out,
-                    pixels, extra);
+            extra["route_reason"] = route_reason;
+            extra["peak_vram_bytes"] = vr1 > vr0 ? vr1 - vr0 : 0;
+            extra["observed_max_in_flight"] = 1;
+            rep.add("auto_resident_reuse4", ok_all ? "PASS" : "FAIL",
+                    t, 4, true, openmp_reuse4.total_median_ms,
+                    reuse_refs[3], out, pixels, extra);
+        }
+    }  // for (ci : cases)
+    // =====================================================================
+    // Route Replay（08 计划 F：holdout 路由回放）
+    // =====================================================================
+    nlohmann::json route_replay = nlohmann::json::array();
+    bool replay_all_within_10 = true;
+    std::string replay_slowest;
+    if (route_profile_ready && env.gpu_available && !args.correctness_only &&
+        args.preset != "quick") {
+        const std::vector<std::pair<std::size_t, std::uint32_t>> holdouts{
+            {768u * 768u, 12u}, {1536u * 1536u, 24u},
+            {3072u * 3072u, 12u}, {4096u * 4096u, 24u}};
+        for (const auto& [px, frames] : holdouts) {
+            const std::size_t pixels = px;
+            std::vector<float> fdata(frames * pixels), w(frames);
+            generate_synthetic(20260807, frames, pixels, fdata, w);
+            std::vector<float> out(pixels);
+            WeightedIntegrationView view{
+                fdata.data(), w.data(), frames, pixels};
+
+            Timed to = measure(
+                [&] { weighted_integration_openmp(view, out.data(),
+                                                  env.openmp_threads); },
+                args.warmup, args.repeats);
+            std::uint64_t el = 0;
+            const char* err = nullptr;
+            bapi->upload_persistent_slot(gpu_handle, 0, 0,
+                                         frames * pixels,
+                                         fdata.data(), &el, &err);
+            bapi->upload_persistent_slot(gpu_handle, 1, 0,
+                                         frames, w.data(), &el, &err);
+            Timed tg = measure(
+                [&] {
+                    bapi->submit_weighted_integration_resident(
+                        gpu_handle, 0, pixels, out.data(),
+                        frames, pixels, &el, &err);
+                },
+                args.warmup, args.repeats);
+            Timed tm;
+            {
+                auto regs = std::make_shared<ExecutorRegistry>(
+                    ExecutorRegistry::create_auto());
+                Dispatcher d;
+                DispatcherConfig cfg;
+                cfg.devices = {{"cpu", 0, 0, 50.0, true},
+                               {"cuda:0", 1, 0, 500.0, true}};
+                cfg.executors = regs;
+                cfg.route_mode = RouteMode::AutoMixed;
+                cfg.force_all_supported_executors = true;
+                d.configure(cfg);
+                tm = measure(
+                    [&] {
+                        std::fill(out.begin(), out.end(), 0.0f);
+                        auto r = run_weighted_via_dispatcher(
+                            d, view, out.data(), fdata, w,
+                            1u << 16, 1u << 16);
+                        if (!r.run_result.all_done) {
+                            throw std::runtime_error(
+                                "replay mixed failed");
+                        }
+                    },
+                    args.warmup, args.repeats);
+            }
+
+            routing::BenchmarkRouteEstimator est;
+            est.set_profile(&route_profile);
+            routing::RouteRequest req;
+            req.operation_id = kOp;
+            req.output_items = pixels;
+            req.frame_count = frames;
+            req.input_bytes = fdata.size() * sizeof(float) +
+                              w.size() * sizeof(float);
+            req.output_bytes = pixels * sizeof(float);
+            req.input_residency = routing::InputResidency::DeviceResident;
+            req.output_policy = routing::OutputMaterialization::HostRequired;
+            req.reuse_count_hint = 1;
+            const auto dec = est.decide(req);
+
+            const double auto_ms =
+                dec.chosen == routing::RouteKind::OpenMP
+                    ? to.total_median_ms
+                    : dec.chosen == routing::RouteKind::GpuDirect
+                          ? tg.total_median_ms
+                          : tm.total_median_ms;
+            const double best = std::min(
+                {to.total_median_ms, tg.total_median_ms, tm.total_median_ms});
+            const bool within = auto_ms <= best * 1.10;
+            if (!within) {
+                replay_all_within_10 = false;
+                replay_slowest = std::to_string(pixels) + "x" +
+                                 std::to_string(frames);
+            }
+            const double predicted =
+                dec.chosen == routing::RouteKind::OpenMP
+                    ? dec.openmp.predicted_ms
+                    : dec.chosen == routing::RouteKind::GpuDirect
+                          ? dec.gpu_direct.predicted_ms
+                          : dec.mixed.predicted_ms;
+            route_replay.push_back({
+                {"output_items", pixels},
+                {"frame_count", frames},
+                {"chosen", dec.chosen == routing::RouteKind::OpenMP
+                               ? "openmp"
+                               : dec.chosen == routing::RouteKind::GpuDirect
+                                     ? "gpu_direct"
+                                     : "mixed"},
+                {"reason", dec.reason},
+                {"predicted_ms", predicted},
+                {"actual_openmp_ms", to.total_median_ms},
+                {"actual_gpu_ms", tg.total_median_ms},
+                {"actual_mixed_ms", tm.total_median_ms},
+                {"auto_actual_ms", auto_ms},
+                {"best_actual_ms", best},
+                {"auto_within_10pct", within},
+            });
         }
     }
+    report["route_replay"] = route_replay;
 
     // =====================================================================
-    // 资格判定（07 号计划 E：最佳合理模式 + 10% 门禁 + 1.05x）
+    // 资格判定（08 计划 E：最佳合理模式 + 10% 门禁 + 1.05x）
     // =====================================================================
     bool perf_ok = false;
     bool auto_all_within_10 = true;
@@ -1493,7 +1269,7 @@ int main(int argc, char** argv) {
                                             : "PERFORMANCE_NOT_QUALIFIED";
     }
     qualification["ready_for_business_adapter"] =
-        correctness_pass && profile_ready &&
+        correctness_pass && route_profile_ready &&
         qualification["performance"] == "QUALIFIED";
     qualification["reason"] = perf_reason;
     // schema 1.1 gates（07 号计划 / 06 号规范）
@@ -1530,7 +1306,7 @@ int main(int argc, char** argv) {
                 args.preset.c_str(),
                 qualification["correctness"].get<std::string>().c_str(),
                 qualification["performance"].get<std::string>().c_str(),
-                profile_ready ? 1 : 0, args.output.c_str());
+                route_profile_ready ? 1 : 0, args.output.c_str());
 
     if (gpu_handle) bapi->executor_destroy(gpu_handle);
     astro::compute::runtime_shutdown();

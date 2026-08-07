@@ -175,7 +175,7 @@ endif()
 foreach(subdir
     api core buffers topology diagnostics
     backends/cpu backends/alpaka backends/cuda backends/classic
-    qualification scheduler utilization
+    qualification scheduler utilization routing
     profile cost
     tests tools/acr_benchmark tools/acr_status tools/acr_report
     tools/acr_classic_runner

@@ -8,6 +8,8 @@ target_include_directories(acr_test_focused_mixed PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../qualification
 )
 gtest_discover_tests(acr_test_focused_mixed
+    DISCOVERY_MODE PRE_TEST
+)
 
 add_executable(acr_test_api test_api.cpp)
 target_link_libraries(acr_test_api PRIVATE acr_api GTest::gtest_main)
@@ -180,6 +182,16 @@ target_include_directories(acr_test_focused_operation PRIVATE
 )
 gtest_discover_tests(acr_test_focused_operation DISCOVERY_MODE PRE_TEST)
 
+# Benchmark 驱动路由（08 计划 D/F）：RouteEstimator 单测
+add_executable(acr_test_route_estimator test_route_estimator.cpp)
+target_link_libraries(acr_test_route_estimator PRIVATE
+    acr_routing
+    GTest::gtest_main)
+target_include_directories(acr_test_route_estimator PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../routing
+)
+gtest_discover_tests(acr_test_route_estimator DISCOVERY_MODE PRE_TEST)
+
 # 08 号计划 §5：MixedRoutePlanner 与 RouteMode
 add_executable(acr_test_mixed_route test_mixed_route.cpp)
 target_link_libraries(acr_test_mixed_route PRIVATE
@@ -199,10 +211,6 @@ target_include_directories(acr_test_residency PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../utilization
 )
 gtest_discover_tests(acr_test_residency DISCOVERY_MODE PRE_TEST)
-
-    DISCOVERY_MODE PRE_TEST
-    PROPERTIES RUN_SERIAL TRUE  # 含真实 GPU 性能/正确性测试：串行避免并行 GPU 竞争
-)
 
 # 23 号计划 §3/§6：CUDA 桥接真实 GPU（无 GPU/桥接时 GTEST_SKIP）
 add_executable(acr_test_cuda_bridge test_cuda_bridge.cpp)

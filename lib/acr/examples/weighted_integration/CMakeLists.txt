@@ -27,12 +27,14 @@ endif()
 
 add_executable(acr_weighted_integration_benchmark
     weighted_integration_benchmark.cpp
+    route_profile_calibration.cpp
 )
 target_link_libraries(acr_weighted_integration_benchmark PRIVATE
     acr_weighted_integration_example
     acr_scheduler
     acr_qualification
     acr_cost
+    acr_routing
     acr_api
     acr_cuda_bridge_loader
 )
