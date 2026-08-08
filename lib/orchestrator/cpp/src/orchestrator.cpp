@@ -1859,29 +1859,92 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
     int width = data_block->dims[1];
     LOG_INFO("orchestrator", "[PLATESOLVE] 图像: " + std::to_string(width) + "x" + std::to_string(height));
 
-    // 1.1 读取 PSF/STAR_MEASURE 产出的权威 star_det 块 (FLOAT64 [N,6])
-    //     P03-003: star_det 是必需块 (PSF 应产出), 缺失必须失败 (退出码 3)
-    //     格式: x_px, y_px, flux, mag, saturated, has_saturated
+    // 1.1 构造 astrometric_detections (Phase1 Final Closure V3)
+    //     权威输入 = star_measurements 的 PSF 拟合中心 (统一"像素索引即中心坐标"契约),
+    //     过滤: invalid fit / 严重饱和 / 异常 FWHM / 边缘。
+    //     fallback = star_det 检测坐标 (显式 DETECTOR_FALLBACK, sdet 像素中心=索引+0.5
+    //     显式转统一契约 -0.5), 仅当 PSF 有效星不足以求解时补充, 位置去重。
+    const AioBlock* sm_block = fn_get_block(frame_, "star_measurements");
     const AioBlock* star_det_block = fn_get_block(frame_, "star_det");
-    if (star_det_block == nullptr || star_det_block->dims[0] <= 0) {
-        LOG_ERROR("orchestrator", "[PLATESOLVE] star_det 块不存在或为空 "
-                  "(必需块, PSF/STAR_MEASURE 应产出; 修订流水线禁止 PlateSolve 重检测)");
-        result.error_msg = "[PLATESOLVE] star_det 块不存在或为空 (必需块, PSF/STAR_MEASURE 应产出)";
+    if (sm_block == nullptr || sm_block->type != AIO_BLOCK_FLOAT64 ||
+        sm_block->dims[0] <= 0 || sm_block->dims[1] < 15) {
+        LOG_ERROR("orchestrator", "[PLATESOLVE] star_measurements 块缺失或格式错误 "
+                  "(必需权威块, 需要 FLOAT64 [N,>=15])");
+        result.error_msg = "[PLATESOLVE] star_measurements 块缺失或格式错误 (必需权威块)";
         result.exit_code = AstroCsExitCode::BLOCK_MISSING;
         return false;
     }
-    if (star_det_block->type != AIO_BLOCK_FLOAT64 || star_det_block->dims[1] != 6) {
-        LOG_ERROR("orchestrator", "[PLATESOLVE] star_det 块格式错误 "
-                  "(需要 FLOAT64 [N,6], 实际 type=" + std::to_string((int)star_det_block->type)
-                  + " dims=[" + std::to_string(star_det_block->dims[0]) + ","
-                  + std::to_string(star_det_block->dims[1]) + "])");
-        result.error_msg = "[PLATESOLVE] star_det 块格式错误 (需要 FLOAT64 [N,6])";
-        result.exit_code = AstroCsExitCode::MODULE_ABI_UNSUPPORTED;
+    int n_sm = sm_block->dims[0];
+    const double* smd = static_cast<const double*>(sm_block->data);
+    // star_measurements 列: 0 star_id, 1 x, 2 y, 3 flux_inst, 4 flux_unc,
+    //   5 background, 6 psf_status, 7 fwhm, 8 A, 9 B, 10 mad, 11 ecc,
+    //   12 mag, 13 saturated, 14 has_saturated
+    std::vector<double> astro_det;
+    std::vector<double> psf_xs, psf_ys;
+    int n_psf = 0, n_fallback = 0, n_filtered = 0;
+    auto push_det = [&](double x, double y, double flux, double mag,
+                        double sat, double has_sat) {
+        astro_det.push_back(x); astro_det.push_back(y);
+        astro_det.push_back(flux); astro_det.push_back(mag);
+        astro_det.push_back(sat); astro_det.push_back(has_sat);
+    };
+    for (int i = 0; i < n_sm; ++i) {
+        const double* r = smd + (size_t)i * 15;
+        double x = r[1], y = r[2];
+        if (!std::isfinite(x) || !std::isfinite(y)) { ++n_filtered; continue; }
+        // status: 0=DPSF_FIT_OK, 3=DPSF_FIT_ITERATION_LIMIT (参数有效亦视为成功)
+        // 过滤: invalid fit 排除; saturated/FWHM/edge 仅统计 (保留输入, ipv 选星内部处理)
+        bool ok = ((r[6] == 0.0 || r[6] == 3.0) &&
+                   std::isfinite(r[1]) && std::isfinite(r[2]));
+        bool sat_bad = (r[13] != 0.0);
+        bool fwhm_bad = !(r[7] >= 0.5 && r[7] <= 20.0);
+        bool edge = (x < 5 || y < 5 || x > width - 5 || y > height - 5);
+        if (!ok) { ++n_filtered; continue; }
+        if (sat_bad || fwhm_bad || edge) { ++n_filtered; }
+        // WCS 边界显式转换: star_measurements 为统一契约 (像素索引即中心坐标),
+        // ipv 求解器输入接口契约为"像素中心 = 索引 + 0.5" (与其内部 U 构造/WCS 一致)。
+        push_det(x + 0.5, y + 0.5, r[3], r[12], r[13], r[14]);
+        psf_xs.push_back(x);
+        psf_ys.push_back(y);
+        ++n_psf;
+    }
+    if (star_det_block != nullptr && star_det_block->type == AIO_BLOCK_FLOAT64 &&
+        star_det_block->dims[1] == 6) {
+        int n_det_raw = star_det_block->dims[0];
+        const double* det = static_cast<const double*>(star_det_block->data);
+        for (int i = 0; i < n_det_raw; ++i) {
+            const double* d = det + (size_t)i * 6;
+            double x = d[0];   // fallback: sdet 检测坐标已是 ipv 接口契约 (+0.5)
+            double y = d[1];
+            if (!std::isfinite(x) || !std::isfinite(y)) continue;
+            if (x < 5 || y < 5 || x > width - 5 || y > height - 5) continue;
+            if (d[4] != 0.0 || d[5] != 0.0) continue;  // 严重饱和排除
+            // 位置去重: 与已有 PSF 星距离 <0.5px 视为同一颗
+            bool dup = false;
+            for (size_t k = 0; k < psf_xs.size(); ++k) {
+                if (std::hypot(x - (psf_xs[k] + 0.5), y - (psf_ys[k] + 0.5)) < 0.5) {
+                    dup = true; break;
+                }
+            }
+            if (dup) continue;
+            push_det(x, y, d[2], d[3], d[4], d[5]);
+            ++n_fallback;
+        }
+    }
+    if (n_psf == 0 && n_fallback == 0) {
+        LOG_ERROR("orchestrator", "[PLATESOLVE] 无有效星点可求解 "
+                  "(PSF 中心 n_psf=" + std::to_string(n_psf)
+                  + ", fallback=" + std::to_string(n_fallback) + ")");
+        result.error_msg = "[PLATESOLVE] 无有效星点可求解";
+        result.exit_code = AstroCsExitCode::BLOCK_MISSING;
         return false;
     }
-    int n_det = star_det_block->dims[0];
-    const double* detections = static_cast<const double*>(star_det_block->data);
-    LOG_INFO("orchestrator", "[PLATESOLVE] 消费 PSF 星点: " + std::to_string(n_det) + " 颗 (不重检测)");
+    int n_det = n_psf + n_fallback;
+    const double* detections = astro_det.data();
+    LOG_INFO("orchestrator", "[PLATESOLVE] 消费星点: PSF 拟合中心 n_psf="
+             + std::to_string(n_psf) + ", detector_fallback=" + std::to_string(n_fallback)
+             + ", filtered=" + std::to_string(n_filtered)
+             + " (不重检测, 统一坐标契约)");
 
     // 2. 从 header KV 读取初始指向 (OBJCTRA/OBJCTDEC/FOCALLEN/XPIXSZ)
     //    约束: 必须使用 OBJCTRA/OBJCTDEC 作为初始指向, 无论是否已有 WCS 数据
@@ -2389,8 +2452,20 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
             const double* prow = psf_data + static_cast<size_t>(i) * 9;
             double* row = sm.data() + static_cast<size_t>(i) * kSmCols;
             row[0] = static_cast<double>(star_ids[static_cast<size_t>(i)]);
-            row[1] = cx_arr[static_cast<size_t>(i)];
-            row[2] = cy_arr[static_cast<size_t>(i)];
+            // Phase1 Final Closure V3: 权威坐标为 PSF 拟合中心 (DPSF 输出,
+            // 统一"像素索引即中心坐标"契约), 检测初值仅作 fallback。
+            // PSF 成功: x/y = results[i].cx/cy; PSF 失败: 暂存检测坐标 (status 已失败)。
+            // status: 0=DPSF_FIT_OK, 3=DPSF_FIT_ITERATION_LIMIT (参数有效亦视为成功)
+            bool psf_valid = (prow[0] == 0.0 || prow[0] == 3.0) &&
+                             std::isfinite(prow[3]) && std::isfinite(prow[4]);
+            if (psf_valid) {
+                row[1] = prow[3];  // cx (PSF 拟合中心, 统一契约)
+                row[2] = prow[4];  // cy
+            } else {
+                // PSF 失败: 检测坐标 (sdet 像素中心=索引+0.5) 显式转统一契约 (索引即中心)
+                row[1] = cx_arr[static_cast<size_t>(i)] - 0.5;
+                row[2] = cy_arr[static_cast<size_t>(i)] - 0.5;
+            }
             row[3] = prow[2];  // flux
             row[4] = prow[7];  // mad (uncertainty proxy)
             row[5] = prow[1];  // B (background)

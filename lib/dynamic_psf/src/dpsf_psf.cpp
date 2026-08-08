@@ -369,8 +369,11 @@ static int moffat4_fit_tmpl(const ImageT* image, int width, int height,
     double sx_max = std::max(sx, sy), sx_min = std::min(sx, sy);
     double eccentricity = std::sqrt(1.0 - (sx_min / sx_max) * (sx_min / sx_max));
 
-    double img_cx = x0 + (rect_x0 + rect_x1) / 2.0;
-    double img_cy = y0 + (rect_y0 + rect_y1) / 2.0;
+    // Phase1 Final Closure V3 (PSF-001): 样本 dx = pixel_x - cx,
+    // 拟合 x0 是相对传入中心 cx 的偏移, 正确还原为 cx + x0。
+    // 原实现用 rect 中心近似 cx, 对奇数宽 rect 引入 ~0.5px 系统偏差。
+    double img_cx = cx + x0;
+    double img_cy = cy + y0;
 
     auto t1 = std::chrono::high_resolution_clock::now();
     dpsf_log(LOG_INFO, "DPSF", "Fit done: %.1f ms status=%d cx=%.2f cy=%.2f fwhm_x=%.2f fwhm_y=%.2f mad=%.4f ecc=%.4f",
