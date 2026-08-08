@@ -42,8 +42,6 @@ RouteProfileV2 make_test_profile() {
     op.gpu_chunk_service.push_back({1u << 18, 16u, 0.8});
     op.gpu_chunk_service.push_back({1u << 20, 16u, 2.0});
 
-    RouteScenarioProfile sc;
-    sc.scenario_id = "resident_host_output";
     const std::vector<std::uint64_t> items{
         1u << 18, 1u << 20, 1u << 22, 1u << 24};
     const std::vector<std::uint32_t> frames{4u, 16u, 32u};
@@ -59,21 +57,48 @@ RouteProfileV2 make_test_profile() {
                 s.median_ms = n * ns_per_item * 1e-6 *
                               (static_cast<double>(f) / 16.0);
                 s.p90_ms = s.median_ms * 1.1;
+                s.cpu_items = n;
+                s.cpu_chunks = 1;
+                s.gpu_items = n;
+                s.gpu_chunks = 1;
+                s.timed_d2h_bytes = n * 4u;
+                s.absolute_peak_vram_bytes = n * 4u;
                 path.samples.push_back(s);
             }
         }
+        path.model_available = true;
+        path.model_trusted = true;
         path.eligible = true;
         path.min_output_items = items.front();
         path.max_output_items = items.back();
         path.frame_counts = frames;
         path.allow_tail_extrapolation = false;
+        path.final_holdout_count = 8;
+        path.final_median_error_ratio = 0.03;
+        path.final_max_error_ratio = 0.05;
         path.median_error_ratio = 0.03;
+        path.max_error_ratio = 0.05;
         path.p95_error_ratio = 0.05;
+        path.metrics_complete = true;
     };
-    fill_path(sc.openmp, 2.0);
-    fill_path(sc.gpu_direct, 0.5);
-    fill_path(sc.mixed, 0.8);
-    op.scenarios.push_back(std::move(sc));
+    auto make_scene = [&](const char* id) {
+        RouteScenarioProfile sc;
+        sc.scenario_id = id;
+        fill_path(sc.openmp, 2.0);
+        fill_path(sc.gpu_direct, 0.5);
+        fill_path(sc.mixed, 0.8);
+        sc.scenario_qualified = true;
+        sc.qualification_reason = "test";
+        sc.final_holdout_count = 8;
+        sc.route_replay_count = 8;
+        sc.route_replay_max_slowdown_ratio = 1.0;
+        return sc;
+    };
+    op.scenarios.push_back(make_scene("cold_host_output"));
+    op.scenarios.push_back(make_scene("resident_host_output"));
+    op.scenarios.push_back(make_scene("resident_reuse4_host_output"));
+    op.qualified = true;
+    op.qualification_reason = "test";
     p.operations.push_back(std::move(op));
     return p;
 }
@@ -186,4 +211,101 @@ TEST(RouteProfileV2, SerializeContainsKeyFields) {
     EXPECT_FALSE(s.empty());
     EXPECT_NE(s.find("acr-operation-route-profile-2"), std::string::npos);
     EXPECT_NE(s.find("resident_host_output"), std::string::npos);
+}
+
+// ===== BDR Reviewed（08 计划 F）：2D chunk 服务插值 =====
+TEST(RouteEstimator, ChunkService2DInterpolatesBetweenFrames) {
+    // 构造 4/16/32 帧曲线：chunk 256K/1M，时间随帧数线性增长
+    std::vector<ChunkServicePoint> curve{
+        {256u << 10, 4u, 0.5, 0.6, 7},
+        {1024u << 10, 4u, 2.0, 2.4, 7},
+        {256u << 10, 16u, 1.0, 1.2, 7},
+        {1024u << 10, 16u, 4.0, 4.8, 7},
+        {256u << 10, 32u, 2.0, 2.4, 7},
+        {1024u << 10, 32u, 8.0, 9.6, 7},
+    };
+    double ms = 0.0, p90 = 0.0;
+    // 12 帧 = 4 帧与 16 帧之间（w=(12-4)/(16-4)=2/3）
+    ASSERT_TRUE(BenchmarkRouteEstimator::interpolate_chunk_service(
+        curve, 256u << 10, 12u, ms, p90));
+    EXPECT_NEAR(ms, 0.5 + (2.0 / 3.0) * 0.5, 1e-9);
+    EXPECT_NEAR(p90, 0.6 + (2.0 / 3.0) * 0.6, 1e-9);
+    // 24 帧 = 16 帧与 32 帧之间（w=0.5）
+    ASSERT_TRUE(BenchmarkRouteEstimator::interpolate_chunk_service(
+        curve, 1024u << 10, 24u, ms, p90));
+    EXPECT_NEAR(ms, 6.0, 1e-9);
+}
+
+TEST(RouteEstimator, ChunkServiceOutOfFrameRangeRejected) {
+    std::vector<ChunkServicePoint> curve{
+        {256u << 10, 4u, 0.5, 0.6, 7},
+        {256u << 10, 16u, 1.0, 1.2, 7},
+        {256u << 10, 32u, 2.0, 2.4, 7},
+    };
+    double ms = 0.0, p90 = 0.0;
+    // 帧数超出已测范围：拒绝，不得混用全部曲线
+    EXPECT_FALSE(BenchmarkRouteEstimator::interpolate_chunk_service(
+        curve, 256u << 10, 48u, ms, p90));
+    EXPECT_FALSE(BenchmarkRouteEstimator::interpolate_chunk_service(
+        curve, 256u << 10, 2u, ms, p90));
+    // chunk 超出已测范围：拒绝（不无条件外推）
+    EXPECT_FALSE(BenchmarkRouteEstimator::interpolate_chunk_service(
+        curve, 4096u << 10, 16u, ms, p90));
+}
+
+TEST(RouteEstimator, ChunkCurveSanityRejectsAnomaly) {
+    // 审计示例：262K×4帧=2.01ms，262K×16帧=0.44ms（工作量 4 倍反而快 4.5 倍）
+    std::vector<ChunkServicePoint> bad{
+        {262u << 10, 4u, 2.01, 2.2, 7},
+        {262u << 10, 16u, 0.44, 0.5, 7},
+        {262u << 10, 32u, 0.88, 1.0, 7},
+    };
+    std::string reason;
+    EXPECT_FALSE(BenchmarkRouteEstimator::chunk_curve_sanity(bad, reason));
+    EXPECT_FALSE(reason.empty());
+    // 正常曲线通过
+    std::vector<ChunkServicePoint> good{
+        {262u << 10, 4u, 0.5, 0.6, 7},
+        {262u << 10, 16u, 2.0, 2.4, 7},
+        {262u << 10, 32u, 4.0, 4.8, 7},
+    };
+    EXPECT_TRUE(BenchmarkRouteEstimator::chunk_curve_sanity(good, reason));
+}
+
+// ===== BDR Reviewed（08 计划 A）：场景级资格 =====
+TEST(RouteEstimator, ScenarioNotQualifiedFallsBackOpenMP) {
+    RouteProfileV2 p = make_test_profile();
+    p.operations.front().scenarios[1].scenario_qualified = false;
+    p.operations.front().scenarios[1].qualification_reason =
+        "replay-not-within-10";
+    // 单测直接验证 decide 的场景级检查（生产先查 op.qualified 后查场景）；
+    // 保持 op.qualified=true 以便命中 scenario-not-qualified 分支。
+    BenchmarkRouteEstimator est;
+    est.set_profile(&p);
+    RouteDecision d = est.decide(make_request(4u << 20, 16u));
+    // 生产模式：场景未 qualified → 只 OpenMP fallback
+    EXPECT_EQ(d.chosen, RouteKind::OpenMP);
+    EXPECT_EQ(d.reason, "scenario-not-qualified: resident_host_output");
+    EXPECT_TRUE(d.openmp.feasible);
+    EXPECT_FALSE(d.gpu_direct.feasible);
+}
+
+TEST(RouteEstimator, DiagnosticModeUsesAvailableUntrusted) {
+    RouteProfileV2 p = make_test_profile();
+    // GPU 模型未 trusted 但仍 available（最终误差超门）
+    p.operations.front().scenarios[1].gpu_direct.model_trusted = false;
+    p.operations.front().scenarios[1].gpu_direct.eligible = false;
+    p.operations.front().scenarios[1].gpu_direct.reason =
+        "final-holdout-error-limit";
+    p.operations.front().qualified = false;
+    BenchmarkRouteEstimator est;
+    est.set_profile(&p);
+    RouteRequest req = make_request(4u << 20, 16u);
+    // 生产：gpu 不可用 → OpenMP
+    RouteDecision prod = est.decide(req);
+    EXPECT_FALSE(prod.gpu_direct.feasible);
+    // 诊断：model_available 仍参加预测（用于发现模型不足）
+    RouteDecision diag = est.decide(req, /*diagnostic=*/true);
+    EXPECT_TRUE(diag.gpu_direct.feasible);
+    EXPECT_TRUE(diag.mixed.feasible);
 }

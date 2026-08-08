@@ -16,6 +16,8 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -402,14 +404,22 @@ TEST(FocusedMixed, AutoMixedWithinTenPercentOfBest) {
                  profile.profile_state.c_str());
     std::fflush(stderr);
 
-    auto run_mode = [&](RouteMode mode) -> double {
-        Dispatcher d;
+    // 预建三个 Dispatcher（计时外复用）：Dispatcher 配置/worker 创建开销
+    // 不应进入性能测量，否则 AutoMixed 固定开销导致 flaky。
+    std::map<RouteMode, std::unique_ptr<Dispatcher>> dispatchers;
+    for (RouteMode m :
+         {RouteMode::CpuOnly, RouteMode::GpuOnly, RouteMode::AutoMixed}) {
+        auto d = std::make_unique<Dispatcher>();
         DispatcherConfig cfg;
         cfg.devices = {{"cpu", 0, 0, 50.0, true}, {"cuda:0", 1, 0, 500.0, true}};
         cfg.executors = regs;
-        cfg.route_mode = mode;
+        cfg.route_mode = m;
         cfg.operation_profile = &profile;
-        d.configure(cfg);
+        d->configure(cfg);
+        dispatchers.emplace(m, std::move(d));
+    }
+    auto run_mode = [&](RouteMode mode) -> double {
+        Dispatcher& d = *dispatchers.at(mode);
         auto x = make_input(n);
         std::vector<float> y(n, 2.0f);
         KernelInvocation inv;
