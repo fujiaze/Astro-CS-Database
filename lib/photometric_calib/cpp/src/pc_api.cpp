@@ -318,8 +318,11 @@ int pc_calibrate_simple_with_gaia(
     #pragma omp parallel for num_threads(16) schedule(dynamic, 64) reduction(+:n_valid_fsyn)
     for (int i = 0; i < n_gaia; ++i) {
         const uint8_t* spec_i = spectra_buf + (size_t)i * spec_stride;
-        f_syn_values[i] = photo_calib::compute_f_syn_cached(
-            filter_cache, spec_i, spec_stride, spec_stars[i].magG);
+        // Phase1 Final Closure V3: XPSD 官方解码 (PCL: F = byte*fluxMul + fluxMin),
+        // 不再使用 uint8*10^(-0.4G) 猜测公式
+        f_syn_values[i] = photo_calib::compute_f_syn_cached_xpsd(
+            filter_cache, spec_i, spec_stride,
+            spec_stars[i].flux_min, spec_stars[i].flux_mul);
         if (f_syn_values[i] > 0.0 && std::isfinite(f_syn_values[i])) {
             ++n_valid_fsyn;
         }
@@ -661,8 +664,9 @@ int pc_calibrate_simple_with_gaia_f64(
     #pragma omp parallel for num_threads(16) schedule(dynamic, 64) reduction(+:n_valid_fsyn)
     for (int i = 0; i < n_gaia; ++i) {
         const uint8_t* spec_i = spectra_buf + (size_t)i * spec_stride;
-        f_syn_values[i] = photo_calib::compute_f_syn_cached(
-            filter_cache, spec_i, spec_stride, spec_stars[i].magG);
+        f_syn_values[i] = photo_calib::compute_f_syn_cached_xpsd(
+            filter_cache, spec_i, spec_stride,
+            spec_stars[i].flux_min, spec_stars[i].flux_mul);
         if (f_syn_values[i] > 0.0 && std::isfinite(f_syn_values[i])) {
             ++n_valid_fsyn;
         }
@@ -927,8 +931,9 @@ int run_with_gaia_impl(
     #pragma omp parallel for num_threads(16) schedule(dynamic, 64) reduction(+:n_valid_fsyn)
     for (int i = 0; i < n_gaia; ++i) {
         const uint8_t* spec_i = spectra_buf + (size_t)i * spec_stride;
-        f_syn_values[i] = photo_calib::compute_f_syn_cached(
-            filter_cache, spec_i, spec_stride, spec_stars[i].magG);
+        f_syn_values[i] = photo_calib::compute_f_syn_cached_xpsd(
+            filter_cache, spec_i, spec_stride,
+            spec_stars[i].flux_min, spec_stars[i].flux_mul);
         if (f_syn_values[i] > 0.0 && std::isfinite(f_syn_values[i])) {
             ++n_valid_fsyn;
         }

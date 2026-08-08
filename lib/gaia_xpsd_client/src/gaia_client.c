@@ -157,6 +157,8 @@ typedef struct {
 
 typedef struct {
     double ra, dec, magG;
+    float flux_min;
+    float flux_mul;
 } SpectrumStar;
 
 typedef struct {
@@ -941,7 +943,7 @@ static void spec_collector_free(SpectrumStarCollector *sc) {
 }
 
 static void spec_collector_push(SpectrumStarCollector *sc, double ra, double dec,
-                                 double magG,
+                                 double magG, float flux_min, float flux_mul,
                                  const uint8_t *spectrum) {
     if (sc->count >= sc->capacity) {
         int new_cap = sc->capacity * 2;
@@ -956,6 +958,8 @@ static void spec_collector_push(SpectrumStarCollector *sc, double ra, double dec
     sc->stars[sc->count].ra = ra;
     sc->stars[sc->count].dec = dec;
     sc->stars[sc->count].magG = magG;
+    sc->stars[sc->count].flux_min = flux_min;
+    sc->stars[sc->count].flux_mul = flux_mul;
     if (spectrum && sc->spectrum_count > 0)
         memcpy(sc->spectra + (size_t)sc->count * sc->spectrum_count, spectrum, sc->spectrum_count);
     sc->count++;
@@ -1172,10 +1176,16 @@ static void search_recursive_spectrum(XPSDFileInternal *xf, TreeInfo *tree, uint
             if (d_ang < -1.0) d_ang = -1.0;
             if (acos(d_ang) <= radius_deg * DEG2RAD) {
                 const uint8_t *spectrum = NULL;
+                float flux_min = 0.0f, flux_mul = 0.0f;
                 if (xf->has_spectrum) {
+                    /* PCL GaiaDatabaseFile::EncodedStarSPData:
+                     *   32B EncodedStarData | float fluxMin | float fluxMul | uint8 flux[...]
+                     * flux[j] = byte*fluxMul + fluxMin (W*m^-2*nm^-1) */
+                    memcpy(&flux_min, p + 32, 4);
+                    memcpy(&flux_mul, p + 36, 4);
                     spectrum = p + 40;
                 }
-                spec_collector_push(sc, s_ra, s_dec, magG, spectrum);
+                spec_collector_push(sc, s_ra, s_dec, magG, flux_min, flux_mul, spectrum);
             }
         }
     } else {
@@ -1641,6 +1651,8 @@ int gaia_client_cone_search_with_spectrum(
             (*out_stars)[idx].ra = sc_arr[f].stars[i].ra;
             (*out_stars)[idx].dec = sc_arr[f].stars[i].dec;
             (*out_stars)[idx].magG = sc_arr[f].stars[i].magG;
+            (*out_stars)[idx].flux_min = sc_arr[f].stars[i].flux_min;
+            (*out_stars)[idx].flux_mul = sc_arr[f].stars[i].flux_mul;
 
             if (*out_spectra && sc_arr[f].spectrum_count > 0) {
                 int copy_count = sc_arr[f].spectrum_count;
@@ -1761,6 +1773,8 @@ int gaia_client_query_spectrum_by_coords(
                     temp_stars[i].ra = s_ra;
                     temp_stars[i].dec = s_dec;
                     temp_stars[i].magG = sc.stars[j].magG;
+                    temp_stars[i].flux_min = sc.stars[j].flux_min;
+                    temp_stars[i].flux_mul = sc.stars[j].flux_mul;
                     int copy_cnt = sc.spectrum_count;
                     if (copy_cnt > global_spec_count) copy_cnt = global_spec_count;
                     memcpy(temp_spectra + (size_t)i * global_spec_count,

@@ -90,6 +90,18 @@ double compute_f_syn_cached(
     const uint8_t* spectrum_uint8, int spectrum_count,
     double mag_g);
 
+// ============================================================================
+// XPSD 官方解码变体 (Phase1 Final Closure V3, 2026-08-08)
+// PCL GaiaDatabaseFile::EncodedStarSPData:
+//   flux_min / flux_mul 为每星记录内 float32 量化参数,
+//   F(λ) = byte*flux_mul + flux_min   (W*m^-2*nm^-1, 绝对谱辐照度)
+// F_syn = ∫ F(λ)·T(λ)·Q(λ)·λ dλ       (不再乘 10^(-0.4*G), 绝对单位)
+// ============================================================================
+double compute_f_syn_cached_xpsd(
+    const SpectrumIntegratorCache& cache,
+    const uint8_t* spectrum_uint8, int spectrum_count,
+    double flux_min, double flux_mul);
+
 } // namespace photo_calib
 
 #endif // PC_SPECTRUM_INTEGRATOR_H

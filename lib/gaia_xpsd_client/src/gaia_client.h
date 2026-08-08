@@ -32,6 +32,11 @@ typedef struct {
     double ra;
     double dec;
     double magG;
+    /* XPSD 记录内光谱量化参数 (PCL GaiaDatabaseFile::EncodedStarSPData):
+     *   flux[j] = byte[j]*flux_mul + flux_min   (W*m^-2*nm^-1)
+     * 无光谱数据时为 0。 */
+    float flux_min;
+    float flux_mul;
 } GaiaSpectrumStar;
 
 typedef struct {

@@ -399,4 +399,50 @@ double compute_f_syn_cached(
     return integral;
 }
 
+// ----------------------------------------------------------------------------
+// compute_f_syn_cached_xpsd: XPSD 官方解码变体 (PCL 语义)
+//   F(λ) = byte*flux_mul + flux_min  (绝对谱辐照度 W*m^-2*nm^-1)
+//   F_syn = ∫ F(λ)·T(λ)·Q(λ)·λ dλ
+// ----------------------------------------------------------------------------
+double compute_f_syn_cached_xpsd(
+    const SpectrumIntegratorCache& cache,
+    const uint8_t* spectrum_uint8, int spectrum_count,
+    double flux_min, double flux_mul) {
+
+    if (spectrum_uint8 == nullptr) {
+        std::fprintf(stderr, "[spec_int] compute_f_syn_cached_xpsd: 空指针参数\n");
+        return 0.0;
+    }
+
+    const int n_pts = (int)cache.spectrum_wl.size();
+    if (n_pts < 2 || (int)cache.filter_trans.size() < n_pts ||
+        (int)cache.weighted_wl.size() < n_pts) {
+        std::fprintf(stderr, "[spec_int] compute_f_syn_cached_xpsd: 缓存尺寸无效 wl=%zu filt=%zu wwl=%zu\n",
+                    cache.spectrum_wl.size(), cache.filter_trans.size(), cache.weighted_wl.size());
+        return 0.0;
+    }
+    if (spectrum_count != n_pts) {
+        std::fprintf(stderr, "[spec_int] compute_f_syn_cached_xpsd: spectrum_count(%d) != cache(%d)\n",
+                    spectrum_count, n_pts);
+        return 0.0;
+    }
+    if (!(flux_mul > 0.0) || !std::isfinite(flux_min) || !std::isfinite(flux_mul)) {
+        // 非法量化参数: 无法解码, 返回 0 (调用方按无效 F_syn 处理)
+        return 0.0;
+    }
+
+    // F(λ_i) = byte_i*flux_mul + flux_min (官方 PCL 线性解码)
+    std::vector<double> integrand(n_pts, 0.0);
+    for (int i = 0; i < n_pts; ++i) {
+        double f = (double)spectrum_uint8[i] * flux_mul + flux_min;
+        integrand[i] = f * cache.weighted_wl[i];
+    }
+
+    double integral = simpson_integrate(cache.spectrum_wl, integrand);
+
+    LOG_DEBUG("[spec_int] compute_f_syn_cached_xpsd: flux_min=%.4e flux_mul=%.4e, %d点, F_syn=%.6e",
+              flux_min, flux_mul, n_pts, integral);
+    return integral;
+}
+
 } // namespace photo_calib
