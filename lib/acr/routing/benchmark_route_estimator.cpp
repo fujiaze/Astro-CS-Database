@@ -98,7 +98,10 @@ const RouteProfileV2* BenchmarkRouteEstimator::profile() const noexcept {
 bool BenchmarkRouteEstimator::in_validated_domain(
     const RoutePath& path, std::uint64_t output_items,
     std::uint32_t frame_count) {
-    if (!path.eligible || path.samples.empty()) return false;
+    // 范围检查只依赖样本与 validated domain，不依赖资格字段：
+    // 生产 decide 已用 model_trusted / model_available 筛选调用；
+    // 标定阶段 evaluate_final 在设置资格前需要先预测（顺序依赖）。
+    if (path.samples.empty()) return false;
     if (output_items < path.min_output_items ||
         output_items > path.max_output_items) {
         return false;
@@ -113,6 +116,163 @@ bool BenchmarkRouteEstimator::in_validated_domain(
     return true;
 }
 
+bool BenchmarkRouteEstimator::interpolate_chunk_service(
+    const std::vector<ChunkServicePoint>& curve,
+    std::uint64_t chunk_items,
+    std::uint32_t frame_count,
+    double& median_service_ms,
+    double& p90_service_ms) {
+    if (curve.empty() || chunk_items == 0 || frame_count == 0) return false;
+
+    // 已测帧数集合
+    std::vector<std::uint32_t> frames;
+    for (const auto& c : curve) {
+        if (std::find(frames.begin(), frames.end(), c.frame_count) ==
+            frames.end()) {
+            frames.push_back(c.frame_count);
+        }
+    }
+    std::sort(frames.begin(), frames.end());
+
+    auto chunk_interp = [&](std::uint32_t fc, double& ms,
+                            double& p90) -> bool {
+        std::vector<const ChunkServicePoint*> pts;
+        for (const auto& c : curve) {
+            if (c.frame_count == fc) pts.push_back(&c);
+        }
+        if (pts.empty()) return false;
+        std::sort(pts.begin(), pts.end(),
+                  [](const ChunkServicePoint* a,
+                     const ChunkServicePoint* b) {
+                      return a->chunk_items < b->chunk_items;
+                  });
+        // 只允许有效范围内插值（不无条件外推）
+        if (chunk_items < pts.front()->chunk_items ||
+            chunk_items > pts.back()->chunk_items) {
+            return false;
+        }
+        if (pts.size() == 1 ||
+            chunk_items == pts.front()->chunk_items) {
+            ms = pts.front()->median_service_ms;
+            p90 = pts.front()->p90_service_ms;
+            return true;
+        }
+        const double x =
+            std::log2(static_cast<double>(chunk_items));
+        for (std::size_t i = 1; i < pts.size(); ++i) {
+            if (chunk_items <= pts[i]->chunk_items) {
+                const double x0 =
+                    std::log2(static_cast<double>(pts[i - 1]->chunk_items));
+                const double x1 =
+                    std::log2(static_cast<double>(pts[i]->chunk_items));
+                const double f =
+                    (x1 - x0) > 1e-12 ? (x - x0) / (x1 - x0) : 0.0;
+                const double s0 = pts[i - 1]->median_service_ms;
+                const double s1 = pts[i]->median_service_ms;
+                const double l0 = std::log2(std::max(s0, 1e-9));
+                const double l1 = std::log2(std::max(s1, 1e-9));
+                ms = std::exp2(l0 + f * (l1 - l0));
+                const double q0 = pts[i - 1]->p90_service_ms;
+                const double q1 = pts[i]->p90_service_ms;
+                const double lq0 = std::log2(std::max(q0, 1e-9));
+                const double lq1 = std::log2(std::max(q1, 1e-9));
+                p90 = std::exp2(lq0 + f * (lq1 - lq0));
+                return true;
+            }
+        }
+        return false;
+    };
+
+    const auto it =
+        std::lower_bound(frames.begin(), frames.end(), frame_count);
+    if (it != frames.end() && *it == frame_count) {
+        return chunk_interp(frame_count, median_service_ms, p90_service_ms);
+    }
+    // 相邻已测帧数之间插值（先 chunk 轴、再 frame 轴）
+    if (it == frames.begin() || it == frames.end()) return false;
+    const std::uint32_t f0 = *(it - 1);
+    const std::uint32_t f1 = *it;
+    double m0 = 0.0, p0 = 0.0, m1 = 0.0, p1 = 0.0;
+    if (!chunk_interp(f0, m0, p0)) return false;
+    if (!chunk_interp(f1, m1, p1)) return false;
+    const double w =
+        static_cast<double>(frame_count - f0) /
+        static_cast<double>(f1 - f0);
+    median_service_ms = m0 + w * (m1 - m0);
+    p90_service_ms = p0 + w * (p1 - p0);
+    return true;
+}
+
+bool BenchmarkRouteEstimator::chunk_curve_sanity(
+    const std::vector<ChunkServicePoint>& curve,
+    std::string& reason) {
+    if (curve.empty()) {
+        reason = "empty curve";
+        return false;
+    }
+    std::vector<std::uint32_t> frames;
+    for (const auto& c : curve) {
+        if (std::find(frames.begin(), frames.end(), c.frame_count) ==
+            frames.end()) {
+            frames.push_back(c.frame_count);
+        }
+    }
+    std::sort(frames.begin(), frames.end());
+    for (std::uint32_t fc : frames) {
+        std::vector<const ChunkServicePoint*> pts;
+        for (const auto& c : curve) {
+            if (c.frame_count == fc) pts.push_back(&c);
+        }
+        std::sort(pts.begin(), pts.end(),
+                  [](const ChunkServicePoint* a,
+                     const ChunkServicePoint* b) {
+                      return a->chunk_items < b->chunk_items;
+                  });
+        for (std::size_t i = 1; i < pts.size(); ++i) {
+            const std::uint64_t w0 = pts[i - 1]->chunk_items;
+            const std::uint64_t w1 = pts[i]->chunk_items;
+            const double t0 = pts[i - 1]->median_service_ms;
+            const double t1 = pts[i]->median_service_ms;
+            // 工作量显著增加（>=1.5x）但服务时间下降超过 30%：物理异常
+            if (w1 >= w0 * 3 / 2 && t1 > 0.0 && t1 < t0 * 0.70) {
+                reason = "chunk monotonicity violation frame=" +
+                         std::to_string(fc) + " " +
+                         std::to_string(w0) + "->" + std::to_string(w1) +
+                         " time " + std::to_string(t0) + "->" +
+                         std::to_string(t1);
+                return false;
+            }
+        }
+    }
+    // 同 chunk 下 frame_count 显著增加（>=2x）而服务时间下降超过 50%
+    if (frames.size() >= 2) {
+        for (std::size_t i = 1; i < frames.size(); ++i) {
+            const std::uint32_t f0 = frames[i - 1];
+            const std::uint32_t f1 = frames[i];
+            for (const auto& c0 : curve) {
+                if (c0.frame_count != f0) continue;
+                double m1 = 0.0, p90 = 0.0;
+                if (!interpolate_chunk_service(curve, c0.chunk_items, f1,
+                                               m1, p90)) {
+                    continue;
+                }
+                if (f1 >= f0 * 2 && m1 > 0.0 &&
+                    m1 < c0.median_service_ms * 0.50) {
+                    reason = "frame monotonicity violation chunk=" +
+                             std::to_string(c0.chunk_items) + " frames " +
+                             std::to_string(f0) + "->" + std::to_string(f1) +
+                             " time " +
+                             std::to_string(c0.median_service_ms) + "->" +
+                             std::to_string(m1);
+                    return false;
+                }
+            }
+        }
+    }
+    reason.clear();
+    return true;
+}
+
 bool BenchmarkRouteEstimator::interpolate_e2e(
     const RoutePath& path, std::uint64_t output_items,
     std::uint32_t frame_count, double& median_ms, double& p90_ms) {
@@ -121,20 +281,32 @@ bool BenchmarkRouteEstimator::interpolate_e2e(
     // 收集相邻已测帧数的 items 曲线；若恰好命中某帧数则直接插值
     std::vector<std::uint32_t> frames = path.frame_counts;
     std::sort(frames.begin(), frames.end());
-    const auto it = std::lower_bound(frames.begin(), frames.end(), frame_count);
-    if (it != frames.end() && *it == frame_count) {
-        auto pts = samples_for_frames(path, frame_count);
-        if (pts.empty()) return false;
-        double m = 0.0;
-        if (!interpolate_items_curve(pts, output_items, path.interpolation_id,
-                                     m, p90_ms)) {
-            return false;
+    // 只保留"对请求 items 能成功插值"的已测帧：
+    // adaptive 转入的单样本帧（如 12/28 帧仅 1 个点）若无法覆盖请求 items，
+    // 不得参与相邻帧插值（否则相邻插值失败），应退回 4/16/32 基础网格。
+    std::vector<std::uint32_t> usable;
+    for (std::uint32_t f : frames) {
+        auto pts = samples_for_frames(path, f);
+        double m = 0.0, p = 0.0;
+        if (interpolate_items_curve(pts, output_items,
+                                    path.interpolation_id, m, p)) {
+            usable.push_back(f);
         }
+    }
+    if (usable.empty()) return false;
+    const auto it =
+        std::lower_bound(usable.begin(), usable.end(), frame_count);
+    if (it != frames.end() && *it == frame_count) {
+        // 精确命中且该帧可用（usable 已保证）
+        auto pts = samples_for_frames(path, frame_count);
+        double m = 0.0;
+        interpolate_items_curve(pts, output_items, path.interpolation_id,
+                                m, p90_ms);
         median_ms = m;
         return true;
     }
     // 相邻两帧数之间插值
-    if (it == frames.begin() || it == frames.end()) return false;
+    if (it == usable.begin() || it == usable.end()) return false;
     const std::uint32_t f0 = *(it - 1);
     const std::uint32_t f1 = *it;
     const double w =
@@ -143,14 +315,10 @@ bool BenchmarkRouteEstimator::interpolate_e2e(
     auto p0 = samples_for_frames(path, f0);
     auto p1 = samples_for_frames(path, f1);
     double m0 = 0.0, m1 = 0.0, p0v = 0.0, p1v = 0.0;
-    if (!interpolate_items_curve(p0, output_items, path.interpolation_id,
-                                 m0, p0v)) {
-        return false;
-    }
-    if (!interpolate_items_curve(p1, output_items, path.interpolation_id,
-                                 m1, p1v)) {
-        return false;
-    }
+    interpolate_items_curve(p0, output_items, path.interpolation_id,
+                            m0, p0v);
+    interpolate_items_curve(p1, output_items, path.interpolation_id,
+                            m1, p1v);
     median_ms = m0 + w * (m1 - m0);
     p90_ms = p0v + w * (p1v - p0v);
     return true;
@@ -169,74 +337,56 @@ double BenchmarkRouteEstimator::simulate_mixed(
     gpu_chunk = 0;
     if (total_items == 0) return 0.0;
 
-    // 按 frame_count 过滤 chunk 服务曲线（未命中帧数则用全部点）
-    auto filter = [&](const std::vector<ChunkServicePoint>& curve)
-        -> std::vector<ChunkServicePoint> {
-        std::vector<ChunkServicePoint> out;
-        for (const auto& c : curve) {
-            if (c.frame_count == 0 || c.frame_count == frame_count) {
-                out.push_back(c);
-            }
-        }
-        return out.empty() ? curve : out;
-    };
-    const auto cpu_pts = filter(cpu_curve);
-    const auto gpu_pts = filter(gpu_curve);
-    if (cpu_pts.empty() || gpu_pts.empty()) return -1.0;
-
-    // chunk 服务时间插值：按 chunk_items 在 log2 空间插值
+    // BDR Reviewed（08 计划 F）：chunk 服务必须按 (chunk_items, frame_count)
+    // 二维插值；12/24 帧在相邻已测帧曲线间插值，禁止混用全部曲线。
     auto service_ms = [](const std::vector<ChunkServicePoint>& pts,
-                         std::uint64_t chunk) -> double {
-        std::vector<const ChunkServicePoint*> sorted;
-        for (const auto& p : pts) sorted.push_back(&p);
-        std::sort(sorted.begin(), sorted.end(),
-                  [](const ChunkServicePoint* a, const ChunkServicePoint* b) {
-                      return a->chunk_items < b->chunk_items;
-                  });
-        if (chunk <= sorted.front()->chunk_items) {
-            return sorted.front()->median_service_ms;
+                         std::uint64_t chunk, std::uint32_t fc) -> double {
+        double ms = 0.0, p90 = 0.0;
+        if (!interpolate_chunk_service(pts, chunk, fc, ms, p90)) {
+            return -1.0;
         }
-        if (chunk >= sorted.back()->chunk_items) {
-            return sorted.back()->median_service_ms;
-        }
-        for (std::size_t i = 1; i < sorted.size(); ++i) {
-            if (chunk <= sorted[i]->chunk_items) {
-                const double x0 =
-                    std::log2(static_cast<double>(sorted[i - 1]->chunk_items));
-                const double x1 =
-                    std::log2(static_cast<double>(sorted[i]->chunk_items));
-                const double f =
-                    (x1 - x0) > 1e-12
-                        ? (std::log2(static_cast<double>(chunk)) - x0) / (x1 - x0)
-                        : 0.0;
-                const double s0 = sorted[i - 1]->median_service_ms;
-                const double s1 = sorted[i]->median_service_ms;
-                const double l0 = std::log2(std::max(s0, 1e-9));
-                const double l1 = std::log2(std::max(s1, 1e-9));
-                return std::exp2(l0 + f * (l1 - l0));
+        return ms;
+    };
+
+    // 候选块集合（去重）
+    auto unique_chunks = [](const std::vector<ChunkServicePoint>& curve) {
+        std::vector<std::uint64_t> out;
+        for (const auto& c : curve) {
+            if (std::find(out.begin(), out.end(), c.chunk_items) ==
+                out.end()) {
+                out.push_back(c.chunk_items);
             }
         }
-        return sorted.back()->median_service_ms;
+        std::sort(out.begin(), out.end());
+        return out;
     };
+    const auto cpu_chunks = unique_chunks(cpu_curve);
+    const auto gpu_chunks = unique_chunks(gpu_curve);
+    if (cpu_chunks.empty() || gpu_chunks.empty()) return -1.0;
 
     // 搜索 CPU×GPU 候选块组合的最小模拟 makespan
     double best = std::numeric_limits<double>::infinity();
-    std::uint64_t best_cpu = cpu_pts.front().chunk_items;
-    std::uint64_t best_gpu = gpu_pts.front().chunk_items;
-    for (const auto& c : cpu_pts) {
-        for (const auto& g : gpu_pts) {
+    std::uint64_t best_cpu = cpu_chunks.front();
+    std::uint64_t best_gpu = gpu_chunks.front();
+    for (std::uint64_t c : cpu_chunks) {
+        for (std::uint64_t g : gpu_chunks) {
             // 动态共享池模拟：谁预计最早空闲谁领取下一块
             double cpu_ready = cpu_queue_delay_ms;
             double gpu_ready = gpu_queue_delay_ms;
+            bool svc_ok = true;
             std::uint64_t remaining = total_items;
             while (remaining > 0) {
                 const std::uint64_t chunk =
-                    (cpu_ready <= gpu_ready) ? c.chunk_items : g.chunk_items;
+                    (cpu_ready <= gpu_ready) ? c : g;
                 const std::uint64_t take =
                     std::min(chunk, remaining);
                 const double svc = (cpu_ready <= gpu_ready)
-                    ? service_ms(cpu_pts, take)
-                    : service_ms(gpu_pts, take);
+                    ? service_ms(cpu_curve, take, frame_count)
+                    : service_ms(gpu_curve, take, frame_count);
+                if (svc < 0.0) {
+                    svc_ok = false;
+                    break;
+                }
                 if (cpu_ready <= gpu_ready) {
                     cpu_ready += svc;
                 } else {
@@ -244,21 +394,23 @@ double BenchmarkRouteEstimator::simulate_mixed(
                 }
                 remaining -= take;
             }
+            if (!svc_ok) continue;
             const double makespan = std::max(cpu_ready, gpu_ready);
             if (makespan < best) {
                 best = makespan;
-                best_cpu = c.chunk_items;
-                best_gpu = g.chunk_items;
+                best_cpu = c;
+                best_gpu = g;
             }
         }
     }
+    if (best == std::numeric_limits<double>::infinity()) return -1.0;
     cpu_chunk = best_cpu;
     gpu_chunk = best_gpu;
     return best;
 }
 
 RouteDecision BenchmarkRouteEstimator::decide(
-    const RouteRequest& request) const {
+    const RouteRequest& request, bool diagnostic) const {
     RouteDecision d;
     if (impl_->profile == nullptr) {
         d.chosen = RouteKind::OpenMP;
@@ -270,7 +422,7 @@ RouteDecision BenchmarkRouteEstimator::decide(
     }
     const OperationRouteProfile* op =
         impl_->profile->find_operation(request.operation_id);
-    if (op == nullptr || !op->qualified) {
+    if (op == nullptr || (!diagnostic && !op->qualified)) {
         d.chosen = RouteKind::OpenMP;
         d.reason = op == nullptr ? "operation-not-in-profile"
                                  : "operation-not-qualified";
@@ -296,12 +448,28 @@ RouteDecision BenchmarkRouteEstimator::decide(
         return d;
     }
 
+    // BDR Reviewed（08 计划 A）：生产模式场景未 qualified → 只 OpenMP
+    // fallback（安全回退，不删除预测不准的候选）。诊断 Replay 仍然用全部
+    // model_available 候选，用于暴露模型不足。
+    if (!diagnostic && !sc->scenario_qualified) {
+        d.chosen = RouteKind::OpenMP;
+        d.reason = "scenario-not-qualified: " + sid;
+        d.openmp.feasible = true;
+        d.openmp.route = RouteKind::OpenMP;
+        d.openmp.reason = "fallback";
+        return d;
+    }
+
+    const auto path_usable = [&](const RoutePath& p) {
+        return diagnostic ? p.model_available : p.model_trusted;
+    };
+
     // ---- OpenMP ----
     {
         RoutePrediction& p = d.openmp;
         p.route = RouteKind::OpenMP;
         double med = 0.0, p90 = 0.0;
-        if (sc->openmp.eligible &&
+        if (path_usable(sc->openmp) &&
             interpolate_e2e(sc->openmp, request.output_items,
                             request.frame_count, med, p90)) {
             p.feasible = true;
@@ -313,8 +481,10 @@ RouteDecision BenchmarkRouteEstimator::decide(
                 p.queue_delay_ms;
             p.reason = "profile-e2e";
         } else {
-            p.feasible = false;
-            p.reason = "openmp-not-validated";
+            // OpenMP 永远是执行可行的安全 fallback（06 号规范 §2）
+            p.feasible = true;
+            p.reason = "openmp-fallback-no-trusted-model";
+            p.score_ms = std::numeric_limits<double>::infinity();
         }
     }
 
@@ -327,7 +497,7 @@ RouteDecision BenchmarkRouteEstimator::decide(
             request.memory.vram_available_bytes == 0 ||
             request.output_bytes + request.input_bytes <=
                 request.memory.vram_available_bytes;
-        if (sc->gpu_direct.eligible &&
+        if (path_usable(sc->gpu_direct) &&
             interpolate_e2e(sc->gpu_direct, request.output_items,
                             request.frame_count, med, p90) &&
             vram_ok) {
@@ -359,7 +529,7 @@ RouteDecision BenchmarkRouteEstimator::decide(
         // BDR 复核（08 计划 E）：真实 Mixed E2E 插值是主成本；
         // chunk simulator 只做分块与排队修正。
         double base = 0.0, base_p90 = 0.0;
-        const bool has_e2e = sc->mixed.eligible &&
+        const bool has_e2e = path_usable(sc->mixed) &&
             interpolate_e2e(sc->mixed, request.output_items,
                             request.frame_count, base, base_p90);
         std::uint64_t cpu_chunk = 0, gpu_chunk = 0;
@@ -395,7 +565,10 @@ RouteDecision BenchmarkRouteEstimator::decide(
 
     // ---- 选择最低 score（平局：资源更少路径 = OpenMP < GPU < Mixed）----
     const RoutePrediction* best = nullptr;
-    if (d.openmp.feasible) best = &d.openmp;
+    if (d.openmp.feasible &&
+        d.openmp.score_ms < std::numeric_limits<double>::infinity()) {
+        best = &d.openmp;
+    }
     if (d.gpu_direct.feasible &&
         (best == nullptr || d.gpu_direct.score_ms < best->score_ms)) {
         best = &d.gpu_direct;

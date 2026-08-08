@@ -27,8 +27,12 @@ public:
     const RouteProfileV2* profile() const noexcept;
 
     // 主入口：对一次 RouteRequest 生成三条路径预测并选择最低 score。
-    // 无画像/范围外 → chosen=OpenMP，feasible 路径为空并给出 reason。
-    RouteDecision decide(const RouteRequest& request) const;
+    //   - 生产（diagnostic=false）：scenario_qualified 才进行三候选比较；
+    //     场景未 qualified 或无画像/范围外 → chosen=OpenMP fallback；
+    //   - 诊断（diagnostic=true）：所有 model_available 候选参加预测
+    //     （即使模型未 trusted），用于发现模型不足（06 号规范 §6）。
+    RouteDecision decide(const RouteRequest& request,
+                         bool diagnostic = false) const;
 
     // ===== 预测子过程（公开便于单测）=====
 
@@ -44,6 +48,24 @@ public:
     static bool in_validated_domain(const RoutePath& path,
                                     std::uint64_t output_items,
                                     std::uint32_t frame_count);
+
+    // 二维 chunk 服务插值：先沿 chunk 轴（log2），再沿 frame_count 轴。
+    // 与 E2E 插值一致：只允许相邻已测帧数之间插值，禁止"未命中→混用全部
+    // 曲线"（BDR Reviewed 08 计划 F）。
+    static bool interpolate_chunk_service(
+        const std::vector<ChunkServicePoint>& curve,
+        std::uint64_t chunk_items,
+        std::uint32_t frame_count,
+        double& median_service_ms,
+        double& p90_service_ms);
+
+    // chunk 服务曲线物理合理性 gate（BDR Reviewed 08 计划 E）：
+    //   - 同 frame_count 下 chunk 增大，服务时间不应显著下降；
+    //   - 同 chunk 下 frame_count 增大，服务时间不应显著下降。
+    // 返回 true=通过；false=异常（调用方必须重测或标记模型不可信）。
+    static bool chunk_curve_sanity(
+        const std::vector<ChunkServicePoint>& curve,
+        std::string& reason);
 
     // Mixed 共享池模拟（无固定份额）：
     //   CPU/GPU 各自 ready 时间从 queue delay 开始；谁预计最早空闲谁领取
