@@ -1368,7 +1368,7 @@ GaiaClient *gaia_client_create_ex(const char *data_dir, GaiaDbType db_type) {
         size_t len = strlen(ent->d_name);
         if (len > 5 && strcmp(ent->d_name + len - 5, ".xpsd") == 0) {
             char fullpath[1024];
-            snprintf(fullpath, sizeof(fullpath), "%s/%s", ent->d_name);
+            snprintf(fullpath, sizeof(fullpath), "%s/%s", data_dir, ent->d_name);
             if (load_xpsd_file(&client->files[client->file_count], fullpath) == 0) {
                 if (file_matches_db_type(&client->files[client->file_count], db_type)) {
                     client->file_count++;
