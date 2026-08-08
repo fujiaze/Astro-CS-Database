@@ -446,7 +446,7 @@ TEST(FocusedMixed, AutoMixedWithinTenPercentOfBest) {
         return sec;
     };
 
-    // 各模式 3 次取中位；模式交错执行（cpu/auto/gpu 轮换）抑制
+    // 各模式 5 次取中位；模式交错执行（cpu/auto/gpu 轮换）抑制
     // 长时间运行导致的系统状态漂移
     auto median_ms = [&](const std::vector<double>& times) -> double {
         std::vector<double> t = times;
@@ -455,7 +455,9 @@ TEST(FocusedMixed, AutoMixedWithinTenPercentOfBest) {
     };
     std::vector<double> cpu_t, gpu_t, auto_t;
     run_mode(RouteMode::CpuOnly);  // warm-up（CPU 时钟/缓存稳定）
-    for (int i = 0; i < 3; ++i) {
+    run_mode(RouteMode::AutoMixed);  // warm-up（共享池 worker/planning 预热）
+    run_mode(RouteMode::GpuOnly);    // warm-up（GPU 时钟稳定）
+    for (int i = 0; i < 5; ++i) {
         cpu_t.push_back(run_mode(RouteMode::CpuOnly) * 1000.0);
         auto_t.push_back(run_mode(RouteMode::AutoMixed) * 1000.0);
         gpu_t.push_back(run_mode(RouteMode::GpuOnly) * 1000.0);
