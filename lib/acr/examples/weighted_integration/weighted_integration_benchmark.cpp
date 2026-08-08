@@ -49,6 +49,7 @@
 #include <fstream>
 #include <functional>
 #include <memory>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -91,6 +92,8 @@ struct Args {
     int gpu_streams{0};  // 0=auto(=>1) 1/2/3：性能只用 1，2/3 仅数值实验
     bool correctness_only{false};
     std::string git_head{"unknown"};
+    // 08 计划 J：连续 3 轮 CTest 0 fail 由 CI 传入，禁止 Benchmark 硬编码
+    bool three_clean_ctest_runs{false};
 };
 
 bool parse_args(int argc, char** argv, Args& out) {
@@ -153,6 +156,8 @@ bool parse_args(int argc, char** argv, Args& out) {
             }
         } else if (a == "--correctness-only") {
             out.correctness_only = true;
+        } else if (a == "--three-clean-ctest-runs") {
+            out.three_clean_ctest_runs = true;
         } else if (a == "--git-head") {
             const char* v = need("--git-head");
             if (!v) return false;
@@ -611,6 +616,7 @@ int main(int argc, char** argv) {
     if (!parse_args(argc, argv, args)) return 1;
     const int configured_streams =
         (args.gpu_streams >= 1) ? args.gpu_streams : 1;
+    const int observed_max_in_flight = 1;  // 冻结同步语义（07 计划 D）
 
     astro::compute::runtime_init();
     register_weighted_integration_kernels();
@@ -674,7 +680,8 @@ int main(int argc, char** argv) {
     report["environment"]["acr_cpu_workers"] = env.acr_cpu_workers;
     report["environment"]["gpu_available"] = env.gpu_available;
     report["environment"]["configured_streams"] = configured_streams;
-    report["environment"]["observed_max_in_flight"] = 1;
+    report["environment"]["observed_max_in_flight"] =
+        observed_max_in_flight;
     bool correctness_pass = true;
     std::vector<Case> cases = matrix_for(args.preset);
     std::vector<nlohmann::json> case_jsons;
@@ -1118,180 +1125,64 @@ int main(int argc, char** argv) {
         }
     }  // for (ci : cases)
     // =====================================================================
-    // =====================================================================
-    // Route Replay 三场景（08 计划 G：cold / resident / reuse4）
+    // Route Replay 报告（08 计划 H：独立 Final 点已在标定内真实执行）
     // =====================================================================
     nlohmann::json route_replay = nlohmann::json::array();
     bool replay_all_within_10 = true;
     std::string replay_slowest;
-    if (route_profile_ready && env.gpu_available && !args.correctness_only &&
-        args.preset != "quick") {
-        const std::vector<std::pair<std::size_t, std::uint32_t>> holdouts{
-            {768u * 768u, 12u}, {1536u * 1536u, 24u},
-            {3072u * 3072u, 12u}, {4096u * 4096u, 24u}};
-        struct SceneSpec {
-            const char* id;
-            routing::InputResidency res;
-            std::uint32_t reuse;
-        };
-        const SceneSpec scenes[] = {
-            {"cold", routing::InputResidency::HostOnly, 1u},
-            {"resident", routing::InputResidency::DeviceResident, 1u},
-            {"reuse4", routing::InputResidency::DeviceResident, 4u},
-        };
-        for (const auto& scene : scenes) {
-            for (const auto& [px, frames] : holdouts) {
-                const std::size_t pixels = px;
-                std::vector<float> fdata(frames * pixels), w(frames);
-                generate_synthetic(20260807, frames, pixels, fdata, w);
-                std::vector<float> out(pixels);
-                WeightedIntegrationView view{
-                    fdata.data(), w.data(), frames, pixels};
-
-                const auto repeats = scene.reuse;
-                Timed to = measure(
-                    [&] {
-                        for (std::uint32_t r = 0; r < repeats; ++r) {
-                            weighted_integration_openmp(view, out.data(),
-                                                        env.openmp_threads);
-                        }
-                    },
-                    args.warmup, args.repeats);
-                std::uint64_t el = 0;
-                const char* err = nullptr;
-                Timed tg;
-                if (scene.res == routing::InputResidency::HostOnly) {
-                    tg = measure(
-                        [&] {
-                            for (std::uint32_t r = 0; r < repeats; ++r) {
-                                bapi->upload_persistent_slot(
-                                    gpu_handle, 0, 0, frames * pixels,
-                                    fdata.data(), &el, &err);
-                                bapi->upload_persistent_slot(
-                                    gpu_handle, 1, 0, frames,
-                                    w.data(), &el, &err);
-                                bapi->submit_weighted_integration_resident(
-                                    gpu_handle, 0, pixels, out.data(),
-                                    frames, pixels, &el, &err);
-                            }
-                        },
-                        args.warmup, args.repeats);
-                } else {
-                    bapi->upload_persistent_slot(gpu_handle, 0, 0,
-                                                 frames * pixels,
-                                                 fdata.data(), &el, &err);
-                    bapi->upload_persistent_slot(gpu_handle, 1, 0,
-                                                 frames, w.data(), &el, &err);
-                    tg = measure(
-                        [&] {
-                            for (std::uint32_t r = 0; r < repeats; ++r) {
-                                bapi->submit_weighted_integration_resident(
-                                    gpu_handle, 0, pixels, out.data(),
-                                    frames, pixels, &el, &err);
-                            }
-                        },
-                        args.warmup, args.repeats);
-                }
-                Timed tm;
-                {
-                    auto regs = std::make_shared<ExecutorRegistry>(
-                        ExecutorRegistry::create_auto());
-                    Dispatcher d;
-                    DispatcherConfig cfg;
-                    cfg.devices = {{"cpu", 0, 0, 50.0, true},
-                                   {"cuda:0", 1, 0, 500.0, true}};
-                    cfg.executors = regs;
-                    cfg.route_mode = RouteMode::AutoMixed;
-                    cfg.force_all_supported_executors = true;
-                    d.configure(cfg);
-                    if (scene.res == routing::InputResidency::DeviceResident) {
-                        run_weighted_via_dispatcher(d, view, out.data(),
-                                                    fdata, w, 1u << 16, 1u << 16);
-                    }
-                    tm = measure(
-                        [&] {
-                            for (std::uint32_t r = 0; r < repeats; ++r) {
-                                std::fill(out.begin(), out.end(), 0.0f);
-                                auto rr = run_weighted_via_dispatcher(
-                                    d, view, out.data(), fdata, w,
-                                    1u << 16, 1u << 16);
-                                if (!rr.run_result.all_done) {
-                                    throw std::runtime_error(
-                                        "replay mixed failed");
-                                }
-                            }
-                        },
-                        args.warmup, args.repeats);
-                }
-
-                routing::BenchmarkRouteEstimator est;
-                est.set_profile(&route_profile);
+    if (route_profile_ready && !route_profile.operations.empty()) {
+        routing::BenchmarkRouteEstimator est;
+        est.set_profile(&route_profile);
+        const auto& op = route_profile.operations.front();
+        for (const auto& sc : op.scenarios) {
+            for (const auto& rp : sc.route_replay) {
                 routing::RouteRequest req;
                 req.operation_id = kOp;
-                req.output_items = pixels;
-                req.frame_count = frames;
-                req.input_bytes = fdata.size() * sizeof(float) +
-                                  w.size() * sizeof(float);
-                req.output_bytes = pixels * sizeof(float);
-                req.input_residency = scene.res;
-                req.output_policy = routing::OutputMaterialization::HostRequired;
-                req.reuse_count_hint = scene.reuse;
-                const auto dec = est.decide(req);
-
-                const double auto_ms =
-                    dec.chosen == routing::RouteKind::OpenMP
-                        ? to.total_median_ms
-                        : dec.chosen == routing::RouteKind::GpuDirect
-                              ? tg.total_median_ms
-                              : tm.total_median_ms;
-                const double best = std::min(
-                    {to.total_median_ms, tg.total_median_ms, tm.total_median_ms});
-                const std::string best_route =
-                    (best == to.total_median_ms)
-                        ? "legacy_openmp"
-                        : (best == tg.total_median_ms) ? "gpu_direct" : "mixed";
-                const bool within = auto_ms <= best * 1.10;
-                if (!within) {
-                    replay_all_within_10 = false;
-                    replay_slowest = std::string(scene.id) + " " +
-                                     std::to_string(pixels) + "x" +
-                                     std::to_string(frames);
-                }
+                req.output_items = rp.output_items;
+                req.frame_count = rp.frame_count;
+                req.input_residency =
+                    sc.scenario_id == "cold_host_output"
+                        ? routing::InputResidency::HostOnly
+                        : routing::InputResidency::DeviceResident;
+                req.output_policy =
+                    routing::OutputMaterialization::HostRequired;
+                req.reuse_count_hint =
+                    sc.scenario_id == "resident_reuse4_host_output" ? 4u
+                                                                    : 1u;
+                const auto dec = est.decide(req, /*diagnostic=*/true);
+                nlohmann::json preds = nlohmann::json::array();
+                auto push_pred = [&](const char* name,
+                                     const routing::RoutePrediction& p) {
+                    preds.push_back({
+                        {"route", name},
+                        {"predicted_ms", p.feasible ? p.predicted_ms : 0.0},
+                        {"error_bound_ms", p.error_bound_ms},
+                        {"score_ms", p.score_ms},
+                        {"feasible", p.feasible},
+                        {"reason", p.reason},
+                    });
+                };
+                push_pred("legacy_openmp", dec.openmp);
+                push_pred("gpu_direct", dec.gpu_direct);
+                push_pred("mixed", dec.mixed);
                 route_replay.push_back({
-                    {"scenario", std::string(scene.id) + "_host_output"},
-                    {"output_items", pixels},
-                    {"frame_count", frames},
-                    {"predictions", nlohmann::json::array({
-                        {{"route", "legacy_openmp"},
-                         {"predicted_ms", dec.openmp.feasible ? dec.openmp.predicted_ms : 0.0},
-                         {"error_bound_ms", dec.openmp.error_bound_ms},
-                         {"score_ms", dec.openmp.score_ms},
-                         {"feasible", dec.openmp.feasible}},
-                        {{"route", "gpu_direct"},
-                         {"predicted_ms", dec.gpu_direct.feasible ? dec.gpu_direct.predicted_ms : 0.0},
-                         {"error_bound_ms", dec.gpu_direct.error_bound_ms},
-                         {"score_ms", dec.gpu_direct.score_ms},
-                         {"feasible", dec.gpu_direct.feasible}},
-                        {{"route", "mixed"},
-                         {"predicted_ms", dec.mixed.feasible ? dec.mixed.predicted_ms : 0.0},
-                         {"error_bound_ms", dec.mixed.error_bound_ms},
-                         {"score_ms", dec.mixed.score_ms},
-                         {"feasible", dec.mixed.feasible}},
-                    })},
-                    {"chosen", dec.chosen == routing::RouteKind::OpenMP
-                                   ? "legacy_openmp"
-                                   : dec.chosen == routing::RouteKind::GpuDirect
-                                         ? "gpu_direct"
-                                         : "mixed"},
-                    {"reason", dec.reason},
-                    {"chosen_actual_ms", auto_ms},
-                    {"actual_best_ms", best},
-                    {"actual_best", best_route},
-                    {"actual_openmp_ms", to.total_median_ms},
-                    {"actual_gpu_ms", tg.total_median_ms},
-                    {"actual_mixed_ms", tm.total_median_ms},
-                    {"within_best_10pct", within},
+                    {"scenario", sc.scenario_id},
+                    {"output_items", rp.output_items},
+                    {"frame_count", rp.frame_count},
+                    {"predictions", preds},
+                    {"chosen", rp.chosen_route},
+                    {"actual_best", rp.best_route},
+                    {"chosen_actual_ms", rp.chosen_actual_ms},
+                    {"actual_best_ms", rp.actual_best_ms},
+                    {"within_best_10pct", rp.within_best_10pct},
                 });
+                if (!rp.within_best_10pct) {
+                    replay_all_within_10 = false;
+                    replay_slowest =
+                        sc.scenario_id + " " +
+                        std::to_string(rp.output_items) + "x" +
+                        std::to_string(rp.frame_count);
+                }
             }
         }
     }
@@ -1309,34 +1200,48 @@ int main(int argc, char** argv) {
     } else {
         std::string slowest_case;
         double worst_ratio = 1.0;
+        // 08 计划 I.1：case 级 best 按 cold/resident/reuse4 场景分组，
+        // 禁止跨场景 per-call 混算。
+        const std::vector<std::string> groups{
+            "cold_single", "resident_single", "resident_reuse4"};
         for (std::size_t ci = 0; ci < cases.size(); ++ci) {
             const auto& c = cases[ci];
             const auto& jj = case_jsons[ci];
-            double best = 0.0;
-            for (const auto& m : jj["modes"]) {
-                if (m["status"] != "PASS" ||
-                    m["comparable_for_performance"] != true) continue;
-                const std::string mode = m["mode"];
-                if (mode == "forced_mixed") continue;
-                // 用 per-call 归一化（reuse4 等多次操作与单次可比）
-                const double ms = m["per_call_median_ms"].get<double>();
-                if (ms > 0.0 && (best == 0.0 || ms < best)) best = ms;
-            }
-            for (const auto& m : jj["modes"]) {
-                if (m["status"] != "PASS" ||
-                    m["comparable_for_performance"] != true) continue;
-                const std::string mode = m["mode"];
-                if (mode.rfind("auto_", 0) != 0) continue;
-                const double auto_ms = m["per_call_median_ms"].get<double>();
-                if (best > 0.0 && auto_ms > best * 1.10) {
-                    auto_all_within_10 = false;
-                    const double ratio = auto_ms / best;
-                    if (ratio > worst_ratio) {
-                        worst_ratio = ratio;
-                        slowest_case =
-                            std::to_string(c.width) + "x" +
-                            std::to_string(c.height) + "x" +
-                            std::to_string(c.frames) + " " + mode;
+            for (const auto& group : groups) {
+                double best = 0.0;
+                for (const auto& m : jj["modes"]) {
+                    if (m["status"] != "PASS" ||
+                        m["comparable_for_performance"] != true) continue;
+                    if (m["scenario_group"].get<std::string>() != group) {
+                        continue;
+                    }
+                    const std::string mode = m["mode"];
+                    if (mode == "forced_mixed") continue;
+                    const double ms =
+                        m["per_call_median_ms"].get<double>();
+                    if (ms > 0.0 && (best == 0.0 || ms < best)) best = ms;
+                }
+                for (const auto& m : jj["modes"]) {
+                    if (m["status"] != "PASS" ||
+                        m["comparable_for_performance"] != true) continue;
+                    if (m["scenario_group"].get<std::string>() != group) {
+                        continue;
+                    }
+                    const std::string mode = m["mode"];
+                    if (mode.rfind("auto_", 0) != 0) continue;
+                    const double auto_ms =
+                        m["per_call_median_ms"].get<double>();
+                    if (best > 0.0 && auto_ms > best * 1.10) {
+                        auto_all_within_10 = false;
+                        const double ratio = auto_ms / best;
+                        if (ratio > worst_ratio) {
+                            worst_ratio = ratio;
+                            slowest_case =
+                                std::to_string(c.width) + "x" +
+                                std::to_string(c.height) + "x" +
+                                std::to_string(c.frames) + " " + mode +
+                                " [" + group + "]";
+                        }
                     }
                 }
             }
@@ -1384,63 +1289,90 @@ int main(int argc, char** argv) {
         correctness_pass && route_profile_ready &&
         qualification["performance"] == "QUALIFIED";
     qualification["reason"] = perf_reason;
-    // schema 1.3 gates（08 计划 H：从 Profile/replay 实际字段自动计算）
+    // schema 1.3 gates（08 计划 I.2/I.3 + G.5：全部由真实字段生成）
     const bool perf_mode = !args.correctness_only && args.preset != "quick";
-    bool cold_timed_h2d = false;
+    bool cold_direct_h2d = false;
+    bool cold_mixed_h2d = false;
     bool reuse4_gpu_present = false;
     bool stats_aligned = true;
+    bool metrics_complete = true;
+    bool profile_threshold_validated = false;
+    bool scenario_isolation = false;
     std::size_t scenario_count = 0;
+    std::set<std::string> scenario_ids;
     if (route_profile_ready && !route_profile.operations.empty()) {
         const auto& op = route_profile.operations.front();
         scenario_count = op.scenarios.size();
         for (const auto& sc : op.scenarios) {
+            scenario_ids.insert(sc.scenario_id);
             if (sc.scenario_id == "cold_host_output") {
                 for (const auto& s : sc.gpu_direct.samples) {
-                    if (s.timed_h2d_bytes > 0) cold_timed_h2d = true;
+                    if (s.timed_h2d_bytes > 0) cold_direct_h2d = true;
+                }
+                for (const auto& s : sc.mixed.samples) {
+                    if (s.timed_h2d_bytes > 0) cold_mixed_h2d = true;
                 }
             }
             if (sc.scenario_id == "resident_reuse4_host_output" &&
                 !sc.gpu_direct.samples.empty()) {
-                reuse4_gpu_present = true;
+                for (const auto& s : sc.gpu_direct.samples) {
+                    if (s.gpu_items > 0) reuse4_gpu_present = true;
+                }
             }
             for (const auto* p : {&sc.openmp, &sc.gpu_direct, &sc.mixed}) {
+                if (!p->metrics_complete) metrics_complete = false;
                 for (const auto& s : p->samples) {
-                    if (s.median_ms <= 0.0 || s.p90_ms <= 0.0) {
+                    if (s.median_ms <= 0.0 || s.p90_ms <= 0.0 ||
+                        s.output_items == 0 || s.frame_count == 0) {
                         stats_aligned = false;
                     }
                 }
             }
         }
+        scenario_isolation =
+            scenario_count == 3 &&
+            scenario_ids.count("cold_host_output") == 1 &&
+            scenario_ids.count("resident_host_output") == 1 &&
+            scenario_ids.count("resident_reuse4_host_output") == 1;
+        profile_threshold_validated = std::all_of(
+            op.scenarios.begin(), op.scenarios.end(),
+            [](const routing::RouteScenarioProfile& s) {
+                return s.scenario_qualified;
+            });
     }
     auto scene_within = [&](const std::string& scene_id) {
+        bool found = false;
         bool ok = true;
         for (const auto& r : route_replay) {
-            if (r["scenario"].get<std::string>() == scene_id &&
-                r["within_best_10pct"] != true) {
-                ok = false;
+            if (r["scenario"].get<std::string>() == scene_id) {
+                found = true;
+                if (r["within_best_10pct"] != true) ok = false;
             }
         }
-        return perf_mode && ok;
+        return perf_mode && found && ok;
     };
     qualification["gates"]["true_cold_semantics"] =
-        perf_mode && cold_timed_h2d;
+        perf_mode && cold_direct_h2d && cold_mixed_h2d;
     qualification["gates"]["median_sample_stats_aligned"] = stats_aligned;
     qualification["gates"]["scenario_isolation"] =
-        perf_mode && scenario_count == 3;
+        perf_mode && scenario_isolation;
     qualification["gates"]["direct_gpu_reuse4_present"] =
         reuse4_gpu_present;
-    qualification["gates"]["metrics_complete"] = true;
-    qualification["gates"]["profile_threshold_validated"] = true;
+    qualification["gates"]["metrics_complete"] = metrics_complete;
+    qualification["gates"]["profile_threshold_validated"] =
+        perf_mode && profile_threshold_validated;
     qualification["gates"]["auto_cold_within_best_10pct"] =
         scene_within("cold_host_output");
     qualification["gates"]["auto_resident_within_best_10pct"] =
         scene_within("resident_host_output");
     qualification["gates"]["auto_reuse4_within_best_10pct"] =
-        scene_within("reuse4_host_output");
+        scene_within("resident_reuse4_host_output");
     qualification["gates"]["positive_resident_speedup_present"] =
         perf_mode && perf_ok;
-    qualification["gates"]["single_stream_semantics_verified"] = true;
-    qualification["gates"]["three_clean_ctest_runs"] = false;  // 本轮如实
+    qualification["gates"]["single_stream_semantics_verified"] =
+        configured_streams == 1 && observed_max_in_flight == 1;
+    qualification["gates"]["three_clean_ctest_runs"] =
+        args.three_clean_ctest_runs;
     report["qualification"] = qualification;
     for (auto& jj : case_jsons) {
         report["cases"].push_back(jj);
@@ -1471,15 +1403,29 @@ int main(int argc, char** argv) {
             for (const auto& sc : route_profile.operations.front().scenarios) {
                 nlohmann::json sj;
                 sj["scenario_id"] = sc.scenario_id;
-                sj["openmp_eligible"] = sc.openmp.eligible;
-                sj["openmp_median_error"] = sc.openmp.median_error_ratio;
-                sj["openmp_max_error"] = sc.openmp.max_error_ratio;
-                sj["gpu_eligible"] = sc.gpu_direct.eligible;
-                sj["gpu_median_error"] = sc.gpu_direct.median_error_ratio;
-                sj["gpu_max_error"] = sc.gpu_direct.max_error_ratio;
-                sj["mixed_eligible"] = sc.mixed.eligible;
-                sj["mixed_median_error"] = sc.mixed.median_error_ratio;
-                sj["mixed_max_error"] = sc.mixed.max_error_ratio;
+                sj["scenario_qualified"] = sc.scenario_qualified;
+                sj["qualification_reason"] = sc.qualification_reason;
+                sj["route_replay_count"] = sc.route_replay_count;
+                sj["route_replay_max_slowdown_ratio"] =
+                    sc.route_replay_max_slowdown_ratio;
+                sj["openmp_available"] = sc.openmp.model_available;
+                sj["openmp_trusted"] = sc.openmp.model_trusted;
+                sj["openmp_final_median_error"] =
+                    sc.openmp.final_median_error_ratio;
+                sj["openmp_final_max_error"] =
+                    sc.openmp.final_max_error_ratio;
+                sj["gpu_available"] = sc.gpu_direct.model_available;
+                sj["gpu_trusted"] = sc.gpu_direct.model_trusted;
+                sj["gpu_final_median_error"] =
+                    sc.gpu_direct.final_median_error_ratio;
+                sj["gpu_final_max_error"] =
+                    sc.gpu_direct.final_max_error_ratio;
+                sj["mixed_available"] = sc.mixed.model_available;
+                sj["mixed_trusted"] = sc.mixed.model_trusted;
+                sj["mixed_final_median_error"] =
+                    sc.mixed.final_median_error_ratio;
+                sj["mixed_final_max_error"] =
+                    sc.mixed.final_max_error_ratio;
                 summary["scenario_eligibility"].push_back(std::move(sj));
             }
         }
