@@ -6,6 +6,67 @@
 
 ## 进度
 
+### 2026-08-08 BDR Reviewed 纠正（控制包 A9766B99...53984，08 号计划 A-J）
+
+**执行入口**：`08_CURRENT_EXECUTION_PLAN.md`（BDR Reviewed 版；解压于
+`run/temp/AstroCS_ACR_Control_Package_20260807-102458/`）。审计对象
+`AstroCS_Review_ACRBDRReviewed_20260807.zip`（HEAD 2a7fbe3）。
+
+**本轮完成（按 08 计划 A-J）**：
+1. 场景级资格语义（A）：RoutePath 拆分 model_available/model_trusted
+   （eligible 兼容字段=model_trusted）；RouteScenarioProfile 增加
+   scenario_qualified/qualification_reason/route_replay；Operation.qualified
+   由三个 required 场景全部 qualified 生成；生产 decide 场景未 qualified
+   直接 OpenMP fallback；诊断 Replay（decide(..., diagnostic=true)）允许
+   所有 model_available 候选参与预测。
+2. 标定数据三集合隔离（B）：Fit（5 尺寸×4/16/32 帧=15 点）、Refinement
+   Probe（8 点）、Final Untouched Holdout（8 点/场景）；自动断言无交集并
+   写入 Profile datasets 清单。
+3. 真正 Adaptive Refinement（C）：最多 2 轮，每轮在剩余 Probe 上选插值器
+   并找最差点，最差 Probe 转入 Fit（加入 samples 并重算 domain）后重新拟合；
+   模型冻结后才测量 Final。
+4. 真实 cold Mixed（D）：warmup 用不同 generation（不同 seed）；每个正式
+   cold Mixed 样本 fresh Dispatcher（residency 独立）；GPU 参与时 timed H2D
+   必须 >0；true_cold_semantics gate 同时检查 GPU Direct 与 Mixed。
+5. chunk 服务曲线修正（E）：GPU 单块保持完整 frame-major stride
+   （pixel_count=service_domain，begin/end 语义）；begin/middle/end offset
+   抽样；每测量点独立 warmup；随机化候选顺序；sanity gate（同 chunk 帧数
+   增加时间不得大幅下降；同帧 chunk 增加时间不得反向跳变）。
+6. 2D service 插值（F）：interpolate_chunk_service(curve, chunk, frames)
+   先沿 chunk 轴（log2）再沿 frame 轴；未命中帧数禁止混用全部曲线。
+7. reuse4/内存统计（G）：Mixed reuse4 累计 4 次真实 per_device_stats/
+   transfer；GPU 场景 absolute_peak_vram_bytes 由 device_memory 前后差值
+   真实记录；metrics_complete 逐字段检查，删除硬编码。
+8. Route Replay（H）：每场景 8 个独立 Final 点实际运行 OpenMP/GPU/Mixed
+   得到 oracle best；Router 只用冻结 Profile（诊断模式）预测；硬门
+   chosen<=best×1.10。
+9. Benchmark 资格清理（I）：case 级 best 按 cold/resident/reuse4 场景分组；
+   profile_threshold_validated 由三场景 qualified 生成；
+   single_stream_semantics_verified 由 configured==1 && observed==1 生成；
+   summary 由最终 JSON 自动生成。
+10. 稳定性（J）：FocusedMixed.AutoMixedWithinTenPercentOfBest 修复
+    （复用 Dispatcher，配置/worker 创建开销移出计时）；--three-clean-ctest-runs
+    由 CI 传入，Benchmark 不再硬编码。
+
+**验证结果（2026-08-08，RTX 3060 Ti + MinGW64）**：
+- 完整标定流程跑通（约 9 分钟）：Fit 15 点 + Probe 8 点 + Final 8 点 +
+  2D chunk 服务曲线（sanity 通过）+ Route Replay 24 点；
+- Profile v2：9 条路径 final_holdout 全部 = 8；datasets 无交集断言通过；
+  resident/reuse4 GPU Direct 路径 final med 1.9–2.3%、max 5.4–7.9% 达到
+  trusted；OpenMP/Mixed 及 cold GPU 模型误差超门（max 17–54%）如实
+  model_trusted=false；三场景未全 qualified → op.qualified=false、
+  READY_FOR_BUSINESS_ADAPTER=false；
+- cold Mixed 17/17 样本 timed H2D>0（fresh Dispatcher 真实 cold）；
+  metrics_complete 全 true（absolute VRAM peak 非零）；
+- standard 报告 gates 真实计算：true_cold_semantics/metrics_complete/
+  scenario_isolation/direct_gpu_reuse4_present/single_stream 均 true；
+  profile_threshold_validated=false（场景未全 qualified）；
+- CTest 连续 3 轮 625/625 通过、8 项准确跳过、0 fail
+  （FocusedMixed.AutoMixedWithinTenPercentOfBest 修复后稳定）；
+- 修复的关键问题：VRAM 预算 gate 死等（校准禁用内存反压）、E2E 插值
+  "精确帧单样本导致相邻插值失败"（改用 usable 帧集）、auto_reuse4 gate
+  场景名不匹配、GPU VRAM 峰值增量 0 问题。
+
 ### 2026-08-05 聚焦版控制包（SHA 56f74f2e...eac14，08 号计划）
 
 **执行入口**：`08_CURRENT_EXECUTION_PLAN.md`（控制包 8；仓库内副本
