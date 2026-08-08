@@ -549,6 +549,12 @@ static bool finalize_image_product(AioHipsProductSet* ps,
     kv.push_back({"hips_builder", "AstroCS aio_hips_writer (CFITSIO 4.6.4)"});
     kv.push_back({"hips_estsize", "1000000"});
     kv.push_back({"hips_release_date", "2026-08-08"});
+    kv.push_back({"hips_creation_date", "2026-08-08T00:00:00Z"});
+    kv.push_back({"obs_description", "AstroCS Phase1 single-frame HiPS product"});
+    kv.push_back({"prov_progenitor", "ivo://astrocs/phase1/drizzle"});
+    kv.push_back({"obs_regime", "optical"});
+    kv.push_back({"em_min", "3.0e-07"});
+    kv.push_back({"em_max", "1.1e-06"});
     kv.push_back({"hips_hierarchy", "true"});
     kv.push_back({"hips_pixel_scale", buf});
     kv.push_back({"hips_initial_fov", "60"});
