@@ -1,15 +1,21 @@
 # AstroCS
 
-AstroCS 是一个原生天文图像处理内核（C++/DLL），将真实 FITS 图像转换为标准化 HEALPix 球面帧数据库（HISS），并通过 SNR² 加权全局加性梯度统一、稳健排异和多帧叠加生成连续球面数据库（HCSD）。
+AstroCS 是一个原生天文图像处理内核（C++/DLL），将真实 FITS 图像转换为标准化
+HEALPix 球面帧数据库（IVOA HiPS，生产末端；HISS 仅作迁移对账），并通过
+SNR² 加权全局加性梯度统一、稳健排异和多帧叠加生成连续球面数据库（HCSD）。
 
 ## 当前状态
 
-- 当前阶段：**Phase1 Drizzle 基础算法最终冻结**（2026-08-05，按
-  `AstroCS_Drizzle_Phase1_Final_Freeze_Pack_2026-08-05` 执行）
+- 当前阶段：**Phase1 Final Closure V3 生产链闭合候选**（2026-08-08，控制包
+  `AstroCS_Phase1_Final_Closure_V3_PSF_XPSD_HiPS`；核心 Gate 全部通过，
+  4 项外部/UI 项未执行，冻结待审核确认）
 - 正式科学运行只有唯一入口：`orchestrator.exe <stage1.json>`
 - 已完成：JSON 唯一入口与严格 Schema、HISS signal FP32/FP64 数据面、
-  候选零漏选（9003/9003）、L0/L2、科学矩阵（180/180）、Sphere→Plane 双向底层
-- Phase1 边界：单帧平面 → HEALPix 球面 → HISS（Plane→Sphere 主路径）；
+  候选零漏选（9003/9003）、科学矩阵、Sphere→Plane 双向底层、
+  PSF 坐标契约、XPSD 官方解码（PCL fluxMin/fluxMul）、HiPS 直写生产链
+  （CFITSIO 4.6.4，signal/support/snr 3 子产品 + hierarchy + MOC）
+- Phase1 生产末端：单帧平面 → HEALPix 球面 → HiPS（HIPS_VERIFY）；
+  HISS 正式 deprecated（仅 `validation.legacy_hiss_compare=true` 写出）；
   Phase2 = 多帧积分/HICS/马赛克；Phase3 = 球面→平面导出（底层双向已冻结）
 - 未完成（不在本轮）：Stage2 / FAST / ACR、710 帧全量回归
 - 严格科学验收以**合成真值数据**为主；真实 testdata 仅辅助/性能/集成验证
