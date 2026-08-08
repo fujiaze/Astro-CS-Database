@@ -674,7 +674,10 @@ extern "C" int acr_cuda_executor_submit_drizzle_scatter_resident(
         cudaError_t err = ensure_buffer(&h->d_bins, h->d_bins_capacity, bins);
         if (err != cudaSuccess) return err;
         cudaMemsetAsync(h->d_bins, 0, bins * sizeof(double), h->stream);
-        acr_launch_drizzle_scatter(h->d_x + begin, h->d_bins, 0, n, bins, h->stream);
+        // Mixed 正确性：kernel 必须用全局像素索引 hash（与 CPU launcher 一致）。
+        // d_x 是完整驻留缓冲，kernel i = begin + idx 访问 d_x[i] 并 hash(i)。
+        acr_launch_drizzle_scatter(h->d_x, h->d_bins, begin, n, bins,
+                                   h->stream);
         cudaMemcpyAsync(partials, h->d_bins, bins * sizeof(double),
                         cudaMemcpyDeviceToHost, h->stream);
         return cudaStreamSynchronize(h->stream);

@@ -475,10 +475,16 @@ void cuda_launcher(const KernelInvocation& inv, void*, FocusedOp op) {
                 const std::size_t nb = bins ? *bins : 256;
                 const BufferBinding* pb = inv.buffers.find(1);
                 if (!pb) throw std::runtime_error("cuda: missing partials");
+                double* part =
+                    static_cast<double*>(pb->data) + inv.token_id * nb;
+                // 重试清零：与 CPU launcher 同语义，防止 GPU 失败重试
+                // 时 partial 重复累计（08 计划 §4）
+                if (inv.attempt > 0) {
+                    std::memset(part, 0, nb * sizeof(double));
+                }
                 rrc = api.submit_drizzle_scatter_resident(
                     h, inv.domain.begin, inv.domain.end,
-                    static_cast<double*>(pb->data) + inv.token_id * nb,
-                    nb, &rel, &rerr);
+                    part, nb, &rel, &rerr);
                 break;
             }
             case FocusedOp::ResidentChain: {
@@ -555,6 +561,11 @@ void cuda_launcher(const KernelInvocation& inv, void*, FocusedOp op) {
             // 每 token 私有桶（与 CPU launcher 同布局：token_id * bins 偏移）
             double* part =
                 static_cast<double*>(pb->data) + inv.token_id * nb;
+            // 重试清零：与 CPU launcher 同语义，防止 GPU 失败重试
+            // 时 partial 重复累计（08 计划 §4）
+            if (inv.attempt > 0) {
+                std::memset(part, 0, nb * sizeof(double));
+            }
             rc = api.submit_drizzle_scatter(
                 h, 0, inv.domain.size(), x.data(), part, nb, &el, &err);
             break;
