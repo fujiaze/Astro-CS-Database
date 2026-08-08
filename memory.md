@@ -1957,3 +1957,35 @@ Sanitizer 门在本机 MinGW 不可用且最终完整帧未授权, 状态保持
 
 注: AGENTS.md 历史禁止删除的 ACR 项 (ACR_Control_Package(2) 等、
 AstroCS_ACR_Fix_Review/、_new_control_pack/) 以归档形式完整保留。
+
+## 2026-08-08 主线 Phase1 Full Freeze v2 (控制包 5da02b0a, PSF/DR3SP/Oracles/HiPS)
+
+### 完成 (main 已 push 至 3d21c72)
+- **C 修订流水线 (ab486b6)**: PSF/STAR_MEASURE 先于 PLATESOLVE
+  - PipelineStageV2 重排 (PSF=2, PLATESOLVE=3); PSF 单次权威检测 +
+    stable star_id + star_measurements FLOAT64[N,15]; PLATESOLVE 消费
+    PSF star_det (ipv_solve_from_detections_v1, 不重检测);
+    PHOTOMETRIC v2 导出 per-star photometric_match (star_id 贯穿)
+- **D DR3SP/GaiaXPy (3a0b0c1)**: schema 审计 (XPSD 无 source_id, uint8
+  光谱 336-1020nm@2nm×343), 通带冻结 (Riello+2021 + GaiaXPy 零点点),
+  GaiaXPy 2.1.4 Oracle: 1050 星×G/BP/RP, 逐带 median|Δ|<=0.0014 mag,
+  p95<=0.009 mag; numpy 移植 vs C++ fsyn_export 4.5e-5
+- **E PSF Oracle**: Photutils 对照 PASS (收敛初始化 0.004px);
+  **BLOCKER PSF-001**: DPSF 以 sdet 像素中心坐标为初始时 LM 收敛到整数
+  (~0.5px 偏差); 最小复现已记录, 按修改预算不改冻结 PSF 数学
+- **F WCS Oracle**: Astropy/WCSLIB 往返 3e-11px; astrometry.net 未安装
+- **G HiPS 迁移 (3029305)**: aio_hips_write (AIO 唯一) — properties/
+  NorderK tiles (signal f32/f64 + support uint8)/Moc.fits/SNR TSV;
+  orchestrator DRIZZLE 后写 .hips/; HISS 标记 deprecated
+- **H trace (3d21c72)**: 每阶段 stage_trace.jsonl (块 manifest + seed
+  抽样 + 完整 star_id); gate8 校验修订顺序/star_id 唯一/无丢失/无变异
+- **J 真实矩阵**: T2/T3 4096² Red → NSIDE 65536 exit 0; T4 crop
+  FP32/FP64 → hiss_verify 24/24 Tile
+
+### 未完成 (如实)
+- 最终完整 FP32 未运行 (PSF-001 BLOCKER 未闭合)
+- Hipsgen/Aladin/reproject_to_hips 本机未安装 (astropy 独立读取替代)
+- Sanitizer 门本机不可用; Browser GUI 读 HiPS 未实现
+
+审核包: AstroCS_Review_Phase1_FULL_FREEZE_V2_PSF_DR3SP_ORACLES_20260808.zip
+SHA256 5afa4ffcb5a7132da6cf7852deb18759ba009efbf060772ca62870d6570bfd34
