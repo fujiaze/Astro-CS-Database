@@ -279,6 +279,18 @@ bool ReverseDrizzle::run(const ReverseDrizzleInput& in,
         error_msg = "ReverseDrizzle: WCS/CD 矩阵无效";
         return false;
     }
+    // 物理范围检查 (防病态有限值: 如 crval=1e300 会使 TAN 投影数值爆炸,
+    //   目标 footprint 自适应细分永不收敛 → 卡死)
+    if (in.wcs.crval[1] < -90.0 || in.wcs.crval[1] > 90.0) {
+        error_msg = "ReverseDrizzle: crval DEC 超出 [-90, 90]";
+        return false;
+    }
+    for (int k = 0; k < 4; k++) {
+        if (!std::isfinite(in.wcs.cd[k]) || std::fabs(in.wcs.cd[k]) > 1.0) {
+            error_msg = "ReverseDrizzle: CD 矩阵元素超出物理范围 (±1 deg/px)";
+            return false;
+        }
+    }
     const size_t n = in.leaf_ipix.size();
     const bool has_f64 = !in.leaf_signal.empty();
     const bool has_f32 = !in.leaf_signal_f32.empty();
