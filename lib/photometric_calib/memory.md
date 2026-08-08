@@ -26,6 +26,16 @@
 - **天光校正封存**：S_map加性梯度天光校正封存（注释调用，可逆），photometric_calib仅做乘性流量定标
 
 ## 进度日志
+
+### 2026-08-08 Phase1 Final Closure V3 — XPSD 官方解码生产链
+- `spectrum_integrator`: 新增 `compute_f_syn_cached_xpsd(cache, byte, n, flux_min, flux_mul)`
+  = ∫ (byte*fluxMul+fluxMin)·T(λ)·Q(λ)·λ dλ (绝对谱辐照度积分, 不再乘 10^(-0.4G))。
+- `pc_api.cpp`: 3 处生产调用 (v2/f64_v2/per-star) 全部切换官方解码;
+  旧 `compute_f_syn_cached(uint8, mag_g)` 保留仅作历史/测试兼容。
+- 交叉验证: 生产 C++ vs Python 同算法 ratio 1.000000000010 (p95|1-r|=2.8e-10);
+  C++ vs GaiaXPy 绝对光谱 |dG| median 0.00009 / p95 0.00063 mag (G 通带)。
+- 待办: T1-T4 真实帧 PHOTOMETRIC 端到端复验 (下一阶段)。
+
 ### 2026-07-15 sigma_residual 暴露（spec: photometric-sigma-residual）
 - star_matcher.h/cpp: cleanOutliers/matchAndClean 新增 `double* out_sigma_residual = nullptr` 出参, 暴露已计算的 MAD/0.6745
 - photometric_calib.h: pc_calibrate_simple/pc_calibrate_simple_with_gaia 新增末尾参数 out_sigma_residual

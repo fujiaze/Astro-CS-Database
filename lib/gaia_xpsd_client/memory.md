@@ -23,6 +23,20 @@ Gaia DR3/DR3SP星表C客户端，解析XPSD格式星表文件，提供锥形查�
 - **纯C接口设计**：导出C API（gaia_query_cone等），便于C++与Python（ctypes）双向调用
 
 ## 进度日志
+
+### 2026-08-08 Phase1 Final Closure V3 — XPSD 官方解码语义 (重要)
+- **发现**: XPSD 光谱字节是每星线性量化, 解码必须用记录内 fluxMin/fluxMul:
+  `F(λ) = byte*fluxMul + fluxMin` (W·m⁻²·nm⁻¹)。
+  参考 PCL `GaiaDatabaseFile::EncodedStarSPData` (GaiaDatabaseFile.h, 2026-06-21):
+  `EncodedStarData(32B) | float fluxMin | float fluxMul | uint8 flux[...]`,
+  记录 stride = 40 + 344 = 384 (343 样本, 8-bit, 偶数补齐)。
+- **修复**: `GaiaSpectrumStar` 新增 `flux_min`/`flux_mul` 字段
+  (偏移 32/36 处 float32), `cone_search_with_spectrum` 与
+  `query_spectrum_by_coords` 均输出。
+- **旧假设废弃**: `uint8 × 10^(-0.4G)` 不能冻结 (byte 无绝对标度)。
+- **验证**: 1000/1050 匹配, 官方解码形状残差 median 0.21%/p95 1.8%
+  (旧 byte-only 4.7%/29%), 颜色与 C++ 生产路径全部 Gate 通过。
+
 ### 2026-07-12 稳定运行
 - 模块进入稳定运行状态，被plate_solve、photometric_calib、integration_test等模块依赖
 - 配合Gaia驱动PSF流程优化（详见integration_test记录）：先查Gaia星表→投影到像素→均匀化采样→PSF只拟合采样星，45帧提速7.7x
