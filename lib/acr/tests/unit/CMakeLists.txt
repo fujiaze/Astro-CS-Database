@@ -9,6 +9,7 @@ target_include_directories(acr_test_focused_mixed PRIVATE
 )
 gtest_discover_tests(acr_test_focused_mixed
     DISCOVERY_MODE PRE_TEST
+    PROPERTIES RUN_SERIAL TRUE  # 性能敏感：避免与 E10Mandelbrot 等重负载并行触发负载守卫
 )
 
 add_executable(acr_test_api test_api.cpp)
