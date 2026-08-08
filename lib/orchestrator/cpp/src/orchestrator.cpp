@@ -3145,6 +3145,136 @@ static bool write_hips_from_hiss(DllLoader& loader,
     return true;
 }
 
+// ============================================================================
+// write_stage_trace - 阶段 trace 观察器 (Gate 8, Phase1 Full Freeze v2)
+// 从实际 PipelineFrame 读取块统计 + 确定性随机抽样 star_measurements /
+// photometric_match (按 star_id), 追加写入 <diag>/trace/stage_trace.jsonl。
+// seed 由 config SHA256 派生, 可复现。
+// ============================================================================
+static void write_stage_trace(DllLoader& loader, const PipelineFrame* frame,
+                              const char* stage_name,
+                              const std::string& diagnostics_dir,
+                              uint64_t seed) {
+    if (!frame || !stage_name) return;
+    using GetBlockFn = const AioBlock* (*)(const PipelineFrame*, const char*);
+    auto fn_get_block = loader.get_function<GetBlockFn>(ModuleId::AIO, "aio_frame_get_block");
+    if (!fn_get_block) return;
+
+    std::string dir = diagnostics_dir + "/trace";
+    std::string mk = "mkdir -p \"" + dir + "\"";
+    if (std::system(mk.c_str()) != 0) std::system(("mkdir \"" + dir + "\"").c_str());
+    std::string path = dir + "/stage_trace.jsonl";
+    FILE* f = std::fopen(path.c_str(), "ab");
+    if (!f) return;
+
+    std::string json = "{\"stage\":\"" + std::string(stage_name) + "\",\"blocks\":[";
+    bool first = true;
+    const char* block_names[] = {"data", "star_det", "star_det_psf_compat",
+                                 "psf", "star_measurements", "photometric_match"};
+    for (const char* bn : block_names) {
+        const AioBlock* b = fn_get_block(frame, bn);
+        if (!b) continue;
+        if (!first) json += ",";
+        first = false;
+        int64_t elem_size = (b->type == AIO_BLOCK_FLOAT64 || b->type == AIO_BLOCK_INT64) ? 8 : 4;
+        char buf[320];
+        std::snprintf(buf, sizeof(buf),
+            "{\"name\":\"%s\",\"type\":%d,\"dims\":[%lld,%lld],\"count\":%lld,\"bytes\":%lld}",
+            bn, (int)b->type, (long long)(b->n_dims > 0 ? b->dims[0] : 0),
+            (long long)(b->n_dims > 1 ? b->dims[1] : 0),
+            (long long)b->count, (long long)(b->count * elem_size));
+        json += buf;
+    }
+    json += "],\"seed\":" + std::to_string(seed) + ",\"stars\":";
+
+    // 确定性随机抽样 star 行 (star_measurements / photometric_match)
+    const AioBlock* sm = fn_get_block(frame, "star_measurements");
+    const AioBlock* pm = fn_get_block(frame, "photometric_match");
+    auto sample_rows = [&](const AioBlock* blk, int ncols, int max_n) {
+        if (blk == nullptr || blk->data == nullptr) return std::string("[]");
+        int64_t n = blk->dims[0];
+        if (n <= 0) return std::string("[]");
+        int64_t want = std::min<int64_t>(n, max_n);
+        std::vector<int64_t> idx((size_t)n);
+        for (int64_t i = 0; i < n; ++i) idx[(size_t)i] = i;
+        // 确定性混洗 (xorshift, seed 派生)
+        uint64_t s = seed ^ (uint64_t)blk->count;
+        for (int64_t i = n - 1; i > 0; --i) {
+            s ^= s << 13; s ^= s >> 7; s ^= s << 17;
+            int64_t j = (int64_t)(s % (uint64_t)(i + 1));
+            std::swap(idx[(size_t)i], idx[(size_t)j]);
+        }
+        const double* d = static_cast<const double*>(blk->data);
+        std::string out = "[";
+        for (int64_t k = 0; k < want; ++k) {
+            int64_t r = idx[(size_t)k];
+            if (k) out += ",";
+            char buf[512];
+            if (ncols == 15) {  // star_measurements
+                std::snprintf(buf, sizeof(buf),
+                    "{\"star_id\":%.0f,\"x\":%.3f,\"y\":%.3f,\"flux_inst\":%.6g,"
+                    "\"background\":%.6g,\"fwhm\":%.4f,\"status\":%.0f}",
+                    d[r*15+0], d[r*15+1], d[r*15+2], d[r*15+3], d[r*15+5], d[r*15+7], d[r*15+6]);
+            } else {  // photometric_match (6 cols)
+                double rf = d[r*6+2], resid = d[r*6+3];
+                const char* rf_s = std::isfinite(rf) ? "" : "null";
+                const char* rs_s = std::isfinite(resid) ? "" : "null";
+                if (std::isfinite(rf) && std::isfinite(resid)) {
+                    std::snprintf(buf, sizeof(buf),
+                        "{\"star_id\":%.0f,\"dr3sp_id\":%.0f,\"reference_flux\":%.6g,"
+                        "\"residual\":%.6g,\"status\":%.0f,\"reason\":%.0f}",
+                        d[r*6+0], d[r*6+1], d[r*6+2], d[r*6+3], d[r*6+4], d[r*6+5]);
+                } else if (std::isfinite(rf)) {
+                    std::snprintf(buf, sizeof(buf),
+                        "{\"star_id\":%.0f,\"dr3sp_id\":%.0f,\"reference_flux\":%.6g,"
+                        "\"residual\":null,\"status\":%.0f,\"reason\":%.0f}",
+                        d[r*6+0], d[r*6+1], d[r*6+2], d[r*6+4], d[r*6+5]);
+                } else if (std::isfinite(resid)) {
+                    std::snprintf(buf, sizeof(buf),
+                        "{\"star_id\":%.0f,\"dr3sp_id\":%.0f,\"reference_flux\":null,"
+                        "\"residual\":%.6g,\"status\":%.0f,\"reason\":%.0f}",
+                        d[r*6+0], d[r*6+1], d[r*6+3], d[r*6+4], d[r*6+5]);
+                } else {
+                    std::snprintf(buf, sizeof(buf),
+                        "{\"star_id\":%.0f,\"dr3sp_id\":%.0f,\"reference_flux\":null,"
+                        "\"residual\":null,\"status\":%.0f,\"reason\":%.0f}",
+                        d[r*6+0], d[r*6+1], d[r*6+4], d[r*6+5]);
+                }
+                (void)rf_s; (void)rs_s;
+            }
+            out += buf;
+        }
+        out += "]";
+        return out;
+    };
+    json += sample_rows(sm, 15, 512);
+    json += ",\"photometric_match\":";
+    json += sample_rows(pm, 6, 256);
+    // 完整 star_id 列表 (用于 lineage 子集校验, 仅 ID 开销小)
+    auto all_ids = [&](const AioBlock* blk, int col) {
+        if (blk == nullptr || blk->data == nullptr) return std::string("[]");
+        int64_t n = blk->dims[0];
+        if (n <= 0) return std::string("[]");
+        const double* d = static_cast<const double*>(blk->data);
+        std::string out = "[";
+        for (int64_t i = 0; i < n; ++i) {
+            if (i) out += ",";
+            char buf[48];
+            std::snprintf(buf, sizeof(buf), "%.0f", d[i * col]);
+            out += buf;
+        }
+        out += "]";
+        return out;
+    };
+    json += ",\"all_psf_star_ids\":";
+    json += all_ids(sm, 15);
+    json += ",\"all_photometric_star_ids\":";
+    json += all_ids(pm, 6);
+    json += "}\n";
+    std::fwrite(json.data(), 1, json.size(), f);
+    std::fclose(f);
+}
+
 bool Orchestrator::run_stage_drizzle(TaskResult& result) {
     LOG_INFO("orchestrator", "[DRIZZLE] 开始");
 
@@ -4647,6 +4777,14 @@ TaskResult Orchestrator::run_stage1(const Stage1Config& cfg) {
         result.timings.push_back(st);
         LOG_INFO("orchestrator", "[" + std::to_string(dur) + "s] " + name
                  + (ok ? " 完成" : " 失败"));
+
+        // Gate 8: 实际 buffer 随机抽样 trace (阶段 manifest + star_id lineage)
+        if (ok && frame_ != nullptr && stage1_cfg_ != nullptr) {
+            uint64_t trace_seed = 0x9E3779B97F4A7C15ULL;
+            for (char c : cfg.output.diagnostics_dir) trace_seed = trace_seed * 131 + (uint8_t)c;
+            write_stage_trace(dll_loader_, frame_, name,
+                              cfg.output.diagnostics_dir, trace_seed);
+        }
 
         if (is_cancelled()) {
             result.exit_code = AstroCsExitCode::CANCELLED;
