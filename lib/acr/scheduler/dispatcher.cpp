@@ -839,11 +839,15 @@ struct Dispatcher::Impl {
         //    max = 各 executor 推荐块的最大值（每设备按自身 requested_items 领取）
         std::size_t min_chunk = supported[0]->min_effective_chunk();
         std::size_t max_chunk = supported[0]->recommended_chunk();
+        const bool gpu_participating = std::any_of(
+            supported.begin(), supported.end(),
+            [](const DeviceExecutor* e) {
+                return e->backend_type().rfind("cuda", 0) == 0;
+            });
         if (cfg.operation_profile != nullptr &&
-            auto_plan.profile_available) {
-            // ACR 架构冻结（07 号计划 C/E）：Auto+Profile 时块大小来自
-            // OperationProfile（不变量来自调用方 estimate，避免把候选块
-            // 或默认值覆盖实测推荐块）。
+            auto_plan.profile_available && gpu_participating) {
+            // ACR 架构冻结（07 号计划 C/E）：Auto+Profile 且 GPU 实际参与时，
+            // 块大小来自 OperationProfile（混合小块用于分摊传输/尾段）。
             min_chunk = std::min(
                 min_chunk, std::min(auto_plan.cpu_chunk_items,
                                     auto_plan.gpu_chunk_items));
@@ -854,6 +858,9 @@ struct Dispatcher::Impl {
                     min_chunk, exec->min_effective_chunk());
             }
         } else {
+            // 纯 CPU（GPU 无收益/未参与）或 profile 不可用：
+            // CPU 块回退 estimate 推荐块，与 CpuOnly 直连一致，
+            // 避免混合小块带来的 worker 领取/同步开销（08 计划 J flaky 根因）。
             for (auto* exec : supported) {
                 const cost::DeviceCost* dc =
                     find_device_cost(estimate, exec->id());

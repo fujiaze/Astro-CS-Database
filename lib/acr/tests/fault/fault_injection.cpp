@@ -71,7 +71,6 @@ TEST(FaultInjection, MixedScheduleFallbackToCpu) {
     int sum = 0;
     for (auto v : data) sum += v;
     EXPECT_EQ(sum, 100);
-    runtime_shutdown();
 }
 
 // ============================================================================
@@ -92,7 +91,6 @@ TEST(FaultInjection, ExceptionChunkCountedAsFailed) {
     auto r = runner.run_range(0, 100, 50, fn, &data);
     EXPECT_FALSE(r.all_done);
     EXPECT_EQ(r.failed_chunks, 1u);
-    runtime_shutdown();
 }
 
 // ============================================================================
