@@ -3,6 +3,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
 #include <cstdio>
 #include <string>
 
@@ -82,6 +83,8 @@ RouteSamplePoint sample_from_json(const nlohmann::json& j) {
 
 nlohmann::json path_json(const RoutePath& p) {
     nlohmann::json j;
+    j["model_available"] = p.model_available;
+    j["model_trusted"] = p.model_trusted;
     j["eligible"] = p.eligible;
     j["reason"] = p.reason;
     j["samples"] = nlohmann::json::array();
@@ -95,13 +98,36 @@ nlohmann::json path_json(const RoutePath& p) {
     j["holdout_count"] = p.holdout_count;
     j["median_error_ratio"] = p.median_error_ratio;
     j["max_error_ratio"] = p.max_error_ratio;
+    j["refinement_probe_count"] = p.refinement_probe_count;
+    j["final_holdout_count"] = p.final_holdout_count;
+    j["adaptive_rounds_used"] = p.adaptive_rounds_used;
+    j["final_median_error_ratio"] = p.final_median_error_ratio;
+    j["final_max_error_ratio"] = p.final_max_error_ratio;
     j["p95_error_ratio"] = p.p95_error_ratio;
+    j["metrics_complete"] = p.metrics_complete;
     return j;
 }
 
 RoutePath path_from_json(const nlohmann::json& j) {
     RoutePath p;
+    if (j.contains("model_available")) {
+        p.model_available = j["model_available"].get<bool>();
+    }
+    if (j.contains("model_trusted")) {
+        p.model_trusted = j["model_trusted"].get<bool>();
+    }
     if (j.contains("eligible")) p.eligible = j["eligible"].get<bool>();
+    // 旧 Profile（只有 eligible）：向后兼容语义映射
+    if (!j.contains("model_available") && j.contains("eligible")) {
+        p.model_available = p.eligible;
+    }
+    if (!j.contains("model_trusted") && j.contains("eligible")) {
+        p.model_trusted = p.eligible;
+    }
+    if (!j.contains("model_available") && !j.contains("eligible")) {
+        p.model_available = !p.samples.empty();
+        p.model_trusted = false;
+    }
     if (j.contains("reason")) p.reason = j["reason"].get<std::string>();
     if (j.contains("samples") && j["samples"].is_array()) {
         for (const auto& s : j["samples"]) {
@@ -138,8 +164,28 @@ RoutePath path_from_json(const nlohmann::json& j) {
     if (j.contains("holdout_count")) {
         p.holdout_count = j["holdout_count"].get<std::size_t>();
     }
+    if (j.contains("refinement_probe_count")) {
+        p.refinement_probe_count =
+            j["refinement_probe_count"].get<std::size_t>();
+    }
+    if (j.contains("final_holdout_count")) {
+        p.final_holdout_count = j["final_holdout_count"].get<std::size_t>();
+    }
+    if (j.contains("adaptive_rounds_used")) {
+        p.adaptive_rounds_used = j["adaptive_rounds_used"].get<std::size_t>();
+    }
+    if (j.contains("final_median_error_ratio")) {
+        p.final_median_error_ratio =
+            j["final_median_error_ratio"].get<double>();
+    }
+    if (j.contains("final_max_error_ratio")) {
+        p.final_max_error_ratio = j["final_max_error_ratio"].get<double>();
+    }
     if (j.contains("p95_error_ratio")) {
         p.p95_error_ratio = j["p95_error_ratio"].get<double>();
+    }
+    if (j.contains("metrics_complete")) {
+        p.metrics_complete = j["metrics_complete"].get<bool>();
     }
     return p;
 }
@@ -165,9 +211,28 @@ std::string serialize_route_profile_v2(const RouteProfileV2& profile) {
         for (const auto& sc : op.scenarios) {
             nlohmann::json sj;
             sj["scenario_id"] = sc.scenario_id;
+            sj["supported"] = sc.supported;
+            sj["scenario_qualified"] = sc.scenario_qualified;
+            sj["qualification_reason"] = sc.qualification_reason;
             sj["openmp"] = path_json(sc.openmp);
             sj["gpu_direct"] = path_json(sc.gpu_direct);
             sj["mixed"] = path_json(sc.mixed);
+            sj["final_holdout_count"] = sc.final_holdout_count;
+            sj["route_replay_count"] = sc.route_replay_count;
+            sj["route_replay_max_slowdown_ratio"] =
+                sc.route_replay_max_slowdown_ratio;
+            sj["route_replay"] = nlohmann::json::array();
+            for (const auto& rp : sc.route_replay) {
+                sj["route_replay"].push_back(
+                    {{"output_items", rp.output_items},
+                     {"frame_count", rp.frame_count},
+                     {"chosen_route", rp.chosen_route},
+                     {"best_route", rp.best_route},
+                     {"chosen_actual_ms", rp.chosen_actual_ms},
+                     {"actual_best_ms", rp.actual_best_ms},
+                     {"predicted_ms", rp.predicted_ms},
+                     {"within_best_10pct", rp.within_best_10pct}});
+            }
             o["scenarios"].push_back(std::move(sj));
         }
         o["cpu_chunk_service"] = nlohmann::json::array();
@@ -192,6 +257,14 @@ std::string serialize_route_profile_v2(const RouteProfileV2& profile) {
         o["mixed_overhead"]["per_token_ms"] = op.mixed_per_token_ms;
         o["qualified"] = op.qualified;
         o["qualification_reason"] = op.qualification_reason;
+        o["datasets"]["fit"]["items"] = op.datasets.fit_items;
+        o["datasets"]["fit"]["frames"] = op.datasets.fit_frames;
+        o["datasets"]["probe"]["items"] = op.datasets.probe_items;
+        o["datasets"]["probe"]["frames"] = op.datasets.probe_frames;
+        o["datasets"]["final"]["items"] = op.datasets.final_items;
+        o["datasets"]["final"]["frames"] = op.datasets.final_frames;
+        o["datasets"]["disjoint_verified"] = op.datasets.disjoint_verified;
+        o["datasets"]["disjoint_reason"] = op.datasets.disjoint_reason;
         root["operations"].push_back(std::move(o));
     }
     return root.dump();
@@ -274,9 +347,55 @@ bool read_route_profile_v2_from_file(const std::string& path,
             for (const auto& sc : o["scenarios"]) {
                 RouteScenarioProfile sp;
                 sp.scenario_id = sc.at("scenario_id").get<std::string>();
+                if (sc.contains("supported")) {
+                    sp.supported = sc["supported"].get<bool>();
+                }
+                if (sc.contains("scenario_qualified")) {
+                    sp.scenario_qualified =
+                        sc["scenario_qualified"].get<bool>();
+                }
+                if (sc.contains("qualification_reason")) {
+                    sp.qualification_reason =
+                        sc["qualification_reason"].get<std::string>();
+                }
                 if (sc.contains("openmp")) sp.openmp = path_from_json(sc["openmp"]);
                 if (sc.contains("gpu_direct")) sp.gpu_direct = path_from_json(sc["gpu_direct"]);
                 if (sc.contains("mixed")) sp.mixed = path_from_json(sc["mixed"]);
+                if (sc.contains("final_holdout_count")) {
+                    sp.final_holdout_count =
+                        sc["final_holdout_count"].get<std::size_t>();
+                }
+                if (sc.contains("route_replay_count")) {
+                    sp.route_replay_count =
+                        sc["route_replay_count"].get<std::size_t>();
+                }
+                if (sc.contains("route_replay_max_slowdown_ratio")) {
+                    sp.route_replay_max_slowdown_ratio =
+                        sc["route_replay_max_slowdown_ratio"].get<double>();
+                }
+                if (sc.contains("route_replay") &&
+                    sc["route_replay"].is_array()) {
+                    for (const auto& r : sc["route_replay"]) {
+                        RouteReplayPoint rp;
+                        rp.output_items =
+                            r.value("output_items", 0ull);
+                        rp.frame_count =
+                            r.value("frame_count", 0u);
+                        rp.chosen_route =
+                            r.value("chosen_route", std::string(""));
+                        rp.best_route =
+                            r.value("best_route", std::string(""));
+                        rp.chosen_actual_ms =
+                            r.value("chosen_actual_ms", 0.0);
+                        rp.actual_best_ms =
+                            r.value("actual_best_ms", 0.0);
+                        rp.predicted_ms =
+                            r.value("predicted_ms", 0.0);
+                        rp.within_best_10pct =
+                            r.value("within_best_10pct", false);
+                        sp.route_replay.push_back(std::move(rp));
+                    }
+                }
                 op.scenarios.push_back(std::move(sp));
             }
         }
@@ -342,6 +461,39 @@ bool read_route_profile_v2_from_file(const std::string& path,
             op.qualification_reason =
                 o["qualification_reason"].get<std::string>();
         }
+        if (o.contains("datasets")) {
+            const auto& ds = o["datasets"];
+            auto read_group = [&](const char* key,
+                                  std::vector<std::uint64_t>& items,
+                                  std::vector<std::uint32_t>& frames) {
+                if (ds.contains(key)) {
+                    const auto& g = ds[key];
+                    if (g.contains("items") && g["items"].is_array()) {
+                        for (const auto& v : g["items"]) {
+                            items.push_back(v.get<std::uint64_t>());
+                        }
+                    }
+                    if (g.contains("frames") && g["frames"].is_array()) {
+                        for (const auto& v : g["frames"]) {
+                            frames.push_back(v.get<std::uint32_t>());
+                        }
+                    }
+                }
+            };
+            read_group("fit", op.datasets.fit_items, op.datasets.fit_frames);
+            read_group("probe", op.datasets.probe_items,
+                       op.datasets.probe_frames);
+            read_group("final", op.datasets.final_items,
+                       op.datasets.final_frames);
+            if (ds.contains("disjoint_verified")) {
+                op.datasets.disjoint_verified =
+                    ds["disjoint_verified"].get<bool>();
+            }
+            if (ds.contains("disjoint_reason")) {
+                op.datasets.disjoint_reason =
+                    ds["disjoint_reason"].get<std::string>();
+            }
+        }
         p.operations.push_back(std::move(op));
     }
     out = std::move(p);
@@ -381,9 +533,9 @@ bool validate_route_profile_v2(const RouteProfileV2& profile,
         for (const auto& sc : op.scenarios) {
             if (sc.scenario_id.empty()) { error = "scenario_id empty"; return false; }
             const auto check_path = [&](const RoutePath& p, const char* name) {
-                if (p.eligible) {
+                if (p.model_trusted) {
                     if (p.samples.empty()) {
-                        error = "eligible path without samples: " + sc.scenario_id + "/" + name;
+                        error = "trusted path without samples: " + sc.scenario_id + "/" + name;
                         return false;
                     }
                     if (p.min_output_items == 0 || p.max_output_items == 0) {
@@ -394,6 +546,10 @@ bool validate_route_profile_v2(const RouteProfileV2& profile,
                         error = "frame_counts missing: " + sc.scenario_id + "/" + name;
                         return false;
                     }
+                }
+                if (p.model_available && p.samples.empty()) {
+                    error = "available path without samples: " + sc.scenario_id + "/" + name;
+                    return false;
                 }
                 for (const auto& s : p.samples) {
                     if (s.output_items == 0 || s.frame_count == 0 ||
@@ -407,6 +563,45 @@ bool validate_route_profile_v2(const RouteProfileV2& profile,
             if (!check_path(sc.openmp, "openmp")) return false;
             if (!check_path(sc.gpu_direct, "gpu_direct")) return false;
             if (!check_path(sc.mixed, "mixed")) return false;
+            // eligible 兼容字段必须与 model_trusted 一致
+            if (sc.openmp.eligible != sc.openmp.model_trusted ||
+                sc.gpu_direct.eligible != sc.gpu_direct.model_trusted ||
+                sc.mixed.eligible != sc.mixed.model_trusted) {
+                error = "eligible != model_trusted in scenario " +
+                        sc.scenario_id;
+                return false;
+            }
+        }
+        // BDR Reviewed（08 计划 A）：Operation 资格由 required 场景生成
+        const std::vector<std::string> required{
+            "cold_host_output", "resident_host_output",
+            "resident_reuse4_host_output"};
+        for (const auto& rid : required) {
+            const auto it = std::find_if(
+                op.scenarios.begin(), op.scenarios.end(),
+                [&](const RouteScenarioProfile& s) {
+                    return s.scenario_id == rid;
+                });
+            if (it == op.scenarios.end()) {
+                error = "required scenario missing: " + rid;
+                return false;
+            }
+        }
+        const bool op_qualified =
+            std::all_of(required.begin(), required.end(),
+                        [&](const std::string& rid) {
+                            const auto it = std::find_if(
+                                op.scenarios.begin(), op.scenarios.end(),
+                                [&](const RouteScenarioProfile& s) {
+                                    return s.scenario_id == rid;
+                                });
+                            return it != op.scenarios.end() &&
+                                   it->scenario_qualified;
+                        });
+        if (op.qualified != op_qualified) {
+            error = "operation.qualified inconsistent with scenario "
+                    "qualification";
+            return false;
         }
     }
     error.clear();

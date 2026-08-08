@@ -118,8 +118,18 @@ struct RouteSamplePoint {
 };
 
 // 单条路径（OpenMP/GPU Direct/Mixed）
+//
+// 04 号契约（BDR Reviewed 修正）：
+//   - model_available：已标定、可执行、可预测。诊断 Route Replay 中所有
+//     model_available 候选必须参加预测，不能因误差大直接删除最快候选；
+//   - model_trusted：final untouched holdout 误差门（median<=10%、max<=15%）
+//     通过，生产 Auto 才允许使用；
+//   - eligible：旧 schema 兼容字段，恒等于 model_trusted；
+//   - 场景未 qualified 时生产只允许 OpenMP fallback（06 号规范 §2）。
 struct RoutePath {
-    bool eligible{false};
+    bool model_available{false};
+    bool model_trusted{false};
+    bool eligible{false};  // 兼容旧 schema：== model_trusted
     std::string reason;
     std::vector<RouteSamplePoint> samples;
     std::uint64_t min_output_items{0};
@@ -129,18 +139,50 @@ struct RoutePath {
     // BDR 复核（08 计划 B/C）：插值模型由 holdout 选择；误差用 median/max。
     std::string interpolation_id{
         "piecewise-linear-items-frames"};  // 或 piecewise-loglog-items-frames-time
+    // 兼容字段：最终 holdout 统计（== final_*）
     std::size_t holdout_count{0};
     double median_error_ratio{0.0};
     double max_error_ratio{0.0};
+    // BDR Reviewed（08 计划 A/B/C/H）：refinement probe 与 final holdout 分开；
+    // 最终误差只由未参与任何模型选择的 final holdout 计算。
+    std::size_t refinement_probe_count{0};
+    std::size_t final_holdout_count{0};
+    std::size_t adaptive_rounds_used{0};
+    double final_median_error_ratio{0.0};
+    double final_max_error_ratio{0.0};
     double p95_error_ratio{0.0};
+    bool metrics_complete{false};
 };
 
 // 场景画像
+// Route Replay 单点（08 计划 H）：最终独立 holdout 上三候选实际执行，
+// Router 只用冻结后的 Profile 预测，比较 chosen 与 oracle best。
+struct RouteReplayPoint {
+    std::uint64_t output_items{0};
+    std::uint32_t frame_count{0};
+    std::string chosen_route;   // legacy_openmp / gpu_direct / mixed
+    std::string best_route;     // 实际最快路径
+    double chosen_actual_ms{0.0};
+    double actual_best_ms{0.0};
+    double predicted_ms{0.0};   // chosen 路径预测（诊断模式可用 untrusted 模型）
+    bool within_best_10pct{false};
+};
+
 struct RouteScenarioProfile {
     std::string scenario_id;   // cold_host_output 等
+    bool supported{true};
+    // BDR Reviewed（08 计划 A）：场景级资格。
+    // 三个 required 场景全部 qualified 后 Operation 才 qualified；
+    // 场景未 qualified 时生产路由只允许 OpenMP fallback。
+    bool scenario_qualified{false};
+    std::string qualification_reason;
     RoutePath openmp;
     RoutePath gpu_direct;
     RoutePath mixed;
+    std::size_t final_holdout_count{0};
+    std::size_t route_replay_count{0};
+    double route_replay_max_slowdown_ratio{1.0};
+    std::vector<RouteReplayPoint> route_replay;
 };
 
 // chunk 服务曲线点（固定标定帧数下的单块服务时间）
@@ -165,6 +207,18 @@ struct OperationRouteProfile {
     double mixed_per_token_ms{0.0};
     bool qualified{false};
     std::string qualification_reason;
+
+    // BDR Reviewed（08 计划 B）：标定数据集三集合隔离清单
+    struct DatasetGroup {
+        std::vector<std::uint64_t> fit_items;
+        std::vector<std::uint32_t> fit_frames;
+        std::vector<std::uint64_t> probe_items;
+        std::vector<std::uint32_t> probe_frames;
+        std::vector<std::uint64_t> final_items;
+        std::vector<std::uint32_t> final_frames;
+        bool disjoint_verified{false};
+        std::string disjoint_reason;
+    } datasets;
 };
 
 // 顶层 Profile v2
