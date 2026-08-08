@@ -67,11 +67,12 @@ enum class PipelineStageV2 {
     SNR             = 5,  // snr_estimator.dll (异常值剔除 + 测光不确定度 + 帧SNR基准)
     NSIDE           = 6,  // 计算/验证 HEALPix NSIDE (auto 推导或 explicit 校验)
     DRIZZLE         = 7,  // healpix_drizzle.dll (nside 1-2x, SNR同步转换, 落盘 .hiss)
-    HISS_VERIFY     = 8,  // 验证 .hiss 文件完整性 (全 Tile/子块 signal/support/SNR/metadata)
-    BROWSER_VERIFY  = 9,  // Browser 后端双精度读取/查询验证 (Qt GUI 另有独立测试)
+    HIPS_VERIFY     = 8,  // Phase1 V3: 验证 HiPS 产品集 (signal/support/snr, AIO Reader)
+    HISS_VERIFY     = 9,  // legacy: 验证 .hiss 文件完整性 (仅 validation 模式)
+    BROWSER_VERIFY  = 10, // Browser 后端双精度读取/查询验证 (Qt GUI 另有独立测试)
     // 第二段: 多帧合并
-    GRADIENT_SPHERE = 10, // healpix_stack.dll hp_stack_gradient_corrected (球面梯度校准)
-    STACK           = 11  // healpix_stack.dll (Winsorized sigma clip + SNR²加权叠加 -> .hcsd)
+    GRADIENT_SPHERE = 11, // healpix_stack.dll hp_stack_gradient_corrected (球面梯度校准)
+    STACK           = 12  // healpix_stack.dll (Winsorized sigma clip + SNR²加权叠加 -> .hcsd)
 };
 
 // ============================================================================
@@ -365,6 +366,8 @@ private:
     std::string current_fits_path_;
     // 当前 stage1 输出 .hiss 路径 (run_stage_drizzle 使用)
     std::string current_output_path_;
+    // Phase1 V3: 当前 stage1 HiPS 产品集根目录
+    std::string current_hips_dir_;
     // stage2 输入 .hiss 文件列表 (run_stage_gradient_sphere / run_stage_stack 使用)
     std::vector<std::string> stage2_hiss_files_;
     // stage2 输出 .hcsd 路径 (run_stage_stack 使用)
@@ -418,6 +421,8 @@ private:
     // stage 7: HISS_VERIFY (验证 drizzle 输出的 .hiss 文件完整性)
     // R10: 同时验证 metadata 中 precision_mode 与请求一致
     bool run_stage_hiss_verify(TaskResult& result);
+    // Phase1 V3: HIPS_VERIFY (AIO HiPS Reader 验证 signal/support/snr 产品集)
+    bool run_stage_hips_verify(TaskResult& result);
     // stage 9: BROWSER_VERIFY (Browser 后端双精度读取/查询验证)
     bool run_stage_browser_verify(TaskResult& result);
     // stage 8: GRADIENT_SPHERE (healpix_stack.dll hp_stack_gradient_corrected)

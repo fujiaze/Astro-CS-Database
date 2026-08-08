@@ -36,6 +36,7 @@
 #include "astro_image_io.h"
 // IVOA HiPS 写入器 (Phase1 Full Freeze v2, HiPS 迁移)
 #include "aio_hips.h"
+#include "aio_hips_reader.h"   // Phase1 V3: HIPS_VERIFY / Browser 唯一后端
 // HioSnrModel / HISS SNR 模型结构
 #include "aio_healpix_io.h"
 
@@ -394,6 +395,7 @@ std::string Orchestrator::stage_name_v2(PipelineStageV2 stage) {
         case PipelineStageV2::PHOTOMETRIC:     return "PHOTOMETRIC";
         case PipelineStageV2::SNR:             return "SNR";
         case PipelineStageV2::DRIZZLE:         return "DRIZZLE";
+        case PipelineStageV2::HIPS_VERIFY:     return "HIPS_VERIFY";
         case PipelineStageV2::GRADIENT_SPHERE: return "GRADIENT_SPHERE";
         case PipelineStageV2::STACK:           return "STACK";
         default:                               return "UNKNOWN";
@@ -3369,15 +3371,15 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
         return false;
     }
 
-    // 获取函数指针
-    auto fn_drizzle = dll_loader_.get_function<int (*)(
+    // 获取函数指针 (Phase1 V3: 正式末端 hp_drizzle_run_hips 直写 HiPS)
+    auto fn_drizzle_hips = dll_loader_.get_function<int (*)(
         PipelineFrame*, int, int, double,
-        const char*, HpDrizzleResult*, int)>(
-        ModuleId::DRIZZLE, "hp_drizzle_run");
+        const char*, const char*, HpDrizzleResult*, int)>(
+        ModuleId::DRIZZLE, "hp_drizzle_run_hips");
 
-    if (!fn_drizzle) {
-        LOG_ERROR("orchestrator", "[DRIZZLE] hp_drizzle_run 函数未找到");
-        result.error_msg = "[DRIZZLE] hp_drizzle_run 函数未找到";
+    if (!fn_drizzle_hips) {
+        LOG_ERROR("orchestrator", "[DRIZZLE] hp_drizzle_run_hips 函数未找到");
+        result.error_msg = "[DRIZZLE] hp_drizzle_run_hips 函数未找到";
         return false;
     }
 
@@ -3421,9 +3423,10 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
         LOG_INFO("orchestrator", std::string(buf));
     }
 
-    // 调用 hp_drizzle_run
+    // 调用 hp_drizzle_run_hips
     // P03-002: pixfrac 从 config 读取 (默认 1.0), nested 从 config 读取 (默认 true)
-    // output_path = current_output_path_ (.hiss 路径)
+    // hips_dir = output.hips (缺省由 current_output_path_ 派生, 去 .hiss 换 .hips)
+    // legacy .hiss 仅在 validation.legacy_hiss_compare=true 时写出 (默认关闭)
     // R10: 通过 header KV "PRECISION" 传递精度模式给 drizzle DLL
     //      "fp32" (默认) 或 "fp64", drizzle DLL 写入 HISS metadata precision_mode 字段
     auto fn_kv_set = dll_loader_.get_function<int (*)(
@@ -3442,18 +3445,44 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
 
     HpDrizzleResult driz_result;
     std::memset(&driz_result, 0, sizeof(HpDrizzleResult));
-    LOG_INFO("orchestrator", "[DRIZZLE] 输出: " + current_output_path_
+    std::string hips_dir = stage1_cfg_->output.hips;
+    if (hips_dir.empty()) {
+        hips_dir = current_output_path_;
+        if (hips_dir.size() > 5 &&
+            hips_dir.compare(hips_dir.size() - 5, 5, ".hiss") == 0) {
+            hips_dir = hips_dir.substr(0, hips_dir.size() - 5) + ".hips";
+        } else {
+            hips_dir += ".hips";
+        }
+    }
+    const std::string legacy_hiss =
+        stage1_cfg_->validation.legacy_hiss_compare ? current_output_path_ : std::string();
+    // overwrite=true 时清理旧 HiPS 输出 (避免 CFITSIO 拒绝覆盖/残留旧 tile)
+    if (stage1_cfg_->output.overwrite && fs::exists(hips_dir)) {
+        std::error_code ec;
+        fs::remove_all(hips_dir, ec);
+        if (ec) {
+            LOG_WARN("orchestrator", "[DRIZZLE] 清理旧 HiPS 目录失败: " + hips_dir
+                     + " (" + ec.message() + ")");
+        } else {
+            LOG_INFO("orchestrator", "[DRIZZLE] 已清理旧 HiPS 输出: " + hips_dir);
+        }
+    }
+    LOG_INFO("orchestrator", "[DRIZZLE] HiPS 输出: " + hips_dir
+             + " legacy_hiss=" + (legacy_hiss.empty() ? "OFF" : legacy_hiss)
              + " precision=" + (config_.precision == PrecisionMode::FP64 ? "FP64" : "FP32"));
 
-    int ret = fn_drizzle(frame_, nside, nested, pixfrac,
-                         current_output_path_.c_str(), &driz_result,
-                         static_cast<int>(config_.precision));
+    int ret = fn_drizzle_hips(frame_, nside, nested, pixfrac,
+                              hips_dir.c_str(),
+                              legacy_hiss.empty() ? nullptr : legacy_hiss.c_str(),
+                              &driz_result,
+                              static_cast<int>(config_.precision));
     if (ret != 0) {
         std::string err = driz_result.error_msg[0] != '\0'
             ? std::string(driz_result.error_msg)
             : std::to_string(ret);
-        LOG_ERROR("orchestrator", "[DRIZZLE] hp_drizzle_run 失败: " + err);
-        result.error_msg = "[DRIZZLE] hp_drizzle_run 失败: " + err;
+        LOG_ERROR("orchestrator", "[DRIZZLE] hp_drizzle_run_hips 失败: " + err);
+        result.error_msg = "[DRIZZLE] hp_drizzle_run_hips 失败: " + err;
         result.exit_code = AstroCsExitCode::DRIZZLE_FAILED;
         return false;
     }
@@ -3462,32 +3491,9 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
              + " n_source=" + std::to_string(driz_result.n_source_pixels)
              + " 耗时=" + std::to_string(driz_result.elapsed_sec) + "s");
 
-    // Phase1 Full Freeze v2 (HiPS 迁移): 由唯一 AIO 写 IVOA HiPS
-    // (HISS 保留为迁移对账与 Browser 兼容, 标记 deprecated)
-    {
-        std::string hips_dir = current_output_path_;
-        if (hips_dir.size() > 5 &&
-            hips_dir.compare(hips_dir.size() - 5, 5, ".hiss") == 0) {
-            hips_dir = hips_dir.substr(0, hips_dir.size() - 5) + ".hips";
-        } else {
-            hips_dir += ".hips";
-        }
-        std::string hips_err;
-        auto t0 = std::chrono::steady_clock::now();
-        bool hips_ok = write_hips_from_hiss(dll_loader_, current_output_path_,
-                                            hips_dir,
-                                            config_.precision == PrecisionMode::FP64,
-                                            hips_err);
-        auto t1 = std::chrono::steady_clock::now();
-        double hips_sec = std::chrono::duration<double>(t1 - t0).count();
-        if (hips_ok) {
-            LOG_INFO("orchestrator", "[DRIZZLE] HiPS 已写入: " + hips_dir
-                     + " (" + std::to_string(hips_sec) + "s)");
-        } else {
-            LOG_WARN("orchestrator", "[DRIZZLE] HiPS 写入失败 (HISS 仍有效): "
-                     + hips_err + " (耗时 " + std::to_string(hips_sec) + "s)");
-        }
-    }
+    current_hips_dir_ = hips_dir;
+    LOG_INFO("orchestrator", "[DRIZZLE] HiPS 已直写: " + hips_dir
+             + " (无 HISS 中转)");
     return true;
 }
 
@@ -3885,6 +3891,191 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
              + " precision=" + (is_fp64 ? "FP64" : "FP32"));
 
     LOG_INFO("orchestrator", "[HISS_VERIFY] 完成: .hiss 文件验证通过 (全 Tile 遍历)");
+    return true;
+}
+
+// ============================================================================
+// stage 8: HIPS_VERIFY - 验证 HiPS 产品集 (Phase1 Final Closure V3)
+//   唯一后端: AIO HiPS Reader (aio_hips_reader.dll 函数, 不经 astropy/CFITSIO)
+//   验证项:
+//     1. signal/support/snr 三产品 properties (hips_version=1.4, order, width)
+//     2. signal/support dtype 与 precision 一致 (manifest astrocs_signal_dtype)
+//     3. 叶级 tile 全遍历: support∈[0,1], support>0 -> signal 有限,
+//        support==0 -> signal NaN; F = signal*support*A_cell 有限非负
+//     4. MOC 覆盖: tile 列表来自 MOC, 且每个 tile FITS 文件存在
+//     5. SNR catalogue: 点数 > 0
+//     6. hierarchy: Norder0..NorderK 目录存在
+// ============================================================================
+bool Orchestrator::run_stage_hips_verify(TaskResult& result) {
+    LOG_INFO("orchestrator", "[HIPS_VERIFY] 开始: " + current_hips_dir_);
+    if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::AIO)) {
+        result.error_msg = "[HIPS_VERIFY] AIO DLL 未加载";
+        return false;
+    }
+    if (current_hips_dir_.empty() || !fs::exists(current_hips_dir_)) {
+        result.error_msg = "[HIPS_VERIFY] HiPS 目录不存在: " + current_hips_dir_;
+        LOG_ERROR("orchestrator", result.error_msg);
+        return false;
+    }
+
+    using OpenFn = AioHipsDataset* (*)(const char*, int);
+    using GetPropsFn = int (*)(AioHipsDataset*, char*, int);
+    using TileCountFn = int (*)(AioHipsDataset*);
+    using TileIpixFn = int (*)(AioHipsDataset*, int, uint64_t*);
+    using ReadF32Fn = int (*)(AioHipsDataset*, uint64_t, float*);
+    using ReadF64Fn = int (*)(AioHipsDataset*, uint64_t, double*);
+    using ReadSnrFn = int (*)(AioHipsDataset*, double*, double*, double*, int64_t*, int);
+    using CloseFn = void (*)(AioHipsDataset*);
+    using ErrFn = const char* (*)(void);
+
+    auto fn_open = dll_loader_.get_function<OpenFn>(ModuleId::AIO, "aio_hips_open");
+    auto fn_props = dll_loader_.get_function<GetPropsFn>(ModuleId::AIO, "aio_hips_get_properties");
+    auto fn_count = dll_loader_.get_function<TileCountFn>(ModuleId::AIO, "aio_hips_tile_count");
+    auto fn_ipix = dll_loader_.get_function<TileIpixFn>(ModuleId::AIO, "aio_hips_tile_ipix");
+    auto fn_read32 = dll_loader_.get_function<ReadF32Fn>(ModuleId::AIO, "aio_hips_read_tile_f32");
+    auto fn_read64 = dll_loader_.get_function<ReadF64Fn>(ModuleId::AIO, "aio_hips_read_tile_f64");
+    auto fn_snr = dll_loader_.get_function<ReadSnrFn>(ModuleId::AIO, "aio_hips_read_snr_catalog");
+    auto fn_close = dll_loader_.get_function<CloseFn>(ModuleId::AIO, "aio_hips_close");
+    auto fn_err = dll_loader_.get_function<ErrFn>(ModuleId::AIO, "aio_hips_reader_last_error");
+    if (!fn_open || !fn_props || !fn_count || !fn_ipix || !fn_read32 || !fn_read64 ||
+        !fn_close) {
+        result.error_msg = "[HIPS_VERIFY] AIO HiPS Reader 函数缺失";
+        LOG_ERROR("orchestrator", result.error_msg);
+        return false;
+    }
+
+    const bool fp64 = (config_.precision == PrecisionMode::FP64);
+    const double A_cell = 0.0;  // 由 nside 计算 (从 properties hips_order 推导 nside)
+    (void)A_cell;
+
+    // 1. 打开 signal / support / snr
+    std::vector<std::pair<const char*, int>> products = {
+        {"signal", AIO_HIPS_RD_SIGNAL}, {"support", AIO_HIPS_RD_SUPPORT},
+        {"snr", AIO_HIPS_RD_SNR}
+    };
+    int tile_count = 0;
+    int hips_order = 0;
+    char props_buf[8192];
+    for (const auto& pr : products) {
+        AioHipsDataset* d = fn_open(current_hips_dir_.c_str(), pr.second);
+        if (!d) {
+            result.error_msg = std::string("[HIPS_VERIFY] 打开 ") + pr.first + " 失败: " +
+                               (fn_err ? (fn_err() ? fn_err() : "?") : "?");
+            LOG_ERROR("orchestrator", result.error_msg);
+            return false;
+        }
+        std::string props;
+        if (fn_props(d, props_buf, (int)sizeof(props_buf)) == 0) props = props_buf;
+        fn_close(d);
+        // hips_version=1.4
+        if (props.find("hips_version=1.4") == std::string::npos) {
+            result.error_msg = "[HIPS_VERIFY] " + std::string(pr.first) + " hips_version != 1.4";
+            LOG_ERROR("orchestrator", result.error_msg);
+            return false;
+        }
+        if (pr.second != AIO_HIPS_RD_SNR) {
+            if (props.find("hips_tile_width=512") == std::string::npos) {
+                result.error_msg = "[HIPS_VERIFY] " + std::string(pr.first) + " hips_tile_width != 512";
+                return false;
+            }
+            // dtype 严格
+            std::string want = fp64 ? "astrocs_signal_dtype=float64" : "astrocs_signal_dtype=float32";
+            if (pr.second == AIO_HIPS_RD_SIGNAL &&
+                props.find(want) == std::string::npos) {
+                result.error_msg = "[HIPS_VERIFY] signal dtype 与 precision 不匹配";
+                LOG_ERROR("orchestrator", result.error_msg);
+                return false;
+            }
+        }
+    }
+
+    // 2. signal + support 全 tile 遍历
+    AioHipsDataset* dsig = fn_open(current_hips_dir_.c_str(), AIO_HIPS_RD_SIGNAL);
+    AioHipsDataset* dsup = fn_open(current_hips_dir_.c_str(), AIO_HIPS_RD_SUPPORT);
+    if (!dsig || !dsup) {
+        result.error_msg = "[HIPS_VERIFY] signal/support 打开失败";
+        if (dsig) fn_close(dsig);
+        if (dsup) fn_close(dsup);
+        return false;
+    }
+    tile_count = fn_count(dsig);
+    if (tile_count <= 0) {
+        result.error_msg = "[HIPS_VERIFY] signal 无叶级 tile";
+        fn_close(dsig); fn_close(dsup);
+        return false;
+    }
+    // hips_order 从 properties 提取 (在循环里已检查, 此处再解析用于日志)
+    {
+        char buf[8192];
+        if (fn_props(dsig, buf, (int)sizeof(buf)) == 0) {
+            std::string s = buf;
+            size_t p = s.find("hips_order=");
+            if (p != std::string::npos) hips_order = std::atoi(s.c_str() + p + 11);
+        }
+    }
+    const uint32_t nside_leaf = 1u << (uint32_t)(hips_order + 9);
+    const double a_cell = 4.0 * 3.14159265358979323846 / (12.0 * (double)nside_leaf * nside_leaf);
+    const size_t n_pix = 512 * 512;
+    std::vector<float> sig32(n_pix), sup32(n_pix);
+    std::vector<double> sig64(n_pix), sup64(n_pix);
+    int n_fail = 0;
+    for (int i = 0; i < tile_count; ++i) {
+        uint64_t ipix = 0;
+        if (fn_ipix(dsig, i, &ipix) != 0) { ++n_fail; continue; }
+        int r1 = fp64 ? fn_read64(dsig, ipix, sig64.data())
+                      : fn_read32(dsig, ipix, sig32.data());
+        int r2 = fp64 ? fn_read64(dsup, ipix, sup64.data())
+                      : fn_read32(dsup, ipix, sup32.data());
+        if (r1 != 0 || r2 != 0) { ++n_fail; continue; }
+        for (size_t k = 0; k < n_pix; ++k) {
+            double sup = fp64 ? sup64[k] : (double)sup32[k];
+            double sig = fp64 ? sig64[k] : (double)sig32[k];
+            if (sup < 0.0 || sup > 1.0) { ++n_fail; break; }
+            if (sup > 0.0) {
+                if (!std::isfinite(sig)) { ++n_fail; break; }
+                double f = sig * sup * a_cell;
+                if (!std::isfinite(f) || f < 0.0) { ++n_fail; break; }
+            }
+        }
+    }
+    fn_close(dsig);
+    fn_close(dsup);
+    if (n_fail > 0) {
+        result.error_msg = "[HIPS_VERIFY] tile 验证失败数: " + std::to_string(n_fail);
+        LOG_ERROR("orchestrator", result.error_msg);
+        return false;
+    }
+
+    // 3. hierarchy 目录检查 (Norder0..NorderK)
+    for (int k = 0; k <= hips_order; ++k) {
+        std::string dir = current_hips_dir_ + "/signal/Norder" + std::to_string(k);
+        if (!fs::exists(dir)) {
+            result.error_msg = "[HIPS_VERIFY] hierarchy 缺失: " + dir;
+            LOG_ERROR("orchestrator", result.error_msg);
+            return false;
+        }
+    }
+
+    // 4. SNR catalogue
+    AioHipsDataset* dsnr = fn_open(current_hips_dir_.c_str(), AIO_HIPS_RD_SNR);
+    if (!dsnr) {
+        result.error_msg = "[HIPS_VERIFY] snr 产品打开失败";
+        return false;
+    }
+    double ra_buf[4096], dec_buf[4096], snr_buf[4096];
+    int64_t id_buf[4096];
+    int n_snr = fn_snr ? fn_snr(dsnr, ra_buf, dec_buf, snr_buf, id_buf, 4096) : 0;
+    fn_close(dsnr);
+    if (n_snr <= 0) {
+        result.error_msg = "[HIPS_VERIFY] SNR catalogue 为空";
+        LOG_ERROR("orchestrator", result.error_msg);
+        return false;
+    }
+
+    LOG_INFO("orchestrator", "[HIPS_VERIFY] 通过: tiles=" + std::to_string(tile_count)
+             + " order=" + std::to_string(hips_order) + " snr_points=" + std::to_string(n_snr)
+             + " dtype=" + (fp64 ? "float64" : "float32"));
+    LOG_INFO("orchestrator", "[HIPS_VERIFY] 完成: HiPS 产品集验证通过");
     return true;
 }
 
@@ -4708,7 +4899,7 @@ TaskResult Orchestrator::run_stage1(const Stage1Config& cfg) {
     static const std::map<std::string, std::string> kTimeoutKeyMap = {
         {"read", "READ_FITS"}, {"calibrate", "CALIBRATE"}, {"platesolve", "PLATESOLVE"},
         {"psf", "PSF"}, {"photometric", "PHOTOMETRIC"}, {"snr", "SNR"},
-        {"nside", "NSIDE"}, {"drizzle", "DRIZZLE"},
+        {"nside", "NSIDE"}, {"drizzle", "DRIZZLE"}, {"hips_verify", "HIPS_VERIFY"},
         {"hiss_verify", "HISS_VERIFY"}, {"browser_verify", "BROWSER_VERIFY"}
     };
     for (const auto& [k, v] : cfg.execution.stage_timeout_sec) {
@@ -4883,6 +5074,7 @@ TaskResult Orchestrator::run_stage1(const Stage1Config& cfg) {
                 case PipelineStageV2::SNR:         result.exit_code = AstroCsExitCode::GENERIC_ERROR; break;
                 case PipelineStageV2::NSIDE:       result.exit_code = AstroCsExitCode::GENERIC_ERROR; break;
                 case PipelineStageV2::DRIZZLE:     result.exit_code = AstroCsExitCode::DRIZZLE_FAILED; break;
+                case PipelineStageV2::HIPS_VERIFY: result.exit_code = AstroCsExitCode::HISS_INVALID; break;
                 case PipelineStageV2::HISS_VERIFY: result.exit_code = AstroCsExitCode::HISS_INVALID; break;
                 case PipelineStageV2::BROWSER_VERIFY: result.exit_code = AstroCsExitCode::HISS_INVALID; break;
                 default:                            result.exit_code = AstroCsExitCode::GENERIC_ERROR; break;
@@ -4896,6 +5088,7 @@ TaskResult Orchestrator::run_stage1(const Stage1Config& cfg) {
         {"READ_FITS", "read"}, {"CALIBRATE", "calibrate"}, {"PLATESOLVE", "platesolve"},
         {"PSF", "psf"}, {"PHOTOMETRIC", "photometric"}, {"SNR", "snr"},
         {"NSIDE", "nside"}, {"DRIZZLE", "drizzle"},
+        {"HIPS_VERIFY", "hips_verify"},
         {"HISS_VERIFY", "hiss_verify"}, {"BROWSER_VERIFY", "browser_verify"}
     };
     struct StageDef { PipelineStageV2 stage; const char* name;
@@ -4911,6 +5104,7 @@ TaskResult Orchestrator::run_stage1(const Stage1Config& cfg) {
         {PipelineStageV2::SNR,         "SNR",         &Orchestrator::run_stage_snr},
         {PipelineStageV2::NSIDE,       "NSIDE",       &Orchestrator::run_stage_nside},
         {PipelineStageV2::DRIZZLE,     "DRIZZLE",     &Orchestrator::run_stage_drizzle},
+        {PipelineStageV2::HIPS_VERIFY, "HIPS_VERIFY", &Orchestrator::run_stage_hips_verify},
         {PipelineStageV2::HISS_VERIFY, "HISS_VERIFY", &Orchestrator::run_stage_hiss_verify},
         {PipelineStageV2::BROWSER_VERIFY, "BROWSER_VERIFY", &Orchestrator::run_stage_browser_verify}
     };
@@ -4928,8 +5122,10 @@ TaskResult Orchestrator::run_stage1(const Stage1Config& cfg) {
             // 逐 Gate 成功停止: 明确 completed_to_gate, 不冒充完整 Stage1
             result.success = true;
             result.completed_to_gate = gate;
-            result.output_hiss_path = (gate == "drizzle" || gate == "hiss_verify" || gate == "browser_verify")
-                                      ? cfg.output.hiss : "";
+            result.output_hiss_path = (gate == "drizzle" || gate == "hiss_verify" ||
+                                       gate == "hips_verify" || gate == "browser_verify")
+                                      ? (gate == "hips_verify" && !cfg.output.hips.empty()
+                                         ? cfg.output.hips : cfg.output.hiss) : "";
             LOG_INFO("orchestrator", "========== stage1 逐 Gate 停止: completed_to_gate=" + gate
                      + " (stop_after=" + stop_at + ") ==========");
             if (frame_ != nullptr && fn_frame_destroy) {

@@ -20,6 +20,11 @@
 
 namespace drizzle {
 
+// Phase1 Final Closure V3: 有效 Tile 分组深度 (config.tile_depth 优先, 0=auto)
+static uint32_t eff_tile_depth(const DrizzleConfig& c) {
+    return c.tile_depth ? c.tile_depth : hiss::compute_tile_depth((uint32_t)c.nside);
+}
+
 // R12 (性能 profile): OpenMP 线程池 thread_local 阶段计时 (仅统计, 不改变逻辑)
 static thread_local double g_tl_prof_cand = 0.0;
 static thread_local double g_tl_prof_overlap = 0.0;
@@ -561,7 +566,7 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
     }
 
     // 6. 展开 Tile 结果到全局 leaf map (兼容旧调用方; 正式路径请用 drizzleTiled + writeHisTiles)
-    uint32_t depth = hiss::compute_tile_depth((uint32_t)config.nside);
+    uint32_t depth = eff_tile_depth(config);
     int shift = 2 * (int)depth;
     accumulators.clear();
     for (const auto& tile : tiles) {
@@ -680,7 +685,7 @@ bool DrizzleEngine::drizzle_f64(const FitsImage& img, const DrizzleConfig& confi
     }
 
     // 6. 展开 Tile 结果到全局 leaf map (兼容旧调用方; 正式路径请用 drizzleTiled_f64 + writeHisTiles)
-    uint32_t depth = hiss::compute_tile_depth((uint32_t)config.nside);
+    uint32_t depth = eff_tile_depth(config);
     int shift = 2 * (int)depth;
     accumulators.clear();
     for (const auto& tile : tiles) {
@@ -784,7 +789,7 @@ bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator
 
     // 1. 计算 Tile 几何 (02_FROZEN §11)
     uint32_t nside = (uint32_t)config.nside;
-    uint32_t depth = hiss::compute_tile_depth(nside);
+    uint32_t depth = eff_tile_depth(config);
     uint32_t tile_nside = hiss::compute_tile_nside(nside);
     uint32_t n_leaf_per_tile = 1u << (2 * depth);  // 4^depth
     int shift = 2 * (int)depth;
@@ -1274,7 +1279,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
 
     // Tile 几何 (与 writeHis/writeHisTiles 一致, 02_FROZEN §11)
     uint32_t nside = (uint32_t)config.nside;
-    uint32_t depth = hiss::compute_tile_depth(nside);
+    uint32_t depth = eff_tile_depth(config);
     uint32_t tile_nside = hiss::compute_tile_nside(nside);
     uint32_t n_leaf_per_tile = 1u << (2 * depth);
     int shift = 2 * (int)depth;
@@ -1476,7 +1481,7 @@ bool DrizzleEngine::writeHisTilesT(const std::vector<TileAccumulatorT<Scalar>>& 
 
     // 1. 计算 Tile 几何 (02_FROZEN §11)
     uint32_t nside = (uint32_t)config.nside;
-    uint32_t depth = hiss::compute_tile_depth(nside);
+    uint32_t depth = eff_tile_depth(config);
     uint32_t tile_nside = hiss::compute_tile_nside(nside);
     uint32_t n_leaf_per_tile = 1u << (2 * depth);
     int shift = 2 * (int)depth;

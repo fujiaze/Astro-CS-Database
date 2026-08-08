@@ -301,7 +301,6 @@ static const char* STAGE1_SCHEMA_JSON = R"JSON(
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "hiss",
         "log",
         "diagnostics_dir",
         "overwrite"
@@ -309,7 +308,11 @@ static const char* STAGE1_SCHEMA_JSON = R"JSON(
       "properties": {
         "hiss": {
           "type": "string",
-          "minLength": 1
+          "default": ""
+        },
+        "hips": {
+          "type": "string",
+          "default": ""
         },
         "log": {
           "type": "string",
@@ -321,6 +324,16 @@ static const char* STAGE1_SCHEMA_JSON = R"JSON(
         },
         "overwrite": {
           "type": "boolean"
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "legacy_hiss_compare": {
+          "type": "boolean",
+          "default": false
         }
       }
     },
@@ -343,6 +356,7 @@ static const char* STAGE1_SCHEMA_JSON = R"JSON(
             "snr",
             "nside",
             "drizzle",
+            "hips_verify",
             "hiss_verify",
             "browser_verify"
           ]
@@ -363,6 +377,7 @@ static const char* STAGE1_SCHEMA_JSON = R"JSON(
             "snr",
             "nside",
             "drizzle",
+            "hips_verify",
             "hiss_verify",
             "browser_verify"
           ],
@@ -396,6 +411,10 @@ static const char* STAGE1_SCHEMA_JSON = R"JSON(
               "exclusiveMinimum": 0
             },
             "drizzle": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "hips_verify": {
               "type": "number",
               "exclusiveMinimum": 0
             },
@@ -557,9 +576,10 @@ static bool runtime_checks(const json& root, const fs::path& base_dir,
                 return false;
             }
         }
-        // 3. 输出目录父目录必须存在或可创建
+        // 3. 输出目录父目录必须存在或可创建 (hiss 已可选, 空串跳过)
         const auto& out = root["output"];
         for (const char* key : {"hiss", "log", "diagnostics_dir"}) {
+            if (out[key].is_null() || out[key].get<std::string>().empty()) continue;
             std::string p = resolve_path(out[key].get<std::string>(), base_dir);
             fs::path parent = fs::path(p).parent_path();
             if (!parent.empty()) {
@@ -688,10 +708,17 @@ int parse_stage1_config(const std::string& json_path, Stage1Config& config, std:
         config.drizzle.nside_value = root["drizzle"]["nside"]["value"].get<int>();
     }
 
-    config.output.hiss = resolve_path(root["output"]["hiss"].get<std::string>(), base_dir);
+    const auto& out_cfg = root["output"];
+    config.output.hiss = out_cfg.contains("hiss") && !out_cfg["hiss"].is_null()
+        ? resolve_path(out_cfg["hiss"].get<std::string>(), base_dir) : std::string();
+    config.output.hips = out_cfg.contains("hips") && !out_cfg["hips"].is_null()
+        ? resolve_path(out_cfg["hips"].get<std::string>(), base_dir) : std::string();
     config.output.log = resolve_path(root["output"]["log"].get<std::string>(), base_dir);
     config.output.diagnostics_dir = resolve_path(root["output"]["diagnostics_dir"].get<std::string>(), base_dir);
     config.output.overwrite = root["output"]["overwrite"].get<bool>();
+    config.validation.legacy_hiss_compare =
+        root.contains("validation") && root["validation"].contains("legacy_hiss_compare")
+        ? root["validation"]["legacy_hiss_compare"].get<bool>() : false;
 
     config.execution.stop_after = root["execution"]["stop_after"].get<std::string>();
     config.execution.threads = root["execution"]["threads"].get<int>();
@@ -768,9 +795,13 @@ std::string compute_config_sha256(const Stage1Config& config) {
 
     j["output"] = {
         {"hiss", config.output.hiss},
+        {"hips", config.output.hips},
         {"log", config.output.log},
         {"diagnostics_dir", config.output.diagnostics_dir},
         {"overwrite", config.output.overwrite}
+    };
+    j["validation"] = {
+        {"legacy_hiss_compare", config.validation.legacy_hiss_compare}
     };
 
     j["execution"] = {

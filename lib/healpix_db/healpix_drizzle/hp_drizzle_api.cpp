@@ -12,6 +12,7 @@
 #include "astro_image_io.h"   // aio_frame_get_block / aio_frame_kv_get
 #include "gradient/snr_evaluator.h"  // SnrEvaluator (KD-tree IDW 重建逐像素 SNR)
 #include "aio_healpix_io.h"         // HioSnrModel, HioSnrControlPoint (向后兼容宏)
+#include "astro_sphere_sink.h"      // Phase1 V3: Drizzle -> AIO HiPS 直写
 
 #include <cstdio>
 #include <cstring>
@@ -351,17 +352,22 @@ HP_DRIZZLE_API int hp_drizzle_fits_to_ahpx(
 }
 
 // ============================================================================
-// hp_drizzle_run - Drizzle 阶段: PipelineFrame 命名块直通 → .hiss
+// run_drizzle_internal - 共享 Drizzle 执行 (parse frame -> drizzle ->
+//                        [legacy .hiss] / [HiPS 直写] 输出)
 //
-// 从 PipelineFrame 的 "data" 块 (float32[H,W]) 和 "header" KV 块 (WCS+SIP)
-// 直接构造 FitsImage, 调用 DrizzleEngine, 不经临时 FITS 文件。
-// 输出 .hiss 文件通过 healpix_io.dll 的 hiss_write 写入。
+// write_hips       : 是否直写 HiPS 产品集 (Drizzle -> AIO, 无 HISS 中转)
+// hips_dir         : HiPS 输出根目录 (write_hips 时必需)
+// write_legacy_hiss: 是否同时写 legacy .hiss (validation.legacy_hiss_compare)
+// output_path      : legacy .hiss 路径 (write_legacy_hiss 时必需)
 // ============================================================================
-HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
-                                   int nside, int nested, double pixfrac,
-                                   const char* output_path,
-                                   HpDrizzleResult* result,
-                                   int precision_mode)
+static int run_drizzle_internal(PipelineFrame* frame,
+                                int nside, int nested, double pixfrac,
+                                const char* output_path,
+                                const char* hips_dir,
+                                bool write_hips,
+                                bool write_legacy_hiss,
+                                HpDrizzleResult* result,
+                                int precision_mode)
 {
     // 1. 参数校验
     if (!frame || !result) {
@@ -774,11 +780,39 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
         }
     }
 
+    // Phase1 Final Closure V3: 收集 SNR 控制点 (HiPS Catalogue 用, star_id=索引+1)
+    std::vector<AioHipsSnrPoint> snr_pts;
+    if (snrModelPtr && snrModelPtr->points) {
+        snr_pts.reserve(snrModelPtr->n_points);
+        for (uint32_t i = 0; i < snrModelPtr->n_points; i++) {
+            AioHipsSnrPoint pt;
+            pt.ra_deg = snrModelPtr->points[i].ra;
+            pt.dec_deg = snrModelPtr->points[i].dec;
+            pt.snr = snrModelPtr->points[i].snr_psf;
+            pt.source_id = (int64_t)i + 1;
+            snr_pts.push_back(pt);
+        }
+    } else if (snrModelF64Ptr && snrModelF64Ptr->points) {
+        snr_pts.reserve(snrModelF64Ptr->n_points);
+        for (uint32_t i = 0; i < snrModelF64Ptr->n_points; i++) {
+            AioHipsSnrPoint pt;
+            pt.ra_deg = snrModelF64Ptr->points[i].ra;
+            pt.dec_deg = snrModelF64Ptr->points[i].dec;
+            pt.snr = snrModelF64Ptr->points[i].snr_psf;
+            pt.source_id = (int64_t)i + 1;
+            snr_pts.push_back(pt);
+        }
+    }
+    fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: SNR 控制点 %zu 个 (HiPS Catalogue)\n",
+            snr_pts.size());
+
     // 6. 构造 DrizzleConfig
     DrizzleConfig config;
     config.nside   = nside;
     config.nested  = nested ? true : false;
     config.pixfrac = pixfrac;
+    // HiPS 直写要求 depth=9 分组 (512x512 叶 tile 与 HiPS NorderK tile 1:1)
+    if (write_hips) config.tile_depth = 9;
 
     // B5 修复: 从 header KV 读取测光校准信息
     // PHOTOMETRIC 阶段 (pc_calibrate_simple) 已把 photscal 乘入像素值,
@@ -914,6 +948,33 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: .hiss 已写入 %s\n", hissPath.c_str());
     }
 
+    // 8.5 Phase1 Final Closure V3: HiPS 直写 (Drizzle -> AIO, 无 HISS 中转)
+    if (write_hips) {
+        if (!hips_dir || !hips_dir[0]) {
+            fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: write_hips 但 hips_dir 为空\n");
+            setErrorMsg(result, "write_hips 但 hips_dir 为空");
+            return -12;
+        }
+        DrizzleMeta meta;
+        const char* filter_str = aio_frame_kv_get(frame, "header", "FILTER");
+        if (filter_str) meta.filter = filter_str;
+        const char* exptime_str = aio_frame_kv_get(frame, "header", "EXPTIME");
+        if (exptime_str) meta.exposure_s = std::atof(exptime_str);
+        const char* dateobs_str = aio_frame_kv_get(frame, "header", "DATE-OBS");
+        if (dateobs_str) meta.obs_time = dateobs_str;
+
+        bool hips_ok = img.use_f64
+            ? write_hips_direct<double>(tiles_f64, config, meta, hips_dir, snr_pts, errMsg)
+            : write_hips_direct<float>(tiles_f32, config, meta, hips_dir, snr_pts, errMsg);
+        if (!hips_ok) {
+            fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: HiPS 直写失败: %s\n", errMsg.c_str());
+            setErrorMsg(result, "HiPS 直写失败: " + errMsg);
+            return -13;
+        }
+        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: HiPS 已直写 %s (无 HISS 中转)\n",
+                hips_dir);
+    }
+
     // 9. 填充结果
     result->n_healpix_pixels = stats.nHealpixPixels;
     result->n_source_pixels  = stats.nSourcePixels;
@@ -923,4 +984,41 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
     result->elapsed_sec      = stats.elapsedSec;
 
     return 0;
+}
+
+// ============================================================================
+// hp_drizzle_run - 正式 API (兼容旧签名): FITS 帧 -> .hiss
+// Phase1 V3 后生产末端为 HiPS; .hiss 仅 validation.legacy_hiss_compare 时使用。
+// ============================================================================
+HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
+                                   int nside, int nested, double pixfrac,
+                                   const char* output_path,
+                                   HpDrizzleResult* result,
+                                   int precision_mode)
+{
+    return run_drizzle_internal(frame, nside, nested, pixfrac,
+                                output_path, nullptr,
+                                /*write_hips=*/false,
+                                /*write_legacy_hiss=*/(output_path && output_path[0] != '\0'),
+                                result, precision_mode);
+}
+
+// ============================================================================
+// hp_drizzle_run_hips - Phase1 Final Closure V3 正式末端:
+//   Drizzle TileAccumulator -> AIO HiPS 直写 (无 HISS 中转)
+// hips_dir        : HiPS 产品集根目录 (signal/support/snr 子产品)
+// legacy_hiss_path: 可选 legacy .hiss 路径 (nullptr=不写, 仅 validation 用)
+// ============================================================================
+HP_DRIZZLE_API int hp_drizzle_run_hips(PipelineFrame* frame,
+                                       int nside, int nested, double pixfrac,
+                                       const char* hips_dir,
+                                       const char* legacy_hiss_path,
+                                       HpDrizzleResult* result,
+                                       int precision_mode)
+{
+    return run_drizzle_internal(frame, nside, nested, pixfrac,
+                                legacy_hiss_path, hips_dir,
+                                /*write_hips=*/true,
+                                /*write_legacy_hiss=*/(legacy_hiss_path && legacy_hiss_path[0] != '\0'),
+                                result, precision_mode);
 }

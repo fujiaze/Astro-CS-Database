@@ -65,6 +65,15 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
                                    HpDrizzleResult* result,
                                    int precision_mode);
 
+// Phase1 Final Closure V3: Drizzle -> AIO HiPS 直写 (无 HISS 中转)
+// hips_dir: HiPS 产品集根目录; legacy_hiss_path: 可选 legacy .hiss (validation 用)
+HP_DRIZZLE_API int hp_drizzle_run_hips(PipelineFrame* frame,
+                                       int nside, int nested, double pixfrac,
+                                       const char* hips_dir,
+                                       const char* legacy_hiss_path,
+                                       HpDrizzleResult* result,
+                                       int precision_mode);
+
 // ============================================================================
 // 反向 Drizzle (Sphere -> Plane, 球面面积语义) — 签字修正 REV-101 正式 C ABI
 // ============================================================================

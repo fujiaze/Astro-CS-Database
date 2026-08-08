@@ -46,12 +46,16 @@
   },
   "output": {
     "hiss": "../output/frame.hiss",
+    "hips": "../output/frame.hips",
     "log": "../output/frame.log.jsonl",
     "diagnostics_dir": "../output/diagnostics",
     "overwrite": false
   },
+  "validation": {
+    "legacy_hiss_compare": false
+  },
   "execution": {
-    "stop_after": "hiss_verify",
+    "stop_after": "hips_verify",
     "threads": 0,
     "stage_timeout_sec": {
       "read": 60,
@@ -62,6 +66,7 @@
       "snr": 180,
       "nside": 120,
       "drizzle": 1200,
+      "hips_verify": 180,
       "hiss_verify": 180,
       "browser_verify": 180
     }

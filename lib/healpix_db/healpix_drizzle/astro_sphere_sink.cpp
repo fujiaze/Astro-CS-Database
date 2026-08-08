@@ -1,0 +1,126 @@
+// ============================================================================
+// astro_sphere_sink.cpp - Drizzle TileAccumulator -> AIO HiPS 直写 Sink 实现
+// ============================================================================
+
+#include "astro_sphere_sink.h"
+#include "../../astro_image_io/include/hiss_format.h"  // hiss::compute_tile_depth
+
+#include <algorithm>
+#include <cstdio>
+#include <cstring>
+
+namespace drizzle {
+
+namespace {
+
+uint32_t ilog2_u64(uint64_t v) {
+    uint32_t l = 0;
+    while (v > 1) { v >>= 1; ++l; }
+    return l;
+}
+
+} // namespace
+
+template <typename Scalar>
+bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
+                       const DrizzleConfig& config,
+                       const DrizzleMeta& meta,
+                       const std::string& hips_dir,
+                       const std::vector<AioHipsSnrPoint>& snr_pts,
+                       std::string& err) {
+    const uint32_t nside = (uint32_t)config.nside;
+    const uint32_t depth = config.tile_depth ? config.tile_depth
+                                             : hiss::compute_tile_depth(nside);
+    if (depth != 9) {
+        err = "HiPS 直写要求 tile_depth=9 (nside>=512), 当前 depth=" + std::to_string(depth);
+        std::fprintf(stderr, "[sink] %s\n", err.c_str());
+        return false;
+    }
+    if (nside < 512) {
+        err = "HiPS 直写要求 nside>=512";
+        return false;
+    }
+    const size_t n_leaf = 512 * 512;  // 4^9
+    const int dtype = (sizeof(Scalar) == sizeof(float)) ? AIO_HIPS_FLOAT32
+                                                        : AIO_HIPS_FLOAT64;
+    const std::string title = meta.filter.empty() ? "AstroCS Phase1" : ("AstroCS " + meta.filter);
+
+    AioHipsProductSet* ps = aio_hips_product_begin(
+        hips_dir.c_str(), nside, 512, dtype, AIO_HIPS_PRODUCT_ALL,
+        "ivo://astrocs/phase1", title.c_str(),
+        meta.filter.empty() ? nullptr : meta.filter.c_str(),
+        meta.exposure_s,
+        meta.obs_time.empty() ? nullptr : meta.obs_time.c_str(),
+        0);
+    if (!ps) {
+        err = "aio_hips_product_begin 失败: " +
+              std::string(aio_hips_last_error() ? aio_hips_last_error() : "?");
+        std::fprintf(stderr, "[sink] %s\n", err.c_str());
+        return false;
+    }
+
+    const uint32_t leaf_order = ilog2_u64(nside);
+    std::vector<Scalar> dense_flux(n_leaf, Scalar(0));
+    std::vector<Scalar> dense_area(n_leaf, Scalar(0));
+    size_t n_written = 0;
+    for (const auto& tile : tiles) {
+        if (tile.touched.empty()) continue;
+        std::fill(dense_flux.begin(), dense_flux.end(), Scalar(0));
+        std::fill(dense_area.begin(), dense_area.end(), Scalar(0));
+        for (uint32_t local : tile.touched) {
+            if (local >= n_leaf || local >= tile.pixels.size()) continue;
+            const auto& acc = tile.pixels[local];
+            dense_flux[local] = acc.sumFlux;
+            dense_area[local] = acc.sumArea;
+        }
+        AstroSphereTileView view;
+        std::memset(&view, 0, sizeof(view));
+        view.parent_ipix = tile.parent_ipix;
+        view.leaf_order = leaf_order;
+        view.width = 512;
+        view.data_type = dtype;
+        view.flux_sum = dense_flux.data();
+        view.covered_area = dense_area.data();
+        view.valid_mask = nullptr;
+        int rc = aio_hips_write_signal_support_tile(ps, &view);
+        if (rc != 0) {
+            err = "aio_hips_write_signal_support_tile rc=" + std::to_string(rc) +
+                  ": " + (aio_hips_last_error() ? aio_hips_last_error() : "?");
+            aio_hips_abort(ps);
+            std::fprintf(stderr, "[sink] %s\n", err.c_str());
+            return false;
+        }
+        ++n_written;
+    }
+    if (n_written == 0) {
+        err = "无有效 tile 可写入 HiPS";
+        aio_hips_abort(ps);
+        return false;
+    }
+    if (!snr_pts.empty()) {
+        if (aio_hips_write_snr_points(ps, snr_pts.data(), (int)snr_pts.size()) != 0) {
+            err = "aio_hips_write_snr_points 失败";
+            aio_hips_abort(ps);
+            return false;
+        }
+    }
+    int rc = aio_hips_finalize(ps);
+    if (rc != 0) {
+        err = "aio_hips_finalize rc=" + std::to_string(rc) + ": " +
+              (aio_hips_last_error() ? aio_hips_last_error() : "?");
+        std::fprintf(stderr, "[sink] %s\n", err.c_str());
+        return false;
+    }
+    std::fprintf(stderr, "[sink] HiPS 直写完成: %zu tiles -> %s\n",
+                 n_written, hips_dir.c_str());
+    return true;
+}
+
+template bool write_hips_direct<float>(
+    const std::vector<TileAccumulatorT<float>>&, const DrizzleConfig&, const DrizzleMeta&,
+    const std::string&, const std::vector<AioHipsSnrPoint>&, std::string&);
+template bool write_hips_direct<double>(
+    const std::vector<TileAccumulatorT<double>>&, const DrizzleConfig&, const DrizzleMeta&,
+    const std::string&, const std::vector<AioHipsSnrPoint>&, std::string&);
+
+} // namespace drizzle

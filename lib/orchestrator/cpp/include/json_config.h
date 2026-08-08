@@ -71,11 +71,16 @@ struct Stage1Config {
     } drizzle;
 
     struct Output {
-        std::string hiss;                    // 必填, 非空
+        std::string hiss;                    // deprecated: 仅 legacy validation 用 (可空)
+        std::string hips;                    // Phase1 V3: HiPS 产品集目录 (空=由 hiss 派生)
         std::string log;                     // 必填, 非空
         std::string diagnostics_dir;         // 必填, 非空
         bool overwrite = false;
     } output;
+
+    struct Validation {
+        bool legacy_hiss_compare = false;    // 默认 false: 不写 legacy .hiss
+    } validation;
 
     struct Execution {
         std::string stop_after = "hiss_verify";

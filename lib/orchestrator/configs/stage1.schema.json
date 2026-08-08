@@ -268,7 +268,6 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "hiss",
         "log",
         "diagnostics_dir",
         "overwrite"
@@ -276,7 +275,11 @@
       "properties": {
         "hiss": {
           "type": "string",
-          "minLength": 1
+          "default": ""
+        },
+        "hips": {
+          "type": "string",
+          "default": ""
         },
         "log": {
           "type": "string",
@@ -288,6 +291,16 @@
         },
         "overwrite": {
           "type": "boolean"
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "legacy_hiss_compare": {
+          "type": "boolean",
+          "default": false
         }
       }
     },
@@ -310,6 +323,7 @@
             "snr",
             "nside",
             "drizzle",
+            "hips_verify",
             "hiss_verify",
             "browser_verify"
           ]
@@ -330,6 +344,7 @@
             "snr",
             "nside",
             "drizzle",
+            "hips_verify",
             "hiss_verify",
             "browser_verify"
           ],
@@ -363,6 +378,10 @@
               "exclusiveMinimum": 0
             },
             "drizzle": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "hips_verify": {
               "type": "number",
               "exclusiveMinimum": 0
             },
