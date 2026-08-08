@@ -24,6 +24,23 @@
 - **BZERO/BSCALE根因修复**：fits_write_file关键字过滤列表增加BZERO/BSCALE，从源头避免float32数据携带无符号16位关键字导致的二次偏移
 
 ## 进度日志
+
+### 2026-08-08 Phase1 Final Closure V3 — HiPS 直写生产链 + CFITSIO (重要)
+- **CFITSIO 4.6.4 vendored** (`third_party/cfitsio`, 上游 libcfitsio 源清单,
+  swapproc 独立库已并入), 静态编进唯一 astro_image_io.dll (AIO 5.3MB)。
+- **aio_hips_writer (重写)**: 流式 API
+  `aio_hips_product_begin/write_signal_support_tile/write_snr_points/finalize/abort`,
+  signal=flux_sum/area, support=area/A_cell (float32/64),
+  3 独立子产品 signal/support/snr, properties hips_version=1.4,
+  hierarchy (order K-1..0 面积加权), MOC (真实覆盖统计), manifest.json。
+  旧 `aio_hips_write` 保留为 HISS 中转兼容包装。
+- **aio_hips_reader**: open/get_properties/tile_count/tile_ipix/
+  read_tile_f32_f64/read_snr_catalog (dtype 严格)。
+- **映射约定**: HiPS tile (NorderK, ipix) 512x512 像素 = NESTED 叶 local 索引
+  (FITS row-major); 由 astropy-healpix 独立 Oracle 验证 mismatch=0 (31748 像素)。
+- 关键修复: make_dirs 处理含空格绝对路径; CFITSIO fits_create_file 前删旧文件
+  (overwrite); fits_read_pix fpixel 必须非 NULL; MOC 读 BINTABLE 扩展。
+
 ### 2026-07-12 C++迁移完成与性能修复
 - 完成C++迁移，15/15测试通过
 - 修复动态缓冲区问题（图像读写越界）

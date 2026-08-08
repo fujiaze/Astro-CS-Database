@@ -107,6 +107,26 @@
 
 ## 当前进度
 
+### Phase1 Final Closure V3（2026-08-08，控制包 11b57bad，HEAD 5d5be0a+）
+**状态：全部核心 Gate 通过，冻结收尾中**
+- Phase A：PSF 坐标契约修复（img_cx=cx+x0）+ 星点链消费拟合中心，
+  Gate1 G1-G6 全过（phase scan/seed 0.000px，Photutils 0.0103）。
+- Phase B：XPSD 官方解码（PCL EncodedStarSPData：F=byte*fluxMul+fluxMin），
+  gaia_client 暴露 flux_min/flux_mul，生产积分器切换绝对通量；
+  1000/1050 匹配，形状残差 median 0.21%（旧 byte-only 4.7%），
+  C++ vs GaiaXPy |dG| p95 0.00063。
+- Phase C：HiPS 直写生产链（Drizzle→AstroSphereTileSink→AIO，无 HISS 中转），
+  CFITSIO 4.6.4 vendored，3 独立子产品 + hierarchy + MOC + SNR Catalogue，
+  AIO HiPS Reader + HIPS_VERIFY 生产末端；FP32/FP64 全过。
+- Phase D：WSL ASan/UBSan/LSan 可移植核心 0 错误（顺带修复 gaia_client
+  Linux 枚举 snprintf 缺参）；Hipsgen LINT(1.0 compatible)/CHECK/
+  CHECKDATASUM 通过；astropy 映射 Oracle 31748 像素 mismatch=0。
+- Phase E/F/G：gate8 trace 全过（star_id/dr3sp_id lineage，
+  DRIZZLE→HIPS_VERIFY）；T2(13)/T3(14)/T4 crop FP32+FP64/T4 全帧 FP32
+  （285 tiles，1947 SNR，Drizzle core 39.6s，Stage1 ~61s）HIPS_VERIFY 全过。
+- 已知未执行：Aladin GUI smoke、Astrometry.net 外部求解器（环境无 GUI/未安装，
+  已在审核包如实记录）；Browser 主后端仍为 HISS（Qt 改造未做，记录为遗留）。
+
 ### healpix_db 遗留代码归档 + 依赖迁移 + SingleFrameView 废弃（2026-07-16）
 **spec**: docs/superpowers/specs/2026-07-16-healpix-db-legacy-archive.md + checklist.md
 

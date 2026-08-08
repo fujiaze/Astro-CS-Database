@@ -87,6 +87,29 @@ def main():
         pm_blocks = {b["name"] for b in stages["PHOTOMETRIC"]["blocks"]}
         result["checks"]["photometric_has_match_block"] = "photometric_match" in pm_blocks
 
+    # 5. XPSD/DR3SP lineage: dr3sp_id 唯一且非零, reference_flux/residual 有限
+    import math as _math
+    pm_recs = stages.get("PHOTOMETRIC", {}).get("photometric_match", [])
+    dr3sp_ids = [int(r["dr3sp_id"]) for r in pm_recs
+                 if r.get("dr3sp_id") not in (None, 0)]
+    result["n_dr3sp_records"] = len(dr3sp_ids)
+    result["checks"]["dr3sp_id_present"] = len(dr3sp_ids) > 0 and all(x != 0 for x in dr3sp_ids)
+    result["checks"]["dr3sp_id_unique"] = len(set(dr3sp_ids)) == len(dr3sp_ids)
+    # status==1 为成功匹配 (有参考通量); 其余记录允许 0
+    rflux = [float(r["reference_flux"]) for r in pm_recs
+             if r.get("status") == 1 and r.get("reference_flux") is not None]
+    result["checks"]["reference_flux_finite"] = len(rflux) > 0 and all(
+        x > 0 and _math.isfinite(x) for x in rflux)
+    resid = [float(r["residual"]) for r in pm_recs
+             if "residual" in r and r["residual"] is not None]
+    result["checks"]["residual_finite"] = len(resid) > 0 and all(_math.isfinite(x) for x in resid)
+
+    # 6. Drizzle -> HiPS 生产末端顺序
+    result["checks"]["drizzle_then_hips_verify"] = (
+        "DRIZZLE" in names and "HIPS_VERIFY" in names and
+        names.index("DRIZZLE") < names.index("HIPS_VERIFY"))
+    result["checks"]["hiss_verify_not_production"] = "HISS_VERIFY" not in names
+
     os.makedirs(args.out, exist_ok=True)
     with open(os.path.join(args.out, "gate8_result.json"), "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2)

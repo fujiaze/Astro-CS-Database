@@ -673,3 +673,16 @@ spec: .trae/specs/orchestrator-cpp-cli/spec.md (阶段1: 集成测试 - 阶段1�
 - 完整 Stage1 证据复用 6f7bba7 (50.37s), 本任务 0 次完整帧;
 - 反向 C ABI 微修正 (SIP order 0~5 + order6 拒绝) 不影响编排器路径;
 - Phase1 基础算法闭合, 未进入 ACR/Stage2。
+
+## 2026-08-08 Phase1 Final Closure V3 — HiPS 生产末端 (HEAD 5d5be0a+)
+
+- 生产末端: DRIZZLE -> HIPS_WRITE(直写) -> HIPS_VERIFY; HISS_VERIFY 仅 legacy。
+- `output.hips` (可选, 空=由 hiss 派生) + `validation.legacy_hiss_compare`
+  (默认 false) 入 schema 1.1; stage1.template stop_after=hips_verify。
+- `run_stage_drizzle` 改调 `hp_drizzle_run_hips`; overwrite=true 时清理旧 hips。
+- `run_stage_hips_verify`: AIO HiPS Reader 验证三产品 properties/dtype/
+  tile 语义 (support∈[0,1], signal NaN 语义, F=signal*support*A_cell)/
+  hierarchy/MOC/SNR。
+- 验证: T2/T3 全帧、T4 crop FP32/FP64、T4 全帧 FP32 (285 tiles, 1947 SNR)
+  HIPS_VERIFY 全过; gate8 trace: dr3sp_id lineage + DRIZZLE->HIPS_VERIFY
+  顺序 + HISS_VERIFY 不出现。

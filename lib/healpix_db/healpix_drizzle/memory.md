@@ -197,3 +197,15 @@ v1.0
   2/3/4×FWHM 孔径≤0.1%;
 - 微型测试全零失败: 科学矩阵 37/37, 科学补齐 16/16, API 11/11, 反向 5/5。
 - Phase1 基础算法已闭合 (main eb52e06, wiki 6739028); 完整帧 0 次重跑。
+
+## 2026-08-08 Phase1 Final Closure V3 — HiPS 直写 + XPSD 官方解码
+
+- `DrizzleConfig.tile_depth` (0=auto, HiPS 直写强制 9): drizzleTiled/drizzleTiled_f64/
+  writeHisTiles 统一使用 `eff_tile_depth(config)`。
+- `AstroSphereTileSink` (astro_sphere_sink.cpp): TileAccumulatorT<float/double>
+  -> AstroSphereTileView -> AIO 流式 HiPS (无 HISS 中转)。
+- `hp_drizzle_run_hips` 新 C ABI: parse frame -> drizzleTiled -> HiPS 直写;
+  legacy .hiss 仅 `validation.legacy_hiss_compare=true` 时写出;
+  `hp_drizzle_run` 保留为兼容包装。
+- 验证: T2(13 tiles)/T3(14)/T4 crop FP32(24)/FP64(24)/T4 全帧 FP32(285)
+  HIPS_VERIFY 全过; Drizzle core 39.6s, HiPS 直写+verify 0.7s。
