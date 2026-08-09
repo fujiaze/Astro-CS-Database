@@ -603,3 +603,51 @@ OpenMP/Mixed 成本模型或标定策略）；MSVC ASan CPU 核心本轮环境�
 证据 run/evidence/acr_bdr_dispatcher_finalization_20260809/（含权威 Profile、
 24/24 Replay、quick 不覆盖 SHA、3 轮 CTest、sanitizer、可移植 SHA 清单）；
 审核包 AstroCS_Review_ACRDispatcherFinalization_20260809.zip（SHA 见交付记录）。
+
+### 2026-08-09 Route/Residency/Generation 闭环（最终 HEAD，控制包 CE288DBF...F7E88）
+
+**本轮完成（08 计划 1-9，生产执行语义）**：
+1. Route-centric 资格：新增 scenario.routing_trusted（Final route regret 是硬门，
+   单路径 10%/15% 绝对误差降为诊断，不再删除候选）；required 三场景全 routing_trusted
+   才 operation.qualified；生产 decide 在 routing_trusted 场景使用全部 model_available
+   候选比较（error guard 继续参与 score）。
+2. 真正 GPU Direct fast path：Dispatcher::execute_gpu_direct() 绕开 SharedWorkPool /
+   CPU worker / barrier / 旧 planner；单 GPU executor 整域提交；ExecutionReport 记录
+   actual_execution_shape=gpu_direct；旧 MixedRoutePlanner 不再做 BDR 顶层资格。
+3. Buffer 真实字节：BufferBinding.element_size_bytes（默认 4 保持 float 兼容）；
+   Dispatcher 全部按 count*element_size_bytes 记账（H2D/D2H/RAM/VRAM/RouteRequest）。
+4. generation 闭环：ResidencyManager::register_or_update 同步外部 binding generation，
+   stable_key 相同但 generation 变化自动失效设备副本（BothValid→HostValid/HostDirty）；
+   新增回归测试（float/double/uint8 字节、generation 失效、reuse4 frames 只传一次）。
+5. BDR 基于真实 Residency：dispatch_invocation 重排为 注册（真实字节+generation）→
+   查询 device-valid → 计算 resident/upload-required → 构造 RouteRequest →
+   BenchmarkRouteEstimator 决策 → 执行；invocation.input_resident 仅兼容 hint。
+   持久主输入（Operation 注册 persistent_input_indices）驱动 resident_reuse4 场景。
+6. 加权积分 Auto：cold 每样本 fresh Dispatcher（setup 不计时，真实上传）；
+   resident/reuse4 用同一 Dispatcher + establish_input_residency 建真实驻留；
+   删除外部 bridge 伪造；reuse4 frames generation 固定、weights 按代更新。
+7. 标定正确性修复：cold Mixed 每个正式样本用不同 seed 数据（强制真实上传，
+   修复共享 executor 槽位复用导致"伪 cold"约 3.4x 低估）；稳健 p95 error guard
+   （排除单点离群，max 保留诊断）；边界坐标入 Probe（3072²×12、4096²×8）。
+8. 稳定性：GPU 重负载测量间 gpu_settle（250ms）抑制热节流；BDR 决策缓存
+   （空队列/无内存快照时命中）；GPU 测试 RESOURCE_LOCK gpu0。
+
+**最终 Benchmark 结论（RTX 3060 Ti + MinGW64）**：
+- authoritative standard Profile：qualified（三场景 routing_trusted、
+  Final Route Replay 24/24、max_slowdown=1.0）；calibration_preset=standard、
+  calibration_head=最终 HEAD、run_id/generated_utc 齐全；quick 不覆盖（SHA 不变）。
+- correctness=PASS；性能门部分通过：positive_resident_speedup=true（2048² Auto
+  gpu_direct ≈ 3.4x vs OpenMP；4096² 亦超 1.05x）；resident/reuse Auto 全部
+  gpu_direct（真实 direct shape）；cold 全部正确 OpenMP。
+- 性能门未全过（如实）：部分 resident case Auto 距 raw gpu_resident 基线
+  110%-115%（Dispatcher 每次调用固定开销 ~0.3-0.6ms 相对亚毫秒~5ms 任务，
+  且 raw 基线本身逐轮波动）→ performance=PERFORMANCE_NOT_QUALIFIED、
+  READY_FOR_BUSINESS_ADAPTER=false。
+- CTest：GPU 资源锁下连续 3 轮 635/635、0 失败、10 项准确跳过；
+  compute-sanitizer memcheck 0 errors、racecheck 0 hazards；
+  MSVC ASan CPU 核心受本机 commit 上限限制不可运行（同二进制 2026-08-08 PASS）。
+
+**限制（如实）**：Dispatcher 固定开销使亚毫秒 resident 任务难以达到
+oracle×1.10 门；冷/热 Mixed 模型经真实上传修复后与 Auto 执行一致。
+未放宽任何误差门。下一阶段（真实积分 Adapter）前需先评估 Dispatcher 固定开销
+优化（如 direct 路径去注册/决策缓存预热）或调整性能验收口径。

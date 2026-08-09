@@ -2061,8 +2061,14 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
     result.chunks_fallback = r.fallback_chunks;
 
     // F-fix 2：coverage 从 SharedWorkPool 导入
-    impl_->import_pool_coverage();
-    result.coverage = Impl::coverage_from_pool(impl_->pool);
+    if (result.actual_execution_shape == "gpu_direct") {
+        // GPU Direct 不经过 SharedWorkPool：coverage 直接为整域 1 块
+        result.coverage.total = (r.executed_on_gpu > 0) ? 1 : 0;
+        result.coverage.done = (r.executed_on_gpu > 0) ? 1 : 0;
+    } else {
+        impl_->import_pool_coverage();
+        result.coverage = Impl::coverage_from_pool(impl_->pool);
+    }
 
     // 更新 CurrentState 设备统计
     if (auto* cpu_state = impl_->current_state.find_device("cpu")) {
@@ -2076,7 +2082,10 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
         }
     }
 
-    result.current_state_json = impl_->current_state.status_json();
+    // GPU Direct 快路径：跳过完整状态 JSON 序列化（避免亚毫秒任务的固定开销）
+    if (result.actual_execution_shape != "gpu_direct") {
+        result.current_state_json = impl_->current_state.status_json();
+    }
     return result;
 }
 
