@@ -1,0 +1,28 @@
+INFO  : Starting HipsGen 09/08/26 14:03:12 (based on Aladin v12.677)...
+INFO  : The Hipsgen user manual is available at: https://aladin.cds.unistra.fr/hips/HipsgenManual.pdf
+PARAM : out=F:\Astro dev\Astro CS Normalization Database\run\temp\v4_hipsgen_check\snr => Ouput directory
+PARAM : Action => LINT: Check HiPS IVOA 1.0 standard compatibility
+RUN   : ================================================ LINT ================================================
+INFO  : Lint local HiPS: F:\Astro dev\Astro CS Normalization Database\run\temp\v4_hipsgen_check\snr
+INFO  : Lint: unreferenced properties keyword [catalog_nrows]
+*WARN*: Lint[4.4.1] recommended keyword missing [obs_description]
+*WARN*: Lint[4.4.1] recommended keyword missing [prov_progenitor]
+*WARN*: Lint[4.4.1] recommended keyword missing [obs_regime]
+*WARN*: Lint[4.4.1] recommended keyword missing [hips_creation_date]
+*WARN*: Lint[4.4.1] recommended keyword missing [hips_cat_nrows]
+*WARN*: Lint[4.4.1] recommended keyword missing [hips_initial_ra]
+*WARN*: Lint[4.4.1] recommended keyword missing [hips_initial_dec]
+*WARN*: Lint[4.4.1] recommended keyword missing [t_min]
+*WARN*: Lint[4.4.1] recommended keyword missing [t_max]
+*WARN*: Lint[4.4.1] recommended keyword missing [em_min]
+*WARN*: Lint[4.4.1] recommended keyword missing [em_max]
+INFO  : Lint: "properties" file ok
+INFO  : Lint: "Moc.fits" ok
+INFO  : Lint: Low orders provided [0..2]
+INFO  : Lint[4.3.2] Allsky not found (order 0 to 3)
+*ERROR: Lint[4.4.3] "metadata.xml" format error (expecting "votable", found [ UNAVAIL])
+INFO  : Lint[4.4.4] no "preview.jpg" file
+INFO  : Lint[4.4.5] no "index.html" file
+INFO  : *** HiPS astrocs/phase1 is not IVOA HiPS 1.0 compatible
+DONE  : LINT done (in 74ms)
+DONE  : ======================================= THE END (done in 78ms) =======================================

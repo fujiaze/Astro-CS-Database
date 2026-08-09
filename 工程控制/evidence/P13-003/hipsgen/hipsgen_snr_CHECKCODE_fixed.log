@@ -1,0 +1,36 @@
+INFO  : Starting HipsGen 09/08/26 14:12:48 (based on Aladin v12.677)...
+INFO  : The Hipsgen user manual is available at: https://aladin.cds.unistra.fr/hips/HipsgenManual.pdf
+PARAM : out=F:\Astro dev\Astro CS Normalization Database\run\temp\v4_hipsgen_fix_run\t4_crop_meta_fix.hips\snr => Ouput directory
+INFO  : Only CHECKCODE action. The hips_release_date will remain unchanged (-notouch option)
+PARAM : Action => CHECKCODE: Compute and store the check codes
+RUN   : ============================================= CHECKCODE  =============================================
+INFO  : Scanning tsv tiles...
+INFO  : 24 tsv files for 68.62KB
+INFO  : Check code for tsv tiles: 2646544900
+INFO  : Full HiPS size: 68.62KB
+INFO  : Check codes: tsv:2646544900
+INFO  : Check codes and HiPS metrics stored/updated in properties file
+javax.imageio.IIOException: Not a JPEG file: starts with 0x23 0x20
+	at java.desktop/com.sun.imageio.plugins.jpeg.JPEGImageReader.readImageHeader(Native Method)
+	at java.desktop/com.sun.imageio.plugins.jpeg.JPEGImageReader.readNativeHeader(JPEGImageReader.java:746)
+	at java.desktop/com.sun.imageio.plugins.jpeg.JPEGImageReader.checkTablesOnly(JPEGImageReader.java:361)
+	at java.desktop/com.sun.imageio.plugins.jpeg.JPEGImageReader.gotoImage(JPEGImageReader.java:511)
+	at java.desktop/com.sun.imageio.plugins.jpeg.JPEGImageReader.readHeader(JPEGImageReader.java:739)
+	at java.desktop/com.sun.imageio.plugins.jpeg.JPEGImageReader.getWidth(JPEGImageReader.java:854)
+	at cds.fits.Fits.loadPreview(Fits.java:583)
+	at cds.fits.Fits.loadPreview(Fits.java:529)
+	at cds.fits.Fits.loadPreview(Fits.java:355)
+	at cds.fits.Fits.loadPreview(Fits.java:280)
+	at cds.hipsgen.Context.findTileParam(Context.java:3716)
+	at cds.hipsgen.Context.findTileNSide(Context.java:3657)
+	at cds.hipsgen.Context.findTileNSide(Context.java:3656)
+	at cds.hipsgen.Context.writePropertiesFile(Context.java:3118)
+	at cds.hipsgen.Context.writePropertiesFile(Context.java:3082)
+	at cds.hipsgen.BuilderCheckCode.run(BuilderCheckCode.java:127)
+	at cds.hipsgen.Task.run(Task.java:122)
+	at cds.hipsgen.Task.perform(Task.java:91)
+	at cds.hipsgen.Task.<init>(Task.java:74)
+	at cds.hipsgen.HipsGen.execute(HipsGen.java:825)
+	at cds.hipsgen.HipsGen.main(HipsGen.java:974)
+ABORT : CHECKCODE abort (after 220ms)
+ABORT : ======================================== (aborted after 227ms ========================================

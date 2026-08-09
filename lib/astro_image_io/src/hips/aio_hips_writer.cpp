@@ -49,6 +49,30 @@ void set_error(const std::string& msg) { g_hips_error = msg; }
 
 double kPi() { return std::acos(-1.0); }
 
+// 解析 ISO-8601 "YYYY-MM-DDTHH:MM:SS"（可含小数秒）为 MJD（天文惯例，DATE-OBS 视为 UTC）。
+// 日期换算采用固定纪元算法，不依赖本地时区；解析失败返回 false。
+static int64_t civil_to_days(int64_t y, unsigned m, unsigned d) {
+    y -= m <= 2;
+    const int64_t era = (y >= 0 ? y : y - 399) / 400;
+    const unsigned yoe = (unsigned)(y - era * 400);
+    const unsigned doy = (153u * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1;
+    const unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    return era * 146097 + (int64_t)doe - 719468;
+}
+
+static bool iso_to_mjd(const std::string& iso, double& mjd) {
+    int y = 0, mo = 0, d = 0, h = 0, mi = 0;
+    double s = 0.0;
+    if (std::sscanf(iso.c_str(), "%d-%d-%dT%d:%d:%lf", &y, &mo, &d, &h, &mi, &s) != 6)
+        return false;
+    if (mo < 1 || mo > 12 || d < 1 || d > 31 || h < 0 || h > 23 || mi < 0 || mi > 59)
+        return false;
+    const int64_t days = civil_to_days(y, (unsigned)mo, (unsigned)d);
+    mjd = (double)days + 40587.0
+        + ((double)h * 3600.0 + (double)mi * 60.0 + s) / 86400.0;
+    return true;
+}
+
 uint32_t ilog2_u64(uint64_t v) {
     uint32_t l = 0;
     while (v > 1) { v >>= 1; ++l; }
@@ -484,12 +508,12 @@ static bool finalize_image_product(AioHipsProductSet* ps,
     kv.push_back({"dataproduct_type", "image"});
     kv.push_back({"dataproduct_subtype", subtype});
     kv.push_back({"hips_tile_format", "fits"});
-    kv.push_back({"hips_status", "public master"});
+    kv.push_back({"hips_status", "private master"});
     kv.push_back({"hips_creator", "AstroCS (astro_image_io)"});
     kv.push_back({"hips_builder", "AstroCS aio_hips_writer (CFITSIO 4.6.4)"});
     kv.push_back({"hips_estsize", "1000000"});
-    kv.push_back({"hips_release_date", "2026-08-08"});
-    kv.push_back({"hips_creation_date", "2026-08-08T00:00:00Z"});
+    kv.push_back({"hips_release_date", "2026-08-09"});
+    kv.push_back({"hips_creation_date", "2026-08-09T00:00:00Z"});
     kv.push_back({"obs_description", "AstroCS Phase1 single-frame HiPS product"});
     kv.push_back({"prov_progenitor", "ivo://astrocs/phase1/drizzle"});
     kv.push_back({"obs_regime", "optical"});
@@ -505,6 +529,16 @@ static bool finalize_image_product(AioHipsProductSet* ps,
     if (!ps->obs_filter.empty()) kv.push_back({"obs_filter", ps->obs_filter});
     if (ps->exposure > 0.0) kv.push_back({"obs_exptime", std::to_string(ps->exposure)});
     if (!ps->obs_date.empty()) kv.push_back({"obs_date", ps->obs_date});
+    if (!ps->obs_date.empty()) {
+        double t0 = 0.0;
+        if (iso_to_mjd(ps->obs_date, t0)) {
+            char b0[32], b1[32];
+            std::snprintf(b0, sizeof(b0), "%.8f", t0);
+            std::snprintf(b1, sizeof(b1), "%.8f", t0 + ps->exposure / 86400.0);
+            kv.push_back({"t_min", b0});
+            kv.push_back({"t_max", b1});
+        }
+    }
     write_properties(dir + "/properties", kv);
     // metadata.fits (产品级) 由 Moc.fits 提供结构; 再写一份极简 metadata.fits
     {
@@ -624,31 +658,67 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
     kv2.push_back({"dataproduct_type", "catalog"});
     kv2.push_back({"dataproduct_subtype", "snr"});
     kv2.push_back({"hips_tile_format", "tsv"});
-    kv2.push_back({"hips_status", "public master"});
+    kv2.push_back({"hips_status", "private master"});
     kv2.push_back({"hips_creator", "AstroCS (astro_image_io)"});
     kv2.push_back({"hips_builder", "AstroCS aio_hips_writer (CFITSIO 4.6.4)"});
-    kv2.push_back({"hips_release_date", "2026-08-08"});
+    kv2.push_back({"hips_release_date", "2026-08-09"});
+    kv2.push_back({"hips_creation_date", "2026-08-09T00:00:00Z"});
+    kv2.push_back({"obs_description", "AstroCS Phase1 single-frame SNR catalogue HiPS product"});
+    kv2.push_back({"prov_progenitor", "ivo://astrocs/phase1/drizzle"});
+    kv2.push_back({"obs_regime", "optical"});
+    kv2.push_back({"em_min", "3.0e-07"});
+    kv2.push_back({"em_max", "1.1e-06"});
+    if (!ps->obs_date.empty()) {
+        double t0 = 0.0;
+        if (iso_to_mjd(ps->obs_date, t0)) {
+            char b0[32], b1[32];
+            std::snprintf(b0, sizeof(b0), "%.8f", t0);
+            std::snprintf(b1, sizeof(b1), "%.8f", t0 + ps->exposure / 86400.0);
+            kv2.push_back({"t_min", b0});
+            kv2.push_back({"t_max", b1});
+        }
+    }
     kv2.push_back({"hips_initial_fov", "60"});
     kv2.push_back({"moc_sky_fraction",
         std::to_string((double)cells.size() * 4.0 * kPi() /
                        (12.0 * (1ULL << (2ULL * ps->tile_order))) / (4.0 * kPi()))});
-    kv2.push_back({"catalog_nrows", std::to_string(ps->snr.size())});
+    kv2.push_back({"hips_cat_nrows", std::to_string(ps->snr.size())});
+    // hips_initial_ra/dec: 由真实 SNR 源位置中位数推导（单帧场中心近似，非伪造）
+    if (!ps->snr.empty()) {
+        std::vector<double> ra_s, dec_s;
+        ra_s.reserve(ps->snr.size());
+        dec_s.reserve(ps->snr.size());
+        for (const auto& p : ps->snr) {
+            ra_s.push_back(p.ra_deg);
+            dec_s.push_back(p.dec_deg);
+        }
+        std::sort(ra_s.begin(), ra_s.end());
+        std::sort(dec_s.begin(), dec_s.end());
+        kv2.push_back({"hips_initial_ra", std::to_string(ra_s[ra_s.size() / 2])});
+        kv2.push_back({"hips_initial_dec", std::to_string(dec_s[dec_s.size() / 2])});
+    }
     write_properties(dir + "/properties", kv2);
     {
         FILE* f = std::fopen((dir + "/metadata.xml").c_str(), "wb");
-        if (f) {
-            std::fprintf(f,
-                "<?xml version=\"1.0\"?>\n<hips_metadata>\n"
-                "  <property name=\"dataproduct_type\" value=\"catalog\"/>\n"
-                "  <column name=\"star_id\" ucd=\"meta.id\"/>\n"
-                "  <column name=\"ra\" ucd=\"pos.eq.ra\"/>\n"
-                "  <column name=\"dec\" ucd=\"pos.eq.dec\"/>\n"
-                "  <column name=\"snr\" ucd=\"stat.snr\"/>\n"
-                "  <column name=\"quality_flags\" ucd=\"meta.code.qual\"/>\n"
-                "  <column name=\"photometric_status\" ucd=\"meta.code.status\"/>\n"
-                "</hips_metadata>\n");
-            std::fclose(f);
-        }
+        if (!f) { set_error("无法创建 SNR metadata.xml: " + dir + "/metadata.xml"); return false; }
+        // IVOA HiPS Catalog: metadata.xml 必须是 VOTable（Hipsgen LINT[4.4.3] 要求根元素 votable）
+        std::fprintf(f,
+            "<?xml version=\"1.0\"?>\n"
+            "<VOTABLE version=\"1.3\" xmlns=\"http://www.ivoa.net/xml/VOTable/v1.3\"\n"
+            "         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
+            "         xsi:schemaLocation=\"http://www.ivoa.net/xml/VOTable/v1.3 http://www.ivoa.net/xml/VOTable/v1.3\">\n"
+            "  <RESOURCE type=\"meta\">\n"
+            "    <TABLE>\n"
+            "      <FIELD name=\"star_id\" datatype=\"long\" ucd=\"meta.id\"/>\n"
+            "      <FIELD name=\"ra\" datatype=\"double\" unit=\"deg\" ucd=\"pos.eq.ra\"/>\n"
+            "      <FIELD name=\"dec\" datatype=\"double\" unit=\"deg\" ucd=\"pos.eq.dec\"/>\n"
+            "      <FIELD name=\"snr\" datatype=\"float\" ucd=\"stat.snr\"/>\n"
+            "      <FIELD name=\"quality_flags\" datatype=\"int\" ucd=\"meta.code.qual\"/>\n"
+            "      <FIELD name=\"photometric_status\" datatype=\"int\" ucd=\"meta.code.status\"/>\n"
+            "    </TABLE>\n"
+            "  </RESOURCE>\n"
+            "</VOTABLE>\n");
+        std::fclose(f);
     }
     std::vector<uint64_t> uniq;
     for (uint64_t c : cells)

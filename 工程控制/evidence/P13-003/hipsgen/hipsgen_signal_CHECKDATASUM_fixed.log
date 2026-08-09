@@ -1,0 +1,12 @@
+INFO  : Starting HipsGen 09/08/26 14:12:39 (based on Aladin v12.677)...
+INFO  : The Hipsgen user manual is available at: https://aladin.cds.unistra.fr/hips/HipsgenManual.pdf
+PARAM : out=F:\Astro dev\Astro CS Normalization Database\run\temp\v4_hipsgen_fix_run\t4_crop_meta_fix.hips\signal => Ouput directory
+PARAM : Action => CHECKDATASUM: HiPS FITS tiles full integrity check
+RUN   : ============================================ CHECKDATASUM ============================================
+INFO  : Scanning fits tiles...
+INFO  : 50 fits files for 50.26MB
+INFO  : Check code for fits tiles: 1622331442
+INFO  : All HiPS Fits tiles DATASUM Ok
+STAT  : 50 files scanned (last dir scanned: F:\Astro dev\Astro CS Normalization Database\run\temp\v4_hipsgen_fix_run\t4_crop_meta_fix.hips\signal\Norder7\Dir11)
+DONE  : CHECKDATASUM done (in 157ms)
+DONE  : ====================================== THE END (done in 162ms)  ======================================
