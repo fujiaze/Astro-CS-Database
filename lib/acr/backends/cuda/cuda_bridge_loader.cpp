@@ -252,6 +252,18 @@ public:
         }
         return all_ok;
     }
+    // ACR 基座收尾（02_GENERATION_COHERENCE.md）：同 host 指针原地修改 +
+    // generation++ 时，从驻留映射删除 host；若 persistent slot 正绑定该
+    // host 则清除槽位绑定。下一次 prefetch 强制真实上传（不再按指针复用）。
+    void invalidate_input(const void* host) override {
+        views_.erase(host);
+        for (int s = 0; s < 2; ++s) {
+            if (slot_host_[s] == host) {
+                slot_host_[s] = nullptr;
+            }
+        }
+    }
+
     bool input_resident(const void* host) const override {
         return views_.find(host) != views_.end();
     }

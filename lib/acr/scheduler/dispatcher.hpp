@@ -194,6 +194,10 @@ struct CostAwareResult {
     double benchmark_predicted_ms{0.0};    // chosen 路径预测（Profile E2E）
     std::uint64_t benchmark_cpu_chunk_items{0};  // Mixed 推荐 CPU 块
     std::uint64_t benchmark_gpu_chunk_items{0};  // Mixed 推荐 GPU 块
+    // ACR 基座收尾（03_RESOURCE_AND_FALLBACK.md）：Auto GPU Direct 运行失败
+    // 后完整域 Legacy OpenMP 重算时记录真实回退信息（不静默冒充 GPU 成功）。
+    bool benchmark_fallback{false};
+    std::string benchmark_fallback_reason;
     std::string benchmark_input_residency;  // "resident"/"cold"（真实 Manager 状态）
     std::uint64_t benchmark_resident_input_bytes{0};   // 已驻留输入字节
     std::uint64_t benchmark_upload_required_bytes{0};  // 需上传输入字节

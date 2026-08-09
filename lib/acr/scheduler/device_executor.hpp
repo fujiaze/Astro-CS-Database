@@ -93,6 +93,12 @@ public:
         return all_ok;
     }
 
+    // ACR 基座收尾（02_GENERATION_COHERENCE.md）：同 host 指针原地修改 +
+    // generation++ 时，强制本 executor 的驻留视图失效。默认 no-op；
+    // CUDA 桥接 executor 必须真实清理 host 驻留映射/slot 状态，使下一次
+    // prefetch 强制真实上传（不得跳过 H2D 使用旧 device 数据）。
+    virtual void invalidate_input(const void* /*host*/) {}
+
     // ACR 架构冻结（01_ARCHITECTURE_FREEZE.md §5）：每 GPU 只有一个 executor，
     // 内部可容纳的 in-flight 槽位数（stream 数）。CPU 默认 1（多 worker 由
     // Dispatcher 管理）；CUDA executor 返回其内部 stream 槽位数。

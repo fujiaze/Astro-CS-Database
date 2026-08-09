@@ -1832,8 +1832,23 @@ bool Dispatcher::establish_input_residency(
         const BufferAccess access = is_read_write
             ? BufferAccess::ReadWrite
             : (is_output ? BufferAccess::Write : BufferAccess::Read);
+        // ACR 基座收尾（02_GENERATION_COHERENCE.md）：同 stable_key 但
+        // generation 变化 → 先失效 executor 驻留视图（同 host 指针原地修改
+        // 时 CUDA executor 可能仍按指针缓存 device view），再更新 manager。
+        const std::uint64_t old_gen =
+            impl_->residency.recorded_generation(key);
+        const bool had_device_copy =
+            impl_->residency.is_device_valid(key, "cuda:0");
         impl_->residency.register_or_update(key, bytes, access,
                                             binding.generation);
+        if (binding.generation != old_gen && had_device_copy &&
+            impl_->executors) {
+            for (auto* e : impl_->executors->available_executors()) {
+                if (e->backend_type().rfind("cuda", 0) == 0) {
+                    e->invalidate_input(binding.data);
+                }
+            }
+        }
     }
     // 收集尚未驻留的只读输入
     std::vector<const void*> upload_hosts;
@@ -2125,8 +2140,23 @@ CostAwareResult Dispatcher::dispatch_invocation(
         const BufferAccess access = is_read_write
             ? BufferAccess::ReadWrite
             : (is_output ? BufferAccess::Write : BufferAccess::Read);
+        // ACR 基座收尾（02_GENERATION_COHERENCE.md）：同 stable_key 但
+        // generation 变化 → 先失效 executor 驻留视图（同 host 指针原地修改
+        // 时 CUDA executor 可能仍按指针缓存 device view），再更新 manager。
+        const std::uint64_t old_gen =
+            impl_->residency.recorded_generation(key);
+        const bool had_device_copy =
+            impl_->residency.is_device_valid(key, "cuda:0");
         impl_->residency.register_or_update(key, bytes, access,
                                             binding.generation);
+        if (binding.generation != old_gen && had_device_copy &&
+            impl_->executors) {
+            for (auto* e : impl_->executors->available_executors()) {
+                if (e->backend_type().rfind("cuda", 0) == 0) {
+                    e->invalidate_input(binding.data);
+                }
+            }
+        }
     }
 
     // 2. 查询真实 device-valid（BDR 事实来源；invocation.input_resident 仅兼容 hint）。
@@ -2216,16 +2246,54 @@ CostAwareResult Dispatcher::dispatch_invocation(
                 ? routing::OutputMaterialization::KeepDevice
                 : routing::OutputMaterialization::HostRequired;
         req.reuse_count_hint = invocation.reuse_count_hint;
-        req.queues = routing::QueueSnapshot{};
-        req.memory = routing::MemorySnapshot{};
+        // ACR 基座收尾（03_RESOURCE_AND_FALLBACK.md）：BDR 决策前真实采样
+        // RAM/VRAM 容量与最小 queue 状态；禁止传空快照绕过门禁。
+        routing::MemorySnapshot mem_snap;
+        routing::QueueSnapshot queue_snap;
+        if (impl_->mem_ctrl || impl_->cfg.memory_sampler_override) {
+            const auto mb = impl_->cfg.memory_sampler_override
+                ? impl_->cfg.memory_sampler_override()
+                : impl_->mem_ctrl->sample();
+            if (mb.ram_valid && mb.limit_ram > mb.used_ram) {
+                mem_snap.ram_available_bytes =
+                    mb.limit_ram - mb.used_ram;
+            }
+            for (const auto& g : mb.gpus) {
+                if (g.backend == "cuda:0" && g.valid &&
+                    g.limit_vram > g.used_vram) {
+                    mem_snap.vram_available_bytes =
+                        g.limit_vram - g.used_vram;
+                }
+            }
+        }
+        if (impl_->executors) {
+            for (auto* e : impl_->executors->available_executors()) {
+                if (e->backend_type().rfind("cuda", 0) == 0) {
+                    const auto qs = e->queue_state();
+                    if (qs.depth > 0 || qs.busy) {
+                        // 保守等待罚分：每在队块 1ms（不做精确利用率控制）
+                        queue_snap.gpu_delay_ms =
+                            std::min<std::size_t>(qs.depth, 8) * 1.0;
+                    }
+                }
+            }
+        }
+        req.queues = queue_snap;
+        req.memory = mem_snap;
+        req.upload_required_bytes = upload_required_bytes;
         routing::BenchmarkRouteEstimator est;
         est.set_profile(impl_->cfg.route_profile_v2);
-        // 稳态决策缓存：仅空队列/无内存快照（如 Benchmark 重复同请求）时命中；
-        // 生产带真实 queue/memory 快照旁路（决策依赖快照，不能缓存）。
+        // 稳态决策缓存：仅 queue 空闲且 VRAM 充足（或 headroom 未知=0 表示不
+        // 限制）时命中；此时决策不依赖快照具体数值，缓存结果与实时 decide 一致。
+        // queue busy / VRAM 不足时旁路缓存（决策依赖快照）。
+        const std::uint64_t incremental_vram =
+            upload_required_bytes + output_bytes + output_bytes;
+        const bool vram_headroom_ok =
+            mem_snap.vram_available_bytes == 0 ||
+            incremental_vram <= mem_snap.vram_available_bytes;
         const bool cacheable =
-            req.queues.cpu_delay_ms == 0.0 && req.queues.gpu_delay_ms == 0.0 &&
-            req.memory.ram_available_bytes == 0 &&
-            req.memory.vram_available_bytes == 0;
+            req.queues.cpu_delay_ms == 0.0 &&
+            req.queues.gpu_delay_ms == 0.0 && vram_headroom_ok;
         Impl::BdrCacheKey ck;
         ck.operation_id = req.operation_id;
         ck.output_items = req.output_items;
@@ -2329,11 +2397,51 @@ CostAwareResult Dispatcher::dispatch_invocation(
         auto gd = impl_->execute_gpu_direct(
             invocation, layout, input_hosts, input_bytes, input_keys,
             was_resident);
-        r = gd.run_result;
-        per_exec_stats = std::move(gd.per_exec_stats);
-        actual_devices = std::move(gd.actual_devices);
-        h2d_bytes_this = gd.h2d_bytes_this;
-        result.actual_execution_shape = "gpu_direct";
+        if (!gd.run_result.all_done) {
+            // ACR 基座收尾（03_RESOURCE_AND_FALLBACK.md）：Auto 模式下
+            // GPU Direct prefetch/submit 失败 → 不提交部分结果，完整域
+            // Legacy OpenMP 重算；报告真实 fallback。
+            result.benchmark_fallback = true;
+            result.benchmark_fallback_reason =
+                gd.run_result.error_message;
+            result.actual_execution_shape = "legacy_openmp";
+            const KernelRegistration* reg =
+                global_kernel_registry().find(invocation.id);
+            if (reg != nullptr && reg->legacy_parallel != nullptr) {
+                const std::size_t n = end - begin;
+                auto t0 = std::chrono::steady_clock::now();
+                reg->legacy_parallel(invocation, nullptr);
+                const auto t1 = std::chrono::steady_clock::now();
+                r.all_done = true;
+                r.total_chunks = 1;
+                r.executed_on_cpu = 1;
+                r.executed_on_gpu = 0;
+                actual_devices = {"cpu"};
+                Impl::InvocationExecStats st;
+                st.device_id = "cpu";
+                st.backend_type = "cpu";
+                st.done_blocks = 1;
+                st.items_done = n;
+                st.bytes_read = 0;
+                st.bytes_written = 0;
+                st.elapsed_ns = static_cast<std::uint64_t>(
+                    std::chrono::duration_cast<std::chrono::nanoseconds>(
+                        t1 - t0)
+                        .count());
+                per_exec_stats.push_back(std::move(st));
+            } else {
+                r.error_message =
+                    "gpu direct failed, no legacy fallback: " +
+                    gd.run_result.error_message;
+                result.actual_execution_shape = "gpu_direct";
+            }
+        } else {
+            r = gd.run_result;
+            per_exec_stats = std::move(gd.per_exec_stats);
+            actual_devices = std::move(gd.actual_devices);
+            h2d_bytes_this = gd.h2d_bytes_this;
+            result.actual_execution_shape = "gpu_direct";
+        }
     } else {
         // Mixed（或 CpuOnly/GpuOnly/无 BDR）：真实 prefetch + SharedWorkPool
         result.actual_execution_shape =
@@ -2460,8 +2568,20 @@ CostAwareResult Dispatcher::dispatch_invocation(
     result.chunks_on_gpu = r.executed_on_gpu;
     result.chunks_fallback = r.fallback_chunks;
 
-    impl_->import_pool_coverage();
-    result.coverage = Impl::coverage_from_pool(impl_->pool);
+    // ACR 基座收尾（04_EVIDENCE_TRUTH.md）：Direct 路径（gpu_direct 或
+    // legacy_openmp）不读 SharedWorkPool（可能为 stale），coverage 直接用
+    // 完整域语义；仅 mixed_pool 才从真实 pool 导入。
+    if (result.actual_execution_shape == "gpu_direct" ||
+        result.actual_execution_shape == "legacy_openmp") {
+        result.coverage.total = 1;
+        result.coverage.claimed = r.all_done ? 1 : 0;
+        result.coverage.done = r.all_done ? 1 : 0;
+        result.coverage.pending = r.all_done ? 0 : 1;
+        result.coverage.failed = 0;
+    } else {
+        impl_->import_pool_coverage();
+        result.coverage = Impl::coverage_from_pool(impl_->pool);
+    }
 
     // 更新 CurrentState（基于真实完成，按 device_id 匹配）
     if (auto* cpu_state = impl_->current_state.find_device("cpu")) {
