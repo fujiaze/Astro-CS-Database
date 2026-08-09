@@ -130,6 +130,58 @@ typedef struct {
 static_assert(sizeof(SnrControlPointF64) == 24, "SnrControlPointF64 must be 24 bytes");
 
 // ============================================================================
+// SNR 控制点 v3 (Phase1 Final Signoff V4): 携带 stable star_id 与状态字段
+//   行布局 (打包): ra f64 | dec f64 | snr f32/f64 | star_id u64 |
+//                  quality_flags u32 | photometric_status u32
+//   f32: 8+8+4+8+4+4 = 36 字节; f64: 8+8+8+8+4+4 = 40 字节
+// ============================================================================
+#pragma pack(push, 1)
+typedef struct {
+    double   ra;
+    double   dec;
+    float    snr_psf;
+    int64_t  star_id;
+    uint32_t quality_flags;
+    uint32_t photometric_status;
+} SnrControlPointV3;
+#pragma pack(pop)
+static_assert(sizeof(SnrControlPointV3) == 36, "SnrControlPointV3 must be 36 bytes");
+
+#pragma pack(push, 1)
+typedef struct {
+    double   ra;
+    double   dec;
+    double   snr_psf;
+    int64_t  star_id;
+    uint32_t quality_flags;
+    uint32_t photometric_status;
+} SnrControlPointF64V3;
+#pragma pack(pop)
+static_assert(sizeof(SnrControlPointF64V3) == 40, "SnrControlPointF64V3 must be 40 bytes");
+
+// quality_flags 位定义 (V4, 与 orchestrator 序列化一致)
+enum SnrQualityFlagBits {
+    SNR_QF_PSF_OK          = 1u << 0,  // PSF 拟合状态有效 (status==0 或 3)
+    SNR_QF_SATURATED       = 1u << 1,  // 星点饱和标志
+    SNR_QF_HAS_SATURATED   = 1u << 2,  // 邻域含饱和像素
+    SNR_QF_PHOTO_MATCHED   = 1u << 3,  // 测光已匹配 (status==1)
+    SNR_QF_PHOTO_REJECTED  = 1u << 4   // 测光被拒绝 (status==2)
+};
+
+// ============================================================================
+// SNR 模型 v3 (版本化, 支持 F32/F64 SNR 值 + star_id/status)
+// ============================================================================
+typedef struct {
+    uint32_t n_points;
+    uint8_t  value_dtype;   // 0 = SnrControlPointV3[], 1 = SnrControlPointF64V3[]
+    uint8_t  reserved[3];
+    void*    points;
+    double   snr_phot;
+    double   median_snr;
+    double   idw_power;
+} SnrModelV3;
+
+// ============================================================================
 // SNR 模型 v2 (版本化, 支持 F32/F64 SNR 值)
 //   value_dtype: 0 = points 指向 SnrControlPoint[] (f32 snr)
 //                1 = points 指向 SnrControlPointF64[] (f64 snr)
@@ -186,11 +238,25 @@ SNR_API int snr_extract_model_v2(const double* psf, int n_stars,
                                   int value_dtype,
                                   SnrModelV2* out_model);
 
+// v3: 提取稀疏 SNR 控制点模型并携带 stable star_id / quality_flags /
+//     photometric_status。star_ids/quality_flags/photometric_status 与
+//     psf 行对齐 (长度 n_stars), 有效星按原行拷贝其 ID/状态。
+//     有效星条件与 v2 一致: status==0, A>B, mad>0。
+SNR_API int snr_extract_model_v3(const double* psf, int n_stars,
+                                  double sigma_residual,
+                                  const SnrWcsParams* wcs,
+                                  int value_dtype,
+                                  const int64_t* star_ids,
+                                  const uint32_t* quality_flags,
+                                  const uint32_t* photometric_status,
+                                  SnrModelV3* out_model);
+
 // ============================================================================
 // snr_free_model - 释放 SnrModel 内部资源
 // ============================================================================
 SNR_API void snr_free_model(SnrModel* model);
 SNR_API void snr_free_model_v2(SnrModelV2* model);
+SNR_API void snr_free_model_v3(SnrModelV3* model);
 
 #ifdef __cplusplus
 }

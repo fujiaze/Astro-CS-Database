@@ -3195,7 +3195,10 @@ static bool write_hips_from_hiss(DllLoader& loader,
                 snr_pts[(size_t)i].ra_deg = model->points[i].ra;
                 snr_pts[(size_t)i].dec_deg = model->points[i].dec;
                 snr_pts[(size_t)i].snr = model->points[i].snr_psf;
-                snr_pts[(size_t)i].source_id = (int64_t)i + 1;
+                // 旧 HISS snr_format=1 无 lineage 字段: 显式置 0 (禁止 i+1)
+                snr_pts[(size_t)i].star_id = 0;
+                snr_pts[(size_t)i].quality_flags = 0;
+                snr_pts[(size_t)i].photometric_status = 0;
             }
             fn_free_snr(model);
         }
@@ -3924,7 +3927,8 @@ bool Orchestrator::run_stage_hips_verify(TaskResult& result) {
     using TileIpixFn = int (*)(AioHipsDataset*, int, uint64_t*);
     using ReadF32Fn = int (*)(AioHipsDataset*, uint64_t, float*);
     using ReadF64Fn = int (*)(AioHipsDataset*, uint64_t, double*);
-    using ReadSnrFn = int (*)(AioHipsDataset*, double*, double*, double*, int64_t*, int);
+    using ReadSnrFn = int (*)(AioHipsDataset*, double*, double*, double*, int64_t*,
+                              uint32_t*, uint32_t*, int);
     using CloseFn = void (*)(AioHipsDataset*);
     using ErrFn = const char* (*)(void);
 
@@ -4064,7 +4068,9 @@ bool Orchestrator::run_stage_hips_verify(TaskResult& result) {
     }
     double ra_buf[4096], dec_buf[4096], snr_buf[4096];
     int64_t id_buf[4096];
-    int n_snr = fn_snr ? fn_snr(dsnr, ra_buf, dec_buf, snr_buf, id_buf, 4096) : 0;
+    uint32_t qf_buf[4096], ps_buf[4096];
+    int n_snr = fn_snr ? fn_snr(dsnr, ra_buf, dec_buf, snr_buf, id_buf,
+                                qf_buf, ps_buf, 4096) : 0;
     fn_close(dsnr);
     if (n_snr <= 0) {
         result.error_msg = "[HIPS_VERIFY] SNR catalogue 为空";
@@ -4315,13 +4321,16 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
 
     // 获取函数指针 (GAP-011: snr_extract_model / snr_free_model;
     // BLOCKER-TYPE-002: v2 支持 FP64 SNR 真实存储)
-    using ExtractV2Fn = int (*)(const double*, int, double,
-                                const SnrWcsParams*, int, SnrModelV2*);
-    using FreeV2Fn = void (*)(SnrModelV2*);
-    auto fn_extract_v2 = dll_loader_.get_function<ExtractV2Fn>(
-        ModuleId::SNR, "snr_extract_model_v2");
-    auto fn_free_v2 = dll_loader_.get_function<FreeV2Fn>(
-        ModuleId::SNR, "snr_free_model_v2");
+    // V4: v3 携带 star_id/quality_flags/photometric_status
+    using ExtractV3Fn = int (*)(const double*, int, double,
+                                const SnrWcsParams*, int,
+                                const int64_t*, const uint32_t*, const uint32_t*,
+                                SnrModelV3*);
+    using FreeV3Fn = void (*)(SnrModelV3*);
+    auto fn_extract_v3 = dll_loader_.get_function<ExtractV3Fn>(
+        ModuleId::SNR, "snr_extract_model_v3");
+    auto fn_free_v3 = dll_loader_.get_function<FreeV3Fn>(
+        ModuleId::SNR, "snr_free_model_v3");
     auto fn_get_block = dll_loader_.get_function<const AioBlock* (*)(const PipelineFrame*, const char*)>(
         ModuleId::AIO, "aio_frame_get_block");
     auto fn_remove_block = dll_loader_.get_function<int (*)(PipelineFrame*, const char*)>(
@@ -4340,9 +4349,9 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
         PipelineFrame*, const char*, const char*, const char*)>(
         ModuleId::AIO, "aio_frame_kv_set");
 
-    if (!fn_extract_v2 || !fn_free_v2 || !fn_get_block || !fn_remove_block
+    if (!fn_extract_v3 || !fn_free_v3 || !fn_get_block || !fn_remove_block
         || !fn_add_block_move || !fn_kv_get_double) {
-        LOG_ERROR("orchestrator", "[SNR] 函数指针获取失败");
+        LOG_ERROR("orchestrator", "[SNR] 函数指针获取失败 (snr_extract_model_v3 必需)");
         result.error_msg = "[SNR] 函数指针获取失败";
         result.exit_code = AstroCsExitCode::GENERIC_ERROR;
         return false;
@@ -4359,6 +4368,58 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
     }
     int n_stars = psf_block->dims[0];
     const double* psf_data = static_cast<const double*>(psf_block->data);
+
+    // V4: 构建与 psf 行对齐的 stable star_id / quality_flags / photometric_status
+    //   star_measurements (FLOAT64 [N,15]): col0=star_id, col6=psf_status,
+    //     col13=saturated, col14=has_saturated
+    //   photometric_match (FLOAT64 [N,6]): col4=status (1=used, 2=rejected, else unmatched)
+    std::vector<int64_t> psf_star_ids(static_cast<size_t>(n_stars), 0);
+    std::vector<uint32_t> psf_quality(static_cast<size_t>(n_stars), 0);
+    std::vector<uint32_t> psf_photo_status(static_cast<size_t>(n_stars), 0);
+    {
+        const AioBlock* sm = fn_get_block(frame_, "star_measurements");
+        const AioBlock* pm = fn_get_block(frame_, "photometric_match");
+        const bool sm_ok = (sm != nullptr && sm->type == AIO_BLOCK_FLOAT64 &&
+                            sm->dims[0] == n_stars && sm->dims[1] >= 15);
+        const bool pm_ok = (pm != nullptr && pm->type == AIO_BLOCK_FLOAT64 &&
+                            pm->dims[0] == n_stars && pm->dims[1] >= 6);
+        if (!sm_ok) {
+            LOG_WARN("orchestrator", "[SNR] star_measurements 块缺失或格式不符, "
+                     "star_id/quality_flags 置 0 (lineage 不可用)");
+        }
+        if (!pm_ok) {
+            LOG_WARN("orchestrator", "[SNR] photometric_match 块缺失或格式不符, "
+                     "photometric_status 置 0");
+        }
+        for (int i = 0; i < n_stars; ++i) {
+            uint32_t qf = 0;
+            int64_t sid = 0;
+            if (sm_ok) {
+                const double* smd = static_cast<const double*>(sm->data);
+                const double* row = smd + static_cast<size_t>(i) * sm->dims[1];
+                sid = static_cast<int64_t>(row[0]);
+                const double psf_status = row[6];
+                const double sat = row[13];
+                const double has_sat = row[14];
+                if (psf_status == 0.0 || psf_status == 3.0) qf |= SNR_QF_PSF_OK;
+                if (sat != 0.0) qf |= SNR_QF_SATURATED;
+                if (has_sat != 0.0) qf |= SNR_QF_HAS_SATURATED;
+            }
+            if (pm_ok) {
+                const double* pmd = static_cast<const double*>(pm->data);
+                const double status = pmd[static_cast<size_t>(i) * pm->dims[1] + 4];
+                psf_photo_status[static_cast<size_t>(i)] =
+                    static_cast<uint32_t>(std::max(0.0, status));
+                if (status == 1.0) qf |= SNR_QF_PHOTO_MATCHED;
+                if (status == 2.0) qf |= SNR_QF_PHOTO_REJECTED;
+            }
+            psf_star_ids[static_cast<size_t>(i)] = sid;
+            psf_quality[static_cast<size_t>(i)] = qf;
+        }
+        LOG_INFO("orchestrator", "[SNR] 星点 lineage 数组构建: star_measurements_ok="
+                 + std::string(sm_ok ? "1" : "0")
+                 + " photometric_match_ok=" + std::string(pm_ok ? "1" : "0"));
+    }
 
     // 读取 sigma_residual (来自 photo_stats KV 块)
     // 若读不到则用默认值 0.1 (并打 warning)
@@ -4448,12 +4509,14 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
              + " SIP(a_order=" + std::to_string(wcs.sip.a_order)
              + ", b_order=" + std::to_string(wcs.sip.b_order) + ")");
 
-    // 调用 snr_extract_model_v2 提取稀疏控制点 (BLOCKER-TYPE-002:
-    // FP64 模式 snr_psf 以 double 计算并存储, 非 float 扩展)
-    SnrModelV2 model = {};
+    // 调用 snr_extract_model_v3 提取稀疏控制点 (V4: 携带 stable star_id /
+    // quality_flags / photometric_status; FP64 模式 snr_psf 以 double 存储)
+    SnrModelV3 model = {};
     int value_dtype = (config_.precision == PrecisionMode::FP64) ? 1 : 0;
-    int ret = fn_extract_v2(psf_data, n_stars, sigma_residual, &wcs,
-                            value_dtype, &model);
+    int ret = fn_extract_v3(psf_data, n_stars, sigma_residual, &wcs,
+                            value_dtype,
+                            psf_star_ids.data(), psf_quality.data(),
+                            psf_photo_status.data(), &model);
     if (ret == 1) {
         // n_stars<=0 或无有效星 (status==0, A>B, mad>0)
         LOG_WARN("orchestrator", "[SNR] n_stars<=0 或无有效星, 降级跳过 snr_model 块");
@@ -4473,7 +4536,7 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
         return false;
     }
 
-    LOG_INFO("orchestrator", "[SNR] 提取稀疏控制点: n_points=" + std::to_string(model.n_points)
+    LOG_INFO("orchestrator", "[SNR] 提取稀疏控制点(v3): n_points=" + std::to_string(model.n_points)
              + ", snr_phot=" + std::to_string(model.snr_phot)
              + ", median_snr=" + std::to_string(model.median_snr)
              + ", idw_power=" + std::to_string(model.idw_power));
@@ -4539,14 +4602,14 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
         }
     }
 
-    // 序列化 SnrModelV2 到 "snr_model" 块 (AIO_BLOCK_RAW, 版本化 v1 头)
-    // 格式 (BLOCKER-STRUCT-001/002):
-    //   [magic: "SNRM" 4B][version: u32=1][value_dtype: u8][reserved: u8]
+    // 序列化 SnrModelV3 到 "snr_model" 块 (AIO_BLOCK_RAW, 版本化 v2 头)
+    // 格式 (V4):
+    //   [magic: "SNRM" 4B][version: u32=2][value_dtype: u8][reserved: u8]
     //   [point_stride: u16][n_points: u32][payload_bytes: u64][checksum: u32]
-    //   [points: n_points × stride]   // stride=20 (f32 snr) / 24 (f64 snr)
+    //   [points: n_points × stride]   // stride=36 (f32 v3) / 40 (f64 v3)
     //   [snr_phot: f64][median_snr: f64][idw_power: f64]
     uint32_t n_points = model.n_points;
-    uint32_t point_stride = (model.value_dtype == 1) ? 24 : 20;
+    uint32_t point_stride = (model.value_dtype == 1) ? 40 : 36;
     // header = magic4+version4+vd1+res1+stride2+n4+payload8+cs4 = 28
     size_t payload_size = 28 + (size_t)n_points * point_stride + 24;
     // fn_add_block_move 要求 data 必须是 malloc 分配 (frame 用 free() 释放)
@@ -4555,12 +4618,12 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
         LOG_ERROR("orchestrator", "[SNR] 分配 snr_model 缓冲失败 (size=" + std::to_string(payload_size) + ")");
         result.error_msg = "[SNR] 分配 snr_model 缓冲失败";
         result.exit_code = AstroCsExitCode::GENERIC_ERROR;
-        fn_free_v2(&model);
+        fn_free_v3(&model);
         return false;
     }
     uint8_t* p = buffer;
     std::memcpy(p, "SNRM", 4);                            p += 4;
-    uint32_t version = 1;
+    uint32_t version = 2;
     std::memcpy(p, &version, 4);                          p += 4;
     uint8_t vd = model.value_dtype;
     std::memcpy(p, &vd, 1);                               p += 1;
@@ -4602,13 +4665,13 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
         LOG_WARN("orchestrator", "[SNR] 写入 snr_model 块失败 (可选块), 降级跳过: ret=" + std::to_string(wr));
         if (fn_kv_set) fn_kv_set(frame_, "photo_stats", "SNR_STATUS", "SKIPPED_WRITE_FAILED");
         std::free(buffer);
-        fn_free_v2(&model);
+        fn_free_v3(&model);
         return true;  // 可选块写入失败, 允许降级继续
     }
     // buffer 所有权已转移给 frame_, 不能再 free
 
-    // 释放 SnrModelV2 内部资源 (points 数组, 由 snr_estimator DLL 分配)
-    fn_free_v2(&model);
+    // 释放 SnrModelV3 内部资源 (points 数组, 由 snr_estimator DLL 分配)
+    fn_free_v3(&model);
 
     LOG_INFO("orchestrator", "[SNR] 完成 (snr_model 块已写入, payload=" + std::to_string(payload_size) + "B)");
     return true;

@@ -64,6 +64,8 @@ std::map<std::string, std::string> parse_properties(const std::string& path) {
 struct AioHipsSnrPoint2 {
     double ra = 0, dec = 0, snr = 0;
     int64_t star_id = 0;
+    uint32_t quality_flags = 0;
+    uint32_t photometric_status = 0;
 };
 
 struct AioHipsDataset {
@@ -75,6 +77,7 @@ struct AioHipsDataset {
     std::vector<uint64_t> tiles;      // 叶级 ipix (从 MOC 或目录扫描)
     std::vector<AioHipsSnrPoint2> snr; // 见下方类型
     int data_bitpix = -32;
+    size_t bad_snr_rows = 0;          // 损坏 TSV 行计数 (G6 robustness)
 };
 
 template <typename T>
@@ -204,11 +207,15 @@ AioHipsDataset* aio_hips_open(const char* out_dir, int product) {
                 if (line.empty()) continue;
                 if (first) { first = false; if (line[0] == '#') continue; }
                 long long sid; double ra, dec, snr;
-                if (std::sscanf(line.c_str(), "%lld %lf %lf %lf",
-                                &sid, &ra, &dec, &snr) == 4) {
+                unsigned int qf, ps;
+                if (std::sscanf(line.c_str(), "%lld %lf %lf %lf %u %u",
+                                &sid, &ra, &dec, &snr, &qf, &ps) == 6) {
                     AioHipsSnrPoint2 pt;
                     pt.star_id = sid; pt.ra = ra; pt.dec = dec; pt.snr = snr;
+                    pt.quality_flags = qf; pt.photometric_status = ps;
                     d->snr.push_back(pt);
+                } else {
+                    ++d->bad_snr_rows;
                 }
             }
         }
@@ -244,7 +251,9 @@ int aio_hips_read_tile_f64(AioHipsDataset* d, uint64_t ipix, double* out) {
 }
 
 int aio_hips_read_snr_catalog(AioHipsDataset* d, double* ra, double* dec,
-                              double* snr, int64_t* star_id, int max) {
+                              double* snr, int64_t* star_id,
+                              uint32_t* quality_flags, uint32_t* photometric_status,
+                              int max) {
     if (!d || d->product != AIO_HIPS_RD_SNR) return -1;
     int n = (int)std::min((size_t)max, d->snr.size());
     for (int i = 0; i < n; ++i) {
@@ -252,6 +261,8 @@ int aio_hips_read_snr_catalog(AioHipsDataset* d, double* ra, double* dec,
         if (dec) dec[i] = d->snr[(size_t)i].dec;
         if (snr) snr[i] = d->snr[(size_t)i].snr;
         if (star_id) star_id[i] = d->snr[(size_t)i].star_id;
+        if (quality_flags) quality_flags[i] = d->snr[(size_t)i].quality_flags;
+        if (photometric_status) photometric_status[i] = d->snr[(size_t)i].photometric_status;
     }
     return n;
 }

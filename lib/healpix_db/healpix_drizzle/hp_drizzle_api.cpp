@@ -594,6 +594,10 @@ static int run_drizzle_internal(PipelineFrame* frame,
     HioSnrModelF64 snrModelDataF64 = {}; // f64 模型 (BLOCKER-TYPE-002)
     const HioSnrModel* snrModelPtr = nullptr;
     const HioSnrModelF64* snrModelF64Ptr = nullptr;
+    // V4: lineage 字段 (与 snr_model 控制点对齐, 供 HiPS Catalogue 使用)
+    std::vector<int64_t> cp_star_id_all;
+    std::vector<uint32_t> cp_qf_all;
+    std::vector<uint32_t> cp_ps_all;
     // 重建 SNR 的公共部分 (lambda, nPix 由调用点确定)
     auto rebuild_snr = [&](gradient::SnrEvaluator& evaluator,
                            size_t nPix, uint32_t n_points,
@@ -626,7 +630,7 @@ static int run_drizzle_internal(PipelineFrame* frame,
             bool is_v1 = (raw_size >= 28 && std::memcmp(raw, "SNRM", 4) == 0);
             size_t nPix = (size_t)width * height;
             if (is_v1) {
-                // 版本化 v1 头: magic4 + version4 + vd1 + res1 + stride2 + n4 + payload8 + cs4
+                // 版本化 v1/v2 头: magic4 + version4 + vd1 + res1 + stride2 + n4 + payload8 + cs4
                 uint32_t version = 0, n_points = 0, stored_cs = 0;
                 uint64_t payload_bytes = 0;
                 uint16_t stride = 0;
@@ -636,14 +640,15 @@ static int run_drizzle_internal(PipelineFrame* frame,
                 std::memcpy(&n_points, raw + 12, 4);
                 std::memcpy(&payload_bytes, raw + 16, 8);
                 std::memcpy(&stored_cs, raw + 24, 4);
-                size_t expect_stride = (vd == 1) ? 24 : 20;
+                size_t expect_stride = (vd == 1) ? ((version == 2) ? 40 : 24)
+                                                 : ((version == 2) ? 36 : 20);
                 uint64_t expect_payload = (uint64_t)n_points * expect_stride + 24;
-                bool header_ok = (version == 1 && (vd == 0 || vd == 1) &&
+                bool header_ok = ((version == 1 || version == 2) && (vd == 0 || vd == 1) &&
                                   stride == expect_stride &&
                                   payload_bytes == expect_payload &&
                                   raw_size >= 28 + payload_bytes);
                 if (!header_ok) {
-                    fprintf(stderr, "[hp_drizzle_api] snr_model v1 头非法 (version=%u vd=%u "
+                    fprintf(stderr, "[hp_drizzle_api] snr_model 头非法 (version=%u vd=%u "
                                     "stride=%u payload=%llu n=%u)\n",
                             version, vd, stride, (unsigned long long)payload_bytes, n_points);
                 } else {
@@ -658,6 +663,9 @@ static int run_drizzle_internal(PipelineFrame* frame,
                     } else if (n_points > 0) {
                         std::vector<double> cp_ra(n_points), cp_dec(n_points);
                         std::vector<double> cp_snr_f64(n_points);
+                        cp_star_id_all.assign(n_points, 0);
+                        cp_qf_all.assign(n_points, 0);
+                        cp_ps_all.assign(n_points, 0);
                         for (uint32_t i = 0; i < n_points; i++) {
                             const uint8_t* pt = body + (size_t)i * expect_stride;
                             std::memcpy(&cp_ra[i], pt, 8);
@@ -668,6 +676,18 @@ static int run_drizzle_internal(PipelineFrame* frame,
                                 float s;
                                 std::memcpy(&s, pt + 16, 4);
                                 cp_snr_f64[i] = (double)s;
+                            }
+                            if (version == 2) {
+                                // star_id @ +24 (i64), quality_flags @ +32 (u32),
+                                // photometric_status @ +36 (u32), f32/f64 同偏移
+                                int64_t sid = 0;
+                                uint32_t qf = 0, ps = 0;
+                                std::memcpy(&sid, pt + 24, 8);
+                                std::memcpy(&qf, pt + 32, 4);
+                                std::memcpy(&ps, pt + 36, 4);
+                                cp_star_id_all[i] = sid;
+                                cp_qf_all[i] = qf;
+                                cp_ps_all[i] = ps;
                             }
                         }
                         double snr_phot, median_snr, idw_power;
@@ -724,9 +744,9 @@ static int run_drizzle_internal(PipelineFrame* frame,
                                 }
                             }
                         }
-                        fprintf(stderr, "[hp_drizzle_api] snr_model v1 加载: n=%u dtype=%u "
+                        fprintf(stderr, "[hp_drizzle_api] snr_model v%u 加载: n=%u dtype=%u "
                                         "snr_phot=%.4f median=%.4f power=%.2f\n",
-                                n_points, vd, snr_phot, median_snr, idw_power);
+                                version, n_points, vd, snr_phot, median_snr, idw_power);
                     }
                 }
             } else {
@@ -741,6 +761,9 @@ static int run_drizzle_internal(PipelineFrame* frame,
                 } else {
                     std::vector<double> cp_ra(n_points), cp_dec(n_points);
                     std::vector<float> cp_snr(n_points);
+                    cp_star_id_all.assign(n_points, 0);
+                    cp_qf_all.assign(n_points, 0);
+                    cp_ps_all.assign(n_points, 0);
                     for (uint32_t i = 0; i < n_points; i++) {
                         const uint8_t* pt = raw + 4 + (size_t)i * 20;
                         std::memcpy(&cp_ra[i], pt, 8);
@@ -780,7 +803,9 @@ static int run_drizzle_internal(PipelineFrame* frame,
         }
     }
 
-    // Phase1 Final Closure V3: 收集 SNR 控制点 (HiPS Catalogue 用, star_id=索引+1)
+    // Phase1 Final Signoff V4: 收集 SNR 控制点 (HiPS Catalogue 用),
+    // star_id/quality_flags/photometric_status 来自 snr_model v2 块
+    // (禁止 i+1 重新编号)
     std::vector<AioHipsSnrPoint> snr_pts;
     if (snrModelPtr && snrModelPtr->points) {
         snr_pts.reserve(snrModelPtr->n_points);
@@ -789,7 +814,9 @@ static int run_drizzle_internal(PipelineFrame* frame,
             pt.ra_deg = snrModelPtr->points[i].ra;
             pt.dec_deg = snrModelPtr->points[i].dec;
             pt.snr = snrModelPtr->points[i].snr_psf;
-            pt.source_id = (int64_t)i + 1;
+            pt.star_id = (i < cp_star_id_all.size()) ? cp_star_id_all[i] : 0;
+            pt.quality_flags = (i < cp_qf_all.size()) ? cp_qf_all[i] : 0u;
+            pt.photometric_status = (i < cp_ps_all.size()) ? cp_ps_all[i] : 0u;
             snr_pts.push_back(pt);
         }
     } else if (snrModelF64Ptr && snrModelF64Ptr->points) {
@@ -799,7 +826,9 @@ static int run_drizzle_internal(PipelineFrame* frame,
             pt.ra_deg = snrModelF64Ptr->points[i].ra;
             pt.dec_deg = snrModelF64Ptr->points[i].dec;
             pt.snr = snrModelF64Ptr->points[i].snr_psf;
-            pt.source_id = (int64_t)i + 1;
+            pt.star_id = (i < cp_star_id_all.size()) ? cp_star_id_all[i] : 0;
+            pt.quality_flags = (i < cp_qf_all.size()) ? cp_qf_all[i] : 0u;
+            pt.photometric_status = (i < cp_ps_all.size()) ? cp_ps_all[i] : 0u;
             snr_pts.push_back(pt);
         }
     }

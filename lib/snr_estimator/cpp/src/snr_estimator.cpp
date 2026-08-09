@@ -699,4 +699,119 @@ SNR_API void snr_free_model_v2(SnrModelV2* model) {
     model->n_points = 0;
 }
 
+// ============================================================================
+// snr_extract_model_v3 - 版本化 SNR 模型, 携带 star_id/quality_flags/status
+// ============================================================================
+SNR_API int snr_extract_model_v3(const double* psf, int n_stars,
+                                  double sigma_residual,
+                                  const SnrWcsParams* wcs,
+                                  int value_dtype,
+                                  const int64_t* star_ids,
+                                  const uint32_t* quality_flags,
+                                  const uint32_t* photometric_status,
+                                  SnrModelV3* out_model) {
+    if (!psf || !wcs || !out_model) {
+        fprintf(stderr, "[snr_model_v3] error: null pointer\n");
+        return 3;
+    }
+    if (value_dtype != 0 && value_dtype != 1) {
+        fprintf(stderr, "[snr_model_v3] error: value_dtype=%d (0=f32, 1=f64)\n", value_dtype);
+        return 3;
+    }
+    std::memset(out_model, 0, sizeof(SnrModelV3));
+    out_model->value_dtype = (uint8_t)value_dtype;
+    out_model->idw_power = 2.0;
+
+    if (sigma_residual <= 0.0) {
+        fprintf(stderr, "[snr_model_v3] degenerate: sigma_residual=%g <= 0\n", sigma_residual);
+        return 2;
+    }
+    const double LN10 = 2.302585092994045684;
+    double snr_phot = 1.0 / (LN10 * sigma_residual);
+    out_model->snr_phot = snr_phot;
+
+    if (n_stars <= 0) {
+        fprintf(stderr, "[snr_model_v3] degenerate: n_stars=%d <= 0\n", n_stars);
+        return 1;
+    }
+
+    // 收集有效 PSF 星 (snr_psf 全程 double 计算; ID/状态按原行对齐)
+    struct ValidRow {
+        double x, y, snr;
+        int64_t star_id;
+        uint32_t qf;
+        uint32_t ps;
+    };
+    std::vector<ValidRow> valid;
+    valid.reserve((size_t)n_stars);
+    for (int i = 0; i < n_stars; ++i) {
+        const double* row = psf + i * 9;
+        double status = row[0], B = row[1], cx = row[3], cy = row[4];
+        double A = row[6], mad = row[7];
+        if (status != 0.0) continue;
+        if (A <= B) continue;
+        if (mad <= 0.0) continue;
+        ValidRow vr;
+        vr.x = cx; vr.y = cy;
+        vr.snr = (A - B) / mad;
+        vr.star_id = star_ids ? star_ids[i] : 0;
+        vr.qf = quality_flags ? quality_flags[i] : 0u;
+        vr.ps = photometric_status ? photometric_status[i] : 0u;
+        valid.push_back(vr);
+    }
+    int n_valid = (int)valid.size();
+    if (n_valid <= 0) {
+        fprintf(stderr, "[snr_model_v3] no valid PSF stars\n");
+        return 1;
+    }
+    std::vector<double> snr_copy;
+    snr_copy.reserve((size_t)n_valid);
+    for (const auto& v : valid) snr_copy.push_back(v.snr);
+    double median_snr = medianValue(snr_copy);
+    out_model->median_snr = median_snr;
+    if (median_snr <= 0.0) {
+        fprintf(stderr, "[snr_model_v3] warning: median_snr <= 0\n");
+        return 1;
+    }
+
+    out_model->n_points = (uint32_t)n_valid;
+    if (value_dtype == 1) {
+        auto* pts = (SnrControlPointF64V3*)std::malloc(
+            (size_t)n_valid * sizeof(SnrControlPointF64V3));
+        if (!pts) return 3;
+        for (int i = 0; i < n_valid; ++i) {
+            double ra, dec;
+            pixelToSkySimple(valid[(size_t)i].x, valid[(size_t)i].y, wcs, ra, dec);
+            pts[i].ra = ra; pts[i].dec = dec; pts[i].snr_psf = valid[(size_t)i].snr;
+            pts[i].star_id = valid[(size_t)i].star_id;
+            pts[i].quality_flags = valid[(size_t)i].qf;
+            pts[i].photometric_status = valid[(size_t)i].ps;
+        }
+        out_model->points = pts;
+    } else {
+        auto* pts = (SnrControlPointV3*)std::malloc(
+            (size_t)n_valid * sizeof(SnrControlPointV3));
+        if (!pts) return 3;
+        for (int i = 0; i < n_valid; ++i) {
+            double ra, dec;
+            pixelToSkySimple(valid[(size_t)i].x, valid[(size_t)i].y, wcs, ra, dec);
+            pts[i].ra = ra; pts[i].dec = dec; pts[i].snr_psf = (float)valid[(size_t)i].snr;
+            pts[i].star_id = valid[(size_t)i].star_id;
+            pts[i].quality_flags = valid[(size_t)i].qf;
+            pts[i].photometric_status = valid[(size_t)i].ps;
+        }
+        out_model->points = pts;
+    }
+    fprintf(stderr, "[snr_model_v3] done: n_points=%u dtype=%d snr_phot=%.6f median=%.6f\n",
+            out_model->n_points, value_dtype, out_model->snr_phot, out_model->median_snr);
+    return 0;
+}
+
+SNR_API void snr_free_model_v3(SnrModelV3* model) {
+    if (!model) return;
+    std::free(model->points);
+    model->points = nullptr;
+    model->n_points = 0;
+}
+
 }  // extern "C"

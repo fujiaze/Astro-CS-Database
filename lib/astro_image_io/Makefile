@@ -5,7 +5,7 @@ CXXFLAGS = -O2 -march=native -Wall -std=c++17 -fopenmp \
            -DHAS_ZSTD -DHAS_LZ4
 CC = gcc
 CFLAGS = -O2 -march=native -Wall
-INCLUDES = -Iinclude -Isrc
+INCLUDES = -Iinclude -Isrc -I../common
 SRC_DIR = src
 AHPX_DIR = $(SRC_DIR)/ahpx
 
@@ -40,6 +40,7 @@ CFITSIO_OBJ = $(CFITSIO_SRC:.c=.o)
 SRCS = $(SRC_DIR)/aio_fits.cpp $(SRC_DIR)/aio_xisf.cpp \
        $(SRC_DIR)/aio_api.cpp $(SRC_DIR)/aio_log.cpp \
        $(SRC_DIR)/aio_compressor.cpp \
+       ../common/healpix/healpix_core.cpp \
        $(SRC_DIR)/hiss_codec.cpp \
        $(SRC_DIR)/hiss_common.cpp \
        $(SRC_DIR)/hiss_tile_model.cpp \

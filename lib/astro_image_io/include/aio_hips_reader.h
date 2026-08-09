@@ -50,10 +50,12 @@ AIO_HIPS_RD_EXPORT int aio_hips_read_tile_f32(AioHipsDataset* d, uint64_t ipix, 
 // 读取一个叶级 tile 为 float64
 AIO_HIPS_RD_EXPORT int aio_hips_read_tile_f64(AioHipsDataset* d, uint64_t ipix, double* out);
 
-// SNR catalogue: 返回点数与数组 (ra[], dec[], snr[], star_id[])
-// 调用方分配; 返回实际点数 (0=无)。
+// SNR catalogue: 返回点数与数组 (ra[], dec[], snr[], star_id[],
+// quality_flags[], photometric_status[])。调用方分配; 返回实际点数 (0=无)。
+// quality_flags/photometric_status 可为 NULL (旧调用方不读取)。
 AIO_HIPS_RD_EXPORT int aio_hips_read_snr_catalog(
-    AioHipsDataset* d, double* ra, double* dec, double* snr, int64_t* star_id, int max);
+    AioHipsDataset* d, double* ra, double* dec, double* snr, int64_t* star_id,
+    uint32_t* quality_flags, uint32_t* photometric_status, int max);
 
 AIO_HIPS_RD_EXPORT void aio_hips_close(AioHipsDataset* d);
 

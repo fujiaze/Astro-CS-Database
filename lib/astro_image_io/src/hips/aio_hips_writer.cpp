@@ -16,6 +16,7 @@
 // ============================================================================
 
 #include "aio_hips.h"
+#include "healpix/healpix_core.h"
 
 #include <fitsio.h>
 
@@ -86,67 +87,6 @@ std::string tile_rel_path(int order, uint64_t ipix, const char* ext) {
     std::snprintf(buf, sizeof(buf), "Norder%d/Dir%llu/Npix%llu%s",
                   order, (unsigned long long)dir, (unsigned long long)npix, ext);
     return std::string(buf);
-}
-
-// RA/Dec (deg) -> NESTED ipix @ nside (标准 HEALPix ang2pix, 支持任意 2 幂 nside)
-uint64_t ang2ipix_nest(double ra_deg, double dec_deg, uint32_t nside) {
-    const double z = std::sin(dec_deg * kPi() / 180.0);
-    const double phi = ra_deg * kPi() / 180.0;
-    const double za = std::acos(std::max(-1.0, std::min(1.0, z)));
-    const double tt = za / (kPi() / 2.0);  // [0,2]
-    uint32_t face = 0;
-    double x = 0.0, y = 0.0;
-    if (tt <= 1.0) {
-        double th = 0.5 * za;
-        double zph = (phi >= 0.0 && phi < kPi()) ? phi : phi + 2.0 * kPi();
-        double t1 = std::tan(th);
-        double t2 = std::tan((kPi() / 2.0 - th) / 2.0);
-        double s = std::sin(zph), c = std::cos(zph);
-        face = (zph >= 0.0 && zph < kPi() / 2.0) ? 0 :
-               (zph >= kPi() / 2.0 && zph < kPi()) ? 1 :
-               (zph >= kPi() && zph < 3.0 * kPi() / 2.0) ? 2 : 3;
-        if (face == 0)      { x = t2;           y = t1; }
-        else if (face == 1) { x = -t2;          y = t1; }
-        else if (face == 2) { x = -t1 / std::max(s, 1e-30); y = -t2; }
-        else                { x =  t1 / std::max(s, 1e-30); y =  t2; }
-        x = std::max(-1.0, std::min(1.0, x));
-        y = std::max(-1.0, std::min(1.0, y));
-    } else {
-        double th = kPi() - 0.5 * za;
-        double zph = (phi >= 0.0 && phi < kPi()) ? phi : phi + 2.0 * kPi();
-        double t1 = std::tan(th);
-        double t2 = std::tan((kPi() / 2.0 - th) / 2.0);
-        double s = std::sin(zph), c = std::cos(zph);
-        face = (zph >= 0.0 && zph < kPi() / 2.0) ? 4 :
-               (zph >= kPi() / 2.0 && zph < kPi()) ? 5 :
-               (zph >= kPi() && zph < 3.0 * kPi() / 2.0) ? 6 : 7;
-        if (face == 4)      { x = -t1 / std::max(s, 1e-30); y =  t2; }
-        else if (face == 5) { x =  t2;           y = t1; }
-        else if (face == 6) { x =  t2;           y = -t1; }
-        else                { x = -t1 / std::max(s, 1e-30); y = -t2; }
-        x = std::max(-1.0, std::min(1.0, x));
-        y = std::max(-1.0, std::min(1.0, y));
-    }
-    // (x,y) in [-1,1] -> 投影坐标
-    const double s_ = std::sin((kPi() / 2.0) * tt);  // unused; keep for clarity
-    (void)s_;
-    double xx = x * (nside / 2.0);
-    double yy = y * (nside / 2.0);
-    double tmp = std::max(0.0, std::min(2.0 * nside - 1.0, nside * (1.0 - yy)));
-    uint32_t jr = (uint32_t)std::floor(tmp);
-    tmp = std::max(0.0, std::min(2.0 * nside - 1.0, nside * (1.0 + xx)));
-    uint32_t ir = (uint32_t)std::floor(tmp);
-    uint32_t iy = (jr < nside) ? jr : (2 * nside - 1 - jr);
-    uint32_t ix = (ir < nside) ? ir : (2 * nside - 1 - ir);
-    // interleave
-    uint64_t ipix = 0;
-    for (uint32_t b = 0; b < 16; ++b) {
-        uint64_t bit = 1ULL << b;
-        if (ix & bit) ipix |= (1ULL << (2 * b + 1));
-        if (iy & bit) ipix |= (1ULL << (2 * b));
-    }
-    ipix += (uint64_t)face * (uint64_t)nside * nside;
-    return ipix;
 }
 
 // FITS 字符串转义 (单引号翻倍, 80 字符内)
@@ -652,7 +592,9 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
     std::map<uint64_t, std::vector<const AioHipsSnrPoint*>> by_cell;
     std::set<uint64_t> cells;
     for (const auto& p : ps->snr) {
-        uint64_t ip = ang2ipix_nest(p.ra_deg, p.dec_deg, 1u << ps->tile_order);
+        // 共享 HEALPix core (V4): 不再维护 AIO 私有 ang2ipix
+        uint64_t ip = astrocs::healpix::ang2pix_nest(1u << ps->tile_order,
+                                                     p.ra_deg, p.dec_deg);
         by_cell[ip].push_back(&p);
         cells.insert(ip);
     }
@@ -666,8 +608,10 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
         if (!f) { set_error("无法创建 SNR tile: " + p); return false; }
         std::fputs(header, f);
         for (const AioHipsSnrPoint* sp : kv.second) {
-            std::fprintf(f, "%lld %.12f %.12f %.6f 0 1\n",
-                         (long long)sp->source_id, sp->ra_deg, sp->dec_deg, sp->snr);
+            // V4: 真实 star_id / quality_flags / photometric_status (禁止硬编码)
+            std::fprintf(f, "%lld %.12f %.12f %.6f %u %u\n",
+                         (long long)sp->star_id, sp->ra_deg, sp->dec_deg, sp->snr,
+                         sp->quality_flags, sp->photometric_status);
         }
         std::fclose(f);
     }

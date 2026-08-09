@@ -47,8 +47,8 @@ int main(int argc, char** argv) {
         }
     }
     AioHipsSnrPoint pts[2];
-    pts[0] = {10.0, 89.5, 12.3, 1001};
-    pts[1] = {20.0, -30.0, 5.5, 1002};
+    pts[0] = {10.0, 89.5, 12.3, 1001, 1u, 1u};
+    pts[1] = {20.0, -30.0, 5.5, 1002, 4u, 0u};
     aio_hips_write_snr_points(ps, pts, 2);
     if (aio_hips_finalize(ps) != 0) {
         std::fprintf(stderr, "finalize fail: %s\n", aio_hips_last_error());

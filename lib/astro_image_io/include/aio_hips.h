@@ -62,12 +62,15 @@ typedef struct {
     const uint8_t* valid_mask;
 } AstroSphereTileView;
 
-// SNR catalogue 控制点
+// SNR catalogue 控制点 (V4: 携带 stable star_id 与真实状态字段)
 typedef struct {
     double ra_deg;
     double dec_deg;
     double snr;
-    int64_t source_id;
+    int64_t star_id;            // PSF 阶段 stable star_id (禁止重新编号)
+    uint32_t quality_flags;     // 位标志: 1=PSF_OK 2=saturated 4=has_saturated
+                                // 8=photo_matched 16=photo_rejected
+    uint32_t photometric_status; // 0=unmatched 1=used 2=rejected
 } AioHipsSnrPoint;
 
 typedef struct AioHipsProductSet AioHipsProductSet;

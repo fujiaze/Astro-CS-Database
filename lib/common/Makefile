@@ -16,12 +16,17 @@
 # 或在 orchestrator 的全局编译命令中统一注入.
 
 CXX = g++
-CXXFLAGS = -O2 -Wall -std=c++17 -Iinclude
+CXXFLAGS = -O2 -Wall -std=c++17 -Iinclude -I.
 
 TEST_SRC = tests/test_precision.cpp
 TEST_BIN = test_precision.exe
 
-.PHONY: all build run clean
+# 共享 HEALPix core (Phase1 Final Signoff V4): 静态源码, 被 AIO/Drizzle/Browser 引用
+HEALPIX_SRC = healpix/healpix_core.cpp
+HEALPIX_TEST_SRC = healpix/tests/test_healpix_oracle.cpp
+HEALPIX_TEST_BIN = test_healpix_oracle.exe
+
+.PHONY: all build run clean healpix-oracle
 
 all: build run
 
@@ -33,5 +38,12 @@ $(TEST_BIN): $(TEST_SRC) include/astro_scalar.h include/precision_context.h
 run: $(TEST_BIN)
 	./$(TEST_BIN)
 
+# HEALPix 全天空 Oracle: test_healpix_oracle.exe <oracle.jsonl>
+healpix-oracle: $(HEALPIX_TEST_BIN)
+
+$(HEALPIX_TEST_BIN): $(HEALPIX_TEST_SRC) $(HEALPIX_SRC) healpix/healpix_core.h
+	$(CXX) $(CXXFLAGS) -o $@ $(HEALPIX_TEST_SRC) $(HEALPIX_SRC)
+
 clean:
 	del /f /q $(TEST_BIN) 2>nul
+	del /f /q $(HEALPIX_TEST_BIN) 2>nul
