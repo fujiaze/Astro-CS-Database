@@ -286,35 +286,6 @@ void recompute_domain(RoutePath& path) {
     path.frame_counts = std::move(fcs);
 }
 
-// 最多 max_rounds 轮 adaptive refinement：
-//   1) 在剩余 Probe 上选插值器并算误差；
-//   2) 未过门则把最差 Probe 转入 Fit（加入 samples 并重算 domain）；
-//   3) 对剩余 Probe 复测；模型冻结后才允许 Final。
-// 返回 true=剩余 Probe 已过门。
-bool adapt_path(RoutePath& path,
-                std::vector<RouteEvalPoint>& probe,
-                std::uint32_t max_rounds) {
-    for (std::uint32_t round = 0; round < max_rounds; ++round) {
-        RouteErrorEval ev = select_model_on_probe(path, probe);
-        path.refinement_probe_count = ev.count;
-        if (route_gate_passed_errors(ev.median, ev.max) || ev.count < 2) {
-            path.adaptive_rounds_used = round;
-            return route_gate_passed_errors(ev.median, ev.max);
-        }
-        // 最差 Probe 转入 Fit
-        RouteSamplePoint s = probe[ev.worst_index].sample;
-        s.output_items = probe[ev.worst_index].items;
-        s.frame_count = probe[ev.worst_index].frames;
-        path.samples.push_back(std::move(s));
-        probe.erase(probe.begin() + ev.worst_index);
-        recompute_domain(path);
-        path.adaptive_rounds_used = round + 1;
-    }
-    RouteErrorEval ev = select_model_on_probe(path, probe);
-    path.refinement_probe_count = ev.count;
-    return route_gate_passed_errors(ev.median, ev.max);
-}
-
 // Final 误差（模型已冻结：只评估、绝不重新选择插值器）
 RouteErrorEval evaluate_final(RoutePath& path,
                               const std::vector<RouteEvalPoint>& final_pts) {
@@ -780,6 +751,201 @@ ReplayActuals measure_replay_actuals(
     return a;
 }
 
+// ===== 场景联合 route-regret Adaptive（04_PROFILE_CALIBRATION_AND_VALIDATION）=====
+// 每个 Probe 坐标同时保存 OpenMP/GPU/Mixed 三条实际样本；补点时同一坐标
+// 三路径样本一起加入各自 Fit（保持三候选在相同补点坐标上对齐）。
+struct ScenarioProbeJoint {
+    RouteScenarioProfile* sc{nullptr};
+    struct Point {
+        CalPoint pt;
+        RouteEvalPoint openmp;
+        RouteEvalPoint gpu;
+        RouteEvalPoint mixed;
+    };
+    std::vector<Point> points;
+};
+
+// 用当前冻结模型预测某路径；范围外返回 -1。
+double predict_path_ms(const RoutePath& path, std::uint64_t items,
+                       std::uint32_t frames) {
+    double m = 0.0, p90 = 0.0;
+    if (!BenchmarkRouteEstimator::interpolate_e2e(path, items, frames,
+                                                  m, p90)) {
+        return -1.0;
+    }
+    return m;
+}
+
+// 场景内按当前模型选择 predicted 最优候选（仅路径可行时参与）。
+RouteKind predict_chosen_for_point(const RouteScenarioProfile& sc,
+                                   std::uint64_t items,
+                                   std::uint32_t frames) {
+    const double mo = predict_path_ms(sc.openmp, items, frames);
+    const double mg = predict_path_ms(sc.gpu_direct, items, frames);
+    const double mm = predict_path_ms(sc.mixed, items, frames);
+    RouteKind chosen = RouteKind::OpenMP;
+    double best = mo;
+    if (best < 0.0 || (mg >= 0.0 && mg < best)) {
+        chosen = RouteKind::GpuDirect;
+        best = mg;
+    }
+    if (best < 0.0 || (mm >= 0.0 && mm < best)) {
+        chosen = RouteKind::Mixed;
+    }
+    return chosen;
+}
+
+double actual_for_kind(const ScenarioProbeJoint::Point& pt, RouteKind k) {
+    switch (k) {
+        case RouteKind::OpenMP: return pt.openmp.sample.median_ms;
+        case RouteKind::GpuDirect: return pt.gpu.sample.median_ms;
+        case RouteKind::Mixed: return pt.mixed.sample.median_ms;
+    }
+    return 0.0;
+}
+
+// 场景联合 adaptive：最多 max_rounds 轮。
+//   1) 每路径 select_model_on_probe（允许改 interpolation_id）；
+//   2) 计算每点 route regret = chosen_actual / min(all actual)；
+//   3) 优先补 regret>1.05 的最大 regret 坐标（三路径样本一起加入 Fit）；
+//   4) 无 regret 超标时按最大路径预测误差补点（同样三路径一起）；
+//   5) 剩余 Probe 全部过门则结束。
+// Final 点绝不参与。
+bool adapt_scenario_joints(std::vector<ScenarioProbeJoint>& scenes,
+                           std::uint32_t max_rounds) {
+    auto path_probe_pts = [](const ScenarioProbeJoint& sj,
+                             const RoutePath* p) {
+        std::vector<RouteEvalPoint> out;
+        const bool is_omp = (p == &sj.sc->openmp);
+        const bool is_gpu = (p == &sj.sc->gpu_direct);
+        for (const auto& pt : sj.points) {
+            if (is_omp) out.push_back(pt.openmp);
+            else if (is_gpu) out.push_back(pt.gpu);
+            else out.push_back(pt.mixed);
+        }
+        return out;
+    };
+    auto select_all = [&]() {
+        for (auto& sj : scenes) {
+            for (RoutePath* p :
+                 {&sj.sc->openmp, &sj.sc->gpu_direct, &sj.sc->mixed}) {
+                auto pts = path_probe_pts(sj, p);
+                RouteErrorEval ev = select_model_on_probe(*p, pts);
+                p->refinement_probe_count = ev.count;
+            }
+        }
+    };
+    auto add_point_to_fit = [&](ScenarioProbeJoint& sj, std::size_t idx) {
+        auto& pt = sj.points[idx];
+        auto push = [&](RoutePath& path, const RouteEvalPoint& src) {
+            RouteSamplePoint s = src.sample;
+            s.output_items = pt.pt.items;
+            s.frame_count = pt.pt.frames;
+            path.samples.push_back(std::move(s));
+            recompute_domain(path);
+        };
+        push(sj.sc->openmp, pt.openmp);
+        push(sj.sc->gpu_direct, pt.gpu);
+        push(sj.sc->mixed, pt.mixed);
+        sj.points.erase(sj.points.begin() + idx);
+    };
+
+    for (std::uint32_t round = 0; round < max_rounds; ++round) {
+        select_all();
+
+        // 收集所有 regret>1.05 的坐标（跨场景全局优先）
+        struct RegretCandidate {
+            ScenarioProbeJoint* sj{nullptr};
+            std::size_t idx{0};
+            double regret{0.0};
+        };
+        std::vector<RegretCandidate> regrets;
+        for (auto& sj : scenes) {
+            for (std::size_t i = 0; i < sj.points.size(); ++i) {
+                const auto& pt = sj.points[i];
+                const RouteKind chosen = predict_chosen_for_point(
+                    *sj.sc, pt.pt.items, pt.pt.frames);
+                const double chosen_ms = actual_for_kind(pt, chosen);
+                const double best_ms = std::min(
+                    {pt.openmp.sample.median_ms,
+                     pt.gpu.sample.median_ms,
+                     pt.mixed.sample.median_ms});
+                if (chosen_ms > 0.0 && best_ms > 0.0) {
+                    const double regret = chosen_ms / best_ms;
+                    if (regret > 1.05) {
+                        regrets.push_back({&sj, i, regret});
+                    }
+                }
+            }
+        }
+        if (!regrets.empty()) {
+            std::sort(regrets.begin(), regrets.end(),
+                      [](const RegretCandidate& a,
+                         const RegretCandidate& b) {
+                          return a.regret > b.regret;
+                      });
+            std::fprintf(stderr,
+                         "[route-profile] adaptive round %u: add route-regret "
+                         "point %llu x %u regret=%.3f\n",
+                         round,
+                         static_cast<unsigned long long>(
+                             regrets.front().sj->points[regrets.front().idx]
+                                 .pt.items),
+                         regrets.front().sj->points[regrets.front().idx]
+                             .pt.frames,
+                         regrets.front().regret);
+            add_point_to_fit(*regrets.front().sj, regrets.front().idx);
+            continue;
+        }
+
+        // 无 regret 超标：按最大路径预测误差补点（仍同坐标三路径一起）
+        double worst_err = 0.0;
+        ScenarioProbeJoint* worst_sj = nullptr;
+        std::size_t worst_idx = 0;
+        for (auto& sj : scenes) {
+            for (RoutePath* p :
+                 {&sj.sc->openmp, &sj.sc->gpu_direct, &sj.sc->mixed}) {
+                auto pts = path_probe_pts(sj, p);
+                RouteErrorEval ev = select_model_on_probe(*p, pts);
+                if (!route_gate_passed_errors(ev.median, ev.max) &&
+                    ev.worst_error > worst_err) {
+                    worst_err = ev.worst_error;
+                    worst_sj = &sj;
+                    worst_idx = ev.worst_index;
+                }
+            }
+        }
+        if (worst_sj == nullptr) {
+            // 全部剩余 Probe 已过门：冻结轮数，结束
+            for (auto& sj : scenes) {
+                for (RoutePath* p :
+                     {&sj.sc->openmp, &sj.sc->gpu_direct, &sj.sc->mixed}) {
+                    p->adaptive_rounds_used = round;
+                }
+            }
+            return true;
+        }
+        std::fprintf(stderr,
+                     "[route-profile] adaptive round %u: add max-error point "
+                     "%llu x %u err=%.3f\n",
+                     round,
+                     static_cast<unsigned long long>(
+                         worst_sj->points[worst_idx].pt.items),
+                     worst_sj->points[worst_idx].pt.frames, worst_err);
+        add_point_to_fit(*worst_sj, worst_idx);
+    }
+
+    // 最后一轮后再次选择模型并记录轮数（允许达到 max_rounds）
+    select_all();
+    for (auto& sj : scenes) {
+        for (RoutePath* p :
+             {&sj.sc->openmp, &sj.sc->gpu_direct, &sj.sc->mixed}) {
+            p->adaptive_rounds_used = max_rounds;
+        }
+    }
+    return false;
+}
+
 } // anonymous namespace
 
 // ===== 标定评估纯函数（04_PROFILE_CALIBRATION_AND_VALIDATION.md）=====
@@ -997,70 +1163,72 @@ bool calibrate_route_profile_v2(
         }
     }
 
-    // ===== Probe 测量（8 点，9 条路径独立 actual）=====
+    // ===== Probe 测量（8 点，场景联合：每坐标同时保存三路径 actual）=====
     std::fprintf(stderr, "[route-profile] probe: %zu points\n",
                  kProbePoints.size());
-    std::map<RoutePath*, std::vector<RouteEvalPoint>> probes;
+    std::vector<ScenarioProbeJoint> probes;
+    probes.push_back({&sc_cold, {}});
+    probes.push_back({&sc_res, {}});
+    probes.push_back({&sc_reuse, {}});
     for (const auto& pt : kProbePoints) {
         std::fprintf(stderr, "[route-profile] probe %llu x %u\n",
                      static_cast<unsigned long long>(pt.items), pt.frames);
         const std::size_t pixels = static_cast<std::size_t>(pt.items);
         const std::size_t frames = static_cast<std::size_t>(pt.frames);
         TestData d = make_test_data(20260807u + 1u, pt);
-        auto rec = [&](RoutePath& path, const TimedWithStats& t,
+        auto rec = [&](RouteEvalPoint& dst, const TimedWithStats& t,
                        std::uint32_t reuse) {
-            RouteEvalPoint pa;
-            pa.items = pt.items;
-            pa.frames = pt.frames;
-            pa.sample = t.stats;
-            pa.sample.output_items = pt.items;
-            pa.sample.frame_count = pt.frames;
-            pa.sample.reuse_count = reuse;
-            pa.sample.median_ms = t.median_ms;
-            pa.sample.p90_ms = t.p90_ms;
-            probes[&path].push_back(std::move(pa));
+            dst.items = pt.items;
+            dst.frames = pt.frames;
+            dst.sample = t.stats;
+            dst.sample.output_items = pt.items;
+            dst.sample.frame_count = pt.frames;
+            dst.sample.reuse_count = reuse;
+            dst.sample.median_ms = t.median_ms;
+            dst.sample.p90_ms = t.p90_ms;
         };
+        ScenarioProbeJoint::Point joint[3];
+        for (auto& j : joint) j.pt = pt;
         auto to = measure_openmp(d, frames, pixels, env.openmp_threads,
                                  false);
-        rec(sc_cold.openmp, to, 1u);
-        rec(sc_res.openmp, to, 1u);
+        rec(joint[0].openmp, to, 1u);
+        rec(joint[1].openmp, to, 1u);
         auto to4 = measure_openmp(d, frames, pixels, env.openmp_threads,
                                   true);
-        rec(sc_reuse.openmp, to4, 4u);
+        rec(joint[2].openmp, to4, 4u);
         auto tgc = measure_gpu_direct(bapi, gpu_handle, d, frames, pixels,
                                       "cold");
-        rec(sc_cold.gpu_direct, tgc, 1u);
+        rec(joint[0].gpu, tgc, 1u);
         auto tgr = measure_gpu_direct(bapi, gpu_handle, d, frames, pixels,
                                       "resident");
-        rec(sc_res.gpu_direct, tgr, 1u);
+        rec(joint[1].gpu, tgr, 1u);
         auto tg4 = measure_gpu_direct(bapi, gpu_handle, d, frames, pixels,
                                       "reuse4");
-        rec(sc_reuse.gpu_direct, tg4, 4u);
+        rec(joint[2].gpu, tg4, 4u);
         auto tmc = measure_mixed(d, frames, pixels, regs, bapi, gpu_handle,
                                  "cold", 20260807u + 1u);
-        rec(sc_cold.mixed, tmc, 1u);
+        rec(joint[0].mixed, tmc, 1u);
         auto tmr = measure_mixed(d, frames, pixels, regs, bapi, gpu_handle,
                                  "resident", 20260807u + 1u);
-        rec(sc_res.mixed, tmr, 1u);
+        rec(joint[1].mixed, tmr, 1u);
         auto tm4 = measure_mixed(d, frames, pixels, regs, bapi, gpu_handle,
                                  "reuse4", 20260807u + 1u);
-        rec(sc_reuse.mixed, tm4, 4u);
+        rec(joint[2].mixed, tm4, 4u);
+        for (std::size_t si = 0; si < probes.size(); ++si) {
+            probes[si].points.push_back(joint[si]);
+        }
     }
 
-    // ===== 真正 Adaptive Refinement（每路径最多 2 轮）=====
-    auto adapt_all = [&](RoutePath& path) {
-        recompute_domain(path);
-        adapt_path(path, probes[&path], 2u);
-    };
-    adapt_all(sc_cold.openmp);
-    adapt_all(sc_cold.gpu_direct);
-    adapt_all(sc_cold.mixed);
-    adapt_all(sc_res.openmp);
-    adapt_all(sc_res.gpu_direct);
-    adapt_all(sc_res.mixed);
-    adapt_all(sc_reuse.openmp);
-    adapt_all(sc_reuse.gpu_direct);
-    adapt_all(sc_reuse.mixed);
+    // ===== 场景联合 route-regret Adaptive（最多 2 轮，Final 完全 untouched）=====
+    std::fprintf(stderr, "[route-profile] adaptive refinement "
+                         "(scenario-joint route regret)...\n");
+    for (auto& sj : probes) {
+        for (RoutePath* p :
+             {&sj.sc->openmp, &sj.sc->gpu_direct, &sj.sc->mixed}) {
+            recompute_domain(*p);
+        }
+    }
+    adapt_scenario_joints(probes, 2u);
 
     // ===== Final Untouched Holdout（冻结后只测一次）=====
     std::fprintf(stderr, "[route-profile] final holdout: %zu points\n",
