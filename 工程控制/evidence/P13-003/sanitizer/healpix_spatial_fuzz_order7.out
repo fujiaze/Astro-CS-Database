@@ -1,0 +1,3 @@
+lines=109976 mismatch=0 bad_parse=0 bad_roundtrip=0 max_roundtrip_deg=4.507e-01
+face_counts: 9271 8912 9116 9229 10077 8749 8978 8769 9298 9174 9080 9323
+RESULT: PASS (mismatch=0)

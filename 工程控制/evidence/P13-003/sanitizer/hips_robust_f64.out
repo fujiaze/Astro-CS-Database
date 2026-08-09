@@ -1,0 +1,7 @@
+metadata_votable_ok bytes=744
+pre_corrupt_catalog got=2 rows: [1001 10.0000 89.5000 snr=12.300 qf=1 ps=1] [1002 20.0000 -30.0000 snr=5.500 qf=4 ps=0]
+corrupt_snr_tsv files=2 injected_bad_lines=8
+snr_catalog_after_corrupt got=2 ids_ok
+signal_open_after_props_corrupt gracefully_null
+signal_open_after_moc_corrupt graceful_open_fail
+HIPS_ROBUST_SANITIZE_OK dtype=1

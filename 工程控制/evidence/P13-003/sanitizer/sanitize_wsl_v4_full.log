@@ -1,0 +1,57 @@
+=== [1/5] shared HEALPix core vs 1,000,000 full-sky Oracle ===
+lines=1000110 mismatch=0 bad_parse=0 bad_roundtrip=0 max_roundtrip_deg=4.793e+01
+face_counts: 83972 83146 83013 83673 83355 83215 83690 83223 83315 83205 83245 83058
+RESULT: PASS (mismatch=0)
+=== [2/5] HiPS writer/reader (FP32) ===
+[hips] finalize: n_leaf=3 flags=7
+[hips] finalize: signal product
+[hips] finalize: support product
+[hips] finalize: ok
+HIPS_SANITIZE_OK tiles=3
+=== [3/5] HiPS robustness FP32/FP64 + corrupt inputs ===
+[hips] finalize: n_leaf=3 flags=7
+[hips] finalize: signal product
+[hips] finalize: support product
+[hips] finalize: ok
+metadata_votable_ok bytes=744
+pre_corrupt_catalog got=2 rows: [1001 10.0000 89.5000 snr=12.300 qf=1 ps=1] [1002 20.0000 -30.0000 snr=5.500 qf=4 ps=0]
+corrupt_snr_tsv files=2 injected_bad_lines=8
+snr_catalog_after_corrupt got=2 ids_ok
+signal_open_after_props_corrupt gracefully_null
+signal_open_after_moc_corrupt graceful_open_fail
+HIPS_ROBUST_SANITIZE_OK dtype=0
+[hips] finalize: n_leaf=3 flags=7
+[hips] finalize: signal product
+[hips] finalize: support product
+[hips] finalize: ok
+metadata_votable_ok bytes=744
+pre_corrupt_catalog got=2 rows: [1001 10.0000 89.5000 snr=12.300 qf=1 ps=1] [1002 20.0000 -30.0000 snr=5.500 qf=4 ps=0]
+corrupt_snr_tsv files=2 injected_bad_lines=8
+snr_catalog_after_corrupt got=2 ids_ok
+signal_open_after_props_corrupt gracefully_null
+signal_open_after_moc_corrupt graceful_open_fail
+HIPS_ROBUST_SANITIZE_OK dtype=1
+=== [4/5] DR3SP parser (gaia_client) ===
+/mnt/f/Astro dev/Astro CS Normalization Database/lib/gaia_xpsd_client/src/gaia_client.c: In function ‘gaia_client_cone_search’:
+/mnt/f/Astro dev/Astro CS Normalization Database/lib/gaia_xpsd_client/src/gaia_client.c:1452: warning: ignoring ‘#pragma omp parallel’ [-Wunknown-pragmas]
+ 1452 |     #pragma omp parallel for schedule(dynamic)
+/mnt/f/Astro dev/Astro CS Normalization Database/lib/gaia_xpsd_client/src/gaia_client.c: In function ‘gaia_client_cone_search_with_spectrum’:
+/mnt/f/Astro dev/Astro CS Normalization Database/lib/gaia_xpsd_client/src/gaia_client.c:1599: warning: ignoring ‘#pragma omp parallel’ [-Wunknown-pragmas]
+ 1599 |     #pragma omp parallel for schedule(dynamic)
+/mnt/f/Astro dev/Astro CS Normalization Database/lib/gaia_xpsd_client/src/gaia_client.c: In function ‘gaia_client_query_spectrum_by_coords’:
+/mnt/f/Astro dev/Astro CS Normalization Database/lib/gaia_xpsd_client/src/gaia_client.c:1725: warning: ignoring ‘#pragma omp parallel’ [-Wunknown-pragmas]
+ 1725 |     #pragma omp parallel for schedule(dynamic)
+/mnt/f/Astro dev/Astro CS Normalization Database/lib/gaia_xpsd_client/src/gaia_client.c: In function ‘gaia_client_cone_search_with_photometry’:
+/mnt/f/Astro dev/Astro CS Normalization Database/lib/gaia_xpsd_client/src/gaia_client.c:1842: warning: ignoring ‘#pragma omp parallel’ [-Wunknown-pragmas]
+ 1842 |     #pragma omp parallel for schedule(dynamic)
+/mnt/f/Astro dev/Astro CS Normalization Database/lib/gaia_xpsd_client/src/gaia_client.c: At top level:
+/mnt/f/Astro dev/Astro CS Normalization Database/lib/gaia_xpsd_client/src/gaia_client.c:557:17: warning: ‘parse_uint64_after’ defined but not used [-Wunused-function]
+  557 | static uint64_t parse_uint64_after(const char *start, const char *attr, uint64_t def) {
+      |                 ^~~~~~~~~~~~~~~~~~
+files=20 sources=219165266
+GAIA_SANITIZE_OK matched=1 flux_probe=4.515788e-17
+=== [5/5] Catalogue spatial fuzz (order 7) ===
+lines=109976 mismatch=0 bad_parse=0 bad_roundtrip=0 max_roundtrip_deg=4.507e-01
+face_counts: 9271 8912 9116 9229 10077 8749 8978 8769 9298 9174 9080 9323
+RESULT: PASS (mismatch=0)
+ALL_SANITIZE_V4_PASS
