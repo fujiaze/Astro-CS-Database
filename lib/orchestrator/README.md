@@ -19,11 +19,12 @@ orchestrator.exe --help
 orchestrator.exe --version
 orchestrator.exe --print-schema
 orchestrator.exe --validate <stage1.json>
-orchestrator.exe --inspect <file.hiss>
+orchestrator.exe --inspect <file.hiss>   # LEGACY 诊断 (HISS 已 DEPRECATED)
 ```
 
 - `--validate`：只做 Schema 校验，不执行流水线（输出 `VALID` 退出码 0；`INVALID` 退出码 1）
-- `--inspect`：查看 HISS 文件 metadata（precision_mode、signal_dtype、Tile 信息等），仅用于调试
+- `--inspect`：**LEGACY** 诊断 — 查看 legacy HISS 文件 metadata（precision_mode、signal_dtype、Tile 信息等），
+  仅用于调试（HISS 已 DEPRECATED，正式产物为 HiPS）
 
 ## JSON Schema 与模板
 

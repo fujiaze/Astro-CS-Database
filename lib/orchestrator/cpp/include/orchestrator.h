@@ -49,9 +49,11 @@ enum class PipelineStage {
 // 新版管线阶段枚举 (spec §2.3.2 两段流水线 10 节点)
 // 2026-07-18: 归档 GRADIENT_2D 节点 (stage1 不做曲面拟合和图像亮度修正,
 //             那是 stage2 马赛克阶段的事; PHOTOMETRIC 已完成测光坐标系校准)
-// 2026-08-03: 新增 HISS_VERIFY 阶段 (drizzle 后验证 .hiss 文件完整性)
+// 2026-08-03: 新增 HISS_VERIFY 阶段 (LEGACY: drizzle 后验证 .hiss 文件完整性,
+//             仅 validation.legacy_hiss_compare=true 时执行, 正式验证为 HIPS_VERIFY)
 // 供 stage1/stage2 CLI 命令使用
-// 第一段: 单帧预处理 (stage 0-7, FITS -> .hiss)
+// 第一段: 单帧预处理 (stage 0-7, FITS -> calibrated/solved frame -> HEALPix Drizzle -> IVOA HiPS;
+//         legacy .hiss 仅 validation.legacy_hiss_compare=true 时写出)
 // 第二段: 多帧合并 (stage 8-9, .hiss -> .hcsd)
 // 2026-08-07 (Phase1 Full Freeze v2): 重排星点链 —
 //   PSF/STAR_MEASURE 必须先于 PLATESOLVE (单次权威检测 + instrumental flux),
@@ -421,7 +423,8 @@ private:
     bool run_stage_snr(TaskResult& result);
     // stage 6: NSIDE (计算/验证 HEALPix NSIDE)
     bool run_stage_nside(TaskResult& result);
-    // stage 7: HISS_VERIFY (验证 drizzle 输出的 .hiss 文件完整性)
+    // stage 7: HISS_VERIFY (LEGACY: 验证 legacy .hiss 文件完整性,
+    //           仅 validation.legacy_hiss_compare=true 时执行)
     // R10: 同时验证 metadata 中 precision_mode 与请求一致
     bool run_stage_hiss_verify(TaskResult& result);
     // Phase1 V3: HIPS_VERIFY (AIO HiPS Reader 验证 signal/support/snr 产品集)

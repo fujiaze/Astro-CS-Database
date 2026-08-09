@@ -3509,7 +3509,7 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
     }
 
     // 调用 hp_drizzle_run_hips
-    // P03-002: pixfrac 从 config 读取 (默认 1.0), nested 从 config 读取 (默认 true)
+    // P03-002: pixfrac 从 config 读取 (省略时生产默认 0.8, V5 CFG-001), nested 从 config 读取 (默认 true)
     // hips_dir = output.hips (缺省由 current_output_path_ 派生, 去 .hiss 换 .hips)
     // legacy .hiss 仅在 validation.legacy_hiss_compare=true 时写出 (默认关闭)
     // R10: 通过 header KV "PRECISION" 传递精度模式给 drizzle DLL
@@ -4896,7 +4896,7 @@ bool Orchestrator::run_stage_stack(TaskResult& result) {
 }
 
 // ============================================================================
-// run_stage1 - spec §2.3.3 单帧预处理 (FITS -> .hiss, stage 0-7)
+// run_stage1 - spec §2.3.3 单帧预处理 (FITS -> calibrated/solved frame -> HEALPix Drizzle -> IVOA HiPS, stage 0-7)
 // 串行执行 8 个 stage, 各阶段调用对应 DLL 模块 (骨架), 输出 timings
 // P04-004: 集成取消 token / stage 超时 / 原子输出清理
 // ============================================================================

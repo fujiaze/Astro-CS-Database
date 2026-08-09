@@ -6,7 +6,8 @@
 //   - --version: 打印版本
 //   - --print-schema: 打印 stage1.schema.json
 //   - --validate <json>: 仅验证 Schema, 不执行
-//   - --inspect <hiss>: 输出 HISS 文件 metadata (含 precision_mode/signal_dtype)
+//   - --inspect <hiss>: LEGACY 诊断 — 输出 HISS 文件 metadata (含 precision_mode/signal_dtype);
+//                       HISS 已 DEPRECATED, 仅 validation.legacy_hiss_compare=true 模式产物
 //   - <stage1.json>: 解析配置 + Schema 验证 + 执行 stage1 流水线
 //
 // 设计说明:
