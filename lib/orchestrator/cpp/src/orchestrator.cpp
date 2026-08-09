@@ -3226,6 +3226,14 @@ static bool write_hips_from_hiss(DllLoader& loader,
 }
 
 // ============================================================================
+// V4 G4: 确定性像素抽样状态 (raw->calibrated->photometric->drizzle 同一组样本)
+//   trace_selection.json/.tsv : 选中源像素坐标 (与 drizzle trace 共用)
+//   pixel_lineage.jsonl       : 各阶段实际 buffer 值
+// ============================================================================
+static std::vector<std::pair<int,int>> g_trace_pixels;
+static bool g_trace_pixels_ready = false;
+
+// ============================================================================
 // write_stage_trace - 阶段 trace 观察器 (Gate 8, Phase1 Full Freeze v2)
 // 从实际 PipelineFrame 读取块统计 + 确定性随机抽样 star_measurements /
 // photometric_match (按 star_id), 追加写入 <diag>/trace/stage_trace.jsonl。
@@ -3241,6 +3249,50 @@ static void write_stage_trace(DllLoader& loader, const PipelineFrame* frame,
     if (!fn_get_block) return;
 
     std::string dir = diagnostics_dir + "/trace";
+
+    // V4 G4: 首阶段 (READ_FITS) 生成确定性像素样本集
+    const AioBlock* db0 = fn_get_block(frame, "data");
+    const int img_h = (db0 && db0->n_dims >= 2) ? (int)db0->dims[0] : 0;
+    const int img_w = (db0 && db0->n_dims >= 2) ? (int)db0->dims[1] : 0;
+    if (!g_trace_pixels_ready) {
+        g_trace_pixels_ready = true;
+        if (img_w > 0 && img_h > 0) {
+            uint64_t ts = seed ^ 0x6A09E667F3BCC909ULL;
+            const int want = 1024;
+            std::unordered_set<uint64_t> sel;
+            for (int i = 0; i < want * 8 && (int)sel.size() < want; ++i) {
+                ts ^= ts << 13; ts ^= ts >> 7; ts ^= ts << 17;
+                int x = (int)(ts % (uint64_t)img_w);
+                ts ^= ts << 13; ts ^= ts >> 7; ts ^= ts << 17;
+                int y = (int)(ts % (uint64_t)img_h);
+                sel.insert((uint64_t)y * 1000000ULL + (uint64_t)x);
+            }
+            for (int i = 0; (int)sel.size() < want && i < img_h * img_w; i += 7) {
+                sel.insert((uint64_t)((i / img_w) % img_h) * 1000000ULL + (uint64_t)(i % img_w));
+            }
+            g_trace_pixels.clear();
+            for (uint64_t k : sel) g_trace_pixels.push_back({(int)(k % 1000000ULL), (int)(k / 1000000ULL)});
+            std::sort(g_trace_pixels.begin(), g_trace_pixels.end());
+            FILE* jf = std::fopen((dir + "/trace_selection.json").c_str(), "wb");
+            if (jf) {
+                std::fprintf(jf, "{\"seed\":%llu,\"n\":%zu,\"width\":%d,\"height\":%d,\"pixels\":[",
+                             (unsigned long long)seed, g_trace_pixels.size(), img_w, img_h);
+                for (size_t k = 0; k < g_trace_pixels.size(); ++k) {
+                    if (k) std::fprintf(jf, ",");
+                    std::fprintf(jf, "{\"x\":%d,\"y\":%d}", g_trace_pixels[k].first, g_trace_pixels[k].second);
+                }
+                std::fprintf(jf, "]}\n");
+                std::fclose(jf);
+            }
+            FILE* tf = std::fopen((dir + "/trace_selection.tsv").c_str(), "wb");
+            if (tf) {
+                std::fprintf(tf, "x\ty\n");
+                for (auto& pr : g_trace_pixels)
+                    std::fprintf(tf, "%d\t%d\n", pr.first, pr.second);
+                std::fclose(tf);
+            }
+        }
+    }
     std::string mk = "mkdir -p \"" + dir + "\"";
     if (std::system(mk.c_str()) != 0) std::system(("mkdir \"" + dir + "\"").c_str());
     std::string path = dir + "/stage_trace.jsonl";
@@ -3353,6 +3405,30 @@ static void write_stage_trace(DllLoader& loader, const PipelineFrame* frame,
     json += "}\n";
     std::fwrite(json.data(), 1, json.size(), f);
     std::fclose(f);
+
+    // V4 G4: 同一组样本像素值 (raw->calibrated->photometric 实际 buffer)
+    if (!g_trace_pixels.empty() && db0 && db0->data &&
+        db0->count >= (int64_t)img_w * img_h) {
+        FILE* pf = std::fopen((dir + "/pixel_lineage.jsonl").c_str(), "ab");
+        if (pf) {
+            if (db0->type == AIO_BLOCK_FLOAT32) {
+                const float* d = static_cast<const float*>(db0->data);
+                for (auto& pr : g_trace_pixels) {
+                    std::fprintf(pf, "{\"stage\":\"%s\",\"x\":%d,\"y\":%d,\"value\":%.9g}\n",
+                                 stage_name, pr.first, pr.second,
+                                 (double)d[(size_t)pr.second * img_w + pr.first]);
+                }
+            } else if (db0->type == AIO_BLOCK_FLOAT64) {
+                const double* d = static_cast<const double*>(db0->data);
+                for (auto& pr : g_trace_pixels) {
+                    std::fprintf(pf, "{\"stage\":\"%s\",\"x\":%d,\"y\":%d,\"value\":%.17g}\n",
+                                 stage_name, pr.first, pr.second,
+                                 d[(size_t)pr.second * img_w + pr.first]);
+                }
+            }
+            std::fclose(pf);
+        }
+    }
 }
 
 bool Orchestrator::run_stage_drizzle(TaskResult& result) {

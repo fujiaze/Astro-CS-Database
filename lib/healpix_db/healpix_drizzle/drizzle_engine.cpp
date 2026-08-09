@@ -9,14 +9,228 @@
 #include <chrono>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
+#include <fstream>
+#include <mutex>
 #include <algorithm>
 #include <string>
+#include <unordered_set>
 #include <vector>
 #include <omp.h>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
+
+// ============================================================================
+// V4 G4: actual-buffer trace (仅诊断, 默认关闭, env: ASTROCS_DRIZZLE_TRACE=<dir>)
+//   <dir>/trace_selection.tsv      : 选择源像素坐标 (x\ty), 与 orchestrator 同一组
+//   <dir>/drizzle_lineage.jsonl    : 逐源像素贡献 (source x/y, effective value,
+//                                    drop footprint, candidate leaf, overlap,
+//                                    contribution, sum contribution)
+//   <dir>/leaf_internal.jsonl      : 内部累计值 (parent/local/ipix, sumFlux,
+//                                    sumArea, nContrib) — 与 HiPS readback 对照
+// ============================================================================
+namespace drizzle_trace {
+
+struct ContribRec {
+    uint64_t ipix;
+    uint64_t parent;
+    uint32_t local;
+    double overlap;
+    double contribution;
+};
+
+struct SourceRec {
+    double px = 0.0, py = 0.0;
+    double value = 0.0;          // 有效值 (测光归一化后, drizzle 输入)
+    double drop_area = 0.0;      // drop footprint 球面面积 (sr)
+    double pixfrac = 0.0;
+    double sum_contribution = 0.0;
+    double corner_ra[4] = {0, 0, 0, 0};
+    double corner_dec[4] = {0, 0, 0, 0};
+    std::vector<ContribRec> contribs;
+};
+
+struct LeafRec {
+    uint64_t parent = 0;
+    uint32_t local = 0;
+    uint64_t ipix = 0;
+    double sumFlux = 0.0;
+    double sumArea = 0.0;
+    uint32_t nContrib = 0;
+};
+
+static bool g_enabled = false;
+static std::string g_dir;
+static std::unordered_set<uint64_t> g_selected;   // key = y * width + x
+static std::mutex g_mtx;
+static std::vector<SourceRec> g_sources;          // 并行期 mutex 追加 (样本量小)
+static std::vector<LeafRec> g_leaves;
+static bool g_fallback_needed = false;
+
+static uint64_t hash64(uint64_t x) {
+    x ^= x >> 30; x *= 0xbf58476d1ce4e5b9ULL;
+    x ^= x >> 27; x *= 0x94d049bb133111ebULL;
+    x ^= x >> 31; return x;
+}
+
+// 加载 orchestrator 写入的选择集; 无则标记 fallback
+static void load_selection(const std::string& dir) {
+    g_selected.clear();
+    std::string path = dir + "/trace_selection.tsv";
+    std::ifstream f(path);
+    if (!f.is_open()) { g_fallback_needed = true; return; }
+    std::string line;
+    std::getline(f, line);  // 头行
+    while (std::getline(f, line)) {
+        double x = 0, y = 0;
+        if (std::sscanf(line.c_str(), "%lf %lf", &x, &y) == 2) {
+            g_selected.insert((uint64_t)y * 1000000ULL + (uint64_t)x);
+        }
+    }
+    g_fallback_needed = g_selected.empty();
+}
+
+void init_from_env() {
+    if (g_enabled) return;
+    const char* dir = std::getenv("ASTROCS_DRIZZLE_TRACE");
+    if (!dir || !*dir) return;
+    g_dir = dir;
+    load_selection(g_dir);
+    g_enabled = true;
+    g_sources.clear();
+    g_leaves.clear();
+    fprintf(stderr, "[drizzle_trace] enabled dir=%s selected=%zu fallback=%d\n",
+            g_dir.c_str(), g_selected.size(), g_fallback_needed ? 1 : 0);
+}
+
+bool enabled() { return g_enabled; }
+
+// 确保选择集存在 (fallback: 确定性 xorshift ~1024 点, 并回写 trace_selection)
+void ensure_selection(int width, int height) {
+    if (!g_enabled || !g_fallback_needed) return;
+    g_fallback_needed = false;
+    uint64_t s = 20260809ULL;
+    int64_t total = (int64_t)width * height;
+    int64_t want = std::min<int64_t>(total, 1024);
+    int64_t stride = std::max<int64_t>(1, total / want);
+    for (int64_t i = 0; i < total; i += stride) {
+        if ((int64_t)g_selected.size() >= want) break;
+        int y = (int)(i / width);
+        int x = (int)(i % width);
+        s ^= s << 13; s ^= s >> 7; s ^= s << 17;
+        if ((s & 0xFF) < 0xF0) continue;  // ~6% 抽样
+        g_selected.insert((uint64_t)y * 1000000ULL + (uint64_t)x);
+    }
+    // 回写选择文件 (证据)
+    {
+        std::ofstream tsv(g_dir + "/trace_selection.tsv");
+        std::ofstream js(g_dir + "/trace_selection.json");
+        tsv << "x\ty\n";
+        js << "{\"seed\":20260809,\"n\":" << g_selected.size()
+           << ",\"pixels\":[";
+        bool first = true;
+        std::vector<std::pair<int,int>> px;
+        for (uint64_t k : g_selected) px.push_back({(int)(k % 1000000ULL), (int)(k / 1000000ULL)});
+        std::sort(px.begin(), px.end());
+        for (auto& pr : px) {
+            tsv << pr.first << "\t" << pr.second << "\n";
+            if (!first) js << ",";
+            first = false;
+            js << "{\"x\":" << pr.first << ",\"y\":" << pr.second << "}";
+        }
+        js << "]}\n";
+    }
+    fprintf(stderr, "[drizzle_trace] fallback selection: %zu pixels (%dx%d)\n",
+            g_selected.size(), width, height);
+}
+
+inline bool selected(int x, int y) {
+    return g_enabled && g_selected.count((uint64_t)y * 1000000ULL + (uint64_t)x) > 0;
+}
+
+void push_source(SourceRec&& r) {
+    if (!g_enabled) return;
+    std::lock_guard<std::mutex> lk(g_mtx);
+    g_sources.push_back(std::move(r));
+}
+
+// 证据上限: 全量 4M+ 叶写入过重, 采样前 20k 叶即可覆盖 ≥8192 硬门
+static constexpr size_t kMaxTraceLeaves = 20000;
+
+void push_leaf(const LeafRec& r) {
+    if (!g_enabled) return;
+    std::lock_guard<std::mutex> lk(g_mtx);
+    if (g_leaves.size() >= kMaxTraceLeaves) return;
+    g_leaves.push_back(r);
+}
+
+static std::string fmt(const char* fmt_s, double v) {
+    char buf[64];
+    std::snprintf(buf, sizeof(buf), fmt_s, v);
+    return std::string(buf);
+}
+
+void flush() {
+    if (!g_enabled) return;
+    // drizzle_lineage.jsonl
+    {
+        std::ofstream f(g_dir + "/drizzle_lineage.jsonl");
+        for (const auto& r : g_sources) {
+            f << "{\"x\":" << fmt("%.6f", r.px)
+              << ",\"y\":" << fmt("%.6f", r.py)
+              << ",\"value\":" << fmt("%.17g", r.value)
+              << ",\"drop_area\":" << fmt("%.17g", r.drop_area)
+              << ",\"pixfrac\":" << fmt("%.6f", r.pixfrac)
+              << ",\"sum_contribution\":" << fmt("%.17g", r.sum_contribution)
+              << ",\"corners_ra\":[" << fmt("%.10f", r.corner_ra[0]) << ","
+              << fmt("%.10f", r.corner_ra[1]) << "," << fmt("%.10f", r.corner_ra[2]) << ","
+              << fmt("%.10f", r.corner_ra[3]) << "],"
+              << "\"corners_dec\":[" << fmt("%.10f", r.corner_dec[0]) << ","
+              << fmt("%.10f", r.corner_dec[1]) << "," << fmt("%.10f", r.corner_dec[2]) << ","
+              << fmt("%.10f", r.corner_dec[3]) << "],"
+              << "\"contribs\":[";
+            bool first = true;
+            for (const auto& c : r.contribs) {
+                if (!first) f << ",";
+                first = false;
+                f << "{\"ipix\":" << c.ipix
+                  << ",\"parent\":" << c.parent
+                  << ",\"local\":" << c.local
+                  << ",\"overlap\":" << fmt("%.17g", c.overlap)
+                  << ",\"contribution\":" << fmt("%.17g", c.contribution) << "}";
+            }
+            f << "]}\n";
+        }
+    }
+    // leaf_internal.jsonl
+    {
+        std::ofstream f(g_dir + "/leaf_internal.jsonl");
+        for (const auto& r : g_leaves) {
+            f << "{\"parent\":" << r.parent
+              << ",\"local\":" << r.local
+              << ",\"ipix\":" << r.ipix
+              << ",\"sumFlux\":" << fmt("%.17g", r.sumFlux)
+              << ",\"sumArea\":" << fmt("%.17g", r.sumArea)
+              << ",\"nContrib\":" << r.nContrib << "}\n";
+        }
+    }
+    fprintf(stderr, "[drizzle_trace] flushed sources=%zu leaves=%zu\n",
+            g_sources.size(), g_leaves.size());
+}
+
+void reset() {
+    std::lock_guard<std::mutex> lk(g_mtx);
+    g_enabled = false;
+    g_dir.clear();
+    g_selected.clear();
+    g_sources.clear();
+    g_leaves.clear();
+    g_fallback_needed = false;
+}
+
+} // namespace drizzle_trace
 
 namespace drizzle {
 
@@ -33,6 +247,8 @@ static thread_local long long g_tl_n_fully = 0;      // drop 包含像素 (leaf_
 static thread_local long long g_tl_n_dropin = 0;     // drop 完全在像素内
 static thread_local long long g_tl_n_sh = 0;         // S-H 部分相交
 static thread_local long long g_tl_n_cand = 0;       // 候选总数
+
+
 
 // 度 → 弧度
 static const double D2R = 0.017453292519943295769;
@@ -554,7 +770,7 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
             (int)config.photometry_applied_upstream,
             config.photscal);
 
-    // 4. 记录开始时间
+    // 5. 记录开始时间
     auto tStart = std::chrono::high_resolution_clock::now();
 
     // R11 (阶段6): 正式路径为 Tile 级累加 (drizzleTiledImpl, 不恢复全局 leaf map)
@@ -1184,6 +1400,21 @@ void DrizzleEngine::processPixelSharedTiled(
     //   leaf 由 NESTED 位运算拆分为 (parent_ipix, local_ipix):
     //     parent = ipix >> (2*depth), local = ipix & mask
     auto t_o0 = std::chrono::high_resolution_clock::now();
+    // V4 G4: actual-buffer trace (仅选中源像素; 默认关闭零开销)
+    const bool trace_on = drizzle_trace::enabled() &&
+                          drizzle_trace::selected((int)px, (int)py);
+    drizzle_trace::SourceRec tr;
+    double tr_sum = 0.0;
+    if (trace_on) {
+        tr.px = px; tr.py = py;
+        tr.value = (double)pixelValue;
+        tr.drop_area = (double)drop_area;
+        tr.pixfrac = config.pixfrac;
+        for (int i = 0; i < 4; i++) {
+            tr.corner_ra[i] = corners_ra[i];
+            tr.corner_dec[i] = corners_dec[i];
+        }
+    }
     for (uint64_t ipix : candidates) {
         Scalar overlap_area = spherical::compute_overlap_area_g<Scalar>(drop_geom, hp, ipix);
         if (overlap_area < Scalar(1e-20)) continue;
@@ -1194,6 +1425,13 @@ void DrizzleEngine::processPixelSharedTiled(
         uint64_t parent = (shift > 0) ? (ipix >> shift) : ipix;
         uint32_t local  = (shift > 0) ? (uint32_t)(ipix & mask) : 0u;
 
+        if (trace_on) {
+            const double ov = (double)overlap_area;
+            const double cb = (double)(Scalar(pixelValue * weight));
+            tr.contribs.push_back({ipix, parent, local, ov, cb});
+            tr_sum += cb;
+        }
+
         // 线程本地 map 以 parent_ipix 为 key; leaf 连续数组寻址 (禁止每-leaf unordered_map)
         TileAccumulatorT<Scalar>& tile = tileMap[parent];
         if (tile.touched.empty()) tile.parent_ipix = parent;  // 首触时记录 parent (operator[] 默认 0)
@@ -1201,6 +1439,10 @@ void DrizzleEngine::processPixelSharedTiled(
         acc.sumFlux   += Scalar(pixelValue * weight);
         acc.sumArea   += Scalar(overlap_area);
         acc.nContrib++;
+    }
+    if (trace_on) {
+        tr.sum_contribution = tr_sum;
+        drizzle_trace::push_source(std::move(tr));
     }
     g_tl_prof_overlap += std::chrono::duration<double>(
         std::chrono::high_resolution_clock::now() - t_o0).count();
@@ -1288,7 +1530,11 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
             nside, depth, tile_nside, n_leaf_per_tile);
     (void)n_leaf_per_tile;
 
-    // 4. 记录开始时间
+    // 4. V4 G4: trace 初始化 + 选择集 (并行前, 实际 buffer trace)
+    drizzle_trace::init_from_env();
+    drizzle_trace::ensure_selection(img.width, img.height);
+
+    // 5. 记录开始时间
     auto tStart = std::chrono::high_resolution_clock::now();
 
     // 5. OpenMP 并行 Drizzle (R11: 线程数来自配置, static 调度, 不预分配 4M 桶)
@@ -1386,7 +1632,26 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
         tiles.push_back(std::move(tile));
     }
 
-    // 8. 统计信息
+    // 8. V4 G4: leaf 内部值 dump + flush (实际累计 buffer, 供 HiPS readback 对照)
+    if (drizzle_trace::enabled()) {
+        for (const auto& tile : tiles) {
+            if (tile.touched.empty()) continue;
+            for (uint32_t local : tile.touched) {
+                const auto& acc = tile.pixels[(size_t)local];
+                drizzle_trace::LeafRec lr;
+                lr.parent = tile.parent_ipix;
+                lr.local = local;
+                lr.ipix = (shift > 0) ? ((tile.parent_ipix << shift) | local) : tile.parent_ipix;
+                lr.sumFlux = (double)acc.sumFlux;
+                lr.sumArea = (double)acc.sumArea;
+                lr.nContrib = acc.nContrib;
+                drizzle_trace::push_leaf(lr);
+            }
+        }
+        drizzle_trace::flush();
+    }
+
+    // 9. 统计信息
     auto tEnd = std::chrono::high_resolution_clock::now();
     double elapsedSec = std::chrono::duration<double>(tEnd - tStart).count();
 
@@ -1709,3 +1974,4 @@ template bool DrizzleEngine::writeHisTilesT<double>(
     const HioSnrModel*, const HioSnrModelF64*, std::string&);
 
 } // namespace drizzle
+

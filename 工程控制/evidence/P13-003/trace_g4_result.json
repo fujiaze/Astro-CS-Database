@@ -1,0 +1,32 @@
+{
+  "checks": {
+    "selection_ge_512": true,
+    "pixel_chain_ge_512": true,
+    "drizzle_sources_ge_512": true,
+    "sum_contribution_ok_all": true,
+    "effective_value_matches_photometric": true,
+    "leaf_ge_8192": true,
+    "readback_flux_tol_1e-5": true,
+    "readback_area_tol_1e-5": true,
+    "drizzle_contrib_conserves_leaf_flux": true,
+    "snr_ids_subset_psf": true,
+    "snr_ids_no_sequential_renumber": true
+  },
+  "counts": {
+    "selection_pixels": 1024,
+    "pixel_chain_samples": 1024,
+    "drizzle_sources": 1024,
+    "sum_contribution_ok": 1024,
+    "effective_value_ok": 1024,
+    "leaf_internal": 20000,
+    "readback_checked": 20000,
+    "readback_flux_bad": 0,
+    "readback_area_bad": 0,
+    "leaf_flux_agg_bad": 0,
+    "psf_ids": 1111,
+    "snr_ids": 997
+  },
+  "effective_value_bad": [],
+  "errors": [],
+  "PASS": true
+}

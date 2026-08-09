@@ -369,6 +369,9 @@ static int run_drizzle_internal(PipelineFrame* frame,
                                 HpDrizzleResult* result,
                                 int precision_mode)
 {
+    // 0. V4 G4: actual-buffer trace 状态清理 (env 由 drizzleTiledImpl 内读取)
+    drizzle_trace::reset();
+
     // 1. 参数校验
     if (!frame || !result) {
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: 参数非法 (frame/result 为空)\n");
@@ -678,13 +681,18 @@ static int run_drizzle_internal(PipelineFrame* frame,
                                 cp_snr_f64[i] = (double)s;
                             }
                             if (version == 2) {
-                                // star_id @ +24 (i64), quality_flags @ +32 (u32),
-                                // photometric_status @ +36 (u32), f32/f64 同偏移
+                                // V4 v2 块为 #pragma pack(1) 布局 (G4 修复):
+                                //   f64 (vd==1, stride 40): star_id @ +24, qf @ +32, ps @ +36
+                                //   f32 (vd==0, stride 36): star_id @ +20, qf @ +28, ps @ +32
+                                // 旧代码固定 f64 偏移导致 FP32 路径字段错位
+                                const size_t o_sid = (vd == 1) ? 24 : 20;
+                                const size_t o_qf  = (vd == 1) ? 32 : 28;
+                                const size_t o_ps  = (vd == 1) ? 36 : 32;
                                 int64_t sid = 0;
                                 uint32_t qf = 0, ps = 0;
-                                std::memcpy(&sid, pt + 24, 8);
-                                std::memcpy(&qf, pt + 32, 4);
-                                std::memcpy(&ps, pt + 36, 4);
+                                std::memcpy(&sid, pt + o_sid, 8);
+                                std::memcpy(&qf, pt + o_qf, 4);
+                                std::memcpy(&ps, pt + o_ps, 4);
                                 cp_star_id_all[i] = sid;
                                 cp_qf_all[i] = qf;
                                 cp_ps_all[i] = ps;
@@ -1011,6 +1019,9 @@ static int run_drizzle_internal(PipelineFrame* frame,
     result->nested           = stats.nested ? 1 : 0;
     result->pixfrac          = config.pixfrac;
     result->elapsed_sec      = stats.elapsedSec;
+
+    // V4 G4: 清理 trace 状态 (文件已由 drizzleTiledImpl 写出)
+    drizzle_trace::reset();
 
     return 0;
 }
