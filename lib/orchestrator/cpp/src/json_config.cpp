@@ -587,7 +587,8 @@ static bool runtime_checks(const json& root, const fs::path& base_dir,
         // 3. 输出目录父目录必须存在或可创建 (hiss 已可选, 空串跳过)
         const auto& out = root["output"];
         for (const char* key : {"hiss", "log", "diagnostics_dir"}) {
-            if (out[key].is_null() || out[key].get<std::string>().empty()) continue;
+            // V5 CFG-002: hiss 已可选, 未提供时跳过 (避免对缺键 operator[] 断言)
+            if (!out.contains(key) || out[key].is_null() || out[key].get<std::string>().empty()) continue;
             std::string p = resolve_path(out[key].get<std::string>(), base_dir);
             fs::path parent = fs::path(p).parent_path();
             if (!parent.empty()) {

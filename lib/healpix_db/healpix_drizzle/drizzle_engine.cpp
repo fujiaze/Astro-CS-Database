@@ -117,10 +117,12 @@ void ensure_selection(int width, int height) {
     int64_t stride = std::max<int64_t>(1, total / want);
     for (int64_t i = 0; i < total; i += stride) {
         if ((int64_t)g_selected.size() >= want) break;
-        int y = (int)(i / width);
-        int x = (int)(i % width);
+        // V5 G4 回归: 原实现 x=i%width 在 stride==width 时恒为 0;
+        // 改为由 xorshift 直接产生 (x,y), 覆盖全图
         s ^= s << 13; s ^= s >> 7; s ^= s << 17;
-        if ((s & 0xFF) < 0xF0) continue;  // ~6% 抽样
+        int x = (int)(s % (uint64_t)width);
+        s ^= s << 13; s ^= s >> 7; s ^= s << 17;
+        int y = (int)(s % (uint64_t)height);
         g_selected.insert((uint64_t)y * 1000000ULL + (uint64_t)x);
     }
     // 回写选择文件 (证据)

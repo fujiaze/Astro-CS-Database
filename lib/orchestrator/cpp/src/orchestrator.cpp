@@ -3251,6 +3251,12 @@ static void write_stage_trace(DllLoader& loader, const PipelineFrame* frame,
     if (!fn_get_block) return;
 
     std::string dir = diagnostics_dir + "/trace";
+    // 先创建目录再写选择集 (V5 G4 回归: 目录不存在时首阶段 fopen 失败,
+    // 导致 drizzle 引擎 fallback 覆盖 selection)
+    {
+        std::string mk = "mkdir -p \"" + dir + "\"";
+        if (std::system(mk.c_str()) != 0) std::system(("mkdir \"" + dir + "\"").c_str());
+    }
 
     // V4 G4: 首阶段 (READ_FITS) 生成确定性像素样本集
     const AioBlock* db0 = fn_get_block(frame, "data");
@@ -3295,8 +3301,6 @@ static void write_stage_trace(DllLoader& loader, const PipelineFrame* frame,
             }
         }
     }
-    std::string mk = "mkdir -p \"" + dir + "\"";
-    if (std::system(mk.c_str()) != 0) std::system(("mkdir \"" + dir + "\"").c_str());
     std::string path = dir + "/stage_trace.jsonl";
     FILE* f = std::fopen(path.c_str(), "ab");
     if (!f) return;

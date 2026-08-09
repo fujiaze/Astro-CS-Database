@@ -893,6 +893,39 @@ void test_part2_schema_validation_and_parsing() {
         ASSERT_EQ(ret, 0, "pixfrac 显式 0.8 解析成功");
         ASSERT_EQ(config.drizzle.pixfrac, 0.8, "pixfrac 显式 0.8 生效");
     }
+
+    // 测试 19 (V5 CFG-002): 生产配置省略 output.hiss 必须可解析且验证通过
+    // (回归: json_config 输出父目录检查曾对缺键 hiss 无条件 operator[] 断言崩溃)
+    {
+        std::string path = write_valid_stage1_json(tmpdir, "no_hiss_output.json");
+        std::ifstream ifs(path);
+        std::stringstream ss;
+        ss << ifs.rdbuf();
+        std::string content = ss.str();
+        ifs.close();
+        // 删除整个 "hiss":"<path>", 条目
+        size_t b = content.find("\"hiss\":\"");
+        if (b != std::string::npos) {
+            size_t e = content.find("\"", b + 8);
+            if (e != std::string::npos) {
+                size_t comma = content.find(',', e);
+                if (comma != std::string::npos) content.erase(b, comma - b + 1);
+            }
+        }
+        std::ofstream ofs(path);
+        ofs << content;
+        ofs.close();
+        ASSERT_TRUE(content.find("\"hiss\":") == std::string::npos,
+                    "测试配置已移除 output.hiss");
+
+        Stage1Config config;
+        std::string err2;
+        int ret = parse_stage1_config(path, config, err2);
+        ASSERT_EQ(ret, 0, "无 output.hiss 配置解析成功");
+        ASSERT_TRUE(config.output.hiss.empty(), "output.hiss 为空串 (legacy 关闭)");
+        bool ok = validate_stage1_schema(path, err2);
+        ASSERT_TRUE(ok, "无 output.hiss 配置 Schema 验证通过");
+    }
 }
 
 // ============================================================================
