@@ -115,6 +115,9 @@ struct RouteSamplePoint {
     std::uint64_t timed_d2h_bytes{0};
     std::uint64_t peak_ram_bytes{0};
     std::uint64_t absolute_peak_vram_bytes{0};
+
+    // 相等比较（测试断言"Final 不改 samples"用；C++20 默认比较）
+    bool operator==(const RouteSamplePoint&) const = default;
 };
 
 // 单条路径（OpenMP/GPU Direct/Mixed）

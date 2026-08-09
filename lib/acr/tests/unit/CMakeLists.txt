@@ -193,6 +193,31 @@ target_include_directories(acr_test_route_estimator PRIVATE
 )
 gtest_discover_tests(acr_test_route_estimator DISCOVERY_MODE PRE_TEST)
 
+# Dispatcher Finalization：RouteProfileV2 标定纯函数（Probe/Final 模型语义）
+add_executable(acr_test_route_calibration
+    test_route_calibration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../examples/weighted_integration/route_profile_calibration.cpp
+)
+target_link_libraries(acr_test_route_calibration PRIVATE
+    acr_weighted_integration_example
+    acr_scheduler
+    acr_qualification
+    acr_cost
+    acr_routing
+    acr_api
+    acr_cuda_bridge_loader
+    GTest::gtest_main)
+target_include_directories(acr_test_route_calibration PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../examples/weighted_integration
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../scheduler
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../qualification
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../core
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../cost
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../backends/cuda
+)
+gtest_discover_tests(acr_test_route_calibration DISCOVERY_MODE PRE_TEST)
+
 # 08 号计划 §5：MixedRoutePlanner 与 RouteMode
 add_executable(acr_test_mixed_route test_mixed_route.cpp)
 target_link_libraries(acr_test_mixed_route PRIVATE

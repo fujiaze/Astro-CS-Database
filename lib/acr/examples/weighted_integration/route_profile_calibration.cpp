@@ -263,89 +263,6 @@ void fill_stats_from_result(RouteSamplePoint& st,
     }
 }
 
-// 候选插值器（linear / loglog）。返回 -1 = 范围外。
-double predict_path(const RoutePath& path, std::uint64_t items,
-                    std::uint32_t frames, const std::string& interp_id) {
-    RoutePath tmp = path;
-    tmp.interpolation_id = interp_id;
-    double m = 0.0, p90 = 0.0;
-    if (!BenchmarkRouteEstimator::interpolate_e2e(tmp, items, frames, m, p90)) {
-        return -1.0;
-    }
-    return m;
-}
-
-// ===== Probe / Final 误差评估（08 计划 B/C/H）=====
-struct ProbeActual {
-    CalPoint pt;
-    RouteSamplePoint sample;  // 中位样本 + 绑定 stats（转 Fit 时保留）
-};
-
-struct ErrorEval {
-    double median{0.0};
-    double max{0.0};
-    std::size_t count{0};
-    std::size_t worst_index{0};
-    double worst_error{0.0};
-};
-
-bool gate_passed_errors(double median, double max) {
-    return median <= 0.10 && max <= 0.15;
-}
-
-// 在给定验证集上按候选插值器选择最佳模型并计算 median/max 误差。
-// 同时返回最差验证点（adaptive 补点用）。
-ErrorEval evaluate_validation(
-    RoutePath& path,
-    const std::vector<ProbeActual>& validation) {
-    const std::vector<std::string> candidates{
-        "piecewise-linear-items-frames",
-        "piecewise-loglog-items-frames-time"};
-    std::string best_id = candidates.front();
-    double best_med = 1e300;
-    for (const auto& id : candidates) {
-        std::vector<double> errs;
-        for (const auto& v : validation) {
-            const double pred =
-                predict_path(path, v.pt.items, v.pt.frames, id);
-            const double actual = v.sample.median_ms;
-            if (pred > 0.0 && actual > 0.0) {
-                errs.push_back(std::fabs(pred - actual) / actual);
-            }
-        }
-        if (errs.empty()) continue;
-        std::sort(errs.begin(), errs.end());
-        if (errs[errs.size() / 2] < best_med) {
-            best_med = errs[errs.size() / 2];
-            best_id = id;
-        }
-    }
-    path.interpolation_id = best_id;
-    ErrorEval ev;
-    std::vector<double> errs;
-    for (std::size_t i = 0; i < validation.size(); ++i) {
-        const double pred =
-            predict_path(path, validation[i].pt.items,
-                         validation[i].pt.frames, best_id);
-        const double actual = validation[i].sample.median_ms;
-        if (pred > 0.0 && actual > 0.0) {
-            const double e = std::fabs(pred - actual) / actual;
-            errs.push_back(e);
-            if (e > ev.worst_error) {
-                ev.worst_error = e;
-                ev.worst_index = i;
-            }
-        }
-    }
-    std::sort(errs.begin(), errs.end());
-    ev.count = errs.size();
-    if (!errs.empty()) {
-        ev.median = errs[errs.size() / 2];
-        ev.max = errs.back();
-    }
-    return ev;
-}
-
 // 依据 samples 重算 validated domain（min/max/frame_counts）
 void recompute_domain(RoutePath& path) {
     if (path.samples.empty()) {
@@ -375,33 +292,44 @@ void recompute_domain(RoutePath& path) {
 //   3) 对剩余 Probe 复测；模型冻结后才允许 Final。
 // 返回 true=剩余 Probe 已过门。
 bool adapt_path(RoutePath& path,
-                std::vector<ProbeActual>& probe,
+                std::vector<RouteEvalPoint>& probe,
                 std::uint32_t max_rounds) {
     for (std::uint32_t round = 0; round < max_rounds; ++round) {
-        ErrorEval ev = evaluate_validation(path, probe);
+        RouteErrorEval ev = select_model_on_probe(path, probe);
         path.refinement_probe_count = ev.count;
-        if (gate_passed_errors(ev.median, ev.max) || ev.count < 2) {
+        if (route_gate_passed_errors(ev.median, ev.max) || ev.count < 2) {
             path.adaptive_rounds_used = round;
-            return gate_passed_errors(ev.median, ev.max);
+            return route_gate_passed_errors(ev.median, ev.max);
         }
         // 最差 Probe 转入 Fit
         RouteSamplePoint s = probe[ev.worst_index].sample;
-        s.output_items = probe[ev.worst_index].pt.items;
-        s.frame_count = probe[ev.worst_index].pt.frames;
+        s.output_items = probe[ev.worst_index].items;
+        s.frame_count = probe[ev.worst_index].frames;
         path.samples.push_back(std::move(s));
         probe.erase(probe.begin() + ev.worst_index);
         recompute_domain(path);
         path.adaptive_rounds_used = round + 1;
     }
-    ErrorEval ev = evaluate_validation(path, probe);
+    RouteErrorEval ev = select_model_on_probe(path, probe);
     path.refinement_probe_count = ev.count;
-    return gate_passed_errors(ev.median, ev.max);
+    return route_gate_passed_errors(ev.median, ev.max);
 }
 
-// Final 误差（冻结模型后只测一次，不再调参）
-ErrorEval evaluate_final(RoutePath& path,
-                         const std::vector<ProbeActual>& final_pts) {
-    ErrorEval ev = evaluate_validation(path, final_pts);
+// Final 误差（模型已冻结：只评估、绝不重新选择插值器）
+RouteErrorEval evaluate_final(RoutePath& path,
+                              const std::vector<RouteEvalPoint>& final_pts) {
+    // 记录冻结前模型，断言 Final 不改模型
+    const std::string frozen_interp = path.interpolation_id;
+    const std::vector<RouteSamplePoint> frozen_samples = path.samples;
+    const std::uint32_t frozen_adaptive = path.adaptive_rounds_used;
+    RouteErrorEval ev = evaluate_fixed_model_on_final(path, final_pts);
+    if (path.interpolation_id != frozen_interp ||
+        path.samples != frozen_samples ||
+        path.adaptive_rounds_used != frozen_adaptive) {
+        std::fprintf(stderr,
+                     "[route-profile] FATAL: final holdout mutated model\n");
+        std::abort();
+    }
     path.final_holdout_count = ev.count;
     path.final_median_error_ratio = ev.median;
     path.final_max_error_ratio = ev.max;
@@ -411,7 +339,7 @@ ErrorEval evaluate_final(RoutePath& path,
     path.max_error_ratio = ev.max;
     path.p95_error_ratio = ev.max;  // >=8 点后由 CI 输出真实分位；max 保守
     path.model_trusted = ev.count >= 8 &&
-                         gate_passed_errors(ev.median, ev.max);
+                         route_gate_passed_errors(ev.median, ev.max);
     path.model_available = !path.samples.empty() && ev.count > 0;
     path.eligible = path.model_trusted;
     if (!path.model_trusted) {
@@ -854,6 +782,107 @@ ReplayActuals measure_replay_actuals(
 
 } // anonymous namespace
 
+// ===== 标定评估纯函数（04_PROFILE_CALIBRATION_AND_VALIDATION.md）=====
+// 命名空间级实现，供单测直接验证 Final 不可变性语义。
+
+// 候选插值器（linear / loglog）。返回 -1 = 范围外。
+double predict_path(const RoutePath& path, std::uint64_t items,
+                    std::uint32_t frames, const std::string& interp_id) {
+    RoutePath tmp = path;
+    tmp.interpolation_id = interp_id;
+    double m = 0.0, p90 = 0.0;
+    if (!BenchmarkRouteEstimator::interpolate_e2e(tmp, items, frames, m, p90)) {
+        return -1.0;
+    }
+    return m;
+}
+
+bool route_gate_passed_errors(double median, double max) {
+    return median <= 0.10 && max <= 0.15;
+}
+
+// Probe 阶段：在候选插值器（linear/loglog）中按中位误差选择并写回
+// path.interpolation_id。允许修改模型；返回误差统计（worst 供补点）。
+RouteErrorEval select_model_on_probe(
+    RoutePath& path,
+    const std::vector<RouteEvalPoint>& probe) {
+    const std::vector<std::string> candidates{
+        "piecewise-linear-items-frames",
+        "piecewise-loglog-items-frames-time"};
+    std::string best_id = candidates.front();
+    double best_med = 1e300;
+    for (const auto& id : candidates) {
+        std::vector<double> errs;
+        for (const auto& v : probe) {
+            const double pred =
+                predict_path(path, v.items, v.frames, id);
+            const double actual = v.sample.median_ms;
+            if (pred > 0.0 && actual > 0.0) {
+                errs.push_back(std::fabs(pred - actual) / actual);
+            }
+        }
+        if (errs.empty()) continue;
+        std::sort(errs.begin(), errs.end());
+        if (errs[errs.size() / 2] < best_med) {
+            best_med = errs[errs.size() / 2];
+            best_id = id;
+        }
+    }
+    path.interpolation_id = best_id;
+    RouteErrorEval ev;
+    std::vector<double> errs;
+    for (std::size_t i = 0; i < probe.size(); ++i) {
+        const double pred =
+            predict_path(path, probe[i].items, probe[i].frames, best_id);
+        const double actual = probe[i].sample.median_ms;
+        if (pred > 0.0 && actual > 0.0) {
+            const double e = std::fabs(pred - actual) / actual;
+            errs.push_back(e);
+            if (e > ev.worst_error) {
+                ev.worst_error = e;
+                ev.worst_index = i;
+            }
+        }
+    }
+    std::sort(errs.begin(), errs.end());
+    ev.count = errs.size();
+    if (!errs.empty()) {
+        ev.median = errs[errs.size() / 2];
+        ev.max = errs.back();
+    }
+    return ev;
+}
+
+// Final 阶段：使用已冻结的 path.interpolation_id 评估。
+// 禁止修改 interpolation_id / samples / validated domain / adaptive_rounds。
+RouteErrorEval evaluate_fixed_model_on_final(
+    const RoutePath& path,
+    const std::vector<RouteEvalPoint>& final_pts) {
+    RouteErrorEval ev;
+    std::vector<double> errs;
+    for (std::size_t i = 0; i < final_pts.size(); ++i) {
+        const double pred =
+            predict_path(path, final_pts[i].items, final_pts[i].frames,
+                         path.interpolation_id);
+        const double actual = final_pts[i].sample.median_ms;
+        if (pred > 0.0 && actual > 0.0) {
+            const double e = std::fabs(pred - actual) / actual;
+            errs.push_back(e);
+            if (e > ev.worst_error) {
+                ev.worst_error = e;
+                ev.worst_index = i;
+            }
+        }
+    }
+    std::sort(errs.begin(), errs.end());
+    ev.count = errs.size();
+    if (!errs.empty()) {
+        ev.median = errs[errs.size() / 2];
+        ev.max = errs.back();
+    }
+    return ev;
+}
+
 bool calibrate_route_profile_v2(
     const CalibrationEnv& env,
     void* gpu_handle,
@@ -971,7 +1000,7 @@ bool calibrate_route_profile_v2(
     // ===== Probe 测量（8 点，9 条路径独立 actual）=====
     std::fprintf(stderr, "[route-profile] probe: %zu points\n",
                  kProbePoints.size());
-    std::map<RoutePath*, std::vector<ProbeActual>> probes;
+    std::map<RoutePath*, std::vector<RouteEvalPoint>> probes;
     for (const auto& pt : kProbePoints) {
         std::fprintf(stderr, "[route-profile] probe %llu x %u\n",
                      static_cast<unsigned long long>(pt.items), pt.frames);
@@ -980,8 +1009,9 @@ bool calibrate_route_profile_v2(
         TestData d = make_test_data(20260807u + 1u, pt);
         auto rec = [&](RoutePath& path, const TimedWithStats& t,
                        std::uint32_t reuse) {
-            ProbeActual pa;
-            pa.pt = pt;
+            RouteEvalPoint pa;
+            pa.items = pt.items;
+            pa.frames = pt.frames;
             pa.sample = t.stats;
             pa.sample.output_items = pt.items;
             pa.sample.frame_count = pt.frames;
@@ -1035,7 +1065,7 @@ bool calibrate_route_profile_v2(
     // ===== Final Untouched Holdout（冻结后只测一次）=====
     std::fprintf(stderr, "[route-profile] final holdout: %zu points\n",
                  kFinalPoints.size());
-    std::map<RoutePath*, std::vector<ProbeActual>> finals;
+    std::map<RoutePath*, std::vector<RouteEvalPoint>> finals;
     for (const auto& pt : kFinalPoints) {
         std::fprintf(stderr, "[route-profile] final %llu x %u\n",
                      static_cast<unsigned long long>(pt.items), pt.frames);
@@ -1044,8 +1074,9 @@ bool calibrate_route_profile_v2(
         TestData d = make_test_data(20260807u + 2u, pt);
         auto rec = [&](RoutePath& path, const TimedWithStats& t,
                        std::uint32_t reuse) {
-            ProbeActual pa;
-            pa.pt = pt;
+            RouteEvalPoint pa;
+            pa.items = pt.items;
+            pa.frames = pt.frames;
             pa.sample = t.stats;
             pa.sample.output_items = pt.items;
             pa.sample.frame_count = pt.frames;

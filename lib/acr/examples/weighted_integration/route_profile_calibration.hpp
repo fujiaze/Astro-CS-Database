@@ -16,7 +16,9 @@
 #include "../../backends/cuda/bridge/cuda_bridge_api.hpp"
 
 #include <cstdint>
+#include <cstddef>
 #include <string>
+#include <vector>
 
 namespace astro::compute::weighted_integration {
 
@@ -38,5 +40,39 @@ bool calibrate_route_profile_v2(
     astro::compute::cuda::bridge::BridgeApi* bapi,  // 可为 null
     const std::string& output_path,      // operation-route-profile-v2.json
     astro::compute::routing::RouteProfileV2& out);
+
+// ===== 标定评估纯函数（04_PROFILE_CALIBRATION_AND_VALIDATION.md）=====
+// 供单测直接验证"Probe 可选模型 / Final 绝对不改模型"语义。
+
+// 一个验证点（Probe 或 Final 共用）：坐标 + 该点实际中位样本。
+struct RouteEvalPoint {
+    std::uint64_t items{0};
+    std::uint32_t frames{0};
+    routing::RouteSamplePoint sample;
+};
+
+// 误差评估结果。
+struct RouteErrorEval {
+    double median{0.0};
+    double max{0.0};
+    std::size_t count{0};
+    std::size_t worst_index{0};
+    double worst_error{0.0};
+};
+
+// 误差门：median<=10%、max<=15%（04 号规范 F；本轮禁止放宽）。
+bool route_gate_passed_errors(double median, double max);
+
+// Probe 阶段：在候选插值器（linear/loglog）中按中位误差选择并写回
+// path.interpolation_id。允许修改模型；返回误差统计（worst 供补点）。
+RouteErrorEval select_model_on_probe(
+    routing::RoutePath& path,
+    const std::vector<RouteEvalPoint>& probe);
+
+// Final 阶段：使用已冻结的 path.interpolation_id 评估。
+// 禁止修改 interpolation_id / samples / validated domain / adaptive_rounds。
+RouteErrorEval evaluate_fixed_model_on_final(
+    const routing::RoutePath& path,
+    const std::vector<RouteEvalPoint>& final_pts);
 
 } // namespace astro::compute::weighted_integration
