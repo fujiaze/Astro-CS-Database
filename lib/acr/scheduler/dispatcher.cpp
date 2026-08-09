@@ -214,6 +214,11 @@ struct Dispatcher::Impl {
     std::unordered_map<BdrCacheKey, routing::RouteDecision, BdrCacheHash>
         bdr_cache;
     static constexpr std::size_t kBdrCacheMax = 128;
+    // ACR 基座收尾（03_RESOURCE_AND_FALLBACK.md）：内存采样时间窗口缓存。
+    // 容量门禁保持真实（100ms 内系统内存状态不会剧变），但避免每次 dispatch
+    // 都触发 NVML/RAM 查询造成亚毫秒级固定开销。
+    routing::MemorySnapshot cached_mem_snapshot;
+    std::chrono::steady_clock::time_point last_mem_sample_time{};
 
     std::string pick_backend_impl(const TaskEstimate& task) const {
         // 小数据优先 CPU
@@ -2250,7 +2255,14 @@ CostAwareResult Dispatcher::dispatch_invocation(
         // RAM/VRAM 容量与最小 queue 状态；禁止传空快照绕过门禁。
         routing::MemorySnapshot mem_snap;
         routing::QueueSnapshot queue_snap;
-        if (impl_->mem_ctrl || impl_->cfg.memory_sampler_override) {
+        constexpr auto kMemWindow = std::chrono::milliseconds(100);
+        const auto now = std::chrono::steady_clock::now();
+        const bool mem_cached =
+            impl_->last_mem_sample_time.time_since_epoch().count() > 0 &&
+            (now - impl_->last_mem_sample_time) < kMemWindow;
+        if (mem_cached) {
+            mem_snap = impl_->cached_mem_snapshot;
+        } else if (impl_->mem_ctrl || impl_->cfg.memory_sampler_override) {
             const auto mb = impl_->cfg.memory_sampler_override
                 ? impl_->cfg.memory_sampler_override()
                 : impl_->mem_ctrl->sample();
@@ -2265,6 +2277,8 @@ CostAwareResult Dispatcher::dispatch_invocation(
                         g.limit_vram - g.used_vram;
                 }
             }
+            impl_->last_mem_sample_time = now;
+            impl_->cached_mem_snapshot = mem_snap;
         }
         if (impl_->executors) {
             for (auto* e : impl_->executors->available_executors()) {
