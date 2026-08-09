@@ -1,0 +1,54 @@
+Reading input file 1 of 1: "synthetic_from_axy.fits"...
+Running command: /usr/bin/python3 -m astrometry.util.image2pnm --infile synthetic_from_axy.fits --uncompressed-outfile /tmp/tmp.uncompressed.t02OQY --outfile /tmp/tmp.ppm.ZlfbMo --ppm --mydir /usr/bin/solve-field
+Extracting sources...
+simplexy: found 1557 sources.
+Solving...
+Reading file "./synthetic_from_axy.axy"...
+Only searching for solutions within 3 degrees of RA,Dec (272.934,-23.285)
+Field 1 did not solve (index index-tycho2-13.littleendian.fits, field objects 1-10).
+Field 1 did not solve (index index-tycho2-12.littleendian.fits, field objects 1-10).
+Field 1 did not solve (index index-tycho2-11.littleendian.fits, field objects 1-10).
+Field 1 did not solve (index index-tycho2-10.littleendian.fits, field objects 1-10).
+Field 1 did not solve (index index-tycho2-09.littleendian.fits, field objects 1-10).
+Field 1 did not solve (index index-tycho2-08.littleendian.fits, field objects 1-10).
+Field 1 did not solve (index index-tycho2-13.littleendian.fits, field objects 11-20).
+Field 1 did not solve (index index-tycho2-12.littleendian.fits, field objects 11-20).
+Field 1 did not solve (index index-tycho2-11.littleendian.fits, field objects 11-20).
+Field 1 did not solve (index index-tycho2-10.littleendian.fits, field objects 11-20).
+Field 1 did not solve (index index-tycho2-09.littleendian.fits, field objects 11-20).
+Field 1 did not solve (index index-tycho2-08.littleendian.fits, field objects 11-20).
+Field 1 did not solve (index index-tycho2-13.littleendian.fits, field objects 21-30).
+Field 1 did not solve (index index-tycho2-12.littleendian.fits, field objects 21-30).
+Field 1 did not solve (index index-tycho2-11.littleendian.fits, field objects 21-30).
+Field 1 did not solve (index index-tycho2-10.littleendian.fits, field objects 21-30).
+Field 1 did not solve (index index-tycho2-09.littleendian.fits, field objects 21-30).
+Field 1 did not solve (index index-tycho2-08.littleendian.fits, field objects 21-30).
+Field 1 did not solve (index index-tycho2-13.littleendian.fits, field objects 31-40).
+Field 1 did not solve (index index-tycho2-12.littleendian.fits, field objects 31-40).
+Field 1 did not solve (index index-tycho2-11.littleendian.fits, field objects 31-40).
+Field 1 did not solve (index index-tycho2-10.littleendian.fits, field objects 31-40).
+Field 1 did not solve (index index-tycho2-09.littleendian.fits, field objects 31-40).
+Field 1 did not solve (index index-tycho2-08.littleendian.fits, field objects 31-40).
+Field 1 did not solve (index index-tycho2-13.littleendian.fits, field objects 41-50).
+Field 1 did not solve (index index-tycho2-12.littleendian.fits, field objects 41-50).
+Field 1 did not solve (index index-tycho2-11.littleendian.fits, field objects 41-50).
+Field 1 did not solve (index index-tycho2-10.littleendian.fits, field objects 41-50).
+Field 1 did not solve (index index-tycho2-09.littleendian.fits, field objects 41-50).
+Field 1 did not solve (index index-tycho2-08.littleendian.fits, field objects 41-50).
+Field 1 did not solve (index index-tycho2-13.littleendian.fits, field objects 51-60).
+Field 1 did not solve (index index-tycho2-12.littleendian.fits, field objects 51-60).
+Field 1 did not solve (index index-tycho2-11.littleendian.fits, field objects 51-60).
+Field 1 did not solve (index index-tycho2-10.littleendian.fits, field objects 51-60).
+  log-odds ratio 174.346 (5.21703e+75), 51 match, 0 conflict, 329 distractors, 57 index.
+  RA,Dec = (272.935,-23.2846), pixel scale 6.11501 arcsec/pix.
+  Hit/miss:   Hit/miss: --+---+---++-------+---+----+---------+-------------+------+-+------++---------------------+------+-
+Field 1: solved with index index-tycho2-09.littleendian.fits.
+Field 1 solved: writing to file ./synthetic_from_axy.solved to indicate this.
+Field: synthetic_from_axy.fits
+Field center: (RA,Dec) = (272.934335, -23.285618) deg.
+Field center: (RA H:M:S, Dec D:M:S) = (18:11:44.240, -23:17:08.225).
+Field size: 1.73981 x 1.73982 degrees
+Field rotation angle: up is 166.757 degrees E of N
+Field parity: neg
+Creating new FITS file "solved_from_axy.fits"...
+

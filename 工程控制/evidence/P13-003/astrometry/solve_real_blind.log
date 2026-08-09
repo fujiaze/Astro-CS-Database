@@ -1,0 +1,29 @@
+Reading input file 1 of 1: "real_crop_blind.fits"...
+Running command: /usr/bin/python3 -m astrometry.util.image2pnm --infile real_crop_blind.fits --uncompressed-outfile /tmp/tmp.uncompressed.9SwDjc --outfile /tmp/tmp.ppm.SOeD7V --ppm --mydir /usr/bin/solve-field
+Extracting sources...
+simplexy: found 3041 sources.
+Solving...
+Reading file "./real_crop_blind.axy"...
+Only searching for solutions within 3 degrees of RA,Dec (272.886,-23.254)
+Field 1 did not solve (index index-tycho2-13.littleendian.fits, field objects 1-10).
+Field 1 did not solve (index index-tycho2-12.littleendian.fits, field objects 1-10).
+Field 1 did not solve (index index-tycho2-11.littleendian.fits, field objects 1-10).
+Field 1 did not solve (index index-tycho2-10.littleendian.fits, field objects 1-10).
+Field 1 did not solve (index index-tycho2-09.littleendian.fits, field objects 1-10).
+Field 1 did not solve (index index-tycho2-08.littleendian.fits, field objects 1-10).
+Field 1 did not solve (index index-tycho2-13.littleendian.fits, field objects 11-20).
+Field 1 did not solve (index index-tycho2-12.littleendian.fits, field objects 11-20).
+Field 1 did not solve (index index-tycho2-11.littleendian.fits, field objects 11-20).
+  log-odds ratio 179.714 (1.11933e+78), 27 match, 0 conflict, 109 distractors, 31 index.
+  RA,Dec = (272.887,-23.253), pixel scale 6.30579 arcsec/pix.
+  Hit/miss:   Hit/miss: +-+++--++-++-+-+-+--+-----+--+--+-+--+--+---+--++---------------------------------+-------+----+----
+Field 1: solved with index index-tycho2-10.littleendian.fits.
+Field 1 solved: writing to file ./real_crop_blind.solved to indicate this.
+Field: real_crop_blind.fits
+Field center: (RA,Dec) = (272.886394, -23.253678) deg.
+Field center: (RA H:M:S, Dec D:M:S) = (18:11:32.734, -23:15:13.241).
+Field size: 1.79376 x 1.79453 degrees
+Field rotation angle: up is 179.632 degrees E of N
+Field parity: neg
+Creating new FITS file "solved_real_blind.fits"...
+

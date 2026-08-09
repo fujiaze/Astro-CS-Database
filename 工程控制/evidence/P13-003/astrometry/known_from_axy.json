@@ -1,0 +1,23 @@
+{
+  "center_ra_deg": 272.93449436659563,
+  "center_dec_deg": -23.28543715299076,
+  "crpix": [
+    512.5,
+    512.5
+  ],
+  "scale_arcsec": 6.117689539514345,
+  "rotation_deg": 13.0,
+  "cd": [
+    [
+      -0.0016531406018961497,
+      0.00039307357784361564
+    ],
+    [
+      -0.00039269973483836294,
+      -0.0016534942142271947
+    ]
+  ],
+  "n_sources_used": 2642,
+  "base_wcs": "run\\temp\\v4_astrometry\\real\\solved_real_blind.fits",
+  "scale_factor": 0.97
+}

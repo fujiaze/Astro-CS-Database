@@ -1,0 +1,15 @@
+{
+  "center_ra_deg": 272.886341,
+  "center_dec_deg": -23.254003,
+  "crpix": [
+    512.5,
+    512.5
+  ],
+  "scale_arcsec": 6.305751669989593,
+  "rotation_deg": -179.61952977641175,
+  "pixfrac": 0.8,
+  "n_pixels": 1024,
+  "scale_median_arcsec": 6.305751669989593,
+  "scale_p10_arcsec": 6.303777517544766,
+  "scale_p90_arcsec": 6.307118960405819
+}

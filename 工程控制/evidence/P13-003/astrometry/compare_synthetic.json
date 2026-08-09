@@ -1,0 +1,18 @@
+{
+  "mode": "synthetic",
+  "solved": "run\\temp\\v4_astrometry\\synthetic\\solved_from_axy.fits",
+  "center_arcsec": 0.8373928270983811,
+  "ref_scale_arcsec": 6.117689539514349,
+  "solved_scale_arcsec": 6.1159103903277545,
+  "scale_rel_err": 0.00029082044374810316,
+  "orientation_err_deg": 0.13198483811171968,
+  "pixel_sky_median_arcsec": 0.5583403020874567,
+  "pixel_sky_p90_arcsec": 1.3799545642204414,
+  "pixel_sky_max_arcsec": 2.1416347374514104,
+  "pixel_sky_n": 289,
+  "star_median_arcsec": 0.5436635333635748,
+  "star_p90_arcsec": 1.38168384392539,
+  "star_max_arcsec": 1.7552499303713742,
+  "star_n": 124,
+  "PASS": true
+}

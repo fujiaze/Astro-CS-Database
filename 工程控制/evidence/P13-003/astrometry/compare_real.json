@@ -1,0 +1,18 @@
+{
+  "mode": "real",
+  "solved": "run\\temp\\v4_astrometry\\real\\solved_real_blind.fits",
+  "center_arcsec": 1.1824985803396464,
+  "ref_scale_arcsec": 6.305751669989593,
+  "solved_scale_arcsec": 6.306896432489019,
+  "scale_rel_err": 0.00018154259148429487,
+  "orientation_err_deg": 0.017756651009307234,
+  "pixel_sky_median_arcsec": 0.9691271547121071,
+  "pixel_sky_p90_arcsec": 2.882357507474945,
+  "pixel_sky_max_arcsec": 6.079197149601414,
+  "pixel_sky_n": 4096,
+  "star_median_arcsec": 0.6410951538468155,
+  "star_p90_arcsec": 1.565449106425138,
+  "star_max_arcsec": 9.971838869190771,
+  "star_n": 31,
+  "PASS": true
+}

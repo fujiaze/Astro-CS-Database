@@ -1,0 +1,43 @@
+Reading input file 1 of 1: "real_crop.fits"...
+Running command: /usr/bin/python3 -m astrometry.util.image2pnm --infile real_crop.fits --uncompressed-outfile /tmp/tmp.uncompressed.Rp6TAR --outfile /tmp/tmp.ppm.oT7K8L --ppm --mydir /usr/bin/solve-field
+Found an existing WCS header, will try to verify it.
+Extracting sources...
+simplexy: found 3041 sources.
+Solving...
+Reading file "./real_crop.axy"...
+Only searching for solutions within 3 degrees of RA,Dec (272.886,-23.254)
+Verifying WCS using indices with quads of size [10.7644, 107.644] arcmin
+Verifying WCS with index 3 of 6 (/usr/share/astrometry/index-tycho2-11.littleendian.fits)
+Verifying WCS of field 1.
+  log-odds ratio 137.562 (5.52396e+59), 19 match, 0 conflict, 110 distractors, 19 index.
+  RA,Dec = (272.887,-23.2531), pixel scale 6.30727 arcsec/pix.
+  Hit/miss:   Hit/miss: -++++--+----+++---++--------+-+---+----------------------+---+-------------------------+----+-------
+ --> log-odds 137.562
+Verifying WCS with index 4 of 6 (/usr/share/astrometry/index-tycho2-10.littleendian.fits)
+Verifying WCS of field 1.
+  log-odds ratio 231.031 (2.16546e+100), 31 match, 0 conflict, 98 distractors, 31 index.
+  RA,Dec = (272.887,-23.2531), pixel scale 6.30727 arcsec/pix.
+  Hit/miss:   Hit/miss: -+++++++----++++-+++--------+-++--+-+--+-------+---+----+-+--+-------------------------+----+-------
+ --> log-odds 231.031
+Verifying WCS with index 5 of 6 (/usr/share/astrometry/index-tycho2-09.littleendian.fits)
+Verifying WCS of field 1.
+  log-odds ratio 452.021 (2.04192e+196), 63 match, 0 conflict, 145 distractors, 63 index.
+  RA,Dec = (272.887,-23.2531), pixel scale 6.30727 arcsec/pix.
+  Hit/miss:   Hit/miss: +++++++++--+++++-+++-++--+--+-+++++++-++++----+++--++---+++-++-+--++-------+-----+-----+----++--+---
+ --> log-odds 452.021
+Verifying WCS with index 6 of 6 (/usr/share/astrometry/index-tycho2-08.littleendian.fits)
+Verifying WCS of field 1.
+  log-odds ratio 828.18 (inf), 124 match, 0 conflict, 231 distractors, 124 index.
+  RA,Dec = (272.887,-23.2531), pixel scale 6.30727 arcsec/pix.
+  Hit/miss:   Hit/miss: +++++++++-++++++++++++++++-++-++++++++++++++-++++++++-++++++++++--+++++-+-++-+++-+--+-++---+++++++-+
+ --> log-odds 828.18
+Got 4 solutions.
+Field 1 solved: writing to file ./real_crop.solved to indicate this.
+Field: real_crop.fits
+Field center: (RA,Dec) = (272.886200, -23.254047) deg.
+Field center: (RA H:M:S, Dec D:M:S) = (18:11:32.688, -23:15:14.571).
+Field size: 1.79369 x 1.7939 degrees
+Field rotation angle: up is 179.781 degrees E of N
+Field parity: neg
+Creating new FITS file "solved_real.fits"...
+
