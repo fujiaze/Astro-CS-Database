@@ -5,6 +5,7 @@
 // 编译: 见 CMakeLists.txt 的 browser_cli 目标
 // 用法:
 //   browser_cli.exe <file.hiss|file.hcsd> [选项]
+//   browser_cli.exe --hips <products_root> [--queries N]  # HiPS 产品集数据层验证
 //   browser_cli.exe --diag               # 仅诊断 DLL 依赖
 //   browser_cli.exe <file> --benchmark   # 性能测试
 //   browser_cli.exe <file> --sim zoom    # 模拟缩放操作
@@ -17,6 +18,9 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include <map>
+#include <random>
+#include <set>
 #include <windows.h>
 #include <psapi.h>
 
@@ -24,10 +28,13 @@
 #include "browser_backend.h"
 #include "stf_engine.h"
 #include "healpix_math.h"
+#include "hips_browser_backend.h"
 #include "logger.h"
 
-// astro_image_io DLL (用于诊断)
+// astro_image_io DLL (用于诊断 + HiPS Reader)
 #include "aio_healpix_io.h"
+#include "aio_hips_reader.h"
+#include "healpix/healpix_core.h"
 
 // ============================================================================
 // 计时工具
@@ -133,6 +140,147 @@ static size_t get_working_set_mb() {
 // ============================================================================
 // 主函数
 // ============================================================================
+
+// ============================================================================
+// HiPS 产品集模式: Browser 正式数据层 = HiPS -> AIO Reader (V4)
+// 用法: browser_cli.exe --hips <products_root> [n_queries]
+// 输出 JSON: open 信息 / 1024 随机查询与直接 AIO 引用对比 / SNR 目录唯一性
+// ============================================================================
+static int run_hips_mode(const std::string& dir, JsonOut& json, int n_queries) {
+    const int kTileDim = 512;
+    const uint64_t kTileMask = (1ULL << 18) - 1;
+
+    HipsBrowserBackend bk;
+    TimePoint t0 = Clock::now();
+    int rc = bk.open_product(dir);
+    TimePoint t1 = Clock::now();
+    json.key_str("hips_root", dir);
+    json.key_num("hips_open_time_ms", elapsed_ms(t0, t1));
+    if (rc != 0) {
+        fprintf(stderr, "[ERROR] HiPS open_product 失败, rc=%d\n", rc);
+        json.key_bool("hips_open_success", false);
+        json.key_int("hips_open_error_code", rc);
+        return 1;
+    }
+    json.key_bool("hips_open_success", true);
+    json.key_int("hips_order", bk.get_hips_order());
+    json.key_int("hips_leaf_order", bk.get_leaf_order());
+    json.key_bool("hips_fp64", bk.is_fp64());
+    json.key_int("hips_n_tiles", (long long)bk.get_n_tiles());
+    fprintf(stderr, "[OK] HiPS 产品集打开: order=%d leaf_order=%d fp64=%d tiles=%llu\n",
+            bk.get_hips_order(), bk.get_leaf_order(), bk.is_fp64() ? 1 : 0,
+            (unsigned long long)bk.get_n_tiles());
+
+    // 直接 AIO 引用 (独立句柄 + 逐 tile 缓存)
+    AioHipsDataset* dsig = aio_hips_open(dir.c_str(), AIO_HIPS_RD_SIGNAL);
+    AioHipsDataset* dsup = aio_hips_open(dir.c_str(), AIO_HIPS_RD_SUPPORT);
+    if (!dsig || !dsup) {
+        fprintf(stderr, "[ERROR] 直接 AIO 打开失败\n");
+        if (dsig) aio_hips_close(dsig);
+        if (dsup) aio_hips_close(dsup);
+        return 1;
+    }
+    std::vector<uint64_t> tiles;
+    for (int i = 0, n = aio_hips_tile_count(dsig); i < n; ++i) {
+        uint64_t ip = 0;
+        if (aio_hips_tile_ipix(dsig, i, &ip) == 0) tiles.push_back(ip);
+    }
+    if (tiles.empty()) {
+        fprintf(stderr, "[ERROR] 产品无叶级 tile\n");
+        aio_hips_close(dsig); aio_hips_close(dsup);
+        return 1;
+    }
+
+    std::mt19937_64 rng(20260809ULL);
+    const uint32_t nside = uint32_t(1) << (uint32_t)bk.get_leaf_order();
+    const bool fp64 = bk.is_fp64();
+    std::map<uint64_t, std::vector<double>> ref_sig, ref_sup;
+    std::vector<float> tmp((size_t)kTileDim * kTileDim);
+    long long mismatch = 0, inside = 0, no_data = 0;
+    int outside_ok = 0;
+
+    for (int q = 0; q < n_queries; ++q) {
+        const uint64_t tile_ipix = tiles[(size_t)(rng() % tiles.size())];
+        const uint64_t z = rng() & kTileMask;
+        const uint64_t leaf_ipix = (tile_ipix << 18) | z;
+        double ra = 0, dec = 0;
+        astrocs::healpix::pix2ang_nest(nside, leaf_ipix, ra, dec);
+
+        double sig_b = 0, sup_b = 0;
+        if (bk.query_pixel(ra, dec, sig_b, sup_b) != 0) {
+            ++mismatch;
+            continue;
+        }
+        if (ref_sig.count(tile_ipix) == 0) {
+            std::vector<double> sig0((size_t)kTileDim * kTileDim);
+            std::vector<double> sup0((size_t)kTileDim * kTileDim);
+            if (fp64) {
+                aio_hips_read_tile_f64(dsig, tile_ipix, sig0.data());
+                aio_hips_read_tile_f64(dsup, tile_ipix, sup0.data());
+            } else {
+                aio_hips_read_tile_f32(dsig, tile_ipix, tmp.data());
+                for (size_t i = 0; i < tmp.size(); ++i) sig0[i] = (double)tmp[i];
+                aio_hips_read_tile_f32(dsup, tile_ipix, tmp.data());
+                for (size_t i = 0; i < tmp.size(); ++i) sup0[i] = (double)tmp[i];
+            }
+            ref_sig[tile_ipix] = std::move(sig0);
+            ref_sup[tile_ipix] = std::move(sup0);
+        }
+        const size_t x = (size_t)(z % kTileDim);
+        const size_t y = (size_t)(z / kTileDim);
+        const size_t idx = y * kTileDim + x;
+        const double sig_d = ref_sig[tile_ipix][idx];
+        const double sup_d = ref_sup[tile_ipix][idx];
+        ++inside;
+        if (!std::isfinite(sig_d)) ++no_data;
+        const bool b_ok = std::isfinite(sig_b);
+        if (b_ok != std::isfinite(sig_d) ||
+            (b_ok && std::fabs(sig_b - sig_d) > 1e-6) ||
+            std::fabs(sup_b - sup_d) > 1e-9) {
+            ++mismatch;
+            if (mismatch <= 5) {
+                fprintf(stderr, "MISMATCH q=%d (%.6f,%.6f) sig_b=%g sig_d=%g sup_b=%g sup_d=%g\n",
+                        q, ra, dec, sig_b, sig_d, sup_b, sup_d);
+            }
+        }
+    }
+    // outside MOC (南天极附近, 测试产品不含该区域时必在 MOC 外)
+    for (int i = 0; i < 64; ++i) {
+        const double ra = (double)(rng() % 3600) / 10.0;
+        const double dec = -89.0 + (double)(rng() % 100) / 100.0;
+        double sig = 0, sup = 0;
+        const int rcq = bk.query_pixel(ra, dec, sig, sup);
+        if (rcq == -2 || (rcq == 0 && !std::isfinite(sig))) ++outside_ok;
+    }
+
+    std::vector<double> cra, cdec, csnr;
+    std::vector<int64_t> cid;
+    std::vector<uint32_t> cqf, cps;
+    const int n_snr = bk.read_snr_catalog(cra, cdec, csnr, cid, cqf, cps);
+    std::set<int64_t> id_set;
+    for (auto id : cid) id_set.insert(id);
+    const bool id_unique = ((int)id_set.size() == n_snr);
+
+    json.key_int("hips_queries", n_queries);
+    json.key_int("hips_inside", inside);
+    json.key_int("hips_no_data", no_data);
+    json.key_int("hips_mismatch", mismatch);
+    json.key_int("hips_outside_ok", outside_ok);
+    json.key_int("hips_snr_rows", n_snr);
+    json.key_bool("hips_snr_id_unique", id_unique);
+    fprintf(stderr, "RESULT: queries=%d inside=%lld no_data=%lld mismatch=%lld outside_ok=%d/64 snr_rows=%d id_unique=%d\n",
+            n_queries, inside, no_data, mismatch, outside_ok, n_snr, id_unique ? 1 : 0);
+
+    aio_hips_close(dsig);
+    aio_hips_close(dsup);
+    bk.close();
+
+    const bool pass = (mismatch == 0 && outside_ok >= 1 && n_snr > 0 && id_unique);
+    json.key_bool("hips_pass", pass);
+    fprintf(stderr, "RESULT: %s\n", pass ? "PASS" : "FAIL");
+    return pass ? 0 : 1;
+}
+
 int main(int argc, char* argv[]) {
     // 解析命令行
     std::string file_path;
@@ -140,6 +288,8 @@ int main(int argc, char* argv[]) {
     bool benchmark = false;
     bool sim_zoom = false;
     bool sim_pan = false;
+    bool hips_mode = false;
+    int hips_queries = 1024;
     int sim_frames = 100;
 
     for (int i = 1; i < argc; i++) {
@@ -156,13 +306,20 @@ int main(int argc, char* argv[]) {
             }
         } else if (arg == "--frames") {
             if (i + 1 < argc) sim_frames = atoi(argv[++i]);
+        } else if (arg == "--hips") {
+            hips_mode = true;
+        } else if (arg == "--queries") {
+            if (i + 1 < argc) hips_queries = atoi(argv[++i]);
         } else if (arg == "--help" || arg == "-h") {
             fprintf(stderr, "HEALPix 浏览器 CLI 后台调试工具\n\n");
             fprintf(stderr, "用法:\n");
             fprintf(stderr, "  browser_cli.exe <file> [选项]\n");
-            fprintf(stderr, "  browser_cli.exe --diag\n\n");
+            fprintf(stderr, "  browser_cli.exe --diag\n");
+            fprintf(stderr, "  browser_cli.exe --hips <products_root> --queries N\n\n");
             fprintf(stderr, "选项:\n");
             fprintf(stderr, "  --diag           仅诊断 DLL 依赖, 不加载文件\n");
+            fprintf(stderr, "  --hips           以 HiPS 产品集根目录打开 (signal/support/snr), 验证 Browser 数据层\n");
+            fprintf(stderr, "  --queries N      HiPS 模式随机查询数 (默认 1024)\n");
             fprintf(stderr, "  --benchmark      性能测试 (文件打开 + 子叶加载 + 降采样)\n");
             fprintf(stderr, "  --sim zoom       模拟缩放操作 (测试视角变化性能)\n");
             fprintf(stderr, "  --sim pan        模拟平移操作 (测试视角变化性能)\n");
@@ -242,11 +399,20 @@ int main(int argc, char* argv[]) {
     // ================================================================
     if (file_path.empty()) {
         fprintf(stderr, "\n[ERROR] 未指定文件路径\n");
-        fprintf(stderr, "用法: browser_cli.exe <file.hiss|file.hcsd> [选项]\n");
+        fprintf(stderr, "用法: browser_cli.exe <file.hiss|file.hcsd> [选项] | --hips <products_root> [n_queries]\n");
         json.key_bool("error_no_file", true);
         json.end();
         printf("%s", json.buf.c_str());
         return 1;
+    }
+
+    if (hips_mode) {
+        fprintf(stderr, "\n========== HiPS 产品集加载测试 ==========\n");
+        fprintf(stderr, "产品: %s\n", file_path.c_str());
+        int rc_h = run_hips_mode(file_path, json, hips_queries);
+        json.end();
+        printf("%s", json.buf.c_str());
+        return rc_h;
     }
 
     fprintf(stderr, "\n========== 文件加载测试 ==========\n");

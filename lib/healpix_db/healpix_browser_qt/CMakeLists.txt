@@ -33,11 +33,14 @@ add_library(healpix_browser_core STATIC
     core/stf_engine.cpp
     core/healpix_math.cpp
     core/gl_renderer.cpp
+    core/hips_browser_backend.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../common/healpix/healpix_core.cpp
 )
 target_include_directories(healpix_browser_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/core
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${AIO_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../common
 )
 target_compile_definitions(healpix_browser_core PUBLIC ${AIO_DEFINES})
 target_link_libraries(healpix_browser_core PUBLIC
@@ -90,11 +93,14 @@ add_executable(browser_cli
     core/browser_backend.cpp
     core/stf_engine.cpp
     core/healpix_math.cpp
+    core/hips_browser_backend.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../common/healpix/healpix_core.cpp
 )
 target_include_directories(browser_cli PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/core
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${AIO_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../common
 )
 target_compile_definitions(browser_cli PRIVATE ${AIO_DEFINES})
 target_link_directories(browser_cli PRIVATE ${AIO_DIR})
@@ -126,4 +132,16 @@ if(BUILD_TESTS)
     target_link_directories(test_browser_backend PRIVATE ${AIO_DIR})
     target_link_libraries(test_browser_backend PRIVATE astro_image_io)
     add_test(NAME browser_backend COMMAND test_browser_backend)
+
+    add_executable(test_hips_browser_backend
+        tests/test_hips_browser_backend.cpp
+        core/hips_browser_backend.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../common/healpix/healpix_core.cpp
+    )
+    target_include_directories(test_hips_browser_backend PRIVATE
+        core include ${AIO_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/../../common)
+    target_compile_definitions(test_hips_browser_backend PRIVATE ${AIO_DEFINES})
+    target_link_directories(test_hips_browser_backend PRIVATE ${AIO_DIR})
+    target_link_libraries(test_hips_browser_backend PRIVATE astro_image_io)
+    add_test(NAME hips_browser_backend COMMAND test_hips_browser_backend)
 endif()
