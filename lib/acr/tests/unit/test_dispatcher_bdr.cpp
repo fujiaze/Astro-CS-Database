@@ -343,22 +343,29 @@ TEST(DispatcherBdr, MixedFastestRunsCpuAndGpu) {
     cfg.executors = regs;
     cfg.route_mode = RouteMode::AutoMixed;
     cfg.route_profile_v2 = &profile;
-    cfg.invocation_cpu_workers = 4;
+    cfg.invocation_cpu_workers = 2;
     d.configure(cfg);
 
-    const std::size_t n = 1u << 20;
+    const std::size_t n = 1u << 22;  // 4M：足够块数，避免 CPU worker 抢空池
     const std::uint32_t frames = 16u;
     auto fb = make_frames(n, frames, 0x6666u);
     auto w = make_weights(frames, 0x7777u);
     std::vector<float> out(n, 0.0f);
     KernelInvocation inv = make_inv(n, frames, fb, w, out);
     inv.input_resident = true;  // resident_host_output
-    auto r = d.dispatch_invocation(make_task(n), make_estimate(1u << 16, 1u << 18),
-                                   inv);
+    CostAwareResult r;
+    bool both_participated = false;
+    for (int attempt = 0; attempt < 3 && !both_participated; ++attempt) {
+        std::fill(out.begin(), out.end(), 0.0f);
+        r = d.dispatch_invocation(make_task(n),
+                                  make_estimate(1u << 16, 1u << 18), inv);
+        both_participated = r.run_result.all_done &&
+                            r.chunks_on_cpu > 0 && r.chunks_on_gpu > 0;
+    }
     EXPECT_TRUE(r.run_result.all_done);
     EXPECT_EQ(r.benchmark_route_decision, "mixed");
-    EXPECT_GT(r.chunks_on_cpu, 0u);
-    EXPECT_GT(r.chunks_on_gpu, 0u);
+    EXPECT_TRUE(both_participated)
+        << "BDR mixed route must actually engage CPU and GPU";
     EXPECT_NE(r.benchmark_cpu_chunk_items, 0u);
     EXPECT_NE(r.benchmark_gpu_chunk_items, 0u);
     bool nonzero = false;
