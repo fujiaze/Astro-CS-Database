@@ -2083,3 +2083,31 @@ SHA256 ea12a43e54494b6f194bb1c1025e5c1c9f87e24276e6ec6779e84342a5d0f826
 
 审核包: AstroCS_Review_Phase1_FINAL_SIGNOFF_V5_20260809.zip
 SHA256 38ea32dd8c1e655aa7ea53ca0109ff6a72dc4ce9686351c616a643ac09930fde
+
+
+## 2026-08-09 Phase1 Final Archive V6 (控制包 7b011bce, Repack Only)
+
+### 完成 (main f55e784 已 push; wiki a34a264 已 push)
+- 仅归档/治理修正，无算法/配置/科学证据修改；V6 新真实运行=0、完整 FP32/FP64=0
+- **SHA256SUMS 自哈希修复**：清单不再包含自身（V5 缺陷），其余 134 条目逐项校验通过；
+  ZIP 整体 SHA 由交付外层提供
+- **第三方 Notice 补齐**：astrometry.net healpix（BSD-3, upstream HEAD
+  623b3c31a7a5566c1fde8d0a32445aa2ee31b8b3）+ CFITSIO 4.6.4（fitsio.h 确认）
+- **旧 HISS/pixfrac 文档清理**：README/orchestrator 注释/CLI/Wiki Home 统一
+  HiPS 生产链 + legacy HISS；pixfrac 省略默认 0.8（与 V5 CFG-001 一致）
+- **MAPTILES 报告如实化**：order12 deepest-tile 201,326,592 像素 mismatch=0
+  （768 tile, missing=0/extra=0）；order12 整跑 = ABORT_AFTER_LEAF_GENERATION_RAM
+  （真实日志 RAM 不足）；order10 整跑 exit=0 PASS
+- **最终运行证据归档**：T4 full config.json + run.log + summary.txt（含哈希/ACR ref）
+- **ACR 证据**：before=after=725e48935eec0ffe8a4ca8c7ef28b0be8b1667c2；三包 SHA 与 V4 一致；
+  FAST/Stage2 未触碰
+- **Wiki 措辞防误报**：移除 `PHASE1 = FROZEN` 字面量（验证器正则硬门），
+  统一为 "PHASE1 全量冻结（FROZEN）" 表述，T1 补齐补测后才升级
+
+### 判定（与 V5 一致）
+- PHASE1_CODE_FREEZE = PASS；HIPS_PRODUCTION = PASS
+- PHASE1_DATASET_DOMAIN = WAITING_T1（仅缺 T1 真实数据，外部阻塞）
+- HISS = DEPRECATED
+
+审核包: AstroCS_Review_Phase1_FINAL_ARCHIVE_V6_20260809.zip
+SHA256 39bed5ebc91d3ff41b3d833db76d87fa40c1743a7fe4acd125707a4f33d41f00
