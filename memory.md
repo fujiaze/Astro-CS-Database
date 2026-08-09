@@ -2009,3 +2009,76 @@ AstroCS_ACR_Fix_Review/、_new_control_pack/) 以归档形式完整保留。
 
 审核包: AstroCS_Review_Phase1_FULL_FREEZE_V2_PSF_DR3SP_ORACLES_20260808.zip
 SHA256 5afa4ffcb5a7132da6cf7852deb18759ba009efbf060772ca62870d6570bfd34
+
+
+## 2026-08-09 Phase1 Final Signoff V4 (控制包 5ba1f0b1, SNR HiPS/Browser)
+
+### 完成 (main 已 push 至 450f13c; wiki 0c94b56 已 push)
+- **G1 (6d810a3)**: 共享 HEALPix core `lib/common/healpix/`; 删除 AIO 私有错误
+  ang2ipix_nest; astropy-healpix 1,000,000 全天随机点 Oracle mismatch=0 (12 face);
+  SNR Catalogue 逐行 RA/Dec 空间 Oracle crop 997 / full 1947 行 wrong=0 dup=0
+- **G2 (6d810a3)**: snr_model v2 携带 star_id/quality_flags/photometric_status;
+  禁止 i+1 重编号; PSF(1111)→SNR(997) subset 证据
+- **G3 (4f8bc73)**: Browser 默认 HiPS→AIO Reader (LegacyHiss 仅历史);
+  headless 2048/4096 查询 mismatch=0, FP32/FP64
+- **G4 (686f795)**: actual-buffer trace 全链 (pixel 1024 / drizzle 贡献守恒 /
+  leaf 20k readback ≤1e-5 / Browser 同样本 mismatch=0); 修复 snr_model v2
+  FP32 偏移 (pack(1) 布局)
+- **G5 (f8e51c8, bce606a)**: SNR metadata.xml 标准 VOTable + 真实推荐元数据;
+  Hipsgen signal/support LINT/CHECKCODE/CHECK/CHECKFAST/CHECKDATASUM 全部真实
+  执行 exit=0 (SNR TSV 用 LINT+独立空间 Oracle); Astrometry.net WSL 0.98
+  synthetic 扰动盲解 + real 剥离 WCS 盲解 PASS
+- **G6 (c0853fd)**: WSL ASan/UBSan/LSan 五阶段全过 (1M oracle / HiPS
+  writer-reader FP32/FP64 / corrupt TSV-properties-Moc / DR3SP 实际目录 /
+  order7 空间 fuzz 109,976 点 mismatch=0); 修复测试驱动自身 2 处 bug
+- **G7 (b686df7)**: T1 全盘搜索确认无数据 → BLOCKED_EXTERNAL_DATA (inventory
+  归档 P13-003); T4 crop FP32/FP64 (24 tiles/997 SNR) PASS; 唯一一次 post-fix
+  T4 full FP32 PASS (285 tiles/1947 SNR/58.974s); post-fix full FP64=0 次
+- **G8 (56ffccc, 450f13c)**: orchestrator README + Wiki 生产链 HiPS 直写/
+  HISS deprecated; ACR SHA 未变; FAST/Stage2 未触碰; astro_toolkit 保留
+
+### 判定
+- Phase1 code freeze candidate = PASS
+- Dataset-domain freeze = WAITING_T1 (仅缺 T1 真实数据, 外部阻塞)
+- HiPS = PRODUCTION; HISS = DEPRECATED
+
+审核包: AstroCS_Review_Phase1_FINAL_SIGNOFF_V4_20260809.zip
+SHA256 ea12a43e54494b6f194bb1c1025e5c1c9f87e24276e6ec6779e84342a5d0f826
+
+
+## 2026-08-09 Phase1 Final Signoff V5 (控制包 d7b4d0e7, HiPS Layout/Precision/Config)
+
+### 完成 (main 已 push 至 155642f; wiki faa40fb 已 push)
+- **G1 (21a5dc5)**: 共享 HEALPix core 标准 tile 排列 (nested_local_to_fits_index,
+  (511-x)*512+y); AIO writer/reader/ancestor 与 Browser/trace 统一; Hipsgen
+  MAPTILES 全像素 Oracle: order10 12,582,912 + order12 201,326,592 像素
+  mismatch=0 (768 leaf tile), 12 base face 全覆盖; test_hips_tile_mapping
+  262,144 全量 + 100k 随机 PASS
+- **G2 (21a5dc5)**: SNR TSV %.9g(FP32)/%.17g(FP64) 文本 bitwise round-trip
+  20014 点 mismatch=0; metadata datatype float/double; star_id/qf/ps 保留
+- **G3 (b7c4d45 + 155642f)**: pixfrac 省略默认 0.8; output.hips 唯一正式输出,
+  output.hiss DEPRECATED 可选 (修复缺键断言回归); HISS_VERIFY 仅 legacy;
+  BROWSER_VERIFY=HiPS AIO Reader+共享映射; orchestrator CLI 233/233;
+  内嵌/磁盘 schema SHA 一致 064ba85
+- **G4**: metadata 实际 UTC 日期 + 真实 obs_filter/obs_date, 不伪造 em_min/max
+- **G5 (bb46753)**: Hipsgen MAPTILES 逐像素 + crop/full signal/support
+  LINT/CHECKCODE/CHECK/CHECKFAST/CHECKDATASUM exit=0; SNR LINT/CHECKFAST 真实
+  执行 (CHECK/CODE/DATASUM 为 FITS 专用, TSV 不适用), 空间由独立 Oracle 覆盖
+- **G6**: Browser crop FP32/FP64 与 full 各 2048 查询 mismatch=0 outside 64/64,
+  snr_id_unique=1
+- **G7 (5f35c92)**: WSL ASan/UBSan/LSan ALL_SANITIZE_V5_PASS (1M Oracle/
+  writer-reader/robust corrupt/DR3SP 219M 源/order7 fuzz 109,976/tile 映射全量)
+- **G8 (155642f 后)**: T4 crop FP32/FP64 全过 (24 tiles/997 SNR); trace 回归修复
+  (mkdir 顺序 + fallback x 恒 0 bug) 后 1024 链/20k readback 全过; 唯一一次
+  post-fix T4 full FP32 PASS (285 tiles/1947 SNR, DRIZZLE 28.5s, 总墙钟约 52s);
+  V5 full FP64=0 次; T1=BLOCKED_EXTERNAL_DATA (沿用 V4 inventory)
+- **G9**: ACR 三包 SHA 与 V4 证据一致; FAST/Stage2 未触碰; astro_toolkit 保留;
+  README/Wiki 单一权威同步
+
+### 判定
+- PHASE1_CODE_FREEZE = PASS
+- HIPS_PRODUCTION = PASS
+- PHASE1_DATASET_DOMAIN = WAITING_T1 (仅缺 T1 真实数据, 外部阻塞)
+- HISS = DEPRECATED
+
+审核包: AstroCS_Review_Phase1_FINAL_SIGNOFF_V5_20260809.zip (待生成)

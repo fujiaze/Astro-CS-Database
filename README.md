@@ -6,9 +6,10 @@ SNR² 加权全局加性梯度统一、稳健排异和多帧叠加生成连续�
 
 ## 当前状态
 
-- 当前阶段：**Phase1 Final Closure V3 生产链闭合候选**（2026-08-08，控制包
-  `AstroCS_Phase1_Final_Closure_V3_PSF_XPSD_HiPS`；核心 Gate 全部通过，
-  4 项外部/UI 项未执行，冻结待审核确认）
+- 当前阶段：**Phase1 Final Signoff V5 code freeze candidate = PASS**（2026-08-09，
+  控制包 `AstroCS_Phase1_Final_Signoff_V5_HiPS_Layout_Precision`；HiPS 标准
+  tile 排列经 CDS Hipsgen MAPTILES 逐像素 Oracle 冻结，SNR 精度与生产配置
+  收敛完成；Dataset-domain freeze = WAITING_T1，仅缺 T1 真实数据，外部阻塞）
 - 正式科学运行只有唯一入口：`orchestrator.exe <stage1.json>`
 - 已完成：JSON 唯一入口与严格 Schema、HISS signal FP32/FP64 数据面、
   候选零漏选（9003/9003）、科学矩阵、Sphere→Plane 双向底层、
@@ -16,6 +17,7 @@ SNR² 加权全局加性梯度统一、稳健排异和多帧叠加生成连续�
   （CFITSIO 4.6.4，signal/support/snr 3 子产品 + hierarchy + MOC）
 - Phase1 生产末端：单帧平面 → HEALPix 球面 → HiPS（HIPS_VERIFY）；
   HISS 正式 deprecated（仅 `validation.legacy_hiss_compare=true` 写出）；
+  生产默认 pixfrac=0.8（省略即 0.8）、`output.hips` 唯一正式输出；
   Phase2 = 多帧积分/HICS/马赛克；Phase3 = 球面→平面导出（底层双向已冻结）
 - 未完成（不在本轮）：Stage2 / FAST / ACR、710 帧全量回归
 - 严格科学验收以**合成真值数据**为主；真实 testdata 仅辅助/性能/集成验证
