@@ -652,7 +652,7 @@ oracle×1.10 门；冷/热 Mixed 模型经真实上传修复后与 Auto 执行�
 未放宽任何误差门。下一阶段（真实积分 Adapter）前需先评估 Dispatcher 固定开销
 优化（如 direct 路径去注册/决策缓存预热）或调整性能验收口径。
 
-### 2026-08-09 Route/Residency/Generation 闭环（最终 HEAD e2b41e5，控制包 CE288DBF...F7E88）
+### 2026-08-09 Route/Residency/Generation 闭环（最终 HEAD 105d68a，控制包 CE288DBF...F7E88）
 
 **本轮完成（08 计划 1-9）**：
 1. Route-centric qualification：scenario.routing_trusted（Final route regret<=1.10
@@ -673,10 +673,10 @@ oracle×1.10 门；冷/热 Mixed 模型经真实上传修复后与 Auto 执行�
    去掉外部 bridge 伪造；reuse4 frames 只传一次、weights generation 递增。
 7. 标定真实 cold：每个 cold Mixed 样本不同 seed 数据 + fresh Dispatcher，
    强制真实 H2D（修复标定低估 ~3x 的问题）。
-8. 单一最终 HEAD Evidence：源码全部提交（e2b41e5）后才跑 benchmark/quick，
+8. 单一最终 HEAD Evidence：源码全部提交（105d68a）后才跑 benchmark/quick，
    Evidence 后无 commit。
 
-**最终结果（e2b41e5，RTX 3060 Ti）**：
+**最终结果（105d68a，RTX 3060 Ti）**：
 - standard：correctness=PASS；Profile qualified（三场景 routing_trusted、
   Replay 24/24 max_slowdown=1.0）；preset/head/run_id 正确。
 - resident Auto 全走 gpu_direct 真实 shape；中/大 case 对 OpenMP 正加速
