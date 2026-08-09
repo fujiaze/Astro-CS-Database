@@ -296,7 +296,7 @@ bool BenchmarkRouteEstimator::interpolate_e2e(
     if (usable.empty()) return false;
     const auto it =
         std::lower_bound(usable.begin(), usable.end(), frame_count);
-    if (it != frames.end() && *it == frame_count) {
+    if (it != usable.end() && *it == frame_count) {
         // 精确命中且该帧可用（usable 已保证）
         auto pts = samples_for_frames(path, frame_count);
         double m = 0.0;

@@ -150,6 +150,57 @@ TEST(RouteEstimator, OutOfDomainNotExtrapolated) {
         sc.gpu_direct, 1u << 16, 16u, med, p90));
 }
 
+// ===== Dispatcher Finalization（06/08 计划 B）：iterator 边界 =====
+TEST(RouteEstimator, InterpolateE2eUnusableHighFrameReturnsFalse) {
+    // frame_counts 含 32 帧（hi 边界），但 32 帧样本只剩 16M 单点，
+    // 请求 1M×32 帧时该帧对请求 items 不可用 → usable 不含 32，
+    // lower_bound == usable.end()。修复前 `it != frames.end()` 会在
+    // usable.end() 上解引用（UB）；修复后必须安全返回 false。
+    RouteProfileV2 p = make_test_profile();
+    RoutePath path = p.operations.front().scenarios.front().gpu_direct;
+    std::vector<RouteSamplePoint> kept;
+    for (const auto& s : path.samples) {
+        if (s.frame_count == 32u) {
+            if (s.output_items == (1u << 24)) kept.push_back(s);
+        } else {
+            kept.push_back(s);
+        }
+    }
+    path.samples = std::move(kept);
+    path.frame_counts = {4u, 16u, 32u};
+    double med = 0.0, p90 = 0.0;
+    // 1M × 32 帧：usable={4,16}，lower_bound==end → 不崩溃、返回 false
+    EXPECT_FALSE(BenchmarkRouteEstimator::interpolate_e2e(
+        path, 1u << 20, 32u, med, p90));
+    // 16M × 32 帧：32 帧单点精确命中 → true
+    EXPECT_TRUE(BenchmarkRouteEstimator::interpolate_e2e(
+        path, 1u << 24, 32u, med, p90));
+}
+
+TEST(RouteEstimator, InterpolateE2eAdaptiveSingleFrameExcluded) {
+    // adaptive 加入的单点帧（12 帧）只覆盖小 items：请求大 items 时该帧
+    // 不得参与相邻插值，退回 4/16/32 基础网格（BDR Reviewed 08 计划 F）。
+    RouteProfileV2 p = make_test_profile();
+    RoutePath path = p.operations.front().scenarios.front().gpu_direct;
+    RouteSamplePoint single = path.samples.front();
+    single.output_items = 1u << 18;   // 256K 单点（domain 最小值）
+    single.frame_count = 12u;
+    single.median_ms = 0.2;
+    single.p90_ms = 0.22;
+    path.samples.push_back(single);
+    path.frame_counts.push_back(12u);
+    double med = 0.0, p90 = 0.0;
+    // 1M × 12 帧：12 帧单点不可用 → 用 4/16 帧相邻插值
+    //（4 帧 0.125ms、16 帧 0.5ms，w=(12-4)/(16-4)=2/3 → 0.375ms）
+    ASSERT_TRUE(BenchmarkRouteEstimator::interpolate_e2e(
+        path, 1u << 20, 12u, med, p90));
+    EXPECT_NEAR(med, 0.125 + 0.375 * (2.0 / 3.0), 0.05);
+    // 256K × 12 帧：12 帧单点精确命中
+    ASSERT_TRUE(BenchmarkRouteEstimator::interpolate_e2e(
+        path, 1u << 18, 12u, med, p90));
+    EXPECT_NEAR(med, 0.2, 1e-9);
+}
+
 TEST(RouteEstimator, MixedSimulationProducesMakespan) {
     RouteProfileV2 p = make_test_profile();
     const OperationRouteProfile& op = p.operations.front();
