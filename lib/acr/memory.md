@@ -527,3 +527,40 @@ GPU 候选块标定、stream 决策与 Auto 路由。
 standard 性能资格 PERFORMANCE_NOT_QUALIFIED（2048² Auto 6.3ms vs
 OpenMP 15.1ms，相对 OpenMP ≥2×，但 10% 门禁按直连基线判定未过）。
 READY_FOR_BUSINESS_ADAPTER=false。
+
+### 2026-08-09 BDR3 收尾（最终 HEAD da5a280，控制包 A9766B99...53984）
+
+**本轮稳定结论（2026-08-08 BDR3 计划 A-J 全部落地后，从最终 HEAD 重跑验证）**：
+- 场景级资格（A）：RoutePath 拆 model_available/model_trusted，Operation.qualified
+  由三个 required 场景（cold/resident/reuse4）全部 qualified 生成；生产未 qualified
+  场景直接 OpenMP fallback；诊断 Replay 允许全部 model_available 候选参与预测。
+- fit/probe/final 隔离（B）：Fit 15 点、Probe 8 点、Final 8 点/场景，无交集断言通过。
+- 真实 cold Mixed（D）：warmup 用不同 generation、正式样本 fresh Dispatcher，
+  17/17 样本 timed H2D>0。
+- 2D chunk 服务插值（F）：interpolate_chunk_service 先 chunk 轴再 frame 轴，
+  未命中帧数不再混用全部曲线；GPU 单块保持完整 frame-major stride（E）。
+- RUN_SERIAL 稳定化（J，commit da5a280）：聚焦 Mixed 性能测试串行执行，
+  避开 load-guard flaky skip；CTest 连续 3 轮 625/625、0 失败、10 项准确跳过。
+
+**最终 Benchmark 结论（da5a280，RTX 3060 Ti + MinGW64）**：
+- standard：correctness=PASS；performance=PERFORMANCE_NOT_QUALIFIED
+  （reason=auto slower than best by >10%（1024²×16 auto_resident_steady ratio=403%））；
+  profile_state=partial；READY_FOR_BUSINESS_ADAPTER=false。
+- quick：correctness=PASS；performance=NOT_RUN；READY_FOR_BUSINESS_ADAPTER=false。
+- Route Replay：standard 24 点中 22 点 within 10%（2 点超门：
+  cold 1638400×20 chosen legacy_openmp 7.7582ms vs best mixed 5.853ms ratio 1.3255；
+  resident 589824×12 chosen gpu_direct 1.3844ms vs best legacy_openmp 1.1755ms ratio 1.1777）；
+  reuse4 8/8 通过；quick 24/24 通过（ratio 1.0）。
+- 场景级 Final 误差（max，15% 门）：GPU direct cold/resident 14.76%/12.84% 已可信，
+  reuse4 16.11% 超门；OpenMP 23.53%–39.19%、Mixed 19.23%–39.31% 均超门 →
+  三场景 scenario_qualified=false、profile_threshold_validated=false、op.qualified=false。
+
+**限制（如实）**：OpenMP/Mixed 预测模型 Final 误差超 15% 门；standard Replay 2/24
+超 10%；auto_resident_steady 1024²×16 比 best 慢 403%；生产未接入
+（READY_FOR_BUSINESS_ADAPTER=false）。下一阶段需先改进 OpenMP/Mixed 成本模型
+或调整标定策略，不得手工宣称 qualified。
+
+**交付**：11 个提交（4769979..da5a280）push 到 feature/astrocompute-runtime；
+证据 run/evidence/acr_bdr3_20260808/（3 轮 CTest 日志、standard/quick 报告、
+Replay 明细、可移植 SHA 清单）；审核包
+AstroCS_Review_ACRScenarioQualificationChunk2D_20260809.zip（SHA 见交付记录）。
