@@ -312,7 +312,7 @@ int main(int argc, char* argv[]) {
 
         // 7. 执行 stage1 流水线
         LOG_INFO("main", "输入 FITS: " + config.input.light);
-        LOG_INFO("main", "输出 HISS: " + config.output.hiss);
+        LOG_INFO("main", "output HiPS: " + config.output.hips);
 
         TaskResult result = orch.run_stage1(config);
 
@@ -324,7 +324,7 @@ int main(int argc, char* argv[]) {
             CliCommand::output_jsonl_event_ex(
                 "completed", job_id, "", 1.0,
                 "stage1 completed successfully",
-                std::string("{\"output_hiss\":\"") + result.output_hiss_path
+                std::string("{\"output_hips\":\"") + result.output_hips_path
                 + "\",\"completed_to_gate\":\"" + result.completed_to_gate + "\"}",
                 "", result.exit_code, -1.0, "ok");
         } else {

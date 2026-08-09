@@ -245,7 +245,6 @@ static const char* STAGE1_SCHEMA_JSON = R"JSON(
       "additionalProperties": false,
       "required": [
         "mode",
-        "pixfrac",
         "nside",
         "ordering"
       ],
@@ -256,7 +255,9 @@ static const char* STAGE1_SCHEMA_JSON = R"JSON(
         "pixfrac": {
           "type": "number",
           "exclusiveMinimum": 0,
-          "maximum": 1
+          "maximum": 1,
+          "default": 0.8,
+          "description": "Drizzle 像素收缩因子; 省略时默认 0.8 (冻结生产默认)"
         },
         "ordering": {
           "const": "nested"
@@ -301,6 +302,7 @@ static const char* STAGE1_SCHEMA_JSON = R"JSON(
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "hips",
         "log",
         "diagnostics_dir",
         "overwrite"
@@ -308,7 +310,9 @@ static const char* STAGE1_SCHEMA_JSON = R"JSON(
       "properties": {
         "hiss": {
           "type": "string",
-          "default": ""
+          "default": "",
+          "deprecated": true,
+          "description": "DEPRECATED: 仅 validation.legacy_hiss_compare=true 时作 legacy 路径; 不得作为正式输出"
         },
         "hips": {
           "type": "string",
@@ -334,6 +338,11 @@ static const char* STAGE1_SCHEMA_JSON = R"JSON(
         "legacy_hiss_compare": {
           "type": "boolean",
           "default": false
+        },
+        "legacy_hiss_path": {
+          "type": "string",
+          "default": "",
+          "description": "legacy .hiss 输出路径 (仅 legacy_hiss_compare=true 时使用)"
         }
       }
     },
@@ -357,7 +366,6 @@ static const char* STAGE1_SCHEMA_JSON = R"JSON(
             "nside",
             "drizzle",
             "hips_verify",
-            "hiss_verify",
             "browser_verify"
           ]
         },
@@ -378,7 +386,6 @@ static const char* STAGE1_SCHEMA_JSON = R"JSON(
             "nside",
             "drizzle",
             "hips_verify",
-            "hiss_verify",
             "browser_verify"
           ],
           "properties": {
@@ -499,6 +506,7 @@ static const char* STAGE1_SCHEMA_JSON = R"JSON(
     }
   ]
 }
+
 )JSON";
 
 std::string get_stage1_schema_json() {
@@ -701,7 +709,9 @@ int parse_stage1_config(const std::string& json_path, Stage1Config& config, std:
     config.snr.sampling_scale = root["snr"]["sampling_scale"].get<double>();
 
     config.drizzle.mode = root["drizzle"]["mode"].get<std::string>();
-    config.drizzle.pixfrac = root["drizzle"]["pixfrac"].get<double>();
+    // CFG-001 (V5): pixfrac 省略时生产默认 0.8 (权威默认, 与 schema/template 一致)
+    config.drizzle.pixfrac = root["drizzle"].contains("pixfrac") && !root["drizzle"]["pixfrac"].is_null()
+        ? root["drizzle"]["pixfrac"].get<double>() : 0.8;
     config.drizzle.ordering = root["drizzle"]["ordering"].get<std::string>();
     config.drizzle.nside_mode = root["drizzle"]["nside"]["mode"].get<std::string>();
     if (config.drizzle.nside_mode == "explicit") {
@@ -711,6 +721,9 @@ int parse_stage1_config(const std::string& json_path, Stage1Config& config, std:
     const auto& out_cfg = root["output"];
     config.output.hiss = out_cfg.contains("hiss") && !out_cfg["hiss"].is_null()
         ? resolve_path(out_cfg["hiss"].get<std::string>(), base_dir) : std::string();
+    if (out_cfg.contains("hiss") && !out_cfg["hiss"].is_null()) {
+        LOG_WARN("json_config", "CFG-002: output.hiss 已 DEPRECATED (仅 legacy_hiss_compare 模式使用), 正式输出为 output.hips");
+    }
     config.output.hips = out_cfg.contains("hips") && !out_cfg["hips"].is_null()
         ? resolve_path(out_cfg["hips"].get<std::string>(), base_dir) : std::string();
     config.output.log = resolve_path(root["output"]["log"].get<std::string>(), base_dir);
@@ -719,6 +732,11 @@ int parse_stage1_config(const std::string& json_path, Stage1Config& config, std:
     config.validation.legacy_hiss_compare =
         root.contains("validation") && root["validation"].contains("legacy_hiss_compare")
         ? root["validation"]["legacy_hiss_compare"].get<bool>() : false;
+    config.validation.legacy_hiss_path =
+        root.contains("validation") && root["validation"].contains("legacy_hiss_path") &&
+        !root["validation"]["legacy_hiss_path"].is_null()
+        ? resolve_path(root["validation"]["legacy_hiss_path"].get<std::string>(), base_dir)
+        : std::string();
 
     config.execution.stop_after = root["execution"]["stop_after"].get<std::string>();
     config.execution.threads = root["execution"]["threads"].get<int>();
@@ -793,16 +811,21 @@ std::string compute_config_sha256(const Stage1Config& config) {
         j["drizzle"]["nside"]["value"] = config.drizzle.nside_value;
     }
 
-    j["output"] = {
-        {"hiss", config.output.hiss},
+    // CFG-002 (V5): 正式 output 只含 hips; hiss 仅 legacy 模式出现
+    json outj = {
         {"hips", config.output.hips},
         {"log", config.output.log},
         {"diagnostics_dir", config.output.diagnostics_dir},
         {"overwrite", config.output.overwrite}
     };
-    j["validation"] = {
+    if (!config.output.hiss.empty()) outj["hiss"] = config.output.hiss;
+    j["output"] = outj;
+    json valj = {
         {"legacy_hiss_compare", config.validation.legacy_hiss_compare}
     };
+    if (!config.validation.legacy_hiss_path.empty())
+        valj["legacy_hiss_path"] = config.validation.legacy_hiss_path;
+    j["validation"] = valj;
 
     j["execution"] = {
         {"stop_after", config.execution.stop_after},

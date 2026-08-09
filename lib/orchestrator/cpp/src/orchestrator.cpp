@@ -25,6 +25,7 @@
 #include <cmath>
 #include <functional>
 #include <unordered_set>
+#include <vector>
 
 // 重命名 aio_pipeline.h 的 PipelineStage typedef 为 AioPipelineStage,
 // 避免与 orchestrator.h 的 enum class PipelineStage 冲突
@@ -37,6 +38,7 @@
 // IVOA HiPS 写入器 (Phase1 Full Freeze v2, HiPS 迁移)
 #include "aio_hips.h"
 #include "aio_hips_reader.h"   // Phase1 V3: HIPS_VERIFY / Browser 唯一后端
+#include "healpix/healpix_core.h" // V5 HIPS-IMG-001: 共享 HEALPix core 映射
 // HioSnrModel / HISS SNR 模型结构
 #include "aio_healpix_io.h"
 
@@ -3004,7 +3006,7 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
 
     // P12-001 子任务B: 生成 photometry_report.json
     // 遵循 engineering_v1.3/contracts/photometry_report.schema.json
-    // 输出到 .hiss 同目录 (current_output_path_ 的父目录)
+    // 输出到正式输出目录 (current_output_path_ 的父目录)
     try {
         fs::path output_path(current_output_path_);
         fs::path report_path = output_path.parent_path() / "photometry_report.json";
@@ -3535,7 +3537,11 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
         }
     }
     const std::string legacy_hiss =
-        stage1_cfg_->validation.legacy_hiss_compare ? current_output_path_ : std::string();
+        stage1_cfg_->validation.legacy_hiss_compare
+            ? (stage1_cfg_->validation.legacy_hiss_path.empty()
+                   ? stage1_cfg_->output.hiss
+                   : stage1_cfg_->validation.legacy_hiss_path)
+            : std::string();
     // overwrite=true 时清理旧 HiPS 输出 (避免 CFITSIO 拒绝覆盖/残留旧 tile)
     if (stage1_cfg_->output.overwrite && fs::exists(hips_dir)) {
         std::error_code ec;
@@ -3594,7 +3600,14 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
 //   6. 输出全 Tile 验证汇总 (n_tiles, n_passed, n_failed, n_signal_nonzero, n_support_nonzero)
 // ============================================================================
 bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
-    LOG_INFO("orchestrator", "[HISS_VERIFY] 开始: " + current_output_path_);
+    // V5 CFG-002: HISS_VERIFY 仅 legacy_hiss_compare=true 时可执行
+    if (!stage1_cfg_->validation.legacy_hiss_compare) {
+        LOG_INFO("orchestrator", "[HISS_VERIFY] legacy_hiss_compare=false, 跳过 (正式验证为 HIPS_VERIFY)");
+        return true;
+    }
+    const std::string hiss_path =
+        legacy_hiss_path_.empty() ? stage1_cfg_->output.hiss : legacy_hiss_path_;
+    LOG_INFO("orchestrator", "[HISS_VERIFY] 开始 (legacy): " + hiss_path);
 
     // AIO DLL 是必需模块
     if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::AIO)) {
@@ -3605,15 +3618,15 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
     }
 
     // 输出文件必须存在
-    if (current_output_path_.empty()) {
+    if (hiss_path.empty()) {
         LOG_ERROR("orchestrator", "[HISS_VERIFY] 输出 .hiss 路径为空");
         result.error_msg = "[HISS_VERIFY] 输出 .hiss 路径为空";
         result.exit_code = AstroCsExitCode::HISS_INVALID;
         return false;
     }
-    if (!fs::exists(current_output_path_)) {
-        LOG_ERROR("orchestrator", "[HISS_VERIFY] .hiss 文件不存在: " + current_output_path_);
-        result.error_msg = "[HISS_VERIFY] .hiss 文件不存在: " + current_output_path_;
+    if (!fs::exists(hiss_path)) {
+        LOG_ERROR("orchestrator", "[HISS_VERIFY] .hiss 文件不存在: " + hiss_path);
+        result.error_msg = "[HISS_VERIFY] .hiss 文件不存在: " + hiss_path;
         result.exit_code = AstroCsExitCode::HISS_INVALID;
         return false;
     }
@@ -3639,12 +3652,12 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
     char* meta_json = nullptr;
     uint64_t* tile_ipix_list = nullptr;
 
-    int inspect_ret = fn_inspect(current_output_path_.c_str(), &nside, &tile_nside,
+    int inspect_ret = fn_inspect(hiss_path.c_str(), &nside, &tile_nside,
                                   &depth, &n_leaf_per_tile, &n_tiles,
                                   &n_pix_total, &meta_json, &tile_ipix_list);
     if (inspect_ret != 0) {
         LOG_ERROR("orchestrator", "[HISS_VERIFY] aio_hiss_inspect 失败 (rc="
-                 + std::to_string(inspect_ret) + "): " + current_output_path_);
+                 + std::to_string(inspect_ret) + "): " + hiss_path);
         result.error_msg = "[HISS_VERIFY] aio_hiss_inspect 失败 (rc="
                          + std::to_string(inspect_ret) + ")";
         result.exit_code = AstroCsExitCode::HISS_INVALID;
@@ -3761,11 +3774,11 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
         result.exit_code = AstroCsExitCode::HISS_INVALID;
         return false;
     }
-    void* session = fn_open_session(current_output_path_.c_str(),
+    void* session = fn_open_session(hiss_path.c_str(),
                                     nullptr, nullptr, nullptr);
     if (!session) {
         LOG_ERROR("orchestrator", "[HISS_VERIFY] session 打开失败: "
-                 + current_output_path_);
+                 + hiss_path);
         if (meta_json) fn_free(meta_json);
         if (tile_ipix_list) fn_free(tile_ipix_list);
         result.error_msg = "[HISS_VERIFY] session 打开失败";
@@ -4925,96 +4938,152 @@ bool Orchestrator::run_stage_nside(TaskResult& result) {
 }
 
 // ============================================================================
-// run_stage_browser_verify - BROWSER_VERIFY 阶段: Browser 后端双精度读取/查询
-// 打开 .hiss, 用配置精度读取 Tile signal 并查询像素, 核对 dtype 与 metadata
-// (Qt GUI 双模式另有独立 headless 测试, 见 tests/browser_dual_precision)
+// run_stage_browser_verify - BROWSER_VERIFY 阶段: Browser 后端等价查询验证
+// 唯一后端: AIO HiPS Reader + 共享 HEALPix core 映射 (与 hips_browser_backend 相同)
+// 验证项:
+//   1. signal 可打开, hips_version 由 reader 保证, dtype 与 precision 一致
+//   2. 取 SNR catalogue 采样点 (最多 128), 用共享 ang2pix_nest 计算 leaf_ipix
+//   3. 对每点: tile 存在 (MOC 覆盖) + aio_hips_read_leaf_* 返回有限 signal
+//   4. 至少一个点查询成功; 任何硬错误失败
 // ============================================================================
 bool Orchestrator::run_stage_browser_verify(TaskResult& result) {
-    LOG_INFO("orchestrator", "[BROWSER_VERIFY] 开始 (precision="
+    LOG_INFO("orchestrator", "[BROWSER_VERIFY] 开始 (HiPS AIO Reader + 共享 HEALPix core, precision="
              + std::string(config_.precision == PrecisionMode::FP64 ? "FP64" : "FP32") + ")");
-    if (current_output_path_.empty() || !fs::exists(current_output_path_)) {
-        result.error_msg = "[BROWSER_VERIFY] .hiss 不存在: " + current_output_path_;
-        result.exit_code = AstroCsExitCode::HISS_INVALID;
-        return false;
-    }
-    auto fn_inspect = dll_loader_.get_function<int (*)(
-        const char*, uint32_t*, uint32_t*, uint32_t*, uint32_t*,
-        uint64_t*, uint64_t*, char**, uint64_t**)>(
-        ModuleId::AIO, "aio_hiss_inspect");
-    auto fn_free = dll_loader_.get_function<void (*)(void*)>(
-        ModuleId::AIO, "aio_hio_free");
-    if (!fn_inspect || !fn_free) {
-        result.error_msg = "[BROWSER_VERIFY] AIO inspect API 缺失";
+    if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::AIO)) {
+        result.error_msg = "[BROWSER_VERIFY] AIO DLL 未加载";
         result.exit_code = AstroCsExitCode::GENERIC_ERROR;
         return false;
     }
-    char* meta = nullptr;
-    uint32_t nside = 0, tile_nside = 0, depth = 0, n_leaf_per_tile = 0;
-    uint64_t n_tiles = 0, n_pix_total = 0;
-    uint64_t* tile_ipix_list = nullptr;
-    int ret = fn_inspect(current_output_path_.c_str(), &nside, &tile_nside, &depth,
-                         &n_leaf_per_tile, &n_tiles, &n_pix_total, &meta, &tile_ipix_list);
-    if (ret != 0 || meta == nullptr) {
-        result.error_msg = "[BROWSER_VERIFY] aio_hiss_inspect 失败 (rc=" + std::to_string(ret) + ")";
-        result.exit_code = AstroCsExitCode::HISS_INVALID;
-        if (meta) fn_free(meta);
-        if (tile_ipix_list) fn_free(tile_ipix_list);
-        return false;
-    }
-    std::string meta_str = meta;
-    fn_free(meta);
-    if (tile_ipix_list) fn_free(tile_ipix_list);
-    // 核对 precision_mode (0=FP32, 1=FP64)
-    bool expect_fp64 = (config_.precision == PrecisionMode::FP64);
-    bool has_precision = meta_str.find("\"precision_mode\"") != std::string::npos;
-    if (!has_precision) {
-        result.error_msg = "[BROWSER_VERIFY] HISS 缺 precision_mode 字段 (硬失败)";
+    if (current_hips_dir_.empty() || !fs::exists(current_hips_dir_)) {
+        result.error_msg = "[BROWSER_VERIFY] HiPS 目录不存在: " + current_hips_dir_;
         result.exit_code = AstroCsExitCode::HISS_INVALID;
         return false;
     }
-    // 查询 API: 双 dtype
-    auto fn_query_f32 = dll_loader_.get_function<int (*)(
-        const char*, double, double, float*, uint8_t*)>(
-        ModuleId::AIO, "aio_hiss_query_pixel");
-    auto fn_query_f64 = dll_loader_.get_function<int (*)(
-        const char*, double, double, double*, uint8_t*)>(
-        ModuleId::AIO, "aio_hiss_query_pixel_f64");
-    if (expect_fp64) {
-        if (!fn_query_f64) {
-            result.error_msg = "[BROWSER_VERIFY] FP64 query API 缺失 (aio_hiss_query_pixel_f64)";
-            result.exit_code = AstroCsExitCode::GENERIC_ERROR;
-            return false;
-        }
-        double v = 0.0;
-        uint8_t sup = 0;
-        if (fn_query_f64(current_output_path_.c_str(), 272.9, -23.25, &v, &sup) != 0) {
-            result.error_msg = "[BROWSER_VERIFY] FP64 query 失败";
-            result.exit_code = AstroCsExitCode::HISS_INVALID;
-            return false;
-        }
-        LOG_INFO("orchestrator", "[BROWSER_VERIFY] FP64 query OK");
-    } else {
-        if (!fn_query_f32) {
-            result.error_msg = "[BROWSER_VERIFY] FP32 query API 缺失 (aio_hiss_query_pixel)";
-            result.exit_code = AstroCsExitCode::GENERIC_ERROR;
-            return false;
-        }
-        float v = 0.0f;
-        uint8_t sup = 0;
-        if (fn_query_f32(current_output_path_.c_str(), 272.9, -23.25, &v, &sup) != 0) {
-            result.error_msg = "[BROWSER_VERIFY] FP32 query 失败";
-            result.exit_code = AstroCsExitCode::HISS_INVALID;
-            return false;
-        }
-        LOG_INFO("orchestrator", "[BROWSER_VERIFY] FP32 query OK");
+
+    using OpenFn = AioHipsDataset* (*)(const char*, int);
+    using GetPropsFn = int (*)(AioHipsDataset*, char*, int);
+    using TileCountFn = int (*)(AioHipsDataset*);
+    using TileIpixFn = int (*)(AioHipsDataset*, int, uint64_t*);
+    using ReadLeafF32Fn = int (*)(AioHipsDataset*, uint64_t, float*);
+    using ReadLeafF64Fn = int (*)(AioHipsDataset*, uint64_t, double*);
+    using ReadSnrFn = int (*)(AioHipsDataset*, double*, double*, double*, int64_t*,
+                              uint32_t*, uint32_t*, int);
+    using CloseFn = void (*)(AioHipsDataset*);
+    using ErrFn = const char* (*)(void);
+
+    auto fn_open = dll_loader_.get_function<OpenFn>(ModuleId::AIO, "aio_hips_open");
+    auto fn_props = dll_loader_.get_function<GetPropsFn>(ModuleId::AIO, "aio_hips_get_properties");
+    auto fn_count = dll_loader_.get_function<TileCountFn>(ModuleId::AIO, "aio_hips_tile_count");
+    auto fn_ipix = dll_loader_.get_function<TileIpixFn>(ModuleId::AIO, "aio_hips_tile_ipix");
+    auto fn_leaf32 = dll_loader_.get_function<ReadLeafF32Fn>(ModuleId::AIO, "aio_hips_read_leaf_f32");
+    auto fn_leaf64 = dll_loader_.get_function<ReadLeafF64Fn>(ModuleId::AIO, "aio_hips_read_leaf_f64");
+    auto fn_snr = dll_loader_.get_function<ReadSnrFn>(ModuleId::AIO, "aio_hips_read_snr_catalog");
+    auto fn_close = dll_loader_.get_function<CloseFn>(ModuleId::AIO, "aio_hips_close");
+    auto fn_err = dll_loader_.get_function<ErrFn>(ModuleId::AIO, "aio_hips_reader_last_error");
+    if (!fn_open || !fn_props || !fn_count || !fn_ipix || !fn_leaf32 || !fn_leaf64 ||
+        !fn_snr || !fn_close) {
+        result.error_msg = "[BROWSER_VERIFY] AIO HiPS Reader 函数缺失";
+        result.exit_code = AstroCsExitCode::GENERIC_ERROR;
+        return false;
     }
-    LOG_INFO("orchestrator", "[BROWSER_VERIFY] 完成 (dtype="
-             + std::string(expect_fp64 ? "float64" : "float32") + ")");
+
+    AioHipsDataset* sig = fn_open(current_hips_dir_.c_str(), AIO_HIPS_RD_SIGNAL);
+    if (!sig) {
+        result.error_msg = std::string("[BROWSER_VERIFY] signal 打开失败: ") +
+                           (fn_err ? fn_err() : "?");
+        result.exit_code = AstroCsExitCode::HISS_INVALID;
+        return false;
+    }
+    char props_buf[8192];
+    if (fn_props(sig, props_buf, (int)sizeof(props_buf)) != 0) {
+        result.error_msg = "[BROWSER_VERIFY] properties 读取失败";
+        fn_close(sig);
+        result.exit_code = AstroCsExitCode::HISS_INVALID;
+        return false;
+    }
+    const std::string props(props_buf);
+    int order = 0;
+    size_t p = props.find("hips_order=");
+    if (p != std::string::npos) order = std::atoi(props.c_str() + p + 11);
+    const bool fp64 = props.find("astrocs_signal_dtype=float64") != std::string::npos;
+    const bool expect_fp64 = (config_.precision == PrecisionMode::FP64);
+    if (fp64 != expect_fp64) {
+        result.error_msg = std::string("[BROWSER_VERIFY] signal dtype 与 precision 不匹配: manifest=")
+                           + (fp64 ? "float64" : "float32");
+        fn_close(sig);
+        result.exit_code = AstroCsExitCode::HISS_INVALID;
+        return false;
+    }
+    const uint32_t leaf_order = (uint32_t)(order + 9);
+    const uint32_t nside = (uint32_t)1 << leaf_order;
+
+    std::vector<uint64_t> tile_set;
+    const int n_tiles = fn_count(sig);
+    tile_set.reserve((size_t)(n_tiles > 0 ? n_tiles : 0));
+    for (int i = 0; i < n_tiles; ++i) {
+        uint64_t ip = 0;
+        if (fn_ipix(sig, i, &ip) == 0) tile_set.push_back(ip);
+    }
+    const auto tile_exists = [&tile_set](uint64_t tile_ipix) {
+        for (uint64_t ip : tile_set) if (ip == tile_ipix) return true;
+        return false;
+    };
+
+    AioHipsDataset* dsnr = fn_open(current_hips_dir_.c_str(), AIO_HIPS_RD_SNR);
+    if (!dsnr) {
+        result.error_msg = std::string("[BROWSER_VERIFY] snr 产品打开失败: ") +
+                           (fn_err ? fn_err() : "?");
+        fn_close(sig);
+        result.exit_code = AstroCsExitCode::HISS_INVALID;
+        return false;
+    }
+    const int kMaxSamples = 128;
+    std::vector<double> ra((size_t)kMaxSamples), dec((size_t)kMaxSamples), snr((size_t)kMaxSamples);
+    std::vector<int64_t> sid((size_t)kMaxSamples);
+    std::vector<uint32_t> qf((size_t)kMaxSamples), ps((size_t)kMaxSamples);
+    const int n_snr = fn_snr(dsnr, ra.data(), dec.data(), snr.data(), sid.data(),
+                             qf.data(), ps.data(), kMaxSamples);
+    fn_close(dsnr);
+    if (n_snr <= 0) {
+        result.error_msg = "[BROWSER_VERIFY] SNR catalogue 为空 (Browser 查询点缺失)";
+        fn_close(sig);
+        result.exit_code = AstroCsExitCode::HISS_INVALID;
+        return false;
+    }
+    int n_queried = 0, n_ok = 0, n_tile_miss = 0, n_read_fail = 0, n_nonfinite = 0;
+    for (int i = 0; i < n_snr; ++i) {
+        const uint64_t leaf_ipix = astrocs::healpix::ang2pix_nest(nside, ra[(size_t)i], dec[(size_t)i]);
+        const uint64_t tile_ipix = leaf_ipix >> 18;
+        ++n_queried;
+        if (!tile_exists(tile_ipix)) { ++n_tile_miss; continue; }
+        float vf = 0.0f;
+        double vd = 0.0;
+        const int rc = expect_fp64 ? fn_leaf64(sig, leaf_ipix, &vd) : fn_leaf32(sig, leaf_ipix, &vf);
+        if (rc != 0) { ++n_read_fail; continue; }
+        const double val = expect_fp64 ? vd : (double)vf;
+        if (!std::isfinite(val)) { ++n_nonfinite; continue; }
+        ++n_ok;
+    }
+    fn_close(sig);
+    if (n_ok == 0) {
+        result.error_msg = "[BROWSER_VERIFY] 全部查询点失败 (tile_miss=" + std::to_string(n_tile_miss)
+                           + " read_fail=" + std::to_string(n_read_fail)
+                           + " nonfinite=" + std::to_string(n_nonfinite) + ")";
+        result.exit_code = AstroCsExitCode::HISS_INVALID;
+        return false;
+    }
+    LOG_INFO("orchestrator", "[BROWSER_VERIFY] 通过: order=" + std::to_string(order)
+             + " tiles=" + std::to_string(n_tiles)
+             + " snr_samples=" + std::to_string(n_queried)
+             + " ok=" + std::to_string(n_ok)
+             + " tile_miss=" + std::to_string(n_tile_miss)
+             + " read_fail=" + std::to_string(n_read_fail)
+             + " nonfinite=" + std::to_string(n_nonfinite)
+             + " dtype=" + (expect_fp64 ? "float64" : "float32"));
     return true;
 }
 
-// ============================================================================
-// run_stage1 - spec §2.3.3 单帧预处理 (FITS -> .hiss, stage 0-9)
+// run_stage1 - spec §2.3.3 单帧预处理 (FITS -> HiPS, stage 0-9)
 // R11: typed Stage1Config 直接驱动; stop_after 真实逐 Gate;
 //      NSIDE 与 BROWSER_VERIFY 独立 stage; SNR 必需
 // ============================================================================
@@ -5024,9 +5093,9 @@ TaskResult Orchestrator::run_stage1(const Stage1Config& cfg) {
     result.frame_name = cfg.input.light;
     *stage1_cfg_ = cfg;
 
-    LOG_INFO("orchestrator", "========== stage1: 单帧预处理 (FITS -> .hiss) ==========");
+    LOG_INFO("orchestrator", "========== stage1: 单帧预处理 (FITS -> HiPS) ==========");
     LOG_INFO("orchestrator", "输入 FITS: " + cfg.input.light);
-    LOG_INFO("orchestrator", "输出 .hiss: " + cfg.output.hiss);
+    LOG_INFO("orchestrator", "output HiPS: " + cfg.output.hips);
     LOG_INFO("orchestrator", "precision: " + std::string(cfg.precision == PrecisionMode::FP64 ? "FP64" : "FP32"));
     LOG_INFO("orchestrator", "stop_after: " + cfg.execution.stop_after);
 
@@ -5047,7 +5116,7 @@ TaskResult Orchestrator::run_stage1(const Stage1Config& cfg) {
     }
 
     reset_cancel_timeout();
-    current_output_file_ = cfg.output.hiss;
+    current_output_file_ = cfg.output.hips;
 
     struct AtomicOutputGuard {
         Orchestrator* self;
@@ -5058,15 +5127,15 @@ TaskResult Orchestrator::run_stage1(const Stage1Config& cfg) {
                 self->cleanup_partial_output(path);
             }
         }
-    } atomic_guard{this, cfg.output.hiss, result.success};
+    } atomic_guard{this, cfg.output.hips, result.success};
 
     if (cfg.input.light.empty() || !fs::exists(cfg.input.light)) {
         result.error_msg = "FITS 文件不存在: " + cfg.input.light;
         LOG_ERROR("orchestrator", result.error_msg);
         return result;
     }
-    if (cfg.output.hiss.empty()) {
-        result.error_msg = "输出 .hiss 路径为空";
+    if (cfg.output.hips.empty()) {
+        result.error_msg = "output.hips 路径为空 (正式输出为 HiPS 目录)";
         LOG_ERROR("orchestrator", result.error_msg);
         return result;
     }
@@ -5119,7 +5188,12 @@ TaskResult Orchestrator::run_stage1(const Stage1Config& cfg) {
         return result;
     }
     current_fits_path_ = cfg.input.light;
-    current_output_path_ = cfg.output.hiss;
+    current_output_path_ = cfg.output.hips;
+    // V5 CFG-002: legacy .hiss 仅 validation.legacy_hiss_compare=true 时写出并验证
+    legacy_hiss_path_ = cfg.validation.legacy_hiss_compare
+        ? (cfg.validation.legacy_hiss_path.empty() ? cfg.output.hiss
+                                                   : cfg.validation.legacy_hiss_path)
+        : "";
 
     auto run_v2_with_timing = [&](PipelineStageV2 stage, const char* name,
                                    bool (Orchestrator::*fn)(TaskResult&)) -> bool {
@@ -5252,6 +5326,16 @@ TaskResult Orchestrator::run_stage1(const Stage1Config& cfg) {
     std::string stop_at = cfg.execution.stop_after;
     std::string reached = "";
     for (const auto& sd : stages) {
+        if (sd.stage == PipelineStageV2::HISS_VERIFY &&
+            !stage1_cfg_->validation.legacy_hiss_compare) {
+            // V5 CFG-002: HISS_VERIFY 仅 legacy_hiss_compare=true 时执行
+            StageTiming st;
+            st.stage = sd.stage;
+            st.stage_name = std::string(sd.name) + " (legacy 关闭, 跳过)";
+            st.duration_sec = 0.0;
+            result.timings.push_back(st);
+            continue;
+        }
         ok = ok && run_v2_with_timing(sd.stage, sd.name, sd.fn);
         if (!ok) break;
         reached = sd.name;
@@ -5261,10 +5345,14 @@ TaskResult Orchestrator::run_stage1(const Stage1Config& cfg) {
             // 逐 Gate 成功停止: 明确 completed_to_gate, 不冒充完整 Stage1
             result.success = true;
             result.completed_to_gate = gate;
-            result.output_hiss_path = (gate == "drizzle" || gate == "hiss_verify" ||
-                                       gate == "hips_verify" || gate == "browser_verify")
-                                      ? (gate == "hips_verify" && !cfg.output.hips.empty()
-                                         ? cfg.output.hips : cfg.output.hiss) : "";
+            result.output_hips_path = (gate == "drizzle" || gate == "hips_verify" ||
+                                        gate == "browser_verify")
+                                       ? cfg.output.hips : "";
+            result.output_hiss_path = (gate == "hiss_verify")
+                                       ? (cfg.validation.legacy_hiss_path.empty()
+                                              ? cfg.output.hiss
+                                              : cfg.validation.legacy_hiss_path)
+                                       : "";
             LOG_INFO("orchestrator", "========== stage1 逐 Gate 停止: completed_to_gate=" + gate
                      + " (stop_after=" + stop_at + ") ==========");
             if (frame_ != nullptr && fn_frame_destroy) {
@@ -5284,12 +5372,22 @@ TaskResult Orchestrator::run_stage1(const Stage1Config& cfg) {
     result.success = ok;
     if (ok) {
         result.completed_to_gate = "complete";
-        result.output_hiss_path = cfg.output.hiss;
+        result.output_hips_path = cfg.output.hips;
+        result.output_hiss_path = cfg.validation.legacy_hiss_compare
+            ? (cfg.validation.legacy_hiss_path.empty()
+                   ? cfg.output.hiss : cfg.validation.legacy_hiss_path)
+            : "";
     } else {
         result.completed_to_gate = reached.empty() ? "none" : reached;
         if (!config_.allow_partial_output) {
             LOG_INFO("orchestrator", "P04-004: 原子性清理 - stage1 失败/取消/超时, 删除部分输出");
-            cleanup_partial_output(cfg.output.hiss);
+            cleanup_partial_output(cfg.output.hips);
+            if (cfg.validation.legacy_hiss_compare) {
+                const std::string legacy_path = cfg.validation.legacy_hiss_path.empty()
+                    ? cfg.output.hiss : cfg.validation.legacy_hiss_path;
+                if (!legacy_path.empty()) cleanup_partial_output(legacy_path);
+            }
+            result.output_hips_path = "";
             result.output_hiss_path = "";
         }
     }

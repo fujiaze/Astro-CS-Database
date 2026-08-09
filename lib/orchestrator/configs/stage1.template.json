@@ -38,14 +38,13 @@
   },
   "drizzle": {
     "mode": "precise",
-    "pixfrac": 1.0,
+    "pixfrac": 0.8,
     "nside": {
       "mode": "auto"
     },
     "ordering": "nested"
   },
   "output": {
-    "hiss": "../output/frame.hiss",
     "hips": "../output/frame.hips",
     "log": "../output/frame.log.jsonl",
     "diagnostics_dir": "../output/diagnostics",
@@ -55,7 +54,7 @@
     "legacy_hiss_compare": false
   },
   "execution": {
-    "stop_after": "hips_verify",
+    "stop_after": "browser_verify",
     "threads": 0,
     "stage_timeout_sec": {
       "read": 60,

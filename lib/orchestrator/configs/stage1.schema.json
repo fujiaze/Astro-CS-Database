@@ -212,7 +212,6 @@
       "additionalProperties": false,
       "required": [
         "mode",
-        "pixfrac",
         "nside",
         "ordering"
       ],
@@ -223,7 +222,9 @@
         "pixfrac": {
           "type": "number",
           "exclusiveMinimum": 0,
-          "maximum": 1
+          "maximum": 1,
+          "default": 0.8,
+          "description": "Drizzle 像素收缩因子; 省略时默认 0.8 (冻结生产默认)"
         },
         "ordering": {
           "const": "nested"
@@ -268,6 +269,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "hips",
         "log",
         "diagnostics_dir",
         "overwrite"
@@ -275,7 +277,9 @@
       "properties": {
         "hiss": {
           "type": "string",
-          "default": ""
+          "default": "",
+          "deprecated": true,
+          "description": "DEPRECATED: 仅 validation.legacy_hiss_compare=true 时作 legacy 路径; 不得作为正式输出"
         },
         "hips": {
           "type": "string",
@@ -301,6 +305,11 @@
         "legacy_hiss_compare": {
           "type": "boolean",
           "default": false
+        },
+        "legacy_hiss_path": {
+          "type": "string",
+          "default": "",
+          "description": "legacy .hiss 输出路径 (仅 legacy_hiss_compare=true 时使用)"
         }
       }
     },
@@ -324,7 +333,6 @@
             "nside",
             "drizzle",
             "hips_verify",
-            "hiss_verify",
             "browser_verify"
           ]
         },
@@ -345,7 +353,6 @@
             "nside",
             "drizzle",
             "hips_verify",
-            "hiss_verify",
             "browser_verify"
           ],
           "properties": {

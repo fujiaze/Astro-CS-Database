@@ -16,6 +16,7 @@ CXXFLAGS = -O2 -std=c++17 -Wall -fopenmp -DAIO_ENABLE_HEALPIX
 # -I../../common/include: PrecisionContext / AstroScalarType 双精度 ABI 头文件
 # -Ithird_party/json-schema-validator: nlohmann-json-schema-validator v2.4.0 (vendor, 正式 Schema validator)
 INCLUDES = -Iinclude \
+           -I../../common \
            -I../../common/include \
            -I../../astro_image_io/include \
            -I../../plate_solve/cpp/ipv/include \
@@ -39,6 +40,7 @@ TEST_DIR = tests
 # 源文件列表 (Phase1 JSON 入口: 删除 cli_repl, 新增 json_config)
 SRCS = $(SRC_DIR)/main.cpp \
        $(SRC_DIR)/orchestrator.cpp \
+       ../../common/healpix/healpix_core.cpp \
        $(SRC_DIR)/dll_loader.cpp \
        $(SRC_DIR)/checkpoint.cpp \
        $(SRC_DIR)/logger.cpp \
@@ -111,6 +113,7 @@ test_orchestrator_cli: $(TEST_ORCHESTRATOR_CLI)
 
 $(TEST_ORCHESTRATOR_CLI): $(TEST_DIR)/test_orchestrator_cli.cpp \
                           $(SRC_DIR)/orchestrator.cpp \
+                          ../../common/healpix/healpix_core.cpp \
                           $(SRC_DIR)/dll_loader.cpp \
                           $(SRC_DIR)/checkpoint.cpp \
                           $(SRC_DIR)/logger.cpp \
@@ -125,7 +128,8 @@ $(TEST_ORCHESTRATOR_CLI): $(TEST_DIR)/test_orchestrator_cli.cpp \
                           $(INCDIR)/json_config.h
 	@if not exist $(TEST_DIR) mkdir $(TEST_DIR)
 	$(CXX) $(CXXFLAGS) -o $@ $(TEST_DIR)/test_orchestrator_cli.cpp \
-	    $(SRC_DIR)/orchestrator.cpp $(SRC_DIR)/dll_loader.cpp \
+	    $(SRC_DIR)/orchestrator.cpp ../../common/healpix/healpix_core.cpp \
+	    $(SRC_DIR)/dll_loader.cpp \
 	    $(SRC_DIR)/checkpoint.cpp $(SRC_DIR)/logger.cpp \
 	    $(SRC_DIR)/cli_command.cpp $(SRC_DIR)/json_config.cpp $(JSV_SRCS) \
 	    $(INCLUDES) $(LDFLAGS) -lm

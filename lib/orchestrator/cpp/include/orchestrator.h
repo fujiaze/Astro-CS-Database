@@ -184,7 +184,8 @@ struct TaskResult {
     std::vector<StageTiming> timings;
     std::map<std::string, std::string> wcs_fields;   // WCS 字段
     std::map<std::string, std::string> photo_stats;  // 测光统计
-    std::string output_hiss_path;                    // CFG-011: 修复 (原 output_ahpx_path)
+    std::string output_hiss_path;                    // CFG-011: 修复 (原 output_ahpx_path); V5 起仅 legacy 模式填充
+    std::string output_hips_path;                    // V5 CFG-002: 正式输出 HiPS 目录
     std::string error_msg;
     // P03-003: 进程退出码 (AstroCsExitCode::SUCCESS=0 表示成功, 非零表示具体错误)
     // 失败时由各 stage handler 设置对应错误码, 由 cli_command 直接返回
@@ -307,10 +308,10 @@ public:
     // spec §2.3 两段流水线 API (stage1/stage2 CLI 命令调用)
     // ========================================================================
 
-    // stage1: 单帧预处理 (FITS -> .hiss, stage 0-7)
+    // stage1: 单帧预处理 (FITS -> HiPS, stage 0-7)
     // 参数:
     //   fits_path: 输入 FITS 文件路径
-    //   output_hiss: 输出 .hiss 文件路径
+    //   output_hips: 正式输出 HiPS 目录 (legacy .hiss 仅 validation 模式)
     // R11: 唯一正式入口 (typed 配置直接驱动)
     TaskResult run_stage1(const Stage1Config& cfg);
 
@@ -364,10 +365,12 @@ private:
     PipelineFrame* frame_ = nullptr;
     // 当前 stage1 输入 FITS 路径 (run_stage_read_fits 使用)
     std::string current_fits_path_;
-    // 当前 stage1 输出 .hiss 路径 (run_stage_drizzle 使用)
+    // 当前 stage1 正式输出 HiPS 目录 (run_stage_drizzle 使用)
     std::string current_output_path_;
     // Phase1 V3: 当前 stage1 HiPS 产品集根目录
     std::string current_hips_dir_;
+    // V5 CFG-002: legacy .hiss 路径 (仅 legacy_hiss_compare=true 时非空)
+    std::string legacy_hiss_path_;
     // stage2 输入 .hiss 文件列表 (run_stage_gradient_sphere / run_stage_stack 使用)
     std::vector<std::string> stage2_hiss_files_;
     // stage2 输出 .hcsd 路径 (run_stage_stack 使用)

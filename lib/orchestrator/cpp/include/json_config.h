@@ -64,7 +64,7 @@ struct Stage1Config {
 
     struct Drizzle {
         std::string mode = "precise";        // const "precise"
-        double pixfrac = 1.0;                // (0, 1]
+        double pixfrac = 0.8;                // (0, 1]; 生产默认 0.8 (V5 CFG-001)
         std::string nside_mode = "auto";     // "auto" 或 "explicit"
         int nside_value = 0;                 // 仅 explicit 模式, [16, 4194304]
         std::string ordering = "nested";     // const "nested"
@@ -80,10 +80,11 @@ struct Stage1Config {
 
     struct Validation {
         bool legacy_hiss_compare = false;    // 默认 false: 不写 legacy .hiss
+        std::string legacy_hiss_path;        // legacy .hiss 输出路径 (仅 compare=true 时使用)
     } validation;
 
     struct Execution {
-        std::string stop_after = "hiss_verify";
+        std::string stop_after = "browser_verify";
         int threads = 0;                     // >= 0
         std::map<std::string, double> stage_timeout_sec;
     } execution;

@@ -281,6 +281,7 @@ static std::string write_valid_stage1_json(const std::string& tmpdir,
     ofs << "{"
         << "\"schema_version\":\"1.1\","
         << "\"pipeline\":\"stage1\","
+        << "\"gaia_data_dir\":\"GaiaDR3SP\","
         << "\"precision\":\"fp32\","
         << "\"input\":{"
         <<   "\"light\":\"" << light << "\","
@@ -321,18 +322,19 @@ static std::string write_valid_stage1_json(const std::string& tmpdir,
         <<   "\"ordering\":\"nested\""
         << "},"
         << "\"output\":{"
+        <<   "\"hips\":\"" << tmpdir << "/out.hips\","
         <<   "\"hiss\":\"" << tmpdir << "/out.hiss\","
         <<   "\"log\":\"" << tmpdir << "/run.log\","
         <<   "\"diagnostics_dir\":\"" << tmpdir << "/diag\","
         <<   "\"overwrite\":false"
         << "},"
         << "\"execution\":{"
-        <<   "\"stop_after\":\"hiss_verify\","
+        <<   "\"stop_after\":\"browser_verify\","
         <<   "\"threads\":0,"
         <<   "\"stage_timeout_sec\":{"
         <<     "\"read\":60,\"calibrate\":120,\"platesolve\":300,\"psf\":120,"
         <<     "\"photometric\":300,\"snr\":120,\"nside\":120,\"drizzle\":1800,"
-        <<     "\"hiss_verify\":120,\"browser_verify\":120"
+        <<     "\"hips_verify\":120,\"hiss_verify\":120,\"browser_verify\":120"
         <<   "}"
         << "}"
         << "}";
@@ -706,7 +708,7 @@ void test_part2_schema_validation_and_parsing() {
         ss << ifs.rdbuf();
         std::string content = ss.str();
         ifs.close();
-        const std::string old_str = "\"stop_after\":\"hiss_verify\"";
+        const std::string old_str = "\"stop_after\":\"browser_verify\"";
         size_t pos = content.find(old_str);
         if (pos != std::string::npos) {
             content.replace(pos, old_str.length(), "\"stop_after\":\"invalid_stage\"");
@@ -745,7 +747,7 @@ void test_part2_schema_validation_and_parsing() {
         ASSERT_EQ(config.psf.fit_radius, 8, "psf.fit_radius 填充正确");
         ASSERT_EQ(config.drizzle.mode, std::string("precise"), "drizzle.mode 填充正确");
         ASSERT_EQ(config.drizzle.nside_mode, std::string("auto"), "drizzle.nside_mode 填充正确");
-        ASSERT_EQ(config.execution.stop_after, std::string("hiss_verify"), "stop_after 填充正确");
+        ASSERT_EQ(config.execution.stop_after, std::string("browser_verify"), "stop_after 填充正确");
     }
 
     // 测试 15: parse_stage1_config 将相对路径解析为绝对路径
@@ -756,7 +758,7 @@ void test_part2_schema_validation_and_parsing() {
         std::string path = root + "/_relpath_test.json";
         std::ofstream ofs(path);
         ofs << "{"
-            << "\"schema_version\":\"1.1\",\"pipeline\":\"stage1\",\"precision\":\"fp64\","
+            << "\"schema_version\":\"1.1\",\"pipeline\":\"stage1\",\"gaia_data_dir\":\"GaiaDR3SP\",\"precision\":\"fp64\","
             << "\"input\":{\"light\":\"testdata/Galaxy_Center_T4/lights/panel3/Galaxy_Center_mosaic3_T4_flying_dutchman-20250718@001638-180S-Red.fts\","
             << "\"master_bias\":\"testdata/T4 calibration files/masterBias_BIN-1_4500x3600.xisf\","
             << "\"master_dark\":\"testdata/T4 calibration files/masterDark_BIN-1_4500x3600_EXPOSURE-180.00s.xisf\","
@@ -773,13 +775,14 @@ void test_part2_schema_validation_and_parsing() {
             << "\"snr\":{\"estimator_id\":2,\"sampling_scale\":0.5},"
             << "\"drizzle\":{\"mode\":\"precise\",\"pixfrac\":0.8,"
             << "\"nside\":{\"mode\":\"explicit\",\"value\":512},\"ordering\":\"nested\"},"
-            << "\"output\":{\"hiss\":\"run/temp/r11_delivery/relpath_out.hiss\","
+            << "\"output\":{\"hips\":\"run/temp/r11_delivery/relpath_out.hips\","
+            << "\"hiss\":\"run/temp/r11_delivery/relpath_out.hiss\","
             << "\"log\":\"run/temp/r11_delivery/relpath_run.log\","
             << "\"diagnostics_dir\":\"run/temp/r11_delivery/relpath_diag\",\"overwrite\":true},"
             << "\"execution\":{\"stop_after\":\"drizzle\",\"threads\":4,"
             << "\"stage_timeout_sec\":{\"read\":60,\"calibrate\":60.0,\"platesolve\":300,"
             << "\"psf\":120,\"photometric\":300,\"snr\":120,\"nside\":120,"
-            << "\"drizzle\":300.0,\"hiss_verify\":120,\"browser_verify\":120}}"
+            << "\"drizzle\":300.0,\"hips_verify\":120,\"browser_verify\":120}}"
             << "}";
         ofs.close();
 
@@ -795,6 +798,8 @@ void test_part2_schema_validation_and_parsing() {
                     "input.light 包含原始相对路径片段");
         ASSERT_TRUE(fs::path(config.input.light).is_absolute(),
                     "input.light 解析为绝对路径");
+        ASSERT_TRUE(fs::path(config.output.hips).is_absolute(),
+                    "output.hips 解析为绝对路径");
         ASSERT_TRUE(fs::path(config.output.hiss).is_absolute(),
                     "output.hiss 解析为绝对路径");
         ASSERT_TRUE(fs::path(config.platesolve.gaia_catalog).is_absolute(),
@@ -843,6 +848,50 @@ void test_part2_schema_validation_and_parsing() {
         // original_json_path 应为绝对路径
         ASSERT_TRUE(fs::path(config.original_json_path).is_absolute(),
                     "original_json_path 为绝对路径");
+    }
+
+    // 测试 17 (V5 CFG-001): pixfrac 省略时生产默认 0.8
+    {
+        std::string path = write_valid_stage1_json(tmpdir, "pixfrac_omitted.json");
+        std::ifstream ifs(path);
+        std::stringstream ss;
+        ss << ifs.rdbuf();
+        std::string content = ss.str();
+        ifs.close();
+        const std::string old_pf = "\"pixfrac\":1.0,";
+        size_t pos = content.find(old_pf);
+        if (pos != std::string::npos) {
+            content.erase(pos, old_pf.length());
+        }
+        std::ofstream ofs(path);
+        ofs << content;
+        ofs.close();
+        Stage1Config config;
+        int ret = parse_stage1_config(path, config, err);
+        ASSERT_EQ(ret, 0, "pixfrac 省略配置解析成功");
+        ASSERT_EQ(config.drizzle.pixfrac, 0.8, "pixfrac 省略时默认 0.8");
+    }
+
+    // 测试 18 (V5 CFG-001): pixfrac 显式 0.8 与权威默认一致
+    {
+        std::string path = write_valid_stage1_json(tmpdir, "pixfrac_explicit.json");
+        std::ifstream ifs(path);
+        std::stringstream ss;
+        ss << ifs.rdbuf();
+        std::string content = ss.str();
+        ifs.close();
+        const std::string old_pf = "\"pixfrac\":1.0,";
+        size_t pos = content.find(old_pf);
+        if (pos != std::string::npos) {
+            content.replace(pos, old_pf.length(), "\"pixfrac\":0.8,");
+        }
+        std::ofstream ofs(path);
+        ofs << content;
+        ofs.close();
+        Stage1Config config;
+        int ret = parse_stage1_config(path, config, err);
+        ASSERT_EQ(ret, 0, "pixfrac 显式 0.8 解析成功");
+        ASSERT_EQ(config.drizzle.pixfrac, 0.8, "pixfrac 显式 0.8 生效");
     }
 }
 
