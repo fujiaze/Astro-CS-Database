@@ -651,3 +651,44 @@ OpenMP/Mixed 成本模型或标定策略）；MSVC ASan CPU 核心本轮环境�
 oracle×1.10 门；冷/热 Mixed 模型经真实上传修复后与 Auto 执行一致。
 未放宽任何误差门。下一阶段（真实积分 Adapter）前需先评估 Dispatcher 固定开销
 优化（如 direct 路径去注册/决策缓存预热）或调整性能验收口径。
+
+### 2026-08-09 Route/Residency/Generation 闭环（最终 HEAD e2b41e5，控制包 CE288DBF...F7E88）
+
+**本轮完成（08 计划 1-9）**：
+1. Route-centric qualification：scenario.routing_trusted（Final route regret<=1.10
+   硬门；单路径 absolute error 仅诊断/guard，不删除候选）；required 三场景
+   routing_trusted 后 Operation qualified；decide 生产用全部 model_available +
+   p95 score guard。
+2. 真 GPU Direct：execute_gpu_direct()（单 GPU executor，无 SharedWorkPool/
+   barrier/CPU worker/旧 planner）；actual_execution_shape=gpu_direct。
+3. Buffer 真实字节：BufferBinding.element_size_bytes（默认 4），内存/传输/预算
+   按 count*element_size_bytes；float/double/uint8/uint32 单测。
+4. generation 闭环：register_or_update(key, bytes, access, generation)；同
+   stable_key 但 generation 变化自动失效设备副本（DeviceValid/BothValid→
+   HostValid/HostDirty）；回归测试。
+5. BDR 基于真实 Residency：dispatch_invocation 重排（注册→同步 generation→
+   查真实 device-valid→算 resident/upload bytes→RouteRequest→decide→执行）；
+   invocation.input_resident 仅兼容 hint。
+6. 加权积分 resident/reuse4 用同一 Dispatcher（establish_input_residency），
+   去掉外部 bridge 伪造；reuse4 frames 只传一次、weights generation 递增。
+7. 标定真实 cold：每个 cold Mixed 样本不同 seed 数据 + fresh Dispatcher，
+   强制真实 H2D（修复标定低估 ~3x 的问题）。
+8. 单一最终 HEAD Evidence：源码全部提交（e2b41e5）后才跑 benchmark/quick，
+   Evidence 后无 commit。
+
+**最终结果（e2b41e5，RTX 3060 Ti）**：
+- standard：correctness=PASS；Profile qualified（三场景 routing_trusted、
+  Replay 24/24 max_slowdown=1.0）；preset/head/run_id 正确。
+- resident Auto 全走 gpu_direct 真实 shape；中/大 case 对 OpenMP 正加速
+  （2048²: 4.89ms vs 16.2ms；4096²: 13.3ms vs 30.3ms）。
+- quick 不覆盖：权威 Profile SHA 完全不变（ED0CF66E...）。
+- performance=PERFORMANCE_NOT_QUALIFIED：512²×16 reuse4 Auto=1.021ms vs
+  GPU oracle=0.386ms（ratio 1.10 边缘）；Dispatcher 固定开销（真实
+  route+residency+报告）相对原始 GPU 基线约 0.2ms，属生产语义成本。
+- READY_FOR_BUSINESS_ADAPTER=false（如实，perf 门未全过）。
+
+**限制（如实）**：亚毫秒 resident 任务 Dispatcher 固定开销使 Auto 距 oracle
+1.10 门边缘（110%）；CUDA sanitizer memcheck/racecheck PASS；MSVC ASan CPU
+核心仍受本机 commit 上限限制（同二进制 2026-08-08 PASS）；CTest -j1 连续
+3 轮 639/639、0 失败、10 项跳过（SanitizerSmoke 预存共享状态偶发 SEGFAULT，
+单独复跑 PASS）。未放宽任何门。
