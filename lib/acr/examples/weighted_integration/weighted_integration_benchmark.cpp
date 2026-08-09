@@ -973,23 +973,15 @@ int main(int argc, char** argv) {
                     mx_ref, mx_out, mx_pixels, extra);
         }
 
-        // ---- Auto（Dispatcher Finalization 06/08 计划）----
-        // 业务样例不再自行选择 OpenMP/GPU/Mixed：所有 Auto 场景都只提交一次
+        // ---- Auto（Dispatcher Finalization 06/08 计划：统一 Dispatcher 入口）----
+        // 业务样例不再自行选择 OpenMP/GPU/Mixed：所有 Auto 场景只提交一次
         // Dispatcher 调用；BDR 顶层路由（RouteProfileV2 + BenchmarkRouteEstimator）
-        // 决定路径并读取 ExecutionReport。
-        auto make_auto_fn = [&](const WeightedIntegrationView& vw,
-                                float* obuf,
-                                const std::vector<float>& fr,
-                                const std::vector<float>& wt,
-                                routing::InputResidency res,
-                                routing::OutputMaterialization opol,
-                                std::uint32_t reuse_hint,
-                                std::string& route_reason)
-            -> std::function<void()> {
+        // 基于真实 ResidencyManager 状态决策并读取 ExecutionReport。
+        // cold：每次正式样本 fresh Dispatcher（fresh ResidencyManager）；
+        // resident/reuse4：同一个 Dispatcher 真实建立/复用驻留（无外部 bridge 伪造）。
+        auto make_auto_dispatcher = [&]() -> std::shared_ptr<Dispatcher> {
             auto regs = std::make_shared<ExecutorRegistry>(
                 ExecutorRegistry::create_auto());
-            // std::function 需可拷贝 callable：shared_ptr 持有 Dispatcher
-            // （默认构造 + configure；Dispatcher 移动构造被 unique_ptr 抑制）
             auto spd = std::make_shared<Dispatcher>();
             DispatcherConfig cfg;
             cfg.devices = {{"cpu", 0, 0, 50.0, true},
@@ -998,113 +990,169 @@ int main(int argc, char** argv) {
             cfg.route_mode = RouteMode::AutoMixed;
             cfg.route_profile_v2 =
                 route_profile_ready ? &route_profile : nullptr;
+            cfg.invocation_cpu_workers =
+                env.acr_cpu_workers > 0
+                    ? static_cast<std::size_t>(env.acr_cpu_workers)
+                    : 0;
+            // 与标定 E2E 口径一致：Benchmark Auto 关闭内存反压
+            // （生产 Dispatcher 默认开启；VRAM 峰值仍由 device_memory 差值记录）
+            cfg.enable_memory_budget = false;
             spd->configure(cfg);
-            return [&, spd]() mutable {
-                std::fill(obuf, obuf + vw.pixel_count, 0.0f);
-                KernelInvocation inv =
-                    make_weighted_invocation(vw, obuf, fr, wt);
-                inv.input_resident =
-                    (res == routing::InputResidency::DeviceResident);
-                inv.residency_policy =
-                    (opol == routing::OutputMaterialization::KeepDevice)
-                        ? ResidencyPolicy::KeepDevice
-                        : ResidencyPolicy::MaterializeHost;
-                inv.frame_count = static_cast<std::uint32_t>(vw.frame_count);
-                inv.reuse_count_hint = reuse_hint;
-                CostAwareResult r = spd->dispatch_invocation(
-                    make_task(vw.pixel_count),
-                    make_estimate(1u << 16, 1u << 16), inv);
-                route_reason = r.benchmark_route_decision + ":" +
-                               r.benchmark_route_reason;
-                if (!r.run_result.all_done) {
-                    throw std::runtime_error("auto not all_done: " +
-                                             r.run_result.error_message);
-                }
-            };
+            return spd;
+        };
+        // frames 持久主输入：stable_key 固定、generation 固定 0；
+        // weights 小输入：stable_key 固定、generation 由调用方递增（04 号契约）。
+        auto make_auto_inv = [&](const WeightedIntegrationView& vw,
+                                 float* obuf,
+                                 const std::vector<float>& fr,
+                                 const std::vector<float>& wt,
+                                 std::uint32_t reuse_hint,
+                                 const std::string& key_suffix,
+                                 std::uint64_t weights_generation) {
+            KernelInvocation inv =
+                make_weighted_invocation(vw, obuf, fr, wt);
+            inv.frame_count = static_cast<std::uint32_t>(vw.frame_count);
+            inv.reuse_count_hint = reuse_hint;
+            inv.buffers.bindings[0].stable_key =
+                "auto-out-" + key_suffix;
+            inv.buffers.bindings[1].stable_key =
+                "auto-frames-" + key_suffix;
+            inv.buffers.bindings[1].generation = 0;
+            inv.buffers.bindings[2].stable_key =
+                "auto-weights-" + key_suffix;
+            inv.buffers.bindings[2].generation = weights_generation;
+            return inv;
+        };
+        auto run_auto = [&](const std::shared_ptr<Dispatcher>& spd,
+                            KernelInvocation inv,
+                            float* obuf, std::size_t pixels,
+                            std::string& route_reason)
+            -> scheduler::CostAwareResult {
+            auto r = spd->dispatch_invocation(
+                make_task(pixels), make_estimate(1u << 16, 1u << 16), inv);
+            route_reason = r.benchmark_route_decision + ":" +
+                           r.benchmark_route_reason + ":" +
+                           r.actual_execution_shape;
+            if (!r.run_result.all_done) {
+                throw std::runtime_error("auto not all_done: " +
+                                         r.run_result.error_message);
+            }
+            return r;
         };
 
-        // ---- auto_cold_single_shot：estimator 决策，单次（cold 含 prefetch）----
+        // ---- auto_cold_single_shot：fresh Dispatcher（setup 不计时），真实 cold ----
         {
             std::string route_reason;
             WeightedIntegrationView v0{
                 frames.data(), w0.data(), c.frames, pixels};
-            auto fn = make_auto_fn(v0, out.data(), frames, w0,
-                                   routing::InputResidency::HostOnly,
-                                   routing::OutputMaterialization::HostRequired,
-                                   1, route_reason);
+            auto inv = make_auto_inv(v0, out.data(), frames, w0, 1u,
+                                     "-cold", 0u);
+            // 每个正式样本 fresh Dispatcher；Dispatcher/桥接创建（setup）不计时，
+            // 与标定 E2E 口径一致；计时只含一次 dispatch。
+            std::vector<double> samples;
+            std::uint64_t last_h2d = 0;
             const auto vr0 = vram_used_bytes(bapi, gpu_handle);
-            Timed t = measure(fn, args.warmup, args.repeats);
+            for (int w = 0; w < args.warmup; ++w) {
+                auto spd = make_auto_dispatcher();
+                run_auto(spd, inv, out.data(), pixels, route_reason);
+            }
+            for (int r = 0; r < args.repeats; ++r) {
+                auto spd = make_auto_dispatcher();
+                const auto t0 = std::chrono::steady_clock::now();
+                auto rr = run_auto(spd, inv, out.data(), pixels,
+                                   route_reason);
+                const auto t1 = std::chrono::steady_clock::now();
+                samples.push_back(
+                    std::chrono::duration<double, std::milli>(t1 - t0)
+                        .count());
+                last_h2d = rr.transfer_stats.h2d_bytes;
+            }
+            std::sort(samples.begin(), samples.end());
+            Timed t;
+            t.total_median_ms = samples[samples.size() / 2];
+            t.total_min_ms = samples.front();
+            t.total_p90_ms = samples[static_cast<std::size_t>(
+                0.9 * static_cast<double>(samples.size() - 1))];
             const auto vr1 = vram_used_bytes(bapi, gpu_handle);
             nlohmann::json extra;
             extra["route_reason"] = route_reason;
+            extra["execution_shape"] =
+                route_reason.substr(route_reason.find_last_of(':') + 1);
+            extra["timed_h2d_bytes"] = last_h2d;
             extra["peak_vram_bytes"] = vr1 > vr0 ? vr1 - vr0 : 0;
             extra["observed_max_in_flight"] = 1;
             rep.add("auto_cold_single_shot", "PASS", t, 1, true,
                     openmp_single_median, ref, out, pixels, extra);
         }
 
-        // ---- auto_resident_steady：warm 建立驻留后计时 ----
+        // ---- auto_resident_steady：同一 Dispatcher 真实建立驻留后计时 ----
         {
             std::string route_reason;
             WeightedIntegrationView v0{
                 frames.data(), w0.data(), c.frames, pixels};
-            // warm：建立 frames 驻留（GPU 路径）
-            std::uint64_t el = 0;
-            const char* err = nullptr;
-            bapi->upload_persistent_slot(gpu_handle, 0, 0,
-                                         c.frames * pixels,
-                                         frames.data(), &el, &err);
-            bapi->upload_persistent_slot(gpu_handle, 1, 0,
-                                         c.frames, w0.data(), &el, &err);
-            auto fn = make_auto_fn(v0, out.data(), frames, w0,
-                                   routing::InputResidency::DeviceResident,
-                                   routing::OutputMaterialization::HostRequired,
-                                   1, route_reason);
+            auto spd = make_auto_dispatcher();
+            auto inv = make_auto_inv(v0, out.data(), frames, w0, 1u,
+                                     "-resident", 0u);
+            // setup（未计时）：通过同一 Dispatcher 真实建立设备副本
+            if (!spd->establish_input_residency(inv)) {
+                throw std::runtime_error("resident setup failed");
+            }
+            std::uint64_t last_h2d = 0;
             const auto vr0 = vram_used_bytes(bapi, gpu_handle);
-            Timed t = measure(fn, args.warmup, args.repeats);
+            Timed t = measure(
+                [&] {
+                    auto r = run_auto(spd, inv, out.data(), pixels,
+                                      route_reason);
+                    last_h2d = r.transfer_stats.h2d_bytes;
+                },
+                args.warmup, args.repeats);
             const auto vr1 = vram_used_bytes(bapi, gpu_handle);
             nlohmann::json extra;
             extra["route_reason"] = route_reason;
+            extra["execution_shape"] =
+                route_reason.substr(route_reason.find_last_of(':') + 1);
+            extra["timed_h2d_bytes"] = last_h2d;  // 真实 resident 复用应为 0
             extra["peak_vram_bytes"] = vr1 > vr0 ? vr1 - vr0 : 0;
             extra["observed_max_in_flight"] = 1;
             rep.add("auto_resident_steady", "PASS", t, 1, true,
                     openmp_single_median, ref, out, pixels, extra);
         }
 
-        // ---- auto_resident_reuse4：4 组权重 4 次 Auto（Serial 参考计时外）----
+        // ---- auto_resident_reuse4：同一 Dispatcher，frames 只传一次、weights 按代更新 ----
         {
             std::string route_reason;
+            auto spd = make_auto_dispatcher();
             WeightedIntegrationView v0{
                 frames.data(), w0.data(), c.frames, pixels};
-            std::uint64_t el = 0;
-            const char* err = nullptr;
-            bapi->upload_persistent_slot(gpu_handle, 0, 0,
-                                         c.frames * pixels,
-                                         frames.data(), &el, &err);
-            bapi->upload_persistent_slot(gpu_handle, 1, 0,
-                                         c.frames, w0.data(), &el, &err);
-            auto fn = make_auto_fn(v0, out.data(), frames, w0,
-                                   routing::InputResidency::DeviceResident,
-                                   routing::OutputMaterialization::HostRequired,
-                                   4, route_reason);
+            // setup：frames 持久驻留（weights 首个 generation 一并上传）
+            auto inv0 = make_auto_inv(v0, out.data(), frames, w0, 4u,
+                                      "-reuse4", 1u);
+            if (!spd->establish_input_residency(inv0)) {
+                throw std::runtime_error("reuse4 setup failed");
+            }
             bool ok_all = true;
+            std::uint64_t frames_uploads = 0;
+            std::uint64_t last_weights_uploads = 0;
             const auto vr0 = vram_used_bytes(bapi, gpu_handle);
             Timed t = measure(
                 [&] {
                     for (std::size_t gi = 0; gi < 4; ++gi) {
                         WeightedIntegrationView v{
                             frames.data(), ws[gi]->data(), c.frames, pixels};
-                        std::fill(out.begin(), out.end(), 0.0f);
-                        auto one = make_auto_fn(
-                            v, out.data(), frames, *ws[gi],
-                            routing::InputResidency::DeviceResident,
-                            routing::OutputMaterialization::HostRequired,
-                            4, route_reason);
-                        one();
+                        auto inv = make_auto_inv(
+                            v, out.data(), frames, *ws[gi], 4u,
+                            "-reuse4", static_cast<std::uint64_t>(gi + 1));
+                        auto r = run_auto(spd, inv, out.data(), pixels,
+                                          route_reason);
+                        frames_uploads =
+                            r.transfer_stats.frames_upload_count;
+                        last_weights_uploads =
+                            r.transfer_stats.weights_upload_count;
                         const auto es = astro::compute::weighted_integration::
                             compare(reuse_refs[gi], out);
                         if (!es.finite || es.max_abs > 2e-5 ||
-                            es.relative_l2 > 2e-6 || es.coverage != pixels) {
+                            es.relative_l2 > 2e-6 ||
+                            es.coverage != pixels) {
                             ok_all = false;
                         }
                     }
@@ -1113,6 +1161,10 @@ int main(int argc, char** argv) {
             const auto vr1 = vram_used_bytes(bapi, gpu_handle);
             nlohmann::json extra;
             extra["route_reason"] = route_reason;
+            extra["execution_shape"] =
+                route_reason.substr(route_reason.find_last_of(':') + 1);
+            extra["frames_upload_count"] = frames_uploads;      // 应为 1
+            extra["weights_upload_count"] = last_weights_uploads;
             extra["peak_vram_bytes"] = vr1 > vr0 ? vr1 - vr0 : 0;
             extra["observed_max_in_flight"] = 1;
             rep.add("auto_resident_reuse4", ok_all ? "PASS" : "FAIL",

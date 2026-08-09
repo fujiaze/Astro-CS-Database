@@ -194,6 +194,13 @@ struct CostAwareResult {
     double benchmark_predicted_ms{0.0};    // chosen 路径预测（Profile E2E）
     std::uint64_t benchmark_cpu_chunk_items{0};  // Mixed 推荐 CPU 块
     std::uint64_t benchmark_gpu_chunk_items{0};  // Mixed 推荐 GPU 块
+    std::string benchmark_input_residency;  // "resident"/"cold"（真实 Manager 状态）
+    std::uint64_t benchmark_resident_input_bytes{0};   // 已驻留输入字节
+    std::uint64_t benchmark_upload_required_bytes{0};  // 需上传输入字节
+
+    // ===== Dispatcher Finalization：实际执行形态（03 号规范）=====
+    // "legacy_openmp" / "gpu_direct" / "mixed_pool" / "none"
+    std::string actual_execution_shape{"none"};
 };
 
 // ===== Dispatcher =====
@@ -209,6 +216,13 @@ public:
     // 注册缓存释放 hook（MemoryBudget ReleaseCache 动作时调用）
     // 返回实际释放字节数（06 号规范 §7：释放后重新采样和重算）
     void set_cache_release_hook(std::function<std::size_t()> hook);
+
+    // Dispatcher Finalization（06 号规范 §6）：通过本 Dispatcher 显式建立
+    // 输入驻留（benchmark/setup 用，不计入性能，不参与 BDR 路由决策）。
+    // 注册全部 buffer（真实字节 + generation 同步）后，将尚未驻留的只读
+    // 输入经 GPU executor 真实上传并标记 device-valid。
+    // 返回 true=成功（或无需上传）；false=GPU 不可用/上传失败。
+    bool establish_input_residency(const KernelInvocation& invocation);
 
     // 分发 range 任务（自动拆分 + 调度）
     MixedRunResult dispatch_range(std::size_t begin, std::size_t end,

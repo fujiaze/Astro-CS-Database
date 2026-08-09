@@ -53,6 +53,37 @@ void ResidencyManager::register_buffer(const std::string& key,
     }
 }
 
+void ResidencyManager::register_or_update(const std::string& key,
+                                          std::size_t bytes,
+                                          BufferAccess access,
+                                          std::uint64_t generation) {
+    std::lock_guard<std::mutex> lk(impl_->mtx);
+    auto& b = impl_->buffers[key];
+    b.bytes = bytes;
+    b.access = access;
+    if (b.state == ResidencyState::DeviceValid ||
+        b.state == ResidencyState::BothValid ||
+        b.state == ResidencyState::DeviceDirty) {
+        // 已有设备副本：generation 变化说明 host 内容已更新 → 立即失效
+        if (generation != b.generation) {
+            b.state = (b.access == BufferAccess::Read)
+                ? ResidencyState::HostValid   // 只读输入：host 新内容，device 需重传
+                : ResidencyState::HostDirty;  // 读改写：host 新内容，device 需重传
+        }
+    } else {
+        // 无设备副本或 host 侧状态：记录新 generation（HostValid 语义）
+        // （无设备副本时保持 HostValid）
+    }
+    b.generation = generation;
+}
+
+std::uint64_t ResidencyManager::recorded_generation(
+    const std::string& key) const {
+    std::lock_guard<std::mutex> lk(impl_->mtx);
+    auto it = impl_->buffers.find(key);
+    return (it == impl_->buffers.end()) ? 0 : it->second.generation;
+}
+
 void ResidencyManager::mark_host_dirty(const std::string& key) {
     std::lock_guard<std::mutex> lk(impl_->mtx);
     auto& b = impl_->buffers[key];

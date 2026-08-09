@@ -448,10 +448,11 @@ RouteDecision BenchmarkRouteEstimator::decide(
         return d;
     }
 
-    // BDR Reviewed（08 计划 A）：生产模式场景未 qualified → 只 OpenMP
-    // fallback（安全回退，不删除预测不准的候选）。诊断 Replay 仍然用全部
-    // model_available 候选，用于暴露模型不足。
-    if (!diagnostic && !sc->scenario_qualified) {
+    // Dispatcher Finalization（08 计划 1）：Route-centric 资格。
+    // 场景 routing_trusted=false → 生产只 OpenMP fallback；
+    // routing_trusted=true → 生产与诊断一致使用全部 model_available
+    // 候选比较（单路径 10%/15% 绝对误差只做 error guard，不删除候选）。
+    if (!diagnostic && !(sc->routing_trusted || sc->scenario_qualified)) {
         d.chosen = RouteKind::OpenMP;
         d.reason = "scenario-not-qualified: " + sid;
         d.openmp.feasible = true;
@@ -461,7 +462,7 @@ RouteDecision BenchmarkRouteEstimator::decide(
     }
 
     const auto path_usable = [&](const RoutePath& p) {
-        return diagnostic ? p.model_available : p.model_trusted;
+        return p.model_available;
     };
 
     // ---- OpenMP ----

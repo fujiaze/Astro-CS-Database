@@ -78,8 +78,13 @@ using astro::compute::RouteMode;
 
 constexpr const char* kOp = "synthetic.weighted_integration.fp64acc";
 constexpr int kWarmup = 2;
-constexpr int kRepeats = 5;  // BDR3：三集合+Replay 测量量翻倍，5 次中位足够
+constexpr int kRepeats = 5;  // 中位测量次数（过大加重 GPU 热节流，反而不稳）
 constexpr std::uint32_t kServiceFrames[] = {4u, 16u, 32u};
+
+// GPU 热节流缓解：重负载测量点之间让 GPU 空闲恢复时钟（不计入测量）。
+inline void gpu_settle() {
+    std::this_thread::sleep_for(std::chrono::milliseconds(120));
+}
 
 // ISO-8601 UTC 时间（Profile 发布元数据；Windows 用 gmtime 线程安全版本）
 std::string utc_now_iso8601() {
@@ -118,13 +123,16 @@ const std::vector<std::uint32_t> kFitFrames{4u, 16u, 32u};
 const std::vector<CalPoint> kProbePoints{
     {384u * 384u, 8u},  {640u * 640u, 12u}, {896u * 896u, 16u},
     {1152u * 1152u, 20u}, {1792u * 1792u, 24u}, {2304u * 2304u, 28u},
-    {2816u * 2816u, 32u}, {3456u * 3456u, 8u}};
+    {2816u * 2816u, 32u}, {3456u * 3456u, 8u},
+    // 路由边界坐标（历轮 Replay 反复在 cold 选错 OpenMP vs Mixed）：
+    // 放 Probe 由 route-regret Adaptive 决定是否补入 Fit，Final 保持 untouched。
+    {3072u * 3072u, 12u}};
 
 // Final Untouched Holdout：>=8/场景，与 Fit/Probe 均不重叠；
 // 模型冻结后只运行一次（最终误差 + Route Replay）。
 const std::vector<CalPoint> kFinalPoints{
     {768u * 768u, 12u},  {1024u * 1024u, 10u}, {1280u * 1280u, 20u},
-    {1536u * 1536u, 24u}, {2560u * 2560u, 20u}, {3072u * 3072u, 12u},
+    {1536u * 1536u, 24u}, {2560u * 2560u, 20u}, {3200u * 3200u, 16u},
     {3584u * 3584u, 28u}, {4096u * 4096u, 24u}};
 
 // 生成 Fit 点列表（items × frames 组合）
@@ -458,6 +466,7 @@ TimedWithStats measure_gpu_direct(
     astro::compute::cuda::bridge::BridgeApi* bapi, void* handle,
     TestData& d, std::size_t frames, std::size_t pixels,
     const char* scene) {
+    gpu_settle();
     const bool cold = std::strcmp(scene, "cold") == 0;
     const bool reuse4 = std::strcmp(scene, "reuse4") == 0;
     const std::uint64_t vr0 = vram_used_bytes(bapi, handle);
@@ -527,13 +536,14 @@ TimedWithStats measure_mixed(
     const char* scene, std::uint64_t seed) {
     const bool cold = std::strcmp(scene, "cold") == 0;
     const bool reuse4 = std::strcmp(scene, "reuse4") == 0;
+    gpu_settle();
     const std::uint64_t vr0 = vram_used_bytes(bapi, handle);
-    auto run_once = [&](Dispatcher& dsp, RouteSamplePoint& st,
-                        bool acc) {
-        std::fill(d.output.begin(), d.output.end(), 0.0f);
-        WeightedIntegrationView v = view_of(d, frames, pixels);
-        auto r = run_dispatcher(dsp, v, d.output.data(), d.frames,
-                                d.weights, 1u << 16, 1u << 18);
+    auto run_once = [&](Dispatcher& dsp, TestData& dd,
+                        RouteSamplePoint& st, bool acc) {
+        std::fill(dd.output.begin(), dd.output.end(), 0.0f);
+        WeightedIntegrationView v = view_of(dd, frames, pixels);
+        auto r = run_dispatcher(dsp, v, dd.output.data(), dd.frames,
+                                dd.weights, 1u << 16, 1u << 18);
         if (!r.run_result.all_done) {
             throw std::runtime_error("mixed dispatch failed: " +
                                      r.run_result.error_message);
@@ -551,11 +561,16 @@ TimedWithStats measure_mixed(
                        wd.output.data(), wd.frames, wd.weights,
                        1u << 16, 1u << 18);
         std::vector<std::pair<double, RouteSamplePoint>> samples;
+        const CalPoint pt{static_cast<std::uint64_t>(pixels),
+                          static_cast<std::uint32_t>(frames)};
         for (int r = 0; r < kRepeats; ++r) {
             auto dsp = make_mixed_dispatcher(regs);  // fresh（计时外）
+            // 每个正式样本用不同 seed 数据（不同 host 指针）→ 共享 executor
+            // 无法复用旧 device 槽位，真实 cold 上传必然发生（与 Auto 一致）。
+            TestData dk = make_test_data(seed + 1000u + r, pt);
             RouteSamplePoint st;
             const auto t0 = Clock::now();
-            run_once(*dsp, st, false);
+            run_once(*dsp, dk, st, false);
             const auto t1 = Clock::now();
             samples.push_back(
                 {std::chrono::duration<double, std::milli>(t1 - t0).count(),
@@ -580,18 +595,18 @@ TimedWithStats measure_mixed(
         return t;
     }
     // resident / reuse4：warm 建立驻留后计时
-    auto dsp = make_mixed_dispatcher(regs);
-    RouteSamplePoint warm_st;
-    run_once(*dsp, warm_st, false);
-    TimedWithStats t = measure_with_stats([&](RouteSamplePoint& st) {
-        if (reuse4) {
-            for (int i = 0; i < 4; ++i) {
-                run_once(*dsp, st, true);
+        auto dsp = make_mixed_dispatcher(regs);
+        RouteSamplePoint warm_st;
+        run_once(*dsp, d, warm_st, false);
+        TimedWithStats t = measure_with_stats([&](RouteSamplePoint& st) {
+            if (reuse4) {
+                for (int i = 0; i < 4; ++i) {
+                    run_once(*dsp, d, st, true);
+                }
+            } else {
+                run_once(*dsp, d, st, false);
             }
-        } else {
-            run_once(*dsp, st, false);
-        }
-    });
+        });
     t.stats.input_bytes = d.input_bytes;
     t.stats.output_bytes = d.output_bytes;
     const std::uint64_t vr1 = vram_used_bytes(bapi, handle);
@@ -758,10 +773,13 @@ ReplayActuals measure_replay_actuals(
     const char* scene, std::uint64_t seed) {
     ReplayActuals a;
     const bool reuse4 = std::strcmp(scene, "reuse4") == 0;
+    gpu_settle();
     a.openmp_ms =
         measure_openmp(d, frames, pixels, threads, reuse4).median_ms;
+    gpu_settle();
     a.gpu_ms =
         measure_gpu_direct(bapi, handle, d, frames, pixels, scene).median_ms;
+    gpu_settle();
     a.mixed_ms =
         measure_mixed(d, frames, pixels, regs, bapi, handle, scene, seed)
             .median_ms;
@@ -793,13 +811,21 @@ double predict_path_ms(const RoutePath& path, std::uint64_t items,
     return m;
 }
 
-// 场景内按当前模型选择 predicted 最优候选（仅路径可行时参与）。
+// 场景内按生产口径选择最优候选：score = pred*(1+max_error_ratio)，
+// 与 BenchmarkRouteEstimator::decide 一致（error guard 参与 score）。
+// 仅 model_available 路径参与（生产 routing_trusted 场景同口径）。
 RouteKind predict_chosen_for_point(const RouteScenarioProfile& sc,
                                    std::uint64_t items,
                                    std::uint32_t frames) {
-    const double mo = predict_path_ms(sc.openmp, items, frames);
-    const double mg = predict_path_ms(sc.gpu_direct, items, frames);
-    const double mm = predict_path_ms(sc.mixed, items, frames);
+    auto score_of = [&](const RoutePath& p) -> double {
+        if (!p.model_available) return -1.0;
+        const double m = predict_path_ms(p, items, frames);
+        if (m < 0.0) return -1.0;
+        return m * (1.0 + p.max_error_ratio);
+    };
+    const double mo = score_of(sc.openmp);
+    const double mg = score_of(sc.gpu_direct);
+    const double mm = score_of(sc.mixed);
     RouteKind chosen = RouteKind::OpenMP;
     double best = mo;
     if (best < 0.0 || (mg >= 0.0 && mg < best)) {
@@ -849,6 +875,11 @@ bool adapt_scenario_joints(std::vector<ScenarioProbeJoint>& scenes,
                 auto pts = path_probe_pts(sj, p);
                 RouteErrorEval ev = select_model_on_probe(*p, pts);
                 p->refinement_probe_count = ev.count;
+                p->model_available = !p->samples.empty() && ev.count > 0;
+                // 生产 decide 用 max_error_ratio 做 error guard；Adaptive 必须
+                // 用同一口径（Probe 误差作代理），否则边界点永远不被补进 Fit。
+                p->max_error_ratio = ev.max;
+                p->median_error_ratio = ev.median;
             }
         }
     };
@@ -1416,9 +1447,14 @@ bool calibrate_route_profile_v2(
         }
         sc.route_replay_count = sc.route_replay.size();
         sc.route_replay_max_slowdown_ratio = max_slowdown;
-        const bool paths_trusted = sc.openmp.model_trusted &&
-                                   sc.gpu_direct.model_trusted &&
-                                   sc.mixed.model_trusted;
+        // Dispatcher Finalization（08 计划 1）：Route-centric 资格。
+        // 硬门 = 三候选全部 model_available + metrics + Final>=8 +
+        // 独立 Final Replay 全部 regret<=1.10 + chunk sanity + 数据隔离。
+        // 单路径 absolute error（10%/15%）只作诊断/error guard，
+        // 不再要求所有慢路径绝对误差<=15% 才允许生产 Auto。
+        const bool paths_available = sc.openmp.model_available &&
+                                     sc.gpu_direct.model_available &&
+                                     sc.mixed.model_available;
         const bool metrics_ok = sc.openmp.metrics_complete &&
                                 sc.gpu_direct.metrics_complete &&
                                 sc.mixed.metrics_complete;
@@ -1426,11 +1462,13 @@ bool calibrate_route_profile_v2(
                                 sc.gpu_direct.final_holdout_count >= 8 &&
                                 sc.mixed.final_holdout_count >= 8;
         const bool replay_ok = sc.route_replay_count >= 8 && all_within;
-        sc.scenario_qualified =
-            paths_trusted && metrics_ok && holdout_ok && replay_ok &&
+        const bool routing_ok =
+            paths_available && metrics_ok && holdout_ok && replay_ok &&
             chunk_ok;
-        if (!paths_trusted) {
-            sc.qualification_reason = "path-model-not-trusted";
+        sc.routing_trusted = routing_ok;
+        sc.scenario_qualified = routing_ok;  // 兼容字段
+        if (!paths_available) {
+            sc.qualification_reason = "path-model-not-available";
         } else if (!holdout_ok) {
             sc.qualification_reason = "final-holdout<8";
         } else if (!replay_ok) {

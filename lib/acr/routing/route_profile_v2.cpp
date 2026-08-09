@@ -217,6 +217,7 @@ std::string serialize_route_profile_v2(const RouteProfileV2& profile) {
             sj["scenario_id"] = sc.scenario_id;
             sj["supported"] = sc.supported;
             sj["scenario_qualified"] = sc.scenario_qualified;
+            sj["routing_trusted"] = sc.routing_trusted;
             sj["qualification_reason"] = sc.qualification_reason;
             sj["openmp"] = path_json(sc.openmp);
             sj["gpu_direct"] = path_json(sc.gpu_direct);
@@ -369,6 +370,14 @@ bool read_route_profile_v2_from_file(const std::string& path,
                 if (sc.contains("scenario_qualified")) {
                     sp.scenario_qualified =
                         sc["scenario_qualified"].get<bool>();
+                }
+                if (sc.contains("routing_trusted")) {
+                    sp.routing_trusted =
+                        sc["routing_trusted"].get<bool>();
+                }
+                // 旧 Profile 兼容：无 routing_trusted 时回填 scenario_qualified
+                if (!sc.contains("routing_trusted")) {
+                    sp.routing_trusted = sp.scenario_qualified;
                 }
                 if (sc.contains("qualification_reason")) {
                     sp.qualification_reason =
@@ -588,7 +597,9 @@ bool validate_route_profile_v2(const RouteProfileV2& profile,
                 return false;
             }
         }
-        // BDR Reviewed（08 计划 A）：Operation 资格由 required 场景生成
+        // Dispatcher Finalization（08 计划 1）：Route-centric 资格。
+        // Operation 资格 = required 场景全部 routing_trusted
+        // （旧 Profile 回填后 routing_trusted == scenario_qualified）。
         const std::vector<std::string> required{
             "cold_host_output", "resident_host_output",
             "resident_reuse4_host_output"};
@@ -612,8 +623,17 @@ bool validate_route_profile_v2(const RouteProfileV2& profile,
                                     return s.scenario_id == rid;
                                 });
                             return it != op.scenarios.end() &&
-                                   it->scenario_qualified;
+                                   (it->routing_trusted ||
+                                    it->scenario_qualified);
                         });
+        // 场景内一致性：routing_trusted 与 scenario_qualified 必须一致
+        for (const auto& sc : op.scenarios) {
+            if (sc.routing_trusted != sc.scenario_qualified) {
+                error = "routing_trusted != scenario_qualified in " +
+                        sc.scenario_id;
+                return false;
+            }
+        }
         if (op.qualified != op_qualified) {
             error = "operation.qualified inconsistent with scenario "
                     "qualification";

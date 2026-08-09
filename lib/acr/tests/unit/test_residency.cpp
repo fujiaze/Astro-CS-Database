@@ -111,6 +111,51 @@ TEST(Residency, BytesAccessAndGeneration) {
 }
 
 // ============================================================================
+// 6b. Dispatcher Finalization（04 号契约 §2）：外部 generation 变化自动失效
+// ============================================================================
+TEST(Residency, GenerationChangeAutoInvalidatesDeviceCopy) {
+    ResidencyManager m;
+    // 首次注册 generation=0 → HostValid
+    m.register_or_update("weights", 256, BufferAccess::Read, 0u);
+    EXPECT_EQ(m.state("weights"), ResidencyState::HostValid);
+    EXPECT_EQ(m.recorded_generation("weights"), 0u);
+    EXPECT_TRUE(m.needs_upload("weights", "cuda:0"));
+
+    // 上传 → BothValid（device 副本有效）
+    m.mark_uploaded("weights");
+    EXPECT_TRUE(m.is_device_valid("weights", "cuda:0"));
+    EXPECT_FALSE(m.needs_upload("weights", "cuda:0"));
+
+    // 同一 stable_key、generation 未变 → 保持 device 有效（复用）
+    m.register_or_update("weights", 256, BufferAccess::Read, 0u);
+    EXPECT_TRUE(m.is_device_valid("weights", "cuda:0"));
+    EXPECT_FALSE(m.needs_upload("weights", "cuda:0"));
+
+    // generation 递增（业务内容更新，未显式 mark_host_dirty）→ 立即失效
+    m.register_or_update("weights", 256, BufferAccess::Read, 1u);
+    EXPECT_FALSE(m.is_device_valid("weights", "cuda:0"));
+    EXPECT_TRUE(m.needs_upload("weights", "cuda:0"));
+    EXPECT_EQ(m.recorded_generation("weights"), 1u);
+
+    // 重新上传后恢复
+    m.mark_uploaded("weights");
+    EXPECT_TRUE(m.is_device_valid("weights", "cuda:0"));
+}
+
+// ============================================================================
+// 6c. 读改写 buffer generation 变化 → HostDirty 语义（需重传）
+// ============================================================================
+TEST(Residency, GenerationChangeReadWriteInvalidates) {
+    ResidencyManager m;
+    m.register_or_update("acc", 512, BufferAccess::ReadWrite, 0u);
+    m.mark_uploaded("acc");
+    EXPECT_TRUE(m.is_device_valid("acc", "cuda:0"));
+    m.register_or_update("acc", 512, BufferAccess::ReadWrite, 2u);
+    EXPECT_FALSE(m.is_device_valid("acc", "cuda:0"));
+    EXPECT_TRUE(m.needs_upload("acc", "cuda:0"));
+}
+
+// ============================================================================
 // 6. 整帧复用：只读输入上传一次，跨块不再重复上传（06 号规范 §2）
 // ============================================================================
 TEST(Residency, SharedInputUploadedOnce) {

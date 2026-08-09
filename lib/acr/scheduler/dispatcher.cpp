@@ -26,6 +26,7 @@
 #include <cstdint>
 #include <functional>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 
 namespace astro::compute::scheduler {
@@ -174,6 +175,45 @@ struct Dispatcher::Impl {
     // 由外部注册（如缓存模块），MemoryBudget ReleaseCache 时调用。
     // 返回实际释放字节数（06 号规范 §7）
     std::function<std::size_t()> cache_release_hook;
+
+    // Dispatcher Finalization：BDR 决策缓存（仅空队列/无内存快照时命中；
+    // 生产带真实 queue/memory 快照时旁路）。同请求重复提交不再重复跑
+    // 三路径插值 + Mixed 模拟（06/08 计划稳态语义；不写回 Profile）。
+    struct BdrCacheKey {
+        std::string operation_id;
+        std::uint64_t output_items{0};
+        std::uint32_t frame_count{0};
+        std::uint8_t input_residency{0};
+        std::uint8_t output_policy{0};
+        std::uint32_t reuse_count_hint{1};
+        bool operator==(const BdrCacheKey& o) const noexcept {
+            return operation_id == o.operation_id &&
+                   output_items == o.output_items &&
+                   frame_count == o.frame_count &&
+                   input_residency == o.input_residency &&
+                   output_policy == o.output_policy &&
+                   reuse_count_hint == o.reuse_count_hint;
+        }
+    };
+    struct BdrCacheHash {
+        std::size_t operator()(const BdrCacheKey& k) const noexcept {
+            std::size_t h = std::hash<std::string>{}(k.operation_id);
+            h ^= std::hash<std::uint64_t>{}(k.output_items) +
+                 std::size_t{0x9e3779b97f4a7c15ULL} + (h << 6) + (h >> 2);
+            h ^= std::hash<std::uint32_t>{}(k.frame_count) +
+                 std::size_t{0x9e3779b97f4a7c15ULL} + (h << 6) + (h >> 2);
+            h ^= std::hash<std::uint8_t>{}(k.input_residency) +
+                 std::size_t{0x9e3779b97f4a7c15ULL} + (h << 6) + (h >> 2);
+            h ^= std::hash<std::uint8_t>{}(k.output_policy) +
+                 std::size_t{0x9e3779b97f4a7c15ULL} + (h << 6) + (h >> 2);
+            h ^= std::hash<std::uint32_t>{}(k.reuse_count_hint) +
+                 std::size_t{0x9e3779b97f4a7c15ULL} + (h << 6) + (h >> 2);
+            return h;
+        }
+    };
+    std::unordered_map<BdrCacheKey, routing::RouteDecision, BdrCacheHash>
+        bdr_cache;
+    static constexpr std::size_t kBdrCacheMax = 128;
 
     std::string pick_backend_impl(const TaskEstimate& task) const {
         // 小数据优先 CPU
@@ -769,6 +809,106 @@ struct Dispatcher::Impl {
         return true;
     }
 
+    // ===== Dispatcher Finalization：真正 GPU Direct fast path =====
+    // BDR 选择 GPU Direct 时（03 号规范 / 08 计划 2）：
+    //   - 不创建 SharedWorkPool / CPU worker / barrier / 旧 planner；
+    //   - 单 GPU executor：必要输入 prefetch 后整域一次提交（同步语义）；
+    //   - 完整记录 items/chunks/H2D/D2H/elapsed。
+    struct GpuDirectResult {
+        MixedRunResult run_result;
+        std::vector<InvocationExecStats> per_exec_stats;
+        std::vector<std::string> actual_devices;
+        std::uint64_t h2d_bytes_this{0};
+    };
+
+    GpuDirectResult execute_gpu_direct(
+        const KernelInvocation& invocation,
+        const InvocationBufferLayout& layout,
+        const std::vector<const void*>& input_hosts,
+        const std::vector<std::size_t>& input_bytes,
+        const std::vector<std::string>& input_keys,
+        const std::vector<bool>& was_resident) {
+        GpuDirectResult out;
+        out.run_result.total_chunks = 0;
+        out.run_result.all_done = false;
+
+        DeviceExecutor* gpu = nullptr;
+        if (executors) {
+            for (auto* e : executors->available_executors()) {
+                if (e->backend_type().rfind("cuda", 0) == 0) {
+                    gpu = e;
+                    break;
+                }
+            }
+        }
+        if (gpu == nullptr || !gpu->supports(invocation.id)) {
+            out.run_result.error_message =
+                "gpu direct: no cuda executor for operation: " +
+                std::string(invocation.id);
+            return out;
+        }
+
+        // prefetch 全部只读输入（真实上传；已驻留/未变 generation 复用不重传）
+        std::uint64_t h2d = 0;
+        if (!input_hosts.empty()) {
+            if (gpu->prefetch_inputs(input_hosts, input_bytes)) {
+                for (std::size_t i = 0; i < input_keys.size(); ++i) {
+                    if (!was_resident[i]) {
+                        h2d += input_bytes[i];
+                        residency.mark_uploaded(input_keys[i]);
+                        residency.mark_device_allocated(input_keys[i]);
+                    }
+                }
+            } else {
+                out.run_result.error_message = "gpu direct: prefetch failed";
+                return out;
+            }
+        }
+        out.h2d_bytes_this = h2d;
+
+        // 整域一次提交（首版 1 GPU / 1 stream 同步语义）
+        KernelInvocation inv = invocation;
+        inv.domain = WorkDomain{invocation.domain.begin,
+                                invocation.domain.end};
+        inv.token_id = 0;
+        inv.attempt = 0;
+        inv.input_resident = true;  // prefetch 后真实驻留
+        WorkToken token;
+        token.id = 0;
+        token.begin = invocation.domain.begin;
+        token.end = invocation.domain.end;
+        token.attempt = 0;
+        SubmitHandle h = gpu->submit(token, inv);
+        if (h.status != SubmitStatus::Ok) {
+            out.run_result.error_message =
+                "gpu direct submit failed: " + h.error;
+            return out;
+        }
+        gpu->sync();
+
+        Impl::InvocationExecStats st;
+        st.device_id = gpu->device_id();
+        st.backend_type = gpu->backend_type();
+        st.done_blocks = 1;
+        st.failed_blocks = 0;
+        st.items_done = h.items_done;
+        st.bytes_done = h.bytes_done;
+        st.bytes_read = h.items_done * invocation.traits.bytes_read_per_item;
+        st.bytes_written =
+            h.items_done * invocation.traits.bytes_written_per_item;
+        st.elapsed_ns = h.elapsed_ns;
+        out.per_exec_stats.push_back(std::move(st));
+        out.actual_devices = {gpu->device_id()};
+
+        out.run_result.total_chunks = 1;
+        out.run_result.executed_on_cpu = 0;
+        out.run_result.executed_on_gpu = 1;
+        out.run_result.fallback_chunks = 0;
+        out.run_result.all_done = true;
+
+        return out;
+    }
+
     MixedRunResult execute_invocation_via_executors(
         const KernelInvocation& invocation,
         const cost::CostEstimate& estimate,
@@ -785,6 +925,12 @@ struct Dispatcher::Impl {
         const bool bdr_active = (bdr != nullptr);
         const qualification::focused::OperationProfile* plan_profile =
             bdr_active ? nullptr : cfg.operation_profile;
+        // BDR Mixed 时 CPU/GPU 块来自二维 service 模型（bdr->cpu/gpu_chunk_items）；
+        // 旧 CostEstimator 只作为非 BDR 兼容回退。
+        const std::uint64_t bdr_cpu_chunk =
+            bdr_active ? bdr->cpu_chunk_items : 0u;
+        const std::uint64_t bdr_gpu_chunk =
+            bdr_active ? bdr->gpu_chunk_items : 0u;
 
         const std::size_t begin = invocation.domain.begin;
         const std::size_t end = invocation.domain.end;
@@ -868,7 +1014,17 @@ struct Dispatcher::Impl {
             [](const DeviceExecutor* e) {
                 return e->backend_type().rfind("cuda", 0) == 0;
             });
-        if (plan_profile != nullptr &&
+        if (bdr_active && bdr_cpu_chunk > 0 && bdr_gpu_chunk > 0 &&
+            gpu_participating) {
+            // BDR Mixed：CPU/GPU 块来自二维 service 模型（唯一来源）
+            min_chunk = static_cast<std::size_t>(
+                std::min(bdr_cpu_chunk, bdr_gpu_chunk));
+            max_chunk = static_cast<std::size_t>(
+                std::max(bdr_cpu_chunk, bdr_gpu_chunk));
+            for (auto* exec : supported) {
+                min_chunk = std::min(min_chunk, exec->min_effective_chunk());
+            }
+        } else if (plan_profile != nullptr &&
             auto_plan.profile_available && gpu_participating) {
             // ACR 架构冻结（07 号计划 C/E）：Auto+Profile 且 GPU 实际参与时，
             // 块大小来自 OperationProfile（混合小块用于分摊传输/尾段）。
@@ -1618,6 +1774,7 @@ void Dispatcher::set_cache_release_hook(std::function<std::size_t()> hook) {
 
 void Dispatcher::configure(const DispatcherConfig& cfg) {
     impl_->cfg = cfg;
+    impl_->bdr_cache.clear();  // 配置变化 → 决策缓存失效
     impl_->executors = cfg.executors;  // F-fix 6 + F-fix 7
     // 聚焦版：OperationProfile 驱动规划（nullptr=保守 CPU fallback）
     impl_->planner.set_profile(cfg.operation_profile);
@@ -1653,6 +1810,65 @@ void Dispatcher::configure(const DispatcherConfig& cfg) {
                 total_ram, mcfg_budget.pinned_ratio,
                 mcfg_budget.pinned_fixed_reserve_bytes));
     }
+}
+
+bool Dispatcher::establish_input_residency(
+    const KernelInvocation& invocation) {
+    const InvocationBufferLayout layout = layout_for_invocation(invocation);
+    // 注册 buffer（真实字节 + generation 同步），与 dispatch_invocation 一致
+    for (std::size_t bi = 0; bi < invocation.buffers.bindings.size(); ++bi) {
+        const auto& binding = invocation.buffers.bindings[bi];
+        const std::string key = binding.stable_key.empty()
+            ? "buf-" + std::to_string(
+                           reinterpret_cast<std::uintptr_t>(binding.data))
+            : binding.stable_key;
+        const std::size_t bytes = binding.count * binding.element_size_bytes;
+        const bool is_output =
+            std::find(layout.outputs.begin(), layout.outputs.end(), bi) !=
+            layout.outputs.end();
+        const bool is_read_write =
+            binding.role == BufferRole::ReadWrite ||
+            (is_output && invocation.partition ==
+                              PartitionKind::PrivatePartialThenMerge);
+        const BufferAccess access = is_read_write
+            ? BufferAccess::ReadWrite
+            : (is_output ? BufferAccess::Write : BufferAccess::Read);
+        impl_->residency.register_or_update(key, bytes, access,
+                                            binding.generation);
+    }
+    // 收集尚未驻留的只读输入
+    std::vector<const void*> upload_hosts;
+    std::vector<std::size_t> upload_bytes;
+    std::vector<std::string> upload_keys;
+    for (std::size_t idx : layout.inputs) {
+        const auto* b = invocation.buffers.find(idx);
+        if (b == nullptr) continue;
+        const std::string key = b->stable_key.empty()
+            ? "buf-" + std::to_string(
+                           reinterpret_cast<std::uintptr_t>(b->data))
+            : b->stable_key;
+        if (impl_->residency.is_device_valid(key, "cuda:0")) continue;
+        upload_hosts.push_back(b->data);
+        upload_bytes.push_back(b->count * b->element_size_bytes);
+        upload_keys.push_back(key);
+    }
+    if (upload_hosts.empty()) return true;
+    if (!impl_->executors) return false;
+    DeviceExecutor* gpu = nullptr;
+    for (auto* e : impl_->executors->available_executors()) {
+        if (e->backend_type().rfind("cuda", 0) == 0) {
+            gpu = e;
+            break;
+        }
+    }
+    if (gpu == nullptr || !gpu->prefetch_inputs(upload_hosts, upload_bytes)) {
+        return false;
+    }
+    for (std::size_t i = 0; i < upload_keys.size(); ++i) {
+        impl_->residency.mark_uploaded(upload_keys[i]);
+        impl_->residency.mark_device_allocated(upload_keys[i]);
+    }
+    return true;
 }
 
 MixedRunResult Dispatcher::dispatch_range(std::size_t begin, std::size_t end,
@@ -1874,32 +2090,117 @@ CostAwareResult Dispatcher::dispatch_invocation(
     result.used_cost_estimator = estimate.profile_available;
     result.predicted_primary_backend = impl_->predict_backend_from_estimate(estimate);
 
-    // ===== Dispatcher Finalization：BDR 顶层路由（06/08 计划）=====
-    // route_profile_v2 非空且 AutoMixed 时，BenchmarkRouteEstimator 是
-    // OpenMP / GPU Direct / Mixed 的唯一顶层权威；生产未 qualified 场景
-    // 自动回退 legacy OpenMP。业务只提交一次调用，不自行三路选择。
+    const std::size_t begin = invocation.domain.begin;
+    const std::size_t end = invocation.domain.end;
+    (void)task;
+
+    const InvocationBufferLayout layout = layout_for_invocation(invocation);
+
+    // ===== Dispatcher Finalization：真实 Residency + 真实字节（04 号契约）=====
+    // 1. 注册 buffer：真实字节 = count*element_size_bytes（禁止固定 sizeof(float)），
+    //    并同步外部 binding generation（generation 变化自动失效设备副本）。
+    for (std::size_t bi = 0; bi < invocation.buffers.bindings.size(); ++bi) {
+        const auto& binding = invocation.buffers.bindings[bi];
+        const std::string key = binding.stable_key.empty()
+            ? "buf-" +
+                  std::to_string(
+                      reinterpret_cast<std::uintptr_t>(binding.data))
+            : binding.stable_key;
+        const std::size_t bytes = binding.count * binding.element_size_bytes;
+        const bool is_output =
+            std::find(layout.outputs.begin(), layout.outputs.end(), bi) !=
+            layout.outputs.end();
+        const bool is_read_write =
+            binding.role == BufferRole::ReadWrite ||
+            (is_output && invocation.partition ==
+                              PartitionKind::PrivatePartialThenMerge);
+        const BufferAccess access = is_read_write
+            ? BufferAccess::ReadWrite
+            : (is_output ? BufferAccess::Write : BufferAccess::Read);
+        impl_->residency.register_or_update(key, bytes, access,
+                                            binding.generation);
+    }
+
+    // 2. 查询真实 device-valid（BDR 事实来源；invocation.input_resident 仅兼容 hint）。
+    std::vector<const void*> input_hosts;
+    std::vector<std::size_t> input_bytes;
+    std::vector<std::string> input_keys;
+    std::vector<bool> was_resident;
+    std::uint64_t total_input_bytes = 0;
+    std::uint64_t resident_input_bytes = 0;
+    std::uint64_t upload_required_bytes = 0;
+    for (std::size_t idx : layout.inputs) {
+        const auto* b = invocation.buffers.find(idx);
+        if (b == nullptr) continue;
+        const std::string key = b->stable_key.empty()
+            ? "buf-" + std::to_string(
+                           reinterpret_cast<std::uintptr_t>(b->data))
+            : b->stable_key;
+        const std::size_t bytes = b->count * b->element_size_bytes;
+        const bool valid = impl_->residency.is_device_valid(key, "cuda:0");
+        input_hosts.push_back(b->data);
+        input_bytes.push_back(bytes);
+        input_keys.push_back(key);
+        was_resident.push_back(valid);
+        total_input_bytes += bytes;
+        if (valid) {
+            resident_input_bytes += bytes;
+        } else {
+            upload_required_bytes += bytes;
+        }
+    }
+    const bool data_resident =
+        !input_keys.empty() &&
+        std::all_of(was_resident.begin(), was_resident.end(),
+                    [](bool v) { return v; });
+    // 04 号规范 §4：reuse>1 时仅要求持久主输入（如 frames）真实驻留即可走
+    // resident_reuse4 场景；weights 等小可变输入按 generation 更新不影响场景。
+    bool persistent_resident = false;
+    const KernelRegistration* reg =
+        global_kernel_registry().find(invocation.id);
+    if (reg != nullptr && !reg->persistent_input_indices.empty()) {
+        bool all_persistent_ok = true;
+        for (std::size_t pidx : reg->persistent_input_indices) {
+            const auto* b = invocation.buffers.find(pidx);
+            if (b == nullptr) {
+                all_persistent_ok = false;
+                break;
+            }
+            const std::string key = b->stable_key.empty()
+                ? "buf-" + std::to_string(
+                               reinterpret_cast<std::uintptr_t>(b->data))
+                : b->stable_key;
+            if (!impl_->residency.is_device_valid(key, "cuda:0")) {
+                all_persistent_ok = false;
+                break;
+            }
+        }
+        persistent_resident = all_persistent_ok;
+    }
+    const bool route_resident =
+        data_resident ||
+        (invocation.reuse_count_hint > 1 && persistent_resident);
+    std::uint64_t output_bytes = 0;
+    for (const auto& b : invocation.buffers.bindings) {
+        if (b.role == BufferRole::Output) {
+            output_bytes += b.count * b.element_size_bytes;
+        }
+    }
+
+    // 3. BDR 顶层决策（基于真实驻留 + 真实字节；场景由 reuse_count_hint 与
+    //    主要输入实际驻留推导；input_resident 不再作为生产事实）。
     routing::RouteDecision bdr_decision;
     bool bdr_active = false;
     if (impl_->cfg.route_mode == RouteMode::AutoMixed &&
         impl_->cfg.route_profile_v2 != nullptr) {
         routing::RouteRequest req;
         req.operation_id = std::string(invocation.id);
-        req.output_items = invocation.domain.size();
+        req.output_items = end - begin;
         req.frame_count =
             invocation.frame_count > 0 ? invocation.frame_count : 1u;
-        req.input_bytes = 0;
-        for (const auto& b : invocation.buffers.bindings) {
-            if (b.role != BufferRole::Output) {
-                req.input_bytes += b.count * sizeof(float);
-            }
-        }
-        req.output_bytes = 0;
-        for (const auto& b : invocation.buffers.bindings) {
-            if (b.role == BufferRole::Output) {
-                req.output_bytes += b.count * sizeof(float);
-            }
-        }
-        req.input_residency = invocation.input_resident
+        req.input_bytes = total_input_bytes;
+        req.output_bytes = output_bytes;
+        req.input_residency = route_resident
             ? routing::InputResidency::DeviceResident
             : routing::InputResidency::HostOnly;
         req.output_policy =
@@ -1907,13 +2208,43 @@ CostAwareResult Dispatcher::dispatch_invocation(
                 ? routing::OutputMaterialization::KeepDevice
                 : routing::OutputMaterialization::HostRequired;
         req.reuse_count_hint = invocation.reuse_count_hint;
-        // 队列/内存快照：本机单流同步语义下不注入额外延迟；容量由
-        // MemoryBudgetController 在 worker 内真实执行时保护。
         req.queues = routing::QueueSnapshot{};
         req.memory = routing::MemorySnapshot{};
         routing::BenchmarkRouteEstimator est;
         est.set_profile(impl_->cfg.route_profile_v2);
-        bdr_decision = est.decide(req, /*diagnostic=*/false);
+        // 稳态决策缓存：仅空队列/无内存快照（如 Benchmark 重复同请求）时命中；
+        // 生产带真实 queue/memory 快照旁路（决策依赖快照，不能缓存）。
+        const bool cacheable =
+            req.queues.cpu_delay_ms == 0.0 && req.queues.gpu_delay_ms == 0.0 &&
+            req.memory.ram_available_bytes == 0 &&
+            req.memory.vram_available_bytes == 0;
+        Impl::BdrCacheKey ck;
+        ck.operation_id = req.operation_id;
+        ck.output_items = req.output_items;
+        ck.frame_count = req.frame_count;
+        ck.input_residency =
+            req.input_residency == routing::InputResidency::DeviceResident
+                ? 1u
+                : 0u;
+        ck.output_policy =
+            req.output_policy == routing::OutputMaterialization::KeepDevice
+                ? 1u
+                : 0u;
+        ck.reuse_count_hint = req.reuse_count_hint;
+        if (cacheable) {
+            const auto cit = impl_->bdr_cache.find(ck);
+            if (cit != impl_->bdr_cache.end()) {
+                bdr_decision = cit->second;
+            } else {
+                bdr_decision = est.decide(req, /*diagnostic=*/false);
+                if (impl_->bdr_cache.size() >= Impl::kBdrCacheMax) {
+                    impl_->bdr_cache.clear();
+                }
+                impl_->bdr_cache.emplace(ck, bdr_decision);
+            }
+        } else {
+            bdr_decision = est.decide(req, /*diagnostic=*/false);
+        }
         bdr_active = true;
         result.benchmark_route_decision =
             bdr_decision.chosen == routing::RouteKind::OpenMP
@@ -1930,92 +2261,16 @@ CostAwareResult Dispatcher::dispatch_invocation(
                 : bdr_decision.chosen == routing::RouteKind::GpuDirect
                       ? bdr_decision.gpu_direct.predicted_ms
                       : bdr_decision.mixed.predicted_ms;
-
-        // OpenMP：注册的 legacy_parallel launcher 直接执行完整域（不拆块）
-        if (bdr_decision.chosen == routing::RouteKind::OpenMP) {
-            const KernelRegistration* reg =
-                global_kernel_registry().find(invocation.id);
-            if (reg != nullptr && reg->legacy_parallel != nullptr) {
-                const std::size_t n = invocation.domain.size();
-                auto t0 = std::chrono::steady_clock::now();
-                reg->legacy_parallel(invocation, nullptr);
-                const auto t1 = std::chrono::steady_clock::now();
-                result.run_result.all_done = true;
-                result.run_result.total_chunks = 1;
-                result.run_result.executed_on_cpu = 1;
-                result.run_result.executed_on_gpu = 0;
-                result.actual_devices_used = {"cpu"};
-                result.actual_primary_backend = "cpu";
-                CostAwareResult::PerDeviceStats pds;
-                pds.device_id = "cpu";
-                pds.backend = "cpu";
-                pds.items_done = n;
-                pds.bytes_read = 0;
-                pds.bytes_written = 0;
-                pds.blocks_done = 1;
-                pds.active_duration_ns = static_cast<std::uint64_t>(
-                    std::chrono::duration_cast<std::chrono::nanoseconds>(
-                        t1 - t0)
-                        .count());
-                result.per_device_stats.push_back(std::move(pds));
-                result.total_chunks = 1;
-                result.chunks_on_cpu = 1;
-                result.chunks_on_gpu = 0;
-                result.coverage.total = 1;
-                result.coverage.done = 1;
-                return result;
-            }
-        }
+        result.benchmark_input_residency =
+            route_resident ? "resident" : "cold";
+        result.benchmark_resident_input_bytes = resident_input_bytes;
+        result.benchmark_upload_required_bytes = upload_required_bytes;
     }
 
-    // 工作域来自 invocation（token 子域在 executor worker 内拆分）
-    const std::size_t begin = invocation.domain.begin;
-    const std::size_t end = invocation.domain.end;
-    (void)task;
-
-    // ACR 架构冻结（01_ARCHITECTURE_FREEZE.md §4）：注册 buffer（真实字节数 +
-    // 访问模式），查询输入是否已在 GPU 显存（决定 host/resident 阈值）。
-    // buffer 布局由 OperationId 统一决定（见 layout_for_invocation）。
-    const InvocationBufferLayout layout = layout_for_invocation(invocation);
-    bool data_resident = false;
-    for (std::size_t bi = 0; bi < invocation.buffers.bindings.size(); ++bi) {
-        const auto& binding = invocation.buffers.bindings[bi];
-        const std::string key = binding.stable_key.empty()
-            ? "buf-" +
-                  std::to_string(
-                      reinterpret_cast<std::uintptr_t>(binding.data))
-            : binding.stable_key;
-        // 元素数 × float 字节（聚焦内核 buffer 均为 float*）
-        const std::size_t bytes = binding.count * sizeof(float);
-        const bool is_output =
-            std::find(layout.outputs.begin(), layout.outputs.end(), bi) !=
-            layout.outputs.end();
-        const bool is_read_write =
-            binding.role == BufferRole::ReadWrite ||
-            (is_output && invocation.partition ==
-                              PartitionKind::PrivatePartialThenMerge);
-        const BufferAccess access = is_read_write
-            ? BufferAccess::ReadWrite
-            : (is_output ? BufferAccess::Write : BufferAccess::Read);
-        impl_->residency.register_buffer(key, bytes, access);
-    }
-    {
-        const auto* input = !layout.inputs.empty()
-            ? invocation.buffers.find(layout.inputs.front())
-            : nullptr;
-        if (input != nullptr) {
-            const std::string key = input->stable_key.empty()
-                ? "buf-" + std::to_string(
-                                reinterpret_cast<std::uintptr_t>(input->data))
-                : input->stable_key;
-            data_resident = impl_->residency.is_device_valid(key, "cuda:0");
-        }
-    }
-
-    // ACR 架构冻结（07 号计划 C）：worker 启动前真实 prefetch 全部只读输入。
-    // 传入完整输入集合让 executor 决定复用/替换（resident-reuse 时 frames
-    // 已驻留复用、新 weights 覆盖旧权重槽位，不重复上传整帧）。
-    // 仅对本次实际新上传的输入 mark_uploaded（避免重复记账）。
+    // 4. 执行：OpenMP → legacy direct；GPU Direct → execute_gpu_direct；
+    //    Mixed/非 BDR → prefetch + SharedWorkPool（现有工作保持池）。
+    std::vector<Impl::InvocationExecStats> per_exec_stats;
+    std::vector<std::string> actual_devices;
     std::uint64_t h2d_bytes_this = 0;
     const auto slot_counts = [&]() -> std::pair<std::uint64_t, std::uint64_t> {
         if (!impl_->executors) return {0, 0};
@@ -2023,30 +2278,62 @@ CostAwareResult Dispatcher::dispatch_invocation(
         if (cuda == nullptr) return {0, 0};
         return {cuda->slot_upload_count(0), cuda->slot_upload_count(1)};
     };
-    const auto slot_before = slot_counts();
-    if (!layout.inputs.empty() && impl_->executors) {
-        std::vector<const void*> input_hosts;
-        std::vector<std::size_t> input_bytes;
-        std::vector<std::string> input_keys;
-        std::vector<bool> was_resident;
-        for (std::size_t idx : layout.inputs) {
-            const auto* b = invocation.buffers.find(idx);
-            if (b == nullptr) continue;
-            const std::string key = b->stable_key.empty()
-                ? "buf-" + std::to_string(
-                               reinterpret_cast<std::uintptr_t>(b->data))
-                : b->stable_key;
-            input_hosts.push_back(b->data);
-            input_bytes.push_back(b->count * sizeof(float));
-            input_keys.push_back(key);
-            was_resident.push_back(
-                impl_->residency.is_device_valid(key, "cuda:0"));
+    MixedRunResult r;
+    r.total_chunks = 0;
+    r.all_done = false;
+
+    if (bdr_active && bdr_decision.chosen == routing::RouteKind::OpenMP) {
+        // OpenMP：注册的 legacy_parallel launcher 直接执行完整域（不拆块）
+        const KernelRegistration* reg =
+            global_kernel_registry().find(invocation.id);
+        if (reg != nullptr && reg->legacy_parallel != nullptr) {
+            const std::size_t n = end - begin;
+            auto t0 = std::chrono::steady_clock::now();
+            reg->legacy_parallel(invocation, nullptr);
+            const auto t1 = std::chrono::steady_clock::now();
+            r.all_done = true;
+            r.total_chunks = 1;
+            r.executed_on_cpu = 1;
+            r.executed_on_gpu = 0;
+            actual_devices = {"cpu"};
+            Impl::InvocationExecStats st;
+            st.device_id = "cpu";
+            st.backend_type = "cpu";
+            st.done_blocks = 1;
+            st.items_done = n;
+            st.bytes_read = 0;
+            st.bytes_written = 0;
+            st.elapsed_ns = static_cast<std::uint64_t>(
+                std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    t1 - t0)
+                    .count());
+            per_exec_stats.push_back(std::move(st));
+            result.actual_execution_shape = "legacy_openmp";
+        } else {
+            r.error_message =
+                "openmp route selected but no legacy_parallel launcher: " +
+                std::string(invocation.id);
+            result.actual_execution_shape = "legacy_openmp";
         }
-        if (!input_hosts.empty()) {
+    } else if (bdr_active &&
+               bdr_decision.chosen == routing::RouteKind::GpuDirect) {
+        // 真正 GPU Direct：prefetch + 单 GPU executor，绕开 SharedWorkPool
+        auto gd = impl_->execute_gpu_direct(
+            invocation, layout, input_hosts, input_bytes, input_keys,
+            was_resident);
+        r = gd.run_result;
+        per_exec_stats = std::move(gd.per_exec_stats);
+        actual_devices = std::move(gd.actual_devices);
+        h2d_bytes_this = gd.h2d_bytes_this;
+        result.actual_execution_shape = "gpu_direct";
+    } else {
+        // Mixed（或 CpuOnly/GpuOnly/无 BDR）：真实 prefetch + SharedWorkPool
+        result.actual_execution_shape =
+            bdr_active ? "mixed_pool" : "legacy_openmp";
+        if (!input_hosts.empty() && impl_->executors) {
             for (auto* e : impl_->executors->available_executors()) {
                 if (e->backend_type().rfind("cuda", 0) == 0 &&
                     e->prefetch_inputs(input_hosts, input_bytes)) {
-                    data_resident = true;
                     for (std::size_t i = 0; i < input_keys.size(); ++i) {
                         if (!was_resident[i]) {
                             h2d_bytes_this += input_bytes[i];
@@ -2059,14 +2346,11 @@ CostAwareResult Dispatcher::dispatch_invocation(
                 }
             }
         }
+        r = impl_->execute_invocation_via_executors(
+            invocation, estimate, result.resource_control, per_exec_stats,
+            actual_devices, data_resident || h2d_bytes_this > 0,
+            bdr_active ? &bdr_decision : nullptr);
     }
-
-    std::vector<Impl::InvocationExecStats> per_exec_stats;
-    std::vector<std::string> actual_devices;
-    auto r = impl_->execute_invocation_via_executors(
-        invocation, estimate, result.resource_control, per_exec_stats,
-        actual_devices, data_resident,
-        bdr_active ? &bdr_decision : nullptr);
     result.run_result = r;
     result.actual_devices_used = actual_devices;
     // ACR 架构冻结（07 号计划 B）：真实传输统计。
@@ -2151,12 +2435,13 @@ CostAwareResult Dispatcher::dispatch_invocation(
         }
         const auto* out_buf = !layout.outputs.empty()
             ? invocation.buffers.find(layout.outputs.front()) : nullptr;
-        std::size_t out_bytes_per_item = sizeof(float);
-        if (out_buf != nullptr && invocation.domain.size() > 0) {
-            out_bytes_per_item =
-                std::max<std::size_t>(
-                    1, out_buf->count / invocation.domain.size()) *
-                sizeof(float);
+        std::size_t out_bytes_per_item = out_buf != nullptr
+            ? out_buf->element_size_bytes
+            : sizeof(float);
+        if (out_buf != nullptr && invocation.domain.size() > 0 &&
+            out_buf->count / invocation.domain.size() > 0) {
+            out_bytes_per_item *=
+                out_buf->count / invocation.domain.size();
         }
         result.transfer_stats.d2h_bytes =
             gpu_items * out_bytes_per_item;

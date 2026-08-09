@@ -61,6 +61,10 @@ struct BufferBinding {
     void* data{nullptr};       // host/device 指针（executor 解析）
     std::size_t count{0};      // 元素数
     std::size_t stride{1};     // 元素步长（默认连续）
+    // Dispatcher Finalization（控制包 CE288DBF...F7E88，04 号规范）：
+    // 真实元素字节数。内存/传输/预算一律按 count*element_size_bytes，
+    // 禁止 Dispatcher 固定 sizeof(float)。默认 4 保持旧调用（float）兼容。
+    std::size_t element_size_bytes{sizeof(float)};
     BufferRole role{BufferRole::Input};  // buffer 角色（Dispatcher prefetch/物化依据）
     std::uint64_t generation{0};         // host 修改代数（驻留复用失效判断）
     std::string stable_key;              // 可选稳定键（默认空 → 用 data 指针）
@@ -73,10 +77,11 @@ struct BufferBindingList {
              std::size_t stride = 1,
              BufferRole role = BufferRole::Input,
              std::uint64_t generation = 0,
-             std::string stable_key = {}) {
+             std::string stable_key = {},
+             std::size_t element_size_bytes = sizeof(float)) {
         bindings.push_back(
-            BufferBinding{index, data, count, stride, role, generation,
-                          std::move(stable_key)});
+            BufferBinding{index, data, count, stride, element_size_bytes,
+                          role, generation, std::move(stable_key)});
     }
     const BufferBinding* find(std::size_t index) const {
         for (const auto& b : bindings) {
@@ -157,6 +162,10 @@ using LegacyParallelLauncher = void (*)(const KernelInvocation&, void* user_data
 struct KernelRegistration {
     OperationId id{};              // 诊断/实现兼容标识（注册表内部复制存储）
     KernelArgSchema args{};
+    // Dispatcher Finalization（04 号规范 §4）：持久主输入 buffer index 集合。
+    // reuse_count_hint>1 时仅要求这些输入真实驻留即可走 resident_reuse4 场景
+    // （如加权积分 frames 持久、weights 按 generation 更新）。
+    std::vector<std::size_t> persistent_input_indices;
     CpuKernelLauncher cpu{nullptr};
     std::optional<CudaKernelLauncher> cuda;   // 无 CUDA 实现时为空
     std::optional<HipKernelLauncher> hip;     // 无 HIP 实现时为空

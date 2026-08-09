@@ -174,9 +174,18 @@ struct RouteReplayPoint {
 struct RouteScenarioProfile {
     std::string scenario_id;   // cold_host_output 等
     bool supported{true};
-    // BDR Reviewed（08 计划 A）：场景级资格。
+    // Dispatcher Finalization（控制包 CE288DBF...F7E88，08 计划 1）：
+    // Route-centric 资格。场景硬门 = 独立 Final Route Replay 全部
+    // chosen_actual/oracle_best <= 1.10 + 全部候选 model_available +
+    // metrics 完整 + Final>=8 + 数据隔离 + chunk sanity + cold 真实。
+    // 单路径 10%/15% 绝对误差降级为诊断（error guard），不再作为删除
+    // 候选的硬门。routing_trusted=true 时生产 Auto 使用全部
+    // model_available 候选比较。
+    bool routing_trusted{false};
+    // BDR Reviewed（08 计划 A）：场景级资格兼容字段。
     // 三个 required 场景全部 qualified 后 Operation 才 qualified；
     // 场景未 qualified 时生产路由只允许 OpenMP fallback。
+    // 新语义下恒等于 routing_trusted（旧 Profile 反序列化时回填）。
     bool scenario_qualified{false};
     std::string qualification_reason;
     RoutePath openmp;

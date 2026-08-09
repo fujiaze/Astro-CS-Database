@@ -9,7 +9,7 @@ target_include_directories(acr_test_focused_mixed PRIVATE
 )
 gtest_discover_tests(acr_test_focused_mixed
     DISCOVERY_MODE PRE_TEST
-    PROPERTIES RUN_SERIAL TRUE  # 性能敏感：避免与 E10Mandelbrot 等重负载并行触发负载守卫
+    PROPERTIES RUN_SERIAL TRUE RESOURCE_LOCK gpu0  # 性能敏感：避免与 E10Mandelbrot 等重负载并行触发负载守卫
 )
 
 add_executable(acr_test_api test_api.cpp)
@@ -67,7 +67,8 @@ if(ACR_BUILD_CUDA)
         ${CMAKE_CURRENT_SOURCE_DIR}/../../backends/cuda
         ${CMAKE_CURRENT_SOURCE_DIR}/../..  # lib/acr/ 根目录（cuda_executor.hpp 引用 scheduler/）
     )
-    gtest_discover_tests(acr_test_cuda DISCOVERY_MODE PRE_TEST)
+    gtest_discover_tests(acr_test_cuda DISCOVERY_MODE PRE_TEST
+        PROPERTIES RESOURCE_LOCK gpu0)
 endif()
 
 include(GoogleTest)
@@ -239,7 +240,7 @@ target_include_directories(acr_test_dispatcher_bdr PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../backends/cuda
 )
 gtest_discover_tests(acr_test_dispatcher_bdr DISCOVERY_MODE PRE_TEST
-    PROPERTIES RUN_SERIAL TRUE  # GPU 性能敏感：避免并发负载守卫
+    PROPERTIES RUN_SERIAL TRUE RESOURCE_LOCK gpu0  # GPU 性能敏感：避免并发负载守卫
 )
 
 # 08 号计划 §5：MixedRoutePlanner 与 RouteMode
@@ -271,7 +272,8 @@ target_include_directories(acr_test_cuda_bridge PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../backends/classic
     ${CMAKE_CURRENT_SOURCE_DIR}/../..
 )
-gtest_discover_tests(acr_test_cuda_bridge DISCOVERY_MODE PRE_TEST)
+gtest_discover_tests(acr_test_cuda_bridge DISCOVERY_MODE PRE_TEST
+    PROPERTIES RESOURCE_LOCK gpu0)
 
 # 25 号计划 §2：CUDA 分块卷积与独立缓冲容量（无 GPU 时 GTEST_SKIP）
 add_executable(acr_test_cuda_bridge_chunk test_cuda_bridge_chunk.cpp)
@@ -281,7 +283,8 @@ target_include_directories(acr_test_cuda_bridge_chunk PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../backends/cuda
     ${CMAKE_CURRENT_SOURCE_DIR}/../../backends/cuda/bridge
 )
-gtest_discover_tests(acr_test_cuda_bridge_chunk DISCOVERY_MODE PRE_TEST)
+gtest_discover_tests(acr_test_cuda_bridge_chunk DISCOVERY_MODE PRE_TEST
+    PROPERTIES RESOURCE_LOCK gpu0)
 
 # 26 号计划 §2：CPU/GPU 50/80/95/100% 持续负载利用率测试已删除
 # （用户撤销精确利用率控制；acr_test_resource_sustained.cpp 已移除）。

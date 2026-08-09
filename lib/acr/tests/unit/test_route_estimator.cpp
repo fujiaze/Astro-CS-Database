@@ -92,6 +92,7 @@ RouteProfileV2 make_test_profile() {
         fill_path(sc.gpu_direct, 0.5);
         fill_path(sc.mixed, 0.8);
         sc.scenario_qualified = true;
+        sc.routing_trusted = true;
         sc.qualification_reason = "test";
         sc.final_holdout_count = 8;
         sc.route_replay_count = 8;
@@ -331,6 +332,7 @@ TEST(RouteEstimator, ChunkCurveSanityRejectsAnomaly) {
 TEST(RouteEstimator, ScenarioNotQualifiedFallsBackOpenMP) {
     RouteProfileV2 p = make_test_profile();
     p.operations.front().scenarios[1].scenario_qualified = false;
+    p.operations.front().scenarios[1].routing_trusted = false;
     p.operations.front().scenarios[1].qualification_reason =
         "replay-not-within-10";
     // 单测直接验证 decide 的场景级检查（生产先查 op.qualified 后查场景）；

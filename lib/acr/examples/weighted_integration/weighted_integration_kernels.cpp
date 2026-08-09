@@ -150,6 +150,8 @@ void register_weighted_integration_kernels() {
         r.id = kOperationId;
         r.args.buffer_count = 3;
         r.args.scalar_bytes = 2 * sizeof(std::size_t);
+        // frames = 持久主输入（reuse4 允许 frames 驻留、weights 按代更新）
+        r.persistent_input_indices = {1};
         r.cpu = &weighted_integration_cpu_launcher;
         r.cuda = &weighted_integration_cuda_launcher;
         r.legacy_parallel = &weighted_integration_legacy_launcher;

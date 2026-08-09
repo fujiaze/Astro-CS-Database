@@ -61,6 +61,17 @@ public:
     void register_buffer(const std::string& key, std::size_t bytes,
                          BufferAccess access = BufferAccess::Read);
 
+    // 注册/更新 buffer 并同步外部 binding generation（04 号契约 §2）：
+    //   - 新 buffer：记录 generation；
+    //   - 同 key 但 generation 高于已记录：host 内容已更新 → 设备副本失效
+    //     （DeviceValid/BothValid → HostDirty/HostValid），下次 GPU 执行必须重传；
+    //   - generation 未变：保持现有驻留状态（复用 device 副本）。
+    void register_or_update(const std::string& key, std::size_t bytes,
+                            BufferAccess access, std::uint64_t generation);
+
+    // 查询已记录的 host generation（供诊断/测试）
+    std::uint64_t recorded_generation(const std::string& key) const;
+
     // 标记 host 修改（输入更新 → device 副本失效）
     void mark_host_dirty(const std::string& key);
 
