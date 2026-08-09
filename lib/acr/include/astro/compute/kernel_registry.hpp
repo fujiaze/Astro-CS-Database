@@ -129,6 +129,10 @@ struct KernelInvocation {
     std::uint64_t token_id{0};     // 执行时由 executor 回填的工作块 token id
                                    // （归约等需要按块定位输出的 kernel 使用）
     std::uint32_t attempt{0};      // 当前领取尝试次数（重试时 partial 需清零）
+    // ===== RouteHints（Dispatcher Finalization 06/08 计划）=====
+    // 描述任务本身（不描述"想用哪个设备"）：BDR 顶层路由只依赖这些字段。
+    std::uint32_t frame_count{1};          // 操作相关 workload 轴（积分帧数）
+    std::uint32_t reuse_count_hint{1};     // 驻留复用次数提示
 };
 
 // ===== 参数 schema（注册时声明，执行时校验）=====
@@ -145,6 +149,9 @@ struct KernelArgSchema {
 using CpuKernelLauncher  = void (*)(const KernelInvocation&, void* user_data);
 using CudaKernelLauncher = void (*)(const KernelInvocation&, void* user_data);
 using HipKernelLauncher  = void (*)(const KernelInvocation&, void* user_data);
+// 完整域一次执行的 legacy OpenMP launcher（不拆块；BDR OpenMP 候选与安全
+// fallback 使用）。可直接包裹业务现有 OpenMP 函数，无需重写为 range 核心。
+using LegacyParallelLauncher = void (*)(const KernelInvocation&, void* user_data);
 
 // ===== KernelRegistration：一个 OperationId 的设备实现集合 =====
 struct KernelRegistration {
@@ -153,6 +160,7 @@ struct KernelRegistration {
     CpuKernelLauncher cpu{nullptr};
     std::optional<CudaKernelLauncher> cuda;   // 无 CUDA 实现时为空
     std::optional<HipKernelLauncher> hip;     // 无 HIP 实现时为空
+    LegacyParallelLauncher legacy_parallel{nullptr};  // 完整 OpenMP 域 launcher
     NumericPolicy numeric{};
 };
 

@@ -973,10 +973,10 @@ int main(int argc, char** argv) {
                     mx_ref, mx_out, mx_pixels, extra);
         }
 
-        // ---- Auto（Benchmark 驱动路由：estimator 决策 OpenMP/GPU/Mixed）----
-        // make_auto_fn：按 RouteRequest + Profile v2 预测选择候选路径并返回
-        // 每调用执行体（OpenMP 走现有路径；GPU Direct 走 bridge fast path，
-        // 不创建 CPU worker；Mixed 走共享池 Dispatcher）。
+        // ---- Auto（Dispatcher Finalization 06/08 计划）----
+        // 业务样例不再自行选择 OpenMP/GPU/Mixed：所有 Auto 场景都只提交一次
+        // Dispatcher 调用；BDR 顶层路由（RouteProfileV2 + BenchmarkRouteEstimator）
+        // 决定路径并读取 ExecutionReport。
         auto make_auto_fn = [&](const WeightedIntegrationView& vw,
                                 float* obuf,
                                 const std::vector<float>& fr,
@@ -986,46 +986,6 @@ int main(int argc, char** argv) {
                                 std::uint32_t reuse_hint,
                                 std::string& route_reason)
             -> std::function<void()> {
-            routing::RouteRequest req;
-            req.operation_id = kOp;
-            req.output_items = vw.pixel_count;
-            req.frame_count = vw.frame_count;
-            req.input_bytes = fr.size() * sizeof(float) + wt.size() * sizeof(float);
-            req.output_bytes = vw.pixel_count * sizeof(float);
-            req.input_residency = res;
-            req.output_policy = opol;
-            req.reuse_count_hint = reuse_hint;
-            routing::BenchmarkRouteEstimator est;
-            est.set_profile(route_profile_ready ? &route_profile : nullptr);
-            const auto dec = est.decide(req);
-            const char* rn = dec.chosen == routing::RouteKind::OpenMP ? "openmp"
-                : dec.chosen == routing::RouteKind::GpuDirect ? "gpu_direct"
-                                                             : "mixed";
-            route_reason = std::string(rn) + ":" + dec.reason;
-            if (dec.chosen == routing::RouteKind::OpenMP) {
-                return [&] {
-                    weighted_integration_openmp(vw, obuf, env.openmp_threads);
-                };
-            } else if (dec.chosen == routing::RouteKind::GpuDirect) {
-                return [&] {
-                    std::uint64_t el = 0;
-                    const char* err = nullptr;
-                    if (res == routing::InputResidency::HostOnly) {
-                        bapi->upload_persistent_slot(gpu_handle, 0, 0,
-                                                     vw.frame_count * vw.pixel_count,
-                                                     fr.data(), &el, &err);
-                        bapi->upload_persistent_slot(gpu_handle, 1, 0,
-                                                     vw.frame_count, wt.data(),
-                                                     &el, &err);
-                    }
-                    if (bapi->submit_weighted_integration_resident(
-                            gpu_handle, 0, vw.pixel_count, obuf,
-                            vw.frame_count, vw.pixel_count, &el, &err) != 0) {
-                        throw std::runtime_error(err ? err : "auto gpu failed");
-                    }
-                };
-            }
-            // Mixed：共享池 Dispatcher（捕获移动语义）
             auto regs = std::make_shared<ExecutorRegistry>(
                 ExecutorRegistry::create_auto());
             // std::function 需可拷贝 callable：shared_ptr 持有 Dispatcher
@@ -1036,14 +996,28 @@ int main(int argc, char** argv) {
                            {"cuda:0", 1, 0, 500.0, true}};
             cfg.executors = regs;
             cfg.route_mode = RouteMode::AutoMixed;
-            cfg.force_all_supported_executors = true;
+            cfg.route_profile_v2 =
+                route_profile_ready ? &route_profile : nullptr;
             spd->configure(cfg);
             return [&, spd]() mutable {
                 std::fill(obuf, obuf + vw.pixel_count, 0.0f);
-                auto r = run_weighted_via_dispatcher(
-                    *spd, vw, obuf, fr, wt, 1u << 16, 1u << 16);
+                KernelInvocation inv =
+                    make_weighted_invocation(vw, obuf, fr, wt);
+                inv.input_resident =
+                    (res == routing::InputResidency::DeviceResident);
+                inv.residency_policy =
+                    (opol == routing::OutputMaterialization::KeepDevice)
+                        ? ResidencyPolicy::KeepDevice
+                        : ResidencyPolicy::MaterializeHost;
+                inv.frame_count = static_cast<std::uint32_t>(vw.frame_count);
+                inv.reuse_count_hint = reuse_hint;
+                CostAwareResult r = spd->dispatch_invocation(
+                    make_task(vw.pixel_count),
+                    make_estimate(1u << 16, 1u << 16), inv);
+                route_reason = r.benchmark_route_decision + ":" +
+                               r.benchmark_route_reason;
                 if (!r.run_result.all_done) {
-                    throw std::runtime_error("auto mixed not all_done: " +
+                    throw std::runtime_error("auto not all_done: " +
                                              r.run_result.error_message);
                 }
             };

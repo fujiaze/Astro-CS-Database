@@ -49,6 +49,32 @@ void weighted_integration_openmp(const WeightedIntegrationView& v,
 
 namespace {
 
+// ===== LegacyParallelLauncher（Dispatcher Finalization 06/08 计划）=====
+// 完整域一次执行现有 OpenMP 实现（不拆块）；BDR OpenMP 候选与安全 fallback
+// 直接调用，业务侧无需手写三路 if/else。
+void weighted_integration_legacy_launcher(const KernelInvocation& inv, void*) {
+    const BufferBinding* out = inv.buffers.find(0);
+    const BufferBinding* frames = inv.buffers.find(1);
+    const BufferBinding* weights = inv.buffers.find(2);
+    if (!out || !frames || !weights) {
+        throw std::runtime_error(
+            "weighted integration legacy: missing buffers");
+    }
+    const auto frame_count = read_scalar<std::size_t>(inv.scalars, 0);
+    const auto pixel_count =
+        read_scalar<std::size_t>(inv.scalars, sizeof(std::size_t));
+    if (!frame_count || !pixel_count || *frame_count == 0 ||
+        *pixel_count == 0) {
+        throw std::runtime_error(
+            "weighted integration legacy: missing scalars");
+    }
+    WeightedIntegrationView v{
+        static_cast<const float*>(frames->data),
+        static_cast<const float*>(weights->data),
+        *frame_count, *pixel_count};
+    weighted_integration_openmp(v, static_cast<float*>(out->data), 0);
+}
+
 // ===== ACR CPU launcher（无嵌套 OpenMP；独占输出范围）=====
 void weighted_integration_cpu_launcher(const KernelInvocation& inv, void*) {
     const BufferBinding* out = inv.buffers.find(0);
@@ -126,6 +152,7 @@ void register_weighted_integration_kernels() {
         r.args.scalar_bytes = 2 * sizeof(std::size_t);
         r.cpu = &weighted_integration_cpu_launcher;
         r.cuda = &weighted_integration_cuda_launcher;
+        r.legacy_parallel = &weighted_integration_legacy_launcher;
         r.numeric.compute = NumericPolicy::Compute::fp32;
         r.numeric.accumulator = NumericPolicy::Accumulator::fp64;
         global_kernel_registry().register_kernel(r);

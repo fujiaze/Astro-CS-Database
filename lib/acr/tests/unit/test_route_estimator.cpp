@@ -25,6 +25,10 @@ RouteProfileV2 make_test_profile() {
     RouteProfileV2 p;
     p.schema_version = "acr-operation-route-profile-2";
     p.profile_state = "qualified";
+    p.calibration_preset = "standard";
+    p.calibration_head = "test-head";
+    p.calibration_run_id = "test-run";
+    p.generated_utc = "2026-08-09T00:00:00Z";
     p.fingerprint_cpu = "test-cpu";
     p.fingerprint_compiler = "test";
     p.fingerprint_runtime_kernel_hash = "0123456789abcdef0123456789abcdef";

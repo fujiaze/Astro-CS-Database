@@ -218,6 +218,30 @@ target_include_directories(acr_test_route_calibration PRIVATE
 )
 gtest_discover_tests(acr_test_route_calibration DISCOVERY_MODE PRE_TEST)
 
+# Dispatcher Finalization：BDR 三路闭环（07 测试 D；真实 GPU 时全路径执行）
+add_executable(acr_test_dispatcher_bdr test_dispatcher_bdr.cpp)
+target_link_libraries(acr_test_dispatcher_bdr PRIVATE
+    acr_weighted_integration_example
+    acr_scheduler
+    acr_qualification
+    acr_cost
+    acr_routing
+    acr_api
+    acr_cuda_bridge_loader
+    GTest::gtest_main)
+target_include_directories(acr_test_dispatcher_bdr PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../examples/weighted_integration
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../scheduler
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../qualification
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../core
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../cost
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../backends/cuda
+)
+gtest_discover_tests(acr_test_dispatcher_bdr DISCOVERY_MODE PRE_TEST
+    PROPERTIES RUN_SERIAL TRUE  # GPU 性能敏感：避免并发负载守卫
+)
+
 # 08 号计划 §5：MixedRoutePlanner 与 RouteMode
 add_executable(acr_test_mixed_route test_mixed_route.cpp)
 target_link_libraries(acr_test_mixed_route PRIVATE

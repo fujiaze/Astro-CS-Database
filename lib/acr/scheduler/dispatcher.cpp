@@ -11,6 +11,8 @@
 
 #include "../core/task_descriptor.hpp"
 #include "../cost/cost_estimator.hpp"
+#include "../routing/route_profile_v2.hpp"
+#include "../routing/benchmark_route_estimator.hpp"
 #include "../backends/cuda/bridge/cuda_bridge_api.hpp"
 #include "../utilization/memory_budget.hpp"
 #include "../utilization/staging_ledger.hpp"
@@ -773,10 +775,16 @@ struct Dispatcher::Impl {
         ResourceControlStats& stats_out,
         std::vector<InvocationExecStats>& per_exec_stats_out,
         std::vector<std::string>& actual_devices_out,
-        bool data_resident = false) {
+        bool data_resident = false,
+        const routing::RouteDecision* bdr = nullptr) {
         MixedRunResult r;
         r.total_chunks = 0;
         r.all_done = false;
+        // Dispatcher Finalization：BDR 激活时旧 focused OperationProfile /
+        // MixedRoutePlanner 不得再做顶层设备资格（06/08 计划"双重路由禁止"）。
+        const bool bdr_active = (bdr != nullptr);
+        const qualification::focused::OperationProfile* plan_profile =
+            bdr_active ? nullptr : cfg.operation_profile;
 
         const std::size_t begin = invocation.domain.begin;
         const std::size_t end = invocation.domain.end;
@@ -793,7 +801,7 @@ struct Dispatcher::Impl {
         // 聚焦版 v2（05 号规范 §2）：Auto 模式在 worker 启动前执行收益门。
         // GPU 只有在当前路径（host/resident）eligible 且任务规模达到
         // min_profitable_items 时才进入 worker 集合；不满足则不启动 worker。
-        const auto auto_plan = (cfg.operation_profile != nullptr)
+        const auto auto_plan = (plan_profile != nullptr)
             ? planner.plan(std::string(invocation.id), task_size,
                            data_resident)
             : MixedRoutePlan{};
@@ -808,11 +816,27 @@ struct Dispatcher::Impl {
                 exec->backend_type() == "cpu") {
                 continue;
             }
+            // Dispatcher Finalization：BDR 顶层已选定路径，按 chosen 过滤
+            // 执行器，并绕过旧 planner 收益门 / eligible 判定（BDR 是权威）。
+            if (bdr_active) {
+                if (bdr->chosen == routing::RouteKind::OpenMP &&
+                    exec->backend_type() != "cpu") {
+                    continue;
+                }
+                if (bdr->chosen == routing::RouteKind::GpuDirect &&
+                    exec->backend_type().rfind("cuda", 0) != 0) {
+                    continue;
+                }
+                if (exec && exec->supports(invocation.id)) {
+                    supported.push_back(exec);
+                }
+                continue;
+            }
             // Auto 前置收益门（仅 AutoMixed 且非 ForcedMixed）：
             // GPU 无合格路径或规模不足时不得进入 worker 集合；
             // CpuOnly/GpuOnly 是强制对照模式，不受收益门限制。
             if (cfg.route_mode == RouteMode::AutoMixed &&
-                cfg.operation_profile != nullptr &&
+                plan_profile != nullptr &&
                 !cfg.force_all_supported_executors &&
                 exec->backend_type().rfind("cuda", 0) == 0) {
                 if (!auto_plan.profile_available) continue;
@@ -844,7 +868,7 @@ struct Dispatcher::Impl {
             [](const DeviceExecutor* e) {
                 return e->backend_type().rfind("cuda", 0) == 0;
             });
-        if (cfg.operation_profile != nullptr &&
+        if (plan_profile != nullptr &&
             auto_plan.profile_available && gpu_participating) {
             // ACR 架构冻结（07 号计划 C/E）：Auto+Profile 且 GPU 实际参与时，
             // 块大小来自 OperationProfile（混合小块用于分摊传输/尾段）。
@@ -919,7 +943,7 @@ struct Dispatcher::Impl {
                 //   曾慢于 GPU resident 约 11 倍）。
                 bool cpu_skip = false;
                 if (cfg.route_mode == RouteMode::AutoMixed &&
-                    cfg.operation_profile != nullptr &&
+                    plan_profile != nullptr &&
                     auto_plan.profile_available) {
                     // Profile 的 cpu_ns_per_item 是 ACR CPU 全量并行吞吐
                     // （多 worker 分摊）；而每个 CPU 块由单个 worker 单线程
@@ -1102,7 +1126,7 @@ struct Dispatcher::Impl {
                             // 其他设备抢空时，本 executor 无首块可领也必须参与
                             // 公平门计数并解除等待（否则其他 worker 无限等待
                             // first_round_done 造成死锁）。
-                            if (!cfg.operation_profile &&
+                            if (!plan_profile &&
                                 !first_round_done.load(
                                     std::memory_order_acquire)) {
                                 if (!first_claimed[i].exchange(
@@ -1124,7 +1148,24 @@ struct Dispatcher::Impl {
                         const auto plan = planner.plan(
                             std::string(invocation.id), remaining,
                             data_resident);
-                        if (plan.profile_available) {
+                        // Dispatcher Finalization：BDR Mixed 只执行 Estimator
+                        // 给出的 chunk（06/08 计划；旧 planner 不得改写顶层选择）。
+                        if (bdr_active &&
+                            bdr->chosen == routing::RouteKind::Mixed) {
+                            requested =
+                                (exec->backend_type() == "cpu")
+                                    ? bdr->cpu_chunk_items
+                                    : bdr->gpu_chunk_items;
+                            if (requested == 0) {
+                                requested =
+                                    cost::global_cost_estimator()
+                                        .compute_requested_items(
+                                            dc ? *dc : fallback_cost(exec),
+                                            remaining,
+                                            exec->queue_state().depth);
+                            }
+                            if (requested == 0) requested = 1;
+                        } else if (plan.profile_available) {
                             requested =
                                 (exec->backend_type() == "cpu")
                                     ? plan.cpu_chunk_items
@@ -1356,7 +1397,7 @@ struct Dispatcher::Impl {
                             // 也必须参与公平门计数并解除等待——否则其他 worker
                             // 会无限等待 first_round_done 造成死锁（fix: 慢设备
                             // 首块让位后由最快设备清尾，公平门自然结束）。
-                            if (!cfg.operation_profile &&
+                            if (!plan_profile &&
                                 !first_round_done.load(std::memory_order_acquire)) {
                                 if (!first_claimed[i].exchange(
                                         true, std::memory_order_acq_rel)) {
@@ -1380,7 +1421,7 @@ struct Dispatcher::Impl {
                         // 聚焦版：OperationProfile 规划模式（08 号计划 §5）下
                         // 禁用强制公平门——由 planner 的边际收益门决定设备是否
                         // 参与，避免慢设备被公平门阻塞导致死锁。
-                        if (!cfg.operation_profile &&
+                        if (!plan_profile &&
                             !first_round_done.load(std::memory_order_acquire)) {
                             if (!first_claimed[i].exchange(true,
                                                            std::memory_order_acq_rel)) {
@@ -1428,6 +1469,10 @@ struct Dispatcher::Impl {
                         } else {
                             // Rejected（op 不支持/设备不可用）→ 终态失败；
                             // kernel 执行失败 → 重试（attempt 上限内）
+                            if (r.error_message.empty() &&
+                                !handle.error.empty()) {
+                                r.error_message = handle.error;
+                            }
                             const bool retryable =
                                 (handle.status != SubmitStatus::Rejected) &&
                                 (token.attempt < kMaxAttempts);
@@ -1829,6 +1874,100 @@ CostAwareResult Dispatcher::dispatch_invocation(
     result.used_cost_estimator = estimate.profile_available;
     result.predicted_primary_backend = impl_->predict_backend_from_estimate(estimate);
 
+    // ===== Dispatcher Finalization：BDR 顶层路由（06/08 计划）=====
+    // route_profile_v2 非空且 AutoMixed 时，BenchmarkRouteEstimator 是
+    // OpenMP / GPU Direct / Mixed 的唯一顶层权威；生产未 qualified 场景
+    // 自动回退 legacy OpenMP。业务只提交一次调用，不自行三路选择。
+    routing::RouteDecision bdr_decision;
+    bool bdr_active = false;
+    if (impl_->cfg.route_mode == RouteMode::AutoMixed &&
+        impl_->cfg.route_profile_v2 != nullptr) {
+        routing::RouteRequest req;
+        req.operation_id = std::string(invocation.id);
+        req.output_items = invocation.domain.size();
+        req.frame_count =
+            invocation.frame_count > 0 ? invocation.frame_count : 1u;
+        req.input_bytes = 0;
+        for (const auto& b : invocation.buffers.bindings) {
+            if (b.role != BufferRole::Output) {
+                req.input_bytes += b.count * sizeof(float);
+            }
+        }
+        req.output_bytes = 0;
+        for (const auto& b : invocation.buffers.bindings) {
+            if (b.role == BufferRole::Output) {
+                req.output_bytes += b.count * sizeof(float);
+            }
+        }
+        req.input_residency = invocation.input_resident
+            ? routing::InputResidency::DeviceResident
+            : routing::InputResidency::HostOnly;
+        req.output_policy =
+            invocation.residency_policy == ResidencyPolicy::KeepDevice
+                ? routing::OutputMaterialization::KeepDevice
+                : routing::OutputMaterialization::HostRequired;
+        req.reuse_count_hint = invocation.reuse_count_hint;
+        // 队列/内存快照：本机单流同步语义下不注入额外延迟；容量由
+        // MemoryBudgetController 在 worker 内真实执行时保护。
+        req.queues = routing::QueueSnapshot{};
+        req.memory = routing::MemorySnapshot{};
+        routing::BenchmarkRouteEstimator est;
+        est.set_profile(impl_->cfg.route_profile_v2);
+        bdr_decision = est.decide(req, /*diagnostic=*/false);
+        bdr_active = true;
+        result.benchmark_route_decision =
+            bdr_decision.chosen == routing::RouteKind::OpenMP
+                ? "openmp"
+                : bdr_decision.chosen == routing::RouteKind::GpuDirect
+                      ? "gpu_direct"
+                      : "mixed";
+        result.benchmark_route_reason = bdr_decision.reason;
+        result.benchmark_cpu_chunk_items = bdr_decision.cpu_chunk_items;
+        result.benchmark_gpu_chunk_items = bdr_decision.gpu_chunk_items;
+        result.benchmark_predicted_ms =
+            bdr_decision.chosen == routing::RouteKind::OpenMP
+                ? bdr_decision.openmp.predicted_ms
+                : bdr_decision.chosen == routing::RouteKind::GpuDirect
+                      ? bdr_decision.gpu_direct.predicted_ms
+                      : bdr_decision.mixed.predicted_ms;
+
+        // OpenMP：注册的 legacy_parallel launcher 直接执行完整域（不拆块）
+        if (bdr_decision.chosen == routing::RouteKind::OpenMP) {
+            const KernelRegistration* reg =
+                global_kernel_registry().find(invocation.id);
+            if (reg != nullptr && reg->legacy_parallel != nullptr) {
+                const std::size_t n = invocation.domain.size();
+                auto t0 = std::chrono::steady_clock::now();
+                reg->legacy_parallel(invocation, nullptr);
+                const auto t1 = std::chrono::steady_clock::now();
+                result.run_result.all_done = true;
+                result.run_result.total_chunks = 1;
+                result.run_result.executed_on_cpu = 1;
+                result.run_result.executed_on_gpu = 0;
+                result.actual_devices_used = {"cpu"};
+                result.actual_primary_backend = "cpu";
+                CostAwareResult::PerDeviceStats pds;
+                pds.device_id = "cpu";
+                pds.backend = "cpu";
+                pds.items_done = n;
+                pds.bytes_read = 0;
+                pds.bytes_written = 0;
+                pds.blocks_done = 1;
+                pds.active_duration_ns = static_cast<std::uint64_t>(
+                    std::chrono::duration_cast<std::chrono::nanoseconds>(
+                        t1 - t0)
+                        .count());
+                result.per_device_stats.push_back(std::move(pds));
+                result.total_chunks = 1;
+                result.chunks_on_cpu = 1;
+                result.chunks_on_gpu = 0;
+                result.coverage.total = 1;
+                result.coverage.done = 1;
+                return result;
+            }
+        }
+    }
+
     // 工作域来自 invocation（token 子域在 executor worker 内拆分）
     const std::size_t begin = invocation.domain.begin;
     const std::size_t end = invocation.domain.end;
@@ -1926,7 +2065,8 @@ CostAwareResult Dispatcher::dispatch_invocation(
     std::vector<std::string> actual_devices;
     auto r = impl_->execute_invocation_via_executors(
         invocation, estimate, result.resource_control, per_exec_stats,
-        actual_devices, data_resident);
+        actual_devices, data_resident,
+        bdr_active ? &bdr_decision : nullptr);
     result.run_result = r;
     result.actual_devices_used = actual_devices;
     // ACR 架构冻结（07 号计划 B）：真实传输统计。

@@ -34,6 +34,7 @@ namespace astro::compute {
 struct TaskDescriptor;
 namespace cost { struct CostEstimate; }
 namespace qualification::focused { struct OperationProfile; }
+namespace routing { struct RouteDecision; struct RouteProfileV2; }
 namespace utilization {
 class MemoryBudgetController;
 struct MemoryBudgetConfig;
@@ -82,6 +83,12 @@ struct DispatcherConfig {
     // 为空或仅 CPU executor 时退化为旧路径（向后兼容）
     // 禁止用户提供 CPU/GPU 比例：分配由 executor.available() + claim_next_dynamic 决定
     std::shared_ptr<ExecutorRegistry> executors;
+
+    // ===== Dispatcher Finalization（06_ROUTE_ESTIMATOR_AND_DISPATCHER.md）=====
+    // Benchmark 驱动路由顶层权威：非空且 route_mode==AutoMixed 时，
+    // BenchmarkRouteEstimator 决定 OpenMP / GPU Direct / Mixed；
+    // 旧 focused OperationProfile / MixedRoutePlanner 不再做顶层设备资格。
+    const routing::RouteProfileV2* route_profile_v2{nullptr};
 
     // ===== 26 号计划 §9：内存采样注入缝隙（测试/诊断用）=====
     // 生产路径为 null，使用 MemoryBudgetController::sample()。测试可注入
@@ -180,6 +187,13 @@ struct CostAwareResult {
         std::uint64_t frames_upload_count{0};  // frames（slot0）上传次数（累计）
         std::uint64_t weights_upload_count{0}; // weights（slot1）上传次数（累计）
     } transfer_stats;
+
+    // ===== Dispatcher Finalization：BDR 顶层路由决策记录 =====
+    std::string benchmark_route_decision;  // "openmp"/"gpu_direct"/"mixed"/"none"
+    std::string benchmark_route_reason;    // decide() 返回的 reason
+    double benchmark_predicted_ms{0.0};    // chosen 路径预测（Profile E2E）
+    std::uint64_t benchmark_cpu_chunk_items{0};  // Mixed 推荐 CPU 块
+    std::uint64_t benchmark_gpu_chunk_items{0};  // Mixed 推荐 GPU 块
 };
 
 // ===== Dispatcher =====
