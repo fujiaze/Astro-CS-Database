@@ -695,3 +695,75 @@ memcheck/racecheck PASS；MSVC ASan CPU 核心受本机 commit 上限限制
 10 项跳过（SanitizerSmoke 预存共享状态偶发 SEGFAULT，单独复跑 PASS）。
 未放宽任何门；业务接入门全部满足，下一阶段开始真实积分 Adapter。
 
+
+### 2026-08-09 基座收尾（最终 HEAD，控制包 50127981...DD43C9，07 计划 A-F）
+
+**本轮修复（P0）**：
+1. 同指针 generation 一致性：DeviceExecutor::invalidate_input(host) 默认 no-op；
+   CudaBridgeExecutor 真实清理 views_/slot 绑定；Dispatcher 检测到
+   stable_key 同 generation 变化且曾驻留时，先失效 executor 视图再更新 manager。
+   新增 SamePointerGeneration / FramesPersistWeights 集成测试（原地改 weights
+   → 真实 H2D、结果与 CPU reference 一致、generation 不变不重传）。
+2. BDR 真实资源快照：RouteRequest 增加 upload_required_bytes；dispatch_invocation
+   在决策前采样 MemoryBudgetController（含 memory_sampler_override 注入）与
+   executor queue_state（busy/depth→保守罚分）；增量 VRAM =
+   upload_required_bytes + 2×output_bytes；VRAM 不足 GPU Direct/Mixed 不可行。
+   新增 VramInsufficientDisablesGpuDirect 测试。
+3. GPU Direct 失败回退：prefetch/submit 失败 → 不提交部分结果，完整域 Legacy
+   OpenMP 重算；ExecutionReport 记录 selected=gpu_direct、
+   actual_execution_shape=legacy_openmp、fallback=true、fallback_reason。
+   新增 prefetch/submit 故障注入测试。
+
+**本轮修复（P1）**：
+4. GPU Direct coverage 不读 SharedWorkPool（stale 风险）；direct/openmp 用
+   完整域语义（total=done=1），仅 mixed_pool 从真实 pool 导入。
+5. Auto 报告真实字段：fill_real_stats 写入 benchmark_route_decision /
+   actual_execution_shape / resident/upload bytes / fallback；ModeReporter 默认
+   route_decision 不再固定 mixed_work_pool；Auto 中位样本绑定其真实
+   CostAwareResult（items/chunks/transfer 真实）。
+6. benchmark_ready 汇总：correctness && op.qualified && replay &&
+   true_cold && metrics && report_consistency && three_clean_ctest_runs；
+   ready_for_business_adapter 与 benchmark_ready 一致（不出现
+   three_clean_ctest_runs=false 而 READY=true 的矛盾）。
+
+**验证**：DispatcherBdr 11 项全过（含 5 项新测试）；route/route_calibration/
+residency/scheduler 单测全绿。standard Profile qualified、Replay 24/24、
+Auto 报告字段真实。perf 门视 GPU 热节流/时钟波动取稳定轮。
+
+### 2026-08-09 基座收尾（最终 HEAD 待定，控制包 50127981...DD43C9，07 计划 A-F）
+
+**本轮修复（P0）**：
+1. 同指针 generation 一致性：DeviceExecutor::invalidate_input(host) 默认 no-op；
+   CudaBridgeExecutor 真实清理 views_/slot 绑定；Dispatcher 检测到 stable_key
+   同 generation 变化且曾驻留时，先失效 executor 视图再更新 manager。
+   SamePointerGeneration / FramesPersistWeights 集成测试通过（原地改 weights
+   → 真实 H2D、结果与 CPU reference 一致、generation 不变不重传）。
+2. BDR 真实资源快照：RouteRequest 增加 upload_required_bytes；dispatch_invocation
+   在决策前采样 MemoryBudgetController（含 memory_sampler_override 注入）与
+   executor queue_state（busy/depth→保守罚分）；增量 VRAM =
+   upload_required_bytes + 2×output_bytes；VRAM 不足 GPU Direct/Mixed 不可行。
+   VramInsufficientDisablesGpuDirect 测试通过。
+3. GPU Direct 失败回退：prefetch/submit 失败 → 不提交部分结果，完整域 Legacy
+   OpenMP 重算；ExecutionReport 记录 selected=gpu_direct、
+   actual_execution_shape=legacy_openmp、fallback=true、fallback_reason。
+   prefetch/submit 故障注入测试通过。
+
+**本轮修复（P1）**：
+4. GPU Direct coverage 不读 SharedWorkPool（stale 风险）；direct/openmp 用
+   完整域语义（total=done=1），仅 mixed_pool 从真实 pool 导入。
+5. Auto 报告真实字段：fill_real_stats 写入 benchmark_route_decision /
+   actual_execution_shape / resident/upload bytes / fallback；ModeReporter 默认
+   route_decision 不再固定 mixed_work_pool；Auto 中位样本绑定其真实
+   CostAwareResult（items/chunks/transfer 真实）。
+6. benchmark_ready 汇总：correctness && op.qualified && replay &&
+   true_cold && metrics && report_consistency && three_clean_ctest_runs；
+   ready_for_business_adapter 与 benchmark_ready 一致（不出现
+   three_clean_ctest_runs=false 而 READY=true 的矛盾）。
+7. 性能回归修复：每次 dispatch 前的 NVML/RAM 采样造成亚毫秒级固定开销，
+   加 100ms 时间窗口缓存（容量门禁仍真实），2048² resident 从 123% 恢复
+   到 ~101%（perf=QUALIFIED）。
+
+**验证**：DispatcherBdr 11 项全过（含 6 项新测试）；route/route_calibration/
+residency/scheduler 单测全绿。standard（303c38e）：Profile qualified、
+Replay 24/24、perf=QUALIFIED、report_consistency=true；
+benchmark_ready=false 仅因 three_clean_ctest_runs 未由 CI 传入（打包器汇总）。
