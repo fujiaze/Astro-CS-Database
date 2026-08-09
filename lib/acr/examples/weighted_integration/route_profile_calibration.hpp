@@ -64,6 +64,10 @@ struct RouteErrorEval {
     double worst_error{0.0};
 };
 
+// 候选插值器预测（linear/loglog；返回 -1 = 范围外）。供标定内部与测试使用。
+double predict_path(const routing::RoutePath& path, std::uint64_t items,
+                    std::uint32_t frames, const std::string& interp_id);
+
 // 误差门：median<=10%、max<=15%（04 号规范 F；本轮禁止放宽）。
 bool route_gate_passed_errors(double median, double max);
 

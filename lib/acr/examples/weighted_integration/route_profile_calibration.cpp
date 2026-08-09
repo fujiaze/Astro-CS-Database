@@ -83,7 +83,7 @@ constexpr std::uint32_t kServiceFrames[] = {4u, 16u, 32u};
 
 // GPU 热节流缓解：重负载测量点之间让 GPU 空闲恢复时钟（不计入测量）。
 inline void gpu_settle() {
-    std::this_thread::sleep_for(std::chrono::milliseconds(120));
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
 }
 
 // ISO-8601 UTC 时间（Profile 发布元数据；Windows 用 gmtime 线程安全版本）
@@ -126,7 +126,9 @@ const std::vector<CalPoint> kProbePoints{
     {2816u * 2816u, 32u}, {3456u * 3456u, 8u},
     // 路由边界坐标（历轮 Replay 反复在 cold 选错 OpenMP vs Mixed）：
     // 放 Probe 由 route-regret Adaptive 决定是否补入 Fit，Final 保持 untouched。
-    {3072u * 3072u, 12u}};
+    {3072u * 3072u, 12u},
+    // 标准矩阵 reuse4 大 case（4096²×8）：确保 Adaptive 可见该边界
+    {4096u * 4096u, 8u}};
 
 // Final Untouched Holdout：>=8/场景，与 Fit/Probe 均不重叠；
 // 模型冻结后只运行一次（最终误差 + Route Replay）。
@@ -333,7 +335,28 @@ RouteErrorEval evaluate_final(RoutePath& path,
     path.holdout_count = ev.count;
     path.median_error_ratio = ev.median;
     path.max_error_ratio = ev.max;
-    path.p95_error_ratio = ev.max;  // >=8 点后由 CI 输出真实分位；max 保守
+    // 稳健 error guard：真实 p95（8 点取第 7 个有序值，排除单个离群点；
+    // max 保留为诊断）。生产 decide 用 p95 做 score guard，
+    // 避免单个热节流/噪声样本把整条路径守卫撑大而错误排除最快候选。
+    if (ev.count > 0) {
+        std::vector<double> errs;
+        for (const auto& v : final_pts) {
+            const double pred = predict_path(path, v.items, v.frames,
+                                             path.interpolation_id);
+            const double actual = v.sample.median_ms;
+            if (pred > 0.0 && actual > 0.0) {
+                errs.push_back(std::fabs(pred - actual) / actual);
+            }
+        }
+        std::sort(errs.begin(), errs.end());
+        if (!errs.empty()) {
+            const std::size_t idx = static_cast<std::size_t>(
+                0.95 * static_cast<double>(errs.size() - 1));
+            path.p95_error_ratio = errs[idx];
+        }
+    } else {
+        path.p95_error_ratio = ev.max;
+    }
     path.model_trusted = ev.count >= 8 &&
                          route_gate_passed_errors(ev.median, ev.max);
     path.model_available = !path.samples.empty() && ev.count > 0;
@@ -821,7 +844,10 @@ RouteKind predict_chosen_for_point(const RouteScenarioProfile& sc,
         if (!p.model_available) return -1.0;
         const double m = predict_path_ms(p, items, frames);
         if (m < 0.0) return -1.0;
-        return m * (1.0 + p.max_error_ratio);
+        const double guard = p.p95_error_ratio > 0.0
+            ? p.p95_error_ratio
+            : p.max_error_ratio;
+        return m * (1.0 + guard);
     };
     const double mo = score_of(sc.openmp);
     const double mg = score_of(sc.gpu_direct);
@@ -1063,6 +1089,9 @@ RouteErrorEval select_model_on_probe(
     if (!errs.empty()) {
         ev.median = errs[errs.size() / 2];
         ev.max = errs.back();
+        const std::size_t idx = static_cast<std::size_t>(
+            0.95 * static_cast<double>(errs.size() - 1));
+        path.p95_error_ratio = errs[idx];
     }
     return ev;
 }
@@ -1444,6 +1473,7 @@ bool calibrate_route_profile_v2(
                           : dec.mixed.predicted_ms;
             rp.within_best_10pct = within;
             sc.route_replay.push_back(std::move(rp));
+            gpu_settle();  // 点之间冷却，避免热节流污染下一候选
         }
         sc.route_replay_count = sc.route_replay.size();
         sc.route_replay_max_slowdown_ratio = max_slowdown;

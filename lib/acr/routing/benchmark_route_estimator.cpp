@@ -464,6 +464,12 @@ RouteDecision BenchmarkRouteEstimator::decide(
     const auto path_usable = [&](const RoutePath& p) {
         return p.model_available;
     };
+    // 稳健 error guard：p95（排除单个离群样本），缺失时回退 max。
+    // max 保留为诊断（final_max_error_ratio），不直接用于 score。
+    const auto guard_of = [](const RoutePath& p) {
+        return p.p95_error_ratio > 0.0 ? p.p95_error_ratio
+                                       : p.max_error_ratio;
+    };
 
     // ---- OpenMP ----
     {
@@ -475,10 +481,10 @@ RouteDecision BenchmarkRouteEstimator::decide(
                             request.frame_count, med, p90)) {
             p.feasible = true;
             p.predicted_ms = med;
-            p.error_bound_ms = med * sc->openmp.max_error_ratio;
+            p.error_bound_ms = med * guard_of(sc->openmp);
             p.queue_delay_ms = request.queues.cpu_delay_ms;
             p.score_ms =
-                med * (1.0 + sc->openmp.max_error_ratio) +
+                med * (1.0 + guard_of(sc->openmp)) +
                 p.queue_delay_ms;
             p.reason = "profile-e2e";
         } else {
@@ -504,10 +510,10 @@ RouteDecision BenchmarkRouteEstimator::decide(
             vram_ok) {
             p.feasible = true;
             p.predicted_ms = med;
-            p.error_bound_ms = med * sc->gpu_direct.max_error_ratio;
+            p.error_bound_ms = med * guard_of(sc->gpu_direct);
             p.queue_delay_ms = request.queues.gpu_delay_ms;
             p.score_ms =
-                med * (1.0 + sc->gpu_direct.max_error_ratio) +
+                med * (1.0 + guard_of(sc->gpu_direct)) +
                 p.queue_delay_ms;
             p.reason = "profile-e2e";
         } else if (!vram_ok) {
@@ -549,9 +555,9 @@ RouteDecision BenchmarkRouteEstimator::decide(
             p.feasible = true;
             p.predicted_ms =
                 base + std::max(0.0, simq - sim0);
-            p.error_bound_ms = base * sc->mixed.max_error_ratio;
+            p.error_bound_ms = base * guard_of(sc->mixed);
             p.queue_delay_ms = 0.0;  // 已计入 simq-sim0
-            p.score_ms = p.predicted_ms * (1.0 + sc->mixed.max_error_ratio);
+            p.score_ms = p.predicted_ms * (1.0 + guard_of(sc->mixed));
             d.cpu_chunk_items = cpu_chunk_q;
             d.gpu_chunk_items = gpu_chunk_q;
             p.reason = "mixed-e2e-plus-queue-correction";

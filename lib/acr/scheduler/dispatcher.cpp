@@ -884,7 +884,6 @@ struct Dispatcher::Impl {
                 "gpu direct submit failed: " + h.error;
             return out;
         }
-        gpu->sync();
 
         Impl::InvocationExecStats st;
         st.device_id = gpu->device_id();
