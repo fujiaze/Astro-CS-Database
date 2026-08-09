@@ -228,6 +228,12 @@ struct OperationRouteProfile {
 struct RouteProfileV2 {
     std::string schema_version{"acr-operation-route-profile-2"};
     std::string profile_state{"diagnostic"};  // qualified/partial/diagnostic/stale
+    // 权威发布元数据（05_PROFILE_PUBLICATION.md）：
+    //   只有 preset=="standard" 可发布 authoritative profile；quick 不得覆盖。
+    std::string calibration_preset;    // "standard" / "quick" / "full" / ""
+    std::string calibration_head;      // 生成 Profile 的 git HEAD
+    std::string calibration_run_id;    // 唯一运行标识（调用方传入）
+    std::string generated_utc;         // ISO-8601 UTC 生成时间
     std::string fingerprint_cpu;
     std::vector<std::string> fingerprint_gpus;
     std::string fingerprint_compiler;

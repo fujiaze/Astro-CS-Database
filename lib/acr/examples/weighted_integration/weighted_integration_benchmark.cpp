@@ -92,6 +92,7 @@ struct Args {
     int gpu_streams{0};  // 0=auto(=>1) 1/2/3：性能只用 1，2/3 仅数值实验
     bool correctness_only{false};
     std::string git_head{"unknown"};
+    std::string run_id;  // 权威 Profile 发布唯一运行标识
     // 08 计划 J：连续 3 轮 CTest 0 fail 由 CI 传入，禁止 Benchmark 硬编码
     bool three_clean_ctest_runs{false};
 };
@@ -162,11 +163,16 @@ bool parse_args(int argc, char** argv, Args& out) {
             const char* v = need("--git-head");
             if (!v) return false;
             out.git_head = v;
+        } else if (a == "--run-id") {
+            const char* v = need("--run-id");
+            if (!v) return false;
+            out.run_id = v;
         } else if (a == "--help" || a == "-h") {
             std::fprintf(stdout,
                 "usage: acr_weighted_integration_benchmark [--preset quick|standard|full]\n"
                 "  [--warmup N] [--repeats N] [--case-timeout-s N] [--overall-timeout-s N]\n"
                 "  [--output report.json] [--profile-output operation-profile.json]\n"
+                "  [--run-id ID]\n"
                 "  [--seed N] [--gpu-streams auto|1|2|3] [--git-head SHA] [--correctness-only]\n");
             return false;
         } else {
@@ -643,6 +649,17 @@ int main(int argc, char** argv) {
     routing::RouteProfileV2 route_profile;
     bool route_profile_ready = false;
     if (!args.correctness_only && env.gpu_available && gpu_handle && bapi) {
+        // 05_PROFILE_PUBLICATION.md：只有 standard 可发布 authoritative
+        // profile；quick 只能写 *.quick.tmp.json（smoke，不覆盖权威槽位）。
+        std::string profile_out = args.profile_output;
+        if (!profile_out.empty() && args.preset == "quick") {
+            profile_out += ".quick.tmp.json";
+            std::fprintf(stderr,
+                         "[profile-publish] quick preset: authoritative "
+                         "profile must not be overwritten; writing smoke "
+                         "profile to %s\n",
+                         profile_out.c_str());
+        }
         CalibrationEnv cen;
         cen.cpu_fingerprint = env.cpu;
         cen.gpu_name = env.gpu;
@@ -658,9 +675,14 @@ int main(int argc, char** argv) {
         cen.kernel_hash = kernel_hash();
         cen.openmp_threads = env.openmp_threads;
         cen.gpu_available = env.gpu_available;
-        if (!args.profile_output.empty()) {
+        cen.calibration_preset = args.preset;
+        cen.calibration_head = args.git_head;
+        cen.calibration_run_id = args.run_id.empty()
+                                     ? (args.git_head + "-" + args.preset)
+                                     : args.run_id;
+        if (!profile_out.empty()) {
             route_profile_ready = calibrate_route_profile_v2(
-                cen, gpu_handle, bapi, args.profile_output, route_profile);
+                cen, gpu_handle, bapi, profile_out, route_profile);
         }
     }
 

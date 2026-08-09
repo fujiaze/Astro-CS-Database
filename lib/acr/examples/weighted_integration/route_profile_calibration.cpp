@@ -40,6 +40,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <ctime>
 #include <fstream>
 #include <functional>
 #include <map>
@@ -79,6 +80,22 @@ constexpr const char* kOp = "synthetic.weighted_integration.fp64acc";
 constexpr int kWarmup = 2;
 constexpr int kRepeats = 5;  // BDR3：三集合+Replay 测量量翻倍，5 次中位足够
 constexpr std::uint32_t kServiceFrames[] = {4u, 16u, 32u};
+
+// ISO-8601 UTC 时间（Profile 发布元数据；Windows 用 gmtime 线程安全版本）
+std::string utc_now_iso8601() {
+    using namespace std::chrono;
+    const auto now = system_clock::now();
+    const std::time_t t = system_clock::to_time_t(now);
+    std::tm tm{};
+#if defined(_WIN32)
+    gmtime_s(&tm, &t);
+#else
+    gmtime_r(&t, &tm);
+#endif
+    char buf[32];
+    std::strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", &tm);
+    return std::string(buf);
+}
 
 // ===== 08 计划 B：三集合标定数据（Fit/Probe/Final 严格无交集）=====
 struct CalPoint {
@@ -1318,6 +1335,12 @@ bool calibrate_route_profile_v2(
     op.scenarios.push_back(std::move(sc_reuse));
     out.schema_version = "acr-operation-route-profile-2";
     out.profile_state = "partial";
+    out.calibration_preset = env.calibration_preset.empty()
+                                 ? "standard"
+                                 : env.calibration_preset;
+    out.calibration_head = env.calibration_head;
+    out.calibration_run_id = env.calibration_run_id;
+    out.generated_utc = utc_now_iso8601();
     out.fingerprint_cpu = env.cpu_fingerprint;
     out.fingerprint_compiler = env.compiler;
     out.fingerprint_runtime_kernel_hash = env.kernel_hash;

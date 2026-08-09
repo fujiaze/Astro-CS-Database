@@ -196,6 +196,10 @@ std::string serialize_route_profile_v2(const RouteProfileV2& profile) {
     nlohmann::json root;
     root["schema_version"] = profile.schema_version;
     root["profile_state"] = profile.profile_state;
+    root["calibration_preset"] = profile.calibration_preset;
+    root["calibration_head"] = profile.calibration_head;
+    root["calibration_run_id"] = profile.calibration_run_id;
+    root["generated_utc"] = profile.generated_utc;
     root["fingerprint"]["cpu"] = profile.fingerprint_cpu;
     root["fingerprint"]["gpus"] = profile.fingerprint_gpus;
     root["fingerprint"]["compiler"] = profile.fingerprint_compiler;
@@ -307,6 +311,18 @@ bool read_route_profile_v2_from_file(const std::string& path,
     }
     if (root.contains("profile_state")) {
         p.profile_state = root["profile_state"].get<std::string>();
+    }
+    if (root.contains("calibration_preset")) {
+        p.calibration_preset = root["calibration_preset"].get<std::string>();
+    }
+    if (root.contains("calibration_head")) {
+        p.calibration_head = root["calibration_head"].get<std::string>();
+    }
+    if (root.contains("calibration_run_id")) {
+        p.calibration_run_id = root["calibration_run_id"].get<std::string>();
+    }
+    if (root.contains("generated_utc")) {
+        p.generated_utc = root["generated_utc"].get<std::string>();
     }
     if (root.contains("fingerprint")) {
         const auto& fp = root["fingerprint"];
@@ -601,6 +617,23 @@ bool validate_route_profile_v2(const RouteProfileV2& profile,
         if (op.qualified != op_qualified) {
             error = "operation.qualified inconsistent with scenario "
                     "qualification";
+            return false;
+        }
+    }
+    // 权威发布校验（05_PROFILE_PUBLICATION.md）：
+    //   qualified 状态必须由 preset=standard 标定产生，且带 head/run_id。
+    //   partial/diagnostic 允许（quick smoke / 诊断 Profile 不发布）。
+    if (profile.profile_state == "qualified") {
+        if (profile.calibration_preset != "standard") {
+            error = "qualified profile requires calibration_preset=standard";
+            return false;
+        }
+        if (profile.calibration_head.empty()) {
+            error = "qualified profile requires calibration_head";
+            return false;
+        }
+        if (profile.calibration_run_id.empty()) {
+            error = "qualified profile requires calibration_run_id";
             return false;
         }
     }

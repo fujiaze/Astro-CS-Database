@@ -27,6 +27,10 @@ struct CalibrationEnv {
     std::string gpu_name;
     std::string compiler;
     std::string kernel_hash;
+    // 权威发布元数据（05_PROFILE_PUBLICATION.md）
+    std::string calibration_preset;   // standard 才可发布；quick 写 tmp
+    std::string calibration_head;     // 生成 Profile 的 git HEAD
+    std::string calibration_run_id;   // 唯一运行标识
     int openmp_threads{1};
     bool gpu_available{false};
 };
