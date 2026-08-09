@@ -62,6 +62,9 @@ struct RouteRequest {
     std::uint64_t output_items{0};
     std::uint32_t frame_count{0};
     std::uint64_t input_bytes{0};
+    // ACR 基座收尾（03_RESOURCE_AND_FALLBACK.md）：本次必须新上传的输入字节
+    // （resident 输入已占用显存，不计入增量 VRAM 需求）。
+    std::uint64_t upload_required_bytes{0};
     std::uint64_t output_bytes{0};
     InputResidency input_residency{InputResidency::HostOnly};
     OutputMaterialization output_policy{OutputMaterialization::HostRequired};

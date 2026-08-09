@@ -500,10 +500,15 @@ RouteDecision BenchmarkRouteEstimator::decide(
         RoutePrediction& p = d.gpu_direct;
         p.route = RouteKind::GpuDirect;
         double med = 0.0, p90 = 0.0;
+        // ACR 基座收尾（03_RESOURCE_AND_FALLBACK.md）：增量 VRAM 需求 =
+        // 本次必须上传字节 + 输出物化 + 保守 scratch（暂以 output_bytes 估计）。
+        // resident 输入已占用显存，不计入增量。
+        const std::uint64_t incremental_vram =
+            request.upload_required_bytes + request.output_bytes +
+            request.output_bytes;
         const bool vram_ok =
             request.memory.vram_available_bytes == 0 ||
-            request.output_bytes + request.input_bytes <=
-                request.memory.vram_available_bytes;
+            incremental_vram <= request.memory.vram_available_bytes;
         if (path_usable(sc->gpu_direct) &&
             interpolate_e2e(sc->gpu_direct, request.output_items,
                             request.frame_count, med, p90) &&
@@ -529,10 +534,15 @@ RouteDecision BenchmarkRouteEstimator::decide(
     {
         RoutePrediction& p = d.mixed;
         p.route = RouteKind::Mixed;
+        // ACR 基座收尾（03_RESOURCE_AND_FALLBACK.md）：增量 VRAM 需求 =
+        // 本次必须上传字节 + 输出物化 + 保守 scratch（暂以 output_bytes 估计）。
+        // resident 输入已占用显存，不计入增量。
+        const std::uint64_t incremental_vram =
+            request.upload_required_bytes + request.output_bytes +
+            request.output_bytes;
         const bool vram_ok =
             request.memory.vram_available_bytes == 0 ||
-            request.output_bytes + request.input_bytes <=
-                request.memory.vram_available_bytes;
+            incremental_vram <= request.memory.vram_available_bytes;
         // BDR 复核（08 计划 E）：真实 Mixed E2E 插值是主成本；
         // chunk simulator 只做分块与排队修正。
         double base = 0.0, base_p90 = 0.0;

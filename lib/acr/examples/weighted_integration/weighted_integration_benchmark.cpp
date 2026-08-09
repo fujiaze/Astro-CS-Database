@@ -484,6 +484,21 @@ void fill_real_stats(nlohmann::json& m, const CostAwareResult& r) {
         ? (r.actual_devices_used.empty() ? std::string("none")
                                          : r.actual_devices_used.front())
         : r.run_result.error_message;
+    // ACR 基座收尾（04_EVIDENCE_TRUTH.md）：Auto 报告必须来自真实
+    // ExecutionReport，禁止预填固定 mixed_work_pool。
+    m["benchmark_route_decision"] = r.benchmark_route_decision;
+    m["actual_execution_shape"] = r.actual_execution_shape;
+    m["resident_input_bytes"] = r.benchmark_resident_input_bytes;
+    m["upload_required_bytes"] = r.benchmark_upload_required_bytes;
+    m["fallback"] = r.benchmark_fallback;
+    m["fallback_reason"] = r.benchmark_fallback_reason;
+    // 覆盖 ModeReporter 默认值：真实 BDR 决策（Auto 禁止预填 fixed route）。
+    if (!r.benchmark_route_decision.empty()) {
+        m["route_decision"] = r.benchmark_route_decision;
+    }
+    if (!r.actual_execution_shape.empty()) {
+        m["actual_execution_shape"] = r.actual_execution_shape;
+    }
 }
 
 // ===== 单模式报告 =====
@@ -559,7 +574,7 @@ struct ModeReporter {
                                   : (mode == "forced_mixed")
                                         ? "forced_mixed_correctness"
                                         : (mode.rfind("auto_", 0) == 0)
-                                              ? "mixed_work_pool"
+                                              ? "auto_unknown"  // 由真实 report 覆盖
                                               : "openmp_baseline";
         m["setup_h2d_bytes"] = 0;
         m["setup_h2d_count"] = 0;
@@ -1049,8 +1064,8 @@ int main(int argc, char** argv) {
                                      "-cold", 0u);
             // 每个正式样本 fresh Dispatcher；Dispatcher/桥接创建（setup）不计时，
             // 与标定 E2E 口径一致；计时只含一次 dispatch。
-            std::vector<double> samples;
-            std::uint64_t last_h2d = 0;
+            // 中位样本绑定其真实 CostAwareResult（P1-2：Auto 报告真实字段）。
+            std::vector<std::pair<double, scheduler::CostAwareResult>> samples;
             const auto vr0 = vram_used_bytes(bapi, gpu_handle);
             for (int w = 0; w < args.warmup; ++w) {
                 auto spd = make_auto_dispatcher();
@@ -1063,24 +1078,29 @@ int main(int argc, char** argv) {
                                    route_reason);
                 const auto t1 = std::chrono::steady_clock::now();
                 samples.push_back(
-                    std::chrono::duration<double, std::milli>(t1 - t0)
-                        .count());
-                last_h2d = rr.transfer_stats.h2d_bytes;
+                    {std::chrono::duration<double, std::milli>(t1 - t0)
+                         .count(),
+                     std::move(rr)});
             }
-            std::sort(samples.begin(), samples.end());
+            std::sort(samples.begin(), samples.end(),
+                      [](const auto& a, const auto& b) {
+                          return a.first < b.first;
+                      });
             Timed t;
-            t.total_median_ms = samples[samples.size() / 2];
-            t.total_min_ms = samples.front();
+            t.total_median_ms = samples[samples.size() / 2].first;
+            t.total_min_ms = samples.front().first;
             t.total_p90_ms = samples[static_cast<std::size_t>(
-                0.9 * static_cast<double>(samples.size() - 1))];
+                0.9 * static_cast<double>(samples.size() - 1))].first;
+            const auto& med_rpt = samples[samples.size() / 2].second;
             const auto vr1 = vram_used_bytes(bapi, gpu_handle);
             nlohmann::json extra;
             extra["route_reason"] = route_reason;
             extra["execution_shape"] =
                 route_reason.substr(route_reason.find_last_of(':') + 1);
-            extra["timed_h2d_bytes"] = last_h2d;
+            extra["timed_h2d_bytes"] = med_rpt.transfer_stats.h2d_bytes;
             extra["peak_vram_bytes"] = vr1 > vr0 ? vr1 - vr0 : 0;
             extra["observed_max_in_flight"] = 1;
+            fill_real_stats(extra, med_rpt);
             rep.add("auto_cold_single_shot", "PASS", t, 1, true,
                     openmp_single_median, ref, out, pixels, extra);
         }
@@ -1097,23 +1117,40 @@ int main(int argc, char** argv) {
             if (!spd->establish_input_residency(inv)) {
                 throw std::runtime_error("resident setup failed");
             }
-            std::uint64_t last_h2d = 0;
+            std::vector<std::pair<double, scheduler::CostAwareResult>> samples;
             const auto vr0 = vram_used_bytes(bapi, gpu_handle);
-            Timed t = measure(
-                [&] {
-                    auto r = run_auto(spd, inv, out.data(), pixels,
-                                      route_reason);
-                    last_h2d = r.transfer_stats.h2d_bytes;
-                },
-                args.warmup, args.repeats);
+            for (int w = 0; w < args.warmup; ++w) {
+                run_auto(spd, inv, out.data(), pixels, route_reason);
+            }
+            for (int r = 0; r < args.repeats; ++r) {
+                const auto t0 = std::chrono::steady_clock::now();
+                auto rr = run_auto(spd, inv, out.data(), pixels,
+                                   route_reason);
+                const auto t1 = std::chrono::steady_clock::now();
+                samples.push_back(
+                    {std::chrono::duration<double, std::milli>(t1 - t0)
+                         .count(),
+                     std::move(rr)});
+            }
+            std::sort(samples.begin(), samples.end(),
+                      [](const auto& a, const auto& b) {
+                          return a.first < b.first;
+                      });
+            Timed t;
+            t.total_median_ms = samples[samples.size() / 2].first;
+            t.total_min_ms = samples.front().first;
+            t.total_p90_ms = samples[static_cast<std::size_t>(
+                0.9 * static_cast<double>(samples.size() - 1))].first;
+            const auto& med_rpt = samples[samples.size() / 2].second;
             const auto vr1 = vram_used_bytes(bapi, gpu_handle);
             nlohmann::json extra;
             extra["route_reason"] = route_reason;
             extra["execution_shape"] =
                 route_reason.substr(route_reason.find_last_of(':') + 1);
-            extra["timed_h2d_bytes"] = last_h2d;  // 真实 resident 复用应为 0
+            extra["timed_h2d_bytes"] = med_rpt.transfer_stats.h2d_bytes;
             extra["peak_vram_bytes"] = vr1 > vr0 ? vr1 - vr0 : 0;
             extra["observed_max_in_flight"] = 1;
+            fill_real_stats(extra, med_rpt);
             rep.add("auto_resident_steady", "PASS", t, 1, true,
                     openmp_single_median, ref, out, pixels, extra);
         }
@@ -1131,42 +1168,66 @@ int main(int argc, char** argv) {
                 throw std::runtime_error("reuse4 setup failed");
             }
             bool ok_all = true;
-            std::uint64_t frames_uploads = 0;
-            std::uint64_t last_weights_uploads = 0;
+            std::vector<std::pair<double, scheduler::CostAwareResult>> samples;
             const auto vr0 = vram_used_bytes(bapi, gpu_handle);
-            Timed t = measure(
-                [&] {
-                    for (std::size_t gi = 0; gi < 4; ++gi) {
-                        WeightedIntegrationView v{
-                            frames.data(), ws[gi]->data(), c.frames, pixels};
-                        auto inv = make_auto_inv(
-                            v, out.data(), frames, *ws[gi], 4u,
-                            "-reuse4", static_cast<std::uint64_t>(gi + 1));
-                        auto r = run_auto(spd, inv, out.data(), pixels,
-                                          route_reason);
-                        frames_uploads =
-                            r.transfer_stats.frames_upload_count;
-                        last_weights_uploads =
-                            r.transfer_stats.weights_upload_count;
-                        const auto es = astro::compute::weighted_integration::
-                            compare(reuse_refs[gi], out);
-                        if (!es.finite || es.max_abs > 2e-5 ||
-                            es.relative_l2 > 2e-6 ||
-                            es.coverage != pixels) {
-                            ok_all = false;
-                        }
+            for (int w = 0; w < args.warmup; ++w) {
+                for (std::size_t gi = 0; gi < 4; ++gi) {
+                    WeightedIntegrationView v{
+                        frames.data(), ws[gi]->data(), c.frames, pixels};
+                    auto inv = make_auto_inv(
+                        v, out.data(), frames, *ws[gi], 4u, "-reuse4",
+                        static_cast<std::uint64_t>(gi + 1));
+                    run_auto(spd, inv, out.data(), pixels, route_reason);
+                }
+            }
+            for (int r = 0; r < args.repeats; ++r) {
+                const auto t0 = std::chrono::steady_clock::now();
+                for (std::size_t gi = 0; gi < 4; ++gi) {
+                    WeightedIntegrationView v{
+                        frames.data(), ws[gi]->data(), c.frames, pixels};
+                    auto inv = make_auto_inv(
+                        v, out.data(), frames, *ws[gi], 4u, "-reuse4",
+                        static_cast<std::uint64_t>(gi + 1));
+                    auto rr = run_auto(spd, inv, out.data(), pixels,
+                                       route_reason);
+                    const auto es = astro::compute::weighted_integration::
+                        compare(reuse_refs[gi], out);
+                    if (!es.finite || es.max_abs > 2e-5 ||
+                        es.relative_l2 > 2e-6 ||
+                        es.coverage != pixels) {
+                        ok_all = false;
                     }
-                },
-                args.warmup, args.repeats);
+                    if (gi == 3) {
+                        samples.push_back(
+                            {std::chrono::duration<double, std::milli>(
+                                 std::chrono::steady_clock::now() - t0)
+                                 .count(),
+                             std::move(rr)});
+                    }
+                }
+            }
+            std::sort(samples.begin(), samples.end(),
+                      [](const auto& a, const auto& b) {
+                          return a.first < b.first;
+                      });
+            Timed t;
+            t.total_median_ms = samples[samples.size() / 2].first;
+            t.total_min_ms = samples.front().first;
+            t.total_p90_ms = samples[static_cast<std::size_t>(
+                0.9 * static_cast<double>(samples.size() - 1))].first;
+            const auto& med_rpt = samples[samples.size() / 2].second;
             const auto vr1 = vram_used_bytes(bapi, gpu_handle);
             nlohmann::json extra;
             extra["route_reason"] = route_reason;
             extra["execution_shape"] =
                 route_reason.substr(route_reason.find_last_of(':') + 1);
-            extra["frames_upload_count"] = frames_uploads;      // 应为 1
-            extra["weights_upload_count"] = last_weights_uploads;
+            extra["frames_upload_count"] =
+                med_rpt.transfer_stats.frames_upload_count;
+            extra["weights_upload_count"] =
+                med_rpt.transfer_stats.weights_upload_count;
             extra["peak_vram_bytes"] = vr1 > vr0 ? vr1 - vr0 : 0;
             extra["observed_max_in_flight"] = 1;
+            fill_real_stats(extra, med_rpt);
             rep.add("auto_resident_reuse4", ok_all ? "PASS" : "FAIL",
                     t, 4, true, openmp_reuse4.total_median_ms,
                     reuse_refs[3], out, pixels, extra);
@@ -1333,9 +1394,6 @@ int main(int argc, char** argv) {
             (perf_ok && auto_all_within_10) ? "QUALIFIED"
                                             : "PERFORMANCE_NOT_QUALIFIED";
     }
-    qualification["ready_for_business_adapter"] =
-        correctness_pass && route_profile_ready &&
-        qualification["performance"] == "QUALIFIED";
     qualification["reason"] = perf_reason;
     // schema 1.3 gates（08 计划 I.2/I.3 + G.5：全部由真实字段生成）
     const bool perf_mode = !args.correctness_only && args.preset != "quick";
@@ -1421,6 +1479,43 @@ int main(int argc, char** argv) {
         configured_streams == 1 && observed_max_in_flight == 1;
     qualification["gates"]["three_clean_ctest_runs"] =
         args.three_clean_ctest_runs;
+    // ACR 基座收尾（04_EVIDENCE_TRUTH.md）：Auto 报告一致性自检——
+    // route_decision 必须来自真实 BDR（非 auto_unknown）、execution_shape
+    // 非空、stats 字段存在。
+    bool report_consistency = true;
+    for (const auto& jj : case_jsons) {
+        for (const auto& m : jj["modes"]) {
+            if (!m["mode"].get<std::string>().empty() &&
+                m["mode"].get<std::string>().rfind("auto_", 0) == 0) {
+                const std::string rd =
+                    m.value("route_decision", std::string("auto_unknown"));
+                const std::string es =
+                    m.value("execution_shape", std::string(""));
+                const std::string brd = m.value(
+                    "benchmark_route_decision", std::string(""));
+                if (rd == "auto_unknown" || rd.empty() || es.empty() ||
+                    brd.empty()) {
+                    report_consistency = false;
+                }
+            }
+        }
+    }
+    qualification["gates"]["report_consistency"] = report_consistency;
+    // 最终 READY：Benchmark 程序汇总自身可知硬门（含 CI 传入的
+    // three_clean_ctest_runs），sanitizer/HEAD/SHA 由打包器在审核包汇总。
+    // 避免 three_clean_ctest_runs=false 而 READY=true 的矛盾。
+    const bool benchmark_ready =
+        correctness_pass && route_profile_ready &&
+        !route_profile.operations.empty() &&
+        route_profile.operations.front().qualified &&
+        replay_all_within_10 &&
+        (perf_mode
+             ? qualification["gates"]["true_cold_semantics"] == true
+             : false) &&
+        metrics_complete && report_consistency &&
+        args.three_clean_ctest_runs;
+    qualification["benchmark_ready"] = benchmark_ready;
+    qualification["ready_for_business_adapter"] = benchmark_ready;
     report["qualification"] = qualification;
     for (auto& jj : case_jsons) {
         report["cases"].push_back(jj);
