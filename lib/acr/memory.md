@@ -564,3 +564,42 @@ READY_FOR_BUSINESS_ADAPTER=false。
 证据 run/evidence/acr_bdr3_20260808/（3 轮 CTest 日志、standard/quick 报告、
 Replay 明细、可移植 SHA 清单）；审核包
 AstroCS_Review_ACRScenarioQualificationChunk2D_20260809.zip（SHA 见交付记录）。
+
+### 2026-08-09 Dispatcher Finalization（最终 HEAD 560c417，控制包 426D9A51...3A37E）
+
+**本轮完成（08 计划 1-10）**：
+1. Final 真正 untouched：拆 `select_model_on_probe` / `evaluate_fixed_model_on_final`；
+   Final 只使用冻结 interpolation_id，`evaluate_final` 断言不修改模型；回归测试 4 项。
+2. `interpolate_e2e()` iterator UB 修复：`lower_bound` 返回的 `usable` 迭代器改与
+   `usable.end()` 比较；新增 usable-end / adaptive 单帧边界测试。
+3. Profile 发布：standard 唯一权威；quick 只写 `*.quick.tmp.json` 且不改权威槽位
+   （quick 后 authoritative SHA 不变）；Profile 写 calibration_preset/head/run_id/
+   generated_utc；qualified 状态校验要求 standard 元数据。
+4. RouteProfileV2 正式接入 Dispatcher：DispatcherConfig.route_profile_v2 + 顶层
+   BenchmarkRouteEstimator 决策；OpenMP→legacy_parallel_launcher、GPU Direct→仅 GPU
+   executor、Mixed→SharedWorkPool（旧 planner 不做顶层资格）；ExecutionReport 记录
+   benchmark_route_decision/reason/predicted_ms/chunk 建议；失败路径记录真实错误。
+5. LegacyParallelLauncher 注册：加权积分注册完整 OpenMP launcher（业务现有 OpenMP
+   函数直接复用，无需重写 range 核心）。
+6. route-regret Adaptive：场景联合（Probe 点三候选同坐标），regret>1.05 优先补
+   错路由坐标，同坐标三路径一起加入 Fit；最多 2 轮；无 regret 超标时按最大误差补。
+7. 加权积分样例 Auto 全部走统一 Dispatcher 入口（删除样例层三路 if/else）；
+   BDR 未 qualified 时生产自动 legacy OpenMP。
+8. Route Replay 达到 24/24（每场景 8 点，standard/quick 均 within 10%，
+   max_slowdown=1.0）。
+9. 三场景仍未全 qualified（如实）：GPU Direct 三场景 final max 误差 8.9%/12.9%/
+   12.3% 已 trusted；OpenMP 24.2%–44.8%、Mixed 15.9%–33.2% 仍超 15% 门 →
+   scenario_qualified=false、op.qualified=false、READY_FOR_BUSINESS_ADAPTER=false。
+10. 稳定证据：CTest -j1 连续 3 轮 635/635、0 失败、10 项准确跳过；
+    compute-sanitizer memcheck 0 errors / racecheck 0 hazards；MSVC ASan 因本机
+    commit 上限（ASan 初始化 calloc ~235GB > 系统 ~77GB）无法运行，如实记录
+    （同二进制 2026-08-08 PASS，非代码回归）。
+
+**限制（如实）**：OpenMP/Mixed E2E 模型 Final 误差仍超 15% 门（下一阶段需改进
+OpenMP/Mixed 成本模型或标定策略）；MSVC ASan CPU 核心本轮环境不可运行；
+生产未接入（READY_FOR_BUSINESS_ADAPTER=false）。未放宽任何误差门。
+
+**交付**：6 个提交（be0f608..560c417）push 到 feature/astrocompute-runtime；
+证据 run/evidence/acr_bdr_dispatcher_finalization_20260809/（含权威 Profile、
+24/24 Replay、quick 不覆盖 SHA、3 轮 CTest、sanitizer、可移植 SHA 清单）；
+审核包 AstroCS_Review_ACRDispatcherFinalization_20260809.zip（SHA 见交付记录）。
