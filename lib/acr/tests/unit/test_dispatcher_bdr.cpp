@@ -538,3 +538,289 @@ TEST(DispatcherBdr, BufferBytesFollowElementSize) {
     }
     astro::compute::runtime_shutdown();
 }
+
+// ============================================================================
+// ACR 基座收尾（02/03）：同指针 generation、VRAM 门禁、GPU Direct 失败回退
+// ============================================================================
+
+// 可注入故障的 fake CUDA executor（仅用于回退/失效语义验证）。
+class FakeGpuExecutor : public DeviceExecutor {
+public:
+    bool fail_prefetch{false};
+    bool fail_submit{false};
+    int invalidate_calls{0};
+
+    DeviceId id() const override { return static_cast<DeviceId>(1); }
+    std::string device_id() const override { return "cuda:0"; }
+    std::string backend_type() const override { return "cuda"; }
+    bool available() const override { return true; }
+    bool supports(OperationId op) const override {
+        return op == kOp;
+    }
+    QueueState queue_state() const override { return QueueState{}; }
+    std::size_t recommended_chunk() const override { return 1u << 18; }
+    std::size_t min_effective_chunk() const override { return 1024; }
+    std::string name() const override { return "fake-cuda:0"; }
+    bool prefetch_input(const void*, std::size_t) override {
+        return !fail_prefetch;
+    }
+    bool prefetch_inputs(const std::vector<const void*>&,
+                         const std::vector<std::size_t>&) override {
+        return !fail_prefetch;
+    }
+    void invalidate_input(const void*) override { ++invalidate_calls; }
+    SubmitHandle submit(const WorkToken&,
+                        const KernelInvocation&) override {
+        SubmitHandle h;
+        h.device = id();
+        if (fail_submit) {
+            h.status = SubmitStatus::Failed;
+            h.error = "injected submit failure";
+        } else {
+            h.status = SubmitStatus::Ok;
+            h.items_done = 0;
+        }
+        return h;
+    }
+};
+
+// 同 host 指针原地修改 + generation++：executor 必须失效驻留视图并真实重传。
+TEST(DispatcherBdr, SamePointerGenerationInvalidatesAndReuploads) {
+    if (!gpu_available()) {
+        GTEST_SKIP() << "no CUDA bridge/device; skipped";
+    }
+    astro::compute::runtime_init();
+    astro::compute::weighted_integration::register_weighted_integration_kernels();
+    RouteProfileV2 profile = make_profile("gpu");
+
+    auto regs = std::make_shared<ExecutorRegistry>(
+        ExecutorRegistry::create_auto());
+    Dispatcher d;
+    DispatcherConfig cfg;
+    cfg.devices = {{"cpu", 0, 0, 50.0, true}, {"cuda:0", 1, 0, 500.0, true}};
+    cfg.executors = regs;
+    cfg.route_mode = RouteMode::AutoMixed;
+    cfg.route_profile_v2 = &profile;
+    d.configure(cfg);
+
+    const std::size_t n = 1u << 18;
+    const std::uint32_t frames = 16u;
+    auto fb = make_frames(n, frames, 0xA11u);
+    auto w = make_weights(frames, 0xB22u);
+    std::vector<float> out(n, 0.0f);
+    KernelInvocation inv = make_inv(n, frames, fb, w, out, 1, "-spg");
+
+    // setup：真实建立 frames/weights 驻留（gen 0）
+    ASSERT_TRUE(d.establish_input_residency(inv));
+    auto r0 = d.dispatch_invocation(make_task(n),
+                                    make_estimate(1u << 16, 1u << 18), inv);
+    ASSERT_TRUE(r0.run_result.all_done);
+    EXPECT_EQ(r0.benchmark_route_decision, "gpu_direct");
+    EXPECT_EQ(r0.transfer_stats.h2d_bytes, 0u);  // resident 复用
+
+    // 不换 vector/data 地址，原地修改 weights 内容 + generation++
+    for (auto& x : w) x = 1.0f - x;
+    inv.buffers.bindings[2].generation = 1;
+
+    auto r1 = d.dispatch_invocation(make_task(n),
+                                    make_estimate(1u << 16, 1u << 18), inv);
+    ASSERT_TRUE(r1.run_result.all_done);
+    // 第二次必须真实 H2D（weights 重传；frames 不变不重传）
+    EXPECT_GT(r1.transfer_stats.h2d_bytes, 0u);
+    EXPECT_LT(r1.transfer_stats.h2d_bytes, fb.size() * sizeof(float));
+
+    // 结果与 CPU reference（新 weights）一致
+    astro::compute::weighted_integration::WeightedIntegrationView v{
+        fb.data(), w.data(), frames, n};
+    std::vector<float> ref(n);
+    for (std::size_t p = 0; p < n; ++p) {
+        ref[p] =
+            astro::compute::weighted_integration::integrate_one_pixel(v, p);
+    }
+    const auto es = astro::compute::weighted_integration::compare(ref, out);
+    EXPECT_TRUE(es.finite);
+    EXPECT_LE(es.max_abs, 2e-5);
+
+    // 第三次 generation 不变：不重复上传
+    auto r2 = d.dispatch_invocation(make_task(n),
+                                    make_estimate(1u << 16, 1u << 18), inv);
+    ASSERT_TRUE(r2.run_result.all_done);
+    EXPECT_EQ(r2.transfer_stats.h2d_bytes, 0u);
+    astro::compute::runtime_shutdown();
+}
+
+// frames generation 不变不重传；weights 同指针 generation 递增只重传 weights。
+TEST(DispatcherBdr, FramesPersistWeightsGenerationReuploads) {
+    if (!gpu_available()) {
+        GTEST_SKIP() << "no CUDA bridge/device; skipped";
+    }
+    astro::compute::runtime_init();
+    astro::compute::weighted_integration::register_weighted_integration_kernels();
+    RouteProfileV2 profile = make_profile("gpu");
+
+    auto regs = std::make_shared<ExecutorRegistry>(
+        ExecutorRegistry::create_auto());
+    Dispatcher d;
+    DispatcherConfig cfg;
+    cfg.devices = {{"cpu", 0, 0, 50.0, true}, {"cuda:0", 1, 0, 500.0, true}};
+    cfg.executors = regs;
+    cfg.route_mode = RouteMode::AutoMixed;
+    cfg.route_profile_v2 = &profile;
+    d.configure(cfg);
+
+    const std::size_t n = 1u << 18;
+    const std::uint32_t frames = 16u;
+    auto fb = make_frames(n, frames, 0xC33u);
+    auto w = make_weights(frames, 0xD44u);
+    std::vector<float> out(n, 0.0f);
+    KernelInvocation inv = make_inv(n, frames, fb, w, out, 4, "-fw");
+    ASSERT_TRUE(d.establish_input_residency(inv));
+    auto r0 = d.dispatch_invocation(make_task(n),
+                                    make_estimate(1u << 16, 1u << 18), inv);
+    ASSERT_TRUE(r0.run_result.all_done);
+    EXPECT_EQ(r0.transfer_stats.frames_upload_count, 1u);
+
+    // 原地更新 weights（frames gen 保持 0，weights gen 递增）
+    for (auto& x : w) x = 0.25f + 0.75f * x;
+    inv.buffers.bindings[2].generation = 1;
+    auto r1 = d.dispatch_invocation(make_task(n),
+                                    make_estimate(1u << 16, 1u << 18), inv);
+    ASSERT_TRUE(r1.run_result.all_done);
+    EXPECT_GT(r1.transfer_stats.h2d_bytes, 0u);
+    EXPECT_LT(r1.transfer_stats.h2d_bytes, fb.size() * sizeof(float));
+    // frames 仍只上传一次（slot0 计数不变）；weights slot1 计数增加
+    EXPECT_EQ(r1.transfer_stats.frames_upload_count, 1u);
+    EXPECT_GE(r1.transfer_stats.weights_upload_count, 1u);
+    astro::compute::runtime_shutdown();
+}
+
+// VRAM 不足：BDR 决策前真实快照使 GPU Direct 不可行，Auto 回退 OpenMP。
+TEST(DispatcherBdr, VramInsufficientDisablesGpuDirect) {
+    astro::compute::runtime_init();
+    astro::compute::weighted_integration::register_weighted_integration_kernels();
+    RouteProfileV2 profile = make_profile("gpu");
+
+    auto regs = std::make_shared<ExecutorRegistry>(
+        ExecutorRegistry::create_cpu_only());
+    Dispatcher d;
+    DispatcherConfig cfg;
+    cfg.devices = {{"cpu", 0, 0, 50.0, true}};
+    cfg.executors = regs;
+    cfg.route_mode = RouteMode::AutoMixed;
+    cfg.route_profile_v2 = &profile;
+    // 注入极低 VRAM headroom（1 字节）：GPU Direct 增量需求必超
+    utilization::MemoryBudget mb;
+    mb.ram_valid = true;
+    mb.limit_ram = 1u << 30;
+    mb.used_ram = 1u << 20;
+    utilization::GpuMemoryBudget g;
+    g.backend = "cuda:0";
+    g.valid = true;
+    g.limit_vram = 1u << 20;
+    g.used_vram = (1u << 20) - 1u;
+    mb.gpus.push_back(g);
+    cfg.memory_sampler_override = [mb]() { return mb; };
+    d.configure(cfg);
+
+    const std::size_t n = 1u << 20;
+    const std::uint32_t frames = 16u;
+    auto fb = make_frames(n, frames, 0xE55u);
+    auto w = make_weights(frames, 0xF66u);
+    std::vector<float> out(n, 0.0f);
+    KernelInvocation inv = make_inv(n, frames, fb, w, out);
+    auto r = d.dispatch_invocation(make_task(n),
+                                   make_estimate(1u << 16, 1u << 18), inv);
+    ASSERT_TRUE(r.run_result.all_done);
+    EXPECT_EQ(r.benchmark_route_decision, "openmp");
+    EXPECT_EQ(r.actual_execution_shape, "legacy_openmp");
+    astro::compute::runtime_shutdown();
+}
+
+// GPU Direct prefetch 失败：Auto 不提交部分结果，完整域 Legacy OpenMP 重算。
+TEST(DispatcherBdr, GpuPrefetchFailureFallsBackOpenMP) {
+    astro::compute::runtime_init();
+    astro::compute::weighted_integration::register_weighted_integration_kernels();
+    RouteProfileV2 profile = make_profile("gpu");
+
+    auto regs = std::make_shared<ExecutorRegistry>(
+        ExecutorRegistry::create_cpu_only());
+    auto* fake = new FakeGpuExecutor();
+    fake->fail_prefetch = true;
+    regs->register_executor(
+        std::unique_ptr<DeviceExecutor>(fake));
+
+    Dispatcher d;
+    DispatcherConfig cfg;
+    cfg.devices = {{"cpu", 0, 0, 50.0, true}, {"cuda:0", 1, 0, 500.0, true}};
+    cfg.executors = regs;
+    cfg.route_mode = RouteMode::AutoMixed;
+    cfg.route_profile_v2 = &profile;
+    cfg.invocation_cpu_workers = 2;
+    d.configure(cfg);
+
+    const std::size_t n = 1u << 18;
+    const std::uint32_t frames = 16u;
+    auto fb = make_frames(n, frames, 0x777u);
+    auto w = make_weights(frames, 0x888u);
+    std::vector<float> out(n, 0.0f);
+    KernelInvocation inv = make_inv(n, frames, fb, w, out);
+    auto r = d.dispatch_invocation(make_task(n),
+                                   make_estimate(1u << 16, 1u << 18), inv);
+    ASSERT_TRUE(r.run_result.all_done);
+    EXPECT_EQ(r.benchmark_route_decision, "gpu_direct");
+    EXPECT_EQ(r.actual_execution_shape, "legacy_openmp");
+    EXPECT_TRUE(r.benchmark_fallback);
+    EXPECT_FALSE(r.benchmark_fallback_reason.empty());
+    EXPECT_EQ(r.chunks_on_cpu, 1u);
+    EXPECT_EQ(r.chunks_on_gpu, 0u);
+    bool nonzero = false;
+    for (float v : out) {
+        if (v != 0.0f) { nonzero = true; break; }
+    }
+    EXPECT_TRUE(nonzero);
+    astro::compute::runtime_shutdown();
+}
+// GPU Direct submit 失败：Auto 不提交部分结果，完整域 Legacy OpenMP 重算。
+TEST(DispatcherBdr, GpuSubmitFailureFallsBackOpenMP) {
+    astro::compute::runtime_init();
+    astro::compute::weighted_integration::register_weighted_integration_kernels();
+    RouteProfileV2 profile = make_profile("gpu");
+
+    auto regs = std::make_shared<ExecutorRegistry>(
+        ExecutorRegistry::create_cpu_only());
+    auto* fake = new FakeGpuExecutor();
+    fake->fail_submit = true;
+    regs->register_executor(
+        std::unique_ptr<DeviceExecutor>(fake));
+
+    Dispatcher d;
+    DispatcherConfig cfg;
+    cfg.devices = {{"cpu", 0, 0, 50.0, true}, {"cuda:0", 1, 0, 500.0, true}};
+    cfg.executors = regs;
+    cfg.route_mode = RouteMode::AutoMixed;
+    cfg.route_profile_v2 = &profile;
+    cfg.invocation_cpu_workers = 2;
+    d.configure(cfg);
+
+    const std::size_t n = 1u << 18;
+    const std::uint32_t frames = 16u;
+    auto fb = make_frames(n, frames, 0x999u);
+    auto w = make_weights(frames, 0xAAAu);
+    std::vector<float> out(n, 0.0f);
+    KernelInvocation inv = make_inv(n, frames, fb, w, out);
+    auto r = d.dispatch_invocation(make_task(n),
+                                   make_estimate(1u << 16, 1u << 18), inv);
+    ASSERT_TRUE(r.run_result.all_done);
+    EXPECT_EQ(r.benchmark_route_decision, "gpu_direct");
+    EXPECT_EQ(r.actual_execution_shape, "legacy_openmp");
+    EXPECT_TRUE(r.benchmark_fallback);
+    EXPECT_FALSE(r.benchmark_fallback_reason.empty());
+    EXPECT_EQ(r.chunks_on_cpu, 1u);
+    EXPECT_EQ(r.chunks_on_gpu, 0u);
+    bool nonzero = false;
+    for (float v : out) {
+        if (v != 0.0f) { nonzero = true; break; }
+    }
+    EXPECT_TRUE(nonzero);
+    astro::compute::runtime_shutdown();
+}
