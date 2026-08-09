@@ -264,6 +264,41 @@ void pix2ang_nest(uint32_t nside, uint64_t ipix, double& ra_deg, double& dec_deg
     dec_deg = dec_rad * 180.0 / kPi;
 }
 
+
+// ============================================================================
+// nested_local_to_xy / xy_to_nested_local - NESTED 局部索引 <-> 二维 xy
+// shift = 每轴位数 (tile 512×512 → 9); local 占用 2*shift 位 (x 偶数位, y 奇数位)
+// ============================================================================
+void nested_local_to_xy(uint64_t local, uint32_t shift, uint32_t& x, uint32_t& y) {
+    if (shift >= 32) shift = 31;
+    nest_to_xy(local, shift, x, y);
+}
+
+uint64_t xy_to_nested_local(uint32_t x, uint32_t y, uint32_t shift) {
+    if (shift >= 32) shift = 31;
+    return xy_to_nest(x, y, shift);
+}
+
+// ============================================================================
+// 标准 HiPS Image tile 排列 (IVOA HiPS 1.0, CDS Hipsgen MAPTILES Oracle 冻结):
+//   FITS 列 = y, FITS 行 = tile_width-1-x, 行主序 = (tile_width-1-x)*tile_width + y
+// ============================================================================
+uint64_t nested_local_to_fits_index(uint64_t local, uint32_t shift, uint32_t tile_width) {
+    uint32_t x = 0, y = 0;
+    nested_local_to_xy(local, shift, x, y);
+    const uint32_t maxv = (tile_width > 0) ? (tile_width - 1u) : 0u;
+    return (uint64_t)((x <= maxv ? maxv - x : 0u)) * (uint64_t)tile_width + (uint64_t)y;
+}
+
+uint64_t fits_index_to_nested_local(uint64_t fits_index, uint32_t shift, uint32_t tile_width) {
+    if (tile_width == 0) return 0;
+    const uint32_t row = (uint32_t)(fits_index / (uint64_t)tile_width);
+    const uint32_t col = (uint32_t)(fits_index % (uint64_t)tile_width);
+    const uint32_t maxv = tile_width - 1u;
+    const uint32_t x = (row <= maxv) ? (maxv - row) : 0u;
+    const uint32_t y = col;
+    return xy_to_nested_local(x, y, shift);
+}
 double angular_distance_deg(double ra1, double dec1, double ra2, double dec2) {
     const double d1 = dec1 * kPi / 180.0;
     const double d2 = dec2 * kPi / 180.0;
@@ -284,3 +319,4 @@ uint64_t child_nest(uint64_t ipix, uint32_t shift) {
 
 } // namespace healpix
 } // namespace astrocs
+

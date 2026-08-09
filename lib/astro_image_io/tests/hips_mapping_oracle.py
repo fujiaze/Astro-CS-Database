@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
-"""HiPS tile mapping 独立 Oracle (Phase1 Final Closure V3, 06_HIPS_STANDARD_STRUCTURE).
+"""HiPS tile mapping 自洽 Oracle (V5 HIPS-IMG-001, 标准排列).
 
 生成 native HEALPix 图 (value = NESTED ipix), 经 AstroCS 流式直写为 HiPS,
-再用 astropy-healpix (独立实现) 逐像素验证:
-  tile(parent_ipix @ order K) pixel (x,y) 位置上的值 == 对应叶 ipix。
+再用 astropy-healpix (独立实现) 逐像素验证标准排列:
+  fits_index = (511 - x) * 512 + y, (x,y) = NESTED local 位解交错
+  (x=偶数位, y=奇数位); 标准由 CDS Hipsgen MAPTILES 外部 Oracle 冻结
+  (见 v5_maptile_oracle.py 与 run/temp/v5_oracle 证据)。
 
 覆盖: 12 base faces, 全部 tile 四角/四边/中心, 随机像素抽样,
       Dir9999/10000 边界 (ipix 9999/10000/19999/20000 附近)。
@@ -129,9 +131,12 @@ def main():
                              f"Npix{npf}.fits")
             cache[parent] = fits.getdata(p)
         sig = cache[parent]
-        x = z % 512
-        y = z // 512
-        got = sig[y, x]
+        x = 0
+        y = 0
+        for b in range(9):
+            x |= ((z >> (2 * b)) & 1) << b
+            y |= ((z >> (2 * b + 1)) & 1) << b
+        got = sig[511 - x, y]
         expect = float(ipix) / a_cell
         if not np.isclose(got, expect, rtol=1e-9, atol=1e-6):
             mismatch += 1

@@ -25,6 +25,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <ctime>
 #include <cstdlib>
 #include <cerrno>
 #include <limits>
@@ -73,6 +74,32 @@ static bool iso_to_mjd(const std::string& iso, double& mjd) {
     return true;
 }
 
+
+// 当前 UTC 时间 (finalize 时生成, 禁止硬编码日期)
+void utc_now_iso(char* buf, size_t n) {
+    const std::time_t t = std::time(nullptr);
+    std::tm tm{};
+#ifdef _WIN32
+    gmtime_s(&tm, &t);
+#else
+    gmtime_r(&t, &tm);
+#endif
+    std::snprintf(buf, n, "%04d-%02d-%02dT%02d:%02d:%02dZ",
+                  tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+                  tm.tm_hour, tm.tm_min, tm.tm_sec);
+}
+
+void utc_now_date(char* buf, size_t n) {
+    const std::time_t t = std::time(nullptr);
+    std::tm tm{};
+#ifdef _WIN32
+    gmtime_s(&tm, &t);
+#else
+    gmtime_r(&t, &tm);
+#endif
+    std::snprintf(buf, n, "%04d-%02d-%02d",
+                  tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
+}
 uint32_t ilog2_u64(uint64_t v) {
     uint32_t l = 0;
     while (v > 1) { v >>= 1; ++l; }
@@ -387,8 +414,13 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
     if (view->valid_mask)
         valid.assign((const uint8_t*)view->valid_mask, (const uint8_t*)view->valid_mask + n);
 
+    // V5 (HIPS-IMG-001): view->flux_sum/covered_area/valid_mask 以 NESTED local
+    // 索引 (Drizzle 热路径保持 NESTED), 写 FITS 前经共享 HEALPix core 标准映射
+    // scatter: fits_index = (tile_width-1-x)*tile_width + y, x/y 由 local 位解交错
     double tile_covered = 0.0;
     for (size_t i = 0; i < n; ++i) {
+        const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(
+            (uint64_t)i, 9u, 512u);
         const bool v = valid.empty() || valid[i];
         double flux = 0.0, area = 0.0;
         if (f32) {
@@ -409,8 +441,8 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
         } else {
             sig = std::numeric_limits<double>::quiet_NaN();
         }
-        if (f32) { sigF[i] = (float)sig; supF[i] = (float)sup; }
-        else     { sigD[i] = sig;        supD[i] = sup; }
+        if (f32) { sigF[fi] = (float)sig; supF[fi] = (float)sup; }
+        else     { sigD[fi] = sig;        supD[fi] = sup; }
     }
 
     // 2. 写 signal/support FITS (CFITSIO + checksum)
@@ -454,14 +486,17 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
         AncestorAcc& acc = ps->hier[(size_t)k][A];
         acc.ensure(f32);
         for (size_t i = 0; i < n; ++i) {
+            // sigF/supF 已 scatter 到标准 FITS 行主序: 按 fi 读取还原 NESTED 单元值
+            const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(
+                (uint64_t)i, 9u, 512u);
             const bool v = valid.empty() || valid[i];
             double flux = 0.0, area = 0.0;
             if (f32) {
-                flux = (double)sigF[i] * (double)supF[i] * ps->A_cell;
-                area = (double)supF[i] * ps->A_cell;
+                flux = (double)sigF[fi] * (double)supF[fi] * ps->A_cell;
+                area = (double)supF[fi] * ps->A_cell;
             } else {
-                flux = sigD[i] * supD[i] * ps->A_cell;
-                area = supD[i] * ps->A_cell;
+                flux = sigD[fi] * supD[fi] * ps->A_cell;
+                area = supD[fi] * ps->A_cell;
             }
             if (!v || !(area > 0.0) || !std::isfinite(flux)) continue;
             // 叶 (P,l) -> A@k 内 order-(k+9) 单元 NESTED 索引
@@ -512,13 +547,16 @@ static bool finalize_image_product(AioHipsProductSet* ps,
     kv.push_back({"hips_creator", "AstroCS (astro_image_io)"});
     kv.push_back({"hips_builder", "AstroCS aio_hips_writer (CFITSIO 4.6.4)"});
     kv.push_back({"hips_estsize", "1000000"});
-    kv.push_back({"hips_release_date", "2026-08-09"});
-    kv.push_back({"hips_creation_date", "2026-08-09T00:00:00Z"});
+    // META-001 (V5): 真实 UTC finalize 时间, 禁止硬编码日期
+    char rel_date[32], cre_date[40];
+    utc_now_date(rel_date, sizeof(rel_date));
+    utc_now_iso(cre_date, sizeof(cre_date));
+    kv.push_back({"hips_release_date", rel_date});
+    kv.push_back({"hips_creation_date", cre_date});
     kv.push_back({"obs_description", "AstroCS Phase1 single-frame HiPS product"});
     kv.push_back({"prov_progenitor", "ivo://astrocs/phase1/drizzle"});
     kv.push_back({"obs_regime", "optical"});
-    kv.push_back({"em_min", "3.0e-07"});
-    kv.push_back({"em_max", "1.1e-06"});
+    // META-002 (V5): 无真实 passband/系统响应波长范围时不伪造 em_min/em_max
     kv.push_back({"hips_hierarchy", "true"});
     kv.push_back({"hips_pixel_scale", buf});
     kv.push_back({"hips_initial_fov", "60"});
@@ -583,7 +621,11 @@ static bool finalize_hierarchy(AioHipsProductSet* ps) {
             cards.push_back({"FIRSTPIX", "0"});
             cards.push_back({"LASTPIX", std::to_string(n - 1)});
             std::string rel = tile_rel_path(k, A, ".fits");
+            // V5 (HIPS-IMG-001): AncestorAcc 以 NESTED local 索引累加,
+            // 写出低阶 hierarchy FITS 时同样 scatter 到标准 HiPS 行主序
             for (size_t i = 0; i < n; ++i) {
+                const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(
+                    (uint64_t)i, 9u, 512u);
                 double area = acc.areaAt(i);
                 double flux = acc.fluxAt(i);
                 double sig = 0.0, sup = 0.0;
@@ -594,8 +636,8 @@ static bool finalize_hierarchy(AioHipsProductSet* ps) {
                 } else {
                     sig = std::numeric_limits<double>::quiet_NaN();
                 }
-                if (bitpix == -32) { sigF[i] = (float)sig; supF[i] = (float)sup; }
-                else               { sigD[i] = sig;        supD[i] = sup; }
+                if (bitpix == -32) { sigF[fi] = (float)sig; supF[fi] = (float)sup; }
+                else               { sigD[fi] = sig;        supD[fi] = sup; }
             }
             if (ps->flags & AIO_HIPS_PRODUCT_SIGNAL) {
                 std::string p = ps->out_dir + "/signal/" + rel;
@@ -641,9 +683,14 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
         FILE* f = std::fopen(p.c_str(), "wb");
         if (!f) { set_error("无法创建 SNR tile: " + p); return false; }
         std::fputs(header, f);
+        // SNR-PREC-001 (V5): FP32 -> %.9g (float32 round-trip),
+        // FP64 -> %.17g (float64 round-trip), 不再使用 %.6f
+        const char* snr_fmt = (ps->data_type == AIO_HIPS_FLOAT32) ? "%.9g" : "%.17g";
+        char line_fmt[64];
+        std::snprintf(line_fmt, sizeof(line_fmt), "%%lld %%.12f %%.12f %s %%u %%u\n", snr_fmt);
         for (const AioHipsSnrPoint* sp : kv.second) {
             // V4: 真实 star_id / quality_flags / photometric_status (禁止硬编码)
-            std::fprintf(f, "%lld %.12f %.12f %.6f %u %u\n",
+            std::fprintf(f, line_fmt,
                          (long long)sp->star_id, sp->ra_deg, sp->dec_deg, sp->snr,
                          sp->quality_flags, sp->photometric_status);
         }
@@ -661,13 +708,16 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
     kv2.push_back({"hips_status", "private master"});
     kv2.push_back({"hips_creator", "AstroCS (astro_image_io)"});
     kv2.push_back({"hips_builder", "AstroCS aio_hips_writer (CFITSIO 4.6.4)"});
-    kv2.push_back({"hips_release_date", "2026-08-09"});
-    kv2.push_back({"hips_creation_date", "2026-08-09T00:00:00Z"});
+    // META-001 (V5): 真实 UTC finalize 时间, 禁止硬编码日期
+    char rel_date2[32], cre_date2[40];
+    utc_now_date(rel_date2, sizeof(rel_date2));
+    utc_now_iso(cre_date2, sizeof(cre_date2));
+    kv2.push_back({"hips_release_date", rel_date2});
+    kv2.push_back({"hips_creation_date", cre_date2});
     kv2.push_back({"obs_description", "AstroCS Phase1 single-frame SNR catalogue HiPS product"});
     kv2.push_back({"prov_progenitor", "ivo://astrocs/phase1/drizzle"});
     kv2.push_back({"obs_regime", "optical"});
-    kv2.push_back({"em_min", "3.0e-07"});
-    kv2.push_back({"em_max", "1.1e-06"});
+    // META-002 (V5): 无真实 passband/系统响应波长范围时不伪造 em_min/em_max
     if (!ps->obs_date.empty()) {
         double t0 = 0.0;
         if (iso_to_mjd(ps->obs_date, t0)) {
@@ -712,12 +762,13 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
             "      <FIELD name=\"star_id\" datatype=\"long\" ucd=\"meta.id\"/>\n"
             "      <FIELD name=\"ra\" datatype=\"double\" unit=\"deg\" ucd=\"pos.eq.ra\"/>\n"
             "      <FIELD name=\"dec\" datatype=\"double\" unit=\"deg\" ucd=\"pos.eq.dec\"/>\n"
-            "      <FIELD name=\"snr\" datatype=\"float\" ucd=\"stat.snr\"/>\n"
+            "      <FIELD name=\"snr\" datatype=\"%s\" ucd=\"stat.snr\"/>\n"
             "      <FIELD name=\"quality_flags\" datatype=\"int\" ucd=\"meta.code.qual\"/>\n"
             "      <FIELD name=\"photometric_status\" datatype=\"int\" ucd=\"meta.code.status\"/>\n"
             "    </TABLE>\n"
             "  </RESOURCE>\n"
-            "</VOTABLE>\n");
+            "</VOTABLE>\n",
+            ps->data_type == AIO_HIPS_FLOAT32 ? "float" : "double");
         std::fclose(f);
     }
     std::vector<uint64_t> uniq;
@@ -878,3 +929,15 @@ int aio_hips_write(
 }
 
 } // extern "C"
+
+
+
+
+
+
+
+
+
+
+
+

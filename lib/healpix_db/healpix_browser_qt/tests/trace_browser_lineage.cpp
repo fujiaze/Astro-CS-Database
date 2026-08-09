@@ -52,7 +52,8 @@ int main(int argc, char** argv) {
         const uint64_t leaf = astrocs::healpix::ang2pix_nest(nside, ra, dec);
         const uint64_t tile = leaf >> 18;
         const uint64_t z = leaf & kMask;
-        const size_t idx = (size_t)((z / kDim) * kDim + (z % kDim));
+        // V5 (HIPS-IMG-001): 共享标准映射 (AIO tile 为 standard HiPS row-major)
+        const uint64_t idx = astrocs::healpix::nested_local_to_fits_index(z, 9u, 512u);
         double sig_d = NAN, sup_d = 0.0;
         int rc_sig = 0, rc_sup = 0;
         if (fp64) {

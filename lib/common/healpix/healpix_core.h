@@ -28,6 +28,21 @@ void pix2ang_nest(uint32_t nside, uint64_t ipix, double& ra_deg, double& dec_deg
 // 像素中心大圆角距 (度)
 double angular_distance_deg(double ra1, double dec1, double ra2, double dec2);
 
+// ---- NESTED 局部索引 ↔ 二维 xy / 标准 HiPS tile 排列 ----
+// tile 为 2^shift × 2^shift 像素 (HiPS 标准 tile_width = 2^shift, 本包 512 → shift=9)。
+// NESTED local index (0 .. 4^shift-1) 的位交错解码: x = 偶数位, y = 奇数位
+// (与 ang2pix_nest 内部 xy_to_nest/nest_to_xy 同一数学核心, 禁止各模块重写)。
+void nested_local_to_xy(uint64_t local, uint32_t shift, uint32_t& x, uint32_t& y);
+uint64_t xy_to_nested_local(uint32_t x, uint32_t y, uint32_t shift);
+
+// 标准 HiPS Image tile 二维排列 (IVOA HiPS 1.0 Image tile packaging,
+// 由 CDS Hipsgen MAPTILES 外部 Oracle 逐像素冻结):
+//   FITS 列 (NAXIS1) = y, FITS 行 (NAXIS2) = tile_width-1-x,
+//   行主序 fits_index = (tile_width-1-x)*tile_width + y
+uint64_t nested_local_to_fits_index(uint64_t local, uint32_t shift, uint32_t tile_width);
+// 逆映射: 标准 FITS 行主序 index -> NESTED local index
+uint64_t fits_index_to_nested_local(uint64_t fits_index, uint32_t shift, uint32_t tile_width);
+
 // ---- NESTED 层级操作 ----
 // 父像素: ipix >> (2*shift), shift = 层级差 (k = order 差)
 uint64_t parent_nest(uint64_t ipix, uint32_t shift);
@@ -61,3 +76,4 @@ inline uint64_t tile_to_leaf_nest(uint64_t tile_ipix, uint32_t tile_order, uint3
 } // namespace astrocs
 
 #endif // ASTROCS_HEALPIX_CORE_H
+

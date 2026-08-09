@@ -45,10 +45,17 @@ AIO_HIPS_RD_EXPORT int aio_hips_tile_ipix(AioHipsDataset* d, int i, uint64_t* ou
 
 // 读取一个叶级 tile 为 float32 (signal/support)。out 至少 512*512*sizeof(float)。
 // 返回 0=成功。
+// V5 (HIPS-IMG-001 §5): out 为 standard HiPS row-major —— out[y*512+x] 中
+// (x,y) 是 tile 二维图像坐标 (FITS NAXIS1=x, NAXIS2=y 原样), 不是 NESTED local。
 AIO_HIPS_RD_EXPORT int aio_hips_read_tile_f32(AioHipsDataset* d, uint64_t ipix, float* out);
 
-// 读取一个叶级 tile 为 float64
+// 读取一个叶级 tile 为 float64 (standard HiPS row-major, 同上)
 AIO_HIPS_RD_EXPORT int aio_hips_read_tile_f64(AioHipsDataset* d, uint64_t ipix, double* out);
+
+// V5 (HIPS-IMG-001 §5): 按 NESTED leaf ipix 查询单像素值。
+// 内部执行 leaf_ipix -> local nested -> 标准 tile xy -> FITS row-major。
+AIO_HIPS_RD_EXPORT int aio_hips_read_leaf_f32(AioHipsDataset* d, uint64_t leaf_ipix, float* out);
+AIO_HIPS_RD_EXPORT int aio_hips_read_leaf_f64(AioHipsDataset* d, uint64_t leaf_ipix, double* out);
 
 // SNR catalogue: 返回点数与数组 (ra[], dec[], snr[], star_id[],
 // quality_flags[], photometric_status[])。调用方分配; 返回实际点数 (0=无)。
@@ -66,3 +73,4 @@ AIO_HIPS_RD_EXPORT const char* aio_hips_reader_last_error(void);
 #endif
 
 #endif // AIO_HIPS_READER_H
+

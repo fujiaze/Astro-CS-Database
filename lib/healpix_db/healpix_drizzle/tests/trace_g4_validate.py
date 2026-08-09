@@ -178,9 +178,13 @@ def main():
             flux_bad += 1
             continue
         sig_arr, sup_arr = entry
-        x = z % 512
-        y = z // 512
-        idx = y * 512 + x
+        # V5 (HIPS-IMG-001): 标准 HiPS 映射 fits_index = (511-x)*512 + y
+        x = 0
+        y = 0
+        for b in range(9):
+            x |= ((z >> (2 * b)) & 1) << b
+            y |= ((z >> (2 * b + 1)) & 1) << b
+        idx = (511 - x) * 512 + y
         signal = sig_arr[idx]
         support = sup_arr[idx]
         if not math.isfinite(signal) or support <= 0:

@@ -226,9 +226,8 @@ static int run_hips_mode(const std::string& dir, JsonOut& json, int n_queries) {
             ref_sig[tile_ipix] = std::move(sig0);
             ref_sup[tile_ipix] = std::move(sup0);
         }
-        const size_t x = (size_t)(z % kTileDim);
-        const size_t y = (size_t)(z / kTileDim);
-        const size_t idx = y * kTileDim + x;
+        // V5 (HIPS-IMG-001): 与 Browser 同一共享标准映射 (不再用 z%512/z/512)
+        const uint64_t idx = astrocs::healpix::nested_local_to_fits_index(z, 9u, 512u);
         const double sig_d = ref_sig[tile_ipix][idx];
         const double sup_d = ref_sup[tile_ipix][idx];
         ++inside;

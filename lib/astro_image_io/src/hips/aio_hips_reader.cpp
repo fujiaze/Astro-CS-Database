@@ -3,6 +3,7 @@
 // ============================================================================
 
 #include "aio_hips_reader.h"
+#include "healpix/healpix_core.h"
 
 #include <fitsio.h>
 
@@ -171,6 +172,24 @@ bool load_tiles_from_moc(AioHipsDataset* d) {
 
 } // namespace
 
+namespace {
+template <typename T>
+int read_leaf_t(AioHipsDataset* d, uint64_t leaf_ipix, T* out) {
+    if (!d || !out) return -1;
+    if (d->tile_width != 512) {
+        set_err("leaf 查询要求 tile_width=512");
+        return -6;
+    }
+    const uint64_t tile = leaf_ipix >> 18;
+    const uint64_t z = leaf_ipix & ((1ULL << 18) - 1ULL);
+    const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(z, 9u, 512u);
+    std::vector<T> tmp((size_t)512 * 512);
+    const int rc = read_tile_t(d, tile, tmp.data());
+    if (rc != 0) return rc;
+    *out = tmp[(size_t)fi];
+    return 0;
+}
+} // namespace
 extern "C" {
 
 AioHipsDataset* aio_hips_open(const char* out_dir, int product) {
@@ -250,6 +269,14 @@ int aio_hips_read_tile_f64(AioHipsDataset* d, uint64_t ipix, double* out) {
     return read_tile_t(d, ipix, out);
 }
 
+
+int aio_hips_read_leaf_f32(AioHipsDataset* d, uint64_t leaf_ipix, float* out) {
+    return read_leaf_t(d, leaf_ipix, out);
+}
+
+int aio_hips_read_leaf_f64(AioHipsDataset* d, uint64_t leaf_ipix, double* out) {
+    return read_leaf_t(d, leaf_ipix, out);
+}
 int aio_hips_read_snr_catalog(AioHipsDataset* d, double* ra, double* dec,
                               double* snr, int64_t* star_id,
                               uint32_t* quality_flags, uint32_t* photometric_status,

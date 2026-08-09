@@ -119,9 +119,7 @@ int main(int argc, char** argv) {
             ref_sig[tile_ipix] = std::move(sig0);
             ref_sup[tile_ipix] = std::move(sup0);
         }
-        const size_t x = (size_t)(z % kTileDim);
-        const size_t y = (size_t)(z / kTileDim);
-        const size_t idx = y * kTileDim + x;
+        const uint64_t idx = astrocs::healpix::nested_local_to_fits_index(z, 9u, 512u);
         const double sig_d = ref_sig[tile_ipix][idx];
         const double sup_d = ref_sup[tile_ipix][idx];
 

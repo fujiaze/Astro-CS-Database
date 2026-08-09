@@ -5,7 +5,9 @@
 // 查询映射:
 //   leaf_ipix = ang2pix_nest(2^leaf_order, ra, dec)
 //   tile_ipix = leaf_ipix >> 18, z = leaf_ipix & (512²-1)
-//   FITS 行主序: x = z % 512, y = z / 512, value = data[y*512 + x]
+//   V5 (HIPS-IMG-001): 共享 HEALPix core 标准映射
+//     fits_index = (511-x)*512 + y, (x,y) = nested_local_to_xy(z, 9)
+//   (不再使用 z % 512 / z / 512 私有线性约定)
 // ============================================================================
 
 #include "hips_browser_backend.h"
@@ -118,9 +120,7 @@ int HipsBrowserBackend::query_pixel(double ra, double dec,
     const uint64_t leaf_ipix = astrocs::healpix::ang2pix_nest(nside, ra, dec);
     const uint64_t tile_ipix = leaf_ipix >> 18;
     const uint64_t z = leaf_ipix & kTileMask;
-    const size_t x = (size_t)(z % kTileDim);
-    const size_t y = (size_t)(z / kTileDim);
-    const size_t idx = y * kTileDim + x;
+    const uint64_t idx = astrocs::healpix::nested_local_to_fits_index(z, 9u, 512u);
 
     std::vector<double> tile((size_t)kTileDim * kTileDim);
     int rc = read_tile(tile_ipix, tile);
