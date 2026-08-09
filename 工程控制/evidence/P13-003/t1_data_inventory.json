@@ -1,0 +1,33 @@
+{
+  "search_results": {
+    "testdata_light_frames": {
+      "raw_size_gb": 21.78,
+      "by_telescope": {
+        "T2": 174,
+        "T1": 0,
+        "T4": 385,
+        "T3": 151
+      },
+      "total": 710
+    },
+    "p11_003_archive": "T1: status=no_data, note='未提供数据, P10-002 标记为 no_data, 不在 P11-003 测试范围'",
+    "t1_device_profile": "status=no_data; telescope/aperture/focal_length/camera/mount 全空; light_dirs=[], master_dir=''",
+    "testdata_index": "T1: status=not_available, datasets=[], calibration_masters_dir=null (占位符)",
+    "note": "testdata/run 中名称含 'T1' 的文件均为无关项 (ACR 构建依赖 test1_run*.json、verify_old dump_main_t1.cpp 等), 无任何 T1 望远镜 Light/校准/说明文档",
+    "t1_frames": [],
+    "t1_dirs": []
+  },
+  "action_taken": "按控制包要求不伪造、不用 T2 冒充; T1 相关 Gate 以外部数据缺失如实记录; Phase1 结论按控制包: code freeze candidate=PASS, dataset-domain freeze=WAITING_T1",
+  "user_action_required": "用户补充 T1 代表数据集 (Light + 对应 masterBias/masterDark/masterFlat + 素材说明) 后, 可运行 T1 full frame to NSIDE + 1024² crop",
+  "generated_at": "2026-08-09",
+  "schema": "AstroCS T1 data inventory v1 (V4 G7)",
+  "branch": "main",
+  "verdict": "BLOCKED_EXTERNAL_DATA: T1 representative dataset unavailable",
+  "search_scope": [
+    "testdata/ (index.json + 全部子目录 + .fit/.fits/.fts 全量枚举)",
+    "run/ (calibrated/drizzle/hiss/logs/temp/worktrees 全量递归)",
+    "工程控制/evidence/P10-002 T1_DEVICE_PROFILE.json",
+    "工程控制/evidence/P11-003 REPRESENTATIVE_FRAMES_ARCHIVE.json",
+    "testdata 各数据集素材说明文档 (素材信息与版权约定.txt / 素材信息.txt)"
+  ]
+}

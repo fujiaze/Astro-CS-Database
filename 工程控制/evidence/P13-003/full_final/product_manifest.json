@@ -1,0 +1,29 @@
+{
+  "product_path": "F:\\Astro dev\\Astro CS Normalization Database\\run\\temp\\v4_final_full\\t4_full_final.hips",
+  "tiles": 285,
+  "hips_order": 7,
+  "n_files": 1099,
+  "snr_properties_sha256": "544904D1C466B74AB765FE6BAFFFFD6B1C92AEF33921B1BA94439B15476F8B12",
+  "signal_properties_sha256": "DB036816A43758DD8EA1691A39BB555DDACE8BA78DFBD759A2740F951769CFFB",
+  "total_bytes": 881396360.0,
+  "snr_points": 1947,
+  "moc_signal_sha256": "114B7023569E10B97254CD86037264D77272393A2460DA7E41870C86E338A382",
+  "representative_tile": {
+    "size": 1054080,
+    "sha256": "9E0B35423529E6EFE5E58C3BBDD668443876D512CD3BDD1DF42F7ABC5B668634",
+    "path": "F:\\Astro dev\\Astro CS Normalization Database\\run\\temp\\v4_final_full\\t4_full_final.hips\\signal\\Norder7\\Dir11\\Npix5166.fits"
+  },
+  "timing_sec": {
+    "read": 0.0817,
+    "total_wall": 58.974,
+    "calibrate": 0.586,
+    "hips_verify": 0.481,
+    "platesolve": 2.558,
+    "drizzle": 49.705,
+    "nside": 0.0001,
+    "psf": 1.836,
+    "snr": 0.0012,
+    "photometric": 0.609
+  },
+  "snr_metadata_xml_sha256": "38432F971AB302B2EB2AAAFE0C8B2C624CD0E45160C86C3D8FAFB9F13CBD6862"
+}

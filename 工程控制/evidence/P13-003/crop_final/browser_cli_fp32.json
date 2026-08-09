@@ -1,0 +1,43 @@
+
+========== DLL 依赖诊断 ==========
+DLL                       状态   路径/错误
+-----------------------------------------------------------------
+astro_image_io.dll        OK       F:\Astro dev\Astro CS Normalization Database\lib\astro_image_io\astro_image_io.dll
+libgcc_s_seh-1.dll        OK       C:\msys64\mingw64\bin\libgcc_s_seh-1.dll
+libstdc++-6.dll           OK       C:\msys64\mingw64\bin\libstdc++-6.dll
+libwinpthread-1.dll       OK       C:\msys64\mingw64\bin\libwinpthread-1.dll
+Qt6Core.dll               OK       C:\msys64\mingw64\bin\Qt6Core.dll
+Qt6Gui.dll                OK       C:\msys64\mingw64\bin\Qt6Gui.dll
+Qt6Widgets.dll            OK       C:\msys64\mingw64\bin\Qt6Widgets.dll
+Qt6OpenGL.dll             OK       C:\msys64\mingw64\bin\Qt6OpenGL.dll
+Qt6OpenGLWidgets.dll      OK       C:\msys64\mingw64\bin\Qt6OpenGLWidgets.dll
+
+[OK] 所有 DLL 依赖正常.
+
+========== HiPS 产品集加载测试 ==========
+产品: F:\Astro dev\Astro CS Normalization Database\run\temp\v4_final_crop\t4_crop_fp32.hips
+[2026-08-09 15:40:41][INFO] hips_backend
+[OK] HiPS 产品集打开: order=7 leaf_order=16 fp64=0 tiles=24
+RESULT: queries=2048 inside=2048 no_data=740 mismatch=0 outside_ok=64/64 snr_rows=997 id_unique=1
+RESULT: PASS
+{
+  "tool": "browser_cli v1.0",
+  "dll_diag": "",
+  "astro_image_io_loaded": true,
+  "astro_image_io_path": "F:\Astro dev\Astro CS Normalization Database\lib\astro_image_io\astro_image_io.dll",
+  "hips_root": "F:\Astro dev\Astro CS Normalization Database\run\temp\v4_final_crop\t4_crop_fp32.hips",
+  "hips_open_time_ms": 5.089400,
+  "hips_open_success": true,
+  "hips_order": 7,
+  "hips_leaf_order": 16,
+  "hips_fp64": false,
+  "hips_n_tiles": 24,
+  "hips_queries": 2048,
+  "hips_inside": 2048,
+  "hips_no_data": 740,
+  "hips_mismatch": 0,
+  "hips_outside_ok": 64,
+  "hips_snr_rows": 997,
+  "hips_snr_id_unique": true,
+  "hips_pass": true
+}

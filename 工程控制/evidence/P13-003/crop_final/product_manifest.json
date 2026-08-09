@@ -1,0 +1,32 @@
+{
+  "t4_crop_fp64.hips": {
+    "path": "F:\\Astro dev\\Astro CS Normalization Database\\run\\temp\\v4_final_crop\\t4_crop_fp64.hips",
+    "total_bytes": 210345435.0,
+    "moc_signal_sha256": "996B36E53FAA8BEAA40EB50DD864FFFB7CBB522F599535E87C5E7641703D2EC3",
+    "representative_tile": {
+      "size": 2102400,
+      "path": "F:\\Astro dev\\Astro CS Normalization Database\\run\\temp\\v4_final_crop\\t4_crop_fp64.hips\\signal\\Norder7\\Dir11\\Npix5547.fits",
+      "sha256": "233D3EFF6D256A389FA0618EC0D4DA4C110C5CFE952DA3E1F2DA2D7C6ABE8D7F"
+    },
+    "metadata_xml_sha256": "38432F971AB302B2EB2AAAFE0C8B2C624CD0E45160C86C3D8FAFB9F13CBD6862",
+    "signal_properties_sha256": "83132C2EAA59AE4AEF547B6B8CE2E6F85D32F2E47178F7E315360E111C7AF109",
+    "signal_properties": "\"creator_did=ivo://astrocs/phase1\\nobs_title=AstroCS Red\\nobs_creator=AstroCS\\nhips_version=1.4\\nhips_order=7\\nhips_tile_width=512\\nhips_frame=equatorial\\ndataproduct_type=image\\ndataproduct_subtype=surface brightness\\nhips_tile_format=fits\\nhips_status=private master\\nhips_creator=AstroCS (astro_image_io)\\nhips_builder=AstroCS aio_hips_writer (CFITSIO 4.6.4)\\nhips_estsize=1000000\\nhips_release_date=2026-08-09\\nhips_creation_date=2026-08-09T00:00:00Z\\nobs_description=AstroCS Phase1 single-frame HiPS product\\nprov_progenitor=ivo://astrocs/phase1/drizzle\\nobs_regime=optical\\nem_min=3.0e-07\\nem_max=1.1e-06\\nhips_hierarchy=true\\nhips_pixel_scale=3.220769\\nhips_initial_fov=60\\nmoc_sky_fraction=0.000122\\nastrocs_covered_sky_fraction=0.000050\\nastrocs_signal_dtype=float64\\nhips_data_range=0.002499 0.119384\\nobs_filter=Red\\nobs_exptime=180.000000\\nobs_date=2025-07-18T00:16:53\\nt_min=60874.01172454\\nt_max=60874.01380787\\n\"",
+    "snr_properties_sha256": "9ED77CF0727C52F7F85D10EA6EF646E9F219C4E2A57B3D6677EBAFF717B779F8",
+    "n_files": 134
+  },
+  "t4_crop_fp32.hips": {
+    "path": "F:\\Astro dev\\Astro CS Normalization Database\\run\\temp\\v4_final_crop\\t4_crop_fp32.hips",
+    "total_bytes": 105513435.0,
+    "moc_signal_sha256": "F390660F91C40200DF33781757E057CF9640DCFB2F26922E3D3140C9E77198CF",
+    "representative_tile": {
+      "size": 1054080,
+      "path": "F:\\Astro dev\\Astro CS Normalization Database\\run\\temp\\v4_final_crop\\t4_crop_fp32.hips\\signal\\Norder7\\Dir11\\Npix5547.fits",
+      "sha256": "86F359699C7B7DC489FB0287FA8DCFC1AB23A1BC856E1937640B2BB3AAF96345"
+    },
+    "metadata_xml_sha256": "38432F971AB302B2EB2AAAFE0C8B2C624CD0E45160C86C3D8FAFB9F13CBD6862",
+    "signal_properties_sha256": "15EC4E236DAF061557C146396DEDC0DB5583C8ECA21DD56796ECC1A332A105BD",
+    "signal_properties": "\"creator_did=ivo://astrocs/phase1\\nobs_title=AstroCS Red\\nobs_creator=AstroCS\\nhips_version=1.4\\nhips_order=7\\nhips_tile_width=512\\nhips_frame=equatorial\\ndataproduct_type=image\\ndataproduct_subtype=surface brightness\\nhips_tile_format=fits\\nhips_status=private master\\nhips_creator=AstroCS (astro_image_io)\\nhips_builder=AstroCS aio_hips_writer (CFITSIO 4.6.4)\\nhips_estsize=1000000\\nhips_release_date=2026-08-09\\nhips_creation_date=2026-08-09T00:00:00Z\\nobs_description=AstroCS Phase1 single-frame HiPS product\\nprov_progenitor=ivo://astrocs/phase1/drizzle\\nobs_regime=optical\\nem_min=3.0e-07\\nem_max=1.1e-06\\nhips_hierarchy=true\\nhips_pixel_scale=3.220769\\nhips_initial_fov=60\\nmoc_sky_fraction=0.000122\\nastrocs_covered_sky_fraction=0.000050\\nastrocs_signal_dtype=float32\\nhips_data_range=0.002499 0.119384\\nobs_filter=Red\\nobs_exptime=180.000000\\nobs_date=2025-07-18T00:16:53\\nt_min=60874.01172454\\nt_max=60874.01380787\\n\"",
+    "snr_properties_sha256": "9ED77CF0727C52F7F85D10EA6EF646E9F219C4E2A57B3D6677EBAFF717B779F8",
+    "n_files": 134
+  }
+}

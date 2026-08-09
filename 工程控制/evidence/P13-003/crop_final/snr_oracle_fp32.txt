@@ -1,0 +1,5 @@
+rows= 997
+wrong_tile_rows= 0
+duplicate_ids= 0
+actual_tile_count= 24
+expected_tile_count= 24
