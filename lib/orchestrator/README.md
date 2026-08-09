@@ -45,8 +45,8 @@ orchestrator.exe --inspect <file.hiss>
 | `photometric` | Gaia 光谱目录、滤光响应、QE 曲线 |
 | `snr` | 估计器 id、采样尺度 |
 | `drizzle` | `mode="precise"`、`pixfrac ∈ (0,1]`、`nside`（auto / explicit 16..4194304）、`ordering="nested"` |
-| `output` | `hiss` 输出、`log` JSONL 日志、`diagnostics_dir`、`overwrite` |
-| `execution` | `stop_after`（read / calibrate / platesolve / psf / photometric / snr / drizzle / hiss_verify / browser_verify）、`threads`、`stage_timeout_sec` |
+| `output` | `hiss`（legacy 对比，可选）、`hips` 生产输出、`log` JSONL 日志、`diagnostics_dir`、`overwrite` |
+| `execution` | `stop_after`（read / calibrate / platesolve / psf / photometric / snr / nside / drizzle / hips_verify / hiss_verify / browser_verify）、`threads`、`stage_timeout_sec` |
 
 ## 路径解析规则
 
@@ -72,13 +72,18 @@ Schema 严格校验（`additionalProperties: false`，缺字段、未知字段�
 | 9 | ASTROCS_TIMEOUT | 阶段超时 |
 | 10 | ASTROCS_CANCELLED | 已取消 |
 
-## Stage1 流水线
+## Stage1 流水线（Phase1 V4 生产链）
 
 ```
-READ_FITS → CALIBRATE → PLATESOLVE → PSF → PHOTOMETRIC → SNR → DRIZZLE → HISS_VERIFY
+READ_FITS → CALIBRATE → PSF → PLATESOLVE → PHOTOMETRIC → SNR → NSIDE
+         → DRIZZLE (PRECISE) → HiPS 直写 (Drizzle→AIO, 无 HISS 中转) → HIPS_VERIFY
 ```
 
-每阶段受 `stage_timeout_sec` 保护；超时/取消时按原子性规则清理部分输出。HISS_VERIFY 遍历全部 Tile，并完成 SNR 控制点原因分类。
+- 生产末端为 **HiPS 1.4**（signal/support 图像 + SNR Catalogue 三个独立子产品），
+  HISS 已 deprecated，仅在 `validation.legacy_hiss_compare=true` 时作为对比产物写出；
+- Browser 后端为 HiPS→AIO Reader（`browser_cli --hips <root>`）。
+
+每阶段受 `stage_timeout_sec` 保护；超时/取消时按原子性规则清理部分输出。HIPS_VERIFY 遍历全部 Tile 与 SNR Catalogue 并完成完整性校验（HISS 路径已废弃）。
 
 ## 编译
 
