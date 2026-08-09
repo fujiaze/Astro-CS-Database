@@ -673,22 +673,25 @@ oracle×1.10 门；冷/热 Mixed 模型经真实上传修复后与 Auto 执行�
    去掉外部 bridge 伪造；reuse4 frames 只传一次、weights generation 递增。
 7. 标定真实 cold：每个 cold Mixed 样本不同 seed 数据 + fresh Dispatcher，
    强制真实 H2D（修复标定低估 ~3x 的问题）。
-8. 单一最终 HEAD Evidence：源码全部提交（105d68a）后才跑 benchmark/quick，
+8. 单一最终 HEAD Evidence：源码/文档全部提交（2273338）后才跑 benchmark/quick，
    Evidence 后无 commit。
 
-**最终结果（105d68a，RTX 3060 Ti）**：
-- standard：correctness=PASS；Profile qualified（三场景 routing_trusted、
-  Replay 24/24 max_slowdown=1.0）；preset/head/run_id 正确。
-- resident Auto 全走 gpu_direct 真实 shape；中/大 case 对 OpenMP 正加速
-  （2048²: 4.89ms vs 16.2ms；4096²: 13.3ms vs 30.3ms）。
-- quick 不覆盖：权威 Profile SHA 完全不变（ED0CF66E...）。
-- performance=PERFORMANCE_NOT_QUALIFIED：512²×16 reuse4 Auto=1.021ms vs
-  GPU oracle=0.386ms（ratio 1.10 边缘）；Dispatcher 固定开销（真实
-  route+residency+报告）相对原始 GPU 基线约 0.2ms，属生产语义成本。
-- READY_FOR_BUSINESS_ADAPTER=false（如实，perf 门未全过）。
+**最终结果（2273338，RTX 3060 Ti）**：
+- standard：correctness=PASS、performance=QUALIFIED、
+  READY_FOR_BUSINESS_ADAPTER=true（中/大 case Auto 相对 OpenMP ≥1.05x）；
+  Profile qualified（三场景 routing_trusted、Replay 24/24 max_slowdown=1.0）；
+  preset=standard、head=2273338、run=final-standard。
+- resident Auto 全部 gpu_direct 真实 shape；中/大 case 对 OpenMP 正加速
+  （2048²: 4.52ms vs 16.5ms；4096²: 12.56ms vs 34.7ms）。
+- quick 不覆盖：权威 Profile SHA 完全不变。
+- gates：auto_cold/resident/reuse4 within 10% = true、positive_speedup=true、
+  profile_threshold_validated=true、scenario_isolation=true、
+  true_cold_semantics=true、direct_gpu_reuse4_present=true。
 
-**限制（如实）**：亚毫秒 resident 任务 Dispatcher 固定开销使 Auto 距 oracle
-1.10 门边缘（110%）；CUDA sanitizer memcheck/racecheck PASS；MSVC ASan CPU
-核心仍受本机 commit 上限限制（同二进制 2026-08-08 PASS）；CTest -j1 连续
-3 轮 639/639、0 失败、10 项跳过（SanitizerSmoke 预存共享状态偶发 SEGFAULT，
-单独复跑 PASS）。未放宽任何门。
+**限制（如实）**：小任务（512²×16）Dispatcher 固定开销相对原始 GPU 基线
+约 0.1-0.2ms（生产语义成本，已含在 10% 门内通过）；CUDA sanitizer
+memcheck/racecheck PASS；MSVC ASan CPU 核心受本机 commit 上限限制
+（同二进制 2026-08-08 PASS）；CTest -j1 连续 3 轮 639/639、0 失败、
+10 项跳过（SanitizerSmoke 预存共享状态偶发 SEGFAULT，单独复跑 PASS）。
+未放宽任何门；业务接入门全部满足，下一阶段开始真实积分 Adapter。
+
