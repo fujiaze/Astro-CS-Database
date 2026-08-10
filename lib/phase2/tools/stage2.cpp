@@ -223,6 +223,14 @@ int main(int argc, char** argv) {
     log("inputs: " + std::to_string(cfg.hips.size()) + " HiPS");
 
     const auto t_start = std::chrono::steady_clock::now();
+    auto t_stage = t_start;
+    auto mark = [&](const char* name) {
+        const auto now = std::chrono::steady_clock::now();
+        const double s = std::chrono::duration<double>(now - t_stage).count();
+        log(std::string("profile ") + name + "=" + std::to_string(s) + "s");
+        t_stage = now;
+        return s;
+    };
 
     // ---- W3 DISCOVER / VALIDATE / COVERAGE UNION ----
     std::vector<const char*> paths;
@@ -250,6 +258,7 @@ int main(int argc, char** argv) {
     log("coverage: inputs=" + std::to_string(cov.n_inputs) +
         " union_cells=" + std::to_string(cov.n_union_cells) +
         " target_order=" + std::to_string(target_order));
+    mark("coverage");
 
     // ---- W4 CONTROL SAMPLE ----
     P2SamplerConfig sccfg{};
@@ -272,6 +281,7 @@ int main(int argc, char** argv) {
     }
     log("control sampling: controls=" + std::to_string(n_ctrl) +
         " observations=" + std::to_string(n_obs));
+    mark("control_sample");
 
     // ---- W4 UPM FIT ----
     P2UpmBuildConfig mcfg{};
@@ -294,6 +304,7 @@ int main(int argc, char** argv) {
         " obs=" + std::to_string(minfo.observation_count) +
         " components=" + std::to_string(minfo.component_count) +
         " hash=" + std::string(minfo.model_hash, 12) + "...");
+    mark("upm_fit");
 
     // ---- W4 UPM PERSIST (diagnostics) ----
     std::string model_path;
@@ -313,6 +324,7 @@ int main(int argc, char** argv) {
         }
         log("UPM persisted: " + model_path + " + dense cache");
     }
+    mark("upm_persist");
 
     // ---- W6 BLOCK PLAN（tile 级；报告峰值估算） ----
     P2BlockPlannerInput bp{};
@@ -329,6 +341,7 @@ int main(int argc, char** argv) {
     log("block plan: tile_pixels=262144 est_peak=" +
         std::to_string(plan.estimated_peak_bytes) +
         " bytes micro_chunk=" + std::to_string(plan.micro_chunk_required));
+    mark("block_plan");
 
     // ---- W8 REJECT + INTEGRATE + HIPS WRITE ----
     const int nside = 1 << (target_order + 9);
@@ -368,6 +381,7 @@ int main(int argc, char** argv) {
 
     std::uint64_t total_pixels = 0, total_rejected = 0, total_fallback = 0;
     std::uint64_t dbg_reject_px = 0, dbg_fallback_px = 0, dbg_zero_px = 0;
+    std::map<std::uint32_t, std::uint64_t> reject_hist;  // 每像素拒绝样本数分布
     std::uint64_t tiles_written = 0;
     std::vector<std::uint8_t> valid(n_leaf);
     std::vector<float> fluxF(n_leaf), areaF(n_leaf);
@@ -460,6 +474,7 @@ int main(int argc, char** argv) {
                 rr.accepted = acc.data();
                 p2_reject_stack(&rv, &rr);
                 total_rejected += rr.rejected_low + rr.rejected_high;
+                ++reject_hist[rr.rejected_low + rr.rejected_high];
                 if (rr.status == 1) ++total_fallback;
                 P2PixelStack pi{};
                 pi.values = stack.data();
@@ -522,6 +537,7 @@ int main(int argc, char** argv) {
         " [reject_px=" + std::to_string(dbg_reject_px) +
         " fb_px=" + std::to_string(dbg_fallback_px) +
         " zero_px=" + std::to_string(dbg_zero_px) + "]");
+    mark("tiles_process");
 
     // ---- HIPS_VERIFY（AIO reader 回读） ----
     {
@@ -547,5 +563,23 @@ int main(int argc, char** argv) {
     const double secs =
         std::chrono::duration<double>(t_end - t_start).count();
     log("stage2 done in " + std::to_string(secs) + " s");
+
+    // ---- G11 诊断 JSON（rejection 统计） ----
+    if (cfg.diagnostics) {
+        nlohmann::json diag;
+        diag["stage2_version"] = 1;
+        diag["tiles_written"] = tiles_written;
+        diag["output_pixels"] = total_pixels;
+        diag["rejected_samples"] = total_rejected;
+        diag["fallback_pixels"] = total_fallback;
+        diag["zero_coverage_pixels"] = dbg_zero_px;
+        diag["reject_method"] = cfg.reject_method;
+        diag["rejection_samples_per_pixel"] = reject_hist;
+        diag["model_hash"] = std::string(minfo.model_hash);
+        diag["runtime_seconds"] = secs;
+        std::ofstream df(cfg.out_hips + "/diagnostics.json");
+        if (df) df << diag.dump(2);
+        log("diagnostics written: " + cfg.out_hips + "/diagnostics.json");
+    }
     return 0;
 }
