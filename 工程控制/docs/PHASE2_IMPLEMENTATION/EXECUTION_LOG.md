@@ -29,10 +29,12 @@ W8 weighted integration 库级 → W9 ACR legacy launcher → W10 robustness。
 | G9 | stage2 阶段 profile（control_sample 9.2s、tiles_process 12.7s） | `ea1751f` |
 | G11 | diagnostics.json（rejection 直方图） | `ea1751f` |
 | G10 | WSL ASan+UBSan+LSan 0 错误 + 2000 随机 rejection/100 随机 UPM fuzz | `dff4998`/`fa77364` |
+| G6 | 全量 synthetic matrix：616 组合（11 深度 × 8 污染 × 7 方法） | `658c02b` |
+| G9 | 真实 CUDA mosaic_reject kernel（bridge 扩展 + CPU/GPU 等价 gate） | `f9a06ac` |
 
 ## 验证
 
-- 合成 gate 20/20 PASS。
+- 合成 gate 21/21 PASS（含 CUDA CPU/GPU 等价）。
 - 真实 crop（T2/T3/t4_crop，互不重叠）：51 tiles、6.99M px 单覆盖 fallback。
 - 真实重叠（t4_crop×t4_full）：285 tiles、61.59M px，重叠区 4.02M px
   2 样本 weighted integration，rejected=0（两帧同源），UPM 1 分量、
@@ -43,7 +45,8 @@ W8 weighted integration 库级 → W9 ACR legacy launcher → W10 robustness。
 
 ## 未完成
 
-- ACR GPU kernel（仅 legacy CPU launcher）。
-- Oracle 全量 synthetic matrix（N=2..500 × 7 污染；已做代表性对照）。
+- ACR GPU kernel 已实现（mosaic_reject，CPU/GPU 等价验证）；stage2 主循环
+  仍直接调用 CPU reference，逐 tile dispatcher 路由为后续工作。
+- Oracle 全量 synthetic matrix 已完成（616 组合）。
 - Aladin GUI smoke（无 GUI 环境）。
 - weight/rejection_count 作为 Image HiPS 产品（当前为 JSON 诊断）。
