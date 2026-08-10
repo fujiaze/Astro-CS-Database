@@ -12,12 +12,15 @@ endif()
 
 add_library(phase2 STATIC
     src/upm.cpp
+    src/sha256.cpp
     src/rejection.cpp
     src/coverage.cpp
+    src/sampler.cpp
     src/block.cpp
     src/integrate.cpp
     src/acr_kernels.cpp
     ../acr/api/kernel_registry.cpp
+    ../common/healpix/healpix_core.cpp
 )
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../acr/include)

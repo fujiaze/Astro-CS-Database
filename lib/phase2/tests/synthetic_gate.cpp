@@ -14,6 +14,7 @@
 
 #include "astro/phase2/upm.h"
 #include "astro/phase2/coverage.h"
+#include "astro/phase2/sampler.h"
 #include "astro/phase2/rejection.h"
 #include "astro/phase2/block.h"
 #include "astro/phase2/integrate.h"
@@ -98,6 +99,43 @@ TEST(Phase2Upm, S2LowSnrDoesNotPullHighSnr) {
     ASSERT_EQ(p2_upm_calibrate_block(model, 0, ipix, in, out, 1), 0);
     EXPECT_NEAR(out[0], 10.0, 0.5);
     p2_upm_close(model);
+}
+
+// W4：UPM 持久化 round-trip + 真实内容哈希 + 连通分量
+TEST(Phase2Upm, SaveOpenRoundtripAndHash) {
+    std::vector<P2ControlObservation> obs{
+        make_obs(0, 0, 10.0, 100.0),
+        make_obs(0, 1, 12.0, 100.0),
+        make_obs(0, 2, 11.0, 100.0),
+        make_obs(1, 0, 15.0, 100.0),
+        make_obs(1, 1, 17.0, 100.0),
+        make_obs(1, 2, 16.0, 100.0),
+    };
+    P2UpmBuildConfig cfg{};
+    void* model = nullptr;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg, &model), 0);
+    P2ModelInfo info{};
+    ASSERT_EQ(p2_upm_info(model, &info), 0);
+    // 真实哈希非占位
+    EXPECT_NE(std::string(info.model_hash), std::string(64, '0'));
+    EXPECT_EQ(info.component_count, 1u);
+    const char* path = "run_tmp_upm_roundtrip.json";
+    ASSERT_EQ(p2_upm_save(model, path), 0);
+    void* model2 = nullptr;
+    ASSERT_EQ(p2_upm_open(path, &model2), 0);
+    P2ModelInfo info2{};
+    ASSERT_EQ(p2_upm_info(model2, &info2), 0);
+    EXPECT_EQ(std::string(info2.model_hash), std::string(info.model_hash));
+    EXPECT_EQ(info2.control_count, info.control_count);
+    std::uint64_t ipix[1] = {0};
+    double in[1] = {15.0};
+    double out1[1] = {0.0}, out2[1] = {0.0};
+    ASSERT_EQ(p2_upm_calibrate_block(model, 1, ipix, in, out1, 1), 0);
+    ASSERT_EQ(p2_upm_calibrate_block(model2, 1, ipix, in, out2, 1), 0);
+    EXPECT_NEAR(out1[0], out2[0], 1e-12);
+    p2_upm_close(model2);
+    p2_upm_close(model);
+    std::remove(path);
 }
 
 TEST(Phase2Upm, SparseEqualsDense) {
@@ -304,4 +342,42 @@ TEST(Phase2Coverage, FilterMismatchRejected) {
     P2CoverageResult cov{};
     cov.n_inputs = 1;
     ASSERT_NE(p2_coverage_build(bad, 1, &cov), 0);
+}
+
+// W4 真实 HiPS：控制点采样（AIO 读取 signal/support/snr）
+TEST(Phase2Sampler, RealHipsControlSampling) {
+    const char* base = "F:/Astro dev/Astro CS Normalization Database/run/temp/phase1_freeze";
+    const std::string t2 = std::string(base) + "/T2_v3.hips/signal/properties";
+    if (!std::ifstream(t2).good()) GTEST_SKIP() << "真实 HiPS 输入不存在";
+    const std::string p0 = std::string(base) + "/T2_v3.hips";
+    const std::string p1 = std::string(base) + "/T3_v3.hips";
+    const char* paths[2] = {p0.c_str(), p1.c_str()};
+
+    P2CoverageResult cov{};
+    cov.n_inputs = 2;
+    P2HipsInputInfo infos[2]{};
+    cov.inputs = infos;
+    ASSERT_EQ(p2_coverage_build(paths, 2, &cov), 0);
+    std::vector<P2MocCell> cells(cov.n_union_cells);
+    cov.union_cells = cells.data();
+    ASSERT_EQ(p2_coverage_build(paths, 2, &cov), 0);
+
+    std::uint64_t n_obs = 0, n_ctrl = 0;
+    char err[512] = {0};
+    ASSERT_EQ(p2_sample_controls(&cov, paths, nullptr, nullptr, 0,
+                                 &n_obs, &n_ctrl, err, sizeof(err)), 0);
+    EXPECT_GT(n_ctrl, 0u);
+    EXPECT_GT(n_obs, 0u);
+    std::vector<P2ControlObservation> obs(n_obs);
+    ASSERT_EQ(p2_sample_controls(&cov, paths, nullptr, obs.data(), n_obs,
+                                 &n_obs, &n_ctrl, err, sizeof(err)), 0);
+    std::uint64_t finite = 0, snr_used = 0;
+    for (const auto& o : obs) {
+        if (std::isfinite(o.value) && std::isfinite(o.uncertainty))
+            ++finite;
+        if (o.snr > 0.0 && o.snr != 1.0) ++snr_used;
+    }
+    EXPECT_EQ(finite, obs.size());
+    EXPECT_GT(snr_used, 0u);
+    p2_coverage_free(&cov);
 }

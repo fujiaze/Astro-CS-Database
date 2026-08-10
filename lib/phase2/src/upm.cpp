@@ -10,10 +10,14 @@
 //   - 输出诊断：iterations/objective/control/observation/component。
 #include "astro/phase2/upm.h"
 
+#include "sha256.h"
+
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <fstream>
 #include <map>
+#include <nlohmann/json.hpp>
 #include <set>
 #include <string>
 #include <vector>
@@ -23,6 +27,10 @@ namespace {
 struct ControlNode {
     std::vector<std::uint64_t> obs_idx;  // 参与该节点的观测
     double z{0.0};                       // 参考值（待求）
+    std::uint64_t leaf_ipix{0};          // 控制拓扑位置（NESTED leaf）
+    double ra_deg{0.0};
+    double dec_deg{0.0};
+    std::uint64_t id{0};                 // 外部 control_id
 };
 
 struct Model {
@@ -48,12 +56,6 @@ inline double huber_w(double r, double d) {
     const double a = std::fabs(r);
     if (a <= d) return 1.0;
     return d / a;
-}
-
-std::string sha256_hex(const void*, std::size_t) {
-    // W4 占位：真实哈希在 W4 完整版（持久化）实现；此处固定长度占位避免
-    // 引入新依赖。缓存校验门在 W5 实现时使用。
-    return std::string(64, '0');
 }
 
 } // namespace
@@ -93,6 +95,10 @@ int p2_upm_build(const P2ControlObservation* obs, std::uint64_t n_obs,
             const std::size_t idx = m->controls.size();
             m->control_by_id[o.control_id] = idx;
             m->controls.push_back(ControlNode{});
+            m->controls.back().leaf_ipix = o.leaf_ipix;
+            m->controls.back().ra_deg = o.ra_deg;
+            m->controls.back().dec_deg = o.dec_deg;
+            m->controls.back().id = o.control_id;
         }
         m->controls[m->control_by_id[o.control_id]].obs_idx.push_back(i);
         frame_ids.insert(o.frame_id);
@@ -179,25 +185,159 @@ int p2_upm_build(const P2ControlObservation* obs, std::uint64_t n_obs,
 
     for (std::size_t k = 0; k < m->controls.size(); ++k) m->controls[k].z = z[k];
     m->frame_offset = std::move(a);
-    m->component_count = 1;  // 连通分量分析在 W4 完整版（图遍历）实现
 
-    // 模型哈希（占位）
-    std::string h = sha256_hex(nullptr, 0);
-    std::memcpy(m->info.model_hash, h.c_str(), 64);
-    m->info.model_hash[64] = '\0';
+    // 连通分量：frame-control 二分图（共同观测约束即边）
+    {
+        const std::size_t F = m->frame_offset.size();
+        const std::size_t K = m->controls.size();
+        std::vector<std::vector<std::size_t>> adj(F + K);
+        for (std::uint64_t i = 0; i < n_obs; ++i) {
+            const std::size_t f = m->frame_index[obs[i].frame_id];
+            const std::size_t ck = m->control_by_id[obs[i].control_id];
+            adj[f].push_back(F + ck);
+            adj[F + ck].push_back(f);
+        }
+        std::vector<std::uint8_t> seen(F + K, 0);
+        std::size_t comps = 0;
+        for (std::size_t start = 0; start < F + K; ++start) {
+            if (seen[start]) continue;
+            ++comps;
+            std::vector<std::size_t> stack{start};
+            seen[start] = 1;
+            while (!stack.empty()) {
+                const std::size_t u = stack.back();
+                stack.pop_back();
+                for (std::size_t v : adj[u]) {
+                    if (!seen[v]) {
+                        seen[v] = 1;
+                        stack.push_back(v);
+                    }
+                }
+            }
+        }
+        m->component_count = comps;
+    }
+
+    // 模型哈希：序列化配置 + 控制参考值 + 帧偏移（内容哈希）
+    {
+        std::string payload;
+        payload += std::to_string(m->info.version) + "|";
+        payload += std::to_string(cfg.robust_loss) + "|";
+        payload += std::to_string(cfg.snr_weight_mode) + "|";
+        payload += std::to_string(cfg.huber_delta) + "|";
+        payload += std::to_string(cfg.smoothing_lambda) + "|";
+        payload += std::to_string(cfg.zero_anchor_weight) + "|";
+        payload += std::to_string(m->info.control_count) + "|";
+        for (const auto& cn : m->controls) {
+            payload += std::to_string(cn.leaf_ipix) + ",";
+            payload += std::to_string(cn.z) + ";";
+        }
+        for (double off : m->frame_offset) {
+            payload += std::to_string(off) + ";";
+        }
+        const std::string h = astrocs::p2::sha256_hex(
+            payload.data(), payload.size());
+        std::memcpy(m->info.model_hash, h.c_str(), 64);
+        m->info.model_hash[64] = '\0';
+    }
+
+    m->info.component_count = (std::uint32_t)m->component_count;
 
     *out_model = static_cast<void*>(m);
     return 0;
 }
 
 int p2_upm_save(const void* model, const char* path) {
-    (void)model; (void)path;
-    return 1;  // W5 持久化实现
+    if (model == nullptr || path == nullptr) return 1;
+    const Model* m = static_cast<const Model*>(model);
+    nlohmann::json j;
+    j["format"] = "astrocs-upm-v1";
+    j["version"] = m->info.version;
+    j["target_order"] = m->info.target_order;
+    j["precision"] = m->info.precision;
+    j["robust_loss"] = m->cfg.robust_loss;
+    j["snr_weight_mode"] = m->cfg.snr_weight_mode;
+    j["huber_delta"] = m->cfg.huber_delta;
+    j["smoothing_lambda"] = m->cfg.smoothing_lambda;
+    j["zero_anchor_weight"] = m->cfg.zero_anchor_weight;
+    j["max_iterations"] = m->cfg.max_iterations;
+    j["tolerance"] = m->cfg.tolerance;
+    j["model_hash"] = m->info.model_hash;
+    j["iterations"] = m->iterations;
+    j["objective"] = m->objective;
+    j["component_count"] = m->component_count;
+    j["control_count"] = m->info.control_count;
+    j["observation_count"] = m->info.observation_count;
+    nlohmann::json frames = nlohmann::json::array();
+    for (const auto& kv : m->frame_index) {
+        frames.push_back({kv.first, m->frame_offset[kv.second]});
+    }
+    j["frames"] = frames;
+    nlohmann::json controls = nlohmann::json::array();
+    for (std::size_t k = 0; k < m->controls.size(); ++k) {
+        const auto& cn = m->controls[k];
+        controls.push_back(
+            {cn.id, cn.leaf_ipix, cn.ra_deg, cn.dec_deg, cn.z});
+    }
+    j["controls"] = controls;
+    std::ofstream f(path);
+    if (!f) return 1;
+    f << j.dump(2);
+    return f.good() ? 0 : 1;
 }
 
 int p2_upm_open(const char* path, void** out_model) {
-    (void)path; (void)out_model;
-    return 1;  // W5
+    if (path == nullptr || out_model == nullptr) return 1;
+    std::ifstream f(path);
+    if (!f) return 1;
+    nlohmann::json j;
+    try {
+        f >> j;
+    } catch (...) {
+        return 1;
+    }
+    if (j.value("format", std::string()) != "astrocs-upm-v1")
+        return 1;
+    Model* m = new Model();
+    m->info.version = j.value("version", 1u);
+    m->info.precision = j.value("precision", 1u);
+    m->info.target_order = j.value("target_order", 0u);
+    m->info.control_count = j.value("control_count", 0ull);
+    m->info.observation_count = j.value("observation_count", 0ull);
+    m->cfg.robust_loss = j.value("robust_loss", 0);
+    m->cfg.snr_weight_mode = j.value("snr_weight_mode", 0);
+    m->cfg.huber_delta = j.value("huber_delta", 1.345);
+    m->cfg.smoothing_lambda = j.value("smoothing_lambda", 0.0);
+    m->cfg.zero_anchor_weight = j.value("zero_anchor_weight", 1e-3);
+    m->cfg.max_iterations = j.value("max_iterations", 100);
+    m->cfg.tolerance = j.value("tolerance", 1e-6);
+    const std::string h = j.value("model_hash", std::string(64, '0'));
+    std::strncpy(m->info.model_hash, h.c_str(), sizeof(m->info.model_hash) - 1);
+    m->info.model_hash[sizeof(m->info.model_hash) - 1] = '\0';
+    m->iterations = j.value("iterations", 0);
+    m->objective = j.value("objective", 0.0);
+    m->component_count = j.value("component_count", (std::size_t)1);
+    m->info.component_count = (std::uint32_t)m->component_count;
+    // frames
+    std::size_t fi = 0;
+    for (const auto& fr : j["frames"]) {
+        const std::uint64_t fid = fr[0].get<std::uint64_t>();
+        m->frame_index[fid] = fi++;
+        m->frame_offset.push_back(fr[1].get<double>());
+    }
+    // controls
+    for (const auto& ct : j["controls"]) {
+        ControlNode cn;
+        const std::uint64_t cid = ct[0].get<std::uint64_t>();
+        cn.leaf_ipix = ct[1].get<std::uint64_t>();
+        cn.ra_deg = ct[2].get<double>();
+        cn.dec_deg = ct[3].get<double>();
+        cn.z = ct[4].get<double>();
+        m->control_by_id[cid] = m->controls.size();
+        m->controls.push_back(cn);
+    }
+    *out_model = static_cast<void*>(m);
+    return 0;
 }
 
 int p2_upm_info(const void* model, P2ModelInfo* out_info) {
