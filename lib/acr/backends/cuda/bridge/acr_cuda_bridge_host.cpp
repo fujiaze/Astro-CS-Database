@@ -41,6 +41,13 @@ void acr_launch_weighted_integration(const float* frames,
                                      size_t begin, size_t n,
                                      float* output,
                                      cudaStream_t stream);
+// Phase2 mosaic_reject launch
+void acr_launch_mosaic_reject(const float* frames, const float* support,
+                              const float* frame_snr, size_t frame_count,
+                              size_t pixel_count, size_t begin, size_t n,
+                              float sigma_low, float sigma_high,
+                              int max_iterations, int min_samples,
+                              float* output, cudaStream_t stream);
 }
 
 namespace {
@@ -767,6 +774,61 @@ extern "C" int acr_cuda_executor_submit_weighted_integration(
         acr_launch_weighted_integration(h->d_x, h->d_w,
                                         frame_count, pixel_count,
                                         begin, n, h->d_out, h->stream);
+        cudaMemcpyAsync(output + begin, h->d_out, n * sizeof(float),
+                        cudaMemcpyDeviceToHost, h->stream);
+        return cudaStreamSynchronize(h->stream);
+    }, elapsed_ns, last_error);
+}
+
+// Phase2 mosaic_reject：H2D frames/support/frame_snr → kernel → D2H output
+extern "C" int acr_cuda_executor_submit_mosaic_reject(
+    void* handle, size_t begin, size_t end,
+    float* output, const float* frames, const float* support,
+    const float* frame_snr, size_t frame_count, size_t pixel_count,
+    float sigma_low, float sigma_high, int max_iterations, int min_samples,
+    uint64_t* elapsed_ns, const char** last_error) {
+    if (handle == nullptr || output == nullptr || frames == nullptr ||
+        begin >= end ||
+        frame_count == 0 || pixel_count == 0 || frame_count > 64) {
+        if (last_error) *last_error = set_error_msg("invalid args");
+        return 1;
+    }
+    auto* h = static_cast<CudaExecutorHandle*>(handle);
+    std::lock_guard<std::mutex> lk(h->mtx);
+    const size_t n = end - begin;
+    const size_t total = frame_count * pixel_count;
+    return submit_impl(h, [&]() -> cudaError_t {
+        cudaError_t err = ensure_buffer(&h->d_x, h->d_x_capacity, total);
+        if (err != cudaSuccess) return err;
+        err = ensure_buffer(&h->d_w, h->d_w_capacity, total);
+        if (err != cudaSuccess) return err;
+        err = ensure_buffer(&h->d_kernel, h->d_kernel_capacity, frame_count);
+        if (err != cudaSuccess) return err;
+        err = ensure_buffer(&h->d_out, h->d_out_capacity, end);
+        if (err != cudaSuccess) return err;
+        cudaMemcpyAsync(h->d_x, frames, total * sizeof(float),
+                        cudaMemcpyHostToDevice, h->stream);
+        if (support != nullptr) {
+            err = ensure_buffer(&h->d_w, h->d_w_capacity, total);
+            if (err != cudaSuccess) return err;
+            cudaMemcpyAsync(h->d_w, support, total * sizeof(float),
+                            cudaMemcpyHostToDevice, h->stream);
+        }
+        if (frame_snr != nullptr) {
+            err = ensure_buffer(&h->d_kernel, h->d_kernel_capacity,
+                                frame_count);
+            if (err != cudaSuccess) return err;
+            cudaMemcpyAsync(h->d_kernel, frame_snr,
+                            frame_count * sizeof(float),
+                            cudaMemcpyHostToDevice, h->stream);
+        }
+        acr_launch_mosaic_reject(h->d_x,
+                                 support ? h->d_w : nullptr,
+                                 frame_snr ? h->d_kernel : nullptr,
+                                 frame_count, pixel_count,
+                                 begin, n, sigma_low, sigma_high,
+                                 max_iterations, min_samples,
+                                 h->d_out, h->stream);
         cudaMemcpyAsync(output + begin, h->d_out, n * sizeof(float),
                         cudaMemcpyDeviceToHost, h->stream);
         return cudaStreamSynchronize(h->stream);

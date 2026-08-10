@@ -22,6 +22,7 @@
 
 #include "astro/compute/kernel_registry.hpp"
 #include "astro/compute/task_traits.hpp"
+#include "cuda_bridge_api.hpp"
 
 #include <cmath>
 #include <cstdio>
@@ -439,6 +440,50 @@ TEST(Phase2Acr, LegacyLauncherEquivalent) {
     reg->legacy_parallel(inv, nullptr);
     EXPECT_NEAR(out[0], 10.1f, 1e-4f);
     EXPECT_NEAR(out[1], 20.0f, 1e-2f);
+}
+
+// W9：真实 GPU kernel 与 CPU reference 等价（同输入、同语义、数值容差内）
+TEST(Phase2Acr, CudaEquivalent) {
+    astro::compute::phase2::register_phase2_acr_kernels();
+    const astro::compute::KernelRegistration* reg =
+        astro::compute::global_kernel_registry().find(
+            astro::compute::phase2::kOpMosaicReject);
+    ASSERT_NE(reg, nullptr);
+    ASSERT_TRUE(reg->cuda.has_value());
+
+    namespace bridge = astro::compute::cuda::bridge;
+    bridge::ensure_bridge_loaded();
+    ASSERT_TRUE(bridge::api().loaded());
+    const char* err = nullptr;
+    void* exec = bridge::api().executor_create(0, 1u << 20, 1u << 16, &err);
+    ASSERT_NE(exec, nullptr) << (err ? err : "executor_create failed");
+    bridge::set_tls_handle(exec);
+
+    const std::size_t px = 2, depth = 3;
+    float vals[6] = {10.0f, 20.0f, 50.0f, 20.1f, 10.2f, 19.9f};
+    float out_cpu[2] = {0, 0}, out_gpu[2] = {0, 0};
+    auto build_inv = [&](float* out) {
+        astro::compute::KernelInvocation inv;
+        inv.id = astro::compute::phase2::kOpMosaicReject;
+        inv.domain = astro::compute::WorkDomain{0, px};
+        inv.buffers.add(0, out, px, 1, astro::compute::BufferRole::Output);
+        inv.buffers.add(1, vals, px * depth, 1,
+                        astro::compute::BufferRole::Input);
+        astro::compute::append_scalar(inv.scalars, std::size_t{px});
+        astro::compute::append_scalar(inv.scalars, std::size_t{depth});
+        astro::compute::append_scalar(inv.scalars, int{P2_REJECT_SIGMA});
+        astro::compute::append_scalar(inv.scalars, double{-4.0});
+        astro::compute::append_scalar(inv.scalars, double{3.0});
+        return inv;
+    };
+    astro::compute::KernelInvocation ic = build_inv(out_cpu);
+    reg->legacy_parallel(ic, nullptr);
+    astro::compute::KernelInvocation ig = build_inv(out_gpu);
+    (*reg->cuda)(ig, nullptr);
+
+    EXPECT_NEAR(out_gpu[0], out_cpu[0], 1e-4f);
+    EXPECT_NEAR(out_gpu[1], out_cpu[1], 1e-4f);
+    bridge::api().executor_destroy(exec);
 }
 
 

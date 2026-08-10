@@ -11,6 +11,7 @@
 
 #include "astro/compute/kernel_registry.hpp"
 #include "astro/compute/task_traits.hpp"
+#include "backends/cuda/bridge/cuda_bridge_api.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -90,6 +91,57 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
     }
 }
 
+// CUDA launcher：与 legacy（CPU reference）同一科学语义；等权模式
+// （support/frame_snr 不传 → kernel 内等权，与 CPU legacy 完全一致）。
+void mosaic_reject_cuda(const KernelInvocation& inv, void*) {
+    using namespace astro::compute::cuda::bridge;
+    auto& api = astro::compute::cuda::bridge::api();
+    if (!api.loaded()) {
+        throw std::runtime_error("mosaic_reject: cuda bridge not loaded");
+    }
+    void* h = get_tls_handle();
+    if (!h) throw std::runtime_error("mosaic_reject: no cuda handle");
+    const BufferBinding* out = inv.buffers.find(0);
+    const BufferBinding* vals = inv.buffers.find(1);
+    if (!out || !vals) {
+        throw std::runtime_error("mosaic_reject: missing buffers");
+    }
+    const auto px = read_scalar<std::size_t>(inv.scalars, 0);
+    const auto depth = read_scalar<std::size_t>(inv.scalars, sizeof(std::size_t));
+    const auto method = read_scalar<int>(inv.scalars, 2 * sizeof(std::size_t));
+    const auto lo = read_scalar<double>(inv.scalars,
+                                        2 * sizeof(std::size_t) + sizeof(int));
+    const auto hi = read_scalar<double>(inv.scalars,
+                                        2 * sizeof(std::size_t) + sizeof(int) +
+                                            sizeof(double));
+    if (!px || !depth || *px == 0 || *depth == 0) {
+        throw std::runtime_error("mosaic_reject: missing scalars");
+    }
+    const std::uint32_t method_v =
+        method ? static_cast<std::uint32_t>(*method) : 1u;
+    if (method_v != P2_REJECT_SIGMA &&
+        method_v != P2_REJECT_WINSORIZED_SIGMA) {
+        // CUDA kernel 实现统一 sigma-clip（Sigma/WinsorizedSigma 同语义）；
+        // 其他方法回退 CPU（legacy launcher），由调用方路由。
+        throw std::runtime_error("mosaic_reject cuda: unsupported method");
+    }
+    std::uint64_t elapsed = 0;
+    const char* err = nullptr;
+    const int rc = api.submit_mosaic_reject(
+        h, inv.domain.begin, inv.domain.end,
+        static_cast<float*>(out->data),
+        static_cast<const float*>(vals->data),
+        nullptr, nullptr,                       // 等权（与 CPU legacy 一致）
+        *depth, *px,
+        static_cast<float>(lo ? *lo : -4.0),
+        static_cast<float>(hi ? *hi : 3.0),
+        8, 1, &elapsed, &err);
+    if (rc != 0) {
+        throw std::runtime_error(err ? err : "mosaic_reject cuda failed");
+    }
+    set_tls_elapsed(elapsed);
+}
+
 } // namespace
 
 void register_phase2_acr_kernels() {
@@ -102,6 +154,7 @@ void register_phase2_acr_kernels() {
                               2 * sizeof(double);
         r.cpu = &mosaic_reject_legacy;  // CPU 即 legacy reference 语义
         r.legacy_parallel = &mosaic_reject_legacy;
+        r.cuda = &mosaic_reject_cuda;
         r.numeric.compute = NumericPolicy::Compute::fp64;
         r.numeric.accumulator = NumericPolicy::Accumulator::fp64;
         global_kernel_registry().register_kernel(r);

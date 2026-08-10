@@ -130,6 +130,8 @@ void ensure_bridge_loaded() {
                           g_api.upload_persistent_slot);
         ok &= load_symbol(mod, "acr_cuda_executor_submit_weighted_integration",
                           g_api.submit_weighted_integration);
+        ok &= load_symbol(mod, "acr_cuda_executor_submit_mosaic_reject",
+                          g_api.submit_mosaic_reject);
         ok &= load_symbol(
             mod, "acr_cuda_executor_submit_weighted_integration_resident",
             g_api.submit_weighted_integration_resident);

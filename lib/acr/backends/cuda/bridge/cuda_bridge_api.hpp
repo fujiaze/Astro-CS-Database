@@ -72,6 +72,12 @@ struct BridgeApi {
                                                 float*, std::size_t, std::size_t,
                                                 std::uint64_t*,
                                                 const char**){nullptr};
+    // Phase2 mosaic_reject
+    int (*submit_mosaic_reject)(void*, std::size_t, std::size_t,
+                                float*, const float*, const float*,
+                                const float*, std::size_t, std::size_t,
+                                float, float, int, int,
+                                std::uint64_t*, const char**){nullptr};
     int (*configure_streams)(void*, int, const char**){nullptr};
     int (*stream_count)(void*){nullptr};
     int (*upload_count)(void*, int){nullptr};

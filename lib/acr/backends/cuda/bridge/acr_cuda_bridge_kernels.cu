@@ -140,6 +140,107 @@ __global__ void acr_weighted_integration_kernel(
     output[idx] = static_cast<float>(numerator / denominator);
 }
 
+// ===== Phase2 mosaic_reject（synthetic.mosaic_reject.fp64acc）=====
+// 与 lib/phase2 CPU reference（p2_reject_stack + p2_integrate_pixel）同语义：
+//   - 每像素收集有效样本（finite && support>0）；
+//   - 迭代 sigma-clip：median + MAD(1.4826×median|Δ|)，low/high 边界；
+//   - 样本不足（< min_samples）fallback=全接受（single-coverage 稳定语义）；
+//   - 输出 = 接受样本的 SNR²×support 加权均值（0 = 无有效/全拒）。
+// 计算全程 FP64（与 CPU reference 数值一致）；输入/输出为 FP32 buffer。
+__device__ __forceinline__ void acr_sort_asc(double* v, int n) {
+    for (int i = 1; i < n; ++i) {
+        const double key = v[i];
+        int j = i - 1;
+        while (j >= 0 && v[j] > key) {
+            v[j + 1] = v[j];
+            --j;
+        }
+        v[j + 1] = key;
+    }
+}
+
+__device__ __forceinline__ double acr_median_sorted(const double* s, int n) {
+    if (n % 2 == 1) return s[n / 2];
+    return 0.5 * (s[n / 2 - 1] + s[n / 2]);
+}
+
+__global__ void acr_mosaic_reject_kernel(
+    const float* __restrict__ frames,
+    const float* __restrict__ support,
+    const float* __restrict__ frame_snr,
+    size_t frame_count,
+    size_t pixel_count,
+    size_t begin,
+    size_t n,
+    float sigma_low,
+    float sigma_high,
+    int max_iterations,
+    int min_samples,
+    float* __restrict__ output) {
+    const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n) return;
+    if (frame_count > 64) { output[idx] = 0.0f; return; }
+    const size_t p = begin + idx;
+
+    double vals[64], w[64];
+    int nv = 0;
+    for (size_t f = 0; f < frame_count; ++f) {
+        const float v = frames[f * pixel_count + p];
+        const float s = support ? support[f * pixel_count + p] : 1.0f;
+        if (v != v || s != s) continue;                 // NaN
+        if (v > 1e30f || v < -1e30f) continue;          // Inf
+        if (s <= 0.0f) continue;
+        vals[nv] = static_cast<double>(v);
+        const double snr = frame_snr ? static_cast<double>(frame_snr[f]) : 1.0;
+        w[nv] = static_cast<double>(s) * snr * snr;
+        ++nv;
+    }
+    if (nv == 0) { output[idx] = 0.0f; return; }
+
+    bool acc[64];
+    for (int i = 0; i < nv; ++i) acc[i] = true;
+
+    if (nv >= min_samples) {
+        for (int it = 0; it < max_iterations; ++it) {
+            double cur[64], sorted[64];
+            int nc = 0;
+            for (int i = 0; i < nv; ++i) {
+                if (acc[i]) { cur[nc] = vals[i]; ++nc; }
+            }
+            if (nc < 2) break;
+            for (int j = 0; j < nc; ++j) sorted[j] = cur[j];
+            acr_sort_asc(sorted, nc);
+            const double m = acr_median_sorted(sorted, nc);
+            double dev[64];
+            for (int j = 0; j < nc; ++j) dev[j] = fabs(cur[j] - m);
+            acr_sort_asc(dev, nc);
+            const double s = 1.4826 * acr_median_sorted(dev, nc);
+            if (s <= 1e-12) break;
+            bool changed = false;
+            const double lo = static_cast<double>(sigma_low);
+            const double hi = static_cast<double>(sigma_high);
+            for (int i = 0; i < nv; ++i) {
+                if (!acc[i]) continue;
+                const double z = (vals[i] - m) / s;
+                if (z < lo || z > hi) { acc[i] = false; changed = true; }
+            }
+            if (!changed) break;
+        }
+    }
+
+    double wsum = 0.0, vs = 0.0;
+    int used = 0;
+    for (int i = 0; i < nv; ++i) {
+        if (!acc[i]) continue;
+        vs += w[i] * vals[i];
+        wsum += w[i];
+        ++used;
+    }
+    output[idx] = (used > 0 && wsum > 0.0)
+                      ? static_cast<float>(vs / wsum)
+                      : 0.0f;
+}
+
 constexpr int kThreads = 256;
 
 inline int grid_size(size_t n) {
@@ -207,6 +308,17 @@ void acr_launch_weighted_integration(const float* frames,
                                      cudaStream_t stream) {
     acr_weighted_integration_kernel<<<grid_size(n), kThreads, 0, stream>>>(
         frames, weights, frame_count, pixel_count, begin, n, output);
+}
+
+void acr_launch_mosaic_reject(const float* frames, const float* support,
+                              const float* frame_snr, size_t frame_count,
+                              size_t pixel_count, size_t begin, size_t n,
+                              float sigma_low, float sigma_high,
+                              int max_iterations, int min_samples,
+                              float* output, cudaStream_t stream) {
+    acr_mosaic_reject_kernel<<<grid_size(n), kThreads, 0, stream>>>(
+        frames, support, frame_snr, frame_count, pixel_count, begin, n,
+        sigma_low, sigma_high, max_iterations, min_samples, output);
 }
 
 } // extern "C"

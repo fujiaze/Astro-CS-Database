@@ -206,6 +206,20 @@ ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_weighted_integration_resident(
     size_t frame_count, size_t pixel_count,
     uint64_t* elapsed_ns, const char** last_error);
 
+// ===== Phase2 mosaic_reject（synthetic.mosaic_reject.fp64acc）=====
+// 逐像素栈：有效样本（finite && support>0）→ 迭代 median/MAD sigma-clip
+// （low/high sigma，max_iterations）→ 接受样本 SNR²×support 加权均值。
+// 样本不足（< min_samples）fallback=全接受。同步语义 H2D → launch → D2H。
+ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_mosaic_reject(
+    void* handle,
+    size_t begin, size_t end,
+    float* output,
+    const float* frames, const float* support, const float* frame_snr,
+    size_t frame_count, size_t pixel_count,
+    float sigma_low, float sigma_high,
+    int max_iterations, int min_samples,
+    uint64_t* elapsed_ns, const char** last_error);
+
 // ===== ACR 架构冻结（01_ARCHITECTURE_FREEZE.md §5）：GPU 内部通道 =====
 // 每 GPU 只有一个 executor；stream 只是 executor 内部通道（1..3），
 // 共享同一 GPU 队列、显存预算与成本模型。禁止把多个 stream 报告为多张 GPU。

@@ -20,10 +20,15 @@ add_library(phase2 STATIC
     src/integrate.cpp
     src/acr_kernels.cpp
     ../acr/api/kernel_registry.cpp
+    ../acr/backends/cuda/cuda_bridge_loader.cpp
+    ../acr/scheduler/device_executor.cpp
     ../common/healpix/healpix_core.cpp
 )
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../acr/include)
+target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../acr)
+target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../acr/backends/cuda/bridge)
+target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../acr/scheduler)
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../astro_image_io/include)
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../common)
 
