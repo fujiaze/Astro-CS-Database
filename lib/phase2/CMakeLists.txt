@@ -36,3 +36,7 @@ if(GTest_FOUND)
     include(GoogleTest)
     gtest_discover_tests(phase2_synthetic_gate DISCOVERY_MODE PRE_TEST)
 endif()
+
+add_executable(astrocs-stage2 tools/stage2.cpp)
+target_link_libraries(astrocs-stage2 PRIVATE phase2
+    ${CMAKE_CURRENT_SOURCE_DIR}/../astro_image_io/astro_image_io.dll)
