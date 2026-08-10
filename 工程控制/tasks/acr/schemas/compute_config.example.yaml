@@ -1,0 +1,39 @@
+# ACR runtime configuration example
+compute:
+  profile:
+    path: auto
+    warn_when_missing: true
+    warn_when_stale: true
+    stale_policy: allow   # allow | cpu_only | reject
+    runtime_writeback: false
+
+  backends:
+    cpu: true
+    cuda: auto
+    hip: auto
+    sycl: auto
+
+  utilization:
+    cpu_target: 0.95
+    gpu_target: 0.95
+    io_target: 0.95
+    control_window_ms: 250
+
+  capacity:
+    ram_limit: 0.95
+    vram_limit: 0.95
+    ram_fixed_reserve_mib: 2048
+    vram_fixed_reserve_mib: 512
+
+  scheduling:
+    work_conserving: true
+    online_learning: false
+    allow_cpu_gpu_mixed: true
+    allow_multi_gpu: true
+    max_queue_depth: auto
+
+  numeric:
+    default_compute: fp32
+    fast_math: false
+
+# 禁止字段：cpu_share、gpu_share、device_weight、preferred_backend

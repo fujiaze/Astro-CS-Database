@@ -1,0 +1,21 @@
+operation_id: synthetic.weighted_integration.fp64acc
+preset: standard
+seed: 20260806
+warmup: 2
+repeats: 7
+case_timeout_seconds: 120
+overall_timeout_seconds: 900
+benchmark_max_ram_fraction: 0.70
+benchmark_max_vram_fraction: 0.70
+openmp_threads: auto
+acr_cpu_workers: auto
+gpu_stream_candidates: [1, 2]
+modes:
+  - openmp
+  - acr_cpu
+  - gpu_host
+  - gpu_resident
+  - forced_mixed
+  - auto_mixed
+  - auto_mixed_reuse
+output_json: weighted_integration_report.json

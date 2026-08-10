@@ -1,0 +1,12 @@
+{
+  "package_name": "AstroCS_ACR_Control_Package",
+  "authority": "single_current_control_package",
+  "purpose": "freeze ACR architecture before business code changes and add weighted integration synthetic mixed example",
+  "branch": "feature/astrocompute-runtime",
+  "baseline_head": "610d7b6a0b5737db220021948dd969b4c8f9a272",
+  "baseline_review_sha256": "047357818cd8e9d9c2ee28b7e96f87ec892778ec0b0b60708e2d0ee386712327",
+  "business_code_changes_allowed": false,
+  "current_plan": "07_CURRENT_EXECUTION_PLAN.md",
+  "start_prompt": "继续feature/astrocompute-runtime分支，读00_READ_FIRST和07号计划；冻结ACR架构并完成加权积分合成Mixed样例，不改Phase1业务代码。",
+  "generated_utc": "2026-08-06T07:26:00Z"
+}

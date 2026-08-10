@@ -1,0 +1,213 @@
+{
+  "package_name": "AstroCS_ACR_Control_Package",
+  "release_status": "unreleased",
+  "generated_at": "2026-08-03T20:39:00+08:00",
+  "branch": "feature/astrocompute-runtime",
+  "source_review_pack": "AstroCS_ACR_CommitF_Review_2026-08-03(1).zip",
+  "source_review_sha256": "e2b7125bc61aa1b8fba86d5ca40fde7a50ebbc20831042c2b8e4f7b2c8781a50",
+  "files": [
+    {
+      "path": "00_AGENT_START_PROMPT.txt",
+      "bytes": 177,
+      "sha256": "3c10979464ea77a9849884cbca86a9d8b9acdd095fe9b9f40d0fc39bccafa155"
+    },
+    {
+      "path": "00_READ_FIRST.md",
+      "bytes": 4609,
+      "sha256": "d342c60fb861be6718055da6b44131d5b76663f7e081ef0eb02fe6a30f838c68"
+    },
+    {
+      "path": "01_FROZEN_REQUIREMENTS.md",
+      "bytes": 4119,
+      "sha256": "d84a408e3fa078a2acc9ceee893cb74a3594a73dda0d9eafb872488ee0a19429"
+    },
+    {
+      "path": "02_SYSTEM_ARCHITECTURE.md",
+      "bytes": 4235,
+      "sha256": "7f2223034bfaa8eacf374ba135c1b8f8262fcdf51334cc1512f0507ae2ebe487"
+    },
+    {
+      "path": "03_PUBLIC_API_SPEC.md",
+      "bytes": 4506,
+      "sha256": "796c577659d54e66c58d08ed356536c8aaa369d9a89603e2f99d8f0cc854e6ee"
+    },
+    {
+      "path": "04_KERNEL_MODEL_AND_LIMITS.md",
+      "bytes": 2249,
+      "sha256": "41a04965db72b6dc2e58864e88510b048ada85ec6cc01ea325922ed133526fa7"
+    },
+    {
+      "path": "05_OPEN_SOURCE_REUSE_PLAN.md",
+      "bytes": 11494,
+      "sha256": "ee9bf5c6b40e0c83edf994856ea8f28e88803e290e6d44f025d56f6236ea7b8e"
+    },
+    {
+      "path": "06_HARDWARE_PROFILE_BENCHMARK_SPEC.md",
+      "bytes": 5141,
+      "sha256": "b08e6dae7474e3fe05ee143268451191177997ccb4456ab269c98082c07cb498"
+    },
+    {
+      "path": "07_COST_MODEL_AND_DYNAMIC_SCHEDULING.md",
+      "bytes": 4029,
+      "sha256": "a1fd023476c23d98fbef18e125246e7a537a11c02cf78377da794c1005b3502d"
+    },
+    {
+      "path": "08_RESOURCE_CONTROL_SPEC.md",
+      "bytes": 2577,
+      "sha256": "33944f94966144d7099e8d009ee406dcc332afcb68c5155e2fcf7d65bbceee46"
+    },
+    {
+      "path": "09_FUTURE_ALGORITHM_INTEGRATION_GUIDE.md",
+      "bytes": 1186,
+      "sha256": "bc1025c6c85d4dbbb63dc567defa6a6a1b9699a074b583f24ca7bafc05561d14"
+    },
+    {
+      "path": "10_PHASES_TASKS_ACCEPTANCE.md",
+      "bytes": 2696,
+      "sha256": "db0ef193d923c6140c084645f34e61f252a52d9f0fd15ae3bec74c0d00578c2a"
+    },
+    {
+      "path": "11_GIT_BRANCH_AND_AGENT_RULES.md",
+      "bytes": 1626,
+      "sha256": "5c0adff2a0c112b385f5f3fd4ffdbcdd56de1c3f9f7de93ecbea8dafceb3b0e0"
+    },
+    {
+      "path": "12_TEST_VALIDATION_MATRIX.md",
+      "bytes": 2057,
+      "sha256": "26439dcb2f42f559e088a28f6c6160cd7d8ef55858af74df415e3cf7d8447085"
+    },
+    {
+      "path": "13_DELIVERY_PACKAGE_RULES.md",
+      "bytes": 1898,
+      "sha256": "935a07969a7904efa4a19db35890700986284654b8acc92e5be876d542215643"
+    },
+    {
+      "path": "14_RISK_REGISTER.md",
+      "bytes": 1846,
+      "sha256": "540b6c24cf50df5f8bb80dcd32013d9e2c562bfbc1af08a70166477dcb6996f5"
+    },
+    {
+      "path": "15_DECISIONS.md",
+      "bytes": 1601,
+      "sha256": "8aac87f37fb1aa5c5a5b490b9c55261be7d52e9cf018c72f120e93d7ab7463aa"
+    },
+    {
+      "path": "16_AGENT_MASTER_INSTRUCTION.md",
+      "bytes": 1345,
+      "sha256": "44d9a54b40266eab1512301482185bfd770831b95a902825a9db56e841a9e0bd"
+    },
+    {
+      "path": "17_CLASSIC_EXPERIMENT_SUITE.md",
+      "bytes": 6206,
+      "sha256": "16aa78f4b8ceeb265414748460ebe097b3dcb93a423c46ed99d92676bd711d8f"
+    },
+    {
+      "path": "18_MAIN_MERGE_AND_DORMANT_INTEGRATION.md",
+      "bytes": 4588,
+      "sha256": "fe1b2dae053d375f3aeaadb08e7ee78a9c2f374455a765e92964227e1201ea2a"
+    },
+    {
+      "path": "19_CURRENT_BRANCH_CORRECTION_TASKS.md",
+      "bytes": 1504,
+      "sha256": "60fec6c32bba38b5eaf8d35454f9eef3d33a62ce686edda54fd2e98eec741a37"
+    },
+    {
+      "path": "20_PHASE_I_AUDIT_ACTION_PLAN.md",
+      "bytes": 3115,
+      "sha256": "f283a2338e3b30f8a4a64053a8e6954b4534a2bdcf5565badc270476bcde8f92"
+    },
+    {
+      "path": "21_COMMIT_F_CORRECTION_PLAN.md",
+      "bytes": 3144,
+      "sha256": "6ea6a3761ddb69b89313ebea716515870e11d647890c9a32d979ec4c0f9aff6c"
+    },
+    {
+      "path": "CHECKLIST.md",
+      "bytes": 2320,
+      "sha256": "a41793b864c239556b0eb1e12b98fd4d6c23d9e5202d3a6c90b69c672f0c5e86"
+    },
+    {
+      "path": "audits/COMMIT_F_AUDIT.md",
+      "bytes": 8419,
+      "sha256": "815a383a63206b99e9f70cb8dee508e2098888cdacfd23eb55e3e11683af9edd"
+    },
+    {
+      "path": "examples/README.md",
+      "bytes": 291,
+      "sha256": "591772062cd8890292a2c990c04c6895ebba505c890fa3da7a4e63ecf801e82c"
+    },
+    {
+      "path": "examples/minimal_parallel_for.cpp",
+      "bytes": 624,
+      "sha256": "2a8ebafb5c764b5db35335fb6f744052f90302175298ace7bad6e1bb832c515c"
+    },
+    {
+      "path": "examples/minimal_parallel_reduce.cpp",
+      "bytes": 628,
+      "sha256": "1e8aafe590fccdbc77971487f5f0e327137f53976ceeae168cce4f820b57c0a8"
+    },
+    {
+      "path": "schemas/compute_config.example.yaml",
+      "bytes": 787,
+      "sha256": "007f89db838385eb3965063aca88f520b93444711c9d2acaabb30f31111d9147"
+    },
+    {
+      "path": "schemas/evidence_manifest.schema.json",
+      "bytes": 2598,
+      "sha256": "8a2dc0f2ed168e2fec566b32c3798b54ce876495dc060e323a49a9409bec7169"
+    },
+    {
+      "path": "schemas/hardware_profile.schema.json",
+      "bytes": 5479,
+      "sha256": "179cba4020625f35ade64444e97f48c992c7690b360d090803eeac2fa1082b79"
+    },
+    {
+      "path": "schemas/resource_control_report.schema.json",
+      "bytes": 2511,
+      "sha256": "3616221d83e4a5334fe8aa9be681175872896d0f6ff0ad911d8718463c2b04ae"
+    },
+    {
+      "path": "schemas/runtime_execution_report.schema.json",
+      "bytes": 3268,
+      "sha256": "20411e7bd5e492e29b5d81f851a7a71af8fe01a94aeb59ff19aeeddaf44222c7"
+    },
+    {
+      "path": "schemas/task_descriptor.schema.json",
+      "bytes": 2756,
+      "sha256": "b47401c47c67933e55d3c74931f255758374d6192c15aa73744b805063a27567"
+    },
+    {
+      "path": "templates/evidence_command_record.template.json",
+      "bytes": 337,
+      "sha256": "905b2147d2ae7b627ca60c6979edf16dfc9b3b5afe45c85a54456b4b372e68bb"
+    },
+    {
+      "path": "templates/evidence_index.template.md",
+      "bytes": 589,
+      "sha256": "5ae9df1edc9a7b9ff039c02b1f1f371ebb6ada4d815ca30fdde6cfedfcaaa3c1"
+    },
+    {
+      "path": "templates/merge_report.template.md",
+      "bytes": 484,
+      "sha256": "140a7e04c5fc620cb8c33e8b2d7edeb5829ab4dcf241fd41e3549392d729ce9a"
+    },
+    {
+      "path": "templates/path_guard_report.template.md",
+      "bytes": 177,
+      "sha256": "abf18a630c608d7a8d030399e6861a0e89500913e7cb345a7fdf82c5e5ef9914"
+    }
+  ],
+  "versioning": "none; overwrite this single authoritative package",
+  "updated_at": "2026-08-04",
+  "latest_audit": "audits/FIX_REVIEW_AUDIT.md",
+  "current_priority_plan": "22_FIX_REVIEW_CORRECTION_PLAN.md",
+  "merge_to_main_allowed": false,
+  "merge_blockers": [
+    "dynamic work pool concurrency safety not proven",
+    "real per-device executor chain not connected",
+    "real CPU+GPU mixed execution not verified",
+    "95% sustained resource-control loop not verified",
+    "sanitizers not run",
+    "single clean HEAD evidence not produced"
+  ]
+}

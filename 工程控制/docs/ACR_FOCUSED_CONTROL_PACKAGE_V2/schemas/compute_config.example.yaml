@@ -1,0 +1,21 @@
+acr:
+  enabled: false
+  route_mode: auto_mixed
+  profile_path: hardware/acr-operation-profile.json
+  cpu:
+    max_threads: 0          # 0 = runtime default/all available
+  gpu:
+    enabled: true
+    pinned_staging: true
+    double_buffer: true
+  memory:
+    ram_ratio_limit: 0.95
+    ram_fixed_reserve_mib: 1024
+    pinned_ratio_limit: 0.50
+    pinned_fixed_reserve_mib: 256
+    vram_ratio_limit: 0.95
+    vram_fixed_reserve_mib: 512
+  routing:
+    allow_runtime_tail_feedback: true
+    auto_best_mode_tolerance: 0.10
+# 禁止 cpu_share、gpu_share、利用率目标和固定设备比例。

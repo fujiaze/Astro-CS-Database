@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "astrocs.acr.memory-budget-report.schema.json",
+  "title": "AstroCS ACR Memory Budget Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "resources",
+    "actions",
+    "result"
+  ],
+  "properties": {
+    "resources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "resource_id",
+          "kind",
+          "total_bytes",
+          "ratio_limit",
+          "fixed_reserve_bytes",
+          "effective_limit_bytes",
+          "used_before_bytes",
+          "reserved_for_claim_bytes",
+          "used_after_bytes"
+        ],
+        "properties": {
+          "resource_id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "ram",
+              "pinned",
+              "vram"
+            ]
+          },
+          "total_bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "ratio_limit": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 1
+          },
+          "fixed_reserve_bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "effective_limit_bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "used_before_bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reserved_for_claim_bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "used_after_bytes": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "resource_id",
+          "action",
+          "requested_chunk_items",
+          "final_chunk_items",
+          "bytes_released",
+          "outcome"
+        ],
+        "properties": {
+          "resource_id": {
+            "type": "string"
+          },
+          "action": {
+            "enum": [
+              "accept",
+              "shrink",
+              "reuse",
+              "release_cache",
+              "wait",
+              "fallback_other_device",
+              "fail"
+            ]
+          },
+          "requested_chunk_items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "final_chunk_items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "bytes_released": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "outcome": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "result": {
+      "enum": [
+        "success",
+        "fallback_success",
+        "failed"
+      ]
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "test_name",
+  "command": [
+    "executable",
+    "arg"
+  ],
+  "working_directory": "...",
+  "environment": {},
+  "start_time": "RFC3339",
+  "end_time": "RFC3339",
+  "timeout_seconds": 300,
+  "exit_code": 0,
+  "status": "PASS",
+  "stdout_log": "logs/test.stdout.log",
+  "stderr_log": "logs/test.stderr.log",
+  "reason": ""
+}

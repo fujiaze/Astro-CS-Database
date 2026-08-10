@@ -1,0 +1,108 @@
+{
+  "root": "AstroCS_ACR_Control_Package",
+  "total_files": 20,
+  "total_bytes": 51714,
+  "error_count": 0,
+  "entries": [
+    {
+      "path": "00_AGENT_START_PROMPT.txt",
+      "sha256": "a87e039a857f26badca36e459f748bc4fa0829ab7e876c222c8a5ba8f44cc896",
+      "size": 161
+    },
+    {
+      "path": "00_READ_FIRST.md",
+      "sha256": "a7901756d189ef7882b0be74cb98d444377ba1a0f67c4514a2f2c8274ae08eab",
+      "size": 3627
+    },
+    {
+      "path": "01_SCOPE_AND_DECISIONS.md",
+      "sha256": "d4eaa6cfa9c59fb45d8cc9763eabd74b75f19221ae197fa380454a25456ec050",
+      "size": 2614
+    },
+    {
+      "path": "02_TARGET_ARCHITECTURE.md",
+      "sha256": "ca713ab5f35aecac8b14ff0f196feef06a1f56285836a238d3683fd4ac3d3701",
+      "size": 1995
+    },
+    {
+      "path": "03_PUBLIC_API_AND_PARTITION_CONTRACT.md",
+      "sha256": "a44ee559c920ede3d51c8dfbdb1881eec2e6faa6404808c601cc6355a598d01c",
+      "size": 2456
+    },
+    {
+      "path": "04_BENCHMARK_AND_OPERATION_PROFILE.md",
+      "sha256": "19cd027cff7ddb72bc8b680ff74db4e0226c9ab93cd2d8b932375259f1d9d789",
+      "size": 3472
+    },
+    {
+      "path": "05_MIXED_ROUTING_AND_CHUNKING.md",
+      "sha256": "e1f657a2204761398b4d43ead5a70219ee23ac47cc73947c66e90c76281d19de",
+      "size": 2335
+    },
+    {
+      "path": "06_DATA_RESIDENCY_AND_MEMORY.md",
+      "sha256": "cdfeec3dfc1b4db57736722b176f0bb63372c82d78ece0950450c749f9c42fce",
+      "size": 2656
+    },
+    {
+      "path": "07_TEST_AND_ACCEPTANCE.md",
+      "sha256": "38f6b511f29143acc67e7b07adc241f7d9b828c174c540295b64ba997dbf698f",
+      "size": 2524
+    },
+    {
+      "path": "08_CURRENT_EXECUTION_PLAN.md",
+      "sha256": "86175fde4b452e364be0edf3e189850d249f4770c0b0c764028d948e722efae8",
+      "size": 3500
+    },
+    {
+      "path": "09_GIT_AND_DELIVERY.md",
+      "sha256": "6fcfda259ac41480658041a76446b400803ba2732bdcc6bc74e9e0c81544ab55",
+      "size": 1535
+    },
+    {
+      "path": "CHECKLIST.md",
+      "sha256": "72e512d6f27c6b49703cee4b69f88860af0921679bb2ad6bc29954feddc78240",
+      "size": 2696
+    },
+    {
+      "path": "audits/ACR_FOCUSED_V2_REVIEW.md",
+      "sha256": "3dc5b461b1419a4a9548aaf6790616456d397e200fb76b5fb674f275b23d89f2",
+      "size": 5294
+    },
+    {
+      "path": "history/README.md",
+      "sha256": "7ee2b2c820d4c566bc507b79d47d7411617a1db53d1cb9ad4cee47f166ef4175",
+      "size": 452
+    },
+    {
+      "path": "package_manifest.json",
+      "sha256": "43b3280dd40d678cc6757d98d226b77fb05fc1a09f28508ecf79e09a579c1050",
+      "size": 1349
+    },
+    {
+      "path": "schemas/compute_config.example.yaml",
+      "sha256": "07f01c1ccc79e01f0bb3ed6c7d69efae05156e0608b389fcf48da7dff78d9f6c",
+      "size": 591
+    },
+    {
+      "path": "schemas/execution_report.schema.json",
+      "sha256": "fdb976737854e9c0d0353facbaf0f03986275634b59e0a66872d16a895391eeb",
+      "size": 3607
+    },
+    {
+      "path": "schemas/memory_budget_report.schema.json",
+      "sha256": "8d617af441e1e6352d80c911813a2d279c7dc6724d9e5ac3c96b98c2dc810489",
+      "size": 2894
+    },
+    {
+      "path": "schemas/operation_profile.schema.json",
+      "sha256": "905239a177cf84f16382def96887e37ff650daa7a760cf339fa3ae341ef55cb3",
+      "size": 7192
+    },
+    {
+      "path": "templates/evidence_checklist.md",
+      "sha256": "aaefda1f852b31c5f6defd5d3da1e3fcc036e2c6beaf6d2e724bcaec99db98c1",
+      "size": 764
+    }
+  ]
+}

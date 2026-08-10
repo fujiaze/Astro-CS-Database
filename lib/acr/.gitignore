@@ -1,0 +1,4 @@
+# ACR 本地构建目录（不入库；build/ 由根 .gitignore 忽略，build2 为全新
+# configure 验证目录，一并忽略）
+/build/
+/build2/

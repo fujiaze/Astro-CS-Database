@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ACR TaskDescriptor diagnostic form",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "operation_id",
+    "task_class",
+    "item_count",
+    "numeric",
+    "splittable",
+    "mixed_device_safe"
+  ],
+  "properties": {
+    "operation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task_class": {
+      "enum": [
+        "elementwise",
+        "reduction",
+        "stencil_2d",
+        "convolution_direct",
+        "convolution_separable",
+        "resampling_gather",
+        "histogram_atomic",
+        "sparse_gather",
+        "sparse_scatter",
+        "branch_heavy",
+        "batch_independent",
+        "fft_library",
+        "gemm_library",
+        "scan_library",
+        "custom"
+      ]
+    },
+    "item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "shape": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "maxItems": 3
+    },
+    "bytes_read_per_item": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "bytes_written_per_item": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "access": {
+      "enum": [
+        "contiguous",
+        "strided",
+        "local_neighborhood",
+        "random",
+        "scatter"
+      ]
+    },
+    "uniformity": {
+      "enum": [
+        "uniform",
+        "mildly_variable",
+        "highly_variable"
+      ]
+    },
+    "intensity": {
+      "enum": [
+        "memory_bound",
+        "balanced",
+        "compute_bound"
+      ]
+    },
+    "numeric": {
+      "type": "object",
+      "required": [
+        "compute",
+        "accumulator"
+      ],
+      "properties": {
+        "compute": {
+          "enum": [
+            "fp32",
+            "fp64"
+          ]
+        },
+        "accumulator": {
+          "enum": [
+            "same",
+            "fp64"
+          ]
+        },
+        "deterministic_merge": {
+          "type": "boolean"
+        },
+        "allow_fast_math": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "splittable": {
+      "type": "boolean"
+    },
+    "mixed_device_safe": {
+      "type": "boolean"
+    },
+    "requires_atomic": {
+      "type": "boolean"
+    },
+    "active_fraction_hint": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "atomic_contention_hint": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "halo": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "maxItems": 3
+    },
+    "residence": {
+      "enum": [
+        "host",
+        "device",
+        "replicated",
+        "unknown"
+      ]
+    }
+  }
+}
