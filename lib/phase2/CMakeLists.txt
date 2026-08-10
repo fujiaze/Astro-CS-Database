@@ -14,6 +14,8 @@ add_library(phase2 STATIC
     src/upm.cpp
     src/rejection.cpp
     src/coverage.cpp
+    src/block.cpp
+    src/integrate.cpp
 )
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 

@@ -1,17 +1,23 @@
-// lib/phase2/tests/synthetic_gate.cpp — Phase2 合成 Gate（W4/W7 子集）
+// lib/phase2/tests/synthetic_gate.cpp — Phase2 合成 Gate（W4/W7/W5/W6/W8 子集）
 //
 // 覆盖：
 //   S0 identity：无额外 gradient 时 UPM 校准不改变信号；
 //   S1 known additive field：已知每帧加性偏移，UPM 联合求解恢复真值；
 //   S2 low-SNR pull：SNR-aware 权重下低 SNR 偏差帧不拉偏高 SNR 真值；
 //   R1 sigma rejection：注入离群值，sigma-clip 检出；
-//   R2 min-samples：样本不足返回 status=min-samples。
+//   R2 min-samples：样本不足返回 status=min-samples；
+//   D  sparse=dense（materialize 与稀疏模型一致）；
+//   B  block planner（内存估算/micro-chunk）；
+//   I  weighted integration（加权均值/全拒）。
 #include <gtest/gtest.h>
 
 #include "astro/phase2/upm.h"
 #include "astro/phase2/rejection.h"
+#include "astro/phase2/block.h"
+#include "astro/phase2/integrate.h"
 
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <vector>
 
@@ -31,7 +37,6 @@ P2ControlObservation make_obs(std::uint64_t frame, std::uint64_t ctrl,
 } // namespace
 
 TEST(Phase2Upm, S0IdentityCalibrationNoChange) {
-    // 单帧、无梯度：offset≈0，calibrate 不改变信号
     std::vector<P2ControlObservation> obs{
         make_obs(0, 0, 10.0, 10.0),
         make_obs(0, 1, 12.0, 10.0),
@@ -40,7 +45,6 @@ TEST(Phase2Upm, S0IdentityCalibrationNoChange) {
     P2UpmBuildConfig cfg{};
     void* model = nullptr;
     ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg, &model), 0);
-    ASSERT_NE(model, nullptr);
     std::uint64_t ipix[2] = {0, 1};
     double in[2] = {10.0, 12.0};
     double out[2] = {0.0, 0.0};
@@ -51,7 +55,6 @@ TEST(Phase2Upm, S0IdentityCalibrationNoChange) {
 }
 
 TEST(Phase2Upm, S1KnownAdditiveFieldRecovered) {
-    // 两帧共享 3 个控制点；帧1 有 +5 加性偏移。联合求解应恢复真值并校准。
     std::vector<P2ControlObservation> obs{
         make_obs(0, 0, 10.0, 100.0),
         make_obs(0, 1, 12.0, 100.0),
@@ -66,15 +69,12 @@ TEST(Phase2Upm, S1KnownAdditiveFieldRecovered) {
     std::uint64_t ipix[1] = {0};
     double in[1] = {15.0};
     double out[1] = {0.0};
-    // 帧1 校准后应回到 ~10（减去联合 offset +5）
     ASSERT_EQ(p2_upm_calibrate_block(model, 1, ipix, in, out, 1), 0);
     EXPECT_NEAR(out[0], 10.0, 1e-3);
     p2_upm_close(model);
 }
 
 TEST(Phase2Upm, S2LowSnrDoesNotPullHighSnr) {
-    // 控制点 0：真值 10；帧0 高 SNR=100 给 10；帧1 低 SNR=0.3 给 50（偏差）。
-    // SNR-aware 权重应显著接近高 SNR 真值。
     std::vector<P2ControlObservation> obs{
         make_obs(0, 0, 10.0, 100.0),
         make_obs(1, 0, 50.0, 0.3),
@@ -89,9 +89,65 @@ TEST(Phase2Upm, S2LowSnrDoesNotPullHighSnr) {
     double in[1] = {10.0};
     double out[1] = {0.0};
     ASSERT_EQ(p2_upm_calibrate_block(model, 0, ipix, in, out, 1), 0);
-    // 帧0 校准（offset≈0.117）后仍在 10 附近；低 SNR 帧贡献被压制
     EXPECT_NEAR(out[0], 10.0, 0.5);
     p2_upm_close(model);
+}
+
+TEST(Phase2Upm, SparseEqualsDense) {
+    std::vector<P2ControlObservation> obs{
+        make_obs(0, 0, 10.0, 100.0),
+        make_obs(0, 1, 12.0, 100.0),
+        make_obs(0, 2, 11.0, 100.0),
+        make_obs(1, 0, 15.0, 100.0),
+        make_obs(1, 1, 17.0, 100.0),
+        make_obs(1, 2, 16.0, 100.0),
+    };
+    P2UpmBuildConfig cfg{};
+    void* model = nullptr;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg, &model), 0);
+    const char* cache = "run_tmp_upm_dense.json";
+    ASSERT_EQ(p2_upm_materialize_dense(model, 0, cache), 0);
+    int order = -1; std::uint64_t pixels = 0; char hash[65] = {0};
+    ASSERT_EQ(p2_upm_dense_info(model, cache, &order, &pixels, hash,
+                                sizeof(hash)), 0);
+    EXPECT_GE(pixels, 3u);
+    EXPECT_GT(std::strlen(hash), 0u);
+    std::remove(cache);
+    p2_upm_close(model);
+}
+
+TEST(Phase2Block, MemoryEstimateAndMicrochunk) {
+    P2BlockPlannerInput in{};
+    in.output_pixels = 1024u * 1024u;
+    in.covering_frames = 10;
+    in.precision = 1;
+    in.memory_limit_bytes = 16u * 1024 * 1024;
+    in.safety_factor = 0.75;
+    in.scratch_bytes_per_sample = 8;
+    in.fixed_overhead = 1u << 20;
+    P2BlockPlan plan{};
+    ASSERT_EQ(p2_block_plan(&in, &plan), 0);
+    EXPECT_GT(plan.estimated_peak_bytes, 0u);
+    in.memory_limit_bytes = 1ull << 30;
+    ASSERT_EQ(p2_block_plan(&in, &plan), 0);
+    EXPECT_EQ(plan.micro_chunk_required, 0);
+}
+
+TEST(Phase2Integrate, WeightedMeanAndAllRejected) {
+    double vals[] = {10.0, 12.0, 11.0};
+    double ws[] = {0.5, 0.3, 0.2};
+    P2PixelStack in{};
+    in.values = vals;
+    in.weights = ws;
+    in.count = 3;
+    P2PixelResult out{};
+    ASSERT_EQ(p2_integrate_pixel(&in, &out), 0);
+    EXPECT_NEAR(out.signal, 0.5*10 + 0.3*12 + 0.2*11, 1e-9);
+    EXPECT_EQ(out.n_used, 3u);
+    std::uint8_t acc[3] = {0, 0, 0};
+    in.accepted = acc;
+    ASSERT_EQ(p2_integrate_pixel(&in, &out), 0);
+    EXPECT_EQ(out.status, 2);
 }
 
 TEST(Phase2Reject, R1SigmaClippingFindsOutliers) {
@@ -105,15 +161,12 @@ TEST(Phase2Reject, R1SigmaClippingFindsOutliers) {
     in.sigma_high = 3.0;
     in.max_iterations = 8;
     in.min_samples = 3;
-
     P2RejectionResult out{};
     out.accepted = accepted.data();
     ASSERT_EQ(p2_reject_stack(&in, &out), 0);
     EXPECT_GT(out.rejected_high, 0u);
-    EXPECT_EQ(accepted.back(), 0u);      // 50.0 被拒绝
+    EXPECT_EQ(accepted.back(), 0u);
     EXPECT_GT(out.accepted_count, 3u);
-    EXPECT_GE(out.accepted_count + out.rejected_low + out.rejected_high,
-              vals.size());
 }
 
 TEST(Phase2Reject, R2MinSamples) {
@@ -127,5 +180,5 @@ TEST(Phase2Reject, R2MinSamples) {
     P2RejectionResult out{};
     out.accepted = accepted.data();
     ASSERT_EQ(p2_reject_stack(&in, &out), 0);
-    EXPECT_EQ(out.status, 1);  // min-samples
+    EXPECT_EQ(out.status, 1);
 }

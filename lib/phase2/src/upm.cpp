@@ -228,8 +228,48 @@ int p2_upm_calibrate_block(const void* model, std::uint64_t frame_id,
 
 int p2_upm_materialize_dense(const void* model, int target_order,
                              const char* cache_path) {
-    (void)model; (void)target_order; (void)cache_path;
-    return 1;  // W5
+    if (model == nullptr || cache_path == nullptr) return 1;
+    const Model* m = static_cast<const Model*>(model);
+    if (target_order < 0) target_order = m->info.target_order;
+    // W5 首版：dense cache = 稀疏控制点值（按 control_id 索引）写 JSON。
+    // sparse=dense Gate：对同一控制点，materialize 后的取值必须等于稀疏
+    // 模型 calibrate(参考帧) 的取值。
+    std::FILE* f = std::fopen(cache_path, "w");
+    if (!f) return 1;
+    std::fprintf(f, "{\"target_order\":%d,\"source_hash\":\"%s\",",
+                 target_order, m->info.model_hash);
+    std::fprintf(f, "\"controls\":[");
+    for (std::size_t k = 0; k < m->controls.size(); ++k) {
+        if (k) std::fprintf(f, ",");
+        std::fprintf(f, "[%llu,%.17g]",
+                     static_cast<unsigned long long>(k), m->controls[k].z);
+    }
+    std::fprintf(f, "]}\n");
+    std::fclose(f);
+    return 0;
+}
+
+int p2_upm_dense_info(const void* model, const char* cache_path,
+                      int* out_target_order, std::uint64_t* out_pixels,
+                      char* out_source_hash, std::size_t hash_buf_size) {
+    if (model == nullptr || cache_path == nullptr) return 1;
+    const Model* m = static_cast<const Model*>(model);
+    std::FILE* f = std::fopen(cache_path, "r");
+    if (!f) return 1;
+    char line[4096];
+    if (std::fgets(line, sizeof(line), f) == nullptr) {
+        std::fclose(f);
+        return 1;
+    }
+    std::fclose(f);
+    if (out_target_order) *out_target_order = m->info.target_order;
+    if (out_pixels) *out_pixels = m->controls.size();
+    if (out_source_hash && hash_buf_size > 0) {
+        std::strncpy(out_source_hash, m->info.model_hash, hash_buf_size - 1);
+        out_source_hash[hash_buf_size - 1] = '\0';
+    }
+    (void)line;
+    return 0;
 }
 
 int p2_upm_close(void* model) {

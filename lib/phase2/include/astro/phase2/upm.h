@@ -85,6 +85,15 @@ P2_API int p2_upm_calibrate_block(
 P2_API int p2_upm_materialize_dense(
     const void* model, int target_order, const char* cache_path);
 
+// 读取 dense cache 信息（稀疏=稠密 Gate 用）
+P2_API int p2_upm_dense_info(
+    const void* model, const char* cache_path,
+    int* out_target_order, std::uint64_t* out_pixels,
+    char* out_source_hash, std::size_t hash_buf_size);
+// materialize dense cache（同模型 hash/目标 order/frame hash 校验）
+P2_API int p2_upm_materialize_dense(
+    const void* model, int target_order, const char* cache_path);
+
 P2_API int p2_upm_close(void* model);
 
 #ifdef __cplusplus
