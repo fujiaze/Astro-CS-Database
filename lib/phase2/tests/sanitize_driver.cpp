@@ -15,6 +15,8 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdint>
+#include <limits>
+#include <random>
 #include <vector>
 
 int main() {
@@ -107,6 +109,78 @@ int main() {
     pi.count = 3;
     P2PixelResult pr{};
     if (p2_integrate_pixel(&pi, &pr) != 0) return 9;
+
+    // ---- 随机 fuzz 压力（确定性 seed，覆盖边界/损坏输入） ----
+    std::mt19937_64 rng(20260810);
+    std::uniform_int_distribution<int> method_dist(0, 6);
+    std::uniform_int_distribution<int> n_dist(0, 40);
+    std::uniform_real_distribution<double> v_dist(-1e3, 1e3);
+    std::uniform_real_distribution<double> s_dist(-10.0, 10.0);
+    for (int iter = 0; iter < 2000; ++iter) {
+        const int n = n_dist(rng);
+        std::vector<double> vals(n);
+        for (auto& x : vals) {
+            x = v_dist(rng);
+            if ((rng() % 20) == 0) x = std::nan("");
+            if ((rng() % 25) == 0) x = std::numeric_limits<double>::infinity();
+        }
+        std::vector<std::uint8_t> acc(n);
+        P2SampleStackView fin{};
+        fin.values = vals.data();
+        fin.count = (std::uint32_t)n;
+        fin.method = method_dist(rng);
+        fin.sigma_low = s_dist(rng);
+        fin.sigma_high = s_dist(rng);
+        fin.max_iterations = (int)(rng() % 16);
+        fin.min_samples = (int)(rng() % 8);
+        P2RejectionResult fr{};
+        fr.accepted = acc.data();
+        if (p2_reject_stack(&fin, &fr) != 0) return 10;
+        P2PixelStack fpi{};
+        fpi.values = vals.data();
+        fpi.accepted = acc.data();
+        fpi.count = (std::uint32_t)n;
+        P2PixelResult fpr{};
+        if (p2_integrate_pixel(&fpi, &fpr) != 0) return 11;
+    }
+    // 随机 UPM 观测
+    for (int iter = 0; iter < 100; ++iter) {
+        std::vector<P2ControlObservation> fobs;
+        const int n_obs = (int)(rng() % 60);
+        for (int i = 0; i < n_obs; ++i) {
+            P2ControlObservation o{};
+            o.frame_id = rng() % 8;
+            o.control_id = rng() % 12;
+            o.leaf_ipix = rng();
+            o.ra_deg = v_dist(rng);
+            o.dec_deg = v_dist(rng);
+            o.value = v_dist(rng);
+            o.uncertainty = std::fabs(v_dist(rng));
+            o.snr = std::fabs(v_dist(rng));
+            o.support = std::fabs(v_dist(rng));
+            o.quality_flags = (std::uint32_t)rng();
+            fobs.push_back(o);
+        }
+        void* fm = nullptr;
+        if (n_obs == 0) {
+            if (p2_upm_build(fobs.data(), 0, nullptr, &fm) == 0) return 12;
+            continue;
+        }
+        if (p2_upm_build(fobs.data(), (std::uint64_t)fobs.size(), nullptr,
+                         &fm) != 0) {
+            continue;  // 空/退化输入可拒绝
+        }
+        P2UpmBuildConfig fcfg{};
+        fcfg.zero_anchor_weight = s_dist(rng);
+        fcfg.huber_delta = std::fabs(v_dist(rng));
+        fcfg.max_iterations = (int)(rng() % 10);
+        void* fm2 = nullptr;
+        if (p2_upm_build(fobs.data(), (std::uint64_t)fobs.size(), &fcfg,
+                         &fm2) == 0) {
+            p2_upm_close(fm2);
+        }
+        p2_upm_close(fm);
+    }
 
     std::printf("sanitize driver ok\n");
     return 0;
