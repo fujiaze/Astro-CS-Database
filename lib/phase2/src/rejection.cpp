@@ -22,13 +22,83 @@ inline double median(std::vector<double> v) {
     std::nth_element(v.begin(), v.begin() + mid, v.end());
     if (n % 2 == 1) return v[mid];
     const double a = v[mid];
-    const double b = *std::min_element(v.begin(), v.begin() + mid);
+    // nth_element 后 [begin, mid) 全部 ≤ v[mid]；第 mid 小（即排序后
+    // v[mid-1]）是前 mid 个元素的最大值。
+    const double b = *std::max_element(v.begin(), v.begin() + mid);
     return 0.5 * (a + b);
 }
 
 inline double mad(std::vector<double> v, double med) {
     for (auto& x : v) x = std::fabs(x - med);
     return 1.4826 * median(std::move(v));
+}
+
+// 正则化不完全 beta I_x(a,b)（Lentz 连分数，Numerical Recipes betai/betacf 算法）
+double ibeta_cf(double a, double b, double x) {
+    const double fpmin = 1e-300;
+    const double qab = a + b;
+    const double qap = a + 1.0;
+    const double qam = a - 1.0;
+    double c = 1.0;
+    double d = 1.0 - qab * x / qap;
+    if (std::fabs(d) < fpmin) d = fpmin;
+    d = 1.0 / d;
+    double h = d;
+    for (int m = 1; m <= 300; ++m) {
+        const int m2 = 2 * m;
+        double aa = (double)m * (b - (double)m) * x /
+                    ((qam + m2) * (a + m2));
+        d = 1.0 + aa * d;
+        if (std::fabs(d) < fpmin) d = fpmin;
+        c = 1.0 + aa / c;
+        if (std::fabs(c) < fpmin) c = fpmin;
+        d = 1.0 / d;
+        h *= d * c;
+        aa = -(a + (double)m) * (qab + (double)m) * x /
+             ((a + m2) * (qap + m2));
+        d = 1.0 + aa * d;
+        if (std::fabs(d) < fpmin) d = fpmin;
+        c = 1.0 + aa / c;
+        if (std::fabs(c) < fpmin) c = fpmin;
+        d = 1.0 / d;
+        const double del = d * c;
+        h *= del;
+        if (std::fabs(del - 1.0) < 1e-12) break;
+    }
+    return h;
+}
+
+double ibeta(double a, double b, double x) {
+    if (x <= 0.0) return 0.0;
+    if (x >= 1.0) return 1.0;
+    const double ln = std::lgamma(a + b) - std::lgamma(a) -
+                      std::lgamma(b) + a * std::log(x) +
+                      b * std::log(1.0 - x);
+    const double bt = std::exp(ln);
+    if (x < (a + 1.0) / (a + b + 2.0))
+        return bt * ibeta_cf(a, b, x) / a;
+    return 1.0 - bt * ibeta_cf(b, a, 1.0 - x) / b;
+}
+
+// Student-t CDF（双侧对称）
+double t_cdf(double t, double nu) {
+    const double x = nu / (nu + t * t);
+    // F(t) = 1 − ½·I_x(ν/2, 1/2)（t ≥ 0），x = ν/(ν+t²)
+    if (t >= 0.0) return 1.0 - 0.5 * ibeta(nu / 2.0, 0.5, x);
+    return 0.5 * ibeta(nu / 2.0, 0.5, x);
+}
+
+// Student-t 分位数（二分求逆，p 为单侧下尾概率）
+double t_quantile(double p, double nu) {
+    if (p <= 0.0) return 0.0;
+    if (p >= 1.0) return 40.0;
+    double lo = 0.0, hi = 40.0;
+    for (int it = 0; it < 80; ++it) {
+        const double mid = 0.5 * (lo + hi);
+        const double cdf = t_cdf(mid, nu);
+        if (cdf < p) lo = mid; else hi = mid;
+    }
+    return 0.5 * (lo + hi);
 }
 
 // 最小二乘直线 y = a*x + b（x 为样本序号）
@@ -148,11 +218,14 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
     if (in->method == P2_REJECT_GENERALIZED_ESD) {
         // NIST Generalized ESD（独立实现，数学参考：
         // https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h3.htm）。
-        // 最多检出 max_iterations 个离群（单向双侧），显著性水平固定 0.05。
+        // 最多检出 max_iterations 个离群（双侧），显著性水平 α=0.05；
+        // 临界值 λ_i = t_{ν,p}·(n-i)/sqrt((n-i-1+t²)·(n-i+1))，
+        // ν = n-i-1，p = 1 - α/(2·(n-i+1))（NIST 公式）。
         std::vector<bool> accept(vals.size(), true);
         std::vector<double> working = vals;
         const std::size_t max_out = static_cast<std::size_t>(max_iter);
         std::size_t removed = 0;
+        const double alpha = 0.05;
         for (std::size_t r = 0; r < max_out; ++r) {
             double mean = 0.0; std::size_t n = 0;
             for (std::size_t i = 0; i < working.size(); ++i) {
@@ -173,9 +246,13 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
                 const double rv = std::fabs(working[i] - mean) / s;
                 if (rv > max_r) { max_r = rv; worst = i; }
             }
-            // 临界值（n=样本数, α=0.05）：简化 t 近似；首版用保守 3.0 阈值，
-            // Oracle 对照（NIST 示例）在 W7 完整版校准。
-            const double crit = 3.0;
+            // NIST 临界值：n-i = 当前轮样本数 - 1（i 为 1-indexed 检测步）
+            const double n_minus_i = (double)n - 1.0;
+            const double nu = n_minus_i - 1.0;
+            const double p = 1.0 - alpha / (2.0 * (n_minus_i + 1.0));
+            const double tcrit = t_quantile(p, nu);
+            const double crit = (tcrit * n_minus_i) /
+                std::sqrt((nu + tcrit * tcrit) * (n_minus_i + 1.0));
             if (max_r <= crit) break;
             accept[worst] = false;
             ++removed;
