@@ -27,6 +27,7 @@
 #include <cstdio>
 #include <cstring>
 #include <fstream>
+#include <random>
 #include <vector>
 
 namespace {
@@ -244,6 +245,49 @@ TEST(Phase2Reject, R2MinSamples) {
     out.accepted = accepted.data();
     ASSERT_EQ(p2_reject_stack(&in, &out), 0);
     EXPECT_EQ(out.status, 1);
+}
+
+// W7：LinearFit 检出序列离群（Siril 公开语义独立实现；带真实噪声的
+// 时间趋势数据，MAD 尺度才不会误拒正常样本）
+TEST(Phase2Reject, LinearFitFindsOutlier) {
+    std::mt19937 rng(42);
+    std::normal_distribution<double> nd(0.0, 0.3);
+    std::vector<double> vals;
+    for (int i = 0; i < 50; ++i)
+        vals.push_back(10.0 + 0.1 * (double)i + nd(rng));
+    vals[30] = 30.0;
+    std::vector<std::uint8_t> accepted(vals.size(), 0);
+    P2SampleStackView in{};
+    in.values = vals.data();
+    in.count = static_cast<std::uint32_t>(vals.size());
+    in.method = P2_REJECT_LINEAR_FIT;
+    in.sigma_low = -4.0;
+    in.sigma_high = 3.0;
+    in.max_iterations = 8;
+    in.min_samples = 3;
+    P2RejectionResult out{};
+    out.accepted = accepted.data();
+    ASSERT_EQ(p2_reject_stack(&in, &out), 0);
+    EXPECT_EQ(accepted[30], 0u);
+    EXPECT_GT(out.rejected_high, 0u);
+    EXPECT_GE(out.accepted_count, 45u);  // 正常样本保留绝大多数
+}
+
+// W7：RCR 检出离群（Maples 2018 论文独立实现，Chauvenet 判据）
+TEST(Phase2Reject, RcrFindsOutlier) {
+    std::vector<double> vals{10, 10.1, 9.9, 10.05, 10.2, 9.8, 50.0};
+    std::vector<std::uint8_t> accepted(vals.size(), 0);
+    P2SampleStackView in{};
+    in.values = vals.data();
+    in.count = static_cast<std::uint32_t>(vals.size());
+    in.method = P2_REJECT_RCR;
+    in.max_iterations = 8;
+    in.min_samples = 3;
+    P2RejectionResult out{};
+    out.accepted = accepted.data();
+    ASSERT_EQ(p2_reject_stack(&in, &out), 0);
+    EXPECT_EQ(accepted.back(), 0u);
+    EXPECT_GT(out.rejected_high, 0u);
 }
 
 // W9：ACR 合成 mosaic_reject legacy launcher 与 CPU reference 等价

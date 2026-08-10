@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <vector>
 
@@ -28,6 +29,27 @@ inline double median(std::vector<double> v) {
 inline double mad(std::vector<double> v, double med) {
     for (auto& x : v) x = std::fabs(x - med);
     return 1.4826 * median(std::move(v));
+}
+
+// 最小二乘直线 y = a*x + b（x 为样本序号）
+void ls_fit_line(const std::vector<double>& xv, const std::vector<double>& yv,
+                 double* a, double* b) {
+    double sx = 0, sy = 0, sxx = 0, sxy = 0;
+    const std::size_t n = xv.size();
+    for (std::size_t i = 0; i < n; ++i) {
+        sx += xv[i];
+        sy += yv[i];
+        sxx += xv[i] * xv[i];
+        sxy += xv[i] * yv[i];
+    }
+    const double den = (double)n * sxx - sx * sx;
+    if (std::fabs(den) < 1e-12) {
+        *a = 0.0;
+        *b = n ? sy / (double)n : 0.0;
+        return;
+    }
+    *a = ((double)n * sxy - sx * sy) / den;
+    *b = (sy - *a * sx) / (double)n;
 }
 
 } // namespace
@@ -159,6 +181,112 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
             ++removed;
         }
         out->iterations = static_cast<std::uint32_t>(removed);
+        std::uint32_t kept = 0;
+        for (std::size_t i = 0; i < vals.size(); ++i) {
+            out->accepted[idx[i]] = accept[i] ? 1 : 0;
+            if (accept[i]) { ++kept; }
+            else if (vals[i] < 0.0) ++out->rejected_low; else ++out->rejected_high;
+        }
+        out->accepted_count = kept;
+        out->status = kept == 0 ? 2 : 0;
+        return 0;
+    }
+
+    if (in->method == P2_REJECT_LINEAR_FIT) {
+        // Siril linear-fit 语义（公开文档，ORACLE ONLY）：按 pixel stack 拟合
+        // 最佳直线 y=a*x+b（x=样本序号），基于拟合残差做 low/high clipping，
+        // 迭代直至无新增拒绝。
+        std::vector<bool> accept(vals.size(), true);
+        int it = 0;
+        for (; it < max_iter; ++it) {
+            std::vector<double> xv, yv;
+            for (std::size_t i = 0; i < vals.size(); ++i)
+                if (accept[i]) { xv.push_back((double)i); yv.push_back(vals[i]); }
+            if (yv.size() < 2) break;
+            double a = 0.0, b = 0.0;
+            ls_fit_line(xv, yv, &a, &b);
+            std::vector<double> resid;
+            for (std::size_t i = 0; i < vals.size(); ++i) {
+                if (!accept[i]) continue;
+                const double r = vals[i] - (a * (double)i + b);
+                resid.push_back(r);
+            }
+            // 残差稳健尺度（MAD），避免单个离群拉高均方根 σ
+            const double rmed = median(resid);
+            std::vector<double> dev;
+            dev.reserve(resid.size());
+            for (double r : resid) dev.push_back(std::fabs(r - rmed));
+            const double s = 1.4826 * median(std::move(dev));
+            if (s <= 1e-12) break;
+            bool changed = false;
+            for (std::size_t i = 0; i < vals.size(); ++i) {
+                if (!accept[i]) continue;
+                const double r = vals[i] - (a * (double)i + b);
+                const double z = r / s;
+                if (z < lo || z > hi) {
+                    accept[i] = false;
+                    changed = true;
+                }
+            }
+            if (!changed) break;
+        }
+        out->iterations = static_cast<std::uint32_t>(it);
+        std::uint32_t kept = 0;
+        for (std::size_t i = 0; i < vals.size(); ++i) {
+            out->accepted[idx[i]] = accept[i] ? 1 : 0;
+            if (accept[i]) { ++kept; }
+            else if (vals[i] < 0.0) ++out->rejected_low; else ++out->rejected_high;
+        }
+        out->accepted_count = kept;
+        out->status = kept == 0 ? 2 : 0;
+        return 0;
+    }
+
+    if (in->method == P2_REJECT_RCR) {
+        // Robust Chauvenet Rejection（Maples et al. 2018, arXiv:1807.05276，
+        // 论文独立实现；UNC 官方非商业源码 ORACLE ONLY）：
+        //   - 每轮计算 median/MAD → modified z-score z=0.6745*(x-M)/MAD；
+        //   - 对当前最大 |z| 样本，Chauvenet 判据 n*p(z) < 0.5 则拒绝并迭代；
+        //   - weighted 模式：权重参与 MAD（按 √w 缩放残差），非空 weights 即启用。
+        std::vector<bool> accept(vals.size(), true);
+        const bool weighted = in->weights != nullptr;
+        int removed_total = 0;
+        for (int it = 0; it < max_iter; ++it) {
+            std::vector<double> cur;
+            std::vector<double> cur_w;
+            for (std::size_t i = 0; i < vals.size(); ++i) {
+                if (!accept[i]) continue;
+                cur.push_back(vals[i]);
+                cur_w.push_back(weighted ? in->weights[i] : 1.0);
+            }
+            if (cur.size() < 3) break;
+            const double med = median(cur);
+            std::vector<double> dev(cur.size());
+            for (std::size_t i = 0; i < cur.size(); ++i)
+                dev[i] = std::fabs(cur[i] - med) * std::sqrt(cur_w[i]);
+            double m = 1.4826 * median(std::move(dev));
+            if (m <= 1e-12) break;  // 全同值无离群
+            // 最大 |z| 样本
+            std::size_t worst = 0;
+            double max_z = 0.0;
+            for (std::size_t i = 0; i < cur.size(); ++i) {
+                const double z = 0.6745 * (cur[i] - med) / m;
+                if (std::fabs(z) > max_z) { max_z = std::fabs(z); worst = i; }
+            }
+            // 双尾正态概率 p = erfc(|z|/√2)；Chauvenet：n*p < 0.5
+            const double p = std::erfc(max_z / std::sqrt(2.0));
+            if (p * (double)cur.size() >= 0.5) break;
+            // 找到原始索引
+            std::size_t orig = vals.size();
+            for (std::size_t i = 0, j = 0; i < vals.size(); ++i) {
+                if (!accept[i]) continue;
+                if (j == worst) { orig = i; break; }
+                ++j;
+            }
+            accept[orig] = false;
+            ++removed_total;
+        }
+        out->iterations = static_cast<std::uint32_t>(removed_total);
         std::uint32_t kept = 0;
         for (std::size_t i = 0; i < vals.size(); ++i) {
             out->accepted[idx[i]] = accept[i] ? 1 : 0;
