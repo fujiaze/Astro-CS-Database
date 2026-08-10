@@ -2111,3 +2111,17 @@ SHA256 38ea32dd8c1e655aa7ea53ca0109ff6a72dc4ce9686351c616a643ac09930fde
 
 审核包: AstroCS_Review_Phase1_FINAL_ARCHIVE_V6_20260809.zip
 SHA256 73cdd6be2eb1eaa1fd218e0489e31a173f08f0d3a3b6146f8ea3f0da28e2894d
+### 2026-08-10 ACR 并入 main 作为备用加速基座（dormant merge）
+
+- **merge**：`198d69e merge(acr): add astrocompute-runtime as dormant acceleration base`
+  （--no-ff，HEAD e949b30 并入 main；merge-base=8f50519）
+- **改动范围**：仅 lib/acr（runtime/dispatcher/CPU/CUDA backend/benchmark/profile/
+  mixed scheduler/residency/memory/weighted integration synthetic reference/tests/docs）
+  + 工程控制文档；351 新增 + 1 文档更新，**业务代码（Phase1/真实积分/Drizzle）零修改**
+- **merge 前同步**：main=2a009a0（Phase1 V6，origin/main 一致）
+- **merge 后验证**：main 上 ACR 全量构建通过；CTest 连续 3 轮 644/644、0 失败、
+  10 项跳过（-j1；SanitizerSmoke 预存共享状态偶发 SEGFAULT 单独复跑 PASS）
+- **状态**：ACR 在 main 内存在但无业务调用（备用加速基座）；future 真实 Integration
+  Adapter 另开业务改造计划；feature/astrocompute-runtime 保留
+- 审核包：AstroCS_Review_ACRBaseClosure_20260809.zip
+  SHA256 01c950e245687ee14c06d3d28dcd7da0414858d69be590fd6bcb1359e1bc6496
