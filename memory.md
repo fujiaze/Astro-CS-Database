@@ -107,6 +107,28 @@
 
 ## 当前进度
 
+### Phase2 V1 实施（2026-08-10，控制包 34A532A2...B2EB308，HEAD 305dd1b+）
+**状态：真实链闭合完成，审核包 AstroCS_Review_Phase2_V1.zip（SHA C6957B4F...4AF7B）**
+- 正式定义：多个 Phase1 单帧 HiPS → coverage union Ω → 一个 UPM
+  （Huber IRLS + SNR-aware 权重 + 弱零锚 + 连通分量）→ 动态分块 →
+  全部覆盖帧加性校准到 UPM → 迭代排异（7 种）→ SNR/support/quality
+  加权叠加 → 唯一 AIO 输出标准 IVOA HiPS 马赛克。HICS 已撤销。
+- 前序（gate 12/12）：W0 盘点/W1 Wiki/W2 接口冻结/W4 UPM reference/
+  W6 planner/W7 部分 rejection/W9 ACR legacy launcher/W10 robustness。
+- 本会话补全：W3 coverage 真实 AIO（union MOC/target_order/兼容校验）、
+  W4 control sampler（patch estimator + SNR Catalogue）+ UPM 真实
+  SHA-256/JSON 持久化/连通分量、W5 dense cache（stale 拒绝）、
+  W7 LinearFit/RCR、W8 `astrocs-stage2 <stage2.json>` 正式入口
+  （真实 block 校准/排异/叠加 → AIO HiPS）、W11 真实马赛克 3 套。
+- 验证：合成 gate 18/18；真实重叠（t4_crop×t4_full）285 tiles、
+  61.59M px、重叠区 4.02M px 加权叠加，UPM 1 分量、frame offset
+  0/−0.001057；完整三片 312 tiles、64.56M px；Hipsgen
+  LINT/CHECKCODE/CHECK/CHECKDATASUM（signal+support）全过。
+- 模块文档：lib/phase2/memory.md（接口/验证/未完成项）、README.md；
+  工程控制/docs/PHASE2_IMPLEMENTATION/EXECUTION_LOG.md。
+- 未完成：ACR GPU kernel、块尺寸不变性实测、Oracle 矩阵、
+  sanitizer/fuzz、GUI smoke、weight/rejection_count 产品。
+
 ### Phase1 Final Closure V3（2026-08-08，控制包 11b57bad，HEAD 5d5be0a+）
 **状态：全部核心 Gate 通过，冻结收尾中**
 - Phase A：PSF 坐标契约修复（img_cx=cx+x0）+ 星点链消费拟合中心，
