@@ -215,3 +215,44 @@ TEST(Phase2Acr, LegacyLauncherEquivalent) {
     EXPECT_NEAR(out[0], 10.1f, 1e-4f);
     EXPECT_NEAR(out[1], 20.0f, 1e-2f);
 }
+
+
+// W10 鲁棒性：损坏/边界输入
+TEST(Phase2Robust, NanInputRejected) {
+    std::vector<double> vals{10.0, std::nan(""), 11.0, 50.0};
+    std::vector<std::uint8_t> acc(vals.size(), 0);
+    P2SampleStackView in{};
+    in.values = vals.data();
+    in.count = 4;
+    in.method = P2_REJECT_SIGMA;
+    in.min_samples = 2;
+    in.max_iterations = 8;
+    P2RejectionResult out{};
+    out.accepted = acc.data();
+    ASSERT_EQ(p2_reject_stack(&in, &out), 0);
+    EXPECT_EQ(acc[1], 0u);          // NaN 被拒
+    EXPECT_EQ(out.status, 3);       // nan-input
+}
+
+TEST(Phase2Robust, ZeroMemoryLimitUnfeasible) {
+    P2BlockPlannerInput in{};
+    in.output_pixels = 1024;
+    in.covering_frames = 1;
+    in.memory_limit_bytes = 0;
+    P2BlockPlan plan{};
+    ASSERT_EQ(p2_block_plan(&in, &plan), 0);
+    EXPECT_EQ(plan.status, 1);
+}
+
+TEST(Phase2Robust, AllRejectedIntegrationHandled) {
+    std::vector<double> vals{10.0, 11.0, 9.0};
+    std::vector<std::uint8_t> acc{0, 0, 0};
+    P2PixelStack in{};
+    in.values = vals.data();
+    in.accepted = acc.data();
+    in.count = 3;
+    P2PixelResult out{};
+    ASSERT_EQ(p2_integrate_pixel(&in, &out), 0);
+    EXPECT_NE(out.status, 0);       // 全拒
+    EXPECT_EQ(out.signal, 0.0);
+}
