@@ -21,12 +21,15 @@ add_library(phase2 STATIC
 )
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../acr/include)
+target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../astro_image_io/include)
+target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../common)
 
 enable_testing()
 find_package(GTest QUIET)
 if(GTest_FOUND)
     add_executable(phase2_synthetic_gate tests/synthetic_gate.cpp)
-    target_link_libraries(phase2_synthetic_gate PRIVATE phase2 GTest::gtest_main)
+    target_link_libraries(phase2_synthetic_gate PRIVATE phase2 GTest::gtest_main
+        ${CMAKE_CURRENT_SOURCE_DIR}/../astro_image_io/astro_image_io.dll)
     include(GoogleTest)
     gtest_discover_tests(phase2_synthetic_gate DISCOVERY_MODE PRE_TEST)
 endif()

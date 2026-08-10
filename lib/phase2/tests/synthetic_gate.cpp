@@ -13,6 +13,7 @@
 #include <gtest/gtest.h>
 
 #include "astro/phase2/upm.h"
+#include "astro/phase2/coverage.h"
 #include "astro/phase2/rejection.h"
 #include "astro/phase2/block.h"
 #include "astro/phase2/integrate.h"
@@ -24,6 +25,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <fstream>
 #include <vector>
 
 namespace {
@@ -255,4 +257,51 @@ TEST(Phase2Robust, AllRejectedIntegrationHandled) {
     ASSERT_EQ(p2_integrate_pixel(&in, &out), 0);
     EXPECT_NE(out.status, 0);       // 全拒
     EXPECT_EQ(out.signal, 0.0);
+}
+
+// W3 真实 HiPS：coverage union（Phase1 冻结产物只读输入）
+TEST(Phase2Coverage, RealHipsUnion) {
+    const char* base = "F:/Astro dev/Astro CS Normalization Database/run/temp/phase1_freeze";
+    const std::string t2 = std::string(base) + "/T2_v3.hips/signal/properties";
+    if (!std::ifstream(t2).good()) GTEST_SKIP() << "真实 HiPS 输入不存在";
+    const std::string p0 = std::string(base) + "/T2_v3.hips";
+    const std::string p1 = std::string(base) + "/T3_v3.hips";
+    const std::string p2 = std::string(base) + "/t4_crop_v3.hips";
+    const char* paths[3] = {p0.c_str(), p1.c_str(), p2.c_str()};
+    P2CoverageResult cov{};
+    cov.n_inputs = 3;
+    P2HipsInputInfo infos[3]{};
+    cov.inputs = infos;
+    ASSERT_EQ(p2_coverage_build(paths, 3, &cov), 0);
+    EXPECT_EQ(cov.target_order, 7);
+    EXPECT_EQ(cov.n_inputs, 3u);
+    for (int i = 0; i < 3; ++i) {
+        EXPECT_EQ(infos[i].max_leaf_order, 7);
+        EXPECT_GT(infos[i].n_tiles, 0);
+        EXPECT_STREQ(infos[i].filter_passband, "Red");
+        EXPECT_STREQ(infos[i].frame_type, "equatorial");
+    }
+    // 第一次查询容量后第二次填充
+    cov.union_cells = nullptr;
+    cov.n_union_cells = 0;
+    ASSERT_EQ(p2_coverage_build(paths, 3, &cov), 0);
+    const std::uint64_t n = cov.n_union_cells;
+    EXPECT_GE(n, 1u);
+    std::vector<P2MocCell> cells(n);
+    cov.union_cells = cells.data();
+    ASSERT_EQ(p2_coverage_build(paths, 3, &cov), 0);
+    EXPECT_EQ(cov.n_union_cells, n);
+    EXPECT_EQ(cells[0].order, 7u);
+    p2_coverage_free(&cov);
+}
+
+// W3 真实 HiPS：filter 不一致必须拒绝
+TEST(Phase2Coverage, FilterMismatchRejected) {
+    const char* base = "F:/Astro dev/Astro CS Normalization Database/run/temp/phase1_freeze";
+    const std::string t2 = std::string(base) + "/T2_v3.hips/signal/properties";
+    if (!std::ifstream(t2).good()) GTEST_SKIP() << "真实 HiPS 输入不存在";
+    const char* bad[1] = {"F:/definitely/not/a/hips"};
+    P2CoverageResult cov{};
+    cov.n_inputs = 1;
+    ASSERT_NE(p2_coverage_build(bad, 1, &cov), 0);
 }
