@@ -1,4 +1,4 @@
-// lib/phase2/tests/synthetic_gate.cpp — Phase2 合成 Gate（W4/W7/W5/W6/W8 子集）
+// lib/phase2/tests/synthetic_gate.cpp — Phase2 合成 Gate（W4/W7/W5/W6/W8/W9 子集）
 //
 // 覆盖：
 //   S0 identity：无额外 gradient 时 UPM 校准不改变信号；
@@ -8,13 +8,18 @@
 //   R2 min-samples：样本不足返回 status=min-samples；
 //   D  sparse=dense（materialize 与稀疏模型一致）；
 //   B  block planner（内存估算/micro-chunk）；
-//   I  weighted integration（加权均值/全拒）。
+//   I  weighted integration（加权均值/全拒）；
+//   A  ACR legacy launcher 与 CPU reference 等价。
 #include <gtest/gtest.h>
 
 #include "astro/phase2/upm.h"
 #include "astro/phase2/rejection.h"
 #include "astro/phase2/block.h"
 #include "astro/phase2/integrate.h"
+#include "astro/phase2/acr_kernels.h"
+
+#include "astro/compute/kernel_registry.hpp"
+#include "astro/compute/task_traits.hpp"
 
 #include <cmath>
 #include <cstdio>
@@ -181,4 +186,32 @@ TEST(Phase2Reject, R2MinSamples) {
     out.accepted = accepted.data();
     ASSERT_EQ(p2_reject_stack(&in, &out), 0);
     EXPECT_EQ(out.status, 1);
+}
+
+// W9：ACR 合成 mosaic_reject legacy launcher 与 CPU reference 等价
+TEST(Phase2Acr, LegacyLauncherEquivalent) {
+    astro::compute::phase2::register_phase2_acr_kernels();
+    const astro::compute::KernelRegistration* reg =
+        astro::compute::global_kernel_registry().find(
+            astro::compute::phase2::kOpMosaicReject);
+    ASSERT_NE(reg, nullptr);
+    ASSERT_NE(reg->legacy_parallel, nullptr);
+
+    const std::size_t px = 2, depth = 3;
+    // frame-major：s*n_px+p —— s0:[10,20] s1:[50,20.1] s2:[10.2,19.9]
+    float vals[6] = {10.0f, 20.0f, 50.0f, 20.1f, 10.2f, 19.9f};
+    float out[2] = {0, 0};
+    astro::compute::KernelInvocation inv;
+    inv.id = astro::compute::phase2::kOpMosaicReject;
+    inv.domain = astro::compute::WorkDomain{0, px};
+    inv.buffers.add(0, out, px, 1, astro::compute::BufferRole::Output);
+    inv.buffers.add(1, vals, px*depth, 1, astro::compute::BufferRole::Input);
+    astro::compute::append_scalar(inv.scalars, std::size_t{px});
+    astro::compute::append_scalar(inv.scalars, std::size_t{depth});
+    astro::compute::append_scalar(inv.scalars, int{P2_REJECT_SIGMA});
+    astro::compute::append_scalar(inv.scalars, double{-4.0});
+    astro::compute::append_scalar(inv.scalars, double{3.0});
+    reg->legacy_parallel(inv, nullptr);
+    EXPECT_NEAR(out[0], 10.1f, 1e-4f);
+    EXPECT_NEAR(out[1], 20.0f, 1e-2f);
 }

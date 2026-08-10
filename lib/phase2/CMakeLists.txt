@@ -16,8 +16,11 @@ add_library(phase2 STATIC
     src/coverage.cpp
     src/block.cpp
     src/integrate.cpp
+    src/acr_kernels.cpp
+    ../acr/api/kernel_registry.cpp
 )
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../acr/include)
 
 enable_testing()
 find_package(GTest QUIET)

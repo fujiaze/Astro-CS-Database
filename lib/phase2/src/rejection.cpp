@@ -85,6 +85,91 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
     const double hi = in->sigma_high != 0.0 ? in->sigma_high : 3.0;
     const int max_iter = in->max_iterations > 0 ? in->max_iterations : 8;
 
+    if (in->method == P2_REJECT_AVERAGED_SIGMA) {
+        // IRAF AVSIGCLIP 语义（公开定义）：迭代中按"当前保留样本"计算均值与
+        // 平均 sigma（对每样本残差绝对值的平均，而非 MAD），再按 lo/hi sigma 拒绝。
+        std::vector<bool> accept(vals.size(), true);
+        int it = 0;
+        for (; it < max_iter; ++it) {
+            double sum = 0.0; std::size_t n = 0;
+            for (std::size_t i = 0; i < vals.size(); ++i) {
+                if (accept[i]) { sum += vals[i]; ++n; }
+            }
+            if (n < 2) break;
+            const double mean = sum / static_cast<double>(n);
+            double s = 0.0;
+            for (std::size_t i = 0; i < vals.size(); ++i) {
+                if (accept[i]) s += std::fabs(vals[i] - mean);
+            }
+            s = (s / static_cast<double>(n)) * std::sqrt(3.141592653589793 / 2.0);
+            if (s <= 1e-12) break;
+            bool changed = false;
+            for (std::size_t i = 0; i < vals.size(); ++i) {
+                if (!accept[i]) continue;
+                const double z = (vals[i] - mean) / s;
+                if (z < lo || z > hi) { accept[i] = false; changed = true; }
+            }
+            if (!changed) break;
+        }
+        out->iterations = static_cast<std::uint32_t>(it);
+        std::uint32_t kept = 0;
+        for (std::size_t i = 0; i < vals.size(); ++i) {
+            out->accepted[idx[i]] = accept[i] ? 1 : 0;
+            if (accept[i]) { ++kept; }
+            else if (vals[i] < 0.0) ++out->rejected_low; else ++out->rejected_high;
+        }
+        out->accepted_count = kept;
+        out->status = kept == 0 ? 2 : 0;
+        return 0;
+    }
+
+    if (in->method == P2_REJECT_GENERALIZED_ESD) {
+        // NIST Generalized ESD（独立实现，数学参考：
+        // https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h3.htm）。
+        // 最多检出 max_iterations 个离群（单向双侧），显著性水平固定 0.05。
+        std::vector<bool> accept(vals.size(), true);
+        std::vector<double> working = vals;
+        const std::size_t max_out = static_cast<std::size_t>(max_iter);
+        std::size_t removed = 0;
+        for (std::size_t r = 0; r < max_out; ++r) {
+            double mean = 0.0; std::size_t n = 0;
+            for (std::size_t i = 0; i < working.size(); ++i) {
+                if (accept[i]) { mean += working[i]; ++n; }
+            }
+            if (n < 3) break;
+            mean /= static_cast<double>(n);
+            double s = 0.0;
+            for (std::size_t i = 0; i < working.size(); ++i) {
+                if (accept[i]) s += (working[i] - mean) * (working[i] - mean);
+            }
+            s = std::sqrt(s / static_cast<double>(n - 1));
+            if (s <= 1e-12) break;
+            std::size_t worst = n;
+            double max_r = 0.0;
+            for (std::size_t i = 0; i < working.size(); ++i) {
+                if (!accept[i]) continue;
+                const double rv = std::fabs(working[i] - mean) / s;
+                if (rv > max_r) { max_r = rv; worst = i; }
+            }
+            // 临界值（n=样本数, α=0.05）：简化 t 近似；首版用保守 3.0 阈值，
+            // Oracle 对照（NIST 示例）在 W7 完整版校准。
+            const double crit = 3.0;
+            if (max_r <= crit) break;
+            accept[worst] = false;
+            ++removed;
+        }
+        out->iterations = static_cast<std::uint32_t>(removed);
+        std::uint32_t kept = 0;
+        for (std::size_t i = 0; i < vals.size(); ++i) {
+            out->accepted[idx[i]] = accept[i] ? 1 : 0;
+            if (accept[i]) { ++kept; }
+            else if (vals[i] < 0.0) ++out->rejected_low; else ++out->rejected_high;
+        }
+        out->accepted_count = kept;
+        out->status = kept == 0 ? 2 : 0;
+        return 0;
+    }
+
     // Sigma / WinsorizedSigma 迭代
     std::vector<bool> accept(vals.size(), true);
     int iters = 0;
