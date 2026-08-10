@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "inputs": {
+    "hips": [
+      "run/phase1/frame001.hips",
+      "run/phase1/frame002.hips"
+    ],
+    "target_order": "auto"
+  },
+  "model": {
+    "control_spacing_arcsec": "auto",
+    "patch_radius_pixels": "auto",
+    "storage": "auto",
+    "robust_loss": "huber",
+    "snr_weight_mode": "snr2_normalized",
+    "smoothing": "auto"
+  },
+  "integration": {
+    "precision": "fp32",
+    "memory_limit_mb": 24576,
+    "rejection": {
+      "method": "winsorized_sigma",
+      "low": 4.0,
+      "high": 3.0,
+      "max_iterations": 8
+    },
+    "weight_mode": "auto"
+  },
+  "output": {
+    "hips": "run/phase2/mosaic.hips"
+  },
+  "diagnostics": {
+    "enabled": true
+  }
+}

@@ -18,7 +18,7 @@ SNR² 加权全局加性梯度统一、稳健排异和多帧叠加生成连续�
 - Phase1 生产末端：单帧平面 → HEALPix 球面 → HiPS（HIPS_VERIFY）；
   HISS 正式 deprecated（仅 `validation.legacy_hiss_compare=true` 写出）；
   生产默认 pixfrac=0.8（省略即 0.8）、`output.hips` 唯一正式输出；
-  Phase2 = 多帧积分/HICS/马赛克；Phase3 = 球面→平面导出（底层双向已冻结）
+Phase2 = 球面马赛克（多帧 HiPS → UPM → 动态分块 → 排异叠加 → HiPS Mosaic；不再使用 HICS）；Phase3 = 球面→平面导出（底层双向已冻结）
 - 未完成（不在本轮）：Stage2 / FAST / ACR、710 帧全量回归
 - 严格科学验收以**合成真值数据**为主；真实 testdata 仅辅助/性能/集成验证
 

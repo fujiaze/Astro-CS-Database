@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AstroCS Stage2 bootstrap schema",
+  "type": "object",
+  "required": [
+    "version",
+    "inputs",
+    "model",
+    "integration",
+    "output"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "inputs": {
+      "type": "object",
+      "required": [
+        "hips"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "hips": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "target_order": {
+          "oneOf": [
+            {
+              "const": "auto"
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 29
+            }
+          ]
+        }
+      }
+    },
+    "model": {
+      "type": "object"
+    },
+    "integration": {
+      "type": "object"
+    },
+    "output": {
+      "type": "object",
+      "required": [
+        "hips"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "hips": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "object"
+    }
+  }
+}
