@@ -401,7 +401,8 @@ int main(int argc, char** argv) {
             }
             std::vector<std::uint64_t> dummy(n_leaf, 0);
             std::vector<double> out(n_leaf);
-            p2_upm_calibrate_block(model, f, dummy.data(),
+            p2_upm_calibrate_block(model, p2_frame_id(cfg.hips[f].c_str()),
+                                   dummy.data(),
                                    cal[s].data(), out.data(), n_leaf);
             for (std::uint64_t i = 0; i < n_leaf; ++i)
                 cal[s][i] = out[i];

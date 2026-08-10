@@ -36,6 +36,10 @@ typedef struct {
     double snr_search_radius_deg; // SNR 星点检索半径（度，默认 0.05）
 } P2SamplerConfig;
 
+// 内容稳定帧标识（FNV-1a 64）：由输入路径派生，与输入顺序无关；
+// UPM 参考帧 = 最小 frame_id（保证输入重排输出不变）。
+P2_API std::uint64_t p2_frame_id(const char* hips_path);
+
 // 采样控制观测。调用方先以 out_n_obs=0 查询所需数量，再分配后二次调用；
 // 或直接传入足够大的 out_capacity。
 P2_API int p2_sample_controls(

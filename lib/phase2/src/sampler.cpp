@@ -69,9 +69,23 @@ double median_of(std::vector<double> v) {
     return 0.5 * (a + b);
 }
 
+inline std::uint64_t fnv1a64(const char* s) {
+    std::uint64_t h = 14695981039346656037ULL;
+    for (const unsigned char* p = (const unsigned char*)s; *p; ++p) {
+        h ^= (std::uint64_t)*p;
+        h *= 1099511628211ULL;
+    }
+    return h;
+}
+
 } // namespace
 
 extern "C" {
+
+std::uint64_t p2_frame_id(const char* hips_path) {
+    if (!hips_path) return 0;
+    return fnv1a64(hips_path);
+}
 
 int p2_sample_controls(const P2CoverageResult* coverage,
                        const char* const* hips_paths,
@@ -237,7 +251,7 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                         if (!near.empty()) snr_val = median_of(std::move(near));
                     }
                     P2ControlObservation o{};
-                    o.frame_id = frame_id;
+                    o.frame_id = p2_frame_id(hips_paths[frame_id]);
                     o.control_id = control_id;
                     o.leaf_ipix = center_leaf;
                     o.ra_deg = ra_deg;

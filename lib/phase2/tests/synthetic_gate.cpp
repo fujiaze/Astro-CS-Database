@@ -43,6 +43,17 @@ P2ControlObservation make_obs(std::uint64_t frame, std::uint64_t ctrl,
     return o;
 }
 
+P2ControlObservation make_obs_id(std::uint64_t frame_id, std::uint64_t ctrl,
+                                 double value, double snr) {
+    P2ControlObservation o{};
+    o.frame_id = frame_id;
+    o.control_id = ctrl;
+    o.value = value;
+    o.snr = snr;
+    o.support = 1.0;
+    return o;
+}
+
 } // namespace
 
 TEST(Phase2Upm, S0IdentityCalibrationNoChange) {
@@ -139,6 +150,45 @@ TEST(Phase2Upm, SaveOpenRoundtripAndHash) {
     std::remove(path);
 }
 
+// Validation §4：输入 frame 顺序随机重排后，统一模型的等权叠加输出必须一致。
+// frame_id 是内容稳定标识（不随输入位置变化），参考帧 = 最小 frame_id，
+// 因此重排输入顺序不改变 gauge。
+TEST(Phase2Upm, FrameOrderInvariance) {
+    std::vector<P2ControlObservation> obs_a{
+        make_obs_id(10, 0, 10.0, 100.0),
+        make_obs_id(10, 1, 12.0, 100.0),
+        make_obs_id(10, 2, 11.0, 100.0),
+        make_obs_id(20, 0, 15.0, 100.0),
+        make_obs_id(20, 1, 17.0, 100.0),
+        make_obs_id(20, 2, 16.0, 100.0),
+    };
+    // 重排：输入顺序交换（B 先 A 后），frame_id 不变
+    std::vector<P2ControlObservation> obs_b{
+        make_obs_id(20, 0, 15.0, 100.0),
+        make_obs_id(20, 1, 17.0, 100.0),
+        make_obs_id(20, 2, 16.0, 100.0),
+        make_obs_id(10, 0, 10.0, 100.0),
+        make_obs_id(10, 1, 12.0, 100.0),
+        make_obs_id(10, 2, 11.0, 100.0),
+    };
+    P2UpmBuildConfig cfg{};
+    void* ma = nullptr, *mb = nullptr;
+    ASSERT_EQ(p2_upm_build(obs_a.data(), obs_a.size(), &cfg, &ma), 0);
+    ASSERT_EQ(p2_upm_build(obs_b.data(), obs_b.size(), &cfg, &mb), 0);
+    std::uint64_t ip[1] = {0};
+    double v0[1] = {10.0}, v1[1] = {15.0};
+    double a0[1] = {0}, a1[1] = {0}, b0[1] = {0}, b1[1] = {0};
+    ASSERT_EQ(p2_upm_calibrate_block(ma, 10, ip, v0, a0, 1), 0);
+    ASSERT_EQ(p2_upm_calibrate_block(ma, 20, ip, v1, a1, 1), 0);
+    ASSERT_EQ(p2_upm_calibrate_block(mb, 20, ip, v1, b0, 1), 0);
+    ASSERT_EQ(p2_upm_calibrate_block(mb, 10, ip, v0, b1, 1), 0);
+    // 重排前后同一帧的校准输出必须一致
+    EXPECT_NEAR(a0[0], b1[0], 1e-9);  // 帧 A(10)
+    EXPECT_NEAR(a1[0], b0[0], 1e-9);  // 帧 B(20)
+    p2_upm_close(mb);
+    p2_upm_close(ma);
+}
+
 TEST(Phase2Upm, SparseEqualsDense) {
     std::vector<P2ControlObservation> obs{
         make_obs(0, 0, 10.0, 100.0),
@@ -195,6 +245,79 @@ TEST(Phase2Block, MemoryEstimateAndMicrochunk) {
     in.memory_limit_bytes = 1ull << 30;
     ASSERT_EQ(p2_block_plan(&in, &plan), 0);
     EXPECT_EQ(plan.micro_chunk_required, 0);
+}
+
+// G5/Validation §4：块尺寸不影响科学结果（同一栈整批 vs 分块一致）
+TEST(Phase2Block, ChunkSizeInvariance) {
+    constexpr std::size_t P = 1u << 18;   // 262144 输出像素
+    constexpr std::uint32_t N = 5;        // 帧数
+    std::mt19937 rng(20260810);
+    std::normal_distribution<double> nd(0.0, 0.15);
+    std::vector<double> truth(P);
+    for (std::size_t p = 0; p < P; ++p)
+        truth[p] = 10.0 + 2.0 * std::sin((double)p * 0.001);
+    std::vector<double> stack(N * P), sup(N * P);
+    for (std::uint32_t f = 0; f < N; ++f) {
+        for (std::size_t p = 0; p < P; ++p) {
+            double v = truth[p] + (double)f * 0.3 + nd(rng);
+            if ((p + f * 7919u) % 2000u == 0u) v += 5.0;  // 稀疏离群
+            stack[(size_t)f * P + p] = v;
+            sup[(size_t)f * P + p] =
+                0.5 + 0.5 * std::sin((double)(p + f * 131) * 0.0005);
+        }
+    }
+    auto process = [&](std::size_t chunk, std::vector<double>* sig_out) {
+        sig_out->assign(P, 0.0);
+        std::vector<double> vals(N), w(N), sp(N);
+        std::vector<std::uint8_t> acc(N);
+        for (std::size_t base = 0; base < P; base += chunk) {
+            const std::size_t hi = std::min(base + chunk, P);
+            for (std::size_t p = base; p < hi; ++p) {
+                std::uint32_t nv = 0;
+                for (std::uint32_t f = 0; f < N; ++f) {
+                    const double v = stack[(size_t)f * P + p];
+                    const double s = sup[(size_t)f * P + p];
+                    if (std::isfinite(v) && s > 0.0) {
+                        vals[nv] = v;
+                        w[nv] = s * (1.0 + (double)f * 0.5);
+                        sp[nv] = s;
+                        ++nv;
+                    }
+                }
+                if (nv < 3) continue;
+                P2SampleStackView rv{};
+                rv.values = vals.data();
+                rv.count = nv;
+                rv.method = P2_REJECT_WINSORIZED_SIGMA;
+                rv.sigma_low = -4.0;
+                rv.sigma_high = 3.0;
+                rv.max_iterations = 8;
+                rv.min_samples = 3;
+                P2RejectionResult rr{};
+                rr.accepted = acc.data();
+                ASSERT_EQ(p2_reject_stack(&rv, &rr), 0);
+                P2PixelStack pi{};
+                pi.values = vals.data();
+                pi.weights = w.data();
+                pi.support = sp.data();
+                pi.accepted = acc.data();
+                pi.count = nv;
+                P2PixelResult pr{};
+                ASSERT_EQ(p2_integrate_pixel(&pi, &pr), 0);
+                (*sig_out)[p] = (pr.status == 0) ? pr.signal : 0.0;
+            }
+        }
+    };
+    std::vector<double> sig_all, sig_c1024, sig_c16384, sig_c65536;
+    process(P, &sig_all);
+    process(1024, &sig_c1024);
+    process(16384, &sig_c16384);
+    process(65536, &sig_c65536);
+    for (std::size_t p = 0; p < P; ++p) {
+        EXPECT_NEAR(sig_c1024[p], sig_all[p], 1e-12);
+        EXPECT_NEAR(sig_c16384[p], sig_all[p], 1e-12);
+        EXPECT_NEAR(sig_c65536[p], sig_all[p], 1e-12);
+    }
 }
 
 TEST(Phase2Integrate, WeightedMeanAndAllRejected) {

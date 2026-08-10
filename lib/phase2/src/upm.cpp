@@ -150,12 +150,13 @@ int p2_upm_build(const P2ControlObservation* obs, std::uint64_t n_obs,
                 z[k] = znew;
             }
         }
-        // 求解 a（固定 z；弱锚）。参考帧（frame_index==0，即最小 frame_id）
-        // offset 固定为 0，消除加性歧义（统一模型相对参考帧校准）。
+        // 求解 a（固定 z；弱锚）。参考帧（frame_index==0，即最小 frame_id，
+        // frame_id 为内容稳定哈希）offset 固定为 0，消除加性歧义；
+        // 该 gauge 与输入顺序无关（frame_id 不随输入位置变化）。
         double max_da = 0.0;
         for (const auto& kv : m->frame_index) {
             const std::size_t f = kv.second;
-            if (f == 0) { a[f] = 0.0; continue; }  // 参考帧锚定
+            if (f == 0) { a[f] = 0.0; continue; }
             double num = 0.0, den = anchor;
             for (std::uint64_t i = 0; i < n_obs; ++i) {
                 if (m->frame_index[obs[i].frame_id] != f) continue;
