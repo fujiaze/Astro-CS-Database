@@ -107,8 +107,8 @@
 
 ## 当前进度
 
-### Phase2 V1 实施（2026-08-10，控制包 34A532A2...B2EB308，HEAD 305dd1b+）
-**状态：真实链闭合完成，审核包 AstroCS_Review_Phase2_V1.zip（SHA C6957B4F...4AF7B）**
+### Phase2 V1 实施（2026-08-10，控制包 34A532A2...B2EB308，HEAD 03ef84b）
+**状态：真实链闭合完成，审核包 AstroCS_Review_Phase2_V1.zip（SHA E586AF80...EEFC7）**
 - 正式定义：多个 Phase1 单帧 HiPS → coverage union Ω → 一个 UPM
   （Huber IRLS + SNR-aware 权重 + 弱零锚 + 连通分量）→ 动态分块 →
   全部覆盖帧加性校准到 UPM → 迭代排异（7 种）→ SNR/support/quality
