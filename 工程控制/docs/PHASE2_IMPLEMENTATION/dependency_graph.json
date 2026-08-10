@@ -1,0 +1,44 @@
+{
+  "phase2_dependency_graph": {
+    "generated": "2026-08-10",
+    "head": "e862403662f09781e634634d63ff8238807a1c68",
+    "nodes": {
+      "W1_wiki": {"depends": ["W0_inventory"], "status": "pending"},
+      "W2_interfaces": {"depends": ["W1_wiki"], "status": "pending"},
+      "W3_coverage": {"depends": ["W2_interfaces"], "status": "pending"},
+      "W4_upm_cpu": {"depends": ["W2_interfaces", "W3_coverage"], "status": "pending"},
+      "W5_dense": {"depends": ["W4_upm_cpu"], "status": "pending"},
+      "W6_block_planner": {"depends": ["W3_coverage", "W2_interfaces"], "status": "pending"},
+      "W7_rejection": {"depends": ["W2_interfaces"], "status": "pending"},
+      "W8_integration_hips": {"depends": ["W4_upm_cpu", "W6_block_planner", "W7_rejection"], "status": "pending"},
+      "W9_acr": {"depends": ["W8_integration_hips"], "status": "pending"},
+      "W10_robustness": {"depends": ["W8_integration_hips", "W9_acr"], "status": "pending"},
+      "W11_real_mosaic": {"depends": ["W9_acr", "W10_robustness"], "status": "pending"},
+      "W12_delivery": {"depends": ["W10_robustness", "W11_real_mosaic"], "status": "pending"}
+    },
+    "parallelizable": {
+      "A_upm": ["W4_upm_cpu", "W5_dense"],
+      "B_block_aio": ["W6_block_planner"],
+      "C_rejection": ["W7_rejection"],
+      "D_synthetic_oracle": ["W3_coverage", "W7_rejection"]
+    },
+    "interfaces_to_freeze_first": [
+      "Stage2Config",
+      "UPM public API",
+      "ControlObservation",
+      "BlockWorkset",
+      "Rejection interface",
+      "AIO model API"
+    ],
+    "forbidden": [
+      "HICS",
+      "per-frame gradient products",
+      "overlap-only control points",
+      "SNR-driven geometry",
+      "multiplicative scale",
+      "block-size-dependent science",
+      "new runtime I/O DLL",
+      "ACR before CPU science semantics"
+    ]
+  }
+}
