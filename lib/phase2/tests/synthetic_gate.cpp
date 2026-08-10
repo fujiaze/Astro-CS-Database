@@ -157,8 +157,26 @@ TEST(Phase2Upm, SparseEqualsDense) {
                                 sizeof(hash)), 0);
     EXPECT_GE(pixels, 3u);
     EXPECT_GT(std::strlen(hash), 0u);
-    std::remove(cache);
+    // dense_read_block 与 sparse calibrate_block 一致
+    std::uint64_t ipix[1] = {0};
+    double in[1] = {15.0};
+    double out_sparse[1] = {0.0}, out_dense[1] = {0.0};
+    ASSERT_EQ(p2_upm_calibrate_block(model, 1, ipix, in, out_sparse, 1), 0);
+    ASSERT_EQ(p2_upm_dense_read_block(model, cache, 1, ipix, in,
+                                      out_dense, 1), 0);
+    EXPECT_NEAR(out_sparse[0], out_dense[0], 1e-12);
+    // stale cache：不同模型必须拒绝（返回 2）
+    std::vector<P2ControlObservation> obs2{
+        make_obs(0, 0, 1.0, 5.0),
+        make_obs(0, 1, 2.0, 5.0),
+    };
+    void* model2 = nullptr;
+    ASSERT_EQ(p2_upm_build(obs2.data(), obs2.size(), &cfg, &model2), 0);
+    EXPECT_EQ(p2_upm_dense_read_block(model2, cache, 1, ipix, in,
+                                      out_dense, 1), 2);
+    p2_upm_close(model2);
     p2_upm_close(model);
+    std::remove(cache);
 }
 
 TEST(Phase2Block, MemoryEstimateAndMicrochunk) {

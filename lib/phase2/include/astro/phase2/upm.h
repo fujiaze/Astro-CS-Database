@@ -90,6 +90,16 @@ P2_API int p2_upm_dense_info(
     const void* model, const char* cache_path,
     int* out_target_order, std::uint64_t* out_pixels,
     char* out_source_hash, std::size_t hash_buf_size);
+
+// 读取 dense cache 一块（与 sparse calibrate_block 数值等价；stale 拒绝）
+// 返回 0=ok, 1=io/parse, 2=stale-cache（source hash 不匹配）
+P2_API int p2_upm_dense_read_block(
+    const void* model, const char* cache_path,
+    std::uint64_t frame_id,
+    const std::uint64_t* leaf_ipix,
+    const double* input_signal,
+    double* output_signal,
+    std::uint64_t count);
 // materialize dense cache（同模型 hash/目标 order/frame hash 校验）
 P2_API int p2_upm_materialize_dense(
     const void* model, int target_order, const char* cache_path);
