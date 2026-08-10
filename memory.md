@@ -107,8 +107,8 @@
 
 ## 当前进度
 
-### Phase2 V1 实施（2026-08-10，控制包 34A532A2...B2EB308，HEAD 03ef84b）
-**状态：真实链闭合完成，审核包 AstroCS_Review_Phase2_V1.zip（SHA E586AF80...EEFC7）**
+### Phase2 V1 实施（2026-08-10，控制包 34A532A2...B2EB308，HEAD fa77364+）
+**状态：真实链闭合 + Gate 补测完成，审核包 AstroCS_Review_Phase2_V1.zip（SHA 318EAB75...E741B）**
 - 正式定义：多个 Phase1 单帧 HiPS → coverage union Ω → 一个 UPM
   （Huber IRLS + SNR-aware 权重 + 弱零锚 + 连通分量）→ 动态分块 →
   全部覆盖帧加性校准到 UPM → 迭代排异（7 种）→ SNR/support/quality
@@ -124,10 +124,17 @@
   61.59M px、重叠区 4.02M px 加权叠加，UPM 1 分量、frame offset
   0/−0.001057；完整三片 312 tiles、64.56M px；Hipsgen
   LINT/CHECKCODE/CHECK/CHECKDATASUM（signal+support）全过。
+- Gate 补测（本会话续）：G6 Oracle（Astropy sigma_clip 200/200、NIST/scipy
+  ESD 120/120、SciPy winsorize）→ 修复偶数中位数 MAD bug + NIST t 分布
+  ESD 临界值；G5 块尺寸不变性（4 档 chunk 1e-12 一致）+ 帧顺序不变性
+  （frame_id 改内容稳定 FNV-1a 哈希，参考帧=最小 hash，输入重排输出不变）；
+  G9 profile（control_sample 9.2s + tiles_process 12.7s，总 21.9s/312 tiles）；
+  G10 WSL ASan+UBSan+LSan 0 错误 + 2000 随机 rejection/100 随机 UPM fuzz；
+  G11 diagnostics.json（rejection 直方图）。合成 gate 20/20。
 - 模块文档：lib/phase2/memory.md（接口/验证/未完成项）、README.md；
   工程控制/docs/PHASE2_IMPLEMENTATION/EXECUTION_LOG.md。
-- 未完成：ACR GPU kernel、块尺寸不变性实测、Oracle 矩阵、
-  sanitizer/fuzz、GUI smoke、weight/rejection_count 产品。
+- 未完成：ACR GPU kernel、Oracle 全量矩阵（N=2..500×7）、GUI smoke、
+  weight/rejection_count 作为 Image HiPS 产品（当前 JSON 诊断）。
 
 ### Phase1 Final Closure V3（2026-08-08，控制包 11b57bad，HEAD 5d5be0a+）
 **状态：全部核心 Gate 通过，冻结收尾中**
