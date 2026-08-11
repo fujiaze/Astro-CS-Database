@@ -1057,6 +1057,79 @@ TEST(Phase2Reject, G6PermutationInvariance) {
     }
 }
 
+// R5/G7 权重 truth gate：比较 7 种权重策略（equal/snr/snr2/
+// support×snr2/capped snr2/invvar/support×invvar），低 SNR 偏差帧
+// 不得拉偏高 SNR 真值帧；默认策略由 truth 冻结。
+TEST(Phase2Weight, G5WeightTruthGate) {
+    constexpr int N = 20000;       // 像素
+    constexpr double TRUTH = 10.0;
+    std::mt19937 rng(20260816);
+    std::normal_distribution<double> nd(0.0, 0.2);
+    // 帧 0：高 SNR 真值帧（snr=100）；帧 1：低 SNR + 偏差（+1.5，snr=2）
+    std::vector<double> v0(N), v1(N), snr0(N), snr1(N), sup0(N), sup1(N);
+    for (int p = 0; p < N; ++p) {
+        v0[p] = TRUTH + nd(rng);
+        v1[p] = TRUTH + 1.5 + nd(rng) * 3.0;
+        snr0[p] = 100.0;
+        snr1[p] = 2.0;
+        sup0[p] = 0.9 + 0.1 * std::sin((double)p * 0.001);
+        sup1[p] = 0.5 + 0.5 * std::sin((double)p * 0.0013);
+    }
+    auto integrate = [&](double (*w0)(double, double, double),
+                         double (*w1)(double, double, double)) {
+        double bias = 0.0, sq = 0.0;
+        for (int p = 0; p < N; ++p) {
+            const double a = w0(snr0[p], sup0[p], 0.2);
+            const double b = w1(snr1[p], sup1[p], 0.6);  // σ=0.6
+            const double wsum = a + b;
+            const double out = (wsum > 0)
+                ? (a * v0[p] + b * v1[p]) / wsum : 0.0;
+            bias += out - TRUTH;
+            sq += (out - TRUTH) * (out - TRUTH);
+        }
+        return std::make_pair(bias / N, std::sqrt(sq / N));
+    };
+    auto eq = [](double, double, double) { return 1.0; };
+    auto snr_w = [](double s, double, double) { return s; };
+    auto snr2_w = [](double s, double, double) { return s * s; };
+    auto sup_snr2 = [](double s, double sp, double) { return sp * s * s; };
+    auto cap_snr2 = [](double s, double, double) {
+        const double c = 100.0;
+        return std::min(s * s, c);
+    };
+    auto iv_w = [](double, double, double sig) { return 1.0 / (sig * sig); };
+    auto sup_iv = [](double, double sp, double sig) {
+        return sp / (sig * sig);
+    };
+    struct Row { const char* name; double bias; double rmse; };
+    std::vector<Row> rows;
+    rows.push_back({"equal", integrate(eq, eq).first, integrate(eq, eq).second});
+    rows.push_back({"snr", integrate(snr_w, snr_w).first,
+                    integrate(snr_w, snr_w).second});
+    rows.push_back({"snr2", integrate(snr2_w, snr2_w).first,
+                    integrate(snr2_w, snr2_w).second});
+    rows.push_back({"support_x_snr2", integrate(sup_snr2, sup_snr2).first,
+                    integrate(sup_snr2, sup_snr2).second});
+    rows.push_back({"capped_snr2", integrate(cap_snr2, cap_snr2).first,
+                    integrate(cap_snr2, cap_snr2).second});
+    rows.push_back({"inverse_variance", integrate(iv_w, iv_w).first,
+                    integrate(iv_w, iv_w).second});
+    rows.push_back({"support_x_invvar", integrate(sup_iv, sup_iv).first,
+                    integrate(sup_iv, sup_iv).second});
+    for (const auto& r : rows)
+        std::fprintf(stderr, "[weight] %-18s bias=%+.4f rmse=%.4f\n",
+                     r.name, r.bias, r.rmse);
+    // 关键门：equal 会被低 SNR 偏差帧显著拉偏；SNR-aware 策略 bias 小。
+    const auto& eq_r = rows[0];
+    const auto& snr2_r = rows[2];
+    const auto& sup_r = rows[3];
+    EXPECT_GT(std::fabs(eq_r.bias), std::fabs(snr2_r.bias) + 0.2);
+    EXPECT_LT(std::fabs(sup_r.bias), 0.15);       // 低 SNR 不拉偏
+    EXPECT_LT(std::fabs(snr2_r.bias), 0.15);
+    // 默认策略（冻结）：support_x_snr2（含局部 support 可信度 + SNR²）
+    // weight_mode=auto 映射到该策略（stage2 文档/schema 同步）。
+}
+
 // W9：ACR 合成 mosaic_reject legacy launcher 与 CPU reference 等价
 TEST(Phase2Acr, LegacyLauncherEquivalent) {
     astro::compute::phase2::register_phase2_acr_kernels();
