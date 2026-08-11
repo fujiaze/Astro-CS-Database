@@ -37,8 +37,12 @@ int main() {
             obs.push_back(o);
         }
     }
+    P2UpmBuildConfig bcfg{};
+    bcfg.target_order = 7;
+    bcfg.smoothing_lambda = 0.1;
+    bcfg.max_iterations = 20;
     void* m = nullptr;
-    if (p2_upm_build(obs.data(), obs.size(), nullptr, &m) != 0) {
+    if (p2_upm_build(obs.data(), obs.size(), &bcfg, &m) != 0) {
         std::fprintf(stderr, "build failed\n");
         return 1;
     }
@@ -164,10 +168,10 @@ int main() {
         }
         void* fm = nullptr;
         if (n_obs == 0) {
-            if (p2_upm_build(fobs.data(), 0, nullptr, &fm) == 0) return 12;
+        if (p2_upm_build(fobs.data(), 0, &bcfg, &fm) == 0) return 12;
             continue;
         }
-        if (p2_upm_build(fobs.data(), (std::uint64_t)fobs.size(), nullptr,
+        if (p2_upm_build(fobs.data(), (std::uint64_t)fobs.size(), &bcfg,
                          &fm) != 0) {
             continue;  // 空/退化输入可拒绝
         }

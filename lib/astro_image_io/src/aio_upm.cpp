@@ -270,6 +270,7 @@ int aio_upm_dense_write_tile(AioUpmDense* d, std::uint64_t frame_index,
 
 int aio_upm_dense_end(AioUpmDense* d) {
     if (!d || !d->f) return 1;
+    std::unique_ptr<AioUpmDense> guard(d);   // 所有路径释放
     if (d->tiles.size() != d->tile_count) {
         std::fclose(d->f);
         d->f = nullptr;
