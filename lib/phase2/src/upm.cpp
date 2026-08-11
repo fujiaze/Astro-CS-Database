@@ -54,11 +54,17 @@ struct Model {
     std::vector<ControlNode> controls;
     std::map<std::uint64_t, std::size_t> control_by_id;
     std::map<std::uint64_t, std::size_t> frame_index;
+    std::vector<std::uint64_t> frame_id_by_index;   // index -> stable frame_id
     std::vector<std::vector<double>> C;  // [frame][control] 空间校正
     std::vector<std::vector<std::size_t>> adj;  // control 邻接（tile 内网格）
     std::vector<std::vector<double>> obs_w;     // 最终每轮权重缓存
     std::map<std::pair<std::uint64_t, std::pair<int, int>>, std::size_t>
         cell_index;                      // (tile, gx, gy) -> control
+    // R4：求解前连通分量（frame-control 二分图）；每分量独立 gauge
+    std::vector<std::size_t> control_component;   // control -> component
+    std::vector<std::size_t> frame_component;     // frame index -> component
+    std::vector<std::uint64_t> component_ref_frame;  // 每分量最小 frame_id
+    std::size_t component_count_solve{1};
     std::string input_manifest_hash;
     int grid{8};                         // cells per tile side
     int cell_side{64};
@@ -67,6 +73,34 @@ struct Model {
     double objective{0.0};
     std::size_t component_count{1};
 };
+
+// R4：evaluate_C —— 双线性插值（同一科学求值语义，sparse/dense 共用）
+// 输入 leaf -> (tile, x, y)（tile 内 512×512 坐标）；cell 四角节点值
+// 双线性插值；最外层 cell 不外推（clamp 到网格边界）。
+double evaluate_c_field(const Model* m, std::size_t frame_idx,
+                        std::uint64_t tile, int x, int y) {
+    const int gx = std::min(std::max(x / m->cell_side, 0), m->grid - 1);
+    const int gy = std::min(std::max(y / m->cell_side, 0), m->grid - 1);
+    const int gx1 = std::min(gx + 1, m->grid - 1);
+    const int gy1 = std::min(gy + 1, m->grid - 1);
+    const double fx = (double)(x - gx * m->cell_side) /
+                      (double)m->cell_side;
+    const double fy = (double)(y - gy * m->cell_side) /
+                      (double)m->cell_side;
+    auto at = [&](int cx, int cy) -> double {
+        const auto key = std::make_pair(tile, std::make_pair(cx, cy));
+        const auto it = m->cell_index.find(key);
+        if (it == m->cell_index.end()) return 0.0;
+        return m->C[frame_idx][it->second];
+    };
+    const double c00 = at(gx, gy);
+    const double c10 = at(gx1, gy);
+    const double c01 = at(gx, gy1);
+    const double c11 = at(gx1, gy1);
+    const double top = c00 + fx * (c10 - c00);
+    const double bot = c01 + fx * (c11 - c01);
+    return top + fy * (bot - top);
+}
 
 inline double quality_factor(std::uint32_t flags, int mode) {
     (void)mode;
@@ -186,6 +220,7 @@ int p2_upm_build(const P2ControlObservation* obs, std::uint64_t n_obs,
         if (m->frame_index.find(f) == m->frame_index.end()) {
             const std::size_t idx = m->frame_index.size();
             m->frame_index[f] = idx;
+            m->frame_id_by_index.push_back(f);
         }
     }
     const std::size_t F = m->frame_index.size();
@@ -209,6 +244,93 @@ int p2_upm_build(const P2ControlObservation* obs, std::uint64_t n_obs,
         link(cn.gx, cn.gy - 1);
     }
 
+    // R4：跨 tile 几何邻接（tile 边界 control cells 角距 < 阈值连接，
+    // 使跨 tile 几何相邻区域的 correction 受同一平滑约束）
+    {
+        // cell 中心间距（target order 像素尺度推导）
+        const double nside = (double)(1u << (unsigned)(cfg.target_order + 9));
+        const double pix_rad = std::sqrt(4.0 * 3.141592653589793 /
+                                         (12.0 * nside * nside));
+        const double cell_dist_rad = (double)m->cell_side * pix_rad;
+        const double link_rad = cell_dist_rad * 1.6;
+        const double link_deg = link_rad * 180.0 / 3.141592653589793;
+        std::vector<std::size_t> boundary;
+        for (std::size_t k = 0; k < K; ++k) {
+            const auto& cn = m->controls[k];
+            if (cn.gx == 0 || cn.gx == m->grid - 1 ||
+                cn.gy == 0 || cn.gy == m->grid - 1)
+                boundary.push_back(k);
+        }
+        for (std::size_t i = 0; i < boundary.size(); ++i) {
+            const auto& a = m->controls[boundary[i]];
+            for (std::size_t j = i + 1; j < boundary.size(); ++j) {
+                const auto& b = m->controls[boundary[j]];
+                if (a.tile_ipix == b.tile_ipix) continue;
+                // 粗筛：|Δra|/|Δdec| 先于角距（避免 O(B²) 全角距）
+                if (std::fabs(a.ra_deg - b.ra_deg) > link_deg) continue;
+                if (std::fabs(a.dec_deg - b.dec_deg) > link_deg) continue;
+                if (astrocs::healpix::angular_distance_deg(
+                        a.ra_deg, a.dec_deg, b.ra_deg, b.dec_deg) < link_deg) {
+                    m->adj[boundary[i]].push_back(boundary[j]);
+                    m->adj[boundary[j]].push_back(boundary[i]);
+                }
+            }
+        }
+        // 去重（同一邻接可能被网格与跨 tile 同时加入）
+        for (auto& v : m->adj) {
+            std::sort(v.begin(), v.end());
+            v.erase(std::unique(v.begin(), v.end()), v.end());
+        }
+    }
+
+    // R4：求解前连通分量（frame-control 二分图），每分量独立 gauge
+    {
+        const std::size_t Fn = m->frame_index.size();
+        std::vector<std::vector<std::size_t>> fc_adj(Fn + K);
+        for (std::uint64_t i = 0; i < n_obs; ++i) {
+            const std::size_t f = m->frame_index[obs[i].frame_id];
+            const std::size_t ck = m->control_by_id[obs[i].control_id];
+            fc_adj[f].push_back(Fn + ck);
+            fc_adj[Fn + ck].push_back(f);
+        }
+        std::vector<std::uint8_t> seen(Fn + K, 0);
+        m->control_component.assign(K, 0);
+        m->frame_component.assign(Fn, 0);
+        std::vector<std::vector<std::uint64_t>> comp_frames;
+        for (std::size_t start = 0; start < Fn + K; ++start) {
+            if (seen[start]) continue;
+            const std::size_t comp = comp_frames.size();
+            comp_frames.emplace_back();
+            std::vector<std::size_t> stack{start};
+            seen[start] = 1;
+            while (!stack.empty()) {
+                const std::size_t u = stack.back();
+                stack.pop_back();
+                if (u < Fn)
+                    m->frame_component[u] = comp;
+                else
+                    m->control_component[u - Fn] = comp;
+                if (u < Fn)
+                    comp_frames.back().push_back(
+                        m->frame_id_by_index[u]);
+                for (std::size_t v : fc_adj[u]) {
+                    if (!seen[v]) {
+                        seen[v] = 1;
+                        stack.push_back(v);
+                    }
+                }
+            }
+        }
+        m->component_count_solve = comp_frames.size();
+        m->component_ref_frame.resize(comp_frames.size());
+        for (std::size_t c = 0; c < comp_frames.size(); ++c) {
+            std::uint64_t mn = ~0ULL;
+            for (std::uint64_t fid : comp_frames[c]) mn = std::min(mn, fid);
+            m->component_ref_frame[c] = mn;
+        }
+        m->component_count = comp_frames.size();
+    }
+
     // ===== Huber IRLS 坐标下降求解 =====
     // 残差 r_ik = y_ik - M_k - C_i,k
     // 权重 raw_w = quality * support^p * snr^2/(1+snr^2) / max(unc^2, floor^2)
@@ -221,7 +343,6 @@ int p2_upm_build(const P2ControlObservation* obs, std::uint64_t n_obs,
     const double lambda_s = std::max(0.0, cfg.smoothing_lambda);
     const double sigma_floor = cfg.sigma_floor;
     const double support_power = cfg.support_power;
-    const std::uint64_t ref_frame_id = *frame_ids.begin();  // 最小 frame_id
 
     // per-control 归一化：需要先按 control 聚合（同 cell 多帧观测）
     // 这里直接按 obs 计算 raw 后按 control 归一化（与文档一致）
@@ -295,12 +416,14 @@ int p2_upm_build(const P2ControlObservation* obs, std::uint64_t n_obs,
             const double r = obs[i].value - M[ck] - m->C[m->frame_index[obs[i].frame_id]][ck];
             w[i] = raw_w[i] * huber_w(r, cfg.huber_delta);
         }
-        // 2. M 更新（固定 C）：gauge = 参考帧 C=0 → M 由参考帧观测定义；
-        //    参考帧未覆盖的节点用全部帧（延拓），不虚构约束。
+        // 2. M 更新（固定 C）：每分量 gauge = 分量内最小 frame_id C=0 →
+        //    M 由该分量参考帧观测定义；参考帧未覆盖节点用全部帧（延拓）。
         double max_dM = 0.0;
         for (std::size_t k = 0; k < m->controls.size(); ++k) {
             double num = 0.0, den = 0.0;
-            const std::size_t rf = m->frame_index[ref_frame_id];
+            const std::size_t comp = m->control_component[k];
+            const std::size_t rf =
+                m->frame_index[m->component_ref_frame[comp]];
             for (std::size_t ii : m->controls[k].obs_idx) {
                 if (m->frame_index[obs[ii].frame_id] != rf) continue;
                 const auto& o = obs[ii];
@@ -327,8 +450,9 @@ int p2_upm_build(const P2ControlObservation* obs, std::uint64_t n_obs,
         double max_dC = 0.0;
         for (const auto& kv : m->frame_index) {
             const std::size_t f = kv.second;
-            if (kv.first == ref_frame_id) {
-                // 参考帧 gauge：C=0
+            if (kv.first ==
+                m->component_ref_frame[m->frame_component[f]]) {
+                // 该分量参考帧 gauge：C=0（每分量独立，非全局最小帧）
                 for (std::size_t k = 0; k < K; ++k) m->C[f][k] = 0.0;
                 continue;
             }
@@ -370,35 +494,8 @@ int p2_upm_build(const P2ControlObservation* obs, std::uint64_t n_obs,
     }
 
     for (std::size_t k = 0; k < K; ++k) m->controls[k].M = M[k];
-    // 连通分量：frame-control 二分图（共同观测约束即边）
-    {
-        std::vector<std::vector<std::size_t>> adj(F + K);
-        for (std::uint64_t i = 0; i < n_obs; ++i) {
-            const std::size_t f = m->frame_index[obs[i].frame_id];
-            const std::size_t ck = m->control_by_id[obs[i].control_id];
-            adj[f].push_back(F + ck);
-            adj[F + ck].push_back(f);
-        }
-        std::vector<std::uint8_t> seen(F + K, 0);
-        std::size_t comps = 0;
-        for (std::size_t start = 0; start < F + K; ++start) {
-            if (seen[start]) continue;
-            ++comps;
-            std::vector<std::size_t> stack{start};
-            seen[start] = 1;
-            while (!stack.empty()) {
-                const std::size_t u = stack.back();
-                stack.pop_back();
-                for (std::size_t v : adj[u]) {
-                    if (!seen[v]) {
-                        seen[v] = 1;
-                        stack.push_back(v);
-                    }
-                }
-            }
-        }
-        m->component_count = comps;
-    }
+    // 连通分量已在求解前建立（component_count_solve / component_ref_frame），
+    // 每分量独立 gauge；此处不重复统计。
 
     // 模型哈希：精确序列化（max_digits10）+ frame manifest + 拓扑 + 系数
     {
@@ -612,18 +709,15 @@ int p2_upm_calibrate_block(const void* model, std::uint64_t frame_id,
     const int tile_shift = 9;
     const std::uint64_t mask = (1ULL << (2u * (unsigned)tile_shift)) - 1ULL;
     for (std::uint64_t i = 0; i < count; ++i) {
-        double c = 0.0;
         const std::uint64_t tile =
             leaf_ipix[i] >> (2u * (unsigned)tile_shift);
         const std::uint64_t local = leaf_ipix[i] & mask;
         std::uint32_t x = 0, y = 0;
         astrocs::healpix::nested_local_to_xy(local, (std::uint32_t)tile_shift,
                                              x, y);
-        const int gx = (int)(x / (std::uint32_t)m->cell_side);
-        const int gy = (int)(y / (std::uint32_t)m->cell_side);
-        const auto key = std::make_pair(tile, std::make_pair(gx, gy));
-        const auto cit = m->cell_index.find(key);
-        if (cit != m->cell_index.end()) c = m->C[fi][cit->second];
+        // R4：双线性空间校正场求值（cell 内随位置连续）
+        const double c =
+            evaluate_c_field(m, fi, tile, (int)x, (int)y);
         output_signal[i] = input_signal[i] - c;
     }
     return 0;
@@ -653,12 +747,9 @@ int p2_upm_materialize_dense(const void* model, int target_order,
                 std::uint32_t x = 0, y = 0;
                 astrocs::healpix::nested_local_to_xy(
                     local, (std::uint32_t)tile_shift, x, y);
-                const int gx = (int)(x / (std::uint32_t)m->cell_side);
-                const int gy = (int)(y / (std::uint32_t)m->cell_side);
-                const auto key = std::make_pair(tile, std::make_pair(gx, gy));
-                const auto cit = m->cell_index.find(key);
+                // R4：与 sparse 同一 evaluate_C 科学求值语义
                 values[(std::size_t)local] =
-                    (cit != m->cell_index.end()) ? m->C[f][cit->second] : 0.0;
+                    evaluate_c_field(m, f, tile, (int)x, (int)y);
             }
             if (aio_upm_dense_write_tile(d, (std::uint64_t)f, tile,
                                          values.data(), values.size()) != 0) {
