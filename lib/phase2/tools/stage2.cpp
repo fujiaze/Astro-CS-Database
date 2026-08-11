@@ -34,6 +34,7 @@
 #include <fstream>
 #include <map>
 #include <string>
+#include <tuple>
 #include <vector>
 
 extern "C" {
@@ -434,6 +435,20 @@ int main(int argc, char** argv) {
         if (o.quality_flags == 0) ++quality_unknown;
     log("quality fallback unknown: " + std::to_string(quality_unknown) +
         " / " + std::to_string(n_obs));
+    // R8：局部 SNR 映射（control cell 级 = 可证明的最近空间 catalogue
+    // 区域）：(frame_id, tile, gx, gy) -> snr。像素权重优先局部，
+    // 缺失才 fallback 整帧 SNR median 并计数。
+    std::map<std::tuple<std::uint64_t, std::uint64_t, int, int>, double>
+        local_snr_map;
+    for (const auto& o : obs) {
+        const std::uint64_t tile = o.leaf_ipix >> 18;
+        const std::uint64_t local = o.leaf_ipix & ((1ULL << 18) - 1ULL);
+        std::uint32_t x = 0, y = 0;
+        astrocs::healpix::nested_local_to_xy(local, 9u, x, y);
+        local_snr_map[std::make_tuple(o.frame_id, tile, (int)(x / 64),
+                                      (int)(y / 64))] = o.snr;
+    }
+    std::uint64_t local_snr_used = 0, frame_snr_fallback = 0;
 
     // ---- W4 UPM FIT ----
     P2UpmBuildConfig mcfg{};
@@ -636,10 +651,32 @@ int main(int argc, char** argv) {
         std::vector<float> t_sig(512 * 512), t_sup(512 * 512);
 
         if (use_acr_block) {
-            // compact frame SNR（P0-10 修复：与 frames[s] 一一对应）
-            std::vector<float> snr_compact(depth);
-            for (std::uint32_t s = 0; s < depth; ++s)
-                snr_compact[s] = (float)frame_snr[frames[s]];
+            // compact per-cell SNR（P0-10/R8：与 frames[s] 一一对应且按
+            // control cell 提供局部 SNR；缺失 cell → 整帧 median fallback）
+            const int grid = 8;
+            std::vector<float> snr_compact(depth * grid * grid);
+            for (std::uint32_t s = 0; s < depth; ++s) {
+                const std::uint64_t fid =
+                    p2_frame_id(cfg.hips[frames[s]].c_str());
+                const double fb = frame_snr[frames[s]];
+                for (int gy = 0; gy < grid; ++gy)
+                    for (int gx = 0; gx < grid; ++gx) {
+                        const auto key =
+                            std::make_tuple(fid, tile_ipix, gx, gy);
+                        const auto sit = local_snr_map.find(key);
+                        if (sit != local_snr_map.end()) {
+                            snr_compact[(std::size_t)(s * grid * grid +
+                                                      gy * grid + gx)] =
+                                (float)sit->second;
+                            ++local_snr_used;
+                        } else {
+                            snr_compact[(std::size_t)(s * grid * grid +
+                                                      gy * grid + gx)] =
+                                (float)fb;
+                            ++frame_snr_fallback;
+                        }
+                    }
+            }
             std::vector<float> frames_f32(chunk_pixels * depth);
             std::vector<float> sup_f32(chunk_pixels * depth);
             std::vector<float> out_sig_f32(chunk_pixels),
@@ -691,7 +728,8 @@ int main(int argc, char** argv) {
                                 astro::compute::BufferRole::Input);
                 inv.buffers.add(2, sup_f32.data(), cnt * depth, 1,
                                 astro::compute::BufferRole::Input);
-                inv.buffers.add(3, snr_compact.data(), depth, 1,
+                inv.buffers.add(3, snr_compact.data(),
+                                depth * grid * grid, 1,
                                 astro::compute::BufferRole::Input);
                 inv.buffers.add(4, out_sup_f32.data(), cnt, 1,
                                 astro::compute::BufferRole::Output);
@@ -801,8 +839,24 @@ int main(int argc, char** argv) {
                     if (std::isfinite(cal[s][i]) && supv[s][i] > 0.0) {
                         stack[n_valid] = cal[s][i];
                         support_v[n_valid] = supv[s][i];
-                        weights[n_valid] = supv[s][i] *
-                            frame_snr[frames[s]] * frame_snr[frames[s]];
+                        // R8：局部 SNR（control cell 级）；缺失 → 整帧
+                        // median fallback（计数）
+                        const std::uint64_t fid =
+                            p2_frame_id(cfg.hips[frames[s]].c_str());
+                        const int px = (int)(p % 512);
+                        const int py = (int)(p / 512);
+                        const auto key = std::make_tuple(
+                            fid, tile_ipix, px / 64, py / 64);
+                        const auto sit = local_snr_map.find(key);
+                        double snr_v;
+                        if (sit != local_snr_map.end()) {
+                            snr_v = sit->second;
+                            ++local_snr_used;
+                        } else {
+                            snr_v = frame_snr[frames[s]];
+                            ++frame_snr_fallback;
+                        }
+                        weights[n_valid] = supv[s][i] * snr_v * snr_v;
                         ++n_valid;
                     }
                 }
@@ -944,6 +998,8 @@ int main(int argc, char** argv) {
         diag["rejected_samples"] = total_rejected;
         diag["fallback_pixels"] = total_fallback;
         diag["quality_fallback_unknown"] = quality_unknown;
+        diag["local_snr_used"] = local_snr_used;
+        diag["frame_snr_median_fallback"] = frame_snr_fallback;
         diag["upm_sigma_floor"] = cfg.sigma_floor;
         diag["upm_support_power"] = cfg.support_power;
         diag["zero_coverage_pixels"] = dbg_zero_px;

@@ -85,9 +85,16 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
             if (!std::isfinite(v) || sval <= 0.0) continue;
             stack[n_valid] = v;
             stack_sup[n_valid] = sval;
-            const double snr_v = (snr != nullptr)
-                ? static_cast<double>(static_cast<const float*>(snr->data)[s])
-                : 1.0;
+            // R8：局部 SNR 按 control cell（grid=8）提供
+            double snr_v = 1.0;
+            if (snr != nullptr) {
+                const int grid = 8;
+                const int px = (int)(p % 512u);
+                const int py = (int)(p / 512u);
+                const int cell = (py / 64) * grid + (px / 64);
+                snr_v = static_cast<double>(
+                    static_cast<const float*>(snr->data)[s * grid * grid + cell]);
+            }
             stack_w[n_valid] = (sup != nullptr)
                 ? sval * snr_v * snr_v : 1.0;
             ++n_valid;
