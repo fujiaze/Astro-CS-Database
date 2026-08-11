@@ -23,12 +23,15 @@
 #include "astro/compute/kernel_registry.hpp"
 #include "astro/compute/task_traits.hpp"
 #include "cuda_bridge_api.hpp"
+#include "healpix/healpix_core.h"
 
 #include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <fstream>
+#include <algorithm>
 #include <random>
+#include <numeric>
 #include <vector>
 
 namespace {
@@ -54,6 +57,65 @@ P2ControlObservation make_obs_id(std::uint64_t frame_id, std::uint64_t ctrl,
     o.support = 1.0;
     return o;
 }
+
+// ===== G1 空间 UPM truth 辅助（控制包 V2 R1/R2）=====
+// TrueSky(p) + 每帧空间 additive field C_i(p)，在 4 个 target tile 上生成
+// control 观测与 10 万非 control 验证像素。
+namespace spatial_truth {
+
+constexpr int kTargetOrder = 7;
+constexpr int kTileShift = 9;              // leaf order = target+9
+constexpr std::uint64_t kLeafPerTile = 512ull * 512ull;
+constexpr std::uint64_t kTiles[4] = {3, 4, 5, 6};
+constexpr int kGrid = 8;
+constexpr int kCellSide = 512 / kGrid;
+constexpr double kNoiseRms = 0.05;
+
+inline std::uint64_t leaf_of(std::uint64_t tile, int x, int y) {
+    const std::uint64_t local =
+        astrocs::healpix::xy_to_nested_local((std::uint32_t)x,
+                                             (std::uint32_t)y,
+                                             (std::uint32_t)kTileShift);
+    return (tile << (2u * (unsigned)kTileShift)) + local;
+}
+
+// TrueSky：pedestal + 大尺度渐变 + 局部 diffuse 结构（ra/dec 的函数）
+inline double true_sky(double ra_deg, double dec_deg) {
+    const double rar = ra_deg * 3.141592653589793 / 180.0;
+    const double decr = dec_deg * 3.141592653589793 / 180.0;
+    double v = 10.0;
+    v += 0.8 * std::cos(decr) * std::sin(rar);        // 大尺度渐变
+    v += 0.5 * std::cos(2.0 * decr);                  // 非平面大尺度
+    const double d1 = std::sin(decr) * std::cos(rar) - 0.3;
+    v += 0.6 * std::exp(-20.0 * d1 * d1);             // 局部 diffuse 结构
+    return v;
+}
+
+// 每帧空间 additive field：const + plane + non-planar（smooth）
+inline double frame_field(int frame, double ra_deg, double dec_deg) {
+    const double rar = ra_deg * 3.141592653589793 / 180.0;
+    const double decr = dec_deg * 3.141592653589793 / 180.0;
+    if (frame == 0) return 0.0;
+    if (frame == 1) {
+        return 0.15 + 0.4 * std::cos(decr) * std::cos(rar) +
+               0.25 * std::cos(2.0 * decr);
+    }
+    // frame 2：另一方向 smooth field
+    return -0.10 + 0.35 * std::sin(2.0 * rar) * std::cos(decr) -
+           0.20 * std::cos(3.0 * decr);
+}
+
+// 单 tile 内 cell (gx,gy) 中心 leaf 的 ra/dec
+inline void cell_center_radec(std::uint64_t tile, int gx, int gy,
+                              double* ra, double* dec) {
+    const int x = gx * kCellSide + kCellSide / 2;
+    const int y = gy * kCellSide + kCellSide / 2;
+    const std::uint64_t leaf = leaf_of(tile, x, y);
+    astrocs::healpix::pix2ang_nest(
+        1u << (unsigned)(kTargetOrder + kTileShift), leaf, *ra, *dec);
+}
+
+} // namespace spatial_truth
 
 } // namespace
 
@@ -149,6 +211,201 @@ TEST(Phase2Upm, SaveOpenRoundtripAndHash) {
     p2_upm_close(model2);
     p2_upm_close(model);
     std::remove(path);
+}
+
+// G1 空间 UPM truth：3 帧 × 256 controls + 10 万非 control 验证像素。
+// TrueSky 含大尺度/非平面/局部 diffuse 结构；每帧含空间 additive field；
+// 单覆盖边缘（frame2 不覆盖 tile6）+ 断开分量（tile100 仅 frame0）。
+TEST(Phase2Upm, G1SpatialFieldTruth) {
+    namespace st = spatial_truth;
+    std::mt19937 rng(20260811);
+    std::normal_distribution<double> nd(0.0, st::kNoiseRms);
+
+    // 生成 control 观测（3 帧 × 4 tiles × 64 cells）
+    std::vector<P2ControlObservation> obs;
+    std::vector<std::uint64_t> control_leaf(st::kGrid * st::kGrid *
+                                            sizeof(st::kTiles) / sizeof(st::kTiles[0]));
+    std::vector<double> control_ra(control_leaf.size());
+    std::uint64_t ctrl_id = 0;
+    const int n_tiles = (int)(sizeof(st::kTiles) / sizeof(st::kTiles[0]));
+    for (int t = 0; t < n_tiles; ++t) {
+        for (int gy = 0; gy < st::kGrid; ++gy) {
+            for (int gx = 0; gx < st::kGrid; ++gx) {
+                double ra = 0, dec = 0;
+                st::cell_center_radec(st::kTiles[t], gx, gy, &ra, &dec);
+                const std::uint64_t leaf = st::leaf_of(
+                    st::kTiles[t], gx * st::kCellSide + st::kCellSide / 2,
+                    gy * st::kCellSide + st::kCellSide / 2);
+                control_leaf[(std::size_t)(t * st::kGrid * st::kGrid +
+                                           gy * st::kGrid + gx)] = leaf;
+                control_ra[(std::size_t)(t * st::kGrid * st::kGrid +
+                                         gy * st::kGrid + gx)] = ra;
+                (void)dec;
+                // frame0（参考）覆盖全部；frame1 全部；frame2 仅前 3 tiles
+                const int fmax = (t == n_tiles - 1) ? 1 : 2;
+                for (int f = 0; f <= fmax; ++f) {
+                    P2ControlObservation o{};
+                    o.frame_id = (std::uint64_t)f;
+                    o.control_id = ctrl_id;
+                    o.leaf_ipix = leaf;
+                    o.ra_deg = ra;
+                    double r2 = 0, d2 = 0;
+                    st::cell_center_radec(st::kTiles[t], gx, gy, &r2, &d2);
+                    o.dec_deg = d2;
+                    o.value = st::true_sky(ra, d2) +
+                              st::frame_field(f, ra, d2) + nd(rng);
+                    o.uncertainty = st::kNoiseRms;
+                    o.snr = (f == 1 && ((t + gy + gx) % 2 == 0))
+                                ? 3.0 : 100.0;
+                    o.support = 0.8 + 0.2 * ((gx + gy) % 2);
+                    o.quality_flags = 1;  // PSF_OK
+                    obs.push_back(o);
+                }
+                ++ctrl_id;
+            }
+        }
+    }
+    // 断开分量：tile100 仅 frame5 覆盖（与 frame0-2 无共同观测）
+    for (int c = 0; c < 2; ++c) {
+        double ra = 0, dec = 0;
+        st::cell_center_radec(100, c * 4, c * 4, &ra, &dec);
+        const std::uint64_t leaf =
+            st::leaf_of(100, c * 4 * st::kCellSide + 32,
+                        c * 4 * st::kCellSide + 32);
+        P2ControlObservation o{};
+        o.frame_id = 5;
+        o.control_id = ctrl_id++;
+        o.leaf_ipix = leaf;
+        o.ra_deg = ra;
+        o.dec_deg = dec;
+        o.value = st::true_sky(ra, dec) + nd(rng);
+        o.uncertainty = st::kNoiseRms;
+        o.snr = 100.0;
+        o.support = 1.0;
+        o.quality_flags = 1;
+        obs.push_back(o);
+    }
+
+    P2UpmBuildConfig cfg{};
+    cfg.target_order = st::kTargetOrder;
+    cfg.smoothing_lambda = 0.3;
+    cfg.zero_anchor_weight = 1e-3;
+    cfg.sigma_floor = 0.02;
+    cfg.max_iterations = 60;
+    cfg.tolerance = 1e-9;
+    void* model = nullptr;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg, &model), 0);
+    P2ModelInfo info{};
+    ASSERT_EQ(p2_upm_info(model, &info), 0);
+    EXPECT_GE(info.control_count, 256u);
+    EXPECT_EQ(info.target_order, (std::uint32_t)st::kTargetOrder);
+
+    // 非 control 验证像素（每 tile 25k，随机 cell 内偏移）
+    const int n_validate = 25000;
+    std::vector<std::uint64_t> val_leaf;
+    std::vector<std::uint8_t> val_frame;
+    std::vector<double> val_true;
+    val_leaf.reserve((std::size_t)n_validate * 4);
+    val_frame.reserve((std::size_t)n_validate * 4);
+    val_true.reserve((std::size_t)n_validate * 4);
+    std::uniform_int_distribution<int> cell_dist(0, st::kGrid - 1);
+    std::uniform_int_distribution<int> off_dist(0, st::kCellSide - 1);
+    for (int t = 0; t < n_tiles; ++t) {
+        for (int i = 0; i < n_validate; ++i) {
+            const int gx = cell_dist(rng);
+            const int gy = cell_dist(rng);
+            const int x = gx * st::kCellSide + off_dist(rng);
+            const int y = gy * st::kCellSide + off_dist(rng);
+            const std::uint64_t leaf = st::leaf_of(st::kTiles[t], x, y);
+            double ra = 0, dec = 0;
+            astrocs::healpix::pix2ang_nest(
+                1u << (unsigned)(st::kTargetOrder + st::kTileShift),
+                leaf, ra, dec);
+            for (int f = 0; f <= ((t == n_tiles - 1) ? 1 : 2); ++f) {
+                val_leaf.push_back(leaf);
+                val_frame.push_back((std::uint8_t)f);
+                val_true.push_back(st::true_sky(ra, dec));
+            }
+        }
+    }
+    // 校准 10 万+ 验证像素（3 帧）并统计 residual（校准 - TrueSky）
+    std::vector<double> residual;
+    std::vector<double> c_recovery;   // C_hat vs C_true（非 control）
+    std::vector<double> in_sig(val_leaf.size());
+    std::vector<double> out_sig(val_leaf.size());
+    for (std::size_t i = 0; i < val_leaf.size(); ++i) {
+        double ra = 0, dec = 0;
+        astrocs::healpix::pix2ang_nest(
+            1u << (unsigned)(st::kTargetOrder + st::kTileShift),
+            val_leaf[i], ra, dec);
+        const int f = val_frame[i];
+        in_sig[i] = val_true[i] + st::frame_field(f, ra, dec) + nd(rng);
+    }
+    std::vector<std::uint64_t> frame_buf(val_leaf.size());
+    for (std::size_t i = 0; i < val_leaf.size(); ++i)
+        frame_buf[i] = val_frame[i];
+    // calibrate_block 按帧分组调用（每帧独立收集像素）
+    for (int f = 0; f < 3; ++f) {
+        std::vector<std::uint64_t> leaves;
+        std::vector<double> in_v;
+        for (std::size_t i = 0; i < val_leaf.size(); ++i) {
+            if (val_frame[i] == f) {
+                leaves.push_back(val_leaf[i]);
+                in_v.push_back(in_sig[i]);
+            }
+        }
+        if (leaves.empty()) continue;
+        std::vector<double> out_v(leaves.size());
+        ASSERT_EQ(p2_upm_calibrate_block(model, (std::uint64_t)f,
+                                         leaves.data(), in_v.data(),
+                                         out_v.data(), leaves.size()), 0);
+        std::size_t w = 0;
+        for (std::size_t i = 0; i < val_leaf.size(); ++i) {
+            if (val_frame[i] == f) out_sig[i] = out_v[w++];
+        }
+    }
+    for (std::size_t i = 0; i < val_leaf.size(); ++i) {
+        residual.push_back(out_sig[i] - val_true[i]);
+        double ra = 0, dec = 0;
+        astrocs::healpix::pix2ang_nest(
+            1u << (unsigned)(st::kTargetOrder + st::kTileShift),
+            val_leaf[i], ra, dec);
+        const int f = val_frame[i];
+        const double c_true = st::frame_field(f, ra, dec);
+        const double c_hat = in_sig[i] - out_sig[i];
+        if (f > 0) c_recovery.push_back(c_hat - c_true);
+    }
+    auto percentile = [](std::vector<double> v, double p) {
+        std::sort(v.begin(), v.end());
+        if (v.empty()) return 0.0;
+        const std::size_t idx = (std::size_t)(p * (double)(v.size() - 1));
+        return v[idx];
+    };
+    double sq = 0;
+    for (double r : residual) sq += r * r;
+    const double rmse = std::sqrt(sq / (double)residual.size());
+    const double p50 = percentile(residual, 0.50);
+    const double p95 = percentile(residual, 0.95);
+    double pmax = std::fabs(residual.back());
+    for (double r : residual) pmax = std::max(pmax, std::fabs(r));
+    double csq = 0;
+    for (double c : c_recovery) csq += c * c;
+    const double c_rmse =
+        std::sqrt(csq / (double)std::max<std::size_t>(1, c_recovery.size()));
+
+    std::fprintf(stderr,
+                 "[G1] controls=%llu val_px=%zu residual_rmse=%.4f "
+                 "p50=%.4f p95=%.4f max=%.4f c_rmse=%.4f "
+                 "components=%u noise=%.3f\n",
+                 (unsigned long long)info.control_count, val_leaf.size(),
+                 rmse, p50, p95, pmax, c_rmse, info.component_count,
+                 st::kNoiseRms);
+    // 门限（G1）：RMSE <= 3σ，p95 <= 5σ；场恢复 RMSE <= 3σ；分量 >= 2
+    EXPECT_LE(rmse, 3.0 * st::kNoiseRms);
+    EXPECT_LE(std::fabs(p95), 5.0 * st::kNoiseRms);
+    EXPECT_LE(c_rmse, 3.0 * st::kNoiseRms);
+    EXPECT_GE(info.component_count, 2u);
+    p2_upm_close(model);
 }
 
 // Validation §4：输入 frame 顺序随机重排后，统一模型的等权叠加输出必须一致。
