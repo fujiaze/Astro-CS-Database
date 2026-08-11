@@ -300,64 +300,46 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
     }
 
     if (in->method == P2_REJECT_LINEAR_FIT) {
-        // Siril linear-fit 语义（公开文档，ORACLE ONLY）：对 pixel stack 拟合
-        // 最佳直线 y=a*x+b 后基于残差迭代 clipping。
-        // P1-05 修复：x 使用稳定 frame identity 排序后的序号（输入帧重排
-        // 不改变排序结果 → 结果与输入顺序无关）；无 frame_ids 时回退输入序号。
-        std::vector<std::pair<std::uint64_t, std::size_t>> order;
-        if (in->frame_ids != nullptr) {
-            for (std::size_t i = 0; i < vals.size(); ++i)
-                order.push_back({in->frame_ids[idx[i]], i});
-            std::stable_sort(order.begin(), order.end(),
-                             [](const auto& a, const auto& b) {
-                                 return a.first < b.first;
-                             });
-        }
+        // Siril Linear Fit Clipping（公开算法定义，rejection_float.c
+        // LINEARFIT 分支；Siril 1.4.3，GPL ORACLE ONLY，不复制生产源码）：
+        //   每轮：对当前保留样本按值排序，x=排序后序号(0..n-1)；
+        //   最小二乘拟合 y=a*x+b；sigma=mean|residual|（平均绝对残差）；
+        //   low 拒绝：a*i+b-y > sigma*siglow；high 拒绝：
+        //   y-(a*i+b) > sigma*sighigh；迭代至无新增拒绝或 n<=3。
+        // 值排序使结果与输入 frame 顺序无关（P1-05）。
         std::vector<bool> accept(vals.size(), true);
         int it = 0;
         for (; it < max_iter; ++it) {
-            std::vector<double> xv, yv;
-            if (in->frame_ids != nullptr) {
-                for (std::size_t j = 0; j < order.size(); ++j) {
-                    const std::size_t i = order[j].second;
-                    if (accept[i]) {
-                        xv.push_back((double)j);
-                        yv.push_back(vals[i]);
-                    }
-                }
-            } else {
-                for (std::size_t i = 0; i < vals.size(); ++i)
-                    if (accept[i]) {
-                        xv.push_back((double)i);
-                        yv.push_back(vals[i]);
-                    }
-            }
-            if (yv.size() < 2) break;
+            std::vector<std::pair<double, std::size_t>> entries;
+            for (std::size_t i = 0; i < vals.size(); ++i)
+                if (accept[i]) entries.push_back({vals[i], i});
+            if (entries.size() < 4) break;   // Siril：N>3 才继续
+            std::sort(entries.begin(), entries.end(),
+                      [](const auto& a, const auto& b) {
+                          return a.first < b.first;
+                      });                    // 值排序（权威定义）
+            const std::size_t n = entries.size();
+            std::vector<double> yv(n);
+            for (std::size_t j = 0; j < n; ++j) yv[j] = entries[j].first;
+            std::vector<double> xv(n);
+            for (std::size_t j = 0; j < n; ++j) xv[j] = (double)j;
             double a = 0.0, b = 0.0;
             ls_fit_line(xv, yv, &a, &b);
-            std::vector<double> resid;
-            auto x_of = [&](std::size_t i) -> double {
-                if (in->frame_ids == nullptr) return (double)i;
-                for (std::size_t j = 0; j < order.size(); ++j)
-                    if (order[j].second == i) return (double)j;
-                return (double)i;
-            };
-            for (std::size_t i = 0; i < vals.size(); ++i)
-                if (accept[i]) resid.push_back(vals[i] - (a * x_of(i) + b));
-            // 残差稳健尺度（MAD），避免单个离群拉高均方根 σ
-            const double rmed = median(resid);
-            std::vector<double> dev;
-            dev.reserve(resid.size());
-            for (double r : resid) dev.push_back(std::fabs(r - rmed));
-            const double s = 1.4826 * median(std::move(dev));
-            if (s <= 1e-12) break;
+            double sigma = 0.0;
+            for (std::size_t j = 0; j < n; ++j)
+                sigma += std::fabs(yv[j] - (a * (double)j + b));
+            sigma /= (double)n;            // mean |residual|（Siril 定义）
+            if (sigma <= 1e-12) break;
             bool changed = false;
-            for (std::size_t i = 0; i < vals.size(); ++i) {
-                if (!accept[i]) continue;
-                const double r = vals[i] - (a * x_of(i) + b);
-                const double z = r / s;
-                if (z < lo || z > hi) {
-                    accept[i] = false;
+            for (std::size_t j = 0; j < n; ++j) {
+                const std::size_t orig = entries[j].second;
+                const double y = entries[j].first;
+                const double fit = a * (double)j + b;
+                if (fit - y > sigma * std::fabs(lo)) {   // 低侧
+                    accept[orig] = false;
+                    changed = true;
+                } else if (y - fit > sigma * hi) {       // 高侧
+                    accept[orig] = false;
                     changed = true;
                 }
             }
