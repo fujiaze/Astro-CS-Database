@@ -31,6 +31,8 @@
 #include <cstdio>
 #include <cstring>
 #include <fstream>
+#include <iomanip>
+#include <sstream>
 #include <algorithm>
 #include <random>
 #include <numeric>
@@ -59,6 +61,69 @@ P2ControlObservation make_obs_id(std::uint64_t frame_id, std::uint64_t ctrl,
     o.snr = snr;
     o.support = 1.0;
     return o;
+}
+
+// ===== V4 R2 科学 payload identity 测试辅助 =====
+
+// 文件 SHA-256（用于证明像素变异时 MOC/properties 字节不变）
+std::string file_sha256(const std::filesystem::path& p) {
+    std::ifstream f(p, std::ios::binary);
+    if (!f) return {};
+    std::ostringstream ss;
+    ss << f.rdbuf();
+    const std::string bytes = ss.str();
+    return astrocs::crypto::sha256_hex(bytes.data(), bytes.size());
+}
+
+// 在 FITS 文件第一个 HDU 数据区 byte_idx 处翻转一个字节（保持文件结构
+// 合法；不改 MOC/properties）。返回是否成功定位数据区。
+bool flip_fits_data_byte(const std::filesystem::path& p,
+                         std::size_t byte_idx) {
+    std::fstream f(p, std::ios::in | std::ios::out | std::ios::binary);
+    if (!f) return false;
+    f.seekg(0, std::ios::end);
+    const std::streamoff size = f.tellg();
+    if (size < 2880) return false;
+    f.seekg(0, std::ios::beg);
+    std::vector<char> data((std::size_t)size);
+    f.read(data.data(), size);
+    std::size_t data_start = 0;
+    constexpr std::size_t kBlock = 2880;
+    constexpr std::size_t kCard = 80;
+    for (std::size_t off = 0; off + kCard <= data.size(); off += kCard) {
+        if (std::string(data.data() + off, kCard).rfind("END", 0) == 0) {
+            data_start = ((off / kCard) / (kBlock / kCard) + 1) * kBlock;
+            break;
+        }
+    }
+    if (data_start + byte_idx + 1 > data.size()) return false;
+    data[data_start + byte_idx] ^= 0x01;
+    f.seekp(0, std::ios::beg);
+    f.write(data.data(), size);
+    return true;
+}
+
+// 在 products 目录（signal/support）下找一个 Norder7 叶级 tile，原地翻转
+// 数据字节并返回路径；找不到返回空。
+std::filesystem::path first_norder7_tile(
+    const std::filesystem::path& product_dir) {
+    for (const auto& d :
+         std::filesystem::recursive_directory_iterator(product_dir)) {
+        const auto& p = d.path();
+        if (p.filename().string().rfind("Npix", 0) == 0 &&
+            p.extension() == ".fits") {
+            const auto rel = std::filesystem::relative(p, product_dir);
+            bool in_norder7 = false;
+            for (const auto& part : rel) {
+                if (part.string().rfind("Norder7", 0) == 0) {
+                    in_norder7 = true;
+                    break;
+                }
+            }
+            if (in_norder7) return p;
+        }
+    }
+    return {};
 }
 
 // ===== G1 空间 UPM truth 辅助（控制包 V2 R1/R2）=====
@@ -1920,8 +1985,9 @@ TEST(Phase2Sampler, G1StatisticsCorrectness) {
     EXPECT_NEAR(mad, 1.4826, 1e-12);
 }
 
-// R3/G3 稳定 frame identity：复制/重命名路径不变；科学内容/关键元数据
-// 变化敏感；输入顺序 canonical。
+// R3/G3（V4 R2）稳定科学 identity：复制/重命名/换根不变；signal tile
+// 像素（MOC/properties 不变）/ support tile 像素 / SNR catalogue / 关键
+// 元数据变化 → frame_id 改变。
 TEST(Phase2Identity, G3StableFrameIdentity) {
     namespace fs = std::filesystem;
     const fs::path base =
@@ -1931,17 +1997,84 @@ TEST(Phase2Identity, G3StableFrameIdentity) {
         GTEST_SKIP() << "真实 HiPS 输入不存在";
     const fs::path tmp =
         "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_identity_copy";
-    // 复制 signal 产品树（含 properties + tiles）
-    if (fs::exists(tmp / "signal")) fs::remove_all(tmp / "signal");
+    // 复制完整科学产品（signal + support + snr 三个子产品）
+    if (fs::exists(tmp)) fs::remove_all(tmp);
     fs::create_directories(tmp);
     fs::copy(src / "signal", tmp / "signal",
              fs::copy_options::recursive);
+    fs::copy(src / "support", tmp / "support",
+             fs::copy_options::recursive);
+    fs::copy(src / "snr", tmp / "snr", fs::copy_options::recursive);
     const std::string path_a = src.string();
     const std::string path_b = tmp.string();
     const std::uint64_t id_a = p2_frame_id(path_a.c_str());
     const std::uint64_t id_b = p2_frame_id(path_b.c_str());
-    EXPECT_EQ(id_a, id_b) << "复制/重命名不得改变 frame_id";
     EXPECT_NE(id_a, 0u);
+    EXPECT_EQ(id_a, id_b) << "复制/重命名不得改变 frame_id";
+
+    // 1. signal tile 像素变异（保持 MOC/properties 字节不变）
+    fs::path sig_tile = first_norder7_tile(tmp / "signal");
+    ASSERT_FALSE(sig_tile.empty()) << "找不到 signal Norder7 tile";
+    const std::string moc_before = file_sha256(tmp / "signal" / "Moc.fits");
+    const std::string props_before =
+        file_sha256(tmp / "signal" / "properties");
+    ASSERT_TRUE(flip_fits_data_byte(sig_tile, 0));
+    EXPECT_NE(p2_frame_id(path_b.c_str()), id_b)
+        << "signal tile 像素变异必须改变 frame_id（MOC/properties 未变）";
+    EXPECT_EQ(file_sha256(tmp / "signal" / "Moc.fits"), moc_before)
+        << "像素变异不得改变 MOC";
+    EXPECT_EQ(file_sha256(tmp / "signal" / "properties"), props_before)
+        << "像素变异不得改变 properties";
+    // 恢复 signal 树
+    fs::remove_all(tmp / "signal");
+    fs::copy(src / "signal", tmp / "signal", fs::copy_options::recursive);
+    EXPECT_EQ(p2_frame_id(path_b.c_str()), id_b)
+        << "恢复 signal 后 identity 必须复原";
+
+    // 2. support tile 像素变异 → frame_id 改变（Stage2 manifest 随
+    // frame_id 变化；模型哈希在 R2 stage2 证据中验证）
+    fs::path sup_tile = first_norder7_tile(tmp / "support");
+    ASSERT_FALSE(sup_tile.empty()) << "找不到 support Norder7 tile";
+    ASSERT_TRUE(flip_fits_data_byte(sup_tile, 0));
+    EXPECT_NE(p2_frame_id(path_b.c_str()), id_b)
+        << "support tile 像素变异必须改变 frame_id";
+    fs::remove_all(tmp / "support");
+    fs::copy(src / "support", tmp / "support", fs::copy_options::recursive);
+    EXPECT_EQ(p2_frame_id(path_b.c_str()), id_b)
+        << "恢复 support 后 identity 必须复原";
+
+    // 3. SNR/quality catalogue 变异（TSV 一行 quality_flags 0→1）
+    fs::path snr_tsv;
+    for (const auto& d : fs::recursive_directory_iterator(tmp / "snr"))
+        if (d.path().extension() == ".tsv") { snr_tsv = d.path(); break; }
+    ASSERT_FALSE(snr_tsv.empty()) << "找不到 SNR catalogue TSV";
+    {
+        std::ifstream f(snr_tsv);
+        std::stringstream ss;
+        ss << f.rdbuf();
+        std::string text = ss.str();
+        const std::size_t pos = text.find('\n');
+        ASSERT_NE(pos, std::string::npos);
+        // 第一行数据：`sid ra dec snr quality phot_status`，把第 5 列
+        // quality_flags 0 改为 1（保留行格式可解析）
+        const std::size_t qpos = text.find('\n', pos + 1);
+        std::string line = text.substr(pos + 1, qpos - pos - 1);
+        std::istringstream ls(line);
+        long long sid; double ra, dec, snr; unsigned qf, ps;
+        ASSERT_TRUE(ls >> sid >> ra >> dec >> snr >> qf >> ps);
+        const std::string old_line = line;
+        std::ostringstream rep;
+        rep << sid << " " << std::fixed << std::setprecision(12) << ra
+            << " " << dec << " " << snr << " " << (qf + 1) << " " << ps;
+        line = rep.str();
+        text.replace(pos + 1, qpos - pos - 1, line);
+        std::ofstream of(snr_tsv, std::ios::trunc);
+        of << text;
+        (void)old_line;
+    }
+    EXPECT_NE(p2_frame_id(path_b.c_str()), id_b)
+        << "SNR/quality catalogue 变异必须改变 frame_id";
+
     // 关键元数据变化 → frame_id 变
     {
         const fs::path props = tmp / "signal" / "properties";
@@ -1959,43 +2092,6 @@ TEST(Phase2Identity, G3StableFrameIdentity) {
     }
     EXPECT_NE(p2_frame_id(path_b.c_str()), id_b)
         << "关键元数据变化必须改变 frame_id";
-    // 恢复
-    fs::copy(src / "signal" / "properties", tmp / "signal" / "properties",
-             fs::copy_options::overwrite_existing);
-    // 科学内容（MOC tile 列表）变化 → frame_id 变
-    {
-        // 删除一个 leaf tile 文件（signal Norder7 下）
-        bool removed = false;
-        for (const auto& d :
-             fs::recursive_directory_iterator(tmp / "signal")) {
-            if (d.path().filename().string().rfind("Npix", 0) == 0 &&
-                d.path().extension() == ".fits") {
-                fs::remove(d.path());
-                removed = true;
-                break;
-            }
-        }
-        ASSERT_TRUE(removed);
-        // 注意：tile ipix 列表来自 Moc.fits；删除文件不改 MOC。真正科学内容
-        // 变化测试改为修改 Moc.fits 内容（改动一个字节使 MOC 内容变化）。
-        // 若 Moc.fits 存在则翻转一个字节；否则用 tile 删除（MOC 不变时
-        // frame_id 依赖 MOC，故此处验证 MOC 内容敏感性）。
-        const fs::path moc = tmp / "signal" / "Moc.fits";
-        if (fs::exists(moc)) {
-            std::fstream f(moc, std::ios::in | std::ios::out |
-                                    std::ios::binary);
-            if (f) {
-                f.seekp(100, std::ios::beg);
-                char c = 0;
-                f.read(&c, 1);
-                f.seekp(100, std::ios::beg);
-                c ^= 0x01;
-                f.write(&c, 1);
-            }
-        }
-    }
-    EXPECT_NE(p2_frame_id(path_b.c_str()), id_b)
-        << "科学内容变化必须改变 frame_id";
     // 清理
     fs::remove_all(tmp);
 }

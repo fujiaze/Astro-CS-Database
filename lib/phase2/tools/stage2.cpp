@@ -163,10 +163,13 @@ int main(int argc, char** argv) {
         " target_order=" + std::to_string(target_order));
     mark("coverage");
 
-    // R3：input manifest hash = canonical(稳定 frame identity + 关键元数据)
+    // R2/R3：frame_id 缓存（payload 敏感，DISCOVER 阶段一次计算）+
+    // input manifest hash = canonical(frame identity + 关键元数据)
+    std::vector<std::uint64_t> frame_id_cache(cfg.hips.size());
     std::vector<std::pair<std::uint64_t, std::string>> manifest_entries;
     for (std::size_t i = 0; i < cfg.hips.size(); ++i) {
         const std::uint64_t fid = p2_frame_id(cfg.hips[i].c_str());
+        frame_id_cache[i] = fid;
         std::string meta;
         if (i < infos.size()) {
             meta += std::string("filter=") + infos[i].filter_passband + ";";
@@ -437,7 +440,7 @@ int main(int argc, char** argv) {
             std::vector<float> snr_compact(depth * grid * grid);
             for (std::uint32_t s = 0; s < depth; ++s) {
                 const std::uint64_t fid =
-                    p2_frame_id(cfg.hips[frames[s]].c_str());
+                    frame_id_cache[frames[s]];
                 const double fb = frame_snr[frames[s]];
                 for (int gy = 0; gy < grid; ++gy)
                     for (int gx = 0; gx < grid; ++gx) {
@@ -485,7 +488,7 @@ int main(int argc, char** argv) {
                     }
                     std::vector<double> out_v(cnt);
                     p2_upm_calibrate_block(
-                        model, p2_frame_id(cfg.hips[f].c_str()),
+                        model, frame_id_cache[f],
                         chunk_leaves[c].data(), cal_v.data(), out_v.data(),
                         cnt);
                     for (std::uint64_t i = 0; i < cnt; ++i) {
@@ -610,7 +613,7 @@ int main(int argc, char** argv) {
                 }
                 std::vector<double> out_v(cnt);
                 p2_upm_calibrate_block(
-                    model, p2_frame_id(cfg.hips[f].c_str()),
+                    model, frame_id_cache[f],
                     chunk_leaves[c].data(), cal[s].data(), out_v.data(), cnt);
                 for (std::uint64_t i = 0; i < cnt; ++i) cal[s][i] = out_v[i];
             }
@@ -624,7 +627,7 @@ int main(int argc, char** argv) {
                         // R8：局部 SNR（control cell 级）；缺失 → 整帧
                         // median fallback（计数）
                         const std::uint64_t fid =
-                            p2_frame_id(cfg.hips[frames[s]].c_str());
+                            frame_id_cache[frames[s]];
                         const int px = (int)(p % 512);
                         const int py = (int)(p / 512);
                         const auto key = std::make_tuple(

@@ -277,6 +277,30 @@ int aio_hips_read_leaf_f32(AioHipsDataset* d, uint64_t leaf_ipix, float* out) {
 int aio_hips_read_leaf_f64(AioHipsDataset* d, uint64_t leaf_ipix, double* out) {
     return read_leaf_t(d, leaf_ipix, out);
 }
+
+int aio_hips_read_tile_datasum(AioHipsDataset* d, uint64_t tile_ipix,
+                               char* out, int out_size) {
+    if (!d || !out || out_size <= 0) return -1;
+    std::string p = tile_path(d->dir, d->hips_order, tile_ipix, ".fits");
+    int status = 0;
+    fitsfile* fptr = nullptr;
+    if (fits_open_file(&fptr, p.c_str(), READONLY, &status)) {
+        fits_clear_errmsg();
+        set_err("tile 不存在: " + p);
+        return -2;
+    }
+    char value[FLEN_VALUE] = {0};
+    if (fits_read_key(fptr, TSTRING, "DATASUM", value, nullptr, &status)) {
+        fits_clear_errmsg();
+        fits_close_file(fptr, &status);
+        set_err("tile 无 DATASUM: " + p);
+        return -3;
+    }
+    fits_close_file(fptr, &status);
+    std::strncpy(out, value, (std::size_t)out_size - 1);
+    out[out_size - 1] = '\0';
+    return 0;
+}
 int aio_hips_read_snr_catalog(AioHipsDataset* d, double* ra, double* dec,
                               double* snr, int64_t* star_id,
                               uint32_t* quality_flags, uint32_t* photometric_status,

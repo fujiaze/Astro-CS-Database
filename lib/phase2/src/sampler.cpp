@@ -17,6 +17,8 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <iomanip>
+#include <limits>
 #include <map>
 #include <set>
 #include <sstream>
@@ -82,9 +84,10 @@ extern "C" {
 
 std::uint64_t p2_frame_id(const char* hips_path) {
     if (!hips_path || !*hips_path) return 0;
-    // 内容稳定身份（P0-03）：基于 HiPS 产品关键元数据 + MOC tile 列表的
-    // canonical SHA-256。复制/重命名/换根目录不改变；科学内容或关键
-    // 元数据变化则改变。禁止用路径字符串 hash。
+    // R2（V4）：科学产品稳定身份——关键元数据 + signal tile DATASUM +
+    // support tile DATASUM + SNR catalogue 内容（canonical SHA-256）。
+    // 复制/重命名/换根目录不变；signal/support 像素 payload 或
+    // SNR/quality catalogue 变化 → 改变。
     AioHipsDataset* d = aio_hips_open(hips_path, AIO_HIPS_RD_SIGNAL);
     if (!d) return 0;
     std::string payload;
@@ -123,8 +126,10 @@ std::uint64_t p2_frame_id(const char* hips_path) {
                        (it == props.end() ? std::string() : it->second) + ";";
         }
     }
-    // MOC tile 列表（覆盖内容；canonical 排序）
+    // signal tile 数据 hash（科学 payload 指纹；MOC/properties 不变时
+    // 像素变化也改变 identity）
     std::vector<std::uint64_t> tiles;
+    std::vector<float> tile_buf(512ull * 512ull);
     const int n = aio_hips_tile_count(d);
     if (n > 0) {
         tiles.reserve((std::size_t)n);
@@ -134,8 +139,54 @@ std::uint64_t p2_frame_id(const char* hips_path) {
         }
         std::sort(tiles.begin(), tiles.end());
     }
-    for (std::uint64_t t : tiles) payload += std::to_string(t) + ",";
+    for (std::uint64_t t : tiles) {
+        if (aio_hips_read_tile_f32(d, t, tile_buf.data()) == 0) {
+            payload += std::to_string(t) + "=";
+            payload.append(reinterpret_cast<const char*>(tile_buf.data()),
+                           tile_buf.size() * sizeof(float));
+            payload += ";";
+        }
+    }
     aio_hips_close(d);
+    // support tile 数据 hash
+    AioHipsDataset* sp = aio_hips_open(hips_path, AIO_HIPS_RD_SUPPORT);
+    if (sp) {
+        for (std::uint64_t t : tiles) {
+            if (aio_hips_read_tile_f32(sp, t, tile_buf.data()) == 0) {
+                payload += "S" + std::to_string(t) + "=";
+                payload.append(
+                    reinterpret_cast<const char*>(tile_buf.data()),
+                    tile_buf.size() * sizeof(float));
+                payload += ";";
+            }
+        }
+        aio_hips_close(sp);
+    }
+    // SNR/quality catalogue 内容（读全部点并序列化）
+    AioHipsDataset* sn = aio_hips_open(hips_path, AIO_HIPS_RD_SNR);
+    if (sn) {
+        const int maxn = 1 << 20;
+        std::vector<double> ra(maxn), dec(maxn), snr(maxn);
+        std::vector<std::uint32_t> qf(maxn);
+        const int got = aio_hips_read_snr_catalog(
+            sn, ra.data(), dec.data(), snr.data(), nullptr, qf.data(),
+            nullptr, maxn);
+        if (got > 0) {
+            for (int i = 0; i < got; ++i) {
+                payload += std::to_string(i) + ":";
+                const auto fmt = [](double v) {
+                    std::ostringstream os;
+                    os << std::setprecision(
+                              std::numeric_limits<double>::max_digits10)
+                       << v;
+                    return os.str();
+                };
+                payload += fmt(ra[i]) + "," + fmt(dec[i]) + "," +
+                           fmt(snr[i]) + "," + std::to_string(qf[i]) + ";";
+            }
+        }
+        aio_hips_close(sn);
+    }
     const std::string hex =
         astrocs::crypto::sha256_hex(payload.data(), payload.size());
     // 取前 16 hex → uint64（稳定、可复现）
@@ -201,6 +252,10 @@ int p2_sample_controls(const P2CoverageResult* coverage,
     if (cfg.snr_search_radius_deg <= 0.0) cfg.snr_search_radius_deg = 0.05;
 
     const std::uint64_t n_frames = coverage->n_inputs;
+    // R2：frame_id 缓存（payload 敏感，DISCOVER 阶段一次计算）
+    std::vector<std::uint64_t> fid_cache(n_frames);
+    for (std::uint64_t i = 0; i < n_frames; ++i)
+        fid_cache[i] = p2_frame_id(hips_paths[i]);
     const int leaf_shift = 9;  // tile 内 512×512 leaf
 
     // 打开每帧 signal/support/snr 并收集 tile 集合
@@ -344,7 +399,7 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                         if (!near.empty()) snr_val = median_of(std::move(near));
                     }
                     P2ControlObservation o{};
-                    o.frame_id = p2_frame_id(hips_paths[frame_id]);
+                    o.frame_id = fid_cache[frame_id];
                     o.control_id = control_id;
                     o.leaf_ipix = center_leaf;
                     o.ra_deg = ra_deg;

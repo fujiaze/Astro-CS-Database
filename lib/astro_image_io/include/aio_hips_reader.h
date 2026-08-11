@@ -57,6 +57,11 @@ AIO_HIPS_RD_EXPORT int aio_hips_read_tile_f64(AioHipsDataset* d, uint64_t ipix, 
 AIO_HIPS_RD_EXPORT int aio_hips_read_leaf_f32(AioHipsDataset* d, uint64_t leaf_ipix, float* out);
 AIO_HIPS_RD_EXPORT int aio_hips_read_leaf_f64(AioHipsDataset* d, uint64_t leaf_ipix, double* out);
 
+// V4（R2）：读取叶级 tile 的 CFITSIO DATASUM（数据校验和，科学 payload
+// 指纹）。返回 0=ok；tile 无 DATASUM 时返回 1 并置 err。
+AIO_HIPS_RD_EXPORT int aio_hips_read_tile_datasum(
+    AioHipsDataset* d, uint64_t tile_ipix, char* out, int out_size);
+
 // SNR catalogue: 返回点数与数组 (ra[], dec[], snr[], star_id[],
 // quality_flags[], photometric_status[])。调用方分配; 返回实际点数 (0=无)。
 // quality_flags/photometric_status 可为 NULL (旧调用方不读取)。
