@@ -10,13 +10,16 @@
 //   - snr_ik 来自 Phase1 SNR Catalogue 邻近星点（不重新检测星点）。
 #include "astro/phase2/sampler.h"
 
+#include "crypto/sha256.h"
 #include "healpix/healpix_core.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <map>
 #include <set>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -33,6 +36,7 @@ constexpr int kSnrCatalogMax = 1 << 16;
 struct FrameData {
     std::set<std::uint64_t> tiles;          // order=K tile ipix
     std::vector<double> snr_ra, snr_dec, snr;
+    std::vector<std::uint32_t> quality;     // Phase1 SNR catalogue quality
 };
 
 inline std::uint64_t leaf_of_tile(std::uint64_t tile_ipix, int leaf_shift) {
@@ -65,17 +69,11 @@ double median_of(std::vector<double> v) {
     std::nth_element(v.begin(), v.begin() + mid, v.end());
     if (n % 2 == 1) return v[mid];
     const double a = v[mid];
-    const double b = *std::min_element(v.begin(), v.begin() + mid);
+    // nth_element 后 [begin, mid) 全部 ≤ v[mid]；偶数下中位数为
+    // [begin, mid) 的最大值（排序后 v[mid-1]）。min_element 是错误的
+    // （P0-01：会污染 y_ik / MAD / SNR 邻域中位数）。
+    const double b = *std::max_element(v.begin(), v.begin() + mid);
     return 0.5 * (a + b);
-}
-
-inline std::uint64_t fnv1a64(const char* s) {
-    std::uint64_t h = 14695981039346656037ULL;
-    for (const unsigned char* p = (const unsigned char*)s; *p; ++p) {
-        h ^= (std::uint64_t)*p;
-        h *= 1099511628211ULL;
-    }
-    return h;
 }
 
 } // namespace
@@ -83,8 +81,95 @@ inline std::uint64_t fnv1a64(const char* s) {
 extern "C" {
 
 std::uint64_t p2_frame_id(const char* hips_path) {
-    if (!hips_path) return 0;
-    return fnv1a64(hips_path);
+    if (!hips_path || !*hips_path) return 0;
+    // 内容稳定身份（P0-03）：基于 HiPS 产品关键元数据 + MOC tile 列表的
+    // canonical SHA-256。复制/重命名/换根目录不改变；科学内容或关键
+    // 元数据变化则改变。禁止用路径字符串 hash。
+    AioHipsDataset* d = aio_hips_open(hips_path, AIO_HIPS_RD_SIGNAL);
+    if (!d) return 0;
+    std::string payload;
+    char buf[8192];
+    if (aio_hips_get_properties(d, buf, (int)sizeof(buf)) == 0) {
+        // 关键字段白名单（影响 Phase2 科学结果的元数据）
+        const std::map<std::string, std::string> props = [&]() {
+            std::map<std::string, std::string> kv;
+            std::istringstream ss(buf);
+            std::string line;
+            while (std::getline(ss, line)) {
+                const std::size_t eq = line.find('=');
+                if (eq != std::string::npos) {
+                    std::string k = line.substr(0, eq);
+                    std::string v = line.substr(eq + 1);
+                    auto trim = [](std::string& s) {
+                        while (!s.empty() &&
+                               (s.back() == ' ' || s.back() == '\r'))
+                            s.pop_back();
+                        while (!s.empty() && s.front() == ' ') s.erase(s.begin());
+                    };
+                    trim(k);
+                    trim(v);
+                    kv[k] = v;
+                }
+            }
+            return kv;
+        }();
+        static const char* keys[] = {
+            "creator_did", "obs_title", "obs_filter", "obs_exptime",
+            "obs_date", "hips_order", "hips_release_date",
+            "hips_pixel_scale", "moc_sky_fraction"};
+        for (const char* k : keys) {
+            const auto it = props.find(k);
+            payload += std::string(k) + "=" +
+                       (it == props.end() ? std::string() : it->second) + ";";
+        }
+    }
+    // MOC tile 列表（覆盖内容；canonical 排序）
+    std::vector<std::uint64_t> tiles;
+    const int n = aio_hips_tile_count(d);
+    if (n > 0) {
+        tiles.reserve((std::size_t)n);
+        for (int i = 0; i < n; ++i) {
+            std::uint64_t ip = 0;
+            if (aio_hips_tile_ipix(d, i, &ip) == 0) tiles.push_back(ip);
+        }
+        std::sort(tiles.begin(), tiles.end());
+    }
+    for (std::uint64_t t : tiles) payload += std::to_string(t) + ",";
+    aio_hips_close(d);
+    const std::string hex =
+        astrocs::crypto::sha256_hex(payload.data(), payload.size());
+    // 取前 16 hex → uint64（稳定、可复现）
+    std::uint64_t id = 0;
+    for (int i = 0; i < 16; ++i) {
+        id <<= 4;
+        const char c = hex[(std::size_t)i];
+        id += (c <= '9') ? (std::uint64_t)(c - '0')
+                         : (std::uint64_t)(c - 'a' + 10);
+    }
+    return id;
+}
+
+double p2_stats_median(const double* vals, std::uint64_t n) {
+    if (!vals || n == 0) return 0.0;
+    std::vector<double> v;
+    v.reserve(n);
+    for (std::uint64_t i = 0; i < n; ++i)
+        if (std::isfinite(vals[i])) v.push_back(vals[i]);
+    return median_of(std::move(v));
+}
+
+double p2_stats_mad(const double* vals, std::uint64_t n,
+                    double* out_median) {
+    if (!vals || n == 0) return 0.0;
+    std::vector<double> v;
+    v.reserve(n);
+    for (std::uint64_t i = 0; i < n; ++i)
+        if (std::isfinite(vals[i])) v.push_back(vals[i]);
+    if (v.empty()) return 0.0;
+    const double med = median_of(v);
+    if (out_median) *out_median = med;
+    for (double& x : v) x = std::fabs(x - med);
+    return 1.4826 * median_of(std::move(v));
 }
 
 int p2_sample_controls(const P2CoverageResult* coverage,
@@ -148,12 +233,15 @@ int p2_sample_controls(const P2CoverageResult* coverage,
             frames[i].snr_ra.resize(kSnrCatalogMax);
             frames[i].snr_dec.resize(kSnrCatalogMax);
             frames[i].snr.resize(kSnrCatalogMax);
+            frames[i].quality.resize(kSnrCatalogMax);
             const int got = aio_hips_read_snr_catalog(
                 snr, frames[i].snr_ra.data(), frames[i].snr_dec.data(),
-                frames[i].snr.data(), nullptr, nullptr, nullptr, kSnrCatalogMax);
+                frames[i].snr.data(), nullptr, frames[i].quality.data(),
+                nullptr, kSnrCatalogMax);
             frames[i].snr_ra.resize((size_t)std::max(got, 0));
             frames[i].snr_dec.resize((size_t)std::max(got, 0));
             frames[i].snr.resize((size_t)std::max(got, 0));
+            frames[i].quality.resize((size_t)std::max(got, 0));
             aio_hips_close(snr);
         }
     }
@@ -237,7 +325,10 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                     const double uncertainty =
                         sigma / std::sqrt((double)vals.size());
                     // SNR：邻近星点 median（无点 → 中性 1.0）
+                    // quality：邻域点 quality 按位 OR（区域最坏可信度）；
+                    // 无邻域点 → 0（unknown，QUALITY_FALLBACK_UNKNOWN）
                     double snr_val = 1.0;
+                    std::uint32_t qual = 0;
                     const FrameData& fd = frames[frame_id];
                     if (!fd.snr.empty()) {
                         std::vector<double> near;
@@ -245,8 +336,10 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                         for (std::size_t s = 0; s < fd.snr.size(); ++s) {
                             if (astrocs::healpix::angular_distance_deg(
                                     ra_deg, dec_deg, fd.snr_ra[s],
-                                    fd.snr_dec[s]) <= rad)
+                                    fd.snr_dec[s]) <= rad) {
                                 near.push_back(fd.snr[s]);
+                                qual |= fd.quality[s];
+                            }
                         }
                         if (!near.empty()) snr_val = median_of(std::move(near));
                     }
@@ -260,7 +353,7 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                     o.uncertainty = uncertainty;
                     o.snr = snr_val;
                     o.support = n_valid ? sup_sum / (double)n_valid : 0.0;
-                    o.quality_flags = 0;
+                    o.quality_flags = qual;
                     obs.push_back(o);
                 }
                 ++control_id;

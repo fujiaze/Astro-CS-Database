@@ -65,6 +65,7 @@ typedef struct {
     double support_power;         // support 因子指数（默认 1.0）
     int    quality_mode;          // 0=flags 映射（默认）
     double control_reliability;   // 默认 control reliability（默认 1.0）
+    const char* input_manifest_hash;  // 输入稳定 manifest（可空；非空时参与模型 hash）
 } P2UpmBuildConfig;
 
 // ===== 构建 / 持久化 / 求值 =====

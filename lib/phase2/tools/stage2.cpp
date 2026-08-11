@@ -17,6 +17,7 @@
 #include "astro/phase2/acr_kernels.h"
 
 #include "healpix/healpix_core.h"
+#include "crypto/sha256.h"
 #include "astro/compute/kernel_registry.hpp"
 #include "astro/compute/task_traits.hpp"
 #include "cuda_bridge_api.hpp"
@@ -384,6 +385,27 @@ int main(int argc, char** argv) {
         " target_order=" + std::to_string(target_order));
     mark("coverage");
 
+    // R3：input manifest hash = canonical(稳定 frame identity + 关键元数据)
+    std::vector<std::pair<std::uint64_t, std::string>> manifest_entries;
+    for (std::size_t i = 0; i < cfg.hips.size(); ++i) {
+        const std::uint64_t fid = p2_frame_id(cfg.hips[i].c_str());
+        std::string meta;
+        if (i < infos.size()) {
+            meta += std::string("filter=") + infos[i].filter_passband + ";";
+            meta += "order=" + std::to_string(infos[i].max_leaf_order) + ";";
+            meta += "frame=" + std::string(infos[i].frame_type) + ";";
+        }
+        manifest_entries.push_back({fid, meta});
+    }
+    std::sort(manifest_entries.begin(), manifest_entries.end(),
+              [](const auto& a, const auto& b) { return a.first < b.first; });
+    std::string manifest_payload;
+    for (const auto& e : manifest_entries)
+        manifest_payload += std::to_string(e.first) + "|" + e.second + ";";
+    const std::string input_manifest_hash = astrocs::crypto::sha256_hex(
+        manifest_payload.data(), manifest_payload.size());
+    log("input_manifest_hash=" + input_manifest_hash);
+
     // ---- W4 CONTROL SAMPLE ----
     P2SamplerConfig sccfg{};
     sccfg.control_grid_per_tile = cfg.control_grid_per_tile;
@@ -406,6 +428,12 @@ int main(int argc, char** argv) {
     log("control sampling: controls=" + std::to_string(n_ctrl) +
         " observations=" + std::to_string(n_obs));
     mark("control_sample");
+    // R2：quality fallback 统计（quality_flags==0 = QUALITY_FALLBACK_UNKNOWN）
+    std::uint64_t quality_unknown = 0;
+    for (const auto& o : obs)
+        if (o.quality_flags == 0) ++quality_unknown;
+    log("quality fallback unknown: " + std::to_string(quality_unknown) +
+        " / " + std::to_string(n_obs));
 
     // ---- W4 UPM FIT ----
     P2UpmBuildConfig mcfg{};
@@ -414,6 +442,11 @@ int main(int argc, char** argv) {
     mcfg.huber_delta = cfg.huber_delta;
     mcfg.smoothing_lambda = cfg.smoothing_lambda;
     mcfg.zero_anchor_weight = cfg.zero_anchor_weight;
+    mcfg.sigma_floor = cfg.sigma_floor;
+    mcfg.support_power = cfg.support_power;
+    mcfg.quality_mode = 0;          // Phase1 quality 位映射（sampler 读取）
+    mcfg.control_reliability = 1.0; // 显式默认（禁止依赖 {} 零初始化）
+    mcfg.input_manifest_hash = input_manifest_hash.c_str();
     mcfg.max_iterations = cfg.max_irls_iterations;
     mcfg.tolerance = cfg.tolerance;
     mcfg.target_order = target_order;
@@ -910,6 +943,9 @@ int main(int argc, char** argv) {
         diag["output_pixels"] = total_pixels;
         diag["rejected_samples"] = total_rejected;
         diag["fallback_pixels"] = total_fallback;
+        diag["quality_fallback_unknown"] = quality_unknown;
+        diag["upm_sigma_floor"] = cfg.sigma_floor;
+        diag["upm_support_power"] = cfg.support_power;
         diag["zero_coverage_pixels"] = dbg_zero_px;
         diag["reject_method"] = cfg.reject_method;
         diag["rejection_samples_per_pixel"] = reject_hist;

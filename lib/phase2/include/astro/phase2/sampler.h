@@ -40,6 +40,12 @@ typedef struct {
 // UPM 参考帧 = 最小 frame_id（保证输入重排输出不变）。
 P2_API std::uint64_t p2_frame_id(const char* hips_path);
 
+// R1：统一统计量（sampler patch estimator / MAD / SNR 邻域共用同一实现）。
+// median：偶数 n 取上下中位数平均；NaN 自动过滤（全部 NaN → 0）。
+P2_API double p2_stats_median(const double* vals, std::uint64_t n);
+P2_API double p2_stats_mad(const double* vals, std::uint64_t n,
+                           double* out_median = nullptr);
+
 // 采样控制观测。调用方先以 out_n_obs=0 查询所需数量，再分配后二次调用；
 // 或直接传入足够大的 out_capacity。
 P2_API int p2_sample_controls(

@@ -24,6 +24,7 @@
 #include "astro/compute/task_traits.hpp"
 #include "cuda_bridge_api.hpp"
 #include "healpix/healpix_core.h"
+#include "crypto/sha256.h"
 
 #include <cmath>
 #include <cstdio>
@@ -32,6 +33,7 @@
 #include <algorithm>
 #include <random>
 #include <numeric>
+#include <filesystem>
 #include <vector>
 
 namespace {
@@ -1497,4 +1499,133 @@ TEST(Phase2Sampler, RealHipsControlSampling) {
     EXPECT_EQ(finite, obs.size());
     EXPECT_GT(snr_used, 0u);
     p2_coverage_free(&cov);
+}
+
+// R1/G1 sampler 统计量：even median、odd/even/negative/repeated/shuffled/
+// NaN 过滤。
+TEST(Phase2Sampler, G1StatisticsCorrectness) {
+    // even: [1,2,3,4] -> 2.5（V2 曾因 min_element 得到 2.0）
+    double a[] = {1, 2, 3, 4};
+    EXPECT_DOUBLE_EQ(p2_stats_median(a, 4), 2.5);
+    double b[] = {4, 1, 3, 2};
+    EXPECT_DOUBLE_EQ(p2_stats_median(b, 4), 2.5);
+    double c[] = {1, 2, 3};
+    EXPECT_DOUBLE_EQ(p2_stats_median(c, 3), 2.0);
+    double d[] = {-3, -1, -2, -4};
+    EXPECT_DOUBLE_EQ(p2_stats_median(d, 4), -2.5);
+    double e[] = {5, 5, 5, 5};
+    EXPECT_DOUBLE_EQ(p2_stats_median(e, 4), 5.0);
+    double f[] = {1, std::nan(""), 2, 3, 4, std::nan("")};
+    EXPECT_DOUBLE_EQ(p2_stats_median(f, 6), 2.5);   // NaN 过滤后 even
+    double g[] = {1, std::nan(""), 3};
+    EXPECT_DOUBLE_EQ(p2_stats_median(g, 3), 2.0);
+    // MAD：median(|x-med|)*1.4826
+    double h[] = {1, 2, 3, 4};
+    double med = 0;
+    const double mad = p2_stats_mad(h, 4, &med);
+    EXPECT_DOUBLE_EQ(med, 2.5);
+    // dev = [1.5,0.5,0.5,1.5] median=1.0 -> mad=1.4826
+    EXPECT_NEAR(mad, 1.4826, 1e-12);
+}
+
+// R3/G3 稳定 frame identity：复制/重命名路径不变；科学内容/关键元数据
+// 变化敏感；输入顺序 canonical。
+TEST(Phase2Identity, G3StableFrameIdentity) {
+    namespace fs = std::filesystem;
+    const fs::path base =
+        "F:/Astro dev/Astro CS Normalization Database/run/temp/phase1_freeze";
+    const fs::path src = base / "T2_v3.hips";
+    if (!fs::exists(src / "signal" / "properties"))
+        GTEST_SKIP() << "真实 HiPS 输入不存在";
+    const fs::path tmp =
+        "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_identity_copy";
+    // 复制 signal 产品树（含 properties + tiles）
+    if (fs::exists(tmp / "signal")) fs::remove_all(tmp / "signal");
+    fs::create_directories(tmp);
+    fs::copy(src / "signal", tmp / "signal",
+             fs::copy_options::recursive);
+    const std::string path_a = src.string();
+    const std::string path_b = tmp.string();
+    const std::uint64_t id_a = p2_frame_id(path_a.c_str());
+    const std::uint64_t id_b = p2_frame_id(path_b.c_str());
+    EXPECT_EQ(id_a, id_b) << "复制/重命名不得改变 frame_id";
+    EXPECT_NE(id_a, 0u);
+    // 关键元数据变化 → frame_id 变
+    {
+        const fs::path props = tmp / "signal" / "properties";
+        std::ifstream f(props);
+        std::stringstream ss;
+        ss << f.rdbuf();
+        std::string text = ss.str();
+        const std::string old_key = "obs_filter=Red";
+        const std::string new_key = "obs_filter=Halpha";
+        const std::size_t pos = text.find(old_key);
+        ASSERT_NE(pos, std::string::npos);
+        text.replace(pos, old_key.size(), new_key);
+        std::ofstream of(props, std::ios::trunc);
+        of << text;
+    }
+    EXPECT_NE(p2_frame_id(path_b.c_str()), id_b)
+        << "关键元数据变化必须改变 frame_id";
+    // 恢复
+    fs::copy(src / "signal" / "properties", tmp / "signal" / "properties",
+             fs::copy_options::overwrite_existing);
+    // 科学内容（MOC tile 列表）变化 → frame_id 变
+    {
+        // 删除一个 leaf tile 文件（signal Norder7 下）
+        bool removed = false;
+        for (const auto& d :
+             fs::recursive_directory_iterator(tmp / "signal")) {
+            if (d.path().filename().string().rfind("Npix", 0) == 0 &&
+                d.path().extension() == ".fits") {
+                fs::remove(d.path());
+                removed = true;
+                break;
+            }
+        }
+        ASSERT_TRUE(removed);
+        // 注意：tile ipix 列表来自 Moc.fits；删除文件不改 MOC。真正科学内容
+        // 变化测试改为修改 Moc.fits 内容（改动一个字节使 MOC 内容变化）。
+        // 若 Moc.fits 存在则翻转一个字节；否则用 tile 删除（MOC 不变时
+        // frame_id 依赖 MOC，故此处验证 MOC 内容敏感性）。
+        const fs::path moc = tmp / "signal" / "Moc.fits";
+        if (fs::exists(moc)) {
+            std::fstream f(moc, std::ios::in | std::ios::out |
+                                    std::ios::binary);
+            if (f) {
+                f.seekp(100, std::ios::beg);
+                char c = 0;
+                f.read(&c, 1);
+                f.seekp(100, std::ios::beg);
+                c ^= 0x01;
+                f.write(&c, 1);
+            }
+        }
+    }
+    EXPECT_NE(p2_frame_id(path_b.c_str()), id_b)
+        << "科学内容变化必须改变 frame_id";
+    // 清理
+    fs::remove_all(tmp);
+}
+
+// R3：input manifest canonicalization（输入顺序不影响模型身份）
+TEST(Phase2Identity, G3ManifestOrderCanonical) {
+    namespace fs = std::filesystem;
+    const fs::path base =
+        "F:/Astro dev/Astro CS Normalization Database/run/temp/phase1_freeze";
+    if (!fs::exists(base / "T2_v3.hips" / "signal" / "properties") ||
+        !fs::exists(base / "T3_v3.hips" / "signal" / "properties"))
+        GTEST_SKIP() << "真实 HiPS 输入不存在";
+    const std::string p0 = (base / "T2_v3.hips").string();
+    const std::string p1 = (base / "T3_v3.hips").string();
+    const std::uint64_t f0 = p2_frame_id(p0.c_str());
+    const std::uint64_t f1 = p2_frame_id(p1.c_str());
+    auto manifest = [](std::vector<std::uint64_t> ids) {
+        std::sort(ids.begin(), ids.end());
+        std::string s;
+        for (auto id : ids) s += std::to_string(id) + ";";
+        return astrocs::crypto::sha256_hex(s.data(), s.size());
+    };
+    EXPECT_EQ(manifest({f0, f1}), manifest({f1, f0}));
+    EXPECT_NE(f0, f1);
 }

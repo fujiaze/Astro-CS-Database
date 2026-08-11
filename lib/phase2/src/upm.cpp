@@ -137,6 +137,8 @@ int p2_upm_build(const P2ControlObservation* obs, std::uint64_t n_obs,
 
     Model* m = new Model();
     m->cfg = cfg;
+    if (cfg.input_manifest_hash != nullptr)
+        m->input_manifest_hash = cfg.input_manifest_hash;
     m->info.version = 2;              // V2 空间 UPM
     m->info.precision = 1;  // fp64 reference
     m->info.observation_count = n_obs;
