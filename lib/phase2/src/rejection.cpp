@@ -216,16 +216,23 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
     }
 
     if (in->method == P2_REJECT_GENERALIZED_ESD) {
-        // NIST Generalized ESD（独立实现，数学参考：
-        // https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h3.htm）。
-        // 最多检出 max_iterations 个离群（双侧），显著性水平 α=0.05；
+        // NIST Generalized ESD（独立实现，NIST EDA Handbook / Rosner 1983）。
+        // 正确流程（P0-05）：
+        //   1. 连续移除到上限 r，记录 R_1..R_r 与 λ_1..λ_r；
+        //   2. 最终取满足 R_i > λ_i 的**最大 i**，前 i 个 provisional
+        //      extremes 为离群（不做"第一轮不显著就停止"的错误简化）。
         // 临界值 λ_i = t_{ν,p}·(n-i)/sqrt((n-i-1+t²)·(n-i+1))，
-        // ν = n-i-1，p = 1 - α/(2·(n-i+1))（NIST 公式）。
+        // ν = n-i-1，p = 1 - α/(2·(n-i+1))，α=0.05。
         std::vector<bool> accept(vals.size(), true);
         std::vector<double> working = vals;
         const std::size_t max_out = static_cast<std::size_t>(max_iter);
-        std::size_t removed = 0;
         const double alpha = 0.05;
+        std::vector<double> R(max_out, 0.0);
+        std::vector<double> Lambda(max_out, 0.0);
+        std::vector<std::size_t> removed_idx(max_out, vals.size());
+        const std::size_t n0 = vals.size();
+        std::size_t n_removed = 0;
+        // phase 1：连续移除记录 R_i / λ_i
         for (std::size_t r = 0; r < max_out; ++r) {
             double mean = 0.0; std::size_t n = 0;
             for (std::size_t i = 0; i < working.size(); ++i) {
@@ -241,23 +248,40 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
             if (s <= 1e-12) break;
             std::size_t worst = n;
             double max_r = 0.0;
+            std::uint64_t worst_fid = ~0ULL;
             for (std::size_t i = 0; i < working.size(); ++i) {
                 if (!accept[i]) continue;
                 const double rv = std::fabs(working[i] - mean) / s;
-                if (rv > max_r) { max_r = rv; worst = i; }
+                const std::uint64_t fid = in->frame_ids
+                    ? in->frame_ids[idx[i]] : (std::uint64_t)i;
+                if (rv > max_r + 1e-15 ||
+                    (std::fabs(rv - max_r) <= 1e-15 && fid < worst_fid)) {
+                    max_r = rv;
+                    worst = i;
+                    worst_fid = fid;
+                }
             }
-            // NIST 临界值：n-i = 当前轮样本数 - 1（i 为 1-indexed 检测步）
-            const double n_minus_i = (double)n - 1.0;
+            // NIST 临界值（i 为 1-indexed 检测步；n-i = n0 - (r+1)）
+            const double n_minus_i = (double)n0 - (double)(r + 1);
             const double nu = n_minus_i - 1.0;
             const double p = 1.0 - alpha / (2.0 * (n_minus_i + 1.0));
             const double tcrit = t_quantile(p, nu);
             const double crit = (tcrit * n_minus_i) /
                 std::sqrt((nu + tcrit * tcrit) * (n_minus_i + 1.0));
-            if (max_r <= crit) break;
+            R[r] = max_r;
+            Lambda[r] = crit;
+            removed_idx[r] = worst;
             accept[worst] = false;
-            ++removed;
+            ++n_removed;
         }
-        out->iterations = static_cast<std::uint32_t>(removed);
+        // phase 2：取满足 R_i > λ_i 的最大 i
+        std::size_t k_out = 0;
+        for (std::size_t r = 0; r < n_removed; ++r)
+            if (R[r] > Lambda[r]) k_out = r + 1;
+        std::fill(accept.begin(), accept.end(), true);
+        for (std::size_t r = 0; r < k_out && r < removed_idx.size(); ++r)
+            accept[removed_idx[r]] = false;
+        out->iterations = static_cast<std::uint32_t>(k_out);
         std::uint32_t kept = 0;
         for (std::size_t i = 0; i < vals.size(); ++i) {
             out->accepted[idx[i]] = accept[i] ? 1 : 0;
@@ -270,24 +294,50 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
     }
 
     if (in->method == P2_REJECT_LINEAR_FIT) {
-        // Siril linear-fit 语义（公开文档，ORACLE ONLY）：按 pixel stack 拟合
-        // 最佳直线 y=a*x+b（x=样本序号），基于拟合残差做 low/high clipping，
-        // 迭代直至无新增拒绝。
+        // Siril linear-fit 语义（公开文档，ORACLE ONLY）：对 pixel stack 拟合
+        // 最佳直线 y=a*x+b 后基于残差迭代 clipping。
+        // P1-05 修复：x 使用稳定 frame identity 排序后的序号（输入帧重排
+        // 不改变排序结果 → 结果与输入顺序无关）；无 frame_ids 时回退输入序号。
+        std::vector<std::pair<std::uint64_t, std::size_t>> order;
+        if (in->frame_ids != nullptr) {
+            for (std::size_t i = 0; i < vals.size(); ++i)
+                order.push_back({in->frame_ids[idx[i]], i});
+            std::stable_sort(order.begin(), order.end(),
+                             [](const auto& a, const auto& b) {
+                                 return a.first < b.first;
+                             });
+        }
         std::vector<bool> accept(vals.size(), true);
         int it = 0;
         for (; it < max_iter; ++it) {
             std::vector<double> xv, yv;
-            for (std::size_t i = 0; i < vals.size(); ++i)
-                if (accept[i]) { xv.push_back((double)i); yv.push_back(vals[i]); }
+            if (in->frame_ids != nullptr) {
+                for (std::size_t j = 0; j < order.size(); ++j) {
+                    const std::size_t i = order[j].second;
+                    if (accept[i]) {
+                        xv.push_back((double)j);
+                        yv.push_back(vals[i]);
+                    }
+                }
+            } else {
+                for (std::size_t i = 0; i < vals.size(); ++i)
+                    if (accept[i]) {
+                        xv.push_back((double)i);
+                        yv.push_back(vals[i]);
+                    }
+            }
             if (yv.size() < 2) break;
             double a = 0.0, b = 0.0;
             ls_fit_line(xv, yv, &a, &b);
             std::vector<double> resid;
-            for (std::size_t i = 0; i < vals.size(); ++i) {
-                if (!accept[i]) continue;
-                const double r = vals[i] - (a * (double)i + b);
-                resid.push_back(r);
-            }
+            auto x_of = [&](std::size_t i) -> double {
+                if (in->frame_ids == nullptr) return (double)i;
+                for (std::size_t j = 0; j < order.size(); ++j)
+                    if (order[j].second == i) return (double)j;
+                return (double)i;
+            };
+            for (std::size_t i = 0; i < vals.size(); ++i)
+                if (accept[i]) resid.push_back(vals[i] - (a * x_of(i) + b));
             // 残差稳健尺度（MAD），避免单个离群拉高均方根 σ
             const double rmed = median(resid);
             std::vector<double> dev;
@@ -298,7 +348,7 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
             bool changed = false;
             for (std::size_t i = 0; i < vals.size(); ++i) {
                 if (!accept[i]) continue;
-                const double r = vals[i] - (a * (double)i + b);
+                const double r = vals[i] - (a * x_of(i) + b);
                 const double z = r / s;
                 if (z < lo || z > hi) {
                     accept[i] = false;
@@ -321,48 +371,87 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
 
     if (in->method == P2_REJECT_RCR) {
         // Robust Chauvenet Rejection（Maples et al. 2018, arXiv:1807.05276，
-        // 论文独立实现；UNC 官方非商业源码 ORACLE ONLY）：
-        //   - 每轮计算 median/MAD → modified z-score z=0.6745*(x-M)/MAD；
-        //   - 对当前最大 |z| 样本，Chauvenet 判据 n*p(z) < 0.5 则拒绝并迭代；
-        //   - weighted 模式：权重参与 MAD（按 √w 缩放残差），非空 weights 即启用。
+        // 论文独立实现；UNC 官方非商业源码 ORACLE ONLY）。
+        // P0-06 修复：核心 sequential robust→precise 流程：
+        //   stage 1（鲁棒）：median + MAD，Chauvenet 判据迭代；
+        //   stage 2（精确）：对 stage1 保留样本用 mean + std 再迭代。
+        // weighted：权重按 √w 缩放残差进入尺度估计与 z。
         std::vector<bool> accept(vals.size(), true);
         const bool weighted = in->weights != nullptr;
         int removed_total = 0;
-        for (int it = 0; it < max_iter; ++it) {
-            std::vector<double> cur;
-            std::vector<double> cur_w;
-            for (std::size_t i = 0; i < vals.size(); ++i) {
-                if (!accept[i]) continue;
-                cur.push_back(vals[i]);
-                cur_w.push_back(weighted ? in->weights[i] : 1.0);
+        auto chauvenet_stage = [&](bool use_precise, int max_stage_iter) {
+            for (int it = 0; it < max_stage_iter; ++it) {
+                std::vector<double> cur;
+                std::vector<double> cur_w;
+                for (std::size_t i = 0; i < vals.size(); ++i) {
+                    if (!accept[i]) continue;
+                    cur.push_back(vals[i]);
+                    cur_w.push_back(weighted ? in->weights[i] : 1.0);
+                }
+                if (cur.size() < 3) break;
+                double loc = 0.0, scale = 0.0;
+                if (use_precise) {
+                    // stage 2：加权 mean + 加权 std
+                    double wsum = 0.0;
+                    for (std::size_t i = 0; i < cur.size(); ++i) {
+                        loc += cur_w[i] * cur[i];
+                        wsum += cur_w[i];
+                    }
+                    loc /= wsum > 0 ? wsum : 1.0;
+                    double vsum = 0.0;
+                    for (std::size_t i = 0; i < cur.size(); ++i)
+                        vsum += cur_w[i] * (cur[i] - loc) * (cur[i] - loc);
+                    scale = std::sqrt(vsum / (wsum > 0 ? wsum : 1.0));
+                } else {
+                    const double med = median(cur);
+                    std::vector<double> dev(cur.size());
+                    for (std::size_t i = 0; i < cur.size(); ++i)
+                        dev[i] = std::fabs(cur[i] - med) *
+                                 std::sqrt(cur_w[i]);
+                    loc = med;
+                    scale = 1.4826 * median(std::move(dev));
+                }
+                if (scale <= 1e-12) break;
+                std::size_t worst = 0;
+                double max_z = 0.0;
+                std::uint64_t worst_fid = ~0ULL;
+                for (std::size_t i = 0; i < cur.size(); ++i) {
+                    const double z = std::sqrt(cur_w[i]) *
+                                     (cur[i] - loc) / scale;
+                    std::uint64_t fid = (std::uint64_t)i;
+                    if (in->frame_ids) {
+                        std::size_t orig = vals.size();
+                        for (std::size_t k = 0, j = 0; k < vals.size(); ++k) {
+                            if (!accept[k]) continue;
+                            if (j == i) { orig = k; break; }
+                            ++j;
+                        }
+                        if (orig < vals.size())
+                            fid = in->frame_ids[idx[orig]];
+                    }
+                    if (std::fabs(z) > max_z + 1e-15 ||
+                        (std::fabs(std::fabs(z) - max_z) <= 1e-15 &&
+                         fid < worst_fid)) {
+                        max_z = std::fabs(z);
+                        worst = i;
+                        worst_fid = fid;
+                    }
+                }
+                const double p = std::erfc(max_z / std::sqrt(2.0));
+                if (p * (double)cur.size() >= 0.5) break;
+                std::size_t orig = vals.size();
+                for (std::size_t i = 0, j = 0; i < vals.size(); ++i) {
+                    if (!accept[i]) continue;
+                    if (j == worst) { orig = i; break; }
+                    ++j;
+                }
+                if (orig >= vals.size()) break;
+                accept[orig] = false;
+                ++removed_total;
             }
-            if (cur.size() < 3) break;
-            const double med = median(cur);
-            std::vector<double> dev(cur.size());
-            for (std::size_t i = 0; i < cur.size(); ++i)
-                dev[i] = std::fabs(cur[i] - med) * std::sqrt(cur_w[i]);
-            double m = 1.4826 * median(std::move(dev));
-            if (m <= 1e-12) break;  // 全同值无离群
-            // 最大 |z| 样本
-            std::size_t worst = 0;
-            double max_z = 0.0;
-            for (std::size_t i = 0; i < cur.size(); ++i) {
-                const double z = 0.6745 * (cur[i] - med) / m;
-                if (std::fabs(z) > max_z) { max_z = std::fabs(z); worst = i; }
-            }
-            // 双尾正态概率 p = erfc(|z|/√2)；Chauvenet：n*p < 0.5
-            const double p = std::erfc(max_z / std::sqrt(2.0));
-            if (p * (double)cur.size() >= 0.5) break;
-            // 找到原始索引
-            std::size_t orig = vals.size();
-            for (std::size_t i = 0, j = 0; i < vals.size(); ++i) {
-                if (!accept[i]) continue;
-                if (j == worst) { orig = i; break; }
-                ++j;
-            }
-            accept[orig] = false;
-            ++removed_total;
-        }
+        };
+        chauvenet_stage(false, std::max(2, max_iter / 2 + 1));  // 鲁棒
+        chauvenet_stage(true, std::max(2, max_iter / 2 + 1));   // 精确
         out->iterations = static_cast<std::uint32_t>(removed_total);
         std::uint32_t kept = 0;
         for (std::size_t i = 0; i < vals.size(); ++i) {
@@ -375,7 +464,65 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
         return 0;
     }
 
-    // Sigma / WinsorizedSigma 迭代
+    if (in->method == P2_REJECT_WINSORIZED_SIGMA) {
+        // 真 Winsorized Sigma（P0-04 修复，AstroCS 精确定义）：
+        //   每轮：普通 mean/std → 把当前样本 winsorize 到
+        //   [mean+lo·std, mean+hi·std] → winsorized mean/std 估计 →
+        //   用原始样本按 winsorized 估计做 sigma clip。
+        // 与普通 Sigma（median/MAD + clip）是不同算法：winsorization
+        // 抑制极端值对位置/尺度估计的影响。
+        std::vector<bool> accept(vals.size(), true);
+        int iters = 0;
+        for (; iters < max_iter; ++iters) {
+            std::vector<double> cur;
+            for (std::size_t i = 0; i < vals.size(); ++i)
+                if (accept[i]) cur.push_back(vals[i]);
+            if (cur.size() < 2) break;
+            double m0 = 0.0;
+            for (double x : cur) m0 += x;
+            m0 /= (double)cur.size();
+            double s0 = 0.0;
+            for (double x : cur) s0 += (x - m0) * (x - m0);
+            s0 = std::sqrt(s0 / (double)(cur.size() - 1));
+            if (s0 <= 1e-12) break;
+            const double wlo = m0 + lo * s0;
+            const double whi = m0 + hi * s0;
+            std::vector<double> wcur = cur;
+            for (double& x : wcur) x = std::clamp(x, wlo, whi);
+            double wmean = 0.0;
+            for (double x : wcur) wmean += x;
+            wmean /= (double)wcur.size();
+            double ws = 0.0;
+            for (double x : wcur) ws += (x - wmean) * (x - wmean);
+            ws = std::sqrt(ws / (double)(wcur.size() - 1));
+            if (ws <= 1e-12) ws = s0;
+            bool changed = false;
+            std::vector<bool> next(vals.size(), true);
+            for (std::size_t i = 0; i < vals.size(); ++i) {
+                if (!accept[i]) { next[i] = false; continue; }
+                const double z = (vals[i] - wmean) / ws;
+                if (z < lo || z > hi) { next[i] = false; changed = true; }
+            }
+            accept = std::move(next);
+            if (!changed) break;
+        }
+        out->iterations = static_cast<std::uint32_t>(iters);
+        std::uint32_t kept = 0;
+        for (std::size_t i = 0; i < vals.size(); ++i) {
+            out->accepted[idx[i]] = accept[i] ? 1 : 0;
+            if (accept[i]) {
+                ++kept;
+            } else {
+                if (vals[i] < 0.0) ++out->rejected_low;
+                else ++out->rejected_high;
+            }
+        }
+        out->accepted_count = kept;
+        if (out->accepted_count == 0) out->status = 2;
+        return 0;
+    }
+
+    // Sigma（普通 median/MAD 迭代 clip）
     std::vector<bool> accept(vals.size(), true);
     int iters = 0;
     for (; iters < max_iter; ++iters) {
@@ -395,18 +542,9 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
         for (std::size_t i = 0; i < vals.size(); ++i) {
             if (!accept[i]) { next[i] = false; continue; }
             const double z = (vals[i] - m) / s;
-            if (in->method == P2_REJECT_WINSORIZED_SIGMA) {
-                // winsorized：超过边界的值夹到边界而非立即拒绝，再进行迭代
-                // （首版语义：winsorize 后再按 sigma 判定；实现为两遍）
-                if (z < lo || z > hi) {
-                    next[i] = false;
-                    changed = true;
-                }
-            } else {
-                if (z < lo || z > hi) {
-                    next[i] = false;
-                    changed = true;
-                }
+            if (z < lo || z > hi) {
+                next[i] = false;
+                changed = true;
             }
         }
         accept = std::move(next);

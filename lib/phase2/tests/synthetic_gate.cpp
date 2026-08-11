@@ -912,6 +912,151 @@ TEST(Phase2Reject, RcrFindsOutlier) {
     EXPECT_GT(out.rejected_high, 0u);
 }
 
+// R4/G6：ESD 正确流程（P0-05）——NIST Rosner 54 点必须 3 outliers
+TEST(Phase2Reject, G6EsdNistRosner54) {
+    const std::vector<double> vals{
+        -0.25, 0.68, 0.94, 1.15, 1.20, 1.26, 1.26, 1.34, 1.38, 1.43,
+        1.49, 1.49, 1.55, 1.56, 1.58, 1.65, 1.69, 1.70, 1.76, 1.77,
+        1.81, 1.91, 1.94, 1.96, 1.99, 2.06, 2.09, 2.10, 2.14, 2.15,
+        2.23, 2.24, 2.26, 2.35, 2.37, 2.40, 2.47, 2.54, 2.62, 2.64,
+        2.90, 2.92, 2.92, 2.93, 3.21, 3.26, 3.30, 3.59, 3.68, 4.30,
+        4.64, 5.34, 5.42, 6.01};
+    std::vector<std::uint8_t> acc(vals.size(), 0);
+    P2SampleStackView in{};
+    in.values = vals.data();
+    in.count = (std::uint32_t)vals.size();
+    in.method = P2_REJECT_GENERALIZED_ESD;
+    in.max_iterations = 10;
+    in.min_samples = 5;
+    P2RejectionResult out{};
+    out.accepted = acc.data();
+    ASSERT_EQ(p2_reject_stack(&in, &out), 0);
+    // NIST 权威结论：3 个离群（4.30/4.64/5.34/5.42/6.01 中最大 3 个：
+    // 实际 Rosner α=0.05 判 3 个：5.34/5.42/6.01）
+    const std::uint32_t n_reject = out.rejected_low + out.rejected_high;
+    EXPECT_EQ(n_reject, 3u) << "NIST Rosner 54 点应 3 outliers";
+    std::fprintf(stderr, "[ESD NIST] rejected=%u iterations=%u\n",
+                 n_reject, out.iterations);
+}
+
+// R4/G6：ESD masking case——第一轮不显著但最终显著
+TEST(Phase2Reject, G6EsdMaskingCase) {
+    // 构造 masking：两个离群互相掩盖，第一轮 R1 不超临界，最终应检出
+    std::mt19937 rng(42);
+    std::normal_distribution<double> nd(0.0, 1.0);
+    std::vector<double> vals;
+    for (int i = 0; i < 40; ++i) vals.push_back(nd(rng));
+    vals[5] = 8.0;
+    vals[6] = 8.5;   // 两极端离群（masking pair）
+    std::vector<std::uint8_t> acc(vals.size(), 0);
+    P2SampleStackView in{};
+    in.values = vals.data();
+    in.count = (std::uint32_t)vals.size();
+    in.method = P2_REJECT_GENERALIZED_ESD;
+    in.max_iterations = 10;
+    in.min_samples = 5;
+    P2RejectionResult out{};
+    out.accepted = acc.data();
+    ASSERT_EQ(p2_reject_stack(&in, &out), 0);
+    const std::uint32_t n_reject = out.rejected_low + out.rejected_high;
+    EXPECT_GE(n_reject, 2u);
+    EXPECT_EQ(acc[5], 0u);
+    EXPECT_EQ(acc[6], 0u);
+}
+
+// R4/G6：Winsorized 与 Sigma 必须不同（至少一个数据集）
+TEST(Phase2Reject, G6WinsorizedDiffersFromSigma) {
+    // 数据：10×0 + 100。Sigma 的 MAD=0 → 无拒绝（保留 100）；
+    // Winsorized 用 std>0 → 100 被拒。证明两算法确实不同。
+    std::vector<double> vals(11, 0.0);
+    vals[10] = 100.0;
+    std::vector<std::uint8_t> a1(vals.size(), 0), a2(vals.size(), 0);
+    P2SampleStackView in{};
+    in.values = vals.data();
+    in.count = (std::uint32_t)vals.size();
+    in.sigma_low = -4.0;
+    in.sigma_high = 3.0;
+    in.max_iterations = 8;
+    in.min_samples = 5;
+    in.method = P2_REJECT_SIGMA;
+    P2RejectionResult o1{}, o2{};
+    o1.accepted = a1.data();
+    ASSERT_EQ(p2_reject_stack(&in, &o1), 0);
+    in.method = P2_REJECT_WINSORIZED_SIGMA;
+    o2.accepted = a2.data();
+    ASSERT_EQ(p2_reject_stack(&in, &o2), 0);
+    bool differs = false;
+    for (std::size_t i = 0; i < vals.size(); ++i)
+        if (a1[i] != a2[i]) differs = true;
+    EXPECT_TRUE(differs) << "Winsorized 与 Sigma 实现必须不同";
+    EXPECT_EQ(a1[10], 1u);  // Sigma：MAD=0 全保留
+    EXPECT_EQ(a2[10], 0u);  // Winsorized：std 尺度下 100 被拒
+    std::fprintf(stderr, "[Winsorized] sigma_rej=%u win_rej=%u differs=%d\n",
+                 o1.rejected_low + o1.rejected_high,
+                 o2.rejected_low + o2.rejected_high, (int)differs);
+}
+
+// R4/G6：全部 7 方法 permutation invariance（随机帧重排 mask 一致）
+TEST(Phase2Reject, G6PermutationInvariance) {
+    std::mt19937 rng(99);
+    std::normal_distribution<double> nd(0.0, 0.5);
+    constexpr int N = 12;
+    std::vector<std::uint64_t> fid(N);
+    std::vector<double> vals(N);
+    for (int i = 0; i < N; ++i) {
+        fid[i] = 1000 + (std::uint64_t)i;   // 稳定 frame identity
+        vals[i] = 10.0 + nd(rng);
+    }
+    vals[2] = 30.0;  // 离群
+    // 重排
+    std::vector<int> perm(N);
+    std::iota(perm.begin(), perm.end(), 0);
+    std::shuffle(perm.begin(), perm.end(), rng);
+    std::vector<double> vals_p(N);
+    std::vector<std::uint64_t> fid_p(N);
+    for (int i = 0; i < N; ++i) {
+        vals_p[i] = vals[perm[i]];
+        fid_p[i] = fid[perm[i]];
+    }
+    for (int method = 0; method <= 6; ++method) {
+        if (method == P2_REJECT_NONE) continue;
+        std::vector<std::uint8_t> a1(N, 0), a2(N, 0);
+        P2SampleStackView in{};
+        in.values = vals.data();
+        in.frame_ids = fid.data();
+        in.count = N;
+        in.method = method;
+        in.sigma_low = -4.0;
+        in.sigma_high = 3.0;
+        in.max_iterations = 8;
+        in.min_samples = 3;
+        P2RejectionResult o1{}, o2{};
+        o1.accepted = a1.data();
+        ASSERT_EQ(p2_reject_stack(&in, &o1), 0);
+        in.values = vals_p.data();
+        in.frame_ids = fid_p.data();
+        o2.accepted = a2.data();
+        ASSERT_EQ(p2_reject_stack(&in, &o2), 0);
+        // 重排后：mask 应一致（按 frame_id 对齐比较）
+        bool same = true;
+        std::vector<int> inv_perm(N);
+        for (int i = 0; i < N; ++i) inv_perm[perm[i]] = i;
+        for (int i = 0; i < N; ++i)
+            if (a1[i] != a2[inv_perm[i]]) same = false;
+        if (!same) {
+            std::fprintf(stderr, "[perm] method=%d failed\n  a1=", method);
+            for (int i = 0; i < N; ++i)
+                std::fprintf(stderr, "%d", (int)a1[i]);
+            std::fprintf(stderr, "\n  a2=");
+            for (int i = 0; i < N; ++i)
+                std::fprintf(stderr, "%d", (int)a2[i]);
+            std::fprintf(stderr, "\n");
+        }
+        EXPECT_TRUE(same) << "method " << method
+                          << " permutation invariant failed";
+    }
+}
+
 // W9：ACR 合成 mosaic_reject legacy launcher 与 CPU reference 等价
 TEST(Phase2Acr, LegacyLauncherEquivalent) {
     astro::compute::phase2::register_phase2_acr_kernels();

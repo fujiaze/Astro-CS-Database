@@ -40,6 +40,7 @@ typedef struct {
     const double* support;          // 可空
     const double* weights;          // 可空（等权）
     const std::uint32_t* quality;   // 可空
+    const std::uint64_t* frame_ids; // 可空（稳定帧标识；LinearFit 顺序无关用）
     std::uint32_t count;
     int  data_type;                 // 0=fp32, 1=fp64
     int  method;                    // P2RejectionMethod
