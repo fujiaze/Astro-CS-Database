@@ -1277,6 +1277,102 @@ TEST(Phase2Acr, CudaWeightedSupportEquivalent) {
     bridge::api().executor_destroy(exec);
 }
 
+// R6：compact frame metadata case——总帧 [0,1,2,3]，当前 tile 只覆盖 [1,3]
+// （非连续），SNR 数组必须按 frames[s] 一一对应，CPU/ACR 输出一致。
+TEST(Phase2Acr, G9CompactFrameSubset) {
+    astro::compute::phase2::register_phase2_acr_kernels();
+    const astro::compute::KernelRegistration* reg =
+        astro::compute::global_kernel_registry().find(
+            astro::compute::phase2::kOpMosaicReject);
+    ASSERT_NE(reg, nullptr);
+    namespace bridge = astro::compute::cuda::bridge;
+    bridge::ensure_bridge_loaded();
+    if (!bridge::api().loaded()) GTEST_SKIP() << "CUDA bridge 不可用";
+    const char* err = nullptr;
+    void* exec = bridge::api().executor_create(0, 1u << 20, 1u << 16, &err);
+    ASSERT_NE(exec, nullptr);
+    bridge::set_tls_handle(exec);
+
+    const std::size_t px = 4, depth = 2;
+    // 总帧 4 帧 SNR：idx 0..3；当前 tile 覆盖帧 [1,3] → compact [snr1, snr3]
+    float all_snr[4] = {1.0f, 5.0f, 1.0f, 9.0f};
+    float snr_compact[2] = {all_snr[1], all_snr[3]};
+    float vals[8] = {
+        10.0f, 10.1f, 9.9f, 10.0f,
+        50.0f, 10.0f, 10.2f, 10.05f,
+    };
+    float sup[8] = {1, 1, 1, 1, 1, 1, 1, 1};
+    float out_cpu[4] = {0}, out_gpu[4] = {0};
+    auto build_inv = [&](float* out) {
+        astro::compute::KernelInvocation inv;
+        inv.id = astro::compute::phase2::kOpMosaicReject;
+        inv.domain = astro::compute::WorkDomain{0, px};
+        inv.buffers.add(0, out, px, 1, astro::compute::BufferRole::Output);
+        inv.buffers.add(1, vals, px * depth, 1,
+                        astro::compute::BufferRole::Input);
+        inv.buffers.add(2, sup, px * depth, 1,
+                        astro::compute::BufferRole::Input);
+        inv.buffers.add(3, snr_compact, depth, 1,
+                        astro::compute::BufferRole::Input);
+        astro::compute::append_scalar(inv.scalars, std::size_t{px});
+        astro::compute::append_scalar(inv.scalars, std::size_t{depth});
+        astro::compute::append_scalar(inv.scalars, int{P2_REJECT_SIGMA});
+        astro::compute::append_scalar(inv.scalars, double{-4.0});
+        astro::compute::append_scalar(inv.scalars, double{3.0});
+        astro::compute::append_scalar(inv.scalars, int{2});
+        return inv;
+    };
+    astro::compute::KernelInvocation ic = build_inv(out_cpu);
+    reg->legacy_parallel(ic, nullptr);
+    astro::compute::KernelInvocation ig = build_inv(out_gpu);
+    (*reg->cuda)(ig, nullptr);
+    for (std::size_t p = 0; p < px; ++p)
+        EXPECT_NEAR(out_gpu[p], out_cpu[p], 1e-4f) << "p=" << p;
+    // 像素 0 离群被拒后接近高 SNR 帧值（snr3=9 主导）
+    EXPECT_GT(out_cpu[0], 9.0f);
+    bridge::api().executor_destroy(exec);
+}
+
+// R6：Winsorized 必须 CPU_ROUTE（CUDA launcher 拒绝，不冒充等价）
+TEST(Phase2Acr, G9WinsorizedCpuRoute) {
+    astro::compute::phase2::register_phase2_acr_kernels();
+    const astro::compute::KernelRegistration* reg =
+        astro::compute::global_kernel_registry().find(
+            astro::compute::phase2::kOpMosaicReject);
+    ASSERT_NE(reg, nullptr);
+    ASSERT_TRUE(reg->cuda.has_value());
+    namespace bridge = astro::compute::cuda::bridge;
+    bridge::ensure_bridge_loaded();
+    if (!bridge::api().loaded()) GTEST_SKIP() << "CUDA bridge 不可用";
+    const char* err = nullptr;
+    void* exec = bridge::api().executor_create(0, 1u << 20, 1u << 16, &err);
+    ASSERT_NE(exec, nullptr);
+    bridge::set_tls_handle(exec);
+    const std::size_t px = 2, depth = 3;
+    float vals[6] = {10, 20, 50, 20.1f, 10.2f, 19.9f};
+    float out[2] = {0, 0};
+    astro::compute::KernelInvocation inv;
+    inv.id = astro::compute::phase2::kOpMosaicReject;
+    inv.domain = astro::compute::WorkDomain{0, px};
+    inv.buffers.add(0, out, px, 1, astro::compute::BufferRole::Output);
+    inv.buffers.add(1, vals, px * depth, 1, astro::compute::BufferRole::Input);
+    astro::compute::append_scalar(inv.scalars, std::size_t{px});
+    astro::compute::append_scalar(inv.scalars, std::size_t{depth});
+    astro::compute::append_scalar(inv.scalars, int{P2_REJECT_WINSORIZED_SIGMA});
+    astro::compute::append_scalar(inv.scalars, double{-4.0});
+    astro::compute::append_scalar(inv.scalars, double{3.0});
+    astro::compute::append_scalar(inv.scalars, int{2});
+    bool threw_cpu_route = false;
+    try {
+        (*reg->cuda)(inv, nullptr);
+    } catch (const std::runtime_error& e) {
+        threw_cpu_route =
+            std::string(e.what()).find("CPU_ROUTE") != std::string::npos;
+    }
+    EXPECT_TRUE(threw_cpu_route) << "Winsorized CUDA 必须 CPU_ROUTE";
+    bridge::api().executor_destroy(exec);
+}
+
 
 // W10 鲁棒性：损坏/边界输入
 TEST(Phase2Robust, NanInputRejected) {

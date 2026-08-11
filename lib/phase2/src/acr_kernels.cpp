@@ -174,9 +174,14 @@ void mosaic_reject_cuda(const KernelInvocation& inv, void*) {
     const int min_samples_v = ms ? *ms : 3;
     const std::uint32_t method_v =
         method ? static_cast<std::uint32_t>(*method) : 1u;
-    if (method_v != P2_REJECT_SIGMA &&
-        method_v != P2_REJECT_WINSORIZED_SIGMA) {
-        // CUDA kernel 实现统一 sigma-clip（Sigma/WinsorizedSigma 同语义）；
+    if (method_v == P2_REJECT_WINSORIZED_SIGMA) {
+        // R6：Winsorized 与 Sigma 算法不同（winsorized mean/std vs
+        // median/MAD），CUDA 只实现 Sigma；Winsorized 明确 CPU_ROUTE，
+        // 禁止同 kernel 冒充两种 science semantics。
+        throw std::runtime_error(
+            "mosaic_reject cuda: CPU_ROUTE winsorized not implemented on CUDA");
+    }
+    if (method_v != P2_REJECT_SIGMA) {
         // 其他方法回退 CPU（legacy launcher），由调用方路由。
         throw std::runtime_error("mosaic_reject cuda: unsupported method");
     }

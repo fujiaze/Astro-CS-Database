@@ -401,8 +401,7 @@ int main(int argc, char** argv) {
             astro::compute::phase2::kOpMosaicReject);
     const bool use_acr_block =
         acr_reg != nullptr &&
-        (cfg.reject_method == P2_REJECT_SIGMA ||
-         cfg.reject_method == P2_REJECT_WINSORIZED_SIGMA);
+        cfg.reject_method == P2_REJECT_SIGMA;   // R6：Winsorized 明确 CPU_ROUTE
     namespace bridge = astro::compute::cuda::bridge;
     bool gpu_ready = false;
     void* gpu_exec = nullptr;
