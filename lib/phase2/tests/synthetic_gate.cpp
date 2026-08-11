@@ -27,6 +27,10 @@
 #include "healpix/healpix_core.h"
 #include "crypto/sha256.h"
 
+extern "C" {
+#include "aio_hips_reader.h"
+}
+
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -2264,6 +2268,124 @@ TEST(Phase2Sampler, RealHipsControlSampling) {
     EXPECT_EQ(finite, obs.size());
     EXPECT_GT(snr_used, 0u);
     p2_coverage_free(&cov);
+}
+
+// V4 R6：local SNR availability 三区 gate——同一 frame 内：
+//   1) 高局部 SNR（有 catalogue 星点，snr≈100）；
+//   2) 低局部 SNR（有 catalogue 星点，snr≈2）；
+//   3) 无任何局部星点 → snr_available=0 且 snr==0.0（禁止伪 local 1.0）。
+// 使用真实 T2_v3 HiPS 副本 + 合成 SNR catalogue（仅替换 TSV 内容，
+// MOC/properties/signal/support 保持原样）。
+TEST(Phase2Sampler, G6LocalSnrAvailabilityThreeZones) {
+    namespace fs = std::filesystem;
+    namespace st = spatial_truth;
+    const fs::path base =
+        "F:/Astro dev/Astro CS Normalization Database/run/temp/phase1_freeze";
+    const fs::path src = base / "T2_v3.hips";
+    if (!fs::exists(src / "signal" / "properties"))
+        GTEST_SKIP() << "真实 HiPS 输入不存在";
+    const fs::path tmp =
+        "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_snr3/"
+        "T2_snr3.hips";
+    if (fs::exists(tmp)) fs::remove_all(tmp);
+    fs::create_directories(tmp);
+    fs::copy(src / "signal", tmp / "signal", fs::copy_options::recursive);
+    fs::copy(src / "support", tmp / "support", fs::copy_options::recursive);
+    fs::copy(src / "snr", tmp / "snr", fs::copy_options::recursive);
+
+    // 找到 signal MOC 前 3 个 tile（作为三个区域）
+    AioHipsDataset* sig = aio_hips_open(tmp.string().c_str(),
+                                        AIO_HIPS_RD_SIGNAL);
+    ASSERT_TRUE(sig != nullptr);
+    const int nt = aio_hips_tile_count(sig);
+    ASSERT_GE(nt, 3);
+    std::uint64_t tiles[3] = {0, 0, 0};
+    for (int i = 0; i < 3; ++i)
+        ASSERT_EQ(aio_hips_tile_ipix(sig, i, &tiles[i]), 0);
+    aio_hips_close(sig);
+
+    // 两个星点：tiles[0] 的 (0,0) cell 中心 snr=100（高局部 SNR）；
+    // tiles[2] 的 (0,0) cell 中心 snr=2（低局部 SNR）；tiles[1] 无星点
+    // （无局部 catalogue 信息区）。
+    auto cell_radec = [&](std::uint64_t tile, int gx, int gy,
+                          double* ra, double* dec) {
+        const std::uint64_t leaf =
+            st::leaf_of(tile, gx * st::kCellSide + 32,
+                        gy * st::kCellSide + 32);
+        astrocs::healpix::pix2ang_nest(
+            1u << (unsigned)(st::kTargetOrder + st::kTileShift), leaf, *ra,
+            *dec);
+    };
+    double ra0 = 0, dec0 = 0, ra1 = 0, dec1 = 0;
+    cell_radec(tiles[0], 0, 0, &ra0, &dec0);
+    cell_radec(tiles[2], 0, 0, &ra1, &dec1);
+    fs::path tsv;
+    for (const auto& d : fs::recursive_directory_iterator(tmp / "snr"))
+        if (d.path().extension() == ".tsv") { tsv = d.path(); break; }
+    ASSERT_FALSE(tsv.empty());
+    {
+        std::ostringstream ss;
+        ss << "# star_id ra dec snr quality_flags photometric_status\n"
+           << "1 " << std::setprecision(12) << ra0 << " " << dec0
+           << " 100.0 1 1\n"
+           << "2 " << std::setprecision(12) << ra1 << " " << dec1
+           << " 2.0 1 1\n";
+        std::ofstream of(tsv, std::ios::trunc);
+        of << ss.str();
+    }
+
+    // 采样
+    P2CoverageResult cov{};
+    cov.n_inputs = 1;
+    P2HipsInputInfo infos[1]{};
+    cov.inputs = infos;
+    const std::string tmp_str = tmp.string();
+    const char* path = tmp_str.c_str();
+    ASSERT_EQ(p2_coverage_build(&path, 1, &cov), 0);
+    std::vector<P2MocCell> cells(cov.n_union_cells);
+    cov.union_cells = cells.data();
+    ASSERT_EQ(p2_coverage_build(&path, 1, &cov), 0);
+    P2SamplerConfig sccfg{};
+    sccfg.control_grid_per_tile = 8;
+    sccfg.patch_radius_leaf = 2;
+    sccfg.min_samples = 5;
+    sccfg.snr_search_radius_deg = 0.05;
+    std::uint64_t n_obs = 0, n_ctrl = 0;
+    char err[512] = {0};
+    ASSERT_EQ(p2_sample_controls(&cov, &path, &sccfg, nullptr, 0, &n_obs,
+                                 &n_ctrl, err, sizeof(err)), 0);
+    ASSERT_GT(n_obs, 0u);
+    std::vector<P2ControlObservation> obs(n_obs);
+    ASSERT_EQ(p2_sample_controls(&cov, &path, &sccfg, obs.data(), n_obs,
+                                 &n_obs, &n_ctrl, err, sizeof(err)), 0);
+
+    bool saw_high = false, saw_low = false, saw_missing = false;
+    for (const auto& o : obs) {
+        const std::uint64_t t = o.leaf_ipix >> 18;
+        const std::uint64_t local = o.leaf_ipix & ((1ULL << 18) - 1ULL);
+        std::uint32_t x = 0, y = 0;
+        astrocs::healpix::nested_local_to_xy(local, 9u, x, y);
+        const int gx = (int)(x / st::kCellSide);
+        const int gy = (int)(y / st::kCellSide);
+        if (t == tiles[0] && gx == 0 && gy == 0) {
+            EXPECT_EQ(o.snr_available, 1);
+            EXPECT_NEAR(o.snr, 100.0, 1e-9);
+            saw_high = true;
+        } else if (t == tiles[2] && gx == 0 && gy == 0) {
+            EXPECT_EQ(o.snr_available, 1);
+            EXPECT_NEAR(o.snr, 2.0, 1e-9);
+            saw_low = true;
+        } else if (t == tiles[1]) {
+            EXPECT_EQ(o.snr_available, 0) << "无局部星点 cell 不得伪 local";
+            EXPECT_EQ(o.snr, 0.0) << "无局部星点不得以 snr=1.0 伪装";
+            saw_missing = true;
+        }
+    }
+    EXPECT_TRUE(saw_high) << "高局部 SNR 区必须存在";
+    EXPECT_TRUE(saw_low) << "低局部 SNR 区必须存在";
+    EXPECT_TRUE(saw_missing) << "无局部星点区必须存在";
+    p2_coverage_free(&cov);
+    fs::remove_all(tmp.parent_path());
 }
 
 // R1/G1 sampler 统计量：even median、odd/even/negative/repeated/shuffled/

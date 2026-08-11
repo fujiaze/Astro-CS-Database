@@ -186,6 +186,11 @@ int main(int argc, char** argv) {
     const std::string input_manifest_hash = astrocs::crypto::sha256_hex(
         manifest_payload.data(), manifest_payload.size());
     log("input_manifest_hash=" + input_manifest_hash);
+    // V4 R6：帧级 SNR median（whole-frame fallback 源；frame_id → 值映射）
+    const std::vector<double> frame_snr = frame_snr_medians(cfg.hips);
+    std::map<std::uint64_t, double> frame_snr_by_id;
+    for (std::size_t i = 0; i < cfg.hips.size(); ++i)
+        frame_snr_by_id[frame_id_cache[i]] = frame_snr[i];
 
     // ---- W4 CONTROL SAMPLE ----
     P2SamplerConfig sccfg{};
@@ -218,9 +223,17 @@ int main(int argc, char** argv) {
     // R8：局部 SNR 映射（control cell 级 = 可证明的最近空间 catalogue
     // 区域）：(frame_id, tile, gx, gy) -> snr。像素权重优先局部，
     // 缺失才 fallback 整帧 SNR median 并计数。
+    // V4 R6：只有真实可用的局部 SNR 才进入 local_snr_map；无局部星点的
+    // control observation 先回退整帧 SNR median（UPM 控制权重语义），
+    // 且不允许以 snr=1.0 伪装 unknown。
     std::map<std::tuple<std::uint64_t, std::uint64_t, int, int>, double>
         local_snr_map;
+    std::uint64_t local_snr_unavailable = 0;
     for (const auto& o : obs) {
+        if (!o.snr_available) {
+            ++local_snr_unavailable;
+            continue;   // 不进入 local map（像素级回退整帧 median）
+        }
         const std::uint64_t tile = o.leaf_ipix >> 18;
         const std::uint64_t local = o.leaf_ipix & ((1ULL << 18) - 1ULL);
         std::uint32_t x = 0, y = 0;
@@ -228,7 +241,17 @@ int main(int argc, char** argv) {
         local_snr_map[std::make_tuple(o.frame_id, tile, (int)(x / 64),
                                       (int)(y / 64))] = o.snr;
     }
+    // V4 R6：UPM 控制权重回退——无局部星点的观测用整帧 SNR median
+    // （保持与像素级 fallback 相同策略；snr_available 位仍保留记录）。
+    for (auto& o : obs) {
+        if (!o.snr_available) {
+            const auto it = frame_snr_by_id.find(o.frame_id);
+            if (it != frame_snr_by_id.end()) o.snr = it->second;
+        }
+    }
     std::uint64_t local_snr_used = 0, frame_snr_fallback = 0;
+    log("local snr unavailable controls (fallback to frame median): " +
+        std::to_string(local_snr_unavailable));
 
     // ---- W4 UPM FIT ----
     // R1（V4）：生产共享 UPM 配置构造（与 gate 测试同一 path）
@@ -309,8 +332,6 @@ int main(int argc, char** argv) {
             return 6;
         }
     }
-    const std::vector<double> frame_snr = frame_snr_medians(cfg.hips);
-
     AioHipsProductSet* ps = aio_hips_product_begin(
         cfg.out_hips.c_str(), (std::uint32_t)nside, 512, dtype,
         AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
@@ -785,6 +806,7 @@ int main(int argc, char** argv) {
         diag["quality_fallback_unknown"] = quality_unknown;
         diag["local_snr_used"] = local_snr_used;
         diag["frame_snr_median_fallback"] = frame_snr_fallback;
+        diag["local_snr_unavailable_controls"] = local_snr_unavailable;
         diag["upm_sigma_floor"] = cfg.sigma_floor;
         diag["upm_support_power"] = cfg.support_power;
         diag["zero_coverage_pixels"] = dbg_zero_px;

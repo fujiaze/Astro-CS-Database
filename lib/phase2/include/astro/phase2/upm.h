@@ -36,6 +36,10 @@ typedef struct {
     double value;                 // local photometric estimate（可负）
     double uncertainty;           // measurement uncertainty
     double snr;
+    // V4 R6：local SNR 可用性。1=该 control cell 邻域确有 catalogue 星点
+    // （snr 为真实局部中位数，可为 1.0）；0=无局部星点（snr 无意义，由
+    // 调用方回退整帧 median，禁止以 1.0 伪装 unknown）。
+    int snr_available;
     double support;
     std::uint32_t quality_flags;
 } P2ControlObservation;

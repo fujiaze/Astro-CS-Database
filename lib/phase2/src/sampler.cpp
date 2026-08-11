@@ -379,10 +379,13 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                     const double sigma = (mad > 0.0) ? mad : 1e-12;
                     const double uncertainty =
                         sigma / std::sqrt((double)vals.size());
-                    // SNR：邻近星点 median（无点 → 中性 1.0）
+                    // V4 R6：SNR = 邻近星点 median；无局部星点时
+                    // snr=0.0 且 snr_available=0（禁止 1.0 伪装 unknown，
+                    // 由 stage2 回退整帧 median）。
                     // quality：邻域点 quality 按位 OR（区域最坏可信度）；
                     // 无邻域点 → 0（unknown，QUALITY_FALLBACK_UNKNOWN）
                     double snr_val = 1.0;
+                    int snr_avail = 0;
                     std::uint32_t qual = 0;
                     const FrameData& fd = frames[frame_id];
                     if (!fd.snr.empty()) {
@@ -396,7 +399,14 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                                 qual |= fd.quality[s];
                             }
                         }
-                        if (!near.empty()) snr_val = median_of(std::move(near));
+                        if (!near.empty()) {
+                            snr_val = median_of(std::move(near));
+                            snr_avail = 1;
+                        } else {
+                            snr_val = 0.0;
+                        }
+                    } else {
+                        snr_val = 0.0;
                     }
                     P2ControlObservation o{};
                     o.frame_id = fid_cache[frame_id];
@@ -407,6 +417,7 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                     o.value = y;
                     o.uncertainty = uncertainty;
                     o.snr = snr_val;
+                    o.snr_available = snr_avail;
                     o.support = n_valid ? sup_sum / (double)n_valid : 0.0;
                     o.quality_flags = qual;
                     obs.push_back(o);
