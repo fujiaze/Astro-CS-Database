@@ -2,6 +2,7 @@
 #include "astro/phase2/block.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 
 extern "C" {
@@ -40,8 +41,31 @@ int p2_block_plan(const P2BlockPlannerInput* in, P2BlockPlan* out) {
         out->status = 0;
         return 0;
     }
-    // 超出预算：缩块（normal path），不 swap。
-    // 单 tile 已超出（调用方 output_pixels=单 tile）：标记 micro-chunk。
+    // 超出预算：正常路径缩块（不 swap），计算真实可行的 block_pixels。
+    // 每输出像素成本 = N_B*sample_bytes + scratch_per_pixel + N_B*scratch_per_sample
+    const double per_px =
+        static_cast<double>(in->covering_frames) * bytes_per_sample +
+        static_cast<double>(in->scratch_bytes_per_pixel) +
+        static_cast<double>(in->covering_frames) *
+            static_cast<double>(in->scratch_bytes_per_sample);
+    if (per_px <= 0.0) {
+        out->micro_chunk_required = 1;
+        out->status = 0;
+        return 0;
+    }
+    const double available = budget - static_cast<double>(in->fixed_overhead);
+    if (available < per_px) {
+        // 最小 chunk（1 像素）都无法运行：明确不可行
+        out->status = 1;
+        std::strncpy(out->error,
+                     "memory limit 低于最小 chunk（1 像素 × N_B）需求",
+                     sizeof(out->error) - 1);
+        out->block_pixels = 1;
+        return 0;
+    }
+    const double max_px = std::floor(available / per_px);
+    out->block_pixels = static_cast<std::uint64_t>(max_px);
+    if (out->block_pixels == 0) out->block_pixels = 1;
     out->micro_chunk_required = 1;
     out->status = 0;
     return 0;

@@ -390,13 +390,8 @@ int main(int argc, char** argv) {
     std::vector<std::uint8_t> valid(n_leaf);
     std::vector<float> fluxF(n_leaf), areaF(n_leaf);
     std::vector<double> fluxD(n_leaf), areaD(n_leaf);
-    std::vector<float> t_sig(512 * 512), t_sup(512 * 512);
+    std::vector<float> t_sig_probe(512 * 512);
     const std::uint32_t nb = (std::uint32_t)cfg.hips.size();
-    std::vector<std::vector<double>> cal(nb), supv(nb);
-    for (auto& v : cal) v.resize(n_leaf);
-    for (auto& v : supv) v.resize(n_leaf);
-    std::vector<double> stack(nb), weights(nb), support_v(nb);
-    std::vector<std::uint8_t> acc(nb);
 
     // ---- ACR 路由（G9）：sigma/winsorized 逐 tile 走 KernelRegistry，
     // GPU 可用则 CUDA，否则 CPU legacy（同一科学语义）。 ----
@@ -423,114 +418,180 @@ int main(int argc, char** argv) {
     }
     log("ACR block routing: enabled=" + std::to_string(use_acr_block) +
         " gpu=" + std::to_string(gpu_ready));
-    // 块级 GPU 暂存（仅 sigma/winsorized 使用）
-    std::vector<float> frames_f32(n_leaf * nb), sup_f32(n_leaf * nb);
-    std::vector<float> snr_f32(nb), out_sig_f32(n_leaf),
-        out_sup_f32(n_leaf), out_rej_f32(n_leaf), out_valid_f32(n_leaf);
-    for (std::uint32_t f = 0; f < nb; ++f)
-        snr_f32[f] = (float)frame_snr[f];
-
     for (std::uint64_t ci = 0; ci < cov.n_union_cells; ++ci) {
         const std::uint64_t tile_ipix = cells[ci].ipix;
-        // 覆盖帧列表 + 一次读取 signal/support + UPM 校准
+        // 覆盖帧列表（探测读取，不预分配全帧缓冲）
         std::vector<std::uint32_t> frames;
         for (std::uint32_t f = 0; f < nb; ++f) {
             AioHipsDataset* d = sig[f];
-            if (aio_hips_read_tile_f32(d, tile_ipix, t_sig.data()) != 0)
+            if (aio_hips_read_tile_f32(d, tile_ipix, t_sig_probe.data()) != 0)
                 continue;
-            if (aio_hips_read_tile_f32(sup[f], tile_ipix, t_sup.data()) != 0)
-                continue;
-            const std::uint32_t s = (std::uint32_t)frames.size();
             frames.push_back(f);
-            for (std::uint64_t i = 0; i < n_leaf; ++i) {
-                const std::uint64_t local =
-                    astrocs::healpix::fits_index_to_nested_local(
-                        i, 9u, 512u);
-                cal[s][local] = (double)t_sig[(size_t)i];
-                supv[s][local] = (double)t_sup[(size_t)i];
-            }
-            std::vector<std::uint64_t> dummy(n_leaf, 0);
-            std::vector<double> out(n_leaf);
-            p2_upm_calibrate_block(model, p2_frame_id(cfg.hips[f].c_str()),
-                                   dummy.data(),
-                                   cal[s].data(), out.data(), n_leaf);
-            for (std::uint64_t i = 0; i < n_leaf; ++i)
-                cal[s][i] = out[i];
         }
         if (frames.empty()) continue;
         const std::uint32_t depth = (std::uint32_t)frames.size();
 
+        // ---- R3：真实 N_B + planner 计算 chunk_pixels（micro-chunk 执行）----
+        P2BlockPlannerInput bp{};
+        bp.output_pixels = n_leaf;
+        bp.covering_frames = depth;              // 当前 tile 真实覆盖帧数
+        bp.precision = cfg.precision;
+        bp.memory_limit_bytes = cfg.memory_limit_mb * 1024ull * 1024ull;
+        bp.safety_factor = 0.75;
+        bp.scratch_bytes_per_sample = 8;
+        bp.scratch_bytes_per_pixel = 8;
+        bp.fixed_overhead = 1ull << 22;
+        P2BlockPlan plan{};
+        p2_block_plan(&bp, &plan);
+        if (plan.status == 1) {
+            log("block unfeasible: " + std::string(plan.error));
+            p2_upm_close(model);
+            return 6;
+        }
+        const std::uint64_t chunk_pixels =
+            std::min<std::uint64_t>(n_leaf,
+                                    std::max<std::uint64_t>(1, plan.block_pixels));
+        const std::uint64_t n_chunk =
+            (n_leaf + chunk_pixels - 1) / chunk_pixels;
+        log("tile " + std::to_string(tile_ipix) + " N_B=" +
+            std::to_string(depth) + " chunk_px=" +
+            std::to_string(chunk_pixels) + " n_chunk=" +
+            std::to_string(n_chunk) + " est_peak=" +
+            std::to_string(plan.estimated_peak_bytes));
+
+        // 每 chunk 的工作缓冲（按 chunk_pixels×depth，非 262144×all_frames）
+        std::vector<std::vector<double>> cal(depth), supv(depth);
+        for (auto& v : cal) v.resize(chunk_pixels);
+        for (auto& v : supv) v.resize(chunk_pixels);
+        std::vector<std::vector<std::uint64_t>> chunk_leaves(n_chunk);
+        std::vector<std::uint64_t> local_lut(n_leaf);
+        for (std::uint64_t i = 0; i < n_leaf; ++i)
+            local_lut[i] = astrocs::healpix::fits_index_to_nested_local(
+                i, 9u, 512u);
+        for (std::uint64_t c = 0; c < n_chunk; ++c) {
+            const std::uint64_t p0 = c * chunk_pixels;
+            const std::uint64_t p1 =
+                std::min<std::uint64_t>(p0 + chunk_pixels, n_leaf);
+            chunk_leaves[c].resize(p1 - p0);
+            for (std::uint64_t i = p0; i < p1; ++i)
+                chunk_leaves[c][i - p0] =
+                    (tile_ipix << 18) + local_lut[(std::size_t)i];
+        }
+        std::vector<double> stack(depth), weights(depth), support_v(depth);
+        std::vector<std::uint8_t> acc(depth);
+
+        // 全 tile 临时读取缓冲（512×512×2×4B，固定小）
+        std::vector<float> t_sig(512 * 512), t_sup(512 * 512);
+
         if (use_acr_block) {
-            // 组装 frame-major float 块并一次性经 registry 处理
-            for (std::uint32_t s = 0; s < depth; ++s) {
-                const std::uint32_t f = frames[s];
-                for (std::uint64_t i = 0; i < n_leaf; ++i) {
-                    frames_f32[(size_t)s * n_leaf + i] = (float)cal[s][i];
-                    sup_f32[(size_t)s * n_leaf + i] = (float)supv[s][i];
+            // compact frame SNR（P0-10 修复：与 frames[s] 一一对应）
+            std::vector<float> snr_compact(depth);
+            for (std::uint32_t s = 0; s < depth; ++s)
+                snr_compact[s] = (float)frame_snr[frames[s]];
+            std::vector<float> frames_f32(chunk_pixels * depth);
+            std::vector<float> sup_f32(chunk_pixels * depth);
+            std::vector<float> out_sig_f32(chunk_pixels),
+                out_sup_f32(chunk_pixels), out_rej_f32(chunk_pixels),
+                out_valid_f32(chunk_pixels);
+            for (std::uint64_t c = 0; c < n_chunk; ++c) {
+                const std::uint64_t p0 = c * chunk_pixels;
+                const std::uint64_t p1 = std::min<std::uint64_t>(
+                    p0 + chunk_pixels, n_leaf);
+                const std::uint64_t cnt = p1 - p0;
+                // 读每帧 tile 并提取 chunk 段 + UPM 空间校准
+                for (std::uint32_t s = 0; s < depth; ++s) {
+                    const std::uint32_t f = frames[s];
+                    if (aio_hips_read_tile_f32(sig[f], tile_ipix,
+                                               t_sig.data()) != 0 ||
+                        aio_hips_read_tile_f32(sup[f], tile_ipix,
+                                               t_sup.data()) != 0) {
+                        log("tile read failed");
+                        return 6;
+                    }
+                    std::vector<double> cal_v(cnt), sup_v(cnt);
+                    for (std::uint64_t i = 0; i < cnt; ++i) {
+                        const std::uint64_t g = p0 + i;
+                        cal_v[i] = (double)t_sig[(std::size_t)g];
+                        sup_v[i] = (double)t_sup[(std::size_t)g];
+                    }
+                    std::vector<double> out_v(cnt);
+                    p2_upm_calibrate_block(
+                        model, p2_frame_id(cfg.hips[f].c_str()),
+                        chunk_leaves[c].data(), cal_v.data(), out_v.data(),
+                        cnt);
+                    for (std::uint64_t i = 0; i < cnt; ++i) {
+                        frames_f32[(size_t)s * chunk_pixels + i] =
+                            (float)out_v[i];
+                        sup_f32[(size_t)s * chunk_pixels + i] =
+                            (float)sup_v[i];
+                    }
                 }
-            }
-            std::fill(out_sig_f32.begin(), out_sig_f32.end(), 0.0f);
-            std::fill(out_sup_f32.begin(), out_sup_f32.end(), 0.0f);
-            std::fill(out_rej_f32.begin(), out_rej_f32.end(), 0.0f);
-            std::fill(out_valid_f32.begin(), out_valid_f32.end(), 0.0f);
-            astro::compute::KernelInvocation inv;
-            inv.id = astro::compute::phase2::kOpMosaicReject;
-            inv.domain = astro::compute::WorkDomain{0, n_leaf};
-            inv.buffers.add(0, out_sig_f32.data(), n_leaf, 1,
-                            astro::compute::BufferRole::Output);
-            inv.buffers.add(1, frames_f32.data(), n_leaf * depth, 1,
-                            astro::compute::BufferRole::Input);
-            inv.buffers.add(2, sup_f32.data(), n_leaf * depth, 1,
-                            astro::compute::BufferRole::Input);
-            inv.buffers.add(3, snr_f32.data(), nb, 1,
-                            astro::compute::BufferRole::Input);
-            inv.buffers.add(4, out_sup_f32.data(), n_leaf, 1,
-                            astro::compute::BufferRole::Output);
-            inv.buffers.add(5, out_rej_f32.data(), n_leaf, 1,
-                            astro::compute::BufferRole::Output);
-            inv.buffers.add(6, out_valid_f32.data(), n_leaf, 1,
-                            astro::compute::BufferRole::Output);
-            astro::compute::append_scalar(inv.scalars, std::size_t{n_leaf});
-            astro::compute::append_scalar(inv.scalars, std::size_t{depth});
-            astro::compute::append_scalar(inv.scalars, int{cfg.reject_method});
-            astro::compute::append_scalar(inv.scalars, cfg.sigma_low);
-            astro::compute::append_scalar(inv.scalars, cfg.sigma_high);
-            astro::compute::append_scalar(inv.scalars,
-                                          cfg.reject_min_samples);
-            try {
-                if (gpu_ready && acr_reg->cuda.has_value()) {
-                    (*acr_reg->cuda)(inv, nullptr);
-                } else {
+                std::fill(out_sig_f32.begin(), out_sig_f32.end(), 0.0f);
+                std::fill(out_sup_f32.begin(), out_sup_f32.end(), 0.0f);
+                std::fill(out_rej_f32.begin(), out_rej_f32.end(), 0.0f);
+                std::fill(out_valid_f32.begin(), out_valid_f32.end(), 0.0f);
+                astro::compute::KernelInvocation inv;
+                inv.id = astro::compute::phase2::kOpMosaicReject;
+                inv.domain = astro::compute::WorkDomain{0, cnt};
+                inv.buffers.add(0, out_sig_f32.data(), cnt, 1,
+                                astro::compute::BufferRole::Output);
+                inv.buffers.add(1, frames_f32.data(), cnt * depth, 1,
+                                astro::compute::BufferRole::Input);
+                inv.buffers.add(2, sup_f32.data(), cnt * depth, 1,
+                                astro::compute::BufferRole::Input);
+                inv.buffers.add(3, snr_compact.data(), depth, 1,
+                                astro::compute::BufferRole::Input);
+                inv.buffers.add(4, out_sup_f32.data(), cnt, 1,
+                                astro::compute::BufferRole::Output);
+                inv.buffers.add(5, out_rej_f32.data(), cnt, 1,
+                                astro::compute::BufferRole::Output);
+                inv.buffers.add(6, out_valid_f32.data(), cnt, 1,
+                                astro::compute::BufferRole::Output);
+                astro::compute::append_scalar(inv.scalars, std::size_t{cnt});
+                astro::compute::append_scalar(inv.scalars, std::size_t{depth});
+                astro::compute::append_scalar(inv.scalars,
+                                              int{cfg.reject_method});
+                astro::compute::append_scalar(inv.scalars, cfg.sigma_low);
+                astro::compute::append_scalar(inv.scalars, cfg.sigma_high);
+                astro::compute::append_scalar(inv.scalars,
+                                              cfg.reject_min_samples);
+                try {
+                    if (gpu_ready && acr_reg->cuda.has_value()) {
+                        (*acr_reg->cuda)(inv, nullptr);
+                    } else {
+                        acr_reg->legacy_parallel(inv, nullptr);
+                    }
+                } catch (const std::exception& e) {
+                    log("ACR block failed, fallback CPU: " +
+                        std::string(e.what()));
                     acr_reg->legacy_parallel(inv, nullptr);
                 }
-            } catch (const std::exception& e) {
-                log("ACR block failed, fallback CPU: " + std::string(e.what()));
-                acr_reg->legacy_parallel(inv, nullptr);
-            }
-            for (std::uint64_t p = 0; p < n_leaf; ++p) {
-                const float nv = out_valid_f32[p];
-                const bool ok = out_sup_f32[p] > 0.0f;
-                valid[p] = ok ? 1 : 0;
-                const double area = ok
-                    ? (double)out_sup_f32[p] * A_cell : 0.0;
-                const double flux = ok
-                    ? (double)out_sig_f32[p] * area : 0.0;
-                if (cfg.precision) {
-                    fluxD[p] = flux;
-                    areaD[p] = area;
-                } else {
-                    fluxF[p] = (float)flux;
-                    areaF[p] = (float)area;
+                for (std::uint64_t i = 0; i < cnt; ++i) {
+                    const std::uint64_t p = p0 + i;
+                    const float nv = out_valid_f32[i];
+                    const bool ok = out_sup_f32[i] > 0.0f;
+                    valid[p] = ok ? 1 : 0;
+                    const double area =
+                        ok ? (double)out_sup_f32[i] * A_cell : 0.0;
+                    const double flux =
+                        ok ? (double)out_sig_f32[i] * area : 0.0;
+                    if (cfg.precision) {
+                        fluxD[p] = flux;
+                        areaD[p] = area;
+                    } else {
+                        fluxF[p] = (float)flux;
+                        areaF[p] = (float)area;
+                    }
+                    if (ok) ++total_pixels;
+                    total_rejected += (std::uint64_t)out_rej_f32[i];
+                    if (nv <= 0.0f) ++dbg_zero_px;
+                    else if (nv < (float)cfg.reject_min_samples) {
+                        ++total_fallback;
+                        ++dbg_fallback_px;
+                    } else ++dbg_reject_px;
+                    if (out_rej_f32[i] > 0.0f)
+                        ++reject_hist[(std::uint32_t)out_rej_f32[i]];
                 }
-                if (ok) ++total_pixels;
-                total_rejected += (std::uint64_t)out_rej_f32[p];
-                if (nv <= 0.0f) ++dbg_zero_px;
-                else if (nv < (float)cfg.reject_min_samples) {
-                    ++total_fallback;
-                    ++dbg_fallback_px;
-                } else ++dbg_reject_px;
-                if (out_rej_f32[p] > 0.0f)
-                    ++reject_hist[(std::uint32_t)out_rej_f32[p]];
             }
             AstroSphereTileView view{};
             std::memset(&view, 0, sizeof(view));
@@ -554,86 +615,113 @@ int main(int argc, char** argv) {
             continue;
         }
 
-        for (std::uint64_t p = 0; p < n_leaf; ++p) {
-            std::uint32_t n_valid = 0;
+        // CPU reference 路径：逐 chunk（micro-chunk）处理
+        for (std::uint64_t c = 0; c < n_chunk; ++c) {
+            const std::uint64_t p0 = c * chunk_pixels;
+            const std::uint64_t p1 =
+                std::min<std::uint64_t>(p0 + chunk_pixels, n_leaf);
+            const std::uint64_t cnt = p1 - p0;
+            // 读每帧 tile 并提取 chunk 段 + UPM 空间校准
             for (std::uint32_t s = 0; s < depth; ++s) {
-                if (std::isfinite(cal[s][p]) && supv[s][p] > 0.0f) {
-                    stack[n_valid] = cal[s][p];
-                    support_v[n_valid] = supv[s][p];
-                    weights[n_valid] = supv[s][p] *
-                        frame_snr[frames[s]] * frame_snr[frames[s]];
-                    ++n_valid;
+                const std::uint32_t f = frames[s];
+                if (aio_hips_read_tile_f32(sig[f], tile_ipix,
+                                           t_sig.data()) != 0 ||
+                    aio_hips_read_tile_f32(sup[f], tile_ipix,
+                                           t_sup.data()) != 0) {
+                    log("tile read failed");
+                    return 6;
                 }
+                for (std::uint64_t i = 0; i < cnt; ++i) {
+                    const std::uint64_t g = p0 + i;
+                    cal[s][i] = (double)t_sig[(std::size_t)g];
+                    supv[s][i] = (double)t_sup[(std::size_t)g];
+                }
+                std::vector<double> out_v(cnt);
+                p2_upm_calibrate_block(
+                    model, p2_frame_id(cfg.hips[f].c_str()),
+                    chunk_leaves[c].data(), cal[s].data(), out_v.data(), cnt);
+                for (std::uint64_t i = 0; i < cnt; ++i) cal[s][i] = out_v[i];
             }
-            double signal_out = 0.0, support_out = 0.0;
-            int st = 1;  // 默认 all-rejected/zero-weight
-            if (n_valid == 0) {
-                // 无有效样本：不输出
-                ++dbg_zero_px;
-            } else if (n_valid < (std::uint32_t)cfg.reject_min_samples) {
-                // fallback=none：样本不足不做 rejection（不静默换算法），
-                // 直接全接受（single-coverage 稳定语义）
-                for (std::uint32_t s = 0; s < n_valid; ++s) acc[s] = 1;
-                ++total_fallback;
-                ++dbg_fallback_px;
-                P2PixelStack pi{};
-                pi.values = stack.data();
-                pi.weights = weights.data();
-                pi.support = support_v.data();
-                pi.accepted = acc.data();
-                pi.count = n_valid;
-                pi.weight_mode = cfg.weight_mode;
-                P2PixelResult pr{};
-                p2_integrate_pixel(&pi, &pr);
-                st = pr.status;
-                signal_out = pr.signal;
-                for (std::uint32_t s = 0; s < n_valid; ++s)
-                    support_out = std::max(support_out, support_v[s]);
-            } else {
-                ++dbg_reject_px;
-                P2SampleStackView rv{};
-                rv.values = stack.data();
-                rv.valid = nullptr;
-                rv.count = n_valid;
-                rv.data_type = 1;
-                rv.method = cfg.reject_method;
-                rv.sigma_low = cfg.sigma_low;
-                rv.sigma_high = cfg.sigma_high;
-                rv.max_iterations = cfg.reject_max_iterations;
-                rv.min_samples = cfg.reject_min_samples;
-                P2RejectionResult rr{};
-                rr.accepted = acc.data();
-                p2_reject_stack(&rv, &rr);
-                total_rejected += rr.rejected_low + rr.rejected_high;
-                ++reject_hist[rr.rejected_low + rr.rejected_high];
-                if (rr.status == 1) ++total_fallback;
-                P2PixelStack pi{};
-                pi.values = stack.data();
-                pi.weights = weights.data();
-                pi.support = support_v.data();
-                pi.accepted = acc.data();
-                pi.count = n_valid;
-                pi.weight_mode = cfg.weight_mode;
-                P2PixelResult pr{};
-                p2_integrate_pixel(&pi, &pr);
-                st = pr.status;
-                signal_out = pr.signal;
-                support_out = 0.0;
-                for (std::uint32_t s = 0; s < n_valid; ++s)
-                    if (acc[s]) support_out = std::max(support_out, support_v[s]);
+            for (std::uint64_t i = 0; i < cnt; ++i) {
+                const std::uint64_t p = p0 + i;
+                std::uint32_t n_valid = 0;
+                for (std::uint32_t s = 0; s < depth; ++s) {
+                    if (std::isfinite(cal[s][i]) && supv[s][i] > 0.0) {
+                        stack[n_valid] = cal[s][i];
+                        support_v[n_valid] = supv[s][i];
+                        weights[n_valid] = supv[s][i] *
+                            frame_snr[frames[s]] * frame_snr[frames[s]];
+                        ++n_valid;
+                    }
+                }
+                double signal_out = 0.0, support_out = 0.0;
+                int st = 1;
+                if (n_valid == 0) {
+                    ++dbg_zero_px;
+                } else if (n_valid < (std::uint32_t)cfg.reject_min_samples) {
+                    for (std::uint32_t s = 0; s < n_valid; ++s) acc[s] = 1;
+                    ++total_fallback;
+                    ++dbg_fallback_px;
+                    P2PixelStack pi{};
+                    pi.values = stack.data();
+                    pi.weights = weights.data();
+                    pi.support = support_v.data();
+                    pi.accepted = acc.data();
+                    pi.count = n_valid;
+                    pi.weight_mode = cfg.weight_mode;
+                    P2PixelResult pr{};
+                    p2_integrate_pixel(&pi, &pr);
+                    st = pr.status;
+                    signal_out = pr.signal;
+                    for (std::uint32_t s = 0; s < n_valid; ++s)
+                        support_out = std::max(support_out, support_v[s]);
+                } else {
+                    ++dbg_reject_px;
+                    P2SampleStackView rv{};
+                    rv.values = stack.data();
+                    rv.valid = nullptr;
+                    rv.count = n_valid;
+                    rv.data_type = 1;
+                    rv.method = cfg.reject_method;
+                    rv.sigma_low = cfg.sigma_low;
+                    rv.sigma_high = cfg.sigma_high;
+                    rv.max_iterations = cfg.reject_max_iterations;
+                    rv.min_samples = cfg.reject_min_samples;
+                    P2RejectionResult rr{};
+                    rr.accepted = acc.data();
+                    p2_reject_stack(&rv, &rr);
+                    total_rejected += rr.rejected_low + rr.rejected_high;
+                    ++reject_hist[rr.rejected_low + rr.rejected_high];
+                    if (rr.status == 1) ++total_fallback;
+                    P2PixelStack pi{};
+                    pi.values = stack.data();
+                    pi.weights = weights.data();
+                    pi.support = support_v.data();
+                    pi.accepted = acc.data();
+                    pi.count = n_valid;
+                    pi.weight_mode = cfg.weight_mode;
+                    P2PixelResult pr{};
+                    p2_integrate_pixel(&pi, &pr);
+                    st = pr.status;
+                    signal_out = pr.signal;
+                    support_out = 0.0;
+                    for (std::uint32_t s = 0; s < n_valid; ++s)
+                        if (acc[s])
+                            support_out = std::max(support_out, support_v[s]);
+                }
+                const bool ok = (st == 0);
+                valid[p] = ok ? 1 : 0;
+                const double area = ok ? support_out * A_cell : 0.0;
+                const double flux = ok ? signal_out * area : 0.0;
+                if (cfg.precision) {
+                    fluxD[p] = flux;
+                    areaD[p] = area;
+                } else {
+                    fluxF[p] = (float)flux;
+                    areaF[p] = (float)area;
+                }
+                if (ok) ++total_pixels;
             }
-            const bool ok = (st == 0);
-            valid[p] = ok ? 1 : 0;
-            const double area = ok ? support_out * A_cell : 0.0;
-            const double flux = ok ? signal_out * area : 0.0;
-            if (cfg.precision) {
-                fluxD[p] = flux;
-                areaD[p] = area;
-            } else {
-                fluxF[p] = (float)flux;
-                areaF[p] = (float)area;
-            }
-            if (ok) ++total_pixels;
         }
         AstroSphereTileView view{};
         std::memset(&view, 0, sizeof(view));
