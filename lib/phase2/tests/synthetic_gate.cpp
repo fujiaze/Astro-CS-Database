@@ -1618,6 +1618,62 @@ TEST(Phase2Reject, RcrFindsOutlier) {
     EXPECT_GT(out.rejected_high, 0u);
 }
 
+// V4 R4：完整 sequential RCR（SS_MEDIAN_DL 冻结链）生产 gate。
+// 逐元素 rejected-set 与官方 rcr 2.4.7 的对齐由 rcr_oracle_compare.py
+// 覆盖（10 case 全部 exact）；此处验证固定向量的生产行为：
+//  - 20% 高污染：全部 20 个注入离群必须被拒（鲁棒→精确 sequential 语义）；
+//  - weighted case：与官方一致的精确 rejected mask {6,7}。
+TEST(Phase2Reject, G4SequentialRcrMask) {
+    // 1. high-contam：80×N(10,1) + 20×N(25,2)（固定种子，注入位置记录）
+    std::mt19937 rng(20260819);
+    std::normal_distribution<double> nd(0.0, 1.0), nd2(0.0, 2.0);
+    std::vector<double> vals;
+    std::vector<std::size_t> injected;
+    for (int i = 0; i < 80; ++i) vals.push_back(10.0 + nd(rng));
+    for (int i = 0; i < 20; ++i) {
+        injected.push_back(vals.size());
+        vals.push_back(25.0 + nd2(rng));
+    }
+    std::vector<std::uint8_t> acc(vals.size(), 0);
+    P2SampleStackView in{};
+    in.values = vals.data();
+    in.count = (std::uint32_t)vals.size();
+    in.method = P2_REJECT_RCR;
+    in.max_iterations = 8;
+    in.min_samples = 3;
+    P2RejectionResult out{};
+    out.accepted = acc.data();
+    ASSERT_EQ(p2_reject_stack(&in, &out), 0);
+    std::uint32_t rej = out.rejected_low + out.rejected_high;
+    EXPECT_GE(rej, 20u) << "20% 污染下至少拒绝全部注入离群";
+    for (std::size_t idx : injected)
+        EXPECT_EQ(acc[idx], 0u) << "注入离群 index=" << idx << " 必须被拒";
+
+    // 2. weighted case（官方 oracle 精确 mask {6,7}）
+    const std::vector<double> wv = {
+        10.0, 10.2, 9.8, 10.1, 9.9, 10.05, 30.0, 31.0, 10.3, 10.15,
+        10.25, 10.12, 9.95, 10.18, 10.22};
+    const std::vector<double> ww = {
+        1.0, 1.1, 0.9, 1.2, 0.8, 1.05, 3.0, 3.0, 1.0, 1.0,
+        1.0, 1.0, 1.0, 1.0, 1.0};
+    std::vector<std::uint8_t> wacc(wv.size(), 0);
+    P2SampleStackView win{};
+    win.values = wv.data();
+    win.weights = ww.data();
+    win.count = (std::uint32_t)wv.size();
+    win.method = P2_REJECT_RCR;
+    win.max_iterations = 8;
+    win.min_samples = 3;
+    P2RejectionResult wout{};
+    wout.accepted = wacc.data();
+    ASSERT_EQ(p2_reject_stack(&win, &wout), 0);
+    EXPECT_EQ(wacc[6], 0u);
+    EXPECT_EQ(wacc[7], 0u);
+    for (std::size_t i = 0; i < wacc.size(); ++i) {
+        if (i != 6 && i != 7) EXPECT_EQ(wacc[i], 1u);
+    }
+}
+
 // R4/G6：ESD 正确流程（P0-05）——NIST Rosner 54 点必须 3 outliers
 TEST(Phase2Reject, G6EsdNistRosner54) {
     const std::vector<double> vals{
