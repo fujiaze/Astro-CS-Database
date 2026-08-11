@@ -13,6 +13,7 @@
 #include "astro/compute/task_traits.hpp"
 #include "backends/cuda/bridge/cuda_bridge_api.hpp"
 
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -38,6 +39,11 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
     if (!out || !vals) {
         throw std::runtime_error("mosaic_reject: missing buffers");
     }
+    const BufferBinding* sup = inv.buffers.find(2);      // 可空
+    const BufferBinding* snr = inv.buffers.find(3);      // 可空
+    const BufferBinding* out_sup = inv.buffers.find(4);  // 可空
+    const BufferBinding* out_rej = inv.buffers.find(5);  // 可空
+    const BufferBinding* out_valid = inv.buffers.find(6); // 可空
     const auto px = read_scalar<std::size_t>(inv.scalars, 0);
     const auto depth = read_scalar<std::size_t>(inv.scalars, sizeof(std::size_t));
     const auto method = read_scalar<int>(inv.scalars, 2 * sizeof(std::size_t));
@@ -56,7 +62,13 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
     const double lo_v = lo ? *lo : -4.0;
     const double hi_v = hi ? *hi : 3.0;
 
+    const auto ms = read_scalar<int>(
+        inv.scalars, 2 * sizeof(std::size_t) + sizeof(int) +
+                         2 * sizeof(double));
+    const int min_samples_v = ms ? *ms : 3;
     std::vector<double> stack(n_depth);
+    std::vector<double> stack_w(n_depth);
+    std::vector<double> stack_sup(n_depth);
     std::vector<std::uint8_t> accepted(n_depth);
     // 合成 op 首版 FP32 输入（buffer 元素为 float）；科学语义以
     // CPU reference 为准，输入精度由 buffer element_size 声明。
@@ -64,16 +76,36 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
     float* dst = static_cast<float*>(out->data);
 
     for (std::size_t p = 0; p < n_px; ++p) {
+        std::uint32_t n_valid = 0;
         for (std::size_t s = 0; s < n_depth; ++s) {
-            stack[s] = static_cast<double>(src[s * n_px + p]);
+            const double v = static_cast<double>(src[s * n_px + p]);
+            const double sval = (sup != nullptr)
+                ? static_cast<double>(static_cast<const float*>(sup->data)[s * n_px + p])
+                : 1.0;
+            if (!std::isfinite(v) || sval <= 0.0) continue;
+            stack[n_valid] = v;
+            stack_sup[n_valid] = sval;
+            const double snr_v = (snr != nullptr)
+                ? static_cast<double>(static_cast<const float*>(snr->data)[s])
+                : 1.0;
+            stack_w[n_valid] = (sup != nullptr)
+                ? sval * snr_v * snr_v : 1.0;
+            ++n_valid;
+        }
+        if (n_valid == 0) {
+            dst[p] = 0.0f;
+            if (out_sup) static_cast<float*>(out_sup->data)[p] = 0.0f;
+            if (out_rej) static_cast<float*>(out_rej->data)[p] = 0.0f;
+            if (out_valid) static_cast<float*>(out_valid->data)[p] = 0.0f;
+            continue;
         }
         P2SampleStackView rv{};
         rv.values = stack.data();
-        rv.count = static_cast<std::uint32_t>(n_depth);
+        rv.count = n_valid;
         rv.method = static_cast<int>(method_v);
         rv.sigma_low = lo_v;
         rv.sigma_high = hi_v;
-        rv.min_samples = 1;
+        rv.min_samples = min_samples_v;
         P2RejectionResult rr{};
         rr.accepted = accepted.data();
         if (p2_reject_stack(&rv, &rr) != 0) {
@@ -81,13 +113,27 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
         }
         P2PixelStack pi{};
         pi.values = stack.data();
+        pi.weights = (sup != nullptr) ? stack_w.data() : nullptr;
+        pi.support = (sup != nullptr) ? stack_sup.data() : nullptr;
         pi.accepted = accepted.data();
-        pi.count = static_cast<std::uint32_t>(n_depth);
+        pi.count = n_valid;
+        pi.weight_mode = 0;
         P2PixelResult pr{};
         if (p2_integrate_pixel(&pi, &pr) != 0) {
             throw std::runtime_error("mosaic_reject: integrate failed");
         }
         dst[p] = (pr.status == 0) ? static_cast<float>(pr.signal) : 0.0f;
+        if (out_rej)
+            static_cast<float*>(out_rej->data)[p] =
+                (float)(rr.rejected_low + rr.rejected_high);
+        if (out_valid) static_cast<float*>(out_valid->data)[p] = (float)n_valid;
+        if (out_sup) {
+            double sup_out = 0.0;
+            for (std::uint32_t s = 0; s < n_valid; ++s)
+                if (accepted[s]) sup_out = std::max(sup_out, stack_sup[s]);
+            static_cast<float*>(out_sup->data)[p] =
+                (pr.status == 0) ? static_cast<float>(sup_out) : 0.0f;
+        }
     }
 }
 
@@ -114,9 +160,18 @@ void mosaic_reject_cuda(const KernelInvocation& inv, void*) {
     const auto hi = read_scalar<double>(inv.scalars,
                                         2 * sizeof(std::size_t) + sizeof(int) +
                                             sizeof(double));
+    const auto ms = read_scalar<int>(
+        inv.scalars, 2 * sizeof(std::size_t) + sizeof(int) +
+                         2 * sizeof(double));
     if (!px || !depth || *px == 0 || *depth == 0) {
         throw std::runtime_error("mosaic_reject: missing scalars");
     }
+    const BufferBinding* sup = inv.buffers.find(2);
+    const BufferBinding* snr = inv.buffers.find(3);
+    const BufferBinding* out_sup = inv.buffers.find(4);
+    const BufferBinding* out_rej = inv.buffers.find(5);
+    const BufferBinding* out_valid = inv.buffers.find(6);
+    const int min_samples_v = ms ? *ms : 3;
     const std::uint32_t method_v =
         method ? static_cast<std::uint32_t>(*method) : 1u;
     if (method_v != P2_REJECT_SIGMA &&
@@ -131,11 +186,15 @@ void mosaic_reject_cuda(const KernelInvocation& inv, void*) {
         h, inv.domain.begin, inv.domain.end,
         static_cast<float*>(out->data),
         static_cast<const float*>(vals->data),
-        nullptr, nullptr,                       // 等权（与 CPU legacy 一致）
+        sup ? static_cast<const float*>(sup->data) : nullptr,
+        snr ? static_cast<const float*>(snr->data) : nullptr,
+        out_sup ? static_cast<float*>(out_sup->data) : nullptr,
+        out_rej ? static_cast<float*>(out_rej->data) : nullptr,
+        out_valid ? static_cast<float*>(out_valid->data) : nullptr,
         *depth, *px,
         static_cast<float>(lo ? *lo : -4.0),
         static_cast<float>(hi ? *hi : 3.0),
-        8, 1, &elapsed, &err);
+        8, min_samples_v, &elapsed, &err);
     if (rc != 0) {
         throw std::runtime_error(err ? err : "mosaic_reject cuda failed");
     }
@@ -149,9 +208,9 @@ void register_phase2_acr_kernels() {
     std::call_once(flag, [] {
         KernelRegistration r;
         r.id = kOpMosaicReject;
-        r.args.buffer_count = 3;
+        r.args.buffer_count = 7;
         r.args.scalar_bytes = 2 * sizeof(std::size_t) + sizeof(int) +
-                              2 * sizeof(double);
+                              2 * sizeof(double) + sizeof(int);
         r.cpu = &mosaic_reject_legacy;  // CPU 即 legacy reference 语义
         r.legacy_parallel = &mosaic_reject_legacy;
         r.cuda = &mosaic_reject_cuda;

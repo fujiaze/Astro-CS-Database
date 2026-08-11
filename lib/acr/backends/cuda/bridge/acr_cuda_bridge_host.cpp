@@ -47,7 +47,9 @@ void acr_launch_mosaic_reject(const float* frames, const float* support,
                               size_t pixel_count, size_t begin, size_t n,
                               float sigma_low, float sigma_high,
                               int max_iterations, int min_samples,
-                              float* output, cudaStream_t stream);
+                              float* output, float* out_support,
+                              float* out_reject_count, float* out_valid_count,
+                              cudaStream_t stream);
 }
 
 namespace {
@@ -86,6 +88,8 @@ struct CudaExecutorHandle {
     // 聚焦版：chain 中间值 + drizzle 输出桶（独立容量）
     float* d_z{nullptr};
     size_t d_z_capacity{0};
+    float* d_count{nullptr};   // mosaic_reject 诊断计数（reject/valid 独立缓冲）
+    size_t d_count_capacity{0};
     double* d_bins{nullptr};
     size_t d_bins_capacity{0};
     // 加权积分：weights（slot 1 persistent）与输出
@@ -784,7 +788,9 @@ extern "C" int acr_cuda_executor_submit_weighted_integration(
 extern "C" int acr_cuda_executor_submit_mosaic_reject(
     void* handle, size_t begin, size_t end,
     float* output, const float* frames, const float* support,
-    const float* frame_snr, size_t frame_count, size_t pixel_count,
+    const float* frame_snr, float* out_support,
+    float* out_reject_count, float* out_valid_count,
+    size_t frame_count, size_t pixel_count,
     float sigma_low, float sigma_high, int max_iterations, int min_samples,
     uint64_t* elapsed_ns, const char** last_error) {
     if (handle == nullptr || output == nullptr || frames == nullptr ||
@@ -806,6 +812,18 @@ extern "C" int acr_cuda_executor_submit_mosaic_reject(
         if (err != cudaSuccess) return err;
         err = ensure_buffer(&h->d_out, h->d_out_capacity, end);
         if (err != cudaSuccess) return err;
+        if (out_support != nullptr) {
+            err = ensure_buffer(&h->d_y, h->d_y_capacity, end);
+            if (err != cudaSuccess) return err;
+        }
+        if (out_reject_count != nullptr) {
+            err = ensure_buffer(&h->d_z, h->d_z_capacity, end);
+            if (err != cudaSuccess) return err;
+        }
+        if (out_valid_count != nullptr) {
+            err = ensure_buffer(&h->d_count, h->d_count_capacity, end);
+            if (err != cudaSuccess) return err;
+        }
         cudaMemcpyAsync(h->d_x, frames, total * sizeof(float),
                         cudaMemcpyHostToDevice, h->stream);
         if (support != nullptr) {
@@ -828,9 +846,27 @@ extern "C" int acr_cuda_executor_submit_mosaic_reject(
                                  frame_count, pixel_count,
                                  begin, n, sigma_low, sigma_high,
                                  max_iterations, min_samples,
-                                 h->d_out, h->stream);
+                                 h->d_out,
+                                 out_support ? h->d_y : nullptr,
+                                 out_reject_count ? h->d_z : nullptr,
+                                 out_valid_count ? h->d_count : nullptr,
+                                 h->stream);
         cudaMemcpyAsync(output + begin, h->d_out, n * sizeof(float),
                         cudaMemcpyDeviceToHost, h->stream);
+        if (out_support != nullptr) {
+            cudaMemcpyAsync(out_support + begin, h->d_y, n * sizeof(float),
+                            cudaMemcpyDeviceToHost, h->stream);
+        }
+        if (out_reject_count != nullptr) {
+            cudaMemcpyAsync(out_reject_count + begin, h->d_z,
+                            n * sizeof(float), cudaMemcpyDeviceToHost,
+                            h->stream);
+        }
+        if (out_valid_count != nullptr) {
+            cudaMemcpyAsync(out_valid_count + begin, h->d_count,
+                            n * sizeof(float), cudaMemcpyDeviceToHost,
+                            h->stream);
+        }
         return cudaStreamSynchronize(h->stream);
     }, elapsed_ns, last_error);
 }

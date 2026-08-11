@@ -486,6 +486,81 @@ TEST(Phase2Acr, CudaEquivalent) {
     bridge::api().executor_destroy(exec);
 }
 
+// W9：加权 + support 输出的 CPU/GPU 等价（真实 stage2 语义）
+TEST(Phase2Acr, CudaWeightedSupportEquivalent) {
+    astro::compute::phase2::register_phase2_acr_kernels();
+    const astro::compute::KernelRegistration* reg =
+        astro::compute::global_kernel_registry().find(
+            astro::compute::phase2::kOpMosaicReject);
+    ASSERT_NE(reg, nullptr);
+    namespace bridge = astro::compute::cuda::bridge;
+    bridge::ensure_bridge_loaded();
+    if (!bridge::api().loaded()) GTEST_SKIP() << "CUDA bridge 不可用";
+    const char* err = nullptr;
+    void* exec = bridge::api().executor_create(0, 1u << 20, 1u << 16, &err);
+    ASSERT_NE(exec, nullptr);
+    bridge::set_tls_handle(exec);
+
+    const std::size_t px = 3, depth = 4;
+    // frames（frame-major）：像素0 有离群，像素1/2 正常
+    float vals[12] = {
+        10.0f, 10.1f, 9.9f,
+        50.0f, 10.0f, 10.2f,
+        10.05f, 9.8f, 10.0f,
+        10.1f, 10.1f, 9.9f,
+    };
+    float sup[12] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+    float snr[4] = {2.0f, 2.0f, 2.0f, 2.0f};
+    float out_cpu[3] = {0}, out_gpu[3] = {0};
+    float sup_cpu[3] = {0}, sup_gpu[3] = {0};
+    float rej_cpu[3] = {0}, rej_gpu[3] = {0};
+    float valid_cpu[3] = {0}, valid_gpu[3] = {0};
+
+    auto build_inv = [&](float* out, float* out_sup, float* out_rej,
+                         float* out_valid) {
+        astro::compute::KernelInvocation inv;
+        inv.id = astro::compute::phase2::kOpMosaicReject;
+        inv.domain = astro::compute::WorkDomain{0, px};
+        inv.buffers.add(0, out, px, 1, astro::compute::BufferRole::Output);
+        inv.buffers.add(1, vals, px * depth, 1,
+                        astro::compute::BufferRole::Input);
+        inv.buffers.add(2, sup, px * depth, 1,
+                        astro::compute::BufferRole::Input);
+        inv.buffers.add(3, snr, depth, 1, astro::compute::BufferRole::Input);
+        inv.buffers.add(4, out_sup, px, 1,
+                        astro::compute::BufferRole::Output);
+        inv.buffers.add(5, out_rej, px, 1,
+                        astro::compute::BufferRole::Output);
+        inv.buffers.add(6, out_valid, px, 1,
+                        astro::compute::BufferRole::Output);
+        astro::compute::append_scalar(inv.scalars, std::size_t{px});
+        astro::compute::append_scalar(inv.scalars, std::size_t{depth});
+        astro::compute::append_scalar(inv.scalars, int{P2_REJECT_SIGMA});
+        astro::compute::append_scalar(inv.scalars, double{-4.0});
+        astro::compute::append_scalar(inv.scalars, double{3.0});
+        astro::compute::append_scalar(inv.scalars, int{3});
+        return inv;
+    };
+    astro::compute::KernelInvocation ic =
+        build_inv(out_cpu, sup_cpu, rej_cpu, valid_cpu);
+    reg->legacy_parallel(ic, nullptr);
+    astro::compute::KernelInvocation ig =
+        build_inv(out_gpu, sup_gpu, rej_gpu, valid_gpu);
+    (*reg->cuda)(ig, nullptr);
+
+    for (std::size_t p = 0; p < px; ++p) {
+        EXPECT_NEAR(out_gpu[p], out_cpu[p], 1e-4f) << "signal p=" << p;
+        EXPECT_NEAR(sup_gpu[p], sup_cpu[p], 1e-5f) << "support p=" << p;
+        EXPECT_NEAR(rej_gpu[p], rej_cpu[p], 1e-5f) << "reject p=" << p;
+        EXPECT_NEAR(valid_gpu[p], valid_cpu[p], 1e-5f) << "valid p=" << p;
+    }
+    EXPECT_GT(out_cpu[0], 9.0f);   // 离群被拒后加权均值接近真值
+    EXPECT_GT(sup_cpu[0], 0.0f);
+    EXPECT_GE(rej_cpu[0], 1.0f);  // 像素0 的离群被拒
+    EXPECT_EQ((int)valid_cpu[0], 4);
+    bridge::api().executor_destroy(exec);
+}
+
 
 // W10 鲁棒性：损坏/边界输入
 TEST(Phase2Robust, NanInputRejected) {

@@ -176,13 +176,22 @@ __global__ void acr_mosaic_reject_kernel(
     float sigma_high,
     int max_iterations,
     int min_samples,
-    float* __restrict__ output) {
+    float* __restrict__ output,
+    float* __restrict__ out_support,
+    float* __restrict__ out_reject_count,
+    float* __restrict__ out_valid_count) {
     const size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
-    if (frame_count > 64) { output[idx] = 0.0f; return; }
+    if (frame_count > 64) {
+        output[idx] = 0.0f;
+        if (out_support) out_support[idx] = 0.0f;
+        if (out_reject_count) out_reject_count[idx] = 0.0f;
+        if (out_valid_count) out_valid_count[idx] = 0.0f;
+        return;
+    }
     const size_t p = begin + idx;
 
-    double vals[64], w[64];
+    double vals[64], w[64], sup[64];
     int nv = 0;
     for (size_t f = 0; f < frame_count; ++f) {
         const float v = frames[f * pixel_count + p];
@@ -191,11 +200,18 @@ __global__ void acr_mosaic_reject_kernel(
         if (v > 1e30f || v < -1e30f) continue;          // Inf
         if (s <= 0.0f) continue;
         vals[nv] = static_cast<double>(v);
+        sup[nv] = static_cast<double>(s);
         const double snr = frame_snr ? static_cast<double>(frame_snr[f]) : 1.0;
         w[nv] = static_cast<double>(s) * snr * snr;
         ++nv;
     }
-    if (nv == 0) { output[idx] = 0.0f; return; }
+    if (nv == 0) {
+        output[idx] = 0.0f;
+        if (out_support) out_support[idx] = 0.0f;
+        if (out_reject_count) out_reject_count[idx] = 0.0f;
+        if (out_valid_count) out_valid_count[idx] = (float)nv;
+        return;
+    }
 
     bool acc[64];
     for (int i = 0; i < nv; ++i) acc[i] = true;
@@ -228,17 +244,22 @@ __global__ void acr_mosaic_reject_kernel(
         }
     }
 
-    double wsum = 0.0, vs = 0.0;
+    double wsum = 0.0, vs = 0.0, sup_out = 0.0;
     int used = 0;
     for (int i = 0; i < nv; ++i) {
         if (!acc[i]) continue;
         vs += w[i] * vals[i];
         wsum += w[i];
+        if (sup[i] > sup_out) sup_out = sup[i];
         ++used;
     }
+    const int rejected = nv - used;
     output[idx] = (used > 0 && wsum > 0.0)
                       ? static_cast<float>(vs / wsum)
                       : 0.0f;
+    if (out_support) out_support[idx] = (used > 0) ? static_cast<float>(sup_out) : 0.0f;
+    if (out_reject_count) out_reject_count[idx] = (float)rejected;
+    if (out_valid_count) out_valid_count[idx] = (float)nv;
 }
 
 constexpr int kThreads = 256;
@@ -315,10 +336,13 @@ void acr_launch_mosaic_reject(const float* frames, const float* support,
                               size_t pixel_count, size_t begin, size_t n,
                               float sigma_low, float sigma_high,
                               int max_iterations, int min_samples,
-                              float* output, cudaStream_t stream) {
+                              float* output, float* out_support,
+                              float* out_reject_count, float* out_valid_count,
+                              cudaStream_t stream) {
     acr_mosaic_reject_kernel<<<grid_size(n), kThreads, 0, stream>>>(
         frames, support, frame_snr, frame_count, pixel_count, begin, n,
-        sigma_low, sigma_high, max_iterations, min_samples, output);
+        sigma_low, sigma_high, max_iterations, min_samples, output,
+        out_support, out_reject_count, out_valid_count);
 }
 
 } // extern "C"

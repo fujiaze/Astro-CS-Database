@@ -14,8 +14,12 @@
 #include "astro/phase2/rejection.h"
 #include "astro/phase2/integrate.h"
 #include "astro/phase2/block.h"
+#include "astro/phase2/acr_kernels.h"
 
 #include "healpix/healpix_core.h"
+#include "astro/compute/kernel_registry.hpp"
+#include "astro/compute/task_traits.hpp"
+#include "cuda_bridge_api.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -394,6 +398,38 @@ int main(int argc, char** argv) {
     std::vector<double> stack(nb), weights(nb), support_v(nb);
     std::vector<std::uint8_t> acc(nb);
 
+    // ---- ACR 路由（G9）：sigma/winsorized 逐 tile 走 KernelRegistry，
+    // GPU 可用则 CUDA，否则 CPU legacy（同一科学语义）。 ----
+    astro::compute::phase2::register_phase2_acr_kernels();
+    const astro::compute::KernelRegistration* acr_reg =
+        astro::compute::global_kernel_registry().find(
+            astro::compute::phase2::kOpMosaicReject);
+    const bool use_acr_block =
+        acr_reg != nullptr &&
+        (cfg.reject_method == P2_REJECT_SIGMA ||
+         cfg.reject_method == P2_REJECT_WINSORIZED_SIGMA);
+    namespace bridge = astro::compute::cuda::bridge;
+    bool gpu_ready = false;
+    void* gpu_exec = nullptr;
+    if (use_acr_block) {
+        bridge::ensure_bridge_loaded();
+        if (bridge::api().loaded()) {
+            const char* gerr = nullptr;
+            gpu_exec = bridge::api().executor_create(0, 1u << 22, 1u << 18,
+                                                     &gerr);
+            gpu_ready = (gpu_exec != nullptr);
+            if (gpu_ready) bridge::set_tls_handle(gpu_exec);
+        }
+    }
+    log("ACR block routing: enabled=" + std::to_string(use_acr_block) +
+        " gpu=" + std::to_string(gpu_ready));
+    // 块级 GPU 暂存（仅 sigma/winsorized 使用）
+    std::vector<float> frames_f32(n_leaf * nb), sup_f32(n_leaf * nb);
+    std::vector<float> snr_f32(nb), out_sig_f32(n_leaf),
+        out_sup_f32(n_leaf), out_rej_f32(n_leaf), out_valid_f32(n_leaf);
+    for (std::uint32_t f = 0; f < nb; ++f)
+        snr_f32[f] = (float)frame_snr[f];
+
     for (std::uint64_t ci = 0; ci < cov.n_union_cells; ++ci) {
         const std::uint64_t tile_ipix = cells[ci].ipix;
         // 覆盖帧列表 + 一次读取 signal/support + UPM 校准
@@ -423,6 +459,101 @@ int main(int argc, char** argv) {
         }
         if (frames.empty()) continue;
         const std::uint32_t depth = (std::uint32_t)frames.size();
+
+        if (use_acr_block) {
+            // 组装 frame-major float 块并一次性经 registry 处理
+            for (std::uint32_t s = 0; s < depth; ++s) {
+                const std::uint32_t f = frames[s];
+                for (std::uint64_t i = 0; i < n_leaf; ++i) {
+                    frames_f32[(size_t)s * n_leaf + i] = (float)cal[s][i];
+                    sup_f32[(size_t)s * n_leaf + i] = (float)supv[s][i];
+                }
+            }
+            std::fill(out_sig_f32.begin(), out_sig_f32.end(), 0.0f);
+            std::fill(out_sup_f32.begin(), out_sup_f32.end(), 0.0f);
+            std::fill(out_rej_f32.begin(), out_rej_f32.end(), 0.0f);
+            std::fill(out_valid_f32.begin(), out_valid_f32.end(), 0.0f);
+            astro::compute::KernelInvocation inv;
+            inv.id = astro::compute::phase2::kOpMosaicReject;
+            inv.domain = astro::compute::WorkDomain{0, n_leaf};
+            inv.buffers.add(0, out_sig_f32.data(), n_leaf, 1,
+                            astro::compute::BufferRole::Output);
+            inv.buffers.add(1, frames_f32.data(), n_leaf * depth, 1,
+                            astro::compute::BufferRole::Input);
+            inv.buffers.add(2, sup_f32.data(), n_leaf * depth, 1,
+                            astro::compute::BufferRole::Input);
+            inv.buffers.add(3, snr_f32.data(), nb, 1,
+                            astro::compute::BufferRole::Input);
+            inv.buffers.add(4, out_sup_f32.data(), n_leaf, 1,
+                            astro::compute::BufferRole::Output);
+            inv.buffers.add(5, out_rej_f32.data(), n_leaf, 1,
+                            astro::compute::BufferRole::Output);
+            inv.buffers.add(6, out_valid_f32.data(), n_leaf, 1,
+                            astro::compute::BufferRole::Output);
+            astro::compute::append_scalar(inv.scalars, std::size_t{n_leaf});
+            astro::compute::append_scalar(inv.scalars, std::size_t{depth});
+            astro::compute::append_scalar(inv.scalars, int{cfg.reject_method});
+            astro::compute::append_scalar(inv.scalars, cfg.sigma_low);
+            astro::compute::append_scalar(inv.scalars, cfg.sigma_high);
+            astro::compute::append_scalar(inv.scalars,
+                                          cfg.reject_min_samples);
+            try {
+                if (gpu_ready && acr_reg->cuda.has_value()) {
+                    (*acr_reg->cuda)(inv, nullptr);
+                } else {
+                    acr_reg->legacy_parallel(inv, nullptr);
+                }
+            } catch (const std::exception& e) {
+                log("ACR block failed, fallback CPU: " + std::string(e.what()));
+                acr_reg->legacy_parallel(inv, nullptr);
+            }
+            for (std::uint64_t p = 0; p < n_leaf; ++p) {
+                const float nv = out_valid_f32[p];
+                const bool ok = out_sup_f32[p] > 0.0f;
+                valid[p] = ok ? 1 : 0;
+                const double area = ok
+                    ? (double)out_sup_f32[p] * A_cell : 0.0;
+                const double flux = ok
+                    ? (double)out_sig_f32[p] * area : 0.0;
+                if (cfg.precision) {
+                    fluxD[p] = flux;
+                    areaD[p] = area;
+                } else {
+                    fluxF[p] = (float)flux;
+                    areaF[p] = (float)area;
+                }
+                if (ok) ++total_pixels;
+                total_rejected += (std::uint64_t)out_rej_f32[p];
+                if (nv <= 0.0f) ++dbg_zero_px;
+                else if (nv < (float)cfg.reject_min_samples) {
+                    ++total_fallback;
+                    ++dbg_fallback_px;
+                } else ++dbg_reject_px;
+                if (out_rej_f32[p] > 0.0f)
+                    ++reject_hist[(std::uint32_t)out_rej_f32[p]];
+            }
+            AstroSphereTileView view{};
+            std::memset(&view, 0, sizeof(view));
+            view.parent_ipix = tile_ipix;
+            view.leaf_order = (std::uint32_t)(target_order + 9);
+            view.width = 512;
+            view.data_type = dtype;
+            view.flux_sum = cfg.precision ? (const void*)fluxD.data()
+                                          : (const void*)fluxF.data();
+            view.covered_area = cfg.precision ? (const void*)areaD.data()
+                                              : (const void*)areaF.data();
+            view.valid_mask = valid.data();
+            if (aio_hips_write_signal_support_tile(ps, &view) != 0) {
+                log("hips tile write failed: " +
+                    std::string(aio_hips_last_error()));
+                aio_hips_abort(ps);
+                p2_upm_close(model);
+                return 6;
+            }
+            ++tiles_written;
+            continue;
+        }
+
         for (std::uint64_t p = 0; p < n_leaf; ++p) {
             std::uint32_t n_valid = 0;
             for (std::uint32_t s = 0; s < depth; ++s) {
