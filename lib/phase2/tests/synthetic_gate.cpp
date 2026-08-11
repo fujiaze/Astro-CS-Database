@@ -224,7 +224,8 @@ TEST(Phase2Upm, SparseEqualsDense) {
     };
     void* model2 = nullptr;
     ASSERT_EQ(p2_upm_build(obs2.data(), obs2.size(), &cfg, &model2), 0);
-    EXPECT_EQ(p2_upm_dense_read_block(model2, cache, 1, ipix, in,
+    // model2 只有 frame 0（frame_id 在模型内）；source hash 不同 → stale(2)
+    EXPECT_EQ(p2_upm_dense_read_block(model2, cache, 0, ipix, in,
                                       out_dense, 1), 2);
     p2_upm_close(model2);
     p2_upm_close(model);

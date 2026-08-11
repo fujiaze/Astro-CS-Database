@@ -61,6 +61,10 @@ typedef struct {
     int    max_iterations;        // IRLS 最大迭代（默认 100）
     double tolerance;             // 收敛容差（默认 1e-6）
     int    target_order;          // 模型目标 order（-1=auto）
+    double sigma_floor;           // uncertainty 下限（默认 1e-3）
+    double support_power;         // support 因子指数（默认 1.0）
+    int    quality_mode;          // 0=flags 映射（默认）
+    double control_reliability;   // 默认 control reliability（默认 1.0）
 } P2UpmBuildConfig;
 
 // ===== 构建 / 持久化 / 求值 =====

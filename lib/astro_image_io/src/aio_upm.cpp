@@ -42,12 +42,16 @@ struct AioUpmDense {
     std::FILE* f = nullptr;
     std::string path;
     std::string source_hash;
-    std::vector<std::uint8_t> payload;  // controls + frames 二进制
-    std::uint64_t control_count = 0;
-    std::uint64_t frame_count = 0;
     int target_order = 0;
     std::uint32_t precision = 0;
+    std::uint64_t frame_count = 0;
+    std::uint64_t tile_count = 0;
+    std::vector<std::uint64_t> tiles;   // 写入顺序去重收集
+    std::uint64_t current_frame = 0;    // 写入推进
+    std::uint64_t tile_bytes = 0;       // 单 tile 值字节数
 };
+
+constexpr std::uint64_t kLeafPerTile = 512ull * 512ull;
 
 extern "C" {
 
@@ -60,8 +64,9 @@ int aio_upm_write_sparse(const char* path, const char* model_json) {
     // 校验 JSON 可解析 + format 字段
     try {
         auto j = nlohmann::json::parse(model_json);
-        if (j.value("format", std::string()) != "astrocs-upm-v1") {
-            set_err("format != astrocs-upm-v1");
+        if (j.value("format", std::string()) != "astrocs-upm-v1" &&
+            j.value("format", std::string()) != "astrocs-upm-v2") {
+            set_err("format != astrocs-upm-v1/v2");
             return 1;
         }
     } catch (const std::exception& e) {
@@ -99,8 +104,9 @@ AioUpmSparse* aio_upm_open(const char* path) {
     m->content = ss.str();
     try {
         m->json = nlohmann::json::parse(m->content);
-        if (m->json.value("format", std::string()) != "astrocs-upm-v1") {
-            set_err("format != astrocs-upm-v1");
+        if (m->json.value("format", std::string()) != "astrocs-upm-v1" &&
+            m->json.value("format", std::string()) != "astrocs-upm-v2") {
+            set_err("format != astrocs-upm-v1/v2");
             return nullptr;
         }
     } catch (const std::exception& e) {
@@ -142,6 +148,16 @@ int aio_upm_read_all(AioUpmSparse* f, char* buf, int buf_size) {
     return 0;
 }
 
+int aio_upm_read_all_dynamic(AioUpmSparse* f, char** out, std::size_t* out_len) {
+    if (!f || !out || !out_len) return 1;
+    char* buf = new char[f->content.size() + 1];
+    std::memcpy(buf, f->content.data(), f->content.size());
+    buf[f->content.size()] = '\0';
+    *out = buf;
+    *out_len = f->content.size();
+    return 0;
+}
+
 void aio_upm_close(AioUpmSparse* f) {
     delete f;
 }
@@ -150,10 +166,12 @@ void aio_upm_close(AioUpmSparse* f) {
 
 AioUpmDense* aio_upm_dense_begin(const char* path, const char* source_hash,
                                  int target_order, std::uint32_t precision,
-                                 std::uint64_t control_count,
-                                 std::uint64_t frame_count) {
+                                 std::uint64_t frame_count,
+                                 std::uint64_t tile_count) {
     g_upm_error.clear();
-    if (!path || !source_hash || std::strlen(source_hash) != 64) {
+    if (!path || !source_hash || std::strlen(source_hash) != 64 ||
+        frame_count == 0 || tile_count == 0 ||
+        (precision != 0 && precision != 1)) {
         set_err("invalid args");
         return nullptr;
     }
@@ -162,8 +180,10 @@ AioUpmDense* aio_upm_dense_begin(const char* path, const char* source_hash,
     d->source_hash = source_hash;
     d->target_order = target_order;
     d->precision = precision;
-    d->control_count = control_count;
     d->frame_count = frame_count;
+    d->tile_count = tile_count;
+    d->tile_bytes = kLeafPerTile * (precision == 1 ? sizeof(double)
+                                                   : sizeof(float));
     d->f = std::fopen(path, "wb");
     if (!d->f) {
         set_err("cannot open dense cache for write");
@@ -175,13 +195,13 @@ AioUpmDense* aio_upm_dense_begin(const char* path, const char* source_hash,
     zeros[64] = '\0';
     char header[kDenseHeaderBytes + 2] = {0};
     std::snprintf(header, sizeof(header),
-                  "{\"format\":\"astrocs-upm-dense-v1\",\"source_hash\":\"%s\","
+                  "{\"format\":\"astrocs-upm-dense-v2\",\"source_hash\":\"%s\","
                   "\"target_order\":%d,\"precision\":%u,"
-                  "\"control_count\":%llu,\"frame_count\":%llu,"
-                  "\"checksum\":\"%s\"}",
+                  "\"frame_count\":%llu,\"tile_count\":%llu,"
+                  "\"leaf_order\":%d,\"checksum\":\"%s\"}",
                   source_hash, target_order, precision,
-                  (unsigned long long)control_count,
-                  (unsigned long long)frame_count, zeros);
+                  (unsigned long long)frame_count,
+                  (unsigned long long)tile_count, target_order + 9, zeros);
     const int len = (int)std::strlen(header);
     if (len > kDenseHeaderBytes) {
         std::fclose(d->f);
@@ -196,47 +216,85 @@ AioUpmDense* aio_upm_dense_begin(const char* path, const char* source_hash,
         set_err("header write failed");
         return nullptr;
     }
+    // tile 表占位（tile_count × u64，dense_end 回填）
+    std::vector<std::uint64_t> zero_tiles(tile_count, 0);
+    if (std::fwrite(zero_tiles.data(), sizeof(std::uint64_t), tile_count,
+                    d->f) != tile_count) {
+        std::fclose(d->f);
+        d->f = nullptr;
+        set_err("tile table write failed");
+        return nullptr;
+    }
     return d.release();
 }
 
-int aio_upm_dense_write_controls(AioUpmDense* d, const double* z,
-                                 std::uint64_t count) {
-    if (!d || !z || count == 0) return 1;
-    const std::size_t bytes = (std::size_t)count * sizeof(double);
-    d->payload.insert(d->payload.end(),
-                      reinterpret_cast<const std::uint8_t*>(z),
-                      reinterpret_cast<const std::uint8_t*>(z) + bytes);
-    return 0;
-}
-
-int aio_upm_dense_write_frames(AioUpmDense* d, const std::uint64_t* frame_ids,
-                               const double* offsets, std::uint64_t count) {
-    if (!d || !frame_ids || !offsets || count == 0) return 1;
-    for (std::uint64_t i = 0; i < count; ++i) {
-        const std::uint8_t* p = reinterpret_cast<const std::uint8_t*>(&frame_ids[i]);
-        d->payload.insert(d->payload.end(), p, p + sizeof(std::uint64_t));
-        const std::uint8_t* q = reinterpret_cast<const std::uint8_t*>(&offsets[i]);
-        d->payload.insert(d->payload.end(), q, q + sizeof(double));
+int aio_upm_dense_write_tile(AioUpmDense* d, std::uint64_t frame_index,
+                             std::uint64_t tile_ipix, const double* values,
+                             std::uint64_t count) {
+    if (!d || !d->f || !values || count != kLeafPerTile) return 1;
+    if (frame_index != d->current_frame) {
+        if (frame_index != d->current_frame + 1) {
+            set_err("dense write tile: frame_index 必须单调推进");
+            return 1;
+        }
+        if (d->tiles.size() != d->tile_count) {
+            set_err("dense write tile: 前一帧 tile 数不足");
+            return 1;
+        }
+        ++d->current_frame;
+        d->tiles.clear();
+    }
+    d->tiles.push_back(tile_ipix);
+    std::vector<std::uint8_t> bytes;
+    bytes.reserve((std::size_t)count * (d->precision == 1 ? 8 : 4));
+    if (d->precision == 1) {
+        for (std::uint64_t i = 0; i < count; ++i) {
+            const std::uint8_t* p =
+                reinterpret_cast<const std::uint8_t*>(&values[i]);
+            bytes.insert(bytes.end(), p, p + sizeof(double));
+        }
+    } else {
+        for (std::uint64_t i = 0; i < count; ++i) {
+            const float v = (float)values[i];
+            const std::uint8_t* p =
+                reinterpret_cast<const std::uint8_t*>(&v);
+            bytes.insert(bytes.end(), p, p + sizeof(float));
+        }
+    }
+    if (std::fwrite(bytes.data(), 1, bytes.size(), d->f) != bytes.size()) {
+        set_err("dense write tile: data write failed");
+        return 1;
     }
     return 0;
 }
 
 int aio_upm_dense_end(AioUpmDense* d) {
     if (!d || !d->f) return 1;
-    // 写 payload 并关闭（避免同一流写后读的 Windows 流状态问题）
-    if (!d->payload.empty() &&
-        std::fwrite(d->payload.data(), 1, d->payload.size(), d->f) !=
-            d->payload.size()) {
+    if (d->tiles.size() != d->tile_count) {
         std::fclose(d->f);
         d->f = nullptr;
-        set_err("payload write failed");
+        set_err("dense end: tile 数量不匹配");
         return 1;
     }
-    std::fflush(d->f);
     std::fclose(d->f);
     d->f = nullptr;
 
-    // 重开读取整个文件（头部 + payload）计算 checksum
+    // 回填 tile 表
+    std::FILE* wf = std::fopen(d->path.c_str(), "r+b");
+    if (!wf) {
+        set_err("reopen for tile table failed");
+        return 1;
+    }
+    if (std::fseek(wf, kDenseHeaderBytes + 1, SEEK_SET) != 0 ||
+        std::fwrite(d->tiles.data(), sizeof(std::uint64_t),
+                    d->tile_count, wf) != d->tile_count) {
+        std::fclose(wf);
+        set_err("tile table writeback failed");
+        return 1;
+    }
+    std::fclose(wf);
+
+    // 计算 checksum：header（checksum 槽置 0）+ 整个文件其余（分块 streaming）
     std::FILE* rf = std::fopen(d->path.c_str(), "rb");
     if (!rf) {
         set_err("reopen for checksum failed");
@@ -249,7 +307,6 @@ int aio_upm_dense_end(AioUpmDense* d) {
         set_err("header re-read failed");
         return 1;
     }
-    // 定位 checksum 槽（JSON 顺序：...checksum":"<64 chars>"}）
     const std::string marker = "\"checksum\":\"";
     const std::size_t pos = header.find(marker);
     if (pos == std::string::npos) {
@@ -259,23 +316,17 @@ int aio_upm_dense_end(AioUpmDense* d) {
     }
     const std::size_t slot = pos + marker.size();
     for (int i = 0; i < 64; ++i) header[slot + (std::size_t)i] = '0';
-    // payload = 头部后所有字节
-    std::fseek(rf, 0, SEEK_END);
-    const long file_size = std::ftell(rf);
-    const std::size_t payload_size =
-        (std::size_t)file_size - (kDenseHeaderBytes + 1);
-    std::vector<std::uint8_t> payload(payload_size);
-    std::fseek(rf, kDenseHeaderBytes + 1, SEEK_SET);
-    if (payload_size > 0 &&
-        std::fread(payload.data(), 1, payload_size, rf) != payload_size) {
-        std::fclose(rf);
-        set_err("payload re-read failed");
-        return 1;
-    }
+    astrocs::crypto::Sha256 sha;
+    sha.update(header.data(), header.size());
+    std::vector<unsigned char> chunk(1 << 20);
+    std::size_t got = 0;
+    while ((got = std::fread(chunk.data(), 1, chunk.size(), rf)) > 0)
+        sha.update(chunk.data(), got);
     std::fclose(rf);
-    const std::string checksum = dense_checksum_of(header, payload);
-    // 回填 checksum（r+b）
-    std::FILE* wf = std::fopen(d->path.c_str(), "r+b");
+    const std::string checksum = sha.final_hex();
+
+    // 写回 checksum
+    wf = std::fopen(d->path.c_str(), "r+b");
     if (!wf) {
         set_err("reopen for checksum write failed");
         return 1;
@@ -300,41 +351,99 @@ void aio_upm_dense_abort(AioUpmDense* d) {
     delete d;
 }
 
-int aio_upm_dense_info(const char* path, const char* source_hash,
-                       int* out_target_order, std::uint64_t* out_pixels,
-                       char* out_checksum, int checksum_buf_size) {
-    g_upm_error.clear();
-    if (!path || !source_hash) return 1;
+namespace {
+
+// 读 dense header 并校验 source_hash/format；失败返回 false 并设置 err。
+bool dense_read_header(const char* path, const char* source_hash,
+                       nlohmann::json* out_j, std::string* err) {
     std::FILE* f = std::fopen(path, "rb");
     if (!f) {
-        set_err("cannot open dense cache");
-        return 1;
+        *err = "cannot open dense cache";
+        return false;
     }
     std::string header(kDenseHeaderBytes, ' ');
     if (std::fread(&header[0], 1, kDenseHeaderBytes, f) !=
         (size_t)kDenseHeaderBytes) {
         std::fclose(f);
-        set_err("header read failed");
-        return 1;
+        *err = "header read failed";
+        return false;
     }
     std::fclose(f);
-    // JSON 行以 '\n' 结尾；头部后可能含二进制 '\0'，截断到 '\n'
     const std::size_t nl = header.find('\n');
     const std::string line = (nl == std::string::npos)
                                  ? header : header.substr(0, nl);
-    nlohmann::json j;
     try {
-        j = nlohmann::json::parse(line);
+        *out_j = nlohmann::json::parse(line);
     } catch (...) {
-        set_err("header parse failed");
-        return 1;
+        *err = "header parse failed";
+        return false;
     }
-    if (j.value("format", std::string()) != "astrocs-upm-dense-v1")
-        return 1;
-    const std::string src = j.value("source_hash", std::string());
-    if (src != source_hash) return 2;  // stale
+    if (out_j->value("format", std::string()) != "astrocs-upm-dense-v2") {
+        *err = "format != astrocs-upm-dense-v2";
+        return false;
+    }
+    if (out_j->value("source_hash", std::string()) != source_hash) {
+        *err = "stale cache (source_hash mismatch)";
+        return false;
+    }
+    return true;
+}
+
+// 分块 streaming 校验整个 dense 文件 checksum。
+bool dense_verify_checksum(const char* path, const nlohmann::json& j,
+                           std::string* err) {
+    std::FILE* f = std::fopen(path, "rb");
+    if (!f) {
+        *err = "cannot open dense cache for checksum";
+        return false;
+    }
+    std::string header(kDenseHeaderBytes, ' ');
+    if (std::fread(&header[0], 1, kDenseHeaderBytes, f) !=
+        (size_t)kDenseHeaderBytes) {
+        std::fclose(f);
+        *err = "header read failed";
+        return false;
+    }
+    const std::string marker = "\"checksum\":\"";
+    const std::size_t pos = header.find(marker);
+    if (pos == std::string::npos) {
+        std::fclose(f);
+        *err = "checksum slot not found";
+        return false;
+    }
+    const std::size_t slot = pos + marker.size();
+    for (int i = 0; i < 64; ++i) header[slot + (std::size_t)i] = '0';
+    astrocs::crypto::Sha256 sha;
+    sha.update(header.data(), header.size());
+    std::vector<unsigned char> chunk(1 << 20);
+    std::size_t got = 0;
+    while ((got = std::fread(chunk.data(), 1, chunk.size(), f)) > 0)
+        sha.update(chunk.data(), got);
+    std::fclose(f);
+    const std::string actual = sha.final_hex();
+    const std::string declared = j.value("checksum", std::string());
+    if (actual != declared) {
+        *err = "dense cache checksum mismatch";
+        return false;
+    }
+    return true;
+}
+
+} // namespace
+
+int aio_upm_dense_info(const char* path, const char* source_hash,
+                       int* out_target_order, std::uint64_t* out_tile_count,
+                       char* out_checksum, int checksum_buf_size) {
+    g_upm_error.clear();
+    if (!path || !source_hash) return 1;
+    nlohmann::json j;
+    std::string err;
+    if (!dense_read_header(path, source_hash, &j, &err)) {
+        set_err(err);
+        return 2;  // stale/格式不匹配
+    }
     if (out_target_order) *out_target_order = j.value("target_order", 0);
-    if (out_pixels) *out_pixels = j.value("control_count", 0ull);
+    if (out_tile_count) *out_tile_count = j.value("tile_count", 0ull);
     if (out_checksum && checksum_buf_size > 0) {
         const std::string c = j.value("checksum", std::string());
         std::strncpy(out_checksum, c.c_str(), (size_t)checksum_buf_size - 1);
@@ -345,91 +454,102 @@ int aio_upm_dense_info(const char* path, const char* source_hash,
 
 int aio_upm_read_dense_block(const char* path, const char* source_hash,
                              std::uint64_t frame_id,
+                             const std::uint64_t* leaf_ipix,
                              const double* input_signal, double* output_signal,
                              std::uint64_t count) {
     g_upm_error.clear();
-    if (!path || !source_hash || !input_signal || !output_signal) return 1;
+    if (!path || !source_hash || !leaf_ipix || !input_signal ||
+        !output_signal || count == 0) {
+        return 1;
+    }
+    nlohmann::json j;
+    std::string err;
+    if (!dense_read_header(path, source_hash, &j, &err)) {
+        set_err(err);
+        return 2;
+    }
+    if (!dense_verify_checksum(path, j, &err)) {
+        set_err(err);
+        return 2;
+    }
+    const std::uint64_t n_frames = j.value("frame_count", 0ull);
+    const std::uint64_t n_tiles = j.value("tile_count", 0ull);
+    const int precision = j.value("precision", 0);
+    const std::size_t elem = (precision == 1) ? sizeof(double) : sizeof(float);
+    const std::size_t tile_bytes = (std::size_t)kLeafPerTile * elem;
+    const std::uint64_t frame_index = frame_id;  // phase2 保证 frame_id=index
+    if (frame_index >= n_frames) {
+        set_err("frame_id out of range");
+        return 1;
+    }
     std::FILE* f = std::fopen(path, "rb");
     if (!f) {
         set_err("cannot open dense cache");
         return 1;
     }
-    std::string header(kDenseHeaderBytes, ' ');
-    if (std::fread(&header[0], 1, kDenseHeaderBytes, f) !=
-        (size_t)kDenseHeaderBytes) {
+    std::vector<std::uint64_t> tiles(n_tiles);
+    if (std::fseek(f, kDenseHeaderBytes + 1, SEEK_SET) != 0 ||
+        std::fread(tiles.data(), sizeof(std::uint64_t), n_tiles, f) !=
+            n_tiles) {
         std::fclose(f);
+        set_err("tile table read failed");
         return 1;
     }
-    const std::size_t nl = header.find('\n');
-    const std::string line = (nl == std::string::npos)
-                                 ? header : header.substr(0, nl);
-    nlohmann::json j;
-    try {
-        j = nlohmann::json::parse(line);
-    } catch (...) {
-        std::fclose(f);
-        return 1;
-    }
-    if (j.value("format", std::string()) != "astrocs-upm-dense-v1") {
-        std::fclose(f);
-        return 1;
-    }
-    const std::string src = j.value("source_hash", std::string());
-    if (src != source_hash) {
-        std::fclose(f);
-        return 2;  // stale
-    }
-    const std::uint64_t n_controls = j.value("control_count", 0ull);
-    const std::uint64_t n_frames = j.value("frame_count", 0ull);
-    // 校验 checksum（头部槽置 '0' + 剩余文件）
-    std::string header_zero = header;
-    const std::string marker = "\"checksum\":\"";
-    const std::size_t pos = header_zero.find(marker);
-    if (pos != std::string::npos) {
-        const std::size_t slot = pos + marker.size();
-        for (int i = 0; i < 64; ++i) header_zero[slot + (std::size_t)i] = '0';
-    }
-    std::fseek(f, 0, SEEK_END);
-    const long file_size = std::ftell(f);
-    const std::size_t payload_size =
-        (std::size_t)file_size - (kDenseHeaderBytes + 1);
-    std::vector<std::uint8_t> payload(payload_size);
-    std::fseek(f, kDenseHeaderBytes + 1, SEEK_SET);
-    if (payload_size > 0 &&
-        std::fread(payload.data(), 1, payload_size, f) != payload_size) {
-        std::fclose(f);
-        return 1;
-    }
-    const std::string checksum_actual =
-        dense_checksum_of(header_zero.substr(0, kDenseHeaderBytes), payload);
-    const std::string checksum_decl = j.value("checksum", std::string());
-    if (checksum_actual != checksum_decl) {
-        std::fclose(f);
-        set_err("dense cache checksum mismatch");
-        return 2;
-    }
-    // 读 frame 偏移
-    std::fseek(f, kDenseHeaderBytes + 1 + (long)(n_controls * sizeof(double)),
-               SEEK_SET);
-    double offset = 0.0;
-    bool found = false;
-    for (std::uint64_t i = 0; i < n_frames; ++i) {
-        std::uint64_t fid = 0;
-        double off = 0.0;
-        if (std::fread(&fid, sizeof(fid), 1, f) != 1 ||
-            std::fread(&off, sizeof(off), 1, f) != 1) {
+    const int tile_shift = 9;
+    const std::uint64_t mask = (1ULL << (2u * (unsigned)tile_shift)) - 1ULL;
+    std::vector<double> tile_cache(kLeafPerTile);
+    std::uint64_t cur_tile = ~0ULL;
+    bool tile_loaded = false;
+    for (std::uint64_t i = 0; i < count; ++i) {
+        const std::uint64_t tile =
+            leaf_ipix[i] >> (2u * (unsigned)tile_shift);
+        const std::uint64_t local = leaf_ipix[i] & mask;
+        if (!tile_loaded || tile != cur_tile) {
+            const auto it = std::find(tiles.begin(), tiles.end(), tile);
+            if (it == tiles.end()) {
+                std::fclose(f);
+                set_err("leaf tile not in dense cache");
+                return 1;
+            }
+            const std::size_t t_idx = (std::size_t)(it - tiles.begin());
+            const std::uint64_t off =
+                (std::uint64_t)(kDenseHeaderBytes + 1) +
+                (std::uint64_t)n_tiles * sizeof(std::uint64_t) +
+                (frame_index * n_tiles + t_idx) * (std::uint64_t)tile_bytes;
+            if (std::fseek(f, (long)off, SEEK_SET) != 0) {
+                std::fclose(f);
+                set_err("seek to tile block failed");
+                return 1;
+            }
+            if (precision == 1) {
+                if (std::fread(tile_cache.data(), sizeof(double),
+                               kLeafPerTile, f) != kLeafPerTile) {
+                    std::fclose(f);
+                    set_err("tile block read failed");
+                    return 1;
+                }
+            } else {
+                std::vector<float> tmp(kLeafPerTile);
+                if (std::fread(tmp.data(), sizeof(float), kLeafPerTile, f) !=
+                    kLeafPerTile) {
+                    std::fclose(f);
+                    set_err("tile block read failed");
+                    return 1;
+                }
+                for (std::size_t k = 0; k < kLeafPerTile; ++k)
+                    tile_cache[k] = (double)tmp[k];
+            }
+            cur_tile = tile;
+            tile_loaded = true;
+        }
+        if (local >= kLeafPerTile) {
             std::fclose(f);
+            set_err("leaf local out of range");
             return 1;
         }
-        if (fid == frame_id) {
-            offset = off;
-            found = true;
-        }
+        output_signal[i] = input_signal[i] - tile_cache[(std::size_t)local];
     }
     std::fclose(f);
-    if (!found) offset = 0.0;
-    for (std::uint64_t i = 0; i < count; ++i)
-        output_signal[i] = input_signal[i] - offset;
     return 0;
 }
 

@@ -1,8 +1,8 @@
 // lib/common/crypto/sha256.cpp — SHA-256 独立实现（FIPS 180-4）
 #include "sha256.h"
 
+#include <algorithm>
 #include <cstring>
-#include <vector>
 
 namespace astrocs::crypto {
 namespace {
@@ -28,60 +28,87 @@ inline std::uint32_t rotr(std::uint32_t x, int n) {
 
 } // namespace
 
-std::string sha256_hex(const void* data, std::size_t len) {
-    const auto* in = static_cast<const unsigned char*>(data);
-    std::uint32_t h[8] = {0x6a09e667u, 0xbb67ae85u, 0x3c6ef372u,
-                          0xa54ff53au, 0x510e527fu, 0x9b05688cu,
-                          0x1f83d9abu, 0x5be0cd19u};
+Sha256::Sha256() {
+    h_[0] = 0x6a09e667u; h_[1] = 0xbb67ae85u; h_[2] = 0x3c6ef372u;
+    h_[3] = 0xa54ff53au; h_[4] = 0x510e527fu; h_[5] = 0x9b05688cu;
+    h_[6] = 0x1f83d9abu; h_[7] = 0x5be0cd19u;
+}
 
-    // 预处理：append 0x80 + zeros + 64-bit bit length
-    const std::uint64_t bit_len = (std::uint64_t)len * 8ull;
-    const std::size_t pad_len =
-        ((len + 8) / 64 + 1) * 64;
-    std::vector<unsigned char> buf(pad_len, 0);
-    std::memcpy(buf.data(), in, len);
-    buf[len] = 0x80;
-    for (int i = 0; i < 8; ++i)
-        buf[pad_len - 1 - i] = (unsigned char)(bit_len >> (8 * i));
-
-    for (std::size_t off = 0; off < pad_len; off += 64) {
-        std::uint32_t w[64];
-        for (int i = 0; i < 16; ++i)
-            w[i] = ((std::uint32_t)buf[off + i * 4] << 24) |
-                   ((std::uint32_t)buf[off + i * 4 + 1] << 16) |
-                   ((std::uint32_t)buf[off + i * 4 + 2] << 8) |
-                   ((std::uint32_t)buf[off + i * 4 + 3]);
-        for (int i = 16; i < 64; ++i) {
-            const std::uint32_t s0 = rotr(w[i - 15], 7) ^
-                                     rotr(w[i - 15], 18) ^ (w[i - 15] >> 3);
-            const std::uint32_t s1 = rotr(w[i - 2], 17) ^
-                                     rotr(w[i - 2], 19) ^ (w[i - 2] >> 10);
-            w[i] = w[i - 16] + s0 + w[i - 7] + s1;
-        }
-        std::uint32_t a = h[0], b = h[1], c = h[2], d = h[3];
-        std::uint32_t e = h[4], f = h[5], g = h[6], hh = h[7];
-        for (int i = 0; i < 64; ++i) {
-            const std::uint32_t S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
-            const std::uint32_t ch = (e & f) ^ (~e & g);
-            const std::uint32_t t1 = hh + S1 + ch + kK[i] + w[i];
-            const std::uint32_t S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
-            const std::uint32_t maj = (a & b) ^ (a & c) ^ (b & c);
-            const std::uint32_t t2 = S0 + maj;
-            hh = g; g = f; f = e; e = d + t1;
-            d = c; c = b; b = a; a = t1 + t2;
-        }
-        h[0] += a; h[1] += b; h[2] += c; h[3] += d;
-        h[4] += e; h[5] += f; h[6] += g; h[7] += hh;
+void Sha256::process_block(const unsigned char* p) {
+    std::uint32_t w[64];
+    for (int i = 0; i < 16; ++i)
+        w[i] = ((std::uint32_t)p[i * 4] << 24) |
+               ((std::uint32_t)p[i * 4 + 1] << 16) |
+               ((std::uint32_t)p[i * 4 + 2] << 8) |
+               ((std::uint32_t)p[i * 4 + 3]);
+    for (int i = 16; i < 64; ++i) {
+        const std::uint32_t s0 = rotr(w[i - 15], 7) ^
+                                 rotr(w[i - 15], 18) ^ (w[i - 15] >> 3);
+        const std::uint32_t s1 = rotr(w[i - 2], 17) ^
+                                 rotr(w[i - 2], 19) ^ (w[i - 2] >> 10);
+        w[i] = w[i - 16] + s0 + w[i - 7] + s1;
     }
+    std::uint32_t a = h_[0], b = h_[1], c = h_[2], d = h_[3];
+    std::uint32_t e = h_[4], f = h_[5], g = h_[6], hh = h_[7];
+    for (int i = 0; i < 64; ++i) {
+        const std::uint32_t S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+        const std::uint32_t ch = (e & f) ^ (~e & g);
+        const std::uint32_t t1 = hh + S1 + ch + kK[i] + w[i];
+        const std::uint32_t S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+        const std::uint32_t maj = (a & b) ^ (a & c) ^ (b & c);
+        const std::uint32_t t2 = S0 + maj;
+        hh = g; g = f; f = e; e = d + t1;
+        d = c; c = b; b = a; a = t1 + t2;
+    }
+    h_[0] += a; h_[1] += b; h_[2] += c; h_[3] += d;
+    h_[4] += e; h_[5] += f; h_[6] += g; h_[7] += hh;
+}
 
+void Sha256::update(const void* data, std::size_t len) {
+    if (finalized_) return;
+    const auto* p = static_cast<const unsigned char*>(data);
+    total_bits_ += (std::uint64_t)len * 8ull;
+    while (len > 0) {
+        const std::size_t take = std::min(len, 64 - block_len_);
+        std::memcpy(block_ + block_len_, p, take);
+        block_len_ += take;
+        p += take;
+        len -= take;
+        if (block_len_ == 64) {
+            process_block(block_);
+            block_len_ = 0;
+        }
+    }
+}
+
+std::string Sha256::final_hex() {
+    if (finalized_) return std::string(64, '0');
+    finalized_ = true;
+    block_[block_len_] = 0x80;
+    if (block_len_ + 1 > 56) {
+        std::memset(block_ + block_len_ + 1, 0, 64 - (block_len_ + 1));
+        process_block(block_);
+        std::memset(block_, 0, 56);
+    } else {
+        std::memset(block_ + block_len_ + 1, 0, 56 - (block_len_ + 1));
+    }
+    for (int i = 0; i < 8; ++i)
+        block_[63 - i] = (unsigned char)(total_bits_ >> (8 * i));
+    process_block(block_);
     static const char* hex = "0123456789abcdef";
     std::string out;
     out.reserve(64);
     for (int i = 0; i < 8; ++i) {
         for (int b = 28; b >= 0; b -= 4)
-            out.push_back(hex[(h[i] >> b) & 0xf]);
+            out.push_back(hex[(h_[i] >> b) & 0xf]);
     }
     return out;
+}
+
+std::string sha256_hex(const void* data, std::size_t len) {
+    Sha256 s;
+    s.update(data, len);
+    return s.final_hex();
 }
 
 } // namespace astrocs::crypto
