@@ -176,6 +176,7 @@ __global__ void acr_mosaic_reject_kernel(
     float sigma_high,
     int max_iterations,
     int min_samples,
+    size_t begin_offset,
     float* __restrict__ output,
     float* __restrict__ out_support,
     float* __restrict__ out_reject_count,
@@ -190,6 +191,7 @@ __global__ void acr_mosaic_reject_kernel(
         return;
     }
     const size_t p = begin + idx;
+    const size_t tile_p = begin_offset + idx;   // tile 内全局像素（cell 定位）
 
     double vals[64], w[64], sup[64];
     int nv = 0;
@@ -201,7 +203,16 @@ __global__ void acr_mosaic_reject_kernel(
         if (s <= 0.0f) continue;
         vals[nv] = static_cast<double>(v);
         sup[nv] = static_cast<double>(s);
-        const double snr = frame_snr ? static_cast<double>(frame_snr[f]) : 1.0;
+        // R8：局部 SNR 按 control cell（grid=8）提供；无 per-cell 输入
+        // 时等权 1.0。
+        double snr = 1.0;
+        if (frame_snr) {
+            const int grid = 8;
+            const int px = (int)(tile_p % 512u);
+            const int py = (int)(tile_p / 512u);
+            const int cell = (py / 64) * grid + (px / 64);
+            snr = static_cast<double>(frame_snr[f * grid * grid + cell]);
+        }
         w[nv] = static_cast<double>(s) * snr * snr;
         ++nv;
     }
@@ -336,12 +347,14 @@ void acr_launch_mosaic_reject(const float* frames, const float* support,
                               size_t pixel_count, size_t begin, size_t n,
                               float sigma_low, float sigma_high,
                               int max_iterations, int min_samples,
+                              size_t begin_offset,
                               float* output, float* out_support,
                               float* out_reject_count, float* out_valid_count,
                               cudaStream_t stream) {
     acr_mosaic_reject_kernel<<<grid_size(n), kThreads, 0, stream>>>(
         frames, support, frame_snr, frame_count, pixel_count, begin, n,
-        sigma_low, sigma_high, max_iterations, min_samples, output,
+        sigma_low, sigma_high, max_iterations, min_samples, begin_offset,
+        output,
         out_support, out_reject_count, out_valid_count);
 }
 

@@ -71,6 +71,7 @@ struct Stage2Config {
     int reject_max_iterations = 8;
     int reject_min_samples = 2;
     int weight_mode = 0;         // snr2_normalized
+    std::string acr_route = "auto";   // auto | cpu（R9 证据用）
     // output
     std::string out_hips;
     bool diagnostics = true;
@@ -252,14 +253,19 @@ bool parse_config(const nlohmann::json& j, Stage2Config* cfg, std::string* err) 
                     return false;
                 }
             }
-            const std::string wm =
-                in.value("weight_mode", std::string("auto"));
+        const std::string wm =
+            in.value("weight_mode", std::string("auto"));
             if (wm == "auto" || wm == "support_x_snr2") {
                 cfg->weight_mode = 0;   // R5 冻结默认 support_x_snr2
             } else if (wm == "equal") {
                 cfg->weight_mode = 1;
             } else {
                 *err = "weight_mode 只支持 auto/equal/support_x_snr2";
+                return false;
+            }
+            cfg->acr_route = in.value("acr_route", std::string("auto"));
+            if (cfg->acr_route != "auto" && cfg->acr_route != "cpu") {
+                *err = "acr_route 只支持 auto/cpu";
                 return false;
             }
         }
@@ -573,7 +579,7 @@ int main(int argc, char** argv) {
     namespace bridge = astro::compute::cuda::bridge;
     bool gpu_ready = false;
     void* gpu_exec = nullptr;
-    if (use_acr_block) {
+    if (use_acr_block && cfg.acr_route != "cpu") {
         bridge::ensure_bridge_loaded();
         if (bridge::api().loaded()) {
             const char* gerr = nullptr;
@@ -624,7 +630,20 @@ int main(int argc, char** argv) {
             std::to_string(depth) + " chunk_px=" +
             std::to_string(chunk_pixels) + " n_chunk=" +
             std::to_string(n_chunk) + " est_peak=" +
-            std::to_string(plan.estimated_peak_bytes));
+            std::to_string(plan.estimated_peak_bytes) +
+            " working_bytes=" +
+            std::to_string(
+                // 实际分配的工作缓冲（非 RSS）：cal+supv、ACR 暂存、
+                // tile 读取缓冲、输出缓冲
+                depth * chunk_pixels * sizeof(double) * 2 +
+                (use_acr_block
+                     ? chunk_pixels * depth * sizeof(float) * 2 +
+                           depth * 64 * sizeof(float) +
+                           chunk_pixels * sizeof(float) * 4
+                     : 0) +
+                512 * 512 * sizeof(float) * 2 +
+                n_leaf * (sizeof(float) * 2 + sizeof(double) * 2 +
+                          sizeof(std::uint8_t))));
 
         // 每 chunk 的工作缓冲（按 chunk_pixels×depth，非 262144×all_frames）
         std::vector<std::vector<double>> cal(depth), supv(depth);
@@ -745,6 +764,8 @@ int main(int argc, char** argv) {
                 astro::compute::append_scalar(inv.scalars, cfg.sigma_high);
                 astro::compute::append_scalar(inv.scalars,
                                               cfg.reject_min_samples);
+                astro::compute::append_scalar(inv.scalars,
+                                              std::size_t{p0});  // chunk tile 偏移
                 try {
                     if (gpu_ready && acr_reg->cuda.has_value()) {
                         (*acr_reg->cuda)(inv, nullptr);

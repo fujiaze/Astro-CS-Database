@@ -77,6 +77,7 @@ struct BridgeApi {
                                 float*, const float*, const float*,
                                 const float*, float*, float*, float*,
                                 std::size_t, std::size_t,
+                                std::size_t,
                                 float, float, int, int,
                                 std::uint64_t*, const char**){nullptr};
     int (*configure_streams)(void*, int, const char**){nullptr};

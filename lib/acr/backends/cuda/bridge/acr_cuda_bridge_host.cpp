@@ -47,6 +47,7 @@ void acr_launch_mosaic_reject(const float* frames, const float* support,
                               size_t pixel_count, size_t begin, size_t n,
                               float sigma_low, float sigma_high,
                               int max_iterations, int min_samples,
+                              size_t begin_offset,
                               float* output, float* out_support,
                               float* out_reject_count, float* out_valid_count,
                               cudaStream_t stream);
@@ -791,6 +792,7 @@ extern "C" int acr_cuda_executor_submit_mosaic_reject(
     const float* frame_snr, float* out_support,
     float* out_reject_count, float* out_valid_count,
     size_t frame_count, size_t pixel_count,
+    size_t begin_offset,
     float sigma_low, float sigma_high, int max_iterations, int min_samples,
     uint64_t* elapsed_ns, const char** last_error) {
     if (handle == nullptr || output == nullptr || frames == nullptr ||
@@ -834,10 +836,10 @@ extern "C" int acr_cuda_executor_submit_mosaic_reject(
         }
         if (frame_snr != nullptr) {
             err = ensure_buffer(&h->d_kernel, h->d_kernel_capacity,
-                                frame_count);
+                                frame_count * 64);   // per-cell SNR (8x8 grid)
             if (err != cudaSuccess) return err;
             cudaMemcpyAsync(h->d_kernel, frame_snr,
-                            frame_count * sizeof(float),
+                            frame_count * 64 * sizeof(float),
                             cudaMemcpyHostToDevice, h->stream);
         }
         acr_launch_mosaic_reject(h->d_x,
@@ -845,7 +847,7 @@ extern "C" int acr_cuda_executor_submit_mosaic_reject(
                                  frame_snr ? h->d_kernel : nullptr,
                                  frame_count, pixel_count,
                                  begin, n, sigma_low, sigma_high,
-                                 max_iterations, min_samples,
+                                 max_iterations, min_samples, begin_offset,
                                  h->d_out,
                                  out_support ? h->d_y : nullptr,
                                  out_reject_count ? h->d_z : nullptr,

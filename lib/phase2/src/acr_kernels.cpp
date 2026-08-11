@@ -65,6 +65,9 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
     const auto ms = read_scalar<int>(
         inv.scalars, 2 * sizeof(std::size_t) + sizeof(int) +
                          2 * sizeof(double));
+    const auto p0 = read_scalar<std::size_t>(
+        inv.scalars, 2 * sizeof(std::size_t) + sizeof(int) +
+                         2 * sizeof(double) + sizeof(int));
     const int min_samples_v = ms ? *ms : 3;
     std::vector<double> stack(n_depth);
     std::vector<double> stack_w(n_depth);
@@ -89,8 +92,9 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
             double snr_v = 1.0;
             if (snr != nullptr) {
                 const int grid = 8;
-                const int px = (int)(p % 512u);
-                const int py = (int)(p / 512u);
+                const std::size_t tile_p = p0 ? *p0 + p : p;
+                const int px = (int)(tile_p % 512u);
+                const int py = (int)(tile_p / 512u);
                 const int cell = (py / 64) * grid + (px / 64);
                 snr_v = static_cast<double>(
                     static_cast<const float*>(snr->data)[s * grid * grid + cell]);
@@ -170,6 +174,9 @@ void mosaic_reject_cuda(const KernelInvocation& inv, void*) {
     const auto ms = read_scalar<int>(
         inv.scalars, 2 * sizeof(std::size_t) + sizeof(int) +
                          2 * sizeof(double));
+    const auto p0 = read_scalar<std::size_t>(
+        inv.scalars, 2 * sizeof(std::size_t) + sizeof(int) +
+                         2 * sizeof(double) + sizeof(int));
     if (!px || !depth || *px == 0 || *depth == 0) {
         throw std::runtime_error("mosaic_reject: missing scalars");
     }
@@ -204,11 +211,15 @@ void mosaic_reject_cuda(const KernelInvocation& inv, void*) {
         out_rej ? static_cast<float*>(out_rej->data) : nullptr,
         out_valid ? static_cast<float*>(out_valid->data) : nullptr,
         *depth, *px,
+        p0 ? *p0 : 0,
         static_cast<float>(lo ? *lo : -4.0),
         static_cast<float>(hi ? *hi : 3.0),
         8, min_samples_v, &elapsed, &err);
     if (rc != 0) {
-        throw std::runtime_error(err ? err : "mosaic_reject cuda failed");
+        throw std::runtime_error(
+            std::string("mosaic_reject cuda failed rc=") +
+            std::to_string(rc) + " err=" +
+            (err ? err : "(null)"));
     }
     set_tls_elapsed(elapsed);
 }

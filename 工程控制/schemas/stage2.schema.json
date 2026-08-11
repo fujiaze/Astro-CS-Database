@@ -168,6 +168,11 @@
             "auto", "equal", "support_x_snr2"
           ],
           "default": "auto"
+        },
+        "acr_route": {
+          "enum": ["auto", "cpu"],
+          "default": "auto",
+          "description": "auto=可用则 CUDA（仅 Sigma）；cpu=强制 CPU legacy（R9 等价证据）"
         }
       }
     },

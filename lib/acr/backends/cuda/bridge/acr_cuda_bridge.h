@@ -218,6 +218,7 @@ ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_mosaic_reject(
     float* out_support,
     float* out_reject_count, float* out_valid_count,
     size_t frame_count, size_t pixel_count,
+    size_t begin_offset,
     float sigma_low, float sigma_high,
     int max_iterations, int min_samples,
     uint64_t* elapsed_ns, const char** last_error);
