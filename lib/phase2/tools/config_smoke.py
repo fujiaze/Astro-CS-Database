@@ -39,8 +39,13 @@ def run_parse(cfg_text, expect_parse_ok=True):
     tmp = os.path.join(ROOT, "run", "temp", "config_smoke.json")
     with open(tmp, "w", encoding="utf-8") as f:
         f.write(cfg_text)
+    env = dict(os.environ)
+    env["PATH"] = (r"C:\msys64\mingw64\bin;" +
+                   os.path.join(ROOT, "lib", "astro_image_io") + ";" +
+                   env.get("PATH", ""))
     r = subprocess.run([EXE, tmp], capture_output=True, text=True,
-                       encoding="utf-8", errors="replace", timeout=60)
+                       encoding="utf-8", errors="replace", timeout=60,
+                       env=env)
     out = (r.stdout or "") + (r.stderr or "")
     parse_failed = "config error:" in out or "config parse 失败" in out
     if expect_parse_ok:
