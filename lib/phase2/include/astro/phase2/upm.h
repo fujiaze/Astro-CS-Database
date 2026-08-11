@@ -86,6 +86,10 @@ P2_API int p2_upm_calibrate_block(
     double* output_signal,
     std::uint64_t count);
 
+// R4：直接求值空间校正场 C_frame(leaf_ipix)（sparse/dense 同一科学语义）。
+P2_API double p2_upm_evaluate_c(const void* model, std::uint64_t frame_id,
+                                std::uint64_t leaf_ipix);
+
 // materialize dense cache（同模型 hash/目标 order/frame hash 校验）
 P2_API int p2_upm_materialize_dense(
     const void* model, int target_order, const char* cache_path);

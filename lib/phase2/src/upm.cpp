@@ -723,6 +723,22 @@ int p2_upm_calibrate_block(const void* model, std::uint64_t frame_id,
     return 0;
 }
 
+double p2_upm_evaluate_c(const void* model, std::uint64_t frame_id,
+                         std::uint64_t leaf_ipix) {
+    if (model == nullptr) return 0.0;
+    const Model* m = static_cast<const Model*>(model);
+    const auto it = m->frame_index.find(frame_id);
+    const std::size_t fi = (it != m->frame_index.end()) ? it->second : 0;
+    const int tile_shift = 9;
+    const std::uint64_t mask = (1ULL << (2u * (unsigned)tile_shift)) - 1ULL;
+    const std::uint64_t tile = leaf_ipix >> (2u * (unsigned)tile_shift);
+    const std::uint64_t local = leaf_ipix & mask;
+    std::uint32_t x = 0, y = 0;
+    astrocs::healpix::nested_local_to_xy(local, (std::uint32_t)tile_shift,
+                                         x, y);
+    return evaluate_c_field(m, fi, tile, (int)x, (int)y);
+}
+
 int p2_upm_materialize_dense(const void* model, int target_order,
                              const char* cache_path) {
     if (model == nullptr || cache_path == nullptr) return 1;
