@@ -90,6 +90,23 @@ P2_API int p2_upm_calibrate_block(
 P2_API double p2_upm_evaluate_c(const void* model, std::uint64_t frame_id,
                                 std::uint64_t leaf_ipix);
 
+// R1（V4）：观测 raw weight（production UPM 权重公式，单一实现）。
+// raw_w = quality_factor * support^support_power * snr^2/(1+snr^2) /
+//          max(unc^2, sigma_floor^2)；返回 0=ok。
+P2_API int p2_upm_raw_weight(const P2ControlObservation* obs,
+                             const P2UpmBuildConfig* cfg,
+                             double* out_raw);
+
+// R1（V4）：per-control 归一化权重（raw/sum_j(raw) × control_reliability）。
+P2_API int p2_upm_normalized_weights(const P2ControlObservation* obs,
+                                     std::uint64_t n_obs,
+                                     const P2UpmBuildConfig* cfg,
+                                     double* out_norm);
+
+// R1（V4）：geometry/topology hash（仅 geometry/coverage 决定，不含
+// SNR/quality/support 等观测可信度；权重变化不得改变）。
+P2_API int p2_upm_geometry_hash(const void* model, char* out, int buf_size);
+
 // materialize dense cache（同模型 hash/目标 order/frame hash 校验）
 P2_API int p2_upm_materialize_dense(
     const void* model, int target_order, const char* cache_path);

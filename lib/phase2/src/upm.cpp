@@ -350,15 +350,11 @@ int p2_upm_build(const P2ControlObservation* obs, std::uint64_t n_obs,
     auto compute_raw = [&]() {
         std::vector<double> sums(K, 0.0);
         for (std::uint64_t i = 0; i < n_obs; ++i) {
-            const auto& o = obs[i];
-            const std::size_t ck = m->control_by_id[o.control_id];
-            const double qf = quality_factor(o.quality_flags, cfg.quality_mode);
-            const double sp = std::clamp(o.support, 0.0, 1.0);
-            const double snr2 = o.snr * o.snr;
-            const double unc = std::max(std::fabs(o.uncertainty), sigma_floor);
-            raw_w[i] = qf * std::pow(sp, support_power) *
-                       (snr2 / (1.0 + snr2)) / (unc * unc);
-            sums[ck] += raw_w[i];
+            // R1（V4）：单一 production raw weight 实现（与
+            // p2_upm_raw_weight 同一公式）
+            if (p2_upm_raw_weight(&obs[i], &cfg, &raw_w[i]) != 0)
+                raw_w[i] = 0.0;
+            sums[m->control_by_id[obs[i].control_id]] += raw_w[i];
         }
         for (std::uint64_t i = 0; i < n_obs; ++i) {
             const std::size_t ck = m->control_by_id[obs[i].control_id];
@@ -737,6 +733,74 @@ double p2_upm_evaluate_c(const void* model, std::uint64_t frame_id,
     astrocs::healpix::nested_local_to_xy(local, (std::uint32_t)tile_shift,
                                          x, y);
     return evaluate_c_field(m, fi, tile, (int)x, (int)y);
+}
+
+// R1（V4）：production UPM 观测 raw weight（单一实现，build 内部复用）
+int p2_upm_raw_weight(const P2ControlObservation* obs,
+                      const P2UpmBuildConfig* cfg_in, double* out_raw) {
+    if (obs == nullptr || out_raw == nullptr) return 1;
+    P2UpmBuildConfig cfg;
+    if (cfg_in != nullptr) {
+        cfg = *cfg_in;
+    } else {
+        cfg.sigma_floor = 1e-3;
+        cfg.support_power = 1.0;
+        cfg.quality_mode = 0;
+    }
+    if (cfg.sigma_floor <= 0.0) cfg.sigma_floor = 1e-3;
+    if (cfg.support_power < 0.0) cfg.support_power = 1.0;
+    const double qf = quality_factor(obs->quality_flags, cfg.quality_mode);
+    const double sp = std::clamp(obs->support, 0.0, 1.0);
+    const double snr2 = obs->snr * obs->snr;
+    const double unc =
+        std::max(std::fabs(obs->uncertainty), cfg.sigma_floor);
+    *out_raw = qf * std::pow(sp, cfg.support_power) *
+               (snr2 / (1.0 + snr2)) / (unc * unc);
+    return 0;
+}
+
+int p2_upm_normalized_weights(const P2ControlObservation* obs,
+                              std::uint64_t n_obs,
+                              const P2UpmBuildConfig* cfg,
+                              double* out_norm) {
+    if (obs == nullptr || out_norm == nullptr || n_obs == 0) return 1;
+    std::map<std::uint64_t, double> sums;
+    std::vector<double> raw(n_obs);
+    for (std::uint64_t i = 0; i < n_obs; ++i) {
+        if (p2_upm_raw_weight(&obs[i], cfg, &raw[i]) != 0) return 1;
+        sums[obs[i].control_id] += raw[i];
+    }
+    const double rel = (cfg && cfg->control_reliability > 0.0)
+                           ? cfg->control_reliability : 1.0;
+    for (std::uint64_t i = 0; i < n_obs; ++i) {
+        const auto it = sums.find(obs[i].control_id);
+        const double s = (it != sums.end()) ? it->second : 0.0;
+        out_norm[i] = (s > 1e-12) ? raw[i] / s * rel : 0.0;
+    }
+    return 0;
+}
+
+int p2_upm_geometry_hash(const void* model, char* out, int buf_size) {
+    if (model == nullptr || out == nullptr || buf_size <= 0) return 1;
+    const Model* m = static_cast<const Model*>(model);
+    std::string payload;
+    payload += "order=" + std::to_string(m->info.target_order) + ";";
+    payload += "grid=" + std::to_string(m->grid) + ";";
+    payload += "cell=" + std::to_string(m->cell_side) + ";";
+    // 仅 geometry/coverage 拓扑：control cell (tile,gx,gy) + 邻接
+    for (const auto& cn : m->controls)
+        payload += std::to_string(cn.tile_ipix) + "," +
+                   std::to_string(cn.gx) + "," + std::to_string(cn.gy) + ";";
+    payload += "|adj";
+    for (const auto& v : m->adj) {
+        for (std::size_t nb : v) payload += std::to_string(nb) + ",";
+        payload += ";";
+    }
+    const std::string h =
+        astrocs::crypto::sha256_hex(payload.data(), payload.size());
+    std::strncpy(out, h.c_str(), (std::size_t)buf_size - 1);
+    out[buf_size - 1] = '\0';
+    return 0;
 }
 
 int p2_upm_materialize_dense(const void* model, int target_order,

@@ -12,6 +12,7 @@ endif()
 
 add_library(phase2 STATIC
     src/upm.cpp
+    src/stage2_common.cpp
     src/rejection.cpp
     src/coverage.cpp
     src/sampler.cpp

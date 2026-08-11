@@ -13,6 +13,7 @@
 #include <gtest/gtest.h>
 
 #include "astro/phase2/upm.h"
+#include "astro/phase2/stage2_common.h"
 #include "astro/phase2/coverage.h"
 #include "astro/phase2/sampler.h"
 #include "astro/phase2/rejection.h"
@@ -2019,4 +2020,152 @@ TEST(Phase2Identity, G3ManifestOrderCanonical) {
     };
     EXPECT_EQ(manifest({f0, f1}), manifest({f1, f0}));
     EXPECT_NE(f0, f1);
+}
+
+// R1/G1（V4）：production wiring gate——同一生产 Stage2 parse+build path
+// 验证 support_power / sigma_floor / quality 影响与 topology invariance。
+TEST(Phase2Wiring, G1ProductionWiringTruth) {
+    namespace st = spatial_truth;
+    // 1. 生产 JSON → P2Stage2Config（同一 parse 路径）
+    const std::string json_text = R"({
+      "version": 1,
+      "inputs": {"hips": ["a.hips", "b.hips"], "target_order": "auto"},
+      "model": {
+        "control_grid_per_tile": 8, "patch_radius_pixels": 2,
+        "min_samples": 5, "snr_search_radius_deg": 0.05,
+        "robust_loss": "huber", "snr_weight_mode": "snr2_normalized",
+        "huber_delta": 1.345, "smoothing": 0.1, "zero_anchor_weight": 0.001,
+        "sigma_floor": 0.02, "support_power": 1.0
+      },
+      "integration": {
+        "precision": "fp32", "memory_limit_mb": 8192,
+        "rejection": {"method": "sigma", "low": 4.0, "high": 3.0,
+                       "max_iterations": 8, "min_samples": 2},
+        "weight_mode": "auto"
+      },
+      "output": {"hips": "out.hips"},
+      "diagnostics": {"enabled": true}
+    })";
+    nlohmann::json j = nlohmann::json::parse(json_text);
+    P2Stage2Config cfg{};
+    std::string err;
+    ASSERT_TRUE(p2_stage2_parse_config(j, &cfg, &err)) << err;
+    EXPECT_EQ(cfg.sigma_floor, 0.02);
+    EXPECT_EQ(cfg.support_power, 1.0);
+    P2UpmBuildConfig mcfg =
+        p2_stage2_make_upm_cfg(cfg, st::kTargetOrder, "manifest");
+    EXPECT_EQ(mcfg.sigma_floor, 0.02);
+    EXPECT_EQ(mcfg.support_power, 1.0);
+    EXPECT_EQ(mcfg.target_order, st::kTargetOrder);
+
+    // 2. 合成观测（同 cell 多帧；不同 support/quality/unc/snr）
+    std::vector<P2ControlObservation> obs;
+    std::uint64_t cid = 0;
+    for (int gy = 0; gy < 2; ++gy)
+        for (int gx = 0; gx < 2; ++gx) {
+            double ra = 0, dec = 0;
+            st::cell_center_radec(st::kTiles[0], gx, gy, &ra, &dec);
+            const std::uint64_t leaf =
+                st::leaf_of(st::kTiles[0], gx * st::kCellSide + 32,
+                            gy * st::kCellSide + 32);
+            for (int f = 0; f < 2; ++f) {
+                P2ControlObservation o{};
+                o.frame_id = (std::uint64_t)f;
+                o.control_id = cid;
+                o.leaf_ipix = leaf;
+                o.ra_deg = ra;
+                o.dec_deg = dec;
+                o.value = 10.0 + f;
+                o.uncertainty = 0.01;
+                o.snr = 20.0;
+                o.support = 0.4 + 0.2 * (gx + gy);
+                o.quality_flags = 1;
+                if (gx == 0 && gy == 0 && f == 1) o.quality_flags = 16;
+                if (gx == 1 && gy == 0 && f == 0) o.quality_flags = 0;
+                obs.push_back(o);
+            }
+            ++cid;
+        }
+
+    // 3. support_power 0 vs 2：raw weight 改变
+    P2UpmBuildConfig c0 = mcfg, c2 = mcfg;
+    c0.support_power = 0.0;
+    c2.support_power = 2.0;
+    double w0 = 0, w2 = 0;
+    ASSERT_EQ(p2_upm_raw_weight(&obs[0], &c0, &w0), 0);
+    ASSERT_EQ(p2_upm_raw_weight(&obs[0], &c2, &w2), 0);
+    EXPECT_GT(std::fabs(w2 - w0), 1e-12)
+        << "support_power 0 vs 2 必须改变 raw weight";
+    // support=0.4：p=0 → 1；p=2 → 0.16
+    EXPECT_NEAR(w0, w2 / 0.16, 1e-12);
+
+    // 4. sigma_floor A vs B：低 uncertainty obs influence 改变
+    P2UpmBuildConfig cA = mcfg, cB = mcfg;
+    cA.sigma_floor = 0.005;   // unc=0.01 → max=0.01
+    cB.sigma_floor = 0.02;    // unc=0.01 → max=0.02（floor 生效）
+    double wA = 0, wB = 0;
+    ASSERT_EQ(p2_upm_raw_weight(&obs[0], &cA, &wA), 0);
+    ASSERT_EQ(p2_upm_raw_weight(&obs[0], &cB, &wB), 0);
+    EXPECT_GT(wA, wB) << "sigma_floor 更大 → inverse-variance 更小";
+    EXPECT_NEAR(wA / wB, (0.02 * 0.02) / (0.01 * 0.01), 1e-9);
+
+    // 5. quality 顺序 good > unknown > bad > rejected（冻结映射）
+    P2ControlObservation qo = obs[0];
+    double w_good = 0, w_unk = 0, w_bad = 0, w_rej = 0;
+    qo.quality_flags = 1;  p2_upm_raw_weight(&qo, &mcfg, &w_good);
+    qo.quality_flags = 0;  p2_upm_raw_weight(&qo, &mcfg, &w_unk);
+    qo.quality_flags = 2;  p2_upm_raw_weight(&qo, &mcfg, &w_bad);
+    qo.quality_flags = 16; p2_upm_raw_weight(&qo, &mcfg, &w_rej);
+    EXPECT_GT(w_good, w_unk);
+    EXPECT_GT(w_unk, w_bad);
+    EXPECT_GT(w_bad, w_rej);
+    EXPECT_DOUBLE_EQ(w_rej, 0.0);
+
+    // 6. topology invariance：改 SNR/quality 后 node count/geometry hash 不变
+    std::vector<P2ControlObservation> obs2 = obs;
+    for (auto& o : obs2) {
+        o.snr = (o.snr > 10.0) ? 3.0 : 50.0;
+        o.quality_flags = 0;
+    }
+    void* m1 = nullptr;
+    void* m2 = nullptr;
+    P2UpmBuildConfig bcfg = mcfg;
+    bcfg.max_iterations = 20;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &bcfg, &m1), 0);
+    ASSERT_EQ(p2_upm_build(obs2.data(), obs2.size(), &bcfg, &m2), 0);
+    P2ModelInfo i1{}, i2{};
+    ASSERT_EQ(p2_upm_info(m1, &i1), 0);
+    ASSERT_EQ(p2_upm_info(m2, &i2), 0);
+    EXPECT_EQ(i1.control_count, i2.control_count);
+    char gh1[65] = {0}, gh2[65] = {0};
+    ASSERT_EQ(p2_upm_geometry_hash(m1, gh1, 65), 0);
+    ASSERT_EQ(p2_upm_geometry_hash(m2, gh2, 65), 0);
+    EXPECT_STREQ(gh1, gh2) << "SNR/quality 改变不得改变 geometry hash";
+    // 但 model hash（含系数）应改变
+    EXPECT_NE(std::string(i1.model_hash), std::string(i2.model_hash));
+    p2_upm_close(m2);
+    p2_upm_close(m1);
+
+    // 7. machine-readable weight diagnostics
+    std::ofstream wf(
+        "F:/Astro dev/Astro CS Normalization Database/run/phase2/wiring/"
+        "weight_diagnostics.json");
+    ASSERT_TRUE(wf.good());
+    nlohmann::json diag;
+    diag["support_power_0"] = w0;
+    diag["support_power_2"] = w2;
+    diag["sigma_floor_0.005"] = wA;
+    diag["sigma_floor_0.02"] = wB;
+    diag["quality_good"] = w_good;
+    diag["quality_unknown"] = w_unk;
+    diag["quality_bad"] = w_bad;
+    diag["quality_rejected"] = w_rej;
+    diag["geometry_hash_invariant"] = (std::string(gh1) == std::string(gh2));
+    wf << diag.dump(2);
+    std::fprintf(stderr,
+                 "[G1-wiring] support0=%.6g support2=%.6g floorA=%.6g "
+                 "floorB=%.6g q_good=%.6g q_unk=%.6g q_bad=%.6g "
+                 "q_rej=%.6g geom_invariant=%d\n",
+                 w0, w2, wA, wB, w_good, w_unk, w_bad, w_rej,
+                 (int)(std::string(gh1) == std::string(gh2)));
 }
