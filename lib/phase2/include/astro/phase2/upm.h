@@ -107,6 +107,12 @@ P2_API int p2_upm_normalized_weights(const P2ControlObservation* obs,
 // SNR/quality/support 等观测可信度；权重变化不得改变）。
 P2_API int p2_upm_geometry_hash(const void* model, char* out, int buf_size);
 
+// R3（V4）：每连通分量求解前固定的 gauge frame id（分量内最小 frame_id；
+// 构建与重开后一致）。out 可为 NULL 只取数量。
+P2_API int p2_upm_component_gauges(const void* model,
+                                   std::uint64_t* out_component_count,
+                                   std::uint64_t* out_ref_frame_ids);
+
 // materialize dense cache（同模型 hash/目标 order/frame hash 校验）
 P2_API int p2_upm_materialize_dense(
     const void* model, int target_order, const char* cache_path);

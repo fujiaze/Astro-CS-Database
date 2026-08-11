@@ -292,17 +292,23 @@ TEST(Phase2Upm, G1SpatialFieldTruth) {
     // 生成 control 观测（3 帧 × 4 tiles × 64 cells）
     std::vector<P2ControlObservation> obs;
     std::vector<std::uint64_t> control_leaf(st::kGrid * st::kGrid *
-                                            sizeof(st::kTiles) / sizeof(st::kTiles[0]));
+                                            (sizeof(st::kTiles) /
+                                                 sizeof(st::kTiles[0]) +
+                                             1));
     std::vector<double> control_ra(control_leaf.size());
     std::uint64_t ctrl_id = 0;
     const int n_tiles = (int)(sizeof(st::kTiles) / sizeof(st::kTiles[0]));
-    for (int t = 0; t < n_tiles; ++t) {
+    // V4 R3：追加 tile7（与 5/6 真实相邻）完整 3 帧，保证边界节点合并
+    // 后 control_count 仍 ≥ 256。
+    for (int t = 0; t <= n_tiles; ++t) {
+        const std::uint64_t tile =
+            (t < n_tiles) ? st::kTiles[t] : (std::uint64_t)7;
         for (int gy = 0; gy < st::kGrid; ++gy) {
             for (int gx = 0; gx < st::kGrid; ++gx) {
                 double ra = 0, dec = 0;
-                st::cell_center_radec(st::kTiles[t], gx, gy, &ra, &dec);
+                st::cell_center_radec(tile, gx, gy, &ra, &dec);
                 const std::uint64_t leaf = st::leaf_of(
-                    st::kTiles[t], gx * st::kCellSide + st::kCellSide / 2,
+                    tile, gx * st::kCellSide + st::kCellSide / 2,
                     gy * st::kCellSide + st::kCellSide / 2);
                 control_leaf[(std::size_t)(t * st::kGrid * st::kGrid +
                                            gy * st::kGrid + gx)] = leaf;
@@ -310,6 +316,7 @@ TEST(Phase2Upm, G1SpatialFieldTruth) {
                                          gy * st::kGrid + gx)] = ra;
                 (void)dec;
                 // frame0（参考）覆盖全部；frame1 全部；frame2 仅前 3 tiles
+                //（tile7 追加为完整覆盖）
                 const int fmax = (t == n_tiles - 1) ? 1 : 2;
                 for (int f = 0; f <= fmax; ++f) {
                     P2ControlObservation o{};
@@ -318,7 +325,7 @@ TEST(Phase2Upm, G1SpatialFieldTruth) {
                     o.leaf_ipix = leaf;
                     o.ra_deg = ra;
                     double r2 = 0, d2 = 0;
-                    st::cell_center_radec(st::kTiles[t], gx, gy, &r2, &d2);
+                    st::cell_center_radec(tile, gx, gy, &r2, &d2);
                     o.dec_deg = d2;
                     o.value = st::true_sky(ra, d2) +
                               st::frame_field(f, ra, d2) + nd(rng);
@@ -519,6 +526,33 @@ TEST(Phase2Upm, G1V3SpatialTruthFull) {
             }
         }
     }
+    // V4 R3：追加 tile7（与 5/6 真实相邻，完整 3 帧），保证边界节点
+    // 合并后 control_count 仍 ≥ 256（G3 硬门）。
+    for (int gy = 0; gy < st::kGrid; ++gy) {
+        for (int gx = 0; gx < st::kGrid; ++gx) {
+            double ra = 0, dec = 0;
+            st::cell_center_radec(7, gx, gy, &ra, &dec);
+            const std::uint64_t leaf =
+                st::leaf_of(7, gx * st::kCellSide + 32,
+                            gy * st::kCellSide + 32);
+            for (int f = 0; f < 3; ++f) {
+                P2ControlObservation o{};
+                o.frame_id = (std::uint64_t)f;
+                o.control_id = cid;
+                o.leaf_ipix = leaf;
+                o.ra_deg = ra;
+                o.dec_deg = dec;
+                o.value = st::true_sky(ra, dec) +
+                          st::frame_field(f, ra, dec) + nd(rng);
+                o.uncertainty = st::kNoiseRms;
+                o.snr = 100.0;
+                o.support = 1.0;
+                o.quality_flags = 1;
+                obs.push_back(o);
+            }
+            ++cid;
+        }
+    }
     // 断开分量：tile100 仅 frame5
     for (int c = 0; c < 2; ++c) {
         double ra = 0, dec = 0;
@@ -640,6 +674,26 @@ TEST(Phase2Upm, G1V3SpatialTruthFull) {
     for (std::size_t i = 0; i < n_val; ++i)
         if (vframe[i] != 0) cdiff.push_back(c_hat[i] - c_true[i]);
     const double field_rmse = rms(cdiff);
+    // V4 R3：abs 指标（p95 = percentile(|error|, 0.95)，禁止用有符号
+    // percentile）；field/residual 各报告并 hard-assert RMSE/p95/max。
+    std::vector<double> res_abs(residual.size()), field_abs(cdiff.size());
+    for (std::size_t i = 0; i < residual.size(); ++i)
+        res_abs[i] = std::fabs(residual[i]);
+    for (std::size_t i = 0; i < cdiff.size(); ++i)
+        field_abs[i] = std::fabs(cdiff[i]);
+    const double res_abs_p95 = pct(res_abs, 0.95);
+    const double res_abs_max =
+        *std::max_element(res_abs.begin(), res_abs.end());
+    const double field_abs_p95 = pct(field_abs, 0.95);
+    const double field_abs_max =
+        *std::max_element(field_abs.begin(), field_abs.end());
+    // max 门限推导：|N(0,σ)| 在 n 样本的极值期望 ≈ σ·√(2·ln n)；
+    // 取 2.0× 安全裕度（n≈180k → ≈0.49，仍远小于场幅度 0.4–0.7
+    // 的 1.5–2 倍；系统级错误若达到场幅度会被该门拒绝）。
+    const double ev_max =
+        st::kNoiseRms *
+        std::sqrt(2.0 * std::log((double)std::max<std::size_t>(1, n_val)));
+    const double max_thresh = 2.0 * ev_max;
     // scalar-only baseline：每帧常数 offset（训练 control 残差中位数）
     std::vector<double> off(3, 0.0);
     for (int f = 1; f < 3; ++f) {
@@ -687,21 +741,61 @@ TEST(Phase2Upm, G1V3SpatialTruthFull) {
             }
     std::fprintf(stderr,
                  "[G1V3] controls=%llu val=%llu res_rmse=%.4f field_rmse=%.4f "
-                 "base_field_rmse=%.4f struct_corr=%.3f cell_jump=%.4f "
-                 "components=%u\n",
+                 "res_abs_p95=%.4f res_abs_max=%.4f field_abs_p95=%.4f "
+                 "field_abs_max=%.4f base_field_rmse=%.4f struct_corr=%.3f "
+                 "cell_jump=%.4f components=%u ev_max=%.4f max_thresh=%.4f\n",
                  (unsigned long long)info.control_count,
                  (unsigned long long)n_val, res_rmse, field_rmse,
+                 res_abs_p95, res_abs_max, field_abs_p95, field_abs_max,
                  base_field_rmse, struct_corr, max_cell_jump,
-                 info.component_count);
+                 info.component_count, ev_max, max_thresh);
     // hard gates
     EXPECT_LE(res_rmse, 3.0 * st::kNoiseRms);
-    EXPECT_LE(std::fabs(pct(residual, 0.95)), 5.0 * st::kNoiseRms);
     EXPECT_LE(field_rmse, 3.0 * st::kNoiseRms);
+    EXPECT_LE(res_abs_p95, 5.0 * st::kNoiseRms);
+    EXPECT_LE(field_abs_p95, 5.0 * st::kNoiseRms);
+    EXPECT_LE(res_abs_max, max_thresh);
+    EXPECT_LE(field_abs_max, max_thresh);
     EXPECT_LT(std::fabs(struct_corr), 0.2);
     // 双线性场内 cell 共享节点 → 边界两侧连续；1px 采样差由
     // C 节点观测噪声经插值传播主导（≈ 节点噪声/64）。门限 1e-3：
     // 远小于观测噪声(0.05)与场幅度(0.4)，同时可区分真实不连续。
     EXPECT_LE(max_cell_jump, 1e-3);
+    // V4 R3：每连通分量的 gauge frame id（求解前固定）
+    std::uint64_t n_comp = 0;
+    std::vector<std::uint64_t> gauge_refs(info.component_count, 0);
+    ASSERT_EQ(p2_upm_component_gauges(model, &n_comp, gauge_refs.data()), 0);
+    EXPECT_EQ(n_comp, (std::uint64_t)info.component_count);
+    EXPECT_GE(n_comp, 2u);
+    {
+        std::ostringstream gs;
+        for (std::uint64_t g : gauge_refs) gs << g << ",";
+        std::fprintf(stderr, "[G1V3] component_gauges=%s\n",
+                     gs.str().c_str());
+    }
+    // V4 R3：machine-readable truth metrics 证据
+    {
+        nlohmann::json mj;
+        mj["residual_abs_rmse"] = res_rmse;
+        mj["residual_abs_p95"] = res_abs_p95;
+        mj["residual_abs_max"] = res_abs_max;
+        mj["field_abs_rmse"] = field_rmse;
+        mj["field_abs_p95"] = field_abs_p95;
+        mj["field_abs_max"] = field_abs_max;
+        mj["baseline_field_rmse"] = base_field_rmse;
+        mj["structure_corr"] = struct_corr;
+        mj["max_cell_jump"] = max_cell_jump;
+        mj["extreme_value_max_threshold"] = max_thresh;
+        mj["validation_pixels"] = n_val;
+        mj["component_count"] = info.component_count;
+        mj["component_gauge_frame_ids"] = gauge_refs;
+        std::filesystem::create_directories(
+            "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth");
+        std::ofstream tf(
+            "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth/"
+            "upm_truth_metrics.json");
+        if (tf) tf << mj.dump(2);
+    }
     p2_upm_close(model);
 }
 
@@ -867,6 +961,154 @@ TEST(Phase2Upm, G4BoundaryAndPerturbation) {
     p2_upm_close(m0);
 }
 
+// V4 R3：真实相邻 tile 边界两侧 leaf pixels seam gate（不再用跨 tile
+// control-cell center 代替）。tiles {4,5,6,7} 是同一 order-6 父 tile 的
+// 完整 2×2 子块（sub 0/1/2/3）：4-5 与 6-7 为 x 方向 seam，4-6 与 5-7
+// 为 y 方向 seam，覆盖 HEALPix 两种边方向。比较 |C(p_left)-C(p_right)|
+// 与注入连续场在这两个实际 sky position 的 truth delta + 插值噪声上界。
+TEST(Phase2Upm, G4RealTileSeamLeaves) {
+    namespace st = spatial_truth;
+    std::mt19937 rng(20260819);
+    std::normal_distribution<double> nd(0.0, st::kNoiseRms);
+    const std::uint64_t tiles[4] = {4, 5, 6, 7};
+    const int n_tiles = 4;
+    std::vector<P2ControlObservation> obs;
+    std::uint64_t cid = 0;
+    for (int t = 0; t < n_tiles; ++t) {
+        for (int gy = 0; gy < st::kGrid; ++gy) {
+            for (int gx = 0; gx < st::kGrid; ++gx) {
+                double ra = 0, dec = 0;
+                st::cell_center_radec(tiles[t], gx, gy, &ra, &dec);
+                const std::uint64_t leaf =
+                    st::leaf_of(tiles[t], gx * st::kCellSide + 32,
+                                gy * st::kCellSide + 32);
+                for (int f = 0; f < 3; ++f) {
+                    P2ControlObservation o{};
+                    o.frame_id = (std::uint64_t)f;
+                    o.control_id = cid;
+                    o.leaf_ipix = leaf;
+                    o.ra_deg = ra;
+                    o.dec_deg = dec;
+                    o.value = st::true_sky(ra, dec) +
+                              st::frame_field(f, ra, dec) + nd(rng);
+                    o.uncertainty = st::kNoiseRms;
+                    o.snr = 100.0;
+                    o.support = 1.0;
+                    o.quality_flags = 1;
+                    obs.push_back(o);
+                }
+                ++cid;
+            }
+        }
+    }
+    P2UpmBuildConfig cfg{};
+    cfg.target_order = st::kTargetOrder;
+    cfg.smoothing_lambda = 0.5;
+    cfg.zero_anchor_weight = 1e-3;
+    cfg.sigma_floor = 0.02;
+    cfg.max_iterations = 60;
+    cfg.tolerance = 1e-9;
+    void* model = nullptr;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg, &model), 0);
+    P2ModelInfo info{};
+    ASSERT_EQ(p2_upm_info(model, &info), 0);
+    // V4 R3：4-tile 2×2 块边界节点合并后 control_count 允许 < 256；
+    // ≥256 controls 由主 truth gate（G1V3SpatialTruthFull，283）覆盖。
+    EXPECT_GT(info.control_count, 128u);
+
+    // 四组真实相邻 tile seam：{A, B, vertical}。
+    // vertical=true → A(x=511,y) 与 B(x=0,y)（sub0-1 / sub2-3 的 x seam）；
+    // vertical=false → A(x,y=511) 与 B(x,y=0)（sub0-2 / sub1-3 的 y seam）。
+    struct Seam {
+        std::uint64_t ta, tb;
+        bool vertical;
+    };
+    const std::vector<Seam> seams = {
+        {4, 5, true}, {6, 7, true}, {4, 6, false}, {5, 7, false}};
+    const double nside_leaf =
+        (double)(1u << (unsigned)(st::kTargetOrder + st::kTileShift));
+    const double leaf_spacing_deg =
+        std::sqrt(4.0 * 3.141592653589793 / (12.0 * nside_leaf * nside_leaf)) *
+        180.0 / 3.141592653589793;
+    // 噪声界推导：C 场插值噪声上界——同数据集 cell-seam 实测 ≤1e-3
+    // （G1V3）；真实 seam 两侧节点由跨 tile 平滑邻接耦合，取 3× 裕度，
+    // 远小于观测噪声(0.05)与场幅度(0.4–0.7)。
+    const double noise_bound = 3e-3;
+    double worst_excess = 0.0;
+    std::size_t total_pairs = 0;
+    std::vector<std::pair<std::uint64_t, std::uint64_t>> seam_pairs;
+    for (const auto& s : seams) {
+        double seam_max_jump = 0.0, seam_max_delta = 0.0;
+        std::size_t n_pairs = 0;
+        for (int k = 0; k < 512; k += 8) {
+            const int xa = s.vertical ? 511 : k;
+            const int ya = s.vertical ? k : 511;
+            const int xb = s.vertical ? 0 : k;
+            const int yb = s.vertical ? k : 0;
+            const std::uint64_t la = st::leaf_of(s.ta, xa, ya);
+            const std::uint64_t lb = st::leaf_of(s.tb, xb, yb);
+            double raa = 0, deca = 0, rab = 0, decb = 0;
+            astrocs::healpix::pix2ang_nest(
+                1u << (unsigned)(st::kTargetOrder + st::kTileShift), la,
+                raa, deca);
+            astrocs::healpix::pix2ang_nest(
+                1u << (unsigned)(st::kTargetOrder + st::kTileShift), lb,
+                rab, decb);
+            // sanity：pair 必须真正相邻（角距 < 2× leaf spacing）
+            EXPECT_LT(astrocs::healpix::angular_distance_deg(raa, deca, rab,
+                                                             decb),
+                      2.0 * leaf_spacing_deg)
+                << "seam pair 必须为真实相邻 leaf";
+            const double ca = p2_upm_evaluate_c(model, 1, la);
+            const double cb = p2_upm_evaluate_c(model, 1, lb);
+            const double delta =
+                std::fabs(st::frame_field(1, raa, deca) -
+                          st::frame_field(1, rab, decb));
+            const double jump = std::fabs(ca - cb);
+            seam_max_jump = std::max(seam_max_jump, jump);
+            seam_max_delta = std::max(seam_max_delta, delta);
+            worst_excess = std::max(worst_excess, jump - delta);
+            ++n_pairs;
+            ++total_pairs;
+        }
+        seam_pairs.push_back({s.ta, s.tb});
+        std::fprintf(stderr,
+                     "[G4-seam] %llu-%llu vertical=%d pairs=%zu "
+                     "max_delta=%.5f max_jump=%.5f\n",
+                     (unsigned long long)s.ta, (unsigned long long)s.tb,
+                     (int)s.vertical, n_pairs, seam_max_delta, seam_max_jump);
+    }
+    std::fprintf(stderr,
+                 "[G4-seam] total_pairs=%zu worst_excess=%.5f "
+                 "noise_bound=%.4f\n",
+                 total_pairs, worst_excess, noise_bound);
+    EXPECT_GE(total_pairs, 4u * 32u) << "必须覆盖多组 seam";
+    // hard gate：|C(p_left)-C(p_right)| ≤ 注入场 truth delta + 噪声界
+    EXPECT_LE(worst_excess, noise_bound)
+        << "真实 tile seam 两侧 C 跳变必须由注入连续场 delta + 插值噪声解释";
+    // machine-readable 证据
+    nlohmann::json sj;
+    sj["seams"] = nlohmann::json::array();
+    for (const auto& s : seams) {
+        nlohmann::json e;
+        e["tile_a"] = s.ta;
+        e["tile_b"] = s.tb;
+        e["vertical_edge"] = s.vertical;
+        sj["seams"].push_back(e);
+    }
+    sj["leaf_spacing_deg"] = leaf_spacing_deg;
+    sj["noise_bound"] = noise_bound;
+    sj["total_boundary_pairs"] = total_pairs;
+    sj["worst_excess_over_truth_delta"] = worst_excess;
+    std::filesystem::create_directories(
+        "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth");
+    std::ofstream sf(
+        "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth/"
+        "tile_seam_metrics.json");
+    if (sf) sf << sj.dump(2);
+    p2_upm_close(model);
+}
+
 // G3/G4 持久化：medium round-trip（target_order/frames/hash 保持）、
 // 1 ULP 系数变化 hash 敏感、>8 MiB 模型 round-trip。
 TEST(Phase2Upm, G2PersistenceAndHashSensitivity) {
@@ -985,6 +1227,8 @@ TEST(Phase2Upm, G2PersistenceAndHashSensitivity) {
     }
     void* bm = nullptr;
     ASSERT_EQ(p2_upm_build(big.data(), big.size(), &bcfg, &bm), 0);
+    P2ModelInfo binfo{};
+    ASSERT_EQ(p2_upm_info(bm, &binfo), 0);
     const char* big_path = "run_tmp_upm_big.json";
     ASSERT_EQ(p2_upm_save(bm, big_path), 0);
     std::ifstream fbig(big_path, std::ios::binary | std::ios::ate);
@@ -997,7 +1241,10 @@ TEST(Phase2Upm, G2PersistenceAndHashSensitivity) {
     ASSERT_EQ(p2_upm_open(big_path, &bm2), 0);
     P2ModelInfo binfo2{};
     ASSERT_EQ(p2_upm_info(bm2, &binfo2), 0);
-    EXPECT_EQ(binfo2.control_count, kBigControls);
+    // V4 R3：跨 tile 边界节点共享后 control_count 不再等于 cell 数；
+    // >8 MiB round-trip 保持 control_count/hash/校准一致。
+    EXPECT_EQ(binfo2.control_count, binfo.control_count);
+    EXPECT_GT(binfo.control_count, 0ull);
     std::uint64_t bleaf[1] = {1};
     double bin[1] = {9.0}, bout1[1] = {0}, bout2[1] = {0};
     ASSERT_EQ(p2_upm_calibrate_block(bm, 1, bleaf, bin, bout1, 1), 0);

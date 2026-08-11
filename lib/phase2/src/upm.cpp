@@ -214,6 +214,99 @@ int p2_upm_build(const P2ControlObservation* obs, std::uint64_t n_obs,
         m->controls[it->second].obs_idx.push_back(i);
         frame_ids.insert(o.frame_id);
     }
+    // V4 R3：跨 tile 边界节点合并（真实 tile seam 连续拓扑）。
+    // 跨 tile 且中心角距 ≤ 1.05×cell 间距的边界节点对共享同一系数
+    // （对齐 seam 的面向节点对；对角/相邻次列 1.41/2.0× 间距被排除）。
+    // 合并后 evaluate_C 在 seam 两侧经 cell_index 别名解析到同一节点，
+    // tile-local clamp 不再产生不连续（V3 审核 P0-03）。
+    {
+        const std::size_t K0 = m->controls.size();
+        const double nside = (double)(1u << (unsigned)(cfg.target_order + 9));
+        const double pix_rad = std::sqrt(4.0 * 3.141592653589793 /
+                                         (12.0 * nside * nside));
+        const double cell_dist_rad = (double)m->cell_side * pix_rad;
+        const double merge_rad_deg =
+            cell_dist_rad * 1.05 * 180.0 / 3.141592653589793;
+        std::vector<std::size_t> parent(K0);
+        for (std::size_t k = 0; k < K0; ++k) parent[k] = k;
+        auto find = [&](std::size_t x) {
+            while (parent[x] != x) {
+                parent[x] = parent[parent[x]];
+                x = parent[x];
+            }
+            return x;
+        };
+        auto unite = [&](std::size_t a, std::size_t b) {
+            const std::size_t ra = find(a), rb = find(b);
+            if (ra != rb) parent[std::max(ra, rb)] = std::min(ra, rb);
+        };
+        std::vector<std::size_t> boundary;
+        for (std::size_t k = 0; k < K0; ++k) {
+            const auto& cn = m->controls[k];
+            if (cn.gx == 0 || cn.gx == m->grid - 1 || cn.gy == 0 ||
+                cn.gy == m->grid - 1)
+                boundary.push_back(k);
+        }
+        for (std::size_t i = 0; i < boundary.size(); ++i) {
+            const auto& a = m->controls[boundary[i]];
+            for (std::size_t j = i + 1; j < boundary.size(); ++j) {
+                const auto& b = m->controls[boundary[j]];
+                if (a.tile_ipix == b.tile_ipix) continue;
+                if (std::fabs(a.ra_deg - b.ra_deg) > merge_rad_deg) continue;
+                if (std::fabs(a.dec_deg - b.dec_deg) > merge_rad_deg) continue;
+                if (astrocs::healpix::angular_distance_deg(
+                        a.ra_deg, a.dec_deg, b.ra_deg, b.dec_deg) <
+                    merge_rad_deg)
+                    unite(boundary[i], boundary[j]);
+            }
+        }
+        std::map<std::size_t, std::size_t> root_new;
+        std::vector<std::size_t> new_idx(K0, 0);
+        for (std::size_t k = 0; k < K0; ++k) {
+            const std::size_t r = find(k);
+            const auto it = root_new.find(r);
+            if (it == root_new.end()) {
+                const std::size_t ni = root_new.size();
+                root_new[r] = ni;
+                new_idx[k] = ni;
+            } else {
+                new_idx[k] = it->second;
+            }
+        }
+        if (root_new.size() != K0) {
+            std::vector<ControlNode> merged(root_new.size());
+            for (std::size_t k = 0; k < K0; ++k)
+                if (find(k) == k) merged[root_new[k]] = m->controls[k];
+            std::map<std::pair<std::uint64_t, std::pair<int, int>>,
+                     std::size_t>
+                new_cell_index;
+            for (const auto& kv : m->cell_index)
+                new_cell_index[kv.first] = new_idx[kv.second];
+            m->cell_index = std::move(new_cell_index);
+            m->controls = std::move(merged);
+            m->control_by_id.clear();
+            for (auto& cn : m->controls) cn.obs_idx.clear();
+            for (std::uint64_t i = 0; i < n_obs; ++i) {
+                const auto& o = obs[i];
+                const std::uint64_t tile =
+                    leaf_to_tile(o.leaf_ipix, tile_shift);
+                const std::uint64_t local =
+                    leaf_local(o.leaf_ipix, tile_shift);
+                std::uint32_t x = 0, y = 0;
+                astrocs::healpix::nested_local_to_xy(
+                    local, (std::uint32_t)tile_shift, x, y);
+                const int gx = (int)(x / (std::uint32_t)m->cell_side);
+                const int gy = (int)(y / (std::uint32_t)m->cell_side);
+                const auto key =
+                    std::make_pair(tile, std::make_pair(gx, gy));
+                const auto it = m->cell_index.find(key);
+                if (it == m->cell_index.end()) return 1;  // 不应发生
+                const std::size_t idx = it->second;
+                m->control_by_id[o.control_id] = idx;
+                m->controls[idx].obs_idx.push_back(i);
+            }
+        }
+    }
     m->info.control_count = m->controls.size();
     const std::size_t K = m->controls.size();
     for (std::uint64_t f : frame_ids) {
@@ -227,21 +320,29 @@ int p2_upm_build(const P2ControlObservation* obs, std::uint64_t n_obs,
     m->C.assign(F, std::vector<double>(K, 0.0));
     m->obs_w.assign(F, std::vector<double>(K, 0.0));
 
-    // 邻接图：tile 内 8×8 网格（上下左右）
+    // 邻接图：网格邻接经 cell_index 全键遍历（含跨 tile 合并别名键，
+    // 使合并节点两侧邻居都连到同一系数），随后跨 tile 边界平滑链接。
     m->adj.assign(K, {});
-    for (std::size_t k = 0; k < K; ++k) {
-        const auto& cn = m->controls[k];
+    auto add_edge = [&](std::size_t a, std::size_t b) {
+        if (a == b) return;
+        m->adj[a].push_back(b);
+        m->adj[b].push_back(a);
+    };
+    for (const auto& kv : m->cell_index) {
+        const std::uint64_t tile = kv.first.first;
+        const int gx = kv.first.second.first;
+        const int gy = kv.first.second.second;
+        const std::size_t k = kv.second;
         auto link = [&](int nx, int ny) {
             if (nx < 0 || ny < 0 || nx >= m->grid || ny >= m->grid) return;
-            const auto key =
-                std::make_pair(cn.tile_ipix, std::make_pair(nx, ny));
+            const auto key = std::make_pair(tile, std::make_pair(nx, ny));
             const auto it = m->cell_index.find(key);
-            if (it != m->cell_index.end()) m->adj[k].push_back(it->second);
+            if (it != m->cell_index.end()) add_edge(k, it->second);
         };
-        link(cn.gx + 1, cn.gy);
-        link(cn.gx - 1, cn.gy);
-        link(cn.gx, cn.gy + 1);
-        link(cn.gx, cn.gy - 1);
+        link(gx + 1, gy);
+        link(gx - 1, gy);
+        link(gx, gy + 1);
+        link(gx, gy - 1);
     }
 
     // R4：跨 tile 几何邻接（tile 边界 control cells 角距 < 阈值连接，
@@ -518,6 +619,13 @@ int p2_upm_build(const P2ControlObservation* obs, std::uint64_t n_obs,
                         std::to_string(cn.gx) + "," + std::to_string(cn.gy) +
                         "," + fmt(cn.M) + ";";
         }
+        payload += "|T";
+        for (const auto& kv : m->cell_index) {
+            payload += std::to_string(kv.first.first) + "," +
+                        std::to_string(kv.first.second.first) + "," +
+                        std::to_string(kv.first.second.second) + "," +
+                        std::to_string(kv.second) + ";";
+        }
         payload += "|C";
         for (std::size_t f = 0; f < F; ++f) {
             for (std::size_t k = 0; k < K; ++k)
@@ -557,6 +665,14 @@ int p2_upm_save(const void* model, const char* path) {
     j["iterations"] = m->iterations;
     j["objective"] = m->objective;
     j["component_count"] = m->component_count;
+    nlohmann::json refs = nlohmann::json::array();
+    for (std::size_t c = 0; c < m->component_count; ++c)
+        refs.push_back(m->component_ref_frame[c]);
+    j["component_ref_frame"] = refs;
+    nlohmann::json fcomp = nlohmann::json::array();
+    for (std::size_t f = 0; f < m->frame_component.size(); ++f)
+        fcomp.push_back(m->frame_component[f]);
+    j["frame_component"] = fcomp;
     j["control_count"] = m->info.control_count;
     j["observation_count"] = m->info.observation_count;
     nlohmann::json frames = nlohmann::json::array();
@@ -569,6 +685,11 @@ int p2_upm_save(const void* model, const char* path) {
                             cn.M, cn.leaf_ipix});
     }
     j["controls"] = controls;
+    nlohmann::json ci = nlohmann::json::array();
+    for (const auto& kv : m->cell_index)
+        ci.push_back({kv.first.first, kv.first.second.first,
+                      kv.first.second.second, kv.second});
+    j["cell_index"] = ci;
     nlohmann::json Cj = nlohmann::json::array();
     for (std::size_t f = 0; f < m->C.size(); ++f) {
         nlohmann::json row = nlohmann::json::array();
@@ -636,6 +757,17 @@ int p2_upm_open(const char* path, void** out_model) {
         const std::uint64_t fid = fr.get<std::uint64_t>();
         m->frame_index[fid] = fi++;
     }
+    // R3（V4）：每分量 gauge frame id + frame→component 映射持久化
+    if (j.contains("component_ref_frame") && j.contains("frame_component")) {
+        m->component_ref_frame.resize(m->component_count);
+        for (std::size_t c = 0; c < m->component_count; ++c)
+            m->component_ref_frame[c] =
+                j["component_ref_frame"][c].get<std::uint64_t>();
+        m->frame_component.assign(fi, 0);
+        for (std::size_t f = 0; f < fi; ++f)
+            m->frame_component[f] =
+                j["frame_component"][f].get<std::size_t>();
+    }
     // controls
     for (const auto& ct : j["controls"]) {
         ControlNode cn;
@@ -653,6 +785,19 @@ int p2_upm_open(const char* path, void** out_model) {
         m->cell_index[key] = m->controls.size();
         m->control_by_id[cn.id] = m->controls.size();
         m->controls.push_back(cn);
+    }
+    // R3（V4）：恢复完整 cell_index（含跨 tile 合并别名键，保证 seam
+    // 求值与保存前一致）；旧文件无该键时退化为 controls 推导的拓扑。
+    if (j.contains("cell_index")) {
+        m->cell_index.clear();
+        for (const auto& e : j["cell_index"]) {
+            const std::uint64_t tile = e[0].get<std::uint64_t>();
+            const int gx = e[1].get<int>();
+            const int gy = e[2].get<int>();
+            const std::size_t idx = e[3].get<std::size_t>();
+            m->cell_index[std::make_pair(tile, std::make_pair(gx, gy))] =
+                idx;
+        }
     }
     const std::size_t F = m->frame_index.size();
     const std::size_t K = m->controls.size();
@@ -800,6 +945,20 @@ int p2_upm_geometry_hash(const void* model, char* out, int buf_size) {
         astrocs::crypto::sha256_hex(payload.data(), payload.size());
     std::strncpy(out, h.c_str(), (std::size_t)buf_size - 1);
     out[buf_size - 1] = '\0';
+    return 0;
+}
+
+int p2_upm_component_gauges(const void* model,
+                            std::uint64_t* out_component_count,
+                            std::uint64_t* out_ref_frame_ids) {
+    if (model == nullptr) return 1;
+    const Model* m = static_cast<const Model*>(model);
+    if (out_component_count) *out_component_count = m->component_count;
+    if (out_ref_frame_ids && m->component_count > 0) {
+        if (m->component_ref_frame.size() < m->component_count) return 2;
+        for (std::size_t c = 0; c < m->component_count; ++c)
+            out_ref_frame_ids[c] = m->component_ref_frame[c];
+    }
     return 0;
 }
 
