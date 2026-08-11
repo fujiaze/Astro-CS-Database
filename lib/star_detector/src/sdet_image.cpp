@@ -879,7 +879,7 @@ void sdet_dynamic_regional_background(const float* src, float* out_detail, int w
         int n_sbx = std::max(1, (x1 - x0 - sub_block_overlap + sub_step - 1) / sub_step);
         int n_sby = std::max(1, (y1 - y0 - sub_block_overlap + sub_step - 1) / sub_step);
 
-        sub_blocks[bi].resize(n_sbx * n_sby);
+        sub_blocks[bi].resize((std::size_t)n_sbx * (std::size_t)n_sby);
         for (int sby = 0; sby < n_sby; sby++) {
             for (int sbx = 0; sbx < n_sbx; sbx++) {
                 int sx0 = x0 + sbx * sub_step;

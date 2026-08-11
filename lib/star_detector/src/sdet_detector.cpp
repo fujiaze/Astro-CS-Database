@@ -74,7 +74,7 @@ int sdet_find_connected_components(const float* binary_map, int w, int h,
                                     ConnectedComponent** out_components, int* out_count) {
     auto t0 = std::chrono::high_resolution_clock::now();
 
-    std::vector<uint8_t> visited(w * h, 0);
+    std::vector<uint8_t> visited((std::size_t)w * (std::size_t)h, 0);
     std::vector<ConnectedComponent> components;
 
     struct Span { int y, xleft, xright; };
@@ -184,7 +184,7 @@ void sdet_get_star_parameters(const float* image, int w, int h, ConnectedCompone
         int oy1 = std::min(h, cc->y1 + delta);
 
         std::vector<float> annulus;
-        annulus.reserve((ox1 - ox0) * (oy1 - oy0));
+        annulus.reserve((std::size_t)(ox1 - ox0) * (std::size_t)(oy1 - oy0));
         for (int yy = oy0; yy < oy1; yy++) {
             for (int xx = ox0; xx < ox1; xx++) {
                 if (xx >= cc->x0 && xx < cc->x1 && yy >= cc->y0 && yy < cc->y1) continue;

@@ -171,8 +171,8 @@ static bool irls_huber_fit(
     coeff.assign(K, 0.0);
     std::vector<double> prev_coeff(K, 0.0);
 
-    // 工作矩阵: K×(K+1) 增广矩阵
-    std::vector<double> Amat(K * (K + 1), 0.0);
+    // 工作矩阵: K×(K+1) 增广矩阵（CodeQL V1 #5：先提升 size_t 防溢出）
+    std::vector<double> Amat((std::size_t)K * (std::size_t)(K + 1), 0.0);
 
     for (int iter = 0; iter < max_iter; ++iter) {
         // 构造正规方程 (A^T W A) c = A^T W b

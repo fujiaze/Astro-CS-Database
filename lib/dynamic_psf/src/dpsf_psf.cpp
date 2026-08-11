@@ -25,7 +25,8 @@ struct SamplePixel {
 };
 
 static bool gauss_solve(int n, const double* A, const double* b, double* x) {
-    std::vector<double> aug(n * (n + 1));
+    // CodeQL V1 #1：int 乘法提升到 size_t 再分配，避免大矩阵尺寸溢出
+    std::vector<double> aug((std::size_t)n * (std::size_t)(n + 1));
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++)
             aug[i * (n + 1) + j] = A[i * n + j];
@@ -98,8 +99,9 @@ static int lm_solve(int m, int n, double* x, void* userdata,
                     void (*residual_func)(double*, int, void*, double*),
                     double tol, int max_iter) {
     std::vector<double> fvec(m), fvec_new(m);
-    std::vector<double> J(m * n);
-    std::vector<double> JtJ(n * n), Jtf(n), delta(n), x_new(n);
+    std::vector<double> J((std::size_t)m * (std::size_t)n);
+    std::vector<double> JtJ((std::size_t)n * (std::size_t)n), Jtf(n),
+        delta(n), x_new(n);
 
     double lambda = 1e-3;
 
@@ -236,7 +238,7 @@ static int moffat4_fit_tmpl(const ImageT* image, int width, int height,
     }
 
     std::vector<SamplePixel> samples;
-    samples.reserve(rw * rh);
+    samples.reserve((std::size_t)rw * (std::size_t)rh);
     for (int y = rect_y0; y < rect_y1; y++) {
         for (int x = rect_x0; x < rect_x1; x++) {
             SamplePixel sp;
@@ -307,7 +309,7 @@ static int moffat4_fit_tmpl(const ImageT* image, int width, int height,
     double params[7] = { bkg0, A0, 0.0, 0.0, sx0, sx0, 0.0 };
 
     dpsf_log(LOG_INFO, "DPSF", "Initial params: B=%.2f A=%.2f x0=0 y0=0 sx=%.2f sy=%.2f theta=0",
-           bkg0, A0, sx0);
+           bkg0, A0, sx0, sx0);
 
     int lm_status = lm_solve(m, NPARAMS, params, static_cast<void*>(samples.data()),
                               moffat4_residual, 1e-8, 200);

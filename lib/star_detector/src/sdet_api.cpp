@@ -245,18 +245,18 @@ struct LMWorkspace {
     void resize(int m, int n) {
         fvec.resize(m);
         fvec_new.resize(m);
-        J.resize(m * n);
-        JtJ.resize(n * n);
+        J.resize((std::size_t)m * (std::size_t)n);
+        JtJ.resize((std::size_t)n * (std::size_t)n);
         Jtf.resize(n);
         delta.resize(n);
         x_new.resize(n);
         rhs.resize(n);
-        A_aug.resize(n * n);
+        A_aug.resize((std::size_t)n * (std::size_t)n);
     }
 };
 
 bool sdet_gauss_solve(int n, const double* A, const double* b, double* x) {
-    std::vector<double> aug(n * (n + 1));
+    std::vector<double> aug((std::size_t)n * (std::size_t)(n + 1));
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++)
             aug[i * (n + 1) + j] = A[i * n + j];
@@ -604,13 +604,13 @@ int sdet_lm_solve(int m, int n, double* x, void* userdata,
     } else {
         fvec_local.resize(m);
         fvec_new_local.resize(m);
-        J_local.resize(m * n);
-        JtJ_local.resize(n * n);
+        J_local.resize((std::size_t)m * (std::size_t)n);
+        JtJ_local.resize((std::size_t)n * (std::size_t)n);
         Jtf_local.resize(n);
         delta_local.resize(n);
         x_new_local.resize(n);
         rhs_local.resize(n);
-        A_local.resize(n * n);
+        A_local.resize((std::size_t)n * (std::size_t)n);
         fvec_ptr = fvec_local.data();
         fvec_new_ptr = fvec_new_local.data();
         J_ptr = J_local.data();
@@ -810,7 +810,7 @@ int sdet_moffat4_fit(const T* image, int width, int height,
         return SDET_FIT_INVALID_PARAMS;
 
     std::vector<SamplePixel> samples;
-    samples.reserve(rw * rh);
+    samples.reserve((std::size_t)rw * (std::size_t)rh);
     for (int y = rect_y0; y < rect_y1; y++) {
         for (int x = rect_x0; x < rect_x1; x++) {
             double val = static_cast<double>(image[y * width + x]);
@@ -1051,9 +1051,12 @@ void sdet_detect_saturated_stars(const float* fimg, int width, int height,
         // 加权重心作为 edge-walking 起点
         double sum_wx = 0, sum_wy = 0, sum_w = 0;
         for (int j = 0; j < components[i].count; j++) {
-            float val = fimg[components[i].py[j] * width + components[i].px[j]];
-            sum_wx += components[i].px[j] * val;
-            sum_wy += components[i].py[j] * val;
+            const std::size_t idx =
+                (std::size_t)components[i].py[j] * (std::size_t)width +
+                (std::size_t)components[i].px[j];
+            float val = fimg[idx];
+            sum_wx += (double)components[i].px[j] * val;
+            sum_wy += (double)components[i].py[j] * val;
             sum_w += val;
         }
 
@@ -1348,9 +1351,12 @@ SDET_EXPORT int sdet_detect(StarDetectorHandle handle,
         if (ar > 2.0f) continue;
         double sum_wx = 0, sum_wy = 0, sum_w = 0;
         for (int j = 0; j < components[i].count; j++) {
-            float val = fimg[components[i].py[j] * width + components[i].px[j]];
-            sum_wx += components[i].px[j] * val;
-            sum_wy += components[i].py[j] * val;
+            const std::size_t idx =
+                (std::size_t)components[i].py[j] * (std::size_t)width +
+                (std::size_t)components[i].px[j];
+            float val = fimg[idx];
+            sum_wx += (double)components[i].px[j] * val;
+            sum_wy += (double)components[i].py[j] * val;
             sum_w += val;
         }
         double cx = (sum_w > 0) ? sum_wx / sum_w : (components[i].x0 + components[i].x1) / 2.0;
@@ -1653,9 +1659,12 @@ SDET_EXPORT int sdet_detect_debug(StarDetectorHandle handle,
         if (ar > 3.0f) continue;
         double sum_wx = 0, sum_wy = 0, sum_w = 0;
         for (int j = 0; j < components[i].count; j++) {
-            float val = fimg[components[i].py[j] * width + components[i].px[j]];
-            sum_wx += components[i].px[j] * val;
-            sum_wy += components[i].py[j] * val;
+            const std::size_t idx =
+                (std::size_t)components[i].py[j] * (std::size_t)width +
+                (std::size_t)components[i].px[j];
+            float val = fimg[idx];
+            sum_wx += (double)components[i].px[j] * val;
+            sum_wy += (double)components[i].py[j] * val;
             sum_w += val;
         }
         double cx = (sum_w > 0) ? sum_wx / sum_w : (components[i].x0 + components[i].x1) / 2.0;

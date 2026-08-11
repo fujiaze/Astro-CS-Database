@@ -223,8 +223,10 @@ void sex_filterback(BackMap* bmap) {
     int nfx = 3, nfy = 3;
     int npx = nfx / 2, npy = nfy / 2;
     
-    std::vector<float> bmask((2 * npx + 1) * (2 * npy + 1));
-    std::vector<float> smask((2 * npx + 1) * (2 * npy + 1));
+    std::vector<float> bmask((std::size_t)(2 * npx + 1) *
+                             (std::size_t)(2 * npy + 1));
+    std::vector<float> smask((std::size_t)(2 * npx + 1) *
+                             (std::size_t)(2 * npy + 1));
     
     for (int py = 0; py < ny; py++) {
         int npy2 = std::min({py, ny - py - 1, npy});
@@ -290,7 +292,7 @@ void sex_makeback(const float* image, int w, int h, int mesh_size, BackMap* bmap
             int bw = x1 - x0;
             int bh = y1 - y0;
             
-            std::vector<float> buf(bw * bh);
+            std::vector<float> buf((std::size_t)bw * (std::size_t)bh);
             for (int y = 0; y < bh; y++) {
                 for (int x = 0; x < bw; x++) {
                     buf[y * bw + x] = image[(y0 + y) * w + (x0 + x)];
