@@ -107,8 +107,8 @@
 
 ## 当前进度
 
-### Phase2 V1 实施（2026-08-11，控制包 34A532A2...B2EB308，HEAD f70080c）
-**状态：真实链闭合 + Gate 全补测 + stage2 GPU 路由，审核包 AstroCS_Review_Phase2_V1.zip（SHA 2C761218...A31741）**
+### Phase2 V1 实施（2026-08-11，控制包 34A532A2...B2EB308，HEAD fb52ba1）
+**状态：真实链闭合 + Gate 全补测 + GPU 路由 + AIO model APIs，审核包 AstroCS_Review_Phase2_V1.zip（SHA 6EC2A920...815BF3）**
 - 正式定义：多个 Phase1 单帧 HiPS → coverage union Ω → 一个 UPM
   （Huber IRLS + SNR-aware 权重 + 弱零锚 + 连通分量）→ 动态分块 →
   全部覆盖帧加性校准到 UPM → 迭代排异（7 种）→ SNR/support/quality
@@ -134,7 +134,9 @@
   （616 组合 = 11 深度 × 8 污染 × 7 方法）；G9 真实 CUDA kernel
   （mosaic_reject，RTX 3060 Ti）→ stage2 逐 tile ACR 路由，真实重叠
   61.6M 像素 CPU/GPU max diff 7.45e-9，tiles_process 13.6s→11.2s。
-  合成 gate 22/22。
+  AIO model APIs（aio_upm_* sparse/dense 容器 + checksum/stale 拒绝，
+  sha256 移至 lib/common/crypto 共用），UPM I/O 迁移唯一 AIO；
+  Phase1 AIO 回归 28/28 + fuzz 8668/8668。合成 gate 22/22。
 - 模块文档：lib/phase2/memory.md（接口/验证/未完成项）、README.md；
   工程控制/docs/PHASE2_IMPLEMENTATION/EXECUTION_LOG.md。
 - 未完成：GUI smoke（无环境）、weight/rejection_count 作为 Image HiPS
