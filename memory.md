@@ -107,8 +107,8 @@
 
 ## 当前进度
 
-### Phase2 V1 实施（2026-08-10，控制包 34A532A2...B2EB308，HEAD 658c02b+）
-**状态：真实链闭合 + Gate 全补测（含 GPU），审核包 AstroCS_Review_Phase2_V1.zip（SHA F9638B74...EC6F）**
+### Phase2 V1 实施（2026-08-11，控制包 34A532A2...B2EB308，HEAD f70080c）
+**状态：真实链闭合 + Gate 全补测 + stage2 GPU 路由，审核包 AstroCS_Review_Phase2_V1.zip（SHA 2C761218...A31741）**
 - 正式定义：多个 Phase1 单帧 HiPS → coverage union Ω → 一个 UPM
   （Huber IRLS + SNR-aware 权重 + 弱零锚 + 连通分量）→ 动态分块 →
   全部覆盖帧加性校准到 UPM → 迭代排异（7 种）→ SNR/support/quality
@@ -132,12 +132,13 @@
   G10 WSL ASan+UBSan+LSan 0 错误 + 2000 随机 rejection/100 随机 UPM fuzz；
   G11 diagnostics.json（rejection 直方图）；G6 全量 synthetic matrix
   （616 组合 = 11 深度 × 8 污染 × 7 方法）；G9 真实 CUDA kernel
-  （mosaic_reject，RTX 3060 Ti，CPU/GPU 等价 gate）。合成 gate 21/21。
+  （mosaic_reject，RTX 3060 Ti）→ stage2 逐 tile ACR 路由，真实重叠
+  61.6M 像素 CPU/GPU max diff 7.45e-9，tiles_process 13.6s→11.2s。
+  合成 gate 22/22。
 - 模块文档：lib/phase2/memory.md（接口/验证/未完成项）、README.md；
   工程控制/docs/PHASE2_IMPLEMENTATION/EXECUTION_LOG.md。
 - 未完成：GUI smoke（无环境）、weight/rejection_count 作为 Image HiPS
-  产品（当前 JSON 诊断）、stage2 逐 tile ACR dispatcher 路由
-  （GPU kernel 已就绪并验证等价，主循环仍走 CPU reference）。
+  产品（当前 JSON 诊断 + GPU 路径计数缓冲）。
 
 ### Phase1 Final Closure V3（2026-08-08，控制包 11b57bad，HEAD 5d5be0a+）
 **状态：全部核心 Gate 通过，冻结收尾中**
