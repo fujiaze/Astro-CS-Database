@@ -10,7 +10,11 @@
 //   - 输出诊断：iterations/objective/control/observation/component。
 #include "astro/phase2/upm.h"
 
-#include "sha256.h"
+#include "crypto/sha256.h"
+
+extern "C" {
+#include "aio_upm.h"
+}
 
 #include <algorithm>
 #include <cmath>
@@ -236,7 +240,7 @@ int p2_upm_build(const P2ControlObservation* obs, std::uint64_t n_obs,
         for (double off : m->frame_offset) {
             payload += std::to_string(off) + ";";
         }
-        const std::string h = astrocs::p2::sha256_hex(
+        const std::string h = astrocs::crypto::sha256_hex(
             payload.data(), payload.size());
         std::memcpy(m->info.model_hash, h.c_str(), 64);
         m->info.model_hash[64] = '\0';
@@ -281,19 +285,24 @@ int p2_upm_save(const void* model, const char* path) {
             {cn.id, cn.leaf_ipix, cn.ra_deg, cn.dec_deg, cn.z});
     }
     j["controls"] = controls;
-    std::ofstream f(path);
-    if (!f) return 1;
-    f << j.dump(2);
-    return f.good() ? 0 : 1;
+    // 唯一 AIO：模型稀疏持久化走 aio_upm_write_sparse
+    const std::string text = j.dump(2);
+    return aio_upm_write_sparse(path, text.c_str());
 }
 
 int p2_upm_open(const char* path, void** out_model) {
     if (path == nullptr || out_model == nullptr) return 1;
-    std::ifstream f(path);
-    if (!f) return 1;
+    AioUpmSparse* aio = aio_upm_open(path);
+    if (!aio) return 1;
+    char buf[1 << 20];
+    if (aio_upm_read_all(aio, buf, (int)sizeof(buf)) != 0) {
+        aio_upm_close(aio);
+        return 1;
+    }
+    aio_upm_close(aio);
     nlohmann::json j;
     try {
-        f >> j;
+        j = nlohmann::json::parse(buf);
     } catch (...) {
         return 1;
     }
@@ -372,50 +381,30 @@ int p2_upm_materialize_dense(const void* model, int target_order,
     if (model == nullptr || cache_path == nullptr) return 1;
     const Model* m = static_cast<const Model*>(model);
     if (target_order < 0) target_order = m->info.target_order;
-
-    // 帧 manifest 哈希：frame_id+offset 内容哈希（dense cache 依赖声明）
-    {
-        std::string manifest;
-        for (const auto& kv : m->frame_index)
-            manifest += std::to_string(kv.first) + ":" +
-                        std::to_string(m->frame_offset[kv.second]) + ";";
-        // 保存到帧偏移文件段（见下）
-        (void)manifest;
+    // 唯一 AIO：稠密缓存经 aio_upm_dense_* 容器写入
+    AioUpmDense* d = aio_upm_dense_begin(
+        cache_path, m->info.model_hash, target_order, m->info.precision,
+        m->controls.size(), m->frame_offset.size());
+    if (!d) return 1;
+    std::vector<double> z(m->controls.size());
+    for (std::size_t k = 0; k < m->controls.size(); ++k)
+        z[k] = m->controls[k].z;
+    if (aio_upm_dense_write_controls(d, z.data(), z.size()) != 0) {
+        aio_upm_dense_abort(d);
+        return 1;
     }
-
-    // dense cache 文件格式（内部格式，非 IVOA 标准）：
-    //   头部 JSON（一行）+ 二进制 controls 块 + 二进制 frame offset 块
-    std::FILE* f = std::fopen(cache_path, "wb");
-    if (!f) return 1;
-    std::fprintf(f,
-                 "{\"format\":\"astrocs-upm-dense-v1\","
-                 "\"source_hash\":\"%s\",\"target_order\":%d,"
-                 "\"precision\":%u,\"control_count\":%llu,"
-                 "\"frame_count\":%llu,\"checksum\":\"%s\"}\n",
-                 m->info.model_hash, target_order, m->info.precision,
-                 (unsigned long long)m->controls.size(),
-                 (unsigned long long)m->frame_offset.size(),
-                 m->info.model_hash);
-    // controls 块：z 值数组（double）
-    for (const auto& cn : m->controls) {
-        const double z = cn.z;
-        if (std::fwrite(&z, sizeof(z), 1, f) != 1) {
-            std::fclose(f);
-            return 1;
-        }
-    }
-    // frame 块：frame_id (u64) + offset (double) 对
+    std::vector<std::uint64_t> fids(m->frame_offset.size());
+    std::vector<double> offs(m->frame_offset.size());
     for (const auto& kv : m->frame_index) {
-        const std::uint64_t fid = kv.first;
-        const double off = m->frame_offset[kv.second];
-        if (std::fwrite(&fid, sizeof(fid), 1, f) != 1 ||
-            std::fwrite(&off, sizeof(off), 1, f) != 1) {
-            std::fclose(f);
-            return 1;
-        }
+        fids[kv.second] = kv.first;
+        offs[kv.second] = m->frame_offset[kv.second];
     }
-    std::fclose(f);
-    return 0;
+    if (aio_upm_dense_write_frames(d, fids.data(), offs.data(),
+                                   fids.size()) != 0) {
+        aio_upm_dense_abort(d);
+        return 1;
+    }
+    return aio_upm_dense_end(d);
 }
 
 int p2_upm_dense_info(const void* model, const char* cache_path,
@@ -423,28 +412,13 @@ int p2_upm_dense_info(const void* model, const char* cache_path,
                       char* out_source_hash, std::size_t hash_buf_size) {
     if (model == nullptr || cache_path == nullptr) return 1;
     const Model* m = static_cast<const Model*>(model);
-    std::FILE* f = std::fopen(cache_path, "r");
-    if (!f) return 1;
-    char line[8192];
-    if (std::fgets(line, sizeof(line), f) == nullptr) {
-        std::fclose(f);
-        return 1;
-    }
-    std::fclose(f);
-    nlohmann::json j;
-    try {
-        j = nlohmann::json::parse(line);
-    } catch (...) {
-        return 1;
-    }
-    if (j.value("format", std::string()) != "astrocs-upm-dense-v1")
-        return 1;
-    const std::string src = j.value("source_hash", std::string());
-    if (src != m->info.model_hash) return 2;  // stale cache
-    if (out_target_order) *out_target_order = j.value("target_order", 0);
-    if (out_pixels) *out_pixels = j.value("control_count", 0ull);
+    char checksum[65] = {0};
+    const int rc = aio_upm_dense_info(
+        cache_path, m->info.model_hash, out_target_order, out_pixels,
+        checksum, (int)sizeof(checksum));
+    if (rc != 0) return rc;
     if (out_source_hash && hash_buf_size > 0) {
-        std::strncpy(out_source_hash, src.c_str(), hash_buf_size - 1);
+        std::strncpy(out_source_hash, m->info.model_hash, hash_buf_size - 1);
         out_source_hash[hash_buf_size - 1] = '\0';
     }
     return 0;
@@ -460,52 +434,9 @@ int p2_upm_dense_read_block(const void* model, const char* cache_path,
         return 1;
     }
     const Model* m = static_cast<const Model*>(model);
-    // stale 校验（源模型哈希必须一致）
-    std::FILE* f = std::fopen(cache_path, "rb");
-    if (!f) return 1;
-    char line[8192];
-    if (std::fgets(line, sizeof(line), f) == nullptr) {
-        std::fclose(f);
-        return 1;
-    }
-    nlohmann::json j;
-    try {
-        j = nlohmann::json::parse(line);
-    } catch (...) {
-        std::fclose(f);
-        return 1;
-    }
-    const std::string src = j.value("source_hash", std::string());
-    if (src != m->info.model_hash) {
-        std::fclose(f);
-        return 2;  // stale cache
-    }
-    const std::uint64_t n_controls = j.value("control_count", 0ull);
-    const std::uint64_t n_frames = j.value("frame_count", 0ull);
-    // 读 frame 偏移表（跳过 controls 块后）
-    const long ctrl_bytes = (long)(n_controls * sizeof(double));
-    std::fseek(f, ctrl_bytes, SEEK_CUR);
-    double offset = 0.0;
-    bool found = false;
-    for (std::uint64_t i = 0; i < n_frames; ++i) {
-        std::uint64_t fid = 0;
-        double off = 0.0;
-        if (std::fread(&fid, sizeof(fid), 1, f) != 1 ||
-            std::fread(&off, sizeof(off), 1, f) != 1) {
-            std::fclose(f);
-            return 1;
-        }
-        if (fid == frame_id) {
-            offset = off;
-            found = true;
-        }
-    }
-    std::fclose(f);
-    if (!found) offset = 0.0;
     (void)leaf_ipix;
-    for (std::uint64_t i = 0; i < count; ++i)
-        output_signal[i] = input_signal[i] - offset;
-    return 0;
+    return aio_upm_read_dense_block(cache_path, m->info.model_hash, frame_id,
+                                    input_signal, output_signal, count);
 }
 
 int p2_upm_close(void* model) {

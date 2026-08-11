@@ -3,7 +3,8 @@
 // 用法（Linux/WSL，聚焦无 AIO 依赖的核心数值模块）：
 //   g++ -std=c++20 -g -O1 -fsanitize=address,undefined -fno-omit-frame-pointer \
 //       -I <repo>/lib/phase2/include -I <nlohmann_include> \
-//       sanitize_driver.cpp ../src/upm.cpp ../src/sha256.cpp \
+//       sanitize_driver.cpp ../src/upm.cpp \
+//       <repo>/lib/common/crypto/sha256.cpp \
 //       ../src/rejection.cpp ../src/block.cpp ../src/integrate.cpp \
 //       -o p2_san
 //   ASAN_OPTIONS=detect_leaks=1 ./p2_san

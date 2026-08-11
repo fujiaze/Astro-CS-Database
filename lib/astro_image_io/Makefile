@@ -41,6 +41,8 @@ SRCS = $(SRC_DIR)/aio_fits.cpp $(SRC_DIR)/aio_xisf.cpp \
        $(SRC_DIR)/aio_api.cpp $(SRC_DIR)/aio_log.cpp \
        $(SRC_DIR)/aio_compressor.cpp \
        ../common/healpix/healpix_core.cpp \
+       $(SRC_DIR)/aio_upm.cpp \
+       ../common/crypto/sha256.cpp \
        $(SRC_DIR)/hiss_codec.cpp \
        $(SRC_DIR)/hiss_common.cpp \
        $(SRC_DIR)/hiss_tile_model.cpp \

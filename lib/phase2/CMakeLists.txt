@@ -12,7 +12,6 @@ endif()
 
 add_library(phase2 STATIC
     src/upm.cpp
-    src/sha256.cpp
     src/rejection.cpp
     src/coverage.cpp
     src/sampler.cpp
@@ -23,6 +22,7 @@ add_library(phase2 STATIC
     ../acr/backends/cuda/cuda_bridge_loader.cpp
     ../acr/scheduler/device_executor.cpp
     ../common/healpix/healpix_core.cpp
+    ../common/crypto/sha256.cpp
 )
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../acr/include)

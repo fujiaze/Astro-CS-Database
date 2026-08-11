@@ -1,10 +1,10 @@
-// lib/phase2/src/sha256.cpp — SHA-256 独立实现（FIPS 180-4）
+// lib/common/crypto/sha256.cpp — SHA-256 独立实现（FIPS 180-4）
 #include "sha256.h"
 
 #include <cstring>
 #include <vector>
 
-namespace astrocs::p2 {
+namespace astrocs::crypto {
 namespace {
 
 constexpr std::uint32_t kK[64] = {
@@ -84,4 +84,4 @@ std::string sha256_hex(const void* data, std::size_t len) {
     return out;
 }
 
-} // namespace astrocs::p2
+} // namespace astrocs::crypto
