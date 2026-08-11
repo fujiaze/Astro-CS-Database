@@ -8,12 +8,17 @@
     "target_order": "auto"
   },
   "model": {
-    "control_spacing_arcsec": "auto",
+    "control_grid_per_tile": 8,
     "patch_radius_pixels": "auto",
-    "storage": "auto",
+    "min_samples": 5,
+    "snr_search_radius_deg": 0.05,
     "robust_loss": "huber",
     "snr_weight_mode": "snr2_normalized",
-    "smoothing": "auto"
+    "huber_delta": 1.345,
+    "smoothing": "auto",
+    "zero_anchor_weight": 0.001,
+    "sigma_floor": 0.001,
+    "support_power": 1.0
   },
   "integration": {
     "precision": "fp32",
@@ -22,7 +27,8 @@
       "method": "winsorized_sigma",
       "low": 4.0,
       "high": 3.0,
-      "max_iterations": 8
+      "max_iterations": 8,
+      "min_samples": 2
     },
     "weight_mode": "auto"
   },
