@@ -129,11 +129,168 @@ def winsorized_vs_scipy():
     return True
 
 
+def winsorized_independent_mask(vals, lo=-4.0, hi=3.0, max_iter=8):
+    """独立 Python winsorized sigma：winsorized mean/std + clip（与 C++ 同定义）。"""
+    import numpy as np
+    v = np.asarray(vals, dtype=float)
+    acc = np.ones(len(v), dtype=bool)
+    for _ in range(max_iter):
+        cur = v[acc]
+        if len(cur) < 2:
+            break
+        m0 = cur.mean()
+        s0 = cur.std(ddof=1)
+        if s0 <= 1e-12:
+            break
+        wlo, whi = m0 + lo * s0, m0 + hi * s0
+        wcur = np.clip(cur, wlo, whi)
+        wmean = wcur.mean()
+        ws = wcur.std(ddof=1) or s0
+        z = (v - wmean) / ws
+        new_acc = acc & ~((z < lo) | (z > hi))
+        if np.array_equal(new_acc, acc):
+            break
+        acc = new_acc
+    return acc
+
+
+def winsorized_vs_independent():
+    rng = np.random.default_rng(20260815)
+    vals = np.concatenate([rng.normal(0, 1, 40), [0.0] * 10, [100.0]])
+    mask_cpp, stat = run_cpp(vals, method=2, lo=-4.0, hi=3.0,
+                             max_iter=8, min_samples=3)
+    mask_ref = winsorized_independent_mask(vals)
+    agree = int(np.sum(mask_cpp == mask_ref))
+    print(f"[winsorized-ref] n={len(vals)} agree={agree}/{len(vals)} "
+          f"cpp_reject={int(np.sum(mask_cpp == 0))} "
+          f"ref_reject={int(np.sum(mask_ref == 0))}")
+    assert agree == len(vals), "Winsorized 独立 reference 不一致"
+    return True
+
+
+def nist_esd_full(vals, alpha=0.05, max_out=10):
+    """独立两阶段 NIST ESD（先连续移除记录 R_i/λ_i，再取最大 i）。"""
+    import numpy as np
+    from scipy.stats import t as tdist
+    n0 = len(vals)
+    work = list(map(float, vals))
+    Rs, Ls, removed = [], [], []
+    for i in range(1, max_out + 1):
+        arr = np.array(work)
+        n = len(arr)
+        mean = arr.mean()
+        sd = arr.std(ddof=1)
+        if sd <= 1e-12:
+            break
+        Ri = np.abs(arr - mean) / sd
+        j = int(np.argmax(Ri))
+        ni = n0 - i
+        nu = ni - 1
+        p = 1.0 - alpha / (2.0 * (ni + 1.0))
+        tc = tdist.ppf(p, nu)
+        lam = tc * ni / np.sqrt((nu + tc * tc) * (ni + 1))
+        Rs.append(float(Ri[j]))
+        Ls.append(float(lam))
+        removed.append(float(arr[j]))
+        del work[j]
+    k = 0
+    for r in range(len(Rs)):
+        if Rs[r] > Ls[r]:
+            k = r + 1
+    return k, Rs, Ls, removed[:k]
+
+
+def esd_vs_nist():
+    # NIST Rosner 54 点：两阶段 ESD 必须 3 outliers
+    vals = np.array([
+        -0.25, 0.68, 0.94, 1.15, 1.20, 1.26, 1.26, 1.34, 1.38, 1.43,
+        1.49, 1.49, 1.55, 1.56, 1.58, 1.65, 1.69, 1.70, 1.76, 1.77,
+        1.81, 1.91, 1.94, 1.96, 1.99, 2.06, 2.09, 2.10, 2.14, 2.15,
+        2.23, 2.24, 2.26, 2.35, 2.37, 2.40, 2.47, 2.54, 2.62, 2.64,
+        2.90, 2.92, 2.92, 2.93, 3.21, 3.26, 3.30, 3.59, 3.68, 4.30,
+        4.64, 5.34, 5.42, 6.01])
+    mask_cpp, stat = run_cpp(vals, method=5, lo=-4.0, hi=3.0,
+                             max_iter=10, min_samples=5)
+    n_rej = int(np.sum(mask_cpp == 0))
+    k_ref, Rs, Ls, rem = nist_esd_full(vals)
+    print(f"[esd-nist] n=54 cpp_reject={n_rej} ref_k={k_ref} "
+          f"R1={Rs[0]:.4f} lambda1={Ls[0]:.4f}")
+    assert n_rej == 3 and k_ref == 3, "NIST Rosner 54 点必须 3 outliers"
+    # masking case：两极端离群
+    rng = np.random.default_rng(42)
+    v2 = rng.normal(0, 1, 40)
+    v2[5] = 8.0
+    v2[6] = 8.5
+    mask2_cpp, stat2 = run_cpp(v2, method=5, lo=-4.0, hi=3.0,
+                               max_iter=10, min_samples=5)
+    k2 = nist_esd_full(v2)[0]
+    print(f"[esd-masking] cpp_reject={int(np.sum(mask2_cpp == 0))} ref_k={k2}")
+    assert int(np.sum(mask2_cpp == 0)) >= 2 and k2 >= 2, "ESD masking case"
+    return True
+
+
+def rcr_independent_mask(vals, weights=None, max_iter=8):
+    """独立 RCR：两阶段 Chauvenet（median/MAD → mean/std），加权按 √w。"""
+    import numpy as np
+    from scipy.special import erfc
+    v = np.asarray(vals, dtype=float)
+    w = np.ones(len(v)) if weights is None else np.asarray(weights, dtype=float)
+    acc = np.ones(len(v), dtype=bool)
+    for use_precise in (False, True):
+        for _ in range(max(2, max_iter // 2 + 1)):
+            cur = v[acc]
+            cw = w[acc]
+            if len(cur) < 3:
+                break
+            if use_precise:
+                loc = np.sum(cw * cur) / np.sum(cw)
+                scale = np.sqrt(np.sum(cw * (cur - loc) ** 2) / np.sum(cw))
+            else:
+                med = np.median(cur)
+                dev = np.abs(cur - med) * np.sqrt(cw)
+                loc = med
+                scale = 1.4826 * np.median(dev)
+            if scale <= 1e-12:
+                break
+            z = np.sqrt(cw) * (cur - loc) / scale
+            j = int(np.argmax(np.abs(z)))
+            p = erfc(abs(z[j]) / np.sqrt(2.0))
+            if p * len(cur) >= 0.5:
+                break
+            # 找原索引（按 frame_id 稳定打破 tie 不在 Python 参考范围——
+            # 此处用值匹配即可）
+            orig = int(np.nonzero(acc)[0][j])
+            acc[orig] = False
+    return acc
+
+
+def rcr_vs_independent():
+    rng = np.random.default_rng(3)
+    vals = rng.normal(10.0, 1.0, 60)
+    vals[7] = 30.0
+    vals[9] = 31.0
+    vals[20] = -20.0
+    mask_cpp, stat = run_cpp(vals, method=6, lo=-4.0, hi=3.0,
+                             max_iter=8, min_samples=3)
+    mask_ref = rcr_independent_mask(vals)
+    # 允许离群判定一致（掩码逐元素；RCR tie 用值匹配，与 C++ frame_id 顺序
+    # 可能有个别差异，要求 rejected 集合一致）
+    rej_cpp = set(np.nonzero(mask_cpp == 0)[0].tolist())
+    rej_ref = set(np.nonzero(mask_ref == 0)[0].tolist())
+    same_set = rej_cpp == rej_ref
+    print(f"[rcr-ref] cpp_reject={len(rej_cpp)} ref_reject={len(rej_ref)} "
+          f"same_set={same_set}")
+    assert same_set and len(rej_cpp) >= 3, "RCR 独立 reference 不一致"
+    return True
+
+
 def main():
     ok = True
     ok &= sigma_vs_astropy()
     ok &= esd_vs_nist()
     ok &= winsorized_vs_scipy()
+    ok &= winsorized_vs_independent()
+    ok &= rcr_vs_independent()
     print("ORACLE_RESULT=" + ("PASS" if ok else "FAIL"))
     return 0 if ok else 1
 
