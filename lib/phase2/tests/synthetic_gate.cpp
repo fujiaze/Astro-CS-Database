@@ -408,6 +408,246 @@ TEST(Phase2Upm, G1SpatialFieldTruth) {
     p2_upm_close(model);
 }
 
+// G3/G4 持久化：medium round-trip（target_order/frames/hash 保持）、
+// 1 ULP 系数变化 hash 敏感、>8 MiB 模型 round-trip。
+TEST(Phase2Upm, G2PersistenceAndHashSensitivity) {
+    namespace st = spatial_truth;
+    std::mt19937 rng(20260812);
+    std::normal_distribution<double> nd(0.0, st::kNoiseRms);
+    // medium：4 tiles × 64 cells × 3 帧（同 G1 几何，256 controls）
+    std::vector<P2ControlObservation> obs;
+    std::uint64_t cid = 0;
+    const int n_tiles = (int)(sizeof(st::kTiles) / sizeof(st::kTiles[0]));
+    for (int t = 0; t < n_tiles; ++t) {
+        for (int gy = 0; gy < st::kGrid; ++gy) {
+            for (int gx = 0; gx < st::kGrid; ++gx) {
+                double ra = 0, dec = 0;
+                st::cell_center_radec(st::kTiles[t], gx, gy, &ra, &dec);
+                const std::uint64_t leaf =
+                    st::leaf_of(st::kTiles[t], gx * st::kCellSide + 32,
+                                gy * st::kCellSide + 32);
+                for (int f = 0; f < 3; ++f) {
+                    P2ControlObservation o{};
+                    o.frame_id = (std::uint64_t)f;
+                    o.control_id = cid;
+                    o.leaf_ipix = leaf;
+                    o.ra_deg = ra;
+                    o.dec_deg = dec;
+                    o.value = st::true_sky(ra, dec) +
+                              st::frame_field(f, ra, dec) + nd(rng);
+                    o.uncertainty = st::kNoiseRms;
+                    o.snr = 30.0;
+                    o.support = 1.0;
+                    o.quality_flags = 1;
+                    obs.push_back(o);
+                }
+                ++cid;
+            }
+        }
+    }
+    P2UpmBuildConfig cfg{};
+    cfg.target_order = st::kTargetOrder;
+    cfg.smoothing_lambda = 0.1;
+    cfg.max_iterations = 40;
+    cfg.tolerance = 1e-10;
+    void* model = nullptr;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg, &model), 0);
+    P2ModelInfo info{};
+    ASSERT_EQ(p2_upm_info(model, &info), 0);
+    EXPECT_EQ(info.target_order, (std::uint32_t)st::kTargetOrder);
+
+    const char* path = "run_tmp_upm_g2.json";
+    ASSERT_EQ(p2_upm_save(model, path), 0);
+    void* model2 = nullptr;
+    ASSERT_EQ(p2_upm_open(path, &model2), 0);
+    P2ModelInfo info2{};
+    ASSERT_EQ(p2_upm_info(model2, &info2), 0);
+    EXPECT_EQ(std::string(info2.model_hash), std::string(info.model_hash));
+    EXPECT_EQ(info2.target_order, info.target_order);
+    EXPECT_EQ(info2.control_count, info.control_count);
+    // 校准一致性（round-trip 后同一 leaf 同值）
+    std::uint64_t leaf0 = st::leaf_of(st::kTiles[0], 100, 200);
+    std::uint64_t leaf[1] = {leaf0};
+    double in[1] = {11.0};
+    double o1[1] = {0}, o2[1] = {0};
+    ASSERT_EQ(p2_upm_calibrate_block(model, 2, leaf, in, o1, 1), 0);
+    ASSERT_EQ(p2_upm_calibrate_block(model2, 2, leaf, in, o2, 1), 0);
+    EXPECT_NEAR(o1[0], o2[0], 1e-12);
+    p2_upm_close(model2);
+    std::remove(path);
+
+    // 1 ULP 系数变化 → model hash 变化
+    std::vector<P2ControlObservation> obs_ulp = obs;
+    const double v = obs_ulp[0].value;
+    obs_ulp[0].value = std::nextafter(v, v + 1.0);
+    void* model_ulp = nullptr;
+    ASSERT_EQ(p2_upm_build(obs_ulp.data(), obs_ulp.size(), &cfg,
+                           &model_ulp), 0);
+    P2ModelInfo info_ulp{};
+    ASSERT_EQ(p2_upm_info(model_ulp, &info_ulp), 0);
+    EXPECT_NE(std::string(info_ulp.model_hash),
+              std::string(info.model_hash));
+    p2_upm_close(model_ulp);
+    p2_upm_close(model);
+
+    // >8 MiB synthetic model round-trip（60k controls × 2 帧，粗迭代）
+    std::vector<P2ControlObservation> big;
+    constexpr std::uint64_t kBigControls = 60000;
+    P2UpmBuildConfig bcfg{};
+    bcfg.target_order = 3;         // 小 tile 便于大量 cells
+    bcfg.smoothing_lambda = 0.05;
+    bcfg.max_iterations = 12;
+    bcfg.tolerance = 1e-8;
+    const int grid = 8, cell = 512 / grid;
+    for (std::uint64_t c = 0; c < kBigControls; ++c) {
+        const std::uint64_t tile = 1 + c / (grid * grid);
+        const int gy = (int)((c % (grid * grid)) / grid);
+        const int gx = (int)(c % grid);
+        const std::uint64_t leaf =
+            (tile << 18) + astrocs::healpix::xy_to_nested_local(
+                               (std::uint32_t)(gx * cell + 32),
+                               (std::uint32_t)(gy * cell + 32), 9u);
+        double ra = 0, dec = 0;
+        astrocs::healpix::pix2ang_nest(1u << 12, leaf, ra, dec);
+        for (int f = 0; f < 2; ++f) {
+            P2ControlObservation o{};
+            o.frame_id = (std::uint64_t)f;
+            o.control_id = c;
+            o.leaf_ipix = leaf;
+            o.ra_deg = ra;
+            o.dec_deg = dec;
+            o.value = st::true_sky(ra, dec) + (double)f * 0.5 + nd(rng);
+            o.uncertainty = 0.05;
+            o.snr = 20.0;
+            o.support = 1.0;
+            o.quality_flags = 1;
+            big.push_back(o);
+        }
+    }
+    void* bm = nullptr;
+    ASSERT_EQ(p2_upm_build(big.data(), big.size(), &bcfg, &bm), 0);
+    const char* big_path = "run_tmp_upm_big.json";
+    ASSERT_EQ(p2_upm_save(bm, big_path), 0);
+    std::ifstream fbig(big_path, std::ios::binary | std::ios::ate);
+    ASSERT_TRUE(fbig.good());
+    const std::streamsize big_size = fbig.tellg();
+    fbig.close();
+    EXPECT_GT(big_size, 8 * 1024 * 1024)
+        << "big model size=" << big_size;
+    void* bm2 = nullptr;
+    ASSERT_EQ(p2_upm_open(big_path, &bm2), 0);
+    P2ModelInfo binfo2{};
+    ASSERT_EQ(p2_upm_info(bm2, &binfo2), 0);
+    EXPECT_EQ(binfo2.control_count, kBigControls);
+    std::uint64_t bleaf[1] = {1};
+    double bin[1] = {9.0}, bout1[1] = {0}, bout2[1] = {0};
+    ASSERT_EQ(p2_upm_calibrate_block(bm, 1, bleaf, bin, bout1, 1), 0);
+    ASSERT_EQ(p2_upm_calibrate_block(bm2, 1, bleaf, bin, bout2, 1), 0);
+    EXPECT_NEAR(bout1[0], bout2[0], 1e-9);
+    p2_upm_close(bm2);
+    p2_upm_close(bm);
+    std::remove(big_path);
+    std::fprintf(stderr, "[G2] big model size=%.1f MiB round-trip ok\n",
+                 (double)big_size / (1024.0 * 1024.0));
+}
+
+// G4 dense 空间求值缓存：随机 >=1,000,000 样本 sparse calibrate == dense read；
+// stale hash 拒绝；损坏 checksum 拒绝。
+TEST(Phase2Upm, G4DenseMillionSampleSpatial) {
+    namespace st = spatial_truth;
+    std::mt19937 rng(20260813);
+    std::normal_distribution<double> nd(0.0, st::kNoiseRms);
+    std::vector<P2ControlObservation> obs;
+    std::uint64_t cid = 0;
+    const int n_tiles = (int)(sizeof(st::kTiles) / sizeof(st::kTiles[0]));
+    for (int t = 0; t < n_tiles; ++t) {
+        for (int gy = 0; gy < st::kGrid; ++gy) {
+            for (int gx = 0; gx < st::kGrid; ++gx) {
+                double ra = 0, dec = 0;
+                st::cell_center_radec(st::kTiles[t], gx, gy, &ra, &dec);
+                const std::uint64_t leaf =
+                    st::leaf_of(st::kTiles[t], gx * st::kCellSide + 32,
+                                gy * st::kCellSide + 32);
+                for (int f = 0; f < 3; ++f) {
+                    P2ControlObservation o{};
+                    o.frame_id = (std::uint64_t)f;
+                    o.control_id = cid;
+                    o.leaf_ipix = leaf;
+                    o.ra_deg = ra;
+                    o.dec_deg = dec;
+                    o.value = st::true_sky(ra, dec) +
+                              st::frame_field(f, ra, dec) + nd(rng);
+                    o.uncertainty = st::kNoiseRms;
+                    o.snr = 50.0;
+                    o.support = 1.0;
+                    o.quality_flags = 1;
+                    obs.push_back(o);
+                }
+                ++cid;
+            }
+        }
+    }
+    P2UpmBuildConfig cfg{};
+    cfg.target_order = st::kTargetOrder;
+    cfg.smoothing_lambda = 0.1;
+    cfg.max_iterations = 30;
+    cfg.tolerance = 1e-10;
+    void* model = nullptr;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg, &model), 0);
+    const char* cache = "run_tmp_upm_g4.cache";
+    ASSERT_EQ(p2_upm_materialize_dense(model, st::kTargetOrder, cache), 0);
+
+    // 随机 100 万 leaf（4 tiles 内），按 tile 分组比较
+    const std::uint64_t per_tile = 250000;
+    const std::uint64_t total = per_tile * (std::uint64_t)n_tiles;
+    std::vector<std::uint64_t> leaf(total);
+    std::vector<double> in(total), out_s(total), out_d(total);
+    std::size_t w = 0;
+    for (int t = 0; t < n_tiles; ++t) {
+        std::uniform_int_distribution<int> xd(0, 511);
+        std::uniform_int_distribution<int> yd(0, 511);
+        for (std::uint64_t i = 0; i < per_tile; ++i) {
+            leaf[w] = st::leaf_of(st::kTiles[t], xd(rng), yd(rng));
+            in[w] = 9.0 + 0.1 * (double)(w % 100);
+            ++w;
+        }
+    }
+    ASSERT_EQ(p2_upm_calibrate_block(model, 1, leaf.data(), in.data(),
+                                     out_s.data(), total), 0);
+    ASSERT_EQ(p2_upm_dense_read_block(model, cache, 1, leaf.data(),
+                                      in.data(), out_d.data(), total), 0);
+    double max_diff = 0.0;
+    for (std::uint64_t i = 0; i < total; ++i)
+        max_diff = std::max(max_diff, std::fabs(out_s[i] - out_d[i]));
+    EXPECT_LE(max_diff, 1e-9);
+    std::fprintf(stderr,
+                 "[G4] dense samples=%llu max sparse-dense diff=%.3e\n",
+                 (unsigned long long)total, max_diff);
+
+    // stale hash 拒绝
+    void* model2 = nullptr;
+    std::vector<P2ControlObservation> obs2{obs[0]};
+    ASSERT_EQ(p2_upm_build(obs2.data(), obs2.size(), &cfg, &model2), 0);
+    std::uint64_t l2[1] = {leaf[0]};
+    double in2[1] = {1.0}, o2[1] = {0};
+    EXPECT_EQ(p2_upm_dense_read_block(model2, cache, 0, l2, in2, o2, 1), 2);
+    p2_upm_close(model2);
+
+    // 损坏 checksum 拒绝：改 dense 文件一个字节
+    {
+        std::FILE* f = std::fopen(cache, "r+b");
+        ASSERT_NE(f, nullptr);
+        ASSERT_EQ(std::fseek(f, 2048, SEEK_SET), 0);
+        const unsigned char flip = 0x5A;
+        ASSERT_EQ(std::fwrite(&flip, 1, 1, f), 1u);
+        std::fclose(f);
+        double o3[1] = {0};
+        EXPECT_EQ(p2_upm_dense_read_block(model, cache, 1, l2, in2, o3, 1), 2);
+    }
+    p2_upm_close(model);
+    std::remove(cache);
+}
+
 // Validation §4：输入 frame 顺序随机重排后，统一模型的等权叠加输出必须一致。
 // frame_id 是内容稳定标识（不随输入位置变化），参考帧 = 最小 frame_id，
 // 因此重排输入顺序不改变 gauge。
