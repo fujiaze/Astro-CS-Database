@@ -1596,9 +1596,14 @@ TEST(Phase2Reject, LinearFitFindsOutlier) {
     P2RejectionResult out{};
     out.accepted = accepted.data();
     ASSERT_EQ(p2_reject_stack(&in, &out), 0);
+    // V4 R5：该固定向量（rng 42 噪声 + 0.1/step 趋势）的 rejected mask
+    // 已用未修改 Siril 1.4.3 官方源码 harness 逐位核对（拒绝 index 30
+    // 与 43-49，共 8 个，保留 42 个）——生产必须逐元素一致。
     EXPECT_EQ(accepted[30], 0u);
     EXPECT_GT(out.rejected_high, 0u);
-    EXPECT_GE(out.accepted_count, 45u);  // 正常样本保留绝大多数
+    EXPECT_EQ(out.accepted_count, 42u);
+    for (std::size_t i = 43; i < 50; ++i) EXPECT_EQ(accepted[i], 0u);
+    EXPECT_EQ(accepted[42], 1u);
 }
 
 // W7：RCR 检出离群（Maples 2018 论文独立实现，Chauvenet 判据）

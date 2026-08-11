@@ -1122,51 +1122,97 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
     }
 
     if (in->method == P2_REJECT_LINEAR_FIT) {
-        // Siril Linear Fit Clipping（公开算法定义，rejection_float.c
-        // LINEARFIT 分支；Siril 1.4.3，GPL ORACLE ONLY，不复制生产源码）：
-        //   每轮：对当前保留样本按值排序，x=排序后序号(0..n-1)；
-        //   最小二乘拟合 y=a*x+b；sigma=mean|residual|（平均绝对残差）；
-        //   low 拒绝：a*i+b-y > sigma*siglow；high 拒绝：
-        //   y-(a*i+b) > sigma*sighigh；迭代至无新增拒绝或 n<=3。
-        // 值排序使结果与输入 frame 顺序无关（P1-05）。
+        // V4 R5：真实 Siril 1.4.3 语义（官方 src/tests/rejection_test.c
+        // linearfit_test + siril_fit_linear.c 加权在线公式，逐行一致；
+        // GPL ORACLE ONLY，frozen reference 由官方源码 harness 生成）：
+        //   xf[j]=1/(j+1)（初始 n 一次计算）、m_x=(n-1)/2、m_dx2 在线累积；
+        //   每轮：值排序 → 加权最小二乘 y=a*x+b（x=排序后序号）→
+        //   sigma=mean|residual| → low: fit-y > sigma*siglow；high:
+        //   y-fit > sigma*sighigh；N-r<=4 后不再拒绝；n<=3 退出；
+        //   迭代至无新增拒绝。
         std::vector<bool> accept(vals.size(), true);
+        const std::size_t n0 = vals.size();
+        std::vector<double> stack = vals;
+        std::vector<std::size_t> orig_idx(n0);
+        for (std::size_t i = 0; i < n0; ++i) orig_idx[i] = i;
+        std::vector<double> xf(n0);
+        const double m_x = (double)(n0 - 1) * 0.5;
+        double m_dx2 = 0.0;
+        for (std::size_t j = 0; j < n0; ++j) {
+            const double dx = (double)j - m_x;
+            xf[j] = 1.0 / (double)(j + 1);
+            m_dx2 += (dx * dx - m_dx2) * xf[j];
+        }
+        m_dx2 = 1.0 / m_dx2;
+        int r = 0;   // 累计拒绝数（官方 N-r<=4 停止拒绝）
         int it = 0;
         for (; it < max_iter; ++it) {
-            std::vector<std::pair<double, std::size_t>> entries;
-            for (std::size_t i = 0; i < vals.size(); ++i)
-                if (accept[i]) entries.push_back({vals[i], i});
-            if (entries.size() < 4) break;   // Siril：N>3 才继续
-            std::sort(entries.begin(), entries.end(),
-                      [](const auto& a, const auto& b) {
-                          return a.first < b.first;
-                      });                    // 值排序（权威定义）
-            const std::size_t n = entries.size();
-            std::vector<double> yv(n);
-            for (std::size_t j = 0; j < n; ++j) yv[j] = entries[j].first;
-            std::vector<double> xv(n);
-            for (std::size_t j = 0; j < n; ++j) xv[j] = (double)j;
-            double a = 0.0, b = 0.0;
-            ls_fit_line(xv, yv, &a, &b);
+            const std::size_t N = stack.size();
+            if (N < 4) break;
+            // 值排序（官方 quicksort_f 值序；tie 由 pair 序确定）
+            std::vector<std::pair<double, std::size_t>> e(N);
+            for (std::size_t i = 0; i < N; ++i) e[i] = {stack[i], orig_idx[i]};
+            std::sort(e.begin(), e.end());
+            for (std::size_t i = 0; i < N; ++i) {
+                stack[i] = e[i].first;
+                orig_idx[i] = e[i].second;
+            }
+            // 官方 siril_fit_linear：在线加权 y=a*x+b（x=权重 1/(j+1)）
+            double m_y = stack[0];
+            for (std::size_t i = 1; i < N; ++i)
+                m_y += (stack[i] - m_y) * xf[i];
+            double m_dxdy = 0.0;
+            double dx = -m_x;
+            for (std::size_t i = 0; i < N; ++i, dx += 1.0) {
+                const double dy = stack[i] - m_y;
+                m_dxdy += (dx * dy - m_dxdy) * xf[i];
+            }
+            // 官方 siril_fit_linear 输出 c0=截距、c1=斜率（内部变量名
+            // a/b 与 c0/c1 相反；测试以 &b,&a 接收后按 slope*i+intercept
+            // 使用）。此处显式命名避免混淆。
+            const double slope = m_dxdy * m_dx2;
+            const double intercept = m_y - m_x * slope;
             double sigma = 0.0;
-            for (std::size_t j = 0; j < n; ++j)
-                sigma += std::fabs(yv[j] - (a * (double)j + b));
-            sigma /= (double)n;            // mean |residual|（Siril 定义）
+            for (std::size_t i = 0; i < N; ++i)
+                sigma += std::fabs(stack[i] -
+                                   (slope * (double)i + intercept));
+            sigma /= (double)N;            // mean |residual|（Siril 定义）
             if (sigma <= 1e-12) break;
             bool changed = false;
-            for (std::size_t j = 0; j < n; ++j) {
-                const std::size_t orig = entries[j].second;
-                const double y = entries[j].first;
-                const double fit = a * (double)j + b;
-                if (fit - y > sigma * std::fabs(lo)) {   // 低侧
-                    accept[orig] = false;
+            std::vector<bool> keep(N, true);
+            for (std::size_t j = 0; j < N; ++j) {
+                if ((int)(N - (std::size_t)r) <= 4) {
+                    keep[j] = true;
+                    continue;
+                }
+                const double fit = slope * (double)j + intercept;
+                if (fit - stack[j] > sigma * std::fabs(lo)) {   // 低侧
+                    keep[j] = false;
+                    ++r;
                     changed = true;
-                } else if (y - fit > sigma * hi) {       // 高侧
-                    accept[orig] = false;
+                } else if (stack[j] - fit > sigma * hi) {       // 高侧
+                    keep[j] = false;
+                    ++r;
                     changed = true;
                 }
             }
             if (!changed) break;
+            std::vector<double> ns;
+            std::vector<std::size_t> ni;
+            ns.reserve(N);
+            ni.reserve(N);
+            for (std::size_t j = 0; j < N; ++j) {
+                if (keep[j]) {
+                    ns.push_back(stack[j]);
+                    ni.push_back(orig_idx[j]);
+                }
+            }
+            stack = std::move(ns);
+            orig_idx = std::move(ni);
         }
+        std::fill(accept.begin(), accept.end(), false);
+        for (std::size_t i = 0; i < stack.size(); ++i)
+            accept[orig_idx[i]] = true;
         out->iterations = static_cast<std::uint32_t>(it);
         std::uint32_t kept = 0;
         for (std::size_t i = 0; i < vals.size(); ++i) {
