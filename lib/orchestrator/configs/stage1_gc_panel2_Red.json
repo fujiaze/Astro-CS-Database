@@ -1,0 +1,73 @@
+{
+  "schema_version": "1.1",
+  "pipeline": "stage1",
+  "gaia_data_dir": "F:\\Astro dev\\Astro CS Normalization Database\\GaiaDR3SP",
+  "input": {
+    "light": "F:\\Astro dev\\Astro CS Normalization Database\\testdata\\Galaxy_Center_T4\\lights\\panel2\\Galaxy_Center_mosaic2_T4_flying_dutchman-20250716@002647-180S-Red.fts",
+    "master_bias": "F:\\Astro dev\\Astro CS Normalization Database\\testdata\\T4 calibration files\\masterBias_BIN-1_4500x3600.xisf",
+    "master_dark": "F:\\Astro dev\\Astro CS Normalization Database\\testdata\\T4 calibration files\\masterDark_BIN-1_4500x3600_EXPOSURE-180.00s.xisf",
+    "master_flat": "F:\\Astro dev\\Astro CS Normalization Database\\testdata\\T4 calibration files\\masterFlat_BIN-1_4500x3600_FILTER-Red_mono.xisf"
+  },
+  "calibration": {
+    "mode": "standard",
+    "light_exposure_s": 180.0,
+    "dark_exposure_s": 180.0,
+    "fallback": "exposure_ratio"
+  },
+  "platesolve": {
+    "gaia_catalog": "F:\\Astro dev\\Astro CS Normalization Database\\GaiaDR3",
+    "max_stars": 2000,
+    "initial_ra_deg": null,
+    "initial_dec_deg": null
+  },
+  "psf": {
+    "fit_radius": 8,
+    "max_iterations": 100,
+    "tolerance": 1E-06
+  },
+  "photometric": {
+    "gaia_spectra": "F:\\Astro dev\\Astro CS Normalization Database\\GaiaDR3SP",
+    "filter_response": "F:\\Astro dev\\Astro CS Normalization Database\\lib\\photometric_calib\\data\\response_curves\\filters.json",
+    "qe_curve": "F:\\Astro dev\\Astro CS Normalization Database\\lib\\photometric_calib\\data\\response_curves\\qe_curves.json"
+  },
+  "snr": {
+    "estimator_id": 1,
+    "sampling_scale": 1.0
+  },
+  "drizzle": {
+    "mode": "precise",
+    "pixfrac": 1.0,
+    "nside": {
+      "mode": "auto"
+    },
+    "ordering": "nested"
+  },
+  "execution": {
+    "stop_after": "hips_verify",
+    "threads": 0,
+    "stage_timeout_sec": {
+      "read": 60,
+      "calibrate": 180,
+      "platesolve": 600,
+      "psf": 180,
+      "photometric": 600,
+      "snr": 180,
+      "nside": 120,
+      "drizzle": 900,
+      "hips_verify": 300,
+      "hiss_verify": 180,
+      "browser_verify": 180
+    }
+  },
+  "precision": "fp32",
+  "output": {
+    "hiss": "F:\\Astro dev\\Astro CS Normalization Database\\run\\temp\\p2_v7\\gc\\panel2_Red.hiss",
+    "hips": "F:\\Astro dev\\Astro CS Normalization Database\\run\\temp\\p2_v7\\gc\\panel2_Red.hips",
+    "log": "F:\\Astro dev\\Astro CS Normalization Database\\run\\temp\\p2_v7\\gc\\panel2_Red.log.jsonl",
+    "diagnostics_dir": "F:\\Astro dev\\Astro CS Normalization Database\\run\\temp\\p2_v7\\gc\\panel2_Red_diag",
+    "overwrite": true
+  },
+  "validation": {
+    "legacy_hiss_compare": false
+  }
+}
