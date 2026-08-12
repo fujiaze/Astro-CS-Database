@@ -113,16 +113,24 @@ int HipsBrowserBackend::open_product(const std::string& out_dir) {
     close();
     root_ = out_dir;
     if (root_.empty()) return -1;
+    // V11：布局自动检测。AstroCS 嵌套（signal/ support/）；否则标准扁平
+    // （root/properties + root/NorderK，如 Hipsgen 输出）。
+    flat_ = !std::filesystem::exists(root_ + "/signal/properties");
     sig_ = aio_hips_open(root_.c_str(), AIO_HIPS_RD_SIGNAL);
     if (!sig_) {
-        LOG_ERROR("hips_backend", "open signal 失败: %s", aio_hips_reader_last_error());
-        return -2;
+        if (!flat_) {
+            LOG_ERROR("hips_backend", "open signal 失败: %s",
+                      aio_hips_reader_last_error());
+            return -2;
+        }
+        LOG_WARN("hips_backend", "扁平标准布局：signal 由 order 读取提供");
     }
-    sup_ = aio_hips_open(root_.c_str(), AIO_HIPS_RD_SUPPORT);
-    if (!sup_) {
-        LOG_ERROR("hips_backend", "open support 失败: %s", aio_hips_reader_last_error());
-        close();
-        return -3;
+    if (!flat_) {
+        sup_ = aio_hips_open(root_.c_str(), AIO_HIPS_RD_SUPPORT);
+        if (!sup_) {
+            LOG_WARN("hips_backend", "support 产品缺失（兼容模式）: %s",
+                     aio_hips_reader_last_error());
+        }
     }
     snr_ = aio_hips_open(root_.c_str(), AIO_HIPS_RD_SNR);
     if (!snr_) {
@@ -130,21 +138,38 @@ int HipsBrowserBackend::open_product(const std::string& out_dir) {
                  aio_hips_reader_last_error());
         // Catalogue 可选: 不视为硬失败
     }
-    char props_buf[8192];
-    if (aio_hips_get_properties(sig_, props_buf, (int)sizeof(props_buf)) != 0) {
-        close();
-        return -4;
+    char props_buf[8192] = {0};
+    if (sig_) {
+        if (aio_hips_get_properties(sig_, props_buf, (int)sizeof(props_buf)) !=
+            0) {
+            close();
+            return -4;
+        }
+    } else {
+        std::ifstream f(root_ + "/properties");
+        std::string line;
+        while (std::getline(f, line)) {
+            const size_t eq = line.find('=');
+            if (eq == std::string::npos) continue;
+            const std::string k = line.substr(0, eq);
+            const std::string v = line.substr(eq + 1);
+            if (k.find("hips_order") != std::string::npos)
+                order_ = std::atoi(v.c_str());
+            if (k.find("hips_tile_width") != std::string::npos)
+                width_ = std::atoi(v.c_str());
+        }
+        if (width_ == 0) width_ = kTileDim;
+        leaf_order_ = order_ + kTileShift;
     }
-    const std::string props(props_buf);
-    // 解析 hips_order
-    order_ = 0;
-    size_t p = props.find("hips_order=");
-    if (p != std::string::npos) {
-        order_ = std::atoi(props.c_str() + p + 11);
+    if (!flat_) {
+        const std::string props(props_buf);
+        size_t p = props.find("hips_order=");
+        if (p != std::string::npos)
+            order_ = std::atoi(props.c_str() + p + 11);
+        leaf_order_ = order_ + kTileShift;
+        width_ = kTileDim;
+        fp64_ = props_has(props, "astrocs_signal_dtype=float64");
     }
-    leaf_order_ = order_ + kTileShift;
-    width_ = kTileDim;
-    fp64_ = props_has(props, "astrocs_signal_dtype=float64");
     LOG_INFO("hips_backend", "open_product: order=%d leaf_order=%d fp64=%d tiles=%llu",
              order_, leaf_order_, fp64_ ? 1 : 0,
              (unsigned long long)get_n_tiles());
@@ -161,10 +186,13 @@ void HipsBrowserBackend::close() {
     width_ = kTileDim;
     fp64_ = false;
     order_tiles_.clear();
+    flat_ = false;
 }
 
 uint64_t HipsBrowserBackend::get_n_tiles() const {
-    return sig_ ? (uint64_t)aio_hips_tile_count(sig_) : 0;
+    if (sig_) return (uint64_t)aio_hips_tile_count(sig_);
+    if (flat_) return (uint64_t)tiles_at_order(order_).size();
+    return 0;
 }
 
 bool HipsBrowserBackend::contains(double ra, double dec) const {
@@ -242,17 +270,23 @@ int HipsBrowserBackend::read_tile_at_order(int order, uint64_t tile_ipix,
                                            std::vector<float>& sig,
                                            std::vector<float>& sup) const {
     if (root_.empty() || order < 0 || order > order_) return -1;
-    const std::string sig_path = root_ + "/signal/Norder" +
+    const std::string prod = flat_ ? "" : "/signal";
+    const std::string sig_path = root_ + prod + "/Norder" +
                                  std::to_string(order) + "/Dir" +
                                  std::to_string(tile_ipix / 10000) + "/Npix" +
                                  std::to_string(tile_ipix % 10000) + ".fits";
-    const std::string sup_path = root_ + "/support/Norder" +
+    const std::string sup_path = root_ + (flat_ ? prod : "/support") +
+                                 "/Norder" +
                                  std::to_string(order) + "/Dir" +
                                  std::to_string(tile_ipix / 10000) + "/Npix" +
                                  std::to_string(tile_ipix % 10000) + ".fits";
     std::vector<float> s, u;
     if (!read_fits_image(sig_path, kTileDim, s)) return -2;
-    if (!read_fits_image(sup_path, kTileDim, u)) return -3;
+    if (flat_) {
+        u.assign(s.size(), 1.0f);  // 标准单层无 support：视为全覆盖
+    } else if (!read_fits_image(sup_path, kTileDim, u)) {
+        return -3;
+    }
     sig.swap(s);
     sup.swap(u);
     return 0;
@@ -261,7 +295,9 @@ int HipsBrowserBackend::read_tile_at_order(int order, uint64_t tile_ipix,
 void HipsBrowserBackend::load_order_tiles(int order) const {
     if (order_tiles_.count(order)) return;
     std::vector<uint64_t> list;
-    const std::string dir = root_ + "/signal/Norder" + std::to_string(order);
+    const std::string prod = flat_ ? "" : "/signal";
+    const std::string dir =
+        root_ + prod + "/Norder" + std::to_string(order);
     std::error_code ec;
     if (std::filesystem::exists(dir, ec)) {
         for (const auto& de :

@@ -39,6 +39,7 @@ public:
     int get_tile_width() const { return width_; }
     uint64_t get_n_tiles() const;
     std::string get_root() const { return root_; }
+    bool is_flat_standard() const { return flat_; }  // V11: Hipsgen 扁平布局
 
     // 查询 (ra,dec) -> signal/support
     //   0=成功; -2=outside MOC / tile 缺失; -3=内部错误
@@ -84,6 +85,7 @@ private:
     int width_ = 512;
     bool fp64_ = false;
     mutable std::map<int, std::vector<uint64_t>> order_tiles_;
+    bool flat_ = false;  // V11: 标准扁平布局（root/properties + root/NorderK）
 };
 
 #endif // HIPS_BROWSER_BACKEND_H

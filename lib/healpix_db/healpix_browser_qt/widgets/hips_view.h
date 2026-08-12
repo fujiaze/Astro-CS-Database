@@ -30,6 +30,7 @@ public:
     void set_layer(int layer);
     void set_stretch(const std::string& preset, bool auto_range);
     void set_manual_range(float lo, float hi);
+    void set_lod_mode(bool strict_leaf);
     void mark_dirty();
 
     // 截图：渲染当前视图并保存 PNG

@@ -56,6 +56,12 @@ void HipsView::set_manual_range(float lo, float hi) {
     update();
 }
 
+void HipsView::set_lod_mode(bool strict_leaf) {
+    sky_.set_lod_mode(strict_leaf);
+    dirty_ = true;
+    update();
+}
+
 void HipsView::mark_dirty() {
     dirty_ = true;
     update();

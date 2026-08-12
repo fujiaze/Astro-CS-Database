@@ -265,10 +265,14 @@ void HipsSkyView::rasterize(std::vector<std::uint32_t>& rgba) {
             tiles_needed.insert(vv.begin(), vv.end());
         // 解码（单线程；含父级回退）
         for (std::uint64_t t : tiles_needed) {
-            if (!get_tile(order, t)) {
-                std::uint64_t p = t >> 2;
-                for (int o = order - 1; o >= 0 && !get_tile(o, p); --o)
-                    p >>= 2;
+            if (strict_leaf_) {
+                get_tile(order, t);  // strict-leaf：缺 tile 直接背景
+            } else {
+                if (!get_tile(order, t)) {
+                    std::uint64_t p = t >> 2;
+                    for (int o = order - 1; o >= 0 && !get_tile(o, p); --o)
+                        p >>= 2;
+                }
             }
         }
     }
@@ -326,7 +330,7 @@ void HipsSkyView::rasterize(std::vector<std::uint32_t>& rgba) {
             // V10 修复：父级回退时必须用父级 nside 下的 local（低 2*(order-o)
             // 位），不能用目标 order 的 local，否则父 tile 大范围内错位采样，
             // 导致“同一数据在屏幕上多处重复出现”的孤岛/碎片。
-            while (!t && o > 0) {
+            while (!t && o > 0 && !strict_leaf_) {
                 tp >>= 2;
                 --o;
                 auto jt = cache_.find(std::make_pair(o, tp));
@@ -339,6 +343,7 @@ void HipsSkyView::rasterize(std::vector<std::uint32_t>& rgba) {
             }
             std::uint32_t color = kBackground;
             if (t) {
+                // 最近邻采样：高倍率下保留 HiPS tile 像素网格，不掩盖真实结构
                 const std::uint64_t fi =
                     astrocs::healpix::nested_local_to_fits_index(use_local, 9u,
                                                                  512u);

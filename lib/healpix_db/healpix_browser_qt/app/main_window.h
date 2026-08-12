@@ -63,6 +63,8 @@ public:
                                  int layer, bool exit_after);
     // V10: 整窗截图（含状态栏，供人工核验 UI 文本）
     void capture_window_screenshot(const QString& out_png, bool exit_after);
+    // V11: LOD 模式 strict-leaf | hierarchy
+    void set_lod_mode(const QString& mode);
     // V9: 命令行直接跳转视图（--view ra,dec,fov）
     void jump_to_view(double ra, double dec, double fov);
 

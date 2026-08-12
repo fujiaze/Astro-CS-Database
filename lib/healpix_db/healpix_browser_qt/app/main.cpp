@@ -34,6 +34,9 @@ int main(int argc, char* argv[]) {
     parser.addPositionalArgument("file",
         "可选: 直接打开的文件路径 (.hiss/.hcsd) 或 HiPS 产品集目录");
     QCommandLineOption hips_opt("hips", "HiPS 产品集根目录", "dir");
+    QCommandLineOption std_hips_opt("standard-hips",
+                                    "标准单层 HiPS 根目录（signal-only 兼容）",
+                                    "dir");
     QCommandLineOption preset_opt("preset", "预设视图名", "name");
     QCommandLineOption layer_opt("layer", "图层 signal|support", "layer");
     QCommandLineOption shot_opt("screenshot", "保存截图 PNG", "path");
@@ -41,13 +44,17 @@ int main(int argc, char* argv[]) {
     QCommandLineOption view_opt("view", "跳转视图 ra,dec,fov", "ra,dec,fov");
     QCommandLineOption win_shot_opt("window-screenshot",
                                     "整窗截图（含状态栏）", "path");
+    QCommandLineOption lod_opt("lod", "LOD 模式 strict-leaf|hierarchy",
+                               "mode");
     parser.addOption(hips_opt);
+    parser.addOption(std_hips_opt);
     parser.addOption(preset_opt);
     parser.addOption(layer_opt);
     parser.addOption(shot_opt);
     parser.addOption(exit_opt);
     parser.addOption(view_opt);
     parser.addOption(win_shot_opt);
+    parser.addOption(lod_opt);
     parser.process(app);
 
     // 创建主窗口
@@ -59,6 +66,8 @@ int main(int argc, char* argv[]) {
     QString target;
     if (parser.isSet(hips_opt)) {
         target = parser.value(hips_opt);
+    } else if (parser.isSet(std_hips_opt)) {
+        target = parser.value(std_hips_opt);
     } else {
         const QStringList args = parser.positionalArguments();
         if (!args.isEmpty()) target = args.first();
@@ -69,6 +78,7 @@ int main(int argc, char* argv[]) {
     const bool exit_after = parser.isSet(exit_opt);
     const QString view = parser.value(view_opt);
     const QString win_shot = parser.value(win_shot_opt);
+    const QString lod = parser.value(lod_opt);
 
     if (!target.isEmpty()) {
         QMetaObject::invokeMethod(&window, "open_file_from_cli",
@@ -81,6 +91,11 @@ int main(int argc, char* argv[]) {
                                            exit_after]() {
             const int lyr = (layer == "support") ? 1 : 0;
             window.capture_hips_screenshot(shot, preset, lyr, exit_after);
+        });
+    }
+    if (lod == "strict-leaf" || lod == "hierarchy") {
+        QTimer::singleShot(950, &window, [&window, lod]() {
+            window.set_lod_mode(lod);
         });
     }
     if (!view.isEmpty()) {

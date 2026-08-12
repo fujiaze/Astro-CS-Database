@@ -496,8 +496,8 @@ void MainWindow::open_file(const QString& path) {
 
     // V9: HiPS 产品集目录（内含 signal/support）→ HiPS 2D 视图
     QFileInfo fi(path);
-    if (fi.isDir() && QDir(path).exists("signal") &&
-        QDir(path).exists("support")) {
+    if (fi.isDir() &&
+        (QDir(path).exists("signal") || QDir(path).exists("properties"))) {
         open_hips(path);
         return;
     }
@@ -809,6 +809,14 @@ void MainWindow::capture_window_screenshot(const QString& out_png,
     std::fprintf(stderr, "[window-shot] %s -> %d\n",
                  out_png.toStdString().c_str(), ok ? 1 : 0);
     if (exit_after) QTimer::singleShot(100, this, &MainWindow::on_exit);
+}
+
+void MainWindow::set_lod_mode(const QString& mode) {
+    if (!hips_view_) return;
+    const bool strict = (mode == "strict-leaf");
+    hips_view_->set_lod_mode(strict);
+    std::fprintf(stderr, "[lod] mode=%s strict=%d\n",
+                 mode.toStdString().c_str(), strict ? 1 : 0);
 }
 
 void MainWindow::on_file_close() {
