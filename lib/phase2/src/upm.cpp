@@ -60,6 +60,9 @@ struct Model {
     std::vector<std::vector<double>> obs_w;     // 最终每轮权重缓存
     std::map<std::pair<std::uint64_t, std::pair<int, int>>, std::size_t>
         cell_index;                      // (tile, gx, gy) -> control
+    // V7：每 tile 覆盖 cell 范围（外推锚点只引用真实存在的 cell）
+    std::map<std::uint64_t, std::pair<int, int>> tile_gx_bounds;
+    std::map<std::uint64_t, std::pair<int, int>> tile_gy_bounds;
     // R4：求解前连通分量（frame-control 二分图）；每分量独立 gauge
     std::vector<std::size_t> control_component;   // control -> component
     std::vector<std::size_t> frame_component;     // frame index -> component
@@ -82,30 +85,57 @@ struct Model {
 // 位置两侧最近的 cell 中心双线性插值：
 //   - evaluate(center) == C[cell]（坐标自洽）；
 //   - 线性场在正确相位恢复（half-cell phase truth）；
-//   - tile 最外缘 clamp 到最外中心（不外推）。
+//   - tile 最外缘线性外推：v 低于首中心用前两个 centered nodes，
+//     高于末中心用最后两个 centered nodes（双轴 corner 由双线性公式
+//     自然外推）；不再 clamp 成常数（V7 P7-1）。
+//   - 外推锚点限制在本 tile **真实覆盖**的 cell 范围内；缺失 cell
+//     （部分覆盖/单 cell）不会引用为 0。
 double evaluate_c_field(const Model* m, std::size_t frame_idx,
                         std::uint64_t tile, int x, int y) {
     const int cell = m->cell_side;
     const int half = cell / 2;
-    // v 轴（0..512）：返回夹住 v 的两个 cell 中心坐标（clamp 到网格内）
-    auto axis = [&](int v, int* c0, int* c1) {
-        const int idx = std::clamp(v / cell, 0, m->grid - 1);
-        const int cc = idx * cell + half;
-        if (v <= cc) {
-            *c0 = cc - cell;
-            *c1 = cc;
-        } else {
-            *c0 = cc;
-            *c1 = cc + cell;
+    // v 轴（0..512）：返回定义线性段的两个 cell 中心坐标。
+    // 内部：夹住 v 的两个相邻中心；边缘：前两个/后两个中心（外推段）。
+    auto gx_bounds = [&]() -> std::pair<int, int> {
+        const auto it = m->tile_gx_bounds.find(tile);
+        if (it != m->tile_gx_bounds.end()) return it->second;
+        return {0, m->grid - 1};
+    };
+    auto gy_bounds = [&]() -> std::pair<int, int> {
+        const auto it = m->tile_gy_bounds.find(tile);
+        if (it != m->tile_gy_bounds.end()) return it->second;
+        return {0, m->grid - 1};
+    };
+    auto axis = [&](int v, int* c0, int* c1, const std::pair<int, int>& b) {
+        const int gmin = b.first;
+        const int gmax = b.second;
+        const int lo = gmin * cell + half;
+        const int hi = gmax * cell + half;
+        if (gmin == gmax) {
+            *c0 = *c1 = lo;               // 单列覆盖 → 常数（无外推数据）
+            return;
         }
-        const int lo = half;
-        const int hi = m->grid * cell - half;
-        *c0 = std::clamp(*c0, lo, hi);
-        *c1 = std::clamp(*c1, lo, hi);
+        if (v <= lo) {
+            *c0 = lo;
+            *c1 = lo + cell;              // 前两个 covered nodes
+        } else if (v >= hi) {
+            *c0 = hi - cell;
+            *c1 = hi;                     // 最后两个 covered nodes
+        } else {
+            const int idx = std::clamp(v / cell, gmin, gmax);
+            const int cc = idx * cell + half;
+            if (v <= cc) {
+                *c0 = cc - cell;
+                *c1 = cc;
+            } else {
+                *c0 = cc;
+                *c1 = cc + cell;
+            }
+        }
     };
     int x0 = 0, x1 = 0, y0 = 0, y1 = 0;
-    axis(x, &x0, &x1);
-    axis(y, &y0, &y1);
+    axis(x, &x0, &x1, gx_bounds());
+    axis(y, &y0, &y1, gy_bounds());
     auto at = [&](int cx, int cy) -> double {
         const int gxi = std::clamp((cx - half) / cell, 0, m->grid - 1);
         const int gyi = std::clamp((cy - half) / cell, 0, m->grid - 1);
@@ -245,6 +275,23 @@ int p2_upm_build(const P2ControlObservation* obs, std::uint64_t n_obs,
     // truth delta。save/open 的 cell_index 退化为恒等映射（向后兼容读取）。
     m->info.control_count = m->controls.size();
     const std::size_t K = m->controls.size();
+    // V7：每 tile 覆盖 cell 范围（evaluate 外推锚点用）
+    for (const auto& kv : m->cell_index) {
+        const std::uint64_t t = kv.first.first;
+        const int gx = kv.first.second.first;
+        const int gy = kv.first.second.second;
+        auto it = m->tile_gx_bounds.find(t);
+        if (it == m->tile_gx_bounds.end()) {
+            m->tile_gx_bounds[t] = {gx, gx};
+            m->tile_gy_bounds[t] = {gy, gy};
+        } else {
+            it->second.first = std::min(it->second.first, gx);
+            it->second.second = std::max(it->second.second, gx);
+            auto& gyb = m->tile_gy_bounds[t];
+            gyb.first = std::min(gyb.first, gy);
+            gyb.second = std::max(gyb.second, gy);
+        }
+    }
     for (std::uint64_t f : frame_ids) {
         if (m->frame_index.find(f) == m->frame_index.end()) {
             const std::size_t idx = m->frame_index.size();
@@ -733,6 +780,23 @@ int p2_upm_open(const char* path, void** out_model) {
             const std::size_t idx = e[3].get<std::size_t>();
             m->cell_index[std::make_pair(tile, std::make_pair(gx, gy))] =
                 idx;
+        }
+    }
+    // V7：恢复每 tile 覆盖范围（evaluate 外推锚点用）
+    for (const auto& kv : m->cell_index) {
+        const std::uint64_t t = kv.first.first;
+        const int gx = kv.first.second.first;
+        const int gy = kv.first.second.second;
+        auto it = m->tile_gx_bounds.find(t);
+        if (it == m->tile_gx_bounds.end()) {
+            m->tile_gx_bounds[t] = {gx, gx};
+            m->tile_gy_bounds[t] = {gy, gy};
+        } else {
+            it->second.first = std::min(it->second.first, gx);
+            it->second.second = std::max(it->second.second, gx);
+            auto& gyb = m->tile_gy_bounds[t];
+            gyb.first = std::min(gyb.first, gy);
+            gyb.second = std::max(gyb.second, gy);
         }
     }
     const std::size_t F = m->frame_index.size();
