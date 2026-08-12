@@ -1016,8 +1016,8 @@ TEST(Phase2Upm, G4RealTileSeamLeaves) {
     ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg, &model), 0);
     P2ModelInfo info{};
     ASSERT_EQ(p2_upm_info(model, &info), 0);
-    // V4 R3：4-tile 2×2 块边界节点合并后 control_count 允许 < 256；
-    // ≥256 controls 由主 truth gate（G1V3SpatialTruthFull，283）覆盖。
+    // V5：移除边界节点合并后 2×2 块保持 256 个独立 control cell；
+    // ≥256 controls 由主 truth gate 覆盖。
     EXPECT_GT(info.control_count, 128u);
 
     // 四组真实相邻 tile seam：{A, B, vertical}。
@@ -1034,10 +1034,36 @@ TEST(Phase2Upm, G4RealTileSeamLeaves) {
     const double leaf_spacing_deg =
         std::sqrt(4.0 * 3.141592653589793 / (12.0 * nside_leaf * nside_leaf)) *
         180.0 / 3.141592653589793;
-    // 噪声界推导：C 场插值噪声上界——同数据集 cell-seam 实测 ≤1e-3
-    // （G1V3）；真实 seam 两侧节点由跨 tile 平滑邻接耦合，取 3× 裕度，
-    // 远小于观测噪声(0.05)与场幅度(0.4–0.7)。
-    const double noise_bound = 3e-3;
+    // V5 噪声界推导（自校准）：seam 两侧 C 来自不同 tile 的独立节点
+    // 集，其差是两次独立插值噪声的差 → 跳变噪声 ≈ √2×内部插值噪声。
+    // 内部插值噪声用同模型、同帧、远离边界的内部 leaf 实测
+    // |C_hat - C_true| 的 max 度量；seam 门限 = truth_delta +
+    // 2.0×内部 max 误差（保守包住 √2 因子）。该界随数据噪声自适应，
+    // 不是任意小常数；平滑场（truth_delta≈0）下 seam 跳变须落在
+    // 内部恢复误差量级，证明无系统性 seam 伪影。
+    std::uniform_int_distribution<int> xyd(0, 511);
+    double interior_max_err = 0.0, interior_sum = 0.0;
+    std::size_t interior_n = 0;
+    for (int t = 0; t < n_tiles; ++t) {
+        for (int i = 0; i < 4000; ++i) {
+            const int x = xyd(rng), y = xyd(rng);
+            if (x < 128 || x >= 384 || y < 128 || y >= 384) continue;
+            const std::uint64_t leaf = st::leaf_of(tiles[t], x, y);
+            double ra = 0, dec = 0;
+            astrocs::healpix::pix2ang_nest(
+                1u << (unsigned)(st::kTargetOrder + st::kTileShift), leaf,
+                ra, dec);
+            const double e = std::fabs(
+                p2_upm_evaluate_c(model, 1, leaf) -
+                st::frame_field(1, ra, dec));
+            interior_max_err = std::max(interior_max_err, e);
+            interior_sum += e;
+            ++interior_n;
+        }
+    }
+    const double interior_mean_err =
+        interior_n ? interior_sum / (double)interior_n : 0.0;
+    const double noise_bound = 2.0 * interior_max_err + 1e-12;
     double worst_excess = 0.0;
     std::size_t total_pairs = 0;
     std::vector<std::pair<std::uint64_t, std::uint64_t>> seam_pairs;
@@ -1084,8 +1110,10 @@ TEST(Phase2Upm, G4RealTileSeamLeaves) {
     }
     std::fprintf(stderr,
                  "[G4-seam] total_pairs=%zu worst_excess=%.5f "
-                 "noise_bound=%.4f\n",
-                 total_pairs, worst_excess, noise_bound);
+                 "interior_mean_err=%.5f interior_max_err=%.5f "
+                 "noise_bound=%.5f\n",
+                 total_pairs, worst_excess, interior_mean_err,
+                 interior_max_err, noise_bound);
     EXPECT_GE(total_pairs, 4u * 32u) << "必须覆盖多组 seam";
     // hard gate：|C(p_left)-C(p_right)| ≤ 注入场 truth delta + 噪声界
     EXPECT_LE(worst_excess, noise_bound)
@@ -1104,12 +1132,371 @@ TEST(Phase2Upm, G4RealTileSeamLeaves) {
     sj["noise_bound"] = noise_bound;
     sj["total_boundary_pairs"] = total_pairs;
     sj["worst_excess_over_truth_delta"] = worst_excess;
+    sj["interior_mean_err"] = interior_mean_err;
+    sj["interior_max_err"] = interior_max_err;
     std::filesystem::create_directories(
         "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth");
     std::ofstream sf(
         "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth/"
         "tile_seam_metrics.json");
     if (sf) sf << sj.dump(2);
+    p2_upm_close(model);
+}
+
+// V5 G1：跨 tile 恢复 delta 跟随 truth delta（不强制 jump=0）。
+// 注入 step 场（左列 0 / 右列 +0.3；上排 0 / 下排 +0.3），λs=0
+// （生产 stage2 配置 smoothing=0 语义）；四个 seam 的恢复 delta 必须
+// 跟踪 truth step，而不是被压成 0。
+TEST(Phase2Upm, G1CrossTileDeltaFollowsTruth) {
+    namespace st = spatial_truth;
+    std::mt19937 rng(20260822);
+    std::normal_distribution<double> nd(0.0, st::kNoiseRms);
+    const std::uint64_t tiles[4] = {4, 5, 6, 7};
+    const double kStep = 0.3;
+    auto frame1_c = [&](std::uint64_t tile) {
+        const bool right = (tile == 5 || tile == 7);
+        const bool bottom = (tile == 6 || tile == 7);
+        return (right ? kStep : 0.0) + (bottom ? kStep : 0.0);
+    };
+    std::vector<P2ControlObservation> obs;
+    std::uint64_t cid = 0;
+    for (int t = 0; t < 4; ++t) {
+        for (int gy = 0; gy < st::kGrid; ++gy) {
+            for (int gx = 0; gx < st::kGrid; ++gx) {
+                double ra = 0, dec = 0;
+                st::cell_center_radec(tiles[t], gx, gy, &ra, &dec);
+                const std::uint64_t leaf =
+                    st::leaf_of(tiles[t], gx * st::kCellSide + 32,
+                                gy * st::kCellSide + 32);
+                for (int f = 0; f < 3; ++f) {
+                    P2ControlObservation o{};
+                    o.frame_id = (std::uint64_t)f;
+                    o.control_id = cid;
+                    o.leaf_ipix = leaf;
+                    o.ra_deg = ra;
+                    o.dec_deg = dec;
+                    o.value = st::true_sky(ra, dec) +
+                              (f == 1 ? frame1_c(tiles[t]) : 0.0) +
+                              nd(rng);
+                    o.uncertainty = st::kNoiseRms;
+                    o.snr = 100.0;
+                    o.support = 1.0;
+                    o.quality_flags = 1;
+                    obs.push_back(o);
+                }
+                ++cid;
+            }
+        }
+    }
+    P2UpmBuildConfig cfg{};
+    cfg.target_order = st::kTargetOrder;
+    cfg.smoothing_lambda = 0.0;   // 生产语义（stage2 smoothing=0）
+    cfg.zero_anchor_weight = 1e-3;
+    cfg.sigma_floor = 0.02;
+    cfg.max_iterations = 60;
+    cfg.tolerance = 1e-9;
+    void* model = nullptr;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg, &model), 0);
+
+    // 4 组 seam（x: 4-5, 6-7；y: 4-6, 5-7）恢复 delta 统计
+    struct Seam {
+        std::uint64_t ta, tb;
+        bool vertical;
+    };
+    const std::vector<Seam> seams = {
+        {4, 5, true}, {6, 7, true}, {4, 6, false}, {5, 7, false}};
+    double worst_err = 0.0, min_delta = 1e9;
+    double sum = 0.0;
+    std::size_t n = 0, n_over_half = 0;
+    for (const auto& s : seams) {
+        for (int k = 0; k < 512; k += 8) {
+            const int xa = s.vertical ? 511 : k;
+            const int ya = s.vertical ? k : 511;
+            const int xb = s.vertical ? 0 : k;
+            const int yb = s.vertical ? k : 0;
+            const std::uint64_t la = st::leaf_of(s.ta, xa, ya);
+            const std::uint64_t lb = st::leaf_of(s.tb, xb, yb);
+            const double d = std::fabs(
+                p2_upm_evaluate_c(model, 1, la) -
+                p2_upm_evaluate_c(model, 1, lb));
+            sum += d;
+            ++n;
+            min_delta = std::min(min_delta, d);
+            if (d > 0.5 * kStep) ++n_over_half;
+            worst_err = std::max(worst_err, std::fabs(d - kStep));
+        }
+    }
+    const double mean_delta = n ? sum / (double)n : 0.0;
+    const double frac_over_half = n ? (double)n_over_half / (double)n : 0.0;
+    std::fprintf(stderr,
+                 "[G1-step] pairs=%zu mean_delta=%.5f min_delta=%.5f "
+                 "truth_step=%.2f worst_err=%.5f frac_over_half=%.3f\n",
+                 n, mean_delta, min_delta, kStep, worst_err, frac_over_half);
+    // 恢复 delta 必须跟随 truth step（均值误差 ≤ 3σ_node≈0.15），
+    // 且绝大多数 pair 明显非 0（不允许 proximity-alias 强制 jump=0；
+    // 单 pair 下界受节点噪声 ~0.05 影响，用 ≥90% 占比而非逐 pair min）。
+    EXPECT_GT(frac_over_half, 0.9)
+        << "跨 tile 恢复 delta 不得被强制为 0";
+    EXPECT_NEAR(mean_delta, kStep, 0.15)
+        << "跨 tile 恢复 delta 必须跟随 truth delta";
+    // machine-readable 证据
+    nlohmann::json sj;
+    sj["truth_step"] = kStep;
+    sj["pairs"] = n;
+    sj["mean_recovered_delta"] = mean_delta;
+    sj["min_recovered_delta"] = min_delta;
+    sj["frac_pairs_over_half_step"] = frac_over_half;
+    sj["worst_abs_error_vs_truth"] = worst_err;
+    std::filesystem::create_directories(
+        "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth");
+    std::ofstream sf(
+        "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth/"
+        "v5_cross_tile_delta.json");
+    if (sf) sf << sj.dump(2);
+    p2_upm_close(model);
+}
+
+// V5 G1：half-cell 相位 truth——线性场 C(x)=g*x/512 必须被双线性基
+// 在正确相位恢复（无半 cell 平移）：恢复斜率≈g 且截距≈0。
+TEST(Phase2Upm, G1HalfCellPhaseTruth) {
+    namespace st = spatial_truth;
+    std::mt19937 rng(20260823);
+    std::normal_distribution<double> nd(0.0, st::kNoiseRms);
+    const std::uint64_t tile = 4;
+    const double g = 0.4;   // 场幅度 0.4（与 frame_field 同量级）
+    auto lin_c = [&](int x) { return g * (double)(x + 0.5) / 512.0; };
+    std::vector<P2ControlObservation> obs;
+    std::uint64_t cid = 0;
+    for (int gy = 0; gy < st::kGrid; ++gy) {
+        for (int gx = 0; gx < st::kGrid; ++gx) {
+            double ra = 0, dec = 0;
+            st::cell_center_radec(tile, gx, gy, &ra, &dec);
+            const std::uint64_t leaf =
+                st::leaf_of(tile, gx * st::kCellSide + 32,
+                            gy * st::kCellSide + 32);
+            const int cx = gx * st::kCellSide + 32;
+            for (int f = 0; f < 2; ++f) {
+                P2ControlObservation o{};
+                o.frame_id = (std::uint64_t)f;
+                o.control_id = cid;
+                o.leaf_ipix = leaf;
+                o.ra_deg = ra;
+                o.dec_deg = dec;
+                o.value = st::true_sky(ra, dec) +
+                          (f == 1 ? lin_c(cx) : 0.0) + nd(rng);
+                o.uncertainty = st::kNoiseRms;
+                o.snr = 100.0;
+                o.support = 1.0;
+                o.quality_flags = 1;
+                obs.push_back(o);
+            }
+            ++cid;
+        }
+    }
+    P2UpmBuildConfig cfg{};
+    cfg.target_order = st::kTargetOrder;
+    cfg.smoothing_lambda = 0.0;
+    cfg.zero_anchor_weight = 1e-3;
+    cfg.sigma_floor = 0.02;
+    cfg.max_iterations = 60;
+    cfg.tolerance = 1e-9;
+    void* model = nullptr;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg, &model), 0);
+    // 随机叶位置：evaluate C vs 线性 truth，拟合斜率/截距
+    std::vector<double> xs, ys;
+    std::uniform_int_distribution<int> xyd(0, 511);
+    for (int i = 0; i < 4096; ++i) {
+        const int x = xyd(rng), y = xyd(rng);
+        const std::uint64_t leaf = st::leaf_of(tile, x, y);
+        double ra = 0, dec = 0;
+        astrocs::healpix::pix2ang_nest(
+            1u << (unsigned)(st::kTargetOrder + st::kTileShift), leaf, ra,
+            dec);
+        const double ch = p2_upm_evaluate_c(model, 1, leaf);
+        xs.push_back((double)x);
+        ys.push_back(ch);
+        EXPECT_NEAR(ch, lin_c(x), 0.15) << "half-cell 相位恢复";
+    }
+    // 最小二乘斜率/截距（x 为叶列坐标）
+    double sx = 0, sy = 0, sxx = 0, sxy = 0;
+    const std::size_t nn = xs.size();
+    for (std::size_t i = 0; i < nn; ++i) {
+        sx += xs[i]; sy += ys[i]; sxx += xs[i]*xs[i]; sxy += xs[i]*ys[i];
+    }
+    const double den = (double)nn * sxx - sx * sx;
+    const double slope = (den != 0.0) ? ((double)nn * sxy - sx * sy) / den : 0.0;
+    const double intercept = (sy - slope * sx) / (double)nn;
+    std::fprintf(stderr,
+                 "[G1-phase] n=%zu slope=%.5f truth_slope=%.5f "
+                 "intercept=%.6f\n",
+                 nn, slope, g / 512.0, intercept);
+    EXPECT_NEAR(slope, g / 512.0, 0.001);
+    EXPECT_NEAR(intercept, 0.0, 0.02);
+    nlohmann::json pj;
+    pj["truth_slope_per_leaf"] = g / 512.0;
+    pj["recovered_slope"] = slope;
+    pj["recovered_intercept"] = intercept;
+    std::filesystem::create_directories(
+        "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth");
+    std::ofstream pf(
+        "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth/"
+        "v5_half_cell_phase.json");
+    if (pf) pf << pj.dump(2);
+    p2_upm_close(model);
+}
+
+// V5 G1：distinct boundary sky centers 不 proximity-alias——
+// 2×2 相邻块保持 256 个独立 control cell（无合并）；且两个相邻 tile
+// 的边界 cell 中心（A(gx=7) 与 B(gx=0)）sky 位置不同 → 系数独立
+// （geometry hash 区分各自 (tile,gx,gy)）。
+TEST(Phase2Upm, G1DistinctBoundaryNodesNotAliased) {
+    namespace st = spatial_truth;
+    std::mt19937 rng(20260824);
+    std::normal_distribution<double> nd(0.0, st::kNoiseRms);
+    const std::uint64_t tiles[4] = {4, 5, 6, 7};
+    std::vector<P2ControlObservation> obs;
+    std::uint64_t cid = 0;
+    for (int t = 0; t < 4; ++t) {
+        for (int gy = 0; gy < st::kGrid; ++gy) {
+            for (int gx = 0; gx < st::kGrid; ++gx) {
+                double ra = 0, dec = 0;
+                st::cell_center_radec(tiles[t], gx, gy, &ra, &dec);
+                const std::uint64_t leaf =
+                    st::leaf_of(tiles[t], gx * st::kCellSide + 32,
+                                gy * st::kCellSide + 32);
+                for (int f = 0; f < 3; ++f) {
+                    P2ControlObservation o{};
+                    o.frame_id = (std::uint64_t)f;
+                    o.control_id = cid;
+                    o.leaf_ipix = leaf;
+                    o.ra_deg = ra;
+                    o.dec_deg = dec;
+                    o.value = st::true_sky(ra, dec) +
+                              st::frame_field(f, ra, dec) + nd(rng);
+                    o.uncertainty = st::kNoiseRms;
+                    o.snr = 100.0;
+                    o.support = 1.0;
+                    o.quality_flags = 1;
+                    obs.push_back(o);
+                }
+                ++cid;
+            }
+        }
+    }
+    P2UpmBuildConfig cfg{};
+    cfg.target_order = st::kTargetOrder;
+    cfg.smoothing_lambda = 0.0;
+    cfg.zero_anchor_weight = 1e-3;
+    cfg.sigma_floor = 0.02;
+    cfg.max_iterations = 60;
+    cfg.tolerance = 1e-9;
+    void* model = nullptr;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg, &model), 0);
+    P2ModelInfo info{};
+    ASSERT_EQ(p2_upm_info(model, &info), 0);
+    // 无 proximity-alias：4×64=256 个独立 control cell
+    EXPECT_EQ(info.control_count, 256u);
+    // 相邻 tile 边界 cell 中心角距 ≈ 1 cell 间距（distinct sky centers）
+    double raa = 0, deca = 0, rab = 0, decb = 0;
+    st::cell_center_radec(4, 7, 3, &raa, &deca);
+    st::cell_center_radec(5, 0, 3, &rab, &decb);
+    const double dist =
+        astrocs::healpix::angular_distance_deg(raa, deca, rab, decb);
+    EXPECT_GT(dist, 0.0) << "相邻边界 cell 中心必须为不同 sky 位置";
+    std::fprintf(stderr, "[G1-noalias] controls=%llu boundary_center_dist=%.6f deg\n",
+                 (unsigned long long)info.control_count, dist);
+    nlohmann::json aj;
+    aj["control_count"] = info.control_count;
+    aj["boundary_center_angular_distance_deg"] = dist;
+    std::filesystem::create_directories(
+        "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth");
+    std::ofstream af(
+        "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth/"
+        "v5_no_proximity_alias.json");
+    if (af) af << aj.dump(2);
+    p2_upm_close(model);
+}
+
+// V5 G1：basis 坐标自洽——leaf→(tile,x,y)→cell 映射与 evaluator 一致；
+// calibrate(leaf) == input - evaluate_c(leaf)（逐 control 断言）。
+TEST(Phase2Upm, G1BasisCoordinateSelfConsistency) {
+    namespace st = spatial_truth;
+    std::mt19937 rng(20260825);
+    std::normal_distribution<double> nd(0.0, st::kNoiseRms);
+    const std::uint64_t tiles[4] = {4, 5, 6, 7};
+    std::vector<P2ControlObservation> obs;
+    std::uint64_t cid = 0;
+    for (int t = 0; t < 4; ++t) {
+        for (int gy = 0; gy < st::kGrid; ++gy) {
+            for (int gx = 0; gx < st::kGrid; ++gx) {
+                double ra = 0, dec = 0;
+                st::cell_center_radec(tiles[t], gx, gy, &ra, &dec);
+                const std::uint64_t leaf =
+                    st::leaf_of(tiles[t], gx * st::kCellSide + 32,
+                                gy * st::kCellSide + 32);
+                for (int f = 0; f < 3; ++f) {
+                    P2ControlObservation o{};
+                    o.frame_id = (std::uint64_t)f;
+                    o.control_id = cid;
+                    o.leaf_ipix = leaf;
+                    o.ra_deg = ra;
+                    o.dec_deg = dec;
+                    o.value = st::true_sky(ra, dec) +
+                              st::frame_field(f, ra, dec) + nd(rng);
+                    o.uncertainty = st::kNoiseRms;
+                    o.snr = 100.0;
+                    o.support = 1.0;
+                    o.quality_flags = 1;
+                    obs.push_back(o);
+                }
+                ++cid;
+            }
+        }
+    }
+    P2UpmBuildConfig cfg{};
+    cfg.target_order = st::kTargetOrder;
+    cfg.smoothing_lambda = 0.0;
+    cfg.zero_anchor_weight = 1e-3;
+    cfg.sigma_floor = 0.02;
+    cfg.max_iterations = 60;
+    cfg.tolerance = 1e-9;
+    void* model = nullptr;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg, &model), 0);
+    // 逐 control：calibrate(leaf) == input - evaluate_c(leaf)；
+    // 且 leaf→(tile,x,y)→cell 与观测 cell 一致（1e-12 精度）
+    double worst = 0.0;
+    for (const auto& o : obs) {
+        const std::uint64_t leaf = o.leaf_ipix;
+        const std::uint64_t tile = leaf >> 18;
+        const std::uint64_t local = leaf & ((1ULL << 18) - 1ULL);
+        std::uint32_t x = 0, y = 0;
+        astrocs::healpix::nested_local_to_xy(local, 9u, x, y);
+        const int gx = (int)(x / st::kCellSide);
+        const int gy = (int)(y / st::kCellSide);
+        // 观测 leaf 的 cell 必须与生成时一致（gx=7 时 x=480 → 7）
+        const std::uint64_t l2 = st::leaf_of(tile, gx * st::kCellSide + 32,
+                                             gy * st::kCellSide + 32);
+        ASSERT_EQ(l2, leaf) << "leaf→cell 映射自洽失败";
+        double in[1] = {o.value};
+        double out[1] = {0};
+        ASSERT_EQ(p2_upm_calibrate_block(model, o.frame_id, &leaf, in, out,
+                                         1), 0);
+        const double expect =
+            in[0] - p2_upm_evaluate_c(model, o.frame_id, leaf);
+        worst = std::max(worst, std::fabs(out[0] - expect));
+    }
+    std::fprintf(stderr, "[G1-basis] obs=%zu worst_calibrate_vs_evaluate=%.3e\n",
+                 obs.size(), worst);
+    EXPECT_LE(worst, 1e-9);
+    nlohmann::json bj;
+    bj["observations_checked"] = obs.size();
+    bj["worst_calibrate_minus_evaluate"] = worst;
+    std::filesystem::create_directories(
+        "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth");
+    std::ofstream bf(
+        "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth/"
+        "v5_basis_self_consistency.json");
+    if (bf) bf << bj.dump(2);
     p2_upm_close(model);
 }
 
@@ -1245,7 +1632,7 @@ TEST(Phase2Upm, G2PersistenceAndHashSensitivity) {
     ASSERT_EQ(p2_upm_open(big_path, &bm2), 0);
     P2ModelInfo binfo2{};
     ASSERT_EQ(p2_upm_info(bm2, &binfo2), 0);
-    // V4 R3：跨 tile 边界节点共享后 control_count 不再等于 cell 数；
+    // V5：移除边界节点合并后 control_count 恢复等于 cell 数；
     // >8 MiB round-trip 保持 control_count/hash/校准一致。
     EXPECT_EQ(binfo2.control_count, binfo.control_count);
     EXPECT_GT(binfo.control_count, 0ull);

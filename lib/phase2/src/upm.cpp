@@ -74,32 +74,55 @@ struct Model {
     std::size_t component_count{1};
 };
 
-// R4：evaluate_C —— 双线性插值（同一科学求值语义，sparse/dense 共用）
-// 输入 leaf -> (tile, x, y)（tile 内 512×512 坐标）；cell 四角节点值
-// 双线性插值；最外层 cell 不外推（clamp 到网格边界）。
+// V5（P6-0/G1）：evaluate_C —— centered bilinear basis（同一科学求值
+// 语义，sparse/dense 共用）。控制观测与系数节点位于 **cell 中心**
+// （gx*cell+cell/2, gy*cell+cell/2）；旧实现把节点值当作 cell 角点
+// 求值，导致恢复场相对叶坐标产生半 cell（cell/2）相位偏移，且
+// evaluate(观测中心) != 节点系数（basis 坐标不自洽）。本实现按叶
+// 位置两侧最近的 cell 中心双线性插值：
+//   - evaluate(center) == C[cell]（坐标自洽）；
+//   - 线性场在正确相位恢复（half-cell phase truth）；
+//   - tile 最外缘 clamp 到最外中心（不外推）。
 double evaluate_c_field(const Model* m, std::size_t frame_idx,
                         std::uint64_t tile, int x, int y) {
-    const int gx = std::min(std::max(x / m->cell_side, 0), m->grid - 1);
-    const int gy = std::min(std::max(y / m->cell_side, 0), m->grid - 1);
-    const int gx1 = std::min(gx + 1, m->grid - 1);
-    const int gy1 = std::min(gy + 1, m->grid - 1);
-    const double fx = (double)(x - gx * m->cell_side) /
-                      (double)m->cell_side;
-    const double fy = (double)(y - gy * m->cell_side) /
-                      (double)m->cell_side;
+    const int cell = m->cell_side;
+    const int half = cell / 2;
+    // v 轴（0..512）：返回夹住 v 的两个 cell 中心坐标（clamp 到网格内）
+    auto axis = [&](int v, int* c0, int* c1) {
+        const int idx = std::clamp(v / cell, 0, m->grid - 1);
+        const int cc = idx * cell + half;
+        if (v <= cc) {
+            *c0 = cc - cell;
+            *c1 = cc;
+        } else {
+            *c0 = cc;
+            *c1 = cc + cell;
+        }
+        const int lo = half;
+        const int hi = m->grid * cell - half;
+        *c0 = std::clamp(*c0, lo, hi);
+        *c1 = std::clamp(*c1, lo, hi);
+    };
+    int x0 = 0, x1 = 0, y0 = 0, y1 = 0;
+    axis(x, &x0, &x1);
+    axis(y, &y0, &y1);
     auto at = [&](int cx, int cy) -> double {
-        const auto key = std::make_pair(tile, std::make_pair(cx, cy));
+        const int gxi = std::clamp((cx - half) / cell, 0, m->grid - 1);
+        const int gyi = std::clamp((cy - half) / cell, 0, m->grid - 1);
+        const auto key = std::make_pair(tile, std::make_pair(gxi, gyi));
         const auto it = m->cell_index.find(key);
         if (it == m->cell_index.end()) return 0.0;
         return m->C[frame_idx][it->second];
     };
-    const double c00 = at(gx, gy);
-    const double c10 = at(gx1, gy);
-    const double c01 = at(gx, gy1);
-    const double c11 = at(gx1, gy1);
-    const double top = c00 + fx * (c10 - c00);
-    const double bot = c01 + fx * (c11 - c01);
-    return top + fy * (bot - top);
+    const double c00 = at(x0, y0);
+    const double c10 = at(x1, y0);
+    const double c01 = at(x0, y1);
+    const double c11 = at(x1, y1);
+    const double tx = (x1 != x0) ? (double)(x - x0) / (double)(x1 - x0) : 0.0;
+    const double ty = (y1 != y0) ? (double)(y - y0) / (double)(y1 - y0) : 0.0;
+    const double top = c00 + tx * (c10 - c00);
+    const double bot = c01 + tx * (c11 - c01);
+    return top + ty * (bot - top);
 }
 
 inline double quality_factor(std::uint32_t flags, int mode) {
@@ -214,99 +237,12 @@ int p2_upm_build(const P2ControlObservation* obs, std::uint64_t n_obs,
         m->controls[it->second].obs_idx.push_back(i);
         frame_ids.insert(o.frame_id);
     }
-    // V4 R3：跨 tile 边界节点合并（真实 tile seam 连续拓扑）。
-    // 跨 tile 且中心角距 ≤ 1.05×cell 间距的边界节点对共享同一系数
-    // （对齐 seam 的面向节点对；对角/相邻次列 1.41/2.0× 间距被排除）。
-    // 合并后 evaluate_C 在 seam 两侧经 cell_index 别名解析到同一节点，
-    // tile-local clamp 不再产生不连续（V3 审核 P0-03）。
-    {
-        const std::size_t K0 = m->controls.size();
-        const double nside = (double)(1u << (unsigned)(cfg.target_order + 9));
-        const double pix_rad = std::sqrt(4.0 * 3.141592653589793 /
-                                         (12.0 * nside * nside));
-        const double cell_dist_rad = (double)m->cell_side * pix_rad;
-        const double merge_rad_deg =
-            cell_dist_rad * 1.05 * 180.0 / 3.141592653589793;
-        std::vector<std::size_t> parent(K0);
-        for (std::size_t k = 0; k < K0; ++k) parent[k] = k;
-        auto find = [&](std::size_t x) {
-            while (parent[x] != x) {
-                parent[x] = parent[parent[x]];
-                x = parent[x];
-            }
-            return x;
-        };
-        auto unite = [&](std::size_t a, std::size_t b) {
-            const std::size_t ra = find(a), rb = find(b);
-            if (ra != rb) parent[std::max(ra, rb)] = std::min(ra, rb);
-        };
-        std::vector<std::size_t> boundary;
-        for (std::size_t k = 0; k < K0; ++k) {
-            const auto& cn = m->controls[k];
-            if (cn.gx == 0 || cn.gx == m->grid - 1 || cn.gy == 0 ||
-                cn.gy == m->grid - 1)
-                boundary.push_back(k);
-        }
-        for (std::size_t i = 0; i < boundary.size(); ++i) {
-            const auto& a = m->controls[boundary[i]];
-            for (std::size_t j = i + 1; j < boundary.size(); ++j) {
-                const auto& b = m->controls[boundary[j]];
-                if (a.tile_ipix == b.tile_ipix) continue;
-                if (std::fabs(a.ra_deg - b.ra_deg) > merge_rad_deg) continue;
-                if (std::fabs(a.dec_deg - b.dec_deg) > merge_rad_deg) continue;
-                if (astrocs::healpix::angular_distance_deg(
-                        a.ra_deg, a.dec_deg, b.ra_deg, b.dec_deg) <
-                    merge_rad_deg)
-                    unite(boundary[i], boundary[j]);
-            }
-        }
-        std::map<std::size_t, std::size_t> root_new;
-        std::vector<std::size_t> new_idx(K0, 0);
-        for (std::size_t k = 0; k < K0; ++k) {
-            const std::size_t r = find(k);
-            const auto it = root_new.find(r);
-            if (it == root_new.end()) {
-                const std::size_t ni = root_new.size();
-                root_new[r] = ni;
-                new_idx[k] = ni;
-            } else {
-                new_idx[k] = it->second;
-            }
-        }
-        if (root_new.size() != K0) {
-            std::vector<ControlNode> merged(root_new.size());
-            for (std::size_t k = 0; k < K0; ++k)
-                if (find(k) == k) merged[root_new[k]] = m->controls[k];
-            std::map<std::pair<std::uint64_t, std::pair<int, int>>,
-                     std::size_t>
-                new_cell_index;
-            for (const auto& kv : m->cell_index)
-                new_cell_index[kv.first] = new_idx[kv.second];
-            m->cell_index = std::move(new_cell_index);
-            m->controls = std::move(merged);
-            m->control_by_id.clear();
-            for (auto& cn : m->controls) cn.obs_idx.clear();
-            for (std::uint64_t i = 0; i < n_obs; ++i) {
-                const auto& o = obs[i];
-                const std::uint64_t tile =
-                    leaf_to_tile(o.leaf_ipix, tile_shift);
-                const std::uint64_t local =
-                    leaf_local(o.leaf_ipix, tile_shift);
-                std::uint32_t x = 0, y = 0;
-                astrocs::healpix::nested_local_to_xy(
-                    local, (std::uint32_t)tile_shift, x, y);
-                const int gx = (int)(x / (std::uint32_t)m->cell_side);
-                const int gy = (int)(y / (std::uint32_t)m->cell_side);
-                const auto key =
-                    std::make_pair(tile, std::make_pair(gx, gy));
-                const auto it = m->cell_index.find(key);
-                if (it == m->cell_index.end()) return 1;  // 不应发生
-                const std::size_t idx = it->second;
-                m->control_by_id[o.control_id] = idx;
-                m->controls[idx].obs_idx.push_back(i);
-            }
-        }
-    }
+    // V5（P6-0）：移除 V4 R3 的跨 tile 边界节点合并（proximity-alias）。
+    // 边界两侧 cell 中心是**不同 sky 位置**，共享系数会强制 seam 两侧
+    // C 恒等（jump=0），导致跨 tile 真实梯度无法恢复。现在边界节点保持
+    // 独立系数，跨 tile 连续性由 R4 平滑邻接（弱先验）提供：
+    // 平滑场 seam 跳变受拟合噪声约束，非零梯度场的恢复 delta 跟随
+    // truth delta。save/open 的 cell_index 退化为恒等映射（向后兼容读取）。
     m->info.control_count = m->controls.size();
     const std::size_t K = m->controls.size();
     for (std::uint64_t f : frame_ids) {
