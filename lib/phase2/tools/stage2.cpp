@@ -34,6 +34,7 @@
 #include <filesystem>
 #include <fstream>
 #include <map>
+#include <set>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -345,6 +346,8 @@ int main(int argc, char** argv) {
     std::uint64_t total_pixels = 0, total_rejected = 0, total_fallback = 0;
     std::uint64_t dbg_reject_px = 0, dbg_fallback_px = 0, dbg_zero_px = 0;
     std::map<std::uint32_t, std::uint64_t> reject_hist;  // 每像素拒绝样本数分布
+    // V7 P7-2：overlap topology 诊断
+    std::uint64_t px_depth_1 = 0, px_depth_ge_2 = 0, px_integrated = 0;
     std::uint64_t tiles_written = 0;
     std::vector<std::uint8_t> valid(n_leaf);
     std::vector<float> fluxF(n_leaf), areaF(n_leaf);
@@ -582,9 +585,15 @@ int main(int argc, char** argv) {
                     total_rejected += (std::uint64_t)out_rej_f32[i];
                     if (nv <= 0.0f) ++dbg_zero_px;
                     else if (nv < (float)cfg.reject_min_samples) {
+                        if (nv == 1.0f) ++px_depth_1;
+                        else ++px_depth_ge_2;
                         ++total_fallback;
                         ++dbg_fallback_px;
-                    } else ++dbg_reject_px;
+                    } else {
+                        ++px_depth_ge_2;
+                        ++px_integrated;
+                        ++dbg_reject_px;
+                    }
                     if (out_rej_f32[i] > 0.0f)
                         ++reject_hist[(std::uint32_t)out_rej_f32[i]];
                 }
@@ -671,6 +680,7 @@ int main(int argc, char** argv) {
                 if (n_valid == 0) {
                     ++dbg_zero_px;
                 } else if (n_valid < (std::uint32_t)cfg.reject_min_samples) {
+                    if (n_valid == 1) ++px_depth_1; else ++px_depth_ge_2;
                     for (std::uint32_t s = 0; s < n_valid; ++s) acc[s] = 1;
                     ++total_fallback;
                     ++dbg_fallback_px;
@@ -688,6 +698,8 @@ int main(int argc, char** argv) {
                     for (std::uint32_t s = 0; s < n_valid; ++s)
                         support_out = std::max(support_out, support_v[s]);
                 } else {
+                    ++px_depth_ge_2;
+                    ++px_integrated;
                     ++dbg_reject_px;
                     P2SampleStackView rv{};
                     rv.values = stack.data();
@@ -797,12 +809,31 @@ int main(int argc, char** argv) {
 
     // ---- G11 诊断 JSON（rejection 统计） ----
     if (cfg.diagnostics) {
+        // V7 P7-2：overlap topology（control depth / pixel depth）
+        std::map<std::uint64_t, std::set<std::uint64_t>> ctrl_frames;
+        for (const auto& o : obs) ctrl_frames[o.control_id].insert(o.frame_id);
+        std::uint64_t ctrl_depth_1 = 0, ctrl_depth_ge_2 = 0;
+        for (const auto& kv : ctrl_frames) {
+            if (kv.second.size() == 1)
+                ++ctrl_depth_1;
+            else
+                ++ctrl_depth_ge_2;
+        }
         nlohmann::json diag;
         diag["stage2_version"] = 1;
+        diag["input_frames"] = (std::uint32_t)cfg.hips.size();
+        diag["component_count"] = minfo.component_count;
+        diag["observations"] = n_obs;
+        diag["unique_controls"] = minfo.control_count;
+        diag["controls_with_depth_1"] = ctrl_depth_1;
+        diag["controls_with_depth_ge_2"] = ctrl_depth_ge_2;
         diag["tiles_written"] = tiles_written;
         diag["output_pixels"] = total_pixels;
         diag["rejected_samples"] = total_rejected;
         diag["fallback_pixels"] = total_fallback;
+        diag["pixels_depth_1"] = px_depth_1;
+        diag["pixels_depth_ge_2"] = px_depth_ge_2;
+        diag["integrated_pixels"] = px_integrated;
         diag["quality_fallback_unknown"] = quality_unknown;
         diag["local_snr_used"] = local_snr_used;
         diag["frame_snr_median_fallback"] = frame_snr_fallback;
