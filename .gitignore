@@ -3,6 +3,12 @@ siril-1.4.3/
 GaiaDR3/
 GaiaDR3SP/
 
+# BASS DR3 备用测试数据集（索引/工具/压缩产物入仓库；原始大数据与下载目录不入仓库）
+BASS DR3/data/
+BASS DR3/logs/
+BASS DR3/index.csv
+BASS DR3/coords.csv
+
 # IDE 配置
 .trae/
 .vscode/
