@@ -7,7 +7,7 @@
   3. 用 VizieR VI/42 (Roman 1987) 星座边界表逐格归属
   4. 输出每星座覆盖面积 (deg2) 与帧数, 保存 constellation_coverage.csv
 
-边界数据: data/roman1987_constellation_boundaries.tsv (VizieR VI/42)
+边界数据: tools/roman1987_constellation_boundaries.tsv (VizieR VI/42, 随工具入库)
 用法:
   py -3.12 constellation_coverage.py [--dir ..]
 """
@@ -114,7 +114,7 @@ def main() -> int:
     args = ap.parse_args()
     base: Path = args.dir.resolve()
 
-    boundaries = load_boundaries(base / "data" / "roman1987_constellation_boundaries.tsv")
+    boundaries = load_boundaries(base / "tools" / "roman1987_constellation_boundaries.tsv")
     print(f"[boundaries] rows={len(boundaries)}")
 
     # 1. 栅格化足印 (与 analyze_footprint 相同逻辑, 0.05°)

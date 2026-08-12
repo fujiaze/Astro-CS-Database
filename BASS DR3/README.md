@@ -40,18 +40,21 @@ BASS DR3/
 ├── SHA256SUMS.txt          # 全部产物 SHA-256 指纹
 ├── dates/<YYYYMMDD>.json   # 按日期分片 (353 个, 无 URL)
 ├── data/bassmzls-dr3-ccdinfo.fits   # 坐标来源表 (245 MB, 下载一次)
-├── data/smoke_test/        # 下载+funpack 冒烟测试样本
 └── tools/
     ├── crawl_bass_dr3.py        # 爬取归档列表构建索引
     ├── build_coords_index.py    # 下载 ccdinfo 并构建坐标索引
     ├── download_subset.py       # 子集下载 (可只下 science) + funpack
-    └── verify_bass_dr3.py       # 一致性 + 抽样下载校验
+    ├── verify_bass_dr3.py       # 一致性 + 抽样下载校验
+    ├── test_aio_fz.py           # aio fpack(.fz) 读取验证
+    ├── analyze_footprint.py     # 覆盖天区/体积/HiPS 规模分析
+    ├── constellation_coverage.py# 星座归属分析 (用 tools/ 内 Roman 1987 边界表)
+    └── roman1987_constellation_boundaries.tsv  # VizieR VI/42 星座边界 (随工具入库)
 ```
 
 ### 仓库跟踪策略（已并入 main 主线）
 
-- **入仓库**：`tools/`（6 个脚本）、`index.json`、`index.csv.gz`、`coords.csv.gz`、`constellation_coverage.csv`、`dates/*.json`、`README.md`、`SHA256SUMS.txt`。
-- **不入仓库（本地保留/可再生成）**：`index.csv` / `coords.csv`（未压缩版，仓库内用 `.gz`）、`data/`（ccdinfo 245 MB 与冒烟样本）、`logs/`。
+- **入仓库**：`tools/`（7 个脚本 + 星座边界表）、`index.json`、`index.csv.gz`、`coords.csv.gz`、`constellation_coverage.csv`、`dates/*.json`、`README.md`、`SHA256SUMS.txt`。
+- **不入仓库（本地保留/可再生成）**：`index.csv` / `coords.csv`（未压缩版，仓库内用 `.gz`）、`data/`（ccdinfo 245 MB）、`logs/`。
 - 克隆后如需运行脚本，先解压两个 `.gz`：
 
 ```powershell
