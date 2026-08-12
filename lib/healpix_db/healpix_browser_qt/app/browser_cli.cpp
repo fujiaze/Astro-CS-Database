@@ -15,6 +15,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <chrono>
+#include <algorithm>
 #include <string>
 #include <vector>
 #include <cmath>
@@ -29,6 +30,7 @@
 #include "stf_engine.h"
 #include "healpix_math.h"
 #include "hips_browser_backend.h"
+#include "hips_sky_view.h"
 #include "logger.h"
 
 // astro_image_io DLL (用于诊断 + HiPS Reader)
@@ -274,10 +276,104 @@ static int run_hips_mode(const std::string& dir, JsonOut& json, int n_queries) {
     aio_hips_close(dsup);
     bk.close();
 
-    const bool pass = (mismatch == 0 && outside_ok >= 1 && n_snr > 0 && id_unique);
+    // SNR catalogue 可选（mosaic/truth 无 snr 产品）：存在时须 id 唯一
+    const bool snr_ok = (n_snr <= 0) || (n_snr > 0 && id_unique);
+    const bool pass = (mismatch == 0 && outside_ok >= 1 && snr_ok);
     json.key_bool("hips_pass", pass);
     fprintf(stderr, "RESULT: %s\n", pass ? "PASS" : "FAIL");
     return pass ? 0 : 1;
+}
+
+// ============================================================================
+// HiPS 2D 天空视图渲染 benchmark（V9 P9-5）
+// 用法: browser_cli --hips <root> --benchmark --view ra,dec,fov [--frames N]
+//       [--layer signal|support]
+// ============================================================================
+static double pct(std::vector<double> v, double p) {
+    if (v.empty()) return 0.0;
+    std::sort(v.begin(), v.end());
+    const std::size_t idx =
+        (std::size_t)(p * (double)(v.size() - 1));
+    return v[idx];
+}
+
+static int run_hips_raster_bench(const std::string& dir, JsonOut& json,
+                                 const std::string& view_str, int frames,
+                                 int layer) {
+    double ra = 0, dec = 0, fov = 8.0;
+    if (!view_str.empty()) {
+        if (std::sscanf(view_str.c_str(), "%lf,%lf,%lf", &ra, &dec, &fov) != 3)
+            return 2;
+    }
+    HipsBrowserBackend bk;
+    if (bk.open_product(dir) != 0) {
+        fprintf(stderr, "open_product FAIL\n");
+        return 3;
+    }
+    HipsSkyView sky;
+    sky.set_backend(&bk);
+    sky.set_size(960, 720);
+    sky.set_layer(layer);
+    sky.set_stretch("asinh", true);
+    sky.set_view(ra, dec, fov, 960.0 / 720.0);
+
+    std::vector<std::uint32_t> rgba;
+    HipsSkyView::Stats st;
+    sky.rasterize(rgba);  // cold（含首次 tile 解码）
+    const double cold_ms = sky.last_stats().frame_ms;
+    const double first_visible_ms = cold_ms;
+    fprintf(stderr, "[raster] cold_start=%.2f ms order=%d tiles_decoded=%llu\n",
+            cold_ms, sky.last_stats().order,
+            (unsigned long long)sky.last_stats().tiles_decoded);
+
+    std::vector<double> pan_ms, zoom_ms;
+    double c_ra = ra, c_dec = dec;
+    for (int f = 0; f < frames; ++f) {
+        c_ra = std::fmod(c_ra + 2.0, 360.0);
+        sky.set_view(c_ra, c_dec + ((f % 3) - 1), 8.0, 960.0 / 720.0);
+        sky.rasterize(rgba);
+        pan_ms.push_back(sky.last_stats().frame_ms);
+    }
+    double z_fov = fov;
+    for (int f = 0; f < frames; ++f) {
+        z_fov *= 0.92;
+        if (z_fov < 0.1) z_fov = 30.0;
+        sky.set_view(ra, dec, z_fov, 960.0 / 720.0);
+        sky.rasterize(rgba);
+        zoom_ms.push_back(sky.last_stats().frame_ms);
+    }
+
+    const auto& m = sky.metrics();
+    std::vector<double> decode = m.decode_ms_hist;
+    const std::size_t total_lookups = m.cache_hits_total + m.cache_misses;
+    const double hit_rate =
+        total_lookups ? (double)m.cache_hits_total / (double)total_lookups : 0.0;
+
+    json.key_str("hips_root", dir);
+    json.key_num("cold_start_ms", cold_ms);
+    json.key_num("first_visible_ms", first_visible_ms);
+    json.key_num("pan_frame_ms_p50", pct(pan_ms, 0.50));
+    json.key_num("pan_frame_ms_p95", pct(pan_ms, 0.95));
+    json.key_num("pan_frame_ms_max", pan_ms.empty() ? 0.0
+                                                    : *std::max_element(
+                                                          pan_ms.begin(),
+                                                          pan_ms.end()));
+    json.key_num("zoom_frame_ms_p50", pct(zoom_ms, 0.50));
+    json.key_num("zoom_frame_ms_p95", pct(zoom_ms, 0.95));
+    json.key_num("tile_decode_ms_p50", pct(decode, 0.50));
+    json.key_num("tile_decode_ms_p95", pct(decode, 0.95));
+    json.key_num("cache_hit_rate", hit_rate);
+    json.key_int("tiles_decoded_total", (long long)m.total_tile_reads);
+    json.key_int("cache_evictions", (long long)m.evictions);
+    json.key_int("raster_frames", frames * 2);
+    json.key_int("peak_ram_mb", (long long)get_working_set_mb());
+    fprintf(stderr,
+            "[raster] pan_p50=%.1f pan_p95=%.1f zoom_p50=%.1f decode_p50=%.1f "
+            "decode_p95=%.1f hit=%.3f evict=%llu\n",
+            pct(pan_ms, 0.50), pct(pan_ms, 0.95), pct(zoom_ms, 0.50),
+            pct(decode, 0.50), pct(decode, 0.95), hit_rate,
+            (unsigned long long)m.evictions);
+    return 0;
 }
 
 int main(int argc, char* argv[]) {
@@ -290,6 +386,8 @@ int main(int argc, char* argv[]) {
     bool hips_mode = false;
     int hips_queries = 1024;
     int sim_frames = 100;
+    std::string view_str;
+    std::string layer_str;
 
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
@@ -309,6 +407,10 @@ int main(int argc, char* argv[]) {
             hips_mode = true;
         } else if (arg == "--queries") {
             if (i + 1 < argc) hips_queries = atoi(argv[++i]);
+        } else if (arg == "--view") {
+            if (i + 1 < argc) view_str = argv[++i];
+        } else if (arg == "--layer") {
+            if (i + 1 < argc) layer_str = argv[++i];
         } else if (arg == "--help" || arg == "-h") {
             fprintf(stderr, "HEALPix 浏览器 CLI 后台调试工具\n\n");
             fprintf(stderr, "用法:\n");
@@ -408,7 +510,14 @@ int main(int argc, char* argv[]) {
     if (hips_mode) {
         fprintf(stderr, "\n========== HiPS 产品集加载测试 ==========\n");
         fprintf(stderr, "产品: %s\n", file_path.c_str());
-        int rc_h = run_hips_mode(file_path, json, hips_queries);
+        int rc_h = 0;
+        if (benchmark) {
+            const int layer = (layer_str == "support") ? 1 : 0;
+            rc_h = run_hips_raster_bench(file_path, json, view_str,
+                                         sim_frames, layer);
+        } else {
+            rc_h = run_hips_mode(file_path, json, hips_queries);
+        }
         json.end();
         printf("%s", json.buf.c_str());
         return rc_h;

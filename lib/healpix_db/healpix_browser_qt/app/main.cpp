@@ -3,13 +3,17 @@
 // 用途: 启动 demo 程序, 可选命令行参数直接打开文件
 // 依赖: Qt6::Widgets (QApplication/QCommandLineParser), app/ (MainWindow)
 // 设计文档: docs/superpowers/specs/2026-07-13-cpp-qt-browser-ui-design.md §4.3
-// 用法: healpix_browser_qt.exe [file.hiss|file.hcsd]
+// 用法: healpix_browser_qt.exe [file.hiss|file.hcsd|hips_dir]
+//       healpix_browser_qt.exe --hips <dir> [--preset <name>]
+//                              [--layer signal|support] [--screenshot <png>] [--exit]
 // 部署: windeployqt 部署 Qt6 DLL 和 plugins 到 exe 同级目录, 双击即可启动
 
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QStringList>
+#include <QTimer>
 #include <cstdlib>
+#include <cstdio>
 #include "main_window.h"
 #include "logger.h"
 
@@ -28,7 +32,19 @@ int main(int argc, char* argv[]) {
     parser.addHelpOption();
     parser.addVersionOption();
     parser.addPositionalArgument("file",
-        "可选: 直接打开的文件路径 (.hiss/.hcsd)");
+        "可选: 直接打开的文件路径 (.hiss/.hcsd) 或 HiPS 产品集目录");
+    QCommandLineOption hips_opt("hips", "HiPS 产品集根目录", "dir");
+    QCommandLineOption preset_opt("preset", "预设视图名", "name");
+    QCommandLineOption layer_opt("layer", "图层 signal|support", "layer");
+    QCommandLineOption shot_opt("screenshot", "保存截图 PNG", "path");
+    QCommandLineOption exit_opt("exit", "截图后退出");
+    QCommandLineOption view_opt("view", "跳转视图 ra,dec,fov", "ra,dec,fov");
+    parser.addOption(hips_opt);
+    parser.addOption(preset_opt);
+    parser.addOption(layer_opt);
+    parser.addOption(shot_opt);
+    parser.addOption(exit_opt);
+    parser.addOption(view_opt);
     parser.process(app);
 
     // 创建主窗口
@@ -37,11 +53,40 @@ int main(int argc, char* argv[]) {
 
     // 命令行参数指定文件时, 延迟到事件循环启动后打开
     // (此时 MainWindow 已 show, OpenGL 上下文创建就绪)
-    const QStringList args = parser.positionalArguments();
-    if (!args.isEmpty()) {
+    QString target;
+    if (parser.isSet(hips_opt)) {
+        target = parser.value(hips_opt);
+    } else {
+        const QStringList args = parser.positionalArguments();
+        if (!args.isEmpty()) target = args.first();
+    }
+    const QString preset = parser.value(preset_opt);
+    const QString layer = parser.value(layer_opt);
+    const QString shot = parser.value(shot_opt);
+    const bool exit_after = parser.isSet(exit_opt);
+    const QString view = parser.value(view_opt);
+
+    if (!target.isEmpty()) {
         QMetaObject::invokeMethod(&window, "open_file_from_cli",
                                   Qt::QueuedConnection,
-                                  Q_ARG(QString, args.first()));
+                                  Q_ARG(QString, target));
+    }
+    if (!shot.isEmpty()) {
+        // 延迟执行：等 open_file 完成且窗口渲染
+        QTimer::singleShot(1200, &window, [&window, shot, preset, layer,
+                                           exit_after]() {
+            const int lyr = (layer == "support") ? 1 : 0;
+            window.capture_hips_screenshot(shot, preset, lyr, exit_after);
+        });
+    }
+    if (!view.isEmpty()) {
+        double ra = 0, dec = 0, fov = 8.0;
+        if (std::sscanf(view.toStdString().c_str(), "%lf,%lf,%lf", &ra, &dec,
+                        &fov) == 3) {
+            QTimer::singleShot(900, &window, [&window, ra, dec, fov]() {
+                window.jump_to_view(ra, dec, fov);
+            });
+        }
     }
 
     int ret = app.exec();

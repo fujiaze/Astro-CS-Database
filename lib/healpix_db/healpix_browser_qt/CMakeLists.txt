@@ -19,6 +19,7 @@ set(CMAKE_AUTOUIC ON)
 # ============================================================================
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGLWidgets)
 find_package(OpenGL REQUIRED)
+find_package(OpenMP)
 
 # astro_image_io 路径 (lib/astro_image_io/, 提供 healpix_io 兼容 API)
 set(AIO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../astro_image_io)
@@ -34,6 +35,7 @@ add_library(healpix_browser_core STATIC
     core/healpix_math.cpp
     core/gl_renderer.cpp
     core/hips_browser_backend.cpp
+    core/hips_sky_view.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../../common/healpix/healpix_core.cpp
 )
 target_include_directories(healpix_browser_core PUBLIC
@@ -47,6 +49,9 @@ target_link_libraries(healpix_browser_core PUBLIC
     OpenGL::GL
     gdi32
 )
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(healpix_browser_core PUBLIC OpenMP::OpenMP_CXX)
+endif()
 # astro_image_io.dll 在 ${AIO_DIR}, 链接 .a 导入库
 target_link_directories(healpix_browser_core PUBLIC ${AIO_DIR})
 target_link_libraries(healpix_browser_core PUBLIC astro_image_io)
@@ -57,6 +62,7 @@ target_link_libraries(healpix_browser_core PUBLIC astro_image_io)
 add_library(healpix_browser_qt_widgets STATIC
     widgets/abstract_view.cpp
     widgets/sphere_view.cpp
+    widgets/hips_view.cpp
 )
 target_include_directories(healpix_browser_qt_widgets PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/widgets
@@ -94,6 +100,7 @@ add_executable(browser_cli
     core/stf_engine.cpp
     core/healpix_math.cpp
     core/hips_browser_backend.cpp
+    core/hips_sky_view.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../../common/healpix/healpix_core.cpp
 )
 target_include_directories(browser_cli PRIVATE
@@ -105,6 +112,9 @@ target_include_directories(browser_cli PRIVATE
 target_compile_definitions(browser_cli PRIVATE ${AIO_DEFINES})
 target_link_directories(browser_cli PRIVATE ${AIO_DIR})
 target_link_libraries(browser_cli PRIVATE astro_image_io psapi)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(browser_cli PRIVATE OpenMP::OpenMP_CXX)
+endif()
 
 # ============================================================================
 # 单元测试 (可选, 通过 -DBUILD_TESTS=ON 启用)
@@ -144,4 +154,21 @@ if(BUILD_TESTS)
     target_link_directories(test_hips_browser_backend PRIVATE ${AIO_DIR})
     target_link_libraries(test_hips_browser_backend PRIVATE astro_image_io)
     add_test(NAME hips_browser_backend COMMAND test_hips_browser_backend)
+
+    add_executable(test_geometry_truth
+        tests/test_geometry_truth.cpp
+        core/hips_browser_backend.cpp
+        core/hips_sky_view.cpp
+        core/stf_engine.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../common/healpix/healpix_core.cpp
+    )
+    target_include_directories(test_geometry_truth PRIVATE
+        core include ${AIO_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/../../common)
+    target_compile_definitions(test_geometry_truth PRIVATE ${AIO_DEFINES})
+    target_link_directories(test_geometry_truth PRIVATE ${AIO_DIR})
+    target_link_libraries(test_geometry_truth PRIVATE astro_image_io)
+    if(OpenMP_CXX_FOUND)
+        target_link_libraries(test_geometry_truth PRIVATE OpenMP::OpenMP_CXX)
+    endif()
+    add_test(NAME geometry_truth COMMAND test_geometry_truth)
 endif()

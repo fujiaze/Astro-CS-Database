@@ -22,6 +22,8 @@ class QComboBox;
 class QLineEdit;
 class QPushButton;
 class QImage;
+class HipsView;
+class HipsBrowserBackend;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -41,11 +43,26 @@ private slots:
     void on_view_reset();          // View > Reset
     void on_zoom_in();             // 工具栏 放大
     void on_zoom_out();            // 工具栏 缩小
+    void on_hips_open();           // File > Open HiPS...
+    void on_hips_preset(int index);// 预设下拉框
+    void on_hips_layer_toggle(bool);  // Signal/Support 切换
+    void on_hips_stretch_changed(int index);  // 拉伸曲线
     void on_stf_changed(const STFParams& params);
     void on_view_changed(double center_ra, double center_dec, double zoom);
     void on_mouse_moved(double ra, double dec);
+    // V9: HiPS 视图信号
+    void on_hips_view_changed(double ra, double dec, double fov);
+    void on_hips_mouse_moved(double ra, double dec);
+    void on_hips_layer_changed(int layer);
     void on_auto_stretch_clicked();
     void on_grid_toggle(bool checked);  // View > 经纬线网格 checkbox
+
+public:
+    // V9: 脚本化截图（--screenshot / 测试用）
+    void capture_hips_screenshot(const QString& out_png, const QString& preset,
+                                 int layer, bool exit_after);
+    // V9: 命令行直接跳转视图（--view ra,dec,fov）
+    void jump_to_view(double ra, double dec, double fov);
 
     // WP-H 步骤14: HISS Tile 浏览
     void on_tile_selected(int row);          // Tile 列表选中
@@ -59,6 +76,8 @@ private:
     void setup_stf_panel();
     void setup_hiss_tile_panel();  // WP-H: HISS Tile 浏览面板
     void open_file(const QString& path);
+    void open_hips(const QString& path);   // V9
+    void set_hips_view(HipsView* view);    // V9
     void close_file();
     // 切换当前 view (单帧/球面), 同时只能显示一个
     void set_view(AbstractView* view);
@@ -67,12 +86,17 @@ private:
 
     // WP-H: 渲染当前 Tile 为 QImage (signal/support 两种图层)
     void render_current_tile();
+    void populate_hips_presets();
 
     // 辅助: 判断 backend 是否有打开的文件
     bool file_path_empty() const;
 
     // 数据源 (app 拥有所有权)
     std::unique_ptr<BrowserBackend> backend_;
+    // V9: HiPS 产品集数据源
+    std::unique_ptr<HipsBrowserBackend> hips_backend_;
+    HipsView* hips_view_ = nullptr;
+    bool hips_mode_ = false;
 
     // 当前 view (单帧或球面, 同时只显示一个; 所有权归本类)
     AbstractView* current_view_;
@@ -82,6 +106,10 @@ private:
 
     // View 菜单 actions
     QAction* grid_toggle_action_ = nullptr;  // 经纬线网格开关
+    QAction* layer_toggle_action_ = nullptr; // V9: Signal/Support
+    QComboBox* hips_preset_combo_ = nullptr; // V9: 预设视图
+    QComboBox* stretch_combo_ = nullptr;     // V9: 拉伸曲线
+    bool hips_auto_range_ = true;            // V9: auto B/W
 
     // 状态栏标签
     QLabel* status_file_;

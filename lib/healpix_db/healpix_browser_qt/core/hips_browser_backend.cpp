@@ -17,9 +17,14 @@
 #include "logger.h"
 
 #include <cmath>
+#include <algorithm>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
 #include <limits>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -28,6 +33,69 @@ namespace {
 constexpr uint32_t kTileShift = 9;  // 512×512 tile: leaf_order = tile_order + 9
 constexpr uint64_t kTileMask = (1ULL << 18) - 1;  // 512² - 1
 constexpr int kTileDim = 512;
+
+// ============================================================================
+// V9: 浏览器侧最小 FITS 图像读取（仅用于按 order 读 HiPS hierarchy tile）。
+// 不链接 CFITSIO、不改 AIO 语义；FITS 数据为大端，读取后字节序转换。
+// ============================================================================
+static void swap_bytes32(float* p) {
+    std::uint32_t v;
+    std::memcpy(&v, p, 4);
+    v = ((v & 0x000000FFu) << 24) | ((v & 0x0000FF00u) << 8) |
+        ((v & 0x00FF0000u) >> 8) | ((v & 0xFF000000u) >> 24);
+    std::memcpy(p, &v, 4);
+}
+
+static bool read_fits_image(const std::string& path, int expect_n,
+                            std::vector<float>& out) {
+    std::ifstream f(path, std::ios::binary);
+    if (!f) return false;
+    int bitpix = 0;
+    long naxis1 = 0, naxis2 = 0;
+    bool end_found = false;
+    char block[2880];
+    while (f.read(block, sizeof(block))) {
+        for (int off = 0; off < 2880 && !end_found; off += 80) {
+            std::string card(block + off, 80);
+            const std::string key = card.substr(0, 8);
+            const std::string val = card.substr(10);
+            if (key == "BITPIX  ") bitpix = std::atoi(val.c_str());
+            else if (key == "NAXIS1  ") naxis1 = std::atol(val.c_str());
+            else if (key == "NAXIS2  ") naxis2 = std::atol(val.c_str());
+            else if (card.rfind("END", 0) == 0) { end_found = true; }
+        }
+        if (end_found) break;
+    }
+    if (!end_found || naxis1 != expect_n || naxis2 != expect_n)
+        return false;
+    const std::size_t n = (std::size_t)expect_n * (std::size_t)expect_n;
+    out.resize(n);
+    if (bitpix == -32) {
+        f.read((char*)out.data(), (std::streamsize)(n * 4));
+        for (std::size_t i = 0; i < n; ++i) swap_bytes32(&out[i]);
+        return true;
+    }
+    if (bitpix == -64) {
+        std::vector<double> tmp(n);
+        f.read((char*)tmp.data(), (std::streamsize)(n * 8));
+        for (std::size_t i = 0; i < n; ++i) {
+            std::uint64_t v;
+            std::memcpy(&v, &tmp[i], 8);
+            v = ((v & 0x00000000000000FFULL) << 56) |
+                ((v & 0x000000000000FF00ULL) << 40) |
+                ((v & 0x0000000000FF0000ULL) << 24) |
+                ((v & 0x00000000FF000000ULL) << 8) |
+                ((v & 0x000000FF00000000ULL) >> 8) |
+                ((v & 0x0000FF0000000000ULL) >> 24) |
+                ((v & 0x00FF000000000000ULL) >> 40) |
+                ((v & 0xFF00000000000000ULL) >> 56);
+            std::memcpy(&tmp[i], &v, 8);
+            out[i] = (float)tmp[i];
+        }
+        return true;
+    }
+    return false;
+}
 
 bool props_has(const std::string& props, const std::string& key_value) {
     return props.find(key_value) != std::string::npos;
@@ -92,6 +160,7 @@ void HipsBrowserBackend::close() {
     leaf_order_ = 0;
     width_ = kTileDim;
     fp64_ = false;
+    order_tiles_.clear();
 }
 
 uint64_t HipsBrowserBackend::get_n_tiles() const {
@@ -155,6 +224,68 @@ int HipsBrowserBackend::read_tile(uint64_t tile_ipix, std::vector<double>& out) 
         }
     }
     return rc;
+}
+
+int HipsBrowserBackend::read_tile_at_order(int order, uint64_t tile_ipix,
+                                           std::vector<float>& sig,
+                                           std::vector<float>& sup) const {
+    if (root_.empty() || order < 0 || order > order_) return -1;
+    const std::string sig_path = root_ + "/signal/Norder" +
+                                 std::to_string(order) + "/Dir" +
+                                 std::to_string(tile_ipix / 10000) + "/Npix" +
+                                 std::to_string(tile_ipix % 10000) + ".fits";
+    const std::string sup_path = root_ + "/support/Norder" +
+                                 std::to_string(order) + "/Dir" +
+                                 std::to_string(tile_ipix / 10000) + "/Npix" +
+                                 std::to_string(tile_ipix % 10000) + ".fits";
+    std::vector<float> s, u;
+    if (!read_fits_image(sig_path, kTileDim, s)) return -2;
+    if (!read_fits_image(sup_path, kTileDim, u)) return -3;
+    sig.swap(s);
+    sup.swap(u);
+    return 0;
+}
+
+void HipsBrowserBackend::load_order_tiles(int order) const {
+    if (order_tiles_.count(order)) return;
+    std::vector<uint64_t> list;
+    const std::string dir = root_ + "/signal/Norder" + std::to_string(order);
+    std::error_code ec;
+    if (std::filesystem::exists(dir, ec)) {
+        for (const auto& de :
+             std::filesystem::recursive_directory_iterator(dir, ec)) {
+            if (!de.is_regular_file(ec)) continue;
+            const std::string fn = de.path().filename().string();
+            if (fn.rfind("Npix", 0) != 0 || fn.size() < 5 ||
+                fn.compare(fn.size() - 5, 5, ".fits") != 0)
+                continue;
+            const std::string dirn =
+                de.path().parent_path().filename().string();
+            if (dirn.rfind("Dir", 0) != 0) continue;
+            const long long dirnum = std::atoll(dirn.c_str() + 3);
+            const long long npix = std::atoll(fn.c_str() + 4);
+            if (dirnum >= 0 && npix >= 0)
+                list.push_back((uint64_t)dirnum * 10000ull + (uint64_t)npix);
+        }
+    }
+    std::sort(list.begin(), list.end());
+    list.erase(std::unique(list.begin(), list.end()), list.end());
+    order_tiles_[order] = std::move(list);
+}
+
+const std::vector<uint64_t>&
+HipsBrowserBackend::tiles_at_order(int order) const {
+    static const std::vector<uint64_t> kEmpty;
+    if (order < 0 || order > order_) return kEmpty;
+    load_order_tiles(order);
+    return order_tiles_[order];
+}
+
+bool HipsBrowserBackend::has_tile_at_order(int order,
+                                           uint64_t tile_ipix) const {
+    if (order < 0 || order > order_) return false;
+    const auto& v = tiles_at_order(order);
+    return std::binary_search(v.begin(), v.end(), tile_ipix);
 }
 
 int HipsBrowserBackend::read_snr_catalog(std::vector<double>& ra, std::vector<double>& dec,

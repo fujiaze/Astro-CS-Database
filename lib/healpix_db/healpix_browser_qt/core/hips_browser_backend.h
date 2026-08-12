@@ -13,6 +13,7 @@
 #define HIPS_BROWSER_BACKEND_H
 
 #include <cstdint>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -46,6 +47,20 @@ public:
     // 读取叶级 tile 为 double (LOD/渲染用; 空区为 NaN)
     int read_tile(uint64_t tile_ipix, std::vector<double>& out) const;
 
+    // ---- V9: 多 order 读取（浏览器 LOD 用） ----
+    // 读取指定 order 的 signal/support tile（512×512 float）。
+    // tile 不存在返回非 0；成功时 sig/sup 均填充（缺失产品返回 -3）。
+    int read_tile_at_order(int order, uint64_t tile_ipix,
+                           std::vector<float>& sig,
+                           std::vector<float>& sup) const;
+
+    // 指定 order 下存在的 tile ipix 集合（目录扫描，缓存）。
+    // order 范围 [0, get_hips_order()]。
+    const std::vector<uint64_t>& tiles_at_order(int order) const;
+
+    // order 层是否存在该 tile
+    bool has_tile_at_order(int order, uint64_t tile_ipix) const;
+
     // SNR Catalogue 全量读取
     int read_snr_catalog(std::vector<double>& ra, std::vector<double>& dec,
                          std::vector<double>& snr, std::vector<int64_t>& star_id,
@@ -56,6 +71,8 @@ public:
     bool contains(double ra, double dec) const;
 
 private:
+    void load_order_tiles(int order) const;   // 惰性目录扫描
+
     AioHipsDataset* sig_ = nullptr;
     AioHipsDataset* sup_ = nullptr;
     AioHipsDataset* snr_ = nullptr;
@@ -64,6 +81,7 @@ private:
     int leaf_order_ = 0;   // 叶像素阶 = order_ + 9 (512×512 tile)
     int width_ = 512;
     bool fp64_ = false;
+    mutable std::map<int, std::vector<uint64_t>> order_tiles_;
 };
 
 #endif // HIPS_BROWSER_BACKEND_H

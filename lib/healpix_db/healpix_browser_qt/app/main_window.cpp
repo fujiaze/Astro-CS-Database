@@ -9,6 +9,8 @@
 #include "abstract_view.h"
 // #include "single_frame_view.h"  // 已废弃，.hiss 改用 SphereView
 #include "sphere_view.h"
+#include "hips_view.h"
+#include "hips_browser_backend.h"
 #include "logger.h"  // WP-H: LOG_INFO/LOG_WARN
 
 #include <QMenuBar>
@@ -34,6 +36,11 @@
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QScrollArea>
+#include <QDir>
+#include <QStandardPaths>
+#include <QTimer>
+#include <QVariant>
+#include <QCoreApplication>
 #include <cmath>
 
 // ============================================================================
@@ -57,6 +64,14 @@ MainWindow::MainWindow(QWidget* parent)
     setup_status_bar();
     setup_stf_panel();
     setup_hiss_tile_panel();  // WP-H: HISS Tile 浏览面板
+    // V9: HiPS 预设下拉框（默认隐藏，打开 HiPS 后启用）
+    hips_preset_combo_ = new QComboBox(this);
+    hips_preset_combo_->setToolTip("HiPS 预设视图");
+    hips_preset_combo_->setVisible(false);
+    statusBar()->addPermanentWidget(hips_preset_combo_);
+    connect(hips_preset_combo_,
+            QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+            &MainWindow::on_hips_preset);
 
     // 占位中心 widget (无文件时显示提示)
     auto* placeholder = new QLabel("尚未打开文件\n\nFile > Open 选择 .hiss 或 .hcsd 文件", this);
@@ -86,6 +101,11 @@ void MainWindow::setup_menu() {
     close_action->setShortcut(QKeySequence::Close);
     connect(close_action, &QAction::triggered, this, &MainWindow::on_file_close);
     file_menu->addAction(close_action);
+
+    QAction* hips_open_action = new QAction("Open &HiPS Directory...", this);
+    connect(hips_open_action, &QAction::triggered, this,
+            &MainWindow::on_hips_open);
+    file_menu->addAction(hips_open_action);
 
     file_menu->addSeparator();
 
@@ -154,6 +174,27 @@ void MainWindow::setup_toolbar() {
     auto_stretch_action->setShortcut(QKeySequence("Ctrl+A"));
     connect(auto_stretch_action, &QAction::triggered, this, &MainWindow::on_auto_stretch_clicked);
     toolbar->addAction(auto_stretch_action);
+
+    // V9: Signal/Support 图层切换（仅 HiPS 模式显示）
+    toolbar->addSeparator();
+    layer_toggle_action_ = new QAction("Support", this);
+    layer_toggle_action_->setCheckable(true);
+    layer_toggle_action_->setToolTip("切换 Signal / Support 图层");
+    layer_toggle_action_->setVisible(false);
+    connect(layer_toggle_action_, &QAction::toggled, this,
+            &MainWindow::on_hips_layer_toggle);
+    toolbar->addAction(layer_toggle_action_);
+
+    // V9: 拉伸曲线（HiPS 模式）
+    stretch_combo_ = new QComboBox(this);
+    stretch_combo_->addItems({"Linear", "Sqrt", "Log", "Asinh"});
+    stretch_combo_->setCurrentIndex(3);  // 默认 Asinh
+    stretch_combo_->setToolTip("显示拉伸曲线 (HiPS)");
+    stretch_combo_->setVisible(false);
+    connect(stretch_combo_,
+            QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+            &MainWindow::on_hips_stretch_changed);
+    toolbar->addWidget(stretch_combo_);
 }
 
 void MainWindow::setup_status_bar() {
@@ -453,6 +494,14 @@ void MainWindow::open_file(const QString& path) {
     // 关闭旧文件
     close_file();
 
+    // V9: HiPS 产品集目录（内含 signal/support）→ HiPS 2D 视图
+    QFileInfo fi(path);
+    if (fi.isDir() && QDir(path).exists("signal") &&
+        QDir(path).exists("support")) {
+        open_hips(path);
+        return;
+    }
+
     // 打开新文件
     if (backend_->open_file(path.toStdString()) != 0) {
         QMessageBox::critical(this, "错误",
@@ -539,6 +588,218 @@ void MainWindow::open_file(const QString& path) {
     }
 }
 
+// ============================================================================
+// V9: HiPS 产品集模式
+// ============================================================================
+
+void MainWindow::open_hips(const QString& path) {
+    hips_backend_ = std::make_unique<HipsBrowserBackend>();
+    if (hips_backend_->open_product(path.toStdString()) != 0) {
+        QMessageBox::critical(this, "错误",
+                              QString("无法打开 HiPS 产品集:\n%1").arg(path));
+        hips_backend_.reset();
+        return;
+    }
+
+    auto* v = new HipsView(this);
+    v->set_backend(hips_backend_.get());
+
+    // 初始视角：GC 三 panel 默认整幅；其余默认 equator
+    const std::string base = QFileInfo(path).fileName().toStdString();
+    if (base.find("gc") != std::string::npos ||
+        base.find("3panel") != std::string::npos) {
+        v->jump_to(272.5, -17.2, 15.0, 0);
+    } else {
+        v->jump_to(0.0, 0.0, 60.0, 0);
+    }
+    v->set_stretch("asinh", true);
+
+    set_hips_view(v);
+    hips_mode_ = true;
+
+    status_file_->setText(
+        QString("文件: %1  [HiPS order=%2 tiles=%3]")
+            .arg(QFileInfo(path).fileName())
+            .arg(hips_backend_->get_hips_order())
+            .arg((qulonglong)hips_backend_->get_n_tiles()));
+    status_view_->setText(QString("视角: RA %.3f° Dec %.3f° FOV %.2f°")
+                              .arg(v->sky()->center_ra())
+                              .arg(v->sky()->center_dec())
+                              .arg(v->sky()->fov()));
+
+    layer_toggle_action_->setVisible(true);
+    layer_toggle_action_->setChecked(false);
+    if (stretch_combo_) stretch_combo_->setVisible(true);
+    if (hiss_tile_dock_) hiss_tile_dock_->hide();
+    stf_panel_->set_data_range(0.0f, 1.0f);
+    populate_hips_presets();
+}
+
+void MainWindow::set_hips_view(HipsView* view) {
+    if (!view) return;
+    disconnect_view();
+    connect(view, &HipsView::viewChanged, this,
+            &MainWindow::on_hips_view_changed);
+    connect(view, &HipsView::mouseMoved, this,
+            &MainWindow::on_hips_mouse_moved);
+    connect(view, &HipsView::layerChanged, this,
+            &MainWindow::on_hips_layer_changed);
+    hips_view_ = view;
+    setCentralWidget(view);
+    view->setFocus();
+}
+
+void MainWindow::populate_hips_presets() {
+    if (!hips_preset_combo_) return;
+    hips_preset_combo_->blockSignals(true);
+    hips_preset_combo_->clear();
+    const std::string base =
+        hips_backend_ ? QFileInfo(
+                            QString::fromStdString(hips_backend_->get_root()))
+                            .fileName()
+                            .toStdString()
+                      : "";
+    if (base.find("gc") != std::string::npos ||
+        base.find("3panel") != std::string::npos) {
+        struct P { const char* n; double ra, dec, fov; int layer; };
+        const P presets[] = {
+            {"GC Wide", 272.5, -17.2, 15.0, 0},
+            {"Overlap 1-2", 272.5, -15.66, 3.0, 0},
+            {"Overlap 2-3", 272.5, -20.72, 3.0, 0},
+            {"Seam Close-up", 272.5, -15.66, 0.8, 0},
+            {"Support View", 272.5, -17.2, 15.0, 1},
+        };
+        for (const auto& p : presets) {
+            hips_preset_combo_->addItem(p.n, QVariant::fromValue(
+                QPointF(QPointF(p.ra, p.dec))));
+            // 用 item data 存 (fov, layer) 的编码：fov*100 + layer
+            hips_preset_combo_->setItemData(
+                hips_preset_combo_->count() - 1,
+                QVariant(p.fov * 100.0 + p.layer),
+                Qt::UserRole + 1);
+        }
+    } else if (base.find("truth") != std::string::npos) {
+        const char* names[] = {"Equator", "Wrap 0/360", "Polar",
+                               "Multi-face"};
+        const double ra[] = {45.0, 0.0, 0.0, 45.0};
+        const double dec[] = {0.0, 0.0, 88.0, 0.0};
+        const double fov[] = {30.0, 45.0, 25.0, 60.0};
+        for (int i = 0; i < 4; ++i) {
+            hips_preset_combo_->addItem(
+                names[i],
+                QVariant::fromValue(QPointF(ra[i], dec[i])));
+            hips_preset_combo_->setItemData(
+                hips_preset_combo_->count() - 1,
+                QVariant(fov[i] * 100.0), Qt::UserRole + 1);
+        }
+    } else {
+        hips_preset_combo_->addItem("Sky (equator)", QVariant());
+        hips_preset_combo_->setItemData(0, QVariant(6000.0),
+                                        Qt::UserRole + 1);
+    }
+    hips_preset_combo_->setVisible(true);
+    hips_preset_combo_->blockSignals(false);
+}
+
+void MainWindow::on_hips_open() {
+    const QString dir = QFileDialog::getExistingDirectory(
+        this, "选择 HiPS 产品集目录（含 signal/support）");
+    if (!dir.isEmpty()) open_file(dir);
+}
+
+void MainWindow::on_hips_preset(int index) {
+    if (!hips_view_ || index < 0) return;
+    const QVariant posv = hips_preset_combo_->itemData(index);
+    const QVariant ov = hips_preset_combo_->itemData(index, Qt::UserRole + 1);
+    if (!posv.canConvert<QPointF>() || !ov.isValid()) return;
+    const QPointF p = posv.value<QPointF>();
+    const double code = ov.toDouble();
+    const double fov = code / 100.0;
+    const int layer = (int)std::round(code - fov * 100.0);
+    std::fprintf(stderr, "[preset] idx=%d ra=%.2f dec=%.2f fov=%.2f layer=%d\n",
+                 index, p.x(), p.y(), fov, layer);
+    hips_view_->jump_to(p.x(), p.y(), fov, layer);
+    layer_toggle_action_->setChecked(layer == 1);
+}
+
+void MainWindow::on_hips_layer_toggle(bool checked) {
+    if (!hips_view_) return;
+    hips_view_->set_layer(checked ? 1 : 0);
+}
+
+void MainWindow::on_hips_stretch_changed(int index) {
+    if (!hips_view_ || index < 0) return;
+    const char* names[] = {"linear", "sqrt", "log", "asinh"};
+    hips_view_->set_stretch(names[index], hips_auto_range_);
+}
+
+void MainWindow::on_hips_view_changed(double ra, double dec, double fov) {
+    status_view_->setText(
+        QString("视角: RA %.3f° Dec %.3f° FOV %.2f° order=%1")
+            .arg(ra)
+            .arg(dec)
+            .arg(fov)
+            .arg(hips_view_ ? hips_view_->sky()->target_order() : 0));
+}
+
+void MainWindow::on_hips_mouse_moved(double ra, double dec) {
+    const double ra_h = ra / 15.0;
+    const int hh = (int)ra_h;
+    const double mm = (ra_h - hh) * 60.0;
+    const int mi = (int)mm;
+    const double ss = (mm - mi) * 60.0;
+    const int dd = (int)std::fabs(dec);
+    const double dm = (std::fabs(dec) - dd) * 60.0;
+    const int dmi = (int)dm;
+    const double dss = (dm - dmi) * 60.0;
+    status_mouse_->setText(
+        QString("RA %1h%2m%3s  Dec %4%5°%6'%7\"")
+            .arg(hh, 2, 10, QChar('0'))
+            .arg(mi, 2, 10, QChar('0'))
+            .arg(ss, 4, 'f', 1, QChar('0'))
+            .arg(dec < 0 ? "-" : "+")
+            .arg(dd, 2, 10, QChar('0'))
+            .arg(dmi, 2, 10, QChar('0'))
+            .arg(dss, 4, 'f', 1, QChar('0')));
+}
+
+void MainWindow::on_hips_layer_changed(int layer) {
+    layer_toggle_action_->setChecked(layer == 1);
+    status_file_->setText(status_file_->text().section("  [", 0, 0) +
+                          QString("  [layer=%1]")
+                              .arg(layer == 0 ? "signal" : "support"));
+}
+
+void MainWindow::capture_hips_screenshot(const QString& out_png,
+                                         const QString& preset, int layer,
+                                         bool exit_after) {
+    std::fprintf(stderr, "[capture] png=%s preset=%s layer=%d hips_view=%p\n",
+                 out_png.toStdString().c_str(), preset.toStdString().c_str(),
+                 layer, (void*)hips_view_);
+    if (!hips_view_) return;
+    if (!preset.isEmpty()) {
+        const int idx = hips_preset_combo_->findText(preset);
+        std::fprintf(stderr, "[capture] findText idx=%d combo_count=%d\n", idx,
+                     hips_preset_combo_->count());
+        if (idx >= 0) hips_preset_combo_->setCurrentIndex(idx);
+    }
+    if (layer >= 0) hips_view_->set_layer(layer);
+    hips_view_->mark_dirty();
+    hips_view_->repaint();
+    QCoreApplication::processEvents();
+    const bool ok = hips_view_->save_snapshot(out_png);
+    LOG_INFO("main_window", "screenshot %s -> %d", out_png.toStdString().c_str(),
+             ok ? 1 : 0);
+    if (exit_after) QTimer::singleShot(100, this, &MainWindow::on_exit);
+}
+
+void MainWindow::jump_to_view(double ra, double dec, double fov) {
+    if (hips_view_) {
+        hips_view_->jump_to(ra, dec, fov, -1);
+        std::fprintf(stderr, "[view] ra=%.3f dec=%.3f fov=%.2f\n", ra, dec, fov);
+    }
+}
+
 void MainWindow::on_file_close() {
     close_file();
     status_file_->setText("文件: (未打开)");
@@ -566,6 +827,13 @@ void MainWindow::close_file() {
     if (backend_) {
         backend_->close_file();
     }
+    if (hips_backend_) {
+        hips_backend_->close();
+        hips_backend_.reset();
+    }
+    if (layer_toggle_action_) layer_toggle_action_->setVisible(false);
+    if (hips_preset_combo_) hips_preset_combo_->setVisible(false);
+    if (stretch_combo_) stretch_combo_->setVisible(false);
 }
 
 void MainWindow::on_exit() {
@@ -601,6 +869,13 @@ void MainWindow::set_view(AbstractView* view) {
 }
 
 void MainWindow::disconnect_view() {
+    if (hips_view_) {
+        takeCentralWidget();
+        delete hips_view_;
+        hips_view_ = nullptr;
+        hips_mode_ = false;
+        return;
+    }
     if (current_view_) {
         // centralWidget 所有权归 QMainWindow, setCentralWidget(nullptr) 会删除旧 widget
         takeCentralWidget();  // 移除并持有所有权
@@ -610,6 +885,21 @@ void MainWindow::disconnect_view() {
 }
 
 void MainWindow::on_view_reset() {
+    if (hips_view_) {
+        const std::string base =
+            hips_backend_
+                ? QFileInfo(QString::fromStdString(hips_backend_->get_root()))
+                      .fileName()
+                      .toStdString()
+                : "";
+        if (base.find("gc") != std::string::npos ||
+            base.find("3panel") != std::string::npos) {
+            hips_view_->jump_to(272.5, -17.2, 15.0, -1);
+        } else {
+            hips_view_->jump_to(0.0, 0.0, 60.0, -1);
+        }
+        return;
+    }
     if (!current_view_) return;
     // 按类型调用 reset
     if (auto* v = qobject_cast<SphereView*>(current_view_)) {
@@ -632,6 +922,14 @@ void MainWindow::on_grid_toggle(bool checked) {
 }
 
 void MainWindow::on_zoom_in() {
+    if (hips_view_) {
+        hips_view_->sky()->set_view(
+            hips_view_->sky()->center_ra(), hips_view_->sky()->center_dec(),
+            hips_view_->sky()->fov() * 0.8, 0.0);
+        hips_view_->sky()->set_size(width(), height());
+        hips_view_->mark_dirty();
+        return;
+    }
     if (current_view_) {
         if (auto* v = qobject_cast<SphereView*>(current_view_)) {
             v->zoom_in();
@@ -640,6 +938,14 @@ void MainWindow::on_zoom_in() {
 }
 
 void MainWindow::on_zoom_out() {
+    if (hips_view_) {
+        hips_view_->sky()->set_view(
+            hips_view_->sky()->center_ra(), hips_view_->sky()->center_dec(),
+            hips_view_->sky()->fov() / 0.8, 0.0);
+        hips_view_->sky()->set_size(width(), height());
+        hips_view_->mark_dirty();
+        return;
+    }
     if (current_view_) {
         if (auto* v = qobject_cast<SphereView*>(current_view_)) {
             v->zoom_out();
@@ -653,12 +959,23 @@ void MainWindow::on_zoom_out() {
 
 void MainWindow::on_stf_changed(const STFParams& params) {
     // 来自 STFPanel 的滑块变化 → 转发给 view
+    if (hips_view_) {
+        hips_auto_range_ = false;
+        hips_view_->set_manual_range(params.shadows, params.highlights);
+        return;
+    }
     if (current_view_) {
         current_view_->set_stf_params(params);
     }
 }
 
 void MainWindow::on_auto_stretch_clicked() {
+    if (hips_view_) {
+        hips_auto_range_ = true;
+        hips_view_->set_stretch(
+            stretch_combo_->currentText().toLower().toStdString(), true);
+        return;
+    }
     if (current_view_) {
         current_view_->auto_stretch();
     }

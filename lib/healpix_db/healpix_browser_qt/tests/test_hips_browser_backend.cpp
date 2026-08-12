@@ -164,7 +164,9 @@ int main(int argc, char** argv) {
     aio_hips_close(dsig);
     aio_hips_close(dsup);
 
-    const bool pass = (mismatch == 0 && outside_ok >= 1 && n_snr > 0 && id_unique);
+    // SNR catalogue 可选（mosaic/truth 无 snr 产品时为 -1/空）：存在时须 id 唯一
+    const bool snr_ok = (n_snr <= 0) || (n_snr > 0 && id_unique);
+    const bool pass = (mismatch == 0 && outside_ok >= 1 && snr_ok);
     std::printf("RESULT: %s\n", pass ? "PASS" : "FAIL");
     return pass ? 0 : 1;
 }
