@@ -289,8 +289,10 @@ void HipsSkyView::rasterize(std::vector<std::uint32_t>& rgba) {
         if (!samples.empty()) {
             std::sort(samples.begin(), samples.end());
             const std::size_t n = samples.size();
-            dmin = samples[(std::size_t)(0.005 * (double)(n - 1))];
-            dmax = samples[(std::size_t)(0.995 * (double)(n - 1))];
+            // V10：加宽 auto-range 到 1%/99%（避免 0.5% 端星点把动态范围
+            // 收窄导致噪声/星点过度放大、视觉上“碎屑化”）
+            dmin = samples[(std::size_t)(0.01 * (double)(n - 1))];
+            dmax = samples[(std::size_t)(0.99 * (double)(n - 1))];
             if (dmax <= dmin) dmax = dmin + 1.0f;
             valid = samples.size();
         }
@@ -320,17 +322,26 @@ void HipsSkyView::rasterize(std::vector<std::uint32_t>& rgba) {
             const Tile* t = (it != cache_.end()) ? it->second.get() : nullptr;
             int o = order;
             std::uint64_t tp = tile_ipix;
+            std::uint64_t use_local = local;
+            // V10 修复：父级回退时必须用父级 nside 下的 local（低 2*(order-o)
+            // 位），不能用目标 order 的 local，否则父 tile 大范围内错位采样，
+            // 导致“同一数据在屏幕上多处重复出现”的孤岛/碎片。
             while (!t && o > 0) {
                 tp >>= 2;
                 --o;
                 auto jt = cache_.find(std::make_pair(o, tp));
                 t = (jt != cache_.end()) ? jt->second.get() : nullptr;
-                if (t) ++fallback_count;
+                if (t) {
+                    ++fallback_count;
+                    use_local = (leaf >> (2u * (unsigned)(order - o))) &
+                                kTileMask;
+                }
             }
             std::uint32_t color = kBackground;
             if (t) {
                 const std::uint64_t fi =
-                    astrocs::healpix::nested_local_to_fits_index(local, 9u, 512u);
+                    astrocs::healpix::nested_local_to_fits_index(use_local, 9u,
+                                                                 512u);
                 if (layer_ == 0) {
                     const float val = t->sig[(size_t)fi];
                     if (std::isfinite(val)) {

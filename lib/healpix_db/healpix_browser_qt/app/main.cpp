@@ -39,12 +39,15 @@ int main(int argc, char* argv[]) {
     QCommandLineOption shot_opt("screenshot", "保存截图 PNG", "path");
     QCommandLineOption exit_opt("exit", "截图后退出");
     QCommandLineOption view_opt("view", "跳转视图 ra,dec,fov", "ra,dec,fov");
+    QCommandLineOption win_shot_opt("window-screenshot",
+                                    "整窗截图（含状态栏）", "path");
     parser.addOption(hips_opt);
     parser.addOption(preset_opt);
     parser.addOption(layer_opt);
     parser.addOption(shot_opt);
     parser.addOption(exit_opt);
     parser.addOption(view_opt);
+    parser.addOption(win_shot_opt);
     parser.process(app);
 
     // 创建主窗口
@@ -65,6 +68,7 @@ int main(int argc, char* argv[]) {
     const QString shot = parser.value(shot_opt);
     const bool exit_after = parser.isSet(exit_opt);
     const QString view = parser.value(view_opt);
+    const QString win_shot = parser.value(win_shot_opt);
 
     if (!target.isEmpty()) {
         QMetaObject::invokeMethod(&window, "open_file_from_cli",
@@ -87,6 +91,11 @@ int main(int argc, char* argv[]) {
                 window.jump_to_view(ra, dec, fov);
             });
         }
+    }
+    if (!win_shot.isEmpty()) {
+        QTimer::singleShot(1400, &window, [&window, win_shot]() {
+            window.capture_window_screenshot(win_shot, true);
+        });
     }
 
     int ret = app.exec();

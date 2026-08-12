@@ -666,7 +666,7 @@ void MainWindow::populate_hips_presets() {
             {"GC Wide", 272.5, -17.2, 15.0, 0},
             {"Overlap 1-2", 272.5, -15.66, 3.0, 0},
             {"Overlap 2-3", 272.5, -20.72, 3.0, 0},
-            {"Seam Close-up", 272.5, -15.66, 0.8, 0},
+            {"Seam Close-up", 272.5, -15.66, 2.0, 0},
             {"Support View", 272.5, -17.2, 15.0, 1},
         };
         for (const auto& p : presets) {
@@ -735,10 +735,10 @@ void MainWindow::on_hips_stretch_changed(int index) {
 
 void MainWindow::on_hips_view_changed(double ra, double dec, double fov) {
     status_view_->setText(
-        QString("视角: RA %.3f° Dec %.3f° FOV %.2f° order=%1")
-            .arg(ra)
-            .arg(dec)
-            .arg(fov)
+        QString("视角: RA %1° Dec %2° FOV %3° order=%4")
+            .arg(ra, 0, 'f', 3)
+            .arg(dec, 0, 'f', 3)
+            .arg(fov, 0, 'f', 2)
             .arg(hips_view_ ? hips_view_->sky()->target_order() : 0));
 }
 
@@ -798,6 +798,17 @@ void MainWindow::jump_to_view(double ra, double dec, double fov) {
         hips_view_->jump_to(ra, dec, fov, -1);
         std::fprintf(stderr, "[view] ra=%.3f dec=%.3f fov=%.2f\n", ra, dec, fov);
     }
+}
+
+void MainWindow::capture_window_screenshot(const QString& out_png,
+                                           bool exit_after) {
+    repaint();
+    QCoreApplication::processEvents();
+    const QPixmap pm = grab();
+    const bool ok = pm.save(out_png);
+    std::fprintf(stderr, "[window-shot] %s -> %d\n",
+                 out_png.toStdString().c_str(), ok ? 1 : 0);
+    if (exit_after) QTimer::singleShot(100, this, &MainWindow::on_exit);
 }
 
 void MainWindow::on_file_close() {

@@ -61,6 +61,8 @@ public:
     // V9: 脚本化截图（--screenshot / 测试用）
     void capture_hips_screenshot(const QString& out_png, const QString& preset,
                                  int layer, bool exit_after);
+    // V10: 整窗截图（含状态栏，供人工核验 UI 文本）
+    void capture_window_screenshot(const QString& out_png, bool exit_after);
     // V9: 命令行直接跳转视图（--view ra,dec,fov）
     void jump_to_view(double ra, double dec, double fov);
 

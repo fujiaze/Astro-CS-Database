@@ -376,6 +376,181 @@ static int run_hips_raster_bench(const std::string& dir, JsonOut& json,
     return 0;
 }
 
+// ============================================================================
+// V10 P10-2: 独立 headless reference renderer（slow but trusted）
+//  - 不调用 widget/HipsSkyView 绘制路径；
+//  - screen->sky 独立实现（gnomonic 逆投影）；
+//  - 采样走可信 backend 点查询（AIO leaf order，V9 已过 mismatch=0）；
+//  - 固定 linear stretch（0.5%/99.5% 分位由本视图子采样计算）。
+// 用法: browser_cli --hips <root> --refrender <out.ppm>
+//                   --view ra,dec,fov --size WxH [--layer signal|support]
+// ============================================================================
+static int run_reference_render(const std::string& dir, const std::string& out,
+                                const std::string& view_str, int w, int h,
+                                int layer) {
+    double ra = 0, dec = 0, fov = 8.0;
+    if (std::sscanf(view_str.c_str(), "%lf,%lf,%lf", &ra, &dec, &fov) != 3)
+        return 2;
+    HipsBrowserBackend bk;
+    if (bk.open_product(dir) != 0) return 3;
+
+    const double kPi = 3.14159265358979323846;
+    const double tan_half = std::tan(fov * kPi / 360.0);
+    const double r0 = ra * kPi / 180.0;
+    const double d0 = dec * kPi / 180.0;
+    const double aspect = (double)w / (double)h;
+
+    // leaf tile 缓存（reference 独立于 widget/HipsSkyView；点查询语义一致）
+    const std::uint32_t leaf_nside = 1u << (std::uint32_t)bk.get_leaf_order();
+    const std::uint64_t kMask = (1ULL << 18) - 1;
+    // 存在性集合：避免对缺失 tile 逐像素做 CFITSIO 失败打开（~0.8ms/次）
+    std::set<std::uint64_t> leaf_tiles;
+    for (std::uint64_t t : bk.tiles_at_order(bk.get_hips_order()))
+        leaf_tiles.insert(t);
+    std::map<std::uint64_t, std::pair<std::vector<double>, std::vector<double>>>
+        tile_cache;
+    auto sample_leaf = [&](double ra_deg, double dec_deg, double* sig,
+                           double* sup) -> bool {
+        const std::uint64_t leaf =
+            astrocs::healpix::ang2pix_nest(leaf_nside, ra_deg, dec_deg);
+        const std::uint64_t tile = leaf >> 18;
+        const std::uint64_t local = leaf & kMask;
+        auto it = tile_cache.find(tile);
+        if (it == tile_cache.end()) {
+            if (!leaf_tiles.count(tile)) return false;
+            std::vector<double> s, u;
+            if (bk.read_tile(tile, s) != 0 ||
+                bk.read_support_tile(tile, u) != 0)
+                return false;
+            it = tile_cache.emplace(tile, std::make_pair(std::move(s),
+                                                         std::move(u)))
+                     .first;
+        }
+        const std::uint64_t fi =
+            astrocs::healpix::nested_local_to_fits_index(local, 9u, 512u);
+        *sig = it->second.first[(size_t)fi];
+        *sup = it->second.second[(size_t)fi];
+        return true;
+    };
+
+    // 子采样收集范围（signal 层固定线性拉伸）
+    auto tp0 = Clock::now();
+    float dmin = 0.0f, dmax = 1.0f;
+    if (layer == 0) {
+        std::vector<float> vals;
+        for (int j = 0; j < h; j += 4) {
+            const double v = 1.0 - 2.0 * (j + 0.5) / (double)h;
+            for (int i = 0; i < w; i += 4) {
+                const double u = 2.0 * (i + 0.5) / (double)w - 1.0;
+                const double xi = -u * tan_half * aspect;
+                const double eta = v * tan_half;
+                const double rr = std::hypot(xi, eta);
+                double rar, dr;
+                if (rr < 1e-12) {
+                    dr = d0;
+                    rar = r0;
+                } else {
+                    const double c = std::atan(rr);
+                    const double sc = std::sin(c), cc = std::cos(c);
+                    dr = std::asin(cc * std::sin(d0) +
+                                   eta * sc * std::cos(d0) / rr);
+                    rar = r0 + std::atan2(xi * sc,
+                                          rr * std::cos(d0) * cc -
+                                              eta * std::sin(d0) * sc);
+                }
+                rar = std::fmod(rar, 2.0 * kPi);
+                if (rar < 0.0) rar += 2.0 * kPi;
+                double sig = 0, sup = 0;
+                if (sample_leaf(rar * 180.0 / kPi, dr * 180.0 / kPi, &sig,
+                                &sup) &&
+                    std::isfinite(sig)) {
+                    vals.push_back((float)sig);
+                }
+            }
+        }
+        if (!vals.empty()) {
+            std::sort(vals.begin(), vals.end());
+            const std::size_t n = vals.size();
+            dmin = vals[(std::size_t)(0.005 * (double)(n - 1))];
+            dmax = vals[(std::size_t)(0.995 * (double)(n - 1))];
+            if (dmax <= dmin) dmax = dmin + 1.0f;
+        }
+    }
+    auto tp1 = Clock::now();
+    fprintf(stderr, "[refrender] range pass %.1f ms\n",
+            elapsed_ms(tp0, tp1));
+
+    std::vector<unsigned char> rgb((std::size_t)w * (std::size_t)h * 3);
+    auto tp2 = Clock::now();
+    auto tp_seg = tp2;
+    std::size_t seg_target = 100000;
+    for (int j = 0; j < h; ++j) {
+        const double v = 1.0 - 2.0 * (j + 0.5) / (double)h;
+        for (int i = 0; i < w; ++i) {
+            const double u = 2.0 * (i + 0.5) / (double)w - 1.0;
+            const double xi = -u * tan_half * aspect;
+            const double eta = v * tan_half;
+            const double rr = std::hypot(xi, eta);
+            double rar, dr;
+            if (rr < 1e-12) {
+                dr = d0;
+                rar = r0;
+            } else {
+                const double c = std::atan(rr);
+                const double sc = std::sin(c), cc = std::cos(c);
+                dr = std::asin(cc * std::sin(d0) +
+                               eta * sc * std::cos(d0) / rr);
+                rar = r0 + std::atan2(xi * sc,
+                                      rr * std::cos(d0) * cc -
+                                          eta * std::sin(d0) * sc);
+            }
+            rar = std::fmod(rar, 2.0 * kPi);
+            if (rar < 0.0) rar += 2.0 * kPi;
+            double sig = 0, sup = 0;
+            unsigned char g = 0;
+            if (sample_leaf(rar * 180.0 / kPi, dr * 180.0 / kPi, &sig,
+                            &sup)) {
+                if (layer == 0) {
+                    if (std::isfinite(sig)) {
+                        const float x =
+                            (float)((sig - dmin) / (dmax - dmin));
+                        g = (unsigned char)std::max(
+                            0.0f, std::min(255.0f, x * 255.0f));
+                    }
+                } else {
+                    const float s = (float)std::max(0.0, std::min(1.0, sup));
+                    g = (unsigned char)std::max(
+                        0.0f, std::min(255.0f, std::sqrt(s) * 255.0f));
+                }
+            }
+            const std::size_t k =
+                ((std::size_t)j * (std::size_t)w + (std::size_t)i) * 3;
+            rgb[k] = g;
+            rgb[k + 1] = g;
+            rgb[k + 2] = g;
+            const std::size_t idx =
+                (std::size_t)j * (std::size_t)w + (std::size_t)i;
+            if (idx == 2000 || idx == seg_target) {
+                fprintf(stderr, "[refrender] probe to %zu px = %.1f ms\n", idx,
+                        elapsed_ms(tp_seg, Clock::now()));
+                tp_seg = Clock::now();
+                seg_target = (idx == 2000) ? 100000 : (std::size_t)w * (std::size_t)h;
+            }
+        }
+    }
+    auto tp3 = Clock::now();
+    fprintf(stderr, "[refrender] raster pass %.1f ms (cache tiles=%llu)\n",
+            elapsed_ms(tp2, tp3), (unsigned long long)tile_cache.size());
+    std::FILE* f = std::fopen(out.c_str(), "wb");
+    if (!f) return 4;
+    std::fprintf(f, "P6\n%d %d\n255\n", w, h);
+    std::fwrite(rgb.data(), 1, rgb.size(), f);
+    std::fclose(f);
+    fprintf(stderr, "[refrender] %s %dx%d layer=%d dmin=%.4f dmax=%.4f\n",
+            out.c_str(), w, h, layer, dmin, dmax);
+    return 0;
+}
+
 int main(int argc, char* argv[]) {
     // 解析命令行
     std::string file_path;
@@ -388,6 +563,8 @@ int main(int argc, char* argv[]) {
     int sim_frames = 100;
     std::string view_str;
     std::string layer_str;
+    std::string ref_out;
+    int ref_w = 960, ref_h = 720;
 
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
@@ -411,6 +588,14 @@ int main(int argc, char* argv[]) {
             if (i + 1 < argc) view_str = argv[++i];
         } else if (arg == "--layer") {
             if (i + 1 < argc) layer_str = argv[++i];
+        } else if (arg == "--refrender") {
+            if (i + 1 < argc) ref_out = argv[++i];
+        } else if (arg == "--size") {
+            if (i + 1 < argc) {
+                if (std::sscanf(argv[i + 1], "%dx%d", &ref_w, &ref_h) != 2)
+                    return 2;
+                ++i;
+            }
         } else if (arg == "--help" || arg == "-h") {
             fprintf(stderr, "HEALPix 浏览器 CLI 后台调试工具\n\n");
             fprintf(stderr, "用法:\n");
@@ -515,6 +700,10 @@ int main(int argc, char* argv[]) {
             const int layer = (layer_str == "support") ? 1 : 0;
             rc_h = run_hips_raster_bench(file_path, json, view_str,
                                          sim_frames, layer);
+        } else if (!ref_out.empty()) {
+            const int layer = (layer_str == "support") ? 1 : 0;
+            rc_h = run_reference_render(file_path, ref_out, view_str, ref_w,
+                                        ref_h, layer);
         } else {
             rc_h = run_hips_mode(file_path, json, hips_queries);
         }

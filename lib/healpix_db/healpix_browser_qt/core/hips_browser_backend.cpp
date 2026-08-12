@@ -226,6 +226,18 @@ int HipsBrowserBackend::read_tile(uint64_t tile_ipix, std::vector<double>& out) 
     return rc;
 }
 
+int HipsBrowserBackend::read_support_tile(uint64_t tile_ipix,
+                                          std::vector<double>& out) const {
+    if (!sup_) return -1;
+    out.assign((size_t)kTileDim * kTileDim, 0.0);
+    std::vector<float> tmp((size_t)kTileDim * kTileDim);
+    const int rc = aio_hips_read_tile_f32(sup_, tile_ipix, tmp.data());
+    if (rc == 0) {
+        for (size_t i = 0; i < tmp.size(); ++i) out[i] = (double)tmp[i];
+    }
+    return rc;
+}
+
 int HipsBrowserBackend::read_tile_at_order(int order, uint64_t tile_ipix,
                                            std::vector<float>& sig,
                                            std::vector<float>& sup) const {

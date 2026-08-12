@@ -46,6 +46,8 @@ public:
 
     // 读取叶级 tile 为 double (LOD/渲染用; 空区为 NaN)
     int read_tile(uint64_t tile_ipix, std::vector<double>& out) const;
+    // V10: 叶级 support tile（reference renderer 用）
+    int read_support_tile(uint64_t tile_ipix, std::vector<double>& out) const;
 
     // ---- V9: 多 order 读取（浏览器 LOD 用） ----
     // 读取指定 order 的 signal/support tile（512×512 float）。
