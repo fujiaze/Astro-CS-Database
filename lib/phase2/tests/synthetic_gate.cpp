@@ -1732,6 +1732,358 @@ TEST(Phase2Upm, G1V7EdgeBasisAnalytic) {
     p2_upm_close(model);
 }
 
+// V8 P8-1：连续天空 HEALPix seam truth（truth 不按 tile 重置 local 坐标）。
+// 目标：同一个平滑校正场 C_true(ra,dec)（tangent-plane 线性场）穿过真实
+// HEALPix tile seams 时的恢复。
+// 两 frame：reference C=0；target C=C_true。noise=0，正则仅保留无可见偏置项。
+// 固定阈值：leaf/seam 1e-5，affine 系数 1e-3（场 per-tile gradient ≈ 0.08，
+// 阈值在其 8000 倍以下，禁止动态放宽）。
+TEST(Phase2Upm, G1V8ContinuousSkySeam) {
+    namespace st = spatial_truth;
+    const std::uint64_t tiles[4] = {4, 5, 6, 7};
+    const double kPi = 3.14159265358979323846;
+
+    // tangent-plane origin = 4 tile 中心均值
+    double ra0 = 0.0, dec0 = 0.0;
+    for (int t = 0; t < 4; ++t) {
+        double ra = 0, dec = 0;
+        st::cell_center_radec(tiles[t], 4, 4, &ra, &dec);
+        ra0 += ra / 4.0;
+        dec0 += dec / 4.0;
+    }
+    auto tangent = [&](double ra_deg, double dec_deg, double& xi, double& eta) {
+        const double rar = ra_deg * kPi / 180.0;
+        const double dr = dec_deg * kPi / 180.0;
+        const double r0 = ra0 * kPi / 180.0;
+        const double d0 = dec0 * kPi / 180.0;
+        const double cosc = std::sin(d0) * std::sin(dr) +
+                            std::cos(d0) * std::cos(dr) * std::cos(rar - r0);
+        xi = std::cos(dr) * std::sin(rar - r0) / cosc;
+        eta = (std::cos(d0) * std::sin(dr) -
+               std::sin(d0) * std::cos(dr) * std::cos(rar - r0)) / cosc;
+    };
+
+    // 2D 连续 affine 场（tangent-plane）；per-tile xi span ≈ 8e-3 rad
+    // ⇒ per-tile gradient ≈ 10*8e-3 ≈ 0.08（满足 O(1e-2..1e-1) 要求）。
+    const double A = 0.10, Bxi = 10.0, Beta = -6.0;
+    auto c_true = [&](double ra_deg, double dec_deg) {
+        double xi = 0, eta = 0;
+        tangent(ra_deg, dec_deg, xi, eta);
+        return A + Bxi * xi + Beta * eta;
+    };
+    // 梯度 ⊥ (4,5) 缝中点位移 的 2D 场：该缝附近 truth delta ≈ 1e-10，
+    // 检验“truth 接近零时不制造 jump”；其余 seam 保持非零 delta 可跟踪。
+    const double Bxi_nz = 10.0, Beta_nz = -11.775658185055707;
+    auto c_true_perp = [&](double ra_deg, double dec_deg) {
+        double xi = 0, eta = 0;
+        tangent(ra_deg, dec_deg, xi, eta);
+        return A + Bxi_nz * xi + Beta_nz * eta;
+    };
+
+    const double kTolLeafSeam = 1e-5;  // 固定阈值（gradient step ~0.08 的 8000× 以下）
+    const double kTolAffine = 1e-3;    // 固定系数阈值
+
+    auto leaf_radec = [](std::uint64_t leaf, double& ra, double& dec) {
+        astrocs::healpix::pix2ang_nest(
+            1u << (unsigned)(st::kTargetOrder + st::kTileShift), leaf, ra,
+            dec);
+    };
+
+    struct Built {
+        void* model = nullptr;
+        std::vector<P2ControlObservation> obs;
+    };
+    auto build = [&](const auto& cfield) -> Built {
+        Built r;
+        std::uint64_t cid = 0;
+        for (int t = 0; t < 4; ++t) {
+            for (int gy = 0; gy < st::kGrid; ++gy) {
+                for (int gx = 0; gx < st::kGrid; ++gx) {
+                    double ra = 0, dec = 0;
+                    st::cell_center_radec(tiles[t], gx, gy, &ra, &dec);
+                    const int cx = gx * st::kCellSide + 32;
+                    const int cy = gy * st::kCellSide + 32;
+                    const std::uint64_t leaf = st::leaf_of(tiles[t], cx, cy);
+                    for (int f = 0; f < 2; ++f) {
+                        P2ControlObservation o{};
+                        o.frame_id = (std::uint64_t)f;
+                        o.control_id = cid;
+                        o.leaf_ipix = leaf;
+                        o.ra_deg = ra;
+                        o.dec_deg = dec;
+                        o.value = st::true_sky(ra, dec) +
+                                  (f == 1 ? cfield(ra, dec) : 0.0);
+                        o.uncertainty = st::kNoiseRms;
+                        o.snr = 100.0;
+                        o.support = 1.0;
+                        o.quality_flags = 1;
+                        r.obs.push_back(o);
+                    }
+                    ++cid;
+                }
+            }
+        }
+        P2UpmBuildConfig cfg{};
+        cfg.target_order = st::kTargetOrder;
+        cfg.smoothing_lambda = 0.0;
+        cfg.zero_anchor_weight = 0.0;  // 解析门隔离正则偏置（同 V7）
+        cfg.sigma_floor = 0.02;
+        cfg.max_iterations = 100;
+        cfg.tolerance = 1e-12;
+        EXPECT_EQ(p2_upm_build(r.obs.data(), r.obs.size(), &cfg, &r.model), 0);
+        return r;
+    };
+
+    auto ev = [](void* m, std::uint64_t leaf) {
+        return p2_upm_evaluate_c(m, 1, leaf);
+    };
+
+    // ---------- 采样 leaf（interior + 最外 half-cell） ----------
+    std::vector<std::uint64_t> interior_leaves, edge_leaves;
+    for (int t = 0; t < 4; ++t) {
+        for (int x = 0; x < 512; x += 17)
+            for (int y = 0; y < 512; y += 19)
+                interior_leaves.push_back(st::leaf_of(tiles[t], x, y));
+        for (int e = 0; e < 512; e += 8)
+            for (int ex : {0, 8, 16, 24, 31, 480, 488, 496, 504, 511})
+                for (int ey : {0, 8, 16, 24, 31, 480, 488, 496, 504, 511})
+                    edge_leaves.push_back(st::leaf_of(tiles[t], ex, ey));
+    }
+
+    struct Seam {
+        std::uint64_t ta, tb;
+        bool vertical;
+    };
+    const std::vector<Seam> seams = {
+        {4, 5, true}, {6, 7, true}, {4, 6, false}, {5, 7, false}};
+
+    // ==================== config A：2D affine 连续场 ====================
+    Built ba = build(c_true);
+    ASSERT_NE(ba.model, nullptr);
+
+    // 1. control-center error（evaluate(center) vs C_true at leaf ra/dec）
+    double worst_center = 0.0;
+    for (const auto& o : ba.obs) {
+        if (o.frame_id != 1) continue;
+        double ra = 0, dec = 0;
+        leaf_radec(o.leaf_ipix, ra, dec);
+        worst_center =
+            std::max(worst_center,
+                     std::fabs(ev(ba.model, o.leaf_ipix) - c_true(ra, dec)));
+    }
+
+    // 2. interior / outer-half-cell leaf error
+    double worst_interior = 0.0, worst_edge = 0.0;
+    double sx = 0, sy = 0, sz = 0, sxx = 0, syy = 0, sxy = 0, sxz = 0, syz = 0;
+    std::size_t nfit = 0;
+    for (std::uint64_t leaf : interior_leaves) {
+        double ra = 0, dec = 0, xi = 0, eta = 0;
+        leaf_radec(leaf, ra, dec);
+        tangent(ra, dec, xi, eta);
+        const double got = ev(ba.model, leaf);
+        worst_interior =
+            std::max(worst_interior, std::fabs(got - c_true(ra, dec)));
+        sx += xi; sy += eta; sz += got;
+        sxx += xi * xi; syy += eta * eta; sxy += xi * eta;
+        sxz += xi * got; syz += eta * got;
+        ++nfit;
+    }
+    for (std::uint64_t leaf : edge_leaves) {
+        double ra = 0, dec = 0;
+        leaf_radec(leaf, ra, dec);
+        worst_edge =
+            std::max(worst_edge, std::fabs(ev(ba.model, leaf) - c_true(ra, dec)));
+    }
+
+    // 3. seam 两侧 leaf：recovered_delta - truth_delta
+    double worst_seam = 0.0;
+    std::size_t n_seam = 0;
+    for (const auto& s : seams) {
+        for (int k = 0; k < 512; k += 8) {
+            const int xa = s.vertical ? 511 : k;
+            const int ya = s.vertical ? k : 511;
+            const int xb = s.vertical ? 0 : k;
+            const int yb = s.vertical ? k : 0;
+            const std::uint64_t la = st::leaf_of(s.ta, xa, ya);
+            const std::uint64_t lb = st::leaf_of(s.tb, xb, yb);
+            double ra_a = 0, dec_a = 0, ra_b = 0, dec_b = 0;
+            leaf_radec(la, ra_a, dec_a);
+            leaf_radec(lb, ra_b, dec_b);
+            const double rec_delta =
+                std::fabs(ev(ba.model, la) - ev(ba.model, lb));
+            const double truth_delta =
+                std::fabs(c_true(ra_a, dec_a) - c_true(ra_b, dec_b));
+            worst_seam =
+                std::max(worst_seam, std::fabs(rec_delta - truth_delta));
+            ++n_seam;
+        }
+    }
+
+    // 4. affine 拟合（recovered vs tangent-plane (1,xi,eta)）— 3×3 高斯消元
+    const double n_ = (double)nfit;
+    double A3[3][4] = {
+        {n_, sx, sy, sz},
+        {sx, sxx, sxy, sxz},
+        {sy, sxy, syy, syz},
+    };
+    for (int col = 0; col < 3; ++col) {
+        int piv = col;
+        for (int r = col + 1; r < 3; ++r)
+            if (std::fabs(A3[r][col]) > std::fabs(A3[piv][col])) piv = r;
+        for (int c = col; c < 4; ++c)
+            std::swap(A3[col][c], A3[piv][c]);
+        const double d = A3[col][col];
+        ASSERT_GT(std::fabs(d), 1e-30) << "affine normal matrix singular";
+        for (int c = col; c < 4; ++c) A3[col][c] /= d;
+        for (int r = 0; r < 3; ++r) {
+            if (r == col) continue;
+            const double f = A3[r][col];
+            for (int c = col; c < 4; ++c) A3[r][c] -= f * A3[col][c];
+        }
+    }
+    const double rec_a = A3[0][3], rec_bx = A3[1][3], rec_beta = A3[2][3];
+
+    // 5. save/open + sparse/dense
+    const char* path = "run_tmp_upm_v8.json";
+    ASSERT_EQ(p2_upm_save(ba.model, path), 0);
+    void* model2 = nullptr;
+    ASSERT_EQ(p2_upm_open(path, &model2), 0);
+    double save_open_diff = 0.0;
+    std::size_t n_sod = 0;
+    for (std::uint64_t leaf : edge_leaves) {
+        save_open_diff = std::max(save_open_diff,
+                                  std::fabs(ev(model2, leaf) - ev(ba.model, leaf)));
+        ++n_sod;
+    }
+    p2_upm_close(model2);
+    std::remove(path);
+
+    const char* cache = "run_tmp_upm_v8.cache";
+    ASSERT_EQ(p2_upm_materialize_dense(ba.model, st::kTargetOrder, cache), 0);
+    std::mt19937 rng(20260812);
+    std::uniform_int_distribution<int> xd(0, 511);
+    std::uniform_int_distribution<int> yd(0, 511);
+    std::vector<std::uint64_t> dleaf;
+    std::vector<double> din, dout_s, dout_d;
+    for (int t = 0; t < 4; ++t) {
+        for (int i = 0; i < 2000; ++i) {
+            dleaf.push_back(st::leaf_of(tiles[t], xd(rng), yd(rng)));
+            din.push_back(9.0 + 0.1 * (double)(i % 100));
+        }
+    }
+    dout_s.resize(dleaf.size());
+    dout_d.resize(dleaf.size());
+    ASSERT_EQ(p2_upm_calibrate_block(ba.model, 1, dleaf.data(), din.data(),
+                                     dout_s.data(), dleaf.size()), 0);
+    ASSERT_EQ(p2_upm_dense_read_block(ba.model, cache, 1, dleaf.data(),
+                                      din.data(), dout_d.data(),
+                                      dleaf.size()), 0);
+    double dense_diff = 0.0;
+    for (std::size_t i = 0; i < dleaf.size(); ++i)
+        dense_diff = std::max(dense_diff,
+                              std::fabs(dout_s[i] - dout_d[i]));
+    std::remove(cache);
+
+    // 6. per-tile gradient step（实测）应远大于阈值
+    double gmin = 1e30;
+    for (int t = 0; t < 4; ++t) {
+        double xmin = 1e30, xmax = -1e30;
+        for (int x = 0; x < 512; x += 17)
+            for (int y = 0; y < 512; y += 19) {
+                double ra = 0, dec = 0, xi = 0, eta = 0;
+                leaf_radec(st::leaf_of(tiles[t], x, y), ra, dec);
+                tangent(ra, dec, xi, eta);
+                xmin = std::min(xmin, xi);
+                xmax = std::max(xmax, xi);
+            }
+        gmin = std::min(gmin, Bxi * (xmax - xmin));
+    }
+
+    // ==================== config B：eta-only（垂直 seam 近零） ====================
+    Built bb = build(c_true_perp);
+    ASSERT_NE(bb.model, nullptr);
+    double nz_worst_delta = 0.0, nz_worst_jump = 0.0;
+    std::size_t n_nz = 0, n_near_zero = 0;
+    for (const auto& s : seams) {
+        for (int k = 0; k < 512; k += 8) {
+            const int xa = s.vertical ? 511 : k;
+            const int ya = s.vertical ? k : 511;
+            const int xb = s.vertical ? 0 : k;
+            const int yb = s.vertical ? k : 0;
+            const std::uint64_t la = st::leaf_of(s.ta, xa, ya);
+            const std::uint64_t lb = st::leaf_of(s.tb, xb, yb);
+            double ra_a = 0, dec_a = 0, ra_b = 0, dec_b = 0;
+            leaf_radec(la, ra_a, dec_a);
+            leaf_radec(lb, ra_b, dec_b);
+            const double rec_delta =
+                std::fabs(ev(bb.model, la) - ev(bb.model, lb));
+            const double truth_delta =
+                std::fabs(c_true_perp(ra_a, dec_a) - c_true_perp(ra_b, dec_b));
+            nz_worst_delta =
+                std::max(nz_worst_delta, std::fabs(rec_delta - truth_delta));
+            ++n_nz;
+            // 近零 truth 子集：truth delta ≤ 5e-6 时，recovered 不得制造 jump
+            if (truth_delta <= 5e-6) {
+                nz_worst_jump = std::max(nz_worst_jump, rec_delta);
+                ++n_near_zero;
+            }
+        }
+    }
+
+    EXPECT_LE(worst_center, kTolLeafSeam);
+    EXPECT_LE(worst_interior, kTolLeafSeam);
+    EXPECT_LE(worst_edge, kTolLeafSeam);
+    EXPECT_LE(worst_seam, kTolLeafSeam);
+    EXPECT_LE(std::fabs(rec_a - A), kTolAffine);
+    EXPECT_LE(std::fabs(rec_bx - Bxi), kTolAffine);
+    EXPECT_LE(std::fabs(rec_beta - Beta), kTolAffine);
+    EXPECT_GT(gmin, kTolLeafSeam * 1000.0)
+        << "fixed threshold 必须明显小于实际 sky gradient step";
+    EXPECT_LE(nz_worst_delta, kTolLeafSeam);
+    EXPECT_GT(n_near_zero, (std::size_t)0)
+        << "config-B 必须存在 truth≈0 的 seam 样本";
+    EXPECT_LE(nz_worst_jump, kTolLeafSeam)
+        << "truth delta ≈ 0 时不得制造 seam jump";
+    EXPECT_LE(save_open_diff, 1e-12);
+    EXPECT_LE(dense_diff, 1e-9);
+
+    std::fprintf(stderr,
+                 "[G1V8-sky] center=%.3e interior=%.3e edge=%.3e seam=%.3e "
+                 "gmin=%.4f rec_a=%.6f rec_bx=%.6f rec_beta=%.6f "
+                 "nz_delta=%.3e nz_jump=%.3e sod=%.2e dense=%.2e\n",
+                 worst_center, worst_interior, worst_edge, worst_seam, gmin,
+                 rec_a, rec_bx, rec_beta, nz_worst_delta, nz_worst_jump,
+                 save_open_diff, dense_diff);
+
+    nlohmann::json aj;
+    aj["tangent_plane_origin_deg"] = {ra0, dec0};
+    aj["truth_field"] = {"A", A, "Bxi", Bxi, "Beta", Beta,
+                         "unit", "per-radian tangent plane"};
+    aj["per_tile_gradient_min"] = gmin;
+    aj["fixed_thresholds"] = {"leaf_and_seam", kTolLeafSeam, "affine", kTolAffine};
+    aj["worst_center_error"] = worst_center;
+    aj["worst_interior_error"] = worst_interior;
+    aj["worst_edge_error"] = worst_edge;
+    aj["worst_seam_delta_error"] = worst_seam;
+    aj["n_seam_pairs"] = 4;
+    aj["n_seam_samples"] = n_seam;
+    aj["recovered_affine"] = {"a", rec_a, "bx", rec_bx, "beta", rec_beta};
+    aj["truth_affine"] = {"a", A, "bx", Bxi, "beta", Beta};
+    aj["near_zero_truth_delta_no_jump"] = {
+        "worst_recovered_minus_truth", nz_worst_delta,
+        "worst_recovered_jump", nz_worst_jump};
+    aj["save_open_max_diff"] = save_open_diff;
+    aj["sparse_dense_max_diff"] = dense_diff;
+    std::filesystem::create_directories(
+        "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth");
+    std::ofstream af(
+        "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth/"
+        "v8_continuous_sky_seam.json");
+    if (af) af << aj.dump(2);
+    p2_upm_close(bb.model);
+    p2_upm_close(ba.model);
+}
+
 // G3/G4 持久化：medium round-trip（target_order/frames/hash 保持）、
 // 1 ULP 系数变化 hash 敏感、>8 MiB 模型 round-trip。
 TEST(Phase2Upm, G2PersistenceAndHashSensitivity) {

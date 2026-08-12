@@ -47,5 +47,9 @@ add_executable(astrocs-stage2 tools/stage2.cpp)
 target_link_libraries(astrocs-stage2 PRIVATE phase2
     ${CMAKE_CURRENT_SOURCE_DIR}/../astro_image_io/astro_image_io.dll)
 
+add_executable(calibrated_pair_diag tools/calibrated_pair_diag.cpp)
+target_link_libraries(calibrated_pair_diag PRIVATE phase2
+    ${CMAKE_CURRENT_SOURCE_DIR}/../astro_image_io/astro_image_io.dll)
+
 add_executable(rejection_cli tools/rejection_cli.cpp)
 target_link_libraries(rejection_cli PRIVATE phase2)
