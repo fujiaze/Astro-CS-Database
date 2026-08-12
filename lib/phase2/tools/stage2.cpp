@@ -598,17 +598,32 @@ int main(int argc, char** argv) {
                         ++reject_hist[(std::uint32_t)out_rej_f32[i]];
                 }
             }
+            // V12 (HIPS-IMG-002)：writer 约定 view 缓冲为 NESTED local 序
+            // （V5 HIPS-IMG-001，与 drizzle 热路径一致）；stage2 集成缓冲为
+            // FITS 行主序，写入前转换 buffer[i]=buf[fits_index(i)]，否则
+            // tile 内像素被散射错排（表现为 16px 周期 comb/重复星点）。
+            std::vector<float> flux_leaf(n_leaf), area_leaf(n_leaf);
+            std::vector<std::uint8_t> valid_leaf(n_leaf);
+            for (std::uint64_t i = 0; i < n_leaf; ++i) {
+                const std::uint64_t fi =
+                    astrocs::healpix::nested_local_to_fits_index(i, 9u, 512u);
+                flux_leaf[(std::size_t)i] =
+                    cfg.precision ? (float)fluxD[(std::size_t)fi]
+                                  : fluxF[(std::size_t)fi];
+                area_leaf[(std::size_t)i] =
+                    cfg.precision ? (float)areaD[(std::size_t)fi]
+                                  : areaF[(std::size_t)fi];
+                valid_leaf[(std::size_t)i] = valid[(std::size_t)fi];
+            }
             AstroSphereTileView view{};
             std::memset(&view, 0, sizeof(view));
             view.parent_ipix = tile_ipix;
             view.leaf_order = (std::uint32_t)(target_order + 9);
             view.width = 512;
             view.data_type = dtype;
-            view.flux_sum = cfg.precision ? (const void*)fluxD.data()
-                                          : (const void*)fluxF.data();
-            view.covered_area = cfg.precision ? (const void*)areaD.data()
-                                              : (const void*)areaF.data();
-            view.valid_mask = valid.data();
+            view.flux_sum = flux_leaf.data();
+            view.covered_area = area_leaf.data();
+            view.valid_mask = valid_leaf.data();
             if (aio_hips_write_signal_support_tile(ps, &view) != 0) {
                 log("hips tile write failed: " +
                     std::string(aio_hips_last_error()));
@@ -747,15 +762,29 @@ int main(int argc, char** argv) {
                 if (ok) ++total_pixels;
             }
         }
+        // V12 (HIPS-IMG-002)：同 ACR 路径，FITS 行主序 -> NESTED local 序
+        std::vector<float> flux_leaf(n_leaf), area_leaf(n_leaf);
+        std::vector<std::uint8_t> valid_leaf(n_leaf);
+        for (std::uint64_t i = 0; i < n_leaf; ++i) {
+            const std::uint64_t fi =
+                astrocs::healpix::nested_local_to_fits_index(i, 9u, 512u);
+            flux_leaf[(std::size_t)i] =
+                cfg.precision ? (float)fluxD[(std::size_t)fi]
+                              : fluxF[(std::size_t)fi];
+            area_leaf[(std::size_t)i] =
+                cfg.precision ? (float)areaD[(std::size_t)fi]
+                              : areaF[(std::size_t)fi];
+            valid_leaf[(std::size_t)i] = valid[(std::size_t)fi];
+        }
         AstroSphereTileView view{};
         std::memset(&view, 0, sizeof(view));
         view.parent_ipix = tile_ipix;
         view.leaf_order = (std::uint32_t)(target_order + 9);
         view.width = 512;
         view.data_type = dtype;
-        view.flux_sum = cfg.precision ? (const void*)fluxD.data() : (const void*)fluxF.data();
-        view.covered_area = cfg.precision ? (const void*)areaD.data() : (const void*)areaF.data();
-        view.valid_mask = valid.data();
+        view.flux_sum = flux_leaf.data();
+        view.covered_area = area_leaf.data();
+        view.valid_mask = valid_leaf.data();
         if (aio_hips_write_signal_support_tile(ps, &view) != 0) {
             log("hips tile write failed: " + std::string(aio_hips_last_error()));
             aio_hips_abort(ps);
