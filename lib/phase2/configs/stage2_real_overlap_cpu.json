@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "inputs": {
+    "hips": [
+      "run/temp/phase1_freeze/t4_crop_v3.hips",
+      "run/temp/phase1_freeze/t4_full_v3_final.hips"
+    ],
+    "target_order": "auto"
+  },
+  "model": {
+    "control_grid_per_tile": 8,
+    "patch_radius_pixels": 2,
+    "min_samples": 5,
+    "snr_search_radius_deg": 0.05,
+    "robust_loss": "huber",
+    "snr_weight_mode": "snr2_normalized",
+    "huber_delta": 1.345,
+    "smoothing": 0.0,
+    "zero_anchor_weight": 0.001,
+    "sigma_floor": 0.001,
+    "support_power": 1.0
+  },
+  "integration": {
+    "precision": "fp32",
+    "memory_limit_mb": 8192,
+    "rejection": {
+      "method": "sigma",
+      "low": 4.0,
+      "high": 3.0,
+      "max_iterations": 8,
+      "min_samples": 2
+    },
+    "weight_mode": "auto",
+    "acr_route": "cpu"
+  },
+  "output": {
+    "hips": "run/phase2/v6/real_overlap_cpu.mosaic.hips"
+  },
+  "diagnostics": {
+    "enabled": true
+  }
+}

@@ -244,7 +244,9 @@ CaseResult run_mixed_parallel_workload(int n_threads, int n_iters,
     std::uint64_t expected_reduce = static_cast<std::uint64_t>(n_threads) * n_iters;
     bool ok = (for_count.load() == expected_for) && (reduce_count.load() == expected_reduce);
     if (!ok) err.max_abs = 1.0;
-    return make_result("E16", case_id, "integer", n_threads * n_iters, ok, err, tm,
+    return make_result("E16", case_id, "integer",
+                       (std::uint64_t)n_threads * (std::uint64_t)n_iters,
+                       ok, err, tm,
                        ok ? "PASS" : "FAIL",
                        ok ? "" : "mixed parallel workload mismatch",
                        "cpu", "cpu");

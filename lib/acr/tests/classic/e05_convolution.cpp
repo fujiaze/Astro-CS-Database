@@ -273,12 +273,12 @@ CaseResult run_conv_tiled(std::size_t w, std::size_t h, int ksize,
     std::vector<float> src(w * h), dst(w * h, 0.0f);
     std::vector<double> ref_dst(w * h, 0.0);
     fill_image_fp32(src, w, h, ImagePattern::Random, FIXED_SEED);
-    std::vector<double> kernel_d(ksize * ksize);
+    std::vector<double> kernel_d((std::size_t)ksize * (std::size_t)ksize);
     LCG krng(FIXED_SEED ^ 0xCAFE);
     double ksum = 0.0;
     for (auto& k : kernel_d) { k = krng.next_double() * 2.0 - 1.0; ksum += std::fabs(k); }
     if (ksum > 1e-12) for (auto& k : kernel_d) k /= ksum;
-    std::vector<float> kernel(ksize * ksize);
+    std::vector<float> kernel((std::size_t)ksize * (std::size_t)ksize);
     for (int i = 0; i < ksize * ksize; ++i) kernel[i] = static_cast<float>(kernel_d[i]);
 
     std::vector<double> src64(w * h);
