@@ -195,7 +195,7 @@ HiPS 是金字塔：最深级像素尺度决定总量。90Prime 原生 0.455″/
 
 **仅 science 不足的场景**：Phase2 UPM 的 **SNR-aware 加权叠加**需要 weight 图（逆方差权重是叠加的组成部分）；od/flag 图可作为坏像素/宇宙线/卫星轨迹的掩膜参考（与 Phase2 迭代排异逻辑对应）。做这两类测试时建议同时下载 weight（`--kinds science,weight`）。
 
-**格式前提（重要）**：归档文件是 fpack `.fits.fz` 压缩格式，而主线 `astro_image_io` 的主图像读取器（`aio_fits.cpp`）是手写 FITS 解析器，**当前不支持 `.fz`**（CFITSIO 虽已静态编入 DLL，但只被 HiPS 读写层使用）。因此 BASS 数据需先用 `funpack` 转成普通 FITS（本机 MSYS2 已有 `funpack.exe`），再喂给主线。`download_subset.py --funpack` 可在下载后自动转换。
+**格式前提（已解决）**：归档文件是 fpack `.fits.fz` 压缩格式。主线 `astro_image_io` 已升级支持 `.fz`（CFITSIO 透明解压，见模块 memory 2026-08-12 条目），可直接读取 science/weight/od 三类文件，不再需要先 funpack；`download_subset.py --funpack` 仍可选用作转换。
 
 ## 9. 使用方法
 

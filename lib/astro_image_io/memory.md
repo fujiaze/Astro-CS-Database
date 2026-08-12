@@ -25,6 +25,19 @@
 
 ## 进度日志
 
+### 2026-08-12 fpack (.fits.fz) 读取支持
+- **目标**：主线 aio 直接读取 BASS DR3 等 fpack 压缩 FITS（science/weight/od）。
+- **修改**（`src/aio_fits.cpp`）：
+  - `fits_read_file`/`fits_read_header_only` 增加 fpack 检测（`.fz` 后缀 + 第二 HDU ZIMAGE 内容检测），命中则走新 CFITSIO 透明解压路径；普通未压缩 FITS 仍走原手写解析（零回归）。
+  - CFITSIO 路径：`fits_open_file` → `fits_movabs_hdu(2)`（压缩图像 HDU，触发 ZIMAGE 解压）→ `fits_get_img_param` + `fits_read_pix`（FP32/FP64 双模式）→ `fits_hdr2str` 重建原始图像头（剥 XTENSION/TFORM/Z* 等压缩/表卡，前置 SIMPLE/BITPIX/NAXIS1-3）。
+  - `fits_detect` 增加 `.fz` 识别。
+- **验证**：临时 DLL 冒烟（`BASS DR3/tools/test_aio_fz.py`，BASS 实测样本）：
+  - science/weight/od 三类 `.fits.fz` 均读为 4096×4032 正确 dtype；
+  - od 与 funpack 版逐位一致；science/weight 差 ≤1 ULP（fpack 有损量化重建的舍入差异，属预期）；
+  - 60 个关键字名与 funpack 版完全一致，WCS(crval/cd)/filter/exptime/frame_type/object 元数据全部吻合；
+  - FP64 模式与 header-only 均正常。
+- **说明**：CFITSIO 4.6.4 早已静态编入 AIO DLL（Phase1 Final Closure V3），本次仅把主读取路径接到其 .fz 能力上；因工作区有运行中的 astrocs-stage2 占用 DLL，正式 `make` 待其退出后执行（源码已就绪）。
+
 ### 2026-08-08 Phase1 Final Closure V3 — HiPS 直写生产链 + CFITSIO (重要)
 - **CFITSIO 4.6.4 vendored** (`third_party/cfitsio`, 上游 libcfitsio 源清单,
   swapproc 独立库已并入), 静态编进唯一 astro_image_io.dll (AIO 5.3MB)。

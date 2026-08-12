@@ -1,7 +1,9 @@
 #include "aio_fits.h"
 #include "aio_log.h"
 #include "aio_util.h"
+#include "fitsio.h"
 #include <cstdio>
+#include <cctype>
 
 // R10 修复: AIO 模块内部精度模式查询 (替代跨 DLL 的 PrecisionContext)
 extern "C" int aio_internal_is_fp64();
@@ -463,8 +465,245 @@ static void build_metadata(const FITSHeader &hdr, AIOImageMetadata &meta) {
     else strncpy(cal.bunit, "ADU", AIO_BUNIT_MAX - 1);
 }
 
+// ============================================================================
+// fpack (.fits.fz) 支持: CFITSIO 透明解压读取
+// CFITSIO 4.6.4 已静态编入 AIO DLL (Phase1 Final Closure V3), 这里把主 FITS
+// 读取路径接到 CFITSIO 的 .fz 自动检测/解压 (RICE_1/RICE_ONE/GZIP/HCOMPRESS/
+// PLIO)。普通未压缩 FITS 仍走原有手写解析路径, 零回归风险。
+// ============================================================================
+static bool fits_is_fpack_compressed(const char *path) {
+    const char *ext = strrchr(path, '.');
+    if (ext) {
+        std::string e = ext;
+        for (auto &ch : e) ch = (char)std::tolower((unsigned char)ch);
+        if (e == ".fz") return true;
+    }
+    // 内容级检测: 主头之后第二 HDU 为 COMPRESSED_IMAGE (ZIMAGE)
+    FILE *fp = aio_fopen_utf8(path, "rb");
+    if (!fp) return false;
+    char buf[FITS_BLOCK_SIZE * 2];
+    size_t n = std::fread(buf, 1, sizeof(buf), fp);
+    std::fclose(fp);
+    if (n < FITS_BLOCK_SIZE * 2) return false;
+    std::string second(buf + FITS_BLOCK_SIZE, FITS_BLOCK_SIZE);
+    return second.find("ZIMAGE") != std::string::npos ||
+           second.find("COMPRESSED_IMAGE") != std::string::npos;
+}
+
+static int fits_read_file_cfitsio(const char *path, AIOImageData *out, bool header_only) {
+    fitsfile *fptr = nullptr;
+    int status = 0;
+    if (fits_open_file(&fptr, path, READONLY, &status)) {
+        aio_log(AIO_LOG_ERROR, "FITS", "fits_open_file failed (%s) status=%d", path, status);
+        return -1;
+    }
+
+    // fpack 压缩图像: 主头 NAXIS=0, 实际图像在第一个扩展 (COMPRESSED_IMAGE)。
+    // 必须移动到该 HDU 才触发 CFITSIO 解压 (ZIMAGE -> compressimg -> imcomp_get_compressed_image_par)。
+    int hdutype = 0;
+    if (fits_movabs_hdu(fptr, 2, &hdutype, &status)) {
+        aio_log(AIO_LOG_ERROR, "FITS", "fits_movabs_hdu(2) failed (%s) status=%d", path, status);
+        fits_close_file(fptr, &status);
+        return -1;
+    }
+
+    int bitpix = 0, naxis = 0;
+    long naxes[3] = {0, 0, 0};
+    if (fits_get_img_param(fptr, 3, &bitpix, &naxis, naxes, &status)) {
+        aio_log(AIO_LOG_ERROR, "FITS", "fits_get_img_param failed (%s) status=%d", path, status);
+        fits_close_file(fptr, &status);
+        return -1;
+    }
+
+    int w = (naxis >= 1) ? (int)naxes[0] : 1;
+    int h = (naxis >= 2) ? (int)naxes[1] : 1;
+    int c = (naxis >= 3 && naxes[2] > 1) ? (int)naxes[2] : 1;
+    size_t n_pixels = (size_t)w * h * c;
+    bool is_fp64 = (aio_internal_is_fp64() != 0);
+
+    if (!header_only) {
+        if (is_fp64) {
+            double *pixel_data_f64 = (double *)malloc(n_pixels * sizeof(double));
+            if (!pixel_data_f64) {
+                fits_close_file(fptr, &status);
+                return -1;
+            }
+            long fpixel[3] = {1, 1, 1};
+            if (fits_read_pix(fptr, TDOUBLE, fpixel, (LONGLONG)n_pixels, nullptr,
+                              pixel_data_f64, nullptr, &status)) {
+                aio_log(AIO_LOG_ERROR, "FITS", "fits_read_pix(FP64) failed (%s) status=%d",
+                        path, status);
+                free(pixel_data_f64);
+                fits_close_file(fptr, &status);
+                return -1;
+            }
+            if (c > 1) {
+                double *gray = (double *)malloc((size_t)w * h * sizeof(double));
+                if (gray) {
+                    for (int y = 0; y < h; y++)
+                        for (int x = 0; x < w; x++)
+                            gray[y * w + x] = pixel_data_f64[y * w + x];
+                    free(pixel_data_f64);
+                    pixel_data_f64 = gray;
+                }
+                c = 1;
+            }
+            out->data = nullptr;
+            out->data_f64 = pixel_data_f64;
+            out->dtype = 1;  // FP64
+        } else {
+            float *pixel_data = (float *)malloc(n_pixels * sizeof(float));
+            if (!pixel_data) {
+                fits_close_file(fptr, &status);
+                return -1;
+            }
+            long fpixel[3] = {1, 1, 1};
+            if (fits_read_pix(fptr, TFLOAT, fpixel, (LONGLONG)n_pixels, nullptr,
+                              pixel_data, nullptr, &status)) {
+                aio_log(AIO_LOG_ERROR, "FITS", "fits_read_pix(FP32) failed (%s) status=%d",
+                        path, status);
+                free(pixel_data);
+                fits_close_file(fptr, &status);
+                return -1;
+            }
+            if (c > 1) {
+                float *gray = (float *)malloc((size_t)w * h * sizeof(float));
+                if (gray) {
+                    for (int y = 0; y < h; y++)
+                        for (int x = 0; x < w; x++)
+                            gray[y * w + x] = pixel_data[y * w + x];
+                    free(pixel_data);
+                    pixel_data = gray;
+                }
+                c = 1;
+            }
+            out->data = pixel_data;
+            out->data_f64 = nullptr;
+            out->dtype = 0;  // FP32
+        }
+    } else {
+        // 与普通 FITS header-only 行为一致: 分配零缓冲
+        out->data = (float *)calloc((size_t)w * h, sizeof(float));
+        out->data_f64 = nullptr;
+        out->dtype = is_fp64 ? 1 : 0;
+    }
+
+    // 关键字: 压缩扩展头含原始科学关键字, 重建为与 funpack 后等效的原始图像头
+    FITSHeader hdr;
+    hdr.keywords.clear();
+    char *hdr_str = nullptr;
+    int nkeys = 0;
+    status = 0;
+    if (fits_hdr2str(fptr, 0, nullptr, 0, &hdr_str, &nkeys, &status)) {
+        aio_log(AIO_LOG_WARN, "FITS", "fits_hdr2str failed (%s) status=%d", path, status);
+        status = 0;
+    } else if (hdr_str && nkeys > 0) {
+        for (int i = 0; i < nkeys; i++) {
+            char card[81];
+            std::memcpy(card, hdr_str + i * 80, 80);
+            card[80] = '\0';
+            // 与手写解析路径一致: 跳过 COMMENT/HISTORY/空白卡
+            std::string card_key = trim_str(std::string(card, 8));
+            if (card_key == "COMMENT" || card_key == "HISTORY" || card_key.empty())
+                continue;
+            AIOFITSKeyword kw;
+            memset(&kw, 0, sizeof(kw));
+            parse_card(card, kw);
+            if (kw.name[0] == '\0' || strcmp(kw.name, "END") == 0) continue;
+            // 剥掉 BINTABLE/压缩专用关键字 (原始图像头不含这些)
+            const char *kn = kw.name;
+            if (strcmp(kn, "XTENSION") == 0 || strcmp(kn, "BITPIX") == 0 ||
+                strcmp(kn, "NAXIS") == 0 || strcmp(kn, "NAXIS1") == 0 ||
+                strcmp(kn, "NAXIS2") == 0 || strcmp(kn, "NAXIS3") == 0 ||
+                strcmp(kn, "PCOUNT") == 0 || strcmp(kn, "GCOUNT") == 0 ||
+                strcmp(kn, "TFIELDS") == 0 || strcmp(kn, "EXTNAME") == 0 ||
+                strcmp(kn, "ZSCALE") == 0 || strcmp(kn, "ZZERO") == 0 ||
+                kn[0] == 'Z' || strncmp(kn, "TTYPE", 5) == 0 ||
+                strncmp(kn, "TFORM", 5) == 0 || strncmp(kn, "TDIM", 4) == 0)
+                continue;
+            hdr.keywords.push_back(kw);
+        }
+        status = 0;
+        fits_free_memory(hdr_str, &status);
+        status = 0;
+    }
+
+    // 前置标准图像头卡 (与 funpack 后的原始主头等效)
+    std::vector<AIOFITSKeyword> std_cards;
+    auto add_kw = [&](const char *name, const char *value, const char *comment) {
+        AIOFITSKeyword k;
+        memset(&k, 0, sizeof(k));
+        strncpy(k.name, name, AIO_KEYWORD_NAME_MAX - 1);
+        strncpy(k.value, value, AIO_KEYWORD_VALUE_MAX - 1);
+        strncpy(k.comment, comment, AIO_KEYWORD_COMMENT_MAX - 1);
+        std_cards.push_back(k);
+    };
+    char tmp[32];
+    add_kw("SIMPLE", "T", "Conforms to FITS standard");
+    snprintf(tmp, sizeof(tmp), "%d", bitpix);
+    add_kw("BITPIX", tmp, "Array data type");
+    snprintf(tmp, sizeof(tmp), "%d", naxis);
+    add_kw("NAXIS", tmp, "Number of dimensions");
+    snprintf(tmp, sizeof(tmp), "%d", w);
+    add_kw("NAXIS1", tmp, "Axis 1 size");
+    snprintf(tmp, sizeof(tmp), "%d", h);
+    add_kw("NAXIS2", tmp, "Axis 2 size");
+    if (naxis >= 3) {
+        snprintf(tmp, sizeof(tmp), "%d", c);
+        add_kw("NAXIS3", tmp, "Axis 3 size");
+    }
+    hdr.keywords.insert(hdr.keywords.begin(), std_cards.begin(), std_cards.end());
+
+    hdr.bitpix = bitpix;
+    hdr.naxis = naxis;
+    hdr.naxis1 = w;
+    hdr.naxis2 = (naxis >= 2) ? h : 1;
+    hdr.naxis3 = (naxis >= 3) ? c : 1;
+    hdr.bscale = 1.0;
+    hdr.bzero = 0.0;
+    double dval = 0.0;
+    status = 0;
+    if (!fits_read_key(fptr, TDOUBLE, "BSCALE", &dval, nullptr, &status)) hdr.bscale = dval;
+    status = 0;
+    if (!fits_read_key(fptr, TDOUBLE, "BZERO", &dval, nullptr, &status)) hdr.bzero = dval;
+    hdr.data_offset = 0;
+    hdr.data_size = 0;
+
+    status = 0;
+    if (fits_close_file(fptr, &status)) {
+        aio_log(AIO_LOG_WARN, "FITS", "fits_close_file status=%d", status);
+    }
+
+    out->width = w;
+    out->height = h;
+    out->channels = c;
+    out->bits_per_sample = std::abs(bitpix);
+    out->float_sample = (bitpix < 0) ? 1 : 0;
+    strncpy(out->source_format, "fits", sizeof(out->source_format) - 1);
+    strncpy(out->source_path, path, AIO_PATH_MAX - 1);
+
+    out->keyword_count = (int)hdr.keywords.size();
+    if (out->keyword_count > 0) {
+        out->keywords = (AIOFITSKeyword *)malloc(out->keyword_count * sizeof(AIOFITSKeyword));
+        std::memcpy(out->keywords, hdr.keywords.data(),
+                    out->keyword_count * sizeof(AIOFITSKeyword));
+    } else {
+        out->keywords = nullptr;
+    }
+
+    build_metadata(hdr, out->metadata);
+
+    aio_log(AIO_LOG_INFO, "FITS", "Read OK (fpack .fz): %dx%d %dch BITPIX=%d", w, h, c, bitpix);
+    return 0;
+}
+
 int fits_read_file(const char *path, AIOImageData *out) {
     aio_log(AIO_LOG_INFO, "FITS", "Reading: %s", path);
+
+    // fpack (.fits.fz) 支持: 交 CFITSIO 透明解压
+    if (fits_is_fpack_compressed(path)) {
+        return fits_read_file_cfitsio(path, out, /*header_only=*/false);
+    }
 
     FILE *fp = aio_fopen_utf8(path, "rb");
     if (!fp) {
@@ -598,6 +837,11 @@ int fits_read_file(const char *path, AIOImageData *out) {
 
 int fits_read_header_only(const char *path, AIOImageData *out) {
     aio_log(AIO_LOG_INFO, "FITS", "Reading header only: %s", path);
+
+    // fpack (.fits.fz) 支持: 交 CFITSIO 透明解压
+    if (fits_is_fpack_compressed(path)) {
+        return fits_read_file_cfitsio(path, out, /*header_only=*/true);
+    }
 
     FILE *fp = aio_fopen_utf8(path, "rb");
     if (!fp) {
@@ -791,5 +1035,6 @@ int fits_detect(const char *path) {
     if (!ext) return 0;
     std::string e = ext;
     for (auto &c : e) c = tolower(c);
-    return (e == ".fits" || e == ".fit" || e == ".fts") ? 1 : 0;
+    // .fz = fpack 压缩 FITS (CFITSIO 透明解压)
+    return (e == ".fits" || e == ".fit" || e == ".fts" || e == ".fz") ? 1 : 0;
 }
