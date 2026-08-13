@@ -207,6 +207,14 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                 else if (method == "generalized_esd")
                     cfg->reject_method = P2_REJECT_GENERALIZED_ESD;
                 else if (method == "rcr") cfg->reject_method = P2_REJECT_RCR;
+                else if (method == "percentile")
+                    cfg->reject_method = P2_REJECT_PERCENTILE;
+                else if (method == "median_sigma")
+                    cfg->reject_method = P2_REJECT_MEDIAN_SIGMA;
+                else if (method == "minmax")
+                    cfg->reject_method = P2_REJECT_MINMAX;
+                else if (method == "auto")
+                    cfg->reject_method = P2_REJECT_AUTO;
                 else {
                     *err = "unsupported rejection method: " + method;
                     return false;
