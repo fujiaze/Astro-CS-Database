@@ -1,7 +1,8 @@
 # Code Style
 
 - C++17；MSYS2 MinGW64 g++ 16.1.0；OpenMP 仅显式并行区。
-- `.clang-format` 覆盖 first-party；third_party 不 mass-format。
+- `.clang-format`（根目录，V14 落地）覆盖 first-party；third_party 不
+  mass-format；`.editorconfig`（根目录）统一缩进/换行/编码。
 - 命名：类型 `PascalCase`（C 结构 `P2`/`Aio` 前缀保留 ABI）、函数
   `snake_case`、成员 `snake_case_`（C++ 类）。
 - include 顺序：本模块 → astrocs 头 → std；self-contained public header。

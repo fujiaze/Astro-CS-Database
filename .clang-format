@@ -1,0 +1,15 @@
+# AstroCS first-party C/C++ 格式（V14 G5）
+# 只格式化本轮触碰的 first-party 代码；third_party 不 mass-format。
+BasedOnStyle: LLVM
+IndentWidth: 4
+ColumnLimit: 80
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: true
+  AfterControlStatement: Never
+NamespaceIndentation: None
+PointerAlignment: Right
+AlignAfterOpenBracket: Align
+SortIncludes: CaseSensitive
+Standard: c++17
+AllowShortFunctionsOnASingleLine: None
