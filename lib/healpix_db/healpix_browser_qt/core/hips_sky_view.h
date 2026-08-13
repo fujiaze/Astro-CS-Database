@@ -38,7 +38,25 @@ public:
     void refresh_auto_range() { auto_range_dirty_ = true; }
     // V14：Auto View 模式（可选）——pan/zoom 时对当前 viewport 重算 robust
     // STF（适合观察局部暗结构；Auto Global 默认保持标尺不闪）。
-    void set_auto_view(bool on) { auto_view_ = on; if (on) auto_range_dirty_ = true; }
+    void set_auto_view(bool on) {
+        auto_view_ = on;
+        // Lock STF 下不因模式切换重算标尺（首次计算除外）
+        if (on && !stf_locked_) auto_range_dirty_ = true;
+    }
+    // V14: Lock STF —— 冻结当前显示标尺；auto/repeat 重算路径被禁止，
+    // 首次计算仍允许（保证锁定前有可用的 robust 标尺）。
+    void set_stf_locked(bool locked) {
+        stf_locked_ = locked;
+        if (locked && auto_range_computed_) auto_range_dirty_ = false;
+    }
+    bool stf_locked() const { return stf_locked_; }
+    // V14：当前显示标尺（browser_cli 证据/探针用）
+    float range_lo() const { return lo_; }
+    float range_hi() const { return hi_; }
+    // V14：robust STF 重算次数（探针判据：锁定冻结/解锁恢复）
+    std::uint64_t auto_recompute_count() const {
+        return auto_recompute_count_;
+    }
     // V11：LOD 模式。strict-leaf 完全禁止 parent fallback（诊断用）。
     void set_lod_mode(bool strict_leaf) { strict_leaf_ = strict_leaf; }
     void set_cache_cap(std::size_t n) {
@@ -107,6 +125,9 @@ private:
     bool auto_range_ = true;
     bool auto_range_dirty_ = true;   // 首次或显式刷新时重算 robust STF
     bool auto_view_ = false;         // V14：Auto View（viewport 自适应）
+    bool stf_locked_ = false;        // V14：Lock STF（冻结标尺）
+    bool auto_range_computed_ = false; // V14：首次 robust 标尺已计算
+    std::uint64_t auto_recompute_count_ = 0; // V14：robust 重算次数
     bool strict_leaf_ = false;
     float lo_ = 0.0f, hi_ = 1.0f;
     // V14：stretch-only redraw —— view 未变时复用已采样 leaves

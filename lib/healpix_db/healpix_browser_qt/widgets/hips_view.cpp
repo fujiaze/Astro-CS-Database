@@ -68,6 +68,12 @@ void HipsView::set_auto_view(bool on) {
     update();
 }
 
+void HipsView::set_stf_locked(bool locked) {
+    sky_.set_stf_locked(locked);
+    dirty_ = true;
+    update();
+}
+
 void HipsView::set_lod_mode(bool strict_leaf) {
     sky_.set_lod_mode(strict_leaf);
     dirty_ = true;

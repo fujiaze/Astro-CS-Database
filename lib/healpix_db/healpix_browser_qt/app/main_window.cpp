@@ -139,6 +139,21 @@ void MainWindow::setup_menu() {
     auto_action->setShortcut(QKeySequence("Ctrl+A"));
     connect(auto_action, &QAction::triggered, this, &MainWindow::on_auto_stretch_clicked);
     stf_menu->addAction(auto_action);
+
+    // V14: Reset STF —— 重新计算 Auto Global robust 标尺（锁定状态被忽略）
+    QAction* reset_stf_action = new QAction("&Reset STF", this);
+    reset_stf_action->setShortcut(QKeySequence("Ctrl+R"));
+    connect(reset_stf_action, &QAction::triggered,
+            this, &MainWindow::reset_auto_stf);
+    stf_menu->addAction(reset_stf_action);
+
+    // V14: Lock STF —— 冻结当前显示标尺（Auto/Reset/模式切换不再重算）
+    QAction* lock_action = new QAction("Lock STF", this);
+    lock_action->setCheckable(true);
+    lock_action->setShortcut(QKeySequence("Ctrl+L"));
+    connect(lock_action, &QAction::toggled, this,
+            &MainWindow::set_stf_locked);
+    stf_menu->addAction(lock_action);
 }
 
 void MainWindow::setup_toolbar() {
@@ -820,18 +835,32 @@ void MainWindow::set_lod_mode(const QString& mode) {
 }
 
 void MainWindow::reset_auto_stf() {
+    if (stf_locked_) {
+        std::fprintf(stderr, "[stf] locked - reset ignored\n");
+        return;
+    }
     if (!hips_view_) return;
     hips_view_->refresh_auto_range();
     std::fprintf(stderr, "[stf] reset auto-global robust range\n");
 }
 
 void MainWindow::set_auto_stf_mode(const QString& mode) {
+    if (stf_locked_) {
+        std::fprintf(stderr, "[stf] locked - mode change ignored\n");
+        return;
+    }
     if (!hips_view_) return;
     const bool view_mode = (mode == "view");
     hips_view_->set_auto_view(view_mode);
     if (!view_mode) hips_view_->refresh_auto_range();
     std::fprintf(stderr, "[stf] auto mode=%s\n",
                  view_mode ? "view" : "global");
+}
+
+void MainWindow::set_stf_locked(bool locked) {
+    stf_locked_ = locked;
+    if (hips_view_) hips_view_->set_stf_locked(locked);
+    std::fprintf(stderr, "[stf] locked=%d\n", locked ? 1 : 0);
 }
 
 void MainWindow::on_file_close() {
@@ -1004,6 +1033,10 @@ void MainWindow::on_stf_changed(const STFParams& params) {
 }
 
 void MainWindow::on_auto_stretch_clicked() {
+    if (stf_locked_) {
+        std::fprintf(stderr, "[stf] locked - auto stretch ignored\n");
+        return;
+    }
     if (hips_view_) {
         hips_auto_range_ = true;
         hips_view_->set_stretch(

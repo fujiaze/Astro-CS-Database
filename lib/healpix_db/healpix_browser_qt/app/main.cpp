@@ -50,6 +50,8 @@ int main(int argc, char* argv[]) {
         "reset-stf", "重新计算 Auto Global robust 显示标尺");
     QCommandLineOption stf_mode_opt(
         "stf-mode", "Auto STF 模式 global|view（默认 global）", "mode");
+    QCommandLineOption lock_stf_opt(
+        "lock-stf", "锁定当前 STF 标尺（禁止 auto/reset/模式切换重算）");
     parser.addOption(hips_opt);
     parser.addOption(std_hips_opt);
     parser.addOption(preset_opt);
@@ -61,6 +63,7 @@ int main(int argc, char* argv[]) {
     parser.addOption(lod_opt);
     parser.addOption(reset_stf_opt);
     parser.addOption(stf_mode_opt);
+    parser.addOption(lock_stf_opt);
     parser.process(app);
 
     // 创建主窗口
@@ -87,6 +90,7 @@ int main(int argc, char* argv[]) {
     const QString lod = parser.value(lod_opt);
     const bool reset_stf = parser.isSet(reset_stf_opt);
     const QString stf_mode = parser.value(stf_mode_opt);
+    const bool lock_stf = parser.isSet(lock_stf_opt);
 
     if (!target.isEmpty()) {
         QMetaObject::invokeMethod(&window, "open_file_from_cli",
@@ -114,6 +118,11 @@ int main(int argc, char* argv[]) {
     if (!stf_mode.isEmpty()) {
         QTimer::singleShot(950, &window, [&window, stf_mode]() {
             window.set_auto_stf_mode(stf_mode);
+        });
+    }
+    if (lock_stf) {
+        QTimer::singleShot(1000, &window, [&window]() {
+            window.set_stf_locked(true);
         });
     }
     if (!view.isEmpty()) {

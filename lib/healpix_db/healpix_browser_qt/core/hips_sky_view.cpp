@@ -47,8 +47,9 @@ void HipsSkyView::set_view(double center_ra, double center_dec,
     dec0_ = clampf((float)center_dec, -89.9f, 89.9f);
     fov_ = clampf((float)fov_deg, 0.05f, 60.0f);
     if (aspect > 0.01) aspect_ = aspect;
-    // V14：Auto View 模式下 pan/zoom 重算 robust STF；Auto Global 保持
-    if (auto_view_ && auto_range_) auto_range_dirty_ = true;
+    // V14：Auto View 模式下 pan/zoom 重算 robust STF；Auto Global 保持；
+    // Lock STF 冻结标尺（禁止重算）。
+    if (auto_view_ && auto_range_ && !stf_locked_) auto_range_dirty_ = true;
 }
 
 void HipsSkyView::set_size(int width, int height) {
@@ -298,7 +299,8 @@ void HipsSkyView::rasterize(std::vector<std::uint32_t>& rgba) {
     // ---- 自动范围（V14）：robust median/MAD + 亮端 clip，Auto Global ----
     float dmin = FLT_MAX, dmax = -FLT_MAX;
     std::size_t valid = 0;
-    if (layer_ == 0 && auto_range_ && auto_range_dirty_) {
+    if (layer_ == 0 && auto_range_ && auto_range_dirty_ &&
+        !(stf_locked_ && auto_range_computed_)) {
         std::vector<float> samples;
         for (const auto& kv : cache_) {
             const Tile& t = *kv.second;
@@ -343,6 +345,8 @@ void HipsSkyView::rasterize(std::vector<std::uint32_t>& rgba) {
             if (dmax <= dmin) dmax = dmin + 1.0f;
             valid = samples.size();
             auto_range_dirty_ = false;   // Auto Global：保持标尺
+            auto_range_computed_ = true; // Lock STF：首帧后冻结
+            ++auto_recompute_count_;
         }
         stats_.data_min = dmin;
         stats_.data_max = dmax;

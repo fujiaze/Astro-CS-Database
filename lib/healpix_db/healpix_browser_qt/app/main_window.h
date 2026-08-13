@@ -67,6 +67,8 @@ public:
     void reset_auto_stf();
     // V14: Auto STF 模式切换（global=稳定标尺；view=viewport 自适应）
     void set_auto_stf_mode(const QString& mode);
+    // V14: Lock STF —— 冻结当前显示标尺，禁止 auto/reset/模式切换重算
+    void set_stf_locked(bool locked);
     // V11: LOD 模式 strict-leaf | hierarchy
     void set_lod_mode(const QString& mode);
     // V9: 命令行直接跳转视图（--view ra,dec,fov）
@@ -118,6 +120,7 @@ private:
     QComboBox* hips_preset_combo_ = nullptr; // V9: 预设视图
     QComboBox* stretch_combo_ = nullptr;     // V9: 拉伸曲线
     bool hips_auto_range_ = true;            // V9: auto B/W
+    bool stf_locked_ = false;                // V14: Lock STF
 
     // 状态栏标签
     QLabel* status_file_;
