@@ -57,6 +57,8 @@ struct Model {
     std::vector<std::uint64_t> frame_id_by_index;   // index -> stable frame_id
     std::vector<std::vector<double>> C;  // [frame][control] 空间校正
     std::vector<std::vector<std::size_t>> adj;  // control 邻接（tile 内网格）
+    // V12R2 (SEAM-002)：每帧全局低频 offset（单帧区 closure 诊断）
+    std::vector<std::pair<std::uint64_t, double>> frame_global_offset;
     std::vector<std::vector<double>> obs_w;     // 最终每轮权重缓存
     std::map<std::pair<std::uint64_t, std::pair<int, int>>, std::size_t>
         cell_index;                      // (tile, gx, gy) -> control
@@ -447,6 +449,9 @@ int p2_upm_build(const P2ControlObservation* obs, std::uint64_t n_obs,
             else
                 raw_w[i] = 0.0;
         }
+        std::fprintf(stderr, "[upm-debug] raw_w[0..2]=%.6f %.6f %.6f "
+                             "sums0=%.3e\n",
+                     raw_w[0], raw_w[1], raw_w[2], sums[0]);
     };
 
     auto cg_solve_frame = [&](std::size_t fi, std::vector<double>& x,
@@ -577,6 +582,92 @@ int p2_upm_build(const P2ControlObservation* obs, std::uint64_t n_obs,
     // 连通分量已在求解前建立（component_count_solve / component_ref_frame），
     // 每分量独立 gauge；此处不重复统计。
 
+    // V12R2 (HOLE-001)：C 场异常值清洗。
+    // control 观测的 5×5 patch median 会被亮星/缺陷污染（M 可达背景
+    // 30 倍），使该 cell 的 C 拟合出异常大值（实测 +0.016 vs 邻域
+    // 2e-4）。calibrate 把该 C 应用到整个 cell，正常像素被拉成负值
+    // 黑洞。huber_delta=1.345 远大于 0.002 数据尺度，异常观测在拟合
+    // 中不被抑制；这里在求解后按每帧 C 场 MAD 清洗异常 cell。
+    {
+        const std::size_t F = m->frame_id_by_index.size();
+        for (std::size_t f = 0; f < F; ++f) {
+            const std::uint64_t fid = m->frame_id_by_index[f];
+            const std::size_t comp = m->frame_component[f];
+            if (fid == m->component_ref_frame[comp]) continue;  // gauge
+            std::vector<double> cvals;
+            for (std::size_t k = 0; k < K; ++k)
+                if (m->obs_w[f][k] > 0.0) cvals.push_back(m->C[f][k]);
+            if (cvals.empty()) continue;
+            std::sort(cvals.begin(), cvals.end());
+            const double med = cvals[cvals.size() / 2];
+            std::vector<double> dev;
+            for (double v : cvals) dev.push_back(std::fabs(v - med));
+            std::sort(dev.begin(), dev.end());
+            const double mad =
+                1.4826 * dev[dev.size() / 2];
+            const double thr = std::max(10.0 * mad, 5e-4);
+            for (std::size_t k = 0; k < K; ++k) {
+                if (m->obs_w[f][k] <= 0.0) continue;
+                if (std::fabs(m->C[f][k] - med) > thr)
+                    m->C[f][k] = med;  // 异常 cell 回退为场中位数
+            }
+        }
+    }
+
+    // V12R2 (SEAM-002)：单帧区全局低频 closure。
+    // 每帧的 C 场只在“有 ≥2 帧观测的 control”（标尺约束区）被确定；
+    // 单帧覆盖区的 C 因 y-M 残差≈0 收敛为 0（零锚），导致 depth=1↔2
+    // 转换处输出标尺跳变（接缝）。此处把单帧区 control 的 C 填充为该帧
+    // 在约束区拟合值的最近邻延拓（空间自适应，取代常数 g_f；常数会在
+    // C 场空间变化时过冲/欠冲），使单帧区输出与 overlap 标尺一致。
+    // 参考帧（gauge C=0）不处理。
+    {
+        std::vector<int> ctrl_frame_cnt(K, 0);
+        for (std::size_t k = 0; k < K; ++k) {
+            std::set<std::uint64_t> fset;
+            for (std::size_t ii : m->controls[k].obs_idx)
+                fset.insert(obs[ii].frame_id);
+            ctrl_frame_cnt[k] = (int)fset.size();
+        }
+        const std::size_t F = m->frame_id_by_index.size();
+        for (std::size_t f = 0; f < F; ++f) {
+            const std::uint64_t fid = m->frame_id_by_index[f];
+            const std::size_t comp = m->frame_component[f];
+            if (fid == m->component_ref_frame[comp]) continue;  // gauge
+            // 约束区（该帧有观测 且 control 帧数 ≥2）索引
+            std::vector<std::size_t> constrained;
+            std::vector<std::size_t> single_zone;
+            for (std::size_t k = 0; k < K; ++k) {
+                if (m->obs_w[f][k] <= 0.0) continue;   // 该帧无观测
+                if (ctrl_frame_cnt[k] >= 2)
+                    constrained.push_back(k);
+                else
+                    single_zone.push_back(k);
+            }
+            if (constrained.empty()) continue;
+            // 最近邻延拓：单帧区 control 取该帧最近约束 control 的 C
+            double gsum = 0.0;
+            for (std::size_t j : constrained) gsum += m->C[f][j];
+            const double g = gsum / (double)constrained.size();
+            for (std::size_t k : single_zone) {
+                double best_d = 1e30;
+                double best_c = g;  // 回退：无约束区时用均值
+                for (std::size_t j : constrained) {
+                    const double d = astrocs::healpix::angular_distance_deg(
+                        m->controls[k].ra_deg, m->controls[k].dec_deg,
+                        m->controls[j].ra_deg, m->controls[j].dec_deg);
+                    if (d < best_d) {
+                        best_d = d;
+                        best_c = m->C[f][j];
+                    }
+                }
+                m->C[f][k] = best_c;
+            }
+            m->frame_global_offset.push_back(
+                std::make_pair(fid, g));  // 诊断记录（约束区均值）
+        }
+    }
+
     // 模型哈希：精确序列化（max_digits10）+ frame manifest + 拓扑 + 系数
     {
         std::string payload;
@@ -661,6 +752,11 @@ int p2_upm_save(const void* model, const char* path) {
     nlohmann::json frames = nlohmann::json::array();
     for (const auto& kv : m->frame_index) frames.push_back(kv.first);
     j["frames"] = frames;
+    // V12R2 (SEAM-002)：单帧区全局低频 offset（frame_id -> g_f）
+    nlohmann::json goffs = nlohmann::json::array();
+    for (const auto& gp : m->frame_global_offset)
+        goffs.push_back({gp.first, gp.second});
+    j["frame_global_offset"] = goffs;
     nlohmann::json controls = nlohmann::json::array();
     for (std::size_t k = 0; k < m->controls.size(); ++k) {
         const auto& cn = m->controls[k];
