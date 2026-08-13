@@ -403,10 +403,18 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                             snr_val = median_of(std::move(near));
                             snr_avail = 1;
                         } else {
-                            snr_val = 0.0;
+                            // V12R2 (SEAM-001)：UPM 拟合层 SNR 缺失回退为
+                            // 帧级 median（与 stage2 集成层 V11 R8 的
+                            // frame-median fallback 同一语义）。此前此处
+                            // 写 0.0，导致 snr=0 的观测 raw_w=0、参考帧在
+                            // overlap control 上权重被清零，M 被非参考帧
+                            // 定义而参考帧自身 C 被 gauge 固定为 0 →
+                            // depth=1↔2 转换处光度标尺跳变（接缝）。
+                            // 注意：snr_avail 保持 0（来源仍是 fallback）。
+                            snr_val = median_of(fd.snr);
                         }
                     } else {
-                        snr_val = 0.0;
+                        snr_val = 0.0;  // 无星表：保持 0（无可用信息）
                     }
                     P2ControlObservation o{};
                     o.frame_id = fid_cache[frame_id];
