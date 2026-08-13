@@ -1001,11 +1001,26 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
         return 0;
     }
 
+    // WBPP Auto：按有效样本数自动选择方法（对齐 PixInsight WBPP Auto
+    // 语义：n<3 无排异；3-5 Winsorized；6-10 Averaged；>10 LinearFit）。
+    int method = in->method;
+    if (method == P2_REJECT_AUTO) {
+        if (vals.size() < 3) {
+            method = P2_REJECT_NONE;
+        } else if (vals.size() <= 5) {
+            method = P2_REJECT_WINSORIZED_SIGMA;
+        } else if (vals.size() <= 10) {
+            method = P2_REJECT_AVERAGED_SIGMA;
+        } else {
+            method = P2_REJECT_LINEAR_FIT;
+        }
+    }
+
     const double lo = in->sigma_low != 0.0 ? in->sigma_low : -4.0;
     const double hi = in->sigma_high != 0.0 ? in->sigma_high : 3.0;
     const int max_iter = in->max_iterations > 0 ? in->max_iterations : 8;
 
-    if (in->method == P2_REJECT_AVERAGED_SIGMA) {
+    if (method == P2_REJECT_AVERAGED_SIGMA) {
         // IRAF AVSIGCLIP 语义（公开定义）：迭代中按"当前保留样本"计算均值与
         // 平均 sigma（对每样本残差绝对值的平均，而非 MAD），再按 lo/hi sigma 拒绝。
         std::vector<bool> accept(vals.size(), true);
@@ -1043,7 +1058,7 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
         return 0;
     }
 
-    if (in->method == P2_REJECT_GENERALIZED_ESD) {
+    if (method == P2_REJECT_GENERALIZED_ESD) {
         // NIST Generalized ESD（独立实现，NIST EDA Handbook / Rosner 1983）。
         // 正确流程（P0-05）：
         //   1. 连续移除到上限 r，记录 R_1..R_r 与 λ_1..λ_r；
@@ -1121,7 +1136,7 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
         return 0;
     }
 
-    if (in->method == P2_REJECT_LINEAR_FIT) {
+    if (method == P2_REJECT_LINEAR_FIT) {
         // V4 R5：真实 Siril 1.4.3 语义（官方 src/tests/rejection_test.c
         // linearfit_test + siril_fit_linear.c 加权在线公式，逐行一致；
         // GPL ORACLE ONLY，frozen reference 由官方源码 harness 生成）：
@@ -1177,7 +1192,6 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
                 sigma += std::fabs(stack[i] -
                                    (slope * (double)i + intercept));
             sigma /= (double)N;            // mean |residual|（Siril 定义）
-            if (sigma <= 1e-12) break;
             bool changed = false;
             std::vector<bool> keep(N, true);
             for (std::size_t j = 0; j < N; ++j) {
@@ -1225,7 +1239,7 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
         return 0;
     }
 
-    if (in->method == P2_REJECT_RCR) {
+    if (method == P2_REJECT_RCR) {
         // V4 R4：完整 sequential RCR（官方 rcr 2.4.7 performRejection
         // 语义，冻结技术 SS_MEDIAN_DL）：
         //   1) MEDIAN + DOUBLE_LINE；
@@ -1258,46 +1272,164 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
         return 0;
     }
 
-    if (in->method == P2_REJECT_WINSORIZED_SIGMA) {
-        // 真 Winsorized Sigma（P0-04 修复，AstroCS 精确定义）：
-        //   每轮：普通 mean/std → 把当前样本 winsorize 到
-        //   [mean+lo·std, mean+hi·std] → winsorized mean/std 估计 →
-        //   用原始样本按 winsorized 估计做 sigma clip。
-        // 与普通 Sigma（median/MAD + clip）是不同算法：winsorization
-        // 抑制极端值对位置/尺度估计的影响。
+    if (method == P2_REJECT_PERCENTILE) {
+        // Siril percentile_clipping 语义：相对 median 的百分比 clip（单轮）。
+        // sigma_low/high 语义为相对 median 的小数（如 0.1=10%），拒绝
+        // median - pixel > median*|low| 或 pixel - median > median*high。
+        const double plow =
+            in->sigma_low != 0.0 ? std::fabs(in->sigma_low) : 0.0;
+        const double phigh =
+            in->sigma_high != 0.0 ? std::fabs(in->sigma_high) : 0.0;
+        const double med = median(vals);
+        std::uint32_t kept = 0;
+        for (std::size_t i = 0; i < vals.size(); ++i) {
+            if (med - vals[i] > med * plow) {
+                out->accepted[idx[i]] = 0;
+                ++out->rejected_low;
+            } else if (vals[i] - med > med * phigh) {
+                out->accepted[idx[i]] = 0;
+                ++out->rejected_high;
+            } else {
+                out->accepted[idx[i]] = 1;
+                ++kept;
+            }
+        }
+        out->accepted_count = kept;
+        out->status = kept == 0 ? 2 : 0;
+        return 0;
+    }
+
+    if (method == P2_REJECT_MEDIAN_SIGMA) {
+        // WBPP Median Sigma：位置=中位数、尺度=标准差（而非 MAD）的迭代
+        // sigma clip；N-r<=4 后不再拒绝（Siril sigma 结构对齐）。
         std::vector<bool> accept(vals.size(), true);
         int iters = 0;
+        int r = 0;
         for (; iters < max_iter; ++iters) {
             std::vector<double> cur;
             for (std::size_t i = 0; i < vals.size(); ++i)
                 if (accept[i]) cur.push_back(vals[i]);
             if (cur.size() < 2) break;
-            double m0 = 0.0;
-            for (double x : cur) m0 += x;
-            m0 /= (double)cur.size();
+            const double med = median(cur);
+            double sd = 0.0;
+            for (double x : cur) sd += (x - med) * (x - med);
+            sd = std::sqrt(sd / (double)(cur.size() - 1));
+            if (sd <= 1e-12) break;
+            bool changed = false;
+            for (std::size_t i = 0; i < vals.size(); ++i) {
+                if (!accept[i]) continue;
+                if ((int)cur.size() - r <= 4) break;
+                const double z = (vals[i] - med) / sd;
+                if (z < lo || z > hi) {
+                    accept[i] = false;
+                    ++r;
+                    changed = true;
+                }
+            }
+            if (!changed) break;
+        }
+        out->iterations = static_cast<std::uint32_t>(iters);
+        std::uint32_t kept = 0;
+        for (std::size_t i = 0; i < vals.size(); ++i) {
+            out->accepted[idx[i]] = accept[i] ? 1 : 0;
+            if (accept[i]) {
+                ++kept;
+            } else {
+                if (vals[i] < 0.0) ++out->rejected_low;
+                else ++out->rejected_high;
+            }
+        }
+        out->accepted_count = kept;
+        out->status = kept == 0 ? 2 : 0;
+        return 0;
+    }
+
+    if (method == P2_REJECT_MINMAX) {
+        // WBPP Min/Max：每轮剔除当前栈最小与最大样本各一，
+        // 直至 max_iterations 或剩余 <= 4（保护少数样本栈）。
+        std::vector<bool> accept(vals.size(), true);
+        int iters = 0;
+        for (; iters < max_iter; ++iters) {
+            std::size_t imin = vals.size(), imax = vals.size();
+            std::size_t kept_now = 0;
+            for (std::size_t i = 0; i < vals.size(); ++i) {
+                if (!accept[i]) continue;
+                ++kept_now;
+                if (imin == vals.size() || vals[i] < vals[imin]) imin = i;
+                if (imax == vals.size() || vals[i] > vals[imax]) imax = i;
+            }
+            if (imin == vals.size() || imax == vals.size() || imin == imax)
+                break;
+            if (kept_now <= 4) break;  // 保护：保留至少 4 个样本
+            accept[imin] = false;
+            accept[imax] = false;
+        }
+        out->iterations = static_cast<std::uint32_t>(iters);
+        std::uint32_t kept = 0;
+        for (std::size_t i = 0; i < vals.size(); ++i) {
+            out->accepted[idx[i]] = accept[i] ? 1 : 0;
+            if (accept[i]) {
+                ++kept;
+            } else {
+                if (vals[i] < 0.0) ++out->rejected_low;
+                else ++out->rejected_high;
+            }
+        }
+        out->accepted_count = kept;
+        out->status = kept == 0 ? 2 : 0;
+        return 0;
+    }
+
+    if (method == P2_REJECT_WINSORIZED_SIGMA) {
+        // Winsorized Sigma（V14 审核升级，对齐 Siril 1.4.3 官方
+        // rejection_float.c WINSORIZED / WBPP 语义）：
+        //   位置=中位数（对污染稳健）；σ 由迭代 winsorize 到
+        //   [median-1.5σ, median+1.5σ] 后的 SD × 1.134 估计（收敛判据
+        //   |Δσ| ≤ 5e-4·σ）；最后按 median 位置做 lo/hi sigma clip，
+        //   N-r<=4 后不再拒绝。
+        std::vector<bool> accept(vals.size(), true);
+        int iters = 0;
+        int r = 0;
+        for (; iters < max_iter; ++iters) {
+            std::vector<double> cur;
+            for (std::size_t i = 0; i < vals.size(); ++i)
+                if (accept[i]) cur.push_back(vals[i]);
+            if (cur.size() < 2) break;
+            const double med = median(cur);
+            // 初始 σ：普通 SD（Siril 同款起点）
             double s0 = 0.0;
-            for (double x : cur) s0 += (x - m0) * (x - m0);
+            for (double x : cur) s0 += (x - med) * (x - med);
             s0 = std::sqrt(s0 / (double)(cur.size() - 1));
             if (s0 <= 1e-12) break;
-            const double wlo = m0 + lo * s0;
-            const double whi = m0 + hi * s0;
+            // winsorize 迭代估计稳健 σ（Siril：±1.5σ、系数 1.134）
             std::vector<double> wcur = cur;
-            for (double& x : wcur) x = std::clamp(x, wlo, whi);
-            double wmean = 0.0;
-            for (double x : wcur) wmean += x;
-            wmean /= (double)wcur.size();
-            double ws = 0.0;
-            for (double x : wcur) ws += (x - wmean) * (x - wmean);
-            ws = std::sqrt(ws / (double)(wcur.size() - 1));
-            if (ws <= 1e-12) ws = s0;
-            bool changed = false;
-            std::vector<bool> next(vals.size(), true);
-            for (std::size_t i = 0; i < vals.size(); ++i) {
-                if (!accept[i]) { next[i] = false; continue; }
-                const double z = (vals[i] - wmean) / ws;
-                if (z < lo || z > hi) { next[i] = false; changed = true; }
+            double sigma = s0;
+            for (int it2 = 0; it2 < 64; ++it2) {
+                const double wlo = med - 1.5 * sigma;
+                const double whi = med + 1.5 * sigma;
+                for (double& x : wcur) x = std::clamp(x, wlo, whi);
+                double wsd = 0.0;
+                for (double x : wcur) wsd += (x - med) * (x - med);
+                wsd = std::sqrt(wsd / (double)(wcur.size() - 1));
+                const double sigma_new = 1.134 * wsd;
+                if (std::fabs(sigma_new - sigma) <=
+                    5e-4 * sigma) {
+                    sigma = sigma_new;
+                    break;
+                }
+                sigma = sigma_new;
             }
-            accept = std::move(next);
+            bool changed = false;
+            for (std::size_t i = 0; i < vals.size(); ++i) {
+                if (!accept[i]) continue;
+                if ((int)cur.size() - r <= 4) break;
+                const double z = (vals[i] - med) / sigma;
+                if (z < lo || z > hi) {
+                    accept[i] = false;
+                    ++r;
+                    changed = true;
+                }
+            }
             if (!changed) break;
         }
         out->iterations = static_cast<std::uint32_t>(iters);

@@ -30,7 +30,12 @@ enum P2RejectionMethod {
     P2_REJECT_AVERAGED_SIGMA = 3,
     P2_REJECT_LINEAR_FIT = 4,
     P2_REJECT_GENERALIZED_ESD = 5,
-    P2_REJECT_RCR = 6
+    P2_REJECT_RCR = 6,
+    // V14 审核增补（WBPP 方法全集）：
+    P2_REJECT_PERCENTILE = 7,     // 相对 median 百分比 clip（Siril 语义）
+    P2_REJECT_MEDIAN_SIGMA = 8,   // median 位置 + SD 尺度迭代 clip（WBPP）
+    P2_REJECT_MINMAX = 9,         // 每轮剔除最小/最大样本（WBPP Min/Max）
+    P2_REJECT_AUTO = 10           // 按样本数自动选择（WBPP Auto 语义）
 };
 
 // 输入：value 为 UPM-calibrated 样本；valid/support/weight/quality 可空
