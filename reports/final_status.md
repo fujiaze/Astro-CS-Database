@@ -16,7 +16,8 @@ G0 V13 baseline      = PASS（C/M 逐位等价；sampler 统计一致）
 G1 pipeline audit    = PASS（实现/测试/文档/CLI 四者对应；47/47 合成门）
 G2 data contracts    = PASS（DATA_SEMANTICS.md 唯一权威）
 G3 UPM cleanup       = PASS（data=1 / geometry=1 / unobserved=39488；无 sentinel gauge）
-G4 sampler truth     = PASS（8 tile × 56 污染点多 PSF/亮度/位置；recall 100%；false reject 0%；连通 456/456）
+G4 sampler truth     = PASS（8 tile × 56 污染点多 PSF/亮度/位置；recall 100%；false reject 0%；
+                             连通 456/456；GC 真实覆盖：44096 几何控制点→33701 accepted，拒绝原因直方图+overlay）
 G5 interface/config  = PASS（api_inventory + config consistency test + status/error ownership 文档化）
 G6 browser           = PASS（Auto Global + Auto View + Lock/Reset STF + stretch-only redraw；
                              --stf-lock-probe PASS；10 分钟 soak：RAM 72→157MB 持平，LRU 4,624 淘汰）
