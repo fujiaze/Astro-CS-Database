@@ -77,6 +77,15 @@ P2_API int p2_upm_build(
     const P2ControlObservation* obs, std::uint64_t n_obs,
     const P2UpmBuildConfig* cfg, void** out_model);
 
+// V13 (P13-4)：全几何节点 UPM 构建。nodes 覆盖 coverage union 全部
+// control cell（含单帧区），obs 只含 ≥2 clean 帧观测；单帧区节点无
+// 数据项，由全局平滑/Laplacian 延拓得到 C（harmonic continuation）。
+typedef struct P2ControlNode P2ControlNode;
+P2_API int p2_upm_build_geo(
+    const P2ControlObservation* obs, std::uint64_t n_obs,
+    const P2ControlNode* nodes, std::uint64_t n_nodes,
+    const P2UpmBuildConfig* cfg, void** out_model);
+
 P2_API int p2_upm_save(const void* model, const char* path);
 P2_API int p2_upm_open(const char* path, void** out_model);
 P2_API int p2_upm_info(const void* model, P2ModelInfo* out_info);

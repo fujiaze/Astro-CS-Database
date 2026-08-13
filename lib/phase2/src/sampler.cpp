@@ -230,6 +230,9 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                        std::uint64_t out_capacity,
                        std::uint64_t* out_n_obs,
                        std::uint64_t* out_n_controls,
+                       P2SampleStats* out_stats,
+                       P2ControlNode* out_controls,
+                       std::uint64_t ctrl_capacity,
                        char* err, std::size_t err_size) {
     if (!coverage || !hips_paths || !out_n_obs || !out_n_controls) {
         if (err && err_size) std::snprintf(err, err_size, "bad args");
@@ -237,6 +240,7 @@ int p2_sample_controls(const P2CoverageResult* coverage,
     }
     *out_n_obs = 0;
     *out_n_controls = 0;
+    P2SampleStats stats{};
     P2SamplerConfig cfg;
     if (cfg_in) {
         cfg = *cfg_in;
@@ -246,6 +250,19 @@ int p2_sample_controls(const P2CoverageResult* coverage,
         cfg.min_samples = 5;
         cfg.snr_search_radius_deg = 0.05;
     }
+    // V13 默认（synthetic + GC 调优后固化；BACKGROUND_SAMPLER_SPEC.md）
+    if (cfg.background_patch_radius <= 0) cfg.background_patch_radius = 8;
+    if (cfg.background_clip_sigma <= 0.0) cfg.background_clip_sigma = 3.0;
+    if (cfg.background_clip_iters <= 0) cfg.background_clip_iters = 3;
+    if (cfg.background_max_contamination <= 0.0)
+        cfg.background_max_contamination = 0.20;
+    if (cfg.background_contamination_sigma <= 0.0)
+        cfg.background_contamination_sigma = 3.0;
+    if (cfg.background_min_retained_fraction <= 0.0)
+        cfg.background_min_retained_fraction = 0.60;
+    if (cfg.background_tolerance <= 0.0) cfg.background_tolerance = 3.0;
+    if (cfg.background_neighbor_radius <= 0)
+        cfg.background_neighbor_radius = 2;
     if (cfg.control_grid_per_tile < 1) cfg.control_grid_per_tile = 8;
     if (cfg.patch_radius_leaf < 0) cfg.patch_radius_leaf = 2;
     if (cfg.min_samples < 1) cfg.min_samples = 5;
@@ -301,34 +318,59 @@ int p2_sample_controls(const P2CoverageResult* coverage,
         }
     }
 
+    // ================= V13 background-clean sampler =================
+    // Stage A-E（BACKGROUND_SAMPLER_SPEC.md）：
+    //   A 候选 patch（可配置半径，默认 17×17）
+    //   B 亮端迭代 sigma clipping（median/MAD）
+    //   C DBE-like 局部 tolerance gate（邻域粗背景 B_local）
+    //   D contamination fraction gate
+    //   E 可选 SNR catalogue veto
+    //   同一 control ≥2 帧 clean 观测才进入 UPM（相对光度约束）
     std::vector<P2ControlObservation> obs;
     std::uint64_t control_id = 0;
     const int grid = cfg.control_grid_per_tile;
     const int cell_side = kTileWidth / grid;
-    const int r = cfg.patch_radius_leaf;
+    const int r = cfg.background_patch_radius;   // Stage A
+
+    // 第一遍：每 (cell, frame) 候选统计
+    struct CellStat {
+        std::vector<int> frames;                  // 覆盖帧（frame index）
+        std::vector<double> m, mad, bfrac, unc, snr, sup;
+        std::vector<int> n_total, n_retained, snr_avail;
+        std::vector<std::uint32_t> qual;
+        std::vector<bool> accepted;
+        std::vector<int> reason;                  // 0=ok 1..5=原因
+        double ra = 0, dec = 0;
+        std::uint64_t leaf = 0;
+        int tile = -1, gx = 0, gy = 0;
+    };
+    std::vector<CellStat> cells;
+    // 帧级 SNR 中位数（catalogue veto 与 fallback 用）
+    std::vector<double> frame_snr_med(n_frames, 0.0);
+    for (std::uint64_t i = 0; i < n_frames; ++i) {
+        if (!frames[i].snr.empty()) {
+            std::vector<double> cp = frames[i].snr;
+            std::sort(cp.begin(), cp.end());
+            frame_snr_med[i] = cp[cp.size() / 2];
+        }
+    }
 
     for (std::uint64_t c = 0; c < coverage->n_union_cells; ++c) {
         const std::uint64_t tile_ipix = coverage->union_cells[c].ipix;
-        // 找到覆盖该 tile 的帧
         std::vector<std::uint64_t> cov_frames;
-        for (std::uint64_t i = 0; i < n_frames; ++i) {
+        for (std::uint64_t i = 0; i < n_frames; ++i)
             if (frames[i].tiles.count(tile_ipix)) cov_frames.push_back(i);
-        }
         if (cov_frames.empty()) continue;
 
-        // 读取各覆盖帧的 signal/support tile
         std::vector<TilePair> pairs(cov_frames.size());
-        for (std::size_t fi = 0; fi < cov_frames.size(); ++fi) {
+        for (std::size_t fi = 0; fi < cov_frames.size(); ++fi)
             read_tile_pair(sig[cov_frames[fi]], sup[cov_frames[fi]],
                            tile_ipix, &pairs[fi]);
-        }
 
         for (int gy = 0; gy < grid; ++gy) {
             for (int gx = 0; gx < grid; ++gx) {
-                const int cx0 = gx * cell_side;
-                const int cy0 = gy * cell_side;
-                const int cx = cx0 + cell_side / 2;
-                const int cy = cy0 + cell_side / 2;
+                const int cx = gx * cell_side + cell_side / 2;
+                const int cy = gy * cell_side + cell_side / 2;
                 const std::uint64_t center_local =
                     astrocs::healpix::xy_to_nested_local(
                         (unsigned)cx, (unsigned)cy, (unsigned)kTileShift);
@@ -339,11 +381,13 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                     1u << (unsigned)(coverage->target_order + leaf_shift),
                     center_leaf, ra_deg, dec_deg);
 
+                CellStat cs;
+                cs.ra = ra_deg; cs.dec = dec_deg; cs.leaf = center_leaf;
+                cs.tile = (int)tile_ipix; cs.gx = gx; cs.gy = gy;
                 for (std::size_t fi = 0; fi < cov_frames.size(); ++fi) {
                     const std::uint64_t frame_id = cov_frames[fi];
                     const TilePair& tp = pairs[fi];
-                    if (!tp.ok) continue;
-                    // patch 统计
+                    // Stage A/B：patch 收集 + 亮端迭代 clipping
                     std::vector<double> vals;
                     double sup_sum = 0.0;
                     std::uint32_t n_valid = 0;
@@ -370,68 +414,217 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                             ++n_valid;
                         }
                     }
-                    if (vals.size() < (std::size_t)cfg.min_samples) continue;
-                    const double y = median_of(vals);
-                    std::vector<double> dev;
-                    dev.reserve(vals.size());
-                    for (double v : vals) dev.push_back(std::fabs(v - y));
-                    const double mad = 1.4826 * median_of(std::move(dev));
-                    const double sigma = (mad > 0.0) ? mad : 1e-12;
-                    const double uncertainty =
-                        sigma / std::sqrt((double)vals.size());
-                    // V4 R6：SNR = 邻近星点 median；无局部星点时
-                    // snr=0.0 且 snr_available=0（禁止 1.0 伪装 unknown，
-                    // 由 stage2 回退整帧 median）。
-                    // quality：邻域点 quality 按位 OR（区域最坏可信度）；
-                    // 无邻域点 → 0（unknown，QUALITY_FALLBACK_UNKNOWN）
-                    double snr_val = 1.0;
-                    int snr_avail = 0;
-                    std::uint32_t qual = 0;
-                    const FrameData& fd = frames[frame_id];
-                    if (!fd.snr.empty()) {
-                        std::vector<double> near;
-                        const double rad = cfg.snr_search_radius_deg;
-                        for (std::size_t s = 0; s < fd.snr.size(); ++s) {
-                            if (astrocs::healpix::angular_distance_deg(
-                                    ra_deg, dec_deg, fd.snr_ra[s],
-                                    fd.snr_dec[s]) <= rad) {
-                                near.push_back(fd.snr[s]);
-                                qual |= fd.quality[s];
+                    const int n_total = (int)vals.size();
+                    if (n_total < cfg.min_samples) {
+                        ++stats.rejected_insufficient_support;
+                        cs.frames.push_back((int)frame_id);
+                        cs.m.push_back(0); cs.mad.push_back(0);
+                        cs.bfrac.push_back(0); cs.unc.push_back(0);
+                        cs.snr.push_back(0); cs.sup.push_back(0);
+                        cs.n_total.push_back(n_total); cs.n_retained.push_back(0);
+                        cs.snr_avail.push_back(0); cs.qual.push_back(0);
+                        cs.accepted.push_back(false); cs.reason.push_back(1);
+                        continue;
+                    }
+                    // Stage B：median/MAD + 亮端迭代 clipping
+                    // 注意：收敛判定基于 retain 集 median 变化，而不是
+                    // MAD 不变（梯度 patch 的 MAD 在剪星前后相同，若用
+                    // MAD 判定会把星像素错误地“恢复”）。
+                    double m0 = median_of(vals);
+                    {
+                        double s0 = 0.0;
+                        {
+                            std::vector<double> dev;
+                            for (double v : vals)
+                                dev.push_back(std::fabs(v - m0));
+                            s0 = 1.4826 * median_of(std::move(dev));
+                        }
+                        std::vector<double> ret = vals;
+                        for (int it = 0; it < cfg.background_clip_iters; ++it) {
+                            std::vector<double> nr;
+                            for (double v : ret)
+                                if (v <= m0 + cfg.background_clip_sigma * s0)
+                                    nr.push_back(v);
+                            if ((int)nr.size() < cfg.min_samples) break;
+                            const double nm = median_of(nr);
+                            if (std::fabs(nm - m0) <
+                                1e-12 * std::max(std::fabs(m0), 1e-12)) {
+                                ret = nr;  // 中位数收敛
+                                break;
+                            }
+                            m0 = nm;
+                            ret = std::move(nr);
+                            std::vector<double> dev2;
+                            for (double v : ret)
+                                dev2.push_back(std::fabs(v - m0));
+                            const double s1 =
+                                1.4826 * median_of(std::move(dev2));
+                            if (s1 <= 0.0) break;
+                            s0 = s1;
+                        }
+                        const double y = m0;
+                        const double sigma = (s0 > 0.0) ? s0 : 1e-12;
+                        // Stage D：contamination（原始 patch 亮像素占比，
+                        // 相对 clip 后背景位置）
+                        int nbright = 0;
+                        for (double v : vals)
+                            if (v > y + cfg.background_contamination_sigma *
+                                            sigma)
+                                ++nbright;
+                        const double bfrac = (double)nbright / (double)n_total;
+                        const int n_retained = (int)ret.size();
+                        cs.frames.push_back((int)frame_id);
+                        cs.m.push_back(y);
+                        cs.mad.push_back(sigma);
+                        cs.bfrac.push_back(bfrac);
+                        cs.unc.push_back(sigma / std::sqrt((double)n_total));
+                        cs.sup.push_back(n_valid ? sup_sum / (double)n_valid : 0.0);
+                        cs.n_total.push_back(n_total);
+                        cs.n_retained.push_back(n_retained);
+                        // Stage E：catalogue veto（可选；高 SNR 星点过近）
+                        const FrameData& fd = frames[frame_id];
+                        int veto = 0;
+                        if (cfg.background_catalog_veto && !fd.snr.empty() &&
+                            frame_snr_med[frame_id] > 0.0) {
+                            const double thr = 10.0 * frame_snr_med[frame_id];
+                            const double rad = 0.012;  // ~ patch 尺度（度）
+                            for (std::size_t s = 0; s < fd.snr.size(); ++s) {
+                                if (fd.snr[s] > thr &&
+                                    astrocs::healpix::angular_distance_deg(
+                                        ra_deg, dec_deg, fd.snr_ra[s],
+                                        fd.snr_dec[s]) <= rad) {
+                                    veto = 1;
+                                    break;
+                                }
                             }
                         }
-                        if (!near.empty()) {
-                            snr_val = median_of(std::move(near));
-                            snr_avail = 1;
+                        // SNR 邻域（obs 字段；缺失→帧级 fallback）
+                        double snr_val = 1.0;
+                        int snr_avail = 0;
+                        std::uint32_t qual = 0;
+                        if (!fd.snr.empty()) {
+                            std::vector<double> near;
+                            for (std::size_t s = 0; s < fd.snr.size(); ++s) {
+                                if (astrocs::healpix::angular_distance_deg(
+                                        ra_deg, dec_deg, fd.snr_ra[s],
+                                        fd.snr_dec[s]) <=
+                                    cfg.snr_search_radius_deg) {
+                                    near.push_back(fd.snr[s]);
+                                    qual |= fd.quality[s];
+                                }
+                            }
+                            if (!near.empty()) {
+                                snr_val = median_of(std::move(near));
+                                snr_avail = 1;
+                            } else if (!fd.snr.empty()) {
+                                snr_val = median_of(fd.snr);
+                            }
                         } else {
-                            // V12R2 (SEAM-001)：UPM 拟合层 SNR 缺失回退为
-                            // 帧级 median（与 stage2 集成层 V11 R8 的
-                            // frame-median fallback 同一语义）。此前此处
-                            // 写 0.0，导致 snr=0 的观测 raw_w=0、参考帧在
-                            // overlap control 上权重被清零，M 被非参考帧
-                            // 定义而参考帧自身 C 被 gauge 固定为 0 →
-                            // depth=1↔2 转换处光度标尺跳变（接缝）。
-                            // 注意：snr_avail 保持 0（来源仍是 fallback）。
-                            snr_val = median_of(fd.snr);
+                            snr_val = 0.0;
                         }
-                    } else {
-                        snr_val = 0.0;  // 无星表：保持 0（无可用信息）
+                        cs.snr.push_back(snr_val);
+                        cs.snr_avail.push_back(snr_avail);
+                        cs.qual.push_back(qual);
+                        // 暂定 accepted；Stage C tolerance 第二遍决定
+                        cs.accepted.push_back(veto == 0);
+                        cs.reason.push_back(veto ? 5 : 0);
+                        if (veto) ++stats.rejected_catalog_veto;
                     }
-                    P2ControlObservation o{};
-                    o.frame_id = fid_cache[frame_id];
-                    o.control_id = control_id;
-                    o.leaf_ipix = center_leaf;
-                    o.ra_deg = ra_deg;
-                    o.dec_deg = dec_deg;
-                    o.value = y;
-                    o.uncertainty = uncertainty;
-                    o.snr = snr_val;
-                    o.snr_available = snr_avail;
-                    o.support = n_valid ? sup_sum / (double)n_valid : 0.0;
-                    o.quality_flags = qual;
-                    obs.push_back(o);
                 }
+                cells.push_back(std::move(cs));
                 ++control_id;
             }
+        }
+    }
+
+    // 第二遍：Stage C DBE-like 局部 tolerance gate
+    const int nr = cfg.background_neighbor_radius;
+    for (std::size_t ci = 0; ci < cells.size(); ++ci) {
+        CellStat& cs = cells[ci];
+        for (std::size_t fi = 0; fi < cs.frames.size(); ++fi) {
+            if (!cs.accepted[fi] || cs.reason[fi] != 0) continue;
+            // 收集同 tile 邻域候选该帧的 cleaned median
+            std::vector<double> neigh;
+            for (std::size_t cj = 0; cj < cells.size(); ++cj) {
+                const CellStat& cn = cells[cj];
+                if (cn.tile != cs.tile) continue;
+                if (std::abs(cn.gx - cs.gx) > nr ||
+                    std::abs(cn.gy - cs.gy) > nr)
+                    continue;
+                for (std::size_t fj = 0; fj < cn.frames.size(); ++fj) {
+                    if (cn.frames[fj] == cs.frames[fi] && cn.n_total[fj] > 0)
+                        neigh.push_back(cn.m[fj]);
+                }
+            }
+            // 邻域不足：回退 tile 全部候选（该帧）
+            if (neigh.size() < 3) {
+                neigh.clear();
+                for (std::size_t cj = 0; cj < cells.size(); ++cj) {
+                    const CellStat& cn = cells[cj];
+                    if (cn.tile != cs.tile) continue;
+                    for (std::size_t fj = 0; fj < cn.frames.size(); ++fj)
+                        if (cn.frames[fj] == cs.frames[fi] && cn.n_total[fj] > 0)
+                            neigh.push_back(cn.m[fj]);
+                }
+            }
+            if (neigh.size() < 3) continue;  // 无足够邻域：不 gate（保守保留）
+            std::sort(neigh.begin(), neigh.end());
+            const double B = neigh[neigh.size() / 2];
+            std::vector<double> dev;
+            for (double v : neigh) dev.push_back(std::fabs(v - B));
+            std::sort(dev.begin(), dev.end());
+            const double S = 1.4826 * dev[dev.size() / 2];
+            if (cs.m[fi] > B + cfg.background_tolerance * S) {
+                cs.accepted[fi] = false;
+                cs.reason[fi] = 3;
+                ++stats.rejected_bright_tolerance;
+            } else if (cs.bfrac[fi] > cfg.background_max_contamination) {
+                cs.accepted[fi] = false;
+                cs.reason[fi] = 4;
+                ++stats.rejected_high_contamination;
+            } else if ((double)cs.n_retained[fi] <
+                       cfg.background_min_retained_fraction *
+                           (double)cs.n_total[fi]) {
+                cs.accepted[fi] = false;
+                cs.reason[fi] = 2;
+                ++stats.rejected_insufficient_retained;
+            }
+        }
+    }
+
+    // 第三遍：≥2 帧 clean 的 control 才输出观测
+    for (std::size_t ci = 0; ci < cells.size(); ++ci) {
+        const CellStat& cs = cells[ci];
+        int nclean = 0;
+        for (std::size_t fi = 0; fi < cs.frames.size(); ++fi)
+            if (cs.accepted[fi]) ++nclean;
+        if (nclean == 0) continue;
+        ++stats.accepted_controls;
+        if (nclean >= 2) ++stats.overlap_controls;
+        for (std::size_t fi = 0; fi < cs.frames.size(); ++fi) {
+            if (!cs.accepted[fi]) {
+                if (cs.reason[fi] == 2) ++stats.rejected_insufficient_retained;
+                continue;
+            }
+            if (nclean < 2) {
+                ++stats.rejected_lt_two_clean_frames;
+                continue;
+            }
+            P2ControlObservation o{};
+            o.frame_id = fid_cache[cs.frames[fi]];
+            o.control_id = (std::uint64_t)ci;
+            o.leaf_ipix = cs.leaf;
+            o.ra_deg = cs.ra;
+            o.dec_deg = cs.dec;
+            o.value = cs.m[fi];
+            o.uncertainty = cs.unc[fi];
+            o.snr = cs.snr[fi];
+            o.snr_available = cs.snr_avail[fi];
+            o.support = cs.sup[fi];
+            o.quality_flags = cs.qual[fi];
+            obs.push_back(o);
+            ++stats.accepted_observations;
+            ++stats.candidate_observations;
         }
     }
 
@@ -440,8 +633,32 @@ int p2_sample_controls(const P2CoverageResult* coverage,
         if (sup[i]) aio_hips_close(sup[i]);
     }
 
+    stats.candidate_observations = 0;
+    for (const auto& cs : cells) {
+        for (std::size_t fi = 0; fi < cs.frames.size(); ++fi) {
+            ++stats.candidate_observations;
+            if (!cs.accepted[fi]) {
+                if (cs.reason[fi] == 2) ++stats.rejected_insufficient_retained;
+                else if (cs.reason[fi] == 1) ++stats.rejected_insufficient_support;
+            }
+        }
+    }
+    if (out_stats) *out_stats = stats;
     *out_n_controls = control_id;
     *out_n_obs = obs.size();
+    if (out_controls) {
+        const std::uint64_t n = std::min(ctrl_capacity, cells.size());
+        for (std::uint64_t i = 0; i < n; ++i) {
+            const CellStat& cs = cells[(size_t)i];
+            out_controls[i].control_id = i;
+            out_controls[i].tile_ipix = (std::uint64_t)cs.tile;
+            out_controls[i].gx = cs.gx;
+            out_controls[i].gy = cs.gy;
+            out_controls[i].ra_deg = cs.ra;
+            out_controls[i].dec_deg = cs.dec;
+            out_controls[i].leaf_ipix = cs.leaf;
+        }
+    }
     if (out_obs) {
         const std::uint64_t n = std::min(out_capacity, obs.size());
         for (std::uint64_t i = 0; i < n; ++i) out_obs[i] = obs[(size_t)i];

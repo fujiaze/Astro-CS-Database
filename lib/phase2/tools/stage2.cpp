@@ -199,21 +199,65 @@ int main(int argc, char** argv) {
     sccfg.patch_radius_leaf = cfg.patch_radius_leaf;
     sccfg.min_samples = cfg.min_samples;
     sccfg.snr_search_radius_deg = cfg.snr_search_radius_deg;
+    // V13 background-clean 参数
+    sccfg.background_patch_radius = cfg.background_patch_radius;
+    sccfg.background_clip_sigma = cfg.background_clip_sigma;
+    sccfg.background_clip_iters = cfg.background_clip_iters;
+    sccfg.background_max_contamination = cfg.background_max_contamination;
+    sccfg.background_contamination_sigma = cfg.background_contamination_sigma;
+    sccfg.background_min_retained_fraction =
+        cfg.background_min_retained_fraction;
+    sccfg.background_tolerance = cfg.background_tolerance;
+    sccfg.background_neighbor_radius = cfg.background_neighbor_radius;
+    sccfg.background_catalog_veto = cfg.background_catalog_veto;
     std::uint64_t n_obs = 0, n_ctrl = 0;
     char serr[512] = {0};
+    P2SampleStats sstats{};
     if (p2_sample_controls(&cov, paths.data(), &sccfg, nullptr, 0,
-                           &n_obs, &n_ctrl, serr, sizeof(serr)) != 0) {
+                           &n_obs, &n_ctrl, &sstats, nullptr, 0,
+                           serr, sizeof(serr)) != 0) {
         log("sampler error: " + std::string(serr));
         return 4;
     }
     std::vector<P2ControlObservation> obs(n_obs);
+    std::vector<P2ControlNode> ctrl_nodes(n_ctrl);
     if (p2_sample_controls(&cov, paths.data(), &sccfg, obs.data(), n_obs,
-                           &n_obs, &n_ctrl, serr, sizeof(serr)) != 0) {
+                           &n_obs, &n_ctrl, &sstats, ctrl_nodes.data(),
+                           ctrl_nodes.size(), serr, sizeof(serr)) != 0) {
         log("sampler error (fill): " + std::string(serr));
         return 4;
     }
-    log("control sampling: controls=" + std::to_string(n_ctrl) +
-        " observations=" + std::to_string(n_obs));
+    log("control sampling (V13 background-clean): controls=" +
+        std::to_string(n_ctrl) + " observations=" + std::to_string(n_obs) +
+        " candidates=" + std::to_string(sstats.candidate_observations) +
+        " accepted=" + std::to_string(sstats.accepted_observations) +
+        " rejected[support=" +
+        std::to_string(sstats.rejected_insufficient_support) +
+        " retained=" +
+        std::to_string(sstats.rejected_insufficient_retained) +
+        " tolerance=" + std::to_string(sstats.rejected_bright_tolerance) +
+        " contamination=" + std::to_string(sstats.rejected_high_contamination) +
+        " catalog=" + std::to_string(sstats.rejected_catalog_veto) +
+        " lt2frames=" + std::to_string(sstats.rejected_lt_two_clean_frames) +
+        "] accepted_controls=" + std::to_string(sstats.accepted_controls) +
+        " overlap_controls=" + std::to_string(sstats.overlap_controls));
+    // V13 (P13-6)：accepted/rejected control 诊断（overlay 用）
+    if (cfg.diagnostics && !cfg.out_hips.empty()) {
+        std::set<std::uint64_t> accepted_ids;
+        for (const auto& o : obs) accepted_ids.insert(o.control_id);
+        nlohmann::json ca = nlohmann::json::array();
+        for (std::uint64_t i = 0; i < n_ctrl; ++i) {
+            ca.push_back({{"control_id", i},
+                          {"tile", ctrl_nodes[(size_t)i].tile_ipix},
+                          {"ra", ctrl_nodes[(size_t)i].ra_deg},
+                          {"dec", ctrl_nodes[(size_t)i].dec_deg},
+                          {"accepted", accepted_ids.count(i) > 0}});
+        }
+        std::ofstream ca_f(cfg.out_hips + "/controls_accept.json");
+        if (ca_f) ca_f << ca.dump();
+        log("V13 controls_accept written: " + cfg.out_hips +
+            "/controls_accept.json");
+    }
     mark("control_sample");
     // R2：quality fallback 统计（quality_flags==0 = QUALITY_FALLBACK_UNKNOWN）
     std::uint64_t quality_unknown = 0;
@@ -260,7 +304,8 @@ int main(int argc, char** argv) {
         p2_stage2_make_upm_cfg(cfg, target_order,
                                input_manifest_hash.c_str());
     void* model = nullptr;
-    if (p2_upm_build(obs.data(), obs.size(), &mcfg, &model) != 0) {
+    if (p2_upm_build_geo(obs.data(), obs.size(), ctrl_nodes.data(),
+                         ctrl_nodes.size(), &mcfg, &model) != 0) {
         log("UPM build failed");
         return 5;
     }

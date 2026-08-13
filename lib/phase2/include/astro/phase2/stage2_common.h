@@ -21,6 +21,16 @@ struct P2Stage2Config {
     int patch_radius_leaf = 2;
     int min_samples = 5;
     double snr_search_radius_deg = 0.05;
+    // V13 background-clean sampler
+    int    background_patch_radius = 8;
+    double background_clip_sigma = 3.0;
+    int    background_clip_iters = 3;
+    double background_max_contamination = 0.20;
+    double background_contamination_sigma = 3.0;
+    double background_min_retained_fraction = 0.60;
+    double background_tolerance = 3.0;
+    int    background_neighbor_radius = 2;
+    int    background_catalog_veto = 1;
     int robust_loss = 0;
     int snr_weight_mode = 0;
     double huber_delta = 1.345;

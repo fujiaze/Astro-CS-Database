@@ -75,6 +75,55 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                 *err = "snr_search_radius_deg 必须 > 0";
                 return false;
             }
+            // V13 background-clean sampler 参数
+            cfg->background_patch_radius =
+                m.value("background_patch_radius", 8);
+            if (cfg->background_patch_radius < 3) {
+                *err = "background_patch_radius 必须 >= 3";
+                return false;
+            }
+            cfg->background_clip_sigma =
+                m.value("background_clip_sigma", 3.0);
+            if (cfg->background_clip_sigma <= 0.0) {
+                *err = "background_clip_sigma 必须 > 0";
+                return false;
+            }
+            cfg->background_clip_iters =
+                m.value("background_clip_iters", 3);
+            if (cfg->background_clip_iters < 1) {
+                *err = "background_clip_iters 必须 >= 1";
+                return false;
+            }
+            cfg->background_max_contamination =
+                m.value("background_max_contamination", 0.20);
+            if (cfg->background_max_contamination <= 0.0 ||
+                cfg->background_max_contamination >= 1.0) {
+                *err = "background_max_contamination 必须在 (0,1)";
+                return false;
+            }
+            cfg->background_contamination_sigma =
+                m.value("background_contamination_sigma", 3.0);
+            cfg->background_min_retained_fraction =
+                m.value("background_min_retained_fraction", 0.60);
+            if (cfg->background_min_retained_fraction <= 0.0 ||
+                cfg->background_min_retained_fraction > 1.0) {
+                *err = "background_min_retained_fraction 必须在 (0,1]";
+                return false;
+            }
+            cfg->background_tolerance =
+                m.value("background_tolerance", 3.0);
+            if (cfg->background_tolerance <= 0.0) {
+                *err = "background_tolerance 必须 > 0";
+                return false;
+            }
+            cfg->background_neighbor_radius =
+                m.value("background_neighbor_radius", 2);
+            if (cfg->background_neighbor_radius < 1) {
+                *err = "background_neighbor_radius 必须 >= 1";
+                return false;
+            }
+            cfg->background_catalog_veto =
+                m.value("background_catalog_veto", 1);
             cfg->huber_delta = m.value("huber_delta", 1.345);
             if (cfg->huber_delta <= 0.0) {
                 *err = "huber_delta 必须 > 0";

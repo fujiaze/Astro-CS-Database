@@ -3224,12 +3224,14 @@ TEST(Phase2Sampler, RealHipsControlSampling) {
     std::uint64_t n_obs = 0, n_ctrl = 0;
     char err[512] = {0};
     ASSERT_EQ(p2_sample_controls(&cov, paths, nullptr, nullptr, 0,
-                                 &n_obs, &n_ctrl, err, sizeof(err)), 0);
+                                 &n_obs, &n_ctrl, nullptr, nullptr, 0,
+                                 err, sizeof(err)), 0);
     EXPECT_GT(n_ctrl, 0u);
     EXPECT_GT(n_obs, 0u);
     std::vector<P2ControlObservation> obs(n_obs);
     ASSERT_EQ(p2_sample_controls(&cov, paths, nullptr, obs.data(), n_obs,
-                                 &n_obs, &n_ctrl, err, sizeof(err)), 0);
+                                 &n_obs, &n_ctrl, nullptr, nullptr, 0,
+                                 err, sizeof(err)), 0);
     std::uint64_t finite = 0, snr_used = 0;
     for (const auto& o : obs) {
         if (std::isfinite(o.value) && std::isfinite(o.uncertainty))
@@ -3324,11 +3326,11 @@ TEST(Phase2Sampler, G6LocalSnrAvailabilityThreeZones) {
     std::uint64_t n_obs = 0, n_ctrl = 0;
     char err[512] = {0};
     ASSERT_EQ(p2_sample_controls(&cov, &path, &sccfg, nullptr, 0, &n_obs,
-                                 &n_ctrl, err, sizeof(err)), 0);
+                                 &n_ctrl, nullptr, nullptr, 0, err, sizeof(err)), 0);
     ASSERT_GT(n_obs, 0u);
     std::vector<P2ControlObservation> obs(n_obs);
     ASSERT_EQ(p2_sample_controls(&cov, &path, &sccfg, obs.data(), n_obs,
-                                 &n_obs, &n_ctrl, err, sizeof(err)), 0);
+                                 &n_obs, &n_ctrl, nullptr, nullptr, 0, err, sizeof(err)), 0);
 
     bool saw_high = false, saw_low = false, saw_missing = false;
     for (const auto& o : obs) {
@@ -3666,3 +3668,4 @@ TEST(Phase2Wiring, G1ProductionWiringTruth) {
                  w0, w2, wA, wB, w_good, w_unk, w_bad, w_rej,
                  (int)(std::string(gh1) == std::string(gh2)));
 }
+

@@ -34,7 +34,40 @@ typedef struct {
     int patch_radius_leaf;        // 观测 patch 半径（叶级 leaf 数，默认 2 → 5×5）
     int min_samples;              // 有效样本最小数（默认 5）
     double snr_search_radius_deg; // SNR 星点检索半径（度，默认 0.05）
+    // V13：background-clean 采样（DBE-like；BACKGROUND_SAMPLER_SPEC.md）
+    int    background_patch_radius;        // 背景 patch 半径（默认 8 → 17×17）
+    double background_clip_sigma;          // 亮端迭代 clipping 阈值（MAD 单位，默认 3.0）
+    int    background_clip_iters;          // 亮端 clipping 迭代次数（默认 3）
+    double background_max_contamination;   // 亮像素占比上限（默认 0.20）
+    double background_contamination_sigma; // 污染判定 sigma（默认 3.0）
+    double background_min_retained_fraction; // clipping 后保留比例下限（默认 0.60）
+    double background_tolerance;           // 局部 tolerance gate（MAD 单位，默认 3.0）
+    int    background_neighbor_radius;     // 局部 baseline 邻域 cell 半径（默认 2）
+    int    background_catalog_veto;        // 允许 SNR catalogue veto（默认 1）
 } P2SamplerConfig;
+
+// V13：background-clean 采样统计（accepted/rejected 可追踪）
+typedef struct {
+    std::uint64_t candidate_observations;   // 候选观测总数（几何×覆盖帧）
+    std::uint64_t accepted_observations;    // 进入 UPM 的 clean 观测
+    std::uint64_t rejected_insufficient_support;   // support/finite 不足
+    std::uint64_t rejected_insufficient_retained;  // clipping 后保留比例过低
+    std::uint64_t rejected_bright_tolerance;       // 超过局部 tolerance
+    std::uint64_t rejected_high_contamination;     // 亮像素占比过高
+    std::uint64_t rejected_catalog_veto;           // 星表 veto
+    std::uint64_t rejected_lt_two_clean_frames;    // clean 帧数 <2 未入拟合
+    std::uint64_t accepted_controls;               // 有 ≥1 clean obs 的 control
+    std::uint64_t overlap_controls;                // 有 ≥2 clean obs 的 control
+} P2SampleStats;
+
+// V13：control 几何节点（全 coverage 网格；与观测解耦）
+typedef struct P2ControlNode {
+    std::uint64_t control_id;
+    std::uint64_t tile_ipix;
+    int  gx, gy;
+    double ra_deg, dec_deg;
+    std::uint64_t leaf_ipix;   // cell 中心叶级像素
+} P2ControlNode;
 
 // 内容稳定帧标识（FNV-1a 64）：由输入路径派生，与输入顺序无关；
 // UPM 参考帧 = 最小 frame_id（保证输入重排输出不变）。
@@ -56,6 +89,9 @@ P2_API int p2_sample_controls(
     std::uint64_t out_capacity,
     std::uint64_t* out_n_obs,        // 实际观测数
     std::uint64_t* out_n_controls,   // 控制节点数
+    P2SampleStats* out_stats,        // 可空（V13 统计）
+    P2ControlNode* out_controls,     // 可空（V13 全几何节点）
+    std::uint64_t ctrl_capacity,
     char* err, std::size_t err_size);
 
 #ifdef __cplusplus
