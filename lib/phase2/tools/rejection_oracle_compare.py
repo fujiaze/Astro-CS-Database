@@ -65,27 +65,45 @@ def winsorized_vs_scipy():
 
 
 def winsorized_independent_mask(vals, lo=-4.0, hi=3.0, max_iter=8):
-    """独立 Python winsorized sigma：winsorized mean/std + clip（与 C++ 同定义）。"""
+    """独立 Python winsorized sigma（V14 升级，对齐 Siril 官方语义）：
+    位置=median；σ 由迭代 winsorize 到 [median-1.5σ, median+1.5σ] 后的
+    SD × 1.134 估计（收敛 |Δσ|<=5e-4·σ）；最后按 median 位置 sigma clip，
+    N-r<=4 后不再拒绝。"""
     import numpy as np
     v = np.asarray(vals, dtype=float)
     acc = np.ones(len(v), dtype=bool)
+    r = 0
     for _ in range(max_iter):
         cur = v[acc]
         if len(cur) < 2:
             break
-        m0 = cur.mean()
-        s0 = cur.std(ddof=1)
+        med = float(np.median(cur))
+        s0 = float(np.sqrt(np.sum((cur - med) ** 2) / (len(cur) - 1)))
         if s0 <= 1e-12:
             break
-        wlo, whi = m0 + lo * s0, m0 + hi * s0
-        wcur = np.clip(cur, wlo, whi)
-        wmean = wcur.mean()
-        ws = wcur.std(ddof=1) or s0
-        z = (v - wmean) / ws
-        new_acc = acc & ~((z < lo) | (z > hi))
-        if np.array_equal(new_acc, acc):
+        wcur = cur.copy()
+        sigma = s0
+        for _it in range(64):
+            wlo, whi = med - 1.5 * sigma, med + 1.5 * sigma
+            wcur = np.clip(wcur, wlo, whi)
+            wsd = float(np.sqrt(np.sum((wcur - med) ** 2) / (len(cur) - 1)))
+            sigma_new = 1.134 * wsd
+            if abs(sigma_new - sigma) <= 5e-4 * sigma:
+                sigma = sigma_new
+                break
+            sigma = sigma_new
+        z = (v - med) / sigma
+        changed = False
+        idx = np.where(acc)[0]
+        for i in idx:
+            if len(cur) - r <= 4:
+                break
+            if z[i] < lo or z[i] > hi:
+                acc[i] = False
+                r += 1
+                changed = True
+        if not changed:
             break
-        acc = new_acc
     return acc
 
 
