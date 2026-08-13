@@ -76,6 +76,9 @@ struct Model {
     int iterations{0};
     double objective{0.0};
     std::size_t component_count{1};
+    // V14 (G3)：几何/无观测节点独立统计（不混入数据分量）
+    std::size_t geometry_component_count{1};
+    std::uint64_t unobserved_geometry_nodes{0};
 };
 
 // V5（P6-0/G1）：evaluate_C —— centered bilinear basis（同一科学求值
@@ -195,6 +198,8 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
                       const P2ControlNode* nodes, std::uint64_t n_nodes,
                       const P2UpmBuildConfig* cfg_in, void** out_model) {
     if (out_model == nullptr || obs == nullptr || n_obs == 0) return 1;
+    // V14 (G3)：无观测几何节点的 component sentinel（不参与数据图/gauge）
+    const std::size_t kNoData = ~std::size_t(0);
     P2UpmBuildConfig cfg;
     if (cfg_in != nullptr) {
         cfg = *cfg_in;
@@ -390,6 +395,9 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
     }
 
     // R4：求解前连通分量（frame-control 二分图），每分量独立 gauge
+    // V14 (G3)：只有带 observation 的 frame/control 参与数据分量统计；
+    // 纯几何节点（无 obs）不进入 frame-control 图，component 标记为
+    // sentinel（SIZE_MAX），不参与 reference-frame gauge。
     {
         const std::size_t Fn = m->frame_index.size();
         std::vector<std::vector<std::size_t>> fc_adj(Fn + K);
@@ -400,10 +408,11 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
             fc_adj[Fn + ck].push_back(f);
         }
         std::vector<std::uint8_t> seen(Fn + K, 0);
-        m->control_component.assign(K, 0);
+        m->control_component.assign(K, kNoData);
         m->frame_component.assign(Fn, 0);
+        m->unobserved_geometry_nodes = 0;
         std::vector<std::vector<std::uint64_t>> comp_frames;
-        for (std::size_t start = 0; start < Fn + K; ++start) {
+        for (std::size_t start = 0; start < Fn; ++start) {
             if (seen[start]) continue;
             const std::size_t comp = comp_frames.size();
             comp_frames.emplace_back();
@@ -427,6 +436,12 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
                 }
             }
         }
+        // 只统计有观测的 control；无观测节点单列
+        for (std::size_t ck = 0; ck < K; ++ck) {
+            if (m->controls[ck].obs_idx.empty()) {
+                ++m->unobserved_geometry_nodes;
+            }
+        }
         m->component_count_solve = comp_frames.size();
         m->component_ref_frame.resize(comp_frames.size());
         for (std::size_t c = 0; c < comp_frames.size(); ++c) {
@@ -434,7 +449,27 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
             for (std::uint64_t fid : comp_frames[c]) mn = std::min(mn, fid);
             m->component_ref_frame[c] = mn;
         }
-        m->component_count = comp_frames.size();
+        m->component_count = comp_frames.size();       // data_component_count
+        // geometry_component_count：平滑邻接图（含无观测节点）
+        std::vector<std::uint8_t> gseen(K, 0);
+        std::size_t gcomp = 0;
+        for (std::size_t s = 0; s < K; ++s) {
+            if (gseen[s]) continue;
+            ++gcomp;
+            std::vector<std::size_t> st{s};
+            gseen[s] = 1;
+            while (!st.empty()) {
+                const std::size_t u = st.back();
+                st.pop_back();
+                for (std::size_t v : m->adj[u]) {
+                    if (!gseen[v]) {
+                        gseen[v] = 1;
+                        st.push_back(v);
+                    }
+                }
+            }
+        }
+        m->geometry_component_count = gcomp;
     }
 
     // ===== Huber IRLS 坐标下降求解 =====
@@ -533,6 +568,24 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         for (std::size_t k = 0; k < m->controls.size(); ++k) {
             double num = 0.0, den = 0.0;
             const std::size_t comp = m->control_component[k];
+            // V14 (G3)：无观测几何节点不参与数据图，component=sentinel；
+            // 其 M 由全部帧加权（无参考帧语义）定义。
+            if (comp == kNoData) {
+                for (std::size_t ii : m->controls[k].obs_idx) {
+                    const auto& o = obs[ii];
+                    const double c =
+                        m->C[m->frame_index[o.frame_id]][k];
+                    num += w[ii] * (o.value - c);
+                    den += w[ii];
+                }
+                if (den > 1e-12) {
+                    const double Mnew = num / den;
+                    max_dM =
+                        std::max(max_dM, std::fabs(Mnew - M[k]));
+                    M[k] = Mnew;
+                }
+                continue;
+            }
             const std::size_t rf =
                 m->frame_index[m->component_ref_frame[comp]];
             for (std::size_t ii : m->controls[k].obs_idx) {
@@ -693,6 +746,8 @@ int p2_upm_save(const void* model, const char* path) {
     j["iterations"] = m->iterations;
     j["objective"] = m->objective;
     j["component_count"] = m->component_count;
+    j["geometry_component_count"] = m->geometry_component_count;
+    j["unobserved_geometry_nodes"] = m->unobserved_geometry_nodes;
     nlohmann::json refs = nlohmann::json::array();
     for (std::size_t c = 0; c < m->component_count; ++c)
         refs.push_back(m->component_ref_frame[c]);
@@ -760,6 +815,11 @@ int p2_upm_open(const char* path, void** out_model) {
     m->info.target_order = j.value("target_order", 0u);
     m->info.control_count = j.value("control_count", 0ull);
     m->info.observation_count = j.value("observation_count", 0ull);
+    m->component_count = j.value("component_count", 1ull);
+    m->geometry_component_count =
+        j.value("geometry_component_count", 1ull);
+    m->unobserved_geometry_nodes =
+        j.value("unobserved_geometry_nodes", 0ull);
     m->cfg.robust_loss = j.value("robust_loss", 0);
     m->cfg.snr_weight_mode = j.value("snr_weight_mode", 0);
     m->cfg.huber_delta = j.value("huber_delta", 1.345);
