@@ -825,6 +825,15 @@ void MainWindow::reset_auto_stf() {
     std::fprintf(stderr, "[stf] reset auto-global robust range\n");
 }
 
+void MainWindow::set_auto_stf_mode(const QString& mode) {
+    if (!hips_view_) return;
+    const bool view_mode = (mode == "view");
+    hips_view_->set_auto_view(view_mode);
+    if (!view_mode) hips_view_->refresh_auto_range();
+    std::fprintf(stderr, "[stf] auto mode=%s\n",
+                 view_mode ? "view" : "global");
+}
+
 void MainWindow::on_file_close() {
     close_file();
     status_file_->setText("文件: (未打开)");

@@ -62,6 +62,12 @@ void HipsView::refresh_auto_range() {
     update();
 }
 
+void HipsView::set_auto_view(bool on) {
+    sky_.set_auto_view(on);
+    dirty_ = true;
+    update();
+}
+
 void HipsView::set_lod_mode(bool strict_leaf) {
     sky_.set_lod_mode(strict_leaf);
     dirty_ = true;

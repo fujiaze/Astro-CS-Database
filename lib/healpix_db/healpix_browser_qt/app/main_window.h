@@ -65,6 +65,8 @@ public:
     void capture_window_screenshot(const QString& out_png, bool exit_after);
     // V14: Reset STF（重新计算 Auto Global robust 标尺）
     void reset_auto_stf();
+    // V14: Auto STF 模式切换（global=稳定标尺；view=viewport 自适应）
+    void set_auto_stf_mode(const QString& mode);
     // V11: LOD 模式 strict-leaf | hierarchy
     void set_lod_mode(const QString& mode);
     // V9: 命令行直接跳转视图（--view ra,dec,fov）

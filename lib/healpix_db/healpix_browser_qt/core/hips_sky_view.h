@@ -36,6 +36,9 @@ public:
     // V14：Auto STF 模式。auto_global 保持 robust 标尺（pan/zoom 不闪）；
     // refresh_auto_range() 显式重算（Reset / Auto View 触发）。
     void refresh_auto_range() { auto_range_dirty_ = true; }
+    // V14：Auto View 模式（可选）——pan/zoom 时对当前 viewport 重算 robust
+    // STF（适合观察局部暗结构；Auto Global 默认保持标尺不闪）。
+    void set_auto_view(bool on) { auto_view_ = on; if (on) auto_range_dirty_ = true; }
     // V11：LOD 模式。strict-leaf 完全禁止 parent fallback（诊断用）。
     void set_lod_mode(bool strict_leaf) { strict_leaf_ = strict_leaf; }
     void set_cache_cap(std::size_t n) {
@@ -103,6 +106,7 @@ private:
     std::string preset_ = "asinh";
     bool auto_range_ = true;
     bool auto_range_dirty_ = true;   // 首次或显式刷新时重算 robust STF
+    bool auto_view_ = false;         // V14：Auto View（viewport 自适应）
     bool strict_leaf_ = false;
     float lo_ = 0.0f, hi_ = 1.0f;
     // V14：stretch-only redraw —— view 未变时复用已采样 leaves

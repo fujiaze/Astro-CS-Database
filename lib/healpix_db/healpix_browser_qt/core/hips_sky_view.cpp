@@ -47,6 +47,8 @@ void HipsSkyView::set_view(double center_ra, double center_dec,
     dec0_ = clampf((float)center_dec, -89.9f, 89.9f);
     fov_ = clampf((float)fov_deg, 0.05f, 60.0f);
     if (aspect > 0.01) aspect_ = aspect;
+    // V14：Auto View 模式下 pan/zoom 重算 robust STF；Auto Global 保持
+    if (auto_view_ && auto_range_) auto_range_dirty_ = true;
 }
 
 void HipsSkyView::set_size(int width, int height) {
