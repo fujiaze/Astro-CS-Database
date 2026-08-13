@@ -290,6 +290,80 @@ static int run_hips_mode(const std::string& dir, JsonOut& json, int n_queries) {
 static double pct(std::vector<double> v, double p);
 
 // ============================================================================
+// V14: 全 dataset 像素分位统计（Auto Global 标尺证据 / 诊断）
+//  - 遍历全部 leaf tiles，每 tile 均匀 64×64 采样；
+//  - 仅统计 finite && support>0 的 signal；
+//  - 输出扫描耗时与 p0.5/p1/p50/p95/p99/p99.5/p99.9（判定 Auto Global
+//    是否应基于全 dataset 而非首帧视口）。
+// 用法: browser_cli --hips <root> --dataset-stats
+// ============================================================================
+static int run_dataset_stats(const std::string& dir, JsonOut& json,
+                             int layer) {
+    HipsBrowserBackend bk;
+    if (bk.open_product(dir) != 0) {
+        fprintf(stderr, "open_product FAIL\n");
+        return 3;
+    }
+    const int leaf = bk.get_hips_order();
+    const auto& tiles = bk.tiles_at_order(leaf);
+    std::vector<float> samples;
+    samples.reserve(tiles.size() * 4096);
+    const auto t0 = Clock::now();
+    std::size_t read_ok = 0;
+    std::vector<float> sig, sup;
+    for (std::uint64_t tile : tiles) {
+        sig.clear();
+        sup.clear();
+        if (bk.read_tile_at_order(leaf, tile, sig, sup) != 0) continue;
+        ++read_ok;
+        for (int y = 0; y < 512; y += 8)
+            for (int x = 0; x < 512; x += 8) {
+                const std::size_t k = (std::size_t)y * 512u + (std::size_t)x;
+                const float s = sig[k];
+                if (std::isfinite(s) && sup[k] > 0.0f) samples.push_back(s);
+            }
+    }
+    const double scan_ms = elapsed_ms(t0, Clock::now());
+    std::sort(samples.begin(), samples.end());
+    const auto pct = [&samples](double q) -> float {
+        const double idx = q * (double)(samples.size() - 1);
+        const std::size_t lo = (std::size_t)idx;
+        const std::size_t hi = std::min(lo + 1, samples.size() - 1);
+        return samples[lo] +
+               (float)(idx - lo) * (samples[hi] - samples[lo]);
+    };
+    const float med = samples[samples.size() / 2];
+    std::vector<float> dev;
+    dev.reserve(samples.size());
+    for (float s : samples) dev.push_back(std::fabs(s - med));
+    std::sort(dev.begin(), dev.end());
+    const float mad = 1.4826f * dev[dev.size() / 2];
+
+    json.key_str("hips_root", dir);
+    json.key_int("leaf_order", leaf);
+    json.key_int("tiles", (long long)tiles.size());
+    json.key_int("tiles_read_ok", (long long)read_ok);
+    json.key_int("samples", (long long)samples.size());
+    json.key_num("scan_ms", scan_ms);
+    json.key_num("p0_5_pct", pct(0.005));
+    json.key_num("p1_pct", pct(0.01));
+    json.key_num("p50_median", med);
+    json.key_num("mad", mad);
+    json.key_num("p95_pct", pct(0.95));
+    json.key_num("p98_pct", pct(0.98));
+    json.key_num("p99_pct", pct(0.99));
+    json.key_num("p99_5_pct", pct(0.995));
+    json.key_num("p99_9_pct", pct(0.999));
+    fprintf(stderr,
+            "[dataset-stats] tiles=%llu samples=%llu scan_ms=%.1f "
+            "p1=%.6g med=%.6g p99=%.6g\n",
+            (unsigned long long)tiles.size(),
+            (unsigned long long)samples.size(), scan_ms, pct(0.01), med,
+            pct(0.99));
+    return 0;
+}
+
+// ============================================================================
 //  - stretch-only redraw：view 未变时复用已采样 leaves，仅 tone-map（STF 改变
 //    不允许重新 sky→HEALPix→FITS decode）。
 //  - stf_recompute：Auto STF 重算 robust median/MAD 标尺 + tone-map。
@@ -814,6 +888,7 @@ int main(int argc, char* argv[]) {
     bool sim_pan = false;
     bool stf_bench = false;
     bool stf_lock_probe = false;
+    bool dataset_stats = false;
     int soak_seconds = 0;
     bool hips_mode = false;
     int hips_queries = 1024;
@@ -833,6 +908,8 @@ int main(int argc, char* argv[]) {
             stf_bench = true;
         } else if (arg == "--stf-lock-probe") {
             stf_lock_probe = true;
+        } else if (arg == "--dataset-stats") {
+            dataset_stats = true;
         } else if (arg == "--soak") {
             if (i + 1 < argc) soak_seconds = atoi(argv[++i]);
         } else if (arg == "--sim") {
@@ -872,6 +949,7 @@ int main(int argc, char* argv[]) {
             fprintf(stderr, "  --benchmark      性能测试 (文件打开 + 子叶加载 + 降采样)\n");
             fprintf(stderr, "  --stf-bench      浏览器 STF 延迟测试 (recompute vs stretch-only)\n");
             fprintf(stderr, "  --stf-lock-probe Lock STF 行为验证 (锁定冻结标尺/解锁恢复)\n");
+            fprintf(stderr, "  --dataset-stats  全 dataset 分位统计 (Auto Global 标尺证据)\n");
             fprintf(stderr, "  --soak N         内存有界 soak 测试 N 秒 (pan/zoom 扫描 + RAM 采样)\n");
             fprintf(stderr, "  --sim zoom       模拟缩放操作 (测试视角变化性能)\n");
             fprintf(stderr, "  --sim pan        模拟平移操作 (测试视角变化性能)\n");
@@ -972,6 +1050,9 @@ int main(int argc, char* argv[]) {
         } else if (stf_lock_probe) {
             const int layer = (layer_str == "support") ? 1 : 0;
             rc_h = run_stf_lock_probe(file_path, json, view_str, layer);
+        } else if (dataset_stats) {
+            const int layer = (layer_str == "support") ? 1 : 0;
+            rc_h = run_dataset_stats(file_path, json, layer);
         } else if (soak_seconds > 0) {
             const int layer = (layer_str == "support") ? 1 : 0;
             rc_h = run_mem_soak(file_path, json, view_str, soak_seconds, layer);
