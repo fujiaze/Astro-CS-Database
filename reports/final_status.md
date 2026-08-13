@@ -5,7 +5,7 @@ PHASE1_BASE_ALGORITHMS = FROZEN_CANDIDATE
 PHASE2_BASE_ALGORITHMS = FROZEN_CANDIDATE
 CROSS_STAGE_CONTRACTS  = FROZEN_CANDIDATE
 BASE_API_CONTRACT      = FROZEN_CANDIDATE
-PERFORMANCE_BASELINE   = DEFERRED（用户要求性能最后；机器忙）
+PERFORMANCE_BASELINE   = FROZEN_CANDIDATE（baseline + 热点优化完成）
 HIPS_BROWSER_BASE      = FROZEN_CANDIDATE
 ```
 
@@ -19,7 +19,7 @@ G3 UPM cleanup       = PASS（data=1 / geometry=1 / unobserved=39488；无 senti
 G4 sampler truth     = PASS（16 星多 PSF/亮度；recall 100%；false reject 0%）
 G5 interface/config  = PASS（api_inventory + config consistency test）
 G6 browser           = PASS（Auto Global robust + reset-stf + stretch-only redraw）
-G7 performance       = DEFERRED（用户指令最后做；记录单次参考）
+G7 performance       = PASS（Phase1/Phase2/Browser 3 次 baseline；GC -20%、t4 -19%；science 逐位等价）
 G8 docs              = PASS（README 唯一入口 + 11 份 docs）
 ```
 
