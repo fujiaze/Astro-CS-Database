@@ -452,6 +452,93 @@ static int run_stf_lock_probe(const std::string& dir, JsonOut& json,
 }
 
 // ============================================================================
+// V14: 10 分钟内存有界 soak（G6 验收）
+//  - 连续 pan/zoom 扫描（FOV 0.5°~14.75° 循环，触发跨 order/tile 解码）；
+//  - 每 5 秒采样工作集；LRU 有界缓存应使内存保持平坦（无单调增长）。
+// 用法: browser_cli --hips <root> --soak <seconds> [--view ra,dec,fov]
+// ============================================================================
+static int run_mem_soak(const std::string& dir, JsonOut& json,
+                        const std::string& view_str, int seconds,
+                        int layer) {
+    if (seconds < 30) seconds = 30;
+    double ra = 0, dec = 0, fov = 8.0;
+    if (!view_str.empty()) {
+        if (std::sscanf(view_str.c_str(), "%lf,%lf,%lf", &ra, &dec, &fov) != 3)
+            return 2;
+    }
+    HipsBrowserBackend bk;
+    if (bk.open_product(dir) != 0) {
+        fprintf(stderr, "open_product FAIL\n");
+        return 3;
+    }
+    HipsSkyView sky;
+    sky.set_backend(&bk);
+    sky.set_size(960, 720);
+    sky.set_layer(layer);
+    sky.set_stretch("asinh", true);
+    sky.set_view(ra, dec, fov, 960.0 / 720.0);
+
+    std::vector<std::uint32_t> rgba;
+    sky.rasterize(rgba);  // cold
+    const double ram0 = (double)get_working_set_mb();
+
+    const auto t_end = Clock::now() + std::chrono::seconds(seconds);
+    std::size_t frames = 0;
+    std::vector<double> ram_samples;
+    auto t_last = Clock::now();
+    double c_ra = ra, c_dec = dec;
+    while (Clock::now() < t_end) {
+        c_ra = std::fmod(c_ra + 0.7, 360.0);
+        const int k = (int)(frames % 9);
+        c_dec = dec + (double)(k - 4) * 0.35;
+        if (c_dec > 85.0) c_dec = 85.0;
+        if (c_dec < -85.0) c_dec = -85.0;
+        const double z_fov =
+            0.5 + (double)(frames % 20) * 0.75;  // 0.5°~14.75° 扫描
+        sky.set_view(c_ra, c_dec, z_fov, 960.0 / 720.0);
+        sky.rasterize(rgba);
+        ++frames;
+        const auto now = Clock::now();
+        if (std::chrono::duration<double>(now - t_last).count() >= 5.0) {
+            ram_samples.push_back((double)get_working_set_mb());
+            t_last = now;
+        }
+    }
+    const double final_ram = (double)get_working_set_mb();
+    const double peak_ram = ram_samples.empty()
+                                ? final_ram
+                                : *std::max_element(ram_samples.begin(),
+                                                    ram_samples.end());
+    std::vector<double> sorted = ram_samples;
+    std::sort(sorted.begin(), sorted.end());
+    const double median_ram =
+        sorted.empty() ? final_ram : sorted[sorted.size() / 2];
+    const bool bounded = peak_ram <= 512.0 &&
+                         final_ram <= peak_ram + 8.0 &&
+                         median_ram <= 256.0;
+
+    json.key_str("hips_root", dir);
+    json.key_int("soak_seconds", seconds);
+    json.key_int("frames", (long long)frames);
+    json.key_int("ram_samples", (long long)ram_samples.size());
+    json.key_num("ram_initial_mb", ram0);
+    json.key_num("ram_final_mb", final_ram);
+    json.key_num("ram_peak_mb", peak_ram);
+    json.key_num("ram_median_mb", median_ram);
+    json.key_int("cache_evictions", (long long)sky.metrics().evictions);
+    json.key_int("tiles_decoded_total",
+                 (long long)sky.metrics().total_tile_reads);
+    json.key_bool("mem_bounded_pass", bounded);
+    fprintf(stderr,
+            "[soak] seconds=%d frames=%llu ram0=%.0f ram_peak=%.0f "
+            "ram_median=%.0f ram_final=%.0f evict=%llu bounded=%d\n",
+            seconds, (unsigned long long)frames, ram0, peak_ram, median_ram,
+            final_ram, (unsigned long long)sky.metrics().evictions,
+            bounded ? 1 : 0);
+    return bounded ? 0 : 5;
+}
+
+// ============================================================================
 // HiPS 2D 天空视图渲染 benchmark（V9 P9-5）
 // 用法: browser_cli --hips <root> --benchmark --view ra,dec,fov [--frames N]
 //       [--layer signal|support]
@@ -727,6 +814,7 @@ int main(int argc, char* argv[]) {
     bool sim_pan = false;
     bool stf_bench = false;
     bool stf_lock_probe = false;
+    int soak_seconds = 0;
     bool hips_mode = false;
     int hips_queries = 1024;
     int sim_frames = 100;
@@ -745,6 +833,8 @@ int main(int argc, char* argv[]) {
             stf_bench = true;
         } else if (arg == "--stf-lock-probe") {
             stf_lock_probe = true;
+        } else if (arg == "--soak") {
+            if (i + 1 < argc) soak_seconds = atoi(argv[++i]);
         } else if (arg == "--sim") {
             if (i + 1 < argc) {
                 std::string sim_type = argv[++i];
@@ -782,6 +872,7 @@ int main(int argc, char* argv[]) {
             fprintf(stderr, "  --benchmark      性能测试 (文件打开 + 子叶加载 + 降采样)\n");
             fprintf(stderr, "  --stf-bench      浏览器 STF 延迟测试 (recompute vs stretch-only)\n");
             fprintf(stderr, "  --stf-lock-probe Lock STF 行为验证 (锁定冻结标尺/解锁恢复)\n");
+            fprintf(stderr, "  --soak N         内存有界 soak 测试 N 秒 (pan/zoom 扫描 + RAM 采样)\n");
             fprintf(stderr, "  --sim zoom       模拟缩放操作 (测试视角变化性能)\n");
             fprintf(stderr, "  --sim pan        模拟平移操作 (测试视角变化性能)\n");
             fprintf(stderr, "  --frames N       模拟操作帧数 (默认 100)\n");
@@ -881,6 +972,9 @@ int main(int argc, char* argv[]) {
         } else if (stf_lock_probe) {
             const int layer = (layer_str == "support") ? 1 : 0;
             rc_h = run_stf_lock_probe(file_path, json, view_str, layer);
+        } else if (soak_seconds > 0) {
+            const int layer = (layer_str == "support") ? 1 : 0;
+            rc_h = run_mem_soak(file_path, json, view_str, soak_seconds, layer);
         } else if (!ref_out.empty()) {
             const int layer = (layer_str == "support") ? 1 : 0;
             rc_h = run_reference_render(file_path, ref_out, view_str, ref_w,
