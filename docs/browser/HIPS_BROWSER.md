@@ -11,6 +11,10 @@ STF 改变**只重做 display transform**，不重新 sky→HEALPix 采样/FITS 
 ## Auto STF
 
 - `Auto Global`（默认）：对 dataset/layer 建一次 robust STF，pan/zoom 稳定；
+- V14 v2：Auto Global 首次扫描**全部 leaf tiles**（每 tile 64×64 均匀采样，
+  进程内缓存，一次会话只扫一次）后取 p1/p99 分位，与 V13 fixed stretch
+  （1%/99%）视觉一致；p99 被极端亮星/卫星线污染（> median+30×MAD）时
+  退回 12×MAD 剔除后重算；
 - `Auto View`（可选）：当前 viewport，debounce + 后台 worker；
 - `--stf-mode global|view`（CLI）切换两种模式；
 - `Lock STF` / `Reset` / manual black/white/midtones；
@@ -22,8 +26,8 @@ STF 改变**只重做 display transform**，不重新 sky→HEALPix 采样/FITS 
 ## Robust signal auto stretch
 
 ```text
-finite && support>0 → median/MAD → bright-tail iterative clipping →
-robust black/white → asinh/MTF
+finite && support>0 → (全 dataset 或 viewport) 采样 →
+median/MAD 污染守卫 → p1/p99 robust black/white → asinh/MTF
 ```
 
-亮星不主导背景估计。
+亮星不主导背景估计；真实结构（暗星/星系）不被 MAD 过紧的标尺过曝。

@@ -16,6 +16,22 @@ stretch-only redraw（仅 tone-map，不重新采样/FITS decode）：
 峰值内存：72 MB（3 次一致）
 ```
 
+## Auto STF v2（V14 审核修复，全 dataset 标尺）
+
+```text
+Auto Global 首次扫描全部 689 leaf tiles（64×64 均匀采样，251 万样本）：
+  scan 3.6s（一次，进程内缓存；后续重算命中缓存 ~17ms）
+全 dataset 分位: p1=0.001726  med=0.001977  p99=0.004324（vs V13 fixed
+  black/white 0.001615/0.004578，视觉一致）
+Auto Global 标尺（GC Wide）: lo=0.001726 / hi=0.004330
+截图统计: white 0.3% / mean_lum 41.3 vs V13 fixed 0.3% / 41.8
+```
+
+修复内容：Auto Global 由"首帧视口 cache"改为"全 dataset 均匀采样 +
+p1/p99 分位（median+30×MAD 污染守卫）"，support>0 过滤；Auto View 保持
+视口自适应。视口 p99（GC Wide 0.0031）显著低于全 dataset（0.0043），
+旧实现导致真实结构过曝。
+
 stretch-only 重绘比完整 pan 帧（约 220 ms）快约 15 倍，比 robust STF 重算快
 约 3.2 倍——证明“STF 改变不重新做 sky→HEALPix→FITS decode”的设计目标达成。
 证据：`evidence/performance/browser_stf_summary.json` + `browser_stf_run{1..3}.json`
