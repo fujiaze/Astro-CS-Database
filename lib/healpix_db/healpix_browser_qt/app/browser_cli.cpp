@@ -285,6 +285,173 @@ static int run_hips_mode(const std::string& dir, JsonOut& json, int n_queries) {
 }
 
 // ============================================================================
+// V14: STF 延迟 benchmark（G7 Browser profile 的一部分）
+// ============================================================================
+static double pct(std::vector<double> v, double p);
+
+// ============================================================================
+//  - stretch-only redraw：view 未变时复用已采样 leaves，仅 tone-map（STF 改变
+//    不允许重新 sky→HEALPix→FITS decode）。
+//  - stf_recompute：Auto STF 重算 robust median/MAD 标尺 + tone-map。
+// 用法: browser_cli --hips <root> --stf-bench --view ra,dec,fov [--frames N]
+// ============================================================================
+static int run_stf_bench(const std::string& dir, JsonOut& json,
+                         const std::string& view_str, int frames,
+                         int layer) {
+    double ra = 0, dec = 0, fov = 8.0;
+    if (!view_str.empty()) {
+        if (std::sscanf(view_str.c_str(), "%lf,%lf,%lf", &ra, &dec, &fov) != 3)
+            return 2;
+    }
+    HipsBrowserBackend bk;
+    if (bk.open_product(dir) != 0) {
+        fprintf(stderr, "open_product FAIL\n");
+        return 3;
+    }
+    HipsSkyView sky;
+    sky.set_backend(&bk);
+    sky.set_size(960, 720);
+    sky.set_layer(layer);
+    sky.set_stretch("asinh", true);
+    sky.set_view(ra, dec, fov, 960.0 / 720.0);
+
+    std::vector<std::uint32_t> rgba;
+    sky.rasterize(rgba);  // cold：首次 tile 解码 + 首次 robust STF
+    if (frames < 3) frames = 3;
+
+    // stretch-only redraw：view 不变，复用已采样 leaves
+    std::vector<double> redraw_ms;
+    for (int i = 0; i < frames; ++i) {
+        const auto t0 = Clock::now();
+        sky.rasterize(rgba);
+        redraw_ms.push_back(elapsed_ms(t0, Clock::now()));
+    }
+
+    // Auto STF 重算：robust median/MAD + 亮端 clip + tone-map（复用 leaves）
+    std::vector<double> stf_ms;
+    for (int i = 0; i < frames; ++i) {
+        sky.refresh_auto_range();
+        const auto t0 = Clock::now();
+        sky.rasterize(rgba);
+        stf_ms.push_back(elapsed_ms(t0, Clock::now()));
+    }
+
+    json.key_str("hips_root", dir);
+    json.key_str("view", view_str);
+    json.key_int("frames", frames);
+    json.key_num("stf_recompute_ms_p50", pct(stf_ms, 0.50));
+    json.key_num("stf_recompute_ms_p95", pct(stf_ms, 0.95));
+    json.key_num("stf_recompute_ms_max",
+                 stf_ms.empty() ? 0.0
+                                : *std::max_element(stf_ms.begin(),
+                                                    stf_ms.end()));
+    json.key_num("stretch_only_ms_p50", pct(redraw_ms, 0.50));
+    json.key_num("stretch_only_ms_p95", pct(redraw_ms, 0.95));
+    json.key_num("stretch_only_ms_max",
+                 redraw_ms.empty() ? 0.0
+                                   : *std::max_element(redraw_ms.begin(),
+                                                       redraw_ms.end()));
+    json.key_num("range_lo", sky.range_lo());
+    json.key_num("range_hi", sky.range_hi());
+    json.key_int("peak_ram_mb", (long long)get_working_set_mb());
+    fprintf(stderr,
+            "[stf-bench] recompute_p50=%.2f recompute_p95=%.2f "
+            "stretch_only_p50=%.2f stretch_only_p95=%.2f ms\n",
+            pct(stf_ms, 0.50), pct(stf_ms, 0.95), pct(redraw_ms, 0.50),
+            pct(redraw_ms, 0.95));
+    return 0;
+}
+
+// ============================================================================
+// V14: Lock STF 行为探针（G6 Lock/Reset 验收）
+//  - 锁定后 pan/zoom、auto view 模式切换、Reset 均不得改动 lo/hi；
+//  - 解锁后 Reset 恢复重算（证明锁定是冻结标尺的原因）。
+// 用法: browser_cli --hips <root> --stf-lock-probe --view ra,dec,fov
+// ============================================================================
+static int run_stf_lock_probe(const std::string& dir, JsonOut& json,
+                              const std::string& view_str, int layer) {
+    double ra = 0, dec = 0, fov = 8.0;
+    if (!view_str.empty()) {
+        if (std::sscanf(view_str.c_str(), "%lf,%lf,%lf", &ra, &dec, &fov) != 3)
+            return 2;
+    }
+    HipsBrowserBackend bk;
+    if (bk.open_product(dir) != 0) {
+        fprintf(stderr, "open_product FAIL\n");
+        return 3;
+    }
+    HipsSkyView sky;
+    sky.set_backend(&bk);
+    sky.set_size(960, 720);
+    sky.set_layer(layer);
+    sky.set_stretch("asinh", true);
+    sky.set_view(ra, dec, fov, 960.0 / 720.0);
+
+    std::vector<std::uint32_t> rgba;
+    sky.rasterize(rgba);  // 首次 robust STF 计算
+    const float lo0 = sky.range_lo();
+    const float hi0 = sky.range_hi();
+    const std::uint64_t c0 = sky.auto_recompute_count();
+
+    sky.set_stf_locked(true);
+    sky.set_auto_view(true);  // 锁定后模式切换不得重算
+    const double ra2 = std::fmod(ra + 3.0, 360.0);
+    const double dec2 = dec + 0.5;
+    const double fov2 = fov * 0.8;
+    sky.set_view(ra2, dec2, fov2, 960.0 / 720.0);
+    sky.rasterize(rgba);
+    const float lo_pan = sky.range_lo();
+    const float hi_pan = sky.range_hi();
+    const std::uint64_t c_locked_pan = sky.auto_recompute_count();
+
+    sky.refresh_auto_range();  // 锁定后 Reset 不得重算
+    sky.rasterize(rgba);
+    const float lo_reset = sky.range_lo();
+    const float hi_reset = sky.range_hi();
+    const std::uint64_t c_locked_reset = sky.auto_recompute_count();
+
+    sky.set_stf_locked(false);
+    sky.refresh_auto_range();
+    sky.rasterize(rgba);
+    const float lo_unlock = sky.range_lo();
+    const float hi_unlock = sky.range_hi();
+    const std::uint64_t c_unlock = sky.auto_recompute_count();
+
+    const bool pan_frozen = (lo_pan == lo0 && hi_pan == hi0);
+    const bool reset_frozen = (lo_reset == lo0 && hi_reset == hi0);
+    const bool lock_blocks_recompute =
+        (c_locked_pan == c0 && c_locked_reset == c0);
+    const bool unlock_recomputes = (c_unlock > c_locked_reset);
+    const bool pass = pan_frozen && reset_frozen && unlock_recomputes;
+
+    json.key_str("hips_root", dir);
+    json.key_int("auto_recompute_count_initial", (long long)c0);
+    json.key_int("auto_recompute_count_locked_pan", (long long)c_locked_pan);
+    json.key_int("auto_recompute_count_locked_reset", (long long)c_locked_reset);
+    json.key_int("auto_recompute_count_unlocked", (long long)c_unlock);
+    json.key_num("range_lo_initial", lo0);
+    json.key_num("range_hi_initial", hi0);
+    json.key_num("range_lo_locked_pan", lo_pan);
+    json.key_num("range_hi_locked_pan", hi_pan);
+    json.key_num("range_lo_locked_reset", lo_reset);
+    json.key_num("range_hi_locked_reset", hi_reset);
+    json.key_num("range_lo_after_unlock", lo_unlock);
+    json.key_num("range_hi_after_unlock", hi_unlock);
+    json.key_bool("lock_pan_frozen", pan_frozen);
+    json.key_bool("lock_reset_frozen", reset_frozen);
+    json.key_bool("lock_blocks_recompute", lock_blocks_recompute);
+    json.key_bool("unlock_recomputes", unlock_recomputes);
+    json.key_bool("lock_probe_pass", pass);
+    fprintf(stderr,
+            "[stf-lock-probe] pass=%d counts=%llu->%llu/%llu->%llu "
+            "lo0=%.6g lo_pan=%.6g lo_reset=%.6g lo_unlock=%.6g\n",
+            pass ? 1 : 0, (unsigned long long)c0,
+            (unsigned long long)c_locked_pan, (unsigned long long)c_locked_reset,
+            (unsigned long long)c_unlock, lo0, lo_pan, lo_reset, lo_unlock);
+    return pass ? 0 : 4;
+}
+
+// ============================================================================
 // HiPS 2D 天空视图渲染 benchmark（V9 P9-5）
 // 用法: browser_cli --hips <root> --benchmark --view ra,dec,fov [--frames N]
 //       [--layer signal|support]
@@ -558,6 +725,8 @@ int main(int argc, char* argv[]) {
     bool benchmark = false;
     bool sim_zoom = false;
     bool sim_pan = false;
+    bool stf_bench = false;
+    bool stf_lock_probe = false;
     bool hips_mode = false;
     int hips_queries = 1024;
     int sim_frames = 100;
@@ -572,6 +741,10 @@ int main(int argc, char* argv[]) {
             diag_only = true;
         } else if (arg == "--benchmark" || arg == "-b") {
             benchmark = true;
+        } else if (arg == "--stf-bench") {
+            stf_bench = true;
+        } else if (arg == "--stf-lock-probe") {
+            stf_lock_probe = true;
         } else if (arg == "--sim") {
             if (i + 1 < argc) {
                 std::string sim_type = argv[++i];
@@ -607,6 +780,8 @@ int main(int argc, char* argv[]) {
             fprintf(stderr, "  --hips           以 HiPS 产品集根目录打开 (signal/support/snr), 验证 Browser 数据层\n");
             fprintf(stderr, "  --queries N      HiPS 模式随机查询数 (默认 1024)\n");
             fprintf(stderr, "  --benchmark      性能测试 (文件打开 + 子叶加载 + 降采样)\n");
+            fprintf(stderr, "  --stf-bench      浏览器 STF 延迟测试 (recompute vs stretch-only)\n");
+            fprintf(stderr, "  --stf-lock-probe Lock STF 行为验证 (锁定冻结标尺/解锁恢复)\n");
             fprintf(stderr, "  --sim zoom       模拟缩放操作 (测试视角变化性能)\n");
             fprintf(stderr, "  --sim pan        模拟平移操作 (测试视角变化性能)\n");
             fprintf(stderr, "  --frames N       模拟操作帧数 (默认 100)\n");
@@ -700,6 +875,12 @@ int main(int argc, char* argv[]) {
             const int layer = (layer_str == "support") ? 1 : 0;
             rc_h = run_hips_raster_bench(file_path, json, view_str,
                                          sim_frames, layer);
+        } else if (stf_bench) {
+            const int layer = (layer_str == "support") ? 1 : 0;
+            rc_h = run_stf_bench(file_path, json, view_str, sim_frames, layer);
+        } else if (stf_lock_probe) {
+            const int layer = (layer_str == "support") ? 1 : 0;
+            rc_h = run_stf_lock_probe(file_path, json, view_str, layer);
         } else if (!ref_out.empty()) {
             const int layer = (layer_str == "support") ? 1 : 0;
             rc_h = run_reference_render(file_path, ref_out, view_str, ref_w,
