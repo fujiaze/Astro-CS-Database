@@ -33,6 +33,9 @@ public:
     void set_layer(int layer);              // 0=signal, 1=support
     void set_stretch(const std::string& preset, bool auto_range);
     void set_manual_range(float lo, float hi);
+    // V14：Auto STF 模式。auto_global 保持 robust 标尺（pan/zoom 不闪）；
+    // refresh_auto_range() 显式重算（Reset / Auto View 触发）。
+    void refresh_auto_range() { auto_range_dirty_ = true; }
     // V11：LOD 模式。strict-leaf 完全禁止 parent fallback（诊断用）。
     void set_lod_mode(bool strict_leaf) { strict_leaf_ = strict_leaf; }
     void set_cache_cap(std::size_t n) {
@@ -99,8 +102,13 @@ private:
     int layer_ = 0;
     std::string preset_ = "asinh";
     bool auto_range_ = true;
+    bool auto_range_dirty_ = true;   // 首次或显式刷新时重算 robust STF
     bool strict_leaf_ = false;
     float lo_ = 0.0f, hi_ = 1.0f;
+    // V14：stretch-only redraw —— view 未变时复用已采样 leaves
+    std::vector<std::uint64_t> cached_leaves_;
+    double cache_ra0_ = 0.0, cache_dec0_ = 0.0, cache_fov_ = 0.0;
+    int cache_w_ = 0, cache_h_ = 0;
     std::uint64_t clock_ = 0;
     std::size_t cache_cap_ = 64;
     std::map<std::pair<int, std::uint64_t>, std::shared_ptr<Tile>> cache_;

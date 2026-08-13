@@ -46,6 +46,8 @@ int main(int argc, char* argv[]) {
                                     "整窗截图（含状态栏）", "path");
     QCommandLineOption lod_opt("lod", "LOD 模式 strict-leaf|hierarchy",
                                "mode");
+    QCommandLineOption reset_stf_opt(
+        "reset-stf", "重新计算 Auto Global robust 显示标尺");
     parser.addOption(hips_opt);
     parser.addOption(std_hips_opt);
     parser.addOption(preset_opt);
@@ -55,6 +57,7 @@ int main(int argc, char* argv[]) {
     parser.addOption(view_opt);
     parser.addOption(win_shot_opt);
     parser.addOption(lod_opt);
+    parser.addOption(reset_stf_opt);
     parser.process(app);
 
     // 创建主窗口
@@ -79,6 +82,7 @@ int main(int argc, char* argv[]) {
     const QString view = parser.value(view_opt);
     const QString win_shot = parser.value(win_shot_opt);
     const QString lod = parser.value(lod_opt);
+    const bool reset_stf = parser.isSet(reset_stf_opt);
 
     if (!target.isEmpty()) {
         QMetaObject::invokeMethod(&window, "open_file_from_cli",
@@ -96,6 +100,11 @@ int main(int argc, char* argv[]) {
     if (lod == "strict-leaf" || lod == "hierarchy") {
         QTimer::singleShot(950, &window, [&window, lod]() {
             window.set_lod_mode(lod);
+        });
+    }
+    if (reset_stf) {
+        QTimer::singleShot(950, &window, [&window]() {
+            window.reset_auto_stf();
         });
     }
     if (!view.isEmpty()) {

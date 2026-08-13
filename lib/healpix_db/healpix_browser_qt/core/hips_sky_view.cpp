@@ -219,7 +219,19 @@ void HipsSkyView::rasterize(std::vector<std::uint32_t>& rgba) {
     const std::size_t npx = (std::size_t)w_ * (std::size_t)h_;
 
     // ---- Phase A（并行）：屏幕像素 → (ra,dec) → leaf ----
-    std::vector<std::uint64_t> leaves(npx);
+    // V14：view 未变时复用已采样 leaves（stretch-only redraw，不重新
+    // sky→HEALPix 采样/FITS decode）。
+    std::vector<std::uint64_t> leaves;
+    const bool view_same =
+        cache_w_ == w_ && cache_h_ == h_ &&
+        std::fabs(cache_ra0_ - ra0_) < 1e-12 &&
+        std::fabs(cache_dec0_ - dec0_) < 1e-12 &&
+        std::fabs(cache_fov_ - fov_) < 1e-12;
+    if (view_same && !cached_leaves_.empty() &&
+        cached_leaves_.size() == npx) {
+        leaves = cached_leaves_;
+    } else {
+    leaves.assign(npx, 0);
     {
         const int nt = omp_get_max_threads();
         std::vector<std::vector<std::uint64_t>> per_thread(nt);
@@ -276,11 +288,15 @@ void HipsSkyView::rasterize(std::vector<std::uint32_t>& rgba) {
             }
         }
     }
+    cached_leaves_ = leaves;
+    cache_ra0_ = ra0_; cache_dec0_ = dec0_; cache_fov_ = fov_;
+    cache_w_ = w_; cache_h_ = h_;
+    }
 
-    // ---- 自动范围：从已解码可见 tile 采样（0.5%/99.5% 百分位）----
+    // ---- 自动范围（V14）：robust median/MAD + 亮端 clip，Auto Global ----
     float dmin = FLT_MAX, dmax = -FLT_MAX;
     std::size_t valid = 0;
-    if (layer_ == 0 && auto_range_) {
+    if (layer_ == 0 && auto_range_ && auto_range_dirty_) {
         std::vector<float> samples;
         for (const auto& kv : cache_) {
             const Tile& t = *kv.second;
@@ -293,12 +309,38 @@ void HipsSkyView::rasterize(std::vector<std::uint32_t>& rgba) {
         if (!samples.empty()) {
             std::sort(samples.begin(), samples.end());
             const std::size_t n = samples.size();
-            // V10：加宽 auto-range 到 1%/99%（避免 0.5% 端星点把动态范围
-            // 收窄导致噪声/星点过度放大、视觉上“碎屑化”）
-            dmin = samples[(std::size_t)(0.01 * (double)(n - 1))];
-            dmax = samples[(std::size_t)(0.99 * (double)(n - 1))];
+            // V14：robust median/MAD + 亮端迭代 clip，亮星不主导背景；
+            // Auto Global 保持（auto_range_dirty_ 只在首帧/显式刷新重算）
+            const float med = samples[n / 2];
+            std::vector<float> dev;
+            dev.reserve(n);
+            for (float s : samples) dev.push_back(std::fabs(s - med));
+            std::sort(dev.begin(), dev.end());
+            const float mad = 1.4826f * dev[dev.size() / 2];
+            std::vector<float> ret;
+            for (int it = 0; it < 3; ++it) {
+                ret.clear();
+                for (float s : samples)
+                    if (s <= med + 3.0f * mad) ret.push_back(s);
+                if (ret.size() < 32u) break;
+                const float nm = ret[ret.size() / 2];
+                if (std::fabs(nm - med) < 1e-6f * (med + 1e-9f)) {
+                    ret = samples;  // 收敛：全部保留
+                    break;
+                }
+                // 重算 med/mad（简化：用 ret 中位数）
+            }
+            const float rmed = ret.empty() ? med : ret[ret.size() / 2];
+            std::vector<float> rdev;
+            for (float s : (ret.empty() ? samples : ret))
+                rdev.push_back(std::fabs(s - rmed));
+            std::sort(rdev.begin(), rdev.end());
+            const float rmad = 1.4826f * rdev[rdev.size() / 2];
+            dmin = rmed - 3.0f * rmad;
+            dmax = rmed + 3.0f * rmad;
             if (dmax <= dmin) dmax = dmin + 1.0f;
             valid = samples.size();
+            auto_range_dirty_ = false;   // Auto Global：保持标尺
         }
         stats_.data_min = dmin;
         stats_.data_max = dmax;

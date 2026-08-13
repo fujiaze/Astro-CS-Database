@@ -819,6 +819,12 @@ void MainWindow::set_lod_mode(const QString& mode) {
                  mode.toStdString().c_str(), strict ? 1 : 0);
 }
 
+void MainWindow::reset_auto_stf() {
+    if (!hips_view_) return;
+    hips_view_->refresh_auto_range();
+    std::fprintf(stderr, "[stf] reset auto-global robust range\n");
+}
+
 void MainWindow::on_file_close() {
     close_file();
     status_file_->setText("文件: (未打开)");
