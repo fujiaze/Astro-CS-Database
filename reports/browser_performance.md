@@ -34,5 +34,17 @@ Lock STF 行为由 `browser_cli --stf-lock-probe` 验证 PASS：
 
 ## 未完成
 
-- 10 分钟内存有界 soak：交互式长跑验证留待机器空闲（当前用户在跑任务），
-  不改变 G6 其余已 PASS 项；签字前需补此项证据。
+- 无（G6–G7 全部证据已齐）。
+
+## 10 分钟内存有界 soak（G6，browser_cli --soak 600）
+
+```text
+时长 600s，16,952 帧（pan/zoom + FOV 0.5°~14.75° 扫描）
+RSS: 初始 72 MB → 峰值 157 MB → 结束 157 MB（median 154 MB）
+tile 解码 4,688 次，LRU 淘汰 4,624 次 —— 缓存封顶后内存保持平坦
+mem_bounded_pass = true
+```
+
+证据：`evidence/performance/browser_soak_600s.json`（每 5 秒采样，119 个
+样本）。内存先随缓存填充升至 ~155MB，之后被 LRU（64 tile 上限）封顶，
+10 分钟无单调增长。
