@@ -29,7 +29,59 @@ inline float clampf(float x, float lo, float hi) {
     return x < lo ? lo : (x > hi ? hi : x);
 }
 
+// V14 v2：自动标尺 —— 已排序样本的 p1/p99 分位 + 亮端污染守卫。
+// 与 V13 fixed stretch（1%/99%，用户 ACCEPTED）一致；亮星不主导背景：
+// 若 p99 被极端亮星/卫星线污染（> med+30*MAD），退回到剔除
+// > med+12*MAD 后重算 p99。
+void compute_auto_range(const std::vector<float>& samples, float* dmin,
+                        float* dmax) {
+    *dmin = samples.front();
+    *dmax = samples.back();
+    if (samples.size() < 32u) return;
+    const auto pct = [&samples](double q) -> float {
+        const double idx = q * (double)(samples.size() - 1);
+        const std::size_t lo = (std::size_t)idx;
+        const std::size_t hi = std::min(lo + 1, samples.size() - 1);
+        const float f = (float)(idx - lo);
+        return samples[lo] + f * (samples[hi] - samples[lo]);
+    };
+    const std::size_t n = samples.size();
+    const float med = samples[n / 2];
+    std::vector<float> dev;
+    dev.reserve(n);
+    for (float s : samples) dev.push_back(std::fabs(s - med));
+    std::sort(dev.begin(), dev.end());
+    const float mad = 1.4826f * dev[dev.size() / 2];
+    const float p1 = pct(0.01);
+    const float p99 = pct(0.99);
+    float hi = p99;
+    if (p99 > med + 30.0f * mad) {
+        const float cut = med + 12.0f * mad;
+        std::vector<float> keep;
+        keep.reserve(n);
+        for (float s : samples)
+            if (s <= cut) keep.push_back(s);
+        if (keep.size() >= 32u) {
+            const auto pctk = [&keep](double q) -> float {
+                const double idx = q * (double)(keep.size() - 1);
+                const std::size_t lo = (std::size_t)idx;
+                const std::size_t h = std::min(lo + 1, keep.size() - 1);
+                const float f = (float)(idx - lo);
+                return keep[lo] + f * (keep[h] - keep[lo]);
+            };
+            hi = pctk(0.99);
+        }
+    }
+    *dmin = p1;
+    *dmax = hi;
+    if (*dmax <= *dmin) *dmax = *dmin + 1.0f;
+}
+
 }  // namespace
+
+// 进程内全 dataset 标尺缓存（Auto Global；一次会话只扫一次）
+std::map<std::string, std::pair<float, float>>
+    HipsSkyView::g_global_scan_cache_;
 
 HipsSkyView::HipsSkyView() = default;
 
@@ -296,58 +348,70 @@ void HipsSkyView::rasterize(std::vector<std::uint32_t>& rgba) {
     cache_w_ = w_; cache_h_ = h_;
     }
 
-    // ---- 自动范围（V14）：robust median/MAD + 亮端 clip，Auto Global ----
+    // ---- 自动范围（V14 v2）：support>0 + robust 污染剔除 + 1%/99% 分位 ----
     float dmin = FLT_MAX, dmax = -FLT_MAX;
     std::size_t valid = 0;
     if (layer_ == 0 && auto_range_ && auto_range_dirty_ &&
         !(stf_locked_ && auto_range_computed_)) {
         std::vector<float> samples;
-        for (const auto& kv : cache_) {
-            const Tile& t = *kv.second;
-            if (t.order != order && t.order != order - 1) continue;
-            for (std::size_t k = 0; k < t.sig.size(); k += 16) {
-                const float s = t.sig[k];
-                if (std::isfinite(s)) samples.push_back(s);
-            }
-        }
-        if (!samples.empty()) {
-            std::sort(samples.begin(), samples.end());
-            const std::size_t n = samples.size();
-            // V14：robust median/MAD + 亮端迭代 clip，亮星不主导背景；
-            // Auto Global 保持（auto_range_dirty_ 只在首帧/显式刷新重算）
-            const float med = samples[n / 2];
-            std::vector<float> dev;
-            dev.reserve(n);
-            for (float s : samples) dev.push_back(std::fabs(s - med));
-            std::sort(dev.begin(), dev.end());
-            const float mad = 1.4826f * dev[dev.size() / 2];
-            std::vector<float> ret;
-            for (int it = 0; it < 3; ++it) {
-                ret.clear();
-                for (float s : samples)
-                    if (s <= med + 3.0f * mad) ret.push_back(s);
-                if (ret.size() < 32u) break;
-                const float nm = ret[ret.size() / 2];
-                if (std::fabs(nm - med) < 1e-6f * (med + 1e-9f)) {
-                    ret = samples;  // 收敛：全部保留
-                    break;
+        bool from_full_dataset = false;
+        if (!auto_view_ && bk_ != nullptr) {
+            // Auto Global：全 dataset 均匀采样（进程内缓存）。
+            // 与 V13 fixed stretch（1%/99% 全字段）一致；视口 p99 偏紧
+            // （GC Wide 0.0031 vs 全 dataset 0.0043），会导致结构过曝。
+            const std::string root = bk_->get_root();
+            auto it = g_global_scan_cache_.find(root);
+            if (it != g_global_scan_cache_.end()) {
+                dmin = it->second.first;
+                dmax = it->second.second;
+                valid = 1;
+                from_full_dataset = true;
+            } else {
+                const int leaf = bk_->get_hips_order();
+                std::vector<float> sig, sup;
+                for (std::uint64_t tile : bk_->tiles_at_order(leaf)) {
+                    sig.clear();
+                    sup.clear();
+                    if (bk_->read_tile_at_order(leaf, tile, sig, sup) != 0)
+                        continue;
+                    for (int y = 0; y < 512; y += 16)
+                        for (int x = 0; x < 512; x += 16) {
+                            const std::size_t k = (std::size_t)y * 512u +
+                                                  (std::size_t)x;
+                            const float s = sig[k];
+                            if (std::isfinite(s) && sup[k] > 0.0f)
+                                samples.push_back(s);
+                        }
                 }
-                // 重算 med/mad（简化：用 ret 中位数）
+                if (!samples.empty()) {
+                    std::sort(samples.begin(), samples.end());
+                    compute_auto_range(samples, &dmin, &dmax);
+                    g_global_scan_cache_[root] = {dmin, dmax};
+                    from_full_dataset = true;
+                }
             }
-            const float rmed = ret.empty() ? med : ret[ret.size() / 2];
-            std::vector<float> rdev;
-            for (float s : (ret.empty() ? samples : ret))
-                rdev.push_back(std::fabs(s - rmed));
-            std::sort(rdev.begin(), rdev.end());
-            const float rmad = 1.4826f * rdev[rdev.size() / 2];
-            dmin = rmed - 3.0f * rmad;
-            dmax = rmed + 3.0f * rmad;
-            if (dmax <= dmin) dmax = dmin + 1.0f;
-            valid = samples.size();
-            auto_range_dirty_ = false;   // Auto Global：保持标尺
-            auto_range_computed_ = true; // Lock STF：首帧后冻结
-            ++auto_recompute_count_;
         }
+        if (!from_full_dataset) {
+            // Auto View（视口自适应）或全 dataset 扫描失败：视口 cache 采样
+            for (const auto& kv : cache_) {
+                const Tile& t = *kv.second;
+                if (t.order != order && t.order != order - 1) continue;
+                for (std::size_t k = 0; k < t.sig.size(); k += 16) {
+                    const float s = t.sig[k];
+                    if (std::isfinite(s) && t.sup[k] > 0.0f)
+                        samples.push_back(s);
+                }
+            }
+            if (!samples.empty()) {
+                std::sort(samples.begin(), samples.end());
+                compute_auto_range(samples, &dmin, &dmax);
+                valid = samples.size();
+            }
+        }
+        if (from_full_dataset && valid == 0) valid = 1;
+        auto_range_dirty_ = false;   // Auto Global：保持标尺
+        auto_range_computed_ = true; // Lock STF：首帧后冻结
+        ++auto_recompute_count_;
         stats_.data_min = dmin;
         stats_.data_max = dmax;
         stats_.valid_pixels = valid;

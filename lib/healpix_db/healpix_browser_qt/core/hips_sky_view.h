@@ -57,6 +57,9 @@ public:
     std::uint64_t auto_recompute_count() const {
         return auto_recompute_count_;
     }
+    // V14 v2：Auto Global 全 dataset 标尺（进程内缓存，一次会话只扫一次）
+    static std::map<std::string, std::pair<float, float>>
+        g_global_scan_cache_;
     // V11：LOD 模式。strict-leaf 完全禁止 parent fallback（诊断用）。
     void set_lod_mode(bool strict_leaf) { strict_leaf_ = strict_leaf; }
     void set_cache_cap(std::size_t n) {
