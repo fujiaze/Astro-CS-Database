@@ -11,6 +11,15 @@ Browser GC wide / pan / zoom / STF
 
 完整数值见 `evidence/performance/*.json`（V14 交付）。
 
+V14 首轮结果：
+
+```text
+Phase1 panel1    65.0s（3 runs）
+Phase2 GC        292.0s -> 234.6s（-20%）
+Phase2 t4         87.9s ->  70.8s（-19%）
+Browser shot      2.43s；zoom 0.30s/f；pan 0.22s/f
+```
+
 规则：
 
 - 优化前后 science 输出 hash/数值等价；

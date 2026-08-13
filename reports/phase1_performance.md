@@ -1,5 +1,5 @@
 # Phase1 性能（V14）
 
-本轮未触碰 Phase1 代码；按用户指令性能最后处理。单次参考记录见
-`evidence/performance/`。完整 3 次 median/p95 profile 与热点优化在
-后续轮次（机器空闲时）执行，见 `docs/performance/OPTIMIZATION.md`。
+单帧真实数据（stage1 gc_panel1）3 次：63.6 / 67.9 / 65.0 s，
+median 65.0s。本轮未触碰 Phase1 代码（审计确认），无 after。
+分阶段热点 profile 留待后续轮次。

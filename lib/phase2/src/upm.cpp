@@ -1087,13 +1087,72 @@ int p2_upm_materialize_dense(const void* model, int target_order,
     std::vector<double> values(512ull * 512ull);
     for (std::size_t f = 0; f < m->C.size(); ++f) {
         for (std::uint64_t tile : tiles) {
+            // V14 (G7)：逐 tile 预构建 8×8 cell 节点表（一次 map 查找），
+            // 像素级双线性用数组索引，避免 5.4 亿次 std::map 查找。
+            // 语义与 evaluate_c_field 一致（cell 中心 + axis 外推/夹取）。
+            double node[8][8];
+            bool node_ok[8][8];
+            for (int gy = 0; gy < 8; ++gy)
+                for (int gx = 0; gx < 8; ++gx) {
+                    const auto key =
+                        std::make_pair(tile, std::make_pair(gx, gy));
+                    const auto it = m->cell_index.find(key);
+                    if (it != m->cell_index.end()) {
+                        node[gy][gx] = m->C[f][it->second];
+                        node_ok[gy][gx] = true;
+                    } else {
+                        node[gy][gx] = 0.0;
+                        node_ok[gy][gx] = false;
+                    }
+                }
+            const int cell = m->cell_side;
+            const int half = cell / 2;
+            const auto itb = m->tile_gx_bounds.find(tile);
+            const int gmin = (itb != m->tile_gx_bounds.end())
+                                 ? itb->second.first : 0;
+            const int gmax = (itb != m->tile_gx_bounds.end())
+                                 ? itb->second.second : 7;
+            const auto itb2 = m->tile_gy_bounds.find(tile);
+            const int vmin = (itb2 != m->tile_gy_bounds.end())
+                                 ? itb2->second.first : 0;
+            const int vmax = (itb2 != m->tile_gy_bounds.end())
+                                 ? itb2->second.second : 7;
+            auto axis = [&](int v, int* c0, int* c1, int lo, int hi) {
+                if (lo == hi) { *c0 = *c1 = lo * cell + half; return; }
+                if (v <= lo * cell + half) { *c0 = lo * cell + half;
+                                             *c1 = lo * cell + half + cell; }
+                else if (v >= hi * cell + half) { *c0 = hi * cell + half - cell;
+                                                  *c1 = hi * cell + half; }
+                else {
+                    const int idx = std::clamp(v / cell, lo, hi);
+                    const int cc = idx * cell + half;
+                    if (v <= cc) { *c0 = cc - cell; *c1 = cc; }
+                    else { *c0 = cc; *c1 = cc + cell; }
+                }
+            };
+            auto at = [&](int cx, int cy) {
+                const int gxi = std::clamp((cx - half) / cell, 0, 7);
+                const int gyi = std::clamp((cy - half) / cell, 0, 7);
+                return node_ok[gyi][gxi] ? node[gyi][gxi] : 0.0;
+            };
             for (std::uint64_t local = 0; local < values.size(); ++local) {
                 std::uint32_t x = 0, y = 0;
                 astrocs::healpix::nested_local_to_xy(
                     local, (std::uint32_t)tile_shift, x, y);
-                // R4：与 sparse 同一 evaluate_C 科学求值语义
-                values[(std::size_t)local] =
-                    evaluate_c_field(m, f, tile, (int)x, (int)y);
+                int x0, x1, y0, y1;
+                axis((int)x, &x0, &x1, gmin, gmax);
+                axis((int)y, &y0, &y1, vmin, vmax);
+                const double c00 = at(x0, y0), c10 = at(x1, y0);
+                const double c01 = at(x0, y1), c11 = at(x1, y1);
+                const double tx = (x1 != x0)
+                                      ? (double)((int)x - x0) / (double)(x1 - x0)
+                                      : 0.0;
+                const double ty = (y1 != y0)
+                                      ? (double)((int)y - y0) / (double)(y1 - y0)
+                                      : 0.0;
+                const double top = c00 + tx * (c10 - c00);
+                const double bot = c01 + tx * (c11 - c01);
+                values[(std::size_t)local] = top + ty * (bot - top);
             }
             if (aio_upm_dense_write_tile(d, (std::uint64_t)f, tile,
                                          values.data(), values.size()) != 0) {

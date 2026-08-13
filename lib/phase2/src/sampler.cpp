@@ -539,15 +539,20 @@ int p2_sample_controls(const P2CoverageResult* coverage,
 
     // 第二遍：Stage C DBE-like 局部 tolerance gate
     const int nr = cfg.background_neighbor_radius;
+    // V14 (G7)：按 tile 分组，邻域只遍历同 tile cells（替代全 cells 扫描）
+    std::map<int, std::vector<std::size_t>> tile_cells;
+    for (std::size_t ci = 0; ci < cells.size(); ++ci)
+        tile_cells[cells[ci].tile].push_back(ci);
+    std::vector<std::size_t> tile_cell_list;  // 预取同 tile 列表（当前 cell）
     for (std::size_t ci = 0; ci < cells.size(); ++ci) {
         CellStat& cs = cells[ci];
+        const auto& same_tile = tile_cells[cs.tile];
         for (std::size_t fi = 0; fi < cs.frames.size(); ++fi) {
             if (!cs.accepted[fi] || cs.reason[fi] != 0) continue;
             // 收集同 tile 邻域候选该帧的 cleaned median
             std::vector<double> neigh;
-            for (std::size_t cj = 0; cj < cells.size(); ++cj) {
+            for (std::size_t cj : same_tile) {
                 const CellStat& cn = cells[cj];
-                if (cn.tile != cs.tile) continue;
                 if (std::abs(cn.gx - cs.gx) > nr ||
                     std::abs(cn.gy - cs.gy) > nr)
                     continue;
@@ -559,9 +564,8 @@ int p2_sample_controls(const P2CoverageResult* coverage,
             // 邻域不足：回退 tile 全部候选（该帧）
             if (neigh.size() < 3) {
                 neigh.clear();
-                for (std::size_t cj = 0; cj < cells.size(); ++cj) {
+                for (std::size_t cj : same_tile) {
                     const CellStat& cn = cells[cj];
-                    if (cn.tile != cs.tile) continue;
                     for (std::size_t fj = 0; fj < cn.frames.size(); ++fj)
                         if (cn.frames[fj] == cs.frames[fi] && cn.n_total[fj] > 0)
                             neigh.push_back(cn.m[fj]);
