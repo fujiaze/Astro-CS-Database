@@ -4,11 +4,25 @@
 
 - `lib/astro_image_io`：`aio_*`（image/HiPS I/O、writer/reader、pipeline）。
 - `lib/phase2`：`p2_*`（coverage / sampler / upm / integrate / stage2 入口）。
-  - `p2_upm_build`（obs-only，兼容）与 `p2_upm_build_geo`（全几何节点，
-    V13/V14）。
-  - `p2_sample_controls`（含 background-clean stats/geometry 输出，V13）。
+- `p2_upm_build`（obs-only，兼容）与 `p2_upm_build_geo`（全几何节点，
+  V13/V14）。
+- `p2_sample_controls`（含 background-clean stats/geometry 输出，V13）。
 - 返回码：0=OK；非 0 具体语义见各头文件注释；`err` 缓冲只做日志，不承载
   状态机。
+
+## 状态与错误所有权（V14 合同）
+
+- **返回值所有权**：每个 C ABI 函数的返回码由该模块独占定义（各头文件注释
+  为唯一权威），调用方只按 0/非 0 与头文件语义分支，禁止解析错误字符串。
+- **错误缓冲 `err`**：仅承载人类可读日志文本，不参与状态机；为 `nullptr`
+  时函数必须仍能正常执行并返回状态码。缓冲区所有权/容量/生命周期由各头
+  文件声明，无隐式全局错误对象。
+- **日志与状态分离**：日志写 `run/logs/<module>/`，返回状态只经返回值传递；
+  模块内部日志级别不得影响控制流。
+- **C ABI 不抛异常**：`extern "C"` 边界全部捕获并转换为返回码；`buffer
+  ownership/lifetime/nullable/单位` 在头文件逐参数注释。
+- **跨阶段**：Phase1 产物语义错误（非法 WCS/负 flux 等）必须在 Phase2 入口
+  以非 0 返回码显式拒绝，禁止静默用默认值替代。
 
 ## C++ API
 
