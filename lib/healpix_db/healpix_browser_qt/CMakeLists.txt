@@ -127,8 +127,10 @@ option(BUILD_TESTS "Build unit tests" OFF)
 if(BUILD_TESTS)
     enable_testing()
 
-    add_executable(test_healpix_math tests/test_healpix_math.cpp core/healpix_math.cpp)
-    target_include_directories(test_healpix_math PRIVATE core include)
+add_executable(test_healpix_math tests/test_healpix_math.cpp core/healpix_math.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../common/healpix/healpix_core.cpp)
+target_include_directories(test_healpix_math PRIVATE core include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../common)
     target_link_libraries(test_healpix_math PRIVATE)
     add_test(NAME healpix_math COMMAND test_healpix_math)
 
@@ -140,8 +142,10 @@ if(BUILD_TESTS)
         tests/test_browser_backend.cpp
         core/browser_backend.cpp
         core/healpix_math.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../common/healpix/healpix_core.cpp
     )
-    target_include_directories(test_browser_backend PRIVATE core include ${AIO_DIR}/include)
+    target_include_directories(test_browser_backend PRIVATE core include
+        ${AIO_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/../../common)
     target_compile_definitions(test_browser_backend PRIVATE ${AIO_DEFINES})
     target_link_directories(test_browser_backend PRIVATE ${AIO_DIR})
     target_link_libraries(test_browser_backend PRIVATE astro_image_io)
