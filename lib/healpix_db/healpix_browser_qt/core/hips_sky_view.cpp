@@ -133,7 +133,7 @@ void HipsSkyView::set_manual_stf(const STFParams& params) {
     manual_highlights_ = clampf(params.highlights, 0.0f, 1.0f);
     if (manual_highlights_ <= manual_shadows_)
         manual_highlights_ = manual_shadows_ + 0.05f;  // 最小窗口 5%
-    manual_midtones_ = clampf(params.midtones, 0.05f, 0.95f);
+    manual_midtones_ = clampf(params.midtones, 0.001f, 0.999f);
     manual_compression_ = params.compression;
 }
 

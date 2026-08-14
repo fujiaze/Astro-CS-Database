@@ -66,7 +66,7 @@ private:
     int drag_ = -1;
     static constexpr int kPad = 10;
     static constexpr float kMinWindow = 0.05f;  // 控制点最小窗口
-    static constexpr float kMidLo = 0.05f, kMidHi = 0.95f;
+    static constexpr float kMidLo = 0.001f, kMidHi = 0.999f;
 };
 
 #endif  // STF_BAR_H
