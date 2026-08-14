@@ -25,7 +25,7 @@ CLI = os.environ.get(
 )
 PLAN = {"request": "auto", "nominal": 16, "profile": "wbpp_2_9_1",
         "underdetermined_n": 2,
-        "normalization": "median_center"}
+        "normalization": "astrocs_median_center_v1"}
 FRAMES = [SAT / f"frame{n:02d}.hips" for n in range(16)]
 TRAIL_FRAME = 8
 SEED = 20260814
@@ -124,7 +124,7 @@ def main():
             clean_rej += 1
     print(f"[real16] clean pixels={n_clean} any_reject={clean_rej} "
           f"({clean_rej/max(1,n_clean):.4f}) "
-          f"sample_false_reject={clean_samples}/{clean_total} "
+          f"observed_sample_rejection={clean_samples}/{clean_total} "
           f"({clean_samples/max(1,clean_total):.4f})")
 
     # ---- 3. 马赛克对照（truth / clean / trail / trail_none）----
@@ -183,8 +183,8 @@ def main():
         "trail_pixels": n_trail,
         "trail_rejected": n_rejected,
         "clean_pixels_sampled": n_clean,
-        "clean_pixel_any_reject": clean_rej / max(1, n_clean),
-        "clean_sample_false_reject": clean_samples / max(1, clean_total),
+        "observed_pixel_any_rejection_rate": clean_rej / max(1, n_clean),
+        "observed_sample_rejection_rate": clean_samples / max(1, clean_total),
         "injection_mask_median": float(np.median(inj_diffs)),
         "injection_mask_p95_abs": float(np.percentile(np.abs(inj_diffs), 95)),
         "clean_vs_truth_bg_bias_median": float(np.median(bg_bias)),

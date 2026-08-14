@@ -10,6 +10,8 @@
 //   rejection_cli --plan <plan.json> [--weighted] [--reasons]
 //       —— V15 显式 plan（p2_reject_plan_resolve + p2_reject_stack_ex）；
 //          plan.json = P2RejectionPlanRequest + method-specific typed 参数
+//          + normalization（V17：与 stage2 生产同解析；缺省时保持
+//          resolve 的 astrocs_median_center_v1）
 //
 // 输出：accepted mask（0/1，空格分隔）+ 统计行；--reasons 时输出第二行
 // reason 码（0=accepted 1=low 2=high 3=underdetermined）。
@@ -162,6 +164,36 @@ int main(int argc, char** argv) {
             std::fprintf(stderr, "plan resolve failed: %s\n", err);
             return 2;
         }
+        // V17：normalization / normalization_floor 显式字段（与 stage2
+        // p2_stage2_parse_config 同语义；alias 兼容并在 manifest 写 canonical）
+        const std::string norm_s =
+            j.value("normalization", std::string("astrocs_median_center_v1"));
+        if (norm_s == "none") {
+            plan.normalization = P2_NORMALIZE_NONE;
+        } else if (norm_s == "astrocs_median_center_v1" ||
+                   norm_s == "median_center") {
+            plan.normalization = P2_NORMALIZE_MEDIAN_CENTER;
+        } else if (norm_s == "astrocs_median_scale_v1" ||
+                   norm_s == "median_scale") {
+            plan.normalization = P2_NORMALIZE_MEDIAN_SCALE;
+        } else {
+            std::fprintf(stderr, "unknown normalization: %s\n",
+                         norm_s.c_str());
+            return 2;
+        }
+        plan.normalization_floor =
+            j.value("normalization_floor", 1e-12);
+        if (req_s == "percentile" &&
+            plan.normalization != P2_NORMALIZE_MEDIAN_CENTER) {
+            std::fprintf(stderr, "percentile 必须 normalization="
+                                 "astrocs_median_center_v1（负值安全）\n");
+            return 2;
+        }
+        if (req_s == "rcr" && plan.normalization != P2_NORMALIZE_NONE) {
+            std::fprintf(stderr, "rcr 必须 normalization=none"
+                                 "（官方 oracle 原始值域）\n");
+            return 2;
+        }
         auto sig = [&](const char* key, double dfl) {
             return j.value(key, dfl);
         };
@@ -177,12 +209,12 @@ int main(int argc, char** argv) {
         plan.averaged.lower_sigma = sig("averaged.lower_sigma", 4.0);
         plan.averaged.upper_sigma = sig("averaged.upper_sigma", 3.0);
         plan.averaged.max_iterations = ival("averaged.max_iterations", 8);
-        plan.linear_fit.lower = sig("linear_fit.lower", 4.0);
-        plan.linear_fit.upper = sig("linear_fit.upper", 3.0);
+        plan.linear_fit.lower = sig("linear_fit.lower", 5.0);   // WBPP Light
+        plan.linear_fit.upper = sig("linear_fit.upper", 3.5);
         plan.linear_fit.max_iterations = ival("linear_fit.max_iterations", 8);
         plan.esd.alpha = sig("esd.alpha", 0.05);
         plan.esd.max_outliers = ival("esd.max_outliers", 10);
-        plan.percentile.low_fraction = sig("percentile.low_fraction", 0.1);
+        plan.percentile.low_fraction = sig("percentile.low_fraction", 0.2);
         plan.percentile.high_fraction =
             sig("percentile.high_fraction", 0.1);
         plan.median_sigma.lower_sigma = sig("median_sigma.lower_sigma", 4.0);
