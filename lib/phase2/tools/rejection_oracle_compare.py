@@ -249,12 +249,16 @@ def edge_matrix():
     # NaN → INVALID_INPUT(3)
     mask, reasons, stat = run_plan([10.0, float("nan"), 11.0], "sigma", 20)
     assert "status=3" in stat, "NaN 必须 INVALID_INPUT: " + stat
-    assert mask[1] == 0
+    # 契约：INVALID_INPUT 下不做任何拒绝声明（全 accepted + reason=UNDERDETERMINED）；
+    # 生产路径由 eligibility 层在进 kernel 前过滤 NaN。
+    assert int(np.sum(mask)) == 3, "NaN 防御路径不得伪称拒绝: " + stat
+    assert reasons is not None and np.all(reasons == 3)
     print("[edge] NaN INVALID_INPUT OK")
     # ±Inf
     mask, reasons, stat = run_plan([10.0, float("inf"), -float("inf")],
                                    "sigma", 20)
     assert "status=3" in stat
+    assert int(np.sum(mask)) == 3
     print("[edge] +/-Inf INVALID_INPUT OK")
     # 零方差：无拒绝
     mask, reasons, stat = run_plan([10.0] * 10, "sigma", 20)

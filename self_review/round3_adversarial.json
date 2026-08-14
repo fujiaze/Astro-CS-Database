@@ -1,0 +1,26 @@
+{
+  "round": 3,
+  "cases": [
+    {"case": "empty_stack", "setup": "count=0", "result": "MIN_SAMPLES", "pass": true, "source": "ex kernel"},
+    {"case": "n1_single", "setup": "1 sample", "result": "UNDERDETERMINED all-accept", "pass": true, "source": "V15SatelliteN2Underdetermined + n2overlap"},
+    {"case": "n2_satellite", "setup": "[10,50] nominal=2", "result": "UNDERDETERMINED (status=4), rejected=0", "pass": true, "source": "V15SatelliteN2Underdetermined"},
+    {"case": "n20_trail", "setup": "20 frames, 1 trail +0.05", "result": "trail recall=1.0000, bias=0", "pass": true, "source": "satellite_metrics.json"},
+    {"case": "nan_input", "setup": "[10,nan,11]", "result": "INVALID_INPUT, no rejection claimed", "pass": true, "source": "oracle edge_matrix"},
+    {"case": "inf_input", "setup": "+/-inf", "result": "INVALID_INPUT", "pass": true, "source": "oracle edge_matrix"},
+    {"case": "valid_false", "setup": "valid=[1,0,1]", "result": "ineligible excluded, mask=101", "pass": true, "source": "V15ValidFalseStaysRejected"},
+    {"case": "support_zero", "setup": "support=[0,..]", "result": "ineligible excluded", "pass": true, "source": "V15FilterAllPolicies"},
+    {"case": "quality_rejected", "setup": "quality_flags missing required", "result": "ineligible excluded", "pass": true, "source": "V15FilterAllPolicies"},
+    {"case": "zero_variance", "setup": "10 identical", "result": "no rejection", "pass": true, "source": "oracle edge_matrix"},
+    {"case": "one_bright", "setup": "50 vs 10s", "result": "REJECTED_HIGH, rejected_high=1", "pass": true, "source": "V15LowHighThresholdSemantics"},
+    {"case": "one_dark", "setup": "-50 vs 10s", "result": "REJECTED_LOW, rejected_low=1", "pass": true, "source": "V15LowHighThresholdSemantics"},
+    {"case": "two_sided", "setup": "-50,+50", "result": "low=1 high=1", "pass": true, "source": "V15LowHighThresholdSemantics"},
+    {"case": "esd_masking", "setup": "two extremes masking", "result": ">=2 rejected", "pass": true, "source": "G6EsdMaskingCase"},
+    {"case": "esd_nist54", "setup": "NIST Rosner 54", "result": "exact {51,52,53} rejected", "pass": true, "source": "V15EsdSingleSqrtExactRosnerSet"},
+    {"case": "permutation", "setup": "frame order shuffle", "result": "mask invariant (all methods)", "pass": true, "source": "G6PermutationInvariance + V15ExPermutationInvarianceTyped"},
+    {"case": "serialization_roundtrip", "setup": "UPM save/open", "result": "hash identical", "pass": true, "source": "G2PersistenceAndHashSensitivity"},
+    {"case": "cpu_acr", "setup": "legacy vs CUDA same stack", "result": "equal within 1e-4", "pass": true, "source": "Phase2Acr.*"},
+    {"case": "identity_move", "setup": "copy/rename HiPS", "result": "frame_id unchanged; payload mutation changes", "pass": true, "source": "G3StableFrameIdentity"}
+  ],
+  "result": "ROUND3=PASS",
+  "note": "每 case 结果来自生产实现/独立 oracle/真实运行证据；无未解不一致"
+}
