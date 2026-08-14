@@ -1,46 +1,60 @@
-# Round 0 — Contract / Scope Review（V16 Final Closure AuditFix）
+# Round 0 — Contract / Scope Review（V17 True Final Freeze）
 
-日期：2026-08-14 ｜ HEAD：37bebb9+ ｜ 控制包：AstroCS_FinalClosure_AuditFix_Control_Package_V16
+日期：2026-08-14 ｜ HEAD：03d5d96+ ｜ 控制包：AstroCS_TrueFinal_Freeze_Control_Package_V17
+（SHA256 10ab2cddb534005fbf63b2ffe5e3695e1fbcc5976865df6e27b327bee29e30ed）
 
-## 冻结合同（相对 V15 的变更）
+## 冻结合同（V16 → V17 变更）
 
-1. **profile 拆分**：
-   - `wbpp_current`：integration-group 层一次解析（nominal = group active
-     独立 exposure 数）；tile/pixel 不重选；局部候选不足 = UNDERDETERMINED；
-   - `astrocs_adaptive`：AstroCS 自有策略，允许 tile nominal-depth 自适应；
-     不冒充 WBPP exact。
-2. **RejectionNormalizationPolicy**：none / median_center / median_scale；
-   decision 作用于 working stack；accepted mask 应用回原始 calibrated
-   science values；加权积分使用原始值。
-3. **MinMax**：一次性固定 rank 删除（reject_low_count 个最低 +
-   reject_high_count 个最高，一次；n−low−high ≥ min_kept）；删除
-   max_iterations。
-4. **percentile**：必须 median_center（负值科学域安全）；rcr 必须 none；
-   违规 → INVALID_CONFIGURATION。
-5. **Eligibility 单路径**：`p2_collect_candidate_stack`（frame-major strided）
-   CPU/ACR/compat 共用；quality 为 control 级（像素级无 quality 数组，
-   stage2 传 nullptr 并记录）。
-6. **Oracle**：averaged_sigma 改名 `astrocs.averaged_sigma.v1`，IRAF exact
-   = NOT_CLAIMED；oracle_matrix 不允许 NOT_RUN 同时 G4=PASS。
-7. **diagnostics**：depth_0/depth_1/depth_ge_2 mutually exclusive。
-8. **WBPP Light 默认参数**：linearFit 5.0/3.5、percentile 0.2/0.1、
-   sigma 4/3、winsorizationCutoff 5.0、large-scale 默认 off（unsupported
-   如实标注）。
-9. **真实 E2E**：raw→Phase1 per-exposure HiPS→Phase2（normalization +
-   WBPP profile + rejection + integration）→HiPS→external/browser。
-10. **交付**：canonical_core 快照 + repo_source_manifest.csv（path/sha256/
-    semantic classification/production caller）。
+1. **integration 最后 correctness（C01-C05）**：
+   - 非 finite/非正 weight、非 finite support → `P2_INTEGRATE_INVALID_INPUT`
+     （绝不 OK+NaN）；`p2_validate_candidate_weights` 在 SNR lookup 后统一
+     校验；
+   - rejection 仅 OK/UNDERDETERMINED 可继续；INVALID_INPUT/
+     INVALID_CONFIGURATION/INVALID_METHOD/INTERNAL_ERROR 必须 hard fail；
+   - output support 唯一 canonical reducer = max(accepted support)，
+     Stage2/ACR 只消费 pr.support；
+   - 显式状态枚举 OK/NO_CANDIDATES/ALL_REJECTED/ZERO_VALID_WEIGHT/
+     INVALID_INPUT；
+   - UPM 控制权重（upm.robust_control_weight.v1）与 stack 积分权重
+     （stack.support_x_snr2.v1 / stack.equal.v1）分开命名。
+2. **WBPP 版本化**：canonical = `wbpp_2_9_1`（group-level 一次解析）；
+   `wbpp_current` 仅 migration alias；diagnostics/manifest 序列化版本化。
+3. **rejection normalization 独立命名**：astrocs_median_center_v1 /
+   astrocs_median_scale_v1（old 名仅 alias）。
+4. **Large-Scale Rejection（用户要求 WBPP 类功能完整 → 实现）**：
+   `astrocs.large_scale_rejection.v1`（8-连通分量 grow，min structure
+   size，low/high 独立半径，默认关闭）；compact cosmic/星点不生长；
+   PIXINSIGHT_EXACT=NOT_CLAIMED。
+5. **受控 clean truth**：零离群合成 20 帧测 true FPR / 星点通量 / PSF /
+   结构 / 噪声效率；注入 satellite/cosmic/streak 测 recall；真实 16 帧
+   只报 observed_rejection_rate（不再叫 false reject）。
+6. **legacy 多路径移除**：healpix_stack 移入 archive/legacy（不 build/
+   link/load/call）；orchestrator legacy Stage2 wiring 删除；
+   `no_legacy_production_reference` gate。
+7. **旧 config aliases 删除**：low/high/max_iterations/min_samples 在
+   parser 硬错误；提供 `tools/migrate_stage2_config.py`。
+8. **Phase1 性能**：真实 16 帧分段 profile；冷/热分离；platesolve hint
+   （上一帧 WCS 中心作初始指向，仍逐帧求解验证）；解释 65s vs 150s。
+9. **docs/API/config machine 一致性**：PUBLIC_API 无已删 API；SCIENCE_
+   FREEZE 更新；MinMax 无 max_iterations；新 machine check
+   （api_doc_consistency.py）。
+10. **Round0-6 增强**：Round5 至少 15 个攻击假设（V16 审计决定 K 列表）；
+    Round6 clean-tree：全新构建 + 74/74 gate + 真实 16 帧 E2E + 受控
+    truth + external browser + no_legacy。
+11. **交付**：source/canonical_core（Phase1+Phase2+shared+Browser）+
+    evidence/repo_source_manifest.csv（path/SHA256/classification/caller）。
 
-## 允许删 / 禁止动
+## 允许 / 禁止
 
-- 允许：workspace 占位 API 删除（G9）；ScratchVec 固定 scratch；
-  schema/template/parser 更新；oracle 改名。
-- 禁止：Phase1 冻结算法（platesolve 饱和选星为外部限制，不改）；
-  healpix_stack 冻结；testdata 写入；ACR 业务算法。
+- 允许：上述 V17 修复；性能工具层优化（hint 传入、bench runner）；
+  docs/reports/self_review 更新。
+- 禁止：Phase1 冻结算法（Drizzle/platesolve 核心不改）；ACR 业务算法；
+  testdata 写入；恢复 legacy aliases/多路径；把 observed 叫 false reject。
 
 ## 语义模糊点
 
-无（V16 审计决定已逐项定义）。
+无（V17 审计决定与 ACCEPTANCE_GATES.md 已逐项定义；两处可选项已按用户
+要求选择：Large-Scale=Option A 实现；性能=platesolve hint 工具层）。
 
 ```text
 ROUND0=PASS

@@ -1,59 +1,86 @@
 {
   "round": 1,
-  "reviewer": "independent staged implementation review (fresh source read)",
-  "head": "37bebb9+fd145ee",
-  "scope": "V16 diff: profile split / normalization / minmax / eligibility collector / stage2 wiring / ScratchVec / config",
+  "reviewer": "independent staged implementation review (fresh source read + rebuild)",
+  "head": "03d5d96 + efdbe7e + c7cb2e6 + 85851c2",
+  "scope": "V17 diff: integration correctness / status contract / support reducer / versioned profile / legacy removal / config aliases / large_scale / docs consistency",
   "findings": [
     {
-      "id": "V16-R1-P1-001",
+      "id": "V17-R1-P1-001",
+      "severity": "P1",
+      "path": "lib/orchestrator/cpp/src/dll_loader.cpp",
+      "line": 107,
+      "issue": "legacy 移除提交删除 load_module 4 个闭括号（return false / NOT_LOADED / full_path / h==nullptr 分支），orchestrator 无法编译（make Error 1）",
+      "evidence": "make 报 'a function-definition is not allowed here'；V17 clean-tree 终验会拦截",
+      "action": "FIX（补回 4 个 }；make rc=0，orchestrator.exe 重建成功）"
+    },
+    {
+      "id": "V17-R1-P1-002",
+      "severity": "P1",
+      "path": "lib/orchestrator/cpp/src/orchestrator.cpp",
+      "line": 399,
+      "issue": "stage_name_v2 仍引用已删除 PipelineStageV2::GRADIENT_SPHERE/STACK；run_stage2 仍检查 ModuleId::GRADIENT_SPHERE/STACK",
+      "evidence": "编译 error（2 处枚举 + 2 处 ModuleId）",
+      "action": "FIX（删除枚举 case 与 is_loaded 检查；run_stage2 改为 legacy 已移除的提示；编译通过）"
+    },
+    {
+      "id": "V17-R1-P1-003",
+      "severity": "P1",
+      "path": "lib/phase2/tools/controlled_rejection_metrics.py",
+      "line": 150,
+      "issue": "Siril harness 输出 accepted mask（1=accepted），AstroCS --reasons 输出 reason（0=accepted），初版比较把两者直接 == 比较（极性相反 → agreement=0.0 假象）",
+      "evidence": "同源 case 初版 agreement=0.0；修复后 8000 decisions 100% 一致",
+      "action": "FIX（m_astro_acc=(reasons==0|3) 与 m_siril_acc 同极性比较）"
+    },
+    {
+      "id": "V17-R1-P1-004",
       "severity": "P1",
       "path": "lib/phase2/src/rejection.cpp",
-      "line": 1002,
-      "issue": "ScratchVec 混合 fixed+heap 存储：resize(0)+push_back 在 n>64 时前 64 项写入 fixed_，而 data() 返回 heap_ → 数据丢失/越界读，n=200 sigma 栈 ACCESS_VIOLATION",
-      "evidence": "rejection_cli 200 样本 rc=0xC0000005；oracle sigma_vs_astropy agree=123/200 全错",
-      "action": "FIX（heap_mode_ 一次性迁移；修复后 oracle PASS、matrix PASS、gate 65/65）"
+      "line": 2025,
+      "issue": "p2_large_scale_apply 初版用 qualify 整体覆盖 mask，把 <min_structure_pixels 的小分量（compact cosmic）也抹掉（只增不减语义被违反）",
+      "evidence": "V17LargeScaleGrowsTrailNotCosmic 失败：ls_get(hi,8,6)=false",
+      "action": "FIX（只增不减：mask[i] |= qualify[i]；5/5 large_scale 测试 PASS）"
     },
     {
-      "id": "V16-R1-P2-001",
-      "severity": "P2",
-      "path": "lib/phase2/tools/satellite_gate_real_metrics.py",
-      "line": 110,
-      "issue": "V15 指标 support 读取用 load_tile(signal) 代替 support；truth/clean 配置错误指向含 trail 副本（baseline 被污染）",
-      "evidence": "V16 审核决定 RJ-05；修正后 injection@mask=+0.0033、clean preservation 成立",
-      "action": "FIX（V2：读 support/ + 干净副本 baseline + 四组对照）"
+      "id": "V17-R1-P1-005",
+      "severity": "P1",
+      "path": "lib/phase2/tools/rejection_cli.cpp",
+      "line": 130,
+      "issue": "--plan 未读取 normalization 字段（plan 零初始化=NONE），与 stage2 生产 median_center 语义不一致 → V16 real16 9.45% 测量假象；且 linear_fit/percentile 默认值漂移（4.0/3.0、0.1/0.1 vs WBPP Light 5.0/3.5、0.2/0.1）",
+      "evidence": "V16 satellite_v2_metrics clean_sample_false_reject=9.45% vs V17 observed_sample_rejection_rate=0.54%",
+      "action": "FIX（读取 normalization/normalization_floor + WBPP Light typed 默认；percentile/rcr 组合校验）"
     },
     {
-      "id": "V16-R1-P2-002",
+      "id": "V17-R1-P2-001",
       "severity": "P2",
       "path": "lib/phase2/tools/stage2.cpp",
-      "line": 700,
-      "issue": "ACR 路径 fallback 计数仍用 legacy reject_min_samples（漏 nv==2 underdetermined）；V15 已修 CPU 路径但 ACR 计数同步需要 rplan",
-      "evidence": "V16 审查对比 CPU/ACR 计数分支",
-      "action": "FIX（使用 rplan.underdetermined_n/minimum_n + depth_0/depth_1/depth_ge_2 互斥）"
+      "line": 940,
+      "issue": "large_scale 两遍路径 pass1 用 continue 跳过 pre-grow total_rejected/reject_hist 统计 → grown=post（虚高）",
+      "evidence": "stage2 satellite_ls 日志 pre_rejected=0 post=91134",
+      "action": "FIX（pass1 先计 pre；phase3 重建 post 分布；pre=88055 post=91134 grown=3079）"
     },
     {
-      "id": "V16-R1-P3-001",
+      "id": "V17-R1-P3-001",
       "severity": "P3",
-      "path": "lib/phase2/src/rejection.cpp",
-      "line": 1650,
-      "issue": "RCR 分支仍用 std::vector（冻结官方语义，未走 ScratchVec）；非默认方法，成本由算法主导",
-      "evidence": "reject_rcr_impl 使用局部 vector；rcr_oracle PASS",
-      "action": "ACCEPT_WITH_PROOF（reports/performance.md 如实标注）"
+      "path": "lib/phase2/tools/controlled_rejection_truth.py",
+      "line": 1,
+      "issue": "合成 HiPS 初版缺 Moc.fits/properties hips_version/snr 子产品 → aio_hips_open 枚举 0 tile，coverage 无法构建",
+      "evidence": "V17 重写生成器后 stage2 可读（20 帧单 tile，SNR=8 常量）",
+      "action": "FIX（UNIQ MOC + 完整 properties + snr TSV）"
     },
     {
-      "id": "V16-R1-P3-002",
+      "id": "V17-R1-P3-002",
       "severity": "P3",
-      "path": "lib/phase2/tools/stage2.cpp",
-      "line": 463,
-      "issue": "astrocs_adaptive profile 每 tile resolve 一次（预期行为）；wbpp_current group 一次。日志含 tile_depth 便于审计",
-      "evidence": "real16 诊断 rejection_resolved_methods={'16': linear_fit}",
-      "action": "ACCEPT_WITH_PROOF（profile 语义分离）"
+      "path": "tools/config_consistency_check.py",
+      "line": 40,
+      "issue": "large_scale 子段按首个 \n\} 截断（嵌套 if 提前截断）+ bool 默认值不被 extract 正则捕获 → 只检到 1/4 键",
+      "evidence": "checked_keys 仅 large_scale.min_structure_pixels",
+      "action": "FIX（括号计数 + bool 组；4/4 键校验，mismatches=[]）"
     }
   ],
   "P0": 0,
-  "P1": 1,
-  "P2": 2,
+  "P1": 5,
+  "P2": 1,
   "P3": 2,
-  "result": "P1/P2 全部 FIX 并验证（gate 65/65、oracle/matrix PASS）；P3 有理由",
+  "result": "P1/P2 全部 FIX 并验证（74/74 gate、no_legacy PASS、config/api_doc PASS、real16 重跑）；P3 已修",
   "verdict": "ROUND1=PASS"
 }

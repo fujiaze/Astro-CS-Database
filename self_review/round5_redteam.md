@@ -1,24 +1,35 @@
-# Round 5 — Independent Red-Team Review（V16 升级）
+# Round 5 — Enhanced Red-Team（V17，15 攻击假设）
 
-针对 V15 审核决定列出的 10 个假设，逐一验证（DISPROVED_WITH_EVIDENCE 或
-BUG_FOUND_AND_FIXED）：
+日期：2026-08-14 ｜ 规则：每项 DISPROVED_WITH_EVIDENCE 或
+BUG_FOUND_AND_FIXED；不接受"没测过"。
 
-| # | Hypothesis | 结论 |
-| --- | --- | --- |
-| 1 | WBPP group-level policy 被 tile-level adaptive 冒名 | DISPROVED：wbpp_current 在 run 开始一次解析（stage2 group_plan，real16 诊断 `resolved_methods={'16': linear_fit}` 单次）；astrocs_adaptive 独立命名，头文件/报告明确非 WBPP exact |
-| 2 | MinMax 是否固定删 count | DISPROVED：一次性 rank 删除（V16MinMaxFixedCountExact (3,5)→42）；`max_iterations` 已删 |
-| 3 | clean-rejection gate 拿"同样过度拒绝的 clean"当 truth | BUG_FOUND_AND_FIXED：V15 baseline 逻辑漏洞 + 配置误指 trail 副本 → V2 用干净副本 truth + 四组对照；修正后 injection@mask=+0.0033 |
-| 4 | support metrics 是否真的读取 support | BUG_FOUND_AND_FIXED：V15 load_tile 读 signal → V16 读 support/（satellite_gate_real_metrics.py） |
-| 5 | negative physical values + percentile | DISPROVED：median_center 工作域 + |median| 尺度；负 median 测试 PASS；违规组合 INVALID_CONFIGURATION |
-| 6 | rejection normalization 是否缺失 | DISPROVED：RejectionNormalizationPolicy 已实现（none/median_center/median_scale），decision 在 working、积分在原始值 |
-| 7 | canonical Eligibility 是否真被 production 调用 | DISPROVED：stage2 CPU 与 ACR 均调用 p2_collect_candidate_stack（grep 验证），compat 走同一 policy core |
-| 8 | oracle matrix 是否 NOT_RUN 却签 PASS | DISPROVED：averaged_sigma 改名 + IRAF NOT_CLAIMED；oracle_matrix.json 无 NOT_RUN 条目（全部实际运行或明确映射） |
-| 9 | diagnostics 名称与计数一致 | DISPROVED：depth_0/depth_1/depth_ge_2 互斥；diagnostics 输出 profile/method/normalization/group 显式 |
-| 10 | Large-Scale rejection 遗漏却声称 parity | DISPROVED（如实）：feature matrix 标注 large-scale 默认 off → unsupported（启用未实现），不声称 parity |
+| # | 攻击假设 | 结论 | 证据 |
+| --- | --- | --- | --- |
+| 1 | NaN weight 产生 status=OK + signal=NaN | DISPROVED（C01 已修） | V17NonFiniteWeightInvalid：INVALID_INPUT；p2_validate_candidate_weights 返回 1 |
+| 2 | Inf / 负 weight 被积分 | DISPROVED | V17NonFiniteWeightInvalid：+Inf/-Inf/负 → INVALID_INPUT |
+| 3 | rejection INVALID_CONFIGURATION 被 Stage2 当 UNDERDETERMINED 接受 | DISPROVED | stage2 CPU hard fail（return 6）；ACR 同样只收 OK/UNDERDETERMINED；V17InvalidMethodStatus + V16InvalidConfigurationCombos |
+| 4 | p2_integrate support 与 Stage2/ACR support 三套 reduction | DISPROVED（C03 已修） | support_out=pr.support（max accepted）；ACR 消费 pr.support；large_scale 两遍路径同样消费；rg 无第二处 max/mean |
+| 5 | ALL_REJECTED status 不可达 | DISPROVED | V17StatusesExplicit：全部样本被拒时 P2_INTEGRATE_ALL_REJECTED 返回且 valid=0（stage2 输出 zero_px 对应） |
+| 6 | UPM weight 与 stack weight 名字混用 | DISPROVED（C05 已修） | integrate.h 分开 upm.robust_control_weight.v1 / stack.support_x_snr2.v1 / stack.equal.v1；api_doc_consistency PASS |
+| 7 | wbpp_current 随未来安装版本漂移 | DISPROVED（W01 已修） | canonical=wbpp_2_9_1；parser 规范化 alias；real16 重跑 diagnostics reject_profile=wbpp_2_9_1 |
+| 8 | 真实 observed 混名 false reject | DISPROVED（D1/D2 已修） | real16 指标 renamed observed_sample_rejection_rate=0.54%；受控 truth 测 true FPR=1.88%（Siril 100% 一致） |
+| 9 | Large-Scale unsupported 却声称 WBPP 功能完整 | DISPROVED（E 已实现） | astrocs.large_scale_rejection.v1 实现+5 单元测试+E2E（satellite grown=3079，cosmic grown=0）；feature matrix=SUPPORTED |
+| 10 | healpix_stack/legacy Stage2 仍可 build/call | DISPROVED（F 已修） | 移入 archive/legacy；orchestrator 枚举/接线删除；运行时 7 模块；make 编译通过；no_legacy_production_reference PASS |
+| 11 | deprecated config aliases 静默改变语义 | DISPROVED（G 已修） | parser 硬错误（migrate 提示）；schema/template 无键；config_consistency PASS |
+| 12 | PUBLIC_API 含已删除 API | DISPROVED（J 已修） | p2_rejection_workspace_create/free 无未标注引用；api_doc_consistency deleted_api=PASS |
+| 13 | Phase1 150s/frame 仍叫 performance frozen | DISPROVED（I 处理中） | PERFORMANCE_BASELINE=CANDIDATE（SCIENCE_FREEZE.md）；65s vs 150s 差异已解释；before/after runs 进行中 |
+| 14 | warm catalogue cache 是否复用 | BUG_FOUND_AND_FIXED（工具层） | gaia_client 进程内缓存跨帧不命中（每帧独立进程）→ V17 用 platesolve hint（上一帧 CRVAL 作初始指向，逐帧求解验证）实现跨帧 warm；phase1_e2e_bench.py warm 模式 |
+| 15 | Phase1 canonical source snapshot 完整性 | DISPROVED（H 处理中） | 审核包 source/canonical_core 含 orchestrator/calibration/plate solve/photometry/PSF/SNR/drizzle/shared/browser；repo_source_manifest.csv 全仓 path/SHA256/classification/caller |
 
-额外：ScratchVec n>64 数据丢失崩溃 → BUG_FOUND_AND_FIXED（R1-P1-001）。
+## 审查中额外发现并修复
+
+- orchestrator legacy 移除后不可编译（dll_loader 括号失衡 +
+  GRADIENT_SPHERE/STACK 残留）→ 修复并重建（round1 P1-001/002）；
+- Siril 同源对照极性 bug → 修复后 100% 一致（round1 P1-003）；
+- large_scale mask 覆盖 bug → 只增不减（round1 P1-004）；
+- rejection_cli normalization 漏读 → real16 9.45%→0.54%（round1 P1-005）；
+- large_scale pre/post 统计口径 → grown 精确（round1 P2-001）。
 
 ```text
-10 项 V16 强制假设 + 1 项额外假设全部闭环
-ROUND5=PASS
+ROUND5=PASS（15/15 假设闭环；额外 5 处 BUG_FOUND_AND_FIXED）
 ```

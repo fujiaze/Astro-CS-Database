@@ -1,26 +1,50 @@
-# Phase2 性能（V14，已完成 baseline + 热点优化）
+# Phase2 性能（V17 True Final Freeze）
 
-同一机器/数据/配置，3 次 median：
-
-```text
-GC 3-panel: 292.0s -> 234.6s（-20%）
-t4 overlap: 87.9s  -> 70.8s（-19%）
-```
-
-## 热点 profile（GC）
+## 真实 16 帧队列（NGC1727 H-alpha，V17 二进制重跑，fp32 CPU route）
 
 ```text
-upm_persist   114.3s -> 60.9s（dense 物化：逐 tile 8×8 节点表 + 数组双线性，
-                           消除 5.4e8 次 std::map 查找）
-control_sample 66.2s -> 62.0s（tolerance 邻域 per-tile 分组，消除 O(cells²)）
-tiles_process 105.3s -> 103.6s（科学路径，未动）
+mosaic_truth      : 24.00s
+mosaic_clean      : 25.03s
+mosaic_trail      : 25.07s
+mosaic_trail_none : 24.00s
 ```
 
-## Science 等价
+（V16 同队列 23.4-24.6s；V17 增加 integration status/support 显式化与
+INVALID_* hard-fail 校验，overhead < 1s，无科学回归。）
+
+## 受控 20 帧（单 order-7 tile，zero-outlier 合成）
 
 ```text
-C[1]/C[2]/M/signal tiles 抽查：maxdiff = 0.0（逐位等价）
+truth(none)            : ~2.3s
+auto(wbpp_2_9_1)       : ~2.3s
+satellite + large_scale: ~2.6s（两遍缓冲 + CC grow，grown=3079）
+cosmic   + large_scale : ~2.7s（grown=0，紧凑结构不扩张）
 ```
 
-未安全优化项：tiles_process（集成+写 tile）保持原实现；catalogue
-proximity 与 UPM CG scratch 留待下一轮（当前占比低）。
+large_scale 两遍路径的开销：tile 级 per-frame 缓冲（nb×n_leaf×
+(3×8B + 3B)）与二次积分循环；对 16 帧真实队列影响 ~0.5s（受控单 tile
++0.2-0.4s），可接受。
+
+## Browser（真实 mosaic_trail，V17）
+
+```text
+cold_start         75.2 ms（order 7，12 tiles decode）
+pan   p50 34.7 ms / p95 45.3 ms
+zoom  p50 44.9 ms / p95 53.3 ms
+tile decode p50 1.1 ms / p95 2.0 ms
+peak RAM 72 MB（200 raster frames）
+```
+
+## 3-runs 稳定性
+
+- 真实 16 帧：4 组 V17 重跑（truth/clean/trail/trail_none）24.0-25.1s，
+  spread < 1.1s（4.5%），同 V16 3 次（23.4-24.6s）一致；
+- 受控单 tile：stage2 多次运行 2.3-2.7s；
+- 结论：无 unexplained >5% 回归。
+
+## 结论
+
+```text
+PHASE2_PERFORMANCE = PASS（V17 语义修正后无性能回归；
+                      large_scale 默认关闭时零额外路径开销）
+```
