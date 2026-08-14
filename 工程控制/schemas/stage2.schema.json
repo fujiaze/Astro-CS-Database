@@ -135,29 +135,124 @@
             "method": {
               "enum": [
                 "none", "sigma", "winsorized_sigma", "averaged_sigma",
-                "linear_fit", "generalized_esd", "rcr"
-              ]
+                "linear_fit", "generalized_esd", "rcr", "percentile",
+                "median_sigma", "minmax", "auto"
+              ],
+              "default": "auto"
+            },
+            "profile": {
+              "enum": ["wbpp_current"],
+              "default": "wbpp_current",
+              "description": "WBPP Auto routing 政策（本机 WBPP 2.9.1 源码核准）"
+            },
+            "underdetermined_n": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 2,
+              "description": "effective 候选数 <= 该值 → REJECTION_UNDERDETERMINED"
+            },
+            "robust_mad_clip": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "lower_sigma": {"type": "number", "exclusiveMinimum": 0, "default": 4.0},
+                "upper_sigma": {"type": "number", "exclusiveMinimum": 0, "default": 3.0},
+                "max_iterations": {"type": "integer", "minimum": 1, "maximum": 64, "default": 8}
+              }
+            },
+            "winsorized_sigma": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "lower_sigma": {"type": "number", "exclusiveMinimum": 0, "default": 4.0},
+                "upper_sigma": {"type": "number", "exclusiveMinimum": 0, "default": 3.0},
+                "max_iterations": {"type": "integer", "minimum": 1, "maximum": 64, "default": 8}
+              }
+            },
+            "averaged_sigma": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "lower_sigma": {"type": "number", "exclusiveMinimum": 0, "default": 4.0},
+                "upper_sigma": {"type": "number", "exclusiveMinimum": 0, "default": 3.0},
+                "max_iterations": {"type": "integer", "minimum": 1, "maximum": 64, "default": 8}
+              }
+            },
+            "linear_fit": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "lower": {"type": "number", "exclusiveMinimum": 0, "default": 4.0},
+                "upper": {"type": "number", "exclusiveMinimum": 0, "default": 3.0},
+                "max_iterations": {"type": "integer", "minimum": 1, "maximum": 64, "default": 8}
+              }
+            },
+            "generalized_esd": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "alpha": {"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1, "default": 0.05},
+                "max_outliers": {"type": "integer", "minimum": 1, "maximum": 64, "default": 10}
+              }
+            },
+            "percentile": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "low_fraction": {"type": "number", "minimum": 0, "default": 0.1},
+                "high_fraction": {"type": "number", "minimum": 0, "default": 0.1}
+              }
+            },
+            "median_sigma": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "lower_sigma": {"type": "number", "exclusiveMinimum": 0, "default": 4.0},
+                "upper_sigma": {"type": "number", "exclusiveMinimum": 0, "default": 3.0},
+                "max_iterations": {"type": "integer", "minimum": 1, "maximum": 64, "default": 8}
+              }
+            },
+            "minmax": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "reject_low_count": {"type": "integer", "minimum": 1, "default": 1},
+                "reject_high_count": {"type": "integer", "minimum": 1, "default": 1},
+                "max_iterations": {"type": "integer", "minimum": 1, "maximum": 64, "default": 8},
+                "min_kept": {"type": "integer", "minimum": 1, "default": 4}
+              }
+            },
+            "rcr": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "technique": {"const": "ss_median_dl"}
+              }
             },
             "low": {
               "type": "number",
               "exclusiveMinimum": 0,
-              "default": 4.0
+              "default": 4.0,
+              "description": "DEPRECATED（V15）：改用 method-specific typed 参数"
             },
             "high": {
               "type": "number",
               "exclusiveMinimum": 0,
-              "default": 3.0
+              "default": 3.0,
+              "description": "DEPRECATED（V15）"
             },
             "max_iterations": {
               "type": "integer",
               "minimum": 1,
               "maximum": 64,
-              "default": 8
+              "default": 8,
+              "description": "DEPRECATED（V15）"
             },
             "min_samples": {
               "type": "integer",
               "minimum": 1,
-              "default": 2
+              "default": 2,
+              "description": "DEPRECATED（V15）：语义由 underdetermined_n 承担"
             }
           },
           "required": ["method"]

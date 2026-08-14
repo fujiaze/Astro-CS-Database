@@ -14,13 +14,24 @@ import json
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 import numpy as np
 
-CLI = r"F:\Astro dev\Astro CS Normalization Database\lib\phase2\build\rejection_cli.exe"
-HARNESS = (r"F:\Astro dev\Astro CS Normalization Database\run\temp"
-           r"\p2_v4_evidence\siril_harness\siril_linearfit_oracle.exe")
-OUT = r"F:\Astro dev\Astro CS Normalization Database\run\phase2\linear_fit_oracle"
+ROOT = Path(__file__).resolve().parents[3]
+CLI = os.environ.get(
+    "ASTROCS_REJECTION_CLI",
+    str(ROOT / "lib" / "phase2" / "build" / "rejection_cli.exe"),
+)
+HARNESS = os.environ.get(
+    "ASTROCS_SIRIL_LINEARFIT_HARNESS",
+    str(ROOT / "run" / "temp" / "p2_v4_evidence" / "siril_harness" /
+        "siril_linearfit_oracle.exe"),
+)
+OUT = os.environ.get(
+    "ASTROCS_LINEARFIT_OUT",
+    str(ROOT / "run" / "phase2" / "linear_fit_oracle"),
+)
 PROVENANCE = {
     "reference": ("Siril 1.4.3 官方源码实际运行（GPL ORACLE ONLY，不进入生产；"
                   "审核包不打包第三方源码）"),
@@ -60,8 +71,10 @@ SET2 = [7.7110e-2, 4.7330e-1, 5.7340e-1, 3.3310e-1, 5.3160e-1, 3.6550e-1,
 def run_siril_harness(vals, siglow=4.0, sighigh=3.0):
     """运行官方 Siril 1.4.3 源码 harness，返回 (mask, stdout)。"""
     os.environ["PATH"] = (
-        r"C:\msys64\mingw64\bin;" +
-        r"F:\Astro dev\Astro CS Normalization Database\lib\astro_image_io;" +
+        os.environ.get("ASTROCS_MINGW_BIN",
+                       r"C:\msys64\mingw64\bin") + ";" +
+        os.environ.get("ASTROCS_AIO_DIR",
+                       str(ROOT / "lib" / "astro_image_io")) + ";" +
         os.environ.get("PATH", ""))
     txt = "\n".join(repr(float(v)) for v in vals)
     r = subprocess.run(
@@ -77,8 +90,10 @@ def run_siril_harness(vals, siglow=4.0, sighigh=3.0):
 
 def run_cpp(vals):
     os.environ["PATH"] = (
-        r"C:\msys64\mingw64\bin;" +
-        r"F:\Astro dev\Astro CS Normalization Database\lib\astro_image_io;" +
+        os.environ.get("ASTROCS_MINGW_BIN",
+                       r"C:\msys64\mingw64\bin") + ";" +
+        os.environ.get("ASTROCS_AIO_DIR",
+                       str(ROOT / "lib" / "astro_image_io")) + ";" +
         os.environ.get("PATH", ""))
     txt = "\n".join(repr(float(v)) for v in vals)
     r = subprocess.run(

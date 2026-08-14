@@ -46,6 +46,9 @@ typedef struct {
     int    background_catalog_veto;        // 允许 SNR catalogue veto（默认 1）
 } P2SamplerConfig;
 
+// V15：sampler 默认配置单一来源（null cfg 时使用；显式 cfg 覆盖）。
+P2_API P2SamplerConfig p2_sampler_default_config(void);
+
 // V13：background-clean 采样统计（accepted/rejected 可追踪）
 typedef struct {
     std::uint64_t candidate_observations;   // 候选观测总数（几何×覆盖帧）

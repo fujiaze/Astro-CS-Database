@@ -1,31 +1,73 @@
-# lib/phase2/tools/rejection_oracle_compare.py — Phase2 Rejection Oracle 对照
+# lib/phase2/tools/rejection_oracle_compare.py — Phase2 Rejection Oracle 对照（V15）
 #
 # 用途（控制包 07_REJECTION_IMPLEMENTATION / 12_DELIVERY evidence）：
-#   - Sigma    ↔ Astropy astropy.stats.sigma_clip（median + mad_std）
-#   - ESD      ↔ NIST Generalized ESD（Rosner 示例，54 点检出 3 个离群）
-#   - Winsorized ↔ SciPy mstats.winsorize primitive
+#   - Sigma ↔ Astropy astropy.stats.sigma_clip（median + mad_std）
+#   - ESD  ↔ NIST Generalized ESD（Rosner 示例，54 点 3 outliers）
+#   - Auto ↔ WBPP 2.9.1 本机源码 bestRejectionMethod 政策
+#   - 边界矩阵（NaN/±Inf/valid=false/零方差/n=2 卫星线）
 # 只读 Oracle 工具（NON_PRODUCTION_TOOL_ONLY）。
+#
+# V15 修复：
+#   - CLI 路径不再硬编码（ASTROCS_REJECTION_CLI 环境变量可覆盖）；
+#   - 所有 subprocess 显式 timeout；
+#   - 删除恒真断言（SciPy primitive 对照改为有意义的数值断言）；
+#   - Python 镜像改名 winsorized_mirror_smoke，明确 NOT_AN_ORACLE。
+import json
+import os
 import subprocess
 import sys
 import tempfile
-import os
+from pathlib import Path
+
 import numpy as np
 from astropy.stats import sigma_clip, mad_std
-from scipy.stats import mstats, t
+from scipy.stats import mstats, t as tdist
 
-CLI = r"F:\Astro dev\Astro CS Normalization Database\lib\phase2\build\rejection_cli.exe"
+CLI = os.environ.get(
+    "ASTROCS_REJECTION_CLI",
+    str(Path(__file__).resolve().parents[1] / "build" / "rejection_cli.exe"),
+)
+TIMEOUT_S = 120
 
 
 def run_cpp(values, method, lo=-4.0, hi=3.0, max_iter=8, min_samples=3):
     txt = "\n".join(repr(float(v)) for v in values)
     r = subprocess.run(
         [CLI, str(method), str(lo), str(hi), str(max_iter), str(min_samples)],
-        input=txt, capture_output=True, text=True)
+        input=txt, capture_output=True, text=True, timeout=TIMEOUT_S)
     if r.returncode != 0:
         raise RuntimeError("cli failed: " + r.stderr)
     lines = r.stdout.strip().splitlines()
     mask = np.array([int(c) for c in lines[0].split()], dtype=int)
     return mask, lines[1]
+
+
+def run_plan(values, request, nominal, reasons_out=True,
+             underdetermined_n=2, **typed):
+    plan = {"request": request, "nominal": nominal,
+            "profile": "wbpp_current", "underdetermined_n": underdetermined_n}
+    plan.update(typed)
+    fd, pf = tempfile.mkstemp(suffix=".json")
+    os.close(fd)
+    try:
+        with open(pf, "w", encoding="utf-8") as f:
+            json.dump(plan, f)
+        txt = "\n".join(repr(float(v)) for v in values)
+        cmd = [CLI, "--plan", pf]
+        if reasons_out:
+            cmd.append("--reasons")
+        r = subprocess.run(cmd, input=txt, capture_output=True, text=True,
+                           timeout=TIMEOUT_S, encoding="utf-8",
+                           errors="replace")
+    finally:
+        os.unlink(pf)
+    if r.returncode != 0:
+        raise RuntimeError("cli failed: " + r.stderr[:300])
+    lines = r.stdout.strip().splitlines()
+    mask = np.array([int(c) for c in lines[0].split()], dtype=int)
+    reasons = (np.array([int(c) for c in lines[1].split()], dtype=int)
+               if reasons_out else None)
+    return mask, reasons, lines[-1]
 
 
 def sigma_vs_astropy():
@@ -35,7 +77,8 @@ def sigma_vs_astropy():
     vals[88] = -6.2
     vals[150] = 8.0
     vals[5] = 7.5
-    mask_cpp, stat = run_cpp(vals, method=1, lo=-4.0, hi=3.0, max_iter=8, min_samples=3)
+    mask_cpp, stat = run_cpp(vals, method=1, lo=-4.0, hi=3.0,
+                             max_iter=8, min_samples=3)
     sc = sigma_clip(vals, sigma_lower=4.0, sigma_upper=3.0, maxiters=8,
                     cenfunc="median", stdfunc="mad_std", masked=True)
     mask_ast = (~sc.mask).astype(int)
@@ -49,31 +92,38 @@ def sigma_vs_astropy():
 
 
 def winsorized_vs_scipy():
+    """SciPy winsorize primitive 数值断言（V15 修复恒真断言）。
+    NOTE：此检查只验证"夹取原语"与 SciPy 一致；Winsorized Sigma 的权威
+    参考是 Siril 1.4.3 官方源码（GPL ORACLE ONLY），见 linear_fit_oracle.py
+    同目录 harness 说明。"""
     rng = np.random.default_rng(7)
     vals = rng.normal(0.0, 1.0, 100)
     vals[10] = 12.0
     vals[11] = -11.0
-    w = mstats.winsorize(vals, limits=[0.02, 0.02])
-    # 我们的实现：winsorized_sigma 内部对边界样本先夹取再迭代；
-    # 此处仅验证 primitive 数值一致性：winsorize 后极值被夹到分位值。
-    # scipy winsorize：两端 2 个样本替换为最接近的保留值
-    w = np.asarray(w)
-    assert np.all(np.isfinite(w)) and np.allclose(np.sort(w)[:2], np.sort(w)[:2])
-    assert np.abs(w[10] - vals[10]) > 1e-9 and np.abs(w[11] - vals[11]) > 1e-9
-    print("[winsorized] SciPy primitive 对照 OK（2%/98% 分位夹取）")
+    w = np.asarray(mstats.winsorize(vals, limits=[0.02, 0.02]))
+    # 有意义的断言：极值被夹取（不再恒真）
+    assert np.all(np.isfinite(w))
+    assert abs(w[10] - vals[10]) > 1e-6, "高侧极值必须被夹取"
+    assert abs(w[11] - vals[11]) > 1e-6, "低侧极值必须被夹取"
+    assert np.max(w) < 12.0 and np.min(w) > -11.0
+    print("[winsorized] SciPy primitive 夹取数值断言 OK")
     return True
 
 
-def winsorized_independent_mask(vals, lo=-4.0, hi=3.0, max_iter=8):
-    """独立 Python winsorized sigma（V14 升级，对齐 Siril 官方语义）：
-    位置=median；σ 由迭代 winsorize 到 [median-1.5σ, median+1.5σ] 后的
-    SD × 1.134 估计（收敛 |Δσ|<=5e-4·σ）；最后按 median 位置 sigma clip，
-    N-r<=4 后不再拒绝。"""
-    import numpy as np
-    v = np.asarray(vals, dtype=float)
+def winsorized_mirror_smoke():
+    """Python 镜像 smoke —— NOT_AN_ORACLE（V15 明确命名）。
+    镜像与 C++ 同公式，只能做一致性冒烟；独立 oracle 由 Siril 官方
+    源码 harness 承担（当前线性拟合 harness 已落地；winsorized 的
+    Siril harness 待 W8 后补，本脚本不宣称独立）。"""
+    rng = np.random.default_rng(20260815)
+    vals = np.concatenate([rng.normal(0, 1, 40), [0.0] * 10, [100.0]])
+    mask_cpp, stat = run_cpp(vals, method=2, lo=-4.0, hi=3.0,
+                             max_iter=8, min_samples=3)
+    # 镜像实现（与 C++ 相同公式；仅冒烟）
+    v = vals.copy()
     acc = np.ones(len(v), dtype=bool)
     r = 0
-    for _ in range(max_iter):
+    for _ in range(8):
         cur = v[acc]
         if len(cur) < 2:
             break
@@ -98,42 +148,30 @@ def winsorized_independent_mask(vals, lo=-4.0, hi=3.0, max_iter=8):
         for i in idx:
             if len(cur) - r <= 4:
                 break
-            if z[i] < lo or z[i] > hi:
+            if z[i] < -4.0 or z[i] > 3.0:
                 acc[i] = False
                 r += 1
                 changed = True
         if not changed:
             break
-    return acc
-
-
-def winsorized_vs_independent():
-    rng = np.random.default_rng(20260815)
-    vals = np.concatenate([rng.normal(0, 1, 40), [0.0] * 10, [100.0]])
-    mask_cpp, stat = run_cpp(vals, method=2, lo=-4.0, hi=3.0,
-                             max_iter=8, min_samples=3)
-    mask_ref = winsorized_independent_mask(vals)
-    agree = int(np.sum(mask_cpp == mask_ref))
-    print(f"[winsorized-ref] n={len(vals)} agree={agree}/{len(vals)} "
-          f"cpp_reject={int(np.sum(mask_cpp == 0))} "
-          f"ref_reject={int(np.sum(mask_ref == 0))}")
-    assert agree == len(vals), "Winsorized 独立 reference 不一致"
+    agree = int(np.sum(mask_cpp == acc.astype(int)))
+    print(f"[winsorized-mirror] NOT_AN_ORACLE 冒烟 agree={agree}/"
+          f"{len(vals)}")
+    assert agree == len(vals), "Winsorized 镜像冒烟不一致（需排查）"
     return True
 
 
 def nist_esd_full(vals, alpha=0.05, max_out=10):
-    """独立两阶段 NIST ESD（先连续移除记录 R_i/λ_i，再取最大 i）。"""
-    import numpy as np
-    from scipy.stats import t as tdist
+    """独立两阶段 NIST ESD（scipy t 分布，独立数值栈）。"""
     n0 = len(vals)
     work = list(map(float, vals))
-    Rs, Ls, removed = [], [], []
+    Rs, Ls = [], []
     for i in range(1, max_out + 1):
         arr = np.array(work)
         n = len(arr)
         mean = arr.mean()
         sd = arr.std(ddof=1)
-        if sd <= 1e-12:
+        if sd <= 1e-12 or n < 3:
             break
         Ri = np.abs(arr - mean) / sd
         j = int(np.argmax(Ri))
@@ -144,17 +182,15 @@ def nist_esd_full(vals, alpha=0.05, max_out=10):
         lam = tc * ni / np.sqrt((nu + tc * tc) * (ni + 1))
         Rs.append(float(Ri[j]))
         Ls.append(float(lam))
-        removed.append(float(arr[j]))
         del work[j]
     k = 0
     for r in range(len(Rs)):
         if Rs[r] > Ls[r]:
             k = r + 1
-    return k, Rs, Ls, removed[:k]
+    return k, Rs, Ls
 
 
 def esd_vs_nist():
-    # NIST Rosner 54 点：两阶段 ESD 必须 3 outliers
     vals = np.array([
         -0.25, 0.68, 0.94, 1.15, 1.20, 1.26, 1.26, 1.34, 1.38, 1.43,
         1.49, 1.49, 1.55, 1.56, 1.58, 1.65, 1.69, 1.70, 1.76, 1.77,
@@ -165,11 +201,10 @@ def esd_vs_nist():
     mask_cpp, stat = run_cpp(vals, method=5, lo=-4.0, hi=3.0,
                              max_iter=10, min_samples=5)
     n_rej = int(np.sum(mask_cpp == 0))
-    k_ref, Rs, Ls, rem = nist_esd_full(vals)
+    k_ref, Rs, Ls = nist_esd_full(vals)
     print(f"[esd-nist] n=54 cpp_reject={n_rej} ref_k={k_ref} "
           f"R1={Rs[0]:.4f} lambda1={Ls[0]:.4f}")
     assert n_rej == 3 and k_ref == 3, "NIST Rosner 54 点必须 3 outliers"
-    # masking case：两极端离群
     rng = np.random.default_rng(42)
     v2 = rng.normal(0, 1, 40)
     v2[5] = 8.0
@@ -182,13 +217,61 @@ def esd_vs_nist():
     return True
 
 
+def auto_vs_wbpp_policy():
+    """WBPP 2.9.1 bestRejectionMethod 政策核验（本机源码证据）：
+       n<6 → percentile；6..15 → winsorized；>15 → linear_fit。"""
+    expected = {2: "percentile", 5: "percentile", 6: "winsorized_sigma",
+                15: "winsorized_sigma", 16: "linear_fit", 20: "linear_fit"}
+    ok = True
+    for n, want in expected.items():
+        mask, reasons, stat = run_plan([10.0] * max(3, n), "auto", n)
+        # stat 形如 "status=... method=4"
+        got = int(stat.rsplit("method=", 1)[1])
+        names = {0: "none", 1: "sigma", 2: "winsorized_sigma",
+                 3: "averaged_sigma", 4: "linear_fit", 5: "generalized_esd",
+                 6: "rcr", 7: "percentile", 8: "median_sigma", 9: "minmax"}
+        ok &= (names[got] == want)
+        print(f"[auto-policy] nominal={n} resolved={names[got]} "
+              f"want={want} {'OK' if names[got] == want else 'FAIL'}")
+    assert ok, "Auto 路由与 WBPP 2.9.1 政策不一致"
+    return True
+
+
+def edge_matrix():
+    """G4 边界/对抗矩阵（V15）：n=2 卫星线 → UNDERDETERMINED；
+    NaN/Inf → INVALID_INPUT；零方差 → 无拒绝。"""
+    # n=2 卫星线：不得宣称可剔除
+    mask, reasons, stat = run_plan([10.0, 50.0], "auto", 2)
+    assert "status=4" in stat, "n=2 必须 UNDERDETERMINED(4): " + stat
+    assert int(np.sum(mask)) == 2, "n=2 全部接受（不伪称剔除）"
+    assert reasons is not None and np.all(reasons == 3)
+    print("[edge] n=2 卫星线 UNDERDETERMINED OK")
+    # NaN → INVALID_INPUT(3)
+    mask, reasons, stat = run_plan([10.0, float("nan"), 11.0], "sigma", 20)
+    assert "status=3" in stat, "NaN 必须 INVALID_INPUT: " + stat
+    assert mask[1] == 0
+    print("[edge] NaN INVALID_INPUT OK")
+    # ±Inf
+    mask, reasons, stat = run_plan([10.0, float("inf"), -float("inf")],
+                                   "sigma", 20)
+    assert "status=3" in stat
+    print("[edge] +/-Inf INVALID_INPUT OK")
+    # 零方差：无拒绝
+    mask, reasons, stat = run_plan([10.0] * 10, "sigma", 20)
+    assert int(np.sum(mask)) == 10 and "status=0" in stat
+    print("[edge] 零方差无拒绝 OK")
+    return True
+
+
 def main():
     ok = True
     ok &= sigma_vs_astropy()
     ok &= esd_vs_nist()
     ok &= winsorized_vs_scipy()
-    ok &= winsorized_vs_independent()
-    # RCR oracle 由独立脚本 rcr_oracle_compare.py 覆盖（官方 rcr 2.4.7）
+    ok &= winsorized_mirror_smoke()
+    ok &= auto_vs_wbpp_policy()
+    ok &= edge_matrix()
+    # RCR oracle 由 rcr_oracle_compare.py 覆盖（官方 rcr 2.4.7 固定版本）
     print("ORACLE_RESULT=" + ("PASS" if ok else "FAIL"))
     return 0 if ok else 1
 

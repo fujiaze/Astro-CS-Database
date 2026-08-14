@@ -117,6 +117,8 @@ int main(int argc, char** argv) {
         std::fprintf(stderr, "config error: %s\n", err.c_str());
         return 2;
     }
+    for (const auto& w : cfg.deprecation_warnings)
+        std::fprintf(stderr, "[stage2][deprecation] %s\n", w.c_str());
 
     // 日志：run/logs/phase2/<YYYYMMDD>/stage2.log
     const std::string log_dir =
@@ -390,7 +392,9 @@ int main(int argc, char** argv) {
 
     std::uint64_t total_pixels = 0, total_rejected = 0, total_fallback = 0;
     std::uint64_t dbg_reject_px = 0, dbg_fallback_px = 0, dbg_zero_px = 0;
+    std::uint64_t underdetermined_px = 0;  // V15：REJECTION_UNDERDETERMINED
     std::map<std::uint32_t, std::uint64_t> reject_hist;  // 每像素拒绝样本数分布
+    std::map<std::uint32_t, std::string> resolved_methods;  // nominal depth → semantic id
     // V7 P7-2：overlap topology 诊断
     std::uint64_t px_depth_1 = 0, px_depth_ge_2 = 0, px_integrated = 0;
     std::uint64_t tiles_written = 0;
@@ -400,30 +404,23 @@ int main(int argc, char** argv) {
     std::vector<float> t_sig_probe(512 * 512);
     const std::uint32_t nb = (std::uint32_t)cfg.hips.size();
 
-    // ---- ACR 路由（G9）：sigma/winsorized 逐 tile 走 KernelRegistry，
-    // GPU 可用则 CUDA，否则 CPU legacy（同一科学语义）。 ----
+    // ---- ACR 路由（G9/V15）：按 tile 解析后的显式方法决定是否走
+    // KernelRegistry（仅 robust_mad_clip/sigma）；GPU 可用则 CUDA，
+    // 否则 CPU legacy（同一科学语义）。 ----
     astro::compute::phase2::register_phase2_acr_kernels();
     const astro::compute::KernelRegistration* acr_reg =
         astro::compute::global_kernel_registry().find(
             astro::compute::phase2::kOpMosaicReject);
-    const bool use_acr_block =
-        acr_reg != nullptr &&
-        cfg.reject_method == P2_REJECT_SIGMA;   // R6：Winsorized 明确 CPU_ROUTE
+    // V15：rejection workspace（可复用 scratch，容量=最大候选栈深）
+    P2RejectionWorkspace* rws =
+        p2_rejection_workspace_create((std::size_t)cfg.hips.size());
+    if (rws == nullptr) {
+        log("rejection workspace alloc failed");
+        return 6;
+    }
     namespace bridge = astro::compute::cuda::bridge;
     bool gpu_ready = false;
     void* gpu_exec = nullptr;
-    if (use_acr_block && cfg.acr_route != "cpu") {
-        bridge::ensure_bridge_loaded();
-        if (bridge::api().loaded()) {
-            const char* gerr = nullptr;
-            gpu_exec = bridge::api().executor_create(0, 1u << 22, 1u << 18,
-                                                     &gerr);
-            gpu_ready = (gpu_exec != nullptr);
-            if (gpu_ready) bridge::set_tls_handle(gpu_exec);
-        }
-    }
-    log("ACR block routing: enabled=" + std::to_string(use_acr_block) +
-        " gpu=" + std::to_string(gpu_ready));
     for (std::uint64_t ci = 0; ci < cov.n_union_cells; ++ci) {
         const std::uint64_t tile_ipix = cells[ci].ipix;
         // 覆盖帧列表（探测读取，不预分配全帧缓冲）
@@ -436,6 +433,69 @@ int main(int argc, char** argv) {
         }
         if (frames.empty()) continue;
         const std::uint32_t depth = (std::uint32_t)frames.size();
+
+        // V15：planning 层解析 rejection（tile 级 nominal contributors = depth）
+        P2RejectionPlanRequest rreq{};
+        rreq.request = cfg.reject_method;
+        rreq.nominal_contributors = depth;
+        rreq.profile = cfg.reject_profile.c_str();
+        rreq.underdetermined_n = cfg.reject_underdetermined_n;
+        P2RejectionPlan rplan{};
+        char rperr[160] = {0};
+        if (p2_reject_plan_resolve(&rreq, &rplan, rperr, sizeof(rperr)) != 0) {
+            log("rejection plan resolve failed: " + std::string(rperr));
+            p2_upm_close(model);
+            p2_rejection_workspace_free(rws);
+            return 6;
+        }
+        // typed params（cfg 为唯一默认源）
+        rplan.sigma.lower_sigma = cfg.sigma_lower;
+        rplan.sigma.upper_sigma = cfg.sigma_upper;
+        rplan.sigma.max_iterations = cfg.sigma_max_iterations;
+        rplan.winsorized.lower_sigma = cfg.winsor_lower;
+        rplan.winsorized.upper_sigma = cfg.winsor_upper;
+        rplan.winsorized.max_iterations = cfg.winsor_max_iterations;
+        rplan.averaged.lower_sigma = cfg.avg_lower;
+        rplan.averaged.upper_sigma = cfg.avg_upper;
+        rplan.averaged.max_iterations = cfg.avg_max_iterations;
+        rplan.linear_fit.lower = cfg.linfit_lower;
+        rplan.linear_fit.upper = cfg.linfit_upper;
+        rplan.linear_fit.max_iterations = cfg.linfit_max_iterations;
+        rplan.esd.alpha = cfg.esd_alpha;
+        rplan.esd.max_outliers = cfg.esd_max_outliers;
+        rplan.percentile.low_fraction = cfg.pct_low_fraction;
+        rplan.percentile.high_fraction = cfg.pct_high_fraction;
+        rplan.median_sigma.lower_sigma = cfg.medsig_lower;
+        rplan.median_sigma.upper_sigma = cfg.medsig_upper;
+        rplan.median_sigma.max_iterations = cfg.medsig_max_iterations;
+        rplan.minmax.reject_low_count = cfg.minmax_low_count;
+        rplan.minmax.reject_high_count = cfg.minmax_high_count;
+        rplan.minmax.max_iterations = cfg.minmax_max_iterations;
+        rplan.minmax.min_kept = cfg.minmax_min_kept;
+        log("tile " + std::to_string(tile_ipix) + " rejection resolved: " +
+            std::string(p2_rejection_semantic_id(rplan.method)) +
+            " nominal=" + std::to_string(depth) + " min_n=" +
+            std::to_string(rplan.minimum_n) + " underdetermined_n=" +
+            std::to_string(rplan.underdetermined_n));
+        resolved_methods[depth] = p2_rejection_semantic_id(rplan.method);
+
+        // 仅显式 sigma（robust_mad_clip）可走 ACR 块路径（同一 contract）
+        const bool use_acr_block =
+            acr_reg != nullptr && rplan.method == P2_REJECT_SIGMA &&
+            cfg.acr_route != "cpu";
+        if (use_acr_block && gpu_exec == nullptr) {
+            bridge::ensure_bridge_loaded();
+            if (bridge::api().loaded()) {
+                const char* gerr = nullptr;
+                gpu_exec = bridge::api().executor_create(0, 1u << 22,
+                                                         1u << 18, &gerr);
+                gpu_ready = (gpu_exec != nullptr);
+                if (gpu_ready) bridge::set_tls_handle(gpu_exec);
+            }
+        }
+        log("tile " + std::to_string(tile_ipix) + " ACR block: enabled=" +
+            std::to_string(use_acr_block) + " gpu=" +
+            std::to_string(gpu_ready));
 
         // ---- R3：真实 N_B + planner 计算 chunk_pixels（micro-chunk 执行）----
         P2BlockPlannerInput bp{};
@@ -452,6 +512,7 @@ int main(int argc, char** argv) {
         if (plan.status == 1) {
             log("block unfeasible: " + std::string(plan.error));
             p2_upm_close(model);
+            p2_rejection_workspace_free(rws);
             return 6;
         }
         const std::uint64_t chunk_pixels =
@@ -479,11 +540,11 @@ int main(int argc, char** argv) {
                           sizeof(std::uint8_t))));
 
         // 每 chunk 的工作缓冲（按 chunk_pixels×depth，非 262144×all_frames）
-        std::vector<std::vector<double>> cal(depth), supv(depth);
-        for (auto& v : cal) v.resize(chunk_pixels);
-        for (auto& v : supv) v.resize(chunk_pixels);
-        std::vector<std::vector<std::uint64_t>> chunk_leaves(n_chunk);
-        std::vector<std::uint64_t> local_lut(n_leaf);
+    std::vector<std::vector<double>> cal(depth), supv(depth);
+    for (auto& v : cal) v.resize(chunk_pixels);
+    for (auto& v : supv) v.resize(chunk_pixels);
+    std::vector<std::vector<std::uint64_t>> chunk_leaves(n_chunk);
+    std::vector<std::uint64_t> local_lut(n_leaf);
         for (std::uint64_t i = 0; i < n_leaf; ++i)
             local_lut[i] = astrocs::healpix::fits_index_to_nested_local(
                 i, 9u, 512u);
@@ -498,6 +559,8 @@ int main(int argc, char** argv) {
         }
         std::vector<double> stack(depth), weights(depth), support_v(depth);
         std::vector<std::uint8_t> acc(depth);
+        std::vector<std::uint64_t> fid_stack(depth);
+        std::vector<std::uint8_t> reasons(depth);
 
         // 全 tile 临时读取缓冲（512×512×2×4B，固定小）
         std::vector<float> t_sig(512 * 512), t_sup(512 * 512);
@@ -547,6 +610,7 @@ int main(int argc, char** argv) {
                         aio_hips_read_tile_f32(sup[f], tile_ipix,
                                                t_sup.data()) != 0) {
                         log("tile read failed");
+                        p2_rejection_workspace_free(rws);
                         return 6;
                     }
                     std::vector<double> cal_v(cnt), sup_v(cnt);
@@ -592,11 +656,15 @@ int main(int argc, char** argv) {
                 astro::compute::append_scalar(inv.scalars, std::size_t{cnt});
                 astro::compute::append_scalar(inv.scalars, std::size_t{depth});
                 astro::compute::append_scalar(inv.scalars,
-                                              int{cfg.reject_method});
-                astro::compute::append_scalar(inv.scalars, cfg.sigma_low);
-                astro::compute::append_scalar(inv.scalars, cfg.sigma_high);
+                                              int{rplan.method});
                 astro::compute::append_scalar(inv.scalars,
-                                              cfg.reject_min_samples);
+                    static_cast<int>(rplan.underdetermined_n));
+                astro::compute::append_scalar(inv.scalars,
+                                              rplan.sigma.lower_sigma);
+                astro::compute::append_scalar(inv.scalars,
+                                              rplan.sigma.upper_sigma);
+                astro::compute::append_scalar(inv.scalars,
+                                              int{rplan.sigma.max_iterations});
                 astro::compute::append_scalar(inv.scalars,
                                               std::size_t{p0});  // chunk tile 偏移
                 try {
@@ -674,6 +742,7 @@ int main(int argc, char** argv) {
                     std::string(aio_hips_last_error()));
                 aio_hips_abort(ps);
                 p2_upm_close(model);
+                p2_rejection_workspace_free(rws);
                 return 6;
             }
             ++tiles_written;
@@ -694,6 +763,7 @@ int main(int argc, char** argv) {
                     aio_hips_read_tile_f32(sup[f], tile_ipix,
                                            t_sup.data()) != 0) {
                     log("tile read failed");
+                    p2_rejection_workspace_free(rws);
                     return 6;
                 }
                 for (std::uint64_t i = 0; i < cnt; ++i) {
@@ -714,10 +784,11 @@ int main(int argc, char** argv) {
                     if (std::isfinite(cal[s][i]) && supv[s][i] > 0.0) {
                         stack[n_valid] = cal[s][i];
                         support_v[n_valid] = supv[s][i];
-                        // R8：局部 SNR（control cell 级）；缺失 → 整帧
-                        // median fallback（计数）
                         const std::uint64_t fid =
                             frame_id_cache[frames[s]];
+                        fid_stack[n_valid] = fid;
+                        // R8：局部 SNR（control cell 级）；缺失 → 整帧
+                        // median fallback（计数）
                         const int px = (int)(p % 512);
                         const int py = (int)(p / 512);
                         const auto key = std::make_tuple(
@@ -739,44 +810,41 @@ int main(int argc, char** argv) {
                 int st = 1;
                 if (n_valid == 0) {
                     ++dbg_zero_px;
-                } else if (n_valid < (std::uint32_t)cfg.reject_min_samples) {
-                    if (n_valid == 1) ++px_depth_1; else ++px_depth_ge_2;
-                    for (std::uint32_t s = 0; s < n_valid; ++s) acc[s] = 1;
-                    ++total_fallback;
-                    ++dbg_fallback_px;
-                    P2PixelStack pi{};
-                    pi.values = stack.data();
-                    pi.weights = weights.data();
-                    pi.support = support_v.data();
-                    pi.accepted = acc.data();
-                    pi.count = n_valid;
-                    pi.weight_mode = cfg.weight_mode;
-                    P2PixelResult pr{};
-                    p2_integrate_pixel(&pi, &pr);
-                    st = pr.status;
-                    signal_out = pr.signal;
-                    for (std::uint32_t s = 0; s < n_valid; ++s)
-                        support_out = std::max(support_out, support_v[s]);
                 } else {
                     ++px_depth_ge_2;
-                    ++px_integrated;
-                    ++dbg_reject_px;
-                    P2SampleStackView rv{};
-                    rv.values = stack.data();
-                    rv.valid = nullptr;
-                    rv.count = n_valid;
-                    rv.data_type = 1;
-                    rv.method = cfg.reject_method;
-                    rv.sigma_low = cfg.sigma_low;
-                    rv.sigma_high = cfg.sigma_high;
-                    rv.max_iterations = cfg.reject_max_iterations;
-                    rv.min_samples = cfg.reject_min_samples;
-                    P2RejectionResult rr{};
-                    rr.accepted = acc.data();
-                    p2_reject_stack(&rv, &rr);
-                    total_rejected += rr.rejected_low + rr.rejected_high;
-                    ++reject_hist[rr.rejected_low + rr.rejected_high];
-                    if (rr.status == 1) ++total_fallback;
+                    // V15：explicit plan kernel（auto 已在 planning 层解析）
+                    P2CandidateStack cstack{};
+                    cstack.values = stack.data();
+                    cstack.weights = weights.data();
+                    cstack.frame_ids = fid_stack.data();
+                    cstack.count = n_valid;
+                    cstack.data_type = 1;
+                    P2RejectionDecision rdec{};
+                    rdec.reasons = reasons.data();
+                    if (p2_reject_stack_ex(&cstack, &rplan, &rdec, rws) != 0) {
+                        log("reject kernel failed");
+                        p2_upm_close(model);
+                        p2_rejection_workspace_free(rws);
+                        return 6;
+                    }
+                    for (std::uint32_t s = 0; s < n_valid; ++s) {
+                        acc[s] =
+                            (rdec.reasons[s] == P2_REASON_ACCEPTED ||
+                             rdec.reasons[s] == P2_REASON_UNDERDETERMINED)
+                                ? 1 : 0;
+                    }
+                    total_rejected +=
+                        rdec.rejected_low + rdec.rejected_high;
+                    ++reject_hist[rdec.rejected_low + rdec.rejected_high];
+                    if (rdec.status == P2_STATUS_UNDERDETERMINED) {
+                        ++total_fallback;
+                        ++dbg_fallback_px;
+                        ++underdetermined_px;
+                        if (n_valid == 1) ++px_depth_1;
+                    } else {
+                        ++px_integrated;
+                        ++dbg_reject_px;
+                    }
                     P2PixelStack pi{};
                     pi.values = stack.data();
                     pi.weights = weights.data();
@@ -834,6 +902,7 @@ int main(int argc, char** argv) {
             log("hips tile write failed: " + std::string(aio_hips_last_error()));
             aio_hips_abort(ps);
             p2_upm_close(model);
+            p2_rejection_workspace_free(rws);
             return 6;
         }
         ++tiles_written;
@@ -841,6 +910,7 @@ int main(int argc, char** argv) {
     if (aio_hips_finalize(ps) != 0) {
         log("hips finalize failed: " + std::string(aio_hips_last_error()));
         p2_upm_close(model);
+        p2_rejection_workspace_free(rws);
         return 6;
     }
     for (std::size_t i = 0; i < cfg.hips.size(); ++i) {
@@ -862,6 +932,7 @@ int main(int argc, char** argv) {
         if (!vd) {
             log("verify failed: " + std::string(aio_hips_reader_last_error()));
             p2_upm_close(model);
+            p2_rejection_workspace_free(rws);
             return 7;
         }
         const int nt = aio_hips_tile_count(vd);
@@ -876,6 +947,7 @@ int main(int argc, char** argv) {
     }
 
     p2_upm_close(model);
+    p2_rejection_workspace_free(rws);
     const auto t_end = std::chrono::steady_clock::now();
     const double secs =
         std::chrono::duration<double>(t_end - t_start).count();
@@ -915,7 +987,14 @@ int main(int argc, char** argv) {
         diag["upm_sigma_floor"] = cfg.sigma_floor;
         diag["upm_support_power"] = cfg.support_power;
         diag["zero_coverage_pixels"] = dbg_zero_px;
+        diag["underdetermined_pixels"] = underdetermined_px;
         diag["reject_method"] = cfg.reject_method;
+        diag["reject_profile"] = cfg.reject_profile;
+        diag["reject_underdetermined_n"] = cfg.reject_underdetermined_n;
+        nlohmann::json rm = nlohmann::json::object();
+        for (const auto& kv : resolved_methods)
+            rm[std::to_string(kv.first)] = kv.second;
+        diag["rejection_resolved_methods"] = rm;
         diag["rejection_samples_per_pixel"] = reject_hist;
         diag["model_hash"] = std::string(minfo.model_hash);
         diag["runtime_seconds"] = secs;

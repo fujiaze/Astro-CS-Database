@@ -20,6 +20,7 @@
 #include <iomanip>
 #include <limits>
 #include <map>
+#include <numeric>
 #include <set>
 #include <sstream>
 #include <string>
@@ -78,9 +79,111 @@ double median_of(std::vector<double> v) {
     return 0.5 * (a + b);
 }
 
+// V15 性能：SNR catalogue 空间索引（dec 排序 + RA 窗口保守预筛，
+// 最终判据与全扫描完全一致——同一 angular_distance_deg 精确调用）。
+struct SnrIndex {
+    std::vector<double> ra, dec, snr;
+    std::vector<std::uint32_t> quality;
+    std::vector<std::size_t> order;   // 按 dec 升序的星索引
+    std::vector<double> dec_sorted;
+
+    void build(const std::vector<double>& ra_, const std::vector<double>& dec_,
+               const std::vector<double>& snr_,
+               const std::vector<std::uint32_t>& quality_) {
+        ra = ra_;
+        dec = dec_;
+        snr = snr_;
+        quality = quality_;
+        order.resize(ra.size());
+        std::iota(order.begin(), order.end(), 0);
+        std::sort(order.begin(), order.end(),
+                  [&](std::size_t a, std::size_t b) {
+                      return dec[a] < dec[b];
+                  });
+        dec_sorted.resize(order.size());
+        for (std::size_t i = 0; i < order.size(); ++i)
+            dec_sorted[i] = dec[order[i]];
+    }
+
+    // 查询 (ra,dec) 半径 radius_deg 内全部星（保守候选窗口；最终精确距离）
+    // out_snr 可空；out_qual 收集半径内星的 quality OR。
+    void query(double ra_c, double dec_c, double radius_deg,
+               std::vector<double>* out_snr,
+               std::uint32_t* out_qual) const {
+        if (out_snr) out_snr->clear();
+        if (out_qual) *out_qual = 0;
+        if (dec.empty() || radius_deg <= 0.0) return;
+        const auto lo = std::lower_bound(dec_sorted.begin(),
+                                         dec_sorted.end(), dec_c - radius_deg);
+        const auto hi = std::upper_bound(dec_sorted.begin(),
+                                         dec_sorted.end(), dec_c + radius_deg);
+        const double cos_guard =
+            std::max(std::cos((std::fabs(dec_c) + radius_deg) *
+                              3.14159265358979323846 / 180.0),
+                     1e-4);
+        const double ra_win = radius_deg / cos_guard;  // 保守 RA 窗口
+        for (auto it = lo; it != hi; ++it) {
+            const std::size_t s = order[(std::size_t)(it - dec_sorted.begin())];
+            double dra = std::fabs(ra[s] - ra_c);
+            if (dra > 180.0) dra = 360.0 - dra;
+            if (dra > ra_win) continue;
+            if (astrocs::healpix::angular_distance_deg(ra_c, dec_c, ra[s],
+                                                       dec[s]) <= radius_deg) {
+                if (out_snr) out_snr->push_back(snr[s]);
+                if (out_qual) *out_qual |= quality[s];
+            }
+        }
+    }
+
+    // 是否存在半径内 snr > threshold 的星（veto 用，与全扫描等价）
+    bool any_above(double threshold, double ra_c, double dec_c,
+                   double radius_deg) const {
+        if (dec.empty() || radius_deg <= 0.0) return false;
+        const auto lo = std::lower_bound(dec_sorted.begin(),
+                                         dec_sorted.end(), dec_c - radius_deg);
+        const auto hi = std::upper_bound(dec_sorted.begin(),
+                                         dec_sorted.end(), dec_c + radius_deg);
+        const double cos_guard =
+            std::max(std::cos((std::fabs(dec_c) + radius_deg) *
+                              3.14159265358979323846 / 180.0),
+                     1e-4);
+        const double ra_win = radius_deg / cos_guard;
+        for (auto it = lo; it != hi; ++it) {
+            const std::size_t s = order[(std::size_t)(it - dec_sorted.begin())];
+            double dra = std::fabs(ra[s] - ra_c);
+            if (dra > 180.0) dra = 360.0 - dra;
+            if (dra > ra_win) continue;
+            if (snr[s] > threshold &&
+                astrocs::healpix::angular_distance_deg(ra_c, dec_c, ra[s],
+                                                       dec[s]) <= radius_deg)
+                return true;
+        }
+        return false;
+    }
+};
+
 } // namespace
 
 extern "C" {
+
+// V15：sampler 默认配置单一来源（null cfg 与显式 cfg 同语义）。
+P2SamplerConfig p2_sampler_default_config(void) {
+    P2SamplerConfig c{};
+    c.control_grid_per_tile = 8;
+    c.patch_radius_leaf = 2;
+    c.min_samples = 5;
+    c.snr_search_radius_deg = 0.05;
+    c.background_patch_radius = 8;
+    c.background_clip_sigma = 3.0;
+    c.background_clip_iters = 3;
+    c.background_max_contamination = 0.20;
+    c.background_contamination_sigma = 3.0;
+    c.background_min_retained_fraction = 0.60;
+    c.background_tolerance = 3.0;
+    c.background_neighbor_radius = 2;
+    c.background_catalog_veto = 1;
+    return c;
+}
 
 std::uint64_t p2_frame_id(const char* hips_path) {
     if (!hips_path || !*hips_path) return 0;
@@ -241,15 +344,10 @@ int p2_sample_controls(const P2CoverageResult* coverage,
     *out_n_obs = 0;
     *out_n_controls = 0;
     P2SampleStats stats{};
-    P2SamplerConfig cfg;
-    if (cfg_in) {
-        cfg = *cfg_in;
-    } else {
-        cfg.control_grid_per_tile = 8;
-        cfg.patch_radius_leaf = 2;
-        cfg.min_samples = 5;
-        cfg.snr_search_radius_deg = 0.05;
-    }
+    // V15 修复：cfg 必须零初始化（此前 null 路径用栈垃圾值，默认值
+    // 随机失效 → n_obs 不确定）；默认值单源 p2_sampler_default_config。
+    P2SamplerConfig cfg = p2_sampler_default_config();
+    if (cfg_in) cfg = *cfg_in;
     // V13 默认（synthetic + GC 调优后固化；BACKGROUND_SAMPLER_SPEC.md）
     if (cfg.background_patch_radius <= 0) cfg.background_patch_radius = 8;
     if (cfg.background_clip_sigma <= 0.0) cfg.background_clip_sigma = 3.0;
@@ -347,11 +445,16 @@ int p2_sample_controls(const P2CoverageResult* coverage,
     std::vector<CellStat> cells;
     // 帧级 SNR 中位数（catalogue veto 与 fallback 用）
     std::vector<double> frame_snr_med(n_frames, 0.0);
+    std::vector<double> frame_snr_med_exact(n_frames, 0.0);  // median_of 语义
+    std::vector<SnrIndex> snr_idx(n_frames);  // V15：空间索引（dec 排序）
     for (std::uint64_t i = 0; i < n_frames; ++i) {
         if (!frames[i].snr.empty()) {
             std::vector<double> cp = frames[i].snr;
             std::sort(cp.begin(), cp.end());
             frame_snr_med[i] = cp[cp.size() / 2];
+            frame_snr_med_exact[i] = median_of(frames[i].snr);
+            snr_idx[i].build(frames[i].snr_ra, frames[i].snr_dec,
+                             frames[i].snr, frames[i].quality);
         }
     }
 
@@ -482,42 +585,31 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                         cs.n_total.push_back(n_total);
                         cs.n_retained.push_back(n_retained);
                         // Stage E：catalogue veto（可选；高 SNR 星点过近）
-                        const FrameData& fd = frames[frame_id];
                         int veto = 0;
-                        if (cfg.background_catalog_veto && !fd.snr.empty() &&
+                        if (cfg.background_catalog_veto &&
+                            !frames[frame_id].snr.empty() &&
                             frame_snr_med[frame_id] > 0.0) {
                             const double thr = 10.0 * frame_snr_med[frame_id];
                             const double rad = 0.012;  // ~ patch 尺度（度）
-                            for (std::size_t s = 0; s < fd.snr.size(); ++s) {
-                                if (fd.snr[s] > thr &&
-                                    astrocs::healpix::angular_distance_deg(
-                                        ra_deg, dec_deg, fd.snr_ra[s],
-                                        fd.snr_dec[s]) <= rad) {
-                                    veto = 1;
-                                    break;
-                                }
-                            }
+                            if (snr_idx[frame_id].any_above(
+                                    thr, ra_deg, dec_deg, rad))
+                                veto = 1;
                         }
                         // SNR 邻域（obs 字段；缺失→帧级 fallback）
                         double snr_val = 1.0;
                         int snr_avail = 0;
                         std::uint32_t qual = 0;
-                        if (!fd.snr.empty()) {
+                        if (!frames[frame_id].snr.empty()) {
                             std::vector<double> near;
-                            for (std::size_t s = 0; s < fd.snr.size(); ++s) {
-                                if (astrocs::healpix::angular_distance_deg(
-                                        ra_deg, dec_deg, fd.snr_ra[s],
-                                        fd.snr_dec[s]) <=
-                                    cfg.snr_search_radius_deg) {
-                                    near.push_back(fd.snr[s]);
-                                    qual |= fd.quality[s];
-                                }
-                            }
+                            snr_idx[frame_id].query(
+                                ra_deg, dec_deg, cfg.snr_search_radius_deg,
+                                &near, &qual);
                             if (!near.empty()) {
                                 snr_val = median_of(std::move(near));
                                 snr_avail = 1;
-                            } else if (!fd.snr.empty()) {
-                                snr_val = median_of(fd.snr);
+                            } else {
+                                // 整帧 median 回退（与全扫描 median_of 一致）
+                                snr_val = frame_snr_med_exact[frame_id];
                             }
                         } else {
                             snr_val = 0.0;

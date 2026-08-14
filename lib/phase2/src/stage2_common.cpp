@@ -194,8 +194,9 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
             }
             if (in.contains("rejection")) {
                 const auto& rj = in["rejection"];
+                // V15：production 默认 auto（planning 层解析，WBPP 2.9.1）
                 const std::string method =
-                    rj.value("method", std::string("winsorized_sigma"));
+                    rj.value("method", std::string("auto"));
                 if (method == "none") cfg->reject_method = P2_REJECT_NONE;
                 else if (method == "sigma") cfg->reject_method = P2_REJECT_SIGMA;
                 else if (method == "winsorized_sigma")
@@ -219,14 +220,126 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                     *err = "unsupported rejection method: " + method;
                     return false;
                 }
-                cfg->sigma_low = -std::fabs(rj.value("low", 4.0));
-                cfg->sigma_high = std::fabs(rj.value("high", 3.0));
-                cfg->reject_max_iterations =
-                    rj.value("max_iterations", 8);
-                cfg->reject_min_samples = rj.value("min_samples", 2);
-                if (cfg->reject_min_samples < 1) {
-                    *err = "rejection.min_samples 必须 >= 1";
+                cfg->reject_profile =
+                    rj.value("profile", std::string("wbpp_current"));
+                if (cfg->reject_profile != "wbpp_current") {
+                    *err = "rejection.profile 只支持 wbpp_current（本机 WBPP 2.9.1）";
                     return false;
+                }
+                cfg->reject_underdetermined_n =
+                    rj.value("underdetermined_n", (std::uint32_t)2);
+                if (cfg->reject_underdetermined_n < 1) {
+                    *err = "rejection.underdetermined_n 必须 >= 1";
+                    return false;
+                }
+                // V15 method-specific typed params（单语义单默认）
+                if (rj.contains("robust_mad_clip")) {
+                    const auto& s = rj["robust_mad_clip"];
+                    cfg->sigma_lower = s.value("lower_sigma", 4.0);
+                    cfg->sigma_upper = s.value("upper_sigma", 3.0);
+                    cfg->sigma_max_iterations =
+                        s.value("max_iterations", 8);
+                }
+                if (rj.contains("winsorized_sigma")) {
+                    const auto& s = rj["winsorized_sigma"];
+                    cfg->winsor_lower = s.value("lower_sigma", 4.0);
+                    cfg->winsor_upper = s.value("upper_sigma", 3.0);
+                    cfg->winsor_max_iterations =
+                        s.value("max_iterations", 8);
+                }
+                if (rj.contains("averaged_sigma")) {
+                    const auto& s = rj["averaged_sigma"];
+                    cfg->avg_lower = s.value("lower_sigma", 4.0);
+                    cfg->avg_upper = s.value("upper_sigma", 3.0);
+                    cfg->avg_max_iterations =
+                        s.value("max_iterations", 8);
+                }
+                if (rj.contains("linear_fit")) {
+                    const auto& s = rj["linear_fit"];
+                    cfg->linfit_lower = s.value("lower", 4.0);
+                    cfg->linfit_upper = s.value("upper", 3.0);
+                    cfg->linfit_max_iterations =
+                        s.value("max_iterations", 8);
+                }
+                if (rj.contains("generalized_esd")) {
+                    const auto& s = rj["generalized_esd"];
+                    cfg->esd_alpha = s.value("alpha", 0.05);
+                    cfg->esd_max_outliers = s.value("max_outliers", 10);
+                }
+                if (rj.contains("percentile")) {
+                    const auto& s = rj["percentile"];
+                    cfg->pct_low_fraction =
+                        s.value("low_fraction", 0.1);
+                    cfg->pct_high_fraction =
+                        s.value("high_fraction", 0.1);
+                }
+                if (rj.contains("median_sigma")) {
+                    const auto& s = rj["median_sigma"];
+                    cfg->medsig_lower = s.value("lower_sigma", 4.0);
+                    cfg->medsig_upper = s.value("upper_sigma", 3.0);
+                    cfg->medsig_max_iterations =
+                        s.value("max_iterations", 8);
+                }
+                if (rj.contains("minmax")) {
+                    const auto& s = rj["minmax"];
+                    cfg->minmax_low_count =
+                        s.value("reject_low_count", 1);
+                    cfg->minmax_high_count =
+                        s.value("reject_high_count", 1);
+                    cfg->minmax_max_iterations =
+                        s.value("max_iterations", 8);
+                    cfg->minmax_min_kept = s.value("min_kept", 4);
+                }
+                if (rj.contains("rcr")) {
+                    const auto& s = rj["rcr"];
+                    cfg->rcr_technique =
+                        s.value("technique", std::string("ss_median_dl"));
+                    if (cfg->rcr_technique != "ss_median_dl") {
+                        *err = "rcr.technique 只支持 ss_median_dl（V15 冻结）";
+                        return false;
+                    }
+                }
+                // 旧字段（low/high/max_iterations/min_samples）→ deprecation
+                // adapter：映射到全部适用 typed 参数，并打印 warning。
+                if (rj.contains("low") || rj.contains("high") ||
+                    rj.contains("max_iterations") ||
+                    rj.contains("min_samples")) {
+                    const double lo = -std::fabs(rj.value("low", 4.0));
+                    const double hi = std::fabs(rj.value("high", 3.0));
+                    const int mi = rj.value("max_iterations", 8);
+                    cfg->sigma_low = lo;
+                    cfg->sigma_high = hi;
+                    cfg->reject_max_iterations = mi;
+                    cfg->reject_min_samples = rj.value("min_samples", 2);
+                    if (cfg->reject_min_samples < 1) {
+                        *err = "rejection.min_samples 必须 >= 1";
+                        return false;
+                    }
+                    cfg->sigma_lower = std::fabs(lo);
+                    cfg->sigma_upper = hi;
+                    cfg->sigma_max_iterations = mi;
+                    cfg->winsor_lower = std::fabs(lo);
+                    cfg->winsor_upper = hi;
+                    cfg->winsor_max_iterations = mi;
+                    cfg->avg_lower = std::fabs(lo);
+                    cfg->avg_upper = hi;
+                    cfg->avg_max_iterations = mi;
+                    cfg->linfit_lower = std::fabs(lo);
+                    cfg->linfit_upper = hi;
+                    cfg->linfit_max_iterations = mi;
+                    cfg->esd_max_outliers = mi;
+                    cfg->pct_low_fraction = std::fabs(lo);
+                    cfg->pct_high_fraction = hi;
+                    cfg->medsig_lower = std::fabs(lo);
+                    cfg->medsig_upper = hi;
+                    cfg->medsig_max_iterations = mi;
+                    cfg->minmax_max_iterations = mi;
+                    cfg->reject_underdetermined_n =
+                        (std::uint32_t)cfg->reject_min_samples;
+                    cfg->deprecation_warnings.push_back(
+                        "rejection.low/high/max_iterations/min_samples 已弃用；"
+                        "改用 rejection.<method>.{lower_sigma,upper_sigma,"
+                        "max_iterations,...} 与 rejection.underdetermined_n");
                 }
             }
         const std::string wm =

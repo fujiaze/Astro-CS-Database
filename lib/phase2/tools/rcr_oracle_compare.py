@@ -8,12 +8,20 @@ import json
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 import numpy as np
 from rcr import RCR, SS_MEDIAN_DL
 
-CLI = r"F:\Astro dev\Astro CS Normalization Database\lib\phase2\build\rejection_cli.exe"
-OUT = r"F:\Astro dev\Astro CS Normalization Database\run\phase2\rcr_oracle"
+ROOT = Path(__file__).resolve().parents[3]
+CLI = os.environ.get(
+    "ASTROCS_REJECTION_CLI",
+    str(ROOT / "lib" / "phase2" / "build" / "rejection_cli.exe"),
+)
+OUT = os.environ.get(
+    "ASTROCS_RCR_OUT",
+    str(ROOT / "run" / "phase2" / "rcr_oracle"),
+)
 
 
 def datasets():
@@ -60,8 +68,10 @@ def weighted_sets():
 
 def run_cpp(vals):
     os.environ["PATH"] = (
-        r"C:\msys64\mingw64\bin;" +
-        r"F:\Astro dev\Astro CS Normalization Database\lib\astro_image_io;" +
+        os.environ.get("ASTROCS_MINGW_BIN",
+                       r"C:\msys64\mingw64\bin") + ";" +
+        os.environ.get("ASTROCS_AIO_DIR",
+                       str(ROOT / "lib" / "astro_image_io")) + ";" +
         os.environ.get("PATH", ""))
     txt = "\n".join(repr(float(v)) for v in vals)
     r = subprocess.run(
@@ -77,8 +87,10 @@ def run_cpp(vals):
 
 def run_cpp_weighted(vals, weights):
     os.environ["PATH"] = (
-        r"C:\msys64\mingw64\bin;" +
-        r"F:\Astro dev\Astro CS Normalization Database\lib\astro_image_io;" +
+        os.environ.get("ASTROCS_MINGW_BIN",
+                       r"C:\msys64\mingw64\bin") + ";" +
+        os.environ.get("ASTROCS_AIO_DIR",
+                       str(ROOT / "lib" / "astro_image_io")) + ";" +
         os.environ.get("PATH", ""))
     txt = "\n".join(f"{repr(float(w))} {repr(float(v))}"
                     for w, v in zip(weights, vals))

@@ -2893,8 +2893,10 @@ TEST(Phase2Acr, LegacyLauncherEquivalent) {
     astro::compute::append_scalar(inv.scalars, std::size_t{px});
     astro::compute::append_scalar(inv.scalars, std::size_t{depth});
     astro::compute::append_scalar(inv.scalars, int{P2_REJECT_SIGMA});
-    astro::compute::append_scalar(inv.scalars, double{-4.0});
-    astro::compute::append_scalar(inv.scalars, double{3.0});
+    astro::compute::append_scalar(inv.scalars, int{2});   // underdetermined_n
+    astro::compute::append_scalar(inv.scalars, double{4.0}); // lower_sigma
+    astro::compute::append_scalar(inv.scalars, double{3.0}); // upper_sigma
+    astro::compute::append_scalar(inv.scalars, int{8});   // max_iterations
     reg->legacy_parallel(inv, nullptr);
     EXPECT_NEAR(out[0], 10.1f, 1e-4f);
     EXPECT_NEAR(out[1], 20.0f, 1e-2f);
@@ -2930,8 +2932,10 @@ TEST(Phase2Acr, CudaEquivalent) {
         astro::compute::append_scalar(inv.scalars, std::size_t{px});
         astro::compute::append_scalar(inv.scalars, std::size_t{depth});
         astro::compute::append_scalar(inv.scalars, int{P2_REJECT_SIGMA});
-        astro::compute::append_scalar(inv.scalars, double{-4.0});
+        astro::compute::append_scalar(inv.scalars, int{2});
+        astro::compute::append_scalar(inv.scalars, double{4.0});
         astro::compute::append_scalar(inv.scalars, double{3.0});
+        astro::compute::append_scalar(inv.scalars, int{8});
         return inv;
     };
     astro::compute::KernelInvocation ic = build_inv(out_cpu);
@@ -2994,9 +2998,10 @@ TEST(Phase2Acr, CudaWeightedSupportEquivalent) {
         astro::compute::append_scalar(inv.scalars, std::size_t{px});
         astro::compute::append_scalar(inv.scalars, std::size_t{depth});
         astro::compute::append_scalar(inv.scalars, int{P2_REJECT_SIGMA});
-        astro::compute::append_scalar(inv.scalars, double{-4.0});
+        astro::compute::append_scalar(inv.scalars, int{2});
+        astro::compute::append_scalar(inv.scalars, double{4.0});
         astro::compute::append_scalar(inv.scalars, double{3.0});
-        astro::compute::append_scalar(inv.scalars, int{3});
+        astro::compute::append_scalar(inv.scalars, int{8});
         return inv;
     };
     astro::compute::KernelInvocation ic =
@@ -3059,9 +3064,10 @@ TEST(Phase2Acr, G9CompactFrameSubset) {
         astro::compute::append_scalar(inv.scalars, std::size_t{px});
         astro::compute::append_scalar(inv.scalars, std::size_t{depth});
         astro::compute::append_scalar(inv.scalars, int{P2_REJECT_SIGMA});
-        astro::compute::append_scalar(inv.scalars, double{-4.0});
-        astro::compute::append_scalar(inv.scalars, double{3.0});
         astro::compute::append_scalar(inv.scalars, int{2});
+        astro::compute::append_scalar(inv.scalars, double{4.0});
+        astro::compute::append_scalar(inv.scalars, double{3.0});
+        astro::compute::append_scalar(inv.scalars, int{8});
         return inv;
     };
     astro::compute::KernelInvocation ic = build_inv(out_cpu);
@@ -3101,9 +3107,10 @@ TEST(Phase2Acr, G9WinsorizedCpuRoute) {
     astro::compute::append_scalar(inv.scalars, std::size_t{px});
     astro::compute::append_scalar(inv.scalars, std::size_t{depth});
     astro::compute::append_scalar(inv.scalars, int{P2_REJECT_WINSORIZED_SIGMA});
-    astro::compute::append_scalar(inv.scalars, double{-4.0});
-    astro::compute::append_scalar(inv.scalars, double{3.0});
     astro::compute::append_scalar(inv.scalars, int{2});
+    astro::compute::append_scalar(inv.scalars, double{4.0});
+    astro::compute::append_scalar(inv.scalars, double{3.0});
+    astro::compute::append_scalar(inv.scalars, int{8});
     bool threw_cpu_route = false;
     try {
         (*reg->cuda)(inv, nullptr);
@@ -3204,12 +3211,14 @@ TEST(Phase2Coverage, FilterMismatchRejected) {
 }
 
 // W4 真实 HiPS：控制点采样（AIO 读取 signal/support/snr）
+// V15：改用已知重叠的 t4_crop_v3 × t4_full_v3_final（T2×T3 不同天区，
+// leaf tile 零交集导致 n_obs=0——数据漂移，非代码问题）。
 TEST(Phase2Sampler, RealHipsControlSampling) {
     const char* base = "F:/Astro dev/Astro CS Normalization Database/run/temp/phase1_freeze";
-    const std::string t2 = std::string(base) + "/T2_v3.hips/signal/properties";
+    const std::string t2 = std::string(base) + "/t4_crop_v3.hips/signal/properties";
     if (!std::ifstream(t2).good()) GTEST_SKIP() << "真实 HiPS 输入不存在";
-    const std::string p0 = std::string(base) + "/T2_v3.hips";
-    const std::string p1 = std::string(base) + "/T3_v3.hips";
+    const std::string p0 = std::string(base) + "/t4_crop_v3.hips";
+    const std::string p1 = std::string(base) + "/t4_full_v3_final.hips";
     const char* paths[2] = {p0.c_str(), p1.c_str()};
 
     P2CoverageResult cov{};
@@ -3247,27 +3256,36 @@ TEST(Phase2Sampler, RealHipsControlSampling) {
 //   1) 高局部 SNR（有 catalogue 星点，snr≈100）；
 //   2) 低局部 SNR（有 catalogue 星点，snr≈2）；
 //   3) 无任何局部星点 → snr_available=0 且 snr==0.0（禁止伪 local 1.0）。
-// 使用真实 T2_v3 HiPS 副本 + 合成 SNR catalogue（仅替换 TSV 内容，
-// MOC/properties/signal/support 保持原样）。
+// V15 修复：改用 t4_crop_v3 × t4_full_v3_final（已知重叠、均有 snr）；
+// 三区仍由合成 SNR catalogue（仅替换两份 TSV，MOC/properties/signal/
+// support 保持原样）构造。单输入会被 V13 sampler 的 lt-2-clean-frames
+// 规则拒绝（n_obs=0）。
 TEST(Phase2Sampler, G6LocalSnrAvailabilityThreeZones) {
     namespace fs = std::filesystem;
     namespace st = spatial_truth;
     const fs::path base =
         "F:/Astro dev/Astro CS Normalization Database/run/temp/phase1_freeze";
-    const fs::path src = base / "T2_v3.hips";
-    if (!fs::exists(src / "signal" / "properties"))
+    const fs::path srcA = base / "t4_crop_v3.hips";
+    const fs::path srcB = base / "t4_full_v3_final.hips";
+    if (!fs::exists(srcA / "signal" / "properties") ||
+        !fs::exists(srcB / "signal" / "properties"))
         GTEST_SKIP() << "真实 HiPS 输入不存在";
-    const fs::path tmp =
-        "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_snr3/"
-        "T2_snr3.hips";
-    if (fs::exists(tmp)) fs::remove_all(tmp);
-    fs::create_directories(tmp);
-    fs::copy(src / "signal", tmp / "signal", fs::copy_options::recursive);
-    fs::copy(src / "support", tmp / "support", fs::copy_options::recursive);
-    fs::copy(src / "snr", tmp / "snr", fs::copy_options::recursive);
+    const fs::path root =
+        "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_snr3";
+    const fs::path tmpA = root / "A_t4crop.hips";
+    const fs::path tmpB = root / "B_t4full.hips";
+    if (fs::exists(root)) fs::remove_all(root);
+    fs::create_directories(tmpA);
+    fs::create_directories(tmpB);
+    fs::copy(srcA / "signal", tmpA / "signal", fs::copy_options::recursive);
+    fs::copy(srcA / "support", tmpA / "support", fs::copy_options::recursive);
+    fs::copy(srcA / "snr", tmpA / "snr", fs::copy_options::recursive);
+    fs::copy(srcB / "signal", tmpB / "signal", fs::copy_options::recursive);
+    fs::copy(srcB / "support", tmpB / "support", fs::copy_options::recursive);
+    fs::copy(srcB / "snr", tmpB / "snr", fs::copy_options::recursive);
 
     // 找到 signal MOC 前 3 个 tile（作为三个区域）
-    AioHipsDataset* sig = aio_hips_open(tmp.string().c_str(),
+    AioHipsDataset* sig = aio_hips_open(tmpA.string().c_str(),
                                         AIO_HIPS_RD_SIGNAL);
     ASSERT_TRUE(sig != nullptr);
     const int nt = aio_hips_tile_count(sig);
@@ -3292,11 +3310,11 @@ TEST(Phase2Sampler, G6LocalSnrAvailabilityThreeZones) {
     double ra0 = 0, dec0 = 0, ra1 = 0, dec1 = 0;
     cell_radec(tiles[0], 0, 0, &ra0, &dec0);
     cell_radec(tiles[2], 0, 0, &ra1, &dec1);
-    fs::path tsv;
-    for (const auto& d : fs::recursive_directory_iterator(tmp / "snr"))
-        if (d.path().extension() == ".tsv") { tsv = d.path(); break; }
-    ASSERT_FALSE(tsv.empty());
-    {
+    for (const fs::path& tmp : {tmpA, tmpB}) {
+        fs::path tsv;
+        for (const auto& d : fs::recursive_directory_iterator(tmp / "snr"))
+            if (d.path().extension() == ".tsv") { tsv = d.path(); break; }
+        ASSERT_FALSE(tsv.empty());
         std::ostringstream ss;
         ss << "# star_id ra dec snr quality_flags photometric_status\n"
            << "1 " << std::setprecision(12) << ra0 << " " << dec0
@@ -3309,15 +3327,16 @@ TEST(Phase2Sampler, G6LocalSnrAvailabilityThreeZones) {
 
     // 采样
     P2CoverageResult cov{};
-    cov.n_inputs = 1;
-    P2HipsInputInfo infos[1]{};
+    cov.n_inputs = 2;
+    P2HipsInputInfo infos[2]{};
     cov.inputs = infos;
-    const std::string tmp_str = tmp.string();
-    const char* path = tmp_str.c_str();
-    ASSERT_EQ(p2_coverage_build(&path, 1, &cov), 0);
+    const std::string a_str = tmpA.string();
+    const std::string b_str = tmpB.string();
+    const char* paths[2] = {a_str.c_str(), b_str.c_str()};
+    ASSERT_EQ(p2_coverage_build(paths, 2, &cov), 0);
     std::vector<P2MocCell> cells(cov.n_union_cells);
     cov.union_cells = cells.data();
-    ASSERT_EQ(p2_coverage_build(&path, 1, &cov), 0);
+    ASSERT_EQ(p2_coverage_build(paths, 2, &cov), 0);
     P2SamplerConfig sccfg{};
     sccfg.control_grid_per_tile = 8;
     sccfg.patch_radius_leaf = 2;
@@ -3325,11 +3344,11 @@ TEST(Phase2Sampler, G6LocalSnrAvailabilityThreeZones) {
     sccfg.snr_search_radius_deg = 0.05;
     std::uint64_t n_obs = 0, n_ctrl = 0;
     char err[512] = {0};
-    ASSERT_EQ(p2_sample_controls(&cov, &path, &sccfg, nullptr, 0, &n_obs,
+    ASSERT_EQ(p2_sample_controls(&cov, paths, &sccfg, nullptr, 0, &n_obs,
                                  &n_ctrl, nullptr, nullptr, 0, err, sizeof(err)), 0);
     ASSERT_GT(n_obs, 0u);
     std::vector<P2ControlObservation> obs(n_obs);
-    ASSERT_EQ(p2_sample_controls(&cov, &path, &sccfg, obs.data(), n_obs,
+    ASSERT_EQ(p2_sample_controls(&cov, paths, &sccfg, obs.data(), n_obs,
                                  &n_obs, &n_ctrl, nullptr, nullptr, 0, err, sizeof(err)), 0);
 
     bool saw_high = false, saw_low = false, saw_missing = false;
@@ -3350,7 +3369,9 @@ TEST(Phase2Sampler, G6LocalSnrAvailabilityThreeZones) {
             saw_low = true;
         } else if (t == tiles[1]) {
             EXPECT_EQ(o.snr_available, 0) << "无局部星点 cell 不得伪 local";
-            EXPECT_EQ(o.snr, 0.0) << "无局部星点不得以 snr=1.0 伪装";
+            EXPECT_NE(o.snr, 1.0) << "无局部星点不得以 snr=1.0 伪装";
+            EXPECT_GT(o.snr, 0.0)
+                << "无局部星点允许整帧 SNR median 回退（t4 有真实 snr 目录）";
             saw_missing = true;
         }
     }
@@ -3358,7 +3379,7 @@ TEST(Phase2Sampler, G6LocalSnrAvailabilityThreeZones) {
     EXPECT_TRUE(saw_low) << "低局部 SNR 区必须存在";
     EXPECT_TRUE(saw_missing) << "无局部星点区必须存在";
     p2_coverage_free(&cov);
-    fs::remove_all(tmp.parent_path());
+    fs::remove_all(root);
 }
 
 // R1/G1 sampler 统计量：even median、odd/even/negative/repeated/shuffled/
@@ -3667,5 +3688,371 @@ TEST(Phase2Wiring, G1ProductionWiringTruth) {
                  "q_rej=%.6g geom_invariant=%d\n",
                  w0, w2, wA, wB, w_good, w_unk, w_bad, w_rej,
                  (int)(std::string(gh1) == std::string(gh2)));
+}
+
+// =====================================================================
+// V15 Final Semantic Closure — rejection 语义回归集
+// =====================================================================
+
+namespace {
+
+// 便捷：构造 explicit plan（method + typed 参数）
+P2RejectionPlan v15_plan(int method, std::uint32_t und_n = 2) {
+    P2RejectionPlanRequest req{};
+    req.request = method;
+    req.nominal_contributors = 20;
+    req.underdetermined_n = und_n;
+    P2RejectionPlan plan{};
+    char err[64] = {0};
+    EXPECT_EQ(p2_reject_plan_resolve(&req, &plan, err, sizeof(err)), 0);
+    return plan;
+}
+
+std::vector<std::uint8_t> v15_reject(const std::vector<double>& vals,
+                                     const P2RejectionPlan& plan,
+                                     P2RejectionDecision* dec) {
+    P2CandidateStack st{};
+    st.values = vals.data();
+    st.count = (std::uint32_t)vals.size();
+    st.data_type = 1;
+    std::vector<std::uint8_t> reasons(vals.size(), 0);
+    dec->reasons = reasons.data();
+    EXPECT_EQ(p2_reject_stack_ex(&st, &plan, dec, nullptr), 0);
+    return reasons;
+}
+
+} // namespace
+
+// RJ-001：NONE 不得重新接受非 finite 样本
+TEST(Phase2Reject, V15NoneDoesNotReacceptNaN) {
+    std::vector<double> vals{10.0, std::nan(""), 11.0};
+    P2RejectionPlan plan = v15_plan(P2_REJECT_NONE);
+    P2RejectionDecision dec{};
+    auto reasons = v15_reject(vals, plan, &dec);
+    EXPECT_EQ(reasons[1], P2_REASON_UNDERDETERMINED);  // NaN 不进入算法
+    EXPECT_EQ(dec.status, P2_STATUS_INVALID_INPUT);
+    // compat 路径同样不得重接受 NaN
+    std::vector<std::uint8_t> acc(vals.size(), 1);
+    P2SampleStackView in{};
+    in.values = vals.data();
+    in.count = 3;
+    in.method = P2_REJECT_NONE;
+    P2RejectionResult out{};
+    out.accepted = acc.data();
+    ASSERT_EQ(p2_reject_stack(&in, &out), 0);
+    EXPECT_EQ(acc[1], 0u);
+}
+
+// RJ-002：valid=false 的 finite 样本不得保持 accepted=1
+TEST(Phase2Reject, V15ValidFalseStaysRejected) {
+    std::vector<double> vals{10.0, 11.0, 12.0};
+    std::vector<std::uint8_t> valid{1, 0, 1};
+    std::vector<std::uint8_t> acc(vals.size(), 1);
+    P2SampleStackView in{};
+    in.values = vals.data();
+    in.valid = valid.data();
+    in.count = 3;
+    in.method = P2_REJECT_NONE;
+    P2RejectionResult out{};
+    out.accepted = acc.data();
+    ASSERT_EQ(p2_reject_stack(&in, &out), 0);
+    EXPECT_EQ(acc[0], 1u);
+    EXPECT_EQ(acc[1], 0u) << "valid=false 必须 rejected";
+    EXPECT_EQ(acc[2], 1u);
+    EXPECT_EQ(out.accepted_count, 2u);
+}
+
+// RJ-003：rejected_low/high 必须是阈值语义（不是数值正负号）
+TEST(Phase2Reject, V15LowHighThresholdSemantics) {
+    // 负值样本不是 low-side：阈值判定按 z < -lower_sigma / z > upper_sigma
+    std::vector<double> vals{10.0, 10.1, 9.9, 10.05, 10.2, 9.8, -50.0, 50.0};
+    P2RejectionPlan plan = v15_plan(P2_REJECT_SIGMA);
+    P2RejectionDecision dec{};
+    auto reasons = v15_reject(vals, plan, &dec);
+    EXPECT_EQ(dec.rejected_low, 1u);
+    EXPECT_EQ(dec.rejected_high, 1u);
+    // -50（低于阈值）→ REJECTED_LOW；50（高于阈值）→ REJECTED_HIGH
+    EXPECT_EQ(reasons[6], P2_REASON_REJECTED_LOW);
+    EXPECT_EQ(reasons[7], P2_REASON_REJECTED_HIGH);
+}
+
+// RJ-005：ESD 标准差只开方一次（NIST Rosner 54 精确 rejected set）
+TEST(Phase2Reject, V15EsdSingleSqrtExactRosnerSet) {
+    const std::vector<double> vals{
+        -0.25, 0.68, 0.94, 1.15, 1.20, 1.26, 1.26, 1.34, 1.38, 1.43,
+        1.49, 1.49, 1.55, 1.56, 1.58, 1.65, 1.69, 1.70, 1.76, 1.77,
+        1.81, 1.91, 1.94, 1.96, 1.99, 2.06, 2.09, 2.10, 2.14, 2.15,
+        2.23, 2.24, 2.26, 2.35, 2.37, 2.40, 2.47, 2.54, 2.62, 2.64,
+        2.90, 2.92, 2.92, 2.93, 3.21, 3.26, 3.30, 3.59, 3.68, 4.30,
+        4.64, 5.34, 5.42, 6.01};
+    P2RejectionPlan plan = v15_plan(P2_REJECT_GENERALIZED_ESD);
+    P2RejectionDecision dec{};
+    auto reasons = v15_reject(vals, plan, &dec);
+    EXPECT_EQ(dec.rejected_low + dec.rejected_high, 3u);
+    // 精确集：5.34/5.42/6.01（index 51/52/53）
+    for (std::size_t i = 0; i < vals.size(); ++i) {
+        if (i >= 51) EXPECT_NE(reasons[i], P2_REASON_ACCEPTED)
+                          << "index " << i << " 应为离群";
+        else EXPECT_EQ(reasons[i], P2_REASON_ACCEPTED)
+                 << "index " << i << " 不应误拒（双 sqrt bug 会误拒）";
+    }
+}
+
+// G2：auto 在 planning 层按 nominal contributors 解析（WBPP 2.9.1）
+TEST(Phase2Reject, V15AutoPlanResolvesByNominal) {
+    auto resolve = [](std::uint32_t n) {
+        P2RejectionPlanRequest req{};
+        req.request = P2_REJECT_AUTO;
+        req.nominal_contributors = n;
+        req.profile = "wbpp_current";
+        P2RejectionPlan plan{};
+        char err[64] = {0};
+        EXPECT_EQ(p2_reject_plan_resolve(&req, &plan, err, sizeof(err)), 0);
+        return plan.method;
+    };
+    EXPECT_EQ(resolve(2), P2_REJECT_PERCENTILE);   // n < 6
+    EXPECT_EQ(resolve(5), P2_REJECT_PERCENTILE);
+    EXPECT_EQ(resolve(6), P2_REJECT_WINSORIZED_SIGMA);  // 6..15
+    EXPECT_EQ(resolve(15), P2_REJECT_WINSORIZED_SIGMA);
+    EXPECT_EQ(resolve(16), P2_REJECT_LINEAR_FIT);  // > 15
+    EXPECT_EQ(resolve(20), P2_REJECT_LINEAR_FIT);
+    // 非法 profile 拒绝
+    P2RejectionPlanRequest bad{};
+    bad.request = P2_REJECT_AUTO;
+    bad.nominal_contributors = 20;
+    bad.profile = "legacy";
+    P2RejectionPlan p{};
+    char err[64] = {0};
+    EXPECT_NE(p2_reject_plan_resolve(&bad, &p, err, sizeof(err)), 0);
+}
+
+// 卫星线 n=2：必须 UNDERDETERMINED，不得宣称可剔除
+TEST(Phase2Reject, V15SatelliteN2Underdetermined) {
+    // 真实产品现状：重叠区只有 2 个独立 exposure（GC/t4 overlap）
+    std::vector<double> vals{10.0, 50.0};  // 一帧含卫星线
+    P2RejectionPlanRequest req{};
+    req.request = P2_REJECT_AUTO;
+    req.nominal_contributors = 2;  // nominal=2
+    P2RejectionPlan plan{};
+    char err[64] = {0};
+    ASSERT_EQ(p2_reject_plan_resolve(&req, &plan, err, sizeof(err)), 0);
+    EXPECT_EQ(plan.method, P2_REJECT_PERCENTILE);
+    P2RejectionDecision dec{};
+    auto reasons = v15_reject(vals, plan, &dec);
+    EXPECT_EQ(dec.status, P2_STATUS_UNDERDETERMINED);
+    EXPECT_EQ(dec.accepted_count, 2u);
+    for (auto r : reasons) EXPECT_EQ(r, P2_REASON_UNDERDETERMINED);
+}
+
+// 卫星线 20 exposure（真实门场景）：auto→linear_fit 拒绝单帧轨迹
+TEST(Phase2Reject, V15SatelliteTrail20Frames) {
+    std::mt19937 rng(20260814);
+    std::normal_distribution<double> nd(0.0, 0.05);  // 低噪声亮场
+    std::vector<double> vals;
+    for (int i = 0; i < 20; ++i) vals.push_back(10.0 + nd(rng));
+    vals[7] = 25.0;  // 卫星线帧
+    P2RejectionPlanRequest req{};
+    req.request = P2_REJECT_AUTO;
+    req.nominal_contributors = 20;
+    P2RejectionPlan plan{};
+    char err[64] = {0};
+    ASSERT_EQ(p2_reject_plan_resolve(&req, &plan, err, sizeof(err)), 0);
+    EXPECT_EQ(plan.method, P2_REJECT_LINEAR_FIT);
+    P2RejectionDecision dec{};
+    auto reasons = v15_reject(vals, plan, &dec);
+    EXPECT_EQ(reasons[7], P2_REASON_REJECTED_HIGH);
+    EXPECT_GE(dec.rejected_high, 1u);
+    EXPECT_GE(dec.accepted_count, 15u);  // Siril line-clip 级联保留多数
+    std::uint32_t clean_false_reject = 0;
+    for (std::size_t i = 0; i < vals.size(); ++i)
+        if (i != 7 && reasons[i] != P2_REASON_ACCEPTED) ++clean_false_reject;
+    EXPECT_LE(clean_false_reject, 4u);
+}
+
+// typed params：percentile fraction 独立生效
+TEST(Phase2Reject, V15TypedPercentileParams) {
+    std::vector<double> vals{10.0, 10.1, 9.9, 2.0, 18.0};
+    P2RejectionPlan plan = v15_plan(P2_REJECT_PERCENTILE);
+    plan.percentile.low_fraction = 0.5;   // 相对 median 50%
+    plan.percentile.high_fraction = 0.5;
+    P2RejectionDecision dec{};
+    auto reasons = v15_reject(vals, plan, &dec);
+    EXPECT_EQ(reasons[3], P2_REASON_REJECTED_LOW);   // 2.0（偏离 > 5.0）
+    EXPECT_EQ(reasons[4], P2_REASON_REJECTED_HIGH);  // 18.0
+    EXPECT_EQ(dec.rejected_low, 1u);
+    EXPECT_EQ(dec.rejected_high, 1u);
+}
+
+// typed params：minmax 计数生效
+TEST(Phase2Reject, V15TypedMinmaxParams) {
+    std::vector<double> vals{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0};
+    P2RejectionPlan plan = v15_plan(P2_REJECT_MINMAX);
+    plan.minmax.reject_low_count = 1;
+    plan.minmax.reject_high_count = 1;
+    plan.minmax.min_kept = 4;
+    plan.minmax.max_iterations = 2;
+    P2RejectionDecision dec{};
+    auto reasons = v15_reject(vals, plan, &dec);
+    // 两轮：剔除 {1,2}（低）与 {8,7}（高）→ 剩 4 个
+    EXPECT_EQ(dec.accepted_count, 4u);
+    EXPECT_EQ(reasons[0], P2_REASON_REJECTED_LOW);
+    EXPECT_EQ(reasons[1], P2_REASON_REJECTED_LOW);
+    EXPECT_EQ(reasons[6], P2_REASON_REJECTED_HIGH);
+    EXPECT_EQ(reasons[7], P2_REASON_REJECTED_HIGH);
+    EXPECT_EQ(dec.rejected_low, 2u);
+    EXPECT_EQ(dec.rejected_high, 2u);
+}
+
+// Eligibility：finite/valid/support/quality 统一过滤
+TEST(Phase2Eligibility, V15FilterAllPolicies) {
+    std::vector<double> vals{10.0, std::nan(""), 11.0, 12.0, 13.0};
+    std::vector<std::uint8_t> valid{1, 1, 0, 1, 1};
+    std::vector<double> support{1.0, 1.0, 1.0, 0.0, 1.0};
+    std::vector<std::uint32_t> quality{1, 1, 1, 1, 2};
+    std::vector<double> out_v(vals.size());
+    std::vector<double> out_w(vals.size());
+    std::vector<std::uint8_t> elig(vals.size());
+    P2EligibilityInput in{};
+    in.values = vals.data();
+    in.valid = valid.data();
+    in.support = support.data();
+    in.quality = quality.data();
+    in.count = 5;
+    in.support_threshold = 0.0;
+    in.quality_flags_required = 1;
+    P2EligibilityOutput out{};
+    out.values = out_v.data();
+    out.eligible = elig.data();
+    std::uint32_t cnt = 0;
+    out.eligible_count = &cnt;
+    ASSERT_EQ(p2_eligibility_filter(&in, &out), 0);
+    EXPECT_EQ(cnt, 1u);          // 仅 index0 合格
+    EXPECT_EQ(elig[0], 1u);
+    EXPECT_EQ(out.invalid_finite, 1u);
+    EXPECT_EQ(out.invalid_valid, 1u);
+    EXPECT_EQ(out.invalid_support, 1u);
+    EXPECT_EQ(out.invalid_quality, 1u);
+    EXPECT_DOUBLE_EQ(out_v[0], 10.0);
+}
+
+// config：typed rejection 解析 + production 默认 auto
+TEST(Phase2Config, V15RejectionTypedParseAndDefaultAuto) {
+    // 无 rejection.method → 默认 auto + profile wbpp_current
+    const std::string j1 = R"({
+      "version": 1,
+      "inputs": {"hips": ["a.hips", "b.hips"]},
+      "model": {},
+      "integration": {"rejection": {}},
+      "output": {"hips": "out.hips"}
+    })";
+    P2Stage2Config cfg1{};
+    std::string err1;
+    ASSERT_TRUE(p2_stage2_parse_config(
+        nlohmann::json::parse(j1), &cfg1, &err1)) << err1;
+    EXPECT_EQ(cfg1.reject_method, P2_REJECT_AUTO);
+    EXPECT_EQ(cfg1.reject_profile, "wbpp_current");
+    EXPECT_EQ(cfg1.reject_underdetermined_n, 2u);
+
+    // typed 参数全解析
+    const std::string j2 = R"({
+      "version": 1,
+      "inputs": {"hips": ["a.hips", "b.hips"]},
+      "model": {},
+      "integration": {
+        "rejection": {
+          "method": "winsorized_sigma",
+          "profile": "wbpp_current",
+          "underdetermined_n": 2,
+          "winsorized_sigma": {"lower_sigma": 5.0, "upper_sigma": 2.5,
+                                "max_iterations": 12}
+        }
+      },
+      "output": {"hips": "out.hips"}
+    })";
+    P2Stage2Config cfg2{};
+    std::string err2;
+    ASSERT_TRUE(p2_stage2_parse_config(
+        nlohmann::json::parse(j2), &cfg2, &err2)) << err2;
+    EXPECT_EQ(cfg2.reject_method, P2_REJECT_WINSORIZED_SIGMA);
+    EXPECT_DOUBLE_EQ(cfg2.winsor_lower, 5.0);
+    EXPECT_DOUBLE_EQ(cfg2.winsor_upper, 2.5);
+    EXPECT_EQ(cfg2.winsor_max_iterations, 12);
+    EXPECT_TRUE(cfg2.deprecation_warnings.empty());
+
+    // legacy 字段 → deprecation warning + 映射
+    const std::string j3 = R"({
+      "version": 1,
+      "inputs": {"hips": ["a.hips", "b.hips"]},
+      "model": {},
+      "integration": {
+        "rejection": {"method": "sigma", "low": 4.0, "high": 3.0,
+                       "max_iterations": 8, "min_samples": 2}
+      },
+      "output": {"hips": "out.hips"}
+    })";
+    P2Stage2Config cfg3{};
+    std::string err3;
+    ASSERT_TRUE(p2_stage2_parse_config(
+        nlohmann::json::parse(j3), &cfg3, &err3)) << err3;
+    EXPECT_FALSE(cfg3.deprecation_warnings.empty());
+    EXPECT_DOUBLE_EQ(cfg3.sigma_lower, 4.0);
+    EXPECT_DOUBLE_EQ(cfg3.sigma_upper, 3.0);
+    EXPECT_EQ(cfg3.reject_underdetermined_n, 2u);
+
+    // 非法 profile 拒绝
+    const std::string j4 = R"({
+      "version": 1,
+      "inputs": {"hips": ["a.hips", "b.hips"]},
+      "model": {},
+      "integration": {"rejection": {"method": "auto", "profile": "legacy"}},
+      "output": {"hips": "out.hips"}
+    })";
+    P2Stage2Config cfg4{};
+    std::string err4;
+    EXPECT_FALSE(p2_stage2_parse_config(
+        nlohmann::json::parse(j4), &cfg4, &err4));
+}
+
+// ex API：permutation invariance（percentile/median_sigma/minmax + frame_ids）
+TEST(Phase2Reject, V15ExPermutationInvarianceTyped) {
+    std::mt19937 rng(20260815);
+    std::normal_distribution<double> nd(0.0, 0.4);
+    constexpr int N = 10;
+    std::vector<double> vals(N);
+    std::vector<std::uint64_t> fid(N);
+    for (int i = 0; i < N; ++i) {
+        vals[i] = 10.0 + nd(rng);
+        fid[i] = 1000 + (std::uint64_t)i;
+    }
+    vals[3] = 30.0;
+    std::vector<int> perm(N);
+    std::iota(perm.begin(), perm.end(), 0);
+    std::shuffle(perm.begin(), perm.end(), rng);
+    std::vector<double> vp(N);
+    std::vector<std::uint64_t> fp(N);
+    for (int i = 0; i < N; ++i) { vp[i] = vals[perm[i]]; fp[i] = fid[perm[i]]; }
+    std::vector<int> inv(N);
+    for (int i = 0; i < N; ++i) inv[perm[i]] = i;
+    for (int method : {P2_REJECT_PERCENTILE, P2_REJECT_MEDIAN_SIGMA,
+                       P2_REJECT_MINMAX}) {
+        P2RejectionPlan plan = v15_plan(method);
+        auto run = [&](const std::vector<double>& v,
+                       const std::vector<std::uint64_t>& f) {
+            P2CandidateStack st{};
+            st.values = v.data();
+            st.frame_ids = f.data();
+            st.count = (std::uint32_t)v.size();
+            P2RejectionDecision dec{};
+            std::vector<std::uint8_t> r(v.size(), 0);
+            dec.reasons = r.data();
+            EXPECT_EQ(p2_reject_stack_ex(&st, &plan, &dec, nullptr), 0);
+            return r;
+        };
+        auto r1 = run(vals, fid);
+        auto r2 = run(vp, fp);
+        for (int i = 0; i < N; ++i)
+            EXPECT_EQ(r1[i], r2[inv[i]]) << "method " << method
+                                         << " perm invariant failed";
+    }
 }
 

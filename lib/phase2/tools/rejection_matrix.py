@@ -11,10 +11,15 @@ import os
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 import numpy as np
 
-CLI = r"F:\Astro dev\Astro CS Normalization Database\lib\phase2\build\rejection_cli.exe"
+CLI = os.environ.get(
+    "ASTROCS_REJECTION_CLI",
+    str(Path(__file__).resolve().parents[1] / "build" / "rejection_cli.exe"),
+)
+TIMEOUT_S = 120
 SEED = 20260810
 TRUTH = 10.0
 N_DEPTHS = [2, 3, 4, 5, 8, 10, 15, 25, 50, 100, 500]
@@ -24,7 +29,8 @@ CONTAM = [
 ]
 METHODS = [
     ("none", 0), ("sigma", 1), ("winsorized", 2), ("averaged_sigma", 3),
-    ("linear_fit", 4), ("esd", 5), ("rcr", 6),
+    ("linear_fit", 4), ("esd", 5), ("rcr", 6), ("percentile", 7),
+    ("median_sigma", 8), ("minmax", 9),
 ]
 REPS = 3
 
@@ -66,7 +72,7 @@ def run_cli(vals, method, lo=-4.0, hi=3.0, max_iter=8, min_samples=3):
     txt = "\n".join(repr(float(v)) for v in vals)
     r = subprocess.run(
         [CLI, str(method), str(lo), str(hi), str(max_iter), str(min_samples)],
-        input=txt, capture_output=True, text=True)
+        input=txt, capture_output=True, text=True, timeout=TIMEOUT_S)
     if r.returncode != 0:
         raise RuntimeError("cli failed: " + r.stderr)
     lines = r.stdout.strip().splitlines()

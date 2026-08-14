@@ -27,12 +27,13 @@ const char* kOpMosaicReject =
 
 namespace {
 
-// legacy launcher：invocation 约定
+// legacy launcher：invocation 约定（V15）
 //   buffer0 = 输出 signal（独占范围）
 //   buffer1 = 输入样本栈 values（N 样本 × pixel_count，frame-major）
 //   buffer2 = 输入 support/weights（可选）
-//   scalars: [0]=pixel_count, [1]=stack_depth,
-//            [2]=rejection method, [3]=sigma_low, [4]=sigma_high
+//   scalars: [0]=pixel_count, [1]=stack_depth, [2]=rejection method(explicit),
+//            [3]=underdetermined_n, [4]=sigma_lower, [5]=sigma_upper,
+//            [6]=max_iterations, [7]=tile 内偏移 p0
 void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
     const BufferBinding* out = inv.buffers.find(0);
     const BufferBinding* vals = inv.buffers.find(1);
@@ -47,11 +48,19 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
     const auto px = read_scalar<std::size_t>(inv.scalars, 0);
     const auto depth = read_scalar<std::size_t>(inv.scalars, sizeof(std::size_t));
     const auto method = read_scalar<int>(inv.scalars, 2 * sizeof(std::size_t));
-    const auto lo = read_scalar<double>(inv.scalars,
-                                        2 * sizeof(std::size_t) + sizeof(int));
-    const auto hi = read_scalar<double>(inv.scalars,
-                                        2 * sizeof(std::size_t) + sizeof(int) +
-                                            sizeof(double));
+    const auto und_n = read_scalar<int>(
+        inv.scalars, 2 * sizeof(std::size_t) + sizeof(int));
+    const auto lo = read_scalar<double>(
+        inv.scalars, 2 * sizeof(std::size_t) + 2 * sizeof(int));
+    const auto hi = read_scalar<double>(
+        inv.scalars, 2 * sizeof(std::size_t) + 2 * sizeof(int) +
+                         sizeof(double));
+    const auto max_it = read_scalar<int>(
+        inv.scalars, 2 * sizeof(std::size_t) + 2 * sizeof(int) +
+                         2 * sizeof(double));
+    const auto p0 = read_scalar<std::size_t>(
+        inv.scalars, 2 * sizeof(std::size_t) + 2 * sizeof(int) +
+                         2 * sizeof(double) + sizeof(int));
     if (!px || !depth || *px == 0 || *depth == 0) {
         throw std::runtime_error("mosaic_reject: missing scalars");
     }
@@ -59,20 +68,24 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
     const std::size_t n_depth = *depth;
     const std::uint32_t method_v =
         method ? static_cast<std::uint32_t>(*method) : 1u;
+    const std::uint32_t und_n_v =
+        und_n ? static_cast<std::uint32_t>(*und_n) : 2u;
     const double lo_v = lo ? *lo : -4.0;
     const double hi_v = hi ? *hi : 3.0;
-
-    const auto ms = read_scalar<int>(
-        inv.scalars, 2 * sizeof(std::size_t) + sizeof(int) +
-                         2 * sizeof(double));
-    const auto p0 = read_scalar<std::size_t>(
-        inv.scalars, 2 * sizeof(std::size_t) + sizeof(int) +
-                         2 * sizeof(double) + sizeof(int));
-    const int min_samples_v = ms ? *ms : 3;
+    const int max_it_v = max_it ? *max_it : 8;
     std::vector<double> stack(n_depth);
     std::vector<double> stack_w(n_depth);
     std::vector<double> stack_sup(n_depth);
+    std::vector<std::uint8_t> reasons(n_depth);
     std::vector<std::uint8_t> accepted(n_depth);
+    // V15：显式 plan（ACR 路径仅 robust_mad_clip/sigma）
+    P2RejectionPlan plan{};
+    plan.method = (int)method_v;
+    plan.minimum_n = 3;
+    plan.underdetermined_n = und_n_v;
+    plan.sigma.lower_sigma = std::fabs(lo_v);
+    plan.sigma.upper_sigma = std::fabs(hi_v);
+    plan.sigma.max_iterations = max_it_v;
     // 合成 op 首版 FP32 输入（buffer 元素为 float）；科学语义以
     // CPU reference 为准，输入精度由 buffer element_size 声明。
     const float* src = static_cast<const float*>(vals->data);
@@ -110,17 +123,20 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
             if (out_valid) static_cast<float*>(out_valid->data)[p] = 0.0f;
             continue;
         }
-        P2SampleStackView rv{};
-        rv.values = stack.data();
-        rv.count = n_valid;
-        rv.method = static_cast<int>(method_v);
-        rv.sigma_low = lo_v;
-        rv.sigma_high = hi_v;
-        rv.min_samples = min_samples_v;
-        P2RejectionResult rr{};
-        rr.accepted = accepted.data();
-        if (p2_reject_stack(&rv, &rr) != 0) {
+        P2CandidateStack cstack{};
+        cstack.values = stack.data();
+        cstack.weights = (sup != nullptr) ? stack_w.data() : nullptr;
+        cstack.count = n_valid;
+        cstack.data_type = 0;
+        P2RejectionDecision rdec{};
+        rdec.reasons = reasons.data();
+        if (p2_reject_stack_ex(&cstack, &plan, &rdec, nullptr) != 0) {
             throw std::runtime_error("mosaic_reject: rejection failed");
+        }
+        for (std::uint32_t s = 0; s < n_valid; ++s) {
+            accepted[s] = (rdec.reasons[s] == P2_REASON_ACCEPTED ||
+                           rdec.reasons[s] == P2_REASON_UNDERDETERMINED)
+                              ? 1 : 0;
         }
         P2PixelStack pi{};
         pi.values = stack.data();
@@ -136,7 +152,7 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
         dst[p] = (pr.status == 0) ? static_cast<float>(pr.signal) : 0.0f;
         if (out_rej)
             static_cast<float*>(out_rej->data)[p] =
-                (float)(rr.rejected_low + rr.rejected_high);
+                (float)(rdec.rejected_low + rdec.rejected_high);
         if (out_valid) static_cast<float*>(out_valid->data)[p] = (float)n_valid;
         if (out_sup) {
             double sup_out = 0.0;
@@ -166,16 +182,18 @@ void mosaic_reject_cuda(const KernelInvocation& inv, void*) {
     const auto px = read_scalar<std::size_t>(inv.scalars, 0);
     const auto depth = read_scalar<std::size_t>(inv.scalars, sizeof(std::size_t));
     const auto method = read_scalar<int>(inv.scalars, 2 * sizeof(std::size_t));
-    const auto lo = read_scalar<double>(inv.scalars,
-                                        2 * sizeof(std::size_t) + sizeof(int));
-    const auto hi = read_scalar<double>(inv.scalars,
-                                        2 * sizeof(std::size_t) + sizeof(int) +
-                                            sizeof(double));
-    const auto ms = read_scalar<int>(
-        inv.scalars, 2 * sizeof(std::size_t) + sizeof(int) +
+    const auto und_n = read_scalar<int>(
+        inv.scalars, 2 * sizeof(std::size_t) + sizeof(int));
+    const auto lo = read_scalar<double>(
+        inv.scalars, 2 * sizeof(std::size_t) + 2 * sizeof(int));
+    const auto hi = read_scalar<double>(
+        inv.scalars, 2 * sizeof(std::size_t) + 2 * sizeof(int) +
+                         sizeof(double));
+    const auto max_it = read_scalar<int>(
+        inv.scalars, 2 * sizeof(std::size_t) + 2 * sizeof(int) +
                          2 * sizeof(double));
     const auto p0 = read_scalar<std::size_t>(
-        inv.scalars, 2 * sizeof(std::size_t) + sizeof(int) +
+        inv.scalars, 2 * sizeof(std::size_t) + 2 * sizeof(int) +
                          2 * sizeof(double) + sizeof(int));
     if (!px || !depth || *px == 0 || *depth == 0) {
         throw std::runtime_error("mosaic_reject: missing scalars");
@@ -185,7 +203,8 @@ void mosaic_reject_cuda(const KernelInvocation& inv, void*) {
     const BufferBinding* out_sup = inv.buffers.find(4);
     const BufferBinding* out_rej = inv.buffers.find(5);
     const BufferBinding* out_valid = inv.buffers.find(6);
-    const int min_samples_v = ms ? *ms : 3;
+    const int und_n_v = und_n ? *und_n : 2;
+    const int max_it_v = max_it ? *max_it : 8;
     const std::uint32_t method_v =
         method ? static_cast<std::uint32_t>(*method) : 1u;
     if (method_v == P2_REJECT_WINSORIZED_SIGMA) {
@@ -212,9 +231,9 @@ void mosaic_reject_cuda(const KernelInvocation& inv, void*) {
         out_valid ? static_cast<float*>(out_valid->data) : nullptr,
         *depth, *px,
         p0 ? *p0 : 0,
-        static_cast<float>(lo ? *lo : -4.0),
-        static_cast<float>(hi ? *hi : 3.0),
-        8, min_samples_v, &elapsed, &err);
+        static_cast<float>(-std::fabs(lo ? *lo : 4.0)),  // CUDA kernel 低侧为负
+        static_cast<float>(std::fabs(hi ? *hi : 3.0)),
+        max_it_v, und_n_v, &elapsed, &err);
     if (rc != 0) {
         throw std::runtime_error(
             std::string("mosaic_reject cuda failed rc=") +
@@ -232,8 +251,9 @@ void register_phase2_acr_kernels() {
         KernelRegistration r;
         r.id = kOpMosaicReject;
         r.args.buffer_count = 7;
-        r.args.scalar_bytes = 2 * sizeof(std::size_t) + sizeof(int) +
-                              2 * sizeof(double) + sizeof(int);
+        r.args.scalar_bytes = 2 * sizeof(std::size_t) + 2 * sizeof(int) +
+                              2 * sizeof(double) + sizeof(int) +
+                              sizeof(std::size_t);
         r.cpu = &mosaic_reject_legacy;  // CPU 即 legacy reference 语义
         r.legacy_parallel = &mosaic_reject_legacy;
         r.cuda = &mosaic_reject_cuda;
