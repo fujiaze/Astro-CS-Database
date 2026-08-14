@@ -2178,3 +2178,19 @@ SHA256 73cdd6be2eb1eaa1fd218e0489e31a173f08f0d3a3b6146f8ea3f0da28e2894d
   （342KB，93 项清单校验 0 坏）；
 - V14 审核包已在 archive_deliverables/review_packs/ 归档（V15 控制包 +
   审核包保留根目录）。
+
+## 2026-08-14 Phase2 V16 Final Closure AuditFix（控制包 b189076e）
+
+- V15 未冻结项全部修复：wbpp_current（group-level 一次解析）/astrocs_adaptive
+  拆分、RejectionNormalizationPolicy（median_center 默认，percentile 负值
+  安全，INVALID_CONFIGURATION）、MinMax 一次性固定 rank、eligibility 单路径
+  （p2_collect_candidate_stack）、depth 诊断互斥、averaged_sigma 改名 +
+  IRAF NOT_CLAIMED、WBPP Light 默认参数对齐、large-scale 默认 off 如实标注；
+- 真实 16-exposure E2E：NGC1727 T2 H-alpha 1200s（16 帧 Phase1 全成功，
+  order 7 per-exposure HiPS）→ Phase2 wbpp_current（nominal=16→linear_fit
+  单次）→ 卫星门 V2 recall=1.0000、背景/星点 bias≈0、sample false reject
+  9.45%；ScratchVec n>64 崩溃修复；gate 65/65、oracle 全 PASS；
+- 审核包：`AstroCS_Review_FinalClosure_V16.zip`
+  SHA256 E02B64137B18FCD00AA71C733B79A1BB05CB7CC0AAB7C1870966061EB22D7350
+  （0.46MB，111 项清单 0 坏；含 source/canonical_core 与
+  evidence/repo_source_manifest.csv）。

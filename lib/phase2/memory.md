@@ -102,3 +102,25 @@ photometric scale、新 runtime I/O DLL。
   rcr 2.4.7/WBPP policy）全 PASS；六轮自审 + clean-tree 终验 PASS；
 - 审核包：AstroCS_Review_FinalSemanticClosure_V15.zip（SHA
   26219370FE0F8758B5482648B3682D85BD90CE4711A62403C87339D479D1A03F，342KB）。
+
+## 2026-08-14 V16 Final Closure AuditFix（HEAD 1145a28）
+
+- profile 拆分：wbpp_current（integration-group 一次解析）vs
+  astrocs_adaptive（tile nominal-depth，独立命名不冒充 WBPP）；
+- RejectionNormalizationPolicy（none/median_center/median_scale；decision
+  作用 working、mask 回原始科学值积分；percentile 负值安全必须
+  median_center；rcr 必须 none；违规 INVALID_CONFIGURATION）；
+- MinMax 一次性固定 rank（(3,5)→42 精确）；max_iterations 删除；
+- eligibility 单路径：p2_collect_candidate_stack（strided）CPU/ACR/compat
+  同一 policy core；depth 诊断互斥（depth_0/1/ge_2）；
+- averaged_sigma 改名 astrocs.averaged_sigma.v1（IRAF exact=NOT_CLAIMED）；
+- WBPP Light 默认参数对齐（linearFit 5/3.5、percentile 0.2/0.1）；
+  large-scale rejection 默认 off → unsupported（feature matrix 如实）；
+- 真实 16-exposure E2E：NGC1727 T2 H-alpha 1200s × 16（Phase1 全成功，
+  order 7 HiPS）→ Phase2 wbpp_current（nominal=16→linear_fit 单次）
+  → 卫星门 V2 recall=1.0000、背景/星点无净损伤、sample false reject
+  9.45%（真实数据）；
+- ScratchVec heap-mode 修复（n>64 崩溃）；gate 65/65、oracle 全 PASS；
+- 审核包：AstroCS_Review_FinalClosure_V16.zip（SHA
+  E02B64137B18FCD00AA71C733B79A1BB05CB7CC0AAB7C1870966061EB22D7350，
+  111 项清单 0 坏，含 canonical_core + repo_source_manifest.csv）。
