@@ -24,8 +24,7 @@ INCLUDES = -Iinclude \
            -I../../photometric_calib/cpp/include \
            -I../../snr_estimator/cpp/include \
            -I../../healpix_db/healpix_drizzle \
-           -I../../healpix_db/healpix_stack \
-           -I../../gaia_xpsd_client/src \
+                     -I../../gaia_xpsd_client/src \
            -I../../star_detector/include \
            -Ithird_party/json-schema-validator
 # -Wl,--stack,33554432: 设置 EXE 主线程栈为 32MB

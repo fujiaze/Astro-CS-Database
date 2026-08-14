@@ -27,8 +27,6 @@ std::string DllLoader::get_module_name(ModuleId id) const {
         case ModuleId::PHOTOMETRIC:     return "PHOTOMETRIC";
         case ModuleId::SNR:             return "SNR";
         case ModuleId::DRIZZLE:         return "DRIZZLE";
-        case ModuleId::GRADIENT_SPHERE: return "GRADIENT_SPHERE";
-        case ModuleId::STACK:           return "STACK";
         default:                        return "UNKNOWN";
     }
 }
@@ -42,8 +40,6 @@ std::string DllLoader::get_dll_filename(ModuleId id) const {
         case ModuleId::PHOTOMETRIC:     return "photometric_calib.dll";
         case ModuleId::SNR:             return "snr_estimator.dll";
         case ModuleId::DRIZZLE:         return "healpix_drizzle.dll";
-        case ModuleId::GRADIENT_SPHERE: return "healpix_stack.dll";
-        case ModuleId::STACK:           return "healpix_stack.dll";
         default:                        return "";
     }
 }
@@ -58,8 +54,6 @@ std::string DllLoader::get_default_path(ModuleId id, const std::string& lib_base
         case ModuleId::PHOTOMETRIC:     sub = "lib/photometric_calib/cpp/";                  break;
         case ModuleId::SNR:             sub = "lib/snr_estimator/cpp/";                      break;
         case ModuleId::DRIZZLE:         sub = "lib/healpix_db/healpix_drizzle/";             break;
-        case ModuleId::GRADIENT_SPHERE: sub = "lib/healpix_db/healpix_stack/";               break;
-        case ModuleId::STACK:           sub = "lib/healpix_db/healpix_stack/";               break;
         default:                        sub = "";
     }
     if (lib_base_dir.empty()) {
@@ -95,8 +89,6 @@ DllLoader::DllLoader() {
     init(ModuleId::PHOTOMETRIC);
     init(ModuleId::SNR);
     init(ModuleId::DRIZZLE);
-    init(ModuleId::GRADIENT_SPHERE);
-    init(ModuleId::STACK);
 }
 
 DllLoader::~DllLoader() {
@@ -117,7 +109,6 @@ bool DllLoader::load_module(ModuleId id, const std::string& lib_base_dir) {
     if (it == modules_.end()) {
         std::cerr << "[dll_loader] 错误: 未知模块 ID" << std::endl;
         return false;
-    }
 
     ModuleInfo& info = it->second;
 
@@ -128,7 +119,6 @@ bool DllLoader::load_module(ModuleId id, const std::string& lib_base_dir) {
         free_library(info.handle);
         info.handle = nullptr;
         info.status = ModuleStatus::NOT_LOADED;
-    }
 
     // 构建完整路径
     std::string dir = get_default_path(id, lib_base_dir);
@@ -140,7 +130,6 @@ bool DllLoader::load_module(ModuleId id, const std::string& lib_base_dir) {
         full_path = dir + info.dll_filename;
     } else {
         full_path = dir + "/" + info.dll_filename;
-    }
 
     std::cerr << "[dll_loader] 加载模块 " << info.name
               << ": " << full_path << std::endl;
@@ -162,7 +151,6 @@ bool DllLoader::load_module(ModuleId id, const std::string& lib_base_dir) {
         info.error_msg = "LoadLibraryA 失败: " + get_last_error();
         std::cerr << "[dll_loader] [错误] " << info.error_msg << std::endl;
         return false;
-    }
 
     info.handle = h;
     info.status = ModuleStatus::LOADED;
@@ -302,16 +290,9 @@ bool DllLoader::load_all(const std::string& lib_base_dir) {
     all_ok = load_module(ModuleId::SNR,         lib_base_dir) && all_ok;
     all_ok = load_module(ModuleId::DRIZZLE,     lib_base_dir) && all_ok;
 
-    // 3. 第二段: 多帧合并 stage2 模块 (stage 8-9, 共用 healpix_stack.dll)
-    all_ok = load_module(ModuleId::GRADIENT_SPHERE, lib_base_dir) && all_ok;
-    // STACK 与 GRADIENT_SPHERE 共用 healpix_stack.dll, 已加载则跳过
-    if (!is_loaded(ModuleId::STACK)) {
-        all_ok = load_module(ModuleId::STACK, lib_base_dir) && all_ok;
-    } else {
-        // 复用 GRADIENT_SPHERE 的 handle
-        modules_[ModuleId::STACK].handle = modules_[ModuleId::GRADIENT_SPHERE].handle;
-        modules_[ModuleId::STACK].status = ModuleStatus::LOADED;
-    }
+    // V17：legacy Stage2 模块（GRADIENT_SPHERE/STACK = healpix_stack.dll）
+    // 已从 active production 移除（archive/legacy）；Phase2 唯一生产入口
+    // = astrocs-stage2。枚举保留仅为旧配置兼容元数据，不再加载/链接。
 
     if (all_ok) {
         std::cerr << "[dll_loader] 全部模块加载成功" << std::endl;
@@ -346,18 +327,6 @@ void DllLoader::unload_all() {
     unload_module(ModuleId::PHOTOMETRIC);
     unload_module(ModuleId::SNR);
     unload_module(ModuleId::DRIZZLE);
-    // STACK 与 GRADIENT_SPHERE 共用 handle, 仅卸载一次
-    // 标记 STACK 为已卸载, 但不调用 free_library (避免 double-free)
-    if (modules_.count(ModuleId::STACK) &&
-        modules_[ModuleId::STACK].handle != nullptr &&
-        modules_.count(ModuleId::GRADIENT_SPHERE) &&
-        modules_[ModuleId::STACK].handle == modules_[ModuleId::GRADIENT_SPHERE].handle) {
-        modules_[ModuleId::STACK].handle = nullptr;
-        modules_[ModuleId::STACK].status = ModuleStatus::NOT_LOADED;
-    } else {
-        unload_module(ModuleId::STACK);
-    }
-    unload_module(ModuleId::GRADIENT_SPHERE);
     unload_module(ModuleId::AIO);
 }
 
@@ -414,7 +383,6 @@ std::string DllLoader::get_version(ModuleId id) {
     // PHOTOMETRIC: pc_version (尝试)
     // SNR: snr_version (尝试)
     // DRIZZLE: hd_version (尝试)
-    // STACK: hs_version (尝试)
     const char* candidate_names[] = {nullptr, nullptr};
     switch (id) {
         case ModuleId::AIO:             candidate_names[0] = "aio_version"; break;
@@ -424,8 +392,6 @@ std::string DllLoader::get_version(ModuleId id) {
         case ModuleId::PHOTOMETRIC:     candidate_names[0] = "pc_version"; break;
         case ModuleId::SNR:             candidate_names[0] = "snr_version"; break;
         case ModuleId::DRIZZLE:         candidate_names[0] = "hd_version"; break;
-        case ModuleId::GRADIENT_SPHERE:
-        case ModuleId::STACK:           candidate_names[0] = "hs_version"; break;
         default:                        return "unknown";
     }
     for (int i = 0; i < 2 && candidate_names[i] != nullptr; ++i) {
@@ -469,9 +435,6 @@ bool DllLoader::set_num_threads(ModuleId id, int n) {
         case ModuleId::PHOTOMETRIC:
         case ModuleId::SNR:
         case ModuleId::DRIZZLE:
-        case ModuleId::GRADIENT_SPHERE:
-        case ModuleId::STACK:
-            return false;  // 暂无 set_num_threads 接口, 后续补充
         default:
             return false;
     }

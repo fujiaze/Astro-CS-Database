@@ -71,10 +71,8 @@ enum class PipelineStageV2 {
     DRIZZLE         = 7,  // healpix_drizzle.dll (nside 1-2x, SNR同步转换, 落盘 .hiss)
     HIPS_VERIFY     = 8,  // Phase1 V3: 验证 HiPS 产品集 (signal/support/snr, AIO Reader)
     HISS_VERIFY     = 9,  // legacy: 验证 .hiss 文件完整性 (仅 validation 模式)
-    BROWSER_VERIFY  = 10, // Browser 后端双精度读取/查询验证 (Qt GUI 另有独立测试)
-    // 第二段: 多帧合并
-    GRADIENT_SPHERE = 11, // healpix_stack.dll hp_stack_gradient_corrected (球面梯度校准)
-    STACK           = 12  // healpix_stack.dll (Winsorized sigma clip + SNR²加权叠加 -> .hcsd)
+    BROWSER_VERIFY  = 10  // Browser 后端双精度读取/查询验证 (Qt GUI 另有独立测试)
+    // V17: legacy Stage2 (GRADIENT_SPHERE/STACK = healpix_stack) removed
 };
 
 // ============================================================================
@@ -431,10 +429,7 @@ private:
     bool run_stage_hips_verify(TaskResult& result);
     // stage 9: BROWSER_VERIFY (Browser 后端双精度读取/查询验证)
     bool run_stage_browser_verify(TaskResult& result);
-    // stage 8: GRADIENT_SPHERE (healpix_stack.dll hp_stack_gradient_corrected)
-    bool run_stage_gradient_sphere(TaskResult& result);
-    // stage 9: STACK (healpix_stack.dll, Winsorized sigma clip + SNR²加权叠加)
-    bool run_stage_stack(TaskResult& result);
+    // V17: legacy Stage2 handlers removed (Phase2 = astrocs-stage2)
 
     // 辅助方法
     static std::string stage_name(PipelineStage stage);

@@ -32,9 +32,7 @@ enum class ModuleId {
     PHOTOMETRIC,    // photometric_calib.dll (stage 4)
     SNR,            // snr_estimator.dll (stage 5)
     DRIZZLE,        // healpix_drizzle.dll (stage 6)
-    // 第二段: 多帧合并 (stage 7-8, 共用 healpix_stack.dll)
-    GRADIENT_SPHERE,// healpix_stack.dll hp_stack_gradient_corrected (stage 7)
-    STACK           // healpix_stack.dll hp_stack_* (stage 8)
+    // V17: legacy Stage2 (GRADIENT_SPHERE/STACK = healpix_stack) removed
 };
 
 // 模块加载状态

@@ -45,8 +45,6 @@
 // healpix_drizzle C API (用于 run_stage_drizzle)
 #include "hp_drizzle_api.h"
 
-// healpix_stack C API (用于 run_stage_gradient_sphere / run_stage_stack)
-#include "hp_stack_api.h"
 
 #undef PipelineStage
 
@@ -771,8 +769,7 @@ bool Orchestrator::init_dlls(const std::string& lib_base_dir, std::string& error
         std::vector<ModuleId> ids = {
             ModuleId::AIO, ModuleId::CALIBRATE, ModuleId::PLATESOLVE,
             ModuleId::PSF, ModuleId::PHOTOMETRIC,
-            ModuleId::SNR, ModuleId::DRIZZLE, ModuleId::GRADIENT_SPHERE,
-            ModuleId::STACK
+            ModuleId::SNR, ModuleId::DRIZZLE
         };
         for (auto id : ids) {
             if (!dll_loader_.is_loaded(id)) {
@@ -792,8 +789,7 @@ bool Orchestrator::init_dlls(const std::string& lib_base_dir, std::string& error
     LOG_INFO("orchestrator", "全部 9 个模块加载成功");
     for (auto id : {ModuleId::AIO, ModuleId::CALIBRATE, ModuleId::PLATESOLVE,
                     ModuleId::PSF, ModuleId::PHOTOMETRIC,
-                    ModuleId::SNR, ModuleId::DRIZZLE, ModuleId::GRADIENT_SPHERE,
-                    ModuleId::STACK}) {
+                    ModuleId::SNR, ModuleId::DRIZZLE}) {
         std::string name = dll_loader_.get_info(id).name;
         std::string ver = dll_loader_.get_version(id);
         LOG_INFO("orchestrator", "  " + name + " 版本: " + ver);
@@ -4771,129 +4767,10 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
 }
 
 // stage 8: GRADIENT_SPHERE - 球面梯度校准 (healpix_stack.dll hp_stack_gradient_corrected)
-bool Orchestrator::run_stage_gradient_sphere(TaskResult& result) {
-    LOG_INFO("orchestrator", "[GRADIENT_SPHERE] 开始");
 
-    // P03-003: GRADIENT_SPHERE 是 stage2 必需 stage, DLL 未加载必须失败 (退出码 2)
-    if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::GRADIENT_SPHERE)) {
-        LOG_ERROR("orchestrator", "[GRADIENT_SPHERE] GRADIENT_SPHERE DLL 未加载 (必需模块)");
-        result.error_msg = "[GRADIENT_SPHERE] DLL 未加载 (必需模块)";
-        result.exit_code = AstroCsExitCode::DLL_LOAD_FAILED;
-        return false;
-    }
-
-    // P03-003: 必需输入缺失必须失败 (退出码 8)
-    if (stage2_hiss_files_.empty()) {
-        LOG_ERROR("orchestrator", "[GRADIENT_SPHERE] 无 .hiss 输入文件");
-        result.error_msg = "[GRADIENT_SPHERE] 无 .hiss 输入文件";
-        result.exit_code = AstroCsExitCode::FILE_IO_ERROR;
-        return false;
-    }
-
-    // 获取函数指针 (GAP-017: 签名新增 sigma_clip_method/winsorize_low/high_pct 3 个参数)
-    auto fn_gradient = dll_loader_.get_function<int (*)(
-        const char**, int, const char*, const char*,
-        double, int, int, double,
-        const char*, double, double)>(
-        ModuleId::GRADIENT_SPHERE, "hp_stack_gradient_corrected");
-
-    if (!fn_gradient) {
-        LOG_ERROR("orchestrator", "[GRADIENT_SPHERE] hp_stack_gradient_corrected 函数未找到");
-        result.error_msg = "[GRADIENT_SPHERE] 函数未找到";
-        result.exit_code = AstroCsExitCode::GENERIC_ERROR;
-        return false;
-    }
-
-    // 构建 hiss_paths 数组 (const char**)
-    int n_frames = static_cast<int>(stage2_hiss_files_.size());
-    std::vector<const char*> hiss_paths;
-    hiss_paths.reserve(n_frames);
-    for (const auto& p : stage2_hiss_files_) {
-        hiss_paths.push_back(p.c_str());
-    }
-
-    // GAP-017: 从 current_config_json_ (stage2 config) 解析 sigma_clip 参数
-    // 默认: sigma_clip_method="standard", sigma=3.0, max_iter=5
-    //       winsorize_low_pct=0.05, winsorize_high_pct=0.95 (winsorized 模式下生效)
-    std::string sigma_clip_method = "standard";
-    double sigma = 3.0;
-    int max_iter = 5;
-    double winsorize_low_pct = 0.05;
-    double winsorize_high_pct = 0.95;
-    if (!current_config_json_.empty()) {
-        std::string s = orc_getJsonString(current_config_json_, "sigma_clip_method");
-        if (!s.empty()) sigma_clip_method = s;
-        sigma = orc_getJsonNum(current_config_json_, "sigma_clip_sigma", sigma);
-        if (sigma <= 0.0) sigma = 3.0;
-        int v = (int)orc_getJsonNum(current_config_json_, "sigma_clip_max_iter", 0.0);
-        if (v > 0) max_iter = v;
-        winsorize_low_pct = orc_getJsonNum(current_config_json_, "winsorize_low_pct", winsorize_low_pct);
-        winsorize_high_pct = orc_getJsonNum(current_config_json_, "winsorize_high_pct", winsorize_high_pct);
-    }
-
-    LOG_INFO("orchestrator", "[GRADIENT_SPHERE] 帧数: " + std::to_string(n_frames)
-             + " 输出: " + current_output_hcsd_
-             + " sigma_clip=" + sigma_clip_method
-             + " sigma=" + std::to_string(sigma)
-             + " max_iter=" + std::to_string(max_iter));
-
-    // P03-002: 从 config 解析 gradient_sphere 参数
-    // gaia_data_dir: 空时传 nullptr (跳过星拒绝)
-    // gradient_max_iter: 默认 10
-    // gradient_lambda: 默认 1e-4
-    std::string cfg_gaia_dir = orc_getJsonString(current_config_json_, "gaia_data_dir");
-    int gradient_max_iter = static_cast<int>(orc_getJsonNum(current_config_json_, "gradient_max_iter", 10.0));
-    double gradient_lambda = orc_getJsonNum(current_config_json_, "gradient_lambda", 1.0e-4);
-    if (gradient_max_iter <= 0) gradient_max_iter = 10;
-    if (gradient_lambda <= 0.0) gradient_lambda = 1.0e-4;
-    // 相对路径基于 project_root_dir_ 解析
-    if (!cfg_gaia_dir.empty() && !fs::path(cfg_gaia_dir).is_absolute()) {
-        cfg_gaia_dir = (fs::path(project_root_dir_) / cfg_gaia_dir).string();
-    }
-    LOG_INFO("orchestrator", "[GRADIENT_SPHERE] gradient_max_iter=" + std::to_string(gradient_max_iter)
-             + " gradient_lambda=" + std::to_string(gradient_lambda)
-             + " gaia_data_dir=" + (cfg_gaia_dir.empty() ? "(null, 跳过星拒绝)" : cfg_gaia_dir));
-
-    // 调用 hp_stack_gradient_corrected (GAP-017: 传入 sigma_clip_method + winsorize 参数)
-    // P03-002: gradient_max_iter/gradient_lambda/gaia_data_dir 从 config 读取
-    const char* method_cstr = sigma_clip_method.c_str();
-    const char* gaia_dir_cstr = cfg_gaia_dir.empty() ? nullptr : cfg_gaia_dir.c_str();
-    int ret = fn_gradient(hiss_paths.data(), n_frames,
-                          gaia_dir_cstr,  // P03-002: 从 config 读取, 空时 nullptr
-                          current_output_hcsd_.c_str(),
-                          sigma, max_iter, gradient_max_iter, gradient_lambda,
-                          method_cstr, winsorize_low_pct, winsorize_high_pct);
-    if (ret != 0) {
-        LOG_ERROR("orchestrator", "[GRADIENT_SPHERE] hp_stack_gradient_corrected 失败: ret=" + std::to_string(ret));
-        result.error_msg = "[GRADIENT_SPHERE] 失败: " + std::to_string(ret);
-        result.exit_code = AstroCsExitCode::GENERIC_ERROR;
-        return false;
-    }
-
-    LOG_INFO("orchestrator", "[GRADIENT_SPHERE] 完成");
-    return true;
-}
 
 // stage 9: STACK - Winsorized sigma clip + SNR²加权叠加 (healpix_stack.dll)
-bool Orchestrator::run_stage_stack(TaskResult& result) {
-    LOG_INFO("orchestrator", "[STACK] 开始");
 
-    // P03-003: STACK 是 stage2 必需 stage, DLL 未加载必须失败 (退出码 2)
-    // 注: 当前 STACK 是骨架, .hcsd 由 GRADIENT_SPHERE 生成, 但 DLL 加载仍必需
-    if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::STACK)) {
-        LOG_ERROR("orchestrator", "[STACK] STACK DLL 未加载 (必需模块)");
-        result.error_msg = "[STACK] STACK DLL 未加载 (必需模块)";
-        result.exit_code = AstroCsExitCode::DLL_LOAD_FAILED;
-        return false;
-    }
-
-    // GRADIENT_SPHERE 阶段已通过 hp_stack_gradient_corrected 完成完整流程:
-    //   采样 → Gauss-Seidel 梯度拟合 → 校正叠加 → .hcsd 输出
-    // hp_stack_run 接收 PipelineFrame 数组 (非 .hiss 文件), 不适用于 stage2
-    // 当前保留骨架, .hcsd 已由 GRADIENT_SPHERE 生成
-    LOG_INFO("orchestrator", "[STACK] 跳过 (骨架): .hcsd 已由 GRADIENT_SPHERE 生成");
-    return true;
-}
 
 // ============================================================================
 // run_stage1 - spec §2.3.3 单帧预处理 (FITS -> calibrated/solved frame -> HEALPix Drizzle -> IVOA HiPS, stage 0-7)
@@ -5516,122 +5393,20 @@ TaskResult Orchestrator::run_stage2(const std::string& hiss_dir,
     {
         std::lock_guard<std::mutex> lock(mutex_);
         current_frame_ = hiss_dir;
-        current_stage_ = PipelineStageV2::STACK;
+        current_stage_ = PipelineStageV2::BROWSER_VERIFY;  // legacy stage2 removed
         start_time_ = std::chrono::steady_clock::now();
     }
     state_ = TaskState::RUNNING;
 
-    // 串行执行 stage 8-9 (lambda: 带计时调用 stage handler)
-    // P04-004: 集成取消/超时检查与 watchdog
-    auto run_v2_with_timing = [&](PipelineStageV2 stage, const char* name,
-                                   bool (Orchestrator::*fn)(TaskResult&)) -> bool {
-        // P04-004: stage 开始前检查取消/超时
-        if (!check_stage_continue(name, result)) {
-            StageTiming st;
-            st.stage = stage;  // CFG-012: 使用实际 stage
-            st.stage_name = std::string(name) + " (skipped)";
-            st.duration_sec = 0.0;
-            st.success = false;
-            result.timings.push_back(st);
-            return false;
-        }
+    // V17：legacy Stage2（gradient sphere / stack，healpix_stack）已从
+    // active production 移除；Phase2 唯一生产入口 = astrocs-stage2。
+    // 旧 stage2 config 在此显式失败（要求改用 astrocs-stage2.exe）。
+    bool ok = false;
+    result.success = false;
+    result.error_msg = "legacy Stage2 removed in V17; use astrocs-stage2";
+    result.exit_code = AstroCsExitCode::GENERIC_ERROR;
+    LOG_ERROR("orchestrator", result.error_msg);
 
-        {
-            std::lock_guard<std::mutex> lock(mutex_);
-            current_stage_name_ = name;
-        }
-
-        LOG_INFO("orchestrator", "---------- stage2 阶段: " + std::string(name) + " ----------");
-
-        // P04-004: 启动 watchdog 线程 (如果该 stage 配置了超时)
-        double timeout_sec = 0.0;
-        auto it = config_.stage_timeouts.find(name);
-        if (it != config_.stage_timeouts.end()) {
-            timeout_sec = it->second;
-        }
-        std::thread watchdog;
-        bool watchdog_active = false;
-        if (timeout_sec > 0.0) {
-            watchdog_active = true;
-            LOG_INFO("orchestrator", "P04-004: 启动 watchdog for " + std::string(name)
-                     + " timeout=" + std::to_string(timeout_sec) + "s");
-            stage_watchdog_stop_.store(false, std::memory_order_release);
-            watchdog = std::thread([this, name, timeout_sec]() {
-                auto deadline = std::chrono::steady_clock::now()
-                              + std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                    std::chrono::duration<double>(timeout_sec));
-                // P04-004: 超时 <= 100ms 时立即检查 deadline, 避免错过超时窗口
-                int sleep_ms = (timeout_sec < 0.1) ? 1 : 100;
-                while (std::chrono::steady_clock::now() < deadline) {
-                    if (stage_watchdog_stop_.load(std::memory_order_acquire)) return;
-                    if (is_cancelled()) return;
-                    std::this_thread::sleep_for(std::chrono::milliseconds(sleep_ms));
-                }
-                if (!is_cancelled() &&
-                    !stage_watchdog_stop_.load(std::memory_order_acquire)) {
-                    timeout_flag_.store(true, std::memory_order_release);
-                    LOG_WARN("orchestrator", "P04-004: stage " + std::string(name) + " 超时 ("
-                             + std::to_string(timeout_sec) + "s), 触发 timeout_flag");
-                }
-            });
-        }
-
-        auto t0 = std::chrono::steady_clock::now();
-        bool ok = (this->*fn)(result);
-        auto t1 = std::chrono::steady_clock::now();
-        double dur = std::chrono::duration<double>(t1 - t0).count();
-
-        // P04-004: 通知 watchdog 停止并 join
-        if (watchdog_active) {
-            stage_watchdog_stop_.store(true, std::memory_order_release);
-            if (watchdog.joinable()) {
-                watchdog.join();
-            }
-        }
-
-        StageTiming st;
-        st.stage = stage;  // CFG-012: 使用实际 stage (原硬编码为 STACK)
-        st.stage_name = name;
-        st.duration_sec = dur;
-        st.success = ok;
-        result.timings.push_back(st);
-        LOG_INFO("orchestrator", "[" + std::to_string(dur) + "s] " + name
-                 + (ok ? " 完成" : " 失败"));
-
-        // P04-004: stage 执行后检查取消/超时
-        if (is_cancelled()) {
-            result.exit_code = AstroCsExitCode::CANCELLED;
-            result.error_msg = std::string(name) + " 取消 (用户请求)";
-            LOG_WARN("orchestrator", "P04-004: " + result.error_msg);
-            return false;
-        }
-        if (is_timed_out()) {
-            result.exit_code = AstroCsExitCode::TIMEOUT;
-            result.error_msg = std::string(name) + " 超时";
-            LOG_WARN("orchestrator", "P04-004: " + result.error_msg);
-            return false;
-        }
-
-        // P03-003: 兜底 exit_code (stage handler 未设置时按 stage 类型推导)
-        if (!ok && result.exit_code == AstroCsExitCode::SUCCESS) {
-            switch (stage) {
-                case PipelineStageV2::GRADIENT_SPHERE:
-                case PipelineStageV2::STACK:
-                    result.exit_code = AstroCsExitCode::GENERIC_ERROR; break;
-                default:
-                    result.exit_code = AstroCsExitCode::GENERIC_ERROR; break;
-            }
-        }
-        return ok;
-    };
-
-    bool ok = true;
-    ok = ok && run_v2_with_timing(PipelineStageV2::GRADIENT_SPHERE, "GRADIENT_SPHERE",
-                                   &Orchestrator::run_stage_gradient_sphere);
-    ok = ok && run_v2_with_timing(PipelineStageV2::STACK,           "STACK",
-                                   &Orchestrator::run_stage_stack);
-
-    result.success = ok;
 
     // P04-004: 原子输出清理 - 失败/取消/超时时删除部分输出文件
     if (!ok) {
