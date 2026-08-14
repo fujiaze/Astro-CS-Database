@@ -396,8 +396,6 @@ std::string Orchestrator::stage_name_v2(PipelineStageV2 stage) {
         case PipelineStageV2::SNR:             return "SNR";
         case PipelineStageV2::DRIZZLE:         return "DRIZZLE";
         case PipelineStageV2::HIPS_VERIFY:     return "HIPS_VERIFY";
-        case PipelineStageV2::GRADIENT_SPHERE: return "GRADIENT_SPHERE";
-        case PipelineStageV2::STACK:           return "STACK";
         default:                               return "UNKNOWN";
     }
 }
@@ -5371,19 +5369,10 @@ TaskResult Orchestrator::run_stage2(const std::string& hiss_dir,
     stage2_hiss_files_ = hiss_files;
     current_output_hcsd_ = output_hcsd;
 
-    // 加载 DLL (P03-003: stage2 必需模块 GRADIENT_SPHERE/STACK 缺失必须失败)
+    // 加载 DLL（V17：legacy Stage2 已移除，healpix_stack 不再需要）
     if (!dlls_loaded_) {
         std::string err;
         if (!init_dlls("", err)) {
-            // 检查 stage2 必需模块 (GRADIENT_SPHERE/STACK 共用 healpix_stack.dll)
-            bool gs_ok = dll_loader_.is_loaded(ModuleId::GRADIENT_SPHERE);
-            bool stack_ok = dll_loader_.is_loaded(ModuleId::STACK);
-            if (!gs_ok || !stack_ok) {
-                LOG_ERROR("orchestrator", "DLL 加载失败 (stage2 必需模块缺失): " + err);
-                result.error_msg = "DLL 加载失败 (stage2 必需模块缺失): " + err;
-                result.exit_code = AstroCsExitCode::DLL_LOAD_FAILED;
-                return result;
-            }
             // 仅 stage1 模块缺失, stage2 仍可继续
             LOG_WARN("orchestrator", "DLL 加载警告 (仅 stage1 模块缺失): " + err);
         }

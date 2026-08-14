@@ -109,6 +109,7 @@ bool DllLoader::load_module(ModuleId id, const std::string& lib_base_dir) {
     if (it == modules_.end()) {
         std::cerr << "[dll_loader] 错误: 未知模块 ID" << std::endl;
         return false;
+    }
 
     ModuleInfo& info = it->second;
 
@@ -119,6 +120,7 @@ bool DllLoader::load_module(ModuleId id, const std::string& lib_base_dir) {
         free_library(info.handle);
         info.handle = nullptr;
         info.status = ModuleStatus::NOT_LOADED;
+    }
 
     // 构建完整路径
     std::string dir = get_default_path(id, lib_base_dir);
@@ -130,6 +132,7 @@ bool DllLoader::load_module(ModuleId id, const std::string& lib_base_dir) {
         full_path = dir + info.dll_filename;
     } else {
         full_path = dir + "/" + info.dll_filename;
+    }
 
     std::cerr << "[dll_loader] 加载模块 " << info.name
               << ": " << full_path << std::endl;
@@ -151,6 +154,7 @@ bool DllLoader::load_module(ModuleId id, const std::string& lib_base_dir) {
         info.error_msg = "LoadLibraryA 失败: " + get_last_error();
         std::cerr << "[dll_loader] [错误] " << info.error_msg << std::endl;
         return false;
+    }
 
     info.handle = h;
     info.status = ModuleStatus::LOADED;
