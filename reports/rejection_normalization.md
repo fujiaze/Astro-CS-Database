@@ -1,4 +1,4 @@
-# Rejection Normalization（V16）
+# Rejection Normalization（V17 True Final Freeze）
 
 ## 分层
 
@@ -16,8 +16,8 @@ CalibratedScienceStack
 | mode | formula | 说明 |
 | --- | --- | --- |
 | none | working = value | identity 工作域 |
-| median_center | working = value − median(stack) | per-pixel robust 位置；平移不变方法决策不变；percentile 负值安全 |
-| median_scale | working = value / max(|median|, floor) | per-pixel 尺度；WBPP rejectionNormalization=Scale 的 mapped 形式 |
+| astrocs_median_center_v1 | working = value − median(stack) | per-pixel robust 位置；平移不变方法决策不变；percentile 负值安全 |
+| astrocs_median_scale_v1 | working = value / max(|median|, floor) | per-pixel 尺度；WBPP rejectionNormalization=Scale 的 mapped 形式 |
 
 ## Contract
 
@@ -34,6 +34,14 @@ CalibratedScienceStack
 - percentile 必须 median_center（负值科学域安全）；
 - rcr 必须 none（官方 oracle 原始值域冻结）；
 - 其余方法平移不变 → 任何 mode 决策一致（V16NormalizationTransparent 测试）。
+
+## V17：canonical 命名
+
+- canonical semantic IDs：`astrocs_median_center_v1` /
+  `astrocs_median_scale_v1`（config 与 diagnostics 序列化 canonical）；
+- `median_center` / `median_scale` 仅 migration alias（parser 规范化）；
+- 默认 = astrocs_median_center_v1；real16 重跑 diagnostics 序列化
+  `astrocs_median_center_v1`（不再出现旧名）。
 
 ## 必测项（V16NormalizationTransparentAndNegativeSafe / V16InvalidConfigurationCombos）
 

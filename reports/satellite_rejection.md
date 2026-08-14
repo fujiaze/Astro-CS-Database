@@ -1,4 +1,5 @@
-# 卫星线真实生产门（V15）
+# 卫星线真实生产门（V15 历史；V17 True Final Freeze 结论见
+# `satellite_v2.md` 与 `wbpp_policy.md`）
 
 ## 1. Exposure granularity（核心架构问题回答）
 
@@ -19,7 +20,9 @@ panel/master）。结论：Phase1→Phase2 不存在"多 exposure 先合成 pane
 - 第 10 帧注入大圆卫星线（signal += 0.05 ≈ 17×背景 median，宽度 ~1.5px，
   1418 像素，跨 3 tile）。
 
-生产路径：`astrocs-stage2`，`rejection.method=auto, profile=wbpp_current`。
+生产路径：`astrocs-stage2`，`rejection.method=auto,
+profile=wbpp_current`（V15 历史；V17 canonical=wbpp_2_9_1，wbpp_current
+仅 migration alias）。
 
 ## 3. 指标（`evidence/satellite_metrics.json`）
 
@@ -29,8 +32,8 @@ panel/master）。结论：Phase1→Phase2 不存在"多 exposure 先合成 pane
 | resolved method | `astrocs.linear_fit_siril_1_4_3.v1`（WBPP n>15 政策一致） |
 | effective contributor histogram | 全部像素 depth=20；depth_1=0；underdetermined_pixels=0 |
 | trail rejection recall | **1.0000**（1418/1418 真实 kernel 判定） |
-| clean false reject（像素级 ≥1 样本） | 88.7%（1500 背景像素采样；致密 GC 天区） |
-| clean sample-level false reject | 27.65%（8294/30000 样本；冻结 linear-fit 固有行为） |
+| clean false reject（像素级 ≥1 样本） | 88.7%（V15 口径：CLI 未 honor normalization（NONE 域）；V17 修复后真实 16 帧 observed=6.58% |）
+| clean sample-level false reject | 27.65%（V15 口径同上；V17 受控 truth true FPR=1.88% 且与 frozen Siril 100% 一致） |
 | mosaic 背景 bias | median=0.00e+00，p95=0.00e+00 |
 | 星点通量 bias（相对） | median=0.00e+00，p95=0.00e+00 |
 
@@ -40,7 +43,7 @@ method 与 WBPP profile 一致 → **SATELLITE_REJECTION_GATE=PASS**。
 ## 4. n=1–2 → REJECTION_UNDERDETERMINED（真实产品现状）
 
 真实 GC/t4 overlap（`t4_crop_v3 × t4_full_v3_final`，285 tile，2 输入）生产
-run（auto/wbpp_current）：
+run（auto/wbpp_current → V17 migration alias 解析 wbpp_2_9_1）：
 
 - resolved：`percentile`（nominal 1-2 < 6 → WBPP 政策）；
 - **underdetermined_pixels = 61,588,497（100%）**；rejected_samples = 0；

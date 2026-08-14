@@ -22,38 +22,55 @@ model: control_grid_per_tile(8) patch_radius_leaf(2) min_samples(5)
 integration: precision(fp32) memory_limit_mb rejection{method
              none|sigma|winsorized_sigma|averaged_sigma|linear_fit|
              generalized_esd|rcr|percentile|median_sigma|minmax|auto
-             profile(wbpp_current) underdetermined_n(2)
+             profile(wbpp_2_9_1|wbpp_current alias|astrocs_adaptive)
+             underdetermined_n(2)
+             normalization(none|astrocs_median_center_v1|astrocs_median_scale_v1)
+             normalization_floor(1e-12)
+             large_scale{enabled(false) min_structure_pixels(8)
+                         low_grow_radius_pixels(2)
+                         high_grow_radius_pixels(2)}
              robust_mad_clip{lower_sigma 4 upper_sigma 3 max_iterations 8}
              winsorized_sigma{lower_sigma 4 upper_sigma 3 max_iterations 8}
              averaged_sigma{lower_sigma 4 upper_sigma 3 max_iterations 8}
-             linear_fit{lower 4 upper 3 max_iterations 8}
+             linear_fit{lower 5 upper 3.5 max_iterations 8}
              generalized_esd{alpha 0.05 max_outliers 10}
-             percentile{low_fraction 0.1 high_fraction 0.1}
+             percentile{low_fraction 0.2 high_fraction 0.1}
              median_sigma{lower_sigma 4 upper_sigma 3 max_iterations 8}
              minmax{reject_low_count 1 reject_high_count 1
-                    max_iterations 8 min_kept 4}
+                    min_kept 4}
              rcr{technique ss_median_dl}
-             low/high/max_iterations/min_samples DEPRECATED（V15 adapter）}
+             （low/high/max_iterations/min_samples 已删除（V17 硬错误），
+              旧 config 必须 tools/migrate_stage2_config.py 迁移）}
              weight_mode(auto) acr_route(cpu/auto)
 
-rejection.method 说明（V15 Final Semantic Closure）：
-  - production 默认 `method=auto` + `profile=wbpp_current`；
+rejection.method 说明（V17 True Final Freeze）：
+  - production 默认 `method=auto` + `profile=wbpp_2_9_1`（冻结版本；
+    `wbpp_current` 仅 migration alias，解析并序列化为 wbpp_2_9_1）；
   - auto 在 **planning 层**按 integration cohort/tile 的 nominal
     contributors（几何可贡献独立 exposure 数）解析一次，禁止在 pixel loop
     内按 effective count 路由；WBPP 2.9.1（本机源码 bestRejectionMethod）：
       nominal<6 → percentile；6..15 → winsorized_sigma；>15 → linear_fit；
+  - `astrocs_adaptive` = AstroCS 自有策略（tile nominal depth 自适应，
+    独立命名，不冒充 WBPP exact）；
   - effective 候选数 <= underdetermined_n（默认 2）或 < 方法 minimum N →
     REJECTION_UNDERDETERMINED（可全接受但必须记录，禁止偷偷换算法）；
+  - normalization：判定工作域与科学值域分离（decision 作用于
+    working stack，accepted mask 应用回原始 calibrated 值）；
+    percentile 必须 astrocs_median_center_v1（负值安全）；rcr 必须 none；
+  - large_scale：astrocs.large_scale_rejection.v1（8-连通分量 grow，
+    min_structure_pixels 过滤，low/high 独立半径；默认关闭）；compact
+    cosmic/星点不会无限生长；PIXINSIGHT_EXACT=NOT_CLAIMED；
   - percentile: 相对 median 的百分比 clip（low_fraction/high_fraction
-      为小数，如 0.1/0.3）；
+      为小数，默认 0.2/0.1 = WBPP Light percentileLow/High）；
   - median_sigma: median 位置 + SD 尺度迭代 clip（WBPP Median Sigma）；
-  - minmax: 每轮剔除最小/最大样本（WBPP Min/Max）；
+  - minmax: 一次性固定 rank 剔除最小 reject_low_count 与最大
+      reject_high_count 个样本（n−low−high >= min_kept；无 max_iterations）；
   - sigma = astrocs.robust_mad_clip.v1（median + MAD 迭代 clip；
       Astropy sigma_clip(mad_std) oracle）；旧字符串 "sigma" 为 alias；
   - winsorized_sigma: robust 版（median 位置 + 1.5σ winsorize 迭代，
       对齐 Siril 1.4.3 rejection_float.c）。
-  - 旧顶层 low/high/max_iterations/min_samples 仅经 deprecation adapter
-      映射（打印 warning），生产新配置必须使用 method-specific typed 参数。
+  - V17：旧顶层 low/high/max_iterations/min_samples 已从 parser 删除，
+      出现即硬错误（提示 tools/migrate_stage2_config.py）。
 output.hips / diagnostics
 ```
 

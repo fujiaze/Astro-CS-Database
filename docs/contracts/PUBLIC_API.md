@@ -7,13 +7,23 @@
 - `p2_upm_build`（obs-only，兼容）与 `p2_upm_build_geo`（全几何节点，
   V13/V14）。
 - `p2_sample_controls`（含 background-clean stats/geometry 输出，V13）。
-- V15 rejection 接口（typing 单语义）：
+- V16/V17 rejection 接口（typing 单语义，版本化政策）：
   - `p2_reject_plan_resolve`（planning 层把 auto 解析为显式方法 +
-    method-specific typed params；WBPP 2.9.1 政策）；
-  - `p2_eligibility_filter`（finite/valid/support/quality → CandidateStack）；
+    method-specific typed params；profile=wbpp_2_9_1 冻结版本或
+    astrocs_adaptive 独立策略）；
+  - `p2_eligibility_filter` / `p2_collect_candidate_stack`（V16 生产 strided
+    collector：finite/valid/support/quality → CandidateStack；Stage2 CPU/ACR
+    统一入口）；
+  - `p2_validate_candidate_weights`（V17：SNR lookup 后统一非 finite/非正
+    权重校验，禁止 Stage2 漏检）；
   - `p2_reject_stack_ex`（explicit plan kernel；per-sample reason +
-    stack-level status 分离；UNDERDETERMINED）；
-  - `p2_rejection_workspace_create/free`（可复用 scratch）；
+    stack-level status 分离；V17 契约：仅 OK/UNDERDETERMINED 可继续，其余
+    INVALID_*/INTERNAL_ERROR 必须 hard fail）；
+  - `p2_large_scale_apply`（V17：astrocs.large_scale_rejection.v1，
+    per-frame low/high rejection mask 的 connected-component grow）；
+  - `p2_integrate_pixel`（V17：唯一 canonical support reducer=max(accepted
+    support)；显式状态 OK/NO_CANDIDATES/ALL_REJECTED/ZERO_VALID_WEIGHT/
+    INVALID_INPUT；非 finite weight/support 绝不返回 OK）；
   - `p2_reject_stack`（旧签名）为 COMPAT adapter，生产 Stage2 不再调用。
 - 返回码：0=OK；非 0 具体语义见各头文件注释；`err` 缓冲只做日志，不承载
   状态机。

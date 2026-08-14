@@ -43,13 +43,14 @@ browser peak RAM : 17 MB（有界）
    修复 n>64 崩溃后 oracle/matrix 全 PASS）；
 7. **eligibility 一次收集**：p2_collect_candidate_stack（strided）替代
    stage2/ACR 内联手写资格判定（单路径 + 单次收集）；
-8. **group plan 缓存**：wbpp_current 在 run 开始解析一次，tile 复用
-   （移除每 tile 重复 resolve）。
+8. **group plan 缓存**：wbpp_2_9_1（V17 canonical；wbpp_current 仅
+   migration alias）在 run 开始解析一次，tile 复用（移除每 tile 重复
+   resolve）。
 
 ## V16 基准（本机，3 次）
 
 ```text
-真实 16 帧 Phase2（wbpp_current, linear_fit, median_center）：
+真实 16 帧 Phase2（wbpp_2_9_1, linear_fit, astrocs_median_center_v1）：
   truth 23.5s / clean 24.6s / trail 24.6s / trail_none 23.4s
 合成 20 帧（satgate，V15 复跑）：
   52.83 / 43.80 / 43.02 s → median 43.80s

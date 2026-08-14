@@ -8,8 +8,9 @@ raw FITS（NGC1727 T2 H-alpha 1200s × 16）
   → orchestrator stage1 × 16（calibration standard → plate solve（Gaia DR3）
       → PSF/star_measurements → photometric（Gaia DR3SP + Baader 7nm HA）
       → SNR catalogue → drizzle(nside=65536, NESTED) → per-exposure HiPS order 7
-  → astrocs-stage2（wbpp_current group-level：nominal=16 → linear_fit；
-      normalization=median_center；UPM；rejection；integration；HiPS）
+  → astrocs-stage2（wbpp_2_9_1 group-level：nominal=16 → linear_fit；
+      normalization=astrocs_median_center_v1；UPM；rejection；integration；
+      HiPS）
   → external/browser verification
 ```
 
