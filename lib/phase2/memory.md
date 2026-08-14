@@ -83,3 +83,22 @@ photometric scale、新 runtime I/O DLL。
 - stage2 逐 tile 处理、单线程；未做 tile 内 micro-chunk 分片路径实测
   （block planner 已实现估算与标记）。
 - 根目录 `memory.md` 尚未追加 Phase2 进度（待后续会话同步）。
+
+## 2026-08-14 V15 Final Semantic Closure（HEAD 8a772ca）
+
+- rejection 语义冻结：canonical IDs + typed params + planning 层 auto
+  （WBPP 2.9.1 本机源码 bestRejectionMethod：n<6 percentile / 6-15
+  winsorized / >15 linear_fit）+ eligibility 分层 + per-sample reason +
+  UNDERDETERMINED；RJ-001..008 全修复（ESD 双 sqrt、NONE NaN、valid 掩码、
+  low/high 阈值、status/reason 分离、参数 typed 化、support/quality 消费、
+  sigma 改名 robust_mad_clip）；
+- 生产默认 method=auto + profile=wbpp_current；旧 low/high/max_iterations
+  deprecation adapter；schema/template/parser 单源（config_consistency PASS）；
+- 卫星线门：20 exposure 受控注入（真实 t4_crop 底图）recall=1.0000、
+  mosaic bg/star bias=0；n<=2 生产 run 61.6M px 全部 UNDERDETERMINED；
+- sampler：catalogue 全扫描 → dec 排序索引 + 帧 median 预计算（10min→9.2s）；
+  null-config 未初始化 bug 修复（p2_sampler_default_config）；
+- 全量 gate 59/59（41.8s clean-tree）；oracle（Astropy/NIST/Siril harness/
+  rcr 2.4.7/WBPP policy）全 PASS；六轮自审 + clean-tree 终验 PASS；
+- 审核包：AstroCS_Review_FinalSemanticClosure_V15.zip（SHA
+  26219370FE0F8758B5482648B3682D85BD90CE4711A62403C87339D479D1A03F，342KB）。

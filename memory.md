@@ -2160,3 +2160,21 @@ SHA256 73cdd6be2eb1eaa1fd218e0489e31a173f08f0d3a3b6146f8ea3f0da28e2894d
   Adapter 另开业务改造计划；feature/astrocompute-runtime 保留
 - 审核包：AstroCS_Review_ACRBaseClosure_20260809.zip
   SHA256 01c950e245687ee14c06d3d28dcd7da0414858d69be590fd6bcb1359e1bc6496
+
+## 2026-08-14 Phase2 V15 最终语义收尾（控制包 Final_Semantic_Closure_V15）
+
+- rejection 语义冻结 + WBPP Auto 核准（WBPP 2.9.1 本机源码
+  bestRejectionMethod，planning 层按 nominal contributors 解析）+
+  RJ-001..008 全修复 + typed params + eligibility 分层 + per-sample
+  reason + UNDERDETERMINED；
+- 卫星线生产门：20 exposure 受控注入 recall=1.0、bias=0；n<=2 真实
+  GC/t4 overlap 61.6M px 100% UNDERDETERMINED（不宣称可剔除）；
+- 全仓库单路径：浏览器第二套 HEALPix 映射删除、STF 单状态
+  （DisplayTransformState）、config 单源、sampler 空间索引
+  （10min→9.2s）+ null-config 修复；
+- 六轮自审 + clean-tree：gate 59/59、浏览器 5/5、oracle 全 PASS；
+- 审核包：`AstroCS_Review_FinalSemanticClosure_V15.zip`
+  SHA256 26219370FE0F8758B5482648B3682D85BD90CE4711A62403C87339D479D1A03F
+  （342KB，93 项清单校验 0 坏）；
+- V14 审核包已在 archive_deliverables/review_packs/ 归档（V15 控制包 +
+  审核包保留根目录）。
