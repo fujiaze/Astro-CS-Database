@@ -22,8 +22,8 @@ SATELLITE_REJECTION_GATE = PASS（20-exposure 受控注入 recall=1.0；
                         n<=2 → REJECTION_UNDERDETERMINED，不宣称可剔除）
 BASE_API_CONTRACT      = FROZEN
 PERFORMANCE_BASELINE   = FROZEN
-FINALIZATION_SELF_REVIEW = CANDIDATE（6 轮自审 + clean-tree 终验完成后
-                        在审核包中定稿，见 self_review/）
+FINALIZATION_SELF_REVIEW = PASS（6 轮自审 + clean-tree 终验，见 self_review/；
+                        ROUND0-6 全 PASS）
 ```
 
 PIXINSIGHT_EXACT_COMPATIBILITY = NOT_CLAIMED（WBPP profile 仅提供 Auto
