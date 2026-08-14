@@ -120,8 +120,6 @@ private:
     QAction* layer_toggle_action_ = nullptr; // V9: Signal/Support
     QComboBox* hips_preset_combo_ = nullptr; // V9: 预设视图
     QComboBox* stretch_combo_ = nullptr;     // V9: 拉伸曲线
-    bool hips_auto_range_ = true;            // V9: auto B/W
-    bool stf_locked_ = false;                // V14: Lock STF
 
     // 状态栏标签
     QLabel* status_file_;

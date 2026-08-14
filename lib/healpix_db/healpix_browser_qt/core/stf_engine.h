@@ -2,8 +2,8 @@
 #define STF_ENGINE_H
 
 #include <cstdint>
-#include <vector>
 #include <string>
+#include <vector>
 
 // STF 拉伸参数
 // 说明：封装 Screen Transfer Function 所需的全部参数
@@ -21,6 +21,36 @@ struct STFParams {
 
     // 校验参数合法性：shadows<highlights 且 midtones 在 (0,1)
     bool validate() const;
+};
+
+// V15：唯一 DisplayTransformState（单一 owner；UI 只编辑 state，
+// renderer 只消费 state；generation 用于丢弃过期异步结果）。
+enum class STFMode {
+    AutoGlobal = 0,   // dataset 级稳定标尺（pan/zoom 不闪）
+    AutoView = 1,     // viewport 自适应（可选；debounce/worker）
+    Manual = 2        // 用户手动控制点
+};
+
+struct DisplayTransformState {
+    STFMode mode = STFMode::AutoGlobal;
+    bool locked = false;
+    float black = 0.0f;          // 显示空间暗部裁剪 [0,1)
+    float white = 1.0f;          // 显示空间亮部裁剪 (0,1]
+    float midtones = 0.5f;       // MTF 中点 (0,1)；0.5=线性
+    std::string curve = "asinh"; // 曲线预设（linear/sqrt/asinh/log）
+    float compression = 0.8f;    // asinh/log 压缩强度 [0,1]
+    std::uint64_t generation = 0; // 每次状态变更 +1
+
+    void bump() { ++generation; }
+
+    // 校验/规范化：black<white、midtones∈(0,1)、compression∈[0,1]
+    void normalize();
+
+    // 与 STFParams（UI 结构）互转
+    STFParams to_params() const;
+    static DisplayTransformState from_params(const STFParams& p,
+                                             STFMode mode,
+                                             bool locked);
 };
 
 // STFEngine：显示拉伸引擎

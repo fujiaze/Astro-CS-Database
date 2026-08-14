@@ -41,17 +41,19 @@ public:
     // V14：Auto View 模式（可选）——pan/zoom 时对当前 viewport 重算 robust
     // STF（适合观察局部暗结构；Auto Global 默认保持标尺不闪）。
     void set_auto_view(bool on) {
-        auto_view_ = on;
+        stf_.mode = on ? STFMode::AutoView : STFMode::AutoGlobal;
         // Lock STF 下不因模式切换重算标尺（首次计算除外）
-        if (on && !stf_locked_) auto_range_dirty_ = true;
+        if (on && !stf_.locked) auto_range_dirty_ = true;
+        stf_.bump();
     }
     // V14: Lock STF —— 冻结当前显示标尺；auto/repeat 重算路径被禁止，
     // 首次计算仍允许（保证锁定前有可用的 robust 标尺）。
     void set_stf_locked(bool locked) {
-        stf_locked_ = locked;
+        stf_.locked = locked;
         if (locked && auto_range_computed_) auto_range_dirty_ = false;
+        stf_.bump();
     }
-    bool stf_locked() const { return stf_locked_; }
+    bool stf_locked() const { return stf_.locked; }
     // V14：当前显示标尺（browser_cli 证据/探针用）
     float range_lo() const { return lo_; }
     float range_hi() const { return hi_; }
@@ -63,6 +65,9 @@ public:
     std::uint64_t auto_recompute_count() const {
         return auto_recompute_count_;
     }
+    // V15：唯一 DisplayTransformState（UI 只编辑它，renderer 只消费它）
+    const DisplayTransformState& stf_state() const { return stf_; }
+    void set_stf_state(const DisplayTransformState& state);
     // V14 v2：Auto Global 全 dataset 标尺（进程内缓存，一次会话只扫一次）
     static std::map<std::string, std::pair<float, float>>
         g_global_scan_cache_;
@@ -130,20 +135,15 @@ private:
     double ra0_ = 0.0, dec0_ = 0.0, fov_ = 8.0, aspect_ = 1.0;
     int w_ = 1024, h_ = 768;
     int layer_ = 0;
-    std::string preset_ = "asinh";
-    bool auto_range_ = true;
+    // V15：单一状态（替代 preset_/auto_range_/auto_view_/stf_locked_/
+    // manual_* 分散字段）
+    DisplayTransformState stf_;
     bool auto_range_dirty_ = true;   // 首次或显式刷新时重算 robust STF
-    bool auto_view_ = false;         // V14：Auto View（viewport 自适应）
-    bool stf_locked_ = false;        // V14：Lock STF（冻结标尺）
     bool auto_range_computed_ = false; // V14：首次 robust 标尺已计算
     std::uint64_t auto_recompute_count_ = 0; // V14：robust 重算次数
     bool strict_leaf_ = false;
     float lo_ = 0.0f, hi_ = 1.0f;
     float display_min_ = 0.0f, display_max_ = 1.0f;  // V14 v3
-    float manual_midtones_ = 0.5f;      // V14 v3：手动 MTF 中点
-    float manual_compression_ = 0.0f;   // V14 v3：手动压缩强度
-    float manual_shadows_ = 0.0f;       // V14 v3：手动暗部截止（显示空间）
-    float manual_highlights_ = 1.0f;    // V14 v3：手动亮部截止（显示空间）
     // V14：stretch-only redraw —— view 未变时复用已采样 leaves
     std::vector<std::uint64_t> cached_leaves_;
     double cache_ra0_ = 0.0, cache_dec0_ = 0.0, cache_fov_ = 0.0;

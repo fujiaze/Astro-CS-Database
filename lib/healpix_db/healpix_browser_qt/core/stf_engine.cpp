@@ -16,6 +16,39 @@ bool STFParams::validate() const {
     return shadows < highlights && midtones > 0.0f && midtones < 1.0f;
 }
 
+// ---- V15 DisplayTransformState（唯一状态结构）----
+void DisplayTransformState::normalize() {
+    black = std::clamp(black, 0.0f, 0.999f);
+    white = std::clamp(white, 0.001f, 1.0f);
+    if (white <= black) white = std::min(1.0f, black + 0.05f);
+    midtones = std::clamp(midtones, 0.001f, 0.999f);
+    compression = std::clamp(compression, 0.0f, 1.0f);
+}
+
+STFParams DisplayTransformState::to_params() const {
+    STFParams p;
+    p.shadows = black;
+    p.highlights = white;
+    p.midtones = midtones;
+    p.compression = compression;
+    return p;
+}
+
+DisplayTransformState DisplayTransformState::from_params(const STFParams& p,
+                                                         STFMode mode,
+                                                         bool locked) {
+    DisplayTransformState s;
+    s.mode = mode;
+    s.locked = locked;
+    s.black = p.shadows;
+    s.white = p.highlights;
+    s.midtones = p.midtones;
+    s.curve = "asinh";  // 曲线预设由外部设置（UI 不再提供预设下拉）
+    s.compression = p.compression;
+    s.normalize();
+    return s;
+}
+
 // ---- STFEngine 构造（无状态，留空） ----
 STFEngine::STFEngine() {}
 

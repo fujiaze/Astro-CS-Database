@@ -99,9 +99,11 @@ void HipsSkyView::set_view(double center_ra, double center_dec,
     dec0_ = clampf((float)center_dec, -89.9f, 89.9f);
     fov_ = clampf((float)fov_deg, 0.05f, 60.0f);
     if (aspect > 0.01) aspect_ = aspect;
-    // V14：Auto View 模式下 pan/zoom 重算 robust STF；Auto Global 保持；
-    // Lock STF 冻结标尺（禁止重算）。
-    if (auto_view_ && auto_range_ && !stf_locked_) auto_range_dirty_ = true;
+    // V14/V15：Auto View 模式下 pan/zoom 重算 robust STF；Auto Global
+    // 保持；Lock STF 冻结标尺（禁止重算）。唯一状态 stf_。
+    if (stf_.mode == STFMode::AutoView &&
+        stf_.mode != STFMode::Manual && !stf_.locked)
+        auto_range_dirty_ = true;
 }
 
 void HipsSkyView::set_size(int width, int height) {
@@ -115,12 +117,14 @@ void HipsSkyView::set_size(int width, int height) {
 void HipsSkyView::set_layer(int layer) { layer_ = layer ? 1 : 0; }
 
 void HipsSkyView::set_stretch(const std::string& preset, bool auto_range) {
-    preset_ = preset;
-    auto_range_ = auto_range;
+    stf_.curve = preset;
+    stf_.mode = auto_range ? STFMode::AutoGlobal : STFMode::Manual;
+    stf_.bump();
 }
 
 void HipsSkyView::set_manual_range(float lo, float hi) {
-    auto_range_ = false;
+    stf_.mode = STFMode::Manual;
+    stf_.bump();
     lo_ = lo;
     hi_ = (hi > lo) ? hi : (lo + 1.0f);
 }
@@ -128,13 +132,21 @@ void HipsSkyView::set_manual_range(float lo, float hi) {
 void HipsSkyView::set_manual_stf(const STFParams& params) {
     // V14 v3：手动 STF 用显示空间归一化控制点（0=黑, 1=白），
     // 渲染端在 auto 标尺归一化后再应用裁剪窗口。
-    auto_range_ = false;
-    manual_shadows_ = clampf(params.shadows, 0.0f, 1.0f);
-    manual_highlights_ = clampf(params.highlights, 0.0f, 1.0f);
-    if (manual_highlights_ <= manual_shadows_)
-        manual_highlights_ = manual_shadows_ + 0.05f;  // 最小窗口 5%
-    manual_midtones_ = clampf(params.midtones, 0.001f, 0.999f);
-    manual_compression_ = params.compression;
+    stf_.mode = STFMode::Manual;
+    stf_.black = clampf(params.shadows, 0.0f, 1.0f);
+    stf_.white = clampf(params.highlights, 0.0f, 1.0f);
+    if (stf_.white <= stf_.black)
+        stf_.white = stf_.black + 0.05f;  // 最小窗口 5%
+    stf_.midtones = clampf(params.midtones, 0.001f, 0.999f);
+    stf_.compression = params.compression;
+    stf_.normalize();
+    stf_.bump();
+}
+
+void HipsSkyView::set_stf_state(const DisplayTransformState& state) {
+    stf_ = state;
+    stf_.normalize();
+    stf_.bump();
 }
 
 int HipsSkyView::target_order() const {
@@ -363,11 +375,11 @@ void HipsSkyView::rasterize(std::vector<std::uint32_t>& rgba) {
     // ---- 自动范围（V14 v2）：support>0 + robust 污染剔除 + 1%/99% 分位 ----
     float dmin = FLT_MAX, dmax = -FLT_MAX;
     std::size_t valid = 0;
-    if (layer_ == 0 && auto_range_ && auto_range_dirty_ &&
-        !(stf_locked_ && auto_range_computed_)) {
+    if (layer_ == 0 && stf_.mode != STFMode::Manual && auto_range_dirty_ &&
+        !(stf_.locked && auto_range_computed_)) {
         std::vector<float> samples;
         bool from_full_dataset = false;
-        if (!auto_view_ && bk_ != nullptr) {
+        if (stf_.mode != STFMode::AutoView && bk_ != nullptr) {
             // Auto Global：全 dataset 均匀采样（进程内缓存）。
             // 与 V13 fixed stretch（1%/99% 全字段）一致；视口 p99 偏紧
             // （GC Wide 0.0031 vs 全 dataset 0.0043），会导致结构过曝。
@@ -438,20 +450,20 @@ void HipsSkyView::rasterize(std::vector<std::uint32_t>& rgba) {
         stats_.valid_pixels = valid;
         lo_ = dmin;
         hi_ = dmax;
-    } else if (layer_ == 0 && !auto_range_) {
+    } else if (layer_ == 0 && stf_.mode == STFMode::Manual) {
         stats_.data_min = lo_;
         stats_.data_max = hi_;
     }
 
     // ---- Phase B（并行）：leaf → 缓存 tile → 上色 ----
     std::atomic<std::size_t> fallback_count{0};
-    STFParams sp = STFEngine::get_preset(preset_, lo_, hi_);
-    // V14 v3：手动控制点（midtones/compression）覆盖预设曲线参数
-    if (!auto_range_) {
-        sp.shadows = manual_shadows_;
-        sp.highlights = manual_highlights_;
-        sp.midtones = manual_midtones_;
-        sp.compression = manual_compression_;
+    // V15：renderer 只消费唯一 DisplayTransformState（曲线/控制点/模式）
+    STFParams sp = STFEngine::get_preset(stf_.curve, lo_, hi_);
+    if (stf_.mode == STFMode::Manual) {
+        sp.shadows = stf_.black;
+        sp.highlights = stf_.white;
+        sp.midtones = stf_.midtones;
+        sp.compression = stf_.compression;
     }
     const float range = (hi_ - lo_) > 1e-12f ? (hi_ - lo_) : 1.0f;
 #pragma omp parallel for schedule(static)
@@ -493,21 +505,22 @@ void HipsSkyView::rasterize(std::vector<std::uint32_t>& rgba) {
                         // V14 v3：auto 标尺归一化后，手动模式再应用
                         // 显示空间裁剪窗口（shadows/highlights 控制点）
                         float x = (val - lo_) / range;
-                        if (!auto_range_) {
+                        if (stf_.mode == STFMode::Manual) {
                             x = (x - sp.shadows) /
                                 (sp.highlights - sp.shadows);
                         }
                         x = clampf(x, 0.0f, 1.0f);
-                        const float tone = display_tone(x, preset_, sp.midtones,
-                                                        sp.compression);
+                        const float tone = display_tone(
+                            x, stf_.curve, sp.midtones, sp.compression);
                         const std::uint32_t g =
                             (std::uint32_t)clampf(tone * 255.0f, 0.0f, 255.0f);
                         color = 0xFF000000 | (g << 16) | (g << 8) | g;
                     }
                 } else {
+                    // V15：support 固定 linear [0,1]（禁止 sqrt(support)）
                     const float s = clampf(t->sup[(size_t)fi], 0.0f, 1.0f);
                     const std::uint32_t g = (std::uint32_t)clampf(
-                        std::sqrt(s) * 255.0f, 0.0f, 255.0f);
+                        s * 255.0f, 0.0f, 255.0f);
                     color = (s <= 0.0f)
                                 ? kBlack
                                 : (0xFF000000 | (g << 16) | (g << 8) | g);

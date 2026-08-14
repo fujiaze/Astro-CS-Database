@@ -746,7 +746,9 @@ void MainWindow::on_hips_layer_toggle(bool checked) {
 void MainWindow::on_hips_stretch_changed(int index) {
     if (!hips_view_ || index < 0) return;
     const char* names[] = {"linear", "sqrt", "log", "asinh"};
-    hips_view_->set_stretch(names[index], hips_auto_range_);
+    const bool auto_mode =
+        (hips_view_->sky()->stf_state().mode != STFMode::Manual);
+    hips_view_->set_stretch(names[index], auto_mode);
 }
 
 void MainWindow::on_hips_view_changed(double ra, double dec, double fov) {
@@ -836,7 +838,7 @@ void MainWindow::set_lod_mode(const QString& mode) {
 }
 
 void MainWindow::reset_auto_stf() {
-    if (stf_locked_) {
+    if (hips_view_ && hips_view_->sky()->stf_state().locked) {
         std::fprintf(stderr, "[stf] locked - reset ignored\n");
         return;
     }
@@ -846,7 +848,7 @@ void MainWindow::reset_auto_stf() {
 }
 
 void MainWindow::set_auto_stf_mode(const QString& mode) {
-    if (stf_locked_) {
+    if (hips_view_ && hips_view_->sky()->stf_state().locked) {
         std::fprintf(stderr, "[stf] locked - mode change ignored\n");
         return;
     }
@@ -859,7 +861,6 @@ void MainWindow::set_auto_stf_mode(const QString& mode) {
 }
 
 void MainWindow::set_stf_locked(bool locked) {
-    stf_locked_ = locked;
     if (hips_view_) hips_view_->set_stf_locked(locked);
     std::fprintf(stderr, "[stf] locked=%d\n", locked ? 1 : 0);
 }
@@ -1024,7 +1025,6 @@ void MainWindow::on_zoom_out() {
 void MainWindow::on_stf_changed(const STFParams& params) {
     // 来自 STFPanel 控制点变化 → 显示空间归一化控制点 → view
     if (hips_view_) {
-        hips_auto_range_ = false;
         // compression 由当前曲线预设决定（STFBar 只管理三个控制点）
         const std::string preset =
             stretch_combo_ ? stretch_combo_->currentText().toLower().toStdString()
@@ -1043,12 +1043,11 @@ void MainWindow::on_stf_changed(const STFParams& params) {
 }
 
 void MainWindow::on_auto_stretch_clicked() {
-    if (stf_locked_) {
+    if (hips_view_ && hips_view_->sky()->stf_state().locked) {
         std::fprintf(stderr, "[stf] locked - auto stretch ignored\n");
         return;
     }
     if (hips_view_) {
-        hips_auto_range_ = true;
         hips_view_->set_stretch(
             stretch_combo_->currentText().toLower().toStdString(), true);
         return;
