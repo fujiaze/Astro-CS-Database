@@ -76,8 +76,11 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
     std::vector<double> stack(n_depth);
     std::vector<double> stack_w(n_depth);
     std::vector<double> stack_sup(n_depth);
+    std::vector<std::uint64_t> fid_compact(n_depth);
     std::vector<std::uint8_t> reasons(n_depth);
     std::vector<std::uint8_t> accepted(n_depth);
+    std::vector<std::uint64_t> frame_seq(n_depth);
+    for (std::size_t s = 0; s < n_depth; ++s) frame_seq[s] = s;
     // V15：显式 plan（ACR 路径仅 robust_mad_clip/sigma）
     P2RejectionPlan plan{};
     plan.method = (int)method_v;
@@ -86,22 +89,36 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
     plan.sigma.lower_sigma = std::fabs(lo_v);
     plan.sigma.upper_sigma = std::fabs(hi_v);
     plan.sigma.max_iterations = max_it_v;
+    plan.normalization = P2_NORMALIZE_MEDIAN_CENTER;  // 与 CPU 生产一致
+    plan.normalization_floor = 1e-12;
     // 合成 op 首版 FP32 输入（buffer 元素为 float）；科学语义以
     // CPU reference 为准，输入精度由 buffer element_size 声明。
     const float* src = static_cast<const float*>(vals->data);
     float* dst = static_cast<float*>(out->data);
 
     for (std::size_t p = 0; p < n_px; ++p) {
+        // V16：统一 EligibilityPolicy（与 CPU 生产路径同一 collector）
+        P2EligibilityGatherInput gin{};
+        gin.values = src;
+        gin.value_stride = n_px;
+        gin.value_dtype = 0;  // fp32
+        gin.support = (sup != nullptr) ? sup->data : nullptr;
+        gin.support_stride = n_px;
+        gin.frame_ids = frame_seq.data();
+        gin.count = (std::uint32_t)n_depth;
+        gin.pixel = (std::uint32_t)p;
+        gin.support_threshold = 0.0;
+        P2EligibilityGatherOutput gout{};
+        gout.values = stack.data();
+        gout.support = stack_sup.data();
+        gout.frame_ids = fid_compact.data();
         std::uint32_t n_valid = 0;
-        for (std::size_t s = 0; s < n_depth; ++s) {
-            const double v = static_cast<double>(src[s * n_px + p]);
-            const double sval = (sup != nullptr)
-                ? static_cast<double>(static_cast<const float*>(sup->data)[s * n_px + p])
-                : 1.0;
-            if (!std::isfinite(v) || sval <= 0.0) continue;
-            stack[n_valid] = v;
-            stack_sup[n_valid] = sval;
-            // R8：局部 SNR 按 control cell（grid=8）提供
+        gout.eligible_count = &n_valid;
+        if (p2_collect_candidate_stack(&gin, &gout) != 0) {
+            throw std::runtime_error("mosaic_reject: eligibility failed");
+        }
+        // R8：局部 SNR（control cell grid=8）；权重 = support × snr²
+        for (std::uint32_t s = 0; s < n_valid; ++s) {
             double snr_v = 1.0;
             if (snr != nullptr) {
                 const int grid = 8;
@@ -109,12 +126,12 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
                 const int px = (int)(tile_p % 512u);
                 const int py = (int)(tile_p / 512u);
                 const int cell = (py / 64) * grid + (px / 64);
+                const std::uint64_t fs = fid_compact[s];
                 snr_v = static_cast<double>(
-                    static_cast<const float*>(snr->data)[s * grid * grid + cell]);
+                    static_cast<const float*>(snr->data)
+                        [fs * grid * grid + (std::size_t)cell]);
             }
-            stack_w[n_valid] = (sup != nullptr)
-                ? sval * snr_v * snr_v : 1.0;
-            ++n_valid;
+            stack_w[s] = stack_sup[s] * snr_v * snr_v;
         }
         if (n_valid == 0) {
             dst[p] = 0.0f;
@@ -130,7 +147,7 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
         cstack.data_type = 0;
         P2RejectionDecision rdec{};
         rdec.reasons = reasons.data();
-        if (p2_reject_stack_ex(&cstack, &plan, &rdec, nullptr) != 0) {
+        if (p2_reject_stack_ex(&cstack, &plan, &rdec) != 0) {
             throw std::runtime_error("mosaic_reject: rejection failed");
         }
         for (std::uint32_t s = 0; s < n_valid; ++s) {

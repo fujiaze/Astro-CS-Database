@@ -393,6 +393,7 @@ int main(int argc, char** argv) {
     std::uint64_t total_pixels = 0, total_rejected = 0, total_fallback = 0;
     std::uint64_t dbg_reject_px = 0, dbg_fallback_px = 0, dbg_zero_px = 0;
     std::uint64_t underdetermined_px = 0;  // V15：REJECTION_UNDERDETERMINED
+    std::uint64_t px_depth_0 = 0;  // V16：mutually exclusive depth 诊断
     std::map<std::uint32_t, std::uint64_t> reject_hist;  // 每像素拒绝样本数分布
     std::map<std::uint32_t, std::string> resolved_methods;  // nominal depth → semantic id
     // V7 P7-2：overlap topology 诊断
@@ -411,16 +412,32 @@ int main(int argc, char** argv) {
     const astro::compute::KernelRegistration* acr_reg =
         astro::compute::global_kernel_registry().find(
             astro::compute::phase2::kOpMosaicReject);
-    // V15：rejection workspace（可复用 scratch，容量=最大候选栈深）
-    P2RejectionWorkspace* rws =
-        p2_rejection_workspace_create((std::size_t)cfg.hips.size());
-    if (rws == nullptr) {
-        log("rejection workspace alloc failed");
-        return 6;
-    }
     namespace bridge = astro::compute::cuda::bridge;
     bool gpu_ready = false;
     void* gpu_exec = nullptr;
+
+    // V16：wbpp_current = integration-group level 一次解析（nominal = 全部
+    // 独立 exposure 数）；astrocs_adaptive 在 tile 层按 nominal depth 解析。
+    const bool group_level =
+        (cfg.reject_profile == "wbpp_current");
+    P2RejectionPlan group_plan{};
+    std::string group_method = "none";
+    if (group_level) {
+        P2RejectionPlanRequest g_req{};
+        g_req.request = cfg.reject_method;
+        g_req.nominal_contributors = (std::uint32_t)cfg.hips.size();
+        g_req.profile = cfg.reject_profile.c_str();
+        g_req.underdetermined_n = cfg.reject_underdetermined_n;
+        char gerr[160] = {0};
+        if (p2_reject_plan_resolve(&g_req, &group_plan, gerr, sizeof(gerr)) != 0) {
+            log("rejection group plan resolve failed: " + std::string(gerr));
+            p2_upm_close(model);
+            return 6;
+        }
+        group_method = p2_rejection_semantic_id(group_plan.method);
+        log("wbpp_current group plan: nominal=" +
+            std::to_string(cfg.hips.size()) + " method=" + group_method);
+    }
     for (std::uint64_t ci = 0; ci < cov.n_union_cells; ++ci) {
         const std::uint64_t tile_ipix = cells[ci].ipix;
         // 覆盖帧列表（探测读取，不预分配全帧缓冲）
@@ -434,20 +451,32 @@ int main(int argc, char** argv) {
         if (frames.empty()) continue;
         const std::uint32_t depth = (std::uint32_t)frames.size();
 
-        // V15：planning 层解析 rejection（tile 级 nominal contributors = depth）
-        P2RejectionPlanRequest rreq{};
-        rreq.request = cfg.reject_method;
-        rreq.nominal_contributors = depth;
-        rreq.profile = cfg.reject_profile.c_str();
-        rreq.underdetermined_n = cfg.reject_underdetermined_n;
-        P2RejectionPlan rplan{};
-        char rperr[160] = {0};
-        if (p2_reject_plan_resolve(&rreq, &rplan, rperr, sizeof(rperr)) != 0) {
-            log("rejection plan resolve failed: " + std::string(rperr));
-            p2_upm_close(model);
-            p2_rejection_workspace_free(rws);
-            return 6;
+        // V16：planning 层解析 rejection
+        //   wbpp_current    → 使用 group-level 一次解析结果（tile 不重选）；
+        //   astrocs_adaptive→ 按 tile nominal geometric depth 解析（独立策略）。
+        P2RejectionPlan rplan = group_plan;
+        std::uint32_t nominal_for_resolve = (std::uint32_t)cfg.hips.size();
+        if (!group_level) {
+            P2RejectionPlanRequest rreq{};
+            rreq.request = cfg.reject_method;
+            rreq.nominal_contributors = depth;
+            rreq.profile = cfg.reject_profile.c_str();
+            rreq.underdetermined_n = cfg.reject_underdetermined_n;
+            char rperr[160] = {0};
+            if (p2_reject_plan_resolve(&rreq, &rplan, rperr, sizeof(rperr)) != 0) {
+                log("rejection plan resolve failed: " + std::string(rperr));
+                p2_upm_close(model);
+                return 6;
+            }
+            nominal_for_resolve = depth;
         }
+        rplan.normalization =
+            (cfg.reject_normalization == "median_center")
+                ? P2_NORMALIZE_MEDIAN_CENTER
+                : (cfg.reject_normalization == "median_scale")
+                      ? P2_NORMALIZE_MEDIAN_SCALE
+                      : P2_NORMALIZE_NONE;
+        rplan.normalization_floor = cfg.reject_normalization_floor;
         // typed params（cfg 为唯一默认源）
         rplan.sigma.lower_sigma = cfg.sigma_lower;
         rplan.sigma.upper_sigma = cfg.sigma_upper;
@@ -470,12 +499,14 @@ int main(int argc, char** argv) {
         rplan.median_sigma.max_iterations = cfg.medsig_max_iterations;
         rplan.minmax.reject_low_count = cfg.minmax_low_count;
         rplan.minmax.reject_high_count = cfg.minmax_high_count;
-        rplan.minmax.max_iterations = cfg.minmax_max_iterations;
         rplan.minmax.min_kept = cfg.minmax_min_kept;
         log("tile " + std::to_string(tile_ipix) + " rejection resolved: " +
             std::string(p2_rejection_semantic_id(rplan.method)) +
-            " nominal=" + std::to_string(depth) + " min_n=" +
-            std::to_string(rplan.minimum_n) + " underdetermined_n=" +
+            " nominal=" + std::to_string(nominal_for_resolve) +
+            " (tile_depth=" + std::to_string(depth) + ") profile=" +
+            cfg.reject_profile + " norm=" + cfg.reject_normalization +
+            " min_n=" + std::to_string(rplan.minimum_n) +
+            " underdetermined_n=" +
             std::to_string(rplan.underdetermined_n));
         resolved_methods[depth] = p2_rejection_semantic_id(rplan.method);
 
@@ -512,7 +543,6 @@ int main(int argc, char** argv) {
         if (plan.status == 1) {
             log("block unfeasible: " + std::string(plan.error));
             p2_upm_close(model);
-            p2_rejection_workspace_free(rws);
             return 6;
         }
         const std::uint64_t chunk_pixels =
@@ -539,10 +569,10 @@ int main(int argc, char** argv) {
                 n_leaf * (sizeof(float) * 2 + sizeof(double) * 2 +
                           sizeof(std::uint8_t))));
 
-        // 每 chunk 的工作缓冲（按 chunk_pixels×depth，非 262144×all_frames）
-    std::vector<std::vector<double>> cal(depth), supv(depth);
-    for (auto& v : cal) v.resize(chunk_pixels);
-    for (auto& v : supv) v.resize(chunk_pixels);
+        // 每 chunk 的工作缓冲（按 chunk_pixels×depth，非 262144×all_frames；
+        // V16：展平为单块 frame-major 连续缓冲，供统一 Eligibility collector）
+        std::vector<double> cal((std::size_t)depth * chunk_pixels);
+        std::vector<double> supv((std::size_t)depth * chunk_pixels);
     std::vector<std::vector<std::uint64_t>> chunk_leaves(n_chunk);
     std::vector<std::uint64_t> local_lut(n_leaf);
         for (std::uint64_t i = 0; i < n_leaf; ++i)
@@ -561,6 +591,8 @@ int main(int argc, char** argv) {
         std::vector<std::uint8_t> acc(depth);
         std::vector<std::uint64_t> fid_stack(depth);
         std::vector<std::uint8_t> reasons(depth);
+        std::vector<std::uint64_t> frame_seq(depth);
+        for (std::uint32_t s = 0; s < depth; ++s) frame_seq[s] = frames[s];
 
         // 全 tile 临时读取缓冲（512×512×2×4B，固定小）
         std::vector<float> t_sig(512 * 512), t_sup(512 * 512);
@@ -610,8 +642,7 @@ int main(int argc, char** argv) {
                         aio_hips_read_tile_f32(sup[f], tile_ipix,
                                                t_sup.data()) != 0) {
                         log("tile read failed");
-                        p2_rejection_workspace_free(rws);
-                        return 6;
+                                    return 6;
                     }
                     std::vector<double> cal_v(cnt), sup_v(cnt);
                     for (std::uint64_t i = 0; i < cnt; ++i) {
@@ -696,7 +727,7 @@ int main(int argc, char** argv) {
                     }
                     if (ok) ++total_pixels;
                     total_rejected += (std::uint64_t)out_rej_f32[i];
-                    if (nv <= 0.0f) ++dbg_zero_px;
+                    if (nv <= 0.0f) { ++dbg_zero_px; ++px_depth_0; }
                     else if (nv <= (float)rplan.underdetermined_n ||
                              nv < (float)rplan.minimum_n) {
                         if (nv == 1.0f) ++px_depth_1;
@@ -744,8 +775,7 @@ int main(int argc, char** argv) {
                     std::string(aio_hips_last_error()));
                 aio_hips_abort(ps);
                 p2_upm_close(model);
-                p2_rejection_workspace_free(rws);
-                return 6;
+                    return 6;
             }
             ++tiles_written;
             continue;
@@ -765,55 +795,75 @@ int main(int argc, char** argv) {
                     aio_hips_read_tile_f32(sup[f], tile_ipix,
                                            t_sup.data()) != 0) {
                     log("tile read failed");
-                    p2_rejection_workspace_free(rws);
-                    return 6;
+                            return 6;
                 }
                 for (std::uint64_t i = 0; i < cnt; ++i) {
                     const std::uint64_t g = p0 + i;
-                    cal[s][i] = (double)t_sig[(std::size_t)g];
-                    supv[s][i] = (double)t_sup[(std::size_t)g];
+                    cal[(std::size_t)s * chunk_pixels + i] =
+                        (double)t_sig[(std::size_t)g];
+                    supv[(std::size_t)s * chunk_pixels + i] =
+                        (double)t_sup[(std::size_t)g];
                 }
                 std::vector<double> out_v(cnt);
                 p2_upm_calibrate_block(
-                    model, frame_id_cache[f],
-                    chunk_leaves[c].data(), cal[s].data(), out_v.data(), cnt);
-                for (std::uint64_t i = 0; i < cnt; ++i) cal[s][i] = out_v[i];
+                    model, frame_id_cache[f], chunk_leaves[c].data(),
+                    cal.data() + (std::size_t)s * chunk_pixels,
+                    out_v.data(), cnt);
+                for (std::uint64_t i = 0; i < cnt; ++i)
+                    cal[(std::size_t)s * chunk_pixels + i] = out_v[i];
             }
             for (std::uint64_t i = 0; i < cnt; ++i) {
                 const std::uint64_t p = p0 + i;
+                // V16：统一 EligibilityPolicy（与 ACR/compat 同一 collector；
+                // quality 为 control 级，像素级无 quality 数组 → nullptr）
+                P2EligibilityGatherInput gin{};
+                gin.values = cal.data();
+                gin.value_stride = chunk_pixels;
+                gin.value_dtype = 1;
+                gin.support = supv.data();
+                gin.support_stride = chunk_pixels;
+                gin.frame_ids = frame_seq.data();
+                gin.count = depth;
+                gin.pixel = (std::uint32_t)i;
+                gin.support_threshold = 0.0;
+                P2EligibilityGatherOutput gout{};
+                gout.values = stack.data();
+                gout.support = support_v.data();
+                gout.frame_ids = fid_stack.data();
                 std::uint32_t n_valid = 0;
-                for (std::uint32_t s = 0; s < depth; ++s) {
-                    if (std::isfinite(cal[s][i]) && supv[s][i] > 0.0) {
-                        stack[n_valid] = cal[s][i];
-                        support_v[n_valid] = supv[s][i];
-                        const std::uint64_t fid =
-                            frame_id_cache[frames[s]];
-                        fid_stack[n_valid] = fid;
-                        // R8：局部 SNR（control cell 级）；缺失 → 整帧
-                        // median fallback（计数）
-                        const int px = (int)(p % 512);
-                        const int py = (int)(p / 512);
-                        const auto key = std::make_tuple(
-                            fid, tile_ipix, px / 64, py / 64);
-                        const auto sit = local_snr_map.find(key);
-                        double snr_v;
-                        if (sit != local_snr_map.end()) {
-                            snr_v = sit->second;
-                            ++local_snr_used;
-                        } else {
-                            snr_v = frame_snr[frames[s]];
-                            ++frame_snr_fallback;
-                        }
-                        weights[n_valid] = supv[s][i] * snr_v * snr_v;
-                        ++n_valid;
+                gout.eligible_count = &n_valid;
+                if (p2_collect_candidate_stack(&gin, &gout) != 0) {
+                    log("eligibility gather failed");
+                    p2_upm_close(model);
+                    return 6;
+                }
+                // R8：局部 SNR（control cell 级）；缺失 → 整帧 median fallback
+                for (std::uint32_t s = 0; s < n_valid; ++s) {
+                    const std::uint64_t fid =
+                        frame_id_cache[fid_stack[s]];
+                    const int px = (int)(p % 512);
+                    const int py = (int)(p / 512);
+                    const auto key = std::make_tuple(
+                        fid, tile_ipix, px / 64, py / 64);
+                    const auto sit = local_snr_map.find(key);
+                    double snr_v;
+                    if (sit != local_snr_map.end()) {
+                        snr_v = sit->second;
+                        ++local_snr_used;
+                    } else {
+                        snr_v = frame_snr[fid_stack[s]];
+                        ++frame_snr_fallback;
                     }
+                    weights[s] = support_v[s] * snr_v * snr_v;
                 }
                 double signal_out = 0.0, support_out = 0.0;
                 int st = 1;
                 if (n_valid == 0) {
                     ++dbg_zero_px;
+                    ++px_depth_0;
                 } else {
-                    ++px_depth_ge_2;
+                    if (n_valid == 1) ++px_depth_1;
+                    else ++px_depth_ge_2;
                     // V15：explicit plan kernel（auto 已在 planning 层解析）
                     P2CandidateStack cstack{};
                     cstack.values = stack.data();
@@ -823,11 +873,10 @@ int main(int argc, char** argv) {
                     cstack.data_type = 1;
                     P2RejectionDecision rdec{};
                     rdec.reasons = reasons.data();
-                    if (p2_reject_stack_ex(&cstack, &rplan, &rdec, rws) != 0) {
+                    if (p2_reject_stack_ex(&cstack, &rplan, &rdec) != 0) {
                         log("reject kernel failed");
                         p2_upm_close(model);
-                        p2_rejection_workspace_free(rws);
-                        return 6;
+                                    return 6;
                     }
                     for (std::uint32_t s = 0; s < n_valid; ++s) {
                         acc[s] =
@@ -842,7 +891,6 @@ int main(int argc, char** argv) {
                         ++total_fallback;
                         ++dbg_fallback_px;
                         ++underdetermined_px;
-                        if (n_valid == 1) ++px_depth_1;
                     } else {
                         ++px_integrated;
                         ++dbg_reject_px;
@@ -904,7 +952,6 @@ int main(int argc, char** argv) {
             log("hips tile write failed: " + std::string(aio_hips_last_error()));
             aio_hips_abort(ps);
             p2_upm_close(model);
-            p2_rejection_workspace_free(rws);
             return 6;
         }
         ++tiles_written;
@@ -912,7 +959,6 @@ int main(int argc, char** argv) {
     if (aio_hips_finalize(ps) != 0) {
         log("hips finalize failed: " + std::string(aio_hips_last_error()));
         p2_upm_close(model);
-        p2_rejection_workspace_free(rws);
         return 6;
     }
     for (std::size_t i = 0; i < cfg.hips.size(); ++i) {
@@ -934,7 +980,6 @@ int main(int argc, char** argv) {
         if (!vd) {
             log("verify failed: " + std::string(aio_hips_reader_last_error()));
             p2_upm_close(model);
-            p2_rejection_workspace_free(rws);
             return 7;
         }
         const int nt = aio_hips_tile_count(vd);
@@ -949,7 +994,6 @@ int main(int argc, char** argv) {
     }
 
     p2_upm_close(model);
-    p2_rejection_workspace_free(rws);
     const auto t_end = std::chrono::steady_clock::now();
     const double secs =
         std::chrono::duration<double>(t_end - t_start).count();
@@ -979,8 +1023,13 @@ int main(int argc, char** argv) {
         diag["output_pixels"] = total_pixels;
         diag["rejected_samples"] = total_rejected;
         diag["fallback_pixels"] = total_fallback;
+        diag["pixels_depth_0"] = px_depth_0;
         diag["pixels_depth_1"] = px_depth_1;
         diag["pixels_depth_ge_2"] = px_depth_ge_2;
+        diag["reject_normalization"] = cfg.reject_normalization;
+        diag["reject_profile"] = cfg.reject_profile;
+        diag["reject_group_level"] = (int)group_level;
+        diag["reject_group_method"] = group_method;
         diag["integrated_pixels"] = px_integrated;
         diag["quality_fallback_unknown"] = quality_unknown;
         diag["local_snr_used"] = local_snr_used;
@@ -991,7 +1040,6 @@ int main(int argc, char** argv) {
         diag["zero_coverage_pixels"] = dbg_zero_px;
         diag["underdetermined_pixels"] = underdetermined_px;
         diag["reject_method"] = cfg.reject_method;
-        diag["reject_profile"] = cfg.reject_profile;
         diag["reject_underdetermined_n"] = cfg.reject_underdetermined_n;
         nlohmann::json rm = nlohmann::json::object();
         for (const auto& kv : resolved_methods)

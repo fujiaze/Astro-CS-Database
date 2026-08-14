@@ -47,7 +47,7 @@ int run_ex(const P2RejectionPlan& plan, bool weighted, bool reasons_out) {
     std::vector<std::uint8_t> reasons(vals.size(), 0);
     P2RejectionDecision dec{};
     dec.reasons = reasons.data();
-    if (p2_reject_stack_ex(&st, &plan, &dec, nullptr) != 0) return 1;
+    if (p2_reject_stack_ex(&st, &plan, &dec) != 0) return 1;
     for (std::size_t i = 0; i < vals.size(); ++i) {
         if (i) std::fputc(' ', stdout);
         std::fputc(dec.reasons[i] == P2_REASON_ACCEPTED ||
@@ -191,7 +191,6 @@ int main(int argc, char** argv) {
             ival("median_sigma.max_iterations", 8);
         plan.minmax.reject_low_count = ival("minmax.reject_low_count", 1);
         plan.minmax.reject_high_count = ival("minmax.reject_high_count", 1);
-        plan.minmax.max_iterations = ival("minmax.max_iterations", 8);
         plan.minmax.min_kept = ival("minmax.min_kept", 4);
         return run_ex(plan, weighted, reasons_out);
     }

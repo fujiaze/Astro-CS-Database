@@ -46,6 +46,9 @@ struct P2Stage2Config {
     int reject_method = P2_REJECT_AUTO;  // V15: production default = auto
     std::string reject_profile = "wbpp_current";  // 唯一支持（WBPP 2.9.1）
     std::uint32_t reject_underdetermined_n = 2;   // n<=2 → UNDERDETERMINED
+    // V16：RejectionNormalizationPolicy（判定工作域；mask 应用回原始值）
+    std::string reject_normalization = "median_center";
+    double reject_normalization_floor = 1e-12;
     // V15 method-specific typed parameters（单语义单默认）
     double sigma_lower = 4.0;
     double sigma_upper = 3.0;
@@ -56,19 +59,18 @@ struct P2Stage2Config {
     double avg_lower = 4.0;
     double avg_upper = 3.0;
     int avg_max_iterations = 8;
-    double linfit_lower = 4.0;
-    double linfit_upper = 3.0;
+    double linfit_lower = 5.0;   // WBPP Light linearFitLow
+    double linfit_upper = 3.5;   // WBPP Light linearFitHigh
     int linfit_max_iterations = 8;
     double esd_alpha = 0.05;
     int esd_max_outliers = 10;
-    double pct_low_fraction = 0.1;
-    double pct_high_fraction = 0.1;
+    double pct_low_fraction = 0.2;   // WBPP Light percentileLow
+    double pct_high_fraction = 0.1;  // WBPP Light percentileHigh
     double medsig_lower = 4.0;
     double medsig_upper = 3.0;
     int medsig_max_iterations = 8;
     int minmax_low_count = 1;
     int minmax_high_count = 1;
-    int minmax_max_iterations = 8;
     int minmax_min_kept = 4;
     std::string rcr_technique = "ss_median_dl";
     // legacy 别名（deprecated；parser 打印 deprecation warning）

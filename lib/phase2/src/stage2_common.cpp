@@ -222,14 +222,41 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                 }
                 cfg->reject_profile =
                     rj.value("profile", std::string("wbpp_current"));
-                if (cfg->reject_profile != "wbpp_current") {
-                    *err = "rejection.profile 只支持 wbpp_current（本机 WBPP 2.9.1）";
+                if (cfg->reject_profile != "wbpp_current" &&
+                    cfg->reject_profile != "astrocs_adaptive") {
+                    *err = "rejection.profile 只支持 wbpp_current/"
+                           "astrocs_adaptive";
                     return false;
                 }
                 cfg->reject_underdetermined_n =
                     rj.value("underdetermined_n", (std::uint32_t)2);
                 if (cfg->reject_underdetermined_n < 1) {
                     *err = "rejection.underdetermined_n 必须 >= 1";
+                    return false;
+                }
+                // V16：rejection normalization（判定工作域）
+                cfg->reject_normalization = rj.value(
+                    "normalization", std::string("median_center"));
+                if (cfg->reject_normalization != "none" &&
+                    cfg->reject_normalization != "median_center" &&
+                    cfg->reject_normalization != "median_scale") {
+                    *err = "rejection.normalization 只支持 none/"
+                           "median_center/median_scale";
+                    return false;
+                }
+                cfg->reject_normalization_floor =
+                    rj.value("normalization_floor", 1e-12);
+                // 方法×normalization 合法性（V16）
+                if (method == "percentile" &&
+                    cfg->reject_normalization != "median_center") {
+                    *err = "rejection: percentile 必须 normalization="
+                           "median_center（负值科学域安全）";
+                    return false;
+                }
+                if (method == "rcr" &&
+                    cfg->reject_normalization != "none") {
+                    *err = "rejection: rcr 必须 normalization=none"
+                           "（官方 oracle 原始值域冻结）";
                     return false;
                 }
                 // V15 method-specific typed params（单语义单默认）
@@ -286,8 +313,6 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                         s.value("reject_low_count", 1);
                     cfg->minmax_high_count =
                         s.value("reject_high_count", 1);
-                    cfg->minmax_max_iterations =
-                        s.value("max_iterations", 8);
                     cfg->minmax_min_kept = s.value("min_kept", 4);
                 }
                 if (rj.contains("rcr")) {
@@ -333,7 +358,6 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                     cfg->medsig_lower = std::fabs(lo);
                     cfg->medsig_upper = hi;
                     cfg->medsig_max_iterations = mi;
-                    cfg->minmax_max_iterations = mi;
                     cfg->reject_underdetermined_n =
                         (std::uint32_t)cfg->reject_min_samples;
                     cfg->deprecation_warnings.push_back(

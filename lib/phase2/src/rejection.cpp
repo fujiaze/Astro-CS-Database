@@ -8,6 +8,7 @@
 #include "astro/phase2/rejection.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -954,29 +955,6 @@ void rcr_iterative_pass(RcrMu mu_t, RcrSigma sig_t,
 }
 
 } // namespace
-
-extern "C" {
-
-// =====================================================================
-// V15 Final Semantic Closure：canonical semantic registry / plan resolve
-// =====================================================================
-
-const char* p2_rejection_semantic_id(int method) {
-    switch (method) {
-        case P2_REJECT_NONE: return P2_SEMANTIC_NONE;
-        case P2_REJECT_SIGMA: return P2_SEMANTIC_ROBUST_MAD_CLIP;
-        case P2_REJECT_WINSORIZED_SIGMA: return P2_SEMANTIC_WINSORIZED_SIRIL;
-        case P2_REJECT_AVERAGED_SIGMA: return P2_SEMANTIC_AVSIGCLIP_IRAF;
-        case P2_REJECT_LINEAR_FIT: return P2_SEMANTIC_LINEAR_FIT_SIRIL;
-        case P2_REJECT_GENERALIZED_ESD: return P2_SEMANTIC_GENERALIZED_ESD_NIST;
-        case P2_REJECT_RCR: return P2_SEMANTIC_RCR_2_4_7_SS_MEDIAN_DL;
-        case P2_REJECT_PERCENTILE: return P2_SEMANTIC_PERCENTILE_SIRIL;
-        case P2_REJECT_MEDIAN_SIGMA: return P2_SEMANTIC_MEDIAN_STD_CLIP;
-        case P2_REJECT_MINMAX: return P2_SEMANTIC_MINMAX;
-        default: return "unknown";
-    }
-}
-
 namespace {
 
 int method_minimum_n(int method) {
@@ -990,7 +968,7 @@ int method_minimum_n(int method) {
         case P2_REJECT_MEDIAN_SIGMA: return 3;
         case P2_REJECT_LINEAR_FIT: return 4;
         case P2_REJECT_PERCENTILE: return 2;
-        case P2_REJECT_MINMAX: return 5;
+        case P2_REJECT_MINMAX: return 3;  // 固定删 low+high 后须 >= min_kept
         default: return 0;
     }
 }
@@ -1001,7 +979,71 @@ void set_err(char* err, std::size_t err_cap, const char* msg) {
     }
 }
 
+// V16：n<=64 固定 scratch（避免每像素堆分配）；>64 走堆。
+template <typename T, std::size_t CAP = 64>
+class ScratchVec {
+public:
+    ScratchVec() = default;
+    void resize(std::size_t n) {
+        n_ = n;
+        if (n > CAP) heap_.resize(n);
+    }
+    std::size_t size() const { return n_; }
+    bool empty() const { return n_ == 0; }
+    T* data() { return n_ <= CAP ? fixed_.data() : heap_.data(); }
+    const T* data() const { return n_ <= CAP ? fixed_.data() : heap_.data(); }
+    T& operator[](std::size_t i) { return data()[i]; }
+    const T& operator[](std::size_t i) const { return data()[i]; }
+    T* begin() { return data(); }
+    T* end() { return data() + n_; }
+    const T* begin() const { return data(); }
+    const T* end() const { return data() + n_; }
+    void fill(const T& v) { std::fill(data(), data() + n_, v); }
+private:
+    std::array<T, CAP> fixed_{};
+    std::vector<T> heap_;
+    std::size_t n_ = 0;
+};
+
+// 中位数（scratch 内 nth_element；返回后顺序不定，与旧 median() 语义一致）
+double scratch_median(double* v, std::size_t n) {
+    if (n == 0) return 0.0;
+    const std::size_t mid = n / 2;
+    std::nth_element(v, v + mid, v + n);
+    if (n % 2 == 1) return v[mid];
+    const double a = v[mid];
+    const double b = *std::max_element(v, v + mid);
+    return 0.5 * (a + b);
+}
+
+double scratch_mad(double* v, std::size_t n, double med) {
+    for (std::size_t i = 0; i < n; ++i) v[i] = std::fabs(v[i] - med);
+    return 1.4826 * scratch_median(v, n);
+}
+
 } // namespace
+extern "C" {
+
+// =====================================================================
+// V16：canonical semantic registry / plan resolve
+// =====================================================================
+
+const char* p2_rejection_semantic_id(int method) {
+    switch (method) {
+        case P2_REJECT_NONE: return P2_SEMANTIC_NONE;
+        case P2_REJECT_SIGMA: return P2_SEMANTIC_ROBUST_MAD_CLIP;
+        case P2_REJECT_WINSORIZED_SIGMA: return P2_SEMANTIC_WINSORIZED_SIRIL;
+        case P2_REJECT_AVERAGED_SIGMA: return P2_SEMANTIC_AVERAGED_SIGMA;
+        case P2_REJECT_LINEAR_FIT: return P2_SEMANTIC_LINEAR_FIT_SIRIL;
+        case P2_REJECT_GENERALIZED_ESD: return P2_SEMANTIC_GENERALIZED_ESD_NIST;
+        case P2_REJECT_RCR: return P2_SEMANTIC_RCR_2_4_7_SS_MEDIAN_DL;
+        case P2_REJECT_PERCENTILE: return P2_SEMANTIC_PERCENTILE_SIRIL;
+        case P2_REJECT_MEDIAN_SIGMA: return P2_SEMANTIC_MEDIAN_STD_CLIP;
+        case P2_REJECT_MINMAX: return P2_SEMANTIC_MINMAX;
+        default: return "unknown";
+    }
+}
+
 
 int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
                            P2RejectionPlan* plan,
@@ -1015,33 +1057,36 @@ int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
         return 1;
     }
     const std::string profile = req->profile ? req->profile : "wbpp_current";
-    if (profile != "wbpp_current") {
+    if (profile != "wbpp_current" && profile != "astrocs_adaptive") {
         set_err(err, err_cap,
-                "p2_reject_plan_resolve: 仅支持 profile=wbpp_current（本机 WBPP 2.9.1）");
+                "p2_reject_plan_resolve: profile 仅支持 wbpp_current/"
+                "astrocs_adaptive");
         return 1;
     }
     P2RejectionPlan p{};
     p.underdetermined_n = req->underdetermined_n > 0 ? req->underdetermined_n : 2u;
+    p.normalization = P2_NORMALIZE_MEDIAN_CENTER;  // V16 默认（WBPP Light:
+    // rejectionNormalization=Scale 映射；AstroCS 用 per-pixel robust 域）
+    p.normalization_floor = 1e-12;
     p.sigma.lower_sigma = 4.0; p.sigma.upper_sigma = 3.0; p.sigma.max_iterations = 8;
     p.winsorized.lower_sigma = 4.0; p.winsorized.upper_sigma = 3.0;
     p.winsorized.max_iterations = 8;
     p.averaged.lower_sigma = 4.0; p.averaged.upper_sigma = 3.0;
     p.averaged.max_iterations = 8;
-    p.linear_fit.lower = 4.0; p.linear_fit.upper = 3.0;
+    p.linear_fit.lower = 5.0; p.linear_fit.upper = 3.5;  // WBPP Light 默认
     p.linear_fit.max_iterations = 8;
     p.esd.alpha = 0.05; p.esd.max_outliers = 10;
-    p.percentile.low_fraction = 0.1; p.percentile.high_fraction = 0.1;
+    p.percentile.low_fraction = 0.2; p.percentile.high_fraction = 0.1; // WBPP Light
     p.median_sigma.lower_sigma = 4.0; p.median_sigma.upper_sigma = 3.0;
     p.median_sigma.max_iterations = 8;
     p.minmax.reject_low_count = 1; p.minmax.reject_high_count = 1;
-    p.minmax.max_iterations = 8; p.minmax.min_kept = 4;
+    p.minmax.min_kept = 4;
     p.rcr.technique = 0;  // SS_MEDIAN_DL（冻结）
 
     int method = req->request;
     if (method == P2_REJECT_AUTO) {
-        // WBPP 2.9.1（本机源码 bestRejectionMethod）Auto 路由：
-        //   nominal < 6 → PercentileClip；6..15 → WinsorizedSigmaClip；
-        //   >15 → LinearFit。nominal = cohort/tile 几何可贡献独立 exposure 数。
+        // WBPP 2.9.1 bestRejectionMethod 路由（两 profile 共用阈值表；
+        // 区别在 nominal 来源与解析粒度，见头文件）
         const std::uint32_t n = req->nominal_contributors;
         if (n < 6u) method = P2_REJECT_PERCENTILE;
         else if (n <= 15u) method = P2_REJECT_WINSORIZED_SIGMA;
@@ -1054,8 +1099,46 @@ int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
 }
 
 // =====================================================================
-// V15：Eligibility（资格层）
+// V16：Eligibility 单路径（连续版 + 生产 strided 版共用同一 policy core）
 // =====================================================================
+
+namespace {
+
+// policy core：对 count 个样本做 finite/valid/support/quality 判定，
+// 合格者按序写入 out_vals（可带 weights），返回合格数。
+std::uint32_t eligibility_core(
+    const double* values, const double* weights, const std::uint8_t* valid,
+    const double* support, const std::uint32_t* quality,
+    std::uint32_t count, double support_threshold,
+    std::uint32_t quality_flags_required, double* out_vals,
+    double* out_weights, std::uint8_t* out_eligible,
+    std::uint32_t* out_finite, std::uint32_t* out_valid,
+    std::uint32_t* out_support, std::uint32_t* out_quality) {
+    std::uint32_t cnt = 0;
+    *out_finite = 0; *out_valid = 0; *out_support = 0; *out_quality = 0;
+    for (std::uint32_t i = 0; i < count; ++i) {
+        bool ok = true;
+        if (!std::isfinite(values[i])) { ++*out_finite; ok = false; }
+        else if (valid != nullptr && !valid[i]) { ++*out_valid; ok = false; }
+        else if (support != nullptr && !(support[i] > support_threshold)) {
+            ++*out_support; ok = false;
+        } else if (quality != nullptr && quality_flags_required != 0 &&
+                   (quality[i] & quality_flags_required) !=
+                       quality_flags_required) {
+            ++*out_quality; ok = false;
+        }
+        if (out_eligible) out_eligible[i] = ok ? 1 : 0;
+        if (ok) {
+            out_vals[cnt] = values[i];
+            if (weights != nullptr && out_weights != nullptr)
+                out_weights[cnt] = weights[i];
+            ++cnt;
+        }
+    }
+    return cnt;
+}
+
+} // namespace
 
 int p2_eligibility_filter(const P2EligibilityInput* in, P2EligibilityOutput* out) {
     if (in == nullptr || out == nullptr) return 1;
@@ -1067,29 +1150,85 @@ int p2_eligibility_filter(const P2EligibilityInput* in, P2EligibilityOutput* out
         return 0;
     }
     if (in->values == nullptr || out->values == nullptr ||
-        out->eligible == nullptr || out->eligible_count == nullptr) {
+        out->eligible_count == nullptr) {
         return 1;
     }
+    const std::uint32_t cnt = eligibility_core(
+        in->values, in->weights, in->valid, in->support, in->quality, n,
+        in->support_threshold, in->quality_flags_required, out->values,
+        out->weights, out->eligible, &out->invalid_finite, &out->invalid_valid,
+        &out->invalid_support, &out->invalid_quality);
+    *out->eligible_count = cnt;
+    return 0;
+}
+
+int p2_collect_candidate_stack(const P2EligibilityGatherInput* in,
+                               P2EligibilityGatherOutput* out) {
+    if (in == nullptr || out == nullptr) return 1;
+    const std::uint32_t n = in->count;
+    if (out->eligible_count != nullptr) *out->eligible_count = 0;
+    if (n == 0) {
+        out->invalid_finite = out->invalid_valid = 0;
+        out->invalid_support = out->invalid_quality = 0;
+        return 0;
+    }
+    if (in->values == nullptr || out->values == nullptr ||
+        out->eligible_count == nullptr) {
+        return 1;
+    }
+    const bool is_f32 = (in->value_dtype == 0);
+    const double* vd = nullptr;
+    const float* vf = nullptr;
+    const double* wd = nullptr;
+    const float* wf = nullptr;
+    const double* sd = nullptr;
+    const float* sf = nullptr;
+    if (is_f32) {
+        vf = static_cast<const float*>(in->values);
+        if (in->weights != nullptr) wf = static_cast<const float*>(in->weights);
+        if (in->support != nullptr) sf = static_cast<const float*>(in->support);
+    } else {
+        vd = static_cast<const double*>(in->values);
+        if (in->weights != nullptr) wd = static_cast<const double*>(in->weights);
+        if (in->support != nullptr) sd = static_cast<const double*>(in->support);
+    }
+    std::uint32_t cnt = 0;
     out->invalid_finite = 0; out->invalid_valid = 0;
     out->invalid_support = 0; out->invalid_quality = 0;
-    std::uint32_t cnt = 0;
-    for (std::uint32_t i = 0; i < n; ++i) {
+    for (std::uint32_t s = 0; s < n; ++s) {
+        const double v = is_f32
+            ? (double)vf[(std::size_t)s * in->value_stride + in->pixel]
+            : vd[(std::size_t)s * in->value_stride + in->pixel];
         bool ok = true;
-        if (!std::isfinite(in->values[i])) { ++out->invalid_finite; ok = false; }
-        else if (in->valid != nullptr && !in->valid[i]) { ++out->invalid_valid; ok = false; }
-        else if (in->support != nullptr &&
-                 !(in->support[i] > in->support_threshold)) {
+        if (!std::isfinite(v)) { ++out->invalid_finite; ok = false; }
+        else if (in->valid != nullptr &&
+                 !in->valid[(std::size_t)s * in->valid_stride + in->pixel]) {
+            ++out->invalid_valid; ok = false;
+        } else if (in->support != nullptr &&
+                   !((is_f32
+                          ? (double)sf[(std::size_t)s * in->support_stride +
+                                       in->pixel]
+                          : sd[(std::size_t)s * in->support_stride +
+                               in->pixel]) > in->support_threshold)) {
             ++out->invalid_support; ok = false;
         } else if (in->quality != nullptr && in->quality_flags_required != 0 &&
-                   (in->quality[i] & in->quality_flags_required) !=
+                   (in->quality[(std::size_t)s * in->quality_stride +
+                                in->pixel] & in->quality_flags_required) !=
                        in->quality_flags_required) {
             ++out->invalid_quality; ok = false;
         }
-        out->eligible[i] = ok ? 1 : 0;
         if (ok) {
-            out->values[cnt] = in->values[i];
+            out->values[cnt] = v;
             if (in->weights != nullptr && out->weights != nullptr)
-                out->weights[cnt] = in->weights[i];
+                out->weights[cnt] = is_f32
+                    ? (double)wf[(std::size_t)s * in->weight_stride + in->pixel]
+                    : wd[(std::size_t)s * in->weight_stride + in->pixel];
+            if (in->support != nullptr && out->support != nullptr)
+                out->support[cnt] = is_f32
+                    ? (double)sf[(std::size_t)s * in->support_stride + in->pixel]
+                    : sd[(std::size_t)s * in->support_stride + in->pixel];
+            if (in->frame_ids != nullptr && out->frame_ids != nullptr)
+                out->frame_ids[cnt] = in->frame_ids[s];
             ++cnt;
         }
     }
@@ -1098,104 +1237,100 @@ int p2_eligibility_filter(const P2EligibilityInput* in, P2EligibilityOutput* out
 }
 
 // =====================================================================
-// V15：RejectionKernel（显式方法；每样本 reason；UNDERDETERMINED）
+// V16：RejectionKernel（normalization 工作域 + 显式方法 + reasons）
 // =====================================================================
-
-struct P2RejectionWorkspace {
-    std::size_t capacity = 0;
-    // V15 性能轮：在 optimization 阶段扩展为可复用 scratch 缓冲。
-};
-
-P2RejectionWorkspace* p2_rejection_workspace_create(std::size_t capacity) {
-    P2RejectionWorkspace* ws = new (std::nothrow) P2RejectionWorkspace();
-    if (ws != nullptr) ws->capacity = capacity;
-    return ws;
-}
-
-void p2_rejection_workspace_free(P2RejectionWorkspace* ws) {
-    delete ws;
-}
 
 namespace {
 
-// ---- 内部：各显式方法 kernel。reason[i] ∈ P2RejectReason。 ----
+// ---- 内部方法 kernel。working[] 为判定工作域；reasons 按原样本序。 ----
 
-void reject_none_impl(const std::vector<double>& vals,
-                      std::vector<std::uint8_t>& reason) {
-    (void)vals;
-    std::fill(reason.begin(), reason.end(), P2_REASON_ACCEPTED);
+void reject_none_impl(std::uint32_t n, std::uint8_t* reason) {
+    std::fill(reason, reason + n, P2_REASON_ACCEPTED);
 }
 
-// astrocs.robust_mad_clip.v1：median 位置 + MAD 尺度迭代 clip
-// （Astropy sigma_clip(cenfunc=median, stdfunc=mad_std) oracle）。
-void reject_robust_mad_impl(const std::vector<double>& vals,
-                            const P2SigmaParams& prm,
-                            std::vector<std::uint8_t>& reason,
-                            std::uint32_t* iterations) {
-    std::vector<bool> accept(vals.size(), true);
+// robust_mad_clip：median + MAD 迭代 clip（Astropy mad_std oracle）
+void reject_robust_mad_impl(const double* w, std::uint32_t n,
+                            const P2SigmaParams& prm, std::uint8_t* reason,
+                            std::uint32_t* iterations,
+                            ScratchVec<double>& cur,
+                            ScratchVec<double>& dev,
+                            ScratchVec<std::uint8_t>& accept,
+                            ScratchVec<std::uint8_t>& next) {
+    accept.resize(n);
+    accept.fill(1);
     const double lo = -std::fabs(prm.lower_sigma);
     const double hi = std::fabs(prm.upper_sigma);
     int it = 0;
     double m = 0.0;
     for (; it < prm.max_iterations; ++it) {
-        std::vector<double> cur;
-        for (std::size_t i = 0; i < vals.size(); ++i)
-            if (accept[i]) cur.push_back(vals[i]);
-        if (cur.size() < 2) break;
-        m = median(cur);
-        const double s = mad(cur, m);
+        cur.resize(0);
+        for (std::uint32_t i = 0; i < n; ++i)
+            if (accept[i]) cur[cur.size()] = w[i], cur.resize(cur.size() + 1);
+        const std::uint32_t nc = (std::uint32_t)cur.size();
+        if (nc < 2) break;
+        dev.resize(nc);
+        for (std::uint32_t i = 0; i < nc; ++i) dev[i] = cur[i];
+        m = scratch_median(dev.data(), nc);
+        const double s = scratch_mad(dev.data(), nc, m);
         if (s <= 1e-12) break;
+        next.resize(n);
+        next.fill(0);
         bool changed = false;
-        std::vector<bool> next(vals.size(), false);
-        for (std::size_t i = 0; i < vals.size(); ++i) {
+        for (std::uint32_t i = 0; i < n; ++i) {
             if (!accept[i]) continue;
-            const double z = (vals[i] - m) / s;
-            if (z < lo || z > hi) { next[i] = false; changed = true; }
-            else next[i] = true;
+            const double z = (w[i] - m) / s;
+            if (z < lo || z > hi) { changed = true; }
+            else next[i] = 1;
         }
-        accept = std::move(next);
+        std::swap(accept, next);
         if (!changed) break;
     }
-    *iterations = static_cast<std::uint32_t>(it);
-    for (std::size_t i = 0; i < vals.size(); ++i) {
+    *iterations = (std::uint32_t)it;
+    for (std::uint32_t i = 0; i < n; ++i) {
         if (accept[i]) reason[i] = P2_REASON_ACCEPTED;
-        else reason[i] = (vals[i] < m) ? P2_REASON_REJECTED_LOW
-                                       : P2_REASON_REJECTED_HIGH;
+        else reason[i] = (w[i] < m) ? P2_REASON_REJECTED_LOW
+                                    : P2_REASON_REJECTED_HIGH;
     }
 }
 
-// astrocs.winsorized_sigma_siril_1_4_3.v1（Siril rejection_float.c 语义）：
-// median 位置；σ 迭代 winsorize 到 [median-1.5σ, median+1.5σ] 后 SD×1.134
-// 估计；N-r<=4 后不再拒绝。
-void reject_winsorized_impl(const std::vector<double>& vals,
-                            const P2SigmaParams& prm,
-                            std::vector<std::uint8_t>& reason,
-                            std::uint32_t* iterations) {
-    std::vector<bool> accept(vals.size(), true);
+// winsorized_sigma（Siril 1.4.3 语义；工作域等价）
+void reject_winsorized_impl(const double* w, std::uint32_t n,
+                            const P2SigmaParams& prm, std::uint8_t* reason,
+                            std::uint32_t* iterations,
+                            ScratchVec<double>& cur,
+                            ScratchVec<double>& wcur,
+                            ScratchVec<std::uint8_t>& accept) {
+    accept.resize(n);
+    accept.fill(1);
     const double lo = -std::fabs(prm.lower_sigma);
     const double hi = std::fabs(prm.upper_sigma);
     int iters = 0;
     int r = 0;
     double med = 0.0;
     for (; iters < prm.max_iterations; ++iters) {
-        std::vector<double> cur;
-        for (std::size_t i = 0; i < vals.size(); ++i)
-            if (accept[i]) cur.push_back(vals[i]);
-        if (cur.size() < 2) break;
-        med = median(cur);
+        cur.resize(0);
+        for (std::uint32_t i = 0; i < n; ++i)
+            if (accept[i]) cur[cur.size()] = w[i], cur.resize(cur.size() + 1);
+        const std::uint32_t nc = (std::uint32_t)cur.size();
+        if (nc < 2) break;
+        wcur.resize(nc);
+        for (std::uint32_t i = 0; i < nc; ++i) wcur[i] = cur[i];
+        med = scratch_median(wcur.data(), nc);
         double s0 = 0.0;
-        for (double x : cur) s0 += (x - med) * (x - med);
-        s0 = std::sqrt(s0 / (double)(cur.size() - 1));
+        for (std::uint32_t i = 0; i < nc; ++i)
+            s0 += (cur[i] - med) * (cur[i] - med);
+        s0 = std::sqrt(s0 / (double)(nc - 1));
         if (s0 <= 1e-12) break;
-        std::vector<double> wcur = cur;
         double sigma = s0;
         for (int it2 = 0; it2 < 64; ++it2) {
             const double wlo = med - 1.5 * sigma;
             const double whi = med + 1.5 * sigma;
-            for (double& x : wcur) x = std::clamp(x, wlo, whi);
+            for (std::uint32_t i = 0; i < nc; ++i)
+                wcur[i] = std::clamp(cur[i], wlo, whi);
             double wsd = 0.0;
-            for (double x : wcur) wsd += (x - med) * (x - med);
-            wsd = std::sqrt(wsd / (double)(wcur.size() - 1));
+            for (std::uint32_t i = 0; i < nc; ++i)
+                wsd += (wcur[i] - med) * (wcur[i] - med);
+            wsd = std::sqrt(wsd / (double)(nc - 1));
             const double sigma_new = 1.134 * wsd;
             if (std::fabs(sigma_new - sigma) <= 5e-4 * sigma) {
                 sigma = sigma_new;
@@ -1204,79 +1339,81 @@ void reject_winsorized_impl(const std::vector<double>& vals,
             sigma = sigma_new;
         }
         bool changed = false;
-        for (std::size_t i = 0; i < vals.size(); ++i) {
+        for (std::uint32_t i = 0; i < n; ++i) {
             if (!accept[i]) continue;
-            if ((int)cur.size() - r <= 4) break;
-            const double z = (vals[i] - med) / sigma;
-            if (z < lo || z > hi) {
-                accept[i] = false;
-                ++r;
-                changed = true;
-            }
+            if ((int)nc - r <= 4) break;
+            const double z = (w[i] - med) / sigma;
+            if (z < lo || z > hi) { accept[i] = 0; ++r; changed = true; }
         }
         if (!changed) break;
     }
-    *iterations = static_cast<std::uint32_t>(iters);
-    for (std::size_t i = 0; i < vals.size(); ++i) {
+    *iterations = (std::uint32_t)iters;
+    for (std::uint32_t i = 0; i < n; ++i) {
         if (accept[i]) reason[i] = P2_REASON_ACCEPTED;
-        else reason[i] = (vals[i] < med) ? P2_REASON_REJECTED_LOW
-                                         : P2_REASON_REJECTED_HIGH;
+        else reason[i] = (w[i] < med) ? P2_REASON_REJECTED_LOW
+                                      : P2_REASON_REJECTED_HIGH;
     }
 }
 
-// astrocs.avsigclip_iraf.v1：均值 + 平均绝对残差×sqrt(π/2) 迭代 clip。
-void reject_averaged_impl(const std::vector<double>& vals,
-                          const P2SigmaParams& prm,
-                          std::vector<std::uint8_t>& reason,
-                          std::uint32_t* iterations) {
-    std::vector<bool> accept(vals.size(), true);
+// averaged_sigma：mean + mean|residual|×sqrt(π/2) 迭代 clip
+void reject_averaged_impl(const double* w, std::uint32_t n,
+                          const P2SigmaParams& prm, std::uint8_t* reason,
+                          std::uint32_t* iterations,
+                          ScratchVec<std::uint8_t>& accept) {
+    accept.resize(n);
+    accept.fill(1);
     const double lo = -std::fabs(prm.lower_sigma);
     const double hi = std::fabs(prm.upper_sigma);
     int it = 0;
     double mean = 0.0;
     for (; it < prm.max_iterations; ++it) {
-        double sum = 0.0; std::size_t n = 0;
-        for (std::size_t i = 0; i < vals.size(); ++i)
-            if (accept[i]) { sum += vals[i]; ++n; }
-        if (n < 2) break;
-        mean = sum / static_cast<double>(n);
+        double sum = 0.0; std::uint32_t nc = 0;
+        for (std::uint32_t i = 0; i < n; ++i)
+            if (accept[i]) { sum += w[i]; ++nc; }
+        if (nc < 2) break;
+        mean = sum / (double)nc;
         double s = 0.0;
-        for (std::size_t i = 0; i < vals.size(); ++i)
-            if (accept[i]) s += std::fabs(vals[i] - mean);
-        s = (s / static_cast<double>(n)) *
-            std::sqrt(3.14159265358979323846 / 2.0);
+        for (std::uint32_t i = 0; i < n; ++i)
+            if (accept[i]) s += std::fabs(w[i] - mean);
+        s = (s / (double)nc) * std::sqrt(3.14159265358979323846 / 2.0);
         if (s <= 1e-12) break;
         bool changed = false;
-        for (std::size_t i = 0; i < vals.size(); ++i) {
+        for (std::uint32_t i = 0; i < n; ++i) {
             if (!accept[i]) continue;
-            const double z = (vals[i] - mean) / s;
-            if (z < lo || z > hi) { accept[i] = false; changed = true; }
+            const double z = (w[i] - mean) / s;
+            if (z < lo || z > hi) { accept[i] = 0; changed = true; }
         }
         if (!changed) break;
     }
-    *iterations = static_cast<std::uint32_t>(it);
-    for (std::size_t i = 0; i < vals.size(); ++i) {
+    *iterations = (std::uint32_t)it;
+    for (std::uint32_t i = 0; i < n; ++i) {
         if (accept[i]) reason[i] = P2_REASON_ACCEPTED;
-        else reason[i] = (vals[i] < mean) ? P2_REASON_REJECTED_LOW
-                                          : P2_REASON_REJECTED_HIGH;
+        else reason[i] = (w[i] < mean) ? P2_REASON_REJECTED_LOW
+                                       : P2_REASON_REJECTED_HIGH;
     }
 }
 
-// astrocs.linear_fit_siril_1_4_3.v1：Siril 加权线性拟合拒绝（frozen
-// harness 语义逐行一致；side 按 fit 比较方向记录）。
-void reject_linear_fit_impl(const std::vector<double>& vals,
+// linear_fit（Siril 1.4.3 frozen harness 语义；工作域等价）
+void reject_linear_fit_impl(const double* w, std::uint32_t n,
                             const P2LinearFitParams& prm,
-                            std::vector<std::uint8_t>& reason,
-                            std::uint32_t* iterations) {
-    std::fill(reason.begin(), reason.end(), P2_REASON_ACCEPTED);
-    const std::size_t n0 = vals.size();
-    std::vector<double> stack = vals;
-    std::vector<std::size_t> orig_idx(n0);
-    for (std::size_t i = 0; i < n0; ++i) orig_idx[i] = i;
-    std::vector<double> xf(n0);
+                            std::uint8_t* reason,
+                            std::uint32_t* iterations,
+                            ScratchVec<double>& stack,
+                            ScratchVec<std::size_t>& orig,
+                            ScratchVec<double>& xf,
+                            ScratchVec<std::pair<double, std::size_t>>& e,
+                            ScratchVec<std::uint8_t>& keep,
+                            ScratchVec<double>& ns,
+                            ScratchVec<std::size_t>& ni) {
+    std::fill(reason, reason + n, P2_REASON_ACCEPTED);
+    const std::uint32_t n0 = n;
+    stack.resize(n0);
+    orig.resize(n0);
+    for (std::uint32_t i = 0; i < n0; ++i) { stack[i] = w[i]; orig[i] = i; }
+    xf.resize(n0);
     const double m_x = (double)(n0 - 1) * 0.5;
     double m_dx2 = 0.0;
-    for (std::size_t j = 0; j < n0; ++j) {
+    for (std::uint32_t j = 0; j < n0; ++j) {
         const double dx = (double)j - m_x;
         xf[j] = 1.0 / (double)(j + 1);
         m_dx2 += (dx * dx - m_dx2) * xf[j];
@@ -1287,112 +1424,108 @@ void reject_linear_fit_impl(const std::vector<double>& vals,
     int r = 0;
     int it = 0;
     for (; it < prm.max_iterations; ++it) {
-        const std::size_t N = stack.size();
+        const std::uint32_t N = (std::uint32_t)stack.size();
         if (N < 4) break;
-        std::vector<std::pair<double, std::size_t>> e(N);
-        for (std::size_t i = 0; i < N; ++i) e[i] = {stack[i], orig_idx[i]};
+        e.resize(N);
+        for (std::uint32_t i = 0; i < N; ++i) e[i] = {stack[i], orig[i]};
         std::sort(e.begin(), e.end());
-        for (std::size_t i = 0; i < N; ++i) {
+        for (std::uint32_t i = 0; i < N; ++i) {
             stack[i] = e[i].first;
-            orig_idx[i] = e[i].second;
+            orig[i] = e[i].second;
         }
         double m_y = stack[0];
-        for (std::size_t i = 1; i < N; ++i)
+        for (std::uint32_t i = 1; i < N; ++i)
             m_y += (stack[i] - m_y) * xf[i];
         double m_dxdy = 0.0;
         double dx = -m_x;
-        for (std::size_t i = 0; i < N; ++i, dx += 1.0) {
+        for (std::uint32_t i = 0; i < N; ++i, dx += 1.0) {
             const double dy = stack[i] - m_y;
             m_dxdy += (dx * dy - m_dxdy) * xf[i];
         }
         const double slope = m_dxdy * m_dx2;
         const double intercept = m_y - m_x * slope;
         double sigma = 0.0;
-        for (std::size_t i = 0; i < N; ++i)
+        for (std::uint32_t i = 0; i < N; ++i)
             sigma += std::fabs(stack[i] - (slope * (double)i + intercept));
         sigma /= (double)N;
+        keep.resize(N);
+        keep.fill(1);
         bool changed = false;
-        std::vector<bool> keep(N, true);
-        for (std::size_t j = 0; j < N; ++j) {
-            if ((int)(N - (std::size_t)r) <= 4) {
-                keep[j] = true;
-                continue;
-            }
+        for (std::uint32_t j = 0; j < N; ++j) {
+            if ((int)(N - (std::size_t)r) <= 4) { keep[j] = 1; continue; }
             const double fit = slope * (double)j + intercept;
             if (fit - stack[j] > sigma * siglow) {
-                keep[j] = false;
-                reason[orig_idx[j]] = P2_REASON_REJECTED_LOW;
+                keep[j] = 0;
+                reason[orig[j]] = P2_REASON_REJECTED_LOW;
                 ++r;
                 changed = true;
             } else if (stack[j] - fit > sigma * sighigh) {
-                keep[j] = false;
-                reason[orig_idx[j]] = P2_REASON_REJECTED_HIGH;
+                keep[j] = 0;
+                reason[orig[j]] = P2_REASON_REJECTED_HIGH;
                 ++r;
                 changed = true;
             }
         }
         if (!changed) break;
-        std::vector<double> ns;
-        std::vector<std::size_t> ni;
-        ns.reserve(N);
-        ni.reserve(N);
-        for (std::size_t j = 0; j < N; ++j) {
+        ns.resize(0);
+        ni.resize(0);
+        for (std::uint32_t j = 0; j < N; ++j) {
             if (keep[j]) {
-                ns.push_back(stack[j]);
-                ni.push_back(orig_idx[j]);
+                ns[ns.size()] = stack[j]; ns.resize(ns.size() + 1);
+                ni[ni.size()] = orig[j]; ni.resize(ni.size() + 1);
             }
         }
-        stack = std::move(ns);
-        orig_idx = std::move(ni);
-    }
-    *iterations = static_cast<std::uint32_t>(it);
-    // 未在拒绝分支标记的样本保持 ACCEPTED
-    for (std::size_t i = 0; i < reason.size(); ++i) {
-        if (reason[i] != P2_REASON_REJECTED_LOW &&
-            reason[i] != P2_REASON_REJECTED_HIGH) {
-            reason[i] = P2_REASON_ACCEPTED;
+        stack.resize(ns.size());
+        orig.resize(ni.size());
+        for (std::uint32_t i = 0; i < ns.size(); ++i) {
+            stack[i] = ns[i];
+            orig[i] = ni[i];
         }
+    }
+    *iterations = (std::uint32_t)it;
+    for (std::uint32_t i = 0; i < n; ++i) {
+        if (reason[i] != P2_REASON_REJECTED_LOW &&
+            reason[i] != P2_REASON_REJECTED_HIGH)
+            reason[i] = P2_REASON_ACCEPTED;
     }
 }
 
-// astrocs.generalized_esd_nist.v1：NIST Generalized ESD（Rosner 1983）。
-void reject_esd_impl(const std::vector<double>& vals,
-                     const P2EsdParams& prm,
-                     const std::uint64_t* frame_ids,
-                     std::vector<std::uint8_t>& reason,
-                     std::uint32_t* iterations) {
-    std::vector<bool> accept(vals.size(), true);
-    std::vector<double> working = vals;
-    const std::size_t max_out =
-        (std::size_t)std::max(1, prm.max_outliers);
+// ESD（NIST；单 sqrt；mean/std 对平移不变）
+void reject_esd_impl(const double* w, std::uint32_t n, const P2EsdParams& prm,
+                     const std::uint64_t* frame_ids, std::uint8_t* reason,
+                     std::uint32_t* iterations,
+                     ScratchVec<double>& working,
+                     ScratchVec<std::uint8_t>& accept,
+                     ScratchVec<double>& R, ScratchVec<double>& Lambda,
+                     ScratchVec<std::size_t>& removed) {
+    const std::size_t max_out = (std::size_t)std::max(1, prm.max_outliers);
     const double alpha = prm.alpha > 0.0 ? prm.alpha : 0.05;
-    std::vector<double> R(max_out, 0.0);
-    std::vector<double> Lambda(max_out, 0.0);
-    std::vector<std::size_t> removed_idx(max_out, vals.size());
-    const std::size_t n0 = vals.size();
+    working.resize(n);
+    accept.resize(n);
+    for (std::uint32_t i = 0; i < n; ++i) { working[i] = w[i]; accept[i] = 1; }
+    R.resize(max_out);
+    Lambda.resize(max_out);
+    removed.resize(max_out);
     std::size_t n_removed = 0;
     for (std::size_t rr = 0; rr < max_out; ++rr) {
-        double mean = 0.0; std::size_t n = 0;
-        for (std::size_t i = 0; i < working.size(); ++i) {
-            if (accept[i]) { mean += working[i]; ++n; }
-        }
-        if (n < 3) break;
-        mean /= static_cast<double>(n);
+        double mean = 0.0; std::size_t nc = 0;
+        for (std::uint32_t i = 0; i < n; ++i)
+            if (accept[i]) { mean += working[i]; ++nc; }
+        if (nc < 3) break;
+        mean /= (double)nc;
         double s = 0.0;
-        for (std::size_t i = 0; i < working.size(); ++i) {
+        for (std::uint32_t i = 0; i < n; ++i)
             if (accept[i]) s += (working[i] - mean) * (working[i] - mean);
-        }
-        // RJ-005 修复：标准差只开方一次（s = sqrt(Σ/(n-1))）
-        s = std::sqrt(s / static_cast<double>(n - 1));
+        s = std::sqrt(s / (double)(nc - 1));   // 单 sqrt（RJ-005）
         if (s <= 1e-12) break;
         std::size_t worst = n;
         double max_r = 0.0;
         std::uint64_t worst_fid = ~0ULL;
-        for (std::size_t i = 0; i < working.size(); ++i) {
+        for (std::uint32_t i = 0; i < n; ++i) {
             if (!accept[i]) continue;
             const double rv = std::fabs(working[i] - mean) / s;
-            const std::uint64_t fid = frame_ids
-                ? frame_ids[i] : (std::uint64_t)i;
+            const std::uint64_t fid =
+                frame_ids ? frame_ids[i] : (std::uint64_t)i;
             if (rv > max_r + 1e-15 ||
                 (std::fabs(rv - max_r) <= 1e-15 && fid < worst_fid)) {
                 max_r = rv;
@@ -1400,7 +1533,7 @@ void reject_esd_impl(const std::vector<double>& vals,
                 worst_fid = fid;
             }
         }
-        const double n_minus_i = (double)n0 - (double)(rr + 1);
+        const double n_minus_i = (double)n - (double)(rr + 1);
         const double nu = n_minus_i - 1.0;
         const double p = 1.0 - alpha / (2.0 * (n_minus_i + 1.0));
         const double tcrit = t_quantile(p, nu);
@@ -1408,150 +1541,204 @@ void reject_esd_impl(const std::vector<double>& vals,
             std::sqrt((nu + tcrit * tcrit) * (n_minus_i + 1.0));
         R[rr] = max_r;
         Lambda[rr] = crit;
-        removed_idx[rr] = worst;
-        accept[worst] = false;
+        removed[rr] = worst;
+        accept[worst] = 0;
         ++n_removed;
     }
     std::size_t k_out = 0;
     for (std::size_t rr = 0; rr < n_removed; ++rr)
         if (R[rr] > Lambda[rr]) k_out = rr + 1;
-    std::fill(accept.begin(), accept.end(), true);
-    for (std::size_t rr = 0; rr < k_out && rr < removed_idx.size(); ++rr)
-        accept[removed_idx[rr]] = false;
-    *iterations = static_cast<std::uint32_t>(k_out);
-    const double med = median(vals);
-    for (std::size_t i = 0; i < vals.size(); ++i) {
+    accept.fill(1);
+    for (std::size_t rr = 0; rr < k_out && rr < removed.size(); ++rr)
+        accept[removed[rr]] = 0;
+    *iterations = (std::uint32_t)k_out;
+    ScratchVec<double> med_scratch;
+    med_scratch.resize(n);
+    for (std::uint32_t i = 0; i < n; ++i) med_scratch[i] = w[i];
+    const double med = scratch_median(med_scratch.data(), n);
+    for (std::uint32_t i = 0; i < n; ++i) {
         if (accept[i]) reason[i] = P2_REASON_ACCEPTED;
-        else reason[i] = (vals[i] < med) ? P2_REASON_REJECTED_LOW
-                                         : P2_REASON_REJECTED_HIGH;
+        else reason[i] = (w[i] < med) ? P2_REASON_REJECTED_LOW
+                                      : P2_REASON_REJECTED_HIGH;
     }
 }
 
-// astrocs.rcr_2_4_7_ss_median_dl.v1：完整 sequential RCR
-// （MEDIAN+DOUBLE_LINE → MEDIAN+68th → MEAN+SD；Chauvenet；官方校准表）。
-void reject_rcr_impl(const std::vector<double>& vals,
-                     const double* weights,
-                     std::vector<std::uint8_t>& reason,
-                     std::uint32_t* iterations) {
-    std::vector<bool> accept(vals.size(), true);
+// RCR（冻结官方语义；仅在 normalization=none 时合法；见 ex kernel 校验）
+void reject_rcr_impl(const double* w, std::uint32_t n, const double* weights,
+                     std::uint8_t* reason, std::uint32_t* iterations) {
+    std::vector<double> vals(w, w + n);
+    std::vector<bool> accept(n, true);
     std::vector<double> wgt;
     const bool weighted = weights != nullptr;
-    if (weighted) {
-        wgt.assign(weights, weights + vals.size());
-    }
+    if (weighted) wgt.assign(weights, weights + n);
     const std::vector<double>* wp = weighted ? &wgt : nullptr;
-    rcr_iterative_pass(RcrMu::kMedian, RcrSigma::kDoubleLine, vals, wp,
-                       accept);
+    rcr_iterative_pass(RcrMu::kMedian, RcrSigma::kDoubleLine, vals, wp, accept);
     rcr_iterative_pass(RcrMu::kMedian, RcrSigma::k68th, vals, wp, accept);
     rcr_iterative_pass(RcrMu::kMean, RcrSigma::kStdDev, vals, wp, accept);
     *iterations = 3;
-    const double med = median(vals);
-    for (std::size_t i = 0; i < vals.size(); ++i) {
+    ScratchVec<double> med_scratch;
+    med_scratch.resize(n);
+    for (std::uint32_t i = 0; i < n; ++i) med_scratch[i] = w[i];
+    const double med = scratch_median(med_scratch.data(), n);
+    for (std::uint32_t i = 0; i < n; ++i) {
         if (accept[i]) reason[i] = P2_REASON_ACCEPTED;
-        else reason[i] = (vals[i] < med) ? P2_REASON_REJECTED_LOW
-                                         : P2_REASON_REJECTED_HIGH;
+        else reason[i] = (w[i] < med) ? P2_REASON_REJECTED_LOW
+                                      : P2_REASON_REJECTED_HIGH;
     }
 }
 
-// astrocs.percentile_siril.v1：相对 median 的百分比 clip（单轮）。
-void reject_percentile_impl(const std::vector<double>& vals,
+// percentile（V16：必须在 median_center 工作域；|median| 尺度保证负值安全）
+void reject_percentile_impl(const double* w, std::uint32_t n,
                             const P2PercentileParams& prm,
-                            std::vector<std::uint8_t>& reason,
-                            std::uint32_t* iterations) {
+                            const double* orig_vals, double orig_median,
+                            std::uint8_t* reason,
+                            std::uint32_t* iterations,
+                            ScratchVec<double>& scratch) {
     const double plow = std::fabs(prm.low_fraction);
     const double phigh = std::fabs(prm.high_fraction);
-    const double med = median(vals);
-    for (std::size_t i = 0; i < vals.size(); ++i) {
-        if (med - vals[i] > med * plow) {
+    const double scale = std::fabs(orig_median);  // 工作域 = v - median
+    for (std::uint32_t i = 0; i < n; ++i) {
+        (void)orig_vals;
+        if (w[i] < -scale * plow) {
             reason[i] = P2_REASON_REJECTED_LOW;
-        } else if (vals[i] - med > med * phigh) {
+        } else if (w[i] > scale * phigh) {
             reason[i] = P2_REASON_REJECTED_HIGH;
         } else {
             reason[i] = P2_REASON_ACCEPTED;
         }
     }
+    (void)scratch;
     *iterations = 1;
 }
 
-// astrocs.median_std_clip.v1：median 位置 + SD 尺度迭代 clip（N-r<=4）。
-void reject_median_sigma_impl(const std::vector<double>& vals,
-                              const P2SigmaParams& prm,
-                              std::vector<std::uint8_t>& reason,
-                              std::uint32_t* iterations) {
-    std::vector<bool> accept(vals.size(), true);
+// median_sigma：median + SD 迭代 clip（工作域等价）
+void reject_median_sigma_impl(const double* w, std::uint32_t n,
+                              const P2SigmaParams& prm, std::uint8_t* reason,
+                              std::uint32_t* iterations,
+                              ScratchVec<double>& cur,
+                              ScratchVec<std::uint8_t>& accept) {
+    accept.resize(n);
+    accept.fill(1);
     const double lo = -std::fabs(prm.lower_sigma);
     const double hi = std::fabs(prm.upper_sigma);
     int iters = 0;
     int r = 0;
     double med = 0.0;
     for (; iters < prm.max_iterations; ++iters) {
-        std::vector<double> cur;
-        for (std::size_t i = 0; i < vals.size(); ++i)
-            if (accept[i]) cur.push_back(vals[i]);
-        if (cur.size() < 2) break;
-        med = median(cur);
+        cur.resize(0);
+        for (std::uint32_t i = 0; i < n; ++i)
+            if (accept[i]) cur[cur.size()] = w[i], cur.resize(cur.size() + 1);
+        const std::uint32_t nc = (std::uint32_t)cur.size();
+        if (nc < 2) break;
+        ScratchVec<double> mscr;
+        mscr.resize(nc);
+        for (std::uint32_t i = 0; i < nc; ++i) mscr[i] = cur[i];
+        med = scratch_median(mscr.data(), nc);
         double sd = 0.0;
-        for (double x : cur) sd += (x - med) * (x - med);
-        sd = std::sqrt(sd / (double)(cur.size() - 1));
+        for (std::uint32_t i = 0; i < nc; ++i)
+            sd += (cur[i] - med) * (cur[i] - med);
+        sd = std::sqrt(sd / (double)(nc - 1));
         if (sd <= 1e-12) break;
         bool changed = false;
-        for (std::size_t i = 0; i < vals.size(); ++i) {
+        for (std::uint32_t i = 0; i < n; ++i) {
             if (!accept[i]) continue;
-            if ((int)cur.size() - r <= 4) break;
-            const double z = (vals[i] - med) / sd;
-            if (z < lo || z > hi) {
-                accept[i] = false;
-                ++r;
-                changed = true;
-            }
+            if ((int)nc - r <= 4) break;
+            const double z = (w[i] - med) / sd;
+            if (z < lo || z > hi) { accept[i] = 0; ++r; changed = true; }
         }
         if (!changed) break;
     }
-    *iterations = static_cast<std::uint32_t>(iters);
-    for (std::size_t i = 0; i < vals.size(); ++i) {
+    *iterations = (std::uint32_t)iters;
+    for (std::uint32_t i = 0; i < n; ++i) {
         if (accept[i]) reason[i] = P2_REASON_ACCEPTED;
-        else reason[i] = (vals[i] < med) ? P2_REASON_REJECTED_LOW
-                                         : P2_REASON_REJECTED_HIGH;
+        else reason[i] = (w[i] < med) ? P2_REASON_REJECTED_LOW
+                                      : P2_REASON_REJECTED_HIGH;
     }
+}
+
+// minmax（V16：一次性固定 rank 删除，不迭代）
+void reject_minmax_impl(const double* w, std::uint32_t n,
+                        const P2MinmaxParams& prm, std::uint8_t* reason,
+                        std::uint32_t* iterations,
+                        ScratchVec<std::size_t>& order,
+                        ScratchVec<std::uint8_t>& accept) {
+    std::fill(reason, reason + n, P2_REASON_ACCEPTED);
+    const int k_low = std::max(0, prm.reject_low_count);
+    const int k_high = std::max(0, prm.reject_high_count);
+    const std::uint32_t min_kept = (std::uint32_t)std::max(1, prm.min_kept);
+    if ((std::uint32_t)(k_low + k_high) >= n || n - (std::uint32_t)(k_low + k_high) <
+                                                    min_kept) {
+        // 不满足"删除后 >= min_kept"：全部 UNDERDETERMINED（调用方处理）
+        for (std::uint32_t i = 0; i < n; ++i)
+            reason[i] = P2_REASON_UNDERDETERMINED;
+        *iterations = 0;
+        return;
+    }
+    order.resize(n);
+    for (std::uint32_t i = 0; i < n; ++i) order[i] = i;
+    std::sort(order.begin(), order.end(),
+              [&](std::size_t a, std::size_t b) { return w[a] < w[b]; });
+    accept.resize(n);
+    accept.fill(1);
+    for (int k = 0; k < k_low; ++k) {
+        reason[order[k]] = P2_REASON_REJECTED_LOW;
+        accept[order[k]] = 0;
+    }
+    for (int k = 0; k < k_high; ++k) {
+        reason[order[n - 1 - (std::size_t)k]] = P2_REASON_REJECTED_HIGH;
+        accept[order[n - 1 - (std::size_t)k]] = 0;
+    }
+    *iterations = 1;
 }
 
 } // namespace
 
 int p2_reject_stack_ex(const P2CandidateStack* stack,
                        const P2RejectionPlan* plan,
-                       P2RejectionDecision* out,
-                       P2RejectionWorkspace* ws) {
-    (void)ws;  // 性能轮使用
+                       P2RejectionDecision* out) {
     if (stack == nullptr || plan == nullptr || out == nullptr) return 1;
-    if (plan->method < P2_REJECT_NONE || plan->method > P2_REJECT_MINMAX) {
+    if (plan->method < P2_REJECT_NONE || plan->method > P2_REJECT_MINMAX)
         return 1;  // AUTO 不允许进入 kernel
-    }
     const std::uint32_t n = stack->count;
     std::uint8_t* reasons_out = out->reasons;
     std::memset(out, 0, sizeof(*out));
     out->reasons = reasons_out;
     if (n == 0) { out->status = P2_STATUS_MIN_SAMPLES; return 0; }
-    if (reasons_out == nullptr) return 1;
-    if (stack->values == nullptr) return 1;
+    if (reasons_out == nullptr || stack->values == nullptr) return 1;
 
-    // 非法输入守卫（资格层后不应出现；NaN 不允许进入算法）
-    bool invalid_input = false;
+    // 非法输入守卫
     for (std::uint32_t i = 0; i < n; ++i) {
-        if (!std::isfinite(stack->values[i])) { invalid_input = true; break; }
+        if (!std::isfinite(stack->values[i])) {
+            for (std::uint32_t j = 0; j < n; ++j)
+                reasons_out[j] = P2_REASON_UNDERDETERMINED;
+            out->accepted_count = n;
+            out->status = P2_STATUS_INVALID_INPUT;
+            return 0;
+        }
     }
-    if (invalid_input) {
+
+    // 方法×normalization 合法性（INVALID_CONFIGURATION）
+    const int norm = plan->normalization;
+    if (plan->method == P2_REJECT_PERCENTILE &&
+        norm != P2_NORMALIZE_MEDIAN_CENTER) {
         for (std::uint32_t i = 0; i < n; ++i)
             reasons_out[i] = P2_REASON_UNDERDETERMINED;
         out->accepted_count = n;
-        out->status = P2_STATUS_INVALID_INPUT;
+        out->status = P2_STATUS_INVALID_CONFIGURATION;
+        return 0;
+    }
+    if (plan->method == P2_REJECT_RCR && norm != P2_NORMALIZE_NONE) {
+        for (std::uint32_t i = 0; i < n; ++i)
+            reasons_out[i] = P2_REASON_UNDERDETERMINED;
+        out->accepted_count = n;
+        out->status = P2_STATUS_INVALID_CONFIGURATION;
         return 0;
     }
 
     // UNDERDETERMINED：n <= underdetermined_n 或 n < method minimum N
     const std::uint32_t min_n =
         plan->minimum_n > 0 ? (std::uint32_t)plan->minimum_n : 0u;
-    const std::uint32_t und_n = plan->underdetermined_n;
-    if (n <= und_n || (min_n > 0 && n < min_n)) {
+    if (n <= plan->underdetermined_n || (min_n > 0 && n < min_n)) {
         for (std::uint32_t i = 0; i < n; ++i)
             reasons_out[i] = P2_REASON_UNDERDETERMINED;
         out->accepted_count = n;
@@ -1559,122 +1746,96 @@ int p2_reject_stack_ex(const P2CandidateStack* stack,
         return 0;
     }
 
-    std::vector<double> vals(n);
-    std::vector<double> wgt;
-    for (std::uint32_t i = 0; i < n; ++i) vals[i] = stack->values[i];
-    if (stack->weights != nullptr) {
-        wgt.assign(stack->weights, stack->weights + n);
+    // ---- V16：RejectionNormalizationPolicy（判定工作域）----
+    ScratchVec<double> work, scratch, scratch2, scratch3;
+    ScratchVec<std::uint8_t> accept, next, keep;
+    ScratchVec<std::size_t> idx, idx2;
+    ScratchVec<std::pair<double, std::size_t>> pairs;
+    work.resize(n);
+    for (std::uint32_t i = 0; i < n; ++i) work[i] = stack->values[i];
+    double orig_median = 0.0;
+    if (norm != P2_NORMALIZE_NONE) {
+        scratch.resize(n);
+        for (std::uint32_t i = 0; i < n; ++i) scratch[i] = work[i];
+        orig_median = scratch_median(scratch.data(), n);
+        if (norm == P2_NORMALIZE_MEDIAN_CENTER) {
+            for (std::uint32_t i = 0; i < n; ++i) work[i] -= orig_median;
+        } else {  // MEDIAN_SCALE
+            const double scale = std::max(std::fabs(orig_median),
+                                          plan->normalization_floor);
+            for (std::uint32_t i = 0; i < n; ++i) work[i] /= scale;
+        }
     }
-    std::vector<std::uint8_t> reason(n, P2_REASON_ACCEPTED);
-    std::uint32_t iterations = 0;
 
+    std::uint32_t iterations = 0;
     switch (plan->method) {
         case P2_REJECT_NONE:
-            reject_none_impl(vals, reason);
+            reject_none_impl(n, reasons_out);
             break;
         case P2_REJECT_SIGMA:
-            reject_robust_mad_impl(vals, plan->sigma, reason, &iterations);
+            reject_robust_mad_impl(work.data(), n, plan->sigma, reasons_out,
+                                   &iterations, scratch, scratch2, accept,
+                                   next);
             break;
         case P2_REJECT_WINSORIZED_SIGMA:
-            reject_winsorized_impl(vals, plan->winsorized, reason,
-                                   &iterations);
+            reject_winsorized_impl(work.data(), n, plan->winsorized,
+                                   reasons_out, &iterations, scratch, scratch2,
+                                   accept);
             break;
         case P2_REJECT_AVERAGED_SIGMA:
-            reject_averaged_impl(vals, plan->averaged, reason, &iterations);
+            reject_averaged_impl(work.data(), n, plan->averaged, reasons_out,
+                                 &iterations, accept);
             break;
         case P2_REJECT_LINEAR_FIT:
-            reject_linear_fit_impl(vals, plan->linear_fit, reason,
-                                   &iterations);
+            reject_linear_fit_impl(work.data(), n, plan->linear_fit,
+                                   reasons_out, &iterations, scratch, idx,
+                                   scratch2, pairs, keep, scratch3, idx2);
             break;
         case P2_REJECT_GENERALIZED_ESD:
-            reject_esd_impl(vals, plan->esd, stack->frame_ids, reason,
-                            &iterations);
+            reject_esd_impl(work.data(), n, plan->esd, stack->frame_ids,
+                            reasons_out, &iterations, scratch, accept, scratch2,
+                            scratch3, idx);
             break;
         case P2_REJECT_RCR:
-            reject_rcr_impl(vals, stack->weights, reason, &iterations);
+            reject_rcr_impl(work.data(), n, stack->weights, reasons_out,
+                            &iterations);
             break;
         case P2_REJECT_PERCENTILE:
-            reject_percentile_impl(vals, plan->percentile, reason,
-                                   &iterations);
+            reject_percentile_impl(work.data(), n, plan->percentile,
+                                   stack->values, orig_median, reasons_out,
+                                   &iterations, scratch);
             break;
         case P2_REJECT_MEDIAN_SIGMA:
-            reject_median_sigma_impl(vals, plan->median_sigma, reason,
-                                     &iterations);
+            reject_median_sigma_impl(work.data(), n, plan->median_sigma,
+                                     reasons_out, &iterations, scratch, accept);
             break;
-        case P2_REJECT_MINMAX: {
-            // minmax 按 rank 剔除；finalize 用阈值边界语义重映射 side：
-            // 低于整体 median → REJECTED_LOW，高于 → REJECTED_HIGH
-            const double med = median(vals);
-            std::vector<bool> accept(vals.size(), true);
-            const int k_low = std::max(1, plan->minmax.reject_low_count);
-            const int k_high = std::max(1, plan->minmax.reject_high_count);
-            const int min_kept = std::max(1, plan->minmax.min_kept);
-            int iters = 0;
-            for (; iters < plan->minmax.max_iterations; ++iters) {
-                std::size_t kept = 0;
-                for (std::size_t i = 0; i < vals.size(); ++i)
-                    if (accept[i]) ++kept;
-                if (kept <= (std::size_t)min_kept) break;
-                std::vector<std::size_t> lows, highs;
-                std::vector<bool> used(vals.size(), false);
-                for (int k = 0; k < k_low && kept - lows.size() -
-                                                  highs.size() >
-                                                  (std::size_t)min_kept;
-                     ++k) {
-                    std::size_t imin = vals.size();
-                    for (std::size_t i = 0; i < vals.size(); ++i) {
-                        if (!accept[i] || used[i]) continue;
-                        if (imin == vals.size() || vals[i] < vals[imin])
-                            imin = i;
-                    }
-                    if (imin == vals.size()) break;
-                    lows.push_back(imin);
-                    used[imin] = true;
-                }
-                for (int k = 0; k < k_high && kept - lows.size() -
-                                                   highs.size() >
-                                                   (std::size_t)min_kept;
-                     ++k) {
-                    std::size_t imax = vals.size();
-                    for (std::size_t i = 0; i < vals.size(); ++i) {
-                        if (!accept[i] || used[i]) continue;
-                        if (imax == vals.size() || vals[i] > vals[imax])
-                            imax = i;
-                    }
-                    if (imax == vals.size()) break;
-                    highs.push_back(imax);
-                    used[imax] = true;
-                }
-                bool changed = false;
-                for (std::size_t i : lows) { accept[i] = false; changed = true; }
-                for (std::size_t i : highs) { accept[i] = false; changed = true; }
-                if (!changed) break;
-            }
-            iterations = (std::uint32_t)iters;
-            for (std::size_t i = 0; i < vals.size(); ++i) {
-                if (accept[i]) reason[i] = P2_REASON_ACCEPTED;
-                else reason[i] = (vals[i] < med) ? P2_REASON_REJECTED_LOW
-                                                 : P2_REASON_REJECTED_HIGH;
-            }
+        case P2_REJECT_MINMAX:
+            reject_minmax_impl(stack->values, n, plan->minmax, reasons_out,
+                               &iterations, idx, accept);
             break;
-        }
         default:
             return 1;
     }
 
     std::uint32_t accepted_count = 0, rej_low = 0, rej_high = 0;
+    bool any_underdetermined = false;
     for (std::uint32_t i = 0; i < n; ++i) {
-        reasons_out[i] = reason[i];
-        if (reason[i] == P2_REASON_ACCEPTED) ++accepted_count;
-        else if (reason[i] == P2_REASON_REJECTED_LOW) ++rej_low;
-        else if (reason[i] == P2_REASON_REJECTED_HIGH) ++rej_high;
+        if (reasons_out[i] == P2_REASON_ACCEPTED) ++accepted_count;
+        else if (reasons_out[i] == P2_REASON_REJECTED_LOW) ++rej_low;
+        else if (reasons_out[i] == P2_REASON_REJECTED_HIGH) ++rej_high;
+        else if (reasons_out[i] == P2_REASON_UNDERDETERMINED) {
+            ++accepted_count;
+            any_underdetermined = true;
+        }
     }
     out->accepted_count = accepted_count;
     out->rejected_low = rej_low;
     out->rejected_high = rej_high;
     out->iterations = iterations;
-    out->status = (accepted_count == 0) ? P2_STATUS_ALL_REJECTED
-                                        : P2_STATUS_OK;
+    out->status = (accepted_count == 0)
+                      ? P2_STATUS_ALL_REJECTED
+                      : (any_underdetermined ? P2_STATUS_UNDERDETERMINED
+                                             : P2_STATUS_OK);
     return 0;
 }
 
@@ -1689,31 +1850,27 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
     const std::uint32_t n = in->count;
     if (n == 0) { out->status = P2_STATUS_MIN_SAMPLES; return 0; }
     if (out->accepted == nullptr) return 1;
-
-    // RJ-002 修复：统一先清零，只有最终 ACCEPT 才写 1
     for (std::uint32_t i = 0; i < n; ++i) out->accepted[i] = 0;
 
     bool has_nonfinite = false;
-    for (std::uint32_t i = 0; i < n; ++i) {
+    for (std::uint32_t i = 0; i < n; ++i)
         if (!std::isfinite(in->values[i])) has_nonfinite = true;
-    }
 
-    // 资格层（RJ-001/002/007：finite/valid/support 统一过滤）
-    std::vector<double> vals;
-    std::vector<double> wgt;
-    std::vector<std::uint64_t> fids;
-    for (std::uint32_t i = 0; i < n; ++i) {
-        if (!std::isfinite(in->values[i])) continue;
-        if (in->valid != nullptr && !in->valid[i]) continue;
-        if (in->support != nullptr && !(in->support[i] > 0.0)) continue;
-        vals.push_back(in->values[i]);
-        if (in->weights != nullptr) wgt.push_back(in->weights[i]);
-        if (in->frame_ids != nullptr) fids.push_back(in->frame_ids[i]);
-    }
-    const std::uint32_t m = (std::uint32_t)vals.size();
+    // 资格层（同一 policy core：finite/valid/support）
+    ScratchVec<double> vals, wgt;
+    ScratchVec<std::uint64_t> fids;
+    vals.resize(n);
+    if (in->weights != nullptr) wgt.resize(n);
+    if (in->frame_ids != nullptr) fids.resize(n);
+    std::uint32_t finite_c = 0, valid_c = 0, support_c = 0, qual_c = 0;
+    const std::uint32_t m = eligibility_core(
+        in->values, in->weights, in->valid, in->support, in->quality, n, 0.0,
+        0, vals.data(), wgt.empty() ? nullptr : wgt.data(), nullptr,
+        &finite_c, &valid_c, &support_c, &qual_c);
+    if (in->frame_ids != nullptr)
+        for (std::uint32_t i = 0; i < m; ++i) fids[i] = in->frame_ids[i];
+    (void)has_nonfinite;
     if (m < (std::uint32_t)std::max(0, in->min_samples)) {
-        // 兼容旧语义：min-samples 时合格样本置 accepted=1（RJ-002：
-        // valid=false/support=0 不置 1）
         for (std::uint32_t i = 0; i < n; ++i) {
             if (!std::isfinite(in->values[i])) continue;
             if (in->valid != nullptr && !in->valid[i]) continue;
@@ -1724,35 +1881,68 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
         return 0;
     }
 
-    // auto 在 compat 中以候选数作为 nominal 近似（生产路径另行解析）
     P2RejectionPlanRequest req{};
     req.request = in->method;
     req.nominal_contributors = m;
     req.underdetermined_n = 2;
     P2RejectionPlan plan{};
     if (p2_reject_plan_resolve(&req, &plan, nullptr, 0) != 0) return 1;
+    // compat 保持旧行为：sigma 类方法 shift-invariant → NONE 等价；
+    // percentile 必须 MEDIAN_CENTER（|median| 尺度，负值安全）
+    plan.normalization = (plan.method == P2_REJECT_PERCENTILE)
+                             ? P2_NORMALIZE_MEDIAN_CENTER
+                             : P2_NORMALIZE_NONE;
+    // 旧 lo/hi/max_iter 显式参数 → typed（兼容旧调用方语义）
+    const double lo = std::fabs(in->sigma_low);
+    const double hi = std::fabs(in->sigma_high);
+    const int mi = in->max_iterations;
+    if (in->sigma_low != 0.0) {
+        plan.sigma.lower_sigma = lo;
+        plan.winsorized.lower_sigma = lo;
+        plan.averaged.lower_sigma = lo;
+        plan.median_sigma.lower_sigma = lo;
+        plan.linear_fit.lower = lo;
+        if (plan.method == P2_REJECT_PERCENTILE)
+            plan.percentile.low_fraction = lo;
+    }
+    if (in->sigma_high != 0.0) {
+        plan.sigma.upper_sigma = hi;
+        plan.winsorized.upper_sigma = hi;
+        plan.averaged.upper_sigma = hi;
+        plan.median_sigma.upper_sigma = hi;
+        plan.linear_fit.upper = hi;
+        if (plan.method == P2_REJECT_PERCENTILE)
+            plan.percentile.high_fraction = hi;
+    }
+    if (mi > 0) {
+        plan.sigma.max_iterations = mi;
+        plan.winsorized.max_iterations = mi;
+        plan.averaged.max_iterations = mi;
+        plan.median_sigma.max_iterations = mi;
+        plan.linear_fit.max_iterations = mi;
+        plan.esd.max_outliers = mi;
+    }
 
-    P2CandidateStack stack{};
-    stack.values = vals.data();
-    stack.weights = wgt.empty() ? nullptr : wgt.data();
-    stack.frame_ids = fids.empty() ? nullptr : fids.data();
-    stack.count = m;
-    stack.data_type = in->data_type;
-    std::vector<std::uint8_t> reasons(m, P2_REASON_ACCEPTED);
+    P2CandidateStack st{};
+    st.values = vals.data();
+    st.weights = wgt.empty() ? nullptr : wgt.data();
+    st.frame_ids = fids.empty() ? nullptr : fids.data();
+    st.count = m;
+    st.data_type = in->data_type;
+    ScratchVec<std::uint8_t> reasons;
+    reasons.resize(m);
     P2RejectionDecision dec{};
     dec.reasons = reasons.data();
-    if (p2_reject_stack_ex(&stack, &plan, &dec, nullptr) != 0) return 1;
+    if (p2_reject_stack_ex(&st, &plan, &dec) != 0) return 1;
 
-    // 映射回旧掩码；无效/不合格样本保持 0
     std::uint32_t k = 0;
     for (std::uint32_t i = 0; i < n; ++i) {
         if (!std::isfinite(in->values[i])) continue;
         if (in->valid != nullptr && !in->valid[i]) continue;
         if (in->support != nullptr && !(in->support[i] > 0.0)) continue;
         if (dec.reasons[k] == P2_REASON_ACCEPTED ||
-            dec.reasons[k] == P2_REASON_UNDERDETERMINED) {
+            dec.reasons[k] == P2_REASON_UNDERDETERMINED)
             out->accepted[i] = 1;
-        }
         ++k;
     }
     out->accepted_count = dec.accepted_count;
@@ -1760,7 +1950,6 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
     out->rejected_high = dec.rejected_high;
     out->iterations = dec.iterations;
     out->status = dec.status;
-    // 兼容旧语义：NaN 输入时 status 保持 3（除非全拒 → 2）
     if (has_nonfinite && out->status != P2_STATUS_ALL_REJECTED)
         out->status = P2_STATUS_INVALID_INPUT;
     return 0;

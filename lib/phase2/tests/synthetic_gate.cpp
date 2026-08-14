@@ -3717,7 +3717,7 @@ std::vector<std::uint8_t> v15_reject(const std::vector<double>& vals,
     st.data_type = 1;
     std::vector<std::uint8_t> reasons(vals.size(), 0);
     dec->reasons = reasons.data();
-    EXPECT_EQ(p2_reject_stack_ex(&st, &plan, dec, nullptr), 0);
+    EXPECT_EQ(p2_reject_stack_ex(&st, &plan, dec), 0);
     return reasons;
 }
 
@@ -3883,24 +3883,43 @@ TEST(Phase2Reject, V15TypedPercentileParams) {
     EXPECT_EQ(dec.rejected_high, 1u);
 }
 
-// typed params：minmax 计数生效
+// V16：minmax 一次性固定 rank 删除（不迭代删到 min_kept）
 TEST(Phase2Reject, V15TypedMinmaxParams) {
     std::vector<double> vals{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0};
     P2RejectionPlan plan = v15_plan(P2_REJECT_MINMAX);
     plan.minmax.reject_low_count = 1;
     plan.minmax.reject_high_count = 1;
     plan.minmax.min_kept = 4;
-    plan.minmax.max_iterations = 2;
     P2RejectionDecision dec{};
     auto reasons = v15_reject(vals, plan, &dec);
-    // 两轮：剔除 {1,2}（低）与 {8,7}（高）→ 剩 4 个
-    EXPECT_EQ(dec.accepted_count, 4u);
+    // 一轮：只删最低 1 个与最高 1 个 → 剩 6 个
+    EXPECT_EQ(dec.accepted_count, 6u);
     EXPECT_EQ(reasons[0], P2_REASON_REJECTED_LOW);
-    EXPECT_EQ(reasons[1], P2_REASON_REJECTED_LOW);
-    EXPECT_EQ(reasons[6], P2_REASON_REJECTED_HIGH);
     EXPECT_EQ(reasons[7], P2_REASON_REJECTED_HIGH);
-    EXPECT_EQ(dec.rejected_low, 2u);
-    EXPECT_EQ(dec.rejected_high, 2u);
+    EXPECT_EQ(reasons[1], P2_REASON_ACCEPTED);
+    EXPECT_EQ(dec.rejected_low, 1u);
+    EXPECT_EQ(dec.rejected_high, 1u);
+}
+
+// V16：MinMax 固定 rank 精确集（PixInsight 示例：50 样本 (3,5) → 42 保留）
+TEST(Phase2Reject, V16MinMaxFixedCountExact) {
+    std::vector<double> vals(50);
+    for (int i = 0; i < 50; ++i) vals[i] = 10.0 + (double)i * 0.1;
+    P2RejectionPlan plan = v15_plan(P2_REJECT_MINMAX);
+    plan.minmax.reject_low_count = 3;
+    plan.minmax.reject_high_count = 5;
+    plan.minmax.min_kept = 1;
+    P2RejectionDecision dec{};
+    auto reasons = v15_reject(vals, plan, &dec);
+    EXPECT_EQ(dec.accepted_count, 42u);
+    EXPECT_EQ(dec.rejected_low, 3u);
+    EXPECT_EQ(dec.rejected_high, 5u);
+    for (int i = 0; i < 3; ++i)
+        EXPECT_EQ(reasons[i], P2_REASON_REJECTED_LOW);
+    for (int i = 45; i < 50; ++i)
+        EXPECT_EQ(reasons[i], P2_REASON_REJECTED_HIGH);
+    for (int i = 3; i < 45; ++i)
+        EXPECT_EQ(reasons[i], P2_REASON_ACCEPTED);
 }
 
 // Eligibility：finite/valid/support/quality 统一过滤
@@ -4045,7 +4064,7 @@ TEST(Phase2Reject, V15ExPermutationInvarianceTyped) {
             P2RejectionDecision dec{};
             std::vector<std::uint8_t> r(v.size(), 0);
             dec.reasons = r.data();
-            EXPECT_EQ(p2_reject_stack_ex(&st, &plan, &dec, nullptr), 0);
+    EXPECT_EQ(p2_reject_stack_ex(&st, &plan, &dec), 0);
             return r;
         };
         auto r1 = run(vals, fid);
@@ -4054,5 +4073,186 @@ TEST(Phase2Reject, V15ExPermutationInvarianceTyped) {
             EXPECT_EQ(r1[i], r2[inv[i]]) << "method " << method
                                          << " perm invariant failed";
     }
+}
+
+// =====================================================================
+// V16 Final Closure AuditFix — normalization / minmax / eligibility 回归
+// =====================================================================
+
+namespace {
+
+// 带归一化的拒绝（工作域）
+std::vector<std::uint8_t> v16_reject_norm(const std::vector<double>& vals,
+                                          const P2RejectionPlan& plan,
+                                          P2RejectionDecision* dec,
+                                          int normalization) {
+    P2RejectionPlan p = plan;
+    p.normalization = normalization;
+    P2CandidateStack st{};
+    st.values = vals.data();
+    st.count = (std::uint32_t)vals.size();
+    st.data_type = 1;
+    std::vector<std::uint8_t> reasons(vals.size(), 0);
+    dec->reasons = reasons.data();
+    EXPECT_EQ(p2_reject_stack_ex(&st, &p, dec), 0);
+    return reasons;
+}
+
+} // namespace
+
+// V16：normalization 工作域对平移不变方法透明（NONE vs MEDIAN_CENTER
+// decision 一致）；percentile 在 |median| 尺度下负值安全。
+TEST(Phase2Reject, V16NormalizationTransparentAndNegativeSafe) {
+    std::vector<double> vals{10.0, 10.1, 9.9, 10.05, 10.2, 9.8, 50.0};
+    for (int method : {P2_REJECT_SIGMA, P2_REJECT_WINSORIZED_SIGMA,
+                       P2_REJECT_AVERAGED_SIGMA, P2_REJECT_MEDIAN_SIGMA}) {
+        P2RejectionPlan plan = v15_plan(method);
+        P2RejectionDecision d1{}, d2{};
+        auto r1 = v16_reject_norm(vals, plan, &d1, P2_NORMALIZE_NONE);
+        auto r2 = v16_reject_norm(vals, plan, &d2, P2_NORMALIZE_MEDIAN_CENTER);
+        EXPECT_EQ(r1, r2) << "method " << method
+                          << " normalization transparent";
+        EXPECT_EQ(d1.status, d2.status);
+    }
+    // percentile 负 median（非对称 fraction 暴露阈值方向）：
+    // 物理值 ~ -10；v=-2（高侧）应 rejected_high，v=-18（低侧）应
+    // rejected_low；不能把全部样本误拒（旧 Siril 公式 m*high<0 会把
+    // v > m-|m|*high 全部判高侧）。
+    std::vector<double> neg{-10.0, -10.1, -9.9, -10.05, -2.0, -18.0, -9.8};
+    P2RejectionPlan pplan = v15_plan(P2_REJECT_PERCENTILE);
+    pplan.percentile.low_fraction = 0.5;
+    pplan.percentile.high_fraction = 0.5;
+    P2RejectionDecision pd{};
+    auto pr = v16_reject_norm(neg, pplan, &pd, P2_NORMALIZE_MEDIAN_CENTER);
+    EXPECT_EQ(pd.status, P2_STATUS_OK);
+    EXPECT_EQ(pd.rejected_low, 1u);   // -18.0
+    EXPECT_EQ(pd.rejected_high, 1u);  // -2.0
+    EXPECT_EQ(pr[4], P2_REASON_REJECTED_HIGH);
+    EXPECT_EQ(pr[5], P2_REASON_REJECTED_LOW);
+    EXPECT_EQ(pd.accepted_count, 5u);
+}
+
+// V16：percentile 必须 MEDIAN_CENTER；rcr 必须 NONE（INVALID_CONFIGURATION）
+TEST(Phase2Reject, V16InvalidConfigurationCombos) {
+    std::vector<double> vals{10.0, 10.1, 9.9, 10.05, 10.2};
+    P2RejectionPlan plan = v15_plan(P2_REJECT_PERCENTILE);
+    P2RejectionDecision dec{};
+    auto r = v16_reject_norm(vals, plan, &dec, P2_NORMALIZE_NONE);
+    EXPECT_EQ(dec.status, P2_STATUS_INVALID_CONFIGURATION);
+    EXPECT_EQ(dec.accepted_count, 5u);
+    for (auto x : r) EXPECT_EQ(x, P2_REASON_UNDERDETERMINED);
+
+    P2RejectionPlan rplan = v15_plan(P2_REJECT_RCR);
+    P2RejectionDecision rd{};
+    v16_reject_norm(vals, rplan, &rd, P2_NORMALIZE_MEDIAN_CENTER);
+    EXPECT_EQ(rd.status, P2_STATUS_INVALID_CONFIGURATION);
+}
+
+// V16：config 解析拒绝非法组合（percentile+none / rcr+median_center）
+TEST(Phase2Config, V16RejectionNormalizationValidation) {
+    auto parse = [](const std::string& j) {
+        P2Stage2Config cfg{};
+        std::string err;
+        return p2_stage2_parse_config(nlohmann::json::parse(j), &cfg, &err);
+    };
+    const std::string bad_pct = R"({
+      "version": 1, "inputs": {"hips": ["a.hips", "b.hips"]}, "model": {},
+      "integration": {"rejection": {"method": "percentile",
+         "normalization": "none"}},
+      "output": {"hips": "o.hips"}})";
+    EXPECT_FALSE(parse(bad_pct));
+    const std::string bad_rcr = R"({
+      "version": 1, "inputs": {"hips": ["a.hips", "b.hips"]}, "model": {},
+      "integration": {"rejection": {"method": "rcr",
+         "normalization": "median_center"}},
+      "output": {"hips": "o.hips"}})";
+    EXPECT_FALSE(parse(bad_rcr));
+    const std::string ok_auto = R"({
+      "version": 1, "inputs": {"hips": ["a.hips", "b.hips"]}, "model": {},
+      "integration": {"rejection": {"method": "auto",
+         "profile": "astrocs_adaptive"}},
+      "output": {"hips": "o.hips"}})";
+    EXPECT_TRUE(parse(ok_auto));
+    const std::string ok_rcr = R"({
+      "version": 1, "inputs": {"hips": ["a.hips", "b.hips"]}, "model": {},
+      "integration": {"rejection": {"method": "rcr",
+         "normalization": "none"}},
+      "output": {"hips": "o.hips"}})";
+    EXPECT_TRUE(parse(ok_rcr));
+}
+
+// V16：生产 strided 收集器（fp64 与 fp32 同一语义）
+TEST(Phase2Eligibility, V16GatherStridedFp32Fp64) {
+    // frame-major：3 帧 × 4 像素；像素 2 上帧1 为 NaN、帧2 support=0
+    std::vector<double> vals = {
+        10.0, 10.1, 10.2, 10.3,
+        10.0, 10.1, std::nan(""), 10.3,
+        10.0, 10.1, 10.2, 10.3};
+    std::vector<double> sup = {
+        1, 1, 1, 1,
+        1, 1, 1, 1,
+        1, 1, 0, 1};
+    std::vector<std::uint64_t> fids{0, 1, 2};
+    std::vector<double> out_v(3), out_s(3);
+    std::vector<std::uint64_t> out_f(3);
+    P2EligibilityGatherInput gin{};
+    gin.values = vals.data();
+    gin.value_stride = 4;
+    gin.value_dtype = 1;
+    gin.support = sup.data();
+    gin.support_stride = 4;
+    gin.frame_ids = fids.data();
+    gin.count = 3;
+    gin.pixel = 2;
+    P2EligibilityGatherOutput gout{};
+    gout.values = out_v.data();
+    gout.support = out_s.data();
+    gout.frame_ids = out_f.data();
+    std::uint32_t n = 0;
+    gout.eligible_count = &n;
+    ASSERT_EQ(p2_collect_candidate_stack(&gin, &gout), 0);
+    EXPECT_EQ(n, 1u);
+    EXPECT_DOUBLE_EQ(out_v[0], 10.2);
+    EXPECT_DOUBLE_EQ(out_s[0], 1.0);
+    EXPECT_EQ(out_f[0], 0u);
+    EXPECT_EQ(gout.invalid_finite, 1u);
+    EXPECT_EQ(gout.invalid_support, 1u);
+
+    // fp32 版本
+    std::vector<float> vals32 = {
+        10.0f, 10.1f, 10.2f, 10.3f,
+        10.0f, 10.1f, 10.2f, 10.3f,
+        10.0f, 10.1f, 10.2f, 10.3f};
+    std::vector<float> sup32 = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1};
+    gin.values = vals32.data();
+    gin.value_dtype = 0;
+    gin.support = sup32.data();
+    ASSERT_EQ(p2_collect_candidate_stack(&gin, &gout), 0);
+    EXPECT_EQ(n, 2u);
+    EXPECT_NEAR(out_v[0], 10.2, 1e-6);   // fp32 → fp64
+    EXPECT_NEAR(out_v[1], 10.2, 1e-6);
+    EXPECT_EQ(out_f[0], 0u);
+    EXPECT_EQ(out_f[1], 1u);
+}
+
+// V16：profile 解析（wbpp_current 与 astrocs_adaptive 都接受；AUTO 路由一致）
+TEST(Phase2Reject, V16ProfileGroupVsAdaptive) {
+    for (const char* prof : {"wbpp_current", "astrocs_adaptive"}) {
+        P2RejectionPlanRequest req{};
+        req.request = P2_REJECT_AUTO;
+        req.nominal_contributors = 20;
+        req.profile = prof;
+        P2RejectionPlan plan{};
+        char err[64] = {0};
+        EXPECT_EQ(p2_reject_plan_resolve(&req, &plan, err, sizeof(err)), 0);
+        EXPECT_EQ(plan.method, P2_REJECT_LINEAR_FIT);
+        EXPECT_EQ(plan.normalization, P2_NORMALIZE_MEDIAN_CENTER);
+    }
+    P2RejectionPlanRequest bad{};
+    bad.request = P2_REJECT_AUTO;
+    bad.profile = "legacy";
+    P2RejectionPlan p{};
+    char err[64] = {0};
+    EXPECT_NE(p2_reject_plan_resolve(&bad, &p, err, sizeof(err)), 0);
 }
 

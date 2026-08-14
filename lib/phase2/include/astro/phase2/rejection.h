@@ -1,14 +1,19 @@
 // lib/phase2/include/astro/phase2/rejection.h
 //
-// Phase2 Rejection Framework 公共接口（V15 Final Semantic Closure 重写）。
+// Phase2 Rejection Framework 公共接口（V16 Final Closure AuditFix）。
 //
-// 语义（V15 冻结）：
-//   - 输入分两层：
-//       1) EligibilityPolicy（p2_eligibility_filter）：finite/valid/support/quality
-//          → CandidateStack；rejection kernel 不再知道 support/quality；
-//       2) RejectionPlan：auto 在 **planning 层**（integration cohort / tile 级
-//          nominal contributors）解析为显式方法 + method-specific typed params；
-//          pixel loop 只执行显式方法。
+// 语义（V16）：
+//   - 输入分三层：
+//       1) EligibilityPolicy（p2_eligibility_filter / 生产 strided
+//          p2_collect_candidate_stack）：finite/valid/support/quality →
+//          CandidateStack；rejection kernel 不再知道 support/quality；
+//       2) RejectionPlan：auto 在 **planning 层**解析为显式方法 +
+//          method-specific typed params；profile 语义见
+//          p2_reject_plan_resolve（wbpp_current = group-level 一次解析；
+//          astrocs_adaptive = tile nominal-depth 自适应，独立命名）；
+//       3) RejectionNormalizationPolicy（plan.normalization）：判定工作域
+//          （working stack）与科学积分域（原始 calibrated values）分离；
+//          decision 作用于 working stack，accepted mask 应用于原始值。
 //   - 输出 RejectionDecision：每样本 reason（ACCEPTED / REJECTED_LOW /
 //     REJECTED_HIGH / UNDERDETERMINED）+ stack-level status。
 //   - 统计语义：rejected_low = 低于 lower threshold；rejected_high = 高于
@@ -16,11 +21,11 @@
 //   - n <= underdetermined_n 或 n < 方法 minimum N → REJECTION_UNDERDETERMINED
 //     （可全接受但必须记录，禁止偷偷切换另一套算法）。
 //   - CPU reference 优先；ACR 后端消费同一语义接口（同一 contract）。
-//   - Oracle：Astropy sigma_clip(median+mad_std)、NIST ESD、IRAF AVSIGCLIP、
-//     Siril 1.4.3（GPL ORACLE ONLY）、RCR 2.4.7 官方固定版本（ORACLE ONLY）。
-//   - PIXINSIGHT_EXACT_COMPATIBILITY = NOT_CLAIMED（无法证明与 PixInsight
-//     内核 bit-exact；WBPP profile 只提供 Auto routing 政策，见
-//     p2_reject_plan_resolve）。
+//   - Oracle：Astropy sigma_clip(median+mad_std)、NIST ESD、AveragedSigma
+//     （公式定义；IRAF exact = NOT_CLAIMED）、Siril 1.4.3（GPL ORACLE
+//     ONLY）、RCR 2.4.7 官方固定版本（ORACLE ONLY）。
+//   - PIXINSIGHT_EXACT_COMPATIBILITY = NOT_CLAIMED（WBPP profile 只提供
+//     Auto routing/参数映射政策）。
 #pragma once
 
 #include <cstddef>
@@ -40,7 +45,7 @@ enum P2RejectionMethod {
     P2_REJECT_NONE = 0,           // astrocs.none.v1
     P2_REJECT_SIGMA = 1,          // alias → astrocs.robust_mad_clip.v1
     P2_REJECT_WINSORIZED_SIGMA = 2, // astrocs.winsorized_sigma_siril_1_4_3.v1
-    P2_REJECT_AVERAGED_SIGMA = 3,   // astrocs.avsigclip_iraf.v1
+    P2_REJECT_AVERAGED_SIGMA = 3,   // astrocs.averaged_sigma.v1
     P2_REJECT_LINEAR_FIT = 4,       // astrocs.linear_fit_siril_1_4_3.v1
     P2_REJECT_GENERALIZED_ESD = 5,  // astrocs.generalized_esd_nist.v1
     P2_REJECT_RCR = 6,              // astrocs.rcr_2_4_7_ss_median_dl.v1
@@ -50,11 +55,11 @@ enum P2RejectionMethod {
     P2_REJECT_AUTO = 10             // 只在 planning 层解析，永不进入 kernel
 };
 
-// canonical semantic id 常量（V15 合同；runtime 不再依赖模糊字符串）
+// canonical semantic id 常量（runtime 不依赖模糊字符串）
 #define P2_SEMANTIC_NONE                  "astrocs.none.v1"
 #define P2_SEMANTIC_ROBUST_MAD_CLIP       "astrocs.robust_mad_clip.v1"
 #define P2_SEMANTIC_WINSORIZED_SIRIL      "astrocs.winsorized_sigma_siril_1_4_3.v1"
-#define P2_SEMANTIC_AVSIGCLIP_IRAF        "astrocs.avsigclip_iraf.v1"
+#define P2_SEMANTIC_AVERAGED_SIGMA        "astrocs.averaged_sigma.v1"
 #define P2_SEMANTIC_LINEAR_FIT_SIRIL      "astrocs.linear_fit_siril_1_4_3.v1"
 #define P2_SEMANTIC_GENERALIZED_ESD_NIST  "astrocs.generalized_esd_nist.v1"
 #define P2_SEMANTIC_RCR_2_4_7_SS_MEDIAN_DL "astrocs.rcr_2_4_7_ss_median_dl.v1"
@@ -76,7 +81,15 @@ enum P2RejectStatus {
     P2_STATUS_MIN_SAMPLES = 1,       // 兼容旧语义：候选数 < 显式 min_samples
     P2_STATUS_ALL_REJECTED = 2,
     P2_STATUS_INVALID_INPUT = 3,     // 候选栈含非 finite（资格层后不应出现）
-    P2_STATUS_UNDERDETERMINED = 4    // n <= underdetermined_n 或 n < method minimum N
+    P2_STATUS_UNDERDETERMINED = 4,   // n <= underdetermined_n 或 n < min N
+    P2_STATUS_INVALID_CONFIGURATION = 5 // 方法×normalization 组合不合法
+};
+
+// V16：RejectionNormalizationPolicy（判定工作域；mask 应用回原始科学值）
+enum P2RejectionNormalization {
+    P2_NORMALIZE_NONE = 0,          // identity 工作域
+    P2_NORMALIZE_MEDIAN_CENTER = 1, // working = value - median（per-pixel）
+    P2_NORMALIZE_MEDIAN_SCALE = 2   // working = value / max(|median|, floor)
 };
 
 // ---- method-specific typed parameters（禁止跨方法共享 low/high/max_iter） ----
@@ -103,10 +116,9 @@ typedef struct {
 } P2PercentileParams;
 
 typedef struct {
-    int reject_low_count;  // 每轮低侧剔除数（默认 1）
-    int reject_high_count; // 每轮高侧剔除数（默认 1）
-    int max_iterations;    // 默认 8
-    int min_kept;          // 至少保留样本数（默认 4）
+    int reject_low_count;  // 一次性剔除最低样本数（默认 1）
+    int reject_high_count; // 一次性剔除最高样本数（默认 1）
+    int min_kept;          // 剔除后至少保留样本数（默认 4）
 } P2MinmaxParams;
 
 typedef struct {
@@ -118,6 +130,8 @@ typedef struct {
     int method;                // P2RejectionMethod（explicit）
     int minimum_n;             // 方法注册表 minimum N（不足 → UNDERDETERMINED）
     std::uint32_t underdetermined_n; // n <= 该值 → UNDERDETERMINED（默认 2）
+    int normalization;         // P2RejectionNormalization（默认 MEDIAN_CENTER）
+    double normalization_floor; // MEDIAN_SCALE 的最小 |median|（默认 1e-12）
     // typed params（仅对应 method 的成员有意义）
     P2SigmaParams sigma;       // P2_REJECT_SIGMA
     P2SigmaParams winsorized;  // P2_REJECT_WINSORIZED_SIGMA
@@ -130,18 +144,25 @@ typedef struct {
     P2RcrParams rcr;           // P2_REJECT_RCR
 } P2RejectionPlan;
 
-// Auto 解析请求（planning 层，一次 per integration cohort / tile）
+// Auto 解析请求（planning 层）
 typedef struct {
     int request;                 // P2RejectionMethod（允许 AUTO）
-    std::uint32_t nominal_contributors; // 该 cohort/stack 几何上可贡献的独立
-                                       // exposure 数（禁止用 pixel effective count）
-    const char* profile;         // "wbpp_current"（nullptr=默认）；唯一支持
+    std::uint32_t nominal_contributors; // wbpp_current = integration group
+                                       // active independent exposure 数
+                                       // （一次解析）；astrocs_adaptive =
+                                       // tile nominal geometric depth
+    const char* profile;         // "wbpp_current"（nullptr=默认）| "astrocs_adaptive"
     std::uint32_t underdetermined_n;   // 默认 2
 } P2RejectionPlanRequest;
 
 // 在 planning 层把 request（含 AUTO）解析为显式 P2RejectionPlan。
 // WBPP 2.9.1（本机安装源码 bestRejectionMethod）Auto 路由：
 //   nominal < 6 → percentile；6..15 → winsorized_sigma；>15 → linear_fit。
+// V16 profile 语义：
+//   wbpp_current     → 调用方必须传 integration group active count，一次
+//                      解析；tile/pixel 不重选；局部候选不足 = UNDERDETERMINED。
+//   astrocs_adaptive → AstroCS 自有策略：允许按 tile nominal geometric depth
+//                      自适应；独立命名，不冒充 WBPP exact。
 // err 仅作日志文本；返回 0=OK，非 0=非法参数（err 填充原因）。
 P2_API int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
                                   P2RejectionPlan* plan,
@@ -150,7 +171,7 @@ P2_API int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
 // 返回方法的 canonical semantic id 字符串（未知方法返回 "unknown"）
 P2_API const char* p2_rejection_semantic_id(int method);
 
-// ---- Eligibility（资格层：rejection kernel 不再知道 support/quality） ----
+// ---- Eligibility（资格层，单一路径） ----
 typedef struct {
     const double* values;        // 原始 contributors（UPM-calibrated）
     const double* weights;       // 可空（等权）；随样本携带到候选栈
@@ -177,6 +198,43 @@ typedef struct {
 P2_API int p2_eligibility_filter(const P2EligibilityInput* in,
                                  P2EligibilityOutput* out);
 
+// V16：生产收集器（frame-major strided 输入，一次完成资格判定+紧凑化）。
+// stage2 CPU / ACR 使用同一函数（单一路径）；compat 走连续版（同一 policy）。
+typedef struct {
+    const void* values;              // 必填（frame-major；dtype 见 value_dtype）
+    std::size_t value_stride;
+    const void* weights;             // 可空（与 values 同 dtype）
+    std::size_t weight_stride;
+    const std::uint8_t* valid;       // 可空
+    std::size_t valid_stride;
+    const void* support;             // 可空（与 values 同 dtype）
+    std::size_t support_stride;
+    const std::uint32_t* quality;    // 可空（像素级 quality；当前数据模型为
+                                     // control 级，stage2 传 nullptr 并记录）
+    std::size_t quality_stride;
+    const std::uint64_t* frame_ids;  // 可空（紧凑，帧序一一对应）
+    std::uint32_t count;
+    std::uint32_t pixel;
+    double support_threshold;        // 默认 0.0
+    std::uint32_t quality_flags_required; // 默认 0
+    int value_dtype;                 // 0=fp32, 1=fp64（values/weights/support）
+} P2EligibilityGatherInput;
+
+typedef struct {
+    double* values;                  // 输出紧凑候选（容量 count）
+    double* weights;                 // 可空（容量 count）
+    double* support;                 // 可空（容量 count）
+    std::uint64_t* frame_ids;        // 可空（容量 count）
+    std::uint32_t* eligible_count;
+    std::uint32_t invalid_finite;
+    std::uint32_t invalid_valid;
+    std::uint32_t invalid_support;
+    std::uint32_t invalid_quality;
+} P2EligibilityGatherOutput;
+
+P2_API int p2_collect_candidate_stack(const P2EligibilityGatherInput* in,
+                                      P2EligibilityGatherOutput* out);
+
 // ---- CandidateStack（资格层产物；kernel 输入） ----
 typedef struct {
     const double* values;        // eligible 样本（紧凑）
@@ -196,23 +254,13 @@ typedef struct {
     int status;                  // P2RejectStatus
 } P2RejectionDecision;
 
-// 可复用 workspace（避免每像素堆分配；capacity 建议 = 最大栈深）
-typedef struct P2RejectionWorkspace P2RejectionWorkspace;
-
-P2_API P2RejectionWorkspace* p2_rejection_workspace_create(std::size_t capacity);
-P2_API void p2_rejection_workspace_free(P2RejectionWorkspace* ws);
-
 // 执行显式 RejectionPlan（plan->method 必须为 explicit；AUTO 返回非法参数）。
-// ws 可空（内部分配）；生产路径必须传入复用 workspace。
+// V16：kernel 内 n<=64 使用固定 scratch（无每像素堆分配）；>64 走堆。
 P2_API int p2_reject_stack_ex(const P2CandidateStack* stack,
                               const P2RejectionPlan* plan,
-                              P2RejectionDecision* out,
-                              P2RejectionWorkspace* ws);
+                              P2RejectionDecision* out);
 
 // ---- 旧接口（COMPAT adapter，仅测试/旧调用；生产 Stage2 不再调用） ----
-// 输入：value 为 UPM-calibrated 样本；valid/support/weight/quality 可空。
-// 语义（V15）：auto 在此用 count 作为 nominal 近似解析（compat 仅此一次；
-// 生产路径用 p2_reject_plan_resolve 显式解析）；低/高拒绝按阈值语义。
 typedef struct {
     const double* values;
     const std::uint8_t* valid;      // 可空（全部有效）
@@ -235,7 +283,7 @@ typedef struct {
     std::uint32_t rejected_low;
     std::uint32_t rejected_high;
     std::uint32_t iterations;
-    int status;                     // P2RejectStatus（兼容旧 0..3 数值）
+    int status;                     // P2RejectStatus（兼容旧 0..4 数值）
 } P2RejectionResult;
 
 P2_API int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out);
