@@ -1,55 +1,27 @@
-# Round 2 — Semantic / Single-Path Review
+# Round 2 — Semantic / Single-Path Review（V16）
 
-## 方法
+独立重读源码验证：
 
-独立重读源码 + 全仓库 grep，验证 `reports/semantic_path_inventory.csv`
-声明（不依赖 Round1 结论）。
-
-## 验证结果
-
-### 1. rejection 生产调用链（单路径）
-
-```text
-生产（stage2.cpp:826）: p2_reject_stack_ex（explicit plan）
-ACR backend        : acr_kernels.cpp:133 → p2_reject_stack_ex（同一 contract）
-COMPAT（测试/工具）: rejection_cli.cpp / synthetic_gate / sanitize_driver
-                     → p2_reject_stack（adapter；生产不调用）
-```
-
-grep 确认 `stage2.cpp` 无 `p2_reject_stack(` 调用 → 生产单路径 ✓。
-
-### 2. HEALPix 映射（单实现）
-
-- `astrocs::healpix`（lib/common/healpix/healpix_core.cpp）为唯一手写实现；
-- 浏览器 healpix_math.cpp 已委托 canonical（本地 ang2pix/pix2ang 已删除，
-  c0fa750）；全仓库 grep 无 common 之外的 handwritten ang2pix ✓；
-- `ang2pix_ring` 全仓库 0 命中（ring 未迁移，与 DATA_SEMANTICS 一致）✓。
-
-### 3. 配置默认（单源）
-
-- `tools/config_consistency_check.py` PASS（struct/parser/schema/template
-  全部一致；checked_keys 30 项，mismatches=0）；
-- rejection 旧字段 low/high/max_iterations/min_samples 仅 deprecation
-  adapter（parser 打印 warning），不构成第二默认 ✓。
-
-### 4. 遗留 fallback 不改变科学
-
-- `P2_STATUS_UNDERDETERMINED` 全接受但记录（n<=2 / <min N），不静默换算法；
-- ACR/CUDA 与 CPU 同一 contract（等价测试 PASS），非"第二实现"。
-
-### 5. 归档/冻结边界
-
-- stf.js / stf.py：仅在 `lib/healpix_db/archive/`（healpix_browser_web 等）
-  → ARCHIVED，非生产；
-- healpix_stack（gradient/stack/winsorized）：冻结模块，生产 Phase2 入口
-  为 astrocs-stage2，未触碰。
-
-## 结论
+1. **rejection 生产调用链**：stage2.cpp 只有 `p2_reject_stack_ex`；
+   ACR legacy launcher 同函数；compat 仅测试/工具。`p2_reject_stack(`
+   在 stage2 零命中 → 单路径 ✓。
+2. **eligibility 单路径**：stage2 CPU 与 ACR 均调用
+   `p2_collect_candidate_stack`（strided，同一 policy core）；compat 走
+   `p2_eligibility_filter`（同一 eligibility_core）→ 无第二套手写资格判定 ✓。
+3. **profile 语义**：wbpp_current group-level 一次解析（stage2 group_plan，
+   诊断 `rejection_resolved_methods={'16': linear_fit}`）；astrocs_adaptive
+   独立 per-tile（头文件与报告明确标注非 WBPP exact）→ 无冒名 ✓。
+4. **normalization**：kernel 内 plan.normalization 唯一实现；
+   percentile/rcr 组合校验（INVALID_CONFIGURATION）✓。
+5. **MinMax**：一次性固定 rank（无迭代）；无第二实现 ✓。
+6. **默认值单源**：config_consistency_check.py PASS（含 normalization、
+   astrocs_adaptive、minmax 无 max_iterations）✓。
+7. **HEALPix/FITS 映射**：无 common 外手写映射（V15 已删）✓。
+8. **归档/冻结**：stf.js/web 仅 archive；healpix_stack 冻结 ✓。
 
 ```text
-two production implementations  = 0
-two defaults                    = 0
-legacy fallback changes science = 0
-duplicate production science paths = 0
+two production implementations = 0
+two defaults                   = 0
+legacy fallback changes science= 0
 ROUND2=PASS
 ```

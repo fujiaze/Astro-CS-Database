@@ -36,6 +36,30 @@ browser peak RAM : 17 MB（有界）
 5. **Browser STF 单状态**：stretch-only 走缓存 float viewport，不重采样/
    解码（stretch_only p50 1.41ms）。
 
+## V16 追加（正确性后性能）
+
+6. **rejection kernel fixed-scratch**：n≤64 用固定数组（ScratchVec），
+   >64 一次性迁移 heap；消除每像素堆分配（V16 ScratchVec heap-mode
+   修复 n>64 崩溃后 oracle/matrix 全 PASS）；
+7. **eligibility 一次收集**：p2_collect_candidate_stack（strided）替代
+   stage2/ACR 内联手写资格判定（单路径 + 单次收集）；
+8. **group plan 缓存**：wbpp_current 在 run 开始解析一次，tile 复用
+   （移除每 tile 重复 resolve）。
+
+## V16 基准（本机，3 次）
+
+```text
+真实 16 帧 Phase2（wbpp_current, linear_fit, median_center）：
+  truth 23.5s / clean 24.6s / trail 24.6s / trail_none 23.4s
+合成 20 帧（satgate，V15 复跑）：
+  52.83 / 43.80 / 43.02 s → median 43.80s
+n2 overlap：42.91 / 41.60 / 41.60 s → median 41.60s
+sampler RealHipsControlSampling：9.2s；G6：13.4s
+```
+
+科学等价：65/65 gate（含 CPU/ACR、identity、serialization）；卫星门
+clean vs truth 背景 std ratio=0.9991。
+
 ## 规则符合性
 
 - 3+ runs、median/p95：✓（evidence/performance_*.json）；

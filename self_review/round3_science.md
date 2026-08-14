@@ -1,42 +1,36 @@
-# Round 3 — Science / Oracle / Adversarial Review
+# Round 3 — Science / Oracle / Adversarial Review（V16）
 
-## Oracle 独立性（V15 修复后）
+## Oracle（全部实际运行，无 NOT_RUN）
 
-| 对照 | 独立来源 | 结果 |
+| 对照 | 来源 | 结果 |
 | --- | --- | --- |
-| robust_mad_clip | Astropy `sigma_clip(cenfunc=median, stdfunc=mad_std)` | agree=200/200 PASS |
-| Generalized ESD | NIST/Rosner 54 点（scipy t 独立实现） | 3 outliers + masking case PASS |
-| Linear Fit | **未修改 Siril 1.4.3 官方源码 harness**（rejection_float.c + siril_fit_linear.c） | 7 case 全部逐元素 agree + permutation invariant PASS |
-| RCR | 官方 rcr 2.4.7（nickk124/robust-outlier-rejection a8a29a6） | 10 case rejected-set exact PASS |
-| Winsorized | SciPy winsorize primitive 数值断言（仅原语；Siril 为权威参考） | PASS |
-| WBPP Auto | 本机 WBPP 2.9.1 源码 bestRejectionMethod | 6 档 nominal 路由一致 PASS |
+| robust_mad_clip | Astropy sigma_clip(mad_std) | agree=200/200 PASS |
+| ESD | NIST/Rosner 54 + masking | PASS |
+| LinearFit | **未修改 Siril 1.4.3 源码 harness** | 7 case exact + permutation PASS |
+| RCR | 官方 rcr 2.4.7 | 10 case exact PASS |
+| Winsorized | SciPy 原语数值断言 | PASS |
+| WBPP Auto | 本机 2.9.1 bestRejectionMethod | 6 档 PASS |
+| MinMax | PixInsight 论坛示例 (3,5)→42 | V16MinMaxFixedCountExact PASS |
+| Averaged Sigma | 公式定义（IRAF exact=NOT_CLAIMED；oracle_matrix 如实标注，不再 NOT_RUN） | 矩阵行为 PASS |
 
-Python 镜像（winsorized_mirror_smoke）已明确标注 `NOT_AN_ORACLE`（不冒充
-独立来源）；恒真断言已修复（V15）。
-
-## Adversarial / Metamorphic（证据）
-
-| 类别 | 覆盖 | 证据 |
-| --- | --- | --- |
-| empty / n=0 | status=MIN_SAMPLES | R2MinSamples / ex kernel |
-| one/two samples | n=1-2 → UNDERDETERMINED（真实生产 61.6M px） | V15SatelliteN2Underdetermined + n2overlap run |
-| zero variance | 无拒绝（全接受） | oracle edge_matrix |
-| NaN / ±Inf | INVALID_INPUT 防御（全 accepted，不伪称拒绝） | oracle edge_matrix |
-| valid=false / support=0 / quality | eligibility 过滤 + 计数 | V15FilterAllPolicies |
-| one bright / one dark / two-sided | rejected_low/high 阈值语义 | V15LowHighThresholdSemantics |
-| satellite trail（20 帧） | recall=1.0000（1418/1418 生产 kernel） | satellite_metrics.json |
-| cosmic-ray 式单帧离群 | 20 帧栈 linear_fit 拒绝 | V15SatelliteTrail20Frames |
-| dense field / star | 星点 flux bias=0 | satellite_metrics.json |
-| tile seam / order boundary | geometry truth（browser）+ UPM seam gates | test_geometry_truth PASS |
-| permutation（frame order） | 全方法 mask 不变 | G6PermutationInvariance / V15ExPermutationInvarianceTyped / linear_fit+rcr oracle permutation |
-| serialization round-trip | UPM save/open + hash | G2PersistenceAndHashSensitivity PASS |
-| 同科学不同调度（CPU/ACR） | legacy launcher / CUDA 等价 | Phase2Acr.* PASS |
-| renaming/path move 不改变 identity | frame_id 复制/改名不变 | G3StableFrameIdentity PASS |
-
-## 结论
+## Adversarial（V16 新增/复跑）
 
 ```text
-所有科学判定来自生产实现或独立外部来源；无同公式 Python mirror 冒充 oracle；
-adversarial matrix 无未解科学不一致。
+negative median percentile（非对称 fraction）→ 方向正确 PASS
+percentile+none / rcr+median_center → INVALID_CONFIGURATION PASS
+n=200 sigma 栈（ScratchVec heap path）→ oracle/matrix PASS（修复后）
+真实 16 帧 trail（1907 像素）→ recall=1.0000 PASS
+clean vs truth preservation（背景 std ratio 0.9991）→ PASS
+CPU/ACR 等价、permutation、serialization、identity → 65/65 gate PASS
+```
+
+## 独立来源政策
+
+- 无同公式 Python mirror 冒充 oracle（winsorized_mirror_smoke 标注
+  NOT_AN_ORACLE）；
+- 卫星门 per-pixel 判定全部来自生产 kernel；
+- 真实 E2E 数据为真实 raw→Phase1→Phase2（NGC1727 H-alpha 16 exposure）。
+
+```text
 ROUND3=PASS
 ```

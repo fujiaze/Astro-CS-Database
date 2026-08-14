@@ -1,44 +1,33 @@
-# Round 4 — Performance / Concurrency / Resource Review
+# Round 4 — Performance / Concurrency / Resource Review（V16）
 
-## 数据（3 次运行，本机，CPU route）
+## 数据（本机，3+ 次或全量）
 
 ```text
-stage2 satellite 20 帧（auto→linear_fit，24 tile）:
-  52.83s / 43.80s / 43.02s  -> median 43.80s, max 52.83s
-stage2 n2 overlap（auto→percentile，285 tile，100% UNDERDETERMINED）:
-  42.91s / 41.60s / 41.60s  -> median 41.60s, max 42.91s
-sampler RealHipsControlSampling : 9.2s（gate 计时）
-sampler G6LocalSnrAvailabilityThreeZones : 13.4s
-browser stretch-only redraw : p50 1.41ms / p95 2.60ms
-browser peak RAM : 17 MB（有界 LRU）
+真实 16 帧 Phase2（wbpp_current linear_fit median_center）：
+  truth 23.5 / clean 24.6 / trail 24.6 / trail_none 23.4 s
+合成 20 帧（V15 复跑）：52.83 / 43.80 / 43.02 → median 43.80s
+n2 overlap：42.91 / 41.60 / 41.60 → median 41.60s
+sampler：RealHipsControlSampling 9.2s；G6 13.4s
+rejection kernel n=200 单栈（修复后）：oracle/matrix 全 PASS（无崩溃）
 ```
 
-完整 before/after 见 reports/performance.md 与 evidence/performance_*.json。
+## V16 优化（先正确性后性能）
 
-## 检查项
+1. ScratchVec fixed-scratch（n≤64 免堆；>64 heap_mode 一次性迁移）；
+2. eligibility 单次 strided 收集（stage2/ACR 不再内联手写）；
+3. wbpp_current group plan 一次解析（tile 复用）；
+4. MinMax 固定 rank（O(n log n) 单次，无迭代）。
+
+## 检查
 
 | 项 | 结论 |
 | --- | --- |
-| O(N²) | sampler catalogue 全扫描（O(cells×stars)）→ dec 排序索引（O(logN+k)），已修 |
-| repeated allocation | rejection auto 路由移出 pixel loop；workspace API 预留（P3 backlog） |
-| repeated FITS open/decode | stage2 每 tile 打开一次复用（原有）；未新增重复打开 |
-| cache bound | browser LRU 有界；soak 峰值 17MB |
-| OpenMP race | rasterize 并行区只读 tile 缓存 + 输出独立索引（原有验证）；本轮未改 |
-| false sharing / oversubscription | 未触及（无新增并行结构） |
-| GPU transfer | ACR 仅 sigma 路由；等价测试 PASS；本轮卫星门走 CPU route |
-| cancellation / timeout | oracle 脚本 subprocess 全部显式 timeout（V15 修复） |
-
-## 科学等价
-
-- gate 59/59（含 identity/copy、CPU/ACR、serialization、真实数据回归）；
-- 卫星门 clean vs auto mosaic：背景/星点 bias=0（trail 帧被拒后输出与
-  clean 一致）；
-- stage2 无 RNG，同输入确定（identity 测试覆盖路径级确定性）。
-
-## 回退审查
-
-无可比同配置 before/after 的无解释回退；sampler 为 >60× 提升，stage2
-端到端在 40-45s 量级（20 帧/285 tile 两种负载），符合 V14 基线量级。
+| per-pixel heap churn | kernel n≤64 消除；RCR 保留（P3，非默认） |
+| O(N²) | sampler 已索引化（V15）；无新增二次方 |
+| thread safety | 无新增共享可变状态 |
+| cache/GC | stage2 无 GC；browser LRU 有界 |
+| science equivalence | 65/65 gate + satellite clean/truth std ratio 0.9991 |
+| >5% 无解释回退 | 无（同负载 23-25s 量级，优于 V14 基线） |
 
 ```text
 ROUND4=PASS

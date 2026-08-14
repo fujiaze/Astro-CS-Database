@@ -51,6 +51,21 @@ count。Auto 在 planning 层解析一次（stage2 per-tile），pixel loop 只�
 | production 默认 | winsorized_sigma | auto + profile=wbpp_current |
 | 像素不足处理 | 静默换算法 | UNDERDETERMINED（记录，不换算法） |
 
+## V16：profile 拆分（audit 修正）
+
+```text
+wbpp_current
+  → integration-group 层一次解析（nominal = group active independent
+    exposure 数）；tile/pixel 不重选；局部候选不足 = UNDERDETERMINED
+astrocs_adaptive
+  → AstroCS 自有策略：允许按 tile nominal geometric depth 自适应；
+    独立命名，不冒充 WBPP exact
+```
+
+生产证据：真实 16 帧队列（NGC1727 H-alpha）wbpp_current 诊断
+`rejection_resolved_methods={"16":"astrocs.linear_fit_siril_1_4_3.v1"}`——
+全 run 单次解析，tile 不重选。
+
 ## PIXINSIGHT 兼容性声明
 
 `PIXINSIGHT_EXACT_COMPATIBILITY = NOT_CLAIMED`：AstroCS 不宣称与

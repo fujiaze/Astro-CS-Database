@@ -20,13 +20,26 @@ Raw Contributors
 | astrocs.none.v1 | none | — | 0 |
 | astrocs.robust_mad_clip.v1 | sigma | lower_sigma/upper_sigma/max_iterations | 3 |
 | astrocs.winsorized_sigma_siril_1_4_3.v1 | winsorized_sigma | lower_sigma/upper_sigma/max_iterations | 3 |
-| astrocs.avsigclip_iraf.v1 | averaged_sigma | lower_sigma/upper_sigma/max_iterations | 3 |
+| astrocs.averaged_sigma.v1 | averaged_sigma（IRAF exact=NOT_CLAIMED） | lower_sigma/upper_sigma/max_iterations | 3 |
 | astrocs.linear_fit_siril_1_4_3.v1 | linear_fit | lower/upper/max_iterations | 4 |
 | astrocs.generalized_esd_nist.v1 | generalized_esd | alpha/max_outliers | 3 |
 | astrocs.rcr_2_4_7_ss_median_dl.v1 | rcr | technique=ss_median_dl | 3 |
 | astrocs.percentile_siril.v1 | percentile | low_fraction/high_fraction | 2 |
 | astrocs.median_std_clip.v1 | median_sigma | lower_sigma/upper_sigma/max_iterations | 3 |
 | astrocs.minmax.v1 | minmax | reject_low_count/reject_high_count/max_iterations/min_kept | 5 |
+
+## V16 变更
+
+- MinMax：一次性固定 rank 删除（reject_low_count 个最低 + reject_high_count
+  个最高，一次；n−low−high ≥ min_kept）；`max_iterations` 已从 typed config
+  删除；
+- RejectionNormalizationPolicy：plan.normalization（none/median_center/
+  median_scale）；percentile 必须 median_center；rcr 必须 none；
+  decision 作用于 working stack，mask 回原始科学值积分；
+- averaged_sigma 改名 `astrocs.averaged_sigma.v1`（IRAF exact
+  compatibility = NOT_CLAIMED，不冻结为 IRAF-compatible）；
+- profile：wbpp_current（group-level 一次解析）与 astrocs_adaptive
+  （tile nominal-depth）分离。
 
 ## RJ-001..008 修复
 
