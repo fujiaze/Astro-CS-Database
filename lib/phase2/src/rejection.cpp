@@ -985,13 +985,16 @@ class ScratchVec {
 public:
     ScratchVec() = default;
     void resize(std::size_t n) {
+        if (n > CAP) {
+            heap_.resize(n);
+            heap_mode_ = true;
+        }
         n_ = n;
-        if (n > CAP) heap_.resize(n);
     }
     std::size_t size() const { return n_; }
     bool empty() const { return n_ == 0; }
-    T* data() { return n_ <= CAP ? fixed_.data() : heap_.data(); }
-    const T* data() const { return n_ <= CAP ? fixed_.data() : heap_.data(); }
+    T* data() { return heap_mode_ ? heap_.data() : fixed_.data(); }
+    const T* data() const { return heap_mode_ ? heap_.data() : fixed_.data(); }
     T& operator[](std::size_t i) { return data()[i]; }
     const T& operator[](std::size_t i) const { return data()[i]; }
     T* begin() { return data(); }
@@ -999,9 +1002,25 @@ public:
     const T* begin() const { return data(); }
     const T* end() const { return data() + n_; }
     void fill(const T& v) { std::fill(data(), data() + n_, v); }
+    void push_back(const T& v) {
+        if (!heap_mode_ && n_ >= CAP) {
+            // 迁移到 heap：之后一直走 heap（避免 fixed+heap 分段丢失）
+            heap_.resize(CAP + 1);
+            std::copy(fixed_.begin(), fixed_.end(), heap_.begin());
+            heap_mode_ = true;
+        }
+        if (heap_mode_) {
+            if (heap_.size() <= n_) heap_.resize(n_ + 1);
+            heap_[n_] = v;
+        } else {
+            fixed_[n_] = v;
+        }
+        ++n_;
+    }
 private:
     std::array<T, CAP> fixed_{};
     std::vector<T> heap_;
+    bool heap_mode_ = false;
     std::size_t n_ = 0;
 };
 
@@ -1265,7 +1284,7 @@ void reject_robust_mad_impl(const double* w, std::uint32_t n,
     for (; it < prm.max_iterations; ++it) {
         cur.resize(0);
         for (std::uint32_t i = 0; i < n; ++i)
-            if (accept[i]) cur[cur.size()] = w[i], cur.resize(cur.size() + 1);
+            if (accept[i]) cur.push_back(w[i]);
         const std::uint32_t nc = (std::uint32_t)cur.size();
         if (nc < 2) break;
         dev.resize(nc);
@@ -1310,7 +1329,7 @@ void reject_winsorized_impl(const double* w, std::uint32_t n,
     for (; iters < prm.max_iterations; ++iters) {
         cur.resize(0);
         for (std::uint32_t i = 0; i < n; ++i)
-            if (accept[i]) cur[cur.size()] = w[i], cur.resize(cur.size() + 1);
+            if (accept[i]) cur.push_back(w[i]);
         const std::uint32_t nc = (std::uint32_t)cur.size();
         if (nc < 2) break;
         wcur.resize(nc);
@@ -1471,8 +1490,8 @@ void reject_linear_fit_impl(const double* w, std::uint32_t n,
         ni.resize(0);
         for (std::uint32_t j = 0; j < N; ++j) {
             if (keep[j]) {
-                ns[ns.size()] = stack[j]; ns.resize(ns.size() + 1);
-                ni[ni.size()] = orig[j]; ni.resize(ni.size() + 1);
+                ns.push_back(stack[j]);
+                ni.push_back(orig[j]);
             }
         }
         stack.resize(ns.size());
@@ -1627,7 +1646,7 @@ void reject_median_sigma_impl(const double* w, std::uint32_t n,
     for (; iters < prm.max_iterations; ++iters) {
         cur.resize(0);
         for (std::uint32_t i = 0; i < n; ++i)
-            if (accept[i]) cur[cur.size()] = w[i], cur.resize(cur.size() + 1);
+            if (accept[i]) cur.push_back(w[i]);
         const std::uint32_t nc = (std::uint32_t)cur.size();
         if (nc < 2) break;
         ScratchVec<double> mscr;
