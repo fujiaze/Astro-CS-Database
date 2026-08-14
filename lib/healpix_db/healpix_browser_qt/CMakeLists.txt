@@ -83,6 +83,7 @@ target_link_libraries(healpix_browser_qt_widgets PUBLIC
 add_executable(healpix_browser_qt WIN32
     app/main.cpp
     app/main_window.cpp
+    app/stf_bar.cpp
     app/stf_panel.cpp
 )
 target_link_libraries(healpix_browser_qt PRIVATE

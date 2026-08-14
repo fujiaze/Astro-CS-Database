@@ -646,7 +646,6 @@ void MainWindow::open_hips(const QString& path) {
     layer_toggle_action_->setChecked(false);
     if (stretch_combo_) stretch_combo_->setVisible(true);
     if (hiss_tile_dock_) hiss_tile_dock_->hide();
-    stf_panel_->set_data_range(0.0f, 1.0f);
     populate_hips_presets();
 }
 
@@ -659,6 +658,8 @@ void MainWindow::set_hips_view(HipsView* view) {
             &MainWindow::on_hips_mouse_moved);
     connect(view, &HipsView::layerChanged, this,
             &MainWindow::on_hips_layer_changed);
+    // V14 v3：首帧渲染完成 → 同步 STF 面板数据范围与控制点
+    connect(view, &HipsView::rendered, this, &MainWindow::sync_stf_panel);
     hips_view_ = view;
     setCentralWidget(view);
     view->setFocus();
@@ -1021,10 +1022,10 @@ void MainWindow::on_zoom_out() {
 // ============================================================================
 
 void MainWindow::on_stf_changed(const STFParams& params) {
-    // 来自 STFPanel 的滑块变化 → 转发给 view
+    // 来自 STFPanel 控制点变化 → 显示空间归一化控制点 → view
     if (hips_view_) {
         hips_auto_range_ = false;
-        hips_view_->set_manual_range(params.shadows, params.highlights);
+        hips_view_->set_manual_stf(params);
         return;
     }
     if (current_view_) {
@@ -1046,6 +1047,22 @@ void MainWindow::on_auto_stretch_clicked() {
     if (current_view_) {
         current_view_->auto_stretch();
     }
+}
+
+void MainWindow::sync_stf_panel() {
+    if (!hips_view_) return;
+    const std::string preset =
+        stretch_combo_ ? stretch_combo_->currentText().toLower().toStdString()
+                       : "asinh";
+    const STFParams sp = STFEngine::get_preset(
+        preset, hips_view_->sky()->range_lo(),
+        hips_view_->sky()->range_hi());
+    STFParams p;
+    p.shadows = 0.0f;   // auto：无裁剪
+    p.highlights = 1.0f;
+    p.midtones = sp.midtones;
+    p.compression = sp.compression;
+    stf_panel_->update_from_params(p);
 }
 
 // ============================================================================

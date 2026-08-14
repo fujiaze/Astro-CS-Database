@@ -125,6 +125,18 @@ void HipsSkyView::set_manual_range(float lo, float hi) {
     hi_ = (hi > lo) ? hi : (lo + 1.0f);
 }
 
+void HipsSkyView::set_manual_stf(const STFParams& params) {
+    // V14 v3：手动 STF 用显示空间归一化控制点（0=黑, 1=白），
+    // 渲染端在 auto 标尺归一化后再应用裁剪窗口。
+    auto_range_ = false;
+    manual_shadows_ = clampf(params.shadows, 0.0f, 1.0f);
+    manual_highlights_ = clampf(params.highlights, 0.0f, 1.0f);
+    if (manual_highlights_ <= manual_shadows_)
+        manual_highlights_ = manual_shadows_ + 1e-3f;
+    manual_midtones_ = params.midtones;
+    manual_compression_ = params.compression;
+}
+
 int HipsSkyView::target_order() const {
     if (!bk_) return 0;
     const int leaf = bk_->get_hips_order();  // 叶级 tile order（GC=7）
@@ -406,6 +418,15 @@ void HipsSkyView::rasterize(std::vector<std::uint32_t>& rgba) {
                 std::sort(samples.begin(), samples.end());
                 compute_auto_range(samples, &dmin, &dmax);
                 valid = samples.size();
+                display_min_ = samples.front();
+                display_max_ = samples.back();
+            }
+        } else if (from_full_dataset) {
+            // 全 dataset 扫描时同步真实数据范围（std::sort 后 samples
+            // 可能被 compute 路径改动；用缓存标尺时的兜底在下方处理）
+            if (!samples.empty()) {
+                display_min_ = samples.front();
+                display_max_ = samples.back();
             }
         }
         if (from_full_dataset && valid == 0) valid = 1;
@@ -424,7 +445,14 @@ void HipsSkyView::rasterize(std::vector<std::uint32_t>& rgba) {
 
     // ---- Phase B（并行）：leaf → 缓存 tile → 上色 ----
     std::atomic<std::size_t> fallback_count{0};
-    const STFParams sp = STFEngine::get_preset(preset_, lo_, hi_);
+    STFParams sp = STFEngine::get_preset(preset_, lo_, hi_);
+    // V14 v3：手动控制点（midtones/compression）覆盖预设曲线参数
+    if (!auto_range_) {
+        sp.shadows = manual_shadows_;
+        sp.highlights = manual_highlights_;
+        sp.midtones = manual_midtones_;
+        sp.compression = manual_compression_;
+    }
     const float range = (hi_ - lo_) > 1e-12f ? (hi_ - lo_) : 1.0f;
 #pragma omp parallel for schedule(static)
     for (int j = 0; j < h_; ++j) {
@@ -462,7 +490,14 @@ void HipsSkyView::rasterize(std::vector<std::uint32_t>& rgba) {
                 if (layer_ == 0) {
                     const float val = t->sig[(size_t)fi];
                     if (std::isfinite(val)) {
-                        const float x = clampf((val - lo_) / range, 0.0f, 1.0f);
+                        // V14 v3：auto 标尺归一化后，手动模式再应用
+                        // 显示空间裁剪窗口（shadows/highlights 控制点）
+                        float x = (val - lo_) / range;
+                        if (!auto_range_) {
+                            x = (x - sp.shadows) /
+                                (sp.highlights - sp.shadows);
+                        }
+                        x = clampf(x, 0.0f, 1.0f);
                         const float tone = display_tone(x, preset_, sp.midtones,
                                                         sp.compression);
                         const std::uint32_t g =

@@ -56,6 +56,12 @@ void HipsView::set_manual_range(float lo, float hi) {
     update();
 }
 
+void HipsView::set_manual_stf(const STFParams& params) {
+    sky_.set_manual_stf(params);
+    dirty_ = true;
+    update();
+}
+
 void HipsView::refresh_auto_range() {
     sky_.refresh_auto_range();
     dirty_ = true;
@@ -95,6 +101,10 @@ void HipsView::ensure_rendered() {
                   QImage::Format_ARGB32)
                .copy();
     dirty_ = false;
+    if (!rendered_once_) {
+        rendered_once_ = true;
+        emit rendered();  // V14 v3：首次渲染后通知 STF 面板同步
+    }
 }
 
 void HipsView::paintEvent(QPaintEvent*) {

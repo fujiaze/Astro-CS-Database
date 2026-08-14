@@ -56,6 +56,7 @@ private slots:
     void on_hips_layer_changed(int layer);
     void on_auto_stretch_clicked();
     void on_grid_toggle(bool checked);  // View > 经纬线网格 checkbox
+    void sync_stf_panel();  // V14 v3：首帧渲染后同步 STF 面板
 
 public:
     // V9: 脚本化截图（--screenshot / 测试用）

@@ -33,6 +33,8 @@ public:
     void set_layer(int layer);              // 0=signal, 1=support
     void set_stretch(const std::string& preset, bool auto_range);
     void set_manual_range(float lo, float hi);
+    // V14 v3：手动 STF（lo/hi 像素值 + midtones/compression，渲染生效）
+    void set_manual_stf(const STFParams& params);
     // V14：Auto STF 模式。auto_global 保持 robust 标尺（pan/zoom 不闪）；
     // refresh_auto_range() 显式重算（Reset / Auto View 触发）。
     void refresh_auto_range() { auto_range_dirty_ = true; }
@@ -53,6 +55,10 @@ public:
     // V14：当前显示标尺（browser_cli 证据/探针用）
     float range_lo() const { return lo_; }
     float range_hi() const { return hi_; }
+    // V14 v3：真实数据动态范围（finite 样本 min/max，供 STF 滑块映射；
+    // 与 auto 标尺 lo_/hi_ 无关）
+    float display_min() const { return display_min_; }
+    float display_max() const { return display_max_; }
     // V14：robust STF 重算次数（探针判据：锁定冻结/解锁恢复）
     std::uint64_t auto_recompute_count() const {
         return auto_recompute_count_;
@@ -133,6 +139,11 @@ private:
     std::uint64_t auto_recompute_count_ = 0; // V14：robust 重算次数
     bool strict_leaf_ = false;
     float lo_ = 0.0f, hi_ = 1.0f;
+    float display_min_ = 0.0f, display_max_ = 1.0f;  // V14 v3
+    float manual_midtones_ = 0.5f;      // V14 v3：手动 MTF 中点
+    float manual_compression_ = 0.0f;   // V14 v3：手动压缩强度
+    float manual_shadows_ = 0.0f;       // V14 v3：手动暗部截止（显示空间）
+    float manual_highlights_ = 1.0f;    // V14 v3：手动亮部截止（显示空间）
     // V14：stretch-only redraw —— view 未变时复用已采样 leaves
     std::vector<std::uint64_t> cached_leaves_;
     double cache_ra0_ = 0.0, cache_dec0_ = 0.0, cache_fov_ = 0.0;
