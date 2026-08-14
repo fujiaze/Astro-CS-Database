@@ -1025,7 +1025,16 @@ void MainWindow::on_stf_changed(const STFParams& params) {
     // 来自 STFPanel 控制点变化 → 显示空间归一化控制点 → view
     if (hips_view_) {
         hips_auto_range_ = false;
-        hips_view_->set_manual_stf(params);
+        // compression 由当前曲线预设决定（STFBar 只管理三个控制点）
+        const std::string preset =
+            stretch_combo_ ? stretch_combo_->currentText().toLower().toStdString()
+                           : "asinh";
+        const STFParams base = STFEngine::get_preset(
+            preset, hips_view_->sky()->range_lo(),
+            hips_view_->sky()->range_hi());
+        STFParams p = params;
+        p.compression = base.compression;
+        hips_view_->set_manual_stf(p);
         return;
     }
     if (current_view_) {

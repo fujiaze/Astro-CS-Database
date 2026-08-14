@@ -132,8 +132,8 @@ void HipsSkyView::set_manual_stf(const STFParams& params) {
     manual_shadows_ = clampf(params.shadows, 0.0f, 1.0f);
     manual_highlights_ = clampf(params.highlights, 0.0f, 1.0f);
     if (manual_highlights_ <= manual_shadows_)
-        manual_highlights_ = manual_shadows_ + 1e-3f;
-    manual_midtones_ = params.midtones;
+        manual_highlights_ = manual_shadows_ + 0.05f;  // 最小窗口 5%
+    manual_midtones_ = clampf(params.midtones, 0.05f, 0.95f);
     manual_compression_ = params.compression;
 }
 
@@ -266,7 +266,7 @@ static float display_tone(float x, const std::string& preset, float m,
     } else if (preset == "log") {
         y = std::log1p(c * x) / std::log1p(c);
     } else if (preset == "asinh") {
-        y = std::asinh(c * x) / std::asinh(c);
+        y = (c > 1e-6f) ? (std::asinh(c * x) / std::asinh(c)) : x;
     }
     return STFEngine::mtf(y, m);
 }

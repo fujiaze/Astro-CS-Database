@@ -526,6 +526,71 @@ static int run_stf_lock_probe(const std::string& dir, JsonOut& json,
 }
 
 // ============================================================================
+// V14 v3: 手动 STF 渲染语义探针
+//  - midtones 拉最左（0.05）应整体提亮（亮像素占比高）；
+//  - midtones 拉最右（0.95）应整体变暗；
+//  - 验证手动控制点（shadows/highlights/midtones）真实进入渲染路径。
+// 用法: browser_cli --hips <root> --stf-manual-probe --view ra,dec,fov
+// ============================================================================
+static int run_stf_manual_probe(const std::string& dir, JsonOut& json,
+                                const std::string& view_str, int layer) {
+    double ra = 0, dec = 0, fov = 8.0;
+    if (!view_str.empty()) {
+        if (std::sscanf(view_str.c_str(), "%lf,%lf,%lf", &ra, &dec, &fov) != 3)
+            return 2;
+    }
+    HipsBrowserBackend bk;
+    if (bk.open_product(dir) != 0) return 3;
+    HipsSkyView sky;
+    sky.set_backend(&bk);
+    sky.set_size(960, 720);
+    sky.set_layer(layer);
+    sky.set_stretch("asinh", true);
+    sky.set_view(ra, dec, fov, 960.0 / 720.0);
+
+    std::vector<std::uint32_t> rgba;
+    sky.rasterize(rgba);  // auto 标尺（含全 dataset 扫描）
+
+    auto bright_fraction = [&](const std::vector<std::uint32_t>& px) {
+        std::size_t bright = 0, total = 0;
+        for (std::uint32_t c : px) {
+            const std::uint32_t g = (c >> 8) & 0xFF;
+            if (c == 0xFF14181F) continue;  // 空区背景不计
+            ++total;
+            if (g > 128) ++bright;
+        }
+        return total ? (double)bright / (double)total : 0.0;
+    };
+
+    STFParams bright;   // 中间调最左 → 提亮
+    bright.shadows = 0.0f;
+    bright.highlights = 1.0f;
+    bright.midtones = 0.05f;
+    bright.compression = 0.5f;  // asinh 预设压缩
+    sky.set_manual_stf(bright);
+    sky.rasterize(rgba);
+    const double bright_frac = bright_fraction(rgba);
+
+    STFParams dark;     // 中间调最右 → 变暗
+    dark.shadows = 0.0f;
+    dark.highlights = 1.0f;
+    dark.midtones = 0.95f;
+    dark.compression = 0.5f;
+    sky.set_manual_stf(dark);
+    sky.rasterize(rgba);
+    const double dark_frac = bright_fraction(rgba);
+
+    const bool pass = bright_frac > 0.5 && dark_frac < bright_frac * 0.5;
+    json.key_str("hips_root", dir);
+    json.key_num("midtones_0_05_bright_frac", bright_frac);
+    json.key_num("midtones_0_95_bright_frac", dark_frac);
+    json.key_bool("manual_stf_probe_pass", pass);
+    fprintf(stderr, "[stf-manual-probe] bright(m=0.05)=%.3f dark(m=0.95)=%.3f pass=%d\n",
+            bright_frac, dark_frac, pass ? 1 : 0);
+    return pass ? 0 : 6;
+}
+
+// ============================================================================
 // V14: 10 分钟内存有界 soak（G6 验收）
 //  - 连续 pan/zoom 扫描（FOV 0.5°~14.75° 循环，触发跨 order/tile 解码）；
 //  - 每 5 秒采样工作集；LRU 有界缓存应使内存保持平坦（无单调增长）。
@@ -888,6 +953,7 @@ int main(int argc, char* argv[]) {
     bool sim_pan = false;
     bool stf_bench = false;
     bool stf_lock_probe = false;
+    bool stf_manual_probe = false;
     bool dataset_stats = false;
     int soak_seconds = 0;
     bool hips_mode = false;
@@ -908,6 +974,8 @@ int main(int argc, char* argv[]) {
             stf_bench = true;
         } else if (arg == "--stf-lock-probe") {
             stf_lock_probe = true;
+        } else if (arg == "--stf-manual-probe") {
+            stf_manual_probe = true;
         } else if (arg == "--dataset-stats") {
             dataset_stats = true;
         } else if (arg == "--soak") {
@@ -949,6 +1017,7 @@ int main(int argc, char* argv[]) {
             fprintf(stderr, "  --benchmark      性能测试 (文件打开 + 子叶加载 + 降采样)\n");
             fprintf(stderr, "  --stf-bench      浏览器 STF 延迟测试 (recompute vs stretch-only)\n");
             fprintf(stderr, "  --stf-lock-probe Lock STF 行为验证 (锁定冻结标尺/解锁恢复)\n");
+            fprintf(stderr, "  --stf-manual-probe 手动 STF 渲染语义验证 (midtones 两端)\n");
             fprintf(stderr, "  --dataset-stats  全 dataset 分位统计 (Auto Global 标尺证据)\n");
             fprintf(stderr, "  --soak N         内存有界 soak 测试 N 秒 (pan/zoom 扫描 + RAM 采样)\n");
             fprintf(stderr, "  --sim zoom       模拟缩放操作 (测试视角变化性能)\n");
@@ -1050,6 +1119,9 @@ int main(int argc, char* argv[]) {
         } else if (stf_lock_probe) {
             const int layer = (layer_str == "support") ? 1 : 0;
             rc_h = run_stf_lock_probe(file_path, json, view_str, layer);
+        } else if (stf_manual_probe) {
+            const int layer = (layer_str == "support") ? 1 : 0;
+            rc_h = run_stf_manual_probe(file_path, json, view_str, layer);
         } else if (dataset_stats) {
             const int layer = (layer_str == "support") ? 1 : 0;
             rc_h = run_dataset_stats(file_path, json, layer);
