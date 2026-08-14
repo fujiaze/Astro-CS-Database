@@ -141,9 +141,19 @@
               "default": "auto"
             },
             "profile": {
-              "enum": ["wbpp_current"],
+              "enum": ["wbpp_current", "astrocs_adaptive"],
               "default": "wbpp_current",
-              "description": "WBPP Auto routing 政策（本机 WBPP 2.9.1 源码核准）"
+              "description": "wbpp_current = integration-group 层一次解析（WBPP 2.9.1）；astrocs_adaptive = 按 tile nominal depth 自适应（AstroCS 自有策略）"
+            },
+            "normalization": {
+              "enum": ["none", "median_center", "median_scale"],
+              "default": "median_center",
+              "description": "V16 RejectionNormalizationPolicy：判定工作域（decision 作用于 working stack；mask 应用回原始科学值积分）"
+            },
+            "normalization_floor": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "default": 1e-12
             },
             "underdetermined_n": {
               "type": "integer",
@@ -182,8 +192,8 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {
-                "lower": {"type": "number", "exclusiveMinimum": 0, "default": 4.0},
-                "upper": {"type": "number", "exclusiveMinimum": 0, "default": 3.0},
+                "lower": {"type": "number", "exclusiveMinimum": 0, "default": 5.0},
+                "upper": {"type": "number", "exclusiveMinimum": 0, "default": 3.5},
                 "max_iterations": {"type": "integer", "minimum": 1, "maximum": 64, "default": 8}
               }
             },
@@ -199,7 +209,7 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {
-                "low_fraction": {"type": "number", "minimum": 0, "default": 0.1},
+                "low_fraction": {"type": "number", "minimum": 0, "default": 0.2},
                 "high_fraction": {"type": "number", "minimum": 0, "default": 0.1}
               }
             },
@@ -218,7 +228,6 @@
               "properties": {
                 "reject_low_count": {"type": "integer", "minimum": 1, "default": 1},
                 "reject_high_count": {"type": "integer", "minimum": 1, "default": 1},
-                "max_iterations": {"type": "integer", "minimum": 1, "maximum": 64, "default": 8},
                 "min_kept": {"type": "integer", "minimum": 1, "default": 4}
               }
             },

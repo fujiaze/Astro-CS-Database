@@ -26,16 +26,17 @@
     "rejection": {
       "method": "auto",
       "profile": "wbpp_current",
+      "normalization": "median_center",
       "underdetermined_n": 2,
       "robust_mad_clip": {"lower_sigma": 4.0, "upper_sigma": 3.0, "max_iterations": 8},
       "winsorized_sigma": {"lower_sigma": 4.0, "upper_sigma": 3.0, "max_iterations": 8},
       "averaged_sigma": {"lower_sigma": 4.0, "upper_sigma": 3.0, "max_iterations": 8},
-      "linear_fit": {"lower": 4.0, "upper": 3.0, "max_iterations": 8},
+      "linear_fit": {"lower": 5.0, "upper": 3.5, "max_iterations": 8},
       "generalized_esd": {"alpha": 0.05, "max_outliers": 10},
-      "percentile": {"low_fraction": 0.1, "high_fraction": 0.1},
+      "percentile": {"low_fraction": 0.2, "high_fraction": 0.1},
       "median_sigma": {"lower_sigma": 4.0, "upper_sigma": 3.0, "max_iterations": 8},
       "minmax": {"reject_low_count": 1, "reject_high_count": 1,
-                  "max_iterations": 8, "min_kept": 4},
+                  "min_kept": 4},
       "rcr": {"technique": "ss_median_dl"}
     },
     "weight_mode": "auto"

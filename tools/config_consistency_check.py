@@ -84,6 +84,7 @@ def main():
     ALIAS = {
         "method": ("reject_method", {"\"auto\"": "10"}),
         "profile": ("reject_profile", {}),
+        "normalization": ("reject_normalization", {}),
         "underdetermined_n": ("reject_underdetermined_n", {}),
         "min_samples": ("reject_min_samples", {}),
         "low": ("sigma_low", {}),
@@ -110,7 +111,6 @@ def main():
         "median_sigma.max_iterations": ("medsig_max_iterations", {}),
         "minmax.reject_low_count": ("minmax_low_count", {}),
         "minmax.reject_high_count": ("minmax_high_count", {}),
-        "minmax.max_iterations": ("minmax_max_iterations", {}),
         "minmax.min_kept": ("minmax_min_kept", {}),
     }
 

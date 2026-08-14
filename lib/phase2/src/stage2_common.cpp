@@ -283,8 +283,8 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                 }
                 if (rj.contains("linear_fit")) {
                     const auto& s = rj["linear_fit"];
-                    cfg->linfit_lower = s.value("lower", 4.0);
-                    cfg->linfit_upper = s.value("upper", 3.0);
+                    cfg->linfit_lower = s.value("lower", 5.0);   // WBPP Light
+                    cfg->linfit_upper = s.value("upper", 3.5);
                     cfg->linfit_max_iterations =
                         s.value("max_iterations", 8);
                 }
@@ -296,7 +296,7 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                 if (rj.contains("percentile")) {
                     const auto& s = rj["percentile"];
                     cfg->pct_low_fraction =
-                        s.value("low_fraction", 0.1);
+                        s.value("low_fraction", 0.2);  // WBPP Light
                     cfg->pct_high_fraction =
                         s.value("high_fraction", 0.1);
                 }
