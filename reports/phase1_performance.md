@@ -11,13 +11,13 @@ FITS→calibration→plate solve→PSF→photometric→SNR→drizzle→HiPS orde
 | --- | --- | --- | --- |
 | READ_FITS | 0.10s | 0.12s | CFITSIO 读取 4096² |
 | CALIBRATE | 0.49s | 0.54s | bias/dark/flat 标准校准 |
-| PLATESOLVE | 15.4s | 17.6s | 星点检测 + 本地 GaiaDR3 cone + SIP 求解 |
+| PLATESOLVE | 15.36s | 17.64s | 星点检测 + 本地 GaiaDR3 cone + SIP 求解 |
 | PSF | 1.27s | 1.41s | 动态 PSF |
 | PHOTOMETRIC | 5.86s | 5.97s | 本地 GaiaDR3SP 光谱查询 + 测光 |
 | SNR/NSIDE | ~0s | ~0s | 帧级 SNR catalogue |
-| DRIZZLE | 77.6s | 87.3s | ← 主导（冻结热路径，本机 CPU OpenMP） |
+| DRIZZLE | 77.58s | 87.32s | ← 主导（冻结热路径，本机 CPU OpenMP） |
 | HIPS_VERIFY | 0.03s | 0.04s | AIO reader 回读校验 |
-| 整帧 wall | ~145s | ~160s | 16 帧全 rc=0 |
+| 整帧 wall | 145.4s | 159.3s | 16 帧全 rc=0 |
 
 ## 65s vs 150s 历史差异（必须解释）
 
@@ -36,20 +36,38 @@ FITS→calibration→plate solve→PSF→photometric→SNR→drizzle→HiPS orde
 独立求解+验证，不复制 WCS；`tools/phase1_e2e_bench.py` 工具层实现，
 不进入生产算法）。
 
-| 指标 | before cold | after warm | 变化 |
+| 指标 | before cold（V16 全量 16 帧） | after warm（全量 16 帧） | 变化 |
 | --- | --- | --- | --- |
-| PLATESOLVE median | _待填_ | _待填_ | _待填_ |
-| DRIZZLE median | _待填_ | _待填_ | _待填_ |
-| 整帧 wall median | _待填_ | _待填_ | _待填_ |
+| PLATESOLVE median | 15.36s | 15.16s | −0.2s（hint 生效：帧 1 起 initial=上一帧 CRVAL，逐帧仍独立求解+verify） |
+| DRIZZLE median | 77.58s | 74.68s | 帧间方差内 |
+| 整帧 wall median | 145.4s | 142.4s | −2.1%（方差内；Drizzle 主导且冻结） |
 
 ## 3-runs 重复性（before/after 各 3 次）
 
-_待 runs 完成后填写_（run1/run2/run3 的 wall median 与 p95）。
+```text
+before：
+  run1 V16 全量 16 帧（stage1_1727_batch.log）：wall median 145.4s / p95 159.3s
+  run2 V17 cold 全量启动（before_full_cold）：帧 0-3 完成 145-151s，随后被
+       沙箱后台进程回收中断（frame04 起未完成，如实标注）
+  run3 V17 cold 6 帧子集（before_subset_cold）：wall median 144.6s，rc 全 0
+after：
+  run1 V17 warm 全量 16 帧（after_full_warm）：wall median 142.4s / p95 149.9s，rc 全 0
+  run2 V17 warm 6 帧子集（after_subset_warm）：wall median 148.0s，rc 全 0
+  run3 V17 warm 6 帧子集（after_subset_warm_b）：wall median 140.8s，rc 全 0
+```
+
+帧内阶段样本（每 run 16 帧）提供 median/p95；run-to-run wall median 方差
+±3%（140.8-148.0s）> hint 收益，说明 Phase1 wall 由 Drizzle 主导（冻结热
+路径，本轮不动）。
 
 ## 结论（runs 完成后更新）
 
 ```text
-PHASE1_PERFORMANCE_BASELINE = <UPDATE_AFTER_RUNS>
+PHASE1_PERFORMANCE_BASELINE = 142.4s/frame（warm，NGC1727 H-alpha 1200s，
+                             order-7；cold 145.4s；3 runs after median
+                             140.8-148.0s）
+PERFORMANCE_BASELINE = CANDIDATE→FINAL（V17：无回归、65s 差异已解释、
+                     hint 工具层优化、Drizzle 冻结）
 ```
 
 科学等价：hint 只影响搜索初始化；每帧 WCS 仍独立求解 + robust refine +

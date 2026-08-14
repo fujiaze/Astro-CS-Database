@@ -53,3 +53,15 @@ target_link_libraries(calibrated_pair_diag PRIVATE phase2
 
 add_executable(rejection_cli tools/rejection_cli.cpp)
 target_link_libraries(rejection_cli PRIVATE phase2)
+
+# V17：CUDA bridge DLL（nvcc 构建产物）复制到各 exe 目录（bridge loader
+# 搜索路径 1 = exe 目录），保证 clean build 与增量 build 环境一致
+# （GPU 不可用时 CudaEquivalent 之外其余 CUDA 测试已 GTEST_SKIP）。
+set(_cuda_bridge "${CMAKE_CURRENT_SOURCE_DIR}/../acr/backends/cuda/bridge/acr_cuda_bridge.dll")
+if(EXISTS "${_cuda_bridge}")
+  foreach(_t phase2_synthetic_gate astrocs-stage2 calibrated_pair_diag rejection_cli)
+    add_custom_command(TARGET ${_t} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+              "${_cuda_bridge}" "$<TARGET_FILE_DIR:${_t}>")
+  endforeach()
+endif()

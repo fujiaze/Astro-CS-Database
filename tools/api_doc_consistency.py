@@ -25,7 +25,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_FREEZE = "CANDIDATE"   # G10 Round6 clean-tree 终验通过后改 PASS
+EXPECTED_FREEZE = "PASS"       # V17 G10 Round6 clean-tree 终验已通过
 SCAN_DIRS = [ROOT / "docs", ROOT / "reports", ROOT / "docs_snapshot"]
 OUT = ROOT / "run" / "temp" / "p2_v17_evidence" / "api_doc_consistency.json"
 

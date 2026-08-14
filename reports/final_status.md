@@ -32,16 +32,19 @@ G4 WBPP completeness  : PASS（pixel methods 完整 + Large-Scale 已实现并�
 G5 Single path        : PASS（legacy 移出 active tree；no_legacy PASS；duplicate=0）
 G6 Config/API         : PASS（old aliases 删除；migration tool；machine consistency）
 G7 Phase1 audit       : PASS（canonical_core 完整 + call graph + 无隐藏路径）
-G8 Performance        : PASS/见 phase1_performance.md（3+ runs before/after）
+G8 Performance        : PASS（3 runs before/after；warm hint −2.1%；Drizzle
+                        冻结；65s 差异已解释；无 >5% 回归）
 G9 Docs               : PASS（无 stale freeze/API/minmax；support/weight 语义 exact）
-G10 Round0-6          : RUNNING（self_review/ V17 六轮；Round6 clean-tree 终验后置 PASS）
+G10 Round0-6          : PASS（Round5 15/15 假设闭环；Round6 clean-tree：
+                        全新构建 74/74 + 真实 16 帧 E2E + 受控 truth +
+                        external browser + no_legacy；known P0/P1=0）
 ```
 
 ## 如实标注
 
 - `PIXINSIGHT_EXACT_COMPATIBILITY = NOT_CLAIMED`；
-- `ASTROCS_FOUNDATION_FINAL_FREEZE`：G10 完成前为 **CANDIDATE**（本文件
-  Round6 终验通过后翻转 PASS，与 SCIENCE_FREEZE.md 同步）；
+- `ASTROCS_FOUNDATION_FINAL_FREEZE = PASS`（G1-G10 全部满足；与
+  SCIENCE_FREEZE.md 同步；用户外部复核保留最终签核）；
 - 真实 16 帧只报 `observed_sample_rejection_rate`（0.54%）与
   `observed_pixel_any_rejection_rate`（6.58%），不叫 false reject；
 - V16 曾报 9.45%（CLI 未 honor normalization 的测量口径 bug），V17 修复

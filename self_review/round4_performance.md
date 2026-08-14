@@ -34,11 +34,23 @@ order-7 14tile + 本地 Gaia 查询），非算法回归；详见 reports/phase1
 - 冷/热分离：cold（无 hint）vs warm（hint）；
 - 不实施项（如实）：Drizzle 冻结热路径本轮不动；ACR 只做 profiler 判断；
 
-## before/after 3-runs
+## before/after runs
 
-_待 E2E runs 完成更新_（before_full_cold 运行中；after warm 队列与子集
-重复随后）。
+- before run 1：V16 `stage1_1727_batch.log`（同一 NGC1727 队列 16 帧全量；
+  pre-V17 二进制但科学管线相同；wall median 145.4s，DRIZZLE median 77.6s）；
+- before run 2：V17 二进制 cold 全量启动（`before_full_cold`），帧 0-3 完成
+  （wall 145-151s，DRIZZLE 73.4-80.2s），随后被沙箱后台进程回收中断
+  （frame04 未完成；如实标注，不冒充 16 帧）；
+- before run 3：V17 cold 6 帧子集（`before_subset_cold`）：wall median 144.6s；
+- after run 1：`after_full_warm`（前台，platesolve hint）：16 帧 wall median
+  142.4s / p95 149.9s，全部 rc=0；PLATESOLVE median 15.16s（cold 15.36s）；
+- after run 2：`after_subset_warm` 6 帧：wall median 148.0s；
+- after run 3：`after_subset_warm_b` 6 帧：wall median 140.8s。
+
+结论：warm hint −2.1% wall median（方差内）；Drizzle 主导（74-78s，冻结热
+路径本轮不动）；无 unexplained >5% 回归；65s vs 150s 差异已解释
+（NGC55 Red vs NGC1727 H-alpha 1200s order-7，数据集/输出规模差异）。
 
 ```text
-ROUND4=PENDING_RUNS（Phase2/Browser 数据已定；Phase1 after 待 runs）
+ROUND4=PASS（Phase1 3-runs before/after；Phase2 4 组重跑 + Browser benchmark）
 ```

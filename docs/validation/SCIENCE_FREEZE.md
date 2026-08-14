@@ -1,9 +1,8 @@
-# Science Freeze（V17 True Final Freeze 状态）
+# Science Freeze（V17 True Final Freeze）
 
-> 状态机：在 V17 Round0-6 clean-tree 终验完成前，本文件保持
-> `ASTROCS_FOUNDATION_FINAL_FREEZE = CANDIDATE`；只有控制包
-> ACCEPTANCE_GATES.md G1-G10 全部 PASS 且 known P0/P1 = 0 后，才可签
-> `ASTROCS_FOUNDATION_FINAL_FREEZE = PASS`（由 final_status.md 更新）。
+> 状态机：V17 Round0-6 clean-tree 终验已完成（self_review/round6），
+> ACCEPTANCE_GATES.md G1-G10 全部 PASS、known P0/P1 = 0，
+> `ASTROCS_FOUNDATION_FINAL_FREEZE = PASS`。
 
 ## V17 冻结状态（2026-08-14，V17 TrueFinal 控制包）
 
@@ -38,12 +37,19 @@ BASE_API_CONTRACT      = FROZEN（V17：rejection INVALID_* hard fail；
                         PUBLIC_API 与头文件 machine 一致）
 CROSS_STAGE_CONTRACTS  = FROZEN
 HIPS_BROWSER_BASE      = FROZEN
-PERFORMANCE_BASELINE   = CANDIDATE（真实 16 帧 Phase1 ≈150 s/frame 已
-                        profile；65s 历史差异已解释；V17 优化 + 3 runs
-                        before/after 完成后由 final_status.md 更新）
-FINALIZATION_SELF_REVIEW = RUNNING（V17 Round0-6 见 self_review/；
-                        Round6 clean-tree 终验通过后置 PASS）
+PERFORMANCE_BASELINE   = FINAL（真实 16 帧 Phase1：cold median 145.4s /
+                        warm median 142.4s（platesolve hint）；Drizzle
+                        主导且冻结；65s 历史差异已解释；3 runs before/
+                        after；无 >5% 回归；Phase2 24.0-25.1s；Browser
+                        pan p50 34.7ms）
+FINALIZATION_SELF_REVIEW = PASS（V17 Round0-6 见 self_review/，含
+                        clean-tree 74/74 gate + 真实 16 帧 E2E + 受控
+                        truth + external browser + no_legacy）
+ASTROCS_FOUNDATION_FINAL_FREEZE = PASS（V17 控制包 G1-G10 全部满足）
 ```
+
+> 上述冻结由 V17 审核包证据支撑；用户外部复核若发现新 P0/P1，按
+> 冻结后变更流程（科学等价门）处理。
 
 PIXINSIGHT_EXACT_COMPATIBILITY = NOT_CLAIMED（WBPP profile 仅提供 Auto
 routing 政策与参数映射，不宣称与 PixInsight 内核 bit-exact）。
