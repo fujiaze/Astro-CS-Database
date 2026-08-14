@@ -8,6 +8,19 @@ HiPS tile decode/cache → float viewport buffer → display transform/STF → Q
 
 STF 改变**只重做 display transform**，不重新 sky→HEALPix 采样/FITS decode。
 
+## V15：唯一 DisplayTransformState
+
+- `core/stf_engine.h` 定义唯一 `DisplayTransformState`（mode =
+  AutoGlobal/AutoView/Manual；locked；black；white；midtones；curve；
+  compression；generation）。UI（MainWindow/STFPanel/STFBar）只编辑 state；
+  renderer（HipsSkyView::rasterize）只消费 state；任何变更 `generation+1`
+  （丢弃过期异步结果用）。
+- 已删除分散状态字段（preset_/auto_range_/auto_view_/stf_locked_/
+  manual_*）；MainWindow 不再持有重复的 stf_locked_/hips_auto_range_。
+- support 层固定 **linear [0,1]**（V15 移除 sqrt(support)）。
+- HEALPix 位置/层级映射全部委托共享 `astrocs::healpix` core（浏览器第二套
+  手写实现已删除；query_disc/ud_grade 保留为构建在 canonical 之上的工具）。
+
 ## Auto STF
 
 - `Auto Global`（默认）：对 dataset/layer 建一次 robust STF，pan/zoom 稳定；

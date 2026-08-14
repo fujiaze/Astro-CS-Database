@@ -7,6 +7,14 @@
 - `p2_upm_build`（obs-only，兼容）与 `p2_upm_build_geo`（全几何节点，
   V13/V14）。
 - `p2_sample_controls`（含 background-clean stats/geometry 输出，V13）。
+- V15 rejection 接口（typing 单语义）：
+  - `p2_reject_plan_resolve`（planning 层把 auto 解析为显式方法 +
+    method-specific typed params；WBPP 2.9.1 政策）；
+  - `p2_eligibility_filter`（finite/valid/support/quality → CandidateStack）；
+  - `p2_reject_stack_ex`（explicit plan kernel；per-sample reason +
+    stack-level status 分离；UNDERDETERMINED）；
+  - `p2_rejection_workspace_create/free`（可复用 scratch）；
+  - `p2_reject_stack`（旧签名）为 COMPAT adapter，生产 Stage2 不再调用。
 - 返回码：0=OK；非 0 具体语义见各头文件注释；`err` 缓冲只做日志，不承载
   状态机。
 

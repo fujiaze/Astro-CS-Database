@@ -62,6 +62,12 @@ void HipsView::set_manual_stf(const STFParams& params) {
     update();
 }
 
+void HipsView::set_stf_state(const DisplayTransformState& state) {
+    sky_.set_stf_state(state);
+    dirty_ = true;
+    update();
+}
+
 void HipsView::refresh_auto_range() {
     sky_.refresh_auto_range();
     dirty_ = true;

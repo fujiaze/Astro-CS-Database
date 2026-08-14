@@ -1034,7 +1034,11 @@ void MainWindow::on_stf_changed(const STFParams& params) {
             hips_view_->sky()->range_hi());
         STFParams p = params;
         p.compression = base.compression;
-        hips_view_->set_manual_stf(p);
+        // V15：经唯一 DisplayTransformState 提交（UI 只编辑 state）
+        DisplayTransformState st = DisplayTransformState::from_params(
+            p, STFMode::Manual, hips_view_->sky()->stf_state().locked);
+        st.curve = preset;
+        hips_view_->set_stf_state(st);
         return;
     }
     if (current_view_) {

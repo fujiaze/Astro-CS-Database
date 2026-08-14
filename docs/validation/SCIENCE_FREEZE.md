@@ -9,6 +9,26 @@ PERFORMANCE_BASELINE   = FROZEN
 HIPS_BROWSER_BASE      = FROZEN
 ```
 
+## V15 Final Semantic Closure 冻结状态（2026-08-14，V15 控制包）
+
+```text
+PHASE1_BASE_ALGORITHMS = FROZEN
+PHASE2_BASE_ALGORITHMS = FROZEN
+REJECTION_SEMANTICS    = FROZEN（canonical semantic IDs + typed params +
+                        eligibility/rejection 分层 + per-sample reason）
+WBPP_AUTO_POLICY       = FROZEN（wbpp_current = WBPP 2.9.1 bestRejectionMethod；
+                        nominal<6→percentile；6..15→winsorized；>15→linear_fit）
+SATELLITE_REJECTION_GATE = PASS（20-exposure 受控注入 recall=1.0；
+                        n<=2 → REJECTION_UNDERDETERMINED，不宣称可剔除）
+BASE_API_CONTRACT      = FROZEN
+PERFORMANCE_BASELINE   = FROZEN
+FINALIZATION_SELF_REVIEW = CANDIDATE（6 轮自审 + clean-tree 终验完成后
+                        在审核包中定稿，见 self_review/）
+```
+
+PIXINSIGHT_EXACT_COMPATIBILITY = NOT_CLAIMED（WBPP profile 仅提供 Auto
+routing 政策，不宣称与 PixInsight 内核 bit-exact）。
+
 ## 已冻结基线
 
 - HiPS 几何/序列化/hierarchy：V11（外部 oracle）。

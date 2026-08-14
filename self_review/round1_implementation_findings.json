@@ -1,0 +1,53 @@
+{
+  "round": 1,
+  "reviewer": "independent staged implementation review (fresh source read)",
+  "head": "c0fa750+fixes",
+  "scope": "git diff 4b92989..HEAD (rejection/sampler/stage2/acr/browser) + callers",
+  "checks": [
+    "correctness/bounds/NaN-Inf/overflow/lifetime/thread-safety/error-propagation/fallback/dead-code/duplicate/magic-values/config-schema-template/CPU-ACR/test-prod-boundary"
+  ],
+  "findings": [
+    {
+      "id": "R1-P2-001",
+      "severity": "P2",
+      "path": "lib/phase2/tools/stage2.cpp",
+      "line": 700,
+      "issue": "ACR 块路径的 fallback/underdetermined 计数使用 legacy cfg.reject_min_samples，漏计 nv==2 的 UNDERDETERMINED（统计不一致；科学输出不受影响，因 ACR 仅 sigma 且 nv<=2 全接受）",
+      "evidence": "旧条件 `nv < (float)cfg.reject_min_samples`（2）→ nv==2 走 integrated 分支；kernel 语义 nv<=underdetermined_n(2) → UNDERDETERMINED",
+      "action": "FIX"
+    },
+    {
+      "id": "R1-P3-001",
+      "severity": "P3",
+      "path": "lib/phase2/src/rejection.cpp",
+      "line": 1055,
+      "issue": "P2RejectionWorkspace 目前仅容量占位，kernel 分支（RCR/ESD/排序）仍按像素分配 vector；性能轮按 profile 数据接入（已文档化，不影响正确性）",
+      "evidence": "struct P2RejectionWorkspace{size_t capacity;} 且 p2_reject_stack_ex (void)ws",
+      "action": "ACCEPT_WITH_PROOF（reports/performance.md 如实标注）"
+    },
+    {
+      "id": "R1-P3-002",
+      "severity": "P3",
+      "path": "lib/healpix_db/healpix_browser_qt/core/stf_engine.cpp",
+      "line": 28,
+      "issue": "DisplayTransformState::to_params 为公共 API 但 UI 未直接消费（from_params 已在 MainWindow::on_stf_changed 使用）；保留作为 UI↔state 转换 API",
+      "evidence": "grep to_params：仅定义与测试引用",
+      "action": "ACCEPT_WITH_PROOF（API 完整性）"
+    },
+    {
+      "id": "R1-P3-003",
+      "severity": "P3",
+      "path": "lib/phase2/tools/stage2.cpp",
+      "line": 740,
+      "issue": "CPU 像素紧凑收集（stack/weights/fid_stack）与 ACR 块路径重复实现同一 compact 语义；单语义但有代码重复（COMPAT 模式），不改以避免 ACR 路径重构风险",
+      "evidence": "两路径各自循环收集 finite && support>0",
+      "action": "ACCEPT_WITH_PROOF（semantic_path_inventory.csv 分类 BACKEND_EQUIVALENT）"
+    }
+  ],
+  "P0": 0,
+  "P1": 0,
+  "P2": 1,
+  "P3": 3,
+  "result": "P2 已修复（R1-P2-001 在本轮 FIX 并重建验证）；P3 有明确 owner/理由且不改变科学正确性",
+  "verdict": "ROUND1=PASS"
+}

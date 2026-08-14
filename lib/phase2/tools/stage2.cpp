@@ -697,11 +697,13 @@ int main(int argc, char** argv) {
                     if (ok) ++total_pixels;
                     total_rejected += (std::uint64_t)out_rej_f32[i];
                     if (nv <= 0.0f) ++dbg_zero_px;
-                    else if (nv < (float)cfg.reject_min_samples) {
+                    else if (nv <= (float)rplan.underdetermined_n ||
+                             nv < (float)rplan.minimum_n) {
                         if (nv == 1.0f) ++px_depth_1;
                         else ++px_depth_ge_2;
                         ++total_fallback;
                         ++dbg_fallback_px;
+                        ++underdetermined_px;
                     } else {
                         ++px_depth_ge_2;
                         ++px_integrated;

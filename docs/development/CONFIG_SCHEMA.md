@@ -22,18 +22,38 @@ model: control_grid_per_tile(8) patch_radius_leaf(2) min_samples(5)
 integration: precision(fp32) memory_limit_mb rejection{method
              none|sigma|winsorized_sigma|averaged_sigma|linear_fit|
              generalized_esd|rcr|percentile|median_sigma|minmax|auto
-             low 4 high 3 max_iterations 8 min_samples 2}
+             profile(wbpp_current) underdetermined_n(2)
+             robust_mad_clip{lower_sigma 4 upper_sigma 3 max_iterations 8}
+             winsorized_sigma{lower_sigma 4 upper_sigma 3 max_iterations 8}
+             averaged_sigma{lower_sigma 4 upper_sigma 3 max_iterations 8}
+             linear_fit{lower 4 upper 3 max_iterations 8}
+             generalized_esd{alpha 0.05 max_outliers 10}
+             percentile{low_fraction 0.1 high_fraction 0.1}
+             median_sigma{lower_sigma 4 upper_sigma 3 max_iterations 8}
+             minmax{reject_low_count 1 reject_high_count 1
+                    max_iterations 8 min_kept 4}
+             rcr{technique ss_median_dl}
+             low/high/max_iterations/min_samples DEPRECATED（V15 adapter）}
              weight_mode(auto) acr_route(cpu/auto)
 
-rejection.method 说明（V14 审核增补，WBPP 方法全集）：
-  - percentile: 相对 median 的百分比 clip（low/high 为小数，如 0.1/0.3）；
+rejection.method 说明（V15 Final Semantic Closure）：
+  - production 默认 `method=auto` + `profile=wbpp_current`；
+  - auto 在 **planning 层**按 integration cohort/tile 的 nominal
+    contributors（几何可贡献独立 exposure 数）解析一次，禁止在 pixel loop
+    内按 effective count 路由；WBPP 2.9.1（本机源码 bestRejectionMethod）：
+      nominal<6 → percentile；6..15 → winsorized_sigma；>15 → linear_fit；
+  - effective 候选数 <= underdetermined_n（默认 2）或 < 方法 minimum N →
+    REJECTION_UNDERDETERMINED（可全接受但必须记录，禁止偷偷换算法）；
+  - percentile: 相对 median 的百分比 clip（low_fraction/high_fraction
+      为小数，如 0.1/0.3）；
   - median_sigma: median 位置 + SD 尺度迭代 clip（WBPP Median Sigma）；
   - minmax: 每轮剔除最小/最大样本（WBPP Min/Max）；
-  - auto: 按像素有效样本数自动选择（对齐 PixInsight WBPP Auto）：
-      n<3 → none；3≤n≤5 → winsorized_sigma；6≤n≤10 → averaged_sigma；
-      n>10 → linear_fit；
+  - sigma = astrocs.robust_mad_clip.v1（median + MAD 迭代 clip；
+      Astropy sigma_clip(mad_std) oracle）；旧字符串 "sigma" 为 alias；
   - winsorized_sigma: robust 版（median 位置 + 1.5σ winsorize 迭代，
       对齐 Siril 1.4.3 rejection_float.c）。
+  - 旧顶层 low/high/max_iterations/min_samples 仅经 deprecation adapter
+      映射（打印 warning），生产新配置必须使用 method-specific typed 参数。
 output.hips / diagnostics
 ```
 

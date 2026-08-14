@@ -1,58 +1,65 @@
-# Public / Internal API Inventory（V14 G5）
+# API Inventory（V15）
 
-## Exported C ABI
+## Production 入口（唯一）
 
-```text
-lib/astro_image_io: aio_fits_* aio_hips_* aio_upm_* aio_pipeline_*
-lib/phase2: p2_frame_id p2_coverage_build/free p2_sample_controls
-           p2_upm_build p2_upm_build_geo p2_upm_save/open p2_upm_close
-           p2_upm_calibrate_block p2_upm_evaluate_c p2_upm_raw_weight
-           p2_upm_normalized_weights p2_upm_geometry_hash
-           p2_stats_median/mad p2_integrate_pixel p2_reject_stack
-           p2_block_plan p2_upm_materialize_dense / dense read APIs
-```
+| 阶段 | 入口 | 状态 |
+| --- | --- | --- |
+| Phase1 | `orchestrator.exe <stage1.json>` | CANONICAL |
+| Phase2 | `astrocs-stage2.exe <stage2.json>` | CANONICAL |
+| Browser | `healpix_browser_qt.exe` | CANONICAL（只消费，不解释科学数据） |
+| ACR | lib/acr（备用加速基座；phase2 经 KernelRegistry 使用同一 contract） | BACKEND_EQUIVALENT |
 
-规则：extern "C"、不抛异常、0=OK、err 只做日志。
+## V15 变更的公共接口
 
-## Public C++ API
+### rejection.h（V15 重写）
 
 ```text
-astrocs::healpix: ang2pix_nest pix2ang_nest nested_local_to_xy
-                  xy_to_nested_local nested_local_to_fits_index
-                  fits_index_to_nested_local leaf_to_tile tile_to_leaf
-astrocs::crypto: sha256_hex
-astrocs::compute::phase2: kOpMosaicReject（ACR）
+P2RejectionMethod（0..10 枚举值不变；P2_REJECT_SIGMA=1 alias canonical
+                  robust_mad_clip）
+P2RejectReason / P2RejectStatus（stack status 与 per-sample reason 分离）
+P2SigmaParams / P2LinearFitParams / P2EsdParams / P2PercentileParams /
+P2MinmaxParams / P2RcrParams（method-specific typed；禁止共享 low/high）
+P2RejectionPlan（explicit method + minimum_n + typed params）
+P2RejectionPlanRequest（auto 解析请求；nominal contributors；profile）
+p2_reject_plan_resolve / p2_rejection_semantic_id
+P2EligibilityInput / P2EligibilityOutput / p2_eligibility_filter
+P2CandidateStack / P2RejectionDecision / p2_reject_stack_ex
+P2RejectionWorkspace / p2_rejection_workspace_create/free
+P2SampleStackView / P2RejectionResult / p2_reject_stack（COMPAT）
 ```
 
-## Internal module API
-
-- phase2 src：sampler（CellStat/Stage A–E）、upm（Model/build_impl）、
-  integrate、coverage、stage2_common。
-- astro_image_io src/hips：aio writer/reader、tile_rel_path。
-
-## Tool / CLI
+### sampler.h（V15）
 
 ```text
-astrocs-stage2.exe <config.json>
-orchestrator.exe <stage1.json>
-healpix_browser_qt.exe --hips/--standard-hips/--view/--lod/--screenshot/--exit
-browser_cli.exe --hips/--refrender/--benchmark
-toolchain.ps1 check|build|run|review
-phase2_synthetic_gate.exe / calibrated_pair_diag.exe / rejection_cli.exe
+p2_sampler_default_config()（默认值单一来源；修复 null-config 未初始化）
 ```
 
-## JSON schemas
+### stage2_common.h（V15）
 
-- stage2 config（model/integration/output/diagnostics）。
-- upm_sparse `astrocs-upm-v2`（含 component/geometry 统计，V14）。
-- controls_accept.json（V13 overlay 诊断）。
+```text
+reject_method（默认 auto）/ reject_profile（wbpp_current）/
+reject_underdetermined_n（2）/ 各方法 typed 参数（sigma_lower 等）/
+deprecation_warnings（legacy low/high/max_iterations/min_samples adapter）
+```
 
-## On-disk
+## 未变（冻结 ABI）
 
-- HiPS products（signal/support/snr, IVOA 1.4）。
-- manifest.json / diagnostics.json / upm_dense.cache（checksum）。
+```text
+p2_coverage_build/free / p2_sample_controls / p2_upm_* / p2_block_plan /
+p2_integrate_pixel / p2_frame_id / p2_stats_median/mad
+aio_*（astro_image_io 全部）
+```
 
-## 命名/风格
+## 状态/错误所有权（V14 合同不变）
 
-- C ABI 保留 `aio_*` / `p2_*`（有调用方，不破坏）；C++ 命名空间
-  `astrocs::phase1/phase2/hips/acr` 逐步引入，不强制大改名。
+- 返回码 0=OK；非 0 语义各头文件独占定义；`err` 只承载日志文本；
+- C ABI 不抛异常；buffer ownership/lifetime/nullable/单位逐参数注释；
+- 日志与状态分离（run/logs/<module>/）。
+
+## 工具 CLI
+
+```text
+astrocs-stage2 / orchestrator / healpix_browser_qt / rejection_cli
+（--plan JSON 模式 + --reasons；旧位置参数模式为 COMPAT）
+phase2_synthetic_gate.exe（gate 测试入口，V15 新增 12 个 rejection/config 测试）
+```

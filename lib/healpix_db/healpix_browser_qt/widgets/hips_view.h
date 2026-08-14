@@ -31,6 +31,7 @@ public:
     void set_stretch(const std::string& preset, bool auto_range);
     void set_manual_range(float lo, float hi);
     void set_manual_stf(const STFParams& params);  // V14 v3
+    void set_stf_state(const DisplayTransformState& state);  // V15：唯一状态
     void refresh_auto_range();   // V14：Reset/Auto View 显式重算 robust STF
     void set_auto_view(bool on); // V14：Auto View（viewport 自适应）
     void set_stf_locked(bool locked); // V14：Lock STF（冻结标尺）
