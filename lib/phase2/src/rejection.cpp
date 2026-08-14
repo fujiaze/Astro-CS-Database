@@ -1102,6 +1102,10 @@ int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
     p.minmax.reject_low_count = 1; p.minmax.reject_high_count = 1;
     p.minmax.min_kept = 4;
     p.rcr.technique = 0;  // SS_MEDIAN_DL（冻结）
+    p.large_scale.enabled = 0;                       // WBPP 默认关闭
+    p.large_scale.min_structure_pixels = 8;
+    p.large_scale.low_grow_radius_pixels = 2;
+    p.large_scale.high_grow_radius_pixels = 2;
 
     int method = req->request;
     if (method == P2_REJECT_AUTO) {
@@ -1984,6 +1988,106 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
     out->status = dec.status;
     if (has_nonfinite && out->status != P2_STATUS_ALL_REJECTED)
         out->status = P2_STATUS_INVALID_INPUT;
+    return 0;
+}
+
+// =====================================================================
+// V17：astrocs.large_scale_rejection.v1 —— connected-component grow
+// =====================================================================
+
+namespace {
+
+// 单侧 mask 处理：8-连通分量 >= min_size 的结构按 Chebyshev 半径扩张。
+void large_scale_grow_side(std::uint8_t* mask, int width, int height,
+                           int min_size, int radius) {
+    const int N = width * height;
+    if (radius <= 0) return;   // 无扩张半径：mask 保持不变（仅 pixel 级拒绝）
+    static const int dirs[8][2] = {
+        {-1, -1}, {-1, 0}, {-1, 1}, {0, -1},
+        {0, 1}, {1, -1}, {1, 0}, {1, 1}};
+    std::vector<std::uint8_t> visited((std::size_t)N, 0);
+    std::vector<std::uint8_t> qualify((std::size_t)N, 0);
+    std::vector<int> comp, work;
+    comp.reserve(4096);
+    for (int start = 0; start < N; ++start) {
+        if (!mask[start] || visited[(std::size_t)start]) continue;
+        comp.clear();
+        work.clear();
+        visited[(std::size_t)start] = 1;
+        work.push_back(start);
+        while (!work.empty()) {
+            const int cur = work.back();
+            work.pop_back();
+            comp.push_back(cur);
+            const int x = cur % width;
+            const int y = cur / width;
+            for (const auto& d : dirs) {
+                const int nx = x + d[0];
+                const int ny = y + d[1];
+                if (nx < 0 || nx >= width || ny < 0 || ny >= height)
+                    continue;
+                const int ni = ny * width + nx;
+                if (mask[ni] && !visited[(std::size_t)ni]) {
+                    visited[(std::size_t)ni] = 1;
+                    work.push_back(ni);
+                }
+            }
+        }
+        if ((int)comp.size() >= min_size)
+            for (const int p : comp)
+                qualify[(std::size_t)p] = 1;
+    }
+    // 迭代扩张（Chebyshev 邻域；每轮把已合格像素的 8 邻域并入）
+    std::vector<std::uint8_t> ring((std::size_t)N, 0);
+    for (int it = 0; it < radius; ++it) {
+        std::fill(ring.begin(), ring.end(), 0);
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                const int i = y * width + x;
+                if (!qualify[(std::size_t)i]) continue;
+                for (const auto& d : dirs) {
+                    const int nx = x + d[0];
+                    const int ny = y + d[1];
+                    if (nx < 0 || nx >= width || ny < 0 || ny >= height)
+                        continue;
+                    ring[(std::size_t)(ny * width + nx)] = 1;
+                }
+            }
+        }
+        for (int i = 0; i < N; ++i)
+            if (ring[(std::size_t)i])
+                qualify[(std::size_t)i] = 1;
+    }
+    // 只增不减：原始 pixel-level rejected（含小分量）保留；grow 只把
+    // 合格结构的扩张区域加入 mask。
+    for (int i = 0; i < N; ++i)
+        if (qualify[(std::size_t)i]) mask[i] = 1;
+}
+
+} // namespace
+
+int p2_large_scale_apply(std::uint8_t* low, std::uint8_t* high,
+                         int width, int height, int depth,
+                         const P2LargeScaleParams* params) {
+    if (low == nullptr || high == nullptr || params == nullptr ||
+        width <= 0 || height <= 0 || depth <= 0)
+        return 1;
+    if (params->min_structure_pixels < 1 ||
+        params->low_grow_radius_pixels < 0 ||
+        params->high_grow_radius_pixels < 0)
+        return 1;
+    if (!params->enabled) return 0;
+    const int stride = width * height;
+    for (int f = 0; f < depth; ++f) {
+        std::uint8_t* lo = low + (std::size_t)f * (std::size_t)stride;
+        std::uint8_t* hi = high + (std::size_t)f * (std::size_t)stride;
+        large_scale_grow_side(lo, width, height,
+                              params->min_structure_pixels,
+                              params->low_grow_radius_pixels);
+        large_scale_grow_side(hi, width, height,
+                              params->min_structure_pixels,
+                              params->high_grow_radius_pixels);
+    }
     return 0;
 }
 

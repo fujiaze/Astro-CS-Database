@@ -389,6 +389,7 @@ int main(int argc, char** argv) {
     }
 
     std::uint64_t total_pixels = 0, total_rejected = 0, total_fallback = 0;
+    std::uint64_t large_scale_grown = 0;   // V17：grow 新增拒绝样本数
     std::uint64_t dbg_reject_px = 0, dbg_fallback_px = 0, dbg_zero_px = 0;
     std::uint64_t underdetermined_px = 0;  // V15：REJECTION_UNDERDETERMINED
     std::uint64_t px_depth_0 = 0;  // V16：mutually exclusive depth 诊断
@@ -498,6 +499,15 @@ int main(int argc, char** argv) {
         rplan.minmax.reject_low_count = cfg.minmax_low_count;
         rplan.minmax.reject_high_count = cfg.minmax_high_count;
         rplan.minmax.min_kept = cfg.minmax_min_kept;
+        // V17：large_scale_rejection.v1（connected-component grow 后处理）
+        rplan.large_scale.enabled = cfg.large_scale_enabled ? 1 : 0;
+        rplan.large_scale.min_structure_pixels =
+            cfg.large_scale_min_structure_pixels;
+        rplan.large_scale.low_grow_radius_pixels =
+            cfg.large_scale_low_grow_pixels;
+        rplan.large_scale.high_grow_radius_pixels =
+            cfg.large_scale_high_grow_pixels;
+        const bool large_scale_active = rplan.large_scale.enabled != 0;
         log("tile " + std::to_string(tile_ipix) + " rejection resolved: " +
             std::string(p2_rejection_semantic_id(rplan.method)) +
             " nominal=" + std::to_string(nominal_for_resolve) +
@@ -505,13 +515,16 @@ int main(int argc, char** argv) {
             cfg.reject_profile + " norm=" + cfg.reject_normalization +
             " min_n=" + std::to_string(rplan.minimum_n) +
             " underdetermined_n=" +
-            std::to_string(rplan.underdetermined_n));
+            std::to_string(rplan.underdetermined_n) +
+            " large_scale=" + std::to_string(large_scale_active));
         resolved_methods[depth] = p2_rejection_semantic_id(rplan.method);
 
         // 仅显式 sigma（robust_mad_clip）可走 ACR 块路径（同一 contract）
+        // V17：large_scale 激活时强制 CPU（per-frame mask 后处理在 CPU
+        // reference 权威路径执行；ACR 只做逐像素 kernel，不做 grow）
         const bool use_acr_block =
             acr_reg != nullptr && rplan.method == P2_REJECT_SIGMA &&
-            cfg.acr_route != "cpu";
+            cfg.acr_route != "cpu" && !large_scale_active;
         if (use_acr_block && gpu_exec == nullptr) {
             bridge::ensure_bridge_loaded();
             if (bridge::api().loaded()) {
@@ -594,6 +607,22 @@ int main(int argc, char** argv) {
 
         // 全 tile 临时读取缓冲（512×512×2×4B，固定小）
         std::vector<float> t_sig(512 * 512), t_sup(512 * 512);
+
+        // V17：large_scale 两遍路径缓冲（按全局帧 id 索引，覆盖
+        // subset-tile 场景；cap = nb * n_leaf）
+        std::vector<double> buf_val, buf_w, buf_sup;
+        std::vector<std::uint8_t> buf_lo, buf_hi, buf_elig;
+        std::vector<std::uint32_t> buf_nvalid;
+        if (large_scale_active) {
+            const std::size_t cap = (std::size_t)nb * n_leaf;
+            buf_val.assign(cap, 0.0);
+            buf_w.assign(cap, 0.0);
+            buf_sup.assign(cap, 0.0);
+            buf_lo.assign(cap, 0);
+            buf_hi.assign(cap, 0);
+            buf_elig.assign(cap, 0);
+            buf_nvalid.assign(n_leaf, 0);
+        }
 
         if (use_acr_block) {
             // compact per-cell SNR（P0-10/R8：与 frames[s] 一一对应且按
@@ -897,6 +926,42 @@ int main(int argc, char** argv) {
                              rdec.reasons[s] == P2_REASON_UNDERDETERMINED)
                                 ? 1 : 0;
                     }
+                    if (large_scale_active) {
+                        // V17：两遍路径——缓冲逐像素 rejection 结果（值/
+                        // 权重/support + 低/高 mask），chunk 循环后统一 grow。
+                        // 此分支只做诊断统计与缓冲，积分在 grow 之后进行。
+                        for (std::uint32_t s = 0; s < n_valid; ++s) {
+                            const std::uint32_t fs =
+                                (std::uint32_t)fid_stack[s];
+                            const std::size_t bi =
+                                (std::size_t)fs * n_leaf + p;
+                            buf_val[bi] = stack[s];
+                            buf_w[bi] = weights[s];
+                            buf_sup[bi] = support_v[s];
+                            buf_elig[bi] = 1;
+                            buf_lo[bi] =
+                                (rdec.reasons[s] == P2_REASON_REJECTED_LOW)
+                                    ? 1 : 0;
+                            buf_hi[bi] =
+                                (rdec.reasons[s] == P2_REASON_REJECTED_HIGH)
+                                    ? 1 : 0;
+                        }
+                        buf_nvalid[p] = n_valid;
+                        // pre-grow 基线统计（grow 后 phase 3 会重建最终分布）
+                        total_rejected +=
+                            rdec.rejected_low + rdec.rejected_high;
+                        ++reject_hist[rdec.rejected_low +
+                                      rdec.rejected_high];
+                        if (rdec.status == P2_STATUS_UNDERDETERMINED) {
+                            ++total_fallback;
+                            ++dbg_fallback_px;
+                            ++underdetermined_px;
+                        } else {
+                            ++px_integrated;
+                            ++dbg_reject_px;
+                        }
+                        continue;
+                    }
                     total_rejected +=
                         rdec.rejected_low + rdec.rejected_high;
                     ++reject_hist[rdec.rejected_low + rdec.rejected_high];
@@ -936,6 +1001,69 @@ int main(int argc, char** argv) {
                 }
                 if (ok) ++total_pixels;
             }
+        }
+        // ---- V17：large_scale connected-component grow + 二次积分 ----
+        // 两遍路径（large_scale_active 时）：所有 chunk 的逐像素 rejection
+        // 已缓冲到 tile 级 per-frame low/high mask；此处先 grow 再积分，
+        // 保证"拒绝 mask 应用回原始 calibrated 科学值"的单一语义。
+        if (large_scale_active) {
+            if (p2_large_scale_apply(buf_lo.data(), buf_hi.data(), 512, 512,
+                                     (int)nb, &rplan.large_scale) != 0) {
+                log("large_scale apply failed");
+                p2_upm_close(model);
+                return 6;
+            }
+            const std::uint64_t pre_total = total_rejected;
+            std::vector<double> st2(depth), w2(depth), sup2(depth);
+            total_rejected = 0;
+            reject_hist.clear();
+            for (std::uint64_t p = 0; p < n_leaf; ++p) {
+                std::uint32_t n_acc = 0;
+                std::uint32_t rej_count = 0;
+                for (std::uint32_t s = 0; s < depth; ++s) {
+                    const std::uint32_t fs = frames[s];
+                    const std::size_t bi = (std::size_t)fs * n_leaf + p;
+                    if (buf_elig[bi]) {
+                        if (buf_lo[bi] || buf_hi[bi]) {
+                            ++rej_count;
+                        } else {
+                            st2[n_acc] = buf_val[bi];
+                            w2[n_acc] = buf_w[bi];
+                            sup2[n_acc] = buf_sup[bi];
+                            ++n_acc;
+                        }
+                    }
+                }
+                total_rejected += rej_count;
+                if (buf_nvalid[p] > 0)
+                    ++reject_hist[rej_count];
+                P2PixelStack pi{};
+                pi.values = st2.data();
+                pi.weights = w2.data();
+                pi.support = sup2.data();
+                pi.count = n_acc;
+                pi.weight_mode = cfg.weight_mode;
+                P2PixelResult pr{};
+                p2_integrate_pixel(&pi, &pr);
+                const bool ok = (pr.status == 0);
+                valid[p] = ok ? 1 : 0;
+                const double area = ok ? pr.support * A_cell : 0.0;
+                const double flux = ok ? pr.signal * area : 0.0;
+                if (cfg.precision) {
+                    fluxD[p] = flux;
+                    areaD[p] = area;
+                } else {
+                    fluxF[p] = (float)flux;
+                    areaF[p] = (float)area;
+                }
+                if (ok) ++total_pixels;
+            }
+            large_scale_grown =
+                total_rejected > pre_total ? total_rejected - pre_total : 0;
+            log("tile " + std::to_string(tile_ipix) +
+                " large_scale: pre_rejected=" + std::to_string(pre_total) +
+                " post_rejected=" + std::to_string(total_rejected) +
+                " grown=" + std::to_string(large_scale_grown));
         }
         // V12 (HIPS-IMG-002)：同 ACR 路径，FITS 行主序 -> NESTED local 序
         std::vector<float> flux_leaf(n_leaf), area_leaf(n_leaf);
@@ -1042,6 +1170,14 @@ int main(int argc, char** argv) {
         diag["reject_profile"] = cfg.reject_profile;
         diag["reject_group_level"] = (int)group_level;
         diag["reject_group_method"] = group_method;
+        diag["large_scale_enabled"] = cfg.large_scale_enabled;
+        diag["large_scale_min_structure_pixels"] =
+            cfg.large_scale_min_structure_pixels;
+        diag["large_scale_low_grow_radius_pixels"] =
+            cfg.large_scale_low_grow_pixels;
+        diag["large_scale_high_grow_radius_pixels"] =
+            cfg.large_scale_high_grow_pixels;
+        diag["large_scale_grown_samples"] = large_scale_grown;
         diag["integrated_pixels"] = px_integrated;
         diag["quality_fallback_unknown"] = quality_unknown;
         diag["local_snr_used"] = local_snr_used;

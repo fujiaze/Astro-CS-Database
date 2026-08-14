@@ -156,6 +156,35 @@
               "exclusiveMinimum": 0,
               "default": 1e-12
             },
+            "large_scale": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "astrocs.large_scale_rejection.v1 开关（WBPP largeScaleClipLow/High 默认关闭 → 默认 false）"
+                },
+                "min_structure_pixels": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "default": 8,
+                  "description": "8-连通 rejected 分量 >= 该值才算大尺度结构"
+                },
+                "low_grow_radius_pixels": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "default": 2,
+                  "description": "低侧结构扩张半径（Chebyshev 像素）"
+                },
+                "high_grow_radius_pixels": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "default": 2,
+                  "description": "高侧结构扩张半径（Chebyshev 像素）"
+                }
+              }
+            },
             "underdetermined_n": {
               "type": "integer",
               "minimum": 1,

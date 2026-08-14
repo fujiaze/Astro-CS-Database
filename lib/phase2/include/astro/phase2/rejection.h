@@ -66,6 +66,7 @@ enum P2RejectionMethod {
 #define P2_SEMANTIC_PERCENTILE_SIRIL      "astrocs.percentile_siril.v1"
 #define P2_SEMANTIC_MEDIAN_STD_CLIP       "astrocs.median_std_clip.v1"
 #define P2_SEMANTIC_MINMAX                "astrocs.minmax.v1"
+#define P2_SEMANTIC_LARGE_SCALE           "astrocs.large_scale_rejection.v1"
 
 // per-sample reason（RejectionDecision.reasons[]）
 enum P2RejectReason {
@@ -127,6 +128,25 @@ typedef struct {
     int technique;         // 0 = SS_MEDIAN_DL（V15 冻结，唯一支持）
 } P2RcrParams;
 
+// V17：astrocs.large_scale_rejection.v1 —— 大尺度结构拒绝（WBPP
+// Large-Scale Pixel Rejection 的 AstroCS 自有实现，PIXINSIGHT_EXACT=
+// NOT_CLAIMED）。语义：对每帧 pixel-level rejection mask 做
+// connected-component grow：
+//   - 8-连通分量中，只有分量大小 >= min_structure_pixels 的结构才被
+//     视为大尺度（compact cosmic / 星点噪声不会无限生长）；
+//   - 合格结构按 Chebyshev 邻域扩张 grow_radius 像素，新增像素同样
+//     标记 rejected（低/高侧独立半径）；
+//   - 扩张后 mask 应用回原始 calibrated 科学值（与 pixel rejection
+//     同一 accepted mask 语义）。
+// 默认值（WBPP 2.9.1 largeScaleClipLow/High 默认关闭 → 默认 enabled=0）：
+//   min_structure_pixels=8；low/high grow radius=2。
+typedef struct {
+    int enabled;                  // 0/1（默认 0）
+    int min_structure_pixels;     // 结构最小像素数（>=1；默认 8）
+    int low_grow_radius_pixels;   // 低侧扩张半径（>=0；默认 2）
+    int high_grow_radius_pixels;  // 高侧扩张半径（>=0；默认 2）
+} P2LargeScaleParams;
+
 // 显式 RejectionPlan（kernel 只执行 explicit method，永不为 AUTO）
 typedef struct {
     int method;                // P2RejectionMethod（explicit）
@@ -144,6 +164,7 @@ typedef struct {
     P2SigmaParams median_sigma;    // P2_REJECT_MEDIAN_SIGMA
     P2MinmaxParams minmax;     // P2_REJECT_MINMAX
     P2RcrParams rcr;           // P2_REJECT_RCR
+    P2LargeScaleParams large_scale; // V17：大尺度后处理（独立于 pixel kernel）
 } P2RejectionPlan;
 
 // Auto 解析请求（planning 层）
@@ -261,6 +282,14 @@ typedef struct {
 P2_API int p2_reject_stack_ex(const P2CandidateStack* stack,
                               const P2RejectionPlan* plan,
                               P2RejectionDecision* out);
+
+// V17：大尺度 grow 后处理（生产 stage2 唯一调用点）。
+// low/high 为 frame-major 每帧 width*height 字节（1=rejected），原地修改。
+// 仅扩张"分量大小 >= min_structure_pixels"的结构；低/高侧独立半径。
+// 返回 0=OK；参数非法返回 1（err 可空）。
+P2_API int p2_large_scale_apply(std::uint8_t* low, std::uint8_t* high,
+                                int width, int height, int depth,
+                                const P2LargeScaleParams* params);
 
 // ---- 旧接口（COMPAT adapter，仅测试/旧调用；生产 Stage2 不再调用） ----
 typedef struct {

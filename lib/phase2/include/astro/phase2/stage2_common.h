@@ -49,6 +49,12 @@ struct P2Stage2Config {
     // V16：RejectionNormalizationPolicy（判定工作域；mask 应用回原始值）
     std::string reject_normalization = "astrocs_median_center_v1";
     double reject_normalization_floor = 1e-12;
+    // V17：astrocs.large_scale_rejection.v1（WBPP 大尺度拒绝的 AstroCS
+    // 自有实现；默认关闭 = WBPP largeScaleClipLow/High 默认一致）
+    bool large_scale_enabled = false;
+    int large_scale_min_structure_pixels = 8;
+    int large_scale_low_grow_pixels = 2;
+    int large_scale_high_grow_pixels = 2;
     // V15 method-specific typed parameters（单语义单默认）
     double sigma_lower = 4.0;
     double sigma_upper = 3.0;

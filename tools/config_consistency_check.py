@@ -33,7 +33,7 @@ def extract_values(seg):
         r'\.value\(\s*"([a-z_0-9]+)"\s*,\s*'
         r'(?:std::string\("([^"]*)"\)|\(std::uint64_t\)([0-9]+)|'
         r'\(std::uint32_t\)([0-9]+)|'
-        r'([-0-9.]+(?:[eE][-+]?[0-9]+)?))', seg):
+        r'([-0-9.]+(?:[eE][-+]?[0-9]+)?)|(true|false))', seg):
         key = m.group(1)
         if m.group(2) is not None:
             val = '"' + m.group(2) + '"'
@@ -41,8 +41,10 @@ def extract_values(seg):
             val = m.group(3)
         elif m.group(4) is not None:
             val = m.group(4)
-        else:
+        elif m.group(5) is not None:
             val = m.group(5)
+        else:
+            val = m.group(6)
         out.setdefault(key, val)  # 每 key 只取首个默认（同节内唯一）
     return out
 
@@ -67,6 +69,23 @@ def parser_defaults(text):
         sub = extract_values(block.group(2))
         for k, v in sub.items():
             d[f"{name}.{k}"] = v
+    # large_scale 子段（V17）：括号计数到匹配的闭括号（含嵌套 if）
+    ls_start = rej_seg.find('rj.contains("large_scale")')
+    if ls_start >= 0:
+        brace = rej_seg.find('{', ls_start)
+        depth = 0
+        end = brace
+        while end < len(rej_seg):
+            if rej_seg[end] == '{':
+                depth += 1
+            elif rej_seg[end] == '}':
+                depth -= 1
+                if depth == 0:
+                    break
+            end += 1
+        ls_block = rej_seg[brace:end + 1]
+        for k, v in extract_values(ls_block).items():
+            d[f"large_scale.{k}"] = v
     return d
 
 
@@ -111,6 +130,13 @@ def main():
         "minmax.reject_low_count": ("minmax_low_count", {}),
         "minmax.reject_high_count": ("minmax_high_count", {}),
         "minmax.min_kept": ("minmax_min_kept", {}),
+        "large_scale.enabled": ("large_scale_enabled", {}),
+        "large_scale.min_structure_pixels":
+            ("large_scale_min_structure_pixels", {}),
+        "large_scale.low_grow_radius_pixels":
+            ("large_scale_low_grow_pixels", {}),
+        "large_scale.high_grow_radius_pixels":
+            ("large_scale_high_grow_pixels", {}),
     }
 
     problems = []
@@ -161,6 +187,14 @@ def main():
             if dfl is not None and v != dfl:
                 problems.append({"key": f"template.{mname}.{k}",
                                  "template": v, "schema_default": dfl})
+    # large_scale：template ↔ schema 默认一致
+    tls = tj.get("large_scale", {})
+    sls = sj["properties"]["large_scale"]["properties"]
+    for k, v in tls.items():
+        dfl = sls[k].get("default")
+        if dfl is not None and v != dfl:
+            problems.append({"key": f"template.large_scale.{k}",
+                             "template": v, "schema_default": dfl})
 
     res = {
         "checked_keys": sorted(checked),

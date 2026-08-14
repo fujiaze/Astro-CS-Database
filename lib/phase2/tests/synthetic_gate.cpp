@@ -4360,3 +4360,149 @@ TEST(Phase2Reject, V17InvalidMethodStatus) {
                  dec.status == P2_STATUS_UNDERDETERMINED);
 }
 
+// =====================================================================
+// V17 True Final Freeze — astrocs.large_scale_rejection.v1
+// =====================================================================
+
+namespace {
+
+void ls_set(std::vector<std::uint8_t>& m, int w, int x, int y) {
+    m[(std::size_t)y * (std::size_t)w + (std::size_t)x] = 1;
+}
+
+bool ls_get(const std::vector<std::uint8_t>& m, int w, int x, int y) {
+    return m[(std::size_t)y * (std::size_t)w + (std::size_t)x] != 0;
+}
+
+} // namespace
+
+// 细卫星线（40px 分量）grow ±2；compact cosmic（2×2=4 < min 8）不生长；
+// low/high 两侧独立。
+TEST(Phase2Reject, V17LargeScaleGrowsTrailNotCosmic) {
+    const int w = 64, h = 64;
+    std::vector<std::uint8_t> lo((std::size_t)w * h, 0);
+    std::vector<std::uint8_t> hi((std::size_t)w * h, 0);
+    for (int x = 5; x < 45; ++x) ls_set(lo, w, x, 32);      // low：40px 横线
+    for (int s = 0; s < 4; ++s) {                            // high：4 个 2×2
+        const int bx = 8 + s * 12, by = 6;
+        ls_set(hi, w, bx, by); ls_set(hi, w, bx + 1, by);
+        ls_set(hi, w, bx, by + 1); ls_set(hi, w, bx + 1, by + 1);
+    }
+    P2LargeScaleParams ls{};
+    ls.enabled = 1;
+    ls.min_structure_pixels = 8;
+    ls.low_grow_radius_pixels = 2;
+    ls.high_grow_radius_pixels = 2;
+    ASSERT_EQ(p2_large_scale_apply(lo.data(), hi.data(), w, h, 1, &ls), 0);
+    // trail 垂直扩张 ±2 行、端点 ±2 列；±3 不扩张
+    EXPECT_TRUE(ls_get(lo, w, 10, 30) && ls_get(lo, w, 10, 34));
+    EXPECT_FALSE(ls_get(lo, w, 10, 29) || ls_get(lo, w, 10, 35));
+    EXPECT_TRUE(ls_get(lo, w, 3, 32) && ls_get(lo, w, 46, 32));
+    EXPECT_FALSE(ls_get(lo, w, 2, 32) || ls_get(lo, w, 47, 32));
+    // cosmic 原样保留（自身仍 rejected，但未生长）
+    EXPECT_TRUE(ls_get(hi, w, 8, 6));
+    EXPECT_FALSE(ls_get(hi, w, 8, 4) || ls_get(hi, w, 6, 6) ||
+                 ls_get(hi, w, 12, 8));
+    // low/high 独立
+    EXPECT_FALSE(ls_get(hi, w, 10, 30));
+    EXPECT_FALSE(ls_get(lo, w, 8, 6));
+}
+
+// disabled（默认，WBPP largeScaleClip 关闭）→ mask 完全不变
+TEST(Phase2Reject, V17LargeScaleDisabledNoop) {
+    const int w = 64, h = 64;
+    std::vector<std::uint8_t> lo((std::size_t)w * h, 0);
+    std::vector<std::uint8_t> hi((std::size_t)w * h, 0);
+    for (int x = 5; x < 45; ++x) ls_set(lo, w, x, 32);
+    const auto lo0 = lo, hi0 = hi;
+    P2LargeScaleParams ls{};
+    ls.enabled = 0;            // 默认关闭（WBPP largeScaleClip 默认 off）
+    ls.min_structure_pixels = 8;
+    ls.low_grow_radius_pixels = 2;
+    ls.high_grow_radius_pixels = 2;
+    ASSERT_EQ(p2_large_scale_apply(lo.data(), hi.data(), w, h, 2, &ls), 0);
+    EXPECT_EQ(lo, lo0);
+    EXPECT_EQ(hi, hi0);
+}
+
+// 稀疏孤立 rejected（星点噪声/单像素 cosmic，分量=1）→ 不生长
+TEST(Phase2Reject, V17LargeScaleSparseNotGrown) {
+    const int w = 64, h = 64;
+    std::vector<std::uint8_t> lo((std::size_t)w * h, 0);
+    std::vector<std::uint8_t> hi((std::size_t)w * h, 0);
+    for (int y = 4; y < 60; y += 8)
+        for (int x = 4; x < 60; x += 8)
+            ls_set(lo, w, x, y);
+    const auto lo0 = lo;
+    P2LargeScaleParams ls{};
+    ls.enabled = 1;
+    ls.min_structure_pixels = 8;
+    ls.low_grow_radius_pixels = 3;
+    ls.high_grow_radius_pixels = 3;
+    ASSERT_EQ(p2_large_scale_apply(lo.data(), hi.data(), w, h, 1, &ls), 0);
+    EXPECT_EQ(lo, lo0);
+}
+
+// 非法参数 → 返回 1
+TEST(Phase2Reject, V17LargeScaleInvalidParams) {
+    const int w = 64, h = 64;
+    std::vector<std::uint8_t> lo((std::size_t)w * h, 0);
+    std::vector<std::uint8_t> hi((std::size_t)w * h, 0);
+    P2LargeScaleParams ls{};
+    ls.enabled = 1;
+    ls.min_structure_pixels = 0;         // 非法
+    EXPECT_EQ(p2_large_scale_apply(lo.data(), hi.data(), w, h, 1, &ls), 1);
+    ls.min_structure_pixels = 8;
+    ls.low_grow_radius_pixels = -1;      // 非法
+    EXPECT_EQ(p2_large_scale_apply(lo.data(), hi.data(), w, h, 1, &ls), 1);
+    EXPECT_EQ(p2_large_scale_apply(nullptr, hi.data(), w, h, 1, &ls), 1);
+    EXPECT_EQ(p2_large_scale_apply(lo.data(), hi.data(), 0, h, 1, &ls), 1);
+}
+
+// config：large_scale 解析（默认 + 显式 + 非法拒绝）
+TEST(Phase2Config, V17LargeScaleParseAndDefaults) {
+    const std::string j = R"({
+      "version": 1,
+      "inputs": {"hips": ["a.hips", "b.hips"]},
+      "model": {},
+      "integration": {
+        "rejection": {
+          "method": "auto",
+          "large_scale": {
+            "enabled": true,
+            "min_structure_pixels": 16,
+            "low_grow_radius_pixels": 3,
+            "high_grow_radius_pixels": 4
+          }
+        }
+      },
+      "output": {"hips": "out.hips"}
+    })";
+    P2Stage2Config cfg{};
+    std::string err;
+    ASSERT_TRUE(p2_stage2_parse_config(
+        nlohmann::json::parse(j), &cfg, &err)) << err;
+    EXPECT_TRUE(cfg.large_scale_enabled);
+    EXPECT_EQ(cfg.large_scale_min_structure_pixels, 16);
+    EXPECT_EQ(cfg.large_scale_low_grow_pixels, 3);
+    EXPECT_EQ(cfg.large_scale_high_grow_pixels, 4);
+    // 默认关闭
+    const std::string j0 = R"({
+      "version": 1,
+      "inputs": {"hips": ["a.hips", "b.hips"]},
+      "model": {},
+      "integration": {"rejection": {"method": "auto"}},
+      "output": {"hips": "out.hips"}
+    })";
+    P2Stage2Config cfg0{};
+    ASSERT_TRUE(p2_stage2_parse_config(
+        nlohmann::json::parse(j0), &cfg0, &err)) << err;
+    EXPECT_FALSE(cfg0.large_scale_enabled);
+    EXPECT_EQ(cfg0.large_scale_min_structure_pixels, 8);
+    EXPECT_EQ(cfg0.large_scale_low_grow_pixels, 2);
+    // 非法 min_structure_pixels → 拒绝
+    nlohmann::json jb = nlohmann::json::parse(j);
+    jb["integration"]["rejection"]["large_scale"]["min_structure_pixels"] = 0;
+    EXPECT_FALSE(p2_stage2_parse_config(jb, &cfg, &err));
+}
+

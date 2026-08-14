@@ -266,6 +266,29 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                 }
                 cfg->reject_normalization_floor =
                     rj.value("normalization_floor", 1e-12);
+                // V17：large_scale_rejection.v1（connected-component grow）
+                if (rj.contains("large_scale")) {
+                    const auto& ls = rj["large_scale"];
+                    cfg->large_scale_enabled =
+                        ls.value("enabled", false);
+                    cfg->large_scale_min_structure_pixels =
+                        ls.value("min_structure_pixels", 8);
+                    if (cfg->large_scale_min_structure_pixels < 1) {
+                        *err = "rejection.large_scale.min_structure_pixels"
+                               " 必须 >= 1";
+                        return false;
+                    }
+                    cfg->large_scale_low_grow_pixels =
+                        ls.value("low_grow_radius_pixels", 2);
+                    cfg->large_scale_high_grow_pixels =
+                        ls.value("high_grow_radius_pixels", 2);
+                    if (cfg->large_scale_low_grow_pixels < 0 ||
+                        cfg->large_scale_high_grow_pixels < 0) {
+                        *err = "rejection.large_scale.grow_radius_pixels"
+                               " 必须 >= 0";
+                        return false;
+                    }
+                }
                 // 方法×normalization 合法性（V16/V17）
                 if (method == "percentile" &&
                     cfg->reject_normalization != "astrocs_median_center_v1") {
