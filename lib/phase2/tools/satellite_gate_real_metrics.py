@@ -23,7 +23,7 @@ CLI = os.environ.get(
     "ASTROCS_REJECTION_CLI",
     str(ROOT / "lib" / "phase2" / "build" / "rejection_cli.exe"),
 )
-PLAN = {"request": "auto", "nominal": 16, "profile": "wbpp_current",
+PLAN = {"request": "auto", "nominal": 16, "profile": "wbpp_2_9_1",
         "underdetermined_n": 2,
         "normalization": "median_center"}
 FRAMES = [SAT / f"frame{n:02d}.hips" for n in range(16)]

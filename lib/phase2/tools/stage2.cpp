@@ -117,8 +117,6 @@ int main(int argc, char** argv) {
         std::fprintf(stderr, "config error: %s\n", err.c_str());
         return 2;
     }
-    for (const auto& w : cfg.deprecation_warnings)
-        std::fprintf(stderr, "[stage2][deprecation] %s\n", w.c_str());
 
     // 日志：run/logs/phase2/<YYYYMMDD>/stage2.log
     const std::string log_dir =
@@ -419,7 +417,7 @@ int main(int argc, char** argv) {
     // V16：wbpp_current = integration-group level 一次解析（nominal = 全部
     // 独立 exposure 数）；astrocs_adaptive 在 tile 层按 nominal depth 解析。
     const bool group_level =
-        (cfg.reject_profile == "wbpp_current");
+        (cfg.reject_profile == "wbpp_2_9_1");
     P2RejectionPlan group_plan{};
     std::string group_method = "none";
     if (group_level) {
@@ -435,7 +433,7 @@ int main(int argc, char** argv) {
             return 6;
         }
         group_method = p2_rejection_semantic_id(group_plan.method);
-        log("wbpp_current group plan: nominal=" +
+        log("wbpp_2_9_1 group plan: nominal=" +
             std::to_string(cfg.hips.size()) + " method=" + group_method);
     }
     for (std::uint64_t ci = 0; ci < cov.n_union_cells; ++ci) {
@@ -452,7 +450,7 @@ int main(int argc, char** argv) {
         const std::uint32_t depth = (std::uint32_t)frames.size();
 
         // V16：planning 层解析 rejection
-        //   wbpp_current    → 使用 group-level 一次解析结果（tile 不重选）；
+        //   wbpp_2_9_1      → 使用 group-level 一次解析结果（tile 不重选）；
         //   astrocs_adaptive→ 按 tile nominal geometric depth 解析（独立策略）。
         P2RejectionPlan rplan = group_plan;
         std::uint32_t nominal_for_resolve = (std::uint32_t)cfg.hips.size();
@@ -471,9 +469,9 @@ int main(int argc, char** argv) {
             nominal_for_resolve = depth;
         }
         rplan.normalization =
-            (cfg.reject_normalization == "median_center")
+            (cfg.reject_normalization == "astrocs_median_center_v1")
                 ? P2_NORMALIZE_MEDIAN_CENTER
-                : (cfg.reject_normalization == "median_scale")
+                : (cfg.reject_normalization == "astrocs_median_scale_v1")
                       ? P2_NORMALIZE_MEDIAN_SCALE
                       : P2_NORMALIZE_NONE;
         rplan.normalization_floor = cfg.reject_normalization_floor;
@@ -856,6 +854,13 @@ int main(int argc, char** argv) {
                     }
                     weights[s] = support_v[s] * snr_v * snr_v;
                 }
+                // V17：SNR lookup 后统一校验候选权重（非 finite/非正 → fatal）
+                if (p2_validate_candidate_weights(weights.data(), n_valid) !=
+                    0) {
+                    log("candidate weight validation failed");
+                    p2_upm_close(model);
+                    return 6;
+                }
                 double signal_out = 0.0, support_out = 0.0;
                 int st = 1;
                 if (n_valid == 0) {
@@ -876,7 +881,15 @@ int main(int argc, char** argv) {
                     if (p2_reject_stack_ex(&cstack, &rplan, &rdec) != 0) {
                         log("reject kernel failed");
                         p2_upm_close(model);
-                                    return 6;
+                        return 6;
+                    }
+                    // V17：只有 OK/UNDERDETERMINED 可继续；其余状态 hard fail
+                    if (rdec.status != P2_STATUS_OK &&
+                        rdec.status != P2_STATUS_UNDERDETERMINED) {
+                        log("reject kernel invalid status=" +
+                            std::to_string(rdec.status));
+                        p2_upm_close(model);
+                        return 6;
                     }
                     for (std::uint32_t s = 0; s < n_valid; ++s) {
                         acc[s] =
@@ -906,10 +919,9 @@ int main(int argc, char** argv) {
                     p2_integrate_pixel(&pi, &pr);
                     st = pr.status;
                     signal_out = pr.signal;
-                    support_out = 0.0;
-                    for (std::uint32_t s = 0; s < n_valid; ++s)
-                        if (acc[s])
-                            support_out = std::max(support_out, support_v[s]);
+                    // V17：support 唯一 canonical reducer（max accepted
+                    // support）由 p2_integrate_pixel 计算，Stage2 只消费
+                    support_out = pr.support;
                 }
                 const bool ok = (st == 0);
                 valid[p] = ok ? 1 : 0;

@@ -152,7 +152,7 @@ int main(int argc, char** argv) {
         req.request = request;
         req.nominal_contributors = j.value("nominal", (std::uint32_t)20);
         const std::string profile_str =
-            j.value("profile", std::string("wbpp_current"));
+            j.value("profile", std::string("wbpp_2_9_1"));
         req.profile = profile_str.c_str();
         req.underdetermined_n =
             j.value("underdetermined_n", (std::uint32_t)2);

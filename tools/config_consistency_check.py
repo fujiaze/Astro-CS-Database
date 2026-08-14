@@ -83,13 +83,12 @@ def main():
     # 解析器 key → struct field 映射（含枚举表达映射）
     ALIAS = {
         "method": ("reject_method", {"\"auto\"": "10"}),
-        "profile": ("reject_profile", {}),
-        "normalization": ("reject_normalization", {}),
+        "profile": ("reject_profile",
+                    {"\"wbpp_current\"": "\"wbpp_2_9_1\""}),
+        "normalization": ("reject_normalization",
+                          {"\"median_center\"": "\"astrocs_median_center_v1\"",
+                           "\"median_scale\"": "\"astrocs_median_scale_v1\""}),
         "underdetermined_n": ("reject_underdetermined_n", {}),
-        "min_samples": ("reject_min_samples", {}),
-        "low": ("sigma_low", {}),
-        "high": ("sigma_high", {}),
-        "max_iterations": ("reject_max_iterations", {}),
         "robust_mad_clip.lower_sigma": ("sigma_lower", {}),
         "robust_mad_clip.upper_sigma": ("sigma_upper", {}),
         "robust_mad_clip.max_iterations": ("sigma_max_iterations", {}),

@@ -25,8 +25,8 @@
     "memory_limit_mb": 24576,
     "rejection": {
       "method": "auto",
-      "profile": "wbpp_current",
-      "normalization": "median_center",
+      "profile": "wbpp_2_9_1",
+      "normalization": "astrocs_median_center_v1",
       "underdetermined_n": 2,
       "robust_mad_clip": {"lower_sigma": 4.0, "upper_sigma": 3.0, "max_iterations": 8},
       "winsorized_sigma": {"lower_sigma": 4.0, "upper_sigma": 3.0, "max_iterations": 8},

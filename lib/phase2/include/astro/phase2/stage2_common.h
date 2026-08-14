@@ -44,10 +44,10 @@ struct P2Stage2Config {
     int precision = 0;
     std::uint64_t memory_limit_mb = 24576;
     int reject_method = P2_REJECT_AUTO;  // V15: production default = auto
-    std::string reject_profile = "wbpp_current";  // 唯一支持（WBPP 2.9.1）
+    std::string reject_profile = "wbpp_2_9_1";  // V17: 版本化 profile
     std::uint32_t reject_underdetermined_n = 2;   // n<=2 → UNDERDETERMINED
     // V16：RejectionNormalizationPolicy（判定工作域；mask 应用回原始值）
-    std::string reject_normalization = "median_center";
+    std::string reject_normalization = "astrocs_median_center_v1";
     double reject_normalization_floor = 1e-12;
     // V15 method-specific typed parameters（单语义单默认）
     double sigma_lower = 4.0;
@@ -73,12 +73,7 @@ struct P2Stage2Config {
     int minmax_high_count = 1;
     int minmax_min_kept = 4;
     std::string rcr_technique = "ss_median_dl";
-    // legacy 别名（deprecated；parser 打印 deprecation warning）
-    double sigma_low = -4.0;
-    double sigma_high = 3.0;
-    int reject_max_iterations = 8;
-    int reject_min_samples = 2;
-    std::vector<std::string> deprecation_warnings;
+    // V17：legacy 别名已删除（旧 config 必须经 migration tool 迁移）
     int weight_mode = 0;            // support_x_snr2（auto）
     std::string acr_route = "auto";
     // output

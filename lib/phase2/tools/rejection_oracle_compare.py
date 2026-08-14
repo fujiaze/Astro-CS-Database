@@ -45,7 +45,7 @@ def run_cpp(values, method, lo=-4.0, hi=3.0, max_iter=8, min_samples=3):
 def run_plan(values, request, nominal, reasons_out=True,
              underdetermined_n=2, **typed):
     plan = {"request": request, "nominal": nominal,
-            "profile": "wbpp_current", "underdetermined_n": underdetermined_n}
+            "profile": "wbpp_2_9_1", "underdetermined_n": underdetermined_n}
     plan.update(typed)
     fd, pf = tempfile.mkstemp(suffix=".json")
     os.close(fd)

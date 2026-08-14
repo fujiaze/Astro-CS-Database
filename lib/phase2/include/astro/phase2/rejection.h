@@ -82,7 +82,9 @@ enum P2RejectStatus {
     P2_STATUS_ALL_REJECTED = 2,
     P2_STATUS_INVALID_INPUT = 3,     // 候选栈含非 finite（资格层后不应出现）
     P2_STATUS_UNDERDETERMINED = 4,   // n <= underdetermined_n 或 n < min N
-    P2_STATUS_INVALID_CONFIGURATION = 5 // 方法×normalization 组合不合法
+    P2_STATUS_INVALID_CONFIGURATION = 5, // 方法×normalization 组合不合法
+    P2_STATUS_INVALID_METHOD = 6,        // AUTO 等非法方法进入 kernel
+    P2_STATUS_INTERNAL_ERROR = 7         // kernel 内部不变量破坏
 };
 
 // V16：RejectionNormalizationPolicy（判定工作域；mask 应用回原始科学值）

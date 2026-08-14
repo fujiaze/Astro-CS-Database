@@ -150,6 +150,13 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
         if (p2_reject_stack_ex(&cstack, &plan, &rdec) != 0) {
             throw std::runtime_error("mosaic_reject: rejection failed");
         }
+        // V17：只有 OK/UNDERDETERMINED 可继续
+        if (rdec.status != P2_STATUS_OK &&
+            rdec.status != P2_STATUS_UNDERDETERMINED) {
+            throw std::runtime_error(
+                "mosaic_reject: invalid rejection status " +
+                std::to_string(rdec.status));
+        }
         for (std::uint32_t s = 0; s < n_valid; ++s) {
             accepted[s] = (rdec.reasons[s] == P2_REASON_ACCEPTED ||
                            rdec.reasons[s] == P2_REASON_UNDERDETERMINED)
@@ -166,17 +173,16 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
         if (p2_integrate_pixel(&pi, &pr) != 0) {
             throw std::runtime_error("mosaic_reject: integrate failed");
         }
-        dst[p] = (pr.status == 0) ? static_cast<float>(pr.signal) : 0.0f;
+        dst[p] = (pr.status == P2_INTEGRATE_OK)
+                     ? static_cast<float>(pr.signal) : 0.0f;
         if (out_rej)
             static_cast<float*>(out_rej->data)[p] =
                 (float)(rdec.rejected_low + rdec.rejected_high);
         if (out_valid) static_cast<float*>(out_valid->data)[p] = (float)n_valid;
         if (out_sup) {
-            double sup_out = 0.0;
-            for (std::uint32_t s = 0; s < n_valid; ++s)
-                if (accepted[s]) sup_out = std::max(sup_out, stack_sup[s]);
             static_cast<float*>(out_sup->data)[p] =
-                (pr.status == 0) ? static_cast<float>(sup_out) : 0.0f;
+                (pr.status == P2_INTEGRATE_OK)
+                    ? static_cast<float>(pr.support) : 0.0f;
         }
     }
 }

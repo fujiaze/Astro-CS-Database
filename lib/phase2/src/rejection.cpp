@@ -1075,10 +1075,11 @@ int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
         set_err(err, err_cap, "p2_reject_plan_resolve: request out of range");
         return 1;
     }
-    const std::string profile = req->profile ? req->profile : "wbpp_current";
-    if (profile != "wbpp_current" && profile != "astrocs_adaptive") {
+    const std::string profile = req->profile ? req->profile : "wbpp_2_9_1";
+    if (profile != "wbpp_2_9_1" && profile != "wbpp_current" &&
+        profile != "astrocs_adaptive") {
         set_err(err, err_cap,
-                "p2_reject_plan_resolve: profile 仅支持 wbpp_current/"
+                "p2_reject_plan_resolve: profile 仅支持 wbpp_2_9_1(wbpp_current"
                 "astrocs_adaptive");
         return 1;
     }
@@ -1716,8 +1717,20 @@ int p2_reject_stack_ex(const P2CandidateStack* stack,
                        const P2RejectionPlan* plan,
                        P2RejectionDecision* out) {
     if (stack == nullptr || plan == nullptr || out == nullptr) return 1;
-    if (plan->method < P2_REJECT_NONE || plan->method > P2_REJECT_MINMAX)
-        return 1;  // AUTO 不允许进入 kernel
+    if (plan->method < P2_REJECT_NONE || plan->method > P2_REJECT_MINMAX) {
+        // V17：AUTO 等非法方法 → 明确科学状态 INVALID_METHOD（rc=0，
+        // 调用方对非 {OK,UNDERDETERMINED} 一律 hard fail）
+        std::uint8_t* reasons_out = out->reasons;
+        std::memset(out, 0, sizeof(*out));
+        out->reasons = reasons_out;
+        if (reasons_out != nullptr && stack->count > 0) {
+            for (std::uint32_t i = 0; i < stack->count; ++i)
+                reasons_out[i] = P2_REASON_UNDERDETERMINED;
+        }
+        out->accepted_count = stack->count;
+        out->status = P2_STATUS_INVALID_METHOD;
+        return 0;
+    }
     const std::uint32_t n = stack->count;
     std::uint8_t* reasons_out = out->reasons;
     std::memset(out, 0, sizeof(*out));

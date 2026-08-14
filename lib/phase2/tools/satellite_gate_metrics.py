@@ -21,7 +21,7 @@ CLI = os.environ.get(
     "ASTROCS_REJECTION_CLI",
     str(ROOT / "lib" / "phase2" / "build" / "rejection_cli.exe"),
 )
-PLAN = {"request": "auto", "nominal": 20, "profile": "wbpp_current",
+PLAN = {"request": "auto", "nominal": 20, "profile": "wbpp_2_9_1",
         "underdetermined_n": 2}
 FRAMES = [SAT / f"frame{f:02d}.hips" for f in range(20)]
 TRAIL_FRAME = 10

@@ -3559,8 +3559,9 @@ TEST(Phase2Wiring, G1ProductionWiringTruth) {
       },
       "integration": {
         "precision": "fp32", "memory_limit_mb": 8192,
-        "rejection": {"method": "sigma", "low": 4.0, "high": 3.0,
-                       "max_iterations": 8, "min_samples": 2},
+        "rejection": {"method": "sigma", "profile": "wbpp_2_9_1",
+                       "normalization": "astrocs_median_center_v1",
+                       "underdetermined_n": 2},
         "weight_mode": "auto"
       },
       "output": {"hips": "out.hips"},
@@ -3804,7 +3805,7 @@ TEST(Phase2Reject, V15AutoPlanResolvesByNominal) {
         P2RejectionPlanRequest req{};
         req.request = P2_REJECT_AUTO;
         req.nominal_contributors = n;
-        req.profile = "wbpp_current";
+        req.profile = "wbpp_2_9_1";
         P2RejectionPlan plan{};
         char err[64] = {0};
         EXPECT_EQ(p2_reject_plan_resolve(&req, &plan, err, sizeof(err)), 0);
@@ -3969,7 +3970,7 @@ TEST(Phase2Config, V15RejectionTypedParseAndDefaultAuto) {
     ASSERT_TRUE(p2_stage2_parse_config(
         nlohmann::json::parse(j1), &cfg1, &err1)) << err1;
     EXPECT_EQ(cfg1.reject_method, P2_REJECT_AUTO);
-    EXPECT_EQ(cfg1.reject_profile, "wbpp_current");
+    EXPECT_EQ(cfg1.reject_profile, "wbpp_2_9_1");
     EXPECT_EQ(cfg1.reject_underdetermined_n, 2u);
 
     // typed 参数全解析
@@ -3980,7 +3981,7 @@ TEST(Phase2Config, V15RejectionTypedParseAndDefaultAuto) {
       "integration": {
         "rejection": {
           "method": "winsorized_sigma",
-          "profile": "wbpp_current",
+          "profile": "wbpp_2_9_1",
           "underdetermined_n": 2,
           "winsorized_sigma": {"lower_sigma": 5.0, "upper_sigma": 2.5,
                                 "max_iterations": 12}
@@ -3996,9 +3997,8 @@ TEST(Phase2Config, V15RejectionTypedParseAndDefaultAuto) {
     EXPECT_DOUBLE_EQ(cfg2.winsor_lower, 5.0);
     EXPECT_DOUBLE_EQ(cfg2.winsor_upper, 2.5);
     EXPECT_EQ(cfg2.winsor_max_iterations, 12);
-    EXPECT_TRUE(cfg2.deprecation_warnings.empty());
 
-    // legacy 字段 → deprecation warning + 映射
+    // V17：legacy 字段（low/high/max_iterations/min_samples）→ 硬错误
     const std::string j3 = R"({
       "version": 1,
       "inputs": {"hips": ["a.hips", "b.hips"]},
@@ -4011,12 +4011,9 @@ TEST(Phase2Config, V15RejectionTypedParseAndDefaultAuto) {
     })";
     P2Stage2Config cfg3{};
     std::string err3;
-    ASSERT_TRUE(p2_stage2_parse_config(
-        nlohmann::json::parse(j3), &cfg3, &err3)) << err3;
-    EXPECT_FALSE(cfg3.deprecation_warnings.empty());
-    EXPECT_DOUBLE_EQ(cfg3.sigma_lower, 4.0);
-    EXPECT_DOUBLE_EQ(cfg3.sigma_upper, 3.0);
-    EXPECT_EQ(cfg3.reject_underdetermined_n, 2u);
+    EXPECT_FALSE(p2_stage2_parse_config(
+        nlohmann::json::parse(j3), &cfg3, &err3));
+    EXPECT_NE(err3.find("migrate"), std::string::npos);
 
     // 非法 profile 拒绝
     const std::string j4 = R"({
@@ -4237,7 +4234,7 @@ TEST(Phase2Eligibility, V16GatherStridedFp32Fp64) {
 
 // V16：profile 解析（wbpp_current 与 astrocs_adaptive 都接受；AUTO 路由一致）
 TEST(Phase2Reject, V16ProfileGroupVsAdaptive) {
-    for (const char* prof : {"wbpp_current", "astrocs_adaptive"}) {
+    for (const char* prof : {"wbpp_2_9_1", "astrocs_adaptive"}) {
         P2RejectionPlanRequest req{};
         req.request = P2_REJECT_AUTO;
         req.nominal_contributors = 20;
@@ -4254,5 +4251,112 @@ TEST(Phase2Reject, V16ProfileGroupVsAdaptive) {
     P2RejectionPlan p{};
     char err[64] = {0};
     EXPECT_NE(p2_reject_plan_resolve(&bad, &p, err, sizeof(err)), 0);
+}
+
+// =====================================================================
+// V17 True Final Freeze — integration correctness
+// =====================================================================
+
+// V17-C01：非 finite / 非正权重绝不允许 status=OK + signal=NaN
+TEST(Phase2Integrate, V17NonFiniteWeightInvalid) {
+    std::vector<double> vals{10.0, 11.0};
+    P2PixelStack in{};
+    in.values = vals.data();
+    in.count = 2;
+    P2PixelResult out{};
+    // NaN weight
+    std::vector<double> wn{1.0, std::nan("")};
+    in.weights = wn.data();
+    in.weight_mode = 0;
+    ASSERT_EQ(p2_integrate_pixel(&in, &out), 0);
+    EXPECT_EQ(out.status, P2_INTEGRATE_INVALID_INPUT);
+    EXPECT_TRUE(std::isnan(out.signal) == false || out.status != 0);
+    // +Inf weight
+    std::vector<double> wi{1.0, std::numeric_limits<double>::infinity()};
+    in.weights = wi.data();
+    ASSERT_EQ(p2_integrate_pixel(&in, &out), 0);
+    EXPECT_EQ(out.status, P2_INTEGRATE_INVALID_INPUT);
+    // -Inf / negative weight
+    std::vector<double> wneg{1.0, -2.0};
+    in.weights = wneg.data();
+    ASSERT_EQ(p2_integrate_pixel(&in, &out), 0);
+    EXPECT_EQ(out.status, P2_INTEGRATE_INVALID_INPUT);  // negative → invalid
+    // validate_candidate_weights
+    EXPECT_EQ(p2_validate_candidate_weights(wn.data(), 2), 1);
+    EXPECT_EQ(p2_validate_candidate_weights(wi.data(), 2), 1);
+    EXPECT_EQ(p2_validate_candidate_weights(wneg.data(), 2), 1);
+    std::vector<double> okw{1.0, 2.0};
+    EXPECT_EQ(p2_validate_candidate_weights(okw.data(), 2), 0);
+}
+
+// V17-C01：NaN/Inf support → INVALID_INPUT；正有限 support → 正常
+TEST(Phase2Integrate, V17NonFiniteSupportInvalid) {
+    std::vector<double> vals{10.0, 11.0};
+    std::vector<double> w{1.0, 1.0};
+    std::vector<double> s_bad{1.0, std::nan("")};
+    P2PixelStack in{};
+    in.values = vals.data();
+    in.weights = w.data();
+    in.support = s_bad.data();
+    in.count = 2;
+    P2PixelResult out{};
+    ASSERT_EQ(p2_integrate_pixel(&in, &out), 0);
+    EXPECT_EQ(out.status, P2_INTEGRATE_INVALID_INPUT);
+    std::vector<double> s_ok{0.5, 1.0};
+    in.support = s_ok.data();
+    ASSERT_EQ(p2_integrate_pixel(&in, &out), 0);
+    EXPECT_EQ(out.status, P2_INTEGRATE_OK);
+    // V17-C03：canonical support reducer = max(accepted support)
+    EXPECT_DOUBLE_EQ(out.support, 1.0);
+}
+
+// V17-C04：integration status 显式且可达（无歧义）
+TEST(Phase2Integrate, V17StatusesExplicit) {
+    P2PixelStack in{};
+    P2PixelResult out{};
+    // NO_CANDIDATES
+    in.values = nullptr;
+    in.count = 0;
+    ASSERT_EQ(p2_integrate_pixel(&in, &out), 0);
+    EXPECT_EQ(out.status, P2_INTEGRATE_NO_CANDIDATES);
+    // ALL_REJECTED：count>0 且全 accepted=0
+    std::vector<double> vals{10.0, 11.0};
+    std::vector<std::uint8_t> acc{0, 0};
+    in.values = vals.data();
+    in.count = 2;
+    in.accepted = acc.data();
+    ASSERT_EQ(p2_integrate_pixel(&in, &out), 0);
+    EXPECT_EQ(out.status, P2_INTEGRATE_ALL_REJECTED);
+    // ZERO_VALID_WEIGHT：accepted 但权重全 0（正有限权重=0 被跳过 → 无正权重）
+    std::vector<std::uint8_t> acc2{1, 1};
+    std::vector<double> w0{0.0, 0.0};
+    in.accepted = acc2.data();
+    in.weights = w0.data();
+    ASSERT_EQ(p2_integrate_pixel(&in, &out), 0);
+    EXPECT_EQ(out.status, P2_INTEGRATE_ZERO_VALID_WEIGHT);
+    // 显式计数器
+    EXPECT_EQ(out.n_candidates, 2u);
+    EXPECT_EQ(out.n_accepted, 2u);
+    EXPECT_EQ(out.n_finite, 2u);
+    EXPECT_EQ(out.n_positive_weight, 0u);
+    EXPECT_EQ(out.n_used, 0u);
+}
+
+// V17-C02：rejection INVALID_* 状态 → 调用方 hard fail 契约
+TEST(Phase2Reject, V17InvalidMethodStatus) {
+    std::vector<double> vals{10.0, 11.0, 12.0};
+    P2RejectionPlan plan = v15_plan(P2_REJECT_SIGMA);
+    plan.method = P2_REJECT_AUTO;  // AUTO 不允许进入 kernel
+    P2CandidateStack st{};
+    st.values = vals.data();
+    st.count = 3;
+    P2RejectionDecision dec{};
+    std::vector<std::uint8_t> reasons(3, 0);
+    dec.reasons = reasons.data();
+    ASSERT_EQ(p2_reject_stack_ex(&st, &plan, &dec), 0);
+    EXPECT_EQ(dec.status, P2_STATUS_INVALID_METHOD);
+    // V17-C02 契约：INVALID_* 不属于可继续集合 → 调用方必须 hard fail
+    EXPECT_FALSE(dec.status == P2_STATUS_OK ||
+                 dec.status == P2_STATUS_UNDERDETERMINED);
 }
 

@@ -194,7 +194,17 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
             }
             if (in.contains("rejection")) {
                 const auto& rj = in["rejection"];
-                // V15：production 默认 auto（planning 层解析，WBPP 2.9.1）
+                // V17：旧 config 别名（low/high/max_iterations/min_samples）
+                // 已从 production runtime 删除——出现即要求显式迁移。
+                if (rj.contains("low") || rj.contains("high") ||
+                    rj.contains("max_iterations") ||
+                    rj.contains("min_samples")) {
+                    *err = "rejection.low/high/max_iterations/min_samples 已"
+                           "删除（V17）。请用 tools/migrate_stage2_config.py "
+                           "迁移到 typed params（rejection.<method>.* 与 "
+                           "underdetermined_n）。";
+                    return false;
+                }
                 const std::string method =
                     rj.value("method", std::string("auto"));
                 if (method == "none") cfg->reject_method = P2_REJECT_NONE;
@@ -220,11 +230,15 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                     *err = "unsupported rejection method: " + method;
                     return false;
                 }
+                // V17：版本化 profile（wbpp_2_9_1 冻结；wbpp_current 仅
+                // migration alias，解析到 wbpp_2_9_1；astrocs_adaptive 独立）
                 cfg->reject_profile =
-                    rj.value("profile", std::string("wbpp_current"));
-                if (cfg->reject_profile != "wbpp_current" &&
+                    rj.value("profile", std::string("wbpp_2_9_1"));
+                if (cfg->reject_profile == "wbpp_current")
+                    cfg->reject_profile = "wbpp_2_9_1";   // alias 规范化
+                if (cfg->reject_profile != "wbpp_2_9_1" &&
                     cfg->reject_profile != "astrocs_adaptive") {
-                    *err = "rejection.profile 只支持 wbpp_current/"
+                    *err = "rejection.profile 只支持 wbpp_2_9_1（冻结）/ "
                            "astrocs_adaptive";
                     return false;
                 }
@@ -234,32 +248,37 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                     *err = "rejection.underdetermined_n 必须 >= 1";
                     return false;
                 }
-                // V16：rejection normalization（判定工作域）
+                // V17：rejection normalization 独立命名（astrocs_*_v1；
+                // 旧 median_center/median_scale 为 migration alias）
                 cfg->reject_normalization = rj.value(
-                    "normalization", std::string("median_center"));
+                    "normalization",
+                    std::string("astrocs_median_center_v1"));
+                if (cfg->reject_normalization == "median_center")
+                    cfg->reject_normalization = "astrocs_median_center_v1";
+                else if (cfg->reject_normalization == "median_scale")
+                    cfg->reject_normalization = "astrocs_median_scale_v1";
                 if (cfg->reject_normalization != "none" &&
-                    cfg->reject_normalization != "median_center" &&
-                    cfg->reject_normalization != "median_scale") {
+                    cfg->reject_normalization != "astrocs_median_center_v1" &&
+                    cfg->reject_normalization != "astrocs_median_scale_v1") {
                     *err = "rejection.normalization 只支持 none/"
-                           "median_center/median_scale";
+                           "astrocs_median_center_v1/astrocs_median_scale_v1";
                     return false;
                 }
                 cfg->reject_normalization_floor =
                     rj.value("normalization_floor", 1e-12);
-                // 方法×normalization 合法性（V16）
+                // 方法×normalization 合法性（V16/V17）
                 if (method == "percentile" &&
-                    cfg->reject_normalization != "median_center") {
+                    cfg->reject_normalization != "astrocs_median_center_v1") {
                     *err = "rejection: percentile 必须 normalization="
-                           "median_center（负值科学域安全）";
+                           "astrocs_median_center_v1（负值科学域安全）";
                     return false;
                 }
-                if (method == "rcr" &&
-                    cfg->reject_normalization != "none") {
+                if (method == "rcr" && cfg->reject_normalization != "none") {
                     *err = "rejection: rcr 必须 normalization=none"
                            "（官方 oracle 原始值域冻结）";
                     return false;
                 }
-                // V15 method-specific typed params（单语义单默认）
+                // V15/V16 method-specific typed params（单语义单默认）
                 if (rj.contains("robust_mad_clip")) {
                     const auto& s = rj["robust_mad_clip"];
                     cfg->sigma_lower = s.value("lower_sigma", 4.0);
@@ -323,47 +342,6 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                         *err = "rcr.technique 只支持 ss_median_dl（V15 冻结）";
                         return false;
                     }
-                }
-                // 旧字段（low/high/max_iterations/min_samples）→ deprecation
-                // adapter：映射到全部适用 typed 参数，并打印 warning。
-                if (rj.contains("low") || rj.contains("high") ||
-                    rj.contains("max_iterations") ||
-                    rj.contains("min_samples")) {
-                    const double lo = -std::fabs(rj.value("low", 4.0));
-                    const double hi = std::fabs(rj.value("high", 3.0));
-                    const int mi = rj.value("max_iterations", 8);
-                    cfg->sigma_low = lo;
-                    cfg->sigma_high = hi;
-                    cfg->reject_max_iterations = mi;
-                    cfg->reject_min_samples = rj.value("min_samples", 2);
-                    if (cfg->reject_min_samples < 1) {
-                        *err = "rejection.min_samples 必须 >= 1";
-                        return false;
-                    }
-                    cfg->sigma_lower = std::fabs(lo);
-                    cfg->sigma_upper = hi;
-                    cfg->sigma_max_iterations = mi;
-                    cfg->winsor_lower = std::fabs(lo);
-                    cfg->winsor_upper = hi;
-                    cfg->winsor_max_iterations = mi;
-                    cfg->avg_lower = std::fabs(lo);
-                    cfg->avg_upper = hi;
-                    cfg->avg_max_iterations = mi;
-                    cfg->linfit_lower = std::fabs(lo);
-                    cfg->linfit_upper = hi;
-                    cfg->linfit_max_iterations = mi;
-                    cfg->esd_max_outliers = mi;
-                    cfg->pct_low_fraction = std::fabs(lo);
-                    cfg->pct_high_fraction = hi;
-                    cfg->medsig_lower = std::fabs(lo);
-                    cfg->medsig_upper = hi;
-                    cfg->medsig_max_iterations = mi;
-                    cfg->reject_underdetermined_n =
-                        (std::uint32_t)cfg->reject_min_samples;
-                    cfg->deprecation_warnings.push_back(
-                        "rejection.low/high/max_iterations/min_samples 已弃用；"
-                        "改用 rejection.<method>.{lower_sigma,upper_sigma,"
-                        "max_iterations,...} 与 rejection.underdetermined_n");
                 }
             }
         const std::string wm =
