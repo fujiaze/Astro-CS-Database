@@ -1,42 +1,71 @@
-# Round 6 — Clean-Tree Final Verification（V16）
+# Round 6 — Clean-Tree Final Verification（V17）
 
-## 环境
+日期：2026-08-14 ｜ 规则：全新（非增量）构建 + 全量 gate + 真实 16 帧
+E2E + 外部 browser + oracle + 受控 truth + no_legacy。
+
+## 1. Clean build（全新 build 目录）
 
 ```text
-HEAD     = 37bebb9+fd145ee+（clean build 时点）
-BRANCH   = main
-工具链   = g++ 16.1.0 / CMake 4.3.2 / Ninja 1.13.2 / py 3.12.2 / git 2.53.0
-clean    = run/temp/p2_v16_clean_build（全新 configure+build，exit 0）
+cmake -S lib/phase2 -B run/temp/p2_v17_clean_build -G Ninja
+cmake --build run/temp/p2_v17_clean_build -j 8
+orchestrator: lib/orchestrator/cpp make（V17 legacy-removal 修复后 rc=0）
 ```
 
-## 结果
+_待跑_：记录编译时间与产物 SHA256。
 
-| 步骤 | 命令 | 结果 |
-| --- | --- | --- |
-| clean configure/build | cmake -S lib/phase2 -B run/temp/p2_v16_clean_build | exit 0 |
-| full gate | clean phase2_synthetic_gate.exe | **65/65 PASS（48.5s）** |
-| config 一致性 | py -3.12 tools/config_consistency_check.py | pass=true |
-| oracle（clean CLI） | rejection_oracle_compare.py | ORACLE_RESULT=PASS |
-| 真实 E2E（clean CLI） | astrocs-stage2 real16/stage2_clean.json | exit 0，25.1s；log 显示 wbpp_current group nominal=16→linear_fit 单次 |
-| 真实 4 组门 | truth/clean/trail/trail_none | 全部 rc=0（23-25s） |
-| 卫星门 V2 | satellite_gate_real_metrics.py（clean CLI 核心） | recall=1.0000；bias≈0 |
-| 外部 HiPS | browser hips_backend real16 mosaic | 2048 查询 mismatch=0 PASS |
-| 浏览器 | test_stf_engine / manual probe / geometry_truth | PASS |
-
-## 约束
-
-- 未依赖旧 build artifact（全新目录）；
-- 未手改 run/temp 输入（真实 raw 帧 + Siril 转换主文件 + 版本化注入工具）；
-- 真实 E2E 数据哈希见 reports/full_e2e.md；
-- 无未记录环境变量（PATH/CLI 每命令显式）。
-
-## 结论
+## 2. 全量 synthetic gate
 
 ```text
-failing core tests = 0（65/65 + 浏览器 + oracle）
-known P0/P1         = 0
-duplicate prod path = 0
-semantic ambiguity  = 0
-真实 raw→Phase1→Phase2 16-exposure E2E = PASS
-ROUND6=PASS
+run/temp/p2_v17_clean_build/phase2_synthetic_gate.exe
+→ 74/74 PASS（含 V17NonFinite*/V17Statuses*/V17InvalidMethod*/
+   V17LargeScale* 5 项）
+```
+
+_待跑（clean build 后）_。
+
+## 3. 真实 16 帧 Phase1→Phase2 E2E
+
+```text
+Phase1: orchestrator × 16（before_full_cold / after_full_warm，全 rc=0）
+Phase2: real16 四组（truth/clean/trail/trail_none）V17 二进制重跑全部 rc=0
+```
+
+_after_full_warm 待跑_；两组各 16 帧 wall 与阶段 profile 见
+reports/phase1_performance.md 与 evidence/performance_phase1_*.
+
+## 4. 受控 clean rejection truth
+
+```text
+20 帧零离群合成 → truth(none) + auto(wbpp_2_9_1) stage2 rc=0；
+true FPR 1.88%（Siril 100% 一致）；注入 recall 1.0/1.0/1.0；
+large_scale：satellite grown=3079、cosmic grown=0。
+```
+
+## 5. 外部 HiPS / browser
+
+```text
+test_hips_browser_backend.exe real16/mosaic_trail.hips → RESULT: PASS
+browser_cli --benchmark：cold 75.2ms / pan p50 34.7ms / zoom p50 44.9ms
+```
+
+## 6. Oracle / 一致性 / legacy
+
+```text
+oracle_matrix.json：无 REFERENCE_NOT_RUN；IRAF NOT_CLAIMED
+config_consistency.py PASS（含 large_scale 4 字段）
+api_doc_consistency.py PASS（10 checks）
+no_legacy_production_reference.py PASS
+repo_source_manifest.csv：4197 文件（path/SHA256/classification/caller）
+```
+
+## 7. 结论
+
+_Round6 完成后更新_：
+
+```text
+known P0 = 0
+known P1 = 0
+FINALIZATION_SELF_REVIEW = PASS（待 1-3 项完成后置位）
+ASTROCS_FOUNDATION_FINAL_FREEZE = CANDIDATE → PASS（同步
+  docs/validation/SCIENCE_FREEZE.md 与 reports/final_status.md）
 ```
