@@ -1204,8 +1204,16 @@ static void search_recursive_spectrum(XPSDFileInternal *xf, TreeInfo *tree, uint
         }
     }
 
-    if (!bbox_intersects(ra, dec, radius_deg, ra_min, ra_max, dec_min, dec_max))
+    if (strcmp(tree->projection, "AzimuthalEquidistant") == 0) {
+        /* V18R2: 极投影平面剪枝（与 star 版一致；spectrum 查询同样因
+         * 极区 RA 环绕退化而全树遍历——PHOTOMETRIC 17.8s/36GB 元凶） */
+        if (!polar_plane_intersects(ra, dec, radius_deg,
+                                    tree->center_ra, tree->center_dec,
+                                    node->x0, node->y0, node->x1, node->y1))
+            return;
+    } else if (!bbox_intersects(ra, dec, radius_deg, ra_min, ra_max, dec_min, dec_max)) {
         return;
+    }
 
     if (node->is_leaf) {
         uint8_t *data = read_leaf_block(xf, node->block_offset, node->compressed_size,
