@@ -7,9 +7,10 @@ Drizzle 建成标准 IVOA HiPS（signal/support/variance/ivar/snr）；Phase2
 把多帧 HiPS 经 UPM 联合光度模型（background-clean 采样、稳健 Huber、
 ivar 科学权重）叠加为无缝马赛克。
 
-**当前状态 (V19)**: `PRE_RELEASE_FOUNDATION_READY=PASS`;
-`FINAL_REAL_DATA_VALIDATION=PENDING_V20`。SNR/Noise 已按三层模型科学重构
-(SNR-001..015), Drizzle 已实现方差传播与操作计数, Phase2 默认 ivar 权重。
+**当前状态 (V19R2)**: `PRE_RELEASE_ENGINEERING_FOUNDATION=PASS`;
+`FINAL_REAL_DATA_VALIDATION=PENDING`。SNR/Noise 按三层模型科学重构
+(SNR-001..015), Drizzle 已实现方差传播与操作计数, Phase2 默认 ivar 权重,
+全仓逐文件审计/可追溯冻结已闭环（详见 reports/v19r2/）。
 
 ## 输入 / 输出
 
@@ -37,18 +38,17 @@ lib\healpix_db\healpix_browser_qt\build\healpix_browser_qt.exe --hips <root>
 - 浏览器：`docs/browser/HIPS_BROWSER.md`
 - 下一阶段：`docs/backlog/NEXT_STAGE.md`
 
-历史 V1–V18 审核过程归档在 `archive_deliverables/` 与工程控制记录，
+历史 V1–V19 审核过程归档在 `archive_deliverables/` 与工程控制记录，
 不进入本文档。
 
-## V19 开发/科学文档
+## 文档体系（V19R2 L0-L5）
 
-- 架构/模块：`docs/ARCHITECTURE.md` / `docs/MODULE_INDEX.md`
-- 开发者指南：`docs/DEVELOPER_GUIDE.md` / `docs/BUILD_RELEASE.md`
-- 数据/配置契约：`docs/DATA_CONTRACTS.md` / `docs/CONFIG_REFERENCE.md`
-- 科学算法/噪声模型：`docs/SCIENTIFIC_ALGORITHMS.md` /
-  `docs/SNR_NOISE_MODEL.md` / `docs/DRIZZLE.md` / `docs/PHASE2.md`
-- 诊断/排障：`docs/DIAGNOSTICS.md` / `docs/ERROR_TAXONOMY.md` /
-  `docs/TROUBLESHOOTING.md`
-- 测试/性能/限制：`docs/TESTING_AND_ACCEPTANCE.md` /
-  `docs/PERFORMANCE.md` / `docs/KNOWN_LIMITATIONS.md`
+- 入口：`docs/README-DOCS.md`、`docs/DEVELOPER_GUIDE.md`、
+  `docs/RELEASE_STATUS.md`、`docs/KNOWN_LIMITATIONS.md`、`CHANGELOG.md`
+- 科学规范：`docs/science/`（定义/公式/单位/假设/域/误差/ID）
+- 算法规范：`docs/algorithms/`（输入/输出/不变量/复杂度/oracle）
+- 架构/标准/模块：`docs/architecture/`、`docs/standards/`、`docs/modules/`
+- 数据/接口契约：`docs/contracts/`
+- 追溯矩阵：`docs/TRACEABILITY.csv`
+- 历史：`docs/history/`（V19 扁平文档快照，非 current authority）
 - 变更记录：`CHANGELOG.md`
