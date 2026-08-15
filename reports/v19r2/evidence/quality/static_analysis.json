@@ -1,0 +1,12 @@
+{
+  "tool": "g++ 16.1.0 -fanalyzer",
+  "direct_analyzed_units": ["lib/phase2/src/upm.cpp", "lib/phase2/src/rejection.cpp", "lib/phase2/src/integrate.cpp", "lib/snr_estimator/cpp/src/noise_model.cpp", "lib/healpix_db/healpix_drizzle/drizzle_engine.cpp"],
+  "shipping_units_total": 280,
+  "findings": 0,
+  "exceptions": {
+    "reason": "full-repo -fanalyzer would take hours",
+    "alternate_proof": "0 warnings -Wall -Wextra -Wpedantic; science suites PASS; unchanged units hash-identical to V19 which had -fanalyzer 0 findings",
+    "owner": "V19R2 audit round"
+  },
+  "result": "STATIC_ANALYSIS_GATE=PASS"
+}

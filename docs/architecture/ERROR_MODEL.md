@@ -19,6 +19,19 @@ P2.HIPS_WRITE。
   ALL_REJECTED / ZERO_VALID_WEIGHT / INVALID_INPUT）。
 - 每个 high-risk error → troubleshooting 条目（docs/diagnostics/）。
 
+## 编排退出码（AstroCsExitCode）
+
+orchestrator.exe 稳定退出码（lib/orchestrator/cpp/include/orchestrator.h）：
+
+```text
+SUCCESS=0  ARGS_ERROR=1  DLL_LOAD_FAILED=2  STAGE_CONFIG_ERROR=3
+STAGE_RUNTIME_ERROR=4  DATA_NOT_FOUND=5  SCIENCE_GATE_FAILED=6
+CONFIG_ERROR=7  FILE_IO_ERROR=8  INTERNAL_ERROR=9
+```
+
+阶段 stage IDs：P1.READ/P1.CALIBRATE/P1.STAR/P1.PSF/P1.PLATESOLVE/
+P1.PHOTOMETRIC/P1.NOISE/P1.DRIZZLE/P1.HIPS_WRITE/P2.*。
+
 ## 契约
 
 ERR-* 族（S2 注册，含 ERR-P2-UPM-001 畸形模型）。
