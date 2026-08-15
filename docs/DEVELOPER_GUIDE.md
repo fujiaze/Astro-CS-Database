@@ -15,14 +15,15 @@ Python 3.12 (规范: py -3.12), GitHub CLI (Temp 安装)
 .\toolchain.ps1 run <stage1.json>
 ```
 
-模块独立构建: 各 `lib/<module>/cpp` 下 `make` (见 MODULE_INDEX.md)。
+模块独立构建: 各 `lib/<module>/cpp` 下 `make`（模块地图见
+docs/architecture/MODULE_MAP.md）。
 
 ## 测试
 
 ```text
-snr_estimator:      noise_model_science_test (V19 科学矩阵 32 项)
+snr_estimator:      noise_model_science_test (SNR-001..015 矩阵)
 healpix_drizzle:    variance_propagation_test (SNR-011/012 + DRZ)
-phase2:             phase2_synthetic_gate (74 项)
+phase2:             phase2_synthetic_gate (82 项, 含 PR-UPM-001..010)
 astro_image_io:     pipeline_frame_contract_test / dataflow_fuzz
 ```
 
@@ -34,6 +35,7 @@ astro_image_io:     pipeline_frame_contract_test / dataflow_fuzz
 - 禁止大规模 cosmetic refactor (V19 PRERELEASE_CODE_QUALITY.md)
 - 日志统一写 `run/logs/<module>/<YYYYMMDD>/`
 - 中文注释; 科学文档含公式/单位/假设/失效域/源码入口
+- 规范标准：`docs/standards/`；追溯：`docs/TRACEABILITY.csv`
 
 ## Git 工作流
 

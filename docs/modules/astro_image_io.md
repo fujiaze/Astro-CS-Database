@@ -1,0 +1,73 @@
+# Module: astro_image_io
+
+## 职责
+
+唯一 I/O 层：FITS/XISF/ahpx 读写、zstd/lz4 压缩、HiPS 读/写（signal/
+support/variance/ivar）、UPM 模型文件容器（aio_upm sparse/dense）、
+PipelineFrame/引擎。
+
+## 非职责
+
+不实现科学算法（几何/统计）；不写 testdata/。
+
+## Production callers
+
+所有科学模块 DLL、orchestrator、phase2（aio_upm/aio_hips_reader）、
+浏览器（hips reader）。
+
+## Public API
+
+aio_* 系列（aio_fits/aio_xisf/aio_hips_reader/aio_hips_writer/
+aio_upm/aio_compressor/aio_pipeline）；API-AIO-001..（S2 注册）。
+
+## Data contract
+
+FITS 标准 + IVOA HiPS；HiPS tile 语义：signal/support/variance/ivar
+（DATA-HIPS-SIGNAL-001 等，S2 注册）；UPM sparse format astrocs-upm-v2。
+
+## Ownership
+
+读句柄 aio_*_open → aio_*_close；动态 buffer 由 aio_upm_read_all_dynamic
+返回调用方 delete[]；g_upm_error thread_local。
+
+## Thread safety
+
+独立句柄可并行；同句柄顺序访问；dense cache 写/读分离。
+
+## Errors
+
+IO/CONFIG/INPUT_CORRUPT；aio_upm_last_error 提供消息；stale cache=2。
+
+## Config
+
+压缩级别；HiPS order 参数；无全局 config。
+
+## Science/algorithm IDs
+
+SCI-DRZ-014/016（产品语义）；DATA-HIPS-*。
+
+## 性能特征
+
+流式读写；compression 块级；HiPS 写先 tile 后 properties。
+
+## 缓存
+
+无进程级缓存（读路径句柄级）。
+
+## Diagnostics
+
+日志 run/logs/astro_image_io/；错误类别+消息。
+
+## Tests/oracles
+
+hiss_correctness、pipeline_frame_contract、checksum、drizzle_integration、
+fuzz/sanitize driver；Python oracle（hips_mapping_oracle）。
+
+## Known limitations
+
+aio_upm_write_sparse 非原子写（F-V19R2-IO-001）；orchestrator 日志路径
+嵌套 bug（非阻断）。
+
+## Source files
+
+lib/astro_image_io/{include,src}/。

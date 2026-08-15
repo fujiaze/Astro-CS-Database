@@ -110,3 +110,23 @@ RJ-005,ALG-REJ,Phase2 rejection contract RJ-005,docs/algorithms/REJECTION_ALGORI
 RJ-006,ALG-REJ,Phase2 rejection contract RJ-006,docs/algorithms/REJECTION_ALGORITHMS.md,phase2,VERIFIED
 RJ-007,ALG-REJ,Phase2 rejection contract RJ-007,docs/algorithms/REJECTION_ALGORITHMS.md,phase2,VERIFIED
 RJ-008,ALG-REJ,Phase2 rejection contract RJ-008,docs/algorithms/REJECTION_ALGORITHMS.md,phase2,VERIFIED
+API-AIO-001,API,AIO 读写 API（FITS/XISF/HiPS/ahpx/UPM 容器）,docs/contracts/PUBLIC_API.md,astro_image_io,VERIFIED
+API-P2-UPM-001,API,UPM build/save/open/calibrate/close C API,docs/contracts/PUBLIC_API.md,phase2,VERIFIED
+API-P2-REJECT-001,API,rejection plan/stack/decision C API,docs/contracts/PUBLIC_API.md,phase2,VERIFIED
+DATA-HIPS-SIGNAL-001,DATA,HiPS signal tile：线性通量守恒信号,docs/contracts/DATA_SEMANTICS.md,astro_image_io,VERIFIED
+DATA-HIPS-SUPPORT-001,DATA,HiPS support tile：accepted support max reducer,docs/contracts/DATA_SEMANTICS.md,astro_image_io,VERIFIED
+DATA-HIPS-VAR-001,DATA,HiPS variance tile：Drizzle 方差传播,docs/contracts/DATA_SEMANTICS.md,astro_image_io,VERIFIED
+DATA-HIPS-IVAR-001,DATA,HiPS ivar tile：1/variance,docs/contracts/DATA_SEMANTICS.md,astro_image_io,VERIFIED
+ENG-OWN-001,ENG,C API handle ownership：open->close 配对,docs/architecture/OWNERSHIP_AND_LIFETIME.md,all,VERIFIED
+ENG-OWN-002,ENG,输出 buffer 调用方分配，失败不半初始化,docs/architecture/OWNERSHIP_AND_LIFETIME.md,all,VERIFIED
+ENG-THREAD-001,ENG,禁止库内改全局 OpenMP 设置,docs/architecture/THREADING_MODEL.md,all,VERIFIED
+ENG-THREAD-002,ENG,计数器 atomic/thread-local，禁止裸 race,docs/architecture/THREADING_MODEL.md,all,VERIFIED
+ENG-ERR-001,ENG,三层错误语义：success/recoverable/hard,docs/architecture/ERROR_MODEL.md,all,VERIFIED
+ENG-IO-001,ENG,science product temp+validate+atomic promote,docs/architecture/IO_AND_ATOMICITY.md,all,VERIFIED
+ENG-CACHE-001,ENG,cache 必须 capacity+identity+invalidation+thread,docs/architecture/CACHE_POLICY.md,all,VERIFIED
+ENG-PERF-001,ENG,热路径禁 per-pixel alloc/log/fs/clock,docs/architecture/PERFORMANCE_MODEL.md,all,VERIFIED
+ENG-COMMENT-001,ENG,production 注释禁 Vxx/控制包/审计历史,docs/standards/COMMENT_STANDARD.md,all,VERIFIED
+ERR-P1-DRZ-001,ERR,Drizzle candidate false negative 诊断,docs/diagnostics/TROUBLESHOOTING.md,healpix_drizzle,VERIFIED
+METRIC-P1-DRZ-CANDIDATES,METRIC,Drizzle candidate/source 计数,docs/architecture/PERFORMANCE_MODEL.md,healpix_drizzle,VERIFIED
+METRIC-P1-DRZ-OVERLAP,METRIC,true-overlap ratio,docs/architecture/PERFORMANCE_MODEL.md,healpix_drizzle,VERIFIED
+METRIC-P2-UPM-DENSE,METRIC,UPM dense 等价/命中指标,docs/architecture/PERFORMANCE_MODEL.md,phase2,VERIFIED
