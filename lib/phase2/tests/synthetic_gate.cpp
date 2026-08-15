@@ -11,6 +11,7 @@
 //   I  weighted integration（加权均值/全拒）；
 //   A  ACR legacy launcher 与 CPU reference 等价。
 #include <gtest/gtest.h>
+#include <nlohmann/json.hpp>
 
 #include "astro/phase2/upm.h"
 #include "astro/phase2/stage2_common.h"
@@ -285,6 +286,68 @@ TEST(Phase2Upm, SaveOpenRoundtripAndHash) {
     std::remove(path);
 }
 
+// Re-saving a loaded model must preserve the association between frame IDs
+// and frame-indexed parameter arrays, even when the input file is not ordered
+// by frame ID.
+TEST(Phase2Upm, OpenSavePreservesFrameParameterBinding) {
+    std::vector<P2ControlObservation> obs{
+        make_obs(10, 0, 15.0, 100.0),
+        make_obs(10, 1, 17.0, 100.0),
+        make_obs(10, 2, 16.0, 100.0),
+        make_obs(20, 0, 10.0, 100.0),
+        make_obs(20, 1, 12.0, 100.0),
+        make_obs(20, 2, 11.0, 100.0),
+    };
+    P2UpmBuildConfig cfg{};
+    void* built = nullptr;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg, &built), 0);
+
+    const char* built_path = "run_tmp_upm_frame_order_built.json";
+    const char* unsorted_path = "run_tmp_upm_frame_order_unsorted.json";
+    const char* resaved_path = "run_tmp_upm_frame_order_resaved.json";
+    ASSERT_EQ(p2_upm_save(built, built_path), 0);
+    p2_upm_close(built);
+
+    {
+        std::ifstream input_file(built_path);
+        ASSERT_TRUE(input_file.good());
+        nlohmann::json j;
+        input_file >> j;
+        ASSERT_EQ(j["frames"].size(), 2u);
+        ASSERT_EQ(j["C"].size(), 2u);
+        std::swap(j["frames"][0], j["frames"][1]);
+        std::swap(j["C"][0], j["C"][1]);
+        if (j.contains("frame_component"))
+            std::swap(j["frame_component"][0], j["frame_component"][1]);
+        std::ofstream output_file(unsorted_path);
+        ASSERT_TRUE(output_file.good());
+        output_file << j.dump(2);
+    }
+
+    void* loaded = nullptr;
+    ASSERT_EQ(p2_upm_open(unsorted_path, &loaded), 0);
+    std::uint64_t ipix[1] = {0};
+    double input[1] = {15.0};
+    double before10[1] = {0.0}, before20[1] = {0.0};
+    ASSERT_EQ(p2_upm_calibrate_block(loaded, 10, ipix, input, before10, 1), 0);
+    ASSERT_EQ(p2_upm_calibrate_block(loaded, 20, ipix, input, before20, 1), 0);
+    ASSERT_GT(std::fabs(before10[0] - before20[0]), 1.0);
+    ASSERT_EQ(p2_upm_save(loaded, resaved_path), 0);
+    p2_upm_close(loaded);
+
+    void* reopened = nullptr;
+    ASSERT_EQ(p2_upm_open(resaved_path, &reopened), 0);
+    double after10[1] = {0.0}, after20[1] = {0.0};
+    ASSERT_EQ(p2_upm_calibrate_block(reopened, 10, ipix, input, after10, 1), 0);
+    ASSERT_EQ(p2_upm_calibrate_block(reopened, 20, ipix, input, after20, 1), 0);
+    EXPECT_NEAR(after10[0], before10[0], 1e-12);
+    EXPECT_NEAR(after20[0], before20[0], 1e-12);
+    p2_upm_close(reopened);
+
+    std::remove(built_path);
+    std::remove(unsorted_path);
+    std::remove(resaved_path);
+}
 // G1 空间 UPM truth：3 帧 × 256 controls + 10 万非 control 验证像素。
 // TrueSky 含大尺度/非平面/局部 diffuse 结构；每帧含空间 additive field；
 // 单覆盖边缘（frame2 不覆盖 tile6）+ 断开分量（tile100 仅 frame0）。

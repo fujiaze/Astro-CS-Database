@@ -756,7 +756,7 @@ int p2_upm_save(const void* model, const char* path) {
     j["control_count"] = m->info.control_count;
     j["observation_count"] = m->info.observation_count;
     nlohmann::json frames = nlohmann::json::array();
-    for (const auto& kv : m->frame_index) frames.push_back(kv.first);
+    for (std::uint64_t fid : m->frame_id_by_index) frames.push_back(fid);
     j["frames"] = frames;
     nlohmann::json controls = nlohmann::json::array();
     for (std::size_t k = 0; k < m->controls.size(); ++k) {
@@ -841,6 +841,7 @@ int p2_upm_open(const char* path, void** out_model) {
     for (const auto& fr : j["frames"]) {
         const std::uint64_t fid = fr.get<std::uint64_t>();
         m->frame_index[fid] = fi++;
+        m->frame_id_by_index.push_back(fid);
     }
     // R3（V4）：每分量 gauge frame id + frame→component 映射持久化
     if (j.contains("component_ref_frame") && j.contains("frame_component")) {
