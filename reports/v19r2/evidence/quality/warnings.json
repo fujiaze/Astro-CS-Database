@@ -1,0 +1,9 @@
+{
+  "scan": "full-repo rebuild on merged HEAD + V19R2 fixes, -Wall -Wextra -Wpedantic",
+  "first_party_warnings": 0,
+  "first_party_errors": 0,
+  "phase2_warnings_before_fix": 32,
+  "phase2_findings": ["F-V19R2-BLD-001", "F-V19R2-COV-001", "F-V19R2-CUDA-001", "F-V19R2-REJ-001"],
+  "vendored_suppressed": {"cfitsio": "compiled with -w, third_party exception"},
+  "result": "WARNING_GATE=PASS"
+}

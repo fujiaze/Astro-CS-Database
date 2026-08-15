@@ -35,15 +35,15 @@ def check(name: str, ok: bool, detail: str) -> dict:
 def main() -> int:
     results = []
 
-    cfg_doc = read("docs/CONFIG_REFERENCE.md")
+    cfg_doc = read("docs/development/CONFIG_SCHEMA.md")
     cfg_code = read("lib/phase2/src/stage2_common.cpp")
     results.append(check(
         "config_weight_mode_ivar",
-        '"weight_mode": "ivar"' in cfg_doc and
+        "weight_mode(auto)" in cfg_doc and
         'wm == "auto" || wm == "ivar"' in cfg_code,
-        "docs CONFIG_REFERENCE ivar default <-> stage2_common parse"))
+        "CONFIG_SCHEMA weight_mode auto/ivar <-> stage2_common parse"))
 
-    tax = read("docs/ERROR_TAXONOMY.md")
+    tax = read("docs/architecture/ERROR_MODEL.md")
     orc_h = read("lib/orchestrator/cpp/include/orchestrator.h")
     exit_ok = all(re.search(s, orc_h) for s in
                   [r"SUCCESS\s*=\s*0", r"DLL_LOAD_FAILED\s*=\s*2",
@@ -54,27 +54,30 @@ def main() -> int:
         "AstroCsExitCode" in tax and exit_ok,
         "ERROR_TAXONOMY exit codes <-> orchestrator AstroCsExitCode"))
 
-    stage_doc = read("docs/ERROR_TAXONOMY.md")
-    stages = ["READ_FITS", "CALIBRATE", "PLATESOLVE", "PSF", "PHOTOMETRIC",
-              "SNR", "DRIZZLE", "HIPS_WRITE", "HIPS_VERIFY"]
+    stage_doc = read("docs/architecture/ERROR_MODEL.md")
+    stages = ["P1.READ", "P1.CALIBRATE", "P1.PLATESOLVE", "P1.PSF",
+              "P1.PHOTOMETRIC", "P1.NOISE", "P1.DRIZZLE", "P1.HIPS_WRITE",
+              "P2.INTEGRATE", "P2.HIPS_WRITE"]
     results.append(check(
         "stage_ids_docs_vs_orchestrator",
         all(s in stage_doc for s in stages) and
         "stage_name_v2" in orc,
         "stage IDs in ERROR_TAXONOMY <-> orchestrator stage_name_v2"))
 
-    snr_doc = read("docs/SNR_NOISE_MODEL.md")
+    snr_doc = read("docs/science/NOISE_MODEL.md")
+    psf_doc = read("docs/science/PSF.md")
     nm = read("lib/snr_estimator/cpp/src/noise_model.cpp")
     results.append(check(
         "snr_constants",
-        "0.7316728" in snr_doc and "0.7316727929211932" in nm and
+        "1.4826022185" in snr_doc and "0.7316728" in psf_doc and
+        "0.7316727929211932" in nm and
         "1.482602218505602" in nm,
-        "SNR_NOISE_MODEL constants <-> noise_model.cpp"))
+        "NOISE_MODEL/PSF constants <-> noise_model.cpp"))
 
-    contracts = read("docs/DATA_CONTRACTS.md")
+    contracts = read("docs/contracts/DATA_SEMANTICS.md")
     aio = read("lib/astro_image_io/include/aio_hips.h")
     prod_ok = all(p in contracts for p in
-                  ["signal/", "support/", "snr/", "variance/", "ivar/"]) and \
+                  ["signal", "support", "variance", "ivar"]) and \
               "AIO_HIPS_PRODUCT_VARIANCE" in aio and \
               "AIO_HIPS_PRODUCT_IVAR" in aio
     results.append(check(
@@ -82,7 +85,7 @@ def main() -> int:
         prod_ok,
         "DATA_CONTRACTS products <-> aio_hips.h product flags"))
 
-    drz_doc = read("docs/DRIZZLE.md")
+    drz_doc = read("docs/science/DRIZZLE.md")
     eng = read("lib/healpix_db/healpix_drizzle/drizzle_engine.h")
     results.append(check(
         "drizzle_variance_formula",

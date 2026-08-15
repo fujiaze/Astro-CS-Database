@@ -1,0 +1,17 @@
+batch_id,files_total,files_verified,files_deleted,files_archived,P0_found,P1_found,P2_found,P2_deferred,P3_found,batch_status,notes
+B01,14,14,0,0,0,0,0,0,0,PASS,comment PASS; build+tests PASS; V19 carry/hash
+B02,93,93,0,0,0,0,0,0,0,PASS,comment PASS; build+tests PASS; V19 carry/hash
+B03,18,18,0,0,0,0,0,0,0,PASS,comment PASS; build+tests PASS; V19 carry/hash
+B04,27,27,0,0,0,0,0,0,0,PASS,comment PASS; build+tests PASS; V19 carry/hash
+B05,7,7,0,0,0,0,0,0,0,PASS,comment PASS; build+tests PASS; V19 carry/hash
+B06,44,44,0,0,0,0,0,0,0,PASS,comment PASS; build+tests PASS; V19 carry/hash
+B07,43,43,0,0,0,0,0,0,0,PASS,comment PASS; build+tests PASS; V19 carry/hash
+B08,10,10,0,0,0,0,0,0,0,PASS,comment PASS; build+tests PASS; V19 carry/hash
+B09,51,51,0,0,0,0,0,0,0,PASS,comment PASS; build+tests PASS; V19 carry/hash
+B10,32,32,0,0,0,0,0,0,0,PASS,comment PASS; build+tests PASS; V19 carry/hash
+B11,13,13,0,0,0,0,0,0,0,PASS,comment PASS; build+tests PASS; V19 carry/hash
+B12,33,33,0,0,0,0,0,0,0,PASS,comment PASS; build+tests PASS; V19 carry/hash
+B13,48,48,0,0,0,0,0,0,0,PASS,comment PASS; build+tests PASS; V19 carry/hash
+B14,216,216,0,0,0,0,0,0,0,PASS,comment PASS; build+tests PASS; V19 carry/hash
+B15,36,36,0,0,0,0,0,0,0,PASS,comment PASS; build+tests PASS; V19 carry/hash
+B16,28,28,0,0,0,0,0,0,0,PASS,comment PASS; build+tests PASS; V19 carry/hash

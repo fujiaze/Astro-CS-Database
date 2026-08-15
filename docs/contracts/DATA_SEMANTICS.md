@@ -32,6 +32,17 @@ FITS index = (511 - x) * 512 + y
 - 无有效样本（all-rejected / denominator≈0）必须有明确 status，禁止静默
   输出 0 或 ±Inf（integrate.cpp status=1/2 guard）。
 
+## 4a. variance / ivar 产品（DATA-HIPS-VAR-001 / DATA-HIPS-IVAR-001）
+
+- `variance`：逐像素随机方差（信号单位²），Drizzle 方差传播
+  `variance_p = Σ v_j·w_jp² / D_p²`（SCI-DRZ-014）；无覆盖像素=0。
+- `ivar`：逆方差 `1/variance`；variance=0/缺失 → ivar=0（显式不可用，
+  禁止伪装）；NaN/负 variance 视为产品损坏。
+- 相邻像素非严格独立（协方差已文档化，见
+  docs/science/UNCERTAINTY_AND_COVARIANCE.md），pixel variance ≠
+  aperture variance。
+- HiPS 子产品位：`AIO_HIPS_PRODUCT_VARIANCE=8`、`AIO_HIPS_PRODUCT_IVAR=16`。
+
 ## 5. frame identity / manifest
 
 - frame_id：`p2_frame_id(path)`（FNV-1a 64，科学 payload 敏感，与输入顺序
