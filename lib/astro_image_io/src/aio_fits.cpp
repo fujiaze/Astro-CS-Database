@@ -5,7 +5,7 @@
 #include <cstdio>
 #include <cctype>
 
-// R10 修复: AIO 模块内部精度模式查询 (替代跨 DLL 的 PrecisionContext)
+// 修复: AIO 模块内部精度模式查询 (替代跨 DLL 的 PrecisionContext)
 extern "C" int aio_internal_is_fp64();
 #include <cstdlib>
 #include <cstring>
@@ -276,9 +276,9 @@ static float *convert_to_float32(const uint8_t *raw, size_t n_pixels, int bitpix
 // ============================================================================
 // convert_to_float64 - 将原始像素转换为 double 数组 (FP64 模式)
 // 与 convert_to_float32 对应, 但输出 double, 不损失精度:
-//   - BITPIX=-64 (double): 直接拷贝, 零精度损失
-//   - BITPIX=-32 (float) : float -> double 提升, 不损失精度
-//   - 整数类型           : 整数 -> double, 不损失精度 (在 double 表示范围内)
+// - BITPIX=-64 (double): 直接拷贝, 零精度损失
+// - BITPIX=-32 (float) : float -> double 提升, 不损失精度
+// - 整数类型 : 整数 -> double, 不损失精度 (在 double 表示范围内)
 // 返回 malloc 分配的 double 数组 (调用方负责 free), 失败返回 nullptr
 // ============================================================================
 static double *convert_to_float64(const uint8_t *raw, size_t n_pixels, int bitpix) {
@@ -471,7 +471,7 @@ static void build_metadata(const FITSHeader &hdr, AIOImageMetadata &meta) {
 
 // ============================================================================
 // fpack (.fits.fz) 支持: CFITSIO 透明解压读取
-// CFITSIO 4.6.4 已静态编入 AIO DLL (Phase1 Final Closure V3), 这里把主 FITS
+// CFITSIO 4.6.4 已静态编入 AIO DLL (Phase1 Final Closure ), 这里把主 FITS
 // 读取路径接到 CFITSIO 的 .fz 自动检测/解压 (RICE_1/RICE_ONE/GZIP/HCOMPRESS/
 // PLIO)。普通未压缩 FITS 仍走原有手写解析路径, 零回归风险。
 // ============================================================================
@@ -754,7 +754,7 @@ int fits_read_file(const char *path, AIOImageData *out) {
     }
 
     // 双精度 ABI: 根据 AIO 模块精度模式决定读取到 data (FP32) 还是 data_f64 (FP64)
-    // R10 修复: 使用 aio_internal_is_fp64() 替代 PrecisionContext (DLL 边界不共享)
+    // 修复: 使用 aio_internal_is_fp64() 替代 PrecisionContext (DLL 边界不共享)
     bool is_fp64 = (aio_internal_is_fp64() != 0);
 
     if (is_fp64) {

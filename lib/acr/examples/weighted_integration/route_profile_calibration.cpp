@@ -1,27 +1,27 @@
 // lib/acr/examples/weighted_integration/route_profile_calibration.cpp
 //
 // 加权积分 Operation Route Profile v2 标定
-//（BDR Reviewed 控制包 A9766B99...53984，08 号计划 A-J）。
+// （BDR Reviewed A9766B99...53984，08 A-J）。
 //
 // BDR Reviewed 修正（08 计划 A-J）：
-//   - 场景真正隔离：cold_host_output / resident_host_output /
-//     resident_reuse4_host_output（无真实 KeepDevice API，不生成
-//     resident_device_output）；
-//   - chunk 服务曲线为真实单 token 服务时间（多 frame_count；
-//     禁止整幅任务总耗时）；
-//   - 标定数据拆 Fit / Refinement Probe / Final Holdout 三集合，自动断言
-//     无交集；Final 只在模型冻结后使用一次；
-//   - E2E 插值模型（linear/loglog）由 Probe 选择，最多 2 轮 adaptive
-//     refinement（最差 Probe 转入 Fit 并重新拟合）；
-//   - 每场景每路径 Final 独立误差（median<=10%、max<=15%）后才 model_trusted；
-//   - cold Mixed 每个正式样本 fresh Dispatcher + warmup 不同 generation，
-//     GPU 参与时 timed H2D 必须 > 0；
-//   - GPU chunk 单块测试保持完整 frame-major stride（pixel_count=domain），
-//     begin/middle/end 抽样 + 独立 warmup + 随机化顺序 + sanity gate；
-//   - reuse4 Mixed 累计 4 次真实 per_device_stats/transfer，禁止 4*pixels；
-//   - Route Replay 使用独立 Final 点（每场景 >=8），三候选实际运行；
-//   - Operation 资格由三个 required 场景的 scenario_qualified 生成；
-//   - 删除人工 mixed overhead 常量（Mixed E2E 是主成本）。
+// - 场景真正隔离：cold_host_output / resident_host_output /
+// resident_reuse4_host_output（无真实 KeepDevice API，不生成
+// resident_device_output）；
+// - chunk 服务曲线为真实单 token 服务时间（多 frame_count；
+// 禁止整幅任务总耗时）；
+// - 标定数据拆 Fit / Refinement Probe / Final Holdout 三集合，自动断言
+// 无交集；Final 只在模型冻结后使用一次；
+// - E2E 插值模型（linear/loglog）由 Probe 选择，最多 2 轮 adaptive
+// refinement（最差 Probe 转入 Fit 并重新拟合）；
+// - 每场景每路径 Final 独立误差（median<=10%、max<=15%）后才 model_trusted；
+// - cold Mixed 每个正式样本 fresh Dispatcher + warmup 不同 generation，
+// GPU 参与时 timed H2D 必须 > 0；
+// - GPU chunk 单块测试保持完整 frame-major stride（pixel_count=domain），
+// begin/middle/end 抽样 + 独立 warmup + 随机化顺序 + sanity gate；
+// - reuse4 Mixed 累计 4 次真实 per_device_stats/transfer，禁止 4*pixels；
+// - Route Replay 使用独立 Final 点（每场景 >=8），三候选实际运行；
+// - Operation 资格由三个 required 场景的 scenario_qualified 生成；
+// - 删除人工 mixed overhead 常量（Mixed E2E 是主成本）。
 #include "route_profile_calibration.hpp"
 
 #include "weighted_integration_kernels.hpp"
@@ -548,10 +548,10 @@ TimedWithStats measure_gpu_direct(
 }
 
 // Mixed E2E：
-//   - cold：warmup 使用不同 generation；每个正式样本 fresh Dispatcher
-//     （residency 独立），GPU 参与时 timed H2D 真实 > 0；
-//   - resident：warm 建立驻留后复用 Dispatcher 计时；
-//   - reuse4：4 次 dispatch 累计真实 per_device_stats/transfer。
+// - cold：warmup 使用不同 generation；每个正式样本 fresh Dispatcher
+// （residency 独立），GPU 参与时 timed H2D 真实 > 0；
+// - resident：warm 建立驻留后复用 Dispatcher 计时；
+// - reuse4：4 次 dispatch 累计真实 per_device_stats/transfer。
 TimedWithStats measure_mixed(
     TestData& d, std::size_t frames, std::size_t pixels,
     const std::shared_ptr<ExecutorRegistry>& regs,
@@ -641,8 +641,8 @@ TimedWithStats measure_mixed(
 
 // ===== 2D chunk 服务曲线（08 计划 E/F）=====
 // GPU 单块测试保持完整 frame-major stride：
-//   submit_resident(begin=off, end=off+cand, frame_count=frames,
-//                   pixel_count=service_domain)
+// submit_resident(begin=off, end=off+cand, frame_count=frames,
+// pixel_count=service_domain)
 // 禁止 pixel_count=cand（除非数据本身是 cand×frames 紧凑缓冲）。
 bool measure_chunk_services(
     astro::compute::cuda::bridge::BridgeApi* bapi, void* handle,
@@ -874,11 +874,11 @@ double actual_for_kind(const ScenarioProbeJoint::Point& pt, RouteKind k) {
 }
 
 // 场景联合 adaptive：最多 max_rounds 轮。
-//   1) 每路径 select_model_on_probe（允许改 interpolation_id）；
-//   2) 计算每点 route regret = chosen_actual / min(all actual)；
-//   3) 优先补 regret>1.05 的最大 regret 坐标（三路径样本一起加入 Fit）；
-//   4) 无 regret 超标时按最大路径预测误差补点（同样三路径一起）；
-//   5) 剩余 Probe 全部过门则结束。
+// 1) 每路径 select_model_on_probe（允许改 interpolation_id）；
+// 2) 计算每点 route regret = chosen_actual / min(all actual)；
+// 3) 优先补 regret>1.05 的最大 regret 坐标（三路径样本一起加入 Fit）；
+// 4) 无 regret 超标时按最大路径预测误差补点（同样三路径一起）；
+// 5) 剩余 Probe 全部过门则结束。
 // Final 点绝不参与。
 bool adapt_scenario_joints(std::vector<ScenarioProbeJoint>& scenes,
                            std::uint32_t max_rounds) {

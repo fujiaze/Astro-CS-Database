@@ -5,23 +5,23 @@
 // hiss_tile_model.h - AstroCS HISS Tile 父子几何模型
 //
 // 依据:
-//   - 02_FROZEN_STAGE1_HISS_SPEC.md §11 (自适应空间 Tile)
-//   - docs/stage1_fix/00_COMMON_CONTRACTS.md §2.1 (Tile 几何冻结接口)
-//   - docs/stage1_fix/spec.md 步骤1 (Tile 父子模型修正)
+// - 02_FROZEN_STAGE1_HISS_SPEC.md §11 (自适应空间 Tile)
+// - docs/stage1_fix/00_COMMON_CONTRACTS.md §2.1 (Tile 几何冻结接口)
+// - docs/stage1_fix/spec.md 步骤1 (Tile 父子模型修正)
 //
 // 核心公式 (冻结, 子代理不得修改):
-//   d              = min(9, log2(NSIDE/16))
-//   NSIDE_tile     = NSIDE / 2^d
-//   n_leaf_per_tile = 4^d = (NSIDE / NSIDE_tile)^2
+// d = min(9, log2(NSIDE/16))
+// NSIDE_tile = NSIDE / 2^d
+// n_leaf_per_tile = 4^d = (NSIDE / NSIDE_tile)^2
 //
 // 关键修正:
-//   旧错误: 单 Tile 叶像素数 = tile_nside^2 * 12 (这是全天像素数, 错误)
-//   新正确: 单 Tile 叶像素数 = 4^d (仅一个父像素下的子像素数)
+// 旧错误: 单 Tile 叶像素数 = tile_nside^2 * 12 (这是全天像素数, 错误)
+// 新正确: 单 Tile 叶像素数 = 4^d (仅一个父像素下的子像素数)
 //
 // NESTED 排序下的父子关系 (位运算):
-//   全局 ipix  = (parent_ipix << 2d) | local_ipix
-//   parent_ipix = global_ipix >> 2d
-//   local_ipix  = global_ipix & ((1 << 2d) - 1)
+// 全局 ipix = (parent_ipix << 2d) | local_ipix
+// parent_ipix = global_ipix >> 2d
+// local_ipix = global_ipix & ((1 << 2d) - 1)
 // ============================================================================
 
 #include <cstdint>
@@ -53,7 +53,7 @@ struct HissTileGeometry {
     // --------------------------------------------------------------------
     // global_to_local: 全局 NESTED ipix -> Tile 内局部索引
     // 注意: 本函数仅提取低位, 不校验该 global_ipix 是否属于本 Tile。
-    //       如需校验请用 owns_global()。
+    // 如需校验请用 owns_global()。
     // --------------------------------------------------------------------
     uint32_t global_to_local(uint64_t global_ipix) const;
 
@@ -77,14 +77,14 @@ struct HissTileGeometry {
 // make_tile_geometry: 构造 Tile 几何 (基础几何, parent_ipix=0)
 //
 // 入参:
-//   nside - 全局 NSIDE (2 的幂, >=1)
+// nside - 全局 NSIDE (2 的幂, >=1)
 // 返回:
-//   HissTileGeometry, depth/tile_nside/n_leaf_per_tile 已填充, parent_ipix=0
+// HissTileGeometry, depth/tile_nside/n_leaf_per_tile 已填充, parent_ipix=0
 //
 // 规则:
-//   - nside < 16: depth=0, tile_nside=nside, n_leaf_per_tile=1
-//   - nside >= 16: depth = min(9, log2(nside/16)), tile_nside = nside>>depth,
-//                  n_leaf_per_tile = 1<<(2*depth) = 4^depth
+// - nside < 16: depth=0, tile_nside=nside, n_leaf_per_tile=1
+// - nside >= 16: depth = min(9, log2(nside/16)), tile_nside = nside>>depth,
+// n_leaf_per_tile = 1<<(2*depth) = 4^depth
 // ============================================================================
 HISS_EXPORT HissTileGeometry make_tile_geometry(uint32_t nside);
 
@@ -92,10 +92,10 @@ HISS_EXPORT HissTileGeometry make_tile_geometry(uint32_t nside);
 // make_tile_geometry_for_parent: 为指定 parent_ipix 构造 Tile 几何
 //
 // 入参:
-//   nside       - 全局 NSIDE
-//   parent_ipix - Tile 父像素 NESTED ipix (必须 < 12*tile_nside^2)
+// nside - 全局 NSIDE
+// parent_ipix - Tile 父像素 NESTED ipix (必须 < 12*tile_nside^2)
 // 返回:
-//   HissTileGeometry, 含 parent_ipix
+// HissTileGeometry, 含 parent_ipix
 // ============================================================================
 HISS_EXPORT HissTileGeometry make_tile_geometry_for_parent(uint32_t nside,
                                                             uint64_t parent_ipix);

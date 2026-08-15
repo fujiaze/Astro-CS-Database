@@ -1,23 +1,23 @@
 // ============================================================================
-// ipv_select.cpp - IPV StarSelector 模块 (Phase 0) (从 V4.5 迁移, 复用 V4.4 算法)
+// ipv_select.cpp - IPV StarSelector 模块 (Phase 0) (从 迁移, 复用 算法)
 //
 // 职责: 图像侧选星 + Gaia 侧不对称密度匹配查询
-// 从 V4.5 vm45_select.cpp 迁移, 仅做 namespace/前缀替换:
-//   - namespace v45 -> ipv
-//   - 常量前缀 VM45_ -> IPV_
-//   - 主入口 vm45_select -> ipv_select
-//   - 类型 VM45SolveParams -> IPVSolverParams (字段名一致, 已在 ipv_types.h 定义)
-//   - include vm45_internal.h -> ipv_select.h
-//   - 保留 output.s0 赋值 (StarSelection.s0 字段已在 ipv_types.h 中定义)
+// 从 vm45_select.cpp 迁移, 仅做 namespace/前缀替换:
+// - namespace v45 -> ipv
+// - 常量前缀 VM45_ -> IPV_
+// - 主入口 vm45_select -> ipv_select
+// - 类型 VM45SolveParams -> IPVSolverParams (字段名一致, 已在 ipv_types.h 定义)
+// - include vm45_internal.h -> ipv_select.h
+// - 保留 output.s0 赋值 (StarSelection.s0 字段已在 ipv_types.h 中定义)
 //
-// 核心算法 (与 V4.5 一致, 从 V4.2 ss_core.cpp 迁移):
-//   - 图像读取 (astro_image_io.dll 动态加载)
-//   - 星点检测 (star_detector.dll, 句柄由外部注入)
-//   - 图像侧选星 (V4.16: 统一按 flux(A) 降序取前 img_n_target 颗)
-//   - FOV/密度计算 + 自适应步长迭代极限星等 (V4.2 ss_core.cpp)
-//   - Gaia 锥形查询 (gaia_client.dll, 句柄由外部注入)
-//   - Gnomonic 投影 + FOV 内过滤
-//   - V4.16: 保存 Gaia 原始 (ra, dec) 到 selection.gaia_ra/gaia_dec 供迭代重投影
+// 核心算法 (与 一致, 从 ss_core.cpp 迁移):
+// - 图像读取 (astro_image_io.dll 动态加载)
+// - 星点检测 (star_detector.dll, 句柄由外部注入)
+// - 图像侧选星 (: 统一按 flux(A) 降序取前 img_n_target 颗)
+// - FOV/密度计算 + 自适应步长迭代极限星等 ( ss_core.cpp)
+// - Gaia 锥形查询 (gaia_client.dll, 句柄由外部注入)
+// - Gnomonic 投影 + FOV 内过滤
+// - : 保存 Gaia 原始 (ra, dec) 到 selection.gaia_ra/gaia_dec 供迭代重投影
 //
 // 接口: 内部 C++ 函数, 无 ctypes 边界, 无 JSON 序列化
 // 句柄: 通过 get_gaia_client_handle() / get_star_detector_handle() 获取
@@ -68,7 +68,7 @@ typedef void (*aio_free_image_data_fn)(AIOImageData*);
 
 // --- star_detector.dll 函数指针类型 ---
 // StarDetectorHandle 是不透明指针
-// V4.16+: star_detector API 已更新, 新增 mag 和 has_saturated 输出参数
+// +: star_detector API 已更新, 新增 mag 和 has_saturated 输出参数
 // - mag: 每颗星的星等 (即使饱和星也有效)
 // - has_saturated: 每颗星是否属于饱和星区域 (与 saturated 等价, 由 API 内部填充)
 typedef int (*sdet_detect_ex_fn)(
@@ -77,7 +77,7 @@ typedef int (*sdet_detect_ex_fn)(
     double** out_x, double** out_y, float** out_flux, int** out_saturated,
     float** out_mag, int** out_has_saturated, int* out_count,
     const char** extra_names, int extra_count, float*** out_extras);
-// R11 (PREC-108): FP64 检测入口 (double 图像)
+// FP64 检测入口 (double 图像)
 typedef int (*sdet_detect_ex_f64_fn)(
     void* handle, const double* image, int width, int height,
     double** out_x, double** out_y, float** out_flux, int** out_saturated,
@@ -180,8 +180,8 @@ static bool load_dlls(Logger* logger) {
     return true;
 }
 
-// V4.9: gaia_query_count 已删除 (不再使用密度迭代)
-//       保留 gaia_query_stars 用于一次性查询
+// gaia_query_count 已删除 (不再使用密度迭代)
+// 保留 gaia_query_stars 用于一次性查询
 
 // 通过 GaiaClient 句柄查询星表 (返回 ra/dec/mag 数组)
 // 返回: 0=成功, -1=失败
@@ -226,7 +226,7 @@ static int gaia_query_stars(void*, double, double, double, double,
 // ============================================================================
 
 // ----------------------------------------------------------------------------
-// compute_fov_density - 计算 FOV 与密度 (从 V4.2 ss_core.cpp 迁移)
+// compute_fov_density - 计算 FOV 与密度 (从 ss_core.cpp 迁移)
 // ----------------------------------------------------------------------------
 void compute_fov_density(
     double focal_length_mm, double pixel_size_um,
@@ -275,13 +275,13 @@ void compute_fov_density(
 
     // 目标星数 = gaia_density_ratio × n_img × (查询圆面积/图像面积), 下限 50
     // 密集星场兜底保护: 避免N_W爆炸导致kvector_build内存爆炸(34GB内存元凶)
-    // V4.9:  宽 FOV (>3°) 原上限 150 (星密导致六边形形状碰撞, polygon_match 区分度低)
-    // V4.15: 宽 FOV 上限 150→300 (Galaxy_Center 银心方向 Gaia 截断导致分布不匹配, max_vote=6)
-    //        窄/中 FOV 上限 300
-    // V4.15 回退: 宽 FOV 上限 300→150 (全量测试退化严重: wide FOV 84.7%→79.2%, 多失败 21 帧)
-    //             300 在多数宽 FOV 场景下引入过多形状碰撞, 整体识别率下降, 故回退至 150
-    // V4.16: 宽窄 FOV 统一为 60 (与 img_n_target 一致, 减少形状碰撞)
-    //        选星改用统一 mag/flux 排序后, 60 颗足够三角形匹配, 不需要更大候选池
+    // 宽 FOV (>3°) 原上限 150 (星密导致六边形形状碰撞, polygon_match 区分度低)
+    // 宽 FOV 上限 150→300 (Galaxy_Center 银心方向 Gaia 截断导致分布不匹配, max_vote=6)
+    // 窄/中 FOV 上限 300
+    // 回退: 宽 FOV 上限 300→150 (全量测试退化严重: wide FOV 84.7%→79.2%, 多失败 21 帧)
+    // 300 在多数宽 FOV 场景下引入过多形状碰撞, 整体识别率下降, 故回退至 150
+    // 宽窄 FOV 统一为 60 (与 img_n_target 一致, 减少形状碰撞)
+    // 选星改用统一 mag/flux 排序后, 60 颗足够三角形匹配, 不需要更大候选池
     double img_area_safe = std::max(img_area_sqdeg, 1e-10);
     double n_target_dbl = gaia_density_ratio * static_cast<double>(n_img_bright)
                         * (query_area_sqdeg / img_area_safe);
@@ -301,8 +301,8 @@ void compute_fov_density(
 }
 
 // ----------------------------------------------------------------------------
-// compute_initial_mag_cut - 计算初始极限星等 (V4.2 公式)
-//   m_cut = 6 + 1.5×log10(f_mm) + 2×log10(t_s)
+// compute_initial_mag_cut - 计算初始极限星等 ( 公式)
+// m_cut = 6 + 1.5×log10(f_mm) + 2×log10(t_s)
 // ----------------------------------------------------------------------------
 double compute_initial_mag_cut(
     double focal_length_mm, double exposure_time_s,
@@ -325,15 +325,15 @@ double compute_initial_mag_cut(
 }
 
 // ----------------------------------------------------------------------------
-// estimate_mag_lim_by_density (V4.9) - 基于天球平均星点密度直接估算极限星等
-//   用户指导: "根据天球的平均星点密度, 搞一个根据视场角自动估算需要的极限星等的公式,
-//             保证查出来的星比需要的多就行"
-//   模型 (Gaia DR3 G 波段近似, 由公开星表密度数据拟合):
-//     ρ(G) = 5 × 10^(1.3×(G-10))  颗/平方度
-//     (G=10 → 5, G=12 → 30, G=14 → 150, G=16 → 800, G=18 → 4000)
-//   反解: G = 10 + log10(ρ/5) / 1.3
-//   安全余量: +0.5 mag 保证查出的星数 >= n_required
-//   clip 到 [6, 18]: 过亮查询不到星, 过暗密度模型偏差大
+// estimate_mag_lim_by_density - 基于天球平均星点密度直接估算极限星等
+// 用户指导: "根据天球的平均星点密度, 搞一个根据视场角自动估算需要的极限星等的公式,
+// 保证查出来的星比需要的多就行"
+// 模型 (Gaia DR3 G 波段近似, 由公开星表密度数据拟合):
+// ρ(G) = 5 × 10^(1.3×(G-10)) 颗/平方度
+// (G=10 → 5, G=12 → 30, G=14 → 150, G=16 → 800, G=18 → 4000)
+// 反解: G = 10 + log10(ρ/5) / 1.3
+// 安全余量: +0.5 mag 保证查出的星数 >= n_required
+// clip 到 [6, 18]: 过亮查询不到星, 过暗密度模型偏差大
 // ----------------------------------------------------------------------------
 double estimate_mag_lim_by_density(
     int n_required,
@@ -372,9 +372,9 @@ double estimate_mag_lim_by_density(
 }
 
 // ----------------------------------------------------------------------------
-// density_match_iterate - 自适应步长迭代极限星等 (从 V4.2 ss_core.cpp 迁移)
-//   V4.9: 默认不再使用, 保留作为兜底 (estimate_mag_lim_by_density 失败时)
-//   前4次 step_init, 后续 step_init/2
+// density_match_iterate - 自适应步长迭代极限星等 (从 ss_core.cpp 迁移)
+// 默认不再使用, 保留作为兜底 (estimate_mag_lim_by_density 失败时)
+// 前4次 step_init, 后续 step_init/2
 // ----------------------------------------------------------------------------
 void density_match_iterate(
     std::function<int(double, double, double, double)> query_func,
@@ -420,7 +420,7 @@ void density_match_iterate(
     for (i = 0; i < max_iter; ++i) {
         n = query_func(center_ra, center_dec, query_radius_deg, m);
 
-        // V4.1 自适应步长: 前4次 step_init, 后续 step_init/2
+        // 自适应步长: 前4次 step_init, 后续 step_init/2
         double step = (i < 4) ? step_init : step_init * 0.5;
 
         if (logger) {
@@ -459,15 +459,15 @@ void density_match_iterate(
 }
 
 // ----------------------------------------------------------------------------
-// select_image_stars - 图像侧选星: V4.28 按 mag(box积分) 升序排序
-//   V4.1 旧策略: 饱和星数 > img_n_target → 全选饱和星;
-//                否则 → 饱和全选 + 非饱和按 flux 降序补足到 img_n_target
-//   V4.16 策略: 统一按 flux(A) 降序排序 (等价于按 mag 升序), 取前 img_n_target 颗
-//   V4.28 策略: star_detector mag 已改为 box 积分。
-//                对饱和星, A(Moffat 振幅) 与 box 积分排序差异巨大, 按 flux(A)
-//                排序会不一致。改用 mag(box积分) 升序排序, mag 越小越亮。
-//                跳过 mag 为 NaN 的失效星 (NaN 排到最后, 不会被选中)。
-//   注: flux 参数保留以备后续使用, 当前未使用 (排序基于 mag)
+// select_image_stars - 图像侧选星: 按 mag(box积分) 升序排序
+// 旧策略: 饱和星数 > img_n_target → 全选饱和星;
+// 否则 → 饱和全选 + 非饱和按 flux 降序补足到 img_n_target
+// 策略: 统一按 flux(A) 降序排序 (等价于按 mag 升序), 取前 img_n_target 颗
+// 策略: star_detector mag 已改为 box 积分。
+// 对饱和星, A(Moffat 振幅) 与 box 积分排序差异巨大, 按 flux(A)
+// 排序会不一致。改用 mag(box积分) 升序排序, mag 越小越亮。
+// 跳过 mag 为 NaN 的失效星 (NaN 排到最后, 不会被选中)。
+// 注: flux 参数保留以备后续使用, 当前未使用 (排序基于 mag)
 // ----------------------------------------------------------------------------
 std::vector<int> select_image_stars(
     const std::vector<double>& flux,
@@ -484,7 +484,7 @@ std::vector<int> select_image_stars(
     std::vector<int> all_idx(n_total);
     for (int i = 0; i < n_total; ++i) all_idx[i] = i;
 
-    // V4.28: 按 mag(box积分) 升序排序 (mag 越小越亮)
+    // 按 mag(box积分) 升序排序 (mag 越小越亮)
     // 跳过 mag 为 NaN 的失效星 (NaN 排到最后)
     std::sort(all_idx.begin(), all_idx.end(),
               [&](int a, int b) {
@@ -518,9 +518,9 @@ std::vector<int> select_image_stars(
 }
 
 // ----------------------------------------------------------------------------
-// gnomonic_forward_proj - Gnomonic 正向投影 (从 V4.2 Python 迁移)
-//   将天球坐标 (ra, dec) 投影到以 (ra0, dec0) 为中心的切平面
-//   输出: xi, eta (角秒), valid (cosc > 1e-10 时有效)
+// gnomonic_forward_proj - Gnomonic 正向投影 (从 Python 迁移)
+// 将天球坐标 (ra, dec) 投影到以 (ra0, dec0) 为中心的切平面
+// 输出: xi, eta (角秒), valid (cosc > 1e-10 时有效)
 // ----------------------------------------------------------------------------
 void gnomonic_forward_proj(
     double ra_deg, double dec_deg,
@@ -542,8 +542,8 @@ void gnomonic_forward_proj(
     valid = (cosc > 1e-10);
     double cosc_safe = valid ? cosc : 1.0;
 
-    // xi = cos(dec)×sin(delta_ra) / cosc  (弧度)
-    // eta = (cos(dec0)×sin(dec) - sin(dec0)×cos(dec)×cos(delta_ra)) / cosc  (弧度)
+    // xi = cos(dec)×sin(delta_ra) / cosc (弧度)
+    // eta = (cos(dec0)×sin(dec) - sin(dec0)×cos(dec)×cos(delta_ra)) / cosc (弧度)
     double xi_rad = cos_dec * std::sin(delta_ra) / cosc_safe;
     double eta_rad = (cos_dec0 * sin_dec - sin_dec0 * cos_dec * cos_delta_ra) / cosc_safe;
 
@@ -639,8 +639,8 @@ int ipv_select(
     double *det_x = nullptr, *det_y = nullptr;
     float *det_flux = nullptr;
     int *det_sat = nullptr;
-    // V4.16+: star_detector API 新增输出参数, 即使不使用也必须传入以匹配签名
-    // V4.28: mag(box积分) 用于选星排序, 替代旧 flux(A) 排序
+    // +: star_detector API 新增输出参数, 即使不使用也必须传入以匹配签名
+    // mag(box积分) 用于选星排序, 替代旧 flux(A) 排序
     float *det_mag = nullptr;
     int *det_has_sat = nullptr;
     int det_count = 0;
@@ -666,10 +666,10 @@ int ipv_select(
         logger->info(buf);
     }
 
-    // --- Step 3: 图像侧选星 (V4.28 按 mag 升序) ---
+    // --- Step 3: 图像侧选星 ( 按 mag 升序) ---
     if (logger) logger->info("Step 3: 图像侧选星");
     std::vector<double> flux_vec(det_flux, det_flux + det_count);
-    std::vector<double> mag_vec(det_mag, det_mag + det_count);  // V4.28: box 积分 mag
+    std::vector<double> mag_vec(det_mag, det_mag + det_count);  // box 积分 mag
     std::vector<bool> sat_vec(det_count);
     for (int i = 0; i < det_count; ++i) sat_vec[i] = (det_sat[i] != 0);
 
@@ -683,7 +683,7 @@ int ipv_select(
         return -1;
     }
 
-    // --- Step 4: 构建 U 向量组 (V4.10 像素坐标, 原点在图像中心, Y 轴向上) ---
+    // --- Step 4: 构建 U 向量组 ( 像素坐标, 原点在图像中心, Y 轴向上) ---
     // 用户指导: "角秒不可靠, 应该用像素"
     // 像素坐标直接用, 不乘 s0, 避免 FOCALLEN 标称误差影响匹配
     double s0 = IPV_ARCSEC_PER_UM_PER_MM * pixel_size_um / focal_length_mm;
@@ -699,7 +699,7 @@ int ipv_select(
     output.img_width = img_w;
     output.img_height = img_h;
 
-    // V4.30: 保存全部检测星点供 robust_refine 使用 (在 sdet_free_ex 之前)
+    // 保存全部检测星点供 robust_refine 使用 (在 sdet_free_ex 之前)
     // 坐标约定同 U: 像素坐标, 原点图像中心, Y 轴向上
     output.U_full.resize(det_count);
     output.mag_full.resize(det_count);
@@ -738,13 +738,13 @@ int ipv_select(
     output.rho_target = rho_target;
     output.s0 = s0;  // 供后续 Phase (相对向量法等) 使用
 
-    // --- Step 6: V4.9 基于天球平均密度直接估算极限星等 ---
+    // --- Step 6: 基于天球平均密度直接估算极限星等 ---
     // 用户指导: "根据天球的平均星点密度, 搞一个根据视场角自动估算需要的极限星等的公式,
-    //           保证查出来的星比需要的多就行。初始只需要很小的极限星等"
+    // 保证查出来的星比需要的多就行。初始只需要很小的极限星等"
     // 用 query_area 估算, +0.5 mag 安全余量, 一次查询即可, 不再迭代
     if (logger) logger->info("Step 5: V4.9 密度公式估算极限星等 (替代迭代)");
     double m_lim_final = estimate_mag_lim_by_density(n_target, query_area_sqdeg, logger);
-    int m_lim_iters = 0;  // V4.9 不再迭代
+    int m_lim_iters = 0;  // 不再迭代
 
     // --- Step 7: 用估算的极限星等查询 Gaia 星表 (一次查询) ---
     if (logger) {
@@ -757,7 +757,7 @@ int ipv_select(
     int q_ret = gaia_query_stars(gaia_handle, ra, dec, query_radius_deg, m_lim_final,
                                   cat_ra, cat_dec, cat_mag);
 
-    // V4.9 补救: 若一次查询不足, 逐步放宽 (最多 2 次, 每次 +1.0 mag)
+    // 补救: 若一次查询不足, 逐步放宽 (最多 2 次, 每次 +1.0 mag)
     int rescue_count = 0;
     while ((q_ret != 0 || (int)cat_ra.size() < n_target) && rescue_count < 2) {
         double m_rescue = m_lim_final + 1.0 * (rescue_count + 1);
@@ -847,19 +847,19 @@ int ipv_select(
     int M = std::min(n_target, static_cast<int>(fov_idx.size()));
 
     output.W.resize(M);
-    output.gaia_ra.resize(M);     // V4.16: 保存原始 (ra,dec) 用于迭代重投影
+    output.gaia_ra.resize(M);     // 保存原始 (ra,dec) 用于迭代重投影
     output.gaia_dec.resize(M);
     for (int i = 0; i < M; ++i) {
         int idx = fov_idx[i];
         // 复用 Step 9 缓存的投影结果, 避免重复调用 gnomonic_forward_proj
-        // V4.20: W 直接用角秒坐标 (TRANS: U(像素)->W(角秒))
+        // W 直接用角秒坐标 (TRANS: U(像素)->W(角秒))
         // U = 像素坐标, 原点图像中心, Y 轴向上
         // W = 角秒坐标, 原点投影中心 (gnomonic xi/eta)
         output.W[i].x = proj_xi[idx];    // 角秒
         output.W[i].y = proj_eta[idx];   // 角秒
         output.W[i].flux = 0.0;  // Gaia 星表无 flux, 用星等代理 (后续模块不依赖)
         output.W[i].saturated = false;
-        // V4.16: 保存 Gaia 原始 (ra, dec) (切平面投影前), 供 iterative_reproject 使用
+        // 保存 Gaia 原始 (ra, dec) (切平面投影前), 供 iterative_reproject 使用
         output.gaia_ra[i]  = cat_ra[idx];
         output.gaia_dec[i] = cat_dec[idx];
     }
@@ -886,9 +886,9 @@ int ipv_select(
 // ipv_select_from_memory - 从内存像素数据选星 (不读文件)
 //
 // 与 ipv_select 算法完全一致, 区别:
-//   - 直接接受 float* pixels 参数, 跳过 aio_read 文件读取
-//   - 不调用 aio_free (像素数据由调用方管理)
-//   - 复用 uint16 转换 + sdet_detect_ex + 选星 + Gaia 查询 + gnomonic 投影
+// - 直接接受 float* pixels 参数, 跳过 aio_read 文件读取
+// - 不调用 aio_free (像素数据由调用方管理)
+// - 复用 uint16 转换 + sdet_detect_ex + 选星 + Gaia 查询 + gnomonic 投影
 // ============================================================================
 
 int ipv_select_from_memory(
@@ -989,7 +989,7 @@ int ipv_select_from_memory(
         logger->info(buf);
     }
 
-    // --- Step 3: 图像侧选星 (V4.28 按 mag 升序) ---
+    // --- Step 3: 图像侧选星 ( 按 mag 升序) ---
     if (logger) logger->info("Step 3: 图像侧选星");
     std::vector<double> flux_vec(det_flux, det_flux + det_count);
     std::vector<double> mag_vec(det_mag, det_mag + det_count);
@@ -1006,7 +1006,7 @@ int ipv_select_from_memory(
         return -1;
     }
 
-    // --- Step 4: 构建 U 向量组 (V4.10 像素坐标, 原点在图像中心, Y 轴向上) ---
+    // --- Step 4: 构建 U 向量组 ( 像素坐标, 原点在图像中心, Y 轴向上) ---
     double s0 = IPV_ARCSEC_PER_UM_PER_MM * pixel_size_um / focal_length_mm;
     double cx = img_w / 2.0, cy = img_h / 2.0;
     output.U.resize(N);
@@ -1020,7 +1020,7 @@ int ipv_select_from_memory(
     output.img_width = img_w;
     output.img_height = img_h;
 
-    // V4.30: 保存全部检测星点供 robust_refine 使用
+    // 保存全部检测星点供 robust_refine 使用
     output.U_full.resize(det_count);
     output.mag_full.resize(det_count);
     for (int i = 0; i < det_count; ++i) {
@@ -1058,7 +1058,7 @@ int ipv_select_from_memory(
     output.rho_target = rho_target;
     output.s0 = s0;
 
-    // --- Step 6: V4.9 基于天球平均密度直接估算极限星等 ---
+    // --- Step 6: 基于天球平均密度直接估算极限星等 ---
     if (logger) logger->info("Step 5: V4.9 密度公式估算极限星等 (替代迭代)");
     double m_lim_final = estimate_mag_lim_by_density(n_target, query_area_sqdeg, logger);
     int m_lim_iters = 0;
@@ -1074,7 +1074,7 @@ int ipv_select_from_memory(
     int q_ret = gaia_query_stars(gaia_handle, ra, dec, query_radius_deg, m_lim_final,
                                   cat_ra, cat_dec, cat_mag);
 
-    // V4.9 补救: 若一次查询不足, 逐步放宽 (最多 2 次, 每次 +1.0 mag)
+    // 补救: 若一次查询不足, 逐步放宽 (最多 2 次, 每次 +1.0 mag)
     int rescue_count = 0;
     while ((q_ret != 0 || (int)cat_ra.size() < n_target) && rescue_count < 2) {
         double m_rescue = m_lim_final + 1.0 * (rescue_count + 1);
@@ -1193,9 +1193,9 @@ int ipv_select_from_memory(
 //
 // 从外部 detections (FLOAT64 [N,6] star_det v1) 选星, 跳过 sdet_detect_ex。
 // 算法与 ipv_select_from_memory 一致, 区别:
-//   - 跳过 float→uint16 转换
-//   - 跳过 sdet_detect_ex 调用
-//   - 直接从 detections 构建 U_full/mag_full 和 U
+// - 跳过 float→uint16 转换
+// - 跳过 sdet_detect_ex 调用
+// - 直接从 detections 构建 U_full/mag_full 和 U
 // ============================================================================
 
 int ipv_select_from_detections(
@@ -1284,7 +1284,7 @@ int ipv_select_from_detections(
         logger->info(buf);
     }
 
-    // --- Step 3: 图像侧选星 (V4.28 按 mag 升序) ---
+    // --- Step 3: 图像侧选星 ( 按 mag 升序) ---
     if (logger) logger->info("Step 3: 图像侧选星");
     std::vector<double> flux_vec = det_flux;
     std::vector<double> mag_vec(det_mag.begin(), det_mag.end());
@@ -1347,7 +1347,7 @@ int ipv_select_from_detections(
     output.rho_target = rho_target;
     output.s0 = s0;
 
-    // --- Step 6: V4.9 基于天球平均密度直接估算极限星等 ---
+    // --- Step 6: 基于天球平均密度直接估算极限星等 ---
     if (logger) logger->info("Step 5: V4.9 密度公式估算极限星等 (替代迭代)");
     double m_lim_final = estimate_mag_lim_by_density(n_target, query_area_sqdeg, logger);
     int m_lim_iters = 0;
@@ -1363,7 +1363,7 @@ int ipv_select_from_detections(
     int q_ret = gaia_query_stars(gaia_handle, ra, dec, query_radius_deg, m_lim_final,
                                   cat_ra, cat_dec, cat_mag);
 
-    // V4.9 补救: 若一次查询不足, 逐步放宽 (最多 2 次, 每次 +1.0 mag)
+    // 补救: 若一次查询不足, 逐步放宽 (最多 2 次, 每次 +1.0 mag)
     int rescue_count = 0;
     while ((q_ret != 0 || (int)cat_ra.size() < n_target) && rescue_count < 2) {
         double m_rescue = m_lim_final + 1.0 * (rescue_count + 1);
@@ -1479,15 +1479,15 @@ int ipv_select_from_detections(
 
 // ============================================================================
 // P09-002 INTERNAL_DETECTION_SHARED_EXPORT (历史 P02-002 路径 B) -
-//   ipv_select_from_memory_with_callback
+// ipv_select_from_memory_with_callback
 //
 // 与 ipv_select_from_memory 算法完全一致, 区别:
-//   - sdet_detect_ex 调用后, 选星前, 调用 callback 导出完整检测结果
-//   - callback 接收 FLOAT64 [N,6] star_det v1 格式
-//   - callback 为 NULL 时行为与 ipv_select_from_memory 完全一致
+// - sdet_detect_ex 调用后, 选星前, 调用 callback 导出完整检测结果
+// - callback 接收 FLOAT64 [N,6] star_det v1 格式
+// - callback 为 NULL 时行为与 ipv_select_from_memory 完全一致
 // ============================================================================
 
-// R11 (PREC-108): 选星核心模板双实例 (T=float 原行为, T=double FP64 不降级)
+// 选星核心模板双实例 (T=float 原行为, T=double FP64 不降级)
 template <typename T>
 static int ipv_select_from_memory_with_callback_impl(
     const T* pixels,
@@ -1624,7 +1624,7 @@ static int ipv_select_from_memory_with_callback_impl(
         // det_v1 在此处析构, callback 必须已复制数据
     }
 
-    // --- Step 3: 图像侧选星 (V4.28 按 mag 升序) ---
+    // --- Step 3: 图像侧选星 ( 按 mag 升序) ---
     if (logger) logger->info("Step 3: 图像侧选星");
     std::vector<double> flux_vec(det_flux, det_flux + det_count);
     std::vector<double> mag_vec(det_mag, det_mag + det_count);
@@ -1655,7 +1655,7 @@ static int ipv_select_from_memory_with_callback_impl(
     output.img_width = img_w;
     output.img_height = img_h;
 
-    // V4.30: 保存全部检测星点供 robust_refine 使用
+    // 保存全部检测星点供 robust_refine 使用
     output.U_full.resize(det_count);
     output.mag_full.resize(det_count);
     for (int i = 0; i < det_count; ++i) {
@@ -1693,7 +1693,7 @@ static int ipv_select_from_memory_with_callback_impl(
     output.rho_target = rho_target;
     output.s0 = s0;
 
-    // --- Step 6: V4.9 基于天球平均密度直接估算极限星等 ---
+    // --- Step 6: 基于天球平均密度直接估算极限星等 ---
     if (logger) logger->info("Step 5: V4.9 密度公式估算极限星等 (替代迭代)");
     double m_lim_final = estimate_mag_lim_by_density(n_target, query_area_sqdeg, logger);
     int m_lim_iters = 0;
@@ -1843,7 +1843,7 @@ int ipv_select_from_memory_with_callback(
 
 // ============================================================================
 // ipv_select_from_memory_with_callback_f64 - FP64 入口 (double 图像)
-//   R11 (PREC-108): double 图像直接检测, 不转 uint16/float
+// double 图像直接检测, 不转 uint16/float
 // ============================================================================
 int ipv_select_from_memory_with_callback_f64(
     const double* pixels,

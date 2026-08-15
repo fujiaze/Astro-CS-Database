@@ -1,14 +1,14 @@
 // ============================================================================
 // dll_loader.h - 动态 DLL 加载器
 // 功能: 运行时通过 LoadLibrary/GetProcAddress 加载 5 个模块 DLL, 提供统一的
-//       函数指针获取接口。支持模块状态查询、版本获取、线程数下发等。
+// 函数指针获取接口。支持模块状态查询、版本获取、线程数下发等。
 // 用途: 编排器 (Orchestrator) 通过本加载器调用各 C++ 模块 DLL。
 //
 // 设计说明:
-//   - 5 个模块: CALIBRATE / PLATESOLVE / PSF / PHOTOMETRIC / DRIZZLE
-//   - 模板方法 get_function<T> 允许调用方指定函数指针类型
-//   - 加载失败时返回详细错误信息 (FormatMessageA)
-//   - 析构时自动 FreeLibrary 释放所有已加载模块
+// - 5 个模块: CALIBRATE / PLATESOLVE / PSF / PHOTOMETRIC / DRIZZLE
+// - 模板方法 get_function<T> 允许调用方指定函数指针类型
+// - 加载失败时返回详细错误信息 (FormatMessageA)
+// - 析构时自动 FreeLibrary 释放所有已加载模块
 // ============================================================================
 
 #pragma once
@@ -32,7 +32,7 @@ enum class ModuleId {
     PHOTOMETRIC,    // photometric_calib.dll (stage 4)
     SNR,            // snr_estimator.dll (stage 5)
     DRIZZLE,        // healpix_drizzle.dll (stage 6)
-    // V17: legacy Stage2 (GRADIENT_SPHERE/STACK = healpix_stack) removed
+    // legacy Stage2 (GRADIENT_SPHERE/STACK = healpix_stack) removed
 };
 
 // 模块加载状态

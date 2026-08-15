@@ -1,9 +1,9 @@
 // ============================================================================
-// trace_browser_lineage.cpp - V4 G4 Browser lineage (同一组 sky samples)
-//   输入: <hips_root> <sky_samples.tsv> (ra dec 每行)
-//   输出: browser_lineage.jsonl 每样本 {ra,dec,aio_signal,aio_support,
-//         browser_signal,browser_support,match}
-//   AIO direct 与 BrowserBackend 使用完全相同的 ra/dec 查询点。
+// trace_browser_lineage.cpp - G4 Browser lineage (同一组 sky samples)
+// 输入: <hips_root> <sky_samples.tsv> (ra dec 每行)
+// 输出: browser_lineage.jsonl 每样本 {ra,dec,aio_signal,aio_support,
+// browser_signal,browser_support,match}
+// AIO direct 与 BrowserBackend 使用完全相同的 ra/dec 查询点。
 // ============================================================================
 #include "hips_browser_backend.h"
 #include "aio_hips_reader.h"
@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
         const uint64_t leaf = astrocs::healpix::ang2pix_nest(nside, ra, dec);
         const uint64_t tile = leaf >> 18;
         const uint64_t z = leaf & kMask;
-        // V5 (HIPS-IMG-001): 共享标准映射 (AIO tile 为 standard HiPS row-major)
+        // 共享标准映射 (AIO tile 为 standard HiPS row-major)
         const uint64_t idx = astrocs::healpix::nested_local_to_fits_index(z, 9u, 512u);
         double sig_d = NAN, sup_d = 0.0;
         int rc_sig = 0, rc_sup = 0;

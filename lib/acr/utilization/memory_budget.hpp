@@ -1,13 +1,13 @@
 // lib/acr/utilization/memory_budget.hpp — RAM/VRAM 容量限制
 // Phase G（08_RESOURCE_CONTROL_SPEC.md §4）：
-//   1. RAM 限制：limit = min(total*ratio, total-fixed_reserve)
-//   2. VRAM 限制：同上公式（per-GPU 独立）
-//   3. 25 号计划 §7：RAM 固定保留默认 2048 MiB，VRAM 固定保留默认 512 MiB
-//   4. ratio 默认 0.95（90% 是旧值，spec §1 用 0.95）
-//   5. 读取实际可用内存（GlobalMemoryStatusEx + NVML）
-//   6. 达到上限：停止新提交、缩小块、释放可重建缓存、选择低内存路径、回退其他设备或明确失败
-//   7. 控制器不修改 hardware-profile
-//   8. 公共头不暴露第三方类型（PIMPL）
+// 1. RAM 限制：limit = min(total*ratio, total-fixed_reserve)
+// 2. VRAM 限制：同上公式（per-GPU 独立）
+// 3. 25 §7：RAM 固定保留默认 2048 MiB，VRAM 固定保留默认 512 MiB
+// 4. ratio 默认 0.95（90% 是旧值，spec §1 用 0.95）
+// 5. 读取实际可用内存（GlobalMemoryStatusEx + NVML）
+// 6. 达到上限：停止新提交、缩小块、释放可重建缓存、选择低内存路径、回退其他设备或明确失败
+// 7. 控制器不修改 hardware-profile
+// 8. 公共头不暴露第三方类型（PIMPL）
 #pragma once
 
 #include <cstddef>

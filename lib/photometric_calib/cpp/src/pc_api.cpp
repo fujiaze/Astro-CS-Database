@@ -29,9 +29,9 @@ extern "C" {
 // pc_calibrate_simple: 简化版测光校准主入口
 //
 // 返回: 0=成功, <0=失败
-//   -1: 空指针参数
-//   -2: 尺寸无效
-//   -3: 无Gaia星或无PSF星
+// -1: 空指针参数
+// -2: 尺寸无效
+// -3: 无Gaia星或无PSF星
 // ============================================================================
 int pc_calibrate_simple(
     const float* pixels, int width, int height,
@@ -98,8 +98,8 @@ int pc_calibrate_simple(
     }
 
     // 注: pc_calibrate_simple 不在 DLL 内部计算 F_syn (gaia_fsyn 由调用方外部传入)
-    //     QE 参数仅为 API 一致性保留, 此处不做处理. 若需用 QE 计算 F_syn, 请使用
-    //     pc_calibrate_simple_with_gaia 接口.
+    // QE 参数仅为 API 一致性保留, 此处不做处理. 若需用 QE 计算 F_syn, 请使用
+    // pc_calibrate_simple_with_gaia 接口.
     (void)qe_wl; (void)qe_trans; (void)qe_count;
 
     std::fprintf(stderr, "[pc_api] 图像: %dx%d, Gaia星: %d, PSF星: %d, SIP阶数: %d\n",
@@ -143,13 +143,13 @@ int pc_calibrate_simple(
 
 // ============================================================================
 // pc_calibrate_simple_with_gaia: 扩展接口
-//   DLL 内部调用 gaia_client 锥形搜索 DR3SP 光谱 -> OpenMP 并行积分 F_syn
-//   -> WCS 投影 + 星匹配 + MAD 清洗 + scale 计算 + 图像校正
+// DLL 内部调用 gaia_client 锥形搜索 DR3SP 光谱 -> OpenMP 并行积分 F_syn
+// -> WCS 投影 + 星匹配 + MAD 清洗 + scale 计算 + 图像校正
 //
 // 返回: 0=成功, <0=失败
-//   -1: 空指针/参数无效
-//   -2: gaia_client_handle 为空
-//   -3: 锥形搜索失败或无光谱星
+// -1: 空指针/参数无效
+// -2: gaia_client_handle 为空
+// -3: 锥形搜索失败或无光谱星
 // ============================================================================
 int pc_calibrate_simple_with_gaia(
     void* gaia_client_handle,
@@ -318,7 +318,7 @@ int pc_calibrate_simple_with_gaia(
     #pragma omp parallel for num_threads(16) schedule(dynamic, 64) reduction(+:n_valid_fsyn)
     for (int i = 0; i < n_gaia; ++i) {
         const uint8_t* spec_i = spectra_buf + (size_t)i * spec_stride;
-        // Phase1 Final Closure V3: XPSD 官方解码 (PCL: F = byte*fluxMul + fluxMin),
+        // Phase1 Final Closure : XPSD 官方解码 (PCL: F = byte*fluxMul + fluxMin),
         // 不再使用 uint8*10^(-0.4G) 猜测公式
         f_syn_values[i] = photo_calib::compute_f_syn_cached_xpsd(
             filter_cache, spec_i, spec_stride,
@@ -388,7 +388,7 @@ int pc_calibrate_simple_with_gaia(
 }
 
 // ============================================================================
-// pc_calibrate_simple_f64: FP64 版本 (R10 双精度 ABI)
+// pc_calibrate_simple_f64: FP64 版本 ( 双精度 ABI)
 //
 // 与 pc_calibrate_simple 逻辑一致, 仅 pixels/out_pixels 类型为 double.
 // 内部复用 WcsTransform + StarMatcher (IRLS+Tukey), 图像校正内联 (out = pixels * scale).
@@ -498,11 +498,11 @@ int pc_calibrate_simple_f64(
 }
 
 // ============================================================================
-// pc_calibrate_simple_with_gaia_f64: FP64 版本 (R10 双精度 ABI)
+// pc_calibrate_simple_with_gaia_f64: FP64 版本 ( 双精度 ABI)
 //
 // 与 pc_calibrate_simple_with_gaia 逻辑一致, 仅 pixels/out_pixels 类型为 double.
 // 内部: gaia_client 锥形搜索 -> OpenMP 并行积分 F_syn -> WcsTransform + StarMatcher
-//       -> 图像校正 (内联 out = pixels * scale, double 精度).
+// -> 图像校正 (内联 out = pixels * scale, double 精度).
 // 返回码与 f32 版本一致.
 // ============================================================================
 int pc_calibrate_simple_with_gaia_f64(
@@ -733,13 +733,13 @@ int pc_calibrate_simple_with_gaia_f64(
 // Phase1 Full Freeze v2: 权威 with_gaia 模板实现 (per-star match 导出)
 // 与 pc_calibrate_simple_with_gaia[_f64] 科学逻辑完全一致 (锥形搜索 -> F_syn 积分
 // -> WCS 投影 -> 双向 KD-tree 匹配 -> IRLS+Tukey 清洗 -> scale 校正), 额外:
-//   psf_star_ids - 输入 PSF star_id [n_psf] (可为 nullptr)
-//   out_records  - 输出 PcMatchRecord [n_psf] (可为 nullptr = 旧行为)
+// psf_star_ids - 输入 PSF star_id [n_psf] (可为 nullptr)
+// out_records - 输出 PcMatchRecord [n_psf] (可为 nullptr = 旧行为)
 // 旧版 with_gaia 保留为 ABI 兼容封装 (不导出 per-star 记录)。
 // ============================================================================
 namespace {
 
-// 本地 DR3SP 身份 (XPSD 不保存 Gaia source_id, 用位置量化哈希; wiki/06 审计结论)
+// 本地 DR3SP 身份 (XPSD 不保存 Gaia source_id, 用位置量化哈希; wiki/06 结论)
 int64_t make_dr3sp_id(double ra, double dec) {
     int64_t qra = static_cast<int64_t>(std::llround(ra * 10000.0));
     int64_t qdec = static_cast<int64_t>(std::llround(dec * 10000.0));

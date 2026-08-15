@@ -1,16 +1,16 @@
 // ============================================================================
-// aio_hips_writer.cpp - IVOA HiPS 1.4 生产链写入器 (Phase1 Final Closure V3)
+// aio_hips_writer.cpp - IVOA HiPS 1.4 生产链写入器 (Phase1 Final Closure )
 //
 // 数据流 (无 HISS 中转):
-//   Drizzle TileAccumulator -> AstroSphereTileView -> 本写入器 (流式)
+// Drizzle TileAccumulator -> AstroSphereTileView -> 本写入器 (流式)
 //
 // 输出结构 (Product Set):
-//   <out_dir>/
-//     manifest.json
-//     signal/   Image HiPS: signal  = flux_sum/covered_area  (float32/64)
-//     support/  Image HiPS: support = covered_area/A_cell    (float32/64)
-//     snr/      Catalogue HiPS: NorderK/DirD/NpixN.tsv
-//   每个子产品独立 properties / Moc.fits / 低阶 hierarchy tiles。
+// <out_dir>/
+// manifest.json
+// signal/ Image HiPS: signal = flux_sum/covered_area (float32/64)
+// support/ Image HiPS: support = covered_area/A_cell (float32/64)
+// snr/ Catalogue HiPS: NorderK/DirD/NpixN.tsv
+// 每个子产品独立 properties / Moc.fits / 低阶 hierarchy tiles。
 //
 // FITS 全部由 vendored CFITSIO 4.6.4 写入 (含 DATASUM/CHECKSUM)。
 // ============================================================================
@@ -166,7 +166,7 @@ bool fits_ok(int status, const std::string& where) {
 
 // ---------------------------------------------------------------------------
 // 单 FITS 图像写 (含 checksum)
-//   data: 行主序数组 (NAXIS1 最快), naxis1 x naxis2
+// data: 行主序数组 (NAXIS1 最快), naxis1 x naxis2
 // ---------------------------------------------------------------------------
 bool write_fits_image(const std::string& path,
                       int bitpix,
@@ -299,7 +299,7 @@ struct AncestorAcc {
     std::vector<double> sumFluxD;
     std::vector<float>  sumAreaF;
     std::vector<double> sumAreaD;
-    // V19 (P1-003): 方差传播分子 Σ v_j w_jp² (hierarchy 归约同叶级公式)
+    // 方差传播分子 Σ v_j w_jp² (hierarchy 归约同叶级公式)
     std::vector<float>  sumVarF;
     std::vector<double> sumVarD;
     std::vector<uint32_t> count;
@@ -360,18 +360,18 @@ struct AioHipsProductSet {
     double covered_area_sr = 0.0;          // Σ covered_area (真实覆盖)
     double sig_min = 1e300, sig_max = -1e300;
     bool finalized = false;
-    // V18 (G1): 跨 tile 累计 profile（低开销 coarse；每 tile 每段一次 clock）
+    // 跨 tile 累计 profile（低开销 coarse；每 tile 每段一次 clock）
     double prof_transform = 0.0;        // NESTED→FITS scatter
     double prof_fits_write = 0.0;       // CFITSIO tile 写出
     double prof_hierarchy_accum = 0.0;  // 每 tile ancestor 累加
     double prof_finalize_products = 0.0;
     double prof_hierarchy_write = 0.0;
     double prof_finalize_snr = 0.0;
-    // V18 (PERF-007/009): 跨 tile 复用 scratch
+    // 跨 tile 复用 scratch
     std::vector<float>  scratch_sigF, scratch_supF;   // dtype=f32 写缓冲
     std::vector<double> scratch_sigD, scratch_supD;   // dtype=f64 写缓冲
     std::vector<double> scratch_sig_n, scratch_sup_n; // NESTED 序缓存（hierarchy）
-    // V19 (P1-003): variance/ivar scratch
+    // variance/ivar scratch
     std::vector<float>  scratch_varF, scratch_ivarF;
     std::vector<double> scratch_varD, scratch_ivarD;
     std::vector<double> scratch_var_n;                 // NESTED 序 var_num (hierarchy)
@@ -435,7 +435,7 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
     const bool f32 = (ps->data_type == AIO_HIPS_FLOAT32);
 
     // 1. 转换 signal/support
-    // V18 (PERF-007): 只分配当前 dtype 的 scratch，跨 tile 复用（原每 tile
+    // 只分配当前 dtype 的 scratch，跨 tile 复用（原每 tile
     // 分配 4×262144 元素 → 首 tile 分配后零再分配）
     std::vector<float>&  sigF = ps->scratch_sigF;
     std::vector<double>& sigD = ps->scratch_sigD;
@@ -451,7 +451,7 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
     if (view->valid_mask)
         valid.assign((const uint8_t*)view->valid_mask, (const uint8_t*)view->valid_mask + n);
 
-    // V5 (HIPS-IMG-001): view->flux_sum/covered_area/valid_mask 以 NESTED local
+    // view->flux_sum/covered_area/valid_mask 以 NESTED local
     // 索引 (Drizzle 热路径保持 NESTED), 写 FITS 前经共享 HEALPix core 标准映射
     // scatter: fits_index = (tile_width-1-x)*tile_width + y, x/y 由 local 位解交错
     const auto t_tr0 = std::chrono::steady_clock::now();
@@ -479,7 +479,7 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
         } else {
             sig = std::numeric_limits<double>::quiet_NaN();
         }
-        // V18 (PERF-009): NESTED 序 sig/sup 缓存（与 FITS 序同一 float/double
+        // NESTED 序 sig/sup 缓存（与 FITS 序同一 float/double
         // 精度存储），hierarchy 直接按 NESTED 序累加，免 fi 反查。
         if (f32) {
             sigF[fi] = (float)sig; supF[fi] = (float)sup;
@@ -538,7 +538,7 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
         AncestorAcc& acc = ps->hier[(size_t)k][A];
         acc.ensure(f32);
         for (size_t i = 0; i < n; ++i) {
-            // V18 (PERF-009): 直接使用 NESTED 序 sig/sup 缓存（与 FITS 序
+            // 直接使用 NESTED 序 sig/sup 缓存（与 FITS 序
             // 读回逐位一致），免每 i 一次 nested_local_to_fits_index 反查。
             const bool v = valid.empty() || valid[i];
             double flux = 0.0, area = 0.0;
@@ -546,7 +546,7 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
             area = sup_n[i] * ps->A_cell;
             if (!v || !(area > 0.0) || !std::isfinite(flux)) continue;
             // 叶 (P,l) -> A@k 内 order-(k+9) 单元 NESTED 索引
-            //   full = (s<<18)|l (order K+9 within A), z = full >> 2*(K-k)
+            // full = (s<<18)|l (order K+9 within A), z = full >> 2*(K-k)
             size_t z = (size_t)(((s << 18ULL) | (uint64_t)i) >>
                                 (2ULL * (uint64_t)(ps->tile_order - (uint32_t)k)));
             acc.add(z, flux, area);
@@ -558,11 +558,11 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
 }
 
 // ============================================================================
-// V19 (P1-003): variance/ivar 叶级 Tile 写
-//   variance = var_num_sum / covered_area² ;  ivar = 1/variance
-//   covered_area<=0 -> NaN (与 signal NaN 语义一致)
-//   hierarchy: 在 AncestorAcc 增加 var_num 通道, 归约公式与叶级一致
-//     (variance_parent = Σvar_num / (Σarea)²)
+// variance/ivar 叶级 Tile 写
+// variance = var_num_sum / covered_area² ; ivar = 1/variance
+// covered_area<=0 -> NaN (与 signal NaN 语义一致)
+// hierarchy: 在 AncestorAcc 增加 var_num 通道, 归约公式与叶级一致
+// (variance_parent = Σvar_num / (Σarea)²)
 // ============================================================================
 int aio_hips_write_variance_tile(AioHipsProductSet* ps,
                                  const AstroSphereTileView* view) {
@@ -715,7 +715,7 @@ static bool finalize_image_product(AioHipsProductSet* ps,
     kv.push_back({"hips_creator", "AstroCS (astro_image_io)"});
     kv.push_back({"hips_builder", "AstroCS aio_hips_writer (CFITSIO 4.6.4)"});
     kv.push_back({"hips_estsize", "1000000"});
-    // META-001 (V5): 真实 UTC finalize 时间, 禁止硬编码日期
+    // META-001 : 真实 UTC finalize 时间, 禁止硬编码日期
     char rel_date[32], cre_date[40];
     utc_now_date(rel_date, sizeof(rel_date));
     utc_now_iso(cre_date, sizeof(cre_date));
@@ -724,7 +724,7 @@ static bool finalize_image_product(AioHipsProductSet* ps,
     kv.push_back({"obs_description", "AstroCS Phase1 single-frame HiPS product"});
     kv.push_back({"prov_progenitor", "ivo://astrocs/phase1/drizzle"});
     kv.push_back({"obs_regime", "optical"});
-    // META-002 (V5): 无真实 passband/系统响应波长范围时不伪造 em_min/em_max
+    // META-002 : 无真实 passband/系统响应波长范围时不伪造 em_min/em_max
     kv.push_back({"hips_hierarchy", "true"});
     kv.push_back({"hips_pixel_scale", buf});
     kv.push_back({"hips_initial_fov", "60"});
@@ -789,7 +789,7 @@ static bool finalize_hierarchy(AioHipsProductSet* ps) {
             cards.push_back({"FIRSTPIX", "0"});
             cards.push_back({"LASTPIX", std::to_string(n - 1)});
             std::string rel = tile_rel_path(k, A, ".fits");
-            // V5 (HIPS-IMG-001): AncestorAcc 以 NESTED local 索引累加,
+            // AncestorAcc 以 NESTED local 索引累加,
             // 写出低阶 hierarchy FITS 时同样 scatter 到标准 HiPS 行主序
             for (size_t i = 0; i < n; ++i) {
                 const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(
@@ -823,7 +823,7 @@ static bool finalize_hierarchy(AioHipsProductSet* ps) {
                                       cards, ps->obs_title, ps->obs_filter, ps->exposure, ps->obs_date))
                     return false;
             }
-            // V19 (P1-003): variance/ivar hierarchy (归约公式同叶级)
+            // variance/ivar hierarchy (归约公式同叶级)
             if ((ps->flags & (AIO_HIPS_PRODUCT_VARIANCE |
                               AIO_HIPS_PRODUCT_IVAR)) != 0) {
                 std::vector<float>  varF(n), ivarF(n);
@@ -876,7 +876,7 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
     std::map<uint64_t, std::vector<const AioHipsSnrPoint*>> by_cell;
     std::set<uint64_t> cells;
     for (const auto& p : ps->snr) {
-        // 共享 HEALPix core (V4): 不再维护 AIO 私有 ang2ipix
+        // 共享 HEALPix core : 不再维护 AIO 私有 ang2ipix
         uint64_t ip = astrocs::healpix::ang2pix_nest(1u << ps->tile_order,
                                                      p.ra_deg, p.dec_deg);
         by_cell[ip].push_back(&p);
@@ -891,13 +891,13 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
         FILE* f = std::fopen(p.c_str(), "wb");
         if (!f) { set_error("无法创建 SNR tile: " + p); return false; }
         std::fputs(header, f);
-        // SNR-PREC-001 (V5): FP32 -> %.9g (float32 round-trip),
+        // SNR-PREC-001 : FP32 -> %.9g (float32 round-trip),
         // FP64 -> %.17g (float64 round-trip), 不再使用 %.6f
         const char* snr_fmt = (ps->data_type == AIO_HIPS_FLOAT32) ? "%.9g" : "%.17g";
         char line_fmt[64];
         std::snprintf(line_fmt, sizeof(line_fmt), "%%lld %%.12f %%.12f %s %%u %%u\n", snr_fmt);
         for (const AioHipsSnrPoint* sp : kv.second) {
-            // V4: 真实 star_id / quality_flags / photometric_status (禁止硬编码)
+            // 真实 star_id / quality_flags / photometric_status (禁止硬编码)
             std::fprintf(f, line_fmt,
                          (long long)sp->star_id, sp->ra_deg, sp->dec_deg, sp->snr,
                          sp->quality_flags, sp->photometric_status);
@@ -916,7 +916,7 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
     kv2.push_back({"hips_status", "private master"});
     kv2.push_back({"hips_creator", "AstroCS (astro_image_io)"});
     kv2.push_back({"hips_builder", "AstroCS aio_hips_writer (CFITSIO 4.6.4)"});
-    // META-001 (V5): 真实 UTC finalize 时间, 禁止硬编码日期
+    // META-001 : 真实 UTC finalize 时间, 禁止硬编码日期
     char rel_date2[32], cre_date2[40];
     utc_now_date(rel_date2, sizeof(rel_date2));
     utc_now_iso(cre_date2, sizeof(cre_date2));
@@ -925,7 +925,7 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
     kv2.push_back({"obs_description", "AstroCS Phase1 single-frame SNR catalogue HiPS product"});
     kv2.push_back({"prov_progenitor", "ivo://astrocs/phase1/drizzle"});
     kv2.push_back({"obs_regime", "optical"});
-    // META-002 (V5): 无真实 passband/系统响应波长范围时不伪造 em_min/em_max
+    // META-002 : 无真实 passband/系统响应波长范围时不伪造 em_min/em_max
     if (!ps->obs_date.empty()) {
         double t0 = 0.0;
         if (iso_to_mjd(ps->obs_date, t0)) {
@@ -962,9 +962,9 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
         // IVOA HiPS Catalog: metadata.xml 必须是 VOTable（Hipsgen LINT[4.4.3] 要求根元素 votable）
         std::fprintf(f,
             "<?xml version=\"1.0\"?>\n"
-            "<VOTABLE version=\"1.3\" xmlns=\"http://www.ivoa.net/xml/VOTable/v1.3\"\n"
-            "         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
-            "         xsi:schemaLocation=\"http://www.ivoa.net/xml/VOTable/v1.3 http://www.ivoa.net/xml/VOTable/v1.3\">\n"
+            "<VOTABLE version=\"1.3\" xmlns=\"http:// www.ivoa.net/xml/VOTable/v1.3\"\n"
+            "         xmlns:xsi=\"http:// www.w3.org/2001/XMLSchema-instance\"\n"
+            "         xsi:schemaLocation=\"http:// www.ivoa.net/xml/VOTable/v1.3 http:// www.ivoa.net/xml/VOTable/v1.3\">\n"
             "  <RESOURCE type=\"meta\">\n"
             "    <TABLE>\n"
             "      <FIELD name=\"star_id\" datatype=\"long\" ucd=\"meta.id\"/>\n"
@@ -993,7 +993,7 @@ int aio_hips_finalize(AioHipsProductSet* ps) {
     if (!ps) { set_error("null handle"); return -1; }
     if (ps->finalized) { set_error("已 finalize"); return -2; }
     ps->finalized = true;
-    // V18 (G1): finalize 分段计时（粗粒度，低开销）
+    // finalize 分段计时（粗粒度，低开销）
     const auto t_fin0 = std::chrono::steady_clock::now();
     std::fprintf(stderr, "[hips] finalize: n_leaf=%zu flags=%d\n",
                  ps->leaf_ipix_list.size(), ps->flags);
@@ -1015,7 +1015,7 @@ int aio_hips_finalize(AioHipsProductSet* ps) {
             return -4;
         }
     }
-    // V19 (P1-003): variance/ivar 产品 (Drizzle 方差传播)
+    // variance/ivar 产品 (Drizzle 方差传播)
     if (ps->flags & AIO_HIPS_PRODUCT_VARIANCE) {
         std::fprintf(stderr, "[hips] finalize: variance product\n");
         if (!finalize_image_product(ps, "variance", "variance", "", moc_frac, cov_frac)) {
@@ -1115,9 +1115,9 @@ const char* aio_hips_last_error(void) {
 
 // ============================================================================
 // 兼容旧接口 (HISS 中转验证): 旧 AioHipsTile -> AstroSphereTileView 流式
-//   旧语义: signal = F/support_frac, support uint8 (0..255)
-//   转换:   covered_area = su/255*A_cell, flux_sum = signal*(su/255)
-//   新语义: signal = flux_sum/covered_area = 旧signal/A_cell, support 浮点
+// 旧语义: signal = F/support_frac, support uint8 (0..255)
+// 转换: covered_area = su/255*A_cell, flux_sum = signal*(su/255)
+// 新语义: signal = flux_sum/covered_area = 旧signal/A_cell, support 浮点
 // ============================================================================
 int aio_hips_write(
     const char* out_dir,

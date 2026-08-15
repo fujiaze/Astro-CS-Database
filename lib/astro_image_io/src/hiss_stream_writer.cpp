@@ -2,18 +2,18 @@
 // hiss_stream_writer.cpp - AstroCS HISS 流式写入器实现
 //
 // 依据:
-//   - 02_FROZEN_STAGE1_HISS_SPEC.md §14 (HISS 容器)
-//   - docs/stage1_fix/00_COMMON_CONTRACTS.md §4.5/§4.6 (流式写入/原子替换)
-//   - docs/stage1_fix/spec.md 步骤10 (流式写入)
+// - 02_FROZEN_STAGE1_HISS_SPEC.md §14 (HISS 容器)
+// - docs/stage1_fix/00_COMMON_CONTRACTS.md §4.5/§4.6 (流式写入/原子替换)
+// - docs/stage1_fix/spec.md 步骤10 (流式写入)
 //
 // 实现要点:
-//   1. 临时子块池 (temp_pool) 是一个独立文件, add_tile 时压缩数据立即追加
-//   2. 内存只保留 SubblockDescriptor (offset/size/codec/checksum), 不保留 compressed_data
-//   3. finalize 时组装最终文件: 签名块(20B) + Header + 子块数据(从 temp_pool 复制)
-//   4. 原子替换: Windows 使用 MoveFileExW(MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)
-//      不先删除旧文件再 rename (避免竞态窗口)
-//   5. 子块 offset 在 append_subblock 时记录为 temp_pool 内偏移;
-//      finalize 时统一加上 (签名块大小 + Header大小) 调整为最终文件偏移
+// 1. 临时子块池 (temp_pool) 是一个独立文件, add_tile 时压缩数据立即追加
+// 2. 内存只保留 SubblockDescriptor (offset/size/codec/checksum), 不保留 compressed_data
+// 3. finalize 时组装最终文件: 签名块(20B) + Header + 子块数据(从 temp_pool 复制)
+// 4. 原子替换: Windows 使用 MoveFileExW(MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)
+// 不先删除旧文件再 rename (避免竞态窗口)
+// 5. 子块 offset 在 append_subblock 时记录为 temp_pool 内偏移;
+// finalize 时统一加上 (签名块大小 + Header大小) 调整为最终文件偏移
 // ============================================================================
 
 #include "hiss_stream_writer.h"
@@ -32,7 +32,7 @@
 #include <windows.h>
 #endif
 
-// R13 (HISS_IO_REPAIR): 逐 Tile/逐 subblock 日志降级 (与 hiss_writer.cpp 一致)
+// 逐 Tile/逐 subblock 日志降级 (与 hiss_writer.cpp 一致)
 #ifdef HISS_VERBOSE
 #define HISS_DLOG(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
 #else
@@ -46,9 +46,9 @@ namespace hiss {
 // ============================================================================
 
 // R04-B14: 固定签名块 (16 字节, 显式小端序)
-//   magic[8] = "HISS0100" (ASCII, 含容器布局标识 0100)
-//   header_length: uint32 LE (Header 区字节数, 不含签名块)
-//   feature_flags: uint32 LE (特性标志位)
+// magic[8] = "HISS0100" (ASCII, 含容器布局标识 0100)
+// header_length: uint32 LE (Header 区字节数, 不含签名块)
+// feature_flags: uint32 LE (特性标志位)
 // 旧格式 (ACSHISS\0 + version + header_offset) 已废弃: 主机端序 + 无严格长度
 static const char     HISS_MAGIC[8] = { 'H','I','S','S','0','1','0','0' };
 static const uint32_t HISS_FEATURE_FLAGS = HISS_FEAT_TLV_HEADER;  // TLV Header 必需
@@ -80,10 +80,10 @@ static const uint8_t HISS_SCHEMA_FINGERPRINT[32] = {
 static const size_t COPY_BUF_SIZE = 4 * 1024 * 1024;
 
 // ============================================================================
-// R08 移植 R07-M14: 溢出检查辅助函数
-//   size_t → uint32/uint16 转换前必须检查, 防止静默截断导致 Header 长度
-//   不一致或 subblock_count 溢出 (HISS 格式要求严格长度一致)
-//   返回: 0=成功, -1=溢出 (调用方应硬失败并清理)
+// 移植 R07-M14: 溢出检查辅助函数
+// size_t → uint32/uint16 转换前必须检查, 防止静默截断导致 Header 长度
+// 不一致或 subblock_count 溢出 (HISS 格式要求严格长度一致)
+// 返回: 0=成功, -1=溢出 (调用方应硬失败并清理)
 // ============================================================================
 inline int safe_size_to_u32(size_t v, const char* ctx) {
     if (v > 0xFFFFFFFFULL) {
@@ -106,11 +106,11 @@ inline int safe_size_to_u16(size_t v, const char* ctx) {
 }
 
 // ============================================================================
-// R08 移植 R07-M13: 统一失败路径清理辅助函数
-//   所有 finalize 失败路径必须调用此函数, 确保:
-//     1. 删除 .partial 文件 (避免残留半成品)
-//     2. 删除 .tmppool 文件 (避免残留临时池)
-//   不删除已有正式文件 (atomic_replace 仅在最终成功时覆盖)
+// 移植 R07-M13: 统一失败路径清理辅助函数
+// 所有 finalize 失败路径必须调用此函数, 确保:
+// 1. 删除 .partial 文件 (避免残留半成品)
+// 2. 删除 .tmppool 文件 (避免残留临时池)
+// 不删除已有正式文件 (atomic_replace 仅在最终成功时覆盖)
 // ============================================================================
 inline void cleanup_temp_files(const std::string& partial_path,
                                 const std::string& temp_pool_path) {
@@ -169,10 +169,10 @@ static std::wstring widen(const std::string& s) {
 
 // ============================================================================
 // 内部辅助: 原子替换 (Windows 优先 MoveFileExW)
-//   依据 00_COMMON_CONTRACTS §4.6:
-//     Windows: MoveFileExW(MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)
-//     不能先删除旧文件再 rename (避免竞态: 删除后 rename 前若进程崩溃, 文件丢失)
-//   返回 0=成功, <0=失败
+// 依据 00_COMMON_CONTRACTS §4.6:
+// Windows: MoveFileExW(MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)
+// 不能先删除旧文件再 rename (避免竞态: 删除后 rename 前若进程崩溃, 文件丢失)
+// 返回 0=成功, <0=失败
 // ============================================================================
 
 static int atomic_replace(const std::string& temp_path, const std::string& final_path) {
@@ -277,7 +277,7 @@ int HissStreamWriter::open(const std::string& final_path) {
 
 // ---------------------------------------------------------------------------
 // append_subblock: 追加已压缩子块到临时池
-//   offset 记录为临时池内偏移 (从 0 开始), finalize 时调整为最终文件偏移
+// offset 记录为临时池内偏移 (从 0 开始), finalize 时调整为最终文件偏移
 // ---------------------------------------------------------------------------
 
 int HissStreamWriter::append_subblock(const uint8_t* data, size_t size,
@@ -310,8 +310,8 @@ int HissStreamWriter::append_subblock(const uint8_t* data, size_t size,
             return -3;
         }
         // 立即 flush, 确保数据落盘 (流式写入要点: 不在内存缓存)
-        // R08 移植 R07-M12: fflush 返回值必须检查, 失败时传播错误 (避免后续 finalize
-        //   读取到不完整数据, 产出损坏的 HISS 文件)
+        // 移植 R07-M12: fflush 返回值必须检查, 失败时传播错误 (避免后续 finalize
+        // 读取到不完整数据, 产出损坏的 HISS 文件)
 #ifdef HISS_PROFILE
         auto tp_f = std::chrono::steady_clock::now();
 #endif
@@ -369,9 +369,9 @@ int HissStreamWriter::record_tile(uint64_t parent_ipix, uint32_t tile_nside,
 
 // ---------------------------------------------------------------------------
 // finalize: 生成 TLV Header, 组装最终文件, flush, 原子重命名
-//   R04-B14: 新签名块 (16B, 显式小端序): "HISS0100" + header_length(u32 LE) + feature_flags(u32 LE)
-//   R04-B15: Header 为可扩展 TLV 二进制结构, 未知可选跳过/未知必需拒绝
-//   最终布局: 签名块(16B) → TLV Header → 子块1 → 子块2 → ...
+// R04-B14: 新签名块 (16B, 显式小端序): "HISS0100" + header_length(u32 LE) + feature_flags(u32 LE)
+// R04-B15: Header 为可扩展 TLV 二进制结构, 未知可选跳过/未知必需拒绝
+// 最终布局: 签名块(16B) → TLV Header → 子块1 → 子块2 → ...
 // ---------------------------------------------------------------------------
 
 int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& metadata) {
@@ -381,8 +381,8 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
     }
 
     // 1. 关闭临时池 (确保所有数据落盘)
-    //    R08 移植 R07-M12: fflush/fclose 返回值必须检查, 失败时清理并硬失败
-    //    R08 移植 R07-M13: 失败路径统一调用 cleanup_temp_files, 避免残留半成品
+    // 移植 R07-M12: fflush/fclose 返回值必须检查, 失败时清理并硬失败
+    // 移植 R07-M13: 失败路径统一调用 cleanup_temp_files, 避免残留半成品
     if (pimpl_->temp_pool_fp) {
         if (std::fflush(pimpl_->temp_pool_fp) != 0) {
             fprintf(stderr,
@@ -408,12 +408,12 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
     std::string json = metadata.to_json();
 
     // 3. 计算 TLV Header 大小
-    //    每个 TLV: tag(2) + flags(1) + length(4) + value = 7 + value_size
-    //    a. SCHEMA_FINGERPRINT (required): 7 + 32 = 39
-    //    b. GRID_SPEC (required): 7 + 24 = 31
-    //    c. METADATA_JSON (optional): 7 + json.size()
-    //    d. TILE_DIRECTORY (required): 7 + (4 + Σ(15 + 42*n_subblocks))
-    //    R08 移植 R07-M14: 引入 tile_dir_value_size 中间变量, 便于溢出检查
+    // 每个 TLV: tag(2) + flags(1) + length(4) + value = 7 + value_size
+    // a. SCHEMA_FINGERPRINT (required): 7 + 32 = 39
+    // b. GRID_SPEC (required): 7 + 24 = 31
+    // c. METADATA_JSON (optional): 7 + json.size()
+    // d. TILE_DIRECTORY (required): 7 + (4 + Σ(15 + 42*n_subblocks))
+    // 移植 R07-M14: 引入 tile_dir_value_size 中间变量, 便于溢出检查
     size_t tile_dir_value_size = 4;  // n_tiles (uint32)
     for (const auto& t : pimpl_->tile_dirs) {
         tile_dir_value_size += HISS_TILE_DIR_PREFIX_SIZE +
@@ -426,11 +426,11 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
     header_size += HISS_TLV_HEADER_SIZE + json.size();              // METADATA_JSON
     header_size += HISS_TLV_HEADER_SIZE + tile_dir_value_size;      // TILE_DIRECTORY
 
-    // R08 移植 R07-M14: 溢出检查 — 所有 size_t → uint32/uint16 转换前必须检查
-    //   HISS 格式要求 json_len (uint32)、tile_count (uint32)、subblock_count (uint16)
-    //   严格一致, 静默截断会导致 Header 大小不一致或目录损坏
-    //   溢出时硬失败并清理, 不产出损坏文件
-    //   注: main 版本无 SCIENCE_METADATA TLV, 故无 sci_meta_size 检查项
+    // 移植 R07-M14: 溢出检查 — 所有 size_t → uint32/uint16 转换前必须检查
+    // HISS 格式要求 json_len (uint32)、tile_count (uint32)、subblock_count (uint16)
+    // 严格一致, 静默截断会导致 Header 大小不一致或目录损坏
+    // 溢出时硬失败并清理, 不产出损坏文件
+    // 注: main 版本无 SCIENCE_METADATA TLV, 故无 sci_meta_size 检查项
     if (safe_size_to_u32(header_size,             "header_size")         != 0 ||
         safe_size_to_u32(json.size(),             "metadata_json_size")  != 0 ||
         safe_size_to_u32(tile_dir_value_size,     "tile_dir_value_size") != 0 ||
@@ -448,8 +448,8 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
     }
 
     // 4. 调整所有子块 offset: 临时池偏移 → 最终文件偏移
-    //    最终 offset = 签名块(16) + Header大小 + 临时池偏移
-    //    (在构建 Header 字节流之前调整, 确保写入 Header 的 offset 是最终值)
+    // 最终 offset = 签名块(16) + Header大小 + 临时池偏移
+    // (在构建 Header 字节流之前调整, 确保写入 Header 的 offset 是最终值)
     uint64_t base_offset = HISS_SIGNATURE_SIZE + header_size;
     for (auto& t : pimpl_->tile_dirs) {
         for (auto& sb : t.subblocks) {
@@ -477,7 +477,7 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
     hdr.f64(grid.pixfrac);
 
     // c. METADATA_JSON TLV (optional) — 元数据 JSON, 人类可读附件
-    //    R04-B15: JSON 不得是科学和容器语义唯一来源, 标记 optional
+    // R04-B15: JSON 不得是科学和容器语义唯一来源, 标记 optional
     hdr.u16(HISS_TLV_METADATA_JSON);
     hdr.u8 (HISS_TLV_FLAG_OPTIONAL);
     hdr.u32((uint32_t)json.size());
@@ -508,10 +508,10 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
         }
     }
 
-    // R08 移植 R07-M13: Header 大小不一致必须硬失败, 不得仅警告继续
-    //   不一致时 offset 错位, 产出"看似合法但 offset 错误"的 HISS 文件,
-    //   且会被原子替换覆盖现有文件
-    //   失败路径统一调用 cleanup_temp_files, 避免残留半成品
+    // 移植 R07-M13: Header 大小不一致必须硬失败, 不得仅警告继续
+    // 不一致时 offset 错位, 产出"看似合法但 offset 错误"的 HISS 文件,
+    // 且会被原子替换覆盖现有文件
+    // 失败路径统一调用 cleanup_temp_files, 避免残留半成品
     if (hdr.data.size() != header_size) {
         fprintf(stderr,
                 "[hiss][stream] finalize 失败: Header 实际大小 %zu 与预算 %zu 不符 (内部 bug), "
@@ -523,7 +523,7 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
     }
 
     // 6. 创建最终 .partial 文件: 签名块 + Header + 子块数据(从临时池复制)
-    //    R08 移植 R07-M13: 所有失败路径调用 cleanup_temp_files
+    // 移植 R07-M13: 所有失败路径调用 cleanup_temp_files
     FILE* fp_out = aio_fopen_utf8(pimpl_->partial_path.c_str(), "wb");
     if (!fp_out) {
         fprintf(stderr, "[hiss][stream] finalize 失败: 无法创建 .partial %s\n",
@@ -534,7 +534,7 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
     }
 
     // 6a. 写入签名块 (16B: MAGIC + header_length + feature_flags, 全显式小端序)
-    //     R04-B14: 禁止 host-endian memcpy, 所有数值显式按小端序写入
+    // R04-B14: 禁止 host-endian memcpy, 所有数值显式按小端序写入
     uint8_t sig[16] = {0};
     std::memcpy(sig, HISS_MAGIC, 8);  // MAGIC 是字节字面量, 不涉及端序
     uint32_t hlen = (uint32_t)header_size;
@@ -567,7 +567,7 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
     }
 
     // 6c. 从临时池复制子块数据到 .partial
-    //    R08 移植 R07-M12/M13: 所有 I/O 失败路径检查返回值 + cleanup_temp_files
+    // 移植 R07-M12/M13: 所有 I/O 失败路径检查返回值 + cleanup_temp_files
     if (pimpl_->temp_pool_size > 0) {
         FILE* fp_in = aio_fopen_utf8(pimpl_->temp_pool_path.c_str(), "rb");
         if (!fp_in) {
@@ -606,7 +606,7 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
             }
             remaining -= chunk;
         }
-        // R08 移植 R07-M12: fclose 返回值检查 (读取端)
+        // 移植 R07-M12: fclose 返回值检查 (读取端)
         if (std::fclose(fp_in) != 0) {
             fprintf(stderr,
                     "[hiss][stream] finalize 失败: fclose 临时池(读) 失败 (R07-M12)\n");
@@ -618,9 +618,9 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
     }
 
     // 7. flush + 关闭 .partial
-    //    R08 移植 R07-M12: fflush 失败必须硬失败, 不得仅警告继续
-    //      (否则产出空/截断文件后原子替换覆盖现有文件)
-    //    R08 移植 R07-M13: 失败路径统一调用 cleanup_temp_files
+    // 移植 R07-M12: fflush 失败必须硬失败, 不得仅警告继续
+    // (否则产出空/截断文件后原子替换覆盖现有文件)
+    // 移植 R07-M13: 失败路径统一调用 cleanup_temp_files
     if (std::fflush(fp_out) != 0) {
         fprintf(stderr, "[hiss][stream] finalize 失败: fflush 失败 (R07-M12: 硬失败)\n");
         std::fclose(fp_out);
@@ -628,7 +628,7 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
         pimpl_->opened = false;
         return HISS_ERR_IO;
     }
-    // R08 移植 R07-M12: fclose 返回值检查 (写入端, 关键: fclose 失败可能意味着缓冲未刷盘)
+    // 移植 R07-M12: fclose 返回值检查 (写入端, 关键: fclose 失败可能意味着缓冲未刷盘)
     if (std::fclose(fp_out) != 0) {
         fprintf(stderr,
                 "[hiss][stream] finalize 失败: fclose .partial 失败 (R07-M12)\n");
@@ -642,8 +642,8 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
     std::filesystem::remove(pimpl_->temp_pool_path, ec);
 
     // 9. 原子重命名 .partial → 最终路径
-    //    使用 MoveFileExW (Windows), 不先删除旧文件
-    //    R08 移植 R07-M13: 失败路径清理 .partial (不删除已有正式文件)
+    // 使用 MoveFileExW (Windows), 不先删除旧文件
+    // 移植 R07-M13: 失败路径清理 .partial (不删除已有正式文件)
     int ret = atomic_replace(pimpl_->partial_path, pimpl_->final_path);
     if (ret != 0) {
         fprintf(stderr, "[hiss][stream] finalize 失败: 原子替换失败 %s -> %s\n",

@@ -1,4 +1,4 @@
-// lib/acr/api/kernel_registry.cpp — KernelRegistry 实现（23 号计划 §1）
+// lib/acr/api/kernel_registry.cpp — KernelRegistry 实现（23 §1）
 #include "astro/compute/kernel_registry.hpp"
 
 #include <algorithm>
@@ -32,7 +32,7 @@ std::string validate_invocation(const KernelRegistration& reg,
     if (backend.rfind("cuda", 0) == 0 && !reg.cuda.has_value()) {
         return "no cuda launcher registered for operation";
     }
-    // 24 号计划 §5.1：调用方 NumericPolicy 必须与注册声明一致
+    // 24 §5.1：调用方 NumericPolicy 必须与注册声明一致
     // （注册声明必须反映 launcher 的真实数值行为）
     if (inv.traits.numeric.compute != reg.numeric.compute ||
         inv.traits.numeric.accumulator != reg.numeric.accumulator ||

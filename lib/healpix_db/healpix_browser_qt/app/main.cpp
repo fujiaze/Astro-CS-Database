@@ -4,8 +4,8 @@
 // 依赖: Qt6::Widgets (QApplication/QCommandLineParser), app/ (MainWindow)
 // 设计文档: docs/superpowers/specs/2026-07-13-cpp-qt-browser-ui-design.md §4.3
 // 用法: healpix_browser_qt.exe [file.hiss|file.hcsd|hips_dir]
-//       healpix_browser_qt.exe --hips <dir> [--preset <name>]
-//                              [--layer signal|support] [--screenshot <png>] [--exit]
+// healpix_browser_qt.exe --hips <dir> [--preset <name>]
+// [--layer signal|support] [--screenshot <png>] [--exit]
 // 部署: windeployqt 部署 Qt6 DLL 和 plugins 到 exe 同级目录, 双击即可启动
 
 #include <QApplication>

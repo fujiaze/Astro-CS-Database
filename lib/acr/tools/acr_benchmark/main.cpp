@@ -2,7 +2,7 @@
 // Phase E：执行微基准并生成 hardware-profile.json。
 //
 // 用法：
-//   acr-benchmark [--profile quick|standard|full] [--output hardware-profile.json] [--gpu] [--no-gpu]
+// acr-benchmark [--profile quick|standard|full] [--output hardware-profile.json] [--gpu] [--no-gpu]
 //
 // 默认：--profile standard --output hardware-profile.json --no-gpu
 // CLI 解析手写（避免引入 CLI11 依赖，与 hardware_report.cpp 风格一致）
@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
     auto results = driver.run();
     std::fprintf(stdout, "[acr-benchmark] 采集 %zu 条结果记录\n", results.size());
 
-    // 25 号计划 §3.2：导出原始记录 JSON（每次原始耗时）
+    // 25 §3.2：导出原始记录 JSON（每次原始耗时）
     const std::string raw_path = "raw_benchmark_records.json";
     if (!astro::compute::qualification::BenchmarkDriver::write_raw_records_json(
             raw_path, results)) {

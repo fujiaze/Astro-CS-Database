@@ -2,11 +2,11 @@
 // Phase F：CPU+单 GPU、CPU+多 GPU 执行。
 //
 // 设计：
-//   1. 接受已分好的 chunks + per-chunk kernel
-//   2. 按路由策略分发到 CPU/GPU backend
-//   3. 用 CoverageBitmap 跟踪进度，保证不重复不遗漏
-//   4. 失败时通过 FallbackPolicy 回退
-//   5. 公共头不暴露第三方类型（GPU backend 通过字符串标识，不暴露 cuda 类型）
+// 1. 接受已分好的 chunks + per-chunk kernel
+// 2. 按路由策略分发到 CPU/GPU backend
+// 3. 用 CoverageBitmap 跟踪进度，保证不重复不遗漏
+// 4. 失败时通过 FallbackPolicy 回退
+// 5. 公共头不暴露第三方类型（GPU backend 通过字符串标识，不暴露 cuda 类型）
 #pragma once
 
 #include "fallback.hpp"

@@ -1,12 +1,12 @@
 // ============================================================================
 // logger.h - 集成日志系统
 // 功能: 统一管理编排器和各模块的日志输出
-//   - 单例模式 (Meyers' Singleton)
-//   - 线程安全 (std::mutex 保护文件写入)
-//   - 跨天自动切换日志文件
-//   - 默认日志级别 INFO
-//   - 默认日志路径: lib/orchestrator/logs/orchestrator_YYYY-MM-DD.log
-//   - 日志格式: [YYYY-MM-DD HH:MM:SS][LEVEL][module] message
+// - 单例模式 (Meyers' Singleton)
+// - 线程安全 (std::mutex 保护文件写入)
+// - 跨天自动切换日志文件
+// - 默认日志级别 INFO
+// - 默认日志路径: lib/orchestrator/logs/orchestrator_YYYY-MM-DD.log
+// - 日志格式: [YYYY-MM-DD HH:MM:SS][LEVEL][module] message
 // 用途: 编排器 C++ CLI 各模块的统一日志接口
 // ============================================================================
 
@@ -44,7 +44,7 @@ public:
 
     // 初始化日志系统
     // log_dir: 日志目录 (相对或绝对路径)
-    // level:   日志级别 (默认 INFO)
+    // level: 日志级别 (默认 INFO)
     void init(const std::string& log_dir, LogLevel level = LogLevel::INFO);
 
     // 设置/获取日志级别 (原子操作)

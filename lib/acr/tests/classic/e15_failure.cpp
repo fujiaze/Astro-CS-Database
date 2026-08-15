@@ -1,7 +1,7 @@
 // lib/acr/tests/classic/e15_failure.cpp — E15 Failure and Fallback
 // 验证能力：backend 缺失 / device lost / 取消 / 异常传播
 // 扩展（规范 E20 故障和回退）：
-//   - 分配失败/OOM 模拟 / 混合调度异常 chunk
+// - 分配失败/OOM 模拟 / 混合调度异常 chunk
 // 用 parallel_for 异常 kernel 验证 KernelFailed。
 #include "classic_common.hpp"
 

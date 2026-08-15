@@ -2,10 +2,10 @@
 // 设计：故意触发 UAF / heap-overflow / 未定义行为，验证 sanitizer 实际开启。
 //
 // 安全策略：
-//   1. 编译时检测 sanitizer（ASan/UBSan）是否开启
-//   2. sanitizer 开启时：用 EXPECT_DEATH 触发 UAF/overflow，期望 sanitizer 终止进程
-//   3. sanitizer 未开启时：SKIP（不触发未定义行为，避免崩溃）
-//   4. 无 sanitizer 时不编译危险代码，避免 CI 中的未定义行为
+// 1. 编译时检测 sanitizer（ASan/UBSan）是否开启
+// 2. sanitizer 开启时：用 EXPECT_DEATH 触发 UAF/overflow，期望 sanitizer 终止进程
+// 3. sanitizer 未开启时：SKIP（不触发未定义行为，避免崩溃）
+// 4. 无 sanitizer 时不编译危险代码，避免 CI 中的未定义行为
 #include <gtest/gtest.h>
 
 #include <cstdlib>

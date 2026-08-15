@@ -1,16 +1,16 @@
 // lib/acr/qualification/benchmarks/benchmark_main.cpp — Google Benchmark 入口
 //
 // 设计（05_OPEN_SOURCE_REUSE_PLAN.md §6 Google Benchmark）：
-//   1. 驱动单设备基础微基准，参数化尺寸/精度/ISA/线程点
-//   2. 提供 warm-up、重复、计数器和 JSON 输出基础
-//   3. 启动时打印 "请确保系统空载" 提示，不替用户判断（06 §2）
-//   4. 支持将 JSON 结果写入文件（--output <path> 或 Google Benchmark 原生 --benchmark_out=）
-//   5. 不替 benchmark 做路由生成（profile_generator 负责）
+// 1. 驱动单设备基础微基准，参数化尺寸/精度/ISA/线程点
+// 2. 提供 warm-up、重复、计数器和 JSON 输出基础
+// 3. 启动时打印 "请确保系统空载" 提示，不替用户判断（06 §2）
+// 4. 支持将 JSON 结果写入文件（--output <path> 或 Google Benchmark 原生 --benchmark_out=）
+// 5. 不替 benchmark 做路由生成（profile_generator 负责）
 //
 // 用法：
-//   acr-benchmark [--output <path>] [--benchmark_filter=...] [--benchmark_min_time=...]
-//                 [--benchmark_out=<path>] [--benchmark_out_format=json]
-//   --output 是 --benchmark_out= 的语法糖；两者都给定时 --benchmark_out 优先
+// acr-benchmark [--output <path>] [--benchmark_filter=...] [--benchmark_min_time=...]
+// [--benchmark_out=<path>] [--benchmark_out_format=json]
+// --output 是 --benchmark_out= 的语法糖；两者都给定时 --benchmark_out 优先
 #include <benchmark/benchmark.h>
 
 #include <cstdio>

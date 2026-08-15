@@ -1,12 +1,12 @@
 // lib/acr/qualification/focused/operation_profile.hpp — 聚焦 OperationProfile
 //
-// 08 号计划 §5/04 号规范 §5：每个目标 Operation 只保存路由需要的简单实测参数：
-//   - CPU 固定开销、每 item 耗时、推荐/最小块
-//   - GPU launch 开销、resident 每 item 耗时、推荐块
-//   - host 与 resident 两种最小 GPU 收益规模
-//   - H2D/D2H 带宽与固定延迟
-//   - host/device 每 item 字节与固定 workspace
-//   - 样本范围、置信状态、硬件/编译指纹
+// 08 §5/04 号规范 §5：每个目标 Operation 只保存路由需要的简单实测参数：
+// - CPU 固定开销、每 item 耗时、推荐/最小块
+// - GPU launch 开销、resident 每 item 耗时、推荐块
+// - host 与 resident 两种最小 GPU 收益规模
+// - H2D/D2H 带宽与固定延迟
+// - host/device 每 item 字节与固定 workspace
+// - 样本范围、置信状态、硬件/编译指纹
 //
 // Schema：schemas/operation_profile.schema.json（acr-operation-profile-1）
 #pragma once

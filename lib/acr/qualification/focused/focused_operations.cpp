@@ -392,7 +392,7 @@ void cpu_reduce_launcher(const KernelInvocation& inv, void*) {
     for (std::size_t i = inv.domain.begin; i < inv.domain.end; ++i) {
         sum += static_cast<double>(x[i]);
     }
-    // attempt>0（重试）：清零槽位，避免重复累计（08 号计划 §4）
+    // attempt>0（重试）：清零槽位，避免重复累计（08 §4）
     if (inv.attempt > 0) partials[inv.token_id] = 0.0;
     partials[inv.token_id] += sum;  // 私有槽位（PrivatePartialThenMerge）
 }
@@ -435,7 +435,7 @@ void cuda_launcher(const KernelInvocation& inv, void*, FocusedOp op) {
     if (!api.loaded()) throw std::runtime_error("cuda bridge not loaded");
     void* h = get_tls_handle();
     if (!h) throw std::runtime_error("no cuda handle");
-    // 聚焦版 v3（08 号计划 §3）：输入已驻留 → resident 提交路径。
+    // 聚焦版 v3（08 §3）：输入已驻留 → resident 提交路径。
     // 不创建每 token host vector、不逐块 H2D；d_x 已在 worker 启动前
     // prefetch 整帧，桥接 resident 提交用 d_x + begin 复用。
     if (inv.input_resident) {
@@ -505,8 +505,8 @@ void cuda_launcher(const KernelInvocation& inv, void*, FocusedOp op) {
     std::vector<float> y(inv.domain.size(), 2.0f);
     std::vector<float> x(inv.domain.size());
     // buffer 布局（与 CPU launcher 一致）：
-    //   dense/chain：buffer0=y 输出、buffer1=x 输入
-    //   reduce/drizzle：buffer0=x 输入、buffer1=partials
+    // dense/chain：buffer0=y 输出、buffer1=x 输入
+    // reduce/drizzle：buffer0=x 输入、buffer1=partials
     const bool input_is_buf1 =
         (op != FocusedOp::PixelReduceFp64Acc &&
          op != FocusedOp::DrizzleScatterFp64Acc);

@@ -1,10 +1,10 @@
 // lib/acr/utilization/memory_budget.cpp — MemoryBudgetController 实现
 //
 // Phase G：真实 RAM/VRAM 读取。
-//   - RAM: GlobalMemoryStatusEx（total/avail），used = total - avail
-//   - VRAM: NVML nvmlDeviceGetMemoryInfo；无 NVML 时 estimated=true
-//   - limit = min(total*ratio, total-fixed_reserve)
-//   - 达到上限时 suggest_action 给出降级路径
+// - RAM: GlobalMemoryStatusEx（total/avail），used = total - avail
+// - VRAM: NVML nvmlDeviceGetMemoryInfo；无 NVML 时 estimated=true
+// - limit = min(total*ratio, total-fixed_reserve)
+// - 达到上限时 suggest_action 给出降级路径
 #include "memory_budget.hpp"
 
 #include "system_metrics.hpp"

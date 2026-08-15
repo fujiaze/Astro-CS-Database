@@ -1,8 +1,8 @@
 // stf_bar.h - 单条渐变 + 三控制点 STF 控件 (healpix_browser_qt app)
 // 功能: 一条渐变条上三个可拖动控制点:
-//   - 暗部截止 (shadows)   左
-//   - 中间调   (midtones)  中
-//   - 亮部截止 (highlights) 右
+// - 暗部截止 (shadows) 左
+// - 中间调 (midtones) 中
+// - 亮部截止 (highlights) 右
 // shadows/highlights 为相对数据范围的归一化位置 [0,1];
 // midtones 为 MTF 中点参数 [0,1]（0.5=线性）。
 

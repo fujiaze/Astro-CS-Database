@@ -1,25 +1,25 @@
 // ============================================================================
-// ipv_robust_refine.cpp - V4.30 鲁棒扩增 WCS 精化模块实现
+// ipv_robust_refine.cpp - 鲁棒扩增 WCS 精化模块实现
 //
 // 实现 spec: .trae/specs/robust-augmented-wcs-refine/spec.md
 //
 // 简化方案 (与 iter_trans 框架一致):
-//   - 参数向量 = TRANS 系数 (order=3, 20 维: x00..x03, y00..y03)
-//   - 残差 = apply_trans(U) - W_gaia (角秒空间, W_gaia 为 gnomonic xi/eta)
-//   - CD 阻尼 → 对 TRANS 线性项 x10/x01/y10/y01 加阻尼 (对应 CD 矩阵元素)
-//   - 内部使用 Y-up 坐标系 (与 solver 内部一致), 由 extract_wcs_sip 完成 Y-flip
+// - 参数向量 = TRANS 系数 (order=3, 20 维: x00..x03, y00..y03)
+// - 残差 = apply_trans(U) - W_gaia (角秒空间, W_gaia 为 gnomonic xi/eta)
+// - CD 阻尼 → 对 TRANS 线性项 x10/x01/y10/y01 加阻尼 (对应 CD 矩阵元素)
+// - 内部使用 Y-up 坐标系 (与 solver 内部一致), 由 extract_wcs_sip 完成 Y-flip
 //
 // 5 层防护 NN 匹配:
-//   L1: tol = max(2×initial_RMS, 1.0")
-//   L2: Lowe ratio d1/d2 < 0.75 OR d1 < 0.5"
-//   L3: K=8 空间邻居残差一致性, 可疑点权重 ×0.1
-//   L4: RMS 连续 2 次上升 > 10% 或匹配数降至 50% 以下 → 回退
-//   L5: final RMS > 1.5×initial 或 matched < 30 → 回退
+// L1: tol = max(2×initial_RMS, 1.0")
+// L2: Lowe ratio d1/d2 < 0.75 OR d1 < 0.5"
+// L3: K=8 空间邻居残差一致性, 可疑点权重 ×0.1
+// L4: RMS 连续 2 次上升 > 10% 或匹配数降至 50% 以下 → 回退
+// L5: final RMS > 1.5×initial 或 matched < 30 → 回退
 //
 // IRLS 鲁棒拟合 (Tukey biweight, CD 带阻尼):
-//   - 数值微分计算雅可比 (前向差分, 步长 1e-6)
-//   - 正规方程 (A^T W A + D) Δp = A^T W r
-//   - 高斯消元求解 (参考 ipv_wcs.cpp 的 gauss_solve_wcs)
+// - 数值微分计算雅可比 (前向差分, 步长 1e-6)
+// - 正规方程 (A^T W A + D) Δp = A^T W r
+// - 高斯消元求解 (参考 ipv_wcs.cpp 的 gauss_solve_wcs)
 //
 // 日期: 2026-07-09
 // ============================================================================
@@ -66,8 +66,8 @@ const IJPair MONOMIAL_BASIS[10] = {
 
 // ---------------------------------------------------------------------------
 // Gnomonic 正向投影 (与 ipv_select.cpp / ipv_solver.cpp 一致, 内部复制)
-//   将天球坐标 (ra, dec) 投影到以 (ra0, dec0) 为中心的切平面
-//   输出: xi, eta (角秒), valid
+// 将天球坐标 (ra, dec) 投影到以 (ra0, dec0) 为中心的切平面
+// 输出: xi, eta (角秒), valid
 // ---------------------------------------------------------------------------
 void rr_gnomonic_forward(
     double ra_deg, double dec_deg,
@@ -196,21 +196,21 @@ bool rr_gauss_solve(std::vector<std::vector<double>>& A,
 // select_stars_grid_sampling: 自适应矩形网格配额采样
 //
 // 输入:
-//   U_full, mag_full - 全部检测星点 (像素坐标, 原点图像中心, Y-up) + mag
-//   W, H             - 图像宽高 (像素)
-//   fov_deg          - FOV 对角线 (度)
-//   params           - 参数
+// U_full, mag_full - 全部检测星点 (像素坐标, 原点图像中心, Y-up) + mag
+// W, H - 图像宽高 (像素)
+// fov_deg - FOV 对角线 (度)
+// params - 参数
 //
 // 输出: 选中的 U_full 索引列表 (空间均匀, 100-300 颗)
 //
 // 算法:
-//   1. G_short 由 FOV 决定 (< 1° → 2, 1-3° → 3, > 3° → 4)
-//   2. N_long = max(1, round(G_short × W/H))
-//   3. n_cells = G_short × N_long
-//   4. quota_per_cell = max(4, total_target / n_cells)
-//   5. 小视场 (FOV < 1°) 全选不限制
-//   6. 每格按 mag 升序取前 quota_per_cell 颗
-//   7. 合并后: 若总数 > 300 按 mag 截断到 300; 若 < 100 保持原样
+// 1. G_short 由 FOV 决定 (< 1° → 2, 1-3° → 3, > 3° → 4)
+// 2. N_long = max(1, round(G_short × W/H))
+// 3. n_cells = G_short × N_long
+// 4. quota_per_cell = max(4, total_target / n_cells)
+// 5. 小视场 (FOV < 1°) 全选不限制
+// 6. 每格按 mag 升序取前 quota_per_cell 颗
+// 7. 合并后: 若总数 > 300 按 mag 截断到 300; 若 < 100 保持原样
 // ---------------------------------------------------------------------------
 static std::vector<int> select_stars_grid_sampling(
     const std::vector<StarPoint>& U_full,
@@ -262,8 +262,8 @@ static std::vector<int> select_stars_grid_sampling(
     double cell_h = (2.0 * half_H) / G_short;
 
     // 5. 按格子分组, 每格按 mag 升序取前 quota_per_cell 颗
-    //    使用二维数组: cell_stars[gi][gj] = vector<(mag, idx)>
-    //    gi: 短边 (Y) 索引 0..G_short-1, gj: 长边 (X) 索引 0..N_long-1
+    // 使用二维数组: cell_stars[gi][gj] = vector<(mag, idx)>
+    // gi: 短边 (Y) 索引 0..G_short-1, gj: 长边 (X) 索引 0..N_long-1
     std::vector<std::vector<std::pair<double, int>>> cell_stars(n_cells);
 
     for (int i = 0; i < N; ++i) {
@@ -325,19 +325,19 @@ static std::vector<int> select_stars_grid_sampling(
 // match_with_lowe: NN 匹配 + Lowe ratio + 双向去重
 //
 // 输入:
-//   U_pool       - 候选池星点 (像素坐标)
-//   W_gaia       - Gaia 星 (xi/eta 角秒)
-//   trans        - 当前 TRANS (U→W)
-//   tol_arcsec   - 匹配容差 (角秒)
-//   params       - 参数 (Lowe ratio, abs_threshold)
+// U_pool - 候选池星点 (像素坐标)
+// W_gaia - Gaia 星 (xi/eta 角秒)
+// trans - 当前 TRANS (U→W)
+// tol_arcsec - 匹配容差 (角秒)
+// params - 参数 (Lowe ratio, abs_threshold)
 //
 // 输出: 匹配对列表 (MatchPair: u 索引 U_pool, w 索引 W_gaia)
 //
 // 算法:
-//   1. U→W: 对每个 U[i] 应用 trans → W_pred, 在 W_gaia 中找最近邻 d1 和次近邻 d2
-//   2. Lowe ratio: d1 < tol AND (d1/d2 < 0.75 OR d1 < 0.5")
-//   3. W→U: 对每个 W[j] 找最近邻 U_pred[i], 距离 < tol 才记录
-//   4. 双向配对: i_of[j_of[i]] == i 才保留
+// 1. U→W: 对每个 U[i] 应用 trans → W_pred, 在 W_gaia 中找最近邻 d1 和次近邻 d2
+// 2. Lowe ratio: d1 < tol AND (d1/d2 < 0.75 OR d1 < 0.5")
+// 3. W→U: 对每个 W[j] 找最近邻 U_pred[i], 距离 < tol 才记录
+// 4. 双向配对: i_of[j_of[i]] == i 才保留
 // ---------------------------------------------------------------------------
 static std::vector<MatchPair> match_with_lowe(
     const std::vector<StarPoint>& U_pool,
@@ -364,7 +364,7 @@ static std::vector<MatchPair> match_with_lowe(
     }
 
     // 2. U→W (A→B): 对每个 U[i], 在 W 中找最近邻 (d1) 和次近邻 (d2)
-    //    Lowe ratio: d1 < tol AND (d1²/d2² < 0.75² OR d1² < 0.5²)
+    // Lowe ratio: d1 < tol AND (d1²/d2² < 0.75² OR d1² < 0.5²)
     std::vector<int> j_of(N_U, -1);
     std::vector<double> d1_of(N_U, 0.0);
     int n_low_pass = 0;
@@ -448,19 +448,19 @@ static std::vector<MatchPair> match_with_lowe(
 // spatial_consistency_check: K=8 空间邻居残差一致性检验
 //
 // 输入:
-//   matched     - 匹配对 (u 索引 U_pool, w 索引 W_gaia)
-//   U_pool      - 候选池星点
-//   W_gaia      - Gaia 星
-//   trans       - 当前 TRANS
-//   params      - 参数 (K, sigma, weight_factor)
+// matched - 匹配对 (u 索引 U_pool, w 索引 W_gaia)
+// U_pool - 候选池星点
+// W_gaia - Gaia 星
+// trans - 当前 TRANS
+// params - 参数 (K, sigma, weight_factor)
 //
 // 输出: 每个匹配点的权重因子 (1.0 正常 / 0.1 可疑)
 //
 // 算法:
-//   1. 计算每个匹配点的残差向量 r_i = apply_trans(U[i]) - W_gaia[j]
-//   2. 对每个匹配点 i 找其 K=8 空间最近匹配点 (在 U_pool 坐标空间)
-//   3. 计算 r_local = mean(r_neighbors), sigma_local = std(r_neighbors)
-//   4. 若 |r_i - r_local| > 3×sigma_local, 标记可疑, 权重 ×0.1
+// 1. 计算每个匹配点的残差向量 r_i = apply_trans(U[i]) - W_gaia[j]
+// 2. 对每个匹配点 i 找其 K=8 空间最近匹配点 (在 U_pool 坐标空间)
+// 3. 计算 r_local = mean(r_neighbors), sigma_local = std(r_neighbors)
+// 4. 若 |r_i - r_local| > 3×sigma_local, 标记可疑, 权重 ×0.1
 // ---------------------------------------------------------------------------
 static std::vector<double> spatial_consistency_check(
     const std::vector<MatchPair>& matched,
@@ -548,7 +548,7 @@ static std::vector<double> spatial_consistency_check(
 
 // ---------------------------------------------------------------------------
 // compute_residuals: 计算每个匹配点的残差 (在 W 空间, 角秒)
-//   r_i = apply_trans(U[i]) - W_gaia[j]
+// r_i = apply_trans(U[i]) - W_gaia[j]
 // ---------------------------------------------------------------------------
 static void compute_residuals(
     const Trans& trans,
@@ -585,8 +585,8 @@ static double compute_rms(const std::vector<double>& rx,
 
 // ---------------------------------------------------------------------------
 // tukey_biweight_weight: Tukey biweight 权函数
-//   u = |r| / (c × sigma), c = 4.685, sigma = 1.4826 × MAD
-//   w = (1 - u²)² if u < 1, else 0
+// u = |r| / (c × sigma), c = 4.685, sigma = 1.4826 × MAD
+// w = (1 - u²)² if u < 1, else 0
 // ---------------------------------------------------------------------------
 static double tukey_weight(double r_abs, double sigma, double c) {
     if (sigma < 1e-12) return 1.0;  // 避免除零
@@ -611,9 +611,9 @@ static double compute_mad_sigma(const std::vector<double>& values) {
 
 // ---------------------------------------------------------------------------
 // cd_damping_factor: 根据相对变化计算 CD 阻尼系数
-//   相对变化 < 1% → 0 (自由)
-//   1%-3% → 指数过渡 (1e-4 → ~22)
-//   > 3% → 1e6 (冻结)
+// 相对变化 < 1% → 0 (自由)
+// 1%-3% → 指数过渡 (1e-4 → ~22)
+// > 3% → 1e6 (冻结)
 // ---------------------------------------------------------------------------
 static double cd_damping_factor(double rel_change,
                                  const RobustRefineParams& params) {
@@ -633,28 +633,28 @@ static double cd_damping_factor(double rel_change,
 // irls_fit_one_step: IRLS 单步拟合 (CD+SIP 联合, CD 带阻尼, Tukey biweight)
 //
 // 输入:
-//   trans_in    - 当前 TRANS
-//   U_pool      - 候选池星点 (像素坐标)
-//   W_gaia      - Gaia 星 (xi/eta 角秒)
-//   matched     - 匹配对
-//   spatial_weights - 空间一致性权重 (1.0 / 0.1)
-//   params      - 参数
+// trans_in - 当前 TRANS
+// U_pool - 候选池星点 (像素坐标)
+// W_gaia - Gaia 星 (xi/eta 角秒)
+// matched - 匹配对
+// spatial_weights - 空间一致性权重 (1.0 / 0.1)
+// params - 参数
 //
 // 输出:
-//   trans_out   - 更新后的 TRANS
-//   rms_out     - 更新后的 RMS (角秒)
-//   cd_rel_change_out - CD 线性项最大相对变化
+// trans_out - 更新后的 TRANS
+// rms_out - 更新后的 RMS (角秒)
+// cd_rel_change_out - CD 线性项最大相对变化
 //
 // 算法:
-//   1. 计算残差 r_i = apply_trans(U[i]) - W_gaia[j]
-//   2. 计算 sigma = 1.4826 × MAD(|r|)
-//   3. 计算 Tukey biweight 权重 w_i (与空间一致性权重相乘)
-//   4. 数值微分计算雅可比 J_ij = ∂r_i/∂p_j (前向差分, 步长 1e-6)
-//   5. 构造正规方程 (J^T W J + D) Δp = -J^T W r
-//      - D 是对角阻尼矩阵, 仅对线性项 (x10/x01/y10/y01) 非零
-//      - 阻尼系数根据 CD 相对变化 (上一轮) 计算
-//   6. 高斯消元求解 Δp
-//   7. 更新 trans: p_new = p + Δp
+// 1. 计算残差 r_i = apply_trans(U[i]) - W_gaia[j]
+// 2. 计算 sigma = 1.4826 × MAD(|r|)
+// 3. 计算 Tukey biweight 权重 w_i (与空间一致性权重相乘)
+// 4. 数值微分计算雅可比 J_ij = ∂r_i/∂p_j (前向差分, 步长 1e-6)
+// 5. 构造正规方程 (J^T W J + D) Δp = -J^T W r
+// - D 是对角阻尼矩阵, 仅对线性项 (x10/x01/y10/y01) 非零
+// - 阻尼系数根据 CD 相对变化 (上一轮) 计算
+// 6. 高斯消元求解 Δp
+// 7. 更新 trans: p_new = p + Δp
 //
 // 返回: true=成功, false=奇异矩阵
 // ---------------------------------------------------------------------------
@@ -682,8 +682,8 @@ static bool irls_fit_one_step(
     trans_to_params(trans_in, xc, yc);
 
     // 2. 计算残差 r_i (在 W 空间, 角秒)
-    //    r_i = (apply_params(U[i]) - W_gaia[j])
-    //    残差向量大小 2n (x 和 y 分量)
+    // r_i = (apply_params(U[i]) - W_gaia[j])
+    // 残差向量大小 2n (x 和 y 分量)
     std::vector<double> rx(n), ry(n);
     for (int i = 0; i < n; ++i) {
         double wx, wy;
@@ -702,7 +702,7 @@ static bool irls_fit_one_step(
     if (sigma < 1e-9) sigma = 1e-9;
 
     // 4. 计算 Tukey biweight 权重 w_i (与空间一致性权重相乘)
-    //    残差幅度 = sqrt(rx² + ry²)
+    // 残差幅度 = sqrt(rx² + ry²)
     std::vector<double> w(n);
     for (int i = 0; i < n; ++i) {
         double r_abs_i = std::sqrt(rx[i] * rx[i] + ry[i] * ry[i]);
@@ -711,20 +711,20 @@ static bool irls_fit_one_step(
     }
 
     // 5. 数值微分计算雅可比 J_ij = ∂r_i/∂p_j
-    //    J 是 2n × 20 矩阵, 行 i 对应残差 (rx[i], ry[i]), 列 j 对应参数 p_j
-    //    前 10 列对应 xc (影响 rx), 后 10 列对应 yc (影响 ry)
+    // J 是 2n × 20 矩阵, 行 i 对应残差 (rx[i], ry[i]), 列 j 对应参数 p_j
+    // 前 10 列对应 xc (影响 rx), 后 10 列对应 yc (影响 ry)
     //
-    //    对每个参数 p_k, 用前向差分计算 ∂r/∂p_k:
-    //      r_perturbed = apply_params(p + δ e_k) - W_gaia
-    //      J[:,k] = (r_perturbed - r) / δ
+    // 对每个参数 p_k, 用前向差分计算 ∂r/∂p_k:
+    // r_perturbed = apply_params(p + δ e_k) - W_gaia
+    // J[:,k] = (r_perturbed - r) / δ
     //
-    //    优化: 直接计算, apply_params 是线性运算, 解析雅可比可行
-    //    ∂wx/∂xc[k] = eval_monomial(U, i_k, j_k)
-    //    ∂wy/∂yc[k] = eval_monomial(U, i_k, j_k)
-    //    ∂wx/∂yc[k] = 0, ∂wy/∂xc[k] = 0
+    // 优化: 直接计算, apply_params 是线性运算, 解析雅可比可行
+    // ∂wx/∂xc[k] = eval_monomial(U, i_k, j_k)
+    // ∂wy/∂yc[k] = eval_monomial(U, i_k, j_k)
+    // ∂wx/∂yc[k] = 0, ∂wy/∂xc[k] = 0
     //
-    //    由于 apply_params 是参数的线性函数, 雅可比直接是基函数值, 无需数值微分
-    //    但为对齐 spec 要求 (数值微分, 前向差分, 步长 1e-6), 仍用数值微分
+    // 由于 apply_params 是参数的线性函数, 雅可比直接是基函数值, 无需数值微分
+    // 但为对齐 spec 要求 (数值微分, 前向差分, 步长 1e-6), 仍用数值微分
 
     std::vector<std::vector<double>> J(2 * n, std::vector<double>(N_PARAMS_TOTAL, 0.0));
 
@@ -741,13 +741,13 @@ static bool irls_fit_one_step(
     }
 
     // 6. 构造正规方程 (J^T W J + D) Δp = -J^T W r
-    //    残差向量 b = -[rx_0, ..., rx_{n-1}, ry_0, ..., ry_{n-1}]^T
-    //    权重矩阵 W = diag(w_0, ..., w_{n-1}, w_0, ..., w_{n-1}) (x/y 同权重)
+    // 残差向量 b = -[rx_0, ..., rx_{n-1}, ry_0, ..., ry_{n-1}]^T
+    // 权重矩阵 W = diag(w_0, ..., w_{n-1}, w_0, ..., w_{n-1}) (x/y 同权重)
     //
-    //    A = J^T W J  (20×20)
-    //    g = -J^T W r (20)
+    // A = J^T W J (20×20)
+    // g = -J^T W r (20)
     //
-    //    CD 阻尼: 对线性项 (x10=idx 1, x01=idx 2, y10=idx 11, y01=idx 12) 加对角阻尼
+    // CD 阻尼: 对线性项 (x10=idx 1, x01=idx 2, y10=idx 11, y01=idx 12) 加对角阻尼
 
     std::vector<std::vector<double>> A(N_PARAMS_TOTAL,
                                         std::vector<double>(N_PARAMS_TOTAL, 0.0));
@@ -940,7 +940,7 @@ RobustRefineResult robust_refine_wcs(
     double prev_rms = initial_rms_arcsec;
     int prev_n_matched = 0;
 
-    // V4.30 修正: 计算 baseline_rms (initial_trans 在 U_pool 上的实际 RMS)
+    // 修正: 计算 baseline_rms (initial_trans 在 U_pool 上的实际 RMS)
     // 用于最终回退检查 (避免 hi_order_rematch 的 60 星 RMS 与 U_pool 的 180 星 RMS 不公平比较)
     // hi_order_rematch 的 RMS 只在 60 颗亮星 (中心偏向) 上计算, 自然比 U_pool (含边缘星) 的 RMS 小
     // 若用 initial_rms_arcsec 做回退阈值, 几乎所有帧都会触发回退 (因 U_pool RMS 永远 > 60 星 RMS)
@@ -1026,8 +1026,8 @@ RobustRefineResult robust_refine_wcs(
         }
 
         // 3.4 发散检测 (第 4 层防护)
-        //   - RMS 连续 2 次上升 > 10%
-        //   - 匹配数降至上一轮的 50% 以下
+        // - RMS 连续 2 次上升 > 10%
+        // - 匹配数降至上一轮的 50% 以下
         bool diverge = false;
         if (iter > 0) {
             if (rms_new > prev_rms * (1.0 + params.diverge_rms_increase)) {
@@ -1062,8 +1062,8 @@ RobustRefineResult robust_refine_wcs(
         result.cd_relative_change = std::max(result.cd_relative_change, cd_rel_change);
 
         // 3.6 收敛判断
-        //   |Δp|_max < 1e-9 (用 cd_rel_change 近似, 因 CD 是主要参数)
-        //   OR RMS 变化 < 0.1%
+        // |Δp|_max < 1e-9 (用 cd_rel_change 近似, 因 CD 是主要参数)
+        // OR RMS 变化 < 0.1%
         bool conv_dp = (cd_rel_change < params.converge_dp_max);
         bool conv_rms = (prev_rms > 0) ?
                         (std::abs(rms_new - prev_rms) < prev_rms * params.converge_rms_rel) :

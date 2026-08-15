@@ -1,11 +1,11 @@
 // lib/acr/tests/unit/test_resource_control.cpp — 内存预算反压测试
-// （26 号计划 §2/§9：CPU/GPU 利用率控制已移除，只测 MemoryBudget）
+// （26 §2/§9：CPU/GPU 利用率控制已移除，只测 MemoryBudget）
 //
 // 验收：
-//   - 200ms 内存时间窗采样 + claim 前峰值估算动作实际进入执行链；
-//   - gate 关闭只由内存动作触发，恢复只依据内存动作，期间不丢工作；
-//   - StopNewSubmit 可恢复；ReleaseCache 调用真实 hook；
-//   - Fail 保留准确未完成范围与错误（coverage 不完整 + all_done=false）。
+// - 200ms 内存时间窗采样 + claim 前峰值估算动作实际进入执行链；
+// - gate 关闭只由内存动作触发，恢复只依据内存动作，期间不丢工作；
+// - StopNewSubmit 可恢复；ReleaseCache 调用真实 hook；
+// - Fail 保留准确未完成范围与错误（coverage 不完整 + all_done=false）。
 #include <gtest/gtest.h>
 
 #include "dispatcher.hpp"
@@ -180,8 +180,8 @@ TEST(ResourceControl, MemoryFailKeepsAccurateCoverage) {
 }
 
 // ============================================================================
-// 7. 25 号计划 §7：claim 前峰值估算（输入/输出/双缓冲/临时区等）触发
-//    ShrinkBlock，缩块不丢工作
+// 7. 25 §7：claim 前峰值估算（输入/输出/双缓冲/临时区等）触发
+// ShrinkBlock，缩块不丢工作
 // ============================================================================
 TEST(ResourceControl, PeakEstimateShrinkChangesClaims) {
     DispatcherConfig cfg;
@@ -223,7 +223,7 @@ TEST(ResourceControl, PeakEstimateShrinkChangesClaims) {
 }
 
 // ============================================================================
-// 8. 25 号计划 §7：claim 前峰值估算超限到 Fail：保留准确未完成范围
+// 8. 25 §7：claim 前峰值估算超限到 Fail：保留准确未完成范围
 // ============================================================================
 TEST(ResourceControl, PeakFailKeepsAccurateCoverage) {
     DispatcherConfig cfg;

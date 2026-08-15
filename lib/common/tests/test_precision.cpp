@@ -2,11 +2,11 @@
 // test_precision.cpp - 验证 astro_scalar.h / precision_context.h 可正确编译与运行
 // ----------------------------------------------------------------------------
 // 覆盖点:
-//   1) AstroScalarTraits 编译时映射 (float / double)
-//   2) astro_scalar_type_name / astro_scalar_type_size 运行时查询
-//   3) PrecisionContext 单例 + set/get + 便捷查询
-//   4) ASTRO_SCALAR_DISPATCH   (lambda 形式) 运行时分发
-//   5) ASTRO_SCALAR_DISPATCH_T (typedef 形式) 运行时分发
+// 1) AstroScalarTraits 编译时映射 (float / double)
+// 2) astro_scalar_type_name / astro_scalar_type_size 运行时查询
+// 3) PrecisionContext 单例 + set/get + 便捷查询
+// 4) ASTRO_SCALAR_DISPATCH (lambda 形式) 运行时分发
+// 5) ASTRO_SCALAR_DISPATCH_T (typedef 形式) 运行时分发
 // 失败时通过 static_assert (编译期) 或返回非零 (运行期) 暴露问题.
 // ============================================================================
 
@@ -70,8 +70,8 @@ int main() {
     // 4) ASTRO_SCALAR_DISPATCH (lambda 形式)
     // ----------------------------------------------------------------------
     // 注意: 宏的两个分支都会被编译器实例化, 因此 lambda 内不能写只对单一类型
-    //       成立的 static_assert; 用 if constexpr 区分分支, 运行时验证走了哪条.
-    //       关键: 必须用 decltype(st)::value 取出嵌套枚举常量传给 AstroScalarTraits.
+    // 成立的 static_assert; 用 if constexpr 区分分支, 运行时验证走了哪条.
+    // 关键: 必须用 decltype(st)::value 取出嵌套枚举常量传给 AstroScalarTraits.
     {
         double d_from_lambda = 0.0;
         float  f_from_lambda = 0.0f;

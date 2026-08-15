@@ -4,16 +4,16 @@
 // 将 ipv::IPVSolver (C++ 类) 封装为 extern "C" 接口, 供 Python ctypes 调用。
 //
 // 职责:
-//   1. 实例生命周期管理 (create/destroy)
-//   2. 句柄注入 (GaiaClient / StarDetector)
-//   3. POD 参数 <-> IPVSolverParams 转换
-//   4. WcsFitResult -> IpvWcsResult 字段映射
-//   5. 异常捕获, 防止 C++ 异常泄漏到 C 边界
+// 1. 实例生命周期管理 (create/destroy)
+// 2. 句柄注入 (GaiaClient / StarDetector)
+// 3. POD 参数 <-> IPVSolverParams 转换
+// 4. WcsFitResult -> IpvWcsResult 字段映射
+// 5. 异常捕获, 防止 C++ 异常泄漏到 C 边界
 //
 // 注意: IPVSolver 内部诊断信息 (n_detected/n_catalog/best_inliers)
-//       未通过 public 接口暴露, 这里填充为安全默认值 (success=false 时 -1/0)。
-//       如需暴露, 应在 IPVSolver 增加访问器后此处同步映射。
-// V4.19: best_mode (flip_mode) 已移除, 替换为 trans_order (TRANS 多项式阶数 1/2/3)
+// 未通过 public 接口暴露, 这里填充为安全默认值 (success=false 时 -1/0)。
+// 如需暴露, 应在 IPVSolver 增加访问器后此处同步映射。
+// best_mode (flip_mode) 已移除, 替换为 trans_order (TRANS 多项式阶数 1/2/3)
 //
 // 日期: 2026-07-02
 // ============================================================================
@@ -24,7 +24,7 @@
 #include "ipv_types.h"
 
 #include <cstring>
-#include <cstdio>   // V4.22: std::fprintf/std::fflush (崩溃诊断)
+#include <cstdio>   // std::fprintf/std::fflush (崩溃诊断)
 #include <string>
 #include <new>
 #include <memory>
@@ -116,10 +116,10 @@ void to_c_result(const ipv::WcsFitResult& src, IpvWcsResult* dst) {
     dst->sip_order = src.sip.order;
     std::memcpy(dst->sip_a, src.sip.A, sizeof(double) * 36);
     std::memcpy(dst->sip_b, src.sip.B, sizeof(double) * 36);
-    dst->sip_ap_order = src.sip.ap_order;                          // V4.20
-    std::memcpy(dst->sip_ap, src.sip.AP, sizeof(double) * 36);    // V4.20
-    std::memcpy(dst->sip_bp, src.sip.BP, sizeof(double) * 36);    // V4.20
-    // V4.20: ctype
+    dst->sip_ap_order = src.sip.ap_order;
+    std::memcpy(dst->sip_ap, src.sip.AP, sizeof(double) * 36);
+    std::memcpy(dst->sip_bp, src.sip.BP, sizeof(double) * 36);
+    // ctype
     std::memcpy(dst->ctype1, src.ctype[0], 16);
     std::memcpy(dst->ctype2, src.ctype[1], 16);
 
@@ -151,12 +151,12 @@ void set_error_msg(char* dst, size_t dst_size, const char* msg) {
     dst[n] = '\0';
 }
 
-// V4.18 修复: 将 solve() 调用 + try/catch 隔离到独立函数
+// 修复: 将 solve() 调用 + try/catch 隔离到独立函数
 // 动机: ipv_solve 的 try/catch 在栈上生成 SEH 记录, solve() 内部的大栈使用
-//       (FlipModeResult results[4] 等) 可能覆盖 SEH 记录, 导致返回到 ctypes 时崩溃。
-//       将 try/catch 移到 do_solve_impl, ipv_solve 本身无 try/catch, 栈帧上无 SEH 记录。
-// V4.18 进一步修复: solve() 改为通过指针返回结果 (void solve(..., WcsFitResult* result)),
-//                  完全避免 WcsFitResult (~680 字节) 的值传递导致的栈崩溃。
+// (FlipModeResult results[4] 等) 可能覆盖 SEH 记录, 导致返回到 ctypes 时崩溃。
+// 将 try/catch 移到 do_solve_impl, ipv_solve 本身无 try/catch, 栈帧上无 SEH 记录。
+// 进一步修复: solve() 改为通过指针返回结果 (void solve(..., WcsFitResult* result)),
+// 完全避免 WcsFitResult (~680 字节) 的值传递导致的栈崩溃。
 int do_solve_impl(
     ipv::IPVSolver* s,
     const char* image_path,
@@ -166,7 +166,7 @@ int do_solve_impl(
     IpvWcsResult* result
 ) {
     try {
-        // V4.22: 堆分配 WcsFitResult 以减少栈使用
+        // 堆分配 WcsFitResult 以减少栈使用
         auto wcs_ptr = std::make_unique<ipv::WcsFitResult>();
         ipv::WcsFitResult& wcs = *wcs_ptr;
         s->solve(
@@ -202,7 +202,7 @@ int do_solve_from_memory_impl(
     IpvWcsResult* result
 ) {
     try {
-        // V4.22: 堆分配 WcsFitResult 以减少栈使用
+        // 堆分配 WcsFitResult 以减少栈使用
         auto wcs_ptr = std::make_unique<ipv::WcsFitResult>();
         ipv::WcsFitResult& wcs = *wcs_ptr;
         s->solve_from_memory(
@@ -352,7 +352,7 @@ IPV_API int ipv_solve(
     const IpvParams* params,
     IpvWcsResult* result
 ) {
-    // V4.22 修复: 零初始化 result 防止未定义字段值导致 Python 端崩溃
+    // 修复: 零初始化 result 防止未定义字段值导致 Python 端崩溃
     if (result) {
         std::memset(result, 0, sizeof(IpvWcsResult));
     }
@@ -365,7 +365,7 @@ IPV_API int ipv_solve(
         return 0;
     }
 
-    // V4.18: ipv_solve 本身无 try/catch, 避免 SEH 记录栈损坏
+    // ipv_solve 本身无 try/catch, 避免 SEH 记录栈损坏
     // 异常捕获由 do_solve_impl 负责
     ipv::IPVSolver* s = static_cast<ipv::IPVSolver*>(solver);
     ipv::IPVSolverParams sp = to_solver_params(params);
@@ -415,13 +415,13 @@ IPV_API int ipv_solve_from_memory(
 
 // ============================================================================
 // P09-002 INTERNAL_DETECTION_SHARED_EXPORT: 路径 A / 路径 B C API 实现
-//   路径 A (ipv_solve_from_detections_v1): 外部 detections 求解, 跳过 sdet_detect_ex
-//   路径 B (ipv_solve_from_memory_with_callback, 正式命名 INTERNAL_DETECTION_SHARED_EXPORT):
-//     内部单次检测 + callback 同步导出, 由 PSF 通过 star_det 块复用
+// 路径 A (ipv_solve_from_detections_v1): 外部 detections 求解, 跳过 sdet_detect_ex
+// 路径 B (ipv_solve_from_memory_with_callback, 正式命名 INTERNAL_DETECTION_SHARED_EXPORT):
+// 内部单次检测 + callback 同步导出, 由 PSF 通过 star_det 块复用
 //
 // 与 ipv_solve_from_memory 一致的异常隔离策略:
-//   - 入口函数本身无 try/catch (避免 SEH 记录栈损坏)
-//   - 异常捕获由 do_solve_*_impl 负责
+// - 入口函数本身无 try/catch (避免 SEH 记录栈损坏)
+// - 异常捕获由 do_solve_*_impl 负责
 // ============================================================================
 
 namespace {
@@ -562,7 +562,7 @@ IPV_API int ipv_solve_from_detections_v1(
 }
 
 // 路径 B (INTERNAL_DETECTION_SHARED_EXPORT): 带 callback 的内存求解
-//   生产路径: 每帧 sdet_detect_ex 仅调用 1 次, callback 同步导出检测结果给 PSF
+// 生产路径: 每帧 sdet_detect_ex 仅调用 1 次, callback 同步导出检测结果给 PSF
 IPV_API int ipv_solve_from_memory_with_callback(
     void* solver,
     const float* pixels,
@@ -605,7 +605,7 @@ IPV_API int ipv_solve_from_memory_with_callback(
 
 // ============================================================================
 // ipv_solve_from_memory_with_callback_d - FP64 内存求解 (double 图像)
-// R11 (PREC-108): double 图像直接检测 (sdet_detect_ex_f64), 不降级 float/uint16
+// double 图像直接检测 (sdet_detect_ex_f64), 不降级 float/uint16
 // ============================================================================
 IPV_API int ipv_solve_from_memory_with_callback_d(
     void* solver,

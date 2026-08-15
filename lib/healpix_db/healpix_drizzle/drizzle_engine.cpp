@@ -23,13 +23,13 @@
 #endif
 
 // ============================================================================
-// V4 G4: actual-buffer trace (仅诊断, 默认关闭, env: ASTROCS_DRIZZLE_TRACE=<dir>)
-//   <dir>/trace_selection.tsv      : 选择源像素坐标 (x\ty), 与 orchestrator 同一组
-//   <dir>/drizzle_lineage.jsonl    : 逐源像素贡献 (source x/y, effective value,
-//                                    drop footprint, candidate leaf, overlap,
-//                                    contribution, sum contribution)
-//   <dir>/leaf_internal.jsonl      : 内部累计值 (parent/local/ipix, sumFlux,
-//                                    sumArea, nContrib) — 与 HiPS readback 对照
+// G4: actual-buffer trace (仅诊断, 默认关闭, env: ASTROCS_DRIZZLE_TRACE=<dir>)
+// <dir>/trace_selection.tsv : 选择源像素坐标 (x\ty), 与 orchestrator 同一组
+// <dir>/drizzle_lineage.jsonl : 逐源像素贡献 (source x/y, effective value,
+// drop footprint, candidate leaf, overlap,
+// contribution, sum contribution)
+// <dir>/leaf_internal.jsonl : 内部累计值 (parent/local/ipix, sumFlux,
+// sumArea, nContrib) — 与 HiPS readback 对照
 // ============================================================================
 namespace drizzle_trace {
 
@@ -111,7 +111,7 @@ void ensure_selection(int width, int height) {
     int64_t stride = std::max<int64_t>(1, total / want);
     for (int64_t i = 0; i < total; i += stride) {
         if ((int64_t)g_selected.size() >= want) break;
-        // V5 G4 回归: 原实现 x=i%width 在 stride==width 时恒为 0;
+        // G4 回归: 原实现 x=i%width 在 stride==width 时恒为 0;
         // 改为由 xorshift 直接产生 (x,y), 覆盖全图
         s ^= s << 13; s ^= s >> 7; s ^= s << 17;
         int x = (int)(s % (uint64_t)width);
@@ -230,7 +230,7 @@ void reset() {
 
 namespace drizzle {
 
-// V18 (PERF-005): 整帧 Drizzle run 常量（同 NSIDE 下不变，避免候选循环
+// 整帧 Drizzle run 常量（同 NSIDE 下不变，避免候选循环
 // 重算 pixelResolutionArcsec/阈值 cos/位运算常量）
 struct DrizzleRunContext {
     uint32_t nside = 0;
@@ -240,7 +240,7 @@ struct DrizzleRunContext {
     uint64_t mask = 0;            // leaf_ipix & mask = local
 };
 
-// V19 (DRIZZLE_OPTIMIZATION): 操作计数 (每线程一份, 结束时合并到 DrizzleStats)
+// 操作计数 (每线程一份, 结束时合并到 DrizzleStats)
 struct DrizzleOpCounters {
     int64_t source_pixels = 0;    // 处理的源像素数
     int64_t candidates = 0;       // 候选像素查询总数
@@ -268,7 +268,7 @@ void merge_op_counters(DrizzleOpCounters& dst, const DrizzleOpCounters& src) {
     dst.heap_allocations += src.heap_allocations;
 }
 
-// V18 (PERF-001): fine-grained per-pixel profiler 默认关闭；
+// fine-grained per-pixel profiler 默认关闭；
 // 显式 ASTROCS_DRIZZLE_FINE_PROFILE=1 才启用（逐像素 clock 有真实开销，
 // 不能默认打开）。返回 false 时热循环完全不调用 high_resolution_clock。
 static bool drizzle_fine_profile_enabled() {
@@ -279,12 +279,12 @@ static bool drizzle_fine_profile_enabled() {
     return en;
 }
 
-// Phase1 Final Closure V3: 有效 Tile 分组深度 (config.tile_depth 优先, 0=auto)
+// Phase1 Final Closure : 有效 Tile 分组深度 (config.tile_depth 优先, 0=auto)
 static uint32_t eff_tile_depth(const DrizzleConfig& c) {
     return c.tile_depth ? c.tile_depth : hiss::compute_tile_depth((uint32_t)c.nside);
 }
 
-// R12 (性能 profile): OpenMP 线程池 thread_local 阶段计时 (仅统计, 不改变逻辑)
+// OpenMP 线程池 thread_local 阶段计时 (仅统计, 不改变逻辑)
 static thread_local double g_tl_prof_cand = 0.0;
 static thread_local double g_tl_prof_overlap = 0.0;
 
@@ -311,31 +311,31 @@ DrizzleEngine::DrizzleEngine() {}
 DrizzleEngine::~DrizzleEngine() {}
 
 // ============================================================================
-// R08 移植 R07-M09/M10/M11: 自适应四叉树 Jacobian 采样 (替代固定 9×9 网格)
+// 移植 R07-M09/M10/M11: 自适应四叉树 Jacobian 采样 (替代固定 9×9 网格)
 //
 // 固定 9×9 网格采样的问题: SIP 畸变极值可能落在网格点之间, 导致最细局部
 // 像素尺度被漏掉, NSIDE 估计偏小. 自适应四叉树采样在 Jacobian 梯度大的
 // 区域递归细分, 确保捕捉到最细尺度.
 //
 // R07-M09/M10/M11 修复 (3D 切向量 Jacobian + 9 点保守采样):
-//   原 main 实现 (RA 差分 + greatCircleDistance + 9×9 固定网格) 缺陷:
-//     M09: ra_xp - ra_xm 直接差分在 RA 跨越 0°/360° 时产生大数值误差;
-//     M10: greatCircleDistance 在极点附近因 cos(dec)→0 导致数值失真;
-//     M11: 9×9 固定网格可漏掉网格点之间的窄局部最小值 (如强 SIP
-//          在子单元边角处出现尖锐畸变峰).
-//   R07 修复方案:
-//     1. 改用 3D 切向量 Jacobian:
-//        - 5 邻近点 (中/左/右/上/下) 的 RA/DEC → 3D 单位向量
-//        - 以中心为切点构造局部正交基底 (east, north)
-//        - 4 邻近点投影到切平面得 (xi, eta) 坐标
-//        - 计算切平面 2×2 Jacobian 的最小奇异值
-//        - 优点: 3D 向量天然处理 RA wrap (无需 wrap 差);
-//               切平面基底在极点也定义良好 (无需 cos_dec 保护).
-//     2. 9 点保守采样: 4 角 + 4 边中点 + 中心, 捕捉边角尖锐畸变;
-//     3. 细分阈值 1.25: 更敏感地触发细分, 减少漏掉窄局部最小值风险.
+// 原 main 实现 (RA 差分 + greatCircleDistance + 9×9 固定网格) 缺陷:
+// M09: ra_xp - ra_xm 直接差分在 RA 跨越 0°/360° 时产生大数值误差;
+// M10: greatCircleDistance 在极点附近因 cos(dec)→0 导致数值失真;
+// M11: 9×9 固定网格可漏掉网格点之间的窄局部最小值 (如强 SIP
+// 在子单元边角处出现尖锐畸变峰).
+// 修复方案:
+// 1. 改用 3D 切向量 Jacobian:
+// - 5 邻近点 (中/左/右/上/下) 的 RA/DEC → 3D 单位向量
+// - 以中心为切点构造局部正交基底 (east, north)
+// - 4 邻近点投影到切平面得 (xi, eta) 坐标
+// - 计算切平面 2×2 Jacobian 的最小奇异值
+// - 优点: 3D 向量天然处理 RA wrap (无需 wrap 差);
+// 切平面基底在极点也定义良好 (无需 cos_dec 保护).
+// 2. 9 点保守采样: 4 角 + 4 边中点 + 中心, 捕捉边角尖锐畸变;
+// 3. 细分阈值 1.25: 更敏感地触发细分, 减少漏掉窄局部最小值风险.
 //
 // 性能: 最多 4^MAX_DEPTH 个叶单元, 每单元 9 点 × 5 次 pixelToSky = 45 次调用.
-//        MAX_DEPTH=5 → 1024 叶单元 → ~46080 次调用 (compute_auto_nside 仅调一次).
+// MAX_DEPTH=5 → 1024 叶单元 → ~46080 次调用 (compute_auto_nside 仅调一次).
 // ============================================================================
 static const int    ADAPTIVE_MAX_DEPTH    = 5;     // 最大递归深度 (4^5=1024 叶单元)
 static const double ADAPTIVE_RATIO_THRESH = 1.25;  // 尺度比阈值 (max/min > 1.25 触发细分) [R07-M11]
@@ -344,12 +344,12 @@ static const double ADAPTIVE_MIN_CELL_PX  = 4.0;   // 最小单元尺寸 (像素
 // R07-M09/M10: 3D 切向量 Jacobian 辅助函数
 //
 // 局部切平面基底 (east, north):
-//   给定切点 (ra_c, dec_c) 的 3D 单位向量 c, 构造两个正交单位向量:
-//     east  = 球面切平面指向东 (RA 增大方向) 的单位向量
-//     north = 球面切平面指向北 (DEC 增大方向) 的单位向量
-//   特点: 在极点 (dec = ±90°) east 仍定义良好 (退化到任意切线方向);
-//         north 在极点退化为零向量, 但此时 c·north 的归一化处理仍能给出
-//         有效切平面坐标 (因为 4 个邻近点都偏离极点, 投影仍稳定).
+// 给定切点 (ra_c, dec_c) 的 3D 单位向量 c, 构造两个正交单位向量:
+// east = 球面切平面指向东 (RA 增大方向) 的单位向量
+// north = 球面切平面指向北 (DEC 增大方向) 的单位向量
+// 特点: 在极点 (dec = ±90°) east 仍定义良好 (退化到任意切线方向);
+// north 在极点退化为零向量, 但此时 c·north 的归一化处理仍能给出
+// 有效切平面坐标 (因为 4 个邻近点都偏离极点, 投影仍稳定).
 namespace {
 struct TangentBasis {
     spherical::Vec3 center;  // 切点 3D 单位向量
@@ -372,7 +372,7 @@ inline TangentBasis make_tangent_basis(double ra_deg, double dec_deg) {
     tb.center.y = cos_dec * sin_ra;
     tb.center.z = sin_dec;
     // east = (-sin_ra, cos_ra, 0) — 模长 cos_dec, 单位化
-    //   注: 极点处 cos_dec→0, east 退化为零向量; 此时改用任意切线方向
+    // 注: 极点处 cos_dec→0, east 退化为零向量; 此时改用任意切线方向
     double east_x = -sin_ra;
     double east_y =  cos_ra;
     double east_z = 0.0;
@@ -404,10 +404,10 @@ inline TangentBasis make_tangent_basis(double ra_deg, double dec_deg) {
 }
 
 // 将 3D 单位向量 v 投影到以 tb 为基底的切平面, 返回切平面坐标 (xi, eta)
-//   xi  = (v · east)  / (v · center)   — 东向坐标
-//   eta = (v · north) / (v · center)   — 北向坐标
-//   注: 标准球面 gnomonic 投影 (Tan 投影), 在中心附近线性, 4 邻近点距离
-//   中心 ≤ dh 像素 → 角度 ≤ 几角秒, gnomonic 投影线性度极高.
+// xi = (v · east) / (v · center) — 东向坐标
+// eta = (v · north) / (v · center) — 北向坐标
+// 注: 标准球面 gnomonic 投影 (Tan 投影), 在中心附近线性, 4 邻近点距离
+// 中心 ≤ dh 像素 → 角度 ≤ 几角秒, gnomonic 投影线性度极高.
 inline void project_to_tangent(const spherical::Vec3& v, const TangentBasis& tb,
                                double& xi, double& eta) {
     double denom = spherical::dot(v, tb.center);
@@ -420,17 +420,17 @@ inline void project_to_tangent(const spherical::Vec3& v, const TangentBasis& tb,
 }
 
 // R07-M09/M10: 计算单点 3D 切向量 Jacobian 的局部像素尺度 (角秒/像素)
-//   输入: 5 邻近点 (中/左/右/上/下) 的 RA/DEC (度)
-//   输出: 局部像素尺度 (角秒/像素); 失败返回 -1.0
+// 输入: 5 邻近点 (中/左/右/上/下) 的 RA/DEC (度)
+// 输出: 局部像素尺度 (角秒/像素); 失败返回 -1.0
 //
 // 算法:
-//   1. 5 点 RA/DEC → 3D 单位向量
-//   2. 以中心点构造切平面基底 (east, north)
-//   3. 4 邻近点投影到切平面得 (xi, eta)
-//   4. 有限差分计算切平面 2×2 Jacobian:
-//        J = [[dxi/dx, dxi/dy], [deta/dx, deta/dy]]
-//   5. 最小奇异值 σ_min = sqrt(λ_min(J'J))
-//   6. local_scale = σ_min × (180/π) × 3600  (弧度/像素 → 角秒/像素)
+// 1. 5 点 RA/DEC → 3D 单位向量
+// 2. 以中心点构造切平面基底 (east, north)
+// 3. 4 邻近点投影到切平面得 (xi, eta)
+// 4. 有限差分计算切平面 2×2 Jacobian:
+// J = [[dxi/dx, dxi/dy], [deta/dx, deta/dy]]
+// 5. 最小奇异值 σ_min = sqrt(λ_min(J'J))
+// 6. local_scale = σ_min × (180/π) × 3600 (弧度/像素 → 角秒/像素)
 inline double local_scale_3d_tangent(
     double ra_c, double dec_c,
     double ra_xm, double dec_xm, double ra_xp, double dec_xp,
@@ -454,9 +454,9 @@ inline double local_scale_3d_tangent(
     project_to_tangent(v_yp, tb, xi_yp, eta_yp);
 
     // 4. 有限差分 Jacobian (切平面坐标/像素)
-    //   注: 切平面坐标 (xi, eta) 由 gnomonic 投影得到, 量级为弧度
-    //       (单位向量 dot 积无量纲, 除以 dot(v, center) 后仍是弧度量级小值),
-    //       所以 J 的单位是 弧度/像素.
+    // 注: 切平面坐标 (xi, eta) 由 gnomonic 投影得到, 量级为弧度
+    // (单位向量 dot 积无量纲, 除以 dot(v, center) 后仍是弧度量级小值),
+    // 所以 J 的单位是 弧度/像素.
     double j11 = (xi_xp  - xi_xm)  / step_px;  // dxi/dx
     double j12 = (xi_yp  - xi_ym)  / step_px;  // dxi/dy
     double j21 = (eta_xp - eta_xm) / step_px;  // deta/dx
@@ -497,8 +497,8 @@ static void sample_quadtree(const WcsSip& wcsip,
                             double& finest_arcsec,
                             int& n_valid, int& n_invalid) {
     // R07-M11: 9 点保守采样 (4 角 + 4 边中点 + 中心)
-    //   比原 5 点采样多覆盖 4 个边中点, 捕捉边角尖锐畸变 (如强 SIP 在
-    //   单元边界中点出现窄局部最小值, 5 点采样会漏掉).
+    // 比原 5 点采样多覆盖 4 个边中点, 捕捉边角尖锐畸变 (如强 SIP 在
+    // 单元边界中点出现窄局部最小值, 5 点采样会漏掉).
     double xm_cell = (x0 + x1) * 0.5;
     double ym_cell = (y0 + y1) * 0.5;
     double xs[9] = {
@@ -576,19 +576,19 @@ static void sample_quadtree(const WcsSip& wcsip,
 // ============================================================================
 // compute_auto_nside - 自动 NSIDE 计算 (02_FROZEN §5, WP-B 步骤5 修复)
 //
-// R08 移植 R07-M09/M10/M11: 自适应四叉树 + 3D 切向量 Jacobian
+// 移植 R07-M09/M10/M11: 自适应四叉树 + 3D 切向量 Jacobian
 //
 // 依据最终 WCS/SIP 在有效视场内的局部 Jacobian:
-//   1. R07-B05 修复: 自适应四叉树采样全视场 Jacobian (替代固定 9×9 网格).
-//      在 WCS/SIP Jacobian 梯度大的区域递归细分, 确保捕捉到最细局部像素尺度.
-//   2. 取所有有效采样点局部像素尺度的最小值作为"最细局部输入像素尺度";
-//   3. R05-B03: HEALPix 特征尺度由像素面积公式一致计算 (禁止魔数 210960):
-//      HEALPix 像素面积 = π / (3 * nside²) sr, 特征线性尺度 = sqrt(π/3) / nside rad
-//      转角秒: sqrt(π/3) / nside * (180/π) * 3600 ≈ 211034.6 / nside arcsec
-//   4. 选择最小的 2 次幂 NSIDE, 使 HEALPix 特征尺度不粗于该最细尺度
-//      (即 211034.6/nside <= finest_arcsec, 结果约为 1~2 倍线性过采样);
-//   5. NSIDE 钳位到 [16, 4194304] (2^4 到 2^22), 覆盖约 0.05" 到 3.7° 像素尺度,
-//      支持 0.1"/px 输入的 1~2 倍过采样要求 (211034.6/0.1 ≈ 2.1e6, 需要 2^22).
+// 1. R07-B05 修复: 自适应四叉树采样全视场 Jacobian (替代固定 9×9 网格).
+// 在 WCS/SIP Jacobian 梯度大的区域递归细分, 确保捕捉到最细局部像素尺度.
+// 2. 取所有有效采样点局部像素尺度的最小值作为"最细局部输入像素尺度";
+// 3. R05-B03: HEALPix 特征尺度由像素面积公式一致计算 (禁止魔数 210960):
+// HEALPix 像素面积 = π / (3 * nside²) sr, 特征线性尺度 = sqrt(π/3) / nside rad
+// 转角秒: sqrt(π/3) / nside * (180/π) * 3600 ≈ 211034.6 / nside arcsec
+// 4. 选择最小的 2 次幂 NSIDE, 使 HEALPix 特征尺度不粗于该最细尺度
+// (即 211034.6/nside <= finest_arcsec, 结果约为 1~2 倍线性过采样);
+// 5. NSIDE 钳位到 [16, 4194304] (2^4 到 2^22), 覆盖约 0.05" 到 3.7° 像素尺度,
+// 支持 0.1"/px 输入的 1~2 倍过采样要求 (211034.6/0.1 ≈ 2.1e6, 需要 2^22).
 //
 // 3D 切向量 Jacobian 天然包含 SIP 多项式 + TAN 投影的非线性 Jacobian, 且
 // 天然处理 RA wrap 和极区稳定性, 比 CD 矩阵行列式法更准确.
@@ -614,7 +614,7 @@ int compute_auto_nside(const WcsParams& wcs, int img_w, int img_h)
         return 0;
     }
 
-    // R08 移植 R07-B05: 自适应四叉树 Jacobian 采样 (替代固定 9×9 网格)
+    // 移植 R07-B05: 自适应四叉树 Jacobian 采样 (替代固定 9×9 网格)
     // 初始单元 = 整个图像 (内缩 margin 避免边界越界), 递归细分 Jacobian 梯度大的区域
     const double margin = 0.5;  // 像素内缩, 避免边界越界
     const double dh = 0.5;      // 有限差分半步长 (步长=1px), 平衡精度与效率
@@ -641,10 +641,10 @@ int compute_auto_nside(const WcsParams& wcs, int img_w, int img_h)
         return 0;
     }
 
-    // R08 移植 R07 R05-B03: HEALPix 特征尺度由像素面积公式一致计算 (禁止魔数 210960/1186.18)
-    //   HEALPix 像素面积 = 4π / (12 * nside²) sr = π / (3 * nside²) sr
-    //   特征线性尺度 = sqrt(像素面积) = sqrt(π/3) / nside rad
-    //   转角秒: sqrt(π/3) / nside * (180/π) * 3600 ≈ 211034.6 / nside arcsec
+    // 移植 R05-B03: HEALPix 特征尺度由像素面积公式一致计算 (禁止魔数 210960/1186.18)
+    // HEALPix 像素面积 = 4π / (12 * nside²) sr = π / (3 * nside²) sr
+    // 特征线性尺度 = sqrt(像素面积) = sqrt(π/3) / nside rad
+    // 转角秒: sqrt(π/3) / nside * (180/π) * 3600 ≈ 211034.6 / nside arcsec
     const double HEALPIX_SCALE_PER_NSIDE_ARCSEC =
         std::sqrt(M_PI / 3.0) * (180.0 / M_PI) * 3600.0;  // ≈ 211034.6
 
@@ -685,10 +685,10 @@ int compute_auto_nside(const WcsParams& wcs, int img_w, int img_h)
 // drizzle - 执行 Drizzle: FITS 图像 → HEALPix 累加器
 //
 // WP-B 步骤6 修复: 入口校验
-//   1. pixfrac <= 0.0 或 pixfrac > 1.0 → 返回错误 (拒绝, 不进入"点采样快速路径")
-//   2. nested == false (RING 模式) → 返回错误 (HISS 内部统一 NESTED)
-//   3. img.channels != 1 → 返回错误 (R08 移植 R07-B03: 多通道图像拒绝)
-//   4. 移除所有"点采样快速路径"代码, 任何 pixfrac 非法值都被拒绝
+// 1. pixfrac <= 0.0 或 pixfrac > 1.0 → 返回错误 (拒绝, 不进入"点采样快速路径")
+// 2. nested == false (RING 模式) → 返回错误 (HISS 内部统一 NESTED)
+// 3. img.channels != 1 → 返回错误 ( 移植 R07-B03: 多通道图像拒绝)
+// 4. 移除所有"点采样快速路径"代码, 任何 pixfrac 非法值都被拒绝
 // ============================================================================
 bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
                             const float* snrData, const float* weightData,
@@ -720,13 +720,13 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
         return false;
     }
 
-    // R08 移植 R07-B03: 多通道图像静默取第 0 通道是 BLOCKER
-    //   HISS Stage1 只支持单通道图像, 多通道 (如 RGB) 必须由上游拆分后分别 drizzle
-    //   原实现 (main 版本) 对 channels != 1 静默取第 0 通道, 会导致:
-    //     1. 丢失非第 0 通道数据 (科学错误)
-    //     2. 像素索引 ((y*width+x)*channels+0) 与单通道索引 (y*width+x) 不一致,
-    //        若上游误传多通道数据会导致像素错位
-    //   修复: 入口硬拒绝, 要求上游显式拆分
+    // 移植 R07-B03: 多通道图像静默取第 0 通道是 BLOCKER
+    // HISS Stage1 只支持单通道图像, 多通道 (如 RGB) 必须由上游拆分后分别 drizzle
+    // 原实现 (main 版本) 对 channels != 1 静默取第 0 通道, 会导致:
+    // 1. 丢失非第 0 通道数据 (科学错误)
+    // 2. 像素索引 ((y*width+x)*channels+0) 与单通道索引 (y*width+x) 不一致,
+    // 若上游误传多通道数据会导致像素错位
+    // 修复: 入口硬拒绝, 要求上游显式拆分
     if (img.channels != 1) {
         char buf[256];
         snprintf(buf, sizeof(buf),
@@ -777,7 +777,7 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
             (int)config.photometry_applied_upstream,
             config.photscal);
 
-    // R11 (阶段6): 正式路径为 Tile 级累加 (drizzleTiledImpl, 不恢复全局 leaf map)
+    // 正式路径为 Tile 级累加 (drizzleTiledImpl, 不恢复全局 leaf map)
     // 本函数为兼容包装: 调用 Tile 级实现后展开为 leaf map (供旧调用方/测试使用)
     std::vector<TileAccumulatorT<float>> tiles;
     if (!drizzleTiledImpl<float>(img, config, snrData, weightData, varianceData,
@@ -814,11 +814,11 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
 // ============================================================================
 // drizzle_f64 - 执行 Drizzle (FP64 路径): FITS 图像 (double 像素) → HEALPix 累加器
 //
-// 双精度 ABI 改造 (R10):
-//   - 与 drizzle (FP32) 完全相同的几何/累加逻辑, 仅像素值类型不同
-//   - 从 img.pixels_f64 (double) 读取像素值, 不降级到 float32
-//   - processPixel_f64 直接用 double pixelValue 累加到 PixelAccumulator.sumFlux (double)
-//   - snrData / weightData 仍为 float (SNR 重建与权重掩膜不需要 FP64)
+// 双精度 ABI 改造 :
+// - 与 drizzle (FP32) 完全相同的几何/累加逻辑, 仅像素值类型不同
+// - 从 img.pixels_f64 (double) 读取像素值, 不降级到 float32
+// - processPixel_f64 直接用 double pixelValue 累加到 PixelAccumulator.sumFlux (double)
+// - snrData / weightData 仍为 float (SNR 重建与权重掩膜不需要 FP64)
 // ============================================================================
 bool DrizzleEngine::drizzle_f64(const FitsImage& img, const DrizzleConfig& config,
                                  const float* snrData, const float* weightData,
@@ -895,7 +895,7 @@ bool DrizzleEngine::drizzle_f64(const FitsImage& img, const DrizzleConfig& confi
             (int)config.photometry_applied_upstream,
             config.photscal);
 
-    // R11 (阶段6): 正式路径为 Tile 级累加 (drizzleTiledImpl<double>, 不降级到 float32)
+    // 正式路径为 Tile 级累加 (drizzleTiledImpl<double>, 不降级到 float32)
     // 本函数为兼容包装: 调用 Tile 级实现后展开为 leaf map (供旧调用方/测试使用)
     std::vector<TileAccumulatorT<double>> tiles;
     if (!drizzleTiledImpl<double>(img, config, snrData, weightData, varianceData,
@@ -949,8 +949,8 @@ void DrizzleEngine::getHealpixCorners(const healpix::HealpixCore& hp, int64_t ip
 
     // HEALPix 像素分辨率 (度) = sqrt(area)
     // 赤道带 HEALPix 像素为菱形 (diamond), 不是方形
-    //   - NS 对角线 d_ns = sqrt(sqrt(3)) * res ≈ 1.316 * res
-    //   - EW 对角线 d_ew = 2/sqrt(sqrt(3)) * res ≈ 1.516 * res
+    // - NS 对角线 d_ns = sqrt(sqrt(3)) * res ≈ 1.316 * res
+    // - EW 对角线 d_ew = 2/sqrt(sqrt(3)) * res ≈ 1.516 * res
     double res_deg = hp.pixelResolutionArcsec() / 3600.0;
     double cos_dec = std::cos(dec_c * D2R);
 
@@ -977,13 +977,13 @@ void DrizzleEngine::getHealpixCorners(const healpix::HealpixCore& hp, int64_t ip
 // writeHis - 将累加器按 Tile 分组并写入 .hiss 文件 (WP-E 步骤8)
 //
 // 改造要点 (02_FROZEN §8/§14/§16, 00_COMMON_CONTRACTS §4.4):
-//   1. 不再调用旧 hiss_write()/hiss_write_snr_model(), 改为构造 HissWriter
-//   2. 按 Tile 父像素分组累加器 (NESTED 位运算: parent = ipix >> 2d)
-//   3. signal = 累计通量 (步骤7, finalize_signal 已在 hiss_common.cpp 修复)
-//   4. support = 面积比 (pixel_area = A_p, 02_FROZEN §10)
-//   5. 元数据不含完整 WCS/SIP (cd/crval/crpix/sip_order/sip 系数全部移除,
-//      02_FROZEN §16: HISS 像素由 NSIDE/NESTED/ipix/ICRS 直接定位)
-//   6. 旧 aio_hiss_write/read 改造成新 Writer/Reader 后端 (aio_healpix_io.cpp)
+// 1. 不再调用旧 hiss_write()/hiss_write_snr_model(), 改为构造 HissWriter
+// 2. 按 Tile 父像素分组累加器 (NESTED 位运算: parent = ipix >> 2d)
+// 3. signal = 累计通量 (步骤7, finalize_signal 已在 hiss_common.cpp 修复)
+// 4. support = 面积比 (pixel_area = A_p, 02_FROZEN §10)
+// 5. 元数据不含完整 WCS/SIP (cd/crval/crpix/sip_order/sip 系数全部移除,
+// 02_FROZEN §16: HISS 像素由 NSIDE/NESTED/ipix/ICRS 直接定位)
+// 6. 旧 aio_hiss_write/read 改造成新 Writer/Reader 后端 (aio_healpix_io.cpp)
 // ============================================================================
 bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator>& accumulators,
                              const DrizzleStats& stats, const WcsParams& /*wcs*/,
@@ -1022,8 +1022,8 @@ bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator
             nside, depth, tile_nside, n_leaf_per_tile, A_p);
 
     // 2. 按 Tile 父像素分组累加器 (NESTED 位运算)
-    //    parent_ipix = global_ipix >> (2*depth)
-    //    local_ipix  = global_ipix & ((1 << (2*depth)) - 1)
+    // parent_ipix = global_ipix >> (2*depth)
+    // local_ipix = global_ipix & ((1 << (2*depth)) - 1)
     struct TileGroup {
         uint64_t parent_ipix = 0;
         std::vector<std::pair<uint32_t, const PixelAccumulator*>> pixels;
@@ -1057,8 +1057,8 @@ bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator
     grid.pixfrac    = config.pixfrac;
 
     // 4. 构造 HissMetadata (精简, 不含完整 WCS/SIP, 02_FROZEN §16)
-    //    移除: cd/crval/crpix/sip_order/sip 系数
-    //    保留: NSIDE/ORDERING/RADESYS/TILENSID/PIXFRAC + FITS 常用字段 + 测光/校准字段
+    // 移除: cd/crval/crpix/sip_order/sip 系数
+    // 保留: NSIDE/ORDERING/RADESYS/TILENSID/PIXFRAC + FITS 常用字段 + 测光/校准字段
     hiss::HissMetadata hmeta;
     hmeta.nside      = nside;
     hmeta.tile_nside = tile_nside;
@@ -1103,10 +1103,10 @@ bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator
                   stats.elapsedSec, tile_groups.size());
     hmeta.history = hist;
 
-    // R10: 精度模式写入 metadata (precision_mode + signal_dtype)
-    //   config.precision_mode: 0=FP32 (binary32), 1=FP64 (binary64)
-    //   signal_dtype 与 precision_mode 一致 (0=float32, 1=float64)
-    //   FP64 模式: signal 子块输出 float64, metadata 记录 precision_mode=1, signal_dtype=1
+    // 精度模式写入 metadata (precision_mode + signal_dtype)
+    // config.precision_mode: 0=FP32 (binary32), 1=FP64 (binary64)
+    // signal_dtype 与 precision_mode 一致 (0=float32, 1=float64)
+    // FP64 模式: signal 子块输出 float64, metadata 记录 precision_mode=1, signal_dtype=1
     hmeta.precision_mode = config.precision_mode;
     hmeta.signal_dtype   = config.precision_mode;
     fprintf(stderr, "[drizzle_engine] precision_mode=%u (0=FP32, 1=FP64), signal_dtype=%u\n",
@@ -1139,7 +1139,7 @@ bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator
             if (ra < 0.0 || ra >= 360.0 || dec < -90.0 || dec > 90.0) {
                 n_invalid++;
                 drop_radec_range++;
-                // R10 诊断: 打印前 5 个越界点的实际值, 用于根因分析
+                // 诊断: 打印前 5 个越界点的实际值, 用于根因分析
                 if (drop_radec_range <= 5) {
                     fprintf(stderr, "[drizzle_engine] SNR 越界点[%u]: idx=%u ra=%.6f dec=%.6f snr=%.4f\n",
                             drop_radec_range, i, ra, dec, snr_val);
@@ -1182,7 +1182,7 @@ bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator
     }
 
     // 6. 逐 Tile 构造 DrizzleTileAccumulator 并写入
-    //    signal = 累计通量 (步骤7), support = 面积比 (步骤10, A_p 归一化)
+    // signal = 累计通量 (步骤7), support = 面积比 (步骤10, A_p 归一化)
     for (const auto& [parent_ipix, tg] : tile_groups) {
         hiss::DrizzleTileAccumulator acc;
         acc.tile_nside  = tile_nside;
@@ -1214,7 +1214,7 @@ bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator
         }
 
         // occ_mode 由 Writer 自动选择 (步骤11), 传入 FULL 作为建议 (Writer 会忽略)
-        // R10: 根据 precision_mode 选择 add_tile (FP32) 或 add_tile_f64 (FP64)
+        // 根据 precision_mode 选择 add_tile (FP32) 或 add_tile_f64 (FP64)
         int tret;
         if (config.precision_mode == 1) {
             tret = writer.add_tile_f64(parent_ipix, acc, snr_block, hiss::OccupancyMode::FULL);
@@ -1246,15 +1246,15 @@ bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator
 }
 
 // ============================================================================
-// R11 (阶段6): processPixelTiled - 处理单个像素的 Drizzle (模板双实例, Tile 级累加)
+// processPixelTiled - 处理单个像素的 Drizzle (模板双实例, Tile 级累加)
 //
 // 6 步流水线与旧 processPixel/processPixel_f64 完全一致 (保持科学语义不变):
-//   Step 1: 取像素四角 (0-based) + pixfrac 收缩
-//   Step 2: SIP+WCS 逐角映射 (像素→天球), 估算像素角跨度
-//   Step 3: 自适应边细分
-//   Step 4: 计算 drop 球面面积 (Girard 定理)
-//   Step 5: 候选像素查询 (query_candidate_pixels_fast)
-//   Step 6: 对每个候选计算球面重叠面积, Tile 内连续数组累加
+// Step 1: 取像素四角 (0-based) + pixfrac 收缩
+// Step 2: SIP+WCS 逐角映射 (像素→天球), 估算像素角跨度
+// Step 3: 自适应边细分
+// Step 4: 计算 drop 球面面积 (Girard 定理)
+// Step 5: 候选像素查询 (query_candidate_pixels_fast)
+// Step 6: 对每个候选计算球面重叠面积, Tile 内连续数组累加
 // ============================================================================
 template <typename Scalar>
 void DrizzleEngine::processPixelTiled(
@@ -1299,8 +1299,8 @@ void DrizzleEngine::processPixelTiled(
 }
 
 // ============================================================================
-// R11 (阶段6): processPixelSharedTiled - Steps 3-6 (共享顶点路径, Tile 级累加)
-//   接收预计算的 4 角球面坐标 (pixfrac=1 顶点复用), 逻辑与旧 processPixelShared 一致
+// processPixelSharedTiled - Steps 3-6 (共享顶点路径, Tile 级累加)
+// 接收预计算的 4 角球面坐标 (pixfrac=1 顶点复用), 逻辑与旧 processPixelShared 一致
 // ============================================================================
 template <typename Scalar>
 void DrizzleEngine::processPixelSharedTiled(
@@ -1319,14 +1319,14 @@ void DrizzleEngine::processPixelSharedTiled(
     counters.geometry_builds++;
 
     // ---- Step 3: 自适应边细分 (double 计算, 阈值判断) ----
-    // 边跨度必须用真实球面角距 (R12 阶段4 修复):
-    //   - RA 跨 0 的像素: 裸 Δra 未环绕修正 → 359.98° (6.28 rad) 误判整圈
-    //   - 近极像素: 裸 Δra 被 1/cos(dec) 放大 (dec=89.4° 时 6.4" 真实跨度
-    //     被算成 617") → 误触发自适应细分
-    //   球面角距天然处理环绕与极区因子, 只有真实跨度 >= 60" 才走自适应
-    // V18 (PERF-004): 普通像素（所有边 < 60"）0 次 acos：
-    //   edge >= 60" ⟺ dot <= cos(60")（acos 单调递减）。
-    //   仅当检测到任一超阈边时才回算真实角距（自适应路径，罕见）。
+    // 边跨度必须用真实球面角距 ( 阶段4 修复):
+    // - RA 跨 0 的像素: 裸 Δra 未环绕修正 → 359.98° (6.28 rad) 误判整圈
+    // - 近极像素: 裸 Δra 被 1/cos(dec) 放大 (dec=89.4° 时 6.4" 真实跨度
+    // 被算成 617") → 误触发自适应细分
+    // 球面角距天然处理环绕与极区因子, 只有真实跨度 >= 60" 才走自适应
+    // 普通像素（所有边 < 60"）0 次 acos：
+    // edge >= 60" ⟺ dot <= cos(60")（acos 单调递减）。
+    // 仅当检测到任一超阈边时才回算真实角距（自适应路径，罕见）。
     double dot_edges[4];
     bool use_adaptive = false;
     for (int i = 0; i < 4; i++) {
@@ -1346,7 +1346,7 @@ void DrizzleEngine::processPixelSharedTiled(
         }
     }
 
-    // V18 (PERF-002): 线程本地复用 scratch（首像素 reserve 后零堆分配；
+    // 线程本地复用 scratch（首像素 reserve 后零堆分配；
     // 科学语义与逐像素分配完全一致，仅目标对象复用）
     thread_local std::vector<spherical::Vec3T<Scalar>> t_drop_corners;
     thread_local std::vector<spherical::Vec3> t_drop_corners_d;
@@ -1379,10 +1379,10 @@ void DrizzleEngine::processPixelSharedTiled(
 
     // ---- Step 4: 计算 drop 球面面积 (Girard 定理) ----
     // 面积必须从 double 精度角点源计算再转 Scalar:
-    //   float 存储角点的 ~1e-7 长度舍入在 6.3\" 尺度 drop 上造成面积误差
-    //   ~0.05% (实测 ratio 0.9995~1.0002), 更小尺度 (1\"/px) 误差更大,
-    //   会系统性偏置 weight = overlap/drop_area, 使 FP32/FP64 通量不一致。
-    //   (overlap 已由 build_drop_geometry 的 double 缓存保证; 面积同理)
+    // float 存储角点的 ~1e-7 长度舍入在 6.3\" 尺度 drop 上造成面积误差
+    // ~0.05% (实测 ratio 0.9995~1.0002), 更小尺度 (1\"/px) 误差更大,
+    // 会系统性偏置 weight = overlap/drop_area, 使 FP32/FP64 通量不一致。
+    // (overlap 已由 build_drop_geometry 的 double 缓存保证; 面积同理)
     // adaptive 路径无 double 源: 从 Scalar 提升一份 double 副本
     // (大像素 ≥60\", float 精度足够; 供面积/候选共用, 避免重复转换)
     std::vector<spherical::Vec3>& drop_corners_promoted = t_drop_promoted;
@@ -1395,11 +1395,11 @@ void DrizzleEngine::processPixelSharedTiled(
     const std::vector<spherical::Vec3>& drop_double =
         use_adaptive ? drop_corners_promoted : drop_corners_d;
 
-    // R11 (阶段7 + TRUE_SCALAR_PRECISE): 预计算 drop 几何 (Scalar 实例)
-    //   build_drop_geometry 内部从 double 角点源计算 drop_area (g.drop_area):
-    //   float 存储角点的 ~1e-7 长度舍入在 6.3\" 尺度 drop 上造成面积误差
-    //   ~0.05% (实测 ratio 0.9995~1.0002), 更小尺度 (1\"/px) 误差更大,
-    //   会系统性偏置 weight = overlap/drop_area, 使 FP32/FP64 通量不一致。
+    // 预计算 drop 几何 (Scalar 实例)
+    // build_drop_geometry 内部从 double 角点源计算 drop_area (g.drop_area):
+    // float 存储角点的 ~1e-7 长度舍入在 6.3\" 尺度 drop 上造成面积误差
+    // ~0.05% (实测 ratio 0.9995~1.0002), 更小尺度 (1\"/px) 误差更大,
+    // 会系统性偏置 weight = overlap/drop_area, 使 FP32/FP64 通量不一致。
     spherical::build_drop_geometry_into<Scalar>(
         t_drop_geom, drop_corners,
         use_adaptive ? nullptr : &drop_corners_d);
@@ -1429,12 +1429,12 @@ void DrizzleEngine::processPixelSharedTiled(
     }
 
     // ---- Step 6: 对每个候选像素计算球面重叠面积, Tile 内连续数组累加 ----
-    //   通量守恒 (02_FROZEN §8): F_p = Σ_j L_j * (a_jp / A_j_drop)
-    //   leaf 由 NESTED 位运算拆分为 (parent_ipix, local_ipix):
-    //     parent = ipix >> (2*depth), local = ipix & mask
+    // 通量守恒 (02_FROZEN §8): F_p = Σ_j L_j * (a_jp / A_j_drop)
+    // leaf 由 NESTED 位运算拆分为 (parent_ipix, local_ipix):
+    // parent = ipix >> (2*depth), local = ipix & mask
     auto t_o0 = fine ? std::chrono::high_resolution_clock::now()
                      : std::chrono::time_point<std::chrono::high_resolution_clock>{};
-    // V4 G4: actual-buffer trace (仅选中源像素; 默认关闭零开销)
+    // G4: actual-buffer trace (仅选中源像素; 默认关闭零开销)
     const bool trace_on = drizzle_trace::enabled() &&
                           drizzle_trace::selected((int)px, (int)py);
     drizzle_trace::SourceRec tr;
@@ -1484,8 +1484,8 @@ void DrizzleEngine::processPixelSharedTiled(
         TileLeafAccumulatorT<Scalar>& acc = tile.leaf(local);
         acc.sumFlux   += Scalar(pixelValue * weight);
         acc.sumArea   += Scalar(overlap_area);
-        // V19 (DRZ-014/SNR-011): 方差传播分子 sumVarNum += v_j × w_jp²
-        //   variance_p = sumVarNum / sumArea² ;  ivar_p = 1/variance_p
+        // 方差传播分子 sumVarNum += v_j × w_jp²
+        // variance_p = sumVarNum / sumArea² ; ivar_p = 1/variance_p
         if (varianceValue > 0.0f) {
             const Scalar w2 = weight * weight;
             acc.sumVarNum += Scalar((double)varianceValue * (double)w2);
@@ -1503,12 +1503,12 @@ void DrizzleEngine::processPixelSharedTiled(
 }
 
 // ============================================================================
-// R11 (阶段6): drizzleTiledImpl - Tile 级 Drizzle 核心实现 (模板 Scalar=float/double)
+// drizzleTiledImpl - Tile 级 Drizzle 核心实现 (模板 Scalar=float/double)
 //
-//   线程本地 map 以 parent_ipix 为 key, leaf 连续数组寻址 (控制包 TILE_ACCUMULATOR_DESIGN)
-//   合并按 parent tile 进行 (仅合并 touched leaf), 输出 tiles 直接供 writeHisTiles 流式写入
-//   - 不恢复全局 leaf unordered_map
-//   - 线程数来自 config.threads (JSON), 不硬编码; schedule(static) 连续 Y 条带
+// 线程本地 map 以 parent_ipix 为 key, leaf 连续数组寻址 ( TILE_ACCUMULATOR_DESIGN)
+// 合并按 parent tile 进行 (仅合并 touched leaf), 输出 tiles 直接供 writeHisTiles 流式写入
+// - 不恢复全局 leaf unordered_map
+// - 线程数来自 config.threads (JSON), 不硬编码; schedule(static) 连续 Y 条带
 // ============================================================================
 template <typename Scalar>
 bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& config,
@@ -1585,21 +1585,21 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
             nside, depth, tile_nside, n_leaf_per_tile);
     (void)n_leaf_per_tile;
 
-    // 4. V4 G4: trace 初始化 + 选择集 (并行前, 实际 buffer trace)
+    // 4. G4: trace 初始化 + 选择集 (并行前, 实际 buffer trace)
     drizzle_trace::init_from_env();
     drizzle_trace::ensure_selection(img.width, img.height);
 
     // 5. 记录开始时间
     auto tStart = std::chrono::high_resolution_clock::now();
 
-    // 5. OpenMP 并行 Drizzle (R11: 线程数来自配置, static 调度, 不预分配 4M 桶)
+    // 5. OpenMP 并行 Drizzle (: 线程数来自配置, static 调度, 不预分配 4M 桶)
     int num_threads = (config.threads > 0) ? config.threads : omp_get_max_threads();
     // V18R2 (CODE-006): 不再调用全局 omp_set_num_threads（会改变进程后续
     // 阶段的全局 OpenMP 行为）；线程数经 parallel 子句局部限定。
     std::vector<std::unordered_map<uint64_t, TileAccumulatorT<Scalar>>> threadTiles(num_threads);
     std::vector<DrizzleOpCounters> threadCounters(num_threads);
 
-    // V18 (PERF-005): 整帧 run 常量（nside/hp_res/阈值 cos/位运算 shift/mask）
+    // 整帧 run 常量（nside/hp_res/阈值 cos/位运算 shift/mask）
     const double THRESH_60ARCSEC = 60.0 * (M_PI / 180.0) / 3600.0;
     DrizzleRunContext rctx;
     rctx.nside = (uint32_t)config.nside;
@@ -1611,7 +1611,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     int64_t nSourcePixels = 0;
     const bool shared_vertices = (config.pixfrac == 1.0);
 
-    // R12 (性能): 阶段计时 profile——V18 (PERF-001): fine 逐像素计时默认关闭
+    // 阶段计时 profile—— (PERF-001): fine 逐像素计时默认关闭
     const bool fine = drizzle_fine_profile_enabled();
     double prof_geom_s = 0.0;
     double prof_wcs_s = 0.0;
@@ -1622,7 +1622,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
         int tid = omp_get_thread_num();
         auto& tileMap = threadTiles[tid];
 
-        // R11: 预计算本行底/顶两行网格顶点的天球坐标 (WCS double 精度, 每顶点一次;
+        // 预计算本行底/顶两行网格顶点的天球坐标 (WCS double 精度, 每顶点一次;
         // 几何数据在 processPixelSharedTiled 内转 Scalar 存储)
         thread_local std::vector<double> bot_ra, bot_dec, top_ra, top_dec;
         // V18R2: 行级顶点 Vec3 缓存（免每像素 8 次 sin/cos 重算）
@@ -1739,7 +1739,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
         tiles.push_back(std::move(tile));
     }
 
-    // 8. V4 G4: leaf 内部值 dump + flush (实际累计 buffer, 供 HiPS readback 对照)
+    // 8. G4: leaf 内部值 dump + flush (实际累计 buffer, 供 HiPS readback 对照)
     if (drizzle_trace::enabled()) {
         for (const auto& tile : tiles) {
             if (tile.touched.empty()) continue;
@@ -1778,7 +1778,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     stats.op_tile_lookups    = totalOps.tile_lookups;
     stats.op_heap_allocations = totalOps.heap_allocations;
 
-    // R12 (性能 profile): 汇总线程池 thread_local 阶段计时
+    // 汇总线程池 thread_local 阶段计时
     double prof_cand_t = 0.0, prof_overlap_t = 0.0;
 #pragma omp parallel
     {
@@ -1805,7 +1805,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
             (long long)n_quick, (long long)n_fully, (long long)n_dropin,
             (long long)n_sh, num_threads,
             (double)nSourcePixels / 1e6);
-    // V19: 操作计数摘要
+    // 操作计数摘要
     const double cand_eff = totalOps.candidates > 0
         ? (double)totalOps.true_overlaps / (double)totalOps.candidates : 0.0;
     const double sh_frac = (totalOps.sh_calls + totalOps.quick_rejects) > 0
@@ -1827,7 +1827,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
 }
 
 // ============================================================================
-// R11 (阶段6): drizzleTiled - Tile 级 Drizzle (FP32 路径, 正式入口)
+// drizzleTiled - Tile 级 Drizzle (FP32 路径, 正式入口)
 // ============================================================================
 bool DrizzleEngine::drizzleTiled(const FitsImage& img, const DrizzleConfig& config,
                                  const float* snrData, const float* weightData,
@@ -1840,8 +1840,8 @@ bool DrizzleEngine::drizzleTiled(const FitsImage& img, const DrizzleConfig& conf
 }
 
 // ============================================================================
-// R11 (阶段6): drizzleTiled_f64 - Tile 级 Drizzle (FP64 路径, 正式入口)
-//   读 img.pixels_f64 (double), 不降级到 float32
+// drizzleTiled_f64 - Tile 级 Drizzle (FP64 路径, 正式入口)
+// 读 img.pixels_f64 (double), 不降级到 float32
 // ============================================================================
 bool DrizzleEngine::drizzleTiled_f64(const FitsImage& img, const DrizzleConfig& config,
                                      const float* snrData, const float* weightData,
@@ -1854,9 +1854,9 @@ bool DrizzleEngine::drizzleTiled_f64(const FitsImage& img, const DrizzleConfig& 
 }
 
 // ============================================================================
-// R11 (阶段6): writeHisTiles - 将 Tile 级累加结果直接写入 .hiss (流式, 不恢复全局 leaf map)
-//   与 writeHis 语义一致 (signal=累计通量, support=sum_area/A_p, SNR 按 Tile 分组),
-//   仅输入结构不同: tiles 已按 parent_ipix 组织, 直接逐 Tile 构造并写入
+// writeHisTiles - 将 Tile 级累加结果直接写入 .hiss (流式, 不恢复全局 leaf map)
+// 与 writeHis 语义一致 (signal=累计通量, support=sum_area/A_p, SNR 按 Tile 分组),
+// 仅输入结构不同: tiles 已按 parent_ipix 组织, 直接逐 Tile 构造并写入
 // ============================================================================
 template <typename Scalar>
 bool DrizzleEngine::writeHisTilesT(const std::vector<TileAccumulatorT<Scalar>>& tiles,
@@ -1946,7 +1946,7 @@ bool DrizzleEngine::writeHisTilesT(const std::vector<TileAccumulatorT<Scalar>>& 
             (unsigned)hmeta.precision_mode, (unsigned)hmeta.signal_dtype);
 
     // 3. SNR 控制点按 Tile 分组 (与 writeHis 一致)
-    //    BLOCKER-TYPE-002: FP64 模式使用 HioSnrModelF64 (double snr)
+    // BLOCKER-TYPE-002: FP64 模式使用 HioSnrModelF64 (double snr)
     std::map<uint64_t, std::vector<std::pair<uint32_t, float>>> tile_snr_points;
     std::map<uint64_t, std::vector<std::pair<uint32_t, double>>> tile_snr_points_f64;
     if (snr_model && snr_model->n_points > 0) {
@@ -2097,7 +2097,7 @@ bool DrizzleEngine::writeHisTiles(const std::vector<TileAccumulator>& tiles,
 }
 
 // ============================================================================
-// R11 阶段7: 显式实例化 FP32/FP64 Tile 写入 (跨 TU 链接)
+// 阶段7: 显式实例化 FP32/FP64 Tile 写入 (跨 TU 链接)
 // ============================================================================
 template bool DrizzleEngine::writeHisTilesT<float>(
     const std::vector<TileAccumulatorT<float>>&, const DrizzleStats&, const WcsParams&,

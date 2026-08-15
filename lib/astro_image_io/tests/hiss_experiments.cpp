@@ -2,48 +2,48 @@
 // hiss_experiments.cpp - WP-I-2 真实数据 C++ 实验 (步骤16) + 性能报告基础
 //
 // 依据:
-//   - docs/stage1_fix/spec.md 步骤16/17
-//   - 02_FROZEN_STAGE1_HISS_SPEC.md §11/§12 (Tile 占用编码)
-//   - lib/astro_image_io/tests/test_report.md (WP-I-1 已通过的真实数据集成)
+// - docs/stage1_fix/spec.md 步骤16/17
+// - 02_FROZEN_STAGE1_HISS_SPEC.md §11/§12 (Tile 占用编码)
+// - lib/astro_image_io/tests/test_report.md (WP-I-1 已通过的真实数据集成)
 //
 // 实验内容 (DQ-001 ~ DQ-007):
-//   DQ-001: 不同 codec (RAW/LZ4/Zstd) × transform (NONE/BSHUF/DELTA/DELTA_VARINT) 压缩率对比
-//   DQ-002: Tile 占用模式 (FULL/BITMAP/SPARSE_LIST) 体积对比
-//   DQ-003: 磁盘随机读取延迟 P50/P95/P99 (RAW vs Zstd)
-//   DQ-004: Drizzle 各阶段耗时 profile (WCS/重叠/候选/累加器合并)
-//   DQ-005: HissWriter 流式写入内存峰值测试
-//   DQ-006: 自动 NSIDE 选择验证 (compute_auto_nside)
-//   DQ-007: signal/support 语义验证 + 通量守恒
+// DQ-001: 不同 codec (RAW/LZ4/Zstd) × transform (NONE/BSHUF/DELTA/DELTA_VARINT) 压缩率对比
+// DQ-002: Tile 占用模式 (FULL/BITMAP/SPARSE_LIST) 体积对比
+// DQ-003: 磁盘随机读取延迟 P50/P95/P99 (RAW vs Zstd)
+// DQ-004: Drizzle 各阶段耗时 profile (WCS/重叠/候选/累加器合并)
+// DQ-005: HissWriter 流式写入内存峰值测试
+// DQ-006: 自动 NSIDE 选择验证 (compute_auto_nside)
+// DQ-007: signal/support 语义验证 + 通量守恒
 //
 // 重要声明:
-//   - 所有结果基于真实测量 (chrono + GetProcessMemoryInfo)
-//   - 实验结果仅给推荐, 不冻结参数
-//   - 真实数据来源: testdata/results/ 下的 calibrated FITS 文件
+// - 所有结果基于真实测量 (chrono + GetProcessMemoryInfo)
+// - 实验结果仅给推荐, 不冻结参数
+// - 真实数据来源: testdata/results/ 下的 calibrated FITS 文件
 //
 // 编译 (从 lib/astro_image_io/ 目录):
-//   g++ -std=c++17 -O2 -fopenmp -DHAS_LZ4 -DHAS_ZSTD -DAIO_ENABLE_HEALPIX \
-//     -Iinclude -Isrc \
-//     -I../../healpix_db/healpix_drizzle \
-//     -I../../healpix_db/healpix_stack \
-//     -I../../calibration/include \
-//     tests/hiss_experiments.cpp \
-//     src/hiss_codec.cpp src/hiss_common.cpp \
-//     src/hiss_writer.cpp src/hiss_reader.cpp \
-//     src/hiss_stream_writer.cpp src/hiss_tile_model.cpp \
-//     src/hiss_transform.cpp \
-//     src/healpix/aio_healpix_io.cpp \
-//     src/aio_fits.cpp src/aio_api.cpp src/aio_log.cpp \
-//     ../../healpix_db/healpix_drizzle/drizzle_engine.cpp \
-//     ../../healpix_db/healpix_drizzle/wcs_sip.cpp \
-//     ../../healpix_db/healpix_drizzle/poly_clip.cpp \
-//     ../../healpix_db/healpix_drizzle/fits_reader.cpp \
-//     ../../healpix_db/healpix_drizzle/spherical_overlap.cpp \
-//     ../../healpix_db/healpix_stack/healpix_core.cpp \
-//     -llz4 -lzstd -lpsapi -lm \
-//     -o tests/hiss_experiments.exe
+// g++ -std=c++17 -O2 -fopenmp -DHAS_LZ4 -DHAS_ZSTD -DAIO_ENABLE_HEALPIX \
+// -Iinclude -Isrc \
+// -I../../healpix_db/healpix_drizzle \
+// -I../../healpix_db/healpix_stack \
+// -I../../calibration/include \
+// tests/hiss_experiments.cpp \
+// src/hiss_codec.cpp src/hiss_common.cpp \
+// src/hiss_writer.cpp src/hiss_reader.cpp \
+// src/hiss_stream_writer.cpp src/hiss_tile_model.cpp \
+// src/hiss_transform.cpp \
+// src/healpix/aio_healpix_io.cpp \
+// src/aio_fits.cpp src/aio_api.cpp src/aio_log.cpp \
+// ../../healpix_db/healpix_drizzle/drizzle_engine.cpp \
+// ../../healpix_db/healpix_drizzle/wcs_sip.cpp \
+// ../../healpix_db/healpix_drizzle/poly_clip.cpp \
+// ../../healpix_db/healpix_drizzle/fits_reader.cpp \
+// ../../healpix_db/healpix_drizzle/spherical_overlap.cpp \
+// ../../healpix_db/healpix_stack/healpix_core.cpp \
+// -llz4 -lzstd -lpsapi -lm \
+// -o tests/hiss_experiments.exe
 //
 // 运行:
-//   ./tests/hiss_experiments.exe
+// ./tests/hiss_experiments.exe
 // ============================================================================
 
 #include "drizzle_engine.h"
@@ -317,7 +317,7 @@ static hiss::DrizzleTileAccumulator make_tile_accum(
 }
 
 // ============================================================================
-//                           DQ-001: codec/transform 对比
+// DQ-001: codec/transform 对比
 // ============================================================================
 struct CodecTransformResult {
     std::string fits_label;
@@ -451,8 +451,8 @@ static bool run_dq001(const std::vector<FitsSample>& fits_samples) {
            "compressed_bytes,ratio,compress_us_median,decompress_us_median\n";
 
     // 用 3 个不同 NSIDE 产生不同大小的 Tile signal 数据
-    // NSIDE=64  -> depth=2, n_leaf_per_tile=16   (小)
-    // NSIDE=256 -> depth=4, n_leaf_per_tile=256  (中)
+    // NSIDE=64 -> depth=2, n_leaf_per_tile=16 (小)
+    // NSIDE=256 -> depth=4, n_leaf_per_tile=256 (中)
     // NSIDE=1024-> depth=6, n_leaf_per_tile=4096 (大)
     struct NsideConf { int nside; const char* size_label; };
     NsideConf nsides[] = {
@@ -568,7 +568,7 @@ static bool run_dq001(const std::vector<FitsSample>& fits_samples) {
 }
 
 // ============================================================================
-//                           DQ-002: Tile 占用模式对比
+// DQ-002: Tile 占用模式对比
 // ============================================================================
 // 构造不同占用率的 Tile, 用 HissWriter 写入, 测量文件大小
 // 由于 Writer 自动选择 occupancy 模式 (步骤11), 我们通过控制有效像素比例
@@ -763,7 +763,7 @@ static bool run_dq002() {
 }
 
 // ============================================================================
-//                           DQ-003: 磁盘随机读取延迟
+// DQ-003: 磁盘随机读取延迟
 // ============================================================================
 static bool run_dq003() {
     fprintf(stderr, "\n========== [DQ-003] 磁盘随机读取延迟 ==========\n");
@@ -943,7 +943,7 @@ static bool run_dq003() {
 }
 
 // ============================================================================
-//                           DQ-004: Drizzle 性能 profile
+// DQ-004: Drizzle 性能 profile
 // ============================================================================
 // 重新实现 drizzle 6 步流水线 (取自 drizzle_engine.cpp processPixel),
 // 在各阶段插入计时, 输出 profile CSV
@@ -1116,7 +1116,7 @@ static bool run_dq004() {
 }
 
 // ============================================================================
-//                           DQ-005: Writer 流式写入内存测试
+// DQ-005: Writer 流式写入内存测试
 // ============================================================================
 struct WriterMemResult {
     int n_tiles;
@@ -1255,7 +1255,7 @@ static bool run_dq005() {
 }
 
 // ============================================================================
-//                           DQ-006: 自动 NSIDE 选择验证
+// DQ-006: 自动 NSIDE 选择验证
 // ============================================================================
 struct AutoNsideResult {
     std::string fits_label;
@@ -1335,7 +1335,7 @@ static bool run_dq006() {
 }
 
 // ============================================================================
-//                           DQ-007: signal/support 语义验证
+// DQ-007: signal/support 语义验证
 // ============================================================================
 struct SemanticsResult {
     std::string fits_label;
@@ -1393,7 +1393,7 @@ static bool run_dq007() {
         }
 
         // 3. 验证 signal 语义: signal[p] = sum_flux (累计通量, 不除面积)
-        //    对比: 若 signal = sum_flux / sum_area, 则 total_signal ≈ Σ (L_j * weight / area) ≠ Σ L_j
+        // 对比: 若 signal = sum_flux / sum_area, 则 total_signal ≈ Σ (L_j * weight / area) ≠ Σ L_j
         double total_signal = 0.0;
         double total_signal_avg = 0.0;  // 若 signal 错误地除以面积
         double support_min = 256, support_max = -1, support_sum = 0;

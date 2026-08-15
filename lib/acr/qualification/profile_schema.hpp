@@ -1,13 +1,13 @@
 // lib/acr/qualification/profile_schema.hpp — Profile 数据结构与 schema 定义
 // Phase E：qualification 微基准结果 + 设备指纹 + 路由档案的数据契约。
 //
-// 设计（控制包 04_QUALIFICATION_SPEC.md / 06_STATIC_ROUTING_SPEC.md）：
-//   1. 公共头不暴露第三方类型（无 nlohmann/json 依赖，手写 ostringstream 序列化）
-//   2. ProfileKind 三档：Quick / Standard / Full，决定预热/轮数/resident 分离
-//   3. 固定 seed：所有 benchmark 用 0xA57C5AC20260802（确定性、可复现）
-//   4. Profile 三态：Missing / Stale / Corrupt（路由器据此决定回退策略）
-//   5. 设备指纹：CPU 型号 + 核心数 + ISA + GPU 型号 + 显存 + 驱动版本，SHA-256 哈希
-//   6. 路由档案只读：正式运行不修改 profile，不在线学习
+// 设计（ 04_QUALIFICATION_SPEC.md / 06_STATIC_ROUTING_SPEC.md）：
+// 1. 公共头不暴露第三方类型（无 nlohmann/json 依赖，手写 ostringstream 序列化）
+// 2. ProfileKind 三档：Quick / Standard / Full，决定预热/轮数/resident 分离
+// 3. 固定 seed：所有 benchmark 用 0xA57C5AC20260802（确定性、可复现）
+// 4. Profile 三态：Missing / Stale / Corrupt（路由器据此决定回退策略）
+// 5. 设备指纹：CPU 型号 + 核心数 + ISA + GPU 型号 + 显存 + 驱动版本，SHA-256 哈希
+// 6. 路由档案只读：正式运行不修改 profile，不在线学习
 #pragma once
 
 #include <cstddef>
@@ -41,7 +41,7 @@ struct RawBenchmarkSample {
     double throughput_gbps{0.0};      // GB/s
 };
 
-// ===== 统一工作量描述（25 号计划 §1.4）=====
+// ===== 统一工作量描述（25 §1.4）=====
 // problem_size 统一表示"总工作项数"；二维任务通过 width/height 显式给出。
 // CPU/GPU 同一记录必须共享同一 workload descriptor 与输入种子。
 struct BenchmarkWorkloadDescriptor {
@@ -62,18 +62,18 @@ struct BenchmarkWorkloadDescriptor {
 struct KernelBenchmarkResult {
     std::uint32_t kernel_id{0};       // KernelId 的整数值
     std::string kernel_name;          // 人类可读名（"AXPY"/"Triad"/...）
-    std::string variant;              // 25 号计划：内核变体（"dot" / "hist_tls" /
-                                      //   "hist_atomic" / "hist_hotspot" /
-                                      //   "scatter_perm" / "scatter_atomic" /
-                                      //   "scatter_hotspot" / 默认空）
+    std::string variant;              // 25 ：内核变体（"dot" / "hist_tls" /
+                                      // "hist_atomic" / "hist_hotspot" /
+                                      // "scatter_perm" / "scatter_atomic" /
+                                      // "scatter_hotspot" / 默认空）
     std::string backend;              // "cpu" / "cuda:0" / "cuda:1" / ...
     std::string precision;            // "fp32" / "fp64"
-    // 24 号计划 §1：原始记录区分实现维度
+    // 24 §1：原始记录区分实现维度
     std::string isa;                  // "baseline"/"sse"/"avx"/"avx2"/"avx512"（GPU 为 "gpu"）
     std::uint32_t threads{0};         // 参与线程数（0=默认全部；GPU 为 0）
     std::size_t problem_size{0};      // 元素数
     std::size_t bytes_per_element{0}; // 字节数（fp32=4, fp64=8）
-    BenchmarkWorkloadDescriptor workload;  // 统一工作量描述（25 号计划 §1.4）
+    BenchmarkWorkloadDescriptor workload;  // 统一工作量描述（25 §1.4）
     std::vector<RawBenchmarkSample> samples;  // 多轮原始样本
     // 聚合统计（由 aggregate 计算）
     std::uint64_t median_kernel_ns{0};

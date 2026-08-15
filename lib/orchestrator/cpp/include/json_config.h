@@ -1,14 +1,14 @@
 // ============================================================================
 // json_config.h - Stage1 JSON 配置解析与 Schema 验证
 // 功能: 解析 stage1.json 配置文件, 使用 nlohmann-json-schema-validator v2.4.0
-//       进行正式 Draft 2020-12 Schema 验证 (单一权威, 无手写重复规则)
-//       typed Stage1Config 直接驱动各 stage (无 compat flat JSON 桥)
+// 进行正式 Draft 2020-12 Schema 验证 (单一权威, 无手写重复规则)
+// typed Stage1Config 直接驱动各 stage (无 compat flat JSON 桥)
 //
 // 设计说明:
-//   - 唯一入口: orchestrator.exe <stage1.json>
-//   - JSON 中的相对路径基于 JSON 文件所在目录解析为绝对路径
-//   - Schema 验证规则与 stage1.schema.json (v1.1) 一致
-//   - 验证通过后, config 中所有路径字段均为绝对路径
+// - 唯一入口: orchestrator.exe <stage1.json>
+// - JSON 中的相对路径基于 JSON 文件所在目录解析为绝对路径
+// - Schema 验证规则与 stage1.schema.json (v1.1) 一致
+// - 验证通过后, config 中所有路径字段均为绝对路径
 // ============================================================================
 
 #pragma once
@@ -64,7 +64,7 @@ struct Stage1Config {
 
     struct Drizzle {
         std::string mode = "precise";        // const "precise"
-        double pixfrac = 0.8;                // (0, 1]; 生产默认 0.8 (V5 CFG-001)
+        double pixfrac = 0.8;                // (0, 1]; 生产默认 0.8
         std::string nside_mode = "auto";     // "auto" 或 "explicit"
         int nside_value = 0;                 // 仅 explicit 模式, [16, 4194304]
         std::string ordering = "nested";     // const "nested"
@@ -72,7 +72,7 @@ struct Stage1Config {
 
     struct Output {
         std::string hiss;                    // deprecated: 仅 legacy validation 用 (可空)
-        std::string hips;                    // Phase1 V3: HiPS 产品集目录 (空=由 hiss 派生)
+        std::string hips;                    // Phase1 : HiPS 产品集目录 (空=由 hiss 派生)
         std::string log;                     // 必填, 非空
         std::string diagnostics_dir;         // 必填, 非空
         bool overwrite = false;

@@ -1,6 +1,6 @@
 // lib/acr/tests/classic/e20_fault_fallback.cpp — E20 故障和回退
 // 规范 E20：显存不足、launch失败、分配失败、取消、异常、
-//   未开始块回收，已完成块不重复。
+// 未开始块回收，已完成块不重复。
 // 聚焦于 Dispatcher/MixedRunner 的 fallback 行为。
 #include "classic_common.hpp"
 

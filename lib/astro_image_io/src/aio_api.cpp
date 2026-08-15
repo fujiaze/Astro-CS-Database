@@ -12,7 +12,7 @@
 #include "aio_xisf.h"
 #endif
 
-// R10 修复: AIO 模块级精度模式全局变量
+// 修复: AIO 模块级精度模式全局变量
 // PrecisionContext 单例在 DLL 边界不共享 (EXE 和 DLL 各有一份副本),
 // 必须通过 aio_set_precision_mode() 显式设置 AIO 模块的精度模式
 static int g_aio_precision_mode_fp64 = 0;  // 0=FP32, 1=FP64

@@ -2,18 +2,18 @@
 // cli_command.cpp - JSONL 事件输出 + SIGINT 信号处理 + SHA-256 实现
 //
 // Phase1 JSON 入口重构后, 本文件仅保留:
-//   1. P04-004 SIGINT 信号处理 (p04004_register/unregister_signal_handler)
-//   2. sha256_impl::sha256 (纯 C++17 SHA-256, 供 json_config.cpp 调用)
-//   3. CliCommand::output_jsonl_event_ex (JSONL 事件输出, 供 main.cpp 调用)
+// 1. P04-004 SIGINT 信号处理 (p04004_register/unregister_signal_handler)
+// 2. sha256_impl::sha256 (纯 C++17 SHA-256, 供 json_config.cpp 调用)
+// 3. CliCommand::output_jsonl_event_ex (JSONL 事件输出, 供 main.cpp 调用)
 //
 // 已删除:
-//   - 所有 cmd_* 命令实现 (cmd_run/cmd_run_batch/cmd_stage1/cmd_stage2/...)
-//   - json_merge namespace (手写 JSON 解析器)
-//   - BUILTIN_DEFAULT_CONFIG / compute_effective_config (配置优先级逻辑)
-//   - merge_stage1_overrides_into_config / print_stage1_diagnostics
-//   - output_json_result / output_json_batch / output_jsonl_event (旧版)
-//   - CliCommand::execute / CliCommand::print_usage
-//   - stage_str / generate_job_id
+// - 所有 cmd_* 命令实现 (cmd_run/cmd_run_batch/cmd_stage1/cmd_stage2/...)
+// - json_merge namespace (手写 JSON 解析器)
+// - BUILTIN_DEFAULT_CONFIG / compute_effective_config (配置优先级逻辑)
+// - merge_stage1_overrides_into_config / print_stage1_diagnostics
+// - output_json_result / output_json_batch / output_jsonl_event (旧版)
+// - CliCommand::execute / CliCommand::print_usage
+// - stage_str / generate_job_id
 // ============================================================================
 
 #include "cli_command.h"

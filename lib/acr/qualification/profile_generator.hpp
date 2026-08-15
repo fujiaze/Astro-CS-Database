@@ -2,11 +2,11 @@
 // Phase E3：聚合样本 → 生成 HardwareProfile → 序列化 hardware-profile.json（多维能力曲线）。
 //
 // 设计：
-//   1. profile_generator 不修改 benchmark 原始样本，仅做 median/stddev 聚合
-//   2. 设备指纹：调用 generate_hardware_report 提取关键字段并 SHA-256
-//   3. JSON 序列化手写（与 diagnostics/hardware_report.cpp 风格一致，无第三方依赖）
-//   4. hardware-profile.json 是只读档案：运行时不修改
-//   5. benchmark 结果按 kernel 类型映射到对应能力曲线族（Copy/Triad→memory，AXPY→arithmetic，Dot→reduction）
+// 1. profile_generator 不修改 benchmark 原始样本，仅做 median/stddev 聚合
+// 2. 设备指纹：调用 generate_hardware_report 提取关键字段并 SHA-256
+// 3. JSON 序列化手写（与 diagnostics/hardware_report.cpp 风格一致，无第三方依赖）
+// 4. hardware-profile.json 是只读档案：运行时不修改
+// 5. benchmark 结果按 kernel 类型映射到对应能力曲线族（Copy/Triad→memory，AXPY→arithmetic，Dot→reduction）
 #pragma once
 
 #include "profile_schema.hpp"
@@ -30,10 +30,10 @@ public:
     // ===== Phase E3：生成 HardwareProfile（hardware-profile.json，新权威路径）=====
     // 从 benchmark 结果 + 当前硬件生成 HardwareProfile。
     // benchmark 结果按 kernel 类型映射到能力曲线族：
-    //   Copy/Triad  → memory curve（MainMem:host:copy/triad）
-    //   AXPY        → arithmetic curve（fp32:add:baseline）
-    //   Dot         → reduction curve（dot:fp32）
-    //   其他 kernel → arithmetic curve（兜底，按 precision 分配）
+    // Copy/Triad → memory curve（MainMem:host:copy/triad）
+    // AXPY → arithmetic curve（fp32:add:baseline）
+    // Dot → reduction curve（dot:fp32）
+    // 其他 kernel → arithmetic curve（兜底，按 precision 分配）
     // GPU backend 结果 → device_id=1+，曲线按 backend 名归入对应 DeviceProfile
     // 同时填充固定开销（submit/launch/event/alloc/merge，用保守估算）
     HardwareProfile generate_hardware_profile(const std::vector<KernelBenchmarkResult>& results,

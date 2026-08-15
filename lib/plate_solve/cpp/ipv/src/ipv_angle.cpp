@@ -1,29 +1,29 @@
 // ============================================================================
-// ipv_angle.cpp - IPV 角度循环验证模块实现 (V4.11 CDA §5.3)
+// ipv_angle.cpp - IPV 角度循环验证模块实现 ( CDA §5.3)
 //
 // 实现 angle_cyclic_verify: 对一对候选 (pivot_u, candidate_w) 及其已匹配
 // 邻星做旋转角一致性验证, 返回 [0,1] consistency 分数。
 //
 // 算法步骤 (设计文档 §5.3.2 方法 B + §7.2):
-//   1. 邻星数 < 3 → 返回 0.5 (中性, 不加不减)
-//   2. 对每个已匹配邻星 k 计算方位角:
-//      图像侧 φₖ = atan2(U[uₖ].y - pivot_img.y, U[uₖ].x - pivot_img.x)
-//      星表侧 Φₖ = atan2(W[wₖ].y - pivot_cat.y, W[wₖ].x - pivot_cat.x)
-//      都归一化到 [0, 2π)
-//   3. 旋转角差 Δθₖ = Φₖ - φₖ (归一化到 [-π, π))
-//   4. 180° 周期循环统计 (镜像模式下旋转 180° 等价):
-//      sum_sin = Σ sin(2×Δθₖ), sum_cos = Σ cos(2×Δθₖ)
-//      R = sqrt(sum_sin² + sum_cos²) / m
-//      circular_std_rad = sqrt(-2 × ln(R))   (R > 0)
-//      circular_std_deg = circular_std_rad × 180/π
-//      注: R = 0 时 circular_std_deg = Inf, 设为大值 180
-//   5. 离群点剔除 (3σ 准则):
-//      circular_mean_rad = atan2(sum_sin, sum_cos) / 2  (即 Δθ_mean)
-//      对每个 Δθₖ 计算 dev = |wrap(Δθₖ - Δθ_mean, [-π, π))|
-//      排除 dev > 3 × circular_std_rad 的点
-//      (排除后剩余 < 3 点则不排除)
-//      重算 circular_std
-//   6. consistency = max(0.0, 1.0 - circular_std_deg / angle_tol_deg)
+// 1. 邻星数 < 3 → 返回 0.5 (中性, 不加不减)
+// 2. 对每个已匹配邻星 k 计算方位角:
+// 图像侧 φₖ = atan2(U[uₖ].y - pivot_img.y, U[uₖ].x - pivot_img.x)
+// 星表侧 Φₖ = atan2(W[wₖ].y - pivot_cat.y, W[wₖ].x - pivot_cat.x)
+// 都归一化到 [0, 2π)
+// 3. 旋转角差 Δθₖ = Φₖ - φₖ (归一化到 [-π, π))
+// 4. 180° 周期循环统计 (镜像模式下旋转 180° 等价):
+// sum_sin = Σ sin(2×Δθₖ), sum_cos = Σ cos(2×Δθₖ)
+// R = sqrt(sum_sin² + sum_cos²) / m
+// circular_std_rad = sqrt(-2 × ln(R)) (R > 0)
+// circular_std_deg = circular_std_rad × 180/π
+// 注: R = 0 时 circular_std_deg = Inf, 设为大值 180
+// 5. 离群点剔除 (3σ 准则):
+// circular_mean_rad = atan2(sum_sin, sum_cos) / 2 (即 Δθ_mean)
+// 对每个 Δθₖ 计算 dev = |wrap(Δθₖ - Δθ_mean, [-π, π))|
+// 排除 dev > 3 × circular_std_rad 的点
+// (排除后剩余 < 3 点则不排除)
+// 重算 circular_std
+// 6. consistency = max(0.0, 1.0 - circular_std_deg / angle_tol_deg)
 //
 // 日志: 用 std::printf 到 stderr, 不依赖 Logger (保持模块独立)
 //
@@ -158,9 +158,9 @@ double angle_cyclic_verify(
     double cmean_rad = cmean_rad1;
 
     // 5. 离群点剔除 (3σ 准则)
-    //    对每个 Δθₖ 计算 dev = |wrap(Δθₖ - Δθ_mean, [-π, π))|
-    //    排除 dev > 3 × circular_std_rad 的点
-    //    若排除后剩余 < 3 点则不排除
+    // 对每个 Δθₖ 计算 dev = |wrap(Δθₖ - Δθ_mean, [-π, π))|
+    // 排除 dev > 3 × circular_std_rad 的点
+    // 若排除后剩余 < 3 点则不排除
     if (cstd_rad > 0.0 && cstd_rad < 3.14159265358979323846) {
         std::vector<double> dtheta_filtered;
         dtheta_filtered.reserve(m_eff);

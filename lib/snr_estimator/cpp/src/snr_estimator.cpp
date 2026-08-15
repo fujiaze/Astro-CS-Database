@@ -1,11 +1,11 @@
 // snr_estimator.cpp - SNR 估算模块实现
 // 乘法模型: SNR(pixel) = SNR_phot × (SNR_psf(pixel) / median(SNR_psf))
 //
-// SNR_phot = 1.0 / (ln(10) × sigma_residual)  全帧常数
-// SNR_psf(pixel) = IDW(PSF星位置, (A-B)/mad)  反距离加权插值
-//   - A: psf[i*9+6] (振幅), B: psf[i*9+1] (局部背景), mad: psf[i*9+7] (残差MAD)
-//   - IDW power=2.0, 搜索半径=FOV对角线像素
-//   - 跳过 status!=0 或 A<=B 或 mad<=0 的星
+// SNR_phot = 1.0 / (ln(10) × sigma_residual) 全帧常数
+// SNR_psf(pixel) = IDW(PSF星位置, (A-B)/mad) 反距离加权插值
+// - A: psf[i*9+6] (振幅), B: psf[i*9+1] (局部背景), mad: psf[i*9+7] (残差MAD)
+// - IDW power=2.0, 搜索半径=FOV对角线像素
+// - 跳过 status!=0 或 A<=B 或 mad<=0 的星
 
 #include "snr_estimator.h"
 
@@ -100,13 +100,13 @@ SNR_API int snr_estimate(const float* data, int h, int w,
         const double* row = psf + i * 9;
         double status = row[0];
         double B = row[1];
-        // double flux = row[2];   // 未使用
+        // double flux = row[2]; // 未使用
         double cx = row[3];
         double cy = row[4];
-        // double fwhm = row[5];   // 未使用
+        // double fwhm = row[5]; // 未使用
         double A = row[6];
         double mad = row[7];
-        // double ecc = row[8];    // 未使用
+        // double ecc = row[8]; // 未使用
 
         if (status != 0.0) { ++n_skip_status; continue; }
         if (A <= B) { ++n_skip_ab; continue; }
@@ -204,7 +204,7 @@ SNR_API int snr_estimate(const float* data, int h, int w,
 }
 
 // ============================================================================
-// snr_estimate_f64: FP64 版本 (R10 双精度 ABI)
+// snr_estimate_f64: FP64 版本 ( 双精度 ABI)
 //
 // 与 snr_estimate 逻辑完全一致 (data 参数实际未参与 SNR 计算, 仅作 nullptr/尺寸校验),
 // 此处为 ABI 一致性提供 double* 入口, 便于 FP64 管线统一调用 _f64 后缀接口.
@@ -403,10 +403,10 @@ static double snrEvalSip(const double* coeffs, double dx, double dy, int order) 
 // 与 drizzle 阶段查询点使用同一坐标系 (P03-004 WCS+SIP 一致性)
 //
 // 步骤:
-//   1. 归一化像素坐标: dx = x - (crpix1-1), dy = y - (crpix2-1) (CRPIX 1-based)
-//   2. 前向 SIP 修正 (A/B): dx' = dx + A(dx,dy), dy' = dy + B(dx,dy)
-//   3. CD 矩阵: xi = cd[0]*dx' + cd[1]*dy', eta = cd[2]*dx' + cd[3]*dy'
-//   4. TAN 反投影: (xi, eta) → (ra, dec)
+// 1. 归一化像素坐标: dx = x - (crpix1-1), dy = y - (crpix2-1) (CRPIX 1-based)
+// 2. 前向 SIP 修正 (A/B): dx' = dx + A(dx,dy), dy' = dy + B(dx,dy)
+// 3. CD 矩阵: xi = cd[0]*dx' + cd[1]*dy', eta = cd[2]*dx' + cd[3]*dy'
+// 4. TAN 反投影: (xi, eta) → (ra, dec)
 // ============================================================================
 static void pixelToSkySimple(double x, double y,
                               const SnrWcsParams* wcs,
@@ -419,7 +419,7 @@ static void pixelToSkySimple(double x, double y,
     double dy = y - (wcs->crpix2 - 1.0);
 
     // 2. 前向 SIP 修正 (A/B), 若 a_order>0
-    //    FITS 标准: A/B 是前向多项式, U = dx + A(dx,dy), V = dy + B(dx,dy)
+    // FITS 标准: A/B 是前向多项式, U = dx + A(dx,dy), V = dy + B(dx,dy)
     if (wcs->sip.a_order > 0 || wcs->sip.b_order > 0) {
         double f = snrEvalSip(wcs->sip.a, dx, dy, wcs->sip.a_order);
         double g = snrEvalSip(wcs->sip.b, dx, dy, wcs->sip.b_order);

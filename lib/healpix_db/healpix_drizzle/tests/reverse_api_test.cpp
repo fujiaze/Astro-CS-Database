@@ -2,10 +2,10 @@
 // reverse_api_test.cpp - 正式 DLL 反向 Drizzle C ABI 验收 (REV-101)
 //
 // 动态加载 healpix_drizzle.dll, 验证:
-//   1. hp_drizzle_reverse_version / capability;
-//   2. hp_drizzle_reverse_run (FP64 输出): 非零信号、统计字段、守恒上界;
-//   3. 真实 FP32 输入 → FP32 输出 (REV-104 回归): 非全零;
-//   4. 非法输入返回明确错误码 (pixfrac=0 / 双 signal / WCS 无效)。
+// 1. hp_drizzle_reverse_version / capability;
+// 2. hp_drizzle_reverse_run (FP64 输出): 非零信号、统计字段、守恒上界;
+// 3. 真实 FP32 输入 → FP32 输出 (REV-104 回归): 非全零;
+// 4. 非法输入返回明确错误码 (pixfrac=0 / 双 signal / WCS 无效)。
 // ============================================================================
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -150,7 +150,7 @@ int main(int argc, char** argv) {
              rc, sum32, nz32);
     CHECK(rc == 0 && nz32 > 0 && sum32 > 0, msg);
 
-    // ---- MICROFIX #3: SIP order 5 支持 + order 6 硬失败 ----
+    // ---- : SIP order 5 支持 + order 6 硬失败 ----
     in.output_fp64 = 1; in.leaf_signal_f32 = nullptr; in.leaf_signal_f64 = sig64.data();
     in.sip_order = 5; in.sip_ap_order = 5;
     std::memset(in.sip_a, 0, sizeof(in.sip_a));

@@ -257,7 +257,7 @@ double compute_f_syn(
         q_grid = akima_interpolate(qw, qv, grid, 0.0);
     }
 
-    // 被积函数: S(λ)·T(λ)·Q(λ)·λ  (无 QE 时 Q=1.0)
+    // 被积函数: S(λ)·T(λ)·Q(λ)·λ (无 QE 时 Q=1.0)
     std::vector<double> integrand(n_points, 0.0);
     for (int i = 0; i < n_points; ++i) {
         double q = has_qe ? q_grid[i] : 1.0;
@@ -334,7 +334,7 @@ SpectrumIntegratorCache prepare_filter_cache(
         cache.qe_trans = akima_interpolate(qw, qv, cache.spectrum_wl, 0.0);
     }
 
-    // 6. 预计算 weighted_wl[i] = λ_i × T(λ_i) × Q(λ_i)  (无 QE 时 Q=1.0)
+    // 6. 预计算 weighted_wl[i] = λ_i × T(λ_i) × Q(λ_i) (无 QE 时 Q=1.0)
     cache.weighted_wl.resize(spectrum_count, 0.0);
     for (int i = 0; i < spectrum_count; ++i) {
         double q = has_qe ? cache.qe_trans[i] : 1.0;
@@ -384,7 +384,7 @@ double compute_f_syn_cached(
     double mag_factor = std::pow(10.0, -0.4 * mag_g);
 
     // 2. 被积函数 integrand[i] = S(λ_i) × T(λ_i) × λ_i = S[i] × weighted_wl[i]
-    //    其中 S(λ_i) 已含 mag_factor 归一化
+    // 其中 S(λ_i) 已含 mag_factor 归一化
     std::vector<double> integrand(n_pts, 0.0);
     for (int i = 0; i < n_pts; ++i) {
         double s = (double)spectrum_uint8[i] * mag_factor;
@@ -401,8 +401,8 @@ double compute_f_syn_cached(
 
 // ----------------------------------------------------------------------------
 // compute_f_syn_cached_xpsd: XPSD 官方解码变体 (PCL 语义)
-//   F(λ) = byte*flux_mul + flux_min  (绝对谱辐照度 W*m^-2*nm^-1)
-//   F_syn = ∫ F(λ)·T(λ)·Q(λ)·λ dλ
+// F(λ) = byte*flux_mul + flux_min (绝对谱辐照度 W*m^-2*nm^-1)
+// F_syn = ∫ F(λ)·T(λ)·Q(λ)·λ dλ
 // ----------------------------------------------------------------------------
 double compute_f_syn_cached_xpsd(
     const SpectrumIntegratorCache& cache,

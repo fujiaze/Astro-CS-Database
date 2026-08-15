@@ -1,27 +1,27 @@
 // ============================================================================
-// drizzle_science_matrix_test.cpp - 阶段4 科学矩阵 (控制包 Gate P1/P2/P4)
+// drizzle_science_matrix_test.cpp - 阶段4 科学矩阵 ( Gate P1/P2/P4)
 //
 // Part A: Overlap 矩阵 (Gate P1)
-//   WCS 变体 {TAN, 旋转 CD, 剪切 CD, 负 CD/轴翻转, 代表性 SIP}
-//     x 尺度 {0.1", 1", 10", 1', 1°} x pixfrac {0.1, 0.5, 1.0}
-//   per drop 记录:
-//     - reference drop area (WCS 边 64 段细采样, 高精度参考)
-//     - computed drop area (生产 4 角/自适应多边形)
-//     - raw overlap sum (Σ overlap over 生产候选)
-//     - raw absolute/relative error (不得用 Σoverlap 归一化掩盖)
-//   Gate: |computed-ref|/ref < 1e-6 (SIP) / < 1e-10 (纯 TAN);
-//         |Σoverlap-computed|/computed < 1e-8
+// WCS 变体 {TAN, 旋转 CD, 剪切 CD, 负 CD/轴翻转, 代表性 SIP}
+// x 尺度 {0.1", 1", 10", 1', 1°} x pixfrac {0.1, 0.5, 1.0}
+// per drop 记录:
+// - reference drop area (WCS 边 64 段细采样, 高精度参考)
+// - computed drop area (生产 4 角/自适应多边形)
+// - raw overlap sum (Σ overlap over 生产候选)
+// - raw absolute/relative error (不得用 Σoverlap 归一化掩盖)
+// Gate: |computed-ref|/ref < 1e-6 (SIP) / < 1e-10 (纯 TAN);
+// |Σoverlap-computed|/computed < 1e-8
 //
 // Part B: WCS 变体 Drizzle 矩阵 (Gate P2/P4, NSIDE=65536 生产尺度)
-//   per variant: FP64 一次 + FP32 一次
-//     - leaf 集合完全一致 (missing/extra = 0)
-//     - 逐 leaf 最大相对差 < 1e-5
-//     - 真实 ULP 距离 (IEEE754 位模式, 非 relative/1e-7), 按信号幅值分桶
+// per variant: FP64 一次 + FP32 一次
+// - leaf 集合完全一致 (missing/extra = 0)
+// - 逐 leaf 最大相对差 < 1e-5
+// - 真实 ULP 距离 (IEEE754 位模式, 非 relative/1e-7), 按信号幅值分桶
 //
 // 输出:
-//   run/temp/precise_hardening/overlap_matrix.jsonl
-//   run/temp/precise_hardening/leaf_comparison.jsonl
-//   run/temp/precise_hardening/ulp_distribution.json
+// run/temp/precise_hardening/overlap_matrix.jsonl
+// run/temp/precise_hardening/leaf_comparison.jsonl
+// run/temp/precise_hardening/ulp_distribution.json
 // ============================================================================
 #include "drizzle_engine.h"
 #include "hiss_format.h"
@@ -158,13 +158,13 @@ static double pct(std::vector<int64_t>& v, double p) {
 
 // ============================================================================
 // 高精度面积参考 (仅测试离线使用, 不进入生产热路径)
-//   参考必须独立于生产路径:
-//     - 微小 drop (max_angle < 1e-3 rad): 切平面正交基投影 + 2D shoelace。
-//       0.01\" drop 角距 ~5e-8 rad 在基投影下相对误差 ~2e-9, 球面偏差
-//       O(θ²) ~ 1e-16, 均远低于 1e-6 门限。
-//       (不能对 0.01\" 用 long double 64 段采样: 段间距 ~8e-10 rad,
-//        det 相消使参考自身噪声 ~1e-3, 反而不可用)
-//     - 大 drop: 64 段/边细采样 + long double Eriksson
+// 参考必须独立于生产路径:
+// - 微小 drop (max_angle < 1e-3 rad): 切平面正交基投影 + 2D shoelace。
+// 0.01\" drop 角距 ~5e-8 rad 在基投影下相对误差 ~2e-9, 球面偏差
+// O(θ²) ~ 1e-16, 均远低于 1e-6 门限。
+// (不能对 0.01\" 用 long double 64 段采样: 段间距 ~8e-10 rad,
+// det 相消使参考自身噪声 ~1e-3, 反而不可用)
+// - 大 drop: 64 段/边细采样 + long double Eriksson
 // ============================================================================
 static double area_ref_ld(const spherical::Vec3* v, int n) {
     if (n < 3) return 0.0;

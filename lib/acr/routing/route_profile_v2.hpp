@@ -1,15 +1,15 @@
 // lib/acr/routing/route_profile_v2.hpp
 //
-// ACR Benchmark 驱动路由（控制包 20260807-050558，SHA d026ea30...c178537）：
+// ACR Benchmark 驱动路由（ 20260807-050558，SHA d026ea30...c178537）：
 // Operation Route Profile v2（schema acr-operation-route-profile-2）。
 //
 // 冻结语义（03/04 号规范）：
-//   - 候选路径固定为 Legacy OpenMP / GPU-only Direct / CPU+GPU Mixed；
-//   - 路由只由离线 Profile 预测端到端完工时间 + 运行时驻留/排队/内存状态
-//     决定，不使用人工像素阈值或固定比例；
-//   - 旧 fixed_us/ns_per_item/min_profitable_items 仅作诊断，不参与 Auto；
-//   - Profile 保存原始样本、validated domain、分场景路径曲线、chunk 服务
-//     曲线、Mixed 校验、预测误差与指纹。
+// - 候选路径固定为 Legacy OpenMP / GPU-only Direct / CPU+GPU Mixed；
+// - 路由只由离线 Profile 预测端到端完工时间 + 运行时驻留/排队/内存状态
+// 决定，不使用人工像素阈值或固定比例；
+// - 旧 fixed_us/ns_per_item/min_profitable_items 仅作诊断，不参与 Auto；
+// - Profile 保存原始样本、validated domain、分场景路径曲线、chunk 服务
+// 曲线、Mixed 校验、预测误差与指纹。
 #pragma once
 
 #include <cstddef>
@@ -126,12 +126,12 @@ struct RouteSamplePoint {
 // 单条路径（OpenMP/GPU Direct/Mixed）
 //
 // 04 号契约（BDR Reviewed 修正）：
-//   - model_available：已标定、可执行、可预测。诊断 Route Replay 中所有
-//     model_available 候选必须参加预测，不能因误差大直接删除最快候选；
-//   - model_trusted：final untouched holdout 误差门（median<=10%、max<=15%）
-//     通过，生产 Auto 才允许使用；
-//   - eligible：旧 schema 兼容字段，恒等于 model_trusted；
-//   - 场景未 qualified 时生产只允许 OpenMP fallback（06 号规范 §2）。
+// - model_available：已标定、可执行、可预测。诊断 Route Replay 中所有
+// model_available 候选必须参加预测，不能因误差大直接删除最快候选；
+// - model_trusted：final untouched holdout 误差门（median<=10%、max<=15%）
+// 通过，生产 Auto 才允许使用；
+// - eligible：旧 schema 兼容字段，恒等于 model_trusted；
+// - 场景未 qualified 时生产只允许 OpenMP fallback（06 号规范 §2）。
 struct RoutePath {
     bool model_available{false};
     bool model_trusted{false};
@@ -177,7 +177,7 @@ struct RouteReplayPoint {
 struct RouteScenarioProfile {
     std::string scenario_id;   // cold_host_output 等
     bool supported{true};
-    // Dispatcher Finalization（控制包 CE288DBF...F7E88，08 计划 1）：
+    // Dispatcher Finalization（ CE288DBF...F7E88，08 计划 1）：
     // Route-centric 资格。场景硬门 = 独立 Final Route Replay 全部
     // chosen_actual/oracle_best <= 1.10 + 全部候选 model_available +
     // metrics 完整 + Final>=8 + 数据隔离 + chunk sanity + cold 真实。
@@ -241,7 +241,7 @@ struct RouteProfileV2 {
     std::string schema_version{"acr-operation-route-profile-2"};
     std::string profile_state{"diagnostic"};  // qualified/partial/diagnostic/stale
     // 权威发布元数据（05_PROFILE_PUBLICATION.md）：
-    //   只有 preset=="standard" 可发布 authoritative profile；quick 不得覆盖。
+    // 只有 preset=="standard" 可发布 authoritative profile；quick 不得覆盖。
     std::string calibration_preset;    // "standard" / "quick" / "full" / ""
     std::string calibration_head;      // 生成 Profile 的 git HEAD
     std::string calibration_run_id;    // 唯一运行标识（调用方传入）

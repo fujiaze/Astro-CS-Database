@@ -1,34 +1,34 @@
 // ============================================================================
-// test_precision_dual.cpp - HISS Writer/Reader FP32/FP64 双模式验证测试 (R10)
+// test_precision_dual.cpp - HISS Writer/Reader FP32/FP64 双模式验证测试
 //
 // 用确定性合成数据验证:
-//   01. FP32 模式 roundtrip 精确匹配 (bit-exact)
-//   02. FP64 模式 roundtrip 精确匹配 (bit-exact)
-//   03. 禁止静默转换: FP32 文件用 read_tile_signal_f64 应返回 HISS_ERR_UNSUPPORTED
-//                     FP64 文件用 read_tile_signal / read_tile 应返回 HISS_ERR_UNSUPPORTED
-//   04. metadata 中 precision_mode 和 signal_dtype 字段正确记录
-//   05. FP32 与 FP64 精度差异验证 (FP64 保留 float32 无法表示的精度)
+// 01. FP32 模式 roundtrip 精确匹配 (bit-exact)
+// 02. FP64 模式 roundtrip 精确匹配 (bit-exact)
+// 03. 禁止静默转换: FP32 文件用 read_tile_signal_f64 应返回 HISS_ERR_UNSUPPORTED
+// FP64 文件用 read_tile_signal / read_tile 应返回 HISS_ERR_UNSUPPORTED
+// 04. metadata 中 precision_mode 和 signal_dtype 字段正确记录
+// 05. FP32 与 FP64 精度差异验证 (FP64 保留 float32 无法表示的精度)
 //
 // 编译 (从 lib/astro_image_io/ 目录):
-//   g++ -std=c++17 -O2 -fopenmp -DHAS_ZSTD -DAIO_ENABLE_HEALPIX \
-//     -Iinclude -Isrc \
-//     tests/test_precision_dual.cpp \
-//     src/hiss_codec.cpp src/hiss_common.cpp \
-//     src/hiss_tile_model.cpp src/hiss_transform.cpp \
-//     src/hiss_writer.cpp src/hiss_stream_writer.cpp \
-//     src/hiss_reader.cpp \
-//     src/healpix/aio_healpix_io.cpp \
-//     src/aio_api.cpp src/aio_log.cpp \
-//     -lzstd -lm -o tests/test_precision_dual.exe
+// g++ -std=c++17 -O2 -fopenmp -DHAS_ZSTD -DAIO_ENABLE_HEALPIX \
+// -Iinclude -Isrc \
+// tests/test_precision_dual.cpp \
+// src/hiss_codec.cpp src/hiss_common.cpp \
+// src/hiss_tile_model.cpp src/hiss_transform.cpp \
+// src/hiss_writer.cpp src/hiss_stream_writer.cpp \
+// src/hiss_reader.cpp \
+// src/healpix/aio_healpix_io.cpp \
+// src/aio_api.cpp src/aio_log.cpp \
+// -lzstd -lm -o tests/test_precision_dual.exe
 //
 // 运行:
-//   ./tests/test_precision_dual.exe
+// ./tests/test_precision_dual.exe
 //
 // 约束:
-//   - 确定性合成数据 (固定值, 不用随机数)
-//   - FP32 roundtrip bit-exact (writer: double->float32 强转, reader: float32 读回)
-//   - FP64 roundtrip bit-exact (writer: double 直接写, reader: double 读回)
-//   - 不使用 -ffast-math
+// - 确定性合成数据 (固定值, 不用随机数)
+// - FP32 roundtrip bit-exact (writer: double->float32 强转, reader: float32 读回)
+// - FP64 roundtrip bit-exact (writer: double 直接写, reader: double 读回)
+// - 不使用 -ffast-math
 // ============================================================================
 #include "hiss_format.h"
 #include "hiss_tile_model.h"
@@ -78,8 +78,8 @@ static std::vector<std::string> g_failures;
 
 // ============================================================================
 // 辅助: 构造确定性合成累加器
-//   使用 NSIDE=64 -> tile_nside=16 -> n_leaf_per_tile = 4^2 = 16
-//   所有像素全覆盖 (sum_area = A_p), FULL 模式
+// 使用 NSIDE=64 -> tile_nside=16 -> n_leaf_per_tile = 4^2 = 16
+// 所有像素全覆盖 (sum_area = A_p), FULL 模式
 // ============================================================================
 
 static hiss::DrizzleTileAccumulator make_deterministic_acc(
@@ -100,11 +100,11 @@ static hiss::DrizzleTileAccumulator make_deterministic_acc(
 
 // ============================================================================
 // 测试 01: FP32 模式 roundtrip 精确匹配 (bit-exact)
-//   写入: add_tile (FP32, 默认), writer 内部 double->float32 强转
-//   读取: read_tile_signal (float32)
-//   验证: 每个像素 bit-exact 匹配 (float32 字节比较)
+// 写入: add_tile (FP32, 默认), writer 内部 double->float32 强转
+// 读取: read_tile_signal (float32)
+// 验证: 每个像素 bit-exact 匹配 (float32 字节比较)
 //
-//   使用值必须在 float32 中精确可表示 (整数 + 简单二进制分数)
+// 使用值必须在 float32 中精确可表示 (整数 + 简单二进制分数)
 // ============================================================================
 
 static void test_01_fp32_roundtrip_bitexact(int id) {
@@ -193,11 +193,11 @@ static void test_01_fp32_roundtrip_bitexact(int id) {
 
 // ============================================================================
 // 测试 02: FP64 模式 roundtrip 精确匹配 (bit-exact)
-//   写入: add_tile_f64 (FP64), writer 直接写 double 字节
-//   读取: read_tile_signal_f64 (double)
-//   验证: 每个像素 bit-exact 匹配 (double 字节比较)
+// 写入: add_tile_f64 (FP64), writer 直接写 double 字节
+// 读取: read_tile_signal_f64 (double)
+// 验证: 每个像素 bit-exact 匹配 (double 字节比较)
 //
-//   使用 float32 无法精确表示的值, 证明 FP64 保留精度
+// 使用 float32 无法精确表示的值, 证明 FP64 保留精度
 // ============================================================================
 
 static void test_02_fp64_roundtrip_bitexact(int id) {
@@ -285,9 +285,9 @@ static void test_02_fp64_roundtrip_bitexact(int id) {
 
 // ============================================================================
 // 测试 03: 禁止静默转换 (cross-mode rejection)
-//   FP32 文件 + read_tile_signal_f64 -> HISS_ERR_UNSUPPORTED
-//   FP64 文件 + read_tile_signal     -> HISS_ERR_UNSUPPORTED
-//   FP64 文件 + read_tile            -> HISS_ERR_UNSUPPORTED (signal+support 接口)
+// FP32 文件 + read_tile_signal_f64 -> HISS_ERR_UNSUPPORTED
+// FP64 文件 + read_tile_signal -> HISS_ERR_UNSUPPORTED
+// FP64 文件 + read_tile -> HISS_ERR_UNSUPPORTED (signal+support 接口)
 // ============================================================================
 
 static void test_03_cross_mode_rejection(int id) {
@@ -372,9 +372,9 @@ static void test_03_cross_mode_rejection(int id) {
 
 // ============================================================================
 // 测试 04: metadata 中 precision_mode 和 signal_dtype 字段正确记录
-//   FP32 文件: precision_mode=0, signal_dtype=0
-//   FP64 文件: precision_mode=1, signal_dtype=1
-//   同时验证 to_json 输出包含这些字段
+// FP32 文件: precision_mode=0, signal_dtype=0
+// FP64 文件: precision_mode=1, signal_dtype=1
+// 同时验证 to_json 输出包含这些字段
 // ============================================================================
 
 static void test_04_metadata_precision_fields(int id) {
@@ -482,10 +482,10 @@ static void test_04_metadata_precision_fields(int id) {
 
 // ============================================================================
 // 测试 05: FP32 与 FP64 精度差异验证
-//   同一 double 输入值, FP32 模式会损失精度, FP64 模式保留精度
-//   验证: 对 float32 无法精确表示的值, FP32 roundtrip != 原始 double
-//         而 FP64 roundtrip == 原始 double
-//   这证明双模式的真实意义 (不是空转)
+// 同一 double 输入值, FP32 模式会损失精度, FP64 模式保留精度
+// 验证: 对 float32 无法精确表示的值, FP32 roundtrip != 原始 double
+// 而 FP64 roundtrip == 原始 double
+// 这证明双模式的真实意义 (不是空转)
 // ============================================================================
 
 static void test_05_precision_difference(int id) {

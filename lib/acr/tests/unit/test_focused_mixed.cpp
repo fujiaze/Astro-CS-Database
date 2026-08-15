@@ -1,10 +1,10 @@
 // lib/acr/tests/unit/test_focused_mixed.cpp — 聚焦 Mixed 能力与性能验收
 //
-// 08 号计划 §7 / 07 号规范：
-//   - CPU 与真实 GPU 混合执行（CPU>0 && GPU>0，无固定份额）
-//   - CPU/GPU 结果数值一致（对照标量参考）
-//   - AutoMixed 中位耗时距 CPU-only/GPU-only 最佳值不超过 10%
-//   - Mixed 无收益时 Auto 允许自然退化（不强制）
+// 08 §7 / 07 号规范：
+// - CPU 与真实 GPU 混合执行（CPU>0 && GPU>0，无固定份额）
+// - CPU/GPU 结果数值一致（对照标量参考）
+// - AutoMixed 中位耗时距 CPU-only/GPU-only 最佳值不超过 10%
+// - Mixed 无收益时 Auto 允许自然退化（不强制）
 #include <gtest/gtest.h>
 
 #include "dispatcher.hpp"
@@ -100,7 +100,7 @@ TEST(FocusedMixed, DrizzlePrivatePartialAllPaths) {
 
 // ============================================================================
 // 7. Dispatcher 真实驻留：prefetch 后 launcher 走 resident 路径
-//    （08 号计划 §3：一次 upload、多 token resident、结果正确）
+// （08 §3：一次 upload、多 token resident、结果正确）
 // ============================================================================
 TEST(FocusedMixed, CpuAndGpuBothWork) {
     if (!gpu_available()) {
@@ -254,7 +254,7 @@ TEST(FocusedMixed, ResidentReuseUploadsOnce) {
 
 // ============================================================================
 // 5. Reduction/Drizzle 私有 partial + 明确 merge 全路径正确性
-//    （CPU-only / GPU-only / ForcedMixed / AutoMixed；06 号规范 §3）
+// （CPU-only / GPU-only / ForcedMixed / AutoMixed；06 号规范 §3）
 // ============================================================================
 namespace {
 
@@ -264,7 +264,7 @@ void run_reduce_drizzle_paths(const char* op_id, bool drizzle) {
         ExecutorRegistry::create_auto());
     const std::size_t n = 1u << 18;  // 256K
     const std::size_t bins = 64;
-    // partial scratch 契约（08 号计划 §4）：按工作量与最小块精确计算，
+    // partial scratch 契约（08 §4）：按工作量与最小块精确计算，
     // 禁止按常数猜测。min_chunk = est 的最小高效块（256）。
     const std::size_t kMaxTokens =
         astro::compute::qualification::focused::partial_slots_for(n, 256);
@@ -480,7 +480,7 @@ TEST(FocusedMixed, AutoMixedWithinTenPercentOfBest) {
     const double best = std::min(cpu_ms, gpu_ms);
     std::printf("[FocusedMixed.AutoMixed] cpu=%.1fms gpu=%.1fms auto=%.1fms best=%.1fms\n",
                 cpu_ms, gpu_ms, auto_ms, best);
-    // 08 号计划 §7：AutoMixed 中位耗时不比实测最佳值差超过 10%
+    // 08 §7：AutoMixed 中位耗时不比实测最佳值差超过 10%
     EXPECT_LE(auto_ms, best * 1.10)
         << "AutoMixed 慢于最佳模式超过 10%";
     astro::compute::runtime_shutdown();

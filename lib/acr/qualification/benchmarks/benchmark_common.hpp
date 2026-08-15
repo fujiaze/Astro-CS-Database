@@ -1,13 +1,13 @@
 // lib/acr/qualification/benchmarks/benchmark_common.hpp — Phase C Benchmark 公共 helper
 //
 // 设计（06_QUALIFICATION_BENCHMARK_SPEC.md / 17_CLASSIC_EXPERIMENT_SUITE.md）：
-//   1. 公共头不暴露第三方类型（Google Benchmark 仅在 .cpp 内用）
-//   2. 固定 seed 0xA57C5AC20260802（确定性、可复现）
-//   3. 对数尺寸序列：覆盖 L1/L2/L3 和明显超出 LLC 的主存区间（4KB → 256MB）
-//   4. 线程曲线点：1, 2, 4, 25%, 50%, 75%, 95%, 100%（去重）
-//   5. 防止编译器消除：volatile sink + asm memory barrier
-//   6. ISA 字符串与枚举转换（baseline/SSE/AVX/AVX2/AVX-512）
-//   7. 吞吐量（GB/s, MOp/s）与中位/p95 统计
+// 1. 公共头不暴露第三方类型（Google Benchmark 仅在 .cpp 内用）
+// 2. 固定 seed 0xA57C5AC20260802（确定性、可复现）
+// 3. 对数尺寸序列：覆盖 L1/L2/L3 和明显超出 LLC 的主存区间（4KB → 256MB）
+// 4. 线程曲线点：1, 2, 4, 25%, 50%, 75%, 95%, 100%（去重）
+// 5. 防止编译器消除：volatile sink + asm memory barrier
+// 6. ISA 字符串与枚举转换（baseline/SSE/AVX/AVX2/AVX-512）
+// 7. 吞吐量（GB/s, MOp/s）与中位/p95 统计
 #pragma once
 
 #include <algorithm>

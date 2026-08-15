@@ -1,10 +1,10 @@
 // lib/acr/tests/unit/test_cuda_bridge_chunk.cpp — CUDA 分块卷积与缓冲容量测试
 //
-// 25 号计划 §2：
-//   - 分块 3×3 卷积使用全局输出索引读图、chunk-local 写输出；
-//   - 强制 2/3/17 个 GPU 块、行中间/行末边界、非整除 tail；
-//   - 32×32、257×263、2048×2048 随机输入与 CPU reference 全像素对比；
-//   - 独立容量记账（small→large→medium 扩缩容交错，无越界）。
+// 25 §2：
+// - 分块 3×3 卷积使用全局输出索引读图、chunk-local 写输出；
+// - 强制 2/3/17 个 GPU 块、行中间/行末边界、非整除 tail；
+// - 32×32、257×263、2048×2048 随机输入与 CPU reference 全像素对比；
+// - 独立容量记账（small→large→medium 扩缩容交错，无越界）。
 // 无 GPU/桥接时 GTEST_SKIP。
 #include <gtest/gtest.h>
 

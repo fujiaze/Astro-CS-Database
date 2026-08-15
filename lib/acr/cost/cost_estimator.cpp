@@ -2,8 +2,8 @@
 // Phase F1+F2：基于硬件画像的成本推算 + 最小有效块算法。
 //
 // 成本模型（07_STATIC_ROUTING_AND_MIXED_EXECUTION.md §3）：
-//   T_device(chunk) = queue_wait + launch_or_submit + transfer_if_needed
-//                    + compute_from_profile + local_merge_or_sync
+// T_device(chunk) = queue_wait + launch_or_submit + transfer_if_needed
+// + compute_from_profile + local_merge_or_sync
 //
 // 无画像时：CPU fallback，用保守峰值带宽/overhead 估算。
 #include "cost_estimator.hpp"
@@ -140,7 +140,7 @@ double estimate_compute_cost(const TaskDescriptor& task, const DeviceProfile& de
                 break;
             }
             case CapabilityFamily::Memory:
-                // 25 号计划 §4：内存曲线按 (level, residency, op) 区分；
+                // 25 §4：内存曲线按 (level, residency, op) 区分；
                 // GPU 用显存/设备驻留
                 {
                     MemoryLevel lvl = lk.mem_level;
@@ -235,7 +235,7 @@ double estimate_transfer_cost(const TaskDescriptor& task, const DeviceProfile& g
         return 0.0;
     }
 
-    // 25 号计划 §5.2：传输字节必须是“单块”字节，禁止任务总量 × 块数重复放大
+    // 25 §5.2：传输字节必须是“单块”字节，禁止任务总量 × 块数重复放大
     const std::size_t work = chunk_size > 0 ? chunk_size : task.work_size();
     const std::size_t total_work = task.work_size();
     std::size_t per_chunk_bytes = 0;
@@ -457,7 +457,7 @@ std::size_t CostEstimator::compute_max_chunk_by_memory(const TaskDescriptor& tas
     return compute_max_chunk_by_memory_impl(task, *dev);
 }
 
-// ===== 23 号计划 §4：每设备块大小推算 =====
+// ===== 23 §4：每设备块大小推算 =====
 // 目标批次时长 × 设备吞吐 → requested_items；队列越深块越小；尾部收缩。
 // 只使用该设备的 DeviceCost（每 executor 独立），与设备数量无关。
 std::size_t CostEstimator::compute_requested_items(
@@ -531,7 +531,7 @@ DeviceCost CostEstimator::estimate_for_device(const TaskDescriptor& task,
     }
 
     dc.device_name = dev->device_name;
-    // 25 号计划 §5.1：profile_available 仅当“当前任务命中合格（full、样本>=7）
+    // 25 §5.1：profile_available 仅当“当前任务命中合格（full、样本>=7）
     // measured 曲线”时为真；默认开销/峰值带宽不算合格画像。
     // （在成本计算后由 used_compute_qualified 更新）
     dc.profile_available = false;

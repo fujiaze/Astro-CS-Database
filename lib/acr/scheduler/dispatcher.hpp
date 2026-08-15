@@ -1,16 +1,16 @@
 // lib/acr/scheduler/dispatcher.hpp — CPU+GPU 混合调度器
 // Phase F：工作保持调度（work-conserving dispatcher）。
 //
-// 设计（控制包 07_WORK_CONSERVING_DISPATCHER_SPEC.md）：
-//   1. 不重叠 chunk：用 CoverageBitmap 保证完整不重复
-//   2. 首选设备忙时使用空闲合格设备：工作保持
-//   3. 失败回退：设备失败时，未执行的 chunk 回退到 CPU，已执行的不重放
-//   4. 数据驻留成本：考虑传输成本，小数据优先 CPU
-//   5. Dispatcher 是 MixedRunner + QueueAwareEstimator + FallbackPolicy 的组合
-//   6. Phase F3 增强：新增 cost-aware 调度方法（接受 CostEstimate + CurrentState）
-//   7. 公共头不暴露第三方类型
-//   8. 26 号计划 §2：移除 CPU/GPU 精确利用率控制（用户已撤销）；
-//      只保留 MemoryBudgetController（RAM/VRAM 容量预算与反压），独立开关。
+// 设计（ 07_WORK_CONSERVING_DISPATCHER_SPEC.md）：
+// 1. 不重叠 chunk：用 CoverageBitmap 保证完整不重复
+// 2. 首选设备忙时使用空闲合格设备：工作保持
+// 3. 失败回退：设备失败时，未执行的 chunk 回退到 CPU，已执行的不重放
+// 4. 数据驻留成本：考虑传输成本，小数据优先 CPU
+// 5. Dispatcher 是 MixedRunner + QueueAwareEstimator + FallbackPolicy 的组合
+// 6. Phase F3 增强：新增 cost-aware 调度方法（接受 CostEstimate + CurrentState）
+// 7. 公共头不暴露第三方类型
+// 8. 26 §2：移除 CPU/GPU 精确利用率控制（用户已撤销）；
+// 只保留 MemoryBudgetController（RAM/VRAM 容量预算与反压），独立开关。
 #pragma once
 
 #include "current_state.hpp"
@@ -50,24 +50,24 @@ struct DispatcherConfig {
     FallbackStrategy fallback_strategy{FallbackStrategy::ToCpu};
     // 小数据阈值：bytes 总数小于此值时优先 CPU
     std::size_t small_data_threshold_bytes{1u << 20};  // 1 MB
-    // F-fix 1：固定尾段实验（审计要求改名为 fixed_tail_chunking）
+    // F-fix 1：固定尾段实验
     // 注意：这不是动态 guided scheduling，仅是固定比例尾段缩块实验
-    bool enable_fixed_tail_chunking{false};     // 默认关闭（审计要求）
+    bool enable_fixed_tail_chunking{false};     // 默认关闭
     double fixed_tail_threshold{0.7};           // 固定阈值（仅实验用）
     std::size_t min_effective_chunk{256};       // 缩块下限
-    // 23 号计划 §4：invocation 路径 CPU executor 的 worker 数（0=auto min(8,hw)）
+    // 23 §4：invocation 路径 CPU executor 的 worker 数（0=auto min(8,hw)）
     std::size_t invocation_cpu_workers{0};
-    // 24 号计划 §2：生产调度按 Eligible Device Set 筛选（feasible/最小有效规模/收益）。
+    // 24 §2：生产调度按 Eligible Device Set 筛选（feasible/最小有效规模/收益）。
     // 测试专用：置 true 时绕过筛选（仅用于 Mixed 调度验证，生产必须保持 false）。
     bool force_all_supported_executors{false};
-    // 25 号计划 §7：正式 MemoryBudget 配置注入（RAM/VRAM 容量上限）。
+    // 25 §7：正式 MemoryBudget 配置注入（RAM/VRAM 容量上限）。
     // 显式提供时由 configure 注入；未提供时使用默认配置（ram/vram 0.95）。
     utilization::MemoryBudgetConfig memory_budget{};
     bool memory_budget_explicit{false};
-    // 26 号计划 §2/§9：MemoryBudget 独立开关（与利用率控制彻底解耦）。
+    // 26 §2/§9：MemoryBudget 独立开关（与利用率控制彻底解耦）。
     // 默认开启；关闭诊断采样不得关闭内存保护。
     bool enable_memory_budget{true};
-    // 聚焦版（08 号计划 §5）：路由模式与 OperationProfile 驱动规划。
+    // 聚焦版（08 §5）：路由模式与 OperationProfile 驱动规划。
     // route_mode 默认 AutoMixed；CpuOnly/GpuOnly 用于对照/回退。
     // operation_profile 为空时走保守 CPU fallback（不伪造 GPU 路由）。
     RouteMode route_mode{RouteMode::AutoMixed};
@@ -77,9 +77,9 @@ struct DispatcherConfig {
     double gpu_measured_ns_per_item{0.0};
     // F-fix 6 + F-fix 7：设备执行器注册表（可选）
     // 如果提供且包含多个可用 executor，Dispatcher 会通过 execute_via_executors 执行：
-    //   - 每个空闲 executor 按自身推荐块大小领取工作块
-    //   - 设备忙时不等待，其他空闲设备继续领取
-    //   - actual_primary_backend 从真实完成统计生成
+    // - 每个空闲 executor 按自身推荐块大小领取工作块
+    // - 设备忙时不等待，其他空闲设备继续领取
+    // - actual_primary_backend 从真实完成统计生成
     // 为空或仅 CPU executor 时退化为旧路径（向后兼容）
     // 禁止用户提供 CPU/GPU 比例：分配由 executor.available() + claim_next_dynamic 决定
     std::shared_ptr<ExecutorRegistry> executors;
@@ -90,7 +90,7 @@ struct DispatcherConfig {
     // 旧 focused OperationProfile / MixedRoutePlanner 不再做顶层设备资格。
     const routing::RouteProfileV2* route_profile_v2{nullptr};
 
-    // ===== 26 号计划 §9：内存采样注入缝隙（测试/诊断用）=====
+    // ===== 26 §9：内存采样注入缝隙（测试/诊断用）=====
     // 生产路径为 null，使用 MemoryBudgetController::sample()。测试可注入
     // 确定性的内存采样序列，驱动内存 gate close/recover 与动作，验证闭环。
     std::function<utilization::MemoryBudget()> memory_sampler_override;
@@ -105,7 +105,7 @@ struct CoverageStats {
     std::size_t failed{0};
 };
 
-// ===== 26 号计划 §2/§9：内存预算控制统计 =====
+// ===== 26 §2/§9：内存预算控制统计 =====
 // 记录执行过程中的内存预算采样序列、动作序列和控制动作统计。
 // CPU/GPU 利用率控制已移除：不再采样、不再记录、不影响 claim 与路由。
 struct ResourceControlStats {
@@ -124,7 +124,7 @@ struct ResourceControlStats {
     std::vector<std::uint64_t> mem_used_ram_samples;  // 每次采样的 used_ram
     std::uint64_t mem_limit_ram{0};                // RAM 限额
     std::string final_mem_action{"none"};         // 最终动作
-    // 25 号计划 §7：claim 前内存峰值估算与预算动作原始记录
+    // 25 §7：claim 前内存峰值估算与预算动作原始记录
     // （输入/输出/临时/双缓冲/传输 staging/partial/merge 峰值 + 对应动作）
     std::vector<std::uint64_t> mem_peak_estimates;  // 每次 claim 前估算的峰值字节
     std::vector<std::string> mem_peak_actions;      // 每次 claim 前估算触发的动作
@@ -152,7 +152,7 @@ struct CostAwareResult {
     std::string current_state_json;     // 最终 CurrentState 快照
     // F-fix 1：coverage 从真实执行导入
     CoverageStats coverage;
-    // 26 号计划 §2：内存预算建议动作（none/shrink/stop/fail 等）
+    // 26 §2：内存预算建议动作（none/shrink/stop/fail 等）
     std::string mem_action;            // 内存预算建议动作（none/shrink/stop/fail）
     // F-fix 4：完整资源控制统计
     ResourceControlStats resource_control;
@@ -160,7 +160,7 @@ struct CostAwareResult {
     bool fixed_tail_chunking_used{false};  // 是否使用了固定尾段缩块实验
     std::size_t fixed_tail_min_chunk{0};   // 固定尾段缩到的最小块
 
-    // 24 号计划 §3：每设备真实完成统计（仅由 completion 产生）
+    // 24 §3：每设备真实完成统计（仅由 completion 产生）
     struct PerDeviceStats {
         std::string device_id;              // "cpu" / "cuda:0"
         std::string backend;                // "cpu" / "cuda"
@@ -176,7 +176,7 @@ struct CostAwareResult {
     };
     std::vector<PerDeviceStats> per_device_stats;
 
-    // ACR 架构冻结（07 号计划 B）：真实传输统计。
+    // ACR 架构冻结（07 B）：真实传输统计。
     // 来自本 dispatch 的 prefetch（实际上传输入）与 GPU 输出物化
     // （每 GPU 块一次 D2H），以及桥接 persistent 槽位真实上传计数。
     struct TransferStats {
@@ -257,7 +257,7 @@ public:
         const cost::CostEstimate& estimate,
         ChunkKernelFn fn, void* user_data);
 
-    // ===== 23 号计划 §3/§4：可加速 KernelInvocation 派发 =====
+    // ===== 23 §3/§4：可加速 KernelInvocation 派发 =====
     // 把 KernelInvocation 交给支持其 OperationId 的 DeviceExecutor；
     // 每个 executor 按自身 CostEstimate（recommended_chunk/队列/剩余工作）
     // 独立计算 requested_items 并动态领取；CPU 与 GPU 可同时领取，

@@ -2,12 +2,12 @@
 // Phase E2：手写极简 JSON 解析 + 三态处理 + lazy load + CPU fallback。
 //
 // 解析 hardware-profile.json 关键字段：
-//   schema_version, generated_at, profile_kind, fingerprint_sha256, devices[]
-//     device: device_id, device_name, kind, total_memory_bytes, available_memory_bytes,
-//             compute_units, peak_bandwidth_gbps, overhead{}
-//   曲线字段（arithmetic/memory/transfer/reduction/convolution/irregular/branch/library）
-//   在解析时跳过——CostEstimator 在无曲线时降级到 peak_bandwidth/overhead 估算。
-//   完整曲线由 Phase E3 profile_generator 生成；运行时解析只读关键字段。
+// schema_version, generated_at, profile_kind, fingerprint_sha256, devices[]
+// device: device_id, device_name, kind, total_memory_bytes, available_memory_bytes,
+// compute_units, peak_bandwidth_gbps, overhead{}
+// 曲线字段（arithmetic/memory/transfer/reduction/convolution/irregular/branch/library）
+// 在解析时跳过——CostEstimator 在无曲线时降级到 peak_bandwidth/overhead 估算。
+// 完整曲线由 Phase E3 profile_generator 生成；运行时解析只读关键字段。
 #include "profile_reader.hpp"
 #include "crypto/sha256.h"
 
@@ -235,7 +235,7 @@ bool parse_library(JsonParser& p, LibraryCapability& out) {
 
 // 解析 DeviceProfile 对象
 // 关键字段：device_id, device_name, kind, total/available_memory_bytes, compute_units,
-//           peak_bandwidth_gbps, overhead{}, library{}
+// peak_bandwidth_gbps, overhead{}, library{}
 // 曲线数组字段（arithmetic/memory/transfer/reduction/convolution/irregular/branch）跳过
 bool parse_device(JsonParser& p, DeviceProfile& out) {
     if (!p.parse_object_start()) return false;

@@ -2,8 +2,8 @@
 // ACR 最小示例：parallel_for 初始化 + parallel_reduce 求和 + run_for 串行验证
 //
 // 演示 ACR 公共 API 的典型用法：
-//   runtime_init → Buffer 分配 → parallel_for 初始化 → parallel_reduce 求和
-//   → run_for 串行参考 → 打印结果 → runtime_shutdown
+// runtime_init → Buffer 分配 → parallel_for 初始化 → parallel_reduce 求和
+// → run_for 串行参考 → 打印结果 → runtime_shutdown
 //
 // 注意：FP32 默认允许末位差异（见 acr.hpp 头注），并行与串行累加顺序不同，
 // sum 可能有微小相对误差，示例仅打印不硬性断言。
@@ -31,7 +31,7 @@ int main() {
         [&](std::size_t i) { buf[i] = static_cast<float>(i) * 0.5f; });
 
     // 3. parallel_reduce：并行求和
-    //    identity=0.0f，map=[i]返回 buf[i]，reduce=std::plus<float>
+    // identity=0.0f，map=[i]返回 buf[i]，reduce=std::plus<float>
     auto t0 = clock_type::now();
     float sum = parallel_reduce<float>(
         KernelId::Custom, Range1D{0, N}, 0.0f,

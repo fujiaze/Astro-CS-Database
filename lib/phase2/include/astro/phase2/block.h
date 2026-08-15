@@ -2,12 +2,12 @@
 //
 // Phase2 W6：动态分块（Block Planner）。
 //
-// 语义（冻结，控制包 34A532A2...B2EB308 + wiki Phase2_Block_Integration）：
-//   - 峰值估算 ≈ P·N_B·B_sample + P·B_scratch + M_AIO + M_UPM + M_ACR；
-//   - 从少量相邻 HiPS tiles 增长，保持空间局部性与顺序 I/O；
-//   - 使用真实 coverage depth N_B（不按总帧数规划）；
-//   - OOM：正常路径减块，不 swap；单 tile 仍超则 tile 内 micro-chunk；
-//   - determinism：block size 不改变 accepted mask/输出（precision tolerance 内）。
+// 语义（冻结， 34A532A2...B2EB308 + wiki Phase2_Block_Integration）：
+// - 峰值估算 ≈ P·N_B·B_sample + P·B_scratch + M_AIO + M_UPM + M_ACR；
+// - 从少量相邻 HiPS tiles 增长，保持空间局部性与顺序 I/O；
+// - 使用真实 coverage depth N_B（不按总帧数规划）；
+// - OOM：正常路径减块，不 swap；单 tile 仍超则 tile 内 micro-chunk；
+// - determinism：block size 不改变 accepted mask/输出（precision tolerance 内）。
 #pragma once
 
 #include <cstdint>

@@ -2,34 +2,34 @@
 // test_snr_unknown_block.cpp - WP-F 步骤13: SNR 子块布局与未知必需子块拒绝测试
 //
 // 依据:
-//   - docs/stage1_fix/spec.md 步骤13
-//   - 02_FROZEN_STAGE1_HISS_SPEC.md §17 (SNR 控制点), §13 (独立子块)
-//   - docs/stage1_fix/00_COMMON_CONTRACTS.md §2.5, §3.3
+// - docs/stage1_fix/spec.md 步骤13
+// - 02_FROZEN_STAGE1_HISS_SPEC.md §17 (SNR 控制点), §13 (独立子块)
+// - docs/stage1_fix/00_COMMON_CONTRACTS.md §2.5, §3.3
 //
 // 测试范围:
-//   1. SNR 往返: 10 个控制点 → n_points 一致, 每点 local_ipix 和 snr 一致
-//   2. SNR 往返: 0 个控制点 → n_points=0
-//   3. SNR 往返: 1000 个控制点 → 全部一致
-//   4. 未知必需子块: Reader.open 返回 HISS_ERR_UNKNOWN_REQUIRED (-7)
-//   5. 未知可选子块: Reader.open 成功, 跳过该子块
-//   6. SNR 布局验证: SNR 子块 uncompressed_size = 12 + n_points*8
-//      (R04-B18: estimator_id(4) + sampling_scale(4) + n_points(4) + points(n*8))
+// 1. SNR 往返: 10 个控制点 → n_points 一致, 每点 local_ipix 和 snr 一致
+// 2. SNR 往返: 0 个控制点 → n_points=0
+// 3. SNR 往返: 1000 个控制点 → 全部一致
+// 4. 未知必需子块: Reader.open 返回 HISS_ERR_UNKNOWN_REQUIRED (-7)
+// 5. 未知可选子块: Reader.open 成功, 跳过该子块
+// 6. SNR 布局验证: SNR 子块 uncompressed_size = 12 + n_points*8
+// (R04-B18: estimator_id(4) + sampling_scale(4) + n_points(4) + points(n*8))
 //
 // 编译 (PowerShell + mingw64):
-//   $env:Path = "C:\msys64\mingw64\bin;$env:Path"
-//   cd "f:\Astro dev\Astro CS Normalization Database\lib\astro_image_io\tests"
-//   g++ -std=c++17 -O2 -DHAS_LZ4 -DHAS_ZSTD `
-//       -I../include -I../src `
-//       test_snr_unknown_block.cpp `
-//       ../src/hiss_writer.cpp ../src/hiss_stream_writer.cpp ../src/hiss_reader.cpp `
-//       ../src/hiss_codec.cpp ../src/hiss_common.cpp `
-//       ../src/hiss_tile_model.cpp ../src/hiss_transform.cpp `
-//       -llz4 -lzstd -lm `
-//       -o test_snr_unknown_block.exe
-//   ./test_snr_unknown_block.exe
+// $env:Path = "C:\msys64\mingw64\bin;$env:Path"
+// cd "f:\Astro dev\Astro CS Normalization Database\lib\astro_image_io\tests"
+// g++ -std=c++17 -O2 -DHAS_LZ4 -DHAS_ZSTD `
+// -I../include -I../src `
+// test_snr_unknown_block.cpp `
+// ../src/hiss_writer.cpp ../src/hiss_stream_writer.cpp ../src/hiss_reader.cpp `
+// ../src/hiss_codec.cpp ../src/hiss_common.cpp `
+// ../src/hiss_tile_model.cpp ../src/hiss_transform.cpp `
+// -llz4 -lzstd -lm `
+// -o test_snr_unknown_block.exe
+// ./test_snr_unknown_block.exe
 //
 // 测试框架: 自维护通过/失败计数, 任何契约不满足必须真正失败
-//   (禁止 ASSERT_TRUE(true, "已知问题") 软通过, 依据 spec.md §3 步骤15)
+// (禁止 ASSERT_TRUE(true, "已知问题") 软通过, 依据 spec.md §3 步骤15)
 // ============================================================================
 
 #include <cstdio>
@@ -54,7 +54,7 @@ static int g_pass_count = 0;
 static int g_fail_count = 0;
 
 // ASSERT_TRUE(cond, msg): cond 为假时记失败并打印, 并从当前函数返回
-//   注意: 不支持 "true, 已知问题" 软通过 — 任何 false 都是真失败
+// 注意: 不支持 "true, 已知问题" 软通过 — 任何 false 都是真失败
 #define ASSERT_TRUE(cond, msg) do { \
     if (cond) { \
         g_pass_count++; \
@@ -100,7 +100,7 @@ static int g_fail_count = 0;
 
 // ============================================================================
 // 辅助: 构造简单的 DrizzleTileAccumulator (用于 Writer.add_tile)
-//   tile_nside=16, n_leaf 个叶像素, 每个像素 sum_flux=50, sum_area=1.0
+// tile_nside=16, n_leaf 个叶像素, 每个像素 sum_flux=50, sum_area=1.0
 // ============================================================================
 static hiss::DrizzleTileAccumulator make_simple_accumulator(uint64_t parent_ipix,
                                                               size_t n_leaf) {
@@ -119,7 +119,7 @@ static hiss::DrizzleTileAccumulator make_simple_accumulator(uint64_t parent_ipix
 
 // ============================================================================
 // 辅助: 模拟 Writer 的 SNR 排序去重行为, 生成预期结果
-//   R04-B18: 按 local_ipix 升序排序, 重复点保留首次出现
+// R04-B18: 按 local_ipix 升序排序, 重复点保留首次出现
 // ============================================================================
 static std::vector<hiss::HissSnrControlPoint> expected_after_writer(
     const std::vector<hiss::HissSnrControlPoint>& input) {
@@ -138,10 +138,10 @@ static std::vector<hiss::HissSnrControlPoint> expected_after_writer(
 
 // ============================================================================
 // 辅助: 解析新格式 (R04-B14) HISS 文件的 TLV Header,
-//   定位 TILE_DIRECTORY TLV value 的文件偏移
-//   签名块(16B): magic[8] + header_length(u32 LE) + feature_flags(u32 LE)
-//   TLV Header 从 offset 16 开始: tag(u16)+flags(u8)+length(u32)+value
-//   返回 TILE_DIRECTORY value 起始偏移, 失败返回 SIZE_MAX
+// 定位 TILE_DIRECTORY TLV value 的文件偏移
+// 签名块(16B): magic[8] + header_length(u32 LE) + feature_flags(u32 LE)
+// TLV Header 从 offset 16 开始: tag(u16)+flags(u8)+length(u32)+value
+// 返回 TILE_DIRECTORY value 起始偏移, 失败返回 SIZE_MAX
 // ============================================================================
 static size_t find_tile_directory_value_pos(const std::vector<uint8_t>& file_data) {
     if (file_data.size() < 16) return SIZE_MAX;
@@ -166,7 +166,7 @@ static size_t find_tile_directory_value_pos(const std::vector<uint8_t>& file_dat
 
 // ============================================================================
 // 辅助: 写入测试 HISS 文件 (含可选 SNR)
-//   返回文件路径, 失败返回空字符串
+// 返回文件路径, 失败返回空字符串
 // ============================================================================
 static std::string write_test_hiss(const std::string& base_path,
                                     const hiss::DrizzleTileAccumulator& acc,
@@ -197,8 +197,8 @@ static std::string write_test_hiss(const std::string& base_path,
 
 // ============================================================================
 // 测试 1: SNR 往返 — 10 个控制点
-//   Writer 写入 10 个控制点 → Reader 读取 → n_points 一致,
-//   每点 local_ipix 和 snr 一致
+// Writer 写入 10 个控制点 → Reader 读取 → n_points 一致,
+// 每点 local_ipix 和 snr 一致
 // ============================================================================
 static void test_snr_roundtrip_10_points() {
     fprintf(stdout, "[TEST] SNR 往返: 10 个控制点\n");
@@ -253,7 +253,7 @@ static void test_snr_roundtrip_10_points() {
 
 // ============================================================================
 // 测试 2: SNR 往返 — 0 个控制点
-//   Writer 写入 0 个控制点 (HissSnrBlock 含空 points) → Reader 读取 → n_points=0
+// Writer 写入 0 个控制点 (HissSnrBlock 含空 points) → Reader 读取 → n_points=0
 // ============================================================================
 static void test_snr_roundtrip_0_points() {
     fprintf(stdout, "[TEST] SNR 往返: 0 个控制点\n");
@@ -280,7 +280,7 @@ static void test_snr_roundtrip_0_points() {
 
 // ============================================================================
 // 测试 3: SNR 往返 — 1000 个控制点
-//   Writer 写入 1000 个控制点 → Reader 读取 → 全部一致
+// Writer 写入 1000 个控制点 → Reader 读取 → 全部一致
 // ============================================================================
 static void test_snr_roundtrip_1000_points() {
     fprintf(stdout, "[TEST] SNR 往返: 1000 个控制点\n");
@@ -325,10 +325,10 @@ static void test_snr_roundtrip_1000_points() {
 
 // ============================================================================
 // 测试 4: 未知必需子块拒绝
-//   构造含未知 required 子块的 HISS 文件 → Reader.open 返回 HISS_ERR_UNKNOWN_REQUIRED (-7)
+// 构造含未知 required 子块的 HISS 文件 → Reader.open 返回 HISS_ERR_UNKNOWN_REQUIRED (-7)
 //
 // 实现方式: 直接修改现有 SUPPORT 子块描述符的 type 字节为未知值 (201),
-//   保留其 REQUIRED flags。无需插入新描述符, 避免子块数据偏移问题。
+// 保留其 REQUIRED flags。无需插入新描述符, 避免子块数据偏移问题。
 //
 // R04-B14: 新格式签名块(16B) = magic[8]+"HISS0100" + header_length(u32 LE) + feature_flags(u32 LE)
 // R04-B15: Header 为 TLV 二进制结构 (tag+flags+length+value)
@@ -355,7 +355,7 @@ static void test_unknown_required_reject() {
     ASSERT_TRUE(tile_dir_value_pos != SIZE_MAX, "找到 TILE_DIRECTORY TLV");
 
     // TILE_DIRECTORY value 布局:
-    //   n_tiles(4) + [parent_ipix(8) + tile_nside(4) + occ_mode(1) + n_subblocks(2) + subblocks(42*n)]
+    // n_tiles(4) + [parent_ipix(8) + tile_nside(4) + occ_mode(1) + n_subblocks(2) + subblocks(42*n)]
     // 第一个 Tile 的 n_subblocks 在 tile_dir_value_pos + 4 + 13
     size_t n_subblocks_pos = tile_dir_value_pos + 4 + 13;
     uint16_t n_subblocks;
@@ -397,8 +397,8 @@ static void test_unknown_required_reject() {
 
 // ============================================================================
 // 测试 5: 未知可选子块跳过
-//   构造含未知 optional 子块的 HISS 文件 → Reader.open 成功, 跳过该子块
-//   读取 signal/support 仍正常工作
+// 构造含未知 optional 子块的 HISS 文件 → Reader.open 成功, 跳过该子块
+// 读取 signal/support 仍正常工作
 //
 // R04-B14/B15/B17: 新格式 TLV Header + 42B 子块描述符
 // ============================================================================
@@ -509,9 +509,9 @@ static void test_unknown_optional_skip() {
 
 // ============================================================================
 // 测试 6: SNR 布局验证
-//   写入后检查文件中 SNR 子块的 uncompressed_size = 12 + n_points*8
-//   R04-B18 冻结布局: estimator_id(4) + sampling_scale(4) + n_points(4) + points(n*8)
-//   验证 SNR 子块不包含 snr_phot/median_snr/idw_power (旧布局会多 24 字节)
+// 写入后检查文件中 SNR 子块的 uncompressed_size = 12 + n_points*8
+// R04-B18 冻结布局: estimator_id(4) + sampling_scale(4) + n_points(4) + points(n*8)
+// 验证 SNR 子块不包含 snr_phot/median_snr/idw_power (旧布局会多 24 字节)
 // ============================================================================
 static void test_snr_layout_bytes() {
     fprintf(stdout, "[TEST] SNR 布局验证: uncompressed_size = 12 + n_points*8\n");

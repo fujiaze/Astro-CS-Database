@@ -2,10 +2,10 @@
 // spill_manager.h - 高峰错峰、显式spill与恢复 (H-003)
 //
 // 规范来源: engineering_authoritative/docs/04_RESOURCE_AWARE_ORCHESTRATOR_SPEC.md
-//   StageScheduler: 允许低峰阶段与高峰阶段错峰并行
-//   SpillManager: 只spill已序列化、可恢复块
-//   压力处理: 停止准入 → 等待释放 → 清理可重建缓存 → 暂停 → 显式spill → 恢复 → 最后才允许OS swap
-//   不得丢弃未持久化科学数据。
+// StageScheduler: 允许低峰阶段与高峰阶段错峰并行
+// SpillManager: 只spill已序列化、可恢复块
+// 压力处理: 停止准入 → 等待释放 → 清理可重建缓存 → 暂停 → 显式spill → 恢复 → 最后才允许OS swap
+// 不得丢弃未持久化科学数据。
 //
 // Python 原型: engineering_authoritative/evidence/H-003/spill_manager.py
 // 依赖: H-001 resource_monitor.h, H-002 admission_controller.h

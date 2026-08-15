@@ -2,13 +2,13 @@
 // snr_reconcile_test.cpp - SNR 逐点对账 (合成, NON_PRODUCTION_TOOL_ONLY)
 //
 // 验证:
-//   1. FP32 模式 PSF (float 拟合结果) vs FP64 模式 PSF (double) →
-//      snr_extract_model 控制点数量一致, 每点 snr_psf/ra/dec 相对差 < 1e-5
-//      (SNR 估算只依赖 PSF double 参数; 差异仅来自 PSF 阶段 dtype)
-//   2. 控制点写入 tiny HISS f32/f64 + 读回一致 (HISS-102 双 dtype 闭环)
+// 1. FP32 模式 PSF (float 拟合结果) vs FP64 模式 PSF (double) →
+// snr_extract_model 控制点数量一致, 每点 snr_psf/ra/dec 相对差 < 1e-5
+// (SNR 估算只依赖 PSF double 参数; 差异仅来自 PSF 阶段 dtype)
+// 2. 控制点写入 tiny HISS f32/f64 + 读回一致 (HISS-102 双 dtype 闭环)
 //
 // 编译: g++ -O2 -std=c++17 snr_reconcile_test.cpp ../src/snr_estimator.cpp
-//       ../../../../astro_image_io 依赖 HissWriter (见注释)
+// ../../../../astro_image_io 依赖 HissWriter (见注释)
 // ============================================================================
 #include "snr_estimator.h"
 #include <cstdio>

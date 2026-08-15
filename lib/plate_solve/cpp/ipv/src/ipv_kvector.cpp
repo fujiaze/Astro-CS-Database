@@ -1,17 +1,17 @@
 // ============================================================================
 // ipv_kvector.cpp - IPV k-vector 索引模块实现
 //
-// 提取自 V4.5 vm45_relvec.cpp 的 k-vector 构建/查询逻辑:
-//   - 构建: 计算所有 a<b 星对的欧氏距离, 按距离升序排序
-//   - 查询: 二分查找 [d_lo, d_hi] 区间, 返回所有匹配星对
+// 提取自 vm45_relvec.cpp 的 k-vector 构建/查询逻辑:
+// - 构建: 计算所有 a<b 星对的欧氏距离, 按距离升序排序
+// - 查询: 二分查找 [d_lo, d_hi] 区间, 返回所有匹配星对
 //
-// 与 V4.5 原实现的差异:
-//   1. 解耦为独立函数 (V4.5 中是 RelativeVectorMatcher 类的成员方法)
-//   2. 数据结构: distances 和 pairs 分两个并行数组
-//      (V4.5 用 GaiaPair{dist, a, b} 单数组, 这里按头文件设计要求拆分)
-//   3. 不再构建 N_w×N_w 距离矩阵 (V4.5 中预计算 D_W_ 供第三星验证复用,
-//      本模块仅做 k-vector, 直接计算星对距离)
-//   4. 查询接口返回 pair 列表 (V4.5 内部返回索引区间 [idx_lo, idx_hi))
+// 与 原实现的差异:
+// 1. 解耦为独立函数 ( 中是 RelativeVectorMatcher 类的成员方法)
+// 2. 数据结构: distances 和 pairs 分两个并行数组
+// ( 用 GaiaPair{dist, a, b} 单数组, 这里按头文件设计要求拆分)
+// 3. 不再构建 N_w×N_w 距离矩阵 ( 中预计算 D_W_ 供第三星验证复用,
+// 本模块仅做 k-vector, 直接计算星对距离)
+// 4. 查询接口返回 pair 列表 ( 内部返回索引区间 [idx_lo, idx_hi))
 //
 // 日期: 2026-07-02
 // ============================================================================
@@ -103,9 +103,9 @@ std::vector<std::pair<int,int>> kvector_query(
     }
 
     // 二分查找:
-    //   lo_it = lower_bound(distances, d_lo) → 第一个 >= d_lo 的位置
-    //   hi_it = upper_bound(distances, d_hi) → 第一个 >  d_hi 的位置
-    //   返回 [lo_it, hi_it) 范围内的所有 pairs
+    // lo_it = lower_bound(distances, d_lo) → 第一个 >= d_lo 的位置
+    // hi_it = upper_bound(distances, d_hi) → 第一个 > d_hi 的位置
+    // 返回 [lo_it, hi_it) 范围内的所有 pairs
     auto lo_it = std::lower_bound(kv.distances.begin(), kv.distances.end(), d_lo);
     auto hi_it = std::upper_bound(kv.distances.begin(), kv.distances.end(), d_hi);
 

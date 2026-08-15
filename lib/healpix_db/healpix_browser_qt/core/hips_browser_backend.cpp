@@ -3,11 +3,11 @@
 //
 // 数据源: AIO HiPS Reader (astro_image_io.dll), 唯一读取入口。
 // 查询映射:
-//   leaf_ipix = ang2pix_nest(2^leaf_order, ra, dec)
-//   tile_ipix = leaf_ipix >> 18, z = leaf_ipix & (512²-1)
-//   V5 (HIPS-IMG-001): 共享 HEALPix core 标准映射
-//     fits_index = (511-x)*512 + y, (x,y) = nested_local_to_xy(z, 9)
-//   (不再使用 z % 512 / z / 512 私有线性约定)
+// leaf_ipix = ang2pix_nest(2^leaf_order, ra, dec)
+// tile_ipix = leaf_ipix >> 18, z = leaf_ipix & (512²-1)
+// 共享 HEALPix core 标准映射
+// fits_index = (511-x)*512 + y, (x,y) = nested_local_to_xy(z, 9)
+// (不再使用 z % 512 / z / 512 私有线性约定)
 // ============================================================================
 
 #include "hips_browser_backend.h"
@@ -35,7 +35,7 @@ constexpr uint64_t kTileMask = (1ULL << 18) - 1;  // 512² - 1
 constexpr int kTileDim = 512;
 
 // ============================================================================
-// V9: 浏览器侧最小 FITS 图像读取（仅用于按 order 读 HiPS hierarchy tile）。
+// 浏览器侧最小 FITS 图像读取（仅用于按 order 读 HiPS hierarchy tile）。
 // 不链接 CFITSIO、不改 AIO 语义；FITS 数据为大端，读取后字节序转换。
 // ============================================================================
 static void swap_bytes32(float* p) {
@@ -113,7 +113,7 @@ int HipsBrowserBackend::open_product(const std::string& out_dir) {
     close();
     root_ = out_dir;
     if (root_.empty()) return -1;
-    // V11：布局自动检测。AstroCS 嵌套（signal/ support/）；否则标准扁平
+    // 布局自动检测。AstroCS 嵌套（signal/ support/）；否则标准扁平
     // （root/properties + root/NorderK，如 Hipsgen 输出）。
     flat_ = !std::filesystem::exists(root_ + "/signal/properties");
     sig_ = aio_hips_open(root_.c_str(), AIO_HIPS_RD_SIGNAL);

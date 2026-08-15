@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
         std::vector<float> flux(n, 0.0f), area(n, 0.0f);
         for (size_t i = 0; i < n; ++i) {
             // 合成数据: 中心区域有值, 边缘空
-            // V5 HIPS-IMG-001: i 是 NESTED local 序, 先位解交错得到 tile 内 (x,y)
+            // HIPS-IMG-001: i 是 NESTED local 序, 先位解交错得到 tile 内 (x,y)
             size_t x = 0, y = 0;
             for (unsigned b = 0; b < 9; ++b) {
                 x |= ((i >> (2 * b)) & 1ULL) << b;

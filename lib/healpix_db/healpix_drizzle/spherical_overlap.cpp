@@ -5,11 +5,11 @@
 // 实现真实球面多边形裁剪与球面面积计算.
 //
 // 实现要点:
-//   - float64 内部精度 (double)
-//   - 球面面积用 Girard 定理: Area = Σ内角 - (n-2)π
-//   - 球面 Sutherland-Hodgman: 大圆弧裁剪, 保留法向量正侧
-//   - HEALPix 边界: 4 角顶点 (xy2ang), 处理赤道带菱形与极区三角形
-//   - 候选像素查询: drop 多边形球面包围圆 + queryDisc
+// - float64 内部精度 (double)
+// - 球面面积用 Girard 定理: Area = Σ内角 - (n-2)π
+// - 球面 Sutherland-Hodgman: 大圆弧裁剪, 保留法向量正侧
+// - HEALPix 边界: 4 角顶点 (xy2ang), 处理赤道带菱形与极区三角形
+// - 候选像素查询: drop 多边形球面包围圆 + queryDisc
 // ============================================================================
 
 #include "spherical_overlap.h"
@@ -22,30 +22,30 @@
 
 namespace spherical {
 
-// R13 (Phase1 Final Closure, CAND-001): HEALPix 像素外接半径安全系数
-//   像素外接半径 = 中心到最远角点的大圆角距。全像素扫描证明 (NSIDE
-//   16/32/64/128/256 穷举, scan_circumradius):
-//     nside=256 全局最大 = 1.043827 x hp_res @ (ra=89.8°, dec=-41.81°)
-//     (极区/赤道交界, HEALPix 像素最畸变区域), 随 NSIDE 单调收敛于 ~1.044
-//   生产快速候选与 overlap 快速拒绝必须使用 >1.044 的缓冲:
-//   取 1.1 x hp_res (约 5% 裕量覆盖浮点/边界数值效应)。
-//   旧代码用 1.0 x hp_res 会在像素角区域漏选 (CAND-001, 实测比例 1.044 > 1.0)。
+// HEALPix 像素外接半径安全系数
+// 像素外接半径 = 中心到最远角点的大圆角距。全像素扫描证明 (NSIDE
+// 16/32/64/128/256 穷举, scan_circumradius):
+// nside=256 全局最大 = 1.043827 x hp_res @ (ra=89.8°, dec=-41.81°)
+// (极区/赤道交界, HEALPix 像素最畸变区域), 随 NSIDE 单调收敛于 ~1.044
+// 生产快速候选与 overlap 快速拒绝必须使用 >1.044 的缓冲:
+// 取 1.1 x hp_res (约 5% 裕量覆盖浮点/边界数值效应)。
+// 旧代码用 1.0 x hp_res 会在像素角区域漏选 (CAND-001, 实测比例 1.044 > 1.0)。
 // 签字修正 (ORACLE_HARDENING): 像素外接半径安全上界。
-//   解析上界 (赤道带, |z|<=2/3): 中心到最远顶点 ≤ 1.007×hp_res
-//     (半对角线: Δz=2/(3nside), Δφ·cos z=π/(4nside), arc≤sqrt(4/9+π²/16)/nside
-//      ≈1.0302/nside ≈ 1.0068×hp_res, hp_res=sqrt(π/3)/nside≈1.0233/nside);
-//   极区 (bighp 0-3/8-11 极冠) 经验最坏 1.044×hp_res (dec≈±41.81°, 附 scan 证据);
-//   取固定保守上界 1.25×hp_res (覆盖两者 + 浮点舍入), 快速路径依赖该上界,
-//   扫描 (scan_circumradius) 仅作为附加证据。
+// 解析上界 (赤道带, |z|<=2/3): 中心到最远顶点 ≤ 1.007×hp_res
+// (半对角线: Δz=2/(3nside), Δφ·cos z=π/(4nside), arc≤sqrt(4/9+π²/16)/nside
+// ≈1.0302/nside ≈ 1.0068×hp_res, hp_res=sqrt(π/3)/nside≈1.0233/nside);
+// 极区 (bighp 0-3/8-11 极冠) 经验最坏 1.044×hp_res (dec≈±41.81°, 附 scan 证据);
+// 取固定保守上界 1.25×hp_res (覆盖两者 + 浮点舍入), 快速路径依赖该上界,
+// 扫描 (scan_circumradius) 仅作为附加证据。
 static const double HP_CIRCUMRADIUS_FACTOR = 1.25;
 
-// R12 (性能 profile): overlap 路径统计 (仅统计, 不改变逻辑; 由 drizzle_engine 汇总)
+// overlap 路径统计 (仅统计, 不改变逻辑; 由 drizzle_engine 汇总)
 static thread_local long long g_tl_n_quick = 0;
 static thread_local long long g_tl_n_fully = 0;
 static thread_local long long g_tl_n_dropin = 0;
 static thread_local long long g_tl_n_sh = 0;
 
-// V18 (PERF-001): overlap 路径计数器默认关闭（与 fine profiler 同门控；
+// overlap 路径计数器默认关闭（与 fine profiler 同门控；
 // 显式 ASTROCS_DRIZZLE_FINE_PROFILE=1 启用，避免生产路径无谓 ++ 开销）
 static bool overlap_profile_enabled() {
     static const bool en = [] {
@@ -84,7 +84,7 @@ static void xyf2ang_replica(int bighp, double xf, double yf, int Ns,
                             double* theta, double* phi);
 
 // ============================================================================
-// 基本向量运算 (R11 阶段7: template<typename T> 双实例 float/double)
+// 基本向量运算 ( 阶段7: template<typename T> 双实例 float/double)
 // ============================================================================
 template <typename T>
 Vec3T<T> cross(const Vec3T<T>& a, const Vec3T<T>& b) {
@@ -150,28 +150,28 @@ T angular_distance(const Vec3T<T>& a, const Vec3T<T>& b) {
 // 球面多边形面积 (R06-B05: 球面三角剖分 + Eriksson 稳定公式)
 //
 // R06-B01/B05 根因:
-//   R05 的双路径 (小多边形切平面鞋带 / 大多边形 Girard) 仍有缺陷:
-//   1. 极区 1° 像素是大边形, 走 Girard 路径, 但内角和 ≈ n×(π/2) = 2π,
-//      (n-2)π = 2π, excess ≈ 0, catastrophic cancellation → 通量爆炸 303305×
-//   2. Girard 切向量 t = A - (A·B)·B 在 A·B≈1 时有效数字丢失 (R05-B01 已识别)
-//   3. 双路径切换阈值 60" 无数学依据, 1° 像素 (3600") 远超阈值走 Girard 失效
+// 的双路径 (小多边形切平面鞋带 / 大多边形 Girard) 仍有缺陷:
+// 1. 极区 1° 像素是大边形, 走 Girard 路径, 但内角和 ≈ n×(π/2) = 2π,
+// (n-2)π = 2π, excess ≈ 0, catastrophic cancellation → 通量爆炸 303305×
+// 2. Girard 切向量 t = A - (A·B)·B 在 A·B≈1 时有效数字丢失 (R05-B01 已识别)
+// 3. 双路径切换阈值 60" 无数学依据, 1° 像素 (3600") 远超阈值走 Girard 失效
 //
 // 修复 (R06-B05):
-//   统一使用球面三角剖分 (fan triangulation) + Eriksson (2018) 稳定公式:
-//   1. fan triangulation 以 V_0 为顶点: 三角形 (V_0, V_i, V_{i+1}), i=1..n-2
-//   2. 每个球面三角形有向面积 = 2·atan2(det, 1 + a·b + b·c + c·a)
-//      其中 det = a · (b × c) (标量三重积, 含符号)
-//   3. 累加有向面积 (det<0 时三角形反向, 贡献负值)
+// 统一使用球面三角剖分 (fan triangulation) + Eriksson (2018) 稳定公式:
+// 1. fan triangulation 以 V_0 为顶点: 三角形 (V_0, V_i, V_{i+1}), i=1..n-2
+// 2. 每个球面三角形有向面积 = 2·atan2(det, 1 + a·b + b·c + c·a)
+// 其中 det = a · (b × c) (标量三重积, 含符号)
+// 3. 累加有向面积 (det<0 时三角形反向, 贡献负值)
 //
-//   R06-B05 修正: 原实现用 center 做扇出且 det<0 时取补面积 (4π-area),
-//   这在 center 不在多边形内部时产生系统性误差. 改用 V_0 扇出 + 有符号累加,
-//   对凸多边形 (S-H 裁剪结果) 总是正确, 无需依赖 center 位置.
+// R06-B05 修正: 原实现用 center 做扇出且 det<0 时取补面积 (4π-area),
+// 这在 center 不在多边形内部时产生系统性误差. 改用 V_0 扇出 + 有符号累加,
+// 对凸多边形 (S-H 裁剪结果) 总是正确, 无需依赖 center 位置.
 //
-//   Eriksson 公式在所有退化情况下数值稳定:
-//   - 极小三角形: 分子分母同比缩小, 比值正确
-//   - 半球大小三角形: 分母→0, atan2 仍稳定
-//   - 共线顶点: 分子=0, 面积=0
-//   - 极区大像素: 无 excess≈0 的相消问题
+// Eriksson 公式在所有退化情况下数值稳定:
+// - 极小三角形: 分子分母同比缩小, 比值正确
+// - 半球大小三角形: 分母→0, atan2 仍稳定
+// - 共线顶点: 分子=0, 面积=0
+// - 极区大像素: 无 excess≈0 的相消问题
 //
 // 参考: Eriksson, F. (2018) "The ang... spherical triangle area formula"
 // ============================================================================
@@ -262,16 +262,16 @@ T spherical_polygon_area_n(const Vec3T<T>* vertices, int n) {
 // 球面 Sutherland-Hodgman 多边形裁剪
 //
 // 对每个裁剪平面法向量 n (保留 dot(n, v) >= 0 一侧):
-//   遍历 subject 的每条边 (S → E):
-//     - 计算 S, E 是否在内侧 (dot(n, S) >= 0 / dot(n, E) >= 0)
-//     - 若跨越边界, 计算交点 I
-//     - 按经典 S-H 规则输出
+// 遍历 subject 的每条边 (S → E):
+// - 计算 S, E 是否在内侧 (dot(n, S) >= 0 / dot(n, E) >= 0)
+// - 若跨越边界, 计算交点 I
+// - 按经典 S-H 规则输出
 //
 // 球面交点:
-//   - 边 (S → E) 所在大圆的法向量 n_edge = cross(S, E)
-//   - 裁剪大圆的法向量 n_clip = n
-//   - 两大圆交点 = ±normalize(cross(n_edge, n_clip))
-//   - 选择 dot(I, S+E) > 0 的那个 (位于 S, E 之间)
+// - 边 (S → E) 所在大圆的法向量 n_edge = cross(S, E)
+// - 裁剪大圆的法向量 n_clip = n
+// - 两大圆交点 = ±normalize(cross(n_edge, n_clip))
+// - 选择 dot(I, S+E) > 0 的那个 (位于 S, E 之间)
 // ============================================================================
 template <typename T>
 static inline bool is_inside(const Vec3T<T>& v, const Vec3T<T>& n) {
@@ -401,7 +401,7 @@ int sutherland_hodgman_spherical_fixed(
 // 获取 HEALPix 像素的球面边界顶点
 //
 // 通过 healpix_core 的 pix2xy 得到 (bighp, x, y), 然后 4 个角点:
-//   C0 = (x,   y),   C1 = (x+1, y),   C2 = (x+1, y+1),   C3 = (x,   y+1)
+// C0 = (x, y), C1 = (x+1, y), C2 = (x+1, y+1), C3 = (x, y+1)
 // 用 xy2ang 转换为 (theta, phi), 再转 (ra, dec), 再转 Vec3.
 //
 // 顺序: C0→C1→C2→C3, 在 (x,y) 平面上是逆时针, 在球面上保持一致方向.
@@ -435,9 +435,9 @@ std::vector<Vec3T<T>> get_healpix_boundary(
     // 为避免修改 healpix_core.h, 这里重新实现 HEALPix 像素角的计算.
     //
     // 参考 healpix_core.cpp 的 xy2ang 实现 (Gorski 2005):
-    //   - 北极 base 0..3, x+y > Ns 时为极冠
-    //   - 南极 base 8..11, x+y < Ns 时为极冠
-    //   - 其他为赤道带
+    // - 北极 base 0..3, x+y > Ns 时为极冠
+    // - 南极 base 8..11, x+y < Ns 时为极冠
+    // - 其他为赤道带
     // 重写 pix2xyCorner(bighp, x, y, nside) → (theta, phi)
     //
     // 但 pix2xy 是 private, 不能直接调用. 这里通过 neighbors + 中心反推.
@@ -464,7 +464,7 @@ std::vector<Vec3T<T>> get_healpix_boundary(
     }
 
     // 4 个角点 (像素角, 不是像素中心)
-    // C0 = (x,   y),   C1 = (x+1, y),   C2 = (x+1, y+1),   C3 = (x,   y+1)
+    // C0 = (x, y), C1 = (x+1, y), C2 = (x+1, y+1), C3 = (x, y+1)
     struct CornerXY { int x, y; };
     CornerXY corners[4] = {
         {xv,     yv    },
@@ -477,9 +477,9 @@ std::vector<Vec3T<T>> get_healpix_boundary(
         double theta, phi;
         // 调用 xyf2ang_replica 计算角点 (整数坐标直接作为浮点 xf/yf, 不加 0.5)
         xyf2ang_replica(bighp, (double)corners[i].x, (double)corners[i].y, Ns, &theta, &phi);
-        // R12 (性能): xyf2ang 已返回弧度 (theta, phi), 直接构造单位向量
-        //   (x=sinθcosφ, y=sinθsinφ, z=cosθ), 跳过 ra/dec 度往返转换
-        //   与 radec_to_vec 数值等价 (误差 ~1e-16, 不影响任何门限)
+        // xyf2ang 已返回弧度 (theta, phi), 直接构造单位向量
+        // (x=sinθcosφ, y=sinθsinφ, z=cosθ), 跳过 ra/dec 度往返转换
+        // 与 radec_to_vec 数值等价 (误差 ~1e-16, 不影响任何门限)
         double st = std::sin(theta), ct = std::cos(theta);
         double sp = std::sin(phi),  cp = std::cos(phi);
         boundary.push_back({T(st * cp), T(st * sp), T(ct)});
@@ -489,7 +489,7 @@ std::vector<Vec3T<T>> get_healpix_boundary(
 }
 
 // ============================================================================
-// V18 (PERF-003): 固定 4 角边界（高 NSIDE 生产路径，无堆分配）。
+// 固定 4 角边界（高 NSIDE 生产路径，无堆分配）。
 // 与 get_healpix_boundary 逐位等价（同一 4 角计算逻辑）。
 // ============================================================================
 template <typename T>
@@ -536,21 +536,21 @@ void get_healpix_boundary4(const healpix::HealpixCore& hp, uint64_t ipix,
 // (赤道带边在 (z,phi) 空间为线性曲线, 极区边为参数曲线).
 //
 // 收敛条件 (二选一):
-//   1. 球面中点 (xyf2ang_replica 在像素坐标中点) 与大圆弧中点 (normalize(p0+p1))
-//      的角偏差 < epsilon_rad → 该段已近似为直线, 取 p0
-//   2. 递归深度达 max_depth → 强制截断 (防止无限递归)
+// 1. 球面中点 (xyf2ang_replica 在像素坐标中点) 与大圆弧中点 (normalize(p0+p1))
+// 的角偏差 < epsilon_rad → 该段已近似为直线, 取 p0
+// 2. 递归深度达 max_depth → 强制截断 (防止无限递归)
 //
 // 递归二分: 不收敛时, 先细分 [p0, p_mid], 再细分 [p_mid, p1].
 // 每个递归节点仅调用 1 次 xyf2ang_replica (中点), 端点复用父节点结果.
 //
 // 输出: out 追加从 p0 开始的细分顶点 (含 p0, 不含 p1, p1 由相邻边处理).
 // ============================================================================
-static const int    HP_ADAPTIVE_MAX_DEPTH = 8;      // 临时回退到 R06 深度以排查崩溃
-// R08 改进2: HP_ADAPTIVE_EPSILON 改为相对值 (见 subdivide_healpix_edge 内部计算)
-//   hp_epsilon = hp_res_rad * 1e-12, 其中 hp_res_rad = sqrt(π/(3·Ns²))
-//   NSIDE=64 时 hp_epsilon ≈ 1.6e-14 rad, 每条边细分到 ~256 段
-//   R06 实测固定 1e-9 (86 顶点) 会使 S-H 累积误差增大, 但 R08 配合改进1 (解析面积)
-//   和改进4 (精确中心) 后, 高细分不再进入 spherical_polygon_area, 累积误差问题消除
+static const int    HP_ADAPTIVE_MAX_DEPTH = 8;      // 临时回退到 深度以排查崩溃
+// 改进2: HP_ADAPTIVE_EPSILON 改为相对值 (见 subdivide_healpix_edge 内部计算)
+// hp_epsilon = hp_res_rad * 1e-12, 其中 hp_res_rad = sqrt(π/(3·Ns²))
+// NSIDE=64 时 hp_epsilon ≈ 1.6e-14 rad, 每条边细分到 ~256 段
+// 实测固定 1e-9 (86 顶点) 会使 S-H 累积误差增大, 但 配合改进1 (解析面积)
+// 和改进4 (精确中心) 后, 高细分不再进入 spherical_polygon_area, 累积误差问题消除
 
 template <typename T>
 static void subdivide_healpix_edge(
@@ -560,17 +560,17 @@ static void subdivide_healpix_edge(
     int depth,
     std::vector<Vec3T<T>>& out)
 {
-    // R10 修复: HEALPix 边细分阈值从 1e-12 改为 1e-6
-    //   根因: hp_res_rad * 1e-12 对非大圆弧的 HEALPix 边永远不收敛.
-    //   HEALPix 赤道带等纬度边是小圆 (非大圆弧), 经线边才是大圆弧.
-    //   等纬度边的角距离偏差 ≈ sin(dec)*L²/8 (L=hp_res_rad):
-    //     NSIDE=65536: L=1.56e-5, 偏差≈1.2e-11, 旧阈值1.56e-17 → 永不收敛
-    //     导致每边递归到 MAX_DEPTH=8 (256段/边, 1024顶点/像素),
-    //     compute_overlap_area 极慢 (16.2M源像素×20候选×1024三角形=332B次操作).
-    //   新阈值 1e-6 (相对值): NSIDE=65536→1.56e-11, 1-2次二分收敛 (2-4段/边);
-    //   弧弦误差 < 1e-6*hp_res ≈ 3e-6角秒, 远超 support uint8 量化精度(0.4%).
-    //   注: WCS 边 (subdivide_wcs_edge) 用大圆弧平面偏差法 (dafa200 改进5),
-    //       因 TAN 投影直线↔大圆弧; HEALPix 边非大圆弧, 用角距离法更合适.
+    // 修复: HEALPix 边细分阈值从 1e-12 改为 1e-6
+    // 根因: hp_res_rad * 1e-12 对非大圆弧的 HEALPix 边永远不收敛.
+    // HEALPix 赤道带等纬度边是小圆 (非大圆弧), 经线边才是大圆弧.
+    // 等纬度边的角距离偏差 ≈ sin(dec)*L²/8 (L=hp_res_rad):
+    // NSIDE=65536: L=1.56e-5, 偏差≈1.2e-11, 旧阈值1.56e-17 → 永不收敛
+    // 导致每边递归到 MAX_DEPTH=8 (256段/边, 1024顶点/像素),
+    // compute_overlap_area 极慢 (16.2M源像素×20候选×1024三角形=332B次操作).
+    // 新阈值 1e-6 (相对值): NSIDE=65536→1.56e-11, 1-2次二分收敛 (2-4段/边);
+    // 弧弦误差 < 1e-6*hp_res ≈ 3e-6角秒, 远超 support uint8 量化精度(0.4%).
+    // 注: WCS 边 (subdivide_wcs_edge) 用大圆弧平面偏差法 (dafa200 改进5),
+    // 因 TAN 投影直线↔大圆弧; HEALPix 边非大圆弧, 用角距离法更合适.
     double hp_res_rad = std::sqrt(PI / (3.0 * (double)Ns * (double)Ns));
     double hp_epsilon = hp_res_rad * 1e-6;
 
@@ -611,9 +611,9 @@ static void subdivide_healpix_edge(
 // 获取 HEALPix 像素的球面边界顶点 (R06-B02 自适应细分)
 //
 // 对所有 NSIDE 统一使用自适应边细分策略:
-//   - 极区像素和赤道带像素均通过 subdivide_healpix_edge 处理
-//   - 不再按 NSIDE<=8 硬切换采样数
-//   - 不再假设极区边是大圆弧 (实测极区边为参数曲线, 非大圆弧)
+// - 极区像素和赤道带像素均通过 subdivide_healpix_edge 处理
+// - 不再按 NSIDE<=8 硬切换采样数
+// - 不再假设极区边是大圆弧 (实测极区边为参数曲线, 非大圆弧)
 //
 // 收敛条件: 球面中点与大圆弧中点偏差 < 1e-6 弧度 (≈0.2角秒), 或深度达 8.
 // 每条边最多 2^8=256 段, 但实际收敛远早于此 (低 NSIDE 大像素约 4-16 段,
@@ -622,7 +622,7 @@ static void subdivide_healpix_edge(
 // 参数 samples_per_edge: 保留接口兼容性, 不再控制精度 (内部自适应决定).
 //
 // 顶点顺序: C0→(细分点)→C1→(细分点)→C2→(细分点)→C3→(细分点)→(回到 C0)
-//   每条边输出含起点不含终点, 总顶点数 = 4 条边的细分段数之和.
+// 每条边输出含起点不含终点, 总顶点数 = 4 条边的细分段数之和.
 // ============================================================================
 template <typename T>
 std::vector<Vec3T<T>> get_healpix_boundary_sampled(
@@ -633,7 +633,7 @@ std::vector<Vec3T<T>> get_healpix_boundary_sampled(
     (void)samples_per_edge;  // R06-B02: 自适应细分, 不再依赖固定采样数
 
     int Ns = hp.getNside();
-    // R11 性能: 高 NSIDE (小像素) 时 4 角已足够 — HEALPix 边偏离大圆弧的偏差
+    // 性能: 高 NSIDE (小像素) 时 4 角已足够 — HEALPix 边偏离大圆弧的偏差
     // ≈ sin(dec)·L²/8 (L=像素尺度)。nside≥256 → L≤13.7' → 偏差 ≤ ~2e-10 rad,
     // 远小于任何面积/通量精度需求。跳过 subdivide_healpix_edge 的固定开销
     // (每边中点 xyf2ang + radec_to_vec + normalize + acos ≈ 100ns/边)。
@@ -769,11 +769,11 @@ static void xyf2ang_replica(int bighp, double xf, double yf, int Ns,
 // 构造源像素 drop 球面多边形 (带边采样)
 //
 // 源像素四角 (pixfrac 收缩后):
-//   c0 = (px - half, py - half)  左下
-//   c1 = (px + half, py - half)  右下
-//   c2 = (px + half, py + half)  右上
-//   c3 = (px - half, py + half)  左上
-//   half = 0.5 * pixfrac
+// c0 = (px - half, py - half) 左下
+// c1 = (px + half, py - half) 右下
+// c2 = (px + half, py + half) 右上
+// c3 = (px - half, py + half) 左上
+// half = 0.5 * pixfrac
 //
 // 每条边采样 samples_per_edge 段 (等分), 每个采样点通过 pixelToSky 回调映射到
 // 天球坐标, 再转换为球面单位向量.
@@ -828,22 +828,22 @@ std::vector<Vec3T<T>> build_drop_polygon_sampled(
 }
 
 // ============================================================================
-// R08 改进3+5: WCS 边自适应细分辅助函数
+// 改进3+5: WCS 边自适应细分辅助函数
 //
 // 对源像素 WCS 弯曲边进行自适应二分细分 (类似 subdivide_healpix_edge 但用 WCS 回调).
 //
-// R08 改进5 根因 (修复 5.020e-09 closure 误差):
-//   原收敛条件 "WCS 中点 vs 大圆弧球面中点" 是错误的.
-//   TAN (gnomonic) 投影保证平面直线 ↔ 大圆弧, 但平面中点不等于球面中点
-//   (gnomonic 参数化非线性: c = atan(rho), 平面 t=0.5 ≠ 球面 t=0.5).
-//   即使 WCS 边精确是大圆弧, dev 永远 > 0 (~6.6e-7 rad/1°边), 触发过度细分
-//   (每边 4096 段), 累积 S-H 裁剪误差 + spherical_polygon_area fan triangulation 误差.
+// 改进5 根因 (修复 5.020e-09 closure 误差):
+// 原收敛条件 "WCS 中点 vs 大圆弧球面中点" 是错误的.
+// TAN (gnomonic) 投影保证平面直线 ↔ 大圆弧, 但平面中点不等于球面中点
+// (gnomonic 参数化非线性: c = atan(rho), 平面 t=0.5 ≠ 球面 t=0.5).
+// 即使 WCS 边精确是大圆弧, dev 永远 > 0 (~6.6e-7 rad/1°边), 触发过度细分
+// (每边 4096 段), 累积 S-H 裁剪误差 + spherical_polygon_area fan triangulation 误差.
 //
-// R08 改进5 修复: 检查 WCS 中点是否在 (p0,p1) 大圆弧平面上
-//   大圆弧法向量 n = normalize(cross(p0, p1))
-//   WCS 中点到大圆弧平面的角距离 = |asin(dot(n, p_mid_wcs))|
-//   gnomonic (TAN) 投影: WCS 边精确是大圆弧, dot(n, p_mid_wcs)=0, dev≈0 (浮点精度)
-//   SIP 投影: WCS 边偏离大圆弧, dev>0, 递归细分直到 dev<wcs_epsilon
+// 改进5 修复: 检查 WCS 中点是否在 (p0,p1) 大圆弧平面上
+// 大圆弧法向量 n = normalize(cross(p0, p1))
+// WCS 中点到大圆弧平面的角距离 = |asin(dot(n, p_mid_wcs))|
+// gnomonic (TAN) 投影: WCS 边精确是大圆弧, dot(n, p_mid_wcs)=0, dev≈0 (浮点精度)
+// SIP 投影: WCS 边偏离大圆弧, dev>0, 递归细分直到 dev<wcs_epsilon
 //
 // wcs_epsilon = src_scale_rad * 1e-12 (相对阈值, 与源像素尺度成正比)
 // max_depth = 12 (每边最多 4096 段, 处理高曲率 SIP 投影)
@@ -871,10 +871,10 @@ static void subdivide_wcs_edge(
     }
     Vec3T<double> p_mid_wcs = radec_to_vec<double>(ra_m, dec_m);
 
-    // R08 改进5: 大圆弧平面偏差检验
-    //   n = normalize(cross(p0, p1)) 是过 p0, p1 的大圆弧所在平面的法向量
-    //   dot(n, p_mid_wcs) = 0 ⟺ p_mid_wcs 在大圆弧平面上 ⟺ WCS 边是大圆弧
-    //   角距离 = |asin(dot(n, p_mid_wcs))|
+    // 改进5: 大圆弧平面偏差检验
+    // n = normalize(cross(p0, p1)) 是过 p0, p1 的大圆弧所在平面的法向量
+    // dot(n, p_mid_wcs) = 0 ⟺ p_mid_wcs 在大圆弧平面上 ⟺ WCS 边是大圆弧
+    // 角距离 = |asin(dot(n, p_mid_wcs))|
     Vec3T<double> n = normalize(cross(p0, p1));
     double d = double(n.x) * p_mid_wcs.x + double(n.y) * p_mid_wcs.y + double(n.z) * p_mid_wcs.z;
     if (d >  1.0) d =  1.0;
@@ -894,7 +894,7 @@ static void subdivide_wcs_edge(
 }
 
 // ============================================================================
-// R08 改进3: 构造源像素 drop 球面多边形 (自适应 WCS 边细分)
+// 改进3: 构造源像素 drop 球面多边形 (自适应 WCS 边细分)
 //
 // 对每条 WCS 边递归细分直到收敛, 消除 TAN/SIP 投影曲率导致的面积误差.
 // 小像素自动收敛 (仅 4 角), 大像素递归细分到机器精度.
@@ -923,14 +923,14 @@ std::vector<Vec3T<T>> build_drop_polygon_adaptive(
         corner_vecs[i] = radec_to_vec<double>(ra, dec);
     }
 
-    // R08 改进3: 相对阈值 = src_scale_rad * 1e-12 (double, 防 float 截断收敛失效)
+    // 改进3: 相对阈值 = src_scale_rad * 1e-12 (double, 防 float 截断收敛失效)
     // 签字修正 (REV-107): 阈值不得低于 pixelToSky 数值噪声。实测 TAN 边中点
-    //   对大圆弧平面的偏差 ~6e-14 rad (WCS 映射数值误差累积), 若阈值低于该
-    //   噪声则永不收敛 → 每边递归到深度 12 (4096 段), 像素 footprint 16384
-    //   顶点, 反向 Drizzle 卡死。
-    //   下限 1e-11 rad: TAN 立即收敛 (4 角); SIP 曲线偏差 < max(1e-11,
-    //   src_scale×1e-12) 即收敛; 面积误差 ~eps/(2·src_scale) ≤ 1.7e-7 相对
-    //   (src_scale=6.3"), 远低于任何科学门。
+    // 对大圆弧平面的偏差 ~6e-14 rad (WCS 映射数值误差累积), 若阈值低于该
+    // 噪声则永不收敛 → 每边递归到深度 12 (4096 段), 像素 footprint 16384
+    // 顶点, 反向 Drizzle 卡死。
+    // 下限 1e-11 rad: TAN 立即收敛 (4 角); SIP 曲线偏差 < max(1e-11,
+    // src_scale×1e-12) 即收敛; 面积误差 ~eps/(2·src_scale) ≤ 1.7e-7 相对
+    // (src_scale=6.3"), 远低于任何科学门。
     double wcs_epsilon = std::max(double(src_scale_rad) * 1e-12, 1e-11);
 
     // 对 4 条边自适应细分
@@ -951,29 +951,29 @@ std::vector<Vec3T<T>> build_drop_polygon_adaptive(
 // ============================================================================
 // 计算源像素 drop 与目标 HEALPix 像素的球面重叠面积
 //
-// R07 修复: 三角形扇剖分 (fan triangulation) 替代直接 S-H 裁剪
+// 修复: 三角形扇剖分 (fan triangulation) 替代直接 S-H 裁剪
 //
-// R06 根因:
-//   直接用 HEALPix 像素边界 (自适应细分后可达 100+ 顶点) 作为 S-H 裁剪多边形,
-//   100+ 条裁剪边的数值误差在迭代中累积, 导致极区像素重叠面积系统性低估
-//   (实测 ipix 8189 低估 27%, ipix 8183 完全漏掉).
+// 根因:
+// 直接用 HEALPix 像素边界 (自适应细分后可达 100+ 顶点) 作为 S-H 裁剪多边形,
+// 100+ 条裁剪边的数值误差在迭代中累积, 导致极区像素重叠面积系统性低估
+// (实测 ipix 8189 低估 27%, ipix 8183 完全漏掉).
 //
-//   诊断证据 (diag_pixel_boundary.cpp):
-//     ipix 8189 (123 顶点): prod=2.496e-05, tri_fan=3.428e-05, 独立参考=3.428e-05
-//     ipix 8191 (102 顶点): prod=3.797e-06, tri_fan=3.797e-06 (含极点, 边为大圆弧)
+// 诊断证据 (diag_pixel_boundary.cpp):
+// ipix 8189 (123 顶点): prod=2.496e-05, tri_fan=3.428e-05, 独立参考=3.428e-05
+// ipix 8191 (102 顶点): prod=3.797e-06, tri_fan=3.797e-06 (含极点, 边为大圆弧)
 //
 // 修复方案:
-//   1. 获取 HEALPix 像素边界 (自适应细分, 与 R06 一致)
-//   2. 用 pix2radec 获取像素精确中心
-//   3. 以像素中心为顶点, 对边界做 fan triangulation: 三角形 (center, V[i], V[i+1])
-//   4. 对每个三角形与 drop 做 S-H 裁剪 (每个三角形仅 3 条裁剪边, 无累积误差)
-//   5. 累加所有三角形的重叠面积
+// 1. 获取 HEALPix 像素边界 (自适应细分, 与 一致)
+// 2. 用 pix2radec 获取像素精确中心
+// 3. 以像素中心为顶点, 对边界做 fan triangulation: 三角形 (center, V[i], V[i+1])
+// 4. 对每个三角形与 drop 做 S-H 裁剪 (每个三角形仅 3 条裁剪边, 无累积误差)
+// 5. 累加所有三角形的重叠面积
 //
 // 正确性:
-//   - 三角形在球面上总是凸的, S-H 裁剪数学上精确
-//   - 三角形扇覆盖整个像素, 无缝隙无重叠
-//   - 每个三角形仅 3 条裁剪边, 数值误差不累积
-//   - 与独立参考 (L'Huilier + 高密度点采样) 结果一致 (误差 < 1e-10)
+// - 三角形在球面上总是凸的, S-H 裁剪数学上精确
+// - 三角形扇覆盖整个像素, 无缝隙无重叠
+// - 每个三角形仅 3 条裁剪边, 数值误差不累积
+// - 与独立参考 (L'Huilier + 高密度点采样) 结果一致 (误差 < 1e-10)
 // ============================================================================
 template <typename T>
 T compute_overlap_area(
@@ -989,12 +989,12 @@ T compute_overlap_area(
 // ============================================================================
 // build_drop_geometry - 预计算 drop 包围圆 + 裁剪法向量 (Scalar 存储, 每源像素一次)
 // ============================================================================
-// 微小多边形切平面面积 (R12 阶段4):
-//   球面面积 = 切平面有向叉积和 × (1 + O(θ²)), θ=max_angle。
-//   θ < 1e-3 rad 时偏差 < 4e-8, 而 double 球面 Eriksson 的 det = a·(b×c)
-//   在 θ~1e-7 rad 时是 ~1e-8 项相消到 ~1e-15 的差, 噪声 ~1e-4~5e-5
-//   (0.01\"~0.1\" drop 实测)。切平面坐标避免相消, 误差仅剩表示层
-//   ~1e-9 相对。对微小 drop 是"不加精度、不加计算量"的数值稳定替代。
+// 微小多边形切平面面积 ( 阶段4):
+// 球面面积 = 切平面有向叉积和 × (1 + O(θ²)), θ=max_angle。
+// θ < 1e-3 rad 时偏差 < 4e-8, 而 double 球面 Eriksson 的 det = a·(b×c)
+// 在 θ~1e-7 rad 时是 ~1e-8 项相消到 ~1e-15 的差, 噪声 ~1e-4~5e-5
+// (0.01\"~0.1\" drop 实测)。切平面坐标避免相消, 误差仅剩表示层
+// ~1e-9 相对。对微小 drop 是"不加精度、不加计算量"的数值稳定替代。
 // 顶点数组版 (c 为切平面法向/中心, 由调用方传入; 为空则用质心)
 static double planar_polygon_area_n(const Vec3* pts, int n, const Vec3* center = nullptr) {
     if (n < 3) return 0.0;
@@ -1038,7 +1038,7 @@ template <typename Scalar>
 void build_drop_geometry_into(DropGeometryT<Scalar>& g,
                               const std::vector<Vec3T<Scalar>>& drop_corners,
                               const std::vector<Vec3>* corners_dbl) {
-    // V18 (PERF-002): 复用已有容量（g 由调用方 thread-local 持有，首帧
+    // 复用已有容量（g 由调用方 thread-local 持有，首帧
     // reserve 后不再分配）；科学语义与 build_drop_geometry 完全一致。
     if (g.corners.capacity() < drop_corners.size())
         g.corners.reserve(drop_corners.size());
@@ -1066,9 +1066,9 @@ void build_drop_geometry_into(DropGeometryT<Scalar>& g,
                               double(drop_corners[j].z)};
     }
     // drop 面积 (double 源, 构建时一次; 供小 drop 完全包含快路径)
-    //   尺度感知: max_angle 暂以临时中心近似估计 (下面精确计算后不重复)
-    //   微小 drop (角跨度 < 1e-3 rad ≈ 206\") 用切平面 2D 面积 (数值稳定);
-    //   大 drop 用球面 Eriksson (double 在 θ > 1e-3 时噪声 < 1e-7 可忽略)
+    // 尺度感知: max_angle 暂以临时中心近似估计 (下面精确计算后不重复)
+    // 微小 drop (角跨度 < 1e-3 rad ≈ 206\") 用切平面 2D 面积 (数值稳定);
+    // 大 drop 用球面 Eriksson (double 在 θ > 1e-3 时噪声 < 1e-7 可忽略)
     {
         double cx0 = 0.0, cy0 = 0.0, cz0 = 0.0;
         for (const auto& v : g.corners_d) { cx0 += v.x; cy0 += v.y; cz0 += v.z; }
@@ -1099,10 +1099,10 @@ void build_drop_geometry_into(DropGeometryT<Scalar>& g,
     g.center = {Scalar(cxn), Scalar(cyn), Scalar(czn)};
     g.center_d = {cxn, cyn, czn};
     // max_angle 必须从 double 精度角点源计算 (corners_dbl 优先, 无则提升 Scalar):
-    //   float 存储角点含 ~1e-7 长度舍入, 对 6.3\" 尺度小 drop 其真实角距仅
-    //   ~2e-5 rad (cos 偏差 ~2e-10), 舍入噪声会淹没真实值, 使 max_angle 被
-    //   钳制为 0 (→ 快速拒绝误杀边缘 leaf) 或膨胀 ~10 倍 (→ 候选集合扩大),
-    //   直接导致 FP32 边缘 leaf 通量塌缩 (L2 NSIDE=65536 实测 445→3e-5)。
+    // float 存储角点含 ~1e-7 长度舍入, 对 6.3\" 尺度小 drop 其真实角距仅
+    // ~2e-5 rad (cos 偏差 ~2e-10), 舍入噪声会淹没真实值, 使 max_angle 被
+    // 钳制为 0 (→ 快速拒绝误杀边缘 leaf) 或膨胀 ~10 倍 (→ 候选集合扩大),
+    // 直接导致 FP32 边缘 leaf 通量塌缩 (L2 NSIDE=65536 实测 445→3e-5)。
     double max_angle = 0.0;
     if (corners_dbl && (int)corners_dbl->size() == nd) {
         for (const auto& v : *corners_dbl) {
@@ -1148,14 +1148,14 @@ void build_drop_geometry_into(DropGeometryT<Scalar>& g,
 
 // ============================================================================
 // compute_overlap_area_g - 使用预计算 drop 几何的重叠面积 (Scalar 实例)
-//   Scalar=float: 几何数据/返回 float (真 FP32 类型贯穿); 数值运算内部 double
-//   提升 (微小球面几何 det/denom 在纯 float 下误差 ~9%, 提升后科学正确)
+// Scalar=float: 几何数据/返回 float (真 FP32 类型贯穿); 数值运算内部 double
+// 提升 (微小球面几何 det/denom 在纯 float 下误差 ~9%, 提升后科学正确)
 // ============================================================================
 template <typename Scalar>
 Scalar compute_overlap_area_g(const DropGeometryT<Scalar>& g,
                               const healpix::HealpixCore& hp, uint64_t target_ipix)
 {
-    // V18 (PERF-005): 旧签名保持 oracle 兼容；内部委托 ctx 版本
+    // 旧签名保持 oracle 兼容；内部委托 ctx 版本
     // （hp_res_rad = 调用时一次解析，语义与历史实现完全一致）
     return compute_overlap_area_g_ctx<Scalar>(
         g, hp, target_ipix,
@@ -1180,15 +1180,15 @@ Scalar compute_overlap_area_g_ctx(const DropGeometryT<Scalar>& g,
     // 快速拒绝 (Oracle 穷举关键; 生产 query 已预过滤, 此判断为防御性重复):
     // 像素中心到 drop 包围圆中心距离 > max_angle + 1.0×hp_res (像素外接半径上界)
     // → 必然不相交, 跳过边界获取/S-H (避免极区大像素细分开销)
-    // R12 (性能): 像素中心只求一次 (pix2radec + radec_to_vec), 快速拒绝与
+    // 像素中心只求一次 (pix2radec + radec_to_vec), 快速拒绝与
     // hp_center 复用同一向量 (原实现重复计算两次)
-    // V18 (PERF-004/005): quick-reject 用"带安全余量的 dot 预判"：
-    //   d_c <= cos(lim + 1e-9 rad) → acos(d_c) >= lim+1e-9 > lim（浮点
-    //   acos/cos 舍入 ~1e-16 rad << 1e-9）→ 原 acos(d_c) > lim 必真，
-    //   拒绝集是原拒绝集的严格子集（零漏、零误拒）；
-    //   边界区 (cos(lim+1e-9), cos(lim)] 走原始 acos 判定 → 与历史实现
-    //   位级一致（1e-19 sliver oracle 通过）。
-    //   4.23 亿次候选快速拒绝中绝大多数（远离边界）免 acos。
+    // quick-reject 用"带安全余量的 dot 预判"：
+    // d_c <= cos(lim + 1e-9 rad) → acos(d_c) >= lim+1e-9 > lim（浮点
+    // acos/cos 舍入 ~1e-16 rad << 1e-9）→ 原 acos(d_c) > lim 必真，
+    // 拒绝集是原拒绝集的严格子集（零漏、零误拒）；
+    // 边界区 (cos(lim+1e-9), cos(lim)] 走原始 acos 判定 → 与历史实现
+    // 位级一致（1e-19 sliver oracle 通过）。
+    // 4.23 亿次候选快速拒绝中绝大多数（远离边界）免 acos。
     const double lim = g.max_angle + HP_CIRCUMRADIUS_FACTOR * hp_res_rad;
     const double cos_safe = std::cos(lim + 1e-9);
     double ra_c, dec_c;
@@ -1208,8 +1208,8 @@ Scalar compute_overlap_area_g_ctx(const DropGeometryT<Scalar>& g,
     }
 
     // 1. 获取目标 HEALPix 像素边界 (double 内部)
-    //    V18 (PERF-003): nside>=256 生产路径用固定 4 角 array（无堆分配），
-    //    与 get_healpix_boundary 逐位等价；低 NSIDE 保留自适应细分 vector。
+    // nside>=256 生产路径用固定 4 角 array（无堆分配），
+    // 与 get_healpix_boundary 逐位等价；低 NSIDE 保留自适应细分 vector。
     int nside = hp.getNside();
     std::array<Vec3, 4> hp_boundary4;
     std::vector<Vec3> hp_boundary_vec;
@@ -1228,15 +1228,15 @@ Scalar compute_overlap_area_g_ctx(const DropGeometryT<Scalar>& g,
         nb = (int)hp_boundary_vec.size();
     }
 
-    // R07/R08 混合策略 (保持科学语义与数值精度):
-    //   三角形扇剖分 (hp_center → 每边三角形) + 逐三角形 S-H 裁剪
-    //   R11 性能优化: tri_inside 快路径 (三角形完全在 drop 内 → 直接面积,
-    //   免 S-H); drop 几何预计算复用; 高 NSIDE 4 角边界直出。
+    // 混合策略 (保持科学语义与数值精度):
+    // 三角形扇剖分 (hp_center → 每边三角形) + 逐三角形 S-H 裁剪
+    // 性能优化: tri_inside 快路径 (三角形完全在 drop 内 → 直接面积,
+    // 免 S-H); drop 几何预计算复用; 高 NSIDE 4 角边界直出。
     const std::vector<Vec3>& drop_clip_normals = clip_d;
 
     // 判定在 double 缓存 (clip_normals_d / center_d) 上进行, 与 Scalar 存储
     // 无关, FP32/FP64 实例必须使用同一容差: 1e-12 仅覆盖 double 舍入。
-    // 注 (R12): 凸分离快速判定 (drop 全在像素某边外 / 像素全在 drop 某边外)
+    // 注 : 凸分离快速判定 (drop 全在像素某边外 / 像素全在 drop 某边外)
     // 已移除 — 球面像素边界的支撑线无法精确表示 (细分小段不是支撑线,
     // 主 4 角大圆弧与真实边界内缩/外扩不定), 任何近似支撑线的分离判定都会
     // 在边界附近误杀真实相交的 drop (L0 NSIDE=64 实测通量丢失 0.6%)。
@@ -1259,11 +1259,11 @@ Scalar compute_overlap_area_g_ctx(const DropGeometryT<Scalar>& g,
         return Scalar(PI / (3.0 * (double)nside * (double)nside));
     }
 
-    // R12 (阶段4): drop 完全位于目标像素内 → overlap = drop_area (weight=1 精确)
-    //   原 S-H (像素三角形扇 x drop 边) 会重算 drop 角点: 像素边大圆与
-    //   drop 边大圆在赤道带接近平行, 交点固定绝对误差 ~1e-11 rad, 相对
-    //   误差与 drop 尺寸成反比 (0.01\" 实测 4.6e-4) → 必须免 S-H。
-    //   判定用真实细分边界 (精确, 不依赖任何支撑线近似)。
+    // drop 完全位于目标像素内 → overlap = drop_area (weight=1 精确)
+    // 原 S-H (像素三角形扇 x drop 边) 会重算 drop 角点: 像素边大圆与
+    // drop 边大圆在赤道带接近平行, 交点固定绝对误差 ~1e-11 rad, 相对
+    // 误差与 drop 尺寸成反比 (0.01\" 实测 4.6e-4) → 必须免 S-H。
+    // 判定用真实细分边界 (精确, 不依赖任何支撑线近似)。
     {
         bool drop_inside_pixel = true;
         for (int i = 0; i < nb; i++) {
@@ -1294,9 +1294,9 @@ Scalar compute_overlap_area_g_ctx(const DropGeometryT<Scalar>& g,
     // 三角形扇剖分 + 逐三角形 S-H 裁剪 (旧算法数值路径, 通量闭合 ~1e-11)
     if (overlap_profile_enabled()) g_tl_n_sh++;
     double total_overlap = 0.0;
-    // R12 (性能): 高 NSIDE 生产路径 (边界 4 角, 凸四边形) 用一次四边形 S-H
-    //   代替 4 次三角形扇裁剪 — 数学等价 (凸∩凸 = 一次 S-H 交集),
-    //   S-H 顶点处理量约为三角形扇的 1/4 (4 subject 顶点 vs 4x3)
+    // 高 NSIDE 生产路径 (边界 4 角, 凸四边形) 用一次四边形 S-H
+    // 代替 4 次三角形扇裁剪 — 数学等价 (凸∩凸 = 一次 S-H 交集),
+    // S-H 顶点处理量约为三角形扇的 1/4 (4 subject 顶点 vs 4x3)
     if (nb == 4) {
         Vec3 intersection[16];
         int ni = sutherland_hodgman_spherical_fixed(
@@ -1341,10 +1341,10 @@ Scalar compute_overlap_area_g_ctx(const DropGeometryT<Scalar>& g,
             Vec3 intersection[16];
             int ni = sutherland_hodgman_spherical_fixed(triangle, 3, drop_clip_normals, intersection, 16);
             if (ni < 3) continue;
-            // 面积与 drop_area 同一尺度感知策略 (R12):
-            //   drop 微小 (max_angle < 1e-3 rad) 时交集也是微小多边形,
-            //   用切平面面积 (与 g.drop_area 表示一致, 避免 weight 偏差);
-            //   大 drop 用球面 Eriksson
+            // 面积与 drop_area 同一尺度感知策略 :
+            // drop 微小 (max_angle < 1e-3 rad) 时交集也是微小多边形,
+            // 用切平面面积 (与 g.drop_area 表示一致, 避免 weight 偏差);
+            // 大 drop 用球面 Eriksson
             if (g.max_angle < 1e-3) {
                 total_overlap += planar_polygon_area_n(
                     intersection, ni, &g.center_d);
@@ -1360,15 +1360,15 @@ Scalar compute_overlap_area_g_ctx(const DropGeometryT<Scalar>& g,
 // 查询与 drop 多边形可能相交的所有 HEALPix 像素 (不限于 1-ring)
 //
 // R06-B04 修复: 保守球冠保证不漏选
-//   原实现用 1.5×hp_res 经验缓冲, 在 1°/pixel 极区场景下漏选 8/288 例.
-//   修复方案:
-//   1. drop 包围圆半径 = max(顶点到中心角距离) + drop 对角线半长裕量
-//   2. 缓冲 = HEALPix 像素最大角半径 (中心到最远顶点)
-//      HEALPix 像素非正方形, 对角线方向延伸更大:
-//        赤道带对角线 ≈ 1.532 × res, 半长 ≈ 0.766 × res
-//        极区三角形外接圆半径更大
-//      取保守上界 2.0 × hp_res (覆盖所有方向的最坏情况)
-//   3. 额外加 ε = 0.1 × hp_res 防浮点边界
+// 原实现用 1.5×hp_res 经验缓冲, 在 1°/pixel 极区场景下漏选 8/288 例.
+// 修复方案:
+// 1. drop 包围圆半径 = max(顶点到中心角距离) + drop 对角线半长裕量
+// 2. 缓冲 = HEALPix 像素最大角半径 (中心到最远顶点)
+// HEALPix 像素非正方形, 对角线方向延伸更大:
+// 赤道带对角线 ≈ 1.532 × res, 半长 ≈ 0.766 × res
+// 极区三角形外接圆半径更大
+// 取保守上界 2.0 × hp_res (覆盖所有方向的最坏情况)
+// 3. 额外加 ε = 0.1 × hp_res 防浮点边界
 // ============================================================================
 template <typename T>
 void query_candidate_pixels(
@@ -1380,8 +1380,8 @@ void query_candidate_pixels(
     if (drop_corners.empty()) return;
 
     // 1. 计算 drop 多边形的球面包围圆
-    //    中心 = 所有顶点向量的平均 (归一化)
-    //    半径 = 最大顶点到中心的角距离
+    // 中心 = 所有顶点向量的平均 (归一化)
+    // 半径 = 最大顶点到中心的角距离
     Vec3T<T> center = {T(0), T(0), T(0)};
     for (const Vec3T<T>& v : drop_corners) {
         center.x += v.x; center.y += v.y; center.z += v.z;
@@ -1395,11 +1395,11 @@ void query_candidate_pixels(
     }
 
     // 2. R06-B04: 保守缓冲 — HEALPix 像素最大角半径 + 裕量
-    //    HEALPix 像素分辨率 (角秒) = sqrt(4π/(12*nside²)) * 206265
-    //    像素最大角半径 (中心→最远顶点) 实测上界 = 1.044 × hp_res
-    //    (全像素扫描 @dec=±41.81°; R13 CAND-001 证明)
-    //    取 3.0 × hp_res 作为保守缓冲, 覆盖极区三角形和所有方向的最坏情况
-    //    额外裕量防浮点边界效应和queryDisc中心判定偏差
+    // HEALPix 像素分辨率 (角秒) = sqrt(4π/(12*nside²)) * 206265
+    // 像素最大角半径 (中心→最远顶点) 实测上界 = 1.044 × hp_res
+    // (全像素扫描 @dec=±41.81°; CAND-001 证明)
+    // 取 3.0 × hp_res 作为保守缓冲, 覆盖极区三角形和所有方向的最坏情况
+    // 额外裕量防浮点边界效应和queryDisc中心判定偏差
     double hp_res_arcsec = hp.pixelResolutionArcsec();
     double hp_res_rad    = hp_res_arcsec * ARCSEC_TO_RAD;
     double buffer_rad     = 3.0 * hp_res_rad;
@@ -1427,13 +1427,13 @@ void query_candidate_pixels(
 }
 
 // ============================================================================
-// query_candidate_pixels_fast - NESTED 直接候选枚举 (R11, 替代 queryDisc BFS)
+// query_candidate_pixels_fast - NESTED 直接候选枚举 (, 替代 queryDisc BFS)
 //
 // 保守性: 任何与 drop 相交的 HEALPix 像素, 其中心必然落在
-//   "drop 包围圆半径 + 像素外接圆半径" 的圆盘内。
-//   像素外接圆半径上界取 1.2 × hp_res (HEALPix 像素最坏情况外接半径 ≈ 1.19×res)。
-//   直接枚举 NESTED (face, ix, iy) 正方形包围盒内的像素 (整数位操作, 无 BFS/邻居展开),
-//   不做距离剔除 (允许少量 false positives, 由 overlap 精确计算过滤) → 零漏选。
+// "drop 包围圆半径 + 像素外接圆半径" 的圆盘内。
+// 像素外接圆半径上界取 1.2 × hp_res (HEALPix 像素最坏情况外接半径 ≈ 1.19×res)。
+// 直接枚举 NESTED (face, ix, iy) 正方形包围盒内的像素 (整数位操作, 无 BFS/邻居展开),
+// 不做距离剔除 (允许少量 false positives, 由 overlap 精确计算过滤) → 零漏选。
 // ============================================================================
 template <typename T>
 void query_candidate_pixels_fast(
@@ -1447,8 +1447,8 @@ void query_candidate_pixels_fast(
     if (drop_corners.empty()) return;
 
     // 1. drop 球面包围圆 (内部 double 计算: 候选是几何完备性判定,
-    //    float 舍入会抖动 delta/中心导致 FP32/FP64 候选集合不一致;
-    //    候选集合本身为整数 ipix, 与 Scalar 类型无关)
+    // float 舍入会抖动 delta/中心导致 FP32/FP64 候选集合不一致;
+    // 候选集合本身为整数 ipix, 与 Scalar 类型无关)
     double cx_ = 0.0, cy_ = 0.0, cz_ = 0.0;
     for (const Vec3T<T>& v : drop_corners) {
         cx_ += double(v.x); cy_ += double(v.y); cz_ += double(v.z);
@@ -1500,27 +1500,27 @@ void query_candidate_pixels_fast(
     if (delta < 0) delta = 0;
     if (delta > nside - 1) delta = nside - 1;
 
-    // R13 (Phase1 Final Closure, CAND-001): 面内畸变与极冠回退。
-    //   HEALPix face 内 (ix,iy) 平面距离与球面角距不成正比, 面内畸变率
-    //   (面内 1 像素对应球面角距 / hp_res) 实测 (scan_face_distortion,
-    //   nside=512 全 face 网格扫描):
-    //     - 赤道带内部 (离极冠边界 >0.2Ns): 0.9999 x hp_res (无畸变)
-    //     - 极冠边界带 (<0.08Ns):           0.874 x hp_res (畸变 1.14x)
-    //     - 极冠像素:                       0.798 x hp_res (畸变 1.25x)
-    //   → 快速路径仅用于赤道带, delta 乘 1.25 安全系数 (签字修正
-    //     ORACLE_HARDENING: 赤道带 |z|<=2/3 面内畸变解析上界
-    //     ds/dx_face=(1/nside)·sqrt(4/9+π²cos²θ/16), 最坏在 z=±2/3:
-    //     cosθ=sqrt(5/9), sqrt(4/9+5π²/144)≈0.8872 → 面距离/球面角距
-    //     ≤1/0.8872≈1.127; 经验扫描最坏 1.14; 取 1.25 覆盖解析+浮点);
-    //     极冠 (bighp 0-3 的 ix+iy>Ns, bighp 8-11 的 ix+iy<Ns) 回退球面查询
-    //     (queryDisc 3.0 buffer, 与面内畸变无关, 天然正确)。
+    // 面内畸变与极冠回退。
+    // HEALPix face 内 (ix,iy) 平面距离与球面角距不成正比, 面内畸变率
+    // (面内 1 像素对应球面角距 / hp_res) 实测 (scan_face_distortion,
+    // nside=512 全 face 网格扫描):
+    // - 赤道带内部 (离极冠边界 >0.2Ns): 0.9999 x hp_res (无畸变)
+    // - 极冠边界带 (<0.08Ns): 0.874 x hp_res (畸变 1.14x)
+    // - 极冠像素: 0.798 x hp_res (畸变 1.25x)
+    // → 快速路径仅用于赤道带, delta 乘 1.25 安全系数 (签字修正
+    // ORACLE_HARDENING: 赤道带 |z|<=2/3 面内畸变解析上界
+    // ds/dx_face=(1/nside)·sqrt(4/9+π²cos²θ/16), 最坏在 z=±2/3:
+    // cosθ=sqrt(5/9), sqrt(4/9+5π²/144)≈0.8872 → 面距离/球面角距
+    // ≤1/0.8872≈1.127; 经验扫描最坏 1.14; 取 1.25 覆盖解析+浮点);
+    // 极冠 (bighp 0-3 的 ix+iy>Ns, bighp 8-11 的 ix+iy<Ns) 回退球面查询
+    // (queryDisc 3.0 buffer, 与面内畸变无关, 天然正确)。
     bool in_polar_cap = false;
     if (face <= 3)      in_polar_cap = (ix0 + iy0 > nside);
     else if (face >= 8) in_polar_cap = (ix0 + iy0 < nside);
     // 中心像素在赤道侧但枚举盒可能延伸进极冠 (解析上界仅对赤道带成立,
     // 极冠畸变 1.25x 无安全系数) → 枚举盒任何像素触及极冠即回退保守路径。
-    //   face 0-3:  极冠 = ix+iy > Ns, 盒最大 ix+iy = ix0+iy0+2*delta
-    //   face 8-11: 极冠 = ix+iy < Ns, 盒最小 ix+iy = ix0+iy0-2*delta
+    // face 0-3: 极冠 = ix+iy > Ns, 盒最大 ix+iy = ix0+iy0+2*delta
+    // face 8-11: 极冠 = ix+iy < Ns, 盒最小 ix+iy = ix0+iy0-2*delta
     bool box_touches_polar = false;
     if (face <= 3)      box_touches_polar = ((ix0 + iy0) + 2 * delta >= nside);
     else if (face >= 8) box_touches_polar = ((ix0 + iy0) - 2 * delta <= nside);
@@ -1534,12 +1534,12 @@ void query_candidate_pixels_fast(
     if (delta < 0) delta = 0;
     if (delta > nside - 1) delta = nside - 1;
 
-    // 4. 边界判断 + 枚举 (控制包 CANDIDATE_QUERY_REPAIR):
-    //    仅当枚举包围盒完全位于中心 base face 内部时, 才允许 face 内快速枚举
-    //    (可证明不会跨 face, 零漏选由 Oracle 矩阵验证)。
-    //    包围盒触及 face 边界/角/极区接缝时, 回退保守 PRECISE 候选
-    //    (query_candidate_pixels: queryDisc 圆盘, 天然跨 face, buffer 3.0×hp_res)。
-    //    禁止只裁剪中心 face (会漏相邻 face 真相交像素)。
+    // 4. 边界判断 + 枚举 ( CANDIDATE_QUERY_REPAIR):
+    // 仅当枚举包围盒完全位于中心 base face 内部时, 才允许 face 内快速枚举
+    // (可证明不会跨 face, 零漏选由 Oracle 矩阵验证)。
+    // 包围盒触及 face 边界/角/极区接缝时, 回退保守 PRECISE 候选
+    // (query_candidate_pixels: queryDisc 圆盘, 天然跨 face, buffer 3.0×hp_res)。
+    // 禁止只裁剪中心 face (会漏相邻 face 真相交像素)。
     int x0 = ix0 - delta, x1 = ix0 + delta;
     int y0 = iy0 - delta, y1 = iy0 + delta;
     if (x0 < 0 || y0 < 0 || x1 > nside - 1 || y1 > nside - 1) {
@@ -1563,13 +1563,13 @@ void query_candidate_pixels_fast(
         };
         return spread((uint32_t)x) | (spread((uint32_t)y) << 1);
     };
-    // 4b. 不再做平面圆预过滤 (R12 修复):
-    //     面内 (ix,iy)→球面映射在菱形网格对角线方向不单调 — 平面距离
-    //     sqrt(2) 的对角像素其球面距离可能 < query_radius, 平面圆
-    //     dx²+dy²>delta² 会把它误滤 → 候选漏选 (低 NSIDE 像素角点场景
-    //     实测: drop 质心落在 4 像素公共角附近, 真实相交像素在对角方向
-    //     被滤, 通量丢失 0.6%)。整个包围盒 (2delta+1)² 全枚举,
-    //     由下方精确球面圆心距离过滤负责去重/裁剪, 所有 NSIDE 统一正确。
+    // 4b. 不再做平面圆预过滤 ( 修复):
+    // 面内 (ix,iy)→球面映射在菱形网格对角线方向不单调 — 平面距离
+    // sqrt(2) 的对角像素其球面距离可能 < query_radius, 平面圆
+    // dx²+dy²>delta² 会把它误滤 → 候选漏选 (低 NSIDE 像素角点场景
+    // 实测: drop 质心落在 4 像素公共角附近, 真实相交像素在对角方向
+    // 被滤, 通量丢失 0.6%)。整个包围盒 (2delta+1)² 全枚举,
+    // 由下方精确球面圆心距离过滤负责去重/裁剪, 所有 NSIDE 统一正确。
     for (int iy = y0; iy <= y1; ++iy) {
         for (int ix = x0; ix <= x1; ++ix) {
             uint64_t ipix = (uint64_t)face * nside64 * nside64 + morton(ix, iy);
@@ -1577,9 +1577,9 @@ void query_candidate_pixels_fast(
         }
     }
     // 5. 圆心距离预过滤 (保守: 像素中心在查询圆盘内才保留)
-    //    查询圆盘半径 = max_angle + 1.0×hp_res (像素外接圆半径上界;
-    //    零漏选由候选 Oracle 矩阵对全部 face/NSIDE 验证)。
-    //    过滤掉正方形包围盒的边角, 减少后续 compute_overlap_area 调用。
+    // 查询圆盘半径 = max_angle + 1.0×hp_res (像素外接圆半径上界;
+    // 零漏选由候选 Oracle 矩阵对全部 face/NSIDE 验证)。
+    // 过滤掉正方形包围盒的边角, 减少后续 compute_overlap_area 调用。
     double cos_lim = std::cos(double(query_radius_rad));
     std::vector<uint64_t> filtered;
     filtered.reserve(candidates.size());
@@ -1599,7 +1599,7 @@ void query_candidate_pixels_fast(
 }
 
 // ============================================================================
-// R11 阶段7: 显式实例化 FP32/FP64 双实例 (真 Scalar 模板, 不共享固定 double 内核)
+// 阶段7: 显式实例化 FP32/FP64 双实例 (真 Scalar 模板, 不共享固定 double 内核)
 // ============================================================================
 template Vec3T<float> cross<float>(const Vec3T<float>&, const Vec3T<float>&);
 template Vec3T<double> cross<double>(const Vec3T<double>&, const Vec3T<double>&);

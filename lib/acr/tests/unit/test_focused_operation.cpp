@@ -1,10 +1,10 @@
 // lib/acr/tests/unit/test_focused_operation.cpp — 聚焦目标 Operation 测试
 //
-// 08 号计划 §3/§4 + 07 号规范：
-//   - 5 个合成 Operation 的 CPU 正确性（对照标量参考）
-//   - GPU 正确性（可用时，CPU vs GPU 数值容差）
-//   - OperationProfile schema 校验通过
-//   - quick 不生成生产 Profile（qualified=false）
+// 08 §3/§4 + 07 号规范：
+// - 5 个合成 Operation 的 CPU 正确性（对照标量参考）
+// - GPU 正确性（可用时，CPU vs GPU 数值容差）
+// - OperationProfile schema 校验通过
+// - quick 不生成生产 Profile（qualified=false）
 #include <gtest/gtest.h>
 
 #include "focused/focused_operations.hpp"
@@ -222,7 +222,7 @@ TEST(FocusedOperation, ProfileRoundTrip) {
 }
 
 // ============================================================================
-// 5. partial 重试清零（08 号计划 §4）：attempt>0 不重复累计
+// 5. partial 重试清零（08 §4）：attempt>0 不重复累计
 // ============================================================================
 TEST(FocusedOperation, RetryClearsPrivatePartial) {
     astro::compute::runtime_init();

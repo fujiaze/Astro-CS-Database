@@ -2,19 +2,19 @@
 #define IPV_ROBUST_REFINE_H
 
 // ============================================================================
-// ipv_robust_refine.h - V4.30 鲁棒扩增 WCS 精化模块
+// ipv_robust_refine.h - 鲁棒扩增 WCS 精化模块
 //
 // 在 hi_order_rematch 之后、extract_wcs_sip 之前插入新阶段:
-//   1. 网格配额采样选星 (100-300 颗, 空间均匀, 替代纯按星等取 60 颗)
-//   2. 5 层防护 NN 匹配 (Lowe ratio + 空间一致性 + 发散检测)
-//   3. IRLS 鲁棒拟合 (CD+SIP 联合, CD 带阻尼, Tukey biweight)
-//   4. 失败回退到 hi_order_rematch 结果, 不破坏 99.87% 成功率
+// 1. 网格配额采样选星 (100-300 颗, 空间均匀, 替代纯按星等取 60 颗)
+// 2. 5 层防护 NN 匹配 (Lowe ratio + 空间一致性 + 发散检测)
+// 3. IRLS 鲁棒拟合 (CD+SIP 联合, CD 带阻尼, Tukey biweight)
+// 4. 失败回退到 hi_order_rematch 结果, 不破坏 99.87% 成功率
 //
 // 简化方案 (与现有 iter_trans 框架一致):
-//   - 参数向量 = TRANS 系数 (order=3 时 20 个: x00..x03, y00..y03)
-//   - 残差在角秒空间: r_i = apply_trans(U[i]) - W_gaia[i] (W_gaia 为 gnomonic xi/eta)
-//   - CD 阻尼 → 对 TRANS 线性项 x10/x01/y10/y01 加阻尼
-//   - 内部使用 Y-up 坐标系 (与 solver 内部一致), 由 extract_wcs_sip 完成 Y-flip
+// - 参数向量 = TRANS 系数 (order=3 时 20 个: x00..x03, y00..y03)
+// - 残差在角秒空间: r_i = apply_trans(U[i]) - W_gaia[i] (W_gaia 为 gnomonic xi/eta)
+// - CD 阻尼 → 对 TRANS 线性项 x10/x01/y10/y01 加阻尼
+// - 内部使用 Y-up 坐标系 (与 solver 内部一致), 由 extract_wcs_sip 完成 Y-flip
 //
 // 日期: 2026-07-09
 // ============================================================================
@@ -95,21 +95,21 @@ struct RobustRefineResult {
 // 主入口: 鲁棒扩增 WCS 精化
 //
 // 输入:
-//   initial_trans       - WCS0 (hi_order_rematch 结果, TRANS: U→W)
-//   U_full              - 全部检测星点 (像素坐标, 原点图像中心, Y-up)
-//   mag_full            - 全部检测星点 mag (与 U_full 一一对应)
-//   gaia_ra/gaia_dec    - Gaia 星原始 (RA, Dec) 度
-//   ra0, dec0           - 中心指向 (度, iterative_reproject 收敛后)
-//   s0                  - 像素尺度 (角秒/像素)
-//   initial_rms_arcsec  - 初始 RMS (角秒, 来自 hi_order_rematch)
-//   fov_diag_deg        - FOV 对角线 (度)
-//   img_width/height    - 图像尺寸
-//   params              - 参数
-//   logger              - 日志器 (可选)
+// initial_trans - WCS0 (hi_order_rematch 结果, TRANS: U→W)
+// U_full - 全部检测星点 (像素坐标, 原点图像中心, Y-up)
+// mag_full - 全部检测星点 mag (与 U_full 一一对应)
+// gaia_ra/gaia_dec - Gaia 星原始 (RA, Dec) 度
+// ra0, dec0 - 中心指向 (度, iterative_reproject 收敛后)
+// s0 - 像素尺度 (角秒/像素)
+// initial_rms_arcsec - 初始 RMS (角秒, 来自 hi_order_rematch)
+// fov_diag_deg - FOV 对角线 (度)
+// img_width/height - 图像尺寸
+// params - 参数
+// logger - 日志器 (可选)
 //
 // 输出: RobustRefineResult
-//   成功: trans = 精化后, matched = 精化后匹配对, fallback=false
-//   失败: trans = initial_trans (回退), fallback=true
+// 成功: trans = 精化后, matched = 精化后匹配对, fallback=false
+// 失败: trans = initial_trans (回退), fallback=true
 // ---------------------------------------------------------------------------
 RobustRefineResult robust_refine_wcs(
     const Trans& initial_trans,

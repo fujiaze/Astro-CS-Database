@@ -1,11 +1,11 @@
 // lib/acr/tests/unit/test_mixed_route.cpp — 聚焦 Mixed 路由规划测试
 //
-// 08 号计划 §5 / 05 号规范：
-//   - CPU/GPU 独立块大小
-//   - host 与 resident 不同 GPU 最小收益规模
-//   - 边际收益门停止慢设备新 claim
-//   - 无合格 Profile 时安全回退（不伪造 GPU 路由）
-//   - RouteMode CpuOnly/GpuOnly 强制单设备
+// 08 §5 / 05 号规范：
+// - CPU/GPU 独立块大小
+// - host 与 resident 不同 GPU 最小收益规模
+// - 边际收益门停止慢设备新 claim
+// - 无合格 Profile 时安全回退（不伪造 GPU 路由）
+// - RouteMode CpuOnly/GpuOnly 强制单设备
 #include <gtest/gtest.h>
 
 #include "dispatcher.hpp"
@@ -140,7 +140,7 @@ TEST(MixedRoute, TailGateStopsSlowDevice) {
 }
 
 // ============================================================================
-// 5. makespan 模型：异速 CPU/GPU 仍可 Mixed（V2 审计 §4）
+// 5. makespan 模型：异速 CPU/GPU 仍可 Mixed
 // ============================================================================
 TEST(MixedRoute, HeterogeneousSpeedMixedAllowed) {
     OperationProfile p = make_qualified_profile();
@@ -164,7 +164,7 @@ TEST(MixedRoute, HeterogeneousSpeedMixedAllowed) {
 }
 
 // ============================================================================
-// 6. 收益阈值不覆盖推荐块（V2 审计 §3）
+// 6. 收益阈值不覆盖推荐块
 // ============================================================================
 TEST(MixedRoute, ThresholdDoesNotOverrideRecommendedChunk) {
     OperationProfile p = make_qualified_profile();

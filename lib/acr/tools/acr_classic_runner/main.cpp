@@ -2,12 +2,12 @@
 // CLI 工具：运行 E01-E21 全部经典实验，输出 JSON 报告
 //
 // 用法:
-//   acr-classic-runner                          # 运行全部，JSON 输出到 stdout
-//   acr-classic-runner --output report.json     # 写入文件
-//   acr-classic-runner -e E01,E03               # 仅运行 E01, E03
-//   acr-classic-runner --list                   # 列出所有实验 ID
-//   acr-classic-runner --summary                # 仅输出摘要（不含 cases 明细）
-//   acr-classic-runner --help                   # 帮助
+// acr-classic-runner # 运行全部，JSON 输出到 stdout
+// acr-classic-runner --output report.json # 写入文件
+// acr-classic-runner -e E01,E03 # 仅运行 E01, E03
+// acr-classic-runner --list # 列出所有实验 ID
+// acr-classic-runner --summary # 仅输出摘要（不含 cases 明细）
+// acr-classic-runner --help # 帮助
 //
 // 退出码: 0=全部 PASS, 1=存在 FAIL/SKIPPED, 2=参数错误
 #include "classic_common.hpp"

@@ -2,7 +2,7 @@
 // 功能: QMainWindow 容器, 菜单栏 + 文件选择 + STF 控制面板 + 状态栏
 // 用途: demo exe 入口容器, 按扩展名路由 .hiss/.hcsd → SphereView (统一球面渲染)
 // 依赖: Qt6::Widgets (QMainWindow/QFileDialog/QMessageBox/QStatusBar/QMenuBar)
-//       widgets/ (AbstractView/SphereView), core/ (BrowserBackend)
+// widgets/ (AbstractView/SphereView), core/ (BrowserBackend)
 // 设计文档: docs/superpowers/specs/2026-07-13-cpp-qt-browser-ui-design.md §4.1, §8, §9
 
 #ifndef MAIN_WINDOW_H
@@ -50,29 +50,29 @@ private slots:
     void on_stf_changed(const STFParams& params);
     void on_view_changed(double center_ra, double center_dec, double zoom);
     void on_mouse_moved(double ra, double dec);
-    // V9: HiPS 视图信号
+    // HiPS 视图信号
     void on_hips_view_changed(double ra, double dec, double fov);
     void on_hips_mouse_moved(double ra, double dec);
     void on_hips_layer_changed(int layer);
     void on_auto_stretch_clicked();
     void on_grid_toggle(bool checked);  // View > 经纬线网格 checkbox
-    void sync_stf_panel();  // V14 v3：首帧渲染后同步 STF 面板
+    void sync_stf_panel();  // v3：首帧渲染后同步 STF 面板
 
 public:
-    // V9: 脚本化截图（--screenshot / 测试用）
+    // 脚本化截图（--screenshot / 测试用）
     void capture_hips_screenshot(const QString& out_png, const QString& preset,
                                  int layer, bool exit_after);
-    // V10: 整窗截图（含状态栏，供人工核验 UI 文本）
+    // 整窗截图（含状态栏，供人工核验 UI 文本）
     void capture_window_screenshot(const QString& out_png, bool exit_after);
-    // V14: Reset STF（重新计算 Auto Global robust 标尺）
+    // Reset STF（重新计算 Auto Global robust 标尺）
     void reset_auto_stf();
-    // V14: Auto STF 模式切换（global=稳定标尺；view=viewport 自适应）
+    // Auto STF 模式切换（global=稳定标尺；view=viewport 自适应）
     void set_auto_stf_mode(const QString& mode);
-    // V14: Lock STF —— 冻结当前显示标尺，禁止 auto/reset/模式切换重算
+    // Lock STF —— 冻结当前显示标尺，禁止 auto/reset/模式切换重算
     void set_stf_locked(bool locked);
-    // V11: LOD 模式 strict-leaf | hierarchy
+    // LOD 模式 strict-leaf | hierarchy
     void set_lod_mode(const QString& mode);
-    // V9: 命令行直接跳转视图（--view ra,dec,fov）
+    // 命令行直接跳转视图（--view ra,dec,fov）
     void jump_to_view(double ra, double dec, double fov);
 
     // WP-H 步骤14: HISS Tile 浏览
@@ -87,8 +87,8 @@ private:
     void setup_stf_panel();
     void setup_hiss_tile_panel();  // WP-H: HISS Tile 浏览面板
     void open_file(const QString& path);
-    void open_hips(const QString& path);   // V9
-    void set_hips_view(HipsView* view);    // V9
+    void open_hips(const QString& path);
+    void set_hips_view(HipsView* view);
     void close_file();
     // 切换当前 view (单帧/球面), 同时只能显示一个
     void set_view(AbstractView* view);
@@ -104,7 +104,7 @@ private:
 
     // 数据源 (app 拥有所有权)
     std::unique_ptr<BrowserBackend> backend_;
-    // V9: HiPS 产品集数据源
+    // HiPS 产品集数据源
     std::unique_ptr<HipsBrowserBackend> hips_backend_;
     HipsView* hips_view_ = nullptr;
     bool hips_mode_ = false;
@@ -117,9 +117,9 @@ private:
 
     // View 菜单 actions
     QAction* grid_toggle_action_ = nullptr;  // 经纬线网格开关
-    QAction* layer_toggle_action_ = nullptr; // V9: Signal/Support
-    QComboBox* hips_preset_combo_ = nullptr; // V9: 预设视图
-    QComboBox* stretch_combo_ = nullptr;     // V9: 拉伸曲线
+    QAction* layer_toggle_action_ = nullptr; // Signal/Support
+    QComboBox* hips_preset_combo_ = nullptr; // 预设视图
+    QComboBox* stretch_combo_ = nullptr;     // 拉伸曲线
 
     // 状态栏标签
     QLabel* status_file_;
@@ -139,7 +139,7 @@ private:
     // 当前选中 Tile 的数据 (缓存, 切换图层时复用)
     uint64_t current_tile_parent_ipix_ = 0;
     float*   current_tile_signal_ = nullptr;     // malloc (由 backend 分配)
-    double*  current_tile_signal_f64_ = nullptr; // FP64 模式 signal (malloc, R11)
+    double*  current_tile_signal_f64_ = nullptr; // FP64 模式 signal (malloc, )
     uint8_t* current_tile_support_ = nullptr;    // malloc
     uint32_t current_tile_n_signal_ = 0;
 };

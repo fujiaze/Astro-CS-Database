@@ -2,19 +2,19 @@
 // Phase B1：按 03_PUBLIC_API_SPEC.md §2 定义。
 //
 // 设计：
-//   1. OperationId 是诊断/缓存标识（string_view），不是固定比例路由键
-//   2. TaskClass 是任务类别枚举（不是 KernelId），用于 CostEstimator 选画像曲线
-//   3. TaskTraits 由算法作者在 parallel_for 等调用点提供，描述任务的特征
-//   4. 公共头不暴露第三方类型（tbb/alpaka/cuda/hip/sycl）
-//   5. 默认值：elementwise + contiguous + uniform + memory_bound + fp32，可 splittable
-//   6. mixed_device_safe=true 表示任务可在 CPU+GPU 混合执行（无设备间依赖）
-//   7. requires_atomic=true 表示需要原子冲突处理（histogram/scatter）
-//   8. halo_x/halo_y 用于 stencil_2d/convolution 的边界处理
-//   9. 聚焦版（08 号计划）：RouteMode/PartitionKind 定义混合路由与分块契约，
-//      目标 OperationId 常量仅覆盖积分/Drizzle 类重负载像素算法
+// 1. OperationId 是诊断/缓存标识（string_view），不是固定比例路由键
+// 2. TaskClass 是任务类别枚举（不是 KernelId），用于 CostEstimator 选画像曲线
+// 3. TaskTraits 由算法作者在 parallel_for 等调用点提供，描述任务的特征
+// 4. 公共头不暴露第三方类型（tbb/alpaka/cuda/hip/sycl）
+// 5. 默认值：elementwise + contiguous + uniform + memory_bound + fp32，可 splittable
+// 6. mixed_device_safe=true 表示任务可在 CPU+GPU 混合执行（无设备间依赖）
+// 7. requires_atomic=true 表示需要原子冲突处理（histogram/scatter）
+// 8. halo_x/halo_y 用于 stencil_2d/convolution 的边界处理
+// 9. 聚焦版（08 ）：RouteMode/PartitionKind 定义混合路由与分块契约，
+// 目标 OperationId 常量仅覆盖积分/Drizzle 类重负载像素算法
 //
 // 注意：OperationId 用 string_view，调用方必须保证字符串字面量生命周期；
-//       TaskDescriptor 内部会复制为 std::string 以保证安全。
+// TaskDescriptor 内部会复制为 std::string 以保证安全。
 #pragma once
 
 #include <cstddef>
@@ -77,7 +77,7 @@ struct NumericPolicy {
     bool allow_fast_math{false};      // 允许 fast-math（可能牺牲精度）
 };
 
-// ===== 聚焦版（08 号计划）：路由模式 =====
+// ===== 聚焦版（08 ）：路由模式 =====
 // 正常生产模式为 AutoMixed；CpuOnly/GpuOnly 只用于 correctness 对照、
 // Benchmark、故障隔离和明确回退。AutoMixed 允许按边际收益自然退化为
 // 仅一种设备，但不得使用固定 CPU/GPU 比例。
@@ -87,10 +87,10 @@ enum class RouteMode : std::uint8_t {
     GpuOnly   = 2,   // 调试/对照/资格测试
 };
 
-// ===== 聚焦版（08 号计划）：分块契约 =====
+// ===== 聚焦版（08 ）：分块契约 =====
 // 算法明确如何安全拆分：
-//   IndependentOutputTiles：每个块拥有独立输出区域（积分优先）
-//   PrivatePartialThenMerge：设备/块写私有部分结果，最终明确合并（Drizzle 类）
+// IndependentOutputTiles：每个块拥有独立输出区域（积分优先）
+// PrivatePartialThenMerge：设备/块写私有部分结果，最终明确合并（Drizzle 类）
 // 禁止多个设备无协议地并发写同一输出。
 enum class PartitionKind : std::uint8_t {
     IndependentOutputTiles = 0,
@@ -100,10 +100,10 @@ enum class PartitionKind : std::uint8_t {
 // ===== 聚焦版（ACR 架构冻结 01_ARCHITECTURE_FREEZE.md §3）：驻留策略 =====
 // 业务调用只提交一次 Operation，不指定 CPU/GPU 比例、不管理 CUDA stream、
 // 不直接分配设备份额；输入/输出的驻留策略由调用方在 Invocation 上显式声明：
-//   HostOnly        — 只从 host 访问（小数据/一次性任务默认）
-//   PreferDevice    — 输入允许跨调用驻留，worker 启动前真实 prefetch
-//   KeepDevice      — 中间结果/输出保留在 device（后续算子复用）
-//   MaterializeHost — 最终必须物化到 host（GPU 拥有范围 D2H 合并）
+// HostOnly — 只从 host 访问（小数据/一次性任务默认）
+// PreferDevice — 输入允许跨调用驻留，worker 启动前真实 prefetch
+// KeepDevice — 中间结果/输出保留在 device（后续算子复用）
+// MaterializeHost — 最终必须物化到 host（GPU 拥有范围 D2H 合并）
 enum class ResidencyPolicy : std::uint8_t {
     HostOnly = 0,
     PreferDevice = 1,
@@ -111,7 +111,7 @@ enum class ResidencyPolicy : std::uint8_t {
     MaterializeHost = 3,
 };
 
-// ===== 聚焦版目标 OperationId（08 号计划 §3）=====
+// ===== 聚焦版目标 OperationId（08 §3）=====
 // 当前底层合成测试至少覆盖以下 Operation；未来真实算法接入后使用真实
 // OperationId 和同一注册机制替换对应合成 Profile。
 inline constexpr std::string_view kOpDensePixelAccumulateFp32 =
@@ -124,7 +124,7 @@ inline constexpr std::string_view kOpDrizzleLikeScatterFp64Acc =
     "synthetic.drizzle_like_scatter.fp64acc";
 inline constexpr std::string_view kOpResidentChain =
     "synthetic.resident_chain";
-// ACR 架构冻结（07 号计划 C）：加权积分最小接入样例（IndependentOutputTiles）。
+// ACR 架构冻结（07 C）：加权积分最小接入样例（IndependentOutputTiles）。
 // FP32 输入/权重、FP64 累加、FP32 输出；帧栈 frame-major 连续布局。
 inline constexpr std::string_view kOpWeightedIntegrationFp64Acc =
     "synthetic.weighted_integration.fp64acc";

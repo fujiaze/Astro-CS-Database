@@ -1,13 +1,13 @@
 // lib/acr/qualification/benchmarks/convolution_benchmark.cpp — 2D 直接卷积吞吐 Benchmark
 //
 // 设计（06_QUALIFICATION_BENCHMARK_SPEC.md + 17_CLASSIC_EXPERIMENT_SUITE.md）：
-//   1. 2D 直接卷积吞吐测量（direct convolution, no FFT）
-//   2. 卷积核尺寸：3x3 / 5x5 / 7x7（naive 实现，无 FFT、无 im2col）
-//   3. FP32 精度，单线程
-//   4. 输入图像尺寸参数化：64x64 / 128x128 / 256x256 / 512x512
-//   5. 边界处理：零填充（out-of-bounds 视为 0）
-//   6. 报告 MOp/s（ops = width * height * kernel_w * kernel_h * 2，乘加算 2 ops）
-//   7. 用于 CPU 硬件画像补全（CapabilityFamily::Convolution）
+// 1. 2D 直接卷积吞吐测量（direct convolution, no FFT）
+// 2. 卷积核尺寸：3x3 / 5x5 / 7x7（naive 实现，无 FFT、无 im2col）
+// 3. FP32 精度，单线程
+// 4. 输入图像尺寸参数化：64x64 / 128x128 / 256x256 / 512x512
+// 5. 边界处理：零填充（out-of-bounds 视为 0）
+// 6. 报告 MOp/s（ops = width * height * kernel_w * kernel_h * 2，乘加算 2 ops）
+// 7. 用于 CPU 硬件画像补全（CapabilityFamily::Convolution）
 #include "benchmark_common.hpp"
 
 #include <benchmark/benchmark.h>

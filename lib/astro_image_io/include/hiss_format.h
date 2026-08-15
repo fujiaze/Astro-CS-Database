@@ -5,17 +5,17 @@
 // hiss_format.h - AstroCS 1.0 HISS (HEALPix Image Storage System) 格式接口
 //
 // 已冻结规范 (见 Wiki HISS-Container-and-Tiles.md):
-//   - XISF 式 Header + attachments, 无 Footer/Checkpoint
-//   - 自适应 Tile (d = min(9, log2(NSIDE/16)))
-//   - 独立子块: occupancy/signal/support/SNR/extension
-//   - 每子块独立 codec/transform/checksum
-//   - RAW 必须可用, 其他 codec 通过注册接口接入
-//   - 内部 float64 几何, signal 最终 float32 (FP32 默认) 或 float64 (FP64 模式), support 最终 uint8
-//   - NESTED ordering, ICRS 坐标系
+// - XISF 式 Header + attachments, 无 Footer/Checkpoint
+// - 自适应 Tile (d = min(9, log2(NSIDE/16)))
+// - 独立子块: occupancy/signal/support/SNR/extension
+// - 每子块独立 codec/transform/checksum
+// - RAW 必须可用, 其他 codec 通过注册接口接入
+// - 内部 float64 几何, signal 最终 float32 (FP32 默认) 或 float64 (FP64 模式), support 最终 uint8
+// - NESTED ordering, ICRS 坐标系
 //
 // 未冻结事项 (见 Wiki Stage1-Decision-Status.md):
-//   - DQ-001~007: codec/阈值/checksum/对齐 待 C++ 实验后由用户冻结
-//   - 实验接口通过 HissCodecRegistry 和实验配置参数支持
+// - DQ-001~007: codec/阈值/checksum/对齐 待 C++ 实验后由用户冻结
+// - 实验接口通过 HissCodecRegistry 和实验配置参数支持
 // ============================================================================
 
 #include <cstdint>
@@ -47,26 +47,26 @@ struct HissGridSpec {
 
 // ============================================================================
 // 1.1 Tile 几何 (依据 02_FROZEN §11, 00_COMMON_CONTRACTS §2.1)
-//     详细定义见 src/hiss_tile_model.h
-//     通过 make_tile_geometry(nside) / make_tile_geometry_for_parent(nside, parent) 构造
+// 详细定义见 src/hiss_tile_model.h
+// 通过 make_tile_geometry(nside) / make_tile_geometry_for_parent(nside, parent) 构造
 //
-//     关键公式 (修正了旧版 "tile_nside^2 * 12" 错误):
-//       d              = min(9, log2(NSIDE/16))
-//       tile_nside     = NSIDE / 2^d
-//       n_leaf_per_tile = 4^d = (NSIDE / tile_nside)^2
-//       满 Tile 最多 4^9 = 262144 个叶像素
+// 关键公式 (修正了旧版 "tile_nside^2 * 12" 错误):
+// d = min(9, log2(NSIDE/16))
+// tile_nside = NSIDE / 2^d
+// n_leaf_per_tile = 4^d = (NSIDE / tile_nside)^2
+// 满 Tile 最多 4^9 = 262144 个叶像素
 //
-//     使用方式:
-//       #include "hiss_tile_model.h"
-//       hiss::HissTileGeometry g = hiss::make_tile_geometry(64);
-//       // g.depth=2, g.tile_nside=16, g.n_leaf_per_tile=16
+// 使用方式:
+// #include "hiss_tile_model.h"
+// hiss::HissTileGeometry g = hiss::make_tile_geometry(64);
+// // g.depth=2, g.tile_nside=16, g.n_leaf_per_tile=16
 // ============================================================================
 
 // ============================================================================
 // 2. Tile 自适应层级计算 (已冻结: 02_FROZEN §11)
-//    d = min(9, log2(NSIDE/16))
-//    tile_nside = NSIDE / 2^d
-//    保证: 满 Tile 最多 4^9=262144 叶像素, tile_nside >= 16, 特征角尺度 <= 3.7°
+// d = min(9, log2(NSIDE/16))
+// tile_nside = NSIDE / 2^d
+// 保证: 满 Tile 最多 4^9=262144 叶像素, tile_nside >= 16, 特征角尺度 <= 3.7°
 // ============================================================================
 
 HISS_EXPORT uint32_t compute_tile_depth(uint32_t nside);
@@ -86,10 +86,10 @@ enum class OccupancyMode : uint8_t {
 // ============================================================================
 // 4. 子块类型 (已冻结: 02_FROZEN §13)
 //
-//    R04-B17: 扩展子块命名空间
-//      内置类型 (OCCUPANCY/SIGNAL/SUPPORT/SNR): ext_type_id = 0
-//      扩展类型 (EXTENSION): ext_type_id != 0, 标识扩展命名空间
-//      Reader 遇到未知必需扩展 (EXTENSION + ext_type_id 未知 + REQUIRED) 必须拒绝
+// R04-B17: 扩展子块命名空间
+// 内置类型 (OCCUPANCY/SIGNAL/SUPPORT/SNR): ext_type_id = 0
+// 扩展类型 (EXTENSION): ext_type_id != 0, 标识扩展命名空间
+// Reader 遇到未知必需扩展 (EXTENSION + ext_type_id 未知 + REQUIRED) 必须拒绝
 // ============================================================================
 
 enum class SubblockType : uint8_t {
@@ -117,7 +117,7 @@ enum class ExtensionNamespace : uint16_t {
 
 // ============================================================================
 // 5. Codec / Transform 注册 (未冻结: DQ-001~004, DQ-007)
-//    RAW 必须可用, 其他 codec 通过注册接入
+// RAW 必须可用, 其他 codec 通过注册接入
 // ============================================================================
 
 enum class CodecId : uint16_t {
@@ -144,17 +144,17 @@ enum class ChecksumType : uint8_t {
 
 // ============================================================================
 // 6. 子块目录项 (已冻结: 02_FROZEN §15)
-//    每个子块独立记录所有元数据
+// 每个子块独立记录所有元数据
 //
-//    R04-B17: 新增 ext_type_id 字段
-//      - 内置类型 (OCCUPANCY/SIGNAL/SUPPORT/SNR): ext_type_id = 0
-//      - 扩展类型 (EXTENSION): ext_type_id 标识扩展命名空间
-//      - Reader 遇到未知必需扩展必须拒绝 (HISS_ERR_UNKNOWN_REQUIRED)
+// R04-B17: 新增 ext_type_id 字段
+// - 内置类型 (OCCUPANCY/SIGNAL/SUPPORT/SNR): ext_type_id = 0
+// - 扩展类型 (EXTENSION): ext_type_id 标识扩展命名空间
+// - Reader 遇到未知必需扩展必须拒绝 (HISS_ERR_UNKNOWN_REQUIRED)
 //
-//    磁盘格式 (42 字节, 显式小端序):
-//      type(1) + ext_type_id(2) + flags(2) + offset(8) + compressed_size(8) +
-//      uncompressed_size(8) + codec_id(2) + transform_id(2) +
-//      checksum_type(1) + checksum(8) = 42
+// 磁盘格式 (42 字节, 显式小端序):
+// type(1) + ext_type_id(2) + flags(2) + offset(8) + compressed_size(8) +
+// uncompressed_size(8) + codec_id(2) + transform_id(2) +
+// checksum_type(1) + checksum(8) = 42
 // ============================================================================
 
 struct HissSubblockDescriptor {
@@ -183,14 +183,14 @@ struct HissTile {
 
 // ============================================================================
 // 8. SNR 控制点 (已冻结: 02_FROZEN §17, 00_COMMON_CONTRACTS §2.5)
-//    每点仅 local_ipix(uint32) + snr(float32)
+// 每点仅 local_ipix(uint32) + snr(float32)
 //
 // SNR 子块二进制布局 (R04-B18: 新增 block 级 estimator_id/sampling_scale):
-//   [estimator_id:  uint32 LE]   — 估计器 ID (block 级)
-//   [sampling_scale: float32 LE] — 采样尺度 (block 级)
-//   [n_points:      uint32 LE]   — 控制点数 (= count, block 级)
-//   [points: n_points * 8B]      — 每点 local_ipix(uint32) + snr(float32)
-//   不包含 snr_phot/median_snr/idw_power (这些是估计器状态, 不写入 HISS)
+// [estimator_id: uint32 LE] — 估计器 ID (block 级)
+// [sampling_scale: float32 LE] — 采样尺度 (block 级)
+// [n_points: uint32 LE] — 控制点数 (= count, block 级)
+// [points: n_points * 8B] — 每点 local_ipix(uint32) + snr(float32)
+// 不包含 snr_phot/median_snr/idw_power (这些是估计器状态, 不写入 HISS)
 //
 // 重复点处理: Writer 按升序排序 local_ipix, 重复点保留首次出现 (确定性规则)
 // 无覆盖点: 不得写入 (Stage1 映射到 Tile 后才写入, 不静默丢失)
@@ -201,7 +201,7 @@ struct HissSnrControlPoint {
     float    snr;         // SNR 值
 };
 
-// R11: FP64 SNR 控制点 (HISS snr_dtype=1, 每点 12B: local_ipix u32 + snr f64)
+// FP64 SNR 控制点 (HISS snr_dtype=1, 每点 12B: local_ipix u32 + snr f64)
 struct HissSnrControlPointF64 {
     uint32_t local_ipix;
     double   snr;
@@ -218,7 +218,7 @@ struct HissSnrBlock {
     std::vector<HissSnrControlPoint> points;  // 控制点列表 (count = points.size())
 };
 
-// R11: FP64 SNR 块 (snr_dtype=1)
+// FP64 SNR 块 (snr_dtype=1)
 struct HissSnrBlockF64 {
     uint32_t estimator_id = 0;
     float    sampling_scale = 0.0f;
@@ -227,8 +227,8 @@ struct HissSnrBlockF64 {
 
 // ============================================================================
 // 8.1 HISS 错误码 (依据 00_COMMON_CONTRACTS §3.3)
-//     Reader 在遇到未知必需子块时返回 HISS_ERR_UNKNOWN_REQUIRED
-//     R04-B16: 新增 HISS_ERR_FORMAT_VIOLATION 用于严格格式校验失败
+// Reader 在遇到未知必需子块时返回 HISS_ERR_UNKNOWN_REQUIRED
+// R04-B16: 新增 HISS_ERR_FORMAT_VIOLATION 用于严格格式校验失败
 // ============================================================================
 #define HISS_OK                     0
 #define HISS_ERR_INVALID_ARG       -1   // 非法参数
@@ -242,8 +242,8 @@ struct HissSnrBlockF64 {
 
 // ============================================================================
 // 8.2 HISS 容器签名与 Header TLV 常量 (R04-B14/B15)
-//     签名块: magic[8]="HISS0100" + header_length(u32 LE) + feature_flags(u32 LE) = 16B
-//     Header: 一系列 TLV (tag:u16 LE + flags:u8 + length:u32 LE + value)
+// 签名块: magic[8]="HISS0100" + header_length(u32 LE) + feature_flags(u32 LE) = 16B
+// Header: 一系列 TLV (tag:u16 LE + flags:u8 + length:u32 LE + value)
 // ============================================================================
 
 // 固定签名块大小 (字节)
@@ -277,7 +277,7 @@ struct HissSnrBlockF64 {
 
 // ============================================================================
 // 9. 元数据 (已冻结: 02_FROZEN §16)
-//    精简 FITS 风格, 不保存完整 WCS/SIP
+// 精简 FITS 风格, 不保存完整 WCS/SIP
 // ============================================================================
 
 struct HissMetadata {
@@ -311,10 +311,10 @@ struct HissMetadata {
     // 历史/诊断
     std::string history;
 
-    // 精度模式 (R10: FP32/FP64 双模式)
+    // 精度模式 (: FP32/FP64 双模式)
     uint8_t precision_mode = 0;  // 0=FP32 (binary32), 1=FP64 (binary64)
     uint8_t signal_dtype = 0;    // 0=float32, 1=float64 (与 precision_mode 一致)
-    // R11: SNR 稀疏控制点与科学 metadata 浮点 dtype (HISS-102 / PREC-110)
+    // SNR 稀疏控制点与科学 metadata 浮点 dtype (HISS-102 / PREC-110)
     uint8_t snr_dtype = 0;           // 0=float32 (snr 值), 1=float64
     uint8_t metadata_float_dtype = 0; // 0=float32, 1=float64 (随 precision_mode)
 
@@ -325,15 +325,15 @@ struct HissMetadata {
 
 // ============================================================================
 // 10. Drizzle Tile 累加器 (已冻结: 02_FROZEN §8/§10)
-//     float64 内部累加, 最终输出 float32 signal + uint8 support
+// float64 内部累加, 最终输出 float32 signal + uint8 support
 //
-//     语义修正 (依据 00_COMMON_CONTRACTS §2.2, spec.md 步骤2/7):
-//       signal[p]  = float(sumFlux)                       — 累计通量 (不除面积)
-//       support[p] = uint8(round(255 * clamp(S, 0, 1)))   — 面积比
-//       其中 S = sum_area / A_p, A_p = 目标 HEALPix 像素面积 (球面度)
+// 语义修正 (依据 00_COMMON_CONTRACTS §2.2, spec.md 步骤2/7):
+// signal[p] = float(sumFlux) — 累计通量 (不除面积)
+// support[p] = uint8(round(255 * clamp(S, 0, 1))) — 面积比
+// 其中 S = sum_area / A_p, A_p = 目标 HEALPix 像素面积 (球面度)
 //
-//     A_p 通过成员变量 pixel_area 传入 (调用方在 finalize_* 前设置)。
-//     默认值 1.0 仅为向后兼容, 调用方应正确设置为 hp.pixel_area()。
+// A_p 通过成员变量 pixel_area 传入 (调用方在 finalize_* 前设置)。
+// 默认值 1.0 仅为向后兼容, 调用方应正确设置为 hp.pixel_area()。
 // ============================================================================
 
 struct DrizzleTileAccumulator {
@@ -365,8 +365,8 @@ struct DrizzleTileAccumulator {
 
 // ============================================================================
 // 11. Writer 接口 (已冻结: 02_FROZEN §14 + 04_IMPLEMENTATION §4)
-//     Header 前置, attachments 后置, .partial 原子提交
-//     不实现 Checkpoint/Footer/断点恢复
+// Header 前置, attachments 后置, .partial 原子提交
+// 不实现 Checkpoint/Footer/断点恢复
 // ============================================================================
 
 class HissWriter {
@@ -442,10 +442,10 @@ private:
 
 // ============================================================================
 // 12. Reader 接口 (已冻结: 02_FROZEN §14 + 04_IMPLEMENTATION §5)
-//     按目录读取, 不依赖物理顺序
-//     未知可选块跳过; 未知必需块报不兼容
-//     检查 offset/size 越界, 解压长度, checksum
-//     用 NSIDE/NESTED/ICRS 定位, 不依赖 WCS
+// 按目录读取, 不依赖物理顺序
+// 未知可选块跳过; 未知必需块报不兼容
+// 检查 offset/size 越界, 解压长度, checksum
+// 用 NSIDE/NESTED/ICRS 定位, 不依赖 WCS
 // ============================================================================
 
 class HissReader {
@@ -462,7 +462,7 @@ public:
     HISS_EXPORT HissGridSpec grid() const;
     HISS_EXPORT HissMetadata metadata() const;
 
-    // 查询 precision mode 和 signal dtype (R10: FP32/FP64 双模式)
+    // 查询 precision mode 和 signal dtype (: FP32/FP64 双模式)
     // precision_mode: 0=FP32, 1=FP64
     // signal_dtype: 0=float32, 1=float64
     HISS_EXPORT uint8_t precision_mode() const;
@@ -498,7 +498,7 @@ public:
     HISS_EXPORT int read_tile_snr(uint64_t parent_ipix,
                                    HissSnrBlock& snr) const;
 
-    // R11: 读取 FP64 SNR 控制点 (仅 snr_dtype=1 文件; f32 文件返回错误, 禁止静默转换)
+    // 读取 FP64 SNR 控制点 (仅 snr_dtype=1 文件; f32 文件返回错误, 禁止静默转换)
     HISS_EXPORT int read_tile_snr_f64(uint64_t parent_ipix,
                                        HissSnrBlockF64& snr) const;
 
@@ -507,7 +507,7 @@ public:
     HISS_EXPORT int query_pixel(double ra, double dec,
                                 float* signal, uint8_t* support) const;
 
-    // R10: 查询某位置的 signal (FP64) / support
+    // 查询某位置的 signal (FP64) / support
     // 仅适用于 FP64 模式文件 (signal_dtype=1); FP32 文件会返回错误 (禁止静默转换)
     // ra, dec - 度
     // signal - 输出参数 (单个 double 值)
@@ -525,7 +525,7 @@ private:
 
 // ============================================================================
 // 13. Codec 注册表 (未冻结: DQ-001~004)
-//     允许实验性 codec 通过注册接入
+// 允许实验性 codec 通过注册接入
 // ============================================================================
 
 using CompressFunc = std::function<int(const uint8_t* input, size_t input_size,
@@ -557,14 +557,14 @@ public:
 
 // ============================================================================
 // 13.1 Checksum 注册表 (未冻结: DQ-006, INTERIM_BASELINE_NOT_FROZEN)
-//     允许实验性 checksum 算法通过注册接入, 默认 checksum_type=NONE
-//     CRC32C 内置 (复用 hiss_reader.cpp 的实现, 已移至 hiss_codec.cpp 共享)
-//     XXHASH 等其他算法待 DQ-006 确认后通过 register_checksum 接入
+// 允许实验性 checksum 算法通过注册接入, 默认 checksum_type=NONE
+// CRC32C 内置 (复用 hiss_reader.cpp 的实现, 已移至 hiss_codec.cpp 共享)
+// XXHASH 等其他算法待 DQ-006 确认后通过 register_checksum 接入
 //
 // 设计与 CodecRegistry 对称:
-//   - 头文件中仅声明类, 私有状态以文件作用域静态容器承载 (见 hiss_codec.cpp)
-//   - Meyers singleton, 首次访问时线程安全地初始化并注册内置 checksum
-//   - register/find/list 经 std::mutex 保护
+// - 头文件中仅声明类, 私有状态以文件作用域静态容器承载 (见 hiss_codec.cpp)
+// - Meyers singleton, 首次访问时线程安全地初始化并注册内置 checksum
+// - register/find/list 经 std::mutex 保护
 // ============================================================================
 
 using ChecksumFunc = std::function<uint64_t(const uint8_t*, size_t)>;
@@ -592,7 +592,7 @@ public:
 
 // ============================================================================
 // 14. 结构化诊断 (已冻结: 02_FROZEN §2.3)
-//     最优 Dark 失败时输出诊断, 自动回退
+// 最优 Dark 失败时输出诊断, 自动回退
 // ============================================================================
 
 struct Stage1Diagnostics {

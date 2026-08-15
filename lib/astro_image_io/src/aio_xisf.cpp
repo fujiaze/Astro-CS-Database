@@ -3,7 +3,7 @@
 #include "aio_util.h"
 #include <cstdio>
 
-// R10 修复: AIO 模块内部精度模式查询 (替代跨 DLL 的 PrecisionContext)
+// 修复: AIO 模块内部精度模式查询 (替代跨 DLL 的 PrecisionContext)
 extern "C" int aio_internal_is_fp64();
 #include <cstdlib>
 #include <cstring>
@@ -255,9 +255,9 @@ static float *convert_xisf_pixels(const uint8_t *raw, size_t n_pixels, const XIS
 // ============================================================================
 // convert_xisf_pixels_f64 - 将原始 XISF 像素转换为 double 数组 (FP64 模式)
 // 与 convert_xisf_pixels 对应, 但输出 double, 不损失精度:
-//   - Float64: 直接拷贝, 零精度损失
-//   - Float32: float -> double 提升, 不损失精度
-//   - 整数类型: 整数 -> double, 不损失精度
+// - Float64: 直接拷贝, 零精度损失
+// - Float32: float -> double 提升, 不损失精度
+// - 整数类型: 整数 -> double, 不损失精度
 // 返回 malloc 分配的 double 数组 (调用方负责 free), 失败返回 nullptr
 // ============================================================================
 static double *convert_xisf_pixels_f64(const uint8_t *raw, size_t n_pixels,
@@ -514,7 +514,7 @@ int xisf_read_file(const char *path, AIOImageData *out) {
             img_info.byte_order.c_str(), is_le ? "little" : "big", do_swap);
 
     // 双精度 ABI: 根据 AIO 模块精度模式决定读取到 data (FP32) 还是 data_f64 (FP64)
-    // R10 修复: 使用 aio_internal_is_fp64() 替代 PrecisionContext (DLL 边界不共享)
+    // 修复: 使用 aio_internal_is_fp64() 替代 PrecisionContext (DLL 边界不共享)
     bool is_fp64 = (aio_internal_is_fp64() != 0);
 
     if (is_fp64) {

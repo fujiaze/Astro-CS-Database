@@ -2,16 +2,16 @@
 // reverse_drizzle.h - Sphere -> Plane 球面面积 Drizzle (签字修正 REV-101..107)
 //
 // 冻结语义 (wiki/Reverse_Drizzle.md):
-//   - 每个 HEALPix source leaf 构造球面 footprint (HEALPix 边界自适应细分);
-//   - pixfrac 收缩沿球面 slerp 向像素中心收缩;
-//   - 目标平面像素通过 WCS/SIP pixelToSky 映射得到球面 footprint
-//     (自适应边细分, 消除投影曲率误差);
-//   - 重叠面积 = drop ∩ 目标像素球面 footprint 的球面面积 (Girard/S-H),
-//     禁止用投影平面 2D 面积作为权重;
-//   - signal 按球面面积比例分配; support 以"覆盖在 leaf 内均匀分布"假设
-//     参与 coverage 输出 (文档化近似);
-//   - FP32 输入→FP32 输出使用真实 float 累计器 (非 double 伪装);
-//   - 输入契约严格验证, 非法参数硬失败, 不得静默裁剪。
+// - 每个 HEALPix source leaf 构造球面 footprint (HEALPix 边界自适应细分);
+// - pixfrac 收缩沿球面 slerp 向像素中心收缩;
+// - 目标平面像素通过 WCS/SIP pixelToSky 映射得到球面 footprint
+// (自适应边细分, 消除投影曲率误差);
+// - 重叠面积 = drop ∩ 目标像素球面 footprint 的球面面积 (Girard/S-H),
+// 禁止用投影平面 2D 面积作为权重;
+// - signal 按球面面积比例分配; support 以"覆盖在 leaf 内均匀分布"假设
+// 参与 coverage 输出 (文档化近似);
+// - FP32 输入→FP32 输出使用真实 float 累计器 (非 double 伪装);
+// - 输入契约严格验证, 非法参数硬失败, 不得静默裁剪。
 // ============================================================================
 #ifndef REVERSE_DRIZZLE_H
 #define REVERSE_DRIZZLE_H

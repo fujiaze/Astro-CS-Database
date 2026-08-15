@@ -1,13 +1,13 @@
 // lib/acr/scheduler/current_state.hpp — 运行时设备状态跟踪
 // Phase F4：工作保持调度器的当前状态结构。
 //
-// 设计（控制包 07_STATIC_ROUTING_AND_MIXED_EXECUTION.md §5-§6）：
-//   1. CurrentState 跟踪每个设备的队列负载、上次完成时间、可用性
-//   2. 调度器据此做工作保持决策（选 finish 最短的空闲合格设备）
-//   3. 不是在线学习：状态由调度器运行时维护，不写回 hardware-profile
-//   4. 剩余工作计数用于 guided 尾部收缩
-//   5. 线程安全：所有方法用 mutex 保护（dispatcher 工作线程并发访问）
-//   6. 公共头不暴露第三方类型
+// 设计（ 07_STATIC_ROUTING_AND_MIXED_EXECUTION.md §5-§6）：
+// 1. CurrentState 跟踪每个设备的队列负载、上次完成时间、可用性
+// 2. 调度器据此做工作保持决策（选 finish 最短的空闲合格设备）
+// 3. 不是在线学习：状态由调度器运行时维护，不写回 hardware-profile
+// 4. 剩余工作计数用于 guided 尾部收缩
+// 5. 线程安全：所有方法用 mutex 保护（dispatcher 工作线程并发访问）
+// 6. 公共头不暴露第三方类型
 #pragma once
 
 #include "partitioner.hpp"

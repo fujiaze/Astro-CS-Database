@@ -2,12 +2,12 @@
 // Phase B3：Public API → TaskDescriptor → CostEstimator → Dispatcher → backend 调用链的中间数据。
 //
 // 设计：
-//   1. TaskDescriptor 由 detail::submit_*_with_desc 构造，传递给 CostEstimator 和 Dispatcher
-//   2. operation_id 是 std::string（复制 OperationId 的 string_view，保证生命周期）
-//   3. 数据驻留位置由 Buffer 自动填充（CPU default；GPU buffer 填 GPU device_id）
-//   4. bytes_per_item / bytes_read / bytes_written 用于 CostEstimator 推算传输与计算成本
-//   5. precision 来自 NumericPolicy.compute，CostEstimator 据此选画像曲线
-//   6. 公共头不暴露第三方类型
+// 1. TaskDescriptor 由 detail::submit_*_with_desc 构造，传递给 CostEstimator 和 Dispatcher
+// 2. operation_id 是 std::string（复制 OperationId 的 string_view，保证生命周期）
+// 3. 数据驻留位置由 Buffer 自动填充（CPU default；GPU buffer 填 GPU device_id）
+// 4. bytes_per_item / bytes_read / bytes_written 用于 CostEstimator 推算传输与计算成本
+// 5. precision 来自 NumericPolicy.compute，CostEstimator 据此选画像曲线
+// 6. 公共头不暴露第三方类型
 #pragma once
 
 #include "astro/compute/acr.hpp"

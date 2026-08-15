@@ -1,13 +1,13 @@
-// lib/acr/tests/unit/test_work_pool.cpp — 共享工作池并发专项测试（23 号计划 §2）
+// lib/acr/tests/unit/test_work_pool.cpp — 共享工作池并发专项测试（23 §2）
 //
-// 覆盖审计强制案例：
-//   1. 强制 A/B 线程逆序交错：A 先取得 token 后暂停，B 取得下一 token 并先完成；
-//      验证 ID、槽位、状态和完成块完全对应；
-//   2. gate 关闭时仍有未领取范围：已领取块全部完成但 cursor < end 时 all_done
-//      必须为 false（禁止静默漏算）；
-//   3. 1000 轮高并发压力：无重叠、无遗漏、每块恰好完成一次；
-//   4. 失败回收与重复领取：retryable 失败进入 retry queue，重试 attempt 递增；
-//   5. 每个 item 恰好一次（completed_items == end - begin）。
+// 覆盖强制案例：
+// 1. 强制 A/B 线程逆序交错：A 先取得 token 后暂停，B 取得下一 token 并先完成；
+// 验证 ID、槽位、状态和完成块完全对应；
+// 2. gate 关闭时仍有未领取范围：已领取块全部完成但 cursor < end 时 all_done
+// 必须为 false（禁止静默漏算）；
+// 3. 1000 轮高并发压力：无重叠、无遗漏、每块恰好完成一次；
+// 4. 失败回收与重复领取：retryable 失败进入 retry queue，重试 attempt 递增；
+// 5. 每个 item 恰好一次（completed_items == end - begin）。
 #include <gtest/gtest.h>
 
 #include "shared_work_pool.hpp"
@@ -107,7 +107,7 @@ TEST(WorkPoolConcurrency, GateCloseKeepsUnclaimedRanges) {
     EXPECT_TRUE(pool.mark_done(t1));
     EXPECT_TRUE(pool.mark_done(t2));
 
-    // 已领取块全部完成，但 cursor 未到 end → 禁止 all_done=true（审计 §一.5）
+    // 已领取块全部完成，但 cursor 未到 end → 禁止 all_done=true
     EXPECT_GT(pool.remaining_work(), 0u);
     EXPECT_FALSE(pool.all_done());
 

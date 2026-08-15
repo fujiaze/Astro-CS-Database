@@ -2,7 +2,7 @@
 // Phase E：显示当前硬件指纹 + 硬件画像状态。
 //
 // 用法：
-//   acr-status [--profile <path>] [--json]
+// acr-status [--profile <path>] [--json]
 //
 // 默认 --profile ./hardware-profile.json
 #include "profile_reader.hpp"

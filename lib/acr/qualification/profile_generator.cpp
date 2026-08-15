@@ -208,11 +208,11 @@ DeviceFingerprint ProfileGenerator::build_fingerprint() const {
 // ============================================================================
 // 将 benchmark 结果映射到 HardwareProfile 的多维能力曲线。
 // KernelId → 能力曲线族映射：
-//   Copy    (id=1) → memory[MainMem:host:copy]
-//   Triad   (id=2) → memory[MainMem:host:triad]
-//   AXPY    (id=3) → arithmetic[fp32:add:baseline]
-//   Dot     (id=4) → reduction[dot:fp32]
-//   其他           → arithmetic[<precision>:add:baseline]（兜底）
+// Copy (id=1) → memory[MainMem:host:copy]
+// Triad (id=2) → memory[MainMem:host:triad]
+// AXPY (id=3) → arithmetic[fp32:add:baseline]
+// Dot (id=4) → reduction[dot:fp32]
+// 其他 → arithmetic[<precision>:add:baseline]（兜底）
 
 namespace {
 
@@ -233,7 +233,7 @@ void serialize_curve_points(std::ostringstream& os, const Curve& curve) {
     os << "]";
 }
 
-// 曲线对象序列化（含来源与资格标记，25 号计划 §3.3）
+// 曲线对象序列化（含来源与资格标记，25 §3.3）
 void serialize_curve(std::ostringstream& os, const Curve& curve) {
     os << "{\"source\":\"" << esc(curve.source) << "\"";
     os << ",\"qualified\":" << (curve.qualified ? "true" : "false");
@@ -317,7 +317,7 @@ std::vector<DeviceProfile> ProfileGenerator::build_device_profiles(
         if (is_gpu_backend(backend)) {
             dev.kind = DeviceKind::Gpu;
             dev.device_name = gpu_name.empty() ? backend : gpu_name;
-            // 25 号计划 §3.4：真实 GPU 元数据（显存/SM/CC，经桥接查询）
+            // 25 §3.4：真实 GPU 元数据（显存/SM/CC，经桥接查询）
             std::uint64_t g_total = 0, g_free = 0;
             int g_sm = 0, g_cc_maj = 0, g_cc_min = 0;
             cuda::bridge::ensure_bridge_loaded();
@@ -341,7 +341,7 @@ std::vector<DeviceProfile> ProfileGenerator::build_device_profiles(
         } else {
             dev.kind = DeviceKind::Cpu;
             dev.device_name = cpu_model.empty() ? "CPU" : cpu_model;
-            // 25 号计划 §3.4：真实 CPU RAM（GlobalMemoryStatusEx）
+            // 25 §3.4：真实 CPU RAM（GlobalMemoryStatusEx）
             MEMORYSTATUSEX ms{};
             ms.dwLength = sizeof(ms);
             if (GlobalMemoryStatusEx(&ms)) {
@@ -394,7 +394,7 @@ void ProfileGenerator::map_result_to_curves(
     pt.p95 = static_cast<double>(r.median_kernel_ns) +
              2.0 * r.stddev_kernel_ns;  // 粗略 p95 ≈ median + 2σ
     pt.mad = r.stddev_kernel_ns * 0.6745;  // σ → MAD 转换因子
-    // 25 号计划 §3.3：样本数与置信度
+    // 25 §3.3：样本数与置信度
     pt.sample_count = static_cast<std::uint32_t>(r.samples.size());
     pt.confidence = (r.median_kernel_ns > 0)
         ? std::max(0.0, 1.0 - r.stddev_kernel_ns /
@@ -412,12 +412,12 @@ void ProfileGenerator::map_result_to_curves(
 
     // 按 kernel_id 映射到能力曲线族
     // KernelId: Custom=0, Copy=1, Triad=2, AXPY=3, Dot=4, Transpose=5,
-    //           Convolution2D=6, Histogram256=7, Scan=8, Gather=9, Scatter=10,
-    //           Mandelbrot=11, Gemm=12, Fft=13
+    // Convolution2D=6, Histogram256=7, Scan=8, Gather=9, Scatter=10,
+    // Mandelbrot=11, Gemm=12, Fft=13
     HwPrecision prec = parse_hw_precision(r.precision);
     std::uint32_t kid = r.kernel_id;
 
-    // 25 号计划 §4：内存曲线按 (level, residency, operation) 区分；
+    // 25 §4：内存曲线按 (level, residency, operation) 区分；
     // GPU 显存曲线不标 host MainMem
     const MemoryLevel mem_level =
         (device.kind == DeviceKind::Gpu) ? MemoryLevel::Vram : MemoryLevel::MainMem;
@@ -433,7 +433,7 @@ void ProfileGenerator::map_result_to_curves(
         auto& c = device.arithmetic[{prec, "add:baseline"}];
         mark_measured(c, pt); c.points.push_back(pt);
     } else if (kid == 4) {  // Dot → reduction[sum:fp32] / reduction[dot:fp32]
-        // 25 号计划 §4：sum 与 dot 是不同曲线；GPU Dot kernel 实为 sum(x)
+        // 25 §4：sum 与 dot 是不同曲线；GPU Dot kernel 实为 sum(x)
         const std::string red_op =
             (r.variant == "dot" && device.kind != DeviceKind::Gpu) ? "dot" : "sum";
         auto& c = device.reduction[{red_op, prec}];
@@ -488,7 +488,7 @@ void ProfileGenerator::map_result_to_curves(
 void ProfileGenerator::fill_default_overheads(DeviceProfile& device) const {
     // 保守固定开销估算：仅填充未被 benchmark 测量的 overhead 项
     // Commit E：submit 现在由 benchmark_driver 测量（kid=0 Custom），
-    //   其余 launch/event/alloc/merge 仍用保守估算待后续 benchmark 补充。
+    // 其余 launch/event/alloc/merge 仍用保守估算待后续 benchmark 补充。
     bool is_gpu = (device.kind == DeviceKind::Gpu);
 
     // submit：仅当未被测量时才填默认值
@@ -541,7 +541,7 @@ HardwareProfile ProfileGenerator::generate_hardware_profile(
     HardwareProfile hp;
     hp.schema_version = "acr.hardware_profile.v1";
     hp.profile_kind = profile_kind_str(kind);
-    // 25 号计划 §3.1：quick 标定仅作冒烟/诊断
+    // 25 §3.1：quick 标定仅作冒烟/诊断
     hp.diagnostic_only = (kind == ProfileKind::Quick);
     hp.state = HwProfileState::Valid;
     hp.stale = false;

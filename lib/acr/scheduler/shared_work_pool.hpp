@@ -1,21 +1,21 @@
-// lib/acr/scheduler/shared_work_pool.hpp — 共享工作池（23 号计划 §2 重写）
+// lib/acr/scheduler/shared_work_pool.hpp — 共享工作池（23 §2 重写）
 //
-// 重写目标（audits/SECOND_FIX_REVIEW_AUDIT.md §一.4 + 23 号计划 §2）：
-//   1. WorkToken 按值返回：{id, begin, end, claimant(DeviceId), attempt}，
-//      不依赖池内地址，禁止返回并发增长容器内部指针；
-//   2. 原子范围领取：CAS loop 推进 cursor，token 范围一经生成不可变；
-//   3. completion ledger / retry queue 使用稳定槽位（预分配）+ 受锁容器；
-//   4. block ID 与槽位一一对应（预分配 slot[i].id == i），
-//      不依赖插入顺序（不再 push_back 竞争插入）；
-//   5. 正确完成判据：
-//        cursor >= end
-//        && inflight == 0
-//        && retry_queue.empty()
-//        && failed_terminal == 0
-//        && completed_items == end - begin
-//   6. 失败回收：retryable 失败进入 retry queue，可由任意 executor 重新领取；
-//      已成功 DONE 的块不可再次执行（attempt 防 ABA：重试领取会递增 attempt，
-//      旧 token 的 attempt 不再匹配）。
+// 重写目标（audits/SECOND_FIX_REVIEW_AUDIT.md §一.4 + 23 §2）：
+// 1. WorkToken 按值返回：{id, begin, end, claimant(DeviceId), attempt}，
+// 不依赖池内地址，禁止返回并发增长容器内部指针；
+// 2. 原子范围领取：CAS loop 推进 cursor，token 范围一经生成不可变；
+// 3. completion ledger / retry queue 使用稳定槽位（预分配）+ 受锁容器；
+// 4. block ID 与槽位一一对应（预分配 slot[i].id == i），
+// 不依赖插入顺序（不再 push_back 竞争插入）；
+// 5. 正确完成判据：
+// cursor >= end
+// && inflight == 0
+// && retry_queue.empty()
+// && failed_terminal == 0
+// && completed_items == end - begin
+// 6. 失败回收：retryable 失败进入 retry queue，可由任意 executor 重新领取；
+// 已成功 DONE 的块不可再次执行（attempt 防 ABA：重试领取会递增 attempt，
+// 旧 token 的 attempt 不再匹配）。
 #pragma once
 
 #include "astro/compute/hardware_profile.hpp"
@@ -39,7 +39,7 @@ enum class WorkBlockStatus : std::uint8_t {
 };
 
 // ===== 值令牌（claim 成功后按值返回）=====
-// 23 号计划 §2.1：{id, begin, end, claimant, attempt}
+// 23 §2.1：{id, begin, end, claimant, attempt}
 struct WorkToken {
     std::uint64_t id{0};            // 槽位 ID（与 slots_[id] 一一对应，预分配）
     std::size_t begin{0};           // 范围起始（不可变）
@@ -54,11 +54,11 @@ struct WorkToken {
 // ===== 预分配槽位（地址稳定，原子状态）=====
 struct WorkSlot {
     std::size_t id{0};
-    // 24 号计划 §6：状态 + attempt 合并为单个原子（低 2 位 status，高 32 位 attempt）。
+    // 24 §6：状态 + attempt 合并为单个原子（低 2 位 status，高 32 位 attempt）。
     // 完成/失败验证必须在一次 CAS 中同时校验 status 与 attempt，
     // 消除“先改状态再检查 attempt、不匹配回滚”的 ABA 窗口：
-    //   旧 token（旧 attempt）与新 attempt 并发时，expected 打包值不匹配 → CAS 失败，
-    //   旧 token 无法改变新 attempt 的状态。
+    // 旧 token（旧 attempt）与新 attempt 并发时，expected 打包值不匹配 → CAS 失败，
+    // 旧 token 无法改变新 attempt 的状态。
     std::atomic<std::uint64_t> state{0};
     std::atomic<std::size_t> begin{0};          // claim 时写入（release 发布）
     std::atomic<std::size_t> end{0};
@@ -216,7 +216,7 @@ public:
     std::size_t failed_terminal_count() const noexcept;
     std::size_t completed_items() const noexcept;
 
-    // ===== 完成判据（23 号计划 §2.3）=====
+    // ===== 完成判据（23 §2.3）=====
     bool all_done() const noexcept;
     bool no_work_left() const noexcept;
 

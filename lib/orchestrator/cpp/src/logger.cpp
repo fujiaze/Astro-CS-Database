@@ -1,10 +1,10 @@
 // ============================================================================
 // logger.cpp - 集成日志系统实现
 // 功能: 单例 Logger 的具体实现
-//   - 单例模式 (Meyers' Singleton)
-//   - 线程安全 (std::mutex 保护文件写入)
-//   - 跨天自动切换日志文件
-//   - 日志格式: [YYYY-MM-DD HH:MM:SS][LEVEL][module] message
+// - 单例模式 (Meyers' Singleton)
+// - 线程安全 (std::mutex 保护文件写入)
+// - 跨天自动切换日志文件
+// - 日志格式: [YYYY-MM-DD HH:MM:SS][LEVEL][module] message
 // ============================================================================
 
 #include "logger.h"

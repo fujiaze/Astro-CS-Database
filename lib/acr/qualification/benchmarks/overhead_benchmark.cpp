@@ -1,19 +1,19 @@
 // lib/acr/qualification/benchmarks/overhead_benchmark.cpp — E05 ACR 运行时固定开销 Benchmark
 //
 // 设计（06 §8 + 17 §6）：
-//   1. ACR 运行时固定开销测量（submit/launch/event/alloc/merge）
-//   2. 纳秒级精度：用 Google Benchmark 的 kNanosecond 单位
-//   3. 四类开销：
-//      - submit: parallel_for 提交+等待开销（KernelId::Custom + 极小 Range1D{0,1}）
-//      - event:  Event 创建/销毁开销（默认构造 + status 查询 + 析构）
-//      - alloc:  std::vector 分配/释放开销（不同尺寸 64..65536）
-//      - merge:  parallel_reduce 小规模合并开销（16 元素 sum）
-//   4. 固定小尺寸 + 高迭代次数（->Iterations(10000) 或 ->MinTime(1.0)）
-//   5. 单线程：隔离运行时固定开销，避免调度噪声
-//   6. state.SetLabel 记录操作类型
+// 1. ACR 运行时固定开销测量（submit/launch/event/alloc/merge）
+// 2. 纳秒级精度：用 Google Benchmark 的 kNanosecond 单位
+// 3. 四类开销：
+// - submit: parallel_for 提交+等待开销（KernelId::Custom + 极小 Range1D{0,1}）
+// - event: Event 创建/销毁开销（默认构造 + status 查询 + 析构）
+// - alloc: std::vector 分配/释放开销（不同尺寸 64..65536）
+// - merge: parallel_reduce 小规模合并开销（16 元素 sum）
+// 4. 固定小尺寸 + 高迭代次数（->Iterations(10000) 或 ->MinTime(1.0)）
+// 5. 单线程：隔离运行时固定开销，避免调度噪声
+// 6. state.SetLabel 记录操作类型
 //
 // 用途：为 CostEstimator 提供 FixedOverhead 曲线数据
-//       （hardware_profile.hpp::FixedOverhead: median_ns / p95_ns / cold_start_ns / warm_ns）
+// （hardware_profile.hpp::FixedOverhead: median_ns / p95_ns / cold_start_ns / warm_ns）
 #include "benchmark_common.hpp"
 
 #include "astro/compute/acr.hpp"
@@ -48,8 +48,8 @@ static void overhead_submit(::benchmark::State& state) {
 // ===== 2. Event 创建/销毁开销 =====
 // 测量默认构造 Event 的生命周期开销（构造 + status 查询 + 析构）
 // 注意：默认构造的 Event 不持有 runtime event impl（impl_ == nullptr），
-//       此处测的是 Event 对象本身的开销；
-//       runtime event 的创建开销耦合在 parallel_for 内，由 overhead_submit 覆盖。
+// 此处测的是 Event 对象本身的开销；
+// runtime event 的创建开销耦合在 parallel_for 内，由 overhead_submit 覆盖。
 static void overhead_event(::benchmark::State& state) {
     // 预热
     {

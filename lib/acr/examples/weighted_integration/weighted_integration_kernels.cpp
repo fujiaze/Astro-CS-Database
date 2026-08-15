@@ -1,10 +1,10 @@
 // lib/acr/examples/weighted_integration/weighted_integration_kernels.cpp
 //
-// ACR 架构冻结（07 号计划 C）：加权积分参考实现与 KernelRegistry launcher。
-//   - SerialReference / OpenMPBaseline（OpenMP 只作为独立性能基线）
-//   - ACR CPU launcher：只处理 invocation.domain [begin,end)，内部无嵌套 OpenMP
-//   - ACR CUDA launcher：经桥接 DLL 真实 GPU kernel；输入 resident 时走
-//     resident 提交（frames/weights 已整帧驻留，跳过逐块 H2D）
+// ACR 架构冻结（07 C）：加权积分参考实现与 KernelRegistry launcher。
+// - SerialReference / OpenMPBaseline（OpenMP 只作为独立性能基线）
+// - ACR CPU launcher：只处理 invocation.domain [begin,end)，内部无嵌套 OpenMP
+// - ACR CUDA launcher：经桥接 DLL 真实 GPU kernel；输入 resident 时走
+// resident 提交（frames/weights 已整帧驻留，跳过逐块 H2D）
 #include "weighted_integration_common.hpp"
 
 #include "astro/compute/kernel_registry.hpp"

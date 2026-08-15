@@ -1,19 +1,19 @@
-// astro/compute/kernel_registry.hpp — 可加速 Kernel 注册模型（23 号计划 §1）
+// astro/compute/kernel_registry.hpp — 可加速 Kernel 注册模型（23 §1）
 //
 // 背景（audits/SECOND_FIX_REVIEW_AUDIT.md §一.3）：
-//   普通 C++ host 函数指针、捕获 lambda 和 void* user_data 只能作为 CPU 兼容
-//   执行入口；CUDA/HIP/SYCL device 不能直接调用它们。
+// 普通 C++ host 函数指针、捕获 lambda 和 void* user_data 只能作为 CPU 兼容
+// 执行入口；CUDA/HIP/SYCL device 不能直接调用它们。
 //
 // 本头文件建立两层 API：
-//   1. CPU-only compatibility API（acr.hpp 中的 parallel_for(OperationId, ...)
-//      等 lambda 接口）——保留并明确标记 CPU-only；
-//   2. accelerator-capable API：OperationId + KernelRegistration +
-//      KernelInvocation，通过 KernelRegistry 选择设备实现。
+// 1. CPU-only compatibility API（acr.hpp 中的 parallel_for(OperationId, ...)
+// 等 lambda 接口）——保留并明确标记 CPU-only；
+// 2. accelerator-capable API：OperationId + KernelRegistration +
+// KernelInvocation，通过 KernelRegistry 选择设备实现。
 //
 // 约束：
-//   - 公共头不暴露 CUDA/HIP/SYCL/oneTBB 类型（launcher 只是函数指针类型）；
-//   - Dispatcher 只能把 invocation 交给支持该 OperationId 的 executor；
-//   - 设备 launcher 缺失时必须回退 CPU 并如实报告。
+// - 公共头不暴露 CUDA/HIP/SYCL/oneTBB 类型（launcher 只是函数指针类型）；
+// - Dispatcher 只能把 invocation 交给支持该 OperationId 的 executor；
+// - 设备 launcher 缺失时必须回退 CPU 并如实报告。
 #pragma once
 
 #include "astro/compute/task_traits.hpp"
@@ -61,7 +61,7 @@ struct BufferBinding {
     void* data{nullptr};       // host/device 指针（executor 解析）
     std::size_t count{0};      // 元素数
     std::size_t stride{1};     // 元素步长（默认连续）
-    // Dispatcher Finalization（控制包 CE288DBF...F7E88，04 号规范）：
+    // Dispatcher Finalization（ CE288DBF...F7E88，04 号规范）：
     // 真实元素字节数。内存/传输/预算一律按 count*element_size_bytes，
     // 禁止 Dispatcher 固定 sizeof(float)。默认 4 保持旧调用（float）兼容。
     std::size_t element_size_bytes{sizeof(float)};
@@ -105,7 +105,7 @@ void append_scalar(ScalarArgBlob& blob, const T& value) {
 }
 
 // 安全读取 blob 中偏移 offset 处的标量。
-// 24 号计划 §5.2：使用 memcpy 拷贝到对齐局部变量，禁止 reinterpret_cast 可能
+// 24 §5.2：使用 memcpy 拷贝到对齐局部变量，禁止 reinterpret_cast 可能
 // 产生的未对齐访问（C++ UB）。越界返回 nullopt。
 template<class T>
 std::optional<T> read_scalar(const ScalarArgBlob& blob, std::size_t offset) noexcept {
@@ -122,10 +122,10 @@ struct KernelInvocation {
     BufferBindingList buffers;     // buffer 绑定
     ScalarArgBlob scalars;         // 标量参数
     TaskTraits traits{};           // 任务特征（数值策略等）
-    // 聚焦版（08 号计划）：分块契约与路由模式
+    // 聚焦版（08 ）：分块契约与路由模式
     PartitionKind partition{PartitionKind::IndependentOutputTiles};
     RouteMode mode{RouteMode::AutoMixed};
-    // 聚焦版 v3（08 号计划 §3）：输入是否已在设备显存（launcher 用 resident 路径）
+    // 聚焦版 v3（08 §3）：输入是否已在设备显存（launcher 用 resident 路径）
     bool input_resident{false};
     // ACR 架构冻结（01_ARCHITECTURE_FREEZE.md §3）：调用方声明的输入/输出驻留策略。
     // 默认 MaterializeHost（结果必须回到 host）；PreferDevice/KeepDevice 由
@@ -212,13 +212,13 @@ private:
     std::unordered_map<std::string, Node*> by_id_;
 };
 
-// ===== Invocation 契约校验（24 号计划 §5.2）=====
+// ===== Invocation 契约校验（24 §5.2）=====
 // Executor 提交前统一验证：
-//   - OperationId 一致；
-//   - buffer_count / scalar_bytes 与 KernelArgSchema 一致；
-//   - domain 非空；
-//   - 目标 backend 的 launcher 已注册；
-//   - 调用方 NumericPolicy 与注册声明一致（声明必须反映 launcher 真实行为）。
+// - OperationId 一致；
+// - buffer_count / scalar_bytes 与 KernelArgSchema 一致；
+// - domain 非空；
+// - 目标 backend 的 launcher 已注册；
+// - 调用方 NumericPolicy 与注册声明一致（声明必须反映 launcher 真实行为）。
 // 返回空串表示通过；否则返回错误描述（Executor 应 Rejected）。
 std::string validate_invocation(const KernelRegistration& reg,
                                 const KernelInvocation& inv,

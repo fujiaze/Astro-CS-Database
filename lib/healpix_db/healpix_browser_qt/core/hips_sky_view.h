@@ -1,12 +1,12 @@
 // ============================================================================
-// hips_sky_view.h - V9 HiPS 2D 天空视图核心（无 Qt 依赖）
+// hips_sky_view.h - HiPS 2D 天空视图核心（无 Qt 依赖）
 //
 // 直接消费 AstroCS 标准 HiPS 产品集（signal/support，NESTED，Norder0..K）：
-//   - 视口感知：gnomonic 逆投影逐像素求 (ra,dec) → 只触碰可见 tile；
-//   - zoom-aware order：按 FOV 选 NorderK，父级缺失时逐级向上回退；
-//   - 有界 LRU tile 缓存（默认 64 张，signal+support 双数组）；
-//   - Signal/Support 图层切换；线性/sqrt/log/asinh 拉伸 + auto/manual B/W；
-//   - 进度式渲染：可见 tile 即画，缺失区为背景色（不阻塞等全量）。
+// - 视口感知：gnomonic 逆投影逐像素求 (ra,dec) → 只触碰可见 tile；
+// - zoom-aware order：按 FOV 选 NorderK，父级缺失时逐级向上回退；
+// - 有界 LRU tile 缓存（默认 64 张，signal+support 双数组）；
+// - Signal/Support 图层切换；线性/sqrt/log/asinh 拉伸 + auto/manual B/W；
+// - 进度式渲染：可见 tile 即画，缺失区为背景色（不阻塞等全量）。
 // ============================================================================
 
 #ifndef HIPS_SKY_VIEW_H
@@ -33,12 +33,12 @@ public:
     void set_layer(int layer);              // 0=signal, 1=support
     void set_stretch(const std::string& preset, bool auto_range);
     void set_manual_range(float lo, float hi);
-    // V14 v3：手动 STF（lo/hi 像素值 + midtones/compression，渲染生效）
+    // v3：手动 STF（lo/hi 像素值 + midtones/compression，渲染生效）
     void set_manual_stf(const STFParams& params);
-    // V14：Auto STF 模式。auto_global 保持 robust 标尺（pan/zoom 不闪）；
+    // Auto STF 模式。auto_global 保持 robust 标尺（pan/zoom 不闪）；
     // refresh_auto_range() 显式重算（Reset / Auto View 触发）。
     void refresh_auto_range() { auto_range_dirty_ = true; }
-    // V14：Auto View 模式（可选）——pan/zoom 时对当前 viewport 重算 robust
+    // Auto View 模式（可选）——pan/zoom 时对当前 viewport 重算 robust
     // STF（适合观察局部暗结构；Auto Global 默认保持标尺不闪）。
     void set_auto_view(bool on) {
         stf_.mode = on ? STFMode::AutoView : STFMode::AutoGlobal;
@@ -46,7 +46,7 @@ public:
         if (on && !stf_.locked) auto_range_dirty_ = true;
         stf_.bump();
     }
-    // V14: Lock STF —— 冻结当前显示标尺；auto/repeat 重算路径被禁止，
+    // Lock STF —— 冻结当前显示标尺；auto/repeat 重算路径被禁止，
     // 首次计算仍允许（保证锁定前有可用的 robust 标尺）。
     void set_stf_locked(bool locked) {
         stf_.locked = locked;
@@ -54,24 +54,24 @@ public:
         stf_.bump();
     }
     bool stf_locked() const { return stf_.locked; }
-    // V14：当前显示标尺（browser_cli 证据/探针用）
+    // 当前显示标尺（browser_cli 证据/探针用）
     float range_lo() const { return lo_; }
     float range_hi() const { return hi_; }
-    // V14 v3：真实数据动态范围（finite 样本 min/max，供 STF 滑块映射；
+    // v3：真实数据动态范围（finite 样本 min/max，供 STF 滑块映射；
     // 与 auto 标尺 lo_/hi_ 无关）
     float display_min() const { return display_min_; }
     float display_max() const { return display_max_; }
-    // V14：robust STF 重算次数（探针判据：锁定冻结/解锁恢复）
+    // robust STF 重算次数（探针判据：锁定冻结/解锁恢复）
     std::uint64_t auto_recompute_count() const {
         return auto_recompute_count_;
     }
-    // V15：唯一 DisplayTransformState（UI 只编辑它，renderer 只消费它）
+    // 唯一 DisplayTransformState（UI 只编辑它，renderer 只消费它）
     const DisplayTransformState& stf_state() const { return stf_; }
     void set_stf_state(const DisplayTransformState& state);
-    // V14 v2：Auto Global 全 dataset 标尺（进程内缓存，一次会话只扫一次）
+    // v2：Auto Global 全 dataset 标尺（进程内缓存，一次会话只扫一次）
     static std::map<std::string, std::pair<float, float>>
         g_global_scan_cache_;
-    // V11：LOD 模式。strict-leaf 完全禁止 parent fallback（诊断用）。
+    // LOD 模式。strict-leaf 完全禁止 parent fallback（诊断用）。
     void set_lod_mode(bool strict_leaf) { strict_leaf_ = strict_leaf; }
     void set_cache_cap(std::size_t n) {
         cache_cap_ = (n >= 4) ? n : 4;
@@ -135,16 +135,16 @@ private:
     double ra0_ = 0.0, dec0_ = 0.0, fov_ = 8.0, aspect_ = 1.0;
     int w_ = 1024, h_ = 768;
     int layer_ = 0;
-    // V15：单一状态（替代 preset_/auto_range_/auto_view_/stf_locked_/
+    // 单一状态（替代 preset_/auto_range_/auto_view_/stf_locked_/
     // manual_* 分散字段）
     DisplayTransformState stf_;
     bool auto_range_dirty_ = true;   // 首次或显式刷新时重算 robust STF
-    bool auto_range_computed_ = false; // V14：首次 robust 标尺已计算
-    std::uint64_t auto_recompute_count_ = 0; // V14：robust 重算次数
+    bool auto_range_computed_ = false; // 首次 robust 标尺已计算
+    std::uint64_t auto_recompute_count_ = 0; // robust 重算次数
     bool strict_leaf_ = false;
     float lo_ = 0.0f, hi_ = 1.0f;
-    float display_min_ = 0.0f, display_max_ = 1.0f;  // V14 v3
-    // V14：stretch-only redraw —— view 未变时复用已采样 leaves
+    float display_min_ = 0.0f, display_max_ = 1.0f;  // v3
+    // stretch-only redraw —— view 未变时复用已采样 leaves
     std::vector<std::uint64_t> cached_leaves_;
     double cache_ra0_ = 0.0, cache_dec0_ = 0.0, cache_fov_ = 0.0;
     int cache_w_ = 0, cache_h_ = 0;

@@ -16,7 +16,7 @@ bool STFParams::validate() const {
     return shadows < highlights && midtones > 0.0f && midtones < 1.0f;
 }
 
-// ---- V15 DisplayTransformState（唯一状态结构）----
+// ---- DisplayTransformState（唯一状态结构）----
 void DisplayTransformState::normalize() {
     black = std::clamp(black, 0.0f, 0.999f);
     white = std::clamp(white, 0.001f, 1.0f);
@@ -122,8 +122,8 @@ STFParams STFEngine::auto_stretch(const float* data, size_t n, float no_data_val
     LOG_INFO("auto_stretch: 输入 %zu 像素，有效 %zu 像素", n, valid.size());
 
     // 2. 排序后取百分位数 (0.5% / 99.5%) 作为 shadows/highlights
-    //    只统计有数据的像素, 避免无数据区域(0值)拉偏统计
-    //    用 0.5%/99.5% 而非 min/max, 避免饱和星等异常值
+    // 只统计有数据的像素, 避免无数据区域(0值)拉偏统计
+    // 用 0.5%/99.5% 而非 min/max, 避免饱和星等异常值
     std::sort(valid.begin(), valid.end());
     size_t n_valid = valid.size();
     size_t lo_idx = static_cast<size_t>(n_valid * 0.005);

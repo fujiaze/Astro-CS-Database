@@ -53,12 +53,12 @@
  *    it, empty otherwise.
  *  - NANOFLANN_VERSION: Library version as 0xMmP (M=Major, m=minor, P=patch).
  *
- *  See the [README](https://github.com/jlblancoc/nanoflann#readme) for usage
+ *  See the [README](https:// github.com/jlblancoc/nanoflann#readme) for usage
  *  details and examples.
  *
  *  See:
- *   - [Online README](https://github.com/jlblancoc/nanoflann)
- *   - [C++ API documentation](https://jlblancoc.github.io/nanoflann/)
+ *   - [Online README](https:// github.com/jlblancoc/nanoflann)
+ *   - [C++ API documentation](https:// jlblancoc.github.io/nanoflann/)
  */
 
 #pragma once
@@ -223,7 +223,7 @@ struct IndexDist_Sorter
  * `std::pair<>` type used in the past. In contrast, this structure is ensured
  * to be `std::is_standard_layout` so it can be used in wrappers to other
  * languages.
- * See: https://github.com/jlblancoc/nanoflann/issues/166
+ * See: https:// github.com/jlblancoc/nanoflann/issues/166
  */
 template <typename IndexType = size_t, typename DistanceType = double>
 struct ResultItem
@@ -233,8 +233,8 @@ struct ResultItem
     {
     }
 
-    IndexType    first;  //!< Index of the sample in the dataset
-    DistanceType second;  //!< Distance from sample to query point
+    IndexType    first;  // !< Index of the sample in the dataset
+    DistanceType second;  // !< Distance from sample to query point
 };
 
 namespace detail
@@ -322,8 +322,8 @@ class KNNResultSet
         return detail::addPointToSortedResultSet(dists, indices, count, capacity, dist, index);
     }
 
-    //! Returns the worst distance among found solutions if the search result is
-    //! full, or the maximum possible distance, if not full yet.
+    // ! Returns the worst distance among found solutions if the search result is
+    // ! full, or the maximum possible distance, if not full yet.
     NANOFLANN_NODISCARD DistanceType worstDist() const noexcept
     {
         return (count < capacity || !count) ? std::numeric_limits<DistanceType>::max()
@@ -384,8 +384,8 @@ class RKNNResultSet
         return detail::addPointToSortedResultSet(dists, indices, count, capacity, dist, index);
     }
 
-    //! Returns the worst distance among found solutions if the search result is
-    //! full, or the maximum possible distance, if not full yet.
+    // ! Returns the worst distance among found solutions if the search result is
+    // ! full, or the maximum possible distance, if not full yet.
     NANOFLANN_NODISCARD DistanceType worstDist() const noexcept
     {
         return (count < capacity || !count) ? maximumSearchDistanceSquared : dists[count - 1];
@@ -869,9 +869,9 @@ struct SearchParameters
 {
     SearchParameters(float eps_ = 0, bool sorted_ = true) : eps(eps_), sorted(sorted_) {}
 
-    float eps;  //!< search for eps-approximate neighbors (default: 0)
-    bool  sorted;  //!< only for radius search, require neighbors sorted by
-                  //!< distance (default: true)
+    float eps;  // !< search for eps-approximate neighbors (default: 0)
+    bool  sorted;  // !< only for radius search, require neighbors sorted by
+                  // !< distance (default: true)
 };
 /** @} */
 
@@ -905,9 +905,9 @@ class PooledAllocator
 
     using Size = size_t;
 
-    Size  remaining_ = 0;  //!< Number of bytes left in current block of storage
-    void* base_      = nullptr;  //!< Pointer to base of current block of storage
-    void* loc_       = nullptr;  //!< Current location in block to next allocate
+    Size  remaining_ = 0;  // !< Number of bytes left in current block of storage
+    void* base_      = nullptr;  // !< Pointer to base of current block of storage
+    void* loc_       = nullptr;  // !< Current location in block to next allocate
 
     void internal_init()
     {
@@ -1087,12 +1087,12 @@ class KDTreeBaseClass
         {
             struct leaf
             {
-                Offset left, right;  //!< Indices of points in leaf node
+                Offset left, right;  // !< Indices of points in leaf node
             } lr;
             struct nonleaf
             {
-                Dimension divfeat;  //!< Dimension used for subdivision.
-                /// The values used for subdivision.
+                Dimension divfeat;  // !< Dimension used for subdivision.
+                // /The values used for subdivision.
                 DistanceType divlow, divhigh;
             } sub;
         } node_type;
@@ -1113,13 +1113,13 @@ class KDTreeBaseClass
 
     Size leaf_max_size_ = 0;
 
-    /// Number of thread for concurrent tree build
+    // /Number of thread for concurrent tree build
     Size n_thread_build_ = 1;
-    /// Number of current points in the dataset
+    // /Number of current points in the dataset
     Size size_ = 0;
-    /// Number of points in the dataset when the index was built
+    // /Number of points in the dataset when the index was built
     Size      size_at_index_build_ = 0;
-    Dimension dim_                 = 0;  //!< Dimensionality of each data point
+    Dimension dim_                 = 0;  // !< Dimensionality of each data point
 
     /** Define "BoundingBox" as a fixed-size or variable-size container
      * depending on "DIM" */
@@ -1158,7 +1158,7 @@ class KDTreeBaseClass
 #endif
     }
 
-    /// Helper accessor to the dataset points:
+    // /Helper accessor to the dataset points:
     ElementType dataset_get(const Derived& obj, IndexType element, Dimension component) const
     {
         return obj.dataset_.kdtree_get_pt(element, component);
@@ -1659,7 +1659,7 @@ class KDTreeBaseClass
     void saveIndex(const Derived& obj, std::ostream& stream) const
     {
         // 10-byte header: magic | version | sizeof_size_t | sizeof_IndexType
-        //                 | sizeof_ElementType | sizeof_DistanceType
+        // | sizeof_ElementType | sizeof_DistanceType
         // Use local copies: passing a static constexpr by const-ref ODR-uses it
         // in C++11/14, which requires an out-of-class definition we cannot provide
         // in a header-only library.
@@ -1786,9 +1786,9 @@ class KDTreeBaseClass
  *
  *   // Optional bounding-box computation: return false to default to a standard
  * bbox computation loop.
- *   //   Return true if the BBOX was already computed by the class and returned
+ *   // Return true if the BBOX was already computed by the class and returned
  * in "bb" so it can be avoided to redo it again.
- *   //   Look at bb.size() to find out the expected dimensionality (e.g. 2 or 3
+ *   // Look at bb.size() to find out the expected dimensionality (e.g. 2 or 3
  * for point clouds) template <class BBOX> bool kdtree_get_bbox(BBOX &bb) const
  *   {
  *      bb[0].low = ...; bb[0].high = ...;  // 0th dimension limits
@@ -1865,7 +1865,7 @@ class KDTreeSingleIndexAdaptor
      * KDTree constructor
      *
      * Refer to docs in README.md or online in
-     * https://github.com/jlblancoc/nanoflann
+     * https:// github.com/jlblancoc/nanoflann
      *
      * The KD-Tree point dimension (the length of each point in the dataset, e.g.
      * 3 for 3D points) is determined by means of:
@@ -2212,9 +2212,9 @@ class KDTreeSingleIndexAdaptor
  *
  *   // Optional bounding-box computation: return false to default to a standard
  * bbox computation loop.
- *   //   Return true if the BBOX was already computed by the class and returned
+ *   // Return true if the BBOX was already computed by the class and returned
  * in "bb" so it can be avoided to redo it again.
- *   //   Look at bb.size() to find out the expected dimensionality (e.g. 2 or 3
+ *   // Look at bb.size() to find out the expected dimensionality (e.g. 2 or 3
  * for point clouds) template <class BBOX> bool kdtree_get_bbox(BBOX &bb) const
  *   {
  *      bb[0].low = ...; bb[0].high = ...;  // 0th dimension limits
@@ -2242,7 +2242,7 @@ class KDTreeSingleIndexDynamicAdaptor_
     /**
      * The dataset used by this index
      */
-    const DatasetAdaptor& dataset_;  //!< The source of our data
+    const DatasetAdaptor& dataset_;  // !< The source of our data
 
     KDTreeSingleIndexAdaptorParams index_params_;
 
@@ -2280,7 +2280,7 @@ class KDTreeSingleIndexDynamicAdaptor_
      * KDTree constructor
      *
      * Refer to docs in README.md or online in
-     * https://github.com/jlblancoc/nanoflann
+     * https:// github.com/jlblancoc/nanoflann
      *
      * The KD-Tree point dimension (the length of each point in the dataset, e.g.
      * 3 for 3D points) is determined by means of:
@@ -2527,7 +2527,7 @@ class KDTreeSingleIndexDynamicAdaptor
     /**
      * The dataset used by this index
      */
-    const DatasetAdaptor& dataset_;  //!< The source of our data
+    const DatasetAdaptor& dataset_;  // !< The source of our data
 
     /** treeIndex[idx] is the index of tree in which point at idx is stored.
      * treeIndex[idx]=-1 means that point has been removed. */
@@ -2539,7 +2539,7 @@ class KDTreeSingleIndexDynamicAdaptor
 
     KDTreeSingleIndexAdaptorParams index_params_;
 
-    Dimension dim_;  //!< Dimensionality of each data point
+    Dimension dim_;  // !< Dimensionality of each data point
 
     using index_container_t =
         KDTreeSingleIndexDynamicAdaptor_<Distance, DatasetAdaptor, DIM, IndexType>;
@@ -2580,7 +2580,7 @@ class KDTreeSingleIndexDynamicAdaptor
      * KDTree constructor
      *
      * Refer to docs in README.md or online in
-     * https://github.com/jlblancoc/nanoflann
+     * https:// github.com/jlblancoc/nanoflann
      *
      * The KD-Tree point dimension (the length of each point in the dataset, e.g.
      * 3 for 3D points) is determined by means of:
@@ -2791,20 +2791,20 @@ class KDTreeSingleIndexIncrementalAdaptor
      *  metadata. Children pointers are nullptr at the leaves. */
     struct INode
     {
-        IndexType ptIdx        = 0;  //!< index of the stored data point
-        Dimension divfeat      = 0;  //!< splitting axis at this node
-        bool      deleted      = false;  //!< this node's point is tombstoned
-        bool      treeDeleted  = false;  //!< whole subtree lazily tombstoned
-        INode*    child1       = nullptr;  //!< "< split" child (also free-list link)
-        INode*    child2       = nullptr;  //!< ">= split" child
-        INode*    parent       = nullptr;  //!< parent (nullptr at the root)
-        Size      subtree_size = 0;  //!< number of nodes in this subtree
-        Size      invalid_count = 0;  //!< number of tombstoned nodes in subtree
-        BoundingBox box;  //!< AABB of all points (live+dead) in this subtree
-        //! Cache of this node's own point coordinates, kept in-node to avoid the
-        //! dataset_get() indirection on the hot query / insert / box paths. Only
-        //! populated for a compile-time fixed DIM (`kCacheCoords`); for DIM=-1 it
-        //! stays an empty vector and the code falls back to the dataset.
+        IndexType ptIdx        = 0;  // !< index of the stored data point
+        Dimension divfeat      = 0;  // !< splitting axis at this node
+        bool      deleted      = false;  // !< this node's point is tombstoned
+        bool      treeDeleted  = false;  // !< whole subtree lazily tombstoned
+        INode*    child1       = nullptr;  // !< "< split" child (also free-list link)
+        INode*    child2       = nullptr;  // !< ">= split" child
+        INode*    parent       = nullptr;  // !< parent (nullptr at the root)
+        Size      subtree_size = 0;  // !< number of nodes in this subtree
+        Size      invalid_count = 0;  // !< number of tombstoned nodes in subtree
+        BoundingBox box;  // !< AABB of all points (live+dead) in this subtree
+        // ! Cache of this node's own point coordinates, kept in-node to avoid the
+        // ! dataset_get() indirection on the hot query / insert / box paths. Only
+        // ! populated for a compile-time fixed DIM (`kCacheCoords`); for DIM=-1 it
+        // ! stays an empty vector and the code falls back to the dataset.
         typename array_or_vector<DIM, ElementType>::type pcoord;
     };
 
@@ -2819,36 +2819,36 @@ class KDTreeSingleIndexIncrementalAdaptor
 #endif
 
    private:
-    INode* iroot_    = nullptr;  //!< root of the incremental tree
-    INode* freeList_ = nullptr;  //!< recycled nodes (linked via child1)
+    INode* iroot_    = nullptr;  // !< root of the incremental tree
+    INode* freeList_ = nullptr;  // !< recycled nodes (linked via child1)
 
-    Size liveCount_  = 0;  //!< number of live (non-tombstoned) points
-    Size totalCount_ = 0;  //!< number of nodes physically in the tree
+    Size liveCount_  = 0;  // !< number of live (non-tombstoned) points
+    Size totalCount_ = 0;  // !< number of nodes physically in the tree
 
     float alphaBal_ = 0.75f;
     float alphaDel_ = 0.5f;
-    /// Subtrees smaller than this are never rebuilt for *balance* reasons.
+    // /Subtrees smaller than this are never rebuilt for *balance* reasons.
     static constexpr Size kMinBalanceRebuild = 4;
-    /// addPoints() bulk-builds instead of inserting point-by-point when the
-    /// batch is at least this fraction of the current live count (see addPoints).
+    // /addPoints() bulk-builds instead of inserting point-by-point when the
+    // /batch is at least this fraction of the current live count (see addPoints).
     static constexpr double kBulkInsertFraction = 0.5;
 
-    /// Highest unbalanced node found during the current insertion (rebuilt once).
+    // /Highest unbalanced node found during the current insertion (rebuilt once).
     INode* pendingRebuild_ = nullptr;
 
-    /// When false, the index never performs inline (synchronous) balance or
-    /// deletion rebuilds: it only appends / lazily tombstones, and balance is
-    /// restored externally by full bulk rebuilds. Used by the multi-threaded
-    /// wrapper, which offloads the expensive rebuilds to a background thread.
+    // /When false, the index never performs inline (synchronous) balance or
+    // /deletion rebuilds: it only appends / lazily tombstones, and balance is
+    // /restored externally by full bulk rebuilds. Used by the multi-threaded
+    // /wrapper, which offloads the expensive rebuilds to a background thread.
     bool inlineRebuild_ = true;
 
-    /// idx -> node holding that point (nullptr if the point is not present).
+    // /idx -> node holding that point (nullptr if the point is not present).
     std::vector<INode*> nodeOfPoint_;
 
-    /// Scratch buffer reused across rebuilds (live indices being re-balanced).
+    // /Scratch buffer reused across rebuilds (live indices being re-balanced).
     std::vector<IndexType> buildBuf_;
 
-    /// Optional sink for physically-evicted point indices (acquireRemovedPoints).
+    // /Optional sink for physically-evicted point indices (acquireRemovedPoints).
     bool                   collectRemoved_ = false;
     std::vector<IndexType> removedSink_;
 
@@ -3132,7 +3132,7 @@ class KDTreeSingleIndexIncrementalAdaptor
 
    private:
     // --------------------------------------------------------------------
-    //  Node allocation (bump-allocate from the pool, recycle via free-list)
+    // Node allocation (bump-allocate from the pool, recycle via free-list)
     // --------------------------------------------------------------------
     INode* allocNode()
     {
@@ -3204,7 +3204,7 @@ class KDTreeSingleIndexIncrementalAdaptor
     }
 
     // --------------------------------------------------------------------
-    //  Helpers
+    // Helpers
     // --------------------------------------------------------------------
     ElementType pt(IndexType idx, Dimension d) const
     {
@@ -3285,7 +3285,7 @@ class KDTreeSingleIndexIncrementalAdaptor
     }
 
     // --------------------------------------------------------------------
-    //  Insertion
+    // Insertion
     // --------------------------------------------------------------------
     INode* makeLeaf(IndexType idx, Dimension depth, INode* parent)
     {
@@ -3370,7 +3370,7 @@ class KDTreeSingleIndexIncrementalAdaptor
     }
 
     // --------------------------------------------------------------------
-    //  Deletion (lazy) + box-region deletion
+    // Deletion (lazy) + box-region deletion
     // --------------------------------------------------------------------
     /** Kill an entire subtree in O(1): mark it as wholly tombstoned. */
     void killSubtree(INode* node)
@@ -3453,7 +3453,7 @@ class KDTreeSingleIndexIncrementalAdaptor
     }
 
     // --------------------------------------------------------------------
-    //  Partial rebuild (scapegoat): flatten live points, rebuild balanced
+    // Partial rebuild (scapegoat): flatten live points, rebuild balanced
     // --------------------------------------------------------------------
     void rebuildAt(INode* node)
     {
@@ -3586,7 +3586,7 @@ class KDTreeSingleIndexIncrementalAdaptor
     }
 
     // --------------------------------------------------------------------
-    //  Search
+    // Search
     // --------------------------------------------------------------------
     template <class RESULTSET>
     void searchLevelInc(
@@ -3984,14 +3984,14 @@ struct KDTreeEigenMatrixAdaptor
         metric_t, self_t, row_major ? MatrixType::ColsAtCompileTime : MatrixType::RowsAtCompileTime,
         IndexType>;
 
-    index_t* index_;  //! The kd-tree index for the user to call its methods as
-                      //! usual with any other FLANN index.
+    index_t* index_;  // ! The kd-tree index for the user to call its methods as
+                      // ! usual with any other FLANN index.
 
     using Offset    = typename index_t::Offset;
     using Size      = typename index_t::Size;
     using Dimension = typename index_t::Dimension;
 
-    /// Constructor: takes a const ref to the matrix object with the data points
+    // /Constructor: takes a const ref to the matrix object with the data points
     explicit KDTreeEigenMatrixAdaptor(
         const Dimension dimensionality, const std::reference_wrapper<const MatrixType>& mat,
         const int leaf_max_size = 10, const unsigned int n_thread_build = 1)
@@ -4071,9 +4071,9 @@ struct KDTreeEigenMatrixAdaptor
 
     // Optional bounding-box computation: return false to default to a standard
     // bbox computation loop.
-    //   Return true if the BBOX was already computed by the class and returned
-    //   in "bb" so it can be avoided to redo it again. Look at bb.size() to
-    //   find out the expected dimensionality (e.g. 2 or 3 for point clouds)
+    // Return true if the BBOX was already computed by the class and returned
+    // in "bb" so it can be avoided to redo it again. Look at bb.size() to
+    // find out the expected dimensionality (e.g. 2 or 3 for point clouds)
     template <class BBOX>
     inline bool kdtree_get_bbox(BBOX& /*bb*/) const
     {

@@ -1,14 +1,14 @@
 // ============================================================================
-// ipv_distortion.cpp - V4.11 CDA Phase B: 径向畸变估计实现
+// ipv_distortion.cpp - CDA Phase B: 径向畸变估计实现
 //
 // 设计参考: ipv_cda_distortion_design.md §4
 // 流程:
-//   1. 用 WCS₀ 把 W 投影到图像坐标系 → 预测位置 (x̂, ŷ)
-//   2. 在 U_full 中做宽容近邻匹配 (τ=15px) → 匹配对
-//   3. 计算残差 dx = U.x - x̂, dy = U.y - ŷ
-//   4. MAD 清洗外点
-//   5. IRLS + Huber 权重拟合 (k1, k2)
-//   6. 计算 R² 质量评估
+// 1. 用 WCS₀ 把 W 投影到图像坐标系 → 预测位置 (x̂, ŷ)
+// 2. 在 U_full 中做宽容近邻匹配 (τ=15px) → 匹配对
+// 3. 计算残差 dx = U.x - x̂, dy = U.y - ŷ
+// 4. MAD 清洗外点
+// 5. IRLS + Huber 权重拟合 (k1, k2)
+// 6. 计算 R² 质量评估
 // ============================================================================
 
 #include "ipv_distortion.h"
@@ -89,10 +89,10 @@ DistortionModel estimate_radial_distortion(
     };
     std::vector<MatchPairData> matches;
 
-    // V4.11 修复: Phase A 求解的模型是 W' = s·R·U + t (U→W')
-    //            要把 W' 投影回 U 坐标系, 需用反变换: U = (1/s)·R⁻¹·(W' - t)
-    //            R⁻¹ = Rᵀ = [[cos θ, sin θ], [-sin θ, cos θ]]
-    //            注意: 传入的 W 必须是 flip 后的 W' (与 tf 对应)
+    // 修复: Phase A 求解的模型是 W' = s·R·U + t (U→W')
+    // 要把 W' 投影回 U 坐标系, 需用反变换: U = (1/s)·R⁻¹·(W' - t)
+    // R⁻¹ = Rᵀ = [[cos θ, sin θ], [-sin θ, cos θ]]
+    // 注意: 传入的 W 必须是 flip 后的 W' (与 tf 对应)
     const double inv_s = 1.0 / s;
     for (size_t j = 0; j < W.size(); ++j) {
         // 反变换: U_pred = (1/s)·Rᵀ·(W' - t)
@@ -192,9 +192,9 @@ DistortionModel estimate_radial_distortion(
 
     // --- 步骤 5: IRLS + Huber 权重拟合 (k1, k2) ---
     // 模型: dx_pred = x × (k1·r̃² + k2·r̃⁴)
-    //       dy_pred = y × (k1·r̃² + k2·r̃⁴)
+    // dy_pred = y × (k1·r̃² + k2·r̃⁴)
     // 残差方程: dx_obs = dx_pred + ε → x·r̃²·k1 + x·r̃⁴·k2 = dx_obs
-    //          dy_obs = dy_pred + ε → y·r̃²·k1 + y·r̃⁴·k2 = dy_obs
+    // dy_obs = dy_pred + ε → y·r̃²·k1 + y·r̃⁴·k2 = dy_obs
     // 最小二乘: A·[k1, k2]ᵀ = b, A 是 2N×2, b 是 2N×1
     // 加权: wᵢ × Aᵢ·[k1,k2] = wᵢ × bᵢ
 
@@ -279,7 +279,7 @@ DistortionModel estimate_radial_distortion(
     double res_var = sum_sq_res / inlier_matches.size();
     double r_squared = (raw_var > 1e-9) ? (1.0 - res_var / raw_var) : 0.0;
 
-    // V4.12 修复: R² < 0 时退化为单参数模型 (宽 FOV 边缘畸变导致双参数拟合失败)
+    // 修复: R² < 0 时退化为单参数模型 (宽 FOV 边缘畸变导致双参数拟合失败)
     // 单参数: k1 = median(dx_i / (x_i * r̃_i²)), k2 = 0
     // 对 x 和 y 两个方向的贡献都计算, 取所有内点的中位数
     if (r_squared < 0.0) {

@@ -1,20 +1,20 @@
 // lib/acr/qualification/benchmarks/arithmetic_benchmark.cpp — E04 算术吞吐 Benchmark
 //
 // 设计（06 §5 + 17 §5）：
-//   1. FP32/FP64 add / mul / FMA / div / sqrt
-//   2. 各 ISA 变体（baseline / SSE / AVX / AVX2 / AVX-512）
-//   3. 独立链：足够多寄存器并行执行，避免只测单一依赖延迟（throughput）
-//   4. 依赖链 latency：a = f(a, x)，每次依赖前一次结果，测 latency
-//   5. 防止编译器消除：volatile sink + asm barrier + result accumulator
-//   6. 持续负载反映降频：长迭代时间（≥30s 关键路线，由 Google Benchmark 配置）
-//   7. 必要的 sin/cos 数学函数
-//   8. 保存汇编/编译报告抽样：通过 -save-temps 编译选项，运行时仅记录 kernel 名
+// 1. FP32/FP64 add / mul / FMA / div / sqrt
+// 2. 各 ISA 变体（baseline / SSE / AVX / AVX2 / AVX-512）
+// 3. 独立链：足够多寄存器并行执行，避免只测单一依赖延迟（throughput）
+// 4. 依赖链 latency：a = f(a, x)，每次依赖前一次结果，测 latency
+// 5. 防止编译器消除：volatile sink + asm barrier + result accumulator
+// 6. 持续负载反映降频：长迭代时间（≥30s 关键路线，由 Google Benchmark 配置）
+// 7. 必要的 sin/cos 数学函数
+// 8. 保存汇编/编译报告抽样：通过 -save-temps 编译选项，运行时仅记录 kernel 名
 //
 // 算术吞吐 = ops / time。其中 ops 计入每个元素的运算数：
-//   add/mul: 1 op/elem
-//   FMA: 2 ops/elem（一次乘 + 一次加）
-//   div/sqrt: 1 op/elem（但执行慢）
-//   sin/cos: 1 op/elem（约 30-100ns 每次调用）
+// add/mul: 1 op/elem
+// FMA: 2 ops/elem（一次乘 + 一次加）
+// div/sqrt: 1 op/elem（但执行慢）
+// sin/cos: 1 op/elem（约 30-100ns 每次调用）
 #include "benchmark_common.hpp"
 
 #include <benchmark/benchmark.h>
@@ -27,7 +27,7 @@ namespace astro::compute::qualification::bench {
 
 // ===== 算术 kernel（target attribute 启用各 ISA）=====
 // 独立链：用 8 个独立累加器，让流水线并行执行
-// arr[i] = arr[i] OP x[i]  → 依赖 arr 的前值，但 8 路独立 → 实际并行
+// arr[i] = arr[i] OP x[i] → 依赖 arr 的前值，但 8 路独立 → 实际并行
 
 template<class T, int NAcc>
 struct AccumChain {
@@ -339,7 +339,7 @@ static void run_arith_bench(::benchmark::State& state, ArithOp op, IsaLabel isa)
 }
 
 // ===== 依赖链 latency benchmark =====
-// 模式：a = a * x[i] + x[i]  → 每次依赖前一次 a
+// 模式：a = a * x[i] + x[i] → 每次依赖前一次 a
 // 测的是单次操作 latency（不是吞吐）
 template<class T>
 static void run_arith_latency_bench(::benchmark::State& state, ArithOp op) {

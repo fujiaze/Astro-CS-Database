@@ -41,7 +41,7 @@ HardwareProfile make_test_profile_with_cpu_only() {
     merge_oh.median_ns = 200.0;
     merge_oh.warm_ns = 150.0;
     cpu.overhead["merge"] = merge_oh;
-    // 25 号计划 §5.1：profile_available 需要当前任务命中合格 measured 曲线
+    // 25 §5.1：profile_available 需要当前任务命中合格 measured 曲线
     Curve mem;
     mem.source = "measured";
     mem.qualified = true;

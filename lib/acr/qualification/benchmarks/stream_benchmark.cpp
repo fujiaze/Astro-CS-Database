@@ -1,17 +1,17 @@
 // lib/acr/qualification/benchmarks/stream_benchmark.cpp — E01 STREAM 式 CPU 内存 Benchmark
 //
 // 设计（06 §6 + 17 §2）：
-//   1. STREAM 经典定义 Copy / Scale / Add / Triad
-//   2. FP32 + FP64 双精度
-//   3. 尺寸覆盖 L1/L2/L3 和明显超出 LLC 的主存区间（对数序列 4KB → 256MB）
-//   4. 各 ISA 变体（baseline / SSE / AVX / AVX2 / AVX-512）通过 target attribute 启用
-//   5. 单线程 + 线程曲线（1, 2, 4, 25%, 50%, 75%, 95%, 100%）
-//   6. NUMA 本地/远端（hwloc 拓扑）
-//   7. 数组构造不计时（在 ::benchmark::State 的 setup 阶段）
-//   8. GB/s 计数器 + 正确性门禁
-//   9. 大数组持续带宽稳定（多次迭代 median）
+// 1. STREAM 经典定义 Copy / Scale / Add / Triad
+// 2. FP32 + FP64 双精度
+// 3. 尺寸覆盖 L1/L2/L3 和明显超出 LLC 的主存区间（对数序列 4KB → 256MB）
+// 4. 各 ISA 变体（baseline / SSE / AVX / AVX2 / AVX-512）通过 target attribute 启用
+// 5. 单线程 + 线程曲线（1, 2, 4, 25%, 50%, 75%, 95%, 100%）
+// 6. NUMA 本地/远端（hwloc 拓扑）
+// 7. 数组构造不计时（在 ::benchmark::State 的 setup 阶段）
+// 8. GB/s 计数器 + 正确性门禁
+// 9. 大数组持续带宽稳定（多次迭代 median）
 //
-// 参考：https://www.cs.virginia.edu/stream/ref.html
+// 参考：https:// www.cs.virginia.edu/stream/ref.html
 #include "benchmark_common.hpp"
 
 #include <benchmark/benchmark.h>
@@ -48,16 +48,16 @@ namespace astro::compute::qualification::bench {
         for (std::size_t i = 0; i < n; ++i) { OP_BODY }                                  \
     }
 
-// Copy: y[i] = x[i]  (read x + write y)
+// Copy: y[i] = x[i] (read x + write y)
 ACR_BENCH_DEFINE_STREAM_KERNELS(copy_fp32, { y[i] = x[i]; })
 
-// Scale: y[i] = a * x[i]  (read x + write y + 1 mul)
+// Scale: y[i] = a * x[i] (read x + write y + 1 mul)
 ACR_BENCH_DEFINE_STREAM_KERNELS(scale_fp32, { y[i] = a * x[i]; })
 
-// Add: y[i] = x[i] + y[i]  (read x + read y + write y + 1 add)
+// Add: y[i] = x[i] + y[i] (read x + read y + write y + 1 add)
 ACR_BENCH_DEFINE_STREAM_KERNELS(add_fp32, { y[i] = x[i] + y[i]; })
 
-// Triad: y[i] = a * x[i] + z[i]  (read x + read z + write y + 1 mul + 1 add)
+// Triad: y[i] = a * x[i] + z[i] (read x + read z + write y + 1 mul + 1 add)
 ACR_BENCH_DEFINE_STREAM_KERNELS(triad_fp32, { y[i] = a * x[i] + y[i]; })
 
 // FP64 版本
@@ -187,10 +187,10 @@ inline KernelFn<double> select_stream_kernel<double>(StreamOp op, IsaLabel isa) 
 }
 
 // 字节数计算：STREAM 定义
-//   Copy: 2 * n * sizeof(T)  (读 + 写)
-//   Scale: 2 * n * sizeof(T) (读 + 写)
-//   Add: 3 * n * sizeof(T)   (读 x + 读 y + 写 y)
-//   Triad: 3 * n * sizeof(T) (读 x + 读 y + 写 z)
+// Copy: 2 * n * sizeof(T) (读 + 写)
+// Scale: 2 * n * sizeof(T) (读 + 写)
+// Add: 3 * n * sizeof(T) (读 x + 读 y + 写 y)
+// Triad: 3 * n * sizeof(T) (读 x + 读 y + 写 z)
 template<class T>
 inline std::size_t stream_bytes(StreamOp op, std::size_t n) noexcept {
     std::size_t factor = (op == StreamOp::Add || op == StreamOp::Triad) ? 3 : 2;

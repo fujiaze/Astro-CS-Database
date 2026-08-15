@@ -1,26 +1,26 @@
 // lib/acr/examples/weighted_integration/weighted_integration_benchmark.cpp
 //
-// ACR 架构冻结（07 号计划 A/B/C/D/E）：加权积分公平 Benchmark。
+// ACR 架构冻结（07 A/B/C/D/E）：加权积分公平 Benchmark。
 //
 // 场景分离（04/05 号规范）：
-//   openmp_single / openmp_reuse4_total / acr_cpu /
-//   gpu_host_cold / gpu_resident_steady / forced_mixed（仅正确性）/
-//   auto_cold_single_shot / auto_resident_steady / auto_resident_reuse4
+// openmp_single / openmp_reuse4_total / acr_cpu /
+// gpu_host_cold / gpu_resident_steady / forced_mixed（仅正确性）/
+// auto_cold_single_shot / auto_resident_steady / auto_resident_reuse4
 //
 // 等价工作量原则：
-//   - Serial 参考在计时外预计算；
-//   - reuse4 与 4 次等价 OpenMP 总耗时比较；
-//   - ForcedMixed 不参与性能资格（comparable_for_performance=false、
-//     speedup=null）；
-//   - 不可比较结果的 speedup 为 null。
+// - Serial 参考在计时外预计算；
+// - reuse4 与 4 次等价 OpenMP 总耗时比较；
+// - ForcedMixed 不参与性能资格（comparable_for_performance=false、
+// speedup=null）；
+// - 不可比较结果的 speedup 为 null。
 //
-// 真实统计（07 号计划 B）：
-//   - CPU/GPU items、blocks、active ns 来自 CostAwareResult.per_device_stats；
-//   - chunk 序列来自 resource_control.dynamic_chunk_sizes；
-//   - H2D/D2H 次数与字节来自 Dispatcher.transfer_stats（真实 prefetch/物化）；
-//   - RAM/VRAM 峰值来自内存预算估算与桥接 device_memory 观测。
+// 真实统计（07 B）：
+// - CPU/GPU items、blocks、active ns 来自 CostAwareResult.per_device_stats；
+// - chunk 序列来自 resource_control.dynamic_chunk_sizes；
+// - H2D/D2H 次数与字节来自 Dispatcher.transfer_stats（真实 prefetch/物化）；
+// - RAM/VRAM 峰值来自内存预算估算与桥接 device_memory 观测。
 //
-// Stream（07 号计划 D）：本轮冻结同步语义，observed_max_in_flight=1；
+// Stream（07 D）：本轮冻结同步语义，observed_max_in_flight=1；
 // configured_streams 单独报告，不宣称多通道并发收益。
 #include "weighted_integration_kernels.hpp"
 #include "route_profile_calibration.hpp"
@@ -537,7 +537,7 @@ struct ModeReporter {
                               : "correctness_only"));
         m["comparable_for_performance"] = comparable;
         m["configured_streams"] = gpu_streams;
-        m["observed_max_in_flight"] = 1;  // 同步语义（07 号计划 D）
+        m["observed_max_in_flight"] = 1;  // 同步语义（07 D）
         m["max_abs_error"] = 0.0;
         m["relative_l2_error"] = 0.0;
         m["cpu_items"] = 0;
@@ -656,10 +656,10 @@ int main(int argc, char** argv) {
     }
 
     // =====================================================================
-    // OperationProfile 标定（07 号计划 C：候选块真实执行 + 真实误差）
+    // OperationProfile 标定（07 C：候选块真实执行 + 真实误差）
     // =====================================================================
     // =====================================================================
-    // Route Profile v2 标定（Benchmark 驱动路由，控制包 d026ea30...c178537）
+    // Route Profile v2 标定（Benchmark 驱动路由， d026ea30...c178537）
     // =====================================================================
     routing::RouteProfileV2 route_profile;
     bool route_profile_ready = false;

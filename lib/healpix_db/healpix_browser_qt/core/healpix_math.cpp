@@ -1,7 +1,7 @@
 // ============================================================================
-// healpix_math.cpp - Browser HEALPix 工具（V15 单路径收敛）
+// healpix_math.cpp - Browser HEALPix 工具（ 单路径收敛）
 //
-// V15：删除第二套手写 NESTED 映射（healpix_core.h 明确禁止模块外维护
+// 删除第二套手写 NESTED 映射（healpix_core.h 明确禁止模块外维护
 // ang2pix/pix2ang）。pix2ang_nest / ang2pix_nest / angular_distance 全部
 // 委托共享 canonical core（astrocs::healpix，astropy-healpix 1M 点 Oracle
 // mismatch=0）；query_disc / ud_grade 为浏览器局部工具，构建在 canonical

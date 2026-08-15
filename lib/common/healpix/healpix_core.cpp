@@ -2,8 +2,8 @@
 // healpix_core.cpp - AstroCS 共享 HEALPix 核心实现 (NESTED)
 //
 // ang2pix/pix2ang 算法来源: astrometry.net healpix.c
-//   (BSD-3-Clause, 与 astropy-healpix 内置 C 核心同源, 见
-//    https://github.com/astrometry/astrometry.net healpix.c 文件头许可)
+// (BSD-3-Clause, 与 astropy-healpix 内置 C 核心同源, 见
+// https:// github.com/astrometry/astrometry.net healpix.c 文件头许可)
 // 逐文件审核后迁移, 仅保留 NESTED 所需路径 (ring 排序未迁移)。
 // 由 astropy-healpix 1,000,000 点全天 Oracle 验证, mismatch=0。
 // 详细归属与许可见本目录 THIRD_PARTY_NOTICE.md。
@@ -70,7 +70,7 @@ void xyz_to_radec(double vx, double vy, double vz, double& ra_rad, double& dec_r
 }
 
 // ============================================================================
-// xyz -> (basehp, x, y)  (迁移自 astrometry.net xyztohp, BSD-3)
+// xyz -> (basehp, x, y) (迁移自 astrometry.net xyztohp, BSD-3)
 // ============================================================================
 void xyz_to_hp(double vx, double vy, double vz, uint32_t nside,
                uint32_t& basehp, uint32_t& x, uint32_t& y) {
@@ -147,7 +147,7 @@ void xyz_to_hp(double vx, double vy, double vz, uint32_t nside,
 }
 
 // ============================================================================
-// (basehp, x, y) -> xyz  (迁移自 astrometry.net hp_to_xyz, BSD-3)
+// (basehp, x, y) -> xyz (迁移自 astrometry.net hp_to_xyz, BSD-3)
 // ============================================================================
 // dx/dy 为像素内分数位置 (0.5 = 像素中心, 与 astropy-healpix 约定一致)
 void hp_to_xyz(uint32_t basehp, uint32_t px, uint32_t py, double dx, double dy,
@@ -281,7 +281,7 @@ uint64_t xy_to_nested_local(uint32_t x, uint32_t y, uint32_t shift) {
 
 // ============================================================================
 // 标准 HiPS Image tile 排列 (IVOA HiPS 1.0, CDS Hipsgen MAPTILES Oracle 冻结):
-//   FITS 列 = y, FITS 行 = tile_width-1-x, 行主序 = (tile_width-1-x)*tile_width + y
+// FITS 列 = y, FITS 行 = tile_width-1-x, 行主序 = (tile_width-1-x)*tile_width + y
 // ============================================================================
 uint64_t nested_local_to_fits_index(uint64_t local, uint32_t shift, uint32_t tile_width) {
     uint32_t x = 0, y = 0;

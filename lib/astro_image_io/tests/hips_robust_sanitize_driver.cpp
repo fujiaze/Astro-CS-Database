@@ -1,8 +1,8 @@
-// hips_robust_sanitize_driver.cpp - ASan/UBSan/LSan 健壮性驱动 (V4 G6)
+// hips_robust_sanitize_driver.cpp - ASan/UBSan/LSan 健壮性驱动
 //
 // 覆盖: HiPS writer(FP32/FP64) + VOTable metadata.xml 写入完整性,
-//       corrupt TSV rows / corrupt properties / corrupt Moc.fits 输入,
-//       读回 catalog 与 tile 的异常路径。所有失败均须优雅返回而非崩溃。
+// corrupt TSV rows / corrupt properties / corrupt Moc.fits 输入,
+// 读回 catalog 与 tile 的异常路径。所有失败均须优雅返回而非崩溃。
 //
 // 用法: <exe> <out_dir> [dtype: 0=float32 1=float64]
 #include "aio_hips.h"

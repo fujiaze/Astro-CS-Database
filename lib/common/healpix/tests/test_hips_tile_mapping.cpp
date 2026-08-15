@@ -1,11 +1,11 @@
 // ============================================================================
-// test_hips_tile_mapping.cpp - 共享 HEALPix core 标准 HiPS tile 排列验证 (V5)
+// test_hips_tile_mapping.cpp - 共享 HEALPix core 标准 HiPS tile 排列验证
 //
 // 冻结标准 (IVOA HiPS 1.0 Image tile packaging, CDS Hipsgen MAPTILES
 // 外部 Oracle 逐像素验证, 见 run/temp/v5_oracle 证据):
-//   NESTED local index 位交错解码 -> (x, y)  (x=偶数位, y=奇数位)
-//   FITS 列 (NAXIS1) = y, FITS 行 (NAXIS2) = tile_width-1-x
-//   行主序 fits_index = (tile_width-1-x)*tile_width + y
+// NESTED local index 位交错解码 -> (x, y) (x=偶数位, y=奇数位)
+// FITS 列 (NAXIS1) = y, FITS 行 (NAXIS2) = tile_width-1-x
+// 行主序 fits_index = (tile_width-1-x)*tile_width + y
 //
 // 硬门: 262144 全量 local 双向 roundtrip + fits 映射一致性 + 随机/边界。
 // 用法: test_hips_tile_mapping.exe

@@ -52,7 +52,7 @@ DPSF_EXPORT int dpsf_fit_batch(const uint16_t *image, int width, int height,
                                   DPSFFitResult **out_results);
 
 // ============================================================================
-// float32 PSF 拟合 API (R11, PREC-105): 与 dpsf_fit_batch 相同输出布局,
+// float32 PSF 拟合 API (, PREC-105): 与 dpsf_fit_batch 相同输出布局,
 // 但直接消费 float32 图像 (不经过 uint16 有损转换/clip)。
 // 输出 DPSFFitResult* (status/B/flux/cx/cy/fwhm/A/mad/eccentricity), 用 dpsf_free_results 释放。
 // ============================================================================
@@ -71,33 +71,33 @@ DPSF_EXPORT void dpsf_free_results(DPSFFitResult *results);
 // 不调用 sdet_detect_ex。
 //
 // 输入:
-//   image         - float32 图像数据 [height*width], 行主序 (row-major)
-//   width         - 图像宽度 (像素)
-//   height        - 图像高度 (像素)
-//   detections    - star_det v1 检测结果, FLOAT64 [N,6]
-//                   列定义: [0]=x_px, [1]=y_px, [2]=flux, [3]=mag,
-//                           [4]=saturated(0/1), [5]=has_saturated(0/1)
-//   n_detections  - 检测到的星点数 N
-//   params        - 拟合参数 (fitRadius/maxIter/tolerance), 可为 NULL 使用默认值
+// image - float32 图像数据 [height*width], 行主序 (row-major)
+// width - 图像宽度 (像素)
+// height - 图像高度 (像素)
+// detections - star_det v1 检测结果, FLOAT64 [N,6]
+// 列定义: [0]=x_px, [1]=y_px, [2]=flux, [3]=mag,
+// [4]=saturated(0/1), [5]=has_saturated(0/1)
+// n_detections - 检测到的星点数 N
+// params - 拟合参数 (fitRadius/maxIter/tolerance), 可为 NULL 使用默认值
 //
 // 输出:
-//   out_psf_params - PSF 参数缓冲区, 调用者分配, 大小 = N * 9 * sizeof(double)
-//                    每行 9 个字段 (FLOAT64):
-//                      [0]=B        (背景)
-//                      [1]=A        (振幅)
-//                      [2]=cx       (中心 x, 图像坐标系)
-//                      [3]=cy       (中心 y, 图像坐标系)
-//                      [4]=sx       (sigma x)
-//                      [5]=sy       (sigma y)
-//                      [6]=theta    (旋转角, 弧度)
-//                      [7]=fwhm_x   (X 方向 FWHM, 像素)
-//                      [8]=fwhm_y   (Y 方向 FWHM, 像素)
-//                    失败的拟合所有字段置为 NaN。
-//   out_n_valid    - 成功拟合的星点数 (status == DPSF_FIT_OK)
+// out_psf_params - PSF 参数缓冲区, 调用者分配, 大小 = N * 9 * sizeof(double)
+// 每行 9 个字段 (FLOAT64):
+// [0]=B (背景)
+// [1]=A (振幅)
+// [2]=cx (中心 x, 图像坐标系)
+// [3]=cy (中心 y, 图像坐标系)
+// [4]=sx (sigma x)
+// [5]=sy (sigma y)
+// [6]=theta (旋转角, 弧度)
+// [7]=fwhm_x (X 方向 FWHM, 像素)
+// [8]=fwhm_y (Y 方向 FWHM, 像素)
+// 失败的拟合所有字段置为 NaN。
+// out_n_valid - 成功拟合的星点数 (status == DPSF_FIT_OK)
 //
 // 返回值:
-//   0  - 成功完成批量拟合 (不要求每颗星都成功, 看 out_n_valid)
-//   -1 - 参数错误 (空指针/尺寸非法)
+// 0 - 成功完成批量拟合 (不要求每颗星都成功, 看 out_n_valid)
+// -1 - 参数错误 (空指针/尺寸非法)
 //
 // 旧 uint16 API (dpsf_fit_batch) 保留兼容, 不删除不修改。
 // ============================================================================
@@ -116,28 +116,28 @@ DPSF_EXPORT int dpsf_fit_batch_f32(
 );
 
 // ============================================================================
-// double PSF 拟合 API (双精度 ABI, R10 新增)
+// double PSF 拟合 API (双精度 ABI, 新增)
 //
 // 双精度 ABI 改造: FP64 模式下全链路使用 double, 不降级到 float32。
 // 与 dpsf_fit_batch_f32 逻辑一致, 仅 image 数据类型从 float 改为 double。
 // 内部 moffat4_fit_d 直接在 double 上采样像素, 拟合使用 double (不降级)。
 //
 // 输入:
-//   image         - float64 图像数据 [height*width], 行主序 (row-major)
-//   width         - 图像宽度 (像素)
-//   height        - 图像高度 (像素)
-//   detections    - star_det v1 检测结果, FLOAT64 [N,6]
-//   n_detections  - 检测到的星点数 N
-//   params        - 拟合参数 (fitRadius/maxIter/tolerance), 可为 NULL 使用默认值
+// image - float64 图像数据 [height*width], 行主序 (row-major)
+// width - 图像宽度 (像素)
+// height - 图像高度 (像素)
+// detections - star_det v1 检测结果, FLOAT64 [N,6]
+// n_detections - 检测到的星点数 N
+// params - 拟合参数 (fitRadius/maxIter/tolerance), 可为 NULL 使用默认值
 //
 // 输出:
-//   out_psf_params - PSF 参数缓冲区, 调用者分配, 大小 = N * 9 * sizeof(double)
-//                    失败的拟合所有字段置为 NaN。
-//   out_n_valid    - 成功拟合的星点数 (status == DPSF_FIT_OK)
+// out_psf_params - PSF 参数缓冲区, 调用者分配, 大小 = N * 9 * sizeof(double)
+// 失败的拟合所有字段置为 NaN。
+// out_n_valid - 成功拟合的星点数 (status == DPSF_FIT_OK)
 //
 // 返回值:
-//   0  - 成功完成批量拟合 (不要求每颗星都成功, 看 out_n_valid)
-//   -1 - 参数错误 (空指针/尺寸非法)
+// 0 - 成功完成批量拟合 (不要求每颗星都成功, 看 out_n_valid)
+// -1 - 参数错误 (空指针/尺寸非法)
 // ============================================================================
 DPSF_EXPORT int dpsf_fit_batch_f64(
     const double *image,
@@ -151,7 +151,7 @@ DPSF_EXPORT int dpsf_fit_batch_f64(
 );
 
 // ============================================================================
-// double PSF 批量拟合 API (返回完整 DPSFFitResult 结构体, 双精度 ABI R10 新增)
+// double PSF 批量拟合 API (返回完整 DPSFFitResult 结构体, 双精度 ABI 新增)
 //
 // 与 dpsf_fit_batch (uint16) 接口形态一致: 接收独立 cx/cy 数组, 返回
 // DPSFFitResult* (含全部字段: status/B/A/cx/cy/sx/sy/theta/fwhm_x/fwhm_y/
@@ -163,20 +163,20 @@ DPSF_EXPORT int dpsf_fit_batch_f64(
 // 布局 (status,B,flux,cx,cy,fwhm,A,mad,eccentricity), 不破坏下游 SNR/PHOTOMETRIC。
 //
 // 输入:
-//   image    - float64 图像数据 [height*width], 行主序 (row-major)
-//   width    - 图像宽度 (像素)
-//   height   - 图像高度 (像素)
-//   cx_array - 各星点中心 x 坐标 (图像坐标系)
-//   cy_array - 各星点中心 y 坐标 (图像坐标系)
-//   count    - 星点数 N
-//   params   - 拟合参数 (fitRadius/maxIter/tolerance), 可为 NULL 使用默认值
+// image - float64 图像数据 [height*width], 行主序 (row-major)
+// width - 图像宽度 (像素)
+// height - 图像高度 (像素)
+// cx_array - 各星点中心 x 坐标 (图像坐标系)
+// cy_array - 各星点中心 y 坐标 (图像坐标系)
+// count - 星点数 N
+// params - 拟合参数 (fitRadius/maxIter/tolerance), 可为 NULL 使用默认值
 //
 // 输出:
-//   out_results - DPSFFitResult 数组 (调用者用 dpsf_free_results 释放)
+// out_results - DPSFFitResult 数组 (调用者用 dpsf_free_results 释放)
 //
 // 返回值:
-//   0  - 成功完成批量拟合 (不要求每颗星都成功, 看 results[i].status)
-//   -1 - 参数错误 (空指针/尺寸非法)
+// 0 - 成功完成批量拟合 (不要求每颗星都成功, 看 results[i].status)
+// -1 - 参数错误 (空指针/尺寸非法)
 // ============================================================================
 DPSF_EXPORT int dpsf_fit_batch_d(
     const double *image,

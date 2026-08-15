@@ -165,10 +165,10 @@ void WcsTransform::tanWorldToIntermediate(double ra, double dec,
 // ============================================================================
 // 像素坐标 -> 天球坐标 (前向转换)
 // 步骤:
-//   1. 归一化: dx = x - (CRPIX1-1), dy = y - (CRPIX2-1) (CRPIX是1-based)
-//   2. 前向SIP(A/B): dx' = dx + A(dx,dy), dy' = dy + B(dx,dy)
-//   3. CD矩阵: xi = cd[0]*dx' + cd[1]*dy', eta = cd[2]*dx' + cd[3]*dy'
-//   4. TAN反投影: (xi,eta) -> (RA,Dec)
+// 1. 归一化: dx = x - (CRPIX1-1), dy = y - (CRPIX2-1) (CRPIX是1-based)
+// 2. 前向SIP(A/B): dx' = dx + A(dx,dy), dy' = dy + B(dx,dy)
+// 3. CD矩阵: xi = cd[0]*dx' + cd[1]*dy', eta = cd[2]*dx' + cd[3]*dy'
+// 4. TAN反投影: (xi,eta) -> (RA,Dec)
 // ============================================================================
 void WcsTransform::pixelToSky(double x, double y, double& ra, double& dec) const {
     double dx = x - (m_crpix1 - 1.0);
@@ -190,10 +190,10 @@ void WcsTransform::pixelToSky(double x, double y, double& ra, double& dec) const
 // ============================================================================
 // 天球坐标 -> 像素坐标 (逆向转换)
 // 步骤:
-//   1. TAN正投影: (RA,Dec) -> (xi,eta)
-//   2. CD逆矩阵: dx = cdInv[0]*xi + cdInv[1]*eta, dy = cdInv[2]*xi + cdInv[3]*eta
-//   3. 逆向SIP(AP/BP): 如果有AP/BP, dx' = dx + AP(dx,dy); 无则迭代一次
-//   4. 转回0-based: x = dx' + (CRPIX1-1), y = dy' + (CRPIX2-1)
+// 1. TAN正投影: (RA,Dec) -> (xi,eta)
+// 2. CD逆矩阵: dx = cdInv[0]*xi + cdInv[1]*eta, dy = cdInv[2]*xi + cdInv[3]*eta
+// 3. 逆向SIP(AP/BP): 如果有AP/BP, dx' = dx + AP(dx,dy); 无则迭代一次
+// 4. 转回0-based: x = dx' + (CRPIX1-1), y = dy' + (CRPIX2-1)
 // ============================================================================
 void WcsTransform::skyToPixel(double ra, double dec, double& x, double& y) const {
     double xi, eta;

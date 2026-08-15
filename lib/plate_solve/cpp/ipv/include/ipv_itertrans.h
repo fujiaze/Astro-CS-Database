@@ -5,25 +5,25 @@
 // ipv_itertrans.h - iter_trans 多项式 TRANS 拟合模块
 //
 // 实现 sigma-clip 迭代多项式拟合:
-//   - calc_trans: 最小二乘法求解线性/二次/三次 TRANS 系数
-//   - iter_trans_inner: sigma-clip 迭代核心 (35% 百分位, HALT_SIGMA, nb==0)
-//   - at_match_lists: 5px 半径全量贪心匹配
-//   - at_recalc_trans: 用已有匹配对重拟合 (recalc=YES)
-//   - iter_trans_solve: 主入口 (iter_trans → atMatchLists → atRecalcTrans)
+// - calc_trans: 最小二乘法求解线性/二次/三次 TRANS 系数
+// - iter_trans_inner: sigma-clip 迭代核心 (35% 百分位, HALT_SIGMA, nb==0)
+// - at_match_lists: 5px 半径全量贪心匹配
+// - at_recalc_trans: 用已有匹配对重拟合 (recalc=YES)
+// - iter_trans_solve: 主入口 (iter_trans → atMatchLists → atRecalcTrans)
 //
 // TRANS 模型 (U→W, U=图像侧像素, W=星表侧角秒):
-//   x' = x00 + x10*x + x01*y + x20*x² + x11*x*y + x02*y² + x30*x³ + ...
-//   y' = y00 + y10*x + y01*y + y20*x² + y11*x*y + y02*y² + y30*x³ + ...
+// x' = x00 + x10*x + x01*y + x20*x² + x11*x*y + x02*y² + x30*x³ + ...
+// y' = y00 + y10*x + y01*y + y20*x² + y11*x*y + y02*y² + y30*x³ + ...
 //
-// V4.20: TRANS: U → W (apply_trans(U) ≈ W)
-//   U = 图像侧星点 (像素坐标, 原点图像中心)
-//   W = 星表侧星点 (角秒坐标, gnomonic xi/eta)
-//   常数项 x00/y00 单位: 角秒
-//   线性项 x10/x01/y10/y01 单位: 角秒/像素
-//   二次项 x20/x11/x02 单位: 角秒/像素²
+// TRANS: U → W (apply_trans(U) ≈ W)
+// U = 图像侧星点 (像素坐标, 原点图像中心)
+// W = 星表侧星点 (角秒坐标, gnomonic xi/eta)
+// 常数项 x00/y00 单位: 角秒
+// 线性项 x10/x01/y10/y01 单位: 角秒/像素
+// 二次项 x20/x11/x02 单位: 角秒/像素²
 //
 // 系数排列:
-//   x00, x10, x01, x20, x11, x02, x30, x21, x12, x03, ...
+// x00, x10, x01, x20, x11, x02, x30, x21, x12, x03, ...
 //
 // 日期: 2026-07-05
 // ============================================================================
@@ -78,19 +78,19 @@ struct IterTransResult {
 // 主入口: atFindTrans 等价 (三角形匹配 → iter_trans → atMatchLists → atRecalcTrans)
 //
 // 输入:
-//   U                - 图像侧星点 (像素坐标, 原点图像中心, Y 轴向上)
-//   W                - 星表侧星点 (角秒坐标, gnomonic xi/eta)
-//   initial_pairs    - 初始匹配对 (来自 triangle_match 的 top_pairs)
-//   tolerance_arcsec - atMatchLists 匹配半径 (角秒, 默认 5.0)
-//   order            - TRANS 阶数 (1=线性, 2=二次, 3=三次)
+// U - 图像侧星点 (像素坐标, 原点图像中心, Y 轴向上)
+// W - 星表侧星点 (角秒坐标, gnomonic xi/eta)
+// initial_pairs - 初始匹配对 (来自 triangle_match 的 top_pairs)
+// tolerance_arcsec - atMatchLists 匹配半径 (角秒, 默认 5.0)
+// order - TRANS 阶数 (1=线性, 2=二次, 3=三次)
 //
 // 输出: IterTransResult (含 TRANS + inliers + 统计)
 //
 // 流程:
-//   1. initial_pairs 前 start_pairs 对 → iter_trans_inner (RECALC_NO)
-//   2. atMatchLists(U, W, TRANS, tolerance) → 全量匹配对
-//   3. atRecalcTrans(U, W, 全量匹配对) → 精化 TRANS
-//   4. (可选) 第二轮 atMatchLists + atRecalcTrans
+// 1. initial_pairs 前 start_pairs 对 → iter_trans_inner (RECALC_NO)
+// 2. atMatchLists(U, W, TRANS, tolerance) → 全量匹配对
+// 3. atRecalcTrans(U, W, 全量匹配对) → 精化 TRANS
+// 4. (可选) 第二轮 atMatchLists + atRecalcTrans
 // ---------------------------------------------------------------------------
 IterTransResult iter_trans_solve(
     const std::vector<StarPoint>& U,
@@ -115,7 +115,7 @@ IterTransResult at_recalc_trans(
 );
 
 // ---------------------------------------------------------------------------
-// atApplyTrans: 应用 TRANS 到单点 (V4.20: U → W, 像素 → 角秒)
+// atApplyTrans: 应用 TRANS 到单点 (: U → W, 像素 → 角秒)
 // 输入: Trans, (ux, uy) 源坐标 (像素, 图像侧 U)
 // 输出: (wx, wy) 变换后坐标 (角秒, 星表侧 W)
 // ---------------------------------------------------------------------------
@@ -144,10 +144,10 @@ inline void apply_trans(const Trans& t, double ux, double uy,
 // 输入: U, W, TRANS (已拟合), tolerance_arcsec (匹配半径, 角秒)
 // 输出: 匹配对列表
 //
-// 算法 (V4.20: U→W 方向):
-//   1. 对 U 中每颗星应用 TRANS → W' (predicted W, 角秒坐标系)
-//   2. 对 W 中每颗星, 找 W' 中最近邻, 距离 < tolerance_arcsec 则记录
-//   3. 按距离升序排序, 贪心分配 (已匹配的星不再参与)
+// 算法 (: U→W 方向):
+// 1. 对 U 中每颗星应用 TRANS → W' (predicted W, 角秒坐标系)
+// 2. 对 W 中每颗星, 找 W' 中最近邻, 距离 < tolerance_arcsec 则记录
+// 3. 按距离升序排序, 贪心分配 (已匹配的星不再参与)
 // ---------------------------------------------------------------------------
 std::vector<MatchPair> at_match_lists(
     const std::vector<StarPoint>& U,

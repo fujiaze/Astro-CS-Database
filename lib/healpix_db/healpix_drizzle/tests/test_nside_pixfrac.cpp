@@ -2,33 +2,33 @@
 // test_nside_pixfrac.cpp - WP-B 步骤5/6 单元测试
 //
 // 测试内容:
-//   A. compute_auto_nside (步骤5):
-//     1. 0.1"/px 输入 → NSIDE >= 2^21 (支持 0.1" 输入的 1~2 倍过采样)
-//     2. 1.0"/px 输入 → NSIDE 在合理范围 [2^16, 2^20]
-//     3. 60"/px 输入 → NSIDE 在合理范围 (粗像素, 但不一定触底)
-//     4. 0.01"/px 输入 → NSIDE=4194304 (上限钳位 2^22)
-//     5. 极粗像素 (20000"/px) → NSIDE=16 (下限钳位)
-//     6. 自适应四叉树采样验证 (B05 修复: 构造 SIP 畸变在边缘的情况)
+// A. compute_auto_nside (步骤5):
+// 1. 0.1"/px 输入 → NSIDE >= 2^21 (支持 0.1" 输入的 1~2 倍过采样)
+// 2. 1.0"/px 输入 → NSIDE 在合理范围 [2^16, 2^20]
+// 3. 60"/px 输入 → NSIDE 在合理范围 (粗像素, 但不一定触底)
+// 4. 0.01"/px 输入 → NSIDE=4194304 (上限钳位 2^22)
+// 5. 极粗像素 (20000"/px) → NSIDE=16 (下限钳位)
+// 6. 自适应四叉树采样验证 (B05 修复: 构造 SIP 畸变在边缘的情况)
 //
-//   B. drizzle() 入口校验 (步骤6):
-//     7.  pixfrac=0    → 返回 false, error_msg 包含 "pixfrac"
-//     8.  pixfrac=-0.5 → 返回 false
-//     9.  pixfrac=1.5  → 返回 false
-//     10. pixfrac=0.5  → 正常执行 (返回 true)
-//     11. nested=false → 返回 false, error_msg 包含 "NESTED"
-//     12. channels=3   → 返回 false, error_msg 包含 "channel" (B03 修复)
-//     13. weightValue 不乘入 signal (B10 修复: weight=2.0 与 weight=1.0 的 sumFlux 一致)
+// B. drizzle() 入口校验 (步骤6):
+// 7. pixfrac=0 → 返回 false, error_msg 包含 "pixfrac"
+// 8. pixfrac=-0.5 → 返回 false
+// 9. pixfrac=1.5 → 返回 false
+// 10. pixfrac=0.5 → 正常执行 (返回 true)
+// 11. nested=false → 返回 false, error_msg 包含 "NESTED"
+// 12. channels=3 → 返回 false, error_msg 包含 "channel" (B03 修复)
+// 13. weightValue 不乘入 signal (B10 修复: weight=2.0 与 weight=1.0 的 sumFlux 一致)
 //
 // 编译命令 (PowerShell):
-//   cd "lib\healpix_db\healpix_drizzle\tests"
-//   g++ -std=c++17 -O2 -fopenmp -DAIO_ENABLE_HEALPIX `
-//       -I../ -I../../healpix_stack -I../../../astro_image_io/include `
-//       test_nside_pixfrac.cpp `
-//       ../drizzle_engine.cpp ../wcs_sip.cpp ../poly_clip.cpp ../fits_reader.cpp `
-//       ../../healpix_stack/healpix_core.cpp `
-//       -L../../../astro_image_io -lastro_image_io `
-//       -static-libgcc -static-libstdc++ `
-//       -o test_nside_pixfrac.exe
+// cd "lib\healpix_db\healpix_drizzle\tests"
+// g++ -std=c++17 -O2 -fopenmp -DAIO_ENABLE_HEALPIX `
+// -I../ -I../../healpix_stack -I../../../astro_image_io/include `
+// test_nside_pixfrac.cpp `
+// ../drizzle_engine.cpp ../wcs_sip.cpp ../poly_clip.cpp ../fits_reader.cpp `
+// ../../healpix_stack/healpix_core.cpp `
+// -L../../../astro_image_io -lastro_image_io `
+// -static-libgcc -static-libstdc++ `
+// -o test_nside_pixfrac.exe
 // ============================================================================
 
 #include "drizzle_engine.h"
@@ -205,7 +205,7 @@ static void test_auto_nside_1p0_arcsec() {
 // 210960/60 = 3516, 2^11=2048 < 3516, 2^12=4096 >= 3516
 // 因此 NSIDE = 2^12 = 4096
 // 注: 任务描述期望 NSIDE=16 (下限), 但 60"/px 对应的 nside_min=3516 远大于 16,
-//     实际 NSIDE=4096. 此测试验证 NSIDE 是 2 的幂且 >= 16.
+// 实际 NSIDE=4096. 此测试验证 NSIDE 是 2 的幂且 >= 16.
 // ============================================================================
 static void test_auto_nside_60_arcsec() {
     const char* name = "A3: 60\"/px -> NSIDE >= 16 (合理范围)";
@@ -263,14 +263,14 @@ static void test_auto_nside_20000_arcsec() {
 //
 // 构造一个带 SIP 畸变的 WCS, 使得边缘的局部像素尺度比中心更细.
 // 使用 SIP A[2,0] 项 (dx²), 让 x 方向在边缘有压缩:
-//   dx' = dx + A[2,0] * dx²
-//   在边缘 dx=±500, A[2,0]=-1e-7 → dx' = dx - 0.025
-//   局部 x 方向尺度 = (1 + 2*A[2,0]*dx) * scale ≈ (1 - 1e-7*1000) * 1" = 0.9999"
+// dx' = dx + A[2,0] * dx²
+// 在边缘 dx=±500, A[2,0]=-1e-7 → dx' = dx - 0.025
+// 局部 x 方向尺度 = (1 + 2*A[2,0]*dx) * scale ≈ (1 - 1e-7*1000) * 1" = 0.9999"
 //
 // 验证 (B05 自适应四叉树采样):
-//   1. 有 SIP 时, finest_arcsec < 无 SIP 时的 finest_arcsec (边缘更细)
-//   2. 有 SIP 时的 NSIDE >= 无 SIP 时的 NSIDE (反映更细尺度)
-//   3. 自适应采样能捕捉到边缘的 SIP 畸变 (通过比较 NSIDE 差异)
+// 1. 有 SIP 时, finest_arcsec < 无 SIP 时的 finest_arcsec (边缘更细)
+// 2. 有 SIP 时的 NSIDE >= 无 SIP 时的 NSIDE (反映更细尺度)
+// 3. 自适应采样能捕捉到边缘的 SIP 畸变 (通过比较 NSIDE 差异)
 // ============================================================================
 static void test_auto_nside_adaptive_sampling() {
     const char* name = "A6: 自适应采样捕捉边缘 SIP 畸变";

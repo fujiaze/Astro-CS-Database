@@ -1,4 +1,4 @@
-// lib/acr/scheduler/device_executor.cpp — 设备执行器实现（23 号计划 §3）
+// lib/acr/scheduler/device_executor.cpp — 设备执行器实现（23 §3）
 //
 // CpuExecutor：通过 KernelRegistry 的 CPU launcher 执行 KernelInvocation，
 // SubmitHandle 记录真实 device/items/bytes/duration。
@@ -13,7 +13,7 @@
 
 namespace astro::compute::scheduler {
 
-// CUDA 桥接执行器追加函数（23 号计划 §3）。
+// CUDA 桥接执行器追加函数（23 §3）。
 // 默认 weak no-op：CPU-only 构建无 CUDA 桥接；
 // 启用 ACR_CUDA_BRIDGE 时由 backends/cuda/cuda_bridge_loader.cpp 提供强定义。
 #if defined(_MSC_VER)
@@ -86,7 +86,7 @@ SubmitHandle CpuExecutor::submit(const WorkToken& token,
         result.error = "operation not registered for cpu: " + std::string(invocation.id);
         return result;
     }
-    // 24 号计划 §5.2：提交前统一契约校验（buffer/scalar/domain/numeric）
+    // 24 §5.2：提交前统一契约校验（buffer/scalar/domain/numeric）
     const std::string contract_err = validate_invocation(*reg, invocation, "cpu");
     if (!contract_err.empty()) {
         result.status = SubmitStatus::Rejected;
@@ -154,10 +154,10 @@ ExecutorRegistry ExecutorRegistry::create_auto() {
     ExecutorRegistry registry;
     registry.register_executor(
         std::make_unique<CpuExecutor>("cpu", 65536, 256));
-    // 23 号计划 §3：GPU 不可用时不创建 executor（运行时探测，不得仅凭编译宏）。
+    // 23 §3：GPU 不可用时不创建 executor（运行时探测，不得仅凭编译宏）。
     // CUDA 桥接加载由 backends/cuda/cuda_bridge_loader 实现：
-    //   - 探测 acr_cuda_bridge.dll（MSVC+nvcc 构建）与真实设备；
-    //   - 无 DLL / 无设备 → 不注册 CudaExecutor，继续使用 CPU executor。
+    // - 探测 acr_cuda_bridge.dll（MSVC+nvcc 构建）与真实设备；
+    // - 无 DLL / 无设备 → 不注册 CudaExecutor，继续使用 CPU executor。
     try_append_cuda_bridge_executors(registry);
     return registry;
 }

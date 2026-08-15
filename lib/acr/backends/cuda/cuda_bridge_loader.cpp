@@ -1,11 +1,11 @@
 // lib/acr/backends/cuda/cuda_bridge_loader.cpp — CUDA 桥接 DLL 加载器
 //
-// 23 号计划 §3：GPU 不可用时不创建 executor（运行时探测，不得仅凭编译宏）。
+// 23 §3：GPU 不可用时不创建 executor（运行时探测，不得仅凭编译宏）。
 // 流程：
-//   1. LoadLibrary acr_cuda_bridge.dll（MSVC+nvcc 构建，C ABI）；
-//   2. 填充 bridge::api() 函数指针；
-//   3. 探测真实设备；有设备时注册 CudaBridgeExecutor（每个设备一个）；
-//   4. 无 DLL / 无设备 → 不注册，CPU executor 继续使用。
+// 1. LoadLibrary acr_cuda_bridge.dll（MSVC+nvcc 构建，C ABI）；
+// 2. 填充 bridge::api() 函数指针；
+// 3. 探测真实设备；有设备时注册 CudaBridgeExecutor（每个设备一个）；
+// 4. 无 DLL / 无设备 → 不注册，CPU executor 继续使用。
 #include "scheduler/device_executor.hpp"
 
 #include "astro/compute/kernel_registry.hpp"
@@ -106,7 +106,7 @@ void ensure_bridge_loaded() {
         ok &= load_symbol(mod, "acr_cuda_executor_submit_copy", g_api.submit_copy);
         ok &= load_symbol(mod, "acr_cuda_executor_submit_reduce", g_api.submit_reduce);
         ok &= load_symbol(mod, "acr_cuda_executor_submit_conv3x3", g_api.submit_conv3x3);
-        // 聚焦版（08 号计划 §3）：目标合成 Operation（旧 DLL 缺失时整体视为不可用）
+        // 聚焦版（08 §3）：目标合成 Operation（旧 DLL 缺失时整体视为不可用）
         ok &= load_symbol(mod, "acr_cuda_executor_submit_dense_accumulate_fp64acc",
                           g_api.submit_dense_accumulate_fp64acc);
         ok &= load_symbol(mod, "acr_cuda_executor_submit_drizzle_scatter",
@@ -174,7 +174,7 @@ public:
         return global_kernel_registry().supports(op, "cuda");
     }
     QueueState queue_state() const override {
-        // 24 号计划 §4.3：真实队列状态（提交中/排队）
+        // 24 §4.3：真实队列状态（提交中/排队）
         QueueState qs;
         qs.depth = pending_count_.load(std::memory_order_relaxed);
         qs.load = (qs.depth > 0) ? 1.0 : 0.0;
@@ -184,7 +184,7 @@ public:
     std::size_t recommended_chunk() const override { return 65536; }
     std::size_t min_effective_chunk() const override { return 256; }
     std::string name() const override { return name_; }
-    // 聚焦版 v3（08 号计划 §3）：真实驻留执行。
+    // 聚焦版 v3（08 §3）：真实驻留执行。
     // prefetch_input 经桥接上传整帧到本 executor 的 device buffer 并记录
     // device view；input_resident 供 Dispatcher 判断是否已驻留。
     bool prefetch_input(const void* host, std::size_t bytes) override {
@@ -202,7 +202,7 @@ public:
         slot_host_[0] = host;
         return true;
     }
-    // ACR 架构冻结（07 号计划 C）：hosts 是本次执行需要的完整输入集合
+    // ACR 架构冻结（07 C）：hosts 是本次执行需要的完整输入集合
     // （加权积分 = {frames, weights}）。已驻留（同 host 指针）复用不重传；
     // 新输入分配槽位：优先空槽，否则覆盖"不属于本次集合"的旧槽位
     // （resident-reuse 场景：frames 保持 slot0，新 weights 覆盖 slot1）。
@@ -303,7 +303,7 @@ public:
             h.error = "no cuda launcher registered: " + std::string(invocation.id);
             return h;
         }
-        // 24 号计划 §5.2：提交前统一契约校验
+        // 24 §5.2：提交前统一契约校验
         const std::string contract_err =
             validate_invocation(*reg, invocation, "cuda");
         if (!contract_err.empty()) {

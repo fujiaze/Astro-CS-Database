@@ -2,9 +2,9 @@
 // sdet_fp64_test.cpp - StarDetector FP64 验证 (NON_PRODUCTION_TOOL_ONLY)
 //
 // 验证:
-//   1. sdet_detect_ex (uint16→float) 与 sdet_detect_ex_f64 (double) 在合成星图上
-//      检测星数一致, 坐标/通量差异在 FP32 输入舍入范围内
-//   2. 两入口输出布局一致 (坐标 double, flux/mag float)
+// 1. sdet_detect_ex (uint16→float) 与 sdet_detect_ex_f64 (double) 在合成星图上
+// 检测星数一致, 坐标/通量差异在 FP32 输入舍入范围内
+// 2. 两入口输出布局一致 (坐标 double, flux/mag float)
 // ============================================================================
 #include "star_detector.h"
 #include <cstdio>

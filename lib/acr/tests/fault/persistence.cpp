@@ -1,8 +1,8 @@
 // lib/acr/tests/fault/persistence.cpp — Phase H 持续路线测试
 // 测试：
-//   1. 持续 parallel_for 路线（循环提交小任务，默认 5 秒，可通过 ACR_PERSIST_DURATION_SEC 环境变量配置）
-//   2. 多次进程重启模拟（runtime_init → shutdown → init 循环 100 次）
-//   3. profile 重载（生成 hardware-profile.json → 读取 → 作废 → 重新生成）
+// 1. 持续 parallel_for 路线（循环提交小任务，默认 5 秒，可通过 ACR_PERSIST_DURATION_SEC 环境变量配置）
+// 2. 多次进程重启模拟（runtime_init → shutdown → init 循环 100 次）
+// 3. profile 重载（生成 hardware-profile.json → 读取 → 作废 → 重新生成）
 #include <gtest/gtest.h>
 
 #include <profile_reader.hpp>

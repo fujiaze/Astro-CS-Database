@@ -7,7 +7,7 @@
 #include "main_window.h"
 #include "stf_panel.h"
 #include "abstract_view.h"
-// #include "single_frame_view.h"  // 已废弃，.hiss 改用 SphereView
+// #include "single_frame_view.h" // 已废弃，.hiss 改用 SphereView
 #include "sphere_view.h"
 #include "hips_view.h"
 #include "hips_browser_backend.h"
@@ -64,7 +64,7 @@ MainWindow::MainWindow(QWidget* parent)
     setup_status_bar();
     setup_stf_panel();
     setup_hiss_tile_panel();  // WP-H: HISS Tile 浏览面板
-    // V9: HiPS 预设下拉框（默认隐藏，打开 HiPS 后启用）
+    // HiPS 预设下拉框（默认隐藏，打开 HiPS 后启用）
     hips_preset_combo_ = new QComboBox(this);
     hips_preset_combo_->setToolTip("HiPS 预设视图");
     hips_preset_combo_->setVisible(false);
@@ -140,14 +140,14 @@ void MainWindow::setup_menu() {
     connect(auto_action, &QAction::triggered, this, &MainWindow::on_auto_stretch_clicked);
     stf_menu->addAction(auto_action);
 
-    // V14: Reset STF —— 重新计算 Auto Global robust 标尺（锁定状态被忽略）
+    // Reset STF —— 重新计算 Auto Global robust 标尺（锁定状态被忽略）
     QAction* reset_stf_action = new QAction("&Reset STF", this);
     reset_stf_action->setShortcut(QKeySequence("Ctrl+R"));
     connect(reset_stf_action, &QAction::triggered,
             this, &MainWindow::reset_auto_stf);
     stf_menu->addAction(reset_stf_action);
 
-    // V14: Lock STF —— 冻结当前显示标尺（Auto/Reset/模式切换不再重算）
+    // Lock STF —— 冻结当前显示标尺（Auto/Reset/模式切换不再重算）
     QAction* lock_action = new QAction("Lock STF", this);
     lock_action->setCheckable(true);
     lock_action->setShortcut(QKeySequence("Ctrl+L"));
@@ -190,7 +190,7 @@ void MainWindow::setup_toolbar() {
     connect(auto_stretch_action, &QAction::triggered, this, &MainWindow::on_auto_stretch_clicked);
     toolbar->addAction(auto_stretch_action);
 
-    // V9: Signal/Support 图层切换（仅 HiPS 模式显示）
+    // Signal/Support 图层切换（仅 HiPS 模式显示）
     toolbar->addSeparator();
     layer_toggle_action_ = new QAction("Support", this);
     layer_toggle_action_->setCheckable(true);
@@ -200,7 +200,7 @@ void MainWindow::setup_toolbar() {
             &MainWindow::on_hips_layer_toggle);
     toolbar->addAction(layer_toggle_action_);
 
-    // V9: 拉伸曲线（HiPS 模式）
+    // 拉伸曲线（HiPS 模式）
     stretch_combo_ = new QComboBox(this);
     stretch_combo_->addItems({"Linear", "Sqrt", "Log", "Asinh"});
     stretch_combo_->setCurrentIndex(3);  // 默认 Asinh
@@ -334,7 +334,7 @@ void MainWindow::on_tile_selected(int row) {
     uint64_t parent_ipix = item->data(Qt::UserRole).toULongLong();
     current_tile_parent_ipix_ = parent_ipix;
 
-    // 读取 signal (按文件精度模式选择 FP32/FP64, R11 HISS-105)
+    // 读取 signal (按文件精度模式选择 FP32/FP64, HISS-105)
     HissTileData tile;
     if (backend_->is_fp64()) {
         if (backend_->read_tile_signal_f64(parent_ipix, tile) == 0) {
@@ -509,7 +509,7 @@ void MainWindow::open_file(const QString& path) {
     // 关闭旧文件
     close_file();
 
-    // V9: HiPS 产品集目录（内含 signal/support）→ HiPS 2D 视图
+    // HiPS 产品集目录（内含 signal/support）→ HiPS 2D 视图
     QFileInfo fi(path);
     if (fi.isDir() &&
         (QDir(path).exists("signal") || QDir(path).exists("properties"))) {
@@ -604,7 +604,7 @@ void MainWindow::open_file(const QString& path) {
 }
 
 // ============================================================================
-// V9: HiPS 产品集模式
+// HiPS 产品集模式
 // ============================================================================
 
 void MainWindow::open_hips(const QString& path) {
@@ -658,7 +658,7 @@ void MainWindow::set_hips_view(HipsView* view) {
             &MainWindow::on_hips_mouse_moved);
     connect(view, &HipsView::layerChanged, this,
             &MainWindow::on_hips_layer_changed);
-    // V14 v3：首帧渲染完成 → 同步 STF 面板数据范围与控制点
+    // v3：首帧渲染完成 → 同步 STF 面板数据范围与控制点
     connect(view, &HipsView::rendered, this, &MainWindow::sync_stf_panel);
     hips_view_ = view;
     setCentralWidget(view);
@@ -1034,7 +1034,7 @@ void MainWindow::on_stf_changed(const STFParams& params) {
             hips_view_->sky()->range_hi());
         STFParams p = params;
         p.compression = base.compression;
-        // V15：经唯一 DisplayTransformState 提交（UI 只编辑 state）
+        // 经唯一 DisplayTransformState 提交（UI 只编辑 state）
         DisplayTransformState st = DisplayTransformState::from_params(
             p, STFMode::Manual, hips_view_->sky()->stf_state().locked);
         st.curve = preset;

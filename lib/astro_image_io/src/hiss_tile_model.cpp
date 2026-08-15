@@ -2,18 +2,18 @@
 // hiss_tile_model.cpp - AstroCS HISS Tile 父子几何模型实现
 //
 // 依据:
-//   - 02_FROZEN_STAGE1_HISS_SPEC.md §11
-//   - docs/stage1_fix/00_COMMON_CONTRACTS.md §2.1
-//   - docs/stage1_fix/spec.md 步骤1
+// - 02_FROZEN_STAGE1_HISS_SPEC.md §11
+// - docs/stage1_fix/00_COMMON_CONTRACTS.md §2.1
+// - docs/stage1_fix/spec.md 步骤1
 //
 // 实现要点:
-//   1. depth = min(9, log2(NSIDE/16)) — 满 Tile 最多 4^9=262144 叶像素
-//   2. tile_nside = NSIDE / 2^depth — Tile 父级 NSIDE 不低于 16
-//   3. n_leaf_per_tile = 4^depth — 单 Tile 叶像素数 (不是 tile_nside^2*12)
-//   4. NESTED 排序下父子关系为位运算:
-//        global = (parent << 2d) | local
-//        parent = global >> 2d
-//        local  = global & ((1 << 2d) - 1)
+// 1. depth = min(9, log2(NSIDE/16)) — 满 Tile 最多 4^9=262144 叶像素
+// 2. tile_nside = NSIDE / 2^depth — Tile 父级 NSIDE 不低于 16
+// 3. n_leaf_per_tile = 4^depth — 单 Tile 叶像素数 (不是 tile_nside^2*12)
+// 4. NESTED 排序下父子关系为位运算:
+// global = (parent << 2d) | local
+// parent = global >> 2d
+// local = global & ((1 << 2d) - 1)
 // ============================================================================
 
 #include "hiss_tile_model.h"
@@ -26,8 +26,8 @@ namespace hiss {
 
 // ============================================================================
 // 内部辅助: log2_pow2 — 求 2 的幂的对数
-//   nside 是 2 的幂 (HEALPix 强制约束), 用位运算求 log2(nside)
-//   输入 v 必须大于 0
+// nside 是 2 的幂 (HEALPix 强制约束), 用位运算求 log2(nside)
+// 输入 v 必须大于 0
 // ============================================================================
 static int log2_pow2(uint32_t v) {
     if (v == 0) return -1;
@@ -40,11 +40,11 @@ static int log2_pow2(uint32_t v) {
 // make_tile_geometry: 构造 Tile 几何 (基础几何, parent_ipix=0)
 //
 // 步骤:
-//   1. NSIDE < 16: depth=0, tile_nside=nside, n_leaf_per_tile=1
-//      (整个球面只有一个 Tile 父级, 即 NSIDE 自身)
-//   2. NSIDE >= 16: depth = min(9, log2(nside) - 4)
-//      tile_nside = nside >> depth
-//      n_leaf_per_tile = 1u << (2 * depth)  // 4^depth
+// 1. NSIDE < 16: depth=0, tile_nside=nside, n_leaf_per_tile=1
+// (整个球面只有一个 Tile 父级, 即 NSIDE 自身)
+// 2. NSIDE >= 16: depth = min(9, log2(nside) - 4)
+// tile_nside = nside >> depth
+// n_leaf_per_tile = 1u << (2 * depth) // 4^depth
 // ============================================================================
 HissTileGeometry make_tile_geometry(uint32_t nside) {
     HissTileGeometry g{};
@@ -103,7 +103,7 @@ HissTileGeometry make_tile_geometry_for_parent(uint32_t nside,
 // 公式: global = (parent_ipix << 2d) | local_ipix
 //
 // 边界检查:
-//   - local_ipix >= n_leaf_per_tile: 返回 UINT64_MAX 并打日志
+// - local_ipix >= n_leaf_per_tile: 返回 UINT64_MAX 并打日志
 // ============================================================================
 uint64_t HissTileGeometry::local_to_global(uint32_t local_ipix) const {
     if (local_ipix >= n_leaf_per_tile) {
@@ -124,7 +124,7 @@ uint64_t HissTileGeometry::local_to_global(uint32_t local_ipix) const {
 // 公式: local = global & ((1 << 2d) - 1)
 //
 // 注意: 仅提取低位, 不校验该 global_ipix 是否属于本 Tile。
-//       depth=0 时掩码=0, 所有 global_ipix 都映射到 local=0 (n_leaf=1)。
+// depth=0 时掩码=0, 所有 global_ipix 都映射到 local=0 (n_leaf=1)。
 // ============================================================================
 uint32_t HissTileGeometry::global_to_local(uint64_t global_ipix) const {
     if (depth == 0) {

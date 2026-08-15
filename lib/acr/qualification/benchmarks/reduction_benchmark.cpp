@@ -1,16 +1,16 @@
 // lib/acr/qualification/benchmarks/reduction_benchmark.cpp — E06 归约画像 Benchmark
 //
 // 设计（06 §7 + 17 §7）：
-//   1. 操作：sum / dot / min / max / sum_of_squares / mean / variance
-//   2. 精度：
-//      - FP32 输入 + FP32 累加
-//      - FP32 输入 + FP64 累加
-//      - FP64 输入 + FP64 累加
-//   3. 尺寸对数序列 2^10 → 资源预算上限（2^26 = 64M）
-//   4. 输入模式：正值 / 正负交替 / 动态范围
-//   5. 参考标量 FP64（ground truth）
-//   6. 记录：启动成本、元素/秒、有效带宽、误差（max_abs, max_rel）
-//   7. 通过 ACR parallel_reduce（用 oneTBB 内部并发）
+// 1. 操作：sum / dot / min / max / sum_of_squares / mean / variance
+// 2. 精度：
+// - FP32 输入 + FP32 累加
+// - FP32 输入 + FP64 累加
+// - FP64 输入 + FP64 累加
+// 3. 尺寸对数序列 2^10 → 资源预算上限（2^26 = 64M）
+// 4. 输入模式：正值 / 正负交替 / 动态范围
+// 5. 参考标量 FP64（ground truth）
+// 6. 记录：启动成本、元素/秒、有效带宽、误差（max_abs, max_rel）
+// 7. 通过 ACR parallel_reduce（用 oneTBB 内部并发）
 #include "benchmark_common.hpp"
 
 #include <benchmark/benchmark.h>

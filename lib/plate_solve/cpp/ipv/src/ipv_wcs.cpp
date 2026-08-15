@@ -1,21 +1,21 @@
 // ============================================================================
-// ipv_wcs.cpp - IPV WCS 输出模块实现 (V4.20)
+// ipv_wcs.cpp - IPV WCS 输出模块实现
 //
 // 包含两个函数:
-//   1. build_wcs (旧版, 从 SimTransform 提取 WCS, 保留向后兼容)
-//   2. extract_wcs_sip (新版, 从 TRANS 提取 WCS + SIP)
+// 1. build_wcs (旧版, 从 SimTransform 提取 WCS, 保留向后兼容)
+// 2. extract_wcs_sip (新版, 从 TRANS 提取 WCS + SIP)
 //
-// V4.20 extract_wcs_sip 设计 (从 TRANS 线性项提取 CD 矩阵 +
+// extract_wcs_sip 设计 (从 TRANS 线性项提取 CD 矩阵 +
 // SIP 解析公式 + 网格反变换逆向 SIP):
-//   - TRANS 方向: U(像素) → W(角秒), 线性项单位 = 角秒/像素
-//   - CD 矩阵: trans 线性项 / 3600 (度/像素), 直接提取, 不用 M^-1
-//   - CRVAL = 收敛后中心
-//   - CRPIX = 图像中心 (1-based)
-//   - ctype: trans.order==1 → "RA---TAN"/"DEC--TAN", 否则 "RA---TAN-SIP"/...
-//   - SIP A/B: 解析公式 A[i][j] = cd_inv · (trans.x_ij, trans.y_ij)
-//     (cd_inv = trans 线性项的逆, 单位 像素/角秒)
-//   - SIP AP/BP: 网格反变换法 (NB_GRID=7)
-//   - RMS: 残差 = apply_trans(U) - W (角秒)
+// - TRANS 方向: U(像素) → W(角秒), 线性项单位 = 角秒/像素
+// - CD 矩阵: trans 线性项 / 3600 (度/像素), 直接提取, 不用 M^-1
+// - CRVAL = 收敛后中心
+// - CRPIX = 图像中心 (1-based)
+// - ctype: trans.order==1 → "RA---TAN"/"DEC--TAN", 否则 "RA---TAN-SIP"/...
+// - SIP A/B: 解析公式 A[i][j] = cd_inv · (trans.x_ij, trans.y_ij)
+// (cd_inv = trans 线性项的逆, 单位 像素/角秒)
+// - SIP AP/BP: 网格反变换法 (NB_GRID=7)
+// - RMS: 残差 = apply_trans(U) - W (角秒)
 //
 // 日期: 2026-07-05
 // ============================================================================
@@ -30,7 +30,7 @@
 #include <algorithm>
 #include <string>
 #include <cstdio>
-#include <cstring>   // std::strncpy (V4.20 ctype)
+#include <cstring>   // std::strncpy
 
 namespace ipv {
 
@@ -90,21 +90,21 @@ static bool gauss_solve_wcs(std::vector<std::vector<double>>& A,
 // build_wcs: 旧版, 从相似变换提取标准 WCS (保留向后兼容)
 //
 // 关键推导 (U → W' → W):
-//   U.x = s0 * (px - cx), U.y = -s0 * (py - cy)   (Y 轴向上)
-//   相似变换对 W' 求解: W' = s·R(θ)·U + t
-//   原始 W = flip(W'):
-//     NONE:    W = W'
-//     FLIP_X:  W.x = -W'.x, W.y = W'.y
-//     FLIP_Y:  W.x = W'.x,  W.y = -W'.y
-//     FLIP_XY: W.x = -W'.x, W.y = -W'.y
-//   CD 矩阵 (度/像素):
-//     scale = s·s0/3600
-//     sign_x = (mode==FLIP_X || mode==FLIP_XY) ? -1 : +1
-//     sign_y = (mode==FLIP_Y || mode==FLIP_XY) ? -1 : +1
-//     CD1_1 =  sign_x · scale · cos
-//     CD1_2 =  sign_x · scale · sin
-//     CD2_1 =  sign_y · scale · sin
-//     CD2_2 = -sign_y · scale · cos
+// U.x = s0 * (px - cx), U.y = -s0 * (py - cy) (Y 轴向上)
+// 相似变换对 W' 求解: W' = s·R(θ)·U + t
+// 原始 W = flip(W'):
+// NONE: W = W'
+// FLIP_X: W.x = -W'.x, W.y = W'.y
+// FLIP_Y: W.x = W'.x, W.y = -W'.y
+// FLIP_XY: W.x = -W'.x, W.y = -W'.y
+// CD 矩阵 (度/像素):
+// scale = s·s0/3600
+// sign_x = (mode==FLIP_X || mode==FLIP_XY) ? -1 : +1
+// sign_y = (mode==FLIP_Y || mode==FLIP_XY) ? -1 : +1
+// CD1_1 = sign_x · scale · cos
+// CD1_2 = sign_x · scale · sin
+// CD2_1 = sign_y · scale · sin
+// CD2_2 = -sign_y · scale · cos
 // ---------------------------------------------------------------------------
 WcsFitResult build_wcs(
     const SimTransform& transform,
@@ -119,7 +119,7 @@ WcsFitResult build_wcs(
     int flip_mode
 )
 {
-    // V4.20: 零初始化以确保 ctype/AP/BP/ap_order 等新增字段有定义值
+    // 零初始化以确保 ctype/AP/BP/ap_order 等新增字段有定义值
     WcsFitResult result{};
 
     const double s     = transform.s;
@@ -156,13 +156,13 @@ WcsFitResult build_wcs(
 
     result.sip = fit_sip(U, W_flipped, inliers, transform, s0,
                          img_width, img_height, 3, nullptr);
-    // V4.20: fit_sip 仅初始化 A/B/order, 显式清零逆向 SIP 字段 (build_wcs 不输出 AP/BP)
+    // fit_sip 仅初始化 A/B/order, 显式清零逆向 SIP 字段 (build_wcs 不输出 AP/BP)
     for (int i = 0; i < 36; ++i) {
         result.sip.AP[i] = 0.0;
         result.sip.BP[i] = 0.0;
     }
     result.sip.ap_order = 0;
-    // V4.20: ctype 根据 fit_sip.order 设置 (fit_sip 成功时 order=3, 否则 0)
+    // ctype 根据 fit_sip.order 设置 (fit_sip 成功时 order=3, 否则 0)
     if (result.sip.order >= 2) {
         std::strncpy(result.ctype[0], "RA---TAN-SIP", 16);
         std::strncpy(result.ctype[1], "DEC--TAN-SIP", 16);
@@ -205,26 +205,26 @@ WcsFitResult build_wcs(
     result.cd.cd22 = cd2_2;
     result.n_pairs = (int)inliers.size();
     result.success = true;
-    // V4.19: best_mode 已移除, 用 trans_order=1 (线性 SimTransform)
+    // best_mode 已移除, 用 trans_order=1 (线性 SimTransform)
     result.trans_order = 1;
 
     return result;
 }
 
 // ===========================================================================
-// extract_wcs_sip: 从 TRANS 提取 WCS + SIP (V4.20 重写)
+// extract_wcs_sip: 从 TRANS 提取 WCS + SIP ( 重写)
 //
-// V4.20 修正: TRANS 方向从 W->U (像素->像素) 改为 U->W (像素->角秒)。
+// 修正: TRANS 方向从 W->U (像素->像素) 改为 U->W (像素->角秒)。
 //
 // 步骤:
-//   1. CD 矩阵: trans 线性项 / 3600 (度/像素), 直接提取
-//   2. CRVAL = 收敛后中心 (ra0, dec0)
-//   3. CRPIX = 图像中心 (1-based FITS 约定)
-//   4. ctype: trans.order==1 → "RA---TAN"/"DEC--TAN", 否则加 -SIP 后缀
-//   5. SIP A/B: 解析公式 A[i][j] = cd_inv · (trans.x_ij, trans.y_ij)
-//      cd_inv = trans 线性项的逆 (像素/角秒)
-//   6. SIP AP/BP: 网格反变换法 (NB_GRID=7, 拟合 UV→uv 多项式 = revtrans)
-//   7. RMS: 残差 = apply_trans(U) - W (角秒), rms_px = rms_arcsec / s0
+// 1. CD 矩阵: trans 线性项 / 3600 (度/像素), 直接提取
+// 2. CRVAL = 收敛后中心 (ra0, dec0)
+// 3. CRPIX = 图像中心 (1-based FITS 约定)
+// 4. ctype: trans.order==1 → "RA---TAN"/"DEC--TAN", 否则加 -SIP 后缀
+// 5. SIP A/B: 解析公式 A[i][j] = cd_inv · (trans.x_ij, trans.y_ij)
+// cd_inv = trans 线性项的逆 (像素/角秒)
+// 6. SIP AP/BP: 网格反变换法 (NB_GRID=7, 拟合 UV→uv 多项式 = revtrans)
+// 7. RMS: 残差 = apply_trans(U) - W (角秒), rms_px = rms_arcsec / s0
 // ===========================================================================
 void extract_wcs_sip(
     const Trans& trans,
@@ -256,8 +256,8 @@ void extract_wcs_sip(
 
     // ------------------------------------------------------------------
     // 1. CD 矩阵: 从 TRANS 线性项提取
-    //    TRANS: U(像素)->W(角秒), 线性项单位 = 角秒/像素
-    //    CD = 线性项 / 3600 (度/像素)
+    // TRANS: U(像素)->W(角秒), 线性项单位 = 角秒/像素
+    // CD = 线性项 / 3600 (度/像素)
     // ------------------------------------------------------------------
     result->cd.cd11 = trans.x10 / 3600.0;
     result->cd.cd12 = trans.x01 / 3600.0;
@@ -277,9 +277,9 @@ void extract_wcs_sip(
     result->crpix[1] = img_height / 2.0 + 0.5;
 
     // ------------------------------------------------------------------
-    // 4. ctype 设置 (V4.20 新增)
-    //    trans.order == 1: 纯线性, "RA---TAN" / "DEC--TAN"
-    //    trans.order >= 2: 含 SIP, "RA---TAN-SIP" / "DEC--TAN-SIP"
+    // 4. ctype 设置 ( 新增)
+    // trans.order == 1: 纯线性, "RA---TAN" / "DEC--TAN"
+    // trans.order >= 2: 含 SIP, "RA---TAN-SIP" / "DEC--TAN-SIP"
     // ------------------------------------------------------------------
     if (trans.order <= 1) {
         std::strncpy(result->ctype[0], "RA---TAN", 16);
@@ -303,9 +303,9 @@ void extract_wcs_sip(
     result->sip.ap_order = 0;
 
     if (trans.order >= 2) {
-        // V4.22 P1-5: 清零 trans.x00/y00
+        // P1-5: 清零 trans.x00/y00
         // 平移完全由 CRVAL 吸收，避免 SIP AP/BP 常数项与 CRVAL 形成双重平移
-        //   trans->x00 = 0.; trans->y00 = 0.;
+        // trans->x00 = 0.; trans->y00 = 0.;
         // 注意: trans 是 const 引用，不能直接修改，创建副本用于 SIP 计算
         double saved_x00 = trans.x00;
         double saved_y00 = trans.y00;
@@ -317,9 +317,9 @@ void extract_wcs_sip(
         trans_for_sip.y00 = 0.0;
 
         // 5.1 计算 trans 线性项的逆 (cd_inv, 像素/角秒)
-        //     cd_inv = inv(trans 线性项)
-        //     注意: 用 trans 线性项的逆, 不是 result->cd 的逆 (差 3600 倍)
-        //     cd_inv[0][0] = invdet * cd[1][1], cd = trans 线性项
+        // cd_inv = inv(trans 线性项)
+        // 注意: 用 trans 线性项的逆, 不是 result->cd 的逆 (差 3600 倍)
+        // cd_inv[0][0] = invdet * cd[1][1], cd = trans 线性项
         const double det_lin = trans_for_sip.x10 * trans_for_sip.y01 - trans_for_sip.x01 * trans_for_sip.y10;
         if (std::abs(det_lin) < 1e-15) {
             if (logger) logger->warn("extract_wcs_sip: TRANS 线性项奇异 (det≈0), 跳过 SIP");
@@ -331,9 +331,9 @@ void extract_wcs_sip(
             const double cd_inv_11 =  inv_det_lin * trans_for_sip.x10;
 
             // 5.2 SIP A/B: 解析公式
-            //     A[i][j] = cd_inv · (trans.x_ij, trans.y_ij)
-            //     单位: (像素/角秒) * (角秒/像素^(i+j)) = 1/像素^(i+j-1) (SIP 标准)
-            //     索引: A[i*6+j], i=x幂, j=y幂
+            // A[i][j] = cd_inv · (trans.x_ij, trans.y_ij)
+            // 单位: (像素/角秒) * (角秒/像素^(i+j)) = 1/像素^(i+j-1) (SIP 标准)
+            // 索引: A[i*6+j], i=x幂, j=y幂
             result->sip.order = trans_for_sip.order;
 
             // 二阶项 (i+j=2): x20, x11, x02
@@ -365,12 +365,12 @@ void extract_wcs_sip(
             }
 
             // 5.3 SIP AP/BP: 网格反变换法
-            //     流程:
-            //       a. 生成像素网格 (u, v), 相对于图像中心
-            //       b. 对网格应用 trans_for_sip -> IWC (角秒, 已清零 x00/y00)
-            //       c. UV = cd_inv · IWC (畸变像素)
-            //       d. 拟合 UV -> (u, v) 的多项式 = revtrans
-            //       e. AP/BP = revtrans 系数, AP_10 -= 1, BP_01 -= 1
+            // 流程:
+            // a. 生成像素网格 (u, v), 相对于图像中心
+            // b. 对网格应用 trans_for_sip -> IWC (角秒, 已清零 x00/y00)
+            // c. UV = cd_inv · IWC (畸变像素)
+            // d. 拟合 UV -> (u, v) 的多项式 = revtrans
+            // e. AP/BP = revtrans 系数, AP_10 -= 1, BP_01 -= 1
             const int NB_GRID = 7;  // 网格点数
             const int order = trans_for_sip.order;
 
@@ -402,14 +402,14 @@ void extract_wcs_sip(
                     double v = -v_range + 2.0 * v_range * gj / (NB_GRID - 1);
 
                     // b. 应用 trans_for_sip → IWC (角秒)
-                    //    V4.22 P1-5: trans_for_sip 已清零 x00/y00, IWC 不含平移
+                    // P1-5: trans_for_sip 已清零 x00/y00, IWC 不含平移
                     double wx, wy;
                     apply_trans(trans_for_sip, u, v, &wx, &wy);
 
                     // c. UV = cd_inv · IWC (畸变像素)
-                    //    transUV 用 cd_inv 作线性项, atApplyTrans 后 xygrid = UV
-                    //    V4.22: 因 trans_for_sip.x00/y00=0, IWC 无平移,
-                    //    UV 也无平移, revtrans 常数项 AP_00/BP_00 → 0
+                    // transUV 用 cd_inv 作线性项, atApplyTrans 后 xygrid = UV
+                    // 因 trans_for_sip.x00/y00=0, IWC 无平移,
+                    // UV 也无平移, revtrans 常数项 AP_00/BP_00 → 0
                     double uv_x = cd_inv_00 * wx + cd_inv_01 * wy;
                     double uv_y = cd_inv_10 * wx + cd_inv_11 * wy;
 
@@ -446,8 +446,8 @@ void extract_wcs_sip(
 
             if (ap_ok) {
                 // e. 填充 AP/BP 系数
-                //    AP[i*6+j] 对应 x^i * y^j
-                //    约定: AP[1][0] = revtrans.x10 - 1, BP[0][1] = revtrans.y01 - 1
+                // AP[i*6+j] 对应 x^i * y^j
+                // 约定: AP[1][0] = revtrans.x10 - 1, BP[0][1] = revtrans.y01 - 1
                 for (int k = 0; k < n_inv_coef; ++k) {
                     int i = inv_basis[k].first;
                     int j = inv_basis[k].second;
@@ -488,7 +488,7 @@ void extract_wcs_sip(
 
     // ------------------------------------------------------------------
     // 6. RMS 计算 (用最终匹配对)
-    //    V4.20: TRANS: U(像素)→W(角秒), 残差 = apply_trans(U) - W (角秒)
+    // TRANS: U(像素)→W(角秒), 残差 = apply_trans(U) - W (角秒)
     // ------------------------------------------------------------------
     double sum_r2 = 0.0;
     int n_valid = 0;
@@ -526,18 +526,18 @@ void extract_wcs_sip(
     result->success      = true;
 
     // ------------------------------------------------------------------
-    // 8. V4.29: 转换为标准 FITS WCS (Y-down)
-    //    solver 内部用 Y-up 约定 (U.y = -(det_y - cy), 见 ipv_select.cpp:687),
-    //    但 FITS/WCS 国际标准 Y 向下 (数据行号递增 = Y 增大)。
-    //    需在输出边界做 Y-up → Y-down 转换, 使 IpvWcsResult 直接为标准 WCS。
+    // 8. : 转换为标准 FITS WCS (Y-down)
+    // solver 内部用 Y-up 约定 (U.y = -(det_y - cy), 见 ipv_select.cpp:687),
+    // 但 FITS/WCS 国际标准 Y 向下 (数据行号递增 = Y 增大)。
+    // 需在输出边界做 Y-up → Y-down 转换, 使 IpvWcsResult 直接为标准 WCS。
     //
-    //    推导 (U = (p_x, -p_y), CD_FITS = M·diag(1,-1)):
-    //      CD: cd12, cd22 取反 (Y 相关列)
-    //      SIP A (x输出): A' = A·(-1)^j            (仅输入 y 翻转)
-    //      SIP B (y输出): B' = -B·(-1)^j           (输入+输出 y 翻转)
-    //      SIP AP/BP:     同 A/B 规则
-    //    CRVAL/CRPIX 不变 (中心点对称)。
-    //    validate_wcs 不受影响: 中心点翻转后仍是中心; det=|cd11*cd22-cd12*cd21| 不变。
+    // 推导 (U = (p_x, -p_y), CD_FITS = M·diag(1,-1)):
+    // CD: cd12, cd22 取反 (Y 相关列)
+    // SIP A (x输出): A' = A·(-1)^j (仅输入 y 翻转)
+    // SIP B (y输出): B' = -B·(-1)^j (输入+输出 y 翻转)
+    // SIP AP/BP: 同 A/B 规则
+    // CRVAL/CRPIX 不变 (中心点对称)。
+    // validate_wcs 不受影响: 中心点翻转后仍是中心; det=|cd11*cd22-cd12*cd21| 不变。
     // ------------------------------------------------------------------
     result->cd.cd12 = -result->cd.cd12;
     result->cd.cd22 = -result->cd.cd22;

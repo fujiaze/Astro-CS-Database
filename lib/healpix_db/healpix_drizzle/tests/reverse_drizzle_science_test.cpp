@@ -2,20 +2,20 @@
 // reverse_drizzle_science_test.cpp - 反向 Drizzle 解析球面科学矩阵 (签字修正)
 //
 // 覆盖 (templates/REVERSE_SCIENCE_RESULT.json):
-//   cases: constant_sphere, gradient_sphere, compact_source, negative_field,
-//          partial_support, cross_face, ra0, polar, rotated_cd, sip_edge
-//   pixfrac: 0.6 / 0.8 / 1.0
-//   模式: fp32_to_fp32 (真实 float 累计), fp64_to_fp64
-//   指标: false_hole, false_fill, signal_relative_error, coverage_relative_error
+// cases: constant_sphere, gradient_sphere, compact_source, negative_field,
+// partial_support, cross_face, ra0, polar, rotated_cd, sip_edge
+// pixfrac: 0.6 / 0.8 / 1.0
+// 模式: fp32_to_fp32 (真实 float 累计), fp64_to_fp64
+// 指标: false_hole, false_fill, signal_relative_error, coverage_relative_error
 //
 // 解析真值 (独立于生产 overlap 机制):
-//   - pf=1.0 且像素处于图像内区 (距边缘 ≥ M px): 源 leaf 铺满该区,
-//     truth_j = ∫_{pixel_j} B(Ω) dΩ (常数场 = B0×A_pixel; 一般场用独立
-//     球面三角形扇细分积分 depth=7);
-//   - pf<1.0: drop 收缩产生固有空隙, 逐像素解析真值不可行 → 门为
-//     (a) 总通量守恒上界 (total_out ≤ total_in), (b) 表面亮度自洽
-//     signal_j ≈ B0×A_pixel_j×coverage_j (常数场, coverage>0.05),
-//     (c) coverage∈[0,1], (d) fp32/fp64 一致性。
+// - pf=1.0 且像素处于图像内区 (距边缘 ≥ M px): 源 leaf 铺满该区,
+// truth_j = ∫_{pixel_j} B(Ω) dΩ (常数场 = B0×A_pixel; 一般场用独立
+// 球面三角形扇细分积分 depth=7);
+// - pf<1.0: drop 收缩产生固有空隙, 逐像素解析真值不可行 → 门为
+// (a) 总通量守恒上界 (total_out ≤ total_in), (b) 表面亮度自洽
+// signal_j ≈ B0×A_pixel_j×coverage_j (常数场, coverage>0.05),
+// (c) coverage∈[0,1], (d) fp32/fp64 一致性。
 // ============================================================================
 #include "reverse_drizzle.h"
 #include "spherical_overlap.h"
@@ -505,7 +505,7 @@ int main() {
         }
     }
 
-    // ---- MICROFIX #2: 真实负值场 (dec=+30°, B=-500+100z ≈ -450, 全程为负) ----
+    // ---- : 真实负值场 (dec=+30°, B=-500+100z ≈ -450, 全程为负) ----
     {
         WcsParams w = make_wcs(272.886595, 30.0, 6.3, W);
         const double pfs2[] = {0.6, 0.8, 1.0};
@@ -557,7 +557,7 @@ int main() {
         (void)all_ok;
     }
 
-    // ---- MICROFIX #3: SIP order 5 最高阶项必须实际影响输出 ----
+    // ---- : SIP order 5 最高阶项必须实际影响输出 ----
     {
         std::vector<uint64_t> ipix; std::vector<double> sig, sup;
         make_leaves(w_sip5, W, H, NSIDE, 1.0, B_const, true, 1000.0,
@@ -586,8 +586,8 @@ int main() {
     }
 
     // ---- partial_support: HISS signal 已含覆盖 (sumFlux), support 按均匀
-    //      覆盖假设仅影响 coverage; 同输入 support=1 vs 0.5 → 覆盖面积减半,
-    //      signal 总量不变 (与冻结 Wiki 语义一致) ----
+    // 覆盖假设仅影响 coverage; 同输入 support=1 vs 0.5 → 覆盖面积减半,
+    // signal 总量不变 (与冻结 Wiki 语义一致) ----
     {
         CaseResult full = run_case(w_c, W, H, NSIDE, 1.0, B0, B_const,
                                    true, 1000.0, Vec3{0,0,0}, true);

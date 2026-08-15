@@ -1,13 +1,13 @@
 // lib/acr/scheduler/partitioner.hpp — Range/Tile 拆分 + coverage bitmap
 // Phase F：不重叠 chunk 拆分，用 bitmap 保证完整不重复。
 //
-// 设计（控制包 07_WORK_CONSERVING_DISPATCHER_SPEC.md）：
-//   1. coverage bitmap：每个 chunk 一个 bit，1=已完成
-//   2. 拆分策略：固定 chunk_size 或固定 chunk_count
-//   3. 边界 chunk 自动 clamp（最后一个可能小于 chunk_size）
-//   4. Tile 拆分：tiles_x * tiles_y 个 chunk，每个 chunk 一个 tile
-//   5. 拆分结果不重叠：[begin, end) 互不相交，并集 = [0, total)
-//   6. 公共头不暴露第三方类型
+// 设计（ 07_WORK_CONSERVING_DISPATCHER_SPEC.md）：
+// 1. coverage bitmap：每个 chunk 一个 bit，1=已完成
+// 2. 拆分策略：固定 chunk_size 或固定 chunk_count
+// 3. 边界 chunk 自动 clamp（最后一个可能小于 chunk_size）
+// 4. Tile 拆分：tiles_x * tiles_y 个 chunk，每个 chunk 一个 tile
+// 5. 拆分结果不重叠：[begin, end) 互不相交，并集 = [0, total)
+// 6. 公共头不暴露第三方类型
 #pragma once
 
 #include <cstddef>

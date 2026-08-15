@@ -1,11 +1,11 @@
 // ============================================================================
-// reverse_drizzle_test.cpp - Sphere -> Plane 真面积 Drizzle 验证 (R13 REV-001)
+// reverse_drizzle_test.cpp - Sphere -> Plane 真面积 Drizzle 验证
 //
 // 合成真值 (不依赖 Plane->Sphere->Plane 视觉相似):
-//   1) 均匀平面源: 正向 -> 反向, 输出应恢复均匀 (rel_std 小)
-//   2) 点源平面源: 正向 -> 反向, 输出质心 = 源质心, 总通量闭合
-//   3) FP32/FP64 输出一致性
-//   4) 通量闭合: Σ 反向输出 (图像内) ≈ Σ 输入
+// 1) 均匀平面源: 正向 -> 反向, 输出应恢复均匀 (rel_std 小)
+// 2) 点源平面源: 正向 -> 反向, 输出质心 = 源质心, 总通量闭合
+// 3) FP32/FP64 输出一致性
+// 4) 通量闭合: Σ 反向输出 (图像内) ≈ Σ 输入
 // ============================================================================
 #include "drizzle_engine.h"
 #include "hiss_format.h"
@@ -62,7 +62,7 @@ int main() {
     const int size = 64, nside = 65536;
     const double pf = 0.8;
 
-    // ---- 1. 均匀平面源 (MICROFIX #4: pf=1.0 无空隙往返, rel_std ≤1e-4 冻结门) ----
+    // ---- 1. 均匀平面源 (: pf=1.0 无空隙往返, rel_std ≤1e-4 冻结门) ----
     {
         const double pf1 = 1.0;
         WcsParams w = make_wcs(272.886595, -23.254083, 6.3, size);
@@ -144,7 +144,7 @@ int main() {
             }
         double off = std::sqrt((sx/sw - cx) * (sx/sw - cx) +
                                (sy/sw - cy) * (sy/sw - cy));
-        // MICROFIX #4: 质心 ≤0.01 目标像素
+        // 质心 ≤0.01 目标像素
         snprintf(msg, sizeof(msg), "[质心恢复] offset %.4f px (≤0.01px)", off);
         CHECK(off < 0.01, msg);
         // FP32 输出

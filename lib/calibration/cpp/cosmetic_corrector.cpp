@@ -53,8 +53,8 @@ static float quick_median(std::vector<float>& data) {
 
 // BFS 标记8连通区域，移除大小 >= max_structure_size 的区域（星点）
 // 参数: mask - 输入/输出掩码 [H*W]，1=候选坏像素，过滤后大区域被置0
-//       H, W - 图像尺寸
-//       max_structure_size - 最大结构大小，>=此值的区域被移除
+// H, W - 图像尺寸
+// max_structure_size - 最大结构大小，>=此值的区域被移除
 static void filter_connected_components(
     uint8_t* mask, int H, int W, int max_structure_size
 ) {

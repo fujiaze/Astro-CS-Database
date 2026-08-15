@@ -8,8 +8,8 @@ namespace pc {
 
 // 图像校正器: 全局scale校正
 // 算法:
-//   scale = median(F_syn[i] / F_instr[i])  (对所有匹配星)
-//   I_cal = I * scale
+// scale = median(F_syn[i] / F_instr[i]) (对所有匹配星)
+// I_cal = I * scale
 class ImageCorrector {
 public:
     ImageCorrector();
@@ -22,10 +22,10 @@ public:
     // 图像校正: I_cal = I * scale
     // OpenMP并行加速 (16线程)
     // 参数:
-    //   pixels: 原图像素 float32 [H*W]
-    //   width,height: 图像尺寸
-    //   scale: 全局缩放因子
-    //   out_pixels: 输出像素 (调用者分配, float32 [H*W])
+    // pixels: 原图像素 float32 [H*W]
+    // width,height: 图像尺寸
+    // scale: 全局缩放因子
+    // out_pixels: 输出像素 (调用者分配, float32 [H*W])
     static void correctImage(const float* pixels, int width, int height,
                              double scale, float* out_pixels);
 };

@@ -63,7 +63,7 @@ void sex_backstat(BackMesh* mesh, const float* buf, int bufsize, int w, int bw) 
         float pix = buf[i];
         if (pix > -SEX_BIG) {
             mean += pix;
-            sigma += (double)pix * (double)pix;   // CodeQL V1 #15/#16：float 乘法先提升 double
+            sigma += (double)pix * (double)pix;   // CodeQL #15/#16：float 乘法先提升 double
             npix++;
         }
     }
@@ -88,7 +88,7 @@ void sex_backstat(BackMesh* mesh, const float* buf, int bufsize, int w, int bw) 
         float pix = buf[i];
         if (pix <= hcut && pix >= lcut) {
             mean += pix;
-            sigma += (double)pix * (double)pix;   // CodeQL V1 #15/#16
+            sigma += (double)pix * (double)pix;   // CodeQL #15/#16
             npix++;
         }
     }

@@ -5,18 +5,18 @@
 // HEALpix 像素运算核心 (自实现, 不依赖 healpix-c++ 外部库)
 //
 // 参考: Gorski et al. 2005, "HEALPix: A Framework for High-Resolution
-//       Diffuse Analysis of Full-Sky Data"
+// Diffuse Analysis of Full-Sky Data"
 //
 // 支持两种像素排列:
-//   - NESTED: 用 z-order (Morton) 位编码, 适合树状层级 (LOD)
-//   - RING:   按纬度环排列, 适合球谐分析
+// - NESTED: 用 z-order (Morton) 位编码, 适合树状层级 (LOD)
+// - RING: 按纬度环排列, 适合球谐分析
 //
 // 约定:
-//   - theta: 极角 (0=北极, π=南极), 单位弧度
-//   - phi:   方位角 (0~2π), 单位弧度
-//   - RA:    赤经 (度), 0~360
-//   - Dec:   赤纬 (度), -90~+90
-//   - nside 必须是 2 的幂
+// - theta: 极角 (0=北极, π=南极), 单位弧度
+// - phi: 方位角 (0~2π), 单位弧度
+// - RA: 赤经 (度), 0~360
+// - Dec: 赤纬 (度), -90~+90
+// - nside 必须是 2 的幂
 // ============================================================================
 
 #include <cstdint>

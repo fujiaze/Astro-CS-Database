@@ -2,28 +2,28 @@
 // calibrator.cpp - 天文 CCD 图像校准核心算法
 // ============================================================
 // 功能: 对单帧 Light 图像进行标准 CCD 校准（Dark / Flat / Bias），
-//       支持暗场优化（黄金分割搜索最优暗场缩放因子 K）。
+// 支持暗场优化（黄金分割搜索最优暗场缩放因子 K）。
 // 所属模块: astro_calibration（lib/astro_calibration）
 //
 // 实现函数（namespace ac）:
-//   1. compute_mad(data, n)
-//        计算中位绝对偏差 MAD：先求 median，再求 |v-median| 的 median。
-//        对应 sigma = 1.4826 * MAD（本函数只返回 MAD）。
-//   2. normalize_flat(flat, w, h)
-//        将 Master Flat 归一化到 median=1.0，并把最小值裁剪到 0.1。
-//   3. optimize_dark_scale(light, bias, dark, flat, w, h, k_init)
-//        黄金分割搜索最优 K，使背景区域（去边缘10% + 去最亮5%）MAD 最小。
-//        搜索范围 [0.5*k_init, 2.0*k_init]，收敛条件：区间宽度<0.001 或迭代>30。
-//   4. calibrate(light, w, h, dark, flat, bias, out, dark_opt, k_init, actual_k)
-//        dark_opt=0: out = (light - dark) / flat          （Dark 已含 Bias）
-//        dark_opt=1: out = (light - bias - K*(dark-bias)) / flat
-//        Flat 已归一化，除法前裁剪最小值 0.1；OpenMP 并行。
+// 1. compute_mad(data, n)
+// 计算中位绝对偏差 MAD：先求 median，再求 |v-median| 的 median。
+// 对应 sigma = 1.4826 * MAD（本函数只返回 MAD）。
+// 2. normalize_flat(flat, w, h)
+// 将 Master Flat 归一化到 median=1.0，并把最小值裁剪到 0.1。
+// 3. optimize_dark_scale(light, bias, dark, flat, w, h, k_init)
+// 黄金分割搜索最优 K，使背景区域（去边缘10% + 去最亮5%）MAD 最小。
+// 搜索范围 [0.5*k_init, 2.0*k_init]，收敛条件：区间宽度<0.001 或迭代>30。
+// 4. calibrate(light, w, h, dark, flat, bias, out, dark_opt, k_init, actual_k)
+// dark_opt=0: out = (light - dark) / flat （Dark 已含 Bias）
+// dark_opt=1: out = (light - bias - K*(dark-bias)) / flat
+// Flat 已归一化，除法前裁剪最小值 0.1；OpenMP 并行。
 //
 // 设计说明:
-//   - 核心算法不包含任何文件 IO，仅操作内存数组，便于上层 C API 包装。
-//   - C++17 标准，不依赖外部库，仅使用 STL + OpenMP。
-//   - 多线程固定 16 线程（开发环境 16 核）。
-//   - median 使用 std::nth_element（O(n)），黄金分割比例 0.618 / 0.382。
+// - 核心算法不包含任何文件 IO，仅操作内存数组，便于上层 C API 包装。
+// - C++17 标准，不依赖外部库，仅使用 STL + OpenMP。
+// - 多线程固定 16 线程（开发环境 16 核）。
+// - median 使用 std::nth_element（O(n)），黄金分割比例 0.618 / 0.382。
 // ============================================================
 
 #include "../include/astro_calibration.h"
@@ -97,10 +97,10 @@ void normalize_flat(float* flat, int w, int h) {
 // 不使用优化搜索，直接采用 k_init 作为暗场优化系数。
 
 // ---------------------------- 主校准 ----------------------------
-// dark_opt=0: out = (light - dark) / flat            （Dark 已含 Bias）
+// dark_opt=0: out = (light - dark) / flat （Dark 已含 Bias）
 // dark_opt=1: out = (light - bias - K*(dark-bias)) / flat
-//   - K = k_init（由调用方从 FITS EXPTIME 计算：t_light / t_dark）
-//   - 若 dark_opt=1 但缺少 bias/dark，回退为标准模式 (light - dark)/flat
+// - K = k_init（由调用方从 FITS EXPTIME 计算：t_light / t_dark）
+// - 若 dark_opt=1 但缺少 bias/dark，回退为标准模式 (light - dark)/flat
 void calibrate(const float* light, int w, int h,
                const float* dark, const float* flat, const float* bias,
                float* out, int dark_opt, float k_init, float* actual_k) {
@@ -136,13 +136,13 @@ void calibrate(const float* light, int w, int h,
 }
 
 // ======================== 双精度 ABI (FP64) ========================
-// calibrate_d - double 版本校准 (R10)
+// calibrate_d - double 版本校准
 //
 // 与 calibrate (float) 逻辑完全一致, 仅数据类型改为 double。
 // FP64 模式下像素级算术 (light-bias-K*(dark-bias))/flat 在 double 上运行,
 // 不降级到 float32 (精度关键路径)。
 //
-// dark_opt=0: out = (light - dark) / flat            （Dark 已含 Bias）
+// dark_opt=0: out = (light - dark) / flat （Dark 已含 Bias）
 // dark_opt=1: out = (light - bias - K*(dark-bias)) / flat
 void calibrate_d(const double* light, int w, int h,
                  const double* dark, const double* flat, const double* bias,

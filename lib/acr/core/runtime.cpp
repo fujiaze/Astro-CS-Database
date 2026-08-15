@@ -2,18 +2,18 @@
 // Phase B：oneTBB 同步执行（提交即执行，完成后 mark_done）。
 //
 // 设计要点：
-//   - lazy singleton：首次 detail::submit_* 调用 ensure_runtime_initialized()
-//   - tbb::global_control 限制全局工作线程数；tbb::task_arena 提供执行上下文
-//   - tbb 类型只在本文件出现，不暴露给公共头
-//   - EventImpl 生命周期：submit_* 创建 shared_ptr<EventImpl>，kernel 完成后 mark_done
-//   - 取消：检查 EventImpl::cancelled，被取消时提前返回
-//   - release_fn：kernel 完成/异常/取消后调用一次（RAII KernelGuard 保证）
-//   - 异常：kernel 抛异常 → catch → mark_failed(KernelFailed, e.what())
-//   - runtime_init 幂等：首次配置生效，后续调用 no-op；shutdown 后可重新 init
+// - lazy singleton：首次 detail::submit_* 调用 ensure_runtime_initialized()
+// - tbb::global_control 限制全局工作线程数；tbb::task_arena 提供执行上下文
+// - tbb 类型只在本文件出现，不暴露给公共头
+// - EventImpl 生命周期：submit_* 创建 shared_ptr<EventImpl>，kernel 完成后 mark_done
+// - 取消：检查 EventImpl::cancelled，被取消时提前返回
+// - release_fn：kernel 完成/异常/取消后调用一次（RAII KernelGuard 保证）
+// - 异常：kernel 抛异常 → catch → mark_failed(KernelFailed, e.what())
+// - runtime_init 幂等：首次配置生效，后续调用 no-op；shutdown 后可重新 init
 //
 // Phase B4：submit_*_with_desc 接通 CostEstimator + Dispatcher 调用链。
-//   - 无画像/无 GPU 时退化为 submit_*（CPU tbb 路径）
-//   - 有画像 + GPU 时用 Dispatcher::dispatch_range_cost_aware
+// - 无画像/无 GPU 时退化为 submit_*（CPU tbb 路径）
+// - 有画像 + GPU 时用 Dispatcher::dispatch_range_cost_aware
 
 #include <algorithm>
 #include <atomic>
@@ -161,9 +161,9 @@ void ensure_runtime_initialized() {
 }
 
 // RAII guard：计数 + 释放 user_data
-//   - 构造时 active_kernels++ / total_submitted++ / set_state(Running)
-//   - 析构时调用 release_fn（仅一次） + active_kernels--
-//   - release_early() 用于 cancel 路径提前释放后再 return
+// - 构造时 active_kernels++ / total_submitted++ / set_state(Running)
+// - 析构时调用 release_fn（仅一次） + active_kernels--
+// - release_early() 用于 cancel 路径提前释放后再 return
 struct KernelGuard {
     ReleaseFn rel;
     void* user_data;
@@ -474,11 +474,11 @@ void submit_reduce(Range1D range, const void* identity, std::size_t elem_size,
 // Phase B4：submit_*_with_desc 实现（CostEstimator + Dispatcher 调用链）
 // ============================================================================
 // 设计：
-//   1. 构造 TaskDescriptor
-//   2. 从 global_cost_estimator() 获取 CostEstimate
-//   3. 无画像/无 GPU → 退化为 submit_*（CPU tbb 路径）
-//   4. 有画像 + GPU → 用 Dispatcher::dispatch_range_cost_aware
-//   5. 无论走哪条路径，release_fn 都由 KernelGuard 保证调用一次
+// 1. 构造 TaskDescriptor
+// 2. 从 global_cost_estimator() 获取 CostEstimate
+// 3. 无画像/无 GPU → 退化为 submit_*（CPU tbb 路径）
+// 4. 有画像 + GPU → 用 Dispatcher::dispatch_range_cost_aware
+// 5. 无论走哪条路径，release_fn 都由 KernelGuard 保证调用一次
 
 // 全局 Dispatcher 单例（首次调用时初始化）
 namespace {
@@ -516,11 +516,11 @@ void range_chunk_thunk(std::size_t /*chunk_idx*/, std::size_t begin, std::size_t
 
 // ===== Commit C 公共辅助：CostEstimator 调用 + CPU fallback 选择 =====
 // 设计（20_PHASE_I_AUDIT_ACTION_PLAN.md §3 Commit C）：
-//   1. 所有 submit_*_with_desc 必须接通 CostEstimator，不得忽略 OperationId/traits
-//   2. CostEstimator 异常不阻断执行，退化为默认 CPU 路径（grainsize=0）
-//   3. 无 GPU 或 estimate.profile_available=false 时明确走 CPU tbb 路径
-//   4. 有 GPU + 画像可用时通过 Dispatcher 派发（仅 range 路径，tiles/batch/reduce 后续接入）
-//   5. recommended_chunk 作为 CPU grainsize 提示（0 表示用 tbb 默认）
+// 1. 所有 submit_*_with_desc 必须接通 CostEstimator，不得忽略 OperationId/traits
+// 2. CostEstimator 异常不阻断执行，退化为默认 CPU 路径（grainsize=0）
+// 3. 无 GPU 或 estimate.profile_available=false 时明确走 CPU tbb 路径
+// 4. 有 GPU + 画像可用时通过 Dispatcher 派发（仅 range 路径，tiles/batch/reduce 后续接入）
+// 5. recommended_chunk 作为 CPU grainsize 提示（0 表示用 tbb 默认）
 
 // 安全调用 CostEstimator：异常时返回空 estimate（fallback）
 cost::CostEstimate estimate_cost_safely(const TaskDescriptor& task) {
@@ -572,11 +572,11 @@ Event submit_range_with_desc(OperationId id, Range1D range, TaskTraits traits,
     TaskDescriptor task = make_range_descriptor(id, range, traits, Precision::Default);
 
     // 2. 通过 CostEstimator 估算成本（接通调用链，不得忽略 OperationId/traits）
-    //    CostEstimate 提供 preferred_device + recommended_chunk_size
+    // CostEstimate 提供 preferred_device + recommended_chunk_size
     cost::CostEstimate estimate = estimate_cost_safely(task);
 
     // 3. 无 GPU 或画像不可用时明确走 CPU tbb 路径（CPU fallback）
-    //    CostEstimate.recommended_chunk 用于 grainsize 优化
+    // CostEstimate.recommended_chunk 用于 grainsize 优化
     if (!has_gpu_backend() || !estimate.profile_available) {
         // CPU 路径：直接用 tbb parallel_for（与旧 API 一致）
         // 用 CostEstimate 的 recommended_chunk 作为 grainsize 提示

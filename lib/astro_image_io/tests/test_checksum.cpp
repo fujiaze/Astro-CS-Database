@@ -2,32 +2,32 @@
 // test_checksum.cpp - HISS Checksum 候选注册机制测试 (Phase E, DQ-006)
 //
 // 依据:
-//   - hiss_format.h §13.1 ChecksumRegistry (INTERIM_BASELINE_NOT_FROZEN)
-//   - 02_FROZEN_STAGE1_HISS_SPEC.md §15 (子块目录 checksum_type/checksum 字段)
-//   - docs/stage1_fix/00_COMMON_CONTRACTS.md §5.1 (测试要求: 零软通过)
+// - hiss_format.h §13.1 ChecksumRegistry (INTERIM_BASELINE_NOT_FROZEN)
+// - 02_FROZEN_STAGE1_HISS_SPEC.md §15 (子块目录 checksum_type/checksum 字段)
+// - docs/stage1_fix/00_COMMON_CONTRACTS.md §5.1 (测试要求: 零软通过)
 //
 // 测试范围 (4 个测试用例):
-//   01. Writer 启用 CRC32C → 写入 Tile → Reader 读取 → 校验通过 (正常往返)
-//   02. Writer 启用 CRC32C → 写入文件 → 手动篡改压缩数据 → Reader 读取 → 返回 -5
-//   03. Writer 不启用 checksum (默认 NONE) → Reader 读取 → 正常 (向后兼容)
-//   04. ChecksumRegistry 注册/查找/列出 API 测试 + CRC32C 已知向量校验
+// 01. Writer 启用 CRC32C → 写入 Tile → Reader 读取 → 校验通过 (正常往返)
+// 02. Writer 启用 CRC32C → 写入文件 → 手动篡改压缩数据 → Reader 读取 → 返回 -5
+// 03. Writer 不启用 checksum (默认 NONE) → Reader 读取 → 正常 (向后兼容)
+// 04. ChecksumRegistry 注册/查找/列出 API 测试 + CRC32C 已知向量校验
 //
 // 编译 (PowerShell + mingw64):
-//   $env:Path = "C:\msys64\mingw64\bin;$env:Path"
-//   cd "f:\Astro dev\Astro CS Normalization Database\lib\astro_image_io"
-//   g++ -std=c++17 -O2 -Iinclude -Isrc `
-//       tests/test_checksum.cpp `
-//       src/hiss_codec.cpp src/hiss_common.cpp `
-//       src/hiss_tile_model.cpp src/hiss_transform.cpp `
-//       src/hiss_writer.cpp src/hiss_stream_writer.cpp `
-//       src/hiss_reader.cpp `
-//       -lm -o tests/test_checksum.exe
+// $env:Path = "C:\msys64\mingw64\bin;$env:Path"
+// cd "f:\Astro dev\Astro CS Normalization Database\lib\astro_image_io"
+// g++ -std=c++17 -O2 -Iinclude -Isrc `
+// tests/test_checksum.cpp `
+// src/hiss_codec.cpp src/hiss_common.cpp `
+// src/hiss_tile_model.cpp src/hiss_transform.cpp `
+// src/hiss_writer.cpp src/hiss_stream_writer.cpp `
+// src/hiss_reader.cpp `
+// -lm -o tests/test_checksum.exe
 //
 // 运行:
-//   ./tests/test_checksum.exe
+// ./tests/test_checksum.exe
 //
 // 测试框架: 自维护通过/失败计数, 任何契约不满足必须真正失败
-//   (禁止 ASSERT_TRUE(true, "已知问题") 软通过, 依据 spec.md §3 步骤15)
+// (禁止 ASSERT_TRUE(true, "已知问题") 软通过, 依据 spec.md §3 步骤15)
 // ============================================================================
 
 #include "hiss_format.h"
@@ -50,7 +50,7 @@ static int g_pass_count = 0;
 static int g_fail_count = 0;
 
 // ASSERT_TRUE(cond, msg): cond 为假时记失败并打印
-//   注意: 不支持 "true, 已知问题" 软通过 — 任何 false 都是真失败
+// 注意: 不支持 "true, 已知问题" 软通过 — 任何 false 都是真失败
 #define ASSERT_TRUE(cond, msg) do { \
     if (cond) { \
         g_pass_count++; \
@@ -131,8 +131,8 @@ static void make_test_grid_meta(uint32_t nside, hiss::HissGridSpec& grid,
 
 // ============================================================================
 // 测试 01: Writer 启用 CRC32C → 写入 Tile → Reader 读取 → 校验通过
-//   验证: set_experiment_checksum(CRC32C) → 写入 → 读取成功, 数据一致
-//   覆盖: Writer 端 checksum 计算, Reader 端 checksum 校验, 数据往返一致
+// 验证: set_experiment_checksum(CRC32C) → 写入 → 读取成功, 数据一致
+// 覆盖: Writer 端 checksum 计算, Reader 端 checksum 校验, 数据往返一致
 // ============================================================================
 static void test_01_crc32c_roundtrip() {
     fprintf(stdout, "\n[TEST 01] Writer 启用 CRC32C → 写入 → Reader 读取 → 校验通过\n");
@@ -222,8 +222,8 @@ static void test_01_crc32c_roundtrip() {
 
 // ============================================================================
 // 测试 02: Writer 启用 CRC32C → 写入文件 → 手动篡改压缩数据 → Reader 返回 -5
-//   验证: 篡改压缩数据后, Reader 校验失败返回 -5 (HISS_ERR_FORMAT)
-//   覆盖: checksum 损坏检测能力 (核心安全保证)
+// 验证: 篡改压缩数据后, Reader 校验失败返回 -5 (HISS_ERR_FORMAT)
+// 覆盖: checksum 损坏检测能力 (核心安全保证)
 // ============================================================================
 static void test_02_crc32c_tamper_detection() {
     fprintf(stdout, "\n[TEST 02] Writer 启用 CRC32C → 篡改压缩数据 → Reader 返回 -5\n");
@@ -269,8 +269,8 @@ static void test_02_crc32c_tamper_detection() {
     }
 
     // --- 步骤 2: 手动篡改文件中 SIGNAL 子块的压缩数据 ---
-    //    修改 offset 位置的 1 个字节 (在 compressed 数据范围内)
-    //    注意: 不能篡改 Header (Header 在 offset 之前), 只篡改 attachment 数据
+    // 修改 offset 位置的 1 个字节 (在 compressed 数据范围内)
+    // 注意: 不能篡改 Header (Header 在 offset 之前), 只篡改 attachment 数据
     {
         std::fstream fs(path, std::ios::in | std::ios::out | std::ios::binary);
         ASSERT_TRUE(fs.good(), "打开文件用于篡改成功");
@@ -315,8 +315,8 @@ static void test_02_crc32c_tamper_detection() {
 
 // ============================================================================
 // 测试 03: Writer 不启用 checksum (默认 NONE) → Reader 读取 → 正常 (向后兼容)
-//   验证: 默认 checksum_type=NONE, Reader 不校验, 数据正常读取
-//   覆盖: 向后兼容性 (不破坏现有行为)
+// 验证: 默认 checksum_type=NONE, Reader 不校验, 数据正常读取
+// 覆盖: 向后兼容性 (不破坏现有行为)
 // ============================================================================
 static void test_03_default_none_backward_compatible() {
     fprintf(stdout, "\n[TEST 03] Writer 默认 NONE → Reader 读取 → 正常 (向后兼容)\n");
@@ -390,13 +390,13 @@ static void test_03_default_none_backward_compatible() {
 
 // ============================================================================
 // 测试 04: ChecksumRegistry 注册/查找/列出 API + CRC32C 已知向量校验
-//   验证:
-//     a. CRC32C 内置注册 (find 返回非空)
-//     b. list 包含 CRC32C
-//     c. find(NONE) 返回 nullptr (NONE 不在注册表中)
-//     d. register_checksum(NONE) 返回 <0 (拒绝注册 NONE)
-//     e. register_checksum 注册自定义 checksum 后能 find 到
-//     f. CRC32C 计算结果与已知向量一致
+// 验证:
+// a. CRC32C 内置注册 (find 返回非空)
+// b. list 包含 CRC32C
+// c. find(NONE) 返回 nullptr (NONE 不在注册表中)
+// d. register_checksum(NONE) 返回 <0 (拒绝注册 NONE)
+// e. register_checksum 注册自定义 checksum 后能 find 到
+// f. CRC32C 计算结果与已知向量一致
 // ============================================================================
 static void test_04_checksum_registry_api() {
     fprintf(stdout, "\n[TEST 04] ChecksumRegistry 注册/查找/列出 API + CRC32C 向量校验\n");
@@ -435,7 +435,7 @@ static void test_04_checksum_registry_api() {
     }
 
     // e. register_checksum 注册自定义 checksum 后能 find 到
-    //    使用 XXHASH 的占位实现 (简单异或, 仅用于验证注册机制, 非真正 XXHASH)
+    // 使用 XXHASH 的占位实现 (简单异或, 仅用于验证注册机制, 非真正 XXHASH)
     {
         ChecksumEntry custom;
         custom.id = ChecksumType::XXHASH;
@@ -475,9 +475,9 @@ static void test_04_checksum_registry_api() {
     }
 
     // f. CRC32C 计算结果与已知向量一致
-    //    Castagnoli CRC32C 标准测试向量:
-    //      crc32c("") = 0x00000000
-    //      crc32c("123456789") = 0xE3069283
+    // Castagnoli CRC32C 标准测试向量:
+    // crc32c("") = 0x00000000
+    // crc32c("123456789") = 0xE3069283
     if (crc32c_entry) {
         // 空输入
         uint64_t empty_crc = crc32c_entry->compute(nullptr, 0);

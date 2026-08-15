@@ -57,7 +57,7 @@ HP_DRIZZLE_API int hp_drizzle_fits_to_ahpx(
 // pixfrac: 像素收缩因子 (0.0~1.0)
 // output_path: 输出 .hiss 文件路径 (nullptr 则不写文件, 仅返回统计; 若以 .ahpx 结尾会自动改为 .hiss)
 // result: 输出结果统计与错误信息
-// precision_mode: R10 精度模式 (0=FP32 默认, 1=FP64; -1 表示未指定, 从 header KV "PRECISION" 读取)
+// precision_mode: 精度模式 (0=FP32 默认, 1=FP64; -1 表示未指定, 从 header KV "PRECISION" 读取)
 // 返回: 0=成功, 非0=失败
 HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
                                    int nside, int nested, double pixfrac,
@@ -65,7 +65,7 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
                                    HpDrizzleResult* result,
                                    int precision_mode);
 
-// Phase1 Final Closure V3: Drizzle -> AIO HiPS 直写 (无 HISS 中转)
+// Phase1 Final Closure : Drizzle -> AIO HiPS 直写 (无 HISS 中转)
 // hips_dir: HiPS 产品集根目录; legacy_hiss_path: 可选 legacy .hiss (validation 用)
 HP_DRIZZLE_API int hp_drizzle_run_hips(PipelineFrame* frame,
                                        int nside, int nested, double pixfrac,
@@ -124,7 +124,7 @@ typedef struct {
 // 执行反向 Drizzle。
 // in: 输入 (严格校验, 非法返回非 0)
 // signal_out / coverage_out: 输出缓冲区, 尺寸 width*height;
-//   output_fp64=1 时按 double 数组, 否则按 float 数组。
+// output_fp64=1 时按 double 数组, 否则按 float 数组。
 // result: 统计与错误信息。
 // 返回 0=成功, 非 0=失败。
 HP_DRIZZLE_API int hp_drizzle_reverse_run(
@@ -134,8 +134,8 @@ HP_DRIZZLE_API int hp_drizzle_reverse_run(
     HpReverseDrizzleResult* result);
 
 // 反向 Drizzle 能力/版本 (capability bit):
-//   0x01 球面面积权重 | 0x02 FP32 数据面 | 0x04 FP64 数据面 |
-//   0x08 support 语义 | 0x10 partial support (均匀假设) | 0x20 严格输入校验
+// 0x01 球面面积权重 | 0x02 FP32 数据面 | 0x04 FP64 数据面 |
+// 0x08 support 语义 | 0x10 partial support (均匀假设) | 0x20 严格输入校验
 HP_DRIZZLE_API uint32_t hp_drizzle_reverse_capability(void);
 HP_DRIZZLE_API const char* hp_drizzle_reverse_version(void);
 

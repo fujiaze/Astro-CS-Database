@@ -72,7 +72,7 @@ struct HissHeader {
 struct HissTileData {
     uint64_t parent_ipix = 0;        // Tile 父像素 ipix
     float* signal = nullptr;         // n_leaf_per_tile 个 float32 (malloc, FP32 模式有效)
-    double* signal_f64 = nullptr;    // n_leaf_per_tile 个 float64 (malloc, FP64 模式有效, R10)
+    double* signal_f64 = nullptr;    // n_leaf_per_tile 个 float64 (malloc, FP64 模式有效, )
     uint8_t* support = nullptr;      // n_leaf_per_tile 个 uint8 (malloc)
     uint32_t n_signal = 0;           // signal/signal_f64/support 数组长度
     uint8_t* snr_data = nullptr;     // n_snr_points * 8 字节 (local_ipix(u32) + snr(f32))
@@ -160,7 +160,7 @@ public:
     // 注: 仅适用于 FP32 模式文件 (signal_dtype=0)
     int read_tile_signal(uint64_t parent_ipix, HissTileData& tile);
 
-    // R10: 读取 Tile signal (FP64 模式, 调用 aio_hiss_read_tile_signal_f64)
+    // 读取 Tile signal (FP64 模式, 调用 aio_hiss_read_tile_signal_f64)
     // 仅适用于 FP64 模式文件 (signal_dtype=1); FP32 文件会返回错误 (禁止静默转换)
     // 用完后调 release_tile 释放 (release_tile 会释放 signal_f64)
     int read_tile_signal_f64(uint64_t parent_ipix, HissTileData& tile);
@@ -176,12 +176,12 @@ public:
     // 注: 仅适用于 FP32 模式文件 (signal_dtype=0)
     int query_pixel(double ra, double dec, float& signal, uint8_t& support);
 
-    // R10: 查询像素值 (FP64 版本, 调用 aio_hiss_query_pixel_f64)
+    // 查询像素值 (FP64 版本, 调用 aio_hiss_query_pixel_f64)
     // 仅适用于 FP64 模式文件 (signal_dtype=1); FP32 文件会返回错误 (禁止静默转换)
     // 返回: 0=成功, <0=失败
     int query_pixel_f64(double ra, double dec, double& signal, uint8_t& support);
 
-    // R10: 查询当前 HISS 文件是否为 FP64 精度模式
+    // 查询当前 HISS 文件是否为 FP64 精度模式
     // load_hiss / open_file 时从 metadata (signal_dtype / precision_mode) 检测
     bool is_fp64() const { return is_fp64_; }
 
@@ -228,7 +228,7 @@ private:
     HissHeader hiss_header_;
     bool hiss_header_loaded_ = false;
 
-    // R10: FP64 精度模式标志 (从 HISS metadata signal_dtype / precision_mode 检测)
+    // FP64 精度模式标志 (从 HISS metadata signal_dtype / precision_mode 检测)
     // load_hiss / open_file 时设置, 供 read_tile_signal_f64 / query_pixel_f64 路径选择
     bool is_fp64_ = false;
 };

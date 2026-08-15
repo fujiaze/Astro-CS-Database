@@ -1,9 +1,9 @@
 // lib/acr/tests/unit/test_route_estimator.cpp
 //
 // BenchmarkRouteEstimator 单测（08 计划 D/F）：
-//   - 二维插值与范围检查；
-//   - Mixed 共享池模拟；
-//   - 最低 score 选择、queue delay 切换、VRAM 不足、无画像安全回退。
+// - 二维插值与范围检查；
+// - Mixed 共享池模拟；
+// - 最低 score 选择、queue delay 切换、VRAM 不足、无画像安全回退。
 #include <gtest/gtest.h>
 
 #include "routing/benchmark_route_estimator.hpp"
@@ -19,8 +19,8 @@ using namespace astro::compute::routing;
 namespace {
 
 // 构造测试 Profile：
-//   OpenMP ~2ns/item、GPU Direct ~0.5ns/item、Mixed ~0.8ns/item（帧数线性）。
-//   chunk 服务曲线：CPU 64K=0.5ms / 256K=1.5ms；GPU 256K=0.8ms / 1M=2.0ms。
+// OpenMP ~2ns/item、GPU Direct ~0.5ns/item、Mixed ~0.8ns/item（帧数线性）。
+// chunk 服务曲线：CPU 64K=0.5ms / 256K=1.5ms；GPU 256K=0.8ms / 1M=2.0ms。
 RouteProfileV2 make_test_profile() {
     RouteProfileV2 p;
     p.schema_version = "acr-operation-route-profile-2";
@@ -196,7 +196,7 @@ TEST(RouteEstimator, InterpolateE2eAdaptiveSingleFrameExcluded) {
     path.frame_counts.push_back(12u);
     double med = 0.0, p90 = 0.0;
     // 1M × 12 帧：12 帧单点不可用 → 用 4/16 帧相邻插值
-    //（4 帧 0.125ms、16 帧 0.5ms，w=(12-4)/(16-4)=2/3 → 0.375ms）
+    // （4 帧 0.125ms、16 帧 0.5ms，w=(12-4)/(16-4)=2/3 → 0.375ms）
     ASSERT_TRUE(BenchmarkRouteEstimator::interpolate_e2e(
         path, 1u << 20, 12u, med, p90));
     EXPECT_NEAR(med, 0.125 + 0.375 * (2.0 / 3.0), 0.05);
@@ -310,7 +310,7 @@ TEST(RouteEstimator, ChunkServiceOutOfFrameRangeRejected) {
 }
 
 TEST(RouteEstimator, ChunkCurveSanityRejectsAnomaly) {
-    // 审计示例：262K×4帧=2.01ms，262K×16帧=0.44ms（工作量 4 倍反而快 4.5 倍）
+    // 262K×4帧=2.01ms，262K×16帧=0.44ms（工作量 4 倍反而快 4.5 倍）
     std::vector<ChunkServicePoint> bad{
         {262u << 10, 4u, 2.01, 2.2, 7},
         {262u << 10, 16u, 0.44, 0.5, 7},

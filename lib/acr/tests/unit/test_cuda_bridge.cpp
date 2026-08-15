@@ -1,10 +1,10 @@
 // lib/acr/tests/unit/test_cuda_bridge.cpp — CUDA 桥接真实 GPU 测试
 //
-// 23 号计划 §6：
-//   - 无 GPU/无桥接 DLL → GTEST_SKIP()（不得返回 correct=true 冒充通过）；
-//   - GPU-only：AXPY/COPY/REDUCE/CONV3x3 经 KernelRegistry + 真实 CUDA launcher；
-//   - 真实 Mixed：CPU 与 GPU 均完成非零工作（cpu_done>0 && gpu_done>0）；
-//   - actual device ID 来自 completion（SubmitHandle.device）。
+// 23 §6：
+// - 无 GPU/无桥接 DLL → GTEST_SKIP()（不得返回 correct=true 冒充通过）；
+// - GPU-only：AXPY/COPY/REDUCE/CONV3x3 经 KernelRegistry + 真实 CUDA launcher；
+// - 真实 Mixed：CPU 与 GPU 均完成非零工作（cpu_done>0 && gpu_done>0）；
+// - actual device ID 来自 completion（SubmitHandle.device）。
 #include <gtest/gtest.h>
 
 #include "dispatcher.hpp"
@@ -241,7 +241,7 @@ TEST(CudaBridge, CopyReduceConvMatchCpu) {
         inv.domain = WorkDomain{0, kN};
         inv.buffers.add(0, x.data(), kN);
         inv.buffers.add(1, partials.data(), partials.size());
-        // 注册声明 FP64 accumulator（24 号计划 §5.1）
+        // 注册声明 FP64 accumulator（24 §5.1）
         inv.traits.numeric.accumulator = NumericPolicy::Accumulator::fp64;
         auto r = d.dispatch_invocation(
             make_task(kN), make_estimate(static_cast<DeviceId>(1), 65536, 256), inv);

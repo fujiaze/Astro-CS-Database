@@ -2,11 +2,11 @@
 // Phase D：CudaBuffer<T> + cuda_event。
 //
 // 设计：
-//   1. 整个 header 用 #ifdef ACR_BUILD_CUDA 保护（ADR-009）
-//   2. CudaBuffer<T>：cudaMalloc/cudaFree RAII，移动语义，禁止拷贝
-//   3. copy_h2d / copy_d2h：异步拷贝 + stream sync（默认 stream）
-//   4. cuda_event：CUDA event 计时（record/sync/elapsed_since），供 Qualification 用
-//   5. 模板类内联实现，避免模板实例化复杂度
+// 1. 整个 header 用 #ifdef ACR_BUILD_CUDA 保护（ADR-009）
+// 2. CudaBuffer<T>：cudaMalloc/cudaFree RAII，移动语义，禁止拷贝
+// 3. copy_h2d / copy_d2h：异步拷贝 + stream sync（默认 stream）
+// 4. cuda_event：CUDA event 计时（record/sync/elapsed_since），供 Qualification 用
+// 5. 模板类内联实现，避免模板实例化复杂度
 #pragma once
 
 #ifdef ACR_BUILD_CUDA

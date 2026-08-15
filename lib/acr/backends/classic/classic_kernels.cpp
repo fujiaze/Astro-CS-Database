@@ -2,7 +2,7 @@
 //
 // CPU launcher：纯 host 实现（正确性基准）。
 // CUDA launcher：通过 bridge::api()（TLS 句柄）启动真实 GPU kernel；
-//   桥接不可用时抛异常 → executor 如实报告 Failed（不伪装 GPU 执行）。
+// 桥接不可用时抛异常 → executor 如实报告 Failed（不伪装 GPU 执行）。
 #include "classic_kernels.hpp"
 
 #include "astro/compute/kernel_registry.hpp"
@@ -47,7 +47,7 @@ void cpu_reduce_launcher(const KernelInvocation& inv, void*) {
     const BufferBinding* pb = inv.buffers.find(1);
     if (!xb || !pb) throw std::runtime_error("reduce: missing buffers");
     const float* x = static_cast<const float*>(xb->data);
-    // 24 号计划 §5.1：声明 FP64 accumulator，必须真实 FP64 局部累加
+    // 24 §5.1：声明 FP64 accumulator，必须真实 FP64 局部累加
     double* partials = static_cast<double*>(pb->data);
     double sum = 0.0;
     for (std::size_t i = inv.domain.begin; i < inv.domain.end; ++i) {

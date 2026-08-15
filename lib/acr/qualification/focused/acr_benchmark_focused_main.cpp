@@ -1,10 +1,10 @@
 // lib/acr/qualification/focused/acr_benchmark_focused_main.cpp — 聚焦 Benchmark CLI
 //
-// 08 号计划 §4：只测目标像素 Operation 与基础传输，输出 OperationProfile。
+// 08 §4：只测目标像素 Operation 与基础传输，输出 OperationProfile。
 //
 // 用法：
-//   acr-benchmark-focused [--profile quick|standard] [--gpu] [--no-gpu]
-//                         [--output operation-profile.json]
+// acr-benchmark-focused [--profile quick|standard] [--gpu] [--no-gpu]
+// [--output operation-profile.json]
 #include "focused_benchmark.hpp"
 #include "operation_profile.hpp"
 

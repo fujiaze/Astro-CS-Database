@@ -2,23 +2,23 @@
 // ipv_ransac.cpp - IPV PROSAC 验证模块实现
 //
 // 实现:
-//   - solve_similarity_transform: 2 对匹配解析求解相似变换 (相对向量法)
-//   - umeyama_estimate: 所有内点 Umeyama SVD 闭合解 (手写 2x2 SVD)
-//   - prosac_verify: PROSAC 按 vote 降序优先采样, 尺度约束, 内点验证, Umeyama 精化
+// - solve_similarity_transform: 2 对匹配解析求解相似变换 (相对向量法)
+// - umeyama_estimate: 所有内点 Umeyama SVD 闭合解 (手写 2x2 SVD)
+// - prosac_verify: PROSAC 按 vote 降序优先采样, 尺度约束, 内点验证, Umeyama 精化
 //
 // 模型: W = s·R(θ)·U + t
-//   U = 图像侧星点 (角秒坐标, 原点图像中心)
-//   W = 星表侧星点 (角秒坐标)
-//   R = [[cos θ, -sin θ], [sin θ, cos θ]]
+// U = 图像侧星点 (角秒坐标, 原点图像中心)
+// W = 星表侧星点 (角秒坐标)
+// R = [[cos θ, -sin θ], [sin θ, cos θ]]
 //
 // 设计要点:
-//   - 2x2 SVD 手写实现 (不依赖 Eigen, 用对称矩阵特征值法)
-//   - 随机数 std::mt19937 固定种子 (42) 保证可复现性
-//   - 退化检查: 两图像点距离 < 10" 重采
-//   - 尺度约束: s ∈ [s_min, s_max] (默认 [0.95, 1.05])
-//   - 内点阈值: τ = ransac_inlier_threshold_arcsec (默认 3.0")
-//   - 成功条件: best_n_inliers >= 4 且 best_RMS < 5.0"
-//   - 日志: 模块级静态 Logger, 默认输出到 stderr
+// - 2x2 SVD 手写实现 (不依赖 Eigen, 用对称矩阵特征值法)
+// - 随机数 std::mt19937 固定种子 (42) 保证可复现性
+// - 退化检查: 两图像点距离 < 10" 重采
+// - 尺度约束: s ∈ [s_min, s_max] (默认 [0.95, 1.05])
+// - 内点阈值: τ = ransac_inlier_threshold_arcsec (默认 3.0")
+// - 成功条件: best_n_inliers >= 4 且 best_RMS < 5.0"
+// - 日志: 模块级静态 Logger, 默认输出到 stderr
 //
 // 日期: 2026-07-02
 // ============================================================================
@@ -50,11 +50,11 @@ void init_ransac_logger(const std::string& path) {
 // 内部工具: 2x2 SVD (手写, 不依赖 Eigen)
 //
 // 通过对称矩阵 A^T A 的特征值/特征向量分解得到 SVD:
-//   1. E = A^T A (对称正定 2x2)
-//   2. 特征值: λ = (tr(E)/2) ± sqrt((tr(E)/2 - e00)² + e01²)
-//   3. 奇异值: σ_i = sqrt(λ_i)
-//   4. V 的列 = E 的特征向量
-//   5. U 的列 = A·v_i / σ_i (σ_i > 0 时), 否则取正交补
+// 1. E = A^T A (对称正定 2x2)
+// 2. 特征值: λ = (tr(E)/2) ± sqrt((tr(E)/2 - e00)² + e01²)
+// 3. 奇异值: σ_i = sqrt(λ_i)
+// 4. V 的列 = E 的特征向量
+// 5. U 的列 = A·v_i / σ_i (σ_i > 0 时), 否则取正交补
 //
 // 矩阵存储: row-major [m00, m01, m10, m11]
 // 分解: A = U · diag(S) · V^T
@@ -121,11 +121,11 @@ static void svd_2x2(const double A[4], double U[4], double S[2], double V[4]) {
 // solve_similarity_transform: 从 2 对匹配求解相似变换
 //
 // 相对向量法消去平移:
-//   ΔU = U[u2] - U[u1], ΔW = W[w2] - W[w1]
-//   s = |ΔW| / |ΔU|
-//   θ = atan2(ΔW.y, ΔW.x) - atan2(ΔU.y, ΔU.x)
-//   tx = W[w1].x - s·(cos θ · U[u1].x - sin θ · U[u1].y)
-//   ty = W[w1].y - s·(sin θ · U[u1].x + cos θ · U[u1].y)
+// ΔU = U[u2] - U[u1], ΔW = W[w2] - W[w1]
+// s = |ΔW| / |ΔU|
+// θ = atan2(ΔW.y, ΔW.x) - atan2(ΔU.y, ΔU.x)
+// tx = W[w1].x - s·(cos θ · U[u1].x - sin θ · U[u1].y)
+// ty = W[w1].y - s·(sin θ · U[u1].x + cos θ · U[u1].y)
 // ===========================================================================
 SimTransform solve_similarity_transform(
     const std::vector<StarPoint>& U,
@@ -178,16 +178,16 @@ SimTransform solve_similarity_transform(
 // ===========================================================================
 // umeyama_estimate: Umeyama SVD 完整估计
 //
-// 算法 (参考 V4.4 vm44_fit.cpp 的 Umeyama 实现, 重写为 IPV 风格):
-//   1. 计算质心: mu_U = mean(U[pairs.u]), mu_W = mean(W[pairs.w])
-//   2. 中心化: U_c[i] = U[u_i] - mu_U, W_c[i] = W[w_i] - mu_W
-//   3. 协方差矩阵 H = Σ W_c[i] · U_c[i]^T  (2x2)
-//   4. SVD: H = U_svd · Σ · V_svd^T  (手写 2x2 SVD)
-//   5. S = diag(1, det(U_svd · V_svd^T))
-//   6. R = U_svd · S · V_svd^T
-//   7. s = trace(Σ · S) / Σ|U_c[i]|²
-//   8. t = mu_W - s · R · mu_U
-//   9. θ = atan2(R[1][0], R[0][0])
+// 算法 (参考 vm44_fit.cpp 的 Umeyama 实现, 重写为 IPV 风格):
+// 1. 计算质心: mu_U = mean(U[pairs.u]), mu_W = mean(W[pairs.w])
+// 2. 中心化: U_c[i] = U[u_i] - mu_U, W_c[i] = W[w_i] - mu_W
+// 3. 协方差矩阵 H = Σ W_c[i] · U_c[i]^T (2x2)
+// 4. SVD: H = U_svd · Σ · V_svd^T (手写 2x2 SVD)
+// 5. S = diag(1, det(U_svd · V_svd^T))
+// 6. R = U_svd · S · V_svd^T
+// 7. s = trace(Σ · S) / Σ|U_c[i]|²
+// 8. t = mu_W - s · R · mu_U
+// 9. θ = atan2(R[1][0], R[0][0])
 // ===========================================================================
 SimTransform umeyama_estimate(
     const std::vector<StarPoint>& U,
@@ -243,9 +243,9 @@ SimTransform umeyama_estimate(
     svd_2x2(H, Us, Ss, Vs);
 
     // 5. S = diag(1, det(U_svd · V_svd^T))
-    //    U_svd · V_svd^T (2x2, row-major):
-    //      [Us[0]·Vs[0] + Us[1]·Vs[1],  Us[0]·Vs[2] + Us[1]·Vs[3]]
-    //      [Us[2]·Vs[0] + Us[3]·Vs[1],  Us[2]·Vs[2] + Us[3]·Vs[3]]
+    // U_svd · V_svd^T (2x2, row-major):
+    // [Us[0]·Vs[0] + Us[1]·Vs[1], Us[0]·Vs[2] + Us[1]·Vs[3]]
+    // [Us[2]·Vs[0] + Us[3]·Vs[1], Us[2]·Vs[2] + Us[3]·Vs[3]]
     const double UVt_00 = Us[0] * Vs[0] + Us[1] * Vs[1];
     const double UVt_01 = Us[0] * Vs[2] + Us[1] * Vs[3];
     const double UVt_10 = Us[2] * Vs[0] + Us[3] * Vs[1];
@@ -255,7 +255,7 @@ SimTransform umeyama_estimate(
     const double S_diag[2] = {1.0, (det_UVt < 0.0) ? -1.0 : 1.0};
 
     // 6. R = U_svd · diag(S_diag) · V_svd^T
-    //    先计算 U_svd · diag(S_diag) (列乘 S_diag)
+    // 先计算 U_svd · diag(S_diag) (列乘 S_diag)
     double US[4];
     US[0] = Us[0] * S_diag[0];
     US[1] = Us[1] * S_diag[1];
@@ -293,19 +293,19 @@ SimTransform umeyama_estimate(
 // prosac_verify: PROSAC 验证主函数
 //
 // 算法:
-//   1. 初始化最优结果
-//   2. 初始池 T0 = min(max(10, |M|/4), |M|)
-//   3. 迭代 (最多 ransac_max_iter 次):
-//      a. 从前 T 个候选中随机采样 2 对不同匹配
-//      b. 退化检查: |U[u1] - U[u2]| < 10" 重采
-//      c. solve_similarity_transform 求解 (s, θ, tx, ty)
-//      d. 尺度约束: s ∈ [s_min, s_max], 否则跳过
-//      e. 内点验证: 残差 < τ 加入内点
-//      f. 更新最优 (内点数优先, RMS 次之)
-//      g. 每 10 次迭代扩展池 T
-//      h. 连续 100 次无改进且 T >= |M| 提前终止
-//   4. best_n_inliers >= 4 时用 Umeyama 精化
-//   5. 组装 PROSACResult
+// 1. 初始化最优结果
+// 2. 初始池 T0 = min(max(10, |M|/4), |M|)
+// 3. 迭代 (最多 ransac_max_iter 次):
+// a. 从前 T 个候选中随机采样 2 对不同匹配
+// b. 退化检查: |U[u1] - U[u2]| < 10" 重采
+// c. solve_similarity_transform 求解 (s, θ, tx, ty)
+// d. 尺度约束: s ∈ [s_min, s_max], 否则跳过
+// e. 内点验证: 残差 < τ 加入内点
+// f. 更新最优 (内点数优先, RMS 次之)
+// g. 每 10 次迭代扩展池 T
+// h. 连续 100 次无改进且 T >= |M| 提前终止
+// 4. best_n_inliers >= 4 时用 Umeyama 精化
+// 5. 组装 PROSACResult
 // ===========================================================================
 PROSACResult prosac_verify(
     const std::vector<StarPoint>& U,
@@ -334,7 +334,7 @@ PROSACResult prosac_verify(
     // 固定种子保证可复现性
     std::mt19937 gen(42);
 
-    // V4.10 渐进阈值: tau_wide 找候选, tau_tight 收紧验证
+    // 渐进阈值: tau_wide 找候选, tau_tight 收紧验证
     // 用户指导: "做个实验, 还可以搞成渐进阈值之类的"
     // 宽阈值找到候选解 (容纳投影畸变), 紧阈值排除错误配对
     const double tau_wide  = params.ransac_inlier_threshold_arcsec;       // 默认 3 px
@@ -342,8 +342,8 @@ PROSACResult prosac_verify(
     g_ransac_logger.infof("prosac_verify: 渐进阈值 tau_wide=%.2f px, tau_tight=%.2f px",
                           tau_wide, tau_tight);
 
-    // V4.10 诊断: 打印候选 vote 分布 (前 20 个)
-    // V4.11: vote 改为 double (支持 angle bonus), 格式串 %d → %.2f
+    // 诊断: 打印候选 vote 分布 (前 20 个)
+    // vote 改为 double (支持 angle bonus), 格式串 %d → %.2f
     {
         std::string dist = "vote分布(前20): ";
         int show_n = std::min(20, M);
@@ -363,19 +363,19 @@ PROSACResult prosac_verify(
 
     // 初始池大小: T0 = min(max(20, |M|/2), |M|)
     // 注: 原 T0 = min(max(10, |M|/4), |M|) 对小候选集过小,
-    //     增大至 M/2 让更多高票候选参与初期采样, 提高找到正确匹配对的概率。
+    // 增大至 M/2 让更多高票候选参与初期采样, 提高找到正确匹配对的概率。
     int T = std::min(std::max(20, M / 2), M);
 
     int no_improve_count = 0;
     const int max_iter = params.ransac_max_iter;
-    const double tau = tau_wide;  // V4.10: 初验用宽阈值
+    const double tau = tau_wide;  // 初验用宽阈值
     const double deg = 57.295779513082323;
 
     g_ransac_logger.infof("prosac_verify: 初始池 T0=%d", T);
 
     // === 第一阶段: 贪心枚举前 K 个高票候选的所有两两组合 ===
     // 确保最高票候选的所有配对都被尝试, 避免随机采样错过正确匹配
-    // V4.6: K_greedy 从 5 增大到 15, 覆盖更多高票候选 (extract_consensus top-3 后候选数增多)
+    // K_greedy 从 5 增大到 15, 覆盖更多高票候选 (extract_consensus top-3 后候选数增多)
     const int K_greedy = std::min(15, M);
     int greedy_pairs = 0;
     bool early_stop = false;  // 早停标志: 三阶段共享, 触发后跳过后续阶段
@@ -401,7 +401,7 @@ PROSACResult prosac_verify(
             const double cos_t = std::cos(tf.theta);
             const double sin_t = std::sin(tf.theta);
 
-            // V4.10 诊断: 第一个贪心对打印详细残差分布
+            // 诊断: 第一个贪心对打印详细残差分布
             if (greedy_pairs == 0) {
                 g_ransac_logger.infof("  诊断[第一个贪心对]: a=%d b=%d u1=%d w1=%d u2=%d w2=%d",
                                       a, b, u1, w1, u2, w2);
@@ -452,7 +452,7 @@ PROSACResult prosac_verify(
 
             if (n_inliers > best_n_inliers ||
                 (n_inliers == best_n_inliers && rms < best_RMS)) {
-                // V4.10: 渐进收紧验证 - 用 tau_tight 重新筛 inliers
+                // 渐进收紧验证 - 用 tau_tight 重新筛 inliers
                 // 排除被宽阈值放行的错误配对, 保留真实匹配
                 std::vector<MatchPair> tight_inliers;
                 double tight_sum_sq = 0.0;
@@ -472,7 +472,7 @@ PROSACResult prosac_verify(
                 const int n_tight = (int)tight_inliers.size();
                 const double rms_tight = (n_tight > 0) ? std::sqrt(tight_sum_sq / n_tight) : 1e9;
 
-                best_n_inliers   = n_tight;       // V4.10: 用收紧后的内点数
+                best_n_inliers   = n_tight;       // 用收紧后的内点数
                 best_RMS         = rms_tight;
                 best_transform   = tf;
                 best_inliers     = tight_inliers;
@@ -482,7 +482,7 @@ PROSACResult prosac_verify(
                     a, b, tf.s, tf.theta * deg, n_tight, n_inliers, rms_tight);
             }
 
-            // 早停: 找到足够好解 (V4.10: good_rms_threshold 现在是像素单位)
+            // 早停: 找到足够好解 (: good_rms_threshold 现在是像素单位)
             if (best_n_inliers >= 4 && best_RMS < params.good_rms_threshold) {
                 g_ransac_logger.infof("prosac_verify: 早停 (n_inliers=%d, RMS=%.4f < %.2f px)",
                                       best_n_inliers, best_RMS, params.good_rms_threshold);
@@ -494,11 +494,11 @@ PROSACResult prosac_verify(
     g_ransac_logger.infof("prosac_verify: 贪心阶段完成 (K=%d, 尝试 %d 对, best_inliers=%d)",
                           K_greedy, greedy_pairs, best_n_inliers);
 
-    // === 第二阶段: top-1 锚点固定枚举 (V4.6 新增) ===
+    // === 第二阶段: top-1 锚点固定枚举 ( 新增) ===
     // 固定 candidates[0] (最高票), 枚举 candidates[1..M-1] 作为第二锚点
     // 动机: NGC55_T3_01 max_vote=26 但 top-5 候选 theta 差异巨大 (-100° vs -63°),
-    //       说明 top-5 中混入错误匹配。锚点固定枚举确保最高票候选被尝试所有组合,
-    //       如果最高票是真实匹配, 正确变换必被找到。
+    // 说明 top-5 中混入错误匹配。锚点固定枚举确保最高票候选被尝试所有组合,
+    // 如果最高票是真实匹配, 正确变换必被找到。
     // 计算量: M-1 次求解, 每次 O(M) 内点验证, 总计 O(M²) ~ 22500, 非常快
     if (!early_stop) {
         const int u1 = candidates[0].u_idx, w1 = candidates[0].w_idx;
@@ -546,7 +546,7 @@ PROSACResult prosac_verify(
 
             if (n_inliers > best_n_inliers ||
                 (n_inliers == best_n_inliers && rms < best_RMS)) {
-                // V4.10: 渐进收紧验证
+                // 渐进收紧验证
                 std::vector<MatchPair> tight_inliers;
                 double tight_sum_sq = 0.0;
                 for (int k = 0; k < M; ++k) {
@@ -656,7 +656,7 @@ PROSACResult prosac_verify(
         // f. 更新最优 (内点数优先, 内点数相同时取 RMS 更小者)
         if (n_inliers > best_n_inliers ||
             (n_inliers == best_n_inliers && rms < best_RMS)) {
-            // V4.10: 渐进收紧验证
+            // 渐进收紧验证
             std::vector<MatchPair> tight_inliers;
             double tight_sum_sq = 0.0;
             for (int k = 0; k < M; ++k) {
@@ -748,7 +748,7 @@ PROSACResult prosac_verify(
         }
     }
 
-    // 5. 组装结果 (V4.10: 5.0 现在是像素单位)
+    // 5. 组装结果 (: 5.0 现在是像素单位)
     result.transform    = best_transform;
     result.inliers      = best_inliers;
     result.rms          = best_RMS;
@@ -764,7 +764,7 @@ PROSACResult prosac_verify(
 }
 
 // ===========================================================================
-// full_verify_transform: 全量验证 (V4.6 新增)
+// full_verify_transform: 全量验证 ( 新增)
 //
 // 用 PROSAC 最优变换对所有 U 中星点预测 W 中位置, 找最近邻 w,
 // 若距离 < tau 则加入内点。解决 PROSAC 只验证 candidates 导致遗漏真实匹配的问题。
@@ -841,21 +841,21 @@ std::vector<MatchPair> full_verify_transform(
 }
 
 // ===========================================================================
-// V4.16 (Task 12): iter_trans_verify — 鲁棒线性 TRANS 拟合 (PROSAC 备选路径)
+// iter_trans_verify — 鲁棒线性 TRANS 拟合 (PROSAC 备选路径)
 //
 // 算法:
-//   1. 取票数最高的 6 对 (AT_MATCH_STARTN_LINEAR=6) 起始拟合 6 参数线性 TRANS
-//   2. 6 参数仿射变换:
-//        W.x = a00*U.x + a01*U.y + tx
-//        W.y = a10*U.x + a11*U.y + ty
-//      拆分为两个独立的 3x3 正规方程 (x-row 与 y-row 独立):
-//        For x-row: [Σu.x², Σu.x*u.y, Σu.x; Σu.x*u.y, Σu.y², Σu.y; Σu.x, Σu.y, N] · [a00; a01; tx] = [Σu.x*w.x; Σu.y*w.x; Σw.x]
-//        For y-row: 同上 but RHS = [Σu.x*w.y; Σu.y*w.y; Σw.y]
-//   3. 计算所有候选对残差, 取 35% 百分位作为有效 sigma
-//   4. 剔除残差 > 10*sigma 的星对, 用剩余星对重新拟合
-//   5. 重复 5 次或直到残差变化 < 10%
-//   6. 用最终 TRANS 做全量匹配 (tau 半径)
-//   7. 转换为 SimTransform: s = sqrt(|a00*a11 - a01*a10|), θ = atan2(a10, a00)
+// 1. 取票数最高的 6 对 (AT_MATCH_STARTN_LINEAR=6) 起始拟合 6 参数线性 TRANS
+// 2. 6 参数仿射变换:
+// W.x = a00*U.x + a01*U.y + tx
+// W.y = a10*U.x + a11*U.y + ty
+// 拆分为两个独立的 3x3 正规方程 (x-row 与 y-row 独立):
+// For x-row: [Σu.x², Σu.x*u.y, Σu.x; Σu.x*u.y, Σu.y², Σu.y; Σu.x, Σu.y, N] · [a00; a01; tx] = [Σu.x*w.x; Σu.y*w.x; Σw.x]
+// For y-row: 同上 but RHS = [Σu.x*w.y; Σu.y*w.y; Σw.y]
+// 3. 计算所有候选对残差, 取 35% 百分位作为有效 sigma
+// 4. 剔除残差 > 10*sigma 的星对, 用剩余星对重新拟合
+// 5. 重复 5 次或直到残差变化 < 10%
+// 6. 用最终 TRANS 做全量匹配 (tau 半径)
+// 7. 转换为 SimTransform: s = sqrt(|a00*a11 - a01*a10|), θ = atan2(a10, a00)
 // ===========================================================================
 namespace {
 
@@ -906,9 +906,9 @@ LinearTrans fit_linear_trans(
 
     // 构建正规方程 A^T A x = A^T b (两个独立 3x3 系统)
     // 系数矩阵 (x-row 和 y-row 共用):
-    //   [Σu.x², Σu.x*u.y, Σu.x;
-    //    Σu.x*u.y, Σu.y², Σu.y;
-    //    Σu.x, Σu.y, N]
+    // [Σu.x², Σu.x*u.y, Σu.x;
+    // Σu.x*u.y, Σu.y², Σu.y;
+    // Σu.x, Σu.y, N]
     double M[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
     double bx[3] = {0, 0, 0};
     double by[3] = {0, 0, 0};
@@ -955,7 +955,7 @@ inline double residual_px(
 }
 
 // ===========================================================================
-// V4.17: IterTransResult - iter_trans_inner 返回值
+// IterTransResult - iter_trans_inner 返回值
 // ===========================================================================
 struct IterTransResult {
     LinearTrans lt;                    // 最终拟合的线性变换
@@ -970,28 +970,28 @@ struct IterTransResult {
 // iter_trans_inner: sigma-clip 迭代核心
 //
 // 算法:
-//   1. 初始 TRANS: calc_trans(initial_pairs=6 or nbright, ...) — 6 对 12 方程过约束最小二乘
-//      (不使用 2 对解析解, 因 2 对精确解会导致 sigma=0 过早收敛)
-//   2. 循环 (最多 5 次):
-//      a) fit_linear_trans(working_set) → lt
-//      b) 计算所有候选对残差平方 dist2[k] (IPV 扩展: 算全部 M 候选, 原实现只算 nr 个)
-//      c) 绝对阈值剔除: dist2 > MAX_DIST² -> bad  [AT_MATCH_MAXDIST]
-//      d) sigma = 35% 百分位 (dist² 单位, 四舍五入索引)  [find_percentile]
-//      e) 若 sigma <= HALT_SIGMA: 设 is_ok=true (但不立即退出!)  [break 被注释]
-//      f) 相对阈值剔除: dist2 > min((tau*5)², 10*sigma) → bad  [IPV 双阈值]
-//      g) nb = 本轮剔除数
-//      h) 若 nb == 0: 设 is_ok=true (但不立即退出!)  [break 被注释]
-//      i) 收集剩余星对 new_set, nr = |new_set|
-//      j) 若 nr < REQUIRED_PAIRS (3): 失败, 退出  [is_ok=0; break]
-//      k) working_set = new_set
-//      l) 若 is_ok: 成功退出 (在循环顶部, 而非 sigma/nb 检查处)
-//   3. 达到最大迭代: 保留为候选 (IPV 容错, 原实现视为成功)
+// 1. 初始 TRANS: calc_trans(initial_pairs=6 or nbright, ...) — 6 对 12 方程过约束最小二乘
+// (不使用 2 对解析解, 因 2 对精确解会导致 sigma=0 过早收敛)
+// 2. 循环 (最多 5 次):
+// a) fit_linear_trans(working_set) → lt
+// b) 计算所有候选对残差平方 dist2[k] (IPV 扩展: 算全部 M 候选, 原实现只算 nr 个)
+// c) 绝对阈值剔除: dist2 > MAX_DIST² -> bad [AT_MATCH_MAXDIST]
+// d) sigma = 35% 百分位 (dist² 单位, 四舍五入索引) [find_percentile]
+// e) 若 sigma <= HALT_SIGMA: 设 is_ok=true (但不立即退出!) [break 被注释]
+// f) 相对阈值剔除: dist2 > min((tau*5)², 10*sigma) → bad [IPV 双阈值]
+// g) nb = 本轮剔除数
+// h) 若 nb == 0: 设 is_ok=true (但不立即退出!) [break 被注释]
+// i) 收集剩余星对 new_set, nr = |new_set|
+// j) 若 nr < REQUIRED_PAIRS (3): 失败, 退出 [is_ok=0; break]
+// k) working_set = new_set
+// l) 若 is_ok: 成功退出 (在循环顶部, 而非 sigma/nb 检查处)
+// 3. 达到最大迭代: 保留为候选 (IPV 容错, 原实现视为成功)
 //
-// 关键修复 (V2):
-//   - 移除 initial_lt 参数 (从不用 2 对解析解)
-//   - HALT_SIGMA / nb==0 设 is_ok 标志, 不立即返回
-//   - find_percentile 用四舍五入 (floor(num*perc+0.5))
-//   - is_ok 在循环顶部退出 (在 calc_trans 重拟合后)
+// 关键修复 :
+// - 移除 initial_lt 参数 (从不用 2 对解析解)
+// - HALT_SIGMA / nb==0 设 is_ok 标志, 不立即返回
+// - find_percentile 用四舍五入 (floor(num*perc+0.5))
+// - is_ok 在循环顶部退出 (在 calc_trans 重拟合后)
 // ===========================================================================
 IterTransResult iter_trans_inner(
     const std::vector<StarPoint>& U,
@@ -1043,9 +1043,9 @@ IterTransResult iter_trans_inner(
                           (int)working_set.size(), M, tau);
 
     // 2. sigma-clip 迭代
-    //    关键: dist2 只对 working_set 计算 (不扩展到全部 M 候选)
-    //    nr = nbright (working_set 大小), dist2 只算 nr 个
-    //    全量匹配由 atMatchLists 负责, iter_trans 只负责精化 working_set
+    // 关键: dist2 只对 working_set 计算 (不扩展到全部 M 候选)
+    // nr = nbright (working_set 大小), dist2 只算 nr 个
+    // 全量匹配由 atMatchLists 负责, iter_trans 只负责精化 working_set
     bool is_ok = false;  // is_ok 标志
     const double max_dist2 = MAX_DIST * MAX_DIST;
 
@@ -1062,7 +1062,7 @@ IterTransResult iter_trans_inner(
         result.lt = lt;
 
         // b) 计算 working_set 对的残差平方 (只算 nr 个, 不扩展到 M)
-        //    for (i=0; i<nr; i++) dist2[i] = |a_prime[i] - B[i]|²
+        // for (i=0; i<nr; i++) dist2[i] = |a_prime[i] - B[i]|²
         std::vector<double> dist2(nr);
         for (int k = 0; k < nr; ++k) {
             double r = residual_px(U, W, lt,
@@ -1102,7 +1102,7 @@ IterTransResult iter_trans_inner(
         result.sigma = sigma;
 
         // e) HALT_SIGMA 检查 (设 is_ok=true, 不立即退出!)
-        //    源码: if (sigma <= halt_sigma) { is_ok = 1; /* break; 注释掉 */ }
+        // 源码: if (sigma <= halt_sigma) { is_ok = 1; /* break; 注释掉 */ }
         if (sigma <= HALT_SIGMA) {
             is_ok = true;
             g_ransac_logger.infof("iter_trans_inner iter=%d: sigma=%.6f <= %.1f, 标记 is_ok (继续相对阈值)",
@@ -1110,7 +1110,7 @@ IterTransResult iter_trans_inner(
         }
 
         // f) 相对阈值剔除 (IPV 双阈值, 保留优势: min((tau*5)², 10*sigma))
-        //    原实现只有 10*sigma; IPV 加 abs_thresh 防止 sigma 膨胀时误剔
+        // 原实现只有 10*sigma; IPV 加 abs_thresh 防止 sigma 膨胀时误剔
         double rel_thresh_sq = SIGMA_CLIP_FACTOR * sigma;
         double abs_thresh_sq = (tau * ABS_CLIP_FACTOR) * (tau * ABS_CLIP_FACTOR);
         double clip_thresh_sq = std::min(abs_thresh_sq, rel_thresh_sq);
@@ -1129,7 +1129,7 @@ IterTransResult iter_trans_inner(
                               abs_thresh_sq, rel_thresh_sq, nb_abs, nb_rel, nb, is_ok ? 1 : 0);
 
         // g) nb == 0 检查 (设 is_ok=true, 不立即退出!)
-        //    源码: if (nb == 0) { is_ok = 1; /* break; 注释掉 */ }
+        // 源码: if (nb == 0) { is_ok = 1; /* break; 注释掉 */ }
         if (nb == 0) {
             is_ok = true;
         }
@@ -1156,9 +1156,9 @@ IterTransResult iter_trans_inner(
         working_set = std::move(new_set);
 
         // k) is_ok -> 成功退出 (iters_so_far++; if (is_ok) break)
-        //    注意: 这里在 working_set 更新后退出, 下次循环会用新的 working_set 重拟合
-        //    即 is_ok 时仍然重拟合一次
-        //    严格遵循: is_ok 时重拟合一次再退出
+        // 注意: 这里在 working_set 更新后退出, 下次循环会用新的 working_set 重拟合
+        // 即 is_ok 时仍然重拟合一次
+        // 严格遵循: is_ok 时重拟合一次再退出
         if (is_ok) {
             // 重拟合一次 (calc_trans(nr, ...))
             LinearTrans final_lt = fit_linear_trans(U, W, working_set);
@@ -1189,11 +1189,11 @@ IterTransResult iter_trans_inner(
 // at_match_lists: 用 TRANS 变换 U, 在 W 中找 radius 内最近邻
 //
 // 算法:
-//   1. 对每个 U[u], 用 lt 变换得到 (pred_x, pred_y)
-//   2. 在 W 中找最近邻 (radius 内)
-//   3. 收集所有 (u, w, dist) 对
-//   4. 按距离升序排序
-//   5. 贪心分配 w (避免一个 w 匹配多个 u)
+// 1. 对每个 U[u], 用 lt 变换得到 (pred_x, pred_y)
+// 2. 在 W 中找最近邻 (radius 内)
+// 3. 收集所有 (u, w, dist) 对
+// 4. 按距离升序排序
+// 5. 贪心分配 w (避免一个 w 匹配多个 u)
 // ===========================================================================
 std::vector<MatchPair> at_match_lists(
     const std::vector<StarPoint>& U,
@@ -1287,8 +1287,8 @@ PROSACResult iter_trans_verify(
     }
 
     // 2. 多组采样 (IPV 优势, 保留): 3 组, 每组 6 对
-    //    单组 top 6 对, 若包含错配则失败; IPV 3 组提高成功率
-    //    移除原 2 对预验证 (C(20,2)=190 组合), 直接用 6 对最小二乘
+    // 单组 top 6 对, 若包含错配则失败; IPV 3 组提高成功率
+    // 移除原 2 对预验证 (C(20,2)=190 组合), 直接用 6 对最小二乘
     const int N_GROUPS = 3;
     const int N_START  = 6;  // AT_MATCH_STARTN_LINEAR
 
@@ -1365,7 +1365,7 @@ PROSACResult iter_trans_verify(
         return result;
     }
 
-    // 3. atMatchLists 全量匹配 (用最优 TRANS)  [P3 吸纳]
+    // 3. atMatchLists 全量匹配 (用最优 TRANS) [P3 吸纳]
     const double tau = params.ransac_inlier_threshold_arcsec;
     std::vector<MatchPair> matched = at_match_lists(U, W, best_result.lt, tau);
 
@@ -1376,8 +1376,8 @@ PROSACResult iter_trans_verify(
         return result;
     }
 
-    // 4. atRecalcTrans 二轮精化 (用匹配对重新 iter_trans)  [P3 吸纳]
-    //    recalc_flag=true: 用全部匹配对 (不是只有 6 对)
+    // 4. atRecalcTrans 二轮精化 (用匹配对重新 iter_trans) [P3 吸纳]
+    // recalc_flag=true: 用全部匹配对 (不是只有 6 对)
     std::vector<CandidateMatch> matched_as_cands;
     matched_as_cands.reserve(matched.size());
     for (const auto& mp : matched) {
@@ -1413,10 +1413,10 @@ PROSACResult iter_trans_verify(
     }
 
     // 6. 转换线性 TRANS → SimTransform
-    //   相似变换是仿射变换的特例:
-    //     a00 = s*cos(θ), a01 = -s*sin(θ)
-    //     a10 = s*sin(θ), a11 = s*cos(θ)
-    //   s = sqrt(|a00*a11 - a01*a10|), θ = atan2(a10, a00)
+    // 相似变换是仿射变换的特例:
+    // a00 = s*cos(θ), a01 = -s*sin(θ)
+    // a10 = s*sin(θ), a11 = s*cos(θ)
+    // s = sqrt(|a00*a11 - a01*a10|), θ = atan2(a10, a00)
     double det = final_lt.a00 * final_lt.a11 - final_lt.a01 * final_lt.a10;
     double s_est = std::sqrt(std::abs(det));
     double theta_est = std::atan2(final_lt.a10, final_lt.a00);
@@ -1425,7 +1425,7 @@ PROSACResult iter_trans_verify(
     sim_tf.s     = s_est;
     sim_tf.theta = theta_est;
     // 用质心法计算平移 (与 Umeyama 风格一致)
-    //   W = s·R(θ)·U + t  ⇒  t = mean(W) - s·R(θ)·mean(U)
+    // W = s·R(θ)·U + t ⇒ t = mean(W) - s·R(θ)·mean(U)
     if (!matched.empty()) {
         double mu_Ux = 0, mu_Uy = 0, mu_Wx = 0, mu_Wy = 0;
         for (const auto& mp : matched) {
@@ -1444,7 +1444,7 @@ PROSACResult iter_trans_verify(
     }
     sim_tf.valid = true;
 
-    // 7. Umeyama 精化 (内点 >= 4 时)  [保留 IPV 优势]
+    // 7. Umeyama 精化 (内点 >= 4 时) [保留 IPV 优势]
     if ((int)matched.size() >= 4) {
         SimTransform ume = umeyama_estimate(U, W, matched);
         if (ume.valid && ume.s >= params.s_min && ume.s <= params.s_max) {
@@ -1460,7 +1460,7 @@ PROSACResult iter_trans_verify(
         }
     }
 
-    // 8. 尺度约束检查  [保留 IPV 优势]
+    // 8. 尺度约束检查 [保留 IPV 优势]
     bool s_in_range = (sim_tf.s >= params.s_min && sim_tf.s <= params.s_max);
 
     // 9. 计算 RMS (用最终 sim_tf)

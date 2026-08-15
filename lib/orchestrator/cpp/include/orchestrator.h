@@ -1,12 +1,12 @@
 // ============================================================================
 // orchestrator.h - 编排器核心类
 // 功能: 管理管线阶段 (CALIBRATE -> PLATESOLVE -> PSF -> PHOTOMETRIC -> DRIZZLE)
-//       支持单帧/批处理、暂停/恢复/中断、检查点续传
+// 支持单帧/批处理、暂停/恢复/中断、检查点续传
 // 用途: 作为各 C++ DLL 模块的统一调度入口
 //
 // 设计说明:
-//   本类为骨架实现, 各 run_stage_* 方法的具体逻辑将在后续 Task 中通过
-//   动态加载各模块 DLL 实现。当前版本仅输出日志, 返回成功。
+// 本类为骨架实现, 各 run_stage_* 方法的具体逻辑将在后续 Task 中通过
+// 动态加载各模块 DLL 实现。当前版本仅输出日志, 返回成功。
 // ============================================================================
 
 #pragma once
@@ -48,16 +48,16 @@ enum class PipelineStage {
 // ============================================================================
 // 新版管线阶段枚举 (spec §2.3.2 两段流水线 10 节点)
 // 2026-07-18: 归档 GRADIENT_2D 节点 (stage1 不做曲面拟合和图像亮度修正,
-//             那是 stage2 马赛克阶段的事; PHOTOMETRIC 已完成测光坐标系校准)
+// 那是 stage2 马赛克阶段的事; PHOTOMETRIC 已完成测光坐标系校准)
 // 2026-08-03: 新增 HISS_VERIFY 阶段 (LEGACY: drizzle 后验证 .hiss 文件完整性,
-//             仅 validation.legacy_hiss_compare=true 时执行, 正式验证为 HIPS_VERIFY)
+// 仅 validation.legacy_hiss_compare=true 时执行, 正式验证为 HIPS_VERIFY)
 // 供 stage1/stage2 CLI 命令使用
 // 第一段: 单帧预处理 (stage 0-7, FITS -> calibrated/solved frame -> HEALPix Drizzle -> IVOA HiPS;
-//         legacy .hiss 仅 validation.legacy_hiss_compare=true 时写出)
+// legacy .hiss 仅 validation.legacy_hiss_compare=true 时写出)
 // 第二段: 多帧合并 (stage 8-9, .hiss -> .hcsd)
 // 2026-08-07 (Phase1 Full Freeze v2): 重排星点链 —
-//   PSF/STAR_MEASURE 必须先于 PLATESOLVE (单次权威检测 + instrumental flux),
-//   PLATESOLVE 消费同一批星 (ipv_solve_from_detections_v1), 禁止 PlateSolve 重检测。
+// PSF/STAR_MEASURE 必须先于 PLATESOLVE (单次权威检测 + instrumental flux),
+// PLATESOLVE 消费同一批星 (ipv_solve_from_detections_v1), 禁止 PlateSolve 重检测。
 // ============================================================================
 enum class PipelineStageV2 {
     // 第一段: 单帧预处理
@@ -69,18 +69,18 @@ enum class PipelineStageV2 {
     SNR             = 5,  // snr_estimator.dll (异常值剔除 + 测光不确定度 + 帧SNR基准)
     NSIDE           = 6,  // 计算/验证 HEALPix NSIDE (auto 推导或 explicit 校验)
     DRIZZLE         = 7,  // healpix_drizzle.dll (nside 1-2x, SNR同步转换, 落盘 .hiss)
-    HIPS_VERIFY     = 8,  // Phase1 V3: 验证 HiPS 产品集 (signal/support/snr, AIO Reader)
+    HIPS_VERIFY     = 8,  // Phase1 : 验证 HiPS 产品集 (signal/support/snr, AIO Reader)
     HISS_VERIFY     = 9,  // legacy: 验证 .hiss 文件完整性 (仅 validation 模式)
     BROWSER_VERIFY  = 10  // Browser 后端双精度读取/查询验证 (Qt GUI 另有独立测试)
-    // V17: legacy Stage2 (GRADIENT_SPHERE/STACK = healpix_stack) removed
+    // legacy Stage2 (GRADIENT_SPHERE/STACK = healpix_stack) removed
 };
 
 // ============================================================================
-// 精度模式 (R10: FP32/FP64 双模式)
+// 精度模式 (: FP32/FP64 双模式)
 // FP32 (默认): signal 子块为 IEEE 754 binary32 (float)
-// FP64:        signal 子块为 IEEE 754 binary64 (double), 精度模式写入 HISS metadata
-//              drizzle engine 内部已用 double 累加, FP64 模式下 signal 输出 float64
-//              (通过 hp_drizzle_run precision_mode 参数传递, HissWriter::add_tile_f64 输出)
+// FP64: signal 子块为 IEEE 754 binary64 (double), 精度模式写入 HISS metadata
+// drizzle engine 内部已用 double 累加, FP64 模式下 signal 输出 float64
+// (通过 hp_drizzle_run precision_mode 参数传递, HissWriter::add_tile_f64 输出)
 // ============================================================================
 enum class PrecisionMode : uint8_t {
     FP32 = 0,  // IEEE 754 binary32 (默认)
@@ -184,8 +184,8 @@ struct TaskResult {
     std::vector<StageTiming> timings;
     std::map<std::string, std::string> wcs_fields;   // WCS 字段
     std::map<std::string, std::string> photo_stats;  // 测光统计
-    std::string output_hiss_path;                    // CFG-011: 修复 (原 output_ahpx_path); V5 起仅 legacy 模式填充
-    std::string output_hips_path;                    // V5 CFG-002: 正式输出 HiPS 目录
+    std::string output_hiss_path;                    // CFG-011: 修复 (原 output_ahpx_path); 起仅 legacy 模式填充
+    std::string output_hips_path;                    // CFG-002: 正式输出 HiPS 目录
     std::string error_msg;
     // P03-003: 进程退出码 (AstroCsExitCode::SUCCESS=0 表示成功, 非零表示具体错误)
     // 失败时由各 stage handler 设置对应错误码, 由 cli_command 直接返回
@@ -215,7 +215,7 @@ struct OrchestratorConfig {
     // true: 取消/超时时保留已生成的部分输出 (标记 partial=true)
     bool allow_partial_output = false;
 
-    // R10: 精度模式 (FP32 默认, FP64 高精度模式)
+    // 精度模式 (FP32 默认, FP64 高精度模式)
     // 传播到 drizzle 和 HISS 写入, 写入 .hiss metadata 的 precision_mode 字段
     PrecisionMode precision = PrecisionMode::FP32;
 };
@@ -227,7 +227,7 @@ class Orchestrator {
 public:
     Orchestrator();
 
-    // R11: typed Stage1Config 直接驱动 (无 compat flat JSON 桥)
+    // typed Stage1Config 直接驱动 (无 compat flat JSON 桥)
     void set_stage1_config(const Stage1Config& cfg);
     ~Orchestrator();
 
@@ -269,10 +269,10 @@ public:
     // P04-004: 设置是否允许 partial 输出 (取消/超时时保留部分结果)
     void set_allow_partial_output(bool allow) { config_.allow_partial_output = allow; }
 
-    // R10: 设置精度模式 (FP32/FP64), 传播到 drizzle 和 HISS 写入
+    // 设置精度模式 (FP32/FP64), 传播到 drizzle 和 HISS 写入
     void set_precision(PrecisionMode mode) { config_.precision = mode; }
 
-    // R10: 获取当前精度模式
+    // 获取当前精度模式
     PrecisionMode get_precision() const { return config_.precision; }
 
     // P04-004: 取消 token - 请求取消当前运行
@@ -310,16 +310,16 @@ public:
 
     // stage1: 单帧预处理 (FITS -> HiPS, stage 0-7)
     // 参数:
-    //   fits_path: 输入 FITS 文件路径
-    //   output_hips: 正式输出 HiPS 目录 (legacy .hiss 仅 validation 模式)
-    // R11: 唯一正式入口 (typed 配置直接驱动)
+    // fits_path: 输入 FITS 文件路径
+    // output_hips: 正式输出 HiPS 目录 (legacy .hiss 仅 validation 模式)
+    // 唯一正式入口 (typed 配置直接驱动)
     TaskResult run_stage1(const Stage1Config& cfg);
 
     // stage2: 多帧合并 (.hiss -> .hcsd, stage 8-9)
     // 参数:
-    //   hiss_dir: 输入 .hiss 文件目录 (目录下所有 .hiss 文件作为输入)
-    //   output_hcsd: 输出 .hcsd 文件路径
-    //   config_json: stage2 配置 JSON (含 stack 参数等)
+    // hiss_dir: 输入 .hiss 文件目录 (目录下所有 .hiss 文件作为输入)
+    // output_hcsd: 输出 .hcsd 文件路径
+    // config_json: stage2 配置 JSON (含 stack 参数等)
     // 返回: TaskResult (success=true 表示 GRADIENT_SPHERE + STACK 全部成功)
     TaskResult run_stage2(const std::string& hiss_dir,
                           const std::string& output_hcsd,
@@ -367,9 +367,9 @@ private:
     std::string current_fits_path_;
     // 当前 stage1 正式输出 HiPS 目录 (run_stage_drizzle 使用)
     std::string current_output_path_;
-    // Phase1 V3: 当前 stage1 HiPS 产品集根目录
+    // Phase1 : 当前 stage1 HiPS 产品集根目录
     std::string current_hips_dir_;
-    // V5 CFG-002: legacy .hiss 路径 (仅 legacy_hiss_compare=true 时非空)
+    // CFG-002: legacy .hiss 路径 (仅 legacy_hiss_compare=true 时非空)
     std::string legacy_hiss_path_;
     // stage2 输入 .hiss 文件列表 (run_stage_gradient_sphere / run_stage_stack 使用)
     std::vector<std::string> stage2_hiss_files_;
@@ -377,11 +377,11 @@ private:
     std::string current_output_hcsd_;
     // 当前 stage 配置 JSON (run_stage1/stage2 参数, 供 stage handler 读取)
     // GAP-016/GAP-017: run_stage_drizzle 读 nside_strategy/nside_override,
-    //                  run_stage_gradient_sphere 读 sigma_clip_method 等
+    // run_stage_gradient_sphere 读 sigma_clip_method 等
     std::string current_config_json_;
-    // R11: typed Stage1 配置 (正式入口直接驱动, 替代 flat 字符串)
+    // typed Stage1 配置 (正式入口直接驱动, 替代 flat 字符串)
     std::unique_ptr<Stage1Config> stage1_cfg_;
-    // R11: NSIDE 阶段计算/验证结果 (供 DRIZZLE 与证据引用)
+    // NSIDE 阶段计算/验证结果 (供 DRIZZLE 与证据引用)
     int nside_used_ = 0;
     // P03-002: 从 config 解析的 Gaia 数据目录 (init_platesolve_env 使用)
     // 2026-08-05 规范: 数据库位置必须由 stage1.json 的 gaia_data_dir 引入,
@@ -391,8 +391,8 @@ private:
     // ========================================================================
     // PLATESOLVE 环境资源 (ipv_solver + gaia_client + star_detector)
     // 说明: ipv_solver.dll 依赖 gaia_client.dll 与 star_detector.dll 的句柄,
-    //       这些 DLL 不在 DllLoader 的 10 模块枚举中, 需在 run_stage_platesolve
-    //       首次执行时单独加载并创建句柄, 复用至 Orchestrator 析构.
+    // 这些 DLL 不在 DllLoader 的 10 模块枚举中, 需在 run_stage_platesolve
+    // 首次执行时单独加载并创建句柄, 复用至 Orchestrator 析构.
     // ========================================================================
     std::string project_root_dir_;            // 项目根目录 (相对路径解析基准)
     void* gaia_client_dll_handle_ = nullptr;  // gaia_client.dll 的 HMODULE
@@ -422,14 +422,14 @@ private:
     // stage 6: NSIDE (计算/验证 HEALPix NSIDE)
     bool run_stage_nside(TaskResult& result);
     // stage 7: HISS_VERIFY (LEGACY: 验证 legacy .hiss 文件完整性,
-    //           仅 validation.legacy_hiss_compare=true 时执行)
-    // R10: 同时验证 metadata 中 precision_mode 与请求一致
+    // 仅 validation.legacy_hiss_compare=true 时执行)
+    // 同时验证 metadata 中 precision_mode 与请求一致
     bool run_stage_hiss_verify(TaskResult& result);
-    // Phase1 V3: HIPS_VERIFY (AIO HiPS Reader 验证 signal/support/snr 产品集)
+    // Phase1 : HIPS_VERIFY (AIO HiPS Reader 验证 signal/support/snr 产品集)
     bool run_stage_hips_verify(TaskResult& result);
     // stage 9: BROWSER_VERIFY (Browser 后端双精度读取/查询验证)
     bool run_stage_browser_verify(TaskResult& result);
-    // V17: legacy Stage2 handlers removed (Phase2 = astrocs-stage2)
+    // legacy Stage2 handlers removed (Phase2 = astrocs-stage2)
 
     // 辅助方法
     static std::string stage_name(PipelineStage stage);

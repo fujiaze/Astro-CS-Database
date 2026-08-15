@@ -1,10 +1,10 @@
 // lib/acr/qualification/focused/operation_profile.cpp — OperationProfile 序列化/校验
 //
-// 聚焦版 v2（08 号计划 §1/§7）：
-//   - 使用 nlohmann/json 做可靠对象层级解析（禁止字符串搜索同名键）；
-//   - 完整 roundtrip：CPU/GPU 曲线、transfer、memory、eligibility、nullable 阈值、
-//     GPU 数组与指纹逐字段一致；
-//   - 指纹来自实际运行环境（编译器宏 + 内核函数地址 hash）。
+// 聚焦版 v2（08 §1/§7）：
+// - 使用 nlohmann/json 做可靠对象层级解析（禁止字符串搜索同名键）；
+// - 完整 roundtrip：CPU/GPU 曲线、transfer、memory、eligibility、nullable 阈值、
+// GPU 数组与指纹逐字段一致；
+// - 指纹来自实际运行环境（编译器宏 + 内核函数地址 hash）。
 #include "operation_profile.hpp"
 
 #include <nlohmann/json.hpp>

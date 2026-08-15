@@ -5,14 +5,14 @@
 // 重叠 (1e-8~1e-4 目标像素面积) 会漏判真实相交。
 //
 // 本 Oracle:
-//   1. 独立真值 (不调用生产 overlap/候选):
-//      - 大圆弧边-边严格交叉检测 (交点在两弧内部);
-//      - 严格点包含 (顶点在多边形内部);
-//      → 凸多边形相交 ⟺ 存在边交叉或顶点包含。
-//   2. 构造 sliver band drop (沿目标像素边界, 重叠面积比例 1e-8~1e-4),
-//      相切 (w_in=0), 旋转交叉 band;
-//   3. 生产侧: query_candidate_pixels_fast 必须包含目标像素,
-//      compute_overlap_area > 0 ⟺ 独立真值相交 (false negative=0)。
+// 1. 独立真值 (不调用生产 overlap/候选):
+// - 大圆弧边-边严格交叉检测 (交点在两弧内部);
+// - 严格点包含 (顶点在多边形内部);
+// → 凸多边形相交 ⟺ 存在边交叉或顶点包含。
+// 2. 构造 sliver band drop (沿目标像素边界, 重叠面积比例 1e-8~1e-4),
+// 相切 (w_in=0), 旋转交叉 band;
+// 3. 生产侧: query_candidate_pixels_fast 必须包含目标像素,
+// compute_overlap_area > 0 ⟺ 独立真值相交 (false negative=0)。
 //
 // 覆盖: nside 2^14~2^22; face 内/边/角; pixfrac 0.6/0.8/1.0 (band 长度收缩)。
 // ============================================================================
@@ -180,9 +180,9 @@ int main() {
             // 边弧长
             double L = ang(tgt[0], tgt[1]);
             // sliver 绝对值须高于 S-H 数值噪声 (~1e-19):
-            //   nside=2^22: 仅 f=1e-4 (w_in×L≈5.9e-18)
-            //   nside=2^18: f≤1e-6  (≈9.5e-18)
-            //   nside≤2^16: f≤1e-8  (≥1.5e-17)
+            // nside=2^22: 仅 f=1e-4 (w_in×L≈5.9e-18)
+            // nside=2^18: f≤1e-6 (≈9.5e-18)
+            // nside≤2^16: f≤1e-8 (≥1.5e-17)
             const double* fracs;
             int n_f = 0;
             double fracs_a[] = {1e-4, 1e-6, 1e-8};

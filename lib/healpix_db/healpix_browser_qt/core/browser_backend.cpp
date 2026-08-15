@@ -24,7 +24,7 @@
 // 构造 / 析构
 // ============================================================================
 
-// R10 forward declaration
+// forward declaration
 static bool detect_fp64_from_meta(const char* meta_json);
 
 BrowserBackend::BrowserBackend()
@@ -163,7 +163,7 @@ int BrowserBackend::open_file(const std::string& path) {
     // 重置 HISS Header (避免旧文件 Header 残留)
     hiss_header_ = HissHeader{};
     hiss_header_loaded_ = false;
-    // R10: 重置精度模式标志 (避免旧文件残留)
+    // 重置精度模式标志 (避免旧文件残留)
     is_fp64_ = false;
 
     // 读取前 4 字节 Magic 判断格式
@@ -187,11 +187,11 @@ int BrowserBackend::open_file(const std::string& path) {
         std::memcmp(magic, "ACSH", 4) == 0) {
         // 单帧模式 - 按需加载: 只读 Header/Tile 目录, 不加载像素数据
         // WP-H: "ACSH" 是新 HISS 格式 (8字节 MAGIC "ACSHISS\0") 的前4字节
-        //        "HISS" 是旧格式, 两者均由 HissReader 统一处理
+        // "HISS" 是旧格式, 两者均由 HissReader 统一处理
         // 规范要求: Browser 打开 HISS 时先读 Header/目录, 不加载整文件; 按视野读取 Tile
-        //   - 旧方案 aio_hiss_read: 全量加载所有像素 (内存随文件大小线性增长)
-        //   - 新方案 aio_hiss_inspect: 只读 Header + Tile 目录 (NSIDE/Tile数/元数据)
-        //   - load_leaf 时按 parent_ipix 调用 aio_hiss_read_tile_signal 按需读取
+        // - 旧方案 aio_hiss_read: 全量加载所有像素 (内存随文件大小线性增长)
+        // - 新方案 aio_hiss_inspect: 只读 Header + Tile 目录 (NSIDE/Tile数/元数据)
+        // - load_leaf 时按 parent_ipix 调用 aio_hiss_read_tile_signal 按需读取
         is_hiss_ = true;
         uint32_t nside = 0, tile_nside = 0, depth = 0, n_leaf_per_tile = 0;
         uint64_t n_tiles = 0, n_pix_total = 0;
@@ -238,7 +238,7 @@ int BrowserBackend::open_file(const std::string& path) {
                 }
                 filter_ = val;
             }
-            // R10: 检测精度模式 (signal_dtype=1 或 precision_mode="fp64")
+            // 检测精度模式 (signal_dtype=1 或 precision_mode="fp64")
             is_fp64_ = detect_fp64_from_meta(meta_json);
             hiss_header_.meta_json = meta_json;
             aio_hio_free(meta_json);
@@ -258,7 +258,7 @@ int BrowserBackend::open_file(const std::string& path) {
     } else if (std::memcmp(magic, "HCSD", 4) == 0) {
         // 球面模式 - 仅读取元信息, 不全量加载像素数据
         // 注: healpix_io 未提供单独读头的 API, 用 hcsd_read 一次读取后立即释放像素数据
-        //     (索引表已 O(1) 定位, 按需 hcsd_read_leaf 加载子叶)
+        // (索引表已 O(1) 定位, 按需 hcsd_read_leaf 加载子叶)
         is_hiss_ = false;
         uint32_t nside = 0;
         int nested = 0;
@@ -325,7 +325,7 @@ void BrowserBackend::close_file() {
     // 重置 HISS Header (按需模式状态)
     hiss_header_ = HissHeader{};
     hiss_header_loaded_ = false;
-    // R10: 重置精度模式标志
+    // 重置精度模式标志
     is_fp64_ = false;
 }
 
@@ -447,7 +447,7 @@ uint32_t BrowserBackend::decide_target_nside(const ViewParams& view,
 
     // HEALPix 像素角分辨率: θ_hp = 360 / sqrt(12 * nside²) 度
     // 求 θ_hp = theta_screen 时的 nside:
-    //   nside = 360 / (theta_screen * sqrt(12)) = 58.6 / theta_screen (近似)
+    // nside = 360 / (theta_screen * sqrt(12)) = 58.6 / theta_screen (近似)
     // 略大于屏幕: 用 theta_screen * 1.0 (像素 ≈ 屏幕, 不超采样)
     double nside_ideal = 58.6 / theta_screen;
 
@@ -490,7 +490,7 @@ LeafData BrowserBackend::load_leaf(uint64_t leaf_ipix, uint32_t target_nside) {
     if (is_hiss_) {
         // 按需加载: 调用 aio_hiss_read_tile_signal 读取 Tile signal
         // B19: leaf_ipix 已是 tile_nside 层的 ipix (get_required_leaves 用
-        //      hiss_header_.tile_nside 空间查询返回), 直接作为 parent_ipix
+        // hiss_header_.tile_nside 空间查询返回), 直接作为 parent_ipix
         // 每个 Tile 含 n_leaf_per_tile = 4^depth 个像素 (NESTED 排序)
         result.n_pix = 0;
         result.nside = nside_;
@@ -617,10 +617,10 @@ LeafData BrowserBackend::ud_grade(const LeafData& input, uint32_t target_nside,
     double inv_range = 255.0 / range;
 
     // B20: signal = 累计通量 (HISS 规范: 不除面积), LOD 降采样必须求和
-    //   合并后大像素的累计通量 = 4^k 个子像素累计通量之和
-    //   (若取平均会丢失面积信息, 违反 HISS signal 语义)
+    // 合并后大像素的累计通量 = 4^k 个子像素累计通量之和
+    // (若取平均会丢失面积信息, 违反 HISS signal 语义)
     // 注: support 是面积比 [0,255] uint8, 应独立按面积求和后归一化处理,
-    //     不在此函数中 (本函数仅处理 signal 路径, input.pixel 为 signal)
+    // 不在此函数中 (本函数仅处理 signal 路径, input.pixel 为 signal)
     std::unordered_map<uint64_t, std::pair<double, uint32_t>> groups;
     groups.reserve(input.n_pix >> shift + 1);
     for (uint64_t i = 0; i < input.n_pix; i++) {
@@ -809,10 +809,10 @@ void BrowserBackend::release_leaf(LeafData& leaf) {
 }
 
 // ============================================================================
-// R10: 从 HISS metadata JSON 检测 FP64 精度模式
+// 从 HISS metadata JSON 检测 FP64 精度模式
 // 匹配以下两种字段之一 (任一命中即为 FP64):
-//   "signal_dtype": 1   (0=float32, 1=float64)
-//   "precision_mode": "fp64"
+// "signal_dtype": 1 (0=float32, 1=float64)
+// "precision_mode": "fp64"
 // 使用字符串查找而非完整 JSON 解析, 避免引入 JSON 依赖
 // ============================================================================
 static bool detect_fp64_from_meta(const char* meta_json) {
@@ -875,7 +875,7 @@ int BrowserBackend::load_hiss(const std::string& path, HissHeader& header) {
     header.n_tiles = n_tiles;
     header.n_pix_total = n_pix_total;
     if (meta_json) {
-        // R10: 检测精度模式 (signal_dtype=1 或 precision_mode="fp64")
+        // 检测精度模式 (signal_dtype=1 或 precision_mode="fp64")
         is_fp64_ = detect_fp64_from_meta(meta_json);
         header.meta_json = meta_json;
         aio_hio_free(meta_json);
@@ -951,7 +951,7 @@ int BrowserBackend::read_tile_snr(uint64_t parent_ipix, HissTileData& tile) {
 
     uint8_t* snr_data = nullptr;
     uint32_t n_points = 0;
-    // R11 (PREC-109): 按文件精度选择 SNR 读取 (FP64 文件 SNR 为 f64 存储, 12B/点)
+    // 按文件精度选择 SNR 读取 (FP64 文件 SNR 为 f64 存储, 12B/点)
     int ret = is_fp64_
         ? aio_hiss_read_tile_snr_f64(file_path_.c_str(), parent_ipix, &snr_data, &n_points)
         : aio_hiss_read_tile_snr(file_path_.c_str(), parent_ipix, &snr_data, &n_points);
@@ -987,7 +987,7 @@ int BrowserBackend::query_pixel(double ra, double dec, float& signal, uint8_t& s
 }
 
 // ============================================================================
-// R10: FP64 路径 - read_tile_signal_f64 / query_pixel_f64
+// FP64 路径 - read_tile_signal_f64 / query_pixel_f64
 // 仅适用于 FP64 模式文件 (signal_dtype=1); FP32 文件由 AIO 返回错误, 禁止静默转换
 // ============================================================================
 

@@ -1,16 +1,16 @@
 // lib/acr/tests/unit/test_cuda.cpp — Phase D CUDA backend 单测
 // 验收（spec.md §7 Phase D + 22_FIX_REVIEW_CORRECTION_PLAN §F-fix 8）：
-//   - 设备枚举：至少 1 个设备（RTX 3060 Ti）
-//   - cuda_parallel_for AXPY：结果与 CPU 对照一致（FP32 容差）
-//   - CudaBuffer h2d/d2h round-trip 数据正确
-//   - 无设备时降级（本机有设备，验证 available 语义）
-//   - CUDA event 计时非负
-//   - GPU 报告回调注册后 hardware_report 包含 GPU 字段
-//   - F-fix 8：CudaExecutor 真实 GPU 提交 + ExecutorRegistry::create_auto()
-//   - F-fix 8：真实 CPU+GPU Mixed 执行（dispatch_via_executors）
+// - 设备枚举：至少 1 个设备（RTX 3060 Ti）
+// - cuda_parallel_for AXPY：结果与 CPU 对照一致（FP32 容差）
+// - CudaBuffer h2d/d2h round-trip 数据正确
+// - 无设备时降级（本机有设备，验证 available 语义）
+// - CUDA event 计时非负
+// - GPU 报告回调注册后 hardware_report 包含 GPU 字段
+// - F-fix 8：CudaExecutor 真实 GPU 提交 + ExecutorRegistry::create_auto()
+// - F-fix 8：真实 CPU+GPU Mixed 执行（dispatch_via_executors）
 //
 // 注：CPU-only 构建时本文件不编译（CMake 用 if(ACR_BUILD_CUDA) 保护）。
-//     文件内双重 #ifdef ACR_BUILD_CUDA 保险。
+// 文件内双重 #ifdef ACR_BUILD_CUDA 保险。
 #ifdef ACR_BUILD_CUDA
 
 #include <gtest/gtest.h>
@@ -273,9 +273,9 @@ TEST(CudaBackend, GpuReportCallbackRegistered) {
 // ============================================================================
 // F-fix 8: CudaExecutor 真实 GPU 执行器测试
 // 验收（22_FIX_REVIEW_CORRECTION_PLAN §F-fix 8）：
-//   - CudaExecutor 接口实现完整（available/device_id/submit/sync）
-//   - submit 真实启动 GPU kernel（非占位回退）
-//   - 多次 submit 不互相干扰（pending_count 正确管理）
+// - CudaExecutor 接口实现完整（available/device_id/submit/sync）
+// - submit 真实启动 GPU kernel（非占位回退）
+// - 多次 submit 不互相干扰（pending_count 正确管理）
 // ============================================================================
 
 TEST(CudaExecutor, AvailableAfterInit) {
@@ -409,10 +409,10 @@ TEST(ExecutorRegistryAuto, FindCudaExecutorByDeviceId) {
 // ============================================================================
 // F-fix 8: 真实 CPU+GPU Mixed 执行（dispatch_via_executors）
 // 验收（22_FIX_REVIEW_CORRECTION_PLAN §F-fix 8）：
-//   - CPU 完成部分工作块
-//   - 至少一个真实 GPU 完成部分工作块
-//   - 每块恰好一次
-//   - 实际设备统计由 completion event 生成
+// - CPU 完成部分工作块
+// - 至少一个真实 GPU 完成部分工作块
+// - 每块恰好一次
+// - 实际设备统计由 completion event 生成
 // ============================================================================
 
 TEST(MixedCpuGpuExecution, RealGpuCompletesSomeBlocks) {

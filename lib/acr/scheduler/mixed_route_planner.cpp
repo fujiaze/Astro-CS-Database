@@ -74,7 +74,7 @@ MixedRoutePlan MixedRoutePlanner::plan(const std::string& operation_id,
             return r;
         }
         // 收益阈值只决定 GPU 是否参与（前置门），不修改实测推荐块
-        // （V2 审计 §3：禁止 threshold 覆盖 recommended chunk）
+
         r.reason = "profile-resident";
     } else {
         if (!op->gpu.host_path_eligible) {
@@ -116,11 +116,11 @@ bool MixedRoutePlanner::should_claim(const MixedRoutePlan& plan,
         ? device_measured_ns_per_item : profile_ns * 10.0;
     const double other_per_item = (other_measured_ns_per_item > 0.0)
         ? other_measured_ns_per_item : other_profile_ns * 10.0;
-    // makespan 模型（08 号计划 §2 / V2 审计 §4）：
-    //   无该设备下一块：makespan0 = 另一设备完成剩余
-    //   有该设备下一块：该设备完成 chunk，另一设备完成剩余
-    //                 makespan1 = max(block_ns, other × (remaining - chunk))
-    //   若 makespan1 < makespan0 → 允许 claim（缩短总完工时间）。
+    // makespan 模型（08 §2 / ）：
+    // 无该设备下一块：makespan0 = 另一设备完成剩余
+    // 有该设备下一块：该设备完成 chunk，另一设备完成剩余
+    // makespan1 = max(block_ns, other × (remaining - chunk))
+    // 若 makespan1 < makespan0 → 允许 claim（缩短总完工时间）。
     // 异速设备（如 GPU 快很多、CPU 处理一小块并提前完成）也能 Mixed。
     const double block_ns =
         per_item * static_cast<double>(chunk) +

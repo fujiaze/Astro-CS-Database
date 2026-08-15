@@ -1,7 +1,7 @@
 // ============================================================================
 // dll_loader.cpp - 动态 DLL 加载器实现
 // 功能: 实现 DllLoader 类, 通过 Windows API 加载/卸载模块 DLL,
-//       获取函数指针, 查询模块版本与状态。
+// 获取函数指针, 查询模块版本与状态。
 // ============================================================================
 
 #include "dll_loader.h"
@@ -98,11 +98,11 @@ DllLoader::~DllLoader() {
 // ============================================================================
 // load_module - 加载单个模块 DLL
 // 步骤:
-//   1. 构建完整路径 = lib_base_dir + "/" + default_path + "/" + dll_filename
-//   2. 检查文件是否存在 (std::ifstream)
-//   3. 调用 LoadLibraryA 加载
-//   4. 如失败, 设置 status=LOAD_FAILED, 记录 error_msg
-//   5. 如成功, 设置 status=LOADED
+// 1. 构建完整路径 = lib_base_dir + "/" + default_path + "/" + dll_filename
+// 2. 检查文件是否存在 (std::ifstream)
+// 3. 调用 LoadLibraryA 加载
+// 4. 如失败, 设置 status=LOAD_FAILED, 记录 error_msg
+// 5. 如成功, 设置 status=LOADED
 // ============================================================================
 bool DllLoader::load_module(ModuleId id, const std::string& lib_base_dir) {
     auto it = modules_.find(id);
@@ -221,9 +221,9 @@ bool DllLoader::load_all(const std::string& lib_base_dir) {
 
 #ifdef _WIN32
     // 0. 添加 MinGW 运行时 DLL 搜索路径 (解决业务 DLL 依赖 libgomp/liblz4 等)
-    //    SetDllDirectoryA 将指定目录加入 DLL 搜索路径 (仅次于应用目录)
-    //    orchestrator.exe 用 -static 编译, 自身不需要运行时 DLL,
-    //    但业务 DLL (astro_image_io.dll 等) 动态链接需要.
+    // SetDllDirectoryA 将指定目录加入 DLL 搜索路径 (仅次于应用目录)
+    // orchestrator.exe 用 -static 编译, 自身不需要运行时 DLL,
+    // 但业务 DLL (astro_image_io.dll 等) 动态链接需要.
     {
         std::string mingw_bin = find_mingw_bin();
         if (!mingw_bin.empty()) {
@@ -236,7 +236,7 @@ bool DllLoader::load_all(const std::string& lib_base_dir) {
 #endif
 
     // 1. 预加载 AIO (公共依赖, 多个模块依赖 astro_image_io.dll)
-    //    用 load_module 正式加载 (注册到 modules_ 中, 可供后续 get_function 调用)
+    // 用 load_module 正式加载 (注册到 modules_ 中, 可供后续 get_function 调用)
     all_ok = load_module(ModuleId::AIO, lib_base_dir) && all_ok;
 
 #ifdef _WIN32
@@ -294,7 +294,7 @@ bool DllLoader::load_all(const std::string& lib_base_dir) {
     all_ok = load_module(ModuleId::SNR,         lib_base_dir) && all_ok;
     all_ok = load_module(ModuleId::DRIZZLE,     lib_base_dir) && all_ok;
 
-    // V17：legacy Stage2 模块（GRADIENT_SPHERE/STACK = healpix_stack.dll）
+    // legacy Stage2 模块（GRADIENT_SPHERE/STACK = healpix_stack.dll）
     // 已从 active production 移除（archive/legacy）；Phase2 唯一生产入口
     // = astrocs-stage2。枚举保留仅为旧配置兼容元数据，不再加载/链接。
 
@@ -370,9 +370,9 @@ ModuleInfo DllLoader::get_info(ModuleId id) const {
 
 // ============================================================================
 // get_version - 获取模块版本号
-//   - 各模块尝试调用其约定的 *_version 函数 (const char* (*)())
-//   - 未导出 version 函数时返回 "unknown"
-//   - P04-003: 扩展支持全部 9 个模块 (AIO/CALIBRATE/PLATESOLVE/PSF/PHOTOMETRIC/SNR/DRIZZLE/STACK)
+// - 各模块尝试调用其约定的 *_version 函数 (const char* (*)())
+// - 未导出 version 函数时返回 "unknown"
+// - P04-003: 扩展支持全部 9 个模块 (AIO/CALIBRATE/PLATESOLVE/PSF/PHOTOMETRIC/SNR/DRIZZLE/STACK)
 // ============================================================================
 std::string DllLoader::get_version(ModuleId id) {
     if (!is_loaded(id)) {
@@ -410,8 +410,8 @@ std::string DllLoader::get_version(ModuleId id) {
 
 // ============================================================================
 // set_num_threads - 设置模块 OpenMP 线程数
-//   - CALIBRATE: 调用 ac_set_num_threads(int)
-//   - 其他模块: 暂返回 false (后续 Task 补充接口)
+// - CALIBRATE: 调用 ac_set_num_threads(int)
+// - 其他模块: 暂返回 false (后续 Task 补充接口)
 // ============================================================================
 bool DllLoader::set_num_threads(ModuleId id, int n) {
     if (!is_loaded(id)) {
@@ -450,9 +450,9 @@ bool DllLoader::set_num_threads(ModuleId id, int n) {
 #ifdef _WIN32
 HMODULE DllLoader::load_library(const std::string& path) {
     // LoadLibraryEx 配合 LOAD_WITH_ALTERED_SEARCH_PATH:
-    //   当传入绝对路径时, 依赖的 DLL 会优先从该路径所在目录查找
-    //   解决 ipv_solver/dynamic_psf/healpix_drizzle 依赖 astro_image_io 等
-    //   其他目录 DLL 找不到的问题 (错误码 126 ERROR_MOD_NOT_FOUND)
+    // 当传入绝对路径时, 依赖的 DLL 会优先从该路径所在目录查找
+    // 解决 ipv_solver/dynamic_psf/healpix_drizzle 依赖 astro_image_io 等
+    // 其他目录 DLL 找不到的问题 (错误码 126 ERROR_MOD_NOT_FOUND)
     return LoadLibraryExA(path.c_str(), nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
 }
 

@@ -1,15 +1,15 @@
 // lib/acr/cost/cost_estimator.hpp — ACR 成本估算器
 // Phase F1+F2：根据 TaskDescriptor + HardwareProfile 推算各设备成本与块大小。
 //
-// 设计（控制包 07_STATIC_ROUTING_AND_MIXED_EXECUTION.md §3-§4）：
-//   1. 成本模型：T_device(chunk) = queue_wait + launch_or_submit + transfer_if_needed
-//                                    + compute_from_profile + local_merge_or_sync
-//   2. 无画像时 CPU fallback：用保守峰值带宽/overhead 估算 + 警告（非阻断）
-//   3. 最小有效块（Phase F2）：满足计算时间 > N×launch 开销、GPU 传输可被收益覆盖、
-//      不超过 RAM/VRAM、Tile 边界合法
-//   4. CostEstimator 不拥有 profile，只读引用 HardwareProfileReader 的结果
-//   5. 公共头不暴露第三方类型
-//   6. 线程安全：所有方法 const，无内部可变状态
+// 设计（ 07_STATIC_ROUTING_AND_MIXED_EXECUTION.md §3-§4）：
+// 1. 成本模型：T_device(chunk) = queue_wait + launch_or_submit + transfer_if_needed
+// + compute_from_profile + local_merge_or_sync
+// 2. 无画像时 CPU fallback：用保守峰值带宽/overhead 估算 + 警告（非阻断）
+// 3. 最小有效块（Phase F2）：满足计算时间 > N×launch 开销、GPU 传输可被收益覆盖、
+// 不超过 RAM/VRAM、Tile 边界合法
+// 4. CostEstimator 不拥有 profile，只读引用 HardwareProfileReader 的结果
+// 5. 公共头不暴露第三方类型
+// 6. 线程安全：所有方法 const，无内部可变状态
 #pragma once
 
 #include "astro/compute/hardware_profile.hpp"
@@ -57,7 +57,7 @@ struct DeviceCost {
     // 可行性
     bool feasible{true};                    // 是否可行（VRAM 不够/设备不可用则 false）
     bool profile_available{false};          // 该设备是否有画像曲线
-    std::string profile_fallback_reason;    // 25 号计划 §5.1：无合格曲线时的原因
+    std::string profile_fallback_reason;    // 25 §5.1：无合格曲线时的原因
     std::string reason;                     // 诊断说明（"fallback-peak"/"profile-curve"/...）
 
     // 预计吞吐（GB/s，诊断用）
@@ -102,11 +102,11 @@ public:
 
     // ===== Phase F2：推算单设备的最小有效块大小 =====
     // 满足以下条件的最小 chunk_size：
-    //   1. 计算时间 >= kMinComputeToLaunchRatio × launch 开销（默认 10×）
-    //   2. GPU：传输时间 <= 计算时间 × kTransferGainRatio（默认 0.5，即传输可被收益覆盖）
-    //   3. chunk_size × bytes_per_item <= available_memory_bytes
-    //   4. chunk_size >= 1
-    //   5. Tile 任务：chunk_size 受 tile_w × tile_h 约束
+    // 1. 计算时间 >= kMinComputeToLaunchRatio × launch 开销（默认 10×）
+    // 2. GPU：传输时间 <= 计算时间 × kTransferGainRatio（默认 0.5，即传输可被收益覆盖）
+    // 3. chunk_size × bytes_per_item <= available_memory_bytes
+    // 4. chunk_size >= 1
+    // 5. Tile 任务：chunk_size 受 tile_w × tile_h 约束
     // 若无法满足（如 launch 开销为 0 或设备不可用），返回默认块 1024。
     std::size_t compute_min_effective_chunk(const TaskDescriptor& task, DeviceId device) const;
 
@@ -121,7 +121,7 @@ public:
     // ===== 单设备成本估算（不含 queue_wait，queue_wait 由 Dispatcher 运行时填）=====
     DeviceCost estimate_for_device(const TaskDescriptor& task, DeviceId device) const;
 
-    // ===== 23 号计划 §4：每设备块大小推算 =====
+    // ===== 23 §4：每设备块大小推算 =====
     // 每个 executor 每次领取前用自身 DeviceCost + 当前队列 + 剩余工作计算
     // requested_items（目标批次时长 × 吞吐，队列越深块越小，尾部收缩）。
     // 禁止用一个全局推荐块分发给所有设备；GPU 数量不得折算 CPU 块大小。
@@ -159,7 +159,7 @@ struct CurveLookup {
     CurveKey key;
     MemoryLevel mem_level{MemoryLevel::MainMem};
     MemoryResidency residency{MemoryResidency::Host};
-    std::string op;               // 内存曲线操作（copy/triad/...），25 号计划 §4
+    std::string op;               // 内存曲线操作（copy/triad/...），25 §4
     HwPrecision precision{HwPrecision::Fp32};
     bool valid{false};
 };

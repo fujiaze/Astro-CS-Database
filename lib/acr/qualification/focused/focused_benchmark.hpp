@@ -1,11 +1,11 @@
 // lib/acr/qualification/focused/focused_benchmark.hpp — 聚焦 Benchmark 驱动
 //
-// 08 号计划 §4 / 04 号规范：只测路由需要的最小信息：
-//   - GPU launch/event 固定开销
-//   - H2D / D2H 传输（pageable）
-//   - 5 个目标合成 Operation（CPU 生产线程配置 + GPU）
-//   - 尺寸：256K / 1M / 4M / 16M / 64M items
-//   - 每点 3 次预热 + 7 次有效测量
+// 08 §4 / 04 号规范：只测路由需要的最小信息：
+// - GPU launch/event 固定开销
+// - H2D / D2H 传输（pageable）
+// - 5 个目标合成 Operation（CPU 生产线程配置 + GPU）
+// - 尺寸：256K / 1M / 4M / 16M / 64M items
+// - 每点 3 次预热 + 7 次有效测量
 //
 // 输出 OperationProfile（quick=diagnostic；standard=qualified）。
 #pragma once

@@ -1,8 +1,8 @@
 // lib/acr/tests/unit/test_api.cpp
 // ACR 公共 API 单元测试（GoogleTest）
-// 覆盖控制包 12_TEST_VALIDATION_MATRIX.md §2 的公共 API 单测项：
-//   parallel_for / for_2d / tiles / reduce / batch / chunks / run_for
-//   + Buffer/BufferView + Event + StatusCode/AcrError
+// 覆盖 12_TEST_VALIDATION_MATRIX.md §2 的公共 API 单测项：
+// parallel_for / for_2d / tiles / reduce / batch / chunks / run_for
+// + Buffer/BufferView + Event + StatusCode/AcrError
 //
 // 运行时说明：Phase B 为同步执行，parallel_for 等返回的 Event 立即 ready；
 // 异常 kernel 被 runtime 捕获后 mark_failed(KernelFailed)，不崩溃。

@@ -1,5 +1,5 @@
 // ============================================================================
-// hips_view.cpp - V9 HiPS 2D 天空视图 QWidget 实现
+// hips_view.cpp - HiPS 2D 天空视图 QWidget 实现
 // ============================================================================
 
 #include "hips_view.h"
@@ -109,7 +109,7 @@ void HipsView::ensure_rendered() {
     dirty_ = false;
     if (!rendered_once_) {
         rendered_once_ = true;
-        emit rendered();  // V14 v3：首次渲染后通知 STF 面板同步
+        emit rendered();  // v3：首次渲染后通知 STF 面板同步
     }
 }
 

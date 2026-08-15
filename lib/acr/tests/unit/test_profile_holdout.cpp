@@ -1,6 +1,6 @@
 // lib/acr/tests/unit/test_profile_holdout.cpp — 跨设备 holdout 与路由资格验证
 //
-// 25 号计划 §6：每类曲线至少 3 个 holdout 尺寸；CPU 与真实 GPU 都有 holdout；
+// 25 §6：每类曲线至少 3 个 holdout 尺寸；CPU 与真实 GPU 都有 holdout；
 // 报告每类中位/P95 相对误差与 CPU/GPU 排序正确率。
 #include <gtest/gtest.h>
 
@@ -174,13 +174,13 @@ TEST(ProfileHoldout, CrossDeviceAxpyAndReductionHoldout) {
         std::printf("[ProfileHoldout] CPU/GPU AXPY ordering: correct=%zu/%zu acc=%.3f\n",
                     correct, total, acc);
         // AXPY 是 memory-bound（L2/L3/主存缓存边界强非单调），CPU/GPU 耗时
-        // 接近，跨设备排序随运行波动。25 号计划 §6 原则：波动大曲线如实记录、
+        // 接近，跨设备排序随运行波动。25 §6 原则：波动大曲线如实记录、
         // 不因系统负载 flaky 断言。保留"优于随机（>=0.5）"的门限防完全失效，
         // 排序结果仅用于诊断，不用于耗时路由。
         EXPECT_GE(acc, 0.5);
     }
 
-    // 门限（25 号计划 §6）：中位相对误差 <= 0.35、P95 <= 0.75。
+    // 门限（25 §6）：中位相对误差 <= 0.35、P95 <= 0.75。
     // memory-bound AXPY 在缓存边界（L2/L3/主存）强非单调，插值误差大
     // （如实打印 median/p95），因此 AXPY 曲线 holdout 未达标 → 标 unqualified
     // （仅用于跨设备排序路由，不用于耗时预测）。这是对本类波动大的明确论证。
@@ -197,7 +197,7 @@ TEST(ProfileHoldout, CrossDeviceAxpyAndReductionHoldout) {
 
     // sum（reduction）插值域中位 <= 0.50；不达标如实标 unqualified
     // （parallel_reduce 的 launch/merge 开销主导小尺寸、log2 线性插值非单调，
-    //  与 AXPY 同源论证：波动大的曲线不用于耗时预测，仅用于跨设备排序路由）
+    // 与 AXPY 同源论证：波动大的曲线不用于耗时预测，仅用于跨设备排序路由）
     bool sum_qualified = true;
     if (!sum_errs.empty()) {
         std::sort(sum_errs.begin(), sum_errs.end());

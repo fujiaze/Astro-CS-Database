@@ -2,9 +2,9 @@
 // Phase F：finish = queue_wait + transfer + compute + merge
 //
 // 设计：
-//   1. 估算设备 finish 时间用于工作保持调度决策
-//   2. 数据驻留成本：考虑 H2D/D2H 传输时间，小数据优先 CPU
-//   3. 公共头不暴露第三方类型
+// 1. 估算设备 finish 时间用于工作保持调度决策
+// 2. 数据驻留成本：考虑 H2D/D2H 传输时间，小数据优先 CPU
+// 3. 公共头不暴露第三方类型
 #pragma once
 
 #include <cstddef>

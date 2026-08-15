@@ -3,23 +3,23 @@
 // 功能: 验证日志系统的所有功能
 //
 // 测试内容 (10 项):
-//   1. 日志级别设置和获取
-//   2. DEBUG 级别输出 (默认 INFO 时不输出 DEBUG)
-//   3. INFO/WARN/ERROR 级别输出
-//   4. 日志文件创建
-//   5. 日志格式正确 (时间戳/级别/模块/消息)
-//   6. level_to_string/string_to_level 转换
-//   7. stderr 输出开关
-//   8. 多线程安全 (10 个线程各输出 100 条日志, 验证无丢失)
-//   9. 日志文件路径 (orchestrator_YYYY-MM-DD.log)
-//  10. shutdown 后不再写文件
+// 1. 日志级别设置和获取
+// 2. DEBUG 级别输出 (默认 INFO 时不输出 DEBUG)
+// 3. INFO/WARN/ERROR 级别输出
+// 4. 日志文件创建
+// 5. 日志格式正确 (时间戳/级别/模块/消息)
+// 6. level_to_string/string_to_level 转换
+// 7. stderr 输出开关
+// 8. 多线程安全 (10 个线程各输出 100 条日志, 验证无丢失)
+// 9. 日志文件路径 (orchestrator_YYYY-MM-DD.log)
+// 10. shutdown 后不再写文件
 //
 // 编译:
-//   g++ -O2 -std=c++17 -Wall -fopenmp -o tests/test_logger.exe
-//       tests/test_logger.cpp src/logger.cpp -Iinclude -static
+// g++ -O2 -std=c++17 -Wall -fopenmp -o tests/test_logger.exe
+// tests/test_logger.cpp src/logger.cpp -Iinclude -static
 //
 // 运行 (任意目录):
-//   lib\orchestrator\cpp\tests\test_logger.exe
+// lib\orchestrator\cpp\tests\test_logger.exe
 // ============================================================================
 
 #include "logger.h"

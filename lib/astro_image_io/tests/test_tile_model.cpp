@@ -2,21 +2,21 @@
 // test_tile_model.cpp - WP-A Tile 模型与 signal/support 语义单元测试
 //
 // 测试范围 (依据 docs/stage1_fix/tasks.md WP-A 验收):
-//   1. NSIDE=64, tile_nside=16   → n_leaf_per_tile = 16    (4^2, 不是 3072)
-//   2. NSIDE=32768, tile_nside=64 → n_leaf_per_tile = 262144 (4^9, 满 Tile 上限)
-//   3. NSIDE=4096, tile_nside=16  → n_leaf_per_tile = 65536  (4^8)
-//   4. local_to_global / global_to_local 往返一致
-//   5. signal = 累计通量 (不除面积)
-//   6. support = 面积比 S = sum_area / A_p, 范围 [0,1]
+// 1. NSIDE=64, tile_nside=16 → n_leaf_per_tile = 16 (4^2, 不是 3072)
+// 2. NSIDE=32768, tile_nside=64 → n_leaf_per_tile = 262144 (4^9, 满 Tile 上限)
+// 3. NSIDE=4096, tile_nside=16 → n_leaf_per_tile = 65536 (4^8)
+// 4. local_to_global / global_to_local 往返一致
+// 5. signal = 累计通量 (不除面积)
+// 6. support = 面积比 S = sum_area / A_p, 范围 [0,1]
 //
 // 编译 (PowerShell + mingw64):
-//   g++ -std=c++17 -O2 -I../include -I../src `
-//       test_tile_model.cpp ../src/hiss_tile_model.cpp ../src/hiss_common.cpp `
-//       -o test_tile_model.exe
-//   ./test_tile_model.exe
+// g++ -std=c++17 -O2 -I../include -I../src `
+// test_tile_model.cpp ../src/hiss_tile_model.cpp ../src/hiss_common.cpp `
+// -o test_tile_model.exe
+// ./test_tile_model.exe
 //
 // 测试框架: 自维护通过/失败计数, 任何契约不满足必须真正失败
-//   (禁止 ASSERT_TRUE(true, "已知问题") 软通过, 依据 spec.md §3 步骤15)
+// (禁止 ASSERT_TRUE(true, "已知问题") 软通过, 依据 spec.md §3 步骤15)
 // ============================================================================
 
 #include <cstdio>
@@ -35,7 +35,7 @@ static int g_pass_count = 0;
 static int g_fail_count = 0;
 
 // ASSERT_TRUE(cond, msg): cond 为假时记失败并打印
-//   注意: 不支持 "true, 已知问题" 软通过 — 任何 false 都是真失败
+// 注意: 不支持 "true, 已知问题" 软通过 — 任何 false 都是真失败
 #define ASSERT_TRUE(cond, msg) do { \
     if (cond) { \
         g_pass_count++; \
@@ -78,8 +78,8 @@ static int g_fail_count = 0;
 
 // ============================================================================
 // 测试 1: NSIDE=64 → depth=2, tile_nside=16, n_leaf_per_tile=16
-//   旧错误: tile_nside^2 * 12 = 16*16*12 = 3072 (全天像素数, 错误)
-//   新正确: 4^2 = 16
+// 旧错误: tile_nside^2 * 12 = 16*16*12 = 3072 (全天像素数, 错误)
+// 新正确: 4^2 = 16
 // ============================================================================
 static void test_nside64_tile16() {
     fprintf(stdout, "[TEST] NSIDE=64, tile_nside=16 → n_leaf=16 (不是 3072)\n");
@@ -101,7 +101,7 @@ static void test_nside64_tile16() {
 
 // ============================================================================
 // 测试 2: NSIDE=32768 → depth=9, tile_nside=64, n_leaf_per_tile=262144
-//   满 Tile 上限: 4^9 = 262144
+// 满 Tile 上限: 4^9 = 262144
 // ============================================================================
 static void test_nside32768_full_tile() {
     fprintf(stdout, "[TEST] NSIDE=32768, tile_nside=64 → n_leaf=262144 (满 Tile 上限)\n");
@@ -132,7 +132,7 @@ static void test_nside4096_tile16() {
 
 // ============================================================================
 // 测试 4: local_to_global / global_to_local 往返一致
-//   覆盖多个 NSIDE 和多个 parent_ipix
+// 覆盖多个 NSIDE 和多个 parent_ipix
 // ============================================================================
 static void test_local_global_roundtrip() {
     fprintf(stdout, "[TEST] local_to_global / global_to_local 往返一致\n");
@@ -229,7 +229,7 @@ static void test_local_global_roundtrip() {
 
 // ============================================================================
 // 测试 5: signal = 累计通量 (不除面积)
-//   构造已知 sum_flux 和 sum_area 的累加器, 验证 signal 输出 == sum_flux
+// 构造已知 sum_flux 和 sum_area 的累加器, 验证 signal 输出 == sum_flux
 // ============================================================================
 static void test_signal_is_cumulative_flux() {
     fprintf(stdout, "[TEST] signal = 累计通量 (不除面积)\n");
@@ -240,10 +240,10 @@ static void test_signal_is_cumulative_flux() {
     acc.pixel_area = 1.0;  // 任意值, signal 不依赖 A_p
 
     // 构造 4 个像素:
-    //   px0: sum_flux=100.0, sum_area=0.5  → 旧错误 signal=200.0, 新正确 signal=100.0
-    //   px1: sum_flux=50.0,  sum_area=1.0  → 旧错误 signal=50.0,  新正确 signal=50.0
-    //   px2: sum_flux=0.0,   sum_area=0.0  → 无贡献, signal=0.0
-    //   px3: sum_flux=250.0, sum_area=0.25 → 旧错误 signal=1000.0, 新正确 signal=250.0
+    // px0: sum_flux=100.0, sum_area=0.5 → 旧错误 signal=200.0, 新正确 signal=100.0
+    // px1: sum_flux=50.0, sum_area=1.0 → 旧错误 signal=50.0, 新正确 signal=50.0
+    // px2: sum_flux=0.0, sum_area=0.0 → 无贡献, signal=0.0
+    // px3: sum_flux=250.0, sum_area=0.25 → 旧错误 signal=1000.0, 新正确 signal=250.0
     acc.pixels.resize(4);
     acc.pixels[0].sum_flux = 100.0; acc.pixels[0].sum_area = 0.5;
     acc.pixels[1].sum_flux = 50.0;  acc.pixels[1].sum_area = 1.0;
@@ -268,7 +268,7 @@ static void test_signal_is_cumulative_flux() {
 
 // ============================================================================
 // 测试 6: support = 面积比 S = sum_area / A_p, 范围 [0,1]
-//   构造已知 sum_area 和 A_p 的累加器, 验证 support 输出 == round(255 * S)
+// 构造已知 sum_area 和 A_p 的累加器, 验证 support 输出 == round(255 * S)
 // ============================================================================
 static void test_support_is_area_ratio() {
     fprintf(stdout, "[TEST] support = 面积比 S = sum_area / A_p\n");
@@ -278,17 +278,17 @@ static void test_support_is_area_ratio() {
     acc.parent_ipix = 0;
 
     // 设置 A_p = 0.5 (球面度, 任意值用于测试)
-    //   S = sum_area / A_p
-    //   support = round(255 * clamp(S, 0, 1))
+    // S = sum_area / A_p
+    // support = round(255 * clamp(S, 0, 1))
     const double A_p = 0.5;
     acc.pixel_area = A_p;
 
     // 构造 5 个像素:
-    //   px0: sum_area=0.0  → S=0.0  → support=0
-    //   px1: sum_area=0.25 → S=0.5  → support=round(127.5)=128 (银行家舍入) 或 127
-    //   px2: sum_area=0.5  → S=1.0  → support=255
-    //   px3: sum_area=0.1  → S=0.2  → support=round(51.0)=51
-    //   px4: sum_area=1.0  → S=2.0  → 钳制到 1.0 → support=255 (异常情况, 浮点级超限钳制)
+    // px0: sum_area=0.0 → S=0.0 → support=0
+    // px1: sum_area=0.25 → S=0.5 → support=round(127.5)=128 (银行家舍入) 或 127
+    // px2: sum_area=0.5 → S=1.0 → support=255
+    // px3: sum_area=0.1 → S=0.2 → support=round(51.0)=51
+    // px4: sum_area=1.0 → S=2.0 → 钳制到 1.0 → support=255 (异常情况, 浮点级超限钳制)
     acc.pixels.resize(5);
     acc.pixels[0].sum_area = 0.0;
     acc.pixels[1].sum_area = 0.25;
@@ -312,7 +312,7 @@ static void test_support_is_area_ratio() {
     ASSERT_EQ_INT(support[4], 255, "support[4]=255 (S=2.0 钳制到 1.0)");
 
     // 验证旧错误: 如果不归一化 (A_p=1.0), sum_area=0.5 → support=128
-    //             现在归一化后 (A_p=0.5), sum_area=0.5 → S=1.0 → support=255
+    // 现在归一化后 (A_p=0.5), sum_area=0.5 → S=1.0 → support=255
     // 这证明了 support 是面积比, 不是 sum_area 直接值
     ASSERT_TRUE(support[2] == 255,
                 "sum_area=0.5, A_p=0.5 → S=1.0 → support=255 (证明归一化生效)");
@@ -329,7 +329,7 @@ static void test_support_is_area_ratio() {
 
 // ============================================================================
 // 测试 7: 旧错误值 tile_nside^2 * 12 必须不等于 n_leaf_per_tile
-//   这是回归保护: 防止代码回退到旧错误公式
+// 这是回归保护: 防止代码回退到旧错误公式
 // ============================================================================
 static void test_not_old_wrong_formula() {
     fprintf(stdout, "[TEST] 回归保护: n_leaf != tile_nside^2 * 12 (旧错误公式)\n");
@@ -350,7 +350,7 @@ static void test_not_old_wrong_formula() {
 
 // ============================================================================
 // 测试 8: NESTED 父子关系位运算正确性
-//   验证 global = (parent << 2d) | local 的具体位模式
+// 验证 global = (parent << 2d) | local 的具体位模式
 // ============================================================================
 static void test_nested_bit_pattern() {
     fprintf(stdout, "[TEST] NESTED 父子位运算: global = (parent << 2d) | local\n");

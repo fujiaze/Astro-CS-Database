@@ -28,9 +28,9 @@ static inline double rad2deg(double rad) { return rad * 180.0 / M_PI; }
 // 1. Gnomonic 正向投影 (球面 → 切平面)
 //
 // 公式 (Calabretta & Greisen 2002, TAN 投影):
-//   cos(c) = sin(dec0)*sin(dec) + cos(dec0)*cos(dec)*cos(ra-ra0)
-//   x = cos(dec)*sin(ra-ra0) / cos(c)
-//   y = (cos(dec0)*sin(dec) - sin(dec0)*cos(dec)*cos(ra-ra0)) / cos(c)
+// cos(c) = sin(dec0)*sin(dec) + cos(dec0)*cos(dec)*cos(ra-ra0)
+// x = cos(dec)*sin(ra-ra0) / cos(c)
+// y = (cos(dec0)*sin(dec) - sin(dec0)*cos(dec)*cos(ra-ra0)) / cos(c)
 //
 // 输入: ra, dec, ra0, dec0 (度)
 // 输出: 切平面坐标 (x, y), 单位弧度
@@ -79,10 +79,10 @@ Point2D PolyClip::gnomonicForward(double ra, double dec,
 // 2. Gnomonic 逆向投影 (切平面 → 球面)
 //
 // 公式:
-//   rho = sqrt(x*x + y*y)
-//   c   = atan(rho)
-//   dec = asin(cos(c)*sin(dec0) + y*sin(c)*cos(dec0)/rho)
-//   ra  = ra0 + atan2(x*sin(c), rho*cos(dec0)*cos(c) - y*sin(dec0)*sin(c))
+// rho = sqrt(x*x + y*y)
+// c = atan(rho)
+// dec = asin(cos(c)*sin(dec0) + y*sin(c)*cos(dec0)/rho)
+// ra = ra0 + atan2(x*sin(c), rho*cos(dec0)*cos(c) - y*sin(dec0)*sin(c))
 //
 // 输入: x, y (弧度), ra0, dec0 (度)
 // 输出: SkyCoord (ra, dec, 度)
@@ -133,21 +133,21 @@ SkyCoord PolyClip::gnomonicReverse(double x, double y,
 // 3. Sutherland-Hodgman 多边形裁剪
 //
 // 标准算法:
-//   - 对裁剪窗口 clip 的每条边, 依次裁剪 subject 多边形
-//   - 每条边由两个点 (e1, e2) 定义, 逆时针窗口的左侧为内侧
-//   - 判断点 p 在内侧: 叉积 (e2-e1) × (p-e1) >= 0
-//   - 边的交点计算: 线性插值
+// - 对裁剪窗口 clip 的每条边, 依次裁剪 subject 多边形
+// - 每条边由两个点 (e1, e2) 定义, 逆时针窗口的左侧为内侧
+// - 判断点 p 在内侧: 叉积 (e2-e1) × (p-e1) >= 0
+// - 边的交点计算: 线性插值
 //
 // 边界情况:
-//   - subject 为空 → 返回空
-//   - clip 顶点 < 3 → 返回 subject (无法形成裁剪窗口)
+// - subject 为空 → 返回空
+// - clip 顶点 < 3 → 返回 subject (无法形成裁剪窗口)
 // ============================================================================
 namespace {
 
 // 计算叉积 (e2-e1) × (p-e1)
-//   > 0: p 在边 (e1→e2) 的左侧 (内侧, 逆时针窗口)
-//   < 0: p 在右侧 (外侧)
-//   = 0: p 在边上
+// > 0: p 在边 (e1→e2) 的左侧 (内侧, 逆时针窗口)
+// < 0: p 在右侧 (外侧)
+// = 0: p 在边上
 inline double crossProduct(const Point2D& e1, const Point2D& e2,
                            const Point2D& p) {
     const double ex = e2.x - e1.x;
@@ -260,7 +260,7 @@ std::vector<Point2D> PolyClip::clipPolygon(const std::vector<Point2D>& subject,
 // ============================================================================
 // 4. Shoelace 公式计算多边形面积
 //
-//   area = 0.5 * |Σ (x_i * y_{i+1} - x_{i+1} * y_i)|
+// area = 0.5 * |Σ (x_i * y_{i+1} - x_{i+1} * y_i)|
 //
 // 逆时针方向时 Σ 为正, 顺时针为负, 取绝对值保证非负。
 // 顶点数 < 3 时返回 0; 自动闭合 (最后一个点连接到第一个点)。

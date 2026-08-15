@@ -1,17 +1,17 @@
-// lib/phase2/tools/rejection_cli.cpp — Rejection Oracle 驱动（V15）
+// lib/phase2/tools/rejection_cli.cpp — Rejection Oracle 驱动
 //
 // 用途：外部 Oracle（Astropy/NIST/Siril/RCR）对照与边界证据。从 stdin
 // 读取 double 值（空白/换行分隔；weighted 模式每行 "weight value"）。
 //
 // 用法：
-//   rejection_cli <method> <lo> <hi> <max_iter> <min_samples> [weighted]
-//       —— 旧兼容模式（经 p2_reject_stack COMPAT adapter；auto 以候选数
-//          作为 nominal 近似）
-//   rejection_cli --plan <plan.json> [--weighted] [--reasons]
-//       —— V15 显式 plan（p2_reject_plan_resolve + p2_reject_stack_ex）；
-//          plan.json = P2RejectionPlanRequest + method-specific typed 参数
-//          + normalization（V17：与 stage2 生产同解析；缺省时保持
-//          resolve 的 astrocs_median_center_v1）
+// rejection_cli <method> <lo> <hi> <max_iter> <min_samples> [weighted]
+// —— 旧兼容模式（经 p2_reject_stack COMPAT adapter；auto 以候选数
+// 作为 nominal 近似）
+// rejection_cli --plan <plan.json> [--weighted] [--reasons]
+// —— 显式 plan（p2_reject_plan_resolve + p2_reject_stack_ex）；
+// plan.json = P2RejectionPlanRequest + method-specific typed 参数
+// + normalization（：与 stage2 生产同解析；缺省时保持
+// resolve 的 astrocs_median_center_v1）
 //
 // 输出：accepted mask（0/1，空格分隔）+ 统计行；--reasons 时输出第二行
 // reason 码（0=accepted 1=low 2=high 3=underdetermined）。
@@ -164,7 +164,7 @@ int main(int argc, char** argv) {
             std::fprintf(stderr, "plan resolve failed: %s\n", err);
             return 2;
         }
-        // V17：normalization / normalization_floor 显式字段（与 stage2
+        // normalization / normalization_floor 显式字段（与 stage2
         // p2_stage2_parse_config 同语义；alias 兼容并在 manifest 写 canonical）
         const std::string norm_s =
             j.value("normalization", std::string("astrocs_median_center_v1"));

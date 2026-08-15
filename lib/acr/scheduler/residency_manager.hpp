@@ -1,11 +1,11 @@
 // lib/acr/scheduler/residency_manager.hpp — 数据驻留状态管理
 //
-// 08 号计划 §6 / 06 号规范：
-//   - Buffer 跟踪 Host/Device/Both valid 与 dirty 状态；
-//   - 相同输入不为每个 GPU 块重复整帧上传（只在上传一次后以 view 复用）；
-//   - 连续 GPU 算子中间结果保持 resident；
-//   - 只有 CPU 或外部模块需要结果时才 D2H；
-//   - 报告实际传输字节与驻留复用次数。
+// 08 §6 / 06 号规范：
+// - Buffer 跟踪 Host/Device/Both valid 与 dirty 状态；
+// - 相同输入不为每个 GPU 块重复整帧上传（只在上传一次后以 view 复用）；
+// - 连续 GPU 算子中间结果保持 resident；
+// - 只有 CPU 或外部模块需要结果时才 D2H；
+// - 报告实际传输字节与驻留复用次数。
 #pragma once
 
 #include <cstddef>
@@ -62,10 +62,10 @@ public:
                          BufferAccess access = BufferAccess::Read);
 
     // 注册/更新 buffer 并同步外部 binding generation（04 号契约 §2）：
-    //   - 新 buffer：记录 generation；
-    //   - 同 key 但 generation 高于已记录：host 内容已更新 → 设备副本失效
-    //     （DeviceValid/BothValid → HostDirty/HostValid），下次 GPU 执行必须重传；
-    //   - generation 未变：保持现有驻留状态（复用 device 副本）。
+    // - 新 buffer：记录 generation；
+    // - 同 key 但 generation 高于已记录：host 内容已更新 → 设备副本失效
+    // （DeviceValid/BothValid → HostDirty/HostValid），下次 GPU 执行必须重传；
+    // - generation 未变：保持现有驻留状态（复用 device 副本）。
     void register_or_update(const std::string& key, std::size_t bytes,
                             BufferAccess access, std::uint64_t generation);
 

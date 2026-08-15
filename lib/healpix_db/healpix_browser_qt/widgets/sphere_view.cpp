@@ -1,12 +1,12 @@
 // sphere_view.cpp - 球面 3D 渲染 widget 实现 (healpix_browser_qt)
 // 功能: 球心相机渲染 (.hiss像素多边形/.hcsd球面网格), 双向量四元数导航+滚轮/+-键改FOV+箭头键朝向
 // 用途: 显示天球 HEALPix 数据, 相机在球心(0,0,0)向外看, 遵守赤道坐标系约定
-//   坐标系: 右手系 X=春分点(RA=0,Dec=0) Y=RA=90° Z=北天极
-//   球面→笛卡尔: x=cos(dec)cos(ra) y=cos(dec)sin(ra) z=sin(dec)
+// 坐标系: 右手系 X=春分点(RA=0,Dec=0) Y=RA=90° Z=北天极
+// 球面→笛卡尔: x=cos(dec)cos(ra) y=cos(dec)sin(ra) z=sin(dec)
 // 导航: 双向量四元数 (forward + up), Rodrigues 旋转
-//   左右拖动: forward 绕 up 旋转 (up 不变 → 画面不旋转)
-//   上下拖动: forward+up 都绕 right=forward×up 旋转 (保持正交, 抓画面拖模式)
-//   速度 = FOV × DRAG_RATIO
+// 左右拖动: forward 绕 up 旋转 (up 不变 → 画面不旋转)
+// 上下拖动: forward+up 都绕 right=forward×up 旋转 (保持正交, 抓画面拖模式)
+// 速度 = FOV × DRAG_RATIO
 // 依赖: Qt6::Gui, core/ (GLRenderer + HealpixMath)
 
 #include "sphere_view.h"
@@ -55,8 +55,8 @@ void SphereView::reset_view() {
     center_ra_ = 0.0;
     center_dec_ = 0.0;
     // 按渲染模式设缺省 FOV:
-    //   HISS_POLYGON(.hiss): 50° 缺省 (会被 set_initial_view_from_bbox 覆盖)
-    //   SPHERE(.hcsd): 50° 缺省 (限制最大FOV避免球面旋转畸变)
+    // HISS_POLYGON(.hiss): 50° 缺省 (会被 set_initial_view_from_bbox 覆盖)
+    // SPHERE(.hcsd): 50° 缺省 (限制最大FOV避免球面旋转畸变)
     if (render_mode_ == RenderMode::SPHERE) {
         fov_deg_ = 50.0;
     } else {
@@ -159,8 +159,8 @@ void SphereView::handle_mouse_move(QMouseEvent* event) {
     last_mouse_y_ = event->position().y();
 
     // 双向量四元数导航 (球心相机, 抓画面拖模式):
-    //   左右: forward 绕 up 旋转 (up 不变, 画面不旋转)
-    //   上下: forward+up 绕 right=forward×up 旋转 (抓画面拖模式)
+    // 左右: forward 绕 up 旋转 (up 不变, 画面不旋转)
+    // 上下: forward+up 绕 right=forward×up 旋转 (抓画面拖模式)
     // 速度 = FOV × DRAG_RATIO
     apply_drag_rotation(dx, dy);
 
@@ -389,10 +389,10 @@ void SphereView::init_forward_up_north_up(double ra_deg, double dec_deg) {
 
 // ============================================================================
 // apply_drag_rotation - 赤道仪相机 (最简方案)
-//   yaw (左右): center_ra_ 增量, 绕极轴 Z
-//   pitch (上下): center_dec_ 增量, 绕赤纬轴 east
-//   up 始终 north-up (从 ra/dec 重算, 绝不携带)
-//   速度 = FOV × DRAG_RATIO, 抓画面拖模式
+// yaw (左右): center_ra_ 增量, 绕极轴 Z
+// pitch (上下): center_dec_ 增量, 绕赤纬轴 east
+// up 始终 north-up (从 ra/dec 重算, 绝不携带)
+// 速度 = FOV × DRAG_RATIO, 抓画面拖模式
 // ============================================================================
 
 void SphereView::apply_drag_rotation(int dx, int dy) {
@@ -404,11 +404,11 @@ void SphereView::apply_drag_rotation(int dx, int dy) {
     double drag_speed = fov_deg_ * DRAG_RATIO;  // 度/像素
 
     // yaw (左右): ra 旋转, 绕极轴 Z
-    //   抓画面拖: 鼠标右移 dx>0 → 画面向右(西, side=forward×up 指向-Y/西) → 视线向东 → ra 增大
+    // 抓画面拖: 鼠标右移 dx>0 → 画面向右(西, side=forward×up 指向-Y/西) → 视线向东 → ra 增大
     center_ra_ += dx * drag_speed;
 
     // pitch (上下): dec 旋转, 绕赤纬轴 east
-    //   抓画面拖: 鼠标下移 dy>0 → 看更北 → dec 增大
+    // 抓画面拖: 鼠标下移 dy>0 → 看更北 → dec 增大
     center_dec_ += dy * drag_speed;
 
     // clamp dec 避免极区数值问题
@@ -489,8 +489,8 @@ void SphereView::screen_to_sky(int x, int y, double& ra, double& dec) {
     if (std::abs(cos_dec) < 1e-6) cos_dec = 1e-6;
 
     // 屏幕坐标 → 天球坐标 (近似)
-    //   鼠标右移 dx>0 → RA 增大 (向右看天球东方)
-    //   鼠标上移 dy<0 → Dec 增大 (向上看天球北方)
+    // 鼠标右移 dx>0 → RA 增大 (向右看天球东方)
+    // 鼠标上移 dy<0 → Dec 增大 (向上看天球北方)
     ra = center_ra_ + dx * deg_per_pixel / cos_dec;
     dec = center_dec_ - dy * deg_per_pixel;
 

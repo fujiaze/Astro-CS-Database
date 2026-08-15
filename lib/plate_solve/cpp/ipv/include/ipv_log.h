@@ -6,11 +6,11 @@
 //
 // 每个模块独立日志文件
 // 日志目录结构:
-//   lib/plate_solve/logs/ipv/<frame>/
-//   ├── phase_0_star_selector.log
-//   ├── phase_polygon_matcher.log
-//   ├── phase_prosac.log
-//   └── wcs_final.json             (最终 WCS)
+// lib/plate_solve/logs/ipv/<frame>/
+// ├── phase_0_star_selector.log
+// ├── phase_polygon_matcher.log
+// ├── phase_prosac.log
+// └── wcs_final.json (最终 WCS)
 // ============================================================================
 
 #include <string>

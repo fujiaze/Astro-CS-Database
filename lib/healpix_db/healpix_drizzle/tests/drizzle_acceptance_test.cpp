@@ -2,16 +2,16 @@
 // drizzle_acceptance_test.cpp - Drizzle 初步冻结前全面合成验收
 //
 // 覆盖 (用户验收要求):
-//   A. 天极/赤道/RA 跨 0/常规位置: CRVAL 合成图 FP64 通量闭合 + FP32 一致性
-//   B. pixfrac {0.1,0.25,0.5,1.0} x 过采样率 {1,2,3,4} (输入尺度 vs NSIDE):
-//      FP64 能量守恒 + FP32 vs FP64 逐 leaf
-//   C. 球面<->平面双向投影: skyToPixel(pixelToSky(x,y)) 往返 (导出需要)
-//   D. 尺度 x NSIDE 矩阵 (0.5"/1"/2"/3" 大气视宁度常见 + 对应 NSIDE)
-//   E. 广域大畸变矩阵 (T4 真实 WCS + 合成广域 SIP5 + 广域极区/RA 跨 0)
-//   F. 数值类型证据: 生产路径仅 IEEE float32/float64 (sizeof 自动输出)
+// A. 天极/赤道/RA 跨 0/常规位置: CRVAL 合成图 FP64 通量闭合 + FP32 一致性
+// B. pixfrac {0.1,0.25,0.5,1.0} x 过采样率 {1,2,3,4} (输入尺度 vs NSIDE):
+// FP64 能量守恒 + FP32 vs FP64 逐 leaf
+// C. 球面<->平面双向投影: skyToPixel(pixelToSky(x,y)) 往返 (导出需要)
+// D. 尺度 x NSIDE 矩阵 (0.5"/1"/2"/3" 大气视宁度常见 + 对应 NSIDE)
+// E. 广域大畸变矩阵 (T4 真实 WCS + 合成广域 SIP5 + 广域极区/RA 跨 0)
+// F. 数值类型证据: 生产路径仅 IEEE float32/float64 (sizeof 自动输出)
 //
 // 能量守恒定义: Σ output signal = Σ input calibrated signal (Gate P3,
-//   无有效域截断; FP64 参考 < 1e-7, FP32 vs FP64 逐 leaf < 1e-5)
+// 无有效域截断; FP64 参考 < 1e-7, FP32 vs FP64 逐 leaf < 1e-5)
 // ============================================================================
 #include "drizzle_engine.h"
 #include "hiss_format.h"
@@ -256,7 +256,7 @@ static void acceptance_wide(FILE* jsonl) {
         CHECK(maxrel32 < 1e-5 && missing == 0, msg);
     }
     // E2: 合成广域 SIP5 (1024^2 @ 6.3\" = 1.79° 视场, 旋转 CD + 大畸变,
-    //     视场边缘 SIP 畸变 > 1 像素)
+    // 视场边缘 SIP 畸变 > 1 像素)
     {
         const int size = 1024;
         WcsParams w;
@@ -416,7 +416,7 @@ static void acceptance_types() {
            sizeof(drizzle::TileLeafAccumulatorT<float>),
            sizeof(drizzle::TileLeafAccumulatorT<double>));
     // 生产源码无 long double (编译期静态断言: 任何 long double 出现即编译失败,
-    // 由源码审计 + 此断言双重保证)
+    // 由此断言双重保证)
     static_assert(sizeof(float) == 4 && sizeof(double) == 8,
                   "IEEE float32/float64 required");
     printf("  [PASS] 输入/输出/累计器均为 IEEE float32/float64 (无 long double)\n");

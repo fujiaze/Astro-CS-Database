@@ -25,7 +25,7 @@ struct SamplePixel {
 };
 
 static bool gauss_solve(int n, const double* A, const double* b, double* x) {
-    // CodeQL V1 #1：int 乘法提升到 size_t 再分配，避免大矩阵尺寸溢出
+    // CodeQL #1：int 乘法提升到 size_t 再分配，避免大矩阵尺寸溢出
     std::vector<double> aug((std::size_t)n * (std::size_t)(n + 1));
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++)
@@ -212,8 +212,8 @@ static double compute_trimmed_mad(const SamplePixel* samples, int m, const doubl
     return sum / (hi - lo);
 }
 
-// 模板版本: 支持 float/double 输入 (R10 双精度 ABI 改造)
-// ImageT = float  -> moffat4_fit (向后兼容)
+// 模板版本: 支持 float/double 输入 ( 双精度 ABI 改造)
+// ImageT = float -> moffat4_fit (向后兼容)
 // ImageT = double -> moffat4_fit_d (双精度, 不降级)
 template<typename ImageT>
 static int moffat4_fit_tmpl(const ImageT* image, int width, int height,
@@ -371,7 +371,7 @@ static int moffat4_fit_tmpl(const ImageT* image, int width, int height,
     double sx_max = std::max(sx, sy), sx_min = std::min(sx, sy);
     double eccentricity = std::sqrt(1.0 - (sx_min / sx_max) * (sx_min / sx_max));
 
-    // Phase1 Final Closure V3 (PSF-001): 样本 dx = pixel_x - cx,
+    // Phase1 Final Closure (PSF-001): 样本 dx = pixel_x - cx,
     // 拟合 x0 是相对传入中心 cx 的偏移, 正确还原为 cx + x0。
     // 原实现用 rect 中心近似 cx, 对奇数宽 rect 引入 ~0.5px 系统偏差。
     double img_cx = cx + x0;
@@ -408,7 +408,7 @@ int moffat4_fit(const float* image, int width, int height,
                                     rect_x0, rect_y0, rect_x1, rect_y1, result);
 }
 
-// double 版本 (双精度 ABI, R10 新增)
+// double 版本 (双精度 ABI, 新增)
 // FP64 模式下采样像素值直接为 double, 不降级到 float32 (精度关键路径)
 int moffat4_fit_d(const double* image, int width, int height,
                   double cx, double cy,
@@ -499,7 +499,7 @@ DPSF_EXPORT int dpsf_fit_batch(const uint16_t *image, int width, int height,
 }
 
 // ============================================================================
-// fit_batch_float_image - float32 图像批量 PSF 拟合核心 (R11)
+// fit_batch_float_image - float32 图像批量 PSF 拟合核心
 // 输出 DPSFFitResult* (status/B/flux/cx/cy/fwhm/A/mad/eccentricity), 与 dpsf_fit_batch 一致
 // ============================================================================
 static int fit_batch_float_image(const float *float_image, int width, int height,
@@ -569,7 +569,7 @@ static int fit_batch_float_image(const float *float_image, int width, int height
 }
 
 // ============================================================================
-// dpsf_fit_batch_f - float32 图像直通拟合 (R11, PREC-105: 无 uint16 有损转换)
+// dpsf_fit_batch_f - float32 图像直通拟合 (, PREC-105: 无 uint16 有损转换)
 // ============================================================================
 DPSF_EXPORT int dpsf_fit_batch_f(const float *image, int width, int height,
                                  const double *cx_array, const double *cy_array, int count,
@@ -595,7 +595,7 @@ DPSF_EXPORT void dpsf_free_results(DPSFFitResult *results) {
 }
 
 // ============================================================================
-// dpsf_fit_batch_d (双精度 ABI, R10 新增)
+// dpsf_fit_batch_d (双精度 ABI, 新增)
 //
 // 与 dpsf_fit_batch (uint16) 逻辑一致, 仅 image 数据类型从 uint16 改为 double。
 // FP64 模式下直接在 double 图像上裁剪局部 patch 送入 moffat4_fit_d (double 拟合),
@@ -732,7 +732,7 @@ DPSF_EXPORT int dpsf_fit_batch_f32(
     #pragma omp parallel for schedule(dynamic) reduction(+:success_count)
     for (int i = 0; i < n_detections; i++) {
         // star_det v1: [0]=x_px, [1]=y_px, [2]=flux, [3]=mag,
-        //               [4]=saturated, [5]=has_saturated
+        // [4]=saturated, [5]=has_saturated
         const double *row = detections + (size_t)i * 6;
         double cx = row[0];
         double cy = row[1];
@@ -807,7 +807,7 @@ DPSF_EXPORT int dpsf_fit_batch_f32(
 }
 
 // ============================================================================
-// dpsf_fit_batch_f64 (双精度 ABI, R10 新增)
+// dpsf_fit_batch_f64 (双精度 ABI, 新增)
 //
 // double PSF 批量拟合, 消费 star_det v1 (FLOAT64 [N,6])。
 // 与 dpsf_fit_batch_f32 逻辑一致, 仅 image 数据类型从 float 改为 double。

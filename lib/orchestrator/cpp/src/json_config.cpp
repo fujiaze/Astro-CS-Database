@@ -26,7 +26,7 @@ using json = nlohmann::json;
 
 // ============================================================================
 // 内嵌 Schema JSON (v1.1, 与 lib/orchestrator/configs/stage1.schema.json 一致)
-// 由控制包 schemas/stage1.schema.json 生成 (gen_json_config.py)
+// 由 schemas/stage1.schema.json 生成 (gen_json_config.py)
 // ============================================================================
 static const char* STAGE1_SCHEMA_JSON = R"JSON(
 {
@@ -585,7 +585,7 @@ static bool runtime_checks(const json& root, const fs::path& base_dir,
         // 3. 输出目录父目录必须存在或可创建 (hiss 已可选, 空串跳过)
         const auto& out = root["output"];
         for (const char* key : {"hiss", "log", "diagnostics_dir"}) {
-            // V5 CFG-002: hiss 已可选, 未提供时跳过 (避免对缺键 operator[] 断言)
+            // CFG-002: hiss 已可选, 未提供时跳过 (避免对缺键 operator[] 断言)
             if (!out.contains(key) || out[key].is_null() || out[key].get<std::string>().empty()) continue;
             std::string p = resolve_path(out[key].get<std::string>(), base_dir);
             fs::path parent = fs::path(p).parent_path();
@@ -708,7 +708,7 @@ int parse_stage1_config(const std::string& json_path, Stage1Config& config, std:
     config.snr.sampling_scale = root["snr"]["sampling_scale"].get<double>();
 
     config.drizzle.mode = root["drizzle"]["mode"].get<std::string>();
-    // CFG-001 (V5): pixfrac 省略时生产默认 0.8 (权威默认, 与 schema/template 一致)
+    // CFG-001 : pixfrac 省略时生产默认 0.8 (权威默认, 与 schema/template 一致)
     config.drizzle.pixfrac = root["drizzle"].contains("pixfrac") && !root["drizzle"]["pixfrac"].is_null()
         ? root["drizzle"]["pixfrac"].get<double>() : 0.8;
     config.drizzle.ordering = root["drizzle"]["ordering"].get<std::string>();
@@ -810,7 +810,7 @@ std::string compute_config_sha256(const Stage1Config& config) {
         j["drizzle"]["nside"]["value"] = config.drizzle.nside_value;
     }
 
-    // CFG-002 (V5): 正式 output 只含 hips; hiss 仅 legacy 模式出现
+    // CFG-002 : 正式 output 只含 hips; hiss 仅 legacy 模式出现
     json outj = {
         {"hips", config.output.hips},
         {"log", config.output.log},

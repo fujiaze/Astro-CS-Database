@@ -1,15 +1,15 @@
 // lib/acr/profile/profile_reader.hpp — HardwareProfileReader（运行时只读）
 // Phase E2：读取 compute_profiles/<fingerprint>/hardware-profile.json
 //
-// 设计（控制包 06_QUALIFICATION_BENCHMARK_SPEC.md §15 + 07_STATIC_ROUTING_AND_MIXED_EXECUTION.md §9）：
-//   1. 三态处理：
-//      - Missing（无 hardware-profile.json）：CPU fallback + 警告 "未标定，使用 CPU baseline"
-//      - Stale（指纹不匹配）：警告 "profile 过期" + 继续运行（不强制重新 benchmark）
-//      - Corrupt（JSON 解析失败）：警告 "profile 损坏" + CPU fallback
-//   2. 运行时只读：不在线修改 profile，不在线学习
-//   3. lazy load：首次 CostEstimator 调用时加载，之后内存缓存（线程安全）
-//   4. 公共头不暴露第三方类型（手写极简 JSON 解析，无 nlohmann/json 依赖）
-//   5. invalidate_cache 用于 acr-invalidate 后重新加载
+// 设计（ 06_QUALIFICATION_BENCHMARK_SPEC.md §15 + 07_STATIC_ROUTING_AND_MIXED_EXECUTION.md §9）：
+// 1. 三态处理：
+// - Missing（无 hardware-profile.json）：CPU fallback + 警告 "未标定，使用 CPU baseline"
+// - Stale（指纹不匹配）：警告 "profile 过期" + 继续运行（不强制重新 benchmark）
+// - Corrupt（JSON 解析失败）：警告 "profile 损坏" + CPU fallback
+// 2. 运行时只读：不在线修改 profile，不在线学习
+// 3. lazy load：首次 CostEstimator 调用时加载，之后内存缓存（线程安全）
+// 4. 公共头不暴露第三方类型（手写极简 JSON 解析，无 nlohmann/json 依赖）
+// 5. invalidate_cache 用于 acr-invalidate 后重新加载
 #pragma once
 
 #include "astro/compute/hardware_profile.hpp"

@@ -2,11 +2,11 @@
 // 验证能力（17 §14）：不规则内存、稀疏度
 //
 // Phase H 扩展：
-//   - index 模式：identity、reverse、prime stride、随机 permutation
-//   - active fraction：1/5/10/25/50/100%
-//   - 无冲突 scatter（唯一索引）+ 整数 atomic scatter（累加语义）
-//   - 固定稀疏矩阵 SpMV（CSR 格式）
-//   - exact 或 FP64 参考
+// - index 模式：identity、reverse、prime stride、随机 permutation
+// - active fraction：1/5/10/25/50/100%
+// - 无冲突 scatter（唯一索引）+ 整数 atomic scatter（累加语义）
+// - 固定稀疏矩阵 SpMV（CSR 格式）
+// - exact 或 FP64 参考
 #include "classic_common.hpp"
 
 #include <gtest/gtest.h>

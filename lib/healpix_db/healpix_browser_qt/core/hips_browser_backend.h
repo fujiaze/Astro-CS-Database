@@ -1,12 +1,12 @@
 // ============================================================================
-// hips_browser_backend.h - HiPS 产品集浏览器后端 (Phase1 Final Signoff V4)
+// hips_browser_backend.h - HiPS 产品集浏览器后端 (Phase1 Final Signoff )
 //
 // 正式 Browser 数据源: HiPS Product Set (signal/support/snr)
 // 仅通过 astro_image_io.dll 的 AIO HiPS Reader API 读取, 不直接链接 CFITSIO。
 // HISS 仅保留为 legacy (BrowserBackend::open_file 旧路径)。
 //
 // LOD: 直接使用 writer 已生成的 Norder0..K 层级; 全分辨率查询直接按
-//       NESTED leaf ipix 定位叶级 tile (512×512), FITS 行主序 [y*512+x]。
+// NESTED leaf ipix 定位叶级 tile (512×512), FITS 行主序 [y*512+x]。
 // ============================================================================
 
 #ifndef HIPS_BROWSER_BACKEND_H
@@ -39,18 +39,18 @@ public:
     int get_tile_width() const { return width_; }
     uint64_t get_n_tiles() const;
     std::string get_root() const { return root_; }
-    bool is_flat_standard() const { return flat_; }  // V11: Hipsgen 扁平布局
+    bool is_flat_standard() const { return flat_; }  // Hipsgen 扁平布局
 
     // 查询 (ra,dec) -> signal/support
-    //   0=成功; -2=outside MOC / tile 缺失; -3=内部错误
+    // 0=成功; -2=outside MOC / tile 缺失; -3=内部错误
     int query_pixel(double ra, double dec, double& signal, double& support) const;
 
     // 读取叶级 tile 为 double (LOD/渲染用; 空区为 NaN)
     int read_tile(uint64_t tile_ipix, std::vector<double>& out) const;
-    // V10: 叶级 support tile（reference renderer 用）
+    // 叶级 support tile（reference renderer 用）
     int read_support_tile(uint64_t tile_ipix, std::vector<double>& out) const;
 
-    // ---- V9: 多 order 读取（浏览器 LOD 用） ----
+    // ---- : 多 order 读取（浏览器 LOD 用） ----
     // 读取指定 order 的 signal/support tile（512×512 float）。
     // tile 不存在返回非 0；成功时 sig/sup 均填充（缺失产品返回 -3）。
     int read_tile_at_order(int order, uint64_t tile_ipix,
@@ -85,7 +85,7 @@ private:
     int width_ = 512;
     bool fp64_ = false;
     mutable std::map<int, std::vector<uint64_t>> order_tiles_;
-    bool flat_ = false;  // V11: 标准扁平布局（root/properties + root/NorderK）
+    bool flat_ = false;  // 标准扁平布局（root/properties + root/NorderK）
 };
 
 #endif // HIPS_BROWSER_BACKEND_H

@@ -24,7 +24,7 @@
 #include <unordered_map>
 #include <omp.h>
 
-//   替代 IPv 手写 LM, 解决 More 缩放/对角预处理缺失导致的饱和星收敛率低
+// 替代 IPv 手写 LM, 解决 More 缩放/对角预处理缺失导致的饱和星收敛率低
 #include <gsl/gsl_multifit_nlinear.h>
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_matrix.h>
@@ -34,7 +34,7 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-// V4.64: LM 拟合收敛参数
+// LM 拟合收敛参数
 #define LM_XTOL 1e-3
 #define LM_GTOL 1e-3
 #define LM_FTOL 1e-3
@@ -52,7 +52,7 @@ struct StarDetectorHandle_s {
 
 namespace {
 
-// V4.54: Gaussian FWHM = 2*sqrt(2*ln2)*σ = 2.3548*σ
+// Gaussian FWHM = 2*sqrt(2*ln2)*σ = 2.3548*σ
 static const double GAUSSIAN_FWHM_FACTOR = 2.3548200450309493;
 static const int NPARAMS = 7;
 
@@ -74,10 +74,10 @@ struct InternalFitResult {
     double mad;
 };
 
-// V4.64: PSF 拟合
+// PSF 拟合
 
-//   IPv 用 samples 数组 (已排除饱和像素), 等价于 mask=true 子集
-//   保留 NbRows/NbCols 的概念, 但 samples 已预过滤
+// IPv 用 samples 数组 (已排除饱和像素), 等价于 mask=true 子集
+// 保留 NbRows/NbCols 的概念, 但 samples 已预过滤
 struct PSFFitData {
     size_t n;           // 样本数 (mask=true 的像素数)
     const double* y;    // 像素值数组 (mask=true 的像素)
@@ -87,11 +87,11 @@ struct PSFFitData {
     double rmse;        // 输出: RMSE
 };
 
-// V4.64: PSF 拟合
-//   参数: x[0]=B, x[1]=A, x[2]=x0, x[3]=y0, x[4]=SX=2σ², x[5]=fr, x[6]=alpha
-//   SX = fabs(x[4]), r = 0.5*(cos(x[5])+1) ∈ [0,1], SY = r²*SX
-//   tmpx = ca*(j+0.5-x0) - sa*(i+0.5-y0), IPv samples.dx 已含 +0.5
-//   f[k] = B + A*exp(-(tmpx²/SX + tmpy²/SY)) - y[k]
+// PSF 拟合
+// 参数: x[0]=B, x[1]=A, x[2]=x0, x[3]=y0, x[4]=SX=2σ², x[5]=fr, x[6]=alpha
+// SX = fabs(x[4]), r = 0.5*(cos(x[5])+1) ∈ [0,1], SY = r²*SX
+// tmpx = ca*(j+0.5-x0) - sa*(i+0.5-y0), IPv samples.dx 已含 +0.5
+// f[k] = B + A*exp(-(tmpx²/SX + tmpy²/SY)) - y[k]
 static int sdet_gaussian_f(const gsl_vector* x, void* params, gsl_vector* f) {
     PSFFitData* d = static_cast<PSFFitData*>(params);
     size_t n = d->n;
@@ -109,8 +109,8 @@ static int sdet_gaussian_f(const gsl_vector* x, void* params, gsl_vector* f) {
     double sumres = 0.0;
     for (size_t k = 0; k < n; k++) {
         // IPv: samples[k].dx = x_pixel + 0.5 - cx, 残差中用 ddx = samples[k].dx - x0
-        //   等价于
-        //   samples[k].dx = j+0.5-x0_local (x0_local=x0 相对候选中心)
+        // 等价于
+        // samples[k].dx = j+0.5-x0_local (x0_local=x0 相对候选中心)
 
         double raw_x = samples[k].dx;  // 已含 +0.5, 相对候选中心
         double raw_y = samples[k].dy;
@@ -125,14 +125,14 @@ static int sdet_gaussian_f(const gsl_vector* x, void* params, gsl_vector* f) {
     return GSL_SUCCESS;
 }
 
-// V4.64: PSF 拟合
-//   雅可比 (对 B, A, x0, y0, SX, fr, alpha):
-//   dB = 1, dA = tmpc
-//   dx0 = 2*A*tmpc*(tmpx/SX*ca + tmpy/SY*sa)
-//   dy0 = 2*A*tmpc*(-tmpx/SX*sa + tmpy/SY*ca)
-//   dSX = tmpc*A*( (tmpx/SX)² + (tmpy/(SX*r))² )
-//   dfr = -A*tmpc*sc*tmpy²/SY/r   (sc = sin(fr))
-//   dalpha = 2*A*tmpc*tmpx*tmpy*(1/SX - 1/SY)
+// PSF 拟合
+// 雅可比 (对 B, A, x0, y0, SX, fr, alpha):
+// dB = 1, dA = tmpc
+// dx0 = 2*A*tmpc*(tmpx/SX*ca + tmpy/SY*sa)
+// dy0 = 2*A*tmpc*(-tmpx/SX*sa + tmpy/SY*ca)
+// dSX = tmpc*A*( (tmpx/SX)² + (tmpy/(SX*r))² )
+// dfr = -A*tmpc*sc*tmpy²/SY/r (sc = sin(fr))
+// dalpha = 2*A*tmpc*tmpx*tmpy*(1/SX - 1/SY)
 static int sdet_gaussian_df(const gsl_vector* x, void* params, gsl_matrix* J) {
     PSFFitData* d = static_cast<PSFFitData*>(params);
     size_t n = d->n;
@@ -182,10 +182,10 @@ enum SfError {
 // has_saturated=true 时豁免 RMSE 检查（饱和星保留用于配准）
 
 
-//   IPv:   cand_sx/cand_sy = candidates[i].sx/sy = Sr/Sc (与候选阶段 se->sx/se->sy 同源)
-// V4.17 修复: RMSE 系数从 mad*3.0 改为 mad*1.4826
-// V4.17 修复: FWHM_TOO_SMALL 从 1.0 放宽到 0.5 (长焦 H-alpha 星点 FWHM 可达 ~1px)
-// V4.27: 圆度, 1.0]
+// IPv: cand_sx/cand_sy = candidates[i].sx/sy = Sr/Sc (与候选阶段 se->sx/se->sy 同源)
+// 修复: RMSE 系数从 mad*3.0 改为 mad*1.4826
+// 修复: FWHM_TOO_SMALL 从 1.0 放宽到 0.5 (长焦 H-alpha 星点 FWHM 可达 ~1px)
+// 圆度, 1.0]
 SfError reject_star(const InternalFitResult& fit, bool has_saturated,
                     double cand_sx, double cand_sy) {
     // FWHM 检查：必须为正
@@ -204,14 +204,14 @@ SfError reject_star(const InternalFitResult& fit, bool has_saturated,
         double rmse_ratio = fit.mad * 1.4826 / fit.A;
         if (rmse_ratio > 0.2) return SF_RMSE_TOO_LARGE;
     }
-    // V4.51: FWHM 上限完全
+    // FWHM 上限完全
 
-    //   se->sx/sy = 候选阶段 Gaussian sigma 估计 (高斯平滑图上二阶导数零交叉点 Sr/Sc)
-    //   _2_SQRT_2_LOG2 = 2.3548 (FWHM=2.3548*sigma), KERNEL_SIZE = 2.0
-    // V4.51 修复: 直接用候选阶段 cand_sx/cand_sy (Sr/Sc), 不再用 fit.sx/fit.sy 转换
-    //   原因: 候选阶段 se->sx/se->sy 是候选阶段估计, 与拟合结果 fit.sx/fit.sy 量纲和含义不同
-    //   Moffat4 sx ≠ Gaussian sigma (fwhm=0.87*sx vs 2.3548*sigma), 转换会引入误差
-    //   候选 Sr/Sc 已含高斯平滑核展宽, 直接代入公式即可
+    // se->sx/sy = 候选阶段 Gaussian sigma 估计 (高斯平滑图上二阶导数零交叉点 Sr/Sc)
+    // _2_SQRT_2_LOG2 = 2.3548 (FWHM=2.3548*sigma), KERNEL_SIZE = 2.0
+    // 修复: 直接用候选阶段 cand_sx/cand_sy (Sr/Sc), 不再用 fit.sx/fit.sy 转换
+    // 原因: 候选阶段 se->sx/se->sy 是候选阶段估计, 与拟合结果 fit.sx/fit.sy 量纲和含义不同
+    // Moffat4 sx ≠ Gaussian sigma (fwhm=0.87*sx vs 2.3548*sigma), 转换会引入误差
+    // 候选 Sr/Sc 已含高斯平滑核展宽, 直接代入公式即可
     const double _2_SQRT_2_LOG2 = 2.3548200450309493;  // 2*sqrt(2*ln2)
     const double KERNEL_SIZE = 2.0;
     double se_smax = std::max(cand_sx, cand_sy);
@@ -237,7 +237,7 @@ struct StarRecord {
     // 新增字段：mag 和 has_saturated
     float mag;           // -2.5*log10(A)，拟合失败时为NaN
     int has_saturated;   // 1=该星检测到饱和平台，0=正常星
-    float cand_R;        // V4.59-diag: 候选阶段 R (mag box 半径, star_finder.c:529)
+    float cand_R;        // 候选阶段 R (mag box 半径, star_finder.c:529)
 };
 
 struct LMWorkspace {
@@ -255,9 +255,9 @@ struct LMWorkspace {
     }
 };
 
-//   输入: image (原始像素), rect (box), cx/cy (候选中心), bkg0, sat_threshold
-//   输出: fit_result (B, A, cx, cy, sx, sy, theta, fwhm_x/y, mad=rmse)
-//   返回: SDET_FIT_OK / SDET_FIT_NO_CONVERGENCE / SDET_FIT_INVALID_PARAMS
+// 输入: image (原始像素), rect (box), cx/cy (候选中心), bkg0, sat_threshold
+// 输出: fit_result (B, A, cx, cy, sx, sy, theta, fwhm_x/y, mad=rmse)
+// 返回: SDET_FIT_OK / SDET_FIT_NO_CONVERGENCE / SDET_FIT_INVALID_PARAMS
 template <typename T>
 static int sdet_lm_fit(const T* image, int width,
                        int rect_x0, int rect_y0, int rect_x1, int rect_y1,
@@ -313,22 +313,22 @@ static int sdet_lm_fit(const T* image, int width,
     double FWHMx = (double)(jj1 - jj2);
     double FWHMy = (double)(ii1 - ii2);
 
-    //   samples.dx - x0 = (x + 0.5 - cx) - x0, 要等于 (j + 0.5 - x0_box)
-    //   j = x - rect_x0, x0_box = (jj1+jj2+1)/2 (矩阵坐标)
-    //   x0_ipv (相对候选中心) = x0_box - (xc + 0.5) = (jj1+jj2+1)/2 - NbCols/2 - 0.5
-    //   简化: x0_ipv = (jj1+jj2)/2.0 - xc + 0.5  (但, 让我精确对齐)
+    // samples.dx - x0 = (x + 0.5 - cx) - x0, 要等于 (j + 0.5 - x0_box)
+    // j = x - rect_x0, x0_box = (jj1+jj2+1)/2 (矩阵坐标)
+    // x0_ipv (相对候选中心) = x0_box - (xc + 0.5) = (jj1+jj2+1)/2 - NbCols/2 - 0.5
+    // 简化: x0_ipv = (jj1+jj2)/2.0 - xc + 0.5 (但, 让我精确对齐)
 
-    //   IPv samples.dx = x_pixel + 0.5 - cx, x_pixel = rect_x0 + j
-    //   samples.dx = rect_x0 + j + 0.5 - cx = j + 0.5 - (cx - rect_x0) = j + 0.5 - xc_box
+    // IPv samples.dx = x_pixel + 0.5 - cx, x_pixel = rect_x0 + j
+    // samples.dx = rect_x0 + j + 0.5 - cx = j + 0.5 - (cx - rect_x0) = j + 0.5 - xc_box
 
-    //   要等价: samples.dx - x0_ipv = j + 0.5 - x0_box
-    //   j + 0.5 - xc_box - x0_ipv = j + 0.5 - x0_box
-    //   x0_ipv = x0_box - xc_box = (jj1+jj2+1)/2.0 - xc
+    // 要等价: samples.dx - x0_ipv = j + 0.5 - x0_box
+    // j + 0.5 - xc_box - x0_ipv = j + 0.5 - x0_box
+    // x0_ipv = x0_box - xc_box = (jj1+jj2+1)/2.0 - xc
     double x0_init = (double)(jj1 + jj2 + 1) / 2.0 - xc;
     double y0_init = (double)(ii1 + ii2 + 1) / 2.0 - yc;
 
-    //   FWHM = max(FWHMx, FWHMy), roundness = min/max, angle = 0
-    //   否则: 复杂路径 (惯性矩阵 SVD), IPv 暂不实现, 用简单路径兜底
+    // FWHM = max(FWHMx, FWHMy), roundness = min/max, angle = 0
+    // 否则: 复杂路径 (惯性矩阵 SVD), IPv 暂不实现, 用简单路径兜底
     double FWHM = std::max(FWHMx, FWHMy);
     double FWHM_min = std::min(FWHMx, FWHMy);
     if (FWHM < 1.0) FWHM = 1.0;  // 保护
@@ -419,7 +419,7 @@ static int sdet_lm_fit(const T* image, int width,
 }
 
 
-// V4.27 阶段B: 背景噪声估计 (FnNoise1_ushort 算法)
+// 阶段B: 背景噪声估计 (FnNoise1_ushort 算法)
 // 算法: 行差分 -> sigma-clip(3次,5.0) -> stdev -> 中位数 -> *0.7071
 // 注意: sdet_robust_mad 返回值已含 *1.4826 (即 sigma 估计), 直接用作 dsigma
 template <typename T>
@@ -478,8 +478,8 @@ static T sdet_compute_bgnoise(const T* img, int width, int height) {
     return med_stdev * T(0.70710678);  // 1/sqrt(2)
 }
 
-// V4.55: 新增 init_sx/init_sy 参数, 用候选阶段 Sr/Sc 作为初始 σ
-// V4.58: 新增 bg_init 参数, 用全局中位数作为 B 初始值
+// 新增 init_sx/init_sy 参数, 用候选阶段 Sr/Sc 作为初始 σ
+// 新增 bg_init 参数, 用全局中位数作为 B 初始值
 template <typename T>
 int sdet_moffat4_fit(const T* image, int width, int height,
                      double cx, double cy,
@@ -507,8 +507,8 @@ int sdet_moffat4_fit(const T* image, int width, int height,
             SamplePixel sp;
 
 
-            //   IPv:   sp.dx = x+0.5-cx, 残差中 ddx = sp.dx - x0 = x+0.5-cx-x0
-            //   等价于 j+0.5-x0 (j=x-cx+R, x0_box=x0_ipv+R, R=box半宽)
+            // IPv: sp.dx = x+0.5-cx, 残差中 ddx = sp.dx - x0 = x+0.5-cx-x0
+            // 等价于 j+0.5-x0 (j=x-cx+R, x0_box=x0_ipv+R, R=box半宽)
             sp.dx = static_cast<double>(x) + 0.5 - cx;
             sp.dy = static_cast<double>(y) + 0.5 - cy;
             sp.val = val;
@@ -566,10 +566,10 @@ int sdet_moffat4_fit(const T* image, int width, int height,
         ? (filtered[nf / 2 - 1] + filtered[nf / 2]) / 2.0
         : filtered[nf / 2];
 
-    // V4.58 回退: B 初始值仍用局部 lower_half 中位数 (bkg0), 不用全局中位数
-    //   原因: V4.58 试验用全局中位数导致 NGC4945 顺序 100%→21%, 偏差 1→4
-    //   IPv 手写 LM 与 GSL trust-region LM 收敛行为不同, 全局中位数初始值在 IPv 中导致 B 收敛偏差
-    // (void)bg_init;  // V4.58 参数保留但不使用, 避免签名变更
+    // 回退: B 初始值仍用局部 lower_half 中位数 (bkg0), 不用全局中位数
+    // 原因: 试验用全局中位数导致 NGC4945 顺序 100%→21%, 偏差 1→4
+    // IPv 手写 LM 与 GSL trust-region LM 收敛行为不同, 全局中位数初始值在 IPv 中导致 B 收敛偏差
+    // (void)bg_init; // 参数保留但不使用, 避免签名变更
 
     double max_val = -1e30;
     for (int i = 0; i < m; i++)
@@ -578,13 +578,13 @@ int sdet_moffat4_fit(const T* image, int width, int height,
     double A0 = max_val - bkg0;
     if (A0 <= 0) return SDET_FIT_INVALID_PARAMS;
 
-    // V4.55: 用候选 Sr/Sc 作为初始 σ, 退化时用 0.15*rw
-    //   Gaussian: FWHM=2.3548*σ, Sr/Sc 已是 σ 估计 (高斯平滑图零交叉点距离)
-    // V4.66: 用 GSL trust-region LM + halfA 边界搜索初始化, 替代 IPv 手写 LM
-    //   GSL LM 有 More 缩放/对角预处理, 能处理参数量级差异 (V4.60 失败根因)
-    //   V4.64 用 init_sx*2.3548 转 FWHM 不对齐, V4.66 用 halfA 边界搜索
+    // 用候选 Sr/Sc 作为初始 σ, 退化时用 0.15*rw
+    // Gaussian: FWHM=2.3548*σ, Sr/Sc 已是 σ 估计 (高斯平滑图零交叉点距离)
+    // 用 GSL trust-region LM + halfA 边界搜索初始化, 替代 IPv 手写 LM
+    // GSL LM 有 More 缩放/对角预处理, 能处理参数量级差异 ( 失败根因)
+    // 用 init_sx*2.3548 转 FWHM 不对齐, 用 halfA 边界搜索
 
-    // V4.66: has_saturated = (sat_threshold > 0.0 且有像素被排除)
+    // has_saturated = (sat_threshold > 0.0 且有像素被排除)
 
     bool has_saturated = (sat_threshold > 0.0 && m < rw * rh);
 
@@ -597,7 +597,7 @@ int sdet_moffat4_fit(const T* image, int width, int height,
         return gsl_status;
     }
 
-    // V4.66: 保留 NaN/A 保护
+    // 保留 NaN/A 保护
     if (!std::isfinite(result->B) || !std::isfinite(result->A) ||
         !std::isfinite(result->cx) || !std::isfinite(result->cy) ||
         !std::isfinite(result->sx) || !std::isfinite(result->sy) ||
@@ -671,7 +671,7 @@ bool edge_walking_center(const float* fimg, int width, int height,
 
 // 饱和星检测：阈值 70% 动态范围 + 连通域 + edge-walking 中心
 // out_sat_threshold 输出饱和阈值，供后续 PSF mask 拟合使用
-// out_img_median 输出全局中位数背景，供饱和星 mag 计算使用 (V4.41)
+// out_img_median 输出全局中位数背景，供饱和星 mag 计算使用
 void sdet_detect_saturated_stars(const float* fimg, int width, int height,
                                   std::vector<SaturatedCandidate>& sat_stars,
                                   float& out_sat_threshold,
@@ -680,22 +680,22 @@ void sdet_detect_saturated_stars(const float* fimg, int width, int height,
 
     size_t n = (size_t)width * height;
 
-    // 计算动态范围 + median (V4.32:, bg 用 median 而非 img_min)
+    // 计算动态范围 + median (:, bg 用 median 而非 img_min)
     float img_min = 1e30f, img_max = -1e30f;
     #pragma omp parallel for reduction(min:img_min) reduction(max:img_max) schedule(static) num_threads(16)
     for (int i = 0; i < (int)n; i++) {
         if (fimg[i] < img_min) img_min = fimg[i];
         if (fimg[i] > img_max) img_max = fimg[i];
     }
-    // V4.32: 计算 median 作为背景估计
+    // 计算 median 作为背景估计
     std::vector<float> img_copy(fimg, fimg + n);
     std::nth_element(img_copy.begin(), img_copy.begin() + n / 2, img_copy.end());
     float img_median = img_copy[n / 2];
-    out_img_median = img_median;  // V4.41: 输出供饱和星 mag 计算
+    out_img_median = img_median;  // 输出供饱和星 mag 计算
 
     // 饱和阈值：median + dynrange * 0.7
 
-    float bg = img_median;  // V4.32:, 用 median 替代 img_min
+    float bg = img_median;  // , 用 median 替代 img_min
     float dynrange = img_max - bg;
     float minsatlevel = dynrange * 0.7f;
     float sat_threshold = bg + minsatlevel;
@@ -721,11 +721,11 @@ void sdet_detect_saturated_stars(const float* fimg, int width, int height,
     sdet_log(SDET_LOG_INFO, "SDET", "Saturated star connected components: %d", comp_count);
 
     // 对每个连通域计算 edge-walking 几何中心
-    // V4.35: 放宽过滤条件 (count<=4→<=1, bw/bh<2→<1, ar>2→>3)
+    // 放宽过滤条件 (count<=4→<=1, bw/bh<2→<1, ar>2→>3)
     // 原过滤过严导致 Galaxy_Center 425连通域→28饱和星,
-    // V4.46: 添加, 过滤小饱和块 (对齐 star_finder.c:271-274,332-333,346)
+    // 添加, 过滤小饱和块 (对齐 star_finder.c:271-274,332-333,346)
 
-    //   IPv: meanhigh = 连通域内像素平均值(等价于 3x3 邻域对小连通域)
+    // IPv: meanhigh = 连通域内像素平均值(等价于 3x3 邻域对小连通域)
     int ew_fail_count = 0;
     int meanhigh_filtered = 0;
     for (int i = 0; i < comp_count; i++) {
@@ -748,8 +748,8 @@ void sdet_detect_saturated_stars(const float* fimg, int width, int height,
             sum_w += val;
         }
 
-        // V4.46:
-        //   需要更精确的 dynrange 计算或改为在 peaker 候选阶段检查
+
+        // 需要更精确的 dynrange 计算或改为在 peaker 候选阶段检查
         // float meanhigh = ...; if (meanhigh - bg < minsatlevel) { meanhigh_filtered++; continue; }
 
         int start_x = (sum_w > 0) ? (int)(sum_wx / sum_w + 0.5) : (components[i].x0 + components[i].x1) / 2;
@@ -838,10 +838,10 @@ void sdet_dedup_stars(std::vector<StarRecord>& stars) {
         normal_grid[{gx, gy}].push_back(idx);
     }
 
-    // V4.35: 饱和星与正常星去重改为丢弃正常星（保留饱和星,
+    // 饱和星与正常星去重改为丢弃正常星（保留饱和星,
 
-    // V4.52 修复: normal_deleted_by_sat 大小改为 stars.size(), 因为 V4.52 后 stars 布局混合
-    //   (阶段8 同时添加正常星和饱和星, normal_idx 中的 stars 索引不再连续 [0, normal_count))
+    // 修复: normal_deleted_by_sat 大小改为 stars.size(), 因为 后 stars 布局混合
+    // (阶段8 同时添加正常星和饱和星, normal_idx 中的 stars 索引不再连续 [0, normal_count))
     std::vector<uint8_t> normal_deleted_by_sat(stars.size(), 0);
     for (int si = 0; si < (int)sat_idx.size(); si++) {
         int i = sat_idx[si];
@@ -887,7 +887,7 @@ void sdet_dedup_stars(std::vector<StarRecord>& stars) {
                     double ddx = stars[i].cx - stars[j].cx;
                     double ddy = stars[i].cy - stars[j].cy;
                     if (ddx * ddx + ddy * ddy < 4.0) {
-                        // 保留r较大的 (V4.52: r=0.0f 时稳定, 后续按 flux 排序)
+                        // 保留r较大的 (: r=0.0f 时稳定, 后续按 flux 排序)
                         if (stars[i].r >= stars[j].r) sat_deleted[sj] = 1;
                         else { sat_deleted[si] = 1; goto next_sat; }
                     }
@@ -897,9 +897,9 @@ void sdet_dedup_stars(std::vector<StarRecord>& stars) {
         next_sat:;
     }
 
-    // 正常星之间去重（V4.35: 合并饱和星去重标记）
-    // V4.52 修复: normal_deleted 以 stars 索引为下标, 大小 = stars.size()
-    //   normal_grid 存储的是 stars 索引 (不是 normal_idx 位置索引)
+    // 正常星之间去重（: 合并饱和星去重标记）
+    // 修复: normal_deleted 以 stars 索引为下标, 大小 = stars.size()
+    // normal_grid 存储的是 stars 索引 (不是 normal_idx 位置索引)
     std::vector<uint8_t> normal_deleted = normal_deleted_by_sat;
     for (int ni = 0; ni < (int)normal_idx.size(); ni++) {
         int i = normal_idx[ni];  // stars 索引
@@ -912,7 +912,7 @@ void sdet_dedup_stars(std::vector<StarRecord>& stars) {
                 if (it == normal_grid.end()) continue;
                 for (int nj : it->second) {  // nj 是 stars 索引
                     if (nj == i || normal_deleted[nj]) continue;
-                    int j = nj;  // V4.52: nj 已经是 stars 索引
+                    int j = nj;  // nj 已经是 stars 索引
                     double ddx = stars[i].cx - stars[j].cx;
                     double ddy = stars[i].cy - stars[j].cy;
                     if (ddx * ddx + ddy * ddy <= 1.0) normal_deleted[nj] = 1;
@@ -933,11 +933,11 @@ void sdet_dedup_stars(std::vector<StarRecord>& stars) {
     stars = std::move(result);
 }
 
-// V4.53: 排序
+// 排序
 
-//   mag = -2.5*log10(box_sum), box_sum 越大 mag 越小 (越亮)
-//   NaN mag (box_sum<=0) 排到最后
-//   注: plate solver (ipv_select) 自己按 mag 重排, 此处排序仅供 API 输出一致性
+// mag = -2.5*log10(box_sum), box_sum 越大 mag 越小 (越亮)
+// NaN mag (box_sum<=0) 排到最后
+// 注: plate solver (ipv_select) 自己按 mag 重排, 此处排序仅供 API 输出一致性
 void sdet_sort_stars(std::vector<StarRecord>& stars) {
     std::stable_sort(stars.begin(), stars.end(), [](const StarRecord& a, const StarRecord& b) {
         bool a_nan = std::isnan(a.mag);
@@ -1483,7 +1483,7 @@ SDET_EXPORT int sdet_detect_debug(StarDetectorHandle handle,
     // 饱和星检测（阈值 70% + edge-walking 中心）
     std::vector<SaturatedCandidate> sat_candidates;
     float sat_threshold = 0.0f;
-    float img_median = 0.0f;  // V4.41: 接收全局中位数背景
+    float img_median = 0.0f;  // 接收全局中位数背景
     sdet_detect_saturated_stars(fimg.data(), width, height, sat_candidates, sat_threshold, img_median);
 
     // 饱和星 PSF mask 拟合
@@ -1597,9 +1597,9 @@ SDET_EXPORT void sdet_free_debug_maps(float *maps)
     free(maps);
 }
 
-// R11 (PREC-108 第二步): sdet_detect_impl - 星点检测核心 (模板双实例)
-//   T=float  : 与旧 sdet_detect_ex 行为逐位一致 (uint16→float 由入口包装完成)
-//   T=double : FP64 模式 (输入 double 校准图, 全程 double 检测, 不降级 float32)
+// sdet_detect_impl - 星点检测核心 (模板双实例)
+// T=float : 与旧 sdet_detect_ex 行为逐位一致 (uint16→float 由入口包装完成)
+// T=double : FP64 模式 (输入 double 校准图, 全程 double 检测, 不降级 float32)
 template <typename T>
 static int sdet_detect_impl(StarDetectorHandle handle,
                             const T *image, int width, int height,
@@ -1651,13 +1651,13 @@ static int sdet_detect_impl(StarDetectorHandle handle,
     t_last = t3;
 
     // 阶段4: peaker 完整候选检测 (star_finder.c:278-544)
-    //   (1) 11x11 (r=5) 局部极大值 + 平局决胜 (line 288-310)
-    //   (2) 3x3 邻域亮度验证 meanhigh/count (line 312-333)
-    //   (3) 饱和星 edge-walking 精确定位中心 (line 355-409)
-    //   (4) 二阶导数零交叉 Sr/Sc + 振幅 Ar/Ac (line 411-492)
-    //   (5) R=max(ceil(3.717*Sr),ceil(3.717*Sc),r) (line 495-510)
-    //   (6) 对称性质量检查 dA/dSr/dSc (line 513-518)
-    //   (7) candidate_is_duplicate 去重 (line 521)
+    // (1) 11x11 (r=5) 局部极大值 + 平局决胜 (line 288-310)
+    // (2) 3x3 邻域亮度验证 meanhigh/count (line 312-333)
+    // (3) 饱和星 edge-walking 精确定位中心 (line 355-409)
+    // (4) 二阶导数零交叉 Sr/Sc + 振幅 Ar/Ac (line 411-492)
+    // (5) R=max(ceil(3.717*Sr),ceil(3.717*Sc),r) (line 495-510)
+    // (6) 对称性质量检查 dA/dSr/dSc (line 513-518)
+    // (7) candidate_is_duplicate 去重 (line 521)
     struct Candidate {
         double cx, cy;
         int pixel_count;
@@ -1696,7 +1696,7 @@ static int sdet_detect_impl(StarDetectorHandle handle,
              "minsatlevel=%.1f satrange=%.1f s_factor=%.4f locthreshold=%.4f",
              bg, maxi, norm, dynrange, minsatlevel, satrange, s_factor, locthreshold);
 
-    // V4.51-debug: 饱和判断阶段统计
+    // 饱和判断阶段统计
     int dbg_pass_threshold = 0;    // pixel > threshold
     int dbg_pass_localmax = 0;     // 11x11 局部极大值
     int dbg_pass_count3 = 0;       // 3x3 邻域 count >= 3
@@ -1764,7 +1764,7 @@ static int sdet_detect_impl(StarDetectorHandle handle,
             T sat = T(0);
             T r0 = T(0), c0 = T(0);
 
-            // V4.51-debug: 统计饱和判断中间变量
+            // 统计饱和判断中间变量
             bool cond_meanhigh = (meanhigh - bg >= minsatlevel);
             bool cond_platform = (pixel0 - minhigh <= satrange);
             if (cond_meanhigh) dbg_sat_meanhigh++;
@@ -1982,7 +1982,7 @@ static int sdet_detect_impl(StarDetectorHandle handle,
         for (const auto& c : candidates) if (c.has_saturated) sat_cnt++;
         sdet_log(SDET_LOG_INFO, "SDET", "Candidates: %d",
                  (int)candidates.size(), threshold, sat_cnt);
-        // V4.51-debug: 饱和判断阶段统计
+        // 饱和判断阶段统计
         sdet_log(SDET_LOG_INFO, "SDET", "Peaker stages: pass_threshold=%d pass_localmax=%d pass_count3=%d pass_boundary=%d | "
                  "cond_meanhigh=%d cond_platform=%d sat_both=%d nonsat=%d",
                  dbg_pass_threshold, dbg_pass_localmax, dbg_pass_count3, dbg_pass_boundary,
@@ -2001,7 +2001,7 @@ static int sdet_detect_impl(StarDetectorHandle handle,
         return 0;
     }
 
-    // V4.34 回退: per-candidate 饱和判定在连通域架构下失效, 恢复 V4.33 独立饱和检测 (阶段9)
+    // 回退: per-candidate 饱和判定在连通域架构下失效, 恢复 独立饱和检测 (阶段9)
 
     // 自适应fitRadius：基于连通域像素数中位数估算FWHM
     std::vector<int> pixel_counts;
@@ -2023,11 +2023,11 @@ static int sdet_detect_impl(StarDetectorHandle handle,
     sdet_log(SDET_LOG_INFO, "SDET", "Auto fitRadius: med_pixels=%d fwhm_est=%.2f auto_radius=%d actual=%d",
              med_pixel_count, fwhm_est, auto_fit_radius, actual_fit_radius);
 
-    // V4.63: Task 6 候选排序 —
+    // Task 6 候选排序 —
 
-    //   star_cmp_by_mag_est: mag_est 降序 (meanhigh 越大越亮, star_finder.c:136-144)
-    //   V4.61 之前用 brightness(pixel0) 排序, 饱和星 pixel0=65535 全相同被任意截断
-    //   mag_est=meanhigh 是局部背景上方均值估计, 能区分饱和星亮度
+    // star_cmp_by_mag_est: mag_est 降序 (meanhigh 越大越亮, star_finder.c:136-144)
+    // 之前用 brightness(pixel0) 排序, 饱和星 pixel0=65535 全相同被任意截断
+    // mag_est=meanhigh 是局部背景上方均值估计, 能区分饱和星亮度
     std::sort(candidates.begin(), candidates.end(),
               [](const Candidate &a, const Candidate &b) { return a.mag_est > b.mag_est; });
     sdet_log(SDET_LOG_INFO, "SDET", "Task6 candidates sorted by mag_est (desc): maxstars=%d candidates=%d",
@@ -2050,8 +2050,8 @@ static int sdet_detect_impl(StarDetectorHandle handle,
             int ry1 = std::min(height, (int)candidates[i].cy + fit_r + 1);
 
 
-            //   非饱和候选 sat=norm=65535, mask 排除 pixel>=65535 的真正饱和像素 (含 65535 平台)
-            //   之前 IPv 非饱和候选 sat_mask=0 不过滤, 导致含饱和像素的星 A 被拉高 (Galaxy_Center +79)
+            // 非饱和候选 sat=norm=65535, mask 排除 pixel>=65535 的真正饱和像素 (含 65535 平台)
+            // 之前 IPv 非饱和候选 sat_mask=0 不过滤, 导致含饱和像素的星 A 被拉高 (Galaxy_Center +79)
             double sat_mask = (double)candidates[i].sat;
 
             sdet_moffat4_fit<T>(image, width, height,
@@ -2134,16 +2134,16 @@ static int sdet_detect_impl(StarDetectorHandle handle,
     for (int i = 0; i < cc_count; i++) {
 
 
-        //   GSL LM status != GSL_SUCCESS 时 error=PSF_ERR_DIVERGED, minimize_candidates 丢弃
-        //   IPv: fit_results[i].status != SDET_FIT_OK 等价于 DIVERGED, 丢弃
+        // GSL LM status != GSL_SUCCESS 时 error=PSF_ERR_DIVERGED, minimize_candidates 丢弃
+        // IPv: fit_results[i].status != SDET_FIT_OK 等价于 DIVERGED, 丢弃
         if (fit_results[i].status != SDET_FIT_OK) { f_fit++; continue; }
-        // V4.49: 移除全局 FWHM clip (fwhm_med±3*mad), 完全依赖 reject_star 自适应 FWHM 上限
+        // 移除全局 FWHM clip (fwhm_med±3*mad), 完全依赖 reject_star 自适应 FWHM 上限
 
-        //   全局 clip 会误杀宽星 (如 NGC6302 FWHM=7-33 的星),
+        // 全局 clip 会误杀宽星 (如 NGC6302 FWHM=7-33 的星),
         float axis_ratio = (float)(std::max(fit_results[i].sx, fit_results[i].sy) /
                                     std::max(std::min(fit_results[i].sx, fit_results[i].sy), 0.001));
         if (axis_ratio > params.maxAxisRatio) { f_round++; continue; }
-        // V4.51: reject_star 传入候选阶段 sx/sy (Sr/Sc,
+        // reject_star 传入候选阶段 sx/sy (Sr/Sc,
 
         SfError sf_err = reject_star(fit_results[i], candidates[i].has_saturated,
                                      (double)candidates[i].sx, (double)candidates[i].sy);
@@ -2154,8 +2154,8 @@ static int sdet_detect_impl(StarDetectorHandle handle,
         rec.flux = (float)fit_results[i].A;
 
 
-        //   候选阶段 has_saturated (meanhigh检查) 仅用于 sat 字段选择, 最终被 A>dynrange 覆盖
-        //   这使饱和星直接从 peaker 候选中识别, 无需独立饱和星检测路径
+        // 候选阶段 has_saturated (meanhigh检查) 仅用于 sat 字段选择, 最终被 A>dynrange 覆盖
+        // 这使饱和星直接从 peaker 候选中识别, 无需独立饱和星检测路径
         rec.is_saturated = (fit_results[i].A > dynrange) ? 1 : 0;
         rec.fwhm_x = (float)fit_results[i].fwhm_x;
         rec.fwhm_y = (float)fit_results[i].fwhm_y;
@@ -2165,30 +2165,30 @@ static int sdet_detect_impl(StarDetectorHandle handle,
         rec.background = (float)fit_results[i].B;
         rec.amplitude = (float)fit_results[i].A;
         rec.r = 0.0f;
-        rec.cand_R = (float)candidates[i].R;  // V4.59-diag: 候选阶段 R (mag box 半径)
-        // V4.50: mag, star_finder.c:638-655)
+        rec.cand_R = (float)candidates[i].R;  // 候选阶段 R (mag box 半径)
+        // mag, star_finder.c:638-655)
 
-        //        mag = -2.5*log10(Σ_box(pixel - B)), B=PSF拟合背景 FIT(0) (PSF.c:724,653)
-        //        box=(2R+1)², R=max(ceil(s_factor*Sr),ceil(s_factor*Sc),r) (star_finder.c:495-499)
-        //        B 初始值=全局中位数 (compute_threshold, star_finder.c:82), 经LM拟合优化
-        // V4.50 修复: mag_radius 改用 candidates[i].R (与拟合 box 一致), 不再用 1.58*FWHM 重算
-        //   原因: 1.58*FWHM 可能 > R (宽星情况), 导致 mag box > 拟合 box, 累加更多星云像素
-        //   NGC6302 rk=1: R=17, 1.58*FWHM=23, mag box 偏大导致 mag 偏亮 0.8 mag
+        // mag = -2.5*log10(Σ_box(pixel - B)), B=PSF拟合背景 FIT(0) (PSF.c:724,653)
+        // box=(2R+1)², R=max(ceil(s_factor*Sr),ceil(s_factor*Sc),r) (star_finder.c:495-499)
+        // B 初始值=全局中位数 (compute_threshold, star_finder.c:82), 经LM拟合优化
+        // 修复: mag_radius 改用 candidates[i].R (与拟合 box 一致), 不再用 1.58*FWHM 重算
+        // 原因: 1.58*FWHM 可能 > R (宽星情况), 导致 mag box > 拟合 box, 累加更多星云像素
+        // NGC6302 rk=1: R=17, 1.58*FWHM=23, mag box 偏大导致 mag 偏亮 0.8 mag
         {
-            int mag_radius = candidates[i].R;  // V4.50: 用候选 R
+            int mag_radius = candidates[i].R;  // 用候选 R
             mag_radius = std::max(mag_radius, 5);   // 下限 r=5
             mag_radius = std::min(mag_radius, 200);  // 上限 MAX_BOX_RADIUS
-            // V4.57: mag box 中心用候选中心
+            // mag box 中心用候选中心
 
-            //   之前 IPv 用 fit_results[i].cx (拟合中心), 偏离候选中心 0.1-0.5px
-            //   导致 box 包含像素不同 → box_sum 微小差异 → mag 排序偏移 (NGC6302 rank 差 +3~+5)
+            // 之前 IPv 用 fit_results[i].cx (拟合中心), 偏离候选中心 0.1-0.5px
+            // 导致 box 包含像素不同 → box_sum 微小差异 → mag 排序偏移 (NGC6302 rank 差 +3~+5)
             int mcx = (int)candidates[i].cx;
             int mcy = (int)candidates[i].cy;
             int mx0 = std::max(0, mcx - mag_radius);
             int my0 = std::max(0, mcy - mag_radius);
             int mx1 = std::min(width, mcx + mag_radius + 1);
             int my1 = std::min(height, mcy + mag_radius + 1);
-            float local_B = (float)fit_results[i].B;  // V4.44: 用拟合B)
+            float local_B = (float)fit_results[i].B;  // 用拟合B)
             double box_sum = 0.0;
             for (int yy = my0; yy < my1; yy++) {
                 for (int xx = mx0; xx < mx1; xx++) {
@@ -2197,9 +2197,9 @@ static int sdet_detect_impl(StarDetectorHandle handle,
             }
             rec.mag = (box_sum > 0.0) ? -2.5f * log10f((float)box_sum) : NAN;
         }
-        // V4.52: has_saturated
+        // has_saturated
 
-        //   候选阶段 has_saturated 仅用于 sat 字段值选择, 不影响最终饱和标志
+        // 候选阶段 has_saturated 仅用于 sat 字段值选择, 不影响最终饱和标志
         rec.has_saturated = rec.is_saturated;
         stars.push_back(rec);
     }
@@ -2211,11 +2211,11 @@ static int sdet_detect_impl(StarDetectorHandle handle,
     sdet_log(SDET_LOG_INFO, "SDET", "Normal stars: %d (fit_fail=%d fwhm=%d roundness=%d reject=%d)",
              (int)stars.size(), f_fit, f_fwhm, f_round, f_reject);
 
-    // 阶段9: [V4.52 移除] 独立饱和星检测路径
+    // 阶段9: [ 移除] 独立饱和星检测路径
 
-    //   IPv V4.52 流程: 阶段6/7 PSF 拟合所有候选 → 阶段8 用 A>dynrange 设置 is_saturated
-    //   原阶段9的独立阈值二值化+edge-walking 与参考实现不一致, 导致 Galaxy_Center 多检7颗小饱和星
-    //   饱和星现在直接从 peaker 候选中识别, 无需独立路径
+    // IPv 流程: 阶段6/7 PSF 拟合所有候选 → 阶段8 用 A>dynrange 设置 is_saturated
+    // 原阶段9的独立阈值二值化+edge-walking 与参考实现不一致, 导致 Galaxy_Center 多检7颗小饱和星
+    // 饱和星现在直接从 peaker 候选中识别, 无需独立路径
     auto t9 = std::chrono::high_resolution_clock::now();
     sdet_log(SDET_LOG_DEBUG, "SDET", "[9] Saturated star detection skipped (V4.52: use A>dynrange from peaker): %.1f ms",
              std::chrono::duration<double, std::milli>(t9 - t_last).count());
@@ -2278,7 +2278,7 @@ static int sdet_detect_impl(StarDetectorHandle handle,
         x_coords[i] = stars[i].cx;
         y_coords[i] = stars[i].cy;
         flux_arr[i] = stars[i].flux;
-        // V4.33: saturated 标志用 is_saturated (阶段9 独立饱和检测)
+        // saturated 标志用 is_saturated (阶段9 独立饱和检测)
         sat_arr[i] = stars[i].is_saturated;
         if (mag_arr) mag_arr[i] = stars[i].mag;
         if (has_sat_arr) has_sat_arr[i] = stars[i].has_saturated;
@@ -2313,7 +2313,7 @@ static int sdet_detect_impl(StarDetectorHandle handle,
 
 // ============================================================================
 // sdet_detect_ex - FP32 入口 (uint16 原始图像, 兼容旧 ABI)
-//   内部 uint16→float32 转换后调用 sdet_detect_impl<float> (行为与旧版逐位一致)
+// 内部 uint16→float32 转换后调用 sdet_detect_impl<float> (行为与旧版逐位一致)
 // ============================================================================
 SDET_EXPORT int sdet_detect_ex(StarDetectorHandle handle,
                                const uint16_t *image, int width, int height,
@@ -2337,8 +2337,8 @@ SDET_EXPORT int sdet_detect_ex(StarDetectorHandle handle,
 
 // ============================================================================
 // sdet_detect_ex_f64 - FP64 入口 (double 校准图像)
-//   R11 (PREC-108 第二步): 全程 double 检测, 不降级 float32
-//   输出接口与 sdet_detect_ex 一致 (out_flux/mag float, 下游协议兼容)
+// 全程 double 检测, 不降级 float32
+// 输出接口与 sdet_detect_ex 一致 (out_flux/mag float, 下游协议兼容)
 // ============================================================================
 SDET_EXPORT int sdet_detect_ex_f64(StarDetectorHandle handle,
                                    const double *image, int width, int height,

@@ -1,9 +1,9 @@
 // lib/acr/tests/classic/e12_fft.cpp — E12 FFT Round-trip
 // 验证能力：专用库（自实现 naive DFT + Cooley-Tukey 迭代）
 // 扩展（规范 E15 GEMM/FFT成熟库adapter）：
-//   - 1D：1024/65536（2 的幂）+ 1000（非 2 的幂，naive DFT）
-//   - 2D：512²（可分离行/列 FFT），2048² 标记 SKIPPED（成熟库不可用）
-//   - 成熟库 adapter（FFTW/pocketfft/cuFFT/rocFFT/oneMKL），不可用标记 SKIPPED
+// - 1D：1024/65536（2 的幂）+ 1000（非 2 的幂，naive DFT）
+// - 2D：512²（可分离行/列 FFT），2048² 标记 SKIPPED（成熟库不可用）
+// - 成熟库 adapter（FFTW/pocketfft/cuFFT/rocFFT/oneMKL），不可用标记 SKIPPED
 // 不依赖 FFTW；自实现。round-trip: ifft(fft(x)) ≈ x。
 #include "classic_common.hpp"
 

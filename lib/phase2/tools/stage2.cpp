@@ -2,10 +2,10 @@
 //
 // 用法：astrocs-stage2 <stage2.json>（唯一参数，禁止长串 CLI 科学参数）
 //
-// 流程（控制包 34A532A2...B2EB308 EXECUTION_ORDER）：
-//   DISCOVER → VALIDATE → COVERAGE_UNION → CONTROL_SAMPLE → UPM_FIT →
-//   UPM_PERSIST → BLOCK_PLAN → BLOCK_CALIBRATE → REJECT_INTEGRATE →
-//   HIPS_WRITE → HIPS_VERIFY
+// 流程（ 34A532A2...B2EB308 EXECUTION_ORDER）：
+// DISCOVER → VALIDATE → COVERAGE_UNION → CONTROL_SAMPLE → UPM_FIT →
+// UPM_PERSIST → BLOCK_PLAN → BLOCK_CALIBRATE → REJECT_INTEGRATE →
+// HIPS_WRITE → HIPS_VERIFY
 //
 // 科学语义全部来自 lib/phase2（CPU reference 权威），HiPS 读写走唯一 AIO。
 #include "astro/phase2/upm.h"
@@ -164,7 +164,7 @@ int main(int argc, char** argv) {
         " target_order=" + std::to_string(target_order));
     mark("coverage");
 
-    // R2/R3：frame_id 缓存（payload 敏感，DISCOVER 阶段一次计算）+
+    // frame_id 缓存（payload 敏感，DISCOVER 阶段一次计算）+
     // input manifest hash = canonical(frame identity + 关键元数据)
     std::vector<std::uint64_t> frame_id_cache(cfg.hips.size());
     std::vector<std::pair<std::uint64_t, std::string>> manifest_entries;
@@ -187,7 +187,7 @@ int main(int argc, char** argv) {
     const std::string input_manifest_hash = astrocs::crypto::sha256_hex(
         manifest_payload.data(), manifest_payload.size());
     log("input_manifest_hash=" + input_manifest_hash);
-    // V4 R6：帧级 SNR median（whole-frame fallback 源；frame_id → 值映射）
+    // 帧级 SNR median（whole-frame fallback 源；frame_id → 值映射）
     const std::vector<double> frame_snr = frame_snr_medians(cfg.hips);
     std::map<std::uint64_t, double> frame_snr_by_id;
     for (std::size_t i = 0; i < cfg.hips.size(); ++i)
@@ -199,7 +199,7 @@ int main(int argc, char** argv) {
     sccfg.patch_radius_leaf = cfg.patch_radius_leaf;
     sccfg.min_samples = cfg.min_samples;
     sccfg.snr_search_radius_deg = cfg.snr_search_radius_deg;
-    // V13 background-clean 参数
+    // background-clean 参数
     sccfg.background_patch_radius = cfg.background_patch_radius;
     sccfg.background_clip_sigma = cfg.background_clip_sigma;
     sccfg.background_clip_iters = cfg.background_clip_iters;
@@ -241,7 +241,7 @@ int main(int argc, char** argv) {
         " lt2frames=" + std::to_string(sstats.rejected_lt_two_clean_frames) +
         "] accepted_controls=" + std::to_string(sstats.accepted_controls) +
         " overlap_controls=" + std::to_string(sstats.overlap_controls));
-    // V13 (P13-6)：accepted/rejected control 诊断（overlay 用）
+    // accepted/rejected control 诊断（overlay 用）
     if (cfg.diagnostics && !cfg.out_hips.empty()) {
         std::set<std::uint64_t> accepted_ids;
         for (const auto& o : obs) accepted_ids.insert(o.control_id);
@@ -259,16 +259,16 @@ int main(int argc, char** argv) {
             "/controls_accept.json");
     }
     mark("control_sample");
-    // R2：quality fallback 统计（quality_flags==0 = QUALITY_FALLBACK_UNKNOWN）
+    // quality fallback 统计（quality_flags==0 = QUALITY_FALLBACK_UNKNOWN）
     std::uint64_t quality_unknown = 0;
     for (const auto& o : obs)
         if (o.quality_flags == 0) ++quality_unknown;
     log("quality fallback unknown: " + std::to_string(quality_unknown) +
         " / " + std::to_string(n_obs));
-    // R8：局部 SNR 映射（control cell 级 = 可证明的最近空间 catalogue
+    // 局部 SNR 映射（control cell 级 = 可证明的最近空间 catalogue
     // 区域）：(frame_id, tile, gx, gy) -> snr。像素权重优先局部，
     // 缺失才 fallback 整帧 SNR median 并计数。
-    // V4 R6：只有真实可用的局部 SNR 才进入 local_snr_map；无局部星点的
+    // 只有真实可用的局部 SNR 才进入 local_snr_map；无局部星点的
     // control observation 先回退整帧 SNR median（UPM 控制权重语义），
     // 且不允许以 snr=1.0 伪装 unknown。
     std::map<std::tuple<std::uint64_t, std::uint64_t, int, int>, double>
@@ -286,7 +286,7 @@ int main(int argc, char** argv) {
         local_snr_map[std::make_tuple(o.frame_id, tile, (int)(x / 64),
                                       (int)(y / 64))] = o.snr;
     }
-    // V4 R6：UPM 控制权重回退——无局部星点的观测用整帧 SNR median
+    // UPM 控制权重回退——无局部星点的观测用整帧 SNR median
     // （保持与像素级 fallback 相同策略；snr_available 位仍保留记录）。
     for (auto& o : obs) {
         if (!o.snr_available) {
@@ -295,7 +295,7 @@ int main(int argc, char** argv) {
         }
     }
     std::uint64_t local_snr_used = 0, frame_snr_fallback = 0;
-    // V19 (SNR_REDESIGN_CONTRACT §13): 控制 cell 级 ivar (来自帧 ivar 产品)
+    // 控制 cell 级 ivar (来自帧 ivar 产品)
     std::map<std::tuple<std::uint64_t, std::uint64_t, int, int>, double>
         local_ivar_map;
     std::uint64_t local_ivar_used = 0;
@@ -312,7 +312,7 @@ int main(int argc, char** argv) {
         std::to_string(local_snr_unavailable));
 
     // ---- W4 UPM FIT ----
-    // R1（V4）：生产共享 UPM 配置构造（与 gate 测试同一 path）
+    // 生产共享 UPM 配置构造（与 gate 测试同一 path）
     P2UpmBuildConfig mcfg =
         p2_stage2_make_upm_cfg(cfg, target_order,
                                input_manifest_hash.c_str());
@@ -391,8 +391,8 @@ int main(int argc, char** argv) {
             return 6;
         }
     }
-    // V19 (SNR_REDESIGN_CONTRACT §13): ivar 产品 (weight_mode=2 默认)
-    //   缺失产品 → 回退 support (几何可靠性), 计数如实记录 (不伪造 ivar)
+    // ivar 产品 (weight_mode=2 默认)
+    // 缺失产品 → 回退 support (几何可靠性), 计数如实记录 (不伪造 ivar)
     std::vector<AioHipsDataset*> ivr(cfg.hips.size(), nullptr);
     std::uint64_t ivar_product_missing = 0;
     if (cfg.weight_mode == 2) {
@@ -416,13 +416,13 @@ int main(int argc, char** argv) {
     }
 
     std::uint64_t total_pixels = 0, total_rejected = 0, total_fallback = 0;
-    std::uint64_t large_scale_grown = 0;   // V17：grow 新增拒绝样本数
+    std::uint64_t large_scale_grown = 0;   // grow 新增拒绝样本数
     std::uint64_t dbg_reject_px = 0, dbg_fallback_px = 0, dbg_zero_px = 0;
-    std::uint64_t underdetermined_px = 0;  // V15：REJECTION_UNDERDETERMINED
-    std::uint64_t px_depth_0 = 0;  // V16：mutually exclusive depth 诊断
+    std::uint64_t underdetermined_px = 0;  // REJECTION_UNDERDETERMINED
+    std::uint64_t px_depth_0 = 0;  // mutually exclusive depth 诊断
     std::map<std::uint32_t, std::uint64_t> reject_hist;  // 每像素拒绝样本数分布
     std::map<std::uint32_t, std::string> resolved_methods;  // nominal depth → semantic id
-    // V7 P7-2：overlap topology 诊断
+    // P7-2：overlap topology 诊断
     std::uint64_t px_depth_1 = 0, px_depth_ge_2 = 0, px_integrated = 0;
     std::uint64_t tiles_written = 0;
     std::vector<std::uint8_t> valid(n_leaf);
@@ -431,7 +431,7 @@ int main(int argc, char** argv) {
     std::vector<float> t_sig_probe(512 * 512);
     const std::uint32_t nb = (std::uint32_t)cfg.hips.size();
 
-    // ---- ACR 路由（G9/V15）：按 tile 解析后的显式方法决定是否走
+    // ---- ACR 路由：按 tile 解析后的显式方法决定是否走
     // KernelRegistry（仅 robust_mad_clip/sigma）；GPU 可用则 CUDA，
     // 否则 CPU legacy（同一科学语义）。 ----
     astro::compute::phase2::register_phase2_acr_kernels();
@@ -442,7 +442,7 @@ int main(int argc, char** argv) {
     bool gpu_ready = false;
     void* gpu_exec = nullptr;
 
-    // V16：wbpp_current = integration-group level 一次解析（nominal = 全部
+    // wbpp_current = integration-group level 一次解析（nominal = 全部
     // 独立 exposure 数）；astrocs_adaptive 在 tile 层按 nominal depth 解析。
     const bool group_level =
         (cfg.reject_profile == "wbpp_2_9_1");
@@ -477,9 +477,9 @@ int main(int argc, char** argv) {
         if (frames.empty()) continue;
         const std::uint32_t depth = (std::uint32_t)frames.size();
 
-        // V16：planning 层解析 rejection
-        //   wbpp_2_9_1      → 使用 group-level 一次解析结果（tile 不重选）；
-        //   astrocs_adaptive→ 按 tile nominal geometric depth 解析（独立策略）。
+        // planning 层解析 rejection
+        // wbpp_2_9_1 → 使用 group-level 一次解析结果（tile 不重选）；
+        // astrocs_adaptive→ 按 tile nominal geometric depth 解析（独立策略）。
         P2RejectionPlan rplan = group_plan;
         std::uint32_t nominal_for_resolve = (std::uint32_t)cfg.hips.size();
         if (!group_level) {
@@ -526,7 +526,7 @@ int main(int argc, char** argv) {
         rplan.minmax.reject_low_count = cfg.minmax_low_count;
         rplan.minmax.reject_high_count = cfg.minmax_high_count;
         rplan.minmax.min_kept = cfg.minmax_min_kept;
-        // V17：large_scale_rejection.v1（connected-component grow 后处理）
+        // large_scale_rejection.v1（connected-component grow 后处理）
         rplan.large_scale.enabled = cfg.large_scale_enabled ? 1 : 0;
         rplan.large_scale.min_structure_pixels =
             cfg.large_scale_min_structure_pixels;
@@ -547,7 +547,7 @@ int main(int argc, char** argv) {
         resolved_methods[depth] = p2_rejection_semantic_id(rplan.method);
 
         // 仅显式 sigma（robust_mad_clip）可走 ACR 块路径（同一 contract）
-        // V17：large_scale 激活时强制 CPU（per-frame mask 后处理在 CPU
+        // large_scale 激活时强制 CPU（per-frame mask 后处理在 CPU
         // reference 权威路径执行；ACR 只做逐像素 kernel，不做 grow）
         const bool use_acr_block =
             acr_reg != nullptr && rplan.method == P2_REJECT_SIGMA &&
@@ -566,7 +566,7 @@ int main(int argc, char** argv) {
             std::to_string(use_acr_block) + " gpu=" +
             std::to_string(gpu_ready));
 
-        // ---- R3：真实 N_B + planner 计算 chunk_pixels（micro-chunk 执行）----
+        // ---- ：真实 N_B + planner 计算 chunk_pixels（micro-chunk 执行）----
         P2BlockPlannerInput bp{};
         bp.output_pixels = n_leaf;
         bp.covering_frames = depth;              // 当前 tile 真实覆盖帧数
@@ -608,7 +608,7 @@ int main(int argc, char** argv) {
                           sizeof(std::uint8_t))));
 
         // 每 chunk 的工作缓冲（按 chunk_pixels×depth，非 262144×all_frames；
-        // V16：展平为单块 frame-major 连续缓冲，供统一 Eligibility collector）
+        // 展平为单块 frame-major 连续缓冲，供统一 Eligibility collector）
         std::vector<double> cal((std::size_t)depth * chunk_pixels);
         std::vector<double> supv((std::size_t)depth * chunk_pixels);
     std::vector<std::vector<std::uint64_t>> chunk_leaves(n_chunk);
@@ -635,7 +635,7 @@ int main(int argc, char** argv) {
         // 全 tile 临时读取缓冲（512×512×2×4B，固定小）
         std::vector<float> t_sig(512 * 512), t_sup(512 * 512);
 
-        // V17：large_scale 两遍路径缓冲（按全局帧 id 索引，覆盖
+        // large_scale 两遍路径缓冲（按全局帧 id 索引，覆盖
         // subset-tile 场景；cap = nb * n_leaf）
         std::vector<double> buf_val, buf_w, buf_sup;
         std::vector<std::uint8_t> buf_lo, buf_hi, buf_elig;
@@ -653,8 +653,8 @@ int main(int argc, char** argv) {
 
         if (use_acr_block) {
             const int grid = 8;
-            // V19: weight_mode=2 → compact per-cell ivar (buffer3=ivar);
-            //      weight_mode=0 (legacy) → per-cell SNR
+            // weight_mode=2 → compact per-cell ivar (buffer3=ivar);
+            // weight_mode=0 (legacy) → per-cell SNR
             std::vector<float> weight_compact(depth * grid * grid);
             for (std::uint32_t s = 0; s < depth; ++s) {
                 const std::uint64_t fid =
@@ -763,7 +763,7 @@ int main(int argc, char** argv) {
                 astro::compute::append_scalar(inv.scalars,
                                               std::size_t{p0});  // chunk tile 偏移
                 astro::compute::append_scalar(inv.scalars,
-                                              int{cfg.weight_mode});  // V19
+                                              int{cfg.weight_mode});
                 try {
                     if (gpu_ready && acr_reg->cuda.has_value()) {
                         (*acr_reg->cuda)(inv, nullptr);
@@ -810,8 +810,8 @@ int main(int argc, char** argv) {
                         ++reject_hist[(std::uint32_t)out_rej_f32[i]];
                 }
             }
-            // V12 (HIPS-IMG-002)：writer 约定 view 缓冲为 NESTED local 序
-            // （V5 HIPS-IMG-001，与 drizzle 热路径一致）；stage2 集成缓冲为
+            // writer 约定 view 缓冲为 NESTED local 序
+            // （ HIPS-IMG-001，与 drizzle 热路径一致）；stage2 集成缓冲为
             // FITS 行主序，写入前转换 buffer[i]=buf[fits_index(i)]，否则
             // tile 内像素被散射错排（表现为 16px 周期 comb/重复星点）。
             std::vector<float> flux_leaf(n_leaf), area_leaf(n_leaf);
@@ -888,7 +888,7 @@ int main(int argc, char** argv) {
             }
             for (std::uint64_t i = 0; i < cnt; ++i) {
                 const std::uint64_t p = p0 + i;
-                // V16：统一 EligibilityPolicy（与 ACR/compat 同一 collector；
+                // 统一 EligibilityPolicy（与 ACR/compat 同一 collector；
                 // quality 为 control 级，像素级无 quality 数组 → nullptr）
                 P2EligibilityGatherInput gin{};
                 gin.values = cal.data();
@@ -911,11 +911,11 @@ int main(int argc, char** argv) {
                     p2_upm_close(model);
                     return 6;
                 }
-                // V19: 权重模式
-                //   mode 2 (ivar, 默认): 逐像素 ivar (帧 ivar 产品);
-                //     产品缺失 → support (几何可靠性, 不伪造 ivar)
-                //   mode 0 (legacy): support × snr² (仅 ablation/诊断)
-                //   mode 1 (equal): weights 不填 (等权)
+                // 权重模式
+                // mode 2 (ivar, 默认): 逐像素 ivar (帧 ivar 产品);
+                // 产品缺失 → support (几何可靠性, 不伪造 ivar)
+                // mode 0 (legacy): support × snr² (仅 ablation/诊断)
+                // mode 1 (equal): weights 不填 (等权)
                 if (cfg.weight_mode == 2) {
                     for (std::uint32_t s = 0; s < n_valid; ++s) {
                         if (ivar_avail[s]) {
@@ -949,7 +949,7 @@ int main(int argc, char** argv) {
                 } else {
                     std::fill(weights.begin(), weights.end(), 1.0);
                 }
-                // V17：SNR lookup 后统一校验候选权重（非 finite/非正 → fatal）
+                // SNR lookup 后统一校验候选权重（非 finite/非正 → fatal）
                 if (p2_validate_candidate_weights(weights.data(), n_valid) !=
                     0) {
                     log("candidate weight validation failed");
@@ -964,7 +964,7 @@ int main(int argc, char** argv) {
                 } else {
                     if (n_valid == 1) ++px_depth_1;
                     else ++px_depth_ge_2;
-                    // V15：explicit plan kernel（auto 已在 planning 层解析）
+                    // explicit plan kernel（auto 已在 planning 层解析）
                     P2CandidateStack cstack{};
                     cstack.values = stack.data();
                     cstack.weights = weights.data();
@@ -978,7 +978,7 @@ int main(int argc, char** argv) {
                         p2_upm_close(model);
                         return 6;
                     }
-                    // V17：只有 OK/UNDERDETERMINED 可继续；其余状态 hard fail
+                    // 只有 OK/UNDERDETERMINED 可继续；其余状态 hard fail
                     if (rdec.status != P2_STATUS_OK &&
                         rdec.status != P2_STATUS_UNDERDETERMINED) {
                         log("reject kernel invalid status=" +
@@ -993,7 +993,7 @@ int main(int argc, char** argv) {
                                 ? 1 : 0;
                     }
                     if (large_scale_active) {
-                        // V17：两遍路径——缓冲逐像素 rejection 结果（值/
+                        // 两遍路径——缓冲逐像素 rejection 结果（值/
                         // 权重/support + 低/高 mask），chunk 循环后统一 grow。
                         // 此分支只做诊断统计与缓冲，积分在 grow 之后进行。
                         for (std::uint32_t s = 0; s < n_valid; ++s) {
@@ -1050,7 +1050,7 @@ int main(int argc, char** argv) {
                     p2_integrate_pixel(&pi, &pr);
                     st = pr.status;
                     signal_out = pr.signal;
-                    // V17：support 唯一 canonical reducer（max accepted
+                    // support 唯一 canonical reducer（max accepted
                     // support）由 p2_integrate_pixel 计算，Stage2 只消费
                     support_out = pr.support;
                 }
@@ -1068,7 +1068,7 @@ int main(int argc, char** argv) {
                 if (ok) ++total_pixels;
             }
         }
-        // ---- V17：large_scale connected-component grow + 二次积分 ----
+        // ---- ：large_scale connected-component grow + 二次积分 ----
         // 两遍路径（large_scale_active 时）：所有 chunk 的逐像素 rejection
         // 已缓冲到 tile 级 per-frame low/high mask；此处先 grow 再积分，
         // 保证"拒绝 mask 应用回原始 calibrated 科学值"的单一语义。
@@ -1131,7 +1131,7 @@ int main(int argc, char** argv) {
                 " post_rejected=" + std::to_string(total_rejected) +
                 " grown=" + std::to_string(large_scale_grown));
         }
-        // V12 (HIPS-IMG-002)：同 ACR 路径，FITS 行主序 -> NESTED local 序
+        // 同 ACR 路径，FITS 行主序 -> NESTED local 序
         std::vector<float> flux_leaf(n_leaf), area_leaf(n_leaf);
         std::vector<std::uint8_t> valid_leaf(n_leaf);
         for (std::uint64_t i = 0; i < n_leaf; ++i) {
@@ -1208,7 +1208,7 @@ int main(int argc, char** argv) {
 
     // ---- G11 诊断 JSON（rejection 统计） ----
     if (cfg.diagnostics) {
-        // V7 P7-2：overlap topology（control depth / pixel depth）
+        // P7-2：overlap topology（control depth / pixel depth）
         std::map<std::uint64_t, std::set<std::uint64_t>> ctrl_frames;
         for (const auto& o : obs) ctrl_frames[o.control_id].insert(o.frame_id);
         std::uint64_t ctrl_depth_1 = 0, ctrl_depth_ge_2 = 0;

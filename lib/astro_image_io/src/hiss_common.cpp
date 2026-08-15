@@ -5,15 +5,15 @@
 // 避免在 hiss_writer.cpp 和 hiss_reader.cpp 中重复定义导致链接错误。
 //
 // 包含的方法 (实现以 Writer 为权威版本):
-//   1. compute_tile_depth / compute_tile_nside (02_FROZEN §11)
-//   2. DrizzleTileAccumulator::finalize_signal / finalize_support / validate_support (§10)
-//   3. HissMetadata::to_json / from_json (§16)
+// 1. compute_tile_depth / compute_tile_nside (02_FROZEN §11)
+// 2. DrizzleTileAccumulator::finalize_signal / finalize_support / validate_support (§10)
+// 3. HissMetadata::to_json / from_json (§16)
 //
 // 说明:
-//   - 实现取自 hiss_writer.cpp (Writer 是权威写入方, 且带 HISS_EXPORT 标记,
-//     与 hiss_format.h 中的声明一致)
-//   - 日志前缀统一改为 [hiss][common], 体现归属文件
-//   - json_escape 为本翻译单元内部辅助函数 (static), 仅 to_json 使用
+// - 实现取自 hiss_writer.cpp (Writer 是权威写入方, 且带 HISS_EXPORT 标记,
+// 与 hiss_format.h 中的声明一致)
+// - 日志前缀统一改为 [hiss][common], 体现归属文件
+// - json_escape 为本翻译单元内部辅助函数 (static), 仅 to_json 使用
 // ============================================================================
 #include "hiss_format.h"
 
@@ -29,7 +29,7 @@ namespace hiss {
 
 // ============================================================================
 // 内部辅助: JSON 字符串转义
-//   处理 " \ \n \r \t 及控制字符 (写入 JSON 字符串值时使用)
+// 处理 " \ \n \r \t 及控制字符 (写入 JSON 字符串值时使用)
 // ============================================================================
 
 static std::string json_escape(const std::string& s) {
@@ -57,9 +57,9 @@ static std::string json_escape(const std::string& s) {
 
 // ============================================================================
 // 1. Tile 自适应层级计算 (02_FROZEN §11)
-//    d = min(9, log2(NSIDE/16))
-//    tile_nside = NSIDE / 2^d
-//    保证: 满 Tile 最多 4^9=262144 叶像素, tile_nside >= 16
+// d = min(9, log2(NSIDE/16))
+// tile_nside = NSIDE / 2^d
+// 保证: 满 Tile 最多 4^9=262144 叶像素, tile_nside >= 16
 // ============================================================================
 
 HISS_EXPORT uint32_t compute_tile_depth(uint32_t nside) {
@@ -85,17 +85,17 @@ HISS_EXPORT uint32_t compute_tile_nside(uint32_t nside) {
 
 // ============================================================================
 // 2. DrizzleTileAccumulator 方法 (02_FROZEN §8/§10)
-//    float64 内部累加, 最终输出 float32 signal + uint8 support
+// float64 内部累加, 最终输出 float32 signal + uint8 support
 //
-//    语义修正 (依据 00_COMMON_CONTRACTS §2.2, spec.md 步骤2/7):
-//      signal[p]  = float(sumFlux)                       — 累计通量 (不除面积)
-//      support[p] = uint8(round(255 * clamp(S, 0, 1)))   — 面积比
-//      其中 S = sum_area / A_p, A_p = pixel_area (成员变量, 由调用方设置)
+// 语义修正 (依据 00_COMMON_CONTRACTS §2.2, spec.md 步骤2/7):
+// signal[p] = float(sumFlux) — 累计通量 (不除面积)
+// support[p] = uint8(round(255 * clamp(S, 0, 1))) — 面积比
+// 其中 S = sum_area / A_p, A_p = pixel_area (成员变量, 由调用方设置)
 // ============================================================================
 
 // finalize_signal: 直接保存累计通量 (不除面积), 无贡献像素 sum_flux=0 自然写 0
-//   旧错误: signal = sum_flux / sum_area (平均面亮度)
-//   新正确: signal = sum_flux (累计通量, 02_FROZEN §8)
+// 旧错误: signal = sum_flux / sum_area (平均面亮度)
+// 新正确: signal = sum_flux (累计通量, 02_FROZEN §8)
 void DrizzleTileAccumulator::finalize_signal(std::vector<float>& signal) const {
     signal.resize(pixels.size());
     for (size_t i = 0; i < pixels.size(); i++) {
@@ -106,7 +106,7 @@ void DrizzleTileAccumulator::finalize_signal(std::vector<float>& signal) const {
 }
 
 // finalize_signal_f64: FP64 模式, 直接输出 float64 累计通量 (无精度损失)
-//   R10: 与 finalize_signal 语义一致, 但保留 double 精度
+// 与 finalize_signal 语义一致, 但保留 double 精度
 void DrizzleTileAccumulator::finalize_signal_f64(std::vector<double>& signal) const {
     signal.resize(pixels.size());
     for (size_t i = 0; i < pixels.size(); i++) {
@@ -115,10 +115,10 @@ void DrizzleTileAccumulator::finalize_signal_f64(std::vector<double>& signal) co
 }
 
 // finalize_support: S = sum_area / pixel_area, 钳制 [0,1], uint8 = round(255*S)
-//   旧错误: S = sum_area (未归一化, 假设 sum_area 已经在 [0,1])
-//   新正确: S = sum_area / A_p (A_p = pixel_area, 目标 HEALPix 像素面积, 球面度)
+// 旧错误: S = sum_area (未归一化, 假设 sum_area 已经在 [0,1])
+// 新正确: S = sum_area / A_p (A_p = pixel_area, 目标 HEALPix 像素面积, 球面度)
 //
-//   pixel_area 默认 1.0 (向后兼容); 调用方应设置为 hp.pixel_area()
+// pixel_area 默认 1.0 (向后兼容); 调用方应设置为 hp.pixel_area()
 void DrizzleTileAccumulator::finalize_support(std::vector<uint8_t>& support) const {
     support.resize(pixels.size());
     // A_p 必须为正, 否则视为 1.0 (避免除零)
@@ -137,13 +137,13 @@ void DrizzleTileAccumulator::finalize_support(std::vector<uint8_t>& support) con
 }
 
 // validate_support: 检查归一化后 S = sum_area / A_p 在 [0,1] 范围内 (允许浮点误差)
-//   0=OK, <0=错误 (明显超 1 是几何/WCS/实现错误)
-//   -1=S 超限, -2=pixel_area<=0 (02_FROZEN §10: 目标像素面积非法时必须报错, 不能回退到虚构值)
+// 0=OK, <0=错误 (明显超 1 是几何/WCS/实现错误)
+// -1=S 超限, -2=pixel_area<=0 (02_FROZEN §10: 目标像素面积非法时必须报错, 不能回退到虚构值)
 //
-//   旧错误: 直接检查 sum_area 在 [0,1]
-//   新正确: 检查 sum_area / pixel_area 在 [0,1]
+// 旧错误: 直接检查 sum_area 在 [0,1]
+// 新正确: 检查 sum_area / pixel_area 在 [0,1]
 int DrizzleTileAccumulator::validate_support() const {
-    const double eps = 1e-4;  // R10: 放宽容差, 浮点累计误差可致 S 略超 1.0
+    const double eps = 1e-4;  // 放宽容差, 浮点累计误差可致 S 略超 1.0
     // 02_FROZEN §10: pixel_area<=0 必须硬失败, 不能回退到虚构值
     if (pixel_area <= 0.0) {
         fprintf(stderr,
@@ -167,7 +167,7 @@ int DrizzleTileAccumulator::validate_support() const {
 
 // ============================================================================
 // 3. HissMetadata JSON 序列化/反序列化 (02_FROZEN §16)
-//    手写 JSON (无外部依赖), 字段固定
+// 手写 JSON (无外部依赖), 字段固定
 // ============================================================================
 
 std::string HissMetadata::to_json() const {
@@ -281,10 +281,10 @@ int HissMetadata::from_json(const std::string& json) {
     if (get_str("telescop", s)) to_buf(s, telescop, sizeof(telescop));
     if (get_str("instrume", s)) to_buf(s, instrume, sizeof(instrume));
     if (get_str("history", s))  history = s;
-    // R10: precision_mode/signal_dtype (缺失时默认 0=FP32, 向后兼容)
+    // precision_mode/signal_dtype (缺失时默认 0=FP32, 向后兼容)
     if (get_num("precision_mode", v)) precision_mode = (uint8_t)v;
     if (get_num("signal_dtype", v))   signal_dtype   = (uint8_t)v;
-    // R11: snr_dtype / metadata_float_dtype (缺失时默认 0=float32, 向后兼容)
+    // snr_dtype / metadata_float_dtype (缺失时默认 0=float32, 向后兼容)
     if (get_num("snr_dtype", v))            snr_dtype            = (uint8_t)v;
     if (get_num("metadata_float_dtype", v)) metadata_float_dtype = (uint8_t)v;
     return 0;

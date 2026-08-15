@@ -1,12 +1,12 @@
-// lib/acr/scheduler/shared_work_pool.cpp — 共享工作池实现（23 号计划 §2 重写）
+// lib/acr/scheduler/shared_work_pool.cpp — 共享工作池实现（23 §2 重写）
 //
 // 与旧实现的差异：
-//   - WorkToken 按值返回 {id, begin, end, claimant(DeviceId), attempt}；
-//   - 槽位预分配（slot[i].id == i），claim 时填充范围，不再返回容器内部指针；
-//   - 动态模式：CAS cursor 推进 + requested_items（调用方 CostEstimate 给出），
-//     尾部按 remaining 收缩；GPU 数量不再由池内部折算块大小；
-//   - 完成判据：cursor>=end && inflight==0 && retry_queue.empty()
-//     && failed_terminal==0 && completed_items==end-begin。
+// - WorkToken 按值返回 {id, begin, end, claimant(DeviceId), attempt}；
+// - 槽位预分配（slot[i].id == i），claim 时填充范围，不再返回容器内部指针；
+// - 动态模式：CAS cursor 推进 + requested_items（调用方 CostEstimate 给出），
+// 尾部按 remaining 收缩；GPU 数量不再由池内部折算块大小；
+// - 完成判据：cursor>=end && inflight==0 && retry_queue.empty()
+// && failed_terminal==0 && completed_items==end-begin。
 #include "shared_work_pool.hpp"
 
 #include <algorithm>
@@ -341,7 +341,7 @@ std::size_t SharedWorkPool::completed_items() const noexcept {
     return completed_items_.load(std::memory_order_relaxed);
 }
 
-// ===== 完成判据（23 号计划 §2.3）=====
+// ===== 完成判据（23 §2.3）=====
 bool SharedWorkPool::all_done() const noexcept {
     const std::size_t done = done_count_.load(std::memory_order_relaxed);
     const std::size_t retry = retry_pending_.load(std::memory_order_relaxed);

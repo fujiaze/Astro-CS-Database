@@ -1,11 +1,11 @@
 // lib/acr/qualification/benchmarks/thread_curve_benchmark.cpp — CPU 线程曲线 Benchmark
 //
 // 设计（06 §5）：
-//   1. 线程点：1, 2, 4, 25%, 50%, 75%, 95%, 100%（去重）
-//   2. 95% 是性能曲线采样点，不是正式运行少开线程
-//   3. 对曲线拐点和前两名 ISA 有限补点
-//   4. 记录 worker 参与情况
-//   5. 测量目标：吞吐随线程数变化曲线
+// 1. 线程点：1, 2, 4, 25%, 50%, 75%, 95%, 100%（去重）
+// 2. 95% 是性能曲线采样点，不是正式运行少开线程
+// 3. 对曲线拐点和前两名 ISA 有限补点
+// 4. 记录 worker 参与情况
+// 5. 测量目标：吞吐随线程数变化曲线
 //
 // 实现：用 ACR parallel_for 在不同线程数下运行相同 kernel
 // 线程数通过 Google Benchmark 的 Threads(n) 控制（Google Benchmark 创建 n 个 worker

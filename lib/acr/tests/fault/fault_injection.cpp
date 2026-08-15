@@ -1,9 +1,9 @@
 // lib/acr/tests/fault/fault_injection.cpp — Phase H 故障注入测试
 // 测试场景：
-//   1. 取消正在执行的 kernel
-//   2. kernel 异常传播（throw → mark_failed）
-//   3. 混合调度 fallback（设备失败 → CPU 回退）
-//   4. 异常 chunk 在混合调度中被计为 failed
+// 1. 取消正在执行的 kernel
+// 2. kernel 异常传播（throw → mark_failed）
+// 3. 混合调度 fallback（设备失败 → CPU 回退）
+// 4. 异常 chunk 在混合调度中被计为 failed
 #include <gtest/gtest.h>
 
 #include <dispatcher.hpp>
@@ -80,9 +80,9 @@ TEST(FaultInjection, MixedScheduleFallbackToCpu) {
 TEST(FaultInjection, ExceptionChunkCountedAsFailed) {
 #ifdef __MINGW32__
     // MinGW + oneTBB 2023 的异常跨任务传播在系统负载下偶发崩溃
-    // （项目已知 ABI 限制，exit_safe.hpp；审计记录"并行 CTest 偶发
-    //  SEGFAULT"）。失败计数语义由 MSVC ASan 侧 shared_work_pool
-    //  mark_failed 压力验证覆盖；本测试在 MinGW 下如实 SKIP。
+    // （项目已知 ABI 限制，exit_safe.hpp；"并行 CTest 偶发
+    // SEGFAULT"）。失败计数语义由 MSVC ASan 侧 shared_work_pool
+    // mark_failed 压力验证覆盖；本测试在 MinGW 下如实 SKIP。
     GTEST_SKIP() << "MinGW oneTBB exception propagation unstable (known ABI limit)";
 #else
     runtime_init();

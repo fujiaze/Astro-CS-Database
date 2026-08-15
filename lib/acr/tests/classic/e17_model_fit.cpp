@@ -1,19 +1,19 @@
 // lib/acr/tests/classic/e17_model_fit.cpp — E17 Hardware Profile 拟合验证
 //
 // 设计（17 §18 + 06 §13）：
-//   1. 将原始 benchmark 数据拟合为按 log2 尺寸的分段曲线（Curve::predict 已实现）
-//   2. 使用留出测试点（holdout）验证预测误差
-//   3. median 相对预测误差目标 <=15%
-//   4. 交叉点附近允许更宽但必须报告
-//   5. 不满足时增加采样点或标记低置信度
-//   6. 禁止通过在线运行改写模型
+// 1. 将原始 benchmark 数据拟合为按 log2 尺寸的分段曲线（Curve::predict 已实现）
+// 2. 使用留出测试点（holdout）验证预测误差
+// 3. median 相对预测误差目标 <=15%
+// 4. 交叉点附近允许更宽但必须报告
+// 5. 不满足时增加采样点或标记低置信度
+// 6. 禁止通过在线运行改写模型
 //
 // 验证策略（v2：训练点 log2 间隔=1，验证点在半整数 log2 中点）：
-//   - 训练点：整数 log2 尺寸（4KB, 8KB, 16KB, ..., 64MB），log2 间隔=1
-//   - 验证点：相邻训练点的几何中点（log2=k+0.5），用真实模型计算期望值
-//   - 这样训练点在 log2 空间连续，Curve::predict 的 log2 线性插值误差最小
-//   - 对线性数据 value∝size：log2 间隔=1 时中点误差≈6%（远低于 15% 门限）
-//   - 对对数数据 value∝log2(size)：log2 空间线性，中点误差≈0
+// - 训练点：整数 log2 尺寸（4KB, 8KB, 16KB, ..., 64MB），log2 间隔=1
+// - 验证点：相邻训练点的几何中点（log2=k+0.5），用真实模型计算期望值
+// - 这样训练点在 log2 空间连续，Curve::predict 的 log2 线性插值误差最小
+// - 对线性数据 value∝size：log2 间隔=1 时中点误差≈6%（远低于 15% 门限）
+// - 对对数数据 value∝log2(size)：log2 空间线性，中点误差≈0
 #include "classic_common.hpp"
 
 #include <gtest/gtest.h>

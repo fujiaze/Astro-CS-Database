@@ -2,30 +2,30 @@
 // hiss_reader.cpp - AstroCS HISS Reader (XISF 式 Header + attachments 格式)
 //
 // 内容:
-//   1. 小端序二进制读写工具
-//   2. log2i 辅助 (用于 query_pixel 坐标转换)
-//   3. HEALPix NESTED 坐标转换 (ra/dec → ipix, 不依赖外部 HealpixCore)
-//   4. HissReader 类实现 (按目录读取, 按需加载 Tile, 不依赖 WCS)
+// 1. 小端序二进制读写工具
+// 2. log2i 辅助 (用于 query_pixel 坐标转换)
+// 3. HEALPix NESTED 坐标转换 (ra/dec → ipix, 不依赖外部 HealpixCore)
+// 4. HissReader 类实现 (按目录读取, 按需加载 Tile, 不依赖 WCS)
 //
 // 二进制布局 (与 Writer 对应):
-//   [固定签名块 20B: MAGIC(8) + version(4) + header_offset(8)]
-//   [Header: 网格规格(24B) + 元数据JSON + Tile目录]
-//   [Attachment子块1] [Attachment子块2] ...
+// [固定签名块 20B: MAGIC(8) + version(4) + header_offset(8)]
+// [Header: 网格规格(24B) + 元数据JSON + Tile目录]
+// [Attachment子块1] [Attachment子块2] ...
 //
 // 设计说明:
-//   - 按目录读取, 不依赖子块物理顺序 (02_FROZEN §14)
-//   - 支持只读 occupancy/signal/support/SNR
-//   - 未知可选块跳过; 未知必需块报不兼容
-//   - 检查 offset/size 越界, 解压长度, checksum
-//   - 用 NSIDE/NESTED/ICRS 定位, 不依赖 WCS
-//   - 不加载整文件 (按需读取 Tile)
+// - 按目录读取, 不依赖子块物理顺序 (02_FROZEN §14)
+// - 支持只读 occupancy/signal/support/SNR
+// - 未知可选块跳过; 未知必需块报不兼容
+// - 检查 offset/size 越界, 解压长度, checksum
+// - 用 NSIDE/NESTED/ICRS 定位, 不依赖 WCS
+// - 不加载整文件 (按需读取 Tile)
 //
 // 注: 下列共享方法已移至 hiss_common.cpp (避免与 Writer 重复定义):
-//   - HissMetadata::to_json / from_json (§16)
-//   - compute_tile_depth / compute_tile_nside (§11)
+// - HissMetadata::to_json / from_json (§16)
+// - compute_tile_depth / compute_tile_nside (§11)
 //
 // 注: CRC32-C (Castagnoli) 校验实现已移至 hiss_codec.cpp 共享,
-//     Reader/Writer 通过 ChecksumRegistry::find() 获取同一实现。
+// Reader/Writer 通过 ChecksumRegistry::find() 获取同一实现。
 // ============================================================================
 #include "hiss_format.h"
 #include "aio_util.h"  // aio_fopen_utf8 (UTF-8 路径支持)
@@ -52,9 +52,9 @@
 #include <algorithm>
 #include <utility>
 
-// R13 (HISS_IO_REPAIR): 逐 Tile/逐子块日志降级 — 仅编译期 HISS_VERBOSE 输出
+// 逐 Tile/逐子块日志降级 — 仅编译期 HISS_VERBOSE 输出
 // (正常模式只保留阶段/汇总/错误; stderr 重定向文件时每条 fprintf 写盘,
-//  完整帧 Verify 285 Tile 的逐子块日志实测拖慢 40s)
+// 完整帧 Verify 285 Tile 的逐子块日志实测拖慢 40s)
 #ifdef HISS_VERBOSE
 #define HISS_DLOG(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
 #else
@@ -68,7 +68,7 @@ namespace hiss {
 // ============================================================================
 
 // R04-B14: 固定签名块 (16 字节, 显式小端序)
-//   magic[8] = "HISS0100" + header_length(uint32 LE) + feature_flags(uint32 LE)
+// magic[8] = "HISS0100" + header_length(uint32 LE) + feature_flags(uint32 LE)
 static const char     kMagic[8] = { 'H','I','S','S','0','1','0','0' };
 
 // Header 子结构大小
@@ -126,9 +126,9 @@ static inline double read_f64_le(const uint8_t* p) {
 
 // ============================================================================
 // 2. log2i 辅助 (用于 query_pixel 坐标转换, 计算 NSIDE/tile_nside 的位移)
-//    注: HissMetadata::to_json/from_json 与 compute_tile_depth/nside 已移至
-//    hiss_common.cpp (与 Writer 共用, 避免重复定义)
-//    注: CRC32-C 校验实现已移至 hiss_codec.cpp (通过 ChecksumRegistry 共享)
+// 注: HissMetadata::to_json/from_json 与 compute_tile_depth/nside 已移至
+// hiss_common.cpp (与 Writer 共用, 避免重复定义)
+// 注: CRC32-C 校验实现已移至 hiss_codec.cpp (通过 ChecksumRegistry 共享)
 // ============================================================================
 
 // log2 (n 为 2 的幂)
@@ -140,9 +140,9 @@ static int log2i(uint32_t n) {
 
 // ============================================================================
 // 4. HEALPix NESTED 坐标转换 (ra/dec → ipix)
-//    内部实现, 不依赖外部 HealpixCore 库
-//    算法改编自 healpix_core.cpp (ang2xy + xy2nest)
-//    仅实现 NESTED 方案 (HISS 统一 NESTED + ICRS)
+// 内部实现, 不依赖外部 HealpixCore 库
+// 算法改编自 healpix_core.cpp (ang2xy + xy2nest)
+// 仅实现 NESTED 方案 (HISS 统一 NESTED + ICRS)
 // ============================================================================
 
 static const double kPi       = 3.14159265358979323846;
@@ -250,10 +250,10 @@ static uint64_t radec_to_nested_ipix(double ra_deg, double dec_deg, int nside) {
 
 // ============================================================================
 // 4.1 子块类型校验 (依据 02_FROZEN §13)
-//     已知类型: OCCUPANCY(0), SIGNAL(1), SUPPORT(2), SNR(3), EXTENSION(255)
-//     未知类型: 上述以外的任何值
-//     未知必需子块 → 拒绝 (HISS_ERR_UNKNOWN_REQUIRED)
-//     未知可选子块 → 跳过 (继续处理)
+// 已知类型: OCCUPANCY(0), SIGNAL(1), SUPPORT(2), SNR(3), EXTENSION(255)
+// 未知类型: 上述以外的任何值
+// 未知必需子块 → 拒绝 (HISS_ERR_UNKNOWN_REQUIRED)
+// 未知可选子块 → 跳过 (继续处理)
 // ============================================================================
 
 static inline bool is_known_subblock_type(SubblockType type) {
@@ -302,7 +302,7 @@ struct HissReader::Impl {
         }
 
         // b. seek 到 offset, 读取 compressed_size 字节
-        //    使用 64 位 seek 支持 >2GB 文件 (02_FROZEN §14)
+        // 使用 64 位 seek 支持 >2GB 文件 (02_FROZEN §14)
         std::vector<uint8_t> comp(desc.compressed_size);
 #ifdef _WIN32
         if (_fseeki64(fp, (__int64)desc.offset, SEEK_SET) != 0) {
@@ -323,8 +323,8 @@ struct HissReader::Impl {
         }
 
         // c. checksum 校验 (解压前校验压缩数据)
-        //    通过 ChecksumRegistry 查找算法实现 (CRC32C 内置, 其他通过注册接入)
-        //    INTERIM_BASELINE_NOT_FROZEN: 候选注册机制, 算法待 DQ-006 冻结
+        // 通过 ChecksumRegistry 查找算法实现 (CRC32C 内置, 其他通过注册接入)
+        // INTERIM_BASELINE_NOT_FROZEN: 候选注册机制, 算法待 DQ-006 冻结
         if (desc.checksum_type != ChecksumType::NONE) {
             const ChecksumEntry* cs = ChecksumRegistry::instance().find(desc.checksum_type);
             if (!cs) {
@@ -376,9 +376,9 @@ struct HissReader::Impl {
         }
 
         // f. WP-G 步骤12: 逆向变换 (解压后执行)
-        //    若 transform_id != NONE, 调用 inverse_transform 还原原始数据
-        //    对于大小保持变换 (NONE/BYTE_SHUFFLE/DELTA): expected_output_size = out.size()
-        //    对于 DELTA_VARINT: expected_output_size = 0 (从数据前缀 n_elements 自动确定)
+        // 若 transform_id != NONE, 调用 inverse_transform 还原原始数据
+        // 对于大小保持变换 (NONE/BYTE_SHUFFLE/DELTA): expected_output_size = out.size()
+        // 对于 DELTA_VARINT: expected_output_size = 0 (从数据前缀 n_elements 自动确定)
         if (desc.transform_id != TransformId::NONE) {
             TransformType tt = transform_id_to_type(desc.transform_id);
 
@@ -488,7 +488,7 @@ int HissReader::open(const std::string& path) {
     impl.filesize = (uint64_t)fsize;
 
     // ---- 1. R04-B14: 读取固定签名块 (16 字节, 显式小端序) ----
-    //   magic[8] = "HISS0100" + header_length(uint32 LE) + feature_flags(uint32 LE)
+    // magic[8] = "HISS0100" + header_length(uint32 LE) + feature_flags(uint32 LE)
     if (impl.filesize < HISS_SIGNATURE_SIZE) {
         fprintf(stderr, "[hiss][reader] 文件过短: %llu < %d\n",
                 (unsigned long long)impl.filesize, (int)HISS_SIGNATURE_SIZE);
@@ -538,8 +538,8 @@ int HissReader::open(const std::string& path) {
     }
 
     // ---- 2. R04-B15: 读取 TLV Header (header_length 字节) ----
-    //   Header 是一系列 TLV (tag:u16 + flags:u8 + length:u32 + value)
-    //   未知 required TLV → 拒绝; 未知 optional TLV → 跳过
+    // Header 是一系列 TLV (tag:u16 + flags:u8 + length:u32 + value)
+    // 未知 required TLV → 拒绝; 未知 optional TLV → 跳过
     std::vector<uint8_t> hdr_buf(impl.header_length);
 #ifdef _WIN32
     _fseeki64(impl.fp, (__int64)HISS_SIGNATURE_SIZE, SEEK_SET);
@@ -818,11 +818,11 @@ int HissReader::open(const std::string& path) {
     }
 
     // ---- 4. R04-B16: 严格校验 Tile 完整性 ----
-    //   a. BITMAP/SPARSE_LIST 模式必须有 OCCUPANCY 子块 (缺少 occupancy → 拒绝)
-    //   b. FULL 模式不应有 OCCUPANCY 子块 (一致性检查)
-    //   c. NSIDE/tile_nside 关系必须合法 (nside >= tile_nside, 均为 2 的幂)
-    //   d. 子块 offset+compressed_size 不得越界
-    //   e. 同一 Tile 内子块不得重叠
+    // a. BITMAP/SPARSE_LIST 模式必须有 OCCUPANCY 子块 (缺少 occupancy → 拒绝)
+    // b. FULL 模式不应有 OCCUPANCY 子块 (一致性检查)
+    // c. NSIDE/tile_nside 关系必须合法 (nside >= tile_nside, 均为 2 的幂)
+    // d. 子块 offset+compressed_size 不得越界
+    // e. 同一 Tile 内子块不得重叠
     for (size_t t = 0; t < impl.tiles.size(); t++) {
         const HissTile& tile = impl.tiles[t];
 
@@ -912,7 +912,7 @@ HissMetadata HissReader::metadata() const {
     return pimpl_->metadata;
 }
 
-// R10: 查询 precision mode 和 signal dtype
+// 查询 precision mode 和 signal dtype
 uint8_t HissReader::precision_mode() const {
     return pimpl_->metadata.precision_mode;
 }
@@ -929,17 +929,17 @@ const std::vector<HissTile>& HissReader::tiles() const {
 // read_tile(): 读取 Tile 的 signal + support (展开到 n_leaf_per_tile)
 //
 // 步骤11 关键改动:
-//   - FULL: signal/support 数组长度 = n_leaf_per_tile, 直接返回
-//   - BITMAP: 读取 occupancy 位图 + n_valid 个紧凑 signal/support → 展开到 n_leaf_per_tile
-//   - SPARSE_LIST: 读取索引列表 + n_valid 个紧凑 signal/support → 展开到 n_leaf_per_tile
-//   展开后无效像素的 signal=0.0f, support=0
+// - FULL: signal/support 数组长度 = n_leaf_per_tile, 直接返回
+// - BITMAP: 读取 occupancy 位图 + n_valid 个紧凑 signal/support → 展开到 n_leaf_per_tile
+// - SPARSE_LIST: 读取索引列表 + n_valid 个紧凑 signal/support → 展开到 n_leaf_per_tile
+// 展开后无效像素的 signal=0.0f, support=0
 // ----------------------------------------------------------------------------
 int HissReader::read_tile(uint64_t parent_ipix,
                            std::vector<float>& signal,
                            std::vector<uint8_t>& support) const {
     const Impl& impl = *pimpl_;
 
-    // R10: FP64 文件禁止用 float32 接口读取 (禁止静默转换)
+    // FP64 文件禁止用 float32 接口读取 (禁止静默转换)
     if (impl.metadata.signal_dtype == 1) {
         fprintf(stderr,
                 "[hiss][reader] read_tile 失败: 文件为 FP64 模式 (signal_dtype=1), "
@@ -1097,7 +1097,7 @@ int HissReader::read_tile_signal(uint64_t parent_ipix,
                                   std::vector<float>& signal) const {
     const Impl& impl = *pimpl_;
 
-    // R10: FP64 文件禁止用 float32 接口读取 (禁止静默转换)
+    // FP64 文件禁止用 float32 接口读取 (禁止静默转换)
     if (impl.metadata.signal_dtype == 1) {
         fprintf(stderr,
                 "[hiss][reader] read_tile_signal 失败: 文件为 FP64 模式 (signal_dtype=1), "
@@ -1183,16 +1183,16 @@ int HissReader::read_tile_signal(uint64_t parent_ipix,
 }
 
 // ----------------------------------------------------------------------------
-// read_tile_signal_f64(): 只读 signal (float64, R10 FP64 模式)
-//   若文件 signal_dtype=1 (FP64), 直接返回 float64 数据
-//   若文件 signal_dtype=0 (FP32), 返回错误 (禁止静默转换)
-//   展开逻辑与 read_tile_signal 一致 (FULL/BITMAP/SPARSE_LIST)
+// read_tile_signal_f64(): 只读 signal (float64, FP64 模式)
+// 若文件 signal_dtype=1 (FP64), 直接返回 float64 数据
+// 若文件 signal_dtype=0 (FP32), 返回错误 (禁止静默转换)
+// 展开逻辑与 read_tile_signal 一致 (FULL/BITMAP/SPARSE_LIST)
 // ----------------------------------------------------------------------------
 int HissReader::read_tile_signal_f64(uint64_t parent_ipix,
                                       std::vector<double>& signal) const {
     const Impl& impl = *pimpl_;
 
-    // R10: FP32 文件禁止用 float64 接口读取 (禁止静默转换)
+    // FP32 文件禁止用 float64 接口读取 (禁止静默转换)
     if (impl.metadata.signal_dtype == 0) {
         fprintf(stderr,
                 "[hiss][reader] read_tile_signal_f64 失败: 文件为 FP32 模式 (signal_dtype=0), "
@@ -1358,16 +1358,16 @@ int HissReader::read_tile_support(uint64_t parent_ipix,
 // read_tile_snr(): 读取 SNR 控制点
 // R04-B18: block 级 estimator_id/sampling_scale/count + 点数据
 // 冻结布局 (02_FROZEN §17 + 00_COMMON_CONTRACTS §2.5):
-//   [estimator_id:  uint32 LE]   — 估计器 ID (block 级)
-//   [sampling_scale: float32 LE] — 采样尺度 (block 级)
-//   [n_points:      uint32 LE]   — 控制点数 (= count, block 级)
-//   [points: n_points × 8B (local_ipix u32 + snr f32)]
-//   不包含 snr_phot/median_snr/idw_power (估计器状态, 不写入 HISS)
+// [estimator_id: uint32 LE] — 估计器 ID (block 级)
+// [sampling_scale: float32 LE] — 采样尺度 (block 级)
+// [n_points: uint32 LE] — 控制点数 (= count, block 级)
+// [points: n_points × 8B (local_ipix u32 + snr f32)]
+// 不包含 snr_phot/median_snr/idw_power (估计器状态, 不写入 HISS)
 // ----------------------------------------------------------------------------
 int HissReader::read_tile_snr(uint64_t parent_ipix, HissSnrBlock& snr) const {
     const Impl& impl = *pimpl_;
 
-    // R11 (PREC-109): snr_dtype=1 (f64) 文件禁止用 f32 接口读取 (禁止静默转换)
+    // snr_dtype=1 (f64) 文件禁止用 f32 接口读取 (禁止静默转换)
     if (impl.metadata.snr_dtype == 1) {
         fprintf(stderr,
                 "[hiss][reader] read_tile_snr 失败: 文件 SNR 为 FP64 (snr_dtype=1), "
@@ -1426,12 +1426,12 @@ int HissReader::read_tile_snr(uint64_t parent_ipix, HissSnrBlock& snr) const {
 }
 
 // ============================================================================
-// read_tile_snr_f64 - 读取 FP64 SNR 控制点 (R11, 每点 12B: local_ipix u32 + snr f64)
+// read_tile_snr_f64 - 读取 FP64 SNR 控制点 (, 每点 12B: local_ipix u32 + snr f64)
 // ============================================================================
 int HissReader::read_tile_snr_f64(uint64_t parent_ipix, HissSnrBlockF64& snr) const {
     const Impl& impl = *pimpl_;
 
-    // R11 (PREC-109): snr_dtype=0 (f32) 文件禁止用 f64 接口读取
+    // snr_dtype=0 (f32) 文件禁止用 f64 接口读取
     if (impl.metadata.snr_dtype != 1) {
         fprintf(stderr,
                 "[hiss][reader] read_tile_snr_f64 失败: 文件 SNR 为 FP32 (snr_dtype=0), "
@@ -1500,7 +1500,7 @@ int HissReader::query_pixel(double ra, double dec,
     uint64_t global_ipix = radec_to_nested_ipix(ra, dec, impl.grid.nside);
 
     // 2. 计算 parent_ipix 和 local_ipix
-    //    shift = 2 * log2(NSIDE / tile_nside)
+    // shift = 2 * log2(NSIDE / tile_nside)
     int shift = 2 * (log2i(impl.grid.nside) - log2i(impl.grid.tile_nside));
     if (shift < 0) shift = 0;
     uint64_t parent_ipix = global_ipix >> shift;
@@ -1630,15 +1630,15 @@ int HissReader::query_pixel(double ra, double dec,
 
 // ----------------------------------------------------------------------------
 // query_pixel_f64(): 查询某位置的 signal (FP64) / support
-// R10 双精度 ABI: 仅适用于 FP64 模式文件 (signal_dtype=1)
-//   逻辑与 query_pixel 一致, 但调用 read_tile_signal_f64 / read_tile_support
-//   禁止静默转换: FP32 文件必须用 query_pixel
+// 双精度 ABI: 仅适用于 FP64 模式文件 (signal_dtype=1)
+// 逻辑与 query_pixel 一致, 但调用 read_tile_signal_f64 / read_tile_support
+// 禁止静默转换: FP32 文件必须用 query_pixel
 // ----------------------------------------------------------------------------
 int HissReader::query_pixel_f64(double ra, double dec,
                                 double* signal, uint8_t* support) const {
     const Impl& impl = *pimpl_;
 
-    // R10: FP32 文件禁止用 float64 接口读取 (禁止静默转换)
+    // FP32 文件禁止用 float64 接口读取 (禁止静默转换)
     if (impl.metadata.signal_dtype == 0) {
         fprintf(stderr,
                 "[hiss][reader] query_pixel_f64 失败: 文件为 FP32 模式 (signal_dtype=0), "
