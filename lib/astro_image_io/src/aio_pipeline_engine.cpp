@@ -460,7 +460,9 @@ AIO_EXPORT int aio_pipeline_engine_run_batch(PipelineEngine* eng,
             {
                 if (first_error_ret == 0) {
                     first_error_ret = ret;
-                    strncpy(first_error, local_error, sizeof(first_error) - 1);
+                    std::memcpy(first_error, local_error,
+                                sizeof(first_error) - 1);
+                    first_error[sizeof(first_error) - 1] = '\0';
                 }
                 fprintf(stderr, "[engine] frame[%d]: FAILED (ret=%d): %s\n",
                         i, ret, local_error);

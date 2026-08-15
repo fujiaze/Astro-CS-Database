@@ -439,7 +439,9 @@ AIO_EXPORT int aio_frame_list_blocks(const PipelineFrame* frame,
         /* 每个块名占 64 字节 */
         char* dst = out_names + (size_t)i * 64;
         std::memset(dst, 0, 64);
-        std::strncpy(dst, frame->blocks[i].name, 63);
+        // memcpy 显式 63 字节 + 末尾 NUL, 规避 strncpy 截断警告
+        // (name 为固定 64 字节缓冲, 源可长至 63 无 NUL)
+        std::memcpy(dst, frame->blocks[i].name, 63);
     }
     return (n > capacity) ? 2 : 0;
 }

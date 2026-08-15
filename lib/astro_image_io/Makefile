@@ -5,6 +5,10 @@ CXXFLAGS = -O2 -march=native -Wall -std=c++17 -fopenmp \
            -DHAS_ZSTD -DHAS_LZ4
 CC = gcc
 CFLAGS = -O2 -march=native -Wall
+# V19 (PRERELEASE_CODE_QUALITY): CFITSIO 4.6.4 为 vendored 第三方源码,
+# 严格 warning 门只覆盖 first-party; 第三方 object 用 -w 抑制并记录 exception
+# (shipping_units.csv third_party=true; 上游 144 条警告不属 first-party 缺陷)
+CFLAGS_VENDORED = -O2 -march=native -w
 INCLUDES = -Iinclude -Isrc -I../common
 SRC_DIR = src
 AHPX_DIR = $(SRC_DIR)/ahpx
@@ -65,7 +69,7 @@ astro_image_io.dll: $(SRCS) $(CFITSIO_OBJ)
 	$(CXX) $(CXXFLAGS) -shared -o $@ $(SRCS) $(CFITSIO_OBJ) $(INCLUDES) -I$(CFITSIO_DIR) -static-libgcc -static-libstdc++ -lzstd -llz4 -lz -lm
 
 $(CFITSIO_DIR)/%.o: $(CFITSIO_DIR)/%.c
-	$(CC) $(CFLAGS) -I$(CFITSIO_DIR) -c $< -o $@
+	$(CC) $(CFLAGS_VENDORED) -I$(CFITSIO_DIR) -c $< -o $@
 
 clean:
 	del /Q *.o *.dll 2>nul

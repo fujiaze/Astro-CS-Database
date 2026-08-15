@@ -24,13 +24,6 @@ void set_err(const std::string& m) { g_upm_error = m; }
 
 constexpr int kDenseHeaderBytes = 512;
 
-std::string dense_checksum_of(const std::string& header_with_zeros,
-                              const std::vector<std::uint8_t>& payload) {
-    std::string all = header_with_zeros;
-    all.append(reinterpret_cast<const char*>(payload.data()), payload.size());
-    return astrocs::crypto::sha256_hex(all.data(), all.size());
-}
-
 } // namespace
 
 struct AioUpmSparse {

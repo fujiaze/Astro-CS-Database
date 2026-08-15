@@ -38,18 +38,6 @@ namespace ipv {
 // 内部辅助函数 (SIP 拟合用)
 // ---------------------------------------------------------------------------
 
-// SIP 基函数: {x^i * y^j : i+j >= 2, i+j <= order}
-// (SIP 不含常数项和线性项, 从二次开始)
-static std::vector<std::pair<int,int>> sip_basis(int order) {
-    std::vector<std::pair<int,int>> basis;
-    for (int deg = 2; deg <= order; deg++) {
-        for (int i = deg; i >= 0; i--) {
-            int j = deg - i;
-            basis.push_back({i, j});
-        }
-    }
-    return basis;
-}
 
 // 计算 x^i * y^j
 static double eval_monomial(double x, double y, int i, int j) {

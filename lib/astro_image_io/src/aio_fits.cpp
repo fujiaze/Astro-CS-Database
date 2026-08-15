@@ -14,6 +14,16 @@ extern "C" int aio_internal_is_fp64();
 #include <vector>
 #include <algorithm>
 
+// 安全定长拷贝 (memcpy + 显式 NUL; 规避 strncpy 截断警告)
+static inline void aio_safe_copy(char* dst, std::size_t cap, const char* src) {
+    if (!dst || cap == 0) return;
+    if (!src) { dst[0] = '\0'; return; }
+    const std::size_t n = cap - 1;
+    std::size_t i = 0;
+    while (i < n && src[i] != '\0') { dst[i] = src[i]; ++i; }
+    dst[n] = '\0';
+}
+
 static const size_t FITS_BLOCK_SIZE = 2880;
 static const size_t FITS_CARD_SIZE = 80;
 
@@ -49,7 +59,7 @@ static void parse_card(const char card[80], AIOFITSKeyword &kw) {
             memset(&kw, 0, sizeof(kw));
             return;
         }
-        strncpy(kw.name, key.c_str(), AIO_KEYWORD_NAME_MAX - 1);
+        aio_safe_copy(kw.name, AIO_KEYWORD_NAME_MAX, key.c_str());
         kw.value[0] = '\0';
         kw.comment[0] = '\0';
         return;
@@ -89,9 +99,9 @@ static void parse_card(const char card[80], AIOFITSKeyword &kw) {
 
     cmt = trim_str(cmt);
 
-    strncpy(kw.name, key.c_str(), AIO_KEYWORD_NAME_MAX - 1);
-    strncpy(kw.value, val.c_str(), AIO_KEYWORD_VALUE_MAX - 1);
-    strncpy(kw.comment, cmt.c_str(), AIO_KEYWORD_COMMENT_MAX - 1);
+    aio_safe_copy(kw.name, AIO_KEYWORD_NAME_MAX, key.c_str());
+    aio_safe_copy(kw.value, AIO_KEYWORD_VALUE_MAX, val.c_str());
+    aio_safe_copy(kw.comment, AIO_KEYWORD_COMMENT_MAX, cmt.c_str());
 }
 
 static int parse_fits_header(FILE *fp, FITSHeader &hdr) {
@@ -371,8 +381,8 @@ static void build_metadata(const FITSHeader &hdr, AIOImageMetadata &meta) {
     wcs.crval2 = kw_float("CRVAL2");
     const char *ct1 = find_kw("CTYPE1");
     const char *ct2 = find_kw("CTYPE2");
-    if (ct1) strncpy(wcs.ctype1, ct1, AIO_CTYPE_MAX - 1);
-    if (ct2) strncpy(wcs.ctype2, ct2, AIO_CTYPE_MAX - 1);
+    if (ct1) aio_safe_copy(wcs.ctype1, AIO_CTYPE_MAX, ct1);
+    if (ct2) aio_safe_copy(wcs.ctype2, AIO_CTYPE_MAX, ct2);
 
     wcs.cd1_1 = kw_float("CD1_1", kw_float("CD001001"));
     wcs.cd1_2 = kw_float("CD1_2", kw_float("CD001002"));
@@ -387,8 +397,8 @@ static void build_metadata(const FITSHeader &hdr, AIOImageMetadata &meta) {
     if (cdelt2_s) wcs.cdelt2 = kw_float("CDELT2");
 
     const char *radesys = find_kw("RADESYS");
-    if (radesys) strncpy(wcs.radesys, radesys, AIO_RADESYS_MAX - 1);
-    else strncpy(wcs.radesys, "ICRS", AIO_RADESYS_MAX - 1);
+    if (radesys) aio_safe_copy(wcs.radesys, AIO_RADESYS_MAX, radesys);
+    else aio_safe_copy(wcs.radesys, AIO_RADESYS_MAX, "ICRS");
 
     const char *equinox_s = find_kw("EQUINOX");
     wcs.has_equinox = equinox_s ? 1 : 0;
@@ -409,9 +419,9 @@ static void build_metadata(const FITSHeader &hdr, AIOImageMetadata &meta) {
     AIOObservationMetadata &obs = meta.observation;
     memset(&obs, 0, sizeof(obs));
     const char *date_obs = find_kw("DATE-OBS");
-    if (date_obs) strncpy(obs.date_obs, date_obs, AIO_DATE_MAX - 1);
+    if (date_obs) aio_safe_copy(obs.date_obs, AIO_DATE_MAX, date_obs);
     const char *date_end = find_kw("DATE-END");
-    if (date_end) strncpy(obs.date_end, date_end, AIO_DATE_MAX - 1);
+    if (date_end) aio_safe_copy(obs.date_end, AIO_DATE_MAX, date_end);
     const char *jd_s = find_kw("JD");
     obs.has_jd_obs = jd_s ? 1 : 0;
     if (jd_s) obs.jd_obs = kw_float("JD");
@@ -425,7 +435,7 @@ static void build_metadata(const FITSHeader &hdr, AIOImageMetadata &meta) {
     obs.has_altobs = altobs ? 1 : 0;
     if (altobs) obs.altobs = kw_float("ALT-OBS");
     const char *observat = find_kw("OBSERVAT");
-    if (observat) strncpy(obs.observat, observat, AIO_OBSERVAT_MAX - 1);
+    if (observat) aio_safe_copy(obs.observat, AIO_OBSERVAT_MAX, observat);
     const char *focallen = find_kw("FOCALLEN");
     obs.has_focallen = focallen ? 1 : 0;
     if (focallen) obs.focallen = kw_float("FOCALLEN");
@@ -439,24 +449,24 @@ static void build_metadata(const FITSHeader &hdr, AIOImageMetadata &meta) {
     obs.has_focal_ratio = focal_ratio ? 1 : 0;
     if (focal_ratio) obs.focal_ratio = kw_float("FOCAL_RATIO");
     const char *object_name = find_kw("OBJECT");
-    if (object_name) strncpy(obs.object_name, object_name, AIO_OBJECT_MAX - 1);
+    if (object_name) aio_safe_copy(obs.object_name, AIO_OBJECT_MAX, object_name);
 
     AIOCalibrationMetadata &cal = meta.calibration;
     memset(&cal, 0, sizeof(cal));
     cal.exptime = kw_float("EXPTIME");
     const char *filter = find_kw("FILTER");
-    if (filter) strncpy(cal.filter_name, filter, AIO_FILTER_MAX - 1);
-    else strncpy(cal.filter_name, "Unknown", AIO_FILTER_MAX - 1);
+    if (filter) aio_safe_copy(cal.filter_name, AIO_FILTER_MAX, filter);
+    else aio_safe_copy(cal.filter_name, AIO_FILTER_MAX, "Unknown");
     cal.gain = kw_float("GAIN", 1.0);
     const char *ccd_temp = find_kw("CCD-TEMP");
     if (!ccd_temp) ccd_temp = find_kw("TEMP");
     cal.has_ccd_temp = ccd_temp ? 1 : 0;
     if (ccd_temp) cal.ccd_temp = std::stod(ccd_temp);
     const char *imagetyp = find_kw("IMAGETYP");
-    if (imagetyp) strncpy(cal.frame_type, imagetyp, AIO_FRAME_TYPE_MAX - 1);
+    if (imagetyp) aio_safe_copy(cal.frame_type, AIO_FRAME_TYPE_MAX, imagetyp);
     const char *bunit = find_kw("BUNIT");
-    if (bunit) strncpy(cal.bunit, bunit, AIO_BUNIT_MAX - 1);
-    else strncpy(cal.bunit, "ADU", AIO_BUNIT_MAX - 1);
+    if (bunit) aio_safe_copy(cal.bunit, AIO_BUNIT_MAX, bunit);
+    else aio_safe_copy(cal.bunit, AIO_BUNIT_MAX, "ADU");
 }
 
 // ============================================================================
@@ -627,9 +637,9 @@ static int fits_read_file_cfitsio(const char *path, AIOImageData *out, bool head
     auto add_kw = [&](const char *name, const char *value, const char *comment) {
         AIOFITSKeyword k;
         memset(&k, 0, sizeof(k));
-        strncpy(k.name, name, AIO_KEYWORD_NAME_MAX - 1);
-        strncpy(k.value, value, AIO_KEYWORD_VALUE_MAX - 1);
-        strncpy(k.comment, comment, AIO_KEYWORD_COMMENT_MAX - 1);
+        aio_safe_copy(k.name, AIO_KEYWORD_NAME_MAX, name);
+        aio_safe_copy(k.value, AIO_KEYWORD_VALUE_MAX, value);
+        aio_safe_copy(k.comment, AIO_KEYWORD_COMMENT_MAX, comment);
         std_cards.push_back(k);
     };
     char tmp[32];
@@ -674,7 +684,7 @@ static int fits_read_file_cfitsio(const char *path, AIOImageData *out, bool head
     out->bits_per_sample = std::abs(bitpix);
     out->float_sample = (bitpix < 0) ? 1 : 0;
     strncpy(out->source_format, "fits", sizeof(out->source_format) - 1);
-    strncpy(out->source_path, path, AIO_PATH_MAX - 1);
+    aio_safe_copy(out->source_path, AIO_PATH_MAX, path);
 
     out->keyword_count = (int)hdr.keywords.size();
     if (out->keyword_count > 0) {
@@ -813,7 +823,7 @@ int fits_read_file(const char *path, AIOImageData *out) {
     out->bits_per_sample = std::abs(hdr.bitpix);
     out->float_sample = (hdr.bitpix < 0) ? 1 : 0;
     strncpy(out->source_format, "fits", sizeof(out->source_format) - 1);
-    strncpy(out->source_path, path, AIO_PATH_MAX - 1);
+    aio_safe_copy(out->source_path, AIO_PATH_MAX, path);
 
     out->keyword_count = (int)hdr.keywords.size();
     if (out->keyword_count > 0) {
@@ -867,7 +877,7 @@ int fits_read_header_only(const char *path, AIOImageData *out) {
     out->bits_per_sample = std::abs(hdr.bitpix);
     out->float_sample = (hdr.bitpix < 0) ? 1 : 0;
     strncpy(out->source_format, "fits", sizeof(out->source_format) - 1);
-    strncpy(out->source_path, path, AIO_PATH_MAX - 1);
+    aio_safe_copy(out->source_path, AIO_PATH_MAX, path);
 
     out->keyword_count = (int)hdr.keywords.size();
     if (out->keyword_count > 0) {

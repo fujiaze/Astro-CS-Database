@@ -12,6 +12,16 @@ extern "C" int aio_internal_is_fp64();
 #include <vector>
 #include <algorithm>
 
+// 安全定长拷贝 (memcpy + 显式 NUL; 规避 strncpy 截断警告)
+static inline void aio_safe_copy(char* dst, std::size_t cap, const char* src) {
+    if (!dst || cap == 0) return;
+    if (!src) { dst[0] = '\0'; return; }
+    const std::size_t n = cap - 1;
+    std::size_t i = 0;
+    while (i < n && src[i] != '\0') { dst[i] = src[i]; ++i; }
+    dst[n] = '\0';
+}
+
 static const uint8_t XISF_MAGIC[8] = {'X', 'I', 'S', 'F', '0', '1', '0', '0'};
 
 struct XISFSampleFormat {
@@ -109,10 +119,10 @@ static void parse_fits_keywords(const std::string &xml, std::vector<AIOFITSKeywo
         std::string value = get_attr(tag, "value");
         std::string comment = get_attr(tag, "comment");
 
-        strncpy(kw.name, name.c_str(), AIO_KEYWORD_NAME_MAX - 1);
+        aio_safe_copy(kw.name, AIO_KEYWORD_NAME_MAX, name.c_str());
         std::string norm_val = normalize_fits_value(value);
-        strncpy(kw.value, norm_val.c_str(), AIO_KEYWORD_VALUE_MAX - 1);
-        strncpy(kw.comment, comment.c_str(), AIO_KEYWORD_COMMENT_MAX - 1);
+        aio_safe_copy(kw.value, AIO_KEYWORD_VALUE_MAX, norm_val.c_str());
+        aio_safe_copy(kw.comment, AIO_KEYWORD_COMMENT_MAX, comment.c_str());
 
         keywords.push_back(kw);
         pos = tag_end + 2;
@@ -372,13 +382,13 @@ static void build_xisf_metadata(const std::vector<AIOFITSKeyword> &keywords,
     wcs.crval2 = kw_float("CRVAL2");
     const char *ct1 = find_kw("CTYPE1");
     const char *ct2 = find_kw("CTYPE2");
-    if (ct1) strncpy(wcs.ctype1, ct1, AIO_CTYPE_MAX - 1);
-    if (ct2) strncpy(wcs.ctype2, ct2, AIO_CTYPE_MAX - 1);
+    if (ct1) aio_safe_copy(wcs.ctype1, AIO_CTYPE_MAX, ct1);
+    if (ct2) aio_safe_copy(wcs.ctype2, AIO_CTYPE_MAX, ct2);
     wcs.cd1_1 = kw_float("CD1_1"); wcs.cd1_2 = kw_float("CD1_2");
     wcs.cd2_1 = kw_float("CD2_1"); wcs.cd2_2 = kw_float("CD2_2");
     const char *radesys = find_kw("RADESYS");
-    if (radesys) strncpy(wcs.radesys, radesys, AIO_RADESYS_MAX - 1);
-    else strncpy(wcs.radesys, "ICRS", AIO_RADESYS_MAX - 1);
+    if (radesys) aio_safe_copy(wcs.radesys, AIO_RADESYS_MAX, radesys);
+    else aio_safe_copy(wcs.radesys, AIO_RADESYS_MAX, "ICRS");
     const char *equinox_s = find_kw("EQUINOX");
     wcs.has_equinox = equinox_s ? 1 : 0;
     if (equinox_s) wcs.equinox = kw_float("EQUINOX", 2000.0);
@@ -390,20 +400,20 @@ static void build_xisf_metadata(const std::vector<AIOFITSKeyword> &keywords,
     AIOObservationMetadata &obs = meta.observation;
     memset(&obs, 0, sizeof(obs));
     const char *date_obs = find_kw("DATE-OBS");
-    if (date_obs) strncpy(obs.date_obs, date_obs, AIO_DATE_MAX - 1);
+    if (date_obs) aio_safe_copy(obs.date_obs, AIO_DATE_MAX, date_obs);
     const char *object_name = find_kw("OBJECT");
-    if (object_name) strncpy(obs.object_name, object_name, AIO_OBJECT_MAX - 1);
+    if (object_name) aio_safe_copy(obs.object_name, AIO_OBJECT_MAX, object_name);
 
     AIOCalibrationMetadata &cal = meta.calibration;
     memset(&cal, 0, sizeof(cal));
     cal.exptime = kw_float("EXPTIME");
     const char *filter = find_kw("FILTER");
-    if (filter) strncpy(cal.filter_name, filter, AIO_FILTER_MAX - 1);
-    else strncpy(cal.filter_name, "Unknown", AIO_FILTER_MAX - 1);
+    if (filter) aio_safe_copy(cal.filter_name, AIO_FILTER_MAX, filter);
+    else aio_safe_copy(cal.filter_name, AIO_FILTER_MAX, "Unknown");
     cal.gain = kw_float("GAIN", 1.0);
     const char *bunit = find_kw("BUNIT");
-    if (bunit) strncpy(cal.bunit, bunit, AIO_BUNIT_MAX - 1);
-    else strncpy(cal.bunit, "ADU", AIO_BUNIT_MAX - 1);
+    if (bunit) aio_safe_copy(cal.bunit, AIO_BUNIT_MAX, bunit);
+    else aio_safe_copy(cal.bunit, AIO_BUNIT_MAX, "ADU");
 }
 
 int xisf_read_file(const char *path, AIOImageData *out) {
@@ -559,7 +569,7 @@ int xisf_read_file(const char *path, AIOImageData *out) {
     out->bits_per_sample = sf.bits_per_sample;
     out->float_sample = sf.is_float;
     strncpy(out->source_format, "xisf", sizeof(out->source_format) - 1);
-    strncpy(out->source_path, path, AIO_PATH_MAX - 1);
+    aio_safe_copy(out->source_path, AIO_PATH_MAX, path);
 
     std::vector<AIOFITSKeyword> keywords;
     parse_fits_keywords(xml_text, keywords);
@@ -623,7 +633,7 @@ int xisf_read_header_only(const char *path, AIOImageData *out) {
     out->bits_per_sample = sf.bits_per_sample;
     out->float_sample = sf.is_float;
     strncpy(out->source_format, "xisf", sizeof(out->source_format) - 1);
-    strncpy(out->source_path, path, AIO_PATH_MAX - 1);
+    aio_safe_copy(out->source_path, AIO_PATH_MAX, path);
 
     std::vector<AIOFITSKeyword> keywords;
     parse_fits_keywords(xml_text, keywords);
