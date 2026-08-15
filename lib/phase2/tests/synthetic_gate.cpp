@@ -1712,6 +1712,7 @@ TEST(Phase2Upm, G1V7EdgeBasisAnalytic) {
     }
     EXPECT_LE(worst_seam_err, 1e-9)
         << "seam recovered delta 必须精确跟随 truth delta（严格，无动态放宽）";
+    EXPECT_GT(n_seam, 0u);  // 采样数非零（计数用于审计，防死循环退化）
 
     // 4. 2D affine 拟合斜率/截距绝对阈值
     double sx = 0, sy = 0, sz = 0, sxx = 0, syy = 0, sxy = 0, sxz = 0,
@@ -2018,6 +2019,7 @@ TEST(Phase2Upm, G1V8ContinuousSkySeam) {
                                   std::fabs(ev(model2, leaf) - ev(ba.model, leaf)));
         ++n_sod;
     }
+    EXPECT_GT(n_sod, 0u);
     p2_upm_close(model2);
     std::remove(path);
 
@@ -2093,6 +2095,8 @@ TEST(Phase2Upm, G1V8ContinuousSkySeam) {
         }
     }
 
+    EXPECT_GT(n_nz, 0u);
+    EXPECT_GT(n_near_zero, 0u);
     EXPECT_LE(worst_center, kTolLeafSeam);
     EXPECT_LE(worst_interior, kTolLeafSeam);
     EXPECT_LE(worst_edge, kTolLeafSeam);
@@ -2713,7 +2717,9 @@ TEST(Phase2Reject, G4SequentialRcrMask) {
     EXPECT_EQ(wacc[6], 0u);
     EXPECT_EQ(wacc[7], 0u);
     for (std::size_t i = 0; i < wacc.size(); ++i) {
-        if (i != 6 && i != 7) EXPECT_EQ(wacc[i], 1u);
+        if (i != 6 && i != 7) {
+            EXPECT_EQ(wacc[i], 1u);
+        }
     }
 }
 
