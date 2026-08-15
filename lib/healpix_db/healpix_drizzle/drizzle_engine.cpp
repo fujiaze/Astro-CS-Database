@@ -1363,18 +1363,26 @@ void DrizzleEngine::processPixelSharedTiled(
         }
     }
 
-    // 几何数据 Scalar 存储 + double 精度源 (WCS 角点):
-    //   类型贯穿 float/double; 方向判定/缓存由 double 角点保证
-    //   (float 存储的 ~1e-7 舍入在 6.3\" 尺度会导致 clip 法向量方向翻转)
-    std::vector<spherical::Vec3T<Scalar>> drop_corners;
-    std::vector<spherical::Vec3> drop_corners_d;
+    // V18 (PERF-002): 线程本地复用 scratch（首像素 reserve 后零堆分配；
+    // 科学语义与逐像素分配完全一致，仅目标对象复用）
+    thread_local std::vector<spherical::Vec3T<Scalar>> t_drop_corners;
+    thread_local std::vector<spherical::Vec3> t_drop_corners_d;
+    thread_local std::vector<spherical::Vec3> t_drop_promoted;
+    thread_local spherical::DropGeometryT<Scalar> t_drop_geom;
+    std::vector<spherical::Vec3T<Scalar>>& drop_corners = t_drop_corners;
+    std::vector<spherical::Vec3>& drop_corners_d = t_drop_corners_d;
+    if (drop_corners.capacity() < 8) {
+        drop_corners.reserve(8);
+        drop_corners_d.reserve(8);
+        t_drop_promoted.reserve(8);
+    }
+    drop_corners.clear();
+    drop_corners_d.clear();
     if (!use_adaptive) {
-        drop_corners.resize(4);
-        drop_corners_d.resize(4);
         for (int i = 0; i < 4; i++) {
             spherical::Vec3 v = spherical::radec_to_vec<double>(corners_ra[i], corners_dec[i]);
-            drop_corners_d[i] = v;
-            drop_corners[i] = {Scalar(v.x), Scalar(v.y), Scalar(v.z)};
+            drop_corners_d.push_back(v);
+            drop_corners.push_back({Scalar(v.x), Scalar(v.y), Scalar(v.z)});
         }
     } else {
         drop_corners = spherical::build_drop_polygon_adaptive<Scalar>(
@@ -1392,9 +1400,9 @@ void DrizzleEngine::processPixelSharedTiled(
     //   (overlap 已由 build_drop_geometry 的 double 缓存保证; 面积同理)
     // adaptive 路径无 double 源: 从 Scalar 提升一份 double 副本
     // (大像素 ≥60\", float 精度足够; 供面积/候选共用, 避免重复转换)
-    std::vector<spherical::Vec3> drop_corners_promoted;
+    std::vector<spherical::Vec3>& drop_corners_promoted = t_drop_promoted;
+    drop_corners_promoted.clear();
     if (use_adaptive && drop_corners_d.empty()) {
-        drop_corners_promoted.reserve(drop_corners.size());
         for (const auto& v : drop_corners)
             drop_corners_promoted.push_back(
                 {double(v.x), double(v.y), double(v.z)});
@@ -1407,9 +1415,10 @@ void DrizzleEngine::processPixelSharedTiled(
     //   float 存储角点的 ~1e-7 长度舍入在 6.3\" 尺度 drop 上造成面积误差
     //   ~0.05% (实测 ratio 0.9995~1.0002), 更小尺度 (1\"/px) 误差更大,
     //   会系统性偏置 weight = overlap/drop_area, 使 FP32/FP64 通量不一致。
-    spherical::DropGeometryT<Scalar> drop_geom =
-        spherical::build_drop_geometry<Scalar>(drop_corners,
-                                               use_adaptive ? nullptr : &drop_corners_d);
+    spherical::build_drop_geometry_into<Scalar>(
+        t_drop_geom, drop_corners,
+        use_adaptive ? nullptr : &drop_corners_d);
+    const spherical::DropGeometryT<Scalar>& drop_geom = t_drop_geom;
     Scalar drop_area = Scalar(drop_geom.drop_area);
     if (drop_area < Scalar(1e-20)) {
         return;
@@ -1419,7 +1428,8 @@ void DrizzleEngine::processPixelSharedTiled(
     // 候选集合为整数 ipix, 与 Scalar 无关; 使用 double 源角点计算保证
     // FP32/FP64 候选一致且不因 float 存储舍入漏选 (float 1e-7 误差在
     // NSIDE=65536 下会使 query_radius/delta 抖动 → 通量丢失)
-    std::vector<uint64_t> candidates;
+    thread_local std::vector<uint64_t> t_candidates;
+    std::vector<uint64_t>& candidates = t_candidates;
     const bool fine = drizzle_fine_profile_enabled();
     auto t_c0 = fine ? std::chrono::high_resolution_clock::now()
                      : std::chrono::time_point<std::chrono::high_resolution_clock>{};

@@ -25,6 +25,7 @@
 // ============================================================================
 
 #include "healpix_core.h"
+#include <array>
 #include <vector>
 #include <cstdint>
 
@@ -144,6 +145,12 @@ std::vector<Vec3T<T>> get_healpix_boundary_sampled(
     const healpix::HealpixCore& hp, uint64_t ipix, int nside,
     int samples_per_edge = 8);
 
+// V18 (PERF-003): 高 NSIDE（nside>=256）生产路径的固定 4 角边界（无堆分配）。
+// 与 get_healpix_boundary 逐位等价（同一 4 角计算）。
+template <typename T>
+void get_healpix_boundary4(const healpix::HealpixCore& hp, uint64_t ipix,
+                           int nside, std::array<Vec3T<T>, 4>& out);
+
 // ============================================================================
 // 回调类型: 像素坐标 → 天球坐标
 // px, py: 像素坐标 (0-based)
@@ -247,6 +254,14 @@ template <typename Scalar>
 DropGeometryT<Scalar> build_drop_geometry(
     const std::vector<Vec3T<Scalar>>& drop_corners,
     const std::vector<Vec3>* corners_dbl = nullptr);
+
+// V18 (PERF-002): 复用版——写入调用方提供的 DropGeometryT（内部 vector 已
+// reserve，避免每像素 4 次堆分配）；科学语义与 build_drop_geometry 完全一致
+// （同一实现，仅目标对象复用）。调用方保证 g 不被并发共享。
+template <typename Scalar>
+void build_drop_geometry_into(DropGeometryT<Scalar>& g,
+                              const std::vector<Vec3T<Scalar>>& drop_corners,
+                              const std::vector<Vec3>* corners_dbl = nullptr);
 
 // 使用预计算 drop 几何的重叠面积 (Scalar 实例; 返回 Scalar)
 // V18 (PERF-005): hp_res_rad 由调用方 run-context 传入，避免每候选重算

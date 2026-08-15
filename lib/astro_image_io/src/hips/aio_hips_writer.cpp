@@ -356,6 +356,10 @@ struct AioHipsProductSet {
     double prof_finalize_products = 0.0;
     double prof_hierarchy_write = 0.0;
     double prof_finalize_snr = 0.0;
+    // V18 (PERF-007/009): 跨 tile 复用 scratch
+    std::vector<float>  scratch_sigF, scratch_supF;   // dtype=f32 写缓冲
+    std::vector<double> scratch_sigD, scratch_supD;   // dtype=f64 写缓冲
+    std::vector<double> scratch_sig_n, scratch_sup_n; // NESTED 序缓存（hierarchy）
 };
 
 extern "C" {
@@ -416,8 +420,18 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
     const bool f32 = (ps->data_type == AIO_HIPS_FLOAT32);
 
     // 1. 转换 signal/support
-    std::vector<float>  sigF(n), supF(n);
-    std::vector<double> sigD(n), supD(n);
+    // V18 (PERF-007): 只分配当前 dtype 的 scratch，跨 tile 复用（原每 tile
+    // 分配 4×262144 元素 → 首 tile 分配后零再分配）
+    std::vector<float>&  sigF = ps->scratch_sigF;
+    std::vector<double>& sigD = ps->scratch_sigD;
+    std::vector<float>&  supF = ps->scratch_supF;
+    std::vector<double>& supD = ps->scratch_supD;
+    if (f32) { sigF.resize(n); supF.resize(n); }
+    else     { sigD.resize(n); supD.resize(n); }
+    std::vector<double>& sig_n = ps->scratch_sig_n;
+    std::vector<double>& sup_n = ps->scratch_sup_n;
+    sig_n.resize(n);
+    sup_n.resize(n);
     std::vector<uint8_t> valid;
     if (view->valid_mask)
         valid.assign((const uint8_t*)view->valid_mask, (const uint8_t*)view->valid_mask + n);
@@ -450,8 +464,15 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
         } else {
             sig = std::numeric_limits<double>::quiet_NaN();
         }
-        if (f32) { sigF[fi] = (float)sig; supF[fi] = (float)sup; }
-        else     { sigD[fi] = sig;        supD[fi] = sup; }
+        // V18 (PERF-009): NESTED 序 sig/sup 缓存（与 FITS 序同一 float/double
+        // 精度存储），hierarchy 直接按 NESTED 序累加，免 fi 反查。
+        if (f32) {
+            sigF[fi] = (float)sig; supF[fi] = (float)sup;
+            sig_n[i] = (double)(float)sig; sup_n[i] = (double)(float)sup;
+        } else {
+            sigD[fi] = sig;        supD[fi] = sup;
+            sig_n[i] = sig;        sup_n[i] = sup;
+        }
     }
 
     ps->prof_transform += std::chrono::duration<double>(
@@ -502,18 +523,12 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
         AncestorAcc& acc = ps->hier[(size_t)k][A];
         acc.ensure(f32);
         for (size_t i = 0; i < n; ++i) {
-            // sigF/supF 已 scatter 到标准 FITS 行主序: 按 fi 读取还原 NESTED 单元值
-            const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(
-                (uint64_t)i, 9u, 512u);
+            // V18 (PERF-009): 直接使用 NESTED 序 sig/sup 缓存（与 FITS 序
+            // 读回逐位一致），免每 i 一次 nested_local_to_fits_index 反查。
             const bool v = valid.empty() || valid[i];
             double flux = 0.0, area = 0.0;
-            if (f32) {
-                flux = (double)sigF[fi] * (double)supF[fi] * ps->A_cell;
-                area = (double)supF[fi] * ps->A_cell;
-            } else {
-                flux = sigD[fi] * supD[fi] * ps->A_cell;
-                area = supD[fi] * ps->A_cell;
-            }
+            flux = sig_n[i] * sup_n[i] * ps->A_cell;
+            area = sup_n[i] * ps->A_cell;
             if (!v || !(area > 0.0) || !std::isfinite(flux)) continue;
             // 叶 (P,l) -> A@k 内 order-(k+9) 单元 NESTED 索引
             //   full = (s<<18)|l (order K+9 within A), z = full >> 2*(K-k)

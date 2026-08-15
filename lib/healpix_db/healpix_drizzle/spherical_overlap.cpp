@@ -489,6 +489,46 @@ std::vector<Vec3T<T>> get_healpix_boundary(
 }
 
 // ============================================================================
+// V18 (PERF-003): 固定 4 角边界（高 NSIDE 生产路径，无堆分配）。
+// 与 get_healpix_boundary 逐位等价（同一 4 角计算逻辑）。
+// ============================================================================
+template <typename T>
+void get_healpix_boundary4(const healpix::HealpixCore& hp, uint64_t ipix,
+                           int nside, std::array<Vec3T<T>, 4>& out)
+{
+    (void)nside;
+    int Ns = hp.getNside();
+    int64_t npix_per_bighp = (int64_t)Ns * Ns;
+    int bighp = (int)(ipix / npix_per_bighp);
+    int64_t local_idx = ipix % npix_per_bighp;
+
+    int xv = 0, yv = 0;
+    {
+        int64_t idx = local_idx;
+        for (int i = 0; i < 32; i++) {
+            xv |= (int)((idx & 0x1) << i);
+            idx >>= 1;
+            yv |= (int)((idx & 0x1) << i);
+            idx >>= 1;
+            if (!idx) break;
+        }
+    }
+
+    struct CornerXY { int x, y; };
+    CornerXY corners[4] = {
+        {xv, yv}, {xv + 1, yv}, {xv + 1, yv + 1}, {xv, yv + 1}
+    };
+    for (int i = 0; i < 4; i++) {
+        double theta, phi;
+        xyf2ang_replica(bighp, (double)corners[i].x, (double)corners[i].y,
+                        Ns, &theta, &phi);
+        double st = std::sin(theta), ct = std::cos(theta);
+        double sp = std::sin(phi),  cp = std::cos(phi);
+        out[(size_t)i] = {T(st * cp), T(st * sp), T(ct)};
+    }
+}
+
+// ============================================================================
 // R06-B02: HEALPix 像素边自适应细分辅助函数
 //
 // 对 HEALPix 像素的一条边 (像素坐标 (x0,y0)->(x1,y1)) 进行自适应二分细分.
@@ -990,9 +1030,31 @@ template <typename Scalar>
 DropGeometryT<Scalar> build_drop_geometry(const std::vector<Vec3T<Scalar>>& drop_corners,
                                           const std::vector<Vec3>* corners_dbl) {
     DropGeometryT<Scalar> g;
+    build_drop_geometry_into<Scalar>(g, drop_corners, corners_dbl);
+    return g;
+}
+
+template <typename Scalar>
+void build_drop_geometry_into(DropGeometryT<Scalar>& g,
+                              const std::vector<Vec3T<Scalar>>& drop_corners,
+                              const std::vector<Vec3>* corners_dbl) {
+    // V18 (PERF-002): 复用已有容量（g 由调用方 thread-local 持有，首帧
+    // reserve 后不再分配）；科学语义与 build_drop_geometry 完全一致。
+    if (g.corners.capacity() < drop_corners.size())
+        g.corners.reserve(drop_corners.size());
+    if (g.clip_normals.capacity() < drop_corners.size())
+        g.clip_normals.reserve(drop_corners.size());
+    if (g.clip_normals_d.capacity() < drop_corners.size())
+        g.clip_normals_d.reserve(drop_corners.size());
+    if (g.corners_d.capacity() < drop_corners.size())
+        g.corners_d.reserve(drop_corners.size());
+    // 复用对象必须清空（corners 由赋值自动清空，clip_normals 为 push_back
+    // 填充——不清空会逐像素累积上一像素的法向量）
+    g.clip_normals.clear();
+    g.clip_normals_d.clear();
     g.corners = drop_corners;
     int nd = (int)drop_corners.size();
-    if (nd < 3) return g;
+    if (nd < 3) return;
     // double 角点缓存 (drop_area / 完全包含判定的几何源)
     g.corners_d.resize(nd);
     if (corners_dbl && (int)corners_dbl->size() == nd) {
@@ -1082,7 +1144,6 @@ DropGeometryT<Scalar> build_drop_geometry(const std::vector<Vec3T<Scalar>>& drop
         g.clip_normals.push_back({Scalar(nx / nlen), Scalar(ny / nlen), Scalar(nz / nlen)});
         g.clip_normals_d.push_back({nx / nlen, ny / nlen, nz / nlen});
     }
-    return g;
 }
 
 // ============================================================================
@@ -1139,12 +1200,25 @@ Scalar compute_overlap_area_g_ctx(const DropGeometryT<Scalar>& g,
     }
 
     // 1. 获取目标 HEALPix 像素边界 (double 内部)
+    //    V18 (PERF-003): nside>=256 生产路径用固定 4 角 array（无堆分配），
+    //    与 get_healpix_boundary 逐位等价；低 NSIDE 保留自适应细分 vector。
     int nside = hp.getNside();
-    int samples = (nside <= 8) ? 16 : 1;
-    std::vector<Vec3> hp_boundary = get_healpix_boundary_sampled<double>(hp, target_ipix, nside, samples);
-    if (hp_boundary.size() < 3) return Scalar(0);
-
-    int nb = (int)hp_boundary.size();
+    std::array<Vec3, 4> hp_boundary4;
+    std::vector<Vec3> hp_boundary_vec;
+    const Vec3* hp_boundary = nullptr;
+    int nb = 0;
+    if (nside >= 256) {
+        get_healpix_boundary4<double>(hp, target_ipix, nside, hp_boundary4);
+        hp_boundary = hp_boundary4.data();
+        nb = 4;
+    } else {
+        int samples = (nside <= 8) ? 16 : 1;
+        hp_boundary_vec = get_healpix_boundary_sampled<double>(
+            hp, target_ipix, nside, samples);
+        if (hp_boundary_vec.size() < 3) return Scalar(0);
+        hp_boundary = hp_boundary_vec.data();
+        nb = (int)hp_boundary_vec.size();
+    }
 
     // R07/R08 混合策略 (保持科学语义与数值精度):
     //   三角形扇剖分 (hp_center → 每边三角形) + 逐三角形 S-H 裁剪
@@ -1162,8 +1236,9 @@ Scalar compute_overlap_area_g_ctx(const DropGeometryT<Scalar>& g,
     const double inside_tol = 1e-12;
     bool leaf_fully_inside_drop = true;
     for (const auto& n : drop_clip_normals) {
-        for (const auto& v : hp_boundary) {
-            if (v.x * n.x + v.y * n.y + v.z * n.z < -inside_tol) {
+        for (int i = 0; i < nb; i++) {
+            if (hp_boundary[i].x * n.x + hp_boundary[i].y * n.y +
+                    hp_boundary[i].z * n.z < -inside_tol) {
                 leaf_fully_inside_drop = false;
                 break;
             }
@@ -1217,7 +1292,7 @@ Scalar compute_overlap_area_g_ctx(const DropGeometryT<Scalar>& g,
     if (nb == 4) {
         Vec3 intersection[16];
         int ni = sutherland_hodgman_spherical_fixed(
-            hp_boundary.data(), 4, drop_clip_normals, intersection, 16);
+            hp_boundary, 4, drop_clip_normals, intersection, 16);
         if (ni >= 3) {
             if (g.max_angle < 1e-3) {
                 total_overlap = planar_polygon_area_n(intersection, ni, &g.center_d);
@@ -1548,6 +1623,10 @@ template std::vector<Vec3T<float>> get_healpix_boundary_sampled<float>(
     const healpix::HealpixCore&, uint64_t, int, int);
 template std::vector<Vec3T<double>> get_healpix_boundary_sampled<double>(
     const healpix::HealpixCore&, uint64_t, int, int);
+template void get_healpix_boundary4<float>(
+    const healpix::HealpixCore&, uint64_t, int, std::array<Vec3T<float>, 4>&);
+template void get_healpix_boundary4<double>(
+    const healpix::HealpixCore&, uint64_t, int, std::array<Vec3T<double>, 4>&);
 template std::vector<Vec3T<float>> build_drop_polygon_sampled<float>(
     float, float, float, PixelToSkyFn, void*, int);
 template std::vector<Vec3T<double>> build_drop_polygon_sampled<double>(
@@ -1564,6 +1643,10 @@ template DropGeometryT<float> build_drop_geometry<float>(
     const std::vector<Vec3T<float>>&, const std::vector<Vec3>*);
 template DropGeometryT<double> build_drop_geometry<double>(
     const std::vector<Vec3T<double>>&, const std::vector<Vec3>*);
+template void build_drop_geometry_into<float>(
+    DropGeometryT<float>&, const std::vector<Vec3T<float>>&, const std::vector<Vec3>*);
+template void build_drop_geometry_into<double>(
+    DropGeometryT<double>&, const std::vector<Vec3T<double>>&, const std::vector<Vec3>*);
 template float compute_overlap_area_g<float>(const DropGeometryT<float>&,
                                              const healpix::HealpixCore&, uint64_t);
 template double compute_overlap_area_g<double>(const DropGeometryT<double>&,

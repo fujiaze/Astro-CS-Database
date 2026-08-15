@@ -606,6 +606,11 @@ static int run_drizzle_internal(PipelineFrame* frame,
     //     注: 必须在 img.wcs 构造完成后执行 (pixelToSkyBatch 需要 WCS)
     const float* snrPtr = nullptr;
     std::vector<float> snrRebuilt;       // 重建的逐像素 SNR (生命周期需覆盖 drizzle 调用)
+    // V18 (PERF-010): SNR model 控制点用 RAII vector 持有（points 指向
+    // vector.data()），禁止手工 malloc/free——生产 HiPS-only 路径
+    // legacy_hiss_compare=false 时旧代码 free 不执行 → 每帧泄漏。
+    std::vector<HioSnrControlPoint>   snr_pts_f32;
+    std::vector<HioSnrControlPointF64> snr_pts_f64;
     HioSnrModel snrModelData = {};       // f32 模型 (writeHis 用, 对齐拷贝)
     HioSnrModelF64 snrModelDataF64 = {}; // f64 模型 (BLOCKER-TYPE-002)
     const HioSnrModel* snrModelPtr = nullptr;
@@ -719,9 +724,9 @@ static int run_drizzle_internal(PipelineFrame* frame,
                         if (vd == 1) {
                             // 对齐拷贝到 HioSnrModelF64 (writeHis 用, 避免未对齐读取)
                             snrModelDataF64.n_points = n_points;
-                            snrModelDataF64.points = (HioSnrControlPointF64*)std::malloc(
-                                (size_t)n_points * sizeof(HioSnrControlPointF64));
-                            if (snrModelDataF64.points) {
+                            snr_pts_f64.resize(n_points);
+                            if (!snr_pts_f64.empty()) {
+                                snrModelDataF64.points = snr_pts_f64.data();
                                 for (uint32_t i = 0; i < n_points; i++) {
                                     snrModelDataF64.points[i].ra = cp_ra[i];
                                     snrModelDataF64.points[i].dec = cp_dec[i];
@@ -741,9 +746,9 @@ static int run_drizzle_internal(PipelineFrame* frame,
                             }
                         } else {
                             snrModelData.n_points = n_points;
-                            snrModelData.points = (HioSnrControlPoint*)std::malloc(
-                                (size_t)n_points * sizeof(HioSnrControlPoint));
-                            if (snrModelData.points) {
+                            snr_pts_f32.resize(n_points);
+                            if (!snr_pts_f32.empty()) {
+                                snrModelData.points = snr_pts_f32.data();
                                 for (uint32_t i = 0; i < n_points; i++) {
                                     snrModelData.points[i].ra = cp_ra[i];
                                     snrModelData.points[i].dec = cp_dec[i];
@@ -797,9 +802,9 @@ static int run_drizzle_internal(PipelineFrame* frame,
                     std::memcpy(&median_snr, tail + 8, 8);
                     std::memcpy(&idw_power, tail + 16, 8);
                     snrModelData.n_points = n_points;
-                    snrModelData.points = (HioSnrControlPoint*)std::malloc(
-                        (size_t)n_points * sizeof(HioSnrControlPoint));
-                    if (snrModelData.points) {
+                    snr_pts_f32.resize(n_points);
+                    if (!snr_pts_f32.empty()) {
+                        snrModelData.points = snr_pts_f32.data();
                         for (uint32_t i = 0; i < n_points; i++) {
                             snrModelData.points[i].ra = cp_ra[i];
                             snrModelData.points[i].dec = cp_dec[i];
@@ -992,8 +997,6 @@ static int run_drizzle_internal(PipelineFrame* frame,
             : engine.writeHisTilesT<float>(tiles_f32, stats, img.wcs, config, meta,
                                            sourcePath, hissPath, snrModelPtr,
                                            nullptr, errMsg);
-        std::free(snrModelData.points);
-        std::free(snrModelDataF64.points);
         if (!write_ok) {
             fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: 写入 .hiss 失败: %s\n", errMsg.c_str());
             setErrorMsg(result, "写入 .hiss 失败: " + errMsg);
