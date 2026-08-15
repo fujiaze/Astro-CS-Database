@@ -5022,6 +5022,8 @@ TaskResult Orchestrator::run_stage1(const Stage1Config& cfg) {
     // 加载 DLL: AIO/CALIBRATE/PLATESOLVE/PSF/PHOTOMETRIC/SNR/DRIZZLE 全部必需
     if (!dlls_loaded_) {
         std::string err;
+        // V18 (G1): DLL_LOAD 粗粒度计时（每段一次 clock，低开销）
+        const auto t_dll0 = std::chrono::steady_clock::now();
         if (!init_dlls("", err)) {
             bool all_required =
                 dll_loader_.is_loaded(ModuleId::AIO) &&
@@ -5038,6 +5040,11 @@ TaskResult Orchestrator::run_stage1(const Stage1Config& cfg) {
                 state_ = TaskState::FAILED;
                 return result;
             }
+        }
+        {
+            const double s = std::chrono::duration<double>(
+                std::chrono::steady_clock::now() - t_dll0).count();
+            LOG_INFO("orchestrator", "[DLL_LOAD] 完成 " + std::to_string(s) + "s");
         }
     }
 

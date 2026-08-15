@@ -16,8 +16,9 @@
 #
 # 依赖:
 #   - astro_image_io/astro_image_io.dll (提供 PipelineFrame + KV 读取 C API)
-#   - healpix_io/healpix_io.dll (提供 .hiss 读写 C API: hiss_write)
-#   - healpix_stack/healpix_core (HEALpix 运算, 静态编译)
+#   - 模块内 healpix_core.cpp / snr_evaluator.cpp（V18：从 archive/legacy
+#     healpix_stack 提升为模块私有实现——V17 归档时 drizzle Makefile 残留
+#     引用 archive 源码，违反"archive 不参与 build"，已修复；科学代码不变）
 #
 # 日志:
 #   所有诊断/进度日志输出到 stderr, 不污染 stdout 便于 Python 解析
@@ -29,7 +30,7 @@ CXXFLAGS = -O3 -march=native -funroll-loops -Wall -std=c++17 -fopenmp
 # astro_image_io 路径变量 (提供 AIO C API + PipelineFrame + HEALPix I/O)
 # 注: healpix_io 已合并入 aio (2026-07-16 按 spec G1), aio.dll 统一提供 FITS/XISF/HEALPix I/O
 AIO_DIR ?= ../../astro_image_io
-INCLUDES = -I. -I$(AIO_DIR)/include -I$(AIO_DIR)/src -I../healpix_stack
+INCLUDES = -I. -I$(AIO_DIR)/include -I$(AIO_DIR)/src
 
 # Drizzle 模块源文件
 #   fits_reader.cpp        - FITS 图像读取与头解析
@@ -40,10 +41,8 @@ INCLUDES = -I. -I$(AIO_DIR)/include -I$(AIO_DIR)/src -I../healpix_stack
 #   hp_drizzle_api.cpp     - 对外 C ABI 接口
 SRCS = fits_reader.cpp wcs_sip.cpp poly_clip.cpp spherical_overlap.cpp drizzle_engine.cpp reverse_drizzle.cpp hp_drizzle_api.cpp astro_sphere_sink.cpp
 
-# 依赖模块源文件 (静态编译进来, 避免跨 dll 依赖)
-# 注: .hiss 读写通过链接 astro_image_io.dll 获得 (healpix_io 已合并入 aio)
-# 注: snr_evaluator.cpp (KD-tree IDW) 静态编译进来, 用于 drizzle 端 SNR 重建
-DEPS = ../healpix_stack/healpix_core.cpp ../healpix_stack/gradient/snr_evaluator.cpp
+# 依赖模块源文件 (静态编译进来, 避免跨 dll 依赖; 模块内私有实现)
+DEPS = healpix_core.cpp snr_evaluator.cpp
 
 # 链接 astro_image_io.dll (PipelineFrame/KV + HEALPix I/O: hiss_write)
 # zstd/lz4 由 astro_image_io.dll 内部静态链接, 此处不再需要

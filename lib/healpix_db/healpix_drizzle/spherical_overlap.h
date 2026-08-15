@@ -249,9 +249,18 @@ DropGeometryT<Scalar> build_drop_geometry(
     const std::vector<Vec3>* corners_dbl = nullptr);
 
 // 使用预计算 drop 几何的重叠面积 (Scalar 实例; 返回 Scalar)
+// V18 (PERF-005): hp_res_rad 由调用方 run-context 传入，避免每候选重算
+//   pixelResolutionArcsec()（整帧常量）；quick-reject 用 dot<cos(limit)
+//   替代 acos（acos 在 [-1,1] 单调递减 → 数学等价）。
 template <typename Scalar>
 Scalar compute_overlap_area_g(const DropGeometryT<Scalar>& g,
                               const healpix::HealpixCore& hp, uint64_t target_ipix);
+
+template <typename Scalar>
+Scalar compute_overlap_area_g_ctx(const DropGeometryT<Scalar>& g,
+                                  const healpix::HealpixCore& hp,
+                                  uint64_t target_ipix,
+                                  double hp_res_rad);
 
 // R12 (性能 profile): overlap 路径计数 (quick=相离, fully=drop 包含像素,
 // dropin=drop 在像素内, sh=部分相交 S-H); 仅统计, 不改变逻辑

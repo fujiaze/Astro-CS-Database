@@ -10,13 +10,14 @@
 #include "wcs_sip.h"
 #include "reverse_drizzle.h"
 #include "astro_image_io.h"   // aio_frame_get_block / aio_frame_kv_get
-#include "gradient/snr_evaluator.h"  // SnrEvaluator (KD-tree IDW 重建逐像素 SNR)
+#include "snr_evaluator.h"  // SnrEvaluator (KD-tree IDW 重建逐像素 SNR; V18 模块内私有实现)
 #include "aio_healpix_io.h"         // HioSnrModel, HioSnrControlPoint (向后兼容宏)
 #include "astro_sphere_sink.h"      // Phase1 V3: Drizzle -> AIO HiPS 直写
 
 #include <cstdio>
 #include <cstring>
 #include <cmath>
+#include <chrono>
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -371,6 +372,18 @@ static int run_drizzle_internal(PipelineFrame* frame,
 {
     // 0. V4 G4: actual-buffer trace 状态清理 (env 由 drizzleTiledImpl 内读取)
     drizzle_trace::reset();
+
+    // V18 (G1): Drizzle 内部粗粒度阶段计时（每段一次 clock，低开销，
+    // 生产默认打印；逐像素 fine profile 由 drizzle_engine 环境变量门控）
+    const auto t_func0 = std::chrono::steady_clock::now();
+    auto t_mark = t_func0;
+    double prof_parse = 0.0, prof_snr = 0.0, prof_drizzle = 0.0,
+           prof_hips = 0.0, prof_hiss = 0.0;
+    auto stamp = [&](double& acc) {
+        const auto n = std::chrono::steady_clock::now();
+        acc += std::chrono::duration<double>(n - t_mark).count();
+        t_mark = n;
+    };
 
     // 1. 参数校验
     if (!frame || !result) {
@@ -842,6 +855,7 @@ static int run_drizzle_internal(PipelineFrame* frame,
     }
     fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: SNR 控制点 %zu 个 (HiPS Catalogue)\n",
             snr_pts.size());
+    stamp(prof_snr);   // V18: SNR 重建结束
 
     // 6. 构造 DrizzleConfig
     DrizzleConfig config;
@@ -898,6 +912,8 @@ static int run_drizzle_internal(PipelineFrame* frame,
         }
     }
 
+    stamp(prof_parse);  // V18: parse frame + WCS + config 结束
+
     // 7. 执行 Drizzle (R11 阶段6: Tile 级累加, 正式路径不恢复全局 leaf map)
     //    双精度 ABI: 根据 data 块类型选择 drizzleTiled (FP32) 或 drizzleTiled_f64 (FP64)
     //    FP64 模式: 从 img.pixels_f64 (double) 读取像素, 不降级到 float32
@@ -924,6 +940,7 @@ static int run_drizzle_internal(PipelineFrame* frame,
 
     fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: Drizzle 完成 (%lld 源像素 → %lld HEALPix 像素, 耗时 %.3fs)\n",
             (long long)stats.nSourcePixels, (long long)stats.nHealpixPixels, stats.elapsedSec);
+    stamp(prof_drizzle);  // V18: Drizzle kernel 结束
 
     // 8. 写入 .hiss 文件 (若指定 output_path)
     if (output_path && output_path[0] != '\0') {
@@ -983,6 +1000,7 @@ static int run_drizzle_internal(PipelineFrame* frame,
             return -11;
         }
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: .hiss 已写入 %s\n", hissPath.c_str());
+        stamp(prof_hiss);  // V18: legacy .hiss 写入结束
     }
 
     // 8.5 Phase1 Final Closure V3: HiPS 直写 (Drizzle -> AIO, 无 HISS 中转)
@@ -1010,7 +1028,16 @@ static int run_drizzle_internal(PipelineFrame* frame,
         }
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: HiPS 已直写 %s (无 HISS 中转)\n",
                 hips_dir);
+        stamp(prof_hips);  // V18: HiPS 直写结束
     }
+
+    // V18 (G1): Drizzle 内部阶段计时汇总（exclusive，粗粒度）
+    fprintf(stderr,
+            "[drizzle_profile] parse_frame=%.3fs snr_rebuild=%.3fs "
+            "drizzle_run=%.3fs hips_write=%.3fs legacy_hiss=%.3fs total=%.3fs\n",
+            prof_parse, prof_snr, prof_drizzle, prof_hips, prof_hiss,
+            std::chrono::duration<double>(
+                std::chrono::steady_clock::now() - t_func0).count());
 
     // 9. 填充结果
     result->n_healpix_pixels = stats.nHealpixPixels;

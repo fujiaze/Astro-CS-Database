@@ -21,6 +21,7 @@
 #include <fitsio.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -348,6 +349,13 @@ struct AioHipsProductSet {
     double covered_area_sr = 0.0;          // Σ covered_area (真实覆盖)
     double sig_min = 1e300, sig_max = -1e300;
     bool finalized = false;
+    // V18 (G1): 跨 tile 累计 profile（低开销 coarse；每 tile 每段一次 clock）
+    double prof_transform = 0.0;        // NESTED→FITS scatter
+    double prof_fits_write = 0.0;       // CFITSIO tile 写出
+    double prof_hierarchy_accum = 0.0;  // 每 tile ancestor 累加
+    double prof_finalize_products = 0.0;
+    double prof_hierarchy_write = 0.0;
+    double prof_finalize_snr = 0.0;
 };
 
 extern "C" {
@@ -417,6 +425,7 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
     // V5 (HIPS-IMG-001): view->flux_sum/covered_area/valid_mask 以 NESTED local
     // 索引 (Drizzle 热路径保持 NESTED), 写 FITS 前经共享 HEALPix core 标准映射
     // scatter: fits_index = (tile_width-1-x)*tile_width + y, x/y 由 local 位解交错
+    const auto t_tr0 = std::chrono::steady_clock::now();
     double tile_covered = 0.0;
     for (size_t i = 0; i < n; ++i) {
         const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(
@@ -445,7 +454,11 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
         else     { sigD[fi] = sig;        supD[fi] = sup; }
     }
 
+    ps->prof_transform += std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - t_tr0).count();
+
     // 2. 写 signal/support FITS (CFITSIO + checksum)
+    const auto t_wr0 = std::chrono::steady_clock::now();
     const int bitpix = f32 ? -32 : -64;
     std::vector<std::pair<std::string, std::string>> cards;
     cards.push_back({"NSIDE", std::to_string(ps->nside)});
@@ -468,6 +481,8 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
             return -5;
         }
     }
+    ps->prof_fits_write += std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - t_wr0).count();
 
     // 3. MOC + 覆盖统计
     if (ps->moc_cells.insert(view->parent_ipix).second) {
@@ -477,6 +492,7 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
     ps->covered_area_sr += tile_covered;
 
     // 4. hierarchy 累加 (k = K-1 .. 0)
+    const auto t_ha0 = std::chrono::steady_clock::now();
     for (int k = (int)ps->tile_order - 1; k >= 0; --k) {
         int dk = (int)ps->tile_order - k;
         uint64_t shift = 2ULL * (uint64_t)dk;
@@ -506,6 +522,8 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
             acc.add(z, flux, area);
         }
     }
+    ps->prof_hierarchy_accum += std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - t_ha0).count();
     return 0;
 }
 
@@ -785,8 +803,11 @@ int aio_hips_finalize(AioHipsProductSet* ps) {
     if (!ps) { set_error("null handle"); return -1; }
     if (ps->finalized) { set_error("已 finalize"); return -2; }
     ps->finalized = true;
+    // V18 (G1): finalize 分段计时（粗粒度，低开销）
+    const auto t_fin0 = std::chrono::steady_clock::now();
     std::fprintf(stderr, "[hips] finalize: n_leaf=%zu flags=%d\n",
                  ps->leaf_ipix_list.size(), ps->flags);
+    const auto t_p0 = std::chrono::steady_clock::now();
     const double moc_frac = ps->moc_area_sr / (4.0 * kPi());
     const double cov_frac = ps->covered_area_sr / (4.0 * kPi());
     std::string range;
@@ -804,16 +825,33 @@ int aio_hips_finalize(AioHipsProductSet* ps) {
             return -4;
         }
     }
+    ps->prof_finalize_products += std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - t_p0).count();
+    const auto t_h0 = std::chrono::steady_clock::now();
     if ((ps->flags & (AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT)) &&
         !finalize_hierarchy(ps)) {
         std::fprintf(stderr, "[hips] finalize: hierarchy failed\n");
         return -5;
     }
+    ps->prof_hierarchy_write += std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - t_h0).count();
+    const auto t_s0 = std::chrono::steady_clock::now();
     if ((ps->flags & AIO_HIPS_PRODUCT_SNR) && !finalize_snr_product(ps)) {
         std::fprintf(stderr, "[hips] finalize: snr failed\n");
         return -6;
     }
+    ps->prof_finalize_snr += std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - t_s0).count();
     std::fprintf(stderr, "[hips] finalize: ok\n");
+    std::fprintf(stderr,
+                 "[hips][profile] transform=%.3fs fits_write=%.3fs "
+                 "hierarchy_accum=%.3fs products=%.3fs hierarchy_write=%.3fs "
+                 "snr=%.3fs total=%.3fs\n",
+                 ps->prof_transform, ps->prof_fits_write,
+                 ps->prof_hierarchy_accum, ps->prof_finalize_products,
+                 ps->prof_hierarchy_write, ps->prof_finalize_snr,
+                 std::chrono::duration<double>(
+                     std::chrono::steady_clock::now() - t_fin0).count());
     // manifest.json
     {
         FILE* f = std::fopen((ps->out_dir + "/manifest.json").c_str(), "wb");

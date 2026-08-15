@@ -6,6 +6,7 @@
 #include "../../astro_image_io/include/hiss_format.h"  // hiss::compute_tile_depth
 
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <cstring>
 
@@ -60,11 +61,15 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
     }
 
     const uint32_t leaf_order = ilog2_u64(nside);
+    // V18 (G1): HiPS 直写分段计时（每段一次 clock，低开销）
+    const auto t_sink0 = std::chrono::steady_clock::now();
+    double prof_transform = 0.0, prof_fits_write = 0.0;
     std::vector<Scalar> dense_flux(n_leaf, Scalar(0));
     std::vector<Scalar> dense_area(n_leaf, Scalar(0));
     size_t n_written = 0;
     for (const auto& tile : tiles) {
         if (tile.touched.empty()) continue;
+        const auto t_tr0 = std::chrono::steady_clock::now();
         std::fill(dense_flux.begin(), dense_flux.end(), Scalar(0));
         std::fill(dense_area.begin(), dense_area.end(), Scalar(0));
         for (uint32_t local : tile.touched) {
@@ -73,6 +78,9 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
             dense_flux[local] = acc.sumFlux;
             dense_area[local] = acc.sumArea;
         }
+        prof_transform += std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - t_tr0).count();
+        const auto t_wr0 = std::chrono::steady_clock::now();
         AstroSphereTileView view;
         std::memset(&view, 0, sizeof(view));
         view.parent_ipix = tile.parent_ipix;
@@ -90,6 +98,8 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
             std::fprintf(stderr, "[sink] %s\n", err.c_str());
             return false;
         }
+        prof_fits_write += std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - t_wr0).count();
         ++n_written;
     }
     if (n_written == 0) {
@@ -98,12 +108,17 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
         return false;
     }
     if (!snr_pts.empty()) {
+        const auto t_snr0 = std::chrono::steady_clock::now();
         if (aio_hips_write_snr_points(ps, snr_pts.data(), (int)snr_pts.size()) != 0) {
             err = "aio_hips_write_snr_points 失败";
             aio_hips_abort(ps);
             return false;
         }
+        const double s = std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - t_snr0).count();
+        std::fprintf(stderr, "[sink][profile] snr_points=%.3fs\n", s);
     }
+    const auto t_fin0 = std::chrono::steady_clock::now();
     int rc = aio_hips_finalize(ps);
     if (rc != 0) {
         err = "aio_hips_finalize rc=" + std::to_string(rc) + ": " +
@@ -111,8 +126,16 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
         std::fprintf(stderr, "[sink] %s\n", err.c_str());
         return false;
     }
+    const double prof_finalize = std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - t_fin0).count();
     std::fprintf(stderr, "[sink] HiPS 直写完成: %zu tiles -> %s\n",
                  n_written, hips_dir.c_str());
+    std::fprintf(stderr,
+                 "[sink][profile] transform=%.3fs fits_write=%.3fs "
+                 "finalize=%.3fs total=%.3fs\n",
+                 prof_transform, prof_fits_write, prof_finalize,
+                 std::chrono::duration<double>(
+                     std::chrono::steady_clock::now() - t_sink0).count());
     return true;
 }
 

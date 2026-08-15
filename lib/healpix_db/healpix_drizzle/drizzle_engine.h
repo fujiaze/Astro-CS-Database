@@ -200,6 +200,7 @@ private:
         const DrizzleConfig& config,     // 配置
         const healpix::HealpixCore& hp,  // HEALPix 核心
         uint32_t shift, uint64_t mask,   // NESTED tile 位运算
+        const struct DrizzleRunContext& rctx,   // V18 (PERF-005)
         std::unordered_map<uint64_t, TileAccumulatorT<Scalar>>& tileMap  // 线程本地 tile 累加
     ) const;
 
@@ -212,6 +213,7 @@ private:
         const WcsSip& wcs, const DrizzleConfig& config,
         const healpix::HealpixCore& hp,
         uint32_t shift, uint64_t mask,
+        const struct DrizzleRunContext& rctx,   // V18 (PERF-005): 整帧 run 常量
         std::unordered_map<uint64_t, TileAccumulatorT<Scalar>>& tileMap) const;
 
     // R11 (阶段6): Tile 级 Drizzle 内部实现 (模板 Scalar=float/double)

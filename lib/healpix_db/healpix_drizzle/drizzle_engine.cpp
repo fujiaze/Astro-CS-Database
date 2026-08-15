@@ -236,6 +236,27 @@ void reset() {
 
 namespace drizzle {
 
+// V18 (PERF-005): 整帧 Drizzle run 常量（同 NSIDE 下不变，避免候选循环
+// 重算 pixelResolutionArcsec/阈值 cos/位运算常量）
+struct DrizzleRunContext {
+    uint32_t nside = 0;
+    double hp_res_rad = 0.0;      // pixelResolutionArcsec() × ARCSEC_TO_RAD
+    double cos_thresh_60 = 0.0;   // cos(60 角秒)：边跨度自适应阈值
+    uint32_t shift = 0;           // leaf_ipix >> shift = parent
+    uint64_t mask = 0;            // leaf_ipix & mask = local
+};
+
+// V18 (PERF-001): fine-grained per-pixel profiler 默认关闭；
+// 显式 ASTROCS_DRIZZLE_FINE_PROFILE=1 才启用（逐像素 clock 有真实开销，
+// 不能默认打开）。返回 false 时热循环完全不调用 high_resolution_clock。
+static bool drizzle_fine_profile_enabled() {
+    static const bool en = [] {
+        const char* v = std::getenv("ASTROCS_DRIZZLE_FINE_PROFILE");
+        return v && v[0] == '1';
+    }();
+    return en;
+}
+
 // Phase1 Final Closure V3: 有效 Tile 分组深度 (config.tile_depth 优先, 0=auto)
 static uint32_t eff_tile_depth(const DrizzleConfig& c) {
     return c.tile_depth ? c.tile_depth : hiss::compute_tile_depth((uint32_t)c.nside);
@@ -1264,6 +1285,7 @@ void DrizzleEngine::processPixelTiled(
     const DrizzleConfig& config,
     const healpix::HealpixCore& hp,
     uint32_t shift, uint64_t mask,
+    const DrizzleRunContext& rctx,
     std::unordered_map<uint64_t, TileAccumulatorT<Scalar>>& tileMap) const
 {
     // ---- Step 1: 取像素四角 (0-based) + pixfrac 收缩 ----
@@ -1287,7 +1309,7 @@ void DrizzleEngine::processPixelTiled(
 
     processPixelSharedTiled(px, py, pixelValue, snrValue, weightValue,
                             corners_ra, corners_dec, wcs, config, hp,
-                            shift, mask, tileMap);
+                            shift, mask, rctx, tileMap);
 }
 
 // ============================================================================
@@ -1302,6 +1324,7 @@ void DrizzleEngine::processPixelSharedTiled(
     const WcsSip& wcs, const DrizzleConfig& config,
     const healpix::HealpixCore& hp,
     uint32_t shift, uint64_t mask,
+    const DrizzleRunContext& rctx,
     std::unordered_map<uint64_t, TileAccumulatorT<Scalar>>& tileMap) const
 {
     // 角点有限性检查
@@ -1316,7 +1339,11 @@ void DrizzleEngine::processPixelSharedTiled(
     //   - 近极像素: 裸 Δra 被 1/cos(dec) 放大 (dec=89.4° 时 6.4" 真实跨度
     //     被算成 617") → 误触发自适应细分
     //   球面角距天然处理环绕与极区因子, 只有真实跨度 >= 60" 才走自适应
-    double max_edge_rad = 0.0;
+    // V18 (PERF-004): 普通像素（所有边 < 60"）0 次 acos：
+    //   edge >= 60" ⟺ dot <= cos(60")（acos 单调递减）。
+    //   仅当检测到任一超阈边时才回算真实角距（自适应路径，罕见）。
+    double dot_edges[4];
+    bool use_adaptive = false;
     for (int i = 0; i < 4; i++) {
         int j = (i + 1) % 4;
         spherical::Vec3 va = spherical::radec_to_vec<double>(
@@ -1325,12 +1352,16 @@ void DrizzleEngine::processPixelSharedTiled(
             corners_ra[j], corners_dec[j]);
         double d = va.x * vb.x + va.y * vb.y + va.z * vb.z;
         d = std::max(-1.0, std::min(1.0, d));
-        double edge = std::acos(d);
-        if (edge > max_edge_rad) max_edge_rad = edge;
+        dot_edges[i] = d;
+        if (d <= rctx.cos_thresh_60) use_adaptive = true;
     }
-
-    const double THRESH_60ARCSEC  = 60.0  * (M_PI / 180.0) / 3600.0;
-    bool use_adaptive = (max_edge_rad >= THRESH_60ARCSEC);
+    double max_edge_rad = 0.0;
+    if (use_adaptive) {
+        for (int i = 0; i < 4; i++) {
+            double edge = std::acos(dot_edges[i]);
+            if (edge > max_edge_rad) max_edge_rad = edge;
+        }
+    }
 
     // 几何数据 Scalar 存储 + double 精度源 (WCS 角点):
     //   类型贯穿 float/double; 方向判定/缓存由 double 角点保证
@@ -1389,10 +1420,14 @@ void DrizzleEngine::processPixelSharedTiled(
     // FP32/FP64 候选一致且不因 float 存储舍入漏选 (float 1e-7 误差在
     // NSIDE=65536 下会使 query_radius/delta 抖动 → 通量丢失)
     std::vector<uint64_t> candidates;
-    auto t_c0 = std::chrono::high_resolution_clock::now();
+    const bool fine = drizzle_fine_profile_enabled();
+    auto t_c0 = fine ? std::chrono::high_resolution_clock::now()
+                     : std::chrono::time_point<std::chrono::high_resolution_clock>{};
     spherical::query_candidate_pixels_fast<double>(drop_double, hp, candidates);
-    g_tl_prof_cand += std::chrono::duration<double>(
-        std::chrono::high_resolution_clock::now() - t_c0).count();
+    if (fine) {
+        g_tl_prof_cand += std::chrono::duration<double>(
+            std::chrono::high_resolution_clock::now() - t_c0).count();
+    }
     if (candidates.empty()) {
         return;
     }
@@ -1401,7 +1436,8 @@ void DrizzleEngine::processPixelSharedTiled(
     //   通量守恒 (02_FROZEN §8): F_p = Σ_j L_j * (a_jp / A_j_drop)
     //   leaf 由 NESTED 位运算拆分为 (parent_ipix, local_ipix):
     //     parent = ipix >> (2*depth), local = ipix & mask
-    auto t_o0 = std::chrono::high_resolution_clock::now();
+    auto t_o0 = fine ? std::chrono::high_resolution_clock::now()
+                     : std::chrono::time_point<std::chrono::high_resolution_clock>{};
     // V4 G4: actual-buffer trace (仅选中源像素; 默认关闭零开销)
     const bool trace_on = drizzle_trace::enabled() &&
                           drizzle_trace::selected((int)px, (int)py);
@@ -1418,7 +1454,8 @@ void DrizzleEngine::processPixelSharedTiled(
         }
     }
     for (uint64_t ipix : candidates) {
-        Scalar overlap_area = spherical::compute_overlap_area_g<Scalar>(drop_geom, hp, ipix);
+        Scalar overlap_area = spherical::compute_overlap_area_g_ctx<Scalar>(
+            drop_geom, hp, ipix, rctx.hp_res_rad);
         if (overlap_area < Scalar(1e-20)) continue;
 
         Scalar weight = overlap_area / drop_area;
@@ -1446,8 +1483,10 @@ void DrizzleEngine::processPixelSharedTiled(
         tr.sum_contribution = tr_sum;
         drizzle_trace::push_source(std::move(tr));
     }
-    g_tl_prof_overlap += std::chrono::duration<double>(
-        std::chrono::high_resolution_clock::now() - t_o0).count();
+    if (fine) {
+        g_tl_prof_overlap += std::chrono::duration<double>(
+            std::chrono::high_resolution_clock::now() - t_o0).count();
+    }
 }
 
 // ============================================================================
@@ -1544,10 +1583,20 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     omp_set_num_threads(num_threads);
     std::vector<std::unordered_map<uint64_t, TileAccumulatorT<Scalar>>> threadTiles(num_threads);
 
+    // V18 (PERF-005): 整帧 run 常量（nside/hp_res/阈值 cos/位运算 shift/mask）
+    const double THRESH_60ARCSEC = 60.0 * (M_PI / 180.0) / 3600.0;
+    DrizzleRunContext rctx;
+    rctx.nside = (uint32_t)config.nside;
+    rctx.hp_res_rad = hp.pixelResolutionArcsec() * (M_PI / (180.0 * 3600.0));
+    rctx.cos_thresh_60 = std::cos(THRESH_60ARCSEC);
+    rctx.shift = (uint32_t)shift;
+    rctx.mask = mask;
+
     int64_t nSourcePixels = 0;
     const bool shared_vertices = (config.pixfrac == 1.0);
 
-    // R12 (性能): 阶段计时 profile (仅统计, 不改变逻辑)
+    // R12 (性能): 阶段计时 profile——V18 (PERF-001): fine 逐像素计时默认关闭
+    const bool fine = drizzle_fine_profile_enabled();
     double prof_geom_s = 0.0, prof_cand_s = 0.0, prof_overlap_s = 0.0;
     double prof_wcs_s = 0.0;
 
@@ -1560,15 +1609,18 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
         // 几何数据在 processPixelSharedTiled 内转 Scalar 存储)
         thread_local std::vector<double> bot_ra, bot_dec, top_ra, top_dec;
         if (shared_vertices) {
-            auto t_wcs0 = std::chrono::high_resolution_clock::now();
+            auto t_wcs0 = fine ? std::chrono::high_resolution_clock::now()
+                               : std::chrono::time_point<std::chrono::high_resolution_clock>{};
             bot_ra.resize(img.width + 1); bot_dec.resize(img.width + 1);
             top_ra.resize(img.width + 1); top_dec.resize(img.width + 1);
             for (int vx = 0; vx <= img.width; vx++) {
                 wcs.pixelToSky(vx - 0.5, y - 0.5, bot_ra[vx], bot_dec[vx]);
                 wcs.pixelToSky(vx - 0.5, y + 0.5, top_ra[vx], top_dec[vx]);
             }
-            prof_wcs_s += std::chrono::duration<double>(
-                std::chrono::high_resolution_clock::now() - t_wcs0).count();
+            if (fine) {
+                prof_wcs_s += std::chrono::duration<double>(
+                    std::chrono::high_resolution_clock::now() - t_wcs0).count();
+            }
         }
 
         for (int x = 0; x < img.width; x++) {
@@ -1592,17 +1644,24 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
             if (shared_vertices) {
                 double cr[4] = {bot_ra[x], bot_ra[x + 1], top_ra[x + 1], top_ra[x]};
                 double cd[4] = {bot_dec[x], bot_dec[x + 1], top_dec[x + 1], top_dec[x]};
-                auto t_g = std::chrono::high_resolution_clock::now();
+                auto t_g = fine ? std::chrono::high_resolution_clock::now()
+                                : std::chrono::time_point<std::chrono::high_resolution_clock>{};
                 processPixelSharedTiled((double)x, (double)y, pixelValue, snrValue, weightValue,
-                                        cr, cd, wcs, config, hp, (uint32_t)shift, mask, tileMap);
-                prof_geom_s += std::chrono::duration<double>(
-                    std::chrono::high_resolution_clock::now() - t_g).count();
+                                        cr, cd, wcs, config, hp, (uint32_t)shift, mask,
+                                        rctx, tileMap);
+                if (fine) {
+                    prof_geom_s += std::chrono::duration<double>(
+                        std::chrono::high_resolution_clock::now() - t_g).count();
+                }
             } else {
-                auto t_g = std::chrono::high_resolution_clock::now();
+                auto t_g = fine ? std::chrono::high_resolution_clock::now()
+                                : std::chrono::time_point<std::chrono::high_resolution_clock>{};
                 processPixelTiled((double)x, (double)y, pixelValue, snrValue, weightValue,
-                                  wcs, config, hp, (uint32_t)shift, mask, tileMap);
-                prof_geom_s += std::chrono::duration<double>(
-                    std::chrono::high_resolution_clock::now() - t_g).count();
+                                  wcs, config, hp, (uint32_t)shift, mask, rctx, tileMap);
+                if (fine) {
+                    prof_geom_s += std::chrono::duration<double>(
+                        std::chrono::high_resolution_clock::now() - t_g).count();
+                }
             }
         }
     }
@@ -1976,4 +2035,3 @@ template bool DrizzleEngine::writeHisTilesT<double>(
     const HioSnrModel*, const HioSnrModelF64*, std::string&);
 
 } // namespace drizzle
-

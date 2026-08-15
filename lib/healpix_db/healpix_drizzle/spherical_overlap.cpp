@@ -45,6 +45,16 @@ static thread_local long long g_tl_n_fully = 0;
 static thread_local long long g_tl_n_dropin = 0;
 static thread_local long long g_tl_n_sh = 0;
 
+// V18 (PERF-001): overlap 路径计数器默认关闭（与 fine profiler 同门控；
+// 显式 ASTROCS_DRIZZLE_FINE_PROFILE=1 启用，避免生产路径无谓 ++ 开销）
+static bool overlap_profile_enabled() {
+    static const bool en = [] {
+        const char* v = std::getenv("ASTROCS_DRIZZLE_FINE_PROFILE");
+        return v && v[0] == '1';
+    }();
+    return en;
+}
+
 long long profile_overlap_path_counts(long long* fully, long long* dropin,
                                       long long* sh) {
     long long q = g_tl_n_quick;
@@ -1084,6 +1094,19 @@ template <typename Scalar>
 Scalar compute_overlap_area_g(const DropGeometryT<Scalar>& g,
                               const healpix::HealpixCore& hp, uint64_t target_ipix)
 {
+    // V18 (PERF-005): 旧签名保持 oracle 兼容；内部委托 ctx 版本
+    // （hp_res_rad = 调用时一次解析，语义与历史实现完全一致）
+    return compute_overlap_area_g_ctx<Scalar>(
+        g, hp, target_ipix,
+        hp.pixelResolutionArcsec() * ARCSEC_TO_RAD);
+}
+
+template <typename Scalar>
+Scalar compute_overlap_area_g_ctx(const DropGeometryT<Scalar>& g,
+                                  const healpix::HealpixCore& hp,
+                                  uint64_t target_ipix,
+                                  double hp_res_rad)
+{
     int nd = (int)g.corners.size();
     if (nd < 3) return Scalar(0);
 
@@ -1098,15 +1121,19 @@ Scalar compute_overlap_area_g(const DropGeometryT<Scalar>& g,
     // → 必然不相交, 跳过边界获取/S-H (避免极区大像素细分开销)
     // R12 (性能): 像素中心只求一次 (pix2radec + radec_to_vec), 快速拒绝与
     // hp_center 复用同一向量 (原实现重复计算两次)
-    double hp_res_rad_rj = hp.pixelResolutionArcsec() * ARCSEC_TO_RAD;
+    // V18 (PERF-004/005): quick-reject 保持原始 acos(d) > lim 判定（edge
+    //   oracle 覆盖到 1e-19 尺度 sliver，dot<cos(lim) 的浮点舍入边界与
+    //   acos 不位级等价，不能替换）；优化点 = hp_res_rad 由调用方 run-context
+    //   传入，消除每候选 pixelResolutionArcsec() 调用。
+    const double lim = g.max_angle + HP_CIRCUMRADIUS_FACTOR * hp_res_rad;
     double ra_c, dec_c;
     hp.pix2radec((int64_t)target_ipix, &ra_c, &dec_c);
     Vec3 hp_center = radec_to_vec<double>(ra_c, dec_c);
     {
         double d_c = hp_center.x * center_x + hp_center.y * center_y + hp_center.z * center_z;
         d_c = std::max(-1.0, std::min(1.0, d_c));
-        if (std::acos(d_c) > g.max_angle + HP_CIRCUMRADIUS_FACTOR * hp_res_rad_rj) {
-            g_tl_n_quick++;
+        if (std::acos(d_c) > lim) {
+            if (overlap_profile_enabled()) g_tl_n_quick++;
             return Scalar(0);
         }
     }
@@ -1145,7 +1172,7 @@ Scalar compute_overlap_area_g(const DropGeometryT<Scalar>& g,
     }
     if (leaf_fully_inside_drop) {
         // drop 包含像素 → overlap = 像素解析面积 (4π/(12·NSIDE²) = π/(3·NSIDE²))
-        g_tl_n_fully++;
+        if (overlap_profile_enabled()) g_tl_n_fully++;
         return Scalar(PI / (3.0 * (double)nside * (double)nside));
     }
 
@@ -1176,13 +1203,13 @@ Scalar compute_overlap_area_g(const DropGeometryT<Scalar>& g,
             if (min_d < -inside_tol) { drop_inside_pixel = false; break; }
         }
         if (drop_inside_pixel) {
-            g_tl_n_dropin++;
-            return Scalar(g.drop_area);
+        if (overlap_profile_enabled()) g_tl_n_dropin++;
+        return Scalar(g.drop_area);
         }
     }
 
     // 三角形扇剖分 + 逐三角形 S-H 裁剪 (旧算法数值路径, 通量闭合 ~1e-11)
-    g_tl_n_sh++;
+    if (overlap_profile_enabled()) g_tl_n_sh++;
     double total_overlap = 0.0;
     // R12 (性能): 高 NSIDE 生产路径 (边界 4 角, 凸四边形) 用一次四边形 S-H
     //   代替 4 次三角形扇裁剪 — 数学等价 (凸∩凸 = 一次 S-H 交集),
@@ -1541,6 +1568,12 @@ template float compute_overlap_area_g<float>(const DropGeometryT<float>&,
                                              const healpix::HealpixCore&, uint64_t);
 template double compute_overlap_area_g<double>(const DropGeometryT<double>&,
                                                const healpix::HealpixCore&, uint64_t);
+template float compute_overlap_area_g_ctx<float>(const DropGeometryT<float>&,
+                                                 const healpix::HealpixCore&,
+                                                 uint64_t, double);
+template double compute_overlap_area_g_ctx<double>(const DropGeometryT<double>&,
+                                                   const healpix::HealpixCore&,
+                                                   uint64_t, double);
 template void query_candidate_pixels<float>(
     const std::vector<Vec3T<float>>&, const healpix::HealpixCore&, std::vector<uint64_t>&);
 template void query_candidate_pixels<double>(

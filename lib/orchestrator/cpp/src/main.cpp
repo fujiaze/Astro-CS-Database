@@ -31,6 +31,7 @@
 #include "logger.h"
 #include "precision_context.h"  // PrecisionContext 全局精度上下文 (双精度 ABI)
 
+#include <chrono>
 #include <filesystem>
 #include <nlohmann/json.hpp>  // --inspect: 解析 HISS metadata JSON
 
@@ -192,6 +193,16 @@ int main(int argc, char* argv[]) {
     SetConsoleCP(CP_UTF8);
 #endif
 
+    // V18 (G1): 进程外圈粗粒度计时（低开销，每段一次 clock；
+    // 输出与 stage 计时相同 "[X.XXXXXXs] PHASE" 格式，wall accounting 用）
+    const auto t_process_start = std::chrono::steady_clock::now();
+    auto phase_mark = [&](const char* name) {
+        const auto now = std::chrono::steady_clock::now();
+        const double s = std::chrono::duration<double>(now - t_process_start).count();
+        std::fprintf(stderr, "[%.6fs] %s\n", s, name);
+        return now;
+    };
+
     // 无参数: 打印 usage
     if (argc == 1) {
         print_usage();
@@ -256,10 +267,17 @@ int main(int argc, char* argv[]) {
     // 唯一正式入口: orchestrator.exe <stage1.json>
     // ========================================================================
     if (argc == 2) {
+        auto t_cfg0 = std::chrono::steady_clock::now();
         // 1. 解析配置 + Schema 验证
         Stage1Config config;
         std::string err;
         int parse_ret = parse_stage1_config(arg1, config, err);
+        phase_mark("CONFIG_PARSE");
+        {
+            const double s = std::chrono::duration<double>(
+                std::chrono::steady_clock::now() - t_cfg0).count();
+            std::fprintf(stderr, "[CONFIG_PARSE] 完成 %.3fs\n", s);
+        }
         if (parse_ret != 0) {
             fprintf(stderr, "Config error: %s\n", err.c_str());
             return AstroCsExitCode::CONFIG_ERROR;
@@ -308,6 +326,11 @@ int main(int argc, char* argv[]) {
         Orchestrator orch;
         p04004_register_signal_handler(&orch, true);
 
+        // V18 (G1): DLL_LOAD 计时（init_dlls 在 run_stage1 内部惰性执行，
+        // 此处仅记录构造后到 stage 启动前的外圈成本；DLL 实际加载耗时由
+        // run_v2_with_timing 前包裹，见下）
+        phase_mark("FRAME_CREATE");
+
         // 6. typed Stage1Config 直接驱动 (无 compat flat JSON 桥)
         orch.set_stage1_config(config);
 
@@ -315,10 +338,18 @@ int main(int argc, char* argv[]) {
         LOG_INFO("main", "输入 FITS: " + config.input.light);
         LOG_INFO("main", "output HiPS: " + config.output.hips);
 
+        const auto t_run0 = std::chrono::steady_clock::now();
         TaskResult result = orch.run_stage1(config);
+        phase_mark("STAGES");
+        {
+            const double s = std::chrono::duration<double>(
+                std::chrono::steady_clock::now() - t_run0).count();
+            std::fprintf(stderr, "[STAGES] 完成 %.3fs\n", s);
+        }
 
         // 8. 注销信号处理器
         p04004_unregister_signal_handler();
+        phase_mark("CLEANUP");
 
         // 9. 输出结果事件
         if (result.success) {
@@ -346,6 +377,7 @@ int main(int argc, char* argv[]) {
         LOG_INFO("main", std::string("========== stage1 ") +
                  (result.success ? "完成 (成功)" : "失败") +
                  " exit_code=" + std::to_string(exit_code) + " ==========");
+        phase_mark("PROCESS_EXIT");
         return exit_code;
     }
 
