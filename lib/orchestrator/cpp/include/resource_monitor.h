@@ -2,18 +2,18 @@
 // resource_monitor.h - 资源监测框架与动态成本估算器 (H-001)
 //
 // 规范来源: engineering_authoritative/docs/04_RESOURCE_AWARE_ORCHESTRATOR_SPEC.md
-//   ResourceMonitor: CPU、RSS、Commit、I/O、活跃阶段
-//   FrameCostEstimator: 按图像尺寸、星点、Gaia数量、Nside估算阶段峰值
+// ResourceMonitor: CPU、RSS、Commit、I/O、活跃阶段
+// FrameCostEstimator: 按图像尺寸、星点、Gaia数量、Nside估算阶段峰值
 //
 // 契约: engineering_authoritative/contracts/resource_profile.schema.json
 //
 // Python 原型: engineering_authoritative/evidence/H-001/resource_monitor.py
-//              engineering_authoritative/evidence/H-001/cost_estimator.py
+// engineering_authoritative/evidence/H-001/cost_estimator.py
 //
 // 设计说明:
-//   本头文件为 C++ 移植骨架, 对应 Python 原型的接口定义。
-//   实现策略: Windows 平台使用 GlobalMemoryStatusEx + GetProcessMemoryInfo +
-//   PDH (Performance Data Helper) 采集 CPU/IO; psutil 原型验证概念后移植。
+// 本头文件为 C++ 移植骨架, 对应 Python 原型的接口定义。
+// 实现策略: Windows 平台使用 GlobalMemoryStatusEx + GetProcessMemoryInfo +
+// PDH (Performance Data Helper) 采集 CPU/IO; psutil 原型验证概念后移植。
 // ============================================================================
 
 #pragma once

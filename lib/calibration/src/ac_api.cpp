@@ -2,13 +2,13 @@
 // C API 导出层 - 天文CCD校准 (Astro Calibration)
 //
 // 功能：将 namespace ac 中的核心算法包装为 extern "C" 接口，
-//       供 Python ctypes 调用。
+// 供 Python ctypes 调用。
 //
 // 设计要点：
-//   - 所有导出函数使用 extern "C"，避免名称修饰
-//   - 参数校验后转发到 ac:: 命名空间的实现
-//   - 不包含文件IO，仅操作内存数组
-//   - 返回 AC_OK(0) 成功，负数表示错误
+// - 所有导出函数使用 extern "C"，避免名称修饰
+// - 参数校验后转发到 ac:: 命名空间的实现
+// - 不包含文件IO，仅操作内存数组
+// - 返回 AC_OK(0) 成功，负数表示错误
 
 #include "../include/astro_calibration.h"
 #include <omp.h>
@@ -30,7 +30,7 @@ namespace ac {
     void calibrate(const float* light, int w, int h,
                    const float* dark, const float* flat, const float* bias,
                    float* out, int dark_opt, float k_init, float* actual_k);
-    // 双精度 ABI (R10): double 版本校准, 精度关键路径不降级到 float32
+    // 双精度 ABI : double 版本校准, 精度关键路径不降级到 float32
     void calibrate_d(const double* light, int w, int h,
                      const double* dark, const double* flat, const double* bias,
                      double* out, int dark_opt, double k_init, double* actual_k);
@@ -130,13 +130,13 @@ AC_API const char* ac_version() {
 }
 
 // ======================== 双精度 ABI (FP64) ========================
-// R10: FP64 模式下全链路使用 double, 不降级到 float32
+// FP64 模式下全链路使用 double, 不降级到 float32
 //
 // ac_calibrate_frame_f64: 调用 ac::calibrate_d, 像素级算术在 double 上运行
-//                         (精度关键路径, 真正双精度)。
+// (精度关键路径, 真正双精度)。
 // ac_generate_master_*_f64 / ac_correct_frame_f64: 统计/mask 操作,
-//                         内部将 double 输入转 float 调用 f32 实现, 输出转回 double。
-//                         (orchestrator 的 run_stage_calibrate 不调用这些函数)
+// 内部将 double 输入转 float 调用 f32 实现, 输出转回 double。
+// (orchestrator 的 run_stage_calibrate 不调用这些函数)
 
 AC_API int ac_generate_master_bias_f64(
     const double* stack, int n_frames, int width, int height,

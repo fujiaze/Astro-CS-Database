@@ -1,11 +1,11 @@
 // lib/acr/tests/classic/classic_common.hpp — Phase H 经典实验公共框架
-// 设计（控制包 09_PHASE_H_CLASSIC_EXPERIMENTS_SPEC.md）：
-//   1. 固定 seed 0xA57C5AC20260802（确定性、可复现）
-//   2. LCG / xorshift64 确定性 PRNG（无 std::random 依赖，跨平台一致）
-//   3. FP32/FP64 容差：abs(a-b) <= atol + rtol * max(|a|,|b|)
-//   4. JSON 结果（实验 ID/case/seed/backend/device/precision/size/correct/误差/时延/status）
-//   5. 公共头不暴露第三方类型；GoogleTest 仅在 .cpp 用
-//   6. ResultSink 全局收集器：TEST 与 classic_runner 共用同一实验逻辑
+// 设计（ 09_PHASE_H_CLASSIC_EXPERIMENTS_SPEC.md）：
+// 1. 固定 seed 0xA57C5AC20260802（确定性、可复现）
+// 2. LCG / xorshift64 确定性 PRNG（无 std::random 依赖，跨平台一致）
+// 3. FP32/FP64 容差：abs(a-b) <= atol + rtol * max(|a|,|b|)
+// 4. JSON 结果（实验 ID/case/seed/backend/device/precision/size/correct/误差/时延/status）
+// 5. 公共头不暴露第三方类型；GoogleTest 仅在 .cpp 用
+// 6. ResultSink 全局收集器：TEST 与 classic_runner 共用同一实验逻辑
 #pragma once
 
 #include <algorithm>

@@ -2,20 +2,20 @@
 // 主帧生成模块 - 天文CCD校准 (Astro Calibration)
 //
 // 功能：
-//   对多帧CCD图像执行 sigma-clip 离群值剔除后合并，生成主帧（Master Frame）。
-//   - generate_master:       通用主帧生成，用于 Master Bias / Master Dark。
-//                             沿帧方向迭代计算 median 与 MAD，剔除离群值后
-//                             按 mean 或 median 合并。
-//   - generate_master_flat:  Flat 专用主帧生成。
-//                             减 Bias -> 逐帧 median 归一化 -> sigma-clip + mean
-//                             合并 -> 最终 median 归一化到 1.0，最小值裁剪 0.1。
+// 对多帧CCD图像执行 sigma-clip 离群值剔除后合并，生成主帧（Master Frame）。
+// - generate_master: 通用主帧生成，用于 Master Bias / Master Dark。
+// 沿帧方向迭代计算 median 与 MAD，剔除离群值后
+// 按 mean 或 median 合并。
+// - generate_master_flat: Flat 专用主帧生成。
+// 减 Bias -> 逐帧 median 归一化 -> sigma-clip + mean
+// 合并 -> 最终 median 归一化到 1.0，最小值裁剪 0.1。
 //
 // 设计要点：
-//   - 纯 C++17 标准库实现，不依赖任何外部库。
-//   - 核心算法不含文件 IO（日志输出到 stderr，便于分析）。
-//   - 使用 OpenMP 多线程并行处理每个像素（线程本地缓冲复用，避免重复分配）。
-//   - median 计算使用 std::nth_element（O(n)），MAD = median(|v - median|)，
-//     sigma = 1.4826 * MAD。
+// - 纯 C++17 标准库实现，不依赖任何外部库。
+// - 核心算法不含文件 IO（日志输出到 stderr，便于分析）。
+// - 使用 OpenMP 多线程并行处理每个像素（线程本地缓冲复用，避免重复分配）。
+// - median 计算使用 std::nth_element（O(n)），MAD = median(|v - median|)，
+// sigma = 1.4826 * MAD。
 //
 // 编译标准：C++17
 // 对应头文件：astro_calibration.h
@@ -62,7 +62,7 @@ static float median_of(std::vector<float>& buf) {
 // ======================== 主帧生成（通用） ========================
 // sigma-clip 离群值剔除 + median/mean 合并
 // stack: [n_frames * h * w] 行优先 float32
-// out:   [h * w] float32
+// out: [h * w] float32
 // combine: AC_COMBINE_MEAN(0) 或 AC_COMBINE_MEDIAN(1)
 void generate_master(const float* stack, int n_frames, int w, int h,
                      float* out, float sigma_low, float sigma_high,
@@ -166,8 +166,8 @@ void generate_master(const float* stack, int n_frames, int w, int h,
 // ======================== 主帧生成（Flat 专用） ========================
 // 减 Bias -> 逐帧归一化(median) -> sigma-clip + mean 合并 -> 再归一化
 // flat_stack: [n_frames * h * w]
-// bias:       [h * w] 或 NULL
-// out:        [h * w]，最终 median 归一化到 1.0，最小值裁剪 0.1
+// bias: [h * w] 或 NULL
+// out: [h * w]，最终 median 归一化到 1.0，最小值裁剪 0.1
 void generate_master_flat(const float* flat_stack, int n_frames, int w, int h,
                           const float* bias, float* out,
                           float sigma_low, float sigma_high, int max_iter) {

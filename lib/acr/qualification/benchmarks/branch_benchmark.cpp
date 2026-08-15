@@ -1,14 +1,14 @@
 // lib/acr/qualification/benchmarks/branch_benchmark.cpp — 分支发散 Benchmark
 //
 // 设计（06_QUALIFICATION_BENCHMARK_SPEC.md + 17_CLASSIC_EXPERIMENT_SUITE.md）：
-//   1. 分支发散测量（Mandelbrot 集合，uniform vs variable）
-//   2. FP64 精度（Mandelbrot 需要双精度），单线程
-//   3. 参数化尺寸：256x256 / 512x512 / 1024x1024
-//   4. uniform：所有点迭代到最大次数（固定循环，无分支退出）
-//   5. variable：标准 Mandelbrot（根据逃逸条件提前退出，分支发散）
-//   6. 最大迭代 256 次，|z| > 2 时退出
-//   7. 报告 MOp/s（ops = width * height * max_iterations * 4，每次迭代 4 ops：2 mul + 1 add + 1 compare）
-//   8. 用于 CPU 硬件画像补全（CapabilityFamily::Branch）
+// 1. 分支发散测量（Mandelbrot 集合，uniform vs variable）
+// 2. FP64 精度（Mandelbrot 需要双精度），单线程
+// 3. 参数化尺寸：256x256 / 512x512 / 1024x1024
+// 4. uniform：所有点迭代到最大次数（固定循环，无分支退出）
+// 5. variable：标准 Mandelbrot（根据逃逸条件提前退出，分支发散）
+// 6. 最大迭代 256 次，|z| > 2 时退出
+// 7. 报告 MOp/s（ops = width * height * max_iterations * 4，每次迭代 4 ops：2 mul + 1 add + 1 compare）
+// 8. 用于 CPU 硬件画像补全（CapabilityFamily::Branch）
 #include "benchmark_common.hpp"
 
 #include <benchmark/benchmark.h>
@@ -93,8 +93,8 @@ public:
         fill_uniform(cre.data(), n, kBenchmarkSeed);
         fill_uniform(cim.data(), n, kBenchmarkSeed ^ 0xCAFE0002ULL);
         // 映射到 c 的实部范围 [-2, 1) 和虚部范围 [-1.5, 1.5)
-        //   cre = -0.5 + 1.5 * v  (v ∈ [-1,1) → cre ∈ [-2, 1))
-        //   cim = 1.5 * v          (v ∈ [-1,1) → cim ∈ [-1.5, 1.5))
+        // cre = -0.5 + 1.5 * v (v ∈ [-1,1) → cre ∈ [-2, 1))
+        // cim = 1.5 * v (v ∈ [-1,1) → cim ∈ [-1.5, 1.5))
         for (std::size_t i = 0; i < n; ++i) {
             cre[i] = -0.5 + 1.5 * cre[i];
             cim[i] = 1.5 * cim[i];

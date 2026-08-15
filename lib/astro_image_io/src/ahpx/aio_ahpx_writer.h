@@ -14,12 +14,12 @@ namespace aio::ahpx {
 // AhpxWriter - .ahpx 单帧存储格式写入器
 //
 // 用法:
-//   AhpxWriter writer;
-//   writer.setMetadata(jsonStr);
-//   writer.setPixels(pixelData, w, h, c);
-//   writer.setSnr(snrData, w, h);
-//   writer.setWeightScalar(1.0f);
-//   writer.write("output.ahpx");
+// AhpxWriter writer;
+// writer.setMetadata(jsonStr);
+// writer.setPixels(pixelData, w, h, c);
+// writer.setSnr(snrData, w, h);
+// writer.setWeightScalar(1.0f);
+// writer.write("output.ahpx");
 // ============================================================================
 
 // 写入配置

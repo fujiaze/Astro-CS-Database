@@ -2,13 +2,13 @@
 // drizzle_freeze_test.cpp - Drizzle Phase1 最终冻结验收 (合成真值, 代表点)
 //
 // 按 Phase1_Drizzle_Acceptance_Spec 分层框架, 全部合成数据、小图/代表点:
-//   T1 coverage/hole Oracle: false hole = 0, false fill = 0
-//   T2 主支持域采样率代表点 {0.2,0.5,1,2,5,10}"/px + 0.1" 扩展
-//   T3 pixfrac 主域 {0.6,0.8,1.0} + 扩展 {0.5,0.25,0.1}
-//   T4 视场代表点: 小 / 中 / 宽(15° 边缘 patch)
-//   T5 Sphere -> Plane 双向底层最小闭合 (坐标往返 + leaf 覆盖一致)
-//   T6 HISS Writer/Reader 往返
-//   T7 科学保真 (Layer B): 均匀背景保持均匀 + 点源总通量守恒
+// T1 coverage/hole Oracle: false hole = 0, false fill = 0
+// T2 主支持域采样率代表点 {0.2,0.5,1,2,5,10}"/px + 0.1" 扩展
+// T3 pixfrac 主域 {0.6,0.8,1.0} + 扩展 {0.5,0.25,0.1}
+// T4 视场代表点: 小 / 中 / 宽(15° 边缘 patch)
+// T5 Sphere -> Plane 双向底层最小闭合 (坐标往返 + leaf 覆盖一致)
+// T6 HISS Writer/Reader 往返
+// T7 科学保真 (Layer B): 均匀背景保持均匀 + 点源总通量守恒
 // 硬门: FP64 通量闭合 < 1e-6 (主域), FP32/FP64 逐 leaf < 1e-5, missing=0
 // ============================================================================
 #include "drizzle_engine.h"
@@ -417,9 +417,9 @@ static void test_science_fidelity() {
     printf("=== T7: 科学保真 (均匀背景 + 点源总通量) ===\n");
     const int size = 128, nside = 65536;
     // 1) 均匀背景: 常数 1000。源像素网格与 HEALPix 网格未对齐导致每个 leaf
-    //    的覆盖权重有几何涨落 (signal=1000 x Σweight), 但表面亮度应均匀:
-    //    signal / sumArea = 1000 / drop_area = 常数 (rel_std 小)。
-    //    这验证 drizzle 不引入非物理的亮度不均匀 (无接缝/系统性偏差)。
+    // 的覆盖权重有几何涨落 (signal=1000 x Σweight), 但表面亮度应均匀:
+    // signal / sumArea = 1000 / drop_area = 常数 (rel_std 小)。
+    // 这验证 drizzle 不引入非物理的亮度不均匀 (无接缝/系统性偏差)。
     {
         WcsParams w = make_wcs(272.886595, -23.254083, 6.3, size);
         FitsImage img;

@@ -5,13 +5,13 @@
 // 多边形裁剪模块 - 局部切平面 Sutherland-Hodgman 算法
 //
 // 用途:
-//   在 HEALPix Drizzle 流水线中, 计算球面像素四边形与 HEALPix 像素四边形的
-//   重叠面积。为避免球面几何复杂度, 先将两者投影到以某点为中心的局部切平面,
-//   再用 Sutherland-Hodgman 多边形裁剪算法求交集, 最后用 Shoelace 公式算面积。
+// 在 HEALPix Drizzle 流水线中, 计算球面像素四边形与 HEALPix 像素四边形的
+// 重叠面积。为避免球面几何复杂度, 先将两者投影到以某点为中心的局部切平面,
+// 再用 Sutherland-Hodgman 多边形裁剪算法求交集, 最后用 Shoelace 公式算面积。
 //
 // 参考:
-//   - Calabretta & Greisen 2002 (TAN 投影 / Gnomonic)
-//   - Sutherland & Hodgman 1974 (多边形裁剪)
+// - Calabretta & Greisen 2002 (TAN 投影 / Gnomonic)
+// - Sutherland & Hodgman 1974 (多边形裁剪)
 // ============================================================================
 
 #include <cstdint>
@@ -48,11 +48,11 @@ public:
 
     // Sutherland-Hodgman 多边形裁剪
     // subject: 被裁剪多边形顶点 (任意方向, 可凹可凸)
-    // clip:    裁剪窗口多边形顶点 (必须是凸多边形, 逆时针)
-    // 返回:    裁剪后多边形顶点 (可能为空)
+    // clip: 裁剪窗口多边形顶点 (必须是凸多边形, 逆时针)
+    // 返回: 裁剪后多边形顶点 (可能为空)
     // 边界情况:
-    //   - subject 为空时返回空
-    //   - clip 顶点数 < 3 时返回 subject (无法形成裁剪窗口)
+    // - subject 为空时返回空
+    // - clip 顶点数 < 3 时返回 subject (无法形成裁剪窗口)
     static std::vector<Point2D> clipPolygon(const std::vector<Point2D>& subject,
                                             const std::vector<Point2D>& clip);
 

@@ -4,20 +4,20 @@
 // ============================================================================
 // ipv_select.h - IPV StarSelector 模块 (Phase 0) 内部接口
 //
-// 从 V4.5 vm45_select.cpp 迁移, 仅做 namespace/前缀替换:
-//   - namespace v45 -> ipv
-//   - 常量前缀 VM45_ -> IPV_
-//   - 主入口 vm45_select -> ipv_select
-//   - 类型 VM45SolveParams -> IPVSolverParams (字段名一致, 已在 ipv_types.h 定义)
-//   - include vm45_internal.h -> ipv_select.h (本文件已 include ipv_types.h/ipv_log.h)
+// 从 vm45_select.cpp 迁移, 仅做 namespace/前缀替换:
+// - namespace v45 -> ipv
+// - 常量前缀 VM45_ -> IPV_
+// - 主入口 vm45_select -> ipv_select
+// - 类型 VM45SolveParams -> IPVSolverParams (字段名一致, 已在 ipv_types.h 定义)
+// - include vm45_internal.h -> ipv_select.h (本文件已 include ipv_types.h/ipv_log.h)
 //
-// 核心算法 (与 V4.5 一致, 从 V4.2 ss_core.cpp 迁移):
-//   - 图像读取 (astro_image_io.dll 动态加载)
-//   - 星点检测 (star_detector.dll, 句柄由外部注入)
-//   - 图像侧选星 (饱和>50全选 / 饱和+非饱和补足50)
-//   - FOV/密度计算 + 自适应步长迭代极限星等
-//   - Gaia 锥形查询 (gaia_client.dll, 句柄由外部注入)
-//   - Gnomonic 正向投影 + FOV 内过滤
+// 核心算法 (与 一致, 从 ss_core.cpp 迁移):
+// - 图像读取 (astro_image_io.dll 动态加载)
+// - 星点检测 (star_detector.dll, 句柄由外部注入)
+// - 图像侧选星 (饱和>50全选 / 饱和+非饱和补足50)
+// - FOV/密度计算 + 自适应步长迭代极限星等
+// - Gaia 锥形查询 (gaia_client.dll, 句柄由外部注入)
+// - Gnomonic 正向投影 + FOV 内过滤
 //
 // 接口: 内部 C++ 函数, 无 ctypes 边界, 无 JSON 序列化
 // 句柄: 通过 get_gaia_client_handle() / get_star_detector_handle() 获取
@@ -45,10 +45,10 @@ void* get_star_detector_handle();
 
 // ===========================================================================
 // 内部辅助函数 (ipv_select.cpp 中实现, 供单元测试调用)
-// 算法与 V4.5 vm45_select.cpp 一致, 仅 namespace/前缀变化
+// 算法与 vm45_select.cpp 一致, 仅 namespace/前缀变化
 // ===========================================================================
 
-// 计算 FOV 与密度 (从 V4.5 迁移)
+// 计算 FOV 与密度 (从 迁移)
 void compute_fov_density(
     double focal_length_mm, double pixel_size_um,
     double img_width, double img_height,
@@ -65,19 +65,19 @@ double compute_initial_mag_cut(
     double focal_length_mm, double exposure_time_s,
     Logger* logger = nullptr);
 
-// V4.9: 基于天球平均星点密度直接估算极限星等
-//   模型: ρ(G) = 5 × 10^(1.3×(G-10))  颗/平方度 (Gaia DR3 G 波段近似)
-//   反解: G = 10 + log10(ρ/5) / 1.3
-//   输入: n_required=所需星数, area_sqdeg=查询区域面积
-//   安全余量: 在估算值基础上 +0.5 mag 保证查出的星数 > n_required
-//   返回: 估算的极限星等 (clip 到 [6, 18])
+// 基于天球平均星点密度直接估算极限星等
+// 模型: ρ(G) = 5 × 10^(1.3×(G-10)) 颗/平方度 (Gaia DR3 G 波段近似)
+// 反解: G = 10 + log10(ρ/5) / 1.3
+// 输入: n_required=所需星数, area_sqdeg=查询区域面积
+// 安全余量: 在估算值基础上 +0.5 mag 保证查出的星数 > n_required
+// 返回: 估算的极限星等 (clip 到 [6, 18])
 double estimate_mag_lim_by_density(
     int n_required,
     double area_sqdeg,
     Logger* logger = nullptr);
 
 // 自适应步长迭代极限星等
-// V4.9: 默认不再使用, 保留作为兜底 (estimate_mag_lim_by_density 失败时)
+// 默认不再使用, 保留作为兜底 (estimate_mag_lim_by_density 失败时)
 void density_match_iterate(
     std::function<int(double, double, double, double)> query_func,
     double center_ra, double center_dec, double query_radius_deg,
@@ -87,8 +87,8 @@ void density_match_iterate(
     int& iterations, bool& converged,
     Logger* logger = nullptr);
 
-// 图像侧选星: V4.28 按 mag(box积分) 升序排序 (mag 越小越亮)
-//   flux 参数保留以备后续使用, 当前未使用 (排序基于 mag)
+// 图像侧选星: 按 mag(box积分) 升序排序 (mag 越小越亮)
+// flux 参数保留以备后续使用, 当前未使用 (排序基于 mag)
 std::vector<int> select_image_stars(
     const std::vector<double>& flux,
     const std::vector<double>& mag,
@@ -103,7 +103,7 @@ void gnomonic_forward_proj(
     double& xi_asec, double& eta_asec, bool& valid);
 
 // ===========================================================================
-// Phase 0: StarSelector (ipv_select.cpp) - 复用 V4.5 算法
+// Phase 0: StarSelector (ipv_select.cpp) - 复用 算法
 // ===========================================================================
 
 // 图像侧选星 + Gaia 侧不对称密度匹配查询
@@ -139,7 +139,7 @@ int ipv_select_from_memory(
 // P02-002: 候选路径 A / 路径 B 选星接口 (实验性)
 //
 // star_det v1 格式: FLOAT64 [N,6]
-//   0: x_px  1: y_px  2: flux  3: mag  4: saturated  5: has_saturated
+// 0: x_px 1: y_px 2: flux 3: mag 4: saturated 5: has_saturated
 // ============================================================================
 
 // 路径 B 检测结果导出 callback (C ABI 兼容)
@@ -187,7 +187,7 @@ int ipv_select_from_memory_with_callback(
     Logger* logger = nullptr
 );
 
-// R11 (PREC-108): FP64 选星 (double 图像, 不降级 uint16/float)
+// FP64 选星 (double 图像, 不降级 uint16/float)
 int ipv_select_from_memory_with_callback_f64(
     const double* pixels,
     int width, int height,

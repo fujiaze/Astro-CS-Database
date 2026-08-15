@@ -1,5 +1,5 @@
 // lib/acr/utilization/config_hot_read.hpp — 配置热读取边界
-// 26 号计划 §2：CPU/GPU/IO 利用率目标已移除（用户撤销精确利用率控制）。
+// 26 §2：CPU/GPU/IO 利用率目标已移除（用户撤销精确利用率控制）。
 // 只保留内存容量（RAM/VRAM 比例、固定保留量）、backend 启用与回退策略。
 // **不得提供 CPU/GPU share 或利用率目标参数**。
 #pragma once
@@ -34,7 +34,7 @@ struct HotConfig {
     // 容量上限
     double ram_ratio{0.95};
     double vram_ratio{0.95};
-    // 26 号计划 §9：RAM/VRAM 独立固定保留量（RAM 2048MiB、VRAM 512MiB 默认）
+    // 26 §9：RAM/VRAM 独立固定保留量（RAM 2048MiB、VRAM 512MiB 默认）
     std::uint64_t ram_fixed_reserve_bytes{2048ULL * 1024 * 1024};
     std::uint64_t vram_fixed_reserve_bytes{512ULL * 1024 * 1024};
     // backend 启用（"cuda:0" → true/false）

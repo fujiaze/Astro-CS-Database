@@ -8,8 +8,8 @@
 // 所有结构体均为 POD (固定大小数组, 无构造函数), 字符串字段使用 char[]。
 //
 // 编译宏 IPV_EXPORTS 控制 dllexport/dllimport:
-//   - 编译 DLL 时定义 IPV_EXPORTS -> dllexport
-//   - 使用 DLL 时不定义           -> dllimport
+// - 编译 DLL 时定义 IPV_EXPORTS -> dllexport
+// - 使用 DLL 时不定义 -> dllimport
 //
 // 日期: 2026-07-02
 // ============================================================================
@@ -43,9 +43,9 @@ typedef struct {
     int    sip_order;        // 前向 SIP 阶数 (0=无 SIP)
     double sip_a[36];        // SIP A 系数 (前向)
     double sip_b[36];        // SIP B 系数 (前向)
-    int    sip_ap_order;     // 逆向 SIP 阶数 (0=无逆 SIP)  // V4.20
-    double sip_ap[36];       // SIP AP 系数 (逆向)           // V4.20
-    double sip_bp[36];       // SIP BP 系数 (逆向)           // V4.20
+    int    sip_ap_order;     // 逆向 SIP 阶数 (0=无逆 SIP) //
+    double sip_ap[36];       // SIP AP 系数 (逆向) //
+    double sip_bp[36];       // SIP BP 系数 (逆向) //
     double rms_px;            // RMS (像素)
     double rms_arcsec;        // RMS (角秒)
     int    n_pairs;          // 匹配对数
@@ -55,8 +55,8 @@ typedef struct {
     int    n_catalog;        // 星表星数
     int    trans_order;      // TRANS 多项式阶数 (1=线性, 2=二次, 3=三次, -1=失败)
     int    best_inliers;     // 最优内点数
-    char   ctype1[16];       // V4.20: "RA---TAN-SIP" / "RA---TAN"
-    char   ctype2[16];       // V4.20: "DEC--TAN-SIP" / "DEC--TAN"
+    char   ctype1[16];       // "RA---TAN-SIP" / "RA---TAN"
+    char   ctype2[16];       // "DEC--TAN-SIP" / "DEC--TAN"
     char   error_msg[256];   // 错误信息
 } IpvWcsResult;
 
@@ -125,8 +125,8 @@ IPV_API int ipv_solve_from_memory(
 //
 // 规范: docs/05_STAR_DETECT_PSF_DEDUP_SPEC.md
 // star_det v1 格式: FLOAT64 [N,6]
-//   0: x_px          1: y_px          2: flux
-//   3: mag           4: saturated     5: has_saturated
+// 0: x_px 1: y_px 2: flux
+// 3: mag 4: saturated 5: has_saturated
 // ============================================================================
 
 // 路径 B callback: 导出 PlateSolve 内部 sdet_detect_ex 检测结果
@@ -159,8 +159,8 @@ IPV_API int ipv_solve_from_detections_v1(
 
 // 路径 B API: 带 callback 的内存求解 (保持原有数据流 + 导出检测)
 // 与 ipv_solve_from_memory 算法完全一致, 区别:
-//   - 在 sdet_detect_ex 调用后、选星前调用 callback 导出完整检测结果
-//   - callback 为 NULL 时行为与 ipv_solve_from_memory 完全一致
+// - 在 sdet_detect_ex 调用后、选星前调用 callback 导出完整检测结果
+// - callback 为 NULL 时行为与 ipv_solve_from_memory 完全一致
 // 返回: 0=失败, 1=成功 (结果写入 result)
 IPV_API int ipv_solve_from_memory_with_callback(
     void* solver,
@@ -177,7 +177,7 @@ IPV_API int ipv_solve_from_memory_with_callback(
     IpvWcsResult* result          // 输出结果
 );
 
-// R11 (PREC-108): FP64 内存求解 (double 图像, 不降级 float/uint16)
+// FP64 内存求解 (double 图像, 不降级 float/uint16)
 // 算法与 ipv_solve_from_memory_with_callback 完全一致
 IPV_API int ipv_solve_from_memory_with_callback_d(
     void* solver,
@@ -201,22 +201,22 @@ IPV_API void ipv_get_default_params(IpvParams* params);
 // P11-004 v1.3: 权威 inlier 导出 C API (供 WCS Gate v2 双层闭环)
 //
 // 用途: 在 ipv_solve/ipv_solve_from_memory/ipv_solve_from_detections_v1/
-//       ipv_solve_from_memory_with_callback 成功返回后调用,
-//       获取求解器内部最终权威 inlier 对应关系,
-//       避免外部诊断工具用 kd-tree 重新匹配导致误配。
+// ipv_solve_from_memory_with_callback 成功返回后调用,
+// 获取求解器内部最终权威 inlier 对应关系,
+// 避免外部诊断工具用 kd-tree 重新匹配导致误配。
 //
 // 详见 docs/24_WCS_VALIDATION_V2_SPEC.md 与 docs/25_AUTHORITATIVE_MATCH_PAIR_CONTRACT.md
 //
 // 字段约定 (out_buffer 每行 9 个 double, 行数 = 返回值):
-//   [0] det_x_px      - 检测器 x (像素, 图像中心原点, Y 轴向上)
-//   [1] det_y_px      - 检测器 y
-//   [2] gaia_ra_deg   - Gaia RA (度)
-//   [3] gaia_dec_deg  - Gaia Dec (度)
-//   [4] pred_x_px     - 内部 TRANS 预测 x (像素, 经 s0 缩放)
-//   [5] pred_y_px     - 内部 TRANS 预测 y
-//   [6] residual_x_px - 残差 x = det_x - pred_x (像素)
-//   [7] residual_y_px - 残差 y = det_y - pred_y
-//   [8] residual_dist_px - 残差距离 sqrt(res_x² + res_y²)
+// [0] det_x_px - 检测器 x (像素, 图像中心原点, Y 轴向上)
+// [1] det_y_px - 检测器 y
+// [2] gaia_ra_deg - Gaia RA (度)
+// [3] gaia_dec_deg - Gaia Dec (度)
+// [4] pred_x_px - 内部 TRANS 预测 x (像素, 经 s0 缩放)
+// [5] pred_y_px - 内部 TRANS 预测 y
+// [6] residual_x_px - 残差 x = det_x - pred_x (像素)
+// [7] residual_y_px - 残差 y = det_y - pred_y
+// [8] residual_dist_px - 残差距离 sqrt(res_x² + res_y²)
 // ============================================================================
 
 // 获取最后一次成功求解的 inlier 数量
@@ -225,9 +225,9 @@ IPV_API int ipv_get_last_inlier_count(void* solver);
 
 // 获取最后一次成功求解的 inlier 详细数据
 // 输入:
-//   solver     - 求解器句柄
-//   out_buffer - 调用方分配的缓冲区, 大小 = max_count * 9 * sizeof(double)
-//   max_count  - 缓冲区最多容纳的行数
+// solver - 求解器句柄
+// out_buffer - 调用方分配的缓冲区, 大小 = max_count * 9 * sizeof(double)
+// max_count - 缓冲区最多容纳的行数
 // 返回: >=0 实际写入的行数, <0 表示错误 (如 buffer 为空或 max_count<=0)
 IPV_API int ipv_get_last_inliers(void* solver, double* out_buffer, int max_count);
 

@@ -1,9 +1,9 @@
 // star_matcher.cpp - 星-图匹配器 (GAP-013 改进版)
 // 功能: 将Gaia参考星与图像PSF拟合星进行空间匹配, IRLS+Tukey 稳健清洗
 // 算法:
-//   - KD-tree 最近邻匹配 (在 Gaia 星像素坐标上建树, 对每颗 PSF 星查询)
-//   - 星等一致性预过滤 (|delta - median_delta| > 3 mag 拒绝)
-//   - IRLS + Tukey biweight 稳健位置估计 (c=4.685, 50 次迭代, 收敛 1e-6)
+// - KD-tree 最近邻匹配 (在 Gaia 星像素坐标上建树, 对每颗 PSF 星查询)
+// - 星等一致性预过滤 (|delta - median_delta| > 3 mag 拒绝)
+// - IRLS + Tukey biweight 稳健位置估计 (c=4.685, 50 次迭代, 收敛 1e-6)
 // 参考: lib/photometric_calib/flux_calibrator/python/star_matcher.py
 
 #include "star_matcher.h"
@@ -43,7 +43,7 @@ static double percentileOf(std::vector<double> vals, double p) {
 
 // P12-001: 初始化 PhotometricDiag (全 0)
 // P12-005 修复: spectrum_rows_total/valid_fsyn 由 pc_api.cpp 在光谱积分阶段填充，
-//   initDiag 仅清零 star_matcher 负责的字段，避免覆盖上游已写入的值
+// initDiag 仅清零 star_matcher 负责的字段，避免覆盖上游已写入的值
 static void initDiag(PhotometricDiag* d) {
     if (!d) return;
     // 注意: 不再重置 spectrum_rows_total 和 valid_fsyn (P12-005 修复)
@@ -333,10 +333,10 @@ std::vector<StarMatch> StarMatcher::matchWithKdTree(
     }
 
     // 8. P12-002 diag 更新
-    //    spatial_candidates = 正向命中数 (PSF→Gaia 距离 < radius 的对数, 未过滤双向)
-    //    unique_matches     = 双向唯一匹配数 (互为最近邻)
-    //    rejected_ambiguous = 正向命中但非互为最近邻的对数
-    //    rejected_distance  = 正向未命中数 (最近邻超阈值) = valid_idx.size() - n_forward_hits
+    // spatial_candidates = 正向命中数 (PSF→Gaia 距离 < radius 的对数, 未过滤双向)
+    // unique_matches = 双向唯一匹配数 (互为最近邻)
+    // rejected_ambiguous = 正向命中但非互为最近邻的对数
+    // rejected_distance = 正向未命中数 (最近邻超阈值) = valid_idx.size() - n_forward_hits
     if (out_diag) {
         out_diag->spatial_candidates = n_forward_hits;
         out_diag->unique_matches = (int)matches.size();
@@ -370,10 +370,10 @@ std::vector<StarMatch> StarMatcher::matchWithKdTree(
 
 // ============================================================================
 // 星等一致性预过滤 + IRLS+Tukey 稳健清洗
-//   1) delta = -2.5*log10(F_instr) - gaia_mag (粗略零点差)
-//   2) median_delta 作为粗略零点, 拒绝 |delta - median_delta| > mag_tolerance
-//   3) r = log10(F_instr/F_syn) 上做 IRLS + Tukey biweight
-//   4) scale = 10^(-location), sigma_residual = MAD(r_inliers)/0.6745
+// 1) delta = -2.5*log10(F_instr) - gaia_mag (粗略零点差)
+// 2) median_delta 作为粗略零点, 拒绝 |delta - median_delta| > mag_tolerance
+// 3) r = log10(F_instr/F_syn) 上做 IRLS + Tukey biweight
+// 4) scale = 10^(-location), sigma_residual = MAD(r_inliers)/0.6745
 // ============================================================================
 std::vector<StarMatch> StarMatcher::cleanAndScale(
     const std::vector<StarMatch>& matches, double mag_tolerance,
@@ -388,7 +388,7 @@ std::vector<StarMatch> StarMatcher::cleanAndScale(
     if (out_scale_factor) *out_scale_factor = 1.0;
     if (out_sigma_residual) *out_sigma_residual = 0.0;
     // Phase1 v2: per-match reason 数组 (0=inlier, 1=mag-rejected, 2=IRLS-outlier,
-    //            3=invalid flux/non-finite, 4=not-in-consistent-set, 5=unmatched)
+    // 3=invalid flux/non-finite, 4=not-in-consistent-set, 5=unmatched)
     if (out_match_reasons) out_match_reasons->assign((size_t)n_in, 5);
 
     if (n_in == 0) {

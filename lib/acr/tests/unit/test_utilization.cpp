@@ -1,11 +1,11 @@
-// lib/acr/tests/unit/test_utilization.cpp — 26 号计划 §2/§9 资源边界单元测试
+// lib/acr/tests/unit/test_utilization.cpp — 26 §2/§9 资源边界单元测试
 //
 // CPU/GPU 精确利用率控制已撤销并移除（CpuController/GpuController/IoBudget
 // 已删除）。本文件只保留：
-//   - SystemMetrics telemetry（CPU/RAM/GPU 读取，诊断用途，不影响 claim）
-//   - MemoryBudget（RAM/VRAM 容量预算）
-//   - ConfigHotReader（内存容量/backend/fallback 配置）
-//   - ActualTracker（诊断记录器）
+// - SystemMetrics telemetry（CPU/RAM/GPU 读取，诊断用途，不影响 claim）
+// - MemoryBudget（RAM/VRAM 容量预算）
+// - ConfigHotReader（内存容量/backend/fallback 配置）
+// - ActualTracker（诊断记录器）
 #include <gtest/gtest.h>
 
 #include "actual_tracker.hpp"
@@ -296,7 +296,7 @@ TEST(UtilConfig, BackendEnableDisable) {
     EXPECT_EQ(backends.size(), 2u);
 }
 
-// 26 号计划 §2：不提供 CPU/GPU 利用率目标与 share 字段（编译期保证）
+// 26 §2：不提供 CPU/GPU 利用率目标与 share 字段（编译期保证）
 TEST(UtilConfig, NoCpuGpuShareField) {
     HotConfig cfg;
     // cpu_target/gpu_target/io_target 已删除；cpu_share/gpu_share 不存在

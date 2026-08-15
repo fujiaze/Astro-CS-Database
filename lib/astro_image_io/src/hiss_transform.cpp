@@ -2,21 +2,21 @@
 // hiss_transform.cpp - AstroCS HISS Transform 正式路径实现 (WP-G 步骤12)
 //
 // 实现:
-//   1. BYTE_SHUFFLE: 字节重排 (forward/inverse)
-//   2. DELTA: 差分编码 (forward/inverse, 无符号环绕运算)
-//   3. DELTA_VARINT: 差分 + zig-zag + varint 组合编码 (forward/inverse)
-//   4. 分发函数: apply_transform / inverse_transform
-//   5. 枚举互转: TransformType <-> name, TransformType <-> TransformId
+// 1. BYTE_SHUFFLE: 字节重排 (forward/inverse)
+// 2. DELTA: 差分编码 (forward/inverse, 无符号环绕运算)
+// 3. DELTA_VARINT: 差分 + zig-zag + varint 组合编码 (forward/inverse)
+// 4. 分发函数: apply_transform / inverse_transform
+// 5. 枚举互转: TransformType <-> name, TransformType <-> TransformId
 //
 // 设计说明:
-//   - 每个 transform 类型实现为独立 static 函数, 通过分发函数调度
-//   - DELTA 使用无符号环绕运算 (uint64 内部计算, 截断到 element_size 字节)
-//     正确处理有符号/无符号整数, 包括溢出情况
-//   - DELTA_VARINT 输出格式: [n_elements: uint32 LE][varint 编码的 zig-zag delta]
-//     n_elements 前缀使 inverse 能自确定输出大小, 无需外部信息
-//   - zig-zag 编码: 小幅度的正负 delta 映射到小的无符号值, 提升 varint 压缩率
-//   - varint (LEB128): 每字节 7 bit 数据 + 1 bit 继续标志
-//   - 空输入安全处理 (返回空或仅含 n_elements=0 的前缀)
+// - 每个 transform 类型实现为独立 static 函数, 通过分发函数调度
+// - DELTA 使用无符号环绕运算 (uint64 内部计算, 截断到 element_size 字节)
+// 正确处理有符号/无符号整数, 包括溢出情况
+// - DELTA_VARINT 输出格式: [n_elements: uint32 LE][varint 编码的 zig-zag delta]
+// n_elements 前缀使 inverse 能自确定输出大小, 无需外部信息
+// - zig-zag 编码: 小幅度的正负 delta 映射到小的无符号值, 提升 varint 压缩率
+// - varint (LEB128): 每字节 7 bit 数据 + 1 bit 继续标志
+// - 空输入安全处理 (返回空或仅含 n_elements=0 的前缀)
 // ============================================================================
 
 #include "hiss_transform.h"
@@ -24,9 +24,9 @@
 #include <cstdio>
 #include <cstring>
 
-// R13 (HISS_IO_REPAIR): 逐调用日志降级 — 仅编译期 HISS_VERBOSE 输出
+// 逐调用日志降级 — 仅编译期 HISS_VERBOSE 输出
 // (正常模式只保留阶段/汇总/错误; stderr 重定向文件时每条 fprintf 写盘,
-//  285 Tile 的 forward/inverse 逐调用日志会拖慢写入与 Verify)
+// 285 Tile 的 forward/inverse 逐调用日志会拖慢写入与 Verify)
 #ifdef HISS_VERBOSE
 #define HISS_DLOG(...) fprintf(stderr, __VA_ARGS__)
 #else
@@ -280,7 +280,7 @@ static std::vector<uint8_t> inverse_delta(const uint8_t* data,
 // ============================================================================
 
 // Zig-zag 编码: 有符号 → 无符号 (小幅度映射到小值)
-//   0 → 0, -1 → 1, 1 → 2, -2 → 3, 2 → 4, ...
+// 0 → 0, -1 → 1, 1 → 2, -2 → 3, 2 → 4, ...
 static inline uint64_t zig_zag_encode(int64_t n) {
     return (uint64_t)((n << 1) ^ (n >> 63));
 }
@@ -301,8 +301,8 @@ static void varint_encode(uint64_t value, std::vector<uint8_t>& out) {
 }
 
 // Varint 解码 (LEB128): 读取变长无符号整数
-// p     - 输入指针 (向前推进)
-// end   - 输入结尾 (防止越界)
+// p - 输入指针 (向前推进)
+// end - 输入结尾 (防止越界)
 // value - 输出解码值
 // 返回 true=成功, false=数据截断或溢出
 static bool varint_decode(const uint8_t*& p, const uint8_t* end, uint64_t& value) {
@@ -326,23 +326,23 @@ static bool varint_decode(const uint8_t*& p, const uint8_t* end, uint64_t& value
 // 6. DELTA_VARINT 实现 (组合变换: delta + zig-zag + varint)
 //
 // 输出格式:
-//   [n_elements: uint32 LE]  (4 字节, 元素数量)
-//   [varint 编码的 zig-zag delta 值...]  (变长)
+// [n_elements: uint32 LE] (4 字节, 元素数量)
+// [varint 编码的 zig-zag delta 值...] (变长)
 //
 // forward 流程:
-//   1. 读取 N 个 element_size 字节元素为 uint64
-//   2. 计算 delta[i] = input[i] - input[i-1] (无符号环绕)
-//   3. 将 delta 重解释为有符号 (int8/int16/int32/int64)
-//   4. zig-zag 编码 → 无符号
-//   5. varint 编码 → 变长字节
-//   6. 输出 = [n_elements: u32] + [varint 数据]
+// 1. 读取 N 个 element_size 字节元素为 uint64
+// 2. 计算 delta[i] = input[i] - input[i-1] (无符号环绕)
+// 3. 将 delta 重解释为有符号 (int8/int16/int32/int64)
+// 4. zig-zag 编码 → 无符号
+// 5. varint 编码 → 变长字节
+// 6. 输出 = [n_elements: u32] + [varint 数据]
 //
 // inverse 流程:
-//   1. 读取 n_elements 前缀
-//   2. varint 解码 n_elements 个值
-//   3. zig-zag 解码 → 有符号 delta
-//   4. 转为无符号进行环绕累加
-//   5. 输出 N * element_size 字节
+// 1. 读取 n_elements 前缀
+// 2. varint 解码 n_elements 个值
+// 3. zig-zag 解码 → 有符号 delta
+// 4. 转为无符号进行环绕累加
+// 5. 输出 N * element_size 字节
 // ============================================================================
 
 static std::vector<uint8_t> apply_delta_varint(const uint8_t* data,

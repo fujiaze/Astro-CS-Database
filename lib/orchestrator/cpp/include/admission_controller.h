@@ -2,10 +2,10 @@
 // admission_controller.h - 内存预约、CPU回滞和准入控制 (H-002)
 //
 // 规范来源: engineering_authoritative/docs/04_RESOURCE_AWARE_ORCHESTRATOR_SPEC.md
-//   MemoryBudgetManager: 预约、释放、安全余量和误差系数
-//   AdmissionController: CPU回滞、内存门限、阶段兼容矩阵
-//   准入公式: reserved + predicted_peak + uncertainty + OS_margin + worst_next_frame <= budget
-//   压力处理: 停止准入 → 等待释放 → 清理可重建缓存 → 暂停 → 显式spill → 恢复 → 最后才允许OS swap
+// MemoryBudgetManager: 预约、释放、安全余量和误差系数
+// AdmissionController: CPU回滞、内存门限、阶段兼容矩阵
+// 准入公式: reserved + predicted_peak + uncertainty + OS_margin + worst_next_frame <= budget
+// 压力处理: 停止准入 → 等待释放 → 清理可重建缓存 → 暂停 → 显式spill → 恢复 → 最后才允许OS swap
 //
 // Python 原型: engineering_authoritative/evidence/H-002/admission_controller.py
 // 依赖: H-001 resource_monitor.h (ResourceMonitor + FrameCostEstimator)

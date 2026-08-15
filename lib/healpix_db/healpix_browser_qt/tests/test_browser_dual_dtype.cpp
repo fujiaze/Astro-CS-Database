@@ -1,7 +1,7 @@
 // ============================================================================
-// test_browser_dual_dtype.cpp - Browser 后端 FP32/FP64 双精度无头测试 (R11)
+// test_browser_dual_dtype.cpp - Browser 后端 FP32/FP64 双精度无头测试
 // 验证: open_file 检测精度; read_tile_signal(F32) / read_tile_signal_f64(F64);
-//       query_pixel(F32) / query_pixel_f64(F64) 各自只走对应 dtype (禁止静默转换)。
+// query_pixel(F32) / query_pixel_f64(F64) 各自只走对应 dtype (禁止静默转换)。
 // 数据: 已有 fp32/fp64 frame.hiss (r11_gates 产物, 不运行 Drizzle)。
 // ============================================================================
 #include <cassert>

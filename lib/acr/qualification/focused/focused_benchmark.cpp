@@ -214,7 +214,7 @@ std::size_t FocusedBenchmark::run(FocusedProfileKind kind, bool enable_gpu) {
             }
         }
 
-        // ---- 候选块实测（08 号计划 §2：替代硬编码 64K/1M）----
+        // ---- 候选块实测（08 §2：替代硬编码 64K/1M）----
         {
             // 候选块：覆盖缓存友好 / 稳定吞吐 / 大规模三档，避免过小块
             const std::size_t cpu_cands[] = {1u << 16, 1u << 18, 1u << 20};
@@ -332,11 +332,11 @@ double predict_ns(const std::vector<std::size_t>& sizes,
 
 void FocusedBenchmark::qualify(FocusedProfileKind kind,
                                OperationProfile& profile) const {
-    // 08 号计划 §1：Operation.qualified 表示"画像测量可信"；
-    // GPU 路径收益由 host/resident_path_eligible 独立表示（V2 审计 §2）。
-    //   - leave-one-out 真实预测误差（禁止伪零）
-    //   - CPU 曲线有效（GPU 未实测时仍可 qualified，稳定走 CPU）
-    //   - standard 档才可 qualified；quick 仅 diagnostic
+    // 08 §1：Operation.qualified 表示"画像测量可信"；
+    // GPU 路径收益由 host/resident_path_eligible 独立表示。
+    // - leave-one-out 真实预测误差（禁止伪零）
+    // - CPU 曲线有效（GPU 未实测时仍可 qualified，稳定走 CPU）
+    // - standard 档才可 qualified；quick 仅 diagnostic
     const auto& sizes = focused_size_sequence();
     const double kMedianLimit = 0.30;
     const double kP95Limit = 0.60;
@@ -421,7 +421,7 @@ void FocusedBenchmark::qualify(FocusedProfileKind kind,
             op.qualification_reason = "gpu-error-limit";
         }
     }
-    // ---- 顶层状态按全部 Operation 重算（08 号计划 §1）----
+    // ---- 顶层状态按全部 Operation 重算（08 §1）----
     std::size_t qualified_count = 0;
     for (const auto& op : profile.operations) {
         if (op.qualified) ++qualified_count;
@@ -550,10 +550,10 @@ OperationProfile FocusedBenchmark::build_profile(
         op.memory.fixed_device_bytes = 1u << 20;
         op.memory.fixed_host_bytes = 1u << 20;
 
-        // ---- CPU / GPU resident / GPU host 线性拟合（08 号计划 §2）----
+        // ---- CPU / GPU resident / GPU host 线性拟合（08 §2）----
         const double cpu_slope = fit_slope(sizes, m.cpu_ns);
         // 固定开销来自拟合截距（04 号规范 §4：禁止用最小尺寸总耗时）
-        // 内部计算统一使用 ns（交叉点单位修正，08 号计划 §1）
+        // 内部计算统一使用 ns（交叉点单位修正，08 §1）
         const double cpu_fixed_ns = m.cpu_ns.empty()
             ? 0.0 : fit_intercept(sizes, m.cpu_ns, cpu_slope);
         op.cpu.fixed_us = std::max(0.0, cpu_fixed_ns / 1000.0);
@@ -620,10 +620,10 @@ OperationProfile FocusedBenchmark::build_profile(
                 op.gpu.minimum_chunk_items = 1u << 14;
             }
             // 交叉点（04 号规范 §4）：
-            //   T_cpu(n)  = cpu_fixed + cpu_slope*n
-            //   T_res(n)  = res_fixed + res_slope*n
-            //   T_host(n) = res_fixed + res_slope*n
-            //               + h2d(n) + d2h(n)（传输固定 + 斜率）
+            // T_cpu(n) = cpu_fixed + cpu_slope*n
+            // T_res(n) = res_fixed + res_slope*n
+            // T_host(n) = res_fixed + res_slope*n
+            // + h2d(n) + d2h(n)（传输固定 + 斜率）
             const double h2d_slope_ns =
                 (op.transfer.h2d_gbps > 0.0)
                     ? 1.0 / op.transfer.h2d_gbps : 0.0;  // ns/byte

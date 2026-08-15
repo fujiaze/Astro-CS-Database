@@ -2,11 +2,11 @@
 //
 // Phase2 W3：输入发现 / 兼容校验 / coverage union / target_order。
 //
-// 语义（冻结，控制包 34A532A2...B2EB308 + wiki Phase2_Architecture）：
-//   - 输入为多个 Phase1 单帧 HiPS（signal/support/snr），不重新校准/PlateSolve/PSF/DR3SP/Drizzle；
-//   - 兼容：同一 equatorial/ICRS、同一 filter/passband、同一 signal/support 语义、NESTED；
-//   - target_order = min(所有输入最高 leaf order)，禁止低 order 插值伪装分辨率；
-//   - Ω = MOC_1 ∪ ... ∪ MOC_N（NESTED，允许不连通分量）。
+// 语义（冻结， 34A532A2...B2EB308 + wiki Phase2_Architecture）：
+// - 输入为多个 Phase1 单帧 HiPS（signal/support/snr），不重新校准/PlateSolve/PSF/DR3SP/Drizzle；
+// - 兼容：同一 equatorial/ICRS、同一 filter/passband、同一 signal/support 语义、NESTED；
+// - target_order = min(所有输入最高 leaf order)，禁止低 order 插值伪装分辨率；
+// - Ω = MOC_1 ∪ ... ∪ MOC_N（NESTED，允许不连通分量）。
 #pragma once
 
 #include <cstdint>

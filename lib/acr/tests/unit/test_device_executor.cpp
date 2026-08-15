@@ -1,10 +1,10 @@
-// lib/acr/tests/unit/test_device_executor.cpp — DeviceExecutor 单元测试（23 号计划 §3）
+// lib/acr/tests/unit/test_device_executor.cpp — DeviceExecutor 单元测试（23 §3）
 //
 // 验收：
-//   - CpuExecutor 通过 KernelRegistry CPU launcher 真实执行 KernelInvocation；
-//   - SubmitHandle 记录真实 device/items/bytes/duration；
-//   - 未注册 OperationId → Rejected（调用方回退并如实报告，不伪装 GPU）；
-//   - supports() 与注册表一致；ExecutorRegistry 管理可用 executor。
+// - CpuExecutor 通过 KernelRegistry CPU launcher 真实执行 KernelInvocation；
+// - SubmitHandle 记录真实 device/items/bytes/duration；
+// - 未注册 OperationId → Rejected（调用方回退并如实报告，不伪装 GPU）；
+// - supports() 与注册表一致；ExecutorRegistry 管理可用 executor。
 #include <gtest/gtest.h>
 
 #include "device_executor.hpp"

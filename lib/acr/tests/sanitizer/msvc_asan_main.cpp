@@ -5,22 +5,22 @@
 // 但 ACR 的不依赖 oneTBB/MinGW 库的组件——共享工作池（shared_work_pool.cpp）、
 // KernelRegistry（kernel_registry.cpp）、CpuExecutor（device_executor.cpp）——
 // 可用 MSVC 14.50 + /fsanitize=address 编译真实源码做 ASan 验证。
-// 26 号计划 §2：CPU 利用率控制器已删除，不再纳入 ASan 覆盖。
+// 26 §2：CPU 利用率控制器已删除，不再纳入 ASan 覆盖。
 //
 // 用法：
-//   acr_sanitizer_msvc.exe            # 运行工作池/注册表压力 + 并发测试
-//   acr_sanitizer_msvc.exe --uaf      # 故意触发 use-after-free（ASan 应终止）
+// acr_sanitizer_msvc.exe # 运行工作池/注册表压力 + 并发测试
+// acr_sanitizer_msvc.exe --uaf # 故意触发 use-after-free（ASan 应终止）
 //
 // 构建（证据命令）：
-//   vcvars64 && cl /nologo /std:c++20 /O2 /fsanitize=address /I <acr>/include \
-//     /I <acr>/scheduler \
-//     /I <acr> \
-//     <acr>/scheduler/shared_work_pool.cpp \
-//     <acr>/api/kernel_registry.cpp \
-//     <acr>/scheduler/device_executor.cpp \
-//     <acr>/utilization/system_metrics.cpp \
-//     <acr>/tests/sanitizer/msvc_asan_main.cpp \
-//     /link /out:acr_sanitizer_msvc.exe
+// vcvars64 && cl /nologo /std:c++20 /O2 /fsanitize=address /I <acr>/include \
+// /I <acr>/scheduler \
+// /I <acr> \
+// <acr>/scheduler/shared_work_pool.cpp \
+// <acr>/api/kernel_registry.cpp \
+// <acr>/scheduler/device_executor.cpp \
+// <acr>/utilization/system_metrics.cpp \
+// <acr>/tests/sanitizer/msvc_asan_main.cpp \
+// /link /out:acr_sanitizer_msvc.exe
 #include <cstdio>
 #include <cstdlib>
 #include <string>
@@ -129,7 +129,7 @@ int run_registry_concurrent() {
     return 0;
 }
 
-// ===== CpuExecutor 真实提交 + 契约校验（24 号计划 §5）=====
+// ===== CpuExecutor 真实提交 + 契约校验（24 §5）=====
 int run_cpu_executor_and_contract() {
     astro::compute::KernelRegistry reg;
     {

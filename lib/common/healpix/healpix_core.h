@@ -1,11 +1,11 @@
 // ============================================================================
-// healpix_core.h - AstroCS 共享 HEALPix 核心 (Phase1 Final Signoff V4)
+// healpix_core.h - AstroCS 共享 HEALPix 核心 (Phase1 Final Signoff )
 //
 // 单一权威 NESTED HEALPix 位置/层级实现, AIO / Drizzle / Browser 共同使用。
 // 来源: 依据公开 HEALPix 算法 (Gorski et al. 2005, arXiv:astro-ph/0409513)
-//       的独立实现, 由 astropy-healpix (BSD-3-Clause) 作为外部 Oracle
-//       以 1,000,000 全天随机点 + 12 base face / 极区 / RA 跨界锚点
-//       (order 0..22) 交叉验证, mismatch=0。
+// 的独立实现, 由 astropy-healpix (BSD-3-Clause) 作为外部 Oracle
+// 以 1,000,000 全天随机点 + 12 base face / 极区 / RA 跨界锚点
+// (order 0..22) 交叉验证, mismatch=0。
 // 禁止在本模块之外维护第二套 ang2pix/pix2ang。
 // ============================================================================
 
@@ -37,8 +37,8 @@ uint64_t xy_to_nested_local(uint32_t x, uint32_t y, uint32_t shift);
 
 // 标准 HiPS Image tile 二维排列 (IVOA HiPS 1.0 Image tile packaging,
 // 由 CDS Hipsgen MAPTILES 外部 Oracle 逐像素冻结):
-//   FITS 列 (NAXIS1) = y, FITS 行 (NAXIS2) = tile_width-1-x,
-//   行主序 fits_index = (tile_width-1-x)*tile_width + y
+// FITS 列 (NAXIS1) = y, FITS 行 (NAXIS2) = tile_width-1-x,
+// 行主序 fits_index = (tile_width-1-x)*tile_width + y
 uint64_t nested_local_to_fits_index(uint64_t local, uint32_t shift, uint32_t tile_width);
 // 逆映射: 标准 FITS 行主序 index -> NESTED local index
 uint64_t fits_index_to_nested_local(uint64_t fits_index, uint32_t shift, uint32_t tile_width);

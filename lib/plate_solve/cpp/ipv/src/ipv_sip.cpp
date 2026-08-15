@@ -2,21 +2,21 @@
 // ipv_sip.cpp - IPV SIP 多项式畸变拟合实现
 //
 // 算法:
-//   1. 降阶判定 (依据内点数)
-//   2. 坐标归一化 (避免数值不稳定)
-//   3. 构造 SIP 多项式基 (3 阶 10 项, 2 阶 6 项)
-//   4. IRLS + Huber 权重拟合 (分别对 A 和 B)
-//   5. 失败兜底 (奇异 / 系数过大 / RMS 过大)
-//   6. 拟合 RMS 评估
+// 1. 降阶判定 (依据内点数)
+// 2. 坐标归一化 (避免数值不稳定)
+// 3. 构造 SIP 多项式基 (3 阶 10 项, 2 阶 6 项)
+// 4. IRLS + Huber 权重拟合 (分别对 A 和 B)
+// 5. 失败兜底 (奇异 / 系数过大 / RMS 过大)
+// 6. 拟合 RMS 评估
 //
-// 残差模型 (V4.10 像素空间):
-//   linear_pred = s·R(θ)·U + t
-//   r = W - linear_pred
-//   r_x ≈ A_poly(xn, yn),  r_y ≈ B_poly(xn, yn)
+// 残差模型 ( 像素空间):
+// linear_pred = s·R(θ)·U + t
+// r = W - linear_pred
+// r_x ≈ A_poly(xn, yn), r_y ≈ B_poly(xn, yn)
 //
 // 系数索引: SIPCoeffs.A[i*6+j] 对应 dx^i * dy^j (i+j <= order)
 //
-// 日期: 2026-07-04 (V4.12)
+// 日期: 2026-07-04
 // ============================================================================
 
 #include "ipv_sip.h"
@@ -32,7 +32,7 @@ namespace ipv {
 
 // ---------------------------------------------------------------------------
 // 内部辅助: 日志输出 (logger 为空时静默)
-//   直接复用 Logger 自带的 infof/warnf 等格式化方法, 避免重复 va_list 处理
+// 直接复用 Logger 自带的 infof/warnf 等格式化方法, 避免重复 va_list 处理
 // ---------------------------------------------------------------------------
 static inline void sip_log(Logger* logger, Logger::Level lvl, const std::string& msg) {
     if (logger) logger->log(lvl, msg);
@@ -51,9 +51,9 @@ static inline void sip_logf(Logger* logger, Logger::Level lvl, const char* fmt, 
 
 // ---------------------------------------------------------------------------
 // SIP 多项式基索引表 (按总阶数升序, 同阶内 i 降序)
-//   k=0:(0,0) k=1:(1,0) k=2:(0,1)
-//   k=3:(2,0) k=4:(1,1) k=5:(0,2)
-//   k=6:(3,0) k=7:(2,1) k=8:(1,2) k=9:(0,3)
+// k=0:(0,0) k=1:(1,0) k=2:(0,1)
+// k=3:(2,0) k=4:(1,1) k=5:(0,2)
+// k=6:(3,0) k=7:(2,1) k=8:(1,2) k=9:(0,3)
 // ---------------------------------------------------------------------------
 struct SipBasisIndex {
     int i;
@@ -85,9 +85,9 @@ static inline double basis_value(const SipBasisIndex& idx, double x, double y) {
 
 // ---------------------------------------------------------------------------
 // 高斯消元解 K×K 线性方程组 (带列主元选取)
-//   输入: A 是 K×(K+1) 增广矩阵 (行优先), K 维
-//   输出: x 长度 K
-//   返回: true 成功, false 矩阵奇异 (主元接近 0)
+// 输入: A 是 K×(K+1) 增广矩阵 (行优先), K 维
+// 输出: x 长度 K
+// 返回: true 成功, false 矩阵奇异 (主元接近 0)
 // ---------------------------------------------------------------------------
 static bool gaussian_solve(std::vector<double>& A, int K, std::vector<double>& x) {
     // A 是 K 行, 每行 K+1 列 (增广)
@@ -144,19 +144,19 @@ static bool gaussian_solve(std::vector<double>& A, int K, std::vector<double>& x
 
 // ---------------------------------------------------------------------------
 // IRLS + Huber 权重拟合单组多项式 (A 或 B)
-//   输入:
-//     X        - N×K 设计矩阵 (行优先, N 个样本, K 个基)
-//     b        - N 维目标残差 (r_x 或 r_y)
-//     K        - 基项数
-//     n        - 样本数
-//     max_iter - 最大 IRLS 迭代次数
-//     converge_eps - 收敛阈值 (max|Δc|)
-//   输出:
-//     coeff    - K 维系数
-//     final_w  - 最终权重 (用于 RMS 计算)
-//     final_r  - 最终残差 (b - X·coeff)
-//   返回:
-//     true 成功, false 正规方程奇异
+// 输入:
+// X - N×K 设计矩阵 (行优先, N 个样本, K 个基)
+// b - N 维目标残差 (r_x 或 r_y)
+// K - 基项数
+// n - 样本数
+// max_iter - 最大 IRLS 迭代次数
+// converge_eps - 收敛阈值 (max|Δc|)
+// 输出:
+// coeff - K 维系数
+// final_w - 最终权重 (用于 RMS 计算)
+// final_r - 最终残差 (b - X·coeff)
+// 返回:
+// true 成功, false 正规方程奇异
 // ---------------------------------------------------------------------------
 static bool irls_huber_fit(
     const std::vector<double>& X,
@@ -171,13 +171,13 @@ static bool irls_huber_fit(
     coeff.assign(K, 0.0);
     std::vector<double> prev_coeff(K, 0.0);
 
-    // 工作矩阵: K×(K+1) 增广矩阵（CodeQL V1 #5：先提升 size_t 防溢出）
+    // 工作矩阵: K×(K+1) 增广矩阵（CodeQL #5：先提升 size_t 防溢出）
     std::vector<double> Amat((std::size_t)K * (std::size_t)(K + 1), 0.0);
 
     for (int iter = 0; iter < max_iter; ++iter) {
         // 构造正规方程 (A^T W A) c = A^T W b
-        // Amat[i*(K+1)+j] = sum_n w_n * X[n*K+i] * X[n*K+j]   (i,j < K)
-        // Amat[i*(K+1)+K]  = sum_n w_n * X[n*K+i] * b[n]      (右端项)
+        // Amat[i*(K+1)+j] = sum_n w_n * X[n*K+i] * X[n*K+j] (i,j < K)
+        // Amat[i*(K+1)+K] = sum_n w_n * X[n*K+i] * b[n] (右端项)
         std::fill(Amat.begin(), Amat.end(), 0.0);
 
         for (int smp = 0; smp < n; ++smp) {
@@ -356,11 +356,11 @@ SIPCoeffs fit_sip(
         const StarPoint& w = W[mp.w];
 
         // 归一化坐标: xn = (U[u].x + cx) / scale
-        //   注: U[u].x 是相对图像中心的像素坐标 (V4.10), + cx 转回绝对像素
+        // 注: U[u].x 是相对图像中心的像素坐标 , + cx 转回绝对像素
         xn_arr.push_back((u.x + cx) / scale);
         yn_arr.push_back((u.y + cy) / scale);
 
-        // 线性预测 (V4.10 像素空间): linear_pred = s·R(θ)·U + t
+        // 线性预测 ( 像素空间): linear_pred = s·R(θ)·U + t
         const double x_pred = tf.s * (cos_t * u.x - sin_t * u.y) + tf.tx;
         const double y_pred = tf.s * (sin_t * u.x + cos_t * u.y) + tf.ty;
 
@@ -383,7 +383,7 @@ SIPCoeffs fit_sip(
     // -----------------------------------------------------------------
     // 3. 构造 SIP 多项式基表
     // -----------------------------------------------------------------
-    SipBasisIndex basis_table[15];   // 最多 4 阶 = 15 项 (V4.18 修复: 原 10 太小)
+    SipBasisIndex basis_table[15];   // 最多 4 阶 = 15 项 ( 修复: 原 10 太小)
     const int K = get_basis_table(eff_order, basis_table);
     sip_logf(logger, Logger::DEBUG, "[sip] 基项数 K=%d (order=%d)", K, eff_order);
 
@@ -441,7 +441,7 @@ SIPCoeffs fit_sip(
 
     // -----------------------------------------------------------------
     // 6. 拟合 RMS 评估 (加权)
-    //    rms = sqrt(sum(wi * r_i²) / sum(wi))
+    // rms = sqrt(sum(wi * r_i²) / sum(wi))
     // -----------------------------------------------------------------
     double sum_wa = 0.0, sum_wa_r2 = 0.0;
     double sum_wb = 0.0, sum_wb_r2 = 0.0;
@@ -464,16 +464,16 @@ SIPCoeffs fit_sip(
 
     // -----------------------------------------------------------------
     // 7. 系数填充到 SIPCoeffs
-    //    索引: A[i*6+j] 对应 dx^i * dy^j
-    //    basis_table[k] = (i, j) → A[i*6+j]
+    // 索引: A[i*6+j] 对应 dx^i * dy^j
+    // basis_table[k] = (i, j) → A[i*6+j]
     //
-    //    坐标系转换 (V4.12 修复):
-    //      fit_sip 内部用归一化坐标 xn=(U.x+cx)/scale 拟合得到 coeff_norm
-    //      但标准 WCS SIP 期望原始像素坐标 (x-CRPIX) 的系数
-    //      转换: A_orig[i,j] = coeff_norm[k] / scale^(i+j)
-    //      因为 dx_orig^i * dy_orig^j = (xn*scale)^i * (yn*scale)^j
-    //                                 = xn^i * yn^j * scale^(i+j)
-    //      所以 coeff_norm * xn^i * yn^j = coeff_norm/scale^(i+j) * dx_orig^i * dy_orig^j
+    // 坐标系转换 ( 修复):
+    // fit_sip 内部用归一化坐标 xn=(U.x+cx)/scale 拟合得到 coeff_norm
+    // 但标准 WCS SIP 期望原始像素坐标 (x-CRPIX) 的系数
+    // 转换: A_orig[i,j] = coeff_norm[k] / scale^(i+j)
+    // 因为 dx_orig^i * dy_orig^j = (xn*scale)^i * (yn*scale)^j
+    // = xn^i * yn^j * scale^(i+j)
+    // 所以 coeff_norm * xn^i * yn^j = coeff_norm/scale^(i+j) * dx_orig^i * dy_orig^j
     // -----------------------------------------------------------------
     for (int k = 0; k < K; ++k) {
         int i = basis_table[k].i;

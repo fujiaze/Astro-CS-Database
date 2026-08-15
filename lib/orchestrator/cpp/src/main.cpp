@@ -1,18 +1,18 @@
 // ============================================================================
 // main.cpp - 唯一入口: orchestrator.exe <stage1.json>
 // 功能:
-//   - 无参数: 打印 usage
-//   - --help / -h: 打印帮助
-//   - --version: 打印版本
-//   - --print-schema: 打印 stage1.schema.json
-//   - --validate <json>: 仅验证 Schema, 不执行
-//   - --inspect <hiss>: LEGACY 诊断 — 输出 HISS 文件 metadata (含 precision_mode/signal_dtype);
-//                       HISS 已 DEPRECATED, 仅 validation.legacy_hiss_compare=true 模式产物
-//   - <stage1.json>: 解析配置 + Schema 验证 + 执行 stage1 流水线
+// - 无参数: 打印 usage
+// - --help / -h: 打印帮助
+// - --version: 打印版本
+// - --print-schema: 打印 stage1.schema.json
+// - --validate <json>: 仅验证 Schema, 不执行
+// - --inspect <hiss>: LEGACY 诊断 — 输出 HISS 文件 metadata (含 precision_mode/signal_dtype);
+// HISS 已 DEPRECATED, 仅 validation.legacy_hiss_compare=true 模式产物
+// - <stage1.json>: 解析配置 + Schema 验证 + 执行 stage1 流水线
 //
 // 设计说明:
-//   所有输入、参数、输出、日志位置均来自 JSON 文件。
-//   无 CLI 科学参数覆盖、无 REPL、无 run/run-batch。
+// 所有输入、参数、输出、日志位置均来自 JSON 文件。
+// 无 CLI 科学参数覆盖、无 REPL、无 run/run-batch。
 // ============================================================================
 
 #include <cstdio>
@@ -193,7 +193,7 @@ int main(int argc, char* argv[]) {
     SetConsoleCP(CP_UTF8);
 #endif
 
-    // V18 (G1): 进程外圈粗粒度计时（低开销，每段一次 clock；
+    // 进程外圈粗粒度计时（低开销，每段一次 clock；
     // 输出与 stage 计时相同 "[X.XXXXXXs] PHASE" 格式，wall accounting 用）
     const auto t_process_start = std::chrono::steady_clock::now();
     auto phase_mark = [&](const char* name) {
@@ -326,7 +326,7 @@ int main(int argc, char* argv[]) {
         Orchestrator orch;
         p04004_register_signal_handler(&orch, true);
 
-        // V18 (G1): DLL_LOAD 计时（init_dlls 在 run_stage1 内部惰性执行，
+        // DLL_LOAD 计时（init_dlls 在 run_stage1 内部惰性执行，
         // 此处仅记录构造后到 stage 启动前的外圈成本；DLL 实际加载耗时由
         // run_v2_with_timing 前包裹，见下）
         phase_mark("FRAME_CREATE");

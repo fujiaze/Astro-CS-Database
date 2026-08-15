@@ -1,15 +1,15 @@
 // lib/acr/qualification/benchmarks/atomic_benchmark.cpp — 原子操作吞吐 Benchmark
 //
 // 设计（06_QUALIFICATION_BENCHMARK_SPEC.md + 17_CLASSIC_EXPERIMENT_SUITE.md）：
-//   1. 原子操作吞吐测量（fetch_add / CAS / atomic histogram，不同竞争级别）
-//   2. 单线程基线 + 多线程竞争（1, 2, 4, 8, 16 线程）
-//   3. fetch_add: 多线程对共享计数器执行 atomic fetch_add
-//   4. CAS: 多线程对共享变量执行 compare_exchange 循环
-//   5. atomic histogram: 用 atomic 计数器的 256 bin 直方图
-//   6. 用 std::atomic<std::uint32_t>
-//   7. 使用 Google Benchmark 的 ->Threads(n) 参数化线程数
-//   8. 报告 MOp/s
-//   9. 用于 CPU 硬件画像补全（CapabilityFamily::Irregular）
+// 1. 原子操作吞吐测量（fetch_add / CAS / atomic histogram，不同竞争级别）
+// 2. 单线程基线 + 多线程竞争（1, 2, 4, 8, 16 线程）
+// 3. fetch_add: 多线程对共享计数器执行 atomic fetch_add
+// 4. CAS: 多线程对共享变量执行 compare_exchange 循环
+// 5. atomic histogram: 用 atomic 计数器的 256 bin 直方图
+// 6. 用 std::atomic<std::uint32_t>
+// 7. 使用 Google Benchmark 的 ->Threads(n) 参数化线程数
+// 8. 报告 MOp/s
+// 9. 用于 CPU 硬件画像补全（CapabilityFamily::Irregular）
 #include "benchmark_common.hpp"
 
 #include <benchmark/benchmark.h>
@@ -35,7 +35,7 @@ int to_bin256(float v) noexcept {
 
 // ===== Atomic fetch_add benchmark body =====
 // state.range(0) = 总操作数（跨所有线程）
-// ->Threads(n)   = 线程数（Google Benchmark 自动管理）
+// ->Threads(n) = 线程数（Google Benchmark 自动管理）
 // 每线程执行 per_thread = total_ops / threads 次 fetch_add
 static void atomic_fetch_add(::benchmark::State& state) {
     const std::size_t total_ops = static_cast<std::size_t>(state.range(0));
@@ -64,7 +64,7 @@ static void atomic_fetch_add(::benchmark::State& state) {
 
 // ===== Atomic CAS (compare_exchange) benchmark body =====
 // state.range(0) = 总操作数
-// ->Threads(n)   = 线程数
+// ->Threads(n) = 线程数
 // 每线程执行 per_thread 次成功 CAS（自旋重试直到成功）
 static void atomic_cas(::benchmark::State& state) {
     const std::size_t total_ops = static_cast<std::size_t>(state.range(0));
@@ -95,7 +95,7 @@ static void atomic_cas(::benchmark::State& state) {
 
 // ===== Atomic histogram benchmark body =====
 // state.range(0) = 元素数
-// ->Threads(n)   = 线程数
+// ->Threads(n) = 线程数
 // 每线程处理输入数组的一个切片，对共享 atomic bins 执行 fetch_add
 static void atomic_histogram256(::benchmark::State& state) {
     const std::size_t n = static_cast<std::size_t>(state.range(0));

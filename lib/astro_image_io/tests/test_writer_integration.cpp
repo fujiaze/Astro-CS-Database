@@ -2,31 +2,31 @@
 // test_writer_integration.cpp - HISS Writer 核心改造集成测试 (WP-E 步骤7,8,10,11)
 //
 // 覆盖范围 (10 个测试用例):
-//   01. signal 保存累计通量 (步骤7: signal = sumFlux, 不除面积)
-//   02. FULL 模式往返读写
-//   03. BITMAP 模式往返读写 (步骤11: 仅保存有效像素)
-//   04. SPARSE_LIST 模式往返读写 (步骤11: 仅保存有效像素)
-//   05. occupancy 自动选择验证 (步骤11: 按占用率自动选择模式)
-//   06. 流式写入验证 (步骤10: .partial 清理 + 文件完整性)
-//   07. SNR 子块往返读写 (冻结布局: n_points + points)
-//   08. support 语义验证 (步骤2: support = sum_area / A_p)
-//   09. aio_hiss_write/read C API 往返 (步骤8: 新后端兼容性)
-//   10. 元数据 WCS 移除验证 (步骤8: 不含 cd/crval/crpix/sip)
+// 01. signal 保存累计通量 (步骤7: signal = sumFlux, 不除面积)
+// 02. FULL 模式往返读写
+// 03. BITMAP 模式往返读写 (步骤11: 仅保存有效像素)
+// 04. SPARSE_LIST 模式往返读写 (步骤11: 仅保存有效像素)
+// 05. occupancy 自动选择验证 (步骤11: 按占用率自动选择模式)
+// 06. 流式写入验证 (步骤10: .partial 清理 + 文件完整性)
+// 07. SNR 子块往返读写 (冻结布局: n_points + points)
+// 08. support 语义验证 (步骤2: support = sum_area / A_p)
+// 09. aio_hiss_write/read C API 往返 (步骤8: 新后端兼容性)
+// 10. 元数据 WCS 移除验证 (步骤8: 不含 cd/crval/crpix/sip)
 //
 // 编译 (从 tests/ 目录):
-//   g++ -std=c++17 -O2 -fopenmp -DHAS_ZSTD -DAIO_ENABLE_HEALPIX \
-//     -I../include -I../src \
-//     test_writer_integration.cpp \
-//     ../src/hiss_codec.cpp ../src/hiss_common.cpp \
-//     ../src/hiss_tile_model.cpp \
-//     ../src/hiss_writer.cpp ../src/hiss_stream_writer.cpp \
-//     ../src/hiss_reader.cpp \
-//     ../src/healpix/aio_healpix_io.cpp \
-//     ../src/aio_api.cpp ../src/aio_log.cpp \
-//     -lzstd -lm -o test_writer_integration.exe
+// g++ -std=c++17 -O2 -fopenmp -DHAS_ZSTD -DAIO_ENABLE_HEALPIX \
+// -I../include -I../src \
+// test_writer_integration.cpp \
+// ../src/hiss_codec.cpp ../src/hiss_common.cpp \
+// ../src/hiss_tile_model.cpp \
+// ../src/hiss_writer.cpp ../src/hiss_stream_writer.cpp \
+// ../src/hiss_reader.cpp \
+// ../src/healpix/aio_healpix_io.cpp \
+// ../src/aio_api.cpp ../src/aio_log.cpp \
+// -lzstd -lm -o test_writer_integration.exe
 //
 // 运行:
-//   ./test_writer_integration.exe
+// ./test_writer_integration.exe
 // ============================================================================
 #include "hiss_format.h"
 #include "hiss_tile_model.h"
@@ -99,7 +99,7 @@ static hiss::DrizzleTileAccumulator make_test_acc(uint32_t tile_nside, uint64_t 
 
 // ============================================================================
 // 测试 01: signal 保存累计通量 (步骤7)
-//   验证: signal[p] = float(sumFlux), 不是 sumFlux/sumArea
+// 验证: signal[p] = float(sumFlux), 不是 sumFlux/sumArea
 // ============================================================================
 static void test_01_signal_is_cumulative_flux(int id) {
     TEST_CASE("signal 保存累计通量 (步骤7)", id);
@@ -129,7 +129,7 @@ static void test_01_signal_is_cumulative_flux(int id) {
 
 // ============================================================================
 // 测试 02: FULL 模式往返读写
-//   验证: 写入 FULL 模式 → 读取 → signal/support 一致
+// 验证: 写入 FULL 模式 → 读取 → signal/support 一致
 // ============================================================================
 static void test_02_full_roundtrip(int id) {
     TEST_CASE("FULL 模式往返读写", id);
@@ -195,7 +195,7 @@ static void test_02_full_roundtrip(int id) {
 
 // ============================================================================
 // 测试 03: BITMAP 模式往返读写 (步骤11: 仅保存有效像素)
-//   验证: 部分有效像素 → BITMAP 模式 → 读取展开后一致
+// 验证: 部分有效像素 → BITMAP 模式 → 读取展开后一致
 // ============================================================================
 static void test_03_bitmap_roundtrip(int id) {
     TEST_CASE("BITMAP 模式往返读写 (步骤11)", id);
@@ -284,7 +284,7 @@ static void test_03_bitmap_roundtrip(int id) {
 
 // ============================================================================
 // 测试 04: SPARSE_LIST 模式往返读写 (步骤11: 仅保存有效像素)
-//   验证: 极少有效像素 → SPARSE_LIST 模式 → 读取展开后一致
+// 验证: 极少有效像素 → SPARSE_LIST 模式 → 读取展开后一致
 // ============================================================================
 static void test_04_sparse_roundtrip(int id) {
     TEST_CASE("SPARSE_LIST 模式往返读写 (步骤11)", id);
@@ -293,10 +293,10 @@ static void test_04_sparse_roundtrip(int id) {
 
     HissGridSpec grid;
     // R04-B12: Writer 按实际编码大小自动选择 (忽略传入的 occ_mode)
-    //   BITMAP = ceil(n_leaf/8), SPARSE_LIST = n_valid*4
-    //   需 SPARSE_LIST < BITMAP: n_valid*4 < ceil(n_leaf/8)
+    // BITMAP = ceil(n_leaf/8), SPARSE_LIST = n_valid*4
+    // 需 SPARSE_LIST < BITMAP: n_valid*4 < ceil(n_leaf/8)
     // NSIDE=1024 → depth=6, tile_nside=16, n_leaf_per_tile=4^6=4096
-    //   BITMAP=512B, SPARSE_LIST(n_valid=1)=4B → 自动选 SPARSE_LIST
+    // BITMAP=512B, SPARSE_LIST(n_valid=1)=4B → 自动选 SPARSE_LIST
     grid.nside = 1024;
     grid.tile_nside = compute_tile_nside(1024);  // 16
     grid.ordering = 1;
@@ -370,7 +370,7 @@ static void test_04_sparse_roundtrip(int id) {
 
 // ============================================================================
 // 测试 05: occupancy 自动选择验证 (步骤11)
-//   验证: Writer 根据占用率自动选择 FULL/BITMAP/SPARSE_LIST
+// 验证: Writer 根据占用率自动选择 FULL/BITMAP/SPARSE_LIST
 // ============================================================================
 static void test_05_auto_occupancy(int id) {
     TEST_CASE("occupancy 自动选择验证 (步骤11)", id);
@@ -477,7 +477,7 @@ static void test_05_auto_occupancy(int id) {
 
 // ============================================================================
 // 测试 06: 流式写入验证 (步骤10)
-//   验证: .partial 已清理, 文件签名正确, 多 Tile 写入正常
+// 验证: .partial 已清理, 文件签名正确, 多 Tile 写入正常
 // ============================================================================
 static void test_06_streaming_write(int id) {
     TEST_CASE("流式写入验证 (步骤10)", id);
@@ -544,7 +544,7 @@ static void test_06_streaming_write(int id) {
 
 // ============================================================================
 // 测试 07: SNR 子块往返读写 (冻结布局)
-//   验证: SNR 子块布局 [n_points: uint32][points: n_points*8B]
+// 验证: SNR 子块布局 [n_points: uint32][points: n_points*8B]
 // ============================================================================
 static void test_07_snr_roundtrip(int id) {
     TEST_CASE("SNR 子块往返读写", id);
@@ -600,7 +600,7 @@ static void test_07_snr_roundtrip(int id) {
 
 // ============================================================================
 // 测试 08: support 语义验证 (步骤2)
-//   验证: support = round(255 * sum_area / A_p), 钳制 [0,1]
+// 验证: support = round(255 * sum_area / A_p), 钳制 [0,1]
 // ============================================================================
 static void test_08_support_semantics(int id) {
     TEST_CASE("support 语义验证 (步骤2: support = sum_area / A_p)", id);
@@ -631,7 +631,7 @@ static void test_08_support_semantics(int id) {
 
 // ============================================================================
 // 测试 09: aio_hiss_write/read C API 往返 (步骤8: 新后端兼容性)
-//   验证: C API 写入 → C API 读取 → 数据一致
+// 验证: C API 写入 → C API 读取 → 数据一致
 // ============================================================================
 static void test_09_capi_roundtrip(int id) {
     TEST_CASE("aio_hiss_write/read C API 往返 (步骤8)", id);
@@ -700,7 +700,7 @@ static void test_09_capi_roundtrip(int id) {
 
 // ============================================================================
 // 测试 10: 元数据 WCS 移除验证 (步骤8)
-//   验证: HissMetadata::to_json 不包含 cd/crval/crpix/sip 等完整 WCS 字段
+// 验证: HissMetadata::to_json 不包含 cd/crval/crpix/sip 等完整 WCS 字段
 // ============================================================================
 static void test_10_no_wcs_metadata(int id) {
     TEST_CASE("元数据 WCS 移除验证 (步骤8)", id);

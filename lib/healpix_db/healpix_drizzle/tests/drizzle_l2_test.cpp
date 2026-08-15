@@ -1,11 +1,11 @@
 // ============================================================================
-// drizzle_l2_test.cpp - Drizzle L2 门 (控制包 Validation_Strategy L2)
+// drizzle_l2_test.cpp - Drizzle L2 门 ( Validation_Strategy L2)
 //
 // 真实单帧固定裁剪 (Galaxy_Center_mosaic3_T4, 中心 1024x1024, SIP order=3):
-//   FP32 与 FP64 各一次科学比较:
-//     1. 无 NaN/Inf
-//     2. FP64 通量闭合 (Σout ≈ Σin, 按有限像素)
-//     3. FP32 vs FP64 逐 leaf 最大相对差 < 1e-5
+// FP32 与 FP64 各一次科学比较:
+// 1. 无 NaN/Inf
+// 2. FP64 通量闭合 (Σout ≈ Σin, 按有限像素)
+// 3. FP32 vs FP64 逐 leaf 最大相对差 < 1e-5
 //
 // 编译 (tests/ 目录): 同 drizzle_l0_test.cpp
 // ============================================================================
@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
            (int)img.pixels_f64.size(), n_finite, sum_in);
 
     DrizzleConfig cfg;
-    cfg.nside = 65536;   // 生产 NSIDE (控制包: 不再用 2048 替代生产条件)
+    cfg.nside = 65536;   // 生产 NSIDE (: 不再用 2048 替代生产条件)
     cfg.nested = true;
     cfg.pixfrac = 1.0;
     cfg.precision_mode = 1; cfg.threads = 16;
@@ -118,7 +118,7 @@ int main(int argc, char** argv) {
     snprintf(name, sizeof(name), "FP32 leaf 均可在 FP64 找到 (missing=%d)", n_missing);
     CHECK(n_missing == 0, name);
 
-    // R11: FP32 ULP/相对误差分布报告 (控制包 B 门: FP32 误差分布)
+    // FP32 ULP/相对误差分布报告 ( B 门: FP32 误差分布)
     if (!rel_diffs.empty()) {
         std::sort(rel_diffs.begin(), rel_diffs.end());
         auto pct = [&](double p) {

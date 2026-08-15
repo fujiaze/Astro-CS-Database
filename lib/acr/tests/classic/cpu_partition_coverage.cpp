@@ -1,13 +1,13 @@
 // lib/acr/tests/classic/cpu_partition_coverage.cpp — CPU Partition Coverage
 // 原 e13_mixed.cpp（按 20_PHASE_I_AUDIT_ACTION_PLAN.md §6 重命名）
 // 重命名理由：CPU-only build 下 enable_gpu=false，测试内容是 CPU partition coverage
-//   而非真实 CPU+GPU Mixed；真实 Mixed 需 GPU 可用，无 GPU 时 SKIPPED。
+// 而非真实 CPU+GPU Mixed；真实 Mixed 需 GPU 可用，无 GPU 时 SKIPPED。
 // 验证能力：coverage bitmap 完整不重复 + 真实 Mixed（无 GPU 则 SKIPPED）
 // 重写（规范 §6 真实 Mixed）：
-//   1. 删除 CPU 模拟 GPU 比例路径（run_cpu_gpu_ratio 已移除）
-//   2. coverage bitmap 验证保留（CPU-only 合法，验证不重复不遗漏）
-//   3. 真实 CPU+GPU 混合执行：无 GPU 则 SKIPPED（不再用 CPU 假装 GPU）
-//   4. 动态工作池：无 GPU 则 SKIPPED
+// 1. 删除 CPU 模拟 GPU 比例路径（run_cpu_gpu_ratio 已移除）
+// 2. coverage bitmap 验证保留（CPU-only 合法，验证不重复不遗漏）
+// 3. 真实 CPU+GPU 混合执行：无 GPU 则 SKIPPED（不再用 CPU 假装 GPU）
+// 4. 动态工作池：无 GPU 则 SKIPPED
 #include "classic_common.hpp"
 
 #include <gtest/gtest.h>

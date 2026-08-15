@@ -1,10 +1,10 @@
 // ============================================================================
-// test_geometry_truth.cpp - V9 几何 truth 自动测试（headless，无 Qt）
+// test_geometry_truth.cpp - 几何 truth 自动测试（headless，无 Qt）
 //
 // 对 synthetic geometry truth HiPS 验证：
-//   RA/Dec 方向、0/360 wrap、polar、equatorial、multi-face、
-//   NESTED leaf 一致性、多 order 一致性、网格/seam、零覆盖区、
-//   LRU cache 有界 + eviction。
+// RA/Dec 方向、0/360 wrap、polar、equatorial、multi-face、
+// NESTED leaf 一致性、多 order 一致性、网格/seam、零覆盖区、
+// LRU cache 有界 + eviction。
 // 用法: test_geometry_truth <truth.hips>
 // ============================================================================
 

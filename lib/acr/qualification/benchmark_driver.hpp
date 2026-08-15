@@ -1,14 +1,14 @@
 // lib/acr/qualification/benchmark_driver.hpp — 微基准框架
 // Phase E：预热 + 多轮 + 分离 kernel/transfer/resident + 保存原始样本。
 //
-// 设计（控制包 04_QUALIFICATION_SPEC.md）：
-//   1. 固定 seed 0xA57C5AC20260802，所有 input 数据确定性可复现
-//   2. 三档 profile：Quick（1 轮无预热）/ Standard（3 轮 + 1 预热）/ Full（10 轮 + 3 预热 + resident）
-//   3. 启动时打印 "请确保系统空载以获得准确结果"，不自动判断/干预
-//   4. CPU benchmark 用 acr::parallel_for 调度（验证 ACR 自身）；GPU benchmark 占位待 CUDA 集成
-//   5. 时间用 std::chrono steady_clock，纳秒精度
-//   6. 多轮样本全部保存（不预先平均），median/ stddev 由 profile_generator 聚合
-//   7. 空载提示是 console 输出，不修改系统状态
+// 设计（ 04_QUALIFICATION_SPEC.md）：
+// 1. 固定 seed 0xA57C5AC20260802，所有 input 数据确定性可复现
+// 2. 三档 profile：Quick（1 轮无预热）/ Standard（3 轮 + 1 预热）/ Full（10 轮 + 3 预热 + resident）
+// 3. 启动时打印 "请确保系统空载以获得准确结果"，不自动判断/干预
+// 4. CPU benchmark 用 acr::parallel_for 调度（验证 ACR 自身）；GPU benchmark 占位待 CUDA 集成
+// 5. 时间用 std::chrono steady_clock，纳秒精度
+// 6. 多轮样本全部保存（不预先平均），median/ stddev 由 profile_generator 聚合
+// 7. 空载提示是 console 输出，不修改系统状态
 #pragma once
 
 #include "profile_schema.hpp"
@@ -37,7 +37,7 @@ struct BenchmarkConfig {
     bool collect_resident{false};
     // 是否启用 GPU benchmark（CPU-only 构建应置 false）
     bool enable_gpu{false};
-    // 24 号计划 §1：kernel 过滤（空=测全部 specs；非空=只测列出的 KernelId）
+    // 24 §1：kernel 过滤（空=测全部 specs；非空=只测列出的 KernelId）
     // 用于 holdout 验证/定向微基准，避免全量 kernel 的内存与时长开销
     std::vector<std::uint32_t> kernel_ids;
 };
@@ -62,7 +62,7 @@ public:
     // 最后一次运行的日志（ human-readable ）
     const std::string& last_log() const noexcept;
 
-    // 25 号计划 §3.2：导出原始记录 JSON（保存每次原始耗时，非聚合）
+    // 25 §3.2：导出原始记录 JSON（保存每次原始耗时，非聚合）
     // 返回 false 表示写入失败。
     static bool write_raw_records_json(
         const std::string& path,
@@ -71,7 +71,7 @@ public:
 private:
     BenchmarkConfig cfg_;
     std::string log_;
-    // 24 号计划 §1：GPU 真实微基准（经桥接 DLL，惰性探测）
+    // 24 §1：GPU 真实微基准（经桥接 DLL，惰性探测）
     void* gpu_handle_{nullptr};
     bool gpu_probe_once_{false};
 
@@ -97,10 +97,10 @@ private:
     // variant="sum" 时只累加 x[i]（sum 曲线），否则为 dot（x·y 曲线）
     std::uint64_t run_cpu_dot(std::size_t n, const std::string& variant);
     // CPU Histogram：variant = hist_tls（thread-local bins+merge）/
-    //   hist_atomic（共享 atomic bins）
+    // hist_atomic（共享 atomic bins）
     std::uint64_t run_cpu_histogram(std::size_t n, const std::string& variant);
     // CPU Scatter：variant = scatter_perm（无冲突置换）/
-    //   scatter_atomic（atomic 写）
+    // scatter_atomic（atomic 写）
     std::uint64_t run_cpu_scatter(std::size_t n, const std::string& variant);
     // CPU 3x3 卷积：n = 总输出元素数（与 GPU 语义一致），w=ceil(sqrt(n))
     std::uint64_t run_cpu_conv2d(std::size_t n);

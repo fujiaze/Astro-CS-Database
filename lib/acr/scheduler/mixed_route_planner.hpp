@@ -1,10 +1,10 @@
 // lib/acr/scheduler/mixed_route_planner.hpp — 聚焦 Mixed 路由规划器
 //
-// 08 号计划 §5 / 05 号规范：基于 OperationProfile 决定
-//   - CPU/GPU 独立块大小；
-//   - host 与 resident 输入的不同 GPU 最小收益规模；
-//   - 边际收益门：设备只有在预计能缩短总完成时间时才继续 claim；
-//   - 尾段停止慢设备新 claim（防止尾部拖累）。
+// 08 §5 / 05 号规范：基于 OperationProfile 决定
+// - CPU/GPU 独立块大小；
+// - host 与 resident 输入的不同 GPU 最小收益规模；
+// - 边际收益门：设备只有在预计能缩短总完成时间时才继续 claim；
+// - 尾段停止慢设备新 claim（防止尾部拖累）。
 //
 // 只使用当前 Operation 的 Profile；无合格 Profile 时安全回退 CPU。
 #pragma once

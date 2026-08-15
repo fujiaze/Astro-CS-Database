@@ -1,11 +1,11 @@
 // lib/phase2/src/acr_kernels.cpp — Phase2 × ACR 合成 Operation 注册
 //
-// W9（控制包 34A532A2...B2EB308，08_ACR_INTEGRATION）：
-//   - CPU reference 是权威 science semantics；
-//   - ACR 只加速热点（block calibration / rejection / weighted reduction）；
-//   - 首版注册合成 Operation `synthetic.mosaic_reject.fp64acc`：
-//     legacy_parallel launcher 直接执行 phase2 CPU 语义（逐像素栈 rejection+
-//     加权叠加），保证 CPU/ACR 等价；GPU kernel 后续在 profile 后添加。
+// W9（ 34A532A2...B2EB308，08_ACR_INTEGRATION）：
+// - CPU reference 是权威 science semantics；
+// - ACR 只加速热点（block calibration / rejection / weighted reduction）；
+// - 首版注册合成 Operation `synthetic.mosaic_reject.fp64acc`：
+// legacy_parallel launcher 直接执行 phase2 CPU 语义（逐像素栈 rejection+
+// 加权叠加），保证 CPU/ACR 等价；GPU kernel 后续在 profile 后添加。
 #include "astro/phase2/rejection.h"
 #include "astro/phase2/integrate.h"
 
@@ -27,13 +27,13 @@ const char* kOpMosaicReject =
 
 namespace {
 
-// legacy launcher：invocation 约定（V15）
-//   buffer0 = 输出 signal（独占范围）
-//   buffer1 = 输入样本栈 values（N 样本 × pixel_count，frame-major）
-//   buffer2 = 输入 support/weights（可选）
-//   scalars: [0]=pixel_count, [1]=stack_depth, [2]=rejection method(explicit),
-//            [3]=underdetermined_n, [4]=sigma_lower, [5]=sigma_upper,
-//            [6]=max_iterations, [7]=tile 内偏移 p0
+// legacy launcher：invocation 约定
+// buffer0 = 输出 signal（独占范围）
+// buffer1 = 输入样本栈 values（N 样本 × pixel_count，frame-major）
+// buffer2 = 输入 support/weights（可选）
+// scalars: [0]=pixel_count, [1]=stack_depth, [2]=rejection method(explicit),
+// [3]=underdetermined_n, [4]=sigma_lower, [5]=sigma_upper,
+// [6]=max_iterations, [7]=tile 内偏移 p0
 void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
     const BufferBinding* out = inv.buffers.find(0);
     const BufferBinding* vals = inv.buffers.find(1);
@@ -61,7 +61,7 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
     const auto p0 = read_scalar<std::size_t>(
         inv.scalars, 2 * sizeof(std::size_t) + 2 * sizeof(int) +
                          2 * sizeof(double) + sizeof(int));
-    // V19: weight_mode scalar (offset 7); 缺省 0=legacy support×snr²
+    // weight_mode scalar (offset 7); 缺省 0=legacy support×snr²
     const auto wmode = read_scalar<int>(
         inv.scalars, 2 * sizeof(std::size_t) + 2 * sizeof(int) +
                          2 * sizeof(double) + sizeof(int) + sizeof(std::size_t));
@@ -85,7 +85,7 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
     std::vector<std::uint8_t> accepted(n_depth);
     std::vector<std::uint64_t> frame_seq(n_depth);
     for (std::size_t s = 0; s < n_depth; ++s) frame_seq[s] = s;
-    // V15：显式 plan（ACR 路径仅 robust_mad_clip/sigma）
+    // 显式 plan（ACR 路径仅 robust_mad_clip/sigma）
     P2RejectionPlan plan{};
     plan.method = (int)method_v;
     plan.minimum_n = 3;
@@ -101,7 +101,7 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
     float* dst = static_cast<float*>(out->data);
 
     for (std::size_t p = 0; p < n_px; ++p) {
-        // V16：统一 EligibilityPolicy（与 CPU 生产路径同一 collector）
+        // 统一 EligibilityPolicy（与 CPU 生产路径同一 collector）
         P2EligibilityGatherInput gin{};
         gin.values = src;
         gin.value_stride = n_px;
@@ -121,9 +121,9 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
         if (p2_collect_candidate_stack(&gin, &gout) != 0) {
             throw std::runtime_error("mosaic_reject: eligibility failed");
         }
-        // V19: 权重模式
-        //   wmode=2 (ivar, 默认): buffer3=control-cell ivar, w = support × ivar
-        //   wmode=0 (legacy): buffer3=control-cell SNR, w = support × snr²
+        // 权重模式
+        // wmode=2 (ivar, 默认): buffer3=control-cell ivar, w = support × ivar
+        // wmode=0 (legacy): buffer3=control-cell SNR, w = support × snr²
         for (std::uint32_t s = 0; s < n_valid; ++s) {
             double wgt_v = 1.0;
             if (snr != nullptr) {
@@ -158,7 +158,7 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
         if (p2_reject_stack_ex(&cstack, &plan, &rdec) != 0) {
             throw std::runtime_error("mosaic_reject: rejection failed");
         }
-        // V17：只有 OK/UNDERDETERMINED 可继续
+        // 只有 OK/UNDERDETERMINED 可继续
         if (rdec.status != P2_STATUS_OK &&
             rdec.status != P2_STATUS_UNDERDETERMINED) {
             throw std::runtime_error(
@@ -239,7 +239,7 @@ void mosaic_reject_cuda(const KernelInvocation& inv, void*) {
     const std::uint32_t method_v =
         method ? static_cast<std::uint32_t>(*method) : 1u;
     if (method_v == P2_REJECT_WINSORIZED_SIGMA) {
-        // R6：Winsorized 与 Sigma 算法不同（winsorized mean/std vs
+        // Winsorized 与 Sigma 算法不同（winsorized mean/std vs
         // median/MAD），CUDA 只实现 Sigma；Winsorized 明确 CPU_ROUTE，
         // 禁止同 kernel 冒充两种 science semantics。
         throw std::runtime_error(

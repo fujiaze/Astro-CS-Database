@@ -1,12 +1,12 @@
 // lib/phase2/src/coverage.cpp — Phase2 W3 coverage union 实现（真实 AIO 接入）
 //
-// 语义（控制包 34A532A2...B2EB308 + wiki Phase2_Architecture）：
-//   - 输入为多个 Phase1 单帧 HiPS（signal/support/snr）；
-//   - 通过唯一 AIO（astro_image_io.dll aio_hips_reader）读取每帧
-//     properties 与叶级 tile 列表（Moc.fits）；
-//   - 兼容校验：hips_version / hips_frame / tile_width / obs_filter；
-//   - target_order = min(所有输入 max leaf order)（禁止低 order 插值伪装分辨率）；
-//   - Ω = MOC_1 ∪ ... ∪ MOC_N（NESTED，允许不连通分量）。
+// 语义（ 34A532A2...B2EB308 + wiki Phase2_Architecture）：
+// - 输入为多个 Phase1 单帧 HiPS（signal/support/snr）；
+// - 通过唯一 AIO（astro_image_io.dll aio_hips_reader）读取每帧
+// properties 与叶级 tile 列表（Moc.fits）；
+// - 兼容校验：hips_version / hips_frame / tile_width / obs_filter；
+// - target_order = min(所有输入 max leaf order)（禁止低 order 插值伪装分辨率）；
+// - Ω = MOC_1 ∪ ... ∪ MOC_N（NESTED，允许不连通分量）。
 #include "astro/phase2/coverage.h"
 
 #include <algorithm>

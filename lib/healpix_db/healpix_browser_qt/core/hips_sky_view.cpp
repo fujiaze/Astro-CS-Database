@@ -1,5 +1,5 @@
 // ============================================================================
-// hips_sky_view.cpp - V9 HiPS 2D 天空视图核心实现
+// hips_sky_view.cpp - HiPS 2D 天空视图核心实现
 // ============================================================================
 
 #include "hips_sky_view.h"
@@ -29,8 +29,8 @@ inline float clampf(float x, float lo, float hi) {
     return x < lo ? lo : (x > hi ? hi : x);
 }
 
-// V14 v2：自动标尺 —— 已排序样本的 p1/p99 分位 + 亮端污染守卫。
-// 与 V13 fixed stretch（1%/99%，用户 ACCEPTED）一致；亮星不主导背景：
+// v2：自动标尺 —— 已排序样本的 p1/p99 分位 + 亮端污染守卫。
+// 与 fixed stretch（1%/99%，用户 ACCEPTED）一致；亮星不主导背景：
 // 若 p99 被极端亮星/卫星线污染（> med+30*MAD），退回到剔除
 // > med+12*MAD 后重算 p99。
 void compute_auto_range(const std::vector<float>& samples, float* dmin,
@@ -99,7 +99,7 @@ void HipsSkyView::set_view(double center_ra, double center_dec,
     dec0_ = clampf((float)center_dec, -89.9f, 89.9f);
     fov_ = clampf((float)fov_deg, 0.05f, 60.0f);
     if (aspect > 0.01) aspect_ = aspect;
-    // V14/V15：Auto View 模式下 pan/zoom 重算 robust STF；Auto Global
+    // Auto View 模式下 pan/zoom 重算 robust STF；Auto Global
     // 保持；Lock STF 冻结标尺（禁止重算）。唯一状态 stf_。
     if (stf_.mode == STFMode::AutoView &&
         stf_.mode != STFMode::Manual && !stf_.locked)
@@ -130,7 +130,7 @@ void HipsSkyView::set_manual_range(float lo, float hi) {
 }
 
 void HipsSkyView::set_manual_stf(const STFParams& params) {
-    // V14 v3：手动 STF 用显示空间归一化控制点（0=黑, 1=白），
+    // v3：手动 STF 用显示空间归一化控制点（0=黑, 1=白），
     // 渲染端在 auto 标尺归一化后再应用裁剪窗口。
     stf_.mode = STFMode::Manual;
     stf_.black = clampf(params.shadows, 0.0f, 1.0f);
@@ -298,7 +298,7 @@ void HipsSkyView::rasterize(std::vector<std::uint32_t>& rgba) {
     const std::size_t npx = (std::size_t)w_ * (std::size_t)h_;
 
     // ---- Phase A（并行）：屏幕像素 → (ra,dec) → leaf ----
-    // V14：view 未变时复用已采样 leaves（stretch-only redraw，不重新
+    // view 未变时复用已采样 leaves（stretch-only redraw，不重新
     // sky→HEALPix 采样/FITS decode）。
     std::vector<std::uint64_t> leaves;
     const bool view_same =
@@ -372,7 +372,7 @@ void HipsSkyView::rasterize(std::vector<std::uint32_t>& rgba) {
     cache_w_ = w_; cache_h_ = h_;
     }
 
-    // ---- 自动范围（V14 v2）：support>0 + robust 污染剔除 + 1%/99% 分位 ----
+    // ---- 自动范围：support>0 + robust 污染剔除 + 1%/99% 分位 ----
     float dmin = FLT_MAX, dmax = -FLT_MAX;
     std::size_t valid = 0;
     if (layer_ == 0 && stf_.mode != STFMode::Manual && auto_range_dirty_ &&
@@ -381,7 +381,7 @@ void HipsSkyView::rasterize(std::vector<std::uint32_t>& rgba) {
         bool from_full_dataset = false;
         if (stf_.mode != STFMode::AutoView && bk_ != nullptr) {
             // Auto Global：全 dataset 均匀采样（进程内缓存）。
-            // 与 V13 fixed stretch（1%/99% 全字段）一致；视口 p99 偏紧
+            // 与 fixed stretch（1%/99% 全字段）一致；视口 p99 偏紧
             // （GC Wide 0.0031 vs 全 dataset 0.0043），会导致结构过曝。
             const std::string root = bk_->get_root();
             auto it = g_global_scan_cache_.find(root);
@@ -457,7 +457,7 @@ void HipsSkyView::rasterize(std::vector<std::uint32_t>& rgba) {
 
     // ---- Phase B（并行）：leaf → 缓存 tile → 上色 ----
     std::atomic<std::size_t> fallback_count{0};
-    // V15：renderer 只消费唯一 DisplayTransformState（曲线/控制点/模式）
+    // renderer 只消费唯一 DisplayTransformState（曲线/控制点/模式）
     STFParams sp = STFEngine::get_preset(stf_.curve, lo_, hi_);
     if (stf_.mode == STFMode::Manual) {
         sp.shadows = stf_.black;
@@ -479,7 +479,7 @@ void HipsSkyView::rasterize(std::vector<std::uint32_t>& rgba) {
             int o = order;
             std::uint64_t tp = tile_ipix;
             std::uint64_t use_local = local;
-            // V10 修复：父级回退时必须用父级 nside 下的 local（低 2*(order-o)
+            // 修复：父级回退时必须用父级 nside 下的 local（低 2*(order-o)
             // 位），不能用目标 order 的 local，否则父 tile 大范围内错位采样，
             // 导致“同一数据在屏幕上多处重复出现”的孤岛/碎片。
             while (!t && o > 0 && !strict_leaf_) {
@@ -502,7 +502,7 @@ void HipsSkyView::rasterize(std::vector<std::uint32_t>& rgba) {
                 if (layer_ == 0) {
                     const float val = t->sig[(size_t)fi];
                     if (std::isfinite(val)) {
-                        // V14 v3：auto 标尺归一化后，手动模式再应用
+                        // v3：auto 标尺归一化后，手动模式再应用
                         // 显示空间裁剪窗口（shadows/highlights 控制点）
                         float x = (val - lo_) / range;
                         if (stf_.mode == STFMode::Manual) {
@@ -517,7 +517,7 @@ void HipsSkyView::rasterize(std::vector<std::uint32_t>& rgba) {
                         color = 0xFF000000 | (g << 16) | (g << 8) | g;
                     }
                 } else {
-                    // V15：support 固定 linear [0,1]（禁止 sqrt(support)）
+                    // support 固定 linear [0,1]（禁止 sqrt(support)）
                     const float s = clampf(t->sup[(size_t)fi], 0.0f, 1.0f);
                     const std::uint32_t g = (std::uint32_t)clampf(
                         s * 255.0f, 0.0f, 255.0f);

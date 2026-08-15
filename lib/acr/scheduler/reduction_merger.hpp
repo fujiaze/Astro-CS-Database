@@ -2,11 +2,11 @@
 // Phase F：多设备/多 chunk 的局部 reduction 结果合并。
 //
 // 设计：
-//   1. 每个 chunk 产生一个局部 accumulator
-//   2. ReductionMerger 按顺序合并所有 accumulator 到全局结果
-//   3. 合并函数指针签名：void(void* dst, const void* src)
-//   4. 线程安全（合并时加锁）
-//   5. 公共头不暴露第三方类型
+// 1. 每个 chunk 产生一个局部 accumulator
+// 2. ReductionMerger 按顺序合并所有 accumulator 到全局结果
+// 3. 合并函数指针签名：void(void* dst, const void* src)
+// 4. 线程安全（合并时加锁）
+// 5. 公共头不暴露第三方类型
 #pragma once
 
 #include <cstddef>

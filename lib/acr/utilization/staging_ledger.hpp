@@ -1,8 +1,8 @@
 // lib/acr/utilization/staging_ledger.hpp — ACR staging reservation ledger
 //
-// 聚焦版 v2（08 号计划 §6 / 06 号规范 §4）：
-//   staging 不能用系统 RAM 总用量近似；由 ACR 自己的 reservation ledger
-//   记录实际 staging 分配/释放。
+// 聚焦版 v2（08 §6 / 06 号规范 §4）：
+// staging 不能用系统 RAM 总用量近似；由 ACR 自己的 reservation ledger
+// 记录实际 staging 分配/释放。
 #pragma once
 
 #include <cstddef>

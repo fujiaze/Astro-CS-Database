@@ -2,13 +2,13 @@
 // Phase C：验证 ProfileGenerator 生成的 HardwareProfile 结构正确、JSON 可解析
 //
 // 覆盖：
-//   1. ProfileGenerator::generate_hardware_profile 基本流程
-//   2. CPU device 默认存在（即使无 benchmark 结果）
-//   3. benchmark 结果映射到能力曲线（memory/arithmetic/reduction）
-//   4. JSON 序列化包含必需字段（schema_version/devices/fingerprint）
-//   5. write_hardware_profile_to_file + 读取回放
-//   6. 指纹非空（SHA-256 64 字符）
-//   7. DeviceProfile 查询接口
+// 1. ProfileGenerator::generate_hardware_profile 基本流程
+// 2. CPU device 默认存在（即使无 benchmark 结果）
+// 3. benchmark 结果映射到能力曲线（memory/arithmetic/reduction）
+// 4. JSON 序列化包含必需字段（schema_version/devices/fingerprint）
+// 5. write_hardware_profile_to_file + 读取回放
+// 6. 指纹非空（SHA-256 64 字符）
+// 7. DeviceProfile 查询接口
 #include <gtest/gtest.h>
 
 #include "astro/compute/hardware_profile.hpp"
@@ -74,7 +74,7 @@ KernelBenchmarkResult make_dot_result(std::size_t n, double ns) {
     KernelBenchmarkResult r;
     r.kernel_id = 4;  // Dot → reduction curve
     r.kernel_name = "dot_fp32";
-    r.variant = "dot";  // 25 号计划 §4：dot 与 sum 是不同曲线
+    r.variant = "dot";  // 25 §4：dot 与 sum 是不同曲线
     r.backend = "cpu";
     r.precision = "fp32";
     r.problem_size = n;

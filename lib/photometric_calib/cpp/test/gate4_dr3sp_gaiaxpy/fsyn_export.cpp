@@ -1,20 +1,20 @@
 // fsyn_export.cpp - Gate 4 (Phase1 v2/v3): 生产 compute_f_syn 导出工具
 //
 // 用途: 供 Python 验证 numpy 移植版 (fsyn_astrocs.py) 与生产 C++
-//       compute_f_syn_cached / compute_f_syn_cached_xpsd 数值一致
-//       (同一 uint8 光谱 + flux_min/flux_mul + 同一 filter/QE)。
+// compute_f_syn_cached / compute_f_syn_cached_xpsd 数值一致
+// (同一 uint8 光谱 + flux_min/flux_mul + 同一 filter/QE)。
 //
 // 用法:
-//   fsyn_export.exe <filter_file> <qe_file|none> <mag_g>
-//  stdin: 343 个 uint8 (空格分隔, 即 XPSD 光谱网格 336-1020nm @2nm)
-//  stdout: f_syn (double)
+// fsyn_export.exe <filter_file> <qe_file|none> <mag_g>
+// stdin: 343 个 uint8 (空格分隔, 即 XPSD 光谱网格 336-1020nm @2nm)
+// stdout: f_syn (double)
 //
-//   fsyn_export.exe xpsd <filter_file> <qe_file|none> <flux_min> <flux_mul>
-//  stdin: 343 个 uint8; stdout: f_syn (官方线性解码 + 绝对单位积分)
+// fsyn_export.exe xpsd <filter_file> <qe_file|none> <flux_min> <flux_mul>
+// stdin: 343 个 uint8; stdout: f_syn (官方线性解码 + 绝对单位积分)
 //
 // filter/qe 文件格式 (与 test_spectrum_integrator 一致):
-//   第一行: n_points
-//   后续: <wl_nm> <value>
+// 第一行: n_points
+// 后续: <wl_nm> <value>
 
 #include <cstdint>
 #include <cstdio>

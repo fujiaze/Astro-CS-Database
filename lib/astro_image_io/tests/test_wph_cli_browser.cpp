@@ -1,23 +1,23 @@
 // ============================================================================
 // test_wph_cli_browser.cpp - WP-H 步骤14 集成测试
 // 验证 CLI 诊断 + Browser 后端所需的 C API:
-//   aio_hiss_inspect, aio_hiss_read_tile_signal, aio_hiss_read_tile_support,
-//   aio_hiss_read_tile_snr, aio_hiss_query_pixel
+// aio_hiss_inspect, aio_hiss_read_tile_signal, aio_hiss_read_tile_support,
+// aio_hiss_read_tile_snr, aio_hiss_query_pixel
 //
 // 编译 (从 tests/ 目录):
-//   g++ -std=c++17 -O2 -fopenmp -DHAS_LZ4 -DAIO_ENABLE_HEALPIX \
-//     -I../include -I../src \
-//     test_wph_cli_browser.cpp \
-//     ../src/hiss_codec.cpp ../src/hiss_common.cpp \
-//     ../src/hiss_tile_model.cpp ../src/hiss_transform.cpp \
-//     ../src/hiss_writer.cpp ../src/hiss_stream_writer.cpp \
-//     ../src/hiss_reader.cpp \
-//     ../src/healpix/aio_healpix_io.cpp \
-//     ../src/aio_api.cpp ../src/aio_log.cpp \
-//     -llz4 -lm -o test_wph_cli_browser.exe
+// g++ -std=c++17 -O2 -fopenmp -DHAS_LZ4 -DAIO_ENABLE_HEALPIX \
+// -I../include -I../src \
+// test_wph_cli_browser.cpp \
+// ../src/hiss_codec.cpp ../src/hiss_common.cpp \
+// ../src/hiss_tile_model.cpp ../src/hiss_transform.cpp \
+// ../src/hiss_writer.cpp ../src/hiss_stream_writer.cpp \
+// ../src/hiss_reader.cpp \
+// ../src/healpix/aio_healpix_io.cpp \
+// ../src/aio_api.cpp ../src/aio_log.cpp \
+// -llz4 -lm -o test_wph_cli_browser.exe
 //
 // 运行:
-//   ./test_wph_cli_browser.exe
+// ./test_wph_cli_browser.exe
 // ============================================================================
 #include "aio_healpix_io.h"
 #include "hiss_format.h"
@@ -154,7 +154,7 @@ static void test_read_tile(const char* path, uint64_t parent_ipix) {
 
 // ============================================================================
 // 4. 测试 aio_hiss_query_pixel (Browser 像素查询)
-//    用 aio_hiss_read 获取 ipix, 用简单 pix2ang_nest 转换为 ra/dec
+// 用 aio_hiss_read 获取 ipix, 用简单 pix2ang_nest 转换为 ra/dec
 // ============================================================================
 static void test_query_pixel(const char* path) {
     fprintf(stderr, "\n========== [TEST] aio_hiss_query_pixel (Browser 像素查询) ==========\n");

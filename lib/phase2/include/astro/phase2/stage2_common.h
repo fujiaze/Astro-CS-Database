@@ -1,6 +1,6 @@
 // lib/phase2/include/astro/phase2/stage2_common.h — Stage2 生产共享函数
 //
-// R1（V4）：G2 production wiring gate 要求同一生产 parse+build path。
+// G2 production wiring gate 要求同一生产 parse+build path。
 // astrocs-stage2 与 gate 测试共用此处的配置解析与 UPM 配置构造。
 #pragma once
 
@@ -21,7 +21,7 @@ struct P2Stage2Config {
     int patch_radius_leaf = 2;
     int min_samples = 5;
     double snr_search_radius_deg = 0.05;
-    // V13 background-clean sampler
+    // background-clean sampler
     int    background_patch_radius = 8;
     double background_clip_sigma = 3.0;
     int    background_clip_iters = 3;
@@ -43,19 +43,19 @@ struct P2Stage2Config {
     // integration
     int precision = 0;
     std::uint64_t memory_limit_mb = 24576;
-    int reject_method = P2_REJECT_AUTO;  // V15: production default = auto
-    std::string reject_profile = "wbpp_2_9_1";  // V17: 版本化 profile
+    int reject_method = P2_REJECT_AUTO;  // production default = auto
+    std::string reject_profile = "wbpp_2_9_1";  // 版本化 profile
     std::uint32_t reject_underdetermined_n = 2;   // n<=2 → UNDERDETERMINED
-    // V16：RejectionNormalizationPolicy（判定工作域；mask 应用回原始值）
+    // RejectionNormalizationPolicy（判定工作域；mask 应用回原始值）
     std::string reject_normalization = "astrocs_median_center_v1";
     double reject_normalization_floor = 1e-12;
-    // V17：astrocs.large_scale_rejection.v1（WBPP 大尺度拒绝的 AstroCS
+    // astrocs.large_scale_rejection.v1（WBPP 大尺度拒绝的 AstroCS
     // 自有实现；默认关闭 = WBPP largeScaleClipLow/High 默认一致）
     bool large_scale_enabled = false;
     int large_scale_min_structure_pixels = 8;
     int large_scale_low_grow_pixels = 2;
     int large_scale_high_grow_pixels = 2;
-    // V15 method-specific typed parameters（单语义单默认）
+    // method-specific typed parameters（单语义单默认）
     double sigma_lower = 4.0;
     double sigma_upper = 3.0;
     int sigma_max_iterations = 8;
@@ -79,8 +79,8 @@ struct P2Stage2Config {
     int minmax_high_count = 1;
     int minmax_min_kept = 4;
     std::string rcr_technique = "ss_median_dl";
-    // V17：legacy 别名已删除（旧 config 必须经 migration tool 迁移）
-    // V19: 2=ivar (默认, 逆方差); 1=equal; 0=support_x_snr2 (legacy/诊断)
+    // legacy 别名已删除（旧 config 必须经 migration tool 迁移）
+    // 2=ivar (默认, 逆方差); 1=equal; 0=support_x_snr2 (legacy/诊断)
     int weight_mode = 2;
     std::string acr_route = "auto";
     // output

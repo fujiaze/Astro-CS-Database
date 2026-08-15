@@ -1,10 +1,10 @@
 // lib/acr/tests/unit/test_residency.cpp — 数据驻留与内存预算测试
 //
-// 08 号计划 §6 / 06 号规范：
-//   - ResidencyManager 状态流转（Host/Device/Both/dirty）
-//   - 上传复用（同输入不重复整帧上传）
-//   - 传输次数报告
-//   - pinned staging 独立记账
+// 08 §6 / 06 号规范：
+// - ResidencyManager 状态流转（Host/Device/Both/dirty）
+// - 上传复用（同输入不重复整帧上传）
+// - 传输次数报告
+// - pinned staging 独立记账
 #include <gtest/gtest.h>
 
 #include "residency_manager.hpp"

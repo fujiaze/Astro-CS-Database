@@ -2,12 +2,12 @@
 // 验证能力（17 §13）：依赖模式（前缀和）、证明依赖任务不能当普通 parallel_for
 //
 // Phase H 扩展：
-//   - inclusive/exclusive
-//   - uint32 输入、uint64 输出
-//   - N=1、3、1025、2^20+17（边界尺寸）
-//   - oneTBB adapter（用 ACR parallel_chunks 实现 blocked scan adapter）
-//   - 逐元素 exact
-//   - 证明依赖任务不能当普通 parallel_for（无块间修正时出错）
+// - inclusive/exclusive
+// - uint32 输入、uint64 输出
+// - N=1、3、1025、2^20+17（边界尺寸）
+// - oneTBB adapter（用 ACR parallel_chunks 实现 blocked scan adapter）
+// - 逐元素 exact
+// - 证明依赖任务不能当普通 parallel_for（无块间修正时出错）
 #include "classic_common.hpp"
 
 #include <gtest/gtest.h>
@@ -141,7 +141,7 @@ CaseResult run_exclusive_scan_u64(std::size_t n, std::size_t block_size,
             block_prefix[i + 1] = block_prefix[i] + block_sums[i];
         }
         // 阶段 3：每元素 = block_prefix[block_idx] + (out[i] - in[i])
-        //         即 exclusive = block_prefix + 局部 inclusive 减自身
+        // 即 exclusive = block_prefix + 局部 inclusive 减自身
         parallel_chunks(KernelId::Scan, Range1D{0, n}, block_size,
             [&](std::size_t b, std::size_t e) {
                 std::size_t block_idx = b / block_size;

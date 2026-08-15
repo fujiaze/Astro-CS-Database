@@ -2,10 +2,10 @@
 // aio_ahpx_api.cpp - .ahpx 简化 C API 实现
 //
 // 提供 4 个一次性调用的 C 函数, 供 Python (ctypes) 或其他 C 程序调用:
-//   aio_ahpx_write        - 写入 .ahpx 文件 (一次性写入所有数据)
-//   aio_ahpx_read_header  - 读取 .ahpx 文件元数据 (不读像素)
-//   aio_ahpx_read_pixels  - 读取 .ahpx 文件像素数据
-//   aio_ahpx_read_snr     - 读取 .ahpx 文件 SNR 数据
+// aio_ahpx_write - 写入 .ahpx 文件 (一次性写入所有数据)
+// aio_ahpx_read_header - 读取 .ahpx 文件元数据 (不读像素)
+// aio_ahpx_read_pixels - 读取 .ahpx 文件像素数据
+// aio_ahpx_read_snr - 读取 .ahpx 文件 SNR 数据
 //
 // 返回值: 0=成功, 非0=失败
 // ============================================================================
@@ -22,16 +22,16 @@
 // ============================================================================
 // aio_ahpx_write - 写入 .ahpx 文件 (一次性写入所有数据)
 //
-// path:          输出文件路径
-// pixels:        像素数据 (float32, width×height×channels)
+// path: 输出文件路径
+// pixels: 像素数据 (float32, width×height×channels)
 // width/height/channels: 图像几何
-// snr:           SNR 图 (float32, snr_w×snr_h), 可为 nullptr
-// snr_w/snr_h:   SNR 图几何
-// weight_mode:   0=SCALAR, 1=GRID, 2=PIXEL
-// weight_data:   权重数据 (float32), 可为 nullptr (使用默认标量 1.0)
+// snr: SNR 图 (float32, snr_w×snr_h), 可为 nullptr
+// snr_w/snr_h: SNR 图几何
+// weight_mode: 0=SCALAR, 1=GRID, 2=PIXEL
+// weight_data: 权重数据 (float32), 可为 nullptr (使用默认标量 1.0)
 // grid_w/grid_h: 仅 GRID 模式有效
 // metadata_json: 元数据 JSON 字符串, 可为 nullptr
-// zstd_level:    ZSTD 压缩级别 (1-22, 0=不压缩, 推荐 5)
+// zstd_level: ZSTD 压缩级别 (1-22, 0=不压缩, 推荐 5)
 // ============================================================================
 AIO_EXPORT int aio_ahpx_write(const char *path,
                                const void *pixels, int width, int height, int channels,
@@ -104,8 +104,8 @@ AIO_EXPORT int aio_ahpx_write(const char *path,
 // ============================================================================
 // aio_ahpx_read_header - 读取 .ahpx 文件元数据 (不读像素)
 //
-// path:             输入文件路径
-// metadata_json:    输出缓冲区, 拷贝 JSON 头 (可为 nullptr, 仅校验文件)
+// path: 输入文件路径
+// metadata_json: 输出缓冲区, 拷贝 JSON 头 (可为 nullptr, 仅校验文件)
 // metadata_capacity: 缓冲区容量 (字节)
 // ============================================================================
 AIO_EXPORT int aio_ahpx_read_header(const char *path,
@@ -143,8 +143,8 @@ AIO_EXPORT int aio_ahpx_read_header(const char *path,
 // ============================================================================
 // aio_ahpx_read_pixels - 读取 .ahpx 文件像素数据
 //
-// path:     输入文件路径
-// pixels:   输出缓冲区 (float32, 调用方分配)
+// path: 输入文件路径
+// pixels: 输出缓冲区 (float32, 调用方分配)
 // capacity: 缓冲区容量 (float 数量)
 // width/height/channels: 输出图像几何
 // ============================================================================
@@ -207,8 +207,8 @@ AIO_EXPORT int aio_ahpx_read_pixels(const char *path,
 // ============================================================================
 // aio_ahpx_read_snr - 读取 .ahpx 文件 SNR 数据
 //
-// path:     输入文件路径
-// snr:      输出缓冲区 (float32, 调用方分配)
+// path: 输入文件路径
+// snr: 输出缓冲区 (float32, 调用方分配)
 // capacity: 缓冲区容量 (float 数量)
 // width/height: 输出 SNR 图几何
 // ============================================================================

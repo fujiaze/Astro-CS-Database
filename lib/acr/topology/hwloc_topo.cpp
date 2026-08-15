@@ -2,11 +2,11 @@
 // ADR-003：hwloc 是 ACR 唯一的硬件拓扑/NUMA/PCI 探测来源。
 //
 // 设计要点：
-//   - PIMPL 封装 hwloc_topology_t，公共头不暴露 hwloc 类型
-//   - 无 hwloc（ACR_HAVE_HWLOC 未定义）时 available()=false，to_json() 返回 unavailable
-//   - 不抛异常，所有 hwloc 错误降级为缺失字段（null）或 unavailable
-//   - JSON 手写（ostringstream），不引入 nlohmann_json 依赖
-//   - 枚举：package/core/PU/cache(L1/L2/L3)/NUMA 节点/PCI 设备
+// - PIMPL 封装 hwloc_topology_t，公共头不暴露 hwloc 类型
+// - 无 hwloc（ACR_HAVE_HWLOC 未定义）时 available()=false，to_json() 返回 unavailable
+// - 不抛异常，所有 hwloc 错误降级为缺失字段（null）或 unavailable
+// - JSON 手写（ostringstream），不引入 nlohmann_json 依赖
+// - 枚举：package/core/PU/cache(L1/L2/L3)/NUMA 节点/PCI 设备
 #include "astro/compute/topology.hpp"
 
 #include <atomic>

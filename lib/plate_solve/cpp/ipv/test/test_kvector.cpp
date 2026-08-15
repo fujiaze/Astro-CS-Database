@@ -2,12 +2,12 @@
 // test_kvector.cpp - IPV k-vector 模块单元测试
 //
 // 测试内容:
-//   1. 构建: N_W=80 合成星点, 验证 n_pairs == 80*79/2 = 3160
-//   2. 查询空区间 (d_lo > d_max): 返回 0 个
-//   3. 查询单点 (d_lo == d_hi == 某个距离): 返回对应星对
-//   4. 查询多点 (正常区间): 验证返回的星对距离都在 [d_lo, d_hi] 内
-//   5. 查询边界 (d_lo = d_min, d_hi = d_max): 返回全部星对
-//   6. 与暴力 O(M) 查询对比, 验证结果一致
+// 1. 构建: N_W=80 合成星点, 验证 n_pairs == 80*79/2 = 3160
+// 2. 查询空区间 (d_lo > d_max): 返回 0 个
+// 3. 查询单点 (d_lo == d_hi == 某个距离): 返回对应星对
+// 4. 查询多点 (正常区间): 验证返回的星对距离都在 [d_lo, d_hi] 内
+// 5. 查询边界 (d_lo = d_min, d_hi = d_max): 返回全部星对
+// 6. 与暴力 O(M) 查询对比, 验证结果一致
 //
 // 编译: g++ -std=c++17 -O2 -I include src/ipv_kvector.cpp test/test_kvector.cpp -o test_kvector.exe
 // 运行: ./test_kvector.exe

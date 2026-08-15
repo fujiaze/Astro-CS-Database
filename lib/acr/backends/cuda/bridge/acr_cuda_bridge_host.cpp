@@ -24,7 +24,7 @@ void acr_launch_conv3x3(float* y, const float* x,
                         size_t begin, size_t n,
                         size_t width, size_t height,
                         const float* k, cudaStream_t stream);
-// 聚焦版（08 号计划 §3）：目标合成内核 launch
+// 聚焦版（08 §3）：目标合成内核 launch
 void acr_launch_dense_accumulate_fp64acc(float* y, const float* x,
                                          size_t begin, size_t n,
                                          cudaStream_t stream);
@@ -74,7 +74,7 @@ struct CudaExecutorHandle {
     int stream_count{1};
     std::size_t next_stream{0};
     std::mutex mtx;
-    // 25 号计划 §2.1：每个设备缓冲区独立容量记账，
+    // 25 §2.1：每个设备缓冲区独立容量记账，
     // 禁止 d_x/d_y 或 d_partials/d_kernel 共享一个计数器
     float* d_x{nullptr};
     size_t d_x_capacity{0};
@@ -379,7 +379,7 @@ extern "C" int acr_cuda_executor_submit_reduce(void* handle,
     auto* h = static_cast<CudaExecutorHandle*>(handle);
     std::lock_guard<std::mutex> lk(h->mtx);
     const size_t n = end - begin;
-    // 25 号计划：grid 块数 = ceil(n / 256)（覆盖整个 chunk，不再固定 256）
+    // 25 ：grid 块数 = ceil(n / 256)（覆盖整个 chunk，不再固定 256）
     const size_t blocks = (n + 255) / 256;
     if (blocks == 0 || blocks_per_chunk < blocks) {
         if (last_error) *last_error = set_error_msg("reduce span too small");
@@ -438,7 +438,7 @@ extern "C" int acr_cuda_executor_submit_conv3x3(void* handle,
     }, elapsed_ns, last_error);
 }
 
-// ===== 聚焦版（08 号计划 §3）：目标合成 Operation =====
+// ===== 聚焦版（08 §3）：目标合成 Operation =====
 
 // Dense pixel accumulate（FP32 输入 + FP64 累加器）
 extern "C" int acr_cuda_executor_submit_dense_accumulate_fp64acc(
@@ -721,7 +721,7 @@ extern "C" int acr_cuda_executor_submit_chain_resident(
     }, elapsed_ns, last_error);
 }
 
-// ===== ACR 架构冻结（07 号计划 C）：加权积分 =====
+// ===== ACR 架构冻结（07 C）：加权积分 =====
 // 上传并保留到指定 persistent 槽位（slot 0 = d_x；slot 1 = d_w）。
 extern "C" int acr_cuda_executor_upload_persistent_slot(
     void* handle, int slot, size_t begin, size_t end,

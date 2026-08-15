@@ -2,24 +2,24 @@
 // ipv_itertrans.cpp - iter_trans 多项式 TRANS 拟合模块实现
 //
 // 实现:
-//   - calc_trans_general: 通用多项式最小二乘拟合 (order 1/2/3)
-//   - iter_trans_inner: sigma-clip 迭代核心 (35% 百分位, HALT_SIGMA, nb==0)
-//   - at_match_lists: V4.22 双向最近邻匹配 (U→W + W→U 互为最近邻) + 去重
-//   - at_recalc_trans: 用已有匹配对重拟合 + sig/sx/sy 统计
-//   - iter_trans_solve: 主入口 (iter_trans → atMatchLists → atRecalcTrans)
+// - calc_trans_general: 通用多项式最小二乘拟合 (order 1/2/3)
+// - iter_trans_inner: sigma-clip 迭代核心 (35% 百分位, HALT_SIGMA, nb==0)
+// - at_match_lists: 双向最近邻匹配 (U→W + W→U 互为最近邻) + 去重
+// - at_recalc_trans: 用已有匹配对重拟合 + sig/sx/sy 统计
+// - iter_trans_solve: 主入口 (iter_trans → atMatchLists → atRecalcTrans)
 //
-// 数据流 (V4.20: TRANS 方向 U->W):
-//   U = 图像侧星点 (像素坐标, 原点图像中心, Y 轴向上)
-//   W = 星表侧星点 (角秒坐标, gnomonic xi/eta)
-//   TRANS: U → W (apply_trans(U) ≈ W)
-//   MatchPair {u, w}: u 索引 U, w 索引 W
+// 数据流 (: TRANS 方向 U->W):
+// U = 图像侧星点 (像素坐标, 原点图像中心, Y 轴向上)
+// W = 星表侧星点 (角秒坐标, gnomonic xi/eta)
+// TRANS: U → W (apply_trans(U) ≈ W)
+// MatchPair {u, w}: u 索引 U, w 索引 W
 //
 // 关键常量:
-//   AT_MATCH_PERCENTILE = 0.35   (35% 百分位作为 sigma)
-//   AT_MATCH_NSIGMA     = 10.0   (相对剔除阈值 = 10*sigma)
-//   AT_MATCH_MAXDIST    = 50.0   (绝对剔除阈值, 角秒)
-//   ONE_STDEV_PERCENTILE = 0.683 (1-sigma 百分位, 用于最终 sig)
-//   AT_MATCH_REQUIRE_LINEAR = 3, AT_MATCH_STARTN_LINEAR = 6
+// AT_MATCH_PERCENTILE = 0.35 (35% 百分位作为 sigma)
+// AT_MATCH_NSIGMA = 10.0 (相对剔除阈值 = 10*sigma)
+// AT_MATCH_MAXDIST = 50.0 (绝对剔除阈值, 角秒)
+// ONE_STDEV_PERCENTILE = 0.683 (1-sigma 百分位, 用于最终 sig)
+// AT_MATCH_REQUIRE_LINEAR = 3, AT_MATCH_STARTN_LINEAR = 6
 //
 // 日期: 2026-07-05
 // ============================================================================
@@ -46,7 +46,7 @@ static constexpr int    AT_MATCH_REQUIRE_CUBIC     = 10;
 static constexpr int    AT_MATCH_STARTN_CUBIC      = 20;
 static constexpr double AT_MATCH_PERCENTILE        = 0.35;
 static constexpr double AT_MATCH_NSIGMA            = 10.0;
-static constexpr double AT_MATCH_MAXDIST           = 50.0;    // V4.20: 单位角秒, W 是角秒
+static constexpr double AT_MATCH_MAXDIST           = 50.0;    // 单位角秒, W 是角秒
 static constexpr double ONE_STDEV_PERCENTILE       = 0.683;
 static constexpr int    RECALC_YES                 = 1;
 static constexpr int    RECALC_NO                  = 0;
@@ -184,16 +184,16 @@ static void pack_trans(const std::vector<double>& xc,
 // calc_trans_general: 通用多项式 TRANS 最小二乘拟合
 //
 // 求解正规方程 M * c = b, 其中:
-//   M[a][b] = Σ basis[a](x,y) * basis[b](x,y)
-//   b[a]    = Σ basis[a](x,y) * target
+// M[a][b] = Σ basis[a](x,y) * basis[b](x,y)
+// b[a] = Σ basis[a](x,y) * target
 //
 // 输入: U (源, 像素), W (目标, 角秒), pairs (匹配对), order
 // 输出: trans (拟合结果)
 // 返回: true=成功, false=失败
 //
-// 数据流 (V4.20: TRANS 将 U 坐标变换到 W 坐标系):
-//   s1 = U[mp.u] (源, 像素, 输入到 TRANS)
-//   s2 = W[mp.w] (目标, 角秒, TRANS 输出应匹配)
+// 数据流 (: TRANS 将 U 坐标变换到 W 坐标系):
+// s1 = U[mp.u] (源, 像素, 输入到 TRANS)
+// s2 = W[mp.w] (目标, 角秒, TRANS 输出应匹配)
 // ---------------------------------------------------------------------------
 static bool calc_trans_general(
     const std::vector<StarPoint>& U,
@@ -267,7 +267,7 @@ static bool calc_trans_general(
 
 // ---------------------------------------------------------------------------
 // compute_stddev_clipped: 带单次 3-sigma 裁剪的标准差
-//   "A single iteration of 3-sigma clipping is used in the calculation."
+// "A single iteration of 3-sigma clipping is used in the calculation."
 // ---------------------------------------------------------------------------
 static double compute_stddev_clipped(const std::vector<double>& values,
                                      double n_sigma) {
@@ -319,21 +319,21 @@ static double compute_stddev_clipped(const std::vector<double>& values,
 // iter_trans_inner: sigma-clip 迭代拟合 TRANS
 //
 // 流程:
-//   1. 初始拟合 (recalc_flag=RECALC_NO 用前 start_pairs 对, RECALC_YES 用全部)
-//   2. 循环 (最多 max_iterations 次):
-//      a. 应用 TRANS, 计算每对 dist²
-//      b. 绝对阈值剔除: dist² > MAXDIST²
-//      c. sigma = 35% 百分位 (find_percentile)
-//      d. HALT_SIGMA: sigma <= halt_sigma → is_ok=true (不退出)
-//      e. V4.20 相对阈值剔除: dist² > 10*sigma
-//      f. nb==0 → is_ok=true (不退出, 重拟合后退出)
-//      g. nr < required_pairs → 失败
-//      h. 重拟合
-//      i. is_ok → 退出
-//   3. 最终 sig = 68.3% 百分位
+// 1. 初始拟合 (recalc_flag=RECALC_NO 用前 start_pairs 对, RECALC_YES 用全部)
+// 2. 循环 (最多 max_iterations 次):
+// a. 应用 TRANS, 计算每对 dist²
+// b. 绝对阈值剔除: dist² > MAXDIST²
+// c. sigma = 35% 百分位 (find_percentile)
+// d. HALT_SIGMA: sigma <= halt_sigma → is_ok=true (不退出)
+// e. 相对阈值剔除: dist² > 10*sigma
+// f. nb==0 → is_ok=true (不退出, 重拟合后退出)
+// g. nr < required_pairs → 失败
+// h. 重拟合
+// i. is_ok → 退出
+// 3. 最终 sig = 68.3% 百分位
 //
 // 输入: U, W, initial_pairs, recalc_flag, max_iterations, halt_sigma, tolerance, order
-//   (注: V4.20 后 tolerance 参数保留用于接口兼容, 相对阈值不再使用 (5*tolerance)²)
+// (注: 后 tolerance 参数保留用于接口兼容, 相对阈值不再使用 (5*tolerance)²)
 // 输出: IterTransResult (含 TRANS + inliers + 残差 + 统计)
 // ---------------------------------------------------------------------------
 static IterTransResult iter_trans_inner(
@@ -401,7 +401,7 @@ static IterTransResult iter_trans_inner(
     g_itertrans_logger.infof("iter_trans_inner: 初始拟合完成, 初始工作集=%zu, order=%d",
                               working.size(), order);
 
-    // V4.23 调试: 打印初始 TRANS 和前 6 对的残差
+    // 调试: 打印初始 TRANS 和前 6 对的残差
     {
         g_itertrans_logger.infof("  [调试] 初始 TRANS: x00=%.4f y00=%.4f, x10=%.6f x01=%.6f y10=%.6f y01=%.6f",
                                  trans.x00, trans.y00, trans.x10, trans.x01, trans.y10, trans.y01);
@@ -420,7 +420,7 @@ static IterTransResult iter_trans_inner(
         }
     }
 
-    // V4.23: 工作集扩展 (nr = nbright)
+    // 工作集扩展 (nr = nbright)
     // 用 start_pairs 对做首次 calc_trans, 然后立即将 nr 扩展为 nbright (全部对) 进入迭代
     // 之前 BUG: working 始终只有 start_pairs(6) 对, 6 对中 4 对被剔除后剩 2 < 3 required → 失败
     // 修复: 初始拟合成功后, 将 working 扩展为全部 initial_pairs, 迭代在全部对上做 sigma-clip
@@ -440,10 +440,10 @@ static IterTransResult iter_trans_inner(
         int nr = (int)working.size();
         int nb = 0;
 
-        // V4.20: 残差 = apply_trans(U) - W (U=像素, W=角秒)
+        // 残差 = apply_trans(U) - W (U=像素, W=角秒)
         std::vector<double> dist2(nr), dist2_sorted(nr);
         for (int i = 0; i < nr; i++) {
-            // V4.21 边界检查
+            // 边界检查
             if (working[i].u < 0 || working[i].u >= (int)U.size() ||
                 working[i].w < 0 || working[i].w >= (int)W.size()) {
                 g_itertrans_logger.warnf("iter_trans_inner: 索引越界 i=%d, u=%d (U.size=%zu), "
@@ -482,11 +482,11 @@ static IterTransResult iter_trans_inner(
         g_itertrans_logger.debugf("iter %d: 绝对剔除 nr=%d→%d, nb=%d",
                                    iters_so_far, nr, new_nr, nb);
 
-        // --- V4.28: tol 预过滤 (防止 sigma(35%) 被 5-50" 中等错配拉大) ---
+        // --- : tol 预过滤 (防止 sigma(35%) 被 5-50" 中等错配拉大) ---
         // 问题: workset 扩展 6→60 后, 绝对剔除(50")后仍有 dist 在 5-50" 的中等错配,
-        //        这些错配拉大 sigma(35%), 导致相对阈值 10*sigma 失效 (rel_thresh 远大于 tol)
+        // 这些错配拉大 sigma(35%), 导致相对阈值 10*sigma 失效 (rel_thresh 远大于 tol)
         // 修复: 第一次迭代时, 在 sigma 计算前用 tolerance 预过滤, 只保留 dist < tol 的对
-        //       条件: 预过滤后剩余对数 >= required_pairs 且确实剔除了对
+        // 条件: 预过滤后剩余对数 >= required_pairs 且确实剔除了对
         if (iters_so_far == 0 && new_nr > required_pairs) {
             double tol2 = tolerance * tolerance;
             std::vector<MatchPair> tol_surviving;
@@ -531,13 +531,13 @@ static IterTransResult iter_trans_inner(
 
         g_itertrans_logger.debugf("iter %d: sigma(35%%)=%.6f 角秒²", iters_so_far, sigma);
 
-        // --- V4.28: sigma 钳制 (防止 sigma 被 5-50" 中等错配拉大导致相对阈值失效) ---
+        // --- : sigma 钳制 (防止 sigma 被 5-50" 中等错配拉大导致相对阈值失效) ---
         // 问题: workset 60 对中存在 39-41 对错配, 绝对剔除(50")后仍有 5-50" 中等错配,
-        //        这些错配拉大 sigma(35%) 到 7.91-139.06 角秒² (正常帧 sigma≈1-3)
-        //        导致相对阈值 10*sigma = 79-1390 角秒² (8.94-37.28"), 远大于 tol=5", 无法清除中等错配
+        // 这些错配拉大 sigma(35%) 到 7.91-139.06 角秒² (正常帧 sigma≈1-3)
+        // 导致相对阈值 10*sigma = 79-1390 角秒² (8.94-37.28"), 远大于 tol=5", 无法清除中等错配
         // 修复: 当 sigma > tolerance² 时, 钳制为 tolerance², 使相对阈值从 10*sigma 降为 10*tolerance²
-        //        对于 tol=5": rel_thresh 从 1390(37.3") 降为 250(15.8"), 能剔除 dist>15.8" 的中等错配
-        //        注: tol 预过滤未触发时 (初始拟合质量差, tol 过滤后剩余 < required_pairs), sigma 钳制作为兜底
+        // 对于 tol=5": rel_thresh 从 1390(37.3") 降为 250(15.8"), 能剔除 dist>15.8" 的中等错配
+        // 注: tol 预过滤未触发时 (初始拟合质量差, tol 过滤后剩余 < required_pairs), sigma 钳制作为兜底
         if (sigma > tolerance * tolerance && tolerance > 0) {
             g_itertrans_logger.infof("iter %d: V4.28 sigma 钳制 %.6f → %.6f (tol=%.2f\", rel_thresh %.6f→%.6f)",
                                       iters_so_far, sigma, tolerance * tolerance,
@@ -553,7 +553,7 @@ static IterTransResult iter_trans_inner(
             // 不退出, 继续剔除+重拟合 (break 被注释掉)
         }
 
-        // --- V4.20: 相对阈值只用 NSIGMA*sigma (不再 min with (5*tau)²) ---
+        // --- : 相对阈值只用 NSIGMA*sigma (不再 min with (5*tau)²) ---
         double rel_threshold = AT_MATCH_NSIGMA * sigma;
 
         surviving.clear();
@@ -598,12 +598,12 @@ static IterTransResult iter_trans_inner(
     int nr = (int)working.size();
     trans.nr = nr;
 
-    // 计算最终残差 (用最终 TRANS 重新计算, V4.20: apply_trans(U) - W)
+    // 计算最终残差 (用最终 TRANS 重新计算, : apply_trans(U) - W)
     std::vector<double> final_dist2(nr);
     std::vector<double> final_dx(nr), final_dy(nr);
     double sum_d2 = 0.0;
     for (int i = 0; i < nr; i++) {
-        // V4.21 边界检查
+        // 边界检查
         if (working[i].u < 0 || working[i].u >= (int)U.size() ||
             working[i].w < 0 || working[i].w >= (int)W.size()) {
             g_itertrans_logger.warnf("iter_trans_inner: 索引越界 i=%d, u=%d (U.size=%zu), "
@@ -662,17 +662,17 @@ static IterTransResult iter_trans_inner(
 // ===========================================================================
 
 // ---------------------------------------------------------------------------
-// at_match_lists: V4.22 双向最近邻匹配 + 去重
+// at_match_lists: 双向最近邻匹配 + 去重
 //
-// 算法 (V4.22: 双向匹配, 替代 V4.20 单向贪心):
-//   1. 对 U 中每颗星应用 TRANS → U_pred (predicted W, 角秒坐标系)
-//   2. U→W (A→B): 对每个 U[i], 在 W 中找最近邻 W[j_i], 距离 ≤ tolerance 才记录
-//   3. W→U (B→A): 对每个 W[j], 在 U_pred 中找最近邻 U_pred[i_j], 距离 ≤ tolerance 才记录
-//   4. 双向配对成立: A→B 的 (i, j_i) 与 B→A 的 (i_j, j) 互为最近邻, 即 i_of[j_of[i]] == i
-//   5. remove_repeated_elements: 双向匹配理论上已保证无重复, 此处再校验去重并输出日志
+// 算法 (: 双向匹配, 替代 单向贪心):
+// 1. 对 U 中每颗星应用 TRANS → U_pred (predicted W, 角秒坐标系)
+// 2. U→W (A→B): 对每个 U[i], 在 W 中找最近邻 W[j_i], 距离 ≤ tolerance 才记录
+// 3. W→U (B→A): 对每个 W[j], 在 U_pred 中找最近邻 U_pred[i_j], 距离 ≤ tolerance 才记录
+// 4. 双向配对成立: A→B 的 (i, j_i) 与 B→A 的 (i_j, j) 互为最近邻, 即 i_of[j_of[i]] == i
+// 5. remove_repeated_elements: 双向匹配理论上已保证无重复, 此处再校验去重并输出日志
 //
-// 注: TRANS 方向保持 V4.20 (U→W), W→U 方向通过遍历 U_pred 找最近邻实现
-//     (不计算 trans 的逆, 简化实现, 与任务描述简化方案一致)
+// 注: TRANS 方向保持 (U→W), W→U 方向通过遍历 U_pred 找最近邻实现
+// (不计算 trans 的逆, 简化实现, 与任务描述简化方案一致)
 // ---------------------------------------------------------------------------
 std::vector<MatchPair> at_match_lists(
     const std::vector<StarPoint>& U,
@@ -694,14 +694,14 @@ std::vector<MatchPair> at_match_lists(
         apply_trans(trans, U[i].x, U[i].y, &U_pred[i].first, &U_pred[i].second);
     }
 
-    // V4.21 大小一致性检查
+    // 大小一致性检查
     if (U_pred.size() != U.size()) {
         g_itertrans_logger.warnf("at_match_lists: U_pred.size=%zu != U.size=%zu",
                                   U_pred.size(), U.size());
     }
 
     // 2. U→W (A→B): 对每个 U[i], 在 W 中找最近邻 W[j_i]
-    //    j_of[i] = U[i] 的最近邻 W 索引 (距离 ≤ tolerance 才有效, 否则 -1)
+    // j_of[i] = U[i] 的最近邻 W 索引 (距离 ≤ tolerance 才有效, 否则 -1)
     std::vector<int> j_of(U.size(), -1);
     int n_AB = 0;  // U→W 单向匹配数 (距离 ≤ tolerance)
 
@@ -724,7 +724,7 @@ std::vector<MatchPair> at_match_lists(
     }
 
     // 3. W→U (B→A): 对每个 W[j], 在 U_pred 中找最近邻 U_pred[i_j]
-    //    i_of[j] = W[j] 的最近邻 U 索引 (距离 ≤ tolerance 才有效, 否则 -1)
+    // i_of[j] = W[j] 的最近邻 U 索引 (距离 ≤ tolerance 才有效, 否则 -1)
     std::vector<int> i_of(W.size(), -1);
     int n_BA = 0;  // W→U 单向匹配数 (距离 ≤ tolerance)
 
@@ -747,7 +747,7 @@ std::vector<MatchPair> at_match_lists(
     }
 
     // 4. 双向配对成立: A→B 的 (i, j_i) 与 B→A 的 (i_j, j) 互为最近邻
-    //    即 i_of[j_of[i]] == i
+    // 即 i_of[j_of[i]] == i
     std::vector<MatchPair> bidir_matches;
     for (size_t i = 0; i < U.size(); i++) {
         int j = j_of[i];
@@ -760,9 +760,9 @@ std::vector<MatchPair> at_match_lists(
     }
 
     // 5. remove_repeated_elements: 双向匹配理论上已保证无重复
-    //    (每个 U[i] 只对应一个 j_of[i], 每个 W[j] 只对应一个 i_of[j],
-    //     互为最近邻的配对中同一 U/W 不会出现两次)
-    //    此处再校验去重, 并输出日志
+    // (每个 U[i] 只对应一个 j_of[i], 每个 W[j] 只对应一个 i_of[j],
+    // 互为最近邻的配对中同一 U/W 不会出现两次)
+    // 此处再校验去重, 并输出日志
     std::vector<bool> u_seen(U.size(), false);
     std::vector<bool> w_seen(W.size(), false);
     int n_dedup = 0;
@@ -787,8 +787,8 @@ std::vector<MatchPair> at_match_lists(
 // at_recalc_trans: 用已有匹配对重拟合 TRANS (recalc=YES 模式)
 //
 // 流程:
-//   - 用全部匹配对拟合 TRANS (不剔除, 因为已经是内点)
-//   - 计算 sig (68.3% 百分位), sx/sy (3-sigma 裁剪标准差)
+// - 用全部匹配对拟合 TRANS (不剔除, 因为已经是内点)
+// - 计算 sig (68.3% 百分位), sx/sy (3-sigma 裁剪标准差)
 // ---------------------------------------------------------------------------
 IterTransResult at_recalc_trans(
     const std::vector<StarPoint>& U,
@@ -824,12 +824,12 @@ IterTransResult at_recalc_trans(
         return result;
     }
 
-    // 计算残差 (V4.20: apply_trans(U) - W, U=像素, W=角秒)
+    // 计算残差 (: apply_trans(U) - W, U=像素, W=角秒)
     int n = (int)matched_pairs.size();
     std::vector<double> dist2(n), dx_arr(n), dy_arr(n);
     double sum_d2 = 0.0;
     for (int i = 0; i < n; i++) {
-        // V4.21 边界检查
+        // 边界检查
         if (matched_pairs[i].u < 0 || matched_pairs[i].u >= (int)U.size() ||
             matched_pairs[i].w < 0 || matched_pairs[i].w >= (int)W.size()) {
             g_itertrans_logger.warnf("at_recalc_trans: 索引越界 i=%d, u=%d (U.size=%zu), "
@@ -965,11 +965,11 @@ IterTransResult at_recalc_trans(
 // iter_trans_solve: 主入口
 //
 // 流程:
-//   1. initial_pairs → iter_trans_inner (RECALC_NO) → TRANS + inliers
-//   2. atMatchLists(U, W, TRANS, tolerance) → 全量匹配对
-//   3. atRecalcTrans(U, W, 全量匹配对) → 精化 TRANS
-//   4. (可选) 第二轮 atMatchLists + atRecalcTrans
-//   5. 返回 IterTransResult
+// 1. initial_pairs → iter_trans_inner (RECALC_NO) → TRANS + inliers
+// 2. atMatchLists(U, W, TRANS, tolerance) → 全量匹配对
+// 3. atRecalcTrans(U, W, 全量匹配对) → 精化 TRANS
+// 4. (可选) 第二轮 atMatchLists + atRecalcTrans
+// 5. 返回 IterTransResult
 // ---------------------------------------------------------------------------
 IterTransResult iter_trans_solve(
     const std::vector<StarPoint>& U,

@@ -10,9 +10,9 @@
 #include "wcs_sip.h"
 #include "reverse_drizzle.h"
 #include "astro_image_io.h"   // aio_frame_get_block / aio_frame_kv_get
-#include "snr_evaluator.h"  // SnrEvaluator (KD-tree IDW 重建逐像素 SNR; V18 模块内私有实现)
+#include "snr_evaluator.h"  // SnrEvaluator (KD-tree IDW 重建逐像素 SNR; 模块内私有实现)
 #include "aio_healpix_io.h"         // HioSnrModel, HioSnrControlPoint (向后兼容宏)
-#include "astro_sphere_sink.h"      // Phase1 V3: Drizzle -> AIO HiPS 直写
+#include "astro_sphere_sink.h"      // Phase1 : Drizzle -> AIO HiPS 直写
 
 #include <cstdio>
 #include <cstring>
@@ -83,7 +83,7 @@ HP_DRIZZLE_API int hp_drizzle_reverse_run(
     w.crpix[0] = in->crpix[0]; w.crpix[1] = in->crpix[1];
     w.cd[0] = in->cd[0]; w.cd[1] = in->cd[1];
     w.cd[2] = in->cd[2]; w.cd[3] = in->cd[3];
-    // MICROFIX #3: SIP order 正式支持 0~5 (6×6 系数数组), 非法值硬失败,
+    // SIP order 正式支持 0~5 (6×6 系数数组), 非法值硬失败,
     // 禁止静默截断 (6×6 系数数组, 非法值硬失败)
     if (in->sip_order < 0 || in->sip_order > 5 ||
         in->sip_ap_order < 0 || in->sip_ap_order > 5) {
@@ -307,8 +307,8 @@ HP_DRIZZLE_API int hp_drizzle_fits_to_ahpx(
                     "(photometry_applied_upstream=%d)\n",
             config.photscal, img.photappl, (int)config.photometry_applied_upstream);
 
-    // 6. 执行 Drizzle (R11 阶段6: Tile 级累加, 正式路径不恢复全局 leaf map)
-    //    FP32: Scalar=float 真 FP32 累计 (阶段7)
+    // 6. 执行 Drizzle ( 阶段6: Tile 级累加, 正式路径不恢复全局 leaf map)
+    // FP32: Scalar=float 真 FP32 累计 (阶段7)
     DrizzleEngine engine;
     std::vector<drizzle::TileAccumulatorT<float>> tiles;
     DrizzleStats stats;
@@ -320,8 +320,8 @@ HP_DRIZZLE_API int hp_drizzle_fits_to_ahpx(
     }
 
     // 7. 写入 .hiss 文件
-    //    DrizzleMeta: FitsImage 未保存 FILTER/EXPTIME/DATE-OBS 等 KV, 留空
-    //    output_path 后缀规范化为 .hiss (兼容旧 .ahpx 调用)
+    // DrizzleMeta: FitsImage 未保存 FILTER/EXPTIME/DATE-OBS 等 KV, 留空
+    // output_path 后缀规范化为 .hiss (兼容旧 .ahpx 调用)
     std::string hissPath = output_path;
     {
         size_t plen = hissPath.size();
@@ -354,12 +354,12 @@ HP_DRIZZLE_API int hp_drizzle_fits_to_ahpx(
 
 // ============================================================================
 // run_drizzle_internal - 共享 Drizzle 执行 (parse frame -> drizzle ->
-//                        [legacy .hiss] / [HiPS 直写] 输出)
+// [legacy .hiss] / [HiPS 直写] 输出)
 //
-// write_hips       : 是否直写 HiPS 产品集 (Drizzle -> AIO, 无 HISS 中转)
-// hips_dir         : HiPS 输出根目录 (write_hips 时必需)
+// write_hips : 是否直写 HiPS 产品集 (Drizzle -> AIO, 无 HISS 中转)
+// hips_dir : HiPS 输出根目录 (write_hips 时必需)
 // write_legacy_hiss: 是否同时写 legacy .hiss (validation.legacy_hiss_compare)
-// output_path      : legacy .hiss 路径 (write_legacy_hiss 时必需)
+// output_path : legacy .hiss 路径 (write_legacy_hiss 时必需)
 // ============================================================================
 static int run_drizzle_internal(PipelineFrame* frame,
                                 int nside, int nested, double pixfrac,
@@ -370,10 +370,10 @@ static int run_drizzle_internal(PipelineFrame* frame,
                                 HpDrizzleResult* result,
                                 int precision_mode)
 {
-    // 0. V4 G4: actual-buffer trace 状态清理 (env 由 drizzleTiledImpl 内读取)
+    // 0. G4: actual-buffer trace 状态清理 (env 由 drizzleTiledImpl 内读取)
     drizzle_trace::reset();
 
-    // V18 (G1): Drizzle 内部粗粒度阶段计时（每段一次 clock，低开销，
+    // Drizzle 内部粗粒度阶段计时（每段一次 clock，低开销，
     // 生产默认打印；逐像素 fine profile 由 drizzle_engine 环境变量门控）
     const auto t_func0 = std::chrono::steady_clock::now();
     auto t_mark = t_func0;
@@ -419,8 +419,8 @@ static int run_drizzle_internal(PipelineFrame* frame,
             nside, nested ? 1 : 0, pixfrac, output_path ? output_path : "(null)");
 
     // 2. 读取 data 块 (支持 FLOAT32[H,W] 和 FLOAT64[H,W])
-    //    双精度 ABI (R10): FP64 模式下 data 块为 FLOAT64, 走 drizzle_f64 路径
-    //                      FP32 模式下 data 块为 FLOAT32, 走 drizzle 路径 (向后兼容)
+    // 双精度 ABI : FP64 模式下 data 块为 FLOAT64, 走 drizzle_f64 路径
+    // FP32 模式下 data 块为 FLOAT32, 走 drizzle 路径 (向后兼容)
     const AioBlock* data_blk = aio_frame_get_block(frame, "data");
     if (!data_blk) {
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: frame 中缺少 'data' 块\n");
@@ -483,9 +483,9 @@ static int run_drizzle_internal(PipelineFrame* frame,
     double crota2 = aio_frame_kv_get_double(frame, "header", "CROTA2", 0.0);
 
     // 4. 构造 WCS 参数 + 像素数据
-    //    双精度 ABI: 根据 data 块类型填充 pixels (float32) 或 pixels_f64 (float64)
-    //    FP64 模式下 pixels_f64 被填充, use_f64=true, drizzle_f64 从此字段读取
-    //    FP32 模式下 pixels 被填充, use_f64=false, drizzle 从此字段读取 (向后兼容)
+    // 双精度 ABI: 根据 data 块类型填充 pixels (float32) 或 pixels_f64 (float64)
+    // FP64 模式下 pixels_f64 被填充, use_f64=true, drizzle_f64 从此字段读取
+    // FP32 模式下 pixels 被填充, use_f64=false, drizzle 从此字段读取 (向后兼容)
     FitsImage img;
     img.width = width;
     img.height = height;
@@ -601,12 +601,12 @@ static int run_drizzle_internal(PipelineFrame* frame,
     }
 
     // 5.5 读取 "snr_model" 块 (稀疏控制点, AIO_BLOCK_RAW) → SnrEvaluator 重建逐像素 SNR
-    //     序列化格式 (与 .hiss snr_format=1 一致):
-    //       [n_points: uint32][points: n_points×20B][snr_phot: f64][median_snr: f64][idw_power: f64]
-    //     注: 必须在 img.wcs 构造完成后执行 (pixelToSkyBatch 需要 WCS)
+    // 序列化格式 (与 .hiss snr_format=1 一致):
+    // [n_points: uint32][points: n_points×20B][snr_phot: f64][median_snr: f64][idw_power: f64]
+    // 注: 必须在 img.wcs 构造完成后执行 (pixelToSkyBatch 需要 WCS)
     const float* snrPtr = nullptr;
     std::vector<float> snrRebuilt;       // 重建的逐像素 SNR (生命周期需覆盖 drizzle 调用)
-    // V18 (PERF-010): SNR model 控制点用 RAII vector 持有（points 指向
+    // SNR model 控制点用 RAII vector 持有（points 指向
     // vector.data()），禁止手工 malloc/free——生产 HiPS-only 路径
     // legacy_hiss_compare=false 时旧代码 free 不执行 → 每帧泄漏。
     std::vector<HioSnrControlPoint>   snr_pts_f32;
@@ -615,7 +615,7 @@ static int run_drizzle_internal(PipelineFrame* frame,
     HioSnrModelF64 snrModelDataF64 = {}; // f64 模型 (BLOCKER-TYPE-002)
     const HioSnrModel* snrModelPtr = nullptr;
     const HioSnrModelF64* snrModelF64Ptr = nullptr;
-    // V4: lineage 字段 (与 snr_model 控制点对齐, 供 HiPS Catalogue 使用)
+    // lineage 字段 (与 snr_model 控制点对齐, 供 HiPS Catalogue 使用)
     std::vector<int64_t> cp_star_id_all;
     std::vector<uint32_t> cp_qf_all;
     std::vector<uint32_t> cp_ps_all;
@@ -699,9 +699,9 @@ static int run_drizzle_internal(PipelineFrame* frame,
                                 cp_snr_f64[i] = (double)s;
                             }
                             if (version == 2) {
-                                // V4 v2 块为 #pragma pack(1) 布局 (G4 修复):
-                                //   f64 (vd==1, stride 40): star_id @ +24, qf @ +32, ps @ +36
-                                //   f32 (vd==0, stride 36): star_id @ +20, qf @ +28, ps @ +32
+                                // v2 块为 #pragma pack(1) 布局 (G4 修复):
+                                // f64 (vd==1, stride 40): star_id @ +24, qf @ +32, ps @ +36
+                                // f32 (vd==0, stride 36): star_id @ +20, qf @ +28, ps @ +32
                                 // 旧代码固定 f64 偏移导致 FP32 路径字段错位
                                 const size_t o_sid = (vd == 1) ? 24 : 20;
                                 const size_t o_qf  = (vd == 1) ? 32 : 28;
@@ -829,7 +829,7 @@ static int run_drizzle_internal(PipelineFrame* frame,
         }
     }
 
-    // Phase1 Final Signoff V4: 收集 SNR 控制点 (HiPS Catalogue 用),
+    // Phase1 Final Signoff : 收集 SNR 控制点 (HiPS Catalogue 用),
     // star_id/quality_flags/photometric_status 来自 snr_model v2 块
     // (禁止 i+1 重新编号)
     std::vector<AioHipsSnrPoint> snr_pts;
@@ -860,7 +860,7 @@ static int run_drizzle_internal(PipelineFrame* frame,
     }
     fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: SNR 控制点 %zu 个 (HiPS Catalogue)\n",
             snr_pts.size());
-    stamp(prof_snr);   // V18: SNR 重建结束
+    stamp(prof_snr);   // SNR 重建结束
 
     // 6. 构造 DrizzleConfig
     DrizzleConfig config;
@@ -893,10 +893,10 @@ static int run_drizzle_internal(PipelineFrame* frame,
                     "(photometry_applied_upstream=%d)\n",
             photscal, photappl, (int)config.photometry_applied_upstream);
 
-    // R10: 精度模式设置
-    //   precision_mode 参数优先 (0=FP32, 1=FP64)
-    //   若参数为 -1 (未指定), 从 header KV "PRECISION" 读取 (向后兼容)
-    //   写入 HISS metadata precision_mode/signal_dtype 字段
+    // 精度模式设置
+    // precision_mode 参数优先 (0=FP32, 1=FP64)
+    // 若参数为 -1 (未指定), 从 header KV "PRECISION" 读取 (向后兼容)
+    // 写入 HISS metadata precision_mode/signal_dtype 字段
     if (precision_mode == 0 || precision_mode == 1) {
         config.precision_mode = (uint8_t)precision_mode;
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: precision=%s (参数指定)\n",
@@ -917,9 +917,9 @@ static int run_drizzle_internal(PipelineFrame* frame,
         }
     }
 
-    // 5.6 V19 (P1-003/DRZ-014): 读取 "variance" 块 (逐像素方差图,
-    //     FLOAT32/64 [H,W], 由 SNR 阶段 NoiseWeightModelV1 填充)
-    //     → 方差传播 sumVarNum += v_j × w_jp²
+    // 5.6 (P1-003/DRZ-014): 读取 "variance" 块 (逐像素方差图,
+    // FLOAT32/64 [H,W], 由 SNR 阶段 NoiseWeightModelV1 填充)
+    // → 方差传播 sumVarNum += v_j × w_jp²
     const float* variancePtr = nullptr;
     std::vector<float> varianceConv;
     {
@@ -948,11 +948,11 @@ static int run_drizzle_internal(PipelineFrame* frame,
         }
     }
 
-    stamp(prof_parse);  // V18: parse frame + WCS + config 结束
+    stamp(prof_parse);  // parse frame + WCS + config 结束
 
-    // 7. 执行 Drizzle (R11 阶段6: Tile 级累加, 正式路径不恢复全局 leaf map)
-    //    双精度 ABI: 根据 data 块类型选择 drizzleTiled (FP32) 或 drizzleTiled_f64 (FP64)
-    //    FP64 模式: 从 img.pixels_f64 (double) 读取像素, 不降级到 float32
+    // 7. 执行 Drizzle ( 阶段6: Tile 级累加, 正式路径不恢复全局 leaf map)
+    // 双精度 ABI: 根据 data 块类型选择 drizzleTiled (FP32) 或 drizzleTiled_f64 (FP64)
+    // FP64 模式: 从 img.pixels_f64 (double) 读取像素, 不降级到 float32
     DrizzleEngine engine;
     std::vector<drizzle::TileAccumulatorT<float>> tiles_f32;
     std::vector<drizzle::TileAccumulatorT<double>> tiles_f64;
@@ -978,7 +978,7 @@ static int run_drizzle_internal(PipelineFrame* frame,
 
     fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: Drizzle 完成 (%lld 源像素 → %lld HEALPix 像素, 耗时 %.3fs)\n",
             (long long)stats.nSourcePixels, (long long)stats.nHealpixPixels, stats.elapsedSec);
-    stamp(prof_drizzle);  // V18: Drizzle kernel 结束
+    stamp(prof_drizzle);  // Drizzle kernel 结束
 
     // 8. 写入 .hiss 文件 (若指定 output_path)
     if (output_path && output_path[0] != '\0') {
@@ -1036,10 +1036,10 @@ static int run_drizzle_internal(PipelineFrame* frame,
             return -11;
         }
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: .hiss 已写入 %s\n", hissPath.c_str());
-        stamp(prof_hiss);  // V18: legacy .hiss 写入结束
+        stamp(prof_hiss);  // legacy .hiss 写入结束
     }
 
-    // 8.5 Phase1 Final Closure V3: HiPS 直写 (Drizzle -> AIO, 无 HISS 中转)
+    // 8.5 Phase1 Final Closure : HiPS 直写 (Drizzle -> AIO, 无 HISS 中转)
     if (write_hips) {
         if (!hips_dir || !hips_dir[0]) {
             fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: write_hips 但 hips_dir 为空\n");
@@ -1066,7 +1066,7 @@ static int run_drizzle_internal(PipelineFrame* frame,
         }
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: HiPS 已直写 %s (无 HISS 中转)\n",
                 hips_dir);
-        // V19 (DRIZZLE_OPTIMIZATION): 操作计数证据
+        // 操作计数证据
         {
             const std::string ops_path = std::string(hips_dir) + "/operation_counts.json";
             FILE* f = std::fopen(ops_path.c_str(), "wb");
@@ -1111,10 +1111,10 @@ static int run_drizzle_internal(PipelineFrame* frame,
                              ops_path.c_str());
             }
         }
-        stamp(prof_hips);  // V18: HiPS 直写结束
+        stamp(prof_hips);  // HiPS 直写结束
     }
 
-    // V18 (G1): Drizzle 内部阶段计时汇总（exclusive，粗粒度）
+    // Drizzle 内部阶段计时汇总（exclusive，粗粒度）
     fprintf(stderr,
             "[drizzle_profile] parse_frame=%.3fs snr_rebuild=%.3fs "
             "drizzle_run=%.3fs hips_write=%.3fs legacy_hiss=%.3fs total=%.3fs\n",
@@ -1130,7 +1130,7 @@ static int run_drizzle_internal(PipelineFrame* frame,
     result->pixfrac          = config.pixfrac;
     result->elapsed_sec      = stats.elapsedSec;
 
-    // V4 G4: 清理 trace 状态 (文件已由 drizzleTiledImpl 写出)
+    // G4: 清理 trace 状态 (文件已由 drizzleTiledImpl 写出)
     drizzle_trace::reset();
 
     return 0;
@@ -1138,7 +1138,7 @@ static int run_drizzle_internal(PipelineFrame* frame,
 
 // ============================================================================
 // hp_drizzle_run - 正式 API (兼容旧签名): FITS 帧 -> .hiss
-// Phase1 V3 后生产末端为 HiPS; .hiss 仅 validation.legacy_hiss_compare 时使用。
+// Phase1 后生产末端为 HiPS; .hiss 仅 validation.legacy_hiss_compare 时使用。
 // ============================================================================
 HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
                                    int nside, int nested, double pixfrac,
@@ -1154,9 +1154,9 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
 }
 
 // ============================================================================
-// hp_drizzle_run_hips - Phase1 Final Closure V3 正式末端:
-//   Drizzle TileAccumulator -> AIO HiPS 直写 (无 HISS 中转)
-// hips_dir        : HiPS 产品集根目录 (signal/support/snr 子产品)
+// hp_drizzle_run_hips - Phase1 Final Closure 正式末端:
+// Drizzle TileAccumulator -> AIO HiPS 直写 (无 HISS 中转)
+// hips_dir : HiPS 产品集根目录 (signal/support/snr 子产品)
 // legacy_hiss_path: 可选 legacy .hiss 路径 (nullptr=不写, 仅 validation 用)
 // ============================================================================
 HP_DRIZZLE_API int hp_drizzle_run_hips(PipelineFrame* frame,

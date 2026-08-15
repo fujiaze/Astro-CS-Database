@@ -2,17 +2,17 @@
 // 坏点修复模块 - 天文CCD校准 (Astro Calibration)
 //
 // 功能：
-//   在校准后的 Light 图像上检测坏点并修复。
-//   检测方法：Dark全局统计检测热像素 + Bias全局统计检测冷像素。
-//   连通区域大小过滤排除星点（保留 < max_structure_size 的结构）。
-//   修复方法：5x5中值滤波 或 双线性插值。
+// 在校准后的 Light 图像上检测坏点并修复。
+// 检测方法：Dark全局统计检测热像素 + Bias全局统计检测冷像素。
+// 连通区域大小过滤排除星点（保留 < max_structure_size 的结构）。
+// 修复方法：5x5中值滤波 或 双线性插值。
 //
 // 设计要点：
-//   - 纯 C++17 标准库 + OpenMP，不依赖外部库
-//   - 核心算法不含文件 IO
-//   - Dark/Bias 主帧保留坏点（校准时扣除），仅用它们定位坏点位置
-//   - 连通区域标记：背景 label 0 的 size 设为 max_size，防止全图被误标记
-//   - median 用 std::nth_element（O(n)），MAD = median(|v - median|)
+// - 纯 C++17 标准库 + OpenMP，不依赖外部库
+// - 核心算法不含文件 IO
+// - Dark/Bias 主帧保留坏点（校准时扣除），仅用它们定位坏点位置
+// - 连通区域标记：背景 label 0 的 size 设为 max_size，防止全图被误标记
+// - median 用 std::nth_element（O(n)），MAD = median(|v - median|)
 
 #include "../include/astro_calibration.h"
 

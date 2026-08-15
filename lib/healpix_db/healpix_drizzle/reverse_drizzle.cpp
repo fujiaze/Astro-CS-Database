@@ -2,14 +2,14 @@
 // reverse_drizzle.cpp - Sphere -> Plane 球面面积 Drizzle (签字修正)
 //
 // 冻结语义 (wiki/Reverse_Drizzle.md + control/REVERSE_DRIZZLE_IMPLEMENTATION.md):
-//   - HEALPix leaf 球面边界 (自适应细分);
-//   - pixfrac 球面 slerp 收缩;
-//   - target pixel 球面 footprint (WCS/SIP 自适应边细分);
-//   - 球面 overlap (drop ∩ target 球面面积, fan triangulation + S-H);
-//   - signal 按球面面积比例分配 (禁止 2D 投影面积权重);
-//   - support 以均匀覆盖假设影响 coverage;
-//   - FP32→FP32 真实 float 累计; FP64→FP64 double 累计;
-//   - 输入严格校验 (REV-105), 统计字段全部填充 (REV-106)。
+// - HEALPix leaf 球面边界 (自适应细分);
+// - pixfrac 球面 slerp 收缩;
+// - target pixel 球面 footprint (WCS/SIP 自适应边细分);
+// - 球面 overlap (drop ∩ target 球面面积, fan triangulation + S-H);
+// - signal 按球面面积比例分配 (禁止 2D 投影面积权重);
+// - support 以均匀覆盖假设影响 coverage;
+// - FP32→FP32 真实 float 累计; FP64→FP64 double 累计;
+// - 输入严格校验 (REV-105), 统计字段全部填充 (REV-106)。
 // ============================================================================
 #include "reverse_drizzle.h"
 #include "wcs_sip.h"
@@ -280,7 +280,7 @@ bool ReverseDrizzle::run(const ReverseDrizzleInput& in,
         return false;
     }
     // 物理范围检查 (防病态有限值: 如 crval=1e300 会使 TAN 投影数值爆炸,
-    //   目标 footprint 自适应细分永不收敛 → 卡死)
+    // 目标 footprint 自适应细分永不收敛 → 卡死)
     if (in.wcs.crval[1] < -90.0 || in.wcs.crval[1] > 90.0) {
         error_msg = "ReverseDrizzle: crval DEC 超出 [-90, 90]";
         return false;
@@ -355,8 +355,8 @@ bool ReverseDrizzle::run(const ReverseDrizzleInput& in,
         wcs, in.target_width, in.target_height, src_scale_rad);
 
     // 真实数据面路径:
-    //   fp32 输入 → fp32 输出: float 累计 (真实 FP32, 非 double 伪装)
-    //   其余组合: double 累计 (输出按 dtype 转换)
+    // fp32 输入 → fp32 输出: float 累计 (真实 FP32, 非 double 伪装)
+    // 其余组合: double 累计 (输出按 dtype 转换)
     const bool true_fp32 = has_f32 && !in.output_fp64;
     bool ok;
     if (true_fp32) {

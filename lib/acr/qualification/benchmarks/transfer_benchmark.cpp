@@ -1,22 +1,22 @@
 // lib/acr/qualification/benchmarks/transfer_benchmark.cpp — E02 CPU 内存层级传输带宽 Benchmark
 //
 // 设计（06 §6 + 17 §3）：
-//   1. CPU 内存层级传输带宽测量（L1/L2/L3/MainMem）
-//   2. 三种模式：
-//      - read-only:  累加读 x，不写 → 测纯读带宽
-//      - write-only: 写常量到 y，不读 → 测纯写带宽
-//      - copy:       y = x → 测读+写带宽
-//   3. FP32 主测，FP64 对照（read/write）
-//   4. 尺寸覆盖 L1/L2/L3 和明显超出 LLC 的主存区间（对数序列 4KB → 256MB）
-//   5. 单线程：隔离内存层级带宽，避免多线程竞争干扰
-//   6. std::memcpy 与手动循环两种方式（copy 模式同时注册两种实现以对照）
-//   7. 防止编译器消除：volatile sink + asm barrier + do_not_optimize_array
-//   8. GB/s 计数器 + 缓存层级标签
+// 1. CPU 内存层级传输带宽测量（L1/L2/L3/MainMem）
+// 2. 三种模式：
+// - read-only: 累加读 x，不写 → 测纯读带宽
+// - write-only: 写常量到 y，不读 → 测纯写带宽
+// - copy: y = x → 测读+写带宽
+// 3. FP32 主测，FP64 对照（read/write）
+// 4. 尺寸覆盖 L1/L2/L3 和明显超出 LLC 的主存区间（对数序列 4KB → 256MB）
+// 5. 单线程：隔离内存层级带宽，避免多线程竞争干扰
+// 6. std::memcpy 与手动循环两种方式（copy 模式同时注册两种实现以对照）
+// 7. 防止编译器消除：volatile sink + asm barrier + do_not_optimize_array
+// 8. GB/s 计数器 + 缓存层级标签
 //
 // 与 stream_benchmark 的区别：
-//   - stream 测 STREAM 经典 Copy/Scale/Add/Triad（计算+访存混合）
-//   - transfer 测纯传输带宽（无计算），按 read/write/copy 拆分
-//   - transfer 同时对比 std::memcpy 与手动循环两种实现
+// - stream 测 STREAM 经典 Copy/Scale/Add/Triad（计算+访存混合）
+// - transfer 测纯传输带宽（无计算），按 read/write/copy 拆分
+// - transfer 同时对比 std::memcpy 与手动循环两种实现
 #include "benchmark_common.hpp"
 
 #include <benchmark/benchmark.h>
@@ -68,9 +68,9 @@ static void transfer_copy_memcpy(T* y, const T* x, std::size_t n) {
 }
 
 // 字节数计算：
-//   Read:  n * sizeof(T)  (只读)
-//   Write: n * sizeof(T)  (只写)
-//   Copy:  2 * n * sizeof(T) (读 + 写)
+// Read: n * sizeof(T) (只读)
+// Write: n * sizeof(T) (只写)
+// Copy: 2 * n * sizeof(T) (读 + 写)
 template<class T>
 inline std::size_t transfer_bytes(TransferMode mode, std::size_t n) noexcept {
     std::size_t factor = (mode == TransferMode::Copy) ? 2 : 1;
@@ -140,9 +140,9 @@ static void run_transfer_bench(::benchmark::State& state,
 
 // ===== BENCHMARK wrapper 函数 =====
 // 用户指定命名：transfer_read_fp32, transfer_write_fp32, transfer_copy_fp32,
-//               transfer_read_fp64, transfer_write_fp64
+// transfer_read_fp64, transfer_write_fp64
 // 额外注册：transfer_copy_fp32_loop / transfer_copy_fp64 / transfer_copy_fp64_loop
-//           （对照 memcpy 与手动循环两种实现）
+// （对照 memcpy 与手动循环两种实现）
 
 static void transfer_read_fp32(::benchmark::State& st) {
     run_transfer_bench<float>(st, TransferMode::Read, false);

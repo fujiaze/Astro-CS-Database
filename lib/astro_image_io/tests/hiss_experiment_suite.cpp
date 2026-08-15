@@ -2,39 +2,39 @@
 // hiss_experiment_suite.cpp - AstroCS HISS Phase C++ 实验 (DQ-001 ~ DQ-007)
 //
 // 依据:
-//   - 任务: codec/transform/occupancy/checksum/alignment/browser I/O 实验
-//   - 02_FROZEN §11-§17 (HISS 格式)
-//   - hiss_format.h (CodecRegistry/ChecksumRegistry/TransformId/SubblockType)
+// - 任务: codec/transform/occupancy/checksum/alignment/browser I/O 实验
+// - 02_FROZEN §11-§17 (HISS 格式)
+// - hiss_format.h (CodecRegistry/ChecksumRegistry/TransformId/SubblockType)
 //
 // 核心原则:
-//   1. 必须使用正式 HissWriter/HissReader、CodecRegistry、ChecksumRegistry、
-//      transform 注册表 (apply_transform/inverse_transform)
-//   2. 不在 benchmark 里另写一套编码器 (不自己实现 byte_shuffle/CRC32C 等)
-//   3. C++ 实验输出原始 CSV, Python 只允许做结果汇总
-//   4. 不冻结任何参数, 所有推荐标注 "INTERIM_BASELINE_NOT_FROZEN"
-//   5. Decision Queue 状态为 WAITING_FOR_USER_DECISION
+// 1. 必须使用正式 HissWriter/HissReader、CodecRegistry、ChecksumRegistry、
+// transform 注册表 (apply_transform/inverse_transform)
+// 2. 不在 benchmark 里另写一套编码器 (不自己实现 byte_shuffle/CRC32C 等)
+// 3. C++ 实验输出原始 CSV, Python 只允许做结果汇总
+// 4. 不冻结任何参数, 所有推荐标注 "INTERIM_BASELINE_NOT_FROZEN"
+// 5. Decision Queue 状态为 WAITING_FOR_USER_DECISION
 //
 // 实验内容:
-//   - codec_signal: signal (float32) codec/transform 对比
-//   - codec_support: support (uint8) codec 对比
-//   - codec_bitmap: BITMAP codec 对比
-//   - codec_sparse: SPARSE_LIST codec/transform 对比
-//   - codec_snr: SNR 控制点 codec 对比
-//   - occupancy_threshold: BITMAP vs SPARSE_LIST 切换阈值
-//   - checksum: NONE vs CRC32C 吞吐损失与篡改检测
-//   - alignment: 1/4/8/4096 字节对齐对读取性能影响
-//   - browser_io: HissReader 冷/热缓存性能
+// - codec_signal: signal (float32) codec/transform 对比
+// - codec_support: support (uint8) codec 对比
+// - codec_bitmap: BITMAP codec 对比
+// - codec_sparse: SPARSE_LIST codec/transform 对比
+// - codec_snr: SNR 控制点 codec 对比
+// - occupancy_threshold: BITMAP vs SPARSE_LIST 切换阈值
+// - checksum: NONE vs CRC32C 吞吐损失与篡改检测
+// - alignment: 1/4/8/4096 字节对齐对读取性能影响
+// - browser_io: HissReader 冷/热缓存性能
 //
 // 编译 (从 lib/astro_image_io/tests/ 目录):
-//   g++ -std=c++17 -O2 -fopenmp -DHAS_LZ4 -DHAS_ZSTD -DAIO_ENABLE_HEALPIX \
-//     -I../include -I../src hiss_experiment_suite.cpp \
-//     ../src/hiss_codec.cpp ../src/hiss_common.cpp ../src/hiss_tile_model.cpp \
-//     ../src/hiss_transform.cpp ../src/hiss_writer.cpp ../src/hiss_stream_writer.cpp \
-//     ../src/hiss_reader.cpp -llz4 -lzstd -lm -o hiss_experiment_suite.exe
+// g++ -std=c++17 -O2 -fopenmp -DHAS_LZ4 -DHAS_ZSTD -DAIO_ENABLE_HEALPIX \
+// -I../include -I../src hiss_experiment_suite.cpp \
+// ../src/hiss_codec.cpp ../src/hiss_common.cpp ../src/hiss_tile_model.cpp \
+// ../src/hiss_transform.cpp ../src/hiss_writer.cpp ../src/hiss_stream_writer.cpp \
+// ../src/hiss_reader.cpp -llz4 -lzstd -lm -o hiss_experiment_suite.exe
 //
 // 运行:
-//   ./hiss_experiment_suite.exe [output_root_dir]
-//   默认输出根目录: ../../../run/experiments
+// ./hiss_experiment_suite.exe [output_root_dir]
+// 默认输出根目录: ../../../run/experiments
 // ============================================================================
 
 #include "hiss_format.h"
@@ -179,13 +179,13 @@ static bool write_file(const std::string& path, const std::string& content) {
 
 // ============================================================================
 // Zstd 压缩级别变体注册
-//   生产路径 hiss_codec.cpp 中 ZSTD 固定 level=3 (kZstdDefaultLevel)。
-//   实验需要测试 level 1/6/9, 通过 CodecRegistry 注册变体:
-//     CodecId(100) = Zstd level 1
-//     CodecId(101) = Zstd level 6
-//     CodecId(102) = Zstd level 9
-//   compress 函数调用同一 ZSTD_compress 库函数, 仅 level 参数不同,
-//   不算 "另写一套编码器"。decompress/bound 复用 ZSTD 标准实现。
+// 生产路径 hiss_codec.cpp 中 ZSTD 固定 level=3 (kZstdDefaultLevel)。
+// 实验需要测试 level 1/6/9, 通过 CodecRegistry 注册变体:
+// CodecId(100) = Zstd level 1
+// CodecId(101) = Zstd level 6
+// CodecId(102) = Zstd level 9
+// compress 函数调用同一 ZSTD_compress 库函数, 仅 level 参数不同,
+// 不算 "另写一套编码器"。decompress/bound 复用 ZSTD 标准实现。
 // ============================================================================
 #ifdef HAS_ZSTD
 static int register_zstd_variant(int level, hiss::CodecId id, const std::string& name) {
@@ -350,8 +350,8 @@ static std::vector<uint8_t> generate_snr_bytes(uint32_t n_points, uint32_t seed)
 
 // ============================================================================
 // Codec + Transform 组合测量
-//   使用正式路径: hiss::apply_transform / inverse_transform + CodecRegistry
-//   返回压缩/解压性能指标
+// 使用正式路径: hiss::apply_transform / inverse_transform + CodecRegistry
+// 返回压缩/解压性能指标
 // ============================================================================
 struct ComboResult {
     size_t orig_size = 0;
@@ -622,8 +622,8 @@ static bool run_codec_snr_experiment() {
 
 // ============================================================================
 // 实验 2: Occupancy 阈值 (BITMAP vs SPARSE_LIST)
-//   测试不同占用率下两种模式的总编码大小
-//   覆盖: 随机分布 / 簇状稀疏 / 细线状覆盖
+// 测试不同占用率下两种模式的总编码大小
+// 覆盖: 随机分布 / 簇状稀疏 / 细线状覆盖
 // ============================================================================
 static bool run_occupancy_threshold_experiment() {
     fprintf(stderr, "\n========== [occupancy] BITMAP vs SPARSE_LIST 阈值 ==========\n");
@@ -719,9 +719,9 @@ static bool run_occupancy_threshold_experiment() {
 
 // ============================================================================
 // 实验 4: Checksum 性能 (DQ-006)
-//   - NONE vs CRC32C 吞吐对比 (使用正式 ChecksumRegistry)
-//   - Writer+Reader 端到端开销 (set_experiment_checksum)
-//   - 篡改检测验证 (CRC32C 必须检测到压缩数据篡改)
+// - NONE vs CRC32C 吞吐对比 (使用正式 ChecksumRegistry)
+// - Writer+Reader 端到端开销 (set_experiment_checksum)
+// - 篡改检测验证 (CRC32C 必须检测到压缩数据篡改)
 //
 // 原则: 复用 ChecksumRegistry::find(CRC32C), 不另写 CRC32C 实现
 // ============================================================================
@@ -775,7 +775,7 @@ static bool run_checksum_experiment() {
     }
 
     // 4.2 端到端 Writer/Reader 开销 (NONE vs CRC32C)
-    //     使用正式 HissWriter/HissReader, 对 SIGNAL/SUPPORT 启用 CRC32C
+    // 使用正式 HissWriter/HissReader, 对 SIGNAL/SUPPORT 启用 CRC32C
     const uint32_t nside = 256;
     const uint32_t depth = hiss::compute_tile_depth(nside);
     const uint32_t tile_nside = hiss::compute_tile_nside(nside);
@@ -930,9 +930,9 @@ static bool run_checksum_experiment() {
 
 // ============================================================================
 // 实验 5: Attachment 对齐影响 (DQ-007a)
-//   - Writer 当前不 padding (顺序写入), 测量子块 offset 的自然对齐分布
-//   - 按 1/4/8/4096 字节对齐分桶, 测量 read_tile 延迟
-//   - 注: 因 Writer 未暴露对齐配置, 本实验测量 "自然对齐" 下的延迟分布
+// - Writer 当前不 padding (顺序写入), 测量子块 offset 的自然对齐分布
+// - 按 1/4/8/4096 字节对齐分桶, 测量 read_tile 延迟
+// - 注: 因 Writer 未暴露对齐配置, 本实验测量 "自然对齐" 下的延迟分布
 // ============================================================================
 
 // 辅助: 获取 offset 的最大对齐 (1/4/8/4096)
@@ -1093,9 +1093,9 @@ static bool run_alignment_experiment() {
 
 // ============================================================================
 // 实验 6: Browser I/O (DQ-007b)
-//   - HissReader 冷缓存 (首次打开) vs 热缓存 (已打开后重复读) 性能
-//   - 顺序访问 vs 随机访问
-//   - 使用正式 HissWriter/HissReader
+// - HissReader 冷缓存 (首次打开) vs 热缓存 (已打开后重复读) 性能
+// - 顺序访问 vs 随机访问
+// - 使用正式 HissWriter/HissReader
 // ============================================================================
 
 // 辅助: 构造并写入一个多 Tile 的 HISS 文件
@@ -1325,9 +1325,9 @@ int main(int argc, char** argv) {
 
     // ----- 1. 数据集生成 -----
     // 不同 NSIDE 对应不同 n_leaf_per_tile, 覆盖小/中/大规模
-    // nside=64:   depth=2, tile_nside=16,  n_leaf=16
-    // nside=256:  depth=4, tile_nside=16,  n_leaf=256
-    // nside=1024: depth=6, tile_nside=16,  n_leaf=4096
+    // nside=64: depth=2, tile_nside=16, n_leaf=16
+    // nside=256: depth=4, tile_nside=16, n_leaf=256
+    // nside=1024: depth=6, tile_nside=16, n_leaf=4096
     std::vector<Dataset> sig_datasets;
     std::vector<Dataset> sup_datasets;
     std::vector<Dataset> bmp_datasets;

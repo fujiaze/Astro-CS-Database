@@ -641,8 +641,8 @@ bool validate_route_profile_v2(const RouteProfileV2& profile,
         }
     }
     // 权威发布校验（05_PROFILE_PUBLICATION.md）：
-    //   qualified 状态必须由 preset=standard 标定产生，且带 head/run_id。
-    //   partial/diagnostic 允许（quick smoke / 诊断 Profile 不发布）。
+    // qualified 状态必须由 preset=standard 标定产生，且带 head/run_id。
+    // partial/diagnostic 允许（quick smoke / 诊断 Profile 不发布）。
     if (profile.profile_state == "qualified") {
         if (profile.calibration_preset != "standard") {
             error = "qualified profile requires calibration_preset=standard";

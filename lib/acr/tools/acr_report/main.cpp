@@ -2,7 +2,7 @@
 // Phase E：生成 JSON 报告（hardware + hardware-profile 摘要）。
 //
 // 用法：
-//   acr-report [--profile <path>] [--output <path>]
+// acr-report [--profile <path>] [--output <path>]
 //
 // 默认 --profile ./hardware-profile.json --output -（stdout）
 #include "profile_reader.hpp"

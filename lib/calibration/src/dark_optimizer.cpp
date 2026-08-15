@@ -5,28 +5,28 @@
 // 规范依据: 02_FROZEN §2.3
 //
 // 估计模型:
-//   L - B = c + k * (D - B)
-//   其中 L=Light, B=Bias, D=Dark（Dark 已含 Bias，D-B 为纯暗电流）
+// L - B = c + k * (D - B)
+// 其中 L=Light, B=Bias, D=Dark（Dark 已含 Bias，D-B 为纯暗电流）
 //
 // 算法流程:
-//   1. 背景提取：对 Light 做 sigma-clip（median + 3*1.4826*MAD）排除星点
-//   2. 分区抽样：8x8 = 64 网格，每区最多 1000 个背景像素，总样本上限 50000
-//   3. 鲁棒线性回归：OLS 估计 k、c → 残差 MAD 离群抑制（3*1.4826*MAD 阈值）
-//      → 迭代 5 轮逐步剔除离群点
-//   4. 合理性判定：样本不足 / 回归残差异常 / k 值越界(k<=0 或 k>10) 任一触发即判失败
+// 1. 背景提取：对 Light 做 sigma-clip（median + 3*1.4826*MAD）排除星点
+// 2. 分区抽样：8x8 = 64 网格，每区最多 1000 个背景像素，总样本上限 50000
+// 3. 鲁棒线性回归：OLS 估计 k、c → 残差 MAD 离群抑制（3*1.4826*MAD 阈值）
+// → 迭代 5 轮逐步剔除离群点
+// 4. 合理性判定：样本不足 / 回归残差异常 / k 值越界(k<=0 或 k>10) 任一触发即判失败
 //
 // 失败回退（02_FROZEN §2.3 强制要求）:
-//   - 最优估计失败时输出结构化诊断（hiss::Stage1Diagnostics）
-//   - 自动回退曝光时间比例缩放: k_t = t_light / t_dark（由调用方传入 k_init）
-//   - 设置 diagnostics.fell_back=1, fallback_from="OPTIMAL", fallback_to="EXPOSURE_RATIO"
-//   - 返回 k_init
+// - 最优估计失败时输出结构化诊断（hiss::Stage1Diagnostics）
+// - 自动回退曝光时间比例缩放: k_t = t_light / t_dark（由调用方传入 k_init）
+// - 设置 diagnostics.fell_back=1, fallback_from="OPTIMAL", fallback_to="EXPOSURE_RATIO"
+// - 返回 k_init
 //
 // 设计说明:
-//   - 不得为估计 k 再执行一次完整星点检测（规范要求），故仅用 sigma-clip 粗略排除星点
-//   - C++17，仅依赖 STL，无外部库
-//   - 与 calibrator.cpp 风格一致：namespace ac + 匿名 namespace 辅助 + nth_element 求中位数
-//   - flat 参数当前未参与回归（模型在原始 ADU 空间，Flat 在最终校准时才除），
-//     保留参数以匹配接口契约，供未来扩展（如按 flat 加权）。
+// - 不得为估计 k 再执行一次完整星点检测（规范要求），故仅用 sigma-clip 粗略排除星点
+// - C++17，仅依赖 STL，无外部库
+// - 与 calibrator.cpp 风格一致：namespace ac + 匿名 namespace 辅助 + nth_element 求中位数
+// - flat 参数当前未参与回归（模型在原始 ADU 空间，Flat 在最终校准时才除），
+// 保留参数以匹配接口契约，供未来扩展（如按 flat 加权）。
 // ============================================================
 
 #include "../include/astro_calibration.h"

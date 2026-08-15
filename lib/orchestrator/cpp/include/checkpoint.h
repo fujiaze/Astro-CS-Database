@@ -1,15 +1,15 @@
 // ============================================================================
 // checkpoint.h - JSON 检查点管理器 (断点续传)
 // 功能: 每个管线阶段 (CALIBRATE/PLATESOLVE/PHOTOMETRIC/DRIZZLE) 完成后
-//       将进度以 JSON 文件持久化到 <output_dir>/.checkpoint/<frame>.json
-//       恢复时读取 JSON, 跳过已完成阶段, 从下一个阶段继续
+// 将进度以 JSON 文件持久化到 <output_dir>/.checkpoint/<frame>.json
+// 恢复时读取 JSON, 跳过已完成阶段, 从下一个阶段继续
 // 用途: 编排器 (Orchestrator) 断点续传机制的基础组件
 //
 // 设计说明:
-//   - JSON 序列化/反序列化使用简单字符串处理, 不依赖外部 JSON 库
-//   - 原子写入: 先写 .tmp 临时文件, 再 rename 为目标文件 (Windows 用 MoveFileExA)
-//   - 文件名安全处理: 替换 \ / : * ? " < > | 等特殊字符为 _
-//   - 时间戳采用 ISO 8601 格式: YYYY-MM-DDTHH:MM:SS
+// - JSON 序列化/反序列化使用简单字符串处理, 不依赖外部 JSON 库
+// - 原子写入: 先写 .tmp 临时文件, 再 rename 为目标文件 (Windows 用 MoveFileExA)
+// - 文件名安全处理: 替换 \ / : * ? " < > | 等特殊字符为 _
+// - 时间戳采用 ISO 8601 格式: YYYY-MM-DDTHH:MM:SS
 // ============================================================================
 
 #pragma once

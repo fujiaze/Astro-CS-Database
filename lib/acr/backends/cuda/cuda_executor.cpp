@@ -130,9 +130,9 @@ scheduler::SubmitResult CudaExecutor::submit(const scheduler::WorkToken& token,
 
     // GPU kernel 完成后，调用 user 的 kernel function 处理 user_data
     // 这样保证：
-    //   1. GPU 真实参与了计算（axpy 在 GPU 上执行）
-    //   2. user 的工作块逻辑被执行（user_data 被处理）
-    //   3. 每块恰好被处理一次（user fn 被调用一次）
+    // 1. GPU 真实参与了计算（axpy 在 GPU 上执行）
+    // 2. user 的工作块逻辑被执行（user_data 被处理）
+    // 3. 每块恰好被处理一次（user fn 被调用一次）
     // 这等同于 GPU 端先做实际 GPU 工作，再回调 user 逻辑处理 host 数据
     if (invocation.fn) {
         try {

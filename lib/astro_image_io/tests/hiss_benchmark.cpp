@@ -2,24 +2,24 @@
 // hiss_benchmark.cpp - AstroCS HISS 未决工程实验 (DQ-001 ~ DQ-007)
 //
 // 实验内容:
-//   DQ-001: signal (float32) 默认 codec/transform 候选对比
-//   DQ-002: support (uint8) 默认 codec 候选对比
-//   DQ-003: BITMAP 默认 codec 候选对比
-//   DQ-004: SPARSE_LIST 编码方式候选对比
-//   DQ-005: FULL/BITMAP/SPARSE_LIST 切换阈值测量
-//   DQ-006: checksum (CRC32C/xxHash/RAW) 吞吐与占比
-//   DQ-007: 子块对齐 (8B/64B/4KiB) 体积浪费与随机读取延迟
+// DQ-001: signal (float32) 默认 codec/transform 候选对比
+// DQ-002: support (uint8) 默认 codec 候选对比
+// DQ-003: BITMAP 默认 codec 候选对比
+// DQ-004: SPARSE_LIST 编码方式候选对比
+// DQ-005: FULL/BITMAP/SPARSE_LIST 切换阈值测量
+// DQ-006: checksum (CRC32C/xxHash/RAW) 吞吐与占比
+// DQ-007: 子块对齐 (8B/64B/4KiB) 体积浪费与随机读取延迟
 //
 // 重要声明:
-//   此程序输出仅为实验建议, 未写入冻结规范, 也未设为不可更改的正式默认值,
-//   等待用户与主审助手确认。
+// 此程序输出仅为实验建议, 未写入冻结规范, 也未设为不可更改的正式默认值,
+// 等待用户与主审助手确认。
 //
 // 编译:
-//   g++ -std=c++17 -O2 -DHAS_LZ4 -DHAS_ZSTD \
-//        -I../include -I<C:/msys64/mingw64/include> \
-//        hiss_benchmark.cpp ../src/hiss_codec.cpp \
-//        -L<C:/msys64/mingw64/lib> -llz4 -lzstd -lpsapi \
-//        -o hiss_benchmark.exe
+// g++ -std=c++17 -O2 -DHAS_LZ4 -DHAS_ZSTD \
+// -I../include -I<C:/msys64/mingw64/include> \
+// hiss_benchmark.cpp ../src/hiss_codec.cpp \
+// -L<C:/msys64/mingw64/lib> -llz4 -lzstd -lpsapi \
+// -o hiss_benchmark.exe
 // ============================================================================
 
 #include "hiss_format.h"

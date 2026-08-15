@@ -1,13 +1,13 @@
-// lib/acr/scheduler/device_executor.hpp — 真实设备执行器接口（23 号计划 §3）
+// lib/acr/scheduler/device_executor.hpp — 真实设备执行器接口（23 §3）
 //
 // 设计（23_SECOND_FIX_REVIEW_CORRECTION_PLAN.md §3 + 07_COST_MODEL §10）：
-//   1. 抽象接口不泄漏第三方类型（CUDA/HIP/SYCL 不可见于公共头）；
-//   2. CPU executor：oneTBB/ISA，通过 KernelRegistry 的 CPU launcher 执行；
-//   3. CUDA executor：真实 kernel 提交、stream/event、错误回传；
-//   4. Dispatcher 只把 invocation 交给 supports(OperationId) 为 true 的 executor；
-//   5. 每个 executor 有独立队列状态、推荐块大小（来自自身 DeviceCost）；
-//   6. SubmitHandle 记录真实 device ID、items、bytes、duration、fallback ——
-//      actual 统计只能由 executor completion 产生，不从推荐值伪造。
+// 1. 抽象接口不泄漏第三方类型（CUDA/HIP/SYCL 不可见于公共头）；
+// 2. CPU executor：oneTBB/ISA，通过 KernelRegistry 的 CPU launcher 执行；
+// 3. CUDA executor：真实 kernel 提交、stream/event、错误回传；
+// 4. Dispatcher 只把 invocation 交给 supports(OperationId) 为 true 的 executor；
+// 5. 每个 executor 有独立队列状态、推荐块大小（来自自身 DeviceCost）；
+// 6. SubmitHandle 记录真实 device ID、items、bytes、duration、fallback ——
+// actual 统计只能由 executor completion 产生，不从推荐值伪造。
 #pragma once
 
 #include "astro/compute/hardware_profile.hpp"
@@ -71,9 +71,9 @@ public:
     // 最小有效块大小
     virtual std::size_t min_effective_chunk() const = 0;
 
-    // 聚焦版 v3（08 号计划 §3）：真实驻留执行接口。
-    //   prefetch_input：上传 host 输入到设备并保留（真实一次传输）；
-    //   input_resident：查询该 host 输入是否已在设备显存。
+    // 聚焦版 v3（08 §3）：真实驻留执行接口。
+    // prefetch_input：上传 host 输入到设备并保留（真实一次传输）；
+    // input_resident：查询该 host 输入是否已在设备显存。
     // 默认返回 false（无真实 device buffer 缓存的 executor 不支持）。
     virtual bool prefetch_input(const void* /*host*/, std::size_t /*bytes*/) {
         return false;

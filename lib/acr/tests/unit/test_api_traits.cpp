@@ -1,11 +1,11 @@
 // lib/acr/tests/unit/test_api_traits.cpp
 // Phase B2/B4 集成测试：TaskTraits-based 公共 API
-// 验证控制包 20_PHASE_I_AUDIT_ACTION_PLAN.md §3 Commit C 要求：
-//   1. parallel_for/tiles/reduce/batch 新签名（OperationId + TaskTraits）能正确执行
-//   2. OperationId/traits 不被忽略：通过 CostEstimator → Dispatcher 调用链
-//   3. 不同 TaskClass（elementwise/reduction/stencil/convolution/batch）都能正常调用
-//   4. CPU fallback 明确：无画像时也能正确执行（grainsize=0 走 tbb 默认）
-//   5. 任务结果与旧 KernelId-based API 一致
+// 验证 20_PHASE_I_AUDIT_ACTION_PLAN.md §3 Commit C 要求：
+// 1. parallel_for/tiles/reduce/batch 新签名（OperationId + TaskTraits）能正确执行
+// 2. OperationId/traits 不被忽略：通过 CostEstimator → Dispatcher 调用链
+// 3. 不同 TaskClass（elementwise/reduction/stencil/convolution/batch）都能正常调用
+// 4. CPU fallback 明确：无画像时也能正确执行（grainsize=0 走 tbb 默认）
+// 5. 任务结果与旧 KernelId-based API 一致
 //
 // 注意：本测试不验证 GPU 派发（需真实 GPU + 画像），只验证调用链接通和 CPU 路径正确性。
 // GPU 派发的真实 Mixed 测试在 classic/e18_workpool.cpp（ACR_BUILD_CUDA 时才编译）。
@@ -273,7 +273,7 @@ TEST(ApiTraitsCallChain, RuntimeStatusReflectsActivity) {
     EXPECT_NE(before.find("total_submitted"), std::string::npos);
     EXPECT_NE(after.find("total_submitted"), std::string::npos);
     // 3. after 中 total_submitted 不应为 0（证明 _with_desc 路径进入了 KernelGuard 计数）
-    //    注意：runtime 是全局单例，total_submitted 会跨测试累积，所以只需验证非0
+    // 注意：runtime 是全局单例，total_submitted 会跨测试累积，所以只需验证非0
     EXPECT_EQ(after.find("\"total_submitted\":0"), std::string::npos)
         << "total_submitted should not be 0 after parallel_for, after=" << after;
 }

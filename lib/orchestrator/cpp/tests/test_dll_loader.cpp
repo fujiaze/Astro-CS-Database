@@ -3,11 +3,11 @@
 // 功能: 验证 DllLoader 类的加载/卸载/状态查询/函数指针获取/版本查询等功能
 //
 // 编译:
-//   g++ -O2 -std=c++17 -Wall -o tests/test_dll_loader.exe
-//       tests/test_dll_loader.cpp src/dll_loader.cpp -Iinclude -static
+// g++ -O2 -std=c++17 -Wall -o tests/test_dll_loader.exe
+// tests/test_dll_loader.cpp src/dll_loader.cpp -Iinclude -static
 //
 // 运行 (在项目根目录):
-//   lib\orchestrator\cpp\tests\test_dll_loader.exe
+// lib\orchestrator\cpp\tests\test_dll_loader.exe
 // ============================================================================
 
 #include "dll_loader.h"

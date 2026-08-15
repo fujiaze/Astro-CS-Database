@@ -31,7 +31,7 @@ struct BridgeApi {
     int (*submit_conv3x3)(void*, std::size_t, std::size_t,
                           float*, const float*, std::size_t, std::size_t,
                           const float*, std::uint64_t*, const char**){nullptr};
-    // 聚焦版（08 号计划 §3）：目标合成 Operation
+    // 聚焦版（08 §3）：目标合成 Operation
     int (*submit_dense_accumulate_fp64acc)(void*, std::size_t, std::size_t,
                                            float*, const float*,
                                            std::uint64_t*, const char**){nullptr};
@@ -63,7 +63,7 @@ struct BridgeApi {
                                            std::uint64_t*, const char**){nullptr};
     int (*submit_chain_resident)(void*, std::size_t, std::size_t,
                                  float*, std::uint64_t*, const char**){nullptr};
-    // ACR 架构冻结（07 号计划 C）：加权积分 + GPU 内部通道
+    // ACR 架构冻结（07 C）：加权积分 + GPU 内部通道
     int (*submit_weighted_integration)(void*, std::size_t, std::size_t,
                                        float*, const float*, const float*,
                                        std::size_t, std::size_t,

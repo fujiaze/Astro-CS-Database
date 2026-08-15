@@ -1,17 +1,17 @@
-// lib/phase2/tools/calibrated_pair_diag.cpp — V8 P8-2 只读证据 helper
+// lib/phase2/tools/calibrated_pair_diag.cpp — P8-2 只读证据 helper
 //
-// 链接 production Phase2 库 + AIO，对银心 V7 真实产物计算 calibrated frame
+// 链接 production Phase2 库 + AIO，对银心 真实产物计算 calibrated frame
 // pair 诊断：
-//   - p2_upm_open() 读取生产 UPM（upm_sparse.json）；
-//   - p2_frame_id() 取得真实 frame id；
-//   - p2_upm_calibrate_block() 对 overlap leaf 求 calibrated signal；
-//   - 不复制 UPM 数学公式（全部走 production API）。
+// - p2_upm_open() 读取生产 UPM（upm_sparse.json）；
+// - p2_frame_id() 取得真实 frame id；
+// - p2_upm_calibrate_block() 对 overlap leaf 求 calibrated signal；
+// - 不复制 UPM 数学公式（全部走 production API）。
 //
 // 输出 machine-readable calibrated_pair_metrics.json。
 //
 // 用法:
-//   calibrated_pair_diag <panel1.hips> <panel2.hips> <panel3.hips>
-//                        <mosaic.hips> <mosaic_upm.json> <output.json>
+// calibrated_pair_diag <panel1.hips> <panel2.hips> <panel3.hips>
+// <mosaic.hips> <mosaic_upm.json> <output.json>
 
 #include "astro/phase2/upm.h"
 #include "astro/phase2/sampler.h"

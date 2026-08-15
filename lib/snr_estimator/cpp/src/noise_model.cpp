@@ -1,16 +1,16 @@
-// noise_model.cpp — V19 SNR/Noise 科学重构实现
+// noise_model.cpp — SNR/Noise 科学重构实现
 //
 // 三层模型 (SNR_SCIENCE_DERIVATION.md / SNR_REDESIGN_CONTRACT.md):
-//   1. PhotometricCalibrationQuality — 帧级测光定标质量 (dex/mag 单位正确化)
-//   2. PsfFitQuality                 — 星点 PSF 拟合质量代理 (A/residual_scale)
-//   3. NoiseWeightModelV1            — source-masked blank-sky 稳健方差 → ivar
+// 1. PhotometricCalibrationQuality — 帧级测光定标质量 (dex/mag 单位正确化)
+// 2. PsfFitQuality — 星点 PSF 拟合质量代理 (A/residual_scale)
+// 3. NoiseWeightModelV1 — source-masked blank-sky 稳健方差 → ivar
 //
 // 设计要点:
-//   - 控制点来自空背景噪声, 与星亮度/星族解耦 (SNR-003/SNR-010)
-//   - 经验 blank-sky 为 production 基线; gain+readnoise 已知时用于
-//     Poisson 交叉验证 (SNR-005), 缺失时经验 fallback (SNR-014)
-//   - variance/ivar 传播遵循 x'=αx → var'=α²var, ivar'=ivar/α² (SNR-002)
-//   - 旧 (A-B)/mad 不再进入 science weight (SNR-008)
+// - 控制点来自空背景噪声, 与星亮度/星族解耦 (SNR-003/SNR-010)
+// - 经验 blank-sky 为 production 基线; gain+readnoise 已知时用于
+// Poisson 交叉验证 (SNR-005), 缺失时经验 fallback (SNR-014)
+// - variance/ivar 传播遵循 x'=αx → var'=α²var, ivar'=ivar/α² (SNR-002)
+// - 旧 (A-B)/mad 不再进入 science weight (SNR-008)
 
 #include "snr_estimator.h"
 

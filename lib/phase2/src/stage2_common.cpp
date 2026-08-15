@@ -1,4 +1,4 @@
-// lib/phase2/src/stage2_common.cpp — Stage2 生产共享函数（R1/V4）
+// lib/phase2/src/stage2_common.cpp — Stage2 生产共享函数
 #include "astro/phase2/stage2_common.h"
 #include <nlohmann/json.hpp>
 #include <cmath>
@@ -75,7 +75,7 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                 *err = "snr_search_radius_deg 必须 > 0";
                 return false;
             }
-            // V13 background-clean sampler 参数
+            // background-clean sampler 参数
             cfg->background_patch_radius =
                 m.value("background_patch_radius", 8);
             if (cfg->background_patch_radius < 3) {
@@ -129,7 +129,7 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                 *err = "huber_delta 必须 > 0";
                 return false;
             }
-            // smoothing: auto → 0.1（R1 空间平滑默认）
+            // smoothing: auto → 0.1（ 空间平滑默认）
             if (m.contains("smoothing")) {
                 const auto& sm = m["smoothing"];
                 if (sm.is_string()) {
@@ -194,7 +194,7 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
             }
             if (in.contains("rejection")) {
                 const auto& rj = in["rejection"];
-                // V17：旧 config 别名（low/high/max_iterations/min_samples）
+                // 旧 config 别名（low/high/max_iterations/min_samples）
                 // 已从 production runtime 删除——出现即要求显式迁移。
                 if (rj.contains("low") || rj.contains("high") ||
                     rj.contains("max_iterations") ||
@@ -230,7 +230,7 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                     *err = "unsupported rejection method: " + method;
                     return false;
                 }
-                // V17：版本化 profile（wbpp_2_9_1 冻结；wbpp_current 仅
+                // 版本化 profile（wbpp_2_9_1 冻结；wbpp_current 仅
                 // migration alias，解析到 wbpp_2_9_1；astrocs_adaptive 独立）
                 cfg->reject_profile =
                     rj.value("profile", std::string("wbpp_2_9_1"));
@@ -248,7 +248,7 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                     *err = "rejection.underdetermined_n 必须 >= 1";
                     return false;
                 }
-                // V17：rejection normalization 独立命名（astrocs_*_v1；
+                // rejection normalization 独立命名（astrocs_*_v1；
                 // 旧 median_center/median_scale 为 migration alias）
                 cfg->reject_normalization = rj.value(
                     "normalization",
@@ -266,7 +266,7 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                 }
                 cfg->reject_normalization_floor =
                     rj.value("normalization_floor", 1e-12);
-                // V17：large_scale_rejection.v1（connected-component grow）
+                // large_scale_rejection.v1（connected-component grow）
                 if (rj.contains("large_scale")) {
                     const auto& ls = rj["large_scale"];
                     cfg->large_scale_enabled =
@@ -289,7 +289,7 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                         return false;
                     }
                 }
-                // 方法×normalization 合法性（V16/V17）
+                // 方法×normalization 合法性
                 if (method == "percentile" &&
                     cfg->reject_normalization != "astrocs_median_center_v1") {
                     *err = "rejection: percentile 必须 normalization="
@@ -301,7 +301,7 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                            "（官方 oracle 原始值域冻结）";
                     return false;
                 }
-                // V15/V16 method-specific typed params（单语义单默认）
+                // method-specific typed params（单语义单默认）
                 if (rj.contains("robust_mad_clip")) {
                     const auto& s = rj["robust_mad_clip"];
                     cfg->sigma_lower = s.value("lower_sigma", 4.0);
@@ -369,11 +369,11 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
             }
         const std::string wm =
             in.value("weight_mode", std::string("auto"));
-        // V19 (SNR_REDESIGN_CONTRACT §13): 默认 ivar (逆方差)
-        //   w = 1/variance_p (Drizzle 传播); support 只作 validity/coverage。
-        //   support_x_snr2 保留为 legacy/diagnostic (SNR-008 语义退休)。
+        // 默认 ivar (逆方差)
+        // w = 1/variance_p (Drizzle 传播); support 只作 validity/coverage。
+        // support_x_snr2 保留为 legacy/diagnostic (SNR-008 语义退休)。
         if (wm == "auto" || wm == "ivar") {
-            cfg->weight_mode = 2;   // V19 默认 ivar
+            cfg->weight_mode = 2;   // 默认 ivar
         } else if (wm == "equal") {
             cfg->weight_mode = 1;
         } else if (wm == "support_x_snr2") {

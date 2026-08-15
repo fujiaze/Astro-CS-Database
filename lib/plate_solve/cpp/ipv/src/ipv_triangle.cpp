@@ -2,20 +2,20 @@
 // ipv_triangle.cpp - IPV 三角形匹配模块实现
 //
 // 三角形匹配算法实现:
-//   - set_triangle        三角形构造, 边长排序 a>=b>=c
-//   - stars_to_triangles  N 颗星 -> C(N,3) 三角形
-//   - make_vote_matrix    ba/ca 空间匹配 + 顶点对投票
-//   - top_vote_getters    按票数降序提取 top-N 匹配对
+// - set_triangle 三角形构造, 边长排序 a>=b>=c
+// - stars_to_triangles N 颗星 -> C(N,3) 三角形
+// - make_vote_matrix ba/ca 空间匹配 + 顶点对投票
+// - top_vote_getters 按票数降序提取 top-N 匹配对
 //
 // 实现说明:
-//   1. V4.22: 投票矩阵改回 2D 数组 std::vector<std::vector<int>> (numA x numB)
-//      原 V4.20 用稀疏 unordered_map<VoteKey, double>, 累积逻辑不等价
-//   2. V4.22: top_vote_getters 添加 AT_MATCH_MINVOTES=2 门槛
-//      单票配对直接丢弃
-//   3. 不做 sort_triangle_array + find_ba_triangle 二分加速
-//      (N=20 时 C(20,3)=1140, 双重循环 1.3M 次比较足够快)
-//   4. 不做 scale/rotation 约束 (假定 U/W 同坐标系, 尺度比=1, 任意旋转)
-//   5. 自适应星数: max_vote < 3 时扩充 20 -> 40 -> 60
+// 1. : 投票矩阵改回 2D 数组 std::vector<std::vector<int>> (numA x numB)
+// 原 用稀疏 unordered_map<VoteKey, double>, 累积逻辑不等价
+// 2. : top_vote_getters 添加 AT_MATCH_MINVOTES=2 门槛
+// 单票配对直接丢弃
+// 3. 不做 sort_triangle_array + find_ba_triangle 二分加速
+// (N=20 时 C(20,3)=1140, 双重循环 1.3M 次比较足够快)
+// 4. 不做 scale/rotation 约束 (假定 U/W 同坐标系, 尺度比=1, 任意旋转)
+// 5. 自适应星数: max_vote < 3 时扩充 20 -> 40 -> 60
 //
 // 日期: 2026-07-05
 // ============================================================================
@@ -57,17 +57,17 @@ static inline double euclid_dist(
 
 // ===========================================================================
 // set_triangle: 三角形构造
-//   输入: star_array 中的三颗星 (s1, s2, s3), 索引互不相同
-//   输出: tri 字段填充 (a_index/b_index/c_index/ba/ca/a_length)
-//   返回: true=有效三角形, false=退化 (a_length < 1e-6, 三点共线或重合)
+// 输入: star_array 中的三颗星 (s1, s2, s3), 索引互不相同
+// 输出: tri 字段填充 (a_index/b_index/c_index/ba/ca/a_length)
+// 返回: true=有效三角形, false=退化 (a_length < 1e-6, 三点共线或重合)
 //
 // 边长排序逻辑:
-//   d12 = dist(s1, s2),  d23 = dist(s2, s3),  d13 = dist(s1, s3)
-//   a = max(d12, d23, d13),  b = mid,  c = min
-//   a_index = 最长边对面的顶点 (若最长边为 d12, 对面顶点为 s3)
-//   b_index = 次长边对面的顶点
-//   c_index = 最短边对面的顶点
-//   ba = b/a,  ca = c/a  (a > 0 时)
+// d12 = dist(s1, s2), d23 = dist(s2, s3), d13 = dist(s1, s3)
+// a = max(d12, d23, d13), b = mid, c = min
+// a_index = 最长边对面的顶点 (若最长边为 d12, 对面顶点为 s3)
+// b_index = 次长边对面的顶点
+// c_index = 最短边对面的顶点
+// ba = b/a, ca = c/a (a > 0 时)
 // ===========================================================================
 static bool set_triangle(
     Triangle& tri,
@@ -169,8 +169,8 @@ static bool set_triangle(
 
 // ===========================================================================
 // stars_to_triangles: N 颗星 -> C(N,3) 个三角形
-//   三重循环 i < j < k, 对每个三元组调用 set_triangle
-//   退化三角形 (a_length < 1e-6) 跳过, 不加入结果
+// 三重循环 i < j < k, 对每个三元组调用 set_triangle
+// 退化三角形 (a_length < 1e-6) 跳过, 不加入结果
 // ===========================================================================
 static std::vector<Triangle> stars_to_triangles(
     const std::vector<StarPoint>& stars,
@@ -182,7 +182,7 @@ static std::vector<Triangle> stars_to_triangles(
     // C(N,3) = N*(N-1)*(N-2)/6
     size_t expected = (size_t)n_stars * (n_stars - 1) * (n_stars - 2) / 6;
 
-    // V4.26 OpenMP 并行化: 外层 i 循环并行, 每个线程维护局部 triangles vector,
+    // OpenMP 并行化: 外层 i 循环并行, 每个线程维护局部 triangles vector,
     // 最后合并. N=60 时生成 34220 个三角形, 串行 ~50ms, 并行后 ~5ms.
     int n_threads = omp_get_max_threads();
     std::vector<std::vector<Triangle>> per_thread(n_threads);
@@ -233,9 +233,9 @@ static std::vector<Triangle> stars_to_triangles(
                              n_stars, expected, triangles.size(),
                              n_skipped_degenerate, n_threads);
 
-    // V4.20: 剪枝 ba > AT_MATCH_RATIO(0.9) 的细长三角形:
-    //   - ba = b/a 越小越接近等边, 描述符越稳定
-    //   - ba > 0.9 的三角形在 ba/ca 空间聚集, 容易产生虚假匹配
+    // 剪枝 ba > AT_MATCH_RATIO(0.9) 的细长三角形:
+    // - ba = b/a 越小越接近等边, 描述符越稳定
+    // - ba > 0.9 的三角形在 ba/ca 空间聚集, 容易产生虚假匹配
     // 这里用 remove_if 直接剔除
     size_t n_before_prune = triangles.size();
     triangles.erase(
@@ -254,16 +254,16 @@ static std::vector<Triangle> stars_to_triangles(
 
 // ===========================================================================
 // make_vote_matrix: ba/ca 空间匹配 + 顶点对投票
-//   对每个 B 侧三角形 triB, 遍历所有 A 侧三角形 triA:
-//     若 (ba_A - ba_B)^2 + (ca_A - ca_B)^2 < tolerance^2,
-//     且 (V4.23) scale 约束: min_scale <= a_length_A / a_length_B <= max_scale,
-//     为 3 个顶点对投票:
-//       votes[triA.a_index][triB.a_index]++
-//       votes[triA.b_index][triB.b_index]++
-//       votes[triA.c_index][triB.c_index]++
+// 对每个 B 侧三角形 triB, 遍历所有 A 侧三角形 triA:
+// 若 (ba_A - ba_B)^2 + (ca_A - ca_B)^2 < tolerance^2,
+// 且 scale 约束: min_scale <= a_length_A / a_length_B <= max_scale,
+// 为 3 个顶点对投票:
+// votes[triA.a_index][triB.a_index]++
+// votes[triA.b_index][triB.b_index]++
+// votes[triA.c_index][triB.c_index]++
 //
-// V4.22: 用 2D int 数组 vote_matrix[numA][numB]
-// V4.23: percent_scale_range=20% scale 约束, 过滤不同尺度的错误三角形匹配
+// 用 2D int 数组 vote_matrix[numA][numB]
+// percent_scale_range=20% scale 约束, 过滤不同尺度的错误三角形匹配
 // ===========================================================================
 static void make_vote_matrix(
     const std::vector<Triangle>& tris_A,
@@ -272,18 +272,18 @@ static void make_vote_matrix(
     std::vector<std::vector<int>>& votes,   // 2D 投票矩阵 [numA][numB]
     int numA,                                // A 侧星数 (行数)
     int numB,                                // B 侧星数 (列数)
-    double scale_min = -1.0,                 // V4.23: a_length_A/a_length_B 下限 (-1=不约束)
-    double scale_max = -1.0)                 // V4.23: a_length_A/a_length_B 上限 (-1=不约束)
+    double scale_min = -1.0,                 // a_length_A/a_length_B 下限 (-1=不约束)
+    double scale_max = -1.0)                 // a_length_A/a_length_B 上限 (-1=不约束)
 {
     double tol2 = tolerance * tolerance;
     int n_A = (int)tris_A.size();
     int n_B = (int)tris_B.size();
     bool use_scale = (scale_min > 0.0 && scale_max > 0.0);
 
-    // V4.22: 分配并初始化 numA x numB 的 2D 投票矩阵
+    // 分配并初始化 numA x numB 的 2D 投票矩阵
     votes.assign(numA, std::vector<int>(numB, 0));
 
-    // V4.26 OpenMP 并行化: 投票矩阵共享写入有数据竞争, 采用线程局部矩阵 + 合并方案.
+    // OpenMP 并行化: 投票矩阵共享写入有数据竞争, 采用线程局部矩阵 + 合并方案.
     // 性能瓶颈: N=60 时 n_A*n_B = 34220*34220 = 1.17 亿次比较, 串行 ~600ms.
     // 并行后降到 ~50ms (16 线程).
     //
@@ -336,7 +336,7 @@ static void make_vote_matrix(
                 double dca = ca_A - ca_B;
 
                 if (dba * dba + dca * dca < tol2) {
-                    // V4.23: scale 约束
+                    // scale 约束
                     // ratio = a_length_A / a_length_B (像素/角秒 = 1/s0)
                     if (use_scale && a_len_B > 1e-15) {
                         double ratio = tris_A[i].a_length / a_len_B;
@@ -391,19 +391,19 @@ static void make_vote_matrix(
 
 // ===========================================================================
 // top_vote_getters: 提取最高票匹配对
-//   遍历 2D vote_matrix, 按票数降序排序, 返回 top N 对
-//   N = top_n (通常等于 n_stars_A, 默认 20)
+// 遍历 2D vote_matrix, 按票数降序排序, 返回 top N 对
+// N = top_n (通常等于 n_stars_A, 默认 20)
 //
-// V4.22: 添加 AT_MATCH_MINVOTES=2 门槛
-//   - 只允许 vote_count >= AT_MATCH_MINVOTES 的配对进入候选
-//   - 单票配对 (vote_count=1) 直接丢弃 (P1-2: 单票噪声污染初始 6 对 TRANS)
+// 添加 AT_MATCH_MINVOTES=2 门槛
+// - 只允许 vote_count >= AT_MATCH_MINVOTES 的配对进入候选
+// - 单票配对 (vote_count=1) 直接丢弃 (P1-2: 单票噪声污染初始 6 对 TRANS)
 //
-// V4.25: 贪心去重 (同一 u 和同一 w 只保留票数最高对)
-//   - 原算法不去重, 但理想三角形匹配质量高时前 6 对不会出现重复星
-//   - IPv 在饱和星密集场景下, 错误配对票数可能高于正确配对,
-//     导致 top 6 中同一 u 匹配多个 w (如 u=4 同时匹配 w=36 和 w=6),
-//     矛盾目标扭曲 calc_trans_general 最小二乘拟合
-//   - 去重策略: 按票数降序贪心遍历, u/w 均未出现才保留
+// 贪心去重 (同一 u 和同一 w 只保留票数最高对)
+// - 原算法不去重, 但理想三角形匹配质量高时前 6 对不会出现重复星
+// - IPv 在饱和星密集场景下, 错误配对票数可能高于正确配对,
+// 导致 top 6 中同一 u 匹配多个 w (如 u=4 同时匹配 w=36 和 w=6),
+// 矛盾目标扭曲 calc_trans_general 最小二乘拟合
+// - 去重策略: 按票数降序贪心遍历, u/w 均未出现才保留
 //
 // 返回: top_pairs (按票数降序) + 对应的 votes 数组
 // ===========================================================================
@@ -422,7 +422,7 @@ static void top_vote_getters(
     int numB = (numA > 0) ? (int)votes[0].size() : 0;
     if (numB == 0) return;
 
-    // V4.22: 遍历整个 2D 数组, 收集 vote_count >= AT_MATCH_MINVOTES 的配对
+    // 遍历整个 2D 数组, 收集 vote_count >= AT_MATCH_MINVOTES 的配对
     std::vector<std::pair<MatchPair, int>> entries;
     for (int i = 0; i < numA; ++i) {
         for (int j = 0; j < numB; ++j) {
@@ -454,7 +454,7 @@ static void top_vote_getters(
             return a.first.w < b.first.w;
         });
 
-    // V4.25: 贪心去重 — 同一 u 和同一 w 只保留票数最高对
+    // 贪心去重 — 同一 u 和同一 w 只保留票数最高对
     // 避免 top 6 初始对中出现重复星, 防止矛盾目标扭曲初始 TRANS
     std::vector<bool> u_seen(numA, false);
     std::vector<bool> w_seen(numB, false);
@@ -477,7 +477,7 @@ static void top_vote_getters(
                             "去重剔除=%d",
                             top_pairs.size(), n_dedup_removed);
 
-    // V4.23 调试: 打印前 10 对的票数
+    // 调试: 打印前 10 对的票数
     for (int i = 0; i < (int)top_pairs.size() && i < 10; ++i) {
         g_triangle_logger.infof("  [调试] top[%d]: u=%d w=%d, votes=%.0f",
                                  i, top_pairs[i].u, top_pairs[i].w, top_votes[i]);
@@ -486,8 +486,8 @@ static void top_vote_getters(
 
 // ===========================================================================
 // 单轮匹配: 给定 (n_A, n_B) 执行一次完整 triangle match
-//   返回 TriangleMatchResult (不含自适应逻辑)
-// V4.23: 添加 s0 参数, 计算 scale 约束 [1/(s0*1.2), 1/(s0*0.8)] (±20%)
+// 返回 TriangleMatchResult (不含自适应逻辑)
+// 添加 s0 参数, 计算 scale 约束 [1/(s0*1.2), 1/(s0*0.8)] (±20%)
 // ===========================================================================
 static TriangleMatchResult triangle_match_single(
     const std::vector<StarPoint>& U,
@@ -519,7 +519,7 @@ static TriangleMatchResult triangle_match_single(
         return result;
     }
 
-    // V4.23: 计算 scale 约束 (percent_scale_range=20%)
+    // 计算 scale 约束 (percent_scale_range=20%)
     // U 是像素, W 是角秒, 预期 ratio = U.a_length / W.a_length = 1/s0
     // 允许范围 [1/(s0*1.2), 1/(s0*0.8)] (±20%)
     double scale_min = -1.0, scale_max = -1.0;
@@ -546,7 +546,7 @@ static TriangleMatchResult triangle_match_single(
         return result;
     }
 
-    // 2. 投票 (V4.22: 2D 数组, V4.23: 添加 scale 约束)
+    // 2. 投票 (: 2D 数组, : 添加 scale 约束)
     std::vector<std::vector<int>> votes;
     make_vote_matrix(tris_A, tris_B, tolerance, votes, n_stars_A, n_stars_B,
                      scale_min, scale_max);
@@ -557,7 +557,7 @@ static TriangleMatchResult triangle_match_single(
     }
 
     // 3. 提取 top-N 匹配对 (N = n_stars_A)
-    //    V4.22: 内部添加 AT_MATCH_MINVOTES=2 门槛过滤单票噪声
+    // 内部添加 AT_MATCH_MINVOTES=2 门槛过滤单票噪声
     top_vote_getters(votes, n_stars_A, result.top_pairs, result.votes);
 
     // 4. 统计最大票数 (遍历整个 2D 矩阵, 不受 MINVOTES 过滤影响)
@@ -585,12 +585,12 @@ static TriangleMatchResult triangle_match_single(
 }
 
 // ===========================================================================
-// triangle_match: 主入口 (V4.24: 直接用 60 颗)
-//   V4.24: 直接用 60 颗星, 不做自适应扩充
-//   之前 V4.22 用 20->40->60 自适应, max_vote>=3 就停止, 导致投票矩阵不稳定
-//   直接用 60 颗星, 三角形匹配更准确, 初始 6 对质量更好
+// triangle_match: 主入口 (: 直接用 60 颗)
+// 直接用 60 颗星, 不做自适应扩充
+// 之前 用 20->40->60 自适应, max_vote>=3 就停止, 导致投票矩阵不稳定
+// 直接用 60 颗星, 三角形匹配更准确, 初始 6 对质量更好
 //
-// V4.23: 保留 s0 参数, 用于 scale 约束 (±20%)
+// 保留 s0 参数, 用于 scale 约束 (±20%)
 // ===========================================================================
 TriangleMatchResult triangle_match(
     const std::vector<StarPoint>& U,
@@ -605,7 +605,7 @@ TriangleMatchResult triangle_match(
                             (int)U.size(), (int)W.size(),
                             n_stars_A, n_stars_B, tolerance, s0);
 
-    // V4.24: 直接用 60 颗, 不做自适应扩充
+    // 直接用 60 颗, 不做自适应扩充
     // 若星数 < 60, triangle_match_single 内部会截断到实际星数
     const int    MIN_VOTES_THRESHOLD = 3;
     const int    adapt_seq[] = {60};
@@ -627,9 +627,9 @@ TriangleMatchResult triangle_match(
             if (n_stars_B > nB) nB = n_stars_B;
         }
 
-        // V4.20: 任一侧超过实际星数即停止扩充 (原 && 过于严格)
+        // 任一侧超过实际星数即停止扩充 (原 && 过于严格)
         // 例: U 有 30 颗、W 有 100 颗, stage=2 时 nA=60>30 但 nB=60<100,
-        //     原 && 不满足会浪费一次计算; 改 || 后立即截断
+        // 原 && 不满足会浪费一次计算; 改 || 后立即截断
         if (nA > (int)U.size() || nB > (int)W.size()) {
             g_triangle_logger.infof("triangle_match: stage=%d nA=%d nB=%d "
                                     "超过实际星数, 停止扩充",

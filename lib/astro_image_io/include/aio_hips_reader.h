@@ -1,5 +1,5 @@
 // ============================================================================
-// aio_hips_reader.h - IVOA HiPS 读取器 C API (Phase1 Final Closure V3)
+// aio_hips_reader.h - IVOA HiPS 读取器 C API (Phase1 Final Closure )
 //
 // Browser / HIPS_VERIFY 唯一后端: 不允许直接解析 properties/CFITSIO。
 // ============================================================================
@@ -23,7 +23,7 @@ enum AioHipsProduct {
     AIO_HIPS_RD_SIGNAL  = 0,
     AIO_HIPS_RD_SUPPORT = 1,
     AIO_HIPS_RD_SNR     = 2,
-    // V19 (P1-003): variance/ivar 产品读取
+    // variance/ivar 产品读取
     AIO_HIPS_RD_VARIANCE = 3,
     AIO_HIPS_RD_IVAR     = 4
 };
@@ -48,19 +48,19 @@ AIO_HIPS_RD_EXPORT int aio_hips_tile_ipix(AioHipsDataset* d, int i, uint64_t* ou
 
 // 读取一个叶级 tile 为 float32 (signal/support)。out 至少 512*512*sizeof(float)。
 // 返回 0=成功。
-// V5 (HIPS-IMG-001 §5): out 为 standard HiPS row-major —— out[y*512+x] 中
+// out 为 standard HiPS row-major —— out[y*512+x] 中
 // (x,y) 是 tile 二维图像坐标 (FITS NAXIS1=x, NAXIS2=y 原样), 不是 NESTED local。
 AIO_HIPS_RD_EXPORT int aio_hips_read_tile_f32(AioHipsDataset* d, uint64_t ipix, float* out);
 
 // 读取一个叶级 tile 为 float64 (standard HiPS row-major, 同上)
 AIO_HIPS_RD_EXPORT int aio_hips_read_tile_f64(AioHipsDataset* d, uint64_t ipix, double* out);
 
-// V5 (HIPS-IMG-001 §5): 按 NESTED leaf ipix 查询单像素值。
+// 按 NESTED leaf ipix 查询单像素值。
 // 内部执行 leaf_ipix -> local nested -> 标准 tile xy -> FITS row-major。
 AIO_HIPS_RD_EXPORT int aio_hips_read_leaf_f32(AioHipsDataset* d, uint64_t leaf_ipix, float* out);
 AIO_HIPS_RD_EXPORT int aio_hips_read_leaf_f64(AioHipsDataset* d, uint64_t leaf_ipix, double* out);
 
-// V4（R2）：读取叶级 tile 的 CFITSIO DATASUM（数据校验和，科学 payload
+// 读取叶级 tile 的 CFITSIO DATASUM（数据校验和，科学 payload
 // 指纹）。返回 0=ok；tile 无 DATASUM 时返回 1 并置 err。
 AIO_HIPS_RD_EXPORT int aio_hips_read_tile_datasum(
     AioHipsDataset* d, uint64_t tile_ipix, char* out, int out_size);

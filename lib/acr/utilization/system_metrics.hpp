@@ -1,16 +1,16 @@
 // lib/acr/utilization/system_metrics.hpp — 系统指标读取（内部头，不暴露到公共 API）
 //
 // Phase G（08_RESOURCE_CONTROL_SPEC.md §2/§3/§4）：
-//   1. CPU 利用率：Windows GetSystemTimes（idle/kernel/user），返回自上次调用以来平均
-//   2. RAM：GlobalMemoryStatusEx
-//   3. GPU 利用率：NVML 动态加载（nvml.dll），不可用时按队列预算估算并标记 estimated=true
-//   4. VRAM：NVML nvmlDeviceGetMemoryInfo，不可用时 estimated=true
+// 1. CPU 利用率：Windows GetSystemTimes（idle/kernel/user），返回自上次调用以来平均
+// 2. RAM：GlobalMemoryStatusEx
+// 3. GPU 利用率：NVML 动态加载（nvml.dll），不可用时按队列预算估算并标记 estimated=true
+// 4. VRAM：NVML nvmlDeviceGetMemoryInfo，不可用时 estimated=true
 //
 // 设计约束：
-//   - 公共头不暴露 Windows API / NVML 第三方类型（PIMPL）
-//   - NVML 通过 LoadLibrary + GetProcAddress 动态加载，不依赖编译期 nvml.lib
-//   - 无 GPU 时明确标记 estimated=true，不伪报
-//   - 线程安全（多 worker 同时读取）
+// - 公共头不暴露 Windows API / NVML 第三方类型（PIMPL）
+// - NVML 通过 LoadLibrary + GetProcAddress 动态加载，不依赖编译期 nvml.lib
+// - 无 GPU 时明确标记 estimated=true，不伪报
+// - 线程安全（多 worker 同时读取）
 #pragma once
 
 #include <cstddef>

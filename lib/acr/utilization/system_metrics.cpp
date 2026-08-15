@@ -1,9 +1,9 @@
 // lib/acr/utilization/system_metrics.cpp — SystemMetrics 实现
 //
 // Phase G：实际系统指标读取。
-//   - CPU: GetSystemTimes（idle/kernel/user 100ns 单位）
-//   - RAM: GlobalMemoryStatusEx
-//   - GPU/VRAM: NVML 动态加载（nvml.dll），不可用时队列预算估算
+// - CPU: GetSystemTimes（idle/kernel/user 100ns 单位）
+// - RAM: GlobalMemoryStatusEx
+// - GPU/VRAM: NVML 动态加载（nvml.dll），不可用时队列预算估算
 //
 // NVML 通过 LoadLibrary + GetProcAddress 动态加载，编译期不依赖 nvml.h/nvml.lib。
 // 这样 CPU-only 构建（ACR_BUILD_CUDA=OFF）也能在 NVIDIA GPU 机器上读取 GPU 利用率。
@@ -274,8 +274,8 @@ CpuUtilizationSample SystemMetrics::read_cpu_utilization() {
     // total = idle + kernel + user（kernel 含 idle，需修正）
     // Windows GetSystemTimes: kernel 时间含 idle 时间。
     // 标准公式: busy = (delta_kernel - delta_idle) + delta_user
-    //           total = delta_kernel + delta_user  (因为 kernel 含 idle)
-    //           utilization = busy / total
+    // total = delta_kernel + delta_user (因为 kernel 含 idle)
+    // utilization = busy / total
     std::uint64_t delta_busy = 0;
     if (delta_kernel >= delta_idle) {
         delta_busy = (delta_kernel - delta_idle) + delta_user;

@@ -1,11 +1,11 @@
 // lib/acr/tests/classic/e18_workpool.cpp — E18 动态 CPU+GPU 工作池
 //
-// 23 号计划 §1/§6：经典 GPU 实验必须走 KernelRegistry + 真实 CUDA launcher。
+// 23 §1/§6：经典 GPU 实验必须走 KernelRegistry + 真实 CUDA launcher。
 // 本实现：
-//   - 通过 dispatch_invocation(KernelInvocation) 派发 Copy/AXPY/Reduction；
-//   - 无 GPU（无桥接 DLL/设备）→ 状态 SKIPPED，测试用 GTEST_SKIP()（不冒充通过）；
-//   - 真实 Mixed 断言 cpu_done>0 && gpu_done>0；
-//   - coverage 每项恰好一次；profile hash 运行前后不变。
+// - 通过 dispatch_invocation(KernelInvocation) 派发 Copy/AXPY/Reduction；
+// - 无 GPU（无桥接 DLL/设备）→ 状态 SKIPPED，测试用 GTEST_SKIP()（不冒充通过）；
+// - 真实 Mixed 断言 cpu_done>0 && gpu_done>0；
+// - coverage 每项恰好一次；profile hash 运行前后不变。
 #include "classic_common.hpp"
 
 #include <gtest/gtest.h>
@@ -154,7 +154,7 @@ CaseResult run_mixed_reduce(std::size_t total, const std::string& case_id) {
     inv.domain = WorkDomain{0, total};
     inv.buffers.add(0, x.data(), total);
     inv.buffers.add(1, partials.data(), partials.size());
-    // 注册声明 FP64 accumulator（24 号计划 §5.1）
+    // 注册声明 FP64 accumulator（24 §5.1）
     inv.traits.numeric.accumulator = NumericPolicy::Accumulator::fp64;
 
     auto est = make_mixed_estimate(total);

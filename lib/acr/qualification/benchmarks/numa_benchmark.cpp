@@ -1,17 +1,17 @@
 // lib/acr/qualification/benchmarks/numa_benchmark.cpp — NUMA 本地/远端 host buffer 带宽
 //
 // 设计（06 §6 + 17 §2）：
-//   1. 利用 hwloc 拓扑识别 NUMA 节点（ADR-003 hwloc 为唯一拓扑来源）
-//   2. 对每个 NUMA 节点对（local, remote），分配 host buffer 并绑定到该 NUMA 节点
-//   3. 运行 STREAM Triad（y[i] = a*x[i] + y[i]）测量带宽
-//   4. 报告 local vs remote 带宽差异（GB/s）
-//   5. 无 hwloc 或单 NUMA 节点时 SkipWithError 降级（ADR-009 降级策略）
-//   6. 公共头不暴露 hwloc 类型（所有 hwloc 调用仅在本 .cpp 内）
+// 1. 利用 hwloc 拓扑识别 NUMA 节点（ADR-003 hwloc 为唯一拓扑来源）
+// 2. 对每个 NUMA 节点对（local, remote），分配 host buffer 并绑定到该 NUMA 节点
+// 3. 运行 STREAM Triad（y[i] = a*x[i] + y[i]）测量带宽
+// 4. 报告 local vs remote 带宽差异（GB/s）
+// 5. 无 hwloc 或单 NUMA 节点时 SkipWithError 降级（ADR-009 降级策略）
+// 6. 公共头不暴露 hwloc 类型（所有 hwloc 调用仅在本 .cpp 内）
 //
 // 内存绑定策略：
-//   - hwloc_alloc_membind：按 NUMA 节点集分配并绑定
-//   - 失败时降级到普通 malloc 并标记 "unbound"
-//   - 读 / 写流式访问，强制缓存不命中（大数组超出 LLC）
+// - hwloc_alloc_membind：按 NUMA 节点集分配并绑定
+// - 失败时降级到普通 malloc 并标记 "unbound"
+// - 读 / 写流式访问，强制缓存不命中（大数组超出 LLC）
 #include "benchmark_common.hpp"
 
 #include <benchmark/benchmark.h>
@@ -79,9 +79,9 @@ std::vector<NumaNode> get_numa_nodes(hwloc_topology_t topo) {
 // 在指定 NUMA 节点分配内存（绑定），失败返回 nullptr
 // 使用 hwloc_alloc_membind 按节点集分配
 // 正确签名：hwloc_alloc_membind(topology, len, set, policy, flags)
-//   - set = nodeset（bitmap）
-//   - policy = HWLOC_MEMBIND_BIND
-//   - flags = HWLOC_MEMBIND_STRICT | HWLOC_MEMBIND_BYNODESET（都是 flags 类型）
+// - set = nodeset（bitmap）
+// - policy = HWLOC_MEMBIND_BIND
+// - flags = HWLOC_MEMBIND_STRICT | HWLOC_MEMBIND_BYNODESET（都是 flags 类型）
 void* alloc_on_numa(hwloc_topology_t topo, hwloc_obj_t numa_obj, std::size_t bytes) {
     if (!numa_obj) return nullptr;
     hwloc_nodeset_t nodeset = hwloc_bitmap_alloc();

@@ -1,10 +1,10 @@
 // lib/phase2/src/rejection.cpp — Phase2 Rejection Framework CPU reference
 //
-// W7（控制包 34A532A2...B2EB308 + wiki Phase2_Rejection）：
-//   - 输入：UPM-calibrated 样本栈 values[]/valid[]/support[]/weights[]/quality[]；
-//   - 首版实现：None、Sigma、WinsorizedSigma（确定性，Oracle 对照）；
-//   - AveragedSigma/LinearFit/ESD/RCR 接口冻结，后续子任务按论文/Oracle 独立实现；
-//   - 输出 accepted mask + low/high 计数 + 迭代数 + status。
+// W7（ 34A532A2...B2EB308 + wiki Phase2_Rejection）：
+// - 输入：UPM-calibrated 样本栈 values[]/valid[]/support[]/weights[]/quality[]；
+// - 首版实现：None、Sigma、WinsorizedSigma（确定性，Oracle 对照）；
+// - AveragedSigma/LinearFit/ESD/RCR 接口冻结，后续子任务按论文/Oracle 独立实现；
+// - 输出 accepted mask + low/high 计数 + 迭代数 + status。
 #include "astro/phase2/rejection.h"
 
 #include <algorithm>
@@ -133,14 +133,14 @@ inline double rcr_n_correct(std::size_t n) {
     return std::pow(1.2591, std::pow((double)n, 0.2052));
 }
 
-// ===== V4 R4：完整 sequential RCR =====
+// ===== ：完整 sequential RCR =====
 // 语义 = Maples et al. 2018（arXiv:1807.05276）核心：按
 // robust → precise 顺序执行多段 iterative Chauvenet 拒绝，等价官方
 // rcr 2.4.7（nickk124/robust-outlier-rejection commit a8a29a6）
 // `performRejection` 的 SS_MEDIAN_DL 冻结链：
-//   1) MEDIAN + DOUBLE_LINE（中位数位置 + 双线稳健尺度）
-//   2) MEDIAN + SIXTY_EIGHTH_PERCENTILE
-//   3) MEAN + STANDARD_DEVIATION
+// 1) MEDIAN + DOUBLE_LINE（中位数位置 + 双线稳健尺度）
+// 2) MEDIAN + SIXTY_EIGHTH_PERCENTILE
+// 3) MEAN + STANDARD_DEVIATION
 // 每段 sigma = 稳健尺度 × SS_MEDIAN_DL 校准修正因子 CF（SSDLUnityCF
 // 表 / n≥101 幂律）；拒绝判据 n·erfc(z/√2) < 0.5（A&S 7.1.26 近似，
 // 官方 erfcCustom）。本实现独立编写（不复制 oracle 源码），数值语义
@@ -979,7 +979,7 @@ void set_err(char* err, std::size_t err_cap, const char* msg) {
     }
 }
 
-// V16：n<=64 固定 scratch（避免每像素堆分配）；>64 走堆。
+// n<=64 固定 scratch（避免每像素堆分配）；>64 走堆。
 template <typename T, std::size_t CAP = 64>
 class ScratchVec {
 public:
@@ -1044,7 +1044,7 @@ double scratch_mad(double* v, std::size_t n, double med) {
 extern "C" {
 
 // =====================================================================
-// V16：canonical semantic registry / plan resolve
+// canonical semantic registry / plan resolve
 // =====================================================================
 
 const char* p2_rejection_semantic_id(int method) {
@@ -1085,7 +1085,7 @@ int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
     }
     P2RejectionPlan p{};
     p.underdetermined_n = req->underdetermined_n > 0 ? req->underdetermined_n : 2u;
-    p.normalization = P2_NORMALIZE_MEDIAN_CENTER;  // V16 默认（WBPP Light:
+    p.normalization = P2_NORMALIZE_MEDIAN_CENTER;  // 默认（WBPP Light:
     // rejectionNormalization=Scale 映射；AstroCS 用 per-pixel robust 域）
     p.normalization_floor = 1e-12;
     p.sigma.lower_sigma = 4.0; p.sigma.upper_sigma = 3.0; p.sigma.max_iterations = 8;
@@ -1123,7 +1123,7 @@ int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
 }
 
 // =====================================================================
-// V16：Eligibility 单路径（连续版 + 生产 strided 版共用同一 policy core）
+// Eligibility 单路径（连续版 + 生产 strided 版共用同一 policy core）
 // =====================================================================
 
 namespace {
@@ -1261,7 +1261,7 @@ int p2_collect_candidate_stack(const P2EligibilityGatherInput* in,
 }
 
 // =====================================================================
-// V16：RejectionKernel（normalization 工作域 + 显式方法 + reasons）
+// RejectionKernel（normalization 工作域 + 显式方法 + reasons）
 // =====================================================================
 
 namespace {
@@ -1611,7 +1611,7 @@ void reject_rcr_impl(const double* w, std::uint32_t n, const double* weights,
     }
 }
 
-// percentile（V16：必须在 median_center 工作域；|median| 尺度保证负值安全）
+// percentile（：必须在 median_center 工作域；|median| 尺度保证负值安全）
 void reject_percentile_impl(const double* w, std::uint32_t n,
                             const P2PercentileParams& prm,
                             const double* orig_vals, double orig_median,
@@ -1680,7 +1680,7 @@ void reject_median_sigma_impl(const double* w, std::uint32_t n,
     }
 }
 
-// minmax（V16：一次性固定 rank 删除，不迭代）
+// minmax（：一次性固定 rank 删除，不迭代）
 void reject_minmax_impl(const double* w, std::uint32_t n,
                         const P2MinmaxParams& prm, std::uint8_t* reason,
                         std::uint32_t* iterations,
@@ -1722,7 +1722,7 @@ int p2_reject_stack_ex(const P2CandidateStack* stack,
                        P2RejectionDecision* out) {
     if (stack == nullptr || plan == nullptr || out == nullptr) return 1;
     if (plan->method < P2_REJECT_NONE || plan->method > P2_REJECT_MINMAX) {
-        // V17：AUTO 等非法方法 → 明确科学状态 INVALID_METHOD（rc=0，
+        // AUTO 等非法方法 → 明确科学状态 INVALID_METHOD（rc=0，
         // 调用方对非 {OK,UNDERDETERMINED} 一律 hard fail）
         std::uint8_t* reasons_out = out->reasons;
         std::memset(out, 0, sizeof(*out));
@@ -1782,7 +1782,7 @@ int p2_reject_stack_ex(const P2CandidateStack* stack,
         return 0;
     }
 
-    // ---- V16：RejectionNormalizationPolicy（判定工作域）----
+    // ---- ：RejectionNormalizationPolicy（判定工作域）----
     ScratchVec<double> work, scratch, scratch2, scratch3;
     ScratchVec<std::uint8_t> accept, next, keep;
     ScratchVec<std::size_t> idx, idx2;
@@ -1992,7 +1992,7 @@ int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out) {
 }
 
 // =====================================================================
-// V17：astrocs.large_scale_rejection.v1 —— connected-component grow
+// astrocs.large_scale_rejection.v1 —— connected-component grow
 // =====================================================================
 
 namespace {

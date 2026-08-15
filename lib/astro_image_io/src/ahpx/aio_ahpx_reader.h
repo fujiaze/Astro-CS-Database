@@ -14,11 +14,11 @@ namespace aio::ahpx {
 // AhpxReader - .ahpx 单帧存储格式读取器
 //
 // 用法:
-//   AhpxReader reader;
-//   if (!reader.open("frame.ahpx")) return;
-//   printf("header: %s\n", reader.getHeaderJson().c_str());
-//   auto pixels = reader.readPixels();
-//   reader.close();
+// AhpxReader reader;
+// if (!reader.open("frame.ahpx")) return;
+// printf("header: %s\n", reader.getHeaderJson().c_str());
+// auto pixels = reader.readPixels();
+// reader.close();
 // ============================================================================
 
 class AhpxReader {
@@ -52,12 +52,12 @@ public:
     std::vector<float> readSnr();
 
     // 读取权重
-    // mode  输出权重模式 (SCALAR/GRID/PIXEL)
+    // mode 输出权重模式 (SCALAR/GRID/PIXEL)
     // outGw 输出网格宽度 (仅 GRID 模式有效)
     // outGh 输出网格高度 (仅 GRID 模式有效)
     // SCALAR 模式: 返回 1 个 float
-    // GRID   模式: 返回 gw×gh 个 float
-    // PIXEL  模式: 返回 W×H 个 float
+    // GRID 模式: 返回 gw×gh 个 float
+    // PIXEL 模式: 返回 W×H 个 float
     // 失败返回空 vector
     std::vector<float> readWeight(WeightMode* outMode, uint16_t* outGw, uint16_t* outGh);
 

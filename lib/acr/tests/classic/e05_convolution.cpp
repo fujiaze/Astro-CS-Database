@@ -2,13 +2,13 @@
 // 验证能力（17 §9）：Tile halo、二维拆分、边界策略、大核 direct
 //
 // Phase H 扩展：
-//   - 核：3×3 Sobel、5×5 Gaussian、7×7 固定、15×15 Gaussian/box、31×31 不可分离固定随机
-//   - 图像：512²、2048²（大核限 512² 以控制测试时长）
-//   - 模式：脉冲、梯度、固定随机
-//   - 精度：FP32/FP64
-//   - 边界：clamp/mirror
-//   - 参考：CPU scalar FP64 accumulation
-//   - 输出：max error、RMSE、吞吐、总时间
+// - 核：3×3 Sobel、5×5 Gaussian、7×7 固定、15×15 Gaussian/box、31×31 不可分离固定随机
+// - 图像：512²、2048²（大核限 512² 以控制测试时长）
+// - 模式：脉冲、梯度、固定随机
+// - 精度：FP32/FP64
+// - 边界：clamp/mirror
+// - 参考：CPU scalar FP64 accumulation
+// - 输出：max error、RMSE、吞吐、总时间
 //
 // 注：direct 31×31 on 2048² ≈ 4G MACs，单元测试中限制大核尺寸以保持合理运行时长。
 #include "classic_common.hpp"

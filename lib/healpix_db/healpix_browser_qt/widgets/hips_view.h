@@ -1,5 +1,5 @@
 // ============================================================================
-// hips_view.h - V9 HiPS 2D 天空视图 QWidget（signal/support + pan/zoom）
+// hips_view.h - HiPS 2D 天空视图 QWidget（signal/support + pan/zoom）
 // ============================================================================
 
 #ifndef HIPS_VIEW_H
@@ -30,11 +30,11 @@ public:
     void set_layer(int layer);
     void set_stretch(const std::string& preset, bool auto_range);
     void set_manual_range(float lo, float hi);
-    void set_manual_stf(const STFParams& params);  // V14 v3
-    void set_stf_state(const DisplayTransformState& state);  // V15：唯一状态
-    void refresh_auto_range();   // V14：Reset/Auto View 显式重算 robust STF
-    void set_auto_view(bool on); // V14：Auto View（viewport 自适应）
-    void set_stf_locked(bool locked); // V14：Lock STF（冻结标尺）
+    void set_manual_stf(const STFParams& params);  // v3
+    void set_stf_state(const DisplayTransformState& state);  // 唯一状态
+    void refresh_auto_range();   // Reset/Auto View 显式重算 robust STF
+    void set_auto_view(bool on); // Auto View（viewport 自适应）
+    void set_stf_locked(bool locked); // Lock STF（冻结标尺）
     void set_lod_mode(bool strict_leaf);
     void mark_dirty();
 
@@ -48,7 +48,7 @@ signals:
     void viewChanged(double center_ra, double center_dec, double fov);
     void mouseMoved(double ra, double dec);
     void layerChanged(int layer);
-    void rendered();  // V14 v3：首次渲染完成（STF 面板同步数据范围）
+    void rendered();  // v3：首次渲染完成（STF 面板同步数据范围）
 
 protected:
     void paintEvent(QPaintEvent*) override;
@@ -65,7 +65,7 @@ private:
     HipsSkyView sky_;
     QImage img_;
     bool dirty_ = true;
-    bool rendered_once_ = false;  // V14 v3
+    bool rendered_once_ = false;  // v3
     bool dragging_ = false;
     QPoint last_pos_;
     double cursor_ra_ = 0.0, cursor_dec_ = 0.0;

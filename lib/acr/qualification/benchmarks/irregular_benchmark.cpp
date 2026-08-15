@@ -1,14 +1,14 @@
 // lib/acr/qualification/benchmarks/irregular_benchmark.cpp — 不规则访问模式 Benchmark
 //
 // 设计（06_QUALIFICATION_BENCHMARK_SPEC.md + 17_CLASSIC_EXPERIMENT_SUITE.md）：
-//   1. 不规则访问模式测量（gather / scatter / histogram）
-//   2. FP32 精度，单线程
-//   3. Gather: y[i] = x[indices[i]]，参数化数组大小 + 稀疏度
-//   4. Scatter: y[indices[i]] = x[i]，同 gather 参数化
-//   5. Histogram: 256 bin 纯 uint32_t 计数（atomic 版本在 atomic_benchmark.cpp）
-//   6. 用 LCG 生成确定性随机索引
-//   7. 报告 GB/s（gather/scatter）或 MOp/s（histogram）
-//   8. 用于 CPU 硬件画像补全（CapabilityFamily::Irregular）
+// 1. 不规则访问模式测量（gather / scatter / histogram）
+// 2. FP32 精度，单线程
+// 3. Gather: y[i] = x[indices[i]]，参数化数组大小 + 稀疏度
+// 4. Scatter: y[indices[i]] = x[i]，同 gather 参数化
+// 5. Histogram: 256 bin 纯 uint32_t 计数（atomic 版本在 atomic_benchmark.cpp）
+// 6. 用 LCG 生成确定性随机索引
+// 7. 报告 GB/s（gather/scatter）或 MOp/s（histogram）
+// 8. 用于 CPU 硬件画像补全（CapabilityFamily::Irregular）
 #include "benchmark_common.hpp"
 
 #include <benchmark/benchmark.h>

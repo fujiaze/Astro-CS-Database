@@ -125,7 +125,7 @@ BenchmarkConfig make_default_config(ProfileKind kind, bool enable_gpu) noexcept 
             cfg.collect_resident = false;
             break;
         case ProfileKind::Full:
-            // 25 号计划 §3.2：覆盖 L1/L2、L3、主存区间（64K/1M/4M 元素）
+            // 25 §3.2：覆盖 L1/L2、L3、主存区间（64K/1M/4M 元素）
             cfg.problem_sizes = { 1u << 16, 1u << 20, 1u << 22 }; // 64K, 1M, 4M
             cfg.warmup_rounds = 3;
             cfg.measure_rounds = 10;
@@ -225,7 +225,7 @@ std::uint64_t BenchmarkDriver::run_cpu_dot(std::size_t n,
     std::vector<float> x(n), y(n);
     fill_input(x.data(), n, BENCHMARK_FIXED_SEED);
     fill_input(y.data(), n, BENCHMARK_FIXED_SEED ^ 0x9E3779B97F4A7C15ULL);
-    // 25 号计划 §1.1：每 chunk 独立 FP64 partial + 唯一槽位 + 串行 merge
+    // 25 §1.1：每 chunk 独立 FP64 partial + 唯一槽位 + 串行 merge
     // （禁止多线程并发写共享 float dot）
     const std::size_t chunk = 4096;
     const std::size_t max_slots = (n + chunk - 1) / chunk;
@@ -252,7 +252,7 @@ std::uint64_t BenchmarkDriver::run_cpu_dot(std::size_t n,
     auto t1 = SteadyClock::now();
     double dot = 0.0;
     for (double v : partials) dot += v;
-    // 25 号计划 §1.1：与串行 FP64 参考比较（计时外校验）
+    // 25 §1.1：与串行 FP64 参考比较（计时外校验）
     {
         double ref = 0.0;
         for (std::size_t i = 0; i < n; ++i) {
@@ -274,7 +274,7 @@ std::uint64_t BenchmarkDriver::run_cpu_dot(std::size_t n,
 }
 
 std::uint64_t BenchmarkDriver::run_cpu_conv2d(std::size_t n) {
-    // 25 号计划 §1.3/§3.3：n = 总输出元素数（与 GPU conv3x3 语义一致），
+    // 25 §1.3/§3.3：n = 总输出元素数（与 GPU conv3x3 语义一致），
     // 图像宽 w = ceil(sqrt(n))，只测 [0, n) 个输出像素
     std::size_t w = static_cast<std::size_t>(std::sqrt(static_cast<double>(n)));
     if (w * w < n) ++w;
@@ -356,7 +356,7 @@ std::uint64_t BenchmarkDriver::run_cpu_histogram(std::size_t n,
         }
     }
     auto t1 = SteadyClock::now();
-    // 25 号计划 §1.2：确定性整数参考校验（总和必须 == n）
+    // 25 §1.2：确定性整数参考校验（总和必须 == n）
     {
         std::uint64_t total = 0;
         for (int k = 0; k < 256; ++k) total += bins[k];
@@ -450,7 +450,7 @@ std::uint64_t BenchmarkDriver::run_cpu_scatter(std::size_t n,
 }
 
 std::uint64_t BenchmarkDriver::run_cpu_mandelbrot(std::size_t n) {
-    // 25 号计划 §1.3：n = 总网格元素数（与 problem_size 语义一致）
+    // 25 §1.3：n = 总网格元素数（与 problem_size 语义一致）
     std::size_t w = static_cast<std::size_t>(std::sqrt(static_cast<double>(n)));
     if (w * w < n) ++w;
     std::vector<std::uint32_t> result(n);
@@ -531,7 +531,7 @@ RawBenchmarkSample BenchmarkDriver::measure_once(std::uint32_t kernel_id,
         // resident 仅 Full：CPU 上 resident == kernel（数据已在缓存/内存）
         s.resident_ns = measure_resident ? k : 0;
     } else if (backend.rfind("cuda", 0) == 0) {
-        // 24 号计划 §1：GPU 真实微基准（真实 CUDA kernel 计时，非占位）
+        // 24 §1：GPU 真实微基准（真实 CUDA kernel 计时，非占位）
         bool supported = false;
         std::uint64_t gpu_ns = run_gpu_kernel(kernel_id, problem_size, supported);
         if (!supported || gpu_ns == 0) {
@@ -575,10 +575,10 @@ std::vector<KernelBenchmarkResult> BenchmarkDriver::run() {
 
     std::vector<KernelBenchmarkResult> results;
     // Commit E：标定 kernel 列表覆盖多维能力曲线族
-    //   memory(Copy/Triad) + arithmetic(AXPY) + reduction(Dot) +
-    //   convolution(Convolution2D) + irregular(Histogram/Gather/Scatter) +
-    //   branch(Mandelbrot) + transfer(Transpose→memcpy) + overhead(Custom→submit)
-    // 25 号计划 §1：variant 区分同一 kernel 的不同实现/分布；
+    // memory(Copy/Triad) + arithmetic(AXPY) + reduction(Dot) +
+    // convolution(Convolution2D) + irregular(Histogram/Gather/Scatter) +
+    // branch(Mandelbrot) + transfer(Transpose→memcpy) + overhead(Custom→submit)
+    // 25 §1：variant 区分同一 kernel 的不同实现/分布；
     // problem_size 统一为总工作项数（二维任务见 workload.width/height）
     struct Spec { std::uint32_t id; std::size_t bpe; const char* variant; };
     const Spec specs[] = {
@@ -619,14 +619,14 @@ std::vector<KernelBenchmarkResult> BenchmarkDriver::run() {
                 r.variant = spec.variant;
                 r.backend = backend;
                 r.precision = "fp32";
-                // 24 号计划 §1：原始记录区分实现维度
+                // 24 §1：原始记录区分实现维度
                 r.isa = (backend == "cpu") ? detect_best_isa() : "gpu";
                 r.threads = (backend == "cpu")
                     ? static_cast<std::uint32_t>(std::thread::hardware_concurrency())
                     : 0;
                 r.problem_size = sz;
                 r.bytes_per_element = spec.bpe;
-                // 25 号计划 §1.4：统一工作量描述
+                // 25 §1.4：统一工作量描述
                 r.workload.logical_items = sz;
                 r.workload.precision = "fp32";
                 r.workload.residency = (backend == "cpu") ? "host" : "transfer_inclusive";
@@ -678,7 +678,7 @@ const std::string& BenchmarkDriver::last_log() const noexcept {
     return log_;
 }
 
-// ===== 原始记录 JSON 导出（25 号计划 §3.2）=====
+// ===== 原始记录 JSON 导出（25 §3.2）=====
 bool BenchmarkDriver::write_raw_records_json(
     const std::string& path,
     const std::vector<KernelBenchmarkResult>& results) {
@@ -723,7 +723,7 @@ bool BenchmarkDriver::write_raw_records_json(
     return true;
 }
 
-// ===== GPU 真实微基准（24 号计划 §1，经桥接 DLL）=====
+// ===== GPU 真实微基准（24 §1，经桥接 DLL）=====
 std::uint64_t BenchmarkDriver::run_gpu_kernel(std::uint32_t kernel_id,
                                                std::size_t n, bool& supported) {
     supported = false;

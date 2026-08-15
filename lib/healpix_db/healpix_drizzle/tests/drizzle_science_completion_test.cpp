@@ -1,12 +1,12 @@
 // ============================================================================
-// drizzle_science_completion_test.cpp - R13 科学补齐 (SCI-001..004, DOMAIN-001)
+// drizzle_science_completion_test.cpp - 科学补齐 (SCI-001..004, DOMAIN-001)
 //
-//   T8 真 15° 视场边缘 patch (同一 CRVAL/投影中心, patch 位于真实边缘)
-//   T9 强 SIP 边缘 (视场边缘 SIP order5 大畸变 > 1 像素)
-//   T10 pixfrac 空洞独立 Oracle (0.6/0.8: expected uncovered vs false hole)
-//   T11 球面孔径测光 / 质心 / PSF FWHM / 二阶矩 / 椭率 (合成点源真值)
-//   T12 负校准值保持 (不钳零)
-//   T13 主域节点余量科学验证 (0.0503"/px @ 2^22, 12.883"/px @ 2^14)
+// T8 真 15° 视场边缘 patch (同一 CRVAL/投影中心, patch 位于真实边缘)
+// T9 强 SIP 边缘 (视场边缘 SIP order5 大畸变 > 1 像素)
+// T10 pixfrac 空洞独立 Oracle (0.6/0.8: expected uncovered vs false hole)
+// T11 球面孔径测光 / 质心 / PSF FWHM / 二阶矩 / 椭率 (合成点源真值)
+// T12 负校准值保持 (不钳零)
+// T13 主域节点余量科学验证 (0.0503"/px @ 2^22, 12.883"/px @ 2^14)
 // ============================================================================
 #include "drizzle_engine.h"
 #include "hiss_format.h"
@@ -43,8 +43,8 @@ static void run_drizzle(const FitsImage& img, int nside, double pixfrac,
 
 // ============================================================================
 // T8/T9: 真 15° 视场边缘 patch + 强 SIP
-//   构造: 视场中心 CRVAL=(ra0,dec0), 15° 对角视场 @ 10"/px;
-//   patch 128^2 像素位于真实视场边缘 (距中心 ~7.5°), 同一投影中心。
+// 构造: 视场中心 CRVAL=(ra0,dec0), 15° 对角视场 @ 10"/px;
+// patch 128^2 像素位于真实视场边缘 (距中心 ~7.5°), 同一投影中心。
 // ============================================================================
 static void test_edge_patch(bool strong_sip) {
     const double fov_deg = 15.0;
@@ -63,7 +63,7 @@ static void test_edge_patch(bool strong_sip) {
     w.cd[0] = -scale; w.cd[1] = 0.0; w.cd[2] = 0.0; w.cd[3] = scale;
     if (strong_sip) {
         // 强 SIP order 3: 视场边缘 (dx≈2700) 畸变 ~2 像素
-        //   (系数按视场中心像素偏移设计, 不能使投影进入背面)
+        // (系数按视场中心像素偏移设计, 不能使投影进入背面)
         w.sip.order = 3;
         w.sip.a[0] = 2.0e-4;   // 线性: 2700 x 2e-4 ≈ 0.54 px
         w.sip.a[12] = 1.0e-10; // 三次: 2700^3 x 1e-10 ≈ 1.97 px
@@ -170,7 +170,7 @@ static void test_negative_values() {
 
 // ============================================================================
 // T10: pixfrac 空洞独立 Oracle (0.6/0.8)
-//   独立判定: 采样点归属 (radec2pix) + 半平面点包含, 不调用生产 overlap
+// 独立判定: 采样点归属 (radec2pix) + 半平面点包含, 不调用生产 overlap
 // ============================================================================
 static Vec3 vnorm(const Vec3& v) {
     double l = std::sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
@@ -354,7 +354,7 @@ static void test_psf_photometry() {
              "[孔径测光 4σ] out=%.6g truth=%.6g rel=%.3e (<1e-3, 冻结≤0.1%%)",
              flux_in, truth_4sig, std::fabs(flux_in - truth_4sig) / truth_4sig);
     CHECK(std::fabs(flux_in - truth_4sig) / truth_4sig < 1e-3, msg);
-    // MICROFIX #4: 2/3/4 × FWHM 球面孔径积分误差 ≤0.1% (解析高斯圆内能量)
+    // 2/3/4 × FWHM 球面孔径积分误差 ≤0.1% (解析高斯圆内能量)
     {
         const double fwhm_px = 2.3548 * sigma;   // 像素
         const double k_list[3] = {2.0, 3.0, 4.0};
@@ -397,7 +397,7 @@ static void test_psf_photometry() {
             sx += v * x; sy += v * y; sw += v;
         }
     double cen_off = std::sqrt((sx/sw)*(sx/sw) + (sy/sw)*(sy/sw));
-    // MICROFIX #4: 质心 ≤0.01 目标像素 (= 0.01×6.3\" = 0.063\")
+    // 质心 ≤0.01 目标像素 (= 0.01×6.3\" = 0.063\")
     snprintf(msg, sizeof(msg), "[质心偏差] %.4f\" (≤0.063\" = 0.01px)", cen_off);
     CHECK(cen_off < 0.063, msg);
     // PSF 二阶矩 / FWHM / 椭率 (合成高斯已知: FWHM=2.355σ, e=0)
@@ -424,7 +424,7 @@ static void test_psf_photometry() {
     CHECK(std::fabs(fwhm_meas - fwhm_truth) / fwhm_truth < 0.01, msg);
     double e = std::sqrt((mxx - myy) * (mxx - myy) + 4.0 * mxy * mxy) /
                (mxx + myy + 1e-30);
-    // MICROFIX #4: 椭率 ≤0.005 (冻结门)
+    // 椭率 ≤0.005 (冻结门)
     snprintf(msg, sizeof(msg), "[椭率] |e|=%.5f (≤0.005, 圆形真值 e=0)", e);
     CHECK(e < 0.005, msg);
 }

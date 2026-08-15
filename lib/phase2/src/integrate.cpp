@@ -1,4 +1,4 @@
-// lib/phase2/src/integrate.cpp — Phase2 W8 加权叠加（V17 冻结语义）
+// lib/phase2/src/integrate.cpp — Phase2 W8 加权叠加（ 冻结语义）
 #include "astro/phase2/integrate.h"
 
 #include <cmath>
@@ -23,7 +23,7 @@ int p2_integrate_pixel(const P2PixelStack* in, P2PixelResult* out) {
         return 0;
     }
 
-    // integration eligibility（V17）：finite(value)/finite(support>0)/
+    // integration eligibility：finite(value)/finite(support>0)/
     // finite(weight>0)/accepted；任一非 finite 输入 → INVALID_INPUT
     bool invalid_input = false;
     double wsum = 0.0, vs = 0.0, sup_max = 0.0;

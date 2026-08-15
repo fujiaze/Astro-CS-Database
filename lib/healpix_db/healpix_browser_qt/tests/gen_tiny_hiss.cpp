@@ -1,13 +1,13 @@
 // ============================================================================
 // gen_tiny_hiss.cpp - 生成 tiny 合成 FP32/FP64 HISS (Browser 双精度测试自包含)
 // 编译 (从 lib/astro_image_io/ 目录, 参考 test_precision_dual):
-//   g++ -std=c++17 -O2 -fopenmp -DHAS_ZSTD -DAIO_ENABLE_HEALPIX \
-//     -Iinclude -Isrc \
-//     <此文件> src/hiss_codec.cpp src/hiss_common.cpp \
-//     src/hiss_tile_model.cpp src/hiss_transform.cpp \
-//     src/hiss_writer.cpp src/hiss_stream_writer.cpp \
-//     src/hiss_reader.cpp src/healpix/aio_healpix_io.cpp \
-//     src/aio_api.cpp src/aio_log.cpp -lzstd -lm -o gen_tiny_hiss.exe
+// g++ -std=c++17 -O2 -fopenmp -DHAS_ZSTD -DAIO_ENABLE_HEALPIX \
+// -Iinclude -Isrc \
+// <此文件> src/hiss_codec.cpp src/hiss_common.cpp \
+// src/hiss_tile_model.cpp src/hiss_transform.cpp \
+// src/hiss_writer.cpp src/hiss_stream_writer.cpp \
+// src/hiss_reader.cpp src/healpix/aio_healpix_io.cpp \
+// src/aio_api.cpp src/aio_log.cpp -lzstd -lm -o gen_tiny_hiss.exe
 // ============================================================================
 #include "hiss_format.h"
 #include "hiss_tile_model.h"

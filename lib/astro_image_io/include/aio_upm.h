@@ -1,25 +1,25 @@
 // ============================================================================
 // aio_upm.h - Unified Photometric Model (UPM) 模型文件容器 C API
 //
-// Phase2 控制包 AstroCS_Phase2_AuditFix_Control_Package_V2
-// （R2 持久化真正闭合）唯一 AIO 新增：
-//   aio_upm_write_sparse / aio_upm_open / aio_upm_read_info /
-//   aio_upm_dense_begin / aio_upm_dense_write_tile / aio_upm_dense_end /
-//   aio_upm_dense_info / aio_upm_read_dense_block / aio_upm_close
+// Phase2 AstroCS_Phase2_AuditFix_Control_Package_V2
+// （ 持久化真正闭合）唯一 AIO 新增：
+// aio_upm_write_sparse / aio_upm_open / aio_upm_read_info /
+// aio_upm_dense_begin / aio_upm_dense_write_tile / aio_upm_dense_end /
+// aio_upm_dense_info / aio_upm_read_dense_block / aio_upm_close
 //
 // 语义（冻结）：
-//   - 稀疏模型为权威形态：JSON 文本（format=astrocs-upm-v1），
-//     model_hash 由 phase2 计算（内容哈希）并随 JSON 保存；
-//   - dense cache 是同一 UPM 的**空间求值缓存**：按
-//     (frame_id, target_order, tile) 保存 C_i(p) 的 evaluated values，
-//     固定 512B 头部 JSON 行（source_hash/target_order/precision/
-//     frame_count/tile_count/leaf_order/checksum）+ tile 表 + 逐
-//     (frame,tile) 的 512×512 校正值块（float/double，流式写）；
-//   - 任何读取入口先校验 source_hash 与调用方模型 hash 一致，
-//     不一致返回 2（stale cache）——"stale hash 必须拒绝加载"；
-//   - checksum = SHA-256（文件除头部 checksum 槽置 '0' 外的字节），
-//     读取时校验完整性；
-//   - 本模块只做容器/文件层，不解释模型科学语义。
+// - 稀疏模型为权威形态：JSON 文本（format=astrocs-upm-v1），
+// model_hash 由 phase2 计算（内容哈希）并随 JSON 保存；
+// - dense cache 是同一 UPM 的**空间求值缓存**：按
+// (frame_id, target_order, tile) 保存 C_i(p) 的 evaluated values，
+// 固定 512B 头部 JSON 行（source_hash/target_order/precision/
+// frame_count/tile_count/leaf_order/checksum）+ tile 表 + 逐
+// (frame,tile) 的 512×512 校正值块（float/double，流式写）；
+// - 任何读取入口先校验 source_hash 与调用方模型 hash 一致，
+// 不一致返回 2（stale cache）——"stale hash 必须拒绝加载"；
+// - checksum = SHA-256（文件除头部 checksum 槽置 '0' 外的字节），
+// 读取时校验完整性；
+// - 本模块只做容器/文件层，不解释模型科学语义。
 // ============================================================================
 
 #ifndef AIO_UPM_H

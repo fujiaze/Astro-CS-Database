@@ -1,13 +1,13 @@
 // lib/acr/utilization/actual_tracker.hpp — 实际利用率记录器
 // Phase G（08_RESOURCE_CONTROL_SPEC.md §7、§19 §7）：
-//   1. 记录实际值（actual）和控制误差（error = actual - target）
-//   2. 提供 history（最近 N 次记录）用于趋势分析
-//   3. 计算 average / p95 / max / min error
-//   4. 记录 worker 参与（每个 worker 是否活跃）
-//   5. 记录系统响应（取消、状态查询）
-//   6. 不伪报：actual 由 controller 实读，tracker 仅记录
-//   7. 线程安全（多 worker 报告）
-//   8. 公共头不暴露第三方类型
+// 1. 记录实际值（actual）和控制误差（error = actual - target）
+// 2. 提供 history（最近 N 次记录）用于趋势分析
+// 3. 计算 average / p95 / max / min error
+// 4. 记录 worker 参与（每个 worker 是否活跃）
+// 5. 记录系统响应（取消、状态查询）
+// 6. 不伪报：actual 由 controller 实读，tracker 仅记录
+// 7. 线程安全（多 worker 报告）
+// 8. 公共头不暴露第三方类型
 #pragma once
 
 #include <cstddef>

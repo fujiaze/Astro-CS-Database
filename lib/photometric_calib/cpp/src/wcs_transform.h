@@ -7,9 +7,9 @@ namespace pc {
 
 // WCS坐标转换器: TAN投影 + SIP多项式畸变修正
 // 坐标约定:
-//   CRPIX: 1-based (FITS约定)
-//   像素坐标: 0-based
-//   天球坐标: 度 (degrees)
+// CRPIX: 1-based (FITS约定)
+// 像素坐标: 0-based
+// 天球坐标: 度 (degrees)
 class WcsTransform {
 public:
     // 构造WCS转换器

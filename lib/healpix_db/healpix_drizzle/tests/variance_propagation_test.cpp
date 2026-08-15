@@ -1,19 +1,19 @@
 // ============================================================================
-// variance_propagation_test.cpp — V19 Drizzle 方差传播科学测试
+// variance_propagation_test.cpp — Drizzle 方差传播科学测试
 //
 // 覆盖 (SCIENCE_ACCEPTANCE_MATRIX.md):
-//   SNR-011 Drizzle variance Monte Carlo (>=100 噪声实现)
-//   SNR-012 Drizzle covariance characterization
-//   DRZ-014 variance propagation identity
-//   DRZ-016 optimized geometry cache: variance 不改变 signal/support 科学语义
+// SNR-011 Drizzle variance Monte Carlo (>=100 噪声实现)
+// SNR-012 Drizzle covariance characterization
+// DRZ-014 variance propagation identity
+// DRZ-016 optimized geometry cache: variance 不改变 signal/support 科学语义
 //
 // 编译 (PowerShell):
-//   cd lib\healpix_db\healpix_drizzle\tests
-//   g++ -O2 -std=c++17 -Wall -Wextra -I.. -I..\..\..\astro_image_io\include
-//       -o variance_propagation_test.exe variance_propagation_test.cpp
-//       ..\fits_reader.cpp ..\wcs_sip.cpp ..\poly_clip.cpp ..\spherical_overlap.cpp
-//       ..\drizzle_engine.cpp ..\healpix_core.cpp ..\snr_evaluator.cpp
-//       -fopenmp -static -L..\..\..\astro_image_io -lastro_image_io -lm
+// cd lib\healpix_db\healpix_drizzle\tests
+// g++ -O2 -std=c++17 -Wall -Wextra -I.. -I..\..\..\astro_image_io\include
+// -o variance_propagation_test.exe variance_propagation_test.cpp
+// ..\fits_reader.cpp ..\wcs_sip.cpp ..\poly_clip.cpp ..\spherical_overlap.cpp
+// ..\drizzle_engine.cpp ..\healpix_core.cpp ..\snr_evaluator.cpp
+// -fopenmp -static -L..\..\..\astro_image_io -lastro_image_io -lm
 // ============================================================================
 #include "drizzle_engine.h"
 #include "fits_reader.h"

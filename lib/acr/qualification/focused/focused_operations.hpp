@@ -1,17 +1,17 @@
 // lib/acr/qualification/focused/focused_operations.hpp — 聚焦目标合成 Operation
 //
-// 08 号计划 §3：为积分/Drizzle 类重负载像素算法建立合成基准。
+// 08 §3：为积分/Drizzle 类重负载像素算法建立合成基准。
 // 每个 Operation 提供：
-//   - CPU 实现（生产 CPU 后端，parallel_for/parallel_reduce）
-//   - GPU launcher（经桥接 DLL 的真实 CUDA kernel）
-//   - 统一 WorkloadDescriptor（CPU/GPU 工作量完全等价）
+// - CPU 实现（生产 CPU 后端，parallel_for/parallel_reduce）
+// - GPU launcher（经桥接 DLL 的真实 CUDA kernel）
+// - 统一 WorkloadDescriptor（CPU/GPU 工作量完全等价）
 //
 // 目标 OperationId（03 号规范 §3）：
-//   synthetic.dense_pixel_accumulate.fp32
-//   synthetic.dense_pixel_accumulate.fp64acc
-//   synthetic.pixel_reduce.fp64acc
-//   synthetic.drizzle_like_scatter.fp64acc
-//   synthetic.resident_chain
+// synthetic.dense_pixel_accumulate.fp32
+// synthetic.dense_pixel_accumulate.fp64acc
+// synthetic.pixel_reduce.fp64acc
+// synthetic.drizzle_like_scatter.fp64acc
+// synthetic.resident_chain
 #pragma once
 
 #include "astro/compute/acr.hpp"
@@ -119,7 +119,7 @@ void merge_drizzle_partials(const double* token_partials,
 double merge_reduce_partials(const double* token_partials,
                              std::size_t token_count);
 
-// ===== partial scratch 契约（08 号计划 §4）=====
+// ===== partial scratch 契约（08 §4）=====
 // 按工作量与最小高效块计算所需 token 槽位数（调用方据此分配 partial buffer，
 // 禁止按常数猜测）。槽位数 = ceil(work_size / min_chunk) + 1（防边界）。
 std::size_t partial_slots_for(std::size_t work_size,

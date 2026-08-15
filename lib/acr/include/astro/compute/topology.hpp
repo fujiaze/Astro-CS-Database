@@ -2,12 +2,12 @@
 // Phase C：hwloc 拓扑/NUMA/PCI + cpu_features ISA 检测 + 设备指纹。
 //
 // 设计（ADR-003 hwloc / ADR-004 cpu_features）：
-//   1. 公共头不暴露 hwloc / cpu_features 类型（PIMPL + 自有 IsaLevel mask）
-//   2. 无 hwloc 时降级返回 {"status":"unavailable"}，不抛异常（ADR-009 降级策略）
-//   3. cpu_features 缺失时用 __builtin_cpu_supports 降级（仅 GCC/Clang）
-//   4. has_isa() 安全门禁：加载 ISA 插件前必须校验，不支持永不执行
-//   5. AVX-512 子集以独立 bit 表达，禁止合并为单一 "AVX-512" 标志（ADR-004）
-//   6. baseline 路径（无任何扩展）永远可用，不依赖任何 ISA 检测
+// 1. 公共头不暴露 hwloc / cpu_features 类型（PIMPL + 自有 IsaLevel mask）
+// 2. 无 hwloc 时降级返回 {"status":"unavailable"}，不抛异常（ADR-009 降级策略）
+// 3. cpu_features 缺失时用 __builtin_cpu_supports 降级（仅 GCC/Clang）
+// 4. has_isa() 安全门禁：加载 ISA 插件前必须校验，不支持永不执行
+// 5. AVX-512 子集以独立 bit 表达，禁止合并为单一 "AVX-512" 标志（ADR-004）
+// 6. baseline 路径（无任何扩展）永远可用，不依赖任何 ISA 检测
 #pragma once
 
 #include <cstddef>
@@ -85,7 +85,7 @@ private:
 
 // ===== 自由函数：设备指纹 =====
 // detect_topology()：hwloc JSON（CPU vendor/model、core 列表、NUMA、cache 层级、PCI）。
-//                     无 hwloc 返回 {"status":"unavailable"}，不抛。
+// 无 hwloc 返回 {"status":"unavailable"}，不抛。
 std::string detect_topology();
 
 // detect_isa_caps()：CPU ISA 能力 mask JSON（SSE/AVX/AVX2/FMA/AVX-512 子集）。

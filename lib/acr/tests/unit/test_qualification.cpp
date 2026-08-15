@@ -1,12 +1,12 @@
 // lib/acr/tests/unit/test_qualification.cpp — Phase E qualification 单元测试
 // 覆盖：
-//   - profile_kind_str / parse_profile_kind
-//   - BENCHMARK_FIXED_SEED 确定性
-//   - make_default_config 三档配置
-//   - BenchmarkDriver Quick profile 运行（CPU only）
-//   - ProfileGenerator 生成 + 序列化 + 反序列化（schema_version 字段）
-//   - SHA-256 哈希确定性
-//   - profile 三态处理（Missing/Stale/Corrupt）由 routing 模块测试，此处仅测 qualification 侧
+// - profile_kind_str / parse_profile_kind
+// - BENCHMARK_FIXED_SEED 确定性
+// - make_default_config 三档配置
+// - BenchmarkDriver Quick profile 运行（CPU only）
+// - ProfileGenerator 生成 + 序列化 + 反序列化（schema_version 字段）
+// - SHA-256 哈希确定性
+// - profile 三态处理（Missing/Stale/Corrupt）由 routing 模块测试，此处仅测 qualification 侧
 #include <gtest/gtest.h>
 
 #include "benchmark_driver.hpp"

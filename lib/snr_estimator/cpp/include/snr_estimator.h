@@ -14,25 +14,25 @@ extern "C" {
 #endif
 
 // ============================================================================
-// V19 SNR/Noise 科学重构 — 三层模型 (SNR_SCIENCE_DERIVATION.md / SNR_REDESIGN_CONTRACT.md)
+// SNR/Noise 科学重构 — 三层模型 (SNR_SCIENCE_DERIVATION.md / SNR_REDESIGN_CONTRACT.md)
 //
 // 旧乘法模型 (SNR_phot × SNR_psf/median + IDW) 已降级为 legacy heuristic /
 // diagnostic only (见 snr_extract_model_* 与 snr_estimate_*), 不再作为生产科学权重。
-// V19 拆分为:
-//   1. PhotometricCalibrationQuality — 帧级测光定标质量 (systematic metadata)
-//   2. PsfFitQuality                 — 星点级 PSF 拟合质量代理 (QA/剔星)
-//   3. NoiseWeightModelV1            — source-masked blank-sky 稳健方差 → ivar
-//                                      (Phase2 科学加权唯一来源)
+// 拆分为:
+// 1. PhotometricCalibrationQuality — 帧级测光定标质量 (systematic metadata)
+// 2. PsfFitQuality — 星点级 PSF 拟合质量代理 (QA/剔星)
+// 3. NoiseWeightModelV1 — source-masked blank-sky 稳健方差 → ivar
+// (Phase2 科学加权唯一来源)
 // ============================================================================
 
 // ---------------------------------------------------------------------------
 // 1. PhotometricCalibrationQuality
-//    单位: sigma_residual 来自测光定标 r_i = log10(F_instr/F_syn) 的稳健散度,
-//    单位为 dex (log10 flux-ratio)。它不是 mag, 也不是像素随机噪声 σ。
-//    sigma_mag     = 2.5 × sigma_logflux_dex      (mag 空间)
-//    sigma_cal_rel ≈ ln(10) × sigma_logflux_dex   (相对通量散度)
-//    用途: QA / frame flag / calibration systematic metadata;
-//          禁止当作逐像素 inverse-variance 权重。
+// 单位: sigma_residual 来自测光定标 r_i = log10(F_instr/F_syn) 的稳健散度,
+// 单位为 dex (log10 flux-ratio)。它不是 mag, 也不是像素随机噪声 σ。
+// sigma_mag = 2.5 × sigma_logflux_dex (mag 空间)
+// sigma_cal_rel ≈ ln(10) × sigma_logflux_dex (相对通量散度)
+// 用途: QA / frame flag / calibration systematic metadata;
+// 禁止当作逐像素 inverse-variance 权重。
 // ---------------------------------------------------------------------------
 typedef struct {
     double sigma_logflux_dex;  // 测光残差散度 (dex / log10 flux-ratio)
@@ -49,16 +49,16 @@ SNR_API int snr_phot_cal_quality(double sigma_logflux_dex, int n_matches,
 
 // ---------------------------------------------------------------------------
 // 2. PsfFitQuality
-//    每星 PSF 拟合质量代理。psf 行布局为冻结的 [N,9]:
-//      status(0) B(1) flux(2) cx(3) cy(4) fwhm(5) A(6) mad(7) eccentricity(8)
-//    其中 mad 列实际是 10-90% trimmed mean absolute residual (非真 MAD),
-//    对 Gaussian N(0,σ²) 期望 ≈ 0.731673 σ。
-//    本接口准确重命名语义并输出:
-//      residual_scale        — 原统计量 (不称 MAD)
-//      robust_residual_sigma — residual_scale / 0.731673 (Gaussian 假设)
-//      q_psf                 — amplitude_above_bg / residual_scale (拟合质量代理)
-//    注意: q_psf 是 fit-quality proxy, 不是图像噪声 SNR, 默认不作为
-//          Phase2 逐像素 science weight。
+// 每星 PSF 拟合质量代理。psf 行布局为冻结的 [N,9]:
+// status(0) B(1) flux(2) cx(3) cy(4) fwhm(5) A(6) mad(7) eccentricity(8)
+// 其中 mad 列实际是 10-90% trimmed mean absolute residual (非真 MAD),
+// 对 Gaussian N(0,σ²) 期望 ≈ 0.731673 σ。
+// 本接口准确重命名语义并输出:
+// residual_scale — 原统计量 (不称 MAD)
+// robust_residual_sigma — residual_scale / 0.731673 (Gaussian 假设)
+// q_psf — amplitude_above_bg / residual_scale (拟合质量代理)
+// 注意: q_psf 是 fit-quality proxy, 不是图像噪声 SNR, 默认不作为
+// Phase2 逐像素 science weight。
 // ---------------------------------------------------------------------------
 typedef struct {
     double flux;                // PSF 通量
@@ -83,16 +83,16 @@ SNR_API int snr_psf_fit_quality(const double* psf, int n_stars,
 
 // ---------------------------------------------------------------------------
 // 3. NoiseWeightModelV1
-//    source-masked blank-sky 稳健方差 (production 基线)。
-//    控制点来自空背景噪声, 与星亮度/星族解耦 (SNR-003/SNR-010)。
-//    默认 patch grid 扫描校准帧:
-//      - 星点掩膜 (按星振幅自适应半径) + 饱和/边缘排除
-//      - patch 内 robust location (median) + robust scale
-//        σ_bg = 1.4826022185 × median(|x − median(x)|)
-//      - 合格 patch 成为控制点, 可选 IDW 空间平滑方差场
-//      - 全局兜底 = 合格 patch 的 median variance
-//    gain/read-noise 已知时可交叉验证 Poisson+read 模型 (SNR-005),
-//    缺失时经验 fallback (SNR-014)。
+// source-masked blank-sky 稳健方差 (production 基线)。
+// 控制点来自空背景噪声, 与星亮度/星族解耦 (SNR-003/SNR-010)。
+// 默认 patch grid 扫描校准帧:
+// - 星点掩膜 (按星振幅自适应半径) + 饱和/边缘排除
+// - patch 内 robust location (median) + robust scale
+// σ_bg = 1.4826022185 × median(|x − median(x)|)
+// - 合格 patch 成为控制点, 可选 IDW 空间平滑方差场
+// - 全局兜底 = 合格 patch 的 median variance
+// gain/read-noise 已知时可交叉验证 Poisson+read 模型 (SNR-005),
+// 缺失时经验 fallback (SNR-014)。
 // ---------------------------------------------------------------------------
 typedef struct {
     int    patch_grid_x;         // 每边 patch 数 (默认 8, >=2)
@@ -110,7 +110,7 @@ typedef struct {
     double   variance_floor;        // ivar 分母下限 (默认 1e-12)
 } SnrNoiseModelConfig;
 
-// V19: 默认噪声模型配置
+// 默认噪声模型配置
 SNR_API int snr_noise_model_v1_default_config(SnrNoiseModelConfig* cfg);
 
 typedef struct {
@@ -138,7 +138,7 @@ typedef struct {
 // cfg: 可空 (=默认配置);
 // out_model: 调用者用 snr_noise_model_v1_free 释放。
 // 返回 0=成功 (含全局兜底), 1=完全退化 (ivar=0, 调用方应拒绝加权),
-//      3=nullptr / 非法尺寸。
+// 3=nullptr / 非法尺寸。
 SNR_API int snr_noise_model_v1(const float* data, int h, int w,
                                const float* source_mask,
                                const double* star_x, const double* star_y,
@@ -166,13 +166,13 @@ SNR_API void snr_noise_model_v1_free(NoiseWeightModelV1* model);
 
 // ---------------------------------------------------------------------------
 // 噪声传播法则 (SNR-002)
-//   x' = α x  →  Var(x') = α² Var(x),  ivar' = ivar / α²
+// x' = α x → Var(x') = α² Var(x), ivar' = ivar / α²
 // ---------------------------------------------------------------------------
 SNR_API void snr_noise_scale_law(double alpha,
                                  double* variance, double* ivar);
 
 // Poisson+read-noise 方差模型 (ADU 空间, signal 单位 ADU):
-//   var_ADU = max(signal,0)/gain + (read_noise_e/gain)²
+// var_ADU = max(signal,0)/gain + (read_noise_e/gain)²
 SNR_API double snr_noise_gain_variance(double signal,
                                        double gain_e_per_adu,
                                        double read_noise_e);
@@ -182,14 +182,14 @@ SNR_API double snr_noise_gain_variance(double signal,
 // SNR(pixel) = SNR_phot × (SNR_psf(pixel) / median(SNR_psf))
 //
 // 输入:
-//   data          - 图像像素 float32 [h*w] (行优先, 来自 CALIBRATE 阶段)
-//   h, w          - 图像尺寸
-//   psf           - PSF 拟合结果 double [n_stars*9]
-//                   每行: [status, B, flux, cx, cy, fwhm, A, mad, eccentricity]
-//                   列索引: status=0, B=1, flux=2, cx=3, cy=4, fwhm=5, A=6, mad=7, eccentricity=8
-//   n_stars       - PSF 星数量
-//   sigma_residual - 测光残差 sigma (来自 photo_stats 块 SIGMA_RESIDUAL)
-//   out_snr       - 输出 SNR 图 float32 [h*w] (调用者分配)
+// data - 图像像素 float32 [h*w] (行优先, 来自 CALIBRATE 阶段)
+// h, w - 图像尺寸
+// psf - PSF 拟合结果 double [n_stars*9]
+// 每行: [status, B, flux, cx, cy, fwhm, A, mad, eccentricity]
+// 列索引: status=0, B=1, flux=2, cx=3, cy=4, fwhm=5, A=6, mad=7, eccentricity=8
+// n_stars - PSF 星数量
+// sigma_residual - 测光残差 sigma (来自 photo_stats 块 SIGMA_RESIDUAL)
+// out_snr - 输出 SNR 图 float32 [h*w] (调用者分配)
 //
 // 返回: 0=成功, 1=n_stars<=0(退化,全填SNR_phot), 2=sigma_residual<=0(退化,全填1.0), 3=nullptr
 //
@@ -201,14 +201,14 @@ SNR_API int snr_estimate(const float* data, int h, int w,
                          float* out_snr);
 
 // ============================================================================
-// FP64 版本 (R10 双精度 ABI 改造)
+// FP64 版本 ( 双精度 ABI 改造)
 //
 // 与 snr_estimate 逻辑一致, 仅 data 类型由 float 改为 double.
 // 输出 out_snr 仍为 float32 (HISS SNR 子块格式已冻结为 float32, 见 02_FROZEN §17;
 // SNR 是诊断值不是科学累加值, 精度损失可接受).
 //
 // 注意: 本接口保留用于测试/调试, 管线中不再调用 (改用 snr_extract_model, 后者
-//       仅依赖 PSF double 参数, 与图像精度无关, 无需 f64 变体).
+// 仅依赖 PSF double 参数, 与图像精度无关, 无需 f64 变体).
 // ============================================================================
 SNR_API int snr_estimate_f64(const double* data, int h, int w,
                              const double* psf, int n_stars,
@@ -267,10 +267,10 @@ typedef enum {
 
 // ============================================================================
 // SNR 控制点 (球面坐标 + snr_psf 值)
-// R10 修复: 添加 #pragma pack(1) 确保 sizeof==20, 与 HioSnrControlPoint 二进制布局一致
-//   根因: 未打包时 sizeof(SnrControlPoint)=24 (4字节尾部填充),
-//         但 orchestrator 序列化用 memcpy(dst, points, n*20) 按 20 字节连续拷贝,
-//         导致从第 2 个点起 ra/dec 错位, 产生 1609 个"越界"点.
+// 修复: 添加 #pragma pack(1) 确保 sizeof==20, 与 HioSnrControlPoint 二进制布局一致
+// 根因: 未打包时 sizeof(SnrControlPoint)=24 (4字节尾部填充),
+// 但 orchestrator 序列化用 memcpy(dst, points, n*20) 按 20 字节连续拷贝,
+// 导致从第 2 个点起 ra/dec 错位, 产生 1609 个"越界"点.
 // ============================================================================
 #pragma pack(push, 1)
 typedef struct {
@@ -294,10 +294,10 @@ typedef struct {
 static_assert(sizeof(SnrControlPointF64) == 24, "SnrControlPointF64 must be 24 bytes");
 
 // ============================================================================
-// SNR 控制点 v3 (Phase1 Final Signoff V4): 携带 stable star_id 与状态字段
-//   行布局 (打包): ra f64 | dec f64 | snr f32/f64 | star_id u64 |
-//                  quality_flags u32 | photometric_status u32
-//   f32: 8+8+4+8+4+4 = 36 字节; f64: 8+8+8+8+4+4 = 40 字节
+// SNR 控制点 v3 (Phase1 Final Signoff ): 携带 stable star_id 与状态字段
+// 行布局 (打包): ra f64 | dec f64 | snr f32/f64 | star_id u64 |
+// quality_flags u32 | photometric_status u32
+// f32: 8+8+4+8+4+4 = 36 字节; f64: 8+8+8+8+4+4 = 40 字节
 // ============================================================================
 #pragma pack(push, 1)
 typedef struct {
@@ -323,7 +323,7 @@ typedef struct {
 #pragma pack(pop)
 static_assert(sizeof(SnrControlPointF64V3) == 40, "SnrControlPointF64V3 must be 40 bytes");
 
-// quality_flags 位定义 (V4, 与 orchestrator 序列化一致)
+// quality_flags 位定义 (, 与 orchestrator 序列化一致)
 enum SnrQualityFlagBits {
     SNR_QF_PSF_OK          = 1u << 0,  // PSF 拟合状态有效 (status==0 或 3)
     SNR_QF_SATURATED       = 1u << 1,  // 星点饱和标志
@@ -347,8 +347,8 @@ typedef struct {
 
 // ============================================================================
 // SNR 模型 v2 (版本化, 支持 F32/F64 SNR 值)
-//   value_dtype: 0 = points 指向 SnrControlPoint[] (f32 snr)
-//                1 = points 指向 SnrControlPointF64[] (f64 snr)
+// value_dtype: 0 = points 指向 SnrControlPoint[] (f32 snr)
+// 1 = points 指向 SnrControlPointF64[] (f64 snr)
 // ============================================================================
 typedef struct {
     uint32_t n_points;
@@ -378,11 +378,11 @@ typedef struct {
 // snr_extract_model - 从 PSF 块提取稀疏 SNR 控制点模型
 //
 // 输入:
-//   psf            - PSF 拟合结果 double [n_stars*9] (同 snr_estimate)
-//   n_stars        - PSF 星数量
-//   sigma_residual - 测光残差 sigma
-//   wcs            - WCS 参数 (用于像素坐标→球面坐标转换)
-//   out_model      - 输出 SNR 模型 (调用者负责用 snr_free_model 释放)
+// psf - PSF 拟合结果 double [n_stars*9] (同 snr_estimate)
+// n_stars - PSF 星数量
+// sigma_residual - 测光残差 sigma
+// wcs - WCS 参数 (用于像素坐标→球面坐标转换)
+// out_model - 输出 SNR 模型 (调用者负责用 snr_free_model 释放)
 //
 // 返回: 0=成功, 1=n_stars<=0或无有效星(退化), 2=sigma_residual<=0(退化), 3=nullptr
 //
@@ -403,9 +403,9 @@ SNR_API int snr_extract_model_v2(const double* psf, int n_stars,
                                   SnrModelV2* out_model);
 
 // v3: 提取稀疏 SNR 控制点模型并携带 stable star_id / quality_flags /
-//     photometric_status。star_ids/quality_flags/photometric_status 与
-//     psf 行对齐 (长度 n_stars), 有效星按原行拷贝其 ID/状态。
-//     有效星条件与 v2 一致: status==0, A>B, mad>0。
+// photometric_status。star_ids/quality_flags/photometric_status 与
+// psf 行对齐 (长度 n_stars), 有效星按原行拷贝其 ID/状态。
+// 有效星条件与 v2 一致: status==0, A>B, mad>0。
 SNR_API int snr_extract_model_v3(const double* psf, int n_stars,
                                   double sigma_residual,
                                   const SnrWcsParams* wcs,

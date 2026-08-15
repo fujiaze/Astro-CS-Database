@@ -1,9 +1,9 @@
 // lib/acr/tests/classic/e16_concurrency.cpp — E16 Concurrency/Cancellation/Lifetime
 // 验证能力：多调用者 / 取消 / Buffer 生命周期 / 100 次重启
 // 扩展（规范 E21 持续与并发可靠性）：
-//   - 持续并发路线（时间驱动，默认 3 秒，ACR_CONCURRENCY_DURATION_SEC 可配置）
-//   - 多线程混合 parallel_for + parallel_reduce
-//   - Event 跨线程生命周期
+// - 持续并发路线（时间驱动，默认 3 秒，ACR_CONCURRENCY_DURATION_SEC 可配置）
+// - 多线程混合 parallel_for + parallel_reduce
+// - Event 跨线程生命周期
 #include "classic_common.hpp"
 
 #include <gtest/gtest.h>

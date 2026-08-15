@@ -1,15 +1,15 @@
 // lib/acr/tests/unit/test_scheduler.cpp — Phase F scheduler 单元测试
 // 覆盖：
-//   - CoverageBitmap：mark_done / all_done / pending_indices
-//   - partition_range：不重叠 + 完整覆盖
-//   - partition_range_into：均分
-//   - partition_tiles：tile 覆盖完整
-//   - partition_tiles_into：max_chunks 限制
-//   - QueueAwareEstimator：finish 估算 + pick_best_device + should_prefer_cpu
-//   - ReductionMerger：局部合并 + finalize
-//   - FallbackPolicy：ToCpu / ToNextDevice / None
-//   - MixedRunner：coverage 完整不重复
-//   - Dispatcher：dispatch_range + pick_backend + handle_failure
+// - CoverageBitmap：mark_done / all_done / pending_indices
+// - partition_range：不重叠 + 完整覆盖
+// - partition_range_into：均分
+// - partition_tiles：tile 覆盖完整
+// - partition_tiles_into：max_chunks 限制
+// - QueueAwareEstimator：finish 估算 + pick_best_device + should_prefer_cpu
+// - ReductionMerger：局部合并 + finalize
+// - FallbackPolicy：ToCpu / ToNextDevice / None
+// - MixedRunner：coverage 完整不重复
+// - Dispatcher：dispatch_range + pick_backend + handle_failure
 #include <gtest/gtest.h>
 
 #include "dispatcher.hpp"
@@ -1011,7 +1011,7 @@ TEST(SharedWorkPoolDynamic, ClaimNextDynamicNoOverlapNoOmission) {
 }
 
 TEST(SharedWorkPoolDynamic, ClaimNextDynamicRequestedItemsControlsChunk) {
-    // 23 号计划 §4：块大小由调用方 requested_items（每设备 CostEstimate）控制，
+    // 23 §4：块大小由调用方 requested_items（每设备 CostEstimate）控制，
     // 与设备数量无关（GPU 数量不得再折算 CPU 块大小）。
     SharedWorkPool pool1;
     pool1.init_dynamic(0, 1000, 50, 500);
@@ -1187,7 +1187,7 @@ TEST(SchedulerDispatcherCostAware, DynamicModeNoOverlapNoOmission) {
 }
 
 // ============================================================================
-// 26 号计划 §2/§9：内存预算反压记录测试（CPU/GPU 利用率控制已移除）
+// 26 §2/§9：内存预算反压记录测试（CPU/GPU 利用率控制已移除）
 // ============================================================================
 
 TEST(SchedulerDispatcherCostAware, ResourceControlRecordsMemBudget) {
@@ -1313,7 +1313,7 @@ TEST(SchedulerDispatcherCostAware, FixedTailExperimentStillAvailable) {
 // ============================================================================
 // F-fix 9: 可恢复资源闭环测试
 // 验收：set_dynamic_max_chunk 影响后续 claim；gate 统计字段初始化；
-//       正常负载下 gate 不触发；gate 关闭后可恢复
+// 正常负载下 gate 不触发；gate 关闭后可恢复
 // ============================================================================
 
 TEST(SharedWorkPoolDynamic, SetDynamicMaxChunkAffectsSubsequentClaims) {
@@ -1387,7 +1387,7 @@ TEST(SchedulerDispatcherCostAware, RecoverableGateStatsInitialized) {
 }
 
 TEST(SchedulerDispatcherCostAware, GateNotTriggeredAtFullTarget) {
-    // 26 号计划 §2：无 CPU 利用率 gate；验证小任务在默认内存预算下完成
+    // 26 §2：无 CPU 利用率 gate；验证小任务在默认内存预算下完成
     astro::compute::runtime_init();
     Dispatcher d;
     DispatcherConfig cfg;

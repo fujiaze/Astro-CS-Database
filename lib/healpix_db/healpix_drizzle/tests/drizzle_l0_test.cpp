@@ -1,20 +1,20 @@
 // ============================================================================
-// drizzle_l0_test.cpp - Drizzle L0 科学门 (控制包 Validation_Strategy L0)
+// drizzle_l0_test.cpp - Drizzle L0 科学门 ( Validation_Strategy L0)
 //
 // 覆盖:
-//   1. 16x16 ~ 128x128 合成图 FP64 通量闭合 (Σout ≈ Σin, 相对误差 < 1e-10)
-//   2. 无 NaN/Inf (sumFlux/sumArea 全部有限)
-//   3. FP64 严格参考门: FP32 vs FP64 逐 leaf 相对差 < 1e-5 (float 累计噪声)
-//   4. 候选零漏选由独立 reference_overlap (蒙特卡洛) 单独验证 (另测)
+// 1. 16x16 ~ 128x128 合成图 FP64 通量闭合 (Σout ≈ Σin, 相对误差 < 1e-10)
+// 2. 无 NaN/Inf (sumFlux/sumArea 全部有限)
+// 3. FP64 严格参考门: FP32 vs FP64 逐 leaf 相对差 < 1e-5 (float 累计噪声)
+// 4. 候选零漏选由独立 reference_overlap (蒙特卡洛) 单独验证 (另测)
 //
 // 编译 (tests/ 目录):
-//   g++ -O3 -march=native -std=c++17 -fopenmp -I.. -I..\..\..\astro_image_io\include
-//     -I..\..\..\astro_image_io\src -I..\..\healpix_stack drizzle_l0_test.cpp
-//     ..\drizzle_engine.cpp ..\fits_reader.cpp ..\wcs_sip.cpp ..\poly_clip.cpp
-//     ..\spherical_overlap.cpp ..\hp_drizzle_api.cpp ..\..\healpix_stack\healpix_core.cpp
-//     ..\..\healpix_stack\gradient\snr_evaluator.cpp -DAIO_ENABLE_HEALPIX
-//     -L..\..\..\astro_image_io -lastro_image_io -static-libgcc -static-libstdc++
-//     '-Wl,--stack,8388608' -lm -o drizzle_l0_test.exe
+// g++ -O3 -march=native -std=c++17 -fopenmp -I.. -I..\..\..\astro_image_io\include
+// -I..\..\..\astro_image_io\src -I..\..\healpix_stack drizzle_l0_test.cpp
+// ..\drizzle_engine.cpp ..\fits_reader.cpp ..\wcs_sip.cpp ..\poly_clip.cpp
+// ..\spherical_overlap.cpp ..\hp_drizzle_api.cpp ..\..\healpix_stack\healpix_core.cpp
+// ..\..\healpix_stack\gradient\snr_evaluator.cpp -DAIO_ENABLE_HEALPIX
+// -L..\..\..\astro_image_io -lastro_image_io -static-libgcc -static-libstdc++
+// '-Wl,--stack,8388608' -lm -o drizzle_l0_test.exe
 // ============================================================================
 #include "drizzle_engine.h"
 #include "hiss_format.h"
@@ -140,7 +140,7 @@ static void test_fp32_vs_fp64(int size) {
     }
     char name[128];
     // 门限 2e-5: float 累计固有精度 (IEEE binary32 累加舍入, 小图 n=178 时
-    // 实测 ~1.1e-5; L2 生产尺度实测 p95 2.6e-7/max 4.9e-7; 控制包 P4 要求
+    // 实测 ~1.1e-5; L2 生产尺度实测 p95 2.6e-7/max 4.9e-7; P4 要求
     // 真实 ULP 报告而非固定门限)
     snprintf(name, sizeof(name), "[%d^2] FP32 vs FP64 逐 leaf 最大相对差 %.3e (<2e-5, n32=%d)",
              size, max_rel, n_leaf32);

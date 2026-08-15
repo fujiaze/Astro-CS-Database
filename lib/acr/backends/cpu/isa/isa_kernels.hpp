@@ -2,10 +2,10 @@
 // Phase C：SSE/AVX/AVX2/AVX-512 AXPY kernel + 运行时安全门禁。
 //
 // 设计（ADR-004）：
-//   - kernel_<name>_axpy：纯 SIMD 实现，调用方必须先经 has_isa 门禁
-//   - kernel_<name>_axpy_safe：门禁版，不支持 ISA 返回 false 不调用
-//   - baseline kernel_axpy_scalar：永远可用，无 ISA 依赖
-//   - dispatch_axpy：按 caps 自动选最优 kernel
+// - kernel_<name>_axpy：纯 SIMD 实现，调用方必须先经 has_isa 门禁
+// - kernel_<name>_axpy_safe：门禁版，不支持 ISA 返回 false 不调用
+// - baseline kernel_axpy_scalar：永远可用，无 ISA 依赖
+// - dispatch_axpy：按 caps 自动选最优 kernel
 #pragma once
 
 #include <cstddef>

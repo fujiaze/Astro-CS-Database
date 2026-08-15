@@ -2,20 +2,20 @@
 // hiss_writer.cpp - AstroCS HISS Writer (XISF 式 Header + attachments 单体容器)
 //
 // 规范依据: 02_FROZEN §14/§15, 00_COMMON_CONTRACTS §2.4/§4.5
-//   - 固定签名块 (20B) → Header (网格规格 + 元数据 JSON + Tile 目录) → Attachment 子块
-//   - Header 是唯一权威目录; 不使用 Footer/Checkpoint/断点续写
-//   - 流式写入: 每个 Tile 压缩后立即写入临时池 (HissStreamWriter),
-//     内存只保留 SubblockDescriptor, 不保留 compressed_data (步骤10)
-//   - occupancy 模式自动选择 (步骤11): Writer 根据占用率选择 FULL/BITMAP/SPARSE_LIST,
-//     不由调用方传入
-//   - BITMAP/SPARSE 模式只保存有效像素的 signal/support (步骤11)
-//   - signal = 累计通量 (步骤7, finalize_signal 在 hiss_common.cpp 已修复)
-//   - 元数据不保存完整 WCS/SIP (步骤8)
+// - 固定签名块 (20B) → Header (网格规格 + 元数据 JSON + Tile 目录) → Attachment 子块
+// - Header 是唯一权威目录; 不使用 Footer/Checkpoint/断点续写
+// - 流式写入: 每个 Tile 压缩后立即写入临时池 (HissStreamWriter),
+// 内存只保留 SubblockDescriptor, 不保留 compressed_data (步骤10)
+// - occupancy 模式自动选择 (步骤11): Writer 根据占用率选择 FULL/BITMAP/SPARSE_LIST,
+// 不由调用方传入
+// - BITMAP/SPARSE 模式只保存有效像素的 signal/support (步骤11)
+// - signal = 累计通量 (步骤7, finalize_signal 在 hiss_common.cpp 已修复)
+// - 元数据不保存完整 WCS/SIP (步骤8)
 //
 // 注: 下列共享方法已移至 hiss_common.cpp (避免与 Reader 重复定义):
-//   - compute_tile_depth / compute_tile_nside (02_FROZEN §11)
-//   - DrizzleTileAccumulator::finalize_signal / finalize_support / validate_support (§10)
-//   - HissMetadata::to_json / from_json (§16)
+// - compute_tile_depth / compute_tile_nside (02_FROZEN §11)
+// - DrizzleTileAccumulator::finalize_signal / finalize_support / validate_support (§10)
+// - HissMetadata::to_json / from_json (§16)
 // ============================================================================
 #include "hiss_format.h"
 #include "hiss_stream_writer.h"
@@ -27,7 +27,7 @@
 #include <cerrno>
 #include <cstring>
 
-// R13 (HISS_IO_REPAIR): 逐 Tile/逐 subblock 日志降级 — 仅编译期 HISS_VERBOSE
+// 逐 Tile/逐 subblock 日志降级 — 仅编译期 HISS_VERBOSE
 // 启用时输出 (正常模式 INFO 只保留阶段/汇总/错误, 避免 stderr 写文件拖慢写入)
 #ifdef HISS_VERBOSE
 #define HISS_DLOG(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
@@ -48,9 +48,9 @@ namespace hiss {
 // ============================================================================
 
 // R04-B12: occupancy 自动选择 — 不再使用硬编码阈值
-//   FULL 仅当 n_valid == n_leaf_per_tile (100% 覆盖, 02_FROZEN §9)
-//   BITMAP/SPARSE_LIST 按实际完整编码大小自动选最小者, 确定性 tie-break
-//   不冻结经验阈值 (DQ-005 由实验决定, 但生产路径不依赖固定阈值)
+// FULL 仅当 n_valid == n_leaf_per_tile (100% 覆盖, 02_FROZEN §9)
+// BITMAP/SPARSE_LIST 按实际完整编码大小自动选最小者, 确定性 tie-break
+// 不冻结经验阈值 (DQ-005 由实验决定, 但生产路径不依赖固定阈值)
 
 // ============================================================================
 // HissWriter 私有实现
@@ -69,10 +69,10 @@ struct HissWriter::Impl {
     // INTERIM_BASELINE_NOT_FROZEN: 候选注册机制, 算法待 DQ-006 冻结
     std::map<SubblockType, ChecksumType> experiment_checksums;
 
-    // R13 (HISS_IO_REPAIR): 可复用缓冲 — 避免每 Tile 反复分配 1MB 级数组。
-    //   大 tiles (NSIDE=65536 满 Tile 262144 leaf) 下, drizzle 后堆已碎片化,
-    //   每 Tile 的 signal/support/valid/compressed 分配实测拖慢写入 (1024² 10ms
-    //   vs 4096² 378ms/Tile); 复用缓冲消除该开销。
+    // 可复用缓冲 — 避免每 Tile 反复分配 1MB 级数组。
+    // 大 tiles (NSIDE=65536 满 Tile 262144 leaf) 下, drizzle 后堆已碎片化,
+    // 每 Tile 的 signal/support/valid/compressed 分配实测拖慢写入 (1024² 10ms
+    // vs 4096² 378ms/Tile); 复用缓冲消除该开销。
     std::vector<float>   buf_signal_full;
     std::vector<uint8_t> buf_support_full;
     std::vector<uint32_t> buf_valid;
@@ -96,13 +96,13 @@ struct HissWriter::Impl {
 
 // ---------------------------------------------------------------------------
 // 内部辅助: 压缩子块并追加到流式写入器
-//   返回 0=成功, <0=失败; 成功时 desc 已填充 (offset/size/codec 等)
-//   依据步骤10: 压缩后立即写入临时池, 不保留 compressed_data 在内存
-//   依据步骤12 (WP-G): 在压缩前执行 apply_transform (若 transform_id != NONE)
-//   checksum (INTERIM_BASELINE_NOT_FROZEN):
-//     - 默认 ChecksumType::NONE (不计算校验, 向后兼容)
-//     - 实验时通过 set_experiment_checksum 启用 CRC32C 等候选算法
-//     - checksum 计算的是压缩后数据 (与 Reader 端一致, Reader 在解压前校验)
+// 返回 0=成功, <0=失败; 成功时 desc 已填充 (offset/size/codec 等)
+// 依据步骤10: 压缩后立即写入临时池, 不保留 compressed_data 在内存
+// 依据步骤12 (WP-G): 在压缩前执行 apply_transform (若 transform_id != NONE)
+// checksum (INTERIM_BASELINE_NOT_FROZEN):
+// - 默认 ChecksumType::NONE (不计算校验, 向后兼容)
+// - 实验时通过 set_experiment_checksum 启用 CRC32C 等候选算法
+// - checksum 计算的是压缩后数据 (与 Reader 端一致, Reader 在解压前校验)
 // ---------------------------------------------------------------------------
 
 static int compress_and_append(HissStreamWriter& stream,
@@ -164,14 +164,14 @@ static int compress_and_append(HissStreamWriter& stream,
     desc.checksum          = 0;
 
     // R04-B13: RAW 回退 — 若 codec != RAW, 压缩后若无收益则真实回退 RAW
-    //   判据: compressed_size >= size_to_compress (压缩后不小于原始)
-    //   回退: codec_id=RAW, compressed_size=size_to_compress, 写入原始数据
+    // 判据: compressed_size >= size_to_compress (压缩后不小于原始)
+    // 回退: codec_id=RAW, compressed_size=size_to_compress, 写入原始数据
     const uint8_t* final_data = data_to_compress;
     size_t final_size = size_to_compress;
     CodecId final_codec = codec_id;
-    // R13: 压缩缓冲提升到函数作用域 — 原实现在 if 块内声明, else 分支
-    //   final_data=compressed.data() 在块结束后成为悬垂指针, append_subblock
-    //   读取已析构内存 → fwrite EINVAL (启用 ZSTD 后写入失败)。
+    // 压缩缓冲提升到函数作用域 — 原实现在 if 块内声明, else 分支
+    // final_data=compressed.data() 在块结束后成为悬垂指针, append_subblock
+    // 读取已析构内存 → fwrite EINVAL (启用 ZSTD 后写入失败)。
     std::vector<uint8_t> compressed_buf;
 
     if (codec_id != CodecId::RAW) {
@@ -260,13 +260,13 @@ static int compress_and_append(HissStreamWriter& stream,
 
 // ---------------------------------------------------------------------------
 // 内部辅助: 自动选择 occupancy 模式 (R04-B12)
-//   FULL 仅当 n_valid == n_leaf_per_tile (100% 覆盖, 02_FROZEN §9)
-//   否则按实际完整编码大小自动选 BITMAP 或 SPARSE_LIST 的最小者
-//   确定性 tie-break: 大小相等时选 BITMAP (解码更简单, 无需二分查找)
-//   不冻结经验阈值 (R04-B12 红线)
+// FULL 仅当 n_valid == n_leaf_per_tile (100% 覆盖, 02_FROZEN §9)
+// 否则按实际完整编码大小自动选 BITMAP 或 SPARSE_LIST 的最小者
+// 确定性 tie-break: 大小相等时选 BITMAP (解码更简单, 无需二分查找)
+// 不冻结经验阈值 (R04-B12 红线)
 //
-//   BITMAP 完整编码大小 = ceil(n_leaf_per_tile / 8) 字节
-//   SPARSE_LIST 完整编码大小 = n_valid * sizeof(uint32_t) 字节
+// BITMAP 完整编码大小 = ceil(n_leaf_per_tile / 8) 字节
+// SPARSE_LIST 完整编码大小 = n_valid * sizeof(uint32_t) 字节
 // ---------------------------------------------------------------------------
 
 static OccupancyMode auto_select_occupancy(uint32_t n_valid, uint32_t n_leaf_per_tile) {
@@ -345,11 +345,11 @@ int HissWriter::open(const std::string& output_path,
     pimpl_->grid     = grid;
     pimpl_->metadata = metadata;
 
-    // R13 (HISS_IO_REPAIR): 默认压缩配置 — 仅当调用方未显式设置 codec 时启用。
-    //   生产 HISS 此前 experiment_codecs 为空 → 全部 RAW (316MB 未压缩)。
-    //   启用 ZSTD + BYTE_SHUFFLE (signal float32/64 shuffle 后压缩率高)；
-    //   support/occupancy/snr 用 ZSTD (uint8 数据 zstd 直接压缩高效)。
-    //   调用方 set_experiment_codec 可覆盖 (优先显式配置)。
+    // 默认压缩配置 — 仅当调用方未显式设置 codec 时启用。
+    // 生产 HISS 此前 experiment_codecs 为空 → 全部 RAW (316MB 未压缩)。
+    // 启用 ZSTD + BYTE_SHUFFLE (signal float32/64 shuffle 后压缩率高)；
+    // support/occupancy/snr 用 ZSTD (uint8 数据 zstd 直接压缩高效)。
+    // 调用方 set_experiment_codec 可覆盖 (优先显式配置)。
     if (pimpl_->experiment_codecs.empty()) {
         CodecRegistry& reg = CodecRegistry::instance();
         if (reg.find(CodecId::ZSTD)) {
@@ -388,18 +388,18 @@ int HissWriter::open(const std::string& output_path,
 // add_tile: 添加一个 Tile 的数据 (流式写入 + 自动 occupancy 选择)
 //
 // 步骤11 关键改动:
-//   1. 从 acc 获取全长度 signal/support (finalize_signal/finalize_support)
-//   2. 统计有效像素 (sum_area > 0)
-//   3. 自动选择 occupancy 模式 (忽略传入的 occ_mode)
-//   4. BITMAP/SPARSE 模式只保存有效像素的 signal/support (紧凑数组)
-//   5. 压缩后立即写入临时池 (步骤10), 不保留 compressed_data
+// 1. 从 acc 获取全长度 signal/support (finalize_signal/finalize_support)
+// 2. 统计有效像素 (sum_area > 0)
+// 3. 自动选择 occupancy 模式 (忽略传入的 occ_mode)
+// 4. BITMAP/SPARSE 模式只保存有效像素的 signal/support (紧凑数组)
+// 5. 压缩后立即写入临时池 (步骤10), 不保留 compressed_data
 // ---------------------------------------------------------------------------
 
 
 // ============================================================================
-// write_snr_subblock - SNR 子块序列化 (R11: snr_dtype 0=f32 8B/点, 1=f64 12B/点)
+// write_snr_subblock - SNR 子块序列化 (: snr_dtype 0=f32 8B/点, 1=f64 12B/点)
 // 布局: [estimator_id u32][sampling_scale f32][n_points u32] + points
-//   f32: local_ipix(u32) + snr(f32) = 8B;  f64: local_ipix(u32) + snr(f64) = 12B
+// f32: local_ipix(u32) + snr(f32) = 8B; f64: local_ipix(u32) + snr(f64) = 12B
 // ============================================================================
 static int write_snr_subblock(const HissSnrBlock* snr, uint8_t snr_dtype,
                               std::vector<HissSubblockDescriptor>& subblocks,
@@ -561,8 +561,8 @@ int HissWriter::add_tile(uint64_t parent_ipix,
     }
 
     // 1. 生成 signal (float32) 与 support (uint8) — 全长度数组
-    //    signal = 累计通量 (步骤7, finalize_signal 在 hiss_common.cpp 已修复)
-    //    support = 面积比 (finalize_support 用 pixel_area 归一化)
+    // signal = 累计通量 (步骤7, finalize_signal 在 hiss_common.cpp 已修复)
+    // support = 面积比 (finalize_support 用 pixel_area 归一化)
     std::vector<float>&   signal_full   = pimpl_->buf_signal_full;
     std::vector<uint8_t>& support_full  = pimpl_->buf_support_full;
 #ifdef HISS_PROFILE
@@ -577,7 +577,7 @@ int HissWriter::add_tile(uint64_t parent_ipix,
 #endif
 
     // 2. 统计有效像素并收集索引
-    //    有效定义: sum_area > 0 (有贡献的像素)
+    // 有效定义: sum_area > 0 (有贡献的像素)
     std::vector<uint32_t>& valid_indices = pimpl_->buf_valid;
 #ifdef HISS_PROFILE
     auto tp_vi = std::chrono::steady_clock::now();
@@ -597,7 +597,7 @@ int HissWriter::add_tile(uint64_t parent_ipix,
 #endif
 
     // 3. 自动选择 occupancy 模式 (步骤11: 不由调用方传入)
-    //    忽略 occ_mode 参数, Writer 根据占用率自动选择
+    // 忽略 occ_mode 参数, Writer 根据占用率自动选择
     OccupancyMode auto_mode = auto_select_occupancy(n_valid, (uint32_t)n_leaf);
     HISS_DLOG("[hiss][writer] add_tile: parent=%llu n_leaf=%zu n_valid=%u occ_rate=%.4f "
               "occ_mode=%u -> auto=%u\n",
@@ -657,10 +657,10 @@ int HissWriter::add_tile(uint64_t parent_ipix,
     std::vector<HissSubblockDescriptor> subblocks;
 
     // 5a. occupancy 子块 (FULL 时省略; BITMAP/SPARSE_LIST 时生成)
-    //     R04-B12: occupancy 在 BITMAP/SPARSE Tile 中必须标记 REQUIRED
-    //     WP-G 步骤12: 传递 element_size 供 transform 使用
-    //       BITMAP: element_size=1 (原始字节, 位图)
-    //       SPARSE_LIST: element_size=4 (uint32 索引数组, delta/varint 有意义)
+    // R04-B12: occupancy 在 BITMAP/SPARSE Tile 中必须标记 REQUIRED
+    // WP-G 步骤12: 传递 element_size 供 transform 使用
+    // BITMAP: element_size=1 (原始字节, 位图)
+    // SPARSE_LIST: element_size=4 (uint32 索引数组, delta/varint 有意义)
     if (auto_mode != OccupancyMode::FULL) {
         size_t occ_elem_size = (auto_mode == OccupancyMode::SPARSE_LIST) ? 4 : 1;
         HissSubblockDescriptor desc;
@@ -679,7 +679,7 @@ int HissWriter::add_tile(uint64_t parent_ipix,
     }
 
     // 5b. signal 子块 (必需) — 只含有效像素的紧凑数组 (BITMAP/SPARSE) 或全长度 (FULL)
-    //     WP-G 步骤12: element_size=sizeof(float)=4, 适用于 BYTE_SHUFFLE/DELTA/DELTA_VARINT
+    // WP-G 步骤12: element_size=sizeof(float)=4, 适用于 BYTE_SHUFFLE/DELTA/DELTA_VARINT
     {
         const auto& sig_use = (auto_mode == OccupancyMode::FULL)
             ? signal_full : signal_compact;
@@ -700,7 +700,7 @@ int HissWriter::add_tile(uint64_t parent_ipix,
     }
 
     // 5c. support 子块 (必需) — 只含有效像素的紧凑数组 (BITMAP/SPARSE) 或全长度 (FULL)
-    //     WP-G 步骤12: element_size=1 (uint8), BYTE_SHUFFLE 为 no-op, DELTA/DELTA_VARINT 可用
+    // WP-G 步骤12: element_size=1 (uint8), BYTE_SHUFFLE 为 no-op, DELTA/DELTA_VARINT 可用
     {
         const auto& sup_use = (auto_mode == OccupancyMode::FULL)
             ? support_full : support_compact;
@@ -750,8 +750,8 @@ int HissWriter::add_tile(uint64_t parent_ipix,
 
 // ---------------------------------------------------------------------------
 // add_tile_f64: FP64 模式添加 Tile (float64 signal)
-//   R10: 与 add_tile 逻辑一致, 但 signal 子块写入 float64 数据
-//   调用后 metadata 中的 precision_mode/signal_dtype 自动设置为 1 (FP64)
+// 与 add_tile 逻辑一致, 但 signal 子块写入 float64 数据
+// 调用后 metadata 中的 precision_mode/signal_dtype 自动设置为 1 (FP64)
 // ---------------------------------------------------------------------------
 
 int HissWriter::add_tile_f64(uint64_t parent_ipix,
@@ -767,11 +767,11 @@ int HissWriter::add_tile_f64(uint64_t parent_ipix,
         return -2;
     }
 
-    // R10: 标记文件为 FP64 模式
+    // 标记文件为 FP64 模式
     pimpl_->metadata.precision_mode = 1;
     pimpl_->metadata.signal_dtype   = 1;
-    // R11: FP64 模式下科学 metadata 浮点 dtype 随模式 (PREC-110)
-    pimpl_->metadata.snr_dtype = 1;  // R11: FP64 SNR 子块(12B/点)
+    // FP64 模式下科学 metadata 浮点 dtype 随模式 (PREC-110)
+    pimpl_->metadata.snr_dtype = 1;  // FP64 SNR 子块(12B/点)
     pimpl_->metadata.metadata_float_dtype = 1;
 
     const size_t n_leaf = acc.pixels.size();
@@ -901,7 +901,7 @@ int HissWriter::add_tile_f64(uint64_t parent_ipix,
         subblocks.push_back(desc);
     }
 
-    // 5d. SNR 子块 (可选, snr_dtype=1 f64, R11 PREC-109)
+    // 5d. SNR 子块 (可选, snr_dtype=1 f64, PREC-109)
     if (snr) {
         int ret = write_snr_subblock(snr, 1, subblocks, pimpl_->stream,
                                      pimpl_->codec_for(SubblockType::SNR),
@@ -928,7 +928,7 @@ int HissWriter::add_tile_f64(uint64_t parent_ipix,
 
 // ---------------------------------------------------------------------------
 // add_tile_f64_snr: FP64 模式 + FP64 SNR 控制点 (BLOCKER-TYPE-002)
-//   signal 子块 float64; SNR 子块直接写 f64 控制点 (非 float 扩展)
+// signal 子块 float64; SNR 子块直接写 f64 控制点 (非 float 扩展)
 // ---------------------------------------------------------------------------
 int HissWriter::add_tile_f64_snr(uint64_t parent_ipix,
                                   const DrizzleTileAccumulator& acc,
@@ -1108,8 +1108,8 @@ void HissWriter::set_experiment_codec(SubblockType type,
 
 // ---------------------------------------------------------------------------
 // set_experiment_transform (WP-G 步骤12 新增)
-//   仅设置 transform, 保留已有 codec (若未设置则默认 RAW)
-//   与 set_experiment_codec 类似, 但只修改 transform 部分
+// 仅设置 transform, 保留已有 codec (若未设置则默认 RAW)
+// 与 set_experiment_codec 类似, 但只修改 transform 部分
 // ---------------------------------------------------------------------------
 
 void HissWriter::set_experiment_transform(SubblockType type,
@@ -1125,9 +1125,9 @@ void HissWriter::set_experiment_transform(SubblockType type,
 
 // ---------------------------------------------------------------------------
 // set_experiment_checksum (INTERIM_BASELINE_NOT_FROZEN)
-//   设置实验性 checksum (按 SubblockType), 默认 NONE
-//   checksum 计算的是压缩后数据 (与 Reader 端一致)
-//   候选算法通过 ChecksumRegistry 注册, 内置 CRC32C
+// 设置实验性 checksum (按 SubblockType), 默认 NONE
+// checksum 计算的是压缩后数据 (与 Reader 端一致)
+// 候选算法通过 ChecksumRegistry 注册, 内置 CRC32C
 // ---------------------------------------------------------------------------
 
 void HissWriter::set_experiment_checksum(SubblockType type,

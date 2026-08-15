@@ -2,13 +2,13 @@
 // Phase E1：按 06_QUALIFICATION_BENCHMARK_SPEC.md §13 + 07_STATIC_ROUTING_AND_MIXED_EXECUTION.md §3 定义。
 //
 // 设计：
-//   1. Curve 是分段曲线（log2 尺寸上的分段线性插值），禁止用一个全局常数代表全部尺寸
-//   2. DeviceProfile 按设备和能力族组织多维能力曲线
-//   3. HardwareProfile 是顶层容器，包含指纹 + 多个 DeviceProfile
-//   4. 运行时只读：正式运行不修改 profile，不在线学习
-//   5. 三态处理：Missing（CPU fallback + 警告）/ Stale（指纹不匹配 + 继续运行）/ Corrupt（CPU fallback + 警告）
-//   6. lazy load：首次 CostEstimator 调用时加载
-//   7. 公共头不暴露第三方类型
+// 1. Curve 是分段曲线（log2 尺寸上的分段线性插值），禁止用一个全局常数代表全部尺寸
+// 2. DeviceProfile 按设备和能力族组织多维能力曲线
+// 3. HardwareProfile 是顶层容器，包含指纹 + 多个 DeviceProfile
+// 4. 运行时只读：正式运行不修改 profile，不在线学习
+// 5. 三态处理：Missing（CPU fallback + 警告）/ Stale（指纹不匹配 + 继续运行）/ Corrupt（CPU fallback + 警告）
+// 6. lazy load：首次 CostEstimator 调用时加载
+// 7. 公共头不暴露第三方类型
 #pragma once
 
 #include <algorithm>
@@ -90,15 +90,15 @@ enum class CapabilityFamily : std::uint8_t {
 // ===== CurveKey：通用曲线键（字符串形式，每个 family 自定义格式）=====
 // 序列化友好，避免复杂的变体类型。
 // 格式约定（示例）：
-//   arithmetic:  "fp32:add:avx2" / "fp64:fma:avx512"
-//   memory:      "L1:copy" / "MainMem:triad" / "Vram:dot"
-//   transfer:    "h2d:pinned" / "d2h:plain" / "d2d:p2p"
-//   reduction:   "sum:fp32" / "dot:fp64"
-//   convolution: "direct:3x3:fp32" / "separable:31:fp64" / "fft:7x7:fp32"
-//   irregular:   "gather:random:0.05" / "scatter:atomic:hotspot" / "histogram:uniform"
-//   branch:      "uniform" / "highly_variable"
-//   overhead:    "submit" / "launch" / "event" / "alloc" / "merge"
-//   library:     "fft" / "gemm" / "scan"
+// arithmetic: "fp32:add:avx2" / "fp64:fma:avx512"
+// memory: "L1:copy" / "MainMem:triad" / "Vram:dot"
+// transfer: "h2d:pinned" / "d2h:plain" / "d2d:p2p"
+// reduction: "sum:fp32" / "dot:fp64"
+// convolution: "direct:3x3:fp32" / "separable:31:fp64" / "fft:7x7:fp32"
+// irregular: "gather:random:0.05" / "scatter:atomic:hotspot" / "histogram:uniform"
+// branch: "uniform" / "highly_variable"
+// overhead: "submit" / "launch" / "event" / "alloc" / "merge"
+// library: "fft" / "gemm" / "scan"
 using CurveKey = std::string;
 
 // ===== CurvePoint：曲线采样点 =====
@@ -107,7 +107,7 @@ struct CurvePoint {
     double median{0.0};      // 中位耗时（纳秒）或吞吐（GB/s），由曲线族决定
     double p95{0.0};         // 95 分位
     double mad{0.0};         // 中位绝对偏差（稳定性指标）
-    // 25 号计划 §3.3：样本数与置信度（合格判定依据）
+    // 25 §3.3：样本数与置信度（合格判定依据）
     std::uint32_t sample_count{0};   // 正式样本数（不含预热）
     double confidence{0.0};          // 1 - mad/median（0..1；无样本为 0）
 };
@@ -115,7 +115,7 @@ struct CurvePoint {
 // ===== Curve：分段曲线（log2 尺寸上分段线性插值）=====
 struct Curve {
     std::vector<CurvePoint> points;  // 按 size 升序
-    // 25 号计划 §3.3：曲线来源与资格
+    // 25 §3.3：曲线来源与资格
     std::string source{"unavailable"};  // "measured" | "estimated" | "unavailable"
     bool qualified{false};              // 仅 full 标定且 sample_count>=7 的 measured 曲线
 
@@ -160,7 +160,7 @@ struct FixedOverhead {
     double p95_ns{0.0};        // 95 分位
     double cold_start_ns{0.0}; // 冷启动开销（首次调用）
     double warm_ns{0.0};       // 温态开销（已初始化后）
-    // 25 号计划 §3.3：固定开销默认估算标记（非实测）
+    // 25 §3.3：固定开销默认估算标记（非实测）
     std::string source{"estimated"};
 };
 
@@ -180,7 +180,7 @@ struct DeviceProfile {
 
     // 多维能力曲线（按族组织，key 是族内子类型）
     std::map<std::pair<HwPrecision, std::string>, Curve> arithmetic;     // [(precision, op:isa)]
-    // 25 号计划 §4：内存曲线按 (level, residency, operation) 区分
+    // 25 §4：内存曲线按 (level, residency, operation) 区分
     // （Copy 与 Triad 不混入同一曲线；GPU 显存不标 host MainMem）
     std::map<std::tuple<MemoryLevel, MemoryResidency, std::string>, Curve> memory;
     std::map<std::pair<TransferDirection, MemoryType>, Curve> transfer;  // [(direction, mem_type)]
@@ -293,7 +293,7 @@ struct HardwareProfile {
     std::string fingerprint_sha256;
     std::string generated_at;       // ISO 8601 简化
     std::string profile_kind;       // "quick" / "standard" / "full"
-    // 25 号计划 §3.1：quick 标定仅作冒烟/诊断，不得用于生产路由
+    // 25 §3.1：quick 标定仅作冒烟/诊断，不得用于生产路由
     bool diagnostic_only{false};
     HwProfileState state{HwProfileState::Missing};
     bool stale{false};

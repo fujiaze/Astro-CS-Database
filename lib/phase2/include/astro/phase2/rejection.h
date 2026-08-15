@@ -1,31 +1,31 @@
 // lib/phase2/include/astro/phase2/rejection.h
 //
-// Phase2 Rejection Framework 公共接口（V16 Final Closure AuditFix）。
+// Phase2 Rejection Framework 公共接口。
 //
-// 语义（V16）：
-//   - 输入分三层：
-//       1) EligibilityPolicy（p2_eligibility_filter / 生产 strided
-//          p2_collect_candidate_stack）：finite/valid/support/quality →
-//          CandidateStack；rejection kernel 不再知道 support/quality；
-//       2) RejectionPlan：auto 在 **planning 层**解析为显式方法 +
-//          method-specific typed params；profile 语义见
-//          p2_reject_plan_resolve（wbpp_current = group-level 一次解析；
-//          astrocs_adaptive = tile nominal-depth 自适应，独立命名）；
-//       3) RejectionNormalizationPolicy（plan.normalization）：判定工作域
-//          （working stack）与科学积分域（原始 calibrated values）分离；
-//          decision 作用于 working stack，accepted mask 应用于原始值。
-//   - 输出 RejectionDecision：每样本 reason（ACCEPTED / REJECTED_LOW /
-//     REJECTED_HIGH / UNDERDETERMINED）+ stack-level status。
-//   - 统计语义：rejected_low = 低于 lower threshold；rejected_high = 高于
-//     upper threshold（禁止用原始值正负号）。
-//   - n <= underdetermined_n 或 n < 方法 minimum N → REJECTION_UNDERDETERMINED
-//     （可全接受但必须记录，禁止偷偷切换另一套算法）。
-//   - CPU reference 优先；ACR 后端消费同一语义接口（同一 contract）。
-//   - Oracle：Astropy sigma_clip(median+mad_std)、NIST ESD、AveragedSigma
-//     （公式定义；IRAF exact = NOT_CLAIMED）、Siril 1.4.3（GPL ORACLE
-//     ONLY）、RCR 2.4.7 官方固定版本（ORACLE ONLY）。
-//   - PIXINSIGHT_EXACT_COMPATIBILITY = NOT_CLAIMED（WBPP profile 只提供
-//     Auto routing/参数映射政策）。
+// 语义：
+// - 输入分三层：
+// 1) EligibilityPolicy（p2_eligibility_filter / 生产 strided
+// p2_collect_candidate_stack）：finite/valid/support/quality →
+// CandidateStack；rejection kernel 不再知道 support/quality；
+// 2) RejectionPlan：auto 在 **planning 层**解析为显式方法 +
+// method-specific typed params；profile 语义见
+// p2_reject_plan_resolve（wbpp_current = group-level 一次解析；
+// astrocs_adaptive = tile nominal-depth 自适应，独立命名）；
+// 3) RejectionNormalizationPolicy（plan.normalization）：判定工作域
+// （working stack）与科学积分域（原始 calibrated values）分离；
+// decision 作用于 working stack，accepted mask 应用于原始值。
+// - 输出 RejectionDecision：每样本 reason（ACCEPTED / REJECTED_LOW /
+// REJECTED_HIGH / UNDERDETERMINED）+ stack-level status。
+// - 统计语义：rejected_low = 低于 lower threshold；rejected_high = 高于
+// upper threshold（禁止用原始值正负号）。
+// - n <= underdetermined_n 或 n < 方法 minimum N → REJECTION_UNDERDETERMINED
+// （可全接受但必须记录，禁止偷偷切换另一套算法）。
+// - CPU reference 优先；ACR 后端消费同一语义接口（同一 contract）。
+// - Oracle：Astropy sigma_clip(median+mad_std)、NIST ESD、AveragedSigma
+// （公式定义；IRAF exact = NOT_CLAIMED）、Siril 1.4.3（GPL ORACLE
+// ONLY）、RCR 2.4.7 官方固定版本（ORACLE ONLY）。
+// - PIXINSIGHT_EXACT_COMPATIBILITY = NOT_CLAIMED（WBPP profile 只提供
+// Auto routing/参数映射政策）。
 #pragma once
 
 #include <cstddef>
@@ -88,7 +88,7 @@ enum P2RejectStatus {
     P2_STATUS_INTERNAL_ERROR = 7         // kernel 内部不变量破坏
 };
 
-// V16：RejectionNormalizationPolicy（判定工作域；mask 应用回原始科学值）
+// RejectionNormalizationPolicy（判定工作域；mask 应用回原始科学值）
 enum P2RejectionNormalization {
     P2_NORMALIZE_NONE = 0,          // identity 工作域
     P2_NORMALIZE_MEDIAN_CENTER = 1, // working = value - median（per-pixel）
@@ -125,21 +125,21 @@ typedef struct {
 } P2MinmaxParams;
 
 typedef struct {
-    int technique;         // 0 = SS_MEDIAN_DL（V15 冻结，唯一支持）
+    int technique;         // 0 = SS_MEDIAN_DL（ 冻结，唯一支持）
 } P2RcrParams;
 
-// V17：astrocs.large_scale_rejection.v1 —— 大尺度结构拒绝（WBPP
+// astrocs.large_scale_rejection.v1 —— 大尺度结构拒绝（WBPP
 // Large-Scale Pixel Rejection 的 AstroCS 自有实现，PIXINSIGHT_EXACT=
 // NOT_CLAIMED）。语义：对每帧 pixel-level rejection mask 做
 // connected-component grow：
-//   - 8-连通分量中，只有分量大小 >= min_structure_pixels 的结构才被
-//     视为大尺度（compact cosmic / 星点噪声不会无限生长）；
-//   - 合格结构按 Chebyshev 邻域扩张 grow_radius 像素，新增像素同样
-//     标记 rejected（低/高侧独立半径）；
-//   - 扩张后 mask 应用回原始 calibrated 科学值（与 pixel rejection
-//     同一 accepted mask 语义）。
+// - 8-连通分量中，只有分量大小 >= min_structure_pixels 的结构才被
+// 视为大尺度（compact cosmic / 星点噪声不会无限生长）；
+// - 合格结构按 Chebyshev 邻域扩张 grow_radius 像素，新增像素同样
+// 标记 rejected（低/高侧独立半径）；
+// - 扩张后 mask 应用回原始 calibrated 科学值（与 pixel rejection
+// 同一 accepted mask 语义）。
 // 默认值（WBPP 2.9.1 largeScaleClipLow/High 默认关闭 → 默认 enabled=0）：
-//   min_structure_pixels=8；low/high grow radius=2。
+// min_structure_pixels=8；low/high grow radius=2。
 typedef struct {
     int enabled;                  // 0/1（默认 0）
     int min_structure_pixels;     // 结构最小像素数（>=1；默认 8）
@@ -164,7 +164,7 @@ typedef struct {
     P2SigmaParams median_sigma;    // P2_REJECT_MEDIAN_SIGMA
     P2MinmaxParams minmax;     // P2_REJECT_MINMAX
     P2RcrParams rcr;           // P2_REJECT_RCR
-    P2LargeScaleParams large_scale; // V17：大尺度后处理（独立于 pixel kernel）
+    P2LargeScaleParams large_scale; // 大尺度后处理（独立于 pixel kernel）
 } P2RejectionPlan;
 
 // Auto 解析请求（planning 层）
@@ -180,12 +180,12 @@ typedef struct {
 
 // 在 planning 层把 request（含 AUTO）解析为显式 P2RejectionPlan。
 // WBPP 2.9.1（本机安装源码 bestRejectionMethod）Auto 路由：
-//   nominal < 6 → percentile；6..15 → winsorized_sigma；>15 → linear_fit。
-// V16 profile 语义：
-//   wbpp_current     → 调用方必须传 integration group active count，一次
-//                      解析；tile/pixel 不重选；局部候选不足 = UNDERDETERMINED。
-//   astrocs_adaptive → AstroCS 自有策略：允许按 tile nominal geometric depth
-//                      自适应；独立命名，不冒充 WBPP exact。
+// nominal < 6 → percentile；6..15 → winsorized_sigma；>15 → linear_fit。
+// profile 语义：
+// wbpp_current → 调用方必须传 integration group active count，一次
+// 解析；tile/pixel 不重选；局部候选不足 = UNDERDETERMINED。
+// astrocs_adaptive → AstroCS 自有策略：允许按 tile nominal geometric depth
+// 自适应；独立命名，不冒充 WBPP exact。
 // err 仅作日志文本；返回 0=OK，非 0=非法参数（err 填充原因）。
 P2_API int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
                                   P2RejectionPlan* plan,
@@ -221,7 +221,7 @@ typedef struct {
 P2_API int p2_eligibility_filter(const P2EligibilityInput* in,
                                  P2EligibilityOutput* out);
 
-// V16：生产收集器（frame-major strided 输入，一次完成资格判定+紧凑化）。
+// 生产收集器（frame-major strided 输入，一次完成资格判定+紧凑化）。
 // stage2 CPU / ACR 使用同一函数（单一路径）；compat 走连续版（同一 policy）。
 typedef struct {
     const void* values;              // 必填（frame-major；dtype 见 value_dtype）
@@ -278,12 +278,12 @@ typedef struct {
 } P2RejectionDecision;
 
 // 执行显式 RejectionPlan（plan->method 必须为 explicit；AUTO 返回非法参数）。
-// V16：kernel 内 n<=64 使用固定 scratch（无每像素堆分配）；>64 走堆。
+// kernel 内 n<=64 使用固定 scratch（无每像素堆分配）；>64 走堆。
 P2_API int p2_reject_stack_ex(const P2CandidateStack* stack,
                               const P2RejectionPlan* plan,
                               P2RejectionDecision* out);
 
-// V17：大尺度 grow 后处理（生产 stage2 唯一调用点）。
+// 大尺度 grow 后处理（生产 stage2 唯一调用点）。
 // low/high 为 frame-major 每帧 width*height 字节（1=rejected），原地修改。
 // 仅扩张"分量大小 >= min_structure_pixels"的结构；低/高侧独立半径。
 // 返回 0=OK；参数非法返回 1（err 可空）。

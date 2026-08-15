@@ -2,10 +2,10 @@
 // 功能: 球面渲染 (.hcsd) + 单帧切面投影渲染 (.hiss), 内嵌 STF 拉伸着色器
 // 用途: 为 widgets/ 层提供纯 C++ OpenGL 3.3 Core 渲染入口, 无 Qt 依赖
 // 依赖: browser_backend.h (数据源), stf_engine.h (STF uniform 转换),
-//       healpix_math.h (球面坐标转换), logger.h (日志)
-//       OpenGL 3.3 Core (wglGetProcAddress 加载 1.2+ 函数, opengl32.lib 链接 1.1 函数)
+// healpix_math.h (球面坐标转换), logger.h (日志)
+// OpenGL 3.3 Core (wglGetProcAddress 加载 1.2+ 函数, opengl32.lib 链接 1.1 函数)
 // 编译: g++ -O2 -std=c++17 -Wall -Wextra -Icore -Iinclude -I../../astro_image_io/include
-//       -c core/gl_renderer.cpp -o core/gl_renderer.o -lopengl32 -lgdi32
+// -c core/gl_renderer.cpp -o core/gl_renderer.o -lopengl32 -lgdi32
 // 设计文档: docs/superpowers/specs/2026-07-13-cpp-qt-browser-core-design.md §3.4
 
 #include "gl_renderer.h"
@@ -165,7 +165,7 @@ static int load_gl_functions() {
 
     // 逐个加载，任一失败则返回错误
     // 注: 先转 void* 再转目标类型，避免 -Wcast-function-type 警告
-    //     (wglGetProcAddress 返回 PROC，与各 GL 函数指针类型不兼容)
+    // (wglGetProcAddress 返回 PROC，与各 GL 函数指针类型不兼容)
     #define LOAD_GL_FUNC(name) \
         p##name = reinterpret_cast<PFN_##name>( \
             reinterpret_cast<void*>(wglGetProcAddress(#name))); \
@@ -985,9 +985,9 @@ void GLRenderer::build_quad_mesh() {
     // 4 顶点: position(xy) + texcoord(uv)
     // TRIANGLE_FAN 顺序: 左下 → 右下 → 右上 → 左上
     // 注: OpenGL 纹理 v=0 在底部，但渲染时通常 v=0 在顶部
-    //       这里 texcoord (0,0) 对应左下角
+    // 这里 texcoord (0,0) 对应左下角
     float vertices[] = {
-        // x      y     u     v
+        // x y u v
         -1.0f, -1.0f, 0.0f, 0.0f,  // 左下 (v0)
          1.0f, -1.0f, 1.0f, 0.0f,  // 右下 (v1)
          1.0f,  1.0f, 1.0f, 1.0f,  // 右上 (v2)
@@ -1132,7 +1132,7 @@ int GLRenderer::render_sphere(BrowserBackend& backend, const RenderParams& param
         // 不全清子叶缓存: 增量更新逻辑会自动清理不需要的子叶、加载新增的子叶
         // FOV 变化时 nside_target 变化, 但旧子叶仍可复用 (LOD 阈值只影响新加载的子叶)
         // 注: 若 nside_target 变化导致已缓存子叶的分辨率不匹配, 查值时仍用旧 nside,
-        //     视觉上会有轻微分辨率差异, 但避免了反复加载/ud_grade 的性能开销
+        // 视觉上会有轻微分辨率差异, 但避免了反复加载/ud_grade 的性能开销
         cache_fov_ = view.fov_deg;
     }
 
@@ -1229,8 +1229,8 @@ int GLRenderer::render_sphere(BrowserBackend& backend, const RenderParams& param
 
         // 查值: 先找 nside=64 子叶，再在子叶的 nside 层二分查找 ipix
         // 若 ipix 找不到 (数据是拼接图非全天覆盖, ud_grade 后无数据像素不输出):
-        //   用位运算降到更粗 nside, 在数组中查找属于同一粗像素的任意子像素
-        //   HEALPix nested: nside 降半 = ipix 右移 2 位, 粗像素范围 [coarse<<shift, (coarse+1)<<shift)
+        // 用位运算降到更粗 nside, 在数组中查找属于同一粗像素的任意子像素
+        // HEALPix nested: nside 降半 = ipix 右移 2 位, 粗像素范围 [coarse<<shift, (coarse+1)<<shift)
         float value = params.no_data_value;
         auto it = leaf_cache_.find(vc.leaf_ipix);
         if (it != leaf_cache_.end()) {
@@ -1440,7 +1440,7 @@ int GLRenderer::build_hiss_polygon_mesh(BrowserBackend& backend) {
         // 对角线在 north/east 方向, 相邻像素刚好拼接无重叠/无缝隙
         //
         // 小膨胀系数 1.02 (2%): 仅覆盖浮点误差导致的亚像素缝隙
-        //   (drizzle 加权积分无像素缝隙, 但菱形顶点投影回球面有浮点误差)
+        // (drizzle 加权积分无像素缝隙, 但菱形顶点投影回球面有浮点误差)
         double h = std::sqrt(M_PI / 6.0) / static_cast<double>(all.nside) * 1.02;
         // 4 角点 (十字菱形: 下→右→上→左)
         double corners_xyz[4][3] = {
@@ -1792,8 +1792,8 @@ int GLRenderer::render_single_frame(BrowserBackend& backend, const RenderParams&
 // ============================================================================
 
 // 透视投影矩阵（column-major）
-// m[0]  = f/aspect
-// m[5]  = f
+// m[0] = f/aspect
+// m[5] = f
 // m[10] = (far+near)/(near-far)
 // m[11] = -1
 // m[14] = 2*far*near/(near-far)
@@ -1816,13 +1816,13 @@ void GLRenderer::perspective_matrix(double fov_deg, double aspect,
 // look-at 矩阵（column-major, 与 perspective_matrix 一致）
 // forward = normalize(center - eye)
 // side = normalize(forward × up)
-// u' = side × forward  (true up)
+// u' = side × forward (true up)
 //
 // View 矩阵 (row-major 概念):
-// | side.x   side.y   side.z   -dot(side,eye) |
-// | u'.x     u'.y     u'.z     -dot(u',eye)   |
-// | -fwd.x   -fwd.y   -fwd.z    dot(fwd,eye)  |
-// | 0        0        0         1             |
+// | side.x side.y side.z -dot(side,eye) |
+// | u'.x u'.y u'.z -dot(u',eye) |
+// | -fwd.x -fwd.y -fwd.z dot(fwd,eye) |
+// | 0 0 0 1 |
 //
 // Column-major 存储: col_i = V 的第 i 列
 // col0 = (side.x, u'.x, -fwd.x, 0)
@@ -1880,7 +1880,7 @@ void GLRenderer::look_at_matrix(double eye_x, double eye_y, double eye_z,
 }
 
 // 4×4 矩阵乘法（column-major）
-// out = a * b  （先应用 b，再应用 a）
+// out = a * b （先应用 b，再应用 a）
 // out[col*4 + row] = sum_k a[k*4 + row] * b[col*4 + k]
 void GLRenderer::multiply_matrix(const float* a, const float* b, float* out) {
     float result[16];

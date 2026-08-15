@@ -1,12 +1,12 @@
 // lib/acr/tests/unit/test_dispatcher_bdr.cpp
 //
 // Dispatcher Finalization（07 测试 D / CHECKLIST）：
-//   - RouteProfileV2 + BenchmarkRouteEstimator 是 Dispatcher 顶层 Auto 唯一权威；
-//   - 同一 Dispatcher 入口下，实际 launcher/设备 == chosen route：
-//       OpenMP      → legacy launcher / CPU；
-//       GPU Direct  → 仅 GPU executor（不创建 CPU worker）；
-//       Mixed       → CPU+GPU 共享池（旧 planner 不做顶层资格）；
-//   - unqualified scenario 实际回退 legacy OpenMP。
+// - RouteProfileV2 + BenchmarkRouteEstimator 是 Dispatcher 顶层 Auto 唯一权威；
+// - 同一 Dispatcher 入口下，实际 launcher/设备 == chosen route：
+// OpenMP → legacy launcher / CPU；
+// GPU Direct → 仅 GPU executor（不创建 CPU worker）；
+// Mixed → CPU+GPU 共享池（旧 planner 不做顶层资格）；
+// - unqualified scenario 实际回退 legacy OpenMP。
 #include <gtest/gtest.h>
 
 #include "dispatcher.hpp"
@@ -477,7 +477,7 @@ TEST(DispatcherBdr, BufferBytesFollowElementSize) {
     for (std::size_t es : sizes) {
         // OpenMP 最快 Profile：真实字节仍进入 benchmark_upload_required_bytes
         // （不触发 GPU 上传，避免非 float 字节数 overread；字节契约在
-        //  Dispatcher 记账层验证）。
+        // Dispatcher 记账层验证）。
         RouteProfileV2 profile = make_profile("openmp");
         auto regs = std::make_shared<ExecutorRegistry>(
             ExecutorRegistry::create_auto());

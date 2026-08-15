@@ -2,10 +2,10 @@
 // Phase F3 + F-fix 1：cost-aware 调度 + 真实执行报告
 //
 // F-fix 1 修正：
-//   - actual_primary_backend 由真实完成统计生成，不从预测值填写
-//   - predicted_primary_backend 单独保留
-//   - coverage 从 MixedRunner.last_coverage() 真实导入，不无条件 mark_done
-//   - 固定尾段实验改名为 fixed_tail_chunking（不冒充动态 guided）
+// - actual_primary_backend 由真实完成统计生成，不从预测值填写
+// - predicted_primary_backend 单独保留
+// - coverage 从 MixedRunner.last_coverage() 真实导入，不无条件 mark_done
+// - 固定尾段实验改名为 fixed_tail_chunking（不冒充动态 guided）
 #include "dispatcher.hpp"
 #include "shared_work_pool.hpp"
 
@@ -35,10 +35,10 @@ namespace astro::compute::scheduler {
 // ACR 架构冻结（01_ARCHITECTURE_FREEZE.md §4）：Invocation buffer 角色布局
 // ----------------------------------------------------------------------------
 // 由 OperationId 决定（与 KernelRegistry launcher 的 buffer 约定一致）：
-//   dense/chain/weighted_integration：buffer0=输出（独占范围）、
-//                                      buffer1..N-1=只读输入
-//   reduce/drizzle：                    buffer0=只读输入、
-//                                      buffer1=私有 partial（读改写）
+// dense/chain/weighted_integration：buffer0=输出（独占范围）、
+// buffer1..N-1=只读输入
+// reduce/drizzle： buffer0=只读输入、
+// buffer1=私有 partial（读改写）
 // Dispatcher 按此布局决定 prefetch 目标与 GPU 输出物化目标。
 // ============================================================================
 struct InvocationBufferLayout {
@@ -60,12 +60,12 @@ InvocationBufferLayout layout_for_invocation(const KernelInvocation& inv) {
 // ----------------------------------------------------------------------------
 // 替代旧的 std::atomic<bool> stop_new_submit（一旦 true 永久停止）。
 // 行为：
-//   - close():       gate 关闭（可恢复）。MemoryBudget StopNewSubmit 时触发。
-//   - close_permanent(): gate 永久关闭（MemoryBudget Fail 时触发）。
-//   - try_recover(): 恢复。仅依据内存动作（26 号计划 §2：恢复不读取
-//                    CPU/GPU 利用率），动作不是 stop/fail 时重新开放 gate。
-//   - gate 关闭时不立即返回，而是等待一小段时间（10ms × 重试次数）后
-//     检查是否恢复；持续关闭超过 5 秒才最终放弃剩余工作。
+// - close(): gate 关闭（可恢复）。MemoryBudget StopNewSubmit 时触发。
+// - close_permanent(): gate 永久关闭（MemoryBudget Fail 时触发）。
+// - try_recover(): 恢复。仅依据内存动作（26 §2：恢复不读取
+// CPU/GPU 利用率），动作不是 stop/fail 时重新开放 gate。
+// - gate 关闭时不立即返回，而是等待一小段时间（10ms × 重试次数）后
+// 检查是否恢复；持续关闭超过 5 秒才最终放弃剩余工作。
 // ============================================================================
 struct RecoverableGate {
     std::atomic<bool> closed{false};
@@ -107,7 +107,7 @@ struct RecoverableGate {
         }
     }
 
-    // 尝试恢复 gate（仅依据内存动作，26 号计划 §9）。返回是否真的发生了状态转换。
+    // 尝试恢复 gate（仅依据内存动作，26 §9）。返回是否真的发生了状态转换。
     bool try_recover(const std::string& mem_action) noexcept {
         if (permanent_fail.load(std::memory_order_relaxed)) return false;
         if (!closed.load(std::memory_order_relaxed)) return false;
@@ -144,15 +144,15 @@ struct Dispatcher::Impl {
     QueueAwareEstimator estimator;
     FallbackPolicy fallback_policy;
     CurrentState current_state;
-    // 26 号计划 §2/§9：只保留 MemoryBudget（独立开关，与利用率解耦）
+    // 26 §2/§9：只保留 MemoryBudget（独立开关，与利用率解耦）
     std::unique_ptr<utilization::MemoryBudgetController> mem_ctrl;
-    // 聚焦版（08 号计划 §5）：OperationProfile 驱动的 Mixed 路由规划
+    // 聚焦版（08 §5）：OperationProfile 驱动的 Mixed 路由规划
     MixedRoutePlanner planner;
-    // 聚焦版（08 号计划 §6）：数据驻留状态（Host/Device/Both/dirty）
+    // 聚焦版（08 §6）：数据驻留状态（Host/Device/Both/dirty）
     ResidencyManager residency;
-    // 聚焦版 v2（08 号计划 §6）：真实 pinned staging reservation ledger
+    // 聚焦版 v2（08 §6）：真实 pinned staging reservation ledger
     utilization::StagingLedger staging_ledger;
-    // 聚焦版 v2（08 号计划 §4）：dispatcher 级桥接句柄（整帧上传复用）
+    // 聚焦版 v2（08 §4）：dispatcher 级桥接句柄（整帧上传复用）
     void* bridge_handle{nullptr};
 
     // 惰性获取 dispatcher 桥接句柄（用于真实整帧上传/下载）
@@ -307,7 +307,7 @@ struct Dispatcher::Impl {
         }
     }
 
-    // 25 号计划 §7：claim 前内存峰值估算。
+    // 25 §7：claim 前内存峰值估算。
     // 覆盖输入、输出、传输 staging（GPU）、双缓冲、临时区（halo/tile）、
     // reduction partial 与 merge 缓冲；返回单次 claim 的保守峰值字节。
     static std::uint64_t estimate_claim_peak_bytes(
@@ -320,7 +320,7 @@ struct Dispatcher::Impl {
             static_cast<std::uint64_t>(items) * traits.bytes_written_per_item;
         const std::uint64_t io = read_bytes + write_bytes;
         if (io == 0) return 0;  // 无每项字节信息时不参与 claim 前预算
-        // 传输 staging（GPU）：输入已驻留时不重复计整帧 H2D（08 号计划 §5），
+        // 传输 staging（GPU）：输入已驻留时不重复计整帧 H2D（08 §5），
         // 只计输出 D2H staging
         const std::uint64_t staging =
             is_gpu ? (data_resident ? write_bytes : io) : 0;
@@ -361,7 +361,7 @@ struct Dispatcher::Impl {
                 if (!token.valid()) return;
                 try {
                     fn(token.id, token.begin, token.end, user_data);
-                    // 24 号计划 §6：ledger 拒绝（旧 attempt 等）不得累计完成量
+                    // 24 §6：ledger 拒绝（旧 attempt 等）不得累计完成量
                     if (pool.mark_done(token)) {
                         executed.fetch_add(1, std::memory_order_relaxed);
                     } else {
@@ -385,16 +385,16 @@ struct Dispatcher::Impl {
         return r;
     }
 
-    // F-fix 3 + F-fix 9 + 26 号计划 §2/§9：动态 guided 执行 + 内存预算反压
+    // F-fix 3 + F-fix 9 + 26 §2/§9：动态 guided 执行 + 内存预算反压
     // 使用 init_dynamic + claim_next_dynamic（根据 remaining 和活跃设备数动态计算块大小）
     // 在执行循环中应用所有 MemoryBudget ExceedAction，且动作必须实际改变执行：
-    //   - ShrinkBlock: 缩小 current_max_chunk（×0.8，不小于 min_chunk）
-    //   - ReleaseCache: 调用 cache_release_hook（若有）
-    //   - LowMemoryPath: current_max_chunk = min_chunk
-    //   - FallbackOtherDevice: 标记当前设备不可用（多设备由 execute_via_executors 处理）
-    //   - StopNewSubmit: 关闭 RecoverableGate（可恢复）
-    //   - Fail: 永久关闭 gate
-    // 26 号计划 §2：不再读取/控制 CPU/GPU 利用率；gate 关闭只由内存预算触发，
+    // - ShrinkBlock: 缩小 current_max_chunk（×0.8，不小于 min_chunk）
+    // - ReleaseCache: 调用 cache_release_hook（若有）
+    // - LowMemoryPath: current_max_chunk = min_chunk
+    // - FallbackOtherDevice: 标记当前设备不可用（多设备由 execute_via_executors 处理）
+    // - StopNewSubmit: 关闭 RecoverableGate（可恢复）
+    // - Fail: 永久关闭 gate
+    // 26 §2：不再读取/控制 CPU/GPU 利用率；gate 关闭只由内存预算触发，
     // 恢复只依据内存动作。gate 关闭时不立即返回，而是等待后检查恢复；
     // 持续关闭超过 kGateTimeoutNs（5 秒）才最终放弃剩余工作。
     MixedRunResult execute_via_pool_dynamic(
@@ -404,7 +404,7 @@ struct Dispatcher::Impl {
         ResourceControlStats& stats_out,
         const TaskTraits* traits = nullptr) {
         // traits（可选）：提供每项字节信息时，在每次 claim 前执行内存峰值
-        // 预算检查（25 号计划 §7）；nullptr 时仅依赖 200ms 系统采样。
+        // 预算检查（25 §7）；nullptr 时仅依赖 200ms 系统采样。
         // F-fix 3：动态初始化（不预创建块，claim 时动态计算大小）
         pool.init_dynamic(begin, end, min_chunk, max_chunk);
         stats_out.dynamic_mode_used = true;
@@ -442,7 +442,7 @@ struct Dispatcher::Impl {
         // 缓存的内存动作
         std::atomic<int> cached_mem_action{
             static_cast<int>(utilization::MemoryBudgetController::ExceedAction::None)};
-        // 25 号计划 §7：claim 前预算检查复用最近一次系统采样缓存
+        // 25 §7：claim 前预算检查复用最近一次系统采样缓存
         // （200ms 窗口内不重复读系统内存，峰值估算始终实时计算）
         utilization::MemoryBudget cached_mb;
         std::atomic<bool> cached_mb_valid{false};
@@ -456,7 +456,7 @@ struct Dispatcher::Impl {
             5ULL * 1000 * 1000 * 1000;                  // 5 秒超时放弃
         constexpr std::uint32_t kMaxAttempts = 4;       // 失败重试上限
 
-        // 26 号计划 §9：内存采样注入（测试可覆盖真实采样器；生产用真实控制器）
+        // 26 §9：内存采样注入（测试可覆盖真实采样器；生产用真实控制器）
         auto sample_mem = [&]() -> utilization::MemoryBudget {
             if (cfg.memory_sampler_override) return cfg.memory_sampler_override();
             return mem_ctrl ? mem_ctrl->sample() : utilization::MemoryBudget{};
@@ -557,7 +557,7 @@ struct Dispatcher::Impl {
                             current_max_chunk.store(new_max, std::memory_order_relaxed);
                             pool.set_dynamic_max_chunk(new_max);
                         }
-                        // 恢复只依据内存动作（26 号计划 §9），不读取 CPU/GPU 利用率
+                        // 恢复只依据内存动作（26 §9），不读取 CPU/GPU 利用率
                         if (gate.try_recover(Impl::action_to_string(action))) {
                             stats_out.gate_recover_count++;
                             record_action("gate_recover");
@@ -576,7 +576,7 @@ struct Dispatcher::Impl {
                         continue;
                     }
 
-                    // ---- 25 号计划 §7：claim 前内存峰值预算检查 ----
+                    // ---- 25 §7：claim 前内存峰值预算检查 ----
                     // 提供 traits（每项字节信息）时，按输入/输出/临时/双缓冲/
                     // staging/partial/merge 峰值估算 + 最近系统采样判断动作；
                     // 动作必须真实改变执行（缩块/停提交/释放缓存/回退/失败）。
@@ -683,7 +683,7 @@ struct Dispatcher::Impl {
                             }
                         }
                     }
-                    // 23 号计划 §5：requested_items 实际使用 current_max_chunk
+                    // 23 §5：requested_items 实际使用 current_max_chunk
                     auto token = pool.claim_next_dynamic(
                         kHwCpuDeviceId,
                         current_max_chunk.load(std::memory_order_relaxed));
@@ -696,7 +696,7 @@ struct Dispatcher::Impl {
                     }
                     try {
                         fn(token.id, token.begin, token.end, user_data);
-                        // 24 号计划 §6：ledger 拒绝不得累计完成量
+                        // 24 §6：ledger 拒绝不得累计完成量
                         if (pool.mark_done(token)) {
                             executed.fetch_add(1, std::memory_order_relaxed);
                         } else {
@@ -756,7 +756,7 @@ struct Dispatcher::Impl {
         }
     }
 
-    // ===== 23 号计划 §3/§4：通过 DeviceExecutor 执行 KernelInvocation =====
+    // ===== 23 §3/§4：通过 DeviceExecutor 执行 KernelInvocation =====
     // 每个 executor 按自身 DeviceCost（recommended_chunk + 队列 + 剩余工作）
     // 计算 requested_items 并独立 claim；CPU/GPU 同时领取，设备忙时不等待。
     // 实际统计（device/items/bytes/duration）来自 SubmitHandle（真实完成）。
@@ -781,7 +781,7 @@ struct Dispatcher::Impl {
         return nullptr;
     }
 
-    // 24 号计划 §2：Eligible Device Set 判定。
+    // 24 §2：Eligible Device Set 判定。
     // 设备必须：有成本数据、feasible、任务规模达到最小有效块、预计收益覆盖
     // 启动/传输/同步/merge 成本（成本明细非零时判定）、GPU 必须有有效 profile
     // （无 profile 的 GPU 不参与生产执行；CPU 无 profile 走明确保守回退）。
@@ -816,9 +816,9 @@ struct Dispatcher::Impl {
 
     // ===== Dispatcher Finalization：真正 GPU Direct fast path =====
     // BDR 选择 GPU Direct 时（03 号规范 / 08 计划 2）：
-    //   - 不创建 SharedWorkPool / CPU worker / barrier / 旧 planner；
-    //   - 单 GPU executor：必要输入 prefetch 后整域一次提交（同步语义）；
-    //   - 完整记录 items/chunks/H2D/D2H/elapsed。
+    // - 不创建 SharedWorkPool / CPU worker / barrier / 旧 planner；
+    // - 单 GPU executor：必要输入 prefetch 后整域一次提交（同步语义）；
+    // - 完整记录 items/chunks/H2D/D2H/elapsed。
     struct GpuDirectResult {
         MixedRunResult run_result;
         std::vector<InvocationExecStats> per_exec_stats;
@@ -956,7 +956,7 @@ struct Dispatcher::Impl {
                            data_resident)
             : MixedRoutePlan{};
         for (auto* exec : all) {
-            // 聚焦版 RouteMode（08 号计划 §3/§5）：
+            // 聚焦版 RouteMode（08 §3/§5）：
             // CpuOnly/GpuOnly 强制只启用一类设备（对照/回退/资格测试）
             if (cfg.route_mode == RouteMode::CpuOnly &&
                 exec->backend_type() != "cpu") {
@@ -1010,7 +1010,7 @@ struct Dispatcher::Impl {
         }
 
         // 2. 池参数：min = 各 executor 最小有效块的最小值；
-        //    max = 各 executor 推荐块的最大值（每设备按自身 requested_items 领取）
+        // max = 各 executor 推荐块的最大值（每设备按自身 requested_items 领取）
         std::size_t min_chunk = supported[0]->min_effective_chunk();
         std::size_t max_chunk = supported[0]->recommended_chunk();
         const bool gpu_participating = std::any_of(
@@ -1030,7 +1030,7 @@ struct Dispatcher::Impl {
             }
         } else if (plan_profile != nullptr &&
             auto_plan.profile_available && gpu_participating) {
-            // ACR 架构冻结（07 号计划 C/E）：Auto+Profile 且 GPU 实际参与时，
+            // ACR 架构冻结（07 C/E）：Auto+Profile 且 GPU 实际参与时，
             // 块大小来自 OperationProfile（混合小块用于分摊传输/尾段）。
             min_chunk = std::min(
                 min_chunk, std::min(auto_plan.cpu_chunk_items,
@@ -1073,7 +1073,7 @@ struct Dispatcher::Impl {
         std::vector<std::atomic<std::size_t>> exec_bytes_read(n_exec);
         std::vector<std::atomic<std::size_t>> exec_bytes_written(n_exec);
         std::vector<std::atomic<std::uint64_t>> exec_elapsed(n_exec);
-        // 23 号计划 §4/§6：首轮领取公平门——每个 executor 至少先领取一块，
+        // 23 §4/§6：首轮领取公平门——每个 executor 至少先领取一块，
         // 之后才允许任意设备连续领取。防止快速 CPU worker 在慢设备（GPU）线程
         // 首次领取前耗尽整个池，保证真实 Mixed 确定发生（cpu_done>0 && gpu_done>0）。
         std::vector<std::atomic<bool>> first_claimed(n_exec);
@@ -1090,17 +1090,17 @@ struct Dispatcher::Impl {
 
         constexpr std::uint32_t kMaxAttempts = 4;  // 重试上限（防确定性失败死循环）
 
-        // 23 号计划 §4：worker 数（CPU 可用配置覆盖；GPU 单 worker）
+        // 23 §4：worker 数（CPU 可用配置覆盖；GPU 单 worker）
         std::vector<std::size_t> workers_per_exec(n_exec);
         std::size_t total_workers = 0;
         for (std::size_t i = 0; i < n_exec; ++i) {
             if (supported[i]->backend_type() == "cpu") {
-                // ACR 架构冻结（07 号计划 E）：Auto+Profile 场景，worker 启动前
+                // ACR 架构冻结（07 E）：Auto+Profile 场景，worker 启动前
                 // 预判 CPU 是否可能缩短总完工时间（用 Profile 值估算）：
-                //   CPU 一块完成时间 < GPU 清空剩余的时间 → CPU 才启动。
-                //   否则 CPU 不启动（自然 GPU-only），避免 16 个 CPU worker
-                //   线程创建/调度固定开销拖慢小任务 Auto（实测 512² Auto
-                //   曾慢于 GPU resident 约 11 倍）。
+                // CPU 一块完成时间 < GPU 清空剩余的时间 → CPU 才启动。
+                // 否则 CPU 不启动（自然 GPU-only），避免 16 个 CPU worker
+                // 线程创建/调度固定开销拖慢小任务 Auto（实测 512² Auto
+                // 曾慢于 GPU resident 约 11 倍）。
                 bool cpu_skip = false;
                 if (cfg.route_mode == RouteMode::AutoMixed &&
                     plan_profile != nullptr &&
@@ -1150,12 +1150,12 @@ struct Dispatcher::Impl {
         // 保证 CPU 与 GPU 都能拿到非零工作，不被单方先耗尽）
         std::barrier start_barrier(total_workers);
 
-        // ===== 23 号计划 §5：可恢复资源闭环（时间窗采样 + 迟滞 gate）=====
+        // ===== 23 §5：可恢复资源闭环（时间窗采样 + 迟滞 gate）=====
         RecoverableGate gate;
         std::atomic<std::size_t> current_max_chunk{max_chunk};
         std::atomic<int> cached_mem_action{
             static_cast<int>(utilization::MemoryBudgetController::ExceedAction::None)};
-        // 25 号计划 §7：claim 前预算检查复用最近一次系统采样缓存
+        // 25 §7：claim 前预算检查复用最近一次系统采样缓存
         utilization::MemoryBudget cached_mb;
         std::atomic<bool> cached_mb_valid{false};
         std::mutex stats_mtx;
@@ -1259,7 +1259,7 @@ struct Dispatcher::Impl {
                                 current_max_chunk.store(new_max, std::memory_order_relaxed);
                                 pool.set_dynamic_max_chunk(new_max);
                             }
-                            // 恢复只依据内存动作（26 号计划 §9），不读取 CPU/GPU 利用率
+                            // 恢复只依据内存动作（26 §9），不读取 CPU/GPU 利用率
                             if (gate.try_recover(Impl::action_to_string(action))) {
                                 stats_out.gate_recover_count++;
                                 record_action("gate_recover");
@@ -1301,7 +1301,7 @@ struct Dispatcher::Impl {
                             }
                             break;
                         }
-                        // 聚焦版（08 号计划 §5）：OperationProfile 驱动规划
+                        // 聚焦版（08 §5）：OperationProfile 驱动规划
                         // 决定 CPU/GPU 独立块大小与边际收益门；无合格 Profile
                         // 时回退旧 CostEstimator 路径（保守 CPU fallback）。
                         std::size_t requested = 0;
@@ -1377,7 +1377,7 @@ struct Dispatcher::Impl {
                         const std::size_t max_c =
                             current_max_chunk.load(std::memory_order_relaxed);
                         if (requested > max_c) requested = max_c;
-                        // ---- 25 号计划 §7：claim 前内存峰值预算检查 ----
+                        // ---- 25 §7：claim 前内存峰值预算检查 ----
                         // 按输入/输出/临时/双缓冲/传输 staging/partial/merge
                         // 峰值估算 + 最近系统采样判断动作；动作必须真实改变执行
                         // （缩块/停提交/释放缓存/低内存路径/回退其他设备/失败）。
@@ -1573,12 +1573,12 @@ struct Dispatcher::Impl {
                         }
                         {
                             std::lock_guard<std::mutex> lk(stats_mtx);
-                            // 真实领取块序列（07 号计划 B：chunk 统计）
+                            // 真实领取块序列（07 B：chunk 统计）
                             stats_out.dynamic_chunk_sizes.push_back(
                                 token.size());
                         }
                         // 首轮公平门（仅影响每个 executor 的第一块之前）。
-                        // 聚焦版：OperationProfile 规划模式（08 号计划 §5）下
+                        // 聚焦版：OperationProfile 规划模式（08 §5）下
                         // 禁用强制公平门——由 planner 的边际收益门决定设备是否
                         // 参与，避免慢设备被公平门阻塞导致死锁。
                         if (!plan_profile &&
@@ -1607,7 +1607,7 @@ struct Dispatcher::Impl {
                         inv.input_resident = data_resident;
                         SubmitHandle handle = exec->submit(token, inv);
                         if (handle.status == SubmitStatus::Ok) {
-                            // 24 号计划 §6：ledger 拒绝不得累计 actual 统计
+                            // 24 §6：ledger 拒绝不得累计 actual 统计
                             if (pool.mark_done(token)) {
                                 exec_done[i].fetch_add(1, std::memory_order_relaxed);
                                 exec_items[i].fetch_add(
@@ -1797,7 +1797,7 @@ void Dispatcher::configure(const DispatcherConfig& cfg) {
     impl_->current_state.init_devices(backend_names);
 
     if (impl_->mem_ctrl) {
-        // 25 号计划 §7：MemoryBudget 配置由 DispatcherConfig 显式注入；
+        // 25 §7：MemoryBudget 配置由 DispatcherConfig 显式注入；
         // 未显式提供时使用默认配置（禁止 configure 内悄悄覆盖用户值）
         impl_->mem_ctrl->configure(cfg.memory_budget_explicit
                                        ? cfg.memory_budget
@@ -1944,7 +1944,7 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
         end = task.item_count;
     }
 
-    // 26 号计划 §2：执行前检查内存预算（独立于利用率控制）
+    // 26 §2：执行前检查内存预算（独立于利用率控制）
     utilization::MemoryBudgetController::ExceedAction mem_action =
         utilization::MemoryBudgetController::ExceedAction::None;
     if (impl_->cfg.enable_memory_budget && impl_->mem_ctrl) {
@@ -1975,10 +1975,10 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
         if (d.backend.rfind("cuda", 0) == 0 && d.available) { has_gpu = true; break; }
     }
 
-    // 23 号计划 §1：旧 lambda/ChunkKernelFn 是 CPU-only compatibility 路径，
+    // 23 §1：旧 lambda/ChunkKernelFn 是 CPU-only compatibility 路径，
     // 一律不走 GPU executor；可加速路径通过 dispatch_invocation(KernelInvocation)
-    // 进入 DeviceExecutor（见 23 号计划 §3/§4）。
-    // F-fix 1：固定尾段实验（审计改名为 fixed_tail_chunking，不冒充 guided）
+    // 进入 DeviceExecutor（见 23 §3/§4）。
+    // F-fix 1：固定尾段实验
     const bool use_fixed_tail =
         impl_->cfg.enable_fixed_tail_chunking &&
         (end > begin) &&
@@ -2109,7 +2109,7 @@ CostAwareResult Dispatcher::dispatch_range_cost_aware(
     return result;
 }
 
-// ===== 23 号计划 §3/§4：可加速 KernelInvocation 派发 =====
+// ===== 23 §3/§4：可加速 KernelInvocation 派发 =====
 CostAwareResult Dispatcher::dispatch_invocation(
     const TaskDescriptor& task,
     const cost::CostEstimate& estimate,
@@ -2126,7 +2126,7 @@ CostAwareResult Dispatcher::dispatch_invocation(
 
     // ===== Dispatcher Finalization：真实 Residency + 真实字节（04 号契约）=====
     // 1. 注册 buffer：真实字节 = count*element_size_bytes（禁止固定 sizeof(float)），
-    //    并同步外部 binding generation（generation 变化自动失效设备副本）。
+    // 并同步外部 binding generation（generation 变化自动失效设备副本）。
     for (std::size_t bi = 0; bi < invocation.buffers.bindings.size(); ++bi) {
         const auto& binding = invocation.buffers.bindings[bi];
         const std::string key = binding.stable_key.empty()
@@ -2231,7 +2231,7 @@ CostAwareResult Dispatcher::dispatch_invocation(
     }
 
     // 3. BDR 顶层决策（基于真实驻留 + 真实字节；场景由 reuse_count_hint 与
-    //    主要输入实际驻留推导；input_resident 不再作为生产事实）。
+    // 主要输入实际驻留推导；input_resident 不再作为生产事实）。
     routing::RouteDecision bdr_decision;
     bool bdr_active = false;
     if (impl_->cfg.route_mode == RouteMode::AutoMixed &&
@@ -2358,7 +2358,7 @@ CostAwareResult Dispatcher::dispatch_invocation(
     }
 
     // 4. 执行：OpenMP → legacy direct；GPU Direct → execute_gpu_direct；
-    //    Mixed/非 BDR → prefetch + SharedWorkPool（现有工作保持池）。
+    // Mixed/非 BDR → prefetch + SharedWorkPool（现有工作保持池）。
     std::vector<Impl::InvocationExecStats> per_exec_stats;
     std::vector<std::string> actual_devices;
     std::uint64_t h2d_bytes_this = 0;
@@ -2483,7 +2483,7 @@ CostAwareResult Dispatcher::dispatch_invocation(
     }
     result.run_result = r;
     result.actual_devices_used = actual_devices;
-    // ACR 架构冻结（07 号计划 B）：真实传输统计。
+    // ACR 架构冻结（07 B）：真实传输统计。
     // h2d：本 dispatch 组合 prefetch 实际上传字节（仅新上传输入）；
     // d2h：每 GPU 块同步物化一次输出范围（同步桥接语义）。
     result.transfer_stats.h2d_count = (h2d_bytes_this > 0) ? 1 : 0;
@@ -2494,9 +2494,9 @@ CostAwareResult Dispatcher::dispatch_invocation(
     result.transfer_stats.weights_upload_count = slot_after.second;
 
     // 聚焦版 v3：真实驻留驱动。
-    //  - 输入已在 worker 启动前 prefetch（真实一次上传）；
-    //  - 输出经同步桥接真实 D2H 一次；
-    //  - 不再执行后补传输入。
+    // - 输入已在 worker 启动前 prefetch（真实一次上传）；
+    // - 输出经同步桥接真实 D2H 一次；
+    // - 不再执行后补传输入。
     if (r.executed_on_gpu > 0) {
         const auto* output = !layout.outputs.empty()
             ? invocation.buffers.find(layout.outputs.front())
@@ -2511,7 +2511,7 @@ CostAwareResult Dispatcher::dispatch_invocation(
         }
     }
 
-    // 24 号计划 §3：actual_primary 按每设备真实 items_done 最大者确定；
+    // 24 §3：actual_primary 按每设备真实 items_done 最大者确定；
     // 相同则比较实际处理字节，再相同比较有效执行时间。禁止用
     // actual_devices.front() 或 executor 顺序代替统计结果。
     {
@@ -2540,7 +2540,7 @@ CostAwareResult Dispatcher::dispatch_invocation(
         }
     }
 
-    // 24 号计划 §3：输出完整 per-device 真实统计
+    // 24 §3：输出完整 per-device 真实统计
     result.per_device_stats.clear();
     for (const auto& s : per_exec_stats) {
         CostAwareResult::PerDeviceStats pds;
@@ -2554,7 +2554,7 @@ CostAwareResult Dispatcher::dispatch_invocation(
         pds.error_count = s.failed_blocks;
         result.per_device_stats.push_back(pds);
     }
-    // ACR 架构冻结（07 号计划 B）：GPU 输出物化字节 = GPU items × 输出每项字节
+    // ACR 架构冻结（07 B）：GPU 输出物化字节 = GPU items × 输出每项字节
     // （同步桥接每块 D2H 其拥有范围；输出元素为 float）。
     {
         std::uint64_t gpu_items = 0;

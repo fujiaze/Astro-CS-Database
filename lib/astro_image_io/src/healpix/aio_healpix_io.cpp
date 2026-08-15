@@ -410,8 +410,8 @@ AIO_EXPORT int aio_hiss_read(const char* path, uint32_t* nside, int* nested,
     std::memcpy(*meta_json, jsonStr.c_str(), jsonStr.size() + 1);
 
     // 4. 遍历所有 Tile, 读取 signal (展开到 n_leaf_per_tile), 收集有效像素
-    //    有效像素定义: signal != 0.0f (有累计通量)
-    //    新格式 signal = 累计通量 (步骤7), 无贡献像素 signal=0.0f 自然跳过
+    // 有效像素定义: signal != 0.0f (有累计通量)
+    // 新格式 signal = 累计通量 (步骤7), 无贡献像素 signal=0.0f 自然跳过
     const std::vector<hiss::HissTile>& tiles = reader.tiles();
     if (tiles.empty()) {
         // 空 Tile (无数据), 仅返回 Header 信息
@@ -605,7 +605,7 @@ AIO_EXPORT int aio_hiss_read_tile_signal(const char* path, uint64_t parent_ipix,
 }
 
 // ============================================================================
-// R13 (HISS_IO_REPAIR): Session API — Verify 单句柄遍历全部 Tile
+// Session API — Verify 单句柄遍历全部 Tile
 // ============================================================================
 
 AIO_EXPORT void* aio_hiss_open_session(const char* path,
@@ -721,7 +721,7 @@ AIO_EXPORT void aio_hiss_close_session(void* session) {
 }
 
 // ============================================================================
-// R10: aio_hiss_read_tile_signal_f64 - 按 Tile 读取 signal (FP64)
+// aio_hiss_read_tile_signal_f64 - 按 Tile 读取 signal (FP64)
 // ============================================================================
 
 AIO_EXPORT int aio_hiss_read_tile_signal_f64(const char* path, uint64_t parent_ipix,
@@ -852,7 +852,7 @@ AIO_EXPORT int aio_hiss_read_tile_snr(const char* path, uint64_t parent_ipix,
 }
 
 // ============================================================================
-// R11: aio_hiss_read_tile_snr_f64 - 读取 FP64 SNR 控制点 (snr_dtype=1 文件)
+// aio_hiss_read_tile_snr_f64 - 读取 FP64 SNR 控制点 (snr_dtype=1 文件)
 // 返回紧凑二进制: n_points * 12 字节, 每点 local_ipix(uint32 LE) + snr(float64 LE)
 // f32 文件返回错误 (禁止静默转换)
 // ============================================================================
@@ -929,7 +929,7 @@ AIO_EXPORT int aio_hiss_query_pixel(const char* path, double ra, double dec,
 }
 
 // ============================================================================
-// R10: aio_hiss_query_pixel_f64 - 通过 ra/dec 查询像素值 (FP64 版本)
+// aio_hiss_query_pixel_f64 - 通过 ra/dec 查询像素值 (FP64 版本)
 // 仅适用于 FP64 模式文件 (signal_dtype=1); FP32 文件会返回错误 (禁止静默转换)
 // ============================================================================
 
@@ -1471,9 +1471,9 @@ AIO_EXPORT void aio_hio_free(void* ptr) {
 // .hiss 稀疏 SNR 模型写入 (snr_format=1)
 //
 // 二进制布局 (在 ipix + pixel 数组之后):
-//   [n_points: uint32]
-//   [points: n_points × 20B {ra_f64, dec_f64, snr_f32}]
-//   [snr_phot: f64][median_snr: f64][idw_power: f64]
+// [n_points: uint32]
+// [points: n_points × 20B {ra_f64, dec_f64, snr_f32}]
+// [snr_phot: f64][median_snr: f64][idw_power: f64]
 // ============================================================================
 
 AIO_EXPORT int aio_hiss_write_snr_model(const char* path, uint32_t nside, int nested,

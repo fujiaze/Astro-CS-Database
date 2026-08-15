@@ -2,19 +2,19 @@
 // dataflow_fuzz.cpp - 固定种子确定性 Fuzz (Phase1 彻底冻结, Gate 4)
 //
 // 目标 (SANITIZER_FUZZ.md):
-//   - Pipeline cache:  10000 变异
-//   - HISS 文件:       10000 变异
-//   - JSON 配置:        5000 变异
-//   - snr_model RAW:    5000 变异
+// - Pipeline cache: 10000 变异
+// - HISS 文件: 10000 变异
+// - JSON 配置: 5000 变异
+// - snr_model RAW: 5000 变异
 //
 // 约束:
-//   - 固定 seed; 固定迭代数; 每目标独立 timeout; 单 case 超时;
-//   - 最大输入尺寸; 崩溃样本自动保存; 可独立复现命令;
-//   - 不崩溃、不 OOM、不越界、不破坏原 Frame (cache 事务性)。
+// - 固定 seed; 固定迭代数; 每目标独立 timeout; 单 case 超时;
+// - 最大输入尺寸; 崩溃样本自动保存; 可独立复现命令;
+// - 不崩溃、不 OOM、不越界、不破坏原 Frame (cache 事务性)。
 //
 // 构建 (Windows MSYS2):
-//   g++ -std=c++17 -O1 -g -DAIO_ENABLE_HEALPIX -I../include \
-//       dataflow_fuzz.cpp -L../ -lastro_image_io -o dataflow_fuzz.exe
+// g++ -std=c++17 -O1 -g -DAIO_ENABLE_HEALPIX -I../include \
+// dataflow_fuzz.cpp -L../ -lastro_image_io -o dataflow_fuzz.exe
 // 运行: dataflow_fuzz.exe <iterations_scale> <seed>
 // ============================================================================
 #include "aio_pipeline.h"

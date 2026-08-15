@@ -1,11 +1,11 @@
 // lib/acr/tests/unit/test_topology.cpp — Phase C 硬件发现/ISA 单测
 // 验收（spec.md §7 Phase C）：
-//   - HwlocTopology JSON 非空
-//   - CpuIsaCaps 至少检测到 SSE2（x86-64 必有）
-//   - 安全门禁：AVX-512 不支持时 has_isa 返回 false
-//   - 降级：无 hwloc 返回 unavailable 不抛
-//   - AXPY dispatch 结果与 scalar 一致（FP32 容差）
-//   - generate_hardware_report 非空且含 schema
+// - HwlocTopology JSON 非空
+// - CpuIsaCaps 至少检测到 SSE2（x86-64 必有）
+// - 安全门禁：AVX-512 不支持时 has_isa 返回 false
+// - 降级：无 hwloc 返回 unavailable 不抛
+// - AXPY dispatch 结果与 scalar 一致（FP32 容差）
+// - generate_hardware_report 非空且含 schema
 #include <gtest/gtest.h>
 
 #include <cstring>

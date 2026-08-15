@@ -11,7 +11,7 @@
 namespace ipv {
 
 // ---------------------------------------------------------------------------
-// V4.19: 迭代重投影结果 (固定索引策略)
+// 迭代重投影结果 (固定索引策略)
 // ---------------------------------------------------------------------------
 struct IterativeReprojectResult {
     Trans                   trans;         // 收敛后的 TRANS
@@ -28,22 +28,22 @@ struct IterativeReprojectResult {
 // iterative_reproject: 迭代重投影 (固定索引策略)
 //
 // 流程:
-//   1. apply_match: 用 TRANS 常数项 x00/y00 反推新中心
-//      (V4.20: TRANS 常数项已是角秒, 直接用, 不乘 s0)
-//   2. project_catalog_stars: 用新中心重新 gnomonic 投影 Gaia
-//   3. update_stars_positions: 按固定索引更新 W 坐标 (不重新匹配!)
-//   4. atRecalcTrans: 用相同匹配对重拟合 TRANS
-//   5. 收敛判定: sqrt(x00² + y00²) < 0.01" (角秒, 直接, 不乘 s0)
+// 1. apply_match: 用 TRANS 常数项 x00/y00 反推新中心
+// (: TRANS 常数项已是角秒, 直接用, 不乘 s0)
+// 2. project_catalog_stars: 用新中心重新 gnomonic 投影 Gaia
+// 3. update_stars_positions: 按固定索引更新 W 坐标 (不重新匹配!)
+// 4. atRecalcTrans: 用相同匹配对重拟合 TRANS
+// 5. 收敛判定: sqrt(x00² + y00²) < 0.01" (角秒, 直接, 不乘 s0)
 //
 // 输入:
-//   U               - 图像侧星点 (像素坐标, 原点图像中心)
-//   gaia_ra/dec     - Gaia 星原始 (RA, Dec) 度
-//   initial_trans   - 初始 TRANS (来自 iter_trans)
-//   initial_inliers - 初始匹配对 (固定索引, 不重新匹配)
-//   ra0, dec0       - 初始中心 (度)
-//   s0              - 像素尺度 (角秒/像素)
-//   img_width/height- 图像尺寸
-//   logger          - 日志器 (可选)
+// U - 图像侧星点 (像素坐标, 原点图像中心)
+// gaia_ra/dec - Gaia 星原始 (RA, Dec) 度
+// initial_trans - 初始 TRANS (来自 iter_trans)
+// initial_inliers - 初始匹配对 (固定索引, 不重新匹配)
+// ra0, dec0 - 初始中心 (度)
+// s0 - 像素尺度 (角秒/像素)
+// img_width/height- 图像尺寸
+// logger - 日志器 (可选)
 //
 // 输出: IterativeReprojectResult
 // ---------------------------------------------------------------------------
@@ -63,22 +63,22 @@ IterativeReprojectResult iterative_reproject(
 // extract_wcs_sip: 从 TRANS 提取 WCS + SIP
 //
 // 流程:
-//   1. CD 矩阵: (s0/3600) * M^-1, M = TRANS 线性项
-//      (因为 TRANS: W->U, W=xin, 所以 d(world)/d(pixel) = s0 * M^-1)
-//   2. CRVAL = 收敛后中心
-//   3. CRPIX = 图像中心 (1-based)
-//   4. SIP: 从 TRANS 高阶项提取 (order >= 2 时)
-//   5. RMS: 用最终匹配对计算
+// 1. CD 矩阵: (s0/3600) * M^-1, M = TRANS 线性项
+// (因为 TRANS: W->U, W=xin, 所以 d(world)/d(pixel) = s0 * M^-1)
+// 2. CRVAL = 收敛后中心
+// 3. CRPIX = 图像中心 (1-based)
+// 4. SIP: 从 TRANS 高阶项提取 (order >= 2 时)
+// 5. RMS: 用最终匹配对计算
 //
 // 输入:
-//   trans           - 收敛后的 TRANS
-//   ra0, dec0       - 收敛后中心 (度)
-//   img_width/height- 图像尺寸
-//   s0              - 像素尺度 (角秒/像素)
-//   U               - 图像侧星点 (用于 RMS 计算)
-//   W               - 星表侧星点 (像素, 用于 RMS 计算)
-//   matched         - 匹配对 (用于 RMS 计算)
-//   logger          - 日志器 (可选)
+// trans - 收敛后的 TRANS
+// ra0, dec0 - 收敛后中心 (度)
+// img_width/height- 图像尺寸
+// s0 - 像素尺度 (角秒/像素)
+// U - 图像侧星点 (用于 RMS 计算)
+// W - 星表侧星点 (像素, 用于 RMS 计算)
+// matched - 匹配对 (用于 RMS 计算)
+// logger - 日志器 (可选)
 //
 // 输出: *result (WcsFitResult)
 // ---------------------------------------------------------------------------
@@ -102,15 +102,15 @@ void extract_wcs_sip(
 // 用于 wcs_closure_diagnostic.py 的 --authoritative-pairs 模式。
 //
 // 字段对应 25_AUTHORITATIVE_MATCH_PAIR_CONTRACT.md 契约:
-//   matched     - 最终 inlier 匹配对 (u 索引指向 U_snapshot, w 索引指向 gaia_ra/dec)
-//   U_snapshot  - 求解用图像侧星点 (像素坐标, 原点图像中心, Y 轴向上)
-//                 若 robust_refine 应用, 为 selection.U_full, 否则为 selection.U
-//   gaia_ra/dec - Gaia 星原始 (RA, Dec) 度, 与 W 一一对应
-//   trans       - 最终 TRANS (用于内部预测)
-//   s0          - 像素尺度 (角秒/像素)
-//   img_w/h     - 图像尺寸
-//   ra0/dec0    - 收敛后中心 (度)
-//   robust_applied - 是否应用了 robust_refine_wcs (影响 u 索引空间)
+// matched - 最终 inlier 匹配对 (u 索引指向 U_snapshot, w 索引指向 gaia_ra/dec)
+// U_snapshot - 求解用图像侧星点 (像素坐标, 原点图像中心, Y 轴向上)
+// 若 robust_refine 应用, 为 selection.U_full, 否则为 selection.U
+// gaia_ra/dec - Gaia 星原始 (RA, Dec) 度, 与 W 一一对应
+// trans - 最终 TRANS (用于内部预测)
+// s0 - 像素尺度 (角秒/像素)
+// img_w/h - 图像尺寸
+// ra0/dec0 - 收敛后中心 (度)
+// robust_applied - 是否应用了 robust_refine_wcs (影响 u 索引空间)
 // ---------------------------------------------------------------------------
 struct SolveInlierCache {
     std::vector<MatchPair>  matched;
@@ -129,7 +129,7 @@ struct SolveInlierCache {
 
 // ===========================================================================
 // IPVSolver 主类
-// V4.19: 统一求解 (无 flip_mode 区分)
+// 统一求解 (无 flip_mode 区分)
 // 流程: select → triangle_match → iter_trans → iterative_reproject → extract_wcs_sip
 // ===========================================================================
 class IPVSolver {
@@ -145,14 +145,14 @@ public:
 
     // 主求解函数 (统一路径)
     // 输入:
-    //   image_path       - 图像文件路径
-    //   ra0              - 初始指向 RA (度)
-    //   dec0             - 初始指向 Dec (度)
-    //   focal_length_mm  - 焦距 (mm)
-    //   pixel_size_um    - 像素尺寸 (um)
-    //   params           - 求解参数
+    // image_path - 图像文件路径
+    // ra0 - 初始指向 RA (度)
+    // dec0 - 初始指向 Dec (度)
+    // focal_length_mm - 焦距 (mm)
+    // pixel_size_um - 像素尺寸 (um)
+    // params - 求解参数
     // 输出:
-    //   *result          - WCS 拟合结果 (通过指针返回, 避免大结构体值传递)
+    // *result - WCS 拟合结果 (通过指针返回, 避免大结构体值传递)
     void solve(
         const std::string& image_path,
         double ra0,
@@ -210,7 +210,7 @@ public:
         WcsFitResult* result
     );
 
-    // R11 (PREC-108): FP64 内存求解 (double 图像, 不降级 float/uint16)
+    // FP64 内存求解 (double 图像, 不降级 float/uint16)
     void solve_from_memory_with_callback_f64(
         const double* pixels,
         int width, int height,
@@ -228,7 +228,7 @@ public:
     // P11-004 v1.3: 权威 inlier 导出接口 (供 WCS Gate v2 双层闭环)
     //
     // 用途: 在 solve_* 之后调用, 获取求解器内部最终 inlier 对应关系,
-    //       避免外部诊断工具用 kd-tree 重新匹配导致误配。
+    // 避免外部诊断工具用 kd-tree 重新匹配导致误配。
     // 详见 docs/24_WCS_VALIDATION_V2_SPEC.md 与 docs/25_AUTHORITATIVE_MATCH_PAIR_CONTRACT.md
     // ========================================================================
 
@@ -239,21 +239,21 @@ public:
     // 获取最后一次成功求解的 inlier 详细数据
     // 输出 out_buffer: 调用方分配的缓冲区, 大小 = max_count * 9 个 double
     // 每行 9 个 double 字段:
-    //   [0] det_x_px      - 检测器 x (像素, 图像中心原点, Y 轴向上)
-    //   [1] det_y_px      - 检测器 y
-    //   [2] gaia_ra_deg   - Gaia RA (度)
-    //   [3] gaia_dec_deg  - Gaia Dec (度)
-    //   [4] pred_x_px     - 内部 TRANS 预测 x (像素, 经 s0 缩放)
-    //   [5] pred_y_px     - 内部 TRANS 预测 y
-    //   [6] residual_x_px - 残差 x = det_x - pred_x (像素)
-    //   [7] residual_y_px - 残差 y = det_y - pred_y
-    //   [8] residual_dist_px - 残差距离 sqrt(res_x² + res_y²)
+    // [0] det_x_px - 检测器 x (像素, 图像中心原点, Y 轴向上)
+    // [1] det_y_px - 检测器 y
+    // [2] gaia_ra_deg - Gaia RA (度)
+    // [3] gaia_dec_deg - Gaia Dec (度)
+    // [4] pred_x_px - 内部 TRANS 预测 x (像素, 经 s0 缩放)
+    // [5] pred_y_px - 内部 TRANS 预测 y
+    // [6] residual_x_px - 残差 x = det_x - pred_x (像素)
+    // [7] residual_y_px - 残差 y = det_y - pred_y
+    // [8] residual_dist_px - 残差距离 sqrt(res_x² + res_y²)
     // 返回实际写入的行数 (<= max_count), <0 表示错误
     int get_last_inliers(double* out_buffer, int max_count) const;
 
 private:
     // P02-002: 选星后通用求解流程 (triangle_match → iter_trans →
-    //          iterative_reproject → hi_order_rematch → robust_refine → extract_wcs_sip)
+    // iterative_reproject → hi_order_rematch → robust_refine → extract_wcs_sip)
     // 供 solve_from_detections_v1 和 solve_from_memory_with_callback 共享
     void solve_post_select(
         StarSelection& selection,

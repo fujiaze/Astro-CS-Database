@@ -2,16 +2,16 @@
 #define IPV_DISTORTION_H
 
 // ============================================================================
-// ipv_distortion.h - V4.11 CDA Phase B: 径向畸变估计
+// ipv_distortion.h - CDA Phase B: 径向畸变估计
 //
 // 设计参考: ipv_cda_distortion_design.md §4
 // 输入: Phase A 得到的初始 WCS₀ (s, θ, tx, ty) + 全帧 U + W
 // 输出: 径向畸变模型 (k1, k2) + R² 质量评估
 //
 // 模型 (Brown-Conrady 简化形式):
-//   归一化半径 r̃ = sqrt((x-cx)²/(W/2)² + (y-cy)²/(H/2)²)
-//   径向位移 dr = r̃ × (k1·r̃² + k2·r̃⁴)
-//   残差预测: dx = (x-cx) × dr / r̃, dy = (y-cy) × dr / r̃
+// 归一化半径 r̃ = sqrt((x-cx)²/(W/2)² + (y-cy)²/(H/2)²)
+// 径向位移 dr = r̃ × (k1·r̃² + k2·r̃⁴)
+// 残差预测: dx = (x-cx) × dr / r̃, dy = (y-cy) × dr / r̃
 //
 // 拟合方法: 迭代重加权最小二乘 (IRLS) + Huber 权重
 // ============================================================================
@@ -34,15 +34,15 @@ struct DistortionModel {
 
 // 估计径向畸变
 // 输入:
-//   U_full: 全帧图像星点 (像素坐标, 原点图像中心, Y轴向上)
-//   W:      星表星点 (像素坐标, TAN 投影后 / s0)
-//   tf:     Phase A 的初始变换 (s, θ, tx, ty)
-//   s0:     像素尺度 (角秒/像素)
-//   cx, cy: 图像中心 (像素, 原点左上角, 即 img_w/2, img_h/2)
-//            注: U 坐标已是 (det_x - cx, -(det_y - cy)), 所以 U 坐标系原点就是中心
-//   img_width, img_height: 图像尺寸
-//   tau_match: 近邻匹配半径 (像素, 默认 15)
-//   logger:  日志器
+// U_full: 全帧图像星点 (像素坐标, 原点图像中心, Y轴向上)
+// W: 星表星点 (像素坐标, TAN 投影后 / s0)
+// tf: Phase A 的初始变换 (s, θ, tx, ty)
+// s0: 像素尺度 (角秒/像素)
+// cx, cy: 图像中心 (像素, 原点左上角, 即 img_w/2, img_h/2)
+// 注: U 坐标已是 (det_x - cx, -(det_y - cy)), 所以 U 坐标系原点就是中心
+// img_width, img_height: 图像尺寸
+// tau_match: 近邻匹配半径 (像素, 默认 15)
+// logger: 日志器
 DistortionModel estimate_radial_distortion(
     const std::vector<StarPoint>& U_full,
     const std::vector<StarPoint>& W,
@@ -55,8 +55,8 @@ DistortionModel estimate_radial_distortion(
 );
 
 // 去畸变: 对星点坐标应用畸变校正
-//   x' = x - (x) × (k1·r̃² + k2·r̃⁴)
-//   y' = y - (y) × (k1·r̃² + k2·r̃⁴)
+// x' = x - (x) × (k1·r̃² + k2·r̃⁴)
+// y' = y - (y) × (k1·r̃² + k2·r̃⁴)
 // 注: U 坐标原点已在图像中心, 所以 (x-cx) → x, (y-cy) → y
 std::vector<StarPoint> undistort_stars(
     const std::vector<StarPoint>& U,

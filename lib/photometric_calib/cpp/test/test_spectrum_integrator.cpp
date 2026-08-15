@@ -1,32 +1,32 @@
 // test_spectrum_integrator.cpp - P12-003 光谱积分 golden 比对测试程序
 //
 // 用途: 验证 spectrum_integrator.cpp 的 compute_f_syn / compute_f_syn_cached
-//       在 P12-002 修改后无回归. P12-002 仅改 star_matcher.cpp, 不触及
-//       spectrum_integrator.cpp; 本程序通过端到端调用确认数值稳定.
+// 在 P12-002 修改后无回归. P12-002 仅改 star_matcher.cpp, 不触及
+// spectrum_integrator.cpp; 本程序通过端到端调用确认数值稳定.
 //
 // 算法:
-//   1. 内部硬编码生成 5 条 Planck 黑体合成 Gaia BP/RP uint8 光谱
-//      (T = 3500K, 4500K, 5800K, 7500K, 10000K), 采样到 [336, 338, ..., 1020] nm
-//   2. 通过 argv 接收 filter/QE 数据文件 (简单 wl val 文本格式)
-//   3. 对每条光谱 + 每种 filter/QE 组合:
-//      - 调用 compute_f_syn (无缓存版, 1nm 步长)
-//      - 调用 prepare_filter_cache + compute_f_syn_cached (缓存版, spectrum_wl 网格)
-//   4. 输出 JSON 数组到 stdout (供 Python 比对)
+// 1. 内部硬编码生成 5 条 Planck 黑体合成 Gaia BP/RP uint8 光谱
+// (T = 3500K, 4500K, 5800K, 7500K, 10000K), 采样到 [336, 338, ..., 1020] nm
+// 2. 通过 argv 接收 filter/QE 数据文件 (简单 wl val 文本格式)
+// 3. 对每条光谱 + 每种 filter/QE 组合:
+// - 调用 compute_f_syn (无缓存版, 1nm 步长)
+// - 调用 prepare_filter_cache + compute_f_syn_cached (缓存版, spectrum_wl 网格)
+// 4. 输出 JSON 数组到 stdout (供 Python 比对)
 //
 // 编译:
-//   g++ -O2 -std=c++17 -Iinclude -Isrc \
-//       test/test_spectrum_integrator.cpp src/spectrum_integrator.cpp \
-//       -o test/test_spectrum_integrator.exe -lm
+// g++ -O2 -std=c++17 -Iinclude -Isrc \
+// test/test_spectrum_integrator.cpp src/spectrum_integrator.cpp \
+// -o test/test_spectrum_integrator.exe -lm
 //
 // 运行:
-//   test_spectrum_integrator.exe <filter_file> <qe_file|none> <mag_g>
+// test_spectrum_integrator.exe <filter_file> <qe_file|none> <mag_g>
 //
 // 输入文件格式 (filter/qe):
-//   第一行: n_points
-//   后续 n_points 行: <wl_nm> <value>
+// 第一行: n_points
+// 后续 n_points 行: <wl_nm> <value>
 //
 // 输出 (stdout, JSON 数组):
-//   [{"T": 3500.0, "mag_g": <mag>, "f_syn_uncached": <val>, "f_syn_cached": <val>}, ...]
+// [{"T": 3500.0, "mag_g": <mag>, "f_syn_uncached": <val>, "f_syn_cached": <val>}, ...]
 
 #include <cstdint>
 #include <cstdio>

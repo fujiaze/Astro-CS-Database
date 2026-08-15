@@ -1,10 +1,10 @@
 // lib/acr/tests/unit/test_kernel_registry.cpp — KernelRegistry 单元测试
 //
-// 23 号计划 §1 验收：
-//   - host callback（函数指针/lambda）不得被标记为 GPU-capable；
-//   - KernelRegistry 缺少设备 launcher 时必须回退并如实报告；
-//   - OperationId + KernelInvocation 携带 buffer/scalar 绑定；
-//   - 重复注册、并发查找安全。
+// 23 §1 验收：
+// - host callback（函数指针/lambda）不得被标记为 GPU-capable；
+// - KernelRegistry 缺少设备 launcher 时必须回退并如实报告；
+// - OperationId + KernelInvocation 携带 buffer/scalar 绑定；
+// - 重复注册、并发查找安全。
 #include <gtest/gtest.h>
 
 #include "astro/compute/kernel_registry.hpp"
@@ -213,7 +213,7 @@ TEST(KernelRegistry, GlobalRegistryAccessible) {
 }
 
 // ============================================================================
-// 9. Invocation 契约校验（24 号计划 §5.2）
+// 9. Invocation 契约校验（24 §5.2）
 // ============================================================================
 TEST(KernelRegistry, InvocationContractValidation) {
     KernelRegistry reg;

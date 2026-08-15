@@ -4,12 +4,12 @@
 // 不依赖 Qt Widgets, 纯 C++17 + core 库 + astro_image_io
 // 编译: 见 CMakeLists.txt 的 browser_cli 目标
 // 用法:
-//   browser_cli.exe <file.hiss|file.hcsd> [选项]
-//   browser_cli.exe --hips <products_root> [--queries N]  # HiPS 产品集数据层验证
-//   browser_cli.exe --diag               # 仅诊断 DLL 依赖
-//   browser_cli.exe <file> --benchmark   # 性能测试
-//   browser_cli.exe <file> --sim zoom    # 模拟缩放操作
-//   browser_cli.exe <file> --sim pan     # 模拟平移操作
+// browser_cli.exe <file.hiss|file.hcsd> [选项]
+// browser_cli.exe --hips <products_root> [--queries N] # HiPS 产品集数据层验证
+// browser_cli.exe --diag # 仅诊断 DLL 依赖
+// browser_cli.exe <file> --benchmark # 性能测试
+// browser_cli.exe <file> --sim zoom # 模拟缩放操作
+// browser_cli.exe <file> --sim pan # 模拟平移操作
 
 #include <cstdio>
 #include <cstdlib>
@@ -144,7 +144,7 @@ static size_t get_working_set_mb() {
 // ============================================================================
 
 // ============================================================================
-// HiPS 产品集模式: Browser 正式数据层 = HiPS -> AIO Reader (V4)
+// HiPS 产品集模式: Browser 正式数据层 = HiPS -> AIO Reader
 // 用法: browser_cli.exe --hips <products_root> [n_queries]
 // 输出 JSON: open 信息 / 1024 随机查询与直接 AIO 引用对比 / SNR 目录唯一性
 // ============================================================================
@@ -228,7 +228,7 @@ static int run_hips_mode(const std::string& dir, JsonOut& json, int n_queries) {
             ref_sig[tile_ipix] = std::move(sig0);
             ref_sup[tile_ipix] = std::move(sup0);
         }
-        // V5 (HIPS-IMG-001): 与 Browser 同一共享标准映射 (不再用 z%512/z/512)
+        // 与 Browser 同一共享标准映射 (不再用 z%512/z/512)
         const uint64_t idx = astrocs::healpix::nested_local_to_fits_index(z, 9u, 512u);
         const double sig_d = ref_sig[tile_ipix][idx];
         const double sup_d = ref_sup[tile_ipix][idx];
@@ -285,16 +285,16 @@ static int run_hips_mode(const std::string& dir, JsonOut& json, int n_queries) {
 }
 
 // ============================================================================
-// V14: STF 延迟 benchmark（G7 Browser profile 的一部分）
+// STF 延迟 benchmark（G7 Browser profile 的一部分）
 // ============================================================================
 static double pct(std::vector<double> v, double p);
 
 // ============================================================================
-// V14: 全 dataset 像素分位统计（Auto Global 标尺证据 / 诊断）
-//  - 遍历全部 leaf tiles，每 tile 均匀 64×64 采样；
-//  - 仅统计 finite && support>0 的 signal；
-//  - 输出扫描耗时与 p0.5/p1/p50/p95/p99/p99.5/p99.9（判定 Auto Global
-//    是否应基于全 dataset 而非首帧视口）。
+// 全 dataset 像素分位统计（Auto Global 标尺证据 / 诊断）
+// - 遍历全部 leaf tiles，每 tile 均匀 64×64 采样；
+// - 仅统计 finite && support>0 的 signal；
+// - 输出扫描耗时与 p0.5/p1/p50/p95/p99/p99.5/p99.9（判定 Auto Global
+// 是否应基于全 dataset 而非首帧视口）。
 // 用法: browser_cli --hips <root> --dataset-stats
 // ============================================================================
 static int run_dataset_stats(const std::string& dir, JsonOut& json,
@@ -364,9 +364,9 @@ static int run_dataset_stats(const std::string& dir, JsonOut& json,
 }
 
 // ============================================================================
-//  - stretch-only redraw：view 未变时复用已采样 leaves，仅 tone-map（STF 改变
-//    不允许重新 sky→HEALPix→FITS decode）。
-//  - stf_recompute：Auto STF 重算 robust median/MAD 标尺 + tone-map。
+// - stretch-only redraw：view 未变时复用已采样 leaves，仅 tone-map（STF 改变
+// 不允许重新 sky→HEALPix→FITS decode）。
+// - stf_recompute：Auto STF 重算 robust median/MAD 标尺 + tone-map。
 // 用法: browser_cli --hips <root> --stf-bench --view ra,dec,fov [--frames N]
 // ============================================================================
 static int run_stf_bench(const std::string& dir, JsonOut& json,
@@ -437,9 +437,9 @@ static int run_stf_bench(const std::string& dir, JsonOut& json,
 }
 
 // ============================================================================
-// V14: Lock STF 行为探针（G6 Lock/Reset 验收）
-//  - 锁定后 pan/zoom、auto view 模式切换、Reset 均不得改动 lo/hi；
-//  - 解锁后 Reset 恢复重算（证明锁定是冻结标尺的原因）。
+// Lock STF 行为探针（G6 Lock/Reset 验收）
+// - 锁定后 pan/zoom、auto view 模式切换、Reset 均不得改动 lo/hi；
+// - 解锁后 Reset 恢复重算（证明锁定是冻结标尺的原因）。
 // 用法: browser_cli --hips <root> --stf-lock-probe --view ra,dec,fov
 // ============================================================================
 static int run_stf_lock_probe(const std::string& dir, JsonOut& json,
@@ -526,10 +526,10 @@ static int run_stf_lock_probe(const std::string& dir, JsonOut& json,
 }
 
 // ============================================================================
-// V14 v3: 手动 STF 渲染语义探针
-//  - midtones 拉最左（0.05）应整体提亮（亮像素占比高）；
-//  - midtones 拉最右（0.95）应整体变暗；
-//  - 验证手动控制点（shadows/highlights/midtones）真实进入渲染路径。
+// v3: 手动 STF 渲染语义探针
+// - midtones 拉最左（0.05）应整体提亮（亮像素占比高）；
+// - midtones 拉最右（0.95）应整体变暗；
+// - 验证手动控制点（shadows/highlights/midtones）真实进入渲染路径。
 // 用法: browser_cli --hips <root> --stf-manual-probe --view ra,dec,fov
 // ============================================================================
 static int run_stf_manual_probe(const std::string& dir, JsonOut& json,
@@ -591,9 +591,9 @@ static int run_stf_manual_probe(const std::string& dir, JsonOut& json,
 }
 
 // ============================================================================
-// V14: 10 分钟内存有界 soak（G6 验收）
-//  - 连续 pan/zoom 扫描（FOV 0.5°~14.75° 循环，触发跨 order/tile 解码）；
-//  - 每 5 秒采样工作集；LRU 有界缓存应使内存保持平坦（无单调增长）。
+// 10 分钟内存有界 soak（G6 验收）
+// - 连续 pan/zoom 扫描（FOV 0.5°~14.75° 循环，触发跨 order/tile 解码）；
+// - 每 5 秒采样工作集；LRU 有界缓存应使内存保持平坦（无单调增长）。
 // 用法: browser_cli --hips <root> --soak <seconds> [--view ra,dec,fov]
 // ============================================================================
 static int run_mem_soak(const std::string& dir, JsonOut& json,
@@ -678,9 +678,9 @@ static int run_mem_soak(const std::string& dir, JsonOut& json,
 }
 
 // ============================================================================
-// HiPS 2D 天空视图渲染 benchmark（V9 P9-5）
+// HiPS 2D 天空视图渲染 benchmark
 // 用法: browser_cli --hips <root> --benchmark --view ra,dec,fov [--frames N]
-//       [--layer signal|support]
+// [--layer signal|support]
 // ============================================================================
 static double pct(std::vector<double> v, double p) {
     if (v.empty()) return 0.0;
@@ -770,13 +770,13 @@ static int run_hips_raster_bench(const std::string& dir, JsonOut& json,
 }
 
 // ============================================================================
-// V10 P10-2: 独立 headless reference renderer（slow but trusted）
-//  - 不调用 widget/HipsSkyView 绘制路径；
-//  - screen->sky 独立实现（gnomonic 逆投影）；
-//  - 采样走可信 backend 点查询（AIO leaf order，V9 已过 mismatch=0）；
-//  - 固定 linear stretch（0.5%/99.5% 分位由本视图子采样计算）。
+// P10-2: 独立 headless reference renderer（slow but trusted）
+// - 不调用 widget/HipsSkyView 绘制路径；
+// - screen->sky 独立实现（gnomonic 逆投影）；
+// - 采样走可信 backend 点查询（AIO leaf order， 已过 mismatch=0）；
+// - 固定 linear stretch（0.5%/99.5% 分位由本视图子采样计算）。
 // 用法: browser_cli --hips <root> --refrender <out.ppm>
-//                   --view ra,dec,fov --size WxH [--layer signal|support]
+// --view ra,dec,fov --size WxH [--layer signal|support]
 // ============================================================================
 static int run_reference_render(const std::string& dir, const std::string& out,
                                 const std::string& view_str, int w, int h,

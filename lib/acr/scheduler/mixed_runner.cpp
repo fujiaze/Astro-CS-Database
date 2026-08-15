@@ -47,7 +47,7 @@ struct MixedRunner::Impl {
         // 简化策略：
         // - enable_gpu=false 时全部走 CPU
         // - enable_gpu=true 时理论上应分发部分到 GPU；但 CUDA 集成待 Phase H
-        //   此处全部走 CPU + 标记 fallback_chunks=total
+        // 此处全部走 CPU + 标记 fallback_chunks=total
         bool use_cpu = true;
         if (cfg.enable_gpu) {
             // GPU 路径占位（Phase H 接入真实 CUDA 后分发）

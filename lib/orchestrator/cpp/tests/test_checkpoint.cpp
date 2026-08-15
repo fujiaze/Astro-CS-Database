@@ -3,11 +3,11 @@
 // 功能: 验证检查点的保存/加载/原子写入/阶段更新/查询/删除/列举/清除/文件名安全/不存在加载
 //
 // 编译:
-//   g++ -O2 -std=c++17 -Wall -o tests/test_checkpoint.exe
-//       tests/test_checkpoint.cpp src/checkpoint.cpp -Iinclude -static
+// g++ -O2 -std=c++17 -Wall -o tests/test_checkpoint.exe
+// tests/test_checkpoint.cpp src/checkpoint.cpp -Iinclude -static
 //
 // 运行 (任意目录):
-//   lib\orchestrator\cpp\tests\test_checkpoint.exe
+// lib\orchestrator\cpp\tests\test_checkpoint.exe
 // ============================================================================
 
 #include "checkpoint.h"

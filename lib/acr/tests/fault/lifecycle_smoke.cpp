@@ -1,18 +1,18 @@
 // lib/acr/tests/fault/lifecycle_smoke.cpp — Lifecycle Smoke
 // 原 sanitizer_smoke.cpp（按 20_PHASE_I_AUDIT_ACTION_PLAN.md §6 重命名）
 // 重命名理由：CMake 未开启 -fsanitize flag，本测试不验证 sanitizer 是否开启，
-//   仅做 Buffer/Event/并发生命周期的功能烟雾测试；sanitizer 验证在 sanitizer_actual.cpp。
+// 仅做 Buffer/Event/并发生命周期的功能烟雾测试；sanitizer 验证在 sanitizer_actual.cpp。
 // 验证：内存泄漏 / use-after-free / 竞态（功能层面，非 sanitizer 层面）
 // 设计：这些测试在 ASan/UBSan/TSan 下应当全部通过（无报错），但本文件不强制 sanitizer 开启。
 // 真正的 sanitizer 验证需 ACR_BUILD_SANITIZER=ON 编译 sanitizer_actual.cpp。
 // 测试内容：
-//   1. Buffer 生命周期（构造、析构、move）
-//   2. Event 取消时无泄漏
-//   3. 并发提交无数据竞争（用 std::atomic 计数器验证）
-//   4. 大量 Buffer 分配/释放无泄漏
-//   5. BufferView 不拥有内存（父 Buffer 释放后 view 失效，但不崩溃）
-//   6. parallel_reduce 异常安全
-//   7. Event 移动语义
+// 1. Buffer 生命周期（构造、析构、move）
+// 2. Event 取消时无泄漏
+// 3. 并发提交无数据竞争（用 std::atomic 计数器验证）
+// 4. 大量 Buffer 分配/释放无泄漏
+// 5. BufferView 不拥有内存（父 Buffer 释放后 view 失效，但不崩溃）
+// 6. parallel_reduce 异常安全
+// 7. Event 移动语义
 #include <gtest/gtest.h>
 
 #include <atomic>
@@ -115,8 +115,8 @@ TEST(SanitizerSmoke, BufferViewNonOwning) {
 TEST(SanitizerSmoke, ParallelReduceExceptionSafe) {
 #ifdef __MINGW32__
     // MinGW + oneTBB 2023 的 parallel_reduce 异常路径在系统负载下偶发
-    // 崩溃（项目已知 ABI 限制，exit_safe.hpp；审计记录"并行 CTest 偶发
-    //  SEGFAULT"）。异常安全语义由 MSVC ASan 构建覆盖；本测试在 MinGW
+    // 崩溃（项目已知 ABI 限制，exit_safe.hpp；"并行 CTest 偶发
+    // SEGFAULT"）。异常安全语义由 MSVC ASan 构建覆盖；本测试在 MinGW
     // 下如实 SKIP。
     GTEST_SKIP() << "MinGW oneTBB exception propagation unstable (known ABI limit)";
 #else

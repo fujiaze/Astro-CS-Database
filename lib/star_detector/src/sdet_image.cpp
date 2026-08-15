@@ -192,7 +192,7 @@ void sdet_gaussian_blur_yvv(const float* src, float* dst, int w, int h, double s
 }
 
 // ============================================================================
-// sdet_gaussian_blur_yvv_d - FP64 变体 (R11, PREC-108): double 图像, 无 float 降级
+// sdet_gaussian_blur_yvv_d - FP64 变体 (, PREC-108): double 图像, 无 float 降级
 // 与 float 版逻辑一致, 系数/缓冲/递归全部 double
 // ============================================================================
 void sdet_gaussian_blur_yvv_d(const double* src, double* dst, int w, int h, double sigma) {
@@ -494,7 +494,7 @@ float sdet_robust_mad(const float* data, int n) {
 }
 
 // ============================================================================
-// sdet_robust_median_d / sdet_robust_mad_d - FP64 变体 (R11, PREC-108)
+// sdet_robust_median_d / sdet_robust_mad_d - FP64 变体 (, PREC-108)
 // ============================================================================
 double sdet_robust_median_d(const double* data, int n) {
     if (n <= 0) return 0.0;

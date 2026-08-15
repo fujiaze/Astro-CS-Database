@@ -1,13 +1,13 @@
 // ============================================================================
-// candidate_oracle_test.cpp - 快速候选零漏选 Oracle 矩阵 (控制包 CANDIDATE_TEST_MATRIX)
+// candidate_oracle_test.cpp - 快速候选零漏选 Oracle 矩阵 ( CANDIDATE_TEST_MATRIX)
 //
 // Oracle: 小 NSIDE 全像素穷举 — 对每个 HEALPix 像素计算 compute_overlap_area_g
-//   > 0 即为真集合 (false negatives 定义基准)
+// > 0 即为真集合 (false negatives 定义基准)
 // 对比: query_candidate_pixels_fast (生产快速候选, 含跨 face 边界回退)
 // 断言: fast 候选集合 ⊇ Oracle 真集合 (false_negatives == 0)
 //
 // 场景: 12 base face × {中心, 4 边中点, 4 角} + RA跨0 + 南北极
-//       × pixfrac {0.1, 0.25, 0.5, 1.0} × 尺度 {0.1", 1", 10", 1', 1°}
+// × pixfrac {0.1, 0.25, 0.5, 1.0} × 尺度 {0.1", 1", 10", 1', 1°}
 //
 // 编译 (tests/): 同 drizzle_l0_test.cpp
 // ============================================================================
@@ -75,7 +75,7 @@ static std::vector<uint64_t> oracle_high_nside(const std::vector<spherical::Vec3
 }
 
 // 单 case: 构造 drop + Oracle + fast, 断言 false_negatives == 0
-// 输出 JSONL 证据 (控制包 CANDIDATE_RESULT.jsonl 模板)
+// 输出 JSONL 证据 ( CANDIDATE_RESULT.jsonl 模板)
 static FILE* g_jsonl = nullptr;
 static void run_case(const char* loc, double ra, double dec,
                      double scale_arcsec, double pixfrac, int nside) {
@@ -215,9 +215,9 @@ int main(int argc, char** argv) {
     }
 
     // 构造场景: NSIDE=4194304 (2^22, 生产上限, hp_res≈0.05")
-    //   - 12 face 中心 × 尺度 {0.1", 1", 10"} × pixfrac {0.1, 1.0}
-    //   - RA 跨 0 + 南北极 × 1" × pixfrac 1.0
-    //   参考 = 保守 queryDisc (buffer 3.0×hp_res) + overlap>0
+    // - 12 face 中心 × 尺度 {0.1", 1", 10"} × pixfrac {0.1, 1.0}
+    // - RA 跨 0 + 南北极 × 1" × pixfrac 1.0
+    // 参考 = 保守 queryDisc (buffer 3.0×hp_res) + overlap>0
     {
         healpix::HealpixCore hp1b(1, true);
         for (int64_t ip = 0; ip < 12; ip++) {

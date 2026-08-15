@@ -1,11 +1,11 @@
 // lib/acr/scheduler/fallback.hpp — 失败任务回退策略
 // Phase F：设备失败时，未执行的 chunk 回退到 CPU，已执行的不重放。
 //
-// 设计（控制包 07_WORK_CONSERVING_DISPATCHER_SPEC.md）：
-//   1. 失败回退不重放：已 mark_done 的 chunk 不再执行
-//   2. 未执行 chunk 回退到 CPU（CoverageBitmap 跟踪）
-//   3. 回退后通过 Event 通知（status = DeviceLost 或 KernelFailed）
-//   4. 公共头不暴露第三方类型
+// 设计（ 07_WORK_CONSERVING_DISPATCHER_SPEC.md）：
+// 1. 失败回退不重放：已 mark_done 的 chunk 不再执行
+// 2. 未执行 chunk 回退到 CPU（CoverageBitmap 跟踪）
+// 3. 回退后通过 Event 通知（status = DeviceLost 或 KernelFailed）
+// 4. 公共头不暴露第三方类型
 #pragma once
 
 #include "partitioner.hpp"

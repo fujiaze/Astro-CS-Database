@@ -1,11 +1,11 @@
 // ============================================================================
 // astro_sphere_sink.h - Drizzle TileAccumulator -> AIO HiPS 直写 Sink
-// (Phase1 Final Closure V3, 05_HIPS_DIRECT_PRODUCTION)
+// (Phase1 Final Closure , 05_HIPS_DIRECT_PRODUCTION)
 //
 // 生产数据流 (无 HISS 中转):
-//   DrizzleEngine::drizzleTiled[F32/F64]
-//   -> AstroSphereTileSink (本文件)
-//   -> astro_image_io.dll aio_hips_product_begin/write_*/finalize
+// DrizzleEngine::drizzleTiled[F32/F64]
+// -> AstroSphereTileSink (本文件)
+// -> astro_image_io.dll aio_hips_product_begin/write_*/finalize
 // ============================================================================
 
 #ifndef ASTRO_SPHERE_SINK_H

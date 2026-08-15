@@ -2,12 +2,12 @@
 // test_hips_browser_backend.cpp - Browser HiPS 后端 headless 核心测试
 //
 // 硬门 (G3):
-//   - open product (signal/support/snr)
-//   - 1024 确定性随机天球位置查询 signal/support
-//   - 与直接 AIO Reader 逐值比较, mismatch=0
-//   - SNR catalogue 读取 (star_id 唯一)
-//   - outside MOC 返回 NaN/无数据
-//   - FP32/FP64 读取正确
+// - open product (signal/support/snr)
+// - 1024 确定性随机天球位置查询 signal/support
+// - 与直接 AIO Reader 逐值比较, mismatch=0
+// - SNR catalogue 读取 (star_id 唯一)
+// - outside MOC 返回 NaN/无数据
+// - FP32/FP64 读取正确
 //
 // 用法: test_hips_browser_backend <hips_root> [n_queries]
 // ============================================================================

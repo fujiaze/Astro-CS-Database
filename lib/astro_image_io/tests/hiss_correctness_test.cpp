@@ -2,24 +2,24 @@
 // hiss_correctness_test.cpp - AstroCS HISS 正确性测试 (合成数据)
 //
 // 覆盖范围:
-//   校准测试    (1~5):   标准模式 / 曝光比例模式 / 最优 Dark 成功/失败/硬失败
-//   Drizzle 测试 (6~11):  通量守恒 / support 范围 / 自动 NSIDE
-//   HISS 格式测试 (12~21): 往返读写 / 子块校验 / 原子提交 / 坐标恢复
+// 校准测试 (1~5): 标准模式 / 曝光比例模式 / 最优 Dark 成功/失败/硬失败
+// Drizzle 测试 (6~11): 通量守恒 / support 范围 / 自动 NSIDE
+// HISS 格式测试 (12~21): 往返读写 / 子块校验 / 原子提交 / 坐标恢复
 //
 // 编译 (从 tests/ 目录):
-//   g++ -std=c++17 -O2 -fopenmp -DHAS_LZ4 -DHAS_ZSTD \
-//     -I../include -I../src \
-//     -I../../calibration/include \
-//     hiss_correctness_test.cpp \
-//     ../src/hiss_codec.cpp ../src/hiss_common.cpp \
-//     ../src/hiss_writer.cpp ../src/hiss_reader.cpp \
-//     ../../calibration/src/dark_optimizer.cpp ../../calibration/src/calibrator.cpp \
-//     -llz4 -lzstd -o hiss_correctness_test.exe
+// g++ -std=c++17 -O2 -fopenmp -DHAS_LZ4 -DHAS_ZSTD \
+// -I../include -I../src \
+// -I../../calibration/include \
+// hiss_correctness_test.cpp \
+// ../src/hiss_codec.cpp ../src/hiss_common.cpp \
+// ../src/hiss_writer.cpp ../src/hiss_reader.cpp \
+// ../../calibration/src/dark_optimizer.cpp ../../calibration/src/calibrator.cpp \
+// -llz4 -lzstd -o hiss_correctness_test.exe
 //
 // 注意:
-//   - 使用合成数据, 不依赖真实天文数据
-//   - 测试结果只报告, 不擅自改变数学算法或科学语义
-//   - Agent 不得自行宣称"用户验收完成"
+// - 使用合成数据, 不依赖真实天文数据
+// - 测试结果只报告, 不擅自改变数学算法或科学语义
+// - Agent 不得自行宣称"用户验收完成"
 // ============================================================================
 #include "hiss_format.h"
 #include "astro_calibration.h"
@@ -465,7 +465,7 @@ static void test_10_support_overflow_error(int id) {
 // Drizzle 测试 11: 自动 NSIDE 覆盖局部最细 WCS/SIP 尺度
 // 使用本地参考实现 (与 drizzle_engine.cpp compute_auto_nside 算法一致)
 // 注: 生产 compute_auto_nside 依赖 WcsSip + HealpixCore 链, 此处用参考实现
-//     验证算法正确性: NSIDE 使 HEALPix 像素尺度 <= 最细输入像素尺度
+// 验证算法正确性: NSIDE 使 HEALPix 像素尺度 <= 最细输入像素尺度
 // ============================================================================
 
 // 参考实现: 度 → 弧度
@@ -562,8 +562,8 @@ static void test_11_auto_nside(int id) {
 
     // 测试 5: 极细尺度 (0.1"/px) → NSIDE 应达到上限 1048576
     // 注: finest=0.1"/px 要求 nside >= 2109600, 超过上限 1048576 (2^20)
-    //     因此 nside 被钳位到上限, hp_res=0.2012"/px > finest=0.1"/px
-    //     这是 NSIDE 上限的预期行为, 验证 nside 达到上限即可
+    // 因此 nside 被钳位到上限, hp_res=0.2012"/px > finest=0.1"/px
+    // 这是 NSIDE 上限的预期行为, 验证 nside 达到上限即可
     {
         double finest = 0.1;
         int nside = ref_compute_auto_nside(finest);

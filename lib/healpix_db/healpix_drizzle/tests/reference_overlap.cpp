@@ -2,20 +2,20 @@
 // Phase C3.2 + C2.3: 独立参考路径 (蒙特卡洛) + 跨经度 0/360 测试
 //
 // 目的:
-//   现有 test_spherical_overlap.cpp 用 compute_overlap_area() 自证正确
-//   (Σa_jp = A_drop), 存在自证循环。本文件实现完全独立的蒙特卡洛参考
-//   路径, 并补充跨经度 0/360、单像素通量闭合、support 面积等测试。
+// 现有 test_spherical_overlap.cpp 用 compute_overlap_area() 自证正确
+// (Σa_jp = A_drop), 存在自证循环。本文件实现完全独立的蒙特卡洛参考
+// 路径, 并补充跨经度 0/360、单像素通量闭合、support 面积等测试。
 //
 // 独立性保证:
-//   - 蒙特卡洛路径不调用 compute_overlap_area / sutherland_hodgman_spherical
-//   - 点在多边形内测试用球面 winding number (与 Girard 面积法独立)
-//   - 像素归属用生产 HEALPix API: hp.radec2pix (ang2pix 逆运算)
-//   - 蒙特卡洛面积用解析包围盒面积 A_box = Δra·Δsin(dec), 不依赖 spherical_polygon_area
+// - 蒙特卡洛路径不调用 compute_overlap_area / sutherland_hodgman_spherical
+// - 点在多边形内测试用球面 winding number (与 Girard 面积法独立)
+// - 像素归属用生产 HEALPix API: hp.radec2pix (ang2pix 逆运算)
+// - 蒙特卡洛面积用解析包围盒面积 A_box = Δra·Δsin(dec), 不依赖 spherical_polygon_area
 //
 // 编译 (从 tests/ 目录):
-//   g++ -std=c++17 -O2 -fopenmp -I.. -I../../healpix_stack \
-//     reference_overlap.cpp ../spherical_overlap.cpp \
-//     ../../healpix_stack/healpix_core.cpp -lm -o reference_overlap.exe
+// g++ -std=c++17 -O2 -fopenmp -I.. -I../../healpix_stack \
+// reference_overlap.cpp ../spherical_overlap.cpp \
+// ../../healpix_stack/healpix_core.cpp -lm -o reference_overlap.exe
 // ============================================================================
 
 #include "spherical_overlap.h"
@@ -98,16 +98,16 @@ static std::vector<spherical::Vec3> makeRectDrop(
 // 球面点在多边形内测试 (Gnomonic 投影 + 平面射线法)
 //
 // 算法 (与 Girard 面积法完全独立):
-//   1. 以多边形质心为切点, 构造局部切平面坐标系 (e1, e2, center)
-//   2. 用 Gnomonic (TAN) 投影将多边形顶点和测试点投影到切平面
-//      - Gnomonic 投影将大圆弧映射为直线, 故球面多边形 → 平面多边形 (精确)
-//   3. 在切平面上用射线法判断点是否在平面多边形内
+// 1. 以多边形质心为切点, 构造局部切平面坐标系 (e1, e2, center)
+// 2. 用 Gnomonic (TAN) 投影将多边形顶点和测试点投影到切平面
+// - Gnomonic 投影将大圆弧映射为直线, 故球面多边形 → 平面多边形 (精确)
+// 3. 在切平面上用射线法判断点是否在平面多边形内
 //
 // 优点:
-//   - 完全在 3D 单位向量空间构造坐标系, 不受 RA 0/360 跨界影响
-//   - 对跖点自然排除 (dot(p, center) <= 0 → 背面 → 外部), 无数值不稳定
-//   - 与 Girard 定理面积计算使用完全不同的方法路径
-//   - 精确: 大圆弧边 → 直线边, 无近似误差
+// - 完全在 3D 单位向量空间构造坐标系, 不受 RA 0/360 跨界影响
+// - 对跖点自然排除 (dot(p, center) <= 0 → 背面 → 外部), 无数值不稳定
+// - 与 Girard 定理面积计算使用完全不同的方法路径
+// - 精确: 大圆弧边 → 直线边, 无近似误差
 // ============================================================================
 static bool point_in_spherical_polygon(const spherical::Vec3& p,
                                        const std::vector<spherical::Vec3>& polygon)
@@ -233,17 +233,17 @@ static BoundingBox compute_bbox(const std::vector<spherical::Vec3>& corners)
 // 蒙特卡洛参考路径: 一次性采样, 返回所有像素的命中计数
 //
 // 算法:
-//   1. 计算 drop 的球面包围盒 (处理 0/360 跨界)
-//   2. 在包围盒内按球面面积均匀采样 (ra 均匀 + sin(dec) 均匀)
-//   3. 对每个采样点:
-//      a. 转 Vec3, 用 point_in_spherical_polygon 判断是否在 drop 内
-//      b. 若在 drop 内, 用 hp.radec2pix 判断属于哪个 HEALPix 像素
-//   4. 统计每个像素的命中数
+// 1. 计算 drop 的球面包围盒 (处理 0/360 跨界)
+// 2. 在包围盒内按球面面积均匀采样 (ra 均匀 + sin(dec) 均匀)
+// 3. 对每个采样点:
+// a. 转 Vec3, 用 point_in_spherical_polygon 判断是否在 drop 内
+// b. 若在 drop 内, 用 hp.radec2pix 判断属于哪个 HEALPix 像素
+// 4. 统计每个像素的命中数
 //
 // 面积计算 (完全独立, 不调用 spherical_polygon_area):
-//   - A_box = Δra_rad · Δsin(dec)  (解析公式)
-//   - A_drop_mc = A_box · (N_inside / N_total)
-//   - A_overlap(p) = A_box · (N_target_p / N_total)
+// - A_box = Δra_rad · Δsin(dec) (解析公式)
+// - A_drop_mc = A_box · (N_inside / N_total)
+// - A_overlap(p) = A_box · (N_target_p / N_total)
 //
 // 并行: OpenMP, 每线程独立 RNG + 本地计数, 最后合并
 // ============================================================================
@@ -535,8 +535,8 @@ static void test_monte_carlo_vs_production() {
 
 // ============================================================================
 // 测试 4: 单像素通量闭合
-//   4.1 drop 完全在单个 HEALPix 像素内 → overlap ≈ drop_area
-//   4.2 drop 完全包含单个 HEALPix 像素 → overlap ≈ A_pixel
+// 4.1 drop 完全在单个 HEALPix 像素内 → overlap ≈ drop_area
+// 4.2 drop 完全包含单个 HEALPix 像素 → overlap ≈ A_pixel
 // ============================================================================
 static void test_single_pixel_flux_closure() {
     printf("\n[测试组 R4] 单像素通量闭合\n");
@@ -604,13 +604,13 @@ static void test_single_pixel_flux_closure() {
 
 // ============================================================================
 // 测试 5: support 面积误差验证
-//   - support_p = a_jp / A_p ∈ [0, 1]  (A_p 用与 compute_overlap_area 一致的边界面积)
-//   - Σ (support_p × A_p) = A_drop (面积守恒)
+// - support_p = a_jp / A_p ∈ [0, 1] (A_p 用与 compute_overlap_area 一致的边界面积)
+// - Σ (support_p × A_p) = A_drop (面积守恒)
 //
 // 注: A_p 用 spherical_polygon_area(get_healpix_boundary<double>(hp, ipix, nside)),
-//     与 compute_overlap_area 内部使用的边界一致 (nside>8 → samples=1 → 4 角顶点).
-//     理论面积 4π/(12·nside²) 与大圆弧边界面积有微小差异 (赤道带小圆弧近似),
-//     用边界面积可保证 support ∈ [0, 1] 精确成立 (重叠 ≤ 像素自身面积).
+// 与 compute_overlap_area 内部使用的边界一致 (nside>8 → samples=1 → 4 角顶点).
+// 理论面积 4π/(12·nside²) 与大圆弧边界面积有微小差异 (赤道带小圆弧近似),
+// 用边界面积可保证 support ∈ [0, 1] 精确成立 (重叠 ≤ 像素自身面积).
 // ============================================================================
 static void test_support_area() {
     printf("\n[测试组 R5] support 面积验证\n");
@@ -678,9 +678,9 @@ static void test_support_area() {
 
 // ============================================================================
 // 测试 6: 跨经度 0/360 测试
-//   6.1 drop 中心在 ra=359.9°, 跨越 0/360 边界
-//   6.2 drop 完全包含 ra=0 经线
-//   6.3 drop 中心在 ra=0.1° (对称性验证)
+// 6.1 drop 中心在 ra=359.9°, 跨越 0/360 边界
+// 6.2 drop 完全包含 ra=0 经线
+// 6.3 drop 中心在 ra=0.1° (对称性验证)
 // ============================================================================
 static void test_cross_longitude_0_360() {
     printf("\n[测试组 R6] 跨经度 0/360 测试\n");

@@ -1,23 +1,23 @@
 // ============================================================================
-// ipv_solver.cpp - IPV 主求解器实现 (V4.20 统一求解)
+// ipv_solver.cpp - IPV 主求解器实现 ( 统一求解)
 //
 // 统一求解路径 (无 flip_mode 区分):
-//   1. StarSelector (复用 ipv_select)
-//   2. triangle_match (三角形匹配, 替代 polygon_match)
-//   3. iter_trans_solve (sigma-clip 多项式拟合)
-//   4. iterative_reproject (固定索引迭代重投影)
-//   5. extract_wcs_sip (从 TRANS 提取 WCS + SIP)
+// 1. StarSelector (复用 ipv_select)
+// 2. triangle_match (三角形匹配, 替代 polygon_match)
+// 3. iter_trans_solve (sigma-clip 多项式拟合)
+// 4. iterative_reproject (固定索引迭代重投影)
+// 5. extract_wcs_sip (从 TRANS 提取 WCS + SIP)
 //
-// 关键约定 (V4.20):
-//   - U (图像侧): 像素坐标, 原点图像中心, Y 轴向上
-//   - W (星表侧): 角秒坐标, 原点投影中心 (gnomonic xi/eta)
-//   - TRANS: U(像素) -> W(角秒), 线性项单位 = 角秒/像素, 常数项单位 = 角秒
-//   - CD = trans.x10 / 3600 (直接, 不用 M^-1)
-//   - SIP A/B = cd_inv · trans_high_order (解析公式)
-//   - SIP AP/BP = 网格反变换法 (NB_GRID_POINTS=7)
-//   - iterative_reproject 收敛阈值: sqrt(x00² + y00²) < 0.01" (角秒, 直接)
+// 关键约定 :
+// - U (图像侧): 像素坐标, 原点图像中心, Y 轴向上
+// - W (星表侧): 角秒坐标, 原点投影中心 (gnomonic xi/eta)
+// - TRANS: U(像素) -> W(角秒), 线性项单位 = 角秒/像素, 常数项单位 = 角秒
+// - CD = trans.x10 / 3600 (直接, 不用 M^-1)
+// - SIP A/B = cd_inv · trans_high_order (解析公式)
+// - SIP AP/BP = 网格反变换法 (NB_GRID_POINTS=7)
+// - iterative_reproject 收敛阈值: sqrt(x00² + y00²) < 0.01" (角秒, 直接)
 //
-// 日期: 2026-07-05 (V4.20)
+// 日期: 2026-07-05
 // ============================================================================
 
 #include "ipv_solver.h"
@@ -26,7 +26,7 @@
 #include "ipv_triangle.h"
 #include "ipv_itertrans.h"
 #include "ipv_wcs.h"
-#include "ipv_robust_refine.h"   // V4.30: 鲁棒扩增精化
+#include "ipv_robust_refine.h"   // 鲁棒扩增精化
 #include "ipv_log.h"
 
 #include <chrono>
@@ -52,16 +52,16 @@ static constexpr double IPV_RADTODEG = 180.0 / IPV_PI;
 static constexpr double IPV_ASEC_PER_RAD = 206264.80624709636;
 
 // Gnomonic 反向投影 (切平面 → 天球)
-//   输入: xi_asec, eta_asec (角秒, 切平面坐标), ra0_deg, dec0_deg (切点)
-//   输出: ra_deg, dec_deg (天球坐标)
-//   公式 (标准 gnomonic 反投影):
-//     xi_rad = xi_asec / ARCSEC_PER_RAD
-//     eta_rad = eta_asec / ARCSEC_PER_RAD
-//     rho = sqrt(xi² + eta²)
-//     c = atan(rho)
-//     dec = asin(cos(c)*sin(dec0) + eta*sin(c)*cos(dec0)/rho)
-//     ra = ra0 + atan2(xi*sin(c), rho*cos(dec0)*cos(c) - eta*sin(dec0)*sin(c))
-//   rho = 0 时返回 (ra0, dec0)
+// 输入: xi_asec, eta_asec (角秒, 切平面坐标), ra0_deg, dec0_deg (切点)
+// 输出: ra_deg, dec_deg (天球坐标)
+// 公式 (标准 gnomonic 反投影):
+// xi_rad = xi_asec / ARCSEC_PER_RAD
+// eta_rad = eta_asec / ARCSEC_PER_RAD
+// rho = sqrt(xi² + eta²)
+// c = atan(rho)
+// dec = asin(cos(c)*sin(dec0) + eta*sin(c)*cos(dec0)/rho)
+// ra = ra0 + atan2(xi*sin(c), rho*cos(dec0)*cos(c) - eta*sin(dec0)*sin(c))
+// rho = 0 时返回 (ra0, dec0)
 void gnomonic_inverse_proj(
     double xi_asec, double eta_asec,
     double ra0_deg, double dec0_deg,
@@ -100,8 +100,8 @@ void gnomonic_inverse_proj(
 }
 
 // Gnomonic 正向投影 (与 ipv_select.cpp 一致, 内部复制以避免符号依赖)
-//   将天球坐标 (ra, dec) 投影到以 (ra0, dec0) 为中心的切平面
-//   输出: xi, eta (角秒), valid
+// 将天球坐标 (ra, dec) 投影到以 (ra0, dec0) 为中心的切平面
+// 输出: xi, eta (角秒), valid
 void gnomonic_forward_proj_solver(
     double ra_deg, double dec_deg,
     double ra0_deg, double dec0_deg,
@@ -135,12 +135,12 @@ void gnomonic_forward_proj_solver(
 // iterative_reproject: 迭代重投影 (固定索引策略)
 //
 // 流程:
-//   1. apply_match: 用 TRANS 常数项 x00/y00 反推新中心
-//      (V4.20: TRANS 常数项已是角秒, 直接用, 不乘 s0)
-//   2. project_catalog_stars: 用新中心重新 gnomonic 投影 Gaia
-//   3. update_stars_positions: 按固定索引更新 W 坐标 (不重新匹配!)
-//   4. atRecalcTrans: 用相同匹配对重拟合 TRANS
-//   5. 收敛判定: sqrt(x00² + y00²) < 0.01" (角秒, 直接, 不乘 s0)
+// 1. apply_match: 用 TRANS 常数项 x00/y00 反推新中心
+// (: TRANS 常数项已是角秒, 直接用, 不乘 s0)
+// 2. project_catalog_stars: 用新中心重新 gnomonic 投影 Gaia
+// 3. update_stars_positions: 按固定索引更新 W 坐标 (不重新匹配!)
+// 4. atRecalcTrans: 用相同匹配对重拟合 TRANS
+// 5. 收敛判定: sqrt(x00² + y00²) < 0.01" (角秒, 直接, 不乘 s0)
 //
 // 关键: 匹配关系保持不变 (固定索引), 只更新 W 的坐标, 然后重拟合 TRANS。
 // ===========================================================================
@@ -211,7 +211,7 @@ IterativeReprojectResult iterative_reproject(
     // 固定索引策略: 固定 inliers_cur, 不重新匹配
     std::vector<MatchPair> inliers_cur = initial_inliers;
 
-    // 初始收敛值 (V4.20: TRANS 常数项已是角秒, 不乘 s0)
+    // 初始收敛值 (: TRANS 常数项已是角秒, 不乘 s0)
     double conv = std::sqrt(
         trans_cur.x00 * trans_cur.x00 +
         trans_cur.y00 * trans_cur.y00);
@@ -221,7 +221,7 @@ IterativeReprojectResult iterative_reproject(
 
     while (conv > CONV_THRESH_ARCSEC && trial < MAX_ITERS) {
         // 1. apply_match: 用 TRANS 常数项反推新中心
-        //    V4.20: TRANS: U(像素)→W(角秒), 常数项 x00/y00 直接是角秒
+        // TRANS: U(像素)→W(角秒), 常数项 x00/y00 直接是角秒
         const double xi_center_asec  = trans_cur.x00;
         const double eta_center_asec = trans_cur.y00;
 
@@ -266,7 +266,7 @@ IterativeReprojectResult iterative_reproject(
                 W_new[i].x = 1e18;
                 W_new[i].y = 1e18;
             } else {
-                // V4.20: W 直接用角秒 (TRANS: U(像素)->W(角秒))
+                // W 直接用角秒 (TRANS: U(像素)->W(角秒))
                 W_new[i].x = xi;   // 角秒
                 W_new[i].y = eta;  // 角秒
             }
@@ -275,8 +275,8 @@ IterativeReprojectResult iterative_reproject(
         }
 
         // 3. update_stars_positions + atRecalcTrans:
-        //    按固定 inliers_cur 重拟合 TRANS (不重新匹配!)
-        //    过滤掉无效 W_new (坐标 1e18) 的 inliers
+        // 按固定 inliers_cur 重拟合 TRANS (不重新匹配!)
+        // 过滤掉无效 W_new (坐标 1e18) 的 inliers
         std::vector<MatchPair> valid_inliers;
         valid_inliers.reserve(inliers_cur.size());
         for (const auto& mp : inliers_cur) {
@@ -314,7 +314,7 @@ IterativeReprojectResult iterative_reproject(
         trans_cur = refit.trans;
         inliers_cur = valid_inliers;
 
-        // 5. 收敛判定 (TRANS 常数项 < 0.01"; V4.20: x00/y00 已是角秒, 不乘 s0)
+        // 5. 收敛判定 (TRANS 常数项 < 0.01"; : x00/y00 已是角秒, 不乘 s0)
         conv = std::sqrt(
             trans_cur.x00 * trans_cur.x00 +
             trans_cur.y00 * trans_cur.y00);
@@ -374,14 +374,14 @@ void IPVSolver::set_detector_handle(intptr_t handle) {
 }
 
 // ===========================================================================
-// solve: 主求解函数 (V4.19 统一路径)
+// solve: 主求解函数 ( 统一路径)
 //
 // 流程:
-//   1. StarSelector (复用 ipv_select)
-//   2. triangle_match (三角形匹配)
-//   3. iter_trans_solve (sigma-clip 多项式 TRANS 拟合)
-//   4. iterative_reproject (固定索引迭代重投影)
-//   5. extract_wcs_sip (从 TRANS 提取 WCS + SIP)
+// 1. StarSelector (复用 ipv_select)
+// 2. triangle_match (三角形匹配)
+// 3. iter_trans_solve (sigma-clip 多项式 TRANS 拟合)
+// 4. iterative_reproject (固定索引迭代重投影)
+// 5. extract_wcs_sip (从 TRANS 提取 WCS + SIP)
 // ===========================================================================
 void IPVSolver::solve(
     const std::string& image_path,
@@ -403,7 +403,7 @@ void IPVSolver::solve(
             dir.pop_back();
         }
         logger_.init(dir + "/ipv_solver.log");
-        // V4.23: 同步初始化子模块日志器, 使 triangle/itertrans 日志写入文件
+        // 同步初始化子模块日志器, 使 triangle/itertrans 日志写入文件
         init_triangle_logger(dir + "/ipv_triangle.log");
         init_itertrans_logger(dir + "/ipv_itertrans.log");
     }
@@ -417,10 +417,10 @@ void IPVSolver::solve(
                   (long long)gaia_handle_, (long long)detector_handle_);
 
     // 2. StarSelector + triangle_match
-    //    V4.24: 直接用 60 颗星做三角形匹配, 不做自适应扩充
-    //    之前 V4.22 用 20 颗起跑, 投票矩阵不稳定, 初始 6 对中出现重复星
-    //    (同一 u 匹配多个 w), 导致初始 TRANS 被扭曲, iter_trans 失败
-    //    C(60,3)=34220 三角形, 配合 V4.23 scale 约束 (±20%) 过滤错误配对
+    // 直接用 60 颗星做三角形匹配, 不做自适应扩充
+    // 之前 用 20 颗起跑, 投票矩阵不稳定, 初始 6 对中出现重复星
+    // (同一 u 匹配多个 w), 导致初始 TRANS 被扭曲, iter_trans 失败
+    // C(60,3)=34220 三角形, 配合 scale 约束 (±20%) 过滤错误配对
     auto t_sel_start = std::chrono::steady_clock::now();
     StarSelection selection;
     int ret = 0;
@@ -429,7 +429,7 @@ void IPVSolver::solve(
     int n_target_used = 0;
 
     for (int n_target : {60}) {
-        // V4.22: 用 n_target 覆盖 img_n_target, 重新选星 + 查询 Gaia
+        // 用 n_target 覆盖 img_n_target, 重新选星 + 查询 Gaia
         IPVSolverParams p_adapt = params;
         p_adapt.img_n_target = n_target;
 
@@ -443,7 +443,7 @@ void IPVSolver::solve(
         }
 
         auto t_tri_start = std::chrono::steady_clock::now();
-        // V4.23: 传入 selection.s0 启用 scale 约束 (±20%)
+        // 传入 selection.s0 启用 scale 约束 (±20%)
         tri_result = triangle_match(selection.U, selection.W, n_target, n_target,
                                      0.002, selection.s0);
         auto t_tri_end = std::chrono::steady_clock::now();
@@ -500,9 +500,9 @@ void IPVSolver::solve(
     }
 
     // 5. iter_trans 求解 (sigma-clip 多项式拟合)
-    // V4.26: order 阶数回退机制 (order=3 失败→order=2→order=1)
-    //   原因: 部分帧三角形匹配产生大量错误配对, 绝对阈值剔除后幸存对数不足 order=3 所需的 10 对
-    //   策略: 从 order=3 逐阶降级, 直到成功或全部失败
+    // order 阶数回退机制 (order=3 失败→order=2→order=1)
+    // 原因: 部分帧三角形匹配产生大量错误配对, 绝对阈值剔除后幸存对数不足 order=3 所需的 10 对
+    // 策略: 从 order=3 逐阶降级, 直到成功或全部失败
     auto t_it_start = std::chrono::steady_clock::now();
     IterTransResult it_result;
     bool it_success = false;
@@ -521,7 +521,7 @@ void IPVSolver::solve(
                       it_order, (int)it_result.success, it_result.n_inliers);
     }
     auto t_it_end = std::chrono::steady_clock::now();
-    // V4.21 诊断: it_result 字段检查 (定位崩溃)
+    // 诊断: it_result 字段检查 (定位崩溃)
     logger_.infof("  [诊断] it_result 检查: n_inliers=%d, inliers.size=%zu, rms=%.4f, "
                   "n_iterations=%d, success=%d, trans.order=%d, trans.valid=%d",
                   it_result.n_inliers, it_result.inliers.size(), it_result.rms,
@@ -593,7 +593,7 @@ void IPVSolver::solve(
     }
 
     // 7. 用收敛后的中心重新投影 Gaia, 得到 W_final (与 rep_result.matched 索引一致)
-    // V4.20: W 直接用角秒 (TRANS: U(像素)->W(角秒))
+    // W 直接用角秒 (TRANS: U(像素)->W(角秒))
     const int N_W = (int)selection.gaia_ra.size();
     std::vector<StarPoint> W_final(N_W);
     int n_invalid_proj = 0;
@@ -608,8 +608,8 @@ void IPVSolver::solve(
             W_final[i].y = 1e18;
             ++n_invalid_proj;
         } else {
-            W_final[i].x = xi;    // V4.20: 角秒 (不再 /s0)
-            W_final[i].y = eta;   // V4.20: 角秒 (不再 /s0)
+            W_final[i].x = xi;    // 角秒 (不再 /s0)
+            W_final[i].y = eta;   // 角秒 (不再 /s0)
         }
         W_final[i].flux = 0.0;
         W_final[i].saturated = false;
@@ -676,7 +676,7 @@ void IPVSolver::solve(
                       rep_result.n_matched, rep_result.trans.order);
     }
 
-    // 8.5 V4.30: 鲁棒扩增精化 (网格采样 + IRLS + CD 阻尼)
+    // 8.5 : 鲁棒扩增精化 (网格采样 + IRLS + CD 阻尼)
     // 在 hi_order_rematch 之后、extract_wcs_sip 之前
     // 失败时回退到 hi_order_rematch 结果, 不破坏 99.87% 成功率
     bool robust_refine_applied = false;
@@ -715,8 +715,8 @@ void IPVSolver::solve(
     }
 
     // 8.6 选择传给 extract_wcs_sip 的 U 向量
-    //     若 robust_refine 成功, matched.u 是 U_full 索引, 必须传 U_full
-    //     否则 matched.u 是 U (60 颗) 索引, 传 U
+    // 若 robust_refine 成功, matched.u 是 U_full 索引, 必须传 U_full
+    // 否则 matched.u 是 U (60 颗) 索引, 传 U
     const std::vector<StarPoint>& U_for_wcs =
         robust_refine_applied ? selection.U_full : U;
 
@@ -763,8 +763,8 @@ void IPVSolver::solve(
 // solve_from_memory: 从内存像素数据求解 (不读文件)
 //
 // 与 solve() 算法完全一致, 区别:
-//   - 直接接受 float* pixels 参数, 跳过文件读取
-//   - 调用 ipv_select_from_memory 而非 ipv_select
+// - 直接接受 float* pixels 参数, 跳过文件读取
+// - 调用 ipv_select_from_memory 而非 ipv_select
 // ===========================================================================
 void IPVSolver::solve_from_memory(
     const float* pixels,
@@ -1042,7 +1042,7 @@ void IPVSolver::solve_from_memory(
                       rep_result.n_matched, rep_result.trans.order);
     }
 
-    // 8.5 V4.30: 鲁棒扩增精化
+    // 8.5 : 鲁棒扩增精化
     bool robust_refine_applied = false;
     if (!selection.U_full.empty() && rep_result.trans.order > 1) {
         auto t_robust_start = std::chrono::steady_clock::now();
@@ -1312,7 +1312,7 @@ void IPVSolver::solve_post_select(
                       rep_result.n_matched, rep_result.trans.order);
     }
 
-    // 8. V4.30: 鲁棒扩增精化
+    // 8. : 鲁棒扩增精化
     bool robust_refine_applied = false;
     if (!selection.U_full.empty() && rep_result.trans.order > 1) {
         auto t_robust_start = std::chrono::steady_clock::now();
@@ -1443,11 +1443,11 @@ void IPVSolver::solve_from_detections_v1(
 
 // ===========================================================================
 // P09-002 INTERNAL_DETECTION_SHARED_EXPORT (历史 P02-002 路径 B) -
-//   solve_from_memory_with_callback
+// solve_from_memory_with_callback
 //
 // 与 solve_from_memory 算法完全一致, 区别:
-//   - sdet_detect_ex 调用后, 选星前, 调用 callback 导出完整检测结果
-//   - callback 为 NULL 时行为与 solve_from_memory 完全一致
+// - sdet_detect_ex 调用后, 选星前, 调用 callback 导出完整检测结果
+// - callback 为 NULL 时行为与 solve_from_memory 完全一致
 // ===========================================================================
 void IPVSolver::solve_from_memory_with_callback(
     const float* pixels,
@@ -1508,7 +1508,7 @@ void IPVSolver::solve_from_memory_with_callback(
 
 // ============================================================================
 // solve_from_memory_with_callback_f64 - FP64 内存求解 (double 图像)
-// R11 (PREC-108): 与 float 版算法一致, double 图像直接检测, 不降级
+// 与 float 版算法一致, double 图像直接检测, 不降级
 // ============================================================================
 void IPVSolver::solve_from_memory_with_callback_f64(
     const double* pixels,
@@ -1574,10 +1574,10 @@ void IPVSolver::solve_from_memory_with_callback_f64(
 // get_last_inliers: 输出 (N,9) double 数组 (字段定义见 ipv_solver.h)
 //
 // 内部预测计算 (与 extract_wcs_sip 的 RMS 计算保持一致):
-//   apply_trans(trans, U.x, U.y) -> (xi_asec, eta_asec)  [TRANS: U(像素)→W(角秒)]
-//   pred_x_px = xi_asec / s0
-//   pred_y_px = eta_asec / s0
-//   residual_x_px = U.x - pred_x_px (像素)
+// apply_trans(trans, U.x, U.y) -> (xi_asec, eta_asec) [TRANS: U(像素)→W(角秒)]
+// pred_x_px = xi_asec / s0
+// pred_y_px = eta_asec / s0
+// residual_x_px = U.x - pred_x_px (像素)
 // ===========================================================================
 
 void IPVSolver::cache_last_inliers_(
@@ -1660,11 +1660,11 @@ int IPVSolver::get_last_inliers(double* out_buffer, int max_count) const {
         // 2. 预测 W (角秒): apply_trans(trans, U) -> (xi_pred_asec, eta_pred_asec)
         // 3. 残差 (像素) = (实际 - 预测) / s0
         //
-        // 坐标系约定 (V4.20):
-        //   U = 像素坐标, 图像中心原点, Y 轴向上
-        //   W = 角秒坐标, 投影中心原点 (gnomonic xi/eta)
-        //   TRANS: U -> W
-        //   所以 det_x_px = u_star.x, 但残差应在 W 空间计算
+        // 坐标系约定 :
+        // U = 像素坐标, 图像中心原点, Y 轴向上
+        // W = 角秒坐标, 投影中心原点 (gnomonic xi/eta)
+        // TRANS: U -> W
+        // 所以 det_x_px = u_star.x, 但残差应在 W 空间计算
         bool valid = false;
         double xi_actual_asec = 0.0, eta_actual_asec = 0.0;
         gnomonic_forward_proj_solver(

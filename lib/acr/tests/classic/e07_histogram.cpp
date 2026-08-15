@@ -2,11 +2,11 @@
 // 验证能力（17 §12）：原子竞争、局部副本、合并
 //
 // Phase H 扩展：
-//   - 分布：uniform、90%热点、ramp、随机
-//   - 尺寸：2^16 至 2^26
-//   - 实现：全局 atomic + block/local histogram + merge
-//   - 整数 exact
-//   - 记录冲突程度曲线（热点 bin 的原子竞争）
+// - 分布：uniform、90%热点、ramp、随机
+// - 尺寸：2^16 至 2^26
+// - 实现：全局 atomic + block/local histogram + merge
+// - 整数 exact
+// - 记录冲突程度曲线（热点 bin 的原子竞争）
 #include "classic_common.hpp"
 
 #include <gtest/gtest.h>

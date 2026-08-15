@@ -1,22 +1,22 @@
 // ============================================================================
 // test_orchestrator_cli.cpp - 阶段1集成测试 (Phase1 JSON 入口)
 // 功能: 验证编排器 Phase1 JSON 入口重构后的各组件协同工作
-//   Part 1: JSON 入口命令测试 (--help/--version/--print-schema/--validate/no-args/unknown)
-//   Part 2: Schema 验证与配置解析测试 (validate_stage1_schema + parse_stage1_config)
-//   Part 3: 断点续传测试 (CheckpointManager + Orchestrator)
-//   Part 4: DLL 加载失败降级测试 (DllLoader)
-//   Part 5: 日志系统集成测试 (Logger)
-//   Part 6: JSON 入口 stage1 执行与 JSONL 事件测试
-//   Part 7: SHA-256 与配置哈希测试
+// Part 1: JSON 入口命令测试 (--help/--version/--print-schema/--validate/no-args/unknown)
+// Part 2: Schema 验证与配置解析测试 (validate_stage1_schema + parse_stage1_config)
+// Part 3: 断点续传测试 (CheckpointManager + Orchestrator)
+// Part 4: DLL 加载失败降级测试 (DllLoader)
+// Part 5: 日志系统集成测试 (Logger)
+// Part 6: JSON 入口 stage1 执行与 JSONL 事件测试
+// Part 7: SHA-256 与配置哈希测试
 //
 // 编译:
-//   g++ -O2 -std=c++17 -Wall -fopenmp -o tests/test_orchestrator_cli.exe
-//       tests/test_orchestrator_cli.cpp src/orchestrator.cpp src/dll_loader.cpp
-//       src/checkpoint.cpp src/logger.cpp src/cli_command.cpp src/json_config.cpp
-//       -Iinclude -static -lm
+// g++ -O2 -std=c++17 -Wall -fopenmp -o tests/test_orchestrator_cli.exe
+// tests/test_orchestrator_cli.cpp src/orchestrator.cpp src/dll_loader.cpp
+// src/checkpoint.cpp src/logger.cpp src/cli_command.cpp src/json_config.cpp
+// -Iinclude -static -lm
 //
 // 运行 (在 cpp/ 目录下执行):
-//   .\tests\test_orchestrator_cli.exe
+// .\tests\test_orchestrator_cli.exe
 // ============================================================================
 
 #include <iostream>
@@ -122,7 +122,7 @@ struct ExecResult {
 // ============================================================================
 // exec_with_stdin - 通过管道模拟 stdin 输入, 捕获 stdout/stderr
 // command_line: 完整命令行 (如 "orchestrator.exe" 或 "orchestrator.exe --help")
-// stdin_input:  要写入 stdin 的内容
+// stdin_input: 要写入 stdin 的内容
 // 返回: ExecResult (退出码 + stdout + stderr)
 // ============================================================================
 ExecResult exec_with_stdin(const std::string& command_line,
@@ -850,7 +850,7 @@ void test_part2_schema_validation_and_parsing() {
                     "original_json_path 为绝对路径");
     }
 
-    // 测试 17 (V5 CFG-001): pixfrac 省略时生产默认 0.8
+    // 测试 17 : pixfrac 省略时生产默认 0.8
     {
         std::string path = write_valid_stage1_json(tmpdir, "pixfrac_omitted.json");
         std::ifstream ifs(path);
@@ -872,7 +872,7 @@ void test_part2_schema_validation_and_parsing() {
         ASSERT_EQ(config.drizzle.pixfrac, 0.8, "pixfrac 省略时默认 0.8");
     }
 
-    // 测试 18 (V5 CFG-001): pixfrac 显式 0.8 与权威默认一致
+    // 测试 18 : pixfrac 显式 0.8 与权威默认一致
     {
         std::string path = write_valid_stage1_json(tmpdir, "pixfrac_explicit.json");
         std::ifstream ifs(path);
@@ -894,7 +894,7 @@ void test_part2_schema_validation_and_parsing() {
         ASSERT_EQ(config.drizzle.pixfrac, 0.8, "pixfrac 显式 0.8 生效");
     }
 
-    // 测试 19 (V5 CFG-002): 生产配置省略 output.hiss 必须可解析且验证通过
+    // 测试 19 : 生产配置省略 output.hiss 必须可解析且验证通过
     // (回归: json_config 输出父目录检查曾对缺键 hiss 无条件 operator[] 断言崩溃)
     {
         std::string path = write_valid_stage1_json(tmpdir, "no_hiss_output.json");
@@ -1798,7 +1798,7 @@ void test_part7_sha256_and_config_hash() {
     }
 
     // 测试 9: 内嵌 Schema 为 v1.1, 含 $schema 属性与 nside/browser_verify 阶段
-    // (R11: compat flat JSON 桥已删除, 该测试改为 Schema 一致性)
+    // (: compat flat JSON 桥已删除, 该测试改为 Schema 一致性)
     {
         std::string schema = get_stage1_schema_json();
         ASSERT_FALSE(schema.empty(), "内嵌 Schema 非空");

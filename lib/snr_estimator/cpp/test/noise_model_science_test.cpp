@@ -1,20 +1,20 @@
 // ============================================================================
-// noise_model_science_test.cpp — V19 SNR/Noise 科学矩阵 (模块级)
+// noise_model_science_test.cpp — SNR/Noise 科学矩阵 (模块级)
 //
 // 覆盖 (SNR_SCIENCE_DERIVATION.md / SCIENCE_ACCEPTANCE_MATRIX.md):
-//   SNR-001 pedestal invariance
-//   SNR-002 multiplicative scale covariance
-//   SNR-003 star-population invariance
-//   SNR-004 Gaussian blank-sky variance recovery
-//   SNR-005 Poisson+read-noise cross-check
-//   SNR-006 spatial noise-field recovery
-//   SNR-007 dex/mag unit correctness
-//   SNR-008 legacy A-B metric retired (semantic)
-//   SNR-009 inverse-variance coadd efficiency
-//   SNR-010 signal-independence
-//   SNR-013 PSF quality semantics
-//   SNR-014 missing/degenerate metadata behavior
-//   (SNR-011/012 Drizzle variance MC → healpix_drizzle 侧; SNR-015 UPM ablation → phase2)
+// SNR-001 pedestal invariance
+// SNR-002 multiplicative scale covariance
+// SNR-003 star-population invariance
+// SNR-004 Gaussian blank-sky variance recovery
+// SNR-005 Poisson+read-noise cross-check
+// SNR-006 spatial noise-field recovery
+// SNR-007 dex/mag unit correctness
+// SNR-008 legacy A-B metric retired (semantic)
+// SNR-009 inverse-variance coadd efficiency
+// SNR-010 signal-independence
+// SNR-013 PSF quality semantics
+// SNR-014 missing/degenerate metadata behavior
+// (SNR-011/012 Drizzle variance MC → healpix_drizzle 侧; SNR-015 UPM ablation → phase2)
 //
 // 编译: g++ -O2 -std=c++17 noise_model_science_test.cpp ../src/snr_estimator.cpp ../src/noise_model.cpp
 // 运行: noise_model_science_test.exe

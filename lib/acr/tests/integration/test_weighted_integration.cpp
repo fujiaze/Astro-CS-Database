@@ -1,10 +1,10 @@
 // lib/acr/tests/integration/test_weighted_integration.cpp
 //
-// ACR 架构冻结（07 号计划 F）：加权积分合成 Mixed 样例四类 CTest。
-//   1. CorrectnessQuickAllPaths：quick 小 case 全模式正确性 + 非整除尾块
-//   2. ForcedMixedBothNonZero：ForcedMixed CPU/GPU 双方均非零
-//   3. ResidentReuseFramesUploadOnce：同一帧栈 4 组权重，frames 上传保持 1
-//   4. StreamConsistency：1/2 stream 结果一致
+// ACR 架构冻结（07 F）：加权积分合成 Mixed 样例四类 CTest。
+// 1. CorrectnessQuickAllPaths：quick 小 case 全模式正确性 + 非整除尾块
+// 2. ForcedMixedBothNonZero：ForcedMixed CPU/GPU 双方均非零
+// 3. ResidentReuseFramesUploadOnce：同一帧栈 4 组权重，frames 上传保持 1
+// 4. StreamConsistency：1/2 stream 结果一致
 // 无 GPU 时 GPU/Mixed 测试准确 SKIPPED；CPU/OpenMP 仍通过。
 #include <gtest/gtest.h>
 

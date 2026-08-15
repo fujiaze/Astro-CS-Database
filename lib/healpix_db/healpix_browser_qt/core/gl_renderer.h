@@ -2,9 +2,9 @@
 // 功能: 球面渲染 (.hcsd) + 单帧切面投影渲染 (.hiss), 内嵌 STF 拉伸着色器
 // 用途: 为 widgets/ 层提供纯 C++ OpenGL 3.3 Core 渲染入口, 无 Qt 依赖
 // 依赖: browser_backend.h (数据源), stf_engine.h (STF uniform 转换),
-//       healpix_math.h (球面坐标转换), logger.h (日志)
+// healpix_math.h (球面坐标转换), logger.h (日志)
 // 编译: g++ -O2 -std=c++17 -Wall -Wextra -Icore -Iinclude -I../../astro_image_io/include
-//       -c core/gl_renderer.cpp -o core/gl_renderer.o -lopengl32 -lgdi32
+// -c core/gl_renderer.cpp -o core/gl_renderer.o -lopengl32 -lgdi32
 // 设计文档: docs/superpowers/specs/2026-07-13-cpp-qt-browser-core-design.md §3.4
 
 #ifndef GL_RENDERER_H

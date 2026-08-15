@@ -6,23 +6,23 @@
 // 跨 Tile 边界等场景。
 //
 // 设计原则:
-//   - 使用生产 HissWriter/HissReader (不使用模拟函数冒充生产代码)
-//   - 测试 oracle (radec_to_nested_ipix) 仅用于计算预期 local_ipix,
-//     不替代生产 query_pixel; query_pixel 与 read_tile 两条独立生产路径交叉验证
-//   - 每个断言真正验证, 禁止 ASSERT_TRUE(true, "known issue") 软通过
-//   - 测试失败时非零退出
+// - 使用生产 HissWriter/HissReader (不使用模拟函数冒充生产代码)
+// - 测试 oracle (radec_to_nested_ipix) 仅用于计算预期 local_ipix,
+// 不替代生产 query_pixel; query_pixel 与 read_tile 两条独立生产路径交叉验证
+// - 每个断言真正验证, 禁止 ASSERT_TRUE(true, "known issue") 软通过
+// - 测试失败时非零退出
 //
 // 编译 (从 tests/ 目录):
-//   g++ -std=c++17 -O2 -fopenmp -DHAS_LZ4 -DHAS_ZSTD -DAIO_ENABLE_HEALPIX \
-//     -I../include -I../src \
-//     test_query_pixel.cpp \
-//     ../src/hiss_codec.cpp ../src/hiss_common.cpp \
-//     ../src/hiss_tile_model.cpp \
-//     ../src/hiss_transform.cpp \
-//     ../src/hiss_writer.cpp ../src/hiss_stream_writer.cpp \
-//     ../src/hiss_reader.cpp \
-//     ../src/aio_api.cpp ../src/aio_log.cpp \
-//     -llz4 -lzstd -lm -o test_query_pixel.exe
+// g++ -std=c++17 -O2 -fopenmp -DHAS_LZ4 -DHAS_ZSTD -DAIO_ENABLE_HEALPIX \
+// -I../include -I../src \
+// test_query_pixel.cpp \
+// ../src/hiss_codec.cpp ../src/hiss_common.cpp \
+// ../src/hiss_tile_model.cpp \
+// ../src/hiss_transform.cpp \
+// ../src/hiss_writer.cpp ../src/hiss_stream_writer.cpp \
+// ../src/hiss_reader.cpp \
+// ../src/aio_api.cpp ../src/aio_log.cpp \
+// -llz4 -lzstd -lm -o test_query_pixel.exe
 // ============================================================================
 #include "hiss_format.h"
 #include "hiss_tile_model.h"
@@ -385,7 +385,7 @@ static bool setup(TestContext& ctx) {
         ctx.sparse_path = "tqp_sparse.hiss";
         ctx.sparse_parent = 0;
         // R04-B12: Writer 按编码大小自动选择 (忽略传入的 occ_mode)
-        //   NSIDE=256 → n_leaf=256, BITMAP=32B, SPARSE_LIST(5点)=20B → 自动选 SPARSE_LIST
+        // NSIDE=256 → n_leaf=256, BITMAP=32B, SPARSE_LIST(5点)=20B → 自动选 SPARSE_LIST
         ctx.sparse_valid = {0, 32, 63, 128, 200};  // 5/256, sparse=20 < bitmap=32
         HissGridSpec grid; HissMetadata meta;
         make_grid_meta(ctx.sparse_nside, grid, meta);
@@ -589,7 +589,7 @@ static void test_03_full_last_pixel(int id, const TestContext& ctx) {
 }
 
 // 测试 04: FULL 模式 - 越界 local_ipix (数组长度 < n_leaf_per_tile)
-//   构造 n_leaf=8 的 Tile (n_leaf_per_tile=16), query_pixel local_ipix ∈ [8,15] 应返回零值
+// 构造 n_leaf=8 的 Tile (n_leaf_per_tile=16), query_pixel local_ipix ∈ [8,15] 应返回零值
 static void test_04_full_out_of_range(int id, const TestContext& ctx) {
     TEST_CASE("FULL 模式 - 越界 local_ipix 返回零值不报错", id);
     ASSERT_TRUE(!ctx.full_pixels.empty(), "需要 FULL Tile 像素映射");
@@ -870,7 +870,7 @@ static void test_12_sparse_miss(int id, const TestContext& ctx) {
 // ============================================================================
 
 // 测试 13: signal=0 但像素存在 (sum_flux=0 且 sum_area>0)
-//   验证 query_pixel 返回 signal=0.0f, support>0
+// 验证 query_pixel 返回 signal=0.0f, support>0
 static void test_13_zero_signal_valid_pixel(int id, const TestContext& ctx) {
     TEST_CASE("signal=0 但像素存在 (support>0)", id);
     using namespace hiss;
@@ -930,7 +930,7 @@ static void test_13_zero_signal_valid_pixel(int id, const TestContext& ctx) {
 }
 
 // 测试 14: 跨 Tile 边界 (两个相邻 Tile 的边界像素)
-//   验证 query_pixel 能正确区分两个 Tile, 数据不混淆
+// 验证 query_pixel 能正确区分两个 Tile, 数据不混淆
 static void test_14_cross_tile_boundary(int id, const TestContext& ctx) {
     TEST_CASE("跨 Tile 边界 (两个 Tile 数据不混淆)", id);
     using namespace hiss;
@@ -1025,7 +1025,7 @@ static void test_15_outside_tile(int id, const TestContext& ctx) {
 }
 
 // 测试 16: 随机位置查询 (FULL/BITMAP/SPARSE 三种模式, 固定种子可复现)
-//   B21 回归: 补充随机位置覆盖, 与 read_tile 交叉验证 query_pixel 一致性
+// B21 回归: 补充随机位置覆盖, 与 read_tile 交叉验证 query_pixel 一致性
 static void test_16_random_positions(int id, const TestContext& ctx) {
     TEST_CASE("随机位置查询 (FULL/BITMAP/SPARSE)", id);
 

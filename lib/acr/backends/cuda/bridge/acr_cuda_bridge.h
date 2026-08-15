@@ -1,14 +1,14 @@
 // lib/acr/backends/cuda/bridge/acr_cuda_bridge.h — CUDA 桥接 C ABI
 //
-// 背景（23 号计划 §3）：ACR 主构建使用 MSYS2 MinGW 工具链，nvcc 11.8 不支持
+// 背景（23 §3）：ACR 主构建使用 MSYS2 MinGW 工具链，nvcc 11.8 不支持
 // MinGW host；本桥接 DLL 用 MSVC + nvcc 构建，通过纯 C ABI 暴露真实 GPU kernel，
 // 由 MinGW 侧加载器（cuda_bridge_loader.cpp）LoadLibrary 动态调用——
 // 与项目现有 DLL 模块架构一致，无 ABI 冲突。
 //
 // 构建（证据命令记录于 docs/cuda_bridge_build.md）：
-//   vcvars64 → nvcc -arch=sm_86 --allow-unsupported-compiler \
-//     -D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH -shared \
-//     acr_cuda_bridge.cu -o acr_cuda_bridge.dll
+// vcvars64 → nvcc -arch=sm_86 --allow-unsupported-compiler \
+// -D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH -shared \
+// acr_cuda_bridge.cu -o acr_cuda_bridge.dll
 //
 // 错误约定：所有函数返回 0 表示成功；非 0 时 *last_error 指向静态错误串。
 #ifndef ACR_CUDA_BRIDGE_H
@@ -35,7 +35,7 @@ ACR_CUDA_BRIDGE_API int acr_cuda_bridge_init(const char** last_error);
 ACR_CUDA_BRIDGE_API int acr_cuda_bridge_device_count(void);
 ACR_CUDA_BRIDGE_API const char* acr_cuda_bridge_device_name(int device);
 
-// 25 号计划 §3.4：真实设备元数据（显存、SM/CU、计算能力）
+// 25 §3.4：真实设备元数据（显存、SM/CU、计算能力）
 ACR_CUDA_BRIDGE_API int acr_cuda_device_memory(
     int device, uint64_t* total_bytes, uint64_t* free_bytes,
     const char** last_error);
@@ -89,11 +89,11 @@ ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_conv3x3(
     const float* kernel9,
     uint64_t* elapsed_ns, const char** last_error);
 
-// ===== 聚焦版（08 号计划 §3）：目标合成 Operation 内核 =====
+// ===== 聚焦版（08 §3）：目标合成 Operation 内核 =====
 // 积分/Drizzle 类逐像素算法的 GPU 实现；全部同步语义，elapsed_ns 为真实耗时。
 
 // Dense pixel accumulate（FP32 输入 + FP64 累加器）：
-//   y[i] = (double)y[i] + x[i]（累加在 double 中进行，结果写回 float y）
+// y[i] = (double)y[i] + x[i]（累加在 double 中进行，结果写回 float y）
 ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_dense_accumulate_fp64acc(
     void* handle,
     size_t begin, size_t end,
@@ -101,8 +101,8 @@ ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_dense_accumulate_fp64acc(
     uint64_t* elapsed_ns, const char** last_error);
 
 // Drizzle-like scatter/accumulate（FP64 累加）：
-//   partials[bin(x[i])] += x[i]（bin 由确定性 hash 计算，原子加）
-//   bins 为输出桶数（如 256/1024），host 侧提供 partials（double*）
+// partials[bin(x[i])] += x[i]（bin 由确定性 hash 计算，原子加）
+// bins 为输出桶数（如 256/1024），host 侧提供 partials（double*）
 ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_drizzle_scatter(
     void* handle,
     size_t begin, size_t end,
@@ -110,7 +110,7 @@ ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_drizzle_scatter(
     uint64_t* elapsed_ns, const char** last_error);
 
 // Resident chain：连续两个 GPU 算子，只上传一次、最后下载一次。
-//   y[i] = x[i] + 1（显存写）→ z[i] = y[i] * 2（显存读）→ z 返回 host
+// y[i] = x[i] + 1（显存写）→ z[i] = y[i] * 2（显存读）→ z 返回 host
 ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_chain(
     void* handle,
     size_t begin, size_t end,
@@ -135,7 +135,7 @@ ACR_CUDA_BRIDGE_API int acr_cuda_executor_transfer_d2h(
     size_t device_bytes, void* host,
     uint64_t* elapsed_ns, const char** last_error);
 
-// ===== 聚焦版 v2（08 号计划 §2/§4）：resident 持久上传与提交 =====
+// ===== 聚焦版 v2（08 §2/§4）：resident 持久上传与提交 =====
 // 数据先上传到设备并保留（persistent d_x），后续 resident 提交跳过 H2D，
 // 只 launch（必要时 D2H 输出）——用于真实 resident 曲线测量与驻留复用。
 
@@ -184,7 +184,7 @@ ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_chain_resident(
     float* z,
     uint64_t* elapsed_ns, const char** last_error);
 
-// ===== ACR 架构冻结（07 号计划 C）：加权积分 =====
+// ===== ACR 架构冻结（07 C）：加权积分 =====
 // synthetic.weighted_integration.fp64acc：FP32 输入/权重、FP64 累加、FP32 输出。
 // frame-major 连续输入：frames[f * pixel_count + p]，权重 weights[f]。
 // 每个输出像素 p：output[p] = Σ_f weight[f]*frame[f,p] / Σ_f weight[f]。

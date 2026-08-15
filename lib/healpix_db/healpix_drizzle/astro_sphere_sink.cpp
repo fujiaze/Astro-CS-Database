@@ -64,7 +64,7 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
     }
 
     const uint32_t leaf_order = ilog2_u64(nside);
-    // V18 (G1): HiPS 直写分段计时（每段一次 clock，低开销）
+    // HiPS 直写分段计时（每段一次 clock，低开销）
     const auto t_sink0 = std::chrono::steady_clock::now();
     double prof_transform = 0.0, prof_fits_write = 0.0;
     std::vector<Scalar> dense_flux(n_leaf, Scalar(0));

@@ -2,21 +2,21 @@
 // hiss_codec.cpp - AstroCS HISS Codec/Checksum 注册表与内置实现
 //
 // 内容:
-//   1. RAW codec (无压缩, 必须): compress/decompress 直接 memcpy, bound = input_size
-//   2. LZ4 / Zstd codec (可选): 编译时通过 -DHAS_LZ4 / -DHAS_ZSTD 启用
-//   3. CodecRegistry 单例: 注册/查找/列出 codec, RAW 内置不可覆盖
-//   4. CRC32-C (Castagnoli) 校验实现 (共享, 供 Reader/Writer 复用)
-//   5. ChecksumRegistry 单例: 注册/查找/列出 checksum, CRC32C 内置
+// 1. RAW codec (无压缩, 必须): compress/decompress 直接 memcpy, bound = input_size
+// 2. LZ4 / Zstd codec (可选): 编译时通过 -DHAS_LZ4 / -DHAS_ZSTD 启用
+// 3. CodecRegistry 单例: 注册/查找/列出 codec, RAW 内置不可覆盖
+// 4. CRC32-C (Castagnoli) 校验实现 (共享, 供 Reader/Writer 复用)
+// 5. ChecksumRegistry 单例: 注册/查找/列出 checksum, CRC32C 内置
 //
 // 设计说明:
-//   - hiss_format.h 中 CodecRegistry/ChecksumRegistry 类未声明私有数据成员与构造函数
-//     (规范已冻结), 故注册表状态以文件作用域静态容器承载, 由单例方法访问。
-//   - 单例采用 Meyers singleton (C++11 起局部静态初始化线程安全)。
-//   - 内置 codec/checksum 注册在 RegistryState 构造函数中完成, 由 magic static 保证
-//     首次访问时线程安全地一次性初始化。
-//   - 线程安全: register/find/list 经 std::mutex 保护。
-//   - 不依赖外部库: LZ4/Zstd 为可选, RAW/CRC32C 为必需。
-//   - CRC32C 实现从 hiss_reader.cpp 移入此处共享, 避免 Reader/Writer 重复定义。
+// - hiss_format.h 中 CodecRegistry/ChecksumRegistry 类未声明私有数据成员与构造函数
+// (规范已冻结), 故注册表状态以文件作用域静态容器承载, 由单例方法访问。
+// - 单例采用 Meyers singleton (C++11 起局部静态初始化线程安全)。
+// - 内置 codec/checksum 注册在 RegistryState 构造函数中完成, 由 magic static 保证
+// 首次访问时线程安全地一次性初始化。
+// - 线程安全: register/find/list 经 std::mutex 保护。
+// - 不依赖外部库: LZ4/Zstd 为可选, RAW/CRC32C 为必需。
+// - CRC32C 实现从 hiss_reader.cpp 移入此处共享, 避免 Reader/Writer 重复定义。
 // ============================================================================
 #include "hiss_format.h"
 
@@ -45,9 +45,9 @@ namespace hiss {
 // ---------------------------------------------------------------------------
 
 // RAW compress: 直接拷贝, 无压缩
-// input/input_size  - 源数据
-// output            - 输出缓冲区 (调用方需保证容量 >= input_size)
-// output_size       - 输入时为 output 缓冲区容量, 输出时为实际写入字节数
+// input/input_size - 源数据
+// output - 输出缓冲区 (调用方需保证容量 >= input_size)
+// output_size - 输入时为 output 缓冲区容量, 输出时为实际写入字节数
 // 返回 0=成功, <0=失败
 static int raw_compress(const uint8_t* input, size_t input_size,
                         uint8_t* output, size_t* output_size) {
@@ -76,7 +76,7 @@ static int raw_compress(const uint8_t* input, size_t input_size,
 }
 
 // RAW decompress: 直接拷贝, 无压缩
-// input/input_size   - 压缩数据 (对于 RAW 即原始数据)
+// input/input_size - 压缩数据 (对于 RAW 即原始数据)
 // output/output_size - 输出缓冲区及其容量 (对于 RAW 容量应 >= input_size)
 // 返回 0=成功, <0=失败
 static int raw_decompress(const uint8_t* input, size_t input_size,
@@ -225,10 +225,10 @@ static size_t lz4_bound(size_t input_size) {
 
 // ============================================================================
 // 内部: CRC32-C (Castagnoli) 校验实现 (共享, 供 Reader/Writer 复用)
-//   多项式: 0x1EDC6F41 (反向: 0x82F63B78)
-//   初始值: 0xFFFFFFFF, 最终异或: 0xFFFFFFFF
-//   用于 HissSubblockDescriptor.checksum (ChecksumType::CRC32C)
-//   原实现位于 hiss_reader.cpp, 已移至此处共享, 避免重复定义
+// 多项式: 0x1EDC6F41 (反向: 0x82F63B78)
+// 初始值: 0xFFFFFFFF, 最终异或: 0xFFFFFFFF
+// 用于 HissSubblockDescriptor.checksum (ChecksumType::CRC32C)
+// 原实现位于 hiss_reader.cpp, 已移至此处共享, 避免重复定义
 // ============================================================================
 
 // CRC32-C 查表实现 (运行时生成表, 首次调用时初始化)
@@ -345,7 +345,7 @@ static RegistryState& registry_state() {
 
 // 全局单例 (Meyers singleton, C++11 起局部静态初始化线程安全)
 // 注: CodecRegistry 类在头文件中未声明私有成员与构造函数, 使用编译器隐式
-//     默认构造; 注册表状态由 registry_state() 独立管理。
+// 默认构造; 注册表状态由 registry_state() 独立管理。
 CodecRegistry& CodecRegistry::instance() {
     static CodecRegistry inst;
     // 触发注册表状态初始化 (含内置 codec 注册), 首次访问时执行
@@ -404,7 +404,7 @@ std::vector<CodecId> CodecRegistry::list() const {
 
 // 全局单例 (Meyers singleton, C++11 起局部静态初始化线程安全)
 // 注: ChecksumRegistry 类在头文件中未声明私有成员与构造函数, 使用编译器隐式
-//     默认构造; 注册表状态由 registry_state() 独立管理 (与 CodecRegistry 共享)。
+// 默认构造; 注册表状态由 registry_state() 独立管理 (与 CodecRegistry 共享)。
 ChecksumRegistry& ChecksumRegistry::instance() {
     static ChecksumRegistry inst;
     // 触发注册表状态初始化 (含内置 CRC32C 注册), 首次访问时执行

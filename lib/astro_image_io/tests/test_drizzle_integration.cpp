@@ -2,38 +2,38 @@
 // test_drizzle_integration.cpp - WP-I-1 真实数据集成测试
 //
 // 使用真实 FITS 文件测试完整 Drizzle → HISS 流程:
-//   1. 读取真实 FITS 文件 (drizzle::readFits)
-//   2. 运行 DrizzleEngine::drizzle() (pixfrac=0.8, nside=64)
-//   3. 运行 DrizzleEngine::writeHis() 输出 .hiss 文件
-//   4. 用 aio_hiss_inspect / read_tile_signal / read_tile_support 验证
-//   5. query_pixel 测试 (图像中心 ra/dec)
-//   6. LZ4 / Zstd codec 往返测试
+// 1. 读取真实 FITS 文件 (drizzle::readFits)
+// 2. 运行 DrizzleEngine::drizzle() (pixfrac=0.8, nside=64)
+// 3. 运行 DrizzleEngine::writeHis() 输出 .hiss 文件
+// 4. 用 aio_hiss_inspect / read_tile_signal / read_tile_support 验证
+// 5. query_pixel 测试 (图像中心 ra/dec)
+// 6. LZ4 / Zstd codec 往返测试
 //
 // 编译 (从 lib/astro_image_io/ 目录):
-//   g++ -std=c++17 -O2 -fopenmp -DHAS_LZ4 -DHAS_ZSTD -DAIO_ENABLE_HEALPIX \
-//     -Iinclude -Isrc \
-//     -I../../healpix_db/healpix_drizzle \
-//     -I../../healpix_db/healpix_stack \
-//     -I../../calibration/include \
-//     tests/test_drizzle_integration.cpp \
-//     src/hiss_codec.cpp src/hiss_common.cpp \
-//     src/hiss_writer.cpp src/hiss_reader.cpp \
-//     src/hiss_stream_writer.cpp src/hiss_tile_model.cpp \
-//     src/hiss_transform.cpp \
-//     src/healpix/aio_healpix_io.cpp \
-//     src/aio_log.cpp \
-//     ../../healpix_db/healpix_drizzle/drizzle_engine.cpp \
-//     ../../healpix_db/healpix_drizzle/wcs_sip.cpp \
-//     ../../healpix_db/healpix_drizzle/poly_clip.cpp \
-//     ../../healpix_db/healpix_drizzle/fits_reader.cpp \
-//     ../../healpix_db/healpix_drizzle/spherical_overlap.cpp \
-//     ../../healpix_db/healpix_stack/healpix_core.cpp \
-//     -llz4 -lzstd -lm \
-//     -o tests/test_drizzle_integration.exe
+// g++ -std=c++17 -O2 -fopenmp -DHAS_LZ4 -DHAS_ZSTD -DAIO_ENABLE_HEALPIX \
+// -Iinclude -Isrc \
+// -I../../healpix_db/healpix_drizzle \
+// -I../../healpix_db/healpix_stack \
+// -I../../calibration/include \
+// tests/test_drizzle_integration.cpp \
+// src/hiss_codec.cpp src/hiss_common.cpp \
+// src/hiss_writer.cpp src/hiss_reader.cpp \
+// src/hiss_stream_writer.cpp src/hiss_tile_model.cpp \
+// src/hiss_transform.cpp \
+// src/healpix/aio_healpix_io.cpp \
+// src/aio_log.cpp \
+// ../../healpix_db/healpix_drizzle/drizzle_engine.cpp \
+// ../../healpix_db/healpix_drizzle/wcs_sip.cpp \
+// ../../healpix_db/healpix_drizzle/poly_clip.cpp \
+// ../../healpix_db/healpix_drizzle/fits_reader.cpp \
+// ../../healpix_db/healpix_drizzle/spherical_overlap.cpp \
+// ../../healpix_db/healpix_stack/healpix_core.cpp \
+// -llz4 -lzstd -lm \
+// -o tests/test_drizzle_integration.exe
 //
 // 运行:
-//   ./tests/test_drizzle_integration.exe [fits_path]
-//   (不传参数时自动搜索 testdata 中的 FITS 文件)
+// ./tests/test_drizzle_integration.exe [fits_path]
+// (不传参数时自动搜索 testdata 中的 FITS 文件)
 // ============================================================================
 
 #include "drizzle_engine.h"
@@ -358,7 +358,7 @@ static void test_06_query_pixel() {
 
 // ============================================================================
 // 测试 7: LZ4 codec 往返
-//   用 HissWriter + set_experiment_codec(LZ4) 写入, HissReader 读取验证
+// 用 HissWriter + set_experiment_codec(LZ4) 写入, HissReader 读取验证
 // ============================================================================
 static void test_07_lz4_roundtrip() {
     fprintf(stderr, "\n========== [TEST 7] LZ4 codec 往返 ==========\n");

@@ -1,11 +1,11 @@
 // lib/acr/examples/weighted_integration/weighted_integration_common.hpp
 //
-// ACR 架构冻结（07 号计划 C）：加权积分最小接入样例核心契约。
-//   OperationId: synthetic.weighted_integration.fp64acc
-//   - frame-major 连续输入：frames[f * pixel_count + p]，权重 weights[f]
-//   - FP32 输入/权重、FP64 累加、FP32 输出
-//   - 对每个输出像素 p：output[p] = Σ_f weight[f]*frame[f,p] / Σ_f weight[f]
-//   - 数据生成与误差统计（计时外；固定 seed 可重复）
+// ACR 架构冻结（07 C）：加权积分最小接入样例核心契约。
+// OperationId: synthetic.weighted_integration.fp64acc
+// - frame-major 连续输入：frames[f * pixel_count + p]，权重 weights[f]
+// - FP32 输入/权重、FP64 累加、FP32 输出
+// - 对每个输出像素 p：output[p] = Σ_f weight[f]*frame[f,p] / Σ_f weight[f]
+// - 数据生成与误差统计（计时外；固定 seed 可重复）
 //
 // 本头文件只含纯 host 算法与数据契约，不依赖任何 ACR 调度/桥接类型，
 // 供 CPU/OpenMP 参考、CPU launcher 与测试共同复用，避免算法语义分叉。

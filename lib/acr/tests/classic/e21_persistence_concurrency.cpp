@@ -1,6 +1,6 @@
 // lib/acr/tests/classic/e21_persistence_concurrency.cpp — E21 持续与并发可靠性
 // 规范 E21：30秒及更长持续关键实验；重复进程启动；多线程并发提交；
-//   Event 生命周期；取消；ASan/UBSan 实际开启；TSan 适用路径；内存/句柄泄漏。
+// Event 生命周期；取消；ASan/UBSan 实际开启；TSan 适用路径；内存/句柄泄漏。
 #include "classic_common.hpp"
 
 #include <gtest/gtest.h>

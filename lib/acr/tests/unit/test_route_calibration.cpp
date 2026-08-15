@@ -1,9 +1,9 @@
 // lib/acr/tests/unit/test_route_calibration.cpp
 //
 // 标定评估纯函数测试（Dispatcher Finalization 08 计划 A / 07 测试 A）：
-//   - Probe 阶段允许选择插值模型；
-//   - Final 阶段绝对不改 interpolation_id / samples / adaptive_rounds；
-//   - Final 即使实际值变化也不重新选择模型。
+// - Probe 阶段允许选择插值模型；
+// - Final 阶段绝对不改 interpolation_id / samples / adaptive_rounds；
+// - Final 即使实际值变化也不重新选择模型。
 #include <gtest/gtest.h>
 
 #include "route_profile_calibration.hpp"

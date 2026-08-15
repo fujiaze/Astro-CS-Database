@@ -1,9 +1,9 @@
 // lib/acr/tests/classic/e11_gemm.cpp — E11 GEMM 成熟库适配
 // 验证能力：vendor library handle 隔离（CPU 自实现 naive + tiled）
 // 扩展（规范 E15 GEMM/FFT成熟库adapter）：
-//   - 尺寸：256/1024/4096 + 非方阵（512×256×1024 等）
-//   - 成熟库 adapter（BLAS/cuBLAS/rocBLAS/oneMKL），不可用标记 SKIPPED
-//   - 自实现 naive/tiled 作为 correctness baseline
+// - 尺寸：256/1024/4096 + 非方阵（512×256×1024 等）
+// - 成熟库 adapter（BLAS/cuBLAS/rocBLAS/oneMKL），不可用标记 SKIPPED
+// - 自实现 naive/tiled 作为 correctness baseline
 // 不依赖 OpenBLAS；自实现 naive ijk 三重循环 + tiled 版本。
 #include "classic_common.hpp"
 

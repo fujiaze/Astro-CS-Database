@@ -7,9 +7,9 @@
 
 // STF 拉伸参数
 // 说明：封装 Screen Transfer Function 所需的全部参数
-//   - shadows/highlights: 像素值裁剪范围（原始像素值，GPU 着色器内归一化）
-//   - midtones:           MTF 中点参数，0.5=线性，<0.5 提亮暗部
-//   - compression:        asinh/log 等非线性预设的压缩强度 [0,1]
+// - shadows/highlights: 像素值裁剪范围（原始像素值，GPU 着色器内归一化）
+// - midtones: MTF 中点参数，0.5=线性，<0.5 提亮暗部
+// - compression: asinh/log 等非线性预设的压缩强度 [0,1]
 struct STFParams {
     float shadows;       // 暗部裁剪点 [0,1)
     float highlights;    // 亮部裁剪点 (0,1]
@@ -23,7 +23,7 @@ struct STFParams {
     bool validate() const;
 };
 
-// V15：唯一 DisplayTransformState（单一 owner；UI 只编辑 state，
+// 唯一 DisplayTransformState（单一 owner；UI 只编辑 state，
 // renderer 只消费 state；generation 用于丢弃过期异步结果）。
 enum class STFMode {
     AutoGlobal = 0,   // dataset 级稳定标尺（pan/zoom 不闪）
@@ -62,12 +62,12 @@ public:
 
     // 预设查询（接收数据范围，返回原始像素值，对齐 Siril 显示传递函数行为）
     // 预设=全数据范围 + 曲线形状:
-    //   - shadows=data_min, highlights=data_max（全数据范围可见，不裁剪）
-    //   - midtones/compression 由预设决定:
-    //     linear: (0.5, 0.0)
-    //     sqrt:   (0.25, 0.0)
-    //     asinh:  (0.25, 0.5)
-    //     log:    (0.15, 0.8)
+    // - shadows=data_min, highlights=data_max（全数据范围可见，不裁剪）
+    // - midtones/compression 由预设决定:
+    // linear: (0.5, 0.0)
+    // sqrt: (0.25, 0.0)
+    // asinh: (0.25, 0.5)
+    // log: (0.15, 0.8)
     // 未知名称返回默认参数（linear 等效）并告警
     static STFParams get_preset(const std::string& name,
                                 float data_min, float data_max);
@@ -78,17 +78,17 @@ public:
     static float mtf(float x, float m);
 
     // MAD 自动拉伸：基于中位数绝对偏差估算 shadows/highlights
-    //   data: 像素值数组（原始 float，非归一化）
-    //   no_data_value: 无效像素值，<= 该值的像素将被过滤
+    // data: 像素值数组（原始 float，非归一化）
+    // no_data_value: 无效像素值，<= 该值的像素将被过滤
     // 返回 STFParams（shadows/highlights 为原始像素值范围，GPU 着色器内归一化）
     // 复杂度：O(n)（使用 std::nth_element 而非全排序）
     static STFParams auto_stretch(const float* data, size_t n,
                                   float no_data_value = 0.0f);
 
     // 将 STFParams 转换为 GPU uniform（归一化到 [0,1]）
-    //   params:       STF 拉伸参数（shadows/highlights 为原始像素值）
-    //   data_min/max: 像素值动态范围，用于归一化
-    //   no_data_value:透传给着色器的无效像素标记
+    // params: STF 拉伸参数（shadows/highlights 为原始像素值）
+    // data_min/max: 像素值动态范围，用于归一化
+    // no_data_value:透传给着色器的无效像素标记
     struct GPUUniforms {
         float shadows;
         float highlights;

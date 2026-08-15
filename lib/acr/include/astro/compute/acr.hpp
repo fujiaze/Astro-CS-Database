@@ -1,12 +1,12 @@
 // astro/compute/acr.hpp — ACR 公共 API
 // Phase B：parallel_for/tiles/reduce/batch/scan/chunks/run_for + Buffer/Event。
-// 设计（控制包 03_PUBLIC_API_SPEC.md）：
-//   1. 公共头不暴露 tbb::/alpaka::/starpu_*/cuda*/hip*/sycl:: 类型
-//   2. backend 类型只出现在 .cpp，tbb 完全封装在 runtime.cpp
-//   3. 模板实现内联在此，调用 detail::submit_* type-erased 接口（不依赖 tbb 头）
-//   4. ACR_KERNEL_ACC 映射 backend 注解（CPU baseline 空）
-//   5. 默认 FP32 允许末位差异；FP64 声明需确定性归约
-//   6. lazy initialization：首次 API 调用才初始化 runtime singleton
+// 设计（ 03_PUBLIC_API_SPEC.md）：
+// 1. 公共头不暴露 tbb::/alpaka::/starpu_*/cuda*/hip*/sycl:: 类型
+// 2. backend 类型只出现在 .cpp，tbb 完全封装在 runtime.cpp
+// 3. 模板实现内联在此，调用 detail::submit_* type-erased 接口（不依赖 tbb 头）
+// 4. ACR_KERNEL_ACC 映射 backend 注解（CPU baseline 空）
+// 5. 默认 FP32 允许末位差异；FP64 声明需确定性归约
+// 6. lazy initialization：首次 API 调用才初始化 runtime singleton
 #pragma once
 
 #include <algorithm>
@@ -367,23 +367,23 @@ Event parallel_scan(KernelId /*id*/, BufferView<T> input, BufferView<T> output, 
 // Phase B2：TaskTraits-based 公共 API（新签名，强制 TaskTraits，无 cpu_share/gpu_share）
 // ============================================================================
 // 设计：
-//   1. OperationId 是诊断/缓存标识（string_view），不是固定比例路由键
-//   2. TaskTraits 强制提供（描述任务类别/访存/强度/数值策略）
-//   3. 调用 detail::submit_*_with_desc → CostEstimator → Dispatcher → backend
-//   4. 旧 KernelId-based API 保留向后兼容（走旧 submit_* → CPU runtime）
-//   5. 公共头不暴露第三方类型（TaskDescriptor 前向声明，完整类型在 .cpp 内）
-//   6. Args 通过 lambda 捕获传递（与旧 API 一致），不直接支持可变 Args
-//      （spec 写 Args&&... 是 future-proofing，当前实现要求 kernel 单参数）
+// 1. OperationId 是诊断/缓存标识（string_view），不是固定比例路由键
+// 2. TaskTraits 强制提供（描述任务类别/访存/强度/数值策略）
+// 3. 调用 detail::submit_*_with_desc → CostEstimator → Dispatcher → backend
+// 4. 旧 KernelId-based API 保留向后兼容（走旧 submit_* → CPU runtime）
+// 5. 公共头不暴露第三方类型（TaskDescriptor 前向声明，完整类型在 .cpp 内）
+// 6. Args 通过 lambda 捕获传递（与旧 API 一致），不直接支持可变 Args
+// （spec 写 Args&&... 是 future-proofing，当前实现要求 kernel 单参数）
 //
 // ============================================================================
-// 23 号计划 §1：CPU-only compatibility API 标记
+// 23 §1：CPU-only compatibility API 标记
 // ----------------------------------------------------------------------------
 // 以下 parallel_for/parallel_tiles/parallel_reduce/parallel_batch 接受普通
 // C++ lambda / 函数对象 / host 函数指针，它们**只能作为 CPU 兼容执行入口**，
 // 不能直接作为 CUDA/HIP/SYCL device kernel 执行。
 //
 // 可加速路径必须使用：
-//   OperationId + KernelRegistration + KernelInvocation + KernelRegistry
+// OperationId + KernelRegistration + KernelInvocation + KernelRegistry
 // （见 include/astro/compute/kernel_registry.hpp）。
 // Dispatcher 只会把 invocation 交给 supports() 为 true 的 executor；
 // 设备 launcher 缺失时回退 CPU 并如实报告，不得静默伪装 GPU 执行。

@@ -3,15 +3,15 @@
 // 功能: 管线编排, 串联 5 个阶段 (CALIBRATE -> PLATESOLVE -> PSF -> PHOTOMETRIC -> DRIZZLE)
 //
 // 当前版本: 骨架实现
-//   - 各 run_stage_* 方法仅输出日志, 返回 true
-//   - load_config 简单读取 JSON 文件 (后续 Task 引入 JSON 库完善)
-//   - 检查点为骨架 (返回 true)
-//   - 内存使用查询返回 0 (后续 Task 实现)
+// - 各 run_stage_* 方法仅输出日志, 返回 true
+// - load_config 简单读取 JSON 文件 (后续 Task 引入 JSON 库完善)
+// - 检查点为骨架 (返回 true)
+// - 内存使用查询返回 0 (后续 Task 实现)
 // 后续 Task 将通过动态加载各模块 DLL 实现具体逻辑
 // ============================================================================
 
 #include "orchestrator.h"
-// R11: typed Stage1Config 完整定义 (unique_ptr 成员析构需要完整类型)
+// typed Stage1Config 完整定义 (unique_ptr 成员析构需要完整类型)
 #include "json_config.h"
 
 #include <iostream>
@@ -37,8 +37,8 @@
 #include "astro_image_io.h"
 // IVOA HiPS 写入器 (Phase1 Full Freeze v2, HiPS 迁移)
 #include "aio_hips.h"
-#include "aio_hips_reader.h"   // Phase1 V3: HIPS_VERIFY / Browser 唯一后端
-#include "healpix/healpix_core.h" // V5 HIPS-IMG-001: 共享 HEALPix core 映射
+#include "aio_hips_reader.h"   // Phase1 : HIPS_VERIFY / Browser 唯一后端
+#include "healpix/healpix_core.h" // HIPS-IMG-001: 共享 HEALPix core 映射
 // HioSnrModel / HISS SNR 模型结构
 #include "aio_healpix_io.h"
 
@@ -79,8 +79,8 @@ namespace fs = std::filesystem;
 // ============================================================================
 // JSON 字段提取 (基于 nlohmann/json)
 // 历史: 原 orc_findJsonKey/orc_extractJsonStr/orc_extractJsonNum 为手写字符串扫描,
-//       已替换为 nlohmann/json 解析。orc_getJsonString/Num/Bool 保留原签名以兼容
-//       stage handler 中的调用点 (约束: 不修改 orc_* 函数签名)。
+// 已替换为 nlohmann/json 解析。orc_getJsonString/Num/Bool 保留原签名以兼容
+// stage handler 中的调用点 (约束: 不修改 orc_* 函数签名)。
 // 文件作用域私有, 与 hp_stack_api.cpp 中的 findKey/extractNum 同风格。
 // ============================================================================
 namespace {
@@ -89,7 +89,7 @@ namespace {
 // 缓存解析结果避免每次调用都重新 parse 整个 JSON 文档。
 // 缓存键为原始字符串引用相等 (相同 std::string 对象或相同内容)。
 // 注意: 此缓存为文件作用域静态变量, 仅在单线程 stage 串行执行场景下使用,
-//       不适用于多线程并发解析 (orchestrator stage 串行执行, 安全)。
+// 不适用于多线程并发解析 (orchestrator stage 串行执行, 安全)。
 nlohmann::json s_parsed_config;
 std::string s_parsed_config_src;
 
@@ -110,13 +110,13 @@ const nlohmann::json& parse_config_cached(const std::string& s) {
 // ============================================================================
 // GAP-016: NSIDE 自适应计算
 // 根据原始图像采样率 (CD 矩阵) 和策略计算合适的 HEALPix nside
-//   strategy:
-//     "1x_to_2x_drizzle" (默认): HEALPix 像素分辨率 = 1-2x 原始像素分辨率
-//     "fixed": 使用 nside_override (nside_override > 0 时优先)
-//     nside_override > 0: 用户指定优先, 直接返回
-//   返回 nside (2 的幂次方, 范围 [16, 4194304])
-//   规范: 自动 NSIDE 上限 2^22=4194304, Tile 父级 NSIDE 不低于 16
-//         显式合法 NSIDE 不修改、不警告
+// strategy:
+// "1x_to_2x_drizzle" (默认): HEALPix 像素分辨率 = 1-2x 原始像素分辨率
+// "fixed": 使用 nside_override (nside_override > 0 时优先)
+// nside_override > 0: 用户指定优先, 直接返回
+// 返回 nside (2 的幂次方, 范围 [16, 4194304])
+// 规范: 自动 NSIDE 上限 2^22=4194304, Tile 父级 NSIDE 不低于 16
+// 显式合法 NSIDE 不修改、不警告
 // ============================================================================
 int calculate_nside(double cd11, double cd12, double cd21, double cd22,
                     const std::string& strategy, int nside_override) {
@@ -163,13 +163,13 @@ int calculate_nside(double cd11, double cd12, double cd21, double cd22,
     // 3. 按策略计算目标 HEALPix 像素分辨率
     // "1x_to_2x_drizzle": 取 1-2x 中间值 1.5, 避免过采样
     //
-    // R10 修复: 旧常数 1186.18 错误 (与 drizzle_engine.cpp 的 compute_auto_nside 不一致),
-    //           导致 nside 比正确值小约 178 倍 (6.3"/px 输入算出 512 而非 ~65536).
+    // 修复: 旧常数 1186.18 错误 (与 drizzle_engine.cpp 的 compute_auto_nside 不一致),
+    // 导致 nside 比正确值小约 178 倍 (6.3"/px 输入算出 512 而非 ~65536).
     // 正确公式 (与 drizzle_engine.cpp R05-B03 一致, 禁止魔数 210960/1186.18):
-    //   HEALPix 像素面积 = 4π / (12 * nside²) sr = π / (3 * nside²) sr
-    //   特征线性尺度 = sqrt(像素面积) = sqrt(π/3) / nside rad
-    //   转角秒: sqrt(π/3) / nside * (180/π) * 3600 ≈ 211034.6 / nside arcsec
-    //   反推: nside ≈ 211034.6 / target_resolution_arcsec
+    // HEALPix 像素面积 = 4π / (12 * nside²) sr = π / (3 * nside²) sr
+    // 特征线性尺度 = sqrt(像素面积) = sqrt(π/3) / nside rad
+    // 转角秒: sqrt(π/3) / nside * (180/π) * 3600 ≈ 211034.6 / nside arcsec
+    // 反推: nside ≈ 211034.6 / target_resolution_arcsec
     double drizzle_factor = 1.5;  // 默认 1x_to_2x_drizzle
     if (strategy == "fixed" || strategy == "1x") {
         drizzle_factor = 1.0;
@@ -190,7 +190,7 @@ int calculate_nside(double cd11, double cd12, double cd21, double cd22,
     double nside_target = HEALPIX_SCALE_PER_NSIDE_ARCSEC / target_resolution_arcsec;
 
     // 4. 找到不小于 nside_target 的最小 2 的幂次方
-    //    下限 16 (Tile 父级 NSIDE 不低于 16), 上限 4194304 (2^22, 规范要求)
+    // 下限 16 (Tile 父级 NSIDE 不低于 16), 上限 4194304 (2^22, 规范要求)
     int nside = 16;
     while (nside < nside_target && nside < 4194304) {
         nside *= 2;
@@ -292,7 +292,7 @@ double compute_array_std(const float* data, int64_t n, double mean) {
     return std::sqrt(sum_sq / static_cast<double>(n));
 }
 
-// 双精度 ABI (R10): double 版本统计函数 (重载)
+// 双精度 ABI : double 版本统计函数 (重载)
 // FP64 模式下直接在 double 上计算统计, 不降级到 float32
 double compute_array_mean(const double* data, int64_t n) {
     if (!data || n <= 0) return 0.0;
@@ -464,12 +464,12 @@ Orchestrator::Orchestrator() {
     start_time_ = std::chrono::steady_clock::now();
     // V18R2 (CODE-004): 日志目录由 main 按 config.output.log 解析后注入
     // （Logger::set_log_dir）；此处不再默认写 lib/orchestrator/logs 嵌套目录。
-    // 移除失真的"骨架版本"描述。
+    // 移除失真的""描述。
     LOG_INFO("orchestrator", "初始化编排器");
     LOG_INFO("orchestrator", "可用线程数: " + std::to_string(std::thread::hardware_concurrency()));
 }
 
-// R11: typed Stage1Config 直接驱动
+// typed Stage1Config 直接驱动
 void Orchestrator::set_stage1_config(const Stage1Config& cfg) {
     stage1_cfg_ = std::make_unique<Stage1Config>(cfg);
 }
@@ -792,7 +792,7 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     }
 
     // 获取函数指针 (CALIBRATE + AIO)
-    // 双精度 ABI (R10): FP64 模式下需要 ac_calibrate_frame_f64 和 aio_get_pixel_data_f64
+    // 双精度 ABI : FP64 模式下需要 ac_calibrate_frame_f64 和 aio_get_pixel_data_f64
     bool use_fp64 = (config_.precision == PrecisionMode::FP64);
     auto fn_calibrate = dll_loader_.get_function<int (*)(
         const float*, int, int,
@@ -862,8 +862,8 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     }
 
     // 1. 从 frame_ 读取 data 块
-    //    双精度 ABI (R10): FP64 模式下 data 块为 FLOAT64 [H,W], FP32 模式下为 FLOAT32 [H,W]
-    //    P03-003: data 是必需块 (READ_FITS 产出), 缺失必须失败 (退出码 3)
+    // 双精度 ABI : FP64 模式下 data 块为 FLOAT64 [H,W], FP32 模式下为 FLOAT32 [H,W]
+    // P03-003: data 是必需块 (READ_FITS 产出), 缺失必须失败 (退出码 3)
     const AioBlock* data_block = fn_get_block(frame_, "data");
     if (data_block == nullptr) {
         LOG_ERROR("orchestrator", "[CALIBRATE] data 块不存在 (必需块)");
@@ -903,7 +903,7 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
              + "s, FILTER='" + frame_filter + "'"
              + (has_ccd_temp ? (", CCD-TEMP=" + std::to_string(frame_ccd_temp) + "C") : ", CCD-TEMP=<none>"));
 
-    // 3. typed Stage1Config 直接驱动 (R11, 无 compat flat JSON)
+    // 3. typed Stage1Config 直接驱动 (, 无 compat flat JSON)
     std::string bias_path = stage1_cfg_->input.master_bias;
     std::string dark_path = stage1_cfg_->input.master_dark;
     std::string flat_path = stage1_cfg_->input.master_flat;
@@ -921,7 +921,7 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     double dark_k = 1.0;
 
     // 4. 显式 Master 约束 (CFG-106 已修: 禁止自动推导/硬编码 testdata 目录)
-    //    standard: master_dark + master_flat 必需; optimal/exposure_ratio: 三者必需
+    // standard: master_dark + master_flat 必需; optimal/exposure_ratio: 三者必需
     if (calib_mode == "standard") {
         if (dark_path.empty() || flat_path.empty()) {
             result.error_msg = "[CALIBRATE] mode=standard 需要 JSON 显式给出 master_dark 与 master_flat";
@@ -941,8 +941,8 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
              + " dark_exposure_s=" + std::to_string(calib_dark_exposure_s));
 
     // 5. 加载 Master 文件 (aio_read_xisf)
-    //    双精度 ABI (R10): FP64 模式优先获取 double* 像素数据 (aio_get_pixel_data_f64),
-    //    若文件只有 float32 则转换为 double (临时缓冲区持有)
+    // 双精度 ABI : FP64 模式优先获取 double* 像素数据 (aio_get_pixel_data_f64),
+    // 若文件只有 float32 则转换为 double (临时缓冲区持有)
     AIOImageData* bias_img = nullptr;
     AIOImageData* dark_img = nullptr;
     AIOImageData* flat_img = nullptr;
@@ -1099,7 +1099,7 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     }
 
     // 8. 分配输出缓冲 (ac_calibrate_frame 要求调用者分配)
-    //    双精度 ABI (R10): FP64 模式分配 double*, FP32 模式分配 float*
+    // 双精度 ABI : FP64 模式分配 double*, FP32 模式分配 float*
     float* out_f32 = nullptr;
     double* out_f64 = nullptr;
     if (use_fp64) {
@@ -1118,7 +1118,7 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     }
 
     // 9. 调用 ac_calibrate_frame (实际应用 Bias/Dark/Flat)
-    //    双精度 ABI (R10): FP64 模式调用 ac_calibrate_frame_f64 (double 像素算术, 不降级)
+    // 双精度 ABI : FP64 模式调用 ac_calibrate_frame_f64 (double 像素算术, 不降级)
     float actual_k_f32 = 0.0f;
     double actual_k_f64 = 0.0;
     LOG_INFO("orchestrator", "[CALIBRATE] 调用 ac_calibrate_frame" + std::string(use_fp64 ? "_f64" : "")
@@ -1150,7 +1150,7 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     }
 
     // 10. 计算校准前/后图像统计 + Master 均值
-    //     双精度 ABI: FP64 模式使用 double* 版本的统计函数 (重载)
+    // 双精度 ABI: FP64 模式使用 double* 版本的统计函数 (重载)
     double light_mean, light_median, light_std;
     double out_mean, out_median, out_std;
     double bias_mean, dark_mean, flat_mean;
@@ -1187,8 +1187,8 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
              + ", actual_k=" + std::to_string(actual_k));
 
     // 11. 替换 data 块 (转移所有权)
-    //     P03-003: data 块写回失败必须返回非零 (退出码 3, 必需块缺失)
-    //     双精度 ABI: FP64 模式写回 FLOAT64, FP32 模式写回 FLOAT32
+    // P03-003: data 块写回失败必须返回非零 (退出码 3, 必需块缺失)
+    // 双精度 ABI: FP64 模式写回 FLOAT64, FP32 模式写回 FLOAT32
     fn_remove_block(frame_, "data");
     int dims[2] = {height, width};
     if (use_fp64) {
@@ -1384,7 +1384,7 @@ static bool load_filter_curve(const std::string& json_path,
 // ============================================================================
 // 辅助: 加载 CCD QE 曲线 (GAP-012)
 // qe_curves.json 格式与 filters.json 一致:
-//   {"<name>": {"name": "...", "channel": "Q", "wavelength_nm": [...], "value": [...]}}
+// {"<name>": {"name": "...", "channel": "Q", "wavelength_nm": [...], "value": [...]}}
 // 注: 数组键名是 "value" 而非 "qe" (与 filters.json 共用解析逻辑)
 // ============================================================================
 static bool load_qe_curve(const std::string& json_path,
@@ -1548,7 +1548,7 @@ bool Orchestrator::init_platesolve_env(std::string& error_msg) {
     LOG_INFO("orchestrator", "[PLATESOLVE] star_detector.dll 加载成功");
 
     // 3. 创建 GaiaClient (使用 GaiaDR3SP 数据目录, db_type=GAIA_DB_DR3SP=2)
-    //    P03-002: gaia_data_dir 优先从 config 读取, 空时默认 project_root_dir_/GaiaDR3SP
+    // P03-002: gaia_data_dir 优先从 config 读取, 空时默认 project_root_dir_/GaiaDR3SP
     using gaia_create_ex_fn = GaiaClient* (*)(const char*, GaiaDbType);
     auto fn_gaia_create_ex = reinterpret_cast<gaia_create_ex_fn>(
         reinterpret_cast<void*>(GetProcAddress(gaia_h, "gaia_client_create_ex")));
@@ -1598,7 +1598,7 @@ bool Orchestrator::init_platesolve_env(std::string& error_msg) {
     sdet_params.iterativeClipSigma = 9.0f;
     sdet_params.iterativeMaxRounds = 5;
     sdet_params.medianFilterDetail = 1;
-    // R11: typed Stage1Config 直接驱动
+    // typed Stage1Config 直接驱动
     int cfg_max_stars = stage1_cfg_->platesolve.max_stars;
     if (cfg_max_stars <= 0) cfg_max_stars = 2000;
     sdet_params.maxStars = cfg_max_stars;
@@ -1705,9 +1705,9 @@ namespace {
 // ============================================================================
 // make_stable_star_id - stable star_id (Phase1 Full Freeze v2)
 // 规则 (wiki/05_STAR_MEASUREMENT_SHARED_DATA.md):
-//   - 帧内唯一且不可复用;
-//   - 与行号无关 (不依赖数组下标, 排序变化不得造成无法对账);
-//   - 由检测位置确定性派生 (量化 x/y 后混合哈希)。
+// - 帧内唯一且不可复用;
+// - 与行号无关 (不依赖数组下标, 排序变化不得造成无法对账);
+// - 由检测位置确定性派生 (量化 x/y 后混合哈希)。
 // 碰撞时 (极罕见) 在低 16 位叠加递增偏移, 保证帧内唯一。
 // ============================================================================
 uint64_t make_stable_star_id(double x, double y) {
@@ -1744,15 +1744,15 @@ void assign_stable_star_ids(const double* x, const double* y, int n,
 // run_stage_platesolve - PLATESOLVE 阶段 (Phase1 Full Freeze v2 修订流水线)
 // 修订流水线: CALIBRATE -> PSF/STAR_MEASURE -> PLATESOLVE -> PHOTOMETRIC -> SNR
 // 职责:
-//   1. 读取 PSF/STAR_MEASURE 产出的权威 star_det 块 (FLOAT64 [N,6], 禁止重检测)
-//   2. 读取 "data" 块仅获取图像尺寸 (不用于检测)
-//   3. 读取 "header" KV 块的 OBJCTRA/OBJCTDEC/FOCALLEN/XPIXSZ 作为初始指向
-//   4. 调用 ipv_solve_from_detections_v1 求解 WCS+SIP (跳过 sdet_detect_ex)
-//   5. 将 WCS+SIP 结果写回 "header" KV 块
+// 1. 读取 PSF/STAR_MEASURE 产出的权威 star_det 块 (FLOAT64 [N,6], 禁止重检测)
+// 2. 读取 "data" 块仅获取图像尺寸 (不用于检测)
+// 3. 读取 "header" KV 块的 OBJCTRA/OBJCTDEC/FOCALLEN/XPIXSZ 作为初始指向
+// 4. 调用 ipv_solve_from_detections_v1 求解 WCS+SIP (跳过 sdet_detect_ex)
+// 5. 将 WCS+SIP 结果写回 "header" KV 块
 // 约束:
-//   - 一帧只做一次权威检测 (PSF 阶段), 本阶段不得调用 sdet_detect_ex;
-//   - 不得改写 star_det / star_measurements / psf 块;
-//   - 必须使用 OBJCTRA/OBJCTDEC 作为初始指向, 无论是否已有 WCS 数据。
+// - 一帧只做一次权威检测 (PSF 阶段), 本阶段不得调用 sdet_detect_ex;
+// - 不得改写 star_det / star_measurements / psf 块;
+// - 必须使用 OBJCTRA/OBJCTDEC 作为初始指向, 无论是否已有 WCS 数据。
 // ============================================================================
 bool Orchestrator::run_stage_platesolve(TaskResult& result) {
     LOG_INFO("orchestrator", "[PLATESOLVE] 开始 (消费 PSF 星点, ipv_solve_from_detections_v1)");
@@ -1806,8 +1806,8 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
     }
 
     // 1. 读取 data 块仅获取图像尺寸 (FLOAT32 或 FLOAT64 [H,W])
-    //    P03-003: data 是必需块 (CALIBRATE 产出), 缺失必须失败 (退出码 3)
-    //    本阶段不再读取像素做检测 (检测已在 PSF/STAR_MEASURE 完成)
+    // P03-003: data 是必需块 (CALIBRATE 产出), 缺失必须失败 (退出码 3)
+    // 本阶段不再读取像素做检测 (检测已在 PSF/STAR_MEASURE 完成)
     const AioBlock* data_block = fn_get_block(frame_, "data");
     if (data_block == nullptr) {
         LOG_ERROR("orchestrator", "[PLATESOLVE] data 块不存在 (必需块)");
@@ -1819,11 +1819,11 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
     int width = data_block->dims[1];
     LOG_INFO("orchestrator", "[PLATESOLVE] 图像: " + std::to_string(width) + "x" + std::to_string(height));
 
-    // 1.1 构造 astrometric_detections (Phase1 Final Closure V3)
-    //     权威输入 = star_measurements 的 PSF 拟合中心 (统一"像素索引即中心坐标"契约),
-    //     过滤: invalid fit / 严重饱和 / 异常 FWHM / 边缘。
-    //     fallback = star_det 检测坐标 (显式 DETECTOR_FALLBACK, sdet 像素中心=索引+0.5
-    //     显式转统一契约 -0.5), 仅当 PSF 有效星不足以求解时补充, 位置去重。
+    // 1.1 构造 astrometric_detections (Phase1 Final Closure )
+    // 权威输入 = star_measurements 的 PSF 拟合中心 (统一"像素索引即中心坐标"契约),
+    // 过滤: invalid fit / 严重饱和 / 异常 FWHM / 边缘。
+    // fallback = star_det 检测坐标 (显式 DETECTOR_FALLBACK, sdet 像素中心=索引+0.5
+    // 显式转统一契约 -0.5), 仅当 PSF 有效星不足以求解时补充, 位置去重。
     const AioBlock* sm_block = fn_get_block(frame_, "star_measurements");
     const AioBlock* star_det_block = fn_get_block(frame_, "star_det");
     if (sm_block == nullptr || sm_block->type != AIO_BLOCK_FLOAT64 ||
@@ -1837,8 +1837,8 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
     int n_sm = sm_block->dims[0];
     const double* smd = static_cast<const double*>(sm_block->data);
     // star_measurements 列: 0 star_id, 1 x, 2 y, 3 flux_inst, 4 flux_unc,
-    //   5 background, 6 psf_status, 7 fwhm, 8 A, 9 B, 10 mad, 11 ecc,
-    //   12 mag, 13 saturated, 14 has_saturated
+    // 5 background, 6 psf_status, 7 fwhm, 8 A, 9 B, 10 mad, 11 ecc,
+    // 12 mag, 13 saturated, 14 has_saturated
     std::vector<double> astro_det;
     std::vector<double> psf_xs, psf_ys;
     int n_psf = 0, n_fallback = 0, n_filtered = 0;
@@ -1907,14 +1907,14 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
              + " (不重检测, 统一坐标契约)");
 
     // 2. 从 header KV 读取初始指向 (OBJCTRA/OBJCTDEC/FOCALLEN/XPIXSZ)
-    //    约束: 必须使用 OBJCTRA/OBJCTDEC 作为初始指向, 无论是否已有 WCS 数据
-    //    P03-002: 支持从 config 覆盖 (initial_ra/initial_dec/focal_length/pixel_size)
+    // 约束: 必须使用 OBJCTRA/OBJCTDEC 作为初始指向, 无论是否已有 WCS 数据
+    // P03-002: 支持从 config 覆盖 (initial_ra/initial_dec/focal_length/pixel_size)
     const char* objctra = fn_kv_get(frame_, "header", "OBJCTRA");
     const char* objctdec = fn_kv_get(frame_, "header", "OBJCTDEC");
     double focal_length = fn_kv_get_double(frame_, "header", "FOCALLEN", 0.0);
     double pixel_size = fn_kv_get_double(frame_, "header", "XPIXSZ", 0.0);
 
-    // R11: typed Stage1Config 直接驱动 (initial_ra/dec; focal/pixel 保留 header 值)
+    // typed Stage1Config 直接驱动 (initial_ra/dec; focal/pixel 保留 header 值)
     std::string cfg_initial_ra;
     std::string cfg_initial_dec;
     if (stage1_cfg_->platesolve.initial_ra_deg != -999.0) {
@@ -1937,7 +1937,7 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
              + (!cfg_initial_ra.empty() ? " (部分来自 config)" : ""));
 
     // 3. 调用 ipv_solve_from_detections_v1 (P02-002 路径 A)
-    //    与 ipv_solve_from_memory 算法等价, 仅跳过 sdet_detect_ex (检测已在 PSF 完成)
+    // 与 ipv_solve_from_memory 算法等价, 仅跳过 sdet_detect_ex (检测已在 PSF 完成)
     auto fn_ipv_solve_det = dll_loader_.get_function<int (*)(
         void*, const double*, int, int, int, double, double, double, double,
         const IpvParams*, IpvWcsResult*)>(
@@ -2052,7 +2052,7 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
     }
 
     // 6. star_det / star_det_psf_compat / star_measurements 均由 PSF/STAR_MEASURE 阶段产出,
-    //    本阶段不重写 (修订流水线: 一帧只做一次权威检测和一次权威 instrumental flux 测量)。
+    // 本阶段不重写 (修订流水线: 一帧只做一次权威检测和一次权威 instrumental flux 测量)。
     LOG_INFO("orchestrator", "[PLATESOLVE] star_det 块由 PSF/STAR_MEASURE 产出, 未重写 "
              "(检测次数保持 1 次)");
 
@@ -2100,7 +2100,7 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
 
     // 双精度 ABI: 根据 config_.precision (与 PrecisionContext 一致) 选择像素数据源
     // FP64 模式: data 块为 FLOAT64, 直接使用 double 图像 (不降级到 uint16/float32),
-    //            调用 dpsf_fit_batch_d 在 double 上裁剪 patch 拟合。
+    // 调用 dpsf_fit_batch_d 在 double 上裁剪 patch 拟合。
     // FP32 模式: data 块为 FLOAT32, 转为 UINT16 调用 dpsf_fit_batch (向后兼容)。
     bool use_fp64 = (config_.precision == PrecisionMode::FP64);
 
@@ -2117,7 +2117,7 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
              + " mode=" + (use_fp64 ? "FP64" : "FP32"));
 
     const double* pixels_f64 = nullptr;   // FP64 路径 (指向 data 块内部, 不持有所有权)
-    const float* pixels_f32 = nullptr;    // FP32 路径 (R11: 直接使用 float 数据, 不转 uint16)
+    const float* pixels_f32 = nullptr;    // FP32 路径 (: 直接使用 float 数据, 不转 uint16)
 
     if (use_fp64) {
         pixels_f64 = static_cast<const double*>(data_block->data);
@@ -2168,8 +2168,8 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
     }
 
     // 2.2 星点检测 (修订流水线: 一帧只做一次权威检测, 发生在 PSF/STAR_MEASURE)
-    //     FP32: float -> uint16 clamp (与 ipv_select_from_memory 转换一致);
-    //     FP64: 全程 double (sdet_detect_ex_f64, 不降级)
+    // FP32: float -> uint16 clamp (与 ipv_select_from_memory 转换一致);
+    // FP64: 全程 double (sdet_detect_ex_f64, 不降级)
     double *det_x = nullptr, *det_y = nullptr;
     float *det_flux = nullptr;
     int *det_sat = nullptr;
@@ -2213,7 +2213,7 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
              + (use_fp64 ? "FP64" : "FP32") + ")");
 
     // 2.3 权威 star_det 块 (FLOAT64 [N,6]) + PSF 兼容视图 (FLOAT32 [N,4])
-    //     BLOCKER-TYPE-001: 权威块保留 FP64 全精度与饱和列, 禁止隐式 F64→F32
+    // BLOCKER-TYPE-001: 权威块保留 FP64 全精度与饱和列, 禁止隐式 F64→F32
     std::vector<double> star_det64(static_cast<size_t>(n_stars) * 6);
     std::vector<float> star_det32(static_cast<size_t>(n_stars) * 4);
     double max_compat_rel = 0.0;
@@ -2269,10 +2269,10 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
     }
 
     // 3. 获取 PSF 拟合函数指针并按精度模式调用
-    //    FP64: dpsf_fit_batch_d (double 图像, 返回完整 DPSFFitResult*)
-    //    FP32: dpsf_fit_batch   (uint16 图像, 返回完整 DPSFFitResult*)
-    //    两者返回的结构体字段一致, 下游 psf 块映射保持不变 (向后兼容)。
-    // R11: typed Stage1Config 直接驱动
+    // FP64: dpsf_fit_batch_d (double 图像, 返回完整 DPSFFitResult*)
+    // FP32: dpsf_fit_batch (uint16 图像, 返回完整 DPSFFitResult*)
+    // 两者返回的结构体字段一致, 下游 psf 块映射保持不变 (向后兼容)。
+    // typed Stage1Config 直接驱动
     int fit_radius = stage1_cfg_->psf.fit_radius;
     int max_iter = stage1_cfg_->psf.max_iterations;
     double tolerance = stage1_cfg_->psf.tolerance;
@@ -2317,7 +2317,7 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
                              cx_arr.data(), cy_arr.data(), n_stars,
                              &params, &results);
     } else {
-        // R11 (PREC-105): FP32 直接使用 float32 图像 (dpsf_fit_batch_f),
+        // FP32 直接使用 float32 图像 (dpsf_fit_batch_f),
         // 不再经过 uint16 有损转换
         auto fn_fit_batch_f = dll_loader_.get_function<int (*)(
             const float*, int, int,
@@ -2358,8 +2358,8 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
 
     // 4. 写入 psf 块 (FLOAT64 [N,9])
     // 列含义 (与 snr_estimator.h 一致):
-    //   [0]=status, [1]=B, [2]=flux, [3]=cx, [4]=cy,
-    //   [5]=fwhm(平均), [6]=A, [7]=mad, [8]=eccentricity
+    // [0]=status, [1]=B, [2]=flux, [3]=cx, [4]=cy,
+    // [5]=fwhm(平均), [6]=A, [7]=mad, [8]=eccentricity
     int64_t n_elements = static_cast<int64_t>(n_stars) * 9;
     double* psf_data = static_cast<double*>(std::malloc(n_elements * sizeof(double)));
     if (psf_data == nullptr) {
@@ -2396,14 +2396,14 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
     }
 
     // 5. 写入 star_measurements 权威块 (FLOAT64 [N,15], schema astrocs-star-measurements-1)
-    //    列含义:
-    //      [0]=star_id (int64 as double), [1]=x, [2]=y,
-    //      [3]=flux_inst (PSF integrated flux), [4]=flux_uncertainty (PSF mad proxy),
-    //      [5]=background (PSF B), [6]=psf_status, [7]=fwhm,
-    //      [8]=A, [9]=B, [10]=mad, [11]=eccentricity,
-    //      [12]=mag (detector), [13]=saturated, [14]=has_saturated
-    //    说明: PSF 当前不输出独立 background_rms, SNR 使用 A/B/mad (与冻结 SNR 定义一致);
-    //          下游必须通过 star_id 连接, 禁止通过数组行号隐式连接。
+    // 列含义:
+    // [0]=star_id (int64 as double), [1]=x, [2]=y,
+    // [3]=flux_inst (PSF integrated flux), [4]=flux_uncertainty (PSF mad proxy),
+    // [5]=background (PSF B), [6]=psf_status, [7]=fwhm,
+    // [8]=A, [9]=B, [10]=mad, [11]=eccentricity,
+    // [12]=mag (detector), [13]=saturated, [14]=has_saturated
+    // 说明: PSF 当前不输出独立 background_rms, SNR 使用 A/B/mad (与冻结 SNR 定义一致);
+    // 下游必须通过 star_id 连接, 禁止通过数组行号隐式连接。
     {
         const int kSmCols = 15;
         std::vector<double> sm(static_cast<size_t>(n_stars) * kSmCols, 0.0);
@@ -2411,7 +2411,7 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
             const double* prow = psf_data + static_cast<size_t>(i) * 9;
             double* row = sm.data() + static_cast<size_t>(i) * kSmCols;
             row[0] = static_cast<double>(star_ids[static_cast<size_t>(i)]);
-            // Phase1 Final Closure V3: 权威坐标为 PSF 拟合中心 (DPSF 输出,
+            // Phase1 Final Closure : 权威坐标为 PSF 拟合中心 (DPSF 输出,
             // 统一"像素索引即中心坐标"契约), 检测初值仅作 fallback。
             // PSF 成功: x/y = results[i].cx/cy; PSF 失败: 暂存检测坐标 (status 已失败)。
             // status: 0=DPSF_FIT_OK, 3=DPSF_FIT_ITERATION_LIMIT (参数有效亦视为成功)
@@ -2529,7 +2529,7 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     }
 
     // 1. 读取 data 块 ([H,W])
-    //    R10: FP64 模式下 data 块为 FLOAT64 (double), 否则为 FLOAT32 (float)
+    // FP64 模式下 data 块为 FLOAT64 (double), 否则为 FLOAT32 (float)
     const AioBlock* data_block = fn_get_block(frame_, "data");
     if (data_block == nullptr) {
         LOG_ERROR("orchestrator", "[PHOTOMETRIC] data 块不存在");
@@ -2557,7 +2557,7 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     }
 
     // 2. 读取 psf 块 (FLOAT64 [N,9])
-    //    P03-003: psf 是必需块 (PSF 阶段产出), 缺失必须失败 (退出码 3)
+    // P03-003: psf 是必需块 (PSF 阶段产出), 缺失必须失败 (退出码 3)
     const AioBlock* psf_block = fn_get_block(frame_, "psf");
     if (psf_block == nullptr || psf_block->dims[0] <= 0) {
         LOG_ERROR("orchestrator", "[PHOTOMETRIC] psf 块不存在或为空 (必需块, PSF 应产出)");
@@ -2582,7 +2582,7 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     }
 
     // 2.1 读取 star_measurements 权威块 (FLOAT64 [N,15], col0=star_id)
-    //     Phase1 v2: Photometric 匹配结果通过 star_id 回连, 禁止数组行号隐式连接
+    // Phase1 v2: Photometric 匹配结果通过 star_id 回连, 禁止数组行号隐式连接
     std::vector<int64_t> psf_star_ids(n_psf, 0);
     std::vector<PcMatchRecord> match_records(static_cast<size_t>(n_psf));
     const AioBlock* sm_block = fn_get_block(frame_, "star_measurements");
@@ -2604,7 +2604,7 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     std::string filter_name = map_filter_name(filter_str);
     LOG_INFO("orchestrator", "[PHOTOMETRIC] FILTER='" + filter_str + "' -> '" + filter_name + "'");
 
-    // 加载滤光片曲线 (R11: typed Stage1Config 直接驱动; schema 已必需
+    // 加载滤光片曲线 (: typed Stage1Config 直接驱动; schema 已必需
     // filter_response, 缺失时硬失败, 禁止默认路径兜底)
     std::string filters_json = stage1_cfg_->photometric.filter_response;
     if (filters_json.empty()) {
@@ -2627,7 +2627,7 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     std::vector<double> qe_wl, qe_trans;
     std::string qe_name = extract_qe_curve_name(config_.calib_params_json);
     if (!qe_name.empty()) {
-        // R11: typed Stage1Config 直接驱动
+        // typed Stage1Config 直接驱动
         std::string qe_json = stage1_cfg_->photometric.qe_curve;
         if (qe_json.empty()) {
             LOG_ERROR("orchestrator", "[PHOTOMETRIC] 配置缺少 photometric.qe_curve "
@@ -2679,12 +2679,12 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     }
     LOG_INFO("orchestrator", "[PHOTOMETRIC] FOV 半径: " + std::to_string(fov_radius_deg) + "deg");
 
-    // R11: typed Stage1Config 直接驱动 (mag_min/mag_max 保留科学默认, fov 自动计算)
+    // typed Stage1Config 直接驱动 (mag_min/mag_max 保留科学默认, fov 自动计算)
     double mag_min = 6.0;
     double mag_max = 16.0;
     // 4. 调用 pc_calibrate_simple_with_gaia (DLL 内部: 锥形搜索+光谱积分+星匹配+scale 校正)
     // 签名扩展 (GAP-012): 新增 qe_wl/qe_trans/qe_count 三个参数, 位于 filter 参数之后 spectrum 参数之前
-    // R10: FP64 模式调用 _f64 变体 (pixels/out_pixels 为 double*)
+    // FP64 模式调用 _f64 变体 (pixels/out_pixels 为 double*)
     int64_t n_pix = static_cast<int64_t>(width) * height;
     int out_n_matched = 0;
     double out_scale = 0.0, out_sigma = 0.0;
@@ -2698,7 +2698,7 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     const double* sip_bp_ptr = (wcs.has_ap) ? wcs.sip_bp : nullptr;
 
     if (use_fp64) {
-        // R10 + Phase1 v2: FP64 路径 - pc_calibrate_simple_with_gaia_f64_v2 (per-star 导出)
+        // + Phase1 v2: FP64 路径 - pc_calibrate_simple_with_gaia_f64_v2 (per-star 导出)
         auto fn_pc_calib_f64 = dll_loader_.get_function<int (*)(
             void*, double, double, double, double, double,
             const double*, const double*, int,
@@ -2852,9 +2852,9 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     // out_pixels 所有权已转移给 frame_
 
     // 6.0 Phase1 v2: 写入 photometric_match 权威块 (FLOAT64 [N,6])
-    //     col0=star_id, col1=dr3sp_id, col2=reference_flux(F_syn),
-    //     col3=residual(log10(F_instr/F_syn), NaN=未匹配), col4=status, col5=reject_reason
-    //     star_id 贯穿 PSF→PlateSolve→Photometric→SNR (禁止数组行号隐式连接)
+    // col0=star_id, col1=dr3sp_id, col2=reference_flux(F_syn),
+    // col3=residual(log10(F_instr/F_syn), NaN=未匹配), col4=status, col5=reject_reason
+    // star_id 贯穿 PSF→PlateSolve→Photometric→SNR (禁止数组行号隐式连接)
     if (!match_records.empty() && fn_add_block_move) {
         double* pm = static_cast<double*>(std::malloc(
             static_cast<size_t>(n_psf) * 6 * sizeof(double)));
@@ -3024,9 +3024,9 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
 
 
 // ============================================================================
-// V4 G4: 确定性像素抽样状态 (raw->calibrated->photometric->drizzle 同一组样本)
-//   trace_selection.json/.tsv : 选中源像素坐标 (与 drizzle trace 共用)
-//   pixel_lineage.jsonl       : 各阶段实际 buffer 值
+// G4: 确定性像素抽样状态 (raw->calibrated->photometric->drizzle 同一组样本)
+// trace_selection.json/.tsv : 选中源像素坐标 (与 drizzle trace 共用)
+// pixel_lineage.jsonl : 各阶段实际 buffer 值
 // ============================================================================
 static std::vector<std::pair<int,int>> g_trace_pixels;
 static bool g_trace_pixels_ready = false;
@@ -3047,14 +3047,14 @@ static void write_stage_trace(DllLoader& loader, const PipelineFrame* frame,
     if (!fn_get_block) return;
 
     std::string dir = diagnostics_dir + "/trace";
-    // 先创建目录再写选择集 (V5 G4 回归: 目录不存在时首阶段 fopen 失败,
+    // 先创建目录再写选择集 ( G4 回归: 目录不存在时首阶段 fopen 失败,
     // 导致 drizzle 引擎 fallback 覆盖 selection)
     {
         std::string mk = "mkdir -p \"" + dir + "\"";
         if (std::system(mk.c_str()) != 0) std::system(("mkdir \"" + dir + "\"").c_str());
     }
 
-    // V4 G4: 首阶段 (READ_FITS) 生成确定性像素样本集
+    // G4: 首阶段 (READ_FITS) 生成确定性像素样本集
     const AioBlock* db0 = fn_get_block(frame, "data");
     const int img_h = (db0 && db0->n_dims >= 2) ? (int)db0->dims[0] : 0;
     const int img_w = (db0 && db0->n_dims >= 2) ? (int)db0->dims[1] : 0;
@@ -3208,7 +3208,7 @@ static void write_stage_trace(DllLoader& loader, const PipelineFrame* frame,
     std::fwrite(json.data(), 1, json.size(), f);
     std::fclose(f);
 
-    // V4 G4: 同一组样本像素值 (raw->calibrated->photometric 实际 buffer)
+    // G4: 同一组样本像素值 (raw->calibrated->photometric 实际 buffer)
     if (!g_trace_pixels.empty() && db0 && db0->data &&
         db0->count >= (int64_t)img_w * img_h) {
         FILE* pf = std::fopen((dir + "/pixel_lineage.jsonl").c_str(), "ab");
@@ -3252,7 +3252,7 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
         return false;
     }
 
-    // 获取函数指针 (Phase1 V3: 正式末端 hp_drizzle_run_hips 直写 HiPS)
+    // 获取函数指针 (Phase1 : 正式末端 hp_drizzle_run_hips 直写 HiPS)
     auto fn_drizzle_hips = dll_loader_.get_function<int (*)(
         PipelineFrame*, int, int, double,
         const char*, const char*, HpDrizzleResult*, int)>(
@@ -3279,7 +3279,7 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
         LOG_WARN("orchestrator", "[DRIZZLE] aio_frame_kv_get_double 不可用, CD 矩阵取 0");
     }
 
-    // 2) R11: typed Stage1Config 直接驱动 (nside/pixfrac/ordering/precision)
+    // 2) : typed Stage1Config 直接驱动 (nside/pixfrac/ordering/precision)
     std::string nside_strategy = "1x_to_2x_drizzle";
     int nside_override = 0;
     double pixfrac = stage1_cfg_->drizzle.pixfrac;
@@ -3305,11 +3305,11 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
     }
 
     // 调用 hp_drizzle_run_hips
-    // P03-002: pixfrac 从 config 读取 (省略时生产默认 0.8, V5 CFG-001), nested 从 config 读取 (默认 true)
+    // P03-002: pixfrac 从 config 读取 (省略时生产默认 0.8, CFG-001), nested 从 config 读取 (默认 true)
     // hips_dir = output.hips (缺省由 current_output_path_ 派生, 去 .hiss 换 .hips)
     // legacy .hiss 仅在 validation.legacy_hiss_compare=true 时写出 (默认关闭)
-    // R10: 通过 header KV "PRECISION" 传递精度模式给 drizzle DLL
-    //      "fp32" (默认) 或 "fp64", drizzle DLL 写入 HISS metadata precision_mode 字段
+    // 通过 header KV "PRECISION" 传递精度模式给 drizzle DLL
+    // "fp32" (默认) 或 "fp64", drizzle DLL 写入 HISS metadata precision_mode 字段
     auto fn_kv_set = dll_loader_.get_function<int (*)(
         PipelineFrame*, const char*, const char*, const char*)>(
         ModuleId::AIO, "aio_frame_kv_set");
@@ -3385,22 +3385,22 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
 // ============================================================================
 // stage 7: HISS_VERIFY - 验证 drizzle 输出的 .hiss 文件完整性
 // TEST-003/TEST-004: 全 Tile 遍历验证 (不再只检查前 10 个 Tile)
-// R10: 同时验证 metadata 中 precision_mode 与请求一致
+// 同时验证 metadata 中 precision_mode 与请求一致
 // 验证项:
-//   1. 文件可正常打开 (aio_hiss_inspect 返回 0)
-//   2. metadata 中 precision_mode 与请求一致 (若 metadata 包含该字段)
-//   3. 全 Tile 遍历: 每个 Tile 必须通过以下验证
-//      a. required 子块 (SIGNAL + SUPPORT) — read_tile_* 找不到子块返回错误
-//      b. checksum — HissReader::read_subblock 内部校验
-//      c. occupancy 与 compact 长度一致 — HissReader 按 occ_mode 展开时验证
-//      d. dtype 与 metadata precision_mode 一致 — HissReader 拒绝静默转换
-//      e. signal 中不得有 NaN/Inf — 显式检查
-//   4. 至少一个 Tile 有非零 signal (汇总后检查)
-//   5. 任何 Tile 失败都硬失败 (返回 HISS_INVALID)
-//   6. 输出全 Tile 验证汇总 (n_tiles, n_passed, n_failed, n_signal_nonzero, n_support_nonzero)
+// 1. 文件可正常打开 (aio_hiss_inspect 返回 0)
+// 2. metadata 中 precision_mode 与请求一致 (若 metadata 包含该字段)
+// 3. 全 Tile 遍历: 每个 Tile 必须通过以下验证
+// a. required 子块 (SIGNAL + SUPPORT) — read_tile_* 找不到子块返回错误
+// b. checksum — HissReader::read_subblock 内部校验
+// c. occupancy 与 compact 长度一致 — HissReader 按 occ_mode 展开时验证
+// d. dtype 与 metadata precision_mode 一致 — HissReader 拒绝静默转换
+// e. signal 中不得有 NaN/Inf — 显式检查
+// 4. 至少一个 Tile 有非零 signal (汇总后检查)
+// 5. 任何 Tile 失败都硬失败 (返回 HISS_INVALID)
+// 6. 输出全 Tile 验证汇总 (n_tiles, n_passed, n_failed, n_signal_nonzero, n_support_nonzero)
 // ============================================================================
 bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
-    // V5 CFG-002: HISS_VERIFY 仅 legacy_hiss_compare=true 时可执行
+    // CFG-002: HISS_VERIFY 仅 legacy_hiss_compare=true 时可执行
     if (!stage1_cfg_->validation.legacy_hiss_compare) {
         LOG_INFO("orchestrator", "[HISS_VERIFY] legacy_hiss_compare=false, 跳过 (正式验证为 HIPS_VERIFY)");
         return true;
@@ -3480,7 +3480,7 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
     }
 
     // 2. 验证 metadata 中 precision_mode (若字段存在)
-    // R10: precision_mode 字段 0=FP32, 1=FP64
+    // precision_mode 字段 0=FP32, 1=FP64
     // 若 metadata 不含 precision_mode 字段, 视为默认 FP32 (向后兼容)
     // FP64 请求时若 metadata 无 precision_mode, 输出 WARN (FP64 兼容模式)
     uint8_t requested_prec = static_cast<uint8_t>(config_.precision);
@@ -3514,7 +3514,7 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
                  + std::to_string(meta_prec) + " ("
                  + (requested_prec == 1 ? "FP64" : "FP32") + ")");
     } else {
-        // R11 (HISS-101): 正式验证缺 precision_mode 字段一律硬失败
+        // 正式验证缺 precision_mode 字段一律硬失败
         // (旧文件兼容只能走独立 legacy 读取, 不得让正式 Phase1 验证软通过)
         LOG_ERROR("orchestrator", "[HISS_VERIFY] metadata 缺 precision_mode 字段 (硬失败)");
         if (meta_json) fn_free(meta_json);
@@ -3525,7 +3525,7 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
     }
 
     // 3. 至少一个 Tile 可读取 + signal 非全零 + support 非全零
-    // R10: 根据 requested_prec 选择 FP32 或 FP64 读取函数
+    // 根据 requested_prec 选择 FP32 或 FP64 读取函数
     using ReadTileSignalFn = int (*)(const char*, uint64_t, float**, uint32_t*);
     using ReadTileSignalF64Fn = int (*)(const char*, uint64_t, double**, uint32_t*);
     using ReadTileSupportFn = int (*)(const char*, uint64_t, uint8_t**, uint32_t*);
@@ -3535,7 +3535,7 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
         ModuleId::AIO, "aio_hiss_read_tile_signal_f64");
     auto fn_read_support = loader.get_function<ReadTileSupportFn>(
         ModuleId::AIO, "aio_hiss_read_tile_support");
-    // R13 (HISS_IO_REPAIR): Verify 单句柄 — 打开一次, 遍历全部 Tile
+    // Verify 单句柄 — 打开一次, 遍历全部 Tile
     // (旧实现每 Tile 构造 Reader 反复打开文件, 完整帧 HISS_VERIFY 130s)
     using OpenSessionFn = void* (*)(const char*, uint32_t*, uint32_t*, uint64_t*);
     using ReadSigSessFn = int (*)(void*, uint64_t, float**, uint32_t*);
@@ -3601,12 +3601,12 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
 
     // 3. 遍历全部 Tile 验证 (TEST-003/TEST-004: 不再只检查前 10 个)
     // 每个 Tile 验证项 (HissReader 隐式验证 + 显式检查):
-    //   a. required 子块 (SIGNAL + SUPPORT) — read_tile_signal/support 找不到子块返回错误
-    //   b. checksum — read_subblock 内部校验, 不匹配返回 HISS_ERR_CHECKSUM
-    //   c. occupancy 与 compact 长度一致 — HissReader 按 occ_mode 展开时验证
-    //   d. dtype 与 metadata precision_mode 一致 — HissReader 拒绝静默转换 (FP32/FP64 互斥)
-    //   e. signal 中不得有 NaN/Inf — 显式检查
-    //   f. 至少一个 Tile 有非零 signal — 汇总后检查
+    // a. required 子块 (SIGNAL + SUPPORT) — read_tile_signal/support 找不到子块返回错误
+    // b. checksum — read_subblock 内部校验, 不匹配返回 HISS_ERR_CHECKSUM
+    // c. occupancy 与 compact 长度一致 — HissReader 按 occ_mode 展开时验证
+    // d. dtype 与 metadata precision_mode 一致 — HissReader 拒绝静默转换 (FP32/FP64 互斥)
+    // e. signal 中不得有 NaN/Inf — 显式检查
+    // f. 至少一个 Tile 有非零 signal — 汇总后检查
     uint64_t n_passed = 0, n_failed = 0;
     uint64_t n_signal_nonzero = 0, n_support_nonzero = 0;
     uint64_t n_snr_points_total = 0, n_tiles_with_snr = 0;
@@ -3718,7 +3718,7 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
         }
         fn_free(support);
 
-        // R11 (HISS-103): 读取 SNR 控制点 (按文件 dtype 选择 f32 8B/点 或 f64 12B/点)
+        // 读取 SNR 控制点 (按文件 dtype 选择 f32 8B/点 或 f64 12B/点)
         uint8_t* snr_buf = nullptr;
         uint32_t n_snr = 0;
         auto snr_api_sess = is_fp64 ? fn_read_snr_f64_sess : fn_read_snr_sess;
@@ -3737,7 +3737,7 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
         if (tile_support_nonzero) { ++n_support_nonzero; }
         ++n_passed;
 
-        // R13 (HISS_IO_REPAIR): 逐 Tile 日志降级 — Logger 每条 flush 写盘,
+        // 逐 Tile 日志降级 — Logger 每条 flush 写盘,
         // 285 Tile 日志拖慢 verify (130s 中大部分); 只保留阶段/汇总
     }
 
@@ -3756,7 +3756,7 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
         return false;
     }
 
-    // R11 (HISS-103): SNR 控制点必须存在 (SNR 是必需 stage)
+    // SNR 控制点必须存在 (SNR 是必需 stage)
     if (n_snr_points_total == 0) {
         LOG_ERROR("orchestrator", "[HISS_VERIFY] 全部 Tile 无 SNR 控制点 — SNR 数据缺失");
         result.error_msg = "[HISS_VERIFY] 全部 Tile 无 SNR 控制点";
@@ -3779,16 +3779,16 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
 }
 
 // ============================================================================
-// stage 8: HIPS_VERIFY - 验证 HiPS 产品集 (Phase1 Final Closure V3)
-//   唯一后端: AIO HiPS Reader (aio_hips_reader.dll 函数, 不经 astropy/CFITSIO)
-//   验证项:
-//     1. signal/support/snr 三产品 properties (hips_version=1.4, order, width)
-//     2. signal/support dtype 与 precision 一致 (manifest astrocs_signal_dtype)
-//     3. 叶级 tile 全遍历: support∈[0,1], support>0 -> signal 有限,
-//        support==0 -> signal NaN; F = signal*support*A_cell 有限非负
-//     4. MOC 覆盖: tile 列表来自 MOC, 且每个 tile FITS 文件存在
-//     5. SNR catalogue: 点数 > 0
-//     6. hierarchy: Norder0..NorderK 目录存在
+// stage 8: HIPS_VERIFY - 验证 HiPS 产品集 (Phase1 Final Closure )
+// 唯一后端: AIO HiPS Reader (aio_hips_reader.dll 函数, 不经 astropy/CFITSIO)
+// 验证项:
+// 1. signal/support/snr 三产品 properties (hips_version=1.4, order, width)
+// 2. signal/support dtype 与 precision 一致 (manifest astrocs_signal_dtype)
+// 3. 叶级 tile 全遍历: support∈[0,1], support>0 -> signal 有限,
+// support==0 -> signal NaN; F = signal*support*A_cell 有限非负
+// 4. MOC 覆盖: tile 列表来自 MOC, 且每个 tile FITS 文件存在
+// 5. SNR catalogue: 点数 > 0
+// 6. hierarchy: Norder0..NorderK 目录存在
 // ============================================================================
 bool Orchestrator::run_stage_hips_verify(TaskResult& result) {
     LOG_INFO("orchestrator", "[HIPS_VERIFY] 开始: " + current_hips_dir_);
@@ -3988,7 +3988,7 @@ bool Orchestrator::run_stage_read_fits(TaskResult& result) {
         ModuleId::AIO, "aio_read_fits");
     auto fn_get_pixels = dll_loader_.get_function<float* (*)(const AIOImageData*)>(
         ModuleId::AIO, "aio_get_pixel_data");
-    // R10 修复: 显式设置 AIO 模块精度模式 (PrecisionContext 单例不跨 DLL 共享)
+    // 修复: 显式设置 AIO 模块精度模式 (PrecisionContext 单例不跨 DLL 共享)
     auto fn_set_precision = dll_loader_.get_function<void (*)(int)>(
         ModuleId::AIO, "aio_set_precision_mode");
     // 双精度 ABI: FP64 模式下获取 double 像素数据与 dtype
@@ -4033,7 +4033,7 @@ bool Orchestrator::run_stage_read_fits(TaskResult& result) {
         return false;
     }
 
-    // R10 修复: 在读取 FITS 之前, 显式设置 AIO 模块精度模式
+    // 修复: 在读取 FITS 之前, 显式设置 AIO 模块精度模式
     // (PrecisionContext 单例在 EXE/DLL 边界不共享, 必须通过导出 API 传递)
     if (fn_set_precision) {
         fn_set_precision(need_fp64 ? 1 : 0);
@@ -4184,7 +4184,7 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
              + std::string(config_.precision == PrecisionMode::FP64 ? "FP64" : "FP32")
              + ", snr_extract_model_v2 精度感知)");
 
-    // R11 (CFG-109): SNR 是必需 stage, DLL 缺失必须失败, 不允许降级
+    // SNR 是必需 stage, DLL 缺失必须失败, 不允许降级
     if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::SNR)) {
         LOG_ERROR("orchestrator", "[SNR] SNR DLL 未加载 (必需模块)");
         result.error_msg = "[SNR] SNR DLL 未加载 (必需模块)";
@@ -4202,7 +4202,7 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
 
     // 获取函数指针 (GAP-011: snr_extract_model / snr_free_model;
     // BLOCKER-TYPE-002: v2 支持 FP64 SNR 真实存储)
-    // V4: v3 携带 star_id/quality_flags/photometric_status
+    // v3 携带 star_id/quality_flags/photometric_status
     using ExtractV3Fn = int (*)(const double*, int, double,
                                 const SnrWcsParams*, int,
                                 const int64_t*, const uint32_t*, const uint32_t*,
@@ -4230,7 +4230,7 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
         PipelineFrame*, const char*, const char*, const char*)>(
         ModuleId::AIO, "aio_frame_kv_set");
 
-    // V19 (SNR_REDESIGN_CONTRACT): NoiseWeightModelV1 函数指针
+    // NoiseWeightModelV1 函数指针
     using NoiseModelFn = int (*)(const void*, int, int, const float*,
                                  const double*, const double*, int,
                                  const SnrNoiseModelConfig*, NoiseWeightModelV1*);
@@ -4259,7 +4259,7 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
     }
 
     // 读取 psf 块 (FLOAT64 [N,9], 每行 [status,B,flux,cx,cy,fwhm,A,mad,eccentricity])
-    // R11 (CFG-109): psf 块缺失 = 必需依赖缺失, 硬失败 (不允许降级)
+    // psf 块缺失 = 必需依赖缺失, 硬失败 (不允许降级)
     const AioBlock* psf_block = fn_get_block(frame_, "psf");
     if (psf_block == nullptr) {
         LOG_ERROR("orchestrator", "[SNR] psf 块不存在 (PSF 阶段未产出)");
@@ -4270,10 +4270,10 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
     int n_stars = psf_block->dims[0];
     const double* psf_data = static_cast<const double*>(psf_block->data);
 
-    // V4: 构建与 psf 行对齐的 stable star_id / quality_flags / photometric_status
-    //   star_measurements (FLOAT64 [N,15]): col0=star_id, col6=psf_status,
-    //     col13=saturated, col14=has_saturated
-    //   photometric_match (FLOAT64 [N,6]): col4=status (1=used, 2=rejected, else unmatched)
+    // 构建与 psf 行对齐的 stable star_id / quality_flags / photometric_status
+    // star_measurements (FLOAT64 [N,15]): col0=star_id, col6=psf_status,
+    // col13=saturated, col14=has_saturated
+    // photometric_match (FLOAT64 [N,6]): col4=status (1=used, 2=rejected, else unmatched)
     std::vector<int64_t> psf_star_ids(static_cast<size_t>(n_stars), 0);
     std::vector<uint32_t> psf_quality(static_cast<size_t>(n_stars), 0);
     std::vector<uint32_t> psf_photo_status(static_cast<size_t>(n_stars), 0);
@@ -4410,7 +4410,7 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
              + " SIP(a_order=" + std::to_string(wcs.sip.a_order)
              + ", b_order=" + std::to_string(wcs.sip.b_order) + ")");
 
-    // 调用 snr_extract_model_v3 提取稀疏控制点 (V4: 携带 stable star_id /
+    // 调用 snr_extract_model_v3 提取稀疏控制点 (: 携带 stable star_id /
     // quality_flags / photometric_status; FP64 模式 snr_psf 以 double 存储)
     SnrModelV3 model = {};
     int value_dtype = (config_.precision == PrecisionMode::FP64) ? 1 : 0;
@@ -4445,10 +4445,10 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
     // SNR-001: 丢弃原因分类 (SNR 不得静默丢点)
     // 重新遍历 PSF 数据, 对每个未写入 HISS 的控制点分类丢弃原因。
     // 检查顺序与 snr_estimator.cpp snr_extract_model 一致:
-    //   1. status != 0 → INVALID_PSF (PSF 拟合失败)
-    //   2. A <= B      → ZERO_FLUX (振幅不足/净通量 <= 0)
-    //   3. mad <= 0     → INVALID_PSF (残差 MAD 非正)
-    //   4. 否则         → NOT_DROPPED (有效控制点, 已写入)
+    // 1. status != 0 → INVALID_PSF (PSF 拟合失败)
+    // 2. A <= B → ZERO_FLUX (振幅不足/净通量 <= 0)
+    // 3. mad <= 0 → INVALID_PSF (残差 MAD 非正)
+    // 4. 否则 → NOT_DROPPED (有效控制点, 已写入)
     // 注: OUTSIDE_TILE/NO_OVERLAP/DUPLICATE_IPIX 在 drizzle 阶段判断, 此处为 0
     {
         uint32_t drop_counts[SNR_DROP_REASON_COUNT] = {};
@@ -4504,11 +4504,11 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
     }
 
     // 序列化 SnrModelV3 到 "snr_model" 块 (AIO_BLOCK_RAW, 版本化 v2 头)
-    // 格式 (V4):
-    //   [magic: "SNRM" 4B][version: u32=2][value_dtype: u8][reserved: u8]
-    //   [point_stride: u16][n_points: u32][payload_bytes: u64][checksum: u32]
-    //   [points: n_points × stride]   // stride=36 (f32 v3) / 40 (f64 v3)
-    //   [snr_phot: f64][median_snr: f64][idw_power: f64]
+    // 格式 :
+    // [magic: "SNRM" 4B][version: u32=2][value_dtype: u8][reserved: u8]
+    // [point_stride: u16][n_points: u32][payload_bytes: u64][checksum: u32]
+    // [points: n_points × stride] // stride=36 (f32 v3) / 40 (f64 v3)
+    // [snr_phot: f64][median_snr: f64][idw_power: f64]
     uint32_t n_points = model.n_points;
     uint32_t point_stride = (model.value_dtype == 1) ? 40 : 36;
     // header = magic4+version4+vd1+res1+stride2+n4+payload8+cs4 = 28
@@ -4575,9 +4575,9 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
     fn_free_v3(&model);
 
     // ====================================================================
-    // V19 (SNR_REDESIGN_CONTRACT): NoiseWeightModelV1 — source-masked
+    // NoiseWeightModelV1 — source-masked
     // blank-sky 稳健方差 → 逐像素 variance/ivar 块 (Phase2 science 权重来源)
-    //   旧 snr_model 块保留为 diagnostic / migration (LEGACY_SNR_SCIENCE_CONSUMER=0)
+    // 旧 snr_model 块保留为 diagnostic / migration (LEGACY_SNR_SCIENCE_CONSUMER=0)
     // ====================================================================
     {
         const AioBlock* data_blk = fn_get_block(frame_, "data");
@@ -4781,10 +4781,10 @@ bool Orchestrator::run_stage_nside(TaskResult& result) {
 // run_stage_browser_verify - BROWSER_VERIFY 阶段: Browser 后端等价查询验证
 // 唯一后端: AIO HiPS Reader + 共享 HEALPix core 映射 (与 hips_browser_backend 相同)
 // 验证项:
-//   1. signal 可打开, hips_version 由 reader 保证, dtype 与 precision 一致
-//   2. 取 SNR catalogue 采样点 (最多 128), 用共享 ang2pix_nest 计算 leaf_ipix
-//   3. 对每点: tile 存在 (MOC 覆盖) + aio_hips_read_leaf_* 返回有限 signal
-//   4. 至少一个点查询成功; 任何硬错误失败
+// 1. signal 可打开, hips_version 由 reader 保证, dtype 与 precision 一致
+// 2. 取 SNR catalogue 采样点 (最多 128), 用共享 ang2pix_nest 计算 leaf_ipix
+// 3. 对每点: tile 存在 (MOC 覆盖) + aio_hips_read_leaf_* 返回有限 signal
+// 4. 至少一个点查询成功; 任何硬错误失败
 // ============================================================================
 bool Orchestrator::run_stage_browser_verify(TaskResult& result) {
     LOG_INFO("orchestrator", "[BROWSER_VERIFY] 开始 (HiPS AIO Reader + 共享 HEALPix core, precision="
@@ -4924,8 +4924,8 @@ bool Orchestrator::run_stage_browser_verify(TaskResult& result) {
 }
 
 // run_stage1 - spec §2.3.3 单帧预处理 (FITS -> HiPS, stage 0-9)
-// R11: typed Stage1Config 直接驱动; stop_after 真实逐 Gate;
-//      NSIDE 与 BROWSER_VERIFY 独立 stage; SNR 必需
+// typed Stage1Config 直接驱动; stop_after 真实逐 Gate;
+// NSIDE 与 BROWSER_VERIFY 独立 stage; SNR 必需
 // ============================================================================
 TaskResult Orchestrator::run_stage1(const Stage1Config& cfg) {
     TaskResult result;
@@ -4983,7 +4983,7 @@ TaskResult Orchestrator::run_stage1(const Stage1Config& cfg) {
     // 加载 DLL: AIO/CALIBRATE/PLATESOLVE/PSF/PHOTOMETRIC/SNR/DRIZZLE 全部必需
     if (!dlls_loaded_) {
         std::string err;
-        // V18 (G1): DLL_LOAD 粗粒度计时（每段一次 clock，低开销）
+        // DLL_LOAD 粗粒度计时（每段一次 clock，低开销）
         const auto t_dll0 = std::chrono::steady_clock::now();
         if (!init_dlls("", err)) {
             bool all_required =
@@ -5036,7 +5036,7 @@ TaskResult Orchestrator::run_stage1(const Stage1Config& cfg) {
     }
     current_fits_path_ = cfg.input.light;
     current_output_path_ = cfg.output.hips;
-    // V5 CFG-002: legacy .hiss 仅 validation.legacy_hiss_compare=true 时写出并验证
+    // CFG-002: legacy .hiss 仅 validation.legacy_hiss_compare=true 时写出并验证
     legacy_hiss_path_ = cfg.validation.legacy_hiss_compare
         ? (cfg.validation.legacy_hiss_path.empty() ? cfg.output.hiss
                                                    : cfg.validation.legacy_hiss_path)
@@ -5175,7 +5175,7 @@ TaskResult Orchestrator::run_stage1(const Stage1Config& cfg) {
     for (const auto& sd : stages) {
         if (sd.stage == PipelineStageV2::HISS_VERIFY &&
             !stage1_cfg_->validation.legacy_hiss_compare) {
-            // V5 CFG-002: HISS_VERIFY 仅 legacy_hiss_compare=true 时执行
+            // CFG-002: HISS_VERIFY 仅 legacy_hiss_compare=true 时执行
             StageTiming st;
             st.stage = sd.stage;
             st.stage_name = std::string(sd.name) + " (legacy 关闭, 跳过)";
@@ -5337,7 +5337,7 @@ TaskResult Orchestrator::run_stage2(const std::string& hiss_dir,
     stage2_hiss_files_ = hiss_files;
     current_output_hcsd_ = output_hcsd;
 
-    // 加载 DLL（V17：legacy Stage2 已移除，healpix_stack 不再需要）
+    // 加载 DLL（：legacy Stage2 已移除，healpix_stack 不再需要）
     if (!dlls_loaded_) {
         std::string err;
         if (!init_dlls("", err)) {
@@ -5355,7 +5355,7 @@ TaskResult Orchestrator::run_stage2(const std::string& hiss_dir,
     }
     state_ = TaskState::RUNNING;
 
-    // V17：legacy Stage2（gradient sphere / stack，healpix_stack）已从
+    // legacy Stage2（gradient sphere / stack，healpix_stack）已从
     // active production 移除；Phase2 唯一生产入口 = astrocs-stage2。
     // 旧 stage2 config 在此显式失败（要求改用 astrocs-stage2.exe）。
     bool ok = false;

@@ -28,8 +28,8 @@ extern "C" {
 // ============================================================================
 //
 // SNR 通道格式 (JSON 头 snr_format 字段):
-//   0 = 逐像素 float32[n_pix] (旧格式, 向后兼容)
-//   1 = 稀疏控制点 (新格式, 见 HioSnrModel)
+// 0 = 逐像素 float32[n_pix] (旧格式, 向后兼容)
+// 1 = 稀疏控制点 (新格式, 见 HioSnrModel)
 // 旧文件无 snr_format 字段, 默认按 0 处理 (若 has_snr=true)
 // ============================================================================
 
@@ -55,9 +55,9 @@ static_assert(sizeof(HioSnrControlPointF64) == 24, "HioSnrControlPointF64 must b
 
 // SNR 模型 (稀疏控制点 + 全局参数, 用于 I/O 序列化)
 // 对应 snr_format=1 的二进制布局:
-//   [n_points: uint32]
-//   [points: n_points * 20B]
-//   [snr_phot: f64][median_snr: f64][idw_power: f64]
+// [n_points: uint32]
+// [points: n_points * 20B]
+// [snr_phot: f64][median_snr: f64][idw_power: f64]
 typedef struct {
     uint32_t n_points;              // 控制点数
     HioSnrControlPoint* points;     // 控制点数组 (malloc 分配, 用 aio_hio_free_snr_model 释放)
@@ -95,8 +95,8 @@ AIO_EXPORT int aio_hiss_write(const char* path, uint32_t nside, int nested,
 // nside, nested, n_pix - 输出参数
 // ipix, pixel, meta_json - 输出参数 (由 malloc 分配，调用者负责 free)
 // snr - 逐像素 SNR 数组输出参数 [n_pix] (float32), 可为 nullptr (不读取 snr 通道);
-//       文件 snr_format=0 且 has_snr=true 时填充, 否则 *snr = nullptr;
-//       文件 snr_format=1 时 *snr = nullptr (稀疏格式不读为逐像素)
+// 文件 snr_format=0 且 has_snr=true 时填充, 否则 *snr = nullptr;
+// 文件 snr_format=1 时 *snr = nullptr (稀疏格式不读为逐像素)
 // 返回: 0=成功, <0=失败
 AIO_EXPORT int aio_hiss_read(const char* path, uint32_t* nside, int* nested,
                               uint64_t* n_pix, uint64_t** ipix,
@@ -114,7 +114,7 @@ AIO_EXPORT int aio_hiss_write_snr_model(const char* path, uint32_t nside, int ne
 
 // 读取 .hiss 文件的稀疏 SNR 模型 (snr_format=1)
 // snr_model - 输出参数 (malloc 分配, 用 aio_hio_free_snr_model 释放);
-//             文件 snr_format=0 或无 snr 通道时 *snr_model = nullptr
+// 文件 snr_format=0 或无 snr 通道时 *snr_model = nullptr
 // 其他参数同 aio_hiss_read (snr 参数省略, 因为稀疏格式不输出逐像素)
 // 返回: 0=成功, <0=失败
 // 注意: 若文件 snr_format=0 且 has_snr=true, 本函数不读取逐像素 snr (跳过)
@@ -132,7 +132,7 @@ AIO_EXPORT void aio_hio_free_snr_model(HioSnrModel* model);
 // nside, tile_nside, depth, n_leaf_per_tile, n_tiles, n_pix_total - 输出参数
 // meta_json - 输出参数 (malloc 分配, 调用者负责用 aio_hio_free 释放)
 // tile_ipix_list - 输出参数 (malloc 分配 uint64 数组, 含 *n_tiles 个 parent_ipix;
-//                  可传 nullptr 跳过; 非 nullptr 时调用者负责用 aio_hio_free 释放)
+// 可传 nullptr 跳过; 非 nullptr 时调用者负责用 aio_hio_free 释放)
 // 返回: 0=成功, <0=失败
 AIO_EXPORT int aio_hiss_inspect(const char* path,
                                   uint32_t* nside,
@@ -154,7 +154,7 @@ AIO_EXPORT int aio_hiss_inspect(const char* path,
 AIO_EXPORT int aio_hiss_read_tile_signal(const char* path, uint64_t parent_ipix,
                                            float** signal, uint32_t* n_signal);
 
-// R10: 按 Tile 父 ipix 读取 signal (float64 数组, FP64 模式专用)
+// 按 Tile 父 ipix 读取 signal (float64 数组, FP64 模式专用)
 // 仅适用于 FP64 模式文件 (signal_dtype=1); FP32 文件会返回错误 (禁止静默转换)
 // signal - 输出参数 (malloc 分配 double 数组, 调用者负责用 aio_hio_free 释放)
 AIO_EXPORT int aio_hiss_read_tile_signal_f64(const char* path, uint64_t parent_ipix,
@@ -170,17 +170,17 @@ AIO_EXPORT int aio_hiss_read_tile_support(const char* path, uint64_t parent_ipix
 AIO_EXPORT int aio_hiss_read_tile_snr(const char* path, uint64_t parent_ipix,
                                         uint8_t** snr_out, uint32_t* n_points);
 
-// R11: 按 Tile 读取 SNR 控制点 (FP64, snr_dtype=1 文件专用)
+// 按 Tile 读取 SNR 控制点 (FP64, snr_dtype=1 文件专用)
 // snr_out - 输出参数 (malloc 分配, 每点 12 字节: local_ipix uint32 LE + snr float64 LE)
 // 仅适用于 snr_dtype=1 文件; f32 文件返回错误 (禁止静默转换)
 AIO_EXPORT int aio_hiss_read_tile_snr_f64(const char* path, uint64_t parent_ipix,
                                             uint8_t** snr_out, uint32_t* n_points);
 
-// R13 (HISS_IO_REPAIR): Session API — 打开一次, 遍历全部 Tile (Verify 单句柄)
-//   旧 aio_hiss_read_tile_* 每个 Tile 重新构造 Reader (反复打开文件, 完整帧
-//   HISS_VERIFY 130s)。session 保持文件句柄与目录解析结果, 逐 Tile 读取。
+// Session API — 打开一次, 遍历全部 Tile (Verify 单句柄)
+// 旧 aio_hiss_read_tile_* 每个 Tile 重新构造 Reader (反复打开文件, 完整帧
+// HISS_VERIFY 130s)。session 保持文件句柄与目录解析结果, 逐 Tile 读取。
 // aio_hiss_open_session: 打开文件并解析 Header/目录一次, 返回句柄 (失败返回 nullptr)
-//   nside/tile_nside/n_tiles 可选输出 (可为 nullptr)
+// nside/tile_nside/n_tiles 可选输出 (可为 nullptr)
 AIO_EXPORT void* aio_hiss_open_session(const char* path,
                                          uint32_t* nside, uint32_t* tile_nside,
                                          uint64_t* n_tiles);
@@ -205,7 +205,7 @@ AIO_EXPORT void aio_hiss_close_session(void* session);
 AIO_EXPORT int aio_hiss_query_pixel(const char* path, double ra, double dec,
                                       float* signal, uint8_t* support);
 
-// R10: 通过 ra/dec 查询像素值 (FP64 版本, 与 HissReader::query_pixel_f64 一致)
+// 通过 ra/dec 查询像素值 (FP64 版本, 与 HissReader::query_pixel_f64 一致)
 // 仅适用于 FP64 模式文件 (signal_dtype=1); FP32 文件会返回错误 (禁止静默转换)
 // ra, dec - 度
 // signal - 输出参数 (单个 double 值, 调用者负责分配 sizeof(double))

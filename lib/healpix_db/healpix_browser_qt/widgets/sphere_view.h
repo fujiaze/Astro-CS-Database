@@ -3,12 +3,12 @@
 // 用途: 显示天球 HEALPix 数据, 从球心向外看, 旋转朝向, 调整FOV
 // 依赖: Qt6::Gui (QMouseEvent/QWheelEvent/QKeyEvent/QTouchEvent), core/ (GLRenderer + HealpixMath)
 // 设计文档: docs/superpowers/specs/2026-07-13-cpp-qt-browser-ui-design.md §3.3, §5.2, §5.3
-//           docs/superpowers/specs/2026-07-14-sphere-view-tangent-plane-navigation.md
+// docs/superpowers/specs/2026-07-14-sphere-view-tangent-plane-navigation.md
 // 交互: 球心相机, 相机朝向由(center_ra, center_dec)决定
-//   拖动/箭头键: 切平面离散旋转(gnomonic逆变换), 极区无奇点
-//   滚轮/+-键: 改变FOV(放大/缩小视场)
-//   触摸: 单指拖动, 双指捏合=缩放
-//   经纬线: 30°网格, 可通过set_grid_visible开关
+// 拖动/箭头键: 切平面离散旋转(gnomonic逆变换), 极区无奇点
+// 滚轮/+-键: 改变FOV(放大/缩小视场)
+// 触摸: 单指拖动, 双指捏合=缩放
+// 经纬线: 30°网格, 可通过set_grid_visible开关
 
 #ifndef SPHERE_VIEW_H
 #define SPHERE_VIEW_H
@@ -117,10 +117,10 @@ private:
     void handle_touch_end(QTouchEvent* event);
 
     // 拖动旋转 (赤道仪相机, 最简方案):
-    //   yaw (左右): ra 增量, 绕世界 Z 轴
-    //   pitch (上下): dec 增量, 绕 right 轴
-    //   up 始终 north-up 重算 (绝不携带, 绝不 roll)
-    //   速度 = FOV × DRAG_RATIO, 抓画面拖模式
+    // yaw (左右): ra 增量, 绕世界 Z 轴
+    // pitch (上下): dec 增量, 绕 right 轴
+    // up 始终 north-up 重算 (绝不携带, 绝不 roll)
+    // 速度 = FOV × DRAG_RATIO, 抓画面拖模式
     void apply_drag_rotation(int dx, int dy);
 
     // 从 forward_ 反算 (ra, dec) 并更新 center_ra_/center_dec_

@@ -4,30 +4,30 @@
 // 规范依据: 02_FROZEN §7 / spec.md 步骤9 / 00_COMMON_CONTRACTS §5
 //
 // 测试覆盖:
-//   1. photscal=2.0  → 每个像素值×2.0
-//   2. photscal=1.0  → 像素值不变
-//   3. photscal=0.0  → 所有像素为 0
-//   4. photscal=0.5  → 像素值减半
-//   5. 参数校验 (nullptr/非法尺寸/NaN photscal)
-//   6. Writer 元数据一致性: apply_photometry=true  + BUNIT=ASTROCS_RELATIVE_FLUX → 成功
-//   7. Writer 元数据一致性: apply_photometry=false + BUNIT=ASTROCS_RELATIVE_FLUX → 拒绝
-//   8. Writer 元数据一致性: apply_photometry=false + BUNIT=ADU → 成功
+// 1. photscal=2.0 → 每个像素值×2.0
+// 2. photscal=1.0 → 像素值不变
+// 3. photscal=0.0 → 所有像素为 0
+// 4. photscal=0.5 → 像素值减半
+// 5. 参数校验 (nullptr/非法尺寸/NaN photscal)
+// 6. Writer 元数据一致性: apply_photometry=true + BUNIT=ASTROCS_RELATIVE_FLUX → 成功
+// 7. Writer 元数据一致性: apply_photometry=false + BUNIT=ASTROCS_RELATIVE_FLUX → 拒绝
+// 8. Writer 元数据一致性: apply_photometry=false + BUNIT=ADU → 成功
 //
 // 编译 (从 tests/ 目录, 链接真实 HissWriter::open()):
-//   g++ -std=c++17 -O2 -fopenmp -DHAS_ZSTD -DAIO_ENABLE_HEALPIX \
-//     -I../src -I../../astro_image_io/include -I../../astro_image_io/src \
-//     test_photometry_apply.cpp ../src/photometry_apply.cpp \
-//     ../../astro_image_io/src/hiss_codec.cpp \
-//     ../../astro_image_io/src/hiss_common.cpp \
-//     ../../astro_image_io/src/hiss_tile_model.cpp \
-//     ../../astro_image_io/src/hiss_writer.cpp \
-//     ../../astro_image_io/src/hiss_stream_writer.cpp \
-//     ../../astro_image_io/src/hiss_transform.cpp \
-//     ../../astro_image_io/src/hiss_reader.cpp \
-//     ../../astro_image_io/src/healpix/aio_healpix_io.cpp \
-//     ../../astro_image_io/src/aio_api.cpp \
-//     ../../astro_image_io/src/aio_log.cpp \
-//     -lzstd -lm -o test_photometry_apply.exe
+// g++ -std=c++17 -O2 -fopenmp -DHAS_ZSTD -DAIO_ENABLE_HEALPIX \
+// -I../src -I../../astro_image_io/include -I../../astro_image_io/src \
+// test_photometry_apply.cpp ../src/photometry_apply.cpp \
+// ../../astro_image_io/src/hiss_codec.cpp \
+// ../../astro_image_io/src/hiss_common.cpp \
+// ../../astro_image_io/src/hiss_tile_model.cpp \
+// ../../astro_image_io/src/hiss_writer.cpp \
+// ../../astro_image_io/src/hiss_stream_writer.cpp \
+// ../../astro_image_io/src/hiss_transform.cpp \
+// ../../astro_image_io/src/hiss_reader.cpp \
+// ../../astro_image_io/src/healpix/aio_healpix_io.cpp \
+// ../../astro_image_io/src/aio_api.cpp \
+// ../../astro_image_io/src/aio_log.cpp \
+// -lzstd -lm -o test_photometry_apply.exe
 // ============================================================================
 
 #include "photometry_apply.h"
@@ -221,7 +221,7 @@ static void test_nan_inf_passthrough() {
 
 // ============================================================================
 // 测试 5d: 大动态范围 photscal (验证 double 精度计算)
-//   photscal=1e-7, light=1e6 → out=0.1 (float 直接乘会损失精度)
+// photscal=1e-7, light=1e6 → out=0.1 (float 直接乘会损失精度)
 // ============================================================================
 static void test_large_dynamic_range() {
     const int W = 1, H = 1;
@@ -241,7 +241,7 @@ static void test_large_dynamic_range() {
 // 以下是 Writer 元数据一致性校验测试
 //
 // 策略: 直接调用真实 hiss::HissWriter::open() 验证元数据一致性校验逻辑
-//       (链接 ../../astro_image_io/src/hiss_writer.cpp 等真实生产代码)
+// (链接 ../../astro_image_io/src/hiss_writer.cpp 等真实生产代码)
 // ============================================================================
 
 // 测试 6: Writer: apply_photometry=true + BUNIT=ASTROCS_RELATIVE_FLUX → 成功

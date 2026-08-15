@@ -2,43 +2,43 @@
 // test_transform.cpp - WP-G 步骤12 Transform 正式路径单元测试
 //
 // 依据:
-//   - docs/stage1_fix/spec.md 步骤12 (transform 正式路径)
-//   - docs/stage1_fix/00_COMMON_CONTRACTS.md §5.1 (测试要求)
-//   - 02_FROZEN_STAGE1_HISS_SPEC.md §15 (子块目录 transform_id 字段)
+// - docs/stage1_fix/spec.md 步骤12 (transform 正式路径)
+// - docs/stage1_fix/00_COMMON_CONTRACTS.md §5.1 (测试要求)
+// - 02_FROZEN_STAGE1_HISS_SPEC.md §15 (子块目录 transform_id 字段)
 //
 // 测试范围:
-//   1. NONE 变换: 零开销, 数据不变
-//   2. BYTE_SHUFFLE 往返: 随机 float32 数组, shuffle → inverse 后数据一致
-//   3. DELTA 往返: 随机 int32 数组, delta → inverse 后数据一致
-//   4. DELTA_VARINT 往返: 随机 int32 数组, delta_varint → inverse 后数据一致
-//   5. ZSTD+shuffle 组合: 先 shuffle 再 ZSTD 压缩, 解压后 inverse shuffle 还原
-//   6. 空数据: transform 处理空输入不崩溃
-//   7. 不同 element_size: float32(4B)/float64(8B)/uint8(1B) 都能正确处理
-//   8. Writer/Reader 集成: Writer 设置 transform, Reader 逆向还原
-//   9. 枚举互转: TransformType <-> name, TransformType <-> TransformId
-//  10. DELTA 边界: INT32_MIN/INT32_MAX 环绕运算正确
-//  11. DELTA_VARINT 递增序列: 小 delta 的 varint 压缩效果
+// 1. NONE 变换: 零开销, 数据不变
+// 2. BYTE_SHUFFLE 往返: 随机 float32 数组, shuffle → inverse 后数据一致
+// 3. DELTA 往返: 随机 int32 数组, delta → inverse 后数据一致
+// 4. DELTA_VARINT 往返: 随机 int32 数组, delta_varint → inverse 后数据一致
+// 5. ZSTD+shuffle 组合: 先 shuffle 再 ZSTD 压缩, 解压后 inverse shuffle 还原
+// 6. 空数据: transform 处理空输入不崩溃
+// 7. 不同 element_size: float32(4B)/float64(8B)/uint8(1B) 都能正确处理
+// 8. Writer/Reader 集成: Writer 设置 transform, Reader 逆向还原
+// 9. 枚举互转: TransformType <-> name, TransformType <-> TransformId
+// 10. DELTA 边界: INT32_MIN/INT32_MAX 环绕运算正确
+// 11. DELTA_VARINT 递增序列: 小 delta 的 varint 压缩效果
 //
 // 编译 (PowerShell + mingw64):
-//   # 基础编译 (仅 transform 单元测试, 无 ZSTD/Writer/Reader):
-//   $env:Path = "C:\msys64\mingw64\bin;$env:Path"
-//   cd "f:\Astro dev\Astro CS Normalization Database\lib\astro_image_io"
-//   g++ -std=c++17 -O2 -Iinclude -Isrc tests/test_transform.cpp src/hiss_transform.cpp -o tests/test_transform.exe
+// # 基础编译 (仅 transform 单元测试, 无 ZSTD/Writer/Reader):
+// $env:Path = "C:\msys64\mingw64\bin;$env:Path"
+// cd "f:\Astro dev\Astro CS Normalization Database\lib\astro_image_io"
+// g++ -std=c++17 -O2 -Iinclude -Isrc tests/test_transform.cpp src/hiss_transform.cpp -o tests/test_transform.exe
 //
-//   # 完整编译 (含 ZSTD + Writer/Reader 集成测试):
-//   g++ -std=c++17 -O2 -DHAS_ZSTD -DHAS_LZ4 -Iinclude -Isrc `
-//       tests/test_transform.cpp `
-//       src/hiss_transform.cpp src/hiss_codec.cpp src/hiss_common.cpp `
-//       src/hiss_tile_model.cpp src/hiss_writer.cpp src/hiss_stream_writer.cpp `
-//       src/hiss_reader.cpp `
-//       -lzstd -llz4 `
-//       -o tests/test_transform.exe
+// # 完整编译 (含 ZSTD + Writer/Reader 集成测试):
+// g++ -std=c++17 -O2 -DHAS_ZSTD -DHAS_LZ4 -Iinclude -Isrc `
+// tests/test_transform.cpp `
+// src/hiss_transform.cpp src/hiss_codec.cpp src/hiss_common.cpp `
+// src/hiss_tile_model.cpp src/hiss_writer.cpp src/hiss_stream_writer.cpp `
+// src/hiss_reader.cpp `
+// -lzstd -llz4 `
+// -o tests/test_transform.exe
 //
 // 运行:
-//   ./tests/test_transform.exe
+// ./tests/test_transform.exe
 //
 // 测试框架: 自维护通过/失败计数, 任何契约不满足必须真正失败
-//   (禁止 ASSERT_TRUE(true, "已知问题") 软通过, 依据 spec.md §3 步骤15)
+// (禁止 ASSERT_TRUE(true, "已知问题") 软通过, 依据 spec.md §3 步骤15)
 // ============================================================================
 
 #include <cstdio>
@@ -66,7 +66,7 @@ static int g_fail_count = 0;
 static int g_skip_count = 0;
 
 // ASSERT_TRUE(cond, msg): cond 为假时记失败并打印
-//   注意: 不支持 "true, 已知问题" 软通过 — 任何 false 都是真失败
+// 注意: 不支持 "true, 已知问题" 软通过 — 任何 false 都是真失败
 #define ASSERT_TRUE(cond, msg) do { \
     if (cond) { \
         g_pass_count++; \
@@ -287,7 +287,7 @@ static void test_delta_varint_int32() {
 
 // ============================================================================
 // 测试 5: ZSTD + shuffle 组合
-//   先 shuffle 再 ZSTD 压缩, 解压后 inverse shuffle 还原
+// 先 shuffle 再 ZSTD 压缩, 解压后 inverse shuffle 还原
 // ============================================================================
 #ifdef HAS_ZSTD
 static void test_zstd_shuffle_combo() {
@@ -799,7 +799,7 @@ static void test_single_element() {
 
 // ============================================================================
 // 测试 13: Writer/Reader 集成 — transform 端到端
-//   Writer 设置 transform, Reader 逆向还原, 验证数据一致
+// Writer 设置 transform, Reader 逆向还原, 验证数据一致
 // ============================================================================
 #ifdef HAS_ZSTD
 static void test_writer_reader_transform() {

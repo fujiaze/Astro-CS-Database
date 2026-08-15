@@ -2,14 +2,14 @@
 //
 // Phase2 W4：稀疏光度控制点采样器（control sampler）。
 //
-// 语义（冻结，控制包 34A532A2...B2EB308 + wiki Phase2_Unified_Photometric_Model）：
-//   - 控制点 geometry 由 union 几何与目标角间距决定，**不由 SNR 决定**；
-//   - 每个覆盖控制节点的 frame 提供观测 y_ik/sigma_ik/snr_ik/support_ik/quality_ik，
-//     y_ik 必须从实际 Phase1 HiPS 数据读取；
-//   - patch estimator：control cell 附近小型 HEALPix patch，finite/support 过滤，
-//     robust median/biweight location，MAD/robust scale，保留负值；
-//   - SNR 只作为当前 frame 在当前 control 观测的可信度，来自 Phase1 SNR Catalogue
-//     （禁止重新检测星点）。
+// 语义（冻结， 34A532A2...B2EB308 + wiki Phase2_Unified_Photometric_Model）：
+// - 控制点 geometry 由 union 几何与目标角间距决定，**不由 SNR 决定**；
+// - 每个覆盖控制节点的 frame 提供观测 y_ik/sigma_ik/snr_ik/support_ik/quality_ik，
+// y_ik 必须从实际 Phase1 HiPS 数据读取；
+// - patch estimator：control cell 附近小型 HEALPix patch，finite/support 过滤，
+// robust median/biweight location，MAD/robust scale，保留负值；
+// - SNR 只作为当前 frame 在当前 control 观测的可信度，来自 Phase1 SNR Catalogue
+// （禁止重新检测星点）。
 #pragma once
 
 #include "astro/phase2/coverage.h"
@@ -34,7 +34,7 @@ typedef struct {
     int patch_radius_leaf;        // 观测 patch 半径（叶级 leaf 数，默认 2 → 5×5）
     int min_samples;              // 有效样本最小数（默认 5）
     double snr_search_radius_deg; // SNR 星点检索半径（度，默认 0.05）
-    // V13：background-clean 采样（DBE-like；BACKGROUND_SAMPLER_SPEC.md）
+    // background-clean 采样（DBE-like；BACKGROUND_SAMPLER_SPEC.md）
     int    background_patch_radius;        // 背景 patch 半径（默认 8 → 17×17）
     double background_clip_sigma;          // 亮端迭代 clipping 阈值（MAD 单位，默认 3.0）
     int    background_clip_iters;          // 亮端 clipping 迭代次数（默认 3）
@@ -46,10 +46,10 @@ typedef struct {
     int    background_catalog_veto;        // 允许 SNR catalogue veto（默认 1）
 } P2SamplerConfig;
 
-// V15：sampler 默认配置单一来源（null cfg 时使用；显式 cfg 覆盖）。
+// sampler 默认配置单一来源（null cfg 时使用；显式 cfg 覆盖）。
 P2_API P2SamplerConfig p2_sampler_default_config(void);
 
-// V13：background-clean 采样统计（accepted/rejected 可追踪）
+// background-clean 采样统计（accepted/rejected 可追踪）
 typedef struct {
     std::uint64_t candidate_observations;   // 候选观测总数（几何×覆盖帧）
     std::uint64_t accepted_observations;    // 进入 UPM 的 clean 观测
@@ -63,7 +63,7 @@ typedef struct {
     std::uint64_t overlap_controls;                // 有 ≥2 clean obs 的 control
 } P2SampleStats;
 
-// V13：control 几何节点（全 coverage 网格；与观测解耦）
+// control 几何节点（全 coverage 网格；与观测解耦）
 typedef struct P2ControlNode {
     std::uint64_t control_id;
     std::uint64_t tile_ipix;
@@ -76,7 +76,7 @@ typedef struct P2ControlNode {
 // UPM 参考帧 = 最小 frame_id（保证输入重排输出不变）。
 P2_API std::uint64_t p2_frame_id(const char* hips_path);
 
-// R1：统一统计量（sampler patch estimator / MAD / SNR 邻域共用同一实现）。
+// 统一统计量（sampler patch estimator / MAD / SNR 邻域共用同一实现）。
 // median：偶数 n 取上下中位数平均；NaN 自动过滤（全部 NaN → 0）。
 P2_API double p2_stats_median(const double* vals, std::uint64_t n);
 P2_API double p2_stats_mad(const double* vals, std::uint64_t n,
@@ -92,8 +92,8 @@ P2_API int p2_sample_controls(
     std::uint64_t out_capacity,
     std::uint64_t* out_n_obs,        // 实际观测数
     std::uint64_t* out_n_controls,   // 控制节点数
-    P2SampleStats* out_stats,        // 可空（V13 统计）
-    P2ControlNode* out_controls,     // 可空（V13 全几何节点）
+    P2SampleStats* out_stats,        // 可空（ 统计）
+    P2ControlNode* out_controls,     // 可空（ 全几何节点）
     std::uint64_t ctrl_capacity,
     char* err, std::size_t err_size);
 

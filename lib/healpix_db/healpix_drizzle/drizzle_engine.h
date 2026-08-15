@@ -30,12 +30,12 @@ struct DrizzleConfig {
     bool   apply_photometry = false;  // 测光已应用到像素 (元数据标记, drizzle 不再应用)
     double photscal = 1.0;     // 测光校准比例 (实际应用值, 元数据记录用)
     bool   photometry_applied_upstream = false;  // PHOTOMETRIC 阶段已应用测光校准
-    // R10: 精度模式 (0=FP32 binary32 默认, 1=FP64 binary64)
+    // 精度模式 (0=FP32 binary32 默认, 1=FP64 binary64)
     // FP64 模式: signal 子块输出 float64, metadata 记录 precision_mode=1, signal_dtype=1
     uint8_t precision_mode = 0;
-    // R11: 线程数 (0=自动 omp_get_max_threads; 禁止硬编码 16)
+    // 线程数 (0=自动 omp_get_max_threads; 禁止硬编码 16)
     int threads = 0;
-    // Phase1 Final Closure V3: Tile 分组深度 (0=auto=compute_tile_depth(nside))
+    // Phase1 Final Closure : Tile 分组深度 (0=auto=compute_tile_depth(nside))
     // HiPS 直写要求 depth=9 (512x512 叶 tile), 由 sink 调用方显式设置
     uint32_t tile_depth = 0;
 };
@@ -46,29 +46,29 @@ struct PixelAccumulator {
     double sumWeight = 0.0;   // Σ weight (兼容旧代码, 通量守恒模式下 = sumArea)
     double sumSnrSq = 0.0;    // Σ SNR² * weight
     double sumArea = 0.0;    // Σ a_jp (球面重叠面积, 用于 support = Σ a_jp / A_p)
-    // V19 (DRZ-014/SNR-011): 方差传播分子 Σ v_j × w_jp² (w_jp = a_jp/A_j_drop)
-    //   variance_p = sumVarNum / sumArea² ;  ivar_p = 1/variance_p
+    // 方差传播分子 Σ v_j × w_jp² (w_jp = a_jp/A_j_drop)
+    // variance_p = sumVarNum / sumArea² ; ivar_p = 1/variance_p
     double sumVarNum = 0.0;
     uint32_t nContrib = 0;    // 贡献源像素数 (诊断用)
 };
 
-// R11 (阶段7): Tile 局部累加器的叶像素累加单元 (模板双实例 Scalar=float/double)
-//   FP32 模式: sumFlux/sumArea 为 IEEE binary32 (真 FP32 累计, 不共享 double)
-//   FP64 模式: IEEE binary64 (与旧 PixelAccumulator 语义一致)
-//   控制包 TILE_ACCUMULATOR_DESIGN: release 只保留 sumFlux/sumArea/nContrib;
-//   sumWeight/sumSnrSq 为诊断字段, 已移除 (每 leaf 20B→12B, 完整帧 RSS -40%)
+// Tile 局部累加器的叶像素累加单元 (模板双实例 Scalar=float/double)
+// FP32 模式: sumFlux/sumArea 为 IEEE binary32 (真 FP32 累计, 不共享 double)
+// FP64 模式: IEEE binary64 (与旧 PixelAccumulator 语义一致)
+// TILE_ACCUMULATOR_DESIGN: release 只保留 sumFlux/sumArea/nContrib;
+// sumWeight/sumSnrSq 为诊断字段, 已移除 (每 leaf 20B→12B, 完整帧 RSS -40%)
 template <typename Scalar>
 struct TileLeafAccumulatorT {
     Scalar sumFlux = Scalar(0);
     Scalar sumArea = Scalar(0);
-    Scalar sumVarNum = Scalar(0);   // V19: 方差传播分子 (Σ v_j w_jp²)
+    Scalar sumVarNum = Scalar(0);   // 方差传播分子 (Σ v_j w_jp²)
     uint32_t nContrib = 0;
 };
 using TileLeafAccumulator = TileLeafAccumulatorT<double>;  // 兼容别名
 
-// R11 (阶段6/7): Tile 局部累加器 (控制包 TILE_ACCUMULATOR_DESIGN, template<class Scalar>)
-//   线程本地 map 以 parent_ipix 为 key; leaf 用 NESTED 位运算得到 local_ipix,
-//   直接连续数组寻址 (禁止每-leaf unordered_map)
+// Tile 局部累加器 ( TILE_ACCUMULATOR_DESIGN, template<class Scalar>)
+// 线程本地 map 以 parent_ipix 为 key; leaf 用 NESTED 位运算得到 local_ipix,
+// 直接连续数组寻址 (禁止每-leaf unordered_map)
 template <typename Scalar>
 struct TileAccumulatorT {
     uint64_t parent_ipix = 0;
@@ -99,7 +99,7 @@ struct DrizzleStats {
     int    nside = 0;
     bool   nested = true;
     double elapsedSec = 0.0;
-    // V19 (DRIZZLE_OPTIMIZATION): 操作计数 (每像素工作分解)
+    // 操作计数 (每像素工作分解)
     int64_t op_source_pixels = 0;   // 处理的源像素数
     int64_t op_candidates = 0;      // 候选像素总查询数
     int64_t op_true_overlaps = 0;   // 真重叠 (overlap >= 阈值)
@@ -135,7 +135,7 @@ public:
     // stats: 输出统计信息
     // error_msg: 错误信息
     // 返回: 成功/失败
-    // R11 (阶段6): 内部改为 Tile 级累加, 合并后展开为 leaf map 的兼容包装;
+    // 内部改为 Tile 级累加, 合并后展开为 leaf map 的兼容包装;
     // 正式写入路径请使用 drizzleTiled + writeHisTiles (取消全局 leaf map)
     bool drizzle(const FitsImage& img, const DrizzleConfig& config,
                  const float* snrData, const float* weightData,
@@ -172,9 +172,9 @@ public:
                            accumulators, stats, error_msg);
     }
 
-    // R11 (阶段6): Tile 级 Drizzle (正式路径, 取消全局 leaf map 与逐 key merge)
-    //   输出: tiles 为按 parent_ipix 分组、叶像素连续数组寻址的累加结果
-    //   (FP32 路径: 读 img.pixels float32, Scalar=float 真 FP32 累计; FP64 由 drizzleTiled_f64 提供)
+    // Tile 级 Drizzle (正式路径, 取消全局 leaf map 与逐 key merge)
+    // 输出: tiles 为按 parent_ipix 分组、叶像素连续数组寻址的累加结果
+    // (FP32 路径: 读 img.pixels float32, Scalar=float 真 FP32 累计; FP64 由 drizzleTiled_f64 提供)
     bool drizzleTiled(const FitsImage& img, const DrizzleConfig& config,
                       const float* snrData, const float* weightData,
                       const float* varianceData,
@@ -222,8 +222,8 @@ public:
                   const HioSnrModel* snr_model,
                   std::string& error_msg);
 
-    // R11 (阶段6): 将 Tile 级累加结果直接写入 .hiss (流式, 不恢复全局 leaf map)
-    //   与 writeHis 语义一致, 但输入为 TileAccumulator 列表 (FP32=float, FP64=double)
+    // 将 Tile 级累加结果直接写入 .hiss (流式, 不恢复全局 leaf map)
+    // 与 writeHis 语义一致, 但输入为 TileAccumulator 列表 (FP32=float, FP64=double)
     template <typename Scalar>
     bool writeHisTilesT(const std::vector<TileAccumulatorT<Scalar>>& tiles,
                        const DrizzleStats& stats, const WcsParams& wcs,
@@ -244,9 +244,9 @@ public:
                        std::string& error_msg);
 
 private:
-    // R11 (阶段6): 处理单个像素的 Drizzle (6步流水线) — 模板双实例 (Scalar=float/double)
-    //   tileMap: 线程本地 Tile 累加 map (key=parent_ipix, Scalar=float/double)
-    //   shift/mask: NESTED 位运算 (leaf_ipix >> shift = parent, leaf_ipix & mask = local)
+    // 处理单个像素的 Drizzle (6步流水线) — 模板双实例 (Scalar=float/double)
+    // tileMap: 线程本地 Tile 累加 map (key=parent_ipix, Scalar=float/double)
+    // shift/mask: NESTED 位运算 (leaf_ipix >> shift = parent, leaf_ipix & mask = local)
     template <typename Scalar>
     void processPixelTiled(
         double px, double py,           // 像素中心 (0-based)
@@ -254,16 +254,16 @@ private:
         float snrValue,                  // SNR
         float weightValue,               // 权重
         float varianceValue,             // 逐像素方差 (0 = 未知, 跳过传播)
-        struct DrizzleOpCounters& counters,  // V19: 每线程操作计数
+        struct DrizzleOpCounters& counters,  // 每线程操作计数
         const WcsSip& wcs,               // WCS 转换器 (double 几何内核, 见 processPixelSharedTiled)
         const DrizzleConfig& config,     // 配置
         const healpix::HealpixCore& hp,  // HEALPix 核心
         uint32_t shift, uint64_t mask,   // NESTED tile 位运算
-        const struct DrizzleRunContext& rctx,   // V18 (PERF-005)
+        const struct DrizzleRunContext& rctx,   // (PERF-005)
         std::unordered_map<uint64_t, TileAccumulatorT<Scalar>>& tileMap  // 线程本地 tile 累加
     ) const;
 
-    // R11: 共享顶点路径 (pixfrac=1): 接收预计算的 4 角球面坐标, 跳过逐像素 WCS 角点变换
+    // 共享顶点路径 (pixfrac=1): 接收预计算的 4 角球面坐标, 跳过逐像素 WCS 角点变换
     template <typename Scalar>
     void processPixelSharedTiled(
         double px, double py,
@@ -274,10 +274,10 @@ private:
         const WcsSip& wcs, const DrizzleConfig& config,
         const healpix::HealpixCore& hp,
         uint32_t shift, uint64_t mask,
-        const struct DrizzleRunContext& rctx,   // V18 (PERF-005): 整帧 run 常量
+        const struct DrizzleRunContext& rctx,   // 整帧 run 常量
         std::unordered_map<uint64_t, TileAccumulatorT<Scalar>>& tileMap) const;
 
-    // R11 (阶段6): Tile 级 Drizzle 内部实现 (模板 Scalar=float/double)
+    // Tile 级 Drizzle 内部实现 (模板 Scalar=float/double)
     template <typename Scalar>
     bool drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& config,
                           const float* snrData, const float* weightData,
@@ -295,8 +295,8 @@ private:
 } // namespace drizzle
 
 // ============================================================================
-// V4 G4: actual-buffer trace (默认关闭, env: ASTROCS_DRIZZLE_TRACE=<dir>)
-//   仅供诊断/验收, 不影响生产路径; 实现在 drizzle_engine.cpp
+// G4: actual-buffer trace (默认关闭, env: ASTROCS_DRIZZLE_TRACE=<dir>)
+// 仅供诊断/验收, 不影响生产路径; 实现在 drizzle_engine.cpp
 // ============================================================================
 namespace drizzle_trace {
 bool enabled();

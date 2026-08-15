@@ -5,16 +5,16 @@
 // + PROSAC + WCS) 在已知相似变换下能否正确恢复。
 //
 // 测试流程:
-//   1. 生成合成星点 (N_W=80 星表星, N_U=50 图像星, 已知相似变换)
-//   2. 执行 IPV 管线 (kvector_build → polygon_match → geometric_vote
-//      → extract_consensus → prosac_verify → build_wcs)
-//   3. 验证 PROSAC 结果 (n_inliers, RMS, 变换参数)
-//   4. 输出 WCS (CD 矩阵, CRVAL, CRPIX)
+// 1. 生成合成星点 (N_W=80 星表星, N_U=50 图像星, 已知相似变换)
+// 2. 执行 IPV 管线 (kvector_build → polygon_match → geometric_vote
+// → extract_consensus → prosac_verify → build_wcs)
+// 3. 验证 PROSAC 结果 (n_inliers, RMS, 变换参数)
+// 4. 输出 WCS (CD 矩阵, CRVAL, CRPIX)
 //
 // 编译:
-//   g++ -std=c++17 -O2 -Wall -Iinclude test/test_synthetic.cpp \
-//       src/ipv_kvector.cpp src/ipv_polygon.cpp src/ipv_ransac.cpp \
-//       src/ipv_wcs.cpp -o test_synthetic.exe
+// g++ -std=c++17 -O2 -Wall -Iinclude test/test_synthetic.cpp \
+// src/ipv_kvector.cpp src/ipv_polygon.cpp src/ipv_ransac.cpp \
+// src/ipv_wcs.cpp -o test_synthetic.exe
 //
 // 日期: 2026-07-02
 // ============================================================================
@@ -43,16 +43,16 @@ using namespace ipv;
 // 生成合成数据
 //
 // 设计:
-//   1. 生成 N_W 颗星表星 W, 随机分布在 [0, 4000]x[0, 4000] 角秒区域
-//   2. 随机选 N_U 颗 W 作为图像星源
-//   3. 应用逆变换 U = (1/s)·R(-θ)·(W - t) 生成图像星 U
-//      (使 PROSAC 求解 W = s·R(θ)·U + t 时能恢复原始 (s, θ, tx, ty))
-//   4. U/W 分别按 flux 降序排序 (模拟 StarSelector 输出)
+// 1. 生成 N_W 颗星表星 W, 随机分布在 [0, 4000]x[0, 4000] 角秒区域
+// 2. 随机选 N_U 颗 W 作为图像星源
+// 3. 应用逆变换 U = (1/s)·R(-θ)·(W - t) 生成图像星 U
+// (使 PROSAC 求解 W = s·R(θ)·U + t 时能恢复原始 (s, θ, tx, ty))
+// 4. U/W 分别按 flux 降序排序 (模拟 StarSelector 输出)
 //
 // 注: 任务描述中给出的公式 U = s·R·W + t 是正向变换, 但 PROSAC 模型为
-//     W = s·R·U + t (见 ipv_ransac.h). 为使验证阈值 (s=1, θ=π/6, tx=500,
-//     ty=300) 通过, 此处用逆变换生成 U, 等价于让 "W = s·R·U + t" 成立.
-//     即: 给定 U[i], 真实匹配的 W[a] = s·R(θ)·U[i] + t.
+// W = s·R·U + t (见 ipv_ransac.h). 为使验证阈值 (s=1, θ=π/6, tx=500,
+// ty=300) 通过, 此处用逆变换生成 U, 等价于让 "W = s·R·U + t" 成立.
+// 即: 给定 U[i], 真实匹配的 W[a] = s·R(θ)·U[i] + t.
 // ---------------------------------------------------------------------------
 static void generate_synthetic_data(
     std::vector<StarPoint>& U,
@@ -88,9 +88,9 @@ static void generate_synthetic_data(
     std::shuffle(idx.begin(), idx.end(), gen);
 
     // 3. 应用逆变换生成 U: U = (1/s)·R(-θ)·(W - t)
-    //    R(-θ) = [[ cos θ,  sin θ],
-    //             [-sin θ,  cos θ]]
-    //    这样 W[a] = s·R(θ)·U[i] + t 严格成立, 与 PROSAC 模型一致
+    // R(-θ) = [[ cos θ, sin θ],
+    // [-sin θ, cos θ]]
+    // 这样 W[a] = s·R(θ)·U[i] + t 严格成立, 与 PROSAC 模型一致
     const double s     = true_transform.s;
     const double theta = true_transform.theta;
     const double tx    = true_transform.tx;
@@ -119,10 +119,10 @@ static void generate_synthetic_data(
 
 // ---------------------------------------------------------------------------
 // 验证 PROSAC 结果
-//   - success == true
-//   - n_inliers >= 40 (至少 80% 正确匹配)
-//   - RMS < 0.1" (无噪声)
-//   - 变换参数: |s-1.0|<0.01, |θ-π/6|<0.01, |tx-500|<1, |ty-300|<1
+// - success == true
+// - n_inliers >= 40 (至少 80% 正确匹配)
+// - RMS < 0.1" (无噪声)
+// - 变换参数: |s-1.0|<0.01, |θ-π/6|<0.01, |tx-500|<1, |ty-300|<1
 // ---------------------------------------------------------------------------
 static bool verify_result(const PROSACResult& result,
                           const SimTransform& true_transform)
@@ -234,7 +234,7 @@ int main()
     double fov_diag = 4000.0 * std::sqrt(2.0);
     geometric_vote(U, W, kv, params, fov_diag, sigma_d, poly_result.votes);
     // 统计累加后的最大票数
-    // V4.11: VoteMap value 改为 double, max_vote_after 同步改为 double
+    // VoteMap value 改为 double, max_vote_after 同步改为 double
     double max_vote_after = 0.0;
     for (const auto& kv_pair : poly_result.votes) {
         if (kv_pair.second > max_vote_after) max_vote_after = kv_pair.second;

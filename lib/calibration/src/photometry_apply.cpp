@@ -2,18 +2,18 @@
 // photometry_apply.cpp - Gaia 测光比例应用模块实现
 //
 // 规范依据: 02_FROZEN_STAGE1_HISS_SPEC §7 / spec.md 步骤9
-//   Gaia 光谱积分校准是 Stage1 正式步骤。测光比例在 Drizzle 前应用:
-//     I_photo = k_photo * I_cal
-//   HISS signal 保存已应用 Gaia 光谱积分校准的统一相对测光累计通量。
+// Gaia 光谱积分校准是 Stage1 正式步骤。测光比例在 Drizzle 前应用:
+// I_photo = k_photo * I_cal
+// HISS signal 保存已应用 Gaia 光谱积分校准的统一相对测光累计通量。
 //
 // 公共契约: 00_COMMON_CONTRACTS.md §1.1
-//   模块: lib/calibration/src/photometry_apply.h/.cpp
-//   职责: Gaia 测光比例应用
+// 模块: lib/calibration/src/photometry_apply.h/.cpp
+// 职责: Gaia 测光比例应用
 //
 // 实现要点:
-//   - 内部使用 double 精度乘法, 避免大动态范围 (例如 k=1e-7) 下的 float 精度损失
-//   - NaN/Inf 输入像素透传 (NaN * 任何数 = NaN, 行为可预期, 下游 Drizzle 会跳过)
-//   - 支持 in-place 操作 (light == out 时直接逐元素覆盖, 无依赖)
+// - 内部使用 double 精度乘法, 避免大动态范围 (例如 k=1e-7) 下的 float 精度损失
+// - NaN/Inf 输入像素透传 (NaN * 任何数 = NaN, 行为可预期, 下游 Drizzle 会跳过)
+// - 支持 in-place 操作 (light == out 时直接逐元素覆盖, 无依赖)
 // ============================================================================
 
 #include "photometry_apply.h"

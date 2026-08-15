@@ -20,7 +20,7 @@ int p2_block_plan(const P2BlockPlannerInput* in, P2BlockPlan* out) {
     const double sf = in->safety_factor > 0.0 ? in->safety_factor : 0.75;
 
     // 峰值 ≈ P·N_B·bytes_per_sample + P·scratch_per_pixel +
-    //        (P·N_B·scratch_per_sample if provided) + fixed
+    // (P·N_B·scratch_per_sample if provided) + fixed
     const double sample_work = static_cast<double>(in->output_pixels) *
         static_cast<double>(in->covering_frames) * bytes_per_sample;
     const double per_pixel_scratch =

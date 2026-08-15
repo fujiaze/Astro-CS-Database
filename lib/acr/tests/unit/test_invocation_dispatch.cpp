@@ -1,11 +1,11 @@
 // lib/acr/tests/unit/test_invocation_dispatch.cpp — dispatch_invocation 测试
 //
-// 23 号计划 §3/§4 验收：
-//   - CPU executor 通过 KernelRegistry 真实执行全部工作；
-//   - 每设备按自身 CostEstimate 的 recommended_chunk 领取（块大小不同）；
-//   - CPU 与 mock 设备可同时完成非零工作（调度验证；真实 GPU 验收另测）；
-//   - 无 executor 支持 op 时如实失败（不伪装 CPU/GPU 执行）；
-//   - CostEstimate 改变真实领取块大小。
+// 23 §3/§4 验收：
+// - CPU executor 通过 KernelRegistry 真实执行全部工作；
+// - 每设备按自身 CostEstimate 的 recommended_chunk 领取（块大小不同）；
+// - CPU 与 mock 设备可同时完成非零工作（调度验证；真实 GPU 验收另测）；
+// - 无 executor 支持 op 时如实失败（不伪装 CPU/GPU 执行）；
+// - CostEstimate 改变真实领取块大小。
 #include <gtest/gtest.h>
 
 #include "dispatcher.hpp"
@@ -309,7 +309,7 @@ TEST(DispatchInvocation, UnsupportedOperationFailsHonestly) {
 }
 
 // ============================================================================
-// 25 号计划 §7：invocation 路径 claim 前内存峰值估算触发 ShrinkBlock
+// 25 §7：invocation 路径 claim 前内存峰值估算触发 ShrinkBlock
 // ============================================================================
 TEST(DispatchInvocation, PeakBudgetShrinkChangesClaims) {
     register_axpy_kernel();
@@ -383,7 +383,7 @@ TEST(DispatchInvocation, CostEstimateChangesClaimSize) {
 }
 
 // ============================================================================
-// 5. Eligible Device Set（24 号计划 §2）：不可行/低收益/小任务/无 profile GPU 不参与
+// 5. Eligible Device Set（24 §2）：不可行/低收益/小任务/无 profile GPU 不参与
 // ============================================================================
 namespace {
 
@@ -498,7 +498,7 @@ TEST(DispatchInvocation, ForceAllSupportedForTestOnly) {
 }
 
 // ============================================================================
-// 6. actual_primary 反例（24 号计划 §3）：按真实 items/bytes，禁止 executor 顺序
+// 6. actual_primary 反例（24 §3）：按真实 items/bytes，禁止 executor 顺序
 // ============================================================================
 namespace {
 

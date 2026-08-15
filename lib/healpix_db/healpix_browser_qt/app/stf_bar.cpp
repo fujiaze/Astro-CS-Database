@@ -139,7 +139,7 @@ void STFBar::mousePressEvent(QMouseEvent* e) {
             enforce_window();
             emit_params();
         } else {
-            // 点击条上任一点：把最近的控制点吸附过来（V14 v3 交互改进）
+            // 点击条上任一点：把最近的控制点吸附过来（ v3 交互改进）
             const float xs[3] = {shadows_, midtones_, highlights_};
             const float a = x_to_abs(e->pos().x());
             int best = 0;

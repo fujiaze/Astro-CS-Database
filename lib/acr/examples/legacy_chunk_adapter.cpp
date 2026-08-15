@@ -6,9 +6,9 @@
 // 每个 chunk 调用一次处理函数 (b, e)。无需重写旧逻辑即可获得并行加速。
 //
 // 适配要点：
-//   - 旧函数签名 process_chunk(float* data, size_t b, size_t e) 不变
-//   - 用 lambda 包裹调用 parallel_chunks
-//   - chunk 间无依赖时安全并行；有依赖则需同步
+// - 旧函数签名 process_chunk(float* data, size_t b, size_t e) 不变
+// - 用 lambda 包裹调用 parallel_chunks
+// - chunk 间无依赖时安全并行；有依赖则需同步
 
 #include <cstddef>
 #include <cstdio>

@@ -3,10 +3,10 @@
 //
 // Phase1 JSON 入口重构后, 所有命令解析逻辑已移至 main.cpp。
 // 本文件仅保留:
-//   - CliCommand::output_jsonl_event_ex: JSONL 事件输出 (供 main.cpp 调用)
-//   - p04004_register_signal_handler / p04004_unregister_signal_handler:
-//     P04-004 SIGINT 信号处理 (Ctrl+C 触发取消)
-//   - sha256_impl::sha256: SHA-256 实现 (供 json_config.cpp 调用, 见 cpp)
+// - CliCommand::output_jsonl_event_ex: JSONL 事件输出 (供 main.cpp 调用)
+// - p04004_register_signal_handler / p04004_unregister_signal_handler:
+// P04-004 SIGINT 信号处理 (Ctrl+C 触发取消)
+// - sha256_impl::sha256: SHA-256 实现 (供 json_config.cpp 调用, 见 cpp)
 // ============================================================================
 
 #pragma once
@@ -23,7 +23,7 @@ class CliCommand {
 public:
     // P04-002: 扩展 JSONL 事件输出 (含数字 exit_code + 持续时间 + 关键指标)
     // 输出字段: schema_version/type/job_id/timestamp/stage/duration_ms/status/
-    //           progress/message/result/error/exit_code/effective_config_hash
+    // progress/message/result/error/exit_code/effective_config_hash
     // 用于 stage_start/stage_end/result/error/warning/progress 事件
     // exit_code: -1 表示不输出该字段; >=0 时输出 (error/failed 事件)
     // duration_ms: -1 表示不输出; >=0 时输出 (stage_end/stage_completed)

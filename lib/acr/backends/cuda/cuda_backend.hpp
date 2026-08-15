@@ -2,12 +2,12 @@
 // Phase D：纯 CUDA backend（不依赖 alpaka，ADR-001 评估延后）。
 //
 // 设计（ADR-009 CPU-only build gate）：
-//   1. 整个 header 用 #ifdef ACR_BUILD_CUDA 保护，CPU-only 构建不展开任何 CUDA 符号
-//   2. CudaBackend singleton lazy init；无设备/驱动错误时 available()=false，runtime 不崩溃
-//   3. cudaError 转 StatusCode（DeviceLost / KernelFailed / OutOfMemory）
-//   4. initialize() 内注册 GPU 报告回调到 topology（generate_hardware_report 含 GPU 字段）
-//   5. cuda_parallel_for 模板仅在 CUDA 编译单元（__CUDACC__）可见，用 <<<>>> 启动
-//   6. 公共 acr.hpp 不 include 本头；本头仅供 cuda/ 内部 + 测试 + example 使用
+// 1. 整个 header 用 #ifdef ACR_BUILD_CUDA 保护，CPU-only 构建不展开任何 CUDA 符号
+// 2. CudaBackend singleton lazy init；无设备/驱动错误时 available()=false，runtime 不崩溃
+// 3. cudaError 转 StatusCode（DeviceLost / KernelFailed / OutOfMemory）
+// 4. initialize() 内注册 GPU 报告回调到 topology（generate_hardware_report 含 GPU 字段）
+// 5. cuda_parallel_for 模板仅在 CUDA 编译单元（__CUDACC__）可见，用 <<<>>> 启动
+// 6. 公共 acr.hpp 不 include 本头；本头仅供 cuda/ 内部 + 测试 + example 使用
 #pragma once
 
 #ifdef ACR_BUILD_CUDA

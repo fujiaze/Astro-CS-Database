@@ -1,13 +1,13 @@
 // lib/phase2/src/sampler.cpp — Phase2 W4 稀疏光度控制点采样器
 //
-// 语义（控制包 34A532A2...B2EB308 + wiki Phase2_Unified_Photometric_Model）：
-//   - 控制点布置于整个 coverage union（不限于 pairwise overlap）；
-//   - 控制点 geometry 由 union geometry + target angular spacing 决定，
-//     不由 SNR 决定（SNR 只参与观测可信度）；
-//   - y_ik 从实际 Phase1 HiPS signal/support 读取（AIO 唯一 I/O）；
-//   - patch estimator：cell 附近小型 patch，support>0 + finite 过滤，
-//     robust median 位置 + MAD 尺度，保留负值；
-//   - snr_ik 来自 Phase1 SNR Catalogue 邻近星点（不重新检测星点）。
+// 语义（ 34A532A2...B2EB308 + wiki Phase2_Unified_Photometric_Model）：
+// - 控制点布置于整个 coverage union（不限于 pairwise overlap）；
+// - 控制点 geometry 由 union geometry + target angular spacing 决定，
+// 不由 SNR 决定（SNR 只参与观测可信度）；
+// - y_ik 从实际 Phase1 HiPS signal/support 读取（AIO 唯一 I/O）；
+// - patch estimator：cell 附近小型 patch，support>0 + finite 过滤，
+// robust median 位置 + MAD 尺度，保留负值；
+// - snr_ik 来自 Phase1 SNR Catalogue 邻近星点（不重新检测星点）。
 #include "astro/phase2/sampler.h"
 
 #include "crypto/sha256.h"
@@ -79,7 +79,7 @@ double median_of(std::vector<double> v) {
     return 0.5 * (a + b);
 }
 
-// V15 性能：SNR catalogue 空间索引（dec 排序 + RA 窗口保守预筛，
+// 性能：SNR catalogue 空间索引（dec 排序 + RA 窗口保守预筛，
 // 最终判据与全扫描完全一致——同一 angular_distance_deg 精确调用）。
 struct SnrIndex {
     std::vector<double> ra, dec, snr;
@@ -166,7 +166,7 @@ struct SnrIndex {
 
 extern "C" {
 
-// V15：sampler 默认配置单一来源（null cfg 与显式 cfg 同语义）。
+// sampler 默认配置单一来源（null cfg 与显式 cfg 同语义）。
 P2SamplerConfig p2_sampler_default_config(void) {
     P2SamplerConfig c{};
     c.control_grid_per_tile = 8;
@@ -187,7 +187,7 @@ P2SamplerConfig p2_sampler_default_config(void) {
 
 std::uint64_t p2_frame_id(const char* hips_path) {
     if (!hips_path || !*hips_path) return 0;
-    // R2（V4）：科学产品稳定身份——关键元数据 + signal tile DATASUM +
+    // 科学产品稳定身份——关键元数据 + signal tile DATASUM +
     // support tile DATASUM + SNR catalogue 内容（canonical SHA-256）。
     // 复制/重命名/换根目录不变；signal/support 像素 payload 或
     // SNR/quality catalogue 变化 → 改变。
@@ -344,11 +344,11 @@ int p2_sample_controls(const P2CoverageResult* coverage,
     *out_n_obs = 0;
     *out_n_controls = 0;
     P2SampleStats stats{};
-    // V15 修复：cfg 必须零初始化（此前 null 路径用栈垃圾值，默认值
+    // 修复：cfg 必须零初始化（此前 null 路径用栈垃圾值，默认值
     // 随机失效 → n_obs 不确定）；默认值单源 p2_sampler_default_config。
     P2SamplerConfig cfg = p2_sampler_default_config();
     if (cfg_in) cfg = *cfg_in;
-    // V13 默认（synthetic + GC 调优后固化；BACKGROUND_SAMPLER_SPEC.md）
+    // 默认（synthetic + GC 调优后固化；BACKGROUND_SAMPLER_SPEC.md）
     if (cfg.background_patch_radius <= 0) cfg.background_patch_radius = 8;
     if (cfg.background_clip_sigma <= 0.0) cfg.background_clip_sigma = 3.0;
     if (cfg.background_clip_iters <= 0) cfg.background_clip_iters = 3;
@@ -367,7 +367,7 @@ int p2_sample_controls(const P2CoverageResult* coverage,
     if (cfg.snr_search_radius_deg <= 0.0) cfg.snr_search_radius_deg = 0.05;
 
     const std::uint64_t n_frames = coverage->n_inputs;
-    // R2：frame_id 缓存（payload 敏感，DISCOVER 阶段一次计算）
+    // frame_id 缓存（payload 敏感，DISCOVER 阶段一次计算）
     std::vector<std::uint64_t> fid_cache(n_frames);
     for (std::uint64_t i = 0; i < n_frames; ++i)
         fid_cache[i] = p2_frame_id(hips_paths[i]);
@@ -376,7 +376,7 @@ int p2_sample_controls(const P2CoverageResult* coverage,
     // 打开每帧 signal/support/snr 并收集 tile 集合
     std::vector<AioHipsDataset*> sig(n_frames, nullptr);
     std::vector<AioHipsDataset*> sup(n_frames, nullptr);
-    std::vector<AioHipsDataset*> ivr(n_frames, nullptr);   // V19: ivar 产品 (可缺)
+    std::vector<AioHipsDataset*> ivr(n_frames, nullptr);   // ivar 产品 (可缺)
     std::vector<FrameData> frames(n_frames);
     for (std::uint64_t i = 0; i < n_frames; ++i) {
         sig[i] = aio_hips_open(hips_paths[i], AIO_HIPS_RD_SIGNAL);
@@ -415,19 +415,19 @@ int p2_sample_controls(const P2CoverageResult* coverage,
             frames[i].quality.resize((size_t)std::max(got, 0));
             aio_hips_close(snr);
         }
-        // V19 (SNR_REDESIGN_CONTRACT §8.3): 逐像素 ivar 产品 (Drizzle 方差传播)
-        //   缺失 → o.ivar=0 (UPM 权重回退 1/uncertainty², 如实降级)
+        // 逐像素 ivar 产品 (Drizzle 方差传播)
+        // 缺失 → o.ivar=0 (UPM 权重回退 1/uncertainty², 如实降级)
         ivr[i] = aio_hips_open(hips_paths[i], AIO_HIPS_RD_IVAR);
     }
 
-    // ================= V13 background-clean sampler =================
+    // ================= background-clean sampler =================
     // Stage A-E（BACKGROUND_SAMPLER_SPEC.md）：
-    //   A 候选 patch（可配置半径，默认 17×17）
-    //   B 亮端迭代 sigma clipping（median/MAD）
-    //   C DBE-like 局部 tolerance gate（邻域粗背景 B_local）
-    //   D contamination fraction gate
-    //   E 可选 SNR catalogue veto
-    //   同一 control ≥2 帧 clean 观测才进入 UPM（相对光度约束）
+    // A 候选 patch（可配置半径，默认 17×17）
+    // B 亮端迭代 sigma clipping（median/MAD）
+    // C DBE-like 局部 tolerance gate（邻域粗背景 B_local）
+    // D contamination fraction gate
+    // E 可选 SNR catalogue veto
+    // 同一 control ≥2 帧 clean 观测才进入 UPM（相对光度约束）
     std::vector<P2ControlObservation> obs;
     std::uint64_t control_id = 0;
     const int grid = cfg.control_grid_per_tile;
@@ -450,7 +450,7 @@ int p2_sample_controls(const P2CoverageResult* coverage,
     // 帧级 SNR 中位数（catalogue veto 与 fallback 用）
     std::vector<double> frame_snr_med(n_frames, 0.0);
     std::vector<double> frame_snr_med_exact(n_frames, 0.0);  // median_of 语义
-    std::vector<SnrIndex> snr_idx(n_frames);  // V15：空间索引（dec 排序）
+    std::vector<SnrIndex> snr_idx(n_frames);  // 空间索引（dec 排序）
     for (std::uint64_t i = 0; i < n_frames; ++i) {
         if (!frames[i].snr.empty()) {
             std::vector<double> cp = frames[i].snr;
@@ -635,7 +635,7 @@ int p2_sample_controls(const P2CoverageResult* coverage,
 
     // 第二遍：Stage C DBE-like 局部 tolerance gate
     const int nr = cfg.background_neighbor_radius;
-    // V14 (G7)：按 tile 分组，邻域只遍历同 tile cells（替代全 cells 扫描）
+    // 按 tile 分组，邻域只遍历同 tile cells（替代全 cells 扫描）
     std::map<int, std::vector<std::size_t>> tile_cells;
     for (std::size_t ci = 0; ci < cells.size(); ++ci)
         tile_cells[cells[ci].tile].push_back(ci);
@@ -720,7 +720,7 @@ int p2_sample_controls(const P2CoverageResult* coverage,
             o.uncertainty = cs.unc[fi];
             o.snr = cs.snr[fi];
             o.snr_available = cs.snr_avail[fi];
-            // V19: 控制点 ivar 取自帧 ivar 产品 (控制 leaf 处)
+            // 控制点 ivar 取自帧 ivar 产品 (控制 leaf 处)
             o.ivar = 0.0;
             {
                 AioHipsDataset* iv = ivr[cs.frames[fi]];
