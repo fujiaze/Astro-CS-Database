@@ -14,6 +14,170 @@ extern "C" {
 #endif
 
 // ============================================================================
+// V19 SNR/Noise 科学重构 — 三层模型 (SNR_SCIENCE_DERIVATION.md / SNR_REDESIGN_CONTRACT.md)
+//
+// 旧乘法模型 (SNR_phot × SNR_psf/median + IDW) 已降级为 legacy heuristic /
+// diagnostic only (见 snr_extract_model_* 与 snr_estimate_*), 不再作为生产科学权重。
+// V19 拆分为:
+//   1. PhotometricCalibrationQuality — 帧级测光定标质量 (systematic metadata)
+//   2. PsfFitQuality                 — 星点级 PSF 拟合质量代理 (QA/剔星)
+//   3. NoiseWeightModelV1            — source-masked blank-sky 稳健方差 → ivar
+//                                      (Phase2 科学加权唯一来源)
+// ============================================================================
+
+// ---------------------------------------------------------------------------
+// 1. PhotometricCalibrationQuality
+//    单位: sigma_residual 来自测光定标 r_i = log10(F_instr/F_syn) 的稳健散度,
+//    单位为 dex (log10 flux-ratio)。它不是 mag, 也不是像素随机噪声 σ。
+//    sigma_mag     = 2.5 × sigma_logflux_dex      (mag 空间)
+//    sigma_cal_rel ≈ ln(10) × sigma_logflux_dex   (相对通量散度)
+//    用途: QA / frame flag / calibration systematic metadata;
+//          禁止当作逐像素 inverse-variance 权重。
+// ---------------------------------------------------------------------------
+typedef struct {
+    double sigma_logflux_dex;  // 测光残差散度 (dex / log10 flux-ratio)
+    double sigma_mag;          // 2.5 × dex (mag)
+    double sigma_cal_rel;      // ln(10) × dex (相对标定散度, 无量纲)
+    int    n_matches;          // 匹配 Gaia 星数
+    int    fit_status;         // 0=ok, 1=degenerate (无有效匹配), 2=invalid input
+} PhotometricCalibrationQuality;
+
+// 从测光定标残差 sigma (dex) 构造 PhotometricCalibrationQuality。
+// sigma_logflux_dex <= 0 或非有限 → fit_status=2, 各 sigma 置 0。
+SNR_API int snr_phot_cal_quality(double sigma_logflux_dex, int n_matches,
+                                 PhotometricCalibrationQuality* out);
+
+// ---------------------------------------------------------------------------
+// 2. PsfFitQuality
+//    每星 PSF 拟合质量代理。psf 行布局为冻结的 [N,9]:
+//      status(0) B(1) flux(2) cx(3) cy(4) fwhm(5) A(6) mad(7) eccentricity(8)
+//    其中 mad 列实际是 10-90% trimmed mean absolute residual (非真 MAD),
+//    对 Gaussian N(0,σ²) 期望 ≈ 0.731673 σ。
+//    本接口准确重命名语义并输出:
+//      residual_scale        — 原统计量 (不称 MAD)
+//      robust_residual_sigma — residual_scale / 0.731673 (Gaussian 假设)
+//      q_psf                 — amplitude_above_bg / residual_scale (拟合质量代理)
+//    注意: q_psf 是 fit-quality proxy, 不是图像噪声 SNR, 默认不作为
+//          Phase2 逐像素 science weight。
+// ---------------------------------------------------------------------------
+typedef struct {
+    double flux;                // PSF 通量
+    double amplitude_above_bg;  // A (背景以上峰值振幅)
+    double background;          // B (局部背景)
+    double fwhm;                // 半高全宽
+    double eccentricity;        // 椭率
+    double residual_scale;      // trimmed-mean-abs residual (原 mad 列, 准确语义)
+    double robust_residual_sigma; // Gaussian 假设下 ≈ residual_scale/0.731673
+    double q_psf;               // A / residual_scale (fit-quality proxy)
+    uint32_t fit_status;        // 0=ok, 1=rejected(status!=0), 2=saturated/quality flag,
+                                // 3=invalid input 行
+} PsfFitQualityRow;
+
+// 从 PSF 块 [N,9] 计算每星 PsfFitQuality。
+// star_ids / quality_flags 可空 (空则填 0)。
+// out 至少 n_stars 行。返回 0=成功, 3=nullptr 参数。
+SNR_API int snr_psf_fit_quality(const double* psf, int n_stars,
+                                const int64_t* star_ids,
+                                const uint32_t* quality_flags,
+                                PsfFitQualityRow* out);
+
+// ---------------------------------------------------------------------------
+// 3. NoiseWeightModelV1
+//    source-masked blank-sky 稳健方差 (production 基线)。
+//    控制点来自空背景噪声, 与星亮度/星族解耦 (SNR-003/SNR-010)。
+//    默认 patch grid 扫描校准帧:
+//      - 星点掩膜 (按星振幅自适应半径) + 饱和/边缘排除
+//      - patch 内 robust location (median) + robust scale
+//        σ_bg = 1.4826022185 × median(|x − median(x)|)
+//      - 合格 patch 成为控制点, 可选 IDW 空间平滑方差场
+//      - 全局兜底 = 合格 patch 的 median variance
+//    gain/read-noise 已知时可交叉验证 Poisson+read 模型 (SNR-005),
+//    缺失时经验 fallback (SNR-014)。
+// ---------------------------------------------------------------------------
+typedef struct {
+    int    patch_grid_x;         // 每边 patch 数 (默认 8, >=2)
+    int    patch_grid_y;         // 每边 patch 数 (默认 8, >=2)
+    double source_mask_radius_px;   // 星点基础掩膜半径 (默认 10 px)
+    double mask_radius_scale;       // 按振幅缩放上限倍数 (默认 6.0, 即最亮星 60 px)
+    double gain_e_per_adu;          // 增益 e-/ADU (0=未知, 默认 0)
+    double read_noise_e;            // 读出噪声 e- (0=未知, 默认 0)
+    double saturation_level;        // 饱和电平 (0=禁用, 默认 0)
+    double cosmic_clip_sigma;       // patch 内 cosmic/hot 稳健裁剪 (默认 5.0)
+    int    min_patch_samples;       // patch 合格最小 sky 样本数 (默认 64)
+    int    max_clip_rounds;         // cosmic 裁剪轮数 (默认 2)
+    uint32_t use_gain_model;        // 1=gain+readnoise 已知时优先模型; 默认 0 (经验优先)
+    uint32_t enable_spatial_field;  // 1=IDW 空间方差场 (默认 1)
+    double   variance_floor;        // ivar 分母下限 (默认 1e-12)
+} SnrNoiseModelConfig;
+
+// V19: 默认噪声模型配置
+SNR_API int snr_noise_model_v1_default_config(SnrNoiseModelConfig* cfg);
+
+typedef struct {
+    uint32_t n_control_points;   // 合格 patch 数
+    double*  ctrl_x_px;          // patch 中心 x (0-based)
+    double*  ctrl_y_px;          // patch 中心 y
+    double*  ctrl_sigma;         // patch 稳健 σ
+    double*  ctrl_variance;      // σ²
+    double*  ctrl_ivar;          // 1/σ²
+    double   sigma_bg_global;    // 全局兜底 σ
+    double   variance_bg_global; // 全局兜底 variance
+    double   ivar_bg_global;     // 全局兜底 ivar
+    uint32_t n_qualified_patches;
+    uint32_t n_rejected_patches; // 样本不足/饱和/非有限
+    uint8_t  source;             // 0=empirical blank-sky, 1=gain+readnoise model,
+                                 // 2=mixed (control=empirical, fill 用模型)
+    uint8_t  has_spatial_field;  // 1=合格 patch >=4 且空间场可用
+    uint8_t  degenerate;         // 1=无合格 patch, 全局兜底也退化 (ivar=0)
+    uint8_t  reserved;
+} NoiseWeightModelV1;
+
+// 从校准帧估计 blank-sky 稳健方差模型。
+// data: FLOAT32 [h*w] (校准后, ADU 空间); source_mask 可空;
+// star_x/star_y: 星点像素坐标 (0-based), n_stars 可 0;
+// cfg: 可空 (=默认配置);
+// out_model: 调用者用 snr_noise_model_v1_free 释放。
+// 返回 0=成功 (含全局兜底), 1=完全退化 (ivar=0, 调用方应拒绝加权),
+//      3=nullptr / 非法尺寸。
+SNR_API int snr_noise_model_v1(const float* data, int h, int w,
+                               const float* source_mask,
+                               const double* star_x, const double* star_y,
+                               int n_stars,
+                               const SnrNoiseModelConfig* cfg,
+                               NoiseWeightModelV1* out_model);
+
+// FP64 变体 (与 v1 语义一致, data 为 double)
+SNR_API int snr_noise_model_v1_f64(const double* data, int h, int w,
+                                   const float* source_mask,
+                                   const double* star_x, const double* star_y,
+                                   int n_stars,
+                                   const SnrNoiseModelConfig* cfg,
+                                   NoiseWeightModelV1* out_model);
+
+// 填充逐像素 variance / ivar (FLOAT32 输出; 可空任一输出)。
+// 空间场启用且有 >=4 控制点 → IDW(power=2) 平滑; 否则全局常量。
+// 返回 0=成功, 3=nullptr/尺寸非法。
+SNR_API int snr_noise_model_v1_fill(const NoiseWeightModelV1* model,
+                                    int h, int w,
+                                    float* out_variance, float* out_ivar);
+
+// 释放模型内部数组
+SNR_API void snr_noise_model_v1_free(NoiseWeightModelV1* model);
+
+// ---------------------------------------------------------------------------
+// 噪声传播法则 (SNR-002)
+//   x' = α x  →  Var(x') = α² Var(x),  ivar' = ivar / α²
+// ---------------------------------------------------------------------------
+SNR_API void snr_noise_scale_law(double alpha,
+                                 double* variance, double* ivar);
+
+// Poisson+read-noise 方差模型 (ADU 空间, signal 单位 ADU):
+//   var_ADU = max(signal,0)/gain + (read_noise_e/gain)²
+SNR_API double snr_noise_gain_variance(double signal,
+                                       double gain_e_per_adu,
+                                       double read_noise_e);
+
+// ============================================================================
 // SNR 估算 - 乘法模型
 // SNR(pixel) = SNR_phot × (SNR_psf(pixel) / median(SNR_psf))
 //

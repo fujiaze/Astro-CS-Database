@@ -1,7 +1,7 @@
 CXX = g++
 CXXFLAGS = -O2 -std=c++17 -Wall -fPIC -fopenmp
 INCDIR = include
-SRCS = src/snr_estimator.cpp
+SRCS = src/snr_estimator.cpp src/noise_model.cpp
 TARGET = snr_estimator.dll
 
 .PHONY: all clean
