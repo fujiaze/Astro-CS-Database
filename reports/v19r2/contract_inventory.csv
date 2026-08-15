@@ -1,0 +1,112 @@
+legacy_id,normalized_family,title,authority_doc,module,status
+AST-001,SCI-AST,"| WCS+TAN/SIP | lib/plate_solve, wcs_sip.cpp | 前向 A/B + CD | AST-001..008 |
+| PSF Moffat4 | lib/dynamic_psf | I=B+A/(1+Q",docs/SCIENTIFIC_ALGORITHMS.md,module,VERIFIED
+AVX-512,AVX,"CPU 至少测试实际支持的 Scalar、SSE/AVX、AVX2、AVX-512 与代表线程数；精度覆盖 FP32、FP64、FP32 输入/FP64 累加。
+
+GPU 至少覆盖 resident kernel、pageabl",工程控制/docs/ACR_25_SECOND_FIX_IMPLEMENTATION_REVIEW_CORRECTION_PLAN.md,module,VERIFIED
+CAL-001,SCI-CAL,"| 校准 | lib/calibration | bias/dark/flat/cosmetic | CAL-001..006 |
+| WCS+TAN/SIP | lib/plate_solve, wcs_sip.cpp | 前向 A/B ",docs/SCIENTIFIC_ALGORITHMS.md,module,VERIFIED
+DRZ-001,SCI-DRZ,"## 科学门 (DRZ-001..016)
+
+DRZ-001..013 沿用冻结 oracle (候选 9003 / 独立 Oracle 5502 / 科学矩阵
+37 / 反向",docs/DRIZZLE.md,phase2,VERIFIED
+DRZ-014,SCI-DRZ,"### 方差传播 (DRZ-014, P1-003)
+
+```text
+输入: 帧 ""variance"" 块 (FLOAT32/64 [H,W], NoiseWeightModel",docs/DRIZZLE.md,phase2,VERIFIED
+DRZ-015,SCI-DRZ,"DRZ-015 output covariance      PASS (SNR-012, 已表征)
+DRZ-016 optimized cache 不改科学",docs/DRIZZLE.md,phase2,VERIFIED
+DRZ-016,SCI-DRZ,"DRZ-016 optimized cache 不改科学 PASS (signal 在 variance 输入下逐位一致)
+```
+
+## 已知限制
+
+- 相邻",docs/DRIZZLE.md,phase2,VERIFIED
+INT-001,SCI-INT,"| 积分 | lib/phase2/integrate.cpp | ivar 加权 + support max | INT-001..008 |
+
+每个算法文档要求: 公式、变量/单位、假设、有效域、失败模式、源码入口、
+oracle/te",docs/SCIENTIFIC_ALGORITHMS.md,phase2,VERIFIED
+INT-002,SCI-INT,"INT-002 inverse-variance optimum PASS (SNR-009 分析 + gate)
+INT-004 rescale+propag",docs/PHASE2.md,phase2,VERIFIED
+INT-004,SCI-INT,"INT-004 rescale+propagated var   PASS (DRZ-014 + UPM ablation)
+INT-008 signal-in",docs/PHASE2.md,phase2,VERIFIED
+INT-008,SCI-INT,"INT-008 signal-independent       PASS (SNR-010)
+gate 65/65 → 74/74 (V19 增加 UPM i",docs/PHASE2.md,phase2,VERIFIED
+PHOT-001,SCI-PHOT,"| 测光定标 | lib/photometric_calib | r=log10(F_i/F_syn) dex | PHOT-001..007 |
+| 噪声模型 | lib/snr_estimator/noise_model.cpp | b",docs/SCIENTIFIC_ALGORITHMS.md,module,VERIFIED
+PSF-001,SCI-PSF,"| PSF Moffat4 | lib/dynamic_psf | I=B+A/(1+Q)⁴, Q=0.5r²/σ² | PSF-001..008 |
+| 测光定标 | lib/photometric_calib | r=log10(F_i",docs/SCIENTIFIC_ALGORITHMS.md,module,VERIFIED
+SHA-256,SHA,"- `astrocs::crypto`（SHA-256）。
+- 命名空间建议：`astrocs::phase1 / phase2 / hips / acr`（不强制破坏现有
+  `p2_*` ABI；",docs/contracts/PUBLIC_API.md,module,VERIFIED
+SNR-001,SCI-NOISE,"| 噪声模型 | lib/snr_estimator/noise_model.cpp | blank-sky MAD → ivar | SNR-001..015 |
+| Drizzle | lib/healpix_db/healpix_dr",docs/SCIENTIFIC_ALGORITHMS.md,phase2,VERIFIED
+SNR-002,SCI-NOISE,"缩放律: `x' = αx → var' = α²var, ivar' = ivar/α²` (SNR-002)。
+
+## 相关噪声
+
+同一源像素贡献多个输出像素 → Drizzle 后相邻输出非严格独立:
+
+```text
+Cov(S_p",docs/SNR_NOISE_MODEL.md,phase2,VERIFIED
+SNR-003,SCI-NOISE,"控制点来自空背景噪声, 与星亮度/星族解耦 (SNR-003/SNR-010)。
+
+## 方差传播 (Drizzle, DRZ-014)
+
+```text
+源像素 j → 目标像素 p:
+  w_jp =",docs/SNR_NOISE_MODEL.md,phase2,VERIFIED
+SNR-004,SCI-NOISE,"| SNR-004 | Gaussian sky recovery | PASS (bias ≤2%, p95 ≥95%) |
+| SNR-005 | Poisso",docs/SNR_NOISE_MODEL.md,phase2,VERIFIED
+SNR-005,SCI-NOISE,"| SNR-005 | Poisson+read cross-check | PASS (rel ≤5%) |
+| SNR-006 | spatial noise-",docs/SNR_NOISE_MODEL.md,phase2,VERIFIED
+SNR-006,SCI-NOISE,"| SNR-006 | spatial noise-field recovery | PASS (corr ≥0.98, RMSE ≤5%) |
+| SNR-007",docs/SNR_NOISE_MODEL.md,phase2,VERIFIED
+SNR-007,SCI-NOISE,"| SNR-007 | dex/mag units | PASS |
+| SNR-008 | legacy A-B retired | PASS |
+| SNR-0",docs/SNR_NOISE_MODEL.md,phase2,VERIFIED
+SNR-008,SCI-NOISE,"已从科学路径退休 (SNR-008)。
+
+### 3. NoiseWeightModelV1 (production 基线)
+
+source-masked blank-sky 稳健",docs/SNR_NOISE_MODEL.md,phase2,VERIFIED
+SNR-009,SCI-NOISE,"INT-002 inverse-variance optimum PASS (SNR-009 分析 + gate)
+INT-004 rescale+propagated var   PASS (DRZ-014 + UPM ablation",docs/PHASE2.md,phase2,VERIFIED
+SNR-010,SCI-NOISE,"INT-008 signal-independent       PASS (SNR-010)
+gate 65/65 → 74/74 (V19 增加 UPM ivar 权重门)
+```",docs/PHASE2.md,phase2,VERIFIED
+SNR-011,SCI-NOISE,"healpix_drizzle:    variance_propagation_test (SNR-011/012 + DRZ)
+phase2:             phase2_synthetic_gate (74 项)
+astro",docs/DEVELOPER_GUIDE.md,phase2,VERIFIED
+SNR-012,SCI-NOISE,"DRZ-015 output covariance      PASS (SNR-012, 已表征)
+DRZ-016 optimized cache 不改科学 PASS (signal 在 variance 输入下逐位一致)
+```",docs/DRIZZLE.md,phase2,VERIFIED
+SNR-013,SCI-NOISE,"| SNR-013 | PSF quality semantics | PASS |
+| SNR-014 | missing metadata fallback |",docs/SNR_NOISE_MODEL.md,phase2,VERIFIED
+SNR-014,SCI-NOISE,"| SNR-014 | missing metadata fallback | PASS |
+| SNR-015 | UPM ablation | PASS (ph",docs/SNR_NOISE_MODEL.md,phase2,VERIFIED
+SNR-015,SCI-NOISE,"legacy snr²/(1+snr²): 仅 use_ivar_weight=0 时用于 ablation (SNR-015)
+```
+
+### Integration 权重 (stack.ivar.v1 默认)
+
+```text
+wei",docs/PHASE2.md,phase2,VERIFIED
+UPM-001,SCI-UPM,"| UPM | lib/phase2/upm.cpp | Huber IRLS + 弱零锚 | UPM-001..010 |
+| 排异 | lib/phase2/rejection.cpp | 13 方法 + WBPP 策略 | REJ 矩",docs/SCIENTIFIC_ALGORITHMS.md,phase2,VERIFIED
+UPM-009,SCI-UPM,"UPM-009 no raw-star-SNR weight   PASS (science path 无 snr² 因子)
+UPM-010 control u",docs/PHASE2.md,phase2,VERIFIED
+UPM-010,SCI-UPM,"UPM-010 control uncertainty      PASS (ivar 或 1/unc²)
+INT-002 inverse-variance o",docs/PHASE2.md,phase2,VERIFIED
+SCI-UPM-PERSIST-001,SCI-UPM,UPM save/close/open frame_id->theta binding invariant,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+ALG-UPM-FRAME-BIND-001,ALG-UPM,canonical parameter_rows/frame_id_by_index pair,docs/algorithms/UPM_SOLVER.md,phase2,VERIFIED
+DATA-UPM-MODEL-001,DATA-UPM,explicit index->frame mapping + malformed rejection,docs/architecture/COMPATIBILITY_POLICY.md,phase2,VERIFIED
+ERR-P2-UPM-001,ERR-P2,malformed UPM model open error,docs/diagnostics/TROUBLESHOOTING.md,phase2,VERIFIED
+RJ-001,ALG-REJ,Phase2 rejection contract RJ-001,docs/algorithms/REJECTION_ALGORITHMS.md,phase2,VERIFIED
+RJ-002,ALG-REJ,Phase2 rejection contract RJ-002,docs/algorithms/REJECTION_ALGORITHMS.md,phase2,VERIFIED
+RJ-003,ALG-REJ,Phase2 rejection contract RJ-003,docs/algorithms/REJECTION_ALGORITHMS.md,phase2,VERIFIED
+RJ-004,ALG-REJ,Phase2 rejection contract RJ-004,docs/algorithms/REJECTION_ALGORITHMS.md,phase2,VERIFIED
+RJ-005,ALG-REJ,Phase2 rejection contract RJ-005,docs/algorithms/REJECTION_ALGORITHMS.md,phase2,VERIFIED
+RJ-006,ALG-REJ,Phase2 rejection contract RJ-006,docs/algorithms/REJECTION_ALGORITHMS.md,phase2,VERIFIED
+RJ-007,ALG-REJ,Phase2 rejection contract RJ-007,docs/algorithms/REJECTION_ALGORITHMS.md,phase2,VERIFIED
+RJ-008,ALG-REJ,Phase2 rejection contract RJ-008,docs/algorithms/REJECTION_ALGORITHMS.md,phase2,VERIFIED
