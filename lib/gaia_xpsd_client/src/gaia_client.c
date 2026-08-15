@@ -26,6 +26,22 @@
 #define MAX_FILES 32
 #define MAX_STARS_RESULT 200000
 
+/* V18R2 诊断（ASTROCS_GAIA_TRACE=1 启用，默认零开销）：查询遍历/读取计数 */
+static int gaia_trace_enabled(void) {
+    static int en = -1;
+    if (en < 0) {
+        const char *v = getenv("ASTROCS_GAIA_TRACE");
+        en = (v && v[0] == '1') ? 1 : 0;
+    }
+    return en;
+}
+static long long g_trace_nodes = 0;
+static long long g_trace_blocks = 0;
+static long long g_trace_bytes = 0;
+static long long g_trace_decomp = 0;
+static long long g_trace_polar_nodes = 0;
+static long long g_trace_eq_nodes = 0;
+
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -616,6 +632,38 @@ static int bbox_intersects(double ra, double dec, double radius_deg,
     return 1;
 }
 
+/* V18R2：极区（AzimuthalEquidistant）投影平面剪枝。
+ * 极投影保距：查询圆盘 = 投影平面圆（圆心 (xq,yq)，半径=角距）。
+ * 节点 bbox 为投影平面轴对齐矩形 [x0,x1]×[y0,y1]（度）。
+ * 点-矩形最近距离 > 半径×1.2 裕量 → 必然不相交（拒绝）。
+ * 相比天球 bbox（RA 环绕导致极区 min/max 退化 → 全树遍历 16GB 读取），
+ * 平面剪枝 O(1) 且无环绕问题，零漏选（拒绝仅发生在数学必然相离时）。
+ * 约定：南极投影 x=θ·sin(φ), y=θ·cos(φ)，φ=ra-cra，θ=-90°-dec（极冠内）。
+ */
+static int polar_plane_intersects(double ra, double dec, double radius_deg,
+                                   double tree_center_ra, double tree_center_dec,
+                                   double x0, double y0, double x1, double y1) {
+    double theta_q;
+    if (tree_center_dec < 0.0) {
+        /* 南极冠: dec∈[-90,-45]。查询在南冠外 → 必不相交，直接拒绝。 */
+        if (dec > -45.0) return 0;
+        theta_q = 90.0 + dec;            /* dec=-90→0（极点）, -45→45（冠边） */
+    } else {
+        /* 北极冠: dec∈[45,90]。查询在北冠外 → 必不相交，直接拒绝。 */
+        if (dec < 45.0) return 0;
+        theta_q = 90.0 - dec;            /* dec=90→0, 45→45 */
+    }
+    if (theta_q < 0.0 || theta_q > 45.0) return 1;  /* 保险（不应当发生） */
+    double phi_q = (ra - tree_center_ra) * DEG2RAD;
+    double xq = theta_q * sin(phi_q);
+    double yq = theta_q * cos(phi_q);
+    double rq = radius_deg * 1.2;                   /* 裕量（与原 bbox 一致） */
+    double dx = 0.0, dy = 0.0;
+    if (xq < x0) dx = x0 - xq; else if (xq > x1) dx = xq - x1;
+    if (yq < y0) dy = y0 - yq; else if (yq > y1) dy = yq - y1;
+    return (dx * dx + dy * dy <= rq * rq) ? 1 : 0;
+}
+
 static int lz4_decompress(const uint8_t *src, uint32_t src_size, uint8_t *dst, uint32_t dst_capacity) {
     const uint8_t *ip = src;
     const uint8_t *ip_end = src + src_size;
@@ -1004,6 +1052,17 @@ static void search_recursive(XPSDFileInternal *xf, TreeInfo *tree, int node_idx,
                               StarCollector *sc, uint8_t *scratch) {
     if (sc->count >= MAX_STARS_RESULT) return;
     QTNode *node = &tree->nodes[node_idx];
+    if (gaia_trace_enabled()) {
+        #pragma omp atomic
+        g_trace_nodes++;
+        if (strcmp(tree->projection, "AzimuthalEquidistant") == 0) {
+            #pragma omp atomic
+            g_trace_polar_nodes++;
+        } else {
+            #pragma omp atomic
+            g_trace_eq_nodes++;
+        }
+    }
 
     double ra_min, ra_max, dec_min, dec_max;
     if (strcmp(tree->projection, "Equirectangular") == 0) {
@@ -1028,10 +1087,28 @@ static void search_recursive(XPSDFileInternal *xf, TreeInfo *tree, int node_idx,
         }
     }
 
-    if (!bbox_intersects(ra, dec, radius_deg, ra_min, ra_max, dec_min, dec_max))
+    if (strcmp(tree->projection, "AzimuthalEquidistant") == 0) {
+        /* V18R2: 极投影平面剪枝（替代天球 bbox——极区 RA 环绕使
+         * min/max 退化导致全树遍历，单次查询误读 16GB mmap 数据） */
+        if (!polar_plane_intersects(ra, dec, radius_deg,
+                                    tree->center_ra, tree->center_dec,
+                                    node->x0, node->y0, node->x1, node->y1))
+            return;
+    } else if (!bbox_intersects(ra, dec, radius_deg, ra_min, ra_max, dec_min, dec_max)) {
         return;
+    }
 
     if (node->is_leaf) {
+        if (gaia_trace_enabled()) {
+            #pragma omp atomic
+            g_trace_blocks++;
+            #pragma omp atomic
+            g_trace_bytes += (long long)node->compressed_size;
+            if (node->compressed_size != node->block_size) {
+                #pragma omp atomic
+                g_trace_decomp++;
+            }
+        }
         uint8_t *data = read_leaf_block(xf, node->block_offset, node->compressed_size,
                                          node->block_size, scratch);
         if (!data) return;
@@ -1411,8 +1488,8 @@ void gaia_client_destroy(GaiaClient *client) {
 }
 
 int gaia_client_cone_search(GaiaClient *client, double ra, double dec, double radius_deg,
-                             double mag_low, double mag_high,
-                             GaiaStar **out_stars, int *out_count) {
+                            double mag_low, double mag_high,
+                            GaiaStar **out_stars, int *out_count) {
     int nfiles = client->file_count;
     if (nfiles == 0) { *out_stars = NULL; *out_count = 0; return 0; }
 
@@ -1516,6 +1593,20 @@ int gaia_client_cone_search(GaiaClient *client, double ra, double dec, double ra
     free(cache_ra);
     free(cache_dec);
     free(cache_mag);
+
+    /* V18R2 诊断输出（ASTROCS_GAIA_TRACE=1） */
+    if (gaia_trace_enabled()) {
+        fprintf(stderr,
+                "[gaia_trace] query ra=%.4f dec=%.4f r=%.4f -> nodes=%lld "
+                "blocks=%lld bytes=%lld decomp=%lld stars=%d "
+                "(polar_nodes=%lld eq_nodes=%lld)\n",
+                ra, dec, radius_deg,
+                g_trace_nodes, g_trace_blocks, g_trace_bytes,
+                g_trace_decomp, *out_count,
+                g_trace_polar_nodes, g_trace_eq_nodes);
+        g_trace_nodes = g_trace_blocks = g_trace_bytes = g_trace_decomp = 0;
+        g_trace_polar_nodes = g_trace_eq_nodes = 0;
+    }
 
     return 0;
 }
