@@ -28,6 +28,7 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
                        const DrizzleMeta& meta,
                        const std::string& hips_dir,
                        const std::vector<AioHipsSnrPoint>& snr_pts,
+                       int has_variance,
                        std::string& err) {
     const uint32_t nside = (uint32_t)config.nside;
     const uint32_t depth = config.tile_depth ? config.tile_depth
@@ -46,8 +47,10 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
                                                         : AIO_HIPS_FLOAT64;
     const std::string title = meta.filter.empty() ? "AstroCS Phase1" : ("AstroCS " + meta.filter);
 
+    const int prod_flags = has_variance ? AIO_HIPS_PRODUCT_ALL_V19
+                                        : AIO_HIPS_PRODUCT_ALL;
     AioHipsProductSet* ps = aio_hips_product_begin(
-        hips_dir.c_str(), nside, 512, dtype, AIO_HIPS_PRODUCT_ALL,
+        hips_dir.c_str(), nside, 512, dtype, prod_flags,
         "ivo://astrocs/phase1", title.c_str(),
         meta.filter.empty() ? nullptr : meta.filter.c_str(),
         meta.exposure_s,
@@ -66,17 +69,21 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
     double prof_transform = 0.0, prof_fits_write = 0.0;
     std::vector<Scalar> dense_flux(n_leaf, Scalar(0));
     std::vector<Scalar> dense_area(n_leaf, Scalar(0));
+    std::vector<Scalar> dense_var(n_leaf, Scalar(0));
     size_t n_written = 0;
     for (const auto& tile : tiles) {
         if (tile.touched.empty()) continue;
         const auto t_tr0 = std::chrono::steady_clock::now();
         std::fill(dense_flux.begin(), dense_flux.end(), Scalar(0));
         std::fill(dense_area.begin(), dense_area.end(), Scalar(0));
+        if (has_variance)
+            std::fill(dense_var.begin(), dense_var.end(), Scalar(0));
         for (uint32_t local : tile.touched) {
             if (local >= n_leaf || local >= tile.pixels.size()) continue;
             const auto& acc = tile.pixels[local];
             dense_flux[local] = acc.sumFlux;
             dense_area[local] = acc.sumArea;
+            if (has_variance) dense_var[local] = acc.sumVarNum;
         }
         prof_transform += std::chrono::duration<double>(
             std::chrono::steady_clock::now() - t_tr0).count();
@@ -90,6 +97,7 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
         view.flux_sum = dense_flux.data();
         view.covered_area = dense_area.data();
         view.valid_mask = nullptr;
+        view.var_num_sum = has_variance ? (const void*)dense_var.data() : nullptr;
         int rc = aio_hips_write_signal_support_tile(ps, &view);
         if (rc != 0) {
             err = "aio_hips_write_signal_support_tile rc=" + std::to_string(rc) +
@@ -97,6 +105,16 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
             aio_hips_abort(ps);
             std::fprintf(stderr, "[sink] %s\n", err.c_str());
             return false;
+        }
+        if (has_variance) {
+            rc = aio_hips_write_variance_tile(ps, &view);
+            if (rc != 0) {
+                err = "aio_hips_write_variance_tile rc=" + std::to_string(rc) +
+                      ": " + (aio_hips_last_error() ? aio_hips_last_error() : "?");
+                aio_hips_abort(ps);
+                std::fprintf(stderr, "[sink] %s\n", err.c_str());
+                return false;
+            }
         }
         prof_fits_write += std::chrono::duration<double>(
             std::chrono::steady_clock::now() - t_wr0).count();
@@ -141,9 +159,9 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
 
 template bool write_hips_direct<float>(
     const std::vector<TileAccumulatorT<float>>&, const DrizzleConfig&, const DrizzleMeta&,
-    const std::string&, const std::vector<AioHipsSnrPoint>&, std::string&);
+    const std::string&, const std::vector<AioHipsSnrPoint>&, int, std::string&);
 template bool write_hips_direct<double>(
     const std::vector<TileAccumulatorT<double>>&, const DrizzleConfig&, const DrizzleMeta&,
-    const std::string&, const std::vector<AioHipsSnrPoint>&, std::string&);
+    const std::string&, const std::vector<AioHipsSnrPoint>&, int, std::string&);
 
 } // namespace drizzle

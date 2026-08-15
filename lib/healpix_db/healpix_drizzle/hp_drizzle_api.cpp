@@ -917,6 +917,37 @@ static int run_drizzle_internal(PipelineFrame* frame,
         }
     }
 
+    // 5.6 V19 (P1-003/DRZ-014): 读取 "variance" 块 (逐像素方差图,
+    //     FLOAT32/64 [H,W], 由 SNR 阶段 NoiseWeightModelV1 填充)
+    //     → 方差传播 sumVarNum += v_j × w_jp²
+    const float* variancePtr = nullptr;
+    std::vector<float> varianceConv;
+    {
+        const AioBlock* vblk = aio_frame_get_block(frame, "variance");
+        if (vblk && vblk->data && vblk->count == (int64_t)width * (int64_t)height) {
+            if (vblk->type == AIO_BLOCK_FLOAT32) {
+                variancePtr = static_cast<const float*>(vblk->data);
+                fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: variance 块 FLOAT32 [%dx%d]\n",
+                        width, height);
+            } else if (vblk->type == AIO_BLOCK_FLOAT64) {
+                const double* vd = static_cast<const double*>(vblk->data);
+                varianceConv.assign((size_t)width * (size_t)height, 0.0f);
+                for (size_t i = 0; i < varianceConv.size(); ++i)
+                    varianceConv[i] = (float)vd[i];
+                variancePtr = varianceConv.data();
+                fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: variance 块 FLOAT64 [%dx%d] → FLOAT32 转换\n",
+                        width, height);
+            } else {
+                fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: variance 块类型 %d 不支持, 跳过方差传播\n",
+                        (int)vblk->type);
+            }
+        } else if (vblk) {
+            fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: variance 块尺寸不匹配 (count=%lld, 期望 %lld), 跳过方差传播\n",
+                    (long long)(vblk ? vblk->count : 0),
+                    (long long)width * (long long)height);
+        }
+    }
+
     stamp(prof_parse);  // V18: parse frame + WCS + config 结束
 
     // 7. 执行 Drizzle (R11 阶段6: Tile 级累加, 正式路径不恢复全局 leaf map)
@@ -930,10 +961,12 @@ static int run_drizzle_internal(PipelineFrame* frame,
 
     bool drizzle_ok;
     if (img.use_f64) {
-        drizzle_ok = engine.drizzleTiled_f64(img, config, snrPtr, nullptr, tiles_f64, stats, errMsg);
+        drizzle_ok = engine.drizzleTiled_f64(img, config, snrPtr, nullptr,
+                                             variancePtr, tiles_f64, stats, errMsg);
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: 调用 drizzleTiled_f64 (FP64 路径)\n");
     } else {
-        drizzle_ok = engine.drizzleTiled(img, config, snrPtr, nullptr, tiles_f32, stats, errMsg);
+        drizzle_ok = engine.drizzleTiled(img, config, snrPtr, nullptr,
+                                         variancePtr, tiles_f32, stats, errMsg);
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: 调用 drizzleTiled (FP32 路径)\n");
     }
 
@@ -1022,8 +1055,10 @@ static int run_drizzle_internal(PipelineFrame* frame,
         if (dateobs_str) meta.obs_time = dateobs_str;
 
         bool hips_ok = img.use_f64
-            ? write_hips_direct<double>(tiles_f64, config, meta, hips_dir, snr_pts, errMsg)
-            : write_hips_direct<float>(tiles_f32, config, meta, hips_dir, snr_pts, errMsg);
+            ? write_hips_direct<double>(tiles_f64, config, meta, hips_dir, snr_pts,
+                                        variancePtr ? 1 : 0, errMsg)
+            : write_hips_direct<float>(tiles_f32, config, meta, hips_dir, snr_pts,
+                                       variancePtr ? 1 : 0, errMsg);
         if (!hips_ok) {
             fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: HiPS 直写失败: %s\n", errMsg.c_str());
             setErrorMsg(result, "HiPS 直写失败: " + errMsg);
@@ -1031,6 +1066,51 @@ static int run_drizzle_internal(PipelineFrame* frame,
         }
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: HiPS 已直写 %s (无 HISS 中转)\n",
                 hips_dir);
+        // V19 (DRIZZLE_OPTIMIZATION): 操作计数证据
+        {
+            const std::string ops_path = std::string(hips_dir) + "/operation_counts.json";
+            FILE* f = std::fopen(ops_path.c_str(), "wb");
+            if (f) {
+                const double cand_eff = stats.op_candidates > 0
+                    ? (double)stats.op_true_overlaps / (double)stats.op_candidates
+                    : 0.0;
+                std::fprintf(f,
+                    "{\n"
+                    "  \"format\": \"astrocs-drizzle-operation-counts-v1\",\n"
+                    "  \"nside\": %d,\n"
+                    "  \"source_pixels\": %lld,\n"
+                    "  \"candidates\": %lld,\n"
+                    "  \"true_overlaps\": %lld,\n"
+                    "  \"quick_rejects\": %lld,\n"
+                    "  \"pix2radec_calls\": %lld,\n"
+                    "  \"boundary_builds\": %lld,\n"
+                    "  \"geometry_builds\": %lld,\n"
+                    "  \"spherical_overlap_calls\": %lld,\n"
+                    "  \"tile_lookups\": %lld,\n"
+                    "  \"hot_loop_heap_allocations\": %lld,\n"
+                    "  \"candidate_efficiency\": %.6f,\n"
+                    "  \"overlaps_per_source_pixel\": %.6f\n"
+                    "}\n",
+                    stats.nside,
+                    (long long)stats.op_source_pixels,
+                    (long long)stats.op_candidates,
+                    (long long)stats.op_true_overlaps,
+                    (long long)stats.op_quick_rejects,
+                    (long long)stats.op_pix2radec,
+                    (long long)stats.op_boundary_builds,
+                    (long long)stats.op_geometry_builds,
+                    (long long)stats.op_sh_calls,
+                    (long long)stats.op_tile_lookups,
+                    (long long)stats.op_heap_allocations,
+                    cand_eff,
+                    stats.op_source_pixels > 0
+                        ? (double)stats.op_true_overlaps /
+                              (double)stats.op_source_pixels : 0.0);
+                std::fclose(f);
+                std::fprintf(stderr, "[hp_drizzle_api] 操作计数已写 %s\n",
+                             ops_path.c_str());
+            }
+        }
         stamp(prof_hips);  // V18: HiPS 直写结束
     }
 

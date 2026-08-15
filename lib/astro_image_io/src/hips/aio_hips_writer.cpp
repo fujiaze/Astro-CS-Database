@@ -299,6 +299,9 @@ struct AncestorAcc {
     std::vector<double> sumFluxD;
     std::vector<float>  sumAreaF;
     std::vector<double> sumAreaD;
+    // V19 (P1-003): 方差传播分子 Σ v_j w_jp² (hierarchy 归约同叶级公式)
+    std::vector<float>  sumVarF;
+    std::vector<double> sumVarD;
     std::vector<uint32_t> count;
     bool is_f32 = true;
 
@@ -308,9 +311,11 @@ struct AncestorAcc {
         if (f32) {
             if (sumFluxF.empty()) sumFluxF.assign(n, 0.0f);
             if (sumAreaF.empty()) sumAreaF.assign(n, 0.0f);
+            if (sumVarF.empty()) sumVarF.assign(n, 0.0f);
         } else {
             if (sumFluxD.empty()) sumFluxD.assign(n, 0.0);
             if (sumAreaD.empty()) sumAreaD.assign(n, 0.0);
+            if (sumVarD.empty()) sumVarD.assign(n, 0.0);
         }
         if (count.empty()) count.assign(n, 0u);
     }
@@ -319,8 +324,14 @@ struct AncestorAcc {
         else        { sumFluxD[i] += flux;        sumAreaD[i] += area; }
         ++count[i];
     }
+    void add_var(size_t i, double var_num, double area) {
+        (void)area;
+        if (is_f32) sumVarF[i] += (float)var_num;
+        else        sumVarD[i] += var_num;
+    }
     double fluxAt(size_t i) const { return is_f32 ? (double)sumFluxF[i] : sumFluxD[i]; }
     double areaAt(size_t i) const { return is_f32 ? (double)sumAreaF[i] : sumAreaD[i]; }
+    double varAt(size_t i) const  { return is_f32 ? (double)sumVarF[i] : sumVarD[i]; }
 };
 
 } // namespace
@@ -360,6 +371,10 @@ struct AioHipsProductSet {
     std::vector<float>  scratch_sigF, scratch_supF;   // dtype=f32 写缓冲
     std::vector<double> scratch_sigD, scratch_supD;   // dtype=f64 写缓冲
     std::vector<double> scratch_sig_n, scratch_sup_n; // NESTED 序缓存（hierarchy）
+    // V19 (P1-003): variance/ivar scratch
+    std::vector<float>  scratch_varF, scratch_ivarF;
+    std::vector<double> scratch_varD, scratch_ivarD;
+    std::vector<double> scratch_var_n;                 // NESTED 序 var_num (hierarchy)
 };
 
 extern "C" {
@@ -542,6 +557,126 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
     return 0;
 }
 
+// ============================================================================
+// V19 (P1-003): variance/ivar 叶级 Tile 写
+//   variance = var_num_sum / covered_area² ;  ivar = 1/variance
+//   covered_area<=0 -> NaN (与 signal NaN 语义一致)
+//   hierarchy: 在 AncestorAcc 增加 var_num 通道, 归约公式与叶级一致
+//     (variance_parent = Σvar_num / (Σarea)²)
+// ============================================================================
+int aio_hips_write_variance_tile(AioHipsProductSet* ps,
+                                 const AstroSphereTileView* view) {
+    g_hips_error.clear();
+    if (!ps || !view) { set_error("null handle/view"); return -1; }
+    if (!view->var_num_sum) { set_error("var_num_sum 为空 (无方差数据)"); return -2; }
+    if (view->width != 512 || view->leaf_order != ps->leaf_order ||
+        view->data_type != ps->data_type) {
+        set_error("view 与产品集不匹配 (width=512, leaf_order/dtype 必须一致)");
+        return -3;
+    }
+    const uint64_t npix_order = 12ULL * (1ULL << (2ULL * ps->tile_order));
+    if (view->parent_ipix >= npix_order) {
+        set_error("parent_ipix 超出 Norder" + std::to_string(ps->tile_order) + " 范围");
+        return -4;
+    }
+    const size_t n = 512 * 512;
+    const bool f32 = (ps->data_type == AIO_HIPS_FLOAT32);
+
+    std::vector<float>&  varF  = ps->scratch_varF;
+    std::vector<double>& varD  = ps->scratch_varD;
+    std::vector<float>&  ivarF = ps->scratch_ivarF;
+    std::vector<double>& ivarD = ps->scratch_ivarD;
+    if (f32) { varF.resize(n); ivarF.resize(n); }
+    else     { varD.resize(n); ivarD.resize(n); }
+    std::vector<double>& var_n = ps->scratch_var_n;
+    var_n.resize(n);
+    std::vector<uint8_t> valid;
+    if (view->valid_mask)
+        valid.assign((const uint8_t*)view->valid_mask,
+                     (const uint8_t*)view->valid_mask + n);
+
+    bool any_valid = false;
+    for (size_t i = 0; i < n; ++i) {
+        const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(
+            (uint64_t)i, 9u, 512u);
+        const bool v = valid.empty() || valid[i];
+        double vnum = 0.0, area = 0.0;
+        if (f32) {
+            if (view->var_num_sum) vnum = (double)((const float*)view->var_num_sum)[i];
+            if (view->covered_area) area = (double)((const float*)view->covered_area)[i];
+        } else {
+            if (view->var_num_sum) vnum = ((const double*)view->var_num_sum)[i];
+            if (view->covered_area) area = ((const double*)view->covered_area)[i];
+        }
+        double var = std::numeric_limits<double>::quiet_NaN();
+        double iv = std::numeric_limits<double>::quiet_NaN();
+        if (v && area > 0.0 && vnum > 0.0 && std::isfinite(area) && std::isfinite(vnum)) {
+            var = vnum / (area * area);
+            iv = 1.0 / var;
+            any_valid = true;
+        }
+        if (f32) {
+            varF[fi] = (float)var;  ivarF[fi] = (float)iv;
+            var_n[i] = (v && area > 0.0 && vnum > 0.0) ? vnum : 0.0;
+        } else {
+            varD[fi] = var;         ivarD[fi] = iv;
+            var_n[i] = (v && area > 0.0 && vnum > 0.0) ? vnum : 0.0;
+        }
+    }
+    if (!any_valid) {
+        set_error("该 tile 无有效方差数据 (var_num_sum 全 0)");
+        return -5;
+    }
+
+    const int bitpix = f32 ? -32 : -64;
+    std::vector<std::pair<std::string, std::string>> cards;
+    cards.push_back({"NSIDE", std::to_string(ps->nside)});
+    cards.push_back({"FIRSTPIX", "0"});
+    cards.push_back({"LASTPIX", std::to_string(n - 1)});
+    std::string rel = tile_rel_path((int)ps->tile_order, view->parent_ipix, ".fits");
+    if (ps->flags & AIO_HIPS_PRODUCT_VARIANCE) {
+        std::string p = ps->out_dir + "/variance/" + rel;
+        make_dirs(p.substr(0, p.find_last_of('/')));
+        if (!write_fits_image(p, bitpix, 512, 512,
+                              f32 ? (const void*)varF.data() : (const void*)varD.data(),
+                              cards, ps->obs_title, ps->obs_filter,
+                              ps->exposure, ps->obs_date)) {
+            return -6;
+        }
+    }
+    if (ps->flags & AIO_HIPS_PRODUCT_IVAR) {
+        std::string p = ps->out_dir + "/ivar/" + rel;
+        make_dirs(p.substr(0, p.find_last_of('/')));
+        if (!write_fits_image(p, bitpix, 512, 512,
+                              f32 ? (const void*)ivarF.data() : (const void*)ivarD.data(),
+                              cards, ps->obs_title, ps->obs_filter,
+                              ps->exposure, ps->obs_date)) {
+            return -7;
+        }
+    }
+
+    // MOC/覆盖: 与 signal/support 共享 (variance tile 必伴随 signal tile,
+    // MOC 已在 write_signal_support_tile 登记, 不重复)
+
+    // hierarchy: 累加 var_num (归约公式同叶级: var_parent = Σvar_num/(Σarea)²)
+    for (int k = (int)ps->tile_order - 1; k >= 0; --k) {
+        int dk = (int)ps->tile_order - k;
+        uint64_t shift = 2ULL * (uint64_t)dk;
+        uint64_t mask = (shift >= 64) ? ~0ULL : ((1ULL << shift) - 1ULL);
+        uint64_t A = view->parent_ipix >> shift;
+        uint64_t s = view->parent_ipix & mask;
+        AncestorAcc& acc = ps->hier[(size_t)k][A];
+        acc.ensure(f32);
+        for (size_t i = 0; i < n; ++i) {
+            if (var_n[i] <= 0.0) continue;
+            size_t z = (size_t)(((s << 18ULL) | (uint64_t)i) >>
+                                (2ULL * (uint64_t)(ps->tile_order - (uint32_t)k)));
+            acc.add_var(z, var_n[i], 0.0);
+        }
+    }
+    return 0;
+}
+
 int aio_hips_write_snr_points(AioHipsProductSet* ps,
                               const AioHipsSnrPoint* pts,
                               int n) {
@@ -687,6 +822,46 @@ static bool finalize_hierarchy(AioHipsProductSet* ps) {
                                       bitpix == -32 ? (const void*)supF.data() : (const void*)supD.data(),
                                       cards, ps->obs_title, ps->obs_filter, ps->exposure, ps->obs_date))
                     return false;
+            }
+            // V19 (P1-003): variance/ivar hierarchy (归约公式同叶级)
+            if ((ps->flags & (AIO_HIPS_PRODUCT_VARIANCE |
+                              AIO_HIPS_PRODUCT_IVAR)) != 0) {
+                std::vector<float>  varF(n), ivarF(n);
+                std::vector<double> varD(n), ivarD(n);
+                for (size_t i = 0; i < n; ++i) {
+                    const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(
+                        (uint64_t)i, 9u, 512u);
+                    const double area = acc.areaAt(i);
+                    const double vnum = acc.varAt(i);
+                    double var = std::numeric_limits<double>::quiet_NaN();
+                    double iv = std::numeric_limits<double>::quiet_NaN();
+                    if (area > 0.0 && vnum > 0.0 && std::isfinite(area) && std::isfinite(vnum)) {
+                        var = vnum / (area * area);
+                        iv = 1.0 / var;
+                    }
+                    if (bitpix == -32) { varF[fi] = (float)var; ivarF[fi] = (float)iv; }
+                    else               { varD[fi] = var;        ivarD[fi] = iv; }
+                }
+                if (ps->flags & AIO_HIPS_PRODUCT_VARIANCE) {
+                    std::string p = ps->out_dir + "/variance/" + rel;
+                    make_dirs(p.substr(0, p.find_last_of('/')));
+                    if (!write_fits_image(p, bitpix, 512, 512,
+                                          bitpix == -32 ? (const void*)varF.data()
+                                                        : (const void*)varD.data(),
+                                          cards, ps->obs_title, ps->obs_filter,
+                                          ps->exposure, ps->obs_date))
+                        return false;
+                }
+                if (ps->flags & AIO_HIPS_PRODUCT_IVAR) {
+                    std::string p = ps->out_dir + "/ivar/" + rel;
+                    make_dirs(p.substr(0, p.find_last_of('/')));
+                    if (!write_fits_image(p, bitpix, 512, 512,
+                                          bitpix == -32 ? (const void*)ivarF.data()
+                                                        : (const void*)ivarD.data(),
+                                          cards, ps->obs_title, ps->obs_filter,
+                                          ps->exposure, ps->obs_date))
+                        return false;
+                }
             }
         }
     }
@@ -840,10 +1015,24 @@ int aio_hips_finalize(AioHipsProductSet* ps) {
             return -4;
         }
     }
+    // V19 (P1-003): variance/ivar 产品 (Drizzle 方差传播)
+    if (ps->flags & AIO_HIPS_PRODUCT_VARIANCE) {
+        std::fprintf(stderr, "[hips] finalize: variance product\n");
+        if (!finalize_image_product(ps, "variance", "variance", "", moc_frac, cov_frac)) {
+            return -7;
+        }
+    }
+    if (ps->flags & AIO_HIPS_PRODUCT_IVAR) {
+        std::fprintf(stderr, "[hips] finalize: ivar product\n");
+        if (!finalize_image_product(ps, "ivar", "inverse variance", "", moc_frac, cov_frac)) {
+            return -8;
+        }
+    }
     ps->prof_finalize_products += std::chrono::duration<double>(
         std::chrono::steady_clock::now() - t_p0).count();
     const auto t_h0 = std::chrono::steady_clock::now();
-    if ((ps->flags & (AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT)) &&
+    if ((ps->flags & (AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT |
+                      AIO_HIPS_PRODUCT_VARIANCE | AIO_HIPS_PRODUCT_IVAR)) &&
         !finalize_hierarchy(ps)) {
         std::fprintf(stderr, "[hips] finalize: hierarchy failed\n");
         return -5;
@@ -871,6 +1060,24 @@ int aio_hips_finalize(AioHipsProductSet* ps) {
     {
         FILE* f = std::fopen((ps->out_dir + "/manifest.json").c_str(), "wb");
         if (f) {
+            std::string prod_list;
+            struct { int flag; const char* name; } prods[] = {
+                {AIO_HIPS_PRODUCT_SIGNAL, "signal"},
+                {AIO_HIPS_PRODUCT_SUPPORT, "support"},
+                {AIO_HIPS_PRODUCT_VARIANCE, "variance"},
+                {AIO_HIPS_PRODUCT_IVAR, "ivar"},
+                {AIO_HIPS_PRODUCT_SNR, "snr"},
+            };
+            bool first = true;
+            for (const auto& p : prods) {
+                if (ps->flags & p.flag) {
+                    if (!first) prod_list += ", ";
+                    prod_list += "\"";
+                    prod_list += p.name;
+                    prod_list += "\"";
+                    first = false;
+                }
+            }
             std::fprintf(f,
                 "{\n"
                 "  \"format_version\": 1,\n"
@@ -878,7 +1085,7 @@ int aio_hips_finalize(AioHipsProductSet* ps) {
                 "  \"nside\": %u,\n"
                 "  \"tile_width\": %u,\n"
                 "  \"data_type\": \"%s\",\n"
-                "  \"products\": [%s%s%s],\n"
+                "  \"products\": [%s],\n"
                 "  \"n_leaf_tiles\": %zu,\n"
                 "  \"moc_sky_fraction\": %.8f,\n"
                 "  \"astrocs_covered_sky_fraction\": %.8f,\n"
@@ -886,9 +1093,7 @@ int aio_hips_finalize(AioHipsProductSet* ps) {
                 "}\n",
                 ps->nside, ps->tile_width,
                 ps->data_type == AIO_HIPS_FLOAT32 ? "float32" : "float64",
-                (ps->flags & AIO_HIPS_PRODUCT_SIGNAL) ? "\"signal\"" : "",
-                ((ps->flags & AIO_HIPS_PRODUCT_SIGNAL) && (ps->flags & AIO_HIPS_PRODUCT_SUPPORT)) ? "," : "",
-                (ps->flags & AIO_HIPS_PRODUCT_SUPPORT) ? "\"support\"" : "",
+                prod_list.c_str(),
                 ps->leaf_ipix_list.size(), moc_frac, cov_frac,
                 ps->data_type == AIO_HIPS_FLOAT32 ? "float32" : "float64");
             std::fclose(f);

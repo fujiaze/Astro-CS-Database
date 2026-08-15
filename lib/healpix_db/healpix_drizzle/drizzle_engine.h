@@ -46,6 +46,9 @@ struct PixelAccumulator {
     double sumWeight = 0.0;   // Σ weight (兼容旧代码, 通量守恒模式下 = sumArea)
     double sumSnrSq = 0.0;    // Σ SNR² * weight
     double sumArea = 0.0;    // Σ a_jp (球面重叠面积, 用于 support = Σ a_jp / A_p)
+    // V19 (DRZ-014/SNR-011): 方差传播分子 Σ v_j × w_jp² (w_jp = a_jp/A_j_drop)
+    //   variance_p = sumVarNum / sumArea² ;  ivar_p = 1/variance_p
+    double sumVarNum = 0.0;
     uint32_t nContrib = 0;    // 贡献源像素数 (诊断用)
 };
 
@@ -58,6 +61,7 @@ template <typename Scalar>
 struct TileLeafAccumulatorT {
     Scalar sumFlux = Scalar(0);
     Scalar sumArea = Scalar(0);
+    Scalar sumVarNum = Scalar(0);   // V19: 方差传播分子 (Σ v_j w_jp²)
     uint32_t nContrib = 0;
 };
 using TileLeafAccumulator = TileLeafAccumulatorT<double>;  // 兼容别名
@@ -95,6 +99,17 @@ struct DrizzleStats {
     int    nside = 0;
     bool   nested = true;
     double elapsedSec = 0.0;
+    // V19 (DRIZZLE_OPTIMIZATION): 操作计数 (每像素工作分解)
+    int64_t op_source_pixels = 0;   // 处理的源像素数
+    int64_t op_candidates = 0;      // 候选像素总查询数
+    int64_t op_true_overlaps = 0;   // 真重叠 (overlap >= 阈值)
+    int64_t op_quick_rejects = 0;   // 快速拒绝 (候选但 overlap < 阈值)
+    int64_t op_pix2radec = 0;       // pixel→sky 调用数
+    int64_t op_boundary_builds = 0; // 自适应边细分事件数
+    int64_t op_geometry_builds = 0; // drop 几何构建数
+    int64_t op_sh_calls = 0;        // 球面重叠 (Sutherland-Hodgman 等价) 调用数
+    int64_t op_tile_lookups = 0;    // tile 累加器访问数
+    int64_t op_heap_allocations = 0;// 热循环堆分配数 (目标 ~0)
 };
 
 // Drizzle 元数据 (写入 .hiss JSON 头)
@@ -116,6 +131,7 @@ public:
     // config: Drizzle 配置
     // snrData: 可选 SNR 图 (W*H float, nullptr 则用 1.0)
     // weightData: 可选权重图 (W*H float, nullptr 则用 1.0)
+    // varianceData: 可选逐像素方差图 (W*H float, nullptr 则跳过方差传播)
     // stats: 输出统计信息
     // error_msg: 错误信息
     // 返回: 成功/失败
@@ -123,8 +139,18 @@ public:
     // 正式写入路径请使用 drizzleTiled + writeHisTiles (取消全局 leaf map)
     bool drizzle(const FitsImage& img, const DrizzleConfig& config,
                  const float* snrData, const float* weightData,
+                 const float* varianceData,
                  std::unordered_map<uint64_t, PixelAccumulator>& accumulators,
                  DrizzleStats& stats, std::string& error_msg);
+
+    // 兼容包装 (无 varianceData, 旧调用方)
+    bool drizzle(const FitsImage& img, const DrizzleConfig& config,
+                 const float* snrData, const float* weightData,
+                 std::unordered_map<uint64_t, PixelAccumulator>& accumulators,
+                 DrizzleStats& stats, std::string& error_msg) {
+        return drizzle(img, config, snrData, weightData, nullptr,
+                       accumulators, stats, error_msg);
+    }
 
     // 执行 Drizzle: FITS 图像 → HEALPix 累加器 (FP64 路径, 读 img.pixels_f64)
     // 双精度 ABI: FP64 模式下从 img.pixels_f64 (double) 读取像素值, 不降级到 float32
@@ -134,22 +160,49 @@ public:
     // snrData / weightData: 仍为 float (SNR 重建与权重掩膜, 不需要 FP64)
     bool drizzle_f64(const FitsImage& img, const DrizzleConfig& config,
                      const float* snrData, const float* weightData,
+                     const float* varianceData,
                      std::unordered_map<uint64_t, PixelAccumulator>& accumulators,
                      DrizzleStats& stats, std::string& error_msg);
+
+    bool drizzle_f64(const FitsImage& img, const DrizzleConfig& config,
+                     const float* snrData, const float* weightData,
+                     std::unordered_map<uint64_t, PixelAccumulator>& accumulators,
+                     DrizzleStats& stats, std::string& error_msg) {
+        return drizzle_f64(img, config, snrData, weightData, nullptr,
+                           accumulators, stats, error_msg);
+    }
 
     // R11 (阶段6): Tile 级 Drizzle (正式路径, 取消全局 leaf map 与逐 key merge)
     //   输出: tiles 为按 parent_ipix 分组、叶像素连续数组寻址的累加结果
     //   (FP32 路径: 读 img.pixels float32, Scalar=float 真 FP32 累计; FP64 由 drizzleTiled_f64 提供)
     bool drizzleTiled(const FitsImage& img, const DrizzleConfig& config,
                       const float* snrData, const float* weightData,
+                      const float* varianceData,
                       std::vector<TileAccumulatorT<float>>& tiles,
                       DrizzleStats& stats, std::string& error_msg);
+
+    bool drizzleTiled(const FitsImage& img, const DrizzleConfig& config,
+                      const float* snrData, const float* weightData,
+                      std::vector<TileAccumulatorT<float>>& tiles,
+                      DrizzleStats& stats, std::string& error_msg) {
+        return drizzleTiled(img, config, snrData, weightData, nullptr,
+                            tiles, stats, error_msg);
+    }
 
     // FP64 Tile 级 Drizzle (读 img.pixels_f64 double, 不降级到 float32)
     bool drizzleTiled_f64(const FitsImage& img, const DrizzleConfig& config,
                           const float* snrData, const float* weightData,
+                          const float* varianceData,
                           std::vector<TileAccumulatorT<double>>& tiles,
                           DrizzleStats& stats, std::string& error_msg);
+
+    bool drizzleTiled_f64(const FitsImage& img, const DrizzleConfig& config,
+                          const float* snrData, const float* weightData,
+                          std::vector<TileAccumulatorT<double>>& tiles,
+                          DrizzleStats& stats, std::string& error_msg) {
+        return drizzleTiled_f64(img, config, snrData, weightData, nullptr,
+                                tiles, stats, error_msg);
+    }
 
     // 将累加器归一化并写入 .hiss 文件
     // accumulators: Drizzle 输出的累加器
@@ -200,6 +253,8 @@ private:
         Scalar pixelValue,               // 像素值 (float=FP32, double=FP64)
         float snrValue,                  // SNR
         float weightValue,               // 权重
+        float varianceValue,             // 逐像素方差 (0 = 未知, 跳过传播)
+        struct DrizzleOpCounters& counters,  // V19: 每线程操作计数
         const WcsSip& wcs,               // WCS 转换器 (double 几何内核, 见 processPixelSharedTiled)
         const DrizzleConfig& config,     // 配置
         const healpix::HealpixCore& hp,  // HEALPix 核心
@@ -213,6 +268,8 @@ private:
     void processPixelSharedTiled(
         double px, double py,
         Scalar pixelValue, float snrValue, float weightValue,
+        float varianceValue,
+        struct DrizzleOpCounters& counters,
         const spherical::Vec3 corners_v[4],   // V18R2: 行级顶点缓存（免每像素 sin/cos）
         const WcsSip& wcs, const DrizzleConfig& config,
         const healpix::HealpixCore& hp,
@@ -224,6 +281,7 @@ private:
     template <typename Scalar>
     bool drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& config,
                           const float* snrData, const float* weightData,
+                          const float* varianceData,
                           const Scalar* pixels,
                           std::vector<TileAccumulatorT<Scalar>>& tiles,
                           DrizzleStats& stats, std::string& error_msg);

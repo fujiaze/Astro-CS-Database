@@ -35,7 +35,11 @@ enum AioHipsProductFlag {
     AIO_HIPS_PRODUCT_SIGNAL  = 1,
     AIO_HIPS_PRODUCT_SUPPORT = 2,
     AIO_HIPS_PRODUCT_SNR     = 4,
-    AIO_HIPS_PRODUCT_ALL     = 7
+    // V19 (P1-003): variance/ivar 产品 (Drizzle 方差传播)
+    AIO_HIPS_PRODUCT_VARIANCE = 8,
+    AIO_HIPS_PRODUCT_IVAR     = 16,
+    AIO_HIPS_PRODUCT_ALL     = 7,     // 向后兼容 (signal+support+snr)
+    AIO_HIPS_PRODUCT_ALL_V19 = 31     // V19 全产品 (含 variance/ivar)
 };
 
 // 数据类型
@@ -60,6 +64,10 @@ typedef struct {
     const void* flux_sum;
     const void* covered_area;
     const uint8_t* valid_mask;
+    // V19 (P1-003): 方差传播分子 Σ v_j × w_jp² (w_jp = a_jp/A_j_drop)
+    //   variance = var_num_sum / covered_area² ;  ivar = 1/variance
+    //   可 NULL (不写 variance/ivar 产品)
+    const void* var_num_sum;
 } AstroSphereTileView;
 
 // SNR catalogue 控制点 (V4: 携带 stable star_id 与真实状态字段)
@@ -111,6 +119,15 @@ AIO_HIPS_EXPORT AioHipsProductSet* aio_hips_product_begin(
 // 语义: signal = flux_sum/covered_area, support = covered_area/A_cell
 //       covered_area<=0 -> signal=NaN, support=0
 AIO_HIPS_EXPORT int aio_hips_write_signal_support_tile(
+    AioHipsProductSet* ps,
+    const AstroSphereTileView* view);
+
+// V19 (P1-003): 写 variance/ivar 叶级 Tile (与 signal/support 同 view)。
+//   variance  = var_num_sum / covered_area² ;  ivar = 1/variance
+//   covered_area<=0 -> variance=NaN, ivar=NaN (与 signal NaN 语义一致)
+//   var_num_sum 为 NULL 或全部 <=0 -> 返回 -2 (无有效方差数据)。
+//   产品目录: <out_dir>/variance/ 与 <out_dir>/ivar/。
+AIO_HIPS_EXPORT int aio_hips_write_variance_tile(
     AioHipsProductSet* ps,
     const AstroSphereTileView* view);
 
