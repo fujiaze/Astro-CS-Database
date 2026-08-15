@@ -728,6 +728,9 @@ int p2_upm_build_geo(const P2ControlObservation* obs, std::uint64_t n_obs,
 int p2_upm_save(const void* model, const char* path) {
     if (model == nullptr || path == nullptr) return 1;
     const Model* m = static_cast<const Model*>(model);
+    // ALG-UPM-FRAME-BIND-001：参数行数必须与 frame_id_by_index 一致，
+    // 否则拒绝写盘，防止生成绑定已损坏的模型文件。
+    if (m->frame_id_by_index.size() != m->C.size()) return 1;
     nlohmann::json j;
     j["format"] = "astrocs-upm-v2";
     j["version"] = m->info.version;
@@ -761,7 +764,7 @@ int p2_upm_save(const void* model, const char* path) {
     j["control_count"] = m->info.control_count;
     j["observation_count"] = m->info.observation_count;
     nlohmann::json frames = nlohmann::json::array();
-    for (const auto& kv : m->frame_index) frames.push_back(kv.first);
+    for (std::uint64_t fid : m->frame_id_by_index) frames.push_back(fid);
     j["frames"] = frames;
     nlohmann::json controls = nlohmann::json::array();
     for (std::size_t k = 0; k < m->controls.size(); ++k) {
@@ -812,126 +815,204 @@ int p2_upm_open(const char* path, void** out_model) {
     if (j.value("format", std::string()) != "astrocs-upm-v2")
         return 1;
     Model* m = new Model();
-    m->info.version = j.value("version", 1u);
-    m->info.precision = j.value("precision", 1u);
-    m->info.target_order = j.value("target_order", 0u);
-    m->info.control_count = j.value("control_count", 0ull);
-    m->info.observation_count = j.value("observation_count", 0ull);
-    m->component_count = j.value("component_count", 1ull);
-    m->geometry_component_count =
-        j.value("geometry_component_count", 1ull);
-    m->unobserved_geometry_nodes =
-        j.value("unobserved_geometry_nodes", 0ull);
-    m->cfg.robust_loss = j.value("robust_loss", 0);
-    m->cfg.snr_weight_mode = j.value("snr_weight_mode", 0);
-    m->cfg.use_ivar_weight = j.value("use_ivar_weight", 1);
-    m->cfg.huber_delta = j.value("huber_delta", 1.345);
-    m->cfg.smoothing_lambda = j.value("smoothing_lambda", 0.0);
-    m->cfg.zero_anchor_weight = j.value("zero_anchor_weight", 1e-3);
-    m->cfg.max_iterations = j.value("max_iterations", 100);
-    m->cfg.tolerance = j.value("tolerance", 1e-6);
-    m->cfg.sigma_floor = j.value("sigma_floor", 1e-3);
-    m->cfg.support_power = j.value("support_power", 1.0);
-    m->input_manifest_hash = j.value("input_manifest_hash", std::string());
-    const std::string h = j.value("model_hash", std::string(64, '0'));
-    std::strncpy(m->info.model_hash, h.c_str(), sizeof(m->info.model_hash) - 1);
-    m->info.model_hash[sizeof(m->info.model_hash) - 1] = '\0';
-    m->iterations = j.value("iterations", 0);
-    m->objective = j.value("objective", 0.0);
-    m->component_count = j.value("component_count", (std::size_t)1);
-    m->info.component_count = (std::uint32_t)m->component_count;
-    m->grid = 8;
-    m->cell_side = 512 / m->grid;
-    // frames
-    std::size_t fi = 0;
-    for (const auto& fr : j["frames"]) {
-        const std::uint64_t fid = fr.get<std::uint64_t>();
-        m->frame_index[fid] = fi++;
-    }
-    // R3（V4）：每分量 gauge frame id + frame→component 映射持久化
-    if (j.contains("component_ref_frame") && j.contains("frame_component")) {
-        m->component_ref_frame.resize(m->component_count);
-        for (std::size_t c = 0; c < m->component_count; ++c)
-            m->component_ref_frame[c] =
-                j["component_ref_frame"][c].get<std::uint64_t>();
-        m->frame_component.assign(fi, 0);
-        for (std::size_t f = 0; f < fi; ++f)
-            m->frame_component[f] =
-                j["frame_component"][f].get<std::size_t>();
-    }
-    // controls
-    for (const auto& ct : j["controls"]) {
-        ControlNode cn;
-        cn.tile_ipix = ct[0].get<std::uint64_t>();
-        cn.gx = ct[1].get<int>();
-        cn.gy = ct[2].get<int>();
-        cn.ra_deg = ct[3].get<double>();
-        cn.dec_deg = ct[4].get<double>();
-        cn.M = ct[5].get<double>();
-        cn.leaf_ipix = ct[6].get<std::uint64_t>();
-        cn.reliability = 1.0;
-        cn.id = cn.tile_ipix * 1000 + (std::uint64_t)(cn.gy * 8 + cn.gx);
-        const auto key =
-            std::make_pair(cn.tile_ipix, std::make_pair(cn.gx, cn.gy));
-        m->cell_index[key] = m->controls.size();
-        m->control_by_id[cn.id] = m->controls.size();
-        m->controls.push_back(cn);
-    }
-    // R3（V4）：恢复完整 cell_index（含跨 tile 合并别名键，保证 seam
-    // 求值与保存前一致）；旧文件无该键时退化为 controls 推导的拓扑。
-    if (j.contains("cell_index")) {
-        m->cell_index.clear();
-        for (const auto& e : j["cell_index"]) {
-            const std::uint64_t tile = e[0].get<std::uint64_t>();
-            const int gx = e[1].get<int>();
-            const int gy = e[2].get<int>();
-            const std::size_t idx = e[3].get<std::size_t>();
-            m->cell_index[std::make_pair(tile, std::make_pair(gx, gy))] =
-                idx;
+    try {
+        m->info.version = j.value("version", 1u);
+        m->info.precision = j.value("precision", 1u);
+        m->info.target_order = j.value("target_order", 0u);
+        m->info.control_count = j.value("control_count", 0ull);
+        m->info.observation_count = j.value("observation_count", 0ull);
+        m->component_count = j.value("component_count", 1ull);
+        m->geometry_component_count =
+            j.value("geometry_component_count", 1ull);
+        m->unobserved_geometry_nodes =
+            j.value("unobserved_geometry_nodes", 0ull);
+        m->cfg.robust_loss = j.value("robust_loss", 0);
+        m->cfg.snr_weight_mode = j.value("snr_weight_mode", 0);
+        m->cfg.use_ivar_weight = j.value("use_ivar_weight", 1);
+        m->cfg.huber_delta = j.value("huber_delta", 1.345);
+        m->cfg.smoothing_lambda = j.value("smoothing_lambda", 0.0);
+        m->cfg.zero_anchor_weight = j.value("zero_anchor_weight", 1e-3);
+        m->cfg.max_iterations = j.value("max_iterations", 100);
+        m->cfg.tolerance = j.value("tolerance", 1e-6);
+        m->cfg.sigma_floor = j.value("sigma_floor", 1e-3);
+        m->cfg.support_power = j.value("support_power", 1.0);
+        m->input_manifest_hash =
+            j.value("input_manifest_hash", std::string());
+        const std::string h =
+            j.value("model_hash", std::string(64, '0'));
+        std::strncpy(m->info.model_hash, h.c_str(),
+                     sizeof(m->info.model_hash) - 1);
+        m->info.model_hash[sizeof(m->info.model_hash) - 1] = '\0';
+        m->iterations = j.value("iterations", 0);
+        m->objective = j.value("objective", 0.0);
+        m->component_count = j.value("component_count", (std::size_t)1);
+        m->info.component_count = (std::uint32_t)m->component_count;
+        m->grid = 8;
+        m->cell_side = 512 / m->grid;
+        // DATA-UPM-MODEL-001：frame_id_by_index 必须显式持久化；
+        // 缺失、非数组、含重复或非法项的文件一律拒绝，禁止猜测顺序。
+        if (!j.contains("frames") || !j["frames"].is_array()) {
+            delete m;
+            return 1;
         }
-    }
-    // V7：恢复每 tile 覆盖范围（evaluate 外推锚点用）
-    for (const auto& kv : m->cell_index) {
-        const std::uint64_t t = kv.first.first;
-        const int gx = kv.first.second.first;
-        const int gy = kv.first.second.second;
-        auto it = m->tile_gx_bounds.find(t);
-        if (it == m->tile_gx_bounds.end()) {
-            m->tile_gx_bounds[t] = {gx, gx};
-            m->tile_gy_bounds[t] = {gy, gy};
-        } else {
-            it->second.first = std::min(it->second.first, gx);
-            it->second.second = std::max(it->second.second, gx);
-            auto& gyb = m->tile_gy_bounds[t];
-            gyb.first = std::min(gyb.first, gy);
-            gyb.second = std::max(gyb.second, gy);
+        std::set<std::uint64_t> seen_frames;
+        std::size_t fi = 0;
+        for (const auto& fr : j["frames"]) {
+            if (!fr.is_number_unsigned()) {
+                delete m;
+                return 1;
+            }
+            const std::uint64_t fid = fr.get<std::uint64_t>();
+            if (!seen_frames.insert(fid).second) {
+                delete m;
+                return 1;
+            }
+            m->frame_index[fid] = fi++;
+            m->frame_id_by_index.push_back(fid);
         }
-    }
-    const std::size_t F = m->frame_index.size();
-    const std::size_t K = m->controls.size();
-    m->C.assign(F, std::vector<double>(K, 0.0));
-    if (j.contains("C")) {
-        for (std::size_t f = 0; f < j["C"].size() && f < F; ++f) {
-            for (const auto& item : j["C"][f]) {
-                const std::size_t k = item[0].get<std::size_t>();
-                if (k < K) m->C[f][k] = item[1].get<double>();
+        // R3（V4）：每分量 gauge frame id + frame→component 映射持久化
+        if (j.contains("component_ref_frame") &&
+            j.contains("frame_component")) {
+            if (!j["component_ref_frame"].is_array() ||
+                j["component_ref_frame"].size() != m->component_count ||
+                !j["frame_component"].is_array() ||
+                j["frame_component"].size() != fi) {
+                delete m;
+                return 1;
+            }
+            m->component_ref_frame.resize(m->component_count);
+            for (std::size_t c = 0; c < m->component_count; ++c)
+                m->component_ref_frame[c] =
+                    j["component_ref_frame"][c].get<std::uint64_t>();
+            m->frame_component.assign(fi, 0);
+            for (std::size_t f = 0; f < fi; ++f)
+                m->frame_component[f] =
+                    j["frame_component"][f].get<std::size_t>();
+        }
+        // controls：必须存在且为数组，字段类型非法即拒绝（防损坏文件崩溃）
+        if (!j.contains("controls") || !j["controls"].is_array()) {
+            delete m;
+            return 1;
+        }
+        for (const auto& ct : j["controls"]) {
+            if (!ct.is_array() || ct.size() < 7 ||
+                !ct[0].is_number_unsigned() || !ct[1].is_number_integer() ||
+                !ct[2].is_number_integer() || !ct[3].is_number() ||
+                !ct[4].is_number() || !ct[5].is_number() ||
+                !ct[6].is_number_unsigned()) {
+                delete m;
+                return 1;
+            }
+            ControlNode cn;
+            cn.tile_ipix = ct[0].get<std::uint64_t>();
+            cn.gx = ct[1].get<int>();
+            cn.gy = ct[2].get<int>();
+            cn.ra_deg = ct[3].get<double>();
+            cn.dec_deg = ct[4].get<double>();
+            cn.M = ct[5].get<double>();
+            cn.leaf_ipix = ct[6].get<std::uint64_t>();
+            cn.reliability = 1.0;
+            cn.id = cn.tile_ipix * 1000 +
+                    (std::uint64_t)(cn.gy * 8 + cn.gx);
+            const auto key =
+                std::make_pair(cn.tile_ipix, std::make_pair(cn.gx, cn.gy));
+            m->cell_index[key] = m->controls.size();
+            m->control_by_id[cn.id] = m->controls.size();
+            m->controls.push_back(cn);
+        }
+        // R3（V4）：恢复完整 cell_index（含跨 tile 合并别名键，保证 seam
+        // 求值与保存前一致）；旧文件无该键时退化为 controls 推导的拓扑。
+        if (j.contains("cell_index")) {
+            if (!j["cell_index"].is_array()) {
+                delete m;
+                return 1;
+            }
+            m->cell_index.clear();
+            for (const auto& e : j["cell_index"]) {
+                if (!e.is_array() || e.size() < 4 ||
+                    !e[0].is_number_unsigned() ||
+                    !e[1].is_number_integer() ||
+                    !e[2].is_number_integer() ||
+                    !e[3].is_number_unsigned()) {
+                    delete m;
+                    return 1;
+                }
+                const std::uint64_t tile = e[0].get<std::uint64_t>();
+                const int gx = e[1].get<int>();
+                const int gy = e[2].get<int>();
+                const std::size_t idx = e[3].get<std::size_t>();
+                m->cell_index[std::make_pair(
+                    tile, std::make_pair(gx, gy))] = idx;
             }
         }
-    }
-    m->adj.assign(K, {});
-    for (std::size_t k = 0; k < K; ++k) {
-        const auto& cn = m->controls[k];
-        auto link = [&](int nx, int ny) {
-            if (nx < 0 || ny < 0 || nx >= m->grid || ny >= m->grid) return;
-            const auto key =
-                std::make_pair(cn.tile_ipix, std::make_pair(nx, ny));
-            const auto it = m->cell_index.find(key);
-            if (it != m->cell_index.end()) m->adj[k].push_back(it->second);
-        };
-        link(cn.gx + 1, cn.gy);
-        link(cn.gx - 1, cn.gy);
-        link(cn.gx, cn.gy + 1);
-        link(cn.gx, cn.gy - 1);
+        // V7：恢复每 tile 覆盖范围（evaluate 外推锚点用）
+        for (const auto& kv : m->cell_index) {
+            const std::uint64_t t = kv.first.first;
+            const int gx = kv.first.second.first;
+            const int gy = kv.first.second.second;
+            auto it = m->tile_gx_bounds.find(t);
+            if (it == m->tile_gx_bounds.end()) {
+                m->tile_gx_bounds[t] = {gx, gx};
+                m->tile_gy_bounds[t] = {gy, gy};
+            } else {
+                it->second.first = std::min(it->second.first, gx);
+                it->second.second = std::max(it->second.second, gx);
+                auto& gyb = m->tile_gy_bounds[t];
+                gyb.first = std::min(gyb.first, gy);
+                gyb.second = std::max(gyb.second, gy);
+            }
+        }
+        // DATA-UPM-MODEL-001：参数矩阵行数必须等于 frame 数；行列越界、
+        // 类型非法一律拒绝，不静默截断/置零。
+        const std::size_t F = m->frame_index.size();
+        const std::size_t K = m->controls.size();
+        if (!j.contains("C") || !j["C"].is_array() || j["C"].size() != F) {
+            delete m;
+            return 1;
+        }
+        m->C.assign(F, std::vector<double>(K, 0.0));
+        for (std::size_t f = 0; f < j["C"].size(); ++f) {
+            const auto& crow = j["C"][f];
+            if (!crow.is_array()) {
+                delete m;
+                return 1;
+            }
+            for (const auto& item : crow) {
+                if (!item.is_array() || item.size() < 2 ||
+                    !item[0].is_number_unsigned() ||
+                    !item[1].is_number()) {
+                    delete m;
+                    return 1;
+                }
+                const std::size_t k = item[0].get<std::size_t>();
+                if (k >= K) {
+                    delete m;
+                    return 1;
+                }
+                m->C[f][k] = item[1].get<double>();
+            }
+        }
+        m->adj.assign(K, {});
+        for (std::size_t k = 0; k < K; ++k) {
+            const auto& cn = m->controls[k];
+            auto link = [&](int nx, int ny) {
+                if (nx < 0 || ny < 0 || nx >= m->grid || ny >= m->grid)
+                    return;
+                const auto key =
+                    std::make_pair(cn.tile_ipix, std::make_pair(nx, ny));
+                const auto it = m->cell_index.find(key);
+                if (it != m->cell_index.end())
+                    m->adj[k].push_back(it->second);
+            };
+            link(cn.gx + 1, cn.gy);
+            link(cn.gx - 1, cn.gy);
+            link(cn.gx, cn.gy + 1);
+            link(cn.gx, cn.gy - 1);
+        }
+    } catch (...) {
+        // DATA-UPM-MODEL-001：任何字段损坏都返回稳定错误，禁止异常越界。
+        delete m;
+        return 1;
     }
     *out_model = static_cast<void*>(m);
     return 0;
@@ -999,28 +1080,16 @@ int p2_upm_raw_weight(const P2ControlObservation* obs,
         cfg.sigma_floor = 1e-3;
         cfg.support_power = 1.0;
         cfg.quality_mode = 0;
-        cfg.use_ivar_weight = 1;
     }
     if (cfg.sigma_floor <= 0.0) cfg.sigma_floor = 1e-3;
     if (cfg.support_power < 0.0) cfg.support_power = 1.0;
     const double qf = quality_factor(obs->quality_flags, cfg.quality_mode);
     const double sp = std::clamp(obs->support, 0.0, 1.0);
+    const double snr2 = obs->snr * obs->snr;
     const double unc =
         std::max(std::fabs(obs->uncertainty), cfg.sigma_floor);
-    // V19 (SNR_REDESIGN_CONTRACT §12): w_UPM ∝ quality × geometric_reliability
-    // / Var(control_estimator)。ivar 优先 (obs->ivar>0), 否则 uncertainty² 回退。
-    // 旧 snr²/(1+snr²) 仅在 use_ivar_weight=0 时用于 ablation (SNR-015)。
-    double ivar_w;
-    if (cfg.use_ivar_weight != 0 && obs->ivar > 0.0 &&
-        std::isfinite(obs->ivar)) {
-        ivar_w = obs->ivar;
-    } else if (cfg.use_ivar_weight == 0) {
-        const double snr2 = obs->snr * obs->snr;
-        ivar_w = (snr2 / (1.0 + snr2)) / (unc * unc);
-    } else {
-        ivar_w = 1.0 / (unc * unc);
-    }
-    *out_raw = qf * std::pow(sp, cfg.support_power) * ivar_w;
+    *out_raw = qf * std::pow(sp, cfg.support_power) *
+               (snr2 / (1.0 + snr2)) / (unc * unc);
     return 0;
 }
 
