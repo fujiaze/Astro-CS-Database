@@ -1,6 +1,6 @@
 // lib/acr/backends/cuda/cuda_bridge_loader.cpp — CUDA 桥接 DLL 加载器
 //
-// 23 §3：GPU 不可用时不创建 executor（运行时探测，不得仅凭编译宏）。
+// GPU 不可用时不创建 executor（运行时探测，不得仅凭编译宏）。
 // 流程：
 // 1. LoadLibrary acr_cuda_bridge.dll（MSVC+nvcc 构建，C ABI）；
 // 2. 填充 bridge::api() 函数指针；
@@ -12,6 +12,14 @@
 #include "bridge/cuda_bridge_api.hpp"
 
 #include <windows.h>
+
+// F-V19R2-CUDA-001：Win32 GetProcAddress 返回 FARPROC，按 Win32 API
+// 固有形态转型为具体函数指针；系统 API 设计要求的强转，由 loader 单点
+// 封装并经测试覆盖。
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-function-type"
+#endif
 
 #include <array>
 #include <atomic>
@@ -372,5 +380,9 @@ void try_append_cuda_bridge_executors(ExecutorRegistry& registry) {
             h, dev, nm ? std::string(nm) : std::string("cuda:" + std::to_string(dev))));
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 } // namespace astro::compute::scheduler

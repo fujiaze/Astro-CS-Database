@@ -107,27 +107,6 @@ double t_quantile(double p, double nu) {
     return 0.5 * (lo + hi);
 }
 
-// 最小二乘直线 y = a*x + b（x 为样本序号）
-void ls_fit_line(const std::vector<double>& xv, const std::vector<double>& yv,
-                 double* a, double* b) {
-    double sx = 0, sy = 0, sxx = 0, sxy = 0;
-    const std::size_t n = xv.size();
-    for (std::size_t i = 0; i < n; ++i) {
-        sx += xv[i];
-        sy += yv[i];
-        sxx += xv[i] * xv[i];
-        sxy += xv[i] * yv[i];
-    }
-    const double den = (double)n * sxx - sx * sx;
-    if (std::fabs(den) < 1e-12) {
-        *a = 0.0;
-        *b = n ? sy / (double)n : 0.0;
-        return;
-    }
-    *a = ((double)n * sxy - sx * sy) / den;
-    *b = (sy - *a * sx) / (double)n;
-}
-
 // 官方公开 Chauvenet 经验修正因子（RCR.cpp nCorrect 近似公式）
 inline double rcr_n_correct(std::size_t n) {
     return std::pow(1.2591, std::pow((double)n, 0.2052));
