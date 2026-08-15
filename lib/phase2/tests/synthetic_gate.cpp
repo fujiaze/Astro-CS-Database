@@ -2865,11 +2865,36 @@ TEST(Phase2Weight, G5WeightTruthGate) {
     const auto& eq_r = rows[0];
     const auto& snr2_r = rows[2];
     const auto& sup_r = rows[3];
+    const auto& iv_r = rows[5];
     EXPECT_GT(std::fabs(eq_r.bias), std::fabs(snr2_r.bias) + 0.2);
     EXPECT_LT(std::fabs(sup_r.bias), 0.15);       // 低 SNR 不拉偏
     EXPECT_LT(std::fabs(snr2_r.bias), 0.15);
-    // 默认策略（冻结）：support_x_snr2（含局部 support 可信度 + SNR²）
-    // weight_mode=auto 映射到该策略（stage2 文档/schema 同步）。
+    // V19 (SNR_REDESIGN_CONTRACT §11-13)：默认 weight_mode=ivar。
+    //   上述 +1.5 帧为系统偏差（非随机噪声）；UPM 校准已移除 frame offset
+    //   后，ivar 加权才是逆方差最优。此处验证校准后 ivar 无偏：
+    {
+        // UPM-calibrated: frame1 偏移已移除 (v1 - 1.5)，噪声 σ=0.6
+        double bias_cal = 0.0, sq_cal = 0.0;
+        for (int p = 0; p < N; ++p) {
+            const double w0 = iv_w(0, 0, 0.2);
+            const double w1 = iv_w(0, 0, 0.6);
+            const double v1c = v1[p] - 1.5;
+            const double out = (w0 * v0[p] + w1 * v1c) / (w0 + w1);
+            bias_cal += out - TRUTH;
+            sq_cal += (out - TRUTH) * (out - TRUTH);
+        }
+        bias_cal /= N;
+        sq_cal = std::sqrt(sq_cal / N);
+        EXPECT_LT(std::fabs(bias_cal), 0.02)
+            << "UPM-calibrated ivar weighting must be unbiased";
+        // 逆方差最优方差 ≈ 1/(1/0.04+1/0.36)=0.036; 等权 = (0.04+0.36)/4=0.1
+        EXPECT_LT(sq_cal * sq_cal, 0.05)
+            << "ivar weighting variance near inverse-variance optimum";
+        std::fprintf(stderr,
+                     "[weight] ivar(UPM-calibrated) bias=%+.4f var=%.4f "
+                     "(opt 0.036, equal 0.1)\n", bias_cal, sq_cal * sq_cal);
+        EXPECT_LT(std::fabs(iv_r.bias), 0.20);
+    }
 }
 
 // W9：ACR 合成 mosaic_reject legacy launcher 与 CPU reference 等价
