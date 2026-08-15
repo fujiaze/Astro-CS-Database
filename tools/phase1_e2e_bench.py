@@ -78,16 +78,21 @@ def main():
         configs = configs[: args.subset]
     OUTDIR.mkdir(parents=True, exist_ok=True)
     log_path = OUTDIR / f"{args.name}.log"
+    partial_json = OUTDIR / f"{args.name}.partial.json"
     frames_text = []
     env = dict(subprocess.os.environ)
     env["PATH"] = r"C:\msys64\mingw64\bin;" + env.get("PATH", "")
     hint = None
+    if log_path.exists():
+        log_path.unlink()
+    tmp_dir = OUTDIR / "tmp"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
     for idx, cfg_path in enumerate(configs):
         cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
         if args.warm and hint is not None:
             cfg.setdefault("platesolve", {})["initial_ra_deg"] = hint[0]
             cfg.setdefault("platesolve", {})["initial_dec_deg"] = hint[1]
-        tmp = cfg_path.with_name(f"{cfg_path.stem}_bench.json")
+        tmp = tmp_dir / f"{cfg_path.stem}.json"
         tmp.write_text(json.dumps(cfg, ensure_ascii=False, indent=2),
                        encoding="utf-8")
         t0 = time.monotonic()
@@ -101,6 +106,18 @@ def main():
             f"===== {tag} (config {cfg_path.name}) =====\n")
         frames_text.append(out)
         frames_text.append(f"frame{idx:02d} rc={r.returncode} wall={wall:.1f}s\n")
+        # 增量持久化：每帧完成后立即写 log（超时/中断不丢已完成帧）
+        with open(log_path, "a", encoding="utf-8") as lf:
+            lf.write(f"===== {tag} (config {cfg_path.name}) =====\n")
+            lf.write(out)
+            lf.write(f"frame{idx:02d} rc={r.returncode} wall={wall:.1f}s\n")
+        stg, wl = parse_timings("".join(frames_text))
+        s = summarize(stg, wl)
+        s["mode"] = "warm" if args.warm else "cold"
+        s["n_frames_done"] = idx + 1
+        s["n_frames_total"] = len(configs)
+        s["log"] = f"{args.name}.log"
+        partial_json.write_text(json.dumps(s, indent=2), encoding="utf-8")
         sol = parse_crval(out)
         if sol is not None:
             hint = sol
