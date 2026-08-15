@@ -10,6 +10,7 @@ add_library(acr_qualification STATIC
     focused/focused_operations.cpp
     focused/operation_profile.cpp
     focused/focused_benchmark.cpp
+    ../../common/crypto/sha256.cpp   # V18R2 (CODE-002): 归一化 SHA-256
 )
 target_link_libraries(acr_qualification PUBLIC
     acr_options
@@ -21,6 +22,7 @@ target_include_directories(acr_qualification PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/../include
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../backends/cuda
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../common
 )
 message(STATUS "ACR qualification: benchmark_driver + profile_generator + hardware_profile (Phase E3)")
 

@@ -3,6 +3,7 @@
 # 链接 acr_api + acr_diagnostics（topology 报告）。
 add_library(acr_profile STATIC
     profile_reader.cpp
+    ../../common/crypto/sha256.cpp   # V18R2 (CODE-002): 归一化 SHA-256
 )
 target_link_libraries(acr_profile PUBLIC
     acr_options
@@ -13,5 +14,6 @@ target_include_directories(acr_profile PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/../include
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../diagnostics
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../common
 )
 message(STATUS "ACR profile: profile_reader (Phase E2)")
