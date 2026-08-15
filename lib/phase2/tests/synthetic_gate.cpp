@@ -4569,3 +4569,505 @@ TEST(Phase2Config, V17LargeScaleParseAndDefaults) {
     EXPECT_FALSE(p2_stage2_parse_config(jb, &cfg, &err));
 }
 
+// =====================================================================
+// V19R2 PR#1 Gate — UPM 持久化帧绑定（PR-UPM-001..010）
+//
+// 契约：
+//   SCI-UPM-PERSIST-001  保存/重开后 frame_id→theta 绑定不变（按稳定
+//                        frame_id，与容器遍历/排序/插入顺序无关）；
+//   ALG-UPM-FRAME-BIND-001  canonical 表示 parameter_rows[index] 与
+//                        frame_id_by_index[index] 同长且无重复；
+//   DATA-UPM-MODEL-001    模型文件必须显式携带 index→frame 映射；
+//                        畸形模型必须稳定报错，禁止猜测/部分接受。
+//
+// PR-UPM-001（最小乱序）与 PR-UPM-008（模型应用）由
+// Phase2Upm.OpenSavePreservesFrameParameterBinding 覆盖。
+// =====================================================================
+namespace {
+
+nlohmann::json read_upm_json(const char* path) {
+    std::ifstream f(path);
+    nlohmann::json j;
+    f >> j;
+    return j;
+}
+
+void write_upm_json(const char* path, const nlohmann::json& j) {
+    std::ofstream f(path);
+    f << j.dump(2);
+}
+
+// 按 perm 一致重排 frames/C/frame_component：模拟旧/外部写入的非排序文件。
+// 文件内部自洽：第 i 个 frame_id 与第 i 行参数绑定（SCI-UPM-PERSIST-001）。
+void permute_upm_file(const char* src, const char* dst,
+                      const std::vector<std::size_t>& perm) {
+    nlohmann::json j = read_upm_json(src);
+    const std::size_t n = j["frames"].size();
+    nlohmann::json frames = nlohmann::json::array();
+    nlohmann::json C = nlohmann::json::array();
+    nlohmann::json fc = nlohmann::json::array();
+    const bool has_fc = j.contains("frame_component");
+    for (std::size_t i = 0; i < n; ++i) {
+        const std::size_t p = perm[i];
+        frames.push_back(j["frames"][p]);
+        C.push_back(j["C"][p]);
+        if (has_fc) fc.push_back(j["frame_component"][p]);
+    }
+    j["frames"] = frames;
+    j["C"] = C;
+    if (has_fc) j["frame_component"] = fc;
+    write_upm_json(dst, j);
+}
+
+} // namespace
+
+// PR-UPM-002：N=4 的全部 24 种 file 排列，open→save→open 后每帧绑定不漂移。
+TEST(Phase2Upm, UpmPersistAllPermutations) {
+    const std::vector<std::uint64_t> fids{20, 10, 40, 30};
+    std::vector<P2ControlObservation> obs;
+    for (std::size_t i = 0; i < fids.size(); ++i)
+        for (std::uint64_t c = 0; c < 3; ++c)
+            obs.push_back(make_obs(fids[i], c,
+                                   10.0 + 0.1 * (double)fids[i] + (double)c,
+                                   100.0));
+    P2UpmBuildConfig cfg{};
+    void* model = nullptr;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg, &model), 0);
+    const char* p_orig = "run_tmp_pr_upm_perm_orig.json";
+    const char* p_perm = "run_tmp_pr_upm_perm_perm.json";
+    const char* p_resave = "run_tmp_pr_upm_perm_resave.json";
+    ASSERT_EQ(p2_upm_save(model, p_orig), 0);
+    std::uint64_t leaf = 0;
+    double in = 100.0;
+    std::vector<double> ref;
+    for (std::uint64_t fid : fids) {
+        double v = 0.0;
+        ASSERT_EQ(p2_upm_calibrate_block(model, fid, &leaf, &in, &v, 1), 0);
+        ref.push_back(v);
+    }
+    std::vector<std::size_t> perm{0, 1, 2, 3};
+    std::size_t n_perm = 0;
+    do {
+        permute_upm_file(p_orig, p_perm, perm);
+        void* loaded = nullptr;
+        ASSERT_EQ(p2_upm_open(p_perm, &loaded), 0);
+        for (std::size_t i = 0; i < fids.size(); ++i) {
+            double v = 0.0;
+            ASSERT_EQ(p2_upm_calibrate_block(loaded, fids[i], &leaf, &in,
+                                             &v, 1), 0);
+            EXPECT_NEAR(v, ref[i], 1e-9)
+                << "perm#" << n_perm << " frame=" << fids[i];
+        }
+        // 重存必须保留绑定（本 PR 修复的核心缺陷路径）
+        ASSERT_EQ(p2_upm_save(loaded, p_resave), 0);
+        p2_upm_close(loaded);
+        void* reopened = nullptr;
+        ASSERT_EQ(p2_upm_open(p_resave, &reopened), 0);
+        for (std::size_t i = 0; i < fids.size(); ++i) {
+            double v = 0.0;
+            ASSERT_EQ(p2_upm_calibrate_block(reopened, fids[i], &leaf, &in,
+                                             &v, 1), 0);
+            EXPECT_NEAR(v, ref[i], 1e-9)
+                << "resave perm#" << n_perm << " frame=" << fids[i];
+        }
+        p2_upm_close(reopened);
+        ++n_perm;
+    } while (std::next_permutation(perm.begin(), perm.end()));
+    EXPECT_EQ(n_perm, 24u);
+    p2_upm_close(model);
+    std::remove(p_orig);
+    std::remove(p_perm);
+    std::remove(p_resave);
+}
+
+// PR-UPM-003：100 个确定性种子用例：稀疏大 64 位 / 相邻 / 非单调混合 ID。
+TEST(Phase2Upm, UpmPersistRandomStableIds) {
+    std::mt19937_64 rng(20260815);
+    const char* p_orig = "run_tmp_pr_upm_rand_orig.json";
+    const char* p_perm = "run_tmp_pr_upm_rand_perm.json";
+    const char* p_resave = "run_tmp_pr_upm_rand_resave.json";
+    for (int case_i = 0; case_i < 100; ++case_i) {
+        std::vector<std::uint64_t> fids;
+        const int n = 4 + (int)(case_i % 3);  // 4..6 帧
+        for (int i = 0; i < n;) {
+            std::uint64_t fid = 0;
+            switch (i % 3) {
+                case 0: fid = rng() & 0x3FFFFFFFFFFFFFFFULL; break;
+                case 1: fid = 100000ULL + (rng() % 3); break;  // 相邻
+                default: fid = rng() & 0xFFFFULL; break;
+            }
+            if (std::find(fids.begin(), fids.end(), fid) == fids.end()) {
+                fids.push_back(fid);
+                ++i;
+            }
+        }
+        std::vector<P2ControlObservation> obs;
+        for (std::size_t i = 0; i < fids.size(); ++i)
+            for (std::uint64_t c = 0; c < 3; ++c)
+                obs.push_back(make_obs(fids[i], c,
+                                       5.0 + (double)i + (double)c,
+                                       80.0 + (double)case_i));
+        P2UpmBuildConfig cfg{};
+        void* model = nullptr;
+        ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg, &model), 0);
+        ASSERT_EQ(p2_upm_save(model, p_orig), 0);
+        std::uint64_t leaf = 0;
+        double in = 42.0;
+        std::vector<double> ref;
+        for (std::uint64_t fid : fids) {
+            double v = 0.0;
+            ASSERT_EQ(p2_upm_calibrate_block(model, fid, &leaf, &in, &v, 1),
+                      0);
+            ref.push_back(v);
+        }
+        std::vector<std::size_t> perm(fids.size());
+        std::iota(perm.begin(), perm.end(), 0);
+        std::shuffle(perm.begin(), perm.end(), rng);
+        permute_upm_file(p_orig, p_perm, perm);
+        void* loaded = nullptr;
+        ASSERT_EQ(p2_upm_open(p_perm, &loaded), 0);
+        for (std::size_t i = 0; i < fids.size(); ++i) {
+            double v = 0.0;
+            ASSERT_EQ(p2_upm_calibrate_block(loaded, fids[i], &leaf, &in,
+                                             &v, 1), 0);
+            EXPECT_NEAR(v, ref[i], 1e-9)
+                << "case=" << case_i << " frame=" << fids[i];
+        }
+        ASSERT_EQ(p2_upm_save(loaded, p_resave), 0);
+        p2_upm_close(loaded);
+        void* reopened = nullptr;
+        ASSERT_EQ(p2_upm_open(p_resave, &reopened), 0);
+        for (std::size_t i = 0; i < fids.size(); ++i) {
+            double v = 0.0;
+            ASSERT_EQ(p2_upm_calibrate_block(reopened, fids[i], &leaf, &in,
+                                             &v, 1), 0);
+            EXPECT_NEAR(v, ref[i], 1e-9)
+                << "resave case=" << case_i << " frame=" << fids[i];
+        }
+        p2_upm_close(reopened);
+        p2_upm_close(model);
+    }
+    std::remove(p_orig);
+    std::remove(p_perm);
+    std::remove(p_resave);
+}
+
+// PR-UPM-004/005：稀疏 save/open 与稠密 cache 在重存后 per-frame 绑定一致。
+TEST(Phase2Upm, UpmPersistSparseDenseBinding) {
+    const std::vector<std::uint64_t> fids{40, 10, 30, 20};
+    std::vector<P2ControlObservation> obs;
+    for (std::size_t i = 0; i < fids.size(); ++i)
+        for (std::uint64_t c = 0; c < 3; ++c)
+            obs.push_back(make_obs(fids[i], c,
+                                   7.0 + 0.05 * (double)fids[i] + (double)c,
+                                   90.0));
+    P2UpmBuildConfig cfg{};
+    void* model = nullptr;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg, &model), 0);
+    const char* sp = "run_tmp_pr_upm_sd_sparse.json";
+    const char* dc = "run_tmp_pr_upm_sd_dense.cache";
+    const char* sp2 = "run_tmp_pr_upm_sd_sparse2.json";
+    const char* dc2 = "run_tmp_pr_upm_sd_dense2.cache";
+    ASSERT_EQ(p2_upm_save(model, sp), 0);
+    ASSERT_EQ(p2_upm_materialize_dense(model, 0, dc), 0);
+    void* m2 = nullptr;
+    ASSERT_EQ(p2_upm_open(sp, &m2), 0);
+    ASSERT_EQ(p2_upm_save(m2, sp2), 0);
+    ASSERT_EQ(p2_upm_materialize_dense(m2, 0, dc2), 0);
+    std::uint64_t leaf = 0;
+    double in = 30.0;
+    for (std::uint64_t fid : fids) {
+        double a = 0, b = 0, c = 0, d = 0;
+        ASSERT_EQ(p2_upm_calibrate_block(model, fid, &leaf, &in, &a, 1), 0);
+        ASSERT_EQ(p2_upm_dense_read_block(model, dc, fid, &leaf, &in, &b, 1),
+                  0);
+        ASSERT_EQ(p2_upm_calibrate_block(m2, fid, &leaf, &in, &c, 1), 0);
+        ASSERT_EQ(p2_upm_dense_read_block(m2, dc2, fid, &leaf, &in, &d, 1),
+                  0);
+        EXPECT_NEAR(a, c, 1e-12) << "sparse binding frame=" << fid;
+        EXPECT_NEAR(b, d, 1e-12) << "dense binding frame=" << fid;
+        EXPECT_NEAR(a, b, 1e-9) << "sparse==dense frame=" << fid;
+    }
+    p2_upm_close(m2);
+    p2_upm_close(model);
+    std::remove(sp);
+    std::remove(dc);
+    std::remove(sp2);
+    std::remove(dc2);
+}
+
+// PR-UPM-006：M0→save A→open A=M1→save B→open B=M2→save C→open C=M3，
+// 重复持久化无漂移。
+TEST(Phase2Upm, UpmPersistRoundtripChainNoDrift) {
+    const std::vector<std::uint64_t> fids{30, 10, 20};
+    std::vector<P2ControlObservation> obs;
+    for (std::size_t i = 0; i < fids.size(); ++i)
+        for (std::uint64_t c = 0; c < 3; ++c)
+            obs.push_back(make_obs(fids[i], c,
+                                   9.0 + 0.2 * (double)fids[i] + (double)c,
+                                   100.0));
+    P2UpmBuildConfig cfg{};
+    void* m0 = nullptr;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg, &m0), 0);
+    const char* pA = "run_tmp_pr_upm_chain_A.json";
+    const char* pB = "run_tmp_pr_upm_chain_B.json";
+    const char* pC = "run_tmp_pr_upm_chain_C.json";
+    ASSERT_EQ(p2_upm_save(m0, pA), 0);
+    void* m1 = nullptr;
+    ASSERT_EQ(p2_upm_open(pA, &m1), 0);
+    ASSERT_EQ(p2_upm_save(m1, pB), 0);
+    void* m2 = nullptr;
+    ASSERT_EQ(p2_upm_open(pB, &m2), 0);
+    ASSERT_EQ(p2_upm_save(m2, pC), 0);
+    void* m3 = nullptr;
+    ASSERT_EQ(p2_upm_open(pC, &m3), 0);
+    std::uint64_t leaf = 0;
+    double in = 55.0;
+    for (std::uint64_t fid : fids) {
+        double v0 = 0, v1 = 0, v2 = 0, v3 = 0;
+        ASSERT_EQ(p2_upm_calibrate_block(m0, fid, &leaf, &in, &v0, 1), 0);
+        ASSERT_EQ(p2_upm_calibrate_block(m1, fid, &leaf, &in, &v1, 1), 0);
+        ASSERT_EQ(p2_upm_calibrate_block(m2, fid, &leaf, &in, &v2, 1), 0);
+        ASSERT_EQ(p2_upm_calibrate_block(m3, fid, &leaf, &in, &v3, 1), 0);
+        EXPECT_NEAR(v0, v1, 1e-12) << "A->M1 frame=" << fid;
+        EXPECT_NEAR(v1, v2, 1e-12) << "B->M2 frame=" << fid;
+        EXPECT_NEAR(v2, v3, 1e-12) << "C->M3 frame=" << fid;
+    }
+    p2_upm_close(m3);
+    p2_upm_close(m2);
+    p2_upm_close(m1);
+    p2_upm_close(m0);
+    std::remove(pA);
+    std::remove(pB);
+    std::remove(pC);
+}
+
+// PR-UPM-007：相同科学输入、不同 frame 插入顺序 → save/open 后 per-frame
+// 输出一致（绑定只由稳定 frame_id 决定）。
+TEST(Phase2Upm, UpmPersistInsertionOrderIndependent) {
+    const std::vector<std::uint64_t> fa{10, 20, 30};
+    const std::vector<std::uint64_t> fb{30, 10, 20};
+    const std::vector<std::uint64_t> fc{20, 30, 10};
+    auto build_obs = [](const std::vector<std::uint64_t>& fids) {
+        std::vector<P2ControlObservation> obs;
+        for (std::size_t i = 0; i < fids.size(); ++i)
+            for (std::uint64_t c = 0; c < 3; ++c)
+                obs.push_back(make_obs(fids[i], c,
+                                       12.0 + 0.15 * (double)fids[i] +
+                                           (double)c,
+                                       100.0));
+        return obs;
+    };
+    auto chain = [](std::vector<P2ControlObservation>& obs,
+                    const char* p) {
+        P2UpmBuildConfig cfg{};
+        void* m = nullptr;
+        if (p2_upm_build(obs.data(), obs.size(), &cfg, &m) != 0) return m;
+        if (p2_upm_save(m, p) != 0) {
+            p2_upm_close(m);
+            return (void*)nullptr;
+        }
+        p2_upm_close(m);
+        void* m2 = nullptr;
+        if (p2_upm_open(p, &m2) != 0) return (void*)nullptr;
+        return m2;
+    };
+    const char* pA = "run_tmp_pr_upm_ins_A.json";
+    const char* pB = "run_tmp_pr_upm_ins_B.json";
+    const char* pC = "run_tmp_pr_upm_ins_C.json";
+    auto oa = build_obs(fa), ob = build_obs(fb), oc = build_obs(fc);
+    void* ma = chain(oa, pA);
+    void* mb = chain(ob, pB);
+    void* mc = chain(oc, pC);
+    ASSERT_NE(ma, nullptr);
+    ASSERT_NE(mb, nullptr);
+    ASSERT_NE(mc, nullptr);
+    std::uint64_t leaf = 0;
+    double in = 70.0;
+    for (std::uint64_t fid : fa) {
+        double va = 0, vb = 0, vc = 0;
+        ASSERT_EQ(p2_upm_calibrate_block(ma, fid, &leaf, &in, &va, 1), 0);
+        ASSERT_EQ(p2_upm_calibrate_block(mb, fid, &leaf, &in, &vb, 1), 0);
+        ASSERT_EQ(p2_upm_calibrate_block(mc, fid, &leaf, &in, &vc, 1), 0);
+        EXPECT_NEAR(va, vb, 1e-9) << "A vs B frame=" << fid;
+        EXPECT_NEAR(va, vc, 1e-9) << "A vs C frame=" << fid;
+    }
+    p2_upm_close(mc);
+    p2_upm_close(mb);
+    p2_upm_close(ma);
+    std::remove(pA);
+    std::remove(pB);
+    std::remove(pC);
+}
+
+// PR-UPM-009：空间 mosaic（2 帧 × 相邻 tile）内存模型 vs save→reload，
+// 每帧校准 mosaic 逐点一致，seam 指标一致。
+TEST(Phase2Upm, UpmPersistMosaicSeamEquivalence) {
+    namespace st = spatial_truth;
+    const std::uint64_t fid_a = 10, fid_b = 20;
+    std::vector<P2ControlObservation> obs;
+    std::uint64_t ctrl_id = 0;
+    const std::uint64_t tiles[2] = {st::kTiles[1], st::kTiles[2]};  // 4,5 相邻
+    for (std::uint64_t tile : tiles) {
+        for (int gy = 0; gy < st::kGrid; ++gy) {
+            for (int gx = 0; gx < st::kGrid; ++gx) {
+                double ra = 0, dec = 0;
+                st::cell_center_radec(tile, gx, gy, &ra, &dec);
+                const std::uint64_t leaf = st::leaf_of(
+                    tile, gx * st::kCellSide + st::kCellSide / 2,
+                    gy * st::kCellSide + st::kCellSide / 2);
+                for (int f = 0; f < 2; ++f) {
+                    P2ControlObservation o{};
+                    o.frame_id = (f == 0) ? fid_a : fid_b;
+                    o.control_id = ctrl_id;
+                    o.leaf_ipix = leaf;
+                    o.ra_deg = ra;
+                    o.dec_deg = dec;
+                    // 无噪声确定性真值；两帧加性场显著不同
+                    o.value = st::true_sky(ra, dec) +
+                              st::frame_field(f, ra, dec);
+                    o.uncertainty = st::kNoiseRms;
+                    o.snr = 100.0;
+                    o.support = 1.0;
+                    o.quality_flags = 1;
+                    obs.push_back(o);
+                }
+                ++ctrl_id;
+            }
+        }
+    }
+    P2UpmBuildConfig cfg{};
+    cfg.target_order = st::kTargetOrder;
+    cfg.smoothing_lambda = 0.3;
+    cfg.zero_anchor_weight = 1e-3;
+    cfg.sigma_floor = 0.02;
+    cfg.max_iterations = 60;
+    cfg.tolerance = 1e-9;
+    void* model = nullptr;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg, &model), 0);
+    const char* path = "run_tmp_pr_upm_seam.json";
+    ASSERT_EQ(p2_upm_save(model, path), 0);
+    void* model2 = nullptr;
+    ASSERT_EQ(p2_upm_open(path, &model2), 0);
+
+    // 边界像素：tile4 右缘 gx=7 与 tile5 左缘 gx=0 的 cell 中心列；
+    // 内部像素：两 tile 中部。
+    std::vector<std::uint64_t> leaves;
+    for (std::uint64_t tile : tiles) {
+        const int gx_edge = (tile == st::kTiles[1]) ? 7 : 0;
+        for (int gy = 0; gy < st::kGrid; ++gy) {
+            leaves.push_back(st::leaf_of(
+                tile, gx_edge * st::kCellSide + st::kCellSide / 2,
+                gy * st::kCellSide + st::kCellSide / 2));
+            leaves.push_back(st::leaf_of(
+                tile, 4 * st::kCellSide + st::kCellSide / 2,
+                gy * st::kCellSide + st::kCellSide / 2));
+        }
+    }
+    double seam_mem = 0.0, seam_rel = 0.0;
+    for (std::uint64_t fid : {fid_a, fid_b}) {
+        for (std::size_t i = 0; i < leaves.size(); ++i) {
+            double in = 200.0 + 0.01 * (double)(i % 97);
+            double vm = 0.0, vr = 0.0;
+            ASSERT_EQ(p2_upm_calibrate_block(model, fid, &leaves[i], &in,
+                                             &vm, 1), 0);
+            ASSERT_EQ(p2_upm_calibrate_block(model2, fid, &leaves[i], &in,
+                                             &vr, 1), 0);
+            EXPECT_NEAR(vm, vr, 1e-12)
+                << "frame=" << fid << " pixel=" << i;
+        }
+    }
+    // seam 指标：边界像素上两帧校准输出差的最大值（in-memory vs reload）
+    for (std::size_t i = 0; i < leaves.size(); ++i) {
+        double in = 200.0 + 0.01 * (double)(i % 97);
+        double va = 0, vb = 0;
+        ASSERT_EQ(p2_upm_calibrate_block(model, fid_a, &leaves[i], &in,
+                                         &va, 1), 0);
+        ASSERT_EQ(p2_upm_calibrate_block(model, fid_b, &leaves[i], &in,
+                                         &vb, 1), 0);
+        seam_mem = std::max(seam_mem, std::fabs(va - vb));
+        double wa = 0, wb = 0;
+        ASSERT_EQ(p2_upm_calibrate_block(model2, fid_a, &leaves[i], &in,
+                                         &wa, 1), 0);
+        ASSERT_EQ(p2_upm_calibrate_block(model2, fid_b, &leaves[i], &in,
+                                         &wb, 1), 0);
+        seam_rel = std::max(seam_rel, std::fabs(wa - wb));
+    }
+    EXPECT_NEAR(seam_mem, seam_rel, 1e-12);
+    EXPECT_GT(seam_mem, 0.05);  // 两帧加性场确有差异，指标非退化
+    p2_upm_close(model2);
+    p2_upm_close(model);
+    std::remove(path);
+}
+
+// PR-UPM-010：畸形持久化文件必须稳定报错（不崩溃、不猜测、不部分接受）。
+TEST(Phase2Upm, UpmPersistInvalidModelRejected) {
+    std::vector<P2ControlObservation> obs{
+        make_obs(10, 0, 10.0, 100.0),
+        make_obs(10, 1, 12.0, 100.0),
+        make_obs(20, 0, 15.0, 100.0),
+        make_obs(20, 1, 17.0, 100.0),
+    };
+    P2UpmBuildConfig cfg{};
+    void* model = nullptr;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg, &model), 0);
+    const char* base = "run_tmp_pr_upm_valid.json";
+    const char* bad = "run_tmp_pr_upm_bad.json";
+    ASSERT_EQ(p2_upm_save(model, base), 0);
+    nlohmann::json j0 = read_upm_json(base);
+    ASSERT_TRUE(j0["frames"].is_array());
+    ASSERT_EQ(j0["frames"].size(), 2u);
+    ASSERT_TRUE(j0["C"].is_array());
+    ASSERT_EQ(j0["C"].size(), 2u);
+    auto expect_reject = [&](const nlohmann::json& j) {
+        write_upm_json(bad, j);
+        void* m = nullptr;
+        EXPECT_NE(p2_upm_open(bad, &m), 0);
+        EXPECT_EQ(m, nullptr);
+    };
+    // a) 缺失 frame_id 列表
+    nlohmann::json j = j0;
+    j.erase("frames");
+    expect_reject(j);
+    // b) 重复 frame_id
+    j = j0;
+    j["frames"][1] = j["frames"][0];
+    expect_reject(j);
+    // c) 参数行 > frame 数
+    j = j0;
+    j["C"].push_back(j["C"][0]);
+    expect_reject(j);
+    // d) 参数行 < frame 数
+    j = j0;
+    j["C"].erase(j["C"].end() - 1);
+    expect_reject(j);
+    // e) 损坏的 frame 列表项（字符串）
+    j = j0;
+    j["frames"][0] = "corrupted";
+    expect_reject(j);
+    // f) 非数组 controls / 损坏 control 项
+    j = j0;
+    j["controls"] = "corrupted";
+    expect_reject(j);
+    j = j0;
+    j["controls"][0] = {1, 2, 3};
+    expect_reject(j);
+    // g) C 行损坏（行非数组 / 越界 control 索引）
+    j = j0;
+    j["C"][0] = "corrupted";
+    expect_reject(j);
+    j = j0;
+    j["C"][0].push_back({999999u, 1.0});
+    expect_reject(j);
+    // h) frame_component 长度不匹配
+    j = j0;
+    j["frame_component"].push_back(0u);
+    expect_reject(j);
+    // 对照：未破坏的合法文件仍可打开
+    void* ok = nullptr;
+    ASSERT_EQ(p2_upm_open(base, &ok), 0);
+    p2_upm_close(ok);
+    p2_upm_close(model);
+    std::remove(base);
+    std::remove(bad);
+}
