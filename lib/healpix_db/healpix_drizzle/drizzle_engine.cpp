@@ -1588,7 +1588,8 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
 
     // 5. OpenMP 并行 Drizzle (R11: 线程数来自配置, static 调度, 不预分配 4M 桶)
     int num_threads = (config.threads > 0) ? config.threads : omp_get_max_threads();
-    omp_set_num_threads(num_threads);
+    // V18R2 (CODE-006): 不再调用全局 omp_set_num_threads（会改变进程后续
+    // 阶段的全局 OpenMP 行为）；线程数经 parallel 子句局部限定。
     std::vector<std::unordered_map<uint64_t, TileAccumulatorT<Scalar>>> threadTiles(num_threads);
 
     // V18 (PERF-005): 整帧 run 常量（nside/hp_res/阈值 cos/位运算 shift/mask）
@@ -1608,7 +1609,8 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     double prof_geom_s = 0.0, prof_cand_s = 0.0, prof_overlap_s = 0.0;
     double prof_wcs_s = 0.0;
 
-    #pragma omp parallel for schedule(static) reduction(+:nSourcePixels,prof_geom_s,prof_cand_s,prof_overlap_s,prof_wcs_s)
+    #pragma omp parallel for schedule(static) num_threads(num_threads) \
+        reduction(+:nSourcePixels,prof_geom_s,prof_cand_s,prof_overlap_s,prof_wcs_s)
     for (int y = 0; y < img.height; y++) {
         int tid = omp_get_thread_num();
         auto& tileMap = threadTiles[tid];

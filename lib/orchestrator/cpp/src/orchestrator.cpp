@@ -495,9 +495,10 @@ bool Orchestrator::check_stage_continue(const std::string& stage_name, TaskResul
 // ============================================================================
 Orchestrator::Orchestrator() {
     start_time_ = std::chrono::steady_clock::now();
-    // 初始化日志系统 (默认 lib/orchestrator/logs, INFO 级别)
-    Logger::instance().init("lib/orchestrator/logs", LogLevel::INFO);
-    LOG_INFO("orchestrator", "初始化编排器 (骨架版本)");
+    // V18R2 (CODE-004): 日志目录由 main 按 config.output.log 解析后注入
+    // （Logger::set_log_dir）；此处不再默认写 lib/orchestrator/logs 嵌套目录。
+    // 移除失真的"骨架版本"描述。
+    LOG_INFO("orchestrator", "初始化编排器");
     LOG_INFO("orchestrator", "可用线程数: " + std::to_string(std::thread::hardware_concurrency()));
 }
 
