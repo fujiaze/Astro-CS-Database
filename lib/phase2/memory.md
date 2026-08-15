@@ -124,3 +124,12 @@ photometric scale、新 runtime I/O DLL。
 - 审核包：AstroCS_Review_FinalClosure_V16.zip（SHA
   E02B64137B18FCD00AA71C733B79A1BB05CB7CC0AAB7C1870966061EB22D7350，
   111 项清单 0 坏，含 canonical_core + repo_source_manifest.csv）。
+
+## 2026-08-15 V19 ivar 科学权重 (eb48cef/04ffaa0)
+- UPM: w = quality x support^p x ivar (obs->ivar>0 优先, 否则 1/unc^2);
+  legacy snr^2/(1+snr^2) 仅 use_ivar_weight=0 (ablation, SNR-015)
+- stage2 weight_mode 默认 ivar(2): 逐像素 ivar 产品; support 只作 validity;
+  缺产品 -> support 回退 + ivar_product_missing 计数
+- ACR kernel: mode2=support x ivar; mode0 legacy
+- sampler: 读帧 ivar 产品控制 leaf -> obs.ivar
+- gate 74/74; G5 UPM-calibrated ivar bias=-0.0008 var=0.0359 (opt 0.036)

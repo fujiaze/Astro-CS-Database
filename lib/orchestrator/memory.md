@@ -686,3 +686,8 @@ spec: .trae/specs/orchestrator-cpp-cli/spec.md (阶段1: 集成测试 - 阶段1�
 - 验证: T2/T3 全帧、T4 crop FP32/FP64、T4 全帧 FP32 (285 tiles, 1947 SNR)
   HIPS_VERIFY 全过; gate8 trace: dr3sp_id lineage + DRIZZLE->HIPS_VERIFY
   顺序 + HISS_VERIFY 不出现。
+
+## 2026-08-15 V19 SNR 阶段接线 (eb48cef)
+- run_stage_snr: NoiseWeightModelV1 (blank-sky variance) -> variance/ivar 块
+  (FLOAT32/64 [H,W]) + NOISE_* KV 元数据; legacy snr_model 标 DIAGNOSTIC_ONLY
+- 死代码移除: write_hips_from_hiss/format_exposure_2f (5c2a98c, -157 行)

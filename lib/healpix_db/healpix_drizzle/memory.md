@@ -209,3 +209,12 @@ v1.0
   `hp_drizzle_run` 保留为兼容包装。
 - 验证: T2(13 tiles)/T3(14)/T4 crop FP32(24)/FP64(24)/T4 全帧 FP32(285)
   HIPS_VERIFY 全过; Drizzle core 39.6s, HiPS 直写+verify 0.7s。
+
+## 2026-08-15 V19 方差传播 + 操作计数 (05cccb4/729f150)
+- DRZ-014: sumVarNum += v_j*w_jp^2; variance_p = sumVarNum/sumArea^2; ivar_p=1/variance_p
+- P1-003: AIO HiPS variance/ivar 子产品 (flags 8/16), hierarchy 归约同叶级公式
+- 操作计数: source/candidates/true_overlaps/quick_rejects/pix2radec/boundary/
+  geometry/sh/tile_lookups/heap_alloc -> operation_counts.json
+- 科学: variance_propagation_test 8/8 (SNR-011 MC 4000: p50=1.001,
+  p95=[0.962,1.042]; SNR-012 相邻像素 mean|rho|=0.186; DRZ-014/016 PASS)
+- 红队修复: variance 全零 tile 跳过不中止 signal (rc=-5/-2)

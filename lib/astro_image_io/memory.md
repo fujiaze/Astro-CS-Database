@@ -232,3 +232,10 @@
 
 - HISS/几何在签字微修正轮未改动; 完整 Stage1 证据复用 6f7bba7 (50.37s);
 - Phase1 基础算法闭合, wiki 唯一权威 support 语义已同步。
+
+## 2026-08-15 V19 (05cccb4/eb48cef/5c2a98c)
+- aio_hips.h: AIO_HIPS_PRODUCT_VARIANCE=8/IVAR=16 + aio_hips_write_variance_tile
+  (variance=var_num/area^2, hierarchy 同公式)
+- aio_hips_reader.h: AIO_HIPS_RD_VARIANCE=3/IVAR=4
+- 全仓 first-party warnings 清零: aio_safe_copy 替换 strncpy (17 处),
+  vendored CFITSIO 用 -w + third_party exception (144 上游警告)

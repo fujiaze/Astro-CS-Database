@@ -2194,3 +2194,26 @@ SHA256 73cdd6be2eb1eaa1fd218e0489e31a173f08f0d3a3b6146f8ea3f0da28e2894d
   SHA256 E02B64137B18FCD00AA71C733B79A1BB05CB7CC0AAB7C1870966061EB22D7350
   （0.46MB，111 项清单 0 坏；含 source/canonical_core 与
   evidence/repo_source_manifest.csv）。
+
+## 2026-08-15 V19 Pre-Release Foundation Closure (控制包 V19)
+
+**状态: PRE_RELEASE_FOUNDATION_READY=PASS; FINAL_REAL_DATA_VALIDATION=PENDING_V20**
+交付 HEAD: main c0753e3 (V19 8 commits, 已 push 见下)
+审核包: AstroCS_Review_PreReleaseFoundation_V19.zip
+SHA256 e2130977a665759abd8308e6a7cba8dd0b0ab1b8801e407f6a61de42e9c72198
+
+- SNR/Noise 三层重构 (f672777): PhotometricCalibrationQuality / PsfFitQuality
+  (q_psf=A/residual_scale, (A-B)/mad 退休) / NoiseWeightModelV1
+  (source-masked blank-sky variance→ivar); 科学矩阵 32/32
+- Drizzle (05cccb4): 方差传播 sumVarNum→variance/ivar HiPS 产品 (P1-003) +
+  操作计数 operation_counts.json; SNR-011 MC 4000 (p50=1.001) 8/8
+- Phase2 (eb48cef): UPM/integration/ACR ivar 科学权重 (legacy snr² 仅 ablation);
+  gate 74/74; G5 校准后 ivar bias=-0.0008
+- 全仓质量 (5c2a98c): first-party warnings 0 (-B 重编译), 死代码 -609 行,
+  vendored CFITSIO 144 警告 third_party exception
+- 诊断/文档 (1d3a34c/c0753e3): astrocs_diagnose.py + 18 文档 +
+  docs_machine_consistency 6/6 + config/api_doc consistency PASS
+- 红队 (729f150): 17/17; 修复 variance 全零 tile 中止 signal 缺陷
+- 只跑定点/合成验收; BASS 与真实数据留 V20 (V18R3 决策不重复刷 batch)
+- 根目录已归档 V14-V18R3 全部控制/审核包到 archive_deliverables/,
+  仅保留 V19 控制包 + V19 审核包
