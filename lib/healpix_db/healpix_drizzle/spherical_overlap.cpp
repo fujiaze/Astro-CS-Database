@@ -1182,17 +1182,25 @@ Scalar compute_overlap_area_g_ctx(const DropGeometryT<Scalar>& g,
     // → 必然不相交, 跳过边界获取/S-H (避免极区大像素细分开销)
     // R12 (性能): 像素中心只求一次 (pix2radec + radec_to_vec), 快速拒绝与
     // hp_center 复用同一向量 (原实现重复计算两次)
-    // V18 (PERF-004/005): quick-reject 保持原始 acos(d) > lim 判定（edge
-    //   oracle 覆盖到 1e-19 尺度 sliver，dot<cos(lim) 的浮点舍入边界与
-    //   acos 不位级等价，不能替换）；优化点 = hp_res_rad 由调用方 run-context
-    //   传入，消除每候选 pixelResolutionArcsec() 调用。
+    // V18 (PERF-004/005): quick-reject 用"带安全余量的 dot 预判"：
+    //   d_c <= cos(lim + 1e-9 rad) → acos(d_c) >= lim+1e-9 > lim（浮点
+    //   acos/cos 舍入 ~1e-16 rad << 1e-9）→ 原 acos(d_c) > lim 必真，
+    //   拒绝集是原拒绝集的严格子集（零漏、零误拒）；
+    //   边界区 (cos(lim+1e-9), cos(lim)] 走原始 acos 判定 → 与历史实现
+    //   位级一致（1e-19 sliver oracle 通过）。
+    //   4.23 亿次候选快速拒绝中绝大多数（远离边界）免 acos。
     const double lim = g.max_angle + HP_CIRCUMRADIUS_FACTOR * hp_res_rad;
+    const double cos_safe = std::cos(lim + 1e-9);
     double ra_c, dec_c;
     hp.pix2radec((int64_t)target_ipix, &ra_c, &dec_c);
     Vec3 hp_center = radec_to_vec<double>(ra_c, dec_c);
     {
         double d_c = hp_center.x * center_x + hp_center.y * center_y + hp_center.z * center_z;
         d_c = std::max(-1.0, std::min(1.0, d_c));
+        if (d_c <= cos_safe) {
+            if (overlap_profile_enabled()) g_tl_n_quick++;
+            return Scalar(0);
+        }
         if (std::acos(d_c) > lim) {
             if (overlap_profile_enabled()) g_tl_n_quick++;
             return Scalar(0);

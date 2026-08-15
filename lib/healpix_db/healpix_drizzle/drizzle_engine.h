@@ -13,6 +13,10 @@
 
 // 前向声明 healpix 命名空间和 HealpixCore 类 (实现见 healpix_stack/healpix_core.h)
 namespace healpix { class HealpixCore; }
+namespace spherical {
+template <typename T> struct Vec3T;
+using Vec3 = Vec3T<double>;
+}
 
 namespace drizzle {
 
@@ -209,7 +213,7 @@ private:
     void processPixelSharedTiled(
         double px, double py,
         Scalar pixelValue, float snrValue, float weightValue,
-        const double corners_ra[4], const double corners_dec[4],
+        const spherical::Vec3 corners_v[4],   // V18R2: 行级顶点缓存（免每像素 sin/cos）
         const WcsSip& wcs, const DrizzleConfig& config,
         const healpix::HealpixCore& hp,
         uint32_t shift, uint64_t mask,

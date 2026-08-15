@@ -1299,16 +1299,18 @@ void DrizzleEngine::processPixelTiled(
 
     // ---- Step 2: SIP+WCS 逐角映射 (像素→天球; WCS 双精度接口,
     // 几何数据存储为 Scalar — 见 processPixelSharedTiled) ----
-    double corners_ra[4], corners_dec[4];
+    spherical::Vec3 corners_v[4];
     for (int i = 0; i < 4; i++) {
+        double ra, dec;
         wcs.pixelToSky(corners_xy[i][0], corners_xy[i][1],
-                       corners_ra[i], corners_dec[i]);
-        if (!std::isfinite(corners_ra[i]) || !std::isfinite(corners_dec[i]))
+                       ra, dec);
+        if (!std::isfinite(ra) || !std::isfinite(dec))
             return;
+        corners_v[i] = spherical::radec_to_vec<double>(ra, dec);
     }
 
     processPixelSharedTiled(px, py, pixelValue, snrValue, weightValue,
-                            corners_ra, corners_dec, wcs, config, hp,
+                            corners_v, wcs, config, hp,
                             shift, mask, rctx, tileMap);
 }
 
@@ -1320,18 +1322,14 @@ template <typename Scalar>
 void DrizzleEngine::processPixelSharedTiled(
     double px, double py,
     Scalar pixelValue, float snrValue, float weightValue,
-    const double corners_ra[4], const double corners_dec[4],
+    const spherical::Vec3 corners_v[4],
     const WcsSip& wcs, const DrizzleConfig& config,
     const healpix::HealpixCore& hp,
     uint32_t shift, uint64_t mask,
     const DrizzleRunContext& rctx,
     std::unordered_map<uint64_t, TileAccumulatorT<Scalar>>& tileMap) const
 {
-    // 角点有限性检查
-    for (int i = 0; i < 4; i++) {
-        if (!std::isfinite(corners_ra[i]) || !std::isfinite(corners_dec[i]))
-            return;
-    }
+    // 角点有限性由调用方保证（行级顶点缓存已检查）
 
     // ---- Step 3: 自适应边细分 (double 计算, 阈值判断) ----
     // 边跨度必须用真实球面角距 (R12 阶段4 修复):
@@ -1346,10 +1344,8 @@ void DrizzleEngine::processPixelSharedTiled(
     bool use_adaptive = false;
     for (int i = 0; i < 4; i++) {
         int j = (i + 1) % 4;
-        spherical::Vec3 va = spherical::radec_to_vec<double>(
-            corners_ra[i], corners_dec[i]);
-        spherical::Vec3 vb = spherical::radec_to_vec<double>(
-            corners_ra[j], corners_dec[j]);
+        const spherical::Vec3& va = corners_v[i];
+        const spherical::Vec3& vb = corners_v[j];
         double d = va.x * vb.x + va.y * vb.y + va.z * vb.z;
         d = std::max(-1.0, std::min(1.0, d));
         dot_edges[i] = d;
@@ -1380,7 +1376,7 @@ void DrizzleEngine::processPixelSharedTiled(
     drop_corners_d.clear();
     if (!use_adaptive) {
         for (int i = 0; i < 4; i++) {
-            spherical::Vec3 v = spherical::radec_to_vec<double>(corners_ra[i], corners_dec[i]);
+            const spherical::Vec3& v = corners_v[i];
             drop_corners_d.push_back(v);
             drop_corners.push_back({Scalar(v.x), Scalar(v.y), Scalar(v.z)});
         }
@@ -1459,8 +1455,10 @@ void DrizzleEngine::processPixelSharedTiled(
         tr.drop_area = (double)drop_area;
         tr.pixfrac = config.pixfrac;
         for (int i = 0; i < 4; i++) {
-            tr.corner_ra[i] = corners_ra[i];
-            tr.corner_dec[i] = corners_dec[i];
+            double ra_t, dec_t;
+            spherical::vec_to_radec<double>(corners_v[i], ra_t, dec_t);
+            tr.corner_ra[i] = ra_t;
+            tr.corner_dec[i] = dec_t;
         }
     }
     for (uint64_t ipix : candidates) {
@@ -1618,14 +1616,22 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
         // R11: 预计算本行底/顶两行网格顶点的天球坐标 (WCS double 精度, 每顶点一次;
         // 几何数据在 processPixelSharedTiled 内转 Scalar 存储)
         thread_local std::vector<double> bot_ra, bot_dec, top_ra, top_dec;
+        // V18R2: 行级顶点 Vec3 缓存（免每像素 8 次 sin/cos 重算）
+        thread_local std::vector<spherical::Vec3> bot_vec, top_vec;
         if (shared_vertices) {
             auto t_wcs0 = fine ? std::chrono::high_resolution_clock::now()
                                : std::chrono::time_point<std::chrono::high_resolution_clock>{};
             bot_ra.resize(img.width + 1); bot_dec.resize(img.width + 1);
             top_ra.resize(img.width + 1); top_dec.resize(img.width + 1);
+            bot_vec.resize(img.width + 1);
+            top_vec.resize(img.width + 1);
             for (int vx = 0; vx <= img.width; vx++) {
                 wcs.pixelToSky(vx - 0.5, y - 0.5, bot_ra[vx], bot_dec[vx]);
                 wcs.pixelToSky(vx - 0.5, y + 0.5, top_ra[vx], top_dec[vx]);
+                bot_vec[vx] = spherical::radec_to_vec<double>(
+                    bot_ra[vx], bot_dec[vx]);
+                top_vec[vx] = spherical::radec_to_vec<double>(
+                    top_ra[vx], top_dec[vx]);
             }
             if (fine) {
                 prof_wcs_s += std::chrono::duration<double>(
@@ -1652,12 +1658,12 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
             nSourcePixels++;
 
             if (shared_vertices) {
-                double cr[4] = {bot_ra[x], bot_ra[x + 1], top_ra[x + 1], top_ra[x]};
-                double cd[4] = {bot_dec[x], bot_dec[x + 1], top_dec[x + 1], top_dec[x]};
+                spherical::Vec3 cv[4] = {bot_vec[x], bot_vec[x + 1],
+                                         top_vec[x + 1], top_vec[x]};
                 auto t_g = fine ? std::chrono::high_resolution_clock::now()
                                 : std::chrono::time_point<std::chrono::high_resolution_clock>{};
                 processPixelSharedTiled((double)x, (double)y, pixelValue, snrValue, weightValue,
-                                        cr, cd, wcs, config, hp, (uint32_t)shift, mask,
+                                        cv, wcs, config, hp, (uint32_t)shift, mask,
                                         rctx, tileMap);
                 if (fine) {
                     prof_geom_s += std::chrono::duration<double>(
