@@ -1,0 +1,10 @@
+{
+ "traceability_rows": 30,
+ "rows_ok": 30,
+ "rows_broken": 0,
+ "broken_rows": [],
+ "sample_symbols": 13,
+ "sample_ok": 13,
+ "sample_broken": [],
+ "TRACEABILITY_BROKEN": 0
+}
