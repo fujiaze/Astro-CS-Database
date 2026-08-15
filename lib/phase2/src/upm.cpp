@@ -1,17 +1,17 @@
 // lib/phase2/src/upm.cpp — Phase2 UnifiedPhotometricModel CPU reference
 //
-// V2（控制包 AstroCS_Phase2_AuditFix_Control_Package_V2，SHA 2971F9A7...CBBC176）：
-//   - 空间 additive UPM：M(p_k) latent reference + C_i(p) 每帧空间校正场；
-//   - 观测模型 y_ik = M(p_k) + C_i(p_k) + noise；
-//   - 控制拓扑 = coverage union 上的 HEALPix control cells（8×8/tile 网格），
-//     basis/topology 只由 geometry/coverage/配置决定（与 SNR 解耦）；
-//   - 图拉普拉斯平滑 lambda_s 真正进入联合求解；
-//   - 观测权重 raw_w = quality_factor * support^p * snr^2/(1+snr^2) *
-//     1/max(unc^2, sigma_floor^2)，并在每个 control node 内归一；
-//   - 弱零校正锚 lambda_0：单覆盖节点由同帧其他节点 + smoothness 延拓；
-//   - gauge：参考帧（最小内容稳定 frame_id）C=0，输入顺序无关；
-//   - calibrate_block 真正使用 leaf_ipix 查找所在 control cell；
-//   - 断开分量各自 gauge（不虚构跨组件约束）。
+
+// - 空间 additive UPM：M(p_k) latent reference + C_i(p) 每帧空间校正场；
+// - 观测模型 y_ik = M(p_k) + C_i(p_k) + noise；
+// - 控制拓扑 = coverage union 上的 HEALPix control cells（8×8/tile 网格），
+// basis/topology 只由 geometry/coverage/配置决定（与 SNR 解耦）；
+// - 图拉普拉斯平滑 lambda_s 真正进入联合求解；
+// - 观测权重 raw_w = quality_factor * support^p * snr^2/(1+snr^2) *
+// 1/max(unc^2, sigma_floor^2)，并在每个 control node 内归一；
+// - 弱零校正锚 lambda_0：单覆盖节点由同帧其他节点 + smoothness 延拓；
+// - gauge：参考帧（最小内容稳定 frame_id）C=0，输入顺序无关；
+// - calibrate_block 真正使用 leaf_ipix 查找所在 control cell；
+// - 断开分量各自 gauge（不虚构跨组件约束）。
 #include "astro/phase2/upm.h"
 #include "astro/phase2/sampler.h"
 
@@ -61,10 +61,10 @@ struct Model {
     std::vector<std::vector<double>> obs_w;     // 最终每轮权重缓存
     std::map<std::pair<std::uint64_t, std::pair<int, int>>, std::size_t>
         cell_index;                      // (tile, gx, gy) -> control
-    // V7：每 tile 覆盖 cell 范围（外推锚点只引用真实存在的 cell）
+    // 每 tile 覆盖 cell 范围（外推锚点只引用真实存在的 cell）
     std::map<std::uint64_t, std::pair<int, int>> tile_gx_bounds;
     std::map<std::uint64_t, std::pair<int, int>> tile_gy_bounds;
-    // R4：求解前连通分量（frame-control 二分图）；每分量独立 gauge
+    // 求解前连通分量（frame-control 二分图）；每分量独立 gauge
     std::vector<std::size_t> control_component;   // control -> component
     std::vector<std::size_t> frame_component;     // frame index -> component
     std::vector<std::uint64_t> component_ref_frame;  // 每分量最小 frame_id
@@ -76,24 +76,24 @@ struct Model {
     int iterations{0};
     double objective{0.0};
     std::size_t component_count{1};
-    // V14 (G3)：几何/无观测节点独立统计（不混入数据分量）
+    // 几何/无观测节点独立统计（不混入数据分量）
     std::size_t geometry_component_count{1};
     std::uint64_t unobserved_geometry_nodes{0};
 };
 
-// V5（P6-0/G1）：evaluate_C —— centered bilinear basis（同一科学求值
+// evaluate_C —— centered bilinear basis（同一科学求值
 // 语义，sparse/dense 共用）。控制观测与系数节点位于 **cell 中心**
 // （gx*cell+cell/2, gy*cell+cell/2）；旧实现把节点值当作 cell 角点
 // 求值，导致恢复场相对叶坐标产生半 cell（cell/2）相位偏移，且
 // evaluate(观测中心) != 节点系数（basis 坐标不自洽）。本实现按叶
 // 位置两侧最近的 cell 中心双线性插值：
-//   - evaluate(center) == C[cell]（坐标自洽）；
-//   - 线性场在正确相位恢复（half-cell phase truth）；
-//   - tile 最外缘线性外推：v 低于首中心用前两个 centered nodes，
-//     高于末中心用最后两个 centered nodes（双轴 corner 由双线性公式
-//     自然外推）；不再 clamp 成常数（V7 P7-1）。
-//   - 外推锚点限制在本 tile **真实覆盖**的 cell 范围内；缺失 cell
-//     （部分覆盖/单 cell）不会引用为 0。
+// - evaluate(center) == C[cell]（坐标自洽）；
+// - 线性场在正确相位恢复（half-cell phase truth）；
+// - tile 最外缘线性外推：v 低于首中心用前两个 centered nodes，
+// 高于末中心用最后两个 centered nodes（双轴 corner 由双线性公式
+// 自然外推）；不再 clamp 成常数。
+// - 外推锚点限制在本 tile **真实覆盖**的 cell 范围内；缺失 cell
+// （部分覆盖/单 cell）不会引用为 0。
 double evaluate_c_field(const Model* m, std::size_t frame_idx,
                         std::uint64_t tile, int x, int y) {
     const int cell = m->cell_side;
@@ -198,7 +198,7 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
                       const P2ControlNode* nodes, std::uint64_t n_nodes,
                       const P2UpmBuildConfig* cfg_in, void** out_model) {
     if (out_model == nullptr || obs == nullptr || n_obs == 0) return 1;
-    // V14 (G3)：无观测几何节点的 component sentinel（不参与数据图/gauge）
+    // 无观测几何节点的 component sentinel（不参与数据图/gauge）
     const std::size_t kNoData = ~std::size_t(0);
     P2UpmBuildConfig cfg;
     if (cfg_in != nullptr) {
@@ -215,14 +215,14 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         cfg.sigma_floor = 1e-3;
         cfg.support_power = 1.0;
         cfg.quality_mode = 0;
-        cfg.use_ivar_weight = 1;   // V19: ivar 科学权重默认开启
+        cfg.use_ivar_weight = 1;   // ivar 科学权重默认开启
         cfg.control_reliability = 1.0;
     }
     if (cfg.huber_delta <= 0.0) cfg.huber_delta = 1.345;
     if (cfg.max_iterations <= 0) cfg.max_iterations = 100;
     if (cfg.sigma_floor <= 0.0) cfg.sigma_floor = 1e-3;
     if (cfg.support_power < 0.0) cfg.support_power = 1.0;
-    // V19: use_ivar_weight 默认 1 (仅显式 0 关闭)
+    // use_ivar_weight 默认 1 (仅显式 0 关闭)
     // (cfg 拷贝后此处不强制, 保持调用方意图)
     if (cfg.control_reliability <= 0.0) cfg.control_reliability = 1.0;
     if (cfg.zero_anchor_weight < 0.0) cfg.zero_anchor_weight = 1e-3;
@@ -236,7 +236,7 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
     m->cfg = cfg;
     if (cfg.input_manifest_hash != nullptr)
         m->input_manifest_hash = cfg.input_manifest_hash;
-    m->info.version = 2;              // V2 空间 UPM
+    m->info.version = 2;              // 空间 UPM
     m->info.precision = 1;  // fp64 reference
     m->info.observation_count = n_obs;
     m->info.target_order = (std::uint32_t)cfg.target_order;
@@ -245,7 +245,7 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
     const int tile_shift = 9;         // leaf order = target+9 -> tile shift 18/2
 
     // 收集 control（按 (tile,gx,gy) cell 去重）/ frame 索引
-    // V13：nodes 提供全 coverage 几何（含单帧区）；obs 提供数据项。
+    // nodes 提供全 coverage 几何（含单帧区）；obs 提供数据项。
     std::set<std::uint64_t> frame_ids;
     auto add_control = [&](std::uint64_t cid, std::uint64_t tile,
                            int gx, int gy, double ra, double dec,
@@ -296,15 +296,15 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         m->controls[it->second].obs_idx.push_back(i);
         frame_ids.insert(o.frame_id);
     }
-    // V5（P6-0）：移除 V4 R3 的跨 tile 边界节点合并（proximity-alias）。
+    // 移除的跨 tile 边界节点合并（proximity-alias）。
     // 边界两侧 cell 中心是**不同 sky 位置**，共享系数会强制 seam 两侧
     // C 恒等（jump=0），导致跨 tile 真实梯度无法恢复。现在边界节点保持
-    // 独立系数，跨 tile 连续性由 R4 平滑邻接（弱先验）提供：
+    // 独立系数，跨 tile 连续性由 平滑邻接（弱先验）提供：
     // 平滑场 seam 跳变受拟合噪声约束，非零梯度场的恢复 delta 跟随
     // truth delta。save/open 的 cell_index 退化为恒等映射（向后兼容读取）。
     m->info.control_count = m->controls.size();
     const std::size_t K = m->controls.size();
-    // V7：每 tile 覆盖 cell 范围（evaluate 外推锚点用）
+    // 每 tile 覆盖 cell 范围（evaluate 外推锚点用）
     for (const auto& kv : m->cell_index) {
         const std::uint64_t t = kv.first.first;
         const int gx = kv.first.second.first;
@@ -357,7 +357,7 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         link(gx, gy - 1);
     }
 
-    // R4：跨 tile 几何邻接（tile 边界 control cells 角距 < 阈值连接，
+    // 跨 tile 几何邻接（tile 边界 control cells 角距 < 阈值连接，
     // 使跨 tile 几何相邻区域的 correction 受同一平滑约束）
     {
         // cell 中心间距（target order 像素尺度推导）
@@ -396,8 +396,8 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         }
     }
 
-    // R4：求解前连通分量（frame-control 二分图），每分量独立 gauge
-    // V14 (G3)：只有带 observation 的 frame/control 参与数据分量统计；
+    // 求解前连通分量（frame-control 二分图），每分量独立 gauge
+    // 只有带 observation 的 frame/control 参与数据分量统计；
     // 纯几何节点（无 obs）不进入 frame-control 图，component 标记为
     // sentinel（SIZE_MAX），不参与 reference-frame gauge。
     {
@@ -477,10 +477,10 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
     // ===== Huber IRLS 坐标下降求解 =====
     // 残差 r_ik = y_ik - M_k - C_i,k
     // 权重 raw_w = quality * support^p * snr^2/(1+snr^2) / max(unc^2, floor^2)
-    //           per-control 归一化后 × huber_w
+    // per-control 归一化后 × huber_w
     // M 更新（固定 C）：M_k = Σ w (y - C) / Σ w
     // C 更新（固定 M，逐帧 CG）：
-    //   min Σ_k w_ik (r_ik - C_ik)^2 + λs Σ_{k~l} (C_ik - C_il)^2 + λ0 Σ C_ik^2
+    // min Σ_k w_ik (r_ik - C_ik)^2 + λs Σ_{k~l} (C_ik - C_il)^2 + λ0 Σ C_ik^2
     std::vector<double> M(K, 0.0);
     const double anchor = std::max(0.0, cfg.zero_anchor_weight);
     const double lambda_s = std::max(0.0, cfg.smoothing_lambda);
@@ -491,7 +491,7 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
     auto compute_raw = [&]() {
         std::vector<double> sums(K, 0.0);
         for (std::uint64_t i = 0; i < n_obs; ++i) {
-            // R1（V4）：单一 production raw weight 实现（与
+            // 单一 production raw weight 实现（与
             // p2_upm_raw_weight 同一公式）
             if (p2_upm_raw_weight(&obs[i], &cfg, &raw_w[i]) != 0)
                 raw_w[i] = 0.0;
@@ -550,7 +550,7 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         std::vector<double> w(n_obs);
         for (std::uint64_t i = 0; i < n_obs; ++i) {
             const std::size_t ck = m->control_by_id[obs[i].control_id];
-            // V13 (R1)：Huber 作用于标准化残差 z = r / sigma_eff。
+            // Huber 作用于标准化残差 z = r / sigma_eff。
             // 此前 huber_delta=1.345 直接与 ~0.002 raw residual 比较，
             // 所有残差都落在线性区，robust 几乎永不生效。现在
             // sigma_eff = max(观测 uncertainty, sigma_floor)，delta 保持
@@ -563,12 +563,12 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
             w[i] = raw_w[i] * huber_w(r / sigma_eff, cfg.huber_delta);
         }
         // 2. M 更新（固定 C）：每分量 gauge = 分量内最小 frame_id C=0 →
-        //    M 由该分量参考帧观测定义；参考帧未覆盖节点用全部帧（延拓）。
+        // M 由该分量参考帧观测定义；参考帧未覆盖节点用全部帧（延拓）。
         double max_dM = 0.0;
         for (std::size_t k = 0; k < m->controls.size(); ++k) {
             double num = 0.0, den = 0.0;
             const std::size_t comp = m->control_component[k];
-            // V14 (G3)：无观测几何节点不参与数据图，component=sentinel；
+            // 无观测几何节点不参与数据图，component=sentinel；
             // 其 M 由全部帧加权（无参考帧语义）定义。
             if (comp == kNoData) {
                 for (std::size_t ii : m->controls[k].obs_idx) {
@@ -870,7 +870,7 @@ int p2_upm_open(const char* path, void** out_model) {
             m->frame_index[fid] = fi++;
             m->frame_id_by_index.push_back(fid);
         }
-        // R3（V4）：每分量 gauge frame id + frame→component 映射持久化
+        // 每分量 gauge frame id + frame→component 映射持久化
         if (j.contains("component_ref_frame") &&
             j.contains("frame_component")) {
             if (!j["component_ref_frame"].is_array() ||
@@ -920,7 +920,7 @@ int p2_upm_open(const char* path, void** out_model) {
             m->control_by_id[cn.id] = m->controls.size();
             m->controls.push_back(cn);
         }
-        // R3（V4）：恢复完整 cell_index（含跨 tile 合并别名键，保证 seam
+        // 恢复完整 cell_index（含跨 tile 合并别名键，保证 seam
         // 求值与保存前一致）；旧文件无该键时退化为 controls 推导的拓扑。
         if (j.contains("cell_index")) {
             if (!j["cell_index"].is_array()) {
@@ -945,7 +945,7 @@ int p2_upm_open(const char* path, void** out_model) {
                     tile, std::make_pair(gx, gy))] = idx;
             }
         }
-        // V7：恢复每 tile 覆盖范围（evaluate 外推锚点用）
+        // 恢复每 tile 覆盖范围（evaluate 外推锚点用）
         for (const auto& kv : m->cell_index) {
             const std::uint64_t t = kv.first.first;
             const int gx = kv.first.second.first;
@@ -1035,7 +1035,10 @@ int p2_upm_calibrate_block(const void* model, std::uint64_t frame_id,
     }
     const Model* m = static_cast<const Model*>(model);
     const auto it = m->frame_index.find(frame_id);
-    const std::size_t fi = (it != m->frame_index.end()) ? it->second : 0;
+    // F-V19R2-UPM-002：未知 frame_id 必须显式失败，禁止回退 frame 0 参数
+    // （错误帧校准会静默制造错误科学结果）。
+    if (it == m->frame_index.end()) return 1;
+    const std::size_t fi = it->second;
     const int tile_shift = 9;
     const std::uint64_t mask = (1ULL << (2u * (unsigned)tile_shift)) - 1ULL;
     for (std::uint64_t i = 0; i < count; ++i) {
@@ -1045,7 +1048,7 @@ int p2_upm_calibrate_block(const void* model, std::uint64_t frame_id,
         std::uint32_t x = 0, y = 0;
         astrocs::healpix::nested_local_to_xy(local, (std::uint32_t)tile_shift,
                                              x, y);
-        // R4：双线性空间校正场求值（cell 内随位置连续）
+        // 双线性空间校正场求值（cell 内随位置连续）
         const double c =
             evaluate_c_field(m, fi, tile, (int)x, (int)y);
         output_signal[i] = input_signal[i] - c;
@@ -1058,7 +1061,11 @@ double p2_upm_evaluate_c(const void* model, std::uint64_t frame_id,
     if (model == nullptr) return 0.0;
     const Model* m = static_cast<const Model*>(model);
     const auto it = m->frame_index.find(frame_id);
-    const std::size_t fi = (it != m->frame_index.end()) ? it->second : 0;
+    // F-V19R2-UPM-002：未知 frame_id 返回 NaN（显式不可用），禁止用
+    // frame 0 参数伪装有效结果。
+    if (it == m->frame_index.end())
+        return std::numeric_limits<double>::quiet_NaN();
+    const std::size_t fi = it->second;
     const int tile_shift = 9;
     const std::uint64_t mask = (1ULL << (2u * (unsigned)tile_shift)) - 1ULL;
     const std::uint64_t tile = leaf_ipix >> (2u * (unsigned)tile_shift);
@@ -1069,7 +1076,7 @@ double p2_upm_evaluate_c(const void* model, std::uint64_t frame_id,
     return evaluate_c_field(m, fi, tile, (int)x, (int)y);
 }
 
-// R1（V4）：production UPM 观测 raw weight（单一实现，build 内部复用）
+// production UPM 观测 raw weight（单一实现，build 内部复用）
 int p2_upm_raw_weight(const P2ControlObservation* obs,
                       const P2UpmBuildConfig* cfg_in, double* out_raw) {
     if (obs == nullptr || out_raw == nullptr) return 1;
@@ -1170,7 +1177,7 @@ int p2_upm_materialize_dense(const void* model, int target_order,
     std::vector<double> values(512ull * 512ull);
     for (std::size_t f = 0; f < m->C.size(); ++f) {
         for (std::uint64_t tile : tiles) {
-            // V14 (G7)：逐 tile 预构建 8×8 cell 节点表（一次 map 查找），
+            // 逐 tile 预构建 8×8 cell 节点表（一次 map 查找），
             // 像素级双线性用数组索引，避免 5.4 亿次 std::map 查找。
             // 语义与 evaluate_c_field 一致（cell 中心 + axis 外推/夹取）。
             double node[8][8];

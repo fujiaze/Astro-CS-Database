@@ -66,15 +66,26 @@ int aio_upm_write_sparse(const char* path, const char* model_json) {
         set_err(std::string("json parse: ") + e.what());
         return 1;
     }
-    std::ofstream f(path, std::ios::binary | std::ios::trunc);
+    // F-V19R2-IO-001（ENG-IO-001）：science 模型写盘走 temp → validate →
+    // atomic promote；失败清理 temp，绝不留下半成品当正式模型。
+    const std::string tmp = std::string(path) + ".tmp";
+    std::ofstream f(tmp, std::ios::binary | std::ios::trunc);
     if (!f) {
-        set_err("cannot open for write");
+        set_err("cannot open temp file for write");
         return 1;
     }
     f.write(model_json, std::streamsize(std::strlen(model_json)));
     f.flush();
     if (!f.good()) {
+        f.close();
+        std::remove(tmp.c_str());
         set_err("write failed");
+        return 1;
+    }
+    f.close();
+    if (std::rename(tmp.c_str(), path) != 0) {
+        std::remove(tmp.c_str());
+        set_err("atomic promote failed");
         return 1;
     }
     return 0;
