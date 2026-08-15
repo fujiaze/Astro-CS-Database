@@ -1,5 +1,31 @@
 # AstroCS Changelog
 
+## [V19R2] 2026-08-15 — Pre-Release Traceable Foundation
+
+### PR#1 UPM 持久化绑定（SCI-UPM-PERSIST-001 门禁）
+- 修复 save/load 后 frame_id→参数绑定漂移：frames 列表改用
+  frame_id_by_index（index 序）序列化，open 重建双向映射
+- p2_upm_open 畸形模型校验：重复 ID/缺列表/行列不匹配/类型损坏稳定报错
+  （ERR-P2-UPM-001）；p2_upm_save 校验行数不变量
+- PR-UPM-001..010 门禁测试全部通过；向后兼容方案 A（安全迁移）
+
+### 工程冻结（全仓规范 + 逐文件审计 + 质量）
+- 文档体系 L0-L5：science/11、algorithms/12、architecture/12、
+  standards/13、modules/13；V19 扁平文档迁 docs/history/
+- TRACEABILITY.csv 30 行；science_code_mapping.csv；broken=0
+- 逐文件审计 713/713（B01-B16），0 UNREVIEWED
+- comment hygiene：1240 处轮次/审计标记迁移，434 文件 0 violation
+- 编译告警：phase2 补 -Wall -Wextra -Wpedantic，全仓 0 first-party warning
+- 修复：unknown UPM frame 显式失败（F-V19R2-UPM-002）、aio_upm 原子写
+  （F-V19R2-IO-001）、strncpy 截断（F-V19R2-COV-001）、死代码
+  （F-V19R2-REJ-001）、DRZ SIP 测试阈值（F-V19R2-DRZ-001）
+- 自审 Round0-6 闭环；P0=0 / P1=0
+
+```text
+PRE_RELEASE_ENGINEERING_FOUNDATION=PASS
+FINAL_REAL_DATA_VALIDATION=PENDING
+```
+
 ## [V19] 2026-08-15 — Pre-Release Foundation Closure
 
 ### SNR/Noise 科学重构
