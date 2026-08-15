@@ -7,6 +7,7 @@
 
 #include "json_config.h"
 #include "logger.h"
+#include "crypto/sha256.h"
 
 #include <nlohmann/json.hpp>
 #include <nlohmann/json-schema.hpp>
@@ -21,10 +22,7 @@
 namespace fs = std::filesystem;
 using json = nlohmann::json;
 
-// 前向声明 sha256_impl (定义在 cli_command.cpp, 链接时解析)
-namespace sha256_impl {
-std::string sha256(const std::string& input);
-}
+// V18R2 (CODE-002): SHA-256 归一化到 lib/common/crypto
 
 // ============================================================================
 // 内嵌 Schema JSON (v1.1, 与 lib/orchestrator/configs/stage1.schema.json 一致)
@@ -514,7 +512,7 @@ std::string get_stage1_schema_json() {
 }
 
 std::string get_stage1_schema_sha256() {
-    return sha256_impl::sha256(STAGE1_SCHEMA_JSON);
+    return astrocs::crypto::sha256_hex(STAGE1_SCHEMA_JSON, std::strlen(STAGE1_SCHEMA_JSON));
 }
 
 // ============================================================================
@@ -648,7 +646,7 @@ int parse_stage1_config(const std::string& json_path, Stage1Config& config, std:
         return -1;
     }
 
-    config.original_json_sha256 = sha256_impl::sha256(content);
+    config.original_json_sha256 = astrocs::crypto::sha256_hex(content.data(), content.size());
     config.original_json_path = abs_json_path.string();
 
     json root;
@@ -838,5 +836,5 @@ std::string compute_config_sha256(const Stage1Config& config) {
     }
 
     std::string canonical = j.dump(-1, ' ', false, nlohmann::detail::error_handler_t::replace);
-    return sha256_impl::sha256(canonical);
+    return astrocs::crypto::sha256_hex(canonical.data(), canonical.size());
 }

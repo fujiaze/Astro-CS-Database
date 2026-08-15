@@ -39,7 +39,7 @@ TEST_DIR = tests
 # 源文件列表 (Phase1 JSON 入口: 删除 cli_repl, 新增 json_config)
 SRCS = $(SRC_DIR)/main.cpp \
        $(SRC_DIR)/orchestrator.cpp \
-       ../../common/healpix/healpix_core.cpp \
+       ../../common/healpix/healpix_core.cpp ../../common/crypto/sha256.cpp \
        $(SRC_DIR)/dll_loader.cpp \
        $(SRC_DIR)/checkpoint.cpp \
        $(SRC_DIR)/logger.cpp \
