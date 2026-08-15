@@ -1,4 +1,4 @@
-CFLAGS = -O2 -march=native -Wall
+CFLAGS = -O2 -march=native -Wall -Wextra -Wpedantic
 SRC = src/gaia_client.c
 OBJ = gaia_client.o
 
@@ -7,7 +7,7 @@ OBJ = gaia_client.o
 all: gaia_client.dll libgaia_client.a gaia_client_demo
 
 gaia_client.o: $(SRC)
-	gcc $(CFLAGS) -c $< -o $@ -Isrc
+	gcc $(CFLAGS) -fopenmp -c $< -o $@ -Isrc
 
 libgaia_client.a: $(OBJ)
 	ar rcs $@ $^

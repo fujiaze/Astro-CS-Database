@@ -26,21 +26,33 @@
 #define MAX_FILES 32
 #define MAX_STARS_RESULT 200000
 
-/* V18R2 诊断（ASTROCS_GAIA_TRACE=1 启用，默认零开销）：查询遍历/读取计数 */
+/* V18R3 测试钩子（仅测试程序定义 GAIA_ALLOC_TEST 时生效）：
+ * 将本文件内所有堆分配重定向到测试包装，支持分配故障注入。 */
+#ifdef GAIA_ALLOC_TEST
+#define malloc gaia_test_malloc
+#define calloc gaia_test_calloc
+#define realloc gaia_test_realloc
+#define free gaia_test_free
+#endif
+
+/* V18R3 诊断（ASTROCS_GAIA_TRACE=1 启用，默认零共享状态热写）：
+ * 统计上下文 per-query 持有，仅查询入口调用一次 getenv 判断开关；
+ * 并行线程只原子更新本查询上下文，不再触碰 process-global 计数器，
+ * 因此并发查询之间不混合、无 data race，trace-off 时零共享写。 */
+typedef struct {
+    int enabled;
+    long long nodes;
+    long long blocks;
+    long long bytes;
+    long long decomp;
+    long long polar_nodes;
+    long long eq_nodes;
+} GaiaTraceCtx;
+
 static int gaia_trace_enabled(void) {
-    static int en = -1;
-    if (en < 0) {
-        const char *v = getenv("ASTROCS_GAIA_TRACE");
-        en = (v && v[0] == '1') ? 1 : 0;
-    }
-    return en;
+    const char *v = getenv("ASTROCS_GAIA_TRACE");
+    return (v && v[0] == '1') ? 1 : 0;
 }
-static long long g_trace_nodes = 0;
-static long long g_trace_blocks = 0;
-static long long g_trace_bytes = 0;
-static long long g_trace_decomp = 0;
-static long long g_trace_polar_nodes = 0;
-static long long g_trace_eq_nodes = 0;
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -54,16 +66,13 @@ static long long g_trace_eq_nodes = 0;
 #define BLOCK_CACHE_MASK       (BLOCK_CACHE_CAPACITY - 1)
 #define QUERY_CACHE_CAPACITY   64     /* 查询结果缓存最大条目数 */
 #define QUERY_CACHE_TTL_SEC    60     /* 查询结果缓存TTL (秒) */
-#define QUERY_CACHE_RA_ROUND   0.001  /* RA舍入精度 (度) */
-#define QUERY_CACHE_DEC_ROUND  0.001  /* Dec舍入精度 (度) */
-#define QUERY_CACHE_RAD_ROUND  0.01   /* 半径舍入精度 (度) */
-#define QUERY_CACHE_MAG_ROUND  0.01   /* 星等舍入精度 */
 #define BLOCK_CACHE_MAX_MEMORY (4ULL * 1024 * 1024 * 1024) /* 解压块缓存最大4GB */
 #define MEMORY_PRESSURE_THRESHOLD (4ULL * 1024 * 1024 * 1024) /* 可用内存<4GB时触发释放 */
-/* P02-006: 缓存键版本号。当 dataset / 字段集合 / 参数语义发生破坏性变化时,
+/* V18R3: 缓存键版本号。当 dataset / 字段集合 / 参数语义发生破坏性变化时,
  * 递增此版本号即可让旧缓存条目自然失效 (lookup 时 version 不匹配则跳过)。
- * 当前版本: 1 (ra/dec/mag 三元组, mag_high 作为参数) */
-#define GAIA_CACHE_VERSION     1
+ * 当前版本: 2 (精确查询语义键: ra/dec/radius/mag_low/mag_high/dataset identity,
+ * 不做量化舍入; 命中即同一查询的精确重复) */
+#define GAIA_CACHE_VERSION     2
 #ifndef TIME_MAX
 #define TIME_MAX ((time_t)-1 < 0 ? (time_t)((1ULL << (8 * sizeof(time_t) - 1)) - 1) : (time_t)(-1))
 #endif
@@ -102,7 +111,13 @@ typedef struct {
 
 /* ===== 查询结果缓存 ===== */
 typedef struct {
-    double ra, dec, radius, mag_high;  /* 舍入后的查询参数 */
+    /* V18R3: 精确查询语义键（不做量化舍入）。命中条件=与本次查询的
+     * ra/dec/radius/mag_low/mag_high 逐位一致（double 精确比较，仅同参
+     * 数重复调用命中）+ dataset identity（db_type/file_count）+ 版本一致。
+     * correctness 优先于缓存命中率；量化 superset 方案未采用。 */
+    double ra, dec, radius, mag_low, mag_high;
+    int db_type;                        /* dataset identity: GAIA_DB_DR3/DR3SP */
+    int file_count;                     /* dataset identity: 文件数 */
     double *out_ra;                    /* 缓存的RA数组 */
     double *out_dec;                   /* 缓存的Dec数组 */
     float *out_mag;                    /* 缓存的Mag数组 */
@@ -352,7 +367,9 @@ static void block_cache_insert(BlockCache *bc, uint64_t block_offset,
             free(bc->entries[i].data);
             uint8_t *copy = (uint8_t *)malloc(data_size);
             if (!copy) {
+                bc->total_memory -= bc->entries[i].data_size;
                 bc->entries[i].block_offset = 0;
+                bc->entries[i].data_size = 0;
                 bc->count--;
                 return;
             }
@@ -382,6 +399,7 @@ static void query_cache_free(QueryCache *qc) {
             free(qc->entries[i].out_ra);
             free(qc->entries[i].out_dec);
             free(qc->entries[i].out_mag);
+            qc->total_memory -= ((size_t)qc->entries[i].out_count * (sizeof(double) * 2 + sizeof(float)));
             qc->entries[i].valid = 0;
         }
     }
@@ -397,29 +415,20 @@ static void query_cache_evict_expired(QueryCache *qc) {
             free(qc->entries[i].out_ra);
             free(qc->entries[i].out_dec);
             free(qc->entries[i].out_mag);
+            qc->total_memory -= ((size_t)qc->entries[i].out_count * (sizeof(double) * 2 + sizeof(float)));
             qc->entries[i].valid = 0;
             qc->count--;
         }
     }
 }
 
-/* 舍入查询参数用于缓存键 */
-static double round_to(double val, double precision) {
-    return round(val / precision) * precision;
-}
-
 /* 查找查询结果缓存 */
 static int query_cache_lookup(GaiaClient *client, double ra, double dec,
-                               double radius, double mag_high,
+                               double radius, double mag_low, double mag_high,
                                double **out_ra, double **out_dec,
                                float **out_mag, int *out_count) {
     QueryCache *qc = &client->query_cache;
     time_t now = time(NULL);
-
-    double r_ra = round_to(ra, QUERY_CACHE_RA_ROUND);
-    double r_dec = round_to(dec, QUERY_CACHE_DEC_ROUND);
-    double r_radius = round_to(radius, QUERY_CACHE_RAD_ROUND);
-    double r_mag = round_to(mag_high, QUERY_CACHE_MAG_ROUND);
 
     for (int i = 0; i < QUERY_CACHE_CAPACITY; i++) {
         if (!qc->entries[i].valid) continue;
@@ -428,6 +437,7 @@ static int query_cache_lookup(GaiaClient *client, double ra, double dec,
             free(qc->entries[i].out_ra);
             free(qc->entries[i].out_dec);
             free(qc->entries[i].out_mag);
+            qc->total_memory -= ((size_t)qc->entries[i].out_count * (sizeof(double) * 2 + sizeof(float)));
             qc->entries[i].valid = 0;
             qc->count--;
             continue;
@@ -437,14 +447,18 @@ static int query_cache_lookup(GaiaClient *client, double ra, double dec,
             free(qc->entries[i].out_ra);
             free(qc->entries[i].out_dec);
             free(qc->entries[i].out_mag);
+            qc->total_memory -= ((size_t)qc->entries[i].out_count * (sizeof(double) * 2 + sizeof(float)));
             qc->entries[i].valid = 0;
             qc->count--;
             continue;
         }
-        if (qc->entries[i].ra == r_ra &&
-            qc->entries[i].dec == r_dec &&
-            qc->entries[i].radius == r_radius &&
-            qc->entries[i].mag_high == r_mag) {
+        if (qc->entries[i].ra == ra &&
+            qc->entries[i].dec == dec &&
+            qc->entries[i].radius == radius &&
+            qc->entries[i].mag_low == mag_low &&
+            qc->entries[i].mag_high == mag_high &&
+            qc->entries[i].db_type == client->db_type_detected &&
+            qc->entries[i].file_count == client->file_count) {
             /* 命中 */
             *out_ra = qc->entries[i].out_ra;
             *out_dec = qc->entries[i].out_dec;
@@ -458,15 +472,38 @@ static int query_cache_lookup(GaiaClient *client, double ra, double dec,
 
 /* 插入查询结果缓存 */
 static void query_cache_insert(GaiaClient *client, double ra, double dec,
-                                double radius, double mag_high,
+                                double radius, double mag_low, double mag_high,
                                 double *out_ra, double *out_dec,
                                 float *out_mag, int out_count) {
     QueryCache *qc = &client->query_cache;
 
+    /* V18R3: 事务式替换——先全部分配成功再释放旧条目，分配失败绝不留
+     * 半状态（valid=1 但指针 dangling 的条目）。 */
+    size_t ra_size = (size_t)out_count * sizeof(double);
+    size_t dec_size = (size_t)out_count * sizeof(double);
+    size_t mag_size = (size_t)out_count * sizeof(float);
+    double *new_ra = (double *)malloc(ra_size);
+    double *new_dec = (double *)malloc(dec_size);
+    float *new_mag = (float *)malloc(mag_size);
+    if (!new_ra || !new_dec || !new_mag) {
+        free(new_ra);
+        free(new_dec);
+        free(new_mag);
+        return;
+    }
+    memcpy(new_ra, out_ra, ra_size);
+    memcpy(new_dec, out_dec, dec_size);
+    memcpy(new_mag, out_mag, mag_size);
+
     /* 内存压力检查 */
     if (check_memory_pressure()) {
         query_cache_evict_expired(qc);
-        if (check_memory_pressure()) return;  /* 仍然压力大, 不缓存 */
+        if (check_memory_pressure()) {
+            free(new_ra);
+            free(new_dec);
+            free(new_mag);
+            return;  /* 仍然压力大, 不缓存 */
+        }
     }
 
     /* 找空槽或最旧的条目 */
@@ -483,44 +520,38 @@ static void query_cache_insert(GaiaClient *client, double ra, double dec,
         }
     }
 
-    if (slot < 0) return;
+    if (slot < 0) {
+        free(new_ra);
+        free(new_dec);
+        free(new_mag);
+        return;
+    }
 
     /* 如果覆盖旧条目, 先释放 */
     if (qc->entries[slot].valid) {
         free(qc->entries[slot].out_ra);
         free(qc->entries[slot].out_dec);
         free(qc->entries[slot].out_mag);
+        qc->total_memory -= ((size_t)qc->entries[slot].out_count * (sizeof(double) * 2 + sizeof(float)));
         qc->count--;
     }
 
-    /* 分配并拷贝数据 */
-    size_t ra_size = (size_t)out_count * sizeof(double);
-    size_t dec_size = (size_t)out_count * sizeof(double);
-    size_t mag_size = (size_t)out_count * sizeof(float);
-
-    qc->entries[slot].out_ra = (double *)malloc(ra_size);
-    qc->entries[slot].out_dec = (double *)malloc(dec_size);
-    qc->entries[slot].out_mag = (float *)malloc(mag_size);
-
-    if (!qc->entries[slot].out_ra || !qc->entries[slot].out_dec || !qc->entries[slot].out_mag) {
-        free(qc->entries[slot].out_ra);
-        free(qc->entries[slot].out_dec);
-        free(qc->entries[slot].out_mag);
-        return;
-    }
-
-    memcpy(qc->entries[slot].out_ra, out_ra, ra_size);
-    memcpy(qc->entries[slot].out_dec, out_dec, dec_size);
-    memcpy(qc->entries[slot].out_mag, out_mag, mag_size);
-
-    qc->entries[slot].ra = round_to(ra, QUERY_CACHE_RA_ROUND);
-    qc->entries[slot].dec = round_to(dec, QUERY_CACHE_DEC_ROUND);
-    qc->entries[slot].radius = round_to(radius, QUERY_CACHE_RAD_ROUND);
-    qc->entries[slot].mag_high = round_to(mag_high, QUERY_CACHE_MAG_ROUND);
+    /* commit 新条目 */
+    qc->entries[slot].out_ra = new_ra;
+    qc->entries[slot].out_dec = new_dec;
+    qc->entries[slot].out_mag = new_mag;
+    qc->entries[slot].ra = ra;
+    qc->entries[slot].dec = dec;
+    qc->entries[slot].radius = radius;
+    qc->entries[slot].mag_low = mag_low;
+    qc->entries[slot].mag_high = mag_high;
+    qc->entries[slot].db_type = client->db_type_detected;
+    qc->entries[slot].file_count = client->file_count;
     qc->entries[slot].out_count = out_count;
     qc->entries[slot].timestamp = time(NULL);
     qc->entries[slot].valid = 1;
-    qc->entries[slot].version = GAIA_CACHE_VERSION;  /* P02-006: 标记缓存键版本 */
+    qc->entries[slot].version = GAIA_CACHE_VERSION;
+    qc->total_memory += ((size_t)out_count * (sizeof(double) * 2 + sizeof(float)));
     qc->count++;
 }
 
@@ -568,12 +599,6 @@ static int parse_int_after(const char *start, const char *attr, int def) {
     char buf[128];
     parse_attr_after(start, attr, buf, sizeof(buf));
     return buf[0] ? atoi(buf) : def;
-}
-
-static uint64_t parse_uint64_after(const char *start, const char *attr, uint64_t def) {
-    char buf[128];
-    parse_attr_after(start, attr, buf, sizeof(buf));
-    return buf[0] ? strtoull(buf, NULL, 10) : def;
 }
 
 static void extract_tag_text(const char *xml, const char *tag, char *out, int out_size) {
@@ -632,32 +657,75 @@ static int bbox_intersects(double ra, double dec, double radius_deg,
     return 1;
 }
 
-/* V18R2：极区（AzimuthalEquidistant）投影平面剪枝。
- * 极投影保距：查询圆盘 = 投影平面圆（圆心 (xq,yq)，半径=角距）。
+/* V18R3：极区（AzimuthalEquidistant）投影平面剪枝——可证明保守 predicate。
+ *
+ * 投影约定（与树构建一致）：投影中心=极点，平面坐标
+ *   x = theta*sin(phi), y = theta*cos(phi)   （单位：度）
+ * 其中 theta = 到极点的余纬（度），phi = (ra - tree_center_ra)。
  * 节点 bbox 为投影平面轴对齐矩形 [x0,x1]×[y0,y1]（度）。
- * 点-矩形最近距离 > 半径×1.2 裕量 → 必然不相交（拒绝）。
- * 相比天球 bbox（RA 环绕导致极区 min/max 退化 → 全树遍历 16GB 读取），
- * 平面剪枝 O(1) 且无环绕问题，零漏选（拒绝仅发生在数学必然相离时）。
- * 约定：南极投影 x=θ·sin(φ), y=θ·cos(φ)，φ=ra-cra，θ=-90°-dec（极冠内）。
+ *
+ * 数学性质（V18R3 证明，取代 V18R2 的经验裕量 1.2）：
+ *   AE 投影以极点为投影中心时，局部缩放 径向=1、切向=theta/sin(theta)，
+ *   因此对任意两点 p,q（theta_p, theta_q ∈ [0, pi/2]）：
+ *     d_plane(p,q) <= max_{theta∈[0,pi/2]} (theta/sin theta) * delta(p,q)
+ *                  <= (pi/2) * delta(p,q)
+ *   当两点都位于 theta <= pi/4 子冠内时可用更紧常数
+ *     C45 = (pi/4)/sin(pi/4) = pi/(2*sqrt(2)) ~= 1.11072。
+ *   即：投影平面距离 ≤ C * 天球角距。
+ *
+ * 剪枝判据（无假阴性）：
+ *   查询 cone（中心 q、半径 radius）内任意点的投影落在平面圆盘
+ *   B(q, C*radius) 内；节点矩形与 B 不相交 ⟹ 节点内所有点都在 cone 外
+ *   ⟹ 可安全拒绝（拒绝只发生在数学必然相离时，允许误报）。
+ *
+ * 查询中心在极冠外：
+ *   - theta_q - radius > 45°：cone 完全在极冠外，整棵极冠树必不相交 → 拒绝；
+ *   - 否则（cone 可能跨过 ±45° 边界）：返回相交（不剪枝，遍历极冠树）。
+ *     该分支只影响查询中心距极冠边界 < radius 的少量查询，优先保证无假阴性。
+ *   V18R2 的“center outside cap → 必不相交”判断是错误的：
+ *   cone 有半径，中心在 44.8°、半径 1° 时必然与极冠相交。
  */
+#define AE_CAP_BOUNDARY_DEG 45.0
+#define AE_C45_FACTOR       1.1107207345395915   /* pi/(2*sqrt(2)) */
+#define AE_GLOBAL_FACTOR    1.5707963267948966   /* pi/2 */
+
+/* V18R3 测试钩子：定义 GAIA_POLAR_PRUNE_DISABLED 时极区剪枝恒为
+ * "相交"（不剪枝），作为 differential 测试的 reference mode。
+ * 生产编译（未定义）行为与直接调用 predicate 完全一致。 */
+#ifdef GAIA_POLAR_PRUNE_DISABLED
+#define POLAR_PRUNE_INTERSECTS(...) 1
+#else
+#define POLAR_PRUNE_INTERSECTS(...) polar_plane_intersects(__VA_ARGS__)
+#endif
+
 static int polar_plane_intersects(double ra, double dec, double radius_deg,
                                    double tree_center_ra, double tree_center_dec,
                                    double x0, double y0, double x1, double y1) {
-    double theta_q;
-    if (tree_center_dec < 0.0) {
-        /* 南极冠: dec∈[-90,-45]。查询在南冠外 → 必不相交，直接拒绝。 */
-        if (dec > -45.0) return 0;
-        theta_q = 90.0 + dec;            /* dec=-90→0（极点）, -45→45（冠边） */
-    } else {
-        /* 北极冠: dec∈[45,90]。查询在北冠外 → 必不相交，直接拒绝。 */
-        if (dec < 45.0) return 0;
-        theta_q = 90.0 - dec;            /* dec=90→0, 45→45 */
-    }
-    if (theta_q < 0.0 || theta_q > 45.0) return 1;  /* 保险（不应当发生） */
+    if (radius_deg < 0.0) return 1;  /* 非法半径防御：不剪枝 */
+    /* 查询中心到本树极点的余纬（度）；dec 越界做防御性归一化 */
+    double theta_q = (tree_center_dec < 0.0) ? (90.0 + dec) : (90.0 - dec);
+    if (theta_q < 0.0) theta_q = -theta_q;
+    if (theta_q > 180.0) theta_q = 360.0 - theta_q;
+    if (theta_q > 90.0) theta_q = 180.0 - theta_q;
+
+    /* 查询中心在极冠外：cone 完全在冠外 → 整树必不相交（安全拒绝） */
+    if (theta_q > AE_CAP_BOUNDARY_DEG + radius_deg) return 0;
+    /* 查询中心在极冠外但 cone 可能跨过 ±45° 边界 → 保守不剪枝 */
+    if (theta_q > AE_CAP_BOUNDARY_DEG) return 1;
+
+    /* cone 可能跨过 90° 余纬（另一半球）时 AE 双-Lipschitz 常数失效 → 不剪枝 */
+    if (theta_q + radius_deg > 90.0) return 1;
+
     double phi_q = (ra - tree_center_ra) * DEG2RAD;
+    /* 归一化 phi 到 [-pi, pi]，避免大角度 sin/cos 精度损失 */
+    while (phi_q > M_PI) phi_q -= 2.0 * M_PI;
+    while (phi_q < -M_PI) phi_q += 2.0 * M_PI;
     double xq = theta_q * sin(phi_q);
     double yq = theta_q * cos(phi_q);
-    double rq = radius_deg * 1.2;                   /* 裕量（与原 bbox 一致） */
+    /* cone 完全位于 theta<=45° 子冠内用更紧常数 C45，否则用全局 pi/2 */
+    double factor = (theta_q + radius_deg <= AE_CAP_BOUNDARY_DEG)
+                        ? AE_C45_FACTOR : AE_GLOBAL_FACTOR;
+    double rq = radius_deg * factor;
     double dx = 0.0, dy = 0.0;
     if (xq < x0) dx = x0 - xq; else if (xq > x1) dx = xq - x1;
     if (yq < y0) dy = y0 - yq; else if (yq > y1) dy = yq - y1;
@@ -792,7 +860,8 @@ static uint8_t *read_leaf_block(XPSDFileInternal *xf, uint64_t block_offset,
 
 static int load_xpsd_file(XPSDFileInternal *xf, const char *path) {
     memset(xf, 0, sizeof(*xf));
-    strncpy(xf->filepath, path, sizeof(xf->filepath) - 1);
+    /* V18R3: 显式截断拷贝，避免 strncpy 截断告警且保证 null 终止 */
+    snprintf(xf->filepath, sizeof(xf->filepath), "%s", path);
 
 #ifdef _WIN32
     xf->hFile = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, NULL,
@@ -957,6 +1026,7 @@ static void collector_init(StarCollector *sc, int initial_cap) {
 static void collector_push(StarCollector *sc, double ra, double dec, double magG) {
     if (sc->count >= sc->capacity) {
         int new_cap = sc->capacity * 2;
+        if (new_cap == 0) new_cap = 16;  /* V18R3: init 分配失败后自愈 */
         SimpleStar *new_stars = (SimpleStar *)realloc(sc->stars, new_cap * sizeof(SimpleStar));
         if (!new_stars) return;
         sc->stars = new_stars;
@@ -978,7 +1048,8 @@ static void spec_collector_init(SpectrumStarCollector *sc, int capacity, int spe
     sc->stars = (SpectrumStar *)malloc(capacity * sizeof(SpectrumStar));
     sc->spectra = (uint8_t *)malloc((size_t)capacity * spectrum_count);
     sc->count = 0;
-    sc->capacity = capacity;
+    /* V18R3: 任一组缓冲分配失败即视为 0 容量，push 时经 realloc 路径自愈 */
+    sc->capacity = (sc->stars && (sc->spectra || spectrum_count == 0)) ? capacity : 0;
     sc->spectrum_count = spectrum_count;
 }
 
@@ -995,11 +1066,22 @@ static void spec_collector_push(SpectrumStarCollector *sc, double ra, double dec
                                  const uint8_t *spectrum) {
     if (sc->count >= sc->capacity) {
         int new_cap = sc->capacity * 2;
-        SpectrumStar *new_stars = (SpectrumStar *)realloc(sc->stars, new_cap * sizeof(SpectrumStar));
+        if (new_cap == 0) new_cap = 16;
+        /* V18R3: 两数组先分配成功再同时提交，避免部分成功状态
+         * （stars 已扩而 spectra 未扩 → 后续写越界） */
+        SpectrumStar *new_stars = (SpectrumStar *)realloc(sc->stars, (size_t)new_cap * sizeof(SpectrumStar));
         if (!new_stars) return;
-        sc->stars = new_stars;
         uint8_t *new_spectra = (uint8_t *)realloc(sc->spectra, (size_t)new_cap * sc->spectrum_count);
-        if (!new_spectra) return;
+        if (!new_spectra) {
+            free(new_stars);
+            free(sc->spectra);  /* realloc 失败时旧块仍有效，必须释放 */
+            sc->stars = NULL;
+            sc->spectra = NULL;
+            sc->count = 0;
+            sc->capacity = 0;
+            return;
+        }
+        sc->stars = new_stars;
         sc->spectra = new_spectra;
         sc->capacity = new_cap;
     }
@@ -1016,7 +1098,7 @@ static void spec_collector_push(SpectrumStarCollector *sc, double ra, double dec
 static void phot_collector_init(PhotometryStarCollector *pc, int capacity) {
     pc->stars = (PhotometryStar *)malloc(capacity * sizeof(PhotometryStar));
     pc->count = 0;
-    pc->capacity = capacity;
+    pc->capacity = pc->stars ? capacity : 0;  /* V18R3: 分配失败即 0 容量 */
 }
 
 static void phot_collector_free(PhotometryStarCollector *pc) {
@@ -1030,6 +1112,7 @@ static void phot_collector_push(PhotometryStarCollector *pc, double ra, double d
                                  double magG, double magBP, double magRP) {
     if (pc->count >= pc->capacity) {
         int new_cap = pc->capacity * 2;
+        if (new_cap == 0) new_cap = 16;  /* V18R3: init 分配失败后自愈 */
         PhotometryStar *new_stars = (PhotometryStar *)realloc(pc->stars, new_cap * sizeof(PhotometryStar));
         if (!new_stars) return;
         pc->stars = new_stars;
@@ -1049,18 +1132,19 @@ static void search_recursive(XPSDFileInternal *xf, TreeInfo *tree, int node_idx,
                               double cos_ra_q, double sin_ra_q,
                               double cos_dec_q, double sin_dec_q,
                               double cos_radius,
-                              StarCollector *sc, uint8_t *scratch) {
+                              StarCollector *sc, uint8_t *scratch,
+                              GaiaTraceCtx *trace) {
     if (sc->count >= MAX_STARS_RESULT) return;
     QTNode *node = &tree->nodes[node_idx];
-    if (gaia_trace_enabled()) {
+    if (trace && trace->enabled) {
         #pragma omp atomic
-        g_trace_nodes++;
+        trace->nodes++;
         if (strcmp(tree->projection, "AzimuthalEquidistant") == 0) {
             #pragma omp atomic
-            g_trace_polar_nodes++;
+            trace->polar_nodes++;
         } else {
             #pragma omp atomic
-            g_trace_eq_nodes++;
+            trace->eq_nodes++;
         }
     }
 
@@ -1090,7 +1174,7 @@ static void search_recursive(XPSDFileInternal *xf, TreeInfo *tree, int node_idx,
     if (strcmp(tree->projection, "AzimuthalEquidistant") == 0) {
         /* V18R2: 极投影平面剪枝（替代天球 bbox——极区 RA 环绕使
          * min/max 退化导致全树遍历，单次查询误读 16GB mmap 数据） */
-        if (!polar_plane_intersects(ra, dec, radius_deg,
+        if (!POLAR_PRUNE_INTERSECTS(ra, dec, radius_deg,
                                     tree->center_ra, tree->center_dec,
                                     node->x0, node->y0, node->x1, node->y1))
             return;
@@ -1099,14 +1183,14 @@ static void search_recursive(XPSDFileInternal *xf, TreeInfo *tree, int node_idx,
     }
 
     if (node->is_leaf) {
-        if (gaia_trace_enabled()) {
+        if (trace && trace->enabled) {
             #pragma omp atomic
-            g_trace_blocks++;
+            trace->blocks++;
             #pragma omp atomic
-            g_trace_bytes += (long long)node->compressed_size;
+            trace->bytes += (long long)node->compressed_size;
             if (node->compressed_size != node->block_size) {
                 #pragma omp atomic
-                g_trace_decomp++;
+                trace->decomp++;
             }
         }
         uint8_t *data = read_leaf_block(xf, node->block_offset, node->compressed_size,
@@ -1158,16 +1242,16 @@ static void search_recursive(XPSDFileInternal *xf, TreeInfo *tree, int node_idx,
     } else {
         if (node->child_nw) search_recursive(xf, tree, node->child_nw, ra, dec, radius_deg,
                                                mag_low, mag_high, cos_ra_q, sin_ra_q,
-                                               cos_dec_q, sin_dec_q, cos_radius, sc, scratch);
+                                               cos_dec_q, sin_dec_q, cos_radius, sc, scratch, trace);
         if (node->child_ne) search_recursive(xf, tree, node->child_ne, ra, dec, radius_deg,
                                                mag_low, mag_high, cos_ra_q, sin_ra_q,
-                                               cos_dec_q, sin_dec_q, cos_radius, sc, scratch);
+                                               cos_dec_q, sin_dec_q, cos_radius, sc, scratch, trace);
         if (node->child_sw) search_recursive(xf, tree, node->child_sw, ra, dec, radius_deg,
                                                mag_low, mag_high, cos_ra_q, sin_ra_q,
-                                               cos_dec_q, sin_dec_q, cos_radius, sc, scratch);
+                                               cos_dec_q, sin_dec_q, cos_radius, sc, scratch, trace);
         if (node->child_se) search_recursive(xf, tree, node->child_se, ra, dec, radius_deg,
                                                mag_low, mag_high, cos_ra_q, sin_ra_q,
-                                               cos_dec_q, sin_dec_q, cos_radius, sc, scratch);
+                                               cos_dec_q, sin_dec_q, cos_radius, sc, scratch, trace);
     }
 }
 
@@ -1177,9 +1261,21 @@ static void search_recursive_spectrum(XPSDFileInternal *xf, TreeInfo *tree, uint
                               double cos_ra_q, double sin_ra_q,
                               double cos_dec_q, double sin_dec_q,
                               double cos_radius,
-                              SpectrumStarCollector *sc, uint8_t *scratch) {
+                              SpectrumStarCollector *sc, uint8_t *scratch,
+                              GaiaTraceCtx *trace) {
     if (sc->count >= MAX_STARS_RESULT) return;
     QTNode *node = &tree->nodes[node_idx];
+    if (trace && trace->enabled) {
+        #pragma omp atomic
+        trace->nodes++;
+        if (strcmp(tree->projection, "AzimuthalEquidistant") == 0) {
+            #pragma omp atomic
+            trace->polar_nodes++;
+        } else {
+            #pragma omp atomic
+            trace->eq_nodes++;
+        }
+    }
 
     double ra_min, ra_max, dec_min, dec_max;
     if (strcmp(tree->projection, "Equirectangular") == 0) {
@@ -1207,7 +1303,7 @@ static void search_recursive_spectrum(XPSDFileInternal *xf, TreeInfo *tree, uint
     if (strcmp(tree->projection, "AzimuthalEquidistant") == 0) {
         /* V18R2: 极投影平面剪枝（与 star 版一致；spectrum 查询同样因
          * 极区 RA 环绕退化而全树遍历——PHOTOMETRIC 17.8s/36GB 元凶） */
-        if (!polar_plane_intersects(ra, dec, radius_deg,
+        if (!POLAR_PRUNE_INTERSECTS(ra, dec, radius_deg,
                                     tree->center_ra, tree->center_dec,
                                     node->x0, node->y0, node->x1, node->y1))
             return;
@@ -1216,6 +1312,16 @@ static void search_recursive_spectrum(XPSDFileInternal *xf, TreeInfo *tree, uint
     }
 
     if (node->is_leaf) {
+        if (trace && trace->enabled) {
+            #pragma omp atomic
+            trace->blocks++;
+            #pragma omp atomic
+            trace->bytes += (long long)node->compressed_size;
+            if (node->compressed_size != node->block_size) {
+                #pragma omp atomic
+                trace->decomp++;
+            }
+        }
         uint8_t *data = read_leaf_block(xf, node->block_offset, node->compressed_size,
                                          node->block_size, scratch);
         if (!data) return;
@@ -1276,16 +1382,16 @@ static void search_recursive_spectrum(XPSDFileInternal *xf, TreeInfo *tree, uint
     } else {
         if (node->child_nw) search_recursive_spectrum(xf, tree, node->child_nw, ra, dec, radius_deg,
                                                mag_low, mag_high, cos_ra_q, sin_ra_q,
-                                               cos_dec_q, sin_dec_q, cos_radius, sc, scratch);
+                                               cos_dec_q, sin_dec_q, cos_radius, sc, scratch, trace);
         if (node->child_ne) search_recursive_spectrum(xf, tree, node->child_ne, ra, dec, radius_deg,
                                                mag_low, mag_high, cos_ra_q, sin_ra_q,
-                                               cos_dec_q, sin_dec_q, cos_radius, sc, scratch);
+                                               cos_dec_q, sin_dec_q, cos_radius, sc, scratch, trace);
         if (node->child_sw) search_recursive_spectrum(xf, tree, node->child_sw, ra, dec, radius_deg,
                                                mag_low, mag_high, cos_ra_q, sin_ra_q,
-                                               cos_dec_q, sin_dec_q, cos_radius, sc, scratch);
+                                               cos_dec_q, sin_dec_q, cos_radius, sc, scratch, trace);
         if (node->child_se) search_recursive_spectrum(xf, tree, node->child_se, ra, dec, radius_deg,
                                                mag_low, mag_high, cos_ra_q, sin_ra_q,
-                                               cos_dec_q, sin_dec_q, cos_radius, sc, scratch);
+                                               cos_dec_q, sin_dec_q, cos_radius, sc, scratch, trace);
     }
 }
 
@@ -1295,9 +1401,21 @@ static void search_recursive_photometry(XPSDFileInternal *xf, TreeInfo *tree, ui
                               double cos_ra_q, double sin_ra_q,
                               double cos_dec_q, double sin_dec_q,
                               double cos_radius,
-                              PhotometryStarCollector *pc, uint8_t *scratch) {
+                              PhotometryStarCollector *pc, uint8_t *scratch,
+                              GaiaTraceCtx *trace) {
     if (pc->count >= MAX_STARS_RESULT) return;
     QTNode *node = &tree->nodes[node_idx];
+    if (trace && trace->enabled) {
+        #pragma omp atomic
+        trace->nodes++;
+        if (strcmp(tree->projection, "AzimuthalEquidistant") == 0) {
+            #pragma omp atomic
+            trace->polar_nodes++;
+        } else {
+            #pragma omp atomic
+            trace->eq_nodes++;
+        }
+    }
 
     double ra_min, ra_max, dec_min, dec_max;
     if (strcmp(tree->projection, "Equirectangular") == 0) {
@@ -1322,10 +1440,27 @@ static void search_recursive_photometry(XPSDFileInternal *xf, TreeInfo *tree, ui
         }
     }
 
-    if (!bbox_intersects(ra, dec, radius_deg, ra_min, ra_max, dec_min, dec_max))
+    if (strcmp(tree->projection, "AzimuthalEquidistant") == 0) {
+        /* V18R3: 与 star/spectrum 版一致使用可证明保守的极投影平面剪枝 */
+        if (!POLAR_PRUNE_INTERSECTS(ra, dec, radius_deg,
+                                    tree->center_ra, tree->center_dec,
+                                    node->x0, node->y0, node->x1, node->y1))
+            return;
+    } else if (!bbox_intersects(ra, dec, radius_deg, ra_min, ra_max, dec_min, dec_max)) {
         return;
+    }
 
     if (node->is_leaf) {
+        if (trace && trace->enabled) {
+            #pragma omp atomic
+            trace->blocks++;
+            #pragma omp atomic
+            trace->bytes += (long long)node->compressed_size;
+            if (node->compressed_size != node->block_size) {
+                #pragma omp atomic
+                trace->decomp++;
+            }
+        }
         uint8_t *data = read_leaf_block(xf, node->block_offset, node->compressed_size,
                                          node->block_size, scratch);
         if (!data) return;
@@ -1384,16 +1519,16 @@ static void search_recursive_photometry(XPSDFileInternal *xf, TreeInfo *tree, ui
     } else {
         if (node->child_nw) search_recursive_photometry(xf, tree, node->child_nw, ra, dec, radius_deg,
                                                mag_low, mag_high, cos_ra_q, sin_ra_q,
-                                               cos_dec_q, sin_dec_q, cos_radius, pc, scratch);
+                                               cos_dec_q, sin_dec_q, cos_radius, pc, scratch, trace);
         if (node->child_ne) search_recursive_photometry(xf, tree, node->child_ne, ra, dec, radius_deg,
                                                mag_low, mag_high, cos_ra_q, sin_ra_q,
-                                               cos_dec_q, sin_dec_q, cos_radius, pc, scratch);
+                                               cos_dec_q, sin_dec_q, cos_radius, pc, scratch, trace);
         if (node->child_sw) search_recursive_photometry(xf, tree, node->child_sw, ra, dec, radius_deg,
                                                mag_low, mag_high, cos_ra_q, sin_ra_q,
-                                               cos_dec_q, sin_dec_q, cos_radius, pc, scratch);
+                                               cos_dec_q, sin_dec_q, cos_radius, pc, scratch, trace);
         if (node->child_se) search_recursive_photometry(xf, tree, node->child_se, ra, dec, radius_deg,
                                                mag_low, mag_high, cos_ra_q, sin_ra_q,
-                                               cos_dec_q, sin_dec_q, cos_radius, pc, scratch);
+                                               cos_dec_q, sin_dec_q, cos_radius, pc, scratch, trace);
     }
 }
 
@@ -1498,18 +1633,33 @@ void gaia_client_destroy(GaiaClient *client) {
 int gaia_client_cone_search(GaiaClient *client, double ra, double dec, double radius_deg,
                             double mag_low, double mag_high,
                             GaiaStar **out_stars, int *out_count) {
+    if (!client || !out_stars || !out_count) return -1;
+    *out_stars = NULL;
+    *out_count = 0;
     int nfiles = client->file_count;
-    if (nfiles == 0) { *out_stars = NULL; *out_count = 0; return 0; }
+    if (nfiles == 0) return 0;
+
+    /* V18R3: per-query trace 上下文（并发查询互不混合，trace-off 零共享写） */
+    GaiaTraceCtx trace;
+    trace.enabled = gaia_trace_enabled();
+    trace.nodes = trace.blocks = trace.bytes = trace.decomp = 0;
+    trace.polar_nodes = trace.eq_nodes = 0;
 
     /* ===== 查询结果缓存检查 ===== */
     cache_lock(client);
     double *cached_ra = NULL, *cached_dec = NULL;
     float *cached_mag = NULL;
     int cached_count = 0;
-    if (query_cache_lookup(client, ra, dec, radius_deg, mag_high,
+    if (query_cache_lookup(client, ra, dec, radius_deg, mag_low, mag_high,
                             &cached_ra, &cached_dec, &cached_mag, &cached_count)) {
         /* 缓存命中: 构造GaiaStar数组返回 */
+        if (cached_count > 0 && !cached_ra) { cache_unlock(client); return -1; }
         *out_stars = (GaiaStar *)malloc(cached_count * sizeof(GaiaStar));
+        if (cached_count > 0 && !*out_stars) {
+            cache_unlock(client);
+            *out_count = 0;
+            return -1;
+        }
         *out_count = cached_count;
         for (int i = 0; i < cached_count; i++) {
             (*out_stars)[i].ra = cached_ra[i];
@@ -1532,6 +1682,7 @@ int gaia_client_cone_search(GaiaClient *client, double ra, double dec, double ra
     double cos_radius = cos(radius_deg * DEG2RAD);
 
     StarCollector *sc_arr = (StarCollector *)calloc(nfiles, sizeof(StarCollector));
+    if (!sc_arr) return -1;
     for (int i = 0; i < nfiles; i++) collector_init(&sc_arr[i], 4096);
 
     #pragma omp parallel for schedule(dynamic)
@@ -1546,7 +1697,7 @@ int gaia_client_cone_search(GaiaClient *client, double ra, double dec, double ra
             if (xf->trees[t].node_count > 0 && xf->trees[t].nodes)
                 search_recursive(xf, &xf->trees[t], 0, ra, dec, radius_deg,
                                   mag_low, mag_high, cos_ra_q, sin_ra_q,
-                                  cos_dec_q, sin_dec_q, cos_radius, &sc_arr[f], scratch);
+                                  cos_dec_q, sin_dec_q, cos_radius, &sc_arr[f], scratch, &trace);
         }
         free(scratch);
     }
@@ -1562,6 +1713,12 @@ int gaia_client_cone_search(GaiaClient *client, double ra, double dec, double ra
     }
 
     *out_stars = (GaiaStar *)malloc(total * sizeof(GaiaStar));
+    if (!*out_stars) {
+        for (int f = 0; f < nfiles; f++) collector_free(&sc_arr[f]);
+        free(sc_arr);
+        *out_count = 0;
+        return -1;
+    }
     *out_count = total;
     int idx = 0;
 
@@ -1569,6 +1726,17 @@ int gaia_client_cone_search(GaiaClient *client, double ra, double dec, double ra
     double *cache_ra = (double *)malloc(total * sizeof(double));
     double *cache_dec = (double *)malloc(total * sizeof(double));
     float *cache_mag = (float *)malloc(total * sizeof(float));
+    if (total > 0 && (!cache_ra || !cache_dec || !cache_mag)) {
+        free(cache_ra);
+        free(cache_dec);
+        free(cache_mag);
+        free(*out_stars);
+        *out_stars = NULL;
+        *out_count = 0;
+        for (int f = 0; f < nfiles; f++) collector_free(&sc_arr[f]);
+        free(sc_arr);
+        return -1;
+    }
 
     for (int f = 0; f < nfiles; f++) {
         for (int i = 0; i < sc_arr[f].count; i++) {
@@ -1593,7 +1761,7 @@ int gaia_client_cone_search(GaiaClient *client, double ra, double dec, double ra
     /* ===== 存入查询结果缓存 ===== */
     if (cache_ra && cache_dec && cache_mag) {
         cache_lock(client);
-        query_cache_insert(client, ra, dec, radius_deg, mag_high,
+        query_cache_insert(client, ra, dec, radius_deg, mag_low, mag_high,
                            cache_ra, cache_dec, cache_mag, total);
         cache_unlock(client);
     }
@@ -1602,18 +1770,16 @@ int gaia_client_cone_search(GaiaClient *client, double ra, double dec, double ra
     free(cache_dec);
     free(cache_mag);
 
-    /* V18R2 诊断输出（ASTROCS_GAIA_TRACE=1） */
-    if (gaia_trace_enabled()) {
+    /* V18R3 诊断输出（ASTROCS_GAIA_TRACE=1）：per-query 统计 */
+    if (trace.enabled) {
         fprintf(stderr,
                 "[gaia_trace] query ra=%.4f dec=%.4f r=%.4f -> nodes=%lld "
                 "blocks=%lld bytes=%lld decomp=%lld stars=%d "
                 "(polar_nodes=%lld eq_nodes=%lld)\n",
                 ra, dec, radius_deg,
-                g_trace_nodes, g_trace_blocks, g_trace_bytes,
-                g_trace_decomp, *out_count,
-                g_trace_polar_nodes, g_trace_eq_nodes);
-        g_trace_nodes = g_trace_blocks = g_trace_bytes = g_trace_decomp = 0;
-        g_trace_polar_nodes = g_trace_eq_nodes = 0;
+                trace.nodes, trace.blocks, trace.bytes,
+                trace.decomp, *out_count,
+                trace.polar_nodes, trace.eq_nodes);
     }
 
     return 0;
@@ -1623,6 +1789,8 @@ int gaia_client_cone_search_for_solver(GaiaClient *client, double ra, double dec
                                         double mag_high,
                                         double **out_ra, double **out_dec, float **out_mag,
                                         int *out_count) {
+    if (!out_ra || !out_dec || !out_mag || !out_count) return -1;
+    *out_ra = NULL; *out_dec = NULL; *out_mag = NULL; *out_count = 0;
     GaiaStar *stars = NULL;
     int count = 0;
     int ret = gaia_client_cone_search(client, ra, dec, radius_deg, -1.5, mag_high, &stars, &count);
@@ -1631,17 +1799,27 @@ int gaia_client_cone_search_for_solver(GaiaClient *client, double ra, double dec
         return ret;
     }
 
-    *out_ra = (double *)malloc(count * sizeof(double));
-    *out_dec = (double *)malloc(count * sizeof(double));
-    *out_mag = (float *)malloc(count * sizeof(float));
-    *out_count = count;
+    double *ra_arr = (double *)malloc((size_t)count * sizeof(double));
+    double *dec_arr = (double *)malloc((size_t)count * sizeof(double));
+    float *mag_arr = (float *)malloc((size_t)count * sizeof(float));
+    if (!ra_arr || !dec_arr || !mag_arr) {
+        free(ra_arr);
+        free(dec_arr);
+        free(mag_arr);
+        free(stars);
+        return -1;
+    }
 
     for (int i = 0; i < count; i++) {
-        (*out_ra)[i] = stars[i].ra;
-        (*out_dec)[i] = stars[i].dec;
-        (*out_mag)[i] = (float)stars[i].magG;
+        ra_arr[i] = stars[i].ra;
+        dec_arr[i] = stars[i].dec;
+        mag_arr[i] = (float)stars[i].magG;
     }
     free(stars);
+    *out_ra = ra_arr;
+    *out_dec = dec_arr;
+    *out_mag = mag_arr;
+    *out_count = count;
     return 0;
 }
 
@@ -1671,13 +1849,17 @@ int gaia_client_cone_search_with_spectrum(
     GaiaSpectrumStar **out_stars,
     uint8_t **out_spectra,
     int *out_count) {
+    if (!client || !out_stars || !out_spectra || !out_count) return -1;
+    *out_stars = NULL;
+    *out_spectra = NULL;
+    *out_count = 0;
     int nfiles = client->file_count;
-    if (nfiles == 0) {
-        *out_stars = NULL;
-        *out_spectra = NULL;
-        *out_count = 0;
-        return 0;
-    }
+    if (nfiles == 0) return 0;
+
+    GaiaTraceCtx trace;
+    trace.enabled = gaia_trace_enabled();
+    trace.nodes = trace.blocks = trace.bytes = trace.decomp = 0;
+    trace.polar_nodes = trace.eq_nodes = 0;
 
     double cos_ra_q = cos(ra * DEG2RAD);
     double sin_ra_q = sin(ra * DEG2RAD);
@@ -1686,6 +1868,7 @@ int gaia_client_cone_search_with_spectrum(
     double cos_radius = cos(radius_deg * DEG2RAD);
 
     SpectrumStarCollector *sc_arr = (SpectrumStarCollector *)calloc(nfiles, sizeof(SpectrumStarCollector));
+    if (!sc_arr) return -1;
     for (int i = 0; i < nfiles; i++) {
         int spec_count = 0;
         if (client->files[i].has_spectrum) {
@@ -1707,7 +1890,7 @@ int gaia_client_cone_search_with_spectrum(
             if (xf->trees[t].node_count > 0 && xf->trees[t].nodes)
                 search_recursive_spectrum(xf, &xf->trees[t], 0, ra, dec, radius_deg,
                                   mag_low, mag_high, cos_ra_q, sin_ra_q,
-                                  cos_dec_q, sin_dec_q, cos_radius, &sc_arr[f], scratch);
+                                  cos_dec_q, sin_dec_q, cos_radius, &sc_arr[f], scratch, &trace);
         }
         free(scratch);
     }
@@ -1736,10 +1919,24 @@ int gaia_client_cone_search_with_spectrum(
     }
 
     *out_stars = (GaiaSpectrumStar *)malloc(total * sizeof(GaiaSpectrumStar));
+    if (!*out_stars) {
+        for (int f = 0; f < nfiles; f++) spec_collector_free(&sc_arr[f]);
+        free(sc_arr);
+        *out_count = 0;
+        return -1;
+    }
     *out_count = total;
 
     if (any_spectrum) {
         *out_spectra = (uint8_t *)malloc((size_t)total * global_spec_count);
+        if (!*out_spectra) {
+            free(*out_stars);
+            *out_stars = NULL;
+            *out_count = 0;
+            for (int f = 0; f < nfiles; f++) spec_collector_free(&sc_arr[f]);
+            free(sc_arr);
+            return -1;
+        }
     } else {
         *out_spectra = NULL;
     }
@@ -1766,6 +1963,17 @@ int gaia_client_cone_search_with_spectrum(
     }
     free(sc_arr);
 
+    if (trace.enabled) {
+        fprintf(stderr,
+                "[gaia_trace] spectrum query ra=%.4f dec=%.4f r=%.4f -> nodes=%lld "
+                "blocks=%lld bytes=%lld decomp=%lld stars=%d "
+                "(polar_nodes=%lld eq_nodes=%lld)\n",
+                ra, dec, radius_deg,
+                trace.nodes, trace.blocks, trace.bytes,
+                trace.decomp, *out_count,
+                trace.polar_nodes, trace.eq_nodes);
+    }
+
     return 0;
 }
 
@@ -1782,12 +1990,14 @@ int gaia_client_query_spectrum_by_coords(
     int **out_match_idx,
     int *out_count) {
 
+    if (!client || !ra_list || !dec_list || !out_stars || !out_spectra ||
+        !out_match_idx || !out_count) return -1;
+    *out_stars = NULL;
+    *out_spectra = NULL;
+    *out_match_idx = NULL;
+    *out_count = 0;
     int nfiles = client->file_count;
     if (nfiles == 0 || n_coords <= 0) {
-        *out_stars = NULL;
-        *out_spectra = NULL;
-        *out_match_idx = NULL;
-        *out_count = 0;
         return 0;
     }
 
@@ -1852,7 +2062,7 @@ int gaia_client_query_spectrum_by_coords(
                 if (xf->trees[t].node_count > 0 && xf->trees[t].nodes)
                     search_recursive_spectrum(xf, &xf->trees[t], 0, ra, dec, radius_deg,
                                               mag_low, mag_high, cos_ra_q, sin_ra_q,
-                                              cos_dec_q, sin_dec_q, cos_radius, &sc, scratch);
+                                              cos_dec_q, sin_dec_q, cos_radius, &sc, scratch, NULL);
             }
             free(scratch);
 
@@ -1889,6 +2099,15 @@ int gaia_client_query_spectrum_by_coords(
     GaiaSpectrumStar *result_stars = (GaiaSpectrumStar *)malloc(n_coords * sizeof(GaiaSpectrumStar));
     uint8_t *result_spectra = (uint8_t *)malloc((size_t)n_coords * global_spec_count);
     int *match_idx = (int *)malloc(n_coords * sizeof(int));
+    if (!result_stars || !result_spectra || !match_idx) {
+        free(result_stars);
+        free(result_spectra);
+        free(match_idx);
+        free(temp_stars);
+        free(temp_spectra);
+        free(found_flags);
+        return -1;
+    }
     int matched_count = 0;
 
     for (int i = 0; i < n_coords; i++) {
@@ -1920,12 +2139,16 @@ int gaia_client_cone_search_with_photometry(
     double mag_low, double mag_high,
     GaiaPhotometryStar **out_stars,
     int *out_count) {
+    if (!client || !out_stars || !out_count) return -1;
+    *out_stars = NULL;
+    *out_count = 0;
     int nfiles = client->file_count;
-    if (nfiles == 0) {
-        *out_stars = NULL;
-        *out_count = 0;
-        return 0;
-    }
+    if (nfiles == 0) return 0;
+
+    GaiaTraceCtx trace;
+    trace.enabled = gaia_trace_enabled();
+    trace.nodes = trace.blocks = trace.bytes = trace.decomp = 0;
+    trace.polar_nodes = trace.eq_nodes = 0;
 
     double cos_ra_q = cos(ra * DEG2RAD);
     double sin_ra_q = sin(ra * DEG2RAD);
@@ -1934,6 +2157,7 @@ int gaia_client_cone_search_with_photometry(
     double cos_radius = cos(radius_deg * DEG2RAD);
 
     PhotometryStarCollector *pc_arr = (PhotometryStarCollector *)calloc(nfiles, sizeof(PhotometryStarCollector));
+    if (!pc_arr) return -1;
     for (int i = 0; i < nfiles; i++) {
         phot_collector_init(&pc_arr[i], 4096);
     }
@@ -1950,7 +2174,7 @@ int gaia_client_cone_search_with_photometry(
             if (xf->trees[t].node_count > 0 && xf->trees[t].nodes)
                 search_recursive_photometry(xf, &xf->trees[t], 0, ra, dec, radius_deg,
                                   mag_low, mag_high, cos_ra_q, sin_ra_q,
-                                  cos_dec_q, sin_dec_q, cos_radius, &pc_arr[f], scratch);
+                                  cos_dec_q, sin_dec_q, cos_radius, &pc_arr[f], scratch, &trace);
         }
         free(scratch);
     }
@@ -1967,6 +2191,12 @@ int gaia_client_cone_search_with_photometry(
     }
 
     *out_stars = (GaiaPhotometryStar *)malloc(total * sizeof(GaiaPhotometryStar));
+    if (!*out_stars) {
+        for (int f = 0; f < nfiles; f++) phot_collector_free(&pc_arr[f]);
+        free(pc_arr);
+        *out_count = 0;
+        return -1;
+    }
     *out_count = total;
 
     int idx = 0;
@@ -1982,6 +2212,17 @@ int gaia_client_cone_search_with_photometry(
         phot_collector_free(&pc_arr[f]);
     }
     free(pc_arr);
+
+    if (trace.enabled) {
+        fprintf(stderr,
+                "[gaia_trace] photometry query ra=%.4f dec=%.4f r=%.4f -> nodes=%lld "
+                "blocks=%lld bytes=%lld decomp=%lld stars=%d "
+                "(polar_nodes=%lld eq_nodes=%lld)\n",
+                ra, dec, radius_deg,
+                trace.nodes, trace.blocks, trace.bytes,
+                trace.decomp, *out_count,
+                trace.polar_nodes, trace.eq_nodes);
+    }
 
     return 0;
 }
