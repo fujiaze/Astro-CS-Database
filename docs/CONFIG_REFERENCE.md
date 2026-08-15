@@ -24,12 +24,13 @@
 {
   "integration": {
     "weight_mode": "ivar",
-    "rejection": { "method": "auto", "profile": "wbpp_current" }
+    "rejection": { "method": "auto", "profile": "wbpp_2_9_1" }
   }
 }
 ```
 
 `weight_mode` 枚举: `ivar` (默认) / `equal` / `support_x_snr2` (legacy)。
+`profile` canonical 为 `wbpp_2_9_1` (alias 名仅代码层兼容, 文档统一 canonical)。
 
 ## 环境变量
 

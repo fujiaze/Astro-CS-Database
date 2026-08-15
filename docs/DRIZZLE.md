@@ -18,7 +18,7 @@ wcs_sip.cpp               TAN+SIP 映射
 ```text
 输入: 帧 "variance" 块 (FLOAT32/64 [H,W], NoiseWeightModelV1 产出)
 累加: sumVarNum += v_j × w_jp²     (TileLeafAccumulatorT 新增字段)
-输出: variance = sumVarNum / sumArea² ;  ivar = 1/variance
+输出: variance_p = sumVarNum / sumArea² ;  ivar_p = 1/variance_p
       产品: <out>/variance/ 与 <out>/ivar/ (AIO_HIPS_PRODUCT_VARIANCE=8,
       AIO_HIPS_PRODUCT_IVAR=16; hierarchy 归约同叶级公式)
 ```
