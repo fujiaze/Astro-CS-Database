@@ -1,15 +1,15 @@
 // lib/phase2/tests/synthetic_gate.cpp — Phase2 合成 Gate（W4/W7/W5/W6/W8/W9 子集）
 //
 // 覆盖：
-//   S0 identity：无额外 gradient 时 UPM 校准不改变信号；
-//   S1 known additive field：已知每帧加性偏移，UPM 联合求解恢复真值；
-//   S2 low-SNR pull：SNR-aware 权重下低 SNR 偏差帧不拉偏高 SNR 真值；
-//   R1 sigma rejection：注入离群值，sigma-clip 检出；
-//   R2 min-samples：样本不足返回 status=min-samples；
-//   D  sparse=dense（materialize 与稀疏模型一致）；
-//   B  block planner（内存估算/micro-chunk）；
-//   I  weighted integration（加权均值/全拒）；
-//   A  ACR legacy launcher 与 CPU reference 等价。
+// S0 identity：无额外 gradient 时 UPM 校准不改变信号；
+// S1 known additive field：已知每帧加性偏移，UPM 联合求解恢复真值；
+// S2 low-SNR pull：SNR-aware 权重下低 SNR 偏差帧不拉偏高 SNR 真值；
+// sigma rejection：注入离群值，sigma-clip 检出；
+// min-samples：样本不足返回 status=min-samples；
+// D sparse=dense（materialize 与稀疏模型一致）；
+// B block planner（内存估算/micro-chunk）；
+// I weighted integration（加权均值/全拒）；
+// A ACR legacy launcher 与 CPU reference 等价。
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
@@ -68,7 +68,7 @@ P2ControlObservation make_obs_id(std::uint64_t frame_id, std::uint64_t ctrl,
     return o;
 }
 
-// ===== V4 R2 科学 payload identity 测试辅助 =====
+// ===== 科学 payload identity 测试辅助 =====
 
 // 文件 SHA-256（用于证明像素变异时 MOC/properties 字节不变）
 std::string file_sha256(const std::filesystem::path& p) {
@@ -131,7 +131,7 @@ std::filesystem::path first_norder7_tile(
     return {};
 }
 
-// ===== G1 空间 UPM truth 辅助（控制包 V2 R1/R2）=====
+// ===== G1 空间 UPM truth 辅助=====
 // TrueSky(p) + 每帧空间 additive field C_i(p)，在 4 个 target tile 上生成
 // control 观测与 10 万非 control 验证像素。
 namespace spatial_truth {
@@ -365,7 +365,7 @@ TEST(Phase2Upm, G1SpatialFieldTruth) {
     std::vector<double> control_ra(control_leaf.size());
     std::uint64_t ctrl_id = 0;
     const int n_tiles = (int)(sizeof(st::kTiles) / sizeof(st::kTiles[0]));
-    // V4 R3：追加 tile7（与 5/6 真实相邻）完整 3 帧，保证边界节点合并
+    // 追加 tile7（与 5/6 真实相邻）完整 3 帧，保证边界节点合并
     // 后 control_count 仍 ≥ 256。
     for (int t = 0; t <= n_tiles; ++t) {
         const std::uint64_t tile =
@@ -383,7 +383,7 @@ TEST(Phase2Upm, G1SpatialFieldTruth) {
                                          gy * st::kGrid + gx)] = ra;
                 (void)dec;
                 // frame0（参考）覆盖全部；frame1 全部；frame2 仅前 3 tiles
-                //（tile7 追加为完整覆盖）
+                // （tile7 追加为完整覆盖）
                 const int fmax = (t == n_tiles - 1) ? 1 : 2;
                 for (int f = 0; f <= fmax; ++f) {
                     P2ControlObservation o{};
@@ -550,7 +550,7 @@ TEST(Phase2Upm, G1SpatialFieldTruth) {
     p2_upm_close(model);
 }
 
-// R5/G4 V3 完整 truth gate：scalar baseline vs spatial UPM；
+// 完整 truth gate：scalar baseline vs spatial UPM；
 // 结构保真、真单覆盖延拓、远场扰动、cell/tile 边界连续性、独立 gauge。
 TEST(Phase2Upm, G1V3SpatialTruthFull) {
     namespace st = spatial_truth;
@@ -593,7 +593,7 @@ TEST(Phase2Upm, G1V3SpatialTruthFull) {
             }
         }
     }
-    // V4 R3：追加 tile7（与 5/6 真实相邻，完整 3 帧），保证边界节点
+    // 追加 tile7（与 5/6 真实相邻，完整 3 帧），保证边界节点
     // 合并后 control_count 仍 ≥ 256（G3 硬门）。
     for (int gy = 0; gy < st::kGrid; ++gy) {
         for (int gx = 0; gx < st::kGrid; ++gx) {
@@ -741,7 +741,7 @@ TEST(Phase2Upm, G1V3SpatialTruthFull) {
     for (std::size_t i = 0; i < n_val; ++i)
         if (vframe[i] != 0) cdiff.push_back(c_hat[i] - c_true[i]);
     const double field_rmse = rms(cdiff);
-    // V4 R3：abs 指标（p95 = percentile(|error|, 0.95)，禁止用有符号
+    // abs 指标（p95 = percentile(|error|, 0.95)，禁止用有符号
     // percentile）；field/residual 各报告并 hard-assert RMSE/p95/max。
     std::vector<double> res_abs(residual.size()), field_abs(cdiff.size());
     for (std::size_t i = 0; i < residual.size(); ++i)
@@ -828,7 +828,7 @@ TEST(Phase2Upm, G1V3SpatialTruthFull) {
     // C 节点观测噪声经插值传播主导（≈ 节点噪声/64）。门限 1e-3：
     // 远小于观测噪声(0.05)与场幅度(0.4)，同时可区分真实不连续。
     EXPECT_LE(max_cell_jump, 1e-3);
-    // V4 R3：每连通分量的 gauge frame id（求解前固定）
+    // 每连通分量的 gauge frame id（求解前固定）
     std::uint64_t n_comp = 0;
     std::vector<std::uint64_t> gauge_refs(info.component_count, 0);
     ASSERT_EQ(p2_upm_component_gauges(model, &n_comp, gauge_refs.data()), 0);
@@ -840,7 +840,7 @@ TEST(Phase2Upm, G1V3SpatialTruthFull) {
         std::fprintf(stderr, "[G1V3] component_gauges=%s\n",
                      gs.str().c_str());
     }
-    // V4 R3：machine-readable truth metrics 证据
+    // machine-readable truth metrics 证据
     {
         nlohmann::json mj;
         mj["residual_abs_rmse"] = res_rmse;
@@ -866,7 +866,7 @@ TEST(Phase2Upm, G1V3SpatialTruthFull) {
     p2_upm_close(model);
 }
 
-// R5/G4：tile 边界连续性 + low-SNR/low-quality 远场扰动 + 真单覆盖上界
+// tile 边界连续性 + low-SNR/low-quality 远场扰动 + 真单覆盖上界
 TEST(Phase2Upm, G4BoundaryAndPerturbation) {
     namespace st = spatial_truth;
     std::mt19937 rng(20260818);
@@ -992,13 +992,13 @@ TEST(Phase2Upm, G4BoundaryAndPerturbation) {
         2.0 * st::kNoiseRms;
     EXPECT_LE(tile_jump, jump_thresh);
     // 2. low-SNR/low-quality 扰动：远处 tile（tpair.second 的另一端）
-    //    correction delta 应小（门限：节点噪声量级×3）
+    // correction delta 应小（门限：节点噪声量级×3）
     const double far_delta =
         std::fabs(p2_upm_evaluate_c(m0, 1, l2) -
                   p2_upm_evaluate_c(m1, 1, l2));
     EXPECT_LE(far_delta, 0.15);
     // 3. 真单覆盖（tile3 仅 frame1）：correction 由平滑延拓继承相邻场，
-    //    应接近真实场而非任意大；延拓误差有界。
+    // 应接近真实场而非任意大；延拓误差有界。
     double max_single = 0.0;
     double ext_err_sq = 0.0;
     int ext_n = 0;
@@ -1028,7 +1028,7 @@ TEST(Phase2Upm, G4BoundaryAndPerturbation) {
     p2_upm_close(m0);
 }
 
-// V4 R3：真实相邻 tile 边界两侧 leaf pixels seam gate（不再用跨 tile
+// 真实相邻 tile 边界两侧 leaf pixels seam gate（不再用跨 tile
 // control-cell center 代替）。tiles {4,5,6,7} 是同一 order-6 父 tile 的
 // 完整 2×2 子块（sub 0/1/2/3）：4-5 与 6-7 为 x 方向 seam，4-6 与 5-7
 // 为 y 方向 seam，覆盖 HEALPix 两种边方向。比较 |C(p_left)-C(p_right)|
@@ -1079,7 +1079,7 @@ TEST(Phase2Upm, G4RealTileSeamLeaves) {
     ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg, &model), 0);
     P2ModelInfo info{};
     ASSERT_EQ(p2_upm_info(model, &info), 0);
-    // V5：移除边界节点合并后 2×2 块保持 256 个独立 control cell；
+    // 移除边界节点合并后 2×2 块保持 256 个独立 control cell；
     // ≥256 controls 由主 truth gate 覆盖。
     EXPECT_GT(info.control_count, 128u);
 
@@ -1097,7 +1097,7 @@ TEST(Phase2Upm, G4RealTileSeamLeaves) {
     const double leaf_spacing_deg =
         std::sqrt(4.0 * 3.141592653589793 / (12.0 * nside_leaf * nside_leaf)) *
         180.0 / 3.141592653589793;
-    // V5 噪声界推导（自校准）：seam 两侧 C 来自不同 tile 的独立节点
+    // 噪声界推导（自校准）：seam 两侧 C 来自不同 tile 的独立节点
     // 集，其差是两次独立插值噪声的差 → 跳变噪声 ≈ √2×内部插值噪声。
     // 内部插值噪声用同模型、同帧、远离边界的内部 leaf 实测
     // |C_hat - C_true| 的 max 度量；seam 门限 = truth_delta +
@@ -1206,7 +1206,7 @@ TEST(Phase2Upm, G4RealTileSeamLeaves) {
     p2_upm_close(model);
 }
 
-// V5 G1：跨 tile 恢复 delta 跟随 truth delta（不强制 jump=0）。
+// G1：跨 tile 恢复 delta 跟随 truth delta（不强制 jump=0）。
 // 注入 step 场（左列 0 / 右列 +0.3；上排 0 / 下排 +0.3），λs=0
 // （生产 stage2 配置 smoothing=0 语义）；四个 seam 的恢复 delta 必须
 // 跟踪 truth step，而不是被压成 0。
@@ -1322,7 +1322,7 @@ TEST(Phase2Upm, G1CrossTileDeltaFollowsTruth) {
     p2_upm_close(model);
 }
 
-// V5 G1：half-cell 相位 truth——线性场 C(x)=g*x/512 必须被双线性基
+// G1：half-cell 相位 truth——线性场 C(x)=g*x/512 必须被双线性基
 // 在正确相位恢复（无半 cell 平移）：恢复斜率≈g 且截距≈0。
 TEST(Phase2Upm, G1HalfCellPhaseTruth) {
     namespace st = spatial_truth;
@@ -1348,7 +1348,7 @@ TEST(Phase2Upm, G1HalfCellPhaseTruth) {
                 o.leaf_ipix = leaf;
                 o.ra_deg = ra;
                 o.dec_deg = dec;
-                // V7：相位测试 noise=0（节点精确 → 逐叶相位与斜率/截距
+                // 相位测试 noise=0（节点精确 → 逐叶相位与斜率/截距
                 // 可严格断言；带噪声时 y 外推放大节点噪声会淹没 0.15
                 // 容差。噪声鲁棒性由 G1CrossTileDeltaFollowsTruth /
                 // G4RealTileSeamLeaves 覆盖，精确性由
@@ -1427,7 +1427,7 @@ TEST(Phase2Upm, G1HalfCellPhaseTruth) {
     p2_upm_close(model);
 }
 
-// V5 G1：distinct boundary sky centers 不 proximity-alias——
+// G1：distinct boundary sky centers 不 proximity-alias——
 // 2×2 相邻块保持 256 个独立 control cell（无合并）；且两个相邻 tile
 // 的边界 cell 中心（A(gx=7) 与 B(gx=0)）sky 位置不同 → 系数独立
 // （geometry hash 区分各自 (tile,gx,gy)）。
@@ -1499,7 +1499,7 @@ TEST(Phase2Upm, G1DistinctBoundaryNodesNotAliased) {
     p2_upm_close(model);
 }
 
-// V5 G1：basis 坐标自洽——leaf→(tile,x,y)→cell 映射与 evaluator 一致；
+// G1：basis 坐标自洽——leaf→(tile,x,y)→cell 映射与 evaluator 一致；
 // calibrate(leaf) == input - evaluate_c(leaf)（逐 control 断言）。
 TEST(Phase2Upm, G1BasisCoordinateSelfConsistency) {
     namespace st = spatial_truth;
@@ -1582,15 +1582,15 @@ TEST(Phase2Upm, G1BasisCoordinateSelfConsistency) {
     p2_upm_close(model);
 }
 
-// V7 P7-1：tile 边缘线性外推 analytic gate（noise=0）。
+// P7-1：tile 边缘线性外推 analytic gate（noise=0）。
 // 两个 frame：reference C=0；target C = 二维 affine 场（tile-local）：
-//   C_true(x,y) = A + Bx*(x-256)/512 + By*(y-256)/512
+// C_true(x,y) = A + Bx*(x-256)/512 + By*(y-256)/512
 // 要求（全部严格，不用 interior error 动态放宽）：
-//   1. evaluate(center) == 节点系数（= analytic truth at center）；
-//   2. interior + 最外 half-cell leaves 恢复 analytic truth（≤1e-9）；
-//   3. 4 组真实 seam 相邻 leaf：|recovered_delta - truth_delta| ≤ 1e-9；
-//   4. 2D affine 拟合斜率/截距绝对阈值（≤1e-6）；
-//   5. save/open 同一 evaluator。
+// 1. evaluate(center) == 节点系数（= analytic truth at center）；
+// 2. interior + 最外 half-cell leaves 恢复 analytic truth（≤1e-9）；
+// 3. 4 组真实 seam 相邻 leaf：|recovered_delta - truth_delta| ≤ 1e-9；
+// 4. 2D affine 拟合斜率/截距绝对阈值（≤1e-6）；
+// 5. save/open 同一 evaluator。
 TEST(Phase2Upm, G1V7EdgeBasisAnalytic) {
     namespace st = spatial_truth;
     const std::uint64_t tiles[4] = {4, 5, 6, 7};
@@ -1795,7 +1795,7 @@ TEST(Phase2Upm, G1V7EdgeBasisAnalytic) {
     p2_upm_close(model);
 }
 
-// V8 P8-1：连续天空 HEALPix seam truth（truth 不按 tile 重置 local 坐标）。
+// P8-1：连续天空 HEALPix seam truth（truth 不按 tile 重置 local 坐标）。
 // 目标：同一个平滑校正场 C_true(ra,dec)（tangent-plane 线性场）穿过真实
 // HEALPix tile seams 时的恢复。
 // 两 frame：reference C=0；target C=C_true。noise=0，正则仅保留无可见偏置项。
@@ -1889,7 +1889,7 @@ TEST(Phase2Upm, G1V8ContinuousSkySeam) {
         P2UpmBuildConfig cfg{};
         cfg.target_order = st::kTargetOrder;
         cfg.smoothing_lambda = 0.0;
-        cfg.zero_anchor_weight = 0.0;  // 解析门隔离正则偏置（同 V7）
+        cfg.zero_anchor_weight = 0.0;  // 解析门隔离正则偏置（同 ）
         cfg.sigma_floor = 0.02;
         cfg.max_iterations = 100;
         cfg.tolerance = 1e-12;
@@ -2279,7 +2279,7 @@ TEST(Phase2Upm, G2PersistenceAndHashSensitivity) {
     ASSERT_EQ(p2_upm_open(big_path, &bm2), 0);
     P2ModelInfo binfo2{};
     ASSERT_EQ(p2_upm_info(bm2, &binfo2), 0);
-    // V5：移除边界节点合并后 control_count 恢复等于 cell 数；
+    // 移除边界节点合并后 control_count 恢复等于 cell 数；
     // >8 MiB round-trip 保持 control_count/hash/校准一致。
     EXPECT_EQ(binfo2.control_count, binfo.control_count);
     EXPECT_GT(binfo.control_count, 0ull);
@@ -2634,7 +2634,7 @@ TEST(Phase2Reject, LinearFitFindsOutlier) {
     P2RejectionResult out{};
     out.accepted = accepted.data();
     ASSERT_EQ(p2_reject_stack(&in, &out), 0);
-    // V4 R5：该固定向量（rng 42 噪声 + 0.1/step 趋势）的 rejected mask
+    // 该固定向量（rng 42 噪声 + 0.1/step 趋势）的 rejected mask
     // 已用未修改 Siril 1.4.3 官方源码 harness 逐位核对（拒绝 index 30
     // 与 43-49，共 8 个，保留 42 个）——生产必须逐元素一致。
     EXPECT_EQ(accepted[30], 0u);
@@ -2661,11 +2661,11 @@ TEST(Phase2Reject, RcrFindsOutlier) {
     EXPECT_GT(out.rejected_high, 0u);
 }
 
-// V4 R4：完整 sequential RCR（SS_MEDIAN_DL 冻结链）生产 gate。
+// 完整 sequential RCR（SS_MEDIAN_DL 冻结链）生产 gate。
 // 逐元素 rejected-set 与官方 rcr 2.4.7 的对齐由 rcr_oracle_compare.py
 // 覆盖（10 case 全部 exact）；此处验证固定向量的生产行为：
-//  - 20% 高污染：全部 20 个注入离群必须被拒（鲁棒→精确 sequential 语义）；
-//  - weighted case：与官方一致的精确 rejected mask {6,7}。
+// - 20% 高污染：全部 20 个注入离群必须被拒（鲁棒→精确 sequential 语义）；
+// - weighted case：与官方一致的精确 rejected mask {6,7}。
 TEST(Phase2Reject, G4SequentialRcrMask) {
     // 1. high-contam：80×N(10,1) + 20×N(25,2)（固定种子，注入位置记录）
     std::mt19937 rng(20260819);
@@ -2717,7 +2717,7 @@ TEST(Phase2Reject, G4SequentialRcrMask) {
     }
 }
 
-// R4/G6：ESD 正确流程（P0-05）——NIST Rosner 54 点必须 3 outliers
+// ESD 正确流程（P0-05）——NIST Rosner 54 点必须 3 outliers
 TEST(Phase2Reject, G6EsdNistRosner54) {
     const std::vector<double> vals{
         -0.25, 0.68, 0.94, 1.15, 1.20, 1.26, 1.26, 1.34, 1.38, 1.43,
@@ -2744,9 +2744,9 @@ TEST(Phase2Reject, G6EsdNistRosner54) {
                  n_reject, out.iterations);
 }
 
-// R4/G6：ESD masking case——第一轮不显著但最终显著
+// ESD masking case——第一轮不显著但最终显著
 TEST(Phase2Reject, G6EsdMaskingCase) {
-    // 构造 masking：两个离群互相掩盖，第一轮 R1 不超临界，最终应检出
+    // 构造 masking：两个离群互相掩盖，第一轮 不超临界，最终应检出
     std::mt19937 rng(42);
     std::normal_distribution<double> nd(0.0, 1.0);
     std::vector<double> vals;
@@ -2769,7 +2769,7 @@ TEST(Phase2Reject, G6EsdMaskingCase) {
     EXPECT_EQ(acc[6], 0u);
 }
 
-// R4/G6：Winsorized 与 Sigma 必须不同（至少一个数据集）
+// Winsorized 与 Sigma 必须不同（至少一个数据集）
 TEST(Phase2Reject, G6WinsorizedDiffersFromSigma) {
     // 数据：10×0 + 100。Sigma 的 MAD=0 → 无拒绝（保留 100）；
     // Winsorized 用 std>0 → 100 被拒。证明两算法确实不同。
@@ -2801,7 +2801,7 @@ TEST(Phase2Reject, G6WinsorizedDiffersFromSigma) {
                  o2.rejected_low + o2.rejected_high, (int)differs);
 }
 
-// R4/G6：全部 7 方法 permutation invariance（随机帧重排 mask 一致）
+// 全部 7 方法 permutation invariance（随机帧重排 mask 一致）
 TEST(Phase2Reject, G6PermutationInvariance) {
     std::mt19937 rng(99);
     std::normal_distribution<double> nd(0.0, 0.5);
@@ -2862,7 +2862,7 @@ TEST(Phase2Reject, G6PermutationInvariance) {
     }
 }
 
-// R5/G7 权重 truth gate：比较 7 种权重策略（equal/snr/snr2/
+// 权重 truth gate：比较 7 种权重策略（equal/snr/snr2/
 // support×snr2/capped snr2/invvar/support×invvar），低 SNR 偏差帧
 // 不得拉偏高 SNR 真值帧；默认策略由 truth 冻结。
 TEST(Phase2Weight, G5WeightTruthGate) {
@@ -2932,9 +2932,9 @@ TEST(Phase2Weight, G5WeightTruthGate) {
     EXPECT_GT(std::fabs(eq_r.bias), std::fabs(snr2_r.bias) + 0.2);
     EXPECT_LT(std::fabs(sup_r.bias), 0.15);       // 低 SNR 不拉偏
     EXPECT_LT(std::fabs(snr2_r.bias), 0.15);
-    // V19 (SNR_REDESIGN_CONTRACT §11-13)：默认 weight_mode=ivar。
-    //   上述 +1.5 帧为系统偏差（非随机噪声）；UPM 校准已移除 frame offset
-    //   后，ivar 加权才是逆方差最优。此处验证校准后 ivar 无偏：
+    // 默认 weight_mode=ivar。
+    // 上述 +1.5 帧为系统偏差（非随机噪声）；UPM 校准已移除 frame offset
+    // 后，ivar 加权才是逆方差最优。此处验证校准后 ivar 无偏：
     {
         // UPM-calibrated: frame1 偏移已移除 (v1 - 1.5)，噪声 σ=0.6
         double bias_cal = 0.0, sq_cal = 0.0;
@@ -3112,7 +3112,7 @@ TEST(Phase2Acr, CudaWeightedSupportEquivalent) {
     bridge::api().executor_destroy(exec);
 }
 
-// R6：compact frame metadata case——总帧 [0,1,2,3]，当前 tile 只覆盖 [1,3]
+// compact frame metadata case——总帧 [0,1,2,3]，当前 tile 只覆盖 [1,3]
 // （非连续），SNR 数组必须按 frames[s] 一一对应，CPU/ACR 输出一致。
 TEST(Phase2Acr, G9CompactFrameSubset) {
     astro::compute::phase2::register_phase2_acr_kernels();
@@ -3169,7 +3169,7 @@ TEST(Phase2Acr, G9CompactFrameSubset) {
     bridge::api().executor_destroy(exec);
 }
 
-// R6：Winsorized 必须 CPU_ROUTE（CUDA launcher 拒绝，不冒充等价）
+// Winsorized 必须 CPU_ROUTE（CUDA launcher 拒绝，不冒充等价）
 TEST(Phase2Acr, G9WinsorizedCpuRoute) {
     astro::compute::phase2::register_phase2_acr_kernels();
     const astro::compute::KernelRegistration* reg =
@@ -3299,7 +3299,7 @@ TEST(Phase2Coverage, FilterMismatchRejected) {
 }
 
 // W4 真实 HiPS：控制点采样（AIO 读取 signal/support/snr）
-// V15：改用已知重叠的 t4_crop_v3 × t4_full_v3_final（T2×T3 不同天区，
+// 改用已知重叠的 t4_crop_v3 × t4_full_v3_final（T2×T3 不同天区，
 // leaf tile 零交集导致 n_obs=0——数据漂移，非代码问题）。
 TEST(Phase2Sampler, RealHipsControlSampling) {
     const char* base = "F:/Astro dev/Astro CS Normalization Database/run/temp/phase1_freeze";
@@ -3340,13 +3340,13 @@ TEST(Phase2Sampler, RealHipsControlSampling) {
     p2_coverage_free(&cov);
 }
 
-// V4 R6：local SNR availability 三区 gate——同一 frame 内：
-//   1) 高局部 SNR（有 catalogue 星点，snr≈100）；
-//   2) 低局部 SNR（有 catalogue 星点，snr≈2）；
-//   3) 无任何局部星点 → snr_available=0 且 snr==0.0（禁止伪 local 1.0）。
-// V15 修复：改用 t4_crop_v3 × t4_full_v3_final（已知重叠、均有 snr）；
+// local SNR availability 三区 gate——同一 frame 内：
+// 1) 高局部 SNR（有 catalogue 星点，snr≈100）；
+// 2) 低局部 SNR（有 catalogue 星点，snr≈2）；
+// 3) 无任何局部星点 → snr_available=0 且 snr==0.0（禁止伪 local 1.0）。
+// 修复：改用 t4_crop_v3 × t4_full_v3_final（已知重叠、均有 snr）；
 // 三区仍由合成 SNR catalogue（仅替换两份 TSV，MOC/properties/signal/
-// support 保持原样）构造。单输入会被 V13 sampler 的 lt-2-clean-frames
+// support 保持原样）构造。单输入会被 sampler 的 lt-2-clean-frames
 // 规则拒绝（n_obs=0）。
 TEST(Phase2Sampler, G6LocalSnrAvailabilityThreeZones) {
     namespace fs = std::filesystem;
@@ -3470,10 +3470,10 @@ TEST(Phase2Sampler, G6LocalSnrAvailabilityThreeZones) {
     fs::remove_all(root);
 }
 
-// R1/G1 sampler 统计量：even median、odd/even/negative/repeated/shuffled/
+// sampler 统计量：even median、odd/even/negative/repeated/shuffled/
 // NaN 过滤。
 TEST(Phase2Sampler, G1StatisticsCorrectness) {
-    // even: [1,2,3,4] -> 2.5（V2 曾因 min_element 得到 2.0）
+    // even: [1,2,3,4] -> 2.5（ 曾因 min_element 得到 2.0）
     double a[] = {1, 2, 3, 4};
     EXPECT_DOUBLE_EQ(p2_stats_median(a, 4), 2.5);
     double b[] = {4, 1, 3, 2};
@@ -3497,7 +3497,7 @@ TEST(Phase2Sampler, G1StatisticsCorrectness) {
     EXPECT_NEAR(mad, 1.4826, 1e-12);
 }
 
-// R3/G3（V4 R2）稳定科学 identity：复制/重命名/换根不变；signal tile
+// 稳定科学 identity：复制/重命名/换根不变；signal tile
 // 像素（MOC/properties 不变）/ support tile 像素 / SNR catalogue / 关键
 // 元数据变化 → frame_id 改变。
 TEST(Phase2Identity, G3StableFrameIdentity) {
@@ -3544,7 +3544,7 @@ TEST(Phase2Identity, G3StableFrameIdentity) {
         << "恢复 signal 后 identity 必须复原";
 
     // 2. support tile 像素变异 → frame_id 改变（Stage2 manifest 随
-    // frame_id 变化；模型哈希在 R2 stage2 证据中验证）
+    // frame_id 变化；模型哈希在 stage2 证据中验证）
     fs::path sup_tile = first_norder7_tile(tmp / "support");
     ASSERT_FALSE(sup_tile.empty()) << "找不到 support Norder7 tile";
     ASSERT_TRUE(flip_fits_data_byte(sup_tile, 0));
@@ -3608,7 +3608,7 @@ TEST(Phase2Identity, G3StableFrameIdentity) {
     fs::remove_all(tmp);
 }
 
-// R3：input manifest canonicalization（输入顺序不影响模型身份）
+// input manifest canonicalization（输入顺序不影响模型身份）
 TEST(Phase2Identity, G3ManifestOrderCanonical) {
     namespace fs = std::filesystem;
     const fs::path base =
@@ -3630,7 +3630,7 @@ TEST(Phase2Identity, G3ManifestOrderCanonical) {
     EXPECT_NE(f0, f1);
 }
 
-// R1/G1（V4）：production wiring gate——同一生产 Stage2 parse+build path
+// production wiring gate——同一生产 Stage2 parse+build path
 // 验证 support_power / sigma_floor / quality 影响与 topology invariance。
 TEST(Phase2Wiring, G1ProductionWiringTruth) {
     namespace st = spatial_truth;
@@ -3780,7 +3780,7 @@ TEST(Phase2Wiring, G1ProductionWiringTruth) {
 }
 
 // =====================================================================
-// V15 Final Semantic Closure — rejection 语义回归集
+// Final Semantic Closure — rejection 语义回归集
 // =====================================================================
 
 namespace {
@@ -3972,7 +3972,7 @@ TEST(Phase2Reject, V15TypedPercentileParams) {
     EXPECT_EQ(dec.rejected_high, 1u);
 }
 
-// V16：minmax 一次性固定 rank 删除（不迭代删到 min_kept）
+// minmax 一次性固定 rank 删除（不迭代删到 min_kept）
 TEST(Phase2Reject, V15TypedMinmaxParams) {
     std::vector<double> vals{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0};
     P2RejectionPlan plan = v15_plan(P2_REJECT_MINMAX);
@@ -3990,7 +3990,7 @@ TEST(Phase2Reject, V15TypedMinmaxParams) {
     EXPECT_EQ(dec.rejected_high, 1u);
 }
 
-// V16：MinMax 固定 rank 精确集（PixInsight 示例：50 样本 (3,5) → 42 保留）
+// MinMax 固定 rank 精确集（PixInsight 示例：50 样本 (3,5) → 42 保留）
 TEST(Phase2Reject, V16MinMaxFixedCountExact) {
     std::vector<double> vals(50);
     for (int i = 0; i < 50; ++i) vals[i] = 10.0 + (double)i * 0.1;
@@ -4086,7 +4086,7 @@ TEST(Phase2Config, V15RejectionTypedParseAndDefaultAuto) {
     EXPECT_DOUBLE_EQ(cfg2.winsor_upper, 2.5);
     EXPECT_EQ(cfg2.winsor_max_iterations, 12);
 
-    // V17：legacy 字段（low/high/max_iterations/min_samples）→ 硬错误
+    // legacy 字段（low/high/max_iterations/min_samples）→ 硬错误
     const std::string j3 = R"({
       "version": 1,
       "inputs": {"hips": ["a.hips", "b.hips"]},
@@ -4161,7 +4161,7 @@ TEST(Phase2Reject, V15ExPermutationInvarianceTyped) {
 }
 
 // =====================================================================
-// V16 Final Closure AuditFix — normalization / minmax / eligibility 回归
+// Final Closure AuditFix — normalization / minmax / eligibility 回归
 // =====================================================================
 
 namespace {
@@ -4185,7 +4185,7 @@ std::vector<std::uint8_t> v16_reject_norm(const std::vector<double>& vals,
 
 } // namespace
 
-// V16：normalization 工作域对平移不变方法透明（NONE vs MEDIAN_CENTER
+// normalization 工作域对平移不变方法透明（NONE vs MEDIAN_CENTER
 // decision 一致）；percentile 在 |median| 尺度下负值安全。
 TEST(Phase2Reject, V16NormalizationTransparentAndNegativeSafe) {
     std::vector<double> vals{10.0, 10.1, 9.9, 10.05, 10.2, 9.8, 50.0};
@@ -4217,7 +4217,7 @@ TEST(Phase2Reject, V16NormalizationTransparentAndNegativeSafe) {
     EXPECT_EQ(pd.accepted_count, 5u);
 }
 
-// V16：percentile 必须 MEDIAN_CENTER；rcr 必须 NONE（INVALID_CONFIGURATION）
+// percentile 必须 MEDIAN_CENTER；rcr 必须 NONE（INVALID_CONFIGURATION）
 TEST(Phase2Reject, V16InvalidConfigurationCombos) {
     std::vector<double> vals{10.0, 10.1, 9.9, 10.05, 10.2};
     P2RejectionPlan plan = v15_plan(P2_REJECT_PERCENTILE);
@@ -4233,7 +4233,7 @@ TEST(Phase2Reject, V16InvalidConfigurationCombos) {
     EXPECT_EQ(rd.status, P2_STATUS_INVALID_CONFIGURATION);
 }
 
-// V16：config 解析拒绝非法组合（percentile+none / rcr+median_center）
+// config 解析拒绝非法组合（percentile+none / rcr+median_center）
 TEST(Phase2Config, V16RejectionNormalizationValidation) {
     auto parse = [](const std::string& j) {
         P2Stage2Config cfg{};
@@ -4266,7 +4266,7 @@ TEST(Phase2Config, V16RejectionNormalizationValidation) {
     EXPECT_TRUE(parse(ok_rcr));
 }
 
-// V16：生产 strided 收集器（fp64 与 fp32 同一语义）
+// 生产 strided 收集器（fp64 与 fp32 同一语义）
 TEST(Phase2Eligibility, V16GatherStridedFp32Fp64) {
     // frame-major：3 帧 × 4 像素；像素 2 上帧1 为 NaN、帧2 support=0
     std::vector<double> vals = {
@@ -4320,7 +4320,7 @@ TEST(Phase2Eligibility, V16GatherStridedFp32Fp64) {
     EXPECT_EQ(out_f[1], 1u);
 }
 
-// V16：profile 解析（wbpp_current 与 astrocs_adaptive 都接受；AUTO 路由一致）
+// profile 解析（wbpp_current 与 astrocs_adaptive 都接受；AUTO 路由一致）
 TEST(Phase2Reject, V16ProfileGroupVsAdaptive) {
     for (const char* prof : {"wbpp_2_9_1", "astrocs_adaptive"}) {
         P2RejectionPlanRequest req{};
@@ -4342,10 +4342,10 @@ TEST(Phase2Reject, V16ProfileGroupVsAdaptive) {
 }
 
 // =====================================================================
-// V17 True Final Freeze — integration correctness
+// True Final Freeze — integration correctness
 // =====================================================================
 
-// V17-C01：非 finite / 非正权重绝不允许 status=OK + signal=NaN
+// 非 finite / 非正权重绝不允许 status=OK + signal=NaN
 TEST(Phase2Integrate, V17NonFiniteWeightInvalid) {
     std::vector<double> vals{10.0, 11.0};
     P2PixelStack in{};
@@ -4377,7 +4377,7 @@ TEST(Phase2Integrate, V17NonFiniteWeightInvalid) {
     EXPECT_EQ(p2_validate_candidate_weights(okw.data(), 2), 0);
 }
 
-// V17-C01：NaN/Inf support → INVALID_INPUT；正有限 support → 正常
+// NaN/Inf support → INVALID_INPUT；正有限 support → 正常
 TEST(Phase2Integrate, V17NonFiniteSupportInvalid) {
     std::vector<double> vals{10.0, 11.0};
     std::vector<double> w{1.0, 1.0};
@@ -4394,11 +4394,11 @@ TEST(Phase2Integrate, V17NonFiniteSupportInvalid) {
     in.support = s_ok.data();
     ASSERT_EQ(p2_integrate_pixel(&in, &out), 0);
     EXPECT_EQ(out.status, P2_INTEGRATE_OK);
-    // V17-C03：canonical support reducer = max(accepted support)
+    // canonical support reducer = max(accepted support)
     EXPECT_DOUBLE_EQ(out.support, 1.0);
 }
 
-// V17-C04：integration status 显式且可达（无歧义）
+// integration status 显式且可达（无歧义）
 TEST(Phase2Integrate, V17StatusesExplicit) {
     P2PixelStack in{};
     P2PixelResult out{};
@@ -4430,7 +4430,7 @@ TEST(Phase2Integrate, V17StatusesExplicit) {
     EXPECT_EQ(out.n_used, 0u);
 }
 
-// V17-C02：rejection INVALID_* 状态 → 调用方 hard fail 契约
+// rejection INVALID_* 状态 → 调用方 hard fail 契约
 TEST(Phase2Reject, V17InvalidMethodStatus) {
     std::vector<double> vals{10.0, 11.0, 12.0};
     P2RejectionPlan plan = v15_plan(P2_REJECT_SIGMA);
@@ -4443,13 +4443,13 @@ TEST(Phase2Reject, V17InvalidMethodStatus) {
     dec.reasons = reasons.data();
     ASSERT_EQ(p2_reject_stack_ex(&st, &plan, &dec), 0);
     EXPECT_EQ(dec.status, P2_STATUS_INVALID_METHOD);
-    // V17-C02 契约：INVALID_* 不属于可继续集合 → 调用方必须 hard fail
+    // 契约：INVALID_* 不属于可继续集合 → 调用方必须 hard fail
     EXPECT_FALSE(dec.status == P2_STATUS_OK ||
                  dec.status == P2_STATUS_UNDERDETERMINED);
 }
 
 // =====================================================================
-// V17 True Final Freeze — astrocs.large_scale_rejection.v1
+// True Final Freeze — astrocs.large_scale_rejection.v1
 // =====================================================================
 
 namespace {
@@ -4598,12 +4598,12 @@ TEST(Phase2Config, V17LargeScaleParseAndDefaults) {
 // V19R2 PR#1 Gate — UPM 持久化帧绑定（PR-UPM-001..010）
 //
 // 契约：
-//   SCI-UPM-PERSIST-001  保存/重开后 frame_id→theta 绑定不变（按稳定
-//                        frame_id，与容器遍历/排序/插入顺序无关）；
-//   ALG-UPM-FRAME-BIND-001  canonical 表示 parameter_rows[index] 与
-//                        frame_id_by_index[index] 同长且无重复；
-//   DATA-UPM-MODEL-001    模型文件必须显式携带 index→frame 映射；
-//                        畸形模型必须稳定报错，禁止猜测/部分接受。
+// SCI-UPM-PERSIST-001 保存/重开后 frame_id→theta 绑定不变（按稳定
+// frame_id，与容器遍历/排序/插入顺序无关）；
+// ALG-UPM-FRAME-BIND-001 canonical 表示 parameter_rows[index] 与
+// frame_id_by_index[index] 同长且无重复；
+// DATA-UPM-MODEL-001 模型文件必须显式携带 index→frame 映射；
+// 畸形模型必须稳定报错，禁止猜测/部分接受。
 //
 // PR-UPM-001（最小乱序）与 PR-UPM-008（模型应用）由
 // Phase2Upm.OpenSavePreservesFrameParameterBinding 覆盖。
@@ -5095,4 +5095,29 @@ TEST(Phase2Upm, UpmPersistInvalidModelRejected) {
     p2_upm_close(model);
     std::remove(base);
     std::remove(bad);
+}
+
+// F-V19R2-UPM-002：未知 frame_id 必须显式失败/NaN，禁止回退 frame 0 参数。
+TEST(Phase2Upm, UpmUnknownFrameRejected) {
+    std::vector<P2ControlObservation> obs{
+        make_obs(10, 0, 10.0, 100.0),
+        make_obs(10, 1, 12.0, 100.0),
+        make_obs(20, 0, 15.0, 100.0),
+        make_obs(20, 1, 17.0, 100.0),
+    };
+    P2UpmBuildConfig cfg{};
+    void* model = nullptr;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg, &model), 0);
+    std::uint64_t leaf = 0;
+    double in = 30.0;
+    double out = 0.0;
+    // 未知 frame（模型只有 10/20）
+    EXPECT_EQ(p2_upm_calibrate_block(model, 999, &leaf, &in, &out, 1), 1);
+    EXPECT_EQ(out, 0.0);  // 输出未被写入
+    // 已知 frame 正常
+    EXPECT_EQ(p2_upm_calibrate_block(model, 10, &leaf, &in, &out, 1), 0);
+    EXPECT_TRUE(std::isfinite(out));
+    // evaluate_c 未知帧返回 NaN（显式不可用）
+    EXPECT_TRUE(std::isnan(p2_upm_evaluate_c(model, 999, leaf)));
+    p2_upm_close(model);
 }
