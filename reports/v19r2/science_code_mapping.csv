@@ -1,0 +1,13 @@
+source_file,production_symbols
+lib/snr_estimator/cpp/src/noise_model.cpp,
+lib/healpix_db/healpix_drizzle/drizzle_engine.cpp,drizzle
+lib/healpix_db/healpix_drizzle/spherical_overlap.cpp,
+lib/phase2/src/upm.cpp,p2_upm_build;p2_upm_build_geo;p2_upm_calibrate_block;p2_upm_close;p2_upm_component_gauges;p2_upm_dense_info;p2_upm_dense_read_block;p2_upm_evaluate_c;p2_upm_geometry_hash;p2_upm_info;p2_upm_materializ
+lib/phase2/src/rejection.cpp,p2_collect_candidate_stack;p2_eligibility_filter;p2_large_scale_apply;p2_reject_plan_resolve;p2_reject_stack;p2_reject_stack_ex
+lib/phase2/src/integrate.cpp,p2_integrate_pixel;p2_validate_candidate_weights
+lib/phase2/src/sampler.cpp,p2_frame_id;p2_sample_controls;p2_sampler_default_config;p2_stats_mad;p2_stats_median
+lib/phase2/src/coverage.cpp,p2_coverage_build;p2_coverage_free
+lib/calibration/src/calibrator.cpp,calibrate
+lib/plate_solve/cpp/ipv/src/ipv_wcs.cpp,
+lib/photometric_calib/cpp/src/pc_api.cpp,
+lib/dynamic_psf/src/dpsf_psf.cpp,
