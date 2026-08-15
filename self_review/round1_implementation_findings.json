@@ -1,86 +1,58 @@
 {
   "round": 1,
-  "reviewer": "independent staged implementation review (fresh source read + rebuild)",
-  "head": "03d5d96 + efdbe7e + c7cb2e6 + 85851c2",
-  "scope": "V17 diff: integration correctness / status contract / support reducer / versioned profile / legacy removal / config aliases / large_scale / docs consistency",
+  "head": "V18R2 main",
   "findings": [
     {
-      "id": "V17-R1-P1-001",
-      "severity": "P1",
-      "path": "lib/orchestrator/cpp/src/dll_loader.cpp",
-      "line": 107,
-      "issue": "legacy 移除提交删除 load_module 4 个闭括号（return false / NOT_LOADED / full_path / h==nullptr 分支），orchestrator 无法编译（make Error 1）",
-      "evidence": "make 报 'a function-definition is not allowed here'；V17 clean-tree 终验会拦截",
-      "action": "FIX（补回 4 个 }；make rc=0，orchestrator.exe 重建成功）"
+      "id": "V18R2-P1-001", "severity": "P1",
+      "path": "lib/gaia_xpsd_client/src/gaia_client.c",
+      "issue": "极区 AzimuthalEquidistant 树 bbox 剪枝因 RA 环绕 min/max 退化失效：0.86° 查询全树遍历，读 16.3GB mmap、耗时 13s、RSS +36GB",
+      "evidence": "ASTROCS_GAIA_TRACE 计数 nodes=164219 blocks=119361 bytes=16.3GB stars=899",
+      "action": "FIX：极投影平面剪枝（圆盘 vs 轴对齐矩形，O(1) 无环绕）→ 1224 节点/35MB/0.03s；星集 899/899 逐颗一致（stash 前后 DLL 对照）"
     },
     {
-      "id": "V17-R1-P1-002",
-      "severity": "P1",
-      "path": "lib/orchestrator/cpp/src/orchestrator.cpp",
-      "line": 399,
-      "issue": "stage_name_v2 仍引用已删除 PipelineStageV2::GRADIENT_SPHERE/STACK；run_stage2 仍检查 ModuleId::GRADIENT_SPHERE/STACK",
-      "evidence": "编译 error（2 处枚举 + 2 处 ModuleId）",
-      "action": "FIX（删除枚举 case 与 is_loaded 检查；run_stage2 改为 legacy 已移除的提示；编译通过）"
+      "id": "V18R2-P1-002", "severity": "P1",
+      "path": "lib/gaia_xpsd_client/src/gaia_client.c",
+      "issue": "spectrum 搜索（search_recursive_spectrum）同样 RA 环绕剪枝失效：PHOTOMETRIC 17.8s/36GB",
+      "evidence": "RSS 36.5GB 持续到 DRIZZLE；PHOTOMETRIC 17.8s",
+      "action": "FIX：同一 polar-plane 剪枝 → PHOTOMETRIC <1s；全帧 131.7s→65.7s"
     },
     {
-      "id": "V17-R1-P1-003",
-      "severity": "P1",
-      "path": "lib/phase2/tools/controlled_rejection_metrics.py",
-      "line": 150,
-      "issue": "Siril harness 输出 accepted mask（1=accepted），AstroCS --reasons 输出 reason（0=accepted），初版比较把两者直接 == 比较（极性相反 → agreement=0.0 假象）",
-      "evidence": "同源 case 初版 agreement=0.0；修复后 8000 decisions 100% 一致",
-      "action": "FIX（m_astro_acc=(reasons==0|3) 与 m_siril_acc 同极性比较）"
+      "id": "V18R2-P1-003", "severity": "P1",
+      "path": "lib/healpix_db/healpix_drizzle/spherical_overlap.cpp",
+      "issue": "quick-reject 每候选 acos（4.23 亿次）——dot<cos(lim) 直换在 1e-19 sliver 边界与 acos 不等价",
+      "evidence": "edge oracle 1e-19 尺度案例 ov 翻转",
+      "action": "FIX：安全余量 dot 预判（lim+1e-9 rad，拒绝集为原集严格子集）+ 边界走原 acos；edge/overlap/candidate oracle 全 PASS"
     },
     {
-      "id": "V17-R1-P1-004",
-      "severity": "P1",
-      "path": "lib/phase2/src/rejection.cpp",
-      "line": 2025,
-      "issue": "p2_large_scale_apply 初版用 qualify 整体覆盖 mask，把 <min_structure_pixels 的小分量（compact cosmic）也抹掉（只增不减语义被违反）",
-      "evidence": "V17LargeScaleGrowsTrailNotCosmic 失败：ls_get(hi,8,6)=false",
-      "action": "FIX（只增不减：mask[i] |= qualify[i]；5/5 large_scale 测试 PASS）"
+      "id": "V18R2-P2-001", "severity": "P2",
+      "path": "lib/healpix_db/healpix_drizzle/drizzle_engine.cpp",
+      "issue": "每像素 8-12 次 radec_to_vec sin/cos（边判断 + drop 构建重复转换同一顶点）",
+      "evidence": "fine profile geom 895s（累计线程时间）",
+      "action": "FIX：行级 Vec3 顶点缓存（shared_vertices 每行 2×(W+1) 次转换）；oracle 等价"
     },
     {
-      "id": "V17-R1-P1-005",
-      "severity": "P1",
-      "path": "lib/phase2/tools/rejection_cli.cpp",
-      "line": 130,
-      "issue": "--plan 未读取 normalization 字段（plan 零初始化=NONE），与 stage2 生产 median_center 语义不一致 → V16 real16 9.45% 测量假象；且 linear_fit/percentile 默认值漂移（4.0/3.0、0.1/0.1 vs WBPP Light 5.0/3.5、0.2/0.1）",
-      "evidence": "V16 satellite_v2_metrics clean_sample_false_reject=9.45% vs V17 observed_sample_rejection_rate=0.54%",
-      "action": "FIX（读取 normalization/normalization_floor + WBPP Light typed 默认；percentile/rcr 组合校验）"
+      "id": "V18R2-P2-002", "severity": "P2",
+      "path": "lib/orchestrator/cpp/src/cli_command.cpp",
+      "issue": "SHA-256 第 2 份实现（sha256_impl）；ACR 另 2 份（profile_reader/profile_generator）",
+      "evidence": "rg 发现 3 份重复 SHA256 实现",
+      "action": "FIX：归一化到 lib/common/crypto（配置 SHA 603879c6912b 验证一致）"
     },
     {
-      "id": "V17-R1-P2-001",
-      "severity": "P2",
-      "path": "lib/phase2/tools/stage2.cpp",
-      "line": 940,
-      "issue": "large_scale 两遍路径 pass1 用 continue 跳过 pre-grow total_rejected/reject_hist 统计 → grown=post（虚高）",
-      "evidence": "stage2 satellite_ls 日志 pre_rejected=0 post=91134",
-      "action": "FIX（pass1 先计 pre；phase3 重建 post 分布；pre=88055 post=91134 grown=3079）"
+      "id": "V18R2-P2-003", "severity": "P2",
+      "path": "lib/data_pipeline",
+      "issue": "与 astro_image_io PipelineFrame 完全重复（无任何构建引用）",
+      "evidence": "同名文件 258 vs 299 行；rg 无 Makefile/CMake 引用",
+      "action": "FIX：删除（canonical = astro_image_io）"
     },
     {
-      "id": "V17-R1-P3-001",
-      "severity": "P3",
-      "path": "lib/phase2/tools/controlled_rejection_truth.py",
-      "line": 1,
-      "issue": "合成 HiPS 初版缺 Moc.fits/properties hips_version/snr 子产品 → aio_hips_open 枚举 0 tile，coverage 无法构建",
-      "evidence": "V17 重写生成器后 stage2 可读（20 帧单 tile，SNR=8 常量）",
-      "action": "FIX（UNIQ MOC + 完整 properties + snr TSV）"
-    },
-    {
-      "id": "V17-R1-P3-002",
-      "severity": "P3",
-      "path": "tools/config_consistency_check.py",
-      "line": 40,
-      "issue": "large_scale 子段按首个 \n\} 截断（嵌套 if 提前截断）+ bool 默认值不被 extract 正则捕获 → 只检到 1/4 键",
-      "evidence": "checked_keys 仅 large_scale.min_structure_pixels",
-      "action": "FIX（括号计数 + bool 组；4/4 键校验，mismatches=[]）"
+      "id": "V18R2-P2-004", "severity": "P2",
+      "path": "lib/healpix_db/healpix_drizzle/drizzle_engine.cpp",
+      "issue": "每帧 omp_set_num_threads 全局副作用（影响后续阶段）",
+      "evidence": "CODE-006 审计",
+      "action": "FIX：parallel num_threads 子句"
     }
   ],
-  "P0": 0,
-  "P1": 5,
-  "P2": 1,
-  "P3": 2,
-  "result": "P1/P2 全部 FIX 并验证（74/74 gate、no_legacy PASS、config/api_doc PASS、real16 重跑）；P3 已修",
+  "P0": 0, "P1": 3, "P2": 4,
+  "result": "全部 FIX 并验证（oracle + 星集逐颗 + 最终 16 帧）",
   "verdict": "ROUND1=PASS"
 }

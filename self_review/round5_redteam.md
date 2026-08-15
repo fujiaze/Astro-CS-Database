@@ -1,35 +1,23 @@
-# Round 5 — Enhanced Red-Team（V17，15 攻击假设）
+# Round 5 — Red-Team（V18R2，15 攻击假设）
 
-日期：2026-08-14 ｜ 规则：每项 DISPROVED_WITH_EVIDENCE 或
-BUG_FOUND_AND_FIXED；不接受"没测过"。
-
-| # | 攻击假设 | 结论 | 证据 |
+| # | 假设 | 结论 | 证据 |
 | --- | --- | --- | --- |
-| 1 | NaN weight 产生 status=OK + signal=NaN | DISPROVED（C01 已修） | V17NonFiniteWeightInvalid：INVALID_INPUT；p2_validate_candidate_weights 返回 1 |
-| 2 | Inf / 负 weight 被积分 | DISPROVED | V17NonFiniteWeightInvalid：+Inf/-Inf/负 → INVALID_INPUT |
-| 3 | rejection INVALID_CONFIGURATION 被 Stage2 当 UNDERDETERMINED 接受 | DISPROVED | stage2 CPU hard fail（return 6）；ACR 同样只收 OK/UNDERDETERMINED；V17InvalidMethodStatus + V16InvalidConfigurationCombos |
-| 4 | p2_integrate support 与 Stage2/ACR support 三套 reduction | DISPROVED（C03 已修） | support_out=pr.support（max accepted）；ACR 消费 pr.support；large_scale 两遍路径同样消费；rg 无第二处 max/mean |
-| 5 | ALL_REJECTED status 不可达 | DISPROVED | V17StatusesExplicit：全部样本被拒时 P2_INTEGRATE_ALL_REJECTED 返回且 valid=0（stage2 输出 zero_px 对应） |
-| 6 | UPM weight 与 stack weight 名字混用 | DISPROVED（C05 已修） | integrate.h 分开 upm.robust_control_weight.v1 / stack.support_x_snr2.v1 / stack.equal.v1；api_doc_consistency PASS |
-| 7 | wbpp_current 随未来安装版本漂移 | DISPROVED（W01 已修） | canonical=wbpp_2_9_1；parser 规范化 alias；real16 重跑 diagnostics reject_profile=wbpp_2_9_1 |
-| 8 | 真实 observed 混名 false reject | DISPROVED（D1/D2 已修） | real16 指标 renamed observed_sample_rejection_rate=0.54%；受控 truth 测 true FPR=1.88%（Siril 100% 一致） |
-| 9 | Large-Scale unsupported 却声称 WBPP 功能完整 | DISPROVED（E 已实现） | astrocs.large_scale_rejection.v1 实现+5 单元测试+E2E（satellite grown=3079，cosmic grown=0）；feature matrix=SUPPORTED |
-| 10 | healpix_stack/legacy Stage2 仍可 build/call | DISPROVED（F 已修） | 移入 archive/legacy；orchestrator 枚举/接线删除；运行时 7 模块；make 编译通过；no_legacy_production_reference PASS |
-| 11 | deprecated config aliases 静默改变语义 | DISPROVED（G 已修） | parser 硬错误（migrate 提示）；schema/template 无键；config_consistency PASS |
-| 12 | PUBLIC_API 含已删除 API | DISPROVED（J 已修） | p2_rejection_workspace_create/free 无未标注引用；api_doc_consistency deleted_api=PASS |
-| 13 | Phase1 150s/frame 仍叫 performance frozen | DISPROVED（I 处理中） | PERFORMANCE_BASELINE=CANDIDATE（SCIENCE_FREEZE.md）；65s vs 150s 差异已解释；before/after runs 进行中 |
-| 14 | warm catalogue cache 是否复用 | BUG_FOUND_AND_FIXED（工具层） | gaia_client 进程内缓存跨帧不命中（每帧独立进程）→ V17 用 platesolve hint（上一帧 CRVAL 作初始指向，逐帧求解验证）实现跨帧 warm；phase1_e2e_bench.py warm 模式 |
-| 15 | Phase1 canonical source snapshot 完整性 | DISPROVED（H 处理中） | 审核包 source/canonical_core 含 orchestrator/calibration/plate solve/photometry/PSF/SNR/drizzle/shared/browser；repo_source_manifest.csv 全仓 path/SHA256/classification/caller |
-
-## 审查中额外发现并修复
-
-- orchestrator legacy 移除后不可编译（dll_loader 括号失衡 +
-  GRADIENT_SPHERE/STACK 残留）→ 修复并重建（round1 P1-001/002）；
-- Siril 同源对照极性 bug → 修复后 100% 一致（round1 P1-003）；
-- large_scale mask 覆盖 bug → 只增不减（round1 P1-004）；
-- rejection_cli normalization 漏读 → real16 9.45%→0.54%（round1 P1-005）；
-- large_scale pre/post 统计口径 → grown 精确（round1 P2-001）。
+| 1 | profiler 造成加速假象 | DISPROVED | fine profiler 默认关闭（ASTROCS_DRIZZLE_FINE_PROFILE 门控）；before/after 均用同构剖析采样；最终 16 帧 67.35s 与单帧 65.7s 一致 |
+| 2 | fixed geometry fast path 漏 candidate | DISPROVED | candidate oracle 9003/9003 PASS；scratch 复用后 t_drop_geom clip_normals 未清空 bug 已修（先 FAIL 后 PASS） |
+| 3 | boundary array 与 vector oracle 不一致 | DISPROVED | get_healpix_boundary4 与 get_healpix_boundary 同一 4 角计算；edge/overlap oracle PASS |
+| 4 | acos→dot 改边界判定 | DISPROVED（第一版 BUG 已修） | 1e-19 sliver oracle 证明 dot<cos(lim) 不等价 → 安全余量方案（lim+1e-9）拒绝集为原集严格子集；edge oracle PASS |
+| 5 | hierarchy 优化改变 parent 数值 | DISPROVED | NESTED sig/sup 缓存与 FITS 序读回逐位一致（同一 float/double 存储）；单帧 signal max_abs 5.6e-9（FP32 级） |
+| 6 | FP32 merge order 改变 science | DISPROVED | 单帧对比 V17 产物：signal 5.6e-9、support 4.6e-6（FP32 舍入级） |
+| 7 | SNR malloc leak | DISPROVED（已修） | RAII vector 替代 malloc/free；HiPS-only 路径无泄漏（原 free 仅在 legacy 路径） |
+| 8 | HiPS scratch 跨 tile 未清 | DISPROVED | ProductSet scratch 每 tile 重填（sig_n/sup_n resize+写）；单帧 tile 57/57 与 V17 同构 |
+| 9 | global omp thread side effect | DISPROVED（已修） | omp_set_num_threads → parallel num_threads 子句；calibration 显式接口保留 |
+| 10 | data_pipeline 实际仍 build | DISPROVED（已删） | git rm；rg 无构建引用；astro_image_io canonical |
+| 11 | SHA 实现仍复制 | DISPROVED（已归一化） | orchestrator/ACR 3 份 SHA256 删除，统一 common/crypto；配置 SHA 一致 |
+| 12 | config typed/JSON 双路径 | DISPROVED（V17 已清理） | stage1/stage2 typed 单一解析；legacy aliases 已删（V17） |
+| 13 | performance subset 冒充 full | DISPROVED | 最终验证 = 1 次完整 16 帧（非 subset），16/16 rc=0 |
+| 14 | wall accounting 重叠计时冒充 98% | DISPROVED | 资源剖析按日志绝对时间戳对齐阶段（非累计）；fine profile 累计时间标注线程累计 |
+| 15 | docs 仍写旧 Stage2/Phase1 状态 | DISPROVED（已修） | HANDOVER 重写为 V18R2；legacy Stage2 移除（V17）已如实 |
 
 ```text
-ROUND5=PASS（15/15 假设闭环；额外 5 处 BUG_FOUND_AND_FIXED）
+ROUND5=PASS（15/15 闭环；另抓出 clip_normals 复用、spectrum 剪枝、polar 符号 3 个实现 bug 并修复）
 ```

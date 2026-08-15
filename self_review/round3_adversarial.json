@@ -1,82 +1,38 @@
 {
   "round": 3,
-  "kind": "adversarial_science",
-  "head": "V17 main",
+  "kind": "adversarial",
+  "head": "V18R2",
   "cases": [
     {
       "id": "ADV-01",
-      "attack": "weight=NaN/Inf 是否产生 OK+NaN",
+      "attack": "polar 剪枝漏选极区星",
       "result": "DISPROVED",
-      "evidence": "V17NonFiniteWeightInvalid：INVALID_INPUT；signal 不再 NaN"
+      "evidence": "899/899 逐颗一致 + candidate oracle"
     },
     {
       "id": "ADV-02",
-      "attack": "rejection INVALID_* 被 Stage2 当 UNDERDETERMINED 继续积分",
+      "attack": "quick-reject dot 预判误拒边界 sliver",
       "result": "DISPROVED",
-      "evidence": "stage2 CPU/ACR 只接受 OK/UNDERDETERMINED，其余 return 6/throw；V17InvalidMethodStatus"
+      "evidence": "安全余量 1e-9 rad；edge oracle 1e-19 尺度 PASS"
     },
     {
       "id": "ADV-03",
-      "attack": "percentile 在负物理 median 上阈值方向错",
-      "result": "DISPROVED",
-      "evidence": "percentile 强制 astrocs_median_center_v1（|median| 尺度）；V16NegativeMedian 测试 + V16InvalidConfigurationCombos"
+      "attack": "scratch 复用交叉污染",
+      "result": "BUG_FOUND_AND_FIXED",
+      "evidence": "clip_normals 未清空 → 修复；单帧 signal 5.6e-9"
     },
     {
       "id": "ADV-04",
-      "attack": "n=2 卫星线像素被 Auto 宣称可剔除",
+      "attack": "spectrum 查询仍有 36GB 泄漏",
       "result": "DISPROVED",
-      "evidence": "underdetermined_n=2 → P2_STATUS_UNDERDETERMINED（全接受但记录）；real16 underdetermined=10766px"
+      "evidence": "PHOTOMETRIC 17.8s→<1s；RSS 峰值 1.2GB"
     },
     {
       "id": "ADV-05",
-      "attack": "MinMax 迭代删到 min_kept 以下",
+      "attack": "omp 全局线程副作用",
       "result": "DISPROVED",
-      "evidence": "一次性 rank 删除（50 bias (3,5)→42）；V16MinMaxFixedCountExact"
-    },
-    {
-      "id": "ADV-06",
-      "attack": "large_scale 把 compact cosmic/星点无限生长",
-      "result": "DISPROVED",
-      "evidence": "min_structure_pixels=8 过滤；cosmic 2×2 不生长（单元 + E2E grown=0）"
-    },
-    {
-      "id": "ADV-07",
-      "attack": "真实 16 帧 rejection 率冒充 false reject",
-      "result": "DISPROVED",
-      "evidence": "改名 observed_rejection_rate；true FPR 只由受控 zero-outlier truth 提供（1.88%，Siril 100% 一致）"
-    },
-    {
-      "id": "ADV-08",
-      "attack": "wbpp_current 随安装版本漂移",
-      "result": "DISPROVED",
-      "evidence": "canonical=wbpp_2_9_1；alias 在 parser 规范化；diagnostics 序列化 wbpp_2_9_1"
-    },
-    {
-      "id": "ADV-09",
-      "attack": "legacy Stage2 仍可被 build/load/call",
-      "result": "DISPROVED",
-      "evidence": "healpix_stack 移入 archive/legacy；orchestrator 枚举/接线删除；运行时只加载 7 模块；no_legacy PASS；make 编译通过"
-    },
-    {
-      "id": "ADV-10",
-      "attack": "旧 config low/high/max_iterations/min_samples 静默映射",
-      "result": "DISPROVED",
-      "evidence": "parser 硬错误（提示迁移）；schema/template 无这些键；config_consistency PASS"
-    },
-    {
-      "id": "ADV-11",
-      "attack": "satellite gate 的 clean baseline 用同样过度拒绝的 clean",
-      "result": "DISPROVED",
-      "evidence": "truth=method none（无拒绝）参考；四组对照（truth/clean/trail/trail_none）；受控 truth 独立测 FPR"
-    },
-    {
-      "id": "ADV-12",
-      "attack": "stage2 输出 support 与 kernel 不一致（多实现）",
-      "result": "DISPROVED",
-      "evidence": "support_out=pr.support（唯一 reducer）；ACR 消费 pr.support；rg 无第二处 max/mean"
+      "evidence": "parallel num_threads 子句"
     }
   ],
-  "P0": 0,
-  "P1": 0,
   "verdict": "ROUND3_ADVERSARIAL=PASS"
 }
