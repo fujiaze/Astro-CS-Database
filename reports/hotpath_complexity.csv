@@ -1,0 +1,13 @@
+component,operation,complexity,count_evidence,repeat_work_evidence,status
+Drizzle candidate query,NESTED bbox enumeration per source pixel,O(P x 25),16.8M px x ~25 candidates = 4.23e8,adjacent pixels share bbox but per-pixel enum; zero-miss oracle bounds fix,OPTIMIZED (bit ops; row vertex cache)
+Drizzle overlap quick-reject,acos(d)>lim per candidate,O(P x C x 1),4.23e8 quick rejects,4.23e8 acos -> safe-margin dot prefilter,OPTIMIZED (dot + acos only on boundary band)
+Drizzle S-H clipping,sutherland_hodgman 4x4,O(P x C x 4x4),9.90e7 sh paths,frozen algorithm,OPTIMIZED (quad S-H single pass, R12)
+Drizzle geometry,radec_to_vec 4 corners per pixel,O(P x 8 sincos),16.8M x 8,adjacent pixels share corners,OPTIMIZED (row-level Vec3 cache)
+Drizzle accumulation,tileMap[parent] + leaf arrays,O(P x C x 1),thread-local maps + contiguous leaf,merge single-thread over touched,ACCEPTED (map keyed by tile; leaf contiguous)
+HiPS transform,nested_local_to_fits per pixel per tile,O(T x N),57 tiles x 262144,per-tile recompute,OPTIMIZED (NESTED sig/sup cache for hierarchy; transform once)
+HiPS hierarchy,per leaf x ancestor x 512^2,O(T x N x H),7 levels x 262144 x tiles,recompute from FITS-order buffer,OPTIMIZED (NESTED direct accumulation)
+HiPS FITS write,CFITSIO per tile,O(T),57 tiles x 2 products,4 buffers allocated per tile,OPTIMIZED (dtype scratch reuse)
+Gaia star cone search,tree traversal O(nodes),164219 nodes / 16.3GB read per 0.86deg query,polar RA-wrap bbox degenerate -> full tree,OPTIMIZED (polar plane pruning: 1224 nodes / 35MB)
+Gaia spectrum search,tree traversal O(nodes),227k+ nodes / 26GB per photometric query,same RA-wrap bbox issue,OPTIMIZED (same pruning; PHOTOMETRIC 17.8s -> <1s)
+PlateSolve pipeline,star detect + gaia match,O(detect) + O(query),0.8s detect + 0.16s match,query was dominant,OPTIMIZED (15s -> 0.16s)
+Process exit,DLL unload + 36GB release,O(memory),40s with 36GB working set,memory held from gaia queries,OPTIMIZED (RSS 1.2GB -> 0.7s exit)
