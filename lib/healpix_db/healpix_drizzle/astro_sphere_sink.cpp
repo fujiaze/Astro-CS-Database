@@ -71,6 +71,8 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
     std::vector<Scalar> dense_area(n_leaf, Scalar(0));
     std::vector<Scalar> dense_var(n_leaf, Scalar(0));
     size_t n_written = 0;
+    std::uint64_t n_variance_skipped = 0;
+    std::uint64_t n_variance_written = 0;
     for (const auto& tile : tiles) {
         if (tile.touched.empty()) continue;
         const auto t_tr0 = std::chrono::steady_clock::now();
@@ -109,11 +111,24 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
         if (has_variance) {
             rc = aio_hips_write_variance_tile(ps, &view);
             if (rc != 0) {
-                err = "aio_hips_write_variance_tile rc=" + std::to_string(rc) +
-                      ": " + (aio_hips_last_error() ? aio_hips_last_error() : "?");
-                aio_hips_abort(ps);
-                std::fprintf(stderr, "[sink] %s\n", err.c_str());
-                return false;
+                // 该 tile 全零/无有效方差 → 跳过本 tile variance (不中止)
+                if (rc == -5 || rc == -2) {
+                    std::fprintf(stderr,
+                                 "[sink] variance tile %llu 无有效数据 (rc=%d), "
+                                 "跳过该 tile (signal 不受影响)\n",
+                                 (unsigned long long)view.parent_ipix, rc);
+                    ++n_variance_skipped;
+                    // 仅跳过 variance 计数, signal/support 已写, 正常收尾
+                } else {
+                    err = "aio_hips_write_variance_tile rc=" +
+                          std::to_string(rc) + ": " +
+                          (aio_hips_last_error() ? aio_hips_last_error() : "?");
+                    aio_hips_abort(ps);
+                    std::fprintf(stderr, "[sink] %s\n", err.c_str());
+                    return false;
+                }
+            } else {
+                ++n_variance_written;
             }
         }
         prof_fits_write += std::chrono::duration<double>(
@@ -148,6 +163,10 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
         std::chrono::steady_clock::now() - t_fin0).count();
     std::fprintf(stderr, "[sink] HiPS 直写完成: %zu tiles -> %s\n",
                  n_written, hips_dir.c_str());
+    std::fprintf(stderr,
+                 "[sink] variance tiles written=%llu skipped(no-data)=%llu\n",
+                 (unsigned long long)n_variance_written,
+                 (unsigned long long)n_variance_skipped);
     std::fprintf(stderr,
                  "[sink][profile] transform=%.3fs fits_write=%.3fs "
                  "finalize=%.3fs total=%.3fs\n",
