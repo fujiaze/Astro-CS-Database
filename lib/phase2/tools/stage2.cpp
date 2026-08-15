@@ -295,6 +295,19 @@ int main(int argc, char** argv) {
         }
     }
     std::uint64_t local_snr_used = 0, frame_snr_fallback = 0;
+    // V19 (SNR_REDESIGN_CONTRACT §13): 控制 cell 级 ivar (来自帧 ivar 产品)
+    std::map<std::tuple<std::uint64_t, std::uint64_t, int, int>, double>
+        local_ivar_map;
+    std::uint64_t local_ivar_used = 0;
+    for (const auto& o : obs) {
+        if (o.ivar <= 0.0 || !std::isfinite(o.ivar)) continue;
+        const std::uint64_t tile = o.leaf_ipix >> 18;
+        const std::uint64_t local = o.leaf_ipix & ((1ULL << 18) - 1ULL);
+        std::uint32_t x = 0, y = 0;
+        astrocs::healpix::nested_local_to_xy(local, 9u, x, y);
+        local_ivar_map[std::make_tuple(o.frame_id, tile, (int)(x / 64),
+                                       (int)(y / 64))] = o.ivar;
+    }
     log("local snr unavailable controls (fallback to frame median): " +
         std::to_string(local_snr_unavailable));
 
@@ -376,6 +389,20 @@ int main(int argc, char** argv) {
             }
             p2_upm_close(model);
             return 6;
+        }
+    }
+    // V19 (SNR_REDESIGN_CONTRACT §13): ivar 产品 (weight_mode=2 默认)
+    //   缺失产品 → 回退 support (几何可靠性), 计数如实记录 (不伪造 ivar)
+    std::vector<AioHipsDataset*> ivr(cfg.hips.size(), nullptr);
+    std::uint64_t ivar_product_missing = 0;
+    if (cfg.weight_mode == 2) {
+        for (std::size_t i = 0; i < cfg.hips.size(); ++i) {
+            ivr[i] = aio_hips_open(cfg.hips[i].c_str(), AIO_HIPS_RD_IVAR);
+            if (!ivr[i]) {
+                ++ivar_product_missing;
+                log("frame " + std::to_string(i) +
+                    " 无 ivar 产品, 该帧积分权重回退 support (几何可靠性)");
+            }
         }
     }
     AioHipsProductSet* ps = aio_hips_product_begin(
@@ -625,10 +652,10 @@ int main(int argc, char** argv) {
         }
 
         if (use_acr_block) {
-            // compact per-cell SNR（P0-10/R8：与 frames[s] 一一对应且按
-            // control cell 提供局部 SNR；缺失 cell → 整帧 median fallback）
             const int grid = 8;
-            std::vector<float> snr_compact(depth * grid * grid);
+            // V19: weight_mode=2 → compact per-cell ivar (buffer3=ivar);
+            //      weight_mode=0 (legacy) → per-cell SNR
+            std::vector<float> weight_compact(depth * grid * grid);
             for (std::uint32_t s = 0; s < depth; ++s) {
                 const std::uint64_t fid =
                     frame_id_cache[frames[s]];
@@ -637,18 +664,28 @@ int main(int argc, char** argv) {
                     for (int gx = 0; gx < grid; ++gx) {
                         const auto key =
                             std::make_tuple(fid, tile_ipix, gx, gy);
-                        const auto sit = local_snr_map.find(key);
-                        if (sit != local_snr_map.end()) {
-                            snr_compact[(std::size_t)(s * grid * grid +
-                                                      gy * grid + gx)] =
-                                (float)sit->second;
-                            ++local_snr_used;
+                        double v;
+                        if (cfg.weight_mode == 2) {
+                            const auto iit = local_ivar_map.find(key);
+                            if (iit != local_ivar_map.end()) {
+                                v = iit->second;
+                                ++local_ivar_used;
+                            } else {
+                                v = (ivar_product_missing == 0) ? 1.0 : 0.0;
+                            }
                         } else {
-                            snr_compact[(std::size_t)(s * grid * grid +
-                                                      gy * grid + gx)] =
-                                (float)fb;
-                            ++frame_snr_fallback;
+                            const auto sit = local_snr_map.find(key);
+                            if (sit != local_snr_map.end()) {
+                                v = sit->second;
+                                ++local_snr_used;
+                            } else {
+                                v = fb;
+                                ++frame_snr_fallback;
+                            }
                         }
+                        weight_compact[(std::size_t)(s * grid * grid +
+                                                     gy * grid + gx)] =
+                            (float)v;
                     }
             }
             std::vector<float> frames_f32(chunk_pixels * depth);
@@ -702,7 +739,7 @@ int main(int argc, char** argv) {
                                 astro::compute::BufferRole::Input);
                 inv.buffers.add(2, sup_f32.data(), cnt * depth, 1,
                                 astro::compute::BufferRole::Input);
-                inv.buffers.add(3, snr_compact.data(),
+                inv.buffers.add(3, weight_compact.data(),
                                 depth * grid * grid, 1,
                                 astro::compute::BufferRole::Input);
                 inv.buffers.add(4, out_sup_f32.data(), cnt, 1,
@@ -725,6 +762,8 @@ int main(int argc, char** argv) {
                                               int{rplan.sigma.max_iterations});
                 astro::compute::append_scalar(inv.scalars,
                                               std::size_t{p0});  // chunk tile 偏移
+                astro::compute::append_scalar(inv.scalars,
+                                              int{cfg.weight_mode});  // V19
                 try {
                     if (gpu_ready && acr_reg->cuda.has_value()) {
                         (*acr_reg->cuda)(inv, nullptr);
@@ -809,6 +848,8 @@ int main(int argc, char** argv) {
         }
 
         // CPU reference 路径：逐 chunk（micro-chunk）处理
+        std::vector<float> t_ivar(512 * 512, 1.0f);
+        std::vector<std::uint8_t> ivar_avail(depth, 0);   // 每帧 ivar 可用性
         for (std::uint64_t c = 0; c < n_chunk; ++c) {
             const std::uint64_t p0 = c * chunk_pixels;
             const std::uint64_t p1 =
@@ -823,6 +864,12 @@ int main(int argc, char** argv) {
                                            t_sup.data()) != 0) {
                     log("tile read failed");
                             return 6;
+                }
+                ivar_avail[s] = 0;
+                if (cfg.weight_mode == 2 && ivr[f]) {
+                    if (aio_hips_read_tile_f32(ivr[f], tile_ipix,
+                                               t_ivar.data()) == 0)
+                        ivar_avail[s] = 1;
                 }
                 for (std::uint64_t i = 0; i < cnt; ++i) {
                     const std::uint64_t g = p0 + i;
@@ -864,24 +911,43 @@ int main(int argc, char** argv) {
                     p2_upm_close(model);
                     return 6;
                 }
-                // R8：局部 SNR（control cell 级）；缺失 → 整帧 median fallback
-                for (std::uint32_t s = 0; s < n_valid; ++s) {
-                    const std::uint64_t fid =
-                        frame_id_cache[fid_stack[s]];
-                    const int px = (int)(p % 512);
-                    const int py = (int)(p / 512);
-                    const auto key = std::make_tuple(
-                        fid, tile_ipix, px / 64, py / 64);
-                    const auto sit = local_snr_map.find(key);
-                    double snr_v;
-                    if (sit != local_snr_map.end()) {
-                        snr_v = sit->second;
-                        ++local_snr_used;
-                    } else {
-                        snr_v = frame_snr[fid_stack[s]];
-                        ++frame_snr_fallback;
+                // V19: 权重模式
+                //   mode 2 (ivar, 默认): 逐像素 ivar (帧 ivar 产品);
+                //     产品缺失 → support (几何可靠性, 不伪造 ivar)
+                //   mode 0 (legacy): support × snr² (仅 ablation/诊断)
+                //   mode 1 (equal): weights 不填 (等权)
+                if (cfg.weight_mode == 2) {
+                    for (std::uint32_t s = 0; s < n_valid; ++s) {
+                        if (ivar_avail[s]) {
+                            weights[s] = (double)t_ivar[(std::size_t)p];
+                            if (!std::isfinite(weights[s]) || weights[s] <= 0.0)
+                                weights[s] = support_v[s];
+                            ++local_ivar_used;
+                        } else {
+                            weights[s] = support_v[s];   // 缺 ivar → support
+                        }
                     }
-                    weights[s] = support_v[s] * snr_v * snr_v;
+                } else if (cfg.weight_mode == 0) {
+                    for (std::uint32_t s = 0; s < n_valid; ++s) {
+                        const std::uint64_t fid =
+                            frame_id_cache[fid_stack[s]];
+                        const int px = (int)(p % 512);
+                        const int py = (int)(p / 512);
+                        const auto key = std::make_tuple(
+                            fid, tile_ipix, px / 64, py / 64);
+                        const auto sit = local_snr_map.find(key);
+                        double snr_v;
+                        if (sit != local_snr_map.end()) {
+                            snr_v = sit->second;
+                            ++local_snr_used;
+                        } else {
+                            snr_v = frame_snr[fid_stack[s]];
+                            ++frame_snr_fallback;
+                        }
+                        weights[s] = support_v[s] * snr_v * snr_v;
+                    }
+                } else {
+                    std::fill(weights.begin(), weights.end(), 1.0);
                 }
                 // V17：SNR lookup 后统一校验候选权重（非 finite/非正 → fatal）
                 if (p2_validate_candidate_weights(weights.data(), n_valid) !=
@@ -1104,6 +1170,7 @@ int main(int argc, char** argv) {
     for (std::size_t i = 0; i < cfg.hips.size(); ++i) {
         if (sig[i]) aio_hips_close(sig[i]);
         if (sup[i]) aio_hips_close(sup[i]);
+        if (ivr[i]) aio_hips_close(ivr[i]);
     }
     log("HiPS mosaic written: tiles=" + std::to_string(tiles_written) +
         " pixels=" + std::to_string(total_pixels) +
@@ -1182,6 +1249,9 @@ int main(int argc, char** argv) {
         diag["quality_fallback_unknown"] = quality_unknown;
         diag["local_snr_used"] = local_snr_used;
         diag["frame_snr_median_fallback"] = frame_snr_fallback;
+        diag["weight_mode"] = cfg.weight_mode;
+        diag["local_ivar_used"] = local_ivar_used;
+        diag["ivar_product_missing"] = ivar_product_missing;
         diag["local_snr_unavailable_controls"] = local_snr_unavailable;
         diag["upm_sigma_floor"] = cfg.sigma_floor;
         diag["upm_support_power"] = cfg.support_power;

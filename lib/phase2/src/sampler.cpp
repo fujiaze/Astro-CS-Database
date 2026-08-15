@@ -376,6 +376,7 @@ int p2_sample_controls(const P2CoverageResult* coverage,
     // 打开每帧 signal/support/snr 并收集 tile 集合
     std::vector<AioHipsDataset*> sig(n_frames, nullptr);
     std::vector<AioHipsDataset*> sup(n_frames, nullptr);
+    std::vector<AioHipsDataset*> ivr(n_frames, nullptr);   // V19: ivar 产品 (可缺)
     std::vector<FrameData> frames(n_frames);
     for (std::uint64_t i = 0; i < n_frames; ++i) {
         sig[i] = aio_hips_open(hips_paths[i], AIO_HIPS_RD_SIGNAL);
@@ -414,6 +415,9 @@ int p2_sample_controls(const P2CoverageResult* coverage,
             frames[i].quality.resize((size_t)std::max(got, 0));
             aio_hips_close(snr);
         }
+        // V19 (SNR_REDESIGN_CONTRACT §8.3): 逐像素 ivar 产品 (Drizzle 方差传播)
+        //   缺失 → o.ivar=0 (UPM 权重回退 1/uncertainty², 如实降级)
+        ivr[i] = aio_hips_open(hips_paths[i], AIO_HIPS_RD_IVAR);
     }
 
     // ================= V13 background-clean sampler =================
@@ -716,6 +720,18 @@ int p2_sample_controls(const P2CoverageResult* coverage,
             o.uncertainty = cs.unc[fi];
             o.snr = cs.snr[fi];
             o.snr_available = cs.snr_avail[fi];
+            // V19: 控制点 ivar 取自帧 ivar 产品 (控制 leaf 处)
+            o.ivar = 0.0;
+            {
+                AioHipsDataset* iv = ivr[cs.frames[fi]];
+                if (iv) {
+                    float v = 0.0f;
+                    if (aio_hips_read_leaf_f32(iv, cs.leaf, &v) == 0 &&
+                        std::isfinite(v) && v > 0.0f) {
+                        o.ivar = (double)v;
+                    }
+                }
+            }
             o.support = cs.sup[fi];
             o.quality_flags = cs.qual[fi];
             obs.push_back(o);
@@ -727,6 +743,7 @@ int p2_sample_controls(const P2CoverageResult* coverage,
     for (std::uint64_t i = 0; i < n_frames; ++i) {
         if (sig[i]) aio_hips_close(sig[i]);
         if (sup[i]) aio_hips_close(sup[i]);
+        if (ivr[i]) aio_hips_close(ivr[i]);
     }
 
     stats.candidate_observations = 0;

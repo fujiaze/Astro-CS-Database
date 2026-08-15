@@ -80,7 +80,8 @@ struct P2Stage2Config {
     int minmax_min_kept = 4;
     std::string rcr_technique = "ss_median_dl";
     // V17：legacy 别名已删除（旧 config 必须经 migration tool 迁移）
-    int weight_mode = 0;            // support_x_snr2（auto）
+    // V19: 2=ivar (默认, 逆方差); 1=equal; 0=support_x_snr2 (legacy/诊断)
+    int weight_mode = 2;
     std::string acr_route = "auto";
     // output
     std::string out_hips;

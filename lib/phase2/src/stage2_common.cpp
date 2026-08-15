@@ -369,14 +369,19 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
             }
         const std::string wm =
             in.value("weight_mode", std::string("auto"));
-            if (wm == "auto" || wm == "support_x_snr2") {
-                cfg->weight_mode = 0;   // R5 冻结默认 support_x_snr2
-            } else if (wm == "equal") {
-                cfg->weight_mode = 1;
-            } else {
-                *err = "weight_mode 只支持 auto/equal/support_x_snr2";
-                return false;
-            }
+        // V19 (SNR_REDESIGN_CONTRACT §13): 默认 ivar (逆方差)
+        //   w = 1/variance_p (Drizzle 传播); support 只作 validity/coverage。
+        //   support_x_snr2 保留为 legacy/diagnostic (SNR-008 语义退休)。
+        if (wm == "auto" || wm == "ivar") {
+            cfg->weight_mode = 2;   // V19 默认 ivar
+        } else if (wm == "equal") {
+            cfg->weight_mode = 1;
+        } else if (wm == "support_x_snr2") {
+            cfg->weight_mode = 0;   // legacy (仅 ablation/诊断)
+        } else {
+            *err = "weight_mode 只支持 auto/ivar/equal/support_x_snr2";
+            return false;
+        }
             cfg->acr_route = in.value("acr_route", std::string("auto"));
             if (cfg->acr_route != "auto" && cfg->acr_route != "cpu") {
                 *err = "acr_route 只支持 auto/cpu";

@@ -215,12 +215,15 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         cfg.sigma_floor = 1e-3;
         cfg.support_power = 1.0;
         cfg.quality_mode = 0;
+        cfg.use_ivar_weight = 1;   // V19: ivar 科学权重默认开启
         cfg.control_reliability = 1.0;
     }
     if (cfg.huber_delta <= 0.0) cfg.huber_delta = 1.345;
     if (cfg.max_iterations <= 0) cfg.max_iterations = 100;
     if (cfg.sigma_floor <= 0.0) cfg.sigma_floor = 1e-3;
     if (cfg.support_power < 0.0) cfg.support_power = 1.0;
+    // V19: use_ivar_weight 默认 1 (仅显式 0 关闭)
+    // (cfg 拷贝后此处不强制, 保持调用方意图)
     if (cfg.control_reliability <= 0.0) cfg.control_reliability = 1.0;
     if (cfg.zero_anchor_weight < 0.0) cfg.zero_anchor_weight = 1e-3;
     if (cfg.smoothing_lambda < 0.0) cfg.smoothing_lambda = 0.0;
@@ -676,6 +679,7 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         payload += fmt(cfg.zero_anchor_weight) + "|";
         payload += fmt(cfg.sigma_floor) + "|";
         payload += fmt(cfg.support_power) + "|";
+        payload += std::to_string(cfg.use_ivar_weight) + "|";
         payload += m->input_manifest_hash + "|";
         for (const auto& kv : m->frame_index) {
             payload += std::to_string(kv.first) + ";";
@@ -731,6 +735,7 @@ int p2_upm_save(const void* model, const char* path) {
     j["precision"] = m->info.precision;
     j["robust_loss"] = m->cfg.robust_loss;
     j["snr_weight_mode"] = m->cfg.snr_weight_mode;
+    j["use_ivar_weight"] = m->cfg.use_ivar_weight;
     j["huber_delta"] = m->cfg.huber_delta;
     j["smoothing_lambda"] = m->cfg.smoothing_lambda;
     j["zero_anchor_weight"] = m->cfg.zero_anchor_weight;
@@ -819,6 +824,7 @@ int p2_upm_open(const char* path, void** out_model) {
         j.value("unobserved_geometry_nodes", 0ull);
     m->cfg.robust_loss = j.value("robust_loss", 0);
     m->cfg.snr_weight_mode = j.value("snr_weight_mode", 0);
+    m->cfg.use_ivar_weight = j.value("use_ivar_weight", 1);
     m->cfg.huber_delta = j.value("huber_delta", 1.345);
     m->cfg.smoothing_lambda = j.value("smoothing_lambda", 0.0);
     m->cfg.zero_anchor_weight = j.value("zero_anchor_weight", 1e-3);
@@ -993,16 +999,28 @@ int p2_upm_raw_weight(const P2ControlObservation* obs,
         cfg.sigma_floor = 1e-3;
         cfg.support_power = 1.0;
         cfg.quality_mode = 0;
+        cfg.use_ivar_weight = 1;
     }
     if (cfg.sigma_floor <= 0.0) cfg.sigma_floor = 1e-3;
     if (cfg.support_power < 0.0) cfg.support_power = 1.0;
     const double qf = quality_factor(obs->quality_flags, cfg.quality_mode);
     const double sp = std::clamp(obs->support, 0.0, 1.0);
-    const double snr2 = obs->snr * obs->snr;
     const double unc =
         std::max(std::fabs(obs->uncertainty), cfg.sigma_floor);
-    *out_raw = qf * std::pow(sp, cfg.support_power) *
-               (snr2 / (1.0 + snr2)) / (unc * unc);
+    // V19 (SNR_REDESIGN_CONTRACT §12): w_UPM ∝ quality × geometric_reliability
+    // / Var(control_estimator)。ivar 优先 (obs->ivar>0), 否则 uncertainty² 回退。
+    // 旧 snr²/(1+snr²) 仅在 use_ivar_weight=0 时用于 ablation (SNR-015)。
+    double ivar_w;
+    if (cfg.use_ivar_weight != 0 && obs->ivar > 0.0 &&
+        std::isfinite(obs->ivar)) {
+        ivar_w = obs->ivar;
+    } else if (cfg.use_ivar_weight == 0) {
+        const double snr2 = obs->snr * obs->snr;
+        ivar_w = (snr2 / (1.0 + snr2)) / (unc * unc);
+    } else {
+        ivar_w = 1.0 / (unc * unc);
+    }
+    *out_raw = qf * std::pow(sp, cfg.support_power) * ivar_w;
     return 0;
 }
 

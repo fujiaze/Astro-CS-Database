@@ -36,6 +36,9 @@ typedef struct {
     double value;                 // local photometric estimate（可负）
     double uncertainty;           // measurement uncertainty
     double snr;
+    // V19 (SNR_REDESIGN_CONTRACT): 控制点逆方差 (NoiseWeightModelV1 在控制
+    // cell 的 ivar; 0=未知 → 权重回退 1/uncertainty²)
+    double ivar;
     // V4 R6：local SNR 可用性。1=该 control cell 邻域确有 catalogue 星点
     // （snr 为真实局部中位数，可为 1.0）；0=无局部星点（snr 无意义，由
     // 调用方回退整帧 median，禁止以 1.0 伪装 unknown）。
@@ -68,6 +71,9 @@ typedef struct {
     double sigma_floor;           // uncertainty 下限（默认 1e-3）
     double support_power;         // support 因子指数（默认 1.0）
     int    quality_mode;          // 0=flags 映射（默认）
+    // V19: 1=science weight 用 ivar (obs->ivar>0 优先, 否则 1/unc²);
+    //      0=legacy snr²/(1+snr²) 仅用于 ablation/诊断 (SNR-015)
+    int    use_ivar_weight;       // 默认 1
     double control_reliability;   // 默认 control reliability（默认 1.0）
     const char* input_manifest_hash;  // 输入稳定 manifest（可空；非空时参与模型 hash）
 } P2UpmBuildConfig;

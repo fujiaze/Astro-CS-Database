@@ -61,6 +61,10 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
     const auto p0 = read_scalar<std::size_t>(
         inv.scalars, 2 * sizeof(std::size_t) + 2 * sizeof(int) +
                          2 * sizeof(double) + sizeof(int));
+    // V19: weight_mode scalar (offset 7); 缺省 0=legacy support×snr²
+    const auto wmode = read_scalar<int>(
+        inv.scalars, 2 * sizeof(std::size_t) + 2 * sizeof(int) +
+                         2 * sizeof(double) + sizeof(int) + sizeof(std::size_t));
     if (!px || !depth || *px == 0 || *depth == 0) {
         throw std::runtime_error("mosaic_reject: missing scalars");
     }
@@ -117,9 +121,11 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
         if (p2_collect_candidate_stack(&gin, &gout) != 0) {
             throw std::runtime_error("mosaic_reject: eligibility failed");
         }
-        // R8：局部 SNR（control cell grid=8）；权重 = support × snr²
+        // V19: 权重模式
+        //   wmode=2 (ivar, 默认): buffer3=control-cell ivar, w = support × ivar
+        //   wmode=0 (legacy): buffer3=control-cell SNR, w = support × snr²
         for (std::uint32_t s = 0; s < n_valid; ++s) {
-            double snr_v = 1.0;
+            double wgt_v = 1.0;
             if (snr != nullptr) {
                 const int grid = 8;
                 const std::size_t tile_p = p0 ? *p0 + p : p;
@@ -127,11 +133,13 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
                 const int py = (int)(tile_p / 512u);
                 const int cell = (py / 64) * grid + (px / 64);
                 const std::uint64_t fs = fid_compact[s];
-                snr_v = static_cast<double>(
+                wgt_v = static_cast<double>(
                     static_cast<const float*>(snr->data)
                         [fs * grid * grid + (std::size_t)cell]);
             }
-            stack_w[s] = stack_sup[s] * snr_v * snr_v;
+            const bool ivar_mode = (wmode && *wmode == 2);
+            stack_w[s] = ivar_mode ? stack_sup[s] * wgt_v
+                                   : stack_sup[s] * wgt_v * wgt_v;
         }
         if (n_valid == 0) {
             dst[p] = 0.0f;

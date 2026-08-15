@@ -194,14 +194,17 @@ extern "C" {
 
 AioHipsDataset* aio_hips_open(const char* out_dir, int product) {
     g_rd_error.clear();
-    if (!out_dir || !*out_dir || product < 0 || product > 2) {
+    if (!out_dir || !*out_dir || product < AIO_HIPS_RD_SIGNAL ||
+        product > AIO_HIPS_RD_IVAR) {
         set_err("参数无效");
         return nullptr;
     }
     std::unique_ptr<AioHipsDataset> d(new AioHipsDataset);
     d->product = product;
     const char* sub = product == AIO_HIPS_RD_SIGNAL ? "signal" :
-                      product == AIO_HIPS_RD_SUPPORT ? "support" : "snr";
+                      product == AIO_HIPS_RD_SUPPORT ? "support" :
+                      product == AIO_HIPS_RD_SNR ? "snr" :
+                      product == AIO_HIPS_RD_VARIANCE ? "variance" : "ivar";
     d->dir = std::string(out_dir) + "/" + sub;
     d->props = parse_properties(d->dir + "/properties");
     auto geti = [&](const std::string& k, int def) -> int {

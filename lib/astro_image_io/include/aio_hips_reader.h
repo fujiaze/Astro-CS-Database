@@ -22,7 +22,10 @@ extern "C" {
 enum AioHipsProduct {
     AIO_HIPS_RD_SIGNAL  = 0,
     AIO_HIPS_RD_SUPPORT = 1,
-    AIO_HIPS_RD_SNR     = 2
+    AIO_HIPS_RD_SNR     = 2,
+    // V19 (P1-003): variance/ivar 产品读取
+    AIO_HIPS_RD_VARIANCE = 3,
+    AIO_HIPS_RD_IVAR     = 4
 };
 
 typedef struct AioHipsDataset AioHipsDataset;

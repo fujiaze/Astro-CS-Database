@@ -821,6 +821,10 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
         PipelineFrame*, const char*, AioBlockType,
         void*, int64_t, const int*, int, const char*)>(
         ModuleId::AIO, "aio_frame_add_block_move");
+    auto fn_add_block = dll_loader_.get_function<int (*)(
+        PipelineFrame*, const char*, AioBlockType,
+        const void*, int64_t, const int*, int, const char*)>(
+        ModuleId::AIO, "aio_frame_add_block");
     auto fn_kv_get = dll_loader_.get_function<const char* (*)(
         const PipelineFrame*, const char*, const char*)>(
         ModuleId::AIO, "aio_frame_kv_get");
@@ -830,6 +834,7 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     auto fn_kv_set = dll_loader_.get_function<int (*)(
         PipelineFrame*, const char*, const char*, const char*)>(
         ModuleId::AIO, "aio_frame_kv_set");
+
     auto fn_kv_set_double = dll_loader_.get_function<int (*)(
         PipelineFrame*, const char*, const char*, double)>(
         ModuleId::AIO, "aio_frame_kv_set_double");
@@ -4393,6 +4398,26 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
         PipelineFrame*, const char*, const char*, const char*)>(
         ModuleId::AIO, "aio_frame_kv_set");
 
+    // V19 (SNR_REDESIGN_CONTRACT): NoiseWeightModelV1 函数指针
+    using NoiseModelFn = int (*)(const void*, int, int, const float*,
+                                 const double*, const double*, int,
+                                 const SnrNoiseModelConfig*, NoiseWeightModelV1*);
+    using NoiseFillFn = int (*)(const NoiseWeightModelV1*, int, int,
+                                float*, float*);
+    using NoiseFreeFn = void (*)(NoiseWeightModelV1*);
+    auto fn_noise_model = dll_loader_.get_function<NoiseModelFn>(
+        ModuleId::SNR, "snr_noise_model_v1");
+    auto fn_noise_model_f64 = dll_loader_.get_function<NoiseModelFn>(
+        ModuleId::SNR, "snr_noise_model_v1_f64");
+    auto fn_noise_fill = dll_loader_.get_function<NoiseFillFn>(
+        ModuleId::SNR, "snr_noise_model_v1_fill");
+    auto fn_noise_free = dll_loader_.get_function<NoiseFreeFn>(
+        ModuleId::SNR, "snr_noise_model_v1_free");
+    auto fn_add_block = dll_loader_.get_function<int (*)(
+        PipelineFrame*, const char*, AioBlockType,
+        const void*, int64_t, const int*, int, const char*)>(
+        ModuleId::AIO, "aio_frame_add_block");
+
     if (!fn_extract_v3 || !fn_free_v3 || !fn_get_block || !fn_remove_block
         || !fn_add_block_move || !fn_kv_get_double) {
         LOG_ERROR("orchestrator", "[SNR] 函数指针获取失败 (snr_extract_model_v3 必需)");
@@ -4717,7 +4742,154 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
     // 释放 SnrModelV3 内部资源 (points 数组, 由 snr_estimator DLL 分配)
     fn_free_v3(&model);
 
-    LOG_INFO("orchestrator", "[SNR] 完成 (snr_model 块已写入, payload=" + std::to_string(payload_size) + "B)");
+    // ====================================================================
+    // V19 (SNR_REDESIGN_CONTRACT): NoiseWeightModelV1 — source-masked
+    // blank-sky 稳健方差 → 逐像素 variance/ivar 块 (Phase2 science 权重来源)
+    //   旧 snr_model 块保留为 diagnostic / migration (LEGACY_SNR_SCIENCE_CONSUMER=0)
+    // ====================================================================
+    {
+        const AioBlock* data_blk = fn_get_block(frame_, "data");
+        bool data_ok = (data_blk != nullptr && data_blk->data &&
+                        data_blk->dims[0] > 0 && data_blk->dims[1] > 0 &&
+                        (data_blk->type == AIO_BLOCK_FLOAT32 ||
+                         data_blk->type == AIO_BLOCK_FLOAT64));
+        if (!data_ok) {
+            LOG_WARN("orchestrator", "[SNR] data 块缺失/格式不符, 跳过 NoiseWeightModelV1 "
+                     "(variance 块不写, Phase2 权重将退化)");
+            if (fn_kv_set) {
+                fn_kv_set(frame_, "photo_stats", "NOISE_MODEL_STATUS", "SKIPPED_NO_DATA");
+            }
+        } else if (!fn_noise_model || !fn_noise_model_f64 ||
+                   !fn_noise_fill || !fn_noise_free) {
+            LOG_WARN("orchestrator", "[SNR] NoiseWeightModelV1 函数指针缺失, "
+                     "跳过 (variance 块不写)");
+            if (fn_kv_set) {
+                fn_kv_set(frame_, "photo_stats", "NOISE_MODEL_STATUS", "SKIPPED_API_MISSING");
+            }
+        } else {
+            const int H = (int)data_blk->dims[0];
+            const int Wd = (int)data_blk->dims[1];
+            // 星点掩膜输入: psf cx/cy (0-based)
+            std::vector<double> star_x, star_y;
+            star_x.reserve((size_t)n_stars);
+            star_y.reserve((size_t)n_stars);
+            for (int i = 0; i < n_stars; ++i) {
+                const double cx = psf_data[(size_t)i * 9 + 3];
+                const double cy = psf_data[(size_t)i * 9 + 4];
+                if (std::isfinite(cx) && std::isfinite(cy)) {
+                    star_x.push_back(cx);
+                    star_y.push_back(cy);
+                }
+            }
+            SnrNoiseModelConfig ncfg = {};
+            // 默认配置 (API 内部); gain/read-noise 从 FITS header 读取
+            const char* gain_s = fn_kv_get ? fn_kv_get(frame_, "header", "GAIN") : nullptr;
+            const char* rn_s = fn_kv_get ? fn_kv_get(frame_, "header", "READNOI") : nullptr;
+            if (gain_s && gain_s[0]) ncfg.gain_e_per_adu = std::atof(gain_s);
+            if (rn_s && rn_s[0]) ncfg.read_noise_e = std::atof(rn_s);
+            NoiseWeightModelV1 nm = {};
+            int nret = 0;
+            if (data_blk->type == AIO_BLOCK_FLOAT64) {
+                nret = fn_noise_model_f64(
+                    data_blk->data, H, Wd, nullptr,
+                    star_x.empty() ? nullptr : star_x.data(),
+                    star_y.empty() ? nullptr : star_y.data(),
+                    (int)star_x.size(), &ncfg, &nm);
+            } else {
+                nret = fn_noise_model(
+                    data_blk->data, H, Wd, nullptr,
+                    star_x.empty() ? nullptr : star_x.data(),
+                    star_y.empty() ? nullptr : star_y.data(),
+                    (int)star_x.size(), &ncfg, &nm);
+            }
+            if (nret != 0 && nret != 1) {
+                LOG_WARN("orchestrator", "[SNR] NoiseWeightModelV1 失败 (ret=" +
+                         std::to_string(nret) + "), variance 块不写");
+                if (fn_kv_set) {
+                    fn_kv_set(frame_, "photo_stats", "NOISE_MODEL_STATUS", "FAILED");
+                }
+            } else {
+                std::vector<float> variance((size_t)H * (size_t)Wd, 0.0f);
+                std::vector<float> ivar((size_t)H * (size_t)Wd, 0.0f);
+                if (fn_noise_fill(&nm, H, Wd, variance.data(), ivar.data()) == 0) {
+                    const bool fp64 = (config_.precision == PrecisionMode::FP64);
+                    int dims2[2] = {H, Wd};
+                    // variance 块 (FLOAT32/64 与精度一致)
+                    if (fp64) {
+                        std::vector<double> var64(variance.begin(), variance.end());
+                        std::vector<double> ivar64(ivar.begin(), ivar.end());
+                        fn_remove_block(frame_, "variance");
+                        int wv = fn_add_block(
+                            frame_, "variance", AIO_BLOCK_FLOAT64,
+                            var64.data(), (int64_t)var64.size(), dims2, 2,
+                            "V19 NoiseWeightModelV1 variance (ADU², blank-sky)");
+                        if (wv != 0) {
+                            LOG_WARN("orchestrator", "[SNR] variance FLOAT64 块写入失败 (ret=" +
+                                     std::to_string(wv) + ")");
+                        }
+                        fn_remove_block(frame_, "ivar");
+                        int wi = fn_add_block(
+                            frame_, "ivar", AIO_BLOCK_FLOAT64,
+                            ivar64.data(), (int64_t)ivar64.size(), dims2, 2,
+                            "V19 NoiseWeightModelV1 ivar");
+                        if (wi != 0) {
+                            LOG_WARN("orchestrator", "[SNR] ivar FLOAT64 块写入失败 (ret=" +
+                                     std::to_string(wi) + ")");
+                        }
+                    } else {
+                        fn_remove_block(frame_, "variance");
+                        int wv = fn_add_block(
+                            frame_, "variance", AIO_BLOCK_FLOAT32,
+                            variance.data(), (int64_t)variance.size(), dims2, 2,
+                            "V19 NoiseWeightModelV1 variance (ADU², blank-sky)");
+                        if (wv != 0) {
+                            LOG_WARN("orchestrator", "[SNR] variance FLOAT32 块写入失败 (ret=" +
+                                     std::to_string(wv) + ")");
+                        }
+                        fn_remove_block(frame_, "ivar");
+                        int wi = fn_add_block(
+                            frame_, "ivar", AIO_BLOCK_FLOAT32,
+                            ivar.data(), (int64_t)ivar.size(), dims2, 2,
+                            "V19 NoiseWeightModelV1 ivar");
+                        if (wi != 0) {
+                            LOG_WARN("orchestrator", "[SNR] ivar FLOAT32 块写入失败 (ret=" +
+                                     std::to_string(wi) + ")");
+                        }
+                    }
+                    if (fn_kv_set) {
+                        char kv[256];
+                        std::snprintf(kv, sizeof(kv), "%.6f", nm.sigma_bg_global);
+                        fn_kv_set(frame_, "photo_stats", "NOISE_SIGMA_GLOBAL", kv);
+                        std::snprintf(kv, sizeof(kv), "%.6f", nm.variance_bg_global);
+                        fn_kv_set(frame_, "photo_stats", "NOISE_VAR_GLOBAL", kv);
+                        std::snprintf(kv, sizeof(kv), "%u", nm.n_qualified_patches);
+                        fn_kv_set(frame_, "photo_stats", "NOISE_N_PATCHES", kv);
+                        std::snprintf(kv, sizeof(kv), "%d", (int)nm.has_spatial_field);
+                        fn_kv_set(frame_, "photo_stats", "NOISE_SPATIAL_FIELD", kv);
+                        std::snprintf(kv, sizeof(kv), "%d", (int)nm.source);
+                        fn_kv_set(frame_, "photo_stats", "NOISE_MODEL_SOURCE", kv);
+                        fn_kv_set(frame_, "photo_stats", "NOISE_MODEL_STATUS", "OK");
+                        fn_kv_set(frame_, "photo_stats", "NOISE_LEGACY_SNR", "DIAGNOSTIC_ONLY");
+                    }
+                    LOG_INFO("orchestrator", "[SNR] NoiseWeightModelV1: "
+                             + std::string(nret == 0 ? "OK" : "DEGENERATE_GLOBAL")
+                             + " sigma_global=" + std::to_string(nm.sigma_bg_global)
+                             + " patches=" + std::to_string(nm.n_qualified_patches)
+                             + " spatial_field=" + std::to_string((int)nm.has_spatial_field)
+                             + " variance/ivar 块已写入");
+                } else {
+                    LOG_WARN("orchestrator", "[SNR] NoiseWeightModelV1 fill 失败, variance 块不写");
+                    if (fn_kv_set) {
+                        fn_kv_set(frame_, "photo_stats", "NOISE_MODEL_STATUS", "FILL_FAILED");
+                    }
+                }
+                fn_noise_free(&nm);
+            }
+        }
+    }
+
+    LOG_INFO("orchestrator", "[SNR] 完成 (snr_model 块已写入 [diagnostic], payload="
+             + std::to_string(payload_size) + "B)");
     return true;
 }
 
