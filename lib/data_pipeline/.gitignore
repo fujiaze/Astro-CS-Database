@@ -1,9 +1,0 @@
-*.o
-*.obj
-*.dll
-*.exe
-*.lib
-*.exp
-build/
-__pycache__/
-*.pyc
