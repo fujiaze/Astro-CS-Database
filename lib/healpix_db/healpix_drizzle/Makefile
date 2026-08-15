@@ -25,7 +25,8 @@
 # ============================================================================
 
 CXX = g++
-CXXFLAGS = -O3 -march=native -funroll-loops -Wall -std=c++17 -fopenmp
+CXXFLAGS = -O3 -march=native -funroll-loops -Wall -Wextra -Wpedantic -std=c++17 -fopenmp \
+           -Wno-c++20-extensions
 
 # astro_image_io 路径变量 (提供 AIO C API + PipelineFrame + HEALPix I/O)
 # 注: healpix_io 已合并入 aio (2026-07-16 按 spec G1), aio.dll 统一提供 FITS/XISF/HEALPix I/O

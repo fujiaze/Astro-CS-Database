@@ -69,12 +69,6 @@ static std::vector<SourceRec> g_sources;          // 并行期 mutex 追加 (样
 static std::vector<LeafRec> g_leaves;
 static bool g_fallback_needed = false;
 
-static uint64_t hash64(uint64_t x) {
-    x ^= x >> 30; x *= 0xbf58476d1ce4e5b9ULL;
-    x ^= x >> 27; x *= 0x94d049bb133111ebULL;
-    x ^= x >> 31; return x;
-}
-
 // 加载 orchestrator 写入的选择集; 无则标记 fallback
 static void load_selection(const std::string& dir) {
     g_selected.clear();
@@ -265,48 +259,11 @@ static uint32_t eff_tile_depth(const DrizzleConfig& c) {
 // R12 (性能 profile): OpenMP 线程池 thread_local 阶段计时 (仅统计, 不改变逻辑)
 static thread_local double g_tl_prof_cand = 0.0;
 static thread_local double g_tl_prof_overlap = 0.0;
-static thread_local long long g_tl_n_quick = 0;      // 快速拒绝命中 (相离)
-static thread_local long long g_tl_n_fully = 0;      // drop 包含像素 (leaf_fully_inside)
-static thread_local long long g_tl_n_dropin = 0;     // drop 完全在像素内
-static thread_local long long g_tl_n_sh = 0;         // S-H 部分相交
-static thread_local long long g_tl_n_cand = 0;       // 候选总数
 
 
 
 // 度 → 弧度
 static const double D2R = 0.017453292519943295769;
-
-// ============================================================================
-// 辅助函数: 大圆距离 (度)
-// ============================================================================
-static double greatCircleDistance(double ra1, double dec1, double ra2, double dec2) {
-    double dRa = (ra2 - ra1) * D2R;
-    double dec1r = dec1 * D2R;
-    double dec2r = dec2 * D2R;
-    double x = std::sin(dec1r) * std::sin(dec2r) +
-               std::cos(dec1r) * std::cos(dec2r) * std::cos(dRa);
-    x = std::max(-1.0, std::min(1.0, x));
-    return std::acos(x) / D2R;
-}
-
-// ============================================================================
-// 辅助函数: JSON 字符串转义
-// ============================================================================
-static std::string escapeJsonString(const std::string& s) {
-    std::string out;
-    out.reserve(s.size() + 8);
-    for (char c : s) {
-        switch (c) {
-            case '\\': out += "\\\\"; break;
-            case '\"': out += "\\\""; break;
-            case '\n': out += "\\n";  break;
-            case '\r': out += "\\r";  break;
-            case '\t': out += "\\t";  break;
-            default:   out += c;      break;
-        }
-    }
-    return out;
-}
 
 // ============================================================================
 // WcsSip 回调包装: 将 spherical::PixelToSkyFn 适配到 WcsSip::pixelToSky
@@ -453,7 +410,6 @@ inline double local_scale_3d_tangent(
     double step_px)
 {
     // 1. 5 点 → 3D 单位向量
-    spherical::Vec3 v_c  = spherical::radec_to_vec(ra_c,  dec_c);
     spherical::Vec3 v_xm = spherical::radec_to_vec(ra_xm, dec_xm);
     spherical::Vec3 v_xp = spherical::radec_to_vec(ra_xp, dec_xp);
     spherical::Vec3 v_ym = spherical::radec_to_vec(ra_ym, dec_ym);
@@ -485,7 +441,6 @@ inline double local_scale_3d_tangent(
 
     // 5. 最小奇异值 σ_min = sqrt(λ_min(J'J))
     double a = j11 * j11 + j21 * j21;        // J'J[0][0]
-    double b = j11 * j12 + j21 * j22;        // J'J[0][1] = J'J[1][0]
     double d = j12 * j12 + j22 * j22;        // J'J[1][1]
     double tr = a + d;
     double det_j = j11 * j22 - j12 * j21;
@@ -793,9 +748,6 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
             (int)config.photometry_applied_upstream,
             config.photscal);
 
-    // 5. 记录开始时间
-    auto tStart = std::chrono::high_resolution_clock::now();
-
     // R11 (阶段6): 正式路径为 Tile 级累加 (drizzleTiledImpl, 不恢复全局 leaf map)
     // 本函数为兼容包装: 调用 Tile 级实现后展开为 leaf map (供旧调用方/测试使用)
     std::vector<TileAccumulatorT<float>> tiles;
@@ -912,9 +864,6 @@ bool DrizzleEngine::drizzle_f64(const FitsImage& img, const DrizzleConfig& confi
             (int)config.photometry_applied_upstream,
             config.photscal);
 
-    // 4. 记录开始时间
-    auto tStart = std::chrono::high_resolution_clock::now();
-
     // R11 (阶段6): 正式路径为 Tile 级累加 (drizzleTiledImpl<double>, 不降级到 float32)
     // 本函数为兼容包装: 调用 Tile 级实现后展开为 leaf map (供旧调用方/测试使用)
     std::vector<TileAccumulatorT<double>> tiles;
@@ -1005,9 +954,9 @@ void DrizzleEngine::getHealpixCorners(const healpix::HealpixCore& hp, int64_t ip
 //   6. 旧 aio_hiss_write/read 改造成新 Writer/Reader 后端 (aio_healpix_io.cpp)
 // ============================================================================
 bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator>& accumulators,
-                             const DrizzleStats& stats, const WcsParams& wcs,
+                             const DrizzleStats& stats, const WcsParams& /*wcs*/,
                              const DrizzleConfig& config, const DrizzleMeta& meta,
-                             const std::string& fitsPath,
+                             const std::string& /*fitsPath*/,
                              const std::string& outputPath,
                              const HioSnrModel* snr_model,
                              std::string& error_msg)
@@ -1321,7 +1270,7 @@ void DrizzleEngine::processPixelTiled(
 template <typename Scalar>
 void DrizzleEngine::processPixelSharedTiled(
     double px, double py,
-    Scalar pixelValue, float snrValue, float weightValue,
+    Scalar pixelValue, float /*snrValue*/, float /*weightValue*/,
     const spherical::Vec3 corners_v[4],
     const WcsSip& wcs, const DrizzleConfig& config,
     const healpix::HealpixCore& hp,
@@ -1606,11 +1555,11 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
 
     // R12 (性能): 阶段计时 profile——V18 (PERF-001): fine 逐像素计时默认关闭
     const bool fine = drizzle_fine_profile_enabled();
-    double prof_geom_s = 0.0, prof_cand_s = 0.0, prof_overlap_s = 0.0;
+    double prof_geom_s = 0.0;
     double prof_wcs_s = 0.0;
 
     #pragma omp parallel for schedule(static) num_threads(num_threads) \
-        reduction(+:nSourcePixels,prof_geom_s,prof_cand_s,prof_overlap_s,prof_wcs_s)
+        reduction(+:nSourcePixels,prof_geom_s,prof_wcs_s)
     for (int y = 0; y < img.height; y++) {
         int tid = omp_get_thread_num();
         auto& tileMap = threadTiles[tid];
@@ -1804,9 +1753,9 @@ bool DrizzleEngine::drizzleTiled_f64(const FitsImage& img, const DrizzleConfig& 
 // ============================================================================
 template <typename Scalar>
 bool DrizzleEngine::writeHisTilesT(const std::vector<TileAccumulatorT<Scalar>>& tiles,
-                                   const DrizzleStats& stats, const WcsParams& wcs,
+                                   const DrizzleStats& stats, const WcsParams& /*wcs*/,
                                    const DrizzleConfig& config, const DrizzleMeta& meta,
-                                   const std::string& fitsPath,
+                                   const std::string& /*fitsPath*/,
                                    const std::string& outputPath,
                                    const HioSnrModel* snr_model,
                                    const HioSnrModelF64* snr_model_f64,

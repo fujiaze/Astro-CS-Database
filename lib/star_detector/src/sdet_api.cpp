@@ -303,7 +303,7 @@ bool sdet_gauss_solve(int n, const double* A, const double* b, double* x) {
 template <typename T>
 static int sdet_lm_fit(const T* image, int width,
                        int rect_x0, int rect_y0, int rect_x1, int rect_y1,
-                       double cx, double cy, double bkg0, double sat_threshold,
+                       double cx, double cy, double bkg0, double /*sat_threshold*/,
                        const SamplePixel* samples, int m,
                        bool has_saturated, InternalFitResult* result) {
     const size_t n = (size_t)m;
@@ -796,9 +796,9 @@ template <typename T>
 int sdet_moffat4_fit(const T* image, int width, int height,
                      double cx, double cy,
                      int rect_x0, int rect_y0, int rect_x1, int rect_y1,
-                     InternalFitResult* result, LMWorkspace* ws = nullptr,
-                     double sat_threshold = 0.0, double init_sx = 0.0, double init_sy = 0.0,
-                     double bg_init = 0.0) {
+                     InternalFitResult* result, LMWorkspace* /*ws*/ = nullptr,
+                     double sat_threshold = 0.0, double /*init_sx*/ = 0.0,
+                     double /*init_sy*/ = 0.0, double /*bg_init*/ = 0.0) {
     std::memset(result, 0, sizeof(InternalFitResult));
     result->status = SDET_FIT_INVALID_PARAMS;
 
@@ -2280,8 +2280,8 @@ static int sdet_detect_impl(StarDetectorHandle handle,
 
             double brightness = (double)pixel0;  // 原图中心像素 (edge-walking 前的原始中心)
             candidates.push_back({(double)xx, (double)yy, pc, brightness,
-                                  meanhigh, Sr, Sc, R,
-                                  has_saturated ? sat : norm, has_saturated});
+                                  meanhigh, (float)Sr, (float)Sc, R,
+                                  (float)(has_saturated ? sat : norm), has_saturated});
         }
     }
     auto t4 = std::chrono::high_resolution_clock::now();

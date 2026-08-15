@@ -640,14 +640,13 @@ SNR_API int snr_extract_model_v2(const double* psf, int n_stars,
     // 收集有效 PSF 星 (snr_psf 全程 double 计算)
     std::vector<double> star_x, star_y, star_snr;
     star_x.reserve(n_stars); star_y.reserve(n_stars); star_snr.reserve(n_stars);
-    int n_skip_status = 0, n_skip_ab = 0, n_skip_mad = 0;
     for (int i = 0; i < n_stars; ++i) {
         const double* row = psf + i * 9;
         double status = row[0], B = row[1], cx = row[3], cy = row[4];
         double A = row[6], mad = row[7];
-        if (status != 0.0) { ++n_skip_status; continue; }
-        if (A <= B) { ++n_skip_ab; continue; }
-        if (mad <= 0.0) { ++n_skip_mad; continue; }
+        if (status != 0.0) continue;
+        if (A <= B) continue;
+        if (mad <= 0.0) continue;
         star_x.push_back(cx); star_y.push_back(cy);
         star_snr.push_back((A - B) / mad);
     }

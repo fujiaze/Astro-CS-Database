@@ -240,7 +240,6 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
     m->grid = 8;
     m->cell_side = 512 / m->grid;
     const int tile_shift = 9;         // leaf order = target+9 -> tile shift 18/2
-    const int leaf_shift = 18;
 
     // 收集 control（按 (tile,gx,gy) cell 去重）/ frame 索引
     // V13：nodes 提供全 coverage 几何（含单帧区）；obs 提供数据项。
@@ -482,8 +481,6 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
     std::vector<double> M(K, 0.0);
     const double anchor = std::max(0.0, cfg.zero_anchor_weight);
     const double lambda_s = std::max(0.0, cfg.smoothing_lambda);
-    const double sigma_floor = cfg.sigma_floor;
-    const double support_power = cfg.support_power;
 
     // per-control 归一化：需要先按 control 聚合（同 cell 多帧观测）
     // 这里直接按 obs 计算 raw 后按 control 归一化（与文档一致）
@@ -1083,7 +1080,6 @@ int p2_upm_materialize_dense(const void* model, int target_order,
         m->C.size(), tiles.size());
     if (!d) return 1;
     const int tile_shift = 9;
-    const std::uint64_t mask = (1ULL << (2u * (unsigned)tile_shift)) - 1ULL;
     std::vector<double> values(512ull * 512ull);
     for (std::size_t f = 0; f < m->C.size(); ++f) {
         for (std::uint64_t tile : tiles) {

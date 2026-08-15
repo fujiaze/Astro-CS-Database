@@ -132,11 +132,11 @@ static bool load_dlls(Logger* logger) {
         g_dll.load_failed = true;
         return false;
     }
-    g_dll.aio_read = (aio_read_fn)GetProcAddress(g_dll.aio_dll, "aio_read");
-    g_dll.aio_get_pixel_data = (aio_get_pixel_data_fn)GetProcAddress(g_dll.aio_dll, "aio_get_pixel_data");
-    g_dll.aio_get_width = (aio_get_width_fn)GetProcAddress(g_dll.aio_dll, "aio_get_width");
-    g_dll.aio_get_height = (aio_get_height_fn)GetProcAddress(g_dll.aio_dll, "aio_get_height");
-    g_dll.aio_free = (aio_free_image_data_fn)GetProcAddress(g_dll.aio_dll, "aio_free_image_data");
+    g_dll.aio_read = reinterpret_cast<aio_read_fn>(reinterpret_cast<void*>(GetProcAddress(g_dll.aio_dll, "aio_read")));
+    g_dll.aio_get_pixel_data = reinterpret_cast<aio_get_pixel_data_fn>(reinterpret_cast<void*>(GetProcAddress(g_dll.aio_dll, "aio_get_pixel_data")));
+    g_dll.aio_get_width = reinterpret_cast<aio_get_width_fn>(reinterpret_cast<void*>(GetProcAddress(g_dll.aio_dll, "aio_get_width")));
+    g_dll.aio_get_height = reinterpret_cast<aio_get_height_fn>(reinterpret_cast<void*>(GetProcAddress(g_dll.aio_dll, "aio_get_height")));
+    g_dll.aio_free = reinterpret_cast<aio_free_image_data_fn>(reinterpret_cast<void*>(GetProcAddress(g_dll.aio_dll, "aio_free_image_data")));
     if (!g_dll.aio_read || !g_dll.aio_get_pixel_data ||
         !g_dll.aio_get_width || !g_dll.aio_get_height || !g_dll.aio_free) {
         if (logger) logger->error("ipv_select: astro_image_io 函数符号解析失败");
@@ -151,9 +151,9 @@ static bool load_dlls(Logger* logger) {
         g_dll.load_failed = true;
         return false;
     }
-    g_dll.sdet_detect_ex = (sdet_detect_ex_fn)GetProcAddress(g_dll.sdet_dll, "sdet_detect_ex");
-    g_dll.sdet_detect_ex_f64 = (sdet_detect_ex_f64_fn)GetProcAddress(g_dll.sdet_dll, "sdet_detect_ex_f64");
-    g_dll.sdet_free_ex = (sdet_free_detect_ex_fn)GetProcAddress(g_dll.sdet_dll, "sdet_free_detect_ex");
+    g_dll.sdet_detect_ex = reinterpret_cast<sdet_detect_ex_fn>(reinterpret_cast<void*>(GetProcAddress(g_dll.sdet_dll, "sdet_detect_ex")));
+    g_dll.sdet_detect_ex_f64 = reinterpret_cast<sdet_detect_ex_f64_fn>(reinterpret_cast<void*>(GetProcAddress(g_dll.sdet_dll, "sdet_detect_ex_f64")));
+    g_dll.sdet_free_ex = reinterpret_cast<sdet_free_detect_ex_fn>(reinterpret_cast<void*>(GetProcAddress(g_dll.sdet_dll, "sdet_free_detect_ex")));
     if (!g_dll.sdet_detect_ex || !g_dll.sdet_detect_ex_f64 || !g_dll.sdet_free_ex) {
         if (logger) logger->error("ipv_select: star_detector 函数符号解析失败");
         g_dll.load_failed = true;
@@ -167,8 +167,8 @@ static bool load_dlls(Logger* logger) {
         g_dll.load_failed = true;
         return false;
     }
-    g_dll.gaia_cone_search = (gaia_cone_search_for_solver_fn)GetProcAddress(
-        g_dll.gaia_dll, "gaia_client_cone_search_for_solver");
+    g_dll.gaia_cone_search = reinterpret_cast<gaia_cone_search_for_solver_fn>(reinterpret_cast<void*>(GetProcAddress(
+        g_dll.gaia_dll, "gaia_client_cone_search_for_solver")));
     if (!g_dll.gaia_cone_search) {
         if (logger) logger->error("ipv_select: gaia_client_cone_search_for_solver 符号解析失败");
         g_dll.load_failed = true;

@@ -386,8 +386,8 @@ bool readFits(const std::string& path, FitsImage& img, std::string& error_msg) {
         img.wcs.cd[2] = cd[2]; img.wcs.cd[3] = cd[3];
         img.wcs.crval[0] = crval[0]; img.wcs.crval[1] = crval[1];
         img.wcs.crpix[0] = crpix[0]; img.wcs.crpix[1] = crpix[1];
-        if (has_ctype1) std::strncpy(img.wcs.ctype1, ctype1, 15);
-        if (has_ctype2) std::strncpy(img.wcs.ctype2, ctype2, 15);
+        if (has_ctype1) std::snprintf(img.wcs.ctype1, sizeof(img.wcs.ctype1), "%s", ctype1);
+        if (has_ctype2) std::snprintf(img.wcs.ctype2, sizeof(img.wcs.ctype2), "%s", ctype2);
         img.wcs.sip.order    = has_a_order  ? a_order  : 0;
         img.wcs.sip.ap_order = has_ap_order ? ap_order : 0;
         std::memcpy(img.wcs.sip.a,  a,  sizeof(a));

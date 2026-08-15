@@ -463,7 +463,6 @@ DegradedStageResult polygon_match_single_stage(
     int N_U = (int)U.size();
     int n_pivot = std::min(params.n_pivot, N_U);
 
-    int n_pivot_with_candidates = 0;
     int n_pivot_with_pass       = 0;
 
     for (int p = 0; p < n_pivot; ++p) {
@@ -480,7 +479,6 @@ DegradedStageResult polygon_match_single_stage(
         // 2. 收集候选
         std::set<int> candidates = collect_candidates(kv, hex, sigma_d, K, min_occur);
         if (candidates.empty()) continue;
-        n_pivot_with_candidates++;
 
         // 3. 验证多边形完整性
         bool pivot_passed = false;
@@ -686,11 +684,11 @@ PolygonMatchResult polygon_match_adaptive(
 // ----------------------------------------------------------------------------
 void geometric_vote(
     const std::vector<StarPoint>& U,
-    const std::vector<StarPoint>& W,
+    const std::vector<StarPoint>& /*W*/,
     const KVectorIndex& kv,
     const IPVSolverParams& params,
     double fov_diag,
-    double sigma_d,
+    double /*sigma_d*/,
     VoteMap& votes)
 {
     int N_U = (int)U.size();

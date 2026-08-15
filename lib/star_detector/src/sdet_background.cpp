@@ -118,10 +118,9 @@ void sex_backstat(BackMesh* mesh, const float* buf, int bufsize, int w, int bw) 
  * @param w 图像宽度
  * @param bw 网格宽度
  */
-void sex_backhisto(BackMesh* mesh, const float* buf, int bufsize, int w, int bw) {
+void sex_backhisto(BackMesh* mesh, const float* buf, int bufsize, int /*w*/, int /*bw*/) {
     if (mesh->mean <= -SEX_BIG) return;
-    
-    int h = bufsize / w;
+
     int nlevels = mesh->nlevels;
     mesh->histo.assign(nlevels, 0);
     

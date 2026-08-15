@@ -154,7 +154,7 @@ int pc_calibrate_simple(
 int pc_calibrate_simple_with_gaia(
     void* gaia_client_handle,
     double ra_center, double dec_center, double radius_deg,
-    double mag_min, double mag_max,
+    double mag_min, double /*mag_max*/,
     const double* filter_wl, const double* filter_trans, int filter_count,
     const double* qe_wl, const double* qe_trans, int qe_count,
     const double* spectrum_wl, int spectrum_count,
@@ -508,7 +508,7 @@ int pc_calibrate_simple_f64(
 int pc_calibrate_simple_with_gaia_f64(
     void* gaia_client_handle,
     double ra_center, double dec_center, double radius_deg,
-    double mag_min, double mag_max,
+    double mag_min, double /*mag_max*/,
     const double* filter_wl, const double* filter_trans, int filter_count,
     const double* qe_wl, const double* qe_trans, int qe_count,
     const double* spectrum_wl, int spectrum_count,
@@ -755,7 +755,7 @@ template<typename T>
 int run_with_gaia_impl(
     void* gaia_client_handle,
     double ra_center, double dec_center, double radius_deg,
-    double mag_min, double mag_max,
+    double mag_min, double /*mag_max*/,
     const double* filter_wl, const double* filter_trans, int filter_count,
     const double* qe_wl, const double* qe_trans, int qe_count,
     const double* spectrum_wl, int spectrum_count,

@@ -62,7 +62,7 @@ DistortionModel estimate_radial_distortion(
     const std::vector<StarPoint>& U_full,
     const std::vector<StarPoint>& W,
     const SimTransform& tf,
-    double s0,
+    double /*s0*/,
     int img_width,
     int img_height,
     double tau_match,

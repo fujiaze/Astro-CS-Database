@@ -28,9 +28,9 @@
 // (正常模式只保留阶段/汇总/错误; stderr 重定向文件时每条 fprintf 写盘,
 //  285 Tile 的 forward/inverse 逐调用日志会拖慢写入与 Verify)
 #ifdef HISS_VERBOSE
-#define HISS_DLOG(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
+#define HISS_DLOG(...) fprintf(stderr, __VA_ARGS__)
 #else
-#define HISS_DLOG(fmt, ...) do {} while (0)
+#define HISS_DLOG(...) do {} while (0)
 #endif
 
 namespace hiss {

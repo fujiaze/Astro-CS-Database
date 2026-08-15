@@ -70,7 +70,7 @@ void AhpxWriter::setMetadata(const std::string& json) {
 void AhpxWriter::setPixels(const float* data, int width, int height, int channels) {
     if (!data || width <= 0 || height <= 0 || channels <= 0) {
         fprintf(stderr, "[aio][ahpx][writer] setPixels: 无效参数 (data=%p w=%d h=%d c=%d)\n",
-                data, width, height, channels);
+                (const void*)data, width, height, channels);
         return;
     }
     m_width = width;
@@ -83,7 +83,7 @@ void AhpxWriter::setPixels(const float* data, int width, int height, int channel
 void AhpxWriter::setSnr(const float* data, int width, int height) {
     if (!data || width <= 0 || height <= 0) {
         fprintf(stderr, "[aio][ahpx][writer] setSnr: 无效参数 (data=%p w=%d h=%d)\n",
-                data, width, height);
+                (const void*)data, width, height);
         return;
     }
     size_t count = (size_t)width * height;
@@ -102,7 +102,7 @@ void AhpxWriter::setWeightScalar(float scalar) {
 void AhpxWriter::setWeightGrid(const float* grid, uint16_t gw, uint16_t gh) {
     if (!grid || gw == 0 || gh == 0) {
         fprintf(stderr, "[aio][ahpx][writer] setWeightGrid: 无效参数 (grid=%p gw=%u gh=%u)\n",
-                grid, gw, gh);
+                (const void*)grid, gw, gh);
         return;
     }
     m_weightMode = WeightMode::GRID;
@@ -115,7 +115,7 @@ void AhpxWriter::setWeightGrid(const float* grid, uint16_t gw, uint16_t gh) {
 void AhpxWriter::setWeightPixel(const float* data, int width, int height) {
     if (!data || width <= 0 || height <= 0) {
         fprintf(stderr, "[aio][ahpx][writer] setWeightPixel: 无效参数 (data=%p w=%d h=%d)\n",
-                data, width, height);
+                (const void*)data, width, height);
         return;
     }
     m_weightMode = WeightMode::PIXEL;

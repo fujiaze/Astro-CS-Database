@@ -157,7 +157,7 @@ AIO_EXPORT int aio_ahpx_read_pixels(const char *path,
     }
     if (!pixels || capacity <= 0) {
         fprintf(stderr, "[aio][ahpx][api] read_pixels: 无效缓冲区 (pixels=%p capacity=%d)\n",
-                pixels, capacity);
+                (const void*)pixels, capacity);
         return 2;
     }
 
@@ -221,7 +221,7 @@ AIO_EXPORT int aio_ahpx_read_snr(const char *path,
     }
     if (!snr || capacity <= 0) {
         fprintf(stderr, "[aio][ahpx][api] read_snr: 无效缓冲区 (snr=%p capacity=%d)\n",
-                snr, capacity);
+                (const void*)snr, capacity);
         return 2;
     }
 

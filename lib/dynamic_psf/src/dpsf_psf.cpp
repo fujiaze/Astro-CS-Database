@@ -428,8 +428,6 @@ DPSF_EXPORT int dpsf_fit(const uint16_t *image, int width, int height,
     }
 
     int fitRadius = params->fitRadius;
-    int maxIter = params->maxIter;
-    double tolerance = params->tolerance;
 
     int x0 = std::max(0, static_cast<int>(cx) - fitRadius);
     int y0 = std::max(0, static_cast<int>(cy) - fitRadius);
@@ -480,6 +478,7 @@ DPSF_EXPORT int dpsf_fit_batch(const uint16_t *image, int width, int height,
                                 const DPSFFitParams *params,
                                 DPSFFitResult **out_results) {
     auto t0 = std::chrono::high_resolution_clock::now();
+    (void)t0;  /* 非 DPSF_PROFILE 构建时避免 unused 告警 */
 
     if (!image || !cx_array || !cy_array || !params || !out_results || count <= 0) {
         dpsf_log(LOG_ERROR, "DPSF", "dpsf_fit_batch: invalid arguments");

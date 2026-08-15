@@ -800,7 +800,6 @@ static bool irls_fit_one_step(
 
     // 计算 CD 线性项最大相对变化
     double max_rel = 0;
-    int cd_idx[4] = {1, 2, 11, 12};  // x10, x01, y10, y01 (在 20 维参数向量中)
     double cd_vals[4] = {xc[1], xc[2], yc[1], yc[2]};
     double cd_new_vals[4] = {xc_new[1], xc_new[2], yc_new[1], yc_new[2]};
     for (int k = 0; k < 4; ++k) {

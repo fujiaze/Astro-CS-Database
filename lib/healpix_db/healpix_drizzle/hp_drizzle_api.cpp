@@ -366,7 +366,7 @@ static int run_drizzle_internal(PipelineFrame* frame,
                                 const char* output_path,
                                 const char* hips_dir,
                                 bool write_hips,
-                                bool write_legacy_hiss,
+                                bool /*write_legacy_hiss*/,
                                 HpDrizzleResult* result,
                                 int precision_mode)
 {
@@ -622,7 +622,7 @@ static int run_drizzle_internal(PipelineFrame* frame,
     // 重建 SNR 的公共部分 (lambda, nPix 由调用点确定)
     auto rebuild_snr = [&](gradient::SnrEvaluator& evaluator,
                            size_t nPix, uint32_t n_points,
-                           const double* cp_ra, const double* cp_dec) -> void {
+                           const double* /*cp_ra*/, const double* /*cp_dec*/) -> void {
         std::vector<double> xy(nPix * 2), radec(nPix * 2);
         for (size_t i = 0; i < nPix; i++) {
             int x = (int)(i % (size_t)width);

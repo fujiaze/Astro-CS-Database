@@ -124,6 +124,7 @@ static int compress_and_append(HissStreamWriter& stream,
 
     if (transform_id != TransformId::NONE) {
         auto tp1 = std::chrono::steady_clock::now();
+        (void)tp1;  /* 非 HISS_PROFILE 构建时避免 unused 告警 */
         TransformType tt = transform_id_to_type(transform_id);
         transformed = apply_transform(tt, data, data_size, element_size);
 #ifdef HISS_PROFILE
@@ -175,6 +176,7 @@ static int compress_and_append(HissStreamWriter& stream,
 
     if (codec_id != CodecId::RAW) {
         auto tp2 = std::chrono::steady_clock::now();
+        (void)tp2;  /* 非 HISS_PROFILE 构建时避免 unused 告警 */
         // 查找 codec
         const CodecEntry* entry = CodecRegistry::instance().find(codec_id);
         if (!entry) {
@@ -534,7 +536,7 @@ static int write_snr_subblock_f64(const HissSnrBlockF64* snr,
 int HissWriter::add_tile(uint64_t parent_ipix,
                          const DrizzleTileAccumulator& acc,
                          const HissSnrBlock* snr,
-                         OccupancyMode occ_mode) {
+                         OccupancyMode /*occ_mode*/) {
 #ifdef HISS_PROFILE
     auto tp_add0 = std::chrono::steady_clock::now();
 #endif
@@ -931,7 +933,7 @@ int HissWriter::add_tile_f64(uint64_t parent_ipix,
 int HissWriter::add_tile_f64_snr(uint64_t parent_ipix,
                                   const DrizzleTileAccumulator& acc,
                                   const HissSnrBlockF64* snr,
-                                  OccupancyMode occ_mode) {
+                                  OccupancyMode /*occ_mode*/) {
     if (!pimpl_->opened) {
         fprintf(stderr, "[hiss][writer] add_tile_f64_snr 失败: 会话未打开\n");
         return -1;

@@ -67,7 +67,6 @@ void filter_by_structure_size(char* mask, int w, int h, int max_size) {
         if (!mask[seed] || labels[seed] != 0) continue;
 
         int label = ++num_features;
-        int count = 0;
 
         std::queue<int> q;
         q.push(seed);
@@ -76,7 +75,6 @@ void filter_by_structure_size(char* mask, int w, int h, int max_size) {
         while (!q.empty()) {
             int idx = q.front();
             q.pop();
-            count++;
 
             int x = idx % w;
             int y = idx / w;

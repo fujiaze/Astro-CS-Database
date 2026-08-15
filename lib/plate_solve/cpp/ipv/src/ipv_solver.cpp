@@ -256,8 +256,7 @@ IterativeReprojectResult iterative_reproject(
         // 2. project_catalog_stars: 重新 gnomonic 投影 Gaia 星
         // OpenMP 并行化: gnomonic_forward_proj_solver 是纯函数, 可安全并行
         std::vector<StarPoint> W_new(N_W);
-        int n_invalid_proj = 0;
-        #pragma omp parallel for reduction(+:n_invalid_proj) schedule(static)
+        #pragma omp parallel for schedule(static)
         for (int i = 0; i < N_W; ++i) {
             double xi, eta;
             bool valid;
@@ -266,7 +265,6 @@ IterativeReprojectResult iterative_reproject(
             if (!valid) {
                 W_new[i].x = 1e18;
                 W_new[i].y = 1e18;
-                ++n_invalid_proj;
             } else {
                 // V4.20: W 直接用角秒 (TRANS: U(像素)->W(角秒))
                 W_new[i].x = xi;   // 角秒

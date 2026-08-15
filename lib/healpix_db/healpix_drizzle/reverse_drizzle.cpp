@@ -132,7 +132,7 @@ template <typename T>
 static bool run_typed(const ReverseDrizzleInput& in, ReverseDrizzleOutput& out,
                       const WcsSip& wcs, const healpix::HealpixCore& hp,
                       double src_scale_rad, double footprint_radius_px,
-                      std::string& error_msg) {
+                      std::string& /*error_msg*/) {
     const int W = in.target_width, H = in.target_height;
     const size_t npix = (size_t)W * H;
     ReverseAccum<T> acc;

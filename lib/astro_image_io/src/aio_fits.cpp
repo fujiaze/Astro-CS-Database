@@ -356,12 +356,6 @@ static void build_metadata(const FITSHeader &hdr, AIOImageMetadata &meta) {
         try { return std::stod(v); } catch (...) { return def; }
     };
 
-    auto kw_int = [&](const char *name, int def = 0) -> int {
-        const char *v = find_kw(name);
-        if (!v || v[0] == '\0') return def;
-        try { return (int)std::stol(v); } catch (...) { return def; }
-    };
-
     meta.geometry.width = hdr.naxis1;
     meta.geometry.height = hdr.naxis2;
     meta.geometry.channels = std::max(hdr.naxis3, 1);

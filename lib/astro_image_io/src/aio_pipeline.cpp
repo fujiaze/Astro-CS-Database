@@ -494,7 +494,7 @@ static AioKVEntry* kv_get_or_create_entries(PipelineFrame* frame, const char* bl
 }
 
 /* 内部: 扩容 KV 块 (翻倍) */
-static int kv_ensure_capacity(PipelineFrame* frame, AioBlock* blk) {
+static int kv_ensure_capacity(PipelineFrame* /*frame*/, AioBlock* blk) {
     int64_t used = blk->count;
     int64_t cap = blk->n_dims > 0 ? blk->dims[0] : 0;
     if (used < cap) return 0;

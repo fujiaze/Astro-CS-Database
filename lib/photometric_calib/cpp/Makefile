@@ -1,5 +1,6 @@
 CXX = g++
-CXXFLAGS = -O2 -std=c++17 -fopenmp -fPIC -Wall
+CXXFLAGS = -O2 -std=c++17 -fopenmp -fPIC -Wall -Wextra -Wpedantic \
+           -Wno-c++20-extensions
 LDFLAGS = -shared -fopenmp
 
 SRCDIR = src

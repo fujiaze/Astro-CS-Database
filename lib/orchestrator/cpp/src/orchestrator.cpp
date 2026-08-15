@@ -268,32 +268,6 @@ double parse_exposure_from_dark_path(const std::string& path) {
     }
 }
 
-// 从 calibration_dir + 帧尺寸自动推导 Master Bias 路径
-// 文件名格式: masterBias_BIN-1_<W>x<H>.xisf
-std::string derive_master_bias_path(const std::string& dir, int w, int h) {
-    if (dir.empty()) return "";
-    std::string filename = "masterBias_BIN-1_" + std::to_string(w) + "x" + std::to_string(h) + ".xisf";
-    return (fs::path(dir) / filename).string();
-}
-
-// 从 calibration_dir + 帧尺寸 + 曝光时间自动推导 Master Dark 路径
-// 文件名格式: masterDark_BIN-1_<W>x<H>_EXPOSURE-<exptime.2f>s.xisf
-std::string derive_master_dark_path(const std::string& dir, int w, int h, double exptime) {
-    if (dir.empty() || exptime <= 0) return "";
-    std::string filename = "masterDark_BIN-1_" + std::to_string(w) + "x" + std::to_string(h) +
-                           "_EXPOSURE-" + format_exposure_2f(exptime) + ".xisf";
-    return (fs::path(dir) / filename).string();
-}
-
-// 从 calibration_dir + 帧尺寸 + 滤光片自动推导 Master Flat 路径
-// 文件名格式: masterFlat_BIN-1_<W>x<H>_FILTER-<Filter>_mono.xisf
-std::string derive_master_flat_path(const std::string& dir, int w, int h, const std::string& filter_name) {
-    if (dir.empty() || filter_name.empty()) return "";
-    std::string filename = "masterFlat_BIN-1_" + std::to_string(w) + "x" + std::to_string(h) +
-                           "_FILTER-" + filter_name + "_mono.xisf";
-    return (fs::path(dir) / filename).string();
-}
-
 // 计算数组均值
 double compute_array_mean(const float* data, int64_t n) {
     if (!data || n <= 0) return 0.0;
@@ -1460,7 +1434,7 @@ static bool build_spectrum_wl(void* gaia_dll, intptr_t client_handle,
     HMODULE gaia_h = static_cast<HMODULE>(gaia_dll);
     using get_params_fn = int (*)(GaiaClient*, int*, int*, int*);
     auto fn_get_params = reinterpret_cast<get_params_fn>(
-        GetProcAddress(gaia_h, "gaia_client_get_spectrum_params"));
+        reinterpret_cast<void*>(GetProcAddress(gaia_h, "gaia_client_get_spectrum_params")));
     if (!fn_get_params) {
         LOG_ERROR("orchestrator", "gaia_client_get_spectrum_params 函数未找到");
         return false;
@@ -1583,7 +1557,7 @@ bool Orchestrator::init_platesolve_env(std::string& error_msg) {
     //    P03-002: gaia_data_dir 优先从 config 读取, 空时默认 project_root_dir_/GaiaDR3SP
     using gaia_create_ex_fn = GaiaClient* (*)(const char*, GaiaDbType);
     auto fn_gaia_create_ex = reinterpret_cast<gaia_create_ex_fn>(
-        GetProcAddress(gaia_h, "gaia_client_create_ex"));
+        reinterpret_cast<void*>(GetProcAddress(gaia_h, "gaia_client_create_ex")));
     if (fn_gaia_create_ex == nullptr) {
         error_msg = "gaia_client_create_ex 函数未找到";
         LOG_ERROR("orchestrator", "[PLATESOLVE] " + error_msg);
@@ -1616,7 +1590,7 @@ bool Orchestrator::init_platesolve_env(std::string& error_msg) {
     // 4. 创建 StarDetector (使用默认参数, fitRadius=0 表示自动)
     using sdet_create_fn = StarDetectorHandle (*)(const SDetParams*);
     auto fn_sdet_create = reinterpret_cast<sdet_create_fn>(
-        GetProcAddress(sdet_h, "sdet_create"));
+        reinterpret_cast<void*>(GetProcAddress(sdet_h, "sdet_create")));
     if (fn_sdet_create == nullptr) {
         error_msg = "sdet_create 函数未找到";
         LOG_ERROR("orchestrator", "[PLATESOLVE] " + error_msg);
@@ -1703,7 +1677,7 @@ void Orchestrator::cleanup_platesolve_env() {
     if (sdet_handle_ != 0 && star_detector_dll_handle_ != nullptr) {
         using sdet_destroy_fn = void (*)(StarDetectorHandle);
         auto fn_sdet_destroy = reinterpret_cast<sdet_destroy_fn>(
-            GetProcAddress(static_cast<HMODULE>(star_detector_dll_handle_), "sdet_destroy"));
+            reinterpret_cast<void*>(GetProcAddress(static_cast<HMODULE>(star_detector_dll_handle_), "sdet_destroy")));
         if (fn_sdet_destroy) {
             fn_sdet_destroy(reinterpret_cast<StarDetectorHandle>(sdet_handle_));
         }
@@ -1714,7 +1688,7 @@ void Orchestrator::cleanup_platesolve_env() {
     if (gaia_client_handle_ != 0 && gaia_client_dll_handle_ != nullptr) {
         using gaia_destroy_fn = void (*)(GaiaClient*);
         auto fn_gaia_destroy = reinterpret_cast<gaia_destroy_fn>(
-            GetProcAddress(static_cast<HMODULE>(gaia_client_dll_handle_), "gaia_client_destroy"));
+            reinterpret_cast<void*>(GetProcAddress(static_cast<HMODULE>(gaia_client_dll_handle_), "gaia_client_destroy")));
         if (fn_gaia_destroy) {
             fn_gaia_destroy(reinterpret_cast<GaiaClient*>(gaia_client_handle_));
         }
@@ -1830,13 +1804,6 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
     auto fn_kv_set_double = dll_loader_.get_function<int (*)(
         PipelineFrame*, const char*, const char*, double)>(
         ModuleId::AIO, "aio_frame_kv_set_double");
-    auto fn_add_block = dll_loader_.get_function<int (*)(
-        PipelineFrame*, const char*, AioBlockType,
-        const void*, int64_t, const int*, int, const char*)>(
-        ModuleId::AIO, "aio_frame_add_block");
-    auto fn_remove_block = dll_loader_.get_function<int (*)(PipelineFrame*, const char*)>(
-        ModuleId::AIO, "aio_frame_remove_block");
-
     if (!fn_get_block || !fn_kv_get || !fn_kv_get_double || !fn_kv_set || !fn_kv_set_double) {
         LOG_ERROR("orchestrator", "[PLATESOLVE] AIO 函数指针获取失败");
         result.error_msg = "[PLATESOLVE] AIO 函数指针获取失败";
@@ -2152,7 +2119,6 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
     }
     int height = data_block->dims[0];
     int width = data_block->dims[1];
-    int64_t n_pix = static_cast<int64_t>(width) * height;
     LOG_INFO("orchestrator", "[PSF] 图像: " + std::to_string(width) + "x" + std::to_string(height)
              + " mode=" + (use_fp64 ? "FP64" : "FP32"));
 
@@ -2191,15 +2157,15 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
                                double**, double**, float**, int**, float**, int**,
                                int*, const char**, int, float***);
     auto fn_sdet_ex = reinterpret_cast<sdet_ex_fn>(
-        GetProcAddress(sdet_dll, "sdet_detect_ex"));
+        reinterpret_cast<void*>(GetProcAddress(sdet_dll, "sdet_detect_ex")));
     using sdet_ex_f64_fn = int (*)(StarDetectorHandle, const double*, int, int,
                                    double**, double**, float**, int**, float**, int**,
                                    int*, const char**, int, float***);
     auto fn_sdet_ex_f64 = reinterpret_cast<sdet_ex_f64_fn>(
-        GetProcAddress(sdet_dll, "sdet_detect_ex_f64"));
+        reinterpret_cast<void*>(GetProcAddress(sdet_dll, "sdet_detect_ex_f64")));
     using sdet_free_fn = void (*)(double*, double*, float*, int*, float*, int*, float**, int);
     auto fn_sdet_free = reinterpret_cast<sdet_free_fn>(
-        GetProcAddress(sdet_dll, "sdet_free_detect_ex"));
+        reinterpret_cast<void*>(GetProcAddress(sdet_dll, "sdet_free_detect_ex")));
     if (!fn_sdet_ex || !fn_sdet_ex_f64 || !fn_sdet_free) {
         LOG_ERROR("orchestrator", "[PSF] star_detector 函数指针获取失败");
         result.error_msg = "[PSF] star_detector 函数指针获取失败";
@@ -2722,8 +2688,6 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     // R11: typed Stage1Config 直接驱动 (mag_min/mag_max 保留科学默认, fov 自动计算)
     double mag_min = 6.0;
     double mag_max = 16.0;
-    double cfg_fov_radius = 0.0;
-
     // 4. 调用 pc_calibrate_simple_with_gaia (DLL 内部: 锥形搜索+光谱积分+星匹配+scale 校正)
     // 签名扩展 (GAP-012): 新增 qe_wl/qe_trans/qe_count 三个参数, 位于 filter 参数之后 spectrum 参数之前
     // R10: FP64 模式调用 _f64 变体 (pixels/out_pixels 为 double*)
@@ -3734,14 +3698,6 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
         ModuleId::AIO, "aio_hiss_read_tile_signal_f64");
     auto fn_read_support = loader.get_function<ReadTileSupportFn>(
         ModuleId::AIO, "aio_hiss_read_tile_support");
-    // R11 (HISS-103): 读取每 Tile SNR 控制点并核对
-    using ReadTileSnrFn = int (*)(const char*, uint64_t, uint8_t**, uint32_t*);
-    auto fn_read_snr = loader.get_function<ReadTileSnrFn>(
-        ModuleId::AIO, "aio_hiss_read_tile_snr");
-    // R11 (PREC-109): FP64 文件 SNR 为 f64 存储, 必须用 f64 读取 API
-    auto fn_read_snr_f64 = loader.get_function<ReadTileSnrFn>(
-        ModuleId::AIO, "aio_hiss_read_tile_snr_f64");
-
     // R13 (HISS_IO_REPAIR): Verify 单句柄 — 打开一次, 遍历全部 Tile
     // (旧实现每 Tile 构造 Reader 反复打开文件, 完整帧 HISS_VERIFY 130s)
     using OpenSessionFn = void* (*)(const char*, uint32_t*, uint32_t*, uint64_t*);
@@ -3930,7 +3886,7 @@ bool Orchestrator::run_stage_hiss_verify(TaskResult& result) {
         uint32_t n_snr = 0;
         auto snr_api_sess = is_fp64 ? fn_read_snr_f64_sess : fn_read_snr_sess;
         if (snr_api_sess) {
-            int snr_ret = snr_api_sess(session, parent_ipix, &snr_buf, &n_snr);
+            snr_api_sess(session, parent_ipix, &snr_buf, &n_snr);
             // SNR 稀疏 (仅 ~254/285 Tile 含 SNR 子块): 读不到 = 该 Tile 无 SNR, 跳过
             // 最终汇总检查 n_snr_points_total>0 保证 SNR 数据整体存在 (HISS-103)
             if (n_snr > 0) {
