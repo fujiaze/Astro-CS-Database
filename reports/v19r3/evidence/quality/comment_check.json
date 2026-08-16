@@ -1,0 +1,52 @@
+{
+ "violations": [
+  {
+   "file": "lib/orchestrator/cpp/src/orchestrator.cpp",
+   "line": 5,
+   "match": "骨架",
+   "text": "// 当前版本: 骨架实现"
+  },
+  {
+   "file": "lib/orchestrator/cpp/src/orchestrator.cpp",
+   "line": 8,
+   "match": "骨架",
+   "text": "// - 检查点为骨架 (返回 true)"
+  },
+  {
+   "file": "lib/orchestrator/cpp/src/orchestrator.cpp",
+   "line": 489,
+   "match": "骨架",
+   "text": "// load_config - 加载 JSON 配置文件 (骨架: 简单读取文件内容)"
+  },
+  {
+   "file": "lib/orchestrator/cpp/src/orchestrator.cpp",
+   "line": 598,
+   "match": "骨架",
+   "text": "// 骨架实现: 返回 0 ( 实现实际内存统计)"
+  },
+  {
+   "file": "lib/orchestrator/cpp/src/orchestrator.cpp",
+   "line": 3970,
+   "match": "骨架",
+   "text": "// spec §2.3.2 两段流水线新增 stage handler (骨架)"
+  },
+  {
+   "file": "lib/orchestrator/cpp/src/orchestrator.cpp",
+   "line": 4736,
+   "match": "骨架",
+   "text": "// 串行执行 8 个 stage, 各阶段调用对应 DLL 模块 (骨架), 输出 timings"
+  },
+  {
+   "file": "lib/phase2/tests/synthetic_gate.cpp",
+   "line": 1720,
+   "match": "审计",
+   "text": "EXPECT_GT(n_seam, 0u);  // 采样数非零（计数用于审计，防死循环退化）"
+  },
+  {
+   "file": "lib/phase2/tests/synthetic_gate.cpp",
+   "line": 5322,
+   "match": "V19R2",
+   "text": "// F-V19R2-UPM-002：未知 frame_id 必须显式失败/NaN，禁止回退 frame 0 参数。"
+  }
+ ]
+}

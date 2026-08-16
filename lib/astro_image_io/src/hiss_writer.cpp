@@ -729,6 +729,8 @@ int HissWriter::add_tile(uint64_t parent_ipix,
     }
 
     // 6. 记录 Tile 目录 (只保留描述符, 不保留压缩数据 — 步骤10)
+    // 先取 size 供日志，subblocks 随后 move 进目录
+    const std::size_t n_subblocks_log = subblocks.size();
     int ret = pimpl_->stream.record_tile(parent_ipix, acc.tile_nside, auto_mode,
                                           std::move(subblocks));
     if (ret != 0) {
@@ -739,7 +741,7 @@ int HissWriter::add_tile(uint64_t parent_ipix,
     HISS_DLOG("[hiss][writer] add_tile 成功: parent_ipix=%llu tile_nside=%u occ_mode=%u "
               "n_leaf=%zu n_valid=%u n_subblocks=%zu\n",
               (unsigned long long)parent_ipix, acc.tile_nside, (unsigned)auto_mode,
-              n_leaf, n_valid, subblocks.size());
+              n_leaf, n_valid, n_subblocks_log);
 #ifdef HISS_PROFILE
     fprintf(stderr, "[hiss][prof] add_tile 总计: %.2f ms\n",
             std::chrono::duration<double, std::milli>(
@@ -910,7 +912,8 @@ int HissWriter::add_tile_f64(uint64_t parent_ipix,
         if (ret != 0) return ret;
     }
 
-    // 6. 记录 Tile 目录
+    // 6. 记录 Tile 目录（先取 size 供日志，subblocks 随后 move 进目录）
+    const std::size_t n_subblocks_log = subblocks.size();
     int ret = pimpl_->stream.record_tile(parent_ipix, acc.tile_nside, auto_mode,
                                           std::move(subblocks));
     if (ret != 0) {
@@ -922,7 +925,7 @@ int HissWriter::add_tile_f64(uint64_t parent_ipix,
             "[hiss][writer] add_tile_f64 成功: parent_ipix=%llu tile_nside=%u occ_mode=%u "
             "n_leaf=%zu n_valid=%u n_subblocks=%zu [FP64]\n",
             (unsigned long long)parent_ipix, acc.tile_nside, (unsigned)auto_mode,
-            n_leaf, n_valid, subblocks.size());
+            n_leaf, n_valid, n_subblocks_log);
     return 0;
 }
 
@@ -1046,13 +1049,14 @@ int HissWriter::add_tile_f64_snr(uint64_t parent_ipix,
             pimpl_->checksum_for(SubblockType::SNR));
         if (ret != 0) return ret;
     }
+    const std::size_t n_subblocks_log = subblocks.size();
     int ret = pimpl_->stream.record_tile(parent_ipix, acc.tile_nside, auto_mode,
                                           std::move(subblocks));
     if (ret != 0) return ret;
     fprintf(stderr,
             "[hiss][writer] add_tile_f64_snr 成功: parent_ipix=%llu n_valid=%u "
             "n_subblocks=%zu [FP64+FP64-SNR]\n",
-            (unsigned long long)parent_ipix, n_valid, subblocks.size());
+            (unsigned long long)parent_ipix, n_valid, n_subblocks_log);
     return 0;
 }
 

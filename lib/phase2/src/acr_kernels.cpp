@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <cstring>
 #include <mutex>
+#include <stdexcept>
 #include <vector>
 
 namespace astro::compute::phase2 {
