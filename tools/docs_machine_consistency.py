@@ -136,6 +136,12 @@ def main() -> int:
         "pass": all(r["pass"] for r in results),
     }
     print(json.dumps(report, ensure_ascii=False, indent=2))
+    # V19R3：证据落盘 reports/v19r3/evidence/quality/docs_consistency.json
+    out_dir = os.path.join(ROOT, "reports", "v19r3", "evidence", "quality")
+    os.makedirs(out_dir, exist_ok=True)
+    with open(os.path.join(out_dir, "docs_consistency.json"), "w",
+              encoding="utf-8") as f:
+        json.dump(report, f, ensure_ascii=False, indent=2)
     return 0 if report["pass"] else 1
 
 
