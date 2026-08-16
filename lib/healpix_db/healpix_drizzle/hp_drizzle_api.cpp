@@ -1054,6 +1054,10 @@ static int run_drizzle_internal(PipelineFrame* frame,
         const char* dateobs_str = aio_frame_kv_get(frame, "header", "DATE-OBS");
         if (dateobs_str) meta.obs_time = dateobs_str;
 
+        // V19R4（K_CORR_DOMAIN）：源帧像素角尺度（deg→arcsec）写入
+        // DrizzleMeta 供 sink 写 provenance
+        meta.fits_meta["src_pixel_scale_arcsec"] = std::to_string(
+            std::fabs(img.wcs.cd[0]) * 3600.0);
         bool hips_ok = img.use_f64
             ? write_hips_direct<double>(tiles_f64, config, meta, hips_dir, snr_pts,
                                         variancePtr ? 1 : 0, errMsg)

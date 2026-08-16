@@ -84,6 +84,12 @@ int aio_upm_write_sparse(const char* path, const char* model_json) {
     }
     f.close();
     if (std::rename(tmp.c_str(), path) != 0) {
+        // Windows rename 不覆盖已存在目标：删除旧正式模型后重试一次
+        // （temp 仍完整，失败可恢复；ENG-IO-001 单文件原子语义保持）
+        if (std::remove(path) == 0 &&
+            std::rename(tmp.c_str(), path) == 0) {
+            return 0;
+        }
         std::remove(tmp.c_str());
         set_err("atomic promote failed");
         return 1;

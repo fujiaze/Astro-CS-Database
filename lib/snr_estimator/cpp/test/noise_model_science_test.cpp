@@ -104,7 +104,7 @@ double pearson(const std::vector<float>& a, const std::vector<float>& b) {
 
 }  // namespace
 
-int main() {
+static int run_science_matrix() {
     printf("=== V19 SNR/Noise 科学矩阵 (模块级) ===\n");
 
     // ---- SNR-001 pedestal invariance ----
@@ -473,4 +473,95 @@ int main() {
 
     printf("\n== V19 SNR 科学矩阵结果: %d 通过, %d 失败 ==\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;
+}
+
+// ============================================================================
+// V19R4 NOISE-WIRE-001：生产默认配置接线等价
+//   cfg=nullptr == default_config() == 生产默认（default + gain/readnoise=0
+//   覆盖）—— 逐字段 exact；输出模型 + fill 数组逐元素 exact。
+//   同时证明：传零结构体（V19R3 生产 bug 形态）≠ 默认配置。
+// ============================================================================
+static int noise_wire_test() {
+    const int W = 256, H = 256;
+    std::vector<float> img;
+    make_sky(W, H, img, 800.0, 4.0, 20260823);
+    // 少量星点坐标（固定保守掩膜路径）
+    double sx[2] = {10.0, 50.0};
+    double sy[2] = {12.0, 48.0};
+
+    NoiseWeightModelV1 m0{}, m1{}, m2{}, mz{};
+    // A: cfg=nullptr（模块内部默认）
+    CHECK(snr_noise_model_v1(img.data(), H, W, nullptr, sx, sy, 2,
+                             nullptr, &m0) == 0, "nullptr cfg OK");
+    // B: 显式 default_config()
+    SnrNoiseModelConfig c1{};
+    snr_noise_model_v1_default_config(&c1);
+    CHECK(snr_noise_model_v1(img.data(), H, W, nullptr, sx, sy, 2,
+                             &c1, &m1) == 0, "default_config cfg OK");
+    // C: 生产默认（default + gain/readnoise 覆盖为 0，即 Orchestrator 在
+    // 无 header 元数据时的实际配置）
+    SnrNoiseModelConfig c2{};
+    snr_noise_model_v1_default_config(&c2);
+    c2.gain_e_per_adu = 0.0;
+    c2.read_noise_e = 0.0;
+    CHECK(snr_noise_model_v1(img.data(), H, W, nullptr, sx, sy, 2,
+                             &c2, &m2) == 0, "production default cfg OK");
+    // D: 零结构体（V19R3 生产 bug 形态；不应等于默认）
+    SnrNoiseModelConfig cz{};
+    snr_noise_model_v1(img.data(), H, W, nullptr, sx, sy, 2, &cz, &mz);
+
+    // A/B/C 逐字段 exact
+    auto eq = [&](const NoiseWeightModelV1& a, const NoiseWeightModelV1& b,
+                  const char* tag) {
+        bool ok = a.sigma_bg_global == b.sigma_bg_global &&
+                  a.variance_bg_global == b.variance_bg_global &&
+                  a.ivar_bg_global == b.ivar_bg_global &&
+                  a.n_qualified_patches == b.n_qualified_patches &&
+                  a.n_rejected_patches == b.n_rejected_patches &&
+                  a.has_spatial_field == b.has_spatial_field &&
+                  a.n_control_points == b.n_control_points &&
+                  a.degenerate == b.degenerate && a.source == b.source;
+        char msg[200];
+        snprintf(msg, sizeof(msg),
+                 "[NOISE-WIRE-001] %s 逐字段 exact (sigma=%.10g n=%u "
+                 "spatial=%d ctrl=%u)",
+                 tag, a.sigma_bg_global, a.n_qualified_patches,
+                 (int)a.has_spatial_field, (uint32_t)a.n_control_points);
+        CHECK(ok, msg);
+    };
+    eq(m0, m1, "nullptr == default_config()");
+    eq(m0, m2, "nullptr == production default");
+
+    // fill 输出逐元素 exact（A vs C）
+    std::vector<float> va(W * H), ia(W * H), vc(W * H), ic(W * H);
+    snr_noise_model_v1_fill(&m0, H, W, va.data(), ia.data());
+    snr_noise_model_v1_fill(&m2, H, W, vc.data(), ic.data());
+    bool fill_ok = true;
+    for (std::size_t i = 0; i < va.size(); ++i) {
+        if (va[i] != vc[i] || ia[i] != ic[i]) { fill_ok = false; break; }
+    }
+    CHECK(fill_ok, "[NOISE-WIRE-001] fill 数组逐元素 exact (A vs C)");
+
+    // 零结构体 ≠ 默认：spatial field 应关闭/退化（默认开启）
+    char msg[160];
+    snprintf(msg, sizeof(msg),
+             "[NOISE-WIRE-001] 零结构体≠默认 (spatial=%d ctrl=%u vs "
+             "spatial=%d ctrl=%u)",
+             (int)mz.has_spatial_field, (uint32_t)mz.n_control_points,
+             (int)m0.has_spatial_field, (uint32_t)m0.n_control_points);
+    CHECK(mz.has_spatial_field != m0.has_spatial_field ||
+              mz.n_control_points != m0.n_control_points,
+          msg);
+    snr_noise_model_v1_free(&m0);
+    snr_noise_model_v1_free(&m1);
+    snr_noise_model_v1_free(&m2);
+    snr_noise_model_v1_free(&mz);
+    return g_fail == 0 ? 0 : 1;
+}
+
+int main() {
+    const int r0 = noise_wire_test();
+    const int r1 = run_science_matrix();
+    printf("\n== 总结果: %d 通过, %d 失败 ==\n", g_pass, g_fail);
+    return (r0 == 0 && r1 == 0) ? 0 : 1;
 }

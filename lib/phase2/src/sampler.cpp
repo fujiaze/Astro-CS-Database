@@ -42,10 +42,65 @@ constexpr int kSnrCatalogMax = 1 << 16;
 constexpr double kControlCorrDefault = 1.4;
 constexpr double kPiHalf = 1.57079632679489661923;  // π/2
 
+// V19R4（K_CORR_DOMAIN 选项 B）：k_corr 标定表（control_median_mc /
+// kcorr_matrix_test 实测，pixfrac × 源像素角尺度双线性插值）。
+// 矩阵：scale 300"/600" 两档 × pixfrac 0.5/0.8/1.0。
+double kcorr_lookup(double pixfrac, double scale_arcsec) {
+    static const double pf_grid[3] = {0.5, 0.8, 1.0};
+    static const double sc_grid[2] = {300.0, 600.0};
+    static const double k[2][3] = {
+        {1.2112, 1.3925, 1.4980},   // 300"/px
+        {2.3958, 2.8971, 3.2035},   // 600"/px
+    };
+    const double pf = std::clamp(pixfrac, 0.5, 1.0);
+    const double sc = std::clamp(scale_arcsec, 300.0, 600.0);
+    // 双线性插值
+    const double wi = (pf - pf_grid[0]) / (pf_grid[2] - pf_grid[0]);
+    const double i0 = wi * 2.0, i1 = i0 + 1.0;   // 网格列
+    const std::size_t c0 = (std::size_t)std::min(i0, 2.0);
+    const std::size_t c1 = (std::size_t)std::min(i1, 2.0);
+    const double fx = i0 - (double)c0;
+    const double r0 =
+        (sc_grid[1] - sc) / (sc_grid[1] - sc_grid[0]);
+    // 先按 scale 行插值，再按 pixfrac 列插值
+    const double k_r0 = k[0][c0] + (k[0][c1] - k[0][c0]) * fx;
+    const double k_r1 = k[1][c0] + (k[1][c1] - k[1][c0]) * fx;
+    return k_r0 + (k_r1 - k_r0) * (1.0 - r0);
+}
+
+// 从帧 HiPS properties 解析 Drizzle provenance（V19R4）
+void frame_drizzle_provenance(const char* hips_path, double* pixfrac,
+                              double* scale_arcsec) {
+    *pixfrac = 0.0;
+    *scale_arcsec = 0.0;
+    AioHipsDataset* d = aio_hips_open(hips_path, AIO_HIPS_RD_SIGNAL);
+    if (!d) return;
+    char buf[8192];
+    if (aio_hips_get_properties(d, buf, (int)sizeof(buf)) == 0) {
+        std::istringstream ss(buf);
+        std::string line;
+        while (std::getline(ss, line)) {
+            const std::size_t eq = line.find('=');
+            if (eq == std::string::npos) continue;
+            const std::string k = line.substr(0, eq);
+            const std::string v = line.substr(eq + 1);
+            if (k == "ASTROCS_DRIZZLE_PIXFRAC") {
+                const double vf = std::atof(v.c_str());
+                if (vf > 0.0 && vf <= 1.0) *pixfrac = vf;
+            } else if (k == "ASTROCS_DRIZZLE_SCALE_ARCSEC") {
+                const double vs = std::atof(v.c_str());
+                if (vs > 0.0) *scale_arcsec = vs;
+            }
+        }
+    }
+    aio_hips_close(d);
+}
+
 struct FrameData {
     std::set<std::uint64_t> tiles;          // order=K tile ipix
     std::vector<double> snr_ra, snr_dec, snr;
     std::vector<std::uint32_t> quality;     // Phase1 SNR catalogue quality
+    double kcorr = kControlCorrDefault;     // V19R4：per-frame k_corr
 };
 
 inline std::uint64_t leaf_of_tile(std::uint64_t tile_ipix, int leaf_shift) {
@@ -401,6 +456,15 @@ int p2_sample_controls(const P2CoverageResult* coverage,
             }
             return 1;
         }
+        // V19R4（K_CORR_DOMAIN 选项 B）：读帧 Drizzle provenance → k_corr
+        {
+            double pf = 0.0, sc = 0.0;
+            frame_drizzle_provenance(hips_paths[i], &pf, &sc);
+            if (pf > 0.0)
+                frames[i].kcorr = (sc > 0.0)
+                    ? kcorr_lookup(pf, sc)
+                    : kcorr_lookup(pf, 300.0);   // scale 未知：300" 档保守
+        }
         const int n = aio_hips_tile_count(sig[i]);
         for (int t = 0; t < n; ++t) {
             std::uint64_t ip = 0;
@@ -602,9 +666,14 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                         // SE(median) = sqrt(control_variance)；
                         // 用 N_retained（clipping 后保留样本），不是 n_total。
                         const double n_ret = std::max((double)n_retained, 1.0);
+                        // V19R4：per-frame k_corr（provenance 标定；无
+                        // metadata 时回退 cfg.control_k_corr 默认 1.4）
+                        const double kcorr_f =
+                            (frames[frame_id].kcorr > 0.0)
+                                ? frames[frame_id].kcorr
+                                : cfg.control_k_corr;
                         const double cvar =
-                            cfg.control_k_corr * kPiHalf * sigma * sigma /
-                            n_ret;
+                            kcorr_f * kPiHalf * sigma * sigma / n_ret;
                         cs.cvar.push_back(cvar);
                         cs.civar.push_back(cvar > 0.0 ? 1.0 / cvar : 0.0);
                         cs.unc.push_back(std::sqrt(cvar));

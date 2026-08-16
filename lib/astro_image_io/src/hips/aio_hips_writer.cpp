@@ -341,6 +341,10 @@ struct AncestorAcc {
 // ============================================================================
 struct AioHipsProductSet {
     std::string out_dir;
+    // V19R4：Drizzle provenance（默认未设置 → properties 不写）
+    bool drizzle_prov_set = false;
+    double drizzle_pixfrac = 0.0;
+    double drizzle_scale_arcsec = 0.0;
     uint32_t nside = 0;
     uint32_t tile_width = 512;
     int32_t data_type = AIO_HIPS_FLOAT32;
@@ -723,6 +727,17 @@ static bool finalize_image_product(AioHipsProductSet* ps,
     kv.push_back({"hips_creation_date", cre_date});
     kv.push_back({"obs_description", "AstroCS Phase1 single-frame HiPS product"});
     kv.push_back({"prov_progenitor", "ivo://astrocs/phase1/drizzle"});
+    // V19R4（K_CORR_DOMAIN）：Drizzle provenance → sampler 按帧 k_corr
+    if (ps->drizzle_prov_set) {
+        char pf[32], sc[32];
+        std::snprintf(pf, sizeof(pf), "%.6f", ps->drizzle_pixfrac);
+        kv.push_back({"ASTROCS_DRIZZLE_PIXFRAC", pf});
+        if (ps->drizzle_scale_arcsec > 0.0) {
+            std::snprintf(sc, sizeof(sc), "%.4f",
+                          ps->drizzle_scale_arcsec);
+            kv.push_back({"ASTROCS_DRIZZLE_SCALE_ARCSEC", sc});
+        }
+    }
     kv.push_back({"obs_regime", "optical"});
     // META-002 : 无真实 passband/系统响应波长范围时不伪造 em_min/em_max
     kv.push_back({"hips_hierarchy", "true"});
@@ -988,6 +1003,18 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
     return true;
 }
 
+// V19R4（K_CORR_DOMAIN 选项 B）：Drizzle provenance setter
+int aio_hips_set_drizzle_provenance(AioHipsProductSet* ps,
+                                    double pixfrac, double scale_arcsec) {
+    if (!ps) return 1;
+    if (!(pixfrac > 0.0 && pixfrac <= 1.0)) return 2;
+    if (scale_arcsec < 0.0) return 2;
+    ps->drizzle_prov_set = true;
+    ps->drizzle_pixfrac = pixfrac;
+    ps->drizzle_scale_arcsec = scale_arcsec;
+    return 0;
+}
+
 int aio_hips_finalize(AioHipsProductSet* ps) {
     g_hips_error.clear();
     if (!ps) { set_error("null handle"); return -1; }
@@ -1187,11 +1214,6 @@ int aio_hips_write(
 }
 
 } // extern "C"
-
-
-
-
-
 
 
 
