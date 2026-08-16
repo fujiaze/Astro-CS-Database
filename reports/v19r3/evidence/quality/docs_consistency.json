@@ -8,6 +8,11 @@
       "detail": "CONFIG_SCHEMA weight_mode auto/ivar <-> stage2_common parse"
     },
     {
+      "check": "frame_id_contract_exact",
+      "pass": true,
+      "detail": "DATA-FRAME-ID-001：SHA-256 truncate；无 FNV/路径派生残留"
+    },
+    {
       "check": "error_taxonomy_exit_codes",
       "pass": true,
       "detail": "ERROR_MODEL 全集合 == orchestrator.h 0-10 退出码 (doc={'SUCCESS': 0, 'GENERIC_ERROR': 1, 'DLL_LOAD_FAILED': 2, 'BLOCK_MISSING': 3, 'CALIBRATE_FAILED': 4, 'PLATESOLVE_FAILED': 5, 'DRIZZLE_FAILED': 6, 'CONFIG_ERROR': 7, 'FILE_IO_ERROR': 8, 'TIMEOUT': 9, 'CANCELLED': 10, 'STAR_DETECT_FAILED': 20, 'PSF_FAILED': 21, 'PHOTOMETRIC_FAILED': 22, 'SNR_FAILED': 23, 'STACK_FAILED': 24, 'HISS_INVALID': 25, 'HCSD_INVALID': 26, 'MODULE_ABI_UNSUPPORTED': 27, 'INPUT_INVALID': 28, 'MODULE_SPECIFIC_BASE': 100} code={'SUCCESS': 0, 'GENERIC_ERROR': 1, 'DLL_LOAD_FAILED': 2, 'BLOCK_MISSING': 3, 'CALIBRATE_FAILED': 4, 'PLATESOLVE_FAILED': 5, 'DRIZZLE_FAILED': 6, 'CONFIG_ERROR': 7, 'FILE_IO_ERROR': 8, 'TIMEOUT': 9, 'CANCELLED': 10, 'STAR_DETECT_FAILED': 20, 'PSF_FAILED': 21, 'PHOTOMETRIC_FAILED': 22, 'SNR_FAILED': 23, 'STACK_FAILED': 24, 'HISS_INVALID': 25, 'HCSD_INVALID': 26, 'MODULE_ABI_UNSUPPORTED': 27, 'INPUT_INVALID': 28, 'MODULE_SPECIFIC_BASE': 100})"
