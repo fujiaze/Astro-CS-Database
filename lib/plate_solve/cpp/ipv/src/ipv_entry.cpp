@@ -307,7 +307,7 @@ IPV_API void ipv_get_default_params(IpvParams* params) {
 }
 
 // ============================================================================
-// P11-004 v1.3: 权威 inlier 导出 C API 实现
+// v1.3: 权威 inlier 导出 C API 实现
 // ============================================================================
 
 // 获取最后一次成功求解的 inlier 数量
@@ -414,7 +414,7 @@ IPV_API int ipv_solve_from_memory(
 }
 
 // ============================================================================
-// P09-002 INTERNAL_DETECTION_SHARED_EXPORT: 路径 A / 路径 B C API 实现
+// INTERNAL_DETECTION_SHARED_EXPORT: 路径 A / 路径 B C API 实现
 // 路径 A (ipv_solve_from_detections_v1): 外部 detections 求解, 跳过 sdet_detect_ex
 // 路径 B (ipv_solve_from_memory_with_callback, 正式命名 INTERNAL_DETECTION_SHARED_EXPORT):
 // 内部单次检测 + callback 同步导出, 由 PSF 通过 star_det 块复用

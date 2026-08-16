@@ -146,13 +146,13 @@ struct Dispatcher::Impl {
     CurrentState current_state;
     // 26 §2/§9：只保留 MemoryBudget（独立开关，与利用率解耦）
     std::unique_ptr<utilization::MemoryBudgetController> mem_ctrl;
-    // 聚焦版（08 §5）：OperationProfile 驱动的 Mixed 路由规划
+    //OperationProfile 驱动的 Mixed 路由规划
     MixedRoutePlanner planner;
-    // 聚焦版（08 §6）：数据驻留状态（Host/Device/Both/dirty）
+    //数据驻留状态（Host/Device/Both/dirty）
     ResidencyManager residency;
-    // 聚焦版 v2（08 §6）：真实 pinned staging reservation ledger
+    //真实 pinned staging reservation ledger
     utilization::StagingLedger staging_ledger;
-    // 聚焦版 v2（08 §4）：dispatcher 级桥接句柄（整帧上传复用）
+    //dispatcher 级桥接句柄（整帧上传复用）
     void* bridge_handle{nullptr};
 
     // 惰性获取 dispatcher 桥接句柄（用于真实整帧上传/下载）
@@ -173,7 +173,7 @@ struct Dispatcher::Impl {
     std::shared_ptr<ExecutorRegistry> executors;
     // F-fix 9: ReleaseCache 动作的回调（可选）。
     // 由外部注册（如缓存模块），MemoryBudget ReleaseCache 时调用。
-    // 返回实际释放字节数（06 号规范 §7）
+    // 返回实际释放字节数
     std::function<std::size_t()> cache_release_hook;
 
     // Dispatcher Finalization：BDR 决策缓存（仅空队列/无内存快照时命中；
@@ -320,7 +320,7 @@ struct Dispatcher::Impl {
             static_cast<std::uint64_t>(items) * traits.bytes_written_per_item;
         const std::uint64_t io = read_bytes + write_bytes;
         if (io == 0) return 0;  // 无每项字节信息时不参与 claim 前预算
-        // 传输 staging（GPU）：输入已驻留时不重复计整帧 H2D（08 §5），
+        // 传输 staging（GPU）：输入已驻留时不重复计整帧 H2D，
         // 只计输出 D2H staging
         const std::uint64_t staging =
             is_gpu ? (data_resident ? write_bytes : io) : 0;
@@ -404,7 +404,7 @@ struct Dispatcher::Impl {
         ResourceControlStats& stats_out,
         const TaskTraits* traits = nullptr) {
         // traits（可选）：提供每项字节信息时，在每次 claim 前执行内存峰值
-        // 预算检查（25 §7）；nullptr 时仅依赖 200ms 系统采样。
+        // 预算检查；nullptr 时仅依赖 200ms 系统采样。
         // F-fix 3：动态初始化（不预创建块，claim 时动态计算大小）
         pool.init_dynamic(begin, end, min_chunk, max_chunk);
         stats_out.dynamic_mode_used = true;
@@ -557,7 +557,7 @@ struct Dispatcher::Impl {
                             current_max_chunk.store(new_max, std::memory_order_relaxed);
                             pool.set_dynamic_max_chunk(new_max);
                         }
-                        // 恢复只依据内存动作（26 §9），不读取 CPU/GPU 利用率
+                        // 恢复只依据内存动作，不读取 CPU/GPU 利用率
                         if (gate.try_recover(Impl::action_to_string(action))) {
                             stats_out.gate_recover_count++;
                             record_action("gate_recover");
@@ -948,7 +948,7 @@ struct Dispatcher::Impl {
                              : std::vector<DeviceExecutor*>{};
         std::vector<DeviceExecutor*> supported;
         const std::size_t task_size = end - begin;
-        // 聚焦版 v2（05 号规范 §2）：Auto 模式在 worker 启动前执行收益门。
+        //Auto 模式在 worker 启动前执行收益门。
         // GPU 只有在当前路径（host/resident）eligible 且任务规模达到
         // min_profitable_items 时才进入 worker 集合；不满足则不启动 worker。
         const auto auto_plan = (plan_profile != nullptr)
@@ -956,7 +956,7 @@ struct Dispatcher::Impl {
                            data_resident)
             : MixedRoutePlan{};
         for (auto* exec : all) {
-            // 聚焦版 RouteMode（08 §3/§5）：
+            // RouteMode（08 §3/§5）：
             // CpuOnly/GpuOnly 强制只启用一类设备（对照/回退/资格测试）
             if (cfg.route_mode == RouteMode::CpuOnly &&
                 exec->backend_type() != "cpu") {
@@ -1259,7 +1259,7 @@ struct Dispatcher::Impl {
                                 current_max_chunk.store(new_max, std::memory_order_relaxed);
                                 pool.set_dynamic_max_chunk(new_max);
                             }
-                            // 恢复只依据内存动作（26 §9），不读取 CPU/GPU 利用率
+                            // 恢复只依据内存动作，不读取 CPU/GPU 利用率
                             if (gate.try_recover(Impl::action_to_string(action))) {
                                 stats_out.gate_recover_count++;
                                 record_action("gate_recover");
@@ -1301,7 +1301,7 @@ struct Dispatcher::Impl {
                             }
                             break;
                         }
-                        // 聚焦版（08 §5）：OperationProfile 驱动规划
+                        //OperationProfile 驱动规划
                         // 决定 CPU/GPU 独立块大小与边际收益门；无合格 Profile
                         // 时回退旧 CostEstimator 路径（保守 CPU fallback）。
                         std::size_t requested = 0;
@@ -1520,7 +1520,7 @@ struct Dispatcher::Impl {
                                 pool.set_dynamic_max_chunk(requested);
                             }
                         }
-                        // ---- 聚焦版 v2：pinned staging reserve（GPU）----
+                        // ----pinned staging reserve（GPU）----
                         // 真实 reservation ledger；预算不足时缩小块重试一次
                         if (cfg.enable_memory_budget &&
                             exec->backend_type().rfind("cuda", 0) == 0) {
@@ -1578,7 +1578,7 @@ struct Dispatcher::Impl {
                                 token.size());
                         }
                         // 首轮公平门（仅影响每个 executor 的第一块之前）。
-                        // 聚焦版：OperationProfile 规划模式（08 §5）下
+                        //OperationProfile 规划模式下
                         // 禁用强制公平门——由 planner 的边际收益门决定设备是否
                         // 参与，避免慢设备被公平门阻塞导致死锁。
                         if (!plan_profile &&
@@ -1603,7 +1603,7 @@ struct Dispatcher::Impl {
                         inv.domain = WorkDomain{token.begin, token.end};
                         inv.token_id = token.id;
                         inv.attempt = token.attempt;
-                        // 聚焦版 v3：输入已 prefetch → launcher 走 resident 路径
+                        //输入已 prefetch → launcher 走 resident 路径
                         inv.input_resident = data_resident;
                         SubmitHandle handle = exec->submit(token, inv);
                         if (handle.status == SubmitStatus::Ok) {
@@ -1652,7 +1652,7 @@ struct Dispatcher::Impl {
             }
         }
         for (auto& th : workers) th.join();
-        // ACR 架构冻结（05 号规范 §2）：工作保持——禁止漏算。
+        // ACR 架构冻结：工作保持——禁止漏算。
         // should_claim 的 makespan 优化在实测速率噪声/双方互斥拒绝时可能让
         // 所有 worker 停止 claim 而池仍有剩余（all_done=false 静默漏算）。
         // 兜底：worker 全部退出后，由第一个可用 executor 按剩余工作清尾，
@@ -1780,7 +1780,7 @@ void Dispatcher::configure(const DispatcherConfig& cfg) {
     impl_->cfg = cfg;
     impl_->bdr_cache.clear();  // 配置变化 → 决策缓存失效
     impl_->executors = cfg.executors;  // F-fix 6 + F-fix 7
-    // 聚焦版：OperationProfile 驱动规划（nullptr=保守 CPU fallback）
+    //OperationProfile 驱动规划（nullptr=保守 CPU fallback）
     impl_->planner.set_profile(cfg.operation_profile);
     impl_->fallback_policy.set_strategy(cfg.fallback_strategy);
     MixedRunnerConfig mcfg;
@@ -1805,7 +1805,7 @@ void Dispatcher::configure(const DispatcherConfig& cfg) {
         for (const auto& bn : mcfg.gpu_backends) {
             impl_->mem_ctrl->register_backend(bn);
         }
-        // 聚焦版 v2：pinned ledger limit 来自 MemoryBudget 配置
+        //pinned ledger limit 来自 MemoryBudget 配置
         const auto& mcfg_budget = cfg.memory_budget_explicit
             ? cfg.memory_budget : utilization::MemoryBudgetConfig{};
         const std::uint64_t total_ram = impl_->mem_ctrl->sample().total_ram;
@@ -2493,7 +2493,7 @@ CostAwareResult Dispatcher::dispatch_invocation(
     result.transfer_stats.frames_upload_count = slot_after.first;
     result.transfer_stats.weights_upload_count = slot_after.second;
 
-    // 聚焦版 v3：真实驻留驱动。
+    //真实驻留驱动。
     // - 输入已在 worker 启动前 prefetch（真实一次上传）；
     // - 输出经同步桥接真实 D2H 一次；
     // - 不再执行后补传输入。

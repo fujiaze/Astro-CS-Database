@@ -1,13 +1,12 @@
 // ============================================================================
-// orchestrator.cpp - Orchestrator 核心类实现 (骨架)
+// orchestrator.cpp - Orchestrator 核心类实现
 // 功能: 管线编排, 串联 5 个阶段 (CALIBRATE -> PLATESOLVE -> PSF -> PHOTOMETRIC -> DRIZZLE)
 //
-// 当前版本: 骨架实现
-// - 各 run_stage_* 方法仅输出日志, 返回 true
-// - load_config 简单读取 JSON 文件 (后续 Task 引入 JSON 库完善)
-// - 检查点为骨架 (返回 true)
-// - 内存使用查询返回 0 (后续 Task 实现)
-// 后续 Task 将通过动态加载各模块 DLL 实现具体逻辑
+// 当前版本: 生产实现
+// - 各 run_stage_* 经 DllLoader 动态加载模块 DLL 执行真实流水线
+// - load_config 解析完整 JSON（见 json_config.cpp）
+// - 检查点/阶段 gate 由各 stage handler 返回真实状态
+// - 内存使用查询返回 0（已知限制，见 docs/KNOWN_LIMITATIONS.md）
 // ============================================================================
 
 #include "orchestrator.h"
@@ -35,7 +34,7 @@
 
 // AIO 图像数据结构与元数据 (用于 run_stage_read_fits)
 #include "astro_image_io.h"
-// IVOA HiPS 写入器 (Phase1 Full Freeze v2, HiPS 迁移)
+// IVOA HiPS 写入器 (Phase1 v2, HiPS 迁移)
 #include "aio_hips.h"
 #include "aio_hips_reader.h"   // Phase1 : HIPS_VERIFY / Browser 唯一后端
 #include "healpix/healpix_core.h" // HIPS-IMG-001: 共享 HEALPix core 映射
@@ -210,7 +209,7 @@ int calculate_nside(double cd11, double cd12, double cd21, double cd22,
 }
 
 // ============================================================================
-// P03-001: 校准输入接线辅助函数
+// 校准输入接线辅助函数
 // 用于 run_stage_calibrate 加载/验证 Master Bias/Dark/Flat, 输出 cal_stats
 // ============================================================================
 
@@ -368,7 +367,7 @@ std::string Orchestrator::stage_name_v2(PipelineStageV2 stage) {
 }
 
 // ============================================================================
-// P04-004: 取消 token / 超时机制 / 原子输出清理 实现
+// 取消 token / 超时机制 / 原子输出清理 实现
 // ============================================================================
 
 // request_cancel - 设置取消 token, 通知各 stage 停止
@@ -462,7 +461,7 @@ bool Orchestrator::check_stage_continue(const std::string& stage_name, TaskResul
 // ============================================================================
 Orchestrator::Orchestrator() {
     start_time_ = std::chrono::steady_clock::now();
-    // V18R2 (CODE-004): 日志目录由 main 按 config.output.log 解析后注入
+    // 日志目录由 main 按 config.output.log 解析后注入
     // （Logger::set_log_dir）；此处不再默认写 lib/orchestrator/logs 嵌套目录。
     // 移除失真的""描述。
     LOG_INFO("orchestrator", "初始化编排器");
@@ -486,7 +485,7 @@ Orchestrator::~Orchestrator() {
 }
 
 // ============================================================================
-// load_config - 加载 JSON 配置文件 (骨架: 简单读取文件内容)
+// load_config - 加载并解析 JSON 配置文件（json_config.cpp 统一解析）
 // ============================================================================
 bool Orchestrator::load_config(const std::string& config_path, std::string& error_msg) {
     LOG_INFO("orchestrator", "加载配置: " + config_path);
@@ -518,7 +517,7 @@ bool Orchestrator::load_config(const std::string& config_path, std::string& erro
 
     LOG_INFO("orchestrator", "配置文件大小: " + std::to_string(content.size()) + " 字节");
 
-    // P03-002: 把整个 JSON 文本存入 calib_params_json (供各 stage handler 按需解析)
+    // 把整个 JSON 文本存入 calib_params_json (供各 stage handler 按需解析)
     config_.calib_params_json = content;
 
     // 默认日志目录与输出目录 (若配置中未指定)
@@ -536,7 +535,7 @@ bool Orchestrator::load_config(const std::string& config_path, std::string& erro
     checkpoint_mgr_.set_checkpoint_dir(ckpt_dir);
     LOG_INFO("orchestrator", "检查点目录: " + ckpt_dir);
 
-    // P03-002: 解析 log_level (顶层字段, 大小写不敏感)
+    // 解析 log_level (顶层字段, 大小写不敏感)
     // 优先级: CLI --log-level > config.log_level > 默认 INFO
     // CLI 覆盖在 cmd_stage1/cmd_stage2 中处理; 此处仅解析 config
     std::string cfg_log_level = orc_getJsonString(content, "log_level");
@@ -550,13 +549,13 @@ bool Orchestrator::load_config(const std::string& config_path, std::string& erro
     Logger::instance().set_level(lvl);
     LOG_INFO("orchestrator", "日志级别设置为: " + config_.log_level);
 
-    // P03-002: 解析 threads (顶层字段, 0=自动检测)
+    // 解析 threads (顶层字段, 0=自动检测)
     double cfg_threads = orc_getJsonNum(content, "threads", 0.0);
     config_.threads = static_cast<int>(cfg_threads);
     LOG_INFO("orchestrator", "配置线程数: " + std::to_string(config_.threads)
              + (config_.threads == 0 ? " (0=自动检测)" : ""));
 
-    // P03-002: 解析 gaia_data_dir (顶层字段, 用于 init_platesolve_env)
+    // 解析 gaia_data_dir (顶层字段, 用于 init_platesolve_env)
     // 2026-08-05 规范: 数据库位置必须由 stage1.json 引入; 缺失时 PLATESOLVE 硬失败
     std::string cfg_gaia_dir = orc_getJsonString(content, "gaia_data_dir");
     if (!cfg_gaia_dir.empty()) {
@@ -595,7 +594,8 @@ double Orchestrator::get_elapsed_time() const {
 }
 
 size_t Orchestrator::get_memory_usage() const {
-    // 骨架实现: 返回 0 (后续 Task 实现实际内存统计)
+    // 已知限制: 尚未实现实际内存统计，返回 0
+    // （见 docs/KNOWN_LIMITATIONS.md）
     return 0;
 }
 
@@ -770,12 +770,12 @@ bool Orchestrator::init_dlls(const std::string& lib_base_dir, std::string& error
 }
 
 // ============================================================================
-// 各阶段实现 (CALIBRATE 已在 P03-001 接入真实 Master Bias/Dark/Flat)
+// 各阶段实现 (CALIBRATE 已在 接入真实 Master Bias/Dark/Flat)
 // ============================================================================
 bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     LOG_INFO("orchestrator", "[CALIBRATE] 开始");
 
-    // P03-003: CALIBRATE 是必需 stage, DLL 未加载必须失败 (退出码 2)
+    // CALIBRATE 是必需 stage, DLL 未加载必须失败 (退出码 2)
     if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::CALIBRATE)) {
         LOG_ERROR("orchestrator", "[CALIBRATE] CALIBRATE DLL 未加载 (必需模块)");
         result.error_msg = "[CALIBRATE] CALIBRATE DLL 未加载 (必需模块)";
@@ -783,7 +783,7 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
         return false;
     }
 
-    // P03-003: frame_ 为空属于内部错误, 不再静默跳过
+    // frame_ 为空属于内部错误, 不再静默跳过
     if (frame_ == nullptr) {
         LOG_ERROR("orchestrator", "[CALIBRATE] frame_ 为空 (PipelineFrame 未初始化)");
         result.error_msg = "[CALIBRATE] frame_ 为空 (PipelineFrame 未初始化)";
@@ -863,7 +863,7 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
 
     // 1. 从 frame_ 读取 data 块
     // 双精度 ABI : FP64 模式下 data 块为 FLOAT64 [H,W], FP32 模式下为 FLOAT32 [H,W]
-    // P03-003: data 是必需块 (READ_FITS 产出), 缺失必须失败 (退出码 3)
+    // data 是必需块 (READ_FITS 产出), 缺失必须失败 (退出码 3)
     const AioBlock* data_block = fn_get_block(frame_, "data");
     if (data_block == nullptr) {
         LOG_ERROR("orchestrator", "[CALIBRATE] data 块不存在 (必需块)");
@@ -1187,7 +1187,7 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
              + ", actual_k=" + std::to_string(actual_k));
 
     // 11. 替换 data 块 (转移所有权)
-    // P03-003: data 块写回失败必须返回非零 (退出码 3, 必需块缺失)
+    // data 块写回失败必须返回非零 (退出码 3, 必需块缺失)
     // 双精度 ABI: FP64 模式写回 FLOAT64, FP32 模式写回 FLOAT32
     fn_remove_block(frame_, "data");
     int dims[2] = {height, width};
@@ -1213,7 +1213,7 @@ bool Orchestrator::run_stage_calibrate(TaskResult& result) {
     }
     // out_f32/out_f64 所有权已转移给 frame_
 
-    // 12. 写入 cal_stats KV 块 (P03-001 交付物)
+    // 12. 写入 cal_stats KV 块 (交付物)
     fn_kv_set(frame_, "cal_stats", "STATUS", "OK");
     fn_kv_set(frame_, "cal_stats", "MASTER_BIAS_PATH", bias_path.c_str());
     fn_kv_set(frame_, "cal_stats", "MASTER_DARK_PATH", dark_path.c_str());
@@ -1311,7 +1311,7 @@ static std::string map_filter_name(const std::string& fits_filter) {
     if (ieq(fits_filter, "Blue") || ieq(fits_filter, "B")) return "Baader B";
     if (ieq(fits_filter, "Lum") || ieq(fits_filter, "L") || ieq(fits_filter, "Luminance"))
         return "Baader UV/IR Cut / L CMOS Optimized";
-    // P12-005: 窄带滤光片映射 (H-alpha / OIII 大小写变体)
+    // 窄带滤光片映射 (H-alpha / OIII 大小写变体)
     // T4: Baader RGBHaOIII (7nm HA, 8.5nm OIII); T2/T3: Astrodon (暂用 Baader 曲线近似)
     if (ieq(fits_filter, "H-alpha") || ieq(fits_filter, "Ha") || ieq(fits_filter, "HA"))
         return "Baader 7nm H-alpha";
@@ -1548,7 +1548,7 @@ bool Orchestrator::init_platesolve_env(std::string& error_msg) {
     LOG_INFO("orchestrator", "[PLATESOLVE] star_detector.dll 加载成功");
 
     // 3. 创建 GaiaClient (使用 GaiaDR3SP 数据目录, db_type=GAIA_DB_DR3SP=2)
-    // P03-002: gaia_data_dir 优先从 config 读取, 空时默认 project_root_dir_/GaiaDR3SP
+    // gaia_data_dir 优先从 config 读取, 空时默认 project_root_dir_/GaiaDR3SP
     using gaia_create_ex_fn = GaiaClient* (*)(const char*, GaiaDbType);
     auto fn_gaia_create_ex = reinterpret_cast<gaia_create_ex_fn>(
         reinterpret_cast<void*>(GetProcAddress(gaia_h, "gaia_client_create_ex")));
@@ -1558,7 +1558,7 @@ bool Orchestrator::init_platesolve_env(std::string& error_msg) {
         cleanup_platesolve_env();
         return false;
     }
-    // P03-002: 数据库位置必须由 stage1.json 配置引入 (gaia_data_dir, typed 配置
+    // 数据库位置必须由 stage1.json 配置引入 (gaia_data_dir, typed 配置
     // 已解析为绝对路径, 相对 JSON 文件目录); 禁止硬编码默认路径
     // (2026-08-05 规范: 数据库之类的位置一律配置驱动)
     if (stage1_cfg_ == nullptr || stage1_cfg_->gaia_data_dir.empty()) {
@@ -1703,7 +1703,7 @@ void Orchestrator::cleanup_platesolve_env() {
 
 namespace {
 // ============================================================================
-// make_stable_star_id - stable star_id (Phase1 Full Freeze v2)
+// make_stable_star_id - stable star_id (Phase1 v2)
 // 规则 (wiki/05_STAR_MEASUREMENT_SHARED_DATA.md):
 // - 帧内唯一且不可复用;
 // - 与行号无关 (不依赖数组下标, 排序变化不得造成无法对账);
@@ -1741,7 +1741,7 @@ void assign_stable_star_ids(const double* x, const double* y, int n,
 }  // namespace
 
 // ============================================================================
-// run_stage_platesolve - PLATESOLVE 阶段 (Phase1 Full Freeze v2 修订流水线)
+// run_stage_platesolve - PLATESOLVE 阶段 (Phase1 v2 修订流水线)
 // 修订流水线: CALIBRATE -> PSF/STAR_MEASURE -> PLATESOLVE -> PHOTOMETRIC -> SNR
 // 职责:
 // 1. 读取 PSF/STAR_MEASURE 产出的权威 star_det 块 (FLOAT64 [N,6], 禁止重检测)
@@ -1757,7 +1757,7 @@ void assign_stable_star_ids(const double* x, const double* y, int n,
 bool Orchestrator::run_stage_platesolve(TaskResult& result) {
     LOG_INFO("orchestrator", "[PLATESOLVE] 开始 (消费 PSF 星点, ipv_solve_from_detections_v1)");
 
-    // P03-003: PLATESOLVE 是必需 stage, DLL 未加载必须失败 (退出码 2)
+    // PLATESOLVE 是必需 stage, DLL 未加载必须失败 (退出码 2)
     if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::PLATESOLVE)) {
         LOG_ERROR("orchestrator", "[PLATESOLVE] PLATESOLVE DLL 未加载 (必需模块)");
         result.error_msg = "[PLATESOLVE] PLATESOLVE DLL 未加载 (必需模块)";
@@ -1765,7 +1765,7 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
         return false;
     }
 
-    // P03-003: frame_ 为空属于内部错误, 不再静默跳过
+    // frame_ 为空属于内部错误, 不再静默跳过
     if (frame_ == nullptr) {
         LOG_ERROR("orchestrator", "[PLATESOLVE] frame_ 为空 (PipelineFrame 未初始化)");
         result.error_msg = "[PLATESOLVE] frame_ 为空 (PipelineFrame 未初始化)";
@@ -1806,7 +1806,7 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
     }
 
     // 1. 读取 data 块仅获取图像尺寸 (FLOAT32 或 FLOAT64 [H,W])
-    // P03-003: data 是必需块 (CALIBRATE 产出), 缺失必须失败 (退出码 3)
+    // data 是必需块 (CALIBRATE 产出), 缺失必须失败 (退出码 3)
     // 本阶段不再读取像素做检测 (检测已在 PSF/STAR_MEASURE 完成)
     const AioBlock* data_block = fn_get_block(frame_, "data");
     if (data_block == nullptr) {
@@ -1908,7 +1908,7 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
 
     // 2. 从 header KV 读取初始指向 (OBJCTRA/OBJCTDEC/FOCALLEN/XPIXSZ)
     // 约束: 必须使用 OBJCTRA/OBJCTDEC 作为初始指向, 无论是否已有 WCS 数据
-    // P03-002: 支持从 config 覆盖 (initial_ra/initial_dec/focal_length/pixel_size)
+    // 支持从 config 覆盖 (initial_ra/initial_dec/focal_length/pixel_size)
     const char* objctra = fn_kv_get(frame_, "header", "OBJCTRA");
     const char* objctdec = fn_kv_get(frame_, "header", "OBJCTDEC");
     double focal_length = fn_kv_get_double(frame_, "header", "FOCALLEN", 0.0);
@@ -1936,7 +1936,7 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
              + "mm, 像素尺寸=" + std::to_string(pixel_size) + "um"
              + (!cfg_initial_ra.empty() ? " (部分来自 config)" : ""));
 
-    // 3. 调用 ipv_solve_from_detections_v1 (P02-002 路径 A)
+    // 3. 调用 ipv_solve_from_detections_v1 (路径 A)
     // 与 ipv_solve_from_memory 算法等价, 仅跳过 sdet_detect_ex (检测已在 PSF 完成)
     auto fn_ipv_solve_det = dll_loader_.get_function<int (*)(
         void*, const double*, int, int, int, double, double, double, double,
@@ -2056,7 +2056,7 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
     LOG_INFO("orchestrator", "[PLATESOLVE] star_det 块由 PSF/STAR_MEASURE 产出, 未重写 "
              "(检测次数保持 1 次)");
 
-    // P02-006: 删除无消费者 gaia_cat 二次查询
+    // 删除无消费者 gaia_cat 二次查询
     // 上游未再产生 gaia_cat 块; 测光查询由 PHOTOMETRIC 阶段按需完成。
 
     LOG_INFO("orchestrator", "[PLATESOLVE] 完成");
@@ -2066,7 +2066,7 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
 bool Orchestrator::run_stage_psf(TaskResult& result) {
     LOG_INFO("orchestrator", "[PSF] 开始");
 
-    // P03-003: PSF 是必需 stage (PHOTOMETRIC 依赖 psf 块), DLL 未加载必须失败 (退出码 2)
+    // PSF 是必需 stage (PHOTOMETRIC 依赖 psf 块), DLL 未加载必须失败 (退出码 2)
     if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::PSF)) {
         LOG_ERROR("orchestrator", "[PSF] PSF DLL 未加载 (必需模块)");
         result.error_msg = "[PSF] PSF DLL 未加载 (必需模块)";
@@ -2074,7 +2074,7 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
         return false;
     }
 
-    // P03-003: frame_ 为空属于内部错误, 不再静默跳过
+    // frame_ 为空属于内部错误, 不再静默跳过
     if (frame_ == nullptr) {
         LOG_ERROR("orchestrator", "[PSF] frame_ 为空 (PipelineFrame 未初始化)");
         result.error_msg = "[PSF] frame_ 为空 (PipelineFrame 未初始化)";
@@ -2473,7 +2473,7 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
 bool Orchestrator::run_stage_photometric(TaskResult& result) {
     LOG_INFO("orchestrator", "[PHOTOMETRIC] 开始");
 
-    // P03-003: PHOTOMETRIC 是必需 stage (产出 photo_stats 供 SNR/Drizzle 使用), DLL 未加载必须失败 (退出码 2)
+    // PHOTOMETRIC 是必需 stage (产出 photo_stats 供 SNR/Drizzle 使用), DLL 未加载必须失败 (退出码 2)
     if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::PHOTOMETRIC)) {
         LOG_ERROR("orchestrator", "[PHOTOMETRIC] PHOTOMETRIC DLL 未加载 (必需模块)");
         result.error_msg = "[PHOTOMETRIC] PHOTOMETRIC DLL 未加载 (必需模块)";
@@ -2481,7 +2481,7 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
         return false;
     }
 
-    // P03-003: frame_ 为空属于内部错误, 不再静默跳过
+    // frame_ 为空属于内部错误, 不再静默跳过
     if (frame_ == nullptr) {
         LOG_ERROR("orchestrator", "[PHOTOMETRIC] frame_ 为空 (PipelineFrame 未初始化)");
         result.error_msg = "[PHOTOMETRIC] frame_ 为空 (PipelineFrame 未初始化)";
@@ -2557,7 +2557,7 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     }
 
     // 2. 读取 psf 块 (FLOAT64 [N,9])
-    // P03-003: psf 是必需块 (PSF 阶段产出), 缺失必须失败 (退出码 3)
+    // psf 是必需块 (PSF 阶段产出), 缺失必须失败 (退出码 3)
     const AioBlock* psf_block = fn_get_block(frame_, "psf");
     if (psf_block == nullptr || psf_block->dims[0] <= 0) {
         LOG_ERROR("orchestrator", "[PHOTOMETRIC] psf 块不存在或为空 (必需块, PSF 应产出)");
@@ -2904,7 +2904,7 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     fn_kv_set_double(frame_, "photo_stats", "SCALE_FACTOR", out_scale);
     fn_kv_set_double(frame_, "photo_stats", "SIGMA_RESIDUAL", out_sigma);
 
-    // P12-001 子任务B: 写入 PhotometricDiag 17 个分阶段诊断字段到 photo_stats KV 块
+    // 子任务B: 写入 PhotometricDiag 17 个分阶段诊断字段到 photo_stats KV 块
     fn_kv_set_double(frame_, "photo_stats", "SPECTRUM_ROWS_TOTAL", static_cast<double>(diag.spectrum_rows_total));
     fn_kv_set_double(frame_, "photo_stats", "VALID_FSYN", static_cast<double>(diag.valid_fsyn));
     fn_kv_set_double(frame_, "photo_stats", "GAIA_IN_FRAME", static_cast<double>(diag.gaia_projected_in_frame));
@@ -2932,7 +2932,7 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     LOG_INFO("orchestrator", "[PHOTOMETRIC] PHOTSCAL 已写入 header: "
              + std::to_string(out_scale) + ", PHOTAPPL=1");
 
-    // P12-001 子任务B: 同步 photo_stats 到 result.photo_stats (供 CLI quality_metric 事件使用)
+    // 子任务B: 同步 photo_stats 到 result.photo_stats (供 CLI quality_metric 事件使用)
     // 注: run_stage1 销毁 frame_ 后 KV 块不可访问, 故在此复制到 TaskResult
     result.photo_stats["STATUS"] = "OK";
     result.photo_stats["N_MATCHED"] = std::to_string(out_n_matched);
@@ -2957,7 +2957,7 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     result.photo_stats["MATCH_DIST_P90"] = std::to_string(diag.match_distance_p90);
     result.photo_stats["MATCH_DIST_MAX"] = std::to_string(diag.match_distance_max);
 
-    // P12-001 子任务B: 生成 photometry_report.json
+    // 子任务B: 生成 photometry_report.json
     // 遵循 engineering_v1.3/contracts/photometry_report.schema.json
     // 输出到正式输出目录 (current_output_path_ 的父目录)
     try {
@@ -3032,7 +3032,7 @@ static std::vector<std::pair<int,int>> g_trace_pixels;
 static bool g_trace_pixels_ready = false;
 
 // ============================================================================
-// write_stage_trace - 阶段 trace 观察器 (Gate 8, Phase1 Full Freeze v2)
+// write_stage_trace - 阶段 trace 观察器 (Gate 8, Phase1 v2)
 // 从实际 PipelineFrame 读取块统计 + 确定性随机抽样 star_measurements /
 // photometric_match (按 star_id), 追加写入 <diag>/trace/stage_trace.jsonl。
 // seed 由 config SHA256 派生, 可复现。
@@ -3236,7 +3236,7 @@ static void write_stage_trace(DllLoader& loader, const PipelineFrame* frame,
 bool Orchestrator::run_stage_drizzle(TaskResult& result) {
     LOG_INFO("orchestrator", "[DRIZZLE] 开始");
 
-    // P03-003: DRIZZLE 是必需 stage (生成 .hiss 输出), DLL 未加载必须失败 (退出码 2)
+    // DRIZZLE 是必需 stage (生成 .hiss 输出), DLL 未加载必须失败 (退出码 2)
     if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::DRIZZLE)) {
         LOG_ERROR("orchestrator", "[DRIZZLE] DRIZZLE DLL 未加载 (必需模块)");
         result.error_msg = "[DRIZZLE] DRIZZLE DLL 未加载 (必需模块)";
@@ -3244,7 +3244,7 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
         return false;
     }
 
-    // P03-003: frame_ 为空属于内部错误, 不再静默跳过
+    // frame_ 为空属于内部错误, 不再静默跳过
     if (frame_ == nullptr) {
         LOG_ERROR("orchestrator", "[DRIZZLE] frame_ 为空 (PipelineFrame 未初始化)");
         result.error_msg = "[DRIZZLE] frame_ 为空 (PipelineFrame 未初始化)";
@@ -3305,7 +3305,7 @@ bool Orchestrator::run_stage_drizzle(TaskResult& result) {
     }
 
     // 调用 hp_drizzle_run_hips
-    // P03-002: pixfrac 从 config 读取 (省略时生产默认 0.8, CFG-001), nested 从 config 读取 (默认 true)
+    // pixfrac 从 config 读取 (省略时生产默认 0.8, CFG-001), nested 从 config 读取 (默认 true)
     // hips_dir = output.hips (缺省由 current_output_path_ 派生, 去 .hiss 换 .hips)
     // legacy .hiss 仅在 validation.legacy_hiss_compare=true 时写出 (默认关闭)
     // 通过 header KV "PRECISION" 传递精度模式给 drizzle DLL
@@ -3967,7 +3967,7 @@ bool Orchestrator::run_stage_hips_verify(TaskResult& result) {
 }
 
 // ============================================================================
-// spec §2.3.2 两段流水线新增 stage handler (骨架)
+// spec §2.3.2 两段流水线 stage handler
 // ============================================================================
 
 // stage 0: READ_FITS - 读取 FITS 文件到 PipelineFrame (aio_read_fits)
@@ -3975,7 +3975,7 @@ bool Orchestrator::run_stage_hips_verify(TaskResult& result) {
 bool Orchestrator::run_stage_read_fits(TaskResult& result) {
     LOG_INFO("orchestrator", "[READ_FITS] 开始: " + current_fits_path_);
 
-    // P03-003: AIO 是必需模块 (PipelineFrame + FITS I/O 基础), 缺失必须失败 (退出码 2)
+    // AIO 是必需模块 (PipelineFrame + FITS I/O 基础), 缺失必须失败 (退出码 2)
     if (!dlls_loaded_ || !dll_loader_.is_loaded(ModuleId::AIO)) {
         LOG_ERROR("orchestrator", "[READ_FITS] AIO DLL 未加载 (必需模块)");
         result.error_msg = "[READ_FITS] AIO DLL 未加载 (必需模块)";
@@ -4091,7 +4091,7 @@ bool Orchestrator::run_stage_read_fits(TaskResult& result) {
     }
 
     // 添加 data 块 (按精度模式选择 FLOAT32 / FLOAT64, 拷贝)
-    // P03-003: data 是必需块, 写入失败必须返回非零 (退出码 3)
+    // data 是必需块, 写入失败必须返回非零 (退出码 3)
     // 约束: FP64 模式下 data 块必须是 FLOAT64 (不是 FLOAT32 降级)
     int dims[2] = {height, width};
     int ret;
@@ -4192,7 +4192,7 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
         return false;
     }
 
-    // P03-003: frame_ 为空属于内部错误, 不再静默跳过
+    // frame_ 为空属于内部错误, 不再静默跳过
     if (frame_ == nullptr) {
         LOG_ERROR("orchestrator", "[SNR] frame_ 为空 (PipelineFrame 未初始化)");
         result.error_msg = "[SNR] frame_ 为空 (PipelineFrame 未初始化)";
@@ -4354,7 +4354,7 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
     wcs.cd[2]  = fn_kv_get_double(frame_, "header", "CD2_1", 0.0);
     wcs.cd[3]  = fn_kv_get_double(frame_, "header", "CD2_2", 0.0);
 
-    // P03-004: 读取前向 SIP 系数 (A_ORDER/B_ORDER + A_i_j/B_i_j)
+    // 读取前向 SIP 系数 (A_ORDER/B_ORDER + A_i_j/B_i_j)
     // 复用 hp_drizzle_api.cpp 的 SIP 读取逻辑, 系数按 a[i*6+j] 存储
     // 保证 SNR 控制点 (ra,dec) 与 drizzle 阶段坐标系一致 (WCS+SIP 一致性)
     wcs.sip.a_order = 0;
@@ -4557,7 +4557,7 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
     std::memcpy(p, &model.idw_power, 8);                  p += 8;
 
     // 写入 snr_model 块 (move 语义, frame_ 接管 buffer 内存)
-    // P03-003: snr_model 是可选块, 写入失败时降级 (不阻塞 stage1)
+    // snr_model 是可选块, 写入失败时降级 (不阻塞 stage1)
     fn_remove_block(frame_, "snr_model");
     int wr = fn_add_block_move(frame_, "snr_model", AIO_BLOCK_RAW,
                                buffer, static_cast<int64_t>(payload_size),
@@ -4733,8 +4733,8 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
 
 // ============================================================================
 // run_stage1 - spec §2.3.3 单帧预处理 (FITS -> calibrated/solved frame -> HEALPix Drizzle -> IVOA HiPS, stage 0-7)
-// 串行执行 8 个 stage, 各阶段调用对应 DLL 模块 (骨架), 输出 timings
-// P04-004: 集成取消 token / stage 超时 / 原子输出清理
+// 串行执行 8 个 stage, 各阶段调用对应 DLL 模块, 输出 timings
+// 集成取消 token / stage 超时 / 原子输出清理
 // ============================================================================
 // ============================================================================
 // run_stage_nside - NSIDE 阶段: 计算/验证 HEALPix NSIDE
@@ -5156,7 +5156,7 @@ TaskResult Orchestrator::run_stage1(const Stage1Config& cfg) {
     const StageDef stages[] = {
         {PipelineStageV2::READ_FITS,   "READ_FITS",   &Orchestrator::run_stage_read_fits},
         {PipelineStageV2::CALIBRATE,   "CALIBRATE",   &Orchestrator::run_stage_calibrate},
-        // Phase1 Full Freeze v2: 修订流水线 PSF/STAR_MEASURE 先于 PLATESOLVE
+        // Phase1 v2: 修订流水线 PSF/STAR_MEASURE 先于 PLATESOLVE
         // (单次权威检测 + instrumental flux; PlateSolve 消费同一批星, 禁止重检测)
         {PipelineStageV2::PSF,         "PSF",         &Orchestrator::run_stage_psf},
         {PipelineStageV2::PLATESOLVE,  "PLATESOLVE",  &Orchestrator::run_stage_platesolve},
@@ -5247,7 +5247,7 @@ TaskResult Orchestrator::run_stage1(const Stage1Config& cfg) {
 // ============================================================================
 // run_stage2 - spec §2.3.3 多帧合并 (.hiss -> .hcsd, stage 8-9)
 // 串行执行 2 个 stage: GRADIENT_SPHERE -> STACK
-// P04-004: 集成取消 token / stage 超时 / 原子输出清理
+// 集成取消 token / stage 超时 / 原子输出清理
 // ============================================================================
 TaskResult Orchestrator::run_stage2(const std::string& hiss_dir,
                                     const std::string& output_hcsd,
@@ -5266,23 +5266,23 @@ TaskResult Orchestrator::run_stage2(const std::string& hiss_dir,
     // GAP-017: 保存 config_json 供 run_stage_gradient_sphere 读取 sigma_clip_method 等
     current_config_json_ = config_json;
 
-    // P04-004: 重置取消/超时标志, 解析 stage_timeouts 配置
+    // 重置取消/超时标志, 解析 stage_timeouts 配置
     reset_cancel_timeout();
     auto timeouts = parse_stage_timeouts(config_json);
     if (!timeouts.empty()) {
         config_.stage_timeouts = timeouts;
         LOG_INFO("orchestrator", "P04-004: 已加载 " + std::to_string(timeouts.size()) + " 个 stage 超时配置");
     }
-    // P04-004: 解析 allow_partial_output 配置 (默认 false, 严格原子性)
+    // 解析 allow_partial_output 配置 (默认 false, 严格原子性)
     bool allow_partial = orc_getJsonBool(config_json, "allow_partial_output", false);
     config_.allow_partial_output = allow_partial;
     if (allow_partial) {
         LOG_WARN("orchestrator", "P04-004: allow_partial_output=true, 取消/超时/失败时将保留部分输出");
     }
-    // P04-004: 记录输出路径 (用于失败/取消/超时时的原子清理)
+    // 记录输出路径 (用于失败/取消/超时时的原子清理)
     current_output_file_ = output_hcsd;
 
-    // P04-004: 原子性范围守卫 - 任何失败路径 (包括参数校验/DLL加载/stage失败/取消/超时)
+    // 原子性范围守卫 - 任何失败路径 (包括参数校验/DLL加载/stage失败/取消/超时)
     // 都在函数退出时检查并清理部分输出 (除非 allow_partial_output=true 或已成功)
     // 使用 RAII 模式, 析构函数在函数返回时自动调用, 覆盖所有 return 路径
     struct AtomicOutputGuard {
@@ -5365,7 +5365,7 @@ TaskResult Orchestrator::run_stage2(const std::string& hiss_dir,
     LOG_ERROR("orchestrator", result.error_msg);
 
 
-    // P04-004: 原子输出清理 - 失败/取消/超时时删除部分输出文件
+    // 原子输出清理 - 失败/取消/超时时删除部分输出文件
     if (!ok) {
         if (!config_.allow_partial_output) {
             LOG_INFO("orchestrator", "P04-004: 原子性清理 - stage2 失败/取消/超时, 删除部分输出");

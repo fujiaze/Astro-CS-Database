@@ -1,5 +1,5 @@
 // lib/acr/tests/classic/e10_mandelbrot.cpp — E10 Branch Divergence (Mandelbrot)
-// 验证能力（17 §15）：工作量不均、分支发散
+// 验证能力：工作量不均、分支发散
 //
 // Phase H 扩展：
 // - 整数逃逸计数（exact）

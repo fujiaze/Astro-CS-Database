@@ -1,4 +1,4 @@
-// lib/acr/api/kernel_registry.cpp — KernelRegistry 实现（23 §1）
+// lib/acr/api/kernel_registry.cpp — KernelRegistry 实现
 #include "astro/compute/kernel_registry.hpp"
 
 #include <algorithm>

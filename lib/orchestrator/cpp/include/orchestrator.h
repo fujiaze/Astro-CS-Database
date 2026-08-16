@@ -5,8 +5,8 @@
 // 用途: 作为各 C++ DLL 模块的统一调度入口
 //
 // 设计说明:
-// 本类为骨架实现, 各 run_stage_* 方法的具体逻辑将在后续 Task 中通过
-// 动态加载各模块 DLL 实现。当前版本仅输出日志, 返回成功。
+// 本类统一调度各 C++ DLL 模块：run_stage_* 经 DllLoader 动态加载模块
+// 并执行真实流水线（生产入口见 cli_command.cpp / orchestrator.cpp）。
 // ============================================================================
 
 #pragma once
@@ -55,7 +55,7 @@ enum class PipelineStage {
 // 第一段: 单帧预处理 (stage 0-7, FITS -> calibrated/solved frame -> HEALPix Drizzle -> IVOA HiPS;
 // legacy .hiss 仅 validation.legacy_hiss_compare=true 时写出)
 // 第二段: 多帧合并 (stage 8-9, .hiss -> .hcsd)
-// 2026-08-07 (Phase1 Full Freeze v2): 重排星点链 —
+// 2026-08-07 (Phase1 v2): 重排星点链 —
 // PSF/STAR_MEASURE 必须先于 PLATESOLVE (单次权威检测 + instrumental flux),
 // PLATESOLVE 消费同一批星 (ipv_solve_from_detections_v1), 禁止 PlateSolve 重检测。
 // ============================================================================
@@ -98,12 +98,12 @@ enum class TaskState {
 };
 
 // ============================================================================
-// AstroCS 进程退出码 (P03-003 / P04-002 扩展)
+// AstroCS 进程退出码 (/ 扩展)
 // 必需阶段/DLL/块失败必须返回非零退出码, 禁止静默跳过 (return true on skip)
 // 0=成功; 1=通用错误; 2=DLL 加载失败; 3=必需块缺失;
 // 4=校准失败; 5=PlateSolve 失败; 6=Drizzle 失败;
 // 7=配置错误; 8=文件 I/O 错误;
-// 9=超时 (P04-004 用); 10=用户取消 (P04-004 用);
+// 9=超时 (用); 10=用户取消 (用);
 // 20-29=模块特定非退出码 (star_detect/psf/photometric/snr/stack/hiss/hcsd/abi/input)
 // 100+=模块扩展码 (预留)
 // 与 engineering/contracts/error_code_registry.csv 一致
@@ -118,8 +118,8 @@ namespace AstroCsExitCode {
     constexpr int DRIZZLE_FAILED    = 6;
     constexpr int CONFIG_ERROR      = 7;
     constexpr int FILE_IO_ERROR     = 8;
-    constexpr int TIMEOUT           = 9;   // P04-004: 操作超时
-    constexpr int CANCELLED         = 10;  // P04-004: 用户取消
+    constexpr int TIMEOUT           = 9;   // 操作超时
+    constexpr int CANCELLED         = 10;  // 用户取消
 
     // 模块特定非退出码 (20-29, 不直接作为进程退出码, 但出现在 JSONL error.numeric_code)
     constexpr int STAR_DETECT_FAILED    = 20;
@@ -187,7 +187,7 @@ struct TaskResult {
     std::string output_hiss_path;                    // CFG-011: 修复 (原 output_ahpx_path); 起仅 legacy 模式填充
     std::string output_hips_path;                    // CFG-002: 正式输出 HiPS 目录
     std::string error_msg;
-    // P03-003: 进程退出码 (AstroCsExitCode::SUCCESS=0 表示成功, 非零表示具体错误)
+    // 进程退出码 (AstroCsExitCode::SUCCESS=0 表示成功, 非零表示具体错误)
     // 失败时由各 stage handler 设置对应错误码, 由 cli_command 直接返回
     int exit_code = AstroCsExitCode::SUCCESS;
 };
@@ -205,12 +205,12 @@ struct OrchestratorConfig {
     bool fresh_start = false;         // 忽略检查点重新开始
     std::string log_level = "INFO";   // 日志级别 (DEBUG/INFO/WARN/ERROR)
 
-    // P04-004: stage 级超时配置 (秒, <=0 表示不限制)
+    // stage 级超时配置 (秒, <=0 表示不限制)
     // key: stage 名称 (READ_FITS/CALIBRATE/PLATESOLVE/PSF/PHOTOMETRIC/SNR/DRIZZLE/GRADIENT_SPHERE/STACK)
     // value: 该 stage 的最大允许秒数
     std::map<std::string, double> stage_timeouts;
 
-    // P04-004: 是否允许输出 partial 结果 (取消/超时时)
+    // 是否允许输出 partial 结果 (取消/超时时)
     // false (默认): 严格原子性, 取消/超时时删除部分输出
     // true: 取消/超时时保留已生成的部分输出 (标记 partial=true)
     bool allow_partial_output = false;
@@ -260,13 +260,13 @@ public:
     // 新增: 设置启用检查点标志 (Task 3)
     void set_enable_checkpoint(bool en) { config_.enable_checkpoint = en; }
 
-    // P04-004: 设置 stage 超时配置 (从 JSON config 解析后调用)
+    // 设置 stage 超时配置 (从 JSON config 解析后调用)
     // stage_timeouts: key=stage 名称, value=超时秒数 (<=0 不限制)
     void set_stage_timeouts(const std::map<std::string, double>& stage_timeouts) {
         config_.stage_timeouts = stage_timeouts;
     }
 
-    // P04-004: 设置是否允许 partial 输出 (取消/超时时保留部分结果)
+    // 设置是否允许 partial 输出 (取消/超时时保留部分结果)
     void set_allow_partial_output(bool allow) { config_.allow_partial_output = allow; }
 
     // 设置精度模式 (FP32/FP64), 传播到 drizzle 和 HISS 写入
@@ -275,20 +275,20 @@ public:
     // 获取当前精度模式
     PrecisionMode get_precision() const { return config_.precision; }
 
-    // P04-004: 取消 token - 请求取消当前运行
+    // 取消 token - 请求取消当前运行
     // 线程安全: 设置 cancel_token_ 为 true, 各 stage 检查后停止
     void request_cancel();
 
-    // P04-004: 检查取消 token 是否被设置
+    // 检查取消 token 是否被设置
     bool is_cancelled() const { return cancel_token_.load(std::memory_order_acquire); }
 
-    // P04-004: 检查超时标志是否被触发 (由 stage watchdog 设置)
+    // 检查超时标志是否被触发 (由 stage watchdog 设置)
     bool is_timed_out() const { return timeout_flag_.load(std::memory_order_acquire); }
 
-    // P04-004: 重置取消/超时标志 (新一轮运行前调用)
+    // 重置取消/超时标志 (新一轮运行前调用)
     void reset_cancel_timeout();
 
-    // P04-004: 获取当前 stage 名称 (用于 watchdog 与日志)
+    // 获取当前 stage 名称 (用于 watchdog 与日志)
     std::string get_current_stage_name() const;
 
     // 新增: 获取 CheckpointManager 引用 (供 REPL/CLI 直接调用 list/clear 等)
@@ -334,19 +334,19 @@ private:
     std::thread worker_thread_;
     std::chrono::steady_clock::time_point start_time_;
 
-    // P04-004: 取消 token (atomic, 线程安全)
+    // 取消 token (atomic, 线程安全)
     // 由 request_cancel() 设置, 各 stage 在关键点检查并停止
     std::atomic<bool> cancel_token_{false};
-    // P04-004: 超时标志 (atomic, 线程安全)
+    // 超时标志 (atomic, 线程安全)
     // 由 stage watchdog 线程设置, stage handler 在循环中检查
     std::atomic<bool> timeout_flag_{false};
-    // P04-004: watchdog 停止标志 (atomic, 线程安全)
+    // watchdog 停止标志 (atomic, 线程安全)
     // 由 run_v2_with_timing 在 stage 完成后设置, 通知 watchdog 立即退出
     std::atomic<bool> stage_watchdog_stop_{false};
-    // P04-004: 当前 stage 名称 (用于 watchdog 与日志)
+    // 当前 stage 名称 (用于 watchdog 与日志)
     // 由 run_v2_with_timing 在 stage 开始时设置
     std::string current_stage_name_;
-    // P04-004: 当前 stage 输出文件路径 (用于原子性清理)
+    // 当前 stage 输出文件路径 (用于原子性清理)
     // 由 run_stage1/run_stage2 在开始时设置, 失败/取消/超时时删除
     std::string current_output_file_;
 
@@ -383,7 +383,7 @@ private:
     std::unique_ptr<Stage1Config> stage1_cfg_;
     // NSIDE 阶段计算/验证结果 (供 DRIZZLE 与证据引用)
     int nside_used_ = 0;
-    // P03-002: 从 config 解析的 Gaia 数据目录 (init_platesolve_env 使用)
+    // 从 config 解析的 Gaia 数据目录 (init_platesolve_env 使用)
     // 2026-08-05 规范: 数据库位置必须由 stage1.json 的 gaia_data_dir 引入,
     // 缺失时 PLATESOLVE 硬失败 (禁止默认路径)
     std::string config_gaia_data_dir_;
@@ -407,7 +407,7 @@ private:
     // 释放 PLATESOLVE 环境 (销毁 handle + 卸载 DLL)
     void cleanup_platesolve_env();
 
-    // 内部方法 (后续 Task 实现具体逻辑)
+    // 内部方法 ( 实现具体逻辑)
     bool run_stage_calibrate(TaskResult& result);
     bool run_stage_platesolve(TaskResult& result);
     bool run_stage_psf(TaskResult& result);
@@ -437,17 +437,17 @@ private:
     // 新增: PipelineStageV2 阶段名称
     static std::string stage_name_v2(PipelineStageV2 stage);
 
-    // P04-004: 解析 config_json 中的 stage_timeouts 字段
+    // 解析 config_json 中的 stage_timeouts 字段
     // 格式: {"stage_timeouts":{"READ_FITS":10.0,"CALIBRATE":60.0,...}}
     // 返回: 解析得到的 stage->seconds 映射 (空 map 表示未配置或解析失败)
     static std::map<std::string, double> parse_stage_timeouts(const std::string& config_json);
 
-    // P04-004: 原子输出清理 - 删除部分生成的输出文件
+    // 原子输出清理 - 删除部分生成的输出文件
     // path: 要删除的文件路径 (通常为 current_output_file_)
     // 返回: true 如果文件不存在或成功删除; false 如果删除失败
     bool cleanup_partial_output(const std::string& path);
 
-    // P04-004: 检查 stage 是否应继续执行 (取消/超时检查)
+    // 检查 stage 是否应继续执行 (取消/超时检查)
     // 返回: true 继续; false 应停止 (取消或超时)
     // stage_name: 当前 stage 名称 (用于日志)
     // result: 若停止, 设置 result.error_msg 和 result.exit_code

@@ -1341,7 +1341,7 @@ Scalar compute_overlap_area_g_ctx(const DropGeometryT<Scalar>& g,
     double ra_c, dec_c;
     hp.pix2radec((int64_t)target_ipix, &ra_c, &dec_c);
     const Vec3 hp_center = radec_to_vec<double>(ra_c, dec_c);
-    // V19R3 重构保序：quick-reject 必须在边界构建之前（与历史实现一致），
+    // 重构保序：quick-reject 必须在边界构建之前（与历史实现一致），
     // 否则穷举 oracle 对每个被拒像素都构建细分边界（nside<256 64 顶点）
     // 造成 ~1000 倍退化。此检查与 overlap_area_impl 内检查数值等价。
     {
@@ -1378,7 +1378,7 @@ Scalar compute_overlap_area_g_ctx(const DropGeometryT<Scalar>& g,
 }
 
 // ============================================================================
-// V19R3：bounded target-ipix geometry cache 实现
+// bounded target-ipix geometry cache 实现
 // ============================================================================
 const TargetPixelGeometry* TargetGeomCache::get_or_build(
     const healpix::HealpixCore& hp, std::uint64_t ipix, bool* built_out) {

@@ -121,7 +121,7 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
         if (p2_collect_candidate_stack(&gin, &gout) != 0) {
             throw std::runtime_error("mosaic_reject: eligibility failed");
         }
-        // 权重模式（V19R3，ACR-IVAR-001）：wmode=2（cell ivar×support）与
+        // 权重模式（，ACR-IVAR-001）：wmode=2（cell ivar×support）与
         // CPU 逐像素 ivar 不等价，已从生产路由禁用（stage2 强制 CPU）；
         // kernel 保留 wmode=0（legacy support×snr²，仅 ablation/诊断）。
         if (wmode && *wmode == 2)

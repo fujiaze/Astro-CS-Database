@@ -5,7 +5,7 @@
 #include <string>
 #include "ipv_types.h"
 #include "ipv_itertrans.h"   // Trans, IterTransResult, MatchPair
-#include "ipv_select.h"      // P02-002: DetectionSinkFn, ipv_select_from_detections, ipv_select_from_memory_with_callback
+#include "ipv_select.h"      // DetectionSinkFn, ipv_select_from_detections, ipv_select_from_memory_with_callback
 #include "ipv_log.h"
 
 namespace ipv {
@@ -95,7 +95,7 @@ void extract_wcs_sip(
 );
 
 // ---------------------------------------------------------------------------
-// P11-004 v1.3: 求解器权威 inlier 缓存 (供 WCS Gate v2 双层闭环使用)
+// v1.3: 求解器权威 inlier 缓存 (供 WCS Gate v2 双层闭环使用)
 //
 // 在 solve()/solve_from_memory()/solve_post_select() 末尾填充,
 // 通过 C API (ipv_get_last_inlier_count / ipv_get_last_inliers) 导出,
@@ -176,7 +176,7 @@ public:
     );
 
     // ========================================================================
-    // P02-002: 候选路径 A / 路径 B 求解接口 (实验性)
+    // 候选路径 A / 路径 B 求解接口 (实验性)
     // ========================================================================
 
     // 路径 A: 从外部 detections 求解 (跳过 sdet_detect_ex)
@@ -225,7 +225,7 @@ public:
     );
 
     // ========================================================================
-    // P11-004 v1.3: 权威 inlier 导出接口 (供 WCS Gate v2 双层闭环)
+    // v1.3: 权威 inlier 导出接口 (供 WCS Gate v2 双层闭环)
     //
     // 用途: 在 solve_* 之后调用, 获取求解器内部最终 inlier 对应关系,
     // 避免外部诊断工具用 kd-tree 重新匹配导致误配。
@@ -252,7 +252,7 @@ public:
     int get_last_inliers(double* out_buffer, int max_count) const;
 
 private:
-    // P02-002: 选星后通用求解流程 (triangle_match → iter_trans →
+    // 选星后通用求解流程 (triangle_match → iter_trans →
     // iterative_reproject → hi_order_rematch → robust_refine → extract_wcs_sip)
     // 供 solve_from_detections_v1 和 solve_from_memory_with_callback 共享
     void solve_post_select(
@@ -263,7 +263,7 @@ private:
         WcsFitResult* result
     );
 
-    // P11-004 v1.3: 填充 last_inliers_ 缓存 (供 get_last_inlier_* 读取)
+    // v1.3: 填充 last_inliers_ 缓存 (供 get_last_inlier_* 读取)
     // 在每次 solve_* 成功末尾调用
     void cache_last_inliers_(
         const std::vector<MatchPair>& matched,
@@ -281,7 +281,7 @@ private:
     intptr_t detector_handle_ = 0;
     Logger   logger_;
 
-    // P11-004 v1.3: 求解器最终权威 inlier 缓存
+    // v1.3: 求解器最终权威 inlier 缓存
     SolveInlierCache last_inliers_;
 };
 

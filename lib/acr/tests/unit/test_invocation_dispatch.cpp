@@ -383,7 +383,7 @@ TEST(DispatchInvocation, CostEstimateChangesClaimSize) {
 }
 
 // ============================================================================
-// 5. Eligible Device Set（24 §2）：不可行/低收益/小任务/无 profile GPU 不参与
+// 5. Eligible Device Set：不可行/低收益/小任务/无 profile GPU 不参与
 // ============================================================================
 namespace {
 
@@ -498,7 +498,7 @@ TEST(DispatchInvocation, ForceAllSupportedForTestOnly) {
 }
 
 // ============================================================================
-// 6. actual_primary 反例（24 §3）：按真实 items/bytes，禁止 executor 顺序
+// 6. actual_primary 反例：按真实 items/bytes，禁止 executor 顺序
 // ============================================================================
 namespace {
 

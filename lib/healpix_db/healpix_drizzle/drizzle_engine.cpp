@@ -238,7 +238,7 @@ struct DrizzleRunContext {
     double cos_thresh_60 = 0.0;   // cos(60 角秒)：边跨度自适应阈值
     uint32_t shift = 0;           // leaf_ipix >> shift = parent
     uint64_t mask = 0;            // leaf_ipix & mask = local
-    std::uint64_t target_cache_run_gen = 0;  // V19R3：run generation（缓存清空标记）
+    std::uint64_t target_cache_run_gen = 0;  // run generation（缓存清空标记）
 };
 
 // 操作计数 (每线程一份, 结束时合并到 DrizzleStats)
@@ -250,7 +250,7 @@ struct DrizzleOpCounters {
     int64_t pix2radec = 0;        // pixel→sky 调用数
     int64_t boundary_builds = 0;  // 自适应边细分事件数
     int64_t geometry_builds = 0;  // drop 几何构建数
-    // V19R3 定点优化计数（DRIZZLE_TARGETED）
+    // 定点优化计数（DRIZZLE_TARGETED）
     int64_t target_boundary_builds = 0;  // target leaf 边界构建数（cache miss）
     int64_t target_geometry_builds = 0;  // target leaf 几何（center+boundary）
     int64_t geometry_cache_hits = 0;     // target-ipix geometry cache 命中
@@ -278,7 +278,7 @@ void merge_op_counters(DrizzleOpCounters& dst, const DrizzleOpCounters& src) {
     dst.heap_allocations += src.heap_allocations;
 }
 
-// V19R3 定点优化：每线程 target-ipix geometry cache（bounded LRU）。
+// 定点优化：每线程 target-ipix geometry cache（bounded LRU）。
 // run_gen 每次 drizzleTiled 递增；线程首次进入新 run 时 clear，
 // 避免跨 run NSIDE 几何污染（thread_local 不能跨 run 复用几何）。
 spherical::TargetGeomCache& run_target_cache(std::uint64_t run_gen) {
@@ -1474,7 +1474,7 @@ void DrizzleEngine::processPixelSharedTiled(
             tr.corner_dec[i] = dec_t;
         }
     }
-    // V19R3 定点优化：线程本地 bounded target-ipix geometry cache
+    // 定点优化：线程本地 bounded target-ipix geometry cache
     // （一次 run 内 clear；容量有界；见 spherical_overlap.h）
     spherical::TargetGeomCache& tl_target_cache =
         run_target_cache(rctx.target_cache_run_gen);
@@ -1631,7 +1631,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
 
     // 5. OpenMP 并行 Drizzle (: 线程数来自配置, static 调度, 不预分配 4M 桶)
     int num_threads = (config.threads > 0) ? config.threads : omp_get_max_threads();
-    // V18R2 (CODE-006): 不再调用全局 omp_set_num_threads（会改变进程后续
+    // 不再调用全局 omp_set_num_threads（会改变进程后续
     // 阶段的全局 OpenMP 行为）；线程数经 parallel 子句局部限定。
     std::vector<std::unordered_map<uint64_t, TileAccumulatorT<Scalar>>> threadTiles(num_threads);
     std::vector<DrizzleOpCounters> threadCounters(num_threads);
@@ -1644,7 +1644,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     rctx.cos_thresh_60 = std::cos(THRESH_60ARCSEC);
     rctx.shift = (uint32_t)shift;
     rctx.mask = mask;
-    // V19R3：每次 drizzleTiled run 递增 generation，线程 cache 切换即清空
+    // 每次 drizzleTiled run 递增 generation，线程 cache 切换即清空
     static std::uint64_t s_target_cache_gen = 0;
     rctx.target_cache_run_gen = ++s_target_cache_gen;
 
@@ -1662,14 +1662,14 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
         int tid = omp_get_thread_num();
         auto& tileMap = threadTiles[tid];
 
-        // V19R3：每线程 target-ipix geometry cache 随 run generation 切换
+        // 每线程 target-ipix geometry cache 随 run generation 切换
         // 时 clear（避免跨 run NSIDE 不同导致几何污染；容量有界见类定义）
         run_target_cache(rctx.target_cache_run_gen);
 
         // 预计算本行底/顶两行网格顶点的天球坐标 (WCS double 精度, 每顶点一次;
         // 几何数据在 processPixelSharedTiled 内转 Scalar 存储)
         thread_local std::vector<double> bot_ra, bot_dec, top_ra, top_dec;
-        // V18R2: 行级顶点 Vec3 缓存（免每像素 8 次 sin/cos 重算）
+        // 行级顶点 Vec3 缓存（免每像素 8 次 sin/cos 重算）
         thread_local std::vector<spherical::Vec3> bot_vec, top_vec;
         if (shared_vertices) {
             auto t_wcs0 = fine ? std::chrono::high_resolution_clock::now()

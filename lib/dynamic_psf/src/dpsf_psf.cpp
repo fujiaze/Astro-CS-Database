@@ -679,7 +679,7 @@ DPSF_EXPORT int dpsf_fit_batch_d(const double *image, int width, int height,
 }
 
 // ============================================================================
-// dpsf_fit_batch_f32 (P02-005, v1.1)
+// dpsf_fit_batch_f32 (, v1.1)
 //
 // float32 PSF 批量拟合, 消费 star_det v1 (FLOAT64 [N,6])。
 // 不做 0-65535 clip, 不创建整张 uint16 图像, 不调用 sdet_detect_ex。
@@ -714,7 +714,7 @@ DPSF_EXPORT int dpsf_fit_batch_f32(
     const DPSFFitParams *p = params ? params : &default_params;
     int fitRadius = p->fitRadius;
 
-    // ---- 记录消费的 schema / count (P02-005 §8 要求) ----
+    // ---- 记录消费的 schema / count (§8 要求) ----
     dpsf_log(LOG_INFO, "DPSF",
              "dpsf_fit_batch_f32: consume schema=%s count=%d img=%dx%d fitRadius=%d",
              DPSF_STAR_DET_SCHEMA_V1, n_detections, width, height, fitRadius);

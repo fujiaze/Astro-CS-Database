@@ -150,7 +150,7 @@ int main(int argc, char** argv) {
              rc, sum32, nz32);
     CHECK(rc == 0 && nz32 > 0 && sum32 > 0, msg);
 
-    // ---- : SIP order 5 支持 + order 6 硬失败 ----
+    // ---- SIP order 5 支持 + order 6 硬失败 ----
     in.output_fp64 = 1; in.leaf_signal_f32 = nullptr; in.leaf_signal_f64 = sig64.data();
     in.sip_order = 5; in.sip_ap_order = 5;
     std::memset(in.sip_a, 0, sizeof(in.sip_a));

@@ -3,7 +3,7 @@
 // 设计（05_OPEN_SOURCE_REUSE_PLAN.md §6 Google Benchmark）：
 // 1. 驱动单设备基础微基准，参数化尺寸/精度/ISA/线程点
 // 2. 提供 warm-up、重复、计数器和 JSON 输出基础
-// 3. 启动时打印 "请确保系统空载" 提示，不替用户判断（06 §2）
+// 3. 启动时打印 "请确保系统空载" 提示，不替用户判断
 // 4. 支持将 JSON 结果写入文件（--output <path> 或 Google Benchmark 原生 --benchmark_out=）
 // 5. 不替 benchmark 做路由生成（profile_generator 负责）
 //
@@ -20,7 +20,7 @@
 
 namespace {
 
-// 打印空载提示（06 §2）
+// 打印空载提示
 // 提示后继续，不替用户判断，不自动检查或关闭其他应用
 void print_idle_hint() {
     std::fprintf(stderr,

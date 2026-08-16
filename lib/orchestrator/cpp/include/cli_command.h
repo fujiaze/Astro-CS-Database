@@ -5,7 +5,7 @@
 // 本文件仅保留:
 // - CliCommand::output_jsonl_event_ex: JSONL 事件输出 (供 main.cpp 调用)
 // - p04004_register_signal_handler / p04004_unregister_signal_handler:
-// P04-004 SIGINT 信号处理 (Ctrl+C 触发取消)
+// SIGINT 信号处理 (Ctrl+C 触发取消)
 // - sha256_impl::sha256: SHA-256 实现 (供 json_config.cpp 调用, 见 cpp)
 // ============================================================================
 
@@ -14,14 +14,14 @@
 #include <string>
 #include "orchestrator.h"
 
-// P04-004: SIGINT 信号处理 (Ctrl+C 触发取消)
+// SIGINT 信号处理 (Ctrl+C 触发取消)
 // 在 stage1/stage2 执行前注册, 完成后注销
 void p04004_register_signal_handler(Orchestrator* orch, bool enable_cancel_on_signal);
 void p04004_unregister_signal_handler();
 
 class CliCommand {
 public:
-    // P04-002: 扩展 JSONL 事件输出 (含数字 exit_code + 持续时间 + 关键指标)
+    // 扩展 JSONL 事件输出 (含数字 exit_code + 持续时间 + 关键指标)
     // 输出字段: schema_version/type/job_id/timestamp/stage/duration_ms/status/
     // progress/message/result/error/exit_code/effective_config_hash
     // 用于 stage_start/stage_end/result/error/warning/progress 事件

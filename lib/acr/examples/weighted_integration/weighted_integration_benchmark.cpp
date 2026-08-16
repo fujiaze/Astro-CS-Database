@@ -20,7 +20,7 @@
 // - H2D/D2H 次数与字节来自 Dispatcher.transfer_stats（真实 prefetch/物化）；
 // - RAM/VRAM 峰值来自内存预算估算与桥接 device_memory 观测。
 //
-// Stream（07 D）：本轮冻结同步语义，observed_max_in_flight=1；
+// Stream（07 D）：冻结同步语义，observed_max_in_flight=1；
 // configured_streams 单独报告，不宣称多通道并发收益。
 #include "weighted_integration_kernels.hpp"
 #include "route_profile_calibration.hpp"

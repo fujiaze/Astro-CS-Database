@@ -1761,7 +1761,7 @@ int p2_reject_stack_ex(const P2CandidateStack* stack,
         return 0;
     }
 
-    // ---- ：RejectionNormalizationPolicy（判定工作域）----
+    // ----RejectionNormalizationPolicy（判定工作域）----
     ScratchVec<double> work, scratch, scratch2, scratch3;
     ScratchVec<std::uint8_t> accept, next, keep;
     ScratchVec<std::size_t> idx, idx2;

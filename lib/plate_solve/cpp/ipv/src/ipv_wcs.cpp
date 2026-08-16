@@ -150,7 +150,7 @@ WcsFitResult build_wcs(
 
     const double cx = img_width  / 2.0;
     const double cy = img_height / 2.0;
-    // P11-006: 统一 CRPIX 为 width/2.0 + 0.5 (1-based FITS, P11-001 frozen value)
+    // 统一 CRPIX 为 width/2.0 + 0.5 (1-based FITS, frozen value)
     result.crpix[0] = cx + 0.5;
     result.crpix[1] = cy + 0.5;
 

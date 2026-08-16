@@ -1,6 +1,6 @@
 // lib/acr/utilization/staging_ledger.hpp — ACR staging reservation ledger
 //
-// 聚焦版 v2（08 §6 / 06 号规范 §4）：
+//
 // staging 不能用系统 RAM 总用量近似；由 ACR 自己的 reservation ledger
 // 记录实际 staging 分配/释放。
 #pragma once
@@ -13,7 +13,7 @@
 namespace astro::compute::utilization {
 
 // ===== StagingLedger =====
-// 线程安全。只记账（本轮同步语义下由调用方确保实际分配）；
+// 线程安全。只记账（同步语义下由调用方确保实际分配）；
 // limit 来自 MemoryBudgetConfig.pinned_ratio + pinned_fixed_reserve。
 class StagingLedger {
 public:

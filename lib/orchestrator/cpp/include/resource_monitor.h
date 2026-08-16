@@ -11,7 +11,7 @@
 // engineering_authoritative/evidence/H-001/cost_estimator.py
 //
 // 设计说明:
-// 本头文件为 C++ 移植骨架, 对应 Python 原型的接口定义。
+// 本头文件为 C++ 可移植接口定义，对应 Python 原型的语义。
 // 实现策略: Windows 平台使用 GlobalMemoryStatusEx + GetProcessMemoryInfo +
 // PDH (Performance Data Helper) 采集 CPU/IO; psutil 原型验证概念后移植。
 // ============================================================================

@@ -1,5 +1,5 @@
 // lib/acr/tests/classic/e06_resample.cpp — E06 Bilinear Affine Resampling
-// 验证能力（17 §11）：坐标计算、gather、边界策略
+// 验证能力：坐标计算、gather、边界策略
 //
 // Phase H 扩展：
 // - 变换：固定平移、旋转、非均匀 scale

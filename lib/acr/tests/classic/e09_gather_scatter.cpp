@@ -1,5 +1,5 @@
 // lib/acr/tests/classic/e09_gather_scatter.cpp — E09 Gather/Scatter/SpMV
-// 验证能力（17 §14）：不规则内存、稀疏度
+// 验证能力：不规则内存、稀疏度
 //
 // Phase H 扩展：
 // - index 模式：identity、reverse、prime stride、随机 permutation

@@ -1189,7 +1189,7 @@ int ipv_select_from_memory(
 }
 
 // ============================================================================
-// P02-002: 路径 A - ipv_select_from_detections
+// 路径 A - ipv_select_from_detections
 //
 // 从外部 detections (FLOAT64 [N,6] star_det v1) 选星, 跳过 sdet_detect_ex。
 // 算法与 ipv_select_from_memory 一致, 区别:
@@ -1478,7 +1478,7 @@ int ipv_select_from_detections(
 }
 
 // ============================================================================
-// P09-002 INTERNAL_DETECTION_SHARED_EXPORT (历史 P02-002 路径 B) -
+// INTERNAL_DETECTION_SHARED_EXPORT (历史 路径 B) -
 // ipv_select_from_memory_with_callback
 //
 // 与 ipv_select_from_memory 算法完全一致, 区别:

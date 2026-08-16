@@ -58,7 +58,7 @@ public:
     // 尾段门：设备 d 是否应继续 claim。
     // 规则：若设备 d 预计完成"下一块"的时间不早于当前最快设备清空剩余
     // 工作的时间，则停止 d 的新 claim（避免慢设备制造尾部）。
-    // return false = 停止该设备本轮 claim。
+    // return false = 停止该设备 claim。
     static bool should_claim(const MixedRoutePlan& plan,
                              const std::string& device_backend,
                              std::size_t remaining,

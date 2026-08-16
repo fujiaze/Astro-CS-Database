@@ -91,7 +91,7 @@ TEST(Residency, PinnedBudgetIndependent) {
 }
 
 // ============================================================================
-// 5. 真实字节/访问模式/代数（06 号规范 §1）
+// 5. 真实字节/访问模式/代数
 // ============================================================================
 TEST(Residency, BytesAccessAndGeneration) {
     ResidencyManager m;
@@ -156,7 +156,7 @@ TEST(Residency, GenerationChangeReadWriteInvalidates) {
 }
 
 // ============================================================================
-// 6. 整帧复用：只读输入上传一次，跨块不再重复上传（06 号规范 §2）
+// 6. 整帧复用：只读输入上传一次，跨块不再重复上传
 // ============================================================================
 TEST(Residency, SharedInputUploadedOnce) {
     ResidencyManager m;
@@ -177,7 +177,7 @@ TEST(Residency, SharedInputUploadedOnce) {
 }
 
 // ============================================================================
-// 7. 真实 pinned reservation ledger（06 号规范 §4）
+// 7. 真实 pinned reservation ledger
 // ============================================================================
 TEST(Residency, StagingLedgerReserveRelease) {
     StagingLedger ledger;

@@ -1,5 +1,5 @@
 // abstract_view.h - HEALPix 浏览器 Qt widget 抽象基类 (healpix_browser_qt)
-// 功能: QOpenGLWidget 子类, 封装 core/ 调用骨架, 管理 OpenGL 上下文与事件转发
+// 功能: QOpenGLWidget 子类, 封装 core/ 渲染框架, 管理 OpenGL 上下文与事件转发
 // 用途: 为 SphereView 提供通用基类, 强制子类实现 handle_* 接口
 // (SingleFrameView 已废弃归档至 widgets/archive/, .hiss 改用 SphereView 球面渲染)
 // 依赖: Qt6::OpenGLWidgets, Qt6::Gui (QMouseEvent/QWheelEvent),

@@ -8,7 +8,7 @@
 
 #include "star_matcher.h"
 #include "log_macros.h"
-#include "photometric_calib.h"  // P12-001: PhotometricDiag 定义
+#include "photometric_calib.h"  // PhotometricDiag 定义
 
 #include <cstdio>
 #include <cmath>
@@ -27,7 +27,7 @@ static constexpr int _IRLS_MAX_ITER = 50;
 static constexpr double _IRLS_CONVERGE = 1e-6;
 
 // ============================================================================
-// P12-001: 百分位数计算 (线性插值), 用于 r_inliers 和 match_distance 的 p90 统计
+// 百分位数计算 (线性插值), 用于 r_inliers 和 match_distance 的 p90 统计
 // ============================================================================
 static double percentileOf(std::vector<double> vals, double p) {
     if (vals.empty()) return 0.0;
@@ -41,12 +41,12 @@ static double percentileOf(std::vector<double> vals, double p) {
     return vals[lo] * (1.0 - frac) + vals[hi] * frac;
 }
 
-// P12-001: 初始化 PhotometricDiag (全 0)
-// P12-005 修复: spectrum_rows_total/valid_fsyn 由 pc_api.cpp 在光谱积分阶段填充，
+// 初始化 PhotometricDiag (全 0)
+// 修复: spectrum_rows_total/valid_fsyn 由 pc_api.cpp 在光谱积分阶段填充，
 // initDiag 仅清零 star_matcher 负责的字段，避免覆盖上游已写入的值
 static void initDiag(PhotometricDiag* d) {
     if (!d) return;
-    // 注意: 不再重置 spectrum_rows_total 和 valid_fsyn (P12-005 修复)
+    // 注意: 不再重置 spectrum_rows_total 和 valid_fsyn (修复)
     d->gaia_projected_in_frame = 0;
     d->psf_total = 0;
     d->psf_valid = 0;
@@ -135,7 +135,7 @@ private:
             best_idx = node->idx;
         }
 
-        // P12-002 修复: 决定先访问哪个子树 (按当前轴的分裂方向)
+        // 修复: 决定先访问哪个子树 (按当前轴的分裂方向)
         // diff = node - query; diff < 0 表示 query 在 node 右侧, 应去 right 子树
         // (原 bug: diff < 0 错误地去了 left 子树, 导致只能匹配到少量星)
         double diff = (node->axis == 0) ? dx : dy;
@@ -174,7 +174,7 @@ StarMatcher::StarMatcher() {
 }
 
 // ============================================================================
-// KD-tree 最近邻匹配 (P12-002: 双向最近邻唯一配对)
+// KD-tree 最近邻匹配 (双向最近邻唯一配对)
 // 1. WCS 投影所有 Gaia 星到像素坐标
 // 2. 对 Gaia 像素坐标建 KD-tree (用于正向 PSF→Gaia 查询)
 // 3. 对 PSF 有效星建 KD-tree (用于反向 Gaia→PSF 查询)
@@ -194,7 +194,7 @@ std::vector<StarMatch> StarMatcher::matchWithKdTree(
 
     std::vector<StarMatch> matches;
 
-    // P12-001 阶段3: PSF 总数 (无论后续是否匹配成功)
+    // 阶段3: PSF 总数 (无论后续是否匹配成功)
     if (out_diag) {
         out_diag->psf_total = n_psf;
     }
@@ -206,7 +206,7 @@ std::vector<StarMatch> StarMatcher::matchWithKdTree(
 
     // 1. WCS 投影所有 Gaia 星到像素坐标
     std::vector<double> gaia_px(n_gaia), gaia_py(n_gaia);
-    int n_in_frame = 0;  // P12-001 阶段2: 投影后落在 [0,W) x [0,H) 的 Gaia 星数
+    int n_in_frame = 0;  // 阶段2: 投影后落在 [0,W) x [0,H) 的 Gaia 星数
     for (int i = 0; i < n_gaia; ++i) {
         wcs.skyToPixel(gaia_ra[i], gaia_dec[i], gaia_px[i], gaia_py[i]);
         if (frame_width > 0 && frame_height > 0) {
@@ -219,7 +219,7 @@ std::vector<StarMatch> StarMatcher::matchWithKdTree(
             ++n_in_frame;
         }
     }
-    // P12-001 阶段2: 投影统计
+    // 阶段2: 投影统计
     if (out_diag) {
         out_diag->gaia_projected_in_frame = n_in_frame;
         LOG_INFO("[star_matcher] P12-001 阶段2: gaia_projected_in_frame=%d / %d",
@@ -237,7 +237,7 @@ std::vector<StarMatch> StarMatcher::matchWithKdTree(
             valid_idx.push_back(i);
         }
     }
-    // P12-001 阶段3: PSF 有效星数
+    // 阶段3: PSF 有效星数
     if (out_diag) {
         out_diag->psf_valid = (int)valid_idx.size();
         LOG_INFO("[star_matcher] P12-001 阶段3: psf_total=%d, psf_valid=%d",
@@ -250,7 +250,7 @@ std::vector<StarMatch> StarMatcher::matchWithKdTree(
     LOG_INFO("[star_matcher] PSF有效星: %d / %d, Gaia星: %d, 匹配半径: %.2f px",
              (int)valid_idx.size(), n_psf, n_gaia, match_radius_px);
 
-    // 4. P12-002: 对 PSF 有效星也建 KD-tree (用于反向 Gaia→PSF 查询)
+    // 4. 对 PSF 有效星也建 KD-tree (用于反向 Gaia→PSF 查询)
     // PSF KD-tree 的索引即 valid_idx 数组的下标 k (0..valid_idx.size()-1)
     std::vector<double> psf_valid_px(valid_idx.size()), psf_valid_py(valid_idx.size());
     for (size_t k = 0; k < valid_idx.size(); ++k) {
@@ -281,7 +281,7 @@ std::vector<StarMatch> StarMatcher::matchWithKdTree(
     LOG_INFO("[star_matcher] P12-002 正向匹配 (PSF→Gaia): %d / %d 命中",
              n_forward_hits, (int)valid_idx.size());
 
-    // 6. P12-002 反向匹配 (Gaia→PSF): 对每颗 Gaia 星找最近 PSF 有效星
+    // 6. 反向匹配 (Gaia→PSF): 对每颗 Gaia 星找最近 PSF 有效星
     // backward_psf[g] = Gaia 索引 g 对应的最近 PSF valid_idx 位置, -1 表示无命中
     std::vector<int> backward_psf(n_gaia, -1);
     int n_backward_hits = 0;
@@ -296,8 +296,8 @@ std::vector<StarMatch> StarMatcher::matchWithKdTree(
     LOG_INFO("[star_matcher] P12-002 反向匹配 (Gaia→PSF): %d / %d 命中",
              n_backward_hits, n_gaia);
 
-    // 7. P12-002 唯一配对: 仅保留互为最近邻的对 (PSF[k]→Gaia[g] 且 Gaia[g]→PSF[k])
-    std::vector<double> match_distances;  // P12-001 阶段8: 记录每对匹配的像素距离
+    // 7. 唯一配对: 仅保留互为最近邻的对 (PSF[k]→Gaia[g] 且 Gaia[g]→PSF[k])
+    std::vector<double> match_distances;  // 阶段8: 记录每对匹配的像素距离
     match_distances.reserve(valid_idx.size());
     int n_ambiguous = 0;  // 正向命中但非互为最近邻的对数
     for (size_t k = 0; k < valid_idx.size(); ++k) {
@@ -332,7 +332,7 @@ std::vector<StarMatch> StarMatcher::matchWithKdTree(
 #endif
     }
 
-    // 8. P12-002 diag 更新
+    // 8. diag 更新
     // spatial_candidates = 正向命中数 (PSF→Gaia 距离 < radius 的对数, 未过滤双向)
     // unique_matches = 双向唯一匹配数 (互为最近邻)
     // rejected_ambiguous = 正向命中但非互为最近邻的对数
@@ -484,7 +484,7 @@ std::vector<StarMatch> StarMatcher::cleanAndScale(
     double S = (mad > 0.0) ? (mad / _MAD_SCALE) : 0.0;
     LOG_INFO("[star_matcher] IRLS 初始: location=%.6f, MAD=%.6f, S=%.6f", location, mad, S);
 
-    int irls_iter_count = 0;  // P12-001 阶段7: IRLS 实际迭代次数
+    int irls_iter_count = 0;  // 阶段7: IRLS 实际迭代次数
     if (S <= 0.0) {
         // 所有 r 相同 (S=0), 无法做 IRLS, 直接用 location 作为最终估计
         LOG_INFO("[star_matcher] IRLS: S=0 (所有 r 相同), 跳过迭代");
@@ -492,7 +492,7 @@ std::vector<StarMatch> StarMatcher::cleanAndScale(
         // IRLS 迭代
         double prev_location = location;
         for (int iter = 0; iter < _IRLS_MAX_ITER; ++iter) {
-            irls_iter_count = iter + 1;  // P12-001: 记录迭代次数
+            irls_iter_count = iter + 1;  // 记录迭代次数
             double sum_wr = 0.0, sum_w = 0.0;
             double cS = _TUKEY_C * S;
             for (double r : r_consistent) {
@@ -575,7 +575,7 @@ std::vector<StarMatch> StarMatcher::cleanAndScale(
     LOG_INFO("[star_matcher] 清洗完成: 保留 %d, 排除 %d (无效/星等不一致/IRLS离群)",
              (int)cleaned.size(), n_in - (int)cleaned.size());
 
-    // P12-001 阶段6/7/8: 填充诊断结构体
+    // 阶段6/7/8: 填充诊断结构体
     if (out_diag) {
         int n_invalid = n_in - (int)valid_idx.size();  // F<=0/非有限
         out_diag->rejected_quality = n_invalid + n_mag_rejected + n_irls_outlier;
@@ -619,7 +619,7 @@ std::vector<StarMatch> StarMatcher::matchAndClean(
     int frame_width, int frame_height,
     std::vector<int>* out_match_reasons) {
 
-    // P12-001: 初始化诊断结构体 (全 0)
+    // 初始化诊断结构体 (全 0)
     initDiag(out_diag);
 
     std::vector<StarMatch> matches = matchWithKdTree(

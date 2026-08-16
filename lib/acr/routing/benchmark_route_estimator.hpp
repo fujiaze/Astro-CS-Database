@@ -1,6 +1,6 @@
 // lib/acr/routing/benchmark_route_estimator.hpp
 //
-// ACR Benchmark 驱动路由估计器（06 号规范）：
+// ACR Benchmark 驱动路由估计器：
 // - 只读离线 Profile v2；
 // - 对 RouteRequest 预测 OpenMP / GPU Direct / Mixed 三条候选路径的
 // 端到端完工时间；
@@ -30,7 +30,7 @@ public:
     // - 生产（diagnostic=false）：scenario_qualified 才进行三候选比较；
     // 场景未 qualified 或无画像/范围外 → chosen=OpenMP fallback；
     // - 诊断（diagnostic=true）：所有 model_available 候选参加预测
-    // （即使模型未 trusted），用于发现模型不足（06 号规范 §6）。
+    // （即使模型未 trusted），用于发现模型不足。
     RouteDecision decide(const RouteRequest& request,
                          bool diagnostic = false) const;
 

@@ -280,17 +280,17 @@ Scalar compute_overlap_area_g_ctx(const DropGeometryT<Scalar>& g,
                                   double hp_res_rad);
 
 // ============================================================================
-// V19R3 定点优化（DRIZZLE_TARGETED 优先级 1）：
+// 定点优化（DRIZZLE_TARGETED 优先级 1）：
 // bounded target-ipix geometry cache。
 //
 // 一次 run 内同一个目标 HEALPix leaf 被大量 drop 候选重复访问，而
 // compute_overlap_area_g_ctx 每候选重算 pix2radec + radec_to_vec +
 // get_healpix_boundary4（4 角）。缓存 {center, boundary4} 消除重复：
-//   - 容量有界（默认 8192，LRU 淘汰；线程私有，禁止跨线程共享）；
-//   - key = target ipix；每次 run（drizzleTiled）开始 clear()，
-//     避免跨 run 的 NSIDE 不同导致的几何污染；
-//   - 科学语义与 compute_overlap_area_g_ctx 逐位等价（同一数值路径，
-//     仅 geometry 取缓存）；false_negative 不变（缓存只复用不预筛）。
+// - 容量有界（默认 8192，LRU 淘汰；线程私有，禁止跨线程共享）；
+// - key = target ipix；每次 run（drizzleTiled）开始 clear()，
+// 避免跨 run 的 NSIDE 不同导致的几何污染；
+// - 科学语义与 compute_overlap_area_g_ctx 逐位等价（同一数值路径，
+// 仅 geometry 取缓存）；false_negative 不变（缓存只复用不预筛）。
 // ============================================================================
 struct TargetPixelGeometry {
     Vec3 center{0.0, 0.0, 0.0};           // leaf 中心单位向量

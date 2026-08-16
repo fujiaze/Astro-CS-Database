@@ -392,7 +392,7 @@ int main(int argc, char** argv) {
         }
     }
     // ivar 产品 (weight_mode=2 默认)
-    // V19R3（DATA-UPM-CONTROL-UNC-001 §7）：整个 ivar 产品缺失时默认
+    // 整个 ivar 产品缺失时默认
     // → 显式 science/degraded 错误（无静默回退）；仅当显式配置
     // legacy_allow_weight_fallback=true 才降级 support 并计数标红。
     std::vector<AioHipsDataset*> ivr(cfg.hips.size(), nullptr);
@@ -568,7 +568,7 @@ int main(int argc, char** argv) {
         const bool use_acr_block =
             acr_reg != nullptr && rplan.method == P2_REJECT_SIGMA &&
             cfg.acr_route != "cpu" && !large_scale_active &&
-            // V19R3（ACR-IVAR-001）：weight_policy=ivar 时 ACR legacy
+            // weight_policy=ivar 时 ACR legacy
             // kernel 使用 control-cell ivar×support，与 CPU 逐像素 ivar
             // 不等价 → 强制 CPU canonical path（等价实现前不加速）。
             cfg.weight_mode != 2;
@@ -586,7 +586,7 @@ int main(int argc, char** argv) {
             std::to_string(use_acr_block) + " gpu=" +
             std::to_string(gpu_ready));
 
-        // ---- ：真实 N_B + planner 计算 chunk_pixels（micro-chunk 执行）----
+        // ----真实 N_B + planner 计算 chunk_pixels（micro-chunk 执行）----
         P2BlockPlannerInput bp{};
         bp.output_pixels = n_leaf;
         bp.covering_frames = depth;              // 当前 tile 真实覆盖帧数
@@ -940,7 +940,7 @@ int main(int argc, char** argv) {
                     for (std::uint32_t s = 0; s < n_valid; ++s) {
                         if (ivar_avail[s] && cfg.weight_mode == 2) {
                             const double iv = (double)t_ivar[(std::size_t)p];
-                            // V19R3 合同：nonfinite ivar → INVALID_INPUT
+                            // 合同：nonfinite ivar → INVALID_INPUT
                             // （validator 拒绝）；ivar==0 → 合法零权重（不
                             // 贡献，ZERO_VALID_WEIGHT）。禁止静默换 support。
                             weights[s] = iv;
@@ -1091,7 +1091,7 @@ int main(int argc, char** argv) {
                 if (ok) ++total_pixels;
             }
         }
-        // ---- ：large_scale connected-component grow + 二次积分 ----
+        // ----large_scale connected-component grow + 二次积分 ----
         // 两遍路径（large_scale_active 时）：所有 chunk 的逐像素 rejection
         // 已缓冲到 tile 级 per-frame low/high mask；此处先 grow 再积分，
         // 保证"拒绝 mask 应用回原始 calibrated 科学值"的单一语义。

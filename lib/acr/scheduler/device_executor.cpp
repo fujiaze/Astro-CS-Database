@@ -1,4 +1,4 @@
-// lib/acr/scheduler/device_executor.cpp — 设备执行器实现（23 §3）
+// lib/acr/scheduler/device_executor.cpp — 设备执行器实现
 //
 // CpuExecutor：通过 KernelRegistry 的 CPU launcher 执行 KernelInvocation，
 // SubmitHandle 记录真实 device/items/bytes/duration。
@@ -13,7 +13,7 @@
 
 namespace astro::compute::scheduler {
 
-// CUDA 桥接执行器追加函数（23 §3）。
+// CUDA 桥接执行器追加函数。
 // 默认 weak no-op：CPU-only 构建无 CUDA 桥接；
 // 启用 ACR_CUDA_BRIDGE 时由 backends/cuda/cuda_bridge_loader.cpp 提供强定义。
 #if defined(_MSC_VER)

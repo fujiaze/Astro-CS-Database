@@ -488,7 +488,7 @@ RouteDecision BenchmarkRouteEstimator::decide(
                 p.queue_delay_ms;
             p.reason = "profile-e2e";
         } else {
-            // OpenMP 永远是执行可行的安全 fallback（06 号规范 §2）
+            // OpenMP 永远是执行可行的安全 fallback
             p.feasible = true;
             p.reason = "openmp-fallback-no-trusted-model";
             p.score_ms = std::numeric_limits<double>::infinity();

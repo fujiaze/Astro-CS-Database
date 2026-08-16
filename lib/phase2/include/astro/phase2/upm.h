@@ -26,7 +26,7 @@
 extern "C" {
 #endif
 
-// ===== 控制观测（W2 冻结 + V19R3 control-variance 合同）=====
+// ===== 控制观测（W2 冻结 + control-variance 合同）=====
 typedef struct {
     std::uint64_t frame_id;
     std::uint64_t control_id;
@@ -36,10 +36,10 @@ typedef struct {
     double value;                 // local photometric estimate（可负）
     double uncertainty;           // control estimator 标准误（= sqrt(control_variance)）
     double snr;
-    // V19R3 弃用（仅诊断）：NoiseWeightModelV1 控制 leaf 单像素 Phase1 ivar。
+    // 弃用（仅诊断）：NoiseWeightModelV1 控制 leaf 单像素 Phase1 ivar。
     // 它不是 Var(control estimator)，禁止在科学权重中使用。
     double ivar;
-    // V19R3 冻结（SCI-UPM-WEIGHT-001 / ALG-UPM-CONTROL-IVAR-001 /
+    // 冻结（SCI-UPM-WEIGHT-001 / ALG-UPM-CONTROL-IVAR-001 /
     // DATA-UPM-CONTROL-UNC-001）：
     // control estimator = background-clean patch median；其统计方差
     // control_variance = k_corr × (π/2) × sigma_bg² / N_retained；
@@ -120,12 +120,12 @@ P2_API double p2_upm_evaluate_c(const void* model, std::uint64_t frame_id,
 
 // 观测 raw weight（production UPM 权重公式，单一实现）。
 // production（cfg.use_ivar_weight != 0，SCI-UPM-WEIGHT-001）：
-//   raw_w = quality_factor × control_ivar（几何可靠性在 per-control 归一化
-//   中施加）；obs->control_ivar <= 0 / 非有限 → 返回 2（显式缺 control ivar，
-//   禁止静默回退 support/SNR）。
+// raw_w = quality_factor × control_ivar（几何可靠性在 per-control 归一化
+// 中施加）；obs->control_ivar <= 0 / 非有限 → 返回 2（显式缺 control ivar，
+// 禁止静默回退 support/SNR）。
 // ablation/诊断（cfg.use_ivar_weight == 0）：
-//   raw_w = quality_factor * support^support_power * snr^2/(1+snr^2) /
-//   max(unc^2, sigma_floor^2)。
+// raw_w = quality_factor * support^support_power * snr^2/(1+snr^2) /
+// max(unc^2, sigma_floor^2)。
 // 返回 0=ok；1=参数错误；2=production 缺 control ivar。
 P2_API int p2_upm_raw_weight(const P2ControlObservation* obs,
                              const P2UpmBuildConfig* cfg,

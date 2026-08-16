@@ -49,7 +49,7 @@ MixedRoutePlan MixedRoutePlanner::plan(const std::string& operation_id,
                      op->gpu.launch_us * 1000.0;
     r.cpu_chunk_items = op->cpu.recommended_chunk_items;
     r.gpu_chunk_items = op->gpu.recommended_chunk_items;
-    // 尾段自动缩块（05 §5）：块不超过剩余工作，保持最小高效块。
+    // 尾段自动缩块：块不超过剩余工作，保持最小高效块。
     // 不强制 "剩余一半"（避免 GPU-only 场景把整帧任务拆成多次 kernel，
     // 徒增 launch/D2H 开销）；混合场景由 Dispatcher 的 makespan claim 与
     // 首轮公平门决定设备参与。
@@ -98,7 +98,7 @@ bool MixedRoutePlanner::should_claim(const MixedRoutePlan& plan,
         return plan.profile_available && remaining > 0;
     }
     // ForcedMixed：允许未执行设备领取首块（仅正确性测试）。
-    // Auto：禁止“每设备先领一块”（05 号规范 §2），无实测时用保守 Profile。
+    // Auto：禁止“每设备先领一块”，无实测时用保守 Profile。
     const bool has_measured = device_measured_ns_per_item > 0.0;
     if (!has_measured && allow_first_block) return true;
     const bool is_cpu = (device_backend == "cpu");

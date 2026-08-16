@@ -1,4 +1,4 @@
-// astro/compute/kernel_registry.hpp — 可加速 Kernel 注册模型（23 §1）
+// astro/compute/kernel_registry.hpp — 可加速 Kernel 注册模型
 //
 // 背景（audits/SECOND_FIX_REVIEW_AUDIT.md §一.3）：
 // 普通 C++ host 函数指针、捕获 lambda 和 void* user_data 只能作为 CPU 兼容
@@ -122,10 +122,10 @@ struct KernelInvocation {
     BufferBindingList buffers;     // buffer 绑定
     ScalarArgBlob scalars;         // 标量参数
     TaskTraits traits{};           // 任务特征（数值策略等）
-    // 聚焦版（08 ）：分块契约与路由模式
+    // （08 ）：分块契约与路由模式
     PartitionKind partition{PartitionKind::IndependentOutputTiles};
     RouteMode mode{RouteMode::AutoMixed};
-    // 聚焦版 v3（08 §3）：输入是否已在设备显存（launcher 用 resident 路径）
+    //输入是否已在设备显存（launcher 用 resident 路径）
     bool input_resident{false};
     // ACR 架构冻结（01_ARCHITECTURE_FREEZE.md §3）：调用方声明的输入/输出驻留策略。
     // 默认 MaterializeHost（结果必须回到 host）；PreferDevice/KeepDevice 由
@@ -162,7 +162,7 @@ using LegacyParallelLauncher = void (*)(const KernelInvocation&, void* user_data
 struct KernelRegistration {
     OperationId id{};              // 诊断/实现兼容标识（注册表内部复制存储）
     KernelArgSchema args{};
-    // Dispatcher Finalization（04 号规范 §4）：持久主输入 buffer index 集合。
+    // Dispatcher Finalization：持久主输入 buffer index 集合。
     // reuse_count_hint>1 时仅要求这些输入真实驻留即可走 resident_reuse4 场景
     // （如加权积分 frames 持久、weights 按 generation 更新）。
     std::vector<std::size_t> persistent_input_indices;
