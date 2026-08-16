@@ -133,3 +133,22 @@ photometric scale、新 runtime I/O DLL。
 - ACR kernel: mode2=support x ivar; mode0 legacy
 - sampler: 读帧 ivar 产品控制 leaf -> obs.ivar
 - gate 74/74; G5 UPM-calibrated ivar bias=-0.0008 var=0.0359 (opt 0.036)
+
+## 2026-08-16 V19R3 Traceable Foundation Correction（HEAD 3131680）
+
+- UPM 科学权重冻结（SCI-UPM-WEIGHT-001）：production raw_w = quality ×
+  control_ivar（=1/control_variance）；control_variance = k_corr×(π/2)×
+  σ_bg²/N_retained（ALG-UPM-CONTROL-IVAR-001）；k_corr=1.4 由 Drizzle
+  synthetic MC 校准（UPMW-005：pixfrac=0.8、2000 实现、实证 1.3883、
+  N_eff≈181/251）；N_retained 用 clipping 后样本；obs.ivar 弃用诊断
+- integration：零权重合同（0 合法不贡献）、P2PixelStack.weight_mode 删除
+  （policy/reducer 分离）、ivar 产品缺失默认硬科学错误（显式 fallback 开关）
+- ACR：weight_mode=ivar 生产强制 CPU（ACR-IVAR-001），kernel wmode=2 禁用
+- Drizzle：bounded target-ipix geometry cache（LRU 8192、run generation
+  清空、hit≈91.7%）+ tgt_b/tgt_g/gcache 计数
+- 质量门：fresh audit 791/791（carry=0）、clang --analyze 100%（4 CUDA
+  例外）、WSL ASan/UBSan 9/9（修复 akima heap-overflow P1）、traceability
+  63 contracts（50/50+50/50）、docs 全集合 8/8、comment hygiene 0
+- 审核包 AstroCS_Review_TraceableFoundationCorrection_V19R3.zip
+  SHA256=2593d6673809b2c22f7012f5305c88821c7742b494774ea5ef0687e680454409
+- 状态：PRE_RELEASE_ENGINEERING_FOUNDATION=PASS；FINAL_REAL_DATA_VALIDATION=PENDING
