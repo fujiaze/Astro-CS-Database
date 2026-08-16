@@ -1,0 +1,1 @@
+# Round 3 — Science\n\nUPMW-001..007 硬门全过：snr 扰动不变（UPMW-001）、ivar 比率 1:4（UPMW-002）、星群不变（UPMW-003）、独立 Gaussian πσ²/2N（UPMW-004 ratio 0.9968）、Drizzle 相关 MC k_corr=1.3883（UPMW-005）、无 legacy SNR consumer（UPMW-006）、patch vs truth（UPMW-007 ratio 1.0425）。Drizzle false_negative=0（9003 例）。

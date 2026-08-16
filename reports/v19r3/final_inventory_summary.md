@@ -2,9 +2,9 @@
 
 ```json
 {
-  "head": "6b4611b9fb6597d757b93614de4feeb26492ffa2",
-  "inventory_total": 786,
-  "verified": 786,
+  "head": "4396f9d4b60a2bceb9bf92184d8d1215f9e4368a",
+  "inventory_total": 791,
+  "verified": 791,
   "deleted": 0,
   "archived": 0,
   "test_only_verified": 0,
@@ -15,6 +15,6 @@
 }
 ```
 
-等式: verified + deleted + archived + test_only_verified = inventory_total（786+0+0+0=786）
+等式: verified + deleted + archived + test_only_verified = inventory_total（791+0+0+0=791）
 
 comment hygiene FAIL 文件须逐个人工修复后重跑。

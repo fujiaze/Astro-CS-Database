@@ -5,8 +5,8 @@
 - direct_analyzed_units (compile units): 163
 - headers via TU (非独立 compile unit): 144
 - tool_exception_units: 4
-- PASS: 144 / FINDINGS: 19 / total_findings: 29
-- elapsed: 149.9s
+- PASS: 145 / FINDINGS: 18 / total_findings: 28
+- elapsed: 140.0s
 
 ## lib/acr/backends/classic/classic_kernels.hpp [HEADER_VIA_TU]
 ## lib/acr/backends/cpu/isa/isa_kernels.hpp [HEADER_VIA_TU]
@@ -204,31 +204,5 @@
     F:\Astro dev\Astro CS Normalization Database\lib/star_detector/src/sdet_background.cpp:165:12: warning: Value stored to 'med' during its initialization is never read [deadcode.DeadStores]
 ## lib/star_detector/src/sdet_background.h [HEADER_VIA_TU]
 ## lib/star_detector/src/sdet_detector.h [HEADER_VIA_TU]
-## lib/star_detector/src/sdet_image.cpp [FINDINGS]
-    F:\Astro dev\Astro CS Normalization Database\lib/star_detector/src/sdet_image.cpp:504:16: warning: Value stored to 'a' during its initialization is never read [deadcode.DeadStores]
 ## lib/star_detector/src/sdet_image.h [HEADER_VIA_TU]
 ## lib/star_detector/src/sdet_log.h [HEADER_VIA_TU]
-
-## Findings Triage (P 分级，F11 语义复核)
-
-P0=0, P1=0。剩余全部为 P3 dead-store/errno 提示，无科学/内存/安全影响：
-
-- lib/acr/qualification/benchmarks/arithmetic_benchmark.cpp: deadcode.DeadStores] → P3 dead-store：benchmark harness 惯用法（uto _ = 丢弃值），无影响
-- lib/acr/qualification/benchmarks/atomic_benchmark.cpp: deadcode.DeadStores] → P3 dead-store：benchmark harness 惯用法（uto _ = 丢弃值），无影响
-- lib/acr/qualification/benchmarks/branch_benchmark.cpp: deadcode.DeadStores] → P3 dead-store：benchmark harness 惯用法（uto _ = 丢弃值），无影响
-- lib/acr/qualification/benchmarks/convolution_benchmark.cpp: deadcode.DeadStores] → P3 dead-store：benchmark harness 惯用法（uto _ = 丢弃值），无影响
-- lib/acr/qualification/benchmarks/irregular_benchmark.cpp: deadcode.DeadStores] → P3 dead-store：benchmark harness 惯用法（uto _ = 丢弃值），无影响
-- lib/acr/qualification/benchmarks/numa_benchmark.cpp: deadcode.DeadStores] → P3 dead-store：benchmark harness 惯用法（uto _ = 丢弃值），无影响
-- lib/acr/qualification/benchmarks/overhead_benchmark.cpp: deadcode.DeadStores] → P3 dead-store：benchmark harness 惯用法（uto _ = 丢弃值），无影响
-- lib/acr/qualification/benchmarks/reduction_benchmark.cpp: deadcode.DeadStores] → P3 dead-store：benchmark harness 惯用法（uto _ = 丢弃值），无影响
-- lib/acr/qualification/benchmarks/thread_curve_benchmark.cpp: deadcode.DeadStores] → P3 dead-store：benchmark harness 惯用法（uto _ = 丢弃值），无影响
-- lib/astro_image_io/src/ahpx/aio_ahpx_writer.cpp: deadcode.DeadStores] → P3 dead-store：headerCompSize 收敛分支赋值后 break，值不再使用
-- lib/astro_image_io/src/aio_pipeline.cpp: deadcode.DeadStores] → P3 defensive init：type_str 初始 unknown 作为 switch 覆盖的防御（未来枚举扩展安全）
-- lib/astro_image_io/src/hiss_writer.cpp: deadcode.DeadStores] → P3 dead-store：n_subblocks_log 在 HISS_DLOG 编译关闭时未读；保留供 debug 构建
-- lib/healpix_db/healpix_browser_qt/app/browser_cli.cpp: deadcode.DeadStores] → P3 dead-store：c_dec 初始化未被读（后续重算）
-- lib/healpix_db/healpix_drizzle/fits_reader.cpp: unix.Errno] → P3：fread 后已加 ferror/errno 检查（本轮修复）；analyzer 仍提示 errno 可被覆盖——只读短读路径已覆盖
-- lib/orchestrator/cpp/src/orchestrator.cpp: deadcode.DeadStores] → P3 dead-store：p 指针簿记最后一步不再使用（serialize 收尾）
-- lib/plate_solve/cpp/ipv/src/ipv_angle.cpp: deadcode.DeadStores] → P3 dead-store：cmean_rad 过滤分支结果未消费（仅 cstd_rad 使用）
-- lib/plate_solve/cpp/ipv/src/ipv_itertrans.cpp: deadcode.DeadStores] → P3 dead-store：is_ok 赋值未被读（返回值路径已覆盖）
-- lib/star_detector/src/sdet_background.cpp: deadcode.DeadStores] → P3 dead-store：med 初始值被循环首轮覆盖
-- lib/star_detector/src/sdet_image.cpp: deadcode.DeadStores] → P3 dead-store：median 偶数分支 a 先取后重取（本轮已去初始化）
