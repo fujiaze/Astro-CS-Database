@@ -164,6 +164,8 @@ def main() -> int:
         (os.path.join(v19r3, "evidence", "quality",
                       "sanitizer_coverage.csv"), "quality/sanitizer.json"),
     ]:
+        os.makedirs(os.path.join(TMP, "evidence", os.path.dirname(dst)),
+                    exist_ok=True)
         shutil.copy2(src, os.path.join(TMP, "evidence", dst))
 
     # ---- reports ----
