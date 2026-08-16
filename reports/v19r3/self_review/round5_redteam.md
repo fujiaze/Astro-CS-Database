@@ -1,0 +1,1 @@
+# Round 5 — Red Team\n\n独立复核：ERROR_MODEL 退出码假 PASS 修正（全集合 8/8）；traceability 范围压行消除；comment scanner 字符串误报排除；inventory carry=0；C++20/std 差异、Windows/Linux 可移植性审查（sdet_log/aio_log/noise_model/dll_loader.h）。

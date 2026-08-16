@@ -1,0 +1,1 @@
+# Round 0 — Authority\n\nV19R3 控制包（AstroCS_PreRelease_TraceableFoundation_Correction_V19R3.zip）SHA256SUMS 13/13 匹配；AUDIT_DECISION/START_HERE/WEAK_AGENT_STATE_MACHINE 逐条对照执行；PR#1 frame binding 保留（未回滚）；禁止项（carry/hash 代替/16 帧批测/BASS）全部遵守。

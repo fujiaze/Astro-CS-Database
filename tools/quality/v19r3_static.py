@@ -123,7 +123,7 @@ def analyze_one(args) -> dict:
     else:
         compiler = CLANG
         std = "-std=c++20"
-    cmd = [compiler, "--analyze", std]
+    cmd = [compiler, "--analyze", std, "-o", "NUL" if os.name == "nt" else "/dev/null"]
     if mod == "acr":
         cmd += ["-fopenmp=libomp"]
     else:

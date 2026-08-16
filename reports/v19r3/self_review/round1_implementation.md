@@ -1,0 +1,1 @@
+# Round 1 — Implementation\n\n按状态机 R3-S0..S12 逐项实现：UPM control-variance（sampler k_corr=1.4 + upm raw weight）、integration 零权重/weight_mode 删除、ACR ivar 生产禁用、Drizzle geometry cache、文档/注释/审计工具链。每个代码变更带 Finding+Contract ID（commit 信息可追溯）。
