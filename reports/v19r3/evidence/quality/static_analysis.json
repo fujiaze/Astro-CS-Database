@@ -12,7 +12,7 @@
    "path": "lib/acr/api/event.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 1.15,
+   "elapsed_sec": 1.14,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -21,7 +21,7 @@
    "path": "lib/acr/api/kernel_registry.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 1.43,
+   "elapsed_sec": 1.41,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -30,7 +30,7 @@
    "path": "lib/acr/backends/classic/classic_kernels.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 3.57,
+   "elapsed_sec": 3.58,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -48,7 +48,7 @@
    "path": "lib/acr/backends/cpu/isa/avx.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 1.4,
+   "elapsed_sec": 1.39,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -57,7 +57,7 @@
    "path": "lib/acr/backends/cpu/isa/avx2.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 1.42,
+   "elapsed_sec": 1.4,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -66,7 +66,7 @@
    "path": "lib/acr/backends/cpu/isa/avx512.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 1.39,
+   "elapsed_sec": 1.41,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -75,7 +75,7 @@
    "path": "lib/acr/backends/cpu/isa/dispatch.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 0.8,
+   "elapsed_sec": 0.78,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -93,7 +93,7 @@
    "path": "lib/acr/backends/cpu/isa/scalar.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 0.78,
+   "elapsed_sec": 0.76,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -102,7 +102,7 @@
    "path": "lib/acr/backends/cpu/isa/sse.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 1.41,
+   "elapsed_sec": 1.49,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -120,7 +120,7 @@
    "path": "lib/acr/backends/cuda/bridge/acr_cuda_bridge_host.cpp",
    "module": "acr",
    "rc": -3,
-   "elapsed_sec": 0.41,
+   "elapsed_sec": 0.39,
    "findings": [],
    "errors": [
     "CUDA_RUNTIME_DEP: 需 nvcc toolchain; alternate=nvcc compile (toolchain PASS) + manual review"
@@ -171,7 +171,7 @@
    "path": "lib/acr/backends/cuda/cuda_bridge_loader.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 7.3,
+   "elapsed_sec": 7.24,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -180,7 +180,7 @@
    "path": "lib/acr/backends/cuda/cuda_buffer.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 0.03,
+   "elapsed_sec": 0.04,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -216,7 +216,7 @@
    "path": "lib/acr/core/runtime.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 8.87,
+   "elapsed_sec": 8.79,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -225,7 +225,7 @@
    "path": "lib/acr/core/task_descriptor.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 3.13,
+   "elapsed_sec": 3.11,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -243,7 +243,7 @@
    "path": "lib/acr/cost/cost_estimator.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 4.48,
+   "elapsed_sec": 4.43,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -261,7 +261,7 @@
    "path": "lib/acr/diagnostics/hardware_report.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 0.95,
+   "elapsed_sec": 1.03,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -281,7 +281,7 @@
    "path": "lib/acr/examples/legacy_chunk_adapter.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 1.05,
+   "elapsed_sec": 1.09,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -290,7 +290,7 @@
    "path": "lib/acr/examples/minimal_parallel_for.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 2.63,
+   "elapsed_sec": 2.51,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -299,7 +299,7 @@
    "path": "lib/acr/examples/weighted_integration/route_profile_calibration.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 10.47,
+   "elapsed_sec": 10.27,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -317,7 +317,7 @@
    "path": "lib/acr/examples/weighted_integration/weighted_integration_benchmark.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 16.15,
+   "elapsed_sec": 15.67,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -335,7 +335,7 @@
    "path": "lib/acr/examples/weighted_integration/weighted_integration_kernels.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 1.69,
+   "elapsed_sec": 1.61,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -407,7 +407,7 @@
    "path": "lib/acr/profile/profile_reader.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 7.35,
+   "elapsed_sec": 7.12,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -425,7 +425,7 @@
    "path": "lib/acr/qualification/benchmark_driver.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 7.86,
+   "elapsed_sec": 7.7,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -443,7 +443,7 @@
    "path": "lib/acr/qualification/benchmarks/arithmetic_benchmark.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 4.33,
+   "elapsed_sec": 4.24,
    "findings": [
     "F:\\Astro dev\\Astro CS Normalization Database\\lib/acr/qualification/benchmarks/arithmetic_benchmark.cpp:376:15: warning: Value stored to '_' during its initialization is never read [deadcode.DeadStores]",
     "F:\\Astro dev\\Astro CS Normalization Database\\lib/acr/qualification/benchmarks/arithmetic_benchmark.cpp:495:15: warning: Value stored to '_' during its initialization is never read [deadcode.DeadStores]"
@@ -455,7 +455,7 @@
    "path": "lib/acr/qualification/benchmarks/atomic_benchmark.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 3.01,
+   "elapsed_sec": 2.89,
    "findings": [
     "F:\\Astro dev\\Astro CS Normalization Database\\lib/acr/qualification/benchmarks/atomic_benchmark.cpp:50:15: warning: Value stored to '_' during its initialization is never read [deadcode.DeadStores]",
     "F:\\Astro dev\\Astro CS Normalization Database\\lib/acr/qualification/benchmarks/atomic_benchmark.cpp:77:15: warning: Value stored to '_' during its initialization is never read [deadcode.DeadStores]",
@@ -477,7 +477,7 @@
    "path": "lib/acr/qualification/benchmarks/benchmark_main.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 1.02,
+   "elapsed_sec": 0.97,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -486,7 +486,7 @@
    "path": "lib/acr/qualification/benchmarks/branch_benchmark.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 2.9,
+   "elapsed_sec": 2.79,
    "findings": [
     "F:\\Astro dev\\Astro CS Normalization Database\\lib/acr/qualification/benchmarks/branch_benchmark.cpp:127:15: warning: Value stored to '_' during its initialization is never read [deadcode.DeadStores]",
     "F:\\Astro dev\\Astro CS Normalization Database\\lib/acr/qualification/benchmarks/branch_benchmark.cpp:159:15: warning: Value stored to '_' during its initialization is never read [deadcode.DeadStores]"
@@ -498,7 +498,7 @@
    "path": "lib/acr/qualification/benchmarks/convolution_benchmark.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 2.97,
+   "elapsed_sec": 2.89,
    "findings": [
     "F:\\Astro dev\\Astro CS Normalization Database\\lib/acr/qualification/benchmarks/convolution_benchmark.cpp:103:15: warning: Value stored to '_' during its initialization is never read [deadcode.DeadStores]"
    ],
@@ -522,7 +522,7 @@
    "path": "lib/acr/qualification/benchmarks/numa_benchmark.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 6.61,
+   "elapsed_sec": 6.53,
    "findings": [
     "F:\\Astro dev\\Astro CS Normalization Database\\lib/acr/qualification/benchmarks/numa_benchmark.cpp:215:15: warning: Value stored to '_' during its initialization is never read [deadcode.DeadStores]",
     "F:\\Astro dev\\Astro CS Normalization Database\\lib/acr/qualification/benchmarks/numa_benchmark.cpp:276:15: warning: Value stored to '_' during its initialization is never read [deadcode.DeadStores]"
@@ -534,7 +534,7 @@
    "path": "lib/acr/qualification/benchmarks/overhead_benchmark.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 2.91,
+   "elapsed_sec": 2.86,
    "findings": [
     "F:\\Astro dev\\Astro CS Normalization Database\\lib/acr/qualification/benchmarks/overhead_benchmark.cpp:39:15: warning: Value stored to '_' during its initialization is never read [deadcode.DeadStores]",
     "F:\\Astro dev\\Astro CS Normalization Database\\lib/acr/qualification/benchmarks/overhead_benchmark.cpp:60:15: warning: Value stored to '_' during its initialization is never read [deadcode.DeadStores]",
@@ -548,7 +548,7 @@
    "path": "lib/acr/qualification/benchmarks/reduction_benchmark.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 5.97,
+   "elapsed_sec": 5.91,
    "findings": [
     "F:\\Astro dev\\Astro CS Normalization Database\\lib/acr/qualification/benchmarks/reduction_benchmark.cpp:217:15: warning: Value stored to '_' during its initialization is never read [deadcode.DeadStores]"
    ],
@@ -559,7 +559,7 @@
    "path": "lib/acr/qualification/benchmarks/stream_benchmark.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 4.87,
+   "elapsed_sec": 4.84,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -568,7 +568,7 @@
    "path": "lib/acr/qualification/benchmarks/thread_curve_benchmark.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 6.05,
+   "elapsed_sec": 5.9,
    "findings": [
     "F:\\Astro dev\\Astro CS Normalization Database\\lib/acr/qualification/benchmarks/thread_curve_benchmark.cpp:55:15: warning: Value stored to '_' during its initialization is never read [deadcode.DeadStores]"
    ],
@@ -579,7 +579,7 @@
    "path": "lib/acr/qualification/benchmarks/transfer_benchmark.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 2.87,
+   "elapsed_sec": 2.82,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -588,7 +588,7 @@
    "path": "lib/acr/qualification/focused/acr_benchmark_focused_main.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 1.19,
+   "elapsed_sec": 1.21,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -597,7 +597,7 @@
    "path": "lib/acr/qualification/focused/focused_benchmark.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 9.5,
+   "elapsed_sec": 9.58,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -615,7 +615,7 @@
    "path": "lib/acr/qualification/focused/focused_operations.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 3.16,
+   "elapsed_sec": 3.06,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -633,7 +633,7 @@
    "path": "lib/acr/qualification/focused/operation_profile.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 8.18,
+   "elapsed_sec": 8.28,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -651,7 +651,7 @@
    "path": "lib/acr/qualification/profile_generator.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 8.68,
+   "elapsed_sec": 9.18,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -678,7 +678,7 @@
    "path": "lib/acr/routing/benchmark_route_estimator.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 8.47,
+   "elapsed_sec": 9.02,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -696,7 +696,7 @@
    "path": "lib/acr/routing/route_profile_v2.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 13.32,
+   "elapsed_sec": 14.51,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -714,7 +714,7 @@
    "path": "lib/acr/scheduler/current_state.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 6.11,
+   "elapsed_sec": 6.29,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -732,7 +732,7 @@
    "path": "lib/acr/scheduler/device_executor.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 3.19,
+   "elapsed_sec": 3.08,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -750,7 +750,7 @@
    "path": "lib/acr/scheduler/dispatcher.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 22.06,
+   "elapsed_sec": 24.69,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -768,7 +768,7 @@
    "path": "lib/acr/scheduler/fallback.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 3.22,
+   "elapsed_sec": 3.7,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -786,7 +786,7 @@
    "path": "lib/acr/scheduler/mixed_route_planner.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 2.14,
+   "elapsed_sec": 2.29,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -804,7 +804,7 @@
    "path": "lib/acr/scheduler/mixed_runner.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 1.25,
+   "elapsed_sec": 1.37,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -822,7 +822,7 @@
    "path": "lib/acr/scheduler/partitioner.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 0.89,
+   "elapsed_sec": 0.97,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -840,7 +840,7 @@
    "path": "lib/acr/scheduler/queue_aware.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 0.86,
+   "elapsed_sec": 0.9,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -858,7 +858,7 @@
    "path": "lib/acr/scheduler/reduction_merger.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 1.04,
+   "elapsed_sec": 1.07,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -876,7 +876,7 @@
    "path": "lib/acr/scheduler/residency_manager.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 2.73,
+   "elapsed_sec": 2.8,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -894,7 +894,7 @@
    "path": "lib/acr/scheduler/shared_work_pool.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 3.43,
+   "elapsed_sec": 3.49,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -912,7 +912,7 @@
    "path": "lib/acr/topology/cpu_features.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 2.8,
+   "elapsed_sec": 2.79,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -921,7 +921,7 @@
    "path": "lib/acr/topology/hwloc_topo.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 5.05,
+   "elapsed_sec": 5.25,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -930,7 +930,7 @@
    "path": "lib/acr/utilization/actual_tracker.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 8.32,
+   "elapsed_sec": 9.01,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -948,7 +948,7 @@
    "path": "lib/acr/utilization/config_hot_read.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 1.41,
+   "elapsed_sec": 1.37,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -966,7 +966,7 @@
    "path": "lib/acr/utilization/memory_budget.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 5.32,
+   "elapsed_sec": 5.45,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -984,7 +984,7 @@
    "path": "lib/acr/utilization/staging_ledger.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 0.99,
+   "elapsed_sec": 1.0,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1002,7 +1002,7 @@
    "path": "lib/acr/utilization/system_metrics.cpp",
    "module": "acr",
    "rc": 0,
-   "elapsed_sec": 7.38,
+   "elapsed_sec": 7.77,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1101,7 +1101,7 @@
    "path": "lib/astro_image_io/src/ahpx/aio_ahpx_api.cpp",
    "module": "astro_image_io",
    "rc": 0,
-   "elapsed_sec": 0.69,
+   "elapsed_sec": 0.77,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1110,7 +1110,7 @@
    "path": "lib/astro_image_io/src/ahpx/aio_ahpx_reader.cpp",
    "module": "astro_image_io",
    "rc": 0,
-   "elapsed_sec": 7.83,
+   "elapsed_sec": 8.18,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1128,7 +1128,7 @@
    "path": "lib/astro_image_io/src/ahpx/aio_ahpx_writer.cpp",
    "module": "astro_image_io",
    "rc": 0,
-   "elapsed_sec": 6.67,
+   "elapsed_sec": 6.92,
    "findings": [
     "F:\\Astro dev\\Astro CS Normalization Database\\lib/astro_image_io/src/ahpx/aio_ahpx_writer.cpp:457:13: warning: Value stored to 'headerCompSize' is never read [deadcode.DeadStores]"
    ],
@@ -1148,7 +1148,7 @@
    "path": "lib/astro_image_io/src/aio_api.cpp",
    "module": "astro_image_io",
    "rc": 0,
-   "elapsed_sec": 2.44,
+   "elapsed_sec": 2.27,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1175,7 +1175,7 @@
    "path": "lib/astro_image_io/src/aio_fits.cpp",
    "module": "astro_image_io",
    "rc": 0,
-   "elapsed_sec": 13.82,
+   "elapsed_sec": 15.14,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1193,7 +1193,7 @@
    "path": "lib/astro_image_io/src/aio_log.cpp",
    "module": "astro_image_io",
    "rc": 0,
-   "elapsed_sec": 1.98,
+   "elapsed_sec": 1.88,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1211,7 +1211,7 @@
    "path": "lib/astro_image_io/src/aio_pipeline.cpp",
    "module": "astro_image_io",
    "rc": 0,
-   "elapsed_sec": 11.84,
+   "elapsed_sec": 12.92,
    "findings": [
     "F:\\Astro dev\\Astro CS Normalization Database\\lib/astro_image_io/src/aio_pipeline.cpp:890:17: warning: Value stored to 'type_str' during its initialization is never read [deadcode.DeadStores]"
    ],
@@ -1222,7 +1222,7 @@
    "path": "lib/astro_image_io/src/aio_pipeline_engine.cpp",
    "module": "astro_image_io",
    "rc": 0,
-   "elapsed_sec": 5.3,
+   "elapsed_sec": 5.39,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1249,7 +1249,7 @@
    "path": "lib/astro_image_io/src/aio_xisf.cpp",
    "module": "astro_image_io",
    "rc": 0,
-   "elapsed_sec": 6.4,
+   "elapsed_sec": 6.6,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1267,7 +1267,7 @@
    "path": "lib/astro_image_io/src/healpix/aio_healpix_io.cpp",
    "module": "astro_image_io",
    "rc": 0,
-   "elapsed_sec": 10.14,
+   "elapsed_sec": 11.02,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1276,7 +1276,7 @@
    "path": "lib/astro_image_io/src/hips/aio_hips_reader.cpp",
    "module": "astro_image_io",
    "rc": 0,
-   "elapsed_sec": 4.37,
+   "elapsed_sec": 4.34,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1285,7 +1285,7 @@
    "path": "lib/astro_image_io/src/hips/aio_hips_writer.cpp",
    "module": "astro_image_io",
    "rc": 0,
-   "elapsed_sec": 13.2,
+   "elapsed_sec": 14.92,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1294,7 +1294,7 @@
    "path": "lib/astro_image_io/src/hiss_codec.cpp",
    "module": "astro_image_io",
    "rc": 0,
-   "elapsed_sec": 3.34,
+   "elapsed_sec": 3.28,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1303,7 +1303,7 @@
    "path": "lib/astro_image_io/src/hiss_common.cpp",
    "module": "astro_image_io",
    "rc": 0,
-   "elapsed_sec": 6.43,
+   "elapsed_sec": 6.97,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1312,7 +1312,7 @@
    "path": "lib/astro_image_io/src/hiss_reader.cpp",
    "module": "astro_image_io",
    "rc": 0,
-   "elapsed_sec": 8.35,
+   "elapsed_sec": 9.21,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1321,7 +1321,7 @@
    "path": "lib/astro_image_io/src/hiss_stream_writer.cpp",
    "module": "astro_image_io",
    "rc": 0,
-   "elapsed_sec": 5.12,
+   "elapsed_sec": 5.46,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1357,7 +1357,7 @@
    "path": "lib/astro_image_io/src/hiss_transform.cpp",
    "module": "astro_image_io",
    "rc": 0,
-   "elapsed_sec": 1.17,
+   "elapsed_sec": 1.14,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1375,7 +1375,7 @@
    "path": "lib/astro_image_io/src/hiss_writer.cpp",
    "module": "astro_image_io",
    "rc": 0,
-   "elapsed_sec": 11.69,
+   "elapsed_sec": 13.32,
    "findings": [
     "F:\\Astro dev\\Astro CS Normalization Database\\lib/astro_image_io/src/hiss_writer.cpp:733:23: warning: Value stored to 'n_subblocks_log' during its initialization is never read [deadcode.DeadStores]"
    ],
@@ -1386,7 +1386,7 @@
    "path": "lib/calibration/cpp/cosmetic_corrector.cpp",
    "module": "calibration",
    "rc": 0,
-   "elapsed_sec": 8.39,
+   "elapsed_sec": 9.55,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1413,7 +1413,7 @@
    "path": "lib/calibration/src/ac_api.cpp",
    "module": "calibration",
    "rc": 0,
-   "elapsed_sec": 1.07,
+   "elapsed_sec": 1.13,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1422,7 +1422,7 @@
    "path": "lib/calibration/src/calibrator.cpp",
    "module": "calibration",
    "rc": 0,
-   "elapsed_sec": 3.19,
+   "elapsed_sec": 3.28,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1431,7 +1431,7 @@
    "path": "lib/calibration/src/cosmetic_corrector.cpp",
    "module": "calibration",
    "rc": 0,
-   "elapsed_sec": 3.74,
+   "elapsed_sec": 4.01,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1440,7 +1440,7 @@
    "path": "lib/calibration/src/dark_optimizer.cpp",
    "module": "calibration",
    "rc": 0,
-   "elapsed_sec": 4.28,
+   "elapsed_sec": 4.67,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1449,7 +1449,7 @@
    "path": "lib/calibration/src/master_generator.cpp",
    "module": "calibration",
    "rc": 0,
-   "elapsed_sec": 8.69,
+   "elapsed_sec": 9.78,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1458,7 +1458,7 @@
    "path": "lib/calibration/src/photometry_apply.cpp",
    "module": "calibration",
    "rc": 0,
-   "elapsed_sec": 0.31,
+   "elapsed_sec": 0.36,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1476,7 +1476,7 @@
    "path": "lib/common/crypto/sha256.cpp",
    "module": "common",
    "rc": 0,
-   "elapsed_sec": 0.65,
+   "elapsed_sec": 0.7,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1494,7 +1494,7 @@
    "path": "lib/common/healpix/healpix_core.cpp",
    "module": "common",
    "rc": 0,
-   "elapsed_sec": 0.52,
+   "elapsed_sec": 0.49,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1539,7 +1539,7 @@
    "path": "lib/dynamic_psf/src/dpsf_image.cpp",
    "module": "dynamic_psf",
    "rc": 0,
-   "elapsed_sec": 15.46,
+   "elapsed_sec": 18.26,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1557,7 +1557,7 @@
    "path": "lib/dynamic_psf/src/dpsf_log.cpp",
    "module": "dynamic_psf",
    "rc": 0,
-   "elapsed_sec": 1.88,
+   "elapsed_sec": 2.0,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1575,7 +1575,7 @@
    "path": "lib/dynamic_psf/src/dpsf_psf.cpp",
    "module": "dynamic_psf",
    "rc": 0,
-   "elapsed_sec": 13.89,
+   "elapsed_sec": 16.35,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1593,7 +1593,7 @@
    "path": "lib/gaia_xpsd_client/example/demo.c",
    "module": "gaia_xpsd_client",
    "rc": 0,
-   "elapsed_sec": 0.08,
+   "elapsed_sec": 0.09,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1602,7 +1602,7 @@
    "path": "lib/gaia_xpsd_client/src/gaia_client.c",
    "module": "gaia_xpsd_client",
    "rc": 0,
-   "elapsed_sec": 14.33,
+   "elapsed_sec": 16.94,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1620,7 +1620,7 @@
    "path": "lib/healpix_db/healpix_browser_qt/app/browser_cli.cpp",
    "module": "healpix_browser",
    "rc": 0,
-   "elapsed_sec": 24.01,
+   "elapsed_sec": 27.99,
    "findings": [
     "F:\\Astro dev\\Astro CS Normalization Database\\lib/healpix_db/healpix_browser_qt/app/browser_cli.cpp:628:23: warning: Value stored to 'c_dec' during its initialization is never read [deadcode.DeadStores]"
    ],
@@ -1631,7 +1631,7 @@
    "path": "lib/healpix_db/healpix_browser_qt/app/main.cpp",
    "module": "healpix_browser",
    "rc": 0,
-   "elapsed_sec": 7.47,
+   "elapsed_sec": 8.5,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1640,7 +1640,7 @@
    "path": "lib/healpix_db/healpix_browser_qt/app/main_window.cpp",
    "module": "healpix_browser",
    "rc": 0,
-   "elapsed_sec": 14.71,
+   "elapsed_sec": 17.14,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1658,7 +1658,7 @@
    "path": "lib/healpix_db/healpix_browser_qt/app/stf_bar.cpp",
    "module": "healpix_browser",
    "rc": 0,
-   "elapsed_sec": 5.13,
+   "elapsed_sec": 5.67,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1676,7 +1676,7 @@
    "path": "lib/healpix_db/healpix_browser_qt/app/stf_panel.cpp",
    "module": "healpix_browser",
    "rc": 0,
-   "elapsed_sec": 4.55,
+   "elapsed_sec": 4.94,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1694,7 +1694,7 @@
    "path": "lib/healpix_db/healpix_browser_qt/core/browser_backend.cpp",
    "module": "healpix_browser",
    "rc": 0,
-   "elapsed_sec": 14.38,
+   "elapsed_sec": 16.71,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1712,7 +1712,7 @@
    "path": "lib/healpix_db/healpix_browser_qt/core/gl_renderer.cpp",
    "module": "healpix_browser",
    "rc": 0,
-   "elapsed_sec": 9.85,
+   "elapsed_sec": 11.24,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1730,7 +1730,7 @@
    "path": "lib/healpix_db/healpix_browser_qt/core/healpix_math.cpp",
    "module": "healpix_browser",
    "rc": 0,
-   "elapsed_sec": 1.06,
+   "elapsed_sec": 1.09,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1748,7 +1748,7 @@
    "path": "lib/healpix_db/healpix_browser_qt/core/hips_browser_backend.cpp",
    "module": "healpix_browser",
    "rc": 0,
-   "elapsed_sec": 8.61,
+   "elapsed_sec": 9.66,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1766,7 +1766,7 @@
    "path": "lib/healpix_db/healpix_browser_qt/core/hips_sky_view.cpp",
    "module": "healpix_browser",
    "rc": 0,
-   "elapsed_sec": 8.11,
+   "elapsed_sec": 9.1,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1793,7 +1793,7 @@
    "path": "lib/healpix_db/healpix_browser_qt/core/stf_engine.cpp",
    "module": "healpix_browser",
    "rc": 0,
-   "elapsed_sec": 4.16,
+   "elapsed_sec": 4.6,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1820,7 +1820,7 @@
    "path": "lib/healpix_db/healpix_browser_qt/widgets/abstract_view.cpp",
    "module": "healpix_browser",
    "rc": 0,
-   "elapsed_sec": 8.41,
+   "elapsed_sec": 9.53,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1838,7 +1838,7 @@
    "path": "lib/healpix_db/healpix_browser_qt/widgets/hips_view.cpp",
    "module": "healpix_browser",
    "rc": 0,
-   "elapsed_sec": 5.14,
+   "elapsed_sec": 5.52,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1856,7 +1856,7 @@
    "path": "lib/healpix_db/healpix_browser_qt/widgets/sphere_view.cpp",
    "module": "healpix_browser",
    "rc": 0,
-   "elapsed_sec": 5.07,
+   "elapsed_sec": 5.48,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1874,7 +1874,7 @@
    "path": "lib/healpix_db/healpix_drizzle/astro_sphere_sink.cpp",
    "module": "healpix_drizzle",
    "rc": 0,
-   "elapsed_sec": 8.13,
+   "elapsed_sec": 8.86,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1892,7 +1892,7 @@
    "path": "lib/healpix_db/healpix_drizzle/drizzle_engine.cpp",
    "module": "healpix_drizzle",
    "rc": 0,
-   "elapsed_sec": 24.13,
+   "elapsed_sec": 28.33,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1910,7 +1910,7 @@
    "path": "lib/healpix_db/healpix_drizzle/fits_reader.cpp",
    "module": "healpix_drizzle",
    "rc": 0,
-   "elapsed_sec": 5.34,
+   "elapsed_sec": 5.74,
    "findings": [
     "F:\\Astro dev\\Astro CS Normalization Database\\lib/healpix_db/healpix_drizzle/fits_reader.cpp:238:24: warning: Value of 'errno' was not checked and may be overwritten by function 'fread' [unix.Errno]"
    ],
@@ -1930,7 +1930,7 @@
    "path": "lib/healpix_db/healpix_drizzle/healpix_core.cpp",
    "module": "healpix_drizzle",
    "rc": 0,
-   "elapsed_sec": 10.52,
+   "elapsed_sec": 12.46,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1948,7 +1948,7 @@
    "path": "lib/healpix_db/healpix_drizzle/hp_drizzle_api.cpp",
    "module": "healpix_drizzle",
    "rc": 0,
-   "elapsed_sec": 6.05,
+   "elapsed_sec": 6.34,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1975,7 +1975,7 @@
    "path": "lib/healpix_db/healpix_drizzle/poly_clip.cpp",
    "module": "healpix_drizzle",
    "rc": 0,
-   "elapsed_sec": 0.58,
+   "elapsed_sec": 0.59,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -1993,7 +1993,7 @@
    "path": "lib/healpix_db/healpix_drizzle/reverse_drizzle.cpp",
    "module": "healpix_drizzle",
    "rc": 0,
-   "elapsed_sec": 7.76,
+   "elapsed_sec": 8.61,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2011,7 +2011,7 @@
    "path": "lib/healpix_db/healpix_drizzle/snr_evaluator.cpp",
    "module": "healpix_drizzle",
    "rc": 0,
-   "elapsed_sec": 12.68,
+   "elapsed_sec": 14.51,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2029,7 +2029,7 @@
    "path": "lib/healpix_db/healpix_drizzle/spherical_overlap.cpp",
    "module": "healpix_drizzle",
    "rc": 0,
-   "elapsed_sec": 19.95,
+   "elapsed_sec": 23.6,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2146,7 +2146,7 @@
    "path": "lib/orchestrator/cpp/src/checkpoint.cpp",
    "module": "orchestrator",
    "rc": 0,
-   "elapsed_sec": 15.47,
+   "elapsed_sec": 18.12,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2155,7 +2155,7 @@
    "path": "lib/orchestrator/cpp/src/cli_command.cpp",
    "module": "orchestrator",
    "rc": 0,
-   "elapsed_sec": 5.99,
+   "elapsed_sec": 6.66,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2164,7 +2164,7 @@
    "path": "lib/orchestrator/cpp/src/dll_loader.cpp",
    "module": "orchestrator",
    "rc": 0,
-   "elapsed_sec": 7.31,
+   "elapsed_sec": 8.25,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2173,7 +2173,7 @@
    "path": "lib/orchestrator/cpp/src/json_config.cpp",
    "module": "orchestrator",
    "rc": 0,
-   "elapsed_sec": 7.94,
+   "elapsed_sec": 9.15,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2182,7 +2182,7 @@
    "path": "lib/orchestrator/cpp/src/logger.cpp",
    "module": "orchestrator",
    "rc": 0,
-   "elapsed_sec": 3.61,
+   "elapsed_sec": 3.9,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2191,7 +2191,7 @@
    "path": "lib/orchestrator/cpp/src/main.cpp",
    "module": "orchestrator",
    "rc": 0,
-   "elapsed_sec": 7.9,
+   "elapsed_sec": 9.18,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2200,9 +2200,9 @@
    "path": "lib/orchestrator/cpp/src/orchestrator.cpp",
    "module": "orchestrator",
    "rc": 0,
-   "elapsed_sec": 41.61,
+   "elapsed_sec": 48.38,
    "findings": [
-    "F:\\Astro dev\\Astro CS Normalization Database\\lib/orchestrator/cpp/src/orchestrator.cpp:4557:59: warning: Value stored to 'p' is never read [deadcode.DeadStores]"
+    "F:\\Astro dev\\Astro CS Normalization Database\\lib/orchestrator/cpp/src/orchestrator.cpp:4560:59: warning: Value stored to 'p' is never read [deadcode.DeadStores]"
    ],
    "errors": [],
    "status": "FINDINGS"
@@ -2283,7 +2283,7 @@
    "path": "lib/phase2/src/acr_kernels.cpp",
    "module": "phase2",
    "rc": 0,
-   "elapsed_sec": 5.96,
+   "elapsed_sec": 6.67,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2292,7 +2292,7 @@
    "path": "lib/phase2/src/block.cpp",
    "module": "phase2",
    "rc": 0,
-   "elapsed_sec": 0.48,
+   "elapsed_sec": 0.45,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2301,7 +2301,7 @@
    "path": "lib/phase2/src/coverage.cpp",
    "module": "phase2",
    "rc": 0,
-   "elapsed_sec": 4.39,
+   "elapsed_sec": 4.86,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2310,7 +2310,7 @@
    "path": "lib/phase2/src/integrate.cpp",
    "module": "phase2",
    "rc": 0,
-   "elapsed_sec": 0.36,
+   "elapsed_sec": 0.44,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2319,7 +2319,7 @@
    "path": "lib/phase2/src/rejection.cpp",
    "module": "phase2",
    "rc": 0,
-   "elapsed_sec": 14.68,
+   "elapsed_sec": 17.82,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2328,7 +2328,7 @@
    "path": "lib/phase2/src/sampler.cpp",
    "module": "phase2",
    "rc": 0,
-   "elapsed_sec": 7.35,
+   "elapsed_sec": 8.78,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2337,7 +2337,7 @@
    "path": "lib/phase2/src/stage2_common.cpp",
    "module": "phase2",
    "rc": 0,
-   "elapsed_sec": 5.43,
+   "elapsed_sec": 6.46,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2346,7 +2346,7 @@
    "path": "lib/phase2/src/upm.cpp",
    "module": "phase2",
    "rc": 0,
-   "elapsed_sec": 24.18,
+   "elapsed_sec": 28.54,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2373,7 +2373,7 @@
    "path": "lib/photometric_calib/cpp/src/image_corrector.cpp",
    "module": "photometric_calib",
    "rc": 0,
-   "elapsed_sec": 3.92,
+   "elapsed_sec": 4.77,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2391,7 +2391,7 @@
    "path": "lib/photometric_calib/cpp/src/pc_api.cpp",
    "module": "photometric_calib",
    "rc": 0,
-   "elapsed_sec": 3.76,
+   "elapsed_sec": 4.31,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2400,7 +2400,7 @@
    "path": "lib/photometric_calib/cpp/src/spectrum_integrator.cpp",
    "module": "photometric_calib",
    "rc": 0,
-   "elapsed_sec": 4.45,
+   "elapsed_sec": 5.2,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2418,7 +2418,7 @@
    "path": "lib/photometric_calib/cpp/src/star_matcher.cpp",
    "module": "photometric_calib",
    "rc": 0,
-   "elapsed_sec": 7.93,
+   "elapsed_sec": 9.05,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2436,7 +2436,7 @@
    "path": "lib/photometric_calib/cpp/src/wcs_transform.cpp",
    "module": "photometric_calib",
    "rc": 0,
-   "elapsed_sec": 0.43,
+   "elapsed_sec": 0.51,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2454,7 +2454,7 @@
    "path": "lib/photometric_calib/cpp/test/gate4_dr3sp_gaiaxpy/fsyn_export.cpp",
    "module": "photometric_calib",
    "rc": 0,
-   "elapsed_sec": 0.71,
+   "elapsed_sec": 0.82,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2463,7 +2463,7 @@
    "path": "lib/photometric_calib/cpp/test/test_spectrum_integrator.cpp",
    "module": "photometric_calib",
    "rc": 0,
-   "elapsed_sec": 0.87,
+   "elapsed_sec": 1.02,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2607,7 +2607,7 @@
    "path": "lib/plate_solve/cpp/ipv/src/ipv_angle.cpp",
    "module": "plate_solve",
    "rc": 0,
-   "elapsed_sec": 0.91,
+   "elapsed_sec": 1.04,
    "findings": [
     "F:\\Astro dev\\Astro CS Normalization Database\\lib/plate_solve/cpp/ipv/src/ipv_angle.cpp:183:13: warning: Value stored to 'cmean_rad' is never read [deadcode.DeadStores]"
    ],
@@ -2618,7 +2618,7 @@
    "path": "lib/plate_solve/cpp/ipv/src/ipv_distortion.cpp",
    "module": "plate_solve",
    "rc": 0,
-   "elapsed_sec": 6.12,
+   "elapsed_sec": 7.07,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2627,7 +2627,7 @@
    "path": "lib/plate_solve/cpp/ipv/src/ipv_entry.cpp",
    "module": "plate_solve",
    "rc": 0,
-   "elapsed_sec": 2.61,
+   "elapsed_sec": 3.03,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2636,7 +2636,7 @@
    "path": "lib/plate_solve/cpp/ipv/src/ipv_itertrans.cpp",
    "module": "plate_solve",
    "rc": 0,
-   "elapsed_sec": 9.02,
+   "elapsed_sec": 10.49,
    "findings": [
     "F:\\Astro dev\\Astro CS Normalization Database\\lib/plate_solve/cpp/ipv/src/ipv_itertrans.cpp:583:13: warning: Value stored to 'is_ok' is never read [deadcode.DeadStores]"
    ],
@@ -2647,7 +2647,7 @@
    "path": "lib/plate_solve/cpp/ipv/src/ipv_kvector.cpp",
    "module": "plate_solve",
    "rc": 0,
-   "elapsed_sec": 4.43,
+   "elapsed_sec": 5.23,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2656,7 +2656,7 @@
    "path": "lib/plate_solve/cpp/ipv/src/ipv_polygon.cpp",
    "module": "plate_solve",
    "rc": 0,
-   "elapsed_sec": 10.93,
+   "elapsed_sec": 12.96,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2665,7 +2665,7 @@
    "path": "lib/plate_solve/cpp/ipv/src/ipv_ransac.cpp",
    "module": "plate_solve",
    "rc": 0,
-   "elapsed_sec": 19.01,
+   "elapsed_sec": 21.9,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2674,7 +2674,7 @@
    "path": "lib/plate_solve/cpp/ipv/src/ipv_robust_refine.cpp",
    "module": "plate_solve",
    "rc": 0,
-   "elapsed_sec": 9.48,
+   "elapsed_sec": 11.23,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2683,7 +2683,7 @@
    "path": "lib/plate_solve/cpp/ipv/src/ipv_select.cpp",
    "module": "plate_solve",
    "rc": 0,
-   "elapsed_sec": 18.21,
+   "elapsed_sec": 21.16,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2692,7 +2692,7 @@
    "path": "lib/plate_solve/cpp/ipv/src/ipv_sip.cpp",
    "module": "plate_solve",
    "rc": 0,
-   "elapsed_sec": 5.9,
+   "elapsed_sec": 7.08,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2701,7 +2701,7 @@
    "path": "lib/plate_solve/cpp/ipv/src/ipv_solver.cpp",
    "module": "plate_solve",
    "rc": 0,
-   "elapsed_sec": 13.24,
+   "elapsed_sec": 14.91,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2710,7 +2710,7 @@
    "path": "lib/plate_solve/cpp/ipv/src/ipv_triangle.cpp",
    "module": "plate_solve",
    "rc": 0,
-   "elapsed_sec": 5.9,
+   "elapsed_sec": 6.01,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2719,7 +2719,7 @@
    "path": "lib/plate_solve/cpp/ipv/src/ipv_wcs.cpp",
    "module": "plate_solve",
    "rc": 0,
-   "elapsed_sec": 2.62,
+   "elapsed_sec": 2.5,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2728,7 +2728,7 @@
    "path": "lib/plate_solve/cpp/ipv/test/test_kvector.cpp",
    "module": "plate_solve",
    "rc": 0,
-   "elapsed_sec": 5.61,
+   "elapsed_sec": 5.83,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2737,7 +2737,7 @@
    "path": "lib/plate_solve/cpp/ipv/test/test_synthetic.cpp",
    "module": "plate_solve",
    "rc": 0,
-   "elapsed_sec": 5.07,
+   "elapsed_sec": 5.3,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2755,7 +2755,7 @@
    "path": "lib/snr_estimator/cpp/src/noise_model.cpp",
    "module": "snr_estimator",
    "rc": 0,
-   "elapsed_sec": 7.56,
+   "elapsed_sec": 8.19,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2764,7 +2764,7 @@
    "path": "lib/snr_estimator/cpp/src/snr_estimator.cpp",
    "module": "snr_estimator",
    "rc": 0,
-   "elapsed_sec": 5.4,
+   "elapsed_sec": 5.63,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2782,7 +2782,7 @@
    "path": "lib/star_detector/src/sdet_api.cpp",
    "module": "star_detector",
    "rc": 0,
-   "elapsed_sec": 14.86,
+   "elapsed_sec": 17.59,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2791,7 +2791,7 @@
    "path": "lib/star_detector/src/sdet_background.cpp",
    "module": "star_detector",
    "rc": 0,
-   "elapsed_sec": 1.76,
+   "elapsed_sec": 1.62,
    "findings": [
     "F:\\Astro dev\\Astro CS Normalization Database\\lib/star_detector/src/sdet_background.cpp:165:12: warning: Value stored to 'med' during its initialization is never read [deadcode.DeadStores]"
    ],
@@ -2811,7 +2811,7 @@
    "path": "lib/star_detector/src/sdet_detector.cpp",
    "module": "star_detector",
    "rc": 0,
-   "elapsed_sec": 12.74,
+   "elapsed_sec": 15.45,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2829,7 +2829,7 @@
    "path": "lib/star_detector/src/sdet_image.cpp",
    "module": "star_detector",
    "rc": 0,
-   "elapsed_sec": 17.11,
+   "elapsed_sec": 20.06,
    "findings": [],
    "errors": [],
    "status": "PASS"
@@ -2847,7 +2847,7 @@
    "path": "lib/star_detector/src/sdet_log.cpp",
    "module": "star_detector",
    "rc": 0,
-   "elapsed_sec": 1.78,
+   "elapsed_sec": 1.84,
    "findings": [],
    "errors": [],
    "status": "PASS"

@@ -1,3 +1,10 @@
+  [PASS] nullptr cfg OK
+  [PASS] default_config cfg OK
+  [PASS] production default cfg OK
+  [PASS] [NOISE-WIRE-001] nullptr == default_config() 逐字段 exact (sigma=3.969792922 n=56 spatial=1 ctrl=56)
+  [PASS] [NOISE-WIRE-001] nullptr == production default 逐字段 exact (sigma=3.969792922 n=56 spatial=1 ctrl=56)
+  [PASS] [NOISE-WIRE-001] fill 数组逐元素 exact (A vs C)
+  [PASS] [NOISE-WIRE-001] 零结构体≠默认 (spatial=0 ctrl=4 vs spatial=1 ctrl=56)
 === V19 SNR/Noise 科学矩阵 (模块级) ===
 
 [SNR-001] pedestal invariance
@@ -56,4 +63,6 @@
   [PASS] empirical fallback ok (r=0, source=0, deg=0, sigma=3.9527)
   [PASS] fully degenerate → status 1, ivar=0
 
-== V19 SNR 科学矩阵结果: 32 通过, 0 失败 ==
+== V19 SNR 科学矩阵结果: 39 通过, 0 失败 ==
+
+== 总结果: 39 通过, 0 失败 ==
