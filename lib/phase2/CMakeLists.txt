@@ -42,8 +42,12 @@ if(GTest_FOUND)
     add_executable(phase2_synthetic_gate tests/synthetic_gate.cpp)
     target_link_libraries(phase2_synthetic_gate PRIVATE phase2 GTest::gtest_main
         ${CMAKE_CURRENT_SOURCE_DIR}/../astro_image_io/astro_image_io.dll)
+    add_executable(phase2_ivar_wiring tests/ivar_wiring_test.cpp)
+    target_link_libraries(phase2_ivar_wiring PRIVATE phase2 GTest::gtest_main
+        ${CMAKE_CURRENT_SOURCE_DIR}/../astro_image_io/astro_image_io.dll)
     include(GoogleTest)
     gtest_discover_tests(phase2_synthetic_gate DISCOVERY_MODE PRE_TEST)
+    gtest_discover_tests(phase2_ivar_wiring DISCOVERY_MODE PRE_TEST)
 endif()
 
 add_executable(astrocs-stage2 tools/stage2.cpp)
