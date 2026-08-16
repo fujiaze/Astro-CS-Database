@@ -2,6 +2,7 @@
 // noise_model_science_test.cpp — SNR/Noise 科学矩阵 (模块级)
 //
 // 覆盖 (SNR_SCIENCE_DERIVATION.md / SCIENCE_ACCEPTANCE_MATRIX.md):
+// TEST-SNR-001: SNR/Noise 科学矩阵（SNR-001..015 子项）
 // SNR-001 pedestal invariance
 // SNR-002 multiplicative scale covariance
 // SNR-003 star-population invariance

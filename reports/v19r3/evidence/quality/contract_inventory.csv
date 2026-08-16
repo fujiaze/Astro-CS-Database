@@ -1,0 +1,64 @@
+contract_id,title,authority_doc,module,status
+SCI-UPM-WEIGHT-001,production UPM 权重 = quality × geometric_reliability × control_ivar；禁止 star-SNR/support^p 乘因子,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+ALG-UPM-CONTROL-IVAR-001,control_variance = k_corr×(π/2)×σ_bg²/N_retained；control_ivar=1/var；k_corr 由 Drizzle MC 校准（1.4）,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+DATA-UPM-CONTROL-UNC-001,control estimator = patch median；uncertainty=SE(median) 用 N_retained；ivar 产品缺失显式科学错误,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+ACR-IVAR-001,weight_policy=ivar 时 ACR 块禁用（cell-ivar×support 与 CPU 逐像素 ivar 不等价）→ CPU canonical path,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+ALG-INTEGRATE-001,integrator 权重资格：NaN/Inf/负→INVALID；0→合法不贡献；>0→可用；reducer 无 policy 知识,docs/algorithms/INTEGRATION_ALGORITHMS.md,phase2,VERIFIED
+ALG-DRZ-GEOM-CACHE-001,bounded target-ipix geometry cache（LRU 8192，run generation 清空）；科学等价 + 操作计数,docs/algorithms/DRIZZLE_GEOMETRY.md,healpix_drizzle,VERIFIED
+SCI-UPM-PERSIST-001,UPM save→close→open 后 frame_id→theta 绑定不变,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+ALG-UPM-FRAME-BIND-001,parameter_rows[index] ↔ frame_id_by_index[index] 同长无重复,docs/algorithms/UPM_SOLVER.md,phase2,VERIFIED
+DATA-UPM-MODEL-001,模型文件显式 schema/version/frame 列表；重复/缺失/类型损坏稳定报错,docs/architecture/COMPATIBILITY_POLICY.md,phase2,VERIFIED
+ENG-OWN-001,模块 ownership/lifetime 契约（OWNERSHIP_AND_LIFETIME）,docs/architecture/OWNERSHIP_AND_LIFETIME.md,phase2,VERIFIED
+ENG-THREAD-001,线程模型契约（THREADING_MODEL）,docs/architecture/THREADING_MODEL.md,phase2,VERIFIED
+ENG-ERR-001,错误模型契约（ERROR_MODEL，退出码与 orchestrator.h 全量一致）,docs/architecture/ERROR_MODEL.md,orchestrator,VERIFIED
+ENG-IO-001,原子 I/O 契约（IO_AND_ATOMICITY）,docs/architecture/IO_AND_ATOMICITY.md,astro_image_io,VERIFIED
+DATA-HIPS-SIGNAL-001,signal HiPS 数据语义,docs/contracts/DATA_SEMANTICS.md,astro_image_io,VERIFIED
+DATA-HIPS-SUPPORT-001,support HiPS 数据语义（coverage 保守下界）,docs/contracts/DATA_SEMANTICS.md,astro_image_io,VERIFIED
+DATA-HIPS-IVAR-001,ivar 产品语义（1/variance）,docs/contracts/DATA_SEMANTICS.md,snr_estimator,VERIFIED
+SCI-DRZ-001,Drizzle 球面重叠科学门（false_negative=0）,docs/science/DRIZZLE.md,healpix_drizzle,VERIFIED
+SCI-DRZ-014,variance 传播 identity（α²v）,docs/science/DRIZZLE.md,healpix_drizzle,VERIFIED
+SCI-CAL-001,校准科学门（bias/dark/flat/cosmetic）,docs/science/CALIBRATION.md,calibration,VERIFIED
+SCI-AST-001,astrometry/WCS 科学门,docs/science/ASTROMETRY.md,plate_solve,VERIFIED
+SCI-PHOT-001,photometry 科学门（flux_calibrator）,docs/science/PHOTOMETRY.md,photometric_calib,VERIFIED
+SCI-NOISE-001,SNR/Noise 科学门 #1（noise_model_science_test 子项）,docs/science/NOISE_MODEL.md,snr_estimator,VERIFIED
+SCI-NOISE-002,SNR/Noise 科学门 #2（noise_model_science_test 子项）,docs/science/NOISE_MODEL.md,snr_estimator,VERIFIED
+SCI-NOISE-003,SNR/Noise 科学门 #3（noise_model_science_test 子项）,docs/science/NOISE_MODEL.md,snr_estimator,VERIFIED
+SCI-NOISE-004,SNR/Noise 科学门 #4（noise_model_science_test 子项）,docs/science/NOISE_MODEL.md,snr_estimator,VERIFIED
+SCI-NOISE-005,SNR/Noise 科学门 #5（noise_model_science_test 子项）,docs/science/NOISE_MODEL.md,snr_estimator,VERIFIED
+SCI-NOISE-006,SNR/Noise 科学门 #6（noise_model_science_test 子项）,docs/science/NOISE_MODEL.md,snr_estimator,VERIFIED
+SCI-NOISE-007,SNR/Noise 科学门 #7（noise_model_science_test 子项）,docs/science/NOISE_MODEL.md,snr_estimator,VERIFIED
+SCI-NOISE-008,SNR/Noise 科学门 #8（noise_model_science_test 子项）,docs/science/NOISE_MODEL.md,snr_estimator,VERIFIED
+SCI-NOISE-009,SNR/Noise 科学门 #9（noise_model_science_test 子项）,docs/science/NOISE_MODEL.md,snr_estimator,VERIFIED
+SCI-NOISE-010,SNR/Noise 科学门 #10（noise_model_science_test 子项）,docs/science/NOISE_MODEL.md,snr_estimator,VERIFIED
+SCI-NOISE-011,SNR/Noise 科学门 #11（noise_model_science_test 子项）,docs/science/NOISE_MODEL.md,snr_estimator,VERIFIED
+SCI-NOISE-012,SNR/Noise 科学门 #12（noise_model_science_test 子项）,docs/science/NOISE_MODEL.md,snr_estimator,VERIFIED
+SCI-NOISE-013,SNR/Noise 科学门 #13（noise_model_science_test 子项）,docs/science/NOISE_MODEL.md,snr_estimator,VERIFIED
+SCI-NOISE-014,SNR/Noise 科学门 #14（noise_model_science_test 子项）,docs/science/NOISE_MODEL.md,snr_estimator,VERIFIED
+SCI-NOISE-015,SNR/Noise 科学门 #15（noise_model_science_test 子项）,docs/science/NOISE_MODEL.md,snr_estimator,VERIFIED
+SCI-UPM-001,UPM 科学门 #1（PHASE2_UPM 语义集）,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+TEST-PR-UPM-001,PR#1 frame-binding 测试 #1,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+SCI-UPM-002,UPM 科学门 #2（PHASE2_UPM 语义集）,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+TEST-PR-UPM-002,PR#1 frame-binding 测试 #2,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+SCI-UPM-003,UPM 科学门 #3（PHASE2_UPM 语义集）,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+TEST-PR-UPM-003,PR#1 frame-binding 测试 #3,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+SCI-UPM-004,UPM 科学门 #4（PHASE2_UPM 语义集）,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+TEST-PR-UPM-004,PR#1 frame-binding 测试 #4,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+SCI-UPM-005,UPM 科学门 #5（PHASE2_UPM 语义集）,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+TEST-PR-UPM-005,PR#1 frame-binding 测试 #5,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+SCI-UPM-006,UPM 科学门 #6（PHASE2_UPM 语义集）,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+TEST-PR-UPM-006,PR#1 frame-binding 测试 #6,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+SCI-UPM-007,UPM 科学门 #7（PHASE2_UPM 语义集）,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+TEST-PR-UPM-007,PR#1 frame-binding 测试 #7,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+SCI-UPM-008,UPM 科学门 #8（PHASE2_UPM 语义集）,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+TEST-PR-UPM-008,PR#1 frame-binding 测试 #8,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+SCI-UPM-009,UPM 科学门 #9（PHASE2_UPM 语义集）,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+TEST-PR-UPM-009,PR#1 frame-binding 测试 #9,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+SCI-UPM-010,UPM 科学门 #10（PHASE2_UPM 语义集）,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+TEST-PR-UPM-010,PR#1 frame-binding 测试 #10,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+TEST-UPMW-001,UPM 权重门 UPMW-001（V19R3）,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+TEST-UPMW-002,UPM 权重门 UPMW-002（V19R3）,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+TEST-UPMW-003,UPM 权重门 UPMW-003（V19R3）,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+TEST-UPMW-004,UPM 权重门 UPMW-004（V19R3）,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+TEST-UPMW-005,UPM 权重门 UPMW-005（V19R3）,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+TEST-UPMW-006,UPM 权重门 UPMW-006（V19R3）,docs/science/PHASE2_UPM.md,phase2,VERIFIED
+TEST-UPMW-007,UPM 权重门 UPMW-007（V19R3）,docs/science/PHASE2_UPM.md,phase2,VERIFIED

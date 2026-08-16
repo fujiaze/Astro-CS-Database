@@ -1,0 +1,1881 @@
+{
+ "contract_inventory_rows": 63,
+ "traceability_rows": 63,
+ "authority_path_broken": 0,
+ "traceability_broken": 0,
+ "contract_coverage": true,
+ "random_contract_samples": 50,
+ "random_contract_ok": 50,
+ "random_symbol_samples": 50,
+ "broken": [],
+ "contract_samples": [
+  {
+   "contract": "TEST-PR-UPM-010",
+   "ok": true
+  },
+  {
+   "contract": "TEST-PR-UPM-001",
+   "ok": true
+  },
+  {
+   "contract": "SCI-NOISE-010",
+   "ok": true
+  },
+  {
+   "contract": "SCI-NOISE-002",
+   "ok": true
+  },
+  {
+   "contract": "SCI-UPM-007",
+   "ok": true
+  },
+  {
+   "contract": "SCI-UPM-010",
+   "ok": true
+  },
+  {
+   "contract": "SCI-NOISE-009",
+   "ok": true
+  },
+  {
+   "contract": "SCI-CAL-001",
+   "ok": true
+  },
+  {
+   "contract": "SCI-UPM-WEIGHT-001",
+   "ok": true
+  },
+  {
+   "contract": "TEST-PR-UPM-006",
+   "ok": true
+  },
+  {
+   "contract": "SCI-NOISE-003",
+   "ok": true
+  },
+  {
+   "contract": "TEST-PR-UPM-005",
+   "ok": true
+  },
+  {
+   "contract": "SCI-NOISE-005",
+   "ok": true
+  },
+  {
+   "contract": "ENG-OWN-001",
+   "ok": true
+  },
+  {
+   "contract": "SCI-UPM-004",
+   "ok": true
+  },
+  {
+   "contract": "TEST-UPMW-004",
+   "ok": true
+  },
+  {
+   "contract": "SCI-NOISE-011",
+   "ok": true
+  },
+  {
+   "contract": "SCI-PHOT-001",
+   "ok": true
+  },
+  {
+   "contract": "TEST-UPMW-001",
+   "ok": true
+  },
+  {
+   "contract": "SCI-UPM-008",
+   "ok": true
+  },
+  {
+   "contract": "ENG-IO-001",
+   "ok": true
+  },
+  {
+   "contract": "ACR-IVAR-001",
+   "ok": true
+  },
+  {
+   "contract": "DATA-HIPS-SUPPORT-001",
+   "ok": true
+  },
+  {
+   "contract": "DATA-UPM-MODEL-001",
+   "ok": true
+  },
+  {
+   "contract": "SCI-NOISE-004",
+   "ok": true
+  },
+  {
+   "contract": "ENG-ERR-001",
+   "ok": true
+  },
+  {
+   "contract": "TEST-PR-UPM-009",
+   "ok": true
+  },
+  {
+   "contract": "TEST-UPMW-007",
+   "ok": true
+  },
+  {
+   "contract": "SCI-NOISE-006",
+   "ok": true
+  },
+  {
+   "contract": "ALG-UPM-FRAME-BIND-001",
+   "ok": true
+  },
+  {
+   "contract": "TEST-PR-UPM-007",
+   "ok": true
+  },
+  {
+   "contract": "ALG-UPM-CONTROL-IVAR-001",
+   "ok": true
+  },
+  {
+   "contract": "TEST-PR-UPM-002",
+   "ok": true
+  },
+  {
+   "contract": "SCI-NOISE-012",
+   "ok": true
+  },
+  {
+   "contract": "SCI-DRZ-014",
+   "ok": true
+  },
+  {
+   "contract": "SCI-UPM-006",
+   "ok": true
+  },
+  {
+   "contract": "SCI-UPM-002",
+   "ok": true
+  },
+  {
+   "contract": "TEST-PR-UPM-008",
+   "ok": true
+  },
+  {
+   "contract": "SCI-NOISE-001",
+   "ok": true
+  },
+  {
+   "contract": "ALG-DRZ-GEOM-CACHE-001",
+   "ok": true
+  },
+  {
+   "contract": "ENG-THREAD-001",
+   "ok": true
+  },
+  {
+   "contract": "SCI-NOISE-007",
+   "ok": true
+  },
+  {
+   "contract": "SCI-AST-001",
+   "ok": true
+  },
+  {
+   "contract": "SCI-UPM-PERSIST-001",
+   "ok": true
+  },
+  {
+   "contract": "DATA-UPM-CONTROL-UNC-001",
+   "ok": true
+  },
+  {
+   "contract": "SCI-NOISE-014",
+   "ok": true
+  },
+  {
+   "contract": "TEST-UPMW-003",
+   "ok": true
+  },
+  {
+   "contract": "SCI-UPM-001",
+   "ok": true
+  },
+  {
+   "contract": "TEST-UPMW-005",
+   "ok": true
+  },
+  {
+   "contract": "TEST-PR-UPM-003",
+   "ok": true
+  }
+ ],
+ "symbol_samples": [
+  {
+   "symbol": "p2_upm_build",
+   "contracts": [
+    [
+     "SCI-UPM-WEIGHT-001",
+     "UPMW-001;UPMW-002;UPMW-003;UPMW-006",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "ENG-OWN-001",
+     "S0IdentityCalibrationNoChange;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-001",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-002",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-003",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-004",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-005",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-006",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-007",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-008",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-009",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-010",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-UPMW-001",
+     "UPMW001SnrInvariance",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-002",
+     "UPMW002ControlIvarRatio",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-003",
+     "UPMW003StarPopulationInvariance",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-004",
+     "UPMW004MedianSeIndependentGaussianMc",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-005",
+     "UPMW-005",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-006",
+     "UPMW006MissingControlIvarExplicit",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-007",
+     "UPMW007PatchEstimatorVsTruth",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ]
+   ]
+  },
+  {
+   "symbol": " snr_phot_cal_quality",
+   "contracts": []
+  },
+  {
+   "symbol": "snr_noise_model_v1",
+   "contracts": [
+    [
+     "DATA-HIPS-IVAR-001",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-001",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-002",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-003",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-004",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-005",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-006",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-007",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-008",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-009",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-010",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-011",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-012",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-013",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-014",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-015",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ]
+   ]
+  },
+  {
+   "symbol": " snr_phot_cal_quality",
+   "contracts": []
+  },
+  {
+   "symbol": " snr_phot_cal_quality",
+   "contracts": []
+  },
+  {
+   "symbol": "aio_hips_product_begin",
+   "contracts": [
+    [
+     "DATA-HIPS-SIGNAL-001",
+     "G3ManifestOrderCanonical",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "DATA-HIPS-SUPPORT-001",
+     "G3ManifestOrderCanonical",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ]
+   ]
+  },
+  {
+   "symbol": "p2_sample_controls",
+   "contracts": [
+    [
+     "ALG-UPM-CONTROL-IVAR-001",
+     "UPMW-004;UPMW-005;UPMW-007",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "DATA-UPM-CONTROL-UNC-001",
+     "UPMW-006;UPMW-007;V17NonFiniteWeightInvalid",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ]
+   ]
+  },
+  {
+   "symbol": " p2_upm_calibrate_block",
+   "contracts": []
+  },
+  {
+   "symbol": " aio_hips_write_signal_support_tile",
+   "contracts": []
+  },
+  {
+   "symbol": " snr_phot_cal_quality",
+   "contracts": []
+  },
+  {
+   "symbol": " snr_phot_cal_quality",
+   "contracts": []
+  },
+  {
+   "symbol": "p2_stage2_parse_config",
+   "contracts": [
+    [
+     "DATA-UPM-CONTROL-UNC-001",
+     "UPMW-006;UPMW-007;V17NonFiniteWeightInvalid",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "ACR-IVAR-001",
+     "UPMW-006",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "ENG-THREAD-001",
+     "G1ProductionWiringTruth",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ]
+   ]
+  },
+  {
+   "symbol": "p2_upm_build",
+   "contracts": [
+    [
+     "SCI-UPM-WEIGHT-001",
+     "UPMW-001;UPMW-002;UPMW-003;UPMW-006",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "ENG-OWN-001",
+     "S0IdentityCalibrationNoChange;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-001",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-002",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-003",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-004",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-005",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-006",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-007",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-008",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-009",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-010",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-UPMW-001",
+     "UPMW001SnrInvariance",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-002",
+     "UPMW002ControlIvarRatio",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-003",
+     "UPMW003StarPopulationInvariance",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-004",
+     "UPMW004MedianSeIndependentGaussianMc",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-005",
+     "UPMW-005",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-006",
+     "UPMW006MissingControlIvarExplicit",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-007",
+     "UPMW007PatchEstimatorVsTruth",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ]
+   ]
+  },
+  {
+   "symbol": " p2_upm_calibrate_block",
+   "contracts": []
+  },
+  {
+   "symbol": "p2_upm_build",
+   "contracts": [
+    [
+     "SCI-UPM-WEIGHT-001",
+     "UPMW-001;UPMW-002;UPMW-003;UPMW-006",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "ENG-OWN-001",
+     "S0IdentityCalibrationNoChange;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-001",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-002",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-003",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-004",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-005",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-006",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-007",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-008",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-009",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-010",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-UPMW-001",
+     "UPMW001SnrInvariance",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-002",
+     "UPMW002ControlIvarRatio",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-003",
+     "UPMW003StarPopulationInvariance",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-004",
+     "UPMW004MedianSeIndependentGaussianMc",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-005",
+     "UPMW-005",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-006",
+     "UPMW006MissingControlIvarExplicit",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-007",
+     "UPMW007PatchEstimatorVsTruth",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ]
+   ]
+  },
+  {
+   "symbol": " p2_upm_build",
+   "contracts": []
+  },
+  {
+   "symbol": "compute_overlap_area_g_ctx_cached",
+   "contracts": [
+    [
+     "ALG-DRZ-GEOM-CACHE-001",
+     "UPMW-005",
+     "lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ]
+   ]
+  },
+  {
+   "symbol": " aio_upm_open",
+   "contracts": []
+  },
+  {
+   "symbol": " p2_upm_calibrate_block",
+   "contracts": []
+  },
+  {
+   "symbol": " p2_upm_open",
+   "contracts": []
+  },
+  {
+   "symbol": "p2_upm_save",
+   "contracts": [
+    [
+     "SCI-UPM-PERSIST-001",
+     "OpenSavePreservesFrameParameterBinding;UpmPersistAllPermutations;UpmPersistRandomStableIds;UpmPersistSparseDenseBinding;UpmPersistRoundtripChainNoDrift;UpmPersistInsertionOrderIndependent;UpmPersistMosaicSeamEquivalence;UpmPersistInvalidModelRejected",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "ALG-UPM-FRAME-BIND-001",
+     "UpmPersistAllPermutations;UpmPersistRandomStableIds;UpmPersistInsertionOrderIndependent;UpmPersistInvalidModelRejected",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-001",
+     "OpenSavePreservesFrameParameterBinding",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-002",
+     "UpmPersistAllPermutations",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-003",
+     "UpmPersistRandomStableIds",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-004",
+     "UpmPersistSparseDenseBinding",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-005",
+     "UpmPersistRoundtripChainNoDrift",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-006",
+     "UpmPersistInsertionOrderIndependent",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-007",
+     "UpmPersistMosaicSeamEquivalence",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-008",
+     "UpmPersistRoundtripChainNoDrift",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-009",
+     "UpmPersistInsertionOrderIndependent",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-010",
+     "UpmPersistInvalidModelRejected",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ]
+   ]
+  },
+  {
+   "symbol": "p2_upm_build",
+   "contracts": [
+    [
+     "SCI-UPM-WEIGHT-001",
+     "UPMW-001;UPMW-002;UPMW-003;UPMW-006",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "ENG-OWN-001",
+     "S0IdentityCalibrationNoChange;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-001",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-002",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-003",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-004",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-005",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-006",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-007",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-008",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-009",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-010",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-UPMW-001",
+     "UPMW001SnrInvariance",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-002",
+     "UPMW002ControlIvarRatio",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-003",
+     "UPMW003StarPopulationInvariance",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-004",
+     "UPMW004MedianSeIndependentGaussianMc",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-005",
+     "UPMW-005",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-006",
+     "UPMW006MissingControlIvarExplicit",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-007",
+     "UPMW007PatchEstimatorVsTruth",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ]
+   ]
+  },
+  {
+   "symbol": "p2_upm_save",
+   "contracts": [
+    [
+     "SCI-UPM-PERSIST-001",
+     "OpenSavePreservesFrameParameterBinding;UpmPersistAllPermutations;UpmPersistRandomStableIds;UpmPersistSparseDenseBinding;UpmPersistRoundtripChainNoDrift;UpmPersistInsertionOrderIndependent;UpmPersistMosaicSeamEquivalence;UpmPersistInvalidModelRejected",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "ALG-UPM-FRAME-BIND-001",
+     "UpmPersistAllPermutations;UpmPersistRandomStableIds;UpmPersistInsertionOrderIndependent;UpmPersistInvalidModelRejected",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-001",
+     "OpenSavePreservesFrameParameterBinding",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-002",
+     "UpmPersistAllPermutations",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-003",
+     "UpmPersistRandomStableIds",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-004",
+     "UpmPersistSparseDenseBinding",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-005",
+     "UpmPersistRoundtripChainNoDrift",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-006",
+     "UpmPersistInsertionOrderIndependent",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-007",
+     "UpmPersistMosaicSeamEquivalence",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-008",
+     "UpmPersistRoundtripChainNoDrift",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-009",
+     "UpmPersistInsertionOrderIndependent",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-010",
+     "UpmPersistInvalidModelRejected",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ]
+   ]
+  },
+  {
+   "symbol": "snr_noise_model_v1",
+   "contracts": [
+    [
+     "DATA-HIPS-IVAR-001",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-001",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-002",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-003",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-004",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-005",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-006",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-007",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-008",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-009",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-010",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-011",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-012",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-013",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-014",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-015",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ]
+   ]
+  },
+  {
+   "symbol": "p2_upm_open",
+   "contracts": [
+    [
+     "SCI-UPM-PERSIST-001",
+     "OpenSavePreservesFrameParameterBinding;UpmPersistAllPermutations;UpmPersistRandomStableIds;UpmPersistSparseDenseBinding;UpmPersistRoundtripChainNoDrift;UpmPersistInsertionOrderIndependent;UpmPersistMosaicSeamEquivalence;UpmPersistInvalidModelRejected",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "ALG-UPM-FRAME-BIND-001",
+     "UpmPersistAllPermutations;UpmPersistRandomStableIds;UpmPersistInsertionOrderIndependent;UpmPersistInvalidModelRejected",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "DATA-UPM-MODEL-001",
+     "UpmPersistInvalidModelRejected",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "ENG-ERR-001",
+     "V17StatusesExplicit",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-001",
+     "OpenSavePreservesFrameParameterBinding",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-002",
+     "UpmPersistAllPermutations",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-003",
+     "UpmPersistRandomStableIds",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-004",
+     "UpmPersistSparseDenseBinding",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-005",
+     "UpmPersistRoundtripChainNoDrift",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-006",
+     "UpmPersistInsertionOrderIndependent",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-007",
+     "UpmPersistMosaicSeamEquivalence",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-008",
+     "UpmPersistRoundtripChainNoDrift",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-009",
+     "UpmPersistInsertionOrderIndependent",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-010",
+     "UpmPersistInvalidModelRejected",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ]
+   ]
+  },
+  {
+   "symbol": " p2_validate_candidate_weights",
+   "contracts": []
+  },
+  {
+   "symbol": "p2_upm_raw_weight",
+   "contracts": [
+    [
+     "SCI-UPM-WEIGHT-001",
+     "UPMW-001;UPMW-002;UPMW-003;UPMW-006",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-UPMW-001",
+     "UPMW001SnrInvariance",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-002",
+     "UPMW002ControlIvarRatio",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-003",
+     "UPMW003StarPopulationInvariance",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-004",
+     "UPMW004MedianSeIndependentGaussianMc",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-005",
+     "UPMW-005",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-006",
+     "UPMW006MissingControlIvarExplicit",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-007",
+     "UPMW007PatchEstimatorVsTruth",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ]
+   ]
+  },
+  {
+   "symbol": "snr_noise_model_v1",
+   "contracts": [
+    [
+     "DATA-HIPS-IVAR-001",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-001",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-002",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-003",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-004",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-005",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-006",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-007",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-008",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-009",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-010",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-011",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-012",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-013",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-014",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-015",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ]
+   ]
+  },
+  {
+   "symbol": "aio_upm_write_sparse",
+   "contracts": [
+    [
+     "DATA-UPM-MODEL-001",
+     "UpmPersistInvalidModelRejected",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "ENG-IO-001",
+     "SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ]
+   ]
+  },
+  {
+   "symbol": "snr_noise_model_v1",
+   "contracts": [
+    [
+     "DATA-HIPS-IVAR-001",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-001",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-002",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-003",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-004",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-005",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-006",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-007",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-008",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-009",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-010",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-011",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-012",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-013",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-014",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-015",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ]
+   ]
+  },
+  {
+   "symbol": "snr_noise_model_v1",
+   "contracts": [
+    [
+     "DATA-HIPS-IVAR-001",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-001",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-002",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-003",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-004",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-005",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-006",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-007",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-008",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-009",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-010",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-011",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-012",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-013",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-014",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-015",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ]
+   ]
+  },
+  {
+   "symbol": "aio_hips_product_begin",
+   "contracts": [
+    [
+     "DATA-HIPS-SIGNAL-001",
+     "G3ManifestOrderCanonical",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "DATA-HIPS-SUPPORT-001",
+     "G3ManifestOrderCanonical",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ]
+   ]
+  },
+  {
+   "symbol": " p2_upm_build",
+   "contracts": []
+  },
+  {
+   "symbol": "p2_upm_raw_weight",
+   "contracts": [
+    [
+     "SCI-UPM-WEIGHT-001",
+     "UPMW-001;UPMW-002;UPMW-003;UPMW-006",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-UPMW-001",
+     "UPMW001SnrInvariance",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-002",
+     "UPMW002ControlIvarRatio",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-003",
+     "UPMW003StarPopulationInvariance",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-004",
+     "UPMW004MedianSeIndependentGaussianMc",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-005",
+     "UPMW-005",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-006",
+     "UPMW006MissingControlIvarExplicit",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-007",
+     "UPMW007PatchEstimatorVsTruth",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ]
+   ]
+  },
+  {
+   "symbol": " p2_upm_build",
+   "contracts": []
+  },
+  {
+   "symbol": " p2_integrate_pixel",
+   "contracts": []
+  },
+  {
+   "symbol": " p2_upm_build",
+   "contracts": []
+  },
+  {
+   "symbol": "snr_noise_model_v1",
+   "contracts": [
+    [
+     "DATA-HIPS-IVAR-001",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-001",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-002",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-003",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-004",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-005",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-006",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-007",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-008",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-009",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-010",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-011",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-012",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-013",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-014",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-015",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ]
+   ]
+  },
+  {
+   "symbol": "p2_sample_controls",
+   "contracts": [
+    [
+     "ALG-UPM-CONTROL-IVAR-001",
+     "UPMW-004;UPMW-005;UPMW-007",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "DATA-UPM-CONTROL-UNC-001",
+     "UPMW-006;UPMW-007;V17NonFiniteWeightInvalid",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ]
+   ]
+  },
+  {
+   "symbol": "snr_noise_model_v1",
+   "contracts": [
+    [
+     "DATA-HIPS-IVAR-001",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-001",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-002",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-003",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-004",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-005",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-006",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-007",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-008",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-009",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-010",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-011",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-012",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-013",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-014",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ],
+    [
+     "SCI-NOISE-015",
+     "TEST-SNR-001",
+     "lib/snr_estimator/cpp/test/noise_model_science_test.cpp"
+    ]
+   ]
+  },
+  {
+   "symbol": " snr_phot_cal_quality",
+   "contracts": []
+  },
+  {
+   "symbol": " p2_upm_build",
+   "contracts": []
+  },
+  {
+   "symbol": " snr_phot_cal_quality",
+   "contracts": []
+  },
+  {
+   "symbol": "p2_upm_build",
+   "contracts": [
+    [
+     "SCI-UPM-WEIGHT-001",
+     "UPMW-001;UPMW-002;UPMW-003;UPMW-006",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "ENG-OWN-001",
+     "S0IdentityCalibrationNoChange;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-001",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-002",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-003",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-004",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-005",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-006",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-007",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-008",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-009",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "SCI-UPM-010",
+     "S0IdentityCalibrationNoChange;S1KnownAdditiveFieldRecovered;S2LowSnrDoesNotPullHighSnr;SaveOpenRoundtripAndHash",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-UPMW-001",
+     "UPMW001SnrInvariance",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-002",
+     "UPMW002ControlIvarRatio",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-003",
+     "UPMW003StarPopulationInvariance",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-004",
+     "UPMW004MedianSeIndependentGaussianMc",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-005",
+     "UPMW-005",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-006",
+     "UPMW006MissingControlIvarExplicit",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ],
+    [
+     "TEST-UPMW-007",
+     "UPMW007PatchEstimatorVsTruth",
+     "lib/phase2/tests/synthetic_gate.cpp;lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp"
+    ]
+   ]
+  },
+  {
+   "symbol": " p2_upm_open",
+   "contracts": []
+  },
+  {
+   "symbol": "p2_upm_save",
+   "contracts": [
+    [
+     "SCI-UPM-PERSIST-001",
+     "OpenSavePreservesFrameParameterBinding;UpmPersistAllPermutations;UpmPersistRandomStableIds;UpmPersistSparseDenseBinding;UpmPersistRoundtripChainNoDrift;UpmPersistInsertionOrderIndependent;UpmPersistMosaicSeamEquivalence;UpmPersistInvalidModelRejected",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "ALG-UPM-FRAME-BIND-001",
+     "UpmPersistAllPermutations;UpmPersistRandomStableIds;UpmPersistInsertionOrderIndependent;UpmPersistInvalidModelRejected",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-001",
+     "OpenSavePreservesFrameParameterBinding",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-002",
+     "UpmPersistAllPermutations",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-003",
+     "UpmPersistRandomStableIds",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-004",
+     "UpmPersistSparseDenseBinding",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-005",
+     "UpmPersistRoundtripChainNoDrift",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-006",
+     "UpmPersistInsertionOrderIndependent",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-007",
+     "UpmPersistMosaicSeamEquivalence",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-008",
+     "UpmPersistRoundtripChainNoDrift",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-009",
+     "UpmPersistInsertionOrderIndependent",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ],
+    [
+     "TEST-PR-UPM-010",
+     "UpmPersistInvalidModelRejected",
+     "lib/phase2/tests/synthetic_gate.cpp"
+    ]
+   ]
+  },
+  {
+   "symbol": " p2_upm_calibrate_block",
+   "contracts": []
+  },
+  {
+   "symbol": " p2_upm_open",
+   "contracts": []
+  },
+  {
+   "symbol": " snr_phot_cal_quality",
+   "contracts": []
+  },
+  {
+   "symbol": "ac_generate_master_bias",
+   "contracts": [
+    [
+     "SCI-CAL-001",
+     "TEST-CAL-001",
+     "lib/calibration/tests/test_photometry_apply.cpp"
+    ]
+   ]
+  }
+ ]
+}

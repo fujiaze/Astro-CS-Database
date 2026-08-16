@@ -10,6 +10,7 @@
 // × pixfrac {0.1, 0.25, 0.5, 1.0} × 尺度 {0.1", 1", 10", 1', 1°}
 //
 // 编译 (tests/): 同 drizzle_l0_test.cpp
+// TEST-DRZ-CAND-001: 候选零漏选 Oracle 矩阵（9003 例）
 // ============================================================================
 #include "spherical_overlap.h"
 #include "healpix_core.h"

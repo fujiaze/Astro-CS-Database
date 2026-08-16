@@ -2,6 +2,7 @@
 // variance_propagation_test.cpp — Drizzle 方差传播科学测试
 //
 // 覆盖 (SCIENCE_ACCEPTANCE_MATRIX.md):
+// TEST-DRZ-VAR-001: Drizzle variance 传播 + 协方差表征 MC
 // SNR-011 Drizzle variance Monte Carlo (>=100 噪声实现)
 // SNR-012 Drizzle covariance characterization
 // DRZ-014 variance propagation identity

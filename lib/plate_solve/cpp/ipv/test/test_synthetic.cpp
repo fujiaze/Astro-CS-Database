@@ -1,5 +1,6 @@
 // ============================================================================
 // test_synthetic.cpp - IPV 合成数据端到端测试
+// TEST-IPV-001: 合成相似变换端到端（k-vector→polygon→vote→PROSAC→WCS）
 //
 // 验证 IPV plate solving 管线 (k-vector + PolygonMatcher + GeometricVoter
 // + PROSAC + WCS) 在已知相似变换下能否正确恢复。
