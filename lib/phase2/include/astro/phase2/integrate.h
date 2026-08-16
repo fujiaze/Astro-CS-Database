@@ -2,16 +2,18 @@
 //
 // Phase2 W8：SNR/support/quality 加权叠加 + HiPS mosaic tile 输出。
 //
-// 语义（ 冻结）：
+// 语义（W8 冻结 + V19R3 零权重合同，INTEGRATION_ZERO_WEIGHT_CONTRACT）：
 // - 输入为同一输出像素的 UPM-calibrated **accepted** 样本栈；
 // - 权重策略（与 UPM observation weight 严格分开命名）：
 // stack.support_x_snr2.v1（weight_mode=0 + weights 提供；weights =
 // support × SNR²，调用方负责构造并先经 validate_candidate_weights）
 // stack.equal.v1（weight_mode=1 或 weights=nullptr → 等权）
 // UPM 控制点权重为 upm.robust_control_weight.v1（不同语义，禁止混名）。
-// - 资格（integration eligibility）：finite(value)、finite(weight) &&
-// weight>0、finite(support) && support>0、accepted==true；任一非 finite
-// 输入 → INVALID_INPUT（绝不产生 OK+NaN）。
+// - V19R3：reducer 只消费 values / 外部 numeric weights（可空=等权）/
+// support / accepted；不编码 ivar/SNR 科学策略（policy 在调用方）。
+// - 权重资格（冻结）：NaN/Inf/负权重 → INVALID_INPUT；weight==0 → 合法
+// 但不贡献（ZERO_VALID_WEIGHT）；weight>0 → 可用。value 非 finite、
+// support 非 finite 或 <=0、accepted 掩码之外的样本按同样 INVALID 规则。
 // - output support 唯一 canonical reducer：**max(accepted support)**
 // （覆盖并集保守下界， 冻结语义）；Stage2/ACR 只消费 pr.support，
 // 不再自行第二次 max/mean。
@@ -33,11 +35,10 @@ extern "C" {
 
 typedef struct {
     const double* values;         // UPM-calibrated accepted 样本
-    const double* weights;        // 可空=等权；提供时须为正有限
+    const double* weights;        // 可空=等权；提供时须为 nonnegative finite
     const double* support;        // 可空=1.0；提供时须为正有限
     const std::uint8_t* accepted; // 可空=全接受
     std::uint32_t count;
-    int weight_mode;              // 0=stack.support_x_snr2.v1, 1=stack.equal.v1
 } P2PixelStack;
 
 // integration status（unambiguous）
@@ -63,8 +64,8 @@ typedef struct {
 
 P2_API int p2_integrate_pixel(const P2PixelStack* in, P2PixelResult* out);
 
-// 候选权重校验（integration eligibility 的一部分；Stage2 在 SNR
-// lookup 后调用，防止漏检非 finite/非正权重）
+// 候选权重校验（integration eligibility 的一部分；Stage2 在权重构造后
+// 调用）。V19R3 合同：NaN/Inf/负权重 → failure；零权重合法（不贡献）。
 P2_API int p2_validate_candidate_weights(const double* weights,
                                          std::uint32_t count);
 

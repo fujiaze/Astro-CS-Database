@@ -54,6 +54,9 @@ P2ControlObservation make_obs(std::uint64_t frame, std::uint64_t ctrl,
     o.value = value;
     o.snr = snr;
     o.support = 1.0;
+    // V19R3：默认 control estimator 方差 1 → control_ivar=1（等价等权）
+    o.control_variance = 1.0;
+    o.control_ivar = 1.0;
     return o;
 }
 
@@ -65,6 +68,8 @@ P2ControlObservation make_obs_id(std::uint64_t frame_id, std::uint64_t ctrl,
     o.value = value;
     o.snr = snr;
     o.support = 1.0;
+    o.control_variance = 1.0;
+    o.control_ivar = 1.0;
     return o;
 }
 
@@ -3671,6 +3676,8 @@ TEST(Phase2Wiring, G1ProductionWiringTruth) {
         p2_stage2_make_upm_cfg(cfg, st::kTargetOrder, "manifest");
     EXPECT_EQ(mcfg.sigma_floor, 0.02);
     EXPECT_EQ(mcfg.support_power, 1.0);
+    EXPECT_EQ(mcfg.use_ivar_weight, 1)   // V19R3 生产默认 control-ivar
+        << "Stage2 必须显式透传 use_ivar_weight=1（SCI-UPM-WEIGHT-001）";
     EXPECT_EQ(mcfg.target_order, st::kTargetOrder);
 
     // 2. 合成观测（同 cell 多帧；不同 support/quality/unc/snr）
@@ -3692,6 +3699,8 @@ TEST(Phase2Wiring, G1ProductionWiringTruth) {
                 o.dec_deg = dec;
                 o.value = 10.0 + f;
                 o.uncertainty = 0.01;
+                o.control_variance = 0.01;   // Var(control estimator)
+                o.control_ivar = 100.0;      // 1/control_variance
                 o.snr = 20.0;
                 o.support = 0.4 + 0.2 * (gx + gy);
                 o.quality_flags = 1;
@@ -3703,7 +3712,10 @@ TEST(Phase2Wiring, G1ProductionWiringTruth) {
         }
 
     // 3. support_power 0 vs 2：raw weight 改变
+    // V19R3：support_power 只影响 legacy ablation 路径（use_ivar_weight=0）。
     P2UpmBuildConfig c0 = mcfg, c2 = mcfg;
+    c0.use_ivar_weight = 0;
+    c2.use_ivar_weight = 0;
     c0.support_power = 0.0;
     c2.support_power = 2.0;
     double w0 = 0, w2 = 0;
@@ -3715,7 +3727,10 @@ TEST(Phase2Wiring, G1ProductionWiringTruth) {
     EXPECT_NEAR(w0, w2 / 0.16, 1e-12);
 
     // 4. sigma_floor A vs B：低 uncertainty obs influence 改变
+    // V19R3：sigma_floor 只影响 legacy ablation 路径。
     P2UpmBuildConfig cA = mcfg, cB = mcfg;
+    cA.use_ivar_weight = 0;
+    cB.use_ivar_weight = 0;
     cA.sigma_floor = 0.005;   // unc=0.01 → max=0.01
     cB.sigma_floor = 0.02;    // unc=0.01 → max=0.02（floor 生效）
     double wA = 0, wB = 0;
@@ -3783,6 +3798,200 @@ TEST(Phase2Wiring, G1ProductionWiringTruth) {
                  "q_rej=%.6g geom_invariant=%d\n",
                  w0, w2, wA, wB, w_good, w_unk, w_bad, w_rej,
                  (int)(std::string(gh1) == std::string(gh2)));
+}
+
+// =====================================================================
+// V19R3 UPM science weight 合同（SCI-UPM-WEIGHT-001 /
+// ALG-UPM-CONTROL-IVAR-001 / DATA-UPM-CONTROL-UNC-001）
+// =====================================================================
+
+// UPMW-001：snr 扰动不变性——science 模式权重不随 obs.snr 改变。
+// UPMW-002：control_ivar 比率 1:4 → raw weight 比率精确 1:4。
+TEST(Phase2Weight, UPMW001SnrInvariance) {
+    P2ControlObservation base{};
+    base.frame_id = 0;
+    base.control_id = 0;
+    base.value = 10.0;
+    base.control_variance = 4.0;
+    base.control_ivar = 0.25;
+    base.support = 0.5;
+    base.quality_flags = 1;
+    P2UpmBuildConfig cfg{};
+    cfg.use_ivar_weight = 1;   // production science
+    double w_ref = 0.0;
+    ASSERT_EQ(p2_upm_raw_weight(&base, &cfg, &w_ref), 0);
+    for (double snr : {1.0, 10.0, 100.0, 1000.0}) {
+        P2ControlObservation o = base;
+        o.snr = snr;
+        double w = 0.0;
+        ASSERT_EQ(p2_upm_raw_weight(&o, &cfg, &w), 0);
+        EXPECT_DOUBLE_EQ(w, w_ref)
+            << "science 权重必须与 obs.snr 无关（UPMW-001）";
+    }
+    // support 同样不得进入 production weight
+    P2ControlObservation o = base;
+    o.support = 0.9;
+    double w = 0.0;
+    ASSERT_EQ(p2_upm_raw_weight(&o, &cfg, &w), 0);
+    EXPECT_DOUBLE_EQ(w, w_ref) << "support 不得乘入 science 权重（UPMW-001）";
+    std::fprintf(stderr, "[UPMW-001] snr/support 扰动 5 例权重不变: %.6f\n",
+                 w_ref);
+}
+
+TEST(Phase2Weight, UPMW002ControlIvarRatio) {
+    P2ControlObservation a{};
+    a.frame_id = 0;
+    a.control_id = 0;
+    a.value = 10.0;
+    a.control_variance = 1.0;
+    a.control_ivar = 1.0;
+    a.quality_flags = 1;
+    P2ControlObservation b = a;
+    b.control_variance = 0.25;
+    b.control_ivar = 4.0;
+    P2UpmBuildConfig cfg{};
+    cfg.use_ivar_weight = 1;
+    double wa = 0.0, wb = 0.0;
+    ASSERT_EQ(p2_upm_raw_weight(&a, &cfg, &wa), 0);
+    ASSERT_EQ(p2_upm_raw_weight(&b, &cfg, &wb), 0);
+    EXPECT_NEAR(wb / wa, 4.0, 1e-12)
+        << "control_ivar 1:4 → raw weight 必须 1:4（UPMW-002）";
+    // 几何可靠性在 per-control 归一化施加（不在此函数）
+    std::fprintf(stderr, "[UPMW-002] ivar ratio 1:4 → weight %.6f:%.6f\n",
+                 wa, wb);
+}
+
+// UPMW-003：星群不变性——相同背景噪声、不同 SNR 星场 → control_ivar 相同
+// （科学权重不变）。此处按 sampler 公式构造：sigma/N 相同 → 相同 cvar。
+TEST(Phase2Weight, UPMW003StarPopulationInvariance) {
+    P2UpmBuildConfig cfg{};
+    cfg.use_ivar_weight = 1;
+    P2ControlObservation base{};
+    base.frame_id = 0;
+    base.control_id = 0;
+    base.value = 10.0;
+    base.control_variance = 2.0;
+    base.control_ivar = 0.5;
+    base.quality_flags = 1;
+    double w_ref = 0.0;
+    ASSERT_EQ(p2_upm_raw_weight(&base, &cfg, &w_ref), 0);
+    // 不同星群（SNR 邻域中位数不同、support 不同）→ 相同背景 σ/N
+    struct { double snr; double support; double ivar_diag; } pops[] = {
+        {1.0, 0.3, 100.0}, {30.0, 0.9, 5.0}, {200.0, 0.6, 0.1}};
+    for (const auto& pop : pops) {
+        P2ControlObservation o = base;
+        o.snr = pop.snr;
+        o.support = pop.support;
+        o.ivar = pop.ivar_diag;   // 诊断单像素 ivar 不得影响 science 权重
+        double w = 0.0;
+        ASSERT_EQ(p2_upm_raw_weight(&o, &cfg, &w), 0);
+        EXPECT_DOUBLE_EQ(w, w_ref)
+            << "星群/单像素 ivar 不得改变 science 权重（UPMW-003）";
+    }
+    std::fprintf(stderr, "[UPMW-003] 3 星群权重不变: %.6f\n", w_ref);
+}
+
+// UPMW-004：独立 Gaussian MC——Var(median) ≈ πσ²/(2N)（sampler 基线公式）。
+TEST(Phase2Weight, UPMW004MedianSeIndependentGaussianMc) {
+    constexpr int N = 25;
+    constexpr int R = 20000;
+    constexpr double SIG = 2.0;
+    std::mt19937 rng(20260816);
+    std::normal_distribution<double> nd(0.0, SIG);
+    std::vector<double> medians;
+    medians.reserve(R);
+    for (int r = 0; r < R; ++r) {
+        std::vector<double> v(N);
+        for (double& x : v) x = nd(rng);
+        const double med = p2_stats_median(v.data(), (std::uint64_t)v.size());
+        medians.push_back(med);
+    }
+    double mean = 0.0;
+    for (double m : medians) mean += m;
+    mean /= (double)R;
+    double var_emp = 0.0;
+    for (double m : medians) var_emp += (m - mean) * (m - mean);
+    var_emp /= (double)(R - 1);
+    // Var(median) = (π/2) × σ² / N = πσ²/(2N)
+    const double predicted =
+        1.5707963267948966 * SIG * SIG / (double)N;
+    // 20000 实现下相对误差应 < 3%
+    EXPECT_NEAR(var_emp / predicted, 1.0, 0.03)
+        << "Var(median) 必须符合 πσ²/(2N)（UPMW-004）";
+    std::fprintf(stderr,
+                 "[UPMW-004] Var_emp=%.5f predicted=%.5f ratio=%.4f\n",
+                 var_emp, predicted, var_emp / predicted);
+}
+
+// UPMW-006（行为面）：production 路径对 control_ivar<=0 / 非有限返回显式
+// 错误（禁止静默回退）；legacy 路径仍可用（ablation 专用）。
+TEST(Phase2Weight, UPMW006MissingControlIvarExplicit) {
+    P2UpmBuildConfig cfg{};
+    cfg.use_ivar_weight = 1;
+    P2ControlObservation o{};
+    o.frame_id = 0;
+    o.control_id = 0;
+    o.value = 10.0;
+    o.control_ivar = 0.0;    // 缺失/零
+    double w = 0.0;
+    EXPECT_EQ(p2_upm_raw_weight(&o, &cfg, &w), 2)
+        << "production 缺 control ivar 必须显式失败";
+    o.control_ivar = std::numeric_limits<double>::quiet_NaN();
+    EXPECT_EQ(p2_upm_raw_weight(&o, &cfg, &w), 2);
+    // legacy ablation 路径：control_ivar 缺失仍按旧公式工作
+    cfg.use_ivar_weight = 0;
+    o.control_ivar = 0.0;
+    o.uncertainty = 1.0;
+    o.snr = 3.0;
+    o.support = 1.0;
+    o.quality_flags = 1;   // qf=1.0（good）
+    ASSERT_EQ(p2_upm_raw_weight(&o, &cfg, &w), 0);
+    EXPECT_NEAR(w, 9.0 / 10.0, 1e-12);   // snr²/(1+snr²)/unc²
+    std::fprintf(stderr, "[UPMW-006] missing control ivar → rc=2; "
+                 "legacy ablation 仍可用\n");
+}
+
+// UPMW-007：patch estimator 方差 vs truth——按 sampler 公式预测的
+// control_variance 与重复实现的经验方差一致（独立 Gaussian 基线，
+// 无 Drizzle 协方差时 k_corr 应退化为 1）。
+TEST(Phase2Weight, UPMW007PatchEstimatorVsTruth) {
+    constexpr int N = 41;
+    constexpr int R = 20000;
+    constexpr double SIG = 2.0;
+    std::mt19937 rng(20260817);
+    std::normal_distribution<double> nd(0.0, SIG);
+    std::vector<double> medians;
+    std::vector<double> sigmas;
+    medians.reserve(R);
+    sigmas.reserve(R);
+    for (int r = 0; r < R; ++r) {
+        std::vector<double> v(N);
+        for (double& x : v) x = nd(rng);
+        double med = 0.0;
+        const double mad = p2_stats_mad(v.data(), (std::uint64_t)v.size(),
+                                        &med);
+        medians.push_back(med);
+        sigmas.push_back(mad);
+    }
+    double mean = 0.0;
+    for (double m : medians) mean += m;
+    mean /= (double)R;
+    double var_emp = 0.0;
+    for (double m : medians) var_emp += (m - mean) * (m - mean);
+    var_emp /= (double)(R - 1);
+    // sampler 公式：control_variance = k_corr × (π/2) × σ_med² / N_retained
+    // （独立样本 k_corr=1，MAD 尺度近似 σ）
+    // 用跨实现 MAD 中位数（稳健）作 sigma_bg 估计
+    std::vector<double> sig_sorted = sigmas;
+    std::sort(sig_sorted.begin(), sig_sorted.end());
+    const double sigma_med = sig_sorted[sig_sorted.size() / 2];
+    const double predicted =
+        1.5707963267948966 * sigma_med * sigma_med / (double)N;
+    EXPECT_NEAR(var_emp / predicted, 1.0, 0.08)
+        << "control_variance 预测必须与经验一致（UPMW-007）";
+    std::fprintf(stderr,
+                 "[UPMW-007] Var_emp=%.5f predicted=%.5f ratio=%.4f\n",
+                 var_emp, predicted, var_emp / predicted);
 }
 
 // =====================================================================
@@ -4361,7 +4570,6 @@ TEST(Phase2Integrate, V17NonFiniteWeightInvalid) {
     // NaN weight
     std::vector<double> wn{1.0, std::nan("")};
     in.weights = wn.data();
-    in.weight_mode = 0;
     ASSERT_EQ(p2_integrate_pixel(&in, &out), 0);
     EXPECT_EQ(out.status, P2_INTEGRATE_INVALID_INPUT);
     EXPECT_TRUE(std::isnan(out.signal) == false || out.status != 0);
@@ -4381,6 +4589,14 @@ TEST(Phase2Integrate, V17NonFiniteWeightInvalid) {
     EXPECT_EQ(p2_validate_candidate_weights(wneg.data(), 2), 1);
     std::vector<double> okw{1.0, 2.0};
     EXPECT_EQ(p2_validate_candidate_weights(okw.data(), 2), 0);
+    // V19R3 零权重合同：zero = valid but no contribution
+    std::vector<double> wz{1.0, 0.0};
+    EXPECT_EQ(p2_validate_candidate_weights(wz.data(), 2), 0);
+    in.weights = wz.data();
+    ASSERT_EQ(p2_integrate_pixel(&in, &out), 0);
+    EXPECT_EQ(out.status, P2_INTEGRATE_OK);
+    EXPECT_EQ(out.n_positive_weight, 1u);
+    EXPECT_DOUBLE_EQ(out.signal, 10.0);
 }
 
 // NaN/Inf support → INVALID_INPUT；正有限 support → 正常

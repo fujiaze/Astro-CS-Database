@@ -176,6 +176,8 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                 *err = "support_power 必须 >= 0";
                 return false;
             }
+            cfg->use_ivar_weight =
+                m.value("use_ivar_weight", 1) != 0 ? 1 : 0;
         }
         if (j.contains("integration")) {
             const auto& in = j["integration"];
@@ -382,6 +384,10 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
             *err = "weight_mode 只支持 auto/ivar/equal/support_x_snr2";
             return false;
         }
+        // V19R3（DATA-UPM-CONTROL-UNC-001 §7）：ivar 产品整体缺失时，
+        // 默认 → 显式 science/degraded 错误；仅显式允许时才降级。
+        cfg->legacy_allow_weight_fallback =
+            in.value("legacy_allow_weight_fallback", false);
             cfg->acr_route = in.value("acr_route", std::string("auto"));
             if (cfg->acr_route != "auto" && cfg->acr_route != "cpu") {
                 *err = "acr_route 只支持 auto/cpu";
@@ -413,6 +419,7 @@ P2UpmBuildConfig p2_stage2_make_upm_cfg(const P2Stage2Config& cfg,
     mcfg.zero_anchor_weight = cfg.zero_anchor_weight;
     mcfg.sigma_floor = cfg.sigma_floor;
     mcfg.support_power = cfg.support_power;
+    mcfg.use_ivar_weight = cfg.use_ivar_weight;   // V19R3 显式透传
     mcfg.quality_mode = 0;
     mcfg.control_reliability = 1.0;
     mcfg.input_manifest_hash = input_manifest_hash;

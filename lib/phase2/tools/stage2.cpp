@@ -392,7 +392,9 @@ int main(int argc, char** argv) {
         }
     }
     // ivar 产品 (weight_mode=2 默认)
-    // 缺失产品 → 回退 support (几何可靠性), 计数如实记录 (不伪造 ivar)
+    // V19R3（DATA-UPM-CONTROL-UNC-001 §7）：整个 ivar 产品缺失时默认
+    // → 显式 science/degraded 错误（无静默回退）；仅当显式配置
+    // legacy_allow_weight_fallback=true 才降级 support 并计数标红。
     std::vector<AioHipsDataset*> ivr(cfg.hips.size(), nullptr);
     std::uint64_t ivar_product_missing = 0;
     if (cfg.weight_mode == 2) {
@@ -401,9 +403,23 @@ int main(int argc, char** argv) {
             if (!ivr[i]) {
                 ++ivar_product_missing;
                 log("frame " + std::to_string(i) +
-                    " 无 ivar 产品, 该帧积分权重回退 support (几何可靠性)");
+                    " 无 ivar 产品");
             }
         }
+    }
+    if (ivar_product_missing > 0 && cfg.weight_mode == 2) {
+        if (!cfg.legacy_allow_weight_fallback) {
+            log("weight_policy=ivar 且 ivar 产品缺失 " +
+                std::to_string(ivar_product_missing) + " 帧 → 显式科学错误 "
+                "(legacy_allow_weight_fallback=false)；拒绝继续，防止在 "
+                "非逆方差语义下冒充 ivar coadd");
+            for (std::size_t i = 0; i < ivr.size(); ++i)
+                if (ivr[i]) aio_hips_close(ivr[i]);
+            p2_upm_close(model);
+            return 7;
+        }
+        log("legacy_allow_weight_fallback=true：ivar 缺失帧积分权重降级 "
+            "support（diagnostics 标红）");
     }
     AioHipsProductSet* ps = aio_hips_product_begin(
         cfg.out_hips.c_str(), (std::uint32_t)nside, 512, dtype,
@@ -551,7 +567,11 @@ int main(int argc, char** argv) {
         // reference 权威路径执行；ACR 只做逐像素 kernel，不做 grow）
         const bool use_acr_block =
             acr_reg != nullptr && rplan.method == P2_REJECT_SIGMA &&
-            cfg.acr_route != "cpu" && !large_scale_active;
+            cfg.acr_route != "cpu" && !large_scale_active &&
+            // V19R3（ACR-IVAR-001）：weight_policy=ivar 时 ACR legacy
+            // kernel 使用 control-cell ivar×support，与 CPU 逐像素 ivar
+            // 不等价 → 强制 CPU canonical path（等价实现前不加速）。
+            cfg.weight_mode != 2;
         if (use_acr_block && gpu_exec == nullptr) {
             bridge::ensure_bridge_loaded();
             if (bridge::api().loaded()) {
@@ -918,13 +938,17 @@ int main(int argc, char** argv) {
                 // mode 1 (equal): weights 不填 (等权)
                 if (cfg.weight_mode == 2) {
                     for (std::uint32_t s = 0; s < n_valid; ++s) {
-                        if (ivar_avail[s]) {
-                            weights[s] = (double)t_ivar[(std::size_t)p];
-                            if (!std::isfinite(weights[s]) || weights[s] <= 0.0)
-                                weights[s] = support_v[s];
+                        if (ivar_avail[s] && cfg.weight_mode == 2) {
+                            const double iv = (double)t_ivar[(std::size_t)p];
+                            // V19R3 合同：nonfinite ivar → INVALID_INPUT
+                            // （validator 拒绝）；ivar==0 → 合法零权重（不
+                            // 贡献，ZERO_VALID_WEIGHT）。禁止静默换 support。
+                            weights[s] = iv;
                             ++local_ivar_used;
                         } else {
-                            weights[s] = support_v[s];   // 缺 ivar → support
+                            // 缺 ivar 产品：仅显式 fallback 路径可达
+                            // （打开时已 gate），降级 support 并计数。
+                            weights[s] = support_v[s];
                         }
                     }
                 } else if (cfg.weight_mode == 0) {
@@ -1045,7 +1069,6 @@ int main(int argc, char** argv) {
                     pi.support = support_v.data();
                     pi.accepted = acc.data();
                     pi.count = n_valid;
-                    pi.weight_mode = cfg.weight_mode;
                     P2PixelResult pr{};
                     p2_integrate_pixel(&pi, &pr);
                     st = pr.status;
@@ -1108,7 +1131,6 @@ int main(int argc, char** argv) {
                 pi.weights = w2.data();
                 pi.support = sup2.data();
                 pi.count = n_acc;
-                pi.weight_mode = cfg.weight_mode;
                 P2PixelResult pr{};
                 p2_integrate_pixel(&pi, &pr);
                 const bool ok = (pr.status == 0);

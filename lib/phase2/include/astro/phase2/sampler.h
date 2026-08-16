@@ -44,6 +44,13 @@ typedef struct {
     double background_tolerance;           // 局部 tolerance gate（MAD 单位，默认 3.0）
     int    background_neighbor_radius;     // 局部 baseline 邻域 cell 半径（默认 2）
     int    background_catalog_veto;        // 允许 SNR catalogue veto（默认 1）
+    // V19R3（ALG-UPM-CONTROL-IVAR-001）：control estimator 为
+    // background-clean patch median；
+    // control_variance = k_corr × (π/2) × sigma_bg² / N_retained；
+    // k_corr 由当前 Drizzle synthetic noise/covariance MC 校准
+    // （UPMW-005 control_median_mc_test，pixfrac=0.8 实证 1.3883），
+    // 冻结保守值 1.4（>= 实证，余量 <1%）。<=0 时回退冻结默认。
+    double control_k_corr;                // 默认 1.4
 } P2SamplerConfig;
 
 // sampler 默认配置单一来源（null cfg 时使用；显式 cfg 覆盖）。

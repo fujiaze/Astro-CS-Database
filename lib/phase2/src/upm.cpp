@@ -6,8 +6,11 @@
 // - 控制拓扑 = coverage union 上的 HEALPix control cells（8×8/tile 网格），
 // basis/topology 只由 geometry/coverage/配置决定（与 SNR 解耦）；
 // - 图拉普拉斯平滑 lambda_s 真正进入联合求解；
-// - 观测权重 raw_w = quality_factor * support^p * snr^2/(1+snr^2) *
-// 1/max(unc^2, sigma_floor^2)，并在每个 control node 内归一；
+// - 观测权重 raw_w = quality_factor * control_ivar（V19R3 冻结，
+// SCI-UPM-WEIGHT-001；control_ivar = 1/control_variance，
+// ALG-UPM-CONTROL-IVAR-001），并在每个 control node 内归一；
+// - legacy snr^2/(1+snr^2)/unc^2 仅 ablation/诊断（use_ivar_weight=0，
+// SNR-015），禁止进入 production science 路径；
 // - 弱零校正锚 lambda_0：单覆盖节点由同帧其他节点 + smoothness 延拓；
 // - gauge：参考帧（最小内容稳定 frame_id）C=0，输入顺序无关；
 // - calibrate_block 真正使用 leaf_ipix 查找所在 control cell；
@@ -476,8 +479,9 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
 
     // ===== Huber IRLS 坐标下降求解 =====
     // 残差 r_ik = y_ik - M_k - C_i,k
-    // 权重 raw_w = quality * support^p * snr^2/(1+snr^2) / max(unc^2, floor^2)
-    // per-control 归一化后 × huber_w
+    // 权重 raw_w = quality × control_ivar（SCI-UPM-WEIGHT-001）；
+    // per-control 归一化后 × huber_w。legacy snr² 路径仅在
+    // use_ivar_weight=0（ablation/诊断）时由 p2_upm_raw_weight 选择。
     // M 更新（固定 C）：M_k = Σ w (y - C) / Σ w
     // C 更新（固定 M，逐帧 CG）：
     // min Σ_k w_ik (r_ik - C_ik)^2 + λs Σ_{k~l} (C_ik - C_il)^2 + λ0 Σ C_ik^2
@@ -488,13 +492,16 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
     // per-control 归一化：需要先按 control 聚合（同 cell 多帧观测）
     // 这里直接按 obs 计算 raw 后按 control 归一化（与文档一致）
     std::vector<double> raw_w(n_obs, 0.0);
-    auto compute_raw = [&]() {
+    auto compute_raw = [&]() -> int {
         std::vector<double> sums(K, 0.0);
         for (std::uint64_t i = 0; i < n_obs; ++i) {
             // 单一 production raw weight 实现（与
             // p2_upm_raw_weight 同一公式）
-            if (p2_upm_raw_weight(&obs[i], &cfg, &raw_w[i]) != 0)
-                raw_w[i] = 0.0;
+            const int rc = p2_upm_raw_weight(&obs[i], &cfg, &raw_w[i]);
+            if (rc != 0) {
+                // production 缺 control ivar 是显式科学错误，不静默降级。
+                return rc;
+            }
             sums[m->control_by_id[obs[i].control_id]] += raw_w[i];
         }
         for (std::uint64_t i = 0; i < n_obs; ++i) {
@@ -504,6 +511,7 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
             else
                 raw_w[i] = 0.0;
         }
+        return 0;
     };
 
     auto cg_solve_frame = [&](std::size_t fi, std::vector<double>& x,
@@ -546,7 +554,15 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
 
     for (int iter = 0; iter < cfg.max_iterations; ++iter) {
         // 1. 权重（每轮：raw per-control 归一化 + Huber）
-        compute_raw();
+        {
+            const int rc = compute_raw();
+            if (rc != 0) {
+                // production 缺 control ivar 属于显式科学错误（DATA-UPM-
+                // CONTROL-UNC-001），build 失败而非静默改变权重语义。
+                p2_upm_close((void*)m);
+                return 2;
+            }
+        }
         std::vector<double> w(n_obs);
         for (std::uint64_t i = 0; i < n_obs; ++i) {
             const std::size_t ck = m->control_by_id[obs[i].control_id];
@@ -1087,10 +1103,20 @@ int p2_upm_raw_weight(const P2ControlObservation* obs,
         cfg.sigma_floor = 1e-3;
         cfg.support_power = 1.0;
         cfg.quality_mode = 0;
+        cfg.use_ivar_weight = 1;   // production 默认 control-ivar
     }
     if (cfg.sigma_floor <= 0.0) cfg.sigma_floor = 1e-3;
     if (cfg.support_power < 0.0) cfg.support_power = 1.0;
     const double qf = quality_factor(obs->quality_flags, cfg.quality_mode);
+    if (cfg.use_ivar_weight != 0) {
+        // SCI-UPM-WEIGHT-001：science 权重只含 quality × control_ivar。
+        // 无 star-SNR / support^p / 单像素 ivar 因子。
+        const double civ = obs->control_ivar;
+        if (!std::isfinite(civ) || civ <= 0.0) return 2;  // 显式缺 control ivar
+        *out_raw = qf * civ;
+        return 0;
+    }
+    // legacy ablation/diagnostic（SNR-015）：snr²/(1+snr²) 路径。
     const double sp = std::clamp(obs->support, 0.0, 1.0);
     const double snr2 = obs->snr * obs->snr;
     const double unc =
