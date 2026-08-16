@@ -26,8 +26,10 @@
 
 #include "healpix_core.h"
 #include <array>
-#include <vector>
 #include <cstdint>
+#include <deque>
+#include <unordered_map>
+#include <vector>
 
 namespace spherical {
 
@@ -276,6 +278,62 @@ Scalar compute_overlap_area_g_ctx(const DropGeometryT<Scalar>& g,
                                   const healpix::HealpixCore& hp,
                                   uint64_t target_ipix,
                                   double hp_res_rad);
+
+// ============================================================================
+// V19R3 定点优化（DRIZZLE_TARGETED 优先级 1）：
+// bounded target-ipix geometry cache。
+//
+// 一次 run 内同一个目标 HEALPix leaf 被大量 drop 候选重复访问，而
+// compute_overlap_area_g_ctx 每候选重算 pix2radec + radec_to_vec +
+// get_healpix_boundary4（4 角）。缓存 {center, boundary4} 消除重复：
+//   - 容量有界（默认 8192，LRU 淘汰；线程私有，禁止跨线程共享）；
+//   - key = target ipix；每次 run（drizzleTiled）开始 clear()，
+//     避免跨 run 的 NSIDE 不同导致的几何污染；
+//   - 科学语义与 compute_overlap_area_g_ctx 逐位等价（同一数值路径，
+//     仅 geometry 取缓存）；false_negative 不变（缓存只复用不预筛）。
+// ============================================================================
+struct TargetPixelGeometry {
+    Vec3 center{0.0, 0.0, 0.0};           // leaf 中心单位向量
+    std::array<Vec3, 4> boundary4{};      // 4 角（nside>=256 生产路径）
+    bool ready = false;
+};
+
+class TargetGeomCache {
+public:
+    explicit TargetGeomCache(std::size_t capacity = 8192)
+        : capacity_(capacity == 0 ? 1 : capacity) {}
+
+    // 获取 target ipix 几何；未命中时构建并缓存。返回不可为 null。
+    // 线程私有对象（thread_local），禁止并发共享。
+    const TargetPixelGeometry* get_or_build(const healpix::HealpixCore& hp,
+                                            std::uint64_t ipix,
+                                            bool* built_out = nullptr);
+
+    void clear();
+    std::size_t size() const { return map_.size(); }
+    std::size_t capacity() const { return capacity_; }
+    std::size_t hits() const { return hits_; }
+    std::size_t misses() const { return misses_; }
+
+private:
+    struct Entry {
+        std::uint64_t ipix;
+        TargetPixelGeometry geom;
+    };
+    std::size_t capacity_;
+    std::size_t hits_ = 0;
+    std::size_t misses_ = 0;
+    std::deque<std::uint64_t> lru_;      // front = most recent
+    std::unordered_map<std::uint64_t, Entry> map_;
+};
+
+// 使用缓存的目标重叠面积（科学语义与 compute_overlap_area_g_ctx 等价；
+// nside<256 低 NSIDE 路径退回逐调用构建并写入缓存）。
+template <typename Scalar>
+Scalar compute_overlap_area_g_ctx_cached(
+    const DropGeometryT<Scalar>& g, const healpix::HealpixCore& hp,
+    std::uint64_t target_ipix, double hp_res_rad,
+    TargetGeomCache& cache);
 
 // overlap 路径计数 (quick=相离, fully=drop 包含像素,
 // dropin=drop 在像素内, sh=部分相交 S-H); 仅统计, 不改变逻辑
