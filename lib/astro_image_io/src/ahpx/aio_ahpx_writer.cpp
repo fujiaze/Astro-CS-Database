@@ -448,7 +448,6 @@ bool AhpxWriter::write(const std::string& path, const AhpxWriteConfig& config) {
 
             // 检查是否收敛
             if (newHeaderCompSize == headerCompSize) {
-                headerCompSize = newHeaderCompSize;
                 break;
             }
             headerCompSize = newHeaderCompSize;

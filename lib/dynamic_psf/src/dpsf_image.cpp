@@ -238,7 +238,7 @@ float robust_median(const float* data, int n) {
     std::vector<float> tmp(data, data + n);
     std::nth_element(tmp.begin(), tmp.begin() + n / 2, tmp.end());
     if (n % 2 == 0) {
-        float a = tmp[n / 2 - 1];
+        float a;
         float b = tmp[n / 2];
         std::nth_element(tmp.begin(), tmp.begin() + n / 2 - 1, tmp.begin() + n / 2);
         a = tmp[n / 2 - 1];

@@ -238,6 +238,10 @@ bool readFits(const std::string& path, FitsImage& img, std::string& error_msg) {
         size_t nread = std::fread(block, 1, FITS_BLOCK_SIZE, fp);
         if (nread < FITS_BLOCK_SIZE) {
             error_msg = "读取 FITS 头不完整";
+            if (std::ferror(fp)) {
+                error_msg += "（IO 错误 errno=" +
+                             std::to_string(errno) + "）";
+            }
             fprintf(stderr, "[fits_reader] %s\n", error_msg.c_str());
             std::fclose(fp);
             return false;
