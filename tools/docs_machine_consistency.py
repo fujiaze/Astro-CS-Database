@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""docs_machine_consistency.py — V19 Round6 文档↔代码机器一致性检查
+"""docs_machine_consistency.py — V19 Round6 / V19R3 文档↔代码机器一致性检查
 
 检查项:
   1. config: weight_mode=ivar 默认 (docs ↔ stage2_common.cpp)
@@ -9,6 +9,8 @@
   4. SNR 常数: 0.7316728 / 1.4826 ↔ noise_model.cpp
   5. 产品契约: signal/support/snr/variance/ivar ↔ aio_hips.h flags
   6. Drizzle 方差公式 ↔ drizzle_engine.h 注释
+  V19R3（DOCS_AND_COMMENTS）：退出码/集成状态/拒绝状态全集合精确比对，
+  禁止 subset（审计 §12 假 PASS 修复）。
 """
 
 from __future__ import annotations
@@ -45,14 +47,48 @@ def main() -> int:
 
     tax = read("docs/architecture/ERROR_MODEL.md")
     orc_h = read("lib/orchestrator/cpp/include/orchestrator.h")
-    exit_ok = all(re.search(s, orc_h) for s in
-                  [r"SUCCESS\s*=\s*0", r"DLL_LOAD_FAILED\s*=\s*2",
-                   r"CONFIG_ERROR\s*=\s*7", r"FILE_IO_ERROR\s*=\s*8"])
+    # V19R3：全集合比对（name+value），不允许 subset/多余/缺失
+    def extract_enum(txt: str, block_start: str | None = None) -> dict[str, int]:
+        out = {}
+        if block_start:
+            i = txt.find(block_start)
+            if i < 0:
+                return {}
+            j = txt.find("}", i)
+            txt = txt[i:j]
+        for m in re.finditer(
+                r"([A-Z][A-Z0-9_]{2,})\s*=\s*(\d+)", txt):
+            out[m.group(1)] = int(m.group(2))
+        return out
+    doc_codes = extract_enum(tax)
+    code_codes = extract_enum(orc_h, "namespace AstroCsExitCode")
+    exit_codes = code_codes
+    doc_exit = doc_codes
+    exit_ok = (doc_exit == exit_codes)
     orc = read("lib/orchestrator/cpp/src/orchestrator.cpp")
     results.append(check(
         "error_taxonomy_exit_codes",
         "AstroCsExitCode" in tax and exit_ok,
-        "ERROR_TAXONOMY exit codes <-> orchestrator AstroCsExitCode"))
+        f"ERROR_MODEL 全集合 == orchestrator.h 0-10 退出码 "
+        f"(doc={doc_exit} code={exit_codes})"))
+
+    # V19R3：integration / rejection 状态全集合
+    int_h = read("lib/phase2/include/astro/phase2/integrate.h")
+    rej_h = read("lib/phase2/include/astro/phase2/rejection.h")
+    int_doc = extract_enum(read("docs/algorithms/INTEGRATION_ALGORITHMS.md"))
+    int_code = {k: v for k, v in extract_enum(int_h).items()
+                if k.startswith("P2_INTEGRATE")}
+    results.append(check(
+        "integration_status_full_set",
+        int_doc == int_code,
+        f"integration status 全集合 (doc={int_doc} code={int_code})"))
+    rej_doc = extract_enum(read("docs/algorithms/REJECTION_ALGORITHMS.md"))
+    rej_code = {k: v for k, v in extract_enum(rej_h).items()
+                if k.startswith("P2_STATUS") or k.startswith("P2_REASON")}
+    results.append(check(
+        "rejection_status_full_set",
+        rej_doc == rej_code,
+        f"rejection status 全集合 (doc={rej_doc} code={rej_code})"))
 
     stage_doc = read("docs/architecture/ERROR_MODEL.md")
     stages = ["P1.READ", "P1.CALIBRATE", "P1.PLATESOLVE", "P1.PSF",

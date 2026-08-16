@@ -12,6 +12,17 @@
 
 P2PixelResult：signal/status/counters/support。
 
+## 状态枚举全集合（P2IntegrateStatus）
+
+```text
+P2_INTEGRATE_OK=0  P2_INTEGRATE_NO_CANDIDATES=1
+P2_INTEGRATE_ALL_REJECTED=2  P2_INTEGRATE_ZERO_VALID_WEIGHT=3
+P2_INTEGRATE_INVALID_INPUT=4
+```
+
+与 lib/phase2/include/astro/phase2/integrate.h 枚举 name+value 集合
+完全一致（docs_machine_consistency 全量校验，V19R3）。
+
 ## Preconditions
 
 values/support/accepted 计数一致；weights 可空（等权）；
