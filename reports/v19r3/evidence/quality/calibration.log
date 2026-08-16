@@ -1,0 +1,81 @@
+[photometry_apply] 开始: w=4 h=4 photscal=2.000000, 总像素=16
+[photometry_apply] 完成: 已处理 16 像素, photscal=2.000000
+[photometry_apply] 开始: w=4 h=4 photscal=1.000000, 总像素=16
+[photometry_apply] 完成: 已处理 16 像素, photscal=1.000000
+[photometry_apply] 开始: w=4 h=4 photscal=0.000000, 总像素=16
+[photometry_apply] 完成: 已处理 16 像素, photscal=0.000000
+[photometry_apply] 开始: w=8 h=8 photscal=0.500000, 总像素=64
+[photometry_apply] 完成: 已处理 64 像素, photscal=0.500000
+[photometry_apply] 失败: 输入 light 为 nullptr
+[photometry_apply] 失败: 输出 out 为 nullptr
+[photometry_apply] 失败: 图像尺寸非法 (w=0, h=2)
+[photometry_apply] 失败: 图像尺寸非法 (w=2, h=0)
+[photometry_apply] 失败: photscal 非有限值 (nan)
+[photometry_apply] 失败: photscal 非有限值 (inf)
+[photometry_apply] 开始: w=4 h=4 photscal=3.000000, 总像素=16
+[photometry_apply] 完成: 已处理 16 像素, photscal=3.000000
+[photometry_apply] 开始: w=4 h=1 photscal=2.000000, 总像素=4
+[photometry_apply] 完成: 已处理 4 像素, photscal=2.000000
+[photometry_apply] 开始: w=1 h=1 photscal=0.000000, 总像素=1
+[photometry_apply] 完成: 已处理 1 像素, photscal=0.000000
+[hiss][stream] HissStreamWriter 构造
+[hiss][writer] HissWriter 构造
+[hiss][writer] 测光元数据: PHOTAPPL=1 PHOTSCAL=0.000012 BUNIT=ASTROCS_RELATIVE_FLUX (一致性 OK)
+[hiss][codec] 内置注册: RAW (无压缩)
+[hiss][codec] 内置注册: ZSTD (level=3)
+[hiss][codec] 内置注册: LZ4
+[hiss][codec] 内置注册: CRC32C (Castagnoli)
+[hiss][writer] 默认压缩: ZSTD (signal=BYTE_SHUFFLE) 已启用 (R13 HISS_IO_REPAIR)
+[hiss][stream] open 成功: final=test_photometry_apply_tmp_partial.hiss temp_pool=test_photometry_apply_tmp_partial.hiss.tmppool
+[hiss][writer] open 成功: path=test_photometry_apply_tmp_partial.hiss nside=16 tile_nside=16 ordering=1 pixfrac=1
+[hiss][writer] cancel: 清理临时文件
+[hiss][stream] cancel: 清理临时文件
+[hiss][stream] HissStreamWriter 构造
+[hiss][writer] HissWriter 构造
+[hiss][writer] open 失败: 元数据不一致 - BUNIT=ASTROCS_RELATIVE_FLUX 但 PHOTAPPL=FALSE (PHOTSCAL=1.000000)。BUNIT=ASTROCS_RELATIVE_FLUX 要求 signal 已应用 Gaia 测光校准 (PHOTAPPL=TRUE) (HISS_ERR_INVALID_STATE)
+[hiss][stream] HissStreamWriter 构造
+[hiss][writer] HissWriter 构造
+[hiss][writer] 测光元数据: PHOTAPPL=0 PHOTSCAL=1.000000 BUNIT=ADU (一致性 OK)
+[hiss][writer] 默认压缩: ZSTD (signal=BYTE_SHUFFLE) 已启用 (R13 HISS_IO_REPAIR)
+[hiss][stream] open 成功: final=test_photometry_apply_tmp_adu.hiss temp_pool=test_photometry_apply_tmp_adu.hiss.tmppool
+[hiss][writer] open 成功: path=test_photometry_apply_tmp_adu.hiss nside=16 tile_nside=16 ordering=1 pixfrac=1
+[hiss][writer] cancel: 清理临时文件
+[hiss][stream] cancel: 清理临时文件
+=== Photometry Apply 单元测试 (WP-C 步骤9) ===
+
+--- 测光应用模块 (calibration::apply_photometry) ---
+[PASS] photscal=2.0: 返回值=0 (成功)
+[PASS] photscal=2.0: 每个像素值×2.0
+[PASS] photscal=1.0: 返回值=0 (成功)
+[PASS] photscal=1.0: 像素值不变
+[PASS] photscal=0.0: 返回值=0 (成功)
+[PASS] photscal=0.0: 所有像素为 0
+[PASS] photscal=0.5: 返回值=0 (成功)
+[PASS] photscal=0.5: 像素值减半
+[PASS] 参数校验: light=nullptr 返回错误
+[PASS] 参数校验: out=nullptr 返回错误
+[PASS] 参数校验: w=0 返回错误
+[PASS] 参数校验: h=0 返回错误
+[PASS] 参数校验: photscal=NaN 返回错误
+[PASS] 参数校验: photscal=Inf 返回错误
+[PASS] in-place: 返回值=0 (成功)
+[PASS] in-place: 像素值正确×3.0
+[PASS] NaN/Inf 透传: 返回值=0 (成功)
+[PASS] NaN/Inf 透传: 正常像素×2.0
+[PASS] NaN/Inf 透传: NaN 像素仍为 NaN
+[PASS] NaN/Inf 透传: +Inf 像素仍为 Inf
+[PASS] NaN/Inf 透传: -Inf 像素仍为 -Inf
+[PASS] 大动态范围: 返回值=0 (成功)
+[PASS] 大动态范围: 1e6 * 1e-7 = 0.1 (double 精度)
+
+--- Writer 元数据一致性校验 (hiss::HissWriter::open) ---
+[PASS] Writer: apply_photometry=true + BUNIT=ASTROCS_RELATIVE_FLUX → open 成功
+[PASS] Writer: apply_photometry=false + BUNIT=ASTROCS_RELATIVE_FLUX → open 返回 -2 (拒绝)
+[PASS] Writer: apply_photometry=false + BUNIT=ADU → open 成功 (允许非测光数据)
+
+=== 测试结果 ===
+通过: 26
+失败: 0
+总计: 26
+
+(Writer 元数据一致性校验直接调用真实 hiss::HissWriter::open())

@@ -342,7 +342,12 @@ AIO_EXPORT int aio_pipeline_engine_set_block_drop(PipelineEngine* eng,
         eng->block_drop[idx] = nullptr;
     }
     if (block_names && block_names[0]) {
-        eng->block_drop[idx] = _strdup(block_names);
+        eng->block_drop[idx] =
+#ifdef _WIN32
+            _strdup(block_names);
+#else
+            strdup(block_names);
+#endif
         if (!eng->block_drop[idx]) return -3;
     }
     fprintf(stderr, "[engine] block_drop[%s] = '%s'\n",

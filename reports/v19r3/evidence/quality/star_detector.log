@@ -1,0 +1,53 @@
+[2026-08-16 15:11:53][INFO][SDET] StarDetector created (fitRadius=0, fwhmClipSigma=3.0, maxAxisRatio=2.0)
+[2026-08-16 15:11:53][INFO][SDET] sdet_detect_impl start: 512x512
+[2026-08-16 15:11:53][DEBUG][SDET] [2] Gaussian YvV smooth (sigma=2.0): 4.5 ms
+[2026-08-16 15:11:53][INFO][SDET] peaker: median=800.0000 bgnoise=0.0000 threshold=800.0000 (median+5*bgnoise)
+[2026-08-16 15:11:53][DEBUG][SDET] [3] Threshold: 29.3 ms
+[2026-08-16 15:11:53][INFO][SDET] peaker: bg=800.0 maxi=9485.0 norm=65535.0 dynrange=8685.0 minsatlevel=6079.5 satrange=868.5 s_factor=3.7169 locthreshold=0.0000
+[2026-08-16 15:11:53][DEBUG][SDET] [4] peaker: 4.7 ms (20 candidates, full peaker 7-step)
+[2026-08-16 15:11:53][INFO][SDET] Candidates: 20
+[2026-08-16 15:11:53][INFO][SDET] Peaker stages: pass_threshold=251683 pass_localmax=25 pass_count3=25 pass_boundary=25 | cond_meanhigh=7 cond_platform=18 sat_both=0 nonsat=25
+[2026-08-16 15:11:53][INFO][SDET] Auto fitRadius: med_pixels=121 fwhm_est=5.40 auto_radius=16 actual=16
+[2026-08-16 15:11:53][INFO][SDET] Task6 candidates sorted by mag_est (desc): maxstars=100 candidates=20
+[2026-08-16 15:11:53][DEBUG][SDET] [6] Moffat4 fit: 8.1 ms (20/20 OK)
+[2026-08-16 15:11:53][INFO][SDET] Moffat4 fit: 20/20 OK
+[2026-08-16 15:11:53][INFO][SDET] === Fit statistics by pixel count ===
+[2026-08-16 15:11:53][INFO][SDET]   px[100-299]: total=20 ok=20(100.0%) invalid=0 noconv=0 iterlimit=0
+[2026-08-16 15:11:53][DEBUG][SDET] [7] FWHM stats: 0.2 ms (med=7.0670 mad=0.0003)
+[2026-08-16 15:11:53][INFO][SDET] FWHM stats: med=7.0670 mad=0.0003 (from 20 fitted stars)
+[2026-08-16 15:11:53][DEBUG][SDET] [8] Build normal stars: 0.3 ms (20 stars, fit_fail=0 fwhm=0 round=0 reject=0)
+[2026-08-16 15:11:53][INFO][SDET] Normal stars: 20 (fit_fail=0 fwhm=0 roundness=0 reject=0)
+[2026-08-16 15:11:53][DEBUG][SDET] [9] Saturated star detection skipped (V4.52: use A>dynrange from peaker): 0.0 ms
+[2026-08-16 15:11:53][DEBUG][SDET] [10a] Dedup: 0.3 ms
+[2026-08-16 15:11:53][DEBUG][SDET] [10b] Sort: 0.1 ms
+[2026-08-16 15:11:53][INFO][SDET] After dedup+sort: 20 stars (saturated=1 normal=19)
+[2026-08-16 15:11:53][INFO][SDET] sdet_detect_ex done: 20 stars (sat=1 normal=19), 0.048 s
+[2026-08-16 15:11:53][INFO][SDET] sdet_detect_impl start: 512x512
+[2026-08-16 15:11:53][DEBUG][SDET] [2] Gaussian YvV smooth (sigma=2.0): 5.6 ms
+[2026-08-16 15:11:53][INFO][SDET] peaker: median=800.0000 bgnoise=0.0000 threshold=800.0000 (median+5*bgnoise)
+[2026-08-16 15:11:53][DEBUG][SDET] [3] Threshold: 43.3 ms
+[2026-08-16 15:11:53][INFO][SDET] peaker: bg=800.0 maxi=9486.0 norm=65535.0 dynrange=8686.0 minsatlevel=6080.2 satrange=868.6 s_factor=3.7169 locthreshold=0.0000
+[2026-08-16 15:11:53][DEBUG][SDET] [4] peaker: 7.1 ms (20 candidates, full peaker 7-step)
+[2026-08-16 15:11:53][INFO][SDET] Candidates: 20
+[2026-08-16 15:11:53][INFO][SDET] Peaker stages: pass_threshold=251859 pass_localmax=29 pass_count3=29 pass_boundary=29 | cond_meanhigh=7 cond_platform=22 sat_both=0 nonsat=29
+[2026-08-16 15:11:53][INFO][SDET] Auto fitRadius: med_pixels=121 fwhm_est=5.40 auto_radius=16 actual=16
+[2026-08-16 15:11:53][INFO][SDET] Task6 candidates sorted by mag_est (desc): maxstars=100 candidates=20
+[2026-08-16 15:11:53][DEBUG][SDET] [6] Moffat4 fit: 6.7 ms (20/20 OK)
+[2026-08-16 15:11:53][INFO][SDET] Moffat4 fit: 20/20 OK
+[2026-08-16 15:11:53][INFO][SDET] === Fit statistics by pixel count ===
+[2026-08-16 15:11:53][INFO][SDET]   px[100-299]: total=20 ok=20(100.0%) invalid=0 noconv=0 iterlimit=0
+[2026-08-16 15:11:53][DEBUG][SDET] [7] FWHM stats: 0.2 ms (med=7.0679 mad=0.0000)
+[2026-08-16 15:11:53][INFO][SDET] FWHM stats: med=7.0679 mad=0.0000 (from 20 fitted stars)
+[2026-08-16 15:11:53][DEBUG][SDET] [8] Build normal stars: 0.2 ms (20 stars, fit_fail=0 fwhm=0 round=0 reject=0)
+[2026-08-16 15:11:53][INFO][SDET] Normal stars: 20 (fit_fail=0 fwhm=0 roundness=0 reject=0)
+[2026-08-16 15:11:53][DEBUG][SDET] [9] Saturated star detection skipped (V4.52: use A>dynrange from peaker): 0.0 ms
+[2026-08-16 15:11:53][DEBUG][SDET] [10a] Dedup: 0.3 ms
+[2026-08-16 15:11:53][DEBUG][SDET] [10b] Sort: 0.0 ms
+[2026-08-16 15:11:53][INFO][SDET] After dedup+sort: 20 stars (saturated=1 normal=19)
+[2026-08-16 15:11:53][INFO][SDET] sdet_detect_ex done: 20 stars (sat=1 normal=19), 0.063 s
+[2026-08-16 15:11:53][INFO][SDET] StarDetector destroyed
+  [PASS] 两入口成功 (r32=0 r64=0)
+  [PASS] 检测星数: FP32=20 FP64=20
+  [PASS] 坐标最大差 dx=0.000 dy=0.000 px (<1.0)
+  [PASS] 通量最大差 0.203 (相对 20)
+== StarDetector FP64 验证: 4 通过, 0 失败 ==

@@ -1,0 +1,84 @@
+========== WP-H 步骤14 集成测试 ==========
+[hio] hiss_write (新HissWriter后端): path=wph_test.hiss nside=64 n_pix=50
+[hiss][stream] HissStreamWriter 构造
+[hiss][writer] HissWriter 构造
+[hiss][writer] 测光元数据: PHOTAPPL=0 PHOTSCAL=1.000000 BUNIT=ADU (一致性 OK)
+[hiss][codec] 内置注册: RAW (无压缩)
+[hiss][codec] 内置注册: ZSTD (level=3)
+[hiss][codec] 内置注册: LZ4
+[hiss][codec] 内置注册: CRC32C (Castagnoli)
+[hiss][writer] 默认压缩: ZSTD (signal=BYTE_SHUFFLE) 已启用 (R13 HISS_IO_REPAIR)
+[hiss][stream] open 成功: final=wph_test.hiss temp_pool=wph_test.hiss.tmppool
+[hiss][writer] open 成功: path=wph_test.hiss nside=64 tile_nside=16 ordering=1 pixfrac=1
+[hiss][stream] finalize 成功: tiles=31 header_size=4791 total_size=5119 path=wph_test.hiss
+[hiss][writer] finalize 成功: tiles=31 path 已原子替换
+[hio] hiss_write: 写入完成 (新HissWriter后端, 31 Tile): wph_test.hiss
+[gen] HISS 文件已生成: wph_test.hiss (n_pix=50)
+
+========== [TEST] aio_hiss_inspect (CLI 诊断) ==========
+[hio] hiss_inspect: nside=64 tile_nside=16 depth=2 n_leaf=16 n_tiles=31: wph_test.hiss
+  OK: aio_hiss_inspect 返回 0
+  OK: nside == 64
+  OK: tile_nside == 16
+  OK: n_tiles > 0
+  OK: n_pix_total > 0
+  OK: meta_json 非空
+  OK: tile_ipix_list 非空
+  meta_json: {"nside":64,"tile_nside":16,"ordering":1,"radesys":0,"pixfrac":1,"photscal":1,"photappl":0,"bunit":"ADU","calmode":"","darkreq":"","darkmode":"","darkscl":1,"object":"","date_obs":"","exptime":0,"filt
+  tile_ipix_list[0..5]: 0 1 2 3 4 ...
+  nside=64 tile_nside=16 depth=2 n_leaf_per_tile=16 n_tiles=31 n_pix_total=496
+[hio] hiss_inspect: nside=64 tile_nside=16 depth=2 n_leaf=16 n_tiles=31: wph_test.hiss
+
+========== [TEST] aio_hiss_read_tile_signal/support (Browser Tile) ==========
+  parent_ipix=0
+  OK: aio_hiss_read_tile_signal 返回 0
+  OK: n_signal > 0
+  signal: n=16 min=0.000 max=3.000
+  OK: aio_hiss_read_tile_support 返回 0
+  support: n=16 sample[0]=0
+[hio] hiss_read_tile_snr: read_tile_snr 失败 ret=-6 parent=0
+  snr: ret=-2 n_points=0
+  OK: aio_hiss_read_tile_snr 返回合理值 (0/-2/-5/-6=无SNR数据)
+
+========== [TEST] aio_hiss_query_pixel (Browser 像素查询) ==========
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=2 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=1 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=2 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=1 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=2 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=2 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=1 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=2 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=1 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=2 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=2 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=1 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=2 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=1 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=2 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=2 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=1 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=2 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=1 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=2 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=2 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=1 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=2 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=1 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=2 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=2 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=1 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=2 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=1 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=2 expanded=16
+[hiss][reader]   BITMAP 展开: n_leaf=16 compact=2 expanded=16
+[hio] hiss_read (新HissReader后端): nside=64 nested=1 n_pix=50 tiles=31: wph_test.hiss
+[hiss][reader] Tile 未找到: parent_ipix=60
+  查询 ra=45.00 dec=30.00 -> ret=0 signal=0.000 support=0
+  OK: aio_hiss_query_pixel 返回合理值 (0=找到, <0=未找到)
+[hiss][reader] Tile 未找到: parent_ipix=1728
+  查询 ra=180.00 dec=0.00 -> ret=0 signal=0.000 support=0
+  OK: aio_hiss_query_pixel 第二次调用正常
+
+========== 测试结果: 通过=13 失败=0 ==========
+[gen] HISS 文件保留: wph_test.hiss (供 browser_cli 测试)

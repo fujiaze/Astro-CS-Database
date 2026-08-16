@@ -1,0 +1,59 @@
+=== V19 SNR/Noise 科学矩阵 (模块级) ===
+
+[SNR-001] pedestal invariance
+  [PASS] two models ok (r=0/0)
+  [PASS] variance invariant: 105.9397 vs 105.9397 rel=0.00e+00 (<1%)
+
+[SNR-002] multiplicative scale covariance
+  [PASS] var(αx)=α²var: got 436.361 expect 436.361 rel=0.00e+00 (<2%)
+  [PASS] ivar scale law: got 2.292e-03 expect 2.292e-03 rel=0.00e+00 (<2%)
+
+[SNR-003] star-population invariance
+  [PASS] both models ok
+  [PASS] background variance independent of star flux: 91.3166 vs 91.3166 rel=0.00e+00 (<2%)
+
+[SNR-004] Gaussian blank-sky recovery
+  [PASS] model ok
+  [PASS] global sigma bias: got 5.0062 truth 5.0 bias=0.124% (<=2%)
+  [PASS] patch p95 coverage: 64/64 = 100.0% (>=95%)
+
+[SNR-005] Poisson+read-noise cross-check
+  [PASS] model ok
+  [PASS] Poisson+read: emp 1367.3 th 1361.8 rel=0.40% (<=5%)
+  [PASS] gain model identity: 1361.78 vs 1361.78
+
+[SNR-006] spatial noise-field recovery
+  [PASS] model ok + spatial field
+  [PASS] corr=0.9975 (>=0.98)
+  [PASS] normalized RMSE=1.946% (<=5%)
+
+[SNR-007] dex/mag unit correctness
+  [PASS] phot_cal_quality ok
+  [PASS] sigma_mag=2.5×dex: got 0.2500 expect 0.2500
+  [PASS] sigma_cal_rel=ln10×dex: got 0.2303 expect 0.2303
+  [PASS] invalid sigma → status 2
+  [PASS] no matches → degraded status (no fake SNR)
+
+[SNR-008] legacy (A-B)/mad retired
+  [PASS] q_psf pedestal-invariant: q1=41.6667 q2=41.6667 rel=0.00e+00 (<1e-12)
+  [PASS] q_psf = A/residual_scale: 41.6667 vs 41.6667
+  [PASS] robust sigma conversion: 164.0077 (~163.95)
+
+[SNR-009] inverse-variance coadd efficiency
+  [PASS] analytic: var_opt=0.9000 var_eq=2.5000 (optimal wins)
+  [PASS] ivar-weighted variance: 0.9000 vs opt 0.9000 (rel<3%)
+
+[SNR-010] signal independence
+  [PASS] both models ok
+  [PASS] |ρ(weight,signal)|=0.0063 (<0.02)
+
+[SNR-013] PSF quality semantics
+  [PASS] good fit q=100.0 > poor q=10.0
+  [PASS] saturated → status 2
+  [PASS] rejected → status 1
+
+[SNR-014] missing/degenerate metadata behavior
+  [PASS] empirical fallback ok (r=0, source=0, deg=0, sigma=3.9527)
+  [PASS] fully degenerate → status 1, ivar=0
+
+== V19 SNR 科学矩阵结果: 32 通过, 0 失败 ==
