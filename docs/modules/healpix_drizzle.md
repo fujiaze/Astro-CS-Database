@@ -38,6 +38,14 @@ ALG-DRZ-VAR-*。
 
 geometry cache 复用；计数 METRIC-P1-DRZ-CANDIDATES 等。
 
+## V19R3 bounded target-ipix geometry cache
+
+- TargetGeomCache（LRU，默认 8192，线程私有，run generation 切换清空）；
+- 计数新增 target_boundary_builds / target_geometry_builds /
+  geometry_cache_hits / geometry_cache_misses（DrizzleStats + [ops] 行）；
+- 科学等价：candidate oracle 9003/0、freeze 42/42、UPMW-005 MC
+  k_corr=1.3883 不变；详见 docs/algorithms/DRIZZLE_GEOMETRY.md。
+
 ## Tests
 
 candidate/overlap/variance oracle（evidence/drizzle/*.json）；

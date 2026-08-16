@@ -40,7 +40,22 @@ stage2 JSON（模型/integration/output）；typed parser + schema 单源。
 ## Science IDs
 
 SCI-UPM-001..010、SCI-UPM-PERSIST-001、ALG-UPM-FRAME-BIND-001、
-ALG-REJ-001..008、SCI-INT-001/002/004/008、SCI-NOISE-015。
+ALG-REJ-001..008、SCI-INT-001/002/004/008、SCI-NOISE-015、
+SCI-UPM-WEIGHT-001、ALG-UPM-CONTROL-IVAR-001、DATA-UPM-CONTROL-UNC-001
+（V19R3 冻结）。
+
+## V19R3 接口变更（ABI：P2ControlObservation 尾部新增
+control_variance/control_ivar；P2PixelStack.weight_mode 删除）
+
+- p2_upm_raw_weight：production=quality×control_ivar（缺 control ivar
+  显式 rc=2）；use_ivar_weight=0 才走 legacy snr² ablation；
+- sampler：uncertainty=SE(patch median)，N_retained + k_corr=1.4
+  （UPMW-005 MC 校准）；obs.ivar 弃用为诊断；
+- stage2：use_ivar_weight 显式透传（默认 1）；weight_policy=ivar 时
+  ACR 块强制 CPU（ACR-IVAR-001）；ivar 产品整体缺失默认硬科学错误，
+  legacy_allow_weight_fallback=true 才降级并标红；
+- integration：零权重合法（ZERO_VALID_WEIGHT），NaN/Inf/负 INVALID；
+  reducer 不再持有 weight_mode（policy/reducer 分离）。
 
 ## 性能特征
 
@@ -56,8 +71,9 @@ P2.* stage 日志；astrocs-diagnose 支持。
 
 ## Tests
 
-synthetic_gate 82 项（含 PR-UPM-001..010）；G5 ivar 真值；
-SNR-015 ablation。
+synthetic_gate 89 项（V19R3 新增 UPMW-001..004/006/007）；G5 ivar 真值；
+SNR-015 ablation；UPMW-005 在 healpix_drizzle/tests/
+control_median_mc_test.cpp（2000 实现 Drizzle MC，k_corr=1.3883）。
 
 ## Known limitations
 
