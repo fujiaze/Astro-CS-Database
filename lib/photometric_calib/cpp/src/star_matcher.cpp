@@ -1,4 +1,4 @@
-// star_matcher.cpp - 星-图匹配器 (GAP-013 改进版)
+// star_matcher.cpp - 星-图匹配器 ( 改进版)
 // 功能: 将Gaia参考星与图像PSF拟合星进行空间匹配, IRLS+Tukey 稳健清洗
 // 算法:
 // - KD-tree 最近邻匹配 (在 Gaia 星像素坐标上建树, 对每颗 PSF 星查询)
@@ -251,7 +251,7 @@ std::vector<StarMatch> StarMatcher::matchWithKdTree(
              (int)valid_idx.size(), n_psf, n_gaia, match_radius_px);
 
     // 4. 对 PSF 有效星也建 KD-tree (用于反向 Gaia→PSF 查询)
-    // PSF KD-tree 的索引即 valid_idx 数组的下标 k (0..valid_idx.size()-1)
+    // PSF KD-tree 的索引即 valid_idx 数组的下标 k (0..valid_idx.size-1)
     std::vector<double> psf_valid_px(valid_idx.size()), psf_valid_py(valid_idx.size());
     for (size_t k = 0; k < valid_idx.size(); ++k) {
         int j = valid_idx[k];
@@ -336,7 +336,7 @@ std::vector<StarMatch> StarMatcher::matchWithKdTree(
     // spatial_candidates = 正向命中数 (PSF→Gaia 距离 < radius 的对数, 未过滤双向)
     // unique_matches = 双向唯一匹配数 (互为最近邻)
     // rejected_ambiguous = 正向命中但非互为最近邻的对数
-    // rejected_distance = 正向未命中数 (最近邻超阈值) = valid_idx.size() - n_forward_hits
+    // rejected_distance = 正向未命中数 (最近邻超阈值) = valid_idx.size - n_forward_hits
     if (out_diag) {
         out_diag->spatial_candidates = n_forward_hits;
         out_diag->unique_matches = (int)matches.size();

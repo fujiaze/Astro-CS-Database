@@ -514,7 +514,7 @@ int xisf_read_file(const char *path, AIOImageData *out) {
             img_info.byte_order.c_str(), is_le ? "little" : "big", do_swap);
 
     // 双精度 ABI: 根据 AIO 模块精度模式决定读取到 data (FP32) 还是 data_f64 (FP64)
-    // 修复: 使用 aio_internal_is_fp64() 替代 PrecisionContext (DLL 边界不共享)
+    // 修复: 使用 aio_internal_is_fp64 替代 PrecisionContext (DLL 边界不共享)
     bool is_fp64 = (aio_internal_is_fp64() != 0);
 
     if (is_fp64) {

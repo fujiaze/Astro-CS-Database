@@ -62,7 +62,7 @@ struct BenchmarkWorkloadDescriptor {
 struct KernelBenchmarkResult {
     std::uint32_t kernel_id{0};       // KernelId 的整数值
     std::string kernel_name;          // 人类可读名（"AXPY"/"Triad"/...）
-    std::string variant;              // 25 ：内核变体（"dot" / "hist_tls" /
+    std::string variant;              // 25：内核变体（"dot" / "hist_tls" /
                                       // "hist_atomic" / "hist_hotspot" /
                                       // "scatter_perm" / "scatter_atomic" /
                                       // "scatter_hotspot" / 默认空）

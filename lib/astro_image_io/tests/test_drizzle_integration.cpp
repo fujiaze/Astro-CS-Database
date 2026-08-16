@@ -3,8 +3,8 @@
 //
 // 使用真实 FITS 文件测试完整 Drizzle → HISS 流程:
 // 1. 读取真实 FITS 文件 (drizzle::readFits)
-// 2. 运行 DrizzleEngine::drizzle() (pixfrac=0.8, nside=64)
-// 3. 运行 DrizzleEngine::writeHis() 输出 .hiss 文件
+// 2. 运行 DrizzleEngine::drizzle (pixfrac=0.8, nside=64)
+// 3. 运行 DrizzleEngine::writeHis 输出 .hiss 文件
 // 4. 用 aio_hiss_inspect / read_tile_signal / read_tile_support 验证
 // 5. query_pixel 测试 (图像中心 ra/dec)
 // 6. LZ4 / Zstd codec 往返测试
@@ -151,7 +151,7 @@ static void test_01_read_fits() {
 }
 
 // ============================================================================
-// 测试 2: 运行 DrizzleEngine::drizzle()
+// 测试 2: 运行 DrizzleEngine::drizzle
 // ============================================================================
 static std::unordered_map<uint64_t, drizzle::PixelAccumulator> g_accumulators;
 static drizzle::DrizzleStats g_stats;
@@ -191,7 +191,7 @@ static void test_02_drizzle() {
 }
 
 // ============================================================================
-// 测试 3: 运行 DrizzleEngine::writeHis()
+// 测试 3: 运行 DrizzleEngine::writeHis
 // ============================================================================
 static const char* g_hiss_path = "drizzle_integration_test.hiss";
 

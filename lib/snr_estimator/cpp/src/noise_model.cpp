@@ -121,7 +121,7 @@ int noise_model_impl(const T* data, int h, int w,
     }
     std::memset(out_model, 0, sizeof(NoiseWeightModelV1));
 
-    // 星点掩膜（V19R4 冻结：fixed conservative mask）：
+    // 星点掩膜（ 冻结：fixed conservative mask）：
     // 像素在任一星点固定半径内 → source (1)；所有星统一
     // rmax = max(1, source_mask_radius_px) × max(1, mask_radius_scale)。
     // API 只接收星点坐标（无 amplitude），不按星等/振幅缩放
@@ -363,7 +363,7 @@ SNR_API int snr_noise_model_v1_f64(const double* data, int h, int w,
 
 namespace {
 
-// 最小二乘平面填充内核（variance field，V19R4 冻结；float 输出）
+// 最小二乘平面填充内核（variance field， 冻结；float 输出）
 void fill_impl(const NoiseWeightModelV1* m, int h, int w,
                float* out_variance, float* out_ivar) {
     if (m->has_spatial_field && m->n_control_points >= 4) {

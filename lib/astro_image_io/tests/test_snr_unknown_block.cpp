@@ -13,7 +13,7 @@
 // 4. 未知必需子块: Reader.open 返回 HISS_ERR_UNKNOWN_REQUIRED (-7)
 // 5. 未知可选子块: Reader.open 成功, 跳过该子块
 // 6. SNR 布局验证: SNR 子块 uncompressed_size = 12 + n_points*8
-// (R04-B18: estimator_id(4) + sampling_scale(4) + n_points(4) + points(n*8))
+// (: estimator_id(4) + sampling_scale(4) + n_points(4) + points(n*8))
 //
 // 编译 (PowerShell + mingw64):
 // $env:Path = "C:\msys64\mingw64\bin;$env:Path"
@@ -119,7 +119,7 @@ static hiss::DrizzleTileAccumulator make_simple_accumulator(uint64_t parent_ipix
 
 // ============================================================================
 // 辅助: 模拟 Writer 的 SNR 排序去重行为, 生成预期结果
-// R04-B18: 按 local_ipix 升序排序, 重复点保留首次出现
+// 按 local_ipix 升序排序, 重复点保留首次出现
 // ============================================================================
 static std::vector<hiss::HissSnrControlPoint> expected_after_writer(
     const std::vector<hiss::HissSnrControlPoint>& input) {
@@ -137,7 +137,7 @@ static std::vector<hiss::HissSnrControlPoint> expected_after_writer(
 }
 
 // ============================================================================
-// 辅助: 解析新格式 (R04-B14) HISS 文件的 TLV Header,
+// 辅助: 解析新格式 HISS 文件的 TLV Header,
 // 定位 TILE_DIRECTORY TLV value 的文件偏移
 // 签名块(16B): magic[8] + header_length(u32 LE) + feature_flags(u32 LE)
 // TLV Header 从 offset 16 开始: tag(u16)+flags(u8)+length(u32)+value
@@ -213,7 +213,7 @@ static void test_snr_roundtrip_10_points() {
         snr.points.push_back(p);
     }
 
-    // R04-B18: Writer 按升序排序并去重, 生成预期结果
+    // Writer 按升序排序并去重, 生成预期结果
     auto expected = expected_after_writer(snr.points);
 
     // 写入 HISS 文件
@@ -294,8 +294,8 @@ static void test_snr_roundtrip_1000_points() {
         snr.points.push_back(p);
     }
 
-    // R04-B18: Writer 按升序排序并去重, 生成预期结果
-    // 1000 个点中 local_ipix = rng() % 100000, 可能有重复, 去重后 n_points < 1000
+    // Writer 按升序排序并去重, 生成预期结果
+    // 1000 个点中 local_ipix = rng % 100000, 可能有重复, 去重后 n_points < 1000
     auto expected = expected_after_writer(snr.points);
 
     hiss::DrizzleTileAccumulator acc = make_simple_accumulator(13, 256);
@@ -330,9 +330,9 @@ static void test_snr_roundtrip_1000_points() {
 // 实现方式: 直接修改现有 SUPPORT 子块描述符的 type 字节为未知值 (201),
 // 保留其 REQUIRED flags。无需插入新描述符, 避免子块数据偏移问题。
 //
-// R04-B14: 新格式签名块(16B) = magic[8]+"HISS0100" + header_length(u32 LE) + feature_flags(u32 LE)
-// R04-B15: Header 为 TLV 二进制结构 (tag+flags+length+value)
-// R04-B17: 子块描述符 42B (含 ext_type_id)
+// 新格式签名块(16B) = magic[8]+"HISS0100" + header_length(u32 LE) + feature_flags(u32 LE)
+// Header 为 TLV 二进制结构 (tag+flags+length+value)
+// 子块描述符 42B (含 ext_type_id)
 // ============================================================================
 static void test_unknown_required_reject() {
     fprintf(stdout, "[TEST] 未知必需子块拒绝\n");
@@ -350,7 +350,7 @@ static void test_unknown_required_reject() {
                                     std::istreambuf_iterator<char>());
     fin.close();
 
-    // R04-B14/B15: 解析 TLV Header, 定位 TILE_DIRECTORY value
+    // 解析 TLV Header, 定位 TILE_DIRECTORY value
     size_t tile_dir_value_pos = find_tile_directory_value_pos(file_data);
     ASSERT_TRUE(tile_dir_value_pos != SIZE_MAX, "找到 TILE_DIRECTORY TLV");
 
@@ -362,7 +362,7 @@ static void test_unknown_required_reject() {
     std::memcpy(&n_subblocks, file_data.data() + n_subblocks_pos, 2);
     ASSERT_TRUE(n_subblocks >= 2, "原始 Tile 至少有 signal+support 子块");
 
-    // 遍历子块描述符 (R04-B17: 42B), 找到 SUPPORT (type=2) 并改为未知 type=201
+    // 遍历子块描述符 (: 42B), 找到 SUPPORT (type=2) 并改为未知 type=201
     // 描述符布局(42B): type(1)+ext_type_id(2)+flags(2)+offset(8)+comp(8)+uncomp(8)+codec(2)+transform(2)+cksum_type(1)+checksum(8)
     size_t desc_start = tile_dir_value_pos + 4 + 15;  // 跳过 n_tiles + tile 头
     bool found_support = false;
@@ -400,7 +400,7 @@ static void test_unknown_required_reject() {
 // 构造含未知 optional 子块的 HISS 文件 → Reader.open 成功, 跳过该子块
 // 读取 signal/support 仍正常工作
 //
-// R04-B14/B15/B17: 新格式 TLV Header + 42B 子块描述符
+// 新格式 TLV Header + 42B 子块描述符
 // ============================================================================
 static void test_unknown_optional_skip() {
     fprintf(stdout, "[TEST] 未知可选子块跳过\n");
@@ -418,7 +418,7 @@ static void test_unknown_optional_skip() {
                                     std::istreambuf_iterator<char>());
     fin.close();
 
-    // R04-B14/B15: 解析 TLV Header, 定位 TILE_DIRECTORY value
+    // 解析 TLV Header, 定位 TILE_DIRECTORY value
     size_t tile_dir_value_pos = find_tile_directory_value_pos(file_data);
     ASSERT_TRUE(tile_dir_value_pos != SIZE_MAX, "找到 TILE_DIRECTORY TLV");
 
@@ -433,7 +433,7 @@ static void test_unknown_optional_skip() {
 
     // 插入前, 更新现有子块描述符的 offset (+42)
     // 原因: 插入 42B 描述符后 Header 增长 42B, 子块数据区整体后移 42B
-    // R04-B17 描述符布局(42B): type(1)+ext_type_id(2)+flags(2)+offset(8)+...
+    // 描述符布局(42B): type(1)+ext_type_id(2)+flags(2)+offset(8)+...
     // offset 字段在描述符内偏移 5, 长度 8
     for (uint16_t i = 0; i < n_subblocks; i++) {
         size_t off_pos = desc_start + (size_t)i * 42 + 5;
@@ -443,7 +443,7 @@ static void test_unknown_optional_skip() {
         std::memcpy(file_data.data() + off_pos, &new_off, 8);
     }
 
-    // 构造未知可选子块描述符 (R04-B17: 42 字节)
+    // 构造未知可选子块描述符 (: 42 字节)
     // type(1)+ext_type_id(2)+flags(2)+offset(8)+comp(8)+uncomp(8)+codec(2)+transform(2)+cksum_type(1)+checksum(8)
     uint8_t unknown_opt[42] = {0};
     unknown_opt[0] = 200;  // 未知 type
@@ -510,7 +510,7 @@ static void test_unknown_optional_skip() {
 // ============================================================================
 // 测试 6: SNR 布局验证
 // 写入后检查文件中 SNR 子块的 uncompressed_size = 12 + n_points*8
-// R04-B18 冻结布局: estimator_id(4) + sampling_scale(4) + n_points(4) + points(n*8)
+// 冻结布局: estimator_id(4) + sampling_scale(4) + n_points(4) + points(n*8)
 // 验证 SNR 子块不包含 snr_phot/median_snr/idw_power (旧布局会多 24 字节)
 // ============================================================================
 static void test_snr_layout_bytes() {
@@ -546,7 +546,7 @@ static void test_snr_layout_bytes() {
     ASSERT_TRUE(snr_desc != nullptr, "找到 SNR 子块描述符");
 
     // 验证 uncompressed_size = 12 + n_points * 8 = 12 + 10*8 = 92
-    // R04-B18 冻结布局 (02_FROZEN §17): estimator_id(4) + sampling_scale(4) + n_points(4) + points(n*8)
+    // 冻结布局 (02_FROZEN §17): estimator_id(4) + sampling_scale(4) + n_points(4) + points(n*8)
     // 旧错误布局 (含 snr_phot/median_snr/idw_power) 会是 92 + 24 = 116
     uint64_t expected_size = 12 + (uint64_t)10 * 8;  // 92
     ASSERT_EQ_INT(snr_desc->uncompressed_size, (long)expected_size,

@@ -25,11 +25,11 @@
 
 // ============================================================================
 // G4: actual-buffer trace (仅诊断, 默认关闭, env: ASTROCS_DRIZZLE_TRACE=<dir>)
-// <dir>/trace_selection.tsv : 选择源像素坐标 (x\ty), 与 orchestrator 同一组
-// <dir>/drizzle_lineage.jsonl : 逐源像素贡献 (source x/y, effective value,
+// <dir>/trace_selection.tsv: 选择源像素坐标 (x\ty), 与 orchestrator 同一组
+// <dir>/drizzle_lineage.jsonl: 逐源像素贡献 (source x/y, effective value,
 // drop footprint, candidate leaf, overlap,
 // contribution, sum contribution)
-// <dir>/leaf_internal.jsonl : 内部累计值 (parent/local/ipix, sumFlux,
+// <dir>/leaf_internal.jsonl: 内部累计值 (parent/local/ipix, sumFlux,
 // sumArea, nContrib) — 与 HiPS readback 对照
 // ============================================================================
 namespace drizzle_trace {
@@ -235,7 +235,7 @@ namespace drizzle {
 // 重算 pixelResolutionArcsec/阈值 cos/位运算常量）
 struct DrizzleRunContext {
     uint32_t nside = 0;
-    double hp_res_rad = 0.0;      // pixelResolutionArcsec() × ARCSEC_TO_RAD
+    double hp_res_rad = 0.0;      // pixelResolutionArcsec × ARCSEC_TO_RAD
     double cos_thresh_60 = 0.0;   // cos(60 角秒)：边跨度自适应阈值
     uint32_t shift = 0;           // leaf_ipix >> shift = parent
     uint64_t mask = 0;            // leaf_ipix & mask = local
@@ -303,7 +303,7 @@ static bool drizzle_fine_profile_enabled() {
     return en;
 }
 
-// Phase1 Final Closure : 有效 Tile 分组深度 (config.tile_depth 优先, 0=auto)
+// Phase1 Final Closure: 有效 Tile 分组深度 (config.tile_depth 优先, 0=auto)
 static uint32_t eff_tile_depth(const DrizzleConfig& c) {
     return c.tile_depth ? c.tile_depth : hiss::compute_tile_depth((uint32_t)c.nside);
 }
@@ -335,13 +335,13 @@ DrizzleEngine::DrizzleEngine() {}
 DrizzleEngine::~DrizzleEngine() {}
 
 // ============================================================================
-// 移植 R07-M09/M10/M11: 自适应四叉树 Jacobian 采样 (替代固定 9×9 网格)
+// 移植: 自适应四叉树 Jacobian 采样 (替代固定 9×9 网格)
 //
 // 固定 9×9 网格采样的问题: SIP 畸变极值可能落在网格点之间, 导致最细局部
 // 像素尺度被漏掉, NSIDE 估计偏小. 自适应四叉树采样在 Jacobian 梯度大的
 // 区域递归细分, 确保捕捉到最细尺度.
 //
-// R07-M09/M10/M11 修复 (3D 切向量 Jacobian + 9 点保守采样):
+// 修复 (3D 切向量 Jacobian + 9 点保守采样):
 // 原 main 实现 (RA 差分 + greatCircleDistance + 9×9 固定网格) 缺陷:
 // M09: ra_xp - ra_xm 直接差分在 RA 跨越 0°/360° 时产生大数值误差;
 // M10: greatCircleDistance 在极点附近因 cos(dec)→0 导致数值失真;
@@ -362,10 +362,10 @@ DrizzleEngine::~DrizzleEngine() {}
 // MAX_DEPTH=5 → 1024 叶单元 → ~46080 次调用 (compute_auto_nside 仅调一次).
 // ============================================================================
 static const int    ADAPTIVE_MAX_DEPTH    = 5;     // 最大递归深度 (4^5=1024 叶单元)
-static const double ADAPTIVE_RATIO_THRESH = 1.25;  // 尺度比阈值 (max/min > 1.25 触发细分) [R07-M11]
+static const double ADAPTIVE_RATIO_THRESH = 1.25;  // 尺度比阈值 (max/min > 1.25 触发细分) []
 static const double ADAPTIVE_MIN_CELL_PX  = 4.0;   // 最小单元尺寸 (像素), 避免无限细分
 
-// R07-M09/M10: 3D 切向量 Jacobian 辅助函数
+// 3D 切向量 Jacobian 辅助函数
 //
 // 局部切平面基底 (east, north):
 // 给定切点 (ra_c, dec_c) 的 3D 单位向量 c, 构造两个正交单位向量:
@@ -443,7 +443,7 @@ inline void project_to_tangent(const spherical::Vec3& v, const TangentBasis& tb,
     eta = spherical::dot(v, tb.north) / denom;
 }
 
-// R07-M09/M10: 计算单点 3D 切向量 Jacobian 的局部像素尺度 (角秒/像素)
+// 计算单点 3D 切向量 Jacobian 的局部像素尺度 (角秒/像素)
 // 输入: 5 邻近点 (中/左/右/上/下) 的 RA/DEC (度)
 // 输出: 局部像素尺度 (角秒/像素); 失败返回 -1.0
 //
@@ -514,13 +514,13 @@ inline double local_scale_3d_tangent(
 
 // 递归四叉树采样: 在 [x0,x1]×[y0,y1] 区域内自适应采样局部像素尺度
 //
-// R07-M09/M10/M11: 3D 切向量 Jacobian + 9 点保守采样
+// 3D 切向量 Jacobian + 9 点保守采样
 static void sample_quadtree(const WcsSip& wcsip,
                             double x0, double y0, double x1, double y1,
                             int depth, double dh,
                             double& finest_arcsec,
                             int& n_valid, int& n_invalid) {
-    // R07-M11: 9 点保守采样 (4 角 + 4 边中点 + 中心)
+    // 9 点保守采样 (4 角 + 4 边中点 + 中心)
     // 比原 5 点采样多覆盖 4 个边中点, 捕捉边角尖锐畸变 (如强 SIP 在
     // 单元边界中点出现窄局部最小值, 5 点采样会漏掉).
     double xm_cell = (x0 + x1) * 0.5;
@@ -540,7 +540,7 @@ static void sample_quadtree(const WcsSip& wcsip,
     double local_min = 1e30, local_max = 0.0;
 
     for (int i = 0; i < 9; i++) {
-        // R07-M09/M10: 3D 切向量 Jacobian (5 邻近点 pixelToSky)
+        // 3D 切向量 Jacobian (5 邻近点 pixelToSky)
         double ra_c,  dec_c;
         double ra_xm, dec_xm, ra_xp, dec_xp;
         double ra_ym, dec_ym, ra_yp, dec_yp;
@@ -600,13 +600,13 @@ static void sample_quadtree(const WcsSip& wcsip,
 // ============================================================================
 // compute_auto_nside - 自动 NSIDE 计算 (02_FROZEN §5, WP-B 步骤5 修复)
 //
-// 移植 R07-M09/M10/M11: 自适应四叉树 + 3D 切向量 Jacobian
+// 移植: 自适应四叉树 + 3D 切向量 Jacobian
 //
 // 依据最终 WCS/SIP 在有效视场内的局部 Jacobian:
-// 1. R07-B05 修复: 自适应四叉树采样全视场 Jacobian (替代固定 9×9 网格).
+// 1. 修复: 自适应四叉树采样全视场 Jacobian (替代固定 9×9 网格).
 // 在 WCS/SIP Jacobian 梯度大的区域递归细分, 确保捕捉到最细局部像素尺度.
 // 2. 取所有有效采样点局部像素尺度的最小值作为"最细局部输入像素尺度";
-// 3. R05-B03: HEALPix 特征尺度由像素面积公式一致计算 (禁止魔数 210960):
+// 3.: HEALPix 特征尺度由像素面积公式一致计算 (禁止魔数 210960):
 // HEALPix 像素面积 = π / (3 * nside²) sr, 特征线性尺度 = sqrt(π/3) / nside rad
 // 转角秒: sqrt(π/3) / nside * (180/π) * 3600 ≈ 211034.6 / nside arcsec
 // 4. 选择最小的 2 次幂 NSIDE, 使 HEALPix 特征尺度不粗于该最细尺度
@@ -638,7 +638,7 @@ int compute_auto_nside(const WcsParams& wcs, int img_w, int img_h)
         return 0;
     }
 
-    // 移植 R07-B05: 自适应四叉树 Jacobian 采样 (替代固定 9×9 网格)
+    // 移植: 自适应四叉树 Jacobian 采样 (替代固定 9×9 网格)
     // 初始单元 = 整个图像 (内缩 margin 避免边界越界), 递归细分 Jacobian 梯度大的区域
     const double margin = 0.5;  // 像素内缩, 避免边界越界
     const double dh = 0.5;      // 有限差分半步长 (步长=1px), 平衡精度与效率
@@ -665,7 +665,7 @@ int compute_auto_nside(const WcsParams& wcs, int img_w, int img_h)
         return 0;
     }
 
-    // 移植 R05-B03: HEALPix 特征尺度由像素面积公式一致计算 (禁止魔数 210960/1186.18)
+    // 移植: HEALPix 特征尺度由像素面积公式一致计算 (禁止魔数 210960/1186.18)
     // HEALPix 像素面积 = 4π / (12 * nside²) sr = π / (3 * nside²) sr
     // 特征线性尺度 = sqrt(像素面积) = sqrt(π/3) / nside rad
     // 转角秒: sqrt(π/3) / nside * (180/π) * 3600 ≈ 211034.6 / nside arcsec
@@ -711,7 +711,7 @@ int compute_auto_nside(const WcsParams& wcs, int img_w, int img_h)
 // WP-B 步骤6 修复: 入口校验
 // 1. pixfrac <= 0.0 或 pixfrac > 1.0 → 返回错误 (拒绝, 不进入"点采样快速路径")
 // 2. nested == false (RING 模式) → 返回错误 (HISS 内部统一 NESTED)
-// 3. img.channels != 1 → 返回错误 ( 移植 R07-B03: 多通道图像拒绝)
+// 3. img.channels != 1 → 返回错误 ( 移植: 多通道图像拒绝)
 // 4. 移除所有"点采样快速路径"代码, 任何 pixfrac 非法值都被拒绝
 // ============================================================================
 bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
@@ -744,7 +744,7 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
         return false;
     }
 
-    // 移植 R07-B03: 多通道图像静默取第 0 通道是 BLOCKER
+    // 移植: 多通道图像静默取第 0 通道是 BLOCKER
     // HISS Stage1 只支持单通道图像, 多通道 (如 RGB) 必须由上游拆分后分别 drizzle
     // 原实现 (main 版本) 对 channels != 1 静默取第 0 通道, 会导致:
     // 1. 丢失非第 0 通道数据 (科学错误)
@@ -838,7 +838,7 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
 // ============================================================================
 // drizzle_f64 - 执行 Drizzle (FP64 路径): FITS 图像 (double 像素) → HEALPix 累加器
 //
-// 双精度 ABI 改造 :
+// 双精度 ABI 改造:
 // - 与 drizzle (FP32) 完全相同的几何/累加逻辑, 仅像素值类型不同
 // - 从 img.pixels_f64 (double) 读取像素值, 不降级到 float32
 // - processPixel_f64 直接用 double pixelValue 累加到 PixelAccumulator.sumFlux (double)
@@ -1001,7 +1001,7 @@ void DrizzleEngine::getHealpixCorners(const healpix::HealpixCore& hp, int64_t ip
 // writeHis - 将累加器按 Tile 分组并写入 .hiss 文件 (WP-E 步骤8)
 //
 // 改造要点 (02_FROZEN §8/§14/§16, 00_COMMON_CONTRACTS §4.4):
-// 1. 不再调用旧 hiss_write()/hiss_write_snr_model(), 改为构造 HissWriter
+// 1. 不再调用旧 hiss_write/hiss_write_snr_model, 改为构造 HissWriter
 // 2. 按 Tile 父像素分组累加器 (NESTED 位运算: parent = ipix >> 2d)
 // 3. signal = 累计通量 (步骤7, finalize_signal 已在 hiss_common.cpp 修复)
 // 4. support = 面积比 (pixel_area = A_p, 02_FROZEN §10)
@@ -1645,7 +1645,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     rctx.cos_thresh_60 = std::cos(THRESH_60ARCSEC);
     rctx.shift = (uint32_t)shift;
     rctx.mask = mask;
-    // V19R4（DRIZZLE_CACHE_THREAD_SAFETY）：每次 drizzleTiled run 递增
+    // （DRIZZLE_CACHE_THREAD_SAFETY）：每次 drizzleTiled run 递增
     // generation，线程 cache 切换即清空。原裸 static read-modify-write
     // 在同进程并发 run 下是 C++ data race（UB）——改 atomic fetch_add。
     static std::atomic<std::uint64_t> s_target_cache_gen{0};

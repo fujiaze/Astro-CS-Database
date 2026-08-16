@@ -60,7 +60,7 @@ struct SpectrumIntegratorCache {
     std::vector<double> weighted_wl;  // λ × T(λ) × Q(λ) 预计算 (积分核的一部分)
 };
 
-// 预处理滤光片+QE 曲线, 缓存重采样结果 (Task 11 + GAP-012)
+// 预处理滤光片+QE 曲线, 缓存重采样结果 (Task 11 +)
 // 在 OpenMP 循环前调用一次, 避免每颗星重复排序 + Akima 插值
 // 参数:
 // filter_wl: 滤光片波长数组 [filter_count]
@@ -82,7 +82,7 @@ SpectrumIntegratorCache prepare_filter_cache(
 // 参数:
 // cache: 预处理的滤光片缓存 (来自 prepare_filter_cache)
 // spectrum_uint8: uint8 光谱数据 [spectrum_count]
-// spectrum_count: 光谱点数 (必须 == cache.spectrum_wl.size())
+// spectrum_count: 光谱点数 (必须 == cache.spectrum_wl.size)
 // mag_g: Gaia G 星等
 // 返回: F_syn 值, 失败返回 0.0
 double compute_f_syn_cached(

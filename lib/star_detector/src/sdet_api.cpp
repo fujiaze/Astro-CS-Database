@@ -130,7 +130,7 @@ static int sdet_gaussian_f(const gsl_vector* x, void* params, gsl_vector* f) {
 // dB = 1, dA = tmpc
 // dx0 = 2*A*tmpc*(tmpx/SX*ca + tmpy/SY*sa)
 // dy0 = 2*A*tmpc*(-tmpx/SX*sa + tmpy/SY*ca)
-// dSX = tmpc*A*( (tmpx/SX)² + (tmpy/(SX*r))² )
+// dSX = tmpc*A*( (tmpx/SX)² + (tmpy/(SX*r))²)
 // dfr = -A*tmpc*sc*tmpy²/SY/r (sc = sin(fr))
 // dalpha = 2*A*tmpc*tmpx*tmpy*(1/SX - 1/SY)
 static int sdet_gaussian_df(const gsl_vector* x, void* params, gsl_matrix* J) {
@@ -840,7 +840,7 @@ void sdet_dedup_stars(std::vector<StarRecord>& stars) {
 
     // 饱和星与正常星去重改为丢弃正常星（保留饱和星,
 
-    // 修复: normal_deleted_by_sat 大小改为 stars.size(), 因为 后 stars 布局混合
+    // 修复: normal_deleted_by_sat 大小改为 stars.size, 因为 后 stars 布局混合
     // (阶段8 同时添加正常星和饱和星, normal_idx 中的 stars 索引不再连续 [0, normal_count))
     std::vector<uint8_t> normal_deleted_by_sat(stars.size(), 0);
     for (int si = 0; si < (int)sat_idx.size(); si++) {
@@ -898,7 +898,7 @@ void sdet_dedup_stars(std::vector<StarRecord>& stars) {
     }
 
     // 正常星之间去重（: 合并饱和星去重标记）
-    // 修复: normal_deleted 以 stars 索引为下标, 大小 = stars.size()
+    // 修复: normal_deleted 以 stars 索引为下标, 大小 = stars.size
     // normal_grid 存储的是 stars 索引 (不是 normal_idx 位置索引)
     std::vector<uint8_t> normal_deleted = normal_deleted_by_sat;
     for (int ni = 0; ni < (int)normal_idx.size(); ni++) {
@@ -1598,8 +1598,8 @@ SDET_EXPORT void sdet_free_debug_maps(float *maps)
 }
 
 // sdet_detect_impl - 星点检测核心 (模板双实例)
-// T=float : 与旧 sdet_detect_ex 行为逐位一致 (uint16→float 由入口包装完成)
-// T=double : FP64 模式 (输入 double 校准图, 全程 double 检测, 不降级 float32)
+// T=float: 与旧 sdet_detect_ex 行为逐位一致 (uint16→float 由入口包装完成)
+// T=double: FP64 模式 (输入 double 校准图, 全程 double 检测, 不降级 float32)
 template <typename T>
 static int sdet_detect_impl(StarDetectorHandle handle,
                             const T *image, int width, int height,

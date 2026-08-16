@@ -3,7 +3,7 @@
 // 23 §1/§6：经典 GPU 实验必须走 KernelRegistry + 真实 CUDA launcher。
 // 本实现：
 // - 通过 dispatch_invocation(KernelInvocation) 派发 Copy/AXPY/Reduction；
-// - 无 GPU（无桥接 DLL/设备）→ 状态 SKIPPED，测试用 GTEST_SKIP()（不冒充通过）；
+// - 无 GPU（无桥接 DLL/设备）→ 状态 SKIPPED，测试用 GTEST_SKIP（不冒充通过）；
 // - 真实 Mixed 断言 cpu_done>0 && gpu_done>0；
 // - coverage 每项恰好一次；profile hash 运行前后不变。
 #include "classic_common.hpp"

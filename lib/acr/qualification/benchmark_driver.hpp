@@ -59,7 +59,7 @@ public:
     // 空载提示在 run 入口打印一次。
     std::vector<KernelBenchmarkResult> run();
 
-    // 最后一次运行的日志（ human-readable ）
+    // 最后一次运行的日志（ human-readable）
     const std::string& last_log() const noexcept;
 
     // 25 §3.2：导出原始记录 JSON（保存每次原始耗时，非聚合）
@@ -108,7 +108,7 @@ private:
     std::uint64_t run_cpu_mandelbrot(std::size_t n);
 
     // GPU 真实 kernel（AXPY/Copy/Dot→reduce/Convolution2D→conv3x3）：
-    // 经 cuda::bridge::api() 启动真实 CUDA kernel，返回含 H2D/launch/D2H 的
+    // 经 cuda::bridge::api 启动真实 CUDA kernel，返回含 H2D/launch/D2H 的
     // 实测耗时（ns）；不支持的 kernel 或桥接不可用时 supported=false 返回 0。
     std::uint64_t run_gpu_kernel(std::uint32_t kernel_id, std::size_t n,
                                  bool& supported);

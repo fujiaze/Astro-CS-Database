@@ -71,7 +71,7 @@ TEST(CpuIsaCaps, Sse2AlwaysOnX86_64) {
     EXPECT_TRUE(caps.has(IsaLevel::SSE2));
     EXPECT_TRUE(caps.has_isa(IsaLevel::SSE2));
 #else
-    // 非 x86-64：SSE2 不保证，仅验证 has() 不崩溃
+    // 非 x86-64：SSE2 不保证，仅验证 has 不崩溃
     (void)caps;
 #endif
 }
@@ -104,7 +104,7 @@ TEST(CpuIsaCaps, Avx512GateWhenUnsupported) {
 TEST(CpuIsaCaps, Avx512SubsetIndependent) {
     // AVX-512 子集独立 bit：F/CD/BW/DQ/VL 是独立 bool，禁止合并
     CpuIsaCaps caps;
-    // 各子集 has() 独立返回，不互相影响
+    // 各子集 has 独立返回，不互相影响
     bool f  = caps.has(IsaLevel::AVX512F);
     bool cd = caps.has(IsaLevel::AVX512CD);
     bool bw = caps.has(IsaLevel::AVX512BW);

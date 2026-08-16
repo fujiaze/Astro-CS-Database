@@ -25,7 +25,7 @@
 // - compute_tile_depth / compute_tile_nside (§11)
 //
 // 注: CRC32-C (Castagnoli) 校验实现已移至 hiss_codec.cpp 共享,
-// Reader/Writer 通过 ChecksumRegistry::find() 获取同一实现。
+// Reader/Writer 通过 ChecksumRegistry::find 获取同一实现。
 // ============================================================================
 #include "hiss_format.h"
 #include "aio_util.h"  // aio_fopen_utf8 (UTF-8 路径支持)
@@ -67,13 +67,13 @@ namespace hiss {
 // 内部常量
 // ============================================================================
 
-// R04-B14: 固定签名块 (16 字节, 显式小端序)
+// 固定签名块 (16 字节, 显式小端序)
 // magic[8] = "HISS0100" + header_length(uint32 LE) + feature_flags(uint32 LE)
 static const char     kMagic[8] = { 'H','I','S','S','0','1','0','0' };
 
 // Header 子结构大小
 static const size_t kGridSpecSize   = 24;  // nside(4)+tile_nside(4)+ordering(4)+radesys(4)+pixfrac(8)
-// R04-B17: 子块描述符 42 字节 (含 ext_type_id)
+// 子块描述符 42 字节 (含 ext_type_id)
 // type(1)+ext_type_id(2)+flags(2)+offset(8)+comp(8)+uncomp(8)+codec(2)+transform(2)+checksum_type(1)+checksum(8)
 static const size_t kSubblockDescSize = HISS_SUBBLOCK_DESC_DISK_SIZE;
 static const size_t kTileHeaderSize  = 15;  // parent_ipix(8)+tile_nside(4)+occ_mode(1)+n_subblocks(2)
@@ -271,8 +271,8 @@ static inline bool is_known_subblock_type(SubblockType type) {
 struct HissReader::Impl {
     FILE*      fp = nullptr;            // 文件句柄 (二进制只读)
     uint64_t   filesize = 0;            // 文件总大小
-    uint32_t   header_length = 0;       // Header 区字节数 (R04-B14)
-    uint32_t   feature_flags = 0;       // 特性标志位 (R04-B14)
+    uint32_t   header_length = 0;       // Header 区字节数
+    uint32_t   feature_flags = 0;       // 特性标志位
     HissGridSpec  grid;                 // 网格规格
     HissMetadata  metadata;             // 元数据
     std::vector<HissTile> tiles;        // Tile 目录
@@ -287,7 +287,7 @@ struct HissReader::Impl {
     int read_subblock(const HissSubblockDescriptor& desc,
                       std::vector<uint8_t>& out,
                       size_t element_size = 1) const {
-        // a. R04-B16: 严格检查 offset + compressed_size 越界
+        // a.: 严格检查 offset + compressed_size 越界
         if (desc.offset >= filesize) {
             fprintf(stderr, "[hiss][reader] 子块越界: offset=%llu >= filesize=%llu\n",
                     (unsigned long long)desc.offset, (unsigned long long)filesize);
@@ -377,7 +377,7 @@ struct HissReader::Impl {
 
         // f. WP-G 步骤12: 逆向变换 (解压后执行)
         // 若 transform_id != NONE, 调用 inverse_transform 还原原始数据
-        // 对于大小保持变换 (NONE/BYTE_SHUFFLE/DELTA): expected_output_size = out.size()
+        // 对于大小保持变换 (NONE/BYTE_SHUFFLE/DELTA): expected_output_size = out.size
         // 对于 DELTA_VARINT: expected_output_size = 0 (从数据前缀 n_elements 自动确定)
         if (desc.transform_id != TransformId::NONE) {
             TransformType tt = transform_id_to_type(desc.transform_id);
@@ -457,7 +457,7 @@ HissReader::HissReader() : pimpl_(std::make_unique<Impl>()) {}
 HissReader::~HissReader() { close(); }
 
 // ----------------------------------------------------------------------------
-// open(): 打开 HISS 文件, 读取签名块 + Header + Tile 目录
+// open: 打开 HISS 文件, 读取签名块 + Header + Tile 目录
 // ----------------------------------------------------------------------------
 int HissReader::open(const std::string& path) {
     Impl& impl = *pimpl_;
@@ -487,7 +487,7 @@ int HissReader::open(const std::string& path) {
     }
     impl.filesize = (uint64_t)fsize;
 
-    // ---- 1. R04-B14: 读取固定签名块 (16 字节, 显式小端序) ----
+    // ---- 1.: 读取固定签名块 (16 字节, 显式小端序) ----
     // magic[8] = "HISS0100" + header_length(uint32 LE) + feature_flags(uint32 LE)
     if (impl.filesize < HISS_SIGNATURE_SIZE) {
         fprintf(stderr, "[hiss][reader] 文件过短: %llu < %d\n",
@@ -511,7 +511,7 @@ int HissReader::open(const std::string& path) {
         return HISS_ERR_FORMAT;  // MAGIC 不匹配 → 格式错误
     }
 
-    // R04-B14: 读取 header_length (uint32 LE, 严格限制 Header 解析范围)
+    // 读取 header_length (uint32 LE, 严格限制 Header 解析范围)
     impl.header_length = read_u32_le(sig + 8);
     if (impl.header_length == 0 || impl.header_length > 256 * 1024 * 1024) {
         // Header 长度必须 > 0, 上限 256MB 防止异常值
@@ -519,7 +519,7 @@ int HissReader::open(const std::string& path) {
         close();
         return HISS_ERR_FORMAT;
     }
-    // R04-B14: 严格边界检查 — header_length + 签名块大小不得超过文件大小
+    // 严格边界检查 — header_length + 签名块大小不得超过文件大小
     if ((uint64_t)impl.header_length + HISS_SIGNATURE_SIZE > impl.filesize) {
         fprintf(stderr, "[hiss][reader] header_length 越界: %u + %d > %llu\n",
                 impl.header_length, (int)HISS_SIGNATURE_SIZE, (unsigned long long)impl.filesize);
@@ -527,7 +527,7 @@ int HissReader::open(const std::string& path) {
         return HISS_ERR_FORMAT;
     }
 
-    // R04-B14: 读取 feature_flags (uint32 LE)
+    // 读取 feature_flags (uint32 LE)
     impl.feature_flags = read_u32_le(sig + 12);
     if ((impl.feature_flags & HISS_FEAT_TLV_HEADER) == 0) {
         // 必须支持 TLV Header 特性
@@ -537,7 +537,7 @@ int HissReader::open(const std::string& path) {
         return HISS_ERR_UNSUPPORTED;
     }
 
-    // ---- 2. R04-B15: 读取 TLV Header (header_length 字节) ----
+    // ---- 2.: 读取 TLV Header (header_length 字节) ----
     // Header 是一系列 TLV (tag:u16 + flags:u8 + length:u32 + value)
     // 未知 required TLV → 拒绝; 未知 optional TLV → 跳过
     std::vector<uint8_t> hdr_buf(impl.header_length);
@@ -561,7 +561,7 @@ int HissReader::open(const std::string& path) {
         uint32_t tlen   = read_u32_le(hdr_buf.data() + hdr_pos + 3);
         hdr_pos += kTlvHeaderSize;
 
-        // R04-B16: 严格检查 TLV length 越界
+        // 严格检查 TLV length 越界
         if (hdr_pos + tlen > impl.header_length) {
             fprintf(stderr, "[hiss][reader] TLV tag=0x%04x length=%u 越界 (pos=%zu header=%u)\n",
                     tag, tlen, hdr_pos, impl.header_length);
@@ -573,7 +573,7 @@ int HissReader::open(const std::string& path) {
 
         switch (tag) {
             case HISS_TLV_SCHEMA_FINGERPRINT: {
-                // R04-B15: schema 指纹验证
+                // schema 指纹验证
                 if (tlen != 32) {
                     fprintf(stderr, "[hiss][reader] SCHEMA_FINGERPRINT 长度非法: %u (期望 32)\n", tlen);
                     close();
@@ -588,7 +588,7 @@ int HissReader::open(const std::string& path) {
                 break;
             }
             case HISS_TLV_GRID_SPEC: {
-                // R04-B16: 严格校验网格规格
+                // 严格校验网格规格
                 if (tlen != kGridSpecSize) {
                     fprintf(stderr, "[hiss][reader] GRID_SPEC 长度非法: %u (期望 %zu)\n",
                             tlen, kGridSpecSize);
@@ -617,7 +617,7 @@ int HissReader::open(const std::string& path) {
                 break;
             }
             case HISS_TLV_METADATA_JSON: {
-                // R04-B15: JSON 作为可选人类可读附件 (非唯一权威)
+                // JSON 作为可选人类可读附件 (非唯一权威)
                 std::string json_str((const char*)value, tlen);
                 impl.metadata.from_json(json_str);
                 break;
@@ -644,7 +644,7 @@ int HissReader::open(const std::string& path) {
                 size_t tpos = 4;
                 for (uint32_t t = 0; t < n_tiles; t++) {
                     HissTile tile;
-                    // R04-B16: 检查 Tile 头越界
+                    // 检查 Tile 头越界
                     if (tpos + kTileHeaderSize > tlen) {
                         fprintf(stderr, "[hiss][reader] Tile %u 头越界\n", t);
                         close();
@@ -656,7 +656,7 @@ int HissReader::open(const std::string& path) {
                     uint16_t n_subblocks = read_u16_le(value + tpos + 13);
                     tpos += kTileHeaderSize;
 
-                    // R04-B16: 检查子块描述符越界
+                    // 检查子块描述符越界
                     if (tpos + (size_t)n_subblocks * kSubblockDescSize > tlen) {
                         fprintf(stderr, "[hiss][reader] Tile %u 子块描述符越界\n", t);
                         close();
@@ -668,7 +668,7 @@ int HissReader::open(const std::string& path) {
                         const uint8_t* sd = value + tpos + (size_t)s * kSubblockDescSize;
                         HissSubblockDescriptor& desc = tile.subblocks[s];
                         desc.type             = (SubblockType)sd[0];
-                        desc.ext_type_id      = read_u16_le(sd + 1);   // R04-B17
+                        desc.ext_type_id      = read_u16_le(sd + 1);   //
                         desc.flags            = read_u16_le(sd + 3);
                         desc.offset           = read_u64_le(sd + 5);
                         desc.compressed_size   = read_u64_le(sd + 13);
@@ -680,7 +680,7 @@ int HissReader::open(const std::string& path) {
                     }
                     tpos += (size_t)n_subblocks * kSubblockDescSize;
 
-                    // R04-B16: 检查重复 Tile (parent_ipix 重复)
+                    // 检查重复 Tile (parent_ipix 重复)
                     if (impl.tile_index.find(tile.parent_ipix) != impl.tile_index.end()) {
                         fprintf(stderr, "[hiss][reader] 重复 Tile: parent_ipix=%llu\n",
                                 (unsigned long long)tile.parent_ipix);
@@ -696,7 +696,7 @@ int HissReader::open(const std::string& path) {
                 break;
             }
             default: {
-                // R04-B15: 未知 TLV 处理
+                // 未知 TLV 处理
                 if (tflags & HISS_TLV_FLAG_REQUIRED) {
                     // 未知必需 TLV → 拒绝
                     fprintf(stderr,
@@ -716,7 +716,7 @@ int HissReader::open(const std::string& path) {
         hdr_pos += tlen;
     }
 
-    // R04-B16: 必需 TLV 必须存在
+    // 必需 TLV 必须存在
     if (!has_schema) {
         fprintf(stderr, "[hiss][reader] 缺少 SCHEMA_FINGERPRINT TLV\n");
         close();
@@ -750,7 +750,7 @@ int HissReader::open(const std::string& path) {
     // 已知类型: OCCUPANCY/SIGNAL/SUPPORT/SNR/EXTENSION
     // 未知必需子块 → 返回 HISS_ERR_UNKNOWN_REQUIRED (-7)
     // 未知可选子块 → 记录日志并跳过 (继续处理)
-    // R04-B17: EXTENSION 类型需检查 ext_type_id, 未知必需扩展拒绝
+    // EXTENSION 类型需检查 ext_type_id, 未知必需扩展拒绝
     for (size_t t = 0; t < impl.tiles.size(); t++) {
         const HissTile& tile = impl.tiles[t];
         for (const auto& sb : tile.subblocks) {
@@ -783,7 +783,7 @@ int HissReader::open(const std::string& path) {
                     return HISS_ERR_UNKNOWN_REQUIRED;  // -7
                 }
             }
-            // R04-B17: EXTENSION 类型子块 — 检查 ext_type_id
+            // EXTENSION 类型子块 — 检查 ext_type_id
             // 内置类型 ext_type_id 必须为 0; EXTENSION 类型 ext_type_id != 0
             // 未知必需扩展 (EXTENSION + REQUIRED + 未知 ext_type_id) → 拒绝
             if (sb.type == SubblockType::EXTENSION) {
@@ -817,7 +817,7 @@ int HissReader::open(const std::string& path) {
         }
     }
 
-    // ---- 4. R04-B16: 严格校验 Tile 完整性 ----
+    // ---- 4.: 严格校验 Tile 完整性 ----
     // a. BITMAP/SPARSE_LIST 模式必须有 OCCUPANCY 子块 (缺少 occupancy → 拒绝)
     // b. FULL 模式不应有 OCCUPANCY 子块 (一致性检查)
     // c. NSIDE/tile_nside 关系必须合法 (nside >= tile_nside, 均为 2 的幂)
@@ -902,7 +902,7 @@ int HissReader::open(const std::string& path) {
 }
 
 // ----------------------------------------------------------------------------
-// grid() / metadata() / tiles(): 返回已解析的数据
+// grid / metadata / tiles: 返回已解析的数据
 // ----------------------------------------------------------------------------
 HissGridSpec HissReader::grid() const {
     return pimpl_->grid;
@@ -926,7 +926,7 @@ const std::vector<HissTile>& HissReader::tiles() const {
 }
 
 // ----------------------------------------------------------------------------
-// read_tile(): 读取 Tile 的 signal + support (展开到 n_leaf_per_tile)
+// read_tile: 读取 Tile 的 signal + support (展开到 n_leaf_per_tile)
 //
 // 步骤11 关键改动:
 // - FULL: signal/support 数组长度 = n_leaf_per_tile, 直接返回
@@ -1000,7 +1000,7 @@ int HissReader::read_tile(uint64_t parent_ipix,
         }
     }
     if (n_leaf_per_tile == 0) {
-        // R04-B16: 非法 NSIDE/tile 关系, 禁止退化, 返回格式错误
+        // 非法 NSIDE/tile 关系, 禁止退化, 返回格式错误
         fprintf(stderr,
                 "[hiss][reader] read_tile: n_leaf_per_tile=0 (nside=%u tile_nside=%u), "
                 "非法 NSIDE/tile 关系\n", impl.grid.nside, tile.tile_nside);
@@ -1081,7 +1081,7 @@ int HissReader::read_tile(uint64_t parent_ipix,
                 "[hiss][reader]   SPARSE_LIST 展开: n_leaf=%u n_sparse=%zu expanded=%zu\n",
                 n_leaf_per_tile, n_sparse, signal.size());
     } else {
-        // R04-B16: 未知 occupancy 模式, 禁止退化, 返回格式错误
+        // 未知 occupancy 模式, 禁止退化, 返回格式错误
         fprintf(stderr, "[hiss][reader] read_tile: 未知 occ_mode=%u, 拒绝读取\n",
                 (unsigned)tile.occ_mode);
         return HISS_ERR_FORMAT_VIOLATION;
@@ -1091,7 +1091,7 @@ int HissReader::read_tile(uint64_t parent_ipix,
 }
 
 // ----------------------------------------------------------------------------
-// read_tile_signal(): 只读 signal (展开到 n_leaf_per_tile, 与 read_tile 一致)
+// read_tile_signal: 只读 signal (展开到 n_leaf_per_tile, 与 read_tile 一致)
 // ----------------------------------------------------------------------------
 int HissReader::read_tile_signal(uint64_t parent_ipix,
                                   std::vector<float>& signal) const {
@@ -1133,7 +1133,7 @@ int HissReader::read_tile_signal(uint64_t parent_ipix,
         if (ratio > 0) n_leaf_per_tile = ratio * ratio;
     }
     if (n_leaf_per_tile == 0) {
-        // R04-B16: 非法 NSIDE/tile 关系, 禁止退化
+        // 非法 NSIDE/tile 关系, 禁止退化
         fprintf(stderr,
                 "[hiss][reader] read_tile_signal: n_leaf_per_tile=0 (nside=%u tile_nside=%u)\n",
                 impl.grid.nside, tile.tile_nside);
@@ -1147,7 +1147,7 @@ int HissReader::read_tile_signal(uint64_t parent_ipix,
     // BITMAP / SPARSE_LIST: 需读 occupancy 展开到 n_leaf_per_tile
     const HissSubblockDescriptor* occ_desc = Impl::find_subblock(tile, SubblockType::OCCUPANCY);
     if (!occ_desc) {
-        // R04-B16: BITMAP/SPARSE 模式缺少 OCCUPANCY 子块, 禁止退化
+        // BITMAP/SPARSE 模式缺少 OCCUPANCY 子块, 禁止退化
         fprintf(stderr, "[hiss][reader] Tile %llu occ_mode=%u 但无 OCCUPANCY 子块\n",
                 (unsigned long long)parent_ipix, (unsigned)tile.occ_mode);
         return HISS_ERR_FORMAT_VIOLATION;
@@ -1183,7 +1183,7 @@ int HissReader::read_tile_signal(uint64_t parent_ipix,
 }
 
 // ----------------------------------------------------------------------------
-// read_tile_signal_f64(): 只读 signal (float64, FP64 模式)
+// read_tile_signal_f64: 只读 signal (float64, FP64 模式)
 // 若文件 signal_dtype=1 (FP64), 直接返回 float64 数据
 // 若文件 signal_dtype=0 (FP32), 返回错误 (禁止静默转换)
 // 展开逻辑与 read_tile_signal 一致 (FULL/BITMAP/SPARSE_LIST)
@@ -1277,7 +1277,7 @@ int HissReader::read_tile_signal_f64(uint64_t parent_ipix,
 }
 
 // ----------------------------------------------------------------------------
-// read_tile_support(): 只读 support (展开到 n_leaf_per_tile, 与 read_tile 一致)
+// read_tile_support: 只读 support (展开到 n_leaf_per_tile, 与 read_tile 一致)
 // ----------------------------------------------------------------------------
 int HissReader::read_tile_support(uint64_t parent_ipix,
                                    std::vector<uint8_t>& support) const {
@@ -1305,7 +1305,7 @@ int HissReader::read_tile_support(uint64_t parent_ipix,
         if (ratio > 0) n_leaf_per_tile = ratio * ratio;
     }
     if (n_leaf_per_tile == 0) {
-        // R04-B16: 非法 NSIDE/tile 关系, 禁止退化
+        // 非法 NSIDE/tile 关系, 禁止退化
         fprintf(stderr,
                 "[hiss][reader] read_tile_support: n_leaf_per_tile=0 (nside=%u tile_nside=%u)\n",
                 impl.grid.nside, tile.tile_nside);
@@ -1319,7 +1319,7 @@ int HissReader::read_tile_support(uint64_t parent_ipix,
     // BITMAP / SPARSE_LIST: 需读 occupancy 展开到 n_leaf_per_tile
     const HissSubblockDescriptor* occ_desc = Impl::find_subblock(tile, SubblockType::OCCUPANCY);
     if (!occ_desc) {
-        // R04-B16: BITMAP/SPARSE 模式缺少 OCCUPANCY 子块, 禁止退化
+        // BITMAP/SPARSE 模式缺少 OCCUPANCY 子块, 禁止退化
         fprintf(stderr, "[hiss][reader] Tile %llu occ_mode=%u 但无 OCCUPANCY 子块\n",
                 (unsigned long long)parent_ipix, (unsigned)tile.occ_mode);
         return HISS_ERR_FORMAT_VIOLATION;
@@ -1355,8 +1355,8 @@ int HissReader::read_tile_support(uint64_t parent_ipix,
 }
 
 // ----------------------------------------------------------------------------
-// read_tile_snr(): 读取 SNR 控制点
-// R04-B18: block 级 estimator_id/sampling_scale/count + 点数据
+// read_tile_snr: 读取 SNR 控制点
+// block 级 estimator_id/sampling_scale/count + 点数据
 // 冻结布局 (02_FROZEN §17 + 00_COMMON_CONTRACTS §2.5):
 // [estimator_id: uint32 LE] — 估计器 ID (block 级)
 // [sampling_scale: float32 LE] — 采样尺度 (block 级)
@@ -1391,7 +1391,7 @@ int HissReader::read_tile_snr(uint64_t parent_ipix, HissSnrBlock& snr) const {
     int ret = impl.read_subblock(*snr_desc, raw);
     if (ret != 0) return ret;
 
-    // R04-B18: 解析 SNR 数据 (estimator_id + sampling_scale + n_points + points)
+    // 解析 SNR 数据 (estimator_id + sampling_scale + n_points + points)
     // 最小长度: estimator_id(4) + sampling_scale(4) + n_points(4) = 12
     if (raw.size() < 12) {
         fprintf(stderr, "[hiss][reader] SNR 数据过短: %zu (最小 12)\n", raw.size());
@@ -1484,7 +1484,7 @@ int HissReader::read_tile_snr_f64(uint64_t parent_ipix, HissSnrBlockF64& snr) co
 }
 
 // ----------------------------------------------------------------------------
-// query_pixel(): 查询某位置的 signal/support
+// query_pixel: 查询某位置的 signal/support
 // 通过 NSIDE/NESTED/ICRS 定位, 不依赖 WCS
 // ----------------------------------------------------------------------------
 int HissReader::query_pixel(double ra, double dec,
@@ -1629,7 +1629,7 @@ int HissReader::query_pixel(double ra, double dec,
 }
 
 // ----------------------------------------------------------------------------
-// query_pixel_f64(): 查询某位置的 signal (FP64) / support
+// query_pixel_f64: 查询某位置的 signal (FP64) / support
 // 双精度 ABI: 仅适用于 FP64 模式文件 (signal_dtype=1)
 // 逻辑与 query_pixel 一致, 但调用 read_tile_signal_f64 / read_tile_support
 // 禁止静默转换: FP32 文件必须用 query_pixel
@@ -1770,7 +1770,7 @@ int HissReader::query_pixel_f64(double ra, double dec,
 }
 
 // ----------------------------------------------------------------------------
-// close(): 关闭文件, 清理内存
+// close: 关闭文件, 清理内存
 // ----------------------------------------------------------------------------
 void HissReader::close() {
     Impl& impl = *pimpl_;

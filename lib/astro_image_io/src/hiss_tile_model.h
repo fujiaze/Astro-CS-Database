@@ -53,7 +53,7 @@ struct HissTileGeometry {
     // --------------------------------------------------------------------
     // global_to_local: 全局 NESTED ipix -> Tile 内局部索引
     // 注意: 本函数仅提取低位, 不校验该 global_ipix 是否属于本 Tile。
-    // 如需校验请用 owns_global()。
+    // 如需校验请用 owns_global。
     // --------------------------------------------------------------------
     uint32_t global_to_local(uint64_t global_ipix) const;
 

@@ -13,7 +13,7 @@ struct ConfigHotReader::Impl {
     std::atomic<bool> initialized{false};
     std::atomic<bool> cold_frozen{false};
 
-    // HotMutable 用 atomic 加速热读（26 ：仅内存容量相关）
+    // HotMutable 用 atomic 加速热读（26：仅内存容量相关）
     std::atomic<double> ram_ratio{0.95};
     std::atomic<double> vram_ratio{0.95};
     std::atomic<std::uint64_t> ram_reserve{2048ULL * 1024 * 1024};

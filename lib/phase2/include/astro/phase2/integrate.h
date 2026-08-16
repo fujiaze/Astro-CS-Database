@@ -9,7 +9,7 @@
 // support × SNR²，调用方负责构造并先经 validate_candidate_weights）
 // stack.equal.v1（weight_mode=1 或 weights=nullptr → 等权）
 // UPM 控制点权重为 upm.robust_control_weight.v1（不同语义，禁止混名）。
-// - ：reducer 只消费 values / 外部 numeric weights（可空=等权）/
+// -：reducer 只消费 values / 外部 numeric weights（可空=等权）/
 // support / accepted；不编码 ivar/SNR 科学策略（policy 在调用方）。
 // - 权重资格（冻结）：NaN/Inf/负权重 → INVALID_INPUT；weight==0 → 合法
 // 但不贡献（ZERO_VALID_WEIGHT）；weight>0 → 可用。value 非 finite、

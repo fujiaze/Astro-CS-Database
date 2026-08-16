@@ -14,7 +14,7 @@
 // 7. Writer 元数据一致性: apply_photometry=false + BUNIT=ASTROCS_RELATIVE_FLUX → 拒绝
 // 8. Writer 元数据一致性: apply_photometry=false + BUNIT=ADU → 成功
 //
-// 编译 (从 tests/ 目录, 链接真实 HissWriter::open()):
+// 编译 (从 tests/ 目录, 链接真实 HissWriter::open):
 // g++ -std=c++17 -O2 -fopenmp -DHAS_ZSTD -DAIO_ENABLE_HEALPIX \
 // -I../src -I../../astro_image_io/include -I../../astro_image_io/src \
 // test_photometry_apply.cpp ../src/photometry_apply.cpp \
@@ -241,7 +241,7 @@ static void test_large_dynamic_range() {
 // ============================================================================
 // 以下是 Writer 元数据一致性校验测试
 //
-// 策略: 直接调用真实 hiss::HissWriter::open() 验证元数据一致性校验逻辑
+// 策略: 直接调用真实 hiss::HissWriter::open 验证元数据一致性校验逻辑
 // (链接 ../../astro_image_io/src/hiss_writer.cpp 等真实生产代码)
 // ============================================================================
 

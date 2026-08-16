@@ -93,7 +93,7 @@ ACR_BENCH_REGISTER_THREAD_CURVE("thread_curve/fma_fp32", run_thread_curve_arith)
 
 // ===== 25%/50%/75%/95%/100% 线程点（动态计算后注册）=====
 // Google Benchmark 不支持运行时动态 Threads(n)，必须编译时确定。
-// 因此用 ::benchmark::RegisterBenchmark 在 main() 调用前注册（这里通过全局对象初始化）
+// 因此用::benchmark::RegisterBenchmark 在 main 调用前注册（这里通过全局对象初始化）
 
 // 注意：以下注册器在 main 之前执行（静态初始化阶段）
 static const int kAutoRegisteredThreadCurve = []() {

@@ -379,7 +379,7 @@ extern "C" int acr_cuda_executor_submit_reduce(void* handle,
     auto* h = static_cast<CudaExecutorHandle*>(handle);
     std::lock_guard<std::mutex> lk(h->mtx);
     const size_t n = end - begin;
-    // 25 ：grid 块数 = ceil(n / 256)（覆盖整个 chunk，不再固定 256）
+    // 25：grid 块数 = ceil(n / 256)（覆盖整个 chunk，不再固定 256）
     const size_t blocks = (n + 255) / 256;
     if (blocks == 0 || blocks_per_chunk < blocks) {
         if (last_error) *last_error = set_error_msg("reduce span too small");
@@ -438,7 +438,7 @@ extern "C" int acr_cuda_executor_submit_conv3x3(void* handle,
     }, elapsed_ns, last_error);
 }
 
-// ===== ：目标合成 Operation =====
+// =====：目标合成 Operation =====
 
 // Dense pixel accumulate（FP32 输入 + FP64 累加器）
 extern "C" int acr_cuda_executor_submit_dense_accumulate_fp64acc(
@@ -591,7 +591,7 @@ extern "C" int acr_cuda_executor_transfer_d2h(
     }, elapsed_ns, last_error);
 }
 
-// ===== ：resident 持久上传与提交 =====
+// =====：resident 持久上传与提交 =====
 extern "C" int acr_cuda_executor_upload_persistent(
     void* handle, size_t begin, size_t end,
     const float* x,

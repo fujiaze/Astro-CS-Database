@@ -81,7 +81,7 @@ struct DispatcherConfig {
     // - 设备忙时不等待，其他空闲设备继续领取
     // - actual_primary_backend 从真实完成统计生成
     // 为空或仅 CPU executor 时退化为旧路径（向后兼容）
-    // 禁止用户提供 CPU/GPU 比例：分配由 executor.available() + claim_next_dynamic 决定
+    // 禁止用户提供 CPU/GPU 比例：分配由 executor.available + claim_next_dynamic 决定
     std::shared_ptr<ExecutorRegistry> executors;
 
     // ===== Dispatcher Finalization（06_ROUTE_ESTIMATOR_AND_DISPATCHER.md）=====
@@ -91,7 +91,7 @@ struct DispatcherConfig {
     const routing::RouteProfileV2* route_profile_v2{nullptr};
 
     // ===== 26 §9：内存采样注入缝隙（测试/诊断用）=====
-    // 生产路径为 null，使用 MemoryBudgetController::sample()。测试可注入
+    // 生产路径为 null，使用 MemoryBudgetController::sample。测试可注入
     // 确定性的内存采样序列，驱动内存 gate close/recover 与动作，验证闭环。
     std::function<utilization::MemoryBudget()> memory_sampler_override;
 };
@@ -190,7 +190,7 @@ struct CostAwareResult {
 
     // ===== Dispatcher Finalization：BDR 顶层路由决策记录 =====
     std::string benchmark_route_decision;  // "openmp"/"gpu_direct"/"mixed"/"none"
-    std::string benchmark_route_reason;    // decide() 返回的 reason
+    std::string benchmark_route_reason;    // decide 返回的 reason
     double benchmark_predicted_ms{0.0};    // chosen 路径预测（Profile E2E）
     std::uint64_t benchmark_cpu_chunk_items{0};  // Mixed 推荐 CPU 块
     std::uint64_t benchmark_gpu_chunk_items{0};  // Mixed 推荐 GPU 块

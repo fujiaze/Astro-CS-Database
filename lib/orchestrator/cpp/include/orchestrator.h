@@ -69,7 +69,7 @@ enum class PipelineStageV2 {
     SNR             = 5,  // snr_estimator.dll (异常值剔除 + 测光不确定度 + 帧SNR基准)
     NSIDE           = 6,  // 计算/验证 HEALPix NSIDE (auto 推导或 explicit 校验)
     DRIZZLE         = 7,  // healpix_drizzle.dll (nside 1-2x, SNR同步转换, 落盘 .hiss)
-    HIPS_VERIFY     = 8,  // Phase1 : 验证 HiPS 产品集 (signal/support/snr, AIO Reader)
+    HIPS_VERIFY     = 8,  // Phase1: 验证 HiPS 产品集 (signal/support/snr, AIO Reader)
     HISS_VERIFY     = 9,  // legacy: 验证 .hiss 文件完整性 (仅 validation 模式)
     BROWSER_VERIFY  = 10  // Browser 后端双精度读取/查询验证 (Qt GUI 另有独立测试)
     // legacy Stage2 (GRADIENT_SPHERE/STACK = healpix_stack) removed
@@ -335,7 +335,7 @@ private:
     std::chrono::steady_clock::time_point start_time_;
 
     // 取消 token (atomic, 线程安全)
-    // 由 request_cancel() 设置, 各 stage 在关键点检查并停止
+    // 由 request_cancel 设置, 各 stage 在关键点检查并停止
     std::atomic<bool> cancel_token_{false};
     // 超时标志 (atomic, 线程安全)
     // 由 stage watchdog 线程设置, stage handler 在循环中检查
@@ -367,7 +367,7 @@ private:
     std::string current_fits_path_;
     // 当前 stage1 正式输出 HiPS 目录 (run_stage_drizzle 使用)
     std::string current_output_path_;
-    // Phase1 : 当前 stage1 HiPS 产品集根目录
+    // Phase1: 当前 stage1 HiPS 产品集根目录
     std::string current_hips_dir_;
     // CFG-002: legacy .hiss 路径 (仅 legacy_hiss_compare=true 时非空)
     std::string legacy_hiss_path_;
@@ -376,7 +376,7 @@ private:
     // stage2 输出 .hcsd 路径 (run_stage_stack 使用)
     std::string current_output_hcsd_;
     // 当前 stage 配置 JSON (run_stage1/stage2 参数, 供 stage handler 读取)
-    // GAP-016/GAP-017: run_stage_drizzle 读 nside_strategy/nside_override,
+    // /: run_stage_drizzle 读 nside_strategy/nside_override,
     // run_stage_gradient_sphere 读 sigma_clip_method 等
     std::string current_config_json_;
     // typed Stage1 配置 (正式入口直接驱动, 替代 flat 字符串)
@@ -425,7 +425,7 @@ private:
     // 仅 validation.legacy_hiss_compare=true 时执行)
     // 同时验证 metadata 中 precision_mode 与请求一致
     bool run_stage_hiss_verify(TaskResult& result);
-    // Phase1 : HIPS_VERIFY (AIO HiPS Reader 验证 signal/support/snr 产品集)
+    // Phase1: HIPS_VERIFY (AIO HiPS Reader 验证 signal/support/snr 产品集)
     bool run_stage_hips_verify(TaskResult& result);
     // stage 9: BROWSER_VERIFY (Browser 后端双精度读取/查询验证)
     bool run_stage_browser_verify(TaskResult& result);

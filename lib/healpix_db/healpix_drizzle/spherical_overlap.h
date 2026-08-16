@@ -35,8 +35,8 @@ namespace spherical {
 
 // ============================================================================
 // 球面向量 (单位向量) — 模板双实例 ( 阶段7: 真 FP32/FP64 Scalar 几何)
-// Vec3T<float> : FP32 科学路径 (IEEE binary32 全链)
-// Vec3T<double> : FP64 科学路径 (IEEE binary64, 与旧 Vec3 一致)
+// Vec3T<float>: FP32 科学路径 (IEEE binary32 全链)
+// Vec3T<double>: FP64 科学路径 (IEEE binary64, 与旧 Vec3 一致)
 // ============================================================================
 template <typename T>
 struct Vec3T {
@@ -118,7 +118,7 @@ int sutherland_hodgman_spherical_fixed(
 //
 // hp: HEALPix 核心
 // ipix: 像素 NESTED 索引
-// nside: NSIDE (冗余参数, 与 hp.getNside() 一致, 保留接口一致性)
+// nside: NSIDE (冗余参数, 与 hp.getNside 一致, 保留接口一致性)
 // ============================================================================
 template <typename T>
 std::vector<Vec3T<T>> get_healpix_boundary(
@@ -139,7 +139,7 @@ std::vector<Vec3T<T>> get_healpix_boundary(
 //
 // hp: HEALPix 核心
 // ipix: 像素 NESTED 索引
-// nside: NSIDE (冗余参数, 与 hp.getNside() 一致)
+// nside: NSIDE (冗余参数, 与 hp.getNside 一致)
 // samples_per_edge: 每条边的采样段数 (>=1)
 // ============================================================================
 template <typename T>
@@ -267,7 +267,7 @@ void build_drop_geometry_into(DropGeometryT<Scalar>& g,
 
 // 使用预计算 drop 几何的重叠面积 (Scalar 实例; 返回 Scalar)
 // hp_res_rad 由调用方 run-context 传入，避免每候选重算
-// pixelResolutionArcsec()（整帧常量）；quick-reject 用 dot<cos(limit)
+// pixelResolutionArcsec（整帧常量）；quick-reject 用 dot<cos(limit)
 // 替代 acos（acos 在 [-1,1] 单调递减 → 数学等价）。
 template <typename Scalar>
 Scalar compute_overlap_area_g(const DropGeometryT<Scalar>& g,
@@ -287,7 +287,7 @@ Scalar compute_overlap_area_g_ctx(const DropGeometryT<Scalar>& g,
 // compute_overlap_area_g_ctx 每候选重算 pix2radec + radec_to_vec +
 // get_healpix_boundary4（4 角）。缓存 {center, boundary4} 消除重复：
 // - 容量有界（默认 8192，LRU 淘汰；线程私有，禁止跨线程共享）；
-// - key = target ipix；每次 run（drizzleTiled）开始 clear()，
+// - key = target ipix；每次 run（drizzleTiled）开始 clear，
 // 避免跨 run 的 NSIDE 不同导致的几何污染；
 // - 科学语义与 compute_overlap_area_g_ctx 逐位等价（同一数值路径，
 // 仅 geometry 取缓存）；false_negative 不变（缓存只复用不预筛）。

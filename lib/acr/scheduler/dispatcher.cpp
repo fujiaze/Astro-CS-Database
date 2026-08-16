@@ -4,7 +4,7 @@
 // F-fix 1 修正：
 // - actual_primary_backend 由真实完成统计生成，不从预测值填写
 // - predicted_primary_backend 单独保留
-// - coverage 从 MixedRunner.last_coverage() 真实导入，不无条件 mark_done
+// - coverage 从 MixedRunner.last_coverage 真实导入，不无条件 mark_done
 // - 固定尾段实验改名为 fixed_tail_chunking（不冒充动态 guided）
 #include "dispatcher.hpp"
 #include "shared_work_pool.hpp"
@@ -60,9 +60,9 @@ InvocationBufferLayout layout_for_invocation(const KernelInvocation& inv) {
 // ----------------------------------------------------------------------------
 // 替代旧的 std::atomic<bool> stop_new_submit（一旦 true 永久停止）。
 // 行为：
-// - close(): gate 关闭（可恢复）。MemoryBudget StopNewSubmit 时触发。
-// - close_permanent(): gate 永久关闭（MemoryBudget Fail 时触发）。
-// - try_recover(): 恢复。仅依据内存动作（26 §2：恢复不读取
+// - close: gate 关闭（可恢复）。MemoryBudget StopNewSubmit 时触发。
+// - close_permanent: gate 永久关闭（MemoryBudget Fail 时触发）。
+// - try_recover: 恢复。仅依据内存动作（26 §2：恢复不读取
 // CPU/GPU 利用率），动作不是 stop/fail 时重新开放 gate。
 // - gate 关闭时不立即返回，而是等待一小段时间（10ms × 重试次数）后
 // 检查是否恢复；持续关闭超过 5 秒才最终放弃剩余工作。
@@ -745,7 +745,7 @@ struct Dispatcher::Impl {
     }
 
     // F-fix 1：从 SharedWorkPool 导入 coverage 到 CurrentState
-    // F-fix 5: 使用 done_bitmap 而非 pool.blocks()
+    // F-fix 5: 使用 done_bitmap 而非 pool.blocks
     void import_pool_coverage() {
         auto bm = pool.done_bitmap();
         current_state.init_coverage(bm.size());
@@ -2513,7 +2513,7 @@ CostAwareResult Dispatcher::dispatch_invocation(
 
     // 24 §3：actual_primary 按每设备真实 items_done 最大者确定；
     // 相同则比较实际处理字节，再相同比较有效执行时间。禁止用
-    // actual_devices.front() 或 executor 顺序代替统计结果。
+    // actual_devices.front 或 executor 顺序代替统计结果。
     {
         const Impl::InvocationExecStats* best = nullptr;
         for (const auto& s : per_exec_stats) {

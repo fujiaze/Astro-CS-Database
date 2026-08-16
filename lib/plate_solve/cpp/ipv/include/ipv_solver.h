@@ -97,7 +97,7 @@ void extract_wcs_sip(
 // ---------------------------------------------------------------------------
 // v1.3: 求解器权威 inlier 缓存 (供 WCS Gate v2 双层闭环使用)
 //
-// 在 solve()/solve_from_memory()/solve_post_select() 末尾填充,
+// 在 solve/solve_from_memory/solve_post_select 末尾填充,
 // 通过 C API (ipv_get_last_inlier_count / ipv_get_last_inliers) 导出,
 // 用于 wcs_closure_diagnostic.py 的 --authoritative-pairs 模式。
 //

@@ -5,7 +5,7 @@
 // - 槽位预分配（slot[i].id == i），claim 时填充范围，不再返回容器内部指针；
 // - 动态模式：CAS cursor 推进 + requested_items（调用方 CostEstimate 给出），
 // 尾部按 remaining 收缩；GPU 数量不再由池内部折算块大小；
-// - 完成判据：cursor>=end && inflight==0 && retry_queue.empty()
+// - 完成判据：cursor>=end && inflight==0 && retry_queue.empty
 // && failed_terminal==0 && completed_items==end-begin。
 #include "shared_work_pool.hpp"
 

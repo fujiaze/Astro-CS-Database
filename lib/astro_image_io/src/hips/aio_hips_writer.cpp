@@ -1,5 +1,5 @@
 // ============================================================================
-// aio_hips_writer.cpp - IVOA HiPS 1.4 生产链写入器 (Phase1 Final Closure )
+// aio_hips_writer.cpp - IVOA HiPS 1.4 生产链写入器 (Phase1 Final Closure)
 //
 // 数据流 (无 HISS 中转):
 // Drizzle TileAccumulator -> AstroSphereTileView -> 本写入器 (流式)
@@ -341,7 +341,7 @@ struct AncestorAcc {
 // ============================================================================
 struct AioHipsProductSet {
     std::string out_dir;
-    // V19R4：Drizzle provenance（默认未设置 → properties 不写）
+    //Drizzle provenance（默认未设置 → properties 不写）
     bool drizzle_prov_set = false;
     double drizzle_pixfrac = 0.0;
     double drizzle_scale_arcsec = 0.0;
@@ -719,7 +719,7 @@ static bool finalize_image_product(AioHipsProductSet* ps,
     kv.push_back({"hips_creator", "AstroCS (astro_image_io)"});
     kv.push_back({"hips_builder", "AstroCS aio_hips_writer (CFITSIO 4.6.4)"});
     kv.push_back({"hips_estsize", "1000000"});
-    // META-001 : 真实 UTC finalize 时间, 禁止硬编码日期
+    // META-001: 真实 UTC finalize 时间, 禁止硬编码日期
     char rel_date[32], cre_date[40];
     utc_now_date(rel_date, sizeof(rel_date));
     utc_now_iso(cre_date, sizeof(cre_date));
@@ -727,7 +727,7 @@ static bool finalize_image_product(AioHipsProductSet* ps,
     kv.push_back({"hips_creation_date", cre_date});
     kv.push_back({"obs_description", "AstroCS Phase1 single-frame HiPS product"});
     kv.push_back({"prov_progenitor", "ivo://astrocs/phase1/drizzle"});
-    // V19R4（K_CORR_DOMAIN）：Drizzle provenance → sampler 按帧 k_corr
+    // （K_CORR_DOMAIN）：Drizzle provenance → sampler 按帧 k_corr
     if (ps->drizzle_prov_set) {
         char pf[32], sc[32];
         std::snprintf(pf, sizeof(pf), "%.6f", ps->drizzle_pixfrac);
@@ -739,7 +739,7 @@ static bool finalize_image_product(AioHipsProductSet* ps,
         }
     }
     kv.push_back({"obs_regime", "optical"});
-    // META-002 : 无真实 passband/系统响应波长范围时不伪造 em_min/em_max
+    // META-002: 无真实 passband/系统响应波长范围时不伪造 em_min/em_max
     kv.push_back({"hips_hierarchy", "true"});
     kv.push_back({"hips_pixel_scale", buf});
     kv.push_back({"hips_initial_fov", "60"});
@@ -891,7 +891,7 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
     std::map<uint64_t, std::vector<const AioHipsSnrPoint*>> by_cell;
     std::set<uint64_t> cells;
     for (const auto& p : ps->snr) {
-        // 共享 HEALPix core : 不再维护 AIO 私有 ang2ipix
+        // 共享 HEALPix core: 不再维护 AIO 私有 ang2ipix
         uint64_t ip = astrocs::healpix::ang2pix_nest(1u << ps->tile_order,
                                                      p.ra_deg, p.dec_deg);
         by_cell[ip].push_back(&p);
@@ -906,7 +906,7 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
         FILE* f = std::fopen(p.c_str(), "wb");
         if (!f) { set_error("无法创建 SNR tile: " + p); return false; }
         std::fputs(header, f);
-        // SNR-PREC-001 : FP32 -> %.9g (float32 round-trip),
+        // SNR-PREC-001: FP32 -> %.9g (float32 round-trip),
         // FP64 -> %.17g (float64 round-trip), 不再使用 %.6f
         const char* snr_fmt = (ps->data_type == AIO_HIPS_FLOAT32) ? "%.9g" : "%.17g";
         char line_fmt[64];
@@ -931,7 +931,7 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
     kv2.push_back({"hips_status", "private master"});
     kv2.push_back({"hips_creator", "AstroCS (astro_image_io)"});
     kv2.push_back({"hips_builder", "AstroCS aio_hips_writer (CFITSIO 4.6.4)"});
-    // META-001 : 真实 UTC finalize 时间, 禁止硬编码日期
+    // META-001: 真实 UTC finalize 时间, 禁止硬编码日期
     char rel_date2[32], cre_date2[40];
     utc_now_date(rel_date2, sizeof(rel_date2));
     utc_now_iso(cre_date2, sizeof(cre_date2));
@@ -940,7 +940,7 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
     kv2.push_back({"obs_description", "AstroCS Phase1 single-frame SNR catalogue HiPS product"});
     kv2.push_back({"prov_progenitor", "ivo://astrocs/phase1/drizzle"});
     kv2.push_back({"obs_regime", "optical"});
-    // META-002 : 无真实 passband/系统响应波长范围时不伪造 em_min/em_max
+    // META-002: 无真实 passband/系统响应波长范围时不伪造 em_min/em_max
     if (!ps->obs_date.empty()) {
         double t0 = 0.0;
         if (iso_to_mjd(ps->obs_date, t0)) {
@@ -1003,7 +1003,7 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
     return true;
 }
 
-// V19R4（K_CORR_DOMAIN 选项 B）：Drizzle provenance setter
+// （K_CORR_DOMAIN 选项 B）：Drizzle provenance setter
 int aio_hips_set_drizzle_provenance(AioHipsProductSet* ps,
                                     double pixfrac, double scale_arcsec) {
     if (!ps) return 1;

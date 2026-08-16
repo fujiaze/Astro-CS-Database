@@ -3,9 +3,9 @@
 //
 // 设计（ADR-009 CPU-only build gate）：
 // 1. 整个 header 用 #ifdef ACR_BUILD_CUDA 保护，CPU-only 构建不展开任何 CUDA 符号
-// 2. CudaBackend singleton lazy init；无设备/驱动错误时 available()=false，runtime 不崩溃
+// 2. CudaBackend singleton lazy init；无设备/驱动错误时 available=false，runtime 不崩溃
 // 3. cudaError 转 StatusCode（DeviceLost / KernelFailed / OutOfMemory）
-// 4. initialize() 内注册 GPU 报告回调到 topology（generate_hardware_report 含 GPU 字段）
+// 4. initialize 内注册 GPU 报告回调到 topology（generate_hardware_report 含 GPU 字段）
 // 5. cuda_parallel_for 模板仅在 CUDA 编译单元（__CUDACC__）可见，用 <<<>>> 启动
 // 6. 公共 acr.hpp 不 include 本头；本头仅供 cuda/ 内部 + 测试 + example 使用
 #pragma once
@@ -39,7 +39,7 @@ struct CudaDeviceInfo {
 StatusCode cuda_error_to_status(cudaError_t err) noexcept;
 
 // ===== CudaBackend：singleton lazy init =====
-// 无 CUDA 设备 / 驱动错误时 available()=false，调用者回退 CPU（不抛异常）。
+// 无 CUDA 设备 / 驱动错误时 available=false，调用者回退 CPU（不抛异常）。
 class CudaBackend {
 public:
     static CudaBackend& instance();
@@ -84,7 +84,7 @@ inline StatusCode cuda_parallel_for(const char* /*name*/, std::size_t n,
 
 // ===== AXPY kernel 启动器 =====
 // y[i] = a * x[i] + y[i]，y/x 为 device pointer，n 为元素数。
-// 内部通过 cuda_parallel_for 启动，stream 默认用 CudaBackend::stream()。
+// 内部通过 cuda_parallel_for 启动，stream 默认用 CudaBackend::stream。
 StatusCode axpy(float* y, const float* x, float a, std::size_t n,
                 cudaStream_t stream = nullptr) noexcept;
 

@@ -72,7 +72,7 @@ struct StarSelection {
     std::vector<StarPoint> U;   // 图像侧星点 (角秒坐标, 50 颗)
     std::vector<StarPoint> W;   // Gaia 侧星点 (角秒坐标, ~75-150 颗)
     // 保存 Gaia 星原始 (ra, dec) 用于迭代重投影 (Task 11)
-    // 与 W 一一对应, 长度 = W.size()
+    // 与 W 一一对应, 长度 = W.size
     std::vector<double> gaia_ra;    // Gaia 星原始 RA(度) - 切平面投影前
     std::vector<double> gaia_dec;   // Gaia 星原始 Dec(度) - 切平面投影前
     // 元数据
@@ -191,7 +191,7 @@ struct IPVSolverParams {
     double s_min = 0.90;                    // 尺度下限 (±10%, 符合项目约束)
     double s_max = 1.10;                    // 尺度上限 (±10%)
 
-    // --- StarSelector 参数 (复用 ) ---
+    // --- StarSelector 参数 (复用) ---
     // 默认 20 颗
     // C(60,3)=34220 vs C(20,3)=1140 (30倍), 三角形爆炸稀释投票
     // 自适应扩充 20→40→60 仅在 max_vote < vote_threshold 时触发

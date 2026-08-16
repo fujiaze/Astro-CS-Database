@@ -8,8 +8,8 @@
 // 各模块在初始化/数据处理时查询当前精度, 据此决定走 FP32 还是 FP64 实例.
 //
 // 使用约定:
-// - 启动顺序: orchestrator 读配置 -> PrecisionContext::set_scalar_type()
-// -> 各子模块初始化 (读取 scalar_type()) -> 数据处理
+// - 启动顺序: orchestrator 读配置 -> PrecisionContext::set_scalar_type
+// -> 各子模块初始化 (读取 scalar_type) -> 数据处理
 // - 线程安全: 仅启动阶段写入, 数据处理阶段只读; 多线程只读无需加锁.
 // 若需要在运行中切换精度 (当前不支持), 调用方需自行同步.
 // - 默认值: FP32, 保证未显式初始化时与历史行为兼容.

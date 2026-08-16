@@ -3,7 +3,7 @@
 // GPU 不可用时不创建 executor（运行时探测，不得仅凭编译宏）。
 // 流程：
 // 1. LoadLibrary acr_cuda_bridge.dll（MSVC+nvcc 构建，C ABI）；
-// 2. 填充 bridge::api() 函数指针；
+// 2. 填充 bridge::api 函数指针；
 // 3. 探测真实设备；有设备时注册 CudaBridgeExecutor（每个设备一个）；
 // 4. 无 DLL / 无设备 → 不注册，CPU executor 继续使用。
 #include "scheduler/device_executor.hpp"
@@ -95,7 +95,7 @@ void* get_tls_handle() noexcept { return tls_handle; }
 void set_tls_elapsed(std::uint64_t ns) noexcept { tls_elapsed_ns = ns; }
 std::uint64_t get_tls_elapsed() noexcept { return tls_elapsed_ns; }
 
-// loader 内部使用：加载一次并填充 api()
+// loader 内部使用：加载一次并填充 api
 void ensure_bridge_loaded() {
     std::call_once(g_load_flag, [] {
         HMODULE mod = try_load();

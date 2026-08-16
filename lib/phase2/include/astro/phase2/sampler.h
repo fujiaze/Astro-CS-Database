@@ -79,10 +79,10 @@ typedef struct P2ControlNode {
     std::uint64_t leaf_ipix;   // cell 中心叶级像素
 } P2ControlNode;
 
-// 内容稳定帧标识（DATA-FRAME-ID-001，V19R4 冻结）：
+// 内容稳定帧标识（DATA-FRAME-ID-001， 冻结）：
 // frame_id = truncated-64(canonical SHA-256 of science payload identity)
 // - 输入：关键 properties 白名单 + signal tile 像素 + support tile 像素 +
-//   SNR catalogue 内容（实现见 sampler.cpp p2_frame_id）；
+// SNR catalogue 内容（实现见 sampler.cpp p2_frame_id）；
 // - 路径/重命名/换根目录不变；任何科学 payload 变化 → 改变；
 // - 取 SHA-256 前 16 hex 字符（大端序截断）为 uint64；
 // - 与输入顺序无关；UPM 参考帧 = 每分量最小 frame_id。

@@ -66,7 +66,7 @@ TEST(TaskDescriptor, MakeTilesDescriptorZeroExtent) {
     TileShape tile{64, 64};
     TaskDescriptor d = make_tiles_descriptor("op.zero", ext, tile, traits, Precision::Default);
     EXPECT_EQ(d.work_size(), 0u);
-    EXPECT_FALSE(d.is_2d());  // count()==0
+    EXPECT_FALSE(d.is_2d());  // count==0
 }
 
 // ============================================================================
@@ -125,7 +125,7 @@ TEST(TaskDescriptor, WorkSizeExtentSecond) {
     d.range = {0, 0};
     d.extent = {10, 10};
     d.item_count = 50;
-    // range.size()==0 → 用 extent
+    // range.size==0 → 用 extent
     EXPECT_EQ(d.work_size(), 100u);
 }
 

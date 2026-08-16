@@ -1,7 +1,7 @@
 // lib/acr/tests/unit/test_cuda_bridge.cpp — CUDA 桥接真实 GPU 测试
 //
 // 23 §6：
-// - 无 GPU/无桥接 DLL → GTEST_SKIP()（不得返回 correct=true 冒充通过）；
+// - 无 GPU/无桥接 DLL → GTEST_SKIP（不得返回 correct=true 冒充通过）；
 // - GPU-only：AXPY/COPY/REDUCE/CONV3x3 经 KernelRegistry + 真实 CUDA launcher；
 // - 真实 Mixed：CPU 与 GPU 均完成非零工作（cpu_done>0 && gpu_done>0）；
 // - actual device ID 来自 completion（SubmitHandle.device）。

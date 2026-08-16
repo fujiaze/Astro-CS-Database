@@ -99,8 +99,8 @@ static bool gauss_solve_wcs(std::vector<std::vector<double>>& A,
 // FLIP_XY: W.x = -W'.x, W.y = -W'.y
 // CD 矩阵 (度/像素):
 // scale = s·s0/3600
-// sign_x = (mode==FLIP_X || mode==FLIP_XY) ? -1 : +1
-// sign_y = (mode==FLIP_Y || mode==FLIP_XY) ? -1 : +1
+// sign_x = (mode==FLIP_X || mode==FLIP_XY) ? -1: +1
+// sign_y = (mode==FLIP_Y || mode==FLIP_XY) ? -1: +1
 // CD1_1 = sign_x · scale · cos
 // CD1_2 = sign_x · scale · sin
 // CD2_1 = sign_y · scale · sin
@@ -526,7 +526,7 @@ void extract_wcs_sip(
     result->success      = true;
 
     // ------------------------------------------------------------------
-    // 8. : 转换为标准 FITS WCS (Y-down)
+    // 8.: 转换为标准 FITS WCS (Y-down)
     // solver 内部用 Y-up 约定 (U.y = -(det_y - cy), 见 ipv_select.cpp:687),
     // 但 FITS/WCS 国际标准 Y 向下 (数据行号递增 = Y 增大)。
     // 需在输出边界做 Y-up → Y-down 转换, 使 IpvWcsResult 直接为标准 WCS。

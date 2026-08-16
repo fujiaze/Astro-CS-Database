@@ -2,13 +2,13 @@
 // Phase B：oneTBB 同步执行（提交即执行，完成后 mark_done）。
 //
 // 设计要点：
-// - lazy singleton：首次 detail::submit_* 调用 ensure_runtime_initialized()
+// - lazy singleton：首次 detail::submit_* 调用 ensure_runtime_initialized
 // - tbb::global_control 限制全局工作线程数；tbb::task_arena 提供执行上下文
 // - tbb 类型只在本文件出现，不暴露给公共头
 // - EventImpl 生命周期：submit_* 创建 shared_ptr<EventImpl>，kernel 完成后 mark_done
 // - 取消：检查 EventImpl::cancelled，被取消时提前返回
 // - release_fn：kernel 完成/异常/取消后调用一次（RAII KernelGuard 保证）
-// - 异常：kernel 抛异常 → catch → mark_failed(KernelFailed, e.what())
+// - 异常：kernel 抛异常 → catch → mark_failed(KernelFailed, e.what)
 // - runtime_init 幂等：首次配置生效，后续调用 no-op；shutdown 后可重新 init
 //
 // Phase B4：submit_*_with_desc 接通 CostEstimator + Dispatcher 调用链。
@@ -163,7 +163,7 @@ void ensure_runtime_initialized() {
 // RAII guard：计数 + 释放 user_data
 // - 构造时 active_kernels++ / total_submitted++ / set_state(Running)
 // - 析构时调用 release_fn（仅一次） + active_kernels--
-// - release_early() 用于 cancel 路径提前释放后再 return
+// - release_early 用于 cancel 路径提前释放后再 return
 struct KernelGuard {
     ReleaseFn rel;
     void* user_data;
@@ -475,7 +475,7 @@ void submit_reduce(Range1D range, const void* identity, std::size_t elem_size,
 // ============================================================================
 // 设计：
 // 1. 构造 TaskDescriptor
-// 2. 从 global_cost_estimator() 获取 CostEstimate
+// 2. 从 global_cost_estimator 获取 CostEstimate
 // 3. 无画像/无 GPU → 退化为 submit_*（CPU tbb 路径）
 // 4. 有画像 + GPU → 用 Dispatcher::dispatch_range_cost_aware
 // 5. 无论走哪条路径，release_fn 都由 KernelGuard 保证调用一次

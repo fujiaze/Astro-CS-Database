@@ -17,10 +17,10 @@
 // - FOV/密度计算 + 自适应步长迭代极限星等 ( ss_core.cpp)
 // - Gaia 锥形查询 (gaia_client.dll, 句柄由外部注入)
 // - Gnomonic 投影 + FOV 内过滤
-// - : 保存 Gaia 原始 (ra, dec) 到 selection.gaia_ra/gaia_dec 供迭代重投影
+// -: 保存 Gaia 原始 (ra, dec) 到 selection.gaia_ra/gaia_dec 供迭代重投影
 //
 // 接口: 内部 C++ 函数, 无 ctypes 边界, 无 JSON 序列化
-// 句柄: 通过 get_gaia_client_handle() / get_star_detector_handle() 获取
+// 句柄: 通过 get_gaia_client_handle / get_star_detector_handle 获取
 // ============================================================================
 
 #include "ipv_select.h"

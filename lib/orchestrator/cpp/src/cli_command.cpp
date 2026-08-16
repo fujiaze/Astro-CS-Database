@@ -37,7 +37,7 @@
 
 // ============================================================================
 // 全局取消信号支持
-// 通过全局指针在 SIGINT/Ctrl+C 信号处理器中调用 orch->request_cancel()
+// 通过全局指针在 SIGINT/Ctrl+C 信号处理器中调用 orch->request_cancel
 // 注意: 信号处理器中只能调用 async-signal-safe 函数, atomic store 是安全的
 // ============================================================================
 static std::atomic<Orchestrator*> g_active_orchestrator{nullptr};

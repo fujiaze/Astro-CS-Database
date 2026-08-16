@@ -5,7 +5,7 @@
 // 设计要点：
 // - 检测在构造时一次性完成，结果存入 mask_（atomic-free，构造后不可变）
 // - AVX-512 子集独立 bit，禁止合并（ADR-004 关键约束）
-// - has() 安全门禁：传入组合 mask 时全部 bit 都支持才返回 true
+// - has 安全门禁：传入组合 mask 时全部 bit 都支持才返回 true
 // - baseline 路径（无任何扩展）永远可用，不依赖检测结果
 // - 无 __builtin_cpu_supports（如 MSVC）时 mask_ 仅含 SSE2（x86-64 必有）
 #include "astro/compute/topology.hpp"

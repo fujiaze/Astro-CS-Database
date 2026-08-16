@@ -59,7 +59,7 @@ StatusCode Event::status() const noexcept {
     switch (s) {
         case detail::EventState::Pending:
         case detail::EventState::Running:
-            // 未完成视为非错误（Ok）；调用者可用 ready() 判断是否就绪
+            // 未完成视为非错误（Ok）；调用者可用 ready 判断是否就绪
             return StatusCode::Ok;
         case detail::EventState::Done:
             return StatusCode::Ok;

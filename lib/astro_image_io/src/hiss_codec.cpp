@@ -320,7 +320,7 @@ struct RegistryState {
 #endif
 
         // --- CRC32C (必须, INTERIM_BASELINE_NOT_FROZEN 候选) ---
-        // 内置注册, Reader/Writer 通过 ChecksumRegistry::find() 共享同一实现
+        // 内置注册, Reader/Writer 通过 ChecksumRegistry::find 共享同一实现
         {
             ChecksumEntry e;
             e.id      = ChecksumType::CRC32C;
@@ -345,7 +345,7 @@ static RegistryState& registry_state() {
 
 // 全局单例 (Meyers singleton, C++11 起局部静态初始化线程安全)
 // 注: CodecRegistry 类在头文件中未声明私有成员与构造函数, 使用编译器隐式
-// 默认构造; 注册表状态由 registry_state() 独立管理。
+// 默认构造; 注册表状态由 registry_state 独立管理。
 CodecRegistry& CodecRegistry::instance() {
     static CodecRegistry inst;
     // 触发注册表状态初始化 (含内置 codec 注册), 首次访问时执行
@@ -404,7 +404,7 @@ std::vector<CodecId> CodecRegistry::list() const {
 
 // 全局单例 (Meyers singleton, C++11 起局部静态初始化线程安全)
 // 注: ChecksumRegistry 类在头文件中未声明私有成员与构造函数, 使用编译器隐式
-// 默认构造; 注册表状态由 registry_state() 独立管理 (与 CodecRegistry 共享)。
+// 默认构造; 注册表状态由 registry_state 独立管理 (与 CodecRegistry 共享)。
 ChecksumRegistry& ChecksumRegistry::instance() {
     static ChecksumRegistry inst;
     // 触发注册表状态初始化 (含内置 CRC32C 注册), 首次访问时执行

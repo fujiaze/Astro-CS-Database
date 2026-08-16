@@ -58,7 +58,7 @@ typedef struct {
 } PcMatchRecord;
 
 // ============================================================================
-// 简化版测光校准 C API (GAP-012 + GAP-013 改进版)
+// 简化版测光校准 C API ( + 改进版)
 //
 // 功能: WCS投影Gaia星 -> KD-tree匹配PSF星 -> 星等一致性过滤
 // -> IRLS+Tukey 稳健清洗 -> 全局 scale 校正
@@ -128,7 +128,7 @@ PC_API int pc_calibrate_simple(
 // ra_center, dec_center, radius_deg - 锥形搜索中心与半径(度)
 // mag_min, mag_max - 星等范围
 // filter_wl/trans/count - 滤光片波长(nm)与透过率[0,1]
-// qe_wl/trans/count - CCD QE 波长(nm)与透过率[0,1] (GAP-012; 可为 nullptr, Q(λ)=1.0)
+// qe_wl/trans/count - CCD QE 波长(nm)与透过率[0,1] (; 可为 nullptr, Q(λ)=1.0)
 // spectrum_wl, spectrum_count - 光谱波长数组[336,338,...,1020]nm (长度通常343)
 // pixels, width, height - 输入图像 float32 [H*W]
 // psf_cx/cy/flux/status, n_psf - PSF 测光星 (status 0=有效)
@@ -176,7 +176,7 @@ PC_API int pc_calibrate_simple_with_gaia(
 // 图像校正: out[i] = pixels[i] * scale (double 精度累加, 不损失有效数字).
 //
 // 使用约定:
-// - PrecisionContext::is_fp64() 为 true 时, orchestrator 调用本接口
+// - PrecisionContext::is_fp64 为 true 时, orchestrator 调用本接口
 // - 输入 pixels 必须来自 PipelineFrame 的 FLOAT64 data 块 (AIO_BLOCK_FLOAT64)
 // - 输出 out_pixels 写回时也使用 AIO_BLOCK_FLOAT64
 // - 禁止静默转换: float32 数据应走 pc_calibrate_simple_with_gaia, 不要先转 double 再调本接口

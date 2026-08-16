@@ -147,23 +147,23 @@ T angular_distance(const Vec3T<T>& a, const Vec3T<T>& b) {
 }
 
 // ============================================================================
-// 球面多边形面积 (R06-B05: 球面三角剖分 + Eriksson 稳定公式)
+// 球面多边形面积 (: 球面三角剖分 + Eriksson 稳定公式)
 //
-// R06-B01/B05 根因:
+// 根因:
 // 的双路径 (小多边形切平面鞋带 / 大多边形 Girard) 仍有缺陷:
 // 1. 极区 1° 像素是大边形, 走 Girard 路径, 但内角和 ≈ n×(π/2) = 2π,
 // (n-2)π = 2π, excess ≈ 0, catastrophic cancellation → 通量爆炸 303305×
-// 2. Girard 切向量 t = A - (A·B)·B 在 A·B≈1 时有效数字丢失 (R05-B01 已识别)
+// 2. Girard 切向量 t = A - (A·B)·B 在 A·B≈1 时有效数字丢失 ( 已识别)
 // 3. 双路径切换阈值 60" 无数学依据, 1° 像素 (3600") 远超阈值走 Girard 失效
 //
-// 修复 (R06-B05):
+// 修复:
 // 统一使用球面三角剖分 (fan triangulation) + Eriksson (2018) 稳定公式:
 // 1. fan triangulation 以 V_0 为顶点: 三角形 (V_0, V_i, V_{i+1}), i=1..n-2
 // 2. 每个球面三角形有向面积 = 2·atan2(det, 1 + a·b + b·c + c·a)
 // 其中 det = a · (b × c) (标量三重积, 含符号)
 // 3. 累加有向面积 (det<0 时三角形反向, 贡献负值)
 //
-// R06-B05 修正: 原实现用 center 做扇出且 det<0 时取补面积 (4π-area),
+// 修正: 原实现用 center 做扇出且 det<0 时取补面积 (4π-area),
 // 这在 center 不在多边形内部时产生系统性误差. 改用 V_0 扇出 + 有符号累加,
 // 对凸多边形 (S-H 裁剪结果) 总是正确, 无需依赖 center 位置.
 //
@@ -412,7 +412,7 @@ template <typename T>
 std::vector<Vec3T<T>> get_healpix_boundary(
     const healpix::HealpixCore& hp, uint64_t ipix, int nside)
 {
-    (void)nside;  // 使用 hp.getNside(), 参数保留接口一致性
+    (void)nside;  // 使用 hp.getNside, 参数保留接口一致性
     std::vector<Vec3T<T>> boundary;
     boundary.reserve(4);
 
@@ -529,7 +529,7 @@ void get_healpix_boundary4(const healpix::HealpixCore& hp, uint64_t ipix,
 }
 
 // ============================================================================
-// R06-B02: HEALPix 像素边自适应细分辅助函数
+// HEALPix 像素边自适应细分辅助函数
 //
 // 对 HEALPix 像素的一条边 (像素坐标 (x0,y0)->(x1,y1)) 进行自适应二分细分.
 // 边在像素坐标系为直线, 但映射到球面后既非大圆弧也非等纬度小圆弧
@@ -608,7 +608,7 @@ static void subdivide_healpix_edge(
 }
 
 // ============================================================================
-// 获取 HEALPix 像素的球面边界顶点 (R06-B02 自适应细分)
+// 获取 HEALPix 像素的球面边界顶点 ( 自适应细分)
 //
 // 对所有 NSIDE 统一使用自适应边细分策略:
 // - 极区像素和赤道带像素均通过 subdivide_healpix_edge 处理
@@ -630,7 +630,7 @@ std::vector<Vec3T<T>> get_healpix_boundary_sampled(
     int samples_per_edge)
 {
     (void)nside;
-    (void)samples_per_edge;  // R06-B02: 自适应细分, 不再依赖固定采样数
+    (void)samples_per_edge;  //: 自适应细分, 不再依赖固定采样数
 
     int Ns = hp.getNside();
     // 性能: 高 NSIDE (小像素) 时 4 角已足够 — HEALPix 边偏离大圆弧的偏差
@@ -1211,7 +1211,7 @@ Scalar overlap_area_impl(const DropGeometryT<Scalar>& g,
 
     // 判定在 double 缓存 (clip_normals_d / center_d) 上进行, 与 Scalar 存储
     // 无关, FP32/FP64 实例必须使用同一容差: 1e-12 仅覆盖 double 舍入。
-    // 注 : 凸分离快速判定 (drop 全在像素某边外 / 像素全在 drop 某边外)
+    // 注: 凸分离快速判定 (drop 全在像素某边外 / 像素全在 drop 某边外)
     // 已移除 — 球面像素边界的支撑线无法精确表示 (细分小段不是支撑线,
     // 主 4 角大圆弧与真实边界内缩/外扩不定), 任何近似支撑线的分离判定都会
     // 在边界附近误杀真实相交的 drop (L0 NSIDE=64 实测通量丢失 0.6%)。
@@ -1316,7 +1316,7 @@ Scalar overlap_area_impl(const DropGeometryT<Scalar>& g,
             Vec3 intersection[16];
             int ni = sutherland_hodgman_spherical_fixed(triangle, 3, drop_clip_normals, intersection, 16);
             if (ni < 3) continue;
-            // 面积与 drop_area 同一尺度感知策略 :
+            // 面积与 drop_area 同一尺度感知策略:
             // drop 微小 (max_angle < 1e-3 rad) 时交集也是微小多边形,
             // 用切平面面积 (与 g.drop_area 表示一致, 避免 weight 偏差);
             // 大 drop 用球面 Eriksson
@@ -1445,7 +1445,7 @@ Scalar compute_overlap_area_g_ctx_cached(
 // ============================================================================
 // 查询与 drop 多边形可能相交的所有 HEALPix 像素 (不限于 1-ring)
 //
-// R06-B04 修复: 保守球冠保证不漏选
+// 修复: 保守球冠保证不漏选
 // 原实现用 1.5×hp_res 经验缓冲, 在 1°/pixel 极区场景下漏选 8/288 例.
 // 修复方案:
 // 1. drop 包围圆半径 = max(顶点到中心角距离) + drop 对角线半长裕量
@@ -1480,7 +1480,7 @@ void query_candidate_pixels(
         if (ang > max_angle) max_angle = ang;
     }
 
-    // 2. R06-B04: 保守缓冲 — HEALPix 像素最大角半径 + 裕量
+    // 2.: 保守缓冲 — HEALPix 像素最大角半径 + 裕量
     // HEALPix 像素分辨率 (角秒) = sqrt(4π/(12*nside²)) * 206265
     // 像素最大角半径 (中心→最远顶点) 实测上界 = 1.044 × hp_res
     // (全像素扫描 @dec=±41.81°; CAND-001 证明)

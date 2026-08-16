@@ -1,7 +1,7 @@
 // lib/acr/backends/classic/classic_kernels.cpp — 经典实验内核注册实现
 //
 // CPU launcher：纯 host 实现（正确性基准）。
-// CUDA launcher：通过 bridge::api()（TLS 句柄）启动真实 GPU kernel；
+// CUDA launcher：通过 bridge::api（TLS 句柄）启动真实 GPU kernel；
 // 桥接不可用时抛异常 → executor 如实报告 Failed（不伪装 GPU 执行）。
 #include "classic_kernels.hpp"
 

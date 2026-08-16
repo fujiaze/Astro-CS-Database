@@ -47,7 +47,7 @@ namespace hiss {
 // 内部常量
 // ============================================================================
 
-// R04-B12: occupancy 自动选择 — 不再使用硬编码阈值
+// occupancy 自动选择 — 不再使用硬编码阈值
 // FULL 仅当 n_valid == n_leaf_per_tile (100% 覆盖, 02_FROZEN §9)
 // BITMAP/SPARSE_LIST 按实际完整编码大小自动选最小者, 确定性 tie-break
 // 不冻结经验阈值 (DQ-005 由实验决定, 但生产路径不依赖固定阈值)
@@ -153,7 +153,7 @@ static int compress_and_append(HissStreamWriter& stream,
                   transform_type_name(tt), data_size, size_to_compress, element_size);
     }
 
-    // R04-B17: 内置子块 ext_type_id = 0 (非 EXTENSION 类型)
+    // 内置子块 ext_type_id = 0 (非 EXTENSION 类型)
     desc.type              = type;
     desc.ext_type_id       = (uint16_t)ExtensionNamespace::BUILTIN;  // 0=内置
     desc.flags             = flags;
@@ -163,14 +163,14 @@ static int compress_and_append(HissStreamWriter& stream,
     desc.checksum_type     = ChecksumType::NONE;  // 默认 NONE, 下方按 checksum_type 覆盖
     desc.checksum          = 0;
 
-    // R04-B13: RAW 回退 — 若 codec != RAW, 压缩后若无收益则真实回退 RAW
+    // RAW 回退 — 若 codec != RAW, 压缩后若无收益则真实回退 RAW
     // 判据: compressed_size >= size_to_compress (压缩后不小于原始)
     // 回退: codec_id=RAW, compressed_size=size_to_compress, 写入原始数据
     const uint8_t* final_data = data_to_compress;
     size_t final_size = size_to_compress;
     CodecId final_codec = codec_id;
     // 压缩缓冲提升到函数作用域 — 原实现在 if 块内声明, else 分支
-    // final_data=compressed.data() 在块结束后成为悬垂指针, append_subblock
+    // final_data=compressed.data 在块结束后成为悬垂指针, append_subblock
     // 读取已析构内存 → fwrite EINVAL (启用 ZSTD 后写入失败)。
     std::vector<uint8_t> compressed_buf;
 
@@ -204,7 +204,7 @@ static int compress_and_append(HissStreamWriter& stream,
             return -2;
         }
 
-        // R04-B13: 判断压缩是否有收益
+        // 判断压缩是否有收益
         if (compressed_size >= size_to_compress) {
             // 压缩无收益 → 回退 RAW
             HISS_DLOG("[hiss][writer]   R04-B13 RAW 回退: compressed=%zu >= uncompressed=%zu -> 使用 RAW\n",
@@ -225,7 +225,7 @@ static int compress_and_append(HissStreamWriter& stream,
     desc.codec_id        = final_codec;
 
     // checksum 计算 (INTERIM_BASELINE_NOT_FROZEN)
-    // 计算的是压缩后数据 (与 Reader 端一致, Reader 在解压前校验 comp.data())
+    // 计算的是压缩后数据 (与 Reader 端一致, Reader 在解压前校验 comp.data)
     if (checksum_type != ChecksumType::NONE) {
         const ChecksumEntry* cs = ChecksumRegistry::instance().find(checksum_type);
         if (!cs) {
@@ -259,11 +259,11 @@ static int compress_and_append(HissStreamWriter& stream,
 }
 
 // ---------------------------------------------------------------------------
-// 内部辅助: 自动选择 occupancy 模式 (R04-B12)
+// 内部辅助: 自动选择 occupancy 模式
 // FULL 仅当 n_valid == n_leaf_per_tile (100% 覆盖, 02_FROZEN §9)
 // 否则按实际完整编码大小自动选 BITMAP 或 SPARSE_LIST 的最小者
 // 确定性 tie-break: 大小相等时选 BITMAP (解码更简单, 无需二分查找)
-// 不冻结经验阈值 (R04-B12 红线)
+// 不冻结经验阈值 ( 红线)
 //
 // BITMAP 完整编码大小 = ceil(n_leaf_per_tile / 8) 字节
 // SPARSE_LIST 完整编码大小 = n_valid * sizeof(uint32_t) 字节
@@ -275,7 +275,7 @@ static OccupancyMode auto_select_occupancy(uint32_t n_valid, uint32_t n_leaf_per
     if (n_valid == n_leaf_per_tile) {
         return OccupancyMode::FULL;
     }
-    // R04-B12: 按实际完整编码大小自动选最小者
+    // 按实际完整编码大小自动选最小者
     size_t bitmap_size  = (size_t)(n_leaf_per_tile + 7) / 8;       // 位图: 1 bit/叶像素
     size_t sparse_size  = (size_t)n_valid * sizeof(uint32_t);      // 索引列表: 4 字节/有效像素
     if (sparse_size < bitmap_size) {
@@ -657,7 +657,7 @@ int HissWriter::add_tile(uint64_t parent_ipix,
     std::vector<HissSubblockDescriptor> subblocks;
 
     // 5a. occupancy 子块 (FULL 时省略; BITMAP/SPARSE_LIST 时生成)
-    // R04-B12: occupancy 在 BITMAP/SPARSE Tile 中必须标记 REQUIRED
+    // occupancy 在 BITMAP/SPARSE Tile 中必须标记 REQUIRED
     // WP-G 步骤12: 传递 element_size 供 transform 使用
     // BITMAP: element_size=1 (原始字节, 位图)
     // SPARSE_LIST: element_size=4 (uint32 索引数组, delta/varint 有意义)
@@ -667,7 +667,7 @@ int HissWriter::add_tile(uint64_t parent_ipix,
         int ret = compress_and_append(
             pimpl_->stream,
             SubblockType::OCCUPANCY,
-            (uint16_t)SubblockFlags::REQUIRED,  // R04-B12: occupancy 标记 required
+            (uint16_t)SubblockFlags::REQUIRED,  //: occupancy 标记 required
             occ_data.data(), occ_data.size(),
             pimpl_->codec_for(SubblockType::OCCUPANCY),
             pimpl_->transform_for(SubblockType::OCCUPANCY),

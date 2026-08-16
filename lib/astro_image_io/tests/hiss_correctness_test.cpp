@@ -1125,7 +1125,7 @@ static void test_19_partial_not_accepted(int id) {
 
 // ============================================================================
 // HISS 格式测试 20: 原子提交后正式文件可读
-// Writer.finalize() 后 .partial 消失, .hiss 可读
+// Writer.finalize 后 .partial 消失, .hiss 可读
 // ============================================================================
 static void test_20_atomic_commit(int id) {
     TEST_CASE("原子提交后正式文件可读", id);

@@ -1,5 +1,5 @@
 // ============================================================================
-// hips_browser_backend.h - HiPS 产品集浏览器后端 (Phase1 Final Signoff )
+// hips_browser_backend.h - HiPS 产品集浏览器后端 (Phase1 Final Signoff)
 //
 // 正式 Browser 数据源: HiPS Product Set (signal/support/snr)
 // 仅通过 astro_image_io.dll 的 AIO HiPS Reader API 读取, 不直接链接 CFITSIO。
@@ -58,7 +58,7 @@ public:
                            std::vector<float>& sup) const;
 
     // 指定 order 下存在的 tile ipix 集合（目录扫描，缓存）。
-    // order 范围 [0, get_hips_order()]。
+    // order 范围 [0, get_hips_order]。
     const std::vector<uint64_t>& tiles_at_order(int order) const;
 
     // order 层是否存在该 tile

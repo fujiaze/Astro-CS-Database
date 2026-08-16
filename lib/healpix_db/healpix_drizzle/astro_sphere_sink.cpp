@@ -62,7 +62,7 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
         std::fprintf(stderr, "[sink] %s\n", err.c_str());
         return false;
     }
-    // V19R4（K_CORR_DOMAIN 选项 B）：Drizzle provenance 写入 properties，
+    // （K_CORR_DOMAIN 选项 B）：Drizzle provenance 写入 properties，
     // Phase2 sampler 按帧选择 control-ivar 的 k_corr 标定值。
     double scale_arcsec = 0.0;
     const auto sit = meta.fits_meta.find("src_pixel_scale_arcsec");

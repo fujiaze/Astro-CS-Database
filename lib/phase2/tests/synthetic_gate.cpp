@@ -1895,7 +1895,7 @@ TEST(Phase2Upm, G1V8ContinuousSkySeam) {
         P2UpmBuildConfig cfg{};
         cfg.target_order = st::kTargetOrder;
         cfg.smoothing_lambda = 0.0;
-        cfg.zero_anchor_weight = 0.0;  // 解析门隔离正则偏置（同 ）
+        cfg.zero_anchor_weight = 0.0;  // 解析门隔离正则偏置（同）
         cfg.sigma_floor = 0.02;
         cfg.max_iterations = 100;
         cfg.tolerance = 1e-12;

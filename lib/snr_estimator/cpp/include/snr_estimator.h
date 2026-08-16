@@ -86,8 +86,8 @@ SNR_API int snr_psf_fit_quality(const double* psf, int n_stars,
 // source-masked blank-sky 稳健方差 (production 基线)。
 // 控制点来自空背景噪声, 与星亮度/星族解耦 (SNR-003/SNR-010)。
 // 默认 patch grid 扫描校准帧:
-// - 星点掩膜 (fixed conservative：统一半径，不按振幅；V19R4 冻结) +
-//   饱和/边缘排除
+// - 星点掩膜 (fixed conservative：统一半径，不按振幅； 冻结) +
+// 饱和/边缘排除
 // - patch 内 robust location (median) + robust scale
 // σ_bg = 1.4826022185 × median(|x − median(x)|)
 // - 合格 patch 成为控制点, 可选最小二乘平面空间方差场
@@ -157,7 +157,7 @@ SNR_API int snr_noise_model_v1_f64(const double* data, int h, int w,
 
 // 填充逐像素 variance / ivar (FLOAT32 输出; 可空任一输出)。
 // 空间场启用且有 >=4 控制点 → 最小二乘平面 var(x,y)=a+b·x+c·y
-// （负预测 clamp 到 variance_floor）；否则全局常量。V19R4 冻结。
+// （负预测 clamp 到 variance_floor）；否则全局常量。 冻结。
 // 返回 0=成功, 3=nullptr/尺寸非法。
 SNR_API int snr_noise_model_v1_fill(const NoiseWeightModelV1* model,
                                     int h, int w,
@@ -296,7 +296,7 @@ typedef struct {
 static_assert(sizeof(SnrControlPointF64) == 24, "SnrControlPointF64 must be 24 bytes");
 
 // ============================================================================
-// SNR 控制点 v3 (Phase1 Final Signoff ): 携带 stable star_id 与状态字段
+// SNR 控制点 v3 (Phase1 Final Signoff): 携带 stable star_id 与状态字段
 // 行布局 (打包): ra f64 | dec f64 | snr f32/f64 | star_id u64 |
 // quality_flags u32 | photometric_status u32
 // f32: 8+8+4+8+4+4 = 36 字节; f64: 8+8+8+8+4+4 = 40 字节

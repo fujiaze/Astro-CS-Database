@@ -110,15 +110,15 @@ int pc_calibrate_simple(
                          cd11, cd12, cd21, cd22,
                          sip_order, sip_a, sip_b, sip_ap, sip_bp);
 
-    // ---- 2. 星-图匹配 + IRLS/Tukey 清洗 (GAP-013: 输出 scale + sigma_residual) ----
+    // ---- 2. 星-图匹配 + IRLS/Tukey 清洗 (: 输出 scale + sigma_residual) ----
     pc::StarMatcher matcher;
     double scale = 1.0;
     double sigma_residual = 0.0;
     std::vector<pc::StarMatch> matches = matcher.matchAndClean(
         wcs, gaia_ra, gaia_dec, gaia_mag, gaia_fsyn, n_gaia,
         psf_cx, psf_cy, psf_flux, psf_status, n_psf,
-        2.0,  // match_radius_px (GAP-013: 收紧 3.0 -> 2.0)
-        3.0,  // mag_tolerance (GAP-013: 星等一致性容忍度, mag)
+        2.0,  // match_radius_px (: 收紧 3.0 -> 2.0)
+        3.0,  // mag_tolerance (: 星等一致性容忍度, mag)
         &scale,
         &sigma_residual,
         out_diag,      // 透传诊断 (阶段2/3/4/6/7/8)
@@ -288,7 +288,7 @@ int pc_calibrate_simple_with_gaia(
     std::fprintf(stderr, "[pc_api] 搜索到 %d 颗光谱星, 光谱点数=%d (wl_start=%d, wl_step=%d)\n",
                 n_gaia, spec_stride, wl_start, wl_step);
 
-    // ---- 2. 预处理滤光片曲线 + QE 曲线 (GAP-012: F_syn = ∫ S(λ)·T(λ)·Q(λ)·λ dλ) ----
+    // ---- 2. 预处理滤光片曲线 + QE 曲线 (: F_syn = ∫ S(λ)·T(λ)·Q(λ)·λ dλ) ----
     // 排序 + Akima 插值到光谱网格, 缓存 weighted_wl = λ × T(λ) × Q(λ)
     // qe_wl 可为 nullptr (向后兼容, 此时 Q(λ)=1.0)
     photo_calib::SpectrumIntegratorCache filter_cache = photo_calib::prepare_filter_cache(
@@ -318,7 +318,7 @@ int pc_calibrate_simple_with_gaia(
     #pragma omp parallel for num_threads(16) schedule(dynamic, 64) reduction(+:n_valid_fsyn)
     for (int i = 0; i < n_gaia; ++i) {
         const uint8_t* spec_i = spectra_buf + (size_t)i * spec_stride;
-        // Phase1 Final Closure : XPSD 官方解码 (PCL: F = byte*fluxMul + fluxMin),
+        // Phase1 Final Closure: XPSD 官方解码 (PCL: F = byte*fluxMul + fluxMin),
         // 不再使用 uint8*10^(-0.4G) 猜测公式
         f_syn_values[i] = photo_calib::compute_f_syn_cached_xpsd(
             filter_cache, spec_i, spec_stride,
@@ -351,7 +351,7 @@ int pc_calibrate_simple_with_gaia(
                          cd11, cd12, cd21, cd22,
                          sip_order, sip_a, sip_b, sip_ap, sip_bp);
 
-    // ---- 6. 星-图匹配 + IRLS/Tukey 清洗 (GAP-013: 输出 scale + sigma_residual) ----
+    // ---- 6. 星-图匹配 + IRLS/Tukey 清洗 (: 输出 scale + sigma_residual) ----
     pc::StarMatcher matcher;
     double scale = 1.0;
     double sigma_residual = 0.0;
@@ -359,8 +359,8 @@ int pc_calibrate_simple_with_gaia(
         wcs,
         gaia_ra.data(), gaia_dec.data(), gaia_mag.data(), gaia_fsyn.data(), n_gaia,
         psf_cx, psf_cy, psf_flux, psf_status, n_psf,
-        2.0,   // match_radius_px (GAP-013: 收紧 3.0 -> 2.0)
-        3.0,   // mag_tolerance (GAP-013: 星等一致性容忍度, mag)
+        2.0,   // match_radius_px (: 收紧 3.0 -> 2.0)
+        3.0,   // mag_tolerance (: 星等一致性容忍度, mag)
         &scale,
         &sigma_residual,
         out_diag,      // 透传诊断 (阶段2/3/4/6/7/8)

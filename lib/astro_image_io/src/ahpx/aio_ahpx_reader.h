@@ -16,9 +16,9 @@ namespace aio::ahpx {
 // 用法:
 // AhpxReader reader;
 // if (!reader.open("frame.ahpx")) return;
-// printf("header: %s\n", reader.getHeaderJson().c_str());
-// auto pixels = reader.readPixels();
-// reader.close();
+// printf("header: %s\n", reader.getHeaderJson.c_str);
+// auto pixels = reader.readPixels;
+// reader.close;
 // ============================================================================
 
 class AhpxReader {
@@ -29,7 +29,7 @@ public:
     // 打开文件, 解析头. 成功返回 true
     bool open(const std::string& path);
 
-    // 获取 JSON 头 (已解压). open() 成功后有效
+    // 获取 JSON 头 (已解压). open 成功后有效
     const std::string& getHeaderJson() const;
 
     // 获取数据块索引列表

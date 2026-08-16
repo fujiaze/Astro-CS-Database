@@ -122,7 +122,7 @@ struct KernelInvocation {
     BufferBindingList buffers;     // buffer 绑定
     ScalarArgBlob scalars;         // 标量参数
     TaskTraits traits{};           // 任务特征（数值策略等）
-    // （08 ）：分块契约与路由模式
+    // （08）：分块契约与路由模式
     PartitionKind partition{PartitionKind::IndependentOutputTiles};
     RouteMode mode{RouteMode::AutoMixed};
     //输入是否已在设备显存（launcher 用 resident 路径）

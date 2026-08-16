@@ -38,7 +38,7 @@ static inline void sip_log(Logger* logger, Logger::Level lvl, const std::string&
     if (logger) logger->log(lvl, msg);
 }
 
-// 格式化日志: 用 snprintf 后调用 log()
+// 格式化日志: 用 snprintf 后调用 log
 static inline void sip_logf(Logger* logger, Logger::Level lvl, const char* fmt, ...) {
     if (!logger) return;
     char buf[1024];

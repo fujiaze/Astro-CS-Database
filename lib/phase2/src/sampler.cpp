@@ -42,7 +42,7 @@ constexpr int kSnrCatalogMax = 1 << 16;
 constexpr double kControlCorrDefault = 1.4;
 constexpr double kPiHalf = 1.57079632679489661923;  // π/2
 
-// V19R4（K_CORR_DOMAIN 选项 B）：k_corr 标定表（control_median_mc /
+// （K_CORR_DOMAIN 选项 B）：k_corr 标定表（control_median_mc /
 // kcorr_matrix_test 实测，pixfrac × 源像素角尺度双线性插值）。
 // 矩阵：scale 300"/600" 两档 × pixfrac 0.5/0.8/1.0。
 double kcorr_lookup(double pixfrac, double scale_arcsec) {
@@ -68,7 +68,7 @@ double kcorr_lookup(double pixfrac, double scale_arcsec) {
     return k_r0 + (k_r1 - k_r0) * (1.0 - r0);
 }
 
-// 从帧 HiPS properties 解析 Drizzle provenance（V19R4）
+// 从帧 HiPS properties 解析 Drizzle provenance
 void frame_drizzle_provenance(const char* hips_path, double* pixfrac,
                               double* scale_arcsec) {
     *pixfrac = 0.0;
@@ -100,7 +100,7 @@ struct FrameData {
     std::set<std::uint64_t> tiles;          // order=K tile ipix
     std::vector<double> snr_ra, snr_dec, snr;
     std::vector<std::uint32_t> quality;     // Phase1 SNR catalogue quality
-    double kcorr = kControlCorrDefault;     // V19R4：per-frame k_corr
+    double kcorr = kControlCorrDefault;     //：per-frame k_corr
 };
 
 inline std::uint64_t leaf_of_tile(std::uint64_t tile_ipix, int leaf_shift) {
@@ -456,7 +456,7 @@ int p2_sample_controls(const P2CoverageResult* coverage,
             }
             return 1;
         }
-        // V19R4（K_CORR_DOMAIN 选项 B）：读帧 Drizzle provenance → k_corr
+        // （K_CORR_DOMAIN 选项 B）：读帧 Drizzle provenance → k_corr
         {
             double pf = 0.0, sc = 0.0;
             frame_drizzle_provenance(hips_paths[i], &pf, &sc);
@@ -666,7 +666,7 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                         // SE(median) = sqrt(control_variance)；
                         // 用 N_retained（clipping 后保留样本），不是 n_total。
                         const double n_ret = std::max((double)n_retained, 1.0);
-                        // V19R4：per-frame k_corr（provenance 标定；无
+                        //per-frame k_corr（provenance 标定；无
                         // metadata 时回退 cfg.control_k_corr 默认 1.4）
                         const double kcorr_f =
                             (frames[frame_id].kcorr > 0.0)

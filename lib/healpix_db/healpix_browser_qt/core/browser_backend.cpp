@@ -692,7 +692,7 @@ LeafData BrowserBackend::get_all_data() {
     result.leaf_ipix = 0;
     result.n_pix = n_pix_;
     result.nside = nside_;
-    // 注意: 返回的 ipix/pixel 由本对象持有, close_file() 时释放
+    // 注意: 返回的 ipix/pixel 由本对象持有, close_file 时释放
     // 调用者不应释放这些指针
     result.ipix = all_ipix_;
     result.pixel = all_pixel_;
@@ -818,7 +818,7 @@ void BrowserBackend::release_leaf(LeafData& leaf) {
 static bool detect_fp64_from_meta(const char* meta_json) {
     if (meta_json == nullptr) return false;
 
-    // 检查 "signal_dtype" : 1
+    // 检查 "signal_dtype": 1
     const char* key_dtype = "\"signal_dtype\"";
     const char* p = std::strstr(meta_json, key_dtype);
     if (p) {

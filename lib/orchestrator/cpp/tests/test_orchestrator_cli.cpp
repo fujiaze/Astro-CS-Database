@@ -850,7 +850,7 @@ void test_part2_schema_validation_and_parsing() {
                     "original_json_path 为绝对路径");
     }
 
-    // 测试 17 : pixfrac 省略时生产默认 0.8
+    // 测试 17: pixfrac 省略时生产默认 0.8
     {
         std::string path = write_valid_stage1_json(tmpdir, "pixfrac_omitted.json");
         std::ifstream ifs(path);
@@ -872,7 +872,7 @@ void test_part2_schema_validation_and_parsing() {
         ASSERT_EQ(config.drizzle.pixfrac, 0.8, "pixfrac 省略时默认 0.8");
     }
 
-    // 测试 18 : pixfrac 显式 0.8 与权威默认一致
+    // 测试 18: pixfrac 显式 0.8 与权威默认一致
     {
         std::string path = write_valid_stage1_json(tmpdir, "pixfrac_explicit.json");
         std::ifstream ifs(path);
@@ -894,7 +894,7 @@ void test_part2_schema_validation_and_parsing() {
         ASSERT_EQ(config.drizzle.pixfrac, 0.8, "pixfrac 显式 0.8 生效");
     }
 
-    // 测试 19 : 生产配置省略 output.hiss 必须可解析且验证通过
+    // 测试 19: 生产配置省略 output.hiss 必须可解析且验证通过
     // (回归: json_config 输出父目录检查曾对缺键 hiss 无条件 operator[] 断言崩溃)
     {
         std::string path = write_valid_stage1_json(tmpdir, "no_hiss_output.json");
@@ -1185,7 +1185,7 @@ void test_part4_dll_loader() {
 
     // 测试 4: 获取函数指针 (加载成功后)
     {
-        // 函数指针类型: const char* ac_version()
+        // 函数指针类型: const char* ac_version
         using VersionFn = const char* (*)();
 
         DllLoader loader;

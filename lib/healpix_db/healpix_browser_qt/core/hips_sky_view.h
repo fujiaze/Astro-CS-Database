@@ -36,7 +36,7 @@ public:
     // v3：手动 STF（lo/hi 像素值 + midtones/compression，渲染生效）
     void set_manual_stf(const STFParams& params);
     // Auto STF 模式。auto_global 保持 robust 标尺（pan/zoom 不闪）；
-    // refresh_auto_range() 显式重算（Reset / Auto View 触发）。
+    // refresh_auto_range 显式重算（Reset / Auto View 触发）。
     void refresh_auto_range() { auto_range_dirty_ = true; }
     // Auto View 模式（可选）——pan/zoom 时对当前 viewport 重算 robust
     // STF（适合观察局部暗结构；Auto Global 默认保持标尺不闪）。

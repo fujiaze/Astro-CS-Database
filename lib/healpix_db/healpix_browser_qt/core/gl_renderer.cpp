@@ -118,7 +118,7 @@ typedef void (APIENTRY *PFN_glVertexAttribPointer)(GLuint index, GLint size, GLe
 typedef void (APIENTRY *PFN_glActiveTexture)(GLenum texture);
 
 // ============================================================================
-// 静态函数指针（init() 中通过 wglGetProcAddress 加载）
+// 静态函数指针（init 中通过 wglGetProcAddress 加载）
 // ============================================================================
 static PFN_glGenVertexArrays      pglGenVertexArrays = nullptr;
 static PFN_glBindVertexArray      pglBindVertexArray = nullptr;
@@ -445,7 +445,7 @@ GLRenderer::~GLRenderer() {
 }
 
 // ============================================================================
-// init() - 初始化渲染器（需在 OpenGL 上下文 makeCurrent 后调用）
+// init - 初始化渲染器（需在 OpenGL 上下文 makeCurrent 后调用）
 // ============================================================================
 
 int GLRenderer::init() {
@@ -490,7 +490,7 @@ bool GLRenderer::is_initialized() const {
 }
 
 // ============================================================================
-// cleanup() - 释放 OpenGL 资源
+// cleanup - 释放 OpenGL 资源
 // ============================================================================
 
 void GLRenderer::cleanup() {
@@ -538,7 +538,7 @@ void GLRenderer::cleanup() {
 }
 
 // ============================================================================
-// render() - 主渲染入口
+// render - 主渲染入口
 // ============================================================================
 
 int GLRenderer::render(BrowserBackend& backend, const RenderParams& params) {
@@ -589,7 +589,7 @@ int GLRenderer::render(BrowserBackend& backend, const RenderParams& params) {
 }
 
 // ============================================================================
-// update_stf() - 更新 STF 参数（仅更新缓存，下一帧 render 时生效）
+// update_stf - 更新 STF 参数（仅更新缓存，下一帧 render 时生效）
 // ============================================================================
 
 void GLRenderer::update_stf(const STFParams& stf, float data_min, float data_max) {
@@ -601,7 +601,7 @@ void GLRenderer::update_stf(const STFParams& stf, float data_min, float data_max
 }
 
 // ============================================================================
-// set_single_frame_bbox() - 设置单帧模式数据边界框
+// set_single_frame_bbox - 设置单帧模式数据边界框
 // ============================================================================
 
 void GLRenderer::set_single_frame_bbox(double center_ra, double center_dec,
@@ -616,7 +616,7 @@ void GLRenderer::set_single_frame_bbox(double center_ra, double center_dec,
 }
 
 // ============================================================================
-// get_loaded_leaves() - 获取已加载子叶列表（调试用）
+// get_loaded_leaves - 获取已加载子叶列表（调试用）
 // ============================================================================
 
 std::vector<uint64_t> GLRenderer::get_loaded_leaves() const {
@@ -629,7 +629,7 @@ std::vector<uint64_t> GLRenderer::get_loaded_leaves() const {
 }
 
 // ============================================================================
-// compile_shaders() - 编译球面 + 四边形着色器程序
+// compile_shaders - 编译球面 + 四边形着色器程序
 // ============================================================================
 
 int GLRenderer::compile_shaders() {
@@ -691,7 +691,7 @@ int GLRenderer::compile_shaders() {
 }
 
 // ============================================================================
-// build_sphere_mesh() - 构建 UV 球面网格
+// build_sphere_mesh - 构建 UV 球面网格
 // segments_lat: 纬度分段数, segments_lon: 经度分段数
 // 顶点格式: [x, y, z, value] (4 float), value 初始为 0
 // 顶点数: (segments_lat+1) * (segments_lon+1)
@@ -798,7 +798,7 @@ void GLRenderer::build_sphere_mesh(int segments_lat, int segments_lon) {
 }
 
 // ============================================================================
-// build_sphere_mesh_dynamic() - 按 FOV 和视口动态构建球面网格
+// build_sphere_mesh_dynamic - 按 FOV 和视口动态构建球面网格
 // 顶点密度 ≈ 屏幕像素密度 (每顶点约 1 屏幕像素)
 // 网格覆盖 FOV×1.2 (渲染余量), 以视角中心为局部 UV 网格
 // ============================================================================
@@ -946,7 +946,7 @@ void GLRenderer::build_sphere_mesh_dynamic(const ViewParams& view,
 }
 
 // ============================================================================
-// need_rebuild_mesh() - 检测是否需要重建网格
+// need_rebuild_mesh - 检测是否需要重建网格
 // 触发条件: 首次、FOV 变化>20%、视口变化>10%、中心移动超过半个视场
 // ============================================================================
 
@@ -974,7 +974,7 @@ bool GLRenderer::need_rebuild_mesh(const ViewParams& view, int viewport_w, int v
 }
 
 // ============================================================================
-// build_quad_mesh() - 构建全屏四边形网格
+// build_quad_mesh - 构建全屏四边形网格
 // 顶点格式: [x, y, u, v] (4 float)
 // 四边形 (-1,-1) → (1,1), texcoord (0,0) → (1,1)
 // ============================================================================
@@ -1019,7 +1019,7 @@ void GLRenderer::build_quad_mesh() {
 }
 
 // ============================================================================
-// upload_leaf_texture() - 上传子叶数据为 1D R32F 纹理
+// upload_leaf_texture - 上传子叶数据为 1D R32F 纹理
 // 用途: 将子叶像素值上传为纹理（备用接口，当前 render_sphere 用方案 B 顶点查值）
 // ============================================================================
 
@@ -1052,7 +1052,7 @@ unsigned int GLRenderer::upload_leaf_texture(const LeafData& leaf) {
 }
 
 // ============================================================================
-// evict_unused_leaves() - LRU 淘汰过期子叶纹理
+// evict_unused_leaves - LRU 淘汰过期子叶纹理
 // ============================================================================
 
 void GLRenderer::evict_unused_leaves(size_t max_leaves) {
@@ -1078,7 +1078,7 @@ void GLRenderer::evict_unused_leaves(size_t max_leaves) {
 }
 
 // ============================================================================
-// render_sphere() - 球面渲染（.hcsd 模式）
+// render_sphere - 球面渲染（.hcsd 模式）
 // 方案 B: CPU 端每顶点查值，作为 vertex attribute 上传
 // ============================================================================
 
@@ -1317,7 +1317,7 @@ int GLRenderer::render_sphere(BrowserBackend& backend, const RenderParams& param
 }
 
 // ============================================================================
-// build_hiss_polygon_mesh() - 构建 .hiss HEALPix 像素多边形网格
+// build_hiss_polygon_mesh - 构建 .hiss HEALPix 像素多边形网格
 // 每像素生成 4 角点（球面四边形），作为 2 个三角形（6 顶点）绘制
 // 返回 0=成功, <0=失败
 // ============================================================================
@@ -1510,7 +1510,7 @@ int GLRenderer::build_hiss_polygon_mesh(BrowserBackend& backend) {
 }
 
 // ============================================================================
-// render_hiss_polygon() - 渲染 .hiss 像素多边形球面
+// render_hiss_polygon - 渲染 .hiss 像素多边形球面
 // 复用 sphere_program_ 着色器（aPosition + aValue + STF）
 // 返回 0=成功, <0=失败
 // ============================================================================
@@ -1523,7 +1523,7 @@ int GLRenderer::render_hiss_polygon(BrowserBackend& backend, const RenderParams&
         }
     }
 
-    // 设置视口（render() 已设置，这里冗余但安全）
+    // 设置视口（render 已设置，这里冗余但安全）
     glViewport(0, 0, params.viewport_w, params.viewport_h);
 
     // 球心相机: 相机在球心(0,0,0)，向外看
@@ -1606,7 +1606,7 @@ int GLRenderer::render_hiss_polygon(BrowserBackend& backend, const RenderParams&
 }
 
 // ============================================================================
-// render_single_frame() - 单帧切面投影渲染（.hiss 模式）
+// render_single_frame - 单帧切面投影渲染（.hiss 模式）
 // 使用 TAN (gnomonic) 投影将 HEALPix 数据投影到 1024×1024 R32F 纹理
 // ============================================================================
 
@@ -1900,7 +1900,7 @@ void GLRenderer::multiply_matrix(const float* a, const float* b, float* out) {
 }
 
 // ============================================================================
-// build_grid_mesh() - 构建经纬线网格 (30° 网格)
+// build_grid_mesh - 构建经纬线网格 (30° 网格)
 // RA 线: RA=0,30,60,...,330 (12条), 每条 Dec 从 -90° 到 90°, 采样 180 段
 // Dec 线: Dec=-60,-30,0,30,60 (5条), 每条 RA 从 0° 到 360°, 采样 360 段
 // 顶点格式: vec3 position (球面笛卡尔坐标, 单位球)
@@ -1985,7 +1985,7 @@ int GLRenderer::build_grid_mesh() {
 }
 
 // ============================================================================
-// render_grid() - 渲染经纬线网格
+// render_grid - 渲染经纬线网格
 // 复用 render_hiss_polygon 的球心相机 MVP 矩阵
 // 用 grid_program_ 着色器 (固定半透明绿色)
 // GL_LINES 绘制

@@ -159,8 +159,8 @@ TEST(RouteEstimator, OutOfDomainNotExtrapolated) {
 TEST(RouteEstimator, InterpolateE2eUnusableHighFrameReturnsFalse) {
     // frame_counts 含 32 帧（hi 边界），但 32 帧样本只剩 16M 单点，
     // 请求 1M×32 帧时该帧对请求 items 不可用 → usable 不含 32，
-    // lower_bound == usable.end()。修复前 `it != frames.end()` 会在
-    // usable.end() 上解引用（UB）；修复后必须安全返回 false。
+    // lower_bound == usable.end。修复前 `it != frames.end` 会在
+    // usable.end 上解引用（UB）；修复后必须安全返回 false。
     RouteProfileV2 p = make_test_profile();
     RoutePath path = p.operations.front().scenarios.front().gpu_direct;
     std::vector<RouteSamplePoint> kept;
