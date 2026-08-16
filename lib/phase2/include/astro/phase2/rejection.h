@@ -248,6 +248,10 @@ typedef struct {
     double* weights;                 // 可空（容量 count）
     double* support;                 // 可空（容量 count）
     std::uint64_t* frame_ids;        // 可空（容量 count）
+    // V19R4（PHASE2_IVAR_WIRING）：可空；eligible_index → 原始输入 slot。
+    // compact 后禁止用 compact index 猜 original slot（ivar/quality/
+    // variance/metadata 一律经此映射）。
+    std::uint32_t* source_indices;
     std::uint32_t* eligible_count;
     std::uint32_t invalid_finite;
     std::uint32_t invalid_valid;

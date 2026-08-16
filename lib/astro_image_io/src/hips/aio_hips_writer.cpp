@@ -394,7 +394,7 @@ AioHipsProductSet* aio_hips_product_begin(
     g_hips_error.clear();
     if (!out_dir || !*out_dir || nside < 512 || tile_width != 512 ||
         (data_type != AIO_HIPS_FLOAT32 && data_type != AIO_HIPS_FLOAT64) ||
-        (flags & ~AIO_HIPS_PRODUCT_ALL) != 0) {
+        (flags & ~AIO_HIPS_PRODUCT_ALL_V19) != 0) {
         set_error("aio_hips_product_begin: 参数无效 (nside>=512, tile_width=512, dtype 0/1)");
         return nullptr;
     }
@@ -1187,7 +1187,6 @@ int aio_hips_write(
 }
 
 } // extern "C"
-
 
 
 

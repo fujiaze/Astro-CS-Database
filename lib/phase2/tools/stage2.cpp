@@ -868,8 +868,11 @@ int main(int argc, char** argv) {
         }
 
         // CPU reference 路径：逐 chunk（micro-chunk）处理
-        std::vector<float> t_ivar(512 * 512, 1.0f);
-        std::vector<std::uint8_t> ivar_avail(depth, 0);   // 每帧 ivar 可用性
+        std::vector<float> t_ivar(512 * 512, 1.0f);        // 读缓冲
+        // V19R4（PHASE2_IVAR_WIRING）：逐帧逐像素 ivar 缓冲（与 cal/supv
+        // 同布局 depth×chunk_pixels）；ivar_valid 按原 frame slot 记录。
+        std::vector<float> ivarv((std::size_t)depth * chunk_pixels, 1.0f);
+        std::vector<std::uint8_t> ivar_valid(depth, 0);
         for (std::uint64_t c = 0; c < n_chunk; ++c) {
             const std::uint64_t p0 = c * chunk_pixels;
             const std::uint64_t p1 =
@@ -885,11 +888,15 @@ int main(int argc, char** argv) {
                     log("tile read failed");
                             return 6;
                 }
-                ivar_avail[s] = 0;
+                ivar_valid[s] = 0;
                 if (cfg.weight_mode == 2 && ivr[f]) {
                     if (aio_hips_read_tile_f32(ivr[f], tile_ipix,
-                                               t_ivar.data()) == 0)
-                        ivar_avail[s] = 1;
+                                               t_ivar.data()) == 0) {
+                        ivar_valid[s] = 1;
+                        for (std::uint64_t i = 0; i < cnt; ++i)
+                            ivarv[(std::size_t)s * chunk_pixels + i] =
+                                t_ivar[(std::size_t)(p0 + i)];
+                    }
                 }
                 for (std::uint64_t i = 0; i < cnt; ++i) {
                     const std::uint64_t g = p0 + i;
@@ -924,6 +931,9 @@ int main(int argc, char** argv) {
                 gout.values = stack.data();
                 gout.support = support_v.data();
                 gout.frame_ids = fid_stack.data();
+                // V19R4：compact eligible → 原始 frame slot 稳定映射
+                std::vector<std::uint32_t> src_idx(depth);
+                gout.source_indices = src_idx.data();
                 std::uint32_t n_valid = 0;
                 gout.eligible_count = &n_valid;
                 if (p2_collect_candidate_stack(&gin, &gout) != 0) {
@@ -938,8 +948,11 @@ int main(int argc, char** argv) {
                 // mode 1 (equal): weights 不填 (等权)
                 if (cfg.weight_mode == 2) {
                     for (std::uint32_t s = 0; s < n_valid; ++s) {
-                        if (ivar_avail[s] && cfg.weight_mode == 2) {
-                            const double iv = (double)t_ivar[(std::size_t)p];
+                        // 用 source_indices（原 frame slot）取该帧该像素 ivar
+                        const std::uint32_t orig = src_idx[s];
+                        if (orig < depth && ivar_valid[orig]) {
+                            const double iv = (double)ivarv[
+                                (std::size_t)orig * chunk_pixels + i];
                             // 合同：nonfinite ivar → INVALID_INPUT
                             // （validator 拒绝）；ivar==0 → 合法零权重（不
                             // 贡献，ZERO_VALID_WEIGHT）。禁止静默换 support。
@@ -953,8 +966,10 @@ int main(int argc, char** argv) {
                     }
                 } else if (cfg.weight_mode == 0) {
                     for (std::uint32_t s = 0; s < n_valid; ++s) {
+                        // V19R4：统一经 source_indices 取原 slot
+                        const std::uint32_t orig = src_idx[s];
                         const std::uint64_t fid =
-                            frame_id_cache[fid_stack[s]];
+                            frame_id_cache[frames[orig]];
                         const int px = (int)(p % 512);
                         const int py = (int)(p / 512);
                         const auto key = std::make_tuple(
@@ -965,7 +980,7 @@ int main(int argc, char** argv) {
                             snr_v = sit->second;
                             ++local_snr_used;
                         } else {
-                            snr_v = frame_snr[fid_stack[s]];
+                            snr_v = frame_snr[frames[orig]];
                             ++frame_snr_fallback;
                         }
                         weights[s] = support_v[s] * snr_v * snr_v;

@@ -4241,6 +4241,9 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
         ModuleId::SNR, "snr_noise_model_v1");
     auto fn_noise_model_f64 = dll_loader_.get_function<NoiseModelFn>(
         ModuleId::SNR, "snr_noise_model_v1_f64");
+    using NoiseDefaultCfgFn = int (*)(SnrNoiseModelConfig*);
+    auto fn_noise_default_cfg = dll_loader_.get_function<NoiseDefaultCfgFn>(
+        ModuleId::SNR, "snr_noise_model_v1_default_config");
     auto fn_noise_fill = dll_loader_.get_function<NoiseFillFn>(
         ModuleId::SNR, "snr_noise_model_v1_fill");
     auto fn_noise_free = dll_loader_.get_function<NoiseFreeFn>(
@@ -4599,6 +4602,22 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
                 fn_kv_set(frame_, "photo_stats", "NOISE_MODEL_STATUS", "SKIPPED_API_MISSING");
             }
         } else {
+            // V19R4（NOISE-WIRE-001）：必须先加载模块默认配置，再覆盖
+            // 显式元数据。传零结构体不会触发模块内部默认（P1-1 修复）。
+            SnrNoiseModelConfig ncfg = {};
+            const bool noise_cfg_ok =
+                fn_noise_default_cfg &&
+                fn_noise_default_cfg(&ncfg) == 0;
+            if (!noise_cfg_ok) {
+                LOG_WARN("orchestrator",
+                         "[SNR] 默认配置加载失败, 跳过 NoiseWeightModelV1");
+                if (fn_kv_set) {
+                    fn_kv_set(frame_, "photo_stats",
+                              "NOISE_MODEL_STATUS",
+                              "SKIPPED_DEFAULT_CFG");
+                }
+            }
+            if (noise_cfg_ok) {
             const int H = (int)data_blk->dims[0];
             const int Wd = (int)data_blk->dims[1];
             // 星点掩膜输入: psf cx/cy (0-based)
@@ -4613,8 +4632,6 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
                     star_y.push_back(cy);
                 }
             }
-            SnrNoiseModelConfig ncfg = {};
-            // 默认配置 (API 内部); gain/read-noise 从 FITS header 读取
             const char* gain_s = fn_kv_get ? fn_kv_get(frame_, "header", "GAIN") : nullptr;
             const char* rn_s = fn_kv_get ? fn_kv_get(frame_, "header", "READNOI") : nullptr;
             if (gain_s && gain_s[0]) ncfg.gain_e_per_adu = std::atof(gain_s);
@@ -4716,6 +4733,7 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
                     }
                 }
                 fn_noise_free(&nm);
+            }
             }
         }
     }

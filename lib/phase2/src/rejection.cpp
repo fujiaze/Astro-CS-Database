@@ -1222,6 +1222,9 @@ int p2_collect_candidate_stack(const P2EligibilityGatherInput* in,
         }
         if (ok) {
             out->values[cnt] = v;
+            // V19R4：显式保留原始 slot 映射（eligible → original）
+            if (out->source_indices != nullptr)
+                out->source_indices[cnt] = s;
             if (in->weights != nullptr && out->weights != nullptr)
                 out->weights[cnt] = is_f32
                     ? (double)wf[(std::size_t)s * in->weight_stride + in->pixel]
