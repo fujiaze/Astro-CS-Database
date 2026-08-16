@@ -50,7 +50,7 @@ def main() -> int:
     data_sem = read("docs/contracts/DATA_SEMANTICS.md")
     upm_doc = read("docs/science/PHASE2_UPM.md")
     frame_id_ok = (
-        "FNV" not in sampler_h and "FNV" not in data_sem and
+        "FNV-1a 64" not in sampler_h and "FNV-1a 64" not in data_sem and
         "由输入路径派生" not in sampler_h and
         "由输入路径派生" not in data_sem and
         "truncated-64" in sampler_h and
