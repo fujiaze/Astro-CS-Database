@@ -62,6 +62,18 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
         std::fprintf(stderr, "[sink] %s\n", err.c_str());
         return false;
     }
+    // V19R4（K_CORR_DOMAIN 选项 B）：Drizzle provenance 写入 properties，
+    // Phase2 sampler 按帧选择 control-ivar 的 k_corr 标定值。
+    double scale_arcsec = 0.0;
+    const auto sit = meta.fits_meta.find("src_pixel_scale_arcsec");
+    if (sit != meta.fits_meta.end())
+        scale_arcsec = std::atof(sit->second.c_str());
+    if (aio_hips_set_drizzle_provenance(ps, config.pixfrac,
+                                        scale_arcsec) != 0) {
+        err = "aio_hips_set_drizzle_provenance 失败";
+        aio_hips_abort(ps);
+        return false;
+    }
 
     const uint32_t leaf_order = ilog2_u64(nside);
     // HiPS 直写分段计时（每段一次 clock，低开销）

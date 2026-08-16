@@ -86,10 +86,11 @@ SNR_API int snr_psf_fit_quality(const double* psf, int n_stars,
 // source-masked blank-sky 稳健方差 (production 基线)。
 // 控制点来自空背景噪声, 与星亮度/星族解耦 (SNR-003/SNR-010)。
 // 默认 patch grid 扫描校准帧:
-// - 星点掩膜 (按星振幅自适应半径) + 饱和/边缘排除
+// - 星点掩膜 (fixed conservative：统一半径，不按振幅；V19R4 冻结) +
+//   饱和/边缘排除
 // - patch 内 robust location (median) + robust scale
 // σ_bg = 1.4826022185 × median(|x − median(x)|)
-// - 合格 patch 成为控制点, 可选 IDW 空间平滑方差场
+// - 合格 patch 成为控制点, 可选最小二乘平面空间方差场
 // - 全局兜底 = 合格 patch 的 median variance
 // gain/read-noise 已知时可交叉验证 Poisson+read 模型 (SNR-005),
 // 缺失时经验 fallback (SNR-014)。
@@ -97,8 +98,8 @@ SNR_API int snr_psf_fit_quality(const double* psf, int n_stars,
 typedef struct {
     int    patch_grid_x;         // 每边 patch 数 (默认 8, >=2)
     int    patch_grid_y;         // 每边 patch 数 (默认 8, >=2)
-    double source_mask_radius_px;   // 星点基础掩膜半径 (默认 10 px)
-    double mask_radius_scale;       // 按振幅缩放上限倍数 (默认 6.0, 即最亮星 60 px)
+    double source_mask_radius_px;   // 星点固定保守掩膜半径 (默认 10 px)
+    double mask_radius_scale;       // 固定半径乘数 (默认 6.0 → 统一 rmax=60 px)
     double gain_e_per_adu;          // 增益 e-/ADU (0=未知, 默认 0)
     double read_noise_e;            // 读出噪声 e- (0=未知, 默认 0)
     double saturation_level;        // 饱和电平 (0=禁用, 默认 0)
@@ -106,7 +107,7 @@ typedef struct {
     int    min_patch_samples;       // patch 合格最小 sky 样本数 (默认 64)
     int    max_clip_rounds;         // cosmic 裁剪轮数 (默认 2)
     uint32_t use_gain_model;        // 1=gain+readnoise 已知时优先模型; 默认 0 (经验优先)
-    uint32_t enable_spatial_field;  // 1=IDW 空间方差场 (默认 1)
+    uint32_t enable_spatial_field;  // 1=最小二乘平面空间方差场 (默认 1)
     double   variance_floor;        // ivar 分母下限 (默认 1e-12)
 } SnrNoiseModelConfig;
 
@@ -155,7 +156,8 @@ SNR_API int snr_noise_model_v1_f64(const double* data, int h, int w,
                                    NoiseWeightModelV1* out_model);
 
 // 填充逐像素 variance / ivar (FLOAT32 输出; 可空任一输出)。
-// 空间场启用且有 >=4 控制点 → IDW(power=2) 平滑; 否则全局常量。
+// 空间场启用且有 >=4 控制点 → 最小二乘平面 var(x,y)=a+b·x+c·y
+// （负预测 clamp 到 variance_floor）；否则全局常量。V19R4 冻结。
 // 返回 0=成功, 3=nullptr/尺寸非法。
 SNR_API int snr_noise_model_v1_fill(const NoiseWeightModelV1* model,
                                     int h, int w,

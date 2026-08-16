@@ -8,6 +8,7 @@
 
 #include <chrono>
 #include <cmath>
+#include <atomic>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -1644,9 +1645,11 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     rctx.cos_thresh_60 = std::cos(THRESH_60ARCSEC);
     rctx.shift = (uint32_t)shift;
     rctx.mask = mask;
-    // 每次 drizzleTiled run 递增 generation，线程 cache 切换即清空
-    static std::uint64_t s_target_cache_gen = 0;
-    rctx.target_cache_run_gen = ++s_target_cache_gen;
+    // V19R4（DRIZZLE_CACHE_THREAD_SAFETY）：每次 drizzleTiled run 递增
+    // generation，线程 cache 切换即清空。原裸 static read-modify-write
+    // 在同进程并发 run 下是 C++ data race（UB）——改 atomic fetch_add。
+    static std::atomic<std::uint64_t> s_target_cache_gen{0};
+    rctx.target_cache_run_gen = s_target_cache_gen.fetch_add(1) + 1;
 
     int64_t nSourcePixels = 0;
     const bool shared_vertices = (config.pixfrac == 1.0);

@@ -121,9 +121,12 @@ int noise_model_impl(const T* data, int h, int w,
     }
     std::memset(out_model, 0, sizeof(NoiseWeightModelV1));
 
-    // 星点掩膜: 像素在任一星点自适应半径内 → source (1)
-    // 半径 = base × clamp(sqrt(A_i/medianA), 1, mask_radius_scale)
-    // 无星点信息时全部为 sky (调用方也可直接传 source_mask)
+    // 星点掩膜（V19R4 冻结：fixed conservative mask）：
+    // 像素在任一星点固定半径内 → source (1)；所有星统一
+    // rmax = max(1, source_mask_radius_px) × max(1, mask_radius_scale)。
+    // API 只接收星点坐标（无 amplitude），不按星等/振幅缩放
+    // （DOCS/header 已删除假 adaptive 描述）。调用方也可直接传
+    // source_mask 覆盖。
     std::vector<uint8_t> mask;
     if (source_mask) {
         mask.assign((std::size_t)h * (std::size_t)w, 0);
@@ -360,12 +363,12 @@ SNR_API int snr_noise_model_v1_f64(const double* data, int h, int w,
 
 namespace {
 
-// IDW 填充内核 (模板数据源用 float 输出)
+// 最小二乘平面填充内核（variance field，V19R4 冻结；float 输出）
 void fill_impl(const NoiseWeightModelV1* m, int h, int w,
                float* out_variance, float* out_ivar) {
     if (m->has_spatial_field && m->n_control_points >= 4) {
         // 平滑方差场: 最小二乘平面拟合 var(x,y) = a + b·x + c·y
-        // (对平滑噪声梯度统计最优; IDW power=2 在强梯度下产生 S 曲线偏差)
+        // （对平滑噪声梯度统计最优；负预测 clamp 到 variance_floor）。
         double mx = 0, my = 0, mv = 0;
         const uint32_t n = m->n_control_points;
         for (uint32_t i = 0; i < n; ++i) {

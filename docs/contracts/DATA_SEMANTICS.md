@@ -43,10 +43,20 @@ FITS index = (511 - x) * 512 + y
   aperture variance。
 - HiPS 子产品位：`AIO_HIPS_PRODUCT_VARIANCE=8`、`AIO_HIPS_PRODUCT_IVAR=16`。
 
-## 5. frame identity / manifest
+## 5. frame identity / manifest（DATA-FRAME-ID-001，V19R4 冻结）
 
-- frame_id：`p2_frame_id(path)`（FNV-1a 64，科学 payload 敏感，与输入顺序
-  无关）；参考帧 = 每分量最小 frame_id。
+- frame_id：`p2_frame_id(path)` =
+  `truncated-64(canonical SHA-256 of science payload identity)`；
+  输入字段精确为：关键 properties 白名单（creator_did/obs_title/
+  obs_filter/obs_exptime/obs_date/hips_order/hips_release_date/
+  hips_pixel_scale/moc_sky_fraction）+ signal tile 像素 + support tile
+  像素 + SNR catalogue 内容；与路径/重命名/换根目录无关；任何科学
+  payload 变化 → 改变；取 SHA-256 前 16 hex 字符（大端序）为 uint64；
+  与输入顺序无关；参考帧 = 每分量最小 frame_id。
+- 碰撞策略：64 位截断哈希（工程上忽略碰撞；重复 frame_id 在 UPM
+  构建/持久化层显式拒绝）。
+- 禁止描述为 FNV-1a / 路径派生（旧文档已修正，docs exact checker
+  的 frame_id_contract_exact 全仓校验）。
 - input_manifest_hash：输入集合与配置的稳定摘要（stage2 diagnostics）。
 - HiPS properties 中 `hips_creation_date` 为真实 UTC 时间，不伪造。
 

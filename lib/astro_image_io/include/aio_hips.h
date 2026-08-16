@@ -137,6 +137,13 @@ AIO_HIPS_EXPORT int aio_hips_write_snr_points(
     const AioHipsSnrPoint* pts,
     int n);
 
+// V19R4（K_CORR_DOMAIN 选项 B）：设置 Drizzle provenance（pixfrac /
+// 像素角尺度），finalize 时写入 properties（ASTROCS_DRIZZLE_PIXFRAC /
+// ASTROCS_DRIZZLE_SCALE_ARCSEC）。Phase2 sampler 按帧读取以选择
+// control-ivar 的 k_corr 标定值。默认未设置时 properties 不写这两键。
+AIO_HIPS_EXPORT int aio_hips_set_drizzle_provenance(
+    AioHipsProductSet* ps, double pixfrac, double scale_arcsec);
+
 // 结束产品集: 写 properties/MOC/低阶 hierarchy (从磁盘 leaf tiles 聚合),
 // 释放句柄。返回 0=成功。
 AIO_HIPS_EXPORT int aio_hips_finalize(AioHipsProductSet* ps);
