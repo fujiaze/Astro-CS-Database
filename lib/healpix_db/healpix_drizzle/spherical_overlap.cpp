@@ -1163,11 +1163,10 @@ Scalar compute_overlap_area_g(const DropGeometryT<Scalar>& g,
 }
 
 template <typename Scalar>
-Scalar compute_overlap_area_g_ctx(const DropGeometryT<Scalar>& g,
-                                  const healpix::HealpixCore& hp,
-                                  uint64_t target_ipix,
-                                  double hp_res_rad)
-{
+Scalar overlap_area_impl(const DropGeometryT<Scalar>& g,
+                         double hp_res_rad, int nside,
+                         const Vec3& hp_center,
+                         const Vec3* hp_boundary, int nb) {
     int nd = (int)g.corners.size();
     if (nd < 3) return Scalar(0);
 
@@ -1191,9 +1190,6 @@ Scalar compute_overlap_area_g_ctx(const DropGeometryT<Scalar>& g,
     // 4.23 亿次候选快速拒绝中绝大多数（远离边界）免 acos。
     const double lim = g.max_angle + HP_CIRCUMRADIUS_FACTOR * hp_res_rad;
     const double cos_safe = std::cos(lim + 1e-9);
-    double ra_c, dec_c;
-    hp.pix2radec((int64_t)target_ipix, &ra_c, &dec_c);
-    Vec3 hp_center = radec_to_vec<double>(ra_c, dec_c);
     {
         double d_c = hp_center.x * center_x + hp_center.y * center_y + hp_center.z * center_z;
         d_c = std::max(-1.0, std::min(1.0, d_c));
@@ -1205,27 +1201,6 @@ Scalar compute_overlap_area_g_ctx(const DropGeometryT<Scalar>& g,
             if (overlap_profile_enabled()) g_tl_n_quick++;
             return Scalar(0);
         }
-    }
-
-    // 1. 获取目标 HEALPix 像素边界 (double 内部)
-    // nside>=256 生产路径用固定 4 角 array（无堆分配），
-    // 与 get_healpix_boundary 逐位等价；低 NSIDE 保留自适应细分 vector。
-    int nside = hp.getNside();
-    std::array<Vec3, 4> hp_boundary4;
-    std::vector<Vec3> hp_boundary_vec;
-    const Vec3* hp_boundary = nullptr;
-    int nb = 0;
-    if (nside >= 256) {
-        get_healpix_boundary4<double>(hp, target_ipix, nside, hp_boundary4);
-        hp_boundary = hp_boundary4.data();
-        nb = 4;
-    } else {
-        int samples = (nside <= 8) ? 16 : 1;
-        hp_boundary_vec = get_healpix_boundary_sampled<double>(
-            hp, target_ipix, nside, samples);
-        if (hp_boundary_vec.size() < 3) return Scalar(0);
-        hp_boundary = hp_boundary_vec.data();
-        nb = (int)hp_boundary_vec.size();
     }
 
     // 混合策略 (保持科学语义与数值精度):
@@ -1354,6 +1329,117 @@ Scalar compute_overlap_area_g_ctx(const DropGeometryT<Scalar>& g,
         }
     }
     return Scalar(total_overlap);
+}
+
+template <typename Scalar>
+Scalar compute_overlap_area_g_ctx(const DropGeometryT<Scalar>& g,
+                                  const healpix::HealpixCore& hp,
+                                  uint64_t target_ipix,
+                                  double hp_res_rad)
+{
+    int nside = hp.getNside();
+    double ra_c, dec_c;
+    hp.pix2radec((int64_t)target_ipix, &ra_c, &dec_c);
+    const Vec3 hp_center = radec_to_vec<double>(ra_c, dec_c);
+    // V19R3 重构保序：quick-reject 必须在边界构建之前（与历史实现一致），
+    // 否则穷举 oracle 对每个被拒像素都构建细分边界（nside<256 64 顶点）
+    // 造成 ~1000 倍退化。此检查与 overlap_area_impl 内检查数值等价。
+    {
+        const double lim =
+            g.max_angle + HP_CIRCUMRADIUS_FACTOR * hp_res_rad;
+        const double cos_safe = std::cos(lim + 1e-9);
+        double d_c = hp_center.x * g.center_d.x +
+                     hp_center.y * g.center_d.y +
+                     hp_center.z * g.center_d.z;
+        d_c = std::max(-1.0, std::min(1.0, d_c));
+        if (d_c <= cos_safe || std::acos(d_c) > lim) return Scalar(0);
+    }
+    // 1. 获取目标 HEALPix 像素边界 (double 内部)
+    // nside>=256 生产路径用固定 4 角 array（无堆分配），
+    // 与 get_healpix_boundary 逐位等价；低 NSIDE 保留自适应细分 vector。
+    std::array<Vec3, 4> hp_boundary4;
+    std::vector<Vec3> hp_boundary_vec;
+    const Vec3* hp_boundary = nullptr;
+    int nb = 0;
+    if (nside >= 256) {
+        get_healpix_boundary4<double>(hp, target_ipix, nside, hp_boundary4);
+        hp_boundary = hp_boundary4.data();
+        nb = 4;
+    } else {
+        int samples = (nside <= 8) ? 16 : 1;
+        hp_boundary_vec = get_healpix_boundary_sampled<double>(
+            hp, target_ipix, nside, samples);
+        if (hp_boundary_vec.size() < 3) return Scalar(0);
+        hp_boundary = hp_boundary_vec.data();
+        nb = (int)hp_boundary_vec.size();
+    }
+    return overlap_area_impl<Scalar>(g, hp_res_rad, nside,
+                                     hp_center, hp_boundary, nb);
+}
+
+// ============================================================================
+// V19R3：bounded target-ipix geometry cache 实现
+// ============================================================================
+const TargetPixelGeometry* TargetGeomCache::get_or_build(
+    const healpix::HealpixCore& hp, std::uint64_t ipix, bool* built_out) {
+    auto it = map_.find(ipix);
+    if (it != map_.end()) {
+        ++hits_;
+        // LRU touch：移到 deque 前端
+        for (auto d = lru_.begin(); d != lru_.end(); ++d) {
+            if (*d == ipix) {
+                lru_.erase(d);
+                break;
+            }
+        }
+        lru_.push_front(ipix);
+        if (built_out) *built_out = false;
+        return &it->second.geom;
+    }
+    ++misses_;
+    TargetPixelGeometry tg;
+    double ra_c, dec_c;
+    hp.pix2radec((int64_t)ipix, &ra_c, &dec_c);
+    tg.center = radec_to_vec<double>(ra_c, dec_c);
+    get_healpix_boundary4<double>(hp, ipix, hp.getNside(), tg.boundary4);
+    tg.ready = true;
+    // 插入 + LRU 淘汰（容量有界）
+    map_[ipix] = Entry{ipix, tg};
+    lru_.push_front(ipix);
+    while (map_.size() > capacity_) {
+        const std::uint64_t victim = lru_.back();
+        lru_.pop_back();
+        map_.erase(victim);
+    }
+    const TargetPixelGeometry* out = &map_.find(ipix)->second.geom;
+    if (built_out) *built_out = true;
+    return out;
+}
+
+void TargetGeomCache::clear() {
+    map_.clear();
+    lru_.clear();
+    hits_ = 0;
+    misses_ = 0;
+}
+
+template <typename Scalar>
+Scalar compute_overlap_area_g_ctx_cached(
+    const DropGeometryT<Scalar>& g, const healpix::HealpixCore& hp,
+    std::uint64_t target_ipix, double hp_res_rad,
+    TargetGeomCache& cache) {
+    const int nside = hp.getNside();
+    if (nside < 256) {
+        // 低 NSIDE 保留自适应细分边界（不缓存，语义不变）
+        return compute_overlap_area_g_ctx<Scalar>(g, hp, target_ipix,
+                                                  hp_res_rad);
+    }
+    bool built = false;
+    const TargetPixelGeometry* tg =
+        cache.get_or_build(hp, target_ipix, &built);
+    (void)built;
+    return overlap_area_impl<Scalar>(g, hp_res_rad, nside,
+                                     tg->center, tg->boundary4.data(), 4);
 }
 
 // ============================================================================
@@ -1665,6 +1751,12 @@ template float compute_overlap_area_g_ctx<float>(const DropGeometryT<float>&,
 template double compute_overlap_area_g_ctx<double>(const DropGeometryT<double>&,
                                                    const healpix::HealpixCore&,
                                                    uint64_t, double);
+template float compute_overlap_area_g_ctx_cached<float>(
+    const DropGeometryT<float>&, const healpix::HealpixCore&, uint64_t,
+    double, TargetGeomCache&);
+template double compute_overlap_area_g_ctx_cached<double>(
+    const DropGeometryT<double>&, const healpix::HealpixCore&, uint64_t,
+    double, TargetGeomCache&);
 template void query_candidate_pixels<float>(
     const std::vector<Vec3T<float>>&, const healpix::HealpixCore&, std::vector<uint64_t>&);
 template void query_candidate_pixels<double>(

@@ -238,6 +238,7 @@ struct DrizzleRunContext {
     double cos_thresh_60 = 0.0;   // cos(60 角秒)：边跨度自适应阈值
     uint32_t shift = 0;           // leaf_ipix >> shift = parent
     uint64_t mask = 0;            // leaf_ipix & mask = local
+    std::uint64_t target_cache_run_gen = 0;  // V19R3：run generation（缓存清空标记）
 };
 
 // 操作计数 (每线程一份, 结束时合并到 DrizzleStats)
@@ -249,6 +250,11 @@ struct DrizzleOpCounters {
     int64_t pix2radec = 0;        // pixel→sky 调用数
     int64_t boundary_builds = 0;  // 自适应边细分事件数
     int64_t geometry_builds = 0;  // drop 几何构建数
+    // V19R3 定点优化计数（DRIZZLE_TARGETED）
+    int64_t target_boundary_builds = 0;  // target leaf 边界构建数（cache miss）
+    int64_t target_geometry_builds = 0;  // target leaf 几何（center+boundary）
+    int64_t geometry_cache_hits = 0;     // target-ipix geometry cache 命中
+    int64_t geometry_cache_misses = 0;   // cache 未命中
     int64_t sh_calls = 0;         // 球面重叠调用数
     int64_t tile_lookups = 0;     // tile 累加器访问数
     int64_t heap_allocations = 0; // 热循环堆分配数 (目标 ~0)
@@ -263,9 +269,26 @@ void merge_op_counters(DrizzleOpCounters& dst, const DrizzleOpCounters& src) {
     dst.pix2radec       += src.pix2radec;
     dst.boundary_builds += src.boundary_builds;
     dst.geometry_builds += src.geometry_builds;
+    dst.target_boundary_builds += src.target_boundary_builds;
+    dst.target_geometry_builds += src.target_geometry_builds;
+    dst.geometry_cache_hits    += src.geometry_cache_hits;
+    dst.geometry_cache_misses  += src.geometry_cache_misses;
     dst.sh_calls        += src.sh_calls;
     dst.tile_lookups    += src.tile_lookups;
     dst.heap_allocations += src.heap_allocations;
+}
+
+// V19R3 定点优化：每线程 target-ipix geometry cache（bounded LRU）。
+// run_gen 每次 drizzleTiled 递增；线程首次进入新 run 时 clear，
+// 避免跨 run NSIDE 几何污染（thread_local 不能跨 run 复用几何）。
+spherical::TargetGeomCache& run_target_cache(std::uint64_t run_gen) {
+    thread_local spherical::TargetGeomCache cache;
+    thread_local std::uint64_t last_gen = 0;
+    if (run_gen != last_gen) {
+        cache.clear();
+        last_gen = run_gen;
+    }
+    return cache;
 }
 
 // fine-grained per-pixel profiler 默认关闭；
@@ -1451,10 +1474,24 @@ void DrizzleEngine::processPixelSharedTiled(
             tr.corner_dec[i] = dec_t;
         }
     }
+    // V19R3 定点优化：线程本地 bounded target-ipix geometry cache
+    // （一次 run 内 clear；容量有界；见 spherical_overlap.h）
+    spherical::TargetGeomCache& tl_target_cache =
+        run_target_cache(rctx.target_cache_run_gen);
     for (uint64_t ipix : candidates) {
         counters.sh_calls++;
-        Scalar overlap_area = spherical::compute_overlap_area_g_ctx<Scalar>(
-            drop_geom, hp, ipix, rctx.hp_res_rad);
+        const std::size_t cache_misses_before =
+            tl_target_cache.misses();
+        Scalar overlap_area =
+            spherical::compute_overlap_area_g_ctx_cached<Scalar>(
+                drop_geom, hp, ipix, rctx.hp_res_rad, tl_target_cache);
+        if (tl_target_cache.misses() > cache_misses_before) {
+            ++counters.target_boundary_builds;
+            ++counters.target_geometry_builds;
+            ++counters.geometry_cache_misses;
+        } else {
+            ++counters.geometry_cache_hits;
+        }
         if (overlap_area < Scalar(1e-20)) {
             counters.quick_rejects++;
             continue;
@@ -1607,6 +1644,9 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     rctx.cos_thresh_60 = std::cos(THRESH_60ARCSEC);
     rctx.shift = (uint32_t)shift;
     rctx.mask = mask;
+    // V19R3：每次 drizzleTiled run 递增 generation，线程 cache 切换即清空
+    static std::uint64_t s_target_cache_gen = 0;
+    rctx.target_cache_run_gen = ++s_target_cache_gen;
 
     int64_t nSourcePixels = 0;
     const bool shared_vertices = (config.pixfrac == 1.0);
@@ -1621,6 +1661,10 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     for (int y = 0; y < img.height; y++) {
         int tid = omp_get_thread_num();
         auto& tileMap = threadTiles[tid];
+
+        // V19R3：每线程 target-ipix geometry cache 随 run generation 切换
+        // 时 clear（避免跨 run NSIDE 不同导致几何污染；容量有界见类定义）
+        run_target_cache(rctx.target_cache_run_gen);
 
         // 预计算本行底/顶两行网格顶点的天球坐标 (WCS double 精度, 每顶点一次;
         // 几何数据在 processPixelSharedTiled 内转 Scalar 存储)
@@ -1774,6 +1818,10 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     stats.op_pix2radec       = totalOps.pix2radec;
     stats.op_boundary_builds = totalOps.boundary_builds;
     stats.op_geometry_builds = totalOps.geometry_builds;
+    stats.op_target_boundary_builds = totalOps.target_boundary_builds;
+    stats.op_target_geometry_builds = totalOps.target_geometry_builds;
+    stats.op_geometry_cache_hits    = totalOps.geometry_cache_hits;
+    stats.op_geometry_cache_misses  = totalOps.geometry_cache_misses;
     stats.op_sh_calls        = totalOps.sh_calls;
     stats.op_tile_lookups    = totalOps.tile_lookups;
     stats.op_heap_allocations = totalOps.heap_allocations;
@@ -1813,12 +1861,18 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
               (double)(totalOps.sh_calls + totalOps.quick_rejects) : 0.0;
     fprintf(stderr,
             "[drizzle_engine][ops] src=%lld cand=%lld true_ov=%lld quick_rej=%lld "
-            "pix2radec=%lld boundary=%lld geom=%lld sh=%lld tile_lk=%lld heap_alloc=%lld "
+            "pix2radec=%lld boundary=%lld geom=%lld tgt_b=%lld tgt_g=%lld "
+            "gcache_hit=%lld gcache_miss=%lld sh=%lld tile_lk=%lld heap_alloc=%lld "
             "| cand_eff=%.3f sh_frac=%.3f\n",
             (long long)totalOps.source_pixels, (long long)totalOps.candidates,
             (long long)totalOps.true_overlaps, (long long)totalOps.quick_rejects,
             (long long)totalOps.pix2radec, (long long)totalOps.boundary_builds,
-            (long long)totalOps.geometry_builds, (long long)totalOps.sh_calls,
+            (long long)totalOps.geometry_builds,
+            (long long)totalOps.target_boundary_builds,
+            (long long)totalOps.target_geometry_builds,
+            (long long)totalOps.geometry_cache_hits,
+            (long long)totalOps.geometry_cache_misses,
+            (long long)totalOps.sh_calls,
             (long long)totalOps.tile_lookups, (long long)totalOps.heap_allocations,
             cand_eff, sh_frac);
     fprintf(stderr, "[drizzle_engine] 完成: %lld 源像素 → %lld HEALPix 像素 (%zu Tile), 耗时 %.3fs\n",

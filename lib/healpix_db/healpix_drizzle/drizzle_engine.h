@@ -107,6 +107,11 @@ struct DrizzleStats {
     int64_t op_pix2radec = 0;       // pixel→sky 调用数
     int64_t op_boundary_builds = 0; // 自适应边细分事件数
     int64_t op_geometry_builds = 0; // drop 几何构建数
+    // V19R3 定点优化计数（DRIZZLE_TARGETED）
+    int64_t op_target_boundary_builds = 0; // target leaf 边界构建（cache miss）
+    int64_t op_target_geometry_builds = 0; // target leaf 几何构建
+    int64_t op_geometry_cache_hits = 0;    // target-ipix cache 命中
+    int64_t op_geometry_cache_misses = 0;  // target-ipix cache 未命中
     int64_t op_sh_calls = 0;        // 球面重叠 (Sutherland-Hodgman 等价) 调用数
     int64_t op_tile_lookups = 0;    // tile 累加器访问数
     int64_t op_heap_allocations = 0;// 热循环堆分配数 (目标 ~0)
