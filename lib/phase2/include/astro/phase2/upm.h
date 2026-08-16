@@ -26,7 +26,7 @@
 extern "C" {
 #endif
 
-// ===== 控制观测（W2 冻结）=====
+// ===== 控制观测（W2 冻结 + V19R3 control-variance 合同）=====
 typedef struct {
     std::uint64_t frame_id;
     std::uint64_t control_id;
@@ -34,11 +34,19 @@ typedef struct {
     double ra_deg;
     double dec_deg;
     double value;                 // local photometric estimate（可负）
-    double uncertainty;           // measurement uncertainty
+    double uncertainty;           // control estimator 标准误（= sqrt(control_variance)）
     double snr;
-    // 控制点逆方差 (NoiseWeightModelV1 在控制
-    // cell 的 ivar; 0=未知 → 权重回退 1/uncertainty²)
+    // V19R3 弃用（仅诊断）：NoiseWeightModelV1 控制 leaf 单像素 Phase1 ivar。
+    // 它不是 Var(control estimator)，禁止在科学权重中使用。
     double ivar;
+    // V19R3 冻结（SCI-UPM-WEIGHT-001 / ALG-UPM-CONTROL-IVAR-001 /
+    // DATA-UPM-CONTROL-UNC-001）：
+    // control estimator = background-clean patch median；其统计方差
+    // control_variance = k_corr × (π/2) × sigma_bg² / N_retained；
+    // control_ivar = 1 / control_variance。
+    // k_corr 由当前 Drizzle synthetic noise/covariance MC 校准（非猜测）。
+    double control_variance;
+    double control_ivar;
     // local SNR 可用性。1=该 control cell 邻域确有 catalogue 星点
     // （snr 为真实局部中位数，可为 1.0）；0=无局部星点（snr 无意义，由
     // 调用方回退整帧 median，禁止以 1.0 伪装 unknown）。
@@ -71,8 +79,9 @@ typedef struct {
     double sigma_floor;           // uncertainty 下限（默认 1e-3）
     double support_power;         // support 因子指数（默认 1.0）
     int    quality_mode;          // 0=flags 映射（默认）
-    // 1=science weight 用 ivar (obs->ivar>0 优先, 否则 1/unc²);
-    // 0=legacy snr²/(1+snr²) 仅用于 ablation/诊断 (SNR-015)
+    // 1=science weight 用 control_ivar（=1/control_variance，SCI-UPM-WEIGHT-001）；
+    // 0=legacy snr²/(1+snr²)/unc² 仅用于 ablation/诊断 (SNR-015)。
+    // production 模式 control_ivar<=0/非有限 → 显式 INVALID（禁止静默回退）。
     int    use_ivar_weight;       // 默认 1
     double control_reliability;   // 默认 control reliability（默认 1.0）
     const char* input_manifest_hash;  // 输入稳定 manifest（可空；非空时参与模型 hash）
@@ -110,8 +119,14 @@ P2_API double p2_upm_evaluate_c(const void* model, std::uint64_t frame_id,
                                 std::uint64_t leaf_ipix);
 
 // 观测 raw weight（production UPM 权重公式，单一实现）。
-// raw_w = quality_factor * support^support_power * snr^2/(1+snr^2) /
-// max(unc^2, sigma_floor^2)；返回 0=ok。
+// production（cfg.use_ivar_weight != 0，SCI-UPM-WEIGHT-001）：
+//   raw_w = quality_factor × control_ivar（几何可靠性在 per-control 归一化
+//   中施加）；obs->control_ivar <= 0 / 非有限 → 返回 2（显式缺 control ivar，
+//   禁止静默回退 support/SNR）。
+// ablation/诊断（cfg.use_ivar_weight == 0）：
+//   raw_w = quality_factor * support^support_power * snr^2/(1+snr^2) /
+//   max(unc^2, sigma_floor^2)。
+// 返回 0=ok；1=参数错误；2=production 缺 control ivar。
 P2_API int p2_upm_raw_weight(const P2ControlObservation* obs,
                              const P2UpmBuildConfig* cfg,
                              double* out_raw);

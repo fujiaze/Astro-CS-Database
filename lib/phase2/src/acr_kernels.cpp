@@ -121,9 +121,13 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
         if (p2_collect_candidate_stack(&gin, &gout) != 0) {
             throw std::runtime_error("mosaic_reject: eligibility failed");
         }
-        // 权重模式
-        // wmode=2 (ivar, 默认): buffer3=control-cell ivar, w = support × ivar
-        // wmode=0 (legacy): buffer3=control-cell SNR, w = support × snr²
+        // 权重模式（V19R3，ACR-IVAR-001）：wmode=2（cell ivar×support）与
+        // CPU 逐像素 ivar 不等价，已从生产路由禁用（stage2 强制 CPU）；
+        // kernel 保留 wmode=0（legacy support×snr²，仅 ablation/诊断）。
+        if (wmode && *wmode == 2)
+            throw std::runtime_error(
+                "mosaic_reject: wmode=2 (cell ivar) 已禁用——ivar science "
+                "模式必须走 CPU canonical path");
         for (std::uint32_t s = 0; s < n_valid; ++s) {
             double wgt_v = 1.0;
             if (snr != nullptr) {
@@ -137,9 +141,7 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
                     static_cast<const float*>(snr->data)
                         [fs * grid * grid + (std::size_t)cell]);
             }
-            const bool ivar_mode = (wmode && *wmode == 2);
-            stack_w[s] = ivar_mode ? stack_sup[s] * wgt_v
-                                   : stack_sup[s] * wgt_v * wgt_v;
+            stack_w[s] = stack_sup[s] * wgt_v * wgt_v;   // legacy 诊断
         }
         if (n_valid == 0) {
             dst[p] = 0.0f;
@@ -176,7 +178,6 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
         pi.support = (sup != nullptr) ? stack_sup.data() : nullptr;
         pi.accepted = accepted.data();
         pi.count = n_valid;
-        pi.weight_mode = 0;
         P2PixelResult pr{};
         if (p2_integrate_pixel(&pi, &pr) != 0) {
             throw std::runtime_error("mosaic_reject: integrate failed");

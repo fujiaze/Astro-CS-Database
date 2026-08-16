@@ -38,6 +38,9 @@ struct P2Stage2Config {
     double zero_anchor_weight = 1e-3;
     double sigma_floor = 1e-3;
     double support_power = 1.0;
+    // V19R3（SCI-UPM-WEIGHT-001）：1=science weight 用 control_ivar；
+    // 0=legacy snr² ablation/诊断。默认 1。
+    int use_ivar_weight = 1;
     int max_irls_iterations = 100;
     double tolerance = 1e-6;
     // integration
@@ -82,6 +85,10 @@ struct P2Stage2Config {
     // legacy 别名已删除（旧 config 必须经 migration tool 迁移）
     // 2=ivar (默认, 逆方差); 1=equal; 0=support_x_snr2 (legacy/诊断)
     int weight_mode = 2;
+    // V19R3（DATA-UPM-CONTROL-UNC-001 §7）：weight_policy=ivar 时整个 ivar
+    // 产品缺失默认 → 显式 science/degraded 错误；仅当此标志显式为 true 时
+    // 才允许降级 support/equal 并在 diagnostics 标红。
+    bool legacy_allow_weight_fallback = false;
     std::string acr_route = "auto";
     // output
     std::string out_hips;

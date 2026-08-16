@@ -9,7 +9,8 @@ extern "C" {
 int p2_validate_candidate_weights(const double* weights, std::uint32_t count) {
     if (weights == nullptr) return 0;
     for (std::uint32_t i = 0; i < count; ++i) {
-        if (!std::isfinite(weights[i]) || weights[i] <= 0.0) return 1;
+        // V19R3：零权重合法（无统计贡献）；负/NaN/Inf 违规。
+        if (!std::isfinite(weights[i]) || weights[i] < 0.0) return 1;
     }
     return 0;
 }

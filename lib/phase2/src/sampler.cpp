@@ -35,6 +35,12 @@ namespace {
 constexpr int kTileWidth = 512;
 constexpr int kTileShift = 9;  // log2(512)
 constexpr int kSnrCatalogMax = 1 << 16;
+// V19R3 冻结：Drizzle 输出像素协方差导致的 control estimator 方差放大
+// （ALG-UPM-CONTROL-IVAR-001）。由 UPMW-005 control_median_mc_test 在
+// 当前 Drizzle 引擎（pixfrac=0.8 生产默认）2000 实现 MC 校准：
+// k_corr_empirical = 1.3883，N_eff ≈ 181 < N_retained=251。冻结保守值 1.4。
+constexpr double kControlCorrDefault = 1.4;
+constexpr double kPiHalf = 1.57079632679489661923;  // π/2
 
 struct FrameData {
     std::set<std::uint64_t> tiles;          // order=K tile ipix
@@ -182,6 +188,7 @@ P2SamplerConfig p2_sampler_default_config(void) {
     c.background_tolerance = 3.0;
     c.background_neighbor_radius = 2;
     c.background_catalog_veto = 1;
+    c.control_k_corr = kControlCorrDefault;
     return c;
 }
 
@@ -361,6 +368,8 @@ int p2_sample_controls(const P2CoverageResult* coverage,
     if (cfg.background_tolerance <= 0.0) cfg.background_tolerance = 3.0;
     if (cfg.background_neighbor_radius <= 0)
         cfg.background_neighbor_radius = 2;
+    if (cfg.control_k_corr <= 0.0)
+        cfg.control_k_corr = kControlCorrDefault;   // 冻结 MC 校准值
     if (cfg.control_grid_per_tile < 1) cfg.control_grid_per_tile = 8;
     if (cfg.patch_radius_leaf < 0) cfg.patch_radius_leaf = 2;
     if (cfg.min_samples < 1) cfg.min_samples = 5;
@@ -438,6 +447,9 @@ int p2_sample_controls(const P2CoverageResult* coverage,
     struct CellStat {
         std::vector<int> frames;                  // 覆盖帧（frame index）
         std::vector<double> m, mad, bfrac, unc, snr, sup;
+        // V19R3：control estimator（patch median）统计方差/逆方差
+        // control_variance = k_corr × (π/2) × sigma² / N_retained
+        std::vector<double> cvar, civar;
         std::vector<int> n_total, n_retained, snr_avail;
         std::vector<std::uint32_t> qual;
         std::vector<bool> accepted;
@@ -528,6 +540,7 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                         cs.m.push_back(0); cs.mad.push_back(0);
                         cs.bfrac.push_back(0); cs.unc.push_back(0);
                         cs.snr.push_back(0); cs.sup.push_back(0);
+                        cs.cvar.push_back(0); cs.civar.push_back(0);
                         cs.n_total.push_back(n_total); cs.n_retained.push_back(0);
                         cs.snr_avail.push_back(0); cs.qual.push_back(0);
                         cs.accepted.push_back(false); cs.reason.push_back(1);
@@ -584,7 +597,17 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                         cs.m.push_back(y);
                         cs.mad.push_back(sigma);
                         cs.bfrac.push_back(bfrac);
-                        cs.unc.push_back(sigma / std::sqrt((double)n_total));
+                        // V19R3（DATA-UPM-CONTROL-UNC-001）：
+                        // control estimator = patch median → 标准误
+                        // SE(median) = sqrt(control_variance)；
+                        // 用 N_retained（clipping 后保留样本），不是 n_total。
+                        const double n_ret = std::max((double)n_retained, 1.0);
+                        const double cvar =
+                            cfg.control_k_corr * kPiHalf * sigma * sigma /
+                            n_ret;
+                        cs.cvar.push_back(cvar);
+                        cs.civar.push_back(cvar > 0.0 ? 1.0 / cvar : 0.0);
+                        cs.unc.push_back(std::sqrt(cvar));
                         cs.sup.push_back(n_valid ? sup_sum / (double)n_valid : 0.0);
                         cs.n_total.push_back(n_total);
                         cs.n_retained.push_back(n_retained);
@@ -720,7 +743,13 @@ int p2_sample_controls(const P2CoverageResult* coverage,
             o.uncertainty = cs.unc[fi];
             o.snr = cs.snr[fi];
             o.snr_available = cs.snr_avail[fi];
+            // V19R3（DATA-UPM-CONTROL-UNC-001）：control estimator 的
+            // 统计方差/逆方差（patch median；含 Drizzle 协方差 k_corr）。
+            o.control_variance = cs.cvar[fi];
+            o.control_ivar = cs.civar[fi];
             // 控制点 ivar 取自帧 ivar 产品 (控制 leaf 处)
+            // V19R3 弃用：仅诊断（单 leaf Phase1 ivar ≠ Var(control
+            // estimator)），science 权重一律使用 control_ivar。
             o.ivar = 0.0;
             {
                 AioHipsDataset* iv = ivr[cs.frames[fi]];
