@@ -1,4 +1,5 @@
 // test_spectrum_integrator.cpp - 光谱积分 golden 比对测试程序
+// TEST-SPEC-001: 谱积分器 golden（含 V19R3 akima n=2 边界回归）
 //
 // 用途: 验证 spectrum_integrator.cpp 的 compute_f_syn / compute_f_syn_cached
 // 在 修改后无回归. 仅改 star_matcher.cpp, 不触及
