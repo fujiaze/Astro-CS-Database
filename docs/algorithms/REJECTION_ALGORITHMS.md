@@ -14,6 +14,20 @@ decision（accept/reject + reason + status）。
 
 方法合法（AUTO 不进 kernel）；参数 typed。
 
+## 状态/原因枚举全集合（P2RejectStatus / P2RejectReason）
+
+```text
+P2_REASON_ACCEPTED=0  P2_REASON_REJECTED_LOW=1
+P2_REASON_REJECTED_HIGH=2  P2_REASON_UNDERDETERMINED=3
+P2_STATUS_OK=0  P2_STATUS_MIN_SAMPLES=1  P2_STATUS_ALL_REJECTED=2
+P2_STATUS_INVALID_INPUT=3  P2_STATUS_UNDERDETERMINED=4
+P2_STATUS_INVALID_CONFIGURATION=5  P2_STATUS_INVALID_METHOD=6
+P2_STATUS_INTERNAL_ERROR=7
+```
+
+与 lib/phase2/include/astro/phase2/rejection.h 枚举 name+value 集合
+完全一致（docs_machine_consistency 全量校验，V19R3）。
+
 ## Postconditions
 
 - INVALID_* → hard fail；UNDERDETERMINED → 不做猜测；
