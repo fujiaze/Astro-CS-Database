@@ -45,6 +45,22 @@ def main() -> int:
         'wm == "auto" || wm == "ivar"' in cfg_code,
         "CONFIG_SCHEMA weight_mode auto/ivar <-> stage2_common parse"))
 
+    # V19R4：frame_id 合同（DATA-FRAME-ID-001）——禁止 FNV/路径派生描述
+    sampler_h = read("lib/phase2/include/astro/phase2/sampler.h")
+    data_sem = read("docs/contracts/DATA_SEMANTICS.md")
+    upm_doc = read("docs/science/PHASE2_UPM.md")
+    frame_id_ok = (
+        "FNV" not in sampler_h and "FNV" not in data_sem and
+        "由输入路径派生" not in sampler_h and
+        "由输入路径派生" not in data_sem and
+        "truncated-64" in sampler_h and
+        "SHA-256" in data_sem and
+        "DATA-FRAME-ID-001" in upm_doc)
+    results.append(check(
+        "frame_id_contract_exact",
+        frame_id_ok,
+        "DATA-FRAME-ID-001：SHA-256 truncate；无 FNV/路径派生残留"))
+
     tax = read("docs/architecture/ERROR_MODEL.md")
     orc_h = read("lib/orchestrator/cpp/include/orchestrator.h")
     # V19R3：全集合比对（name+value），不允许 subset/多余/缺失
