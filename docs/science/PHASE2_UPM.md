@@ -14,17 +14,40 @@ calibrated_f(p) = raw_f(p) − C_f(p)
 
 C_f 为帧 f 的空间加性校正场（8×8 control cell 双线性）。
 
-求解：Huber IRLS + SNR/ivar 感知权重 + 弱零锚 + 连通分量独立 gauge
+求解：Huber IRLS + control-ivar 感知权重 + 弱零锚 + 连通分量独立 gauge
 （每分量参考帧 = 最小 frame_id）。
 
-## 权重（V19 SNR_REDESIGN_CONTRACT）
+## 权重（V19R3 冻结：SCI-UPM-WEIGHT-001 / ALG-UPM-CONTROL-IVAR-001 /
+DATA-UPM-CONTROL-UNC-001）
 
 ```text
-w_UPM ∝ quality × geometric_reliability / Var(control_estimator)
-ivar 优先（obs->ivar>0），否则 1/uncertainty²（SCI-NOISE-015）
+w_UPM = quality_factor × geometric_reliability × control_ivar
+control_ivar = 1 / control_variance
+control_variance = k_corr × (π/2) × sigma_bg² / N_retained
 ```
 
-legacy snr²/(1+snr²) 仅 ablation/诊断（use_ivar_weight=0）。
+含义：
+- control estimator = background-clean patch **median**（不是单像素 leaf）；
+- control_variance 是其统计方差：Drizzle 输出协方差由 k_corr>=1 表征
+  （N_eff = N_retained/k_corr < N_retained）；
+- N_retained 用 clipping 后保留样本（不是裁剪前 n_total）；
+- k_corr 由当前 Drizzle synthetic noise/covariance MC 校准（UPMW-005
+  control_median_mc_test：pixfrac=0.8 生产默认，2000 实现，
+  k_corr_empirical=1.3883，N_eff≈181/251），冻结保守值 1.4（sampler
+  `control_k_corr` 可显式覆盖，默认单源）；
+- 禁止 production science 模式乘 star SNR / snr²/(1+snr²) / support^p
+  （support 只作 eligibility/coverage 诊断）；legacy snr²/(1+snr²)/unc²
+  仅 use_ivar_weight=0 的 ablation/诊断（SNR-015）；
+- obs.ivar（单 leaf Phase1 ivar）V19R3 弃用为诊断字段，禁止进入科学权重。
+
+几何可靠性（geometric_reliability）在 per-control 归一化中施加
+（p2_upm_normalized_weights × control_reliability）。
+
+硬门：UPMW-001（snr 扰动不变）、UPMW-002（control_ivar 1:4 → weight
+1:4）、UPMW-003（星群不变）、UPMW-004（独立 Gaussian Var(median)
+≈ πσ²/2N）、UPMW-005（Drizzle 相关 MC）、UPMW-006（无 legacy SNR
+consumer；production 缺 control_ivar 显式 rc=2）、UPMW-007（patch
+estimator vs truth）。
 
 ## 持久化绑定（SCI-UPM-PERSIST-001 / ALG-UPM-FRAME-BIND-001）
 
@@ -37,7 +60,8 @@ parameter_rows[index] ↔ frame_id_by_index[index]     # 同长、无重复
 
 ## 变量/单位
 
-- C：加性场（信号单位）；theta：control 系数；ivar：信号⁻²；
+- C：加性场（信号单位）；theta：control 系数；
+- control_variance：信号²；control_ivar：信号⁻²；
 - frame_id：稳定科学 payload 标识（uint64）。
 
 ## 假设
@@ -67,5 +91,6 @@ FP64；dense cache 与 sparse 求值 1e-12 等价门。
 
 ## ID
 
-SCI-UPM-001..010；SCI-UPM-PERSIST-001；ALG-UPM-FRAME-BIND-001；
-DATA-UPM-MODEL-001。
+SCI-UPM-001..010；SCI-UPM-PERSIST-001；SCI-UPM-WEIGHT-001；
+ALG-UPM-FRAME-BIND-001；ALG-UPM-CONTROL-IVAR-001；
+DATA-UPM-MODEL-001；DATA-UPM-CONTROL-UNC-001。
