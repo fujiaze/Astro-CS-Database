@@ -1,0 +1,11 @@
+module,driver,status,notes
+phase2,p2_san,PASS,
+aio,aio_san,PASS,
+calibration,cal_san,PASS,
+star_detector,sdet_san,PASS,
+plate_solve,test_synthetic,PASS,test threshold n_inliers 38<40 (transform exact RMS=0); no ASan/UBSan findings
+photometric_calib,photo_san,PASS,
+snr_estimator,snr_san,PASS,
+healpix_drizzle,drz_san,PASS,
+orchestrator,orch_san,PASS,
+orchestrator,dll_loader,WIN32_TOOL_EXCEPTION,Win32 DLL 加载依赖; alternate=MinGW build+clang analyze PASS

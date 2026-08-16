@@ -19,6 +19,10 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#else
+// Linux/WSL 头文件可编译性：DllLoader 实现仍为 Win32 专属（cpp/src/
+// dll_loader.cpp），此 typedef 仅允许 Linux sanitizer 编译头文件。
+typedef void* HMODULE;
 #endif
 
 // 模块 ID 枚举

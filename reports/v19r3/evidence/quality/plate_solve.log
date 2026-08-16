@@ -1,0 +1,55 @@
+=== IPV 合成数据测试 ===
+[1] 合成数据: N_U=50, N_W=80
+    真实变换: s=1.0000, θ=30.0000°, tx=500.0000", ty=300.0000"
+    U 范围: x=[-136.5540,4480.9244], y=[-1395.8677,3270.0491]
+[2] k-vector: 3160 个星对, d_min=51.2566, d_max=5279.6156
+[2026-08-16 15:12:30][INFO] polygon_match: N_U=50, N_W=80, n_pivot=30, sigma_d=1.000
+[2026-08-16 15:12:30][INFO] polygon_match: pivots=30, with_cand=30, with_pass=30, n_passed=49, max_vote=6.50, vote_entries=128
+[3] 多边形匹配: 30 pivots, 49 通过验证, max_vote=6.5000, vote_entries=128
+[2026-08-16 15:12:30][INFO] geometric_vote: N_U=50, N_U_eff=50 (geo_n_max=50), tol=9.00", processed=1225, skip_window=0, skip_ambig=0, votes_added=42008, vote_entries=3976
+[4] 几何投票完成: vote_entries=3976, max_vote=66.5000
+[2026-08-16 15:12:30][INFO] extract_consensus: N_U=50, vote_threshold=2, K_w=3, n_candidates=129 (top-1=50, top-2/3 增加=79)
+[5] 共识提取: 129 个候选
+    前 5 个候选 (u, w, vote, conf):
+      (2, 9, vote=66.5000, conf=0.6821)
+      (44, 69, vote=65.0000, conf=0.6771)
+      (32, 79, vote=56.0000, conf=0.6747)
+      (31, 63, vote=54.0000, conf=0.6923)
+      (4, 15, vote=53.5000, conf=0.6646)
+[2026-08-16 15:12:30][INFO] prosac_verify: 开始 (M=129, max_iter=2000, tau=3.00 px, s=[0.900,1.100], K_greedy=15)
+[2026-08-16 15:12:30][INFO] prosac_verify: 渐进阈值 tau_wide=3.00 px, tau_tight=1.50 px
+[2026-08-16 15:12:30][INFO] prosac_verify: vote分布(前20): 66.50 65.00 56.00 54.00 53.50 50.00 45.50 43.00 42.50 41.50 41.00 40.00 39.50 39.50 38.00 38.00 37.50 37.50 37.00 37.00 
+[2026-08-16 15:12:30][INFO] prosac_verify: 初始池 T0=64
+[2026-08-16 15:12:30][INFO]   诊断[第一个贪心对]: a=0 b=1 u1=2 w1=9 u2=44 w2=69
+[2026-08-16 15:12:30][INFO]     s=1.0000 theta=30.00 deg tx=500.0 ty=300.0
+[2026-08-16 15:12:30][INFO]     U[u1]=(2989.5,1017.2) U[u2]=(838.5,297.0)
+[2026-08-16 15:12:30][INFO]     W[w1]=(2580.4,2675.7) W[w2]=(1077.6,976.5)
+[2026-08-16 15:12:30][INFO]     残差排序(前15): 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 
+[2026-08-16 15:12:30][INFO] prosac greedy[0,1] s=1.0000 theta=30.0000 deg inliers=38(wide=38) RMS=0.0000 px
+[2026-08-16 15:12:30][INFO] prosac_verify: 早停 (n_inliers=38, RMS=0.0000 < 1.50 px)
+[2026-08-16 15:12:30][INFO] prosac_verify: 贪心阶段完成 (K=15, 尝试 1 对, best_inliers=38)
+[2026-08-16 15:12:30][INFO] prosac_verify: 迭代结束 (n_iter=0, best_inliers=38, best_RMS=0.0000 px)
+[2026-08-16 15:12:30][INFO] umeyama_estimate: n=38 s=1.000000 theta=30.000000 deg tx=500.0000 ty=300.0000
+[2026-08-16 15:12:30][INFO] prosac_verify: Umeyama 精化 s=1.000000 theta=30.000000 deg RMS=0.0000 px
+[2026-08-16 15:12:30][INFO] prosac_verify: 完成 (n_inliers=38, RMS=0.0000 px, score=38.0000, success=1)
+[6] PROSAC: success=1, n_inliers=38, RMS=0.0000", n_iter=0, score=38.0000
+    恢复变换: s=1.0000, θ=30.0000°, tx=500.0000", ty=300.0000"
+
+--- 结果验证 ---
+  [PASS] PROSAC success=true
+  [FAIL] n_inliers=38 < 40
+  [PASS] RMS=0.0000 < 0.1"
+  变换参数对比:
+    s:    真实=1.000000, 恢复=1.000000, |Δ|=0.000000 [PASS]
+    θ:    真实=0.523599 (30.000000°), 恢复=0.523599 (30.000000°), |Δ|=0.000000 [PASS]
+    tx:   真实=500.000000, 恢复=500.000000, |Δ|=0.000000 [PASS]
+    ty:   真实=300.000000, 恢复=300.000000, |Δ|=0.000000 [PASS]
+
+[8] WCS 输出:
+    CD=[0.000361, 0.000208; 0.000208, -0.000361]
+    CRVAL=[180.000000, 45.000000]
+    CRPIX=[2000.500000, 2000.500000]
+    RMS_px=0.000000, RMS_arcsec=0.000000, n_pairs=38
+
+=== 测试结果 ===
+[FAIL] 合成数据测试

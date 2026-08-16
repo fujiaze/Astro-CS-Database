@@ -65,13 +65,18 @@ std::vector<double> akima_interpolate(
         slope[i] = (y_src[i + 1] - y_src[i]) / dx;
     }
 
-    // 扩展斜率数组 ext_m[0..n+1], ext_m[j] = m[j-2]
-    // ext_m[0]=m[-2], ext_m[1]=m[-1], ext_m[2..n]=m[0..n-2], ext_m[n+1]=m[n-1]
-    std::vector<double> ext_m(n + 2, 0.0);
-    ext_m[0] = 3.0 * slope[0] - 2.0 * slope[1];       // m[-2]
-    ext_m[1] = 2.0 * slope[0] - slope[1];             // m[-1]
+    // 扩展斜率数组 ext_m[0..n+2], ext_m[j] = m[j-2]（m[-2]..m[n]）。
+    // 切线 t[i] 需要 m[i-2..i+1]，i=n-1 时需要 m[n] —— 必须预留 n+3 项，
+    // 否则最后一切线越界（V19R3 sanitizer 实测 heap-buffer-overflow）。
+    // n==2 时仅 slope[0] 存在：边界斜率退化为复制（线性段）。
+    std::vector<double> ext_m(n + 3, 0.0);
+    ext_m[0] = (n >= 3) ? 3.0 * slope[0] - 2.0 * slope[1] : slope[0];
+    ext_m[1] = (n >= 3) ? 2.0 * slope[0] - slope[1] : slope[0];
     for (int i = 0; i < n - 1; ++i) ext_m[2 + i] = slope[i]; // m[0..n-2]
-    ext_m[n + 1] = 2.0 * slope[n - 2] - slope[n - 3]; // m[n-1]
+    ext_m[n + 1] = (n >= 3)
+        ? 2.0 * slope[n - 2] - slope[n - 3] : slope[n - 2];  // m[n-1]
+    ext_m[n + 2] = (n >= 3)
+        ? 3.0 * slope[n - 2] - 2.0 * slope[n - 3] : slope[n - 2];  // m[n]
 
     // 每个数据点 i 的切线 t[i]
     std::vector<double> t(n, 0.0);

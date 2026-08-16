@@ -59,7 +59,7 @@ double robust_sigma(std::vector<double> v) {
 }
 
 bool valid_pixel(double x, double saturation) {
-    if (!finite(x)) return false;
+    if (!std::isfinite(x)) return false;
     if (saturation > 0.0 && x >= saturation) return false;
     return true;
 }
@@ -139,7 +139,7 @@ int noise_model_impl(const T* data, int h, int w,
         (void)amps;
         const double r2 = rmax * rmax;
         for (int i = 0; i < n_stars; ++i) {
-            if (!finite(star_x[i]) || !finite(star_y[i])) continue;
+            if (!std::isfinite(star_x[i]) || !std::isfinite(star_y[i])) continue;
             const int cx = (int)std::lround(star_x[i]);
             const int cy = (int)std::lround(star_y[i]);
             for (int dy = -(int)rmax; dy <= (int)rmax; ++dy) {
@@ -182,7 +182,7 @@ int noise_model_impl(const T* data, int h, int w,
                 continue;
             }
             const double sig = robust_sigma(samples);
-            if (!finite(sig) || sig <= 0.0) {
+            if (!std::isfinite(sig) || sig <= 0.0) {
                 ++n_rejected;
                 continue;
             }
@@ -220,7 +220,7 @@ int noise_model_impl(const T* data, int h, int w,
             return 1;
         }
         const double sig = robust_sigma(all);
-        if (!finite(sig) || sig <= 0.0) {
+        if (!std::isfinite(sig) || sig <= 0.0) {
             out_model->degenerate = 1;
             return 1;
         }
@@ -271,7 +271,7 @@ SNR_API int snr_phot_cal_quality(double sigma_logflux_dex, int n_matches,
     if (!out) return 3;
     std::memset(out, 0, sizeof(PhotometricCalibrationQuality));
     out->n_matches = n_matches;
-    if (!finite(sigma_logflux_dex) || sigma_logflux_dex <= 0.0) {
+    if (!std::isfinite(sigma_logflux_dex) || sigma_logflux_dex <= 0.0) {
         out->fit_status = 2;
         return 0;
     }
@@ -306,12 +306,12 @@ SNR_API int snr_psf_fit_quality(const double* psf, int n_stars,
             r.fit_status = 1;
         } else if (qf & (SNR_QF_SATURATED | SNR_QF_HAS_SATURATED)) {
             r.fit_status = 2;
-        } else if (!finite(row[6]) || !finite(row[7]) || row[7] <= 0.0) {
+        } else if (!std::isfinite(row[6]) || !std::isfinite(row[7]) || row[7] <= 0.0) {
             r.fit_status = 3;
         } else {
             r.fit_status = 0;
         }
-        if (r.residual_scale > 0.0 && finite(r.residual_scale)) {
+        if (r.residual_scale > 0.0 && std::isfinite(r.residual_scale)) {
             r.robust_residual_sigma = r.residual_scale / kTrimMeanToSigma;
             r.q_psf = r.amplitude_above_bg / r.residual_scale;
         }
@@ -438,7 +438,7 @@ SNR_API void snr_noise_scale_law(double alpha,
     if (variance) *variance = (*variance) * alpha * alpha;
     if (ivar) {
         const double a2 = alpha * alpha;
-        if (a2 > 0.0 && finite(*ivar)) *ivar = (*ivar) / a2;
+        if (a2 > 0.0 && std::isfinite(*ivar)) *ivar = (*ivar) / a2;
     }
 }
 

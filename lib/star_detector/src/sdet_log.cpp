@@ -2,6 +2,9 @@
 #include <cstdio>
 #include <cstdarg>
 #include <ctime>
+#ifndef _WIN32
+#include <filesystem>
+#endif
 #include <mutex>
 #include <string>
 #ifdef _WIN32
@@ -28,9 +31,19 @@ static void sdet_ensure_log_file() {
     if (g_sdet_log_file) return;
     {
         const char* dir = "lib\\star_detector\\logs";
+#ifdef _WIN32
         CreateDirectoryA(dir, nullptr);
+#else
+        std::filesystem::create_directories("lib/star_detector/logs");
+#endif
     }
-    g_sdet_log_file = std::fopen("lib\\star_detector\\logs\\star_detector.log", "a");
+    g_sdet_log_file = std::fopen(
+#ifdef _WIN32
+        "lib\\star_detector\\logs\\star_detector.log",
+#else
+        "lib/star_detector/logs/star_detector.log",
+#endif
+        "a");
 }
 
 static const char* sdet_level_name(int level) {
@@ -50,7 +63,11 @@ void sdet_log(int level, const char* module, const char* fmt, ...) {
 
     std::time_t now = std::time(nullptr);
     std::tm tm_buf;
+#ifdef _WIN32
     localtime_s(&tm_buf, &now);
+#else
+    localtime_r(&now, &tm_buf);
+#endif
     char time_str[32];
     std::strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", &tm_buf);
 

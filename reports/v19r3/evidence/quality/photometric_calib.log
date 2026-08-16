@@ -1,0 +1,40 @@
+[INFO] filter: 2 点, 范围 [3500.0, 9000.0] nm
+[INFO] QE: 2 点, 范围 [3500.0, 9000.0] nm
+[INFO] [spec_int] prepare_filter_cache: 滤光片 2 点 + QE 2 点 -> 光谱 343 点, 范围 F[3500.0,9000.0] Q[3500.0,9000.0] nm
+[INFO] cache 就绪: spectrum_wl 343 点, filter_trans 343 点, weighted_wl 343 点
+[spec_int] compute_f_syn: 波长重叠区间为空 [3500.00, 1020.00]
+[spec_int] compute_f_syn: 波长重叠区间为空 [3500.00, 1020.00]
+[spec_int] compute_f_syn: 波长重叠区间为空 [3500.00, 1020.00]
+[spec_int] compute_f_syn: 波长重叠区间为空 [3500.00, 1020.00]
+[spec_int] compute_f_syn: 波长重叠区间为空 [3500.00, 1020.00]
+[{
+  "T_kelvin": 3500.0,
+  "mag_g": 15.000000,
+  "spec_count": 343,
+  "f_syn_uncached": 0.0000000000e+00,
+  "f_syn_cached": 0.0000000000e+00
+},{
+  "T_kelvin": 4500.0,
+  "mag_g": 15.000000,
+  "spec_count": 343,
+  "f_syn_uncached": 0.0000000000e+00,
+  "f_syn_cached": 0.0000000000e+00
+},{
+  "T_kelvin": 5800.0,
+  "mag_g": 15.000000,
+  "spec_count": 343,
+  "f_syn_uncached": 0.0000000000e+00,
+  "f_syn_cached": 0.0000000000e+00
+},{
+  "T_kelvin": 7500.0,
+  "mag_g": 15.000000,
+  "spec_count": 343,
+  "f_syn_uncached": 0.0000000000e+00,
+  "f_syn_cached": 0.0000000000e+00
+},{
+  "T_kelvin": 10000.0,
+  "mag_g": 15.000000,
+  "spec_count": 343,
+  "f_syn_uncached": 0.0000000000e+00,
+  "f_syn_cached": 0.0000000000e+00
+}]

@@ -12,6 +12,11 @@
 #include "astro/phase2/rejection.h"
 #include "astro/phase2/block.h"
 #include "astro/phase2/integrate.h"
+#include "astro/phase2/acr_kernels.h"
+
+#include "astro/compute/kernel_registry.hpp"
+#include "astro/compute/task_traits.hpp"
+#include "cuda_bridge_api.hpp"
 
 #include <cmath>
 #include <cstdio>
@@ -34,6 +39,9 @@ int main() {
             o.value = 10.0 + 0.3 * f + 0.1 * k;
             o.snr = 5.0 + f;
             o.support = 1.0;
+            // V19R3：production 权重要求 control_ivar（显式填充）
+            o.control_variance = 1.0;
+            o.control_ivar = 1.0;
             obs.push_back(o);
         }
     }
@@ -185,6 +193,51 @@ int main() {
             p2_upm_close(fm2);
         }
         p2_upm_close(fm);
+    }
+
+    // V19R3：integration 零权重合同（ZERO_VALID_WEIGHT 可达路径）
+    {
+        double vals[2] = {10.0, 12.0};
+        double w[2] = {1.0, 0.0};
+        double sup[2] = {1.0, 1.0};
+        P2PixelStack pi{};
+        pi.values = vals;
+        pi.weights = w;
+        pi.support = sup;
+        pi.count = 2;
+        P2PixelResult pr{};
+        if (p2_integrate_pixel(&pi, &pr) != 0) return 21;
+        if (pr.status != P2_INTEGRATE_OK) return 22;
+        if (pr.n_positive_weight != 1u) return 23;
+        if (p2_validate_candidate_weights(w, 2) != 0) return 24;
+    }
+
+    // V19R3：ACR CPU/reference（synthetic mosaic_reject，CPU launcher）
+    {
+        astro::compute::phase2::register_phase2_acr_kernels();
+        const astro::compute::KernelRegistration* reg =
+            astro::compute::global_kernel_registry().find(
+                astro::compute::phase2::kOpMosaicReject);
+        if (reg == nullptr || reg->legacy_parallel == nullptr) return 31;
+        const std::size_t px = 2, depth = 2;
+        float vals[4] = {10.0f, 20.0f, 11.0f, 19.0f};
+        float out[2] = {0, 0};
+        astro::compute::KernelInvocation inv;
+        inv.id = astro::compute::phase2::kOpMosaicReject;
+        inv.domain = astro::compute::WorkDomain{0, px};
+        inv.buffers.add(0, out, px, 1, astro::compute::BufferRole::Output);
+        inv.buffers.add(1, vals, px * depth, 1,
+                        astro::compute::BufferRole::Input);
+        astro::compute::append_scalar(inv.scalars, std::size_t{px});
+        astro::compute::append_scalar(inv.scalars, std::size_t{depth});
+        astro::compute::append_scalar(inv.scalars, int{P2_REJECT_SIGMA});
+        astro::compute::append_scalar(inv.scalars, int{2});
+        astro::compute::append_scalar(inv.scalars, double{4.0});
+        astro::compute::append_scalar(inv.scalars, double{3.0});
+        astro::compute::append_scalar(inv.scalars, int{8});
+        astro::compute::append_scalar(inv.scalars, std::size_t{0});
+        astro::compute::append_scalar(inv.scalars, int{0});
+        reg->legacy_parallel(inv, nullptr);
     }
 
     std::printf("sanitize driver ok\n");

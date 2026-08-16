@@ -2,6 +2,9 @@
 #include <cstdio>
 #include <cstdarg>
 #include <ctime>
+#ifndef _WIN32
+#include <filesystem>
+#endif
 #include <mutex>
 #include <string>
 #ifdef _WIN32
@@ -28,9 +31,19 @@ static void aio_ensure_log_file() {
     if (g_aio_log_file) return;
     {
         const char* dir = "lib\\astro_image_io\\logs";
+#ifdef _WIN32
         CreateDirectoryA(dir, nullptr);
+#else
+        std::filesystem::create_directories("lib/astro_image_io/logs");
+#endif
     }
-    g_aio_log_file = std::fopen("lib\\astro_image_io\\logs\\astro_image_io.log", "a");
+    g_aio_log_file = std::fopen(
+#ifdef _WIN32
+        "lib\\astro_image_io\\logs\\astro_image_io.log",
+#else
+        "lib/astro_image_io/logs/astro_image_io.log",
+#endif
+        "a");
 }
 
 static const char* aio_level_name(int level) {
