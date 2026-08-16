@@ -17,7 +17,7 @@
 
 namespace astro::compute::scheduler {
 
-// ===== 驻留状态（06 号规范 §1）=====
+// ===== 驻留状态=====
 enum class ResidencyState : std::uint8_t {
     HostValid = 0,     // 仅 host 有效
     DeviceValid = 1,   // 仅 device 有效
@@ -28,7 +28,7 @@ enum class ResidencyState : std::uint8_t {
 
 const char* residency_state_str(ResidencyState s) noexcept;
 
-// ===== Buffer 访问模式（06 号规范 §1）=====
+// ===== Buffer 访问模式=====
 enum class BufferAccess : std::uint8_t {
     Read = 0,        // 只读输入（可跨块复用）
     Write = 1,       // 只写输出

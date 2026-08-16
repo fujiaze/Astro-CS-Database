@@ -4,25 +4,25 @@
 // 用当前 Drizzle 引擎做 synthetic noise/covariance Monte Carlo，确定
 // control estimator（background-clean patch median）的统计方差：
 //
-//   Var(median) = k_corr × (π/2) × sigma_bg² / N_retained
+// Var(median) = k_corr × (π/2) × sigma_bg² / N_retained
 //
 // k_corr >= 1 表征 Drizzle 输出像素协方差导致的 N_eff < N_retained。
 // 本测试：
-//   1) 对固定 WCS/几何生成 NMC 个独立高斯噪声实现并逐帧 drizzle；
-//   2) 每实现计算固定 patch 的 median、N_retained、MAD 尺度；
-//   3) 跨实现求 Var(median) 经验值，除以独立 Gaussian 基线
-//      (π/2)·sigma²/N_retained 得 k_corr；
-//   4) 冻结值写入 lib/phase2/src/sampler.cpp kControlCorrDefault；
-//      UPMW-005 断言 |k_corr_frozen − k_corr_empirical| 在容差内。
+// 1) 对固定 WCS/几何生成 NMC 个独立高斯噪声实现并逐帧 drizzle；
+// 2) 每实现计算固定 patch 的 median、N_retained、MAD 尺度；
+// 3) 跨实现求 Var(median) 经验值，除以独立 Gaussian 基线
+// (π/2)·sigma²/N_retained 得 k_corr；
+// 4) 冻结值写入 lib/phase2/src/sampler.cpp kControlCorrDefault；
+// UPMW-005 断言 |k_corr_frozen − k_corr_empirical| 在容差内。
 //
 // 编译（PowerShell）：
 // cd lib\healpix_db\healpix_drizzle\tests
 // g++ -O2 -std=c++17 -Wall -Wextra -I.. -I..\..\..\astro_image_io\include
-//   -o control_median_mc_test.exe control_median_mc_test.cpp
-//   ..\fits_reader.cpp ..\wcs_sip.cpp ..\poly_clip.cpp
-//   ..\spherical_overlap.cpp ..\drizzle_engine.cpp ..\healpix_core.cpp
-//   ..\snr_evaluator.cpp -fopenmp -static
-//   -L..\..\..\astro_image_io -lastro_image_io -lm
+// -o control_median_mc_test.exe control_median_mc_test.cpp
+// ..\fits_reader.cpp ..\wcs_sip.cpp ..\poly_clip.cpp
+// ..\spherical_overlap.cpp ..\drizzle_engine.cpp ..\healpix_core.cpp
+// ..\snr_evaluator.cpp -fopenmp -static
+// -L..\..\..\astro_image_io -lastro_image_io -lm
 // ============================================================================
 #include "drizzle_engine.h"
 #include "fits_reader.h"

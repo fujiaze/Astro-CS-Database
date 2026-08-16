@@ -505,7 +505,7 @@ int main() {
         }
     }
 
-    // ---- : 真实负值场 (dec=+30°, B=-500+100z ≈ -450, 全程为负) ----
+    // ---- 真实负值场 (dec=+30°, B=-500+100z ≈ -450, 全程为负) ----
     {
         WcsParams w = make_wcs(272.886595, 30.0, 6.3, W);
         const double pfs2[] = {0.6, 0.8, 1.0};
@@ -557,7 +557,7 @@ int main() {
         (void)all_ok;
     }
 
-    // ---- : SIP order 5 最高阶项必须实际影响输出 ----
+    // ---- SIP order 5 最高阶项必须实际影响输出 ----
     {
         std::vector<uint64_t> ipix; std::vector<double> sig, sup;
         make_leaves(w_sip5, W, H, NSIDE, 1.0, B_const, true, 1000.0,

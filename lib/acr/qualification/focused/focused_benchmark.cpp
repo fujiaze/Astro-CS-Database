@@ -56,7 +56,7 @@ double fit_intercept(const std::vector<std::size_t>& sizes,
     return (sy - slope * sx) / static_cast<double>(n);
 }
 
-// 真实运行指纹（04 号规范 §7）：编译器宏 + 运行环境线程数 + 内核地址 hash
+// 真实运行指纹：编译器宏 + 运行环境线程数 + 内核地址 hash
 std::string compiler_fingerprint() {
 #if defined(_MSC_VER)
     return std::string("msvc-") + std::to_string(_MSC_VER);
@@ -421,7 +421,7 @@ void FocusedBenchmark::qualify(FocusedProfileKind kind,
             op.qualification_reason = "gpu-error-limit";
         }
     }
-    // ---- 顶层状态按全部 Operation 重算（08 §1）----
+    // ---- 顶层状态按全部 Operation 重算----
     std::size_t qualified_count = 0;
     for (const auto& op : profile.operations) {
         if (op.qualified) ++qualified_count;
@@ -550,7 +550,7 @@ OperationProfile FocusedBenchmark::build_profile(
         op.memory.fixed_device_bytes = 1u << 20;
         op.memory.fixed_host_bytes = 1u << 20;
 
-        // ---- CPU / GPU resident / GPU host 线性拟合（08 §2）----
+        // ---- CPU / GPU resident / GPU host 线性拟合----
         const double cpu_slope = fit_slope(sizes, m.cpu_ns);
         // 固定开销来自拟合截距（04 号规范 §4：禁止用最小尺寸总耗时）
         // 内部计算统一使用 ns（交叉点单位修正，08 §1）
@@ -619,7 +619,7 @@ OperationProfile FocusedBenchmark::build_profile(
                 op.gpu.recommended_chunk_items = 1u << 20;
                 op.gpu.minimum_chunk_items = 1u << 14;
             }
-            // 交叉点（04 号规范 §4）：
+            // 交叉点：
             // T_cpu(n) = cpu_fixed + cpu_slope*n
             // T_res(n) = res_fixed + res_slope*n
             // T_host(n) = res_fixed + res_slope*n

@@ -54,7 +54,7 @@ int pc_calibrate_simple(
     std::fprintf(stderr, "[pc_api] OpenMP线程数: %d\n", omp_get_max_threads());
 #endif
 
-    // P12-001: 初始化诊断结构体 (全 0)
+    // 初始化诊断结构体 (全 0)
     if (out_diag) {
         std::memset(out_diag, 0, sizeof(PhotometricDiag));
     }
@@ -121,7 +121,7 @@ int pc_calibrate_simple(
         3.0,  // mag_tolerance (GAP-013: 星等一致性容忍度, mag)
         &scale,
         &sigma_residual,
-        out_diag,      // P12-001: 透传诊断 (阶段2/3/4/6/7/8)
+        out_diag,      // 透传诊断 (阶段2/3/4/6/7/8)
         width, height);
 
     int n_matched = (int)matches.size();
@@ -175,7 +175,7 @@ int pc_calibrate_simple_with_gaia(
     std::fprintf(stderr, "[pc_api] OpenMP线程数: %d\n", omp_get_max_threads());
 #endif
 
-    // P12-001: 初始化诊断结构体 (全 0)
+    // 初始化诊断结构体 (全 0)
     if (out_diag) {
         std::memset(out_diag, 0, sizeof(PhotometricDiag));
     }
@@ -329,7 +329,7 @@ int pc_calibrate_simple_with_gaia(
     }
     std::fprintf(stderr, "[pc_api] F_syn 并行计算完成: %d/%d 颗有效\n", n_valid_fsyn, n_gaia);
 
-    // P12-001 阶段1: 填充 spectrum_rows_total 和 valid_fsyn
+    // 阶段1: 填充 spectrum_rows_total 和 valid_fsyn
     if (out_diag) {
         out_diag->spectrum_rows_total = n_gaia;
         out_diag->valid_fsyn = n_valid_fsyn;
@@ -363,7 +363,7 @@ int pc_calibrate_simple_with_gaia(
         3.0,   // mag_tolerance (GAP-013: 星等一致性容忍度, mag)
         &scale,
         &sigma_residual,
-        out_diag,      // P12-001: 透传诊断 (阶段2/3/4/6/7/8)
+        out_diag,      // 透传诊断 (阶段2/3/4/6/7/8)
         width, height);
 
     int n_matched = (int)matches.size();
@@ -730,7 +730,7 @@ int pc_calibrate_simple_with_gaia_f64(
 }
 
 // ============================================================================
-// Phase1 Full Freeze v2: 权威 with_gaia 模板实现 (per-star match 导出)
+// Phase1 v2: 权威 with_gaia 模板实现 (per-star match 导出)
 // 与 pc_calibrate_simple_with_gaia[_f64] 科学逻辑完全一致 (锥形搜索 -> F_syn 积分
 // -> WCS 投影 -> 双向 KD-tree 匹配 -> IRLS+Tukey 清洗 -> scale 校正), 额外:
 // psf_star_ids - 输入 PSF star_id [n_psf] (可为 nullptr)
@@ -1043,7 +1043,7 @@ int run_with_gaia_impl(
 } // namespace
 
 // ============================================================================
-// Phase1 Full Freeze v2: per-star 导出的 with_gaia 变体 (F32 / F64)
+// Phase1 v2: per-star 导出的 with_gaia 变体 (F32 / F64)
 // ============================================================================
 PC_API int pc_calibrate_simple_with_gaia_v2(
     void* gaia_client_handle,

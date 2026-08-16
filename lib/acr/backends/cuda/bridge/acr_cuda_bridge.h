@@ -1,6 +1,6 @@
 // lib/acr/backends/cuda/bridge/acr_cuda_bridge.h — CUDA 桥接 C ABI
 //
-// 背景（23 §3）：ACR 主构建使用 MSYS2 MinGW 工具链，nvcc 11.8 不支持
+// 背景：ACR 主构建使用 MSYS2 MinGW 工具链，nvcc 11.8 不支持
 // MinGW host；本桥接 DLL 用 MSVC + nvcc 构建，通过纯 C ABI 暴露真实 GPU kernel，
 // 由 MinGW 侧加载器（cuda_bridge_loader.cpp）LoadLibrary 动态调用——
 // 与项目现有 DLL 模块架构一致，无 ABI 冲突。
@@ -89,7 +89,7 @@ ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_conv3x3(
     const float* kernel9,
     uint64_t* elapsed_ns, const char** last_error);
 
-// ===== 聚焦版（08 §3）：目标合成 Operation 内核 =====
+// ===== ：目标合成 Operation 内核 =====
 // 积分/Drizzle 类逐像素算法的 GPU 实现；全部同步语义，elapsed_ns 为真实耗时。
 
 // Dense pixel accumulate（FP32 输入 + FP64 累加器）：
@@ -135,7 +135,7 @@ ACR_CUDA_BRIDGE_API int acr_cuda_executor_transfer_d2h(
     size_t device_bytes, void* host,
     uint64_t* elapsed_ns, const char** last_error);
 
-// ===== 聚焦版 v2（08 §2/§4）：resident 持久上传与提交 =====
+// ===== （08 §2/§4）：resident 持久上传与提交 =====
 // 数据先上传到设备并保留（persistent d_x），后续 resident 提交跳过 H2D，
 // 只 launch（必要时 D2H 输出）——用于真实 resident 曲线测量与驻留复用。
 

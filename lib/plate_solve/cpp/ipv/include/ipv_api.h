@@ -121,7 +121,7 @@ IPV_API int ipv_solve_from_memory(
 );
 
 // ============================================================================
-// P02-002: 候选路径 A / 路径 B API (实验性, 生产默认不调用)
+// 候选路径 A / 路径 B API (实验性, 生产默认不调用)
 //
 // 规范: docs/05_STAR_DETECT_PSF_DEDUP_SPEC.md
 // star_det v1 格式: FLOAT64 [N,6]
@@ -198,7 +198,7 @@ IPV_API int ipv_solve_from_memory_with_callback_d(
 IPV_API void ipv_get_default_params(IpvParams* params);
 
 // ============================================================================
-// P11-004 v1.3: 权威 inlier 导出 C API (供 WCS Gate v2 双层闭环)
+// v1.3: 权威 inlier 导出 C API (供 WCS Gate v2 双层闭环)
 //
 // 用途: 在 ipv_solve/ipv_solve_from_memory/ipv_solve_from_detections_v1/
 // ipv_solve_from_memory_with_callback 成功返回后调用,

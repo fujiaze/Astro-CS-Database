@@ -363,7 +363,7 @@ std::string compute_fingerprint_sha256() {
     std::ostringstream fp_input;
     fp_input << cpu_model << "|" << cores << "|" << isa
              << "|" << gpu_name << "|" << vmem << "|" << driver;
-    // V18R2 (CODE-002): SHA-256 归一化到 lib/common/crypto（单一实现）
+    // SHA-256 归一化到 lib/common/crypto（单一实现）
     return astrocs::crypto::sha256_hex(fp_input.str().data(),
                                        fp_input.str().size());
 }

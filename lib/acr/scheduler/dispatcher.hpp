@@ -67,7 +67,7 @@ struct DispatcherConfig {
     // 26 §2/§9：MemoryBudget 独立开关（与利用率控制彻底解耦）。
     // 默认开启；关闭诊断采样不得关闭内存保护。
     bool enable_memory_budget{true};
-    // 聚焦版（08 §5）：路由模式与 OperationProfile 驱动规划。
+    //路由模式与 OperationProfile 驱动规划。
     // route_mode 默认 AutoMixed；CpuOnly/GpuOnly 用于对照/回退。
     // operation_profile 为空时走保守 CPU fallback（不伪造 GPU 路由）。
     RouteMode route_mode{RouteMode::AutoMixed};
@@ -202,7 +202,7 @@ struct CostAwareResult {
     std::uint64_t benchmark_resident_input_bytes{0};   // 已驻留输入字节
     std::uint64_t benchmark_upload_required_bytes{0};  // 需上传输入字节
 
-    // ===== Dispatcher Finalization：实际执行形态（03 号规范）=====
+    // ===== Dispatcher Finalization：实际执行形态=====
     // "legacy_openmp" / "gpu_direct" / "mixed_pool" / "none"
     std::string actual_execution_shape{"none"};
 };
@@ -221,7 +221,7 @@ public:
     // 返回实际释放字节数（06 号规范 §7：释放后重新采样和重算）
     void set_cache_release_hook(std::function<std::size_t()> hook);
 
-    // Dispatcher Finalization（06 号规范 §6）：通过本 Dispatcher 显式建立
+    // Dispatcher Finalization：通过本 Dispatcher 显式建立
     // 输入驻留（benchmark/setup 用，不计入性能，不参与 BDR 路由决策）。
     // 注册全部 buffer（真实字节 + generation 同步）后，将尚未驻留的只读
     // 输入经 GPU executor 真实上传并标记 device-valid。

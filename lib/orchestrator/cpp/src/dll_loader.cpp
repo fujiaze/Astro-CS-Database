@@ -372,7 +372,7 @@ ModuleInfo DllLoader::get_info(ModuleId id) const {
 // get_version - 获取模块版本号
 // - 各模块尝试调用其约定的 *_version 函数 (const char* (*)())
 // - 未导出 version 函数时返回 "unknown"
-// - P04-003: 扩展支持全部 9 个模块 (AIO/CALIBRATE/PLATESOLVE/PSF/PHOTOMETRIC/SNR/DRIZZLE/STACK)
+// - 扩展支持全部 9 个模块 (AIO/CALIBRATE/PLATESOLVE/PSF/PHOTOMETRIC/SNR/DRIZZLE/STACK)
 // ============================================================================
 std::string DllLoader::get_version(ModuleId id) {
     if (!is_loaded(id)) {
@@ -411,7 +411,7 @@ std::string DllLoader::get_version(ModuleId id) {
 // ============================================================================
 // set_num_threads - 设置模块 OpenMP 线程数
 // - CALIBRATE: 调用 ac_set_num_threads(int)
-// - 其他模块: 暂返回 false (后续 Task 补充接口)
+// - 其他模块: 返回 false（当前未提供 set_num_threads 接口）
 // ============================================================================
 bool DllLoader::set_num_threads(ModuleId id, int n) {
     if (!is_loaded(id)) {

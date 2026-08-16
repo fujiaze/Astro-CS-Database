@@ -482,7 +482,7 @@ static IterTransResult iter_trans_inner(
         g_itertrans_logger.debugf("iter %d: 绝对剔除 nr=%d→%d, nb=%d",
                                    iters_so_far, nr, new_nr, nb);
 
-        // --- : tol 预过滤 (防止 sigma(35%) 被 5-50" 中等错配拉大) ---
+        // --- tol 预过滤 (防止 sigma(35%) 被 5-50" 中等错配拉大) ---
         // 问题: workset 扩展 6→60 后, 绝对剔除(50")后仍有 dist 在 5-50" 的中等错配,
         // 这些错配拉大 sigma(35%), 导致相对阈值 10*sigma 失效 (rel_thresh 远大于 tol)
         // 修复: 第一次迭代时, 在 sigma 计算前用 tolerance 预过滤, 只保留 dist < tol 的对
@@ -531,7 +531,7 @@ static IterTransResult iter_trans_inner(
 
         g_itertrans_logger.debugf("iter %d: sigma(35%%)=%.6f 角秒²", iters_so_far, sigma);
 
-        // --- : sigma 钳制 (防止 sigma 被 5-50" 中等错配拉大导致相对阈值失效) ---
+        // --- sigma 钳制 (防止 sigma 被 5-50" 中等错配拉大导致相对阈值失效) ---
         // 问题: workset 60 对中存在 39-41 对错配, 绝对剔除(50")后仍有 5-50" 中等错配,
         // 这些错配拉大 sigma(35%) 到 7.91-139.06 角秒² (正常帧 sigma≈1-3)
         // 导致相对阈值 10*sigma = 79-1390 角秒² (8.94-37.28"), 远大于 tol=5", 无法清除中等错配
@@ -553,7 +553,7 @@ static IterTransResult iter_trans_inner(
             // 不退出, 继续剔除+重拟合 (break 被注释掉)
         }
 
-        // --- : 相对阈值只用 NSIGMA*sigma (不再 min with (5*tau)²) ---
+        // --- 相对阈值只用 NSIGMA*sigma (不再 min with (5*tau)²) ---
         double rel_threshold = AT_MATCH_NSIGMA * sigma;
 
         surviving.clear();

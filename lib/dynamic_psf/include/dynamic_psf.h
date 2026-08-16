@@ -64,7 +64,7 @@ DPSF_EXPORT int dpsf_fit_batch_f(const float *image, int width, int height,
 DPSF_EXPORT void dpsf_free_results(DPSFFitResult *results);
 
 // ============================================================================
-// float32 PSF 拟合 API (v1.1 新增, P02-005)
+// float32 PSF 拟合 API (v1.1 新增, )
 //
 // 直接接收 float32 图像, 内部拟合使用 float/double, 不做 0-65535 clip,
 // 不创建整张 uint16 图像。消费 star_det v1 (FLOAT64 [N,6]) 格式的检测结果,

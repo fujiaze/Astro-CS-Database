@@ -164,7 +164,7 @@ inline std::vector<std::size_t> reduction_size_sequence(std::size_t max_elems = 
     return sizes;
 }
 
-// ===== 线程曲线点（06 §5）=====
+// ===== 线程曲线点=====
 // 返回线程数列表：1, 2, 4, 约25%, 50%, 75%, 95%, 100%（去重）
 inline std::vector<std::uint32_t> thread_curve_points(std::uint32_t hw_threads) {
     if (hw_threads == 0) hw_threads = static_cast<std::uint32_t>(std::thread::hardware_concurrency());

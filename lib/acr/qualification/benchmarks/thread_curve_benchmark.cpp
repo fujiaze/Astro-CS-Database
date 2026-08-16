@@ -1,6 +1,6 @@
 // lib/acr/qualification/benchmarks/thread_curve_benchmark.cpp — CPU 线程曲线 Benchmark
 //
-// 设计（06 §5）：
+// 设计：
 // 1. 线程点：1, 2, 4, 25%, 50%, 75%, 95%, 100%（去重）
 // 2. 95% 是性能曲线采样点，不是正式运行少开线程
 // 3. 对曲线拐点和前两名 ISA 有限补点

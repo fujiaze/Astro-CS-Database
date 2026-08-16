@@ -66,7 +66,7 @@ int aio_upm_write_sparse(const char* path, const char* model_json) {
         set_err(std::string("json parse: ") + e.what());
         return 1;
     }
-    // F-V19R2-IO-001（ENG-IO-001）：science 模型写盘走 temp → validate →
+    // （ENG-IO-001）：science 模型写盘走 temp → validate →
     // atomic promote；失败清理 temp，绝不留下半成品当正式模型。
     const std::string tmp = std::string(path) + ".tmp";
     std::ofstream f(tmp, std::ios::binary | std::ios::trunc);

@@ -19,7 +19,7 @@
 
 namespace astro::compute::routing {
 
-// ===== 路由场景键（03 号规范 §3）=====
+// ===== 路由场景键=====
 enum class InputResidency : std::uint8_t {
     HostOnly = 0,
     DeviceResident = 1,
@@ -46,7 +46,7 @@ enum class RouteKind : std::uint8_t {
     Mixed = 2,
 };
 
-// ===== 运行时路由请求（06 号规范）=====
+// ===== 运行时路由请求=====
 struct QueueSnapshot {
     double cpu_delay_ms{0.0};
     double gpu_delay_ms{0.0};
@@ -131,7 +131,7 @@ struct RouteSamplePoint {
 // - model_trusted：final untouched holdout 误差门（median<=10%、max<=15%）
 // 通过，生产 Auto 才允许使用；
 // - eligible：旧 schema 兼容字段，恒等于 model_trusted；
-// - 场景未 qualified 时生产只允许 OpenMP fallback（06 号规范 §2）。
+// - 场景未 qualified 时生产只允许 OpenMP fallback。
 struct RoutePath {
     bool model_available{false};
     bool model_trusted{false};

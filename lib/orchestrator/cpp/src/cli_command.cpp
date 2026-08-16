@@ -2,7 +2,7 @@
 // cli_command.cpp - JSONL 事件输出 + SIGINT 信号处理 + SHA-256 实现
 //
 // Phase1 JSON 入口重构后, 本文件仅保留:
-// 1. P04-004 SIGINT 信号处理 (p04004_register/unregister_signal_handler)
+// 1. SIGINT 信号处理 (p04004_register/unregister_signal_handler)
 // 2. sha256_impl::sha256 (纯 C++17 SHA-256, 供 json_config.cpp 调用)
 // 3. CliCommand::output_jsonl_event_ex (JSONL 事件输出, 供 main.cpp 调用)
 //
@@ -36,14 +36,14 @@
 #endif
 
 // ============================================================================
-// P04-004: 全局取消信号支持
+// 全局取消信号支持
 // 通过全局指针在 SIGINT/Ctrl+C 信号处理器中调用 orch->request_cancel()
 // 注意: 信号处理器中只能调用 async-signal-safe 函数, atomic store 是安全的
 // ============================================================================
 static std::atomic<Orchestrator*> g_active_orchestrator{nullptr};
 static std::atomic<bool> g_cancel_on_signal_enabled{false};
 
-// P04-004: SIGINT 信号处理器 (Ctrl+C)
+// SIGINT 信号处理器 (Ctrl+C)
 // 设置 cancel_token_, 让正在执行的 stage 在下一个检查点停止
 static void p04004_sigint_handler(int sig) {
     (void)sig;
@@ -53,7 +53,7 @@ static void p04004_sigint_handler(int sig) {
     }
 }
 
-// P04-004: 注册信号处理器 (在 stage1/stage2 执行前调用)
+// 注册信号处理器 (在 stage1/stage2 执行前调用)
 void p04004_register_signal_handler(Orchestrator* orch, bool enable_cancel_on_signal) {
     g_active_orchestrator.store(orch, std::memory_order_release);
     g_cancel_on_signal_enabled.store(enable_cancel_on_signal, std::memory_order_release);
@@ -63,7 +63,7 @@ void p04004_register_signal_handler(Orchestrator* orch, bool enable_cancel_on_si
     }
 }
 
-// P04-004: 注销信号处理器 (在命令完成后调用)
+// 注销信号处理器 (在命令完成后调用)
 void p04004_unregister_signal_handler() {
     g_active_orchestrator.store(nullptr, std::memory_order_release);
     g_cancel_on_signal_enabled.store(false, std::memory_order_release);
@@ -72,9 +72,9 @@ void p04004_unregister_signal_handler() {
 }
 
 // ============================================================================
-// P04-001: SHA-256 纯 C++17 实现 (无外部依赖)
+// SHA-256 纯 C++17 实现 (无外部依赖)
 // 用于计算 config 的 hash, 保证可追溯性
-// V18R2 (CODE-002): SHA-256 归一化到 lib/common/crypto（单一实现）。
+// SHA-256 归一化到 lib/common/crypto（单一实现）。
 // 旧 sha256_impl 已删除；json_config 改用 astrocs::crypto::sha256_hex。
 // ============================================================================
 
@@ -124,7 +124,7 @@ static std::string get_utc_timestamp() {
 }
 
 // ============================================================================
-// P04-002: output_jsonl_event_ex - 扩展 JSONL 事件输出
+// output_jsonl_event_ex - 扩展 JSONL 事件输出
 // 含数字 exit_code + duration_ms + status + 额外字段
 // 用于 stage_start/stage_end/result/error/warning/progress 事件
 // ============================================================================

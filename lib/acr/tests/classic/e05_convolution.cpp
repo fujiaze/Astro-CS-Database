@@ -1,5 +1,5 @@
 // lib/acr/tests/classic/e05_convolution.cpp — E05 Direct 2D Convolution
-// 验证能力（17 §9）：Tile halo、二维拆分、边界策略、大核 direct
+// 验证能力：Tile halo、二维拆分、边界策略、大核 direct
 //
 // Phase H 扩展：
 // - 核：3×3 Sobel、5×5 Gaussian、7×7 固定、15×15 Gaussian/box、31×31 不可分离固定随机

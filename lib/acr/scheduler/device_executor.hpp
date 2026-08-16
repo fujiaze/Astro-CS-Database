@@ -1,4 +1,4 @@
-// lib/acr/scheduler/device_executor.hpp — 真实设备执行器接口（23 §3）
+// lib/acr/scheduler/device_executor.hpp — 真实设备执行器接口
 //
 // 设计（23_SECOND_FIX_REVIEW_CORRECTION_PLAN.md §3 + 07_COST_MODEL §10）：
 // 1. 抽象接口不泄漏第三方类型（CUDA/HIP/SYCL 不可见于公共头）；
@@ -71,7 +71,7 @@ public:
     // 最小有效块大小
     virtual std::size_t min_effective_chunk() const = 0;
 
-    // 聚焦版 v3（08 §3）：真实驻留执行接口。
+    //真实驻留执行接口。
     // prefetch_input：上传 host 输入到设备并保留（真实一次传输）；
     // input_resident：查询该 host 输入是否已在设备显存。
     // 默认返回 false（无真实 device buffer 缓存的 executor 不支持）。

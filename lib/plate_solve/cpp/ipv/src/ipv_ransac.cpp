@@ -979,7 +979,7 @@ struct IterTransResult {
 // d) sigma = 35% 百分位 (dist² 单位, 四舍五入索引) [find_percentile]
 // e) 若 sigma <= HALT_SIGMA: 设 is_ok=true (但不立即退出!) [break 被注释]
 // f) 相对阈值剔除: dist2 > min((tau*5)², 10*sigma) → bad [IPV 双阈值]
-// g) nb = 本轮剔除数
+// g) nb = 剔除数
 // h) 若 nb == 0: 设 is_ok=true (但不立即退出!) [break 被注释]
 // i) 收集剩余星对 new_set, nr = |new_set|
 // j) 若 nr < REQUIRED_PAIRS (3): 失败, 退出 [is_ok=0; break]

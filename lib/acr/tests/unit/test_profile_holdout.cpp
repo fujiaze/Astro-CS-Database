@@ -180,7 +180,7 @@ TEST(ProfileHoldout, CrossDeviceAxpyAndReductionHoldout) {
         EXPECT_GE(acc, 0.5);
     }
 
-    // 门限（25 §6）：中位相对误差 <= 0.35、P95 <= 0.75。
+    // 门限：中位相对误差 <= 0.35、P95 <= 0.75。
     // memory-bound AXPY 在缓存边界（L2/L3/主存）强非单调，插值误差大
     // （如实打印 median/p95），因此 AXPY 曲线 holdout 未达标 → 标 unqualified
     // （仅用于跨设备排序路由，不用于耗时预测）。这是对本类波动大的明确论证。

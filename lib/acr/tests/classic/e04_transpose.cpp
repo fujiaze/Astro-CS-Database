@@ -1,5 +1,5 @@
 // lib/acr/tests/classic/e04_transpose.cpp — E04 Tiled Matrix Transpose
-// 验证能力（17 §8）：2D range、Tile、边缘、stride
+// 验证能力：2D range、Tile、边缘、stride
 // Cases: 511×509、2048²、8191×4093；uint32/FP32；Tile 16/32/64；CPU/GPU；逐元素 exact
 // 用 parallel_tiles 实现 tile 化转置，验证边缘 tile 正确 clamp。
 #include "classic_common.hpp"

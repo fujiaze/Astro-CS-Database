@@ -4,7 +4,7 @@
 #include <vector>
 #include "wcs_transform.h"
 
-// P12-001: 前向声明, 定义在 photometric_calib.h (C API 头文件)
+// 前向声明, 定义在 photometric_calib.h (C API 头文件)
 struct PhotometricDiag;
 
 namespace pc {
@@ -44,7 +44,7 @@ public:
     // 其中 r = log10(F_instr/F_syn); scale 用于 I_cal = I * scale
     // out_sigma_residual: 输出 sigma_residual = MAD(r_inliers)/0.6745 (可为 nullptr, 向后兼容)
     // 供 SNR 模块 §14 计算 SNR_phot = 1/(ln10×sigma_residual)
-    // out_diag: P12-001 分阶段诊断结构体 (可为 nullptr, 向后兼容)
+    // out_diag: 分阶段诊断结构体 (可为 nullptr, 向后兼容)
     // 填充阶段2/3/4/6/7/8 字段 (阶段1由 pc_api.cpp 填充)
     // frame_width/frame_height: 图像尺寸 (默认 0, 用于阶段2 统计 gaia_projected_in_frame;
     // 为 0 时该字段设为 n_gaia, 表示无法判定 frame)
@@ -63,7 +63,7 @@ public:
         int frame_width = 0, int frame_height = 0,
         std::vector<int>* out_match_reasons = nullptr);
 
-    // Phase1 Full Freeze v2: matchWithKdTree / cleanAndScale 提升为 public,
+    // Phase1 v2: matchWithKdTree / cleanAndScale 提升为 public,
     // 供 pc_api.cpp 的 run_with_gaia_impl 同时获取全量匹配与清洗后 inliers
     // (per-star lineage: star_id + DR3SP id + residual + used/reject)。
     // KD-tree 最近邻匹配: 对 Gaia 星像素坐标建 KD-tree, 对每颗 PSF 有效星找最近邻 Gaia 星

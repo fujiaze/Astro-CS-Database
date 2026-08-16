@@ -222,7 +222,7 @@ TEST(FocusedOperation, ProfileRoundTrip) {
 }
 
 // ============================================================================
-// 5. partial 重试清零（08 §4）：attempt>0 不重复累计
+// 5. partial 重试清零：attempt>0 不重复累计
 // ============================================================================
 TEST(FocusedOperation, RetryClearsPrivatePartial) {
     astro::compute::runtime_init();

@@ -22,7 +22,7 @@ __global__ void acr_copy_kernel(float* y, const float* x,
 __global__ void acr_reduce_kernel(const float* x, double* partials,
                                   size_t begin, size_t n,
                                   size_t chunk_index, size_t blocks_per_chunk) {
-    extern __shared__ double sdata[];  // FP64 局部累加（24 号计划 §5.1）
+    extern __shared__ double sdata[];  // FP64 局部累加（24 §5.1）
     const size_t i = begin + blockIdx.x * blockDim.x + threadIdx.x;
     sdata[threadIdx.x] = (i < begin + n) ? static_cast<double>(x[i]) : 0.0;
     __syncthreads();
@@ -41,7 +41,7 @@ __global__ void acr_reduce_kernel(const float* x, double* partials,
     }
 }
 
-// 25 号计划 §2.2：分块卷积使用全局输出索引读图、chunk-local 索引写输出。
+// 25 §2.2：分块卷积使用全局输出索引读图、chunk-local 索引写输出。
 // begin 为全局像素偏移（读图坐标 = begin + idx），输出写入 y[idx]（chunk 局部），
 // host 侧把 d_y 拷贝回 y + begin。x 始终为完整输入图像（整图 H2D）。
 __global__ void acr_conv3x3_kernel(float* y, const float* x,
@@ -70,7 +70,7 @@ __global__ void acr_conv3x3_kernel(float* y, const float* x,
     y[idx] = acc;  // chunk-local 输出槽位
 }
 
-// ===== 聚焦版（08 号计划 §3）：目标合成内核 =====
+// ===== ：目标合成内核 =====
 // Dense pixel accumulate：FP32 输入 + FP64 累加器
 __global__ void acr_dense_accumulate_fp64acc_kernel(float* y, const float* x,
                                                      size_t begin, size_t n) {
@@ -114,7 +114,7 @@ __global__ void acr_chain_k2_kernel(float* z, const float* y,
 // 空 kernel：launch/event/sync 固定开销
 __global__ void acr_empty_kernel(size_t /*begin*/, size_t /*n*/) {}
 
-// ===== ACR 架构冻结（07 号计划 C）：加权积分（FP64 累加）=====
+// ===== ACR 架构冻结：加权积分（FP64 累加）=====
 // output[p] = Σ_f weight[f]*frame[f,p] / Σ_f weight[f]
 // frames 为整帧驻留（d_frames，frame-major）；weights 为驻留权重（d_weights）。
 // 输出按 chunk-local 索引写 d_out[idx]，host 侧拷贝回 output + begin
@@ -142,10 +142,10 @@ __global__ void acr_weighted_integration_kernel(
 
 // ===== Phase2 mosaic_reject（synthetic.mosaic_reject.fp64acc）=====
 // 与 lib/phase2 CPU reference（p2_reject_stack + p2_integrate_pixel）同语义：
-//   - 每像素收集有效样本（finite && support>0）；
-//   - 迭代 sigma-clip：median + MAD(1.4826×median|Δ|)，low/high 边界；
-//   - 样本不足（< min_samples）fallback=全接受（single-coverage 稳定语义）；
-//   - 输出 = 接受样本的 SNR²×support 加权均值（0 = 无有效/全拒）。
+// - 每像素收集有效样本（finite && support>0）；
+// - 迭代 sigma-clip：median + MAD(1.4826×median|Δ|)，low/high 边界；
+// - 样本不足（< min_samples）fallback=全接受（single-coverage 稳定语义）；
+// - 输出 = 接受样本的 SNR²×support 加权均值（0 = 无有效/全拒）。
 // 计算全程 FP64（与 CPU reference 数值一致）；输入/输出为 FP32 buffer。
 __device__ __forceinline__ void acr_sort_asc(double* v, int n) {
     for (int i = 1; i < n; ++i) {
@@ -203,7 +203,7 @@ __global__ void acr_mosaic_reject_kernel(
         if (s <= 0.0f) continue;
         vals[nv] = static_cast<double>(v);
         sup[nv] = static_cast<double>(s);
-        // R8：局部 SNR 按 control cell（grid=8）提供；无 per-cell 输入
+        // 局部 SNR 按 control cell（grid=8）提供；无 per-cell 输入
         // 时等权 1.0。
         double snr = 1.0;
         if (frame_snr) {

@@ -54,7 +54,7 @@ P2ControlObservation make_obs(std::uint64_t frame, std::uint64_t ctrl,
     o.value = value;
     o.snr = snr;
     o.support = 1.0;
-    // V19R3：默认 control estimator 方差 1 → control_ivar=1（等价等权）
+    // 默认 control estimator 方差 1 → control_ivar=1（等价等权）
     o.control_variance = 1.0;
     o.control_ivar = 1.0;
     return o;
@@ -3676,7 +3676,7 @@ TEST(Phase2Wiring, G1ProductionWiringTruth) {
         p2_stage2_make_upm_cfg(cfg, st::kTargetOrder, "manifest");
     EXPECT_EQ(mcfg.sigma_floor, 0.02);
     EXPECT_EQ(mcfg.support_power, 1.0);
-    EXPECT_EQ(mcfg.use_ivar_weight, 1)   // V19R3 生产默认 control-ivar
+    EXPECT_EQ(mcfg.use_ivar_weight, 1)   // 生产默认 control-ivar
         << "Stage2 必须显式透传 use_ivar_weight=1（SCI-UPM-WEIGHT-001）";
     EXPECT_EQ(mcfg.target_order, st::kTargetOrder);
 
@@ -3712,7 +3712,7 @@ TEST(Phase2Wiring, G1ProductionWiringTruth) {
         }
 
     // 3. support_power 0 vs 2：raw weight 改变
-    // V19R3：support_power 只影响 legacy ablation 路径（use_ivar_weight=0）。
+    // support_power 只影响 legacy ablation 路径（use_ivar_weight=0）。
     P2UpmBuildConfig c0 = mcfg, c2 = mcfg;
     c0.use_ivar_weight = 0;
     c2.use_ivar_weight = 0;
@@ -3727,7 +3727,7 @@ TEST(Phase2Wiring, G1ProductionWiringTruth) {
     EXPECT_NEAR(w0, w2 / 0.16, 1e-12);
 
     // 4. sigma_floor A vs B：低 uncertainty obs influence 改变
-    // V19R3：sigma_floor 只影响 legacy ablation 路径。
+    // sigma_floor 只影响 legacy ablation 路径。
     P2UpmBuildConfig cA = mcfg, cB = mcfg;
     cA.use_ivar_weight = 0;
     cB.use_ivar_weight = 0;
@@ -3801,7 +3801,7 @@ TEST(Phase2Wiring, G1ProductionWiringTruth) {
 }
 
 // =====================================================================
-// V19R3 UPM science weight 合同（SCI-UPM-WEIGHT-001 /
+// UPM science weight 合同（SCI-UPM-WEIGHT-001 /
 // ALG-UPM-CONTROL-IVAR-001 / DATA-UPM-CONTROL-UNC-001）
 // =====================================================================
 
@@ -4589,7 +4589,7 @@ TEST(Phase2Integrate, V17NonFiniteWeightInvalid) {
     EXPECT_EQ(p2_validate_candidate_weights(wneg.data(), 2), 1);
     std::vector<double> okw{1.0, 2.0};
     EXPECT_EQ(p2_validate_candidate_weights(okw.data(), 2), 0);
-    // V19R3 零权重合同：zero = valid but no contribution
+    // 零权重合同：zero = valid but no contribution
     std::vector<double> wz{1.0, 0.0};
     EXPECT_EQ(p2_validate_candidate_weights(wz.data(), 2), 0);
     in.weights = wz.data();
@@ -4817,7 +4817,7 @@ TEST(Phase2Config, V17LargeScaleParseAndDefaults) {
 }
 
 // =====================================================================
-// V19R2 PR#1 Gate — UPM 持久化帧绑定（PR-UPM-001..010）
+// PR#1 Gate — UPM 持久化帧绑定（PR-UPM-001..010）
 //
 // 契约：
 // SCI-UPM-PERSIST-001 保存/重开后 frame_id→theta 绑定不变（按稳定

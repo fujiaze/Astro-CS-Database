@@ -6,7 +6,7 @@
 // - GPU launcher（经桥接 DLL 的真实 CUDA kernel）
 // - 统一 WorkloadDescriptor（CPU/GPU 工作量完全等价）
 //
-// 目标 OperationId（03 号规范 §3）：
+// 目标 OperationId：
 // synthetic.dense_pixel_accumulate.fp32
 // synthetic.dense_pixel_accumulate.fp64acc
 // synthetic.pixel_reduce.fp64acc
@@ -109,7 +109,7 @@ void reference_resident_chain(const std::vector<float>& x,
 // launcher 处理 invocation.domain 子域（chunk 范围）。
 void register_focused_kernels();
 
-// ===== 私有 partial 明确 merge（06 号规范 §3）=====
+// ===== 私有 partial 明确 merge=====
 // drizzle：各 token 私有桶 [token_id*bins, (token_id+1)*bins) → 合并到 out
 void merge_drizzle_partials(const double* token_partials,
                             std::size_t token_count,
@@ -119,7 +119,7 @@ void merge_drizzle_partials(const double* token_partials,
 double merge_reduce_partials(const double* token_partials,
                              std::size_t token_count);
 
-// ===== partial scratch 契约（08 §4）=====
+// ===== partial scratch 契约=====
 // 按工作量与最小高效块计算所需 token 槽位数（调用方据此分配 partial buffer，
 // 禁止按常数猜测）。槽位数 = ceil(work_size / min_chunk) + 1（防边界）。
 std::size_t partial_slots_for(std::size_t work_size,

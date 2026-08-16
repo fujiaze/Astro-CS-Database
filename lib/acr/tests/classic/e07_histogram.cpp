@@ -1,5 +1,5 @@
 // lib/acr/tests/classic/e07_histogram.cpp — E07 Histogram 256 bins
-// 验证能力（17 §12）：原子竞争、局部副本、合并
+// 验证能力：原子竞争、局部副本、合并
 //
 // Phase H 扩展：
 // - 分布：uniform、90%热点、ramp、随机

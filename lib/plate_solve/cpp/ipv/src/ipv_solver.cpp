@@ -742,7 +742,7 @@ void IPVSolver::solve(
                       result->trans_order, result->sip.order);
     }
 
-    // P11-004 v1.3: 缓存最终权威 inlier 数据 (供 WCS Gate v2 双层闭环)
+    // v1.3: 缓存最终权威 inlier 数据 (供 WCS Gate v2 双层闭环)
     cache_last_inliers_(
         rep_result.matched, U_for_wcs,
         selection.gaia_ra, selection.gaia_dec,
@@ -1103,7 +1103,7 @@ void IPVSolver::solve_from_memory(
                       result->trans_order, result->sip.order);
     }
 
-    // P11-004 v1.3: 缓存最终权威 inlier 数据 (供 WCS Gate v2 双层闭环)
+    // v1.3: 缓存最终权威 inlier 数据 (供 WCS Gate v2 双层闭环)
     cache_last_inliers_(
         rep_result.matched, U_for_wcs,
         selection.gaia_ra, selection.gaia_dec,
@@ -1121,7 +1121,7 @@ void IPVSolver::solve_from_memory(
 }
 
 // ===========================================================================
-// P02-002: solve_post_select - 选星后通用求解流程
+// solve_post_select - 选星后通用求解流程
 //
 // 从 triangle_match 开始到 extract_wcs_sip 结束的完整流程。
 // 供 solve_from_detections_v1 (路径 A) 和 solve_from_memory_with_callback (路径 B) 共享。
@@ -1370,7 +1370,7 @@ void IPVSolver::solve_post_select(
                   result->n_pairs, result->rms_px, result->rms_arcsec,
                   result->trans_order, result->sip.order, (int)result->success);
 
-    // P11-004 v1.3: 缓存最终权威 inlier 数据 (供 WCS Gate v2 双层闭环)
+    // v1.3: 缓存最终权威 inlier 数据 (供 WCS Gate v2 双层闭环)
     cache_last_inliers_(
         rep_result.matched, U_for_wcs,
         selection.gaia_ra, selection.gaia_dec,
@@ -1381,7 +1381,7 @@ void IPVSolver::solve_post_select(
 }
 
 // ===========================================================================
-// P02-002: 路径 A - solve_from_detections_v1
+// 路径 A - solve_from_detections_v1
 //
 // 从外部 detections (FLOAT64 [N,6] star_det v1) 求解, 跳过 sdet_detect_ex。
 // 算法与 solve_from_memory 一致, 仅跳过检测步骤。
@@ -1442,7 +1442,7 @@ void IPVSolver::solve_from_detections_v1(
 }
 
 // ===========================================================================
-// P09-002 INTERNAL_DETECTION_SHARED_EXPORT (历史 P02-002 路径 B) -
+// INTERNAL_DETECTION_SHARED_EXPORT (历史 路径 B) -
 // solve_from_memory_with_callback
 //
 // 与 solve_from_memory 算法完全一致, 区别:
@@ -1567,7 +1567,7 @@ void IPVSolver::solve_from_memory_with_callback_f64(
 }
 
 // ===========================================================================
-// P11-004 v1.3: 权威 inlier 缓存实现
+// v1.3: 权威 inlier 缓存实现
 //
 // cache_last_inliers_: 在每次 solve_* 成功末尾填充缓存
 // get_last_inlier_count: 返回缓存中的 inlier 数量
@@ -1654,7 +1654,7 @@ int IPVSolver::get_last_inliers(double* out_buffer, int max_count) const {
         const double ra  = gaia_ra[mp.w];
         const double dec = gaia_dec[mp.w];
 
-        // P11-004 v3.1 修复: 残差 = (实际W - 预测W) / s0, 与 extract_wcs_sip 的 RMS 计算一致
+        // v3.1 修复: 残差 = (实际W - 预测W) / s0, 与 extract_wcs_sip 的 RMS 计算一致
         //
         // 1. 实际 W (角秒): 用 gnomonic 正向投影把 Gaia (ra,dec) 投到以 ra0/dec0 为中心的切平面
         // 2. 预测 W (角秒): apply_trans(trans, U) -> (xi_pred_asec, eta_pred_asec)

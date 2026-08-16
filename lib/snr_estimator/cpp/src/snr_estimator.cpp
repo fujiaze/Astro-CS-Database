@@ -400,7 +400,7 @@ static double snrEvalSip(const double* coeffs, double dx, double dy, int order) 
 // ============================================================================
 // 像素坐标 → 球面坐标 (TAN 投影 + 前向 SIP A/B)
 // 复用 healpix_drizzle/wcs_sip.cpp 的 pixelToSky 算法, 保证 SNR 控制点
-// 与 drizzle 阶段查询点使用同一坐标系 (P03-004 WCS+SIP 一致性)
+// 与 drizzle 阶段查询点使用同一坐标系 (WCS+SIP 一致性)
 //
 // 步骤:
 // 1. 归一化像素坐标: dx = x - (crpix1-1), dy = y - (crpix2-1) (CRPIX 1-based)
@@ -559,7 +559,7 @@ SNR_API int snr_extract_model(const double* psf, int n_stars,
     }
 
     // WCS 像素→球面转换, 构造控制点
-    // P03-004: 使用完整 WCS+SIP (前向 A/B), 与 drizzle 阶段坐标系一致
+    // 使用完整 WCS+SIP (前向 A/B), 与 drizzle 阶段坐标系一致
     out_model->points = new SnrControlPoint[n_valid];
     out_model->n_points = (uint32_t)n_valid;
 
@@ -578,7 +578,7 @@ SNR_API int snr_extract_model(const double* psf, int n_stars,
         out_model->points[i].snr_psf = (float)star_snr[i];
     }
 
-    // P03-004: 输出前 3 个控制点坐标用于调试验证
+    // 输出前 3 个控制点坐标用于调试验证
     int show_n = (n_valid < 3) ? n_valid : 3;
     for (int i = 0; i < show_n; ++i) {
         fprintf(stderr, "[snr_model] ctrl_point[%d]: ra=%.6f dec=%.6f "

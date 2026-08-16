@@ -301,7 +301,7 @@ float optimize_dark_k(const float* light, const float* bias, const float* dark,
             return k_init;
         }
 
-        // 若本轮几乎未剔除新点，认为已收敛，提前结束
+        // 若几乎未剔除新点，认为已收敛，提前结束
         if (new_inlier == cnt) break;
     }
 

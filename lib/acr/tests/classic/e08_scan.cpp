@@ -1,5 +1,5 @@
 // lib/acr/tests/classic/e08_scan.cpp — E08 Prefix Scan
-// 验证能力（17 §13）：依赖模式（前缀和）、证明依赖任务不能当普通 parallel_for
+// 验证能力：依赖模式（前缀和）、证明依赖任务不能当普通 parallel_for
 //
 // Phase H 扩展：
 // - inclusive/exclusive

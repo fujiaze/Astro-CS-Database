@@ -168,7 +168,7 @@ int p2_coverage_build(const char* const* hips_paths,
         char err[512] = {0};
         if (inspect_frame(hips_paths[i], &infos[i], &frame_tiles[i],
                           err, sizeof(err)) != 0) {
-            // F-V19R2-COV-001：snprintf 保证 NUL 终止，避免 strncpy
+            //snprintf 保证 NUL 终止，避免 strncpy
             // 静默截断告警（CODE_STANDARD：禁止 silent truncation）。
             std::snprintf(out->error, sizeof(out->error), "%s", err);
             out->status = 1;

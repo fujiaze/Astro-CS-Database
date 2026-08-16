@@ -214,7 +214,7 @@ TEST(FocusedMixed, AutoDegradesForSmallTask) {
 }
 
 // ============================================================================
-// 4. 真实驻留复用：共享输入只上传一次，跨 GPU 块复用（06 号规范 §2）
+// 4. 真实驻留复用：共享输入只上传一次，跨 GPU 块复用
 // ============================================================================
 TEST(FocusedMixed, ResidentReuseUploadsOnce) {
     if (!gpu_available()) {
@@ -264,7 +264,7 @@ void run_reduce_drizzle_paths(const char* op_id, bool drizzle) {
         ExecutorRegistry::create_auto());
     const std::size_t n = 1u << 18;  // 256K
     const std::size_t bins = 64;
-    // partial scratch 契约（08 §4）：按工作量与最小块精确计算，
+    // partial scratch 契约：按工作量与最小块精确计算，
     // 禁止按常数猜测。min_chunk = est 的最小高效块（256）。
     const std::size_t kMaxTokens =
         astro::compute::qualification::focused::partial_slots_for(n, 256);
@@ -465,7 +465,7 @@ TEST(FocusedMixed, AutoMixedWithinTenPercentOfBest) {
     const double cpu_ms = median_ms(cpu_t);
     const double gpu_ms = median_ms(gpu_t);
     const double auto_ms = median_ms(auto_t);
-    // 资格工作集确认（07 号规范 §3）：若当前系统负载使 CPU 实测速率远超
+    // 资格工作集确认：若当前系统负载使 CPU 实测速率远超
     // Profile 预测（>10 倍），说明不在空载资格环境；如实 SKIP 而非假失败。
     const auto* op = profile.find("synthetic.dense_pixel_accumulate.fp32");
     if (op != nullptr && op->cpu.ns_per_item > 0.0) {

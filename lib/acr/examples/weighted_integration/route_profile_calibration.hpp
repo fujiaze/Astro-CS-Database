@@ -68,7 +68,7 @@ struct RouteErrorEval {
 double predict_path(const routing::RoutePath& path, std::uint64_t items,
                     std::uint32_t frames, const std::string& interp_id);
 
-// 误差门：median<=10%、max<=15%（04 号规范 F；本轮禁止放宽）。
+// 误差门：median<=10%、max<=15%（04 号规范 F；禁止放宽）。
 bool route_gate_passed_errors(double median, double max);
 
 // Probe 阶段：在候选插值器（linear/loglog）中按中位误差选择并写回

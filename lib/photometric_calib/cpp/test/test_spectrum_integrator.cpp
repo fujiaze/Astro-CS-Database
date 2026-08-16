@@ -1,7 +1,7 @@
-// test_spectrum_integrator.cpp - P12-003 光谱积分 golden 比对测试程序
+// test_spectrum_integrator.cpp - 光谱积分 golden 比对测试程序
 //
 // 用途: 验证 spectrum_integrator.cpp 的 compute_f_syn / compute_f_syn_cached
-// 在 P12-002 修改后无回归. P12-002 仅改 star_matcher.cpp, 不触及
+// 在 修改后无回归. 仅改 star_matcher.cpp, 不触及
 // spectrum_integrator.cpp; 本程序通过端到端调用确认数值稳定.
 //
 // 算法:

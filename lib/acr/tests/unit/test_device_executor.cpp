@@ -1,4 +1,4 @@
-// lib/acr/tests/unit/test_device_executor.cpp — DeviceExecutor 单元测试（23 §3）
+// lib/acr/tests/unit/test_device_executor.cpp — DeviceExecutor 单元测试
 //
 // 验收：
 // - CpuExecutor 通过 KernelRegistry CPU launcher 真实执行 KernelInvocation；

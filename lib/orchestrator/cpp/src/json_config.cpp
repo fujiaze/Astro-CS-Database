@@ -22,7 +22,7 @@
 namespace fs = std::filesystem;
 using json = nlohmann::json;
 
-// V18R2 (CODE-002): SHA-256 归一化到 lib/common/crypto
+// SHA-256 归一化到 lib/common/crypto
 
 // ============================================================================
 // 内嵌 Schema JSON (v1.1, 与 lib/orchestrator/configs/stage1.schema.json 一致)

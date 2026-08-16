@@ -107,7 +107,7 @@ struct DrizzleStats {
     int64_t op_pix2radec = 0;       // pixel→sky 调用数
     int64_t op_boundary_builds = 0; // 自适应边细分事件数
     int64_t op_geometry_builds = 0; // drop 几何构建数
-    // V19R3 定点优化计数（DRIZZLE_TARGETED）
+    // 定点优化计数（DRIZZLE_TARGETED）
     int64_t op_target_boundary_builds = 0; // target leaf 边界构建（cache miss）
     int64_t op_target_geometry_builds = 0; // target leaf 几何构建
     int64_t op_geometry_cache_hits = 0;    // target-ipix cache 命中
@@ -275,7 +275,7 @@ private:
         Scalar pixelValue, float snrValue, float weightValue,
         float varianceValue,
         struct DrizzleOpCounters& counters,
-        const spherical::Vec3 corners_v[4],   // V18R2: 行级顶点缓存（免每像素 sin/cos）
+        const spherical::Vec3 corners_v[4],   // 行级顶点缓存（免每像素 sin/cos）
         const WcsSip& wcs, const DrizzleConfig& config,
         const healpix::HealpixCore& hp,
         uint32_t shift, uint64_t mask,

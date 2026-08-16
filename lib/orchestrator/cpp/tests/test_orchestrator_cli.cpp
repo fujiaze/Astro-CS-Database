@@ -1810,7 +1810,7 @@ void test_part7_sha256_and_config_hash() {
         ASSERT_FALSE(sh.empty(), "内嵌 Schema SHA256 非空");
     }
 
-    // 测试 10: P04-004 SIGINT 信号处理器注册/注销 (单元测试, 不触发实际信号)
+    // 测试 10: SIGINT 信号处理器注册/注销 (单元测试, 不触发实际信号)
     {
         Orchestrator orch;
         // 注册信号处理器 (不应崩溃)
@@ -1831,7 +1831,7 @@ void test_part7_sha256_and_config_hash() {
         ASSERT_TRUE(true, "p04004_unregister_signal_handler 执行成功");
     }
 
-    // 测试 11: P04-004 SIGINT 处理器注册 (cancel_on_signal=false)
+    // 测试 11: SIGINT 处理器注册 (cancel_on_signal=false)
     {
         Orchestrator orch;
         p04004_register_signal_handler(&orch, false);

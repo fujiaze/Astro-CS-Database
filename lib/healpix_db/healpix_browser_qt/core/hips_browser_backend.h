@@ -50,7 +50,7 @@ public:
     // 叶级 support tile（reference renderer 用）
     int read_support_tile(uint64_t tile_ipix, std::vector<double>& out) const;
 
-    // ---- : 多 order 读取（浏览器 LOD 用） ----
+    // ---- 多 order 读取（浏览器 LOD 用） ----
     // 读取指定 order 的 signal/support tile（512×512 float）。
     // tile 不存在返回非 0；成功时 sig/sup 均填充（缺失产品返回 -3）。
     int read_tile_at_order(int order, uint64_t tile_ipix,

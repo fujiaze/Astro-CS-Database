@@ -13,7 +13,7 @@
 
 #include <windows.h>
 
-// F-V19R2-CUDA-001：Win32 GetProcAddress 返回 FARPROC，按 Win32 API
+//Win32 GetProcAddress 返回 FARPROC，按 Win32 API
 // 固有形态转型为具体函数指针；系统 API 设计要求的强转，由 loader 单点
 // 封装并经测试覆盖。
 #if defined(__GNUC__) || defined(__clang__)
@@ -114,7 +114,7 @@ void ensure_bridge_loaded() {
         ok &= load_symbol(mod, "acr_cuda_executor_submit_copy", g_api.submit_copy);
         ok &= load_symbol(mod, "acr_cuda_executor_submit_reduce", g_api.submit_reduce);
         ok &= load_symbol(mod, "acr_cuda_executor_submit_conv3x3", g_api.submit_conv3x3);
-        // 聚焦版（08 §3）：目标合成 Operation（旧 DLL 缺失时整体视为不可用）
+        //目标合成 Operation（旧 DLL 缺失时整体视为不可用）
         ok &= load_symbol(mod, "acr_cuda_executor_submit_dense_accumulate_fp64acc",
                           g_api.submit_dense_accumulate_fp64acc);
         ok &= load_symbol(mod, "acr_cuda_executor_submit_drizzle_scatter",
@@ -192,7 +192,7 @@ public:
     std::size_t recommended_chunk() const override { return 65536; }
     std::size_t min_effective_chunk() const override { return 256; }
     std::string name() const override { return name_; }
-    // 聚焦版 v3（08 §3）：真实驻留执行。
+    //真实驻留执行。
     // prefetch_input 经桥接上传整帧到本 executor 的 device buffer 并记录
     // device view；input_resident 供 Dispatcher 判断是否已驻留。
     bool prefetch_input(const void* host, std::size_t bytes) override {

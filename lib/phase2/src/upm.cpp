@@ -6,7 +6,7 @@
 // - 控制拓扑 = coverage union 上的 HEALPix control cells（8×8/tile 网格），
 // basis/topology 只由 geometry/coverage/配置决定（与 SNR 解耦）；
 // - 图拉普拉斯平滑 lambda_s 真正进入联合求解；
-// - 观测权重 raw_w = quality_factor * control_ivar（V19R3 冻结，
+// - 观测权重 raw_w = quality_factor * control_ivar（ 冻结，
 // SCI-UPM-WEIGHT-001；control_ivar = 1/control_variance，
 // ALG-UPM-CONTROL-IVAR-001），并在每个 control node 内归一；
 // - legacy snr^2/(1+snr^2)/unc^2 仅 ablation/诊断（use_ivar_weight=0，
@@ -1051,7 +1051,7 @@ int p2_upm_calibrate_block(const void* model, std::uint64_t frame_id,
     }
     const Model* m = static_cast<const Model*>(model);
     const auto it = m->frame_index.find(frame_id);
-    // F-V19R2-UPM-002：未知 frame_id 必须显式失败，禁止回退 frame 0 参数
+    //未知 frame_id 必须显式失败，禁止回退 frame 0 参数
     // （错误帧校准会静默制造错误科学结果）。
     if (it == m->frame_index.end()) return 1;
     const std::size_t fi = it->second;
@@ -1077,7 +1077,7 @@ double p2_upm_evaluate_c(const void* model, std::uint64_t frame_id,
     if (model == nullptr) return 0.0;
     const Model* m = static_cast<const Model*>(model);
     const auto it = m->frame_index.find(frame_id);
-    // F-V19R2-UPM-002：未知 frame_id 返回 NaN（显式不可用），禁止用
+    //未知 frame_id 返回 NaN（显式不可用），禁止用
     // frame 0 参数伪装有效结果。
     if (it == m->frame_index.end())
         return std::numeric_limits<double>::quiet_NaN();

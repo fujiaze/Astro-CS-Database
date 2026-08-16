@@ -1,4 +1,4 @@
-// lib/acr/tests/unit/test_work_pool.cpp — 共享工作池并发专项测试（23 §2）
+// lib/acr/tests/unit/test_work_pool.cpp — 共享工作池并发专项测试
 //
 // 覆盖强制案例：
 // 1. 强制 A/B 线程逆序交错：A 先取得 token 后暂停，B 取得下一 token 并先完成；

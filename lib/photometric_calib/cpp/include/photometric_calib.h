@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 // ============================================================================
-// P12-001: Photometric 分阶段诊断结构体
+// Photometric 分阶段诊断结构体
 // 各阶段计数埋点, 供 Python 侧分析匹配失败原因. 所有可能为 nullptr 的出参均向后兼容.
 // ============================================================================
 struct PhotometricDiag {
@@ -44,7 +44,7 @@ struct PhotometricDiag {
 };
 
 // ============================================================================
-// Phase1 Full Freeze v2: per-star photometric match record
+// Phase1 v2: per-star photometric match record
 // 供 orchestrator 生成 photometric_match 块 (star_id 贯穿 PSF→PlateSolve→Photometric→SNR)
 // ============================================================================
 typedef struct {
@@ -94,7 +94,7 @@ typedef struct {
 // out_scale_factor- scale因子 (IRLS 稳健估计, 10^(-location(r)))
 // out_sigma_residual - sigma_residual = MAD(log10(F_instr/F_syn)_inliers)/0.6745
 // (可为 nullptr, 向后兼容; 供 SNR 模块 §14 计算 SNR_phot)
-// out_diag - P12-001 分阶段诊断结构体 (可为 nullptr, 向后兼容)
+// out_diag - 分阶段诊断结构体 (可为 nullptr, 向后兼容)
 // 旧接口仅填充部分字段; 完整诊断请使用 pc_calibrate_simple_with_gaia
 //
 // 返回: 0=成功, <0=失败
@@ -141,7 +141,7 @@ PC_API int pc_calibrate_simple(
 // out_scale_factor- scale因子 (IRLS 稳健估计, 10^(-location(r)))
 // out_sigma_residual - sigma_residual = MAD(log10(F_instr/F_syn)_inliers)/0.6745
 // (可为 nullptr, 向后兼容; 供 SNR 模块 §14 计算 SNR_phot)
-// out_diag - P12-001 分阶段诊断结构体 (可为 nullptr, 向后兼容)
+// out_diag - 分阶段诊断结构体 (可为 nullptr, 向后兼容)
 // 完整填充所有 8 个阶段字段
 //
 // 返回: 0=成功, <0=失败
@@ -217,7 +217,7 @@ PC_API int pc_calibrate_simple_with_gaia_f64(
     PhotometricDiag* out_diag);
 
 // ============================================================================
-// Phase1 Full Freeze v2: 带 per-star match 导出的 with_gaia 变体
+// Phase1 v2: 带 per-star match 导出的 with_gaia 变体
 // 与 pc_calibrate_simple_with_gaia 逻辑完全一致, 额外输出:
 // psf_star_ids - PSF 星 stable star_id [n_psf] (输入, 可为 nullptr)
 // out_records - PcMatchRecord [n_psf] (输出, 可为 nullptr = 与旧版行为一致)

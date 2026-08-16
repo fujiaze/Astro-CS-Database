@@ -129,7 +129,7 @@ int run_registry_concurrent() {
     return 0;
 }
 
-// ===== CpuExecutor 真实提交 + 契约校验（24 §5）=====
+// ===== CpuExecutor 真实提交 + 契约校验=====
 int run_cpu_executor_and_contract() {
     astro::compute::KernelRegistry reg;
     {
