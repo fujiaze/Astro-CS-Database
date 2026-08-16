@@ -1,0 +1,47 @@
+{
+  "tool": "docs_machine_consistency",
+  "version": "1.0.0",
+  "checks": [
+    {
+      "check": "config_weight_mode_ivar",
+      "pass": true,
+      "detail": "CONFIG_SCHEMA weight_mode auto/ivar <-> stage2_common parse"
+    },
+    {
+      "check": "error_taxonomy_exit_codes",
+      "pass": true,
+      "detail": "ERROR_MODEL 全集合 == orchestrator.h 0-10 退出码 (doc={'SUCCESS': 0, 'GENERIC_ERROR': 1, 'DLL_LOAD_FAILED': 2, 'BLOCK_MISSING': 3, 'CALIBRATE_FAILED': 4, 'PLATESOLVE_FAILED': 5, 'DRIZZLE_FAILED': 6, 'CONFIG_ERROR': 7, 'FILE_IO_ERROR': 8, 'TIMEOUT': 9, 'CANCELLED': 10, 'STAR_DETECT_FAILED': 20, 'PSF_FAILED': 21, 'PHOTOMETRIC_FAILED': 22, 'SNR_FAILED': 23, 'STACK_FAILED': 24, 'HISS_INVALID': 25, 'HCSD_INVALID': 26, 'MODULE_ABI_UNSUPPORTED': 27, 'INPUT_INVALID': 28, 'MODULE_SPECIFIC_BASE': 100} code={'SUCCESS': 0, 'GENERIC_ERROR': 1, 'DLL_LOAD_FAILED': 2, 'BLOCK_MISSING': 3, 'CALIBRATE_FAILED': 4, 'PLATESOLVE_FAILED': 5, 'DRIZZLE_FAILED': 6, 'CONFIG_ERROR': 7, 'FILE_IO_ERROR': 8, 'TIMEOUT': 9, 'CANCELLED': 10, 'STAR_DETECT_FAILED': 20, 'PSF_FAILED': 21, 'PHOTOMETRIC_FAILED': 22, 'SNR_FAILED': 23, 'STACK_FAILED': 24, 'HISS_INVALID': 25, 'HCSD_INVALID': 26, 'MODULE_ABI_UNSUPPORTED': 27, 'INPUT_INVALID': 28, 'MODULE_SPECIFIC_BASE': 100})"
+    },
+    {
+      "check": "integration_status_full_set",
+      "pass": true,
+      "detail": "integration status 全集合 (doc={'P2_INTEGRATE_OK': 0, 'P2_INTEGRATE_NO_CANDIDATES': 1, 'P2_INTEGRATE_ALL_REJECTED': 2, 'P2_INTEGRATE_ZERO_VALID_WEIGHT': 3, 'P2_INTEGRATE_INVALID_INPUT': 4} code={'P2_INTEGRATE_OK': 0, 'P2_INTEGRATE_NO_CANDIDATES': 1, 'P2_INTEGRATE_ALL_REJECTED': 2, 'P2_INTEGRATE_ZERO_VALID_WEIGHT': 3, 'P2_INTEGRATE_INVALID_INPUT': 4})"
+    },
+    {
+      "check": "rejection_status_full_set",
+      "pass": true,
+      "detail": "rejection status 全集合 (doc={'P2_REASON_ACCEPTED': 0, 'P2_REASON_REJECTED_LOW': 1, 'P2_REASON_REJECTED_HIGH': 2, 'P2_REASON_UNDERDETERMINED': 3, 'P2_STATUS_OK': 0, 'P2_STATUS_MIN_SAMPLES': 1, 'P2_STATUS_ALL_REJECTED': 2, 'P2_STATUS_INVALID_INPUT': 3, 'P2_STATUS_UNDERDETERMINED': 4, 'P2_STATUS_INVALID_CONFIGURATION': 5, 'P2_STATUS_INVALID_METHOD': 6, 'P2_STATUS_INTERNAL_ERROR': 7} code={'P2_REASON_ACCEPTED': 0, 'P2_REASON_REJECTED_LOW': 1, 'P2_REASON_REJECTED_HIGH': 2, 'P2_REASON_UNDERDETERMINED': 3, 'P2_STATUS_OK': 0, 'P2_STATUS_MIN_SAMPLES': 1, 'P2_STATUS_ALL_REJECTED': 2, 'P2_STATUS_INVALID_INPUT': 3, 'P2_STATUS_UNDERDETERMINED': 4, 'P2_STATUS_INVALID_CONFIGURATION': 5, 'P2_STATUS_INVALID_METHOD': 6, 'P2_STATUS_INTERNAL_ERROR': 7})"
+    },
+    {
+      "check": "stage_ids_docs_vs_orchestrator",
+      "pass": true,
+      "detail": "stage IDs in ERROR_TAXONOMY <-> orchestrator stage_name_v2"
+    },
+    {
+      "check": "snr_constants",
+      "pass": true,
+      "detail": "NOISE_MODEL/PSF constants <-> noise_model.cpp"
+    },
+    {
+      "check": "product_contracts",
+      "pass": true,
+      "detail": "DATA_CONTRACTS products <-> aio_hips.h product flags"
+    },
+    {
+      "check": "drizzle_variance_formula",
+      "pass": true,
+      "detail": "DRIZZLE.md variance formula <-> drizzle_engine.h"
+    }
+  ],
+  "pass": true
+}
