@@ -1,5 +1,5 @@
 // ============================================================================
-// healpix_core.h - AstroCS 共享 HEALPix 核心 (Phase1 Final Signoff )
+// healpix_core.h - AstroCS 共享 HEALPix 核心 (Phase1 Final Signoff)
 //
 // 单一权威 NESTED HEALPix 位置/层级实现, AIO / Drizzle / Browser 共同使用。
 // 来源: 依据公开 HEALPix 算法 (Gorski et al. 2005, arXiv:astro-ph/0409513)

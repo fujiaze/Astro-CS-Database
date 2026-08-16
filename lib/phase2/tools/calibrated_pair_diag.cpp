@@ -2,9 +2,9 @@
 //
 // 链接 production Phase2 库 + AIO，对银心 真实产物计算 calibrated frame
 // pair 诊断：
-// - p2_upm_open() 读取生产 UPM（upm_sparse.json）；
-// - p2_frame_id() 取得真实 frame id；
-// - p2_upm_calibrate_block() 对 overlap leaf 求 calibrated signal；
+// - p2_upm_open 读取生产 UPM（upm_sparse.json）；
+// - p2_frame_id 取得真实 frame id；
+// - p2_upm_calibrate_block 对 overlap leaf 求 calibrated signal；
 // - 不复制 UPM 数学公式（全部走 production API）。
 //
 // 输出 machine-readable calibrated_pair_metrics.json。

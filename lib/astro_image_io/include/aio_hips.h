@@ -49,13 +49,13 @@ enum AioHipsDataType {
 };
 
 // Drizzle Tile 直写视图 ( 05_HIPS_DIRECT_PRODUCTION §2)
-// parent_ipix : NESTED, 叶级 tile 父单元 (Norder K = log2(nside)-9)
-// leaf_order : 叶级 Norder L (= log2(nside))
-// width : 512 (HiPS 标准 tile)
-// data_type : AIO_HIPS_FLOAT32 / AIO_HIPS_FLOAT64
-// flux_sum : [width*width] 累计通量 (LeafAccumulator.sumFlux)
+// parent_ipix: NESTED, 叶级 tile 父单元 (Norder K = log2(nside)-9)
+// leaf_order: 叶级 Norder L (= log2(nside))
+// width: 512 (HiPS 标准 tile)
+// data_type: AIO_HIPS_FLOAT32 / AIO_HIPS_FLOAT64
+// flux_sum: [width*width] 累计通量 (LeafAccumulator.sumFlux)
 // covered_area: [width*width] 球面覆盖面积 sr (LeafAccumulator.sumArea)
-// valid_mask : [width*width] 1=有效 (covered_area>0), 可 NULL (全部有效)
+// valid_mask: [width*width] 1=有效 (covered_area>0), 可 NULL (全部有效)
 typedef struct {
     uint64_t parent_ipix;
     uint32_t leaf_order;
@@ -137,7 +137,7 @@ AIO_HIPS_EXPORT int aio_hips_write_snr_points(
     const AioHipsSnrPoint* pts,
     int n);
 
-// V19R4（K_CORR_DOMAIN 选项 B）：设置 Drizzle provenance（pixfrac /
+// （K_CORR_DOMAIN 选项 B）：设置 Drizzle provenance（pixfrac /
 // 像素角尺度），finalize 时写入 properties（ASTROCS_DRIZZLE_PIXFRAC /
 // ASTROCS_DRIZZLE_SCALE_ARCSEC）。Phase2 sampler 按帧读取以选择
 // control-ivar 的 k_corr 标定值。默认未设置时 properties 不写这两键。

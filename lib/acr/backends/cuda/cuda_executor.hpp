@@ -6,10 +6,10 @@
 //
 // 设计：
 // 1. CudaExecutor 继承 scheduler::DeviceExecutor
-// 2. submit() 在 GPU 上执行 axpy kernel（y=a*x+y），用 token 的 begin/end 作为范围
+// 2. submit 在 GPU 上执行 axpy kernel（y=a*x+y），用 token 的 begin/end 作为范围
 // 3. 通过 cuda_parallel_for 真实启动 <<<>>> kernel
-// 4. submit 是同步的（kernel 执行完才返回），sync() 对齐 stream
-// 5. available() 由 CudaBackend::available() 决定（无设备时 false，调用者回退 CPU）
+// 4. submit 是同步的（kernel 执行完才返回），sync 对齐 stream
+// 5. available 由 CudaBackend::available 决定（无设备时 false，调用者回退 CPU）
 #pragma once
 
 #ifdef ACR_BUILD_CUDA
@@ -64,7 +64,7 @@ private:
 };
 
 // 工厂函数：检测 CUDA 设备并追加 CudaExecutor 到 registry
-// 供 ExecutorRegistry::create_auto() 调用（ACR_BUILD_CUDA=ON 时链接）
+// 供 ExecutorRegistry::create_auto 调用（ACR_BUILD_CUDA=ON 时链接）
 // 无设备时返回而不追加（调用者继续使用 CPU executor）
 void append_cuda_executors(scheduler::ExecutorRegistry& registry);
 

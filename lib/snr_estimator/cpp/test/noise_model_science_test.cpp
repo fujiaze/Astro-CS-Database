@@ -476,10 +476,10 @@ static int run_science_matrix() {
 }
 
 // ============================================================================
-// V19R4 NOISE-WIRE-001：生产默认配置接线等价
-//   cfg=nullptr == default_config() == 生产默认（default + gain/readnoise=0
-//   覆盖）—— 逐字段 exact；输出模型 + fill 数组逐元素 exact。
-//   同时证明：传零结构体（V19R3 生产 bug 形态）≠ 默认配置。
+// NOISE-WIRE-001：生产默认配置接线等价
+// cfg=nullptr == default_config == 生产默认（default + gain/readnoise=0
+// 覆盖）—— 逐字段 exact；输出模型 + fill 数组逐元素 exact。
+// 同时证明：传零结构体（ 生产 bug 形态）≠ 默认配置。
 // ============================================================================
 static int noise_wire_test() {
     const int W = 256, H = 256;
@@ -493,7 +493,7 @@ static int noise_wire_test() {
     // A: cfg=nullptr（模块内部默认）
     CHECK(snr_noise_model_v1(img.data(), H, W, nullptr, sx, sy, 2,
                              nullptr, &m0) == 0, "nullptr cfg OK");
-    // B: 显式 default_config()
+    // B: 显式 default_config
     SnrNoiseModelConfig c1{};
     snr_noise_model_v1_default_config(&c1);
     CHECK(snr_noise_model_v1(img.data(), H, W, nullptr, sx, sy, 2,
@@ -506,7 +506,7 @@ static int noise_wire_test() {
     c2.read_noise_e = 0.0;
     CHECK(snr_noise_model_v1(img.data(), H, W, nullptr, sx, sy, 2,
                              &c2, &m2) == 0, "production default cfg OK");
-    // D: 零结构体（V19R3 生产 bug 形态；不应等于默认）
+    // D: 零结构体（ 生产 bug 形态；不应等于默认）
     SnrNoiseModelConfig cz{};
     snr_noise_model_v1(img.data(), H, W, nullptr, sx, sy, 2, &cz, &mz);
 

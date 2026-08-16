@@ -321,7 +321,7 @@ TEST(CpuProfileTest, DefaultOverheadsPresent) {
 }
 
 // ============================================================================
-// 10. has_gpu() 在纯 CPU 画像下为 false
+// 10. has_gpu 在纯 CPU 画像下为 false
 // ============================================================================
 
 TEST(CpuProfileTest, NoGpuInCpuOnlyProfile) {

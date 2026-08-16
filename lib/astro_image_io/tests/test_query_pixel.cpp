@@ -288,7 +288,7 @@ struct TestContext {
     std::vector<uint32_t> bitmap_valid;  // 有效像素索引
 
     // SPARSE_LIST 模式 (NSIDE=256, n_leaf=256, 5 个有效像素)
-    // R04-B12: 需 SPARSE_LIST(20B) < BITMAP(32B) 才能自动选 SPARSE_LIST
+    // 需 SPARSE_LIST(20B) < BITMAP(32B) 才能自动选 SPARSE_LIST
     std::string sparse_path;
     std::vector<PixelLoc> sparse_pixels;
     uint64_t sparse_parent = 0;
@@ -384,7 +384,7 @@ static bool setup(TestContext& ctx) {
     {
         ctx.sparse_path = "tqp_sparse.hiss";
         ctx.sparse_parent = 0;
-        // R04-B12: Writer 按编码大小自动选择 (忽略传入的 occ_mode)
+        // Writer 按编码大小自动选择 (忽略传入的 occ_mode)
         // NSIDE=256 → n_leaf=256, BITMAP=32B, SPARSE_LIST(5点)=20B → 自动选 SPARSE_LIST
         ctx.sparse_valid = {0, 32, 63, 128, 200};  // 5/256, sparse=20 < bitmap=32
         HissGridSpec grid; HissMetadata meta;

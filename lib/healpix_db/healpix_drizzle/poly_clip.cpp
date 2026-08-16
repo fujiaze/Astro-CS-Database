@@ -200,7 +200,7 @@ std::vector<Point2D> PolyClip::clipPolygon(const std::vector<Point2D>& subject,
     // 最终结果在 buf_a (最后一次 swap 后)
     std::vector<Point2D> buf_a(subject.begin(), subject.end());
     std::vector<Point2D> buf_b;
-    // 预留空间: 裁剪后顶点数 ≤ subject.size() + clip.size()
+    // 预留空间: 裁剪后顶点数 ≤ subject.size + clip.size
     buf_a.reserve(subject.size() + clip.size());
     buf_b.reserve(subject.size() + clip.size());
 

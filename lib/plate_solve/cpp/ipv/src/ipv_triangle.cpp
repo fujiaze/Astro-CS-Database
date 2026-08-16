@@ -8,9 +8,9 @@
 // - top_vote_getters 按票数降序提取 top-N 匹配对
 //
 // 实现说明:
-// 1. : 投票矩阵改回 2D 数组 std::vector<std::vector<int>> (numA x numB)
+// 1.: 投票矩阵改回 2D 数组 std::vector<std::vector<int>> (numA x numB)
 // 原 用稀疏 unordered_map<VoteKey, double>, 累积逻辑不等价
-// 2. : top_vote_getters 添加 AT_MATCH_MINVOTES=2 门槛
+// 2.: top_vote_getters 添加 AT_MATCH_MINVOTES=2 门槛
 // 单票配对直接丢弃
 // 3. 不做 sort_triangle_array + find_ba_triangle 二分加速
 // (N=20 时 C(20,3)=1140, 双重循环 1.3M 次比较足够快)
@@ -546,7 +546,7 @@ static TriangleMatchResult triangle_match_single(
         return result;
     }
 
-    // 2. 投票 (: 2D 数组, : 添加 scale 约束)
+    // 2. 投票 (: 2D 数组,: 添加 scale 约束)
     std::vector<std::vector<int>> votes;
     make_vote_matrix(tris_A, tris_B, tolerance, votes, n_stars_A, n_stars_B,
                      scale_min, scale_max);

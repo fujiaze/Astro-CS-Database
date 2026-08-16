@@ -1,15 +1,15 @@
-// lib/phase2/tests/ivar_wiring_test.cpp — V19R4 生产 ivar wiring 集成测试
+// lib/phase2/tests/ivar_wiring_test.cpp — 生产 ivar wiring 集成测试
 //
 // 直接跑生产 Stage2（astrocs-stage2.exe），不是单独调用 reducer：
 // - 3 帧合成 HiPS（signal/support/ivar 产品，单 tile）；
 // - 每帧 ivar 空间 pattern 不同（A≈1、B≈4、C≈16 量级 + 空间变化）；
 // - 故意制造像素级 invalid（support=0）使 eligibility compact；
 // - 验证 WIRE-IVAR-001..005：
-//   001 每个 eligible sample 得到自身 frame/pixel 的 ivar
-//   002 invalid compact 后其余帧 ivar 不错位
-//   003 期望 weighted mean 与生产输出匹配
-//   004 改最后一帧 ivar 只影响该帧样本权重
-//   005 帧排列置换后输出不变
+// 001 每个 eligible sample 得到自身 frame/pixel 的 ivar
+// 002 invalid compact 后其余帧 ivar 不错位
+// 003 期望 weighted mean 与生产输出匹配
+// 004 改最后一帧 ivar 只影响该帧样本权重
+// 005 帧排列置换后输出不变
 #include <gtest/gtest.h>
 
 #include "astro/phase2/upm.h"
@@ -145,7 +145,7 @@ std::vector<float> read_signal_tile(const std::string& hips) {
 }
 
 // 期望加权均值：per-pixel eligible frames（support>0）按自身 ivar 加权
-// V19R4：calibrated = raw − C_frame(leaf)（生产 UPM 模型求值，非假设 offset=0）
+//calibrated = raw − C_frame(leaf)（生产 UPM 模型求值，非假设 offset=0）
 std::vector<double> expected_weighted_mean(
     const std::vector<std::vector<float>>& signals,
     const std::vector<std::vector<float>>& supports,

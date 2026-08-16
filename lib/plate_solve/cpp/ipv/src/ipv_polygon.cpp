@@ -30,7 +30,7 @@ namespace ipv {
 // ---------------------------------------------------------------------------
 // 模块级日志器
 // ---------------------------------------------------------------------------
-// 默认仅输出到 stderr; 外部可调用 init_polygon_logger() 写入文件
+// 默认仅输出到 stderr; 外部可调用 init_polygon_logger 写入文件
 static Logger g_polygon_logger;
 
 Logger& polygon_logger() {

@@ -32,7 +32,7 @@
 // ---------------------------------------------------------------------------
 // 内部辅助: 全局句柄存储
 //
-// ipv::ipv_select 通过 get_gaia_client_handle() / get_star_detector_handle()
+// ipv::ipv_select 通过 get_gaia_client_handle / get_star_detector_handle
 // 读取注入的句柄。IPVSolver 本身也持有副本 (用于日志诊断),
 // 这里在 set_xxx_handle 调用时同步设置全局访问器, 保证 select 阶段可用。
 // ---------------------------------------------------------------------------
@@ -151,11 +151,11 @@ void set_error_msg(char* dst, size_t dst_size, const char* msg) {
     dst[n] = '\0';
 }
 
-// 修复: 将 solve() 调用 + try/catch 隔离到独立函数
-// 动机: ipv_solve 的 try/catch 在栈上生成 SEH 记录, solve() 内部的大栈使用
+// 修复: 将 solve 调用 + try/catch 隔离到独立函数
+// 动机: ipv_solve 的 try/catch 在栈上生成 SEH 记录, solve 内部的大栈使用
 // (FlipModeResult results[4] 等) 可能覆盖 SEH 记录, 导致返回到 ctypes 时崩溃。
 // 将 try/catch 移到 do_solve_impl, ipv_solve 本身无 try/catch, 栈帧上无 SEH 记录。
-// 进一步修复: solve() 改为通过指针返回结果 (void solve(..., WcsFitResult* result)),
+// 进一步修复: solve 改为通过指针返回结果 (void solve(..., WcsFitResult* result)),
 // 完全避免 WcsFitResult (~680 字节) 的值传递导致的栈崩溃。
 int do_solve_impl(
     ipv::IPVSolver* s,

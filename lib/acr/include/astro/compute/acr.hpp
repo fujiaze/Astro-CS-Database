@@ -385,7 +385,7 @@ Event parallel_scan(KernelId /*id*/, BufferView<T> input, BufferView<T> output, 
 // 可加速路径必须使用：
 // OperationId + KernelRegistration + KernelInvocation + KernelRegistry
 // （见 include/astro/compute/kernel_registry.hpp）。
-// Dispatcher 只会把 invocation 交给 supports() 为 true 的 executor；
+// Dispatcher 只会把 invocation 交给 supports 为 true 的 executor；
 // 设备 launcher 缺失时回退 CPU 并如实报告，不得静默伪装 GPU 执行。
 // ============================================================================
 

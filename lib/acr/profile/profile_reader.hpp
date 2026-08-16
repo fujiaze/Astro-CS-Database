@@ -37,7 +37,7 @@ public:
 
     // 获取已加载的 profile（首次调用触发 lazy load）
     // 返回 nullptr 表示 profile 未加载（Missing/Corrupt）
-    // 三态通过 profile_state() 查询
+    // 三态通过 profile_state 查询
     const HardwareProfile* get_profile();
 
     // 当前 profile 状态（不触发加载，仅在已加载时返回实际状态；否则返回 Missing）

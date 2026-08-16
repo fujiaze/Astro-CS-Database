@@ -1,5 +1,5 @@
 // ============================================================================
-// aio_hips_reader.h - IVOA HiPS 读取器 C API (Phase1 Final Closure )
+// aio_hips_reader.h - IVOA HiPS 读取器 C API (Phase1 Final Closure)
 //
 // Browser / HIPS_VERIFY 唯一后端: 不允许直接解析 properties/CFITSIO。
 // ============================================================================

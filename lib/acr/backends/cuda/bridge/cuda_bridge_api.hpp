@@ -87,11 +87,11 @@ struct BridgeApi {
     bool loaded() const noexcept { return init != nullptr; }
 };
 
-// 全局桥接 API（loader 填充；未加载时 loaded()==false）
+// 全局桥接 API（loader 填充；未加载时 loaded==false）
 BridgeApi& api() noexcept;
 
 // 触发一次桥接 DLL 加载（LoadLibrary + GetProcAddress；幂等）。
-// 任何需要 GPU 的组件（benchmark/executor 注册）在使用 api() 前应调用。
+// 任何需要 GPU 的组件（benchmark/executor 注册）在使用 api 前应调用。
 void ensure_bridge_loaded();
 
 // executor 提交时的线程本地句柄/耗时（launcher 与 executor 之间传递）

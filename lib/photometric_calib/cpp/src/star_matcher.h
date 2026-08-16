@@ -15,13 +15,13 @@ struct StarMatch {
     double y;         // 图像像素y (PSF质心)
     double f_instr;   // 仪器流量 (PSF flux)
     double f_syn;     // 合成流量 (Gaia)
-    double gaia_mag;  // Gaia G 星等 (GAP-013: 用于星等一致性检查与日志)
+    double gaia_mag;  // Gaia G 星等 (: 用于星等一致性检查与日志)
     int psf_idx = -1; // PSF 星原始行号 (Phase1 v2: 供 per-star lineage 回连 star_id)
     int gaia_idx = -1;// Gaia 星索引 (Phase1 v2: 供 per-star DR3SP lineage)
 };
 
 // 星-图匹配器: Gaia星 <-> PSF拟合星
-// GAP-013 改进:
+// 改进:
 // - KD-tree 最近邻匹配 (替代暴力搜索, 在 Gaia 星像素坐标上建树)
 // - 距离阈值收紧到 2px (默认)
 // - 星等一致性检查 (>3 mag 拒绝)
@@ -31,14 +31,14 @@ class StarMatcher {
 public:
     StarMatcher();
 
-    // 匹配 + IRLS/Tukey 清洗 (GAP-013 新版)
+    // 匹配 + IRLS/Tukey 清洗 ( 新版)
     // 参数:
     // wcs: WCS转换器
     // gaia_ra/dec/mag/fsyn: Gaia星数组 [n_gaia]
     // n_gaia: Gaia星数量
     // psf_cx/cy/flux/status: PSF星数组 [n_psf]
     // n_psf: PSF星数量
-    // match_radius_px: 匹配半径(像素), 最近邻距离须小于该值 (默认 2.0, GAP-013 收紧)
+    // match_radius_px: 匹配半径(像素), 最近邻距离须小于该值 (默认 2.0, 收紧)
     // mag_tolerance: 星等一致性容忍度 (mag, 默认 3.0; |delta - median_delta| > tol 拒绝)
     // out_scale_factor: 输出 IRLS 稳健 scale = 10^(-location(r)) (可为 nullptr)
     // 其中 r = log10(F_instr/F_syn); scale 用于 I_cal = I * scale

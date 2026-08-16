@@ -116,7 +116,7 @@ bool MixedRoutePlanner::should_claim(const MixedRoutePlan& plan,
         ? device_measured_ns_per_item : profile_ns * 10.0;
     const double other_per_item = (other_measured_ns_per_item > 0.0)
         ? other_measured_ns_per_item : other_profile_ns * 10.0;
-    // makespan 模型（08 §2 / ）：
+    // makespan 模型（08 §2 /）：
     // 无该设备下一块：makespan0 = 另一设备完成剩余
     // 有该设备下一块：该设备完成 chunk，另一设备完成剩余
     // makespan1 = max(block_ns, other × (remaining - chunk))

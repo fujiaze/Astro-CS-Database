@@ -6,7 +6,7 @@
 // - 无设备时降级（本机有设备，验证 available 语义）
 // - CUDA event 计时非负
 // - GPU 报告回调注册后 hardware_report 包含 GPU 字段
-// - F-fix 8：CudaExecutor 真实 GPU 提交 + ExecutorRegistry::create_auto()
+// - F-fix 8：CudaExecutor 真实 GPU 提交 + ExecutorRegistry::create_auto
 // - F-fix 8：真实 CPU+GPU Mixed 执行（dispatch_via_executors）
 //
 // 注：CPU-only 构建时本文件不编译（CMake 用 if(ACR_BUILD_CUDA) 保护）。
@@ -250,7 +250,7 @@ TEST(CudaBackend, DegradePathNoCrash) {
     if (backend.device_count() > 0) {
         SUCCEED() << "Device present (RTX 3060 Ti), degrade path skipped";
     } else {
-        // 无设备时 available()=false，调用 sync 不崩溃
+        // 无设备时 available=false，调用 sync 不崩溃
         EXPECT_FALSE(backend.available());
         EXPECT_EQ(backend.sync(), StatusCode::Ok);
     }
@@ -369,8 +369,8 @@ TEST(CudaExecutor, MultipleSubmitsNoInterference) {
 }
 
 // ============================================================================
-// F-fix 8: ExecutorRegistry::create_auto() 自动注册 CUDA executor
-// 验收：create_auto() 应同时注册 CPU + CUDA executor
+// F-fix 8: ExecutorRegistry::create_auto 自动注册 CUDA executor
+// 验收：create_auto 应同时注册 CPU + CUDA executor
 // ============================================================================
 
 TEST(ExecutorRegistryAuto, CreateAutoRegistersCpuAndCuda) {
@@ -423,7 +423,7 @@ TEST(MixedCpuGpuExecution, RealGpuCompletesSomeBlocks) {
         GTEST_SKIP() << "CUDA device not available";
     }
 
-    // 用 create_auto() 注册 CPU + CUDA executor
+    // 用 create_auto 注册 CPU + CUDA executor
     auto registry = std::make_shared<ExecutorRegistry>(ExecutorRegistry::create_auto());
     auto available = registry->available_executors();
     ASSERT_GE(available.size(), 2u);

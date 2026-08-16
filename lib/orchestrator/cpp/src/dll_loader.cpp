@@ -370,7 +370,7 @@ ModuleInfo DllLoader::get_info(ModuleId id) const {
 
 // ============================================================================
 // get_version - 获取模块版本号
-// - 各模块尝试调用其约定的 *_version 函数 (const char* (*)())
+// - 各模块尝试调用其约定的 *_version 函数 (const char* (*))
 // - 未导出 version 函数时返回 "unknown"
 // - 扩展支持全部 9 个模块 (AIO/CALIBRATE/PLATESOLVE/PSF/PHOTOMETRIC/SNR/DRIZZLE/STACK)
 // ============================================================================

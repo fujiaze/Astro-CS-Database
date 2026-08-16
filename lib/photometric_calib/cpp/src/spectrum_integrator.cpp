@@ -67,7 +67,7 @@ std::vector<double> akima_interpolate(
 
     // 扩展斜率数组 ext_m[0..n+2], ext_m[j] = m[j-2]（m[-2]..m[n]）。
     // 切线 t[i] 需要 m[i-2..i+1]，i=n-1 时需要 m[n] —— 必须预留 n+3 项，
-    // 否则最后一切线越界（V19R3 sanitizer 实测 heap-buffer-overflow）。
+    // 否则最后一切线越界（ sanitizer 实测 heap-buffer-overflow）。
     // n==2 时仅 slope[0] 存在：边界斜率退化为复制（线性段）。
     std::vector<double> ext_m(n + 3, 0.0);
     ext_m[0] = (n >= 3) ? 3.0 * slope[0] - 2.0 * slope[1] : slope[0];
@@ -164,7 +164,7 @@ double simpson_integrate(const std::vector<double>& x, const std::vector<double>
 }
 
 // ----------------------------------------------------------------------------
-// compute_f_syn: 单星合成流量 (GAP-012: 加入 CCD QE 曲线 Q(λ))
+// compute_f_syn: 单星合成流量 (: 加入 CCD QE 曲线 Q(λ))
 // ----------------------------------------------------------------------------
 double compute_f_syn(
     const uint8_t* spectrum_uint8, int spectrum_count,
@@ -279,7 +279,7 @@ double compute_f_syn(
 }
 
 // ----------------------------------------------------------------------------
-// prepare_filter_cache: 预处理滤光片+QE 曲线, 缓存重采样结果 (Task 11 + GAP-012)
+// prepare_filter_cache: 预处理滤光片+QE 曲线, 缓存重采样结果 (Task 11 +)
 // ----------------------------------------------------------------------------
 SpectrumIntegratorCache prepare_filter_cache(
     const double* filter_wl, const double* filter_trans, int filter_count,

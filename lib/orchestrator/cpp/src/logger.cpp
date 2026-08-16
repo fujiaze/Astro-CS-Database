@@ -70,7 +70,7 @@ void Logger::init(const std::string& log_dir, LogLevel level) {
     // 标记为已初始化
     initialized_.store(true);
 
-    // 输出初始化日志 (注意: 此时不要再调 log(), 防止递归锁)
+    // 输出初始化日志 (注意: 此时不要再调 log, 防止递归锁)
     std::string ts = get_timestamp();
     std::cerr << "[" << ts << "][INFO][logger] 日志系统初始化完成"
               << " (log_dir=" << log_dir_

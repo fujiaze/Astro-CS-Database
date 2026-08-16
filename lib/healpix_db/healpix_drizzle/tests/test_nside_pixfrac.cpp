@@ -10,7 +10,7 @@
 // 5. 极粗像素 (20000"/px) → NSIDE=16 (下限钳位)
 // 6. 自适应四叉树采样验证 (B05 修复: 构造 SIP 畸变在边缘的情况)
 //
-// B. drizzle() 入口校验 (步骤6):
+// B. drizzle 入口校验 (步骤6):
 // 7. pixfrac=0 → 返回 false, error_msg 包含 "pixfrac"
 // 8. pixfrac=-0.5 → 返回 false
 // 9. pixfrac=1.5 → 返回 false

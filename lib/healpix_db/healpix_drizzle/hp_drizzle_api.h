@@ -65,7 +65,7 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
                                    HpDrizzleResult* result,
                                    int precision_mode);
 
-// Phase1 Final Closure : Drizzle -> AIO HiPS 直写 (无 HISS 中转)
+// Phase1 Final Closure: Drizzle -> AIO HiPS 直写 (无 HISS 中转)
 // hips_dir: HiPS 产品集根目录; legacy_hiss_path: 可选 legacy .hiss (validation 用)
 HP_DRIZZLE_API int hp_drizzle_run_hips(PipelineFrame* frame,
                                        int nside, int nested, double pixfrac,

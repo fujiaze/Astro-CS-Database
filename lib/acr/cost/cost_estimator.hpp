@@ -86,13 +86,13 @@ public:
     // 设置硬件画像（CostEstimator 不拥有 profile，只读引用）。
     // nullptr 表示无画像，走 CPU fallback。
     // profile 由 HardwareProfileReader 提供，CostEstimator 不参与加载。
-    // 注意：调用方需保证 profile 在 estimate() 调用期间有效；
-    // 若 profile_reader invalidate_cache() 后旧指针悬空，需重新 set_profile。
+    // 注意：调用方需保证 profile 在 estimate 调用期间有效；
+    // 若 profile_reader invalidate_cache 后旧指针悬空，需重新 set_profile。
     void set_profile(const HardwareProfile* profile) noexcept;
     const HardwareProfile* profile() const noexcept;
 
     // ===== 从 HardwareProfileReader 刷新画像（用于 invalidate 后重新加载）=====
-    // 调用 reader.get_profile_or_cpu_fallback() 获取当前画像指针。
+    // 调用 reader.get_profile_or_cpu_fallback 获取当前画像指针。
     void refresh_from_reader(profile::HardwareProfileReader& reader);
 
     // ===== 主入口：估算任务成本 =====

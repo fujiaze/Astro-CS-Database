@@ -138,10 +138,10 @@ TEST(BufferTest, ResizeGrowAndShrink) {
 }
 
 // ============================================================================
-// Buffer view()
+// Buffer view
 // ============================================================================
 
-// Buffer view() 返回正确视图（共享底层内存）
+// Buffer view 返回正确视图（共享底层内存）
 TEST(BufferTest, ViewReturnsCorrectView) {
     Buffer<int> buf(10, 5);
     BufferView<int> v = buf.view();
@@ -152,7 +152,7 @@ TEST(BufferTest, ViewReturnsCorrectView) {
     EXPECT_EQ(buf[0], 99);
 }
 
-// const Buffer view() const 返回只读视图
+// const Buffer view const 返回只读视图
 TEST(BufferTest, ConstView) {
     Buffer<int> buf(10, 5);
     const Buffer<int>& cb = buf;

@@ -212,8 +212,8 @@ bool AhpxWriter::compressAndWriteBlock(FILE* fp, const char* id,
             usedCodec, srcSize);
 
     // 注意: 返回的 outCompSize 和 outOffset 正确, 但 codec 需要调用方记录
-    // 这里通过修改 compBlock 在 write() 中处理
-    (void)usedCodec; // 在 write() 中单独处理
+    // 这里通过修改 compBlock 在 write 中处理
+    (void)usedCodec; // 在 write 中单独处理
     return true;
 }
 

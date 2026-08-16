@@ -7,7 +7,7 @@
 // 4. 各 ISA 变体（baseline / SSE / AVX / AVX2 / AVX-512）通过 target attribute 启用
 // 5. 单线程 + 线程曲线（1, 2, 4, 25%, 50%, 75%, 95%, 100%）
 // 6. NUMA 本地/远端（hwloc 拓扑）
-// 7. 数组构造不计时（在 ::benchmark::State 的 setup 阶段）
+// 7. 数组构造不计时（在::benchmark::State 的 setup 阶段）
 // 8. GB/s 计数器 + 正确性门禁
 // 9. 大数组持续带宽稳定（多次迭代 median）
 //
@@ -240,7 +240,7 @@ using StreamFp32 = StreamFixture<float>;
 using StreamFp64 = StreamFixture<double>;
 
 // 通用 benchmark body
-// 注意：Google Benchmark v1.9.1 的 State 没有 fixture() 方法。
+// 注意：Google Benchmark v1.9.1 的 State 没有 fixture 方法。
 // BENCHMARK_DEFINE_F 生成的函数是 fixture 的成员，可直接通过 this 访问 fixture，
 // 因此把 fixture 指针显式传入此自由函数。
 template<class T>

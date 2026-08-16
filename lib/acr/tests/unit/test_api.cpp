@@ -238,7 +238,7 @@ TEST(ApiRunFor, SerialCorrectness) {
 // Event
 // ============================================================================
 
-// 同步 Event：parallel_for 返回的 Event 立即 ready()
+// 同步 Event：parallel_for 返回的 Event 立即 ready
 TEST(ApiEvent, ImmediatelyReadyAfterParallelFor) {
     Event ev = astro::compute::parallel_for(
         KernelId::Custom, Range1D{0, 1000},
@@ -246,7 +246,7 @@ TEST(ApiEvent, ImmediatelyReadyAfterParallelFor) {
     EXPECT_TRUE(ev.ready());
 }
 
-// Event::wait() 不阻塞（已完成）
+// Event::wait 不阻塞（已完成）
 TEST(ApiEvent, WaitDoesNotBlockWhenDone) {
     Event ev = astro::compute::parallel_for(
         KernelId::Custom, Range1D{0, 1000},
@@ -255,7 +255,7 @@ TEST(ApiEvent, WaitDoesNotBlockWhenDone) {
     EXPECT_TRUE(ev.ready());
 }
 
-// Event::cancel() 后 cancelled()==true
+// Event::cancel 后 cancelled==true
 TEST(ApiEvent, CancelSetsCancelledFlag) {
     Event ev = astro::compute::parallel_for(
         KernelId::Custom, Range1D{0, 1000},
@@ -265,7 +265,7 @@ TEST(ApiEvent, CancelSetsCancelledFlag) {
     EXPECT_TRUE(ev.cancelled());
 }
 
-// Event::status() 返回 Ok（正常完成）
+// Event::status 返回 Ok（正常完成）
 TEST(ApiEvent, StatusOkAfterSuccess) {
     Event ev = astro::compute::parallel_for(
         KernelId::Custom, Range1D{0, 1000},
@@ -273,7 +273,7 @@ TEST(ApiEvent, StatusOkAfterSuccess) {
     EXPECT_EQ(ev.status(), StatusCode::Ok);
 }
 
-// 异常 kernel：parallel_for 内 kernel 抛异常 → Event::status() 返回 KernelFailed，不崩溃
+// 异常 kernel：parallel_for 内 kernel 抛异常 → Event::status 返回 KernelFailed，不崩溃
 TEST(ApiEvent, ExceptionKernelReturnsFailedStatus) {
     Event ev = astro::compute::parallel_for(
         KernelId::Custom, Range1D{0, 100},
@@ -320,7 +320,7 @@ TEST(ApiBuffer, ReadOnlyWriteAccess) {
     buf[0] = 5.0f;
     EXPECT_FLOAT_EQ(buf[0], 5.0f);
     EXPECT_FLOAT_EQ(buf[1], 1.0f);
-    // data() 返回可写指针
+    // data 返回可写指针
     float* p = buf.data();
     p[2] = 3.0f;
     EXPECT_FLOAT_EQ(buf[2], 3.0f);

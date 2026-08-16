@@ -89,7 +89,7 @@ ACR_CUDA_BRIDGE_API int acr_cuda_executor_submit_conv3x3(
     const float* kernel9,
     uint64_t* elapsed_ns, const char** last_error);
 
-// ===== ：目标合成 Operation 内核 =====
+// =====：目标合成 Operation 内核 =====
 // 积分/Drizzle 类逐像素算法的 GPU 实现；全部同步语义，elapsed_ns 为真实耗时。
 
 // Dense pixel accumulate（FP32 输入 + FP64 累加器）：

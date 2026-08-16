@@ -12,7 +12,7 @@
 #include "astro_image_io.h"   // aio_frame_get_block / aio_frame_kv_get
 #include "snr_evaluator.h"  // SnrEvaluator (KD-tree IDW 重建逐像素 SNR; 模块内私有实现)
 #include "aio_healpix_io.h"         // HioSnrModel, HioSnrControlPoint (向后兼容宏)
-#include "astro_sphere_sink.h"      // Phase1 : Drizzle -> AIO HiPS 直写
+#include "astro_sphere_sink.h"      // Phase1: Drizzle -> AIO HiPS 直写
 
 #include <cstdio>
 #include <cstring>
@@ -356,10 +356,10 @@ HP_DRIZZLE_API int hp_drizzle_fits_to_ahpx(
 // run_drizzle_internal - 共享 Drizzle 执行 (parse frame -> drizzle ->
 // [legacy .hiss] / [HiPS 直写] 输出)
 //
-// write_hips : 是否直写 HiPS 产品集 (Drizzle -> AIO, 无 HISS 中转)
-// hips_dir : HiPS 输出根目录 (write_hips 时必需)
+// write_hips: 是否直写 HiPS 产品集 (Drizzle -> AIO, 无 HISS 中转)
+// hips_dir: HiPS 输出根目录 (write_hips 时必需)
 // write_legacy_hiss: 是否同时写 legacy .hiss (validation.legacy_hiss_compare)
-// output_path : legacy .hiss 路径 (write_legacy_hiss 时必需)
+// output_path: legacy .hiss 路径 (write_legacy_hiss 时必需)
 // ============================================================================
 static int run_drizzle_internal(PipelineFrame* frame,
                                 int nside, int nested, double pixfrac,
@@ -419,7 +419,7 @@ static int run_drizzle_internal(PipelineFrame* frame,
             nside, nested ? 1 : 0, pixfrac, output_path ? output_path : "(null)");
 
     // 2. 读取 data 块 (支持 FLOAT32[H,W] 和 FLOAT64[H,W])
-    // 双精度 ABI : FP64 模式下 data 块为 FLOAT64, 走 drizzle_f64 路径
+    // 双精度 ABI: FP64 模式下 data 块为 FLOAT64, 走 drizzle_f64 路径
     // FP32 模式下 data 块为 FLOAT32, 走 drizzle 路径 (向后兼容)
     const AioBlock* data_blk = aio_frame_get_block(frame, "data");
     if (!data_blk) {
@@ -607,7 +607,7 @@ static int run_drizzle_internal(PipelineFrame* frame,
     const float* snrPtr = nullptr;
     std::vector<float> snrRebuilt;       // 重建的逐像素 SNR (生命周期需覆盖 drizzle 调用)
     // SNR model 控制点用 RAII vector 持有（points 指向
-    // vector.data()），禁止手工 malloc/free——生产 HiPS-only 路径
+    // vector.data），禁止手工 malloc/free——生产 HiPS-only 路径
     // legacy_hiss_compare=false 时旧代码 free 不执行 → 每帧泄漏。
     std::vector<HioSnrControlPoint>   snr_pts_f32;
     std::vector<HioSnrControlPointF64> snr_pts_f64;
@@ -829,7 +829,7 @@ static int run_drizzle_internal(PipelineFrame* frame,
         }
     }
 
-    // Phase1 Final Signoff : 收集 SNR 控制点 (HiPS Catalogue 用),
+    // Phase1 Final Signoff: 收集 SNR 控制点 (HiPS Catalogue 用),
     // star_id/quality_flags/photometric_status 来自 snr_model v2 块
     // (禁止 i+1 重新编号)
     std::vector<AioHipsSnrPoint> snr_pts;
@@ -1039,7 +1039,7 @@ static int run_drizzle_internal(PipelineFrame* frame,
         stamp(prof_hiss);  // legacy .hiss 写入结束
     }
 
-    // 8.5 Phase1 Final Closure : HiPS 直写 (Drizzle -> AIO, 无 HISS 中转)
+    // 8.5 Phase1 Final Closure: HiPS 直写 (Drizzle -> AIO, 无 HISS 中转)
     if (write_hips) {
         if (!hips_dir || !hips_dir[0]) {
             fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: write_hips 但 hips_dir 为空\n");
@@ -1054,7 +1054,7 @@ static int run_drizzle_internal(PipelineFrame* frame,
         const char* dateobs_str = aio_frame_kv_get(frame, "header", "DATE-OBS");
         if (dateobs_str) meta.obs_time = dateobs_str;
 
-        // V19R4（K_CORR_DOMAIN）：源帧像素角尺度（deg→arcsec）写入
+        // （K_CORR_DOMAIN）：源帧像素角尺度（deg→arcsec）写入
         // DrizzleMeta 供 sink 写 provenance
         meta.fits_meta["src_pixel_scale_arcsec"] = std::to_string(
             std::fabs(img.wcs.cd[0]) * 3600.0);
@@ -1160,7 +1160,7 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
 // ============================================================================
 // hp_drizzle_run_hips - Phase1 Final Closure 正式末端:
 // Drizzle TileAccumulator -> AIO HiPS 直写 (无 HISS 中转)
-// hips_dir : HiPS 产品集根目录 (signal/support/snr 子产品)
+// hips_dir: HiPS 产品集根目录 (signal/support/snr 子产品)
 // legacy_hiss_path: 可选 legacy .hiss 路径 (nullptr=不写, 仅 validation 用)
 // ============================================================================
 HP_DRIZZLE_API int hp_drizzle_run_hips(PipelineFrame* frame,

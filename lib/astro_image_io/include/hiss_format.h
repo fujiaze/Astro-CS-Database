@@ -86,7 +86,7 @@ enum class OccupancyMode : uint8_t {
 // ============================================================================
 // 4. 子块类型 (已冻结: 02_FROZEN §13)
 //
-// R04-B17: 扩展子块命名空间
+// 扩展子块命名空间
 // 内置类型 (OCCUPANCY/SIGNAL/SUPPORT/SNR): ext_type_id = 0
 // 扩展类型 (EXTENSION): ext_type_id != 0, 标识扩展命名空间
 // Reader 遇到未知必需扩展 (EXTENSION + ext_type_id 未知 + REQUIRED) 必须拒绝
@@ -146,7 +146,7 @@ enum class ChecksumType : uint8_t {
 // 6. 子块目录项 (已冻结: 02_FROZEN §15)
 // 每个子块独立记录所有元数据
 //
-// R04-B17: 新增 ext_type_id 字段
+// 新增 ext_type_id 字段
 // - 内置类型 (OCCUPANCY/SIGNAL/SUPPORT/SNR): ext_type_id = 0
 // - 扩展类型 (EXTENSION): ext_type_id 标识扩展命名空间
 // - Reader 遇到未知必需扩展必须拒绝 (HISS_ERR_UNKNOWN_REQUIRED)
@@ -185,7 +185,7 @@ struct HissTile {
 // 8. SNR 控制点 (已冻结: 02_FROZEN §17, 00_COMMON_CONTRACTS §2.5)
 // 每点仅 local_ipix(uint32) + snr(float32)
 //
-// SNR 子块二进制布局 (R04-B18: 新增 block 级 estimator_id/sampling_scale):
+// SNR 子块二进制布局 (: 新增 block 级 estimator_id/sampling_scale):
 // [estimator_id: uint32 LE] — 估计器 ID (block 级)
 // [sampling_scale: float32 LE] — 采样尺度 (block 级)
 // [n_points: uint32 LE] — 控制点数 (= count, block 级)
@@ -211,11 +211,11 @@ struct HissSnrControlPointF64 {
 // 依据 02_FROZEN §17 和 00_COMMON_CONTRACTS §2.5, HISS 文件中保存
 // estimator_id + sampling_scale + n_points + points (每点 local_ipix + snr),
 // 不保存估计器状态量 (snr_phot/median_snr/idw_power)。
-// R04-B18: 新增 block 级 estimator_id/sampling_scale, count = points.size()
+// 新增 block 级 estimator_id/sampling_scale, count = points.size
 struct HissSnrBlock {
-    uint32_t estimator_id = 0;        // 估计器 ID (block 级, R04-B18)
-    float    sampling_scale = 0.0f;   // 采样尺度 (block 级, R04-B18)
-    std::vector<HissSnrControlPoint> points;  // 控制点列表 (count = points.size())
+    uint32_t estimator_id = 0;        // 估计器 ID (block 级,)
+    float    sampling_scale = 0.0f;   // 采样尺度 (block 级,)
+    std::vector<HissSnrControlPoint> points;  // 控制点列表 (count = points.size)
 };
 
 // FP64 SNR 块 (snr_dtype=1)
@@ -228,7 +228,7 @@ struct HissSnrBlockF64 {
 // ============================================================================
 // 8.1 HISS 错误码 (依据 00_COMMON_CONTRACTS §3.3)
 // Reader 在遇到未知必需子块时返回 HISS_ERR_UNKNOWN_REQUIRED
-// R04-B16: 新增 HISS_ERR_FORMAT_VIOLATION 用于严格格式校验失败
+// 新增 HISS_ERR_FORMAT_VIOLATION 用于严格格式校验失败
 // ============================================================================
 #define HISS_OK                     0
 #define HISS_ERR_INVALID_ARG       -1   // 非法参数
@@ -238,10 +238,10 @@ struct HissSnrBlockF64 {
 #define HISS_ERR_FORMAT            -5   // 格式错误
 #define HISS_ERR_UNSUPPORTED       -6   // 不支持的特性
 #define HISS_ERR_UNKNOWN_REQUIRED  -7   // 未知必需子块 (规范 §13 要求拒绝)
-#define HISS_ERR_FORMAT_VIOLATION  -8   // 严格格式校验失败 (R04-B16: 越界/重叠/重复/非法关系)
+#define HISS_ERR_FORMAT_VIOLATION  -8   // 严格格式校验失败 (: 越界/重叠/重复/非法关系)
 
 // ============================================================================
-// 8.2 HISS 容器签名与 Header TLV 常量 (R04-B14/B15)
+// 8.2 HISS 容器签名与 Header TLV 常量
 // 签名块: magic[8]="HISS0100" + header_length(u32 LE) + feature_flags(u32 LE) = 16B
 // Header: 一系列 TLV (tag:u16 LE + flags:u8 + length:u32 LE + value)
 // ============================================================================
@@ -264,7 +264,7 @@ struct HissSnrBlockF64 {
 #define HISS_TLV_FLAG_REQUIRED 0x01  // 必需 TLV (未知必需 → 拒绝)
 #define HISS_TLV_FLAG_OPTIONAL 0x00  // 可选 TLV (未知可选 → 跳过)
 
-// 磁盘子块描述符大小 (字节, R04-B17: 含 ext_type_id)
+// 磁盘子块描述符大小 (字节,: 含 ext_type_id)
 // type(1) + ext_type_id(2) + flags(2) + offset(8) + compressed_size(8) +
 // uncompressed_size(8) + codec_id(2) + transform_id(2) + checksum_type(1) + checksum(8) = 42
 #define HISS_SUBBLOCK_DESC_DISK_SIZE 42
@@ -333,7 +333,7 @@ struct HissMetadata {
 // 其中 S = sum_area / A_p, A_p = 目标 HEALPix 像素面积 (球面度)
 //
 // A_p 通过成员变量 pixel_area 传入 (调用方在 finalize_* 前设置)。
-// 默认值 1.0 仅为向后兼容, 调用方应正确设置为 hp.pixel_area()。
+// 默认值 1.0 仅为向后兼容, 调用方应正确设置为 hp.pixel_area。
 // ============================================================================
 
 struct DrizzleTileAccumulator {
@@ -348,7 +348,7 @@ struct DrizzleTileAccumulator {
     uint64_t parent_ipix = 0;
 
     // 目标 HEALPix 像素面积 A_p (球面度), 用于 support 归一化
-    // 调用方需在 finalize_support/validate_support 前设置为 hp.pixel_area()
+    // 调用方需在 finalize_support/validate_support 前设置为 hp.pixel_area
     // 默认 1.0 仅向后兼容 (旧调用未设置时退化为 sum_area 直接作为 S)
     double pixel_area = 1.0;
 

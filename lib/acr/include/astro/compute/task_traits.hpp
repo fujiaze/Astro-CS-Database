@@ -10,7 +10,7 @@
 // 6. mixed_device_safe=true 表示任务可在 CPU+GPU 混合执行（无设备间依赖）
 // 7. requires_atomic=true 表示需要原子冲突处理（histogram/scatter）
 // 8. halo_x/halo_y 用于 stencil_2d/convolution 的边界处理
-// 9. （08 ）：RouteMode/PartitionKind 定义混合路由与分块契约，
+// 9. （08）：RouteMode/PartitionKind 定义混合路由与分块契约，
 // 目标 OperationId 常量仅覆盖积分/Drizzle 类重负载像素算法
 //
 // 注意：OperationId 用 string_view，调用方必须保证字符串字面量生命周期；
@@ -77,7 +77,7 @@ struct NumericPolicy {
     bool allow_fast_math{false};      // 允许 fast-math（可能牺牲精度）
 };
 
-// ===== （08 ）：路由模式 =====
+// ===== （08）：路由模式 =====
 // 正常生产模式为 AutoMixed；CpuOnly/GpuOnly 只用于 correctness 对照、
 // Benchmark、故障隔离和明确回退。AutoMixed 允许按边际收益自然退化为
 // 仅一种设备，但不得使用固定 CPU/GPU 比例。
@@ -87,7 +87,7 @@ enum class RouteMode : std::uint8_t {
     GpuOnly   = 2,   // 调试/对照/资格测试
 };
 
-// ===== （08 ）：分块契约 =====
+// ===== （08）：分块契约 =====
 // 算法明确如何安全拆分：
 // IndependentOutputTiles：每个块拥有独立输出区域（积分优先）
 // PrivatePartialThenMerge：设备/块写私有部分结果，最终明确合并（Drizzle 类）

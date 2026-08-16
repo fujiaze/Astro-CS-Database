@@ -1,5 +1,5 @@
 // ============================================================================
-// concurrency_cache_test.cpp — V19R4 DRIZZLE_CACHE_THREAD_SAFETY
+// concurrency_cache_test.cpp — DRIZZLE_CACHE_THREAD_SAFETY
 //
 // 验证同进程并发 drizzleTiled run：
 // - 两个线程各自跑不同 nside/pixfrac 的 run（cache 不能跨 run 污染）；
@@ -8,12 +8,12 @@
 //
 // 编译（tests/）：
 // g++ -O2 -std=c++17 -fopenmp -I.. -I..\..\..\astro_image_io\include
-//   -I..\..\..\astro_image_io\src -DAIO_ENABLE_HEALPIX
-//   -o concurrency_cache_test.exe concurrency_cache_test.cpp
-//   ..\fits_reader.cpp ..\wcs_sip.cpp ..\poly_clip.cpp
-//   ..\spherical_overlap.cpp ..\drizzle_engine.cpp ..\healpix_core.cpp
-//   ..\snr_evaluator.cpp -static -L..\..\..\astro_image_io
-//   -l:astro_image_io.dll -lm
+// -I..\..\..\astro_image_io\src -DAIO_ENABLE_HEALPIX
+// -o concurrency_cache_test.exe concurrency_cache_test.cpp
+// ..\fits_reader.cpp ..\wcs_sip.cpp ..\poly_clip.cpp
+// ..\spherical_overlap.cpp ..\drizzle_engine.cpp ..\healpix_core.cpp
+// ..\snr_evaluator.cpp -static -L..\..\..\astro_image_io
+// -l:astro_image_io.dll -lm
 // ============================================================================
 #include "drizzle_engine.h"
 #include "fits_reader.h"
@@ -111,7 +111,7 @@ int main() {
     const RunSpec specB{256, 1.0, 40.0, -15.0, 60.0, 20260817};
 
     // 串行参考（同一 engine 复用 + 不同 nside/pixfrac 交替 → 旧裸 static
-    // generation 在此路径下也会产生污染，V19R4 atomic 后必须一致）
+    // generation 在此路径下也会产生污染， atomic 后必须一致）
     const RunResult refA = run_once(specA);
     const RunResult refB = run_once(specB);
     if (refA.touched == 0 || refB.touched == 0) {

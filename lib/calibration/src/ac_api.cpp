@@ -30,7 +30,7 @@ namespace ac {
     void calibrate(const float* light, int w, int h,
                    const float* dark, const float* flat, const float* bias,
                    float* out, int dark_opt, float k_init, float* actual_k);
-    // 双精度 ABI : double 版本校准, 精度关键路径不降级到 float32
+    // 双精度 ABI: double 版本校准, 精度关键路径不降级到 float32
     void calibrate_d(const double* light, int w, int h,
                      const double* dark, const double* flat, const double* bias,
                      double* out, int dark_opt, double k_init, double* actual_k);

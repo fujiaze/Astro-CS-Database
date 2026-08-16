@@ -414,7 +414,7 @@ void test_list_all() {
     TEST_CHECK(sorted, "list_all 返回结果应按字母顺序排序");
 
     // 验证具体内容 (list_all 返回 stem, 即去掉 .json 后缀的文件名)
-    // 对于 "frameA.fts.json", stem() 返回 "frameA.fts"
+    // 对于 "frameA.fts.json", stem 返回 "frameA.fts"
     bool hasA = false, hasB = false, hasC = false;
     for (const auto& n : list) {
         if (n == "frameA.fts") hasA = true;
@@ -495,7 +495,7 @@ void test_sanitize_frame_name() {
     std::vector<std::string> list = mgr.list_all();
     bool found_win = false, found_unix = false, found_special = false;
     for (const auto& n : list) {
-        // 文件名应不含 \ / : * ? 等特殊字符
+        // 文件名应不含 \ /: * ? 等特殊字符
         bool has_bad = false;
         for (char c : n) {
             if (c == '\\' || c == '/' || c == ':' || c == '*' ||

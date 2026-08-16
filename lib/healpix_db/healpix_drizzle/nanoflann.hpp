@@ -67,10 +67,10 @@
 #include <array>
 #include <atomic>
 #include <cassert>
-#include <cmath>  // for abs()
+#include <cmath>  // for abs
 #include <cstdint>
 #include <cstdio>  // snprintf
-#include <cstdlib>  // for abs()
+#include <cstdlib>  // for abs
 #include <functional>  // std::reference_wrapper
 #include <future>
 #include <istream>
@@ -1788,7 +1788,7 @@ class KDTreeBaseClass
  * bbox computation loop.
  *   // Return true if the BBOX was already computed by the class and returned
  * in "bb" so it can be avoided to redo it again.
- *   // Look at bb.size() to find out the expected dimensionality (e.g. 2 or 3
+ *   // Look at bb.size to find out the expected dimensionality (e.g. 2 or 3
  * for point clouds) template <class BBOX> bool kdtree_get_bbox(BBOX &bb) const
  *   {
  *      bb[0].low = ...; bb[0].high = ...;  // 0th dimension limits
@@ -2214,7 +2214,7 @@ class KDTreeSingleIndexAdaptor
  * bbox computation loop.
  *   // Return true if the BBOX was already computed by the class and returned
  * in "bb" so it can be avoided to redo it again.
- *   // Look at bb.size() to find out the expected dimensionality (e.g. 2 or 3
+ *   // Look at bb.size to find out the expected dimensionality (e.g. 2 or 3
  * for point clouds) template <class BBOX> bool kdtree_get_bbox(BBOX &bb) const
  *   {
  *      bb[0].low = ...; bb[0].high = ...;  // 0th dimension limits
@@ -2802,7 +2802,7 @@ class KDTreeSingleIndexIncrementalAdaptor
         Size      invalid_count = 0;  // !< number of tombstoned nodes in subtree
         BoundingBox box;  // !< AABB of all points (live+dead) in this subtree
         // ! Cache of this node's own point coordinates, kept in-node to avoid the
-        // ! dataset_get() indirection on the hot query / insert / box paths. Only
+        // ! dataset_get indirection on the hot query / insert / box paths. Only
         // ! populated for a compile-time fixed DIM (`kCacheCoords`); for DIM=-1 it
         // ! stays an empty vector and the code falls back to the dataset.
         typename array_or_vector<DIM, ElementType>::type pcoord;
@@ -2829,7 +2829,7 @@ class KDTreeSingleIndexIncrementalAdaptor
     float alphaDel_ = 0.5f;
     // /Subtrees smaller than this are never rebuilt for *balance* reasons.
     static constexpr Size kMinBalanceRebuild = 4;
-    // /addPoints() bulk-builds instead of inserting point-by-point when the
+    // /addPoints bulk-builds instead of inserting point-by-point when the
     // /batch is at least this fraction of the current live count (see addPoints).
     static constexpr double kBulkInsertFraction = 0.5;
 
@@ -3332,7 +3332,7 @@ class KDTreeSingleIndexIncrementalAdaptor
 
         // On the unwind, remember the *highest* unbalanced node seen on the
         // path (ancestors are visited after descendants, so the last write
-        // wins). insertOne() rebuilds it once, avoiding a second descent.
+        // wins). insertOne rebuilds it once, avoiding a second descent.
         if (isBalanceScapegoat(node)) pendingRebuild_ = node;
         return node;
     }
@@ -3601,7 +3601,7 @@ class KDTreeSingleIndexIncrementalAdaptor
 #if defined(NANOFLANN_INCREMENTAL_INNODE_DISTANCE)
             // Opt-in: compute the node distance from the in-node coordinate cache
             // as a sum of per-axis accum_dist contributions. This avoids the
-            // dataset_get() indirection and is ~12% faster on KNN, but is only
+            // dataset_get indirection and is ~12% faster on KNN, but is only
             // valid for *additive* (axis-decomposable) metrics — L1, L2,
             // L2_Simple. Do NOT enable it for SO2/SO3.
             DistanceType d = DistanceType();
@@ -4072,7 +4072,7 @@ struct KDTreeEigenMatrixAdaptor
     // Optional bounding-box computation: return false to default to a standard
     // bbox computation loop.
     // Return true if the BBOX was already computed by the class and returned
-    // in "bb" so it can be avoided to redo it again. Look at bb.size() to
+    // in "bb" so it can be avoided to redo it again. Look at bb.size to
     // find out the expected dimensionality (e.g. 2 or 3 for point clouds)
     template <class BBOX>
     inline bool kdtree_get_bbox(BBOX& /*bb*/) const

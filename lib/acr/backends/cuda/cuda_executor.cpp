@@ -1,6 +1,6 @@
 // lib/acr/backends/cuda/cuda_executor.cpp — CudaExecutor 实现（F-fix 8）
 //
-// 真实 GPU kernel 执行：submit() 通过 cuda_parallel_for 启动 axpy kernel，
+// 真实 GPU kernel 执行：submit 通过 cuda_parallel_for 启动 axpy kernel，
 // 证明 GPU 真实完成工作块（非占位回退）。
 #ifdef ACR_BUILD_CUDA
 
@@ -98,7 +98,7 @@ scheduler::SubmitResult CudaExecutor::submit(const scheduler::WorkToken& token,
     auto start = std::chrono::high_resolution_clock::now();
 
     // 真实 GPU kernel 执行：axpy(y, x, a, n, stream)
-    // y = a * x + y，用 token.size() 作为元素数
+    // y = a * x + y，用 token.size 作为元素数
     // 这里执行真实 <<<>>> kernel，证明 GPU 真实参与计算（非占位回退）
     std::size_t n = token.size();
     if (n > d_buffer_.count()) {

@@ -292,7 +292,7 @@ static void test_04_sparse_roundtrip(int id) {
     const char* path = "test_sparse_roundtrip.hiss";
 
     HissGridSpec grid;
-    // R04-B12: Writer 按实际编码大小自动选择 (忽略传入的 occ_mode)
+    // Writer 按实际编码大小自动选择 (忽略传入的 occ_mode)
     // BITMAP = ceil(n_leaf/8), SPARSE_LIST = n_valid*4
     // 需 SPARSE_LIST < BITMAP: n_valid*4 < ceil(n_leaf/8)
     // NSIDE=1024 → depth=6, tile_nside=16, n_leaf_per_tile=4^6=4096
@@ -376,7 +376,7 @@ static void test_05_auto_occupancy(int id) {
     TEST_CASE("occupancy 自动选择验证 (步骤11)", id);
     using namespace hiss;
 
-    // 90% 占用 → BITMAP (R04-B12: FULL 仅当 100% 覆盖)
+    // 90% 占用 → BITMAP (: FULL 仅当 100% 覆盖)
     {
         uint32_t n_leaf = 100;
         uint32_t n_valid = 90;  // 90% → 非 FULL
@@ -408,7 +408,7 @@ static void test_05_auto_occupancy(int id) {
         r.close(); // reader 关闭文件
         // 需要手动清理 reader 资源后再删除文件
         std::filesystem::remove(path);
-        // R04-B12: 90% 不选 FULL (需 100%), BITMAP(13B) < SPARSE_LIST(360B) → BITMAP
+        // 90% 不选 FULL (需 100%), BITMAP(13B) < SPARSE_LIST(360B) → BITMAP
         ASSERT_TRUE(mode == OccupancyMode::BITMAP, "90% 占用 → BITMAP (FULL 仅当 100%)");
     }
 
@@ -568,7 +568,7 @@ static void test_07_snr_roundtrip(int id) {
     }
 
     // SNR 控制点 (local_ipix must be < 16)
-    // R04-B18: Writer 按升序排序并去重, 读取后顺序为按 local_ipix 升序
+    // Writer 按升序排序并去重, 读取后顺序为按 local_ipix 升序
     HissSnrBlock snr;
     snr.points.push_back({5, 12.5f});
     snr.points.push_back({10, 25.0f});

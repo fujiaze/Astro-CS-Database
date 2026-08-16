@@ -112,7 +112,7 @@ inline double rcr_n_correct(std::size_t n) {
     return std::pow(1.2591, std::pow((double)n, 0.2052));
 }
 
-// ===== ：完整 sequential RCR =====
+// =====：完整 sequential RCR =====
 // 语义 = Maples et al. 2018（arXiv:1807.05276）核心：按
 // robust → precise 顺序执行多段 iterative Chauvenet 拒绝，等价官方
 // rcr 2.4.7（nickk124/robust-outlier-rejection commit a8a29a6）
@@ -1003,7 +1003,7 @@ private:
     std::size_t n_ = 0;
 };
 
-// 中位数（scratch 内 nth_element；返回后顺序不定，与旧 median() 语义一致）
+// 中位数（scratch 内 nth_element；返回后顺序不定，与旧 median 语义一致）
 double scratch_median(double* v, std::size_t n) {
     if (n == 0) return 0.0;
     const std::size_t mid = n / 2;
@@ -1222,7 +1222,7 @@ int p2_collect_candidate_stack(const P2EligibilityGatherInput* in,
         }
         if (ok) {
             out->values[cnt] = v;
-            // V19R4：显式保留原始 slot 映射（eligible → original）
+            //显式保留原始 slot 映射（eligible → original）
             if (out->source_indices != nullptr)
                 out->source_indices[cnt] = s;
             if (in->weights != nullptr && out->weights != nullptr)

@@ -20,7 +20,7 @@
 // - Gnomonic 正向投影 + FOV 内过滤
 //
 // 接口: 内部 C++ 函数, 无 ctypes 边界, 无 JSON 序列化
-// 句柄: 通过 get_gaia_client_handle() / get_star_detector_handle() 获取
+// 句柄: 通过 get_gaia_client_handle / get_star_detector_handle 获取
 // ============================================================================
 
 #include "ipv_types.h"

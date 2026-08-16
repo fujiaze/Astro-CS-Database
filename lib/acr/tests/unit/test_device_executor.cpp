@@ -4,7 +4,7 @@
 // - CpuExecutor 通过 KernelRegistry CPU launcher 真实执行 KernelInvocation；
 // - SubmitHandle 记录真实 device/items/bytes/duration；
 // - 未注册 OperationId → Rejected（调用方回退并如实报告，不伪装 GPU）；
-// - supports() 与注册表一致；ExecutorRegistry 管理可用 executor。
+// - supports 与注册表一致；ExecutorRegistry 管理可用 executor。
 #include <gtest/gtest.h>
 
 #include "device_executor.hpp"

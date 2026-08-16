@@ -5,7 +5,7 @@
 // 1. 公共头不暴露 hwloc / cpu_features 类型（PIMPL + 自有 IsaLevel mask）
 // 2. 无 hwloc 时降级返回 {"status":"unavailable"}，不抛异常（ADR-009 降级策略）
 // 3. cpu_features 缺失时用 __builtin_cpu_supports 降级（仅 GCC/Clang）
-// 4. has_isa() 安全门禁：加载 ISA 插件前必须校验，不支持永不执行
+// 4. has_isa 安全门禁：加载 ISA 插件前必须校验，不支持永不执行
 // 5. AVX-512 子集以独立 bit 表达，禁止合并为单一 "AVX-512" 标志（ADR-004）
 // 6. baseline 路径（无任何扩展）永远可用，不依赖任何 ISA 检测
 #pragma once
@@ -54,7 +54,7 @@ public:
     // 安全门禁：查询是否支持某个 ISA level（单个 bit）。
     // 传入组合 mask 时，仅当全部 bit 都支持才返回 true。
     bool has(IsaLevel level) const noexcept;
-    // has() 的语义别名，供 ISA 插件加载入口调用（ADR-004 门禁边界）。
+    // has 的语义别名，供 ISA 插件加载入口调用（ADR-004 门禁边界）。
     bool has_isa(IsaLevel level) const noexcept { return has(level); }
 
     std::uint64_t mask() const noexcept { return mask_; }
@@ -66,7 +66,7 @@ private:
 
 // ===== HwlocTopology：hwloc 拓扑封装（PIMPL）=====
 // 枚举 package/core/PU/cache/NUMA/PCI，提供 JSON 序列化。
-// 无 hwloc 时 available()=false，to_json() 返回 {"status":"unavailable"}。
+// 无 hwloc 时 available=false，to_json 返回 {"status":"unavailable"}。
 class HwlocTopology {
 public:
     HwlocTopology();
@@ -84,11 +84,11 @@ private:
 };
 
 // ===== 自由函数：设备指纹 =====
-// detect_topology()：hwloc JSON（CPU vendor/model、core 列表、NUMA、cache 层级、PCI）。
+// detect_topology：hwloc JSON（CPU vendor/model、core 列表、NUMA、cache 层级、PCI）。
 // 无 hwloc 返回 {"status":"unavailable"}，不抛。
 std::string detect_topology();
 
-// detect_isa_caps()：CPU ISA 能力 mask JSON（SSE/AVX/AVX2/FMA/AVX-512 子集）。
+// detect_isa_caps：CPU ISA 能力 mask JSON（SSE/AVX/AVX2/FMA/AVX-512 子集）。
 std::string detect_isa_caps();
 
 // GPU 描述回调（Phase D 注册，Phase C 仅声明接口）。
@@ -101,7 +101,7 @@ void register_gpu_report_callback(GpuReportCallback cb);
 // 重置 GPU 回调为 nullptr（仅供单元测试隔离全局状态，正式运行不得调用）。
 void reset_gpu_report_callback_for_testing();
 
-// generate_hardware_report()：合并 hwloc + cpu_features + GPU 回调为完整 hardware.json。
+// generate_hardware_report：合并 hwloc + cpu_features + GPU 回调为完整 hardware.json。
 // schema：CPU vendor/model/stepping/ISA mask/cache/NUMA/GPU UUID/PCI/driver/compiler/build。
 std::string generate_hardware_report();
 

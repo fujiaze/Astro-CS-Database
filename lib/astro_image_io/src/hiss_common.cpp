@@ -118,7 +118,7 @@ void DrizzleTileAccumulator::finalize_signal_f64(std::vector<double>& signal) co
 // 旧错误: S = sum_area (未归一化, 假设 sum_area 已经在 [0,1])
 // 新正确: S = sum_area / A_p (A_p = pixel_area, 目标 HEALPix 像素面积, 球面度)
 //
-// pixel_area 默认 1.0 (向后兼容); 调用方应设置为 hp.pixel_area()
+// pixel_area 默认 1.0 (向后兼容); 调用方应设置为 hp.pixel_area
 void DrizzleTileAccumulator::finalize_support(std::vector<uint8_t>& support) const {
     support.resize(pixels.size());
     // A_p 必须为正, 否则视为 1.0 (避免除零)

@@ -8,7 +8,7 @@
 // 4. iterative_reproject (固定索引迭代重投影)
 // 5. extract_wcs_sip (从 TRANS 提取 WCS + SIP)
 //
-// 关键约定 :
+// 关键约定:
 // - U (图像侧): 像素坐标, 原点图像中心, Y 轴向上
 // - W (星表侧): 角秒坐标, 原点投影中心 (gnomonic xi/eta)
 // - TRANS: U(像素) -> W(角秒), 线性项单位 = 角秒/像素, 常数项单位 = 角秒
@@ -314,7 +314,7 @@ IterativeReprojectResult iterative_reproject(
         trans_cur = refit.trans;
         inliers_cur = valid_inliers;
 
-        // 5. 收敛判定 (TRANS 常数项 < 0.01"; : x00/y00 已是角秒, 不乘 s0)
+        // 5. 收敛判定 (TRANS 常数项 < 0.01";: x00/y00 已是角秒, 不乘 s0)
         conv = std::sqrt(
             trans_cur.x00 * trans_cur.x00 +
             trans_cur.y00 * trans_cur.y00);
@@ -676,7 +676,7 @@ void IPVSolver::solve(
                       rep_result.n_matched, rep_result.trans.order);
     }
 
-    // 8.5 : 鲁棒扩增精化 (网格采样 + IRLS + CD 阻尼)
+    // 8.5: 鲁棒扩增精化 (网格采样 + IRLS + CD 阻尼)
     // 在 hi_order_rematch 之后、extract_wcs_sip 之前
     // 失败时回退到 hi_order_rematch 结果, 不破坏 99.87% 成功率
     bool robust_refine_applied = false;
@@ -762,7 +762,7 @@ void IPVSolver::solve(
 // ===========================================================================
 // solve_from_memory: 从内存像素数据求解 (不读文件)
 //
-// 与 solve() 算法完全一致, 区别:
+// 与 solve 算法完全一致, 区别:
 // - 直接接受 float* pixels 参数, 跳过文件读取
 // - 调用 ipv_select_from_memory 而非 ipv_select
 // ===========================================================================
@@ -1042,7 +1042,7 @@ void IPVSolver::solve_from_memory(
                       rep_result.n_matched, rep_result.trans.order);
     }
 
-    // 8.5 : 鲁棒扩增精化
+    // 8.5: 鲁棒扩增精化
     bool robust_refine_applied = false;
     if (!selection.U_full.empty() && rep_result.trans.order > 1) {
         auto t_robust_start = std::chrono::steady_clock::now();
@@ -1312,7 +1312,7 @@ void IPVSolver::solve_post_select(
                       rep_result.n_matched, rep_result.trans.order);
     }
 
-    // 8. : 鲁棒扩增精化
+    // 8.: 鲁棒扩增精化
     bool robust_refine_applied = false;
     if (!selection.U_full.empty() && rep_result.trans.order > 1) {
         auto t_robust_start = std::chrono::steady_clock::now();
@@ -1660,7 +1660,7 @@ int IPVSolver::get_last_inliers(double* out_buffer, int max_count) const {
         // 2. 预测 W (角秒): apply_trans(trans, U) -> (xi_pred_asec, eta_pred_asec)
         // 3. 残差 (像素) = (实际 - 预测) / s0
         //
-        // 坐标系约定 :
+        // 坐标系约定:
         // U = 像素坐标, 图像中心原点, Y 轴向上
         // W = 角秒坐标, 投影中心原点 (gnomonic xi/eta)
         // TRANS: U -> W

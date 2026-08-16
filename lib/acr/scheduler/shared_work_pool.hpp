@@ -10,7 +10,7 @@
 // 5. 正确完成判据：
 // cursor >= end
 // && inflight == 0
-// && retry_queue.empty()
+// && retry_queue.empty
 // && failed_terminal == 0
 // && completed_items == end - begin
 // 6. 失败回收：retryable 失败进入 retry queue，可由任意 executor 重新领取；

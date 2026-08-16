@@ -54,7 +54,7 @@ int apply_photometry(const float* light, int w, int h, double photscal, float* o
     // ---- 应用测光比例: I_photo = k_photo * I_cal ----
     // 使用 double 精度计算, 避免 photscal 极大/极小时 float 乘法精度损失
     // NaN/Inf 透传: NaN * k = NaN, Inf * k = Inf (k>0) / -Inf (k<0) / NaN (k=0)
-    // 下游 Drizzle 会用 std::isfinite() 跳过非有限像素, 行为正确
+    // 下游 Drizzle 会用 std::isfinite 跳过非有限像素, 行为正确
     for (size_t i = 0; i < n; i++) {
         out[i] = (float)((double)light[i] * photscal);
     }

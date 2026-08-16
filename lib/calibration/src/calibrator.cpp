@@ -59,7 +59,7 @@ float median_inplace(std::vector<float>& v) {
 } // namespace
 
 // ---------------------------- MAD ----------------------------
-// 计算中位绝对偏差 MAD = median( |v - median(v)| )。
+// 计算中位绝对偏差 MAD = median( |v - median(v)|)。
 // 对应高斯噪声 sigma = 1.4826 * MAD（由调用方按需换算）。
 float compute_mad(const float* data, int n) {
     if (!data || n <= 0) return 0.0f;

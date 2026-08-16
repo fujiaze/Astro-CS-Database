@@ -1232,7 +1232,7 @@ int main(int argc, char** argv) {
                     t, 4, true, openmp_reuse4.total_median_ms,
                     reuse_refs[3], out, pixels, extra);
         }
-    }  // for (ci : cases)
+    }  // for (ci: cases)
     // =====================================================================
     // Route Replay 报告（08 计划 H：独立 Final 点已在标定内真实执行）
     // =====================================================================

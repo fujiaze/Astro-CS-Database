@@ -4,8 +4,8 @@
 // 实现要点：
 // - cudaError → StatusCode 映射（DeviceLost / OutOfMemory / KernelFailed）
 // - CudaBackend singleton + std::call_once 幂等初始化
-// - 无设备 / 驱动错误时降级：available()=false，不抛异常，调用者回退 CPU
-// - initialize() 注册 GPU 报告回调到 topology（register_gpu_report_callback）
+// - 无设备 / 驱动错误时降级：available=false，不抛异常，调用者回退 CPU
+// - initialize 注册 GPU 报告回调到 topology（register_gpu_report_callback）
 // - axpy 通过 cuda_parallel_for 模板启动（functor 转发 kernel）
 // - GPU UUID 按 NVIDIA 工具规范格式化（GPU-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx）
 #ifdef ACR_BUILD_CUDA

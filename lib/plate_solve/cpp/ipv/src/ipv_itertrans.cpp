@@ -598,7 +598,7 @@ static IterTransResult iter_trans_inner(
     int nr = (int)working.size();
     trans.nr = nr;
 
-    // 计算最终残差 (用最终 TRANS 重新计算, : apply_trans(U) - W)
+    // 计算最终残差 (用最终 TRANS 重新计算,: apply_trans(U) - W)
     std::vector<double> final_dist2(nr);
     std::vector<double> final_dx(nr), final_dy(nr);
     double sum_d2 = 0.0;

@@ -2,7 +2,7 @@
 // Phase C3.2 + C2.3: 独立参考路径 (蒙特卡洛) + 跨经度 0/360 测试
 //
 // 目的:
-// 现有 test_spherical_overlap.cpp 用 compute_overlap_area() 自证正确
+// 现有 test_spherical_overlap.cpp 用 compute_overlap_area 自证正确
 // (Σa_jp = A_drop), 存在自证循环。本文件实现完全独立的蒙特卡洛参考
 // 路径, 并补充跨经度 0/360、单像素通量闭合、support 面积等测试。
 //

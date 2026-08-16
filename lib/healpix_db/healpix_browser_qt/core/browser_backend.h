@@ -72,7 +72,7 @@ struct HissHeader {
 struct HissTileData {
     uint64_t parent_ipix = 0;        // Tile 父像素 ipix
     float* signal = nullptr;         // n_leaf_per_tile 个 float32 (malloc, FP32 模式有效)
-    double* signal_f64 = nullptr;    // n_leaf_per_tile 个 float64 (malloc, FP64 模式有效, )
+    double* signal_f64 = nullptr;    // n_leaf_per_tile 个 float64 (malloc, FP64 模式有效,)
     uint8_t* support = nullptr;      // n_leaf_per_tile 个 uint8 (malloc)
     uint32_t n_signal = 0;           // signal/signal_f64/support 数组长度
     uint8_t* snr_data = nullptr;     // n_snr_points * 8 字节 (local_ipix(u32) + snr(f32))
@@ -134,7 +134,7 @@ public:
     }
 
     // ---- 全量数据 (仅 .hiss 模式, 单帧切面投影用) ----
-    // 返回的 LeafData 由本对象持有, close_file() 时释放, 调用者不应释放
+    // 返回的 LeafData 由本对象持有, close_file 时释放, 调用者不应释放
     LeafData get_all_data();
 
     // ---- 数据 bbox (用于初始视角设置) ----

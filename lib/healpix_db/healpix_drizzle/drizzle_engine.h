@@ -35,7 +35,7 @@ struct DrizzleConfig {
     uint8_t precision_mode = 0;
     // 线程数 (0=自动 omp_get_max_threads; 禁止硬编码 16)
     int threads = 0;
-    // Phase1 Final Closure : Tile 分组深度 (0=auto=compute_tile_depth(nside))
+    // Phase1 Final Closure: Tile 分组深度 (0=auto=compute_tile_depth(nside))
     // HiPS 直写要求 depth=9 (512x512 叶 tile), 由 sink 调用方显式设置
     uint32_t tile_depth = 0;
 };

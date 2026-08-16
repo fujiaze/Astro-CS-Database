@@ -869,7 +869,7 @@ int main(int argc, char** argv) {
 
         // CPU reference 路径：逐 chunk（micro-chunk）处理
         std::vector<float> t_ivar(512 * 512, 1.0f);        // 读缓冲
-        // V19R4（PHASE2_IVAR_WIRING）：逐帧逐像素 ivar 缓冲（与 cal/supv
+        // （PHASE2_IVAR_WIRING）：逐帧逐像素 ivar 缓冲（与 cal/supv
         // 同布局 depth×chunk_pixels）；ivar_valid 按原 frame slot 记录。
         std::vector<float> ivarv((std::size_t)depth * chunk_pixels, 1.0f);
         std::vector<std::uint8_t> ivar_valid(depth, 0);
@@ -931,7 +931,7 @@ int main(int argc, char** argv) {
                 gout.values = stack.data();
                 gout.support = support_v.data();
                 gout.frame_ids = fid_stack.data();
-                // V19R4：compact eligible → 原始 frame slot 稳定映射
+                //compact eligible → 原始 frame slot 稳定映射
                 std::vector<std::uint32_t> src_idx(depth);
                 gout.source_indices = src_idx.data();
                 std::uint32_t n_valid = 0;
@@ -966,7 +966,7 @@ int main(int argc, char** argv) {
                     }
                 } else if (cfg.weight_mode == 0) {
                     for (std::uint32_t s = 0; s < n_valid; ++s) {
-                        // V19R4：统一经 source_indices 取原 slot
+                        //统一经 source_indices 取原 slot
                         const std::uint32_t orig = src_idx[s];
                         const std::uint64_t fid =
                             frame_id_cache[frames[orig]];

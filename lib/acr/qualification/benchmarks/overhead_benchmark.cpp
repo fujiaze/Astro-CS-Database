@@ -28,7 +28,7 @@ namespace astro::compute::qualification::bench {
 // ===== 1. parallel_for 提交开销 =====
 // 用 KernelId::Custom 和最小 Range1D{0,1}（1 个元素，空 lambda）
 // 测量 parallel_for 的固定提交+等待开销（调度 + 任务构造 + 同步）
-// 注意：包含 ev.wait()，测量的是 submit + complete 全程开销（调用方视角的真实开销）
+// 注意：包含 ev.wait，测量的是 submit + complete 全程开销（调用方视角的真实开销）
 static void overhead_submit(::benchmark::State& state) {
     // 预热（触发 runtime lazy init，不计入测量）
     {

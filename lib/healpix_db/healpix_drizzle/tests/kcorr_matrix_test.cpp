@@ -1,10 +1,10 @@
 // ============================================================================
-// kcorr_matrix_test.cpp — V19R4 K_CORR_DOMAIN
+// kcorr_matrix_test.cpp — K_CORR_DOMAIN
 //
 // 测 k_corr 对 Drizzle 参数的适用域：
-//   pixfrac ∈ {0.5, 0.8, 1.0}
-//   input/output sampling ratio 2 档（像素角尺度 300"/px 与 600"/px）
-//   patch retained N 至少 2 档（输出 patch 尺度）
+// pixfrac ∈ {0.5, 0.8, 1.0}
+// input/output sampling ratio 2 档（像素角尺度 300"/px 与 600"/px）
+// patch retained N 至少 2 档（输出 patch 尺度）
 // 结论落入选项 A（差异可忽略/共同因子在 per-control normalization 消去，
 // 并强制 Phase2 group 的 Drizzle 参数一致）或选项 B（k_corr 作
 // per-frame quantity）——证据写入 reports/v19r3/evidence/science/

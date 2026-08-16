@@ -72,7 +72,7 @@ struct Stage1Config {
 
     struct Output {
         std::string hiss;                    // deprecated: 仅 legacy validation 用 (可空)
-        std::string hips;                    // Phase1 : HiPS 产品集目录 (空=由 hiss 派生)
+        std::string hips;                    // Phase1: HiPS 产品集目录 (空=由 hiss 派生)
         std::string log;                     // 必填, 非空
         std::string diagnostics_dir;         // 必填, 非空
         bool overwrite = false;

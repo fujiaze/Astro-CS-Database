@@ -70,7 +70,7 @@ __global__ void acr_conv3x3_kernel(float* y, const float* x,
     y[idx] = acc;  // chunk-local 输出槽位
 }
 
-// ===== ：目标合成内核 =====
+// =====：目标合成内核 =====
 // Dense pixel accumulate：FP32 输入 + FP64 累加器
 __global__ void acr_dense_accumulate_fp64acc_kernel(float* y, const float* x,
                                                      size_t begin, size_t n) {

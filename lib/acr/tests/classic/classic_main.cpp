@@ -1,6 +1,6 @@
 // lib/acr/tests/classic/classic_main.cpp — classic 测试套件入口
 // 显式 runtime_init/shutdown（避免依赖 gtest_main，便于扩展）
-// 引用 run_eXX() 强制链接器从静态库中提取 TEST() 注册的 object 文件
+// 引用 run_eXX 强制链接器从静态库中提取 TEST 注册的 object 文件
 #include <gtest/gtest.h>
 
 #include <vector>
@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     astro::compute::runtime_init();
 
-    // 引用 run_eXX 函数指针，强制链接器提取 object 文件（含 TEST() 静态注册器）
+    // 引用 run_eXX 函数指针，强制链接器提取 object 文件（含 TEST 静态注册器）
     // 不实际调用，仅防止 dead-stripping
     [[maybe_unused]] volatile auto p01 = &run_e01;
     [[maybe_unused]] volatile auto p02 = &run_e02;

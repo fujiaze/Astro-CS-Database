@@ -25,7 +25,7 @@ class CudaBuffer {
 public:
     CudaBuffer() = default;
 
-    // 分配 count 个元素（cudaMalloc）。分配失败时 valid()=false，不抛异常。
+    // 分配 count 个元素（cudaMalloc）。分配失败时 valid=false，不抛异常。
     explicit CudaBuffer(std::size_t count) : count_(count) {
         if (count > 0) {
             cudaError_t err = cudaMalloc(&data_, count * sizeof(T));

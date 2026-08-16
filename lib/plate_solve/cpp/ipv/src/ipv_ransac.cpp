@@ -34,7 +34,7 @@
 namespace ipv {
 
 // ---------------------------------------------------------------------------
-// 模块级日志器 (默认输出到 stderr; 外部可调用 init_ransac_logger() 写文件)
+// 模块级日志器 (默认输出到 stderr; 外部可调用 init_ransac_logger 写文件)
 // ---------------------------------------------------------------------------
 static Logger g_ransac_logger;
 
@@ -987,7 +987,7 @@ struct IterTransResult {
 // l) 若 is_ok: 成功退出 (在循环顶部, 而非 sigma/nb 检查处)
 // 3. 达到最大迭代: 保留为候选 (IPV 容错, 原实现视为成功)
 //
-// 关键修复 :
+// 关键修复:
 // - 移除 initial_lt 参数 (从不用 2 对解析解)
 // - HALT_SIGMA / nb==0 设 is_ok 标志, 不立即返回
 // - find_percentile 用四舍五入 (floor(num*perc+0.5))

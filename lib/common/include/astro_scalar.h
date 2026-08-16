@@ -7,8 +7,8 @@
 // 同时保留对历史 FP32 (IEEE 754 binary32) 实现的兼容能力。
 // 本头文件提供:
 // 1) AstroScalarType 枚举: 运行时标识当前精度
-// 2) AstroScalarTraits : 编译时由枚举值映射到具体 C++ 类型 (float/double)
-// 3) 运行时辅助函数 : 类型名/字节数查询, 用于日志与序列化
+// 2) AstroScalarTraits: 编译时由枚举值映射到具体 C++ 类型 (float/double)
+// 3) 运行时辅助函数: 类型名/字节数查询, 用于日志与序列化
 // 4) ASTRO_SCALAR_DISPATCH 宏: 运行时 dtype -> 编译时模板实例的分发桥
 // 所有定义均为 header-only, 无外部依赖, 兼容 C++17。
 // ============================================================================
@@ -33,10 +33,10 @@ enum class AstroScalarType : uint8_t {
 // ============================================================================
 // AstroScalarTraits - 编译时类型映射
 // 给定 AstroScalarType 常量, 提供对应的:
-// - type : C++ 标量类型 (float / double)
-// - name : 字符串名称 (用于日志/序列化)
-// - size : 字节数 (sizeof(type))
-// - value : 反向回指枚举值
+// - type: C++ 标量类型 (float / double)
+// - name: 字符串名称 (用于日志/序列化)
+// - size: 字节数 (sizeof(type))
+// - value: 反向回指枚举值
 // 用法:
 // using Scalar = typename AstroScalarTraits<AstroScalarType::FP64>::type;
 // static_assert(std::is_same_v<Scalar, double>);
