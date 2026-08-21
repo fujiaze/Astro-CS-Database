@@ -16,11 +16,11 @@ patch variance 空间场 + 全局兜底 + ivar。
 
 ## Postconditions
 
-σ_bg=1.4826022185·MAD；5σ 裁剪 ≤2 轮；ivar=1/var。
+σ_bg=1.4826022185·MAD（`noise_model.cpp:robust_sigma=1.482602218505602·median(|x−median|)`）；5σ 裁剪 ≤2 轮；ivar=1/var。
 
 ## Invariants
 
-- 与星亮度解耦（掩膜半径 ∝ sqrt(A/A_median) clamp）；
+- 与星亮度解耦（fixed conservative 统一半径 `rmax=max(1,r0)×max(1,scale)`，不按振幅/星亮度缩放，已冻结；见 `docs/science/NOISE_MODEL.md` 假设）；
 - 平面场 var=a+b·x+c·y 平滑。
 
 ## 复杂度
