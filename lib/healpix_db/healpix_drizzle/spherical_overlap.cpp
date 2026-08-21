@@ -1,5 +1,7 @@
 // ============================================================================
 // 球面 HEALPix 重叠计算模块实现 (WP-D 步骤3-4)
+// 文档锚点: docs/algorithms/DRIZZLE_GEOMETRY.md §V19R3 bounded target-ipix geometry cache
+// ALG-DRZ-GEOM-CACHE-001: TargetGeomCache LRU 8192 线程私有 run generation 切换清空
 //
 // 替换 drizzle_engine.cpp 中的局部切平面近似 + 人工 HEALPix 菱形近似,
 // 实现真实球面多边形裁剪与球面面积计算.
