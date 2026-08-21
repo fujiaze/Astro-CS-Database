@@ -102,3 +102,12 @@
 - **风险评估**: 高风险（0/16 Gate PASS 阻塞 G12 Gate），但 P12-002 修复有效（空间匹配层面），问题集中在光谱合成/滤光片加载/路径处理/校准文件 4 个独立维度，可并行修复。
 - **后续**: P12-005 修复 SNR 模型与 HISS 持久化（含本任务发现的 4 类问题修复）。
 - **证据**: `evidence/P12-004/TASK_REPORT.md` + `evidence/P12-004/TEST_REPORT.md` + `evidence/P12-004/EVIDENCE_INDEX.md` + `evidence/P12-004/REVIEW_REPORT.md` + `evidence/P12-004/reports/PHOTOMETRY_MATRIX.csv` + `evidence/P12-004/reports/photometric_diag_summary.json` + `evidence/P12-004/reports/failure_classification.json` + `evidence/P12-004/scripts/run_photometric_matrix.py` + `evidence/P12-004/raw_logs/`
+
+## ADR-QA-V19R8 — 2026-08-22
+- **Decision**: 采用 Wiki→代码 六阶段闭环 S0→S1→S2→S3→S4→S5→S6（Wiki与权威链加固→科学文档精确化→算法核心文档精确化→项目/工程/代码开发文档整理→精细化代码审查→硬性问题修改·测试·Review闭环→接口与命名质量优化），冻结语义不改，不冲 BASS 全量，不合 ACR dormant，产出约 100 commits 后签 `PRE_RELEASE_ENGINEERING_FOUNDATION=V19R8`。
+- **Spec**: `工程控制/docs/30_WIKI_TO_CODE_QUALITY_V19R8_SPEC.md` (V19R8-DRAFT 2026-08-22) | Tasks `工程控制/tasks/QA-V19R8-QUALITY-OPTIMIZATION.md` | Checklist `工程控制/checklists/QA_V19R8_QUALITY.md`
+- **Commit 预算**: S0 4c + S1 10c + S2 12c + S3 12c + S4 10c + S5 28c + S6 14c = 90c + 10c 缓冲 = 100c；跨层串行、同层并行 ≤4、每 10 commits 一 checkpoint、每阶段 Gate 全绿方可进下一阶段
+- **权威链**: Wiki(核心约束)→Science L1(11份)→Algorithm L2(12份)→Architecture L3(12+2)+Contracts→Standards L4(13项)→Modules L5(13份)→Source(lib/~713文件)→Test→Diagnostics→Release；唯一追溯 `docs/TRACEABILITY.csv` ~75-85 行 + `tools/docs_machine_consistency.py` 9 checks 0 broken
+- **Gate**: G-QA-01..10 全绿方发布（文档权威链/追溯/审计713/713/注释0 violation/编译0 warning/科学测试/消毒/文档同步/留痕/干净HEAD）
+- **影响**: 覆盖 L1/L2/L3/L4/L5 + 工程控制 7件套；`MASTER_TASK_REGISTER.csv` QA-V19R8 段 90+10 行（QA-V19R8-S0-01..S6-14）
+- **证据**: `工程控制/docs/30_WIKI_TO_CODE_QUALITY_V19R8_SPEC.md` + `reports/v19r8_quality/` + `evidence/QA-V19R8-*/`
