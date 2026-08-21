@@ -19,6 +19,7 @@ PipelineFrame/引擎。
 
 aio_* 系列（aio_fits/aio_xisf/aio_hips_reader/aio_hips_writer/
 aio_upm/aio_compressor/aio_pipeline）；API-AIO-001..（S2 注册）。
+PipelineFrame：纯命名块容器（按块名索引；标准块 header/data/weight/snr/psf/star_det/gaia_cat 等见 `lib/astro_image_io/include/aio_pipeline.h:267-284` 标准块表）；`PipelineStageFn` 签名 `const input/output/params + error_msg/error_capacity（可为 NULL，>0 保证 NUL 终止/截断）`，`aio_frame_add_block_move` 为 move 语义（成功接管后调用方不再拥有 `aio_alloc` buffer）。
 
 ## Data contract
 
