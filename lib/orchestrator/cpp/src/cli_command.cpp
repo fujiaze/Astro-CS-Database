@@ -1,9 +1,10 @@
 // ============================================================================
-// cli_command.cpp - JSONL 事件输出 + SIGINT 信号处理 + SHA-256 实现
+// cli_command.cpp - JSONL 事件输出 + SIGINT 信号处理 [+ SHA-256 deprecated shim]
 //
 // Phase1 JSON 入口重构后, 本文件仅保留:
 // 1. SIGINT 信号处理 (p04004_register/unregister_signal_handler)
-// 2. sha256_impl::sha256 (纯 C++17 SHA-256, 供 json_config.cpp 调用)
+// 2. sha256_impl::sha256 — 已归一到 lib/common/crypto (B4-02)，此处仅为
+//    test_orchestrator_cli 兼容的 deprecated 转发 shim（新代码用 astrocs::crypto）
 // 3. CliCommand::output_jsonl_event_ex (JSONL 事件输出, 供 main.cpp 调用)
 //
 // 已删除:
@@ -72,11 +73,16 @@ void p04004_unregister_signal_handler() {
 }
 
 // ============================================================================
-// SHA-256 纯 C++17 实现 (无外部依赖)
-// 用于计算 config 的 hash, 保证可追溯性
-// SHA-256 归一化到 lib/common/crypto（单一实现）。
-// 旧 sha256_impl 已删除；json_config 改用 astrocs::crypto::sha256_hex。
+// SHA-256 deprecated shim (B4-02 去重，DATA-FRAME-ID-001)
+// 权威实现：lib/common/crypto/sha256.h/.cpp（astrocs::crypto::sha256_hex）。
+// 旧独立实现已删除；此处仅保留 sha256_impl::sha256 转发以兼容历史测试。
+// 新代码一律使用 astrocs::crypto::sha256_hex / Sha256。
 // ============================================================================
+namespace sha256_impl {
+std::string sha256(const std::string& input) {
+    return astrocs::crypto::sha256_hex(input.data(), input.size());
+}
+}
 
 // ============================================================================
 // 辅助函数 (供 output_jsonl_event_ex 使用)

@@ -6,7 +6,7 @@
 // - CliCommand::output_jsonl_event_ex: JSONL 事件输出 (供 main.cpp 调用)
 // - p04004_register_signal_handler / p04004_unregister_signal_handler:
 // SIGINT 信号处理 (Ctrl+C 触发取消)
-// - sha256_impl::sha256: SHA-256 实现 (供 json_config.cpp 调用, 见 cpp)
+// - sha256_impl::sha256: deprecated shim 转发到 lib/common/crypto (B4-02 去重)
 // ============================================================================
 
 #pragma once
