@@ -1,5 +1,9 @@
 # AstroCS Changelog
 
+## [V19R8 Quality Closure 94/95] 2026-08-22 vm-bj — B4 28/28 + B5 8/8 + C 11/11 + D 4/6 (D-01/02 PASS, D-04 22files SHA 22/22 OK, D-05 clean HEAD)
+- Evidence: c02 39/39 noise, c03 4000MC 8/8 variance (p50=1.001), c04 79/10 phase2 35.7s, c05 28/28 pipeline, c10 smoke 28/28, machine 9/9, build 0 warnings
+
+
 ## [V19R8] 2026-08-22 — Quality Closure B4 28/28 + B5 docs (76/95 DONE)
 - B4 28/28 DONE: calibration/plate_solve/gaia/dynamic_psf/photometric/snr/drizzle/orchestrator/phase2 全锚点 + machine 9/9 + push闭环
 - B5 6/8 DONE: PROJECT_STATE/CURRENT_TASK/DECISION/RISK/MASTER+TARC/TRAC 75/RELEASE 7件套同步 V19R8 S0-S6 (B4 gate+TRAC 75)
