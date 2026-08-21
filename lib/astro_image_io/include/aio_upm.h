@@ -8,18 +8,31 @@
 // aio_upm_dense_info / aio_upm_read_dense_block / aio_upm_close
 //
 // 语义（冻结）：
-// - 稀疏模型为权威形态：JSON 文本（format=astrocs-upm-v1），
-// model_hash 由 phase2 计算（内容哈希）并随 JSON 保存；
+// - 稀疏模型为权威形态：JSON 文本（format=astrocs-upm-v2，
+//   读兼容 astrocs-upm-v1，见 docs/modules/astro_image_io.md），
+//   model_hash 由 phase2 计算（内容哈希）并随 JSON 保存；
 // - dense cache 是同一 UPM 的**空间求值缓存**：按
-// (frame_id, target_order, tile) 保存 C_i(p) 的 evaluated values，
-// 固定 512B 头部 JSON 行（source_hash/target_order/precision/
-// frame_count/tile_count/leaf_order/checksum）+ tile 表 + 逐
-// (frame,tile) 的 512×512 校正值块（float/double，流式写）；
+//   (frame_id, target_order, tile) 保存 C_i(p) 的 evaluated values，
+//   固定 512B 头部 JSON 行（source_hash/target_order/precision/
+//   frame_count/tile_count/leaf_order/checksum）+ tile 表 + 逐
+//   (frame,tile) 的 512×512 校正值块（float/double，流式写）；
 // - 任何读取入口先校验 source_hash 与调用方模型 hash 一致，
-// 不一致返回 2（stale cache）——"stale hash 必须拒绝加载"；
+//   不一致返回 2（stale cache）——"stale hash 必须拒绝加载"；
 // - checksum = SHA-256（文件除头部 checksum 槽置 '0' 外的字节），
-// 读取时校验完整性；
+//   读取时校验完整性；
 // - 本模块只做容器/文件层，不解释模型科学语义。
+//
+// 调用顺序/所有权（与 docs/architecture/OWNERSHIP_AND_LIFETIME.md 一致）：
+// - sparse: aio_upm_write_sparse 原子写；aio_upm_open →
+//   aio_upm_read_info / aio_upm_read_all / aio_upm_read_all_dynamic
+//   → aio_upm_close；aio_upm_read_all_dynamic 以 new char[] 分配，
+//   调用方须以 delete[] 释放 *out（out_len 为有效长度，不含 '\0'）
+//   —— OWNERSHIP 锚点 lib/astro_image_io/src/aio_upm.cpp:163；
+// - dense 写: aio_upm_dense_begin → aio_upm_dense_write_tile*（frame_index 单调）
+//   → 二选一 aio_upm_dense_end（提交/回填 checksum 并释放）/
+//   aio_upm_dense_abort（关闭并删除部分文件并释放），end/abort 后句柄失效；
+// - 错误串 aio_upm_last_error 为 thread_local g_upm_error
+//   （lib/astro_image_io/src/aio_upm.cpp:21），多线程隔离。
 // ============================================================================
 
 #ifndef AIO_UPM_H
@@ -57,7 +70,8 @@ AIO_UPM_EXPORT int aio_upm_read_info(
 // 读取完整 JSON 内容到调用方缓冲（含 '\0'）；buf_size 不足返回 -1。
 AIO_UPM_EXPORT int aio_upm_read_all(AioUpmSparse* f, char* buf, int buf_size);
 
-// 动态读取完整内容（分配调用方释放的内存，含 '\0'）。返回 0=ok。
+// 动态读取完整内容（以 new char[] 分配，调用方须 delete[] *out；含 '\0'，out_len 不含 '\0'）。返回 0=ok。
+// 所有权: owned(*out) — 见 docs/architecture/OWNERSHIP_AND_LIFETIME.md
 AIO_UPM_EXPORT int aio_upm_read_all_dynamic(AioUpmSparse* f, char** out,
                                             size_t* out_len);
 
@@ -78,10 +92,10 @@ AIO_UPM_EXPORT int aio_upm_dense_write_tile(
     AioUpmDense* d, uint64_t frame_index, uint64_t tile_ipix,
     const double* values, uint64_t count);
 
-// 结束：回填 checksum、释放句柄。返回 0=成功。
+// 结束：回填 checksum、释放句柄（与 abort 二选一，成功后句柄失效）。返回 0=成功。
 AIO_UPM_EXPORT int aio_upm_dense_end(AioUpmDense* d);
 
-// 中止：关闭并删除部分文件、释放句柄。
+// 中止：关闭并删除部分文件、释放句柄（与 end 二选一，调用后句柄失效）。
 AIO_UPM_EXPORT void aio_upm_dense_abort(AioUpmDense* d);
 
 // 稠密缓存信息：target_order/tile_count/checksum 校验（source_hash 必须匹配）。
