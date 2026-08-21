@@ -94,3 +94,6 @@ cmake already configured at /tmp/acr_build2
 [ 12%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/threading_control.cpp.o
 [ 13%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/version.cpp.o
 [ 13%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/queuing_rw_mutex.cpp.o
+[  0%] Linking CXX shared library ../../../../gnu_14.2_cxx20_64_release/libtbb.so
+[ 13%] Built target tbb
+[ 14%] Building CXX object _deps/onetbb-build/src/tbbmalloc/CMakeFiles/tbbmalloc.dir/backend.cpp.o
