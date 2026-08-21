@@ -1,11 +1,196 @@
-=== V19R8 C-11 performance snapshot (vm-bj lightweight) ===
-Date: 2026-08-22 vm-bj gcc 14.2.0 (2 cores, no repeated benchmark)
-Host: VM-BJ 6.12.95 2 cores 3.6Gi
+=== V19R8 C-11 performance snapshot (vm-bj lightweight, single-run, timeout 300s) ===
+Date: 2026-08-21T21:13:34Z vm-bj  Now: 2026-08-22 05:13:34 CST
+Host: Linux VM-BJ 6.12.95+deb13-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.12.95-1 (2026-07-04) x86_64 GNU/Linux  nproc=2
+CPU: Intel(R) Xeon(R) Gold 6148 CPU @ 2.40GHz
+Mem: Mem:           3.6Gi       3.4Gi       227Mi       1.4Gi       1.7Gi       293Mi
+Toolchain: g++ (Debian 14.2.0-19) 14.2.0
+Timing: bash wall (no perf/no /usr/bin/time -p on vm-bj) — AGENTS.md: no repeated full benchmark
 
-pipeline_frame build wall: 7.16s
-pipeline_frame run 28 contracts wall: 0.013s
-noise_model 39 tests wall: 0.387s
+-- pipeline_frame --
+build wall: 5.494s  size=63584B
+run wall: 0.0172s  rc=0  PASS=28/28  aio_bytes=247
+sizeof(AioKVEntry)=320 sizeof(AioBlock)=240 sizeof(PipelineFrame)=24 align(AioBlock)=8
+[PASS] AioKVEntry layout 64+256 bytes
+[PASS] AioBlock field order stable
+[PASS] AioBlockType enum values stable
+[PASS] frame create
+[PASS] add f32 data
+[PASS] add_block deep copy and dtype
+[PASS] replace block f32->f64
+[PASS] replacement dtype/data correct
+[PASS] KV set string
+[PASS] KV set double
+[PASS] KV get string
+[PASS] KV get double
+[PASS] add_block_move
+[PASS] move preserves pointer ownership
+[PASS] cache save
+[PASS] cache load
+[PASS] cache stages/block count roundtrip
+[PASS] cache dtype/dims roundtrip
+[PASS] cache f64 payload bit exact
+[PASS] remove block
+[PASS] remove missing returns 1
+[PASS] reject negative n_blocks
+[PASS] reject truncated cache
+[PASS] failed cache load preserves prior frame atomically
+[PASS] reject n_dims > 4 without stream misalignment
+[PASS] reject negative count
+[PASS] reject unknown type
+[PASS] move API rejects unknown type
+SUMMARY pass=28 fail=0
 
-Analysis: build (~3-4s g++ dominant) >> run (<0.1s); bottleneck is compile/IO per AGENTS.md guidance, no repeated benchmark needed.
-machine 9/9: True
-Scope: lightweight snapshot only.
+[stderr]
+[2026-08-22 05:13:33][DEBUG][PIPELINE] frame_create: ok
+[2026-08-22 05:13:33][DEBUG][PIPELINE] add_block: 'data' type=0 count=6 (24 bytes)
+[2026-08-22 05:13:33][DEBUG][PIPELINE] add_block: 'data' type=1 count=6 (48 bytes)
+[2026-08-22 05:13:33][DEBUG][PIPELINE] add_block_move: 'ids' type=2 count=4 (moved ptr=0x55d30179d530)
+[2026-08-22 05:13:33][INFO][PIPELINE] save_cache: ok -> /tmp/astrocs_pipeline_contract.aio (3 blocks)
+[2026-08-22 05:13:33][DEBUG][PIPELINE] frame_create: ok
+[2026-08-22 05:13:33][DEBUG][PIPELINE] frame_create: ok
+[2026-08-22 05:13:33][DEBUG][PIPELINE] frame_destroy: ok
+[2026-08-22 05:13:33][DEBUG][PIPELINE] remove_block: 'ids' removed (n_blocks=2)
+[2026-08-22 05:13:33][DEBUG][PIPELINE] frame_create: ok
+[2026-08-22 05:13:33][DEBUG][PIPELINE] frame_destroy: ok
+[2026-08-22 05:13:33][DEBUG][PIPELINE] add_block: 'sentinel' type=2 count=1 (4 bytes)
+[2026-08-22 05:13:33][DEBUG][PIPELINE] frame_create: ok
+[2026-08-22 05:13:33][DEBUG][PIPELINE] frame_destroy: ok
+[2026-08-22 05:13:33][DEBUG][PIPELINE] frame_create: ok
+[2026-08-22 05:13:33][DEBUG][PIPELINE] frame_destroy: ok
+[2026-08-22 05:13:33][ERROR][PIPELINE] add_block: 参数校验失败 rc=3 name='bad' type=0
+[2026-08-22 05:13:33][ERROR][PIPELINE] add_block: 参数校验失败 rc=2 name='badtype' type=99
+[2026-08-22 05:13:33][ERROR][PIPELINE] add_block_move: 参数校验失败 rc=2 name='badmove' type=99
+[2026-08-22 05:13:33][DEBUG][PIPELINE] frame_destroy: ok
+[2026-08-22 05:13:33][DEBUG][PIPELINE] frame_destroy: ok
+
+-- noise_model --
+build wall: 8.537s  size=98168B
+run wall: 0.374s  rc=0
+  [PASS] nullptr cfg OK
+  [PASS] default_config cfg OK
+  [PASS] production default cfg OK
+  [PASS] [NOISE-WIRE-001] nullptr == default_config() 逐字段 exact (sigma=3.969792922 n=56 spatial=1 ctrl=56)
+  [PASS] [NOISE-WIRE-001] nullptr == production default 逐字段 exact (sigma=3.969792922 n=56 spatial=1 ctrl=56)
+  [PASS] [NOISE-WIRE-001] fill 数组逐元素 exact (A vs C)
+  [PASS] [NOISE-WIRE-001] 零结构体≠默认 (spatial=0 ctrl=4 vs spatial=1 ctrl=56)
+=== V19 SNR/Noise 科学矩阵 (模块级) ===
+
+[SNR-001] pedestal invariance
+  [PASS] two models ok (r=0/0)
+  [PASS] variance invariant: 105.9397 vs 105.9397 rel=0.00e+00 (<1%)
+
+[SNR-002] multiplicative scale covariance
+  [PASS] var(αx)=α²var: got 436.361 expect 436.361 rel=0.00e+00 (<2%)
+  [PASS] ivar scale law: got 2.292e-03 expect 2.292e-03 rel=0.00e+00 (<2%)
+
+[SNR-003] star-population invariance
+  [PASS] both models ok
+  [PASS] background variance independent of star flux: 91.3166 vs 91.3166 rel=0.00e+00 (<2%)
+
+[SNR-004] Gaussian blank-sky recovery
+  [PASS] model ok
+  [PASS] global sigma bias: got 5.0062 truth 5.0 bias=0.124% (<=2%)
+  [PASS] patch p95 coverage: 64/64 = 100.0% (>=95%)
+
+[SNR-005] Poisson+read-noise cross-check
+  [PASS] model ok
+  [PASS] Poisson+read: emp 1367.3 th 1361.8 rel=0.40% (<=5%)
+  [PASS] gain model identity: 1361.78 vs 1361.78
+
+[SNR-006] spatial noise-field recovery
+  [PASS] model ok + spatial field
+  [PASS] corr=0.9975 (>=0.98)
+  [PASS] normalized RMSE=1.946% (<=5%)
+
+[SNR-007] dex/mag unit correctness
+  [PASS] phot_cal_quality ok
+  [PASS] sigma_mag=2.5×dex: got 0.2500 expect 0.2500
+  [PASS] sigma_cal_rel=ln10×dex: got 0.2303 expect 0.2303
+  [PASS] invalid sigma → status 2
+  [PASS] no matches → degraded status (no fake SNR)
+
+[SNR-008] legacy (A-B)/mad retired
+  [PASS] q_psf pedestal-invariant: q1=41.6667 q2=41.6667 rel=0.00e+00 (<1e-12)
+  [PASS] q_psf = A/residual_scale: 41.6667 vs 41.6667
+  [PASS] robust sigma conversion: 164.0077 (~163.95)
+
+[SNR-009] inverse-variance coadd efficiency
+  [PASS] analytic: var_opt=0.9000 var_eq=2.5000 (optimal wins)
+  [PASS] ivar-weighted variance: 0.9000 vs opt 0.9000 (rel<3%)
+
+[SNR-010] signal independence
+  [PASS] both models ok
+  [PASS] |ρ(weight,signal)|=0.0063 (<0.02)
+
+[SNR-013] PSF quality semantics
+  [PASS] good fit q=100.0 > poor q=10.0
+  [PASS] saturated → status 2
+  [PASS] rejected → status 1
+
+[SNR-014] missing/degenerate metadata behavior
+  [PASS] empirical fallback ok (r=0, source=0, deg=0, sigma=3.9527)
+  [PASS] fully degenerate → status 1, ivar=0
+
+== V19 SNR 科学矩阵结果: 39 通过, 0 失败 ==
+
+== 总结果: 39 通过, 0 失败 ==
+
+-- io micro 64M --
+write 0.172s  read 0.067s
+
+-- machine_consistency --
+{
+  "tool": "docs_machine_consistency",
+  "version": "1.0.0",
+  "checks": [
+    {
+      "check": "config_weight_mode_ivar",
+      "pass": true,
+      "detail": "CONFIG_SCHEMA weight_mode auto/ivar <-> stage2_common parse"
+    },
+    {
+      "check": "frame_id_contract_exact",
+      "pass": true,
+      "detail": "DATA-FRAME-ID-001：SHA-256 truncate；无 FNV/路径派生残留"
+    },
+    {
+      "check": "error_taxonomy_exit_codes",
+      "pass": true,
+      "detail": "ERROR_MODEL 全集合 == orchestrator.h 0-10 退出码 (doc={'SUCCESS': 0, 'GENERIC_ERROR': 1, 'DLL_LOAD_FAILED': 2, 'BLOCK_MISSING': 3, 'CALIBRATE_FAILED': 4, 'PLATESOLVE_FAILED': 5, 'DRIZZLE_FAILED': 6, 'CONFIG_ERROR': 7, 'FILE_IO_ERROR': 8, 'TIMEOUT': 9, 'CANCELLED': 10, 'STAR_DETECT_FAILED': 20, 'PSF_FAILED': 21, 'PHOTOMETRIC_FAILED': 22, 'SNR_FAILED': 23, 'STACK_FAILED': 24, 'HISS_INVALID': 25, 'HCSD_INVALID': 26, 'MODULE_ABI_UNSUPPORTED': 27, 'INPUT_INVALID': 28, 'MODULE_SPECIFIC_BASE': 100} code={'SUCCESS': 0, 'GENERIC_ERROR': 1, 'DLL_LOAD_FAILED': 2, 'BLOCK_MISSING': 3, 'CALIBRATE_FAILED': 4, 'PLATESOLVE_FAILED': 5, 'DRIZZLE_FAILED': 6, 'CONFIG_ERROR': 7, 'FILE_IO_ERROR': 8, 'TIMEOUT': 9, 'CANCELLED': 10, 'STAR_DETECT_FAILED': 20, 'PSF_FAILED': 21, 'PHOTOMETRIC_FAILED': 22, 'SNR_FAILED': 23, 'STACK_FAILED': 24, 'HISS_INVALID': 25, 'HCSD_INVALID': 26, 'MODULE_ABI_UNSUPPORTED': 27, 'INPUT_INVALID': 28, 'MODULE_SPECIFIC_BASE': 100})"
+    },
+    {
+      "check": "integration_status_full_set",
+      "pass": true,
+      "detail": "integration status 全集合 (doc={'P2_INTEGRATE_OK': 0, 'P2_INTEGRATE_NO_CANDIDATES': 1, 'P2_INTEGRATE_ALL_REJECTED': 2, 'P2_INTEGRATE_ZERO_VALID_WEIGHT': 3, 'P2_INTEGRATE_INVALID_INPUT': 4} code={'P2_INTEGRATE_OK': 0, 'P2_INTEGRATE_NO_CANDIDATES': 1, 'P2_INTEGRATE_ALL_REJECTED': 2, 'P2_INTEGRATE_ZERO_VALID_WEIGHT': 3, 'P2_INTEGRATE_INVALID_INPUT': 4})"
+    },
+    {
+      "check": "rejection_status_full_set",
+      "pass": true,
+      "detail": "rejection status 全集合 (doc={'P2_REASON_ACCEPTED': 0, 'P2_REASON_REJECTED_LOW': 1, 'P2_REASON_REJECTED_HIGH': 2, 'P2_REASON_UNDERDETERMINED': 3, 'P2_STATUS_OK': 0, 'P2_STATUS_MIN_SAMPLES': 1, 'P2_STATUS_ALL_REJECTED': 2, 'P2_STATUS_INVALID_INPUT': 3, 'P2_STATUS_UNDERDETERMINED': 4, 'P2_STATUS_INVALID_CONFIGURATION': 5, 'P2_STATUS_INVALID_METHOD': 6, 'P2_STATUS_INTERNAL_ERROR': 7} code={'P2_REASON_ACCEPTED': 0, 'P2_REASON_REJECTED_LOW': 1, 'P2_REASON_REJECTED_HIGH': 2, 'P2_REASON_UNDERDETERMINED': 3, 'P2_STATUS_OK': 0, 'P2_STATUS_MIN_SAMPLES': 1, 'P2_STATUS_ALL_REJECTED': 2, 'P2_STATUS_INVALID_INPUT': 3, 'P2_STATUS_UNDERDETERMINED': 4, 'P2_STATUS_INVALID_CONFIGURATION': 5, 'P2_STATUS_INVALID_METHOD': 6, 'P2_STATUS_INTERNAL_ERROR': 7})"
+    },
+    {
+      "check": "stage_ids_docs_vs_orchestrator",
+      "pass": true,
+      "detail": "stage IDs in ERROR_TAXONOMY <-> orchestrator stage_name_v2"
+    },
+    {
+      "check": "snr_constants",
+      "pass": true,
+      "detail": "NOISE_MODEL/PSF constants <-> noise_model.cpp"
+    },
+    {
+      "check": "product_contracts",
+      "pass": true,
+      "detail": "DATA_CONTRACTS products <-> aio_hips.h product flags"
+    },
+    {
+      "check": "drizzle_variance_formula",
+      "pass": true,
+      "detail": "DRIZZLE.md variance formula <-> drizzle_engine.h"
+    }
+  ],
+  "pass": true
+}
+
+
+Scope: lightweight snapshot only, not full benchmark (AGENTS.md).
