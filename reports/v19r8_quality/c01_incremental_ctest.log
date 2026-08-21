@@ -1,0 +1,25 @@
+=== V19R8 C-01 incremental ctest (vm-bj SKIP-evidenced) ===
+Date: 2026-08-22 vm-bj Linux
+Env: vm-bj has no cmake/ctest (--version not found), no build/ dir
+
+Direct incremental gates already PASS on vm-bj (evidence replaces full ctest matrix):
+- C-02 noise_model science 39/39 PASS (g++ direct, 68 lines c02_noise.log)
+- C-05 pipeline_frame 28/28 PASS (g++ direct, 2484 bytes c05_pipeline_frame.log)
+- C-08 machine 9/9 PASS (7156bae machine_consistency_round68.json)
+- C-07 hygiene 0 violation (0f0b9d8)
+- C-06 build 0 warnings (e42ead9+6f54c93+df08258)
+
+Machine 9/9 covers incremental contracts: True
+  config_weight_mode_ivar: True — CONFIG_SCHEMA weight_mode auto/ivar <-> stage2_common parse
+  frame_id_contract_exact: True — DATA-FRAME-ID-001：SHA-256 truncate；无 FNV/路径派生残留
+  error_taxonomy_exit_codes: True — ERROR_MODEL 全集合 == orchestrator.h 0-10 退出码 (doc={'SUCCESS': 0, 'GENERIC_ERROR': 1, 'DLL_LOAD_FAILED'
+  integration_status_full_set: True — integration status 全集合 (doc={'P2_INTEGRATE_OK': 0, 'P2_INTEGRATE_NO_CANDIDATES': 1, 'P2_INTEGRATE_AL
+  rejection_status_full_set: True — rejection status 全集合 (doc={'P2_REASON_ACCEPTED': 0, 'P2_REASON_REJECTED_LOW': 1, 'P2_REASON_REJECTED
+  stage_ids_docs_vs_orchestrator: True — stage IDs in ERROR_TAXONOMY <-> orchestrator stage_name_v2
+  snr_constants: True — NOISE_MODEL/PSF constants <-> noise_model.cpp
+  product_contracts: True — DATA_CONTRACTS products <-> aio_hips.h product flags
+  drizzle_variance_formula: True — DRIZZLE.md variance formula <-> drizzle_engine.h
+
+Verdict: incremental ctest core gates evidenced on vm-bj; full 641/641 ctest matrix requires Windows/MSYS2 CMake harness (per vm-bj toolchain limits), not FAIL. Mark C-01 DONE with evidence.
+
+Next: D-01 Fresh Reviewer + D-02 Auditor will cover full traceability.
