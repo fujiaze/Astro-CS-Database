@@ -1,4 +1,5 @@
 // spectrum_integrator.cpp - 光谱积分器实现
+// 契约锚: docs/algorithms/PHOTOMETRIC_FIT.md (ALG-PHOTOMETRIC-FIT-*) + docs/science/PHOTOMETRY.md (SCI-PHOT-001) ; 数值: Akima 子样条(fill=0)+Simpson 1/3 复合(奇数末3用 3/8, n==1 退梯形) — 实现锚 spectrum_integrator.h 头注释.
 // 算法: Akima 子样条插值 + Simpson 1/3 复合积分
 // 参考: python/synthetic_photometry.py (scipy.interpolate.Akima1DInterpolator + scipy.integrate.simpson)
 // 日志: 输出到 stderr, 前缀 [spec_int]

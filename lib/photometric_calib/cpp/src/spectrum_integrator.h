@@ -1,5 +1,6 @@
 #ifndef PC_SPECTRUM_INTEGRATOR_H
 #define PC_SPECTRUM_INTEGRATOR_H
+// 契约锚: docs/algorithms/PHOTOMETRIC_FIT.md (ALG-PHOTOMETRIC-FIT-*) + docs/science/PHOTOMETRY.md (SCI-PHOT-001) + lib/photometric_calib/docs/algorithm.md §3 ; 数值: Akima 子样条(范围外 fill=0, 严格递增)+Simpson 1/3 复合(奇数区间末3用 3/8, 等间距) — NUMERIC/COMMENT 锚点, 实现见 spectrum_integrator.cpp akima_interpolate/simpson_integrate/compute_f_syn*.
 
 // spectrum_integrator.h - 光谱积分器
 // 功能: 对 Gaia BP/RP uint8 光谱做 Akima 插值 + Simpson 1/3 积分, 得到合成流量 F_syn
