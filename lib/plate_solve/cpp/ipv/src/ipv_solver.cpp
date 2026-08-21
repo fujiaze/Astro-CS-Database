@@ -193,8 +193,8 @@ IterativeReprojectResult iterative_reproject(
     }
 
     const int N_W = (int)gaia_ra.size();
-    const int MAX_ITERS = 5;
-    const double CONV_THRESH_ARCSEC = 0.01;  // 收敛阈值 0.01 arcsec
+    const int MAX_ITERS = 5;                         // 迭代上限 (PLATESOLVE.md 数值风险)
+    const double CONV_THRESH_ARCSEC = 0.01;  // 收敛阈值 0.01 arcsec (PLATESOLVE.md 数值风险)
 
     if (logger) {
         char buf[256];

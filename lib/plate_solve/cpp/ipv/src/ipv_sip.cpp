@@ -238,7 +238,7 @@ static bool irls_huber_fit(
         } else {
             median_abs_r = 0.5 * (abs_r[n / 2 - 1] + abs_r[n / 2]);
         }
-        double delta = 1.345 * median_abs_r;
+        double delta = 1.345 * median_abs_r; // Huber 常数 1.345 (PLATESOLVE.md 数值风险)
         // 避免 δ=0 (所有残差为 0 时): 给个保护值
         if (delta < 1e-9) delta = 1e-9;
 
