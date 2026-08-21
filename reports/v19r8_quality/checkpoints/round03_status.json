@@ -1,0 +1,16 @@
+{
+  "round": 3,
+  "head": "16277e5 docs(spec): refine V19R8 S0-S6 with I/O table + discipline + rollback [Spec 212->255L]",
+  "spec": "30_WIKI_TO_CODE_QUALITY_V19R8 255L + checklist 185L + tasks 421L",
+  "machine_pass": true,
+  "done": 53,
+  "todo": 42,
+  "b4_todo_head": [
+    "QA-V19R7-B4-10",
+    "QA-V19R7-B4-11",
+    "QA-V19R7-B4-13",
+    "QA-V19R7-B4-14",
+    "QA-V19R7-B4-15",
+    "QA-V19R7-B4-16"
+  ]
+}
