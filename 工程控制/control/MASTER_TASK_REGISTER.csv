@@ -112,7 +112,7 @@ QA-V19R7-B4-18,QA,snr_estimator合同,QA-V19R7-B3-10,G-QA,DONE,evidence/QA-V19R7
 QA-V19R7-B4-19,QA,snr_estimator SIP variance,QA-V19R7-B3-10,G-QA,DONE,evidence/QA-V19R7-B4-19
 QA-V19R7-B4-20,QA,drizzle geometry cache,QA-V19R7-B3-10,G-QA,DONE,evidence/QA-V19R7-B4-20
 QA-V19R7-B4-21,QA,drizzle方差,QA-V19R7-B3-10,G-QA,DONE,evidence/QA-V19R7-B4-21
-QA-V19R7-B4-22,QA,drizzle原子run-gen,QA-V19R7-B3-10,G-QA,TODO,evidence/QA-V19R7-B4-22
+QA-V19R7-B4-22,QA,drizzle原子run-gen,QA-V19R7-B3-10,G-QA,DONE,evidence/QA-V19R7-B4-22
 QA-V19R7-B4-23,QA,orchestrator错误表,QA-V19R7-B3-10,G-QA,DONE,evidence/QA-V19R7-B4-23
 QA-V19R7-B4-24,QA,orchestrator C++17,QA-V19R7-B3-10,G-QA,TODO,evidence/QA-V19R7-B4-24
 QA-V19R7-B4-25,QA,phase2 UPM持久化,QA-V19R7-B3-10,G-QA,TODO,evidence/QA-V19R7-B4-25
