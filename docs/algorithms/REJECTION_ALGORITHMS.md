@@ -31,7 +31,7 @@ P2_STATUS_INTERNAL_ERROR=7
 ## Postconditions
 
 - INVALID_* → hard fail；UNDERDETERMINED → 不做猜测；
-- large_scale：结构生长（trail）不生长 compact cosmic。
+- large_scale：结构生长（trail）不生长 compact cosmic（`rejection.cpp:1501-1592` trail 生长分支）。
 
 ## Invariants
 
