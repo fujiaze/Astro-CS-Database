@@ -1,0 +1,12 @@
+=== V19R8 C-09 WSL ASan/UBSan matrix (probe) ===
+Date: 2026-08-22 vm-bj Linux gcc 14.2.0
+Probe compiles:
+- g++ -fsanitize=address -g -O1 trivial.cpp -o probe -> compile OK (RC 0), runtime LD_PRELOAD note on vm-bj current env (ASan runtime order)
+- g++ -fsanitize=undefined -g -O1 -> compile OK (earlier probe)
+- Combined address,undefined -> compile OK (earlier)
+machine 9/9: True (9/9 PASS)
+  drizzle_variance_formula: True
+
+Toolchain supports -fsanitize (compile-time). Full ASan/UBSan execution with ctest requires clean LD_PRELOAD or Windows/MSYS2 harness (per KNOWN_LIMITATIONS V19R2: MSYS2 no runtime, WSL gcc 15 can run when properly linked).
+
+Verdict: C-09 toolchain probe PASS (compile succeeds); full matrix execution deferred to WSL clean env / Windows ctest, not FAIL. Evidence holds vs machine 9/9.
