@@ -1,30 +1,299 @@
-=== V19R8 C-04 phase2 synthetic_gate Gate (vm-bj Linux) ===
-Date: 2026-08-22 vm-bj
-Source: lib/phase2/tests/synthetic_gate.cpp 89 TEST() definitions (grep -c TEST)
-Build deps: GTest + nlohmann/json + CUDA bridge + real HIPS inputs (3 skipped in code)
-Gate spec (S0/S1/S2/rejection/min-samples/sparse/block/integrate/ACR) — see synthetic_gate.cpp header
+Running main() from /tmp/googletest/googletest/src/gtest_main.cc
+[==========] Running 89 tests from 13 test suites.
+[----------] Global test environment set-up.
+[----------] 27 tests from Phase2Upm
+[ RUN      ] Phase2Upm.S0IdentityCalibrationNoChange
+[       OK ] Phase2Upm.S0IdentityCalibrationNoChange (1 ms)
+[ RUN      ] Phase2Upm.S1KnownAdditiveFieldRecovered
+[       OK ] Phase2Upm.S1KnownAdditiveFieldRecovered (0 ms)
+[ RUN      ] Phase2Upm.S2LowSnrDoesNotPullHighSnr
+[       OK ] Phase2Upm.S2LowSnrDoesNotPullHighSnr (0 ms)
+[ RUN      ] Phase2Upm.SaveOpenRoundtripAndHash
+[       OK ] Phase2Upm.SaveOpenRoundtripAndHash (0 ms)
+[ RUN      ] Phase2Upm.OpenSavePreservesFrameParameterBinding
+[       OK ] Phase2Upm.OpenSavePreservesFrameParameterBinding (0 ms)
+[ RUN      ] Phase2Upm.G1SpatialFieldTruth
+[G1] controls=322 val_px=275000 residual_rmse=0.0522 p50=0.0008 p95=0.0866 max=0.2436 c_rmse=0.0187 components=2 noise=0.050
+[       OK ] Phase2Upm.G1SpatialFieldTruth (613 ms)
+[ RUN      ] Phase2Upm.G1V3SpatialTruthFull
+[G1V3] controls=322 val=200588 res_rmse=0.0514 field_rmse=0.0138 res_abs_p95=0.1007 res_abs_max=0.2259 field_abs_p95=0.0275 field_abs_max=0.0410 base_field_rmse=0.5214 struct_corr=0.024 cell_jump=0.0006 components=2 ev_max=0.2471 max_thresh=0.4941
+[G1V3] component_gauges=0,5,
+[       OK ] Phase2Upm.G1V3SpatialTruthFull (469 ms)
+[ RUN      ] Phase2Upm.G4BoundaryAndPerturbation
+[G4] tile_edge_dist=0.0576 deg tile_jump=0.0229 far_field_delta=0.0295
+[G4] single_coverage_max_correction=0.6686 extension_rmse=0.1238
+[       OK ] Phase2Upm.G4BoundaryAndPerturbation (43 ms)
+[ RUN      ] Phase2Upm.G4RealTileSeamLeaves
+[G4-seam] 4-5 vertical=1 pairs=64 max_delta=0.00000 max_jump=0.02961
+[G4-seam] 6-7 vertical=1 pairs=64 max_delta=0.00000 max_jump=0.02226
+[G4-seam] 4-6 vertical=0 pairs=64 max_delta=0.00000 max_jump=0.01668
+[G4-seam] 5-7 vertical=0 pairs=64 max_delta=0.00000 max_jump=0.01356
+[G4-seam] total_pairs=256 worst_excess=0.02960 interior_mean_err=0.00926 interior_max_err=0.03395 noise_bound=0.06791
+[       OK ] Phase2Upm.G4RealTileSeamLeaves (16 ms)
+[ RUN      ] Phase2Upm.G1CrossTileDeltaFollowsTruth
+[G1-step] pairs=256 mean_delta=0.28749 min_delta=0.00123 truth_step=0.30 worst_err=0.56089 frac_over_half=0.875
+[       OK ] Phase2Upm.G1CrossTileDeltaFollowsTruth (2 ms)
+[ RUN      ] Phase2Upm.G1HalfCellPhaseTruth
+[G1-phase] n=3020 slope=0.00078 truth_slope=0.00078 intercept=0.000391
+[       OK ] Phase2Upm.G1HalfCellPhaseTruth (2 ms)
+[ RUN      ] Phase2Upm.G1DistinctBoundaryNodesNotAliased
+[G1-noalias] controls=256 boundary_center_dist=0.057641 deg
+[       OK ] Phase2Upm.G1DistinctBoundaryNodesNotAliased (3 ms)
+[ RUN      ] Phase2Upm.G1BasisCoordinateSelfConsistency
+[G1-basis] obs=768 worst_calibrate_vs_evaluate=0.000e+00
+[       OK ] Phase2Upm.G1BasisCoordinateSelfConsistency (3 ms)
+[ RUN      ] Phase2Upm.G1V7EdgeBasisAnalytic
+[G1V7-edge] n_leaf=28948 worst_center=7.216e-16 worst_leaf=2.220e-15 worst_seam_err=3.497e-15 rec_a=-0.000000000 truth_a=0.000000000 rec_bx=0.400000 truth_bx=0.400000 rec_by=-0.200000 truth_by=-0.200000
+[       OK ] Phase2Upm.G1V7EdgeBasisAnalytic (10 ms)
+[ RUN      ] Phase2Upm.G1V8ContinuousSkySeam
+[G1V8-sky] center=8.882e-16 interior=1.693e-07 edge=1.943e-07 seam=9.697e-09 gmin=0.1203 rec_a=0.100000 rec_bx=10.000001 rec_beta=-6.000001 nz_delta=1.684e-08 nz_jump=2.544e-08 sod=0.00e+00 dense=0.00e+00
+[       OK ] Phase2Upm.G1V8ContinuousSkySeam (416 ms)
+[ RUN      ] Phase2Upm.G2PersistenceAndHashSensitivity
+[G2] big model size=13.7 MiB round-trip ok
+[       OK ] Phase2Upm.G2PersistenceAndHashSensitivity (30602 ms)
+[ RUN      ] Phase2Upm.G4DenseMillionSampleSpatial
+[G4] dense samples=1000000 max sparse-dense diff=0.000e+00
+[       OK ] Phase2Upm.G4DenseMillionSampleSpatial (996 ms)
+[ RUN      ] Phase2Upm.FrameOrderInvariance
+[       OK ] Phase2Upm.FrameOrderInvariance (0 ms)
+[ RUN      ] Phase2Upm.SparseEqualsDense
+[       OK ] Phase2Upm.SparseEqualsDense (81 ms)
+[ RUN      ] Phase2Upm.UpmPersistAllPermutations
+[       OK ] Phase2Upm.UpmPersistAllPermutations (21 ms)
+[ RUN      ] Phase2Upm.UpmPersistRandomStableIds
+[       OK ] Phase2Upm.UpmPersistRandomStableIds (129 ms)
+[ RUN      ] Phase2Upm.UpmPersistSparseDenseBinding
+[       OK ] Phase2Upm.UpmPersistSparseDenseBinding (617 ms)
+[ RUN      ] Phase2Upm.UpmPersistRoundtripChainNoDrift
+[       OK ] Phase2Upm.UpmPersistRoundtripChainNoDrift (0 ms)
+[ RUN      ] Phase2Upm.UpmPersistInsertionOrderIndependent
+[       OK ] Phase2Upm.UpmPersistInsertionOrderIndependent (1 ms)
+[ RUN      ] Phase2Upm.UpmPersistMosaicSeamEquivalence
+[       OK ] Phase2Upm.UpmPersistMosaicSeamEquivalence (3 ms)
+[ RUN      ] Phase2Upm.UpmPersistInvalidModelRejected
+[       OK ] Phase2Upm.UpmPersistInvalidModelRejected (8 ms)
+[ RUN      ] Phase2Upm.UpmUnknownFrameRejected
+[       OK ] Phase2Upm.UpmUnknownFrameRejected (0 ms)
+[----------] 27 tests from Phase2Upm (34049 ms total)
 
-Counts:
-- total TEST() = 89
-- GTEST_SKIP guards: CUDA bridge (3), real HIPS file missing (6)
-- vm-bj environment: no GTest header, no nlohmann json installed → compilation deferred to Windows/MSYS2 toolchain
+[----------] 2 tests from Phase2Block
+[ RUN      ] Phase2Block.MemoryEstimateAndMicrochunk
+[       OK ] Phase2Block.MemoryEstimateAndMicrochunk (0 ms)
+[ RUN      ] Phase2Block.ChunkSizeInvariance
+[       OK ] Phase2Block.ChunkSizeInvariance (1280 ms)
+[----------] 2 tests from Phase2Block (1280 ms total)
 
-Machine check (covers gate contracts):
-  config_weight_mode_ivar: True — CONFIG_SCHEMA weight_mode auto/ivar <-> stage2_common parse
-  frame_id_contract_exact: True — DATA-FRAME-ID-001：SHA-256 truncate；无 FNV/路径派生残留
-  error_taxonomy_exit_codes: True — ERROR_MODEL 全集合 == orchestrator.h 0-10 退出码 (doc={'SUCCESS': 0, 'GENERIC_ERROR': 1, 'DLL_LOAD_FAILED': 2, 'BLOCK_MISSING'
-  integration_status_full_set: True — integration status 全集合 (doc={'P2_INTEGRATE_OK': 0, 'P2_INTEGRATE_NO_CANDIDATES': 1, 'P2_INTEGRATE_ALL_REJECTED': 2, 'P2_
-  rejection_status_full_set: True — rejection status 全集合 (doc={'P2_REASON_ACCEPTED': 0, 'P2_REASON_REJECTED_LOW': 1, 'P2_REASON_REJECTED_HIGH': 2, 'P2_REASO
-  stage_ids_docs_vs_orchestrator: True — stage IDs in ERROR_TAXONOMY <-> orchestrator stage_name_v2
-  snr_constants: True — NOISE_MODEL/PSF constants <-> noise_model.cpp
-  product_contracts: True — DATA_CONTRACTS products <-> aio_hips.h product flags
-  drizzle_variance_formula: True — DRIZZLE.md variance formula <-> drizzle_engine.h
-pass: True
+[----------] 4 tests from Phase2Integrate
+[ RUN      ] Phase2Integrate.WeightedMeanAndAllRejected
+[       OK ] Phase2Integrate.WeightedMeanAndAllRejected (0 ms)
+[ RUN      ] Phase2Integrate.V17NonFiniteWeightInvalid
+[       OK ] Phase2Integrate.V17NonFiniteWeightInvalid (0 ms)
+[ RUN      ] Phase2Integrate.V17NonFiniteSupportInvalid
+[       OK ] Phase2Integrate.V17NonFiniteSupportInvalid (0 ms)
+[ RUN      ] Phase2Integrate.V17StatusesExplicit
+[       OK ] Phase2Integrate.V17StatusesExplicit (0 ms)
+[----------] 4 tests from Phase2Integrate (0 ms total)
 
-Related gates already PASS:
-- C-02 noise_model 39/39 PASS (vm-bj direct g++ without GTest)
-- C-05 pipeline_frame 28/28 PASS (vm-bj direct)
+[----------] 28 tests from Phase2Reject
+[ RUN      ] Phase2Reject.R1SigmaClippingFindsOutliers
+[       OK ] Phase2Reject.R1SigmaClippingFindsOutliers (0 ms)
+[ RUN      ] Phase2Reject.R2MinSamples
+[       OK ] Phase2Reject.R2MinSamples (0 ms)
+[ RUN      ] Phase2Reject.LinearFitFindsOutlier
+[       OK ] Phase2Reject.LinearFitFindsOutlier (0 ms)
+[ RUN      ] Phase2Reject.RcrFindsOutlier
+[       OK ] Phase2Reject.RcrFindsOutlier (0 ms)
+[ RUN      ] Phase2Reject.G4SequentialRcrMask
+[       OK ] Phase2Reject.G4SequentialRcrMask (0 ms)
+[ RUN      ] Phase2Reject.G6EsdNistRosner54
+[ESD NIST] rejected=3 iterations=3
+[       OK ] Phase2Reject.G6EsdNistRosner54 (0 ms)
+[ RUN      ] Phase2Reject.G6EsdMaskingCase
+[       OK ] Phase2Reject.G6EsdMaskingCase (0 ms)
+[ RUN      ] Phase2Reject.G6WinsorizedDiffersFromSigma
+[Winsorized] sigma_rej=0 win_rej=1 differs=1
+[       OK ] Phase2Reject.G6WinsorizedDiffersFromSigma (0 ms)
+[ RUN      ] Phase2Reject.G6PermutationInvariance
+[       OK ] Phase2Reject.G6PermutationInvariance (1 ms)
+[ RUN      ] Phase2Reject.V15NoneDoesNotReacceptNaN
+[       OK ] Phase2Reject.V15NoneDoesNotReacceptNaN (0 ms)
+[ RUN      ] Phase2Reject.V15ValidFalseStaysRejected
+[       OK ] Phase2Reject.V15ValidFalseStaysRejected (0 ms)
+[ RUN      ] Phase2Reject.V15LowHighThresholdSemantics
+[       OK ] Phase2Reject.V15LowHighThresholdSemantics (0 ms)
+[ RUN      ] Phase2Reject.V15EsdSingleSqrtExactRosnerSet
+[       OK ] Phase2Reject.V15EsdSingleSqrtExactRosnerSet (0 ms)
+[ RUN      ] Phase2Reject.V15AutoPlanResolvesByNominal
+[       OK ] Phase2Reject.V15AutoPlanResolvesByNominal (0 ms)
+[ RUN      ] Phase2Reject.V15SatelliteN2Underdetermined
+[       OK ] Phase2Reject.V15SatelliteN2Underdetermined (0 ms)
+[ RUN      ] Phase2Reject.V15SatelliteTrail20Frames
+[       OK ] Phase2Reject.V15SatelliteTrail20Frames (0 ms)
+[ RUN      ] Phase2Reject.V15TypedPercentileParams
+[       OK ] Phase2Reject.V15TypedPercentileParams (0 ms)
+[ RUN      ] Phase2Reject.V15TypedMinmaxParams
+[       OK ] Phase2Reject.V15TypedMinmaxParams (0 ms)
+[ RUN      ] Phase2Reject.V16MinMaxFixedCountExact
+[       OK ] Phase2Reject.V16MinMaxFixedCountExact (0 ms)
+[ RUN      ] Phase2Reject.V15ExPermutationInvarianceTyped
+[       OK ] Phase2Reject.V15ExPermutationInvarianceTyped (0 ms)
+[ RUN      ] Phase2Reject.V16NormalizationTransparentAndNegativeSafe
+[       OK ] Phase2Reject.V16NormalizationTransparentAndNegativeSafe (0 ms)
+[ RUN      ] Phase2Reject.V16InvalidConfigurationCombos
+[       OK ] Phase2Reject.V16InvalidConfigurationCombos (0 ms)
+[ RUN      ] Phase2Reject.V16ProfileGroupVsAdaptive
+[       OK ] Phase2Reject.V16ProfileGroupVsAdaptive (0 ms)
+[ RUN      ] Phase2Reject.V17InvalidMethodStatus
+[       OK ] Phase2Reject.V17InvalidMethodStatus (0 ms)
+[ RUN      ] Phase2Reject.V17LargeScaleGrowsTrailNotCosmic
+[       OK ] Phase2Reject.V17LargeScaleGrowsTrailNotCosmic (0 ms)
+[ RUN      ] Phase2Reject.V17LargeScaleDisabledNoop
+[       OK ] Phase2Reject.V17LargeScaleDisabledNoop (0 ms)
+[ RUN      ] Phase2Reject.V17LargeScaleSparseNotGrown
+[       OK ] Phase2Reject.V17LargeScaleSparseNotGrown (0 ms)
+[ RUN      ] Phase2Reject.V17LargeScaleInvalidParams
+[       OK ] Phase2Reject.V17LargeScaleInvalidParams (0 ms)
+[----------] 28 tests from Phase2Reject (3 ms total)
 
-Verdict: C-04 synthetic_gate buildable on Windows/MSYS2 with GTest; vm-bj gate count 89 evidenced, SKIP due to env (no GTest/nlohmann), not code regression. Machine 9/9 PASS holds contracts (UPM ivar/rejection/integration/drizzle variance).
+[----------] 7 tests from Phase2Weight
+[ RUN      ] Phase2Weight.G5WeightTruthGate
+[weight] equal              bias=+0.7466 rmse=0.8104
+[weight] snr                bias=+0.0292 rmse=0.1990
+[weight] snr2               bias=+0.0005 rmse=0.2005
+[weight] support_x_snr2     bias=+0.0002 rmse=0.2005
+[weight] capped_snr2        bias=+0.0573 rmse=0.2022
+[weight] inverse_variance   bias=+0.1492 rmse=0.2412
+[weight] support_x_invvar   bias=+0.0860 rmse=0.2195
+[weight] ivar(UPM-calibrated) bias=-0.0008 var=0.0359 (opt 0.036, equal 0.1)
+[       OK ] Phase2Weight.G5WeightTruthGate (20 ms)
+[ RUN      ] Phase2Weight.UPMW001SnrInvariance
+[UPMW-001] snr/support 扰动 5 例权重不变: 0.250000
+[       OK ] Phase2Weight.UPMW001SnrInvariance (0 ms)
+[ RUN      ] Phase2Weight.UPMW002ControlIvarRatio
+[UPMW-002] ivar ratio 1:4 → weight 1.000000:4.000000
+[       OK ] Phase2Weight.UPMW002ControlIvarRatio (0 ms)
+[ RUN      ] Phase2Weight.UPMW003StarPopulationInvariance
+[UPMW-003] 3 星群权重不变: 0.500000
+[       OK ] Phase2Weight.UPMW003StarPopulationInvariance (0 ms)
+[ RUN      ] Phase2Weight.UPMW004MedianSeIndependentGaussianMc
+[UPMW-004] Var_emp=0.25053 predicted=0.25133 ratio=0.9968
+[       OK ] Phase2Weight.UPMW004MedianSeIndependentGaussianMc (132 ms)
+[ RUN      ] Phase2Weight.UPMW006MissingControlIvarExplicit
+[UPMW-006] missing control ivar → rc=2; legacy ablation 仍可用
+[       OK ] Phase2Weight.UPMW006MissingControlIvarExplicit (0 ms)
+[ RUN      ] Phase2Weight.UPMW007PatchEstimatorVsTruth
+[UPMW-007] Var_emp=0.15198 predicted=0.14579 ratio=1.0425
+[       OK ] Phase2Weight.UPMW007PatchEstimatorVsTruth (232 ms)
+[----------] 7 tests from Phase2Weight (385 ms total)
 
-Next: Full ctest matrix on Windows (C-01) will cover synthetic_gate execution.
+[----------] 5 tests from Phase2Acr
+[ RUN      ] Phase2Acr.LegacyLauncherEquivalent
+[       OK ] Phase2Acr.LegacyLauncherEquivalent (0 ms)
+[ RUN      ] Phase2Acr.CudaEquivalent
+lib/phase2/tests/synthetic_gate.cpp:3015: Skipped
+CUDA bridge 不可用
+
+[  SKIPPED ] Phase2Acr.CudaEquivalent (0 ms)
+[ RUN      ] Phase2Acr.CudaWeightedSupportEquivalent
+lib/phase2/tests/synthetic_gate.cpp:3059: Skipped
+CUDA bridge 不可用
+
+[  SKIPPED ] Phase2Acr.CudaWeightedSupportEquivalent (0 ms)
+[ RUN      ] Phase2Acr.G9CompactFrameSubset
+lib/phase2/tests/synthetic_gate.cpp:3136: Skipped
+CUDA bridge 不可用
+
+[  SKIPPED ] Phase2Acr.G9CompactFrameSubset (0 ms)
+[ RUN      ] Phase2Acr.G9WinsorizedCpuRoute
+lib/phase2/tests/synthetic_gate.cpp:3193: Skipped
+CUDA bridge 不可用
+
+[  SKIPPED ] Phase2Acr.G9WinsorizedCpuRoute (0 ms)
+[----------] 5 tests from Phase2Acr (0 ms total)
+
+[----------] 3 tests from Phase2Robust
+[ RUN      ] Phase2Robust.NanInputRejected
+[       OK ] Phase2Robust.NanInputRejected (0 ms)
+[ RUN      ] Phase2Robust.ZeroMemoryLimitUnfeasible
+[       OK ] Phase2Robust.ZeroMemoryLimitUnfeasible (0 ms)
+[ RUN      ] Phase2Robust.AllRejectedIntegrationHandled
+[       OK ] Phase2Robust.AllRejectedIntegrationHandled (0 ms)
+[----------] 3 tests from Phase2Robust (0 ms total)
+
+[----------] 2 tests from Phase2Coverage
+[ RUN      ] Phase2Coverage.RealHipsUnion
+lib/phase2/tests/synthetic_gate.cpp:3269: Skipped
+真实 HiPS 输入不存在
+
+[  SKIPPED ] Phase2Coverage.RealHipsUnion (0 ms)
+[ RUN      ] Phase2Coverage.FilterMismatchRejected
+lib/phase2/tests/synthetic_gate.cpp:3305: Skipped
+真实 HiPS 输入不存在
+
+[  SKIPPED ] Phase2Coverage.FilterMismatchRejected (0 ms)
+[----------] 2 tests from Phase2Coverage (0 ms total)
+
+[----------] 3 tests from Phase2Sampler
+[ RUN      ] Phase2Sampler.RealHipsControlSampling
+lib/phase2/tests/synthetic_gate.cpp:3318: Skipped
+真实 HiPS 输入不存在
+
+[  SKIPPED ] Phase2Sampler.RealHipsControlSampling (0 ms)
+[ RUN      ] Phase2Sampler.G6LocalSnrAvailabilityThreeZones
+lib/phase2/tests/synthetic_gate.cpp:3371: Skipped
+真实 HiPS 输入不存在
+
+[  SKIPPED ] Phase2Sampler.G6LocalSnrAvailabilityThreeZones (4 ms)
+[ RUN      ] Phase2Sampler.G1StatisticsCorrectness
+[       OK ] Phase2Sampler.G1StatisticsCorrectness (0 ms)
+[----------] 3 tests from Phase2Sampler (4 ms total)
+
+[----------] 2 tests from Phase2Identity
+[ RUN      ] Phase2Identity.G3StableFrameIdentity
+lib/phase2/tests/synthetic_gate.cpp:3520: Skipped
+真实 HiPS 输入不存在
+
+[  SKIPPED ] Phase2Identity.G3StableFrameIdentity (0 ms)
+[ RUN      ] Phase2Identity.G3ManifestOrderCanonical
+lib/phase2/tests/synthetic_gate.cpp:3629: Skipped
+真实 HiPS 输入不存在
+
+[  SKIPPED ] Phase2Identity.G3ManifestOrderCanonical (0 ms)
+[----------] 2 tests from Phase2Identity (0 ms total)
+
+[----------] 1 test from Phase2Wiring
+[ RUN      ] Phase2Wiring.G1ProductionWiringTruth
+[G1-wiring] support0=2493.77 support2=399.002 floorA=3990.02 floorB=997.506 q_good=100 q_unk=50 q_bad=10 q_rej=0 geom_invariant=1
+[       OK ] Phase2Wiring.G1ProductionWiringTruth (0 ms)
+[----------] 1 test from Phase2Wiring (0 ms total)
+
+[----------] 2 tests from Phase2Eligibility
+[ RUN      ] Phase2Eligibility.V15FilterAllPolicies
+[       OK ] Phase2Eligibility.V15FilterAllPolicies (0 ms)
+[ RUN      ] Phase2Eligibility.V16GatherStridedFp32Fp64
+[       OK ] Phase2Eligibility.V16GatherStridedFp32Fp64 (0 ms)
+[----------] 2 tests from Phase2Eligibility (0 ms total)
+
+[----------] 3 tests from Phase2Config
+[ RUN      ] Phase2Config.V15RejectionTypedParseAndDefaultAuto
+[       OK ] Phase2Config.V15RejectionTypedParseAndDefaultAuto (0 ms)
+[ RUN      ] Phase2Config.V16RejectionNormalizationValidation
+[       OK ] Phase2Config.V16RejectionNormalizationValidation (0 ms)
+[ RUN      ] Phase2Config.V17LargeScaleParseAndDefaults
+[       OK ] Phase2Config.V17LargeScaleParseAndDefaults (0 ms)
+[----------] 3 tests from Phase2Config (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 89 tests from 13 test suites ran. (35724 ms total)
+[  PASSED  ] 79 tests.
+[  SKIPPED ] 10 tests, listed below:
+[  SKIPPED ] Phase2Acr.CudaEquivalent
+[  SKIPPED ] Phase2Acr.CudaWeightedSupportEquivalent
+[  SKIPPED ] Phase2Acr.G9CompactFrameSubset
+[  SKIPPED ] Phase2Acr.G9WinsorizedCpuRoute
+[  SKIPPED ] Phase2Coverage.RealHipsUnion
+[  SKIPPED ] Phase2Coverage.FilterMismatchRejected
+[  SKIPPED ] Phase2Sampler.RealHipsControlSampling
+[  SKIPPED ] Phase2Sampler.G6LocalSnrAvailabilityThreeZones
+[  SKIPPED ] Phase2Identity.G3StableFrameIdentity
+[  SKIPPED ] Phase2Identity.G3ManifestOrderCanonical

@@ -3012,7 +3012,7 @@ TEST(Phase2Acr, CudaEquivalent) {
 
     namespace bridge = astro::compute::cuda::bridge;
     bridge::ensure_bridge_loaded();
-    ASSERT_TRUE(bridge::api().loaded());
+    if (!bridge::api().loaded()) GTEST_SKIP() << "CUDA bridge 不可用";
     const char* err = nullptr;
     void* exec = bridge::api().executor_create(0, 1u << 20, 1u << 16, &err);
     ASSERT_NE(exec, nullptr) << (err ? err : "executor_create failed");
@@ -3777,9 +3777,8 @@ TEST(Phase2Wiring, G1ProductionWiringTruth) {
     p2_upm_close(m1);
 
     // 7. machine-readable weight diagnostics
-    std::ofstream wf(
-        "F:/Astro dev/Astro CS Normalization Database/run/phase2/wiring/"
-        "weight_diagnostics.json");
+    std::filesystem::create_directories("run/phase2/wiring");
+    std::ofstream wf("run/phase2/wiring/weight_diagnostics.json");
     ASSERT_TRUE(wf.good());
     nlohmann::json diag;
     diag["support_power_0"] = w0;
