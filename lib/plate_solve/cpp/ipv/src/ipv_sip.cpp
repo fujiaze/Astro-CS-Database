@@ -91,7 +91,7 @@ static inline double basis_value(const SipBasisIndex& idx, double x, double y) {
 // ---------------------------------------------------------------------------
 static bool gaussian_solve(std::vector<double>& A, int K, std::vector<double>& x) {
     // A 是 K 行, 每行 K+1 列 (增广)
-    const double PIVOT_EPS = 1e-12;
+    const double PIVOT_EPS = 1e-12; // 奇异判定阈值 (PLATESOLVE.md 数值风险)
 
     for (int col = 0; col < K; ++col) {
         // 列主元: 找当前列绝对值最大的行
@@ -404,8 +404,8 @@ SIPCoeffs fit_sip(
     std::vector<double> w_a, w_b;
     std::vector<double> r_a, r_b;
 
-    const int    IRLS_MAX_ITER  = 15;
-    const double IRLS_CONV_EPS  = 1e-6;
+    const int    IRLS_MAX_ITER  = 15;   // IRLS 上限 (PLATESOLVE.md 数值风险)
+    const double IRLS_CONV_EPS  = 1e-6; // IRLS 收敛 ε (PLATESOLVE.md 数值风险)
 
     bool ok_a = irls_huber_fit(X, rx_arr, K, n,
                                 IRLS_MAX_ITER, IRLS_CONV_EPS,

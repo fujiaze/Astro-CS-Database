@@ -38,7 +38,7 @@ OpenMP 按 tile/块并行；拟合局部。
 
 ## 数值风险
 
-拟合退化（平坦星）/饱和；MAD 为 0。
+拟合退化（平坦星）/饱和；MAD 为 0；数值守卫见 lib/dynamic_psf/src/dpsf_psf.h 头锚点与 lib/dynamic_psf/src/dpsf_psf.cpp:45,71-74,89-91,114,169-170,326,333-344，契约见 docs/science/PSF.md。
 
 ## fast/reference/oracle
 
