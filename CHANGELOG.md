@@ -1,5 +1,10 @@
 # AstroCS Changelog
 
+## [V19R8] 2026-08-22 — Quality Closure B4 28/28 + B5 docs (76/95 DONE)
+- B4 28/28 DONE: calibration/plate_solve/gaia/dynamic_psf/photometric/snr/drizzle/orchestrator/phase2 全锚点 + machine 9/9 + push闭环
+- B5 6/8 DONE: PROJECT_STATE/CURRENT_TASK/DECISION/RISK/MASTER+TARC/TRAC 75/RELEASE 7件套同步 V19R8 S0-S6 (B4 gate+TRAC 75)
+- TRAC 63→75 rows, `MASTER_TASK_REGISTER QA-V19R8-S3-11` 追加
+
 ## [V19R2] 2026-08-15 — Pre-Release Traceable Foundation
 
 ### PR#1 UPM 持久化绑定（SCI-UPM-PERSIST-001 门禁）
