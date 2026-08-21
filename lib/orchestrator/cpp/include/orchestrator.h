@@ -7,6 +7,8 @@
 // 设计说明:
 // 本类统一调度各 C++ DLL 模块：run_stage_* 经 DllLoader 动态加载模块
 // 并执行真实流水线（生产入口见 cli_command.cpp / orchestrator.cpp）。
+// [B4-24 C++17/C ABI/错误码 契约锚点 — 不改语义仅文档化]:
+// C++17 (CODE_STANDARD §MUST: MSYS2 MinGW64 g++16.1 -std=c++17, 见 Makefile CXXFLAGS): 本头仅用 C++17 std::filesystem(经 orchestrator.cpp)+RAII(unique_ptr)/atomic/mutex/chrono，未用 optional/variant/string_view/if constexpr 等 — 合规；C ABI 边界清: 类不跨 DLL, 全部模块调用经 DllLoader::get_function 纯 C ABI(extern "C", POD/指针/整型, 禁止异常跨界, 单出口), 见 dll_loader.h/C_ABI_STANDARD；错误码与 docs/architecture/ERROR_MODEL.md 全集合一致(AstroCsExitCode 0-10进程码+20-28 numeric_code+100预留, TIMEOUT=9/CANCELLED=10), 由 tools/docs_machine_consistency.py error_taxonomy 全集合校验。
 // ============================================================================
 
 #pragma once
