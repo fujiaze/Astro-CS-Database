@@ -39,7 +39,7 @@ ZERO_VALID_WEIGHT（显式且互斥）。
 
 ## 数值精度
 
-FP64；加权求和顺序固定（确定性）。
+FP64；加权求和顺序固定（确定性）。零权重合法但不贡献 `w==0 continue`（`integrate.cpp:48`），与 `ZERO_VALID_WEIGHT` 区分见 65-66 行。
 
 ## 参考文献
 
