@@ -2,6 +2,9 @@
 //
 // 容器层：稀疏 JSON 原子写/读 + 稠密缓存（固定头部 + 二进制块 + checksum）。
 // 科学语义不在此层（phase2 负责）；本层保证"所有科学模型 I/O 走唯一 AIO"。
+// 持久化契约锚点 SCI-UPM-PERSIST-001/ALG-UPM-FRAME-BIND-001/DATA-UPM-MODEL-001：
+// sparse 模型权威形态经 aio_upm_write_sparse 原子持久化→aio_upm_open 重开，
+// frame_id→theta 绑定由 phase2 层 save/open 显式 frames[]保证，容器不重排。
 #include "aio_upm.h"
 
 #include "crypto/sha256.h"
