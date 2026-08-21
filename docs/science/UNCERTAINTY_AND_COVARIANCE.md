@@ -7,7 +7,7 @@
 ## 逐像素方差
 
 - 输入方差：NoiseWeightModelV1（空背景稳健方差，SCI-NOISE-001..015）；
-- Drizzle 传播：var_p = Σ v_j w_jp² / D_p²（SCI-DRZ-014）；
+- Drizzle 传播：var_p = Σ v_j w_jp² / D_p²（SCI-DRZ-014）；与 `lib/snr_estimator` 的 `snr_noise_scale_law`（`x′=α·x → Var′=α²·Var, ivar′=ivar/α²`，SCI-NOISE-002）同源互引——Drizzle 归一化权重求和即该缩放律的加权形式；
 - 产品：HiPS variance + ivar（1/variance）。
 
 ## 协方差（重要边界）
@@ -23,11 +23,13 @@ nside=512 合成帧相邻像素 mean|ρ|≈0.19、max|ρ|≈0.57。
 
 ## 对使用的约束
 
-- pixel variance ≠ aperture variance；
+- pixel variance ≠ aperture variance（**aperture variance 未建模**：V19 仅提供逐像素方差/ivar，未对 aperture 求和建模协方差；aperture 误差须显式加入 `Cov` 项，量化见 SNR-012——nside=512 mean|ρ|≈0.19、max|ρ|≈0.57）；
 - 下游科学（如光度测量）如需 aperture 误差须显式考虑 pixfrac/resampling
   协方差；ivar 权重默认只用于逐像素最优组合。
 
 ## V19R3 control estimator 方差（ALG-UPM-CONTROL-IVAR-001）
+
+(本节公式隶属Phase2 UPM/ALG-UPM-CONTROL-IVAR-001，不属于lib/snr_estimator的NoiseWeightModelV1；后者仅提供σ_bg，经sampler阶段乘k_corr=N_eff缩放)
 
 UPM 的 control estimator 是 background-clean patch **median**，其方差
 不是单 leaf 像素方差：
