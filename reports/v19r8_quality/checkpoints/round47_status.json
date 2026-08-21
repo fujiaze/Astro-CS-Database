@@ -1,0 +1,16 @@
+{
+  "round": 47,
+  "head": "6854266 chore(checkpoint): round44 67/95 B4-26/27 running [R44]",
+  "done": 67,
+  "todo": 28,
+  "machine_pass": true,
+  "b4_todo_head": [
+    "QA-V19R7-B4-26",
+    "QA-V19R7-B4-27",
+    "QA-V19R7-B4-28"
+  ],
+  "running": [
+    "B4-26",
+    "B4-27"
+  ]
+}
