@@ -58,5 +58,5 @@ Fruchter & Hook (2002)；Zackay & Ofek (2017)；IVOA HiPS 规范。
 
 ## ID
 
-SCI-CAL-* / SCI-AST-* / SCI-PHOT-* / SCI-PSF-* / SCI-NOISE-* /
-SCI-DRZ-* / SCI-UPM-* / SCI-REJ-* / SCI-INT-*。
+SCI-SCOPE-001（本文件范围/假设/失效域入口）；SCI-CAL-* / SCI-AST-* / SCI-PHOT-* / SCI-PSF-* / SCI-NOISE-* /
+SCI-DRZ-* / SCI-UPM-* / SCI-REJ-* / SCI-INT-*。 # B5-06 同步在 TRACEABILITY.csv 增 SCI-SCOPE-001 行（doc=SCIENCE_SCOPE.md, status=VERIFIED）但本任务不改csv，仅文档。
