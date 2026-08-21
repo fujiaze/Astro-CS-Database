@@ -2765,7 +2765,7 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
         fn_remove_block(frame_, "data");
         int dims[2] = {height, width};
         int r = fn_add_block_move(frame_, "data", AIO_BLOCK_FLOAT64,
-                                  out_pixels_f64, n_pix * (int64_t)sizeof(double), dims, 2,
+                                  out_pixels_f64, n_pix, dims, 2,
                                   "测光标定后像素 FP64 (I_cal = I * scale)");
         if (r != 0) {
             LOG_ERROR("orchestrator", "[PHOTOMETRIC] 更新 data 块(FP64)失败: ret=" + std::to_string(r));

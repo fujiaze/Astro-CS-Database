@@ -122,6 +122,10 @@ CC_EXPORT long long cc_correct_median(
         set_error("cc_correct_median: window 必须为奇数且 >= 3");
         return -1;
     }
+    if (window > 15) {
+        set_error("cc_correct_median: window exceeds 15");
+        return -1;
+    }
 
     int N = H * W;
 

@@ -365,6 +365,7 @@ static void block_cache_insert(BlockCache *bc, uint64_t block_offset,
             }
             /* 大小不同, 替换 */
             free(bc->entries[i].data);
+            bc->entries[i].data = NULL;
             uint8_t *copy = (uint8_t *)malloc(data_size);
             if (!copy) {
                 bc->total_memory -= bc->entries[i].data_size;
@@ -1046,11 +1047,23 @@ static void collector_free(StarCollector *sc) {
 
 static void spec_collector_init(SpectrumStarCollector *sc, int capacity, int spectrum_count) {
     sc->stars = (SpectrumStar *)malloc(capacity * sizeof(SpectrumStar));
-    sc->spectra = (uint8_t *)malloc((size_t)capacity * spectrum_count);
+    if (spectrum_count > 0) {
+        sc->spectra = (uint8_t *)malloc((size_t)capacity * spectrum_count);
+    } else {
+        sc->spectra = NULL;
+    }
     sc->count = 0;
-    /* V18R3: 任一组缓冲分配失败即视为 0 容量，push 时经 realloc 路径自愈 */
-    sc->capacity = (sc->stars && (sc->spectra || spectrum_count == 0)) ? capacity : 0;
     sc->spectrum_count = spectrum_count;
+    /* W1-GAIA-001: count==0 means empty ownership -> spectra=NULL, no malloc(0) dependency */
+    if (spectrum_count == 0) {
+        sc->capacity = sc->stars ? capacity : 0;
+    } else {
+        sc->capacity = (sc->stars && sc->spectra) ? capacity : 0;
+        if (sc->capacity == 0) {
+            free(sc->stars); sc->stars = NULL;
+            free(sc->spectra); sc->spectra = NULL;
+        }
+    }
 }
 
 static void spec_collector_free(SpectrumStarCollector *sc) {
@@ -1067,19 +1080,15 @@ static void spec_collector_push(SpectrumStarCollector *sc, double ra, double dec
     if (sc->count >= sc->capacity) {
         int new_cap = sc->capacity * 2;
         if (new_cap == 0) new_cap = 16;
-        /* V18R3: 两数组先分配成功再同时提交，避免部分成功状态
-         * （stars 已扩而 spectra 未扩 → 后续写越界） */
         SpectrumStar *new_stars = (SpectrumStar *)realloc(sc->stars, (size_t)new_cap * sizeof(SpectrumStar));
         if (!new_stars) return;
-        uint8_t *new_spectra = (uint8_t *)realloc(sc->spectra, (size_t)new_cap * sc->spectrum_count);
-        if (!new_spectra) {
-            free(new_stars);
-            free(sc->spectra);  /* realloc 失败时旧块仍有效，必须释放 */
-            sc->stars = NULL;
-            sc->spectra = NULL;
-            sc->count = 0;
-            sc->capacity = 0;
-            return;
+        uint8_t *new_spectra = NULL;
+        if (sc->spectrum_count > 0) {
+            new_spectra = (uint8_t *)realloc(sc->spectra, (size_t)new_cap * sc->spectrum_count);
+            if (!new_spectra) {
+                free(new_stars);
+                return;
+            }
         }
         sc->stars = new_stars;
         sc->spectra = new_spectra;

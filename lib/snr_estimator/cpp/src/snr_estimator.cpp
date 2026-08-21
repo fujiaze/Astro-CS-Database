@@ -378,7 +378,9 @@ SNR_API int snr_estimate_f64(const double* data, int h, int w,
 // 公式: result = Σ_{i+j<=order} coeffs[i*6+j] * dx^i * dy^j
 // ============================================================================
 static double snrEvalSip(const double* coeffs, double dx, double dy, int order) {
-    if (order <= 0) return 0.0;
+    if (order < 0 || order > SNR_SIP_MAX_ORDER) return 0.0;
+    if (!coeffs) return 0.0;
+    if (order == 0) return 0.0;
     double result = 0.0;
     // dx^i 缓存
     double px[SNR_SIP_MAX_ORDER + 1];
@@ -418,13 +420,17 @@ static void pixelToSkySimple(double x, double y,
     double dx = x - (wcs->crpix1 - 1.0);
     double dy = y - (wcs->crpix2 - 1.0);
 
-    // 2. 前向 SIP 修正 (A/B), 若 a_order>0
-    // FITS 标准: A/B 是前向多项式, U = dx + A(dx,dy), V = dy + B(dx,dy)
+    // 2. 前向 SIP 修正 (A/B), 若 a_order>0 -- W1-NOISE-001: order must be 0..SNR_SIP_MAX_ORDER
     if (wcs->sip.a_order > 0 || wcs->sip.b_order > 0) {
-        double f = snrEvalSip(wcs->sip.a, dx, dy, wcs->sip.a_order);
-        double g = snrEvalSip(wcs->sip.b, dx, dy, wcs->sip.b_order);
-        dx += f;
-        dy += g;
+        if (wcs->sip.a_order < 0 || wcs->sip.a_order > SNR_SIP_MAX_ORDER ||
+            wcs->sip.b_order < 0 || wcs->sip.b_order > SNR_SIP_MAX_ORDER) {
+            // out-of-range SIP order: skip SIP correction (degrade to CD+TAN) instead of OOB
+        } else {
+            double f = snrEvalSip(wcs->sip.a, dx, dy, wcs->sip.a_order);
+            double g = snrEvalSip(wcs->sip.b, dx, dy, wcs->sip.b_order);
+            dx += f;
+            dy += g;
+        }
     }
 
     // 3. CD 矩阵: 像素 → 中间世界坐标 (度)
