@@ -98,7 +98,8 @@ typedef struct {
 #define AIO_CAP_ALLOCATOR    0x00000004u
 #define AIO_CAP_FP64         0x00000008u
 
-/* 旧版 PipelineStageFn 已废弃，保留别名以兼容 */
+/* 旧版 PipelineStageFn 已废弃，保留别名以兼容；error_msg/error_capacity 契约：error_msg 可为 NULL，
+ * error_capacity>0 时保证 NUL 终止、超长截断；input/output/params 均为 const 语义（output 仅通过块 API 写入） */
 typedef int (*PipelineStageFn)(const PipelineFrame* input, PipelineFrame* output, const void* params, char* error_msg, int error_capacity);
 
 /* ===========================================================================
@@ -129,10 +130,10 @@ AIO_EXPORT int aio_frame_add_block(PipelineFrame* frame,
     const int* dims, int n_dims,
     const char* description);
 
-/* 添加块（转移数据所有权，frame 接管释放）
+/* 添加块（move 语义：转移数据所有权，frame 接管释放；成功后调用方不得再释放/使用 data）
  * data 必须是 aio_alloc() 分配的 (不能用 new[] 或跨 CRT malloc)，
  * frame 用 aio_free() 释放; 未知 type / 负 count / 非法 dims 在接管前拒绝
- * 返回: 0=成功, 非0=失败 */
+ * 返回: 0=成功(move 完成), 非0=失败(所有权未转移, 调用方仍需自行释放) */
 AIO_EXPORT int aio_frame_add_block_move(PipelineFrame* frame,
     const char* name, AioBlockType type,
     void* data, int64_t count,
