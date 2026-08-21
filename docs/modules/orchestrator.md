@@ -52,3 +52,7 @@ stage1 JSON schema（configs/stage1.schema.json）。
 ## Source files
 
 lib/orchestrator/cpp/。
+
+## 构建/契约锚点
+
+C++17 (`-std=c++17`, 见 `lib/orchestrator/cpp/Makefile:CXXFLAGS`)；C ABI 经 `DllLoader` 纯 C 调用（`docs/standards/C_ABI_STANDARD.md`）；退出码与 `docs/architecture/ERROR_MODEL.md` 全集合一致（`tools/docs_machine_consistency.py` 校验）[B4-24]。
