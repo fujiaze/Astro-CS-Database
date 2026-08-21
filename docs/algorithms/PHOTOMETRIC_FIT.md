@@ -16,7 +16,7 @@ PhotometricCalibrationQuality：sigma_mag / sigma_cal_rel / 零点。
 
 ## Postconditions
 
-残差 r=log10(F_instr/F_syn)；稳健 MAD 尺度。
+残差 r=log10(F_instr/F_syn)；IRLS_Tukey(c=4.685, max_iter=50, tol=1e-6), Tukey 权重 w=(1-u²)²（|u|≥1 时 w=0, u=(r-location)/(c·S)）, S=MAD(r)/0.6745；sigma_residual=MAD(r_inliers)/0.6745 隔离（r_inliers={i|w_i>0} 为 Tukey 内点集，QA/systematic metadata，不进 ivar）（`lib/photometric_calib/cpp/src/star_matcher.cpp:21,478-525`）。
 
 ## Invariants
 
