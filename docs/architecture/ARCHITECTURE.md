@@ -31,6 +31,7 @@ orchestrator / stage2 CLI / browser        (应用层)
 - lib/ 是唯一源码目录；run/ 是唯一运行输出目录；testdata/ 只读。
 - 科学语义唯一实现（oracle/reference 并存，禁止重复 active science path）。
 - I/O 唯一入口 astro_image_io（含 UPM 模型文件容器 aio_upm）。
+- common 权威：healpix_core 为 HEALPix NESTED 唯一实现（B4-01 去重为单源，drizzle 转依赖 lib/common/healpix，另一份 deprecated shim + 机器门禁，见 HEALPIX_MAPPING.md）、crypto/sha256 为 DATA-FRAME-ID-001 唯一实现。
 - 正式运行入口只有 orchestrator.exe（Phase1）与 astrocs-stage2（Phase2）。
 
 ## 模块地图
