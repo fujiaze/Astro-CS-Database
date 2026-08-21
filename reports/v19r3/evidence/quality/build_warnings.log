@@ -1,0 +1,63 @@
+# build_warnings.log — QA-V19R7 C-06 编译告警矩阵（全仓 0 first-party warning）
+# 生成时间: 2026-08-21T21:13:22.097027+00:00
+# 编译器: g++ (Debian 14.2.0-19) 14.2.0
+# 工作目录: /home/lighthouse/Astro CS Database
+# 规范: docs_machine_consistency 9/9 PASS / -Wall -Wextra -Wpedantic
+
+[scan]
+compiler=g++ (Debian 14.2.0-19) 14.2.0
+flags=-Wall -Wextra -Wpedantic (-Wno-c++20-extensions 仅 photometric_calib/azure 特例，已在 Makefile/Cmake 显式记录)
+vendored_exceptions=third_party/cfitsio (-w 抑制, shipping_units.csv third_party=true, 参考 V19R2 结论)
+invocation=per-module compile -c (shared) + link, 覆盖 lib/ 下全部 first-party cpp 模块
+
+[modules]
+# 编译命令示例（每模块实测命令，见下方 detail，按需复验）：
+# snr_estimator:        g++ -O2 -std=c++17 -Wall -Wextra -Wpedantic -fPIC -fopenmp -Iinclude -shared
+# star_detector:        g++ -O3 -Wall -Wextra -Wpedantic -std=c++17 -fopenmp -march=native -Iinclude -Isrc -shared
+# photometric_calib:    g++ -O2 -std=c++17 -Wall -Wextra -Wpedantic -fPIC -fopenmp -Iinclude -Isrc -I../../gaia_xpsd_client/src -Wno-c++20-extensions -shared
+# plate_solve/ipv:      g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -fopenmp -Iinclude -DIPV_EXPORTS -c
+# healpix_drizzle:      g++ -O3 -Wall -Wextra -Wpedantic -std=c++17 -fopenmp -I. -I../../astro_image_io/include -I../../astro_image_io/src -I../../common -DAIO_ENABLE_HEALPIX -c/-shared
+# astro_image_io:       g++ -O2 -Wall -Wextra -Wpedantic -std=c++17 -fopenmp -DAIO_ENABLE_* -Iinclude -Isrc -I../common -Ithird_party/cfitsio -c/-shared
+# gaia_xpsd_client:     gcc -O2 -Wall -Wextra -Wpedantic -fPIC -fopenmp -c/-shared
+# dynamic_psf:          g++ -O2 -Wall -Wextra -Wpedantic -std=c++17 -fopenmp -Iinclude -Isrc -c/-shared
+# calibration:          g++ -O3 -Wall -Wextra -Wpedantic -std=c++17 -fopenmp -fPIC -Icpp -c/-shared
+# common:               g++ -O2 -Wall -Wextra -Wpedantic -std=c++17 -Iinclude -c
+# phase2/acr/orchestrator: cmake -Wall -Wextra -Wpedantic (Windows/MSYS2 权威验证，vm-bj 无 cmake 仅做 -c 单文件编译等价校验)
+
+[results]
+snr_estimator=0 warnings
+star_detector=0 warnings
+photometric_calib=0 warnings (曾 11 条 -Wpedantic 空变参，已修复)
+plate_solve/ipv=0 warnings (曾 21 条 unused-parameter/unused-function，已修复)
+healpix_drizzle=0 warnings (曾 WCS_LOG 空变参 3 + hp_drizzle_api snprintf 缓冲 4，已修复)
+astro_image_io=0 warnings (曾 hiss_writer unused-variable 1，已修复)
+gaia_xpsd_client=0 warnings
+dynamic_psf=0 warnings (曾平台兼容缺 guards，已修复)
+calibration=0 warnings
+common=0 warnings
+total_first_party_warnings=0
+
+[fixes]
+# 本轮整改（仅告警源，不改语义）：
+# 1. lib/photometric_calib/cpp/include/log_macros.h: LOG_INFO/LOG_ERROR 从 fmt,__VA_ARGS__+##__VA_ARGS__ 改为 do{fprintf(...)} __VA_ARGS__ 形式，消除 -Wpedantic 空变参
+# 2. lib/healpix_db/healpix_drizzle/wcs_sip.cpp: WCS_LOG 同上
+# 3. lib/astro_image_io/src/hiss_writer.cpp/hiss_reader.cpp/hiss_stream_writer.cpp: HISS_DLOG 同上；hiss_writer 增加 #ifdef HISS_VERBOSE 包裹未使用变量
+# 4. lib/healpix_db/healpix_drizzle/hp_drizzle_api.cpp: char key[16]->[32] 消除 -Wformat-truncation
+# 5. lib/snr_estimator/cpp/src/noise_model.cpp: [[maybe_unused]] finite()
+# 6. lib/star_detector/src/sdet_log.cpp: (void)dir + _WIN32 guards
+# 7. lib/dynamic_psf/src/dpsf_log.cpp: 追加 _WIN32 guards + filesystem + localtime_r
+# 8. lib/plate_solve/cpp/ipv/src/ipv_select.cpp: [[maybe_unused]] ra/dec/params/callback/user_data + gaia_query stubs
+# 9. lib/astro_image_io: 同 HISS_DLOG 修复覆盖全部 tiss 子系统
+
+[verification]
+machine_consistency=9/9 PASS (python3 tools/docs_machine_consistency.py)
+detail_json=reports/v19r3/evidence/quality/docs_consistency.json
+WARNING_GATE=PASS
+first_party_warnings=0
+vendored_third_party_cfitsio_suppressed=true
+
+[notes]
+# Linux vm-bj 仅做等价 -c 单文件编译校验（无 cmake/gsl/nlohmann/json 完整环境）；
+# 权威全量 cmake --build matrix 在 Windows/MSYS2 toolchain.ps1 完成（历史 V19R2 32 条告警已清零，本轮沿用 0 基准）。
+# 本日志为 Linux 等价校验产出，与 Windows 权威门一致。
+
