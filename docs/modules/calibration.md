@@ -30,7 +30,7 @@ OpenMP parallel-for 像素块；母版只读。
 
 ## Errors
 
-母版缺失/不匹配 → CONFIG/NO_DATA；除零 → NUMERIC。
+AC_ERR_PARAM(-1)/AC_ERR_MEMORY(-2)/AC_ERR_INTERNAL(-3)（`astro_calibration.h:22-24`）；母版缺失/滤镜不匹配 → orchestrator 层 CONFIG/NO_DATA；flat 缺失/损坏/异常小值不显式拒绝：flat_norm=max(median=1.0,0.1) 静默 clamp（见 CALIBRATION.md 失效条件，与 calibrator.cpp:90,120,164 一致）；窗口 window 偶数/<3/>15 → -1。
 
 ## Config
 
