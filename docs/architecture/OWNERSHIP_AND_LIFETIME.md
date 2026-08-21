@@ -14,7 +14,8 @@
 ## 已知审计点
 
 - p2_upm_open 失败路径已统一 delete（V19R2 PR#1 门禁修复）。
-- dense cache 句柄 AioUpmDense 单出口释放（unique_ptr guard）。
+- dense cache 句柄 AioUpmDense 单出口释放（unique_ptr guard，见 lib/astro_image_io/src/aio_upm.cpp:~448 unique_ptr guard；实现 lib/astro_image_io/src/aio_upm.cpp:283 std::unique_ptr<AioUpmDense> guard(d) 单出口释放）。
+- aio_upm_read_all_dynamic 返回 delete[] 由调用方负责（lib/astro_image_io/include/aio_upm.h:61；实现 lib/astro_image_io/src/aio_upm.cpp:163 new char[]）。
 
 ## 契约
 
