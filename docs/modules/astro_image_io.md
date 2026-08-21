@@ -24,6 +24,11 @@ aio_upm/aio_compressor/aio_pipeline）；API-AIO-001..（S2 注册）。
 
 FITS 标准 + IVOA HiPS；HiPS tile 语义：signal/support/variance/ivar
 （DATA-HIPS-SIGNAL-001 等，S2 注册）；UPM sparse format astrocs-upm-v2。
+HiPS 精度：`AioHipsDataType` 枚举 `AIO_HIPS_FLOAT32=0` / `AIO_HIPS_FLOAT64=1`
+（`lib/astro_image_io/include/aio_hips.h:46-49`）透传至 `aio_hips_product_begin`
+`data_type`，写盘 `BITPIX -32/-64` 对应 `CFITSIO TFLOAT/TDOUBLE`
+（`src/hips/aio_hips_writer.cpp:222-225`）；科学精度优先 FP64 reference，FP32
+仅显式等价路径（见 `docs/architecture/PERFORMANCE_MODEL.md`）。
 
 ## Ownership
 
@@ -61,7 +66,9 @@ SCI-DRZ-014/016（产品语义）；DATA-HIPS-*。
 ## Tests/oracles
 
 hiss_correctness、pipeline_frame_contract、checksum、drizzle_integration、
-fuzz/sanitize driver；Python oracle（hips_mapping_oracle）。
+fuzz/sanitize driver；Python oracle（hips_mapping_oracle）；
+`test_precision_dual.cpp` 覆盖 FP64 精度 oracle（DATA_TYPE FLOAT32/FLOAT64
+双模式：precision_mode/signal_dtype 元数据与 `astrocs_signal_dtype` 一致性）。
 
 ## Known limitations
 
