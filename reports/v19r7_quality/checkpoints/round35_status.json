@@ -1,0 +1,13 @@
+{
+  "round": 35,
+  "head": "3eba7f2 chore(qa): mark B4-02 DONE [QA-V19R7-B4]",
+  "done": 43,
+  "todo": 52,
+  "todo_head": [
+    "QA-V19R7-B4-01",
+    "QA-V19R7-B4-03",
+    "QA-V19R7-B4-04",
+    "QA-V19R7-B4-05",
+    "QA-V19R7-B4-06"
+  ]
+}
