@@ -18,7 +18,26 @@ import shutil
 import subprocess
 import zipfile
 
-ROOT = r"F:\Astro dev\Astro CS Normalization Database"
+def _deduce_root() -> str:
+    # auto-deduce project root: walk up until docs/ and lib/ found (Linux-portable)
+    try:
+        p = os.path.abspath(__file__)
+        cur = os.path.dirname(p)
+        for _ in range(5):
+            if os.path.isdir(os.path.join(cur, "docs")) and os.path.isdir(os.path.join(cur, "lib")):
+                return cur
+            parent = os.path.dirname(cur)
+            if parent == cur:
+                break
+            cur = parent
+    except Exception:
+        pass
+    cwd = os.getcwd()
+    if os.path.isdir(os.path.join(cwd, "docs")) and os.path.isdir(os.path.join(cwd, "lib")):
+        return cwd
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+ROOT = _deduce_root()
 REV = os.path.join(ROOT, "reports", "v19r4")
 PKG_NAME = "AstroCS_Review_ProductionWiringClosure_V19R4"
 PKG = os.path.join(ROOT, PKG_NAME + ".zip")
