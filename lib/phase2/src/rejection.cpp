@@ -5,6 +5,11 @@
 // - 首版实现：None、Sigma、WinsorizedSigma（确定性，Oracle 对照）；
 // - AveragedSigma/LinearFit/ESD/RCR 接口冻结，后续子任务按论文/Oracle 独立实现；
 // - 输出 accepted mask + low/high 计数 + 迭代数 + status。
+// - 排异阈值/迭代冻结锚点 SCI-REJ-*/ALG-REJ-001..008：
+//   sigma/winsorized/averaged 4.0/3.0/8、linear_fit 5.0/3.5/8、ESD alpha 0.05/max 10、
+//   percentile 0.2/0.1、minmax 1/1/4 等与 docs/science/REJECTION.md、
+//   docs/algorithms/REJECTION_ALGORITHMS.md 一致（见本文件 p2_reject_plan_resolve）；
+//   本文件为阈值/迭代权威实现，禁止阈值漂移。
 #include "astro/phase2/rejection.h"
 
 #include <algorithm>
