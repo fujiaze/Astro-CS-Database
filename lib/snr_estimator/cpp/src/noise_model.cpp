@@ -453,7 +453,7 @@ SNR_API void snr_noise_scale_law(double alpha,
     }
 }
 
-SNR_API double snr_noise_gain_variance(double signal,
+SNR_API double snr_noise_gain_variance(double signal, // NOISE_ESTIMATION.md Gain/Readnoise 仅诊断(SNR-005), NOISE_MODEL.md 诊断模型
                                        double gain_e_per_adu,
                                        double read_noise_e) {
     if (gain_e_per_adu <= 0.0) return 0.0;
