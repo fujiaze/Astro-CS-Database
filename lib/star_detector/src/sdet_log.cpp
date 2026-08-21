@@ -30,9 +30,10 @@ static int sdet_get_log_level() {
 static void sdet_ensure_log_file() {
     if (g_sdet_log_file) return;
     {
-        const char* dir = "lib\\star_detector\\logs";
 #ifdef _WIN32
+        const char* dir = "lib\\star_detector\\logs";
         CreateDirectoryA(dir, nullptr);
+        (void)dir;
 #else
         std::filesystem::create_directories("lib/star_detector/logs");
 #endif
