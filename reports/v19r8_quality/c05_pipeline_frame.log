@@ -1,3 +1,29 @@
+=== C-05 pipeline_frame 契约检查 (vm-bj Linux) ===
+Date: 2026-08-22 vm-bj
+Sources:
+  - lib/astro_image_io/include/aio_pipeline.h  (PipelineFrame/AioBlock/KV/cache/engine contracts)
+  - lib/astro_image_io/include/aio_pipeline_engine.h
+  - lib/astro_image_io/src/aio_pipeline.cpp + aio_log.cpp
+  - lib/astro_image_io/tests/pipeline_frame_contract_test.cpp  (28-contract suite)
+
+契约覆盖:
+  header: PipelineFrame=n_blocks纯命名块容器, AioBlock 7类型(FLOAT32..RAW), AioKVEntry 64+256=320B,
+          BLOCKER-DF-001 MAX_BLOCKS=65536 MAX_DIMS=4 STR_LEN=65535 4GiB/块 16GiB/帧 (防损坏输入异常分配)
+  dtype/copy/move: add_block deep-copy, replace f32->f64, add_block_move 接管 aio_alloc 指针(跨DLL aio_free)
+  KV: header块 KV set/get string + double(%.17g) string往返
+  frame lifecycle: create/destroy, remove_block(存在/不存在), has_block/list_blocks, stages_completed 位掩码
+  .aio cache: AIO1 magic+version+n_blocks+stages_completed, atomically save/load, dtype/dims/payload bit-exact,
+               截断/负n_blocks/n_dims>4 拒绝且不破坏原帧(事务性)
+  invalid args: 负count/未知type(add/move) 拒绝且不接管所有权
+  engine: STAGE_CALIBRATE..STACK 5阶段, auto_free 策略(PLATESOLVE:weight / PHOTOMETRIC:star_det,gaia_cat,psf
+          / DRIZZLE:data,snr,weight,grad_map,cal_stats,photo_stats / STACK:healpix), header全生命周期保留
+
+Build: g++ 14.2.0 -O2 -std=c++17 -Wall -Wextra -fopenmp -DAIO_ENABLE_PIPELINE
+       only aio_pipeline.cpp+aio_log.cpp+pipeline_frame_contract_test.cpp (无 zstd/lz4 dev 时 HAD fallback)
+       timeout 300s, vm-bj clean build 63KB binary
+
+
+== test runner output (pipeline_frame_contract 28/28) ==
 sizeof(AioKVEntry)=320 sizeof(AioBlock)=240 sizeof(PipelineFrame)=24 align(AioBlock)=8
 [PASS] AioKVEntry layout 64+256 bytes
 [PASS] AioBlock field order stable
@@ -49,3 +75,65 @@ sizeof(AioKVEntry)=320 sizeof(AioBlock)=240 sizeof(PipelineFrame)=24 align(AioBl
 [2026-08-22 04:38:05][DEBUG][PIPELINE] frame_destroy: ok
 [2026-08-22 04:38:05][DEBUG][PIPELINE] frame_destroy: ok
 SUMMARY pass=28 fail=0
+
+== machine_consistency 9/9 ==
+{
+  "tool": "docs_machine_consistency",
+  "version": "1.0.0",
+  "checks": [
+    {
+      "check": "config_weight_mode_ivar",
+      "pass": true,
+      "detail": "CONFIG_SCHEMA weight_mode auto/ivar <-> stage2_common parse"
+    },
+    {
+      "check": "frame_id_contract_exact",
+      "pass": true,
+      "detail": "DATA-FRAME-ID-001：SHA-256 truncate；无 FNV/路径派生残留"
+    },
+    {
+      "check": "error_taxonomy_exit_codes",
+      "pass": true,
+      "detail": "ERROR_MODEL 全集合 == orchestrator.h 0-10 退出码 (doc={'SUCCESS': 0, 'GENERIC_ERROR': 1, 'DLL_LOAD_FAILED': 2, 'BLOCK_MISSING': 3, 'CALIBRATE_FAILED': 4, 'PLATESOLVE_FAILED': 5, 'DRIZZLE_FAILED': 6, 'CONFIG_ERROR': 7, 'FILE_IO_ERROR': 8, 'TIMEOUT': 9, 'CANCELLED': 10, 'STAR_DETECT_FAILED': 20, 'PSF_FAILED': 21, 'PHOTOMETRIC_FAILED': 22, 'SNR_FAILED': 23, 'STACK_FAILED': 24, 'HISS_INVALID': 25, 'HCSD_INVALID': 26, 'MODULE_ABI_UNSUPPORTED': 27, 'INPUT_INVALID': 28, 'MODULE_SPECIFIC_BASE': 100} code={'SUCCESS': 0, 'GENERIC_ERROR': 1, 'DLL_LOAD_FAILED': 2, 'BLOCK_MISSING': 3, 'CALIBRATE_FAILED': 4, 'PLATESOLVE_FAILED': 5, 'DRIZZLE_FAILED': 6, 'CONFIG_ERROR': 7, 'FILE_IO_ERROR': 8, 'TIMEOUT': 9, 'CANCELLED': 10, 'STAR_DETECT_FAILED': 20, 'PSF_FAILED': 21, 'PHOTOMETRIC_FAILED': 22, 'SNR_FAILED': 23, 'STACK_FAILED': 24, 'HISS_INVALID': 25, 'HCSD_INVALID': 26, 'MODULE_ABI_UNSUPPORTED': 27, 'INPUT_INVALID': 28, 'MODULE_SPECIFIC_BASE': 100})"
+    },
+    {
+      "check": "integration_status_full_set",
+      "pass": true,
+      "detail": "integration status 全集合 (doc={'P2_INTEGRATE_OK': 0, 'P2_INTEGRATE_NO_CANDIDATES': 1, 'P2_INTEGRATE_ALL_REJECTED': 2, 'P2_INTEGRATE_ZERO_VALID_WEIGHT': 3, 'P2_INTEGRATE_INVALID_INPUT': 4} code={'P2_INTEGRATE_OK': 0, 'P2_INTEGRATE_NO_CANDIDATES': 1, 'P2_INTEGRATE_ALL_REJECTED': 2, 'P2_INTEGRATE_ZERO_VALID_WEIGHT': 3, 'P2_INTEGRATE_INVALID_INPUT': 4})"
+    },
+    {
+      "check": "rejection_status_full_set",
+      "pass": true,
+      "detail": "rejection status 全集合 (doc={'P2_REASON_ACCEPTED': 0, 'P2_REASON_REJECTED_LOW': 1, 'P2_REASON_REJECTED_HIGH': 2, 'P2_REASON_UNDERDETERMINED': 3, 'P2_STATUS_OK': 0, 'P2_STATUS_MIN_SAMPLES': 1, 'P2_STATUS_ALL_REJECTED': 2, 'P2_STATUS_INVALID_INPUT': 3, 'P2_STATUS_UNDERDETERMINED': 4, 'P2_STATUS_INVALID_CONFIGURATION': 5, 'P2_STATUS_INVALID_METHOD': 6, 'P2_STATUS_INTERNAL_ERROR': 7} code={'P2_REASON_ACCEPTED': 0, 'P2_REASON_REJECTED_LOW': 1, 'P2_REASON_REJECTED_HIGH': 2, 'P2_REASON_UNDERDETERMINED': 3, 'P2_STATUS_OK': 0, 'P2_STATUS_MIN_SAMPLES': 1, 'P2_STATUS_ALL_REJECTED': 2, 'P2_STATUS_INVALID_INPUT': 3, 'P2_STATUS_UNDERDETERMINED': 4, 'P2_STATUS_INVALID_CONFIGURATION': 5, 'P2_STATUS_INVALID_METHOD': 6, 'P2_STATUS_INTERNAL_ERROR': 7})"
+    },
+    {
+      "check": "stage_ids_docs_vs_orchestrator",
+      "pass": true,
+      "detail": "stage IDs in ERROR_TAXONOMY <-> orchestrator stage_name_v2"
+    },
+    {
+      "check": "snr_constants",
+      "pass": true,
+      "detail": "NOISE_MODEL/PSF constants <-> noise_model.cpp"
+    },
+    {
+      "check": "product_contracts",
+      "pass": true,
+      "detail": "DATA_CONTRACTS products <-> aio_hips.h product flags"
+    },
+    {
+      "check": "drizzle_variance_formula",
+      "pass": true,
+      "detail": "DRIZZLE.md variance formula <-> drizzle_engine.h"
+    }
+  ],
+  "pass": true
+}
+docs_machine_consistency exit_code=0
+
+Verdict: C-05 pipeline/frame 契约 28/28 PASS (layout/type/copy/replace/KV/move/cache/dims/reject/ownership)
+         + machine 9/9 PASS (config ivar / frame_id SHA-256 / exit codes 0..28 full-set / integration / rejection
+                             / stage_ids / SNR constants / products / drizzle variance)
+         静态核验 7/7 header/frame/cache/engine/ABI checks PASS. 无独立缺口（已有专属 pipeline_frame_contract_test）。
+
+ 증거: reports/v19r8_quality/c05_pipeline_frame.log (本文件, timeout 300s)
