@@ -130,7 +130,7 @@ QA-V19R7-B5-08,QA,CHANGELOG+DEVELOPER_GUIDE同步,QA-V19R7-B4-28,G-QA,DONE,evide
 QA-V19R7-C-01,QA,增量ctest,QA-V19R7-B5-08,G-QA,TODO,evidence/QA-V19R7-C-01
 QA-V19R7-C-02,QA,noise_model_science_test,QA-V19R7-B5-08,G-QA,DONE,evidence/QA-V19R7-C-02
 QA-V19R7-C-03,QA,variance_propagation_test,QA-V19R7-B5-08,G-QA,TODO,evidence/QA-V19R7-C-03
-QA-V19R7-C-04,QA,phase2_synthetic_gate,QA-V19R7-B5-08,G-QA,TODO,evidence/QA-V19R7-C-04
+QA-V19R7-C-04,QA,phase2_synthetic_gate,QA-V19R7-B5-08,G-QA,DONE,evidence/QA-V19R7-C-04
 QA-V19R7-C-05,QA,pipeline_frame契约,QA-V19R7-B5-08,G-QA,DONE,evidence/QA-V19R7-C-05
 QA-V19R7-C-06,QA,编译告警矩阵,QA-V19R7-B5-08,G-QA,DONE,evidence/QA-V19R7-C-06
 QA-V19R7-C-07,QA,comment hygiene+file_audit,QA-V19R7-B5-08,G-QA,DONE,evidence/QA-V19R7-C-07
