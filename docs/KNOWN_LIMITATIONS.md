@@ -13,3 +13,7 @@
 9. **UPM ivar 回退**: 输入帧无 ivar 产品时积分权重回退 support
    (`ivar_product_missing` 计数如实记录)
 10. **Phase1 SNR catalogue**: 保留为 legacy 诊断, 不再作为 science weight
+
+11. **vm-bj 增量验证限制 (V19R8 C 段)**: `C-01 full ctest 641/641` / `C-04 phase2 89 TESTs` / `C-09 ASan/UBSan 运行时矩阵` 在 vm-bj Linux 仅为 `SKIP-evidenced` (machine 9/9 + 直接科学门禁代替: noise 39/39 + pipeline 28/28 + variance 4000MC), 需 Windows/MSYS2 完整 toolchain 复核后方可视为全量关闭
+12. **代表帧冒烟合成帧限制 (C-10)**: `data/TestData/BASS` 无真实图像帧入库，冒烟以 `pipeline_frame 合约 28/28` 合成帧代替真实 FITS/XISF 读取
+13. **性能快照轻量 (C-11)**: 仅 vm-bj 2核单次 wall 计时 (build 5.5s/run 0.02s 级), 未做多规模/火焰图完整 benchmark
