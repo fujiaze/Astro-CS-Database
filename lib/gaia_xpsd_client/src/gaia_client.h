@@ -1,4 +1,7 @@
-/* B4-13 缓存/并发锚点（不改算法）：BlockCache/QueryCache + cache_lock(CRITICAL_SECTION/pthread_mutex) 锚点 GAIA_QUERY.md 缓存段与 CACHE 契约；RA>45/85 剪枝见下 — thread-safe
+/* B4-13 缓存键/并发精细化锚点（不改算法/并发，仅文档化）：
+ * - Cache key（精确匹配）: ra/dec/radius/mag_low/mag_high (double逐位) + db_type/file_count (dataset identity) + version=GAIA_CACHE_VERSION(2) — 见 lib/gaia_xpsd_client/src/gaia_client.c:112-128 (QueryCacheEntry) / 427-472 (query_cache_lookup) / 74-75 (GAIA_CACHE_VERSION)；不做量化舍入，命中即同一查询精确重复。
+ * - 容量/生命周期: QueryCache 64条 (QUERY_CACHE_CAPACITY) / TTL 60s (QUERY_CACHE_TTL_SEC)，事务性替换（先全分配成功再释放旧条目）+ 版本/过期校验失效；BlockCache 8192槽 (BLOCK_CACHE_CAPACITY, 2^n) / 上限4GB + 内存压力淘汰1/4 LRU — 见 lib/gaia_xpsd_client/src/gaia_client.c:64-70 / 391-557；契约见 docs/algorithms/GAIA_QUERY.md Postconditions/Invariants/并行模型 与 docs/architecture/CACHE_POLICY.md Gaia查询缓存行。
+ * - 并发/线程安全: GaiaClient.cache_lock 互斥（Win32 CRITICAL_SECTION / POSIX pthread_mutex_t, cache_lock/cache_unlock）包裹 query_cache_lookup/insert — 查询串行+缓存互斥，符合 docs/architecture/THREADING_MODEL.md「cache必须线程安全或单线程互斥访问」、docs/architecture/ERROR_MODEL.md 归类与 docs/architecture/OWNERSHIP_AND_LIFETIME.md 生命周期；极区剪枝见下 — thread-safe。
  */
 /* GAIA_QUERY RA 环绕与极区保守剪枝锚点（B4-12，与 B2-06 对齐，不改算法）：
  * - RA 环绕: lib/gaia_xpsd_client/src/gaia_client.c:bbox_intersects 中按
