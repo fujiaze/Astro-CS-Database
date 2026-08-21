@@ -48,7 +48,7 @@ struct PixelAccumulator {
     double sumArea = 0.0;    // Σ a_jp (球面重叠面积, 用于 support = Σ a_jp / A_p)
     // 方差传播分子 Σ v_j × w_jp² (w_jp = a_jp/A_j_drop)
     // variance_p = sumVarNum / sumArea² ; ivar_p = 1/variance_p
-    double sumVarNum = 0.0;
+    double sumVarNum = 0.0; // variance alpha^2 scaling: DRIZZLE.md scaling x'=alpha x -> var'=alpha^2 var (SNR-002)
     uint32_t nContrib = 0;    // 贡献源像素数 (诊断用)
 };
 
