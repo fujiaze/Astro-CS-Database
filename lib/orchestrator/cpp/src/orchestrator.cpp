@@ -5147,10 +5147,10 @@ TaskResult Orchestrator::run_stage1(const Stage1Config& cfg) {
                 case PipelineStageV2::READ_FITS:   result.exit_code = AstroCsExitCode::FILE_IO_ERROR; break;
                 case PipelineStageV2::CALIBRATE:   result.exit_code = AstroCsExitCode::CALIBRATE_FAILED; break;
                 case PipelineStageV2::PLATESOLVE:  result.exit_code = AstroCsExitCode::PLATESOLVE_FAILED; break;
-                case PipelineStageV2::PSF:         result.exit_code = AstroCsExitCode::GENERIC_ERROR; break;
-                case PipelineStageV2::PHOTOMETRIC: result.exit_code = AstroCsExitCode::GENERIC_ERROR; break;
-                case PipelineStageV2::SNR:         result.exit_code = AstroCsExitCode::GENERIC_ERROR; break;
-                case PipelineStageV2::NSIDE:       result.exit_code = AstroCsExitCode::GENERIC_ERROR; break;
+                case PipelineStageV2::PSF:         result.exit_code = AstroCsExitCode::PSF_FAILED; break;
+                case PipelineStageV2::PHOTOMETRIC: result.exit_code = AstroCsExitCode::PHOTOMETRIC_FAILED; break;
+                case PipelineStageV2::SNR:         result.exit_code = AstroCsExitCode::SNR_FAILED; break;
+                case PipelineStageV2::NSIDE:       result.exit_code = AstroCsExitCode::CONFIG_ERROR; break;
                 case PipelineStageV2::DRIZZLE:     result.exit_code = AstroCsExitCode::DRIZZLE_FAILED; break;
                 case PipelineStageV2::HIPS_VERIFY: result.exit_code = AstroCsExitCode::HISS_INVALID; break;
                 case PipelineStageV2::HISS_VERIFY: result.exit_code = AstroCsExitCode::HISS_INVALID; break;
