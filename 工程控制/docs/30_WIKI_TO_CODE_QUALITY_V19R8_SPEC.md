@@ -107,6 +107,25 @@ S0(4) → S1(10) → S2(12) → S3(12) → S4(10) → S5(28) → S6(14) = 90
 
 **S6 接口与命名质量优化 (14c)** — 文档驱动的接口/函数/类型/常量/错误码命名统一，风格与注释质量收口至 0 violation。
 
+### 4.3 阶段输入/输出/验收速查
+
+| 阶段 | 输入 | 输出 | 验收 | 证据 |
+|---|---|---|---|---|
+| S0 | Wiki + README-DOCS + TRACEABILITY + machine 9 checks | Wiki 索引 + README-DOCS 修订 + TRACEABILITY ~75行 + machine_s0.json | Wiki→L1→L2 无断链，9/9 0 broken | reports/v19r8_quality/machine_consistency_s0.json |
+| S1 | L1 11份 + lib/* 实现 + SCI-* 合同 | 11份 science 修订 | L1 0 broken，SCI-* 全 VERIFIED，行锚点抽查一致 | machine_consistency_s1.json |
+| S2 | L2 12份 + lib/*/src/* 入口 | 12份 algorithm 修订 | L2 0 broken，伪代码-入口一致，无 legacy | machine_consistency_s2.json |
+| S3 | L3/L4/L5 + lib/* + 工程控制7件套 | 架构/标准/模块/项目文档修订 | L3/L4/L5+项目/工程 0 broken，PUBLIC_API 一致 | machine_consistency_s3.json |
+| S4 | 全仓 + 13标准 + lib/713文件 | 分表+总表+stats + P0冻结 | 8分表+总表+stats 齐，P0冻结 | reports/v19r8_quality/audit_findings*.md |
+| S5 | P0/P1 清单 + lib/* | 代码修复 + 回归全绿 + 双签 | P0清零，回全绿，双签 | evidence/QA-V19R8-S5-*/ + sanitizer_matrix |
+| S6 | S4 命名/注释 P1/P2 + CODE/COMMENT 标准 | 命名统一 + hygiene 0 violation | 0 violation, 713/713, 0 warning | file_audit_after + hygiene log |
+
+### 4.4 工程执行纪律
+- 每个 commit 前明确需求/影响范围/风险/验收标准（AGENTS.md 开发纪律）。
+- 禁止破坏性 Git 操作；所有长任务 timeout + 日志可恢复（AGENTS.md Linux环境）。
+- 科学定义=算法=接口=代码=测试 保持一致；核心算法改动同步三文档与测试。
+- 性能优化先分析 CPU/内存/IO/等待/重复计算/复杂度，禁止无意义全量基准重跑。
+- commit 保持单一目的；memory.md 记录稳定结论，logs 记录过程。
+
 ## 5. 约束详述
 
 ### 5.1 权威链与追溯规范
@@ -175,6 +194,20 @@ S0(4) → S1(10) → S2(12) → S3(12) → S4(10) → S5(28) → S6(14) = 90
 | G-QA-09 留痕 | 每 commit evidence 四件套 + Reviewer/Auditor | `evidence/QA-V19R8-*/` |
 | G-QA-10 干净HEAD | `git status` clean + 可复现 build | `git status` + build log |
 
+### 5.9 变更管理与回滚
+- 任何跨层文档→代码语义变更需先更上游文档（Wiki→L1→L2→L3）再改代码，machine 增量校验通过方可提交。
+- 每 commit 可独立 revert，不捆绑多域；回滚后 TRACEABILITY 状态回退为 TODO 并重跑 machine。
+- 缓冲 10c 用于回滚/修复：S1-S3 各预留 1c，S5 预留 4c，S6 预留 2c，超限需 PM 审批并追加 BLOCKED_REPORT。
+
+### 5.10 分工与并发约束
+- Resident 并行 ≤4，同模块同文件禁止并发修改；Subagent S4 按域分片并发 ≤4，合并由单一 Resident 串行汇总。
+- 跨层依赖强制串行：S0 Gate 未绿禁止 S1 任何 commit；S4 P0 未冻结禁止 S5 代码修改。
+- 每 10 commits checkpoint 产出 `reports/v19r8_quality/checkpoint_N.md`（已合/待合/风险/broken 趋势）。
+
+### 5.11 规范引用（尽可能详细，参考历史工程包）
+- 本 Spec 约束写法参考 `27_PROGRESS_MIGRATION_SPEC.md` 的冻结红线/权威链/Gate/证据四段式；每任务含 输入/输出/步骤/验收/证据/Commit message 六要素（同 V19R7 历史包 175L/163L/306L）。
+- 数值/并发/C ABI/错误/IO/日志/测试/文档/发布 13 标准逐条可勾选，S4 grep 扫描与 S6 hygiene 复扫闭环；AGENTS.md 单目的 commit + timeout+log 可恢复纪律贯穿全链。
+
 ## 6. 验收标准（阶段 Gate）
 
 | 阶段 | Gate 条件 |
@@ -207,6 +240,16 @@ S0(4) → S1(10) → S2(12) → S3(12) → S4(10) → S5(28) → S6(14) = 90
 - **分支**: `main`（ACR 保持 `feature/astrocompute-runtime` 独立）。
 - **日志**: 所有长任务 timeout + `run/logs/` 可恢复（AGENTS.md 工程管理）。
 
-## 9. 参考
+## 9. 术语与缩写
+
+| 缩写 | 全称 | 说明 |
+|---|---|---|
+| UPM | Unified Photometric Model | Phase2 统一测光模型，权重 `quality×geom×ivar` |
+| ivar | inverse variance | `1/variance`，缺失报 `ERR-P2-UPM-001` |
+| k_corr | Drizzle 修正因子 | MC 校准 `1.4`，`control_variance = k_corr×(π/2)×σ_bg²/N` |
+| P0/P1/P2 | 优先级 | P0阻断必改 / P1必须择改 / P2建议 |
+| machine 9/9 | 机器一致性9 checks | docs_machine_consistency.py 9项全绿 0 broken |
+
+## 10. 参考
 
 - `docs/README-DOCS.md` / `docs/validation/SCIENCE_FREEZE.md` / `docs/standards/*` / `docs/architecture/*` / `docs/contracts/*` / `docs/modules/*` / `docs/TRACEABILITY.csv` / `工程控制/docs/29_QUALITY_OPTIMIZATION_V19R7_SPEC.md`（V19R7 基线，175L）/ `工程控制/docs/27_PROGRESS_MIGRATION_SPEC.md`（冻结红线/权威链/Gate/证据写法参考）/ `AGENTS.md` / `PROJECT_MANAGER.md`
