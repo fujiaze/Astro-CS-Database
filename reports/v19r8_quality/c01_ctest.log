@@ -1,0 +1,96 @@
+=== C-01 incremental ctest 2026-08-22T05:08:56+08:00 ===
+host: Linux VM-BJ 6.12.95+deb13-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.12.95-1 (2026-07-04) x86_64 GNU/Linux
+gate: G-QA B5-08 DONE
+B4: 01..28 DONE 28/28 BUILD 0 warnings C-06 PASS
+C-06/07/08: PASS
+affected: ALL (B4 full, all modules)
+
+== machine consistency 9/9 ==
+{
+  "tool": "docs_machine_consistency",
+  "version": "1.0.0",
+  "checks": [
+    {
+      "check": "config_weight_mode_ivar",
+      "pass": true,
+      "detail": "CONFIG_SCHEMA weight_mode auto/ivar <-> stage2_common parse"
+    },
+    {
+      "check": "frame_id_contract_exact",
+      "pass": true,
+      "detail": "DATA-FRAME-ID-001：SHA-256 truncate；无 FNV/路径派生残留"
+    },
+    {
+      "check": "error_taxonomy_exit_codes",
+      "pass": true,
+      "detail": "ERROR_MODEL 全集合 == orchestrator.h 0-10 退出码 (doc={'SUCCESS': 0, 'GENERIC_ERROR': 1, 'DLL_LOAD_FAILED': 2, 'BLOCK_MISSING': 3, 'CALIBRATE_FAILED': 4, 'PLATESOLVE_FAILED': 5, 'DRIZZLE_FAILED': 6, 'CONFIG_ERROR': 7, 'FILE_IO_ERROR': 8, 'TIMEOUT': 9, 'CANCELLED': 10, 'STAR_DETECT_FAILED': 20, 'PSF_FAILED': 21, 'PHOTOMETRIC_FAILED': 22, 'SNR_FAILED': 23, 'STACK_FAILED': 24, 'HISS_INVALID': 25, 'HCSD_INVALID': 26, 'MODULE_ABI_UNSUPPORTED': 27, 'INPUT_INVALID': 28, 'MODULE_SPECIFIC_BASE': 100} code={'SUCCESS': 0, 'GENERIC_ERROR': 1, 'DLL_LOAD_FAILED': 2, 'BLOCK_MISSING': 3, 'CALIBRATE_FAILED': 4, 'PLATESOLVE_FAILED': 5, 'DRIZZLE_FAILED': 6, 'CONFIG_ERROR': 7, 'FILE_IO_ERROR': 8, 'TIMEOUT': 9, 'CANCELLED': 10, 'STAR_DETECT_FAILED': 20, 'PSF_FAILED': 21, 'PHOTOMETRIC_FAILED': 22, 'SNR_FAILED': 23, 'STACK_FAILED': 24, 'HISS_INVALID': 25, 'HCSD_INVALID': 26, 'MODULE_ABI_UNSUPPORTED': 27, 'INPUT_INVALID': 28, 'MODULE_SPECIFIC_BASE': 100})"
+    },
+    {
+      "check": "integration_status_full_set",
+      "pass": true,
+      "detail": "integration status 全集合 (doc={'P2_INTEGRATE_OK': 0, 'P2_INTEGRATE_NO_CANDIDATES': 1, 'P2_INTEGRATE_ALL_REJECTED': 2, 'P2_INTEGRATE_ZERO_VALID_WEIGHT': 3, 'P2_INTEGRATE_INVALID_INPUT': 4} code={'P2_INTEGRATE_OK': 0, 'P2_INTEGRATE_NO_CANDIDATES': 1, 'P2_INTEGRATE_ALL_REJECTED': 2, 'P2_INTEGRATE_ZERO_VALID_WEIGHT': 3, 'P2_INTEGRATE_INVALID_INPUT': 4})"
+    },
+    {
+      "check": "rejection_status_full_set",
+      "pass": true,
+      "detail": "rejection status 全集合 (doc={'P2_REASON_ACCEPTED': 0, 'P2_REASON_REJECTED_LOW': 1, 'P2_REASON_REJECTED_HIGH': 2, 'P2_REASON_UNDERDETERMINED': 3, 'P2_STATUS_OK': 0, 'P2_STATUS_MIN_SAMPLES': 1, 'P2_STATUS_ALL_REJECTED': 2, 'P2_STATUS_INVALID_INPUT': 3, 'P2_STATUS_UNDERDETERMINED': 4, 'P2_STATUS_INVALID_CONFIGURATION': 5, 'P2_STATUS_INVALID_METHOD': 6, 'P2_STATUS_INTERNAL_ERROR': 7} code={'P2_REASON_ACCEPTED': 0, 'P2_REASON_REJECTED_LOW': 1, 'P2_REASON_REJECTED_HIGH': 2, 'P2_REASON_UNDERDETERMINED': 3, 'P2_STATUS_OK': 0, 'P2_STATUS_MIN_SAMPLES': 1, 'P2_STATUS_ALL_REJECTED': 2, 'P2_STATUS_INVALID_INPUT': 3, 'P2_STATUS_UNDERDETERMINED': 4, 'P2_STATUS_INVALID_CONFIGURATION': 5, 'P2_STATUS_INVALID_METHOD': 6, 'P2_STATUS_INTERNAL_ERROR': 7})"
+    },
+    {
+      "check": "stage_ids_docs_vs_orchestrator",
+      "pass": true,
+      "detail": "stage IDs in ERROR_TAXONOMY <-> orchestrator stage_name_v2"
+    },
+    {
+      "check": "snr_constants",
+      "pass": true,
+      "detail": "NOISE_MODEL/PSF constants <-> noise_model.cpp"
+    },
+    {
+      "check": "product_contracts",
+      "pass": true,
+      "detail": "DATA_CONTRACTS products <-> aio_hips.h product flags"
+    },
+    {
+      "check": "drizzle_variance_formula",
+      "pass": true,
+      "detail": "DRIZZLE.md variance formula <-> drizzle_engine.h"
+    }
+  ],
+  "pass": true
+}
+machine EXIT:0
+
+== ACR cmake+ctest (CPU-only, timeout 600s) ==
+cmake already configured at /tmp/acr_build2
+[  0%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/address_waiter.cpp.o
+[  1%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/allocator.cpp.o
+[  1%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/arena.cpp.o
+[  2%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/arena_slot.cpp.o
+[  2%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/concurrent_bounded_queue.cpp.o
+[  2%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/dynamic_link.cpp.o
+[  3%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/exception.cpp.o
+[  3%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/governor.cpp.o
+[  4%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/global_control.cpp.o
+[  4%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/itt_notify.cpp.o
+[  4%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/main.cpp.o
+[  5%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/market.cpp.o
+[  5%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/tcm_adaptor.cpp.o
+[  6%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/misc.cpp.o
+[  6%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/misc_ex.cpp.o
+[  6%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/observer_proxy.cpp.o
+[  7%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/parallel_pipeline.cpp.o
+[  7%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/private_server.cpp.o
+[  8%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/profiling.cpp.o
+[  8%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/rml_tbb.cpp.o
+[  9%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/rtm_mutex.cpp.o
+[  9%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/rtm_rw_mutex.cpp.o
+[  9%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/semaphore.cpp.o
+[ 10%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/small_object_pool.cpp.o
+[ 10%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/task.cpp.o
+[ 11%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/task_dispatcher.cpp.o
+[ 11%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/task_group_context.cpp.o
+[ 11%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/thread_dispatcher.cpp.o
+[ 12%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/thread_request_serializer.cpp.o
+[ 12%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/threading_control.cpp.o
+[ 13%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/version.cpp.o
+[ 13%] Building CXX object _deps/onetbb-build/src/tbb/CMakeFiles/tbb.dir/queuing_rw_mutex.cpp.o
