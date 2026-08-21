@@ -32,7 +32,7 @@ WCS（CD + SIP）或失败状态。
 
 ## 数值风险
 
-极区/大畸变；SIP 高阶振荡 → 阶数上限（`order 2–3`）；极区 `|dec|>45°` 分支、`|dec|>85°` 仍保守（Lipschitz `C=π/2`/`C45=π/(2√2)`，`lib/gaia_xpsd_client/src/gaia_client.c:polar_plane_intersects`），RA 环绕 `cos(dec)` 缩放（`bbox_intersects`），跨界保守不剪枝。数值阈值：`iterative_reproject` 收敛 `0.01"`/上限 `5` 次（`lib/plate_solve/cpp/ipv/src/ipv_solver.cpp:CONV_THRESH_ARCSEC/MAX_ITERS`）、`triangle_match` 尺度容差 `0.002`/匹配容差 `5.0"`、SIP `IRLS 15` 次/`ε 1e-6`/`PIVOT_EPS 1e-12`/`Huber 1.345`（`lib/plate_solve/cpp/ipv/src/ipv_sip.cpp`）。
+极区/大畸变；SIP 高阶振荡 → 阶数上限（`order 2–3`）；极区 `|dec|>45°` 分支、`|dec|>85°` 仍保守（Lipschitz `C=π/2`/`C45=π/(2√2)`，`lib/gaia_xpsd_client/src/gaia_client.c:polar_plane_intersects`），RA 环绕 `cos(dec)` 缩放（`bbox_intersects`），跨界保守不剪枝。数值阈值：`iterative_reproject` 收敛 `0.01"`/上限 `5` 次（`lib/plate_solve/cpp/ipv/src/ipv_solver.cpp:CONV_THRESH_ARCSEC/MAX_ITERS`）、`triangle_match` 尺度容差 `0.002`/匹配容差 `5.0"`、SIP `IRLS 15` 次/`ε 1e-6`/`PIVOT_EPS 1e-12`/`Huber 1.345`/`δ<1e-9 guard`（`lib/plate_solve/cpp/ipv/src/ipv_sip.cpp:238-262`，`1.345·median_abs_r`）。
 
 ## fast/reference/oracle
 
