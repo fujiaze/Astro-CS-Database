@@ -17,8 +17,7 @@ extern "C" {
 // data: float32 图像数据 [H*W]，会被原地修改
 // bad_mask: uint8 坏像素掩码 [H*W]，1=坏像素，0=好像素
 // H, W: 图像尺寸
-// window: 滤波窗口大小（默认5）
-// 返回: 实际修复的像素数
+// window: 滤波窗口大小（奇数 3..15，默认5；偶数/<3/>15 返回-1）；15×15 为 225，栈缓冲 256，上限保证无溢出
 CC_EXPORT long long cc_correct_median(
     float* data,
     const uint8_t* bad_mask,
