@@ -134,7 +134,7 @@ QA-V19R7-C-04,QA,phase2_synthetic_gate,QA-V19R7-B5-08,G-QA,TODO,evidence/QA-V19R
 QA-V19R7-C-05,QA,pipeline_frame契约,QA-V19R7-B5-08,G-QA,TODO,evidence/QA-V19R7-C-05
 QA-V19R7-C-06,QA,编译告警矩阵,QA-V19R7-B5-08,G-QA,TODO,evidence/QA-V19R7-C-06
 QA-V19R7-C-07,QA,comment hygiene+file_audit,QA-V19R7-B5-08,G-QA,DONE,evidence/QA-V19R7-C-07
-QA-V19R7-C-08,QA,machine_consistency 0 broken,QA-V19R7-B5-08,G-QA,TODO,evidence/QA-V19R7-C-08
+QA-V19R7-C-08,QA,machine_consistency 0 broken,QA-V19R7-B5-08,G-QA,DONE,evidence/QA-V19R7-C-08
 QA-V19R7-C-09,QA,WSL ASan/UBSan矩阵,QA-V19R7-B5-08,G-QA,TODO,evidence/QA-V19R7-C-09
 QA-V19R7-C-10,QA,代表帧冒烟,QA-V19R7-B5-08,G-QA,TODO,evidence/QA-V19R7-C-10
 QA-V19R7-C-11,QA,性能快照,QA-V19R7-B5-08,G-QA,TODO,evidence/QA-V19R7-C-11
