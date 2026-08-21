@@ -1,6 +1,7 @@
 // ============================================================================
 // orchestrator.cpp - Orchestrator 核心类实现
 // 功能: 管线编排, 串联 5 个阶段 (CALIBRATE -> PLATESOLVE -> PSF -> PHOTOMETRIC -> DRIZZLE)
+// [B4-24 C++17/C ABI 锚点 — 不改语义]: 构建 C++17(-std=c++17, Makefile CXXFLAGS), 本文件仅用 filesystem/nlohmann::json/RAII, 未引入 C++20; C ABI 经 DllLoader 纯 C 指针调用, 异常不出边界(CODE_STANDARD/C_ABI_STANDARD).
 //
 // 当前版本: 生产实现
 // - 各 run_stage_* 经 DllLoader 动态加载模块 DLL 执行真实流水线

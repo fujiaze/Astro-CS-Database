@@ -7,6 +7,7 @@
 // - p04004_register_signal_handler / p04004_unregister_signal_handler:
 // SIGINT 信号处理 (Ctrl+C 触发取消)
 // - sha256_impl::sha256: deprecated shim 转发到 lib/common/crypto (B4-02 去重)
+// [B4-24 锚点 — 不改语义]: 本头为纯 C++17 头(仅 string/orchestrator.h), 无 C ABI 导出; C ABI 边界由 orchestrator/dll_loader 统一约束(见 orchestrator.h B4-24 锚点).
 // ============================================================================
 
 #pragma once
