@@ -1,0 +1,10 @@
+broken: 0/9
+config_weight_mode_ivar PASS - CONFIG_SCHEMA weight_mode auto/ivar <-> stage2_common parse
+frame_id_contract_exact PASS - DATA-FRAME-ID-001：SHA-256 truncate；无 FNV/路径派生残留
+error_taxonomy_exit_codes PASS - ERROR_MODEL 全集合 == orchestrator.h 0-10 退出码 (doc={'SUCCESS': 0, 'GENERIC_ERROR': 1, 'DLL_LOAD_FAILED': 2, 'BLOCK_MISSING'
+integration_status_full_set PASS - integration status 全集合 (doc={'P2_INTEGRATE_OK': 0, 'P2_INTEGRATE_NO_CANDIDATES': 1, 'P2_INTEGRATE_ALL_REJECTED': 2, 'P2_
+rejection_status_full_set PASS - rejection status 全集合 (doc={'P2_REASON_ACCEPTED': 0, 'P2_REASON_REJECTED_LOW': 1, 'P2_REASON_REJECTED_HIGH': 2, 'P2_REASO
+stage_ids_docs_vs_orchestrator PASS - stage IDs in ERROR_TAXONOMY <-> orchestrator stage_name_v2
+snr_constants PASS - NOISE_MODEL/PSF constants <-> noise_model.cpp
+product_contracts PASS - DATA_CONTRACTS products <-> aio_hips.h product flags
+drizzle_variance_formula PASS - DRIZZLE.md variance formula <-> drizzle_engine.h
