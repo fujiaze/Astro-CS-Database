@@ -215,8 +215,8 @@ static bool load_dlls(Logger* logger) {
     if (logger) logger->error("ipv_select: 非 Windows 平台不支持 DLL 动态加载");
     return false;
 }
-static int gaia_query_count(void*, double, double, double, double) { return 0; }
-static int gaia_query_stars(void*, double, double, double, double,
+[[maybe_unused]] static int gaia_query_count(void*, double, double, double, double) { return 0; }
+[[maybe_unused]] static int gaia_query_stars(void*, double, double, double, double,
                              std::vector<double>&, std::vector<double>&,
                              std::vector<float>&) { return -1; }
 #endif // _WIN32
@@ -558,10 +558,10 @@ void gnomonic_forward_proj(
 
 int ipv_select(
     const std::string& image_path,
-    double ra, double dec,
+    [[maybe_unused]] double ra, [[maybe_unused]] double dec,
     double focal_length_mm,
     double pixel_size_um,
-    const IPVSolverParams& params,
+    [[maybe_unused]] const IPVSolverParams& params,
     StarSelection& output,
     Logger* logger)
 {
@@ -894,10 +894,10 @@ int ipv_select(
 int ipv_select_from_memory(
     const float* pixels,
     int width, int height,
-    double ra, double dec,
+    [[maybe_unused]] double ra, [[maybe_unused]] double dec,
     double focal_length_mm,
     double pixel_size_um,
-    const IPVSolverParams& params,
+    [[maybe_unused]] const IPVSolverParams& params,
     StarSelection& output,
     Logger* logger)
 {
@@ -1202,10 +1202,10 @@ int ipv_select_from_detections(
     const double* detections,
     int n_detections,
     int image_width, int image_height,
-    double ra, double dec,
+    [[maybe_unused]] double ra, [[maybe_unused]] double dec,
     double focal_length_mm,
     double pixel_size_um,
-    const IPVSolverParams& params,
+    [[maybe_unused]] const IPVSolverParams& params,
     StarSelection& output,
     Logger* logger)
 {
@@ -1492,12 +1492,12 @@ template <typename T>
 static int ipv_select_from_memory_with_callback_impl(
     const T* pixels,
     int width, int height,
-    double ra, double dec,
+    [[maybe_unused]] double ra, [[maybe_unused]] double dec,
     double focal_length_mm,
     double pixel_size_um,
-    const IPVSolverParams& params,
-    DetectionSinkFn callback,
-    void* user_data,
+    [[maybe_unused]] const IPVSolverParams& params,
+    [[maybe_unused]] DetectionSinkFn callback,
+    [[maybe_unused]] void* user_data,
     StarSelection& output,
     Logger* logger)
 {
