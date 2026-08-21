@@ -33,6 +33,7 @@ uncertainty      = sqrt(control_variance)   # SE(patch median)
 - sigma_bg = MAD 尺度（clipping 收敛集）；
 - control_k_corr 默认 1.4（UPMW-005 MC 校准：pixfrac=0.8 下实证
   1.3883，N_eff≈181<251）；显式配置覆盖，<=0 回退冻结默认；
+  per-frame 覆盖 frames[frame_id].kcorr>0 ? per-frame : cfg.control_k_corr（sampler.cpp:672），缺省回退 1.4；
 - obs.ivar 保留为单 leaf Phase1 ivar 诊断（V19R3 弃用，不进科学权重）。
 
 ## Invariants
