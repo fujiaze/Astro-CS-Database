@@ -34,7 +34,7 @@ O(log n) 索引 + O(k) 输出。
 
 ## 数值风险
 
-极区 atan2/cos 奇点 → 保守 prune；浮点坐标键比较容差定义。
+极区 atan2/cos 奇点 → 保守 prune（极区 |dec|>45° 分支、|dec|>85° 仍保守 C=π/2/C45=π/(2√2)，平面 Lipschitz 盘 B(q,C·radius) 不相交则拒绝，false_negative=0；RA 环绕 dra>180→360-dra 并 cos(dec) 缩放判相交 lib/gaia_xpsd_client/src/gaia_client.c:polar_plane_intersects/bbox_intersects）；浮点坐标键比较容差定义。
 
 ## fast/reference/oracle
 
