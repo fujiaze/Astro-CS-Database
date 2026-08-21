@@ -1,4 +1,6 @@
 #include "drizzle_engine.h"
+// 文档锚点: docs/science/DRIZZLE.md §方差传播 (SCI-DRZ-014 / ALG-DRZ-VAR) — α²v: sumVarNum+=v·w², var=sumVarNum/D², ivar=1/var, x'=αx→var'=α²var
+// 数值: (double)v·(double)w²→Scalar FP64累积; 归一在 astro_sphere_sink.cpp:100 / aio_hips_writer::finalize_tile
 #include "healpix_core.h"
 #include "spherical_overlap.h"   // WP-D: 球面 HEALPix 重叠计算
 #include "aio_healpix_io.h"   // aio.dll C API: hiss_write (向后兼容宏)
@@ -1522,8 +1524,8 @@ void DrizzleEngine::processPixelSharedTiled(
         TileLeafAccumulatorT<Scalar>& acc = tile.leaf(local);
         acc.sumFlux   += Scalar(pixelValue * weight);
         acc.sumArea   += Scalar(overlap_area);
-        // 方差传播分子 sumVarNum += v_j × w_jp²
-        // variance_p = sumVarNum / sumArea² ; ivar_p = 1/variance_p
+        // 方差传播 (SCI-DRZ-014 / ALG-DRZ-VAR · DRIZZLE.md §方差传播 α²v): sumVarNum+=v·w², var=sumVarNum/D², ivar=1/var
+        // 数值: (double)v·(double)w²→Scalar; 归一在 sink/writer finalize (astro_sphere_sink.cpp:100)
         if (varianceValue > 0.0f) {
             const Scalar w2 = weight * weight;
             acc.sumVarNum += Scalar((double)varianceValue * (double)w2);
