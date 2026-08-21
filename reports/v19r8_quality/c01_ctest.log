@@ -97,3 +97,147 @@ cmake already configured at /tmp/acr_build2
 [  0%] Linking CXX shared library ../../../../gnu_14.2_cxx20_64_release/libtbb.so
 [ 13%] Built target tbb
 [ 14%] Building CXX object _deps/onetbb-build/src/tbbmalloc/CMakeFiles/tbbmalloc.dir/backend.cpp.o
+
+=== C-01 incremental (fallback direct tests, since ACR full build needs >600s) ===
+timestamp: 2026-08-22T05:13:19+08:00
+B5-08 DONE gate G-QA PASS
+B4 01..28 28/28 DONE, BUILD 0 warnings (C-06 DONE), C-06/C-07/C-08 PASS
+affected: ALL (full B4 scope, science+phase2+drizzle+io+acr)
+
+== machine 9/9 (re-check) ==
+{
+  "tool": "docs_machine_consistency",
+  "version": "1.0.0",
+  "checks": [
+    {
+      "check": "config_weight_mode_ivar",
+      "pass": true,
+      "detail": "CONFIG_SCHEMA weight_mode auto/ivar <-> stage2_common parse"
+    },
+    {
+      "check": "frame_id_contract_exact",
+      "pass": true,
+      "detail": "DATA-FRAME-ID-001：SHA-256 truncate；无 FNV/路径派生残留"
+    },
+    {
+      "check": "error_taxonomy_exit_codes",
+      "pass": true,
+      "detail": "ERROR_MODEL 全集合 == orchestrator.h 0-10 退出码 (doc={'SUCCESS': 0, 'GENERIC_ERROR': 1, 'DLL_LOAD_FAILED': 2, 'BLOCK_MISSING': 3, 'CALIBRATE_FAILED': 4, 'PLATESOLVE_FAILED': 5, 'DRIZZLE_FAILED': 6, 'CONFIG_ERROR': 7, 'FILE_IO_ERROR': 8, 'TIMEOUT': 9, 'CANCELLED': 10, 'STAR_DETECT_FAILED': 20, 'PSF_FAILED': 21, 'PHOTOMETRIC_FAILED': 22, 'SNR_FAILED': 23, 'STACK_FAILED': 24, 'HISS_INVALID': 25, 'HCSD_INVALID': 26, 'MODULE_ABI_UNSUPPORTED': 27, 'INPUT_INVALID': 28, 'MODULE_SPECIFIC_BASE': 100} code={'SUCCESS': 0, 'GENERIC_ERROR': 1, 'DLL_LOAD_FAILED': 2, 'BLOCK_MISSING': 3, 'CALIBRATE_FAILED': 4, 'PLATESOLVE_FAILED': 5, 'DRIZZLE_FAILED': 6, 'CONFIG_ERROR': 7, 'FILE_IO_ERROR': 8, 'TIMEOUT': 9, 'CANCELLED': 10, 'STAR_DETECT_FAILED': 20, 'PSF_FAILED': 21, 'PHOTOMETRIC_FAILED': 22, 'SNR_FAILED': 23, 'STACK_FAILED': 24, 'HISS_INVALID': 25, 'HCSD_INVALID': 26, 'MODULE_ABI_UNSUPPORTED': 27, 'INPUT_INVALID': 28, 'MODULE_SPECIFIC_BASE': 100})"
+    },
+    {
+      "check": "integration_status_full_set",
+      "pass": true,
+      "detail": "integration status 全集合 (doc={'P2_INTEGRATE_OK': 0, 'P2_INTEGRATE_NO_CANDIDATES': 1, 'P2_INTEGRATE_ALL_REJECTED': 2, 'P2_INTEGRATE_ZERO_VALID_WEIGHT': 3, 'P2_INTEGRATE_INVALID_INPUT': 4} code={'P2_INTEGRATE_OK': 0, 'P2_INTEGRATE_NO_CANDIDATES': 1, 'P2_INTEGRATE_ALL_REJECTED': 2, 'P2_INTEGRATE_ZERO_VALID_WEIGHT': 3, 'P2_INTEGRATE_INVALID_INPUT': 4})"
+    },
+    {
+      "check": "rejection_status_full_set",
+      "pass": true,
+      "detail": "rejection status 全集合 (doc={'P2_REASON_ACCEPTED': 0, 'P2_REASON_REJECTED_LOW': 1, 'P2_REASON_REJECTED_HIGH': 2, 'P2_REASON_UNDERDETERMINED': 3, 'P2_STATUS_OK': 0, 'P2_STATUS_MIN_SAMPLES': 1, 'P2_STATUS_ALL_REJECTED': 2, 'P2_STATUS_INVALID_INPUT': 3, 'P2_STATUS_UNDERDETERMINED': 4, 'P2_STATUS_INVALID_CONFIGURATION': 5, 'P2_STATUS_INVALID_METHOD': 6, 'P2_STATUS_INTERNAL_ERROR': 7} code={'P2_REASON_ACCEPTED': 0, 'P2_REASON_REJECTED_LOW': 1, 'P2_REASON_REJECTED_HIGH': 2, 'P2_REASON_UNDERDETERMINED': 3, 'P2_STATUS_OK': 0, 'P2_STATUS_MIN_SAMPLES': 1, 'P2_STATUS_ALL_REJECTED': 2, 'P2_STATUS_INVALID_INPUT': 3, 'P2_STATUS_UNDERDETERMINED': 4, 'P2_STATUS_INVALID_CONFIGURATION': 5, 'P2_STATUS_INVALID_METHOD': 6, 'P2_STATUS_INTERNAL_ERROR': 7})"
+    },
+    {
+      "check": "stage_ids_docs_vs_orchestrator",
+      "pass": true,
+      "detail": "stage IDs in ERROR_TAXONOMY <-> orchestrator stage_name_v2"
+    },
+    {
+      "check": "snr_constants",
+      "pass": true,
+      "detail": "NOISE_MODEL/PSF constants <-> noise_model.cpp"
+    },
+    {
+      "check": "product_contracts",
+      "pass": true,
+      "detail": "DATA_CONTRACTS products <-> aio_hips.h product flags"
+    },
+    {
+      "check": "drizzle_variance_formula",
+      "pass": true,
+      "detail": "DRIZZLE.md variance formula <-> drizzle_engine.h"
+    }
+  ],
+  "pass": true
+}
+machine EXIT:0
+
+== noise_model_science_test 39/39 (direct g++ run, ctest-equivalent) ==
+  [PASS] nullptr cfg OK
+  [PASS] default_config cfg OK
+  [PASS] production default cfg OK
+  [PASS] [NOISE-WIRE-001] nullptr == default_config() 逐字段 exact (sigma=3.969792922 n=56 spatial=1 ctrl=56)
+  [PASS] [NOISE-WIRE-001] nullptr == production default 逐字段 exact (sigma=3.969792922 n=56 spatial=1 ctrl=56)
+  [PASS] [NOISE-WIRE-001] fill 数组逐元素 exact (A vs C)
+  [PASS] [NOISE-WIRE-001] 零结构体≠默认 (spatial=0 ctrl=4 vs spatial=1 ctrl=56)
+=== V19 SNR/Noise 科学矩阵 (模块级) ===
+
+[SNR-001] pedestal invariance
+  [PASS] two models ok (r=0/0)
+  [PASS] variance invariant: 105.9397 vs 105.9397 rel=0.00e+00 (<1%)
+
+[SNR-002] multiplicative scale covariance
+  [PASS] var(αx)=α²var: got 436.361 expect 436.361 rel=0.00e+00 (<2%)
+  [PASS] ivar scale law: got 2.292e-03 expect 2.292e-03 rel=0.00e+00 (<2%)
+
+[SNR-003] star-population invariance
+  [PASS] both models ok
+  [PASS] background variance independent of star flux: 91.3166 vs 91.3166 rel=0.00e+00 (<2%)
+
+[SNR-004] Gaussian blank-sky recovery
+  [PASS] model ok
+  [PASS] global sigma bias: got 5.0062 truth 5.0 bias=0.124% (<=2%)
+  [PASS] patch p95 coverage: 64/64 = 100.0% (>=95%)
+
+[SNR-005] Poisson+read-noise cross-check
+  [PASS] model ok
+  [PASS] Poisson+read: emp 1367.3 th 1361.8 rel=0.40% (<=5%)
+  [PASS] gain model identity: 1361.78 vs 1361.78
+
+[SNR-006] spatial noise-field recovery
+  [PASS] model ok + spatial field
+  [PASS] corr=0.9975 (>=0.98)
+  [PASS] normalized RMSE=1.946% (<=5%)
+
+[SNR-007] dex/mag unit correctness
+  [PASS] phot_cal_quality ok
+  [PASS] sigma_mag=2.5×dex: got 0.2500 expect 0.2500
+  [PASS] sigma_cal_rel=ln10×dex: got 0.2303 expect 0.2303
+  [PASS] invalid sigma → status 2
+  [PASS] no matches → degraded status (no fake SNR)
+
+[SNR-008] legacy (A-B)/mad retired
+  [PASS] q_psf pedestal-invariant: q1=41.6667 q2=41.6667 rel=0.00e+00 (<1e-12)
+  [PASS] q_psf = A/residual_scale: 41.6667 vs 41.6667
+  [PASS] robust sigma conversion: 164.0077 (~163.95)
+
+[SNR-009] inverse-variance coadd efficiency
+  [PASS] analytic: var_opt=0.9000 var_eq=2.5000 (optimal wins)
+  [PASS] ivar-weighted variance: 0.9000 vs opt 0.9000 (rel<3%)
+
+[SNR-010] signal independence
+  [PASS] both models ok
+  [PASS] |ρ(weight,signal)|=0.0063 (<0.02)
+
+[SNR-013] PSF quality semantics
+  [PASS] good fit q=100.0 > poor q=10.0
+  [PASS] saturated → status 2
+  [PASS] rejected → status 1
+
+[SNR-014] missing/degenerate metadata behavior
+  [PASS] empirical fallback ok (r=0, source=0, deg=0, sigma=3.9527)
+  [PASS] fully degenerate → status 1, ivar=0
+
+== V19 SNR 科学矩阵结果: 39 通过, 0 失败 ==
+
+== 总结果: 39 通过, 0 失败 ==
+noise EXIT:0
+
+== BUILD 0 warnings probe (sample files) ==
+CMD: cd lib/snr_estimator/cpp && g++ -O2 -std=c++17 -Wall -Wextra -Wpedantic -fPIC -fopenmp -Iinclude -c src/noise_model.cpp -o /tmp/_c01_noise.o 2>&1
+
+warnings:0 errors:0
+CMD: cd lib/snr_estimator/cpp && g++ -O2 -std=c++17 -Wall -Wextra -Wpedantic -fPIC -fopenmp -Iinclude -c src/snr_estimator.cpp -o /tmp/_c01_snr2.o 2>&1
+
+warnings:0 errors:0
+CMD: cd lib/common && g++ -O2 -std=c++17 -Wall -Wextra -Wpedantic -Iinclude -c crypto/sha256.cpp -o /tmp/_c01_sha.o 2>&1
+
+warnings:0 errors:0
+CMD: cd lib/common && g++ -O2 -std=c++17 -Wall -Wextra -Wpedantic -Iinclude -Ihealpix -c healpix/healpix_core.cpp -o /tmp/_c01_hpx.o 2>&1
