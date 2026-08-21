@@ -388,7 +388,7 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
         // 默认 → 显式 science/degraded 错误；仅显式允许时才降级。
         cfg->legacy_allow_weight_fallback =
             in.value("legacy_allow_weight_fallback", false);
-            cfg->acr_route = in.value("acr_route", std::string("auto"));
+            cfg->acr_route = in.value("acr_route", std::string("auto")); // B4-28 ACR边界 ACR-IVAR-001: weight_mode=ivar时 ACR块禁用→CPU canonical (TRACEABILITY ACR-IVAR-001)
             if (cfg->acr_route != "auto" && cfg->acr_route != "cpu") {
                 *err = "acr_route 只支持 auto/cpu";
                 return false;
