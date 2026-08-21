@@ -1,0 +1,18 @@
+{
+  "round": 28,
+  "head": "a975bd1 chore(checkpoint): round25 61/95 V19R8 B4-17/21 running [R25]",
+  "done": 61,
+  "todo": 34,
+  "machine_pass": true,
+  "b4_todo_head": [
+    "QA-V19R7-B4-13",
+    "QA-V19R7-B4-17",
+    "QA-V19R7-B4-21",
+    "QA-V19R7-B4-22",
+    "QA-V19R7-B4-24"
+  ],
+  "running": [
+    "B4-17",
+    "B4-21"
+  ]
+}
