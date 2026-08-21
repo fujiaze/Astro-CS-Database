@@ -60,27 +60,31 @@ IterativeReprojectResult iterative_reproject(
 );
 
 // ---------------------------------------------------------------------------
-// extract_wcs_sip: 从 TRANS 提取 WCS + SIP
+// extract_wcs_sip: 从 TRANS 提取 WCS + SIP (U→W, 角秒)
 //
-// 流程:
-// 1. CD 矩阵: (s0/3600) * M^-1, M = TRANS 线性项
-// (因为 TRANS: W->U, W=xin, 所以 d(world)/d(pixel) = s0 * M^-1)
-// 2. CRVAL = 收敛后中心
-// 3. CRPIX = 图像中心 (1-based)
-// 4. SIP: 从 TRANS 高阶项提取 (order >= 2 时)
-// 5. RMS: 用最终匹配对计算
+// 流程 (与 lib/plate_solve/cpp/ipv/src/ipv_wcs.cpp 实现一致, 见
+// docs/algorithms/PLATESOLVE.md Invariants):
+// 1. CD 矩阵: trans 线性项 / 3600 (度/像素), 直接提取
+// TRANS: U(像素)→W(角秒), 线性项单位=角秒/像素; cd_inv=inv(线性项)(像素/角秒)
+// 2. CRVAL = 收敛后中心 (ra0, dec0)
+// 3. CRPIX = 图像中心 (1-based FITS, width/2+0.5, x0=CRPIX-1) (ipv_wcs.cpp:154,276)
+// 4. SIP 前向 A/B: 解析公式 A[i][j]=cd_inv·(trans.x_ij,trans.y_ij) (order>=2)
+// SIP 逆向 AP/BP: NB_GRID=7 网格反变换拟合, AP[1,0]-=1, BP[0,1]-=1 (ipv_wcs.cpp:463-464)
+// 5. Y-down 输出: cd12/cd22 取反, A' = A·(-1)^j, B' = -B·(-1)^j, AP/BP 同规则
+// (ipv_wcs.cpp:542-570, 内部 Y-up → 标准 FITS Y-down)
+// 6. RMS: 残差=apply_trans(U)-W (角秒), rms_px=rms_arcsec/s0
 //
 // 输入:
-// trans - 收敛后的 TRANS
+// trans - 收敛后的 TRANS (U→W)
 // ra0, dec0 - 收敛后中心 (度)
 // img_width/height- 图像尺寸
 // s0 - 像素尺度 (角秒/像素)
-// U - 图像侧星点 (用于 RMS 计算)
-// W - 星表侧星点 (像素, 用于 RMS 计算)
+// U - 图像侧星点 (像素, 原点图像中心, Y 轴向上, 用于 RMS)
+// W - 星表侧星点 (角秒, 原点图像中心, 用于 RMS)
 // matched - 匹配对 (用于 RMS 计算)
 // logger - 日志器 (可选)
 //
-// 输出: *result (WcsFitResult)
+// 输出: *result (WcsFitResult, 已为标准 FITS Y-down)
 // ---------------------------------------------------------------------------
 void extract_wcs_sip(
     const Trans& trans,
