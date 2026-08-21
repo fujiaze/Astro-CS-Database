@@ -1,4 +1,4 @@
-# AstroCS 已知限制（V19R2）
+# AstroCS 已知限制（V19R8 — 延续 V19R2，补 V19R8 节点 76/95 B4 28/28 DONE）
 
 1. **真实数据域**: V19R2 只做工程/合成验收; BASS + 2×2 + 3×3 + 大规模真实
    数据留下一轮 (`FINAL_REAL_DATA_VALIDATION=PENDING`)

@@ -1,6 +1,6 @@
 # AstroCS Release Status
 
-当前状态（V19R2 交付时如实填写）：
+当前状态（V19R8 quality-closure 76/95 B5-06 DONE — 显式为 V19R2 冻结后再刻 V19R8 节点）：
 
 ```text
 PRE_RELEASE_ENGINEERING_FOUNDATION=PASS
