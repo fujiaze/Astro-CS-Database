@@ -31,10 +31,10 @@ namespace {
 
 static std::unordered_map<const NoiseWeightModelV1*, double> g_model_floor;
 
-constexpr double kLn10 = 2.302585092994045684017991454684;
+constexpr double kLn10 = 2.302585092994045684017991454684; // NOISE_ESTIMATION.md / NOISE_MODEL.md 科学定义 log10↔ln 换算
 // trimmed-mean-abs-residual → Gaussian σ 换算因子:
-// E[10-90% trimmed mean |r|] = 0.731673 σ (Gaussian N(0,σ²))
-constexpr double kTrimMeanToSigma = 0.7316727929211932;
+// E[10-90% trimmed mean |r|] = 0.731673 σ (Gaussian N(0,σ²)) — 锚点: docs/science/NOISE_MODEL.md 数值精度 / PSF.md
+constexpr double kTrimMeanToSigma = 0.7316727929211932; // PSF.md 0.7316728 ↔ NOISE_MODEL.md robust_residual_sigma
 
 bool finite(double x) { return std::isfinite(x); }
 
@@ -51,7 +51,7 @@ double robust_median(std::vector<double>& v) {
     return med;
 }
 
-// 稳健尺度: 1.4826 × median(|x − median(x)|)
+// 稳健尺度: 1.4826 × median(|x − median(x)|) — 锚点: NOISE_ESTIMATION.md σ_bg / NOISE_MODEL.md 1.4826022185
 double robust_sigma(std::vector<double> v) {
     if (v.empty()) return 0.0;
     const double med = robust_median(v);
