@@ -16,7 +16,7 @@ raw 亮场 + masterBias/masterDark/masterFlat + cosmetic map。
 
 ## Postconditions
 
-- cal = (raw − bias − dark·t) / flat_norm；flat_norm≠0。
+- cal = (raw − dark)/flat_norm (dark_opt=0, Dark已含Bias) 或 (raw − bias − K·(dark−bias))/flat_norm (dark_opt=1, K=t_light/t_dark)；flat_norm = max(median=1.0, 0.1)（`lib/calibration/src/calibrator.cpp:78-93,104-136` normalize_flat median→1.0, <0.1→0.1；`lib/calibration/src/master_generator.cpp:222-234` 最终 median=1.0 clamp 0.1）。
 
 ## Invariants
 
@@ -25,7 +25,11 @@ raw 亮场 + masterBias/masterDark/masterFlat + cosmetic map。
 ## 伪代码
 
 ```text
-for each pixel: v = raw − bias − dark×t; v /= flat_norm; cosmetic 修复
+normalize_flat: flat /= median(flat); flat = max(flat, 0.1)  // median→1.0 clamp 0.1
+for each pixel:
+  if dark_opt==1 && bias&&dark: v = raw − bias − K·(dark−bias)  // K=k_init=t_light/t_dark
+  else:                         v = raw − dark                   // k→1.0 fallback
+  v /= max(flat_norm, 0.1); cosmetic 修复
 ```
 
 ## 复杂度
@@ -38,7 +42,7 @@ OpenMP parallel-for 像素块；每块独立；浮点顺序按行固定。
 
 ## 数值风险
 
-flat_norm 除零/母版 0 方差；FP64 中间量。
+flat_norm 除零/母版 0 方差；FP64 中间量；flat 归一后 clamp 0.1 避免过小除数（`calibrator.cpp:90,120,130,164,173`）。
 
 ## fast/reference/oracle
 
