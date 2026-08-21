@@ -1,0 +1,51 @@
+sizeof(AioKVEntry)=320 sizeof(AioBlock)=240 sizeof(PipelineFrame)=24 align(AioBlock)=8
+[PASS] AioKVEntry layout 64+256 bytes
+[PASS] AioBlock field order stable
+[PASS] AioBlockType enum values stable
+[2026-08-22 04:38:05][DEBUG][PIPELINE] frame_create: ok
+[PASS] frame create
+[2026-08-22 04:38:05][DEBUG][PIPELINE] add_block: 'data' type=0 count=6 (24 bytes)
+[PASS] add f32 data
+[PASS] add_block deep copy and dtype
+[2026-08-22 04:38:05][DEBUG][PIPELINE] add_block: 'data' type=1 count=6 (48 bytes)
+[PASS] replace block f32->f64
+[PASS] replacement dtype/data correct
+[PASS] KV set string
+[PASS] KV set double
+[PASS] KV get string
+[PASS] KV get double
+[2026-08-22 04:38:05][DEBUG][PIPELINE] add_block_move: 'ids' type=2 count=4 (moved ptr=0x56401f789530)
+[PASS] add_block_move
+[PASS] move preserves pointer ownership
+[2026-08-22 04:38:05][INFO][PIPELINE] save_cache: ok -> /tmp/astrocs_pipeline_contract.aio (3 blocks)
+[PASS] cache save
+[2026-08-22 04:38:05][DEBUG][PIPELINE] frame_create: ok
+[2026-08-22 04:38:05][DEBUG][PIPELINE] frame_create: ok
+[2026-08-22 04:38:05][DEBUG][PIPELINE] frame_destroy: ok
+[PASS] cache load
+[PASS] cache stages/block count roundtrip
+[PASS] cache dtype/dims roundtrip
+[PASS] cache f64 payload bit exact
+[2026-08-22 04:38:05][DEBUG][PIPELINE] remove_block: 'ids' removed (n_blocks=2)
+[PASS] remove block
+[PASS] remove missing returns 1
+[2026-08-22 04:38:05][DEBUG][PIPELINE] frame_create: ok
+[2026-08-22 04:38:05][DEBUG][PIPELINE] frame_destroy: ok
+[PASS] reject negative n_blocks
+[2026-08-22 04:38:05][DEBUG][PIPELINE] add_block: 'sentinel' type=2 count=1 (4 bytes)
+[2026-08-22 04:38:05][DEBUG][PIPELINE] frame_create: ok
+[2026-08-22 04:38:05][DEBUG][PIPELINE] frame_destroy: ok
+[PASS] reject truncated cache
+[PASS] failed cache load preserves prior frame atomically
+[2026-08-22 04:38:05][DEBUG][PIPELINE] frame_create: ok
+[2026-08-22 04:38:05][DEBUG][PIPELINE] frame_destroy: ok
+[PASS] reject n_dims > 4 without stream misalignment
+[2026-08-22 04:38:05][ERROR][PIPELINE] add_block: 参数校验失败 rc=3 name='bad' type=0
+[PASS] reject negative count
+[2026-08-22 04:38:05][ERROR][PIPELINE] add_block: 参数校验失败 rc=2 name='badtype' type=99
+[PASS] reject unknown type
+[2026-08-22 04:38:05][ERROR][PIPELINE] add_block_move: 参数校验失败 rc=2 name='badmove' type=99
+[PASS] move API rejects unknown type
+[2026-08-22 04:38:05][DEBUG][PIPELINE] frame_destroy: ok
+[2026-08-22 04:38:05][DEBUG][PIPELINE] frame_destroy: ok
+SUMMARY pass=28 fail=0

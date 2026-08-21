@@ -30,9 +30,10 @@ static int aio_get_log_level() {
 static void aio_ensure_log_file() {
     if (g_aio_log_file) return;
     {
-        const char* dir = "lib\\astro_image_io\\logs";
 #ifdef _WIN32
+        const char* dir = "lib\\astro_image_io\\logs";
         CreateDirectoryA(dir, nullptr);
+        (void)dir;
 #else
         std::filesystem::create_directories("lib/astro_image_io/logs");
 #endif
