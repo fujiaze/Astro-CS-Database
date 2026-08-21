@@ -1,3 +1,5 @@
+/* B4-13 缓存/并发锚点（不改算法）：BlockCache/QueryCache + cache_lock(CRITICAL_SECTION/pthread_mutex) 锚点 GAIA_QUERY.md 缓存段与 CACHE 契约；RA>45/85 剪枝见下 — thread-safe
+ */
 /* GAIA_QUERY RA 环绕与极区保守剪枝锚点（B4-12，与 B2-06 对齐，不改算法）：
  * - RA 环绕: lib/gaia_xpsd_client/src/gaia_client.c:bbox_intersects 中按
  *   dra>180°→360°-dra 归一并以 cos(dec) 缩放判相交；极区 |cos(dec)|<0.01
