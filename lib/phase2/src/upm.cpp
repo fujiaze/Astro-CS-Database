@@ -9,6 +9,11 @@
 // - 观测权重 raw_w = quality_factor * control_ivar（ 冻结，
 // SCI-UPM-WEIGHT-001；control_ivar = 1/control_variance，
 // ALG-UPM-CONTROL-IVAR-001），并在每个 control node 内归一；
+// - ivar 状态机（DATA-UPM-CONTROL-UNC-001 / SCI-UPM-WEIGHT-001）：
+// use_ivar_weight=1 时 control_ivar≤0/非有限→p2_upm_raw_weight rc=2→build rc=2
+// 显式拒绝（禁止静默回退 legacy）；use_ivar_weight=0 仅 ablation/诊断
+// （SNR-015）；config weight_mode auto/ivar→use_ivar_weight=1（默认）
+// 等价于 CONFIG_SCHEMA weight_mode(auto) + stage2_common wm=="auto"||"ivar"；
 // - legacy snr^2/(1+snr^2)/unc^2 仅 ablation/诊断（use_ivar_weight=0，
 // SNR-015），禁止进入 production science 路径；
 // - 弱零校正锚 lambda_0：单覆盖节点由同帧其他节点 + smoothness 延拓；
@@ -484,6 +489,7 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
 
     // ===== Huber IRLS 坐标下降求解 =====
     // 残差 r_ik = y_ik - M_k - C_i,k
+    // [B4-27 排异锚点 — REJECTION.md 迭代剔除/阈值契约, SCI-UPM 权重 SCI-UPM-WEIGHT-001 关联, 不改语义]
     // 权重 raw_w = quality × control_ivar（SCI-UPM-WEIGHT-001）；
     // per-control 归一化后 × huber_w。legacy snr² 路径仅在
     // use_ivar_weight=0（ablation/诊断）时由 p2_upm_raw_weight 选择。

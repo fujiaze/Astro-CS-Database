@@ -53,4 +53,4 @@ Maples et al. (2018) RCR；Rosner (1983) ESD；WBPP 2.9.1 源码策略。
 
 ## ID
 
-ALG-REJ-001..008（RJ-001..008）；SCI-REJ-*（S2 补注册）。
+ALG-REJ-001..008（RJ-001..008）；SCI-REJ-*（S2 补注册）。实现锚点：阈值/迭代见 `lib/phase2/src/rejection.cpp:1`。
