@@ -1,0 +1,65 @@
+{
+  "generated": "before",
+  "file_audit": {
+    "total_files": 873,
+    "per_module": {
+      "orchestrator": 43,
+      "healpix_db": 145,
+      "dynamic_psf": 11,
+      "star_detector": 16,
+      "astro_image_io": 260,
+      "phase2": 46,
+      "snr_estimator": 10,
+      "plate_solve": 44,
+      "photometric_calib": 43,
+      "calibration": 18,
+      "acr": 216,
+      "common": 14,
+      "gaia_xpsd_client": 7
+    },
+    "tool_missing": true,
+    "defect": "P1: tools/file_audit missing",
+    "coverage": "873/~713+"
+  },
+  "traceability": {
+    "total_rows": 63,
+    "ok_rows": 63,
+    "broken_rows": 0,
+    "broken_rate": 0.0
+  },
+  "machine_consistency": {
+    "checks": 9,
+    "broken": 0,
+    "pass": true
+  },
+  "standards": {
+    "standards_docs": 13,
+    "source_files_scanned": 581,
+    "forbidden_violations": 7,
+    "per_standard_violations": {
+      "CODE_STANDARD": 3,
+      "COMMENT_STANDARD": 4
+    },
+    "info_hits_per_standard": {
+      "API_STANDARD": 2,
+      "BENCHMARK_STANDARD": 2,
+      "C_ABI_STANDARD": 1,
+      "CODE_STANDARD": 1,
+      "COMMENT_STANDARD": 1,
+      "CONCURRENCY_STANDARD": 3,
+      "DOCUMENTATION_STANDARD": 2,
+      "ERROR_HANDLING_STANDARD": 1,
+      "IO_STANDARD": 3,
+      "LOGGING_DIAGNOSTICS_STANDARD": 1,
+      "NUMERIC_STANDARD": 4,
+      "RELEASE_STANDARD": 1,
+      "TEST_STANDARD": 3
+    }
+  },
+  "gate": {
+    "file_audit_coverage_ok": true,
+    "machine_consistency_json_generated": true,
+    "can_enter_A2": true,
+    "notes": "file_audit tool missing is P1 but alternative stats produced; 0 machine_consistency broken"
+  }
+}

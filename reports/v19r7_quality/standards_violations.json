@@ -1,0 +1,176 @@
+{
+  "tool": "standards keyword scan (simple grep)",
+  "generated": "before",
+  "standards_count": 13,
+  "source_files_scanned": 581,
+  "total_files_scanned": 873,
+  "checks": {
+    "API_STANDARD": {
+      "patterns": [
+        "extern\\s+\\\"C\\\"",
+        "AIO_"
+      ],
+      "hits": 2,
+      "violations": 0
+    },
+    "BENCHMARK_STANDARD": {
+      "patterns": [
+        "benchmark",
+        "BENCHMARK"
+      ],
+      "hits": 2,
+      "violations": 0
+    },
+    "C_ABI_STANDARD": {
+      "patterns": [
+        "throw",
+        "exception.*C\\s+ABI",
+        "extern\\s+\\\"C\\\".*noexcept"
+      ],
+      "hits": 1,
+      "violations": 0
+    },
+    "CODE_STANDARD": {
+      "patterns": [
+        "V19R\\d",
+        "MICROFIX",
+        "TODO.*V\\d",
+        "骨架"
+      ],
+      "hits": 1,
+      "violations": 1
+    },
+    "COMMENT_STANDARD": {
+      "patterns": [
+        "V19R\\d",
+        "R\\d+.*修复",
+        "本次修复",
+        "历史原因"
+      ],
+      "hits": 1,
+      "violations": 1
+    },
+    "CONCURRENCY_STANDARD": {
+      "patterns": [
+        "std::mutex",
+        "std::thread",
+        "atomic"
+      ],
+      "hits": 3,
+      "violations": 0
+    },
+    "DOCUMENTATION_STANDARD": {
+      "patterns": [
+        "SCI-",
+        "ALG-"
+      ],
+      "hits": 2,
+      "violations": 0
+    },
+    "ERROR_HANDLING_STANDARD": {
+      "patterns": [
+        "AstroCsExitCode",
+        "ERR-"
+      ],
+      "hits": 1,
+      "violations": 0
+    },
+    "IO_STANDARD": {
+      "patterns": [
+        "atomic.*promote",
+        "temp.*write",
+        "AIO_"
+      ],
+      "hits": 3,
+      "violations": 0
+    },
+    "LOGGING_DIAGNOSTICS_STANDARD": {
+      "patterns": [
+        "diagnostic",
+        "DIAG_"
+      ],
+      "hits": 1,
+      "violations": 0
+    },
+    "NUMERIC_STANDARD": {
+      "patterns": [
+        "NaN",
+        "Inf",
+        "1\\.4826",
+        "0\\.7316"
+      ],
+      "hits": 4,
+      "violations": 0
+    },
+    "RELEASE_STANDARD": {
+      "patterns": [
+        "RELEASE",
+        "CHANGELOG"
+      ],
+      "hits": 1,
+      "violations": 0
+    },
+    "TEST_STANDARD": {
+      "patterns": [
+        "TEST\\(",
+        "EXPECT_",
+        "ASSERT_"
+      ],
+      "hits": 3,
+      "violations": 0
+    }
+  },
+  "forbidden_details": {
+    "CODE_STANDARD": [
+      {
+        "file": "lib/healpix_db/healpix_drizzle/tests/representative_probe.cpp",
+        "line": 2,
+        "pattern": "V19R\\d",
+        "snippet": "// representative_probe.cpp — V19R4 DRIZZLE_REALISTIC_SINGLE_FRAME_PROBE"
+      },
+      {
+        "file": "lib/healpix_db/healpix_drizzle/tests/test_spherical_overlap.cpp",
+        "line": 1025,
+        "pattern": "V19R\\d",
+        "snippet": "// F-V19R2-DRZ-001：小像素（~3.2e-8 sr）下面积差在 float64"
+      },
+      {
+        "file": "lib/phase2/tests/synthetic_gate.cpp",
+        "line": 5322,
+        "pattern": "V19R\\d",
+        "snippet": "// F-V19R2-UPM-002：未知 frame_id 必须显式失败/NaN，禁止回退 frame 0 参数。"
+      }
+    ],
+    "COMMENT_STANDARD": [
+      {
+        "file": "lib/healpix_db/healpix_drizzle/tests/representative_probe.cpp",
+        "line": 2,
+        "pattern": "V19R\\d",
+        "snippet": "// representative_probe.cpp — V19R4 DRIZZLE_REALISTIC_SINGLE_FRAME_PROBE"
+      },
+      {
+        "file": "lib/healpix_db/healpix_drizzle/tests/test_spherical_overlap.cpp",
+        "line": 1025,
+        "pattern": "V19R\\d",
+        "snippet": "// F-V19R2-DRZ-001：小像素（~3.2e-8 sr）下面积差在 float64"
+      },
+      {
+        "file": "lib/phase2/tests/synthetic_gate.cpp",
+        "line": 5322,
+        "pattern": "V19R\\d",
+        "snippet": "// F-V19R2-UPM-002：未知 frame_id 必须显式失败/NaN，禁止回退 frame 0 参数。"
+      },
+      {
+        "file": "lib/orchestrator/cpp/src/checkpoint.cpp",
+        "line": 406,
+        "pattern": "遍历数组",
+        "snippet": "// 遍历数组中的每个对象"
+      }
+    ]
+  },
+  "forbidden_summary": {
+    "CODE_STANDARD": 3,
+    "COMMENT_STANDARD": 4
+  },
+  "note": "Simple keyword matching only; CODE/COMMENT forbidden hits are real violations; others are info hits."
+}

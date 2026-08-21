@@ -21,7 +21,24 @@ import re
 import sys
 
 
-ROOT = r"F:\Astro dev\Astro CS Normalization Database"
+def _deduce_root() -> str:
+    # auto-deduce project root: tools/docs_machine_consistency.py -> two levels up
+    try:
+        p = os.path.abspath(__file__)
+        cand = os.path.dirname(os.path.dirname(p))
+        # sanity: must contain docs/ and lib/
+        if os.path.isdir(os.path.join(cand, "docs")) and os.path.isdir(os.path.join(cand, "lib")):
+            return cand
+    except Exception:
+        pass
+    # fallback: cwd if it looks like project root
+    cwd = os.getcwd()
+    if os.path.isdir(os.path.join(cwd, "docs")) and os.path.isdir(os.path.join(cwd, "lib")):
+        return cwd
+    # fallback: parent of tools/
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+ROOT = _deduce_root()
 
 
 def read(path: str) -> str:
