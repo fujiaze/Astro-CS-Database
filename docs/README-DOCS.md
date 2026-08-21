@@ -13,8 +13,10 @@ L5 模块文档      docs/modules/<module>.md（固定模板）
 追溯             docs/TRACEABILITY.csv（唯一矩阵）
 ```
 
-权威链：Scientific Requirement → Scientific Definition → Algorithm Contract →
+权威链：Wiki(核心约束) → Scientific Requirement → Scientific Definition → Algorithm Contract →
 Architecture → Module/API/Data Contract → Implementation Standard → Source →
 Test → Diagnostics → Release Acceptance。
+
+- Wiki 为 L0 前置核心约束（见 V19R8 S0：Wiki 索引与 L1-L5 一一对应，矛盾以 Wiki 为准；三件套 `30_WIKI_TO_CODE_QUALITY_V19R8_SPEC.md` / `QA_V19R8_QUALITY.md` / `QA-V19R8-QUALITY-OPTIMIZATION.md`）。
 
 机器一致性：tools/docs_machine_consistency.py（S8 gate）。
