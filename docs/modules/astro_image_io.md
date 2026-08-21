@@ -65,8 +65,7 @@ fuzz/sanitize driver；Python oracle（hips_mapping_oracle）。
 
 ## Known limitations
 
-aio_upm_write_sparse 已于 V19R6R2 改为 temp+rename（F-V19R2-IO-001 已修复，见 IO_AND_ATOMICITY.md）；orchestrator 日志路径
-嵌套 bug（非阻断）。
+UPM sparse 已于 V19R6R2 temp+rename 已修复（F-V19R2-IO-001 已闭环，见 docs/architecture/IO_AND_ATOMICITY.md）；HiPS tiles 仍非原子（partial-file 策略：abort 尽力清理、finalize 写 CHECKSUM/DATASUM 后交付，单 tile 为 remove→create→write_chksum→close）；orchestrator 日志路径嵌套 bug（非阻断）。
 
 ## Source files
 
