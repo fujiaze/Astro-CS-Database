@@ -1,0 +1,18 @@
+{
+  "round": 64,
+  "head": "bd3498f chore(qa): mark B5-08 DONE [QA-V19R7-B5]",
+  "done": 78,
+  "todo": 18,
+  "machine_pass": true,
+  "c_todo_head": [
+    "QA-V19R7-C-01",
+    "QA-V19R7-C-02",
+    "QA-V19R7-C-03",
+    "QA-V19R7-C-04",
+    "QA-V19R7-C-05"
+  ],
+  "running": [
+    "C-06",
+    "C-07"
+  ]
+}
