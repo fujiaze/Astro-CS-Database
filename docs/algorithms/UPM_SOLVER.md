@@ -45,6 +45,7 @@ production（cfg.use_ivar_weight != 0）:
   raw_w[i] = quality_factor(flags) × obs[i].control_ivar
   control_ivar <= 0 / 非有限 → rc=2（显式科学错误，build 失败）
   per-control 归一化 × geometric_reliability（p2_upm_normalized_weights）
+  # raw=quality·control_ivar；normalized=raw/sum·geom（per-control，见p2_upm_normalized_weights）
 
 ablation/诊断（cfg.use_ivar_weight == 0, SNR-015）:
   raw_w = qf × support^support_power × snr²/(1+snr²) / max(unc², floor²)
