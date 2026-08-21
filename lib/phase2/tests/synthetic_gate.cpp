@@ -1717,7 +1717,7 @@ TEST(Phase2Upm, G1V7EdgeBasisAnalytic) {
     }
     EXPECT_LE(worst_seam_err, 1e-9)
         << "seam recovered delta 必须精确跟随 truth delta（严格，无动态放宽）";
-    EXPECT_GT(n_seam, 0u);  // 采样数非零（计数用于审计，防死循环退化）
+    EXPECT_GT(n_seam, 0u);
 
     // 4. 2D affine 拟合斜率/截距绝对阈值
     double sx = 0, sy = 0, sz = 0, sxx = 0, syy = 0, sxy = 0, sxz = 0,
