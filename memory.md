@@ -2217,3 +2217,23 @@ SHA256 e2130977a665759abd8308e6a7cba8dd0b0ab1b8801e407f6a61de42e9c72198
 - 只跑定点/合成验收; BASS 与真实数据留 V20 (V18R3 决策不重复刷 batch)
 - 根目录已归档 V14-V18R3 全部控制/审核包到 archive_deliverables/,
   仅保留 V19 控制包 + V19 审核包
+
+
+## V19R6R2-W1 Windows Blocker Closure (2026-08-21, HEAD 12ed0e1, Tier-A 7/7 CLOSED)
+
+**控制包**: AstroCS_V19R6R2_Windows_BlockerClosure_W1.zip (2026-08-20), 基线 0456ba0b924f77a00834b0055e188d9989209e9d, 无 HEAD 分歧
+**范围**: Tier-A 7 blocker 全量复现+最小修复+Windows 定点测试/静态检查；Tier-B 合同明确才修，不跑 BASS/16帧/k_corr
+
+**Tier-A 闭环**:
+- W1-CAL-001 cc_correct_median 固定栈越界: window>15 硬拒绝 (上限 15x15=225, 缓冲256), 15 PASS/17 拒绝/偶数拒绝, 择A方案 (checked window上限)
+- W1-AIO-001 truncated XISF 越界: expected>data_size 由 WARN改为 ERROR硬失败+回关闭文件+返回-1, 读前不进转换, 校验 w/h/c、dtype_size、checked multiplication, read_size==expected, FP32/FP64双路径
+- W1-GAIA-001 zero-spectrum realloc: spectrum_count==0 时 spectra=NULL不依赖 malloc(0), init/push 分支跳过 spectra realloc, 自洽 ownership
+- W1-GAIA-002 block-cache dangling: update路径 free后显式置NULL, 失败清空 block_offset/data_size/count/total_memory, 空槽失败不触 entry, 事务性
+- W1-ORCH-001 FP64 bytes/elements 混淆: photometric data 块 n_pix*sizeof(double) -> n_pix 元素数 (AIO已内部乘 elem_size), 全仓搜索确认仅此一处
+- W1-NOISE-001 SIP order OOB: snrEvalSip 守卫 order<0或>5 返回0且判 null, pixelToSkySimple 超域降级为 CD+TAN 不 OOB 不 clamp 后声称完整 SIP, -1/0/5/6/large 全安全
+- W1-NOISE-002 variance_floor 未贯通: registry (model ptr -> floor) 存储于 build、查找于 fill_impl (fallback 1e-12)、清除于 free, 无头文件 ABI 变更, 无字面量互换, floor 10->min 10 测通
+
+**Tier-B**: W1-STAR-001 DEFER (65535为归一化 norm/平台注释, 非已冻结标定浮点饱和语义, 待科学合同), W1-NOISE-003 DEFER (use_gain_model 未在生产路径消费, 待 SCI/ALG 合同或标记 unsupported), W1-CABI-001 CHANGED_MODULES_CLOSED (calibration 3 exports + noise_model 3 wrappers 内层 try/catch, CABI 不跨越)
+
+**验证**: Windows ctypes 定点 (window 15/17, floor 10/default), 源码级 truncated/空谱/失效路径核对, -Wall 编译全过 (6/6 模块), 无头 ABI 变更, 已 push 12ed0e1, 审核小包 AstroCS_Review_V19R6R2_WindowsBlockerClosure_W1.zip (SHA 7e4d828f...)
+
