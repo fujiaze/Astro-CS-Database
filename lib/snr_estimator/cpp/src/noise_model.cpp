@@ -36,7 +36,7 @@ constexpr double kLn10 = 2.302585092994045684017991454684; // NOISE_ESTIMATION.m
 // E[10-90% trimmed mean |r|] = 0.731673 σ (Gaussian N(0,σ²)) — 锚点: docs/science/NOISE_MODEL.md 数值精度 / PSF.md
 constexpr double kTrimMeanToSigma = 0.7316727929211932; // PSF.md 0.7316728 ↔ NOISE_MODEL.md robust_residual_sigma
 
-bool finite(double x) { return std::isfinite(x); }
+[[maybe_unused]] bool finite(double x) { return std::isfinite(x); }
 
 // 稳健中位数 (输入会被重排)
 double robust_median(std::vector<double>& v) {
