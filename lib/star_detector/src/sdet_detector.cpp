@@ -9,7 +9,7 @@
 #include <queue>
 #include <unordered_map>
 
-static const float SDET_PI_OVER_4 = 0.7853981633974483f;
+static const float SDET_PI_OVER_4 = 0.7853981633974483f; // pi/4 (r=sqrt(count/pi))
 
 void sdet_get_structure_map(StarDetectorInternal* sd, const float* image, int w, int h, float* out_map) {
     auto t0 = std::chrono::high_resolution_clock::now();
@@ -212,7 +212,7 @@ void sdet_get_star_parameters(const float* image, int w, int h, ConnectedCompone
     if (sigma <= 0.0f) sigma = 1e-6f;
 
     double sum_wx = 0.0, sum_wy = 0.0, sum_w = 0.0;
-    float threshold = bkg + 1.5f * sigma;
+    float threshold = bkg + 1.5f * sigma; // centroid 1.5 sigma (STAR_PSF_ALGORITHMS.md)
     for (int yy = cc->y0; yy < cc->y1; yy++) {
         for (int xx = cc->x0; xx < cc->x1; xx++) {
             float val = image[yy * w + xx];
