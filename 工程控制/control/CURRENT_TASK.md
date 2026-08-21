@@ -55,3 +55,6 @@ OperationProfile → MixedRoutePlanner → ResidencyManager/内存预算 → 聚
 
 ## Gate 状态
 - G12 Photometric Diagnostic Gate: P13-002 进行中
+
+## V19R8 Quality Closure (2026-08-22)
+**Phase**: V19R8 quality-closure — `G-QA` — `QA-V19R7-B5-02` | **Baseline**: `V19R8 S0-S6 (B4 28/28 DONE)` | **PROJECT_STATE**: V19R8 migrated (9320f78) | **Next**: B5-02..08 → C → D
