@@ -15,7 +15,21 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-REPO = Path(r"f:\Astro dev\Astro CS Normalization Database")
+def _deduce_root() -> Path:
+    # auto-deduce project root: walk up until docs/ and lib/ found (Linux-portable)
+    try:
+        p = Path(__file__).resolve()
+        for cand in [p.parent, *list(p.parents)]:
+            if (cand / "docs").is_dir() and (cand / "lib").is_dir():
+                return cand
+    except Exception:
+        pass
+    cwd = Path.cwd()
+    if (cwd / "docs").is_dir() and (cwd / "lib").is_dir():
+        return cwd
+    return Path(__file__).resolve().parents[2] if len(Path(__file__).resolve().parents) >=3 else Path(__file__).resolve().parent
+
+REPO = _deduce_root()
 OUT = REPO / "audit" / "AstroCS-v1.1-audit-pack"
 OUT.mkdir(parents=True, exist_ok=True)
 

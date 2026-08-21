@@ -10,7 +10,21 @@ import sys
 import zipfile
 from pathlib import Path
 
-ROOT = Path(r"F:\Astro dev\Astro CS Normalization Database")
+def _deduce_root() -> Path:
+    # auto-deduce project root: walk up until docs/ and lib/ found (Linux-portable)
+    try:
+        p = Path(__file__).resolve()
+        for cand in [p.parent, *list(p.parents)]:
+            if (cand / "docs").is_dir() and (cand / "lib").is_dir():
+                return cand
+    except Exception:
+        pass
+    cwd = Path.cwd()
+    if (cwd / "docs").is_dir() and (cwd / "lib").is_dir():
+        return cwd
+    return Path(__file__).resolve().parents[2] if len(Path(__file__).resolve().parents) >=3 else Path(__file__).resolve().parent
+
+ROOT = _deduce_root()
 STAGE = ROOT / "run" / "temp" / "pkg_v17_stage"
 ZIP = ROOT / "AstroCS_Review_TrueFinalFreeze_V17.zip"
 BASELINE = "1145a28"   # V16 最终提交（V17 diff 基线）

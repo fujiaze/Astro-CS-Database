@@ -24,7 +24,26 @@ import subprocess
 import sys
 import time
 
-ROOT = r"F:\Astro dev\Astro CS Normalization Database"
+def _deduce_root() -> str:
+    # auto-deduce project root: walk up until docs/ and lib/ found (Linux-portable)
+    try:
+        p = os.path.abspath(__file__)
+        cur = os.path.dirname(p)
+        for _ in range(5):
+            if os.path.isdir(os.path.join(cur, "docs")) and os.path.isdir(os.path.join(cur, "lib")):
+                return cur
+            parent = os.path.dirname(cur)
+            if parent == cur:
+                break
+            cur = parent
+    except Exception:
+        pass
+    cwd = os.getcwd()
+    if os.path.isdir(os.path.join(cwd, "docs")) and os.path.isdir(os.path.join(cwd, "lib")):
+        return cwd
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+ROOT = _deduce_root()
 REV = os.path.join(ROOT, "reports", "v19r3")
 CLANG = r"C:\msys64\mingw64\bin\clang++.exe"
 
@@ -58,7 +77,7 @@ MODULE_INC = {
 
 # 系统/工具链头（MSYS2 MinGW：omp.h / nlohmann / Qt6）
 SYS_INC = [r"C:\msys64\mingw64\include",
-           r"F:\Astro dev\Astro CS Normalization Database\run\temp\v19r3_analyze_inc",
+           os.path.join(ROOT, "run", "temp", "v19r3_analyze_inc"),
            r"C:\msys64\mingw64\include\Qt6",
            r"C:\msys64\mingw64\include\Qt6\QtCore",
            r"C:\msys64\mingw64\include\Qt6\QtGui",
@@ -77,7 +96,7 @@ EXTRA_MODULE_INC = {
                      "lib/orchestrator/cpp/third_party/json-schema-validator"],
     "photometric_calib": ["lib/gaia_xpsd_client/src"],
     "acr": ["lib/acr/qualification/benchmarks", "lib/acr/qualification",
-            "F:/Astro dev/Astro CS Normalization Database/lib/acr/build2/_deps/benchmark-src/include"],
+            os.path.join(ROOT, "lib/acr/build2/_deps/benchmark-src/include")],
     "healpix_browser": ["lib/healpix_db/healpix_browser_qt/core",
                         "lib/healpix_db/healpix_browser_qt/app",
                         "lib/healpix_db/healpix_browser_qt/widgets",
