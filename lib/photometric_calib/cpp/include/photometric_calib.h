@@ -1,5 +1,6 @@
 #ifndef PHOTOMETRIC_CALIB_H
 #define PHOTOMETRIC_CALIB_H
+// C ABI contract: docs/modules/photometric_calib.md + docs/contracts/PUBLIC_API.md + docs/standards/C_ABI_STANDARD.md; PC_API/extern "C" 不抛异常；gaia_client_handle=opaque borrow(调用方创建/销毁，本函数不持有)；out_* 调用方分配/释放，内部 malloc(spec_stars/spectra_buf)本函数内 free — handle 生命周期见本头各函数 Ownership 注释.
 
 #include <cstdint>
 
