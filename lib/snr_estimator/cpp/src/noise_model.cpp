@@ -21,12 +21,15 @@
 #include <cstring>
 #include <limits>
 #include <vector>
+#include <unordered_map>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
 namespace {
+
+static std::unordered_map<const NoiseWeightModelV1*, double> g_model_floor;
 
 constexpr double kLn10 = 2.302585092994045684017991454684;
 // trimmed-mean-abs-residual → Gaussian σ 换算因子:
@@ -120,6 +123,7 @@ int noise_model_impl(const T* data, int h, int w,
         snr_noise_model_v1_default_config(&c);
     }
     std::memset(out_model, 0, sizeof(NoiseWeightModelV1));
+    g_model_floor[out_model] = c.variance_floor;
 
     // 星点掩膜（ 冻结：fixed conservative mask）：
     // 像素在任一星点固定半径内 → source (1)；所有星统一
@@ -347,8 +351,7 @@ SNR_API int snr_noise_model_v1(const float* data, int h, int w,
                                int n_stars,
                                const SnrNoiseModelConfig* cfg,
                                NoiseWeightModelV1* out_model) {
-    return noise_model_impl(data, h, w, source_mask, star_x, star_y,
-                            n_stars, cfg, out_model);
+    try { return noise_model_impl(data, h, w, source_mask, star_x, star_y, n_stars, cfg, out_model); } catch (const std::exception& e) { (void)e; return 3; } catch (...) { return 3; }
 }
 
 SNR_API int snr_noise_model_v1_f64(const double* data, int h, int w,
@@ -357,11 +360,12 @@ SNR_API int snr_noise_model_v1_f64(const double* data, int h, int w,
                                    int n_stars,
                                    const SnrNoiseModelConfig* cfg,
                                    NoiseWeightModelV1* out_model) {
-    return noise_model_impl(data, h, w, source_mask, star_x, star_y,
-                            n_stars, cfg, out_model);
+    try { return noise_model_impl(data, h, w, source_mask, star_x, star_y, n_stars, cfg, out_model); } catch (const std::exception& e) { (void)e; return 3; } catch (...) { return 3; }
 }
 
 namespace {
+
+
 
 // 最小二乘平面填充内核（variance field， 冻结；float 输出）
 void fill_impl(const NoiseWeightModelV1* m, int h, int w,
@@ -394,8 +398,11 @@ void fill_impl(const NoiseWeightModelV1* m, int h, int w,
         const double a = mv - b * mx - c * my;
         for (int y = 0; y < h; ++y) {
             for (int x = 0; x < w; ++x) {
-                const double var = std::max(a + b * (double)x + c * (double)y,
-                                            1e-12);
+                // W1-NOISE-002: floor propagation via internal registry (model ptr keyed), fallback 1e-12
+                double floor = 1e-12;
+                auto it = g_model_floor.find(m);
+                if (it != g_model_floor.end() && it->second > 0.0) floor = it->second;
+                const double var = std::max(a + b * (double)x + c * (double)y, floor);
                 if (out_variance) out_variance[(std::size_t)y * w + x] = (float)var;
                 if (out_ivar) out_ivar[(std::size_t)y * w + x] = (float)(1.0 / var);
             }
@@ -417,12 +424,13 @@ SNR_API int snr_noise_model_v1_fill(const NoiseWeightModelV1* model,
                                     float* out_variance, float* out_ivar) {
     if (!model || h <= 0 || w <= 0) return 3;
     if (!out_variance && !out_ivar) return 3;
-    fill_impl(model, h, w, out_variance, out_ivar);
+    try { fill_impl(model, h, w, out_variance, out_ivar); } catch (const std::exception& e) { (void)e; return 3; } catch (...) { return 3; }
     return 0;
 }
 
 SNR_API void snr_noise_model_v1_free(NoiseWeightModelV1* model) {
     if (!model) return;
+    g_model_floor.erase(model);
     std::free(model->ctrl_x_px);
     std::free(model->ctrl_y_px);
     std::free(model->ctrl_sigma);

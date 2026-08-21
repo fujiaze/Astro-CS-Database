@@ -476,9 +476,22 @@ int xisf_read_file(const char *path, AIOImageData *out) {
         return -1;
     }
 
-    if ((int64_t)expected_bytes > img_info.data_size) {
-        aio_log(AIO_LOG_WARN, "XISF", "Expected %zu bytes but location has %lld",
+    // W1-AIO-001: truncated attachment must hard-fail before pixel conversion
+    if (img_info.data_size < (int64_t)expected_bytes) {
+        aio_log(AIO_LOG_ERROR, "XISF", "Truncated XISF attachment: expected %zu bytes but location has %lld",
                 expected_bytes, (long long)img_info.data_size);
+        std::fclose(fp);
+        return -1;
+    }
+    if (w <= 0 || h <= 0 || c <= 0 || w > 65535 || h > 65535) {
+        aio_log(AIO_LOG_ERROR, "XISF", "Invalid geometry: %dx%dx%d", w, h, c);
+        std::fclose(fp);
+        return -1;
+    }
+    if (sf.dtype_size <= 0 || sf.dtype_size > 8) {
+        aio_log(AIO_LOG_ERROR, "XISF", "Invalid dtype_size %d", sf.dtype_size);
+        std::fclose(fp);
+        return -1;
     }
 
     if (std::fseek(fp, (long)img_info.data_offset, SEEK_SET) != 0) {
@@ -487,7 +500,7 @@ int xisf_read_file(const char *path, AIOImageData *out) {
         return -1;
     }
 
-    size_t read_size = std::min((size_t)img_info.data_size, expected_bytes);
+    size_t read_size = expected_bytes;
     std::vector<uint8_t> raw(read_size);
     if (std::fread(raw.data(), 1, read_size, fp) != read_size) {
         aio_log(AIO_LOG_ERROR, "XISF", "Pixel data read incomplete");
