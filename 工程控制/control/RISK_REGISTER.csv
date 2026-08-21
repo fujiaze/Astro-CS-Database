@@ -6,3 +6,4 @@ R12-004,银心真实结构被梯度算法抹除,medium,critical,注入恢复+星
 R12-005,浏览器异步线程资源生命周期错误,medium,high,generation取消+线程所有权测试+ASan可用时运行,OPEN
 R12-006,GPU Tile边界裂缝或采样错误,medium,high,CPU参考采样和边界专测,OPEN
 R12-007,全TestData运行时间和南天内存过高,high,medium,分批调度+明确超时+缓存hash+保留失败证据,OPEN
+R19R8-001,V19R8 quality closure B4长尾与B5文档补齐,medium,high,每轮machine 9/9+push闭环≤4并行+分批提交,OPEN
