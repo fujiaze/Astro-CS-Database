@@ -1,3 +1,18 @@
+/* GAIA_QUERY RA 环绕与极区保守剪枝锚点（B4-12，与 B2-06 对齐，不改算法）：
+ * - RA 环绕: lib/gaia_xpsd_client/src/gaia_client.c:bbox_intersects 中按
+ *   dra>180°→360°-dra 归一并以 cos(dec) 缩放判相交；极区 |cos(dec)|<0.01
+ *   保守返回相交（避免经线收敛退化），裕量 1.2 保持无假阴性。
+ * - 极区分支: lib/gaia_xpsd_client/src/gaia_client.c:polar_plane_intersects，
+ *   |dec|>45° 进入 AE 极冠平面剪枝，|dec|>85° 仍保守（Lipschitz 常数
+ *   C=π/2 / C45=π/(2√2)，平面盘 B(q,C·radius) 不相交则拒绝，false_negative=0）；
+ *   跨 ±45° 边界或 θ_q+radius>90° 时保守不剪枝。
+ * - 坐标契约: J2000，与 lib/plate_solve 共享 TAN/SIP 坐标约定
+ *  （见 docs/algorithms/PLATESOLVE.md 数值风险段 / docs/science/ASTROMETRY.md
+ *   失效条件 / docs/algorithms/GAIA_QUERY.md 数值风险段），无分叉；
+ *   锥形查询为球面角距判定（Haversine 余弦定理），与 SIP 畸变几何正交、
+ *   SIP 仅由 plate_solve 侧 WCS 前向/逆向处理（SCI-AST-001）。
+ */
+
 #ifndef GAIA_CLIENT_H
 #define GAIA_CLIENT_H
 
