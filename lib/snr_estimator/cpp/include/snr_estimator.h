@@ -82,7 +82,7 @@ SNR_API int snr_psf_fit_quality(const double* psf, int n_stars,
                                 PsfFitQualityRow* out);
 
 // ---------------------------------------------------------------------------
-// 3. NoiseWeightModelV1
+// 3. NoiseWeightModelV1 — 合同锚点: docs/algorithms/NOISE_ESTIMATION.md + docs/science/NOISE_MODEL.md
 // source-masked blank-sky 稳健方差 (production 基线)。
 // 控制点来自空背景噪声, 与星亮度/星族解耦 (SNR-003/SNR-010)。
 // 默认 patch grid 扫描校准帧:
