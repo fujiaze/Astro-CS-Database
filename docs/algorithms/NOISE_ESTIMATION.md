@@ -35,6 +35,10 @@ patch 间 OpenMP；median 局部。
 
 全星场无空 patch → NO_DATA/fallback；裁剪偏差。
 
+## Gain/Readnoise（仅诊断/仅 SNR-005，不入生产）
+
+仅诊断：`snr_noise_gain_variance`（`noise_model.cpp:457-464`，`var_ADU=max(signal,0)/gain+(rn/gain)^2`）仅用于 SNR-005 诊断交叉验证；生产 `NoiseWeightModelV1 source==0 empirical`（blank-sky 稳健估计）不融合 gain/readnoise，`gain/readnoise` 字段仅诊断/追溯（锚点：`docs/science/NOISE_MODEL.md` Gain/Readnoise 诊断节、`noise_model_science_test.cpp:238-272`）。
+
 ## fast/reference/oracle
 
 MC 矩阵（Gaussian/Poisson/场恢复）SNR-004..006；与 1/unc² 对比
