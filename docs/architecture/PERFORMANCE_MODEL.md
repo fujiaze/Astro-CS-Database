@@ -8,4 +8,4 @@
   - NoiseWeightModelV1（Monte Carlo/oracle 矩阵）；
   - Gaia 极区 prune（provably-conservative，cache 键精确）。
 - 已知性能基线见 docs/performance/BASELINE.md；benchmark 指标挂
-  METRIC-* ID（S2 注册）。
+  METRIC-* ID（S2 注册）；G-QA 阈值 <5% 回归。
