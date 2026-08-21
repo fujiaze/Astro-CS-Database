@@ -2,6 +2,9 @@
 #include <cstdio>
 #include <cstdarg>
 #include <ctime>
+#ifndef _WIN32
+#include <filesystem>
+#endif
 #include <mutex>
 #include <string>
 #ifdef _WIN32
@@ -28,10 +31,21 @@ static int dpsf_get_log_level() {
 static void dpsf_ensure_log_file() {
     if (g_dpsf_log_file) return;
     {
+#ifdef _WIN32
         const char* dir = "lib\\dynamic_psf\\logs";
         CreateDirectoryA(dir, nullptr);
+        (void)dir;
+#else
+        std::filesystem::create_directories("lib/dynamic_psf/logs");
+#endif
     }
-    g_dpsf_log_file = std::fopen("lib\\dynamic_psf\\logs\\dynamic_psf.log", "a");
+    g_dpsf_log_file = std::fopen(
+#ifdef _WIN32
+        "lib\\dynamic_psf\\logs\\dynamic_psf.log",
+#else
+        "lib/dynamic_psf/logs/dynamic_psf.log",
+#endif
+        "a");
 }
 
 static const char* dpsf_level_name(int level) {
@@ -51,7 +65,11 @@ void dpsf_log(int level, const char* module, const char* fmt, ...) {
 
     std::time_t now = std::time(nullptr);
     std::tm tm_buf;
+#ifdef _WIN32
     localtime_s(&tm_buf, &now);
+#else
+    localtime_r(&now, &tm_buf);
+#endif
     char time_str[32];
     std::strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", &tm_buf);
 
