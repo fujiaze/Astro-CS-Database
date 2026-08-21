@@ -56,7 +56,7 @@ parameter_rows[index] ↔ frame_id_by_index[index]     # 同长、无重复
 ```
 
 绑定只由稳定 frame_id 决定；保存/重开不得改变 frame_id→θ 映射；
-禁止从有序容器遍历重建（DATA-UPM-MODEL-001）。
+禁止从有序容器遍历重建（DATA-UPM-MODEL-001；见 `lib/phase2/src/upm.cpp:6` 与 `lib/astro_image_io/src/aio_upm.cpp:4` 锚点）。
 payload含signal/support tile float32 LE bytes裸字节，跨endian理论不同id，当前仅Linux x86_64路径（sampler.cpp:250-364），DATA-FRAME-ID-001。
 
 ## 变量/单位

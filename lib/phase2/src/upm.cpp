@@ -15,6 +15,11 @@
 // - gauge：参考帧（最小内容稳定 frame_id）C=0，输入顺序无关；
 // - calibrate_block 真正使用 leaf_ipix 查找所在 control cell；
 // - 断开分量各自 gauge（不虚构跨组件约束）。
+// - 持久化绑定 SCI-UPM-PERSIST-001/ALG-UPM-FRAME-BIND-001/DATA-UPM-MODEL-001：
+//   parameter_rows[index]↔frame_id_by_index[index] 同长无重复；save 经
+//   frames[]+C[] 行序显式持久化（原子写 aio_upm_write_sparse，ENG-IO-001），
+//   open 强校验 frames 存在/数组/无重复/类型非法一律拒绝，save→open 后
+//   frame_id→theta 绑定不变，禁止从有序容器遍历重建。
 #include "astro/phase2/upm.h"
 #include "astro/phase2/sampler.h"
 
