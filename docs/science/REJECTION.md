@@ -20,7 +20,7 @@ None / Sigma / Winsorized / AveragedSigma / LinearFit / GeneralizedESD / RCR
 - eligibility 分层：invalid_finite / invalid_support / 显式 reason；
 - INVALID_* 状态 → 调用方 hard fail（非可继续集合）；
 - UNDERDETERMINED = 样本不足（≤min_samples），不做猜测积分；
-- large_scale 结构生长仅对扩展结构，compact cosmic 不生长。
+- large_scale 结构生长仅对扩展结构，compact cosmic 不生长（`rejection.cpp:1501-1592` trail 生长分支）。
 
 ## 变量/单位
 
