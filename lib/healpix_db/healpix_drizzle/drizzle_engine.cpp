@@ -1650,7 +1650,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     // （DRIZZLE_CACHE_THREAD_SAFETY）：每次 drizzleTiled run 递增
     // generation，线程 cache 切换即清空。原裸 static read-modify-write
     // 在同进程并发 run 下是 C++ data race（UB）——改 atomic fetch_add。
-    static std::atomic<std::uint64_t> s_target_cache_gen{0};
+    static std::atomic<std::uint64_t> s_target_cache_gen{0}; // B4-22 atomic run-gen (DRIZZLE_GEOMETRY.md run generation)
     rctx.target_cache_run_gen = s_target_cache_gen.fetch_add(1) + 1;
 
     int64_t nSourcePixels = 0;
