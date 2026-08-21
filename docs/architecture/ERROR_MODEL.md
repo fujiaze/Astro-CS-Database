@@ -49,3 +49,5 @@ P1.PHOTOMETRIC/P1.NOISE/P1.DRIZZLE/P1.HIPS_WRITE/P2.*。
 ## 契约
 
 ERR-* 族（S2 注册，含 ERR-P2-UPM-001 畸形模型）。
+
+ERR-P2-UPM-001 见 `lib/phase2/src/upm.cpp:~890` frames 唯一/类型/C 行数校验。
