@@ -1,35 +1,193 @@
 === V19R8 C-03 variance_propagation Gate (vm-bj Linux) ===
-Date: 2026-08-22 vm-bj
+Date: 2026-08-22T05:09:13+08:00 vm-bj
 Source: lib/healpix_db/healpix_drizzle/tests/variance_propagation_test.cpp
-  Tests: TEST-DRZ-VAR-001 / SNR-011 / SNR-012 / DRZ-014 / DRZ-016 (variance + covariance MC + identity + cache invariance)
-  Config: W=20 H=20 NSIDE=512 SKY=1000 SIGMA=10 pixfrac=1.0 threads=1 (deterministic)
-  Setup: FitsImage WCS crval(10,20) crpix center cd -/0/0/+ deg_per_px 300/3600 TAN, TileAccumulator sumVarNum=sum v_j w_jp^2 variance=sumVarNum/sumArea^2
+Coverage: TEST-DRZ-VAR-001 / SNR-011 / SNR-012 / DRZ-014 / DRZ-016
+Compile: g++ -O2 -std=c++17 -I lib/healpix_db/healpix_drizzle -I lib/astro_image_io/include -I lib/astro_image_io/src -I lib/common -DAIO_ENABLE_HEALPIX -fopenmp
+  Objects: fits_reader.cpp + wcs_sip.cpp + poly_clip.cpp + spherical_overlap.cpp + drizzle_engine.cpp(265K) + healpix_core(shim) + healpix_core(common) + snr_evaluator.cpp + hiss_common.cpp + hiss_stub.cpp
+  Link: /tmp/variance_propagation_test (398K) via hiss_common + hiss_stub (绕过 HissWriter 全链路重型依赖，避免 drizzle_engine 全量链接超时)
+  Hiss stub: HissWriter open/add_tile/finalize/cancel minimal stubs, HissWriter::Impl forward decl resolved
+Run: timeout 600 /tmp/variance_propagation_test (NMC=4000, W=20 H=20 NSIDE=512 SKY=1000 SIGMA=10 pixfrac=1.0 threads=1)
 
-Build: vm-bj g++ -O2 -std=c++17 -DAIO_ENABLE_HEALPIX compiles variance_propagation_test.cpp to /tmp/vp2.o OK,
-       but full link with drizzle_engine.cpp + wcs_sip + poly_clip + spherical_overlap + reverse_drizzle + healpix_core + snr_evaluator + healpix_core(common) times out >60s (60000ms SIGTERM killed)
-       -> Evidence deferred to machine contract + prior drizzle correctness (healpix_drizzle/tests already PASS per V19R2 reports/v19r2)
+--- key results (tail) ---
+  [PASS] truth drizzle ok
+  [PASS] variance drizzle ok
+  [PASS] reference (no variance) drizzle ok
+  [PASS] DRZ-016: variance 输入不改变 signal (同一噪声帧)
+[SNR-011] MC 4000 实现, 252 个有效 leaf, 耗时 239.69s
+  [PASS] SNR-011 p50=1.001 (0.98-1.02), p95=[0.962,1.042] (0.95-1.05), n=252
+  [PASS] SNR-012 相邻像素 |ρ| mean=0.1863 max=0.5712 (n=108, 已表征)
+  [PASS] scaled variance drizzle ok
+  [PASS] DRZ-014 variance(α²v)=α²variance: worst_rel=0.00e+00 (<1e-4)
+== V19 Drizzle 方差传播结果: 8 通过, 0 失败 ==
+  [PASS] truth drizzle ok
+  [PASS] variance drizzle ok
+  [PASS] reference (no variance) drizzle ok
+  [PASS] DRZ-016: variance 输入不改变 signal (同一噪声帧)
+[SNR-011] MC 4000 实现, 252 个有效 leaf, 耗时 239.69s
+  [PASS] SNR-011 p50=1.001 (0.98-1.02), p95=[0.962,1.042] (0.95-1.05), n=252
+  [PASS] SNR-012 相邻像素 |ρ| mean=0.1863 max=0.5712 (n=108, 已表征)
+  [PASS] scaled variance drizzle ok
+  [PASS] DRZ-014 variance(α²v)=α²variance: worst_rel=0.00e+00 (<1e-4)
+== V19 Drizzle 方差传播结果: 8 通过, 0 失败 ==
 
-Machine contract (covers variance formula):
-  drizzle_variance_formula: True — DRIZZLE.md variance formula <-> drizzle_engine.h
-  Related: lib/healpix_db/healpix_drizzle/drizzle_engine.h: TileAccumulator sumVarNum / variance = sumVarNum / sumArea^2
-           docs/science/DRIZZLE.md: sumVarNum += v_j * w_jp^2, variance_p=sumVarNum/D^2, ivar=1/var
+--- exit ---
+[C-03] exit_code=0
+[C-03] exit_code=0
+      "check": "error_taxonomy_exit_codes",
+error_taxonomy_exit_codes True ERROR_MODEL 全集合 == orchestrator.h 0-10 退出码 (doc={'SUCCESS': 0, 'GENERIC_ERROR': 1, 'DLL_LOAD_FAILED': 2, 'BLOCK_MISSING': 3, 'CALIBRATE_FAILED': 4, 'PLATESOLVE_FAILED': 5, 'DRIZZLE_FAILED': 6, 'CONFIG_ERROR': 7, 'FILE_IO_ERROR': 8, 'TIMEOUT': 9, 'CANCELLED': 10, 'STAR_DETECT_FAILED': 20, 'PSF_FAILED': 21, 'PHOTOMETRIC_FAILED': 22, 'SNR_FAILED': 23, 'STACK_FAILED': 24, 'HISS_INVALID': 25, 'HCSD_INVALID': 26, 'MODULE_ABI_UNSUPPORTED': 27, 'INPUT_INVALID': 28, 'MODULE_SPECIFIC_BASE': 100} code={'SUCCESS': 0, 'GENERIC_ERROR': 1, 'DLL_LOAD_FAILED': 2, 'BLOCK_MISSING': 3, 'CALIBRATE_FAILED': 4, 'PLATESOLVE_FAILED': 5, 'DRIZZLE_FAILED': 6, 'CONFIG_ERROR': 7, 'FILE_IO_ERROR': 8, 'TIMEOUT': 9, 'CANCELLED': 10, 'STAR_DETECT_FAILED': 20, 'PSF_FAILED': 21, 'PHOTOMETRIC_FAILED': 22, 'SNR_FAILED': 23, 'STACK_FAILED': 24, 'HISS_INVALID': 25, 'HCSD_INVALID': 26, 'MODULE_ABI_UNSUPPORTED': 27, 'INPUT_INVALID': 28, 'MODULE_SPECIFIC_BASE': 100})
 
-All machine checks pass: True (9/9)
-  config_weight_mode_ivar: True
-  frame_id_contract_exact: True
-  error_taxonomy_exit_codes: True
-  integration_status_full_set: True
-  rejection_status_full_set: True
-  stage_ids_docs_vs_orchestrator: True
-  snr_constants: True
-  product_contracts: True
-  drizzle_variance_formula: True
+--- docs_machine_consistency 9/9 ---
+{
+  "tool": "docs_machine_consistency",
+  "version": "1.0.0",
+  "checks": [
+    {
+      "check": "config_weight_mode_ivar",
+      "pass": true,
+      "detail": "CONFIG_SCHEMA weight_mode auto/ivar <-> stage2_common parse"
+    },
+    {
+      "check": "frame_id_contract_exact",
+      "pass": true,
+      "detail": "DATA-FRAME-ID-001：SHA-256 truncate；无 FNV/路径派生残留"
+    },
+    {
+      "check": "error_taxonomy_exit_codes",
+      "pass": true,
+      "detail": "ERROR_MODEL 全集合 == orchestrator.h 0-10 退出码 (doc={'SUCCESS': 0, 'GENERIC_ERROR': 1, 'DLL_LOAD_FAILED': 2, 'BLOCK_MISSING': 3, 'CALIBRATE_FAILED': 4, 'PLATESOLVE_FAILED': 5, 'DRIZZLE_FAILED': 6, 'CONFIG_ERROR': 7, 'FILE_IO_ERROR': 8, 'TIMEOUT': 9, 'CANCELLED': 10, 'STAR_DETECT_FAILED': 20, 'PSF_FAILED': 21, 'PHOTOMETRIC_FAILED': 22, 'SNR_FAILED': 23, 'STACK_FAILED': 24, 'HISS_INVALID': 25, 'HCSD_INVALID': 26, 'MODULE_ABI_UNSUPPORTED': 27, 'INPUT_INVALID': 28, 'MODULE_SPECIFIC_BASE': 100} code={'SUCCESS': 0, 'GENERIC_ERROR': 1, 'DLL_LOAD_FAILED': 2, 'BLOCK_MISSING': 3, 'CALIBRATE_FAILED': 4, 'PLATESOLVE_FAILED': 5, 'DRIZZLE_FAILED': 6, 'CONFIG_ERROR': 7, 'FILE_IO_ERROR': 8, 'TIMEOUT': 9, 'CANCELLED': 10, 'STAR_DETECT_FAILED': 20, 'PSF_FAILED': 21, 'PHOTOMETRIC_FAILED': 22, 'SNR_FAILED': 23, 'STACK_FAILED': 24, 'HISS_INVALID': 25, 'HCSD_INVALID': 26, 'MODULE_ABI_UNSUPPORTED': 27, 'INPUT_INVALID': 28, 'MODULE_SPECIFIC_BASE': 100})"
+    },
+    {
+      "check": "integration_status_full_set",
+      "pass": true,
+      "detail": "integration status 全集合 (doc={'P2_INTEGRATE_OK': 0, 'P2_INTEGRATE_NO_CANDIDATES': 1, 'P2_INTEGRATE_ALL_REJECTED': 2, 'P2_INTEGRATE_ZERO_VALID_WEIGHT': 3, 'P2_INTEGRATE_INVALID_INPUT': 4} code={'P2_INTEGRATE_OK': 0, 'P2_INTEGRATE_NO_CANDIDATES': 1, 'P2_INTEGRATE_ALL_REJECTED': 2, 'P2_INTEGRATE_ZERO_VALID_WEIGHT': 3, 'P2_INTEGRATE_INVALID_INPUT': 4})"
+    },
+    {
+      "check": "rejection_status_full_set",
+      "pass": true,
+      "detail": "rejection status 全集合 (doc={'P2_REASON_ACCEPTED': 0, 'P2_REASON_REJECTED_LOW': 1, 'P2_REASON_REJECTED_HIGH': 2, 'P2_REASON_UNDERDETERMINED': 3, 'P2_STATUS_OK': 0, 'P2_STATUS_MIN_SAMPLES': 1, 'P2_STATUS_ALL_REJECTED': 2, 'P2_STATUS_INVALID_INPUT': 3, 'P2_STATUS_UNDERDETERMINED': 4, 'P2_STATUS_INVALID_CONFIGURATION': 5, 'P2_STATUS_INVALID_METHOD': 6, 'P2_STATUS_INTERNAL_ERROR': 7} code={'P2_REASON_ACCEPTED': 0, 'P2_REASON_REJECTED_LOW': 1, 'P2_REASON_REJECTED_HIGH': 2, 'P2_REASON_UNDERDETERMINED': 3, 'P2_STATUS_OK': 0, 'P2_STATUS_MIN_SAMPLES': 1, 'P2_STATUS_ALL_REJECTED': 2, 'P2_STATUS_INVALID_INPUT': 3, 'P2_STATUS_UNDERDETERMINED': 4, 'P2_STATUS_INVALID_CONFIGURATION': 5, 'P2_STATUS_INVALID_METHOD': 6, 'P2_STATUS_INTERNAL_ERROR': 7})"
+    },
+    {
+      "check": "stage_ids_docs_vs_orchestrator",
+      "pass": true,
+      "detail": "stage IDs in ERROR_TAXONOMY <-> orchestrator stage_name_v2"
+    },
+    {
+      "check": "snr_constants",
+      "pass": true,
+      "detail": "NOISE_MODEL/PSF constants <-> noise_model.cpp"
+    },
+    {
+      "check": "product_contracts",
+      "pass": true,
+      "detail": "DATA_CONTRACTS products <-> aio_hips.h product flags"
+    },
+    {
+      "check": "drizzle_variance_formula",
+      "pass": true,
+      "detail": "DRIZZLE.md variance formula <-> drizzle_engine.h"
+    }
+  ],
+  "pass": true
+}
 
-Prior drizzle validation (vm-bj feasible gates already PASS):
-- C-02 noise 39/39 PASS direct (vm-bj)
-- C-05 pipeline_frame 28/28 PASS direct (vm-bj)
-- V19R2 reports/v19r2: drizzle_l0/l2/l3 + spherical_overlap + reverse_drizzle + kcorr matrix all PASS (per evidence)
+--- full run spill tail (for provenance) ---
+[wcs_sip] WCS 初始化: CRVAL=(10.000000, 20.000000)°, CRPIX=(10.500, 10.500), CD=[-8.333e-02, 0.000e+00; 0.000e+00, 8.333e-02], det=-6.944e-03
+[wcs_sip] SIP: A/B order=0, AP/BP order=0
+[drizzle_engine] HEALPix: nside=512 nested=1 npix=3145728 res=412.26"
+[drizzle_engine] Tile: nside=512 depth=9 tile_nside=16 n_leaf/tile=262144
+[drizzle_engine][profile] wcs=0.000s geom=0.000s cand=0.000s overlap=0.000s | paths quick=0 fully=0 dropin=0 sh=0 (threads=1, 0.0M px)
+[drizzle_engine][ops] src=400 cand=3964 true_ov=1436 quick_rej=2528 pix2radec=840 boundary=400 geom=400 tgt_b=298 tgt_g=298 gcache_hit=3666 gcache_miss=298 sh=3964 tile_lk=1436 heap_alloc=0 | cand_eff=0.362 sh_frac=0.611
+[drizzle_engine] 完成: 400 源像素 → 252 HEALPix 像素 (1 Tile), 耗时 0.022s
+[wcs_sip] WCS 初始化: CRVAL=(10.000000, 20.000000)°, CRPIX=(10.500, 10.500), CD=[-8.333e-02, 0.000e+00; 0.000e+00, 8.333e-02], det=-6.944e-03
+[wcs_sip] SIP: A/B order=0, AP/BP order=0
+[drizzle_engine] HEALPix: nside=512 nested=1 npix=3145728 res=412.26"
+[drizzle_engine] Tile: nside=512 depth=9 tile_nside=16 n_leaf/tile=262144
+[drizzle_engine][profile] wcs=0.000s geom=0.000s cand=0.000s overlap=0.000s | paths quick=0 fully=0 dropin=0 sh=0 (threads=1, 0.0M px)
+[drizzle_engine][ops] src=400 cand=3964 true_ov=1436 quick_rej=2528 pix2radec=840 boundary=400 geom=400 tgt_b=298 tgt_g=298 gcache_hit=3666 gcache_miss=298 sh=3964 tile_lk=1436 heap_alloc=0 | cand_eff=0.362 sh_frac=0.611
+[drizzle_engine] 完成: 400 源像素 → 252 HEALPix 像素 (1 Tile), 耗时 0.020s
+[wcs_sip] WCS 初始化: CRVAL=(10.000000, 20.000000)°, CRPIX=(10.500, 10.500), CD=[-8.333e-02, 0.000e+00; 0.000e+00, 8.333e-02], det=-6.944e-03
+[wcs_sip] SIP: A/B order=0, AP/BP order=0
+[drizzle_engine] HEALPix: nside=512 nested=1 npix=3145728 res=412.26"
+[drizzle_engine] Tile: nside=512 depth=9 tile_nside=16 n_leaf/tile=262144
+[drizzle_engine][profile] wcs=0.000s geom=0.000s cand=0.000s overlap=0.000s | paths quick=0 fully=0 dropin=0 sh=0 (threads=1, 0.0M px)
+[drizzle_engine][ops] src=400 cand=3964 true_ov=1436 quick_rej=2528 pix2radec=840 boundary=400 geom=400 tgt_b=298 tgt_g=298 gcache_hit=3666 gcache_miss=298 sh=3964 tile_lk=1436 heap_alloc=0 | cand_eff=0.362 sh_frac=0.611
+[drizzle_engine] 完成: 400 源像素 → 252 HEALPix 像素 (1 Tile), 耗时 0.026s
+=== V19 Drizzle 方差传播科学测试 ===
+  [PASS] truth drizzle ok
+  [PASS] variance drizzle ok
+  [PASS] reference (no variance) drizzle ok
+  [PASS] DRZ-016: variance 输入不改变 signal (同一噪声帧)
+[SNR-011] MC 4000 实现, 252 个有效 leaf, 耗时 239.69s
+  [PASS] SNR-011 p50=1.001 (0.98-1.02), p95=[0.962,1.042] (0.95-1.05), n=252
+  [PASS] SNR-012 相邻像素 |ρ| mean=0.1863 max=0.5712 (n=108, 已表征)
+        (Drizzle 后相邻像素非严格独立: mean|ρ|=0.1863 max|ρ|=0.5712, pixfrac/resampling 引入协方差, 文档记录)
+  [PASS] scaled variance drizzle ok
+  [PASS] DRZ-014 variance(α²v)=α²variance: worst_rel=0.00e+00 (<1e-4)
 
-Verdict: C-03 variance propagation formula contract held via drizzle_variance_formula machine check; full MC run requires Windows/MSYS2 or cached build (link heavy), not vm-bj incremental link. Mark DONE with evidence, not FAIL.
-
-Next: C-01 full ctest matrix on Windows/MSYS2 will include variance_propagation execution.
+== V19 Drizzle 方差传播结果: 8 通过, 0 失败 ==
+[C-03] exit_code=0
+[C-03] log saved: reports/v19r8_quality/c03_variance.log
+--- docs_machine_consistency quick check ---
+{
+  "tool": "docs_machine_consistency",
+  "version": "1.0.0",
+  "checks": [
+    {
+      "check": "config_weight_mode_ivar",
+      "pass": true,
+      "detail": "CONFIG_SCHEMA weight_mode auto/ivar <-> stage2_common parse"
+    },
+    {
+      "check": "frame_id_contract_exact",
+      "pass": true,
+      "detail": "DATA-FRAME-ID-001：SHA-256 truncate；无 FNV/路径派生残留"
+    },
+    {
+      "check": "error_taxonomy_exit_codes",
+      "pass": true,
+      "detail": "ERROR_MODEL 全集合 == orchestrator.h 0-10 退出码 (doc={'SUCCESS': 0, 'GENERIC_ERROR': 1, 'DLL_LOAD_FAILED': 2, 'BLOCK_MISSING': 3, 'CALIBRATE_FAILED': 4, 'PLATESOLVE_FAILED': 5, 'DRIZZLE_FAILED': 6, 'CONFIG_ERROR': 7, 'FILE_IO_ERROR': 8, 'TIMEOUT': 9, 'CANCELLED': 10, 'STAR_DETECT_FAILED': 20, 'PSF_FAILED': 21, 'PHOTOMETRIC_FAILED': 22, 'SNR_FAILED': 23, 'STACK_FAILED': 24, 'HISS_INVALID': 25, 'HCSD_INVALID': 26, 'MODULE_ABI_UNSUPPORTED': 27, 'INPUT_INVALID': 28, 'MODULE_SPECIFIC_BASE': 100} code={'SUCCESS': 0, 'GENERIC_ERROR': 1, 'DLL_LOAD_FAILED': 2, 'BLOCK_MISSING': 3, 'CALIBRATE_FAILED': 4, 'PLATESOLVE_FAILED': 5, 'DRIZZLE_FAILED': 6, 'CONFIG_ERROR': 7, 'FILE_IO_ERROR': 8, 'TIMEOUT': 9, 'CANCELLED': 10, 'STAR_DETECT_FAILED': 20, 'PSF_FAILED': 21, 'PHOTOMETRIC_FAILED': 22, 'SNR_FAILED': 23, 'STACK_FAILED': 24, 'HISS_INVALID': 25, 'HCSD_INVALID': 26, 'MODULE_ABI_UNSUPPORTED': 27, 'INPUT_INVALID': 28, 'MODULE_SPECIFIC_BASE': 100})"
+    },
+    {
+      "check": "integration_status_full_set",
+      "pass": true,
+      "detail": "integration status 全集合 (doc={'P2_INTEGRATE_OK': 0, 'P2_INTEGRATE_NO_CANDIDATES': 1, 'P2_INTEGRATE_ALL_REJECTED': 2, 'P2_INTEGRATE_ZERO_VALID_WEIGHT': 3, 'P2_INTEGRATE_INVALID_INPUT': 4} code={'P2_INTEGRATE_OK': 0, 'P2_INTEGRATE_NO_CANDIDATES': 1, 'P2_INTEGRATE_ALL_REJECTED': 2, 'P2_INTEGRATE_ZERO_VALID_WEIGHT': 3, 'P2_INTEGRATE_INVALID_INPUT': 4})"
+    },
+    {
+      "check": "rejection_status_full_set",
+      "pass": true,
+      "detail": "rejection status 全集合 (doc={'P2_REASON_ACCEPTED': 0, 'P2_REASON_REJECTED_LOW': 1, 'P2_REASON_REJECTED_HIGH': 2, 'P2_REASON_UNDERDETERMINED': 3, 'P2_STATUS_OK': 0, 'P2_STATUS_MIN_SAMPLES': 1, 'P2_STATUS_ALL_REJECTED': 2, 'P2_STATUS_INVALID_INPUT': 3, 'P2_STATUS_UNDERDETERMINED': 4, 'P2_STATUS_INVALID_CONFIGURATION': 5, 'P2_STATUS_INVALID_METHOD': 6, 'P2_STATUS_INTERNAL_ERROR': 7} code={'P2_REASON_ACCEPTED': 0, 'P2_REASON_REJECTED_LOW': 1, 'P2_REASON_REJECTED_HIGH': 2, 'P2_REASON_UNDERDETERMINED': 3, 'P2_STATUS_OK': 0, 'P2_STATUS_MIN_SAMPLES': 1, 'P2_STATUS_ALL_REJECTED': 2, 'P2_STATUS_INVALID_INPUT': 3, 'P2_STATUS_UNDERDETERMINED': 4, 'P2_STATUS_INVALID_CONFIGURATION': 5, 'P2_STATUS_INVALID_METHOD': 6, 'P2_STATUS_INTERNAL_ERROR': 7})"
+    },
+    {
+      "check": "stage_ids_docs_vs_orchestrator",
+      "pass": true,
+      "detail": "stage IDs in ERROR_TAXONOMY <-> orchestrator stage_name_v2"
+    },
+    {
+      "check": "snr_constants",
+      "pass": true,
+      "detail": "NOISE_MODEL/PSF constants <-> noise_model.cpp"
+    },
+    {
+      "check": "product_contracts",
+      "pass": true,
+      "detail": "DATA_CONTRACTS products <-> aio_hips.h product flags"
+    },
+    {
+      "check": "drizzle_variance_formula",
+      "pass": true,
+      "detail": "DRIZZLE.md variance formula <-> drizzle_engine.h"
+    }
+  ],
+  "pass": true
+}
+PASS
+config_weight_mode_ivar True CONFIG_SCHEMA weight_mode auto/ivar <-> stage2_common parse
+frame_id_contract_exact True DATA-FRAME-ID-001：SHA-256 truncate；无 FNV/路径派生残留
+error_taxonomy_exit_codes True ERROR_MODEL 全集合 == orchestrator.h 0-10 退出码 (doc={'SUCCESS': 0, 'GENERIC_ERROR': 1, 'DLL_LOAD_FAILED': 2, 'BLOCK_MISSING': 3, 'CALIBRATE_FAILED': 4, 'PLATESOLVE_FAILED': 5, 'DRIZZLE_FAILED': 6, 'CONFIG_ERROR': 7, 'FILE_IO_ERROR': 8, 'TIMEOUT': 9, 'CANCELLED': 10, 'STAR_DETECT_FAILED': 20, 'PSF_FAILED': 21, 'PHOTOMETRIC_FAILED': 22, 'SNR_FAILED': 23, 'STACK_FAILED': 24, 'HISS_INVALID': 25, 'HCSD_INVALID': 26, 'MODULE_ABI_UNSUPPORTED': 27, 'INPUT_INVALID': 28, 'MODULE_SPECIFIC_BASE': 100} code={'SUCCESS': 0, 'GENERIC_ERROR': 1, 'DLL_LOAD_FAILED': 2, 'BLOCK_MISSING': 3, 'CALIBRATE_FAILED': 4, 'PLATESOLVE_FAILED': 5, 'DRIZZLE_FAILED': 6, 'CONFIG_ERROR': 7, 'FILE_IO_ERROR': 8, 'TIMEOUT': 9, 'CANCELLED': 10, 'STAR_DETECT_FAILED': 20, 'PSF_FAILED': 21, 'PHOTOMETRIC_FAILED': 22, 'SNR_FAILED': 23, 'STACK_FAILED': 24, 'HISS_INVALID': 25, 'HCSD_INVALID': 26, 'MODULE_ABI_UNSUPPORTED': 27, 'INPUT_INVALID': 28, 'MODULE_SPECIFIC_BASE': 100})
+integration_status_full_set True integration status 全集合 (doc={'P2_INTEGRATE_OK': 0, 'P2_INTEGRATE_NO_CANDIDATES': 1, 'P2_INTEGRATE_ALL_REJECTED': 2, 'P2_INTEGRATE_ZERO_VALID_WEIGHT': 3, 'P2_INTEGRATE_INVALID_INPUT': 4} code={'P2_INTEGRATE_OK': 0, 'P2_INTEGRATE_NO_CANDIDATES': 1, 'P2_INTEGRATE_ALL_REJECTED': 2, 'P2_INTEGRATE_ZERO_VALID_WEIGHT': 3, 'P2_INTEGRATE_INVALID_INPUT': 4})
+rejection_status_full_set True rejection status 全集合 (doc={'P2_REASON_ACCEPTED': 0, 'P2_REASON_REJECTED_LOW': 1, 'P2_REASON_REJECTED_HIGH': 2, 'P2_REASON_UNDERDETERMINED': 3, 'P2_STATUS_OK': 0, 'P2_STATUS_MIN_SAMPLES': 1, 'P2_STATUS_ALL_REJECTED': 2, 'P2_STATUS_INVALID_INPUT': 3, 'P2_STATUS_UNDERDETERMINED': 4, 'P2_STATUS_INVALID_CONFIGURATION': 5, 'P2_STATUS_INVALID_METHOD': 6, 'P2_STATUS_INTERNAL_ERROR': 7} code={'P2_REASON_ACCEPTED': 0, 'P2_REASON_REJECTED_LOW': 1, 'P2_REASON_REJECTED_HIGH': 2, 'P2_REASON_UNDERDETERMINED': 3, 'P2_STATUS_OK': 0, 'P2_STATUS_MIN_SAMPLES': 1, 'P2_STATUS_ALL_REJECTED': 2, 'P2_STATUS_INVALID_INPUT': 3, 'P2_STATUS_UNDERDETERMINED': 4, 'P2_STATUS_INVALID_CONFIGURATION': 5, 'P2_STATUS_INVALID_METHOD': 6, 'P2_STATUS_INTERNAL_ERROR': 7})
+stage_ids_docs_vs_orchestrator True stage IDs in ERROR_TAXONOMY <-> orchestrator stage_name_v2
+snr_constants True NOISE_MODEL/PSF constants <-> noise_model.cpp
+product_contracts True DATA_CONTRACTS products <-> aio_hips.h product flags
+drizzle_variance_formula True DRIZZLE.md variance formula <-> drizzle_engine.h
+OUTER_EXIT:0
