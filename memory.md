@@ -2237,3 +2237,15 @@ SHA256 e2130977a665759abd8308e6a7cba8dd0b0ab1b8801e407f6a61de42e9c72198
 
 **验证**: Windows ctypes 定点 (window 15/17, floor 10/default), 源码级 truncated/空谱/失效路径核对, -Wall 编译全过 (6/6 模块), 无头 ABI 变更, 已 push 12ed0e1, 审核小包 AstroCS_Review_V19R6R2_WindowsBlockerClosure_W1.zip (SHA 7e4d828f...)
 
+
+## 2026-08-21 vm-bj 长期工作目录基线 (V19R6R2-W1, 第一阶段环境搭建)
+
+**工作目录**: `/home/lighthouse/Astro CS Database` (DSH workspaceId `b1d5ea8d-...8939d`, title `Astro CS Database`, 盘 `/dev/vda3 59G/可用44G`, 内存 3.6G 无Swap)
+**仓库**: `https://github.com/fujiaze/Astro-CS-Database.git` (ssh `git@github.com:fujiaze/Astro-CS-Database.git`), branch `main` tracking `origin/main`, HEAD `4cca987a6f7959cb0c09a5dd0333db455280532c` (`chore: baseline V19R6R2-W1 + DSH b7135 ready`), 状态 clean, 单一 worktree, 克隆方式 `git init + remote add + fetch + checkout -b main origin/main`
+**系统**: `VM-BJ / Debian 13 trixie / Linux 6.12.95+deb13-amd64 x86_64`, 用户 `lighthouse` 无 sudo, `git 2.47.3 / gh 2.46.0 (fujiaze 已登录) / g++ 14.2.0 C++17 / GNU Make 4.4.1 / python3 3.13.5 / node 22.19.0`, 代理 `socks5://100.96.177.94:11080`
+**能力缺口 (按需, 未安装)**: `cmake/ninja/clang/cppcheck/pkg-config/ctest/pip` 缺失, 遵守不装无关软件约束, 首包需编译/分析时再补 (需 sudo 或用户态方案)
+**文档索引**: `lib 13模块 343263行 (astro_image_io 192k/acr 44k/healpix_db 44k)`, `docs L0-L5 93 files + TRACEABILITY 30行`, `工程控制 715 files`, 工具链 `toolchain.ps1 214行 (check/build/run/review, MSYS2 g++16.1.0/py3.12)`
+**Windows验证节点**: `fatduck 100.104.10.71 active/direct 28ms/tcp22 open`, 但 `lighthouse` 无私钥 `/root/.ssh/id_ed25519` 权限致 `Permission denied`, DSH 仅作远程验证, 离线时 SKIPPED 不阻塞, 待私钥授权给 lighthouse 后恢复验证, Linux 为主开发环境
+**流程**: 每工程包独立 `git worktree add -b pkg/<topic>-<date> ../Astro CS Database-wt/<pkg> main`, 仅改 `lib/`, 最小任务 commit/阶段 push, 产物只写 `run/`, evidence 永不覆盖, 审核包 `toolchain.ps1 review`
+**报告**: `run/SETUP_REPORT_V19R6R2-W1.md` (19K, 含全量环境/结构/流程), 约束遵守 未改源码/未建新仓/未新架构/未大规模测试
+
