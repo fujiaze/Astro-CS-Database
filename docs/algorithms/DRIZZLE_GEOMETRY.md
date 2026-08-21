@@ -35,8 +35,13 @@ get_healpix_boundary 逐位等价）；低 NSIDE 用自适应细分边界
 
 ```text
 drop 包围圆：center = normalize(Σ corners)，max_angle = max(∠(center, c_i))
-查询圆 = drop 包围圆 + 2.0×hp_res（像素外接半径保守上界，
-覆盖赤道对角线 1.532×res 与极区三角形外接圆最坏情况）
+三层缓冲（与 lib/healpix_db/healpix_drizzle/spherical_overlap.cpp:40 一致，
+HP_CIRCUMRADIUS_FACTOR=1.25×hp_res 为像素外接半径保守上界，覆盖赤道
+1.532×res 对角线与极区三角形最坏情况 1.044×res + 裕量）：
+  1) overlap quick-reject：lim = max_angle + 1.25×hp_res
+  2) candidate 保守查询圆：query_radius = max_angle + 3.0×hp_res
+  3) fast 快速枚举：buffer = 1.25×hp_res；赤道带 delta×1.15 畸变系数，
+     极冠/盒触极冠回退保守 candidate（3.0×）路径
 ```
 
 RA 跨 0 / 南北极 / face 边界的候选查询走 boundary_fallback（保守
