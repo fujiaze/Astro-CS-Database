@@ -30,9 +30,9 @@
 // 逐 Tile/逐 subblock 日志降级 — 仅编译期 HISS_VERBOSE
 // 启用时输出 (正常模式 INFO 只保留阶段/汇总/错误, 避免 stderr 写文件拖慢写入)
 #ifdef HISS_VERBOSE
-#define HISS_DLOG(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
+#define HISS_DLOG(...) do { ::fprintf(stderr, __VA_ARGS__); } while (0)
 #else
-#define HISS_DLOG(fmt, ...) do {} while (0)
+#define HISS_DLOG(...) do {} while (0)
 #endif
 #include <cstdint>
 #include <string>
@@ -729,8 +729,9 @@ int HissWriter::add_tile(uint64_t parent_ipix,
     }
 
     // 6. 记录 Tile 目录 (只保留描述符, 不保留压缩数据 — 步骤10)
-    // 先取 size 供日志，subblocks 随后 move 进目录
+#ifdef HISS_VERBOSE
     const std::size_t n_subblocks_log = subblocks.size();
+#endif
     int ret = pimpl_->stream.record_tile(parent_ipix, acc.tile_nside, auto_mode,
                                           std::move(subblocks));
     if (ret != 0) {

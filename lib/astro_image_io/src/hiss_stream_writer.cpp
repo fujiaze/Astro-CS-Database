@@ -34,9 +34,9 @@
 
 // 逐 Tile/逐 subblock 日志降级 (与 hiss_writer.cpp 一致)
 #ifdef HISS_VERBOSE
-#define HISS_DLOG(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
+#define HISS_DLOG(...) do { ::fprintf(stderr, __VA_ARGS__); } while (0)
 #else
-#define HISS_DLOG(fmt, ...) do {} while (0)
+#define HISS_DLOG(...) do {} while (0)
 #endif
 
 namespace hiss {

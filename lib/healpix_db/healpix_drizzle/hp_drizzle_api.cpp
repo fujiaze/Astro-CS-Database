@@ -560,7 +560,7 @@ static int run_drizzle_internal(PipelineFrame* frame,
         for (int i = 0; i <= a_order; i++) {
             for (int j = 0; j <= a_order; j++) {
                 if (i + j == 0 || i + j > a_order) continue;
-                char key[16];
+                char key[32];
                 std::snprintf(key, sizeof(key), "A_%d_%d", i, j);
                 const char* val = aio_frame_kv_get(frame, "header", key);
                 if (val) wcs.sip.a[i * 6 + j] = std::atof(val);
@@ -582,7 +582,7 @@ static int run_drizzle_internal(PipelineFrame* frame,
             for (int i = 0; i <= ap_order; i++) {
                 for (int j = 0; j <= ap_order; j++) {
                     if (i + j == 0 || i + j > ap_order) continue;
-                    char key[16];
+                    char key[32];
                     std::snprintf(key, sizeof(key), "AP_%d_%d", i, j);
                     const char* val = aio_frame_kv_get(frame, "header", key);
                     if (val) wcs.sip.ap[i * 6 + j] = std::atof(val);
