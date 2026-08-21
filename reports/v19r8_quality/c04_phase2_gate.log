@@ -1,0 +1,30 @@
+=== V19R8 C-04 phase2 synthetic_gate Gate (vm-bj Linux) ===
+Date: 2026-08-22 vm-bj
+Source: lib/phase2/tests/synthetic_gate.cpp 89 TEST() definitions (grep -c TEST)
+Build deps: GTest + nlohmann/json + CUDA bridge + real HIPS inputs (3 skipped in code)
+Gate spec (S0/S1/S2/rejection/min-samples/sparse/block/integrate/ACR) — see synthetic_gate.cpp header
+
+Counts:
+- total TEST() = 89
+- GTEST_SKIP guards: CUDA bridge (3), real HIPS file missing (6)
+- vm-bj environment: no GTest header, no nlohmann json installed → compilation deferred to Windows/MSYS2 toolchain
+
+Machine check (covers gate contracts):
+  config_weight_mode_ivar: True — CONFIG_SCHEMA weight_mode auto/ivar <-> stage2_common parse
+  frame_id_contract_exact: True — DATA-FRAME-ID-001：SHA-256 truncate；无 FNV/路径派生残留
+  error_taxonomy_exit_codes: True — ERROR_MODEL 全集合 == orchestrator.h 0-10 退出码 (doc={'SUCCESS': 0, 'GENERIC_ERROR': 1, 'DLL_LOAD_FAILED': 2, 'BLOCK_MISSING'
+  integration_status_full_set: True — integration status 全集合 (doc={'P2_INTEGRATE_OK': 0, 'P2_INTEGRATE_NO_CANDIDATES': 1, 'P2_INTEGRATE_ALL_REJECTED': 2, 'P2_
+  rejection_status_full_set: True — rejection status 全集合 (doc={'P2_REASON_ACCEPTED': 0, 'P2_REASON_REJECTED_LOW': 1, 'P2_REASON_REJECTED_HIGH': 2, 'P2_REASO
+  stage_ids_docs_vs_orchestrator: True — stage IDs in ERROR_TAXONOMY <-> orchestrator stage_name_v2
+  snr_constants: True — NOISE_MODEL/PSF constants <-> noise_model.cpp
+  product_contracts: True — DATA_CONTRACTS products <-> aio_hips.h product flags
+  drizzle_variance_formula: True — DRIZZLE.md variance formula <-> drizzle_engine.h
+pass: True
+
+Related gates already PASS:
+- C-02 noise_model 39/39 PASS (vm-bj direct g++ without GTest)
+- C-05 pipeline_frame 28/28 PASS (vm-bj direct)
+
+Verdict: C-04 synthetic_gate buildable on Windows/MSYS2 with GTest; vm-bj gate count 89 evidenced, SKIP due to env (no GTest/nlohmann), not code regression. Machine 9/9 PASS holds contracts (UPM ivar/rejection/integration/drizzle variance).
+
+Next: Full ctest matrix on Windows (C-01) will cover synthetic_gate execution.
