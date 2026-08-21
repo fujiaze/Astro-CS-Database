@@ -11,6 +11,7 @@
 - 读取时强制校验：frames 唯一/类型、C 行数==帧数、控件字段类型；
   畸形文件稳定报错（ERR-P2-UPM-001）。
 - 禁止从有序容器遍历重建绑定；绑定只由 frame_id_by_index 决定。
+- 旧签名保留仅为兼容：`p2_reject_stack` 为 COMPAT adapter，生产用 `p2_reject_stack_ex`（含 eligibility/large_scale）。
 
 ## 配置/接口
 
