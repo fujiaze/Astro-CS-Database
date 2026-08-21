@@ -1,65 +1,107 @@
 {
-  "generated": "before",
-  "file_audit": {
-    "total_files": 873,
-    "per_module": {
-      "orchestrator": 43,
-      "healpix_db": 145,
-      "dynamic_psf": 11,
-      "star_detector": 16,
-      "astro_image_io": 260,
-      "phase2": 46,
-      "snr_estimator": 10,
-      "plate_solve": 44,
-      "photometric_calib": 43,
-      "calibration": 18,
-      "acr": 216,
-      "common": 14,
-      "gaia_xpsd_client": 7
-    },
-    "tool_missing": true,
-    "defect": "P1: tools/file_audit missing",
-    "coverage": "873/~713+"
+  "generated": "aggregated",
+  "version": "V19R7-A2-08",
+  "date": "2026-08-22",
+  "baseline": "V19R6R2-W1 HEAD 2767874/05d7d6b",
+  "mode": "read-only aggregation of 7 domain sheets, no docs/lib change",
+  "total_findings": 64,
+  "per_level": {
+    "P0": 4,
+    "P1": 24,
+    "P2": 36
   },
-  "traceability": {
-    "total_rows": 63,
-    "ok_rows": 63,
-    "broken_rows": 0,
-    "broken_rate": 0.0
+  "per_domain": {
+    "science": { "file": "audit_findings_science.md", "P0": 2, "P1": 4, "P2": 6, "total": 12 },
+    "noise": { "file": "audit_findings_noise.md", "P0": 1, "P1": 4, "P2": 5, "total": 10 },
+    "drizzle": { "file": "audit_findings_drizzle.md", "P0": 1, "P1": 3, "P2": 4, "total": 8 },
+    "phase2": { "file": "audit_findings_phase2.md", "P0": 0, "P1": 3, "P2": 5, "total": 8 },
+    "io": { "file": "audit_findings_io.md", "P0": 0, "P1": 3, "P2": 4, "total": 7 },
+    "architecture": { "file": "audit_findings_architecture.md", "P0": 0, "P1": 4, "P2": 5, "total": 9 },
+    "standards": { "file": "audit_findings_standards.md", "P0": 0, "P1": 3, "P2": 7, "total": 10 }
   },
-  "machine_consistency": {
-    "checks": 9,
-    "broken": 0,
-    "pass": true
-  },
-  "standards": {
-    "standards_docs": 13,
-    "source_files_scanned": 581,
-    "forbidden_violations": 7,
-    "per_standard_violations": {
-      "CODE_STANDARD": 3,
-      "COMMENT_STANDARD": 4
-    },
-    "info_hits_per_standard": {
-      "API_STANDARD": 2,
-      "BENCHMARK_STANDARD": 2,
-      "C_ABI_STANDARD": 1,
-      "CODE_STANDARD": 1,
-      "COMMENT_STANDARD": 1,
-      "CONCURRENCY_STANDARD": 3,
-      "DOCUMENTATION_STANDARD": 2,
-      "ERROR_HANDLING_STANDARD": 1,
-      "IO_STANDARD": 3,
-      "LOGGING_DIAGNOSTICS_STANDARD": 1,
-      "NUMERIC_STANDARD": 4,
-      "RELEASE_STANDARD": 1,
-      "TEST_STANDARD": 3
-    }
-  },
+  "p0_frozen": [
+    { "id": "SC-01", "domain": "science", "contract": "SCI-CAL-001", "summary": "flat钳位 std::max(flat,0.1f) 静默继续 vs 文档 flat=0 显式拒绝", "location": "lib/calibration/src/calibrator.cpp:90,120,164", "owner": "B1-02" },
+    { "id": "SC-02", "domain": "science", "contract": "SCI-PHOT-001", "summary": "PHOT IRLS+Tukey biweight 求 location/scale 非文档 median", "location": "lib/photometric_calib/cpp/src/star_matcher.cpp:21,478-525,552-559", "owner": "B1-04" },
+    { "id": "NO-01", "domain": "noise", "contract": "SCI-NOISE-005/NOISE-WIRE-001", "summary": "gain域缺失：snr_noise_gain_variance 仅诊断/SNR-005, 不得注入 NoiseWeightModelV1 生产场", "location": "lib/snr_estimator/cpp/src/noise_model.cpp:457-464", "owner": "B1-05" },
+    { "id": "DRZ-01", "domain": "drizzle", "contract": "SCI-DRZ-001/ALG-HEALPIX-*", "summary": "双HEALPix实现并存 lib/common/healpix vs lib/healpix_db/healpix_drizzle", "location": "lib/common/healpix/healpix_core.* vs lib/healpix_db/healpix_drizzle/healpix_core.*", "owner": "B4-01" }
+  ],
   "gate": {
-    "file_audit_coverage_ok": true,
-    "machine_consistency_json_generated": true,
-    "can_enter_A2": true,
-    "notes": "file_audit tool missing is P1 but alternative stats produced; 0 machine_consistency broken"
+    "A_Gate": "CONDITIONAL_PASS",
+    "can_enter_B1": true,
+    "can_enter_B2": false,
+    "B2_unblock_condition": "P0 4项修复并经 docs_machine_consistency 0 broken + candidate_oracle 9003例 + synthetic_gate UPMW/PR 复核通过",
+    "notes": "B1可进，B2需P0冻结解除；P1 24项需B阶段按B1..B5归口闭环，P2 36项为增强"
+  },
+  "downstream": {
+    "B1": ["B1-01 SCOPE SC-03", "B1-02 CAL SC-01/04/07/08", "B1-03 AST/PSF SC-05/06/09/11/12", "B1-04 PHOT SC-02/10", "B1-05 NOISE NO-01/06-10", "B1-06 UNCERTAINTY NO-02/08", "B1-07 DRIZZLE DRZ-02/03", "B1-08 PHASE2 PH2-01/02/03"],
+    "B2": ["B2-07 DRIZZLE_GEOMETRY DRZ-02/05-07", "B2-08 HEALPIX_MAPPING DRZ-08", "B2-09 PHASE2_SAMPLER PH2-03", "B2-10 UPM_SOLVER PH2-02", "B2-11 REJECTION PH2-04", "B2-12 INTEGRATION PH2-05"],
+    "B3": ["B3-02 MODULE_MAP ARC-002/008", "B3-03 DEPENDENCY ARC-002", "B3-04 PIPELINE IO-003", "B3-05 OWNERSHIP ARC-003", "B3-06 THREADING ARC-004/006", "B3-07 ERROR DRZ-06/ARC-005", "B3-08 IO/CACHE IO-001/002/ARC-001/006", "B3-09 COMPATIBILITY IO-006/ARC-009", "B3-10 PERFORMANCE ARC-007"],
+    "B4": ["B4-01 去重 DRZ-01", "B4-03 HiPS原子化 IO-001/ARC-001/STD-003/004", "B4-04 精度/命名 IO-002/005/STD-007", "B4-20..28 标准批 STD-001..010"],
+    "B5": ["B5-06 TRACEABILITY SC-03/NO-03/05/DRZ-04/IO-003/PH2-08", "A1-02 file_audit NO-04"]
+  },
+  "before": {
+    "file_audit": {
+      "total_files": 873,
+      "per_module": {
+        "orchestrator": 43,
+        "healpix_db": 145,
+        "dynamic_psf": 11,
+        "star_detector": 16,
+        "astro_image_io": 260,
+        "phase2": 46,
+        "snr_estimator": 10,
+        "plate_solve": 44,
+        "photometric_calib": 43,
+        "calibration": 18,
+        "acr": 216,
+        "common": 14,
+        "gaia_xpsd_client": 7
+      },
+      "tool_missing": true,
+      "defect": "P1: tools/file_audit missing",
+      "coverage": "873/~713+"
+    },
+    "traceability": {
+      "total_rows": 63,
+      "ok_rows": 63,
+      "broken_rows": 0,
+      "broken_rate": 0.0
+    },
+    "machine_consistency": {
+      "checks": 9,
+      "broken": 0,
+      "pass": true,
+      "checks_detail": ["config_weight_mode_ivar", "frame_id_contract_exact", "error_taxonomy_exit_codes", "integration_status_full_set", "rejection_status_full_set", "stage_ids_docs_vs_orchestrator", "snr_constants", "product_contracts", "drizzle_variance_formula"]
+    },
+    "standards": {
+      "standards_docs": 13,
+      "source_files_scanned": 581,
+      "forbidden_violations": 7,
+      "per_standard_violations": {
+        "CODE_STANDARD": 3,
+        "COMMENT_STANDARD": 4
+      },
+      "info_hits_per_standard": {
+        "API_STANDARD": 2,
+        "BENCHMARK_STANDARD": 2,
+        "C_ABI_STANDARD": 1,
+        "CODE_STANDARD": 1,
+        "COMMENT_STANDARD": 1,
+        "CONCURRENCY_STANDARD": 3,
+        "DOCUMENTATION_STANDARD": 2,
+        "ERROR_HANDLING_STANDARD": 1,
+        "IO_STANDARD": 3,
+        "LOGGING_DIAGNOSTICS_STANDARD": 1,
+        "NUMERIC_STANDARD": 4,
+        "RELEASE_STANDARD": 1,
+        "TEST_STANDARD": 3
+      }
+    },
+    "gate_before": {
+      "file_audit_coverage_ok": true,
+      "machine_consistency_json_generated": true,
+      "can_enter_A2": true,
+      "notes": "file_audit tool missing is P1 but alternative stats produced; 0 machine_consistency broken"
+    }
   }
 }
