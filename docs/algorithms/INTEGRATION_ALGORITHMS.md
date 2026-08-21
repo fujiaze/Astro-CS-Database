@@ -62,7 +62,7 @@ O(k) 每像素。
 
 ## 数值风险
 
-Σw=0；大动态范围 → FP64。
+Σw=0；大动态范围 → FP64。零权重合同锚点：`lib/phase2/src/integrate.cpp:48` `w==0 continue`（`if (w == 0.0) continue` 合法零权重不贡献、不计入 `n_positive_weight/vs/wsum`）、`:65-66` `ZERO_VALID_WEIGHT` vs `ALL_REJECTED` 区分（`n_positive_weight==0 && n_accepted>0 → ZERO_VALID_WEIGHT`，否则 `ALL_REJECTED`）。
 
 ## ID
 
