@@ -22,6 +22,7 @@ DATA-UPM-CONTROL-UNC-001）
 
 ```text
 w_UPM = quality_factor × geometric_reliability × control_ivar
+# raw=quality·control_ivar；normalized=raw/sum·geom（per-control，见UPM_SOLVER.md:45与p2_upm_normalized_weights）
 control_ivar = 1 / control_variance
 control_variance = k_corr × (π/2) × sigma_bg² / N_retained
 ```
@@ -33,8 +34,7 @@ control_variance = k_corr × (π/2) × sigma_bg² / N_retained
 - N_retained 用 clipping 后保留样本（不是裁剪前 n_total）；
 - k_corr 由当前 Drizzle synthetic noise/covariance MC 校准（UPMW-005
   control_median_mc_test：pixfrac=0.8 生产默认，2000 实现，
-  k_corr_empirical=1.3883，N_eff≈181/251），冻结保守值 1.4（sampler
-  `control_k_corr` 可显式覆盖，默认单源）；
+  k_corr_empirical=1.3883，N_eff≈181/251），冻结保守值 1.4；per-frame覆盖 frames[frame_id].kcorr>0 ? per-frame : cfg.control_k_corr（sampler.cpp:672），缺省回退1.4；
 - 禁止 production science 模式乘 star SNR / snr²/(1+snr²) / support^p
   （support 只作 eligibility/coverage 诊断）；legacy snr²/(1+snr²)/unc²
   仅 use_ivar_weight=0 的 ablation/诊断（SNR-015）；
@@ -57,6 +57,7 @@ parameter_rows[index] ↔ frame_id_by_index[index]     # 同长、无重复
 
 绑定只由稳定 frame_id 决定；保存/重开不得改变 frame_id→θ 映射；
 禁止从有序容器遍历重建（DATA-UPM-MODEL-001）。
+payload含signal/support tile float32 LE bytes裸字节，跨endian理论不同id，当前仅Linux x86_64路径（sampler.cpp:250-364），DATA-FRAME-ID-001。
 
 ## 变量/单位
 
