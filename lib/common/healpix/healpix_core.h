@@ -13,6 +13,7 @@
 #define ASTROCS_HEALPIX_CORE_H
 
 #include <cstdint>
+#include <vector>
 
 namespace astrocs {
 namespace healpix {
@@ -71,6 +72,13 @@ inline uint64_t tile_to_leaf_nest(uint64_t tile_ipix, uint32_t tile_order, uint3
     const uint32_t shift = (leaf_order >= tile_order) ? (leaf_order - tile_order) : 0;
     return tile_ipix << (2u * shift);
 }
+
+// ---- NESTED 权威扩展 (B4-01 去重, 由原 healpix_drizzle::HealpixCore 精选迁移) ----
+double pixel_resolution_arcsec(uint32_t nside);
+uint64_t npix(uint32_t nside);
+std::vector<uint64_t> query_disc(uint32_t nside, double ra_deg, double dec_deg,
+                                 double radius_arcsec);
+std::vector<uint64_t> neighbors(uint32_t nside, uint64_t ipix);
 
 } // namespace healpix
 } // namespace astrocs

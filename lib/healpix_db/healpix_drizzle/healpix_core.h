@@ -1,98 +1,108 @@
-#ifndef HEALPIX_CORE_H
-#define HEALPIX_CORE_H
+// DEPRECATED: B4-01 去重，唯一实现见 lib/common/healpix/healpix_core.h
+// 本文件为兼容 shim，转发至 astrocs::healpix 权威实现。
+// 禁止在此新增/修改任何数值算法；新增需求请在 common 增补充。
+#ifndef HEALPIX_DRIZZLE_SHIM_H
+#define HEALPIX_DRIZZLE_SHIM_H
 
-// ============================================================================
-// HEALpix 像素运算核心 (自实现, 不依赖 healpix-c++ 外部库)
-//
-// 参考: Gorski et al. 2005, "HEALPix: A Framework for High-Resolution
-// Diffuse Analysis of Full-Sky Data"
-//
-// 支持两种像素排列:
-// - NESTED: 用 z-order (Morton) 位编码, 适合树状层级 (LOD)
-// - RING: 按纬度环排列, 适合球谐分析
-//
-// 约定:
-// - theta: 极角 (0=北极, π=南极), 单位弧度
-// - phi: 方位角 (0~2π), 单位弧度
-// - RA: 赤经 (度), 0~360
-// - Dec: 赤纬 (度), -90~+90
-// - nside 必须是 2 的幂
-// ============================================================================
+#include "healpix/healpix_core.h"
 
+#include <cmath>
 #include <cstdint>
 #include <vector>
+#include <stdexcept>
 
 namespace healpix {
 
+// 兼容适配：历史 healpix::HealpixCore 类仅保留 NESTED 语义，
+// 内部委托 astrocs::healpix。RING 构造直接拒绝（已在 drizzle 入口拒绝 RING）。
 class HealpixCore {
 public:
-    // 构造: nside 必须为 2 的幂; nested=true 用 NESTED, false 用 RING
-    HealpixCore(int nside, bool nested = true);
+    HealpixCore(int nside, bool nested = true)
+        : m_nside(nside), m_nested(nested) {
+        if (!nested) {
+            throw std::invalid_argument("RING not supported: use astrocs::healpix NESTED only");
+        }
+        if (nside <= 0 || (nside & (nside - 1)) != 0) {
+            // 保持历史警告语义：不抛异常，仅容忍（调用方已校验），与 common 行为对齐
+        }
+    }
 
-    int     getNside() const;
-    bool    isNested() const;
-    int64_t getNpix() const;  // 12 * nside^2
+    int getNside() const { return m_nside; }
+    bool isNested() const { return m_nested; }
+    int64_t getNpix() const { return (int64_t)astrocs::healpix::npix((uint32_t)m_nside); }
+    double pixelResolutionArcsec() const {
+        return astrocs::healpix::pixel_resolution_arcsec((uint32_t)m_nside);
+    }
 
-    // 天球坐标(弧度) ↔ 像素号
-    // theta: 0=北极, π=南极; phi: 0~2π
-    int64_t ang2pix(double theta_rad, double phi_rad) const;
-    void    pix2ang(int64_t ipix, double* theta_rad, double* phi_rad) const;
+    // theta: 0=北极, π=南极; phi: 0~2π  -> NESTED
+    int64_t ang2pix(double theta_rad, double phi_rad) const {
+        double dec = 90.0 - theta_rad * 180.0 / 3.14159265358979323846;
+        double ra  = phi_rad * 180.0 / 3.14159265358979323846;
+        if (ra < 0) ra += 360.0;
+        if (ra >= 360.0) ra = std::fmod(ra, 360.0);
+        uint64_t u = astrocs::healpix::ang2pix_nest((uint32_t)m_nside, ra, dec);
+        return (int64_t)u;
+    }
+    void pix2ang(int64_t ipix, double* theta_rad, double* phi_rad) const {
+        double ra, dec;
+        astrocs::healpix::pix2ang_nest((uint32_t)m_nside, (uint64_t)ipix, ra, dec);
+        *phi_rad = ra * 3.14159265358979323846 / 180.0;
+        *theta_rad = (90.0 - dec) * 3.14159265358979323846 / 180.0;
+    }
 
-    // RA/Dec(度) ↔ 像素号
-    int64_t radec2pix(double ra_deg, double dec_deg) const;
-    void    pix2radec(int64_t ipix, double* ra_deg, double* dec_deg) const;
+    int64_t radec2pix(double ra_deg, double dec_deg) const {
+        return (int64_t)astrocs::healpix::ang2pix_nest((uint32_t)m_nside, ra_deg, dec_deg);
+    }
+    void pix2radec(int64_t ipix, double* ra_deg, double* dec_deg) const {
+        astrocs::healpix::pix2ang_nest((uint32_t)m_nside, (uint64_t)ipix, *ra_deg, *dec_deg);
+    }
 
-    // 像素分辨率(角秒) = sqrt(4π / (12*nside²)) * 206265
-    double pixelResolutionArcsec() const;
+    std::vector<int64_t> neighbors(int64_t ipix) const {
+        auto v = astrocs::healpix::neighbors((uint32_t)m_nside, (uint64_t)ipix);
+        std::vector<int64_t> out;
+        out.reserve(v.size());
+        for (auto x : v) out.push_back((int64_t)x);
+        return out;
+    }
 
-    // 查询某像素的邻居 (返回 4 或 8 个, 边界处可能更少)
-    std::vector<int64_t> neighbors(int64_t ipix) const;
+    std::vector<int64_t> queryDisc(double ra_deg, double dec_deg, double radius_arcsec) const {
+        auto v = astrocs::healpix::query_disc((uint32_t)m_nside, ra_deg, dec_deg, radius_arcsec);
+        std::vector<int64_t> out;
+        out.reserve(v.size());
+        for (auto x : v) out.push_back((int64_t)x);
+        return out;
+    }
 
-    // 查询天区范围内的所有像素
-    // ra_deg/dec_deg 中心, radius_arcsec 半径
-    std::vector<int64_t> queryDisc(double ra_deg, double dec_deg,
-                                   double radius_arcsec) const;
-
-    // nside 转换 (用于 LOD): 当前 nside 的像素 → 粗 nside 的像素
-    int64_t pixelToCoarse(int64_t ipix_fine, int nside_coarse) const;
-    // 粗 nside 像素 → 当前 nside 的所有子像素
-    std::vector<int64_t> pixelToFine(int64_t ipix_coarse, int nside_fine) const;
+    // 仅保留兼容存根，drizzle 生产路径未使用（保留防编译破裂）
+    int64_t pixelToCoarse(int64_t ipix_fine, int nside_coarse) const {
+        if (nside_coarse <= 0) return ipix_fine;
+        // NESTED 位运算父像素：shift = log2(nside_fine/nside_coarse)
+        int a = 0, b = 0;
+        int t = m_nside; while (t > 1) { t >>= 1; ++a; }
+        t = nside_coarse; while (t > 1) { t >>= 1; ++b; }
+        int shift = a - b;
+        if (shift <= 0) return ipix_fine;
+        return ipix_fine >> (2 * shift);
+    }
+    std::vector<int64_t> pixelToFine(int64_t ipix_coarse, int nside_fine) const {
+        if (nside_fine <= m_nside) return {ipix_coarse};
+        int a = 0, b = 0;
+        int t = m_nside; while (t > 1) { t >>= 1; ++a; }
+        t = nside_fine; while (t > 1) { t >>= 1; ++b; }
+        int shift = b - a;
+        int n = 1 << (2 * shift);
+        std::vector<int64_t> out;
+        out.reserve(n);
+        int64_t base = ipix_coarse << (2 * shift);
+        for (int i = 0; i < n; ++i) out.push_back(base | i);
+        return out;
+    }
 
 private:
-    int  m_nside;
+    int m_nside;
     bool m_nested;
-    int  m_nsideBits;  // log2(nside)
-
-    // ---- 内部 XY 方案 (bighp * nside² + x*nside + y) ----
-    // ang → (bighp, x, y)
-    void ang2xy(double theta, double phi,
-                int* bighp, int* x, int* y) const;
-    // (bighp, x, y) → ang
-    void xy2ang(int bighp, int x, int y,
-                double* theta, double* phi) const;
-
-    // XY ↔ NESTED (位交织 / Morton 码)
-    int64_t xy2nest(int bighp, int x, int y) const;
-    void    nest2xy(int64_t ipix, int* bighp, int* x, int* y) const;
-
-    // XY ↔ RING
-    int64_t xy2ring(int bighp, int x, int y) const;
-    void    ring2xy(int64_t ipix, int* bighp, int* x, int* y) const;
-
-    // RING scheme 辅助 (对外接口要求)
-    int64_t ring2pix(int ring, int phi_idx) const;
-    void    pix2ring(int64_t ipix, int* ring, int* phi_idx) const;
-
-    // NESTED ↔ RING 转换
-    int64_t nest2ring(int64_t inest) const;
-    int64_t ring2nest(int64_t iring) const;
-
-    // 像素 → (bighp, x, y) (按当前 scheme)
-    void pix2xy(int64_t ipix, int* bighp, int* x, int* y) const;
-    // (bighp, x, y) → 像素 (按当前 scheme)
-    int64_t xy2pix(int bighp, int x, int y) const;
 };
 
 } // namespace healpix
 
-#endif // HEALPIX_CORE_H
+#endif // HEALPIX_DRIZZLE_SHIM_H

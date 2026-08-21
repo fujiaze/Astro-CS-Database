@@ -31,7 +31,7 @@ CXXFLAGS = -O3 -march=native -funroll-loops -Wall -Wextra -Wpedantic -std=c++17 
 # astro_image_io 路径变量 (提供 AIO C API + PipelineFrame + HEALPix I/O)
 # 注: healpix_io 已合并入 aio (2026-07-16 按 spec G1), aio.dll 统一提供 FITS/XISF/HEALPix I/O
 AIO_DIR ?= ../../astro_image_io
-INCLUDES = -I. -I$(AIO_DIR)/include -I$(AIO_DIR)/src
+INCLUDES = -I. -I$(AIO_DIR)/include -I$(AIO_DIR)/src -I../../common
 
 # Drizzle 模块源文件
 #   fits_reader.cpp        - FITS 图像读取与头解析
@@ -43,7 +43,8 @@ INCLUDES = -I. -I$(AIO_DIR)/include -I$(AIO_DIR)/src
 SRCS = fits_reader.cpp wcs_sip.cpp poly_clip.cpp spherical_overlap.cpp drizzle_engine.cpp reverse_drizzle.cpp hp_drizzle_api.cpp astro_sphere_sink.cpp
 
 # 依赖模块源文件 (静态编译进来, 避免跨 dll 依赖; 模块内私有实现)
-DEPS = healpix_core.cpp snr_evaluator.cpp
+# B4-01: healpix_core 已去重为 shim，权威在 ../../common/healpix/healpix_core.cpp
+DEPS = ../../common/healpix/healpix_core.cpp healpix_core.cpp snr_evaluator.cpp
 
 # 链接 astro_image_io.dll (PipelineFrame/KV + HEALPix I/O: hiss_write)
 # zstd/lz4 由 astro_image_io.dll 内部静态链接, 此处不再需要

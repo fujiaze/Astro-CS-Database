@@ -14,6 +14,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <unordered_map>
+#include <vector>
 
 namespace astrocs {
 namespace healpix {
@@ -315,6 +317,160 @@ uint64_t parent_nest(uint64_t ipix, uint32_t shift) {
 
 uint64_t child_nest(uint64_t ipix, uint32_t shift) {
     return ipix << (2u * shift);
+}
+
+double pixel_resolution_arcsec(uint32_t nside) {
+    if (nside == 0) return 0.0;
+    double area = 4.0 * kPi / (12.0 * double(nside) * double(nside));
+    return std::sqrt(area) * (180.0 * 3600.0 / kPi);
+}
+
+uint64_t npix(uint32_t nside) {
+    return 12ULL * uint64_t(nside) * uint64_t(nside);
+}
+
+// ---- neighbors / query_disc helpers (B4-01 精选迁移, 仅 NESTED) ----
+namespace {
+inline int base_neighbour(int hp, int dx, int dy) {
+    bool north = (hp <= 3);
+    bool south = (hp >= 8);
+    if (north) {
+        if (dx ==  1 && dy ==  0) return (hp + 1) % 4;
+        if (dx ==  0 && dy ==  1) return (hp + 3) % 4;
+        if (dx ==  1 && dy ==  1) return (hp + 2) % 4;
+        if (dx == -1 && dy ==  0) return hp + 4;
+        if (dx ==  0 && dy == -1) return 4 + ((hp + 1) % 4);
+        if (dx == -1 && dy == -1) return hp + 8;
+        return -1;
+    } else if (south) {
+        if (dx ==  1 && dy ==  0) return 4 + ((hp + 1) % 4);
+        if (dx ==  0 && dy ==  1) return hp - 4;
+        if (dx == -1 && dy ==  0) return 8 + ((hp + 3) % 4);
+        if (dx ==  0 && dy == -1) return 8 + ((hp + 1) % 4);
+        if (dx == -1 && dy == -1) return 8 + ((hp + 2) % 4);
+        if (dx ==  1 && dy ==  1) return hp - 8;
+        return -1;
+    } else {
+        if (dx ==  1 && dy ==  0) return hp - 4;
+        if (dx ==  0 && dy ==  1) return (hp + 3) % 4;
+        if (dx == -1 && dy ==  0) return 8 + ((hp + 3) % 4);
+        if (dx ==  0 && dy == -1) return hp + 4;
+        if (dx ==  1 && dy == -1) return 4 + ((hp + 1) % 4);
+        if (dx == -1 && dy ==  1) return 4 + ((hp - 1) % 4);
+        return -1;
+    }
+}
+} // namespace
+
+std::vector<uint64_t> neighbors(uint32_t nside, uint64_t ipix) {
+    std::vector<uint64_t> result;
+    if (nside == 0) return result;
+    uint32_t order = nside_to_order(nside);
+    uint32_t ns = uint32_t(1) << order;
+    uint64_t npface = uint64_t(ns) * ns;
+    if (ipix >= 12ULL * npface) return result;
+    uint32_t bighp = uint32_t(ipix / npface);
+    uint32_t x = 0, y = 0;
+    nest_to_xy(ipix % npface, order, x, y);
+    int Ns = (int)ns;
+    int base = (int)bighp;
+    bool nPol = (base <= 3);
+    bool sPol = (base >= 8);
+    struct Dir { int dx, dy; };
+    Dir dirs[8] = {{1,0},{1,1},{0,1},{-1,1},{-1,0},{-1,-1},{0,-1},{1,-1}};
+    auto clampi = [](int v, int lo, int hi){ return v<lo?lo:(v>hi?hi:v); };
+    for (int d = 0; d < 8; ++d) {
+        int dx = dirs[d].dx, dy = dirs[d].dy;
+        int nx = (int)x + dx, ny = (int)y + dy;
+        int nbase = base;
+        if (nx >= 0 && nx < Ns && ny >= 0 && ny < Ns) {
+        } else {
+            bool atRight  = (x == (uint32_t)Ns - 1);
+            bool atLeft   = (x == 0);
+            bool atTop    = (y == (uint32_t)Ns - 1);
+            bool atBottom = (y == 0);
+            bool corner = ((dx != 0) && (dy != 0) &&
+                           ((atRight && atTop) || (atRight && atBottom) ||
+                            (atLeft  && atTop) || (atLeft  && atBottom)));
+            bool edgeX  = (dx != 0 && ((atRight && dx > 0) || (atLeft && dx < 0)));
+            bool edgeY  = (dy != 0 && ((atTop  && dy > 0) || (atBottom && dy < 0)));
+            if (corner) {
+                if (nPol || sPol) nbase = base_neighbour(base, dx, dy);
+                else continue;
+            } else if (edgeX && edgeY) {
+                continue;
+            } else if (edgeX) {
+                nbase = base_neighbour(base, dx, 0);
+            } else if (edgeY) {
+                nbase = base_neighbour(base, 0, dy);
+            } else continue;
+            if (nbase < 0) continue;
+            nx = ((int)x + dx + Ns) % Ns;
+            ny = ((int)y + dy + Ns) % Ns;
+            if (nPol) {
+                if (atRight && dx > 0) { nx = Ns - 1; std::swap(nx, ny); }
+                else if (atTop && dy > 0) { ny = Ns - 1; std::swap(nx, ny); }
+            } else if (sPol) {
+                if (atLeft && dx < 0) { nx = 0; std::swap(nx, ny); }
+                else if (atBottom && dy < 0) { ny = 0; std::swap(nx, ny); }
+            }
+        }
+        nx = clampi(nx, 0, Ns - 1);
+        ny = clampi(ny, 0, Ns - 1);
+        uint64_t out = uint64_t(nbase) * npface + xy_to_nest((uint32_t)nx, (uint32_t)ny, order);
+        result.push_back(out);
+    }
+    return result;
+}
+
+std::vector<uint64_t> query_disc(uint32_t nside, double ra_deg, double dec_deg,
+                                 double radius_arcsec) {
+    std::vector<uint64_t> result;
+    if (nside == 0) return result;
+    double radius_rad = radius_arcsec * kPi / (180.0 * 3600.0);
+    double decR = dec_deg * kPi / 180.0;
+    double raR  = ra_deg  * kPi / 180.0;
+    double cdec = std::cos(decR);
+    double cx = cdec * std::cos(raR);
+    double cy = cdec * std::sin(raR);
+    double cz = std::sin(decR);
+    uint64_t center = ang2pix_nest(nside, ra_deg, dec_deg);
+    // BFS over neighbors, angular distance check via dot product
+    std::unordered_map<uint64_t, bool> visited;
+    visited.reserve(64);
+    std::vector<uint64_t> queue;
+    queue.push_back(center);
+    visited[center] = true;
+    while (!queue.empty()) {
+        std::vector<uint64_t> next;
+        for (uint64_t ip : queue) {
+            double ra_c, dec_c;
+            pix2ang_nest(nside, ip, ra_c, dec_c);
+            double dec2 = dec_c * kPi / 180.0;
+            double ra2  = ra_c  * kPi / 180.0;
+            double c2 = std::cos(dec2);
+            double px = c2 * std::cos(ra2);
+            double py = c2 * std::sin(ra2);
+            double pz = std::sin(dec2);
+            double cosd = px*cx + py*cy + pz*cz;
+            if (cosd > 1.0) cosd = 1.0;
+            if (cosd < -1.0) cosd = -1.0;
+            double dist = std::acos(cosd);
+            if (dist <= radius_rad) {
+                result.push_back(ip);
+                auto nbrs = neighbors(nside, ip);
+                for (uint64_t nb : nbrs) {
+                    if (!visited.count(nb)) {
+                        visited[nb] = true;
+                        next.push_back(nb);
+                    }
+                }
+            }
+        }
+        queue.swap(next);
+    }
+    std::sort(result.begin(), result.end());
+    return result;
 }
 
 } // namespace healpix
