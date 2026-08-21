@@ -3,6 +3,7 @@
 - 唯一 I/O 依赖方向：上层模块 → astro_image_io；astro_image_io 不依赖
   上层科学模块。
 - common 可被任何模块依赖，不得反向依赖。
+- healpix_drizzle 依赖 common/healpix_core，禁止自带重复实现（B4-01 去重，DRZ-01）。
 - phase2 依赖 common/healpix + astro_image_io（aio_upm/aio_hips_reader）
   + acr（kernel_registry/cuda_bridge_loader/device_executor）。
 - orchestrator 依赖所有模块头文件，通过 DllLoader 动态加载 DLL（不静态链接）。
