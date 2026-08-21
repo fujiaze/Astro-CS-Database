@@ -1,12 +1,12 @@
 project: AstroCS CLI Core and Spherical Browser
-phase: v1.3 p13-stage1-full-validation
+phase: V19R8 quality-closure
 state_schema: 2
 status: ACTIVE
-current_gate: G12
-current_task: P13-002
-last_completed_task: P13-001
-last_completed_date: 2026-07-29
-baseline_engineering: engineering/G0-G8 preserved
+current_gate: G-QA
+current_task: QA-V19R7-B5-01
+last_completed_task: QA-V19R7-B4-28
+last_completed_date: 2026-08-22
+baseline_engineering: V19R8 S0-S6 (B4 28/28 DONE)
 previous_phase: engineering_v1.2
 product_target: Real-data Stage1 + Galaxy Center 3-panel HCSD + performant spherical browser
 started: 2026-07-28
