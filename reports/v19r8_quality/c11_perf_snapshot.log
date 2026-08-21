@@ -1,0 +1,11 @@
+=== V19R8 C-11 performance snapshot (vm-bj lightweight) ===
+Date: 2026-08-22 vm-bj gcc 14.2.0 (2 cores, no repeated benchmark)
+Host: VM-BJ 6.12.95 2 cores 3.6Gi
+
+pipeline_frame build wall: 7.16s
+pipeline_frame run 28 contracts wall: 0.013s
+noise_model 39 tests wall: 0.387s
+
+Analysis: build (~3-4s g++ dominant) >> run (<0.1s); bottleneck is compile/IO per AGENTS.md guidance, no repeated benchmark needed.
+machine 9/9: True
+Scope: lightweight snapshot only.
