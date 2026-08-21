@@ -1,0 +1,20 @@
+{
+  "round": 7,
+  "head": "f4cc91e chore(checkpoint): round03 53/95 V19R8 trio 255+185+421 [R03]",
+  "spec": "V19R8 255+185+421 trio pushed at 16277e5/724d356",
+  "machine_pass": true,
+  "done": 53,
+  "todo": 42,
+  "b4_running": [
+    "B4-10",
+    "B4-14"
+  ],
+  "b4_todo_head": [
+    "QA-V19R7-B4-10",
+    "QA-V19R7-B4-11",
+    "QA-V19R7-B4-13",
+    "QA-V19R7-B4-14",
+    "QA-V19R7-B4-15",
+    "QA-V19R7-B4-16"
+  ]
+}
