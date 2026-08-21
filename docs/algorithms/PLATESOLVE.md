@@ -20,7 +20,7 @@ WCS（CD + SIP）或失败状态。
 
 ## Invariants
 
-坐标约定 J2000 + TAN/SIP；CD 与 SIP 一致（A/B 双前向，V18R3 审计）。
+坐标约定 J2000 + TAN/SIP；内部 0-based `x,y` ↔ FITS 1-based `CRPIX=width/2+0.5`（`x0=CRPIX-1`，`lib/plate_solve/cpp/ipv/src/ipv_wcs.cpp:154,276`）；SIP 前向 `A/B` 解析 / 逆向 `AP/BP`（`NB_GRID=7` 网格拟合，`AP[1,0]/BP[0,1]-=1`，`ipv_wcs.cpp:463-464`）与 Y-down 输出 `cd12/cd22` 取反、`A' = A·(-1)^j`、`B' = −B·(-1)^j`（`AP/BP` 同规则，`ipv_wcs.cpp:542-570`）；CD 与 SIP 一致（V18R3 审计）。
 
 ## 复杂度
 
@@ -32,7 +32,7 @@ WCS（CD + SIP）或失败状态。
 
 ## 数值风险
 
-极区/大畸变；SIP 高阶振荡 → 阶数上限。
+极区/大畸变；SIP 高阶振荡 → 阶数上限（`order 2–3`）；极区 `|dec|>45°` 分支、`|dec|>85°` 仍保守（Lipschitz `C=π/2`/`C45=π/(2√2)`，`lib/gaia_xpsd_client/src/gaia_client.c:polar_plane_intersects`），RA 环绕 `cos(dec)` 缩放（`bbox_intersects`），跨界保守不剪枝。
 
 ## fast/reference/oracle
 
