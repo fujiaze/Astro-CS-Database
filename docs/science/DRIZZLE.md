@@ -28,6 +28,8 @@ ivar_p     = 1 / variance_p
 
 缩放律：x'=αx → var'=α²var，ivar'=ivar/α²（SNR-002）。
 
+> sumVarNum 为 `TileLeafAccumulator.sumVarNum` 分子中间量，归一在 sink/writer finalize（`astro_sphere_sink.cpp:100` / `aio_hips_writer::finalize_tile`）。
+
 ## 变量/单位
 
 - S：信号（ADU/e⁻）；D：drop 覆盖面积（px²）；v：方差（信号²）；
@@ -49,6 +51,8 @@ ivar_p     = 1 / variance_p
 
 - 几何退化/无覆盖 → 显式 NO_DATA；candidate 保守测试 false negative=0
   （ALG-DRZ-CAND oracle）。
+
+> 缓冲分层：overlap quick-reject 1.25×hp_res / candidate 圆盘 3.0× / fast 1.25×+1.15 畸变+极冠回退（见 `spherical_overlap.cpp:40` 与 A2-03 证据）。
 
 ## 数值精度
 
