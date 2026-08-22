@@ -13,7 +13,8 @@ None / Sigma / Winsorized / AveragedSigma / LinearFit / GeneralizedESD / RCR
 ```
 
 生产默认：auto + profile=wbpp_2_9_1/astrocs_adaptive
-（n<6 percentile、6-15 winsorized、>15 linear_fit）。
+（n<6 percentile、6-15 winsorized、>15 linear_fit；n 为 planning 层
+ nominal contributors 几何可贡献数，一次解析，禁止 per-pixel effective 路由）。
 
 ## 关键语义（V15 冻结 RJ-001..008）
 
