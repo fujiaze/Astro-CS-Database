@@ -623,7 +623,7 @@ static int p2_sample_controls_impl(
     // 首 tile 预读校验（空/范围 sớm, 避免首 tile AV 静默）
     if (n_union > 0) {
         const std::uint64_t t0ip = coverage->union_cells[0].ipix;
-        const std::uint64_t npix_check = (std::uint64_t)1 << (2u * (unsigned)coverage->target_order);
+        const std::uint64_t npix_check = 12ULL * ((std::uint64_t)1 << (2u * (unsigned)coverage->target_order));
         if (t0ip >= npix_check) {
             if (err && err_size) std::snprintf(err, err_size, "tile ipix out of range %llu >= %llu (order %d)", (unsigned long long)t0ip, (unsigned long long)npix_check, coverage->target_order);
             for (std::uint64_t i = 0; i < n_frames; ++i) { if (sig[i]) aio_hips_close(sig[i]); if (sup[i]) aio_hips_close(sup[i]); if (ivr[i]) aio_hips_close(ivr[i]); }
@@ -653,7 +653,7 @@ static int p2_sample_controls_impl(
         const std::uint64_t tile_ipix = coverage->union_cells[c].ipix;
         // tile id 范围检查（32-hips 714 cells 应在 target_order 范围内）
         {
-            const std::uint64_t npix = (std::uint64_t)1 << (2u * (unsigned)coverage->target_order);
+            const std::uint64_t npix = 12ULL * ((std::uint64_t)1 << (2u * (unsigned)coverage->target_order));
             if (tile_ipix >= npix) {
                 std::fprintf(stderr, "[sampler] skip out-of-range tile %llu >= %llu at c=%llu\n", (unsigned long long)tile_ipix, (unsigned long long)npix, (unsigned long long)c); std::fflush(stderr);
                 for (int gy = 0; gy < grid; ++gy) for (int gx = 0; gx < grid; ++gx) {
