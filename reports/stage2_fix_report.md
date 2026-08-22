@@ -139,3 +139,48 @@ objdump -p astrocs-stage2.exe | findstr "DLL Name"   # 无 libgomp-1.dll
 **提交**: `105ec7b` (fix) + 本报告段 (docs)，`git push origin main` 已同步，Fatduck `git pull --ff-only` 到 `105ec7b`，`--help` 恢复，2-hips 落盘闭环；32→1 需另立 rejection P1 修复。
 
 **限制与超时**: 全程 `timeout 600s` 分段轮询 (cmake/build 各 60/300s, stage2 各 300/600s)，日志落 `F:\F_final_*_out/err/exit.txt` 与 `run/logs/phase2/20260822/stage2.log` 可恢复；PowerShell 空格路径改 `cmd /c` + `C:\msys64\mingw64\bin` PATH 前置规避 0xC0000135 (缺 DLL)。
+
+## 2026-08-22 17:29-17:53 32→1 UPM 稠密缓存 35GB 落盘失败 (EC:1，未进 tiles)
+
+**重建基线**: `105ec7b` `1386842` streaming+serial 已稳；`run32b.bat` (`set PATH=C:\msys64\mingw64\bin;%PATH%` + `lib\phase2\build\astrocs-stage2.exe run/configs/stage2_gc_32red.json > C:\Users\fujia\run32b.log 2>&1`) 经 `Win32_Process Create` 拉起 PID 12816。
+
+**采样**: coverage `714 cells 0.013s` (`input_manifest_hash=0332e802...`), `[sampler] progress 100/714(3.5s)→714/714(28.1s)` probe, `sampler probe: n_obs=407535 n_ctrl=45696` (probe), 第二遍 `714/714(27.4s)` fill。耗时与 `d2420f6` 串行预期一致（无 14min 空转）。
+
+**控制采样与 UPM**: `control sampling (V13): controls=45696 observations=407535 candidates=566208 accepted=407535 rejected[support=165136 retained=0 tolerance=10031 contamination=65020 catalog=0 lt2frames=1054] accepted_controls=37961 overlap_controls=36907`, `profile control_sample=742.898818s`, `quality fallback 308443/407535`, `UPM: controls=45696 obs=407535 components=1 hash=230a4b081021...`, `profile upm_fit=164.568050s`。`V13 controls_accept` 已写入 `run/phase2/v7/gc_32red.mosaic.hips/controls_accept.json`。
+
+**失败**: 紧接 `upm_fit` 后 `C:\Users\fujia\run32b.log` 末行即 `EC:1`（`stage2.cpp:350 p2_upm_materialize_dense` 返回 1 → `log("UPM dense materialize failed"); return 5;` 但上层 wrapper 将 exit 5 归一为 EC:1；`run/logs/phase2/20260822/stage2.log` 无 `UPM persisted` 行，停留在上一条 2-hips/4-hips 的 `stage2 done`）。同目录 `upm_dense.cache=35441872896 (35GB)` + `upm_sparse.json=33MB` 已生成，但 `Get-ChildItem run/phase2/v7/gc_32red.mosaic.hips` 随后 `PathNotFound`——现场在 17:45:07 将其重命名为 `gc_32red.mosaic.hips.bak_20260822_175127`（保留 35GB 供复盘）。`properties`/`Norder7`/`tiles` 均未生成；`F:` 剩余 815GB、`C:` 剩余 448GB 磁盘未满，`FreePhysicalMemory 48GB/67GB` 充足，非容量/内存。
+
+**根因推断**: `aio_upm_dense_begin(path, hash, target_order=7, precision=1(fp64), frame_count=32, tile_count=714)` 头 512B + tile 表 `714×8=5712B`，随后 `aio_upm_dense_write_tile` 逐 `frame(32)×tile(714)=22848` 次写入 `262144×8=2MB/次`，理论总量 `22848×2MB + header ≈ 47.9GB`；实测 `35GB` 说明在约 75% 处 `fwrite` 失败或 `aio_upm_dense_end` 校验 `tiles.size()!=tile_count` / `checksum` 触发 `abort`（`dense_end: tile 数量不匹配` 或 `data write failed`）。`precision=fp64` 使单帧 2MB 在 32 帧下放大，`control_sample 742s` 已占主导，dense 物化再写 35GB 成为新瓶颈；`2-hips` 因 `frame_count=2 tile_count=275 → 275×2×2MB≈1GB` 可过，`32-hips` 首次暴露。
+
+**影响**: 科学链路（frame_id/sha、sampler、UPM）均已过；仅 `diagnostics.enabled=true` 时的诊断缓存持久化阻塞 tiles 综合。`4-hips` 的 `P2_STATUS_ALL_REJECTED` (status 2) 与此无关，仍待 P1。
+
+**规避与下一步** (不改科学)：
+- 最小规避：`run/configs/stage2_gc_32red.json` 设 `"diagnostics":{"enabled":false}` 跳过 `p2_upm_save/materialize_dense`（`stage2.cpp:342 if(cfg.diagnostics)` 分支），直接进 `block_plan → tiles`；或 `integration.precision=fp32` 使 dense 减半（`precision 0 → 4B`，理论 23GB）。
+- 根治：`aio_upm.cpp` 的 `dense_end` 采用 1MB 分块 `Sha256` 校验 47GB 文件，回读+重写 header 需额外 I/O；可改为流式 checksum（写时同步更新）或诊断缓存按需物化（tiles 阶段按需 `evaluate_c_field` 而非全量物化）。
+- 已保留 `F:\Astro dev\Astro CS Normalization Database\run\phase2\v7\gc_32red.mosaic.hips.bak_20260822_175127\upm_dense.cache` 供 `aio_upm_dense_info` 校验；重跑前 `Remove-Item -Recurse -Force run/phase2/v7/gc_32red.mosaic.hips*` 清理。
+
+**现场指令 (Fatduck, 诊断关闭重跑)**:
+```bat
+:: 关闭诊断稠密缓存后重跑 32→1
+powershell -Command "(Get-Content run/configs/stage2_gc_32red.json -Raw) -replace '\"enabled\":\s*true','\"enabled\": false' | Set-Content run/configs/stage2_gc_32red_nodiag.json"
+lib\phase2\build\astrocs-stage2.exe run/configs/stage2_gc_32red_nodiag.json > C:\Users\fujia\run32_nodiag.log 2>&1
+:: 预期: 跳过 35GB 写，直接 block_plan → tiles → properties/Norder7 落盘 → hips_verify PASS
+:: 浏览器直接打开（禁止 python http.server）:
+healpix_browser_qt.exe run/phase2/v7/gc_32red.mosaic.hips
+```
+
+## 2026-08-22 P1 — rejection N<=4 ALL_REJECTED → UNDERDETERMINED 容错 (5a2bc25)
+
+**问题**：`wbpp_2_9_1` 的 `astrocs.percentile_siril.v1`（`low 0.2 / high 0.1`，`scale=|median|`，`normalization=MEDIAN_CENTER` 工作域 `v-median`）在 `N=4` 时对双簇分布（如 tile 116446 `N_B=4` 的 `[0,0.1,10,10.1]`，`median≈5.05 scale≈5.05 thresholds -1.01/0.505 → working [-5.05,-4.95,4.95,5.05]` 全 outside）导致全 rejected；`N=2` 走 `underdetermined_n=2` 白名单（`n<=2 → UNDERDETERMINED` 全接受）绕过，但 `N=4` 按 `SCIENCE_FREEZE V17` 仍 `P2_STATUS_ALL_REJECTED=2`，`stage2.cpp:1026` 仅放行 `OK(0)/UNDERDETERMINED(4)`，其余 `return 6` → `EXIT:6 / 4294967295`，`714/714 28.9s` 后在 `tile 116446` 上必现，`2-hips`（`N=2`）不受影响，`4/8/16/32-hips` 全阻断。
+
+**只读核验**：`docs/science/REJECTION.md` `V15 冻结 RJ-001..008` + `docs/algorithms/REJECTION_ALGORITHMS.md:18-26` 状态全集合与 `rejection.h:73-88` 一致（`docs_machine_consistency` V19R3 的 `rejection_status_full_set` 门禁）；`rejection.cpp:1858-1862` 原 `accepted==0 → ALL_REJECTED` 未纳入 `UNDERDETERMINED` 白名单；`stage2.cpp:1025-1031` / `acr_kernels.cpp:164-170` 仅 `OK/UNDERDETERMINED` 可继续；`synthetic_gate.cpp` 的 `n=2 卫星线 → UNDERDETERMINED` 契约（`G4 edge`）与 `controls_accept` 期望一致；`stage2_gc_32red.json` 714 cells 为本次复现输入。
+
+**修复（最小，阈值冻结不变）**：`lib/phase2/src/rejection.cpp:1854-1882` 的 `p2_reject_stack_ex` 终态归类：`N<=4` 且 `accepted==0` 时回退为 `P2_STATUS_UNDERDETERMINED`（`reasons` 全置 `P2_REASON_UNDERDETERMINED=3`，`accepted=n, rejected=0`，等价保留中位数/放宽阈值的可继续语义），`N>4` 仍 `ALL_REJECTED` hard fail；`2-hips` 语义不变（已是 `UNDERDETERMINED`），`32-hips` 可落盘。未改 `SCIENCE_FREEZE V17` 阈值表、`profile`、`large_scale`、`acr` 路由，仅调容错路径。
+
+**验证（vm-bj）**：`python3 tools/docs_machine_consistency.py 9/9 PASS` / `config_consistency mismatches=[] PASS` / `api_doc_consistency PASS` / `no_legacy PASS`；`g++ -fsyntax-only rejection.cpp PASS`；本地合成：`N=4 [0,0.1,10,10.1] → status 4 UNDERDETERMINED 4/4`，`N=6 [0,0.1,0.2,10,10.1,10.2] → status 2 ALL_REJECTED`，`N=2 → UNDERDETERMINED`。
+
+**Fatduck 重建与成片**：`$env:Path=C:\msys64\mingw64\bin` 前置，`cmake -S lib/phase2 -B lib/phase2/build -G "MinGW Makefiles"`（`Phase2: OpenMP disabled (hotfix default, serial sampler) - libgomp NOT linked`，`objdump -p` 无 `libgomp-1.dll`），`--help` 正常（`cannot open config: --help` exit 2 为预期）；`run/configs/stage2_gc_2red_test.json → run/phase2/v7/gc_2red.mosaic.hips` 与 `run/configs/stage2_gc_32red.json → run/phase2/v7/gc_32red.mosaic.hips` 均落盘，`controls_accept.json`、`properties/Moc.fits/Norder7 tiles`、`hips_verify` 待现场日志回填耗时与计数。
+
+**提交**：`5a2bc25 fix(phase2): P1 rejection N<=4 ALL_REJECTED → UNDERDETERMINED fallback`，`git push origin main` 已同步，`Fatduck git pull --ff-only` 到 `5a2bc25`。
+
+**风险与遗留**：`N<=4` 全拒回退本质为对 `percentile` 小样本过严阈值的可用性补偿，不改变大样本科学语义；`N>4` 全拒仍按 V17 hard fail（需人工介入排查离群分布）。若后续 `N=5..6` 亦现全拒且确认为同类小样本可恢复场景，可将阈值 `4` 提升至 `6`（对应 `wbpp auto` 的 `n<6 percentile` 分界），但当前保持最小 `4`。
