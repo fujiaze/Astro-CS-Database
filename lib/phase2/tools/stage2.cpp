@@ -213,15 +213,16 @@ int main(int argc, char** argv) {
     std::uint64_t n_obs = 0, n_ctrl = 0;
     char serr[512] = {0};
     P2SampleStats sstats{};
-    if (p2_sample_controls(&cov, paths.data(), &sccfg, nullptr, 0,
+    if (p2_sample_controls_cached(&cov, paths.data(), frame_id_cache.data(), &sccfg, nullptr, 0,
                            &n_obs, &n_ctrl, &sstats, nullptr, 0,
                            serr, sizeof(serr)) != 0) {
         log("sampler error: " + std::string(serr));
         return 4;
     }
+    log("sampler probe: n_obs=" + std::to_string(n_obs) + " n_ctrl=" + std::to_string(n_ctrl));
     std::vector<P2ControlObservation> obs(n_obs);
     std::vector<P2ControlNode> ctrl_nodes(n_ctrl);
-    if (p2_sample_controls(&cov, paths.data(), &sccfg, obs.data(), n_obs,
+    if (p2_sample_controls_cached(&cov, paths.data(), frame_id_cache.data(), &sccfg, obs.data(), n_obs,
                            &n_obs, &n_ctrl, &sstats, ctrl_nodes.data(),
                            ctrl_nodes.size(), serr, sizeof(serr)) != 0) {
         log("sampler error (fill): " + std::string(serr));

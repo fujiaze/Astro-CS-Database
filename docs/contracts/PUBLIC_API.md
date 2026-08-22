@@ -6,7 +6,7 @@
 - `lib/phase2`：`p2_*`（coverage / sampler / upm / integrate / stage2 入口）。
 - `p2_upm_build`（obs-only，兼容）与 `p2_upm_build_geo`（全几何节点，
   V13/V14）。
-- `p2_sample_controls`（含 background-clean stats/geometry 输出，V13）。
+- `p2_sample_controls` / `p2_sample_controls_cached`（后者性能透传 `frame_id_cache` 避免二次 500MB payload 哈希；同数值语义）。
 - V16/V17 rejection 接口（typing 单语义，版本化政策）：
   - `p2_reject_plan_resolve`（planning 层把 auto 解析为显式方法 +
     method-specific typed params；profile=wbpp_2_9_1 冻结版本或
