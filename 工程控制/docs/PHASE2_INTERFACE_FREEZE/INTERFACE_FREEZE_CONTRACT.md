@@ -1,4 +1,7 @@
-# Phase2 接口冻结契约（2026-08-10）
+# Phase2 接口冻结契约
+
+> 本文件为 W2 冻结快照（2026-08-10）；生产权威以 `lib/phase2/include/astro/phase2/*.h`（p2_upm_build / sampler / rejection / integrate）为准，旧 HICS 时代结构仅作历史快照。
+（2026-08-10）
 
 ## 状态
 
