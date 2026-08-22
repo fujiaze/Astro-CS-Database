@@ -547,6 +547,13 @@ static int p2_sample_controls_impl(
     // 保留 tile 级复用——每 cell 覆盖帧的 signal/support tile 只读一次，
     // 消除 64× 重读；OpenMP 默认关闭，可用 -DP2_ENABLE_OPENMP=ON 显式开启）。
     const std::uint64_t n_union = coverage->n_union_cells;
+    // 边界：714*64=45696，32 帧候选约 1.4M；reserve 前检查溢出
+    if (n_union > (std::size_t)1e6) {
+        if (err && err_size) std::snprintf(err, err_size, "n_union too large %llu", (unsigned long long)n_union);
+        for (std::uint64_t i = 0; i < n_frames; ++i) { if (sig[i]) aio_hips_close(sig[i]); if (sup[i]) aio_hips_close(sup[i]); if (ivr[i]) aio_hips_close(ivr[i]); }
+        return 1;
+    }
+    try {
     cells.resize(n_union * (std::size_t)grid * grid);
     std::uint64_t sum_catalog_veto = 0;
     std::uint64_t sum_insufficient_support = 0;
@@ -863,15 +870,20 @@ static int p2_sample_controls_impl(
         if (ivr[i]) aio_hips_close(ivr[i]);
     }
 
+    // stats 补偿：candidate 为几何覆盖总数；rejected 计数已在各阶段递增，此处仅补 candidate
+    // 避免对 retained/support 重复递增（曾导致 double-count）
     stats.candidate_observations = 0;
     for (const auto& cs : cells) {
-        for (std::size_t fi = 0; fi < cs.frames.size(); ++fi) {
-            ++stats.candidate_observations;
-            if (!cs.accepted[fi]) {
-                if (cs.reason[fi] == 2) ++stats.rejected_insufficient_retained;
-                else if (cs.reason[fi] == 1) ++stats.rejected_insufficient_support;
-            }
-        }
+        stats.candidate_observations += cs.frames.size();
+    }
+    } catch (const std::exception& e) {
+        if (err && err_size) std::snprintf(err, err_size, "sampler exception: %s", e.what());
+        for (std::uint64_t i = 0; i < n_frames; ++i) { if (sig[i]) aio_hips_close(sig[i]); if (sup[i]) aio_hips_close(sup[i]); if (ivr[i]) aio_hips_close(ivr[i]); }
+        return 1;
+    } catch (...) {
+        if (err && err_size) std::snprintf(err, err_size, "sampler unknown exception");
+        for (std::uint64_t i = 0; i < n_frames; ++i) { if (sig[i]) aio_hips_close(sig[i]); if (sup[i]) aio_hips_close(sup[i]); if (ivr[i]) aio_hips_close(ivr[i]); }
+        return 1;
     }
     if (out_stats) *out_stats = stats;
     *out_n_controls = control_id;
