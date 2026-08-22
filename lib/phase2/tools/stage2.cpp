@@ -40,7 +40,7 @@
 #include <string>
 #include <tuple>
 #include <vector>
-#ifdef _WIN32
+#if defined(_WIN32) && defined(_MSC_VER)
 #include <windows.h>
 #include <eh.h>
 #endif
@@ -102,8 +102,8 @@ std::string today_stamp() {
 } // namespace
 
 int main(int argc, char** argv) {
-#ifdef _WIN32
-    // SEH→C++ 异常：AV 在 p2_sample 首次进入内触发时透出为 std::exception
+#if defined(_WIN32) && defined(_MSC_VER)
+    // SEH→C++ 异常：AV 在 p2_sample 首次进入内触发时透出为 std::exception（仅 MSVC）
     _set_se_translator([](unsigned int code, struct _EXCEPTION_POINTERS* ep){
         char buf[128]; std::snprintf(buf,sizeof(buf),"SEH 0x%08X",code);
         std::fprintf(stderr,"[stage2] SEH 0x%08X at %p\n",code, ep?ep->ExceptionRecord->ExceptionAddress:nullptr); std::fflush(stderr);

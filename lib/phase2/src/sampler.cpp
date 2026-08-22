@@ -31,19 +31,38 @@
 #include <omp.h>
 #endif
 
+#define NOMINMAX
 #if defined(_WIN32) && defined(__has_include)
 #if __has_include(<windows.h>)
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <windows.h>
+#ifdef near
+#undef near
+#endif
+#ifdef far
+#undef far
+#endif
 #include <excpt.h>
 #endif
 #elif defined(_WIN32)
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <windows.h>
+#ifdef near
+#undef near
+#endif
+#ifdef far
+#undef far
+#endif
 #include <excpt.h>
 #endif
 
@@ -153,7 +172,7 @@ int read_tile_pair(AioHipsDataset* sig, AioHipsDataset* sup,
     return 0;
 }
 
-#ifdef _WIN32
+#if defined(_WIN32) && defined(_MSC_VER)
 static int seh_filter(unsigned long code, const char* where, char* err, std::size_t err_size) {
     if (err && err_size) std::snprintf(err, err_size, "SEH 0x%08lX at %s (AV outside try/catch)", code, where ? where : "?");
     std::fprintf(stderr, "[sampler] SEH 0x%08lX at %s\n", code, where ? where : "?");
@@ -621,7 +640,7 @@ static int p2_sample_controls_impl(
 
     const auto t0 = std::chrono::steady_clock::now();
     std::uint64_t progress = 0;
-#ifdef _WIN32
+#if defined(_WIN32) && defined(_MSC_VER)
     __try {
 #endif
     for (std::uint64_t c = 0; c < n_union; ++c) {
@@ -835,12 +854,12 @@ static int p2_sample_controls_impl(
                         int snr_avail = 0;
                         std::uint32_t qual = 0;
                         if (!frames[frame_id].snr.empty()) {
-                            std::vector<double> near;
+                            std::vector<double> near_snr;
                             snr_idx[frame_id].query(
                                 ra_deg, dec_deg, cfg.snr_search_radius_deg,
-                                &near, &qual);
-                            if (!near.empty()) {
-                                snr_val = median_of(std::move(near));
+                                &near_snr, &qual);
+                            if (!near_snr.empty()) {
+                                snr_val = median_of(std::move(near_snr));
                                 snr_avail = 1;
                             } else {
                                 snr_val = frame_snr_med_exact[frame_id];
@@ -871,7 +890,7 @@ static int p2_sample_controls_impl(
             std::fflush(stderr);
         }
     }
-#ifdef _WIN32
+#if defined(_WIN32) && defined(_MSC_VER)
     } __except(seh_filter(GetExceptionCode(), "sampler first pass", err, err_size)) {
         std::fprintf(stderr, "[sampler] SEH caught in first pass, err=%s\n", err ? err : "");
         std::fflush(stderr);
