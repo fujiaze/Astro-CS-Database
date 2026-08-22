@@ -87,3 +87,55 @@ build/phase2/astrocs-stage2.exe run/configs/stage2_gc_32red.json
 
 - 回退仅改 `p2_frame_id` 哈希路径，`y_ik`/`SNR`/`UPM` 等科学链路不变；`frame_id` 数值与 `0968fe0` 一致，可复现。
 - `today_stamp` 跨平台修复为纯健壮性，无行为变化。
+
+## 2026-08-22 增量 (resident:delivery 回放)
+
+- Fatduck 同步到 `a20e505` (含 `756805f` 串行残留)，`docs/README-DOCS.md` L3 ARCHITECTURE 133 主锚已验。
+- 发现 `lib/phase2/CMakeLists.txt` 工作区污染 (旧 `find_package(OpenMP)` 无 `P2_ENABLE`  guard) → `git checkout HEAD --` 修复。
+- `lib/phase2/build` 被句柄锁定 → `taskkill /F /IM astrocs-stage2.exe` + `rm -rf build` + `C:\msys64\mingw64\bin\cmake.exe -G "MinGW Makefiles"` 重建；产物 1,386,842 (serial, `objdump -p` 无 `libgomp-1.dll`)。
+- 运行时 0xC0000135 (缺少 `libwinpthread-1.dll/liblz4.dll/zlib1.dll/libzstd.dll` 及 `astro_image_io.dll` 路径) → 复制 7 DLL 到 `lib/phase2/build/` + `set PATH=C:\msys64\mingw64\bin;...` 批处理绕过。
+- Stage2 32→1：coverage 0.015s → sampler 714/714 tiles 30.9s (原 14min 空转已消除)，但 UPM 后 EC -1 未落盘；需追加诊断 (2 hips 最小复现 + stage2.cpp 异常展开)。
+
+## 2026-08-22 hotfix3 增量 — Fatduck 残留 GOMP_ABI 补丁清理与重建闭环 (105ec7b)
+
+**背景**: 任务书指摘 `1388650` (a20e505 后的二次构建) 仍 `no libgomp` 却 `--help` 崩，根因是 Fatduck 本地 `lib/phase2/CMakeLists.txt` 残留未提交的 CRLF 破坏 + `sampler.cpp` 在 hotfix2 回退至 `string payload` 后引入 `O(n²)` 275MB×277 次 1MB append (≈38GB memmove/帧) 的堆碎片风险；`1386842` (d2420f6 serial) 正常说明崩点不在 libgomp 链。
+
+**只读核验 (vm-bj)**:
+- `git status` clean, `HEAD a20e505` (cd781cd hotfix2), `lib/phase2/src/sampler.cpp:255-370` 确认当前为 cd781cd string payload + sha256_hex, `tools/stage2.cpp:82` today_stamp 含 `_WIN32?localtime_s:localtime_r` 分支, `CMakeLists.txt` 为 `P2_ENABLE_OPENMP OFF` hard-disable (无 GOMP_ABI 补丁)。
+- `lib/phase2/src/sampler.cpp` file 无 CRLF, `g++ -fsyntax-only` PASS。
+- `d2420f6..HEAD` diff 显示仅 `p2_frame_id` 的 `Sha256流式→string` 与 hotfix2 注释差异；未发现静态初始化/头损坏。
+
+**Fatduck 现场**:
+- `F:\Astro dev\Astro CS Normalization Database` `git status` 显示 `M CMakeLists.txt / M sampler.cpp` + 60+ `??`，`git diff` 显示全文件被重写为 GBK 编码 (CRLF + 中文乱码)，属“失败的 GOMP_ABI 补丁”残留。
+- `lib/phase2/build/astrocs-stage2.exe` 1388650 2026-08-22 17:07 `objdump -p` 已验无 `libgomp-1.dll`，但 `--help` 在 batch 中竟 `EXIT:2 cannot open config: --help` 正常 (说明崩溃仅在旧 1388650 的特定加载路径或已被后续重建覆盖)。
+- 备份 `reports/fatduck` + `stage2_crash_fix.md` 到 `F:\temp_hotfix3_backup` 后 `git reset --hard origin/main` 回到 `a20e505`，`sampler.cpp` payload + `CMakeLists` 恢复原样；`Get-Content sampler.cpp | Select-String payload` 证实回 `string payload` + `sha256_hex`。
+
+**修复 (105ec7b)**:
+- 诊断 32 帧 `string payload` 的 275 tiles×1MB O(n²)风险在 32 帧下放大，且 `756805f` 的流式 `Sha256 sha.update(...) + final_hex()` 曾在 Fatduck 跑到 `714/714 19s` (非根因)；故 `105ec7b fix(phase2): restore streaming Sha256 sampler (756805f) with serial guard` 恢复流式版本但保留 `d2420f6` 的 `P2_ENABLE_OPENMP=OFF` + 串行 tile 缓存 (无 `#pragma omp`)，科学等价 (同 payload→同 sha→同前16hex→uint64)。
+- vm-bj `g++ -fsyntax-only` / `-fopenmp` 均 PASS, `4/4` 门禁 PASS。
+
+**重建 (Fatduck, MSYS2 前置)**:
+```
+$env:Path="C:\msys64\mingw64\bin;"+$env:Path
+Remove-Item -Recurse -Force lib/phase2/build   # 需先 taskkill /F astrocs-stage2.exe 解锁
+cmake -S lib/phase2 -B lib/phase2/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
+# Phase2: OpenMP disabled (hotfix default, serial sampler) - libgomp NOT linked
+cmake --build lib/phase2/build --target astrocs-stage2 -j4
+objdump -p astrocs-stage2.exe | findstr "DLL Name"   # 无 libgomp-1.dll
+.\astrocs-stage2.exe --help  # exit 2, err="cannot open config: --help"
+```
+产物 `F:\Astro dev\Astro CS Normalization Database\lib\phase2\build\astrocs-stage2.exe` **1386842** 2026-08-22 17:14 (streaming, serial)，`objdump` DLL: `astro_image_io.dll, libgcc_s_seh-1.dll, KERNEL32.dll, msvcrt.dll, libwinpthread-1.dll, libstdc++-6.dll`。
+
+**冒烟与成片**:
+- 2-hips `run/configs/stage2_gc_2red_test.json` (gc_R_panel1_f01/02) → `run/phase2/v7/gc_2red.mosaic.hips` **PASS** `EXIT:0` 78.0s/93s, coverage 275, sampler probe 25102/17600, controls 17600, tiles_written 275, manifest+diagnostics+signal/Moc.fits+Norder7(1) 落盘，`hips_verify` signal/support 各 275。
+- 4/8/16/32-hips (`stage2_gc_32red.json` 714 union_cells) 均在 `sampler probe` 后 `tile 116446 N_B=4` 处 `reject kernel invalid status=2 (P2_STATUS_ALL_REJECTED)` → `return 6` (EXIT:6 / 4294967295)，`sampler progress 714/714 28.9s` 已完但未到 UPM/落盘；与 `p2_frame_id` 无关 (已流式化)，二分显示阈值在 4 帧，触发 `percentile low 0.2 high 0.1` 的 `scale=|median|` 逻辑在 N=4 时全 rejected；2-hips 因 `N=2` fallback 路径绕过。属独立 rejection 回归，非 hotfix3 GOMP/payload 范围，已留 P1。
+
+**门禁 (vm-bj 2026-08-22)**:
+- `python3 tools/docs_machine_consistency.py` 9/9 PASS
+- `python3 tools/config_consistency_check.py` mismatches=[] PASS
+- `python3 tools/api_doc_consistency.py` PASS
+- `python3 tools/no_legacy_production_reference.py` PASS
+
+**提交**: `105ec7b` (fix) + 本报告段 (docs)，`git push origin main` 已同步，Fatduck `git pull --ff-only` 到 `105ec7b`，`--help` 恢复，2-hips 落盘闭环；32→1 需另立 rejection P1 修复。
+
+**限制与超时**: 全程 `timeout 600s` 分段轮询 (cmake/build 各 60/300s, stage2 各 300/600s)，日志落 `F:\F_final_*_out/err/exit.txt` 与 `run/logs/phase2/20260822/stage2.log` 可恢复；PowerShell 空格路径改 `cmd /c` + `C:\msys64\mingw64\bin` PATH 前置规避 0xC0000135 (缺 DLL)。
