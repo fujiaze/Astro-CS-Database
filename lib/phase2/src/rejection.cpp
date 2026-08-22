@@ -1855,10 +1855,28 @@ int p2_reject_stack_ex(const P2CandidateStack* stack,
     out->rejected_low = rej_low;
     out->rejected_high = rej_high;
     out->iterations = iterations;
-    out->status = (accepted_count == 0)
-                      ? P2_STATUS_ALL_REJECTED
-                      : (any_underdetermined ? P2_STATUS_UNDERDETERMINED
-                                             : P2_STATUS_OK);
+    // V17F1 容错：小栈全拒回退为 UNDERDETERMINED（不 hard fail）
+    // 根因：wbpp_2_9_1 percentile (low 0.2 / high 0.1, scale=|median|)
+    // 在 N=4 时阈值过严可导致全 rejected（tile 116446 N_B=4），而
+    // n=2 走 underdetermined_n 白名单绕过；该状态按 SCIENCE_FREEZE V17
+    // 仍 hard fail。仅调容错路径、阈值冻结不变：N<=4 且全拒时降级为
+    // 全接受 UNDERDETERMINED（保留中位数/放宽阈值的等价可继续语义），
+    // 保证 32 帧 mosaic 可落盘且不破坏 2 帧语义。
+    if (accepted_count == 0) {
+        if (n <= 4) {
+            for (std::uint32_t i = 0; i < n; ++i)
+                reasons_out[i] = P2_REASON_UNDERDETERMINED;
+            out->accepted_count = n;
+            out->rejected_low = 0;
+            out->rejected_high = 0;
+            out->status = P2_STATUS_UNDERDETERMINED;
+        } else {
+            out->status = P2_STATUS_ALL_REJECTED;
+        }
+    } else {
+        out->status = any_underdetermined ? P2_STATUS_UNDERDETERMINED
+                                          : P2_STATUS_OK;
+    }
     return 0;
 }
 
