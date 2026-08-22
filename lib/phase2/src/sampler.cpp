@@ -31,6 +31,22 @@
 #include <omp.h>
 #endif
 
+#if defined(_WIN32) && defined(__has_include)
+#if __has_include(<windows.h>)
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#include <excpt.h>
+#endif
+#elif defined(_WIN32)
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#include <excpt.h>
+#endif
+
 extern "C" {
 #include "aio_hips_reader.h"
 }
@@ -121,8 +137,14 @@ struct TilePair {
 
 int read_tile_pair(AioHipsDataset* sig, AioHipsDataset* sup,
                    std::uint64_t tile_ipix, TilePair* out) {
-    out->signal.resize((size_t)kTileWidth * kTileWidth);
-    out->support.resize((size_t)kTileWidth * kTileWidth);
+    if (!sig || !sup || !out) return 2;
+    out->ok = false;
+    try {
+        out->signal.resize((size_t)kTileWidth * kTileWidth);
+        out->support.resize((size_t)kTileWidth * kTileWidth);
+    } catch (...) {
+        return 3;
+    }
     if (aio_hips_read_tile_f32(sig, tile_ipix, out->signal.data()) != 0)
         return 1;
     if (aio_hips_read_tile_f32(sup, tile_ipix, out->support.data()) != 0)
@@ -130,6 +152,15 @@ int read_tile_pair(AioHipsDataset* sig, AioHipsDataset* sup,
     out->ok = true;
     return 0;
 }
+
+#ifdef _WIN32
+static int seh_filter(unsigned long code, const char* where, char* err, std::size_t err_size) {
+    if (err && err_size) std::snprintf(err, err_size, "SEH 0x%08lX at %s (AV outside try/catch)", code, where ? where : "?");
+    std::fprintf(stderr, "[sampler] SEH 0x%08lX at %s\n", code, where ? where : "?");
+    std::fflush(stderr);
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+#endif
 
 double median_of(std::vector<double> v) {
     if (v.empty()) return 0.0;
@@ -554,24 +585,89 @@ static int p2_sample_controls_impl(
         return 1;
     }
     try {
-    cells.resize(n_union * (std::size_t)grid * grid);
+    // 诊断：coverage 后、cells.resize 前、首 tile 读前 立即落盘
+    std::fprintf(stderr, "[sampler] enter n_union=%llu grid=%d n_frames=%llu target_order=%d\n",
+        (unsigned long long)n_union, grid, (unsigned long long)n_frames, coverage->target_order);
+    std::fflush(stderr);
+    if ((std::size_t)n_union * (std::size_t)grid * grid > (std::size_t)200 * 1000 * 1000) {
+        if (err && err_size) std::snprintf(err, err_size, "cells too large %llu", (unsigned long long)n_union * (std::size_t)grid * grid);
+        for (std::uint64_t i = 0; i < n_frames; ++i) { if (sig[i]) aio_hips_close(sig[i]); if (sup[i]) aio_hips_close(sup[i]); if (ivr[i]) aio_hips_close(ivr[i]); }
+        return 1;
+    }
+    try { cells.resize(n_union * (std::size_t)grid * grid); } catch (const std::exception& e) {
+        if (err && err_size) std::snprintf(err, err_size, "cells resize failed: %s", e.what());
+        std::fprintf(stderr, "[sampler] cells resize failed: %s\n", e.what()); std::fflush(stderr);
+        for (std::uint64_t i = 0; i < n_frames; ++i) { if (sig[i]) aio_hips_close(sig[i]); if (sup[i]) aio_hips_close(sup[i]); if (ivr[i]) aio_hips_close(ivr[i]); }
+        return 1;
+    }
+    std::fprintf(stderr, "[sampler] cells resized %zu, first tile read check\n", cells.size()); std::fflush(stderr);
+    // 首 tile 预读校验（空/范围 sớm, 避免首 tile AV 静默）
+    if (n_union > 0) {
+        const std::uint64_t t0ip = coverage->union_cells[0].ipix;
+        const std::uint64_t npix_check = (std::uint64_t)1 << (2u * (unsigned)coverage->target_order);
+        if (t0ip >= npix_check) {
+            if (err && err_size) std::snprintf(err, err_size, "tile ipix out of range %llu >= %llu (order %d)", (unsigned long long)t0ip, (unsigned long long)npix_check, coverage->target_order);
+            for (std::uint64_t i = 0; i < n_frames; ++i) { if (sig[i]) aio_hips_close(sig[i]); if (sup[i]) aio_hips_close(sup[i]); if (ivr[i]) aio_hips_close(ivr[i]); }
+            return 1;
+        }
+        if (n_frames > 0 && sig[0]) {
+            std::fprintf(stderr, "[sampler] first tile %llu probe (frames with tile: ", (unsigned long long)t0ip); std::fflush(stderr);
+            for (std::uint64_t i = 0; i < std::min<std::uint64_t>(n_frames, 4); ++i) std::fprintf(stderr, "%d ", frames[i].tiles.count(t0ip)?1:0);
+            std::fprintf(stderr, ")\n"); std::fflush(stderr);
+        }
+    }
     std::uint64_t sum_catalog_veto = 0;
     std::uint64_t sum_insufficient_support = 0;
 
     const auto t0 = std::chrono::steady_clock::now();
     std::uint64_t progress = 0;
+#ifdef _WIN32
+    __try {
+#endif
     for (std::uint64_t c = 0; c < n_union; ++c) {
+        // xy / tile_buf 生命周期：每 714*64 规模检查
+        if (!coverage->union_cells) {
+            if (err && err_size) std::snprintf(err, err_size, "null union_cells at c=%llu", (unsigned long long)c);
+            for (std::uint64_t i = 0; i < n_frames; ++i) { if (sig[i]) aio_hips_close(sig[i]); if (sup[i]) aio_hips_close(sup[i]); if (ivr[i]) aio_hips_close(ivr[i]); }
+            return 1;
+        }
         const std::uint64_t tile_ipix = coverage->union_cells[c].ipix;
+        // tile id 范围检查（32-hips 714 cells 应在 target_order 范围内）
+        {
+            const std::uint64_t npix = (std::uint64_t)1 << (2u * (unsigned)coverage->target_order);
+            if (tile_ipix >= npix) {
+                std::fprintf(stderr, "[sampler] skip out-of-range tile %llu >= %llu at c=%llu\n", (unsigned long long)tile_ipix, (unsigned long long)npix, (unsigned long long)c); std::fflush(stderr);
+                for (int gy = 0; gy < grid; ++gy) for (int gx = 0; gx < grid; ++gx) {
+                    const std::size_t idx = (std::size_t)c * grid * grid + (std::size_t)(gy * grid + gx);
+                    if (idx < cells.size()) { cells[idx].tile = -1; }
+                }
+                continue;
+            }
+        }
         std::vector<std::uint64_t> cov_frames;
         for (std::uint64_t i = 0; i < n_frames; ++i)
             if (frames[i].tiles.count(tile_ipix)) cov_frames.push_back(i);
 
         std::vector<TilePair> pairs;
         if (!cov_frames.empty()) {
-            pairs.resize(cov_frames.size());
-            for (std::size_t fi = 0; fi < cov_frames.size(); ++fi)
-                read_tile_pair(sig[cov_frames[fi]], sup[cov_frames[fi]],
-                               tile_ipix, &pairs[fi]);
+            try { pairs.resize(cov_frames.size()); } catch (...) {
+                if (err && err_size) std::snprintf(err, err_size, "pairs resize failed at c=%llu", (unsigned long long)c);
+                std::fprintf(stderr, "[sampler] pairs resize failed at c=%llu\n", (unsigned long long)c); std::fflush(stderr);
+                for (std::uint64_t i = 0; i < n_frames; ++i) { if (sig[i]) aio_hips_close(sig[i]); if (sup[i]) aio_hips_close(sup[i]); if (ivr[i]) aio_hips_close(ivr[i]); }
+                return 1;
+            }
+            for (std::size_t fi = 0; fi < cov_frames.size(); ++fi) {
+                if (!sig[cov_frames[fi]] || !sup[cov_frames[fi]]) {
+                    std::fprintf(stderr, "[sampler] null dataset at frame %llu tile %llu\n", (unsigned long long)cov_frames[fi], (unsigned long long)tile_ipix); std::fflush(stderr);
+                    continue;
+                }
+                const int rc = read_tile_pair(sig[cov_frames[fi]], sup[cov_frames[fi]], tile_ipix, &pairs[fi]);
+                if (rc != 0) {
+                    // tile 缺失/读取失败：该帧该 tile 无信号，early-continue（不崩）
+                    pairs[fi].ok = false;
+                    std::fprintf(stderr, "[sampler] read_tile_pair failed rc=%d frame=%llu tile=%llu\n", rc, (unsigned long long)cov_frames[fi], (unsigned long long)tile_ipix); std::fflush(stderr);
+                }
+            }
         }
 
         for (int gy = 0; gy < grid; ++gy) {
@@ -595,6 +691,34 @@ static int p2_sample_controls_impl(
                 for (std::size_t fi = 0; fi < cov_frames.size(); ++fi) {
                     const std::uint64_t frame_id = cov_frames[fi];
                     const TilePair& tp = pairs[fi];
+                    // tile_buf 生命周期：读取失败或 support 空 → early-continue（不越界解引用）
+                    if (!tp.ok || tp.signal.empty() || tp.support.empty() ||
+                        tp.signal.size() < (size_t)kTileWidth * kTileWidth ||
+                        tp.support.size() < (size_t)kTileWidth * kTileWidth) {
+                        ++local_insupp;
+                        cs.frames.push_back((int)frame_id);
+                        cs.m.push_back(0); cs.mad.push_back(0);
+                        cs.bfrac.push_back(0); cs.unc.push_back(0);
+                        cs.snr.push_back(0); cs.sup.push_back(0);
+                        cs.cvar.push_back(0); cs.civar.push_back(0);
+                        cs.n_total.push_back(0); cs.n_retained.push_back(0);
+                        cs.snr_avail.push_back(0); cs.qual.push_back(0);
+                        cs.accepted.push_back(false); cs.reason.push_back(1);
+                        continue;
+                    }
+                    // xy 边界：cx/cy 由 gx*cell_side+side/2 构成，cell_side=512/grid=64，grid 默认 8 时 cx∈[32,480]，r=8 时 x∈[24,488] 全在 [0,512)；但若 cfg 被外层改大仍需边界拒绝
+                    if (cx < 0 || cy < 0 || cx >= kTileWidth || cy >= kTileWidth) {
+                        ++local_insupp;
+                        cs.frames.push_back((int)frame_id);
+                        cs.m.push_back(0); cs.mad.push_back(0);
+                        cs.bfrac.push_back(0); cs.unc.push_back(0);
+                        cs.snr.push_back(0); cs.sup.push_back(0);
+                        cs.cvar.push_back(0); cs.civar.push_back(0);
+                        cs.n_total.push_back(0); cs.n_retained.push_back(0);
+                        cs.snr_avail.push_back(0); cs.qual.push_back(0);
+                        cs.accepted.push_back(false); cs.reason.push_back(1);
+                        continue;
+                    }
                     std::vector<double> vals;
                     vals.reserve(400);
                     double sup_sum = 0.0;
@@ -613,10 +737,11 @@ static int p2_sample_controls_impl(
                             const std::uint64_t fi_idx =
                                 astrocs::healpix::nested_local_to_fits_index(
                                     z, (unsigned)kTileShift, kTileWidth);
+                            if (fi_idx >= tp.signal.size() || fi_idx >= tp.support.size()) continue;
                             const float s = tp.signal[(size_t)fi_idx];
                             const float sp = tp.support[(size_t)fi_idx];
                             if (!std::isfinite(s)) continue;
-                            if (sp <= 0.0f) continue;
+                            if (!std::isfinite(sp) || sp <= 0.0f) continue;
                             vals.push_back(s);
                             sup_sum += sp;
                             ++n_valid;
@@ -743,8 +868,17 @@ static int p2_sample_controls_impl(
             double elapsed = std::chrono::duration<double>(now - t0).count();
             std::fprintf(stderr, "[sampler] progress %llu/%llu tiles (%.1fs)\n",
                 (unsigned long long)progress, (unsigned long long)n_union, elapsed);
+            std::fflush(stderr);
         }
     }
+#ifdef _WIN32
+    } __except(seh_filter(GetExceptionCode(), "sampler first pass", err, err_size)) {
+        std::fprintf(stderr, "[sampler] SEH caught in first pass, err=%s\n", err ? err : "");
+        std::fflush(stderr);
+        for (std::uint64_t i = 0; i < n_frames; ++i) { if (sig[i]) aio_hips_close(sig[i]); if (sup[i]) aio_hips_close(sup[i]); if (ivr[i]) aio_hips_close(ivr[i]); }
+        return 1;
+    }
+#endif
     // 空覆盖占位：control_id 仍需覆盖所有 grid
     control_id = cells.size();
     stats.rejected_catalog_veto += sum_catalog_veto;
@@ -870,10 +1004,22 @@ static int p2_sample_controls_impl(
         if (ivr[i]) aio_hips_close(ivr[i]);
     }
 
+    // obs/ctrl vector 容量上限拒绝（防 OOM；不至于 714*64*32 规模撑爆）
+    if (cells.size() > (std::size_t)200 * 1000 * 1000) {
+        if (err && err_size) std::snprintf(err, err_size, "cells too large %zu", cells.size());
+        std::fprintf(stderr, "[sampler] cells too large %zu\n", cells.size()); std::fflush(stderr);
+        for (std::uint64_t i = 0; i < n_frames; ++i) { if (sig[i]) aio_hips_close(sig[i]); if (sup[i]) aio_hips_close(sup[i]); if (ivr[i]) aio_hips_close(ivr[i]); }
+        return 1;
+    }
     // stats 补偿：candidate 为几何覆盖总数；rejected 计数已在各阶段递增，此处仅补 candidate
     // 避免对 retained/support 重复递增（曾导致 double-count）
     stats.candidate_observations = 0;
     for (const auto& cs : cells) {
+        // 防止单 cell frames 异常膨胀导致 stats 溢出
+        if (cs.frames.size() > 10000) {
+            std::fprintf(stderr, "[sampler] skip oversized cs.frames %zu at tile %d\n", cs.frames.size(), cs.tile); std::fflush(stderr);
+            continue;
+        }
         stats.candidate_observations += cs.frames.size();
     }
     } catch (const std::exception& e) {
