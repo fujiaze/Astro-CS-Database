@@ -12,7 +12,7 @@
   "psf":         { "fit_radius": 8, "max_iter": 100 },
   "photometric": { "filters_json": "...", "qe_curves_json": "..." },
   "drizzle":     { "nside_strategy": "1x_to_2x_drizzle", "nside_override": 0,
-                   "pixfrac": 1.0, "tile_depth": 9, "threads": 0 },
+                   "pixfrac": 0.8, "tile_depth": 9, "threads": 0 },
   "precision": "fp32",
   "stop_after": "hips_verify"
 }
