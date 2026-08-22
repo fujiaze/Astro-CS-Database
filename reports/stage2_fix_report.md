@@ -211,3 +211,17 @@ healpix_browser_qt.exe run/phase2/v7/gc_32red.mosaic.hips
 **日志**：`run/logs/stage2_gc_32.log`、`run/logs/phase2/20260822/stage2.log`、`F:\temp_32_out/err.txt` 保留可恢复（`PowerShell` 空格路径改 `cmd /c` + `MSYS2` 前置规避 `0xC0000135`）。
 
 **超时**：全程 `600s` 分段，不扩大范围。
+
+## 2026-08-22 P3 — sampler 32->1 714*64 SEH 加固与 probe 诊断透出 (b184678)
+
+**现场**：HEAD `2ec94c7` 已在 Fatduck 重建（`PATH` 前置 `MinGW 16.1`，`OpenMP disabled` 无 `libgomp`，`--help exit2` 正常，`2-hips 77s` 落盘 `275 tiles PASS`），但 `32->1`（`714 cells`，`4/8/32 hips` 均复现）仍 `coverage 0.01s` 后无 `sampler probe`、`EXIT -1`，`2ec94c7` 新增的 `std::exception try/catch` 未透出，证明是 `SEH/AV` 在 `p2_sample_controls_cached` 首次进入内、`try` 外触发。
+
+**只读核验**：`lib/phase2/src/sampler.cpp:557 cells.resize(45696)` 后 `for c=0..714` 内 `read_tile_pair/aio_hips_read_tile`、`xy_to_nested_local`、`SNR catalogue` 查找、`xy` 边界、`tile_buf` 生命周期在 `714*64*32` 规模下的越界/空指针；`lib/phase2/tools/stage2.cpp:217 probe` 前 `input_manifest_hash` 后的首 `call` 路径。
+
+**加固**（`b184678`，科学不变）：
+- `sampler.cpp`：为 sampler 首段加 `SEH` 透出（`__try/__except` 首遍循环 + `SetUnhandledExceptionFilter` / `_set_se_translator` 转 `std::exception`），在 `coverage` 后、`cells.resize` 前、首 `tile` 读前加 `g_log.flush + fprintf(stderr)` 诊断；对 `aio_hips_open/read` 返回、`tile id`、`xy`、`support` 指针做空/范围检查并 `early-continue`；对 `obs/ctrl vector` 容量做上限拒绝。
+- `stage2.cpp`：`main` 入口加 `SEH→C++` 转译与 `UnhandledExceptionFilter`，`coverage` 后与 `cells.resize` 前落盘诊断，保证 `0.01s` 后首进入可见；`probe` 前 `manifest` 与 `cells` 计数同步落盘。
+
+**验证**：`vm-bj` `4/4` 门禁（`docs_machine 9/9`、`config []`、`api`、`no_legacy`）+ `g++ -fsyntax-only -Ilib/phase2/include -Ilib/common -Ilib/astro_image_io/include lib/phase2/src/sampler.cpp PASS`；`stage2.cpp` 需 `Fatduck` 前置 `PATH` 重建校验（`nlohmann/json.hpp` 由 `orchestrator` 拉取）。Fatduck 待执行：前置 `PATH` 重建、`--help`、`2-hips` 回归、`8-hips` 冒烟、`32->1` 落盘 `run/phase2/v7/gc_32red.mosaic.hips` 并 `hips_verify`，日志落 `run/logs/stage2_gc_32.log` 与 `F:\temp_32_out`。
+
+**单目的提交**：`b184678 fix(phase2): sampler SEH hardening + stage2 probe diagnostics (32->1 714*64, AV outside try -> SEH filter, early-continue, flush)`，`reports/stage2_fix_report.md` 本段增量，随后 `git push origin main`。
