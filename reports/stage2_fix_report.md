@@ -184,3 +184,30 @@ healpix_browser_qt.exe run/phase2/v7/gc_32red.mosaic.hips
 **提交**：`5a2bc25 fix(phase2): P1 rejection N<=4 ALL_REJECTED → UNDERDETERMINED fallback`，`git push origin main` 已同步，`Fatduck git pull --ff-only` 到 `5a2bc25`。
 
 **风险与遗留**：`N<=4` 全拒回退本质为对 `percentile` 小样本过严阈值的可用性补偿，不改变大样本科学语义；`N>4` 全拒仍按 V17 hard fail（需人工介入排查离群分布）。若后续 `N=5..6` 亦现全拒且确认为同类小样本可恢复场景，可将阈值 `4` 提升至 `6`（对应 `wbpp auto` 的 `n<6 percentile` 分界），但当前保持最小 `4`。
+
+## 2026-08-22 P2 — sampler 714/714 后 EC:-1 诊断透出与边界加固（当前 HEAD 6e7c806 基线）
+
+**现象**：`6e7c806`（含 `105ec7b streaming Sha256 + d2420f6 serial guard + 5a2bc25 N<=4 UNDERDETERMINED`）在 32 帧 `run/configs/stage2_gc_32red.json` 覆盖 714 cells 后 `sampler progress 714/714 25.1s 完成`，随后未打印 `sampler probe: n_obs …` 及后续 `UPM/block` 日志，直接 `EC:-1` 退出；`run/logs/phase2/20260822/stage2.log` 不追加；2 帧仍可落盘，4 帧前曾 `EXIT:6` 已被 `5a2bc25` 解决；现场 exe `1386842/1388650` 无 `libgomp`，`--help exit2` 正常。
+
+**只读核验**：
+- `lib/phase2/src/sampler.cpp:394` `p2_sample_controls_impl` 第一层循环完成后的 `stats` 回填/`g_log`：`stats.rejected_catalog_veto/support` 在第一遍累计，`rejected_bright_tolerance/high_contamination/retained` 在第二遍 `++stats`，`candidate/accepted_controls/overlap` 在第三遍；但 `candidate_observations` 在 `860-875` 有二次覆盖（先 `++accepted(candidate)` 再 `candidate=0; for(cells) ++candidate` 且对 `retained/support` 重复 `++` 导致 double-count）。
+- `lib/phase2/tools/stage2.cpp:220-235` 两段 `probe→vector obs/ctrl→fill` 的 `try/catch` 与 `return 4 仅 log("sampler error")`：`stage2.cpp` 在 `128-130` 打开 `g_log` 后仅 `log("sampler error")` 未 flush，且无外层 `try/catch`，若 `sampler.cpp` 在 `progress 714/714` 后的 `tile_cells` 构建/`sort`/`SNR veto` 或 `cells→obs` 填充阶段抛 `std::bad_alloc/out_of_range`，会被上层 `PowerShell` 归一为 `EC:-1`（`0xC0000005` 未展开为可读码）。
+- `frame_id_cache/manifest_entries` 排序：`stage2.cpp:173-187` `frame_id_cache[i]=fid` 与 `manifest_entries {fid, meta(m.filter/order/frame)}` 排序按 `fid` 升序，`payload=to_string(fid)+"|"+meta+";"`→`sha256_hex=manifest_hash`；32 帧下 `frame_id` 为 `sha256` 前 16hex 截断，冲突概率极低，但未对 `fid==0`（`p2_frame_id` 失败）做过滤。
+- `vector reserve/obs/ctrl 容量 714*64*32` 规模：`sampler.cpp:550 cells.resize(714*64=45696)`，每 `CellStat` 含 `~9 vector`，`714*64*32` 候选 `obs` 峰值约 `407k`（实测 `n_obs=407535`），`obs` 在 `stage2.cpp:227` 以 `n_obs` 精确 `resize`，但 `sampler.cpp` 内部 `obs.push_back` 在 `n_obs` 预估错误时可能越界；`cs.tile=(int)tile_ipix` 在 `order 7` 下 `tile_ipix<196608` 安全，但 `frame_id` 存为 `int(cs.frames)` 时若 `frame_count>127` 仍安全（32 帧）。
+
+**vm-bj 复现**：最小推断——`sampler` 第一层 `714/714` 完成后进入第二、三遍的 `std::map<int, vector>` 与 `vector<CellStat>` 遍历，若 `std::map` 在 `MinGW` 上因 `714*64` 的 `std::sort`/`MAD` 分配触发 `bad_alloc`，`p2_sample_controls_impl` 无 `try/catch` 会直接 `terminate`（`EC:-1`）；`stage2.cpp` 的 `probe→alloc→fill` 在 `714` 规模下 `obs/ctrl` 的 `resize` 也可能在 `MinGW 4GB` 地址空间触发。
+
+**修复（仅诊断/边界，不改科学）**：
+- `sampler.cpp:550` 前增 `n_union>1e6` 显式拒绝；整函数包 `try{ cells.resize..第三遍 } catch(exception)→snprintf(err)+close+return 1`，并修正 `candidate_observations` 仅一次补齐（去重 `retained/support` 重复计数），日志路径可恢复。
+- `sampler.cpp:873` `candidate_observations` 去重复统计，避免 `retained/support` double-count。
+- `stage2.cpp:49-55` `log` 增 `g_log.flush()` 与 `log_flush()`；`220-235` 的 `probe/fill` 包 `try/catch(exception→log+stderr+return 4)`，`n_obs/n_ctrl` 增 `>50M/10M` 合理性拒绝与 `resize` 的 `try/catch`，使 `EC:-1` 转为 `sampler probe/fill exception: ...` 可读码。
+- `stage2.cpp:98/1347` `main` 包 `try/catch(exception→unhandled exception log+return 1)`，覆盖 `0xC0000005` 未展开路径，保留 `run/logs/phase2/20260822/stage2.log` 可恢复。
+- 科学语义不变：阈值/权重/frame_id/UPM 均冻结；仅加边界与透出。
+
+**验证（vm-bj）**：`python3 tools/docs_machine_consistency.py 9/9 PASS`、`config_consistency mismatches=[] PASS`、`api_doc_consistency PASS`、`no_legacy PASS`；`g++ -fsyntax-only -std=c++20 lib/phase2/src/sampler.cpp PASS`（`stage2.cpp` 需 `nlohmann/json.hpp` 由 `orchestrator third_party` 提供，Fatduck 完整构建校验）。
+
+**Fatduck 重建与落盘（PATH=C:\msys64\mingw64\bin 前置）**：`cmake -S lib/phase2 -B lib/phase2/build -G "MinGW Makefiles"`（`Phase2: OpenMP disabled - libgomp NOT linked`）、`objdump -p astrocs-stage2.exe` 无 `libgomp-1.dll`、`--help` exit2 正常；`run/configs/stage2_gc_2red_test.json → 2帧落盘` 保留，`run/configs/stage2_gc_32red.json → run/phase2/v7/gc_32red.mosaic.hips` 落盘并 `hips_verify`（`signal/support tiles` 计数一致）。
+
+**日志**：`run/logs/stage2_gc_32.log`、`run/logs/phase2/20260822/stage2.log`、`F:\temp_32_out/err.txt` 保留可恢复（`PowerShell` 空格路径改 `cmd /c` + `MSYS2` 前置规避 `0xC0000135`）。
+
+**超时**：全程 `600s` 分段，不扩大范围。

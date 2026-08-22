@@ -51,8 +51,9 @@ std::ofstream g_log;
 void log(const std::string& msg) {
     std::fprintf(stdout, "[stage2] %s\n", msg.c_str());
     std::fflush(stdout);
-    if (g_log.is_open()) g_log << msg << "\n";
+    if (g_log.is_open()) { g_log << msg << "\n"; g_log.flush(); }
 }
+inline void log_flush() { std::fflush(stdout); if (g_log.is_open()) g_log.flush(); }
 
 
 // 帧级 SNR（Phase1 SNR Catalogue median；禁止重新检测星点）
@@ -95,6 +96,8 @@ std::string today_stamp() {
 } // namespace
 
 int main(int argc, char** argv) {
+    // 全局未捕获异常透出（将 0xC0000005/SEH 转为可读日志，而非 EC:-1）
+    try {
     if (argc != 2) {
         std::fprintf(stderr,
                      "usage: astrocs-stage2 <stage2.json>\n"
@@ -217,19 +220,48 @@ int main(int argc, char** argv) {
     std::uint64_t n_obs = 0, n_ctrl = 0;
     char serr[512] = {0};
     P2SampleStats sstats{};
+    // 714*32 规模：vector reserve 后检查 n_obs/n_ctrl 是否异常
+    try {
     if (p2_sample_controls_cached(&cov, paths.data(), frame_id_cache.data(), &sccfg, nullptr, 0,
                            &n_obs, &n_ctrl, &sstats, nullptr, 0,
                            serr, sizeof(serr)) != 0) {
-        log("sampler error: " + std::string(serr));
+        log("sampler error: " + std::string(serr)); log_flush();
         return 4;
     }
-    log("sampler probe: n_obs=" + std::to_string(n_obs) + " n_ctrl=" + std::to_string(n_ctrl));
-    std::vector<P2ControlObservation> obs(n_obs);
-    std::vector<P2ControlNode> ctrl_nodes(n_ctrl);
+    } catch (const std::exception& e) {
+        log(std::string("sampler probe exception: ") + e.what()); log_flush();
+        std::fprintf(stderr, "[stage2] sampler probe exception: %s\n", e.what());
+        return 4;
+    } catch (...) {
+        log("sampler probe unknown exception"); log_flush();
+        std::fprintf(stderr, "[stage2] sampler probe unknown exception\n");
+        return 4;
+    }
+    log("sampler probe: n_obs=" + std::to_string(n_obs) + " n_ctrl=" + std::to_string(n_ctrl)); log_flush();
+    // 边界：probe 后若 n_obs 为 0 且 diagnostics 需落盘，仍保证空 vector 不越界
+    if (n_obs > (std::uint64_t)50 * 1000 * 1000 || n_ctrl > (std::uint64_t)10 * 1000 * 1000) {
+        log("sampler probe counts unreasonable n_obs=" + std::to_string(n_obs) + " n_ctrl=" + std::to_string(n_ctrl)); log_flush();
+        return 4;
+    }
+    std::vector<P2ControlObservation> obs; std::vector<P2ControlNode> ctrl_nodes;
+    try { obs.resize((std::size_t)n_obs); ctrl_nodes.resize((std::size_t)n_ctrl); } catch (const std::exception& e) {
+        log(std::string("sampler alloc failed: ") + e.what()); log_flush();
+        return 4;
+    }
+    try {
     if (p2_sample_controls_cached(&cov, paths.data(), frame_id_cache.data(), &sccfg, obs.data(), n_obs,
                            &n_obs, &n_ctrl, &sstats, ctrl_nodes.data(),
                            ctrl_nodes.size(), serr, sizeof(serr)) != 0) {
-        log("sampler error (fill): " + std::string(serr));
+        log("sampler error (fill): " + std::string(serr)); log_flush();
+        return 4;
+    }
+    } catch (const std::exception& e) {
+        log(std::string("sampler fill exception: ") + e.what()); log_flush();
+        std::fprintf(stderr, "[stage2] sampler fill exception: %s\n", e.what());
+        return 4;
+    } catch (...) {
+        log("sampler fill unknown exception"); log_flush();
+        std::fprintf(stderr, "[stage2] sampler fill unknown exception\n");
         return 4;
     }
     log("control sampling (V13 background-clean): controls=" +
@@ -1313,4 +1345,13 @@ int main(int argc, char** argv) {
         log("diagnostics written: " + cfg.out_hips + "/diagnostics.json");
     }
     return 0;
+    } catch (const std::exception& e) {
+        std::fprintf(stderr, "[stage2] unhandled exception: %s\n", e.what());
+        log(std::string("unhandled exception: ") + e.what()); log_flush();
+        return 1;
+    } catch (...) {
+        std::fprintf(stderr, "[stage2] unhandled unknown exception\n");
+        log("unhandled unknown exception"); log_flush();
+        return 1;
+    }
 }
