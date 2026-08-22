@@ -14,7 +14,6 @@
 #include "healpix/healpix_core.h"
 
 #include <algorithm>
-#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <cstdio>
@@ -22,14 +21,13 @@
 #include <iomanip>
 #include <limits>
 #include <map>
-#include <mutex>
 #include <numeric>
 #include <set>
 #include <sstream>
 #include <string>
 #include <vector>
 
-#ifdef _OPENMP
+#if defined(P2_ENABLE_OPENMP) && defined(_OPENMP)
 #include <omp.h>
 #endif
 
@@ -545,44 +543,28 @@ static int p2_sample_controls_impl(
         }
     }
 
-    // 第一遍：每个 union cell 的 64 controls，cell 并行（OpenMP）
-    // 每 cell 内部：读该 cell 覆盖帧的 signal/support tile 一次（禁 64 次重读），
-    // 然后 64 cells 串行 patch 采样（保留原数值逻辑不变）。
-    // cfitsio 非线程安全 → tile 读串行化（omp critical）。
+    // 第一遍：每个 union cell 的 64 controls（hotfix：串行；
+    // 保留 tile 级复用——每 cell 覆盖帧的 signal/support tile 只读一次，
+    // 消除 64× 重读；OpenMP 默认关闭，可用 -DP2_ENABLE_OPENMP=ON 显式开启）。
     const std::uint64_t n_union = coverage->n_union_cells;
     cells.resize(n_union * (std::size_t)grid * grid);
-    std::atomic<std::uint64_t> atomic_catalog_veto{0};
-    std::atomic<std::uint64_t> atomic_insufficient_support{0};
+    std::uint64_t sum_catalog_veto = 0;
+    std::uint64_t sum_insufficient_support = 0;
 
     const auto t0 = std::chrono::steady_clock::now();
-    std::atomic<std::uint64_t> progress{0};
-    // 空 coverage 早返回（避免 n_union=0 时 OpenMP 起线程开销）
-    if (n_union == 0) {
-        // 下面三遍循环均为 0，直接落到 stats/输出段
-    } else
-#ifdef _OPENMP
-#pragma omp parallel for schedule(dynamic, 1) if(n_union > 4)
-#endif
-    for (long long ci_ll = 0; ci_ll < (long long)n_union; ++ci_ll) {
-        const std::uint64_t c = (std::uint64_t)ci_ll;
+    std::uint64_t progress = 0;
+    for (std::uint64_t c = 0; c < n_union; ++c) {
         const std::uint64_t tile_ipix = coverage->union_cells[c].ipix;
         std::vector<std::uint64_t> cov_frames;
         for (std::uint64_t i = 0; i < n_frames; ++i)
             if (frames[i].tiles.count(tile_ipix)) cov_frames.push_back(i);
-        // 即使空覆盖也需占位（保持 cells 索引 = c*64+off 的确定性）
-        // 但空则后续 64 cells 均为无观测占位
 
         std::vector<TilePair> pairs;
         if (!cov_frames.empty()) {
             pairs.resize(cov_frames.size());
-#ifdef _OPENMP
-#pragma omp critical(aio_read)
-#endif
-            {
-                for (std::size_t fi = 0; fi < cov_frames.size(); ++fi)
-                    read_tile_pair(sig[cov_frames[fi]], sup[cov_frames[fi]],
-                                   tile_ipix, &pairs[fi]);
-            }
+            for (std::size_t fi = 0; fi < cov_frames.size(); ++fi)
+                read_tile_pair(sig[cov_frames[fi]], sup[cov_frames[fi]],
+                               tile_ipix, &pairs[fi]);
         }
 
         for (int gy = 0; gy < grid; ++gy) {
@@ -744,22 +726,22 @@ static int p2_sample_controls_impl(
                 }
                 const std::size_t idx = (std::size_t)c * grid * grid + (std::size_t)(gy * grid + gx);
                 cells[idx] = std::move(cs);
-                if (local_veto) atomic_catalog_veto.fetch_add(local_veto, std::memory_order_relaxed);
-                if (local_insupp) atomic_insufficient_support.fetch_add(local_insupp, std::memory_order_relaxed);
+                sum_catalog_veto += local_veto;
+                sum_insufficient_support += local_insupp;
             }
         }
-        const std::uint64_t done = progress.fetch_add(1, std::memory_order_relaxed) + 1;
-        if (done % 100 == 0 || done == n_union) {
+        ++progress;
+        if (progress % 100 == 0 || progress == n_union) {
             const auto now = std::chrono::steady_clock::now();
             double elapsed = std::chrono::duration<double>(now - t0).count();
             std::fprintf(stderr, "[sampler] progress %llu/%llu tiles (%.1fs)\n",
-                (unsigned long long)done, (unsigned long long)n_union, elapsed);
+                (unsigned long long)progress, (unsigned long long)n_union, elapsed);
         }
     }
     // 空覆盖占位：control_id 仍需覆盖所有 grid
     control_id = cells.size();
-    stats.rejected_catalog_veto += atomic_catalog_veto.load();
-    stats.rejected_insufficient_support += atomic_insufficient_support.load();
+    stats.rejected_catalog_veto += sum_catalog_veto;
+    stats.rejected_insufficient_support += sum_insufficient_support;
     // 补偿：空覆盖 tiles 对应 cells 无 frames，跳过即等于未处理，已占位
 
     // 第二遍：Stage C DBE-like 局部 tolerance gate
