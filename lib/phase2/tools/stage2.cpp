@@ -48,6 +48,7 @@
 extern "C" {
 #include "aio_hips.h"
 #include "aio_hips_reader.h"
+#include "aio_upm.h"
 }
 
 namespace {
@@ -486,7 +487,6 @@ int main(int argc, char** argv) {
         std::to_string(plan.estimated_peak_bytes) +
         " bytes micro_chunk=" + std::to_string(plan.micro_chunk_required)); log_flush();
     mark("block_plan");
-    log("[hips_write] enter: nside=" + std::to_string(nside) + " dtype=" + std::to_string(dtype) + " frames=" + std::to_string(cfg.hips.size())); log_flush();
 
     // ---- W8 REJECT + INTEGRATE + HIPS WRITE ----
     const int nside = 1 << (target_order + 9);
@@ -494,6 +494,7 @@ int main(int argc, char** argv) {
     const double A_cell =
         4.0 * 3.14159265358979323846 / (12.0 * (double)nside * (double)nside);
     const int dtype = cfg.precision ? AIO_HIPS_FLOAT64 : AIO_HIPS_FLOAT32;
+    log("[hips_write] enter: nside=" + std::to_string(nside) + " dtype=" + std::to_string(dtype) + " frames=" + std::to_string(cfg.hips.size())); log_flush();
     const std::string filter = infos.empty() ? "" : infos[0].filter_passband;
 
     std::vector<AioHipsDataset*> sig(cfg.hips.size(), nullptr);
