@@ -31,13 +31,19 @@
 #include <cstdio>
 #include <cstring>
 #include <ctime>
+#include <exception>
 #include <filesystem>
 #include <fstream>
 #include <map>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <tuple>
 #include <vector>
+#ifdef _WIN32
+#include <windows.h>
+#include <eh.h>
+#endif
 
 extern "C" {
 #include "aio_hips.h"
@@ -96,6 +102,21 @@ std::string today_stamp() {
 } // namespace
 
 int main(int argc, char** argv) {
+#ifdef _WIN32
+    // SEH→C++ 异常：AV 在 p2_sample 首次进入内触发时透出为 std::exception
+    _set_se_translator([](unsigned int code, struct _EXCEPTION_POINTERS* ep){
+        char buf[128]; std::snprintf(buf,sizeof(buf),"SEH 0x%08X",code);
+        std::fprintf(stderr,"[stage2] SEH 0x%08X at %p\n",code, ep?ep->ExceptionRecord->ExceptionAddress:nullptr); std::fflush(stderr);
+        throw std::runtime_error(buf);
+    });
+    SetUnhandledExceptionFilter([](struct _EXCEPTION_POINTERS* ep)->LONG{
+        std::fprintf(stderr,"[stage2] Unhandled SEH 0x%08lX at %p\n",
+            ep?ep->ExceptionRecord->ExceptionCode:0,
+            ep?ep->ExceptionRecord->ExceptionAddress:nullptr); std::fflush(stderr);
+        if(g_log.is_open()){ g_log<<"Unhandled SEH\n"; g_log.flush(); }
+        return EXCEPTION_EXECUTE_HANDLER;
+    });
+#endif
     // 全局未捕获异常透出（将 0xC0000005/SEH 转为可读日志，而非 EC:-1）
     try {
     if (argc != 2) {
@@ -169,6 +190,9 @@ int main(int argc, char** argv) {
     log("coverage: inputs=" + std::to_string(cov.n_inputs) +
         " union_cells=" + std::to_string(cov.n_union_cells) +
         " target_order=" + std::to_string(target_order));
+    std::fprintf(stderr, "[stage2] coverage done n_union=%llu target_order=%d\n",
+        (unsigned long long)cov.n_union_cells, target_order); std::fflush(stderr);
+    log_flush();
     mark("coverage");
 
     // frame_id 缓存（payload 敏感，DISCOVER 阶段一次计算）+
@@ -194,6 +218,9 @@ int main(int argc, char** argv) {
     const std::string input_manifest_hash = astrocs::crypto::sha256_hex(
         manifest_payload.data(), manifest_payload.size());
     log("input_manifest_hash=" + input_manifest_hash);
+    std::fprintf(stderr, "[stage2] manifest %s, before sampler probe n=%zu cells=%llu\n",
+        input_manifest_hash.c_str(), cfg.hips.size(), (unsigned long long)cov.n_union_cells); std::fflush(stderr);
+    log_flush();
     // 帧级 SNR median（whole-frame fallback 源；frame_id → 值映射）
     const std::vector<double> frame_snr = frame_snr_medians(cfg.hips);
     std::map<std::uint64_t, double> frame_snr_by_id;
