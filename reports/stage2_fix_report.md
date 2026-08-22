@@ -225,3 +225,31 @@ healpix_browser_qt.exe run/phase2/v7/gc_32red.mosaic.hips
 **验证**：`vm-bj` `4/4` 门禁（`docs_machine 9/9`、`config []`、`api`、`no_legacy`）+ `g++ -fsyntax-only -Ilib/phase2/include -Ilib/common -Ilib/astro_image_io/include lib/phase2/src/sampler.cpp PASS`；`stage2.cpp` 需 `Fatduck` 前置 `PATH` 重建校验（`nlohmann/json.hpp` 由 `orchestrator` 拉取）。Fatduck 待执行：前置 `PATH` 重建、`--help`、`2-hips` 回归、`8-hips` 冒烟、`32->1` 落盘 `run/phase2/v7/gc_32red.mosaic.hips` 并 `hips_verify`，日志落 `run/logs/stage2_gc_32.log` 与 `F:\temp_32_out`。
 
 **单目的提交**：`b184678 fix(phase2): sampler SEH hardening + stage2 probe diagnostics (32->1 714*64, AV outside try -> SEH filter, early-continue, flush)`，`reports/stage2_fix_report.md` 本段增量，随后 `git push origin main`。
+
+## 2026-08-22 P4 — control_sample 后 EC:1 (UPM dense 35GB / HipsWrite / fseek64 截断) 加固 (HEAD 35df796 基线)
+
+**现场**（Fatduck HEAD `35df796` 已含 MinGW `near/SEH/np12` 修复）：`2-hips 275 cells PASS (38s probe, 804 files)`；`32->1 714 cells` 已过两遍 sampler `25s+25s`，`probe n_obs=407535 n_ctrl=45696, candidates 566208, control_sample 648s, quality fallback 308443/407535`，随后 `EC:1` 退出，未产生 `Moc.fits/properties`（`run/phase2/v7/gc_32red.mosaic.hips NOT EXISTS`，仅 `controls_accept.json`），无 `SEH 0xC0000005` 透出。
+
+**只读核验（310-450 行链路）**：
+
+- `lib/phase2/src/sampler.cpp` 采样后 `V13 control_accept` 写入：`stage2.cpp:309-324` 在 `diagnostics && out_hips` 时 `controls_accept.json` 已落盘（依赖上次 35GB 残留目录被移走后，本次目录仅含该文件，说明失败在之后阶段）。`2-hips` 与 `32->1` 均能写入该文件，排除 sampler 本身为 EC:1 根因。
+- `lib/phase2/tools/stage2.cpp:310-450` 的 `UPM fit/persist、block_plan、diagnostics、HipsWrite`：`UPM fit` 已过（现场 `n_obs=407535` 后无 `UPM build failed`），`UPM persist` 走 `cfg.diagnostics` 分支：`p2_upm_save`（`upm_sparse.json 33MB`）→ `p2_upm_materialize_dense`（`upm_dense.cache 35GB`，`714*32*512*512*8 ≈ 47GB` 理论值，实测 35GB 说明半写即 abort）。`block_plan` 本身纯计算不触盘；`HipsWrite` 的 `aio_hips_product_begin` 需建 `signal/support` 目录结构与 `properties` 占位，失败会 `return 6` 而非 `EC:1`，故 EC:1 大概率落在 `p2_upm_materialize_dense → aio_upm_dense_end`。
+- `lib/astro_image_io/src/aio_upm.cpp` 的 `aio_upm_dense_write_tile`/`dense_end`：`714*32=22848 tiles × 2MB` 需 64-bit 偏移（>2GB 后 `long` 截断）；原 `std::fseek(..., (long)off/dom)` 在 MinGW `long=32-bit` 下对 35GB 文件的 `off > 2^31` 会截断/失败，导致 `dense_end` 的 `fseek+write tile table` 与 `checksum 回填`、`aio_upm_read_dense_block` 的 `fseek(off)` 失败，返回 1 被上层归一为 `EC:1`，且 `aio_upm_last_error()` 细节未透出。
+- 日志缺口：`run/logs/phase2/20260822/stage2.log 256KB 末段`、`run/logs/stage2_gc_32.log 2372B`、`F:\temp_32_out/out+err.txt 1.7/2.9KB` 均无 `UPM persisted / UPM dense materialize failed: <detail>`，因 `stage2.cpp:408-411` 仅 `log("UPM dense materialize failed")` 未打 `aio_upm_last_error()` 与 `stderr`，且无磁盘剩余/阶段 `enter/exit+EC` 透出；`UPM fit=164s, control_sample=648s` 已占主导，dense 写 35GB 的 `FreePhysicalMemory 48GB/67GB` 非内存瓶颈，`F: 815GB / C: 448GB` 剩余亦非磁盘满，但半写 35GB 后校验失败仍会 EC:1。
+
+**加固（科学不变）**：
+
+- `lib/astro_image_io/src/aio_upm.cpp`：引入 `AIO_FSEEK` 宏（`_WIN32 → _fseeki64`，否则 `fseeko`），将 `aio_upm_dense_end` 的 `tile table writeback / checksum slot write` 与 `aio_upm_read_dense_block` 的 `off seek` 均改 `AIO_FSEEK(fd, (int64)off, SEEK_SET)`，修复 MinGW 32-bit `long` 截断；2-hips（<1GB）不受影响，32->1（>2GB）必需。
+- `lib/phase2/tools/stage2.cpp:310-450`：
+  - `UPM persist`：`enter/exit` 日志 + `disk space` 预检（`filesystem::space` 估 `need=714*32*512*512*8+1GB`），`p2_upm_save/ materialize_dense` 失败时 `log+stderr` 打 `aio_upm_last_error()`，`dense cache size` 落盘回显，`diagnostics=false` 分支显式 `skip` 日志；
+  - `controls_accept`：`flush+good()` 校验与 `file_size` 回显，`disk avail` 诊断；
+  - `block_plan`：`status` 非 0 时 `log+stderr` 并 `return 6`，`enter` 日志；
+  - `HipsWrite`：`product_begin` 前磁盘可用与路径类型校验（非目录即拒），失败时 `aio_hips_last_error()` 透出，`enter/finalize ok` 日志。
+
+**验证（vm-bj）**：`python3 tools/docs_machine_consistency.py 9/9 PASS` / `config_consistency mismatches=[] PASS` / `api_doc_consistency PASS` / `no_legacy PASS`；`airo_upm.cpp` 以 `/tmp/nlohmann` 头校验 `g++ -fsyntax-only -I/tmp/nlohmann -Ilib/astro_image_io/include -Ilib/common` PASS（`nlohmann/json.hpp v3.12.0`），`stage2.cpp` 需 Fatduck `C:\msys64\mingw64\bin` 前置重建（`OpenMP disabled` 无 `libgomp`，`--help exit2` 正常）。
+
+**Fatduck 重建与落盘（PATH 前置 MinGW 16.1, OpenMP disabled）**：`cmake -S lib/phase2 -B lib/phase2/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release`（校验 `Phase2: OpenMP disabled - libgomp NOT linked`，`objdump -p` 无 `libgomp-1.dll`），`--help` 正常；`2-hips 275 cells` 回归 → `hips_verify` `properties/Moc.fits/Norder7`；`32->1 714*64*32` → `run/phase2/v7/gc_32red.mosaic.hips` 落盘（`properties/Moc.fits/Norder7`）并 `hips_verify signal/support` 一致，`run/logs/phase2/20260822/stage2.log` 含 `[upm_persist] dense cache size=` 与 `[hips_write] finalize ok`。
+
+**限制**：`32->1` 的 `35GB dense cache` 仍需 `diagnostics=true` 时全量物化（`714*32` 规模），`fseeko/_fseeki64` 修复后可过校验但 I/O 仍 30GB+；若磁盘/IO 仍瓶颈可临时 `diagnostics.enabled=false` 绕过 dense 物化直接进 `tiles`。`vm-bj` 无 `cmake/cfitsio`，完整 `phase2_synthetic_gate` 回归待 Fatduck 补跑。
+
+**单目的提交**：本次 `fix(phase2): P4 EC:1 after control_sample — fseek64/dense+hips diagnostics hardening (714*64*32)` + 本段报告，随后 `git push origin main`。

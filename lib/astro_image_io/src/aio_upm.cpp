@@ -19,6 +19,18 @@
 #include <string>
 #include <vector>
 
+#if defined(_WIN32)
+#include <stdio.h>
+// MinGW/MSVC 64-bit seek
+#ifndef AIO_FSEEK
+#define AIO_FSEEK _fseeki64
+#endif
+#else
+#ifndef AIO_FSEEK
+#define AIO_FSEEK fseeko
+#endif
+#endif
+
 namespace {
 
 thread_local std::string g_upm_error;
@@ -299,7 +311,7 @@ int aio_upm_dense_end(AioUpmDense* d) {
         set_err("reopen for tile table failed");
         return 1;
     }
-    if (std::fseek(wf, kDenseHeaderBytes + 1, SEEK_SET) != 0 ||
+    if (AIO_FSEEK(wf, (std::int64_t)(kDenseHeaderBytes + 1), SEEK_SET) != 0 ||
         std::fwrite(d->tiles.data(), sizeof(std::uint64_t),
                     d->tile_count, wf) != d->tile_count) {
         std::fclose(wf);
@@ -345,7 +357,7 @@ int aio_upm_dense_end(AioUpmDense* d) {
         set_err("reopen for checksum write failed");
         return 1;
     }
-    if (std::fseek(wf, (long)slot, SEEK_SET) != 0 ||
+    if (AIO_FSEEK(wf, (std::int64_t)slot, SEEK_SET) != 0 ||
         std::fwrite(checksum.data(), 1, 64, wf) != 64) {
         std::fclose(wf);
         set_err("checksum write failed");
@@ -502,7 +514,7 @@ int aio_upm_read_dense_block(const char* path, const char* source_hash,
         return 1;
     }
     std::vector<std::uint64_t> tiles(n_tiles);
-    if (std::fseek(f, kDenseHeaderBytes + 1, SEEK_SET) != 0 ||
+    if (AIO_FSEEK(f, (std::int64_t)(kDenseHeaderBytes + 1), SEEK_SET) != 0 ||
         std::fread(tiles.data(), sizeof(std::uint64_t), n_tiles, f) !=
             n_tiles) {
         std::fclose(f);
@@ -530,7 +542,7 @@ int aio_upm_read_dense_block(const char* path, const char* source_hash,
                 (std::uint64_t)(kDenseHeaderBytes + 1) +
                 (std::uint64_t)n_tiles * sizeof(std::uint64_t) +
                 (frame_index * n_tiles + t_idx) * (std::uint64_t)tile_bytes;
-            if (std::fseek(f, (long)off, SEEK_SET) != 0) {
+            if (AIO_FSEEK(f, (std::int64_t)off, SEEK_SET) != 0) {
                 std::fclose(f);
                 set_err("seek to tile block failed");
                 return 1;
