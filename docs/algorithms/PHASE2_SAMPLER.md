@@ -46,7 +46,7 @@ O(cells + catalogue log n)（dec 排序索引 + 帧 median 预计算）。
 
 ## 并行模型
 
-cell 并行；catalogue 只读；cfitsio 读经 `critical(aio_read)` 串行化（`sampler.cpp:548`），其余 patch/clipping/SNR 查询并行；`rejected_*` 计数器原子累加。
+默认串行（hotfix：`P2_ENABLE_OPENMP=OFF`，`0xC0000005` 回退）；tile 级缓存保留（每 cell 覆盖帧的 `signal/support` 仅读一次，消除 `64×` 重读）与 `progress` 日志保留；`P2_ENABLE_OPENMP=ON` 可显式开启 `OpenMP` 并行（`cfitsio` 读 `critical(aio_read)` 串行化）。
 
 ## 数值风险
 
