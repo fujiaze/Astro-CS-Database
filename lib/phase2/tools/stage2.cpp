@@ -341,12 +341,13 @@ int main(int argc, char** argv) {
     }
     log("[control_sample] exit n_obs=" + std::to_string(n_obs) + " n_ctrl=" + std::to_string(n_ctrl) + " candidates=" + std::to_string(sstats.candidate_observations)); log_flush();
     mark("control_sample");
+    log("[post_control] enter quality/snr maps"); log_flush();
     // quality fallback 统计（quality_flags==0 = QUALITY_FALLBACK_UNKNOWN）
     std::uint64_t quality_unknown = 0;
     for (const auto& o : obs)
         if (o.quality_flags == 0) ++quality_unknown;
     log("quality fallback unknown: " + std::to_string(quality_unknown) +
-        " / " + std::to_string(n_obs));
+        " / " + std::to_string(n_obs)); log_flush();
     // 局部 SNR 映射（control cell 级 = 可证明的最近空间 catalogue
     // 区域）：(frame_id, tile, gx, gy) -> snr。像素权重优先局部，
     // 缺失才 fallback 整帧 SNR median 并计数。
@@ -391,10 +392,13 @@ int main(int argc, char** argv) {
                                        (int)(y / 64))] = o.ivar;
     }
     log("local snr unavailable controls (fallback to frame median): " +
-        std::to_string(local_snr_unavailable));
+        std::to_string(local_snr_unavailable)); log_flush();
+    log("[pre_upm] local_snr_map=" + std::to_string(local_snr_map.size()) + " local_ivar_map=" + std::to_string(local_ivar_map.size())); log_flush();
+    log("[pre_upm] frame_snr_by_id=" + std::to_string(frame_snr_by_id.size()) + " obs=" + std::to_string(obs.size()) + " ctrl_nodes=" + std::to_string(ctrl_nodes.size())); log_flush();
 
     // ---- W4 UPM FIT ----
     // 生产共享 UPM 配置构造（与 gate 测试同一 path）
+    log("[upm_fit] enter input_manifest_hash=" + input_manifest_hash + " obs=" + std::to_string(obs.size()) + " ctrl=" + std::to_string(ctrl_nodes.size())); log_flush();
     P2UpmBuildConfig mcfg =
         p2_stage2_make_upm_cfg(cfg, target_order,
                                input_manifest_hash.c_str());
@@ -402,6 +406,8 @@ int main(int argc, char** argv) {
     if (p2_upm_build_geo(obs.data(), obs.size(), ctrl_nodes.data(),
                          ctrl_nodes.size(), &mcfg, &model) != 0) {
         log("UPM build failed");
+        std::fprintf(stderr, "[stage2] UPM build failed (no detail)\n"); std::fflush(stderr);
+        log_flush();
         return 5;
     }
     P2ModelInfo minfo{};
@@ -1450,12 +1456,12 @@ int main(int argc, char** argv) {
     }
     return 0;
     } catch (const std::exception& e) {
-        std::fprintf(stderr, "[stage2] unhandled exception: %s\n", e.what());
-        log(std::string("unhandled exception: ") + e.what()); log_flush();
+        std::fprintf(stderr, "[stage2] unhandled exception: %s\n", e.what()); std::fflush(stderr);
+        try { log(std::string("unhandled exception: ") + e.what()); log_flush(); } catch (...) {}
         return 1;
     } catch (...) {
-        std::fprintf(stderr, "[stage2] unhandled unknown exception\n");
-        log("unhandled unknown exception"); log_flush();
+        std::fprintf(stderr, "[stage2] unhandled unknown exception\n"); std::fflush(stderr);
+        try { log("unhandled unknown exception"); log_flush(); } catch (...) {}
         return 1;
     }
 }
