@@ -13,6 +13,8 @@ if(NOT CMAKE_GENERATOR AND CMAKE_HOST_WIN32)
     set(CMAKE_GENERATOR "MinGW Makefiles" CACHE STRING "" FORCE)
 endif()
 
+# Hotfix: OpenMP 硬禁用（Fatduck: 即使存在 libgomp 也串行；避免 0xC0000005）
+# 如需实验并行，改此 OFF→ON 后重建（默认 OFF 才能过 32→1+4/4 门禁）
 option(P2_ENABLE_OPENMP "Enable OpenMP parallel sampler (default OFF, hotfix revert)" OFF)
 if(P2_ENABLE_OPENMP)
     find_package(OpenMP)
@@ -22,7 +24,9 @@ if(P2_ENABLE_OPENMP)
         message(STATUS "Phase2: P2_ENABLE_OPENMP=ON but OpenMP NOT found, fallback single thread")
     endif()
 else()
-    message(STATUS "Phase2: OpenMP disabled (hotfix default, serial sampler)")
+    # 关键：显式禁掉上游/缓存中残留的 OpenMP_CXX_FOUND，避免误链 libgomp
+    set(OpenMP_CXX_FOUND FALSE)
+    message(STATUS "Phase2: OpenMP disabled (hotfix default, serial sampler) - libgomp NOT linked")
 endif()
 
 add_library(phase2 STATIC
