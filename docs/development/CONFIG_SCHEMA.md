@@ -80,3 +80,6 @@ output.hips / diagnostics
 ## Stage1 config
 
 见 `lib/orchestrator/configs/stage1_*.json` 模板。
+
+- `drizzle.pixfrac` (0,1]：`stage1.schema.json` 默认 0.8（生产默认收缩滴落，`stage1.template.json` 同）；
+  银心三面板 `stage1_gc_panel{1,2,3}_Red.json` 为 `pixfrac=1.0` 无收缩分支（最大覆盖/GC 专用），与默认分支在 `lib/orchestrator/configs/` 并存，`docs/ARCHITECTURE.md §6` 同步说明。
