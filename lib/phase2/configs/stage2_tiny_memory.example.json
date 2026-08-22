@@ -23,10 +23,12 @@
     "memory_limit_mb": 8,
     "rejection": {
       "method": "winsorized_sigma",
-      "low": 4.0,
-      "high": 3.0,
-      "max_iterations": 8,
-      "min_samples": 2
+      "underdetermined_n": 2,
+      "winsorized_sigma": {
+        "lower_sigma": 4.0,
+        "upper_sigma": 3.0,
+        "max_iterations": 8
+      }
     },
     "weight_mode": "auto"
   },
