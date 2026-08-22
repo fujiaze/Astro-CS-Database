@@ -1132,10 +1132,34 @@ int main(int argc, char** argv) {
                 } else {
                     std::fill(weights.begin(), weights.end(), 1.0);
                 }
-                // SNR lookup 后统一校验候选权重（非 finite/非正 → fatal）
+                // SNR lookup 后统一校验候选权重（非 finite/负 → fatal；诊断透出首 tile/像素）
                 if (p2_validate_candidate_weights(weights.data(), n_valid) !=
                     0) {
-                    log("candidate weight validation failed");
+                    std::string wdiag = "candidate weight validation failed: tile=" + std::to_string(tile_ipix) + " p=" + std::to_string(p) + " n_valid=" + std::to_string(n_valid) + " weights=[";
+                    for (std::uint32_t wi = 0; wi < std::min<std::uint32_t>(n_valid, 8u); ++wi) wdiag += std::to_string(weights[wi]) + (wi+1<n_valid?",":"");
+                    wdiag += "]";
+                    log(wdiag); log_flush();
+                    std::fprintf(stderr, "[stage2] %s\n", wdiag.c_str()); std::fflush(stderr);
+                    // 额外透出 ivar/support 原值（ivarv 按 chunk_pixels 分块，p 为 tile 内全局索引需映射到 chunk 局部）
+                    std::string extra = " weight diag: mode=" + std::to_string(cfg.weight_mode) + " ivar_valid=[";
+                    for (std::uint32_t wi = 0; wi < std::min<std::uint32_t>(n_valid, 8u); ++wi) {
+                        const std::uint32_t orig = src_idx[wi];
+                        double supv_v = support_v[wi];
+                        std::string ivs = "n/a";
+                        if (orig < depth) {
+                            // chunk 局部索引 i = p - p0 (p0 为本 chunk 起点)
+                            const std::uint64_t iv_i = (p >= p0) ? (p - p0) : 0;
+                            if (iv_i < chunk_pixels) {
+                                double ivv = (double)ivarv[(std::size_t)orig * chunk_pixels + iv_i];
+                                char ibuf[32]; std::snprintf(ibuf, sizeof(ibuf), "%.6g", ivv);
+                                ivs = ibuf;
+                                if (ivar_valid[orig]==0) ivs += "/no_ivar";
+                            }
+                        }
+                        extra += "(" + ivs + "/" + std::to_string(supv_v) + ")" + (wi+1<n_valid?",":"");
+                    }
+                    extra += "]";
+                    log(extra); std::fprintf(stderr, "[stage2] %s\n", extra.c_str()); std::fflush(stderr);
                     p2_upm_close(model);
                     return 6;
                 }
