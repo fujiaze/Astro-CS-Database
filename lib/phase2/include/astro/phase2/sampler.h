@@ -110,6 +110,21 @@ P2_API int p2_sample_controls(
     std::uint64_t ctrl_capacity,
     char* err, std::size_t err_size);
 
+// 含 frame_id 缓存的重载（性能：stage2 已算 frame_id 时透传，避免二次 500MB payload 哈希）。
+P2_API int p2_sample_controls_cached(
+    const P2CoverageResult* coverage,
+    const char* const* hips_paths,
+    const std::uint64_t* frame_ids,  // n_inputs 长度，可空则内部计算
+    const P2SamplerConfig* cfg,
+    P2ControlObservation* out_obs,
+    std::uint64_t out_capacity,
+    std::uint64_t* out_n_obs,
+    std::uint64_t* out_n_controls,
+    P2SampleStats* out_stats,
+    P2ControlNode* out_controls,
+    std::uint64_t ctrl_capacity,
+    char* err, std::size_t err_size);
+
 #ifdef __cplusplus
 }
 #endif

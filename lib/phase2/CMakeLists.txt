@@ -13,6 +13,13 @@ if(NOT CMAKE_GENERATOR AND CMAKE_HOST_WIN32)
     set(CMAKE_GENERATOR "MinGW Makefiles" CACHE STRING "" FORCE)
 endif()
 
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    message(STATUS "Phase2: OpenMP found, sampler parallel enabled")
+else()
+    message(STATUS "Phase2: OpenMP NOT found, sampler falls back to single thread")
+endif()
+
 add_library(phase2 STATIC
     src/upm.cpp
     src/stage2_common.cpp
@@ -35,6 +42,9 @@ target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../acr/back
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../acr/scheduler)
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../astro_image_io/include)
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../common)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(phase2 PUBLIC OpenMP::OpenMP_CXX)
+endif()
 
 enable_testing()
 find_package(GTest QUIET)

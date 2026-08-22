@@ -18,6 +18,7 @@
 ## 确定性锚点（ARC-004）
 
 - Phase2 UPM 权重归一：`lib/phase2/src/upm.cpp:495` `compute_raw` — `raw_w = quality_factor * control_ivar` 冻结后按 control `sums[ck]` 归一（`raw_w[i]/sums[ck]*reliability`），遍历顺序为观测索引 `i` 固定顺序；确定性契约见 `docs/modules/phase2.md`（SCI-UPM-WEIGHT-001）。
+- Phase2 sampler：`lib/phase2/src/sampler.cpp:548` `parallel for` cells，tile 读 `critical(aio_read)` 串行化，其余 patch/统计/catalogue 查询并行；`rejected_*` atomic；`cells` 预分配按 `c*64+off` 确定性索引。
 - Drizzle 浮点归约：`lib/healpix_db/healpix_drizzle/drizzle_engine.cpp:1662` `reduction(+:nSourcePixels,prof_geom_s,prof_wcs_s)`；`1751` tile 合并 `sumFlux/sumArea/sumVarNum/nContrib` 经 thread-local `TileAccumulator` 后串行合并（`t=1..num_threads` 固定顺序）；`1834`/`1843` `parallel reduction(+:n_quick,n_fully,n_dropin,n_sh)` 与 `atomic` 计时累加 — 浮点累积顺序固定，reduction 顺序已文档化。
 
 ## 契约

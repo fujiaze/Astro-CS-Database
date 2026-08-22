@@ -46,7 +46,7 @@ O(cells + catalogue log n)（dec 排序索引 + 帧 median 预计算）。
 
 ## 并行模型
 
-cell 并行；catalogue 只读。
+cell 并行；catalogue 只读；cfitsio 读经 `critical(aio_read)` 串行化（`sampler.cpp:548`），其余 patch/clipping/SNR 查询并行；`rejected_*` 计数器原子累加。
 
 ## 数值风险
 

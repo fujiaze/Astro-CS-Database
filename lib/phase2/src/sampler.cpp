@@ -14,17 +14,24 @@
 #include "healpix/healpix_core.h"
 
 #include <algorithm>
+#include <atomic>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <iomanip>
 #include <limits>
 #include <map>
+#include <mutex>
 #include <numeric>
 #include <set>
 #include <sstream>
 #include <string>
 #include <vector>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 extern "C" {
 #include "aio_hips_reader.h"
@@ -249,16 +256,16 @@ P2SamplerConfig p2_sampler_default_config(void) {
 
 std::uint64_t p2_frame_id(const char* hips_path) {
     if (!hips_path || !*hips_path) return 0;
-    // 科学产品稳定身份——关键元数据 + signal tile DATASUM +
-    // support tile DATASUM + SNR catalogue 内容（canonical SHA-256）。
-    // 复制/重命名/换根目录不变；signal/support 像素 payload 或
-    // SNR/quality catalogue 变化 → 改变。
+    // 科学产品稳定身份——关键元数据 + signal/support 像素 +
+    // SNR catalogue 内容（canonical SHA-256）。
+    // 复制/重命名/换根目录不变；任何科学 payload 变化 → 改变。
+    // 性能：增量 Sha256 流式 update，禁止 500MB std::string 堆积
+    // （修复 O(payload²) 二次方拷贝）。
     AioHipsDataset* d = aio_hips_open(hips_path, AIO_HIPS_RD_SIGNAL);
     if (!d) return 0;
-    std::string payload;
+    astrocs::crypto::Sha256 sha;
     char buf[8192];
     if (aio_hips_get_properties(d, buf, (int)sizeof(buf)) == 0) {
-        // 关键字段白名单（影响 Phase2 科学结果的元数据）
         const std::map<std::string, std::string> props = [&]() {
             std::map<std::string, std::string> kv;
             std::istringstream ss(buf);
@@ -287,12 +294,11 @@ std::uint64_t p2_frame_id(const char* hips_path) {
             "hips_pixel_scale", "moc_sky_fraction"};
         for (const char* k : keys) {
             const auto it = props.find(k);
-            payload += std::string(k) + "=" +
-                       (it == props.end() ? std::string() : it->second) + ";";
+            const std::string seg = std::string(k) + "=" +
+                        (it == props.end() ? std::string() : it->second) + ";";
+            sha.update(seg.data(), seg.size());
         }
     }
-    // signal tile 数据 hash（科学 payload 指纹；MOC/properties 不变时
-    // 像素变化也改变 identity）
     std::vector<std::uint64_t> tiles;
     std::vector<float> tile_buf(512ull * 512ull);
     const int n = aio_hips_tile_count(d);
@@ -306,28 +312,27 @@ std::uint64_t p2_frame_id(const char* hips_path) {
     }
     for (std::uint64_t t : tiles) {
         if (aio_hips_read_tile_f32(d, t, tile_buf.data()) == 0) {
-            payload += std::to_string(t) + "=";
-            payload.append(reinterpret_cast<const char*>(tile_buf.data()),
-                           tile_buf.size() * sizeof(float));
-            payload += ";";
+            const std::string pre = std::to_string(t) + "=";
+            sha.update(pre.data(), pre.size());
+            sha.update(tile_buf.data(), tile_buf.size() * sizeof(float));
+            const char semi = ';';
+            sha.update(&semi, 1);
         }
     }
     aio_hips_close(d);
-    // support tile 数据 hash
     AioHipsDataset* sp = aio_hips_open(hips_path, AIO_HIPS_RD_SUPPORT);
     if (sp) {
         for (std::uint64_t t : tiles) {
             if (aio_hips_read_tile_f32(sp, t, tile_buf.data()) == 0) {
-                payload += "S" + std::to_string(t) + "=";
-                payload.append(
-                    reinterpret_cast<const char*>(tile_buf.data()),
-                    tile_buf.size() * sizeof(float));
-                payload += ";";
+                const std::string pre = "S" + std::to_string(t) + "=";
+                sha.update(pre.data(), pre.size());
+                sha.update(tile_buf.data(), tile_buf.size() * sizeof(float));
+                const char semi = ';';
+                sha.update(&semi, 1);
             }
         }
         aio_hips_close(sp);
     }
-    // SNR/quality catalogue 内容（读全部点并序列化）
     AioHipsDataset* sn = aio_hips_open(hips_path, AIO_HIPS_RD_SNR);
     if (sn) {
         const int maxn = 1 << 20;
@@ -338,7 +343,8 @@ std::uint64_t p2_frame_id(const char* hips_path) {
             nullptr, maxn);
         if (got > 0) {
             for (int i = 0; i < got; ++i) {
-                payload += std::to_string(i) + ":";
+                const std::string pre = std::to_string(i) + ":";
+                sha.update(pre.data(), pre.size());
                 const auto fmt = [](double v) {
                     std::ostringstream os;
                     os << std::setprecision(
@@ -346,15 +352,14 @@ std::uint64_t p2_frame_id(const char* hips_path) {
                        << v;
                     return os.str();
                 };
-                payload += fmt(ra[i]) + "," + fmt(dec[i]) + "," +
+                const std::string seg = fmt(ra[i]) + "," + fmt(dec[i]) + "," +
                            fmt(snr[i]) + "," + std::to_string(qf[i]) + ";";
+                sha.update(seg.data(), seg.size());
             }
         }
         aio_hips_close(sn);
     }
-    const std::string hex =
-        astrocs::crypto::sha256_hex(payload.data(), payload.size());
-    // 取前 16 hex → uint64（稳定、可复现）
+    const std::string hex = sha.final_hex();
     std::uint64_t id = 0;
     for (int i = 0; i < 16; ++i) {
         id <<= 4;
@@ -388,17 +393,19 @@ double p2_stats_mad(const double* vals, std::uint64_t n,
     return 1.4826 * median_of(std::move(v));
 }
 
-int p2_sample_controls(const P2CoverageResult* coverage,
-                       const char* const* hips_paths,
-                       const P2SamplerConfig* cfg_in,
-                       P2ControlObservation* out_obs,
-                       std::uint64_t out_capacity,
-                       std::uint64_t* out_n_obs,
-                       std::uint64_t* out_n_controls,
-                       P2SampleStats* out_stats,
-                       P2ControlNode* out_controls,
-                       std::uint64_t ctrl_capacity,
-                       char* err, std::size_t err_size) {
+static int p2_sample_controls_impl(
+                      const P2CoverageResult* coverage,
+                      const char* const* hips_paths,
+                      const std::uint64_t* frame_ids_in,
+                      const P2SamplerConfig* cfg_in,
+                      P2ControlObservation* out_obs,
+                      std::uint64_t out_capacity,
+                      std::uint64_t* out_n_obs,
+                      std::uint64_t* out_n_controls,
+                      P2SampleStats* out_stats,
+                      P2ControlNode* out_controls,
+                      std::uint64_t ctrl_capacity,
+                      char* err, std::size_t err_size) {
     if (!coverage || !hips_paths || !out_n_obs || !out_n_controls) {
         if (err && err_size) std::snprintf(err, err_size, "bad args");
         return 1;
@@ -406,11 +413,8 @@ int p2_sample_controls(const P2CoverageResult* coverage,
     *out_n_obs = 0;
     *out_n_controls = 0;
     P2SampleStats stats{};
-    // 修复：cfg 必须零初始化（此前 null 路径用栈垃圾值，默认值
-    // 随机失效 → n_obs 不确定）；默认值单源 p2_sampler_default_config。
     P2SamplerConfig cfg = p2_sampler_default_config();
     if (cfg_in) cfg = *cfg_in;
-    // 默认（synthetic + GC 调优后固化；BACKGROUND_SAMPLER_SPEC.md）
     if (cfg.background_patch_radius <= 0) cfg.background_patch_radius = 8;
     if (cfg.background_clip_sigma <= 0.0) cfg.background_clip_sigma = 3.0;
     if (cfg.background_clip_iters <= 0) cfg.background_clip_iters = 3;
@@ -424,17 +428,20 @@ int p2_sample_controls(const P2CoverageResult* coverage,
     if (cfg.background_neighbor_radius <= 0)
         cfg.background_neighbor_radius = 2;
     if (cfg.control_k_corr <= 0.0)
-        cfg.control_k_corr = kControlCorrDefault;   // 冻结 MC 校准值
+        cfg.control_k_corr = kControlCorrDefault;
     if (cfg.control_grid_per_tile < 1) cfg.control_grid_per_tile = 8;
     if (cfg.patch_radius_leaf < 0) cfg.patch_radius_leaf = 2;
     if (cfg.min_samples < 1) cfg.min_samples = 5;
     if (cfg.snr_search_radius_deg <= 0.0) cfg.snr_search_radius_deg = 0.05;
 
     const std::uint64_t n_frames = coverage->n_inputs;
-    // frame_id 缓存（payload 敏感，DISCOVER 阶段一次计算）
     std::vector<std::uint64_t> fid_cache(n_frames);
-    for (std::uint64_t i = 0; i < n_frames; ++i)
-        fid_cache[i] = p2_frame_id(hips_paths[i]);
+    if (frame_ids_in) {
+        for (std::uint64_t i = 0; i < n_frames; ++i) fid_cache[i] = frame_ids_in[i];
+    } else {
+        for (std::uint64_t i = 0; i < n_frames; ++i)
+            fid_cache[i] = p2_frame_id(hips_paths[i]);
+    }
     const int leaf_shift = 9;  // tile 内 512×512 leaf
 
     // 打开每帧 signal/support/snr 并收集 tile 集合
@@ -538,17 +545,45 @@ int p2_sample_controls(const P2CoverageResult* coverage,
         }
     }
 
-    for (std::uint64_t c = 0; c < coverage->n_union_cells; ++c) {
+    // 第一遍：每个 union cell 的 64 controls，cell 并行（OpenMP）
+    // 每 cell 内部：读该 cell 覆盖帧的 signal/support tile 一次（禁 64 次重读），
+    // 然后 64 cells 串行 patch 采样（保留原数值逻辑不变）。
+    // cfitsio 非线程安全 → tile 读串行化（omp critical）。
+    const std::uint64_t n_union = coverage->n_union_cells;
+    cells.resize(n_union * (std::size_t)grid * grid);
+    std::atomic<std::uint64_t> atomic_catalog_veto{0};
+    std::atomic<std::uint64_t> atomic_insufficient_support{0};
+
+    const auto t0 = std::chrono::steady_clock::now();
+    std::atomic<std::uint64_t> progress{0};
+    // 空 coverage 早返回（避免 n_union=0 时 OpenMP 起线程开销）
+    if (n_union == 0) {
+        // 下面三遍循环均为 0，直接落到 stats/输出段
+    } else
+#ifdef _OPENMP
+#pragma omp parallel for schedule(dynamic, 1) if(n_union > 4)
+#endif
+    for (long long ci_ll = 0; ci_ll < (long long)n_union; ++ci_ll) {
+        const std::uint64_t c = (std::uint64_t)ci_ll;
         const std::uint64_t tile_ipix = coverage->union_cells[c].ipix;
         std::vector<std::uint64_t> cov_frames;
         for (std::uint64_t i = 0; i < n_frames; ++i)
             if (frames[i].tiles.count(tile_ipix)) cov_frames.push_back(i);
-        if (cov_frames.empty()) continue;
+        // 即使空覆盖也需占位（保持 cells 索引 = c*64+off 的确定性）
+        // 但空则后续 64 cells 均为无观测占位
 
-        std::vector<TilePair> pairs(cov_frames.size());
-        for (std::size_t fi = 0; fi < cov_frames.size(); ++fi)
-            read_tile_pair(sig[cov_frames[fi]], sup[cov_frames[fi]],
-                           tile_ipix, &pairs[fi]);
+        std::vector<TilePair> pairs;
+        if (!cov_frames.empty()) {
+            pairs.resize(cov_frames.size());
+#ifdef _OPENMP
+#pragma omp critical(aio_read)
+#endif
+            {
+                for (std::size_t fi = 0; fi < cov_frames.size(); ++fi)
+                    read_tile_pair(sig[cov_frames[fi]], sup[cov_frames[fi]],
+                                   tile_ipix, &pairs[fi]);
+            }
+        }
 
         for (int gy = 0; gy < grid; ++gy) {
             for (int gx = 0; gx < grid; ++gx) {
@@ -567,11 +602,12 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                 CellStat cs;
                 cs.ra = ra_deg; cs.dec = dec_deg; cs.leaf = center_leaf;
                 cs.tile = (int)tile_ipix; cs.gx = gx; cs.gy = gy;
+                uint64_t local_veto = 0, local_insupp = 0;
                 for (std::size_t fi = 0; fi < cov_frames.size(); ++fi) {
                     const std::uint64_t frame_id = cov_frames[fi];
                     const TilePair& tp = pairs[fi];
-                    // Stage A/B：patch 收集 + 亮端迭代 clipping
                     std::vector<double> vals;
+                    vals.reserve(400);
                     double sup_sum = 0.0;
                     std::uint32_t n_valid = 0;
                     for (int dy = -r; dy <= r; ++dy) {
@@ -599,7 +635,7 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                     }
                     const int n_total = (int)vals.size();
                     if (n_total < cfg.min_samples) {
-                        ++stats.rejected_insufficient_support;
+                        ++local_insupp;
                         cs.frames.push_back((int)frame_id);
                         cs.m.push_back(0); cs.mad.push_back(0);
                         cs.bfrac.push_back(0); cs.unc.push_back(0);
@@ -610,15 +646,12 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                         cs.accepted.push_back(false); cs.reason.push_back(1);
                         continue;
                     }
-                    // Stage B：median/MAD + 亮端迭代 clipping
-                    // 注意：收敛判定基于 retain 集 median 变化，而不是
-                    // MAD 不变（梯度 patch 的 MAD 在剪星前后相同，若用
-                    // MAD 判定会把星像素错误地“恢复”）。
                     double m0 = median_of(vals);
                     {
                         double s0 = 0.0;
                         {
                             std::vector<double> dev;
+                            dev.reserve(vals.size());
                             for (double v : vals)
                                 dev.push_back(std::fabs(v - m0));
                             s0 = 1.4826 * median_of(std::move(dev));
@@ -626,6 +659,7 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                         std::vector<double> ret = vals;
                         for (int it = 0; it < cfg.background_clip_iters; ++it) {
                             std::vector<double> nr;
+                            nr.reserve(ret.size());
                             for (double v : ret)
                                 if (v <= m0 + cfg.background_clip_sigma * s0)
                                     nr.push_back(v);
@@ -633,12 +667,13 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                             const double nm = median_of(nr);
                             if (std::fabs(nm - m0) <
                                 1e-12 * std::max(std::fabs(m0), 1e-12)) {
-                                ret = nr;  // 中位数收敛
+                                ret = nr;
                                 break;
                             }
                             m0 = nm;
                             ret = std::move(nr);
                             std::vector<double> dev2;
+                            dev2.reserve(ret.size());
                             for (double v : ret)
                                 dev2.push_back(std::fabs(v - m0));
                             const double s1 =
@@ -648,8 +683,6 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                         }
                         const double y = m0;
                         const double sigma = (s0 > 0.0) ? s0 : 1e-12;
-                        // Stage D：contamination（原始 patch 亮像素占比，
-                        // 相对 clip 后背景位置）
                         int nbright = 0;
                         for (double v : vals)
                             if (v > y + cfg.background_contamination_sigma *
@@ -661,13 +694,7 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                         cs.m.push_back(y);
                         cs.mad.push_back(sigma);
                         cs.bfrac.push_back(bfrac);
-                        //
-                        // control estimator = patch median → 标准误
-                        // SE(median) = sqrt(control_variance)；
-                        // 用 N_retained（clipping 后保留样本），不是 n_total。
                         const double n_ret = std::max((double)n_retained, 1.0);
-                        //per-frame k_corr（provenance 标定；无
-                        // metadata 时回退 cfg.control_k_corr 默认 1.4）
                         const double kcorr_f =
                             (frames[frame_id].kcorr > 0.0)
                                 ? frames[frame_id].kcorr
@@ -680,18 +707,16 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                         cs.sup.push_back(n_valid ? sup_sum / (double)n_valid : 0.0);
                         cs.n_total.push_back(n_total);
                         cs.n_retained.push_back(n_retained);
-                        // Stage E：catalogue veto（可选；高 SNR 星点过近）
                         int veto = 0;
                         if (cfg.background_catalog_veto &&
                             !frames[frame_id].snr.empty() &&
                             frame_snr_med[frame_id] > 0.0) {
                             const double thr = 10.0 * frame_snr_med[frame_id];
-                            const double rad = 0.012;  // ~ patch 尺度（度）
+                            const double rad = 0.012;
                             if (snr_idx[frame_id].any_above(
                                     thr, ra_deg, dec_deg, rad))
                                 veto = 1;
                         }
-                        // SNR 邻域（obs 字段；缺失→帧级 fallback）
                         double snr_val = 1.0;
                         int snr_avail = 0;
                         std::uint32_t qual = 0;
@@ -704,7 +729,6 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                                 snr_val = median_of(std::move(near));
                                 snr_avail = 1;
                             } else {
-                                // 整帧 median 回退（与全扫描 median_of 一致）
                                 snr_val = frame_snr_med_exact[frame_id];
                             }
                         } else {
@@ -713,17 +737,30 @@ int p2_sample_controls(const P2CoverageResult* coverage,
                         cs.snr.push_back(snr_val);
                         cs.snr_avail.push_back(snr_avail);
                         cs.qual.push_back(qual);
-                        // 暂定 accepted；Stage C tolerance 第二遍决定
                         cs.accepted.push_back(veto == 0);
                         cs.reason.push_back(veto ? 5 : 0);
-                        if (veto) ++stats.rejected_catalog_veto;
+                        if (veto) ++local_veto;
                     }
                 }
-                cells.push_back(std::move(cs));
-                ++control_id;
+                const std::size_t idx = (std::size_t)c * grid * grid + (std::size_t)(gy * grid + gx);
+                cells[idx] = std::move(cs);
+                if (local_veto) atomic_catalog_veto.fetch_add(local_veto, std::memory_order_relaxed);
+                if (local_insupp) atomic_insufficient_support.fetch_add(local_insupp, std::memory_order_relaxed);
             }
         }
+        const std::uint64_t done = progress.fetch_add(1, std::memory_order_relaxed) + 1;
+        if (done % 100 == 0 || done == n_union) {
+            const auto now = std::chrono::steady_clock::now();
+            double elapsed = std::chrono::duration<double>(now - t0).count();
+            std::fprintf(stderr, "[sampler] progress %llu/%llu tiles (%.1fs)\n",
+                (unsigned long long)done, (unsigned long long)n_union, elapsed);
+        }
     }
+    // 空覆盖占位：control_id 仍需覆盖所有 grid
+    control_id = cells.size();
+    stats.rejected_catalog_veto += atomic_catalog_veto.load();
+    stats.rejected_insufficient_support += atomic_insufficient_support.load();
+    // 补偿：空覆盖 tiles 对应 cells 无 frames，跳过即等于未处理，已占位
 
     // 第二遍：Stage C DBE-like 局部 tolerance gate
     const int nr = cfg.background_neighbor_radius;
@@ -875,6 +912,41 @@ int p2_sample_controls(const P2CoverageResult* coverage,
         for (std::uint64_t i = 0; i < n; ++i) out_obs[i] = obs[(size_t)i];
     }
     return 0;
+}
+
+int p2_sample_controls(const P2CoverageResult* coverage,
+                       const char* const* hips_paths,
+                       const P2SamplerConfig* cfg_in,
+                       P2ControlObservation* out_obs,
+                       std::uint64_t out_capacity,
+                       std::uint64_t* out_n_obs,
+                       std::uint64_t* out_n_controls,
+                       P2SampleStats* out_stats,
+                       P2ControlNode* out_controls,
+                       std::uint64_t ctrl_capacity,
+                       char* err, std::size_t err_size) {
+    return p2_sample_controls_impl(coverage, hips_paths, nullptr, cfg_in,
+                                   out_obs, out_capacity, out_n_obs,
+                                   out_n_controls, out_stats, out_controls,
+                                   ctrl_capacity, err, err_size);
+}
+
+int p2_sample_controls_cached(const P2CoverageResult* coverage,
+                              const char* const* hips_paths,
+                              const std::uint64_t* frame_ids,
+                              const P2SamplerConfig* cfg_in,
+                              P2ControlObservation* out_obs,
+                              std::uint64_t out_capacity,
+                              std::uint64_t* out_n_obs,
+                              std::uint64_t* out_n_controls,
+                              P2SampleStats* out_stats,
+                              P2ControlNode* out_controls,
+                              std::uint64_t ctrl_capacity,
+                              char* err, std::size_t err_size) {
+    return p2_sample_controls_impl(coverage, hips_paths, frame_ids, cfg_in,
+                                   out_obs, out_capacity, out_n_obs,
+                                   out_n_controls, out_stats, out_controls,
+                                   ctrl_capacity, err, err_size);
 }
 
 } // extern "C"
