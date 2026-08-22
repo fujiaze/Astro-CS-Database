@@ -319,9 +319,26 @@ int main(int argc, char** argv) {
         }
         std::ofstream ca_f(cfg.out_hips + "/controls_accept.json");
         if (ca_f) ca_f << ca.dump();
-        log("V13 controls_accept written: " + cfg.out_hips +
-            "/controls_accept.json");
+        if (!ca_f) {
+            log("V13 controls_accept write failed: " + cfg.out_hips + "/controls_accept.json");
+            std::fprintf(stderr, "[stage2] controls_accept write failed\n"); std::fflush(stderr); log_flush();
+        } else {
+            ca_f.flush();
+            if (!ca_f.good()) log("V13 controls_accept flush failed"); 
+            std::error_code ec_ca;
+            auto ca_sz = std::filesystem::file_size(cfg.out_hips + "/controls_accept.json", ec_ca);
+            if (!ec_ca) log("[control_sample] V13 controls_accept size=" + std::to_string(ca_sz) + " bytes"); 
+            log("V13 controls_accept written: " + cfg.out_hips +
+                "/controls_accept.json"); log_flush();
+        }
+        // 磁盘可用诊断（后续 UPM dense 需 35-48GB）
+        {
+            std::error_code ec_sp0;
+            auto sp0 = std::filesystem::space(cfg.out_hips, ec_sp0);
+            if (!ec_sp0) log("[control_sample] disk avail after controls_accept=" + std::to_string(sp0.available) + " free=" + std::to_string(sp0.free));
+        }
     }
+    log("[control_sample] exit n_obs=" + std::to_string(n_obs) + " n_ctrl=" + std::to_string(n_ctrl) + " candidates=" + std::to_string(sstats.candidate_observations)); log_flush();
     mark("control_sample");
     // quality fallback 统计（quality_flags==0 = QUALITY_FALLBACK_UNKNOWN）
     std::uint64_t quality_unknown = 0;
@@ -397,22 +414,56 @@ int main(int argc, char** argv) {
     // ---- W4 UPM PERSIST (diagnostics) ----
     std::string model_path;
     if (cfg.diagnostics) {
-        std::filesystem::create_directories(cfg.out_hips);
+        log("[upm_persist] enter diagnostics=true, out=" + cfg.out_hips); log_flush();
+        std::error_code ec_mk;
+        std::filesystem::create_directories(cfg.out_hips, ec_mk);
+        if (ec_mk) {
+            log("UPM persist mkdir failed: " + ec_mk.message()); std::fprintf(stderr, "[stage2] mkdir failed: %s\n", ec_mk.message().c_str()); log_flush();
+            p2_upm_close(model);
+            return 5;
+        }
+        // 磁盘剩余检查：dense 预期 35-48GB (714*32*2MB fp64)，提前拒绝而非半写 EC:1
+        {
+            std::error_code ec_sp;
+            auto sp = std::filesystem::space(cfg.out_hips, ec_sp);
+            if (!ec_sp) {
+                const std::uint64_t need = (std::uint64_t)714 * 32 * 512 * 512 * 8 + (1ull<<30); // +1GB 预留
+                log("[upm_persist] disk avail=" + std::to_string(sp.available) + " need~" + std::to_string(need) + " bytes"); log_flush();
+                if (sp.available < need) {
+                    log("UPM persist disk space insufficient: avail=" + std::to_string(sp.available) + " need=" + std::to_string(need)); log_flush();
+                    std::fprintf(stderr, "[stage2] disk insufficient avail=%llu need=%llu\n", (unsigned long long)sp.available, (unsigned long long)need); std::fflush(stderr);
+                }
+            }
+        }
+        log("[upm_persist] saving sparse json..."); log_flush();
         model_path = cfg.out_hips + "/upm_sparse.json";
         if (p2_upm_save(model, model_path.c_str()) != 0) {
-            log("UPM save failed");
+            const char* e = aio_upm_last_error();
+            log(std::string("UPM save failed: ") + (e ? e : "(no detail)")); std::fprintf(stderr, "[stage2] UPM save failed: %s\n", e ? e : "(no detail)"); log_flush();
             p2_upm_close(model);
             return 5;
         }
+        log("[upm_persist] sparse saved, materializing dense cache..."); log_flush();
         const std::string cache = cfg.out_hips + "/upm_dense.cache";
+        // 64-bit文件偏移诊断：714*32 规模下 offset 需 >2GB，fseek 必须为 fseeko/_fseeki64
         if (p2_upm_materialize_dense(model, target_order, cache.c_str()) != 0) {
-            log("UPM dense materialize failed");
+            const char* e = aio_upm_last_error();
+            log(std::string("UPM dense materialize failed: ") + (e ? e : "(no detail)")); std::fprintf(stderr, "[stage2] UPM dense materialize failed: %s\n", e ? e : "(no detail)"); std::fflush(stderr); log_flush();
+            // 保留已写部分供复盘，不删除；但返回 EC 便于调用方感知
             p2_upm_close(model);
             return 5;
         }
-        log("UPM persisted: " + model_path + " + dense cache");
+        {
+            std::error_code ec_sz;
+            auto sz = std::filesystem::file_size(cache, ec_sz);
+            if (!ec_sz) log("[upm_persist] dense cache size=" + std::to_string(sz) + " bytes");
+        }
+        log("UPM persisted: " + model_path + " + dense cache"); log_flush();
+    } else {
+        log("[upm_persist] skip (diagnostics disabled)"); log_flush();
     }
     mark("upm_persist");
+    log("[block_plan] enter"); log_flush();
 
     // ---- W6 BLOCK PLAN（tile 级；报告峰值估算） ----
     P2BlockPlannerInput bp{};
@@ -426,10 +477,16 @@ int main(int argc, char** argv) {
     bp.fixed_overhead = 1ull << 26;
     P2BlockPlan plan{};
     p2_block_plan(&bp, &plan);
+    if (plan.status != 0) {
+        log(std::string("block plan failed: ") + (plan.error[0]?plan.error:"(unknown)")); std::fprintf(stderr, "[stage2] block plan failed status=%d\n", plan.status); log_flush();
+        p2_upm_close(model);
+        return 6;
+    }
     log("block plan: tile_pixels=262144 est_peak=" +
         std::to_string(plan.estimated_peak_bytes) +
-        " bytes micro_chunk=" + std::to_string(plan.micro_chunk_required));
+        " bytes micro_chunk=" + std::to_string(plan.micro_chunk_required)); log_flush();
     mark("block_plan");
+    log("[hips_write] enter: nside=" + std::to_string(nside) + " dtype=" + std::to_string(dtype) + " frames=" + std::to_string(cfg.hips.size())); log_flush();
 
     // ---- W8 REJECT + INTEGRATE + HIPS WRITE ----
     const int nside = 1 << (target_order + 9);
@@ -485,15 +542,31 @@ int main(int argc, char** argv) {
         log("legacy_allow_weight_fallback=true：ivar 缺失帧积分权重降级 "
             "support（diagnostics 标红）");
     }
+    {
+        std::error_code ec_sp2;
+        auto sp2 = std::filesystem::space(cfg.out_hips, ec_sp2);
+        if (!ec_sp2) {
+            log("[hips_write] disk avail before product_begin=" + std::to_string(sp2.available)); log_flush();
+        }
+        std::error_code ec_exists;
+        if (std::filesystem::exists(cfg.out_hips, ec_exists) && !std::filesystem::is_directory(cfg.out_hips, ec_exists)) {
+            log("hips out path exists but not directory: " + cfg.out_hips); log_flush();
+            p2_upm_close(model);
+            return 6;
+        }
+    }
     AioHipsProductSet* ps = aio_hips_product_begin(
         cfg.out_hips.c_str(), (std::uint32_t)nside, 512, dtype,
         AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
         "ivo://astrocs/phase2", "AstroCS Phase2 Mosaic",
         filter.empty() ? nullptr : filter.c_str(), 0.0, nullptr, 0);
     if (!ps) {
-        log("hips begin failed: " + std::string(aio_hips_last_error()));
+        const char* e = aio_hips_last_error();
+        log(std::string("hips begin failed: ") + (e ? e : "(no detail)")); std::fprintf(stderr, "[stage2] hips begin failed: %s\n", e ? e : "(no detail)"); log_flush();
+        p2_upm_close(model);
         return 6;
     }
+    log("[hips_write] product_begin ok, entering tile loop n_union=" + std::to_string(cov.n_union_cells)); log_flush();
 
     std::uint64_t total_pixels = 0, total_rejected = 0, total_fallback = 0;
     std::uint64_t large_scale_grown = 0;   // grow 新增拒绝样本数
@@ -1263,11 +1336,14 @@ int main(int argc, char** argv) {
         }
         ++tiles_written;
     }
+    log("[hips_write] finalizing... tiles_written=" + std::to_string(tiles_written)); log_flush();
     if (aio_hips_finalize(ps) != 0) {
-        log("hips finalize failed: " + std::string(aio_hips_last_error()));
+        const char* e = aio_hips_last_error();
+        log(std::string("hips finalize failed: ") + (e ? e : "(no detail)")); std::fprintf(stderr, "[stage2] hips finalize failed: %s\n", e ? e : "(no detail)"); log_flush();
         p2_upm_close(model);
         return 6;
     }
+    log("[hips_write] finalize ok"); log_flush();
     for (std::size_t i = 0; i < cfg.hips.size(); ++i) {
         if (sig[i]) aio_hips_close(sig[i]);
         if (sup[i]) aio_hips_close(sup[i]);
