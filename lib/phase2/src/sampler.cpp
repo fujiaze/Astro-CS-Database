@@ -254,16 +254,21 @@ P2SamplerConfig p2_sampler_default_config(void) {
 
 std::uint64_t p2_frame_id(const char* hips_path) {
     if (!hips_path || !*hips_path) return 0;
-    // 科学产品稳定身份——关键元数据 + signal/support 像素 +
-    // SNR catalogue 内容（canonical SHA-256）。
-    // 复制/重命名/换根目录不变；任何科学 payload 变化 → 改变。
-    // 性能：增量 Sha256 流式 update，禁止 500MB std::string 堆积
-    // （修复 O(payload²) 二次方拷贝）。
+    // 科学产品稳定身份——关键元数据 + signal tile DATASUM +
+    // support tile DATASUM + SNR catalogue 内容（canonical SHA-256）。
+    // 复制/重命名/换根目录不变；signal/support 像素 payload 或
+    // SNR/quality catalogue 变化 → 改变。
+    // hotfix2: 回退至 0968fe0 稳定 string payload 版本（已验证 4/4
+    // PASS），保留 frame_id_cache 去重与串行 tile 缓存；消除
+    // 756805f 引入的流式 Sha256（277*32 次 update + final_hex
+    // 语义）在 MinGW/Fatduck 上的即时崩溃风险（0xC0000005 无
+    // stdout，log 3 字节，2 hips 亦崩）。科学语义不变。
     AioHipsDataset* d = aio_hips_open(hips_path, AIO_HIPS_RD_SIGNAL);
     if (!d) return 0;
-    astrocs::crypto::Sha256 sha;
+    std::string payload;
     char buf[8192];
     if (aio_hips_get_properties(d, buf, (int)sizeof(buf)) == 0) {
+        // 关键字段白名单（影响 Phase2 科学结果的元数据）
         const std::map<std::string, std::string> props = [&]() {
             std::map<std::string, std::string> kv;
             std::istringstream ss(buf);
@@ -292,11 +297,12 @@ std::uint64_t p2_frame_id(const char* hips_path) {
             "hips_pixel_scale", "moc_sky_fraction"};
         for (const char* k : keys) {
             const auto it = props.find(k);
-            const std::string seg = std::string(k) + "=" +
-                        (it == props.end() ? std::string() : it->second) + ";";
-            sha.update(seg.data(), seg.size());
+            payload += std::string(k) + "=" +
+                       (it == props.end() ? std::string() : it->second) + ";";
         }
     }
+    // signal tile 数据 hash（科学 payload 指纹；MOC/properties 不变时
+    // 像素变化也改变 identity）
     std::vector<std::uint64_t> tiles;
     std::vector<float> tile_buf(512ull * 512ull);
     const int n = aio_hips_tile_count(d);
@@ -310,27 +316,28 @@ std::uint64_t p2_frame_id(const char* hips_path) {
     }
     for (std::uint64_t t : tiles) {
         if (aio_hips_read_tile_f32(d, t, tile_buf.data()) == 0) {
-            const std::string pre = std::to_string(t) + "=";
-            sha.update(pre.data(), pre.size());
-            sha.update(tile_buf.data(), tile_buf.size() * sizeof(float));
-            const char semi = ';';
-            sha.update(&semi, 1);
+            payload += std::to_string(t) + "=";
+            payload.append(reinterpret_cast<const char*>(tile_buf.data()),
+                           tile_buf.size() * sizeof(float));
+            payload += ";";
         }
     }
     aio_hips_close(d);
+    // support tile 数据 hash
     AioHipsDataset* sp = aio_hips_open(hips_path, AIO_HIPS_RD_SUPPORT);
     if (sp) {
         for (std::uint64_t t : tiles) {
             if (aio_hips_read_tile_f32(sp, t, tile_buf.data()) == 0) {
-                const std::string pre = "S" + std::to_string(t) + "=";
-                sha.update(pre.data(), pre.size());
-                sha.update(tile_buf.data(), tile_buf.size() * sizeof(float));
-                const char semi = ';';
-                sha.update(&semi, 1);
+                payload += "S" + std::to_string(t) + "=";
+                payload.append(
+                    reinterpret_cast<const char*>(tile_buf.data()),
+                    tile_buf.size() * sizeof(float));
+                payload += ";";
             }
         }
         aio_hips_close(sp);
     }
+    // SNR/quality catalogue 内容（读全部点并序列化）
     AioHipsDataset* sn = aio_hips_open(hips_path, AIO_HIPS_RD_SNR);
     if (sn) {
         const int maxn = 1 << 20;
@@ -341,8 +348,7 @@ std::uint64_t p2_frame_id(const char* hips_path) {
             nullptr, maxn);
         if (got > 0) {
             for (int i = 0; i < got; ++i) {
-                const std::string pre = std::to_string(i) + ":";
-                sha.update(pre.data(), pre.size());
+                payload += std::to_string(i) + ":";
                 const auto fmt = [](double v) {
                     std::ostringstream os;
                     os << std::setprecision(
@@ -350,14 +356,15 @@ std::uint64_t p2_frame_id(const char* hips_path) {
                        << v;
                     return os.str();
                 };
-                const std::string seg = fmt(ra[i]) + "," + fmt(dec[i]) + "," +
+                payload += fmt(ra[i]) + "," + fmt(dec[i]) + "," +
                            fmt(snr[i]) + "," + std::to_string(qf[i]) + ";";
-                sha.update(seg.data(), seg.size());
             }
         }
         aio_hips_close(sn);
     }
-    const std::string hex = sha.final_hex();
+    const std::string hex =
+        astrocs::crypto::sha256_hex(payload.data(), payload.size());
+    // 取前 16 hex → uint64（稳定、可复现）
     std::uint64_t id = 0;
     for (int i = 0; i < 16; ++i) {
         id <<= 4;

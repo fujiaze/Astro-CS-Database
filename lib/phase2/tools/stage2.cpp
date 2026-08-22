@@ -82,7 +82,11 @@ std::vector<double> frame_snr_medians(const std::vector<std::string>& hips) {
 std::string today_stamp() {
     std::time_t t = std::time(nullptr);
     std::tm tm{};
+#ifdef _WIN32
     localtime_s(&tm, &t);
+#else
+    localtime_r(&t, &tm);
+#endif
     char buf[16];
     std::strftime(buf, sizeof(buf), "%Y%m%d", &tm);
     return std::string(buf);
