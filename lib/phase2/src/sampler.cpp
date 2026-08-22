@@ -304,6 +304,7 @@ P2SamplerConfig p2_sampler_default_config(void) {
 
 std::uint64_t p2_frame_id(const char* hips_path) {
     if (!hips_path || !*hips_path) return 0;
+    try {
     // 科学产品稳定身份——关键元数据 + signal/support 像素 +
     // SNR catalogue 内容（canonical SHA-256）。
     // 复制/重命名/换根目录不变；任何科学 payload 变化 → 改变。
@@ -416,6 +417,13 @@ std::uint64_t p2_frame_id(const char* hips_path) {
                          : (std::uint64_t)(c - 'a' + 10);
     }
     return id;
+    } catch (const std::exception& e) {
+        std::fprintf(stderr, "[p2_frame_id] exception %s path=%s\n", e.what(), hips_path ? hips_path : "(null)"); std::fflush(stderr);
+        return 0;
+    } catch (...) {
+        std::fprintf(stderr, "[p2_frame_id] unknown exception path=%s\n", hips_path ? hips_path : "(null)"); std::fflush(stderr);
+        return 0;
+    }
 }
 
 double p2_stats_median(const double* vals, std::uint64_t n) {
