@@ -1,0 +1,11 @@
+entry_symbol,config_gate,target,source_symbol,execution_mode,diagnostic_field,test_id,notes
+main (astrocs-stage2 <stage2.json>),stage2.schema.json,phase2/tools/stage2,main,serial,exit_code,TEST-P2-001,唯一Phase2入口
+coverage_union,stage2.inputs.hips,phase2/coverage,p2_coverage_union,serial,coverage.n_frames,TEST-COV-001,MOC union
+control_sample,stage2.model.*,phase2/sampler,p2_sample_controls,serial (P2_ENABLE_OPENMP OFF) / parallel_cpu if ON,sampler.n_controls,TEST-UPMW-004,patch estimator
+upm_build,stage2.model.*,phase2/upm,p2_upm_build,serial,upm.n_components,TEST-UPMW-001,Huber IRLS
+upm_persist,stage2.output.upm,astro_image_io,aio_upm_write_sparse,serial,upm.sha256,UpmPersistAllPermutations,持久化
+block_calibrate,stage2.integration.*,phase2/block,p2_upm_calibrate_block,parallel_cpu,block.t_ms,TEST-P2-CALIB-001,"每帧C(frame,leaf)"
+rejection,stage2.integration.rejection.*,phase2/rejection,p2_reject (7 methods),parallel_cpu per-pixel,rejection.n_rejected_low/high,TEST-REJ-*,排异
+integration,stage2.integration.*,phase2/integrate,p2_integrate_pixel,parallel_cpu per-pixel,integrate.signal/support,V17StatusesExplicit,加权均值max reducer
+acr_routing,stage2.integration.acr_route + weight_mode=2 → cpu,acr/dispatcher,Dispatcher::decide / register_phase2_acr_kernels,mixed_cpu_gpu or cpu_only fallback,diagnostics.route,TEST-ACR-001,ACR-IVAR-001 ivar禁用
+hips_write,stage2.output.hips,astro_image_io,aio_hips_writer,serial+async_io,hips.nside,TEST-HIPS-001,HiPS写

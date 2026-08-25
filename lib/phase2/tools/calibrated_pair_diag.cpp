@@ -240,7 +240,9 @@ int main(int argc, char** argv) {
         }
     }
 
-    PairStats pairs[2] = {{"panel1-panel2"}, {"panel2-panel3"}};
+    PairStats pairs[2];
+    pairs[0].key = "panel1-panel2";
+    pairs[1].key = "panel2-panel3";
     const int idx[2][2] = {{0, 1}, {1, 2}};
 
     std::vector<float> si_buf, sj_buf, ui_buf, uj_buf, sm_buf, um_buf;

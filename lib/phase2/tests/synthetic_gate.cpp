@@ -862,9 +862,9 @@ TEST(Phase2Upm, G1V3SpatialTruthFull) {
         mj["component_count"] = info.component_count;
         mj["component_gauge_frame_ids"] = gauge_refs;
         std::filesystem::create_directories(
-            "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth");
+            "run/phase2/truth");
         std::ofstream tf(
-            "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth/"
+            "run/phase2/truth/"
             "upm_truth_metrics.json");
         if (tf) tf << mj.dump(2);
     }
@@ -1203,9 +1203,9 @@ TEST(Phase2Upm, G4RealTileSeamLeaves) {
     sj["interior_mean_err"] = interior_mean_err;
     sj["interior_max_err"] = interior_max_err;
     std::filesystem::create_directories(
-        "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth");
+        "run/phase2/truth");
     std::ofstream sf(
-        "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth/"
+        "run/phase2/truth/"
         "tile_seam_metrics.json");
     if (sf) sf << sj.dump(2);
     p2_upm_close(model);
@@ -1319,9 +1319,9 @@ TEST(Phase2Upm, G1CrossTileDeltaFollowsTruth) {
     sj["frac_pairs_over_half_step"] = frac_over_half;
     sj["worst_abs_error_vs_truth"] = worst_err;
     std::filesystem::create_directories(
-        "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth");
+        "run/phase2/truth");
     std::ofstream sf(
-        "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth/"
+        "run/phase2/truth/"
         "v5_cross_tile_delta.json");
     if (sf) sf << sj.dump(2);
     p2_upm_close(model);
@@ -1424,9 +1424,9 @@ TEST(Phase2Upm, G1HalfCellPhaseTruth) {
     pj["recovered_slope"] = slope;
     pj["recovered_intercept"] = intercept;
     std::filesystem::create_directories(
-        "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth");
+        "run/phase2/truth");
     std::ofstream pf(
-        "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth/"
+        "run/phase2/truth/"
         "v5_half_cell_phase.json");
     if (pf) pf << pj.dump(2);
     p2_upm_close(model);
@@ -1496,9 +1496,9 @@ TEST(Phase2Upm, G1DistinctBoundaryNodesNotAliased) {
     aj["control_count"] = info.control_count;
     aj["boundary_center_angular_distance_deg"] = dist;
     std::filesystem::create_directories(
-        "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth");
+        "run/phase2/truth");
     std::ofstream af(
-        "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth/"
+        "run/phase2/truth/"
         "v5_no_proximity_alias.json");
     if (af) af << aj.dump(2);
     p2_upm_close(model);
@@ -1579,9 +1579,9 @@ TEST(Phase2Upm, G1BasisCoordinateSelfConsistency) {
     bj["observations_checked"] = obs.size();
     bj["worst_calibrate_minus_evaluate"] = worst;
     std::filesystem::create_directories(
-        "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth");
+        "run/phase2/truth");
     std::ofstream bf(
-        "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth/"
+        "run/phase2/truth/"
         "v5_basis_self_consistency.json");
     if (bf) bf << bj.dump(2);
     p2_upm_close(model);
@@ -1793,9 +1793,9 @@ TEST(Phase2Upm, G1V7EdgeBasisAnalytic) {
     aj["truth_affine"] = {"a", truth_a, "bx", Bx, "by", By};
     aj["strict_thresholds"] = {"leaf_and_seam", 1e-9, "affine", 1e-6};
     std::filesystem::create_directories(
-        "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth");
+        "run/phase2/truth");
     std::ofstream af(
-        "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth/"
+        "run/phase2/truth/"
         "v7_edge_basis_analytic.json");
     if (af) af << aj.dump(2);
     p2_upm_close(model);
@@ -2147,9 +2147,9 @@ TEST(Phase2Upm, G1V8ContinuousSkySeam) {
     aj["save_open_max_diff"] = save_open_diff;
     aj["sparse_dense_max_diff"] = dense_diff;
     std::filesystem::create_directories(
-        "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth");
+        "run/phase2/truth");
     std::ofstream af(
-        "F:/Astro dev/Astro CS Normalization Database/run/phase2/truth/"
+        "run/phase2/truth/"
         "v8_continuous_sky_seam.json");
     if (af) af << aj.dump(2);
     p2_upm_close(bb.model);

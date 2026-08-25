@@ -1,0 +1,1 @@
+{"tool": "check_execution_contracts", "status": "FAIL", "reason": "EXECUTION_MODEL.md missing ARC-EXEC-001 or P2_ENABLE_OPENMP not in doc"}

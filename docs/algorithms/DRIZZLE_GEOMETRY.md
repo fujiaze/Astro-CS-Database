@@ -1,119 +1,78 @@
-# Drizzle Geometry
+# Drizzle Geometry Algorithms (ALG-DRIZZLE)
 
-关联：SCI-DRZ-001..016；V19R3 DRIZZLE_TARGETED（bounded target-ipix
-geometry cache + operation counters）；模块：lib/healpix_db/healpix_drizzle
-（spherical_overlap.cpp / drizzle_engine.cpp）。
+> 上游 SCI: SCI-DRZ-001..016  状态: DERIVED (T205 冻结, 2026-08-23)  模块: healpix_drizzle
 
-## 输入
+## 1 上游 SCI 与输入输出
 
-输入帧（像素 + WCS）+ 目标 HEALPix 网格 + pixfrac/drop。
+- 上游: `SCI-DRZ-001` (候选保守) `SCI-DRZ-014` (方差传播) `SCI-DRZ-015/016` (支撑/协方差)
+- 输入: 输入帧 (像素+WCS) + 目标 HEALPix 网格 (nside) + pixfrac
+- 输出: 目标像素候选集 + 重叠面积权重 w=a/A_drop + 操作计数 DrizzleStats
 
-## 输出
-
-目标像素候选集 + 重叠面积权重。
-
-## 球面几何推导
-
-源像素 drop 为像素四角经 WCS/SIP 映射到单位球后的球面多边形：
+## 2 离散公式
 
 ```text
-pixelToSky((x±0.5·pixfrac, y±0.5·pixfrac)) → ra/dec → Vec3 单位向量
+F1: drop corners: (x±0.5·pixfrac, y±0.5·pixfrac) → pixelToSky → Vec3
+F2: center=normalize(Σ corners), max_angle=max ∠(center,c_i)
+F3: 三层缓冲: quick-reject 1.25·hp_res, candidate 3.0·hp_res, fast 1.25·hp_res +1.15畸变
+F4: Sutherland-Hodgman 裁剪: drop ∩ target pixel, Girard Area=Σ角−(n−2)π
+F5: w = overlap / drop_area, drop_area double角点源 (防float 0.05%偏差)
+F6: 微小交集 max_angle<1e-3 rad 切平面近似保持 w一致性
+F7: TargetGeomCache LRU 8192: hit复用 center+boundary4, miss构建计数, run generation递增clear
 ```
 
-目标 HEALPix leaf 边界：NESTED 像素 4 角（赤道带菱形 / 极区三角形
-退化），nside>=256 生产路径固定 4 角（get_healpix_boundary4，与
-get_healpix_boundary 逐位等价）；低 NSIDE 用自适应细分边界
-（get_healpix_boundary_sampled，赤道带 4 边采样，极区保持大圆弧）。
+来源: `spherical_overlap.cpp:40,573,773-931` `drizzle_engine.cpp:100`
 
-重叠面积：球面 Sutherland–Hodgman 裁剪 drop 多边形于像素 4 边大圆
-（法向量指向像素内部），交集面积用 Girard 定理
-（Area = Σ内角 − (n−2)π）；微小交集（drop max_angle<1e-3 rad）用切平面
-面积保持 weight=overlap/drop_area 一致性。drop 面积也由 double 精度角点
-源计算，避免 float 存储舍入的 ~0.05% 面积偏差。
-
-## 候选包围圆构造（零漏选）
+## 3 伪代码
 
 ```text
-drop 包围圆：center = normalize(Σ corners)，max_angle = max(∠(center, c_i))
-三层缓冲（与 lib/healpix_db/healpix_drizzle/spherical_overlap.cpp:40 一致，
-HP_CIRCUMRADIUS_FACTOR=1.25×hp_res 为像素外接半径保守上界，覆盖赤道
-1.532×res 对角线与极区三角形最坏情况 1.044×res + 裕量）：
-  1) overlap quick-reject：lim = max_angle + 1.25×hp_res
-  2) candidate 保守查询圆：query_radius = max_angle + 3.0×hp_res
-  3) fast 快速枚举：buffer = 1.25×hp_res；赤道带 delta×1.15 畸变系数，
-     极冠/盒触极冠回退保守 candidate（3.0×）路径
+function build_drop_corners(x,y,pixfrac,wcs): 4 corners → Vec3[]
+function candidate_radius(drop): max_angle+3.0·hp_res (保守查询圆)
+function overlap_area(drop, target_pixel): S-H裁剪 + Girard, 切平面fallback if <1e-3 rad
+
+function drizzle_pixel(drop, wcs, target_nside):
+  radius = candidate_radius(drop); candidates = queryDisc(center, radius) + boundary_fallback
+  for each cand:
+    if quick_reject(max_angle+1.25·hp_res) skip
+    overlap = overlap_area(drop, target_pixel) // or cached boundary4
+    w = overlap / drop_area; D += overlap; F += x_j·w
+  S = F/D; variance = sumVarNum/D²
+
+function TargetGeomCache.get(target_ipix):
+  if hit: return cached {center,boundary4}
+  else: build pix2radec+boundary4, cache, inc target_geometry_builds
 ```
 
-RA 跨 0 / 南北极 / face 边界的候选查询走 boundary_fallback（保守
-queryDisc 语义）；false_negative=0 由 candidate_oracle_test 9003 例
-（12 face × 边/角 + RA跨0 + 极区 × pixfrac{0.1,0.25,0.5,1.0} ×
-尺度{0.1",1",10",60",3600"} × nside{16..4194304}）全枚举对照保证。
+## 4 边界/NaN/Inf
 
-## V19R3 bounded target-ipix geometry cache（DRIZZLE_TARGETED 优先级 1）
+| 条件 | 行为 |
+|---|---|
+| pixfrac 非法 | 拒绝 |
+| WCS 不可逆 | skip pixel |
+| 极区/RA跨0/face边界 | boundary_fallback保守 |
+| max_angle<1e-3 | 切平面近似 |
+| target cache 满 8192 | LRU 淘汰 |
 
-一次 run 内同一个 target leaf 被大量 drop 候选重复访问。缓存
-{center, boundary4}（TargetGeomCache，LRU，默认容量 8192，线程私有）：
+## 5 确定性与归约
 
-```text
-命中   → 复用 center + boundary4，跳过 pix2radec/radec_to_vec/boundary4
-未命中 → 构建并缓存（target_boundary_builds++ / target_geometry_builds++）
-run 结束 → 下个 drizzleTiled 的 run generation 递增，线程 cache clear
-```
+- 每源像素独立，无跨像素归约；候选集排序 by ipix 固定；overlap面积 Girard 确定性；cache命中与未命中数值路径同一 overlap_area_impl。
 
-科学等价性：compute_overlap_area_g_ctx_cached 与 _g_ctx 共用同一
-overlap_area_impl 数值路径，仅 geometry 来源不同；quick-reject 保持在
-边界构建之前（保序，避免穷举 oracle 退化）。验证：UPMW-005 MC
-k_corr=1.3883 不变、freeze 42/42、candidate oracle 9003/0。
+## 6 复杂度
 
-## 操作计数模型（DrizzleStats + [ops] 行）
+- O(n_source·avg_candidates), avg≈3.5 (小图实测); cache hit 91.7% 降 geometry_builds.
 
-```text
-source_pixels / candidates / true_overlaps / quick_rejects
-pix2radec / boundary_builds / geometry_builds
-target_boundary_builds / target_geometry_builds
-geometry_cache_hits / geometry_cache_misses
-sh_calls / tile_lookups / heap_allocations
-cand_eff = true_overlaps/candidates；sh_frac = sh/(sh+quick_rejects)
-```
+## 7 CPU/GPU
 
-小图实测（20×20，nside=512，pixfrac=0.8）：src=400 cand=3463
-true_ov=1221（cand_eff=0.353）quick_rej=2242，tgt_b=288
-（gcache_hit=3175/3463≈91.7%）。生产单帧优化前后对比以
-evidence/drizzle/operation_counts_{before,after}.json 记录。
+- CPU OpenMP 按源帧tile; GPU 按candidate切分, 候选查询与S-H裁剪kernel化, false_negative=0 等价门。
 
-## Preconditions
+## 8 参考实现/Oracle
 
-WCS 可逆；目标 order 有效。
+- candidate oracle 9003例 false_negative=0; overlap逐像素面积核对; cache等价逐位验证; 证据 evidence/drizzle/*.json
 
-## Postconditions
+## 9 容差来源
 
-候选保守（false negative=0）；面积守恒 Σw 精确。
+- arc-chord 1e-6·hp_res, area float 0.05% 双精度修正, 预冻结。
 
-## Invariants
+## 10 关联 ARC/API/TST
 
-球面 S-H 重叠 vs 平面近似误差受控；边界/极区无漏。
-
-## 复杂度
-
-候选 O(pixels × 投影)；geometry cache 复用。
-
-## 并行模型
-
-OpenMP 按源帧 tile；只读 cache。
-
-## 数值风险
-
-极区奇点；wcs 数值发散 → 保守 reject。
-
-## fast/reference/oracle
-
-candidate oracle（全枚举对照，false negative=0）；overlap oracle
-（逐像素面积核对）——evidence/drizzle/*.json。
-
-reference（无 cache 路径）= 同一 overlap_area_impl 数值路径；fast =
-geometry cache 复用；两者必须逐位等价（V19R3 冻结）。
-
-## ID
-
-ALG-DRZ-CAND-001；ALG-DRZ-OVERLAP-001..；ALG-DRZ-GEOM-CACHE-001；
-TEST-ALG-DRZ-*；UPMW-005（control estimator 方差 MC 复用 Drizzle 引擎）。
+- API: spherical_overlap.h: compute_overlap_area_g_ctx, drizzle_engine.h: drizzleTiled
+- TST: TEST-ALG-DRZ-* candidate/overlap/cache, UPMW-005 MC

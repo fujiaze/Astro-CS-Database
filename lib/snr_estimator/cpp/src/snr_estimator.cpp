@@ -62,7 +62,7 @@ SNR_API int snr_estimate(const float* data, int h, int w,
     if (sigma_residual <= 0.0) {
         fprintf(stderr, "[snr] degenerate: sigma_residual=%g <= 0, fill 1.0\n",
                 sigma_residual);
-        #pragma omp parallel for num_threads(16) schedule(static)
+        #pragma omp parallel for schedule(static)
         for (int i = 0; i < N; ++i) {
             out_snr[i] = 1.0f;
         }
@@ -79,7 +79,7 @@ SNR_API int snr_estimate(const float* data, int h, int w,
     if (n_stars <= 0) {
         fprintf(stderr, "[snr] degenerate: n_stars=%d <= 0, fill SNR_phot=%.6f\n",
                 n_stars, snr_phot);
-        #pragma omp parallel for num_threads(16) schedule(static)
+        #pragma omp parallel for schedule(static)
         for (int i = 0; i < N; ++i) {
             out_snr[i] = (float)snr_phot;
         }
@@ -127,7 +127,7 @@ SNR_API int snr_estimate(const float* data, int h, int w,
     // ---- 无有效星退化: 全填 SNR_phot (返回 1) ----
     if (n_valid <= 0) {
         fprintf(stderr, "[snr] no valid PSF stars, fill SNR_phot=%.6f\n", snr_phot);
-        #pragma omp parallel for num_threads(16) schedule(static)
+        #pragma omp parallel for schedule(static)
         for (int i = 0; i < N; ++i) {
             out_snr[i] = (float)snr_phot;
         }
@@ -142,7 +142,7 @@ SNR_API int snr_estimate(const float* data, int h, int w,
     if (median_snr <= 0.0) {
         fprintf(stderr, "[snr] warning: median(SNR_psf)=%.6f <= 0, fallback fill SNR_phot\n",
                 median_snr);
-        #pragma omp parallel for num_threads(16) schedule(static)
+        #pragma omp parallel for schedule(static)
         for (int i = 0; i < N; ++i) {
             out_snr[i] = (float)snr_phot;
         }
@@ -161,7 +161,7 @@ SNR_API int snr_estimate(const float* data, int h, int w,
     const double* py = star_y.data();
     const double* ps = star_snr.data();
 
-    #pragma omp parallel for num_threads(16) schedule(static)
+    #pragma omp parallel for schedule(static)
     for (int y = 0; y < h; ++y) {
         for (int x = 0; x < w; ++x) {
             double sum_w = 0.0;
@@ -231,7 +231,7 @@ SNR_API int snr_estimate_f64(const double* data, int h, int w,
     if (sigma_residual <= 0.0) {
         fprintf(stderr, "[snr_f64] degenerate: sigma_residual=%g <= 0, fill 1.0\n",
                 sigma_residual);
-        #pragma omp parallel for num_threads(16) schedule(static)
+        #pragma omp parallel for schedule(static)
         for (int i = 0; i < N; ++i) {
             out_snr[i] = 1.0f;
         }
@@ -248,7 +248,7 @@ SNR_API int snr_estimate_f64(const double* data, int h, int w,
     if (n_stars <= 0) {
         fprintf(stderr, "[snr_f64] degenerate: n_stars=%d <= 0, fill SNR_phot=%.6f\n",
                 n_stars, snr_phot);
-        #pragma omp parallel for num_threads(16) schedule(static)
+        #pragma omp parallel for schedule(static)
         for (int i = 0; i < N; ++i) {
             out_snr[i] = (float)snr_phot;
         }
@@ -293,7 +293,7 @@ SNR_API int snr_estimate_f64(const double* data, int h, int w,
     // ---- 无有效星退化: 全填 SNR_phot (返回 1) ----
     if (n_valid <= 0) {
         fprintf(stderr, "[snr_f64] no valid PSF stars, fill SNR_phot=%.6f\n", snr_phot);
-        #pragma omp parallel for num_threads(16) schedule(static)
+        #pragma omp parallel for schedule(static)
         for (int i = 0; i < N; ++i) {
             out_snr[i] = (float)snr_phot;
         }
@@ -308,7 +308,7 @@ SNR_API int snr_estimate_f64(const double* data, int h, int w,
     if (median_snr <= 0.0) {
         fprintf(stderr, "[snr_f64] warning: median(SNR_psf)=%.6f <= 0, fallback fill SNR_phot\n",
                 median_snr);
-        #pragma omp parallel for num_threads(16) schedule(static)
+        #pragma omp parallel for schedule(static)
         for (int i = 0; i < N; ++i) {
             out_snr[i] = (float)snr_phot;
         }
@@ -327,7 +327,7 @@ SNR_API int snr_estimate_f64(const double* data, int h, int w,
     const double* py = star_y.data();
     const double* ps = star_snr.data();
 
-    #pragma omp parallel for num_threads(16) schedule(static)
+    #pragma omp parallel for schedule(static)
     for (int y = 0; y < h; ++y) {
         for (int x = 0; x < w; ++x) {
             double sum_w = 0.0;

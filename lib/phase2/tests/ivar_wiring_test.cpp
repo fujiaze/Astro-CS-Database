@@ -54,7 +54,7 @@ const std::vector<FrameSpec> kFrames = {
 };
 
 std::string tmp_dir() {
-    return "F:/Astro dev/Astro CS Normalization Database/run/temp/"
+    return "run/temp/"
            "v19r4_ivar_wiring";
 }
 

@@ -1,43 +1,84 @@
-# Plate Solve（IPV）
+# WCS / PlateSolve Algorithms (ALG-WCS)
 
-关联：SCI-AST-001；模块：lib/plate_solve/cpp/ipv。
+> 上游 SCI: SCI-WCS-001  状态: DERIVED (T202 冻结, 2026-08-23)  模块: plate_solve/cpp/ipv
 
-## 输入
+## 1 上游 SCI 与输入输出
 
-星点表 + 参考星表（Gaia）。
+- 上游: `SCI-WCS-001` (CRPIX=w/2+0.5, CD deg/pixel, cd_inv pixel/arcsec, SIP A/B 解析 / AP/BP 7×7网格, Y-down)
+- 输入: 星点表 `(x,y)` + Gaia 参考星表 (RA/Dec)
+- 输出: `WCS` (CD+CRPIX/CRVAL+SIP A/B/AP/BP) 或 `NO_SOLUTION`
 
-## 输出
+## 2 离散公式
 
-WCS（CD + SIP）或失败状态。
+```text
+F1: CRPIX = w/2+0.5, h/2+0.5 (1-based), 0-based x0=CRPIX−1
+F2: CD = trans.linear/3600 (deg/pixel), cd_inv = inv(trans.linear) (pixel/arcsec)
+F3: SIP前向 A[i][j]=cd_inv·trans.x_ij, B[i][j]=cd_inv·trans.y_ij (解析)
+F4: SIP逆向 AP/BP = argmin ||UV−(u,v)−SIP(u,v)||² on 7×7 grid, AP[1,0]-=1, BP[0,1]-=1
+F5: Y-down: cd12,cd22 取反; A'=A·(-1)^j, B'=−B·(-1)^j, AP/BP 同规则
+F6: 投影 TAN + SIP畸变 + J2000, 极区 Lipschitz C=π/2 / C45=π/(2√2) conservative prune
+```
 
-## Preconditions
+来源: `ipv_wcs.cpp:153-576` `ipv_select.cpp:695` `gaia_client.c:polar_plane_intersects`
 
-≥最小星点数；几何非退化。
+## 3 伪代码
 
-## Postconditions
+```text
+function solve_wcs(detections, gaia):
+  if n_detections < min_stars → NO_SOLUTION
+  triangles = build_triangles(detections) scale_tol=0.002
+  matches = kd_match(triangles, gaia_triangles) tol=5.0"
+  for each hypothesis:
+    trans = iterative_reproject(matches) conv 0.01" max5 (ipv_solver.cpp)
+    sip = build_sip(trans) order 2-3, IRLS 15× ε1e-6 Huber 1.345 (ipv_sip.cpp:238-262)
+    wcs = compose(CRPIX,CRVAL,CD, sip, Y-down)
+    rms = residual(wcs, matches)
+  best = min rms, rank by n_matches + rms
+  if rms > threshold → NO_SOLUTION else return wcs
 
-前向投影与星点一致（残差报告）；WCS 头可写。
+function build_sip(trans):
+  cd_inv = inv(trans.linear)
+  for (i,j) in order: A[i][j]=cd_inv·trans.x_ij, B[i][j]=cd_inv·trans.y_ij
+  grid = 7×7 UV = cd_inv·IWC, fit AP/BP via least squares
+  AP[1,0]-=1; BP[0,1]-=1
+  apply Y-down sign flips
 
-## Invariants
+Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
+```
 
-坐标约定 J2000 + TAN/SIP；内部 0-based `x,y` ↔ FITS 1-based `CRPIX=width/2+0.5`（`x0=CRPIX-1`，`lib/plate_solve/cpp/ipv/src/ipv_wcs.cpp:154,276`）；SIP 前向 `A/B` 解析 / 逆向 `AP/BP`（`NB_GRID=7` 网格拟合，`AP[1,0]/BP[0,1]-=1`，`ipv_wcs.cpp:463-464`）与 Y-down 输出 `cd12/cd22` 取反、`A' = A·(-1)^j`、`B' = −B·(-1)^j`（`AP/BP` 同规则，`ipv_wcs.cpp:542-570`）；CD 与 SIP 一致（V18R3 审计）。
+## 4 边界/NaN/Inf
 
-## 复杂度
+| 条件 | 行为 |
+|---|---|
+| `n < min_stars` | `NO_SOLUTION` |
+| `det(trans.linear)==0` | reject SIP, `NO_SOLUTION` |
+| `NB_GRID` 奇异 | fallback linear |
+| 极区跨界 `θ+radius>90°` | 保守不剪枝遍历 |
+| RA环绕 `dra>180°` | `dra=360−dra` + cos(dec) 缩放 |
+| 输入含 NaN | skip/fail per-field |
 
-匹配 O(n log n)；退化降级路径显式。
+## 5 确定性与归约
 
-## 并行模型
+- 单线程求解，三角形匹配 KD-tree 确定性（排序 tie-break by frame_id）；SIP LS 按 grid 索引固定顺序；无跨假设归约。
 
-单线程求解（阶段内串行）。
+## 6 时间/空间复杂度
 
-## 数值风险
+- 匹配 O(n log n)；SIP O(order²·49) LS；空间 O(n_triangles)
 
-极区/大畸变；SIP 高阶振荡 → 阶数上限（`order 2–3`）；极区 `|dec|>45°` 分支、`|dec|>85°` 仍保守（Lipschitz `C=π/2`/`C45=π/(2√2)`，`lib/gaia_xpsd_client/src/gaia_client.c:polar_plane_intersects`），RA 环绕 `cos(dec)` 缩放（`bbox_intersects`），跨界保守不剪枝。数值阈值：`iterative_reproject` 收敛 `0.01"`/上限 `5` 次（`lib/plate_solve/cpp/ipv/src/ipv_solver.cpp:CONV_THRESH_ARCSEC/MAX_ITERS`）、`triangle_match` 尺度容差 `0.002`/匹配容差 `5.0"`、SIP `IRLS 15` 次/`ε 1e-6`/`PIVOT_EPS 1e-12`/`Huber 1.345`/`δ<1e-9 guard`（`lib/plate_solve/cpp/ipv/src/ipv_sip.cpp:238-262`，`1.345·median_abs_r`）。
+## 7 CPU/GPU 划分
 
-## fast/reference/oracle
+- CPU 单线程；GPU 仅 Gaia 查询加速（若有），WCS 求解仍 CPU，容差与确定性门 `≤1e-6 deg` 等价。
 
-合成投影图恢复；与 astrometry.net 语义对照（工程控制 05 spec）。
+## 8 参考实现/Oracle
 
-## ID
+- 合成投影图已知 WCS 恢复残差 `<0.1"`；astrometry.net 语义对照 (05 spec)；Astropy WCS 前向/逆向 `Δ<1e-4 px`。
 
-ALG-PLATESOLVE-*；TEST-AST-*。
+## 9 容差来源
+
+- 收敛 0.01" (pixel/3600), 尺度容差 0.002 (各向异性 0.2%), Huber 1.345 (robust 统计), 预冻结。
+
+## 10 关联 ARC/API/TST
+
+- ARC: `THREADING_MODEL.md` 单线程阶段内串行
+- API: `ipv_api.h: ipv_solve_from_detections_v1`, `ipv_wcs.h: build_wcs`
+- TST: `TST-WCS-001` 合成恢复, `TST-WCS-INV` 极区保守, `TST-WCS-FAIL` 退化

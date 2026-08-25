@@ -37,3 +37,17 @@ orchestrator / stage2 CLI / browser        (应用层)
 ## 模块地图
 
 见 docs/architecture/MODULE_MAP.md。
+
+## 四条链（T300 生产接线契约）
+
+1. **数据链**：原始帧 → Stage1 产品 (FITS/HiPS) → HiPS/AIO → Phase2 sampling/UPM/rejection/integration → 标准 HiPS (DATA_FLOW.md, PIPELINE.md)
+2. **控制链**：CLI (`main` orchestrator.exe / astrocs-stage2) → config parser/schema → orchestrator (DllLoader) → module API → diagnostics/error (ERROR_MODEL.md)
+3. **执行链**：串行控制面 → CPU并行数据面 (OpenMP per-pixel/tile) → 异步 I/O → ACR CPU/GPU Dispatcher (register_phase2_acr_kernels, weight_mode=ivar→cpu fallback ACR-IVAR-001) → 同步/归约 (THREADING_MODEL.md)
+4. **生命周期链**：对象/缓冲区创建者、所有者、借用者、释放线程、失败/取消清理 (OWNERSHIP_AND_LIFETIME.md, IO_AND_ATOMICITY.md)
+
+## 生产调用路径 (T300)
+
+- Stage1: `docs/architecture/production_call_paths_stage1.csv` (7 路径, entry_symbol→source_symbol 全可达)
+- Stage2: `docs/architecture/production_call_paths_stage2.csv` (10 路径, 含 ACR Dispatcher 接线, 仅库实现但入口不可达视为未接线)
+
+仅由 CLI 入口可达视为接线，已验证每个路径的 source_symbol 在目标 target 的编译单元存在。

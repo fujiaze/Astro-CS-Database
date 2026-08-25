@@ -1,54 +1,78 @@
-# Rejection Algorithms
+# Rejection Algorithms (ALG-REJ)
 
-关联：ALG-REJ-001..008（RJ-001..008）；模块：lib/phase2/src/rejection.cpp。
+> 上游 SCI: SCI-REJ-001..008  状态: DERIVED (T207 冻结, 2026-08-23)  模块: phase2/rejection
 
-## 输入
+## 1 上游 SCI 与输入输出
 
-candidate stack（values/support/weights/frame_ids）+ 计划（method/profile）。
+- 上游: `SCI-REJ-001..008` (7方法+wbpp路由+INVALID/UNDERDETERMINED分层)
+- 输入: candidate stack (values/support/weights/frame_ids) + P2RejectionPlan (method/profile/thresholds)
+- 输出: per-sample reason (P2_REASON_*) + stack status (P2_STATUS_*) + low/high计数
 
-## 输出
-
-decision（accept/reject + reason + status）。
-
-## Preconditions
-
-方法合法（AUTO 不进 kernel）；参数 typed。
-
-## 状态/原因枚举全集合（P2RejectStatus / P2RejectReason）
+## 2 离散公式
 
 ```text
-P2_REASON_ACCEPTED=0  P2_REASON_REJECTED_LOW=1
-P2_REASON_REJECTED_HIGH=2  P2_REASON_UNDERDETERMINED=3
-P2_STATUS_OK=0  P2_STATUS_MIN_SAMPLES=1  P2_STATUS_ALL_REJECTED=2
-P2_STATUS_INVALID_INPUT=3  P2_STATUS_UNDERDETERMINED=4
-P2_STATUS_INVALID_CONFIGURATION=5  P2_STATUS_INVALID_METHOD=6
-P2_STATUS_INTERNAL_ERROR=7
+F1: plan resolve: n<6→percentile 0.2/0.1, 6≤n≤15→winsorized 4/3/8, n>15→linear_fit 5/3.5/8 (nominal n)
+F2: sigma: median ws, MAD→σ=1.4826·MAD, thresholds 4.0 low /3.0 high 8iter
+F3: winsorized: winsor at σ阈, 再sigma
+F4: linear_fit: 线性拟合残差MAD尺度 5/3.5 8iter
+F5: ESD: Rosner α=0.05 max10 双sqrt已修
+F6: RCR: Maples Chauvenet, large_scale trail仅扩展结构 compact不生长
+F7: 状态机: n≤underdetermined(2) → UNDERDETERMINED; non-finite → INVALID_INPUT hard fail
 ```
 
-与 lib/phase2/include/astro/phase2/rejection.h 枚举 name+value 集合
-完全一致（docs_machine_consistency 全量校验，V19R3）。
+来源: `rejection.cpp:1,1051-1592` `rejection.h:76-154`
 
-## Postconditions
+## 3 伪代码
 
-- INVALID_* → hard fail；UNDERDETERMINED → 不做猜测；
-- large_scale：结构生长（trail）不生长 compact cosmic（`rejection.cpp:1501-1592` trail 生长分支）。
+```text
+function p2_reject(stack, plan):
+  if plan.method==AUTO → INVALID_METHOD
+  n_nominal = plan nominal contributors
+  method = resolve_profile(n) # wbpp_2_9_1
+  if n ≤2 or n<minimum_n → status=UNDERDETERMINED, reason=UNDERDETERMINED
+  switch method:
+    None: all ACCEPTED
+    Sigma/Winsorized/Averaged: iterative σ clipping low/high 8iter
+    LinearFit: robust linear fit残差
+    ESD: generalized ESD α0.05
+    RCR: robust Chauvenet
+    Percentile: low 0.2/high0.1
+    Minmax: 1/1/4
+  large_scale: trail生长 if enabled && extended structure
+  return reasons + status OK/ALL_REJECTED/INVALID
+```
 
-## Invariants
+## 4 边界/NaN/Inf
 
-status/reason 分离；low/high 阈值独立；支持度掩码有效。
+| 条件 | 行为 |
+|---|---|
+| n≤2 | UNDERDETERMINED 全接受 |
+| non-finite weights/support | INVALID_INPUT hard fail |
+| method AUTO | INVALID_METHOD |
+| n<minimum_n | UNDERDETERMINED |
+| 空栈 | NO_CANDIDATES |
 
-## 复杂度
+## 5 确定性与归约
 
-O(n log n)（排序/ESD/RCR）。
+- 排序确定性按value tie-break frame_id；ESD/RCR迭代固定顺序；无跨像素归约。
 
-## 数值风险
+## 6 复杂度
 
-ESD 双 sqrt（已修 RJ-004）；NONE 方法 NaN（已修 RJ-002）。
+- O(n log n) 排序/ESD/RCR
 
-## fast/reference/oracle
+## 7 CPU/GPU
 
-NIST ESD / Rosner 对照；卫星线注入门（recall=1.0）。
+- CPU per-pixel; GPU按pixel切分, 7方法逻辑等价, large_scale仅CPU.
 
-## ID
+## 8 参考实现/Oracle
 
-ALG-REJ-001..008；TEST-REJ-*。
+- NIST ESD 120/120; 卫星线注入 recall=1.0
+
+## 9 容差来源
+
+- σ阈 4.0/3.0 预冻结, 归约确定性.
+
+## 10 关联 ARC/API/TST
+
+- API: rejection.h: p2_reject, p2_reject_plan_resolve
+- TST: synthetic_gate 74/74, NIST ESD

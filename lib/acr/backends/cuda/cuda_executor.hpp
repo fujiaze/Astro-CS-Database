@@ -31,22 +31,27 @@ class CudaExecutor : public scheduler::DeviceExecutor {
 public:
     explicit CudaExecutor(int device_id = 0,
                           std::size_t recommended_chunk = 65536,
-                          std::size_t min_chunk = 256);
+                          std::size_t min_chunk = 256,
+                          const KernelRegistry* registry = nullptr);
     ~CudaExecutor() override;
 
     // DeviceExecutor 接口
+    astro::compute::DeviceId id() const override { return static_cast<astro::compute::DeviceId>(device_id_ + 1); }
     std::string device_id() const override { return device_id_str_; }
     std::string backend_type() const override { return "cuda"; }
     bool available() const override;
+    bool supports(astro::compute::OperationId op) const override;
     scheduler::QueueState queue_state() const override;
     std::size_t recommended_chunk() const override { return recommended_chunk_; }
     std::size_t min_effective_chunk() const override { return min_chunk_; }
 
-    scheduler::SubmitResult submit(const scheduler::WorkToken& token,
-                                     const scheduler::KernelInvocation& invocation) override;
+    scheduler::SubmitHandle submit(const scheduler::WorkToken& token,
+                                     const astro::compute::KernelInvocation& invocation) override;
     void sync() override;
 
     std::string name() const override;
+
+    const KernelRegistry* registry() const;
 
 private:
     int device_id_;
@@ -54,6 +59,7 @@ private:
     bool available_{false};
     std::size_t recommended_chunk_;
     std::size_t min_chunk_;
+    const KernelRegistry* registry_{nullptr};
     std::atomic<std::size_t> pending_count_{0};
     CudaBuffer<float> d_buffer_;   // GPU 工作缓冲区（axpy 的 y/x）
     CudaBuffer<float> d_x_buffer_; // GPU x 缓冲区

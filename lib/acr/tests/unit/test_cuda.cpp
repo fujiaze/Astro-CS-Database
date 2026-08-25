@@ -51,7 +51,7 @@ using astro::compute::scheduler::DeviceExecutor;
 using astro::compute::scheduler::Dispatcher;
 using astro::compute::scheduler::DispatcherConfig;
 using astro::compute::scheduler::ExecutorRegistry;
-using astro::compute::scheduler::KernelInvocation;
+using astro::compute::KernelInvocation;
 using astro::compute::scheduler::SubmitStatus;
 using astro::compute::scheduler::WorkToken;
 
