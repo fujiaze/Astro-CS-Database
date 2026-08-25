@@ -1,39 +1,71 @@
-# Photometric Fit
+# Photometric Fit Algorithms (ALG-PHOT)
 
-关联：SCI-PHOT-001；模块：lib/photometric_calib。
+> 上游 SCI: SCI-PHOT-001  状态: DERIVED (T203 冻结, 2026-08-23)  模块: photometric_calib
 
-## 输入
+## 1 上游 SCI 与输入输出
 
-仪器流量 + 合成星表流量。
+- 上游: `SCI-PHOT-001` (r=log10(F_instr/F_syn) IRLS Tukey c=4.685, mag_tolerance=3.0)
+- 输入: 仪器流量 `F_instr` + 合成流量 `F_syn` (Gaia XP)
+- 输出: `PhotometricCalibrationQuality` (sigma_mag, sigma_cal_rel, zero_point) + scale
 
-## 输出
+## 2 离散公式
 
-PhotometricCalibrationQuality：sigma_mag / sigma_cal_rel / 零点。
+```text
+F1: r_i = log10(F_instr,i / F_syn,i)
+F2: S = MAD(r)/0.6745, init location=median(r)
+F3: IRLS Tukey: u=(r−location)/(c·S), c=4.685, w=(1−u²)² if |u|<1 else 0, location=Σw·r/Σw, iter≤50 tol=1e-6
+F4: sigma_residual = MAD(r_inliers)/0.6745, r_inliers={w>0}
+F5: sigma_mag = 2.5·sigma_residual, sigma_cal_rel = ln10·sigma_residual
+F6: scale = 10^{−location}
+F7: 星等一致性预过滤 |Δ−median(Δ)|>3.0 mag reject where Δ=−2.5·log10(F_instr)−G_Gaia
+```
 
-## Preconditions
+来源: `star_matcher.cpp:21,241-248,478-559`
 
-≥N 参考星；流量正有限。
+## 3 伪代码
 
-## Postconditions
+```text
+function photometric_fit(F_instr, F_syn, G_Gaia):
+  if n < min_ref → NO_DATA
+  Δ_i = −2.5·log10(F_instr)−G_Gaia; median_Δ = median(Δ)
+  r_consistent = {i | |Δ_i−median_Δ|≤3.0} → r_i=log10(F_instr/F_syn)
+  if S=MAD(r)/0.6745 ==0 → location=median(r) skip IRLS
+  else:
+    location=median(r); repeat 50×:
+      w_i=(1−((r_i−location)/(c·S))²)² if |u|<1 else 0; c=4.685
+      new_loc=Σw·r/Σw; if |new−old|<1e-6 break
+  sigma_res=MAD({r|w>0})/0.6745; scale=10^{−location}
+```
 
-残差 r=log10(F_instr/F_syn)；IRLS_Tukey(c=4.685, max_iter=50, tol=1e-6), Tukey 权重 w=(1-u²)²（|u|≥1 时 w=0, u=(r-location)/(c·S)）, S=MAD(r)/0.6745；sigma_residual=MAD(r_inliers)/0.6745 隔离（r_inliers={i|w_i>0} 为 Tukey 内点集，QA/systematic metadata，不进 ivar）（`lib/photometric_calib/cpp/src/star_matcher.cpp:21,478-525`）。
+## 4 边界/NaN/Inf
 
-## Invariants
+| 条件 | 行为 |
+|---|---|
+| `F≤0` / log10 非有限 | skip REJECT |
+| `MAD==0` | 跳过IRLS取median |
+| `S<0` / n<min | NO_DATA |
 
-该质量量 ≠ 像素随机噪声（科学边界，不进 ivar）。
+## 5 确定性与归约
 
-## 复杂度
+- 排序 median/MAD 确定性；IRLS 按 r 索引固定顺序加权和，无跨样本归约。
 
-O(n_ref) 单 pass + MAD 排序。
+## 6 复杂度
 
-## 数值风险
+- O(n_ref log n_ref) 排序 + O(n_ref·iter) IRLS
 
-log10(0/负)；MAD=0 退化 → 显式状态。
+## 7 CPU/GPU
 
-## fast/reference/oracle
+- CPU 单线程；GPU 仅排序可加速，等价门 `location ≤1e-9 dex`。
 
-合成注入偏移恢复（PHOT-001..007）。
+## 8 参考实现/Oracle
 
-## ID
+- 合成注入偏移恢复 PHOT-001..007 (scale 已知→location=log10 k)
 
-ALG-PHOTOMETRIC-FIT-*；TEST-PHOT-*。
+## 9 容差来源
+
+- location tol 1e-6 (IRLS 收敛)，预冻结。
+
+## 10 关联 ARC/API/TST
+
+- API: `pc_api.h: pc_calibrate_simple, pc_calibrate_simple_with_gaia`
+- TST: `TST-PHOT-*` 合成注入/鲁棒

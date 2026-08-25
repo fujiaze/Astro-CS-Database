@@ -111,10 +111,13 @@ P2_API int p2_sample_controls(
     char* err, std::size_t err_size);
 
 // 含 frame_id 缓存的重载（性能：stage2 已算 frame_id 时透传，避免二次 500MB payload 哈希）。
+//  @param frame_ids 长度 n_inputs，与 hips_paths 同序；0 视为非法（p2_frame_id 失败哨兵），实现将直接拒绝。
+//  @note out_n_controls = n_geometry_controls (= n_union * grid*grid，含空覆盖占位)，
+//        与 out_stats.accepted_controls / overlap_controls (≥1/≥2 clean) 区分；日志应并列表述。
 P2_API int p2_sample_controls_cached(
     const P2CoverageResult* coverage,
     const char* const* hips_paths,
-    const std::uint64_t* frame_ids,  // n_inputs 长度，可空则内部计算
+    const std::uint64_t* frame_ids,  // n_inputs 长度，可空则内部计算；0 非法
     const P2SamplerConfig* cfg,
     P2ControlObservation* out_obs,
     std::uint64_t out_capacity,

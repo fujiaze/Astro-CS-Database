@@ -84,7 +84,7 @@ void normalize_flat(float* flat, int w, int h) {
     if (!(med > 0.0f)) return; // median <= 0 无法归一化，保持原样
 
     float inv = 1.0f / med;
-#pragma omp parallel for schedule(static) num_threads(16)
+#pragma omp parallel for schedule(static)
     for (int i = 0; i < n; i++) {
         float v = flat[i] * inv;
         if (v < 0.1f) v = 0.1f;
@@ -114,7 +114,7 @@ void calibrate(const float* light, int w, int h,
 
     if (dark_opt == 1 && bias && dark) {
         // 暗场优化模式：K = t_light / t_dark，直接应用 (light - bias - K*(dark-bias)) / flat
-#pragma omp parallel for schedule(static) num_threads(16)
+#pragma omp parallel for schedule(static)
         for (int i = 0; i < n; i++) {
             float v = light[i] - bias[i] - k * (dark[i] - bias[i]);
             if (flat) v /= std::max(flat[i], 0.1f);
@@ -123,7 +123,7 @@ void calibrate(const float* light, int w, int h,
     } else {
         // 标准模式：Dark 已含 Bias，直接 (light - dark) / flat
         k = 1.0f;
-#pragma omp parallel for schedule(static) num_threads(16)
+#pragma omp parallel for schedule(static)
         for (int i = 0; i < n; i++) {
             float v = light[i];
             if (dark) v -= dark[i];
@@ -157,7 +157,7 @@ void calibrate_d(const double* light, int w, int h,
 
     if (dark_opt == 1 && bias && dark) {
         // 暗场优化模式：K = t_light / t_dark，直接应用 (light - bias - K*(dark-bias)) / flat
-        #pragma omp parallel for schedule(static) num_threads(16)
+        #pragma omp parallel for schedule(static)
         for (int i = 0; i < n; i++) {
             double v = light[i] - bias[i] - k * (dark[i] - bias[i]);
             if (flat) v /= std::max(flat[i], 0.1);
@@ -166,7 +166,7 @@ void calibrate_d(const double* light, int w, int h,
     } else {
         // 标准模式：Dark 已含 Bias，直接 (light - dark) / flat
         k = 1.0;
-        #pragma omp parallel for schedule(static) num_threads(16)
+        #pragma omp parallel for schedule(static)
         for (int i = 0; i < n; i++) {
             double v = light[i];
             if (dark) v -= dark[i];

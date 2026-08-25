@@ -14,12 +14,18 @@ namespace astro::compute::cuda {
 
 CudaExecutor::CudaExecutor(int device_id,
                            std::size_t recommended_chunk,
-                           std::size_t min_chunk)
+                           std::size_t min_chunk,
+                           const KernelRegistry* registry)
     : device_id_(device_id)
     , device_id_str_("cuda:" + std::to_string(device_id))
     , recommended_chunk_(recommended_chunk)
-    , min_chunk_(min_chunk) {
+    , min_chunk_(min_chunk)
+    , registry_(registry) {
     ensure_initialized();
+}
+
+const KernelRegistry* CudaExecutor::registry() const {
+    return registry_ ? registry_ : &global_kernel_registry();
 }
 
 CudaExecutor::~CudaExecutor() {
@@ -71,6 +77,10 @@ bool CudaExecutor::available() const {
     return available_;
 }
 
+bool CudaExecutor::supports(astro::compute::OperationId op) const {
+    return registry()->supports(op, "cuda");
+}
+
 scheduler::QueueState CudaExecutor::queue_state() const {
     scheduler::QueueState qs;
     qs.depth = pending_count_.load(std::memory_order_relaxed);
@@ -79,9 +89,13 @@ scheduler::QueueState CudaExecutor::queue_state() const {
     return qs;
 }
 
-scheduler::SubmitResult CudaExecutor::submit(const scheduler::WorkToken& token,
-                                               const scheduler::KernelInvocation& invocation) {
-    scheduler::SubmitResult result;
+scheduler::SubmitHandle CudaExecutor::submit(const scheduler::WorkToken& token,
+                                               const astro::compute::KernelInvocation& invocation) {
+    scheduler::SubmitHandle result;
+    result.device = static_cast<astro::compute::DeviceId>(device_id_ + 1);
+    result.op_id = std::string(invocation.id);
+    result.attempt = token.attempt;
+
     if (!token.valid()) {
         result.status = scheduler::SubmitStatus::Rejected;
         result.error = "invalid token";
@@ -93,67 +107,42 @@ scheduler::SubmitResult CudaExecutor::submit(const scheduler::WorkToken& token,
         return result;
     }
 
+    const KernelRegistration* reg = registry()->find(invocation.id);
+    if (reg == nullptr || !reg->cuda.has_value()) {
+        // 设备 launcher 缺失：拒绝（调用方必须回退并如实报告）
+        result.status = scheduler::SubmitStatus::Rejected;
+        result.error = "operation not registered for cuda: " + std::string(invocation.id);
+        return result;
+    }
+    // 24 §5.2：提交前统一契约校验
+    const std::string contract_err =
+        validate_invocation(*reg, invocation, "cuda");
+    if (!contract_err.empty()) {
+        result.status = scheduler::SubmitStatus::Rejected;
+        result.error = "invocation contract violation: " + contract_err;
+        return result;
+    }
+
     pending_count_.fetch_add(1, std::memory_order_relaxed);
-
-    auto start = std::chrono::high_resolution_clock::now();
-
-    // 真实 GPU kernel 执行：axpy(y, x, a, n, stream)
-    // y = a * x + y，用 token.size 作为元素数
-    // 这里执行真实 <<<>>> kernel，证明 GPU 真实参与计算（非占位回退）
-    std::size_t n = token.size();
-    if (n > d_buffer_.count()) {
-        n = d_buffer_.count();  // 不超过预分配缓冲区
-    }
-
-    StatusCode s = axpy(d_buffer_.data(), d_x_buffer_.data(), 1.0f, n, stream_);
-    if (s != StatusCode::Ok) {
+    const auto start = std::chrono::high_resolution_clock::now();
+    try {
+        // 真实 GPU kernel 执行：注册的 cuda launcher（含显存传输与 kernel 启动）
+        (*reg->cuda)(invocation, nullptr);
+        result.status = scheduler::SubmitStatus::Ok;
+        result.items_done = token.size();
+        result.bytes_done =
+            token.size() * (invocation.traits.bytes_read_per_item +
+                            invocation.traits.bytes_written_per_item);
+    } catch (const std::exception& e) {
         result.status = scheduler::SubmitStatus::Failed;
-        result.error = "axpy kernel failed";
-        auto end = std::chrono::high_resolution_clock::now();
-        result.elapsed_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
-            end - start).count();
-        pending_count_.fetch_sub(1, std::memory_order_relaxed);
-        return result;
-    }
-
-    // 等待 GPU kernel 完成（同步语义）
-    cudaError_t err = cudaStreamSynchronize(stream_);
-    if (err != cudaSuccess) {
+        result.error = std::string("cuda kernel exception: ") + e.what();
+    } catch (...) {
         result.status = scheduler::SubmitStatus::Failed;
-        result.error = "cudaStreamSynchronize failed";
-        auto end = std::chrono::high_resolution_clock::now();
-        result.elapsed_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
-            end - start).count();
-        pending_count_.fetch_sub(1, std::memory_order_relaxed);
-        return result;
+        result.error = "cuda kernel unknown exception";
     }
-
-    // GPU kernel 完成后，调用 user 的 kernel function 处理 user_data
-    // 这样保证：
-    // 1. GPU 真实参与了计算（axpy 在 GPU 上执行）
-    // 2. user 的工作块逻辑被执行（user_data 被处理）
-    // 3. 每块恰好被处理一次（user fn 被调用一次）
-    // 这等同于 GPU 端先做实际 GPU 工作，再回调 user 逻辑处理 host 数据
-    if (invocation.fn) {
-        try {
-            invocation.fn(token.id, token.begin, token.end, invocation.user_data);
-        } catch (...) {
-            result.status = scheduler::SubmitStatus::Failed;
-            result.error = "user kernel exception";
-            auto end = std::chrono::high_resolution_clock::now();
-            result.elapsed_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                end - start).count();
-            pending_count_.fetch_sub(1, std::memory_order_relaxed);
-            return result;
-        }
-    }
-
-    result.status = scheduler::SubmitStatus::Ok;
-    result.items_done = token.size();
-    auto end = std::chrono::high_resolution_clock::now();
-    result.elapsed_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
-        end - start).count();
-
+    const auto end = std::chrono::high_resolution_clock::now();
+    result.elapsed_ns = static_cast<std::uint64_t>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count());
     pending_count_.fetch_sub(1, std::memory_order_relaxed);
     return result;
 }

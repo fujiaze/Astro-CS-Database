@@ -6,6 +6,7 @@ add_library(acr_routing STATIC
 target_link_libraries(acr_routing PUBLIC
     acr_options
     acr_api
+    nlohmann_json::nlohmann_json
 )
 target_include_directories(acr_routing PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}

@@ -498,6 +498,20 @@ static int p2_sample_controls_impl(
         for (std::uint64_t i = 0; i < n_frames; ++i)
             fid_cache[i] = p2_frame_id(hips_paths[i]);
     }
+    for (std::uint64_t i = 0; i < n_frames; ++i) {
+        if (fid_cache[i] == 0) {
+            if (err && err_size)
+                std::snprintf(err, err_size,
+                              "frame_id 0 invalid (hash/open failed) frame %llu path=%s",
+                              (unsigned long long)i,
+                              hips_paths[i] ? hips_paths[i] : "(null)");
+            std::fprintf(stderr, "[sampler] frame_id 0 invalid frame %llu path=%s\n",
+                         (unsigned long long)i,
+                         hips_paths[i] ? hips_paths[i] : "(null)");
+            std::fflush(stderr);
+            return 1;
+        }
+    }
     const int leaf_shift = 9;  // tile 内 512×512 leaf
 
     // 打开每帧 signal/support/snr 并收集 tile 集合

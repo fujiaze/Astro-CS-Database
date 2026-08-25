@@ -1,13 +1,47 @@
 {
-  "_comment": "V9 默认 demo 配置（浏览器直接消费标准 HiPS，无需转换）",
-  "default_hips": "run/phase2/v7/gc_3panel.mosaic.hips",
+  "_comment": "V9 default demo (R2: gc_32red canonical 32-frame mosaic; gc_3panel legacy kept for reference)",
+  "default_hips": "run/phase2/v7/gc_32red.mosaic.hips",
   "default_preset": "GC Wide",
   "presets": [
-    {"name": "GC Wide", "ra": 272.5, "dec": -17.2, "fov": 15.0, "layer": "signal"},
-    {"name": "Overlap 1-2", "ra": 272.5, "dec": -15.66, "fov": 3.0, "layer": "signal"},
-    {"name": "Overlap 2-3", "ra": 272.5, "dec": -20.72, "fov": 3.0, "layer": "signal"},
-    {"name": "Seam Close-up", "ra": 272.5, "dec": -15.66, "fov": 0.8, "layer": "signal"},
-    {"name": "Support View", "ra": 272.5, "dec": -17.2, "fov": 15.0, "layer": "support"}
+    {
+      "name": "GC Wide",
+      "ra": 272.5,
+      "dec": -17.2,
+      "fov": 15.0,
+      "layer": "signal"
+    },
+    {
+      "name": "Overlap 1-2",
+      "ra": 272.5,
+      "dec": -15.66,
+      "fov": 3.0,
+      "layer": "signal"
+    },
+    {
+      "name": "Overlap 2-3",
+      "ra": 272.5,
+      "dec": -20.72,
+      "fov": 3.0,
+      "layer": "signal"
+    },
+    {
+      "name": "Seam Close-up",
+      "ra": 272.5,
+      "dec": -15.66,
+      "fov": 0.8,
+      "layer": "signal"
+    },
+    {
+      "name": "Support View",
+      "ra": 272.5,
+      "dec": -17.2,
+      "fov": 15.0,
+      "layer": "support"
+    }
   ],
-  "server": {"mode": "none", "note": "本地进程内渲染，不启动 HTTP server；如后续需要 server 仅允许 127.0.0.1"}
+  "server": {
+    "mode": "none",
+    "note": "本地进程内渲染，不启动 HTTP server；如后续需要 server 仅允许 127.0.0.1"
+  },
+  "legacy_default_hips": "run/phase2/v7/gc_3panel.mosaic.hips"
 }

@@ -426,7 +426,7 @@ template <typename T>
 static T sdet_compute_bgnoise(const T* img, int width, int height) {
     if (width < 2 || height < 1) return 0.0f;
     std::vector<T> row_stdevs(height);
-    #pragma omp parallel for schedule(static) num_threads(16)
+    #pragma omp parallel for schedule(static)
     for (int y = 0; y < height; y++) {
         const T* row = img + y * width;
         std::vector<T> diffs(width - 1);
@@ -682,7 +682,7 @@ void sdet_detect_saturated_stars(const float* fimg, int width, int height,
 
     // 计算动态范围 + median (:, bg 用 median 而非 img_min)
     float img_min = 1e30f, img_max = -1e30f;
-    #pragma omp parallel for reduction(min:img_min) reduction(max:img_max) schedule(static) num_threads(16)
+    #pragma omp parallel for reduction(min:img_min) reduction(max:img_max) schedule(static)
     for (int i = 0; i < (int)n; i++) {
         if (fimg[i] < img_min) img_min = fimg[i];
         if (fimg[i] > img_max) img_max = fimg[i];
@@ -708,7 +708,7 @@ void sdet_detect_saturated_stars(const float* fimg, int width, int height,
 
     // 二值化：pixel > sat_threshold
     std::vector<float> binary(n, 0.0f);
-    #pragma omp parallel for schedule(static) num_threads(16)
+    #pragma omp parallel for schedule(static)
     for (int i = 0; i < (int)n; i++) {
         if (fimg[i] > sat_threshold) binary[i] = 1.0f;
     }
@@ -1002,7 +1002,7 @@ SDET_EXPORT int sdet_detect(StarDetectorHandle handle,
     size_t n = (size_t)width * height;
 
     std::vector<float> fimg(n);
-    #pragma omp parallel for schedule(static) num_threads(16)
+    #pragma omp parallel for schedule(static)
     for (int i = 0; i < (int)n; i++) {
         fimg[i] = static_cast<float>(image[i]);
     }
@@ -1291,7 +1291,7 @@ SDET_EXPORT int sdet_detect_debug(StarDetectorHandle handle,
     size_t n = (size_t)width * height;
 
     std::vector<float> fimg(n);
-    #pragma omp parallel for schedule(static) num_threads(16)
+    #pragma omp parallel for schedule(static)
     for (int i = 0; i < (int)n; i++) {
         fimg[i] = static_cast<float>(image[i]);
     }
@@ -2325,7 +2325,7 @@ SDET_EXPORT int sdet_detect_ex(StarDetectorHandle handle,
     if (!handle || !image || width <= 0 || height <= 0) return -1;
     size_t n = (size_t)width * height;
     std::vector<float> fimg(n);
-    #pragma omp parallel for schedule(static) num_threads(16)
+    #pragma omp parallel for schedule(static)
     for (int i = 0; i < (int)n; i++) {
         fimg[i] = static_cast<float>(image[i]);
     }

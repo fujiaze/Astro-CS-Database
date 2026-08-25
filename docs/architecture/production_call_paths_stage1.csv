@@ -1,0 +1,8 @@
+entry_symbol,config_gate,target,source_symbol,execution_mode,diagnostic_field,test_id,notes
+main (orchestrator.exe <stage1.json>),stage1.schema.json,orchestrator,Orchestrator::run,serial,exit_code,TEST-ORCH-001,唯一Phase1入口
+Orchestrator::run_stage_calibrate,stage1.calibrate.enabled,astro_calibration,ac_calibrate_frame / calibrate,parallel_cpu (OpenMP 16),calibrate.t_ms,TEST-CAL-001,Drizzle前校准
+Orchestrator::run_stage_platesolve,stage1.platesolve.enabled,ipv_solver,ipv_solve_from_detections_v1 / build_wcs,serial,platesolve.rms_px,TEST-IPV-001,astrometry.net对照
+Orchestrator::run_stage_photometric,stage1.photometric.enabled,photometric_calib,pc_calibrate_simple,serial,photometric.zero_point,TEST-SPEC-001,flux校准
+Orchestrator::run_stage_drizzle,stage1.drizzle.enabled,healpix_drizzle,drizzleTiled / processPixelSharedTiled,parallel_cpu (OpenMP),drizzle.n_tiles,TEST-DRZ-CAND-001,球面投影
+Orchestrator::run_stage_snr,stage1.snr.enabled,snr_estimator,snr_noise_model_v1,parallel_cpu,snr.sigma_bg,TEST-SNR-001,ivar估计
+aio_hips_write_signal_support_tile,stage1.output.hips,astro_image_io,aio_hips_product_begin,serial+async_io,hips.nside,TEST-HIPS-001,HiPS写

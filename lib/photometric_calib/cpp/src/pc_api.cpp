@@ -315,7 +315,7 @@ int pc_calibrate_simple_with_gaia(
     std::vector<double> f_syn_values(n_gaia, 0.0);
     int n_valid_fsyn = 0;
 
-    #pragma omp parallel for num_threads(16) schedule(dynamic, 64) reduction(+:n_valid_fsyn)
+    #pragma omp parallel for schedule(dynamic, 64) reduction(+:n_valid_fsyn)
     for (int i = 0; i < n_gaia; ++i) {
         const uint8_t* spec_i = spectra_buf + (size_t)i * spec_stride;
         // Phase1 Final Closure: XPSD 官方解码 (PCL: F = byte*fluxMul + fluxMin),
@@ -661,7 +661,7 @@ int pc_calibrate_simple_with_gaia_f64(
     std::vector<double> f_syn_values(n_gaia, 0.0);
     int n_valid_fsyn = 0;
 
-    #pragma omp parallel for num_threads(16) schedule(dynamic, 64) reduction(+:n_valid_fsyn)
+    #pragma omp parallel for schedule(dynamic, 64) reduction(+:n_valid_fsyn)
     for (int i = 0; i < n_gaia; ++i) {
         const uint8_t* spec_i = spectra_buf + (size_t)i * spec_stride;
         f_syn_values[i] = photo_calib::compute_f_syn_cached_xpsd(
@@ -928,7 +928,7 @@ int run_with_gaia_impl(
     std::vector<double> f_syn_values(n_gaia, 0.0);
     int n_valid_fsyn = 0;
 
-    #pragma omp parallel for num_threads(16) schedule(dynamic, 64) reduction(+:n_valid_fsyn)
+    #pragma omp parallel for schedule(dynamic, 64) reduction(+:n_valid_fsyn)
     for (int i = 0; i < n_gaia; ++i) {
         const uint8_t* spec_i = spectra_buf + (size_t)i * spec_stride;
         f_syn_values[i] = photo_calib::compute_f_syn_cached_xpsd(

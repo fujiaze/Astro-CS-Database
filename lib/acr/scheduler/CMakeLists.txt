@@ -21,6 +21,10 @@ target_link_libraries(acr_scheduler PUBLIC
     acr_cuda_bridge_loader
     acr_routing
 )
+# 本库 PUBLIC 链接 acr_cuda_bridge_loader（其强定义 try_append_cuda_bridge_executors
+# 提供真实桥接实现）；device_executor.cpp 的 MSVC no-op 仅在无 loader 的独立构建
+# （ASan standalone）需要。定义本宏使完整构建跳过 no-op，避免 LNK2005 重复符号。
+target_compile_definitions(acr_scheduler PRIVATE ACR_WITH_BRIDGE_LOADER=1)
 # F-fix 8: ACR_BUILD_CUDA=ON 时链接 acr_cuda（CudaExecutor 真实 GPU 执行器）
 if(ACR_BUILD_CUDA)
     target_link_libraries(acr_scheduler PUBLIC acr_cuda)

@@ -39,7 +39,9 @@ add_library(phase2 STATIC
     src/integrate.cpp
     src/acr_kernels.cpp
     ../acr/api/kernel_registry.cpp
-    ../acr/backends/cuda/cuda_bridge_loader.cpp
+    # Windows: real DLL loader; Linux: stub (bridge always unavailable, CPU path)
+    $<$<PLATFORM_ID:Windows>:../acr/backends/cuda/cuda_bridge_loader.cpp>
+    $<$<NOT:$<PLATFORM_ID:Windows>>:src/cuda_bridge_stub.cpp>
     ../acr/scheduler/device_executor.cpp
     ../common/healpix/healpix_core.cpp
     ../common/crypto/sha256.cpp

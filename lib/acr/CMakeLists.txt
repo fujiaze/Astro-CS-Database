@@ -148,6 +148,17 @@ if(ACR_BUILD_TESTS)
     endif()
 endif()
 
+# nlohmann_json：route_profile_v2.cpp 硬依赖（json.hpp），此前仅 FetchContent_Declare 未
+# MakeAvailable，Linux/MinGW 靠 gcc 默认 include 路径侥幸编译；MSVC 无该路径暴露。
+# 按 GTest 务实 fallback 模式：find_package 优先，缺失则 FetchContent。
+find_package(nlohmann_json QUIET)
+if(nlohmann_json_FOUND)
+    message(STATUS "ACR: nlohmann_json found via system package: ${nlohmann_json_VERSION}")
+else()
+    message(STATUS "ACR: nlohmann_json system package not found, using FetchContent (v3.11.3)")
+    FetchContent_MakeAvailable(nlohmann_json)
+endif()
+
 # === Phase C: hwloc / cpu_features 检测 ===
 # hwloc：MSYS2 mingw-w64-x86_64-hwloc 提供头+库，但无 cmake config，用 find_path/find_library
 find_path(HWLOC_INCLUDE_DIR NAMES hwloc.h)

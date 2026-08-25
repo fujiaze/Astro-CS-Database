@@ -1,0 +1,3 @@
+requirement_id,requirement_type,title,authority_doc,algorithm_id,module,public_api,implementation_files,implementation_symbols,test_ids,test_files,diagnostic_ids,error_codes,release_gate,status,notes
+SCI-CAL-001,science,cal,docs/science/CALIBRATION.md,ALG-CAL-001,calibration,ac_calibrate_frame,lib/calibration/src/calibrator.cpp,ac_calibrate_frame,TST-CAL-001,lib/calibration/tests/test_photometry_apply.cpp,,,PRE_RELEASE_ENGINEERING_FOUNDATION,VERIFIED,ok
+SCI-CAL-001,science,dup cal,docs/science/CALIBRATION.md,ALG-CAL-001,calibration,ac_calibrate_frame,lib/calibration/src/calibrator.cpp,ac_calibrate_frame,TST-CAL-001,lib/calibration/tests/test_photometry_apply.cpp,,,PRE_RELEASE_ENGINEERING_FOUNDATION,VERIFIED,dup

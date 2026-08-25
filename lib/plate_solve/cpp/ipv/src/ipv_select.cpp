@@ -807,7 +807,7 @@ int ipv_select(
     const size_t n_cat = cat_ra.size();
     std::vector<double> proj_xi(n_cat), proj_eta(n_cat);
     std::vector<char> proj_valid(n_cat, 0);
-    #pragma omp parallel for num_threads(16) schedule(static)
+    #pragma omp parallel for schedule(static)
     for (ptrdiff_t i = 0; i < (ptrdiff_t)n_cat; ++i) {
         double xi = 0.0, eta = 0.0;
         bool valid = false;
@@ -1120,7 +1120,7 @@ int ipv_select_from_memory(
     const size_t n_cat = cat_ra.size();
     std::vector<double> proj_xi(n_cat), proj_eta(n_cat);
     std::vector<char> proj_valid(n_cat, 0);
-    #pragma omp parallel for num_threads(16) schedule(static)
+    #pragma omp parallel for schedule(static)
     for (ptrdiff_t i = 0; i < (ptrdiff_t)n_cat; ++i) {
         double xi = 0.0, eta = 0.0;
         bool valid = false;
@@ -1409,7 +1409,7 @@ int ipv_select_from_detections(
     const size_t n_cat = cat_ra.size();
     std::vector<double> proj_xi(n_cat), proj_eta(n_cat);
     std::vector<char> proj_valid(n_cat, 0);
-    #pragma omp parallel for num_threads(16) schedule(static)
+    #pragma omp parallel for schedule(static)
     for (ptrdiff_t i = 0; i < (ptrdiff_t)n_cat; ++i) {
         double xi = 0.0, eta = 0.0;
         bool valid = false;
@@ -1753,7 +1753,7 @@ static int ipv_select_from_memory_with_callback_impl(
     const size_t n_cat = cat_ra.size();
     std::vector<double> proj_xi(n_cat), proj_eta(n_cat);
     std::vector<char> proj_valid(n_cat, 0);
-    #pragma omp parallel for num_threads(16) schedule(static)
+    #pragma omp parallel for schedule(static)
     for (ptrdiff_t i = 0; i < (ptrdiff_t)n_cat; ++i) {
         double xi = 0.0, eta = 0.0;
         bool valid = false;

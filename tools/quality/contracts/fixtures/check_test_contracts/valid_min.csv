@@ -1,0 +1,6 @@
+requirement_id,requirement_type,title,authority_doc,algorithm_id,module,public_api,implementation_files,test_ids,test_files
+SCI-CAL-001,science,cal,docs/science/CALIBRATION.md,ALG-CAL-001,calibration,ac_calibrate_frame,lib/calibration/src/calibrator.cpp,TST-CAL-001,lib/calibration/tests/test_photometry_apply.cpp
+SCI-PHOT-001,science,phot,docs/science/PHOTOMETRY.md,ALG-PHOT-001,photometric_calib,pc_calibrate_simple,lib/photometric_calib/cpp/src/pc_api.cpp,TST-PHOT-001,lib/photometric_calib/tests/test.cpp
+SCI-PSF-001,science,psf,docs/science/PSF.md,ALG-PSF-001,dynamic_psf,dpsf_fit,lib/dynamic_psf/src/dpsf_psf.cpp,TST-PSF-001,lib/phase2/tests/synthetic_gate.cpp
+SCI-INT-001,science,int,docs/science/INTEGRATION.md,ALG-INT-001,phase2,p2_integrate_pixel,lib/phase2/src/integrate.cpp,TST-INT-001,lib/phase2/tests/synthetic_gate.cpp
+SCI-REJ-001,science,rej,docs/science/REJECTION.md,ALG-REJ-001,phase2,p2_reject,lib/phase2/src/rejection.cpp,TST-REJ-001,lib/phase2/tests/synthetic_gate.cpp

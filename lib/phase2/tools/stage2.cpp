@@ -202,6 +202,12 @@ int main(int argc, char** argv) {
     std::vector<std::pair<std::uint64_t, std::string>> manifest_entries;
     for (std::size_t i = 0; i < cfg.hips.size(); ++i) {
         const std::uint64_t fid = p2_frame_id(cfg.hips[i].c_str());
+        if (fid == 0) {
+            log("frame_id 0 invalid: " + cfg.hips[i] + " (p2_frame_id failed: hash/open exception)");
+            std::fprintf(stderr, "[stage2] frame_id 0 invalid: %s (p2_frame_id failed)\n", cfg.hips[i].c_str());
+            std::fflush(stderr);
+            return 4;
+        }
         frame_id_cache[i] = fid;
         std::string meta;
         if (i < infos.size()) {

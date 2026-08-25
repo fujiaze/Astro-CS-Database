@@ -1,61 +1,102 @@
-# PSF Science
+# PSF Science (SCI-PSF)
 
-## 目的
+> ID: SCI-PSF-001  状态: FROZEN (T101 冻结, 2026-08-23)  上游: SCI-SCOPE-001  下游 ALG: ALG-STAR-PSF-001..  模块: dynamic_psf
 
-描述点源响应并给出拟合质量代理。
+## 1 目的与非目标
 
-## 科学定义
+- **目的**：描述点源响应（椭圆 Moffat4），估计 PSF 形状/位置及拟合质量代理 `q_psf`，用于 Astrometry/Photometry 的星点建模与剔星/QA。
+- **非目标**：不处理超出椭圆 Moffat4 的高阶色差/空间变异（仅一阶椭率 `e,θ`）；不直接输出图像噪声 SNR（`q_psf`≠SNR，见 NOISE_MODEL）；不进入 Phase2 逐像素 science weight（SNR-008 已退休旧 `(A−B)/mad` 路径）。
 
-Moffat4 模型（β=4，`lib/dynamic_psf/src/dpsf_psf.cpp:13-18,66-95`）：
+## 2 符号表
+
+| 符号 | 含义 | 出现位置 |
+|---|---|---|
+| `I(r)` | 点源强度模型 `B + A/(1+Q)^4` | `dpsf_psf.cpp:13-18` |
+| `Q` | 二次型 `p1·dx²+2p2·dxdy+p3·dy²` | `dpsf_psf.cpp:66-95` |
+| `dx,dy` | 相对坐标 `x−(cx+x0), y−(cy+y0)` | 同上 |
+| `B,A,x0,y0,sx,sy,θ` | Moffat4 7 参数 | `lm_solve` 7-vector |
+| `σ,sx,sy` | 各向同性 σ / 各向异性轴尺度 (px) | FWHM 推导 |
+| `e` | 离心率 `√(1−(s_min/s_max)²)` | 椭率 |
+| `fwhm_x/y` | 轴向 FWHM `1.230310·s` | `MOFFAT4_FWHM_FACTOR` |
+| `flux` | 解析通量 `2πA·sxsy/3` (β=4) | `dpsf_psf.cpp:368` |
+| `residual_scale` | 10–90% trimmed mean \|residual\| | PSF 块第8列 |
+| `robust_residual_sigma` | `residual_scale/0.7316728` | Gaussian 假设 |
+| `q_psf` | `A/residual_scale` 拟合质量代理 | 剔星/QA |
+
+## 3 物理量和单位
+
+- `I,A,B,residual_scale`: ADU；`r,dx,dy,σ,sx,sy,fwhm`: px；`θ`: rad；`Q,e,q_psf`: 无量纲；`flux`: ADU·px²（含解析积分常数）。
+
+## 4 输入有效域
+
+- 图像 `uint16_t`/`float32`，维度 `w>0,h>0`，拟合窗口 `fitRadius` 使 `rect` 在图像内且面积 `rw*rh > 0`，否则返回 `DPSF_ERR_PARAM`（`dpsf_fit:433 empty rect`）。
+- 初始幅度 `A0 = max_val − bkg0 > 0`，否则 `LOG_WARN Amplitude<=0` 并拒。
+- `sx>0, sy>0`，否则 `Invalid fit params` 拒；`B` 受 `bkg0` 约束（`Background constraint violated`）。
+
+## 5 连续定义
 
 ```text
-I(r) = B + A / (1 + Q)⁴,  Q = p1·dx² + 2·p2·dx·dy + p3·dy²
-p1 = cos²θ/(2sx²)+sin²θ/(2sy²), p2 = sin2θ/(4sx²)−sin2θ/(4sy²), p3 = sin²θ/(2sx²)+cos²θ/(2sy²)
+I(r) = B + A / (1 + Q)^4
+Q = p1·dx² + 2·p2·dx·dy + p3·dy²
+p1 = cos²θ/(2sx²)+sin²θ/(2sy²)
+p2 = sin2θ/(4sx²)−sin2θ/(4sy²)
+p3 = sin²θ/(2sx²)+cos²θ/(2sy²)
 dx = x−(cx+x0), dy = y−(cy+y0)
+
+各向同性 sx=sy=σ ⇒ Q=0.5·r²/σ²
+α=√2·σ, FWHM=2α√(2^{1/4}−1)=2√2·σ·√(2^{1/4}−1)≈1.230310·σ
+flux = 2πA·sxsy/3   (整平面延伸假设)
 ```
 
-各向同性退化 `sx=sy=σ` 时 `Q=0.5·r²/σ²`。各向异性参数 `sx,sy>0, θ`（椭率方向角），离心率 `e=√(1−(s_min/s_max)²)`。标准 Moffat `M=A/(1+r²/α²)^β`，由 `Q=r²/(2σ²)=r²/α²` 得 `α=√2·σ`，故单轴 `FWHM =2α√(2^{1/β}−1)=2√2·σ·√(2^{1/4}−1)≈1.230310·σ`（`MOFFAT4_FWHM_FACTOR`），两轴 `fwhm_x/y=1.230310·sx/sy`；`θ` 存在四象限简并，拟合后以 4 候选 `{θ, π/2−θ, π/2+θ, π−θ}` 中 10–90% trimmed-mad 最小者消歧（`dpsf_psf.cpp:351-363, compute_trimmed_mad`）。
+与 `lib/dynamic_psf/src/dpsf_psf.cpp:13-18,66-95,351-368` 一致。
 
-解析积分通量 `flux = 2πA·sxsy/(β−1) = 2πA·sxsy/3`（β=4，`dpsf_psf.cpp:368`）仅在整平面延伸 Moffat 假设下有效，切割/饱和域为近似。
+## 6 假设
 
-## PsfFitQuality
+- 视场内 PSF 缓变（块状拟合共享假设）；星点不饱和、采样充足（FWHM/px 合理范围）；残差在 `robust_residual_sigma` 换算时近似 Gaussian。
 
-```text
-residual_scale        = 10–90% trimmed mean |residual|   (PSF 块第 8 列)
-robust_residual_sigma = residual_scale / 0.7316728       (Gaussian 假设)
-q_psf                 = A / residual_scale               (fit-quality proxy)
-```
+## 7 独立不变量
 
-`q_psf` 是拟合质量代理（剔星/QA），不是图像噪声 SNR；默认不进入 Phase2 逐像素 science weight（SNR-008 退休旧 (A−B)/mad 科学路径）。系数 `E[trimmed mean |r|]=0.7316728·σ` 为 `r∼N(0,σ²)` 时 `10–90%` 分位截尾后 `|r|` 均值的解析常数（`kTrimMeanToSigma=0.7316727929211932`，`lib/snr_estimator/cpp/src/noise_model.cpp:35-37`），仅 Gaussian 残差假设下 `robust_residual_sigma` 有尺度意义。
+- **FWHM 缩放不变量**：各向同性 Moffat4 的 `FWHM/σ` 比值恒为 `1.230310`，与 `A,B` 无关。
+- **积分一致性**：各向同性 `σ` 的解析 `flux` 在数值积分（足域）内与 `A,σ` 的 `2πAσ²/3` 比例一致（误差仅离散域/截断）。
+- **旋转简并不变量**：`θ` 四候选 `{θ,π/2−θ,π/2+θ,π−θ}` 中以 trimmed-mad 最小者消歧后，`fwhm_x/y` 与方向无关（`dpsf_psf.cpp:351-363`）。
+- **平移不变量**：整帧平移 `Δ` 后拟合中心 `cx+x0` 同步平移 `Δ`（子像素插值误差内）。
 
-## 变量/单位
+## 8 极端/退化条件
 
-- I：ADU；r,dx,dy：px；σ,sx,sy：px；A：ADU；B：ADU；θ：rad；Q：无量纲；fwhm：px；q_psf：无量纲；residual_scale：ADU。
+| 条件 | 行为 | 证据 |
+|---|---|---|
+| 空 `rect`/越界 | 返回错误 `DPSF_ERR_PARAM` | `dpsf_fit:446 empty rect` |
+| `A<=0` / `max<=bkg` | `WARN Amplitude<=0` 拒 | `dpsf_psf.cpp:310` |
+| `sx<=0`/`sy<=0`/非有限 | `WARN Invalid fit params` 拒 | `dpsf_psf.cpp:333` |
+| FWHM 超窗 | `WARN FWHM exceeds rect` | `dpsf_psf.cpp:343` |
+| LM 不收敛 | 返回非零 `status`，成本 `cost` 上报 | `dpsf_psf.cpp:186` |
+| 无星/密集混淆 | 上游采样为空 → 显式 NO_DATA | 调用方 |
 
-## 假设
+## 9 精度策略
 
-- 视场内 PSF 形状缓变（块状拟合）；星点不饱和。
+- FP64 拟合 LM 求解器 `lm_solve`（`dpsf_psf.cpp:98-182`），仅 7 参数 Moffat4 路径；`kTrimMeanToSigma=0.7316727929211932` 解析常数（`noise_model.cpp:35-37`）用于 `robust_residual_sigma`，仅 Gaussian 假设下有尺度意义。
 
-## 有效域
+## 10 不可接受变化
 
-- 采样充足（≥FWHM/px 合理范围）；无密集混淆。
+- 改变 Moffat β≠4 或 `FWHM_FACTOR` 而无 SCI 变更；
+- 将 `q_psf` 当 SNR 进入 Phase2 权重；
+- 引入未文档的高斯备选拟合路径作为主路径。
 
-## 不保证
+## 11 验证 Oracle
 
-- 不保证超出椭圆 Moffat4 的 PSF 色差/空间高阶各向异性（Moffat4 仅刻画一阶椭率 `e,θ`）。
+- **解析解**：各向同性 `FWHM/σ` 与 `flux` 公式的解析一致性（`max_abs==0`）。
+- **Python 参考**：`scipy` / NumPy 对同参数 Moffat4 图像块做 `curve_fit` 复算，位置 `≤0.05px`、FWHM `≤1%`（合成无噪声谱）。
+- **不变量门**：FWHM 缩放、旋转简并、平移三门。
+- **失败注入**：空窗/非正幅度/非有限尺度返回显式错误码。
 
-## 失效条件
+## 12 关联 ALG ID
 
-- 拟合不收敛/无星点 → PSF 阶段显式状态。
+- `ALG-STAR-PSF-001` Moffat4 拟合（LM 7 参数）
+- `ALG-STAR-PSF-002` 几何常数（FWHM/通量）与 θ 消歧
 
-## 数值精度
+## 13 追溯与测试
 
-FP64 拟合；Levenberg-Marquardt 类求解。求解器仅保留 7 参数 Moffat4（`B,A,x0,y0,sx,sy,θ`）LM 路径（`lm_solve`，`dpsf_psf.cpp:98-182`），V19 自 `lib/dynamic_psf` 创建起未引入高斯模型文件，锚点 `docs/algorithms/STAR_PSF_ALGORITHMS.md` 伪代码已仅列 Moffat4；历史“高斯路径”指早期设计讨论中未落地的 `exp(−r²/2σ²)` 备选，未进入代码/追溯。
-
-## 参考文献
-
-Moffat (1969)；Trujillo et al. (2001)。
-
-## ID
-
-SCI-PSF-001；ALG-STAR-PSF-*。
+- 权威文件: `docs/science/PSF.md` (SCI-PSF-001)
+- 实现: `lib/dynamic_psf/src/dpsf_psf.cpp` (`dpsf_fit/batch, lm_solve, MOFFAT4_FWHM_FACTOR, compute_trimmed_mad`), `lib/snr_estimator/cpp/src/noise_model.cpp:35-37`
+- 公开 API: `lib/dynamic_psf/include/dynamic_psf.h` (`dpsf_fit, dpsf_fit_batch`)
+- 测试: `TST-PSF-001` 解析一致性、`TST-PSF-INV-*` 三门、`TST-PSF-FAIL-*` 参数校验（新增/映射见 `docs/TRACEABILITY.csv`）

@@ -1,0 +1,1 @@
+{"tool": "check_build_graph", "status": "PASS", "fixtures": "BUILD_GRAPH.md with 8 targets + P2_ENABLE_OPENMP + CMakeLists targets"}

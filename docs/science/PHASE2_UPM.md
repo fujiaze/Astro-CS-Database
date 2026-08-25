@@ -1,99 +1,122 @@
-# Phase2 UPM Science
+# Phase2 UPM (Control Photometry) Science (SCI-UPM)
 
-## 目的
+> ID: SCI-UPM-001..010, SCI-UPM-WEIGHT-001, SCI-UPM-PERSIST-001  状态: FROZEN (T106 冻结, 2026-08-23)  上游: SCI-SCOPE-001  下游 ALG: ALG-UPM-001..  模块: phase2 (upm/sampler)
 
-多帧覆盖并集上建立**一个**联合加性光度模型（UPM），消除逐帧背景/零点差。
+## 1 目的与非目标
 
-## 科学定义
+- **目的**：在多帧覆盖并集上建立唯一的联合加性光度模型 UPM，消除逐帧背景/零点差，使校准后样本 `calibrated = raw − C_f(p)` 在全域可比；提供控制权重与持久化 frame_id 绑定。
+- **非目标**：不处理乘性尺度差（已撤销）；不做 Drizzle 方差估计（SCI-NOISE）；不做最终加权积分与排异判定（SCI-INT/SCI-REJ）；不跨滤镜统一（filter 分组由调用方保证）。
 
-对帧 f 在像素 p：
+## 2 符号表
 
-```text
-calibrated_f(p) = raw_f(p) − C_f(p)
-```
+| 符号 | 含义 | 出现位置 |
+|---|---|---|
+| `f, frame_id` | 帧标识（稳定科学 payload uint64，`DATA-FRAME-ID-001`） | `upm.cpp:sampler.cpp` |
+| `C_f(p)` | 帧 f 在像素 p 的加性校正场（8×8 control cell 双线性） | `calibrate_block` |
+| `θ` | UPM 控制系数向量（每帧每 control cell 一值） | `parameter_rows` |
+| `raw` | 校准前样本 patch median | `P2ControlObservation` |
+| `control_variance` | `k_corr·(π/2)·σ_bg²/N_retained` | `ALG-UPM-CONTROL-IVAR-001` |
+| `control_ivar` | `1/control_variance` | `p2_upm_raw_weight` |
+| `quality_factor` | 质量因子（cosmic/geom 质量） | `SCI-UPM-WEIGHT-001` |
+| `geometric_reliability` | 几何可靠性（单 control 覆盖度） | `p2_upm_normalized_weights` |
+| `k_corr` | Drizzle 相关校正 1.4 | `sampler.cpp:672` |
+| `N_retained` | clipping 后保留样本数 | `P2ControlObservation` |
+| `parameter_rows[index]` | 第 index 帧的 θ 行 | `upm.cpp:parameter_rows` |
+| `frame_id_by_index[index]` | 第 index 帧的稳定 id | `frame_id_by_index` |
 
-C_f 为帧 f 的空间加性校正场（8×8 control cell 双线性）。
+## 3 物理量和单位
 
-求解：Huber IRLS + control-ivar 感知权重 + 弱零锚 + 连通分量独立 gauge
-（每分量参考帧 = 最小 frame_id）。
+- `C, raw, calibrated, σ_bg`: ADU；`control_variance`: ADU²；`control_ivar`: ADU⁻²；`quality, geom`: 无量纲 [0,1]；`w_UPM`: ADU⁻²；`N_retained`: 无量纲；`frame_id`: 无量纲 uint64；`θ`: ADU。
 
-## 权重（V19R3 冻结：SCI-UPM-WEIGHT-001 / ALG-UPM-CONTROL-IVAR-001 /
-DATA-UPM-CONTROL-UNC-001）
+## 4 输入有效域
 
-```text
-w_UPM = quality_factor × geometric_reliability × control_ivar
-# raw=quality·control_ivar；normalized=raw/sum·geom（per-control，见UPM_SOLVER.md:45与p2_upm_normalized_weights）
-control_ivar = 1 / control_variance
-control_variance = k_corr × (π/2) × sigma_bg² / N_retained
-```
+- 帧数 `n_frames ≥2` 且至少一 control cell 有 `≥2` 帧 clean 覆盖，否则 harmonic continuation 填单帧区；`n_control_points` 可为 0（→ NO_DATA）。
+- `control_ivar` 有效要求 `use_ivar_weight=1` 时 `control_ivar>0` 且有限，否则 `p2_upm_raw_weight rc=2 → build rc=2`（`DATA-UPM-CONTROL-UNC-001`）。
+- `k_corr` 为 `frames[f].kcorr>0 ? per-frame : cfg.control_k_corr`，缺省 1.4（`sampler.cpp:672`）。
+- `parameter_rows` 与 `frame_id_by_index` 同长、无重复，绑定仅由稳定 `frame_id` 决定，禁止容器遍历重建。
 
-含义：
-- control estimator = background-clean patch **median**（不是单像素 leaf）；
-- control_variance 是其统计方差：Drizzle 输出协方差由 k_corr>=1 表征
-  （N_eff = N_retained/k_corr < N_retained）；
-- N_retained 用 clipping 后保留样本（不是裁剪前 n_total）；
-- k_corr 由当前 Drizzle synthetic noise/covariance MC 校准（UPMW-005
-  control_median_mc_test：pixfrac=0.8 生产默认，2000 实现，
-  k_corr_empirical=1.3883，N_eff≈181/251），冻结保守值 1.4；per-frame覆盖 frames[frame_id].kcorr>0 ? per-frame : cfg.control_k_corr（sampler.cpp:672），缺省回退1.4；
-- 禁止 production science 模式乘 star SNR / snr²/(1+snr²) / support^p
-  （support 只作 eligibility/coverage 诊断）；legacy snr²/(1+snr²)/unc²
-  仅 use_ivar_weight=0 的 ablation/诊断（SNR-015）；
-- obs.ivar（单 leaf Phase1 ivar）V19R3 弃用为诊断字段，禁止进入科学权重。
-
-几何可靠性（geometric_reliability）在 per-control 归一化中施加
-（p2_upm_normalized_weights × control_reliability）。
-
-硬门：UPMW-001（snr 扰动不变）、UPMW-002（control_ivar 1:4 → weight
-1:4）、UPMW-003（星群不变）、UPMW-004（独立 Gaussian Var(median)
-≈ πσ²/2N）、UPMW-005（Drizzle 相关 MC）、UPMW-006（无 legacy SNR
-consumer；production 缺 control_ivar 显式 rc=2）、UPMW-007（patch
-estimator vs truth）。
-
-## 持久化绑定（SCI-UPM-PERSIST-001 / ALG-UPM-FRAME-BIND-001）
+## 5 连续定义
 
 ```text
-parameter_rows[index] ↔ frame_id_by_index[index]     # 同长、无重复
+加性校正:
+  calibrated_f(p) = raw_f(p) − C_f(p)
+  C_f(p) = 双线性(8×8 control cell, θ_f)
+
+科学权重 (V19R3 冻结 SCI-UPM-WEIGHT-001):
+  w_UPM = quality_factor × geometric_reliability × control_ivar
+  raw = quality × control_ivar ; normalized = raw / Σraw · geom (per-control)
+  control_ivar = 1 / control_variance
+  control_variance = k_corr × (π/2) × σ_bg² / N_retained
+  # control estimator = patch median (非单 leaf)
+  # N_retained = clipping 后保留数 (非 n_total)
+  # k_corr = 1.4 保守冻结 (MC 实测 1.3883, control_median_mc_test, pixfrac=0.8, 2000次)
+  # N_eff = N_retained / k_corr
+  # 禁 production 乘 star SNR / snr²/(1+snr²) / support^p；support 仅 eligibility/coverage
+  # legacy snr²/(1+snr²)/unc² 仅 use_ivar_weight=0 ablation/诊断 (SNR-015)
+
+求解 (UPM_SOLVER.md):
+  Huber IRLS + control-ivar 感知权重 + 弱零锚 (zero_anchor_weight=0.001) + 连通分量独立 gauge
+  每分量参考帧 = 最小 frame_id
+
+持久化绑定 (SCI-UPM-PERSIST-001 / ALG-UPM-FRAME-BIND-001):
+  parameter_rows[index] ↔ frame_id_by_index[index]   # 同长、无重复
+  绑定仅由稳定 frame_id 决定；save→close→open 保持 frame_id→θ 映射
+  payload = truncated-64 canonical SHA-256 of science payload (DATA-FRAME-ID-001)
 ```
 
-绑定只由稳定 frame_id 决定；保存/重开不得改变 frame_id→θ 映射；
-禁止从有序容器遍历重建（DATA-UPM-MODEL-001；见 `lib/phase2/src/upm.cpp:6` 与 `lib/astro_image_io/src/aio_upm.cpp:4` 锚点）。
-payload含signal/support tile float32 LE bytes裸字节，跨endian理论不同id，当前仅Linux x86_64路径（sampler.cpp:250-364），DATA-FRAME-ID-001。
+与 `lib/phase2/src/upm.cpp:6-493,1107-1123`、`sampler.cpp:250-364,672`、`aio_upm.cpp:4` 一致。
 
-## 变量/单位
+## 6 假设
 
-- C：加性场（信号单位）；theta：control 系数；
-- control_variance：信号²；control_ivar：信号⁻²；
-- frame_id：稳定科学 payload 标识（uint64）。
+- 帧间无乘性尺度差（乘性 photometric scale 已撤销）；控制点 SNR 与几何解耦（`snr_available` 语义 V4 R6）；控制采样 patch 足域近似高斯；Drizzle 相关可用 `k_corr≥1` 表征。
 
-## 假设
+## 7 独立不变量
 
-- 帧间无乘性尺度差（乘性 photometric scale 已撤销）；
-- 控制点 SNR 与几何解耦（V4 R6 snr_available 语义）。
+- **常量场不变量**：`raw=C, C_f` 解为同一常数（弱零锚除外），全 control cell 同值。
+- **空 control 不传播**：无合格 control 时不产伪 `C_f`，显式 NO_DATA。
+- **Huber 对称性**：`Huber(delta=1.345)` 残差在小残差区等价 `L2`，大残差区 `L1`，位置估计对称。
+- **frame_id 绑定幂等**：`save→open` 后 `parameter_rows[index]` 重开值 `max_abs==0`（`dense/sparse 1e-12` 等价门）。
+- **k_corr 缩放**：`control_variance` 随 `k_corr` 线性缩放，`N_eff` 反比缩放。
 
-## 有效域
+## 8 极端/退化条件
 
-- ≥2 clean 帧共同覆盖控制点；单帧区由几何节点 harmonic continuation。
+| 条件 | 行为 | 证据 |
+|---|---|---|
+| 无重叠/无 control | `NO_DATA` | `upm.cpp:6` 域检查 |
+| `use_ivar_weight=1` 且 `control_ivar≤0/非有限` | `p2_upm_raw_weight rc=2 → build rc=2` | `DATA-UPM-CONTROL-UNC-001` |
+| `S=0` (MAD=0) | 该 patch 方差为 0，不计 control | `noise_model` |
+| 单帧区 | harmonic continuation 填 | `phase2` 域 |
+| 畸形模型文件 | `ERR-P2-UPM-001` | `aio_upm.cpp` |
+| 跨 endian payload | 理论 id 不同，当前仅 Linux x86_64 路径 | `sampler.cpp:250` |
 
-## 不保证
+## 9 精度策略
 
-- 不保证跨滤镜统一（filter 分组由调用方保证）。
+- FP64 求解；`dense cache` 与 `sparse` 求值 `1e-12` 等价门（`SparseEqualsDense`）；`control_median_mc_test` 的 `k_corr` 用 MC 校准后保守取整 `1.4`。
 
-## 失效条件
+## 10 不可接受变化
 
-- 无重叠/无控制点 → NO_DATA；畸形模型文件 → ERR-P2-UPM-001。
+- 在生产 `w_UPM` 中乘 `star SNR / support^p / obs.ivar`(已弃用)；
+- 将 `control_estimator` 改为单 leaf 或 `N_total` 替代 `N_retained`；
+- 改变 `k_corr` 默认 1.4 或 `parameter_rows ↔ frame_id` 绑定语义；
+- 在 `calibrate_block` 中引入乘性尺度。
 
-## 数值精度
+## 11 验证 Oracle
 
-FP64；dense cache 与 sparse 求值 1e-12 等价门。
+- **UPMW 硬门 7 项**：001 snr 扰动不变、002 ivar 1:4→weight 1:4、003 星群不变、004 `Var(median)≈πσ²/2N`、005 MC `k_corr≈1.3883`、006 无 legacy SNR consumer 且缺 ivar `rc=2`、007 patch 真值恢复（`control_median_mc_test, synthetic_gate`）。
+- **持久化门**：`UpmPersistAllPermutations/RandomStableIds/SparseDenseBinding` 等 PR#1 全排列。
+- **不变量门**：常量场、空 control、Huber 对称、绑定幂等四门。
+- **Python 参考**：NumPy 对同 `raw` 的 Huber IRLS + `control_ivar` 权重复算 `θ`（`rtol 1e-9`）。
 
-## 参考文献
+## 12 关联 ALG ID
 
-工程控制/docs/PHASE2_INTERFACE_FREEZE（W2 冻结）；SNR_REDESIGN_CONTRACT。
+- `ALG-UPM-001` `p2_upm_build` Huber IRLS 求解
+- `ALG-UPM-002` `p2_upm_calibrate_block` 双线性校正
+- `ALG-UPM-003` `p2_upm_raw_weight / p2_upm_normalized_weights` 权重
+- `ALG-UPM-004` `aio_upm` 持久化绑定
 
-## ID
+## 13 追溯与测试
 
-SCI-UPM-001..010；SCI-UPM-PERSIST-001；SCI-UPM-WEIGHT-001；
-ALG-UPM-FRAME-BIND-001；ALG-UPM-CONTROL-IVAR-001；
-DATA-UPM-MODEL-001；DATA-UPM-CONTROL-UNC-001；ACR-IVAR-001；
-TEST-UPMW-001..007；DATA-FRAME-ID-001（frame_id = truncated-64
-canonical SHA-256 of science payload；见 docs/contracts/DATA_SEMANTICS.md）。
+- 权威文件: `docs/science/PHASE2_UPM.md` (SCI-UPM-001..010, SCI-UPM-WEIGHT-001, SCI-UPM-PERSIST-001)
+- 实现: `lib/phase2/src/upm.cpp` (1107-1123, 493-510), `lib/phase2/src/sampler.cpp` (250-364, 672), `lib/astro_image_io/src/aio_upm.cpp` (持久化)
+- 公开 API: `p2_upm_build, p2_upm_calibrate_block, p2_upm_raw_weight, p2_upm_open/save`
+- 测试: `TEST-UPMW-001..007, UPMW-001..007, UpmPersist*` (`synthetic_gate.cpp, control_median_mc_test.cpp`)

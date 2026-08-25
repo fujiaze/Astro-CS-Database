@@ -1,0 +1,1 @@
+{"tool": "check_execution_contracts", "status": "FAIL", "reason": "EXECUTION_MODEL claims parallel but CMake has no OpenMP link or source pragma missing"}

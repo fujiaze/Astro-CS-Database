@@ -1,49 +1,72 @@
-# Noise Estimation
+# Noise Estimation Algorithms (ALG-NOISE)
 
-关联：SCI-NOISE-001..015；模块：lib/snr_estimator/cpp/noise_model.cpp。
+> 上游 SCI: SCI-NOISE-001..015  状态: DERIVED (T204 冻结, 2026-08-23)  模块: snr_estimator/noise_model
 
-## 输入
+## 1 上游 SCI 与输入输出
 
-校准图像（source-masked blank-sky patch）。
+- 上游: `SCI-NOISE-001..015` (8×8 patch, MAD 1.4826, 平面场 a+b·x+c·y, floor 1e-12)
+- 输入: 校准图像 `float32[H×W]` + `star_x/y` (掩膜) + `SnrNoiseModelConfig`
+- 输出: `NoiseWeightModelV1` (patch variance空间场 + 全局兜底 + ivar + degenerate标志)
 
-## 输出
+## 2 离散公式
 
-patch variance 空间场 + 全局兜底 + ivar。
+```text
+F1: σ_bg = 1.482602218505602 · median(|x−median(x)|)  (MAD→σ Gaussian)
+F2: 5σ裁剪 ≤2轮: 剔除 |x−median|>5σ, 剩余求 σ_bg
+F3: var(x,y)=a+b·x+c·y (LS平面, enable_spatial_field==1 && n_ctrl≥4 else 全局中位数)
+F4: variance = max(var, 1e-12), ivar=1/variance
+F5: g_model_floor[model*]=floor 指针隔离
+F6: 诊断: var_ADU=max(signal,0)/gain + (rn/gain)² (仅 SNR-005, 不入生产)
+```
 
-## Preconditions
+来源: `noise_model.cpp:32-464` `default_config variance_floor=1e-12`
 
-图像有限；patch 网格 8×8。
+## 3 伪代码
 
-## Postconditions
+```text
+function snr_noise_model_v1(image, star_x/y, cfg):
+  grid 8×8 patches
+  for each patch:
+    mask rmax=max(1,r0)·max(1,scale) 固定不按振幅
+    vals = unmasked pixels; med=median(vals); mad=median(|vals−med|)
+    sigma=1.4826·mad; 2轮内剔除 |v−med|>5σ → patch_variance
+  if n_valid <4 or !spatial_field → global_median fallback
+  else LS平面 a,b,c 最小二乘 patch_centers→variance
+  g_model_floor[model*]=1e-12; for fill: var=max(a+b·x+c·y, floor)
 
-σ_bg=1.4826022185·MAD（`noise_model.cpp:robust_sigma=1.482602218505602·median(|x−median|)`）；5σ 裁剪 ≤2 轮；ivar=1/var。
+function snr_noise_model_v1_free(model): g_model_floor.erase(model*)
+```
 
-## Invariants
+## 4 边界/NaN/Inf
 
-- 与星亮度解耦（fixed conservative 统一半径 `rmax=max(1,r0)×max(1,scale)`，不按振幅/星亮度缩放，已冻结；见 `docs/science/NOISE_MODEL.md` 假设）；
-- 平面场 var=a+b·x+c·y 平滑。
+| 条件 | 行为 |
+|---|---|
+| 全星场无空 patch | NO_DATA fallback global |
+| `MAD==0` | sigma==0 degenerate |
+| `variance≤0` | max→1e-12 |
+| 输入 NaN | skip |
 
-## 复杂度
+## 5 确定性与归约
 
-O(pixels)（mask+median）。
+- patch独立 OpenMP 并行, median局部无跨patch归约；平面LS按patch索引固定顺序。
 
-## 并行模型
+## 6 复杂度
 
-patch 间 OpenMP；median 局部。
+- O(pixels) mask+median; LS O(8×8)
 
-## 数值风险
+## 7 CPU/GPU
 
-全星场无空 patch → NO_DATA/fallback；裁剪偏差。
+- CPU patch并行；GPU 按patch切分等价门 1e-9。
 
-## Gain/Readnoise（仅诊断/仅 SNR-005，不入生产）
+## 8 参考实现/Oracle
 
-仅诊断：`snr_noise_gain_variance`（`noise_model.cpp:457-464`，`var_ADU=max(signal,0)/gain+(rn/gain)^2`）仅用于 SNR-005 诊断交叉验证；生产 `NoiseWeightModelV1 source==0 empirical`（blank-sky 稳健估计）不融合 gain/readnoise，`gain/readnoise` 字段仅诊断/追溯（锚点：`docs/science/NOISE_MODEL.md` Gain/Readnoise 诊断节、`noise_model_science_test.cpp:238-272`）。
+- MC Gaussian/Poisson/场恢复 SNR-004..006; 1/unc²对比
 
-## fast/reference/oracle
+## 9 容差来源
 
-MC 矩阵（Gaussian/Poisson/场恢复）SNR-004..006；与 1/unc² 对比
-（SNR-009 coadd）。
+- sigma 5% (MAD鲁棒性), floor 1e-12 预冻结。
 
-## ID
+## 10 关联 ARC/API/TST
 
-ALG-NOISE-MAD-001..；TEST-SCI-NOISE-*。
+- API: `snr_estimator.h: snr_noise_model_v1/_f64/_fill/_free`
+- TST: `TEST-SCI-NOISE-*` MC矩阵

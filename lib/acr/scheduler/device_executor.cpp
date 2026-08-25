@@ -16,10 +16,16 @@ namespace astro::compute::scheduler {
 // CUDA 桥接执行器追加函数。
 // 默认 weak no-op：CPU-only 构建无 CUDA 桥接；
 // 启用 ACR_CUDA_BRIDGE 时由 backends/cuda/cuda_bridge_loader.cpp 提供强定义。
+// 声明先于条件定义，保证调用点（append_executors）总是可见该符号。
+void try_append_cuda_bridge_executors(ExecutorRegistry& registry);
+
 #if defined(_MSC_VER)
 // MSVC 无 __attribute__((weak))：ASan 独立构建只编译本文件（不含 loader），
-// 此处给出普通空定义；MinGW 构建仍用 weak（允许 loader 强定义覆盖）。
+// 此处给出普通空定义；完整构建（acr_scheduler PUBLIC 链接 loader，其提供强定义）
+// 由 CMake 定义 ACR_WITH_BRIDGE_LOADER，本 no-op 不再编译，避免 LNK2005 重复符号。
+#ifndef ACR_WITH_BRIDGE_LOADER
 void try_append_cuda_bridge_executors(ExecutorRegistry&) {}
+#endif
 #else
 __attribute__((weak)) void try_append_cuda_bridge_executors(ExecutorRegistry&) {}
 #endif
