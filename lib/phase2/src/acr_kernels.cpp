@@ -13,13 +13,18 @@
 #include "astro/compute/task_traits.hpp"
 #include "backends/cuda/bridge/cuda_bridge_api.hpp"
 
+#include <atomic>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <mutex>
 #include <stdexcept>
+#include <string>
 #include <vector>
+#if defined(P2_ENABLE_OPENMP) && !defined(_MSC_VER)
+#include <omp.h>
+#endif
 
 namespace astro::compute::phase2 {
 
@@ -66,6 +71,13 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
     const auto wmode = read_scalar<int>(
         inv.scalars, 2 * sizeof(std::size_t) + 2 * sizeof(int) +
                          2 * sizeof(double) + sizeof(int) + sizeof(std::size_t));
+    // CON-007: CPU workers scalar (offset 8); 缺省 1 串行。
+#if defined(P2_ENABLE_OPENMP) && !defined(_MSC_VER)
+    const auto wworkers = read_scalar<int>(
+        inv.scalars, 2 * sizeof(std::size_t) + 2 * sizeof(int) +
+                         2 * sizeof(double) + sizeof(int) + sizeof(std::size_t) +
+                         sizeof(int));
+#endif
     if (!px || !depth || *px == 0 || *depth == 0) {
         throw std::runtime_error("mosaic_reject: missing scalars");
     }
@@ -78,14 +90,6 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
     const double lo_v = lo ? *lo : -4.0;
     const double hi_v = hi ? *hi : 3.0;
     const int max_it_v = max_it ? *max_it : 8;
-    std::vector<double> stack(n_depth);
-    std::vector<double> stack_w(n_depth);
-    std::vector<double> stack_sup(n_depth);
-    std::vector<std::uint64_t> fid_compact(n_depth);
-    std::vector<std::uint8_t> reasons(n_depth);
-    std::vector<std::uint8_t> accepted(n_depth);
-    std::vector<std::uint64_t> frame_seq(n_depth);
-    for (std::size_t s = 0; s < n_depth; ++s) frame_seq[s] = s;
     // 显式 plan（ACR 路径仅 robust_mad_clip/sigma）
     P2RejectionPlan plan{};
     plan.method = (int)method_v;
@@ -101,7 +105,16 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
     const float* src = static_cast<const float*>(vals->data);
     float* dst = static_cast<float*>(out->data);
 
-    for (std::size_t p = 0; p < n_px; ++p) {
+    // CON-007: 单像素处理逻辑。由串行和 OpenMP 并行路径共用；
+    // 并行路径用 per-thread scratch，禁用像素热循环共享 buffer。
+    auto process_pixel = [&](std::size_t p,
+                             std::vector<double>& stack,
+                             std::vector<double>& stack_w,
+                             std::vector<double>& stack_sup,
+                             std::vector<std::uint64_t>& fid_compact,
+                             std::vector<std::uint8_t>& reasons,
+                             std::vector<std::uint8_t>& accepted,
+                             std::vector<std::uint64_t>& frame_seq) {
         // 统一 EligibilityPolicy（与 CPU 生产路径同一 collector）
         P2EligibilityGatherInput gin{};
         gin.values = src;
@@ -149,7 +162,7 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
             if (out_sup) static_cast<float*>(out_sup->data)[p] = 0.0f;
             if (out_rej) static_cast<float*>(out_rej->data)[p] = 0.0f;
             if (out_valid) static_cast<float*>(out_valid->data)[p] = 0.0f;
-            continue;
+            return;
         }
         P2CandidateStack cstack{};
         cstack.values = stack.data();
@@ -193,6 +206,55 @@ void mosaic_reject_legacy(const KernelInvocation& inv, void*) {
             static_cast<float*>(out_sup->data)[p] =
                 (pr.status == P2_INTEGRATE_OK)
                     ? static_cast<float>(pr.support) : 0.0f;
+        }
+    };
+
+#if defined(P2_ENABLE_OPENMP) && !defined(_MSC_VER)
+    const int cpu_workers = wworkers ? *wworkers : 1;
+    if (cpu_workers > 1) {
+        std::atomic<int> fail{0};
+        std::string fail_msg;
+        std::mutex fail_mtx;
+        #pragma omp parallel num_threads(cpu_workers)
+        {
+            std::vector<double> stack(n_depth);
+            std::vector<double> stack_w(n_depth);
+            std::vector<double> stack_sup(n_depth);
+            std::vector<std::uint64_t> fid_compact(n_depth);
+            std::vector<std::uint8_t> reasons(n_depth);
+            std::vector<std::uint8_t> accepted(n_depth);
+            std::vector<std::uint64_t> frame_seq(n_depth);
+            for (std::size_t s = 0; s < n_depth; ++s) frame_seq[s] = s;
+            #pragma omp for schedule(static)
+            for (std::size_t p = 0; p < n_px; ++p) {
+                try {
+                    process_pixel(p, stack, stack_w, stack_sup,
+                                  fid_compact, reasons, accepted, frame_seq);
+                } catch (const std::exception& e) {
+                    if (!fail.exchange(1)) {
+                        std::lock_guard<std::mutex> lk(fail_mtx);
+                        fail_msg = e.what();
+                    }
+                }
+            }
+        }
+        if (fail.load()) {
+            throw std::runtime_error("mosaic_reject_legacy parallel: " + fail_msg);
+        }
+    } else
+#endif
+    {
+        std::vector<double> stack(n_depth);
+        std::vector<double> stack_w(n_depth);
+        std::vector<double> stack_sup(n_depth);
+        std::vector<std::uint64_t> fid_compact(n_depth);
+        std::vector<std::uint8_t> reasons(n_depth);
+        std::vector<std::uint8_t> accepted(n_depth);
+        std::vector<std::uint64_t> frame_seq(n_depth);
+        for (std::size_t s = 0; s < n_depth; ++s) frame_seq[s] = s;
+        for (std::size_t p = 0; p < n_px; ++p) {
+            process_pixel(p, stack, stack_w, stack_sup,
+                          fid_compact, reasons, accepted, frame_seq);
         }
     }
 }
@@ -286,7 +348,7 @@ void register_phase2_acr_kernels() {
         r.args.buffer_count = 7;
         r.args.scalar_bytes = 2 * sizeof(std::size_t) + 2 * sizeof(int) +
                               2 * sizeof(double) + sizeof(int) +
-                              sizeof(std::size_t);
+                              sizeof(std::size_t) + sizeof(int);  // CON-007 worker
         r.cpu = &mosaic_reject_legacy;  // CPU 即 legacy reference 语义
         r.legacy_parallel = &mosaic_reject_legacy;
         r.cuda = &mosaic_reject_cuda;
