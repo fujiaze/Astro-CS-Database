@@ -48,6 +48,12 @@ extern "C" {
 #include <string>
 #include <vector>
 
+#if defined(P2_ENABLE_OPENMP) && defined(_OPENMP)
+#include <omp.h>
+#include <atomic>
+#include <thread>
+#endif
+
 namespace {
 
 struct ControlNode {
@@ -230,6 +236,7 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         cfg.quality_mode = 0;
         cfg.use_ivar_weight = 1;   // ivar 科学权重默认开启
         cfg.control_reliability = 1.0;
+        cfg.cpu_workers = 0;       // CON-005: 默认 0(auto) => 默认构建 P2_ENABLE_OPENMP=OFF 串行
     }
     if (cfg.huber_delta <= 0.0) cfg.huber_delta = 1.345;
     if (cfg.max_iterations <= 0) cfg.max_iterations = 100;
@@ -505,15 +512,43 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
     std::vector<double> raw_w(n_obs, 0.0);
     auto compute_raw = [&]() -> int {
         std::vector<double> sums(K, 0.0);
-        for (std::uint64_t i = 0; i < n_obs; ++i) {
-            // 单一 production raw weight 实现（与
-            // p2_upm_raw_weight 同一公式）
-            const int rc = p2_upm_raw_weight(&obs[i], &cfg, &raw_w[i]);
-            if (rc != 0) {
-                // production 缺 control ivar 是显式科学错误，不静默降级。
-                return rc;
+#if defined(P2_ENABLE_OPENMP) && !defined(_MSC_VER)
+        // CON-005: 逐 observation 并行 + 逐 control 定序规约（tid 升序 = obs 索引升序求和顺序）。
+        const int cworkers = (cfg.cpu_workers > 0) ? cfg.cpu_workers
+                             : (int)std::max(1u, std::thread::hardware_concurrency());
+        const bool rpar = (cworkers > 1);
+        if (rpar) {
+            std::vector<std::vector<double>> tsums((std::size_t)cworkers,
+                                                   std::vector<double>(K, 0.0));
+            std::atomic<int> rcfail{0};
+            #pragma omp parallel num_threads(cworkers)
+            {
+                const int tid = omp_get_thread_num();
+                const std::uint64_t start = (n_obs * (std::uint64_t)tid) / (std::uint64_t)cworkers;
+                const std::uint64_t end = (n_obs * (std::uint64_t)(tid + 1)) / (std::uint64_t)cworkers;
+                for (std::uint64_t i = start; i < end; ++i) {
+                    const int rc = p2_upm_raw_weight(&obs[i], &cfg, &raw_w[i]);
+                    if (rc != 0) { rcfail.store(rc); continue; }
+                    tsums[(std::size_t)tid][m->control_by_id[obs[i].control_id]] += raw_w[i];
+                }
             }
-            sums[m->control_by_id[obs[i].control_id]] += raw_w[i];
+            if (rcfail.load() != 0) return rcfail.load();
+            for (int t = 0; t < cworkers; ++t)
+                for (std::size_t k = 0; k < K; ++k)
+                    sums[k] += tsums[(std::size_t)t][k];
+        } else
+#endif
+        {
+            for (std::uint64_t i = 0; i < n_obs; ++i) {
+                // 单一 production raw weight 实现（与
+                // p2_upm_raw_weight 同一公式）
+                const int rc = p2_upm_raw_weight(&obs[i], &cfg, &raw_w[i]);
+                if (rc != 0) {
+                    // production 缺 control ivar 是显式科学错误，不静默降级。
+                    return rc;
+                }
+                sums[m->control_by_id[obs[i].control_id]] += raw_w[i];
+            }
         }
         for (std::uint64_t i = 0; i < n_obs; ++i) {
             const std::size_t ck = m->control_by_id[obs[i].control_id];
