@@ -330,6 +330,33 @@ TEST(Phase2IvarWiring, WireProductionStage2PerFrameIvar) {
         << "CON-006: support 图层 1T/2T 差数=" << n_sup_diff
         << " max=" << max_sup_diff;
 
+    // CON-009 重复 2T：同一 2T 配置再跑一次，图层须逐层一致
+    // （整块隔离 + 不相交写 + 定序归约 => by-construction 位精确）。
+    const std::string out1_2t_rep = tmp_dir() + "/out_abc_2t_rep.hips";
+    std::filesystem::remove_all(out1_2t_rep);
+    const std::string cfg1_2t_rep = write_config(dirs, out1_2t_rep);
+    ASSERT_EQ(run_stage2(cfg1_2t_rep, 2), 0);
+    const auto got1_2t_rep = read_signal_tile(out1_2t_rep);
+    const auto sup1_2t_rep = read_support_tile(out1_2t_rep);
+    ASSERT_EQ(got1_2t_rep.size(), npix);
+    ASSERT_EQ(sup1_2t_rep.size(), npix);
+    std::size_t n_sig_rep = 0, n_sup_rep = 0;
+    double max_sig_rep = 0.0, max_sup_rep = 0.0;
+    for (std::size_t p = 0; p < npix; ++p) {
+        const double ds = std::fabs((double)got1_2t[p] - (double)got1_2t_rep[p]);
+        const double du = std::fabs((double)sup1_2t[p] - (double)sup1_2t_rep[p]);
+        if (ds > 1e-6) ++n_sig_rep;
+        if (du > 1e-6) ++n_sup_rep;
+        max_sig_rep = std::max(max_sig_rep, ds);
+        max_sup_rep = std::max(max_sup_rep, du);
+    }
+    EXPECT_EQ(n_sig_rep, 0u)
+        << "CON-009: signal 图层 repeat-2T 差数=" << n_sig_rep
+        << " max=" << max_sig_rep;
+    EXPECT_EQ(n_sup_rep, 0u)
+        << "CON-009: support 图层 repeat-2T 差数=" << n_sup_rep
+        << " max=" << max_sup_rep;
+
     // WIRE-IVAR-004：把最后一帧（C）ivar 整体 ×4 后重跑，输出应变化；
     // 且 A/B 单独贡献的样本（C invalid 区域）不受影响。
     std::vector<std::vector<float>> ivars2 = ivars;

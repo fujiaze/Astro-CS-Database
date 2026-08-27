@@ -242,8 +242,24 @@ TEST(Phase2UpmParallel, OneTvsTwoTDetermine) {
     ASSERT_EQ(p2_upm_calibrate_block(m1, 0, ipix, in, out1, 1), 0);
     ASSERT_EQ(p2_upm_calibrate_block(m2, 0, ipix, in, out2, 1), 0);
     EXPECT_NEAR(out1[0], out2[0], 1e-6) << "1T/2T calibrate 差";
+
+    // CON-009 重复 2T：同输入、同 2T 配置再建一次模型，须与首次 2T 完全一致
+    // （整块隔离 + 仅 max 归约 + 不相交写 => by-construction 位精确）。
+    void* m3 = nullptr;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg2, &m3), 0);
+    P2ModelInfo i3{};
+    ASSERT_EQ(p2_upm_info(m3, &i3), 0);
+    EXPECT_EQ(i3.control_count, i2.control_count) << "repeat control_count";
+    EXPECT_EQ(i3.component_count, i2.component_count) << "repeat component_count";
+    EXPECT_EQ(i3.observation_count, i2.observation_count) << "repeat observation_count";
+    EXPECT_EQ(std::string(i3.model_hash), std::string(i2.model_hash))
+        << "repeat-2T 模型内容哈希必须 exact（by-construction 确定性）";
+    double out3[1] = {0.0};
+    ASSERT_EQ(p2_upm_calibrate_block(m3, 0, ipix, in, out3, 1), 0);
+    EXPECT_NEAR(out3[0], out2[0], 1e-12) << "repeat-2T calibrate 差";
     p2_upm_close(m1);
     p2_upm_close(m2);
+    p2_upm_close(m3);
 }
 
 TEST(Phase2Upm, S1KnownAdditiveFieldRecovered) {
@@ -3079,6 +3095,14 @@ TEST(Phase2AcrParallel, LegacyCpuOneVsTwoTDetermine) {
     EXPECT_GT(out1[0], 9.0f);
     EXPECT_GT(out1[1], 9.0f);
     EXPECT_GT(out1[2], 9.0f);
+
+    // CON-009 重复 2T：同输入、同 workers=2 再跑一次，须逐像素一致。
+    float out3[3] = {0, 0, 0};
+    astro::compute::KernelInvocation iv3 = make_inv(out3, 2);
+    reg->legacy_parallel(iv3, nullptr);
+    for (std::size_t p = 0; p < px; ++p)
+        EXPECT_NEAR(out2[p], out3[p], 1e-6f)
+            << "ACR CPU repeat-2T signal p=" << p;
 }
 
 // W9：真实 GPU kernel 与 CPU reference 等价（同输入、同语义、数值容差内）
