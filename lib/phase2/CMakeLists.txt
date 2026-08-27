@@ -38,6 +38,7 @@ add_library(phase2 STATIC
     src/block.cpp
     src/integrate.cpp
     src/acr_kernels.cpp
+    src/async_io.cpp
     ../acr/api/kernel_registry.cpp
     # Windows: real DLL loader; Linux: stub (bridge always unavailable, CPU path)
     $<$<PLATFORM_ID:Windows>:../acr/backends/cuda/cuda_bridge_loader.cpp>
@@ -76,12 +77,15 @@ if(GTest_FOUND)
     add_executable(phase2_sampler_parallel tests/sampler_parallel_consistency_test.cpp)
     target_link_libraries(phase2_sampler_parallel PRIVATE phase2 GTest::gtest_main
         ${CMAKE_CURRENT_SOURCE_DIR}/../astro_image_io/astro_image_io.dll)
+    add_executable(phase2_async_io tests/async_io_test.cpp)
+    target_link_libraries(phase2_async_io PRIVATE phase2 GTest::gtest_main)
     include(GoogleTest)
     gtest_discover_tests(phase2_synthetic_gate DISCOVERY_MODE PRE_TEST)
     gtest_discover_tests(phase2_ivar_wiring DISCOVERY_MODE PRE_TEST)
     gtest_discover_tests(phase2_execution_options DISCOVERY_MODE PRE_TEST)
     gtest_discover_tests(phase2_routing DISCOVERY_MODE PRE_TEST)
     gtest_discover_tests(phase2_sampler_parallel DISCOVERY_MODE PRE_TEST)
+    gtest_discover_tests(phase2_async_io DISCOVERY_MODE PRE_TEST)
 endif()
 
 add_executable(astrocs-stage2 tools/stage2.cpp)
