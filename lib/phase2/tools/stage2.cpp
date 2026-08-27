@@ -627,6 +627,11 @@ int main(int argc, char** argv) {
     namespace bridge = astro::compute::cuda::bridge;
     bool gpu_ready = false;
     void* gpu_exec = nullptr;
+    // CON-007: 生产路由记录（requested/effective/workers/fallback_reason）。
+    const std::string requested_route = cfg.acr_route;
+    std::string effective_route = cfg.acr_route;
+    std::string fallback_reason;
+    const int acr_workers = effective_cpu_workers(cfg.exec);
 
     // wbpp_current = integration-group level 一次解析（nominal = 全部
     // 独立 exposure 数）；astrocs_adaptive 在 tile 层按 nominal depth 解析。
@@ -736,12 +741,8 @@ int main(int argc, char** argv) {
         // large_scale 激活时强制 CPU（per-frame mask 后处理在 CPU
         // reference 权威路径执行；ACR 只做逐像素 kernel，不做 grow）
         const bool use_acr_block =
-            acr_reg != nullptr && rplan.method == P2_REJECT_SIGMA &&
-            cfg.acr_route != "cpu" && !large_scale_active &&
-            // weight_policy=ivar 时 ACR legacy
-            // kernel 使用 control-cell ivar×support，与 CPU 逐像素 ivar
-            // 不等价 → 强制 CPU canonical path（等价实现前不加速）。
-            cfg.weight_mode != 2;
+            p2_acr_block_eligible(cfg, acr_reg != nullptr,
+                                  rplan.method, large_scale_active);
         if (use_acr_block && gpu_exec == nullptr) {
             bridge::ensure_bridge_loaded();
             if (bridge::api().loaded()) {
@@ -750,11 +751,28 @@ int main(int argc, char** argv) {
                                                          1u << 18, &gerr);
                 gpu_ready = (gpu_exec != nullptr);
                 if (gpu_ready) bridge::set_tls_handle(gpu_exec);
+                if (gpu_ready) {
+                    effective_route = "cuda";
+                    fallback_reason.clear();
+                }
             }
+        }
+        if (!gpu_ready) {
+            if (fallback_reason.empty()) {
+                if (requested_route == "auto") {
+                    fallback_reason = "linux_no_cuda_auto_fallback";
+                } else if (requested_route == "cuda") {
+                    fallback_reason = "cuda_unavailable_fallback";
+                }
+            }
+            effective_route = "cpu";
         }
         log("tile " + std::to_string(tile_ipix) + " ACR block: enabled=" +
             std::to_string(use_acr_block) + " gpu=" +
-            std::to_string(gpu_ready));
+            std::to_string(gpu_ready) + " requested_route=" + requested_route +
+            " effective_route=" + effective_route +
+            " workers=" + std::to_string(acr_workers) +
+            " fallback_reason=" + fallback_reason);
 
         // ----真实 N_B + planner 计算 chunk_pixels（micro-chunk 执行）----
         P2BlockPlannerInput bp{};
@@ -1674,6 +1692,10 @@ int main(int argc, char** argv) {
         }
         nlohmann::json diag;
         diag["stage2_version"] = 1;
+        diag["acr_requested_route"] = requested_route;
+        diag["acr_effective_route"] = effective_route;
+        diag["acr_workers"] = acr_workers;
+        diag["acr_fallback_reason"] = fallback_reason;
         diag["input_frames"] = (std::uint32_t)cfg.hips.size();
         diag["component_count"] = minfo.component_count;
         diag["observations"] = n_obs;
