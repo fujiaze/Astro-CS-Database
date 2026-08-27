@@ -1,0 +1,19 @@
+{
+  "control_version": "V3",
+  "start_sha": "535e73879662346ee1f599d7a9cae96c6c23680d",
+  "candidate_sha": "535e73879662346ee1f599d7a9cae96c6c23680d",
+  "checkpoint": "CP0",
+  "verdict": "AWAITING_EXTERNAL_REVIEW",
+  "task_counts": {
+    "NOT_STARTED": 59,
+    "PASS": 3
+  },
+  "finding_counts": {
+    "P0": 3,
+    "P1": 7,
+    "P2": 16,
+    "P3": 3
+  },
+  "test_counts": {},
+  "build_counts": {}
+}

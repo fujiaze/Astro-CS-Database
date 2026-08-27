@@ -1,0 +1,7 @@
+import csv
+rows=[["CP1-01","CON-001","PASS","docs/architecture/execution_inventory.csv","ac35a4c1fa1d0022ef9d1502fd65d9b5f48a37a2a575bcc76c0a28c30b7dcb4b","14 阶段全覆盖, CLI 根调用链","覆盖全部 13 必备阶段","commit 41800d0"],["CP1-02","CON-002","PASS","lib/phase2/include/astro/phase2/execution_options.h","8f403d3f69678d62db44b45061c0251d91e088fa34a5ba4d491d95ac3835b479","ExecutionOptions 唯一预算; cpu=max(1,hc)","唯一对象+默认+CLI/配置覆盖","commit d334349; 6/6 tests"],["CP1-03","CON-003","PASS","lib/phase2/tests/routing_test.cpp","1e9ad6eacb3bc1dcc3b4f74a6a18d378f2ffd5a4662a500a9d59e9003ae22b05","生产 parse+build 共享路径, worker 预算, ACR cpu","非 mock, 缺失即失败","commit 8f863a6; 3/3 tests"],["CP1-04","G1","PASS","tools/quality/contracts/check_execution_contracts.py","","status=PASS 无 findings","EXEC 契约(ARC-EXEC/defines/dispatcher)","执行契约检查器 PASS"],["CP1-05","CON-001..003","PASS","","","ctest 99 tests=99% pass, 1 预存在 P1-05 (ivar_wiring .exe)","无新增回归","P1-05 记入 FINDINGS G5"]]
+fields=['checkpoint_id','task_id','status','evidence_path','evidence_sha256','measured_value','required_value','agent_note','reviewer_decision']
+with open('/home/lighthouse/astrocs_audit_v2/v3_audit/CHECKPOINT_RESULTS.csv','w',newline='',encoding='utf-8') as f:
+    w=csv.DictWriter(f,fieldnames=fields); w.writeheader()
+    for r in rows: w.writerow(dict(zip(fields,r)))
+print('CP1 checkpoint rows',len(rows))

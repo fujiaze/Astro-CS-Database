@@ -1,0 +1,38 @@
+{
+  "tool": "AstroCS_MAIN_PRERELEASE_REAUDIT_CONTROL_V3",
+  "task": "ID-001",
+  "collected_utc": "2026-08-27T12:2x:00Z",
+  "branch": "main",
+  "head_sha": "535e73879662346ee1f599d7a9cae96c6c23680d",
+  "main_sha": "535e73879662346ee1f599d7a9cae96c6c23680d",
+  "origin_main_sha": "535e73879662346ee1f599d7a9cae96c6c23680d",
+  "rev_parse_equal": true,
+  "porcelain_v2": [
+    {
+      "entry": "1 .M N... 100644 100644 100644 4dbc88f93b71b8d84fc753e09959ad66e5598290 4dbc88f93b71b8d84fc753e09959ad66e5598290 AGENTS.md",
+      "note": "AGENTS.md worktree-modified (external)"
+    },
+    {
+      "entry": "? AstroCS_MAIN_AUDIT_SUPPLEMENT_V2_20260826.zip",
+      "note": "untracked external input"
+    },
+    {
+      "entry": "? AstroCS_MAIN_FULL_AUDIT_EVIDENCE_REQUEST_V1.md",
+      "note": "untracked external input"
+    },
+    {
+      "entry": "? AstroCS_MAIN_PRERELEASE_REAUDIT_CONTROL_V3_20260827.zip",
+      "note": "untracked external control package"
+    },
+    {
+      "entry": "? FATDUCK_ACCESS.md",
+      "note": "untracked external input"
+    }
+  ],
+  "remotes": {
+    "origin": "https://github.com/fujiaze/Astro-CS-Database.git (fetch)",
+    "origin_push": "https://github.com/fujiaze/Astro-CS-Database.git (push)"
+  },
+  "remote_contains_credentials": false,
+  "verdict": "PASS"
+}

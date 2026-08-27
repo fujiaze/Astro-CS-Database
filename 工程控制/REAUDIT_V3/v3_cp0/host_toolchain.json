@@ -1,0 +1,54 @@
+{
+  "tool": "AstroCS_MAIN_PRERELEASE_REAUDIT_CONTROL_V3",
+  "task": "ID-002",
+  "collected_utc": "2026-08-27T12:2x:00Z",
+  "hostname": "VM-BJ",
+  "os": {
+    "name": "Debian GNU/Linux 13 (trixie)",
+    "kernel": "6.12.95+deb13-amd64",
+    "arch": "x86_64"
+  },
+  "cpu": {
+    "model": "Intel(R) Xeon(R) Gold 6148 CPU @ 2.40GHz",
+    "logical_cpu": 2,
+    "cores": 2,
+    "threads_per_core": 1,
+    "sockets": 1,
+    "nproc": 2
+  },
+  "memory": {
+    "total_kb": 3819348,
+    "total_gib": 3.6,
+    "available_kb": 1301064,
+    "available_gib": 1.2,
+    "swap_total_gib": 4.3,
+    "swap_used_gib": 1.8
+  },
+  "disk": {
+    "root_mount": "/dev/vda3",
+    "root_size_gib": 59,
+    "root_used_gib": 45,
+    "root_avail_gib": 15,
+    "root_used_pct": 76,
+    "tmp_size_gib": 1.9,
+    "tmp_avail_gib": 0.165
+  },
+  "toolchain": {
+    "gcc": "14.2.0-19",
+    "g++": "14.2.0-19",
+    "clang": "19.1.7",
+    "clang++": "19.1.7",
+    "cmake": "3.31.6",
+    "ninja": "MISSING",
+    "python3": "3.13.5",
+    "git": "2.47.3",
+    "make": "4.4.1"
+  },
+  "verdict": "PASS",
+  "notes": [
+    "Linux 逻辑 CPU = 2 (满足 >=2).",
+    "可用内存 MemAvailable = 1.2GiB (全量构建偏紧, 记录为约束).",
+    "ninja 缺失 (列为 prerequisite); 已装 make 4.4.1 可用.",
+    "audit 目标形态 2C2G; 本机 2C/3.6GiB, 可用 1.2GiB."
+  ]
+}
