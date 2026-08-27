@@ -27,6 +27,13 @@
 - 2T 平均 CPU ≈ 107%（需求 ≥150%）。2T 基本未利用第二核。
 - 时相分解（2T，12×12）：control_sample=3.81s（≈1T，即 sampler 几乎未并行），
   upm_persist=4.53s（**串行 UPM 稠密缓存物化**），tiles_process=6.87s（积分 ~1.13x，缩放差）。
+- **生产配置复测（diagnostics=false，2026-08-27 追加）**：`upm_persist` 在非
+  diagnostics 下被跳过（:497，仅 diagnostics=true 才物化稠密缓存），故其 2.4s 串行段
+  属 **diagnostics-only 开销，非生产路径**。生产（diagnostics=false）实测：
+  1T=6.05s / 2T=5.98s ⇒ **1.01x，2T 平均 CPU≈112%**；相分解 `control_sample`
+  （采样器）1T=1.85s/2T=1.86s（**不随核数缩放**）、`tiles_process` 1T=4.19s/2T=4.11s
+  （~1.02x）。⇒ 门禁失败**与 diagnostics 无关**，根因集中在**采样器串行**（stopgap mutex）
+  与**积分不缩放**（内存受限 + 串行校准），二者为核心瓶颈。
 - **差分结果/数值门禁：1T==2T 数据位级一致**（2026-08-27 复验，G2 必备产出）。
   1T 与 2T 完整 mosaic 输出逐字节对比：signal/support 各 `Norder0/...` FITS 的
   **DATASUM 完全一致**（如 Npix0 `3138625936`），即**科学数据逐字节相同**（积分+UPM+写盘
