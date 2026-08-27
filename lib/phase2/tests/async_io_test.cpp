@@ -5,11 +5,23 @@
 
 #include <atomic>
 #include <chrono>
+#include <mutex>
 #include <thread>
 #include <vector>
 
 using astro::phase2::BoundedAsyncQueue;
 using astro::phase2::bounded_queue_capacity;
+
+namespace {
+
+// 生产型 pipeline 的“tile 条目”：模拟从 HiPS/FITS/XISF 读出的 buffer 所有权对象。
+// 入队后所有权移交给消费者；本测试用它验证有界队列在真实 I/O 形状下的行为。
+struct SimTile {
+    int id = 0;
+    std::vector<float> payload;  // 模拟 tile buffer (512*512 量级)
+};
+
+}  // namespace
 
 TEST(BoundedAsyncQueue, CapacityDerivedFromMemoryBudget) {
     EXPECT_EQ(bounded_queue_capacity(1024, 256), 4u);
@@ -84,4 +96,137 @@ TEST(BoundedAsyncQueue, CancelWakesBlockedAndPropagatesError) {
     EXPECT_EQ(q.error(), "read failed");
     EXPECT_EQ(q.pop(), std::nullopt);
     EXPECT_FALSE(q.push(2));
+}
+
+// ===================== CON-008 生产型异步 I/O pipeline 测试 =====================
+// 这些测试把 BoundedAsyncQueue 放进“reader(producer) -> queue -> writer(consumer)”
+// 的真实 pipeline 形状，模拟读取失败、写入失败、队列满、多 worker 并发消费，
+// 并验证不 deadlock、不丢失条目、不丢失错误码。
+
+TEST(BoundedAsyncQueuePipeline, ReadFailureCancelsAndPropagatesNoDeadlock) {
+    BoundedAsyncQueue<SimTile> q(2);
+    std::atomic<bool> consumer_saw_error{false};
+    // reader 线程：读取 tile 0..9；在 tile 5 模拟一次读取失败 → cancel 并停止。
+    std::thread reader([&] {
+        for (int i = 0; i < 10; ++i) {
+            if (i == 5) {
+                q.cancel("read failed (tile 5)");
+                break;
+            }
+            SimTile t;
+            t.id = i;
+            t.payload.assign(512u * 512u, (float)i);
+            if (!q.push(std::move(t))) break;  // 已取消/关闭
+        }
+    });
+    // writer 线程：消费直到取消；读到已取消 → 记录错误可见。
+    std::thread writer([&] {
+        while (auto t = q.pop()) {
+            (void)t->id;  // 模拟“计算/写入”已出队 buffer
+        }
+        if (q.has_error()) consumer_saw_error = true;
+    });
+    reader.join();
+    writer.join();
+    EXPECT_TRUE(consumer_saw_error.load());
+    EXPECT_TRUE(q.has_error());
+    EXPECT_EQ(q.error(), "read failed (tile 5)");
+    EXPECT_EQ(q.pop(), std::nullopt);  // 取消后消费端返回空 → 错误码不被吞掉
+}
+
+TEST(BoundedAsyncQueuePipeline, WriteFailureStopsProducerAndPreservesError) {
+    BoundedAsyncQueue<SimTile> q(2);
+    std::atomic<bool> producer_saw_cancel{false};
+    // writer 线程：在 tile 3 模拟一次写入失败 → cancel 并停止。
+    std::thread writer([&] {
+        while (auto t = q.pop()) {
+            if (t->id == 3) {
+                q.cancel("write failed (tile 3)");
+                break;
+            }
+        }
+    });
+    // reader 线程：尝试连续入队；capacity=2 使其很快阻塞；一旦被取消，push 返回 false。
+    std::thread reader([&] {
+        for (int i = 0; i < 100; ++i) {
+            SimTile t;
+            t.id = i;
+            if (!q.push(std::move(t))) {
+                producer_saw_cancel = true;
+                break;
+            }
+        }
+    });
+    writer.join();
+    reader.join();
+    EXPECT_TRUE(producer_saw_cancel.load());  // 写入失败背压传导到生产者
+    EXPECT_TRUE(q.has_error());
+    EXPECT_EQ(q.error(), "write failed (tile 3)");
+}
+
+TEST(BoundedAsyncQueuePipeline, BoundedQueueDeliversAllItemsInOrder) {
+    constexpr int N = 256;
+    BoundedAsyncQueue<SimTile> q(8);  // 小容量制造背压，验证无丢失且定序
+    std::thread reader([&] {
+        for (int i = 0; i < N; ++i) {
+            SimTile t;
+            t.id = i;
+            if (!q.push(std::move(t))) break;
+        }
+        q.close();
+    });
+    std::vector<int> consumed;
+    std::thread writer([&] {
+        while (auto t = q.pop()) consumed.push_back(t->id);
+    });
+    reader.join();
+    writer.join();
+    ASSERT_EQ(consumed.size(), (std::size_t)N);
+    for (int i = 0; i < N; ++i) EXPECT_EQ(consumed[(std::size_t)i], i);
+}
+
+TEST(BoundedAsyncQueuePipeline, MultiConsumerProcessesEachItemExactlyOnce) {
+    constexpr int N = 1000;
+    constexpr int Consumers = 4;
+    BoundedAsyncQueue<SimTile> q(16);
+    std::thread reader([&] {
+        for (int i = 0; i < N; ++i) {
+            SimTile t;
+            t.id = i;
+            if (!q.push(std::move(t))) break;
+        }
+        q.close();
+    });
+    std::vector<std::thread> workers;
+    std::mutex mu;
+    std::vector<int> seen((std::size_t)N, 0);  // 每 id 出现次数，应为 1
+    std::atomic<int> total{0};
+    for (int c = 0; c < Consumers; ++c) {
+        workers.emplace_back([&] {
+            while (auto t = q.pop()) {
+                std::lock_guard<std::mutex> lk(mu);
+                ++seen[(std::size_t)t->id];
+                ++total;
+            }
+        });
+    }
+    reader.join();
+    for (auto& w : workers) w.join();
+    EXPECT_EQ(total.load(), N);
+    for (int i = 0; i < N; ++i) EXPECT_EQ(seen[(std::size_t)i], 1);
+}
+
+TEST(BoundedAsyncQueuePipeline, CancelWakesBlockedConsumerNoDeadlock) {
+    BoundedAsyncQueue<int> q(2);
+    // 空队列上先启动一个消费者：它会阻塞在 pop。cancel 必须唤醒它并返回 nullopt。
+    std::atomic<bool> consumer_returned_null{false};
+    std::thread consumer([&] { consumer_returned_null = (q.pop() == std::nullopt); });
+    std::this_thread::sleep_for(std::chrono::milliseconds(30));
+    q.cancel("cancelled while consumer blocked");
+    consumer.join();
+    EXPECT_TRUE(consumer_returned_null.load());  // 消费者被取消唤醒
+    EXPECT_TRUE(q.has_error());
+    EXPECT_EQ(q.error(), "cancelled while consumer blocked");
+    EXPECT_EQ(q.pop(), std::nullopt);  // 消费端也收到失败
+    EXPECT_FALSE(q.push(2));  // 生产者端同样拒绝
 }
