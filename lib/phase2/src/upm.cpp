@@ -1251,8 +1251,15 @@ int p2_upm_component_gauges(const void* model,
     return 0;
 }
 
-int p2_upm_materialize_dense(const void* model, int target_order,
-                             const char* cache_path) {
+// CON-010：并行化稠密缓存物化。每个 (f,tile) 的双线性求值相互独立，但
+// aio_upm_dense_write_tile 强制 frame_index 单调递增 + 单 FILE* 顺序 fwrite，
+// 因此采用"分批并行求值 -> 块内按 (f,tile) 单调序串行写"。不改变每像素值
+// => 稠密缓存 bit-identical；内存上界 = kChunk*kLeafPx*8 字节。
+// workers<=0 => auto(omp_get_max_threads)；串行构建走同路径(并行度=1)。
+// 说明：既保留公开 API p2_upm_materialize_dense 的既有签名（外部/测试不破坏），
+// 又让生产 CLI(stage2) 传入与积分一致的 worker 数。
+int p2_upm_materialize_dense_n(const void* model, int target_order,
+                               const char* cache_path, int workers) {
     if (model == nullptr || cache_path == nullptr) return 1;
     const Model* m = static_cast<const Model*>(model);
     if (target_order < 0) target_order = m->info.target_order;
@@ -1267,84 +1274,112 @@ int p2_upm_materialize_dense(const void* model, int target_order,
         m->C.size(), tiles.size());
     if (!d) return 1;
     const int tile_shift = 9;
-    std::vector<double> values(512ull * 512ull);
-    for (std::size_t f = 0; f < m->C.size(); ++f) {
-        for (std::uint64_t tile : tiles) {
-            // 逐 tile 预构建 8×8 cell 节点表（一次 map 查找），
-            // 像素级双线性用数组索引，避免 5.4 亿次 std::map 查找。
-            // 语义与 evaluate_c_field 一致（cell 中心 + axis 外推/夹取）。
-            double node[8][8];
-            bool node_ok[8][8];
-            for (int gy = 0; gy < 8; ++gy)
-                for (int gx = 0; gx < 8; ++gx) {
-                    const auto key =
-                        std::make_pair(tile, std::make_pair(gx, gy));
-                    const auto it = m->cell_index.find(key);
-                    if (it != m->cell_index.end()) {
-                        node[gy][gx] = m->C[f][it->second];
-                        node_ok[gy][gx] = true;
-                    } else {
-                        node[gy][gx] = 0.0;
-                        node_ok[gy][gx] = false;
-                    }
+    const std::size_t kLeafPx = 512ull * 512ull;
+    const std::size_t kChunk = 16;
+    // 逐 tile 求值体：像素级双线性（cell 中心 + axis 外推/夹取），
+    // 语义与 evaluate_c_field 一致；读写均为只读输入(m->cell_index/C)+独立 out。
+    auto compute_tile = [&](std::size_t f, std::uint64_t tile,
+                            double* out, std::size_t npx) {
+        double node[8][8];
+        bool node_ok[8][8];
+        for (int gy = 0; gy < 8; ++gy)
+            for (int gx = 0; gx < 8; ++gx) {
+                const auto key =
+                    std::make_pair(tile, std::make_pair(gx, gy));
+                const auto it = m->cell_index.find(key);
+                if (it != m->cell_index.end()) {
+                    node[gy][gx] = m->C[f][it->second];
+                    node_ok[gy][gx] = true;
+                } else {
+                    node[gy][gx] = 0.0;
+                    node_ok[gy][gx] = false;
                 }
-            const int cell = m->cell_side;
-            const int half = cell / 2;
-            const auto itb = m->tile_gx_bounds.find(tile);
-            const int gmin = (itb != m->tile_gx_bounds.end())
-                                 ? itb->second.first : 0;
-            const int gmax = (itb != m->tile_gx_bounds.end())
-                                 ? itb->second.second : 7;
-            const auto itb2 = m->tile_gy_bounds.find(tile);
-            const int vmin = (itb2 != m->tile_gy_bounds.end())
-                                 ? itb2->second.first : 0;
-            const int vmax = (itb2 != m->tile_gy_bounds.end())
-                                 ? itb2->second.second : 7;
-            auto axis = [&](int v, int* c0, int* c1, int lo, int hi) {
-                if (lo == hi) { *c0 = *c1 = lo * cell + half; return; }
-                if (v <= lo * cell + half) { *c0 = lo * cell + half;
-                                             *c1 = lo * cell + half + cell; }
-                else if (v >= hi * cell + half) { *c0 = hi * cell + half - cell;
-                                                  *c1 = hi * cell + half; }
-                else {
-                    const int idx = std::clamp(v / cell, lo, hi);
-                    const int cc = idx * cell + half;
-                    if (v <= cc) { *c0 = cc - cell; *c1 = cc; }
-                    else { *c0 = cc; *c1 = cc + cell; }
-                }
-            };
-            auto at = [&](int cx, int cy) {
-                const int gxi = std::clamp((cx - half) / cell, 0, 7);
-                const int gyi = std::clamp((cy - half) / cell, 0, 7);
-                return node_ok[gyi][gxi] ? node[gyi][gxi] : 0.0;
-            };
-            for (std::uint64_t local = 0; local < values.size(); ++local) {
-                std::uint32_t x = 0, y = 0;
-                astrocs::healpix::nested_local_to_xy(
-                    local, (std::uint32_t)tile_shift, x, y);
-                int x0, x1, y0, y1;
-                axis((int)x, &x0, &x1, gmin, gmax);
-                axis((int)y, &y0, &y1, vmin, vmax);
-                const double c00 = at(x0, y0), c10 = at(x1, y0);
-                const double c01 = at(x0, y1), c11 = at(x1, y1);
-                const double tx = (x1 != x0)
-                                      ? (double)((int)x - x0) / (double)(x1 - x0)
-                                      : 0.0;
-                const double ty = (y1 != y0)
-                                      ? (double)((int)y - y0) / (double)(y1 - y0)
-                                      : 0.0;
-                const double top = c00 + tx * (c10 - c00);
-                const double bot = c01 + tx * (c11 - c01);
-                values[(std::size_t)local] = top + ty * (bot - top);
             }
-            if (aio_upm_dense_write_tile(d, (std::uint64_t)f, tile,
-                                         values.data(), values.size()) != 0) {
-                aio_upm_dense_abort(d);
-                return 1;
+        const int cell = m->cell_side;
+        const int half = cell / 2;
+        const auto itb = m->tile_gx_bounds.find(tile);
+        const int gmin = (itb != m->tile_gx_bounds.end())
+                             ? itb->second.first : 0;
+        const int gmax = (itb != m->tile_gx_bounds.end())
+                             ? itb->second.second : 7;
+        const auto itb2 = m->tile_gy_bounds.find(tile);
+        const int vmin = (itb2 != m->tile_gy_bounds.end())
+                             ? itb2->second.first : 0;
+        const int vmax = (itb2 != m->tile_gy_bounds.end())
+                             ? itb2->second.second : 7;
+        auto axis = [&](int v, int* c0, int* c1, int lo, int hi) {
+            if (lo == hi) { *c0 = *c1 = lo * cell + half; return; }
+            if (v <= lo * cell + half) { *c0 = lo * cell + half;
+                                         *c1 = lo * cell + half + cell; }
+            else if (v >= hi * cell + half) { *c0 = hi * cell + half - cell;
+                                              *c1 = hi * cell + half; }
+            else {
+                const int idx = std::clamp(v / cell, lo, hi);
+                const int cc = idx * cell + half;
+                if (v <= cc) { *c0 = cc - cell; *c1 = cc; }
+                else { *c0 = cc; *c1 = cc + cell; }
+            }
+        };
+        auto at = [&](int cx, int cy) {
+            const int gxi = std::clamp((cx - half) / cell, 0, 7);
+            const int gyi = std::clamp((cy - half) / cell, 0, 7);
+            return node_ok[gyi][gxi] ? node[gyi][gxi] : 0.0;
+        };
+        for (std::uint64_t local = 0; local < npx; ++local) {
+            std::uint32_t x = 0, y = 0;
+            astrocs::healpix::nested_local_to_xy(
+                local, (std::uint32_t)tile_shift, x, y);
+            int x0, x1, y0, y1;
+            axis((int)x, &x0, &x1, gmin, gmax);
+            axis((int)y, &y0, &y1, vmin, vmax);
+            const double c00 = at(x0, y0), c10 = at(x1, y0);
+            const double c01 = at(x0, y1), c11 = at(x1, y1);
+            const double tx = (x1 != x0)
+                                  ? (double)((int)x - x0) / (double)(x1 - x0)
+                                  : 0.0;
+            const double ty = (y1 != y0)
+                                  ? (double)((int)y - y0) / (double)(y1 - y0)
+                                  : 0.0;
+            const double top = c00 + tx * (c10 - c00);
+            const double bot = c01 + tx * (c11 - c01);
+            out[local] = top + ty * (bot - top);
+        }
+    };
+#if defined(P2_ENABLE_OPENMP) && defined(_OPENMP)
+    int nw = (workers > 0) ? workers : omp_get_max_threads();
+    if (nw < 1) nw = 1;
+#else
+    int nw = 1;
+#endif
+    for (std::size_t f = 0; f < m->C.size(); ++f) {
+        for (std::size_t base = 0; base < tiles.size(); base += kChunk) {
+            const std::size_t n = std::min(kChunk, tiles.size() - base);
+            std::vector<double> buf(n * kLeafPx);
+#if defined(P2_ENABLE_OPENMP) && defined(_OPENMP)
+            #pragma omp parallel for schedule(dynamic) num_threads(nw)
+#endif
+            for (std::int64_t j = 0; j < (std::int64_t)n; ++j) {
+                compute_tile(f, tiles[base + (std::size_t)j],
+                             buf.data() + (std::size_t)j * kLeafPx, kLeafPx);
+            }
+            for (std::size_t j = 0; j < n; ++j) {
+                const std::uint64_t tile = tiles[base + j];
+                if (aio_upm_dense_write_tile(d, (std::uint64_t)f, tile,
+                                             buf.data() + j * kLeafPx,
+                                             kLeafPx) != 0) {
+                    aio_upm_dense_abort(d);
+                    return 1;
+                }
             }
         }
     }
     return aio_upm_dense_end(d);
+}
+
+// 既有公开 API：wrap 到 worker 数 auto 的并行实现。
+int p2_upm_materialize_dense(const void* model, int target_order,
+                             const char* cache_path) {
+    return p2_upm_materialize_dense_n(model, target_order, cache_path, 0);
 }
 
 int p2_upm_dense_info(const void* model, const char* cache_path,

@@ -172,6 +172,9 @@ P2_API int p2_upm_dense_read_block(
 // materialize dense cache（同模型 hash/目标 order/frame hash 校验）
 P2_API int p2_upm_materialize_dense(
     const void* model, int target_order, const char* cache_path);
+// worker 数显式版本（CON-010 并行物化；workers<=0 => auto=omp_get_max_threads）。
+P2_API int p2_upm_materialize_dense_n(
+    const void* model, int target_order, const char* cache_path, int workers);
 
 P2_API int p2_upm_close(void* model);
 
