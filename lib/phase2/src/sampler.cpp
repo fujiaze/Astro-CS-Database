@@ -30,6 +30,7 @@
 #if defined(P2_ENABLE_OPENMP) && defined(_OPENMP)
 #include <omp.h>
 #include <atomic>
+#include <mutex>
 #include <thread>
 #endif
 
@@ -156,9 +157,16 @@ struct TilePair {
     bool ok = false;
 };
 
+// CON-010 复归：cfitsio / aio_hips 并发文件读在本机 gcc 14 上非线程安全，
+// 多 worker 并发 aio_hips_* 会导致 _IO_fread SIGSEGV（TSan 于 sampler.cpp 误报
+// std::set::count 竞态，真正崩溃在 _IO_fread）。故将所有 aio_hips 的 open/read
+// 用单一全局 mutex 串行化（计算仍并行），消除崩溃且不改变每 cell 结果。
+static std::mutex g_aio_mu;
+
 int read_tile_pair(AioHipsDataset* sig, AioHipsDataset* sup,
                    std::uint64_t tile_ipix, TilePair* out) {
     if (!sig || !sup || !out) return 2;
+    std::lock_guard<std::mutex> lk(g_aio_mu);   // 串行化 cfitsio 读，避免并发 _IO_fread
     out->ok = false;
     try {
         out->signal.resize((size_t)kTileWidth * kTileWidth);
@@ -680,8 +688,8 @@ static int p2_sample_controls_impl(
         std::vector<AioHipsDataset*> csig, csup;
         void init_shared(AioHipsDataset* const* s, AioHipsDataset* const* p, std::size_t n_) { shared_sig = s; shared_sup = p; n = n_; own = false; }
         void init_own(const char* const* p, std::size_t n_) { paths = p; n = n_; own = true; csig.assign(n, nullptr); csup.assign(n, nullptr); }
-        AioHipsDataset* sig(std::size_t f) { if (!own) return shared_sig[f]; if (!csig[f]) csig[f] = aio_hips_open(paths[f], AIO_HIPS_RD_SIGNAL); return csig[f]; }
-        AioHipsDataset* sup(std::size_t f) { if (!own) return shared_sup[f]; if (!csup[f]) csup[f] = aio_hips_open(paths[f], AIO_HIPS_RD_SUPPORT); return csup[f]; }
+        AioHipsDataset* sig(std::size_t f) { if (!own) return shared_sig[f]; if (!csig[f]) { std::lock_guard<std::mutex> lk(g_aio_mu); csig[f] = aio_hips_open(paths[f], AIO_HIPS_RD_SIGNAL); } return csig[f]; }
+        AioHipsDataset* sup(std::size_t f) { if (!own) return shared_sup[f]; if (!csup[f]) { std::lock_guard<std::mutex> lk(g_aio_mu); csup[f] = aio_hips_open(paths[f], AIO_HIPS_RD_SUPPORT); } return csup[f]; }
         void close_all() { if (!own) return; for (AioHipsDataset* p : csig) if (p) aio_hips_close(p); for (AioHipsDataset* p : csup) if (p) aio_hips_close(p); csig.clear(); csup.clear(); }
     };
 
