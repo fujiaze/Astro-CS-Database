@@ -3027,9 +3027,58 @@ TEST(Phase2Acr, LegacyLauncherEquivalent) {
     astro::compute::append_scalar(inv.scalars, double{4.0}); // lower_sigma
     astro::compute::append_scalar(inv.scalars, double{3.0}); // upper_sigma
     astro::compute::append_scalar(inv.scalars, int{8});   // max_iterations
+    astro::compute::append_scalar(inv.scalars, int{1});   // CON-007 workers
     reg->legacy_parallel(inv, nullptr);
     EXPECT_NEAR(out[0], 10.1f, 1e-4f);
     EXPECT_NEAR(out[1], 20.0f, 1e-2f);
+}
+
+// CON-007: ACR CPU launcher 1T/2T 确定性。同一合成输入分别 workers=1/=2，
+// 逐像素输出必须保持一致（每 worker 独立 scratch，无跨像素共享状态）。
+TEST(Phase2AcrParallel, LegacyCpuOneVsTwoTDetermine) {
+    astro::compute::phase2::register_phase2_acr_kernels();
+    const astro::compute::KernelRegistration* reg =
+        astro::compute::global_kernel_registry().find(
+            astro::compute::phase2::kOpMosaicReject);
+    ASSERT_NE(reg, nullptr);
+    ASSERT_NE(reg->legacy_parallel, nullptr);
+
+    const std::size_t px = 3, depth = 4;
+    // frame-major：像素 0 有离群，像素 1/2 正常
+    float vals[12] = {
+        10.0f, 10.1f, 9.9f,
+        50.0f, 10.0f, 10.2f,
+        10.05f, 9.8f, 10.0f,
+        10.1f, 10.1f, 9.9f,
+    };
+    float out1[3] = {0, 0, 0};
+    float out2[3] = {0, 0, 0};
+    auto make_inv = [&](float* out, int workers) {
+        astro::compute::KernelInvocation inv;
+        inv.id = astro::compute::phase2::kOpMosaicReject;
+        inv.domain = astro::compute::WorkDomain{0, px};
+        inv.buffers.add(0, out, px, 1, astro::compute::BufferRole::Output);
+        inv.buffers.add(1, vals, px * depth, 1,
+                        astro::compute::BufferRole::Input);
+        astro::compute::append_scalar(inv.scalars, std::size_t{px});
+        astro::compute::append_scalar(inv.scalars, std::size_t{depth});
+        astro::compute::append_scalar(inv.scalars, int{P2_REJECT_SIGMA});
+        astro::compute::append_scalar(inv.scalars, int{2});
+        astro::compute::append_scalar(inv.scalars, double{4.0});
+        astro::compute::append_scalar(inv.scalars, double{3.0});
+        astro::compute::append_scalar(inv.scalars, int{8});
+        astro::compute::append_scalar(inv.scalars, int{workers});
+        return inv;
+    };
+    astro::compute::KernelInvocation iv1 = make_inv(out1, 1);
+    astro::compute::KernelInvocation iv2 = make_inv(out2, 2);
+    reg->legacy_parallel(iv1, nullptr);
+    reg->legacy_parallel(iv2, nullptr);
+    for (std::size_t p = 0; p < px; ++p)
+        EXPECT_NEAR(out1[p], out2[p], 1e-4f) << "ACR CPU 1T/2T signal p=" << p;
+    EXPECT_GT(out1[0], 9.0f);
+    EXPECT_GT(out1[1], 9.0f);
+    EXPECT_GT(out1[2], 9.0f);
 }
 
 // W9：真实 GPU kernel 与 CPU reference 等价（同输入、同语义、数值容差内）
@@ -3066,6 +3115,7 @@ TEST(Phase2Acr, CudaEquivalent) {
         astro::compute::append_scalar(inv.scalars, double{4.0});
         astro::compute::append_scalar(inv.scalars, double{3.0});
         astro::compute::append_scalar(inv.scalars, int{8});
+        astro::compute::append_scalar(inv.scalars, int{1});   // CON-007 workers
         return inv;
     };
     astro::compute::KernelInvocation ic = build_inv(out_cpu);
@@ -3132,6 +3182,7 @@ TEST(Phase2Acr, CudaWeightedSupportEquivalent) {
         astro::compute::append_scalar(inv.scalars, double{4.0});
         astro::compute::append_scalar(inv.scalars, double{3.0});
         astro::compute::append_scalar(inv.scalars, int{8});
+        astro::compute::append_scalar(inv.scalars, int{1});   // CON-007 workers
         return inv;
     };
     astro::compute::KernelInvocation ic =
@@ -3198,6 +3249,7 @@ TEST(Phase2Acr, G9CompactFrameSubset) {
         astro::compute::append_scalar(inv.scalars, double{4.0});
         astro::compute::append_scalar(inv.scalars, double{3.0});
         astro::compute::append_scalar(inv.scalars, int{8});
+        astro::compute::append_scalar(inv.scalars, int{1});   // CON-007 workers
         return inv;
     };
     astro::compute::KernelInvocation ic = build_inv(out_cpu);
@@ -3241,6 +3293,7 @@ TEST(Phase2Acr, G9WinsorizedCpuRoute) {
     astro::compute::append_scalar(inv.scalars, double{4.0});
     astro::compute::append_scalar(inv.scalars, double{3.0});
     astro::compute::append_scalar(inv.scalars, int{8});
+    astro::compute::append_scalar(inv.scalars, int{1});   // CON-007 workers
     bool threw_cpu_route = false;
     try {
         (*reg->cuda)(inv, nullptr);

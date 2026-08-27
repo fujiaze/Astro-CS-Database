@@ -972,6 +972,8 @@ int main(int argc, char** argv) {
                                               std::size_t{p0});  // chunk tile 偏移
                 astro::compute::append_scalar(inv.scalars,
                                               int{cfg.weight_mode});
+                astro::compute::append_scalar(inv.scalars,
+                                              int{acr_workers}); // CON-007 CPU worker 预算
                 try {
                     if (gpu_ready && acr_reg->cuda.has_value()) {
                         (*acr_reg->cuda)(inv, nullptr);
