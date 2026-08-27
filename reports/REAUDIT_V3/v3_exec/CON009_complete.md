@@ -40,3 +40,13 @@
   OMPT）并记录；确定性矩阵覆盖全部并行阶段，含重复 2T；逐层/结构/ID/hash 校验到位。
 - 判定：**PASS**（按 finding 第 18/19 条的权威路径 2）。
 - 遗留：真实数据 sampler 1T/2T 由 Fatduck（Windows）补测运行，记录于 WIN/G2 环节。
+
+## 2026-08-27 补充：CON-010 发现 sampler 并行读真实竞态（推翻本报告"无数据竞争"默认）
+- 本报告的确定性矩阵未在 Linux 实际跑 **sampler 并行多 tile 读**：`Phase2SamplerParallel.
+  OneTvsTwoTDeterminism` 因无真实 HiPS 在 Linux SKIP；UPM/ACR/integration 的
+  1T/2T + repeat-2T 均通过，但未涉及 **多 tile 并发 AIO 读**。
+- CON-010 用合成 6×12 tile 负载实测 `cpu_workers=2`：TSan 报
+  `sampler.cpp:706 std::set::count / :881 _omp_fn.0` 竞态 + `SEGV in _IO_fread`，
+  = cfitsio 并发读非线程安全 ⇒ 生产 CLI **SIGSEGV**（详见 CON010_runtime_gate.md）。
+- 因此本报告的**断言仅对 UPM/ACR/integration 成立**；sampler 并行读存在真实竞态，
+  CON-004 需重审。补记于此，避免"无数据竞争"被误当作对 sampler 并行也成立。
