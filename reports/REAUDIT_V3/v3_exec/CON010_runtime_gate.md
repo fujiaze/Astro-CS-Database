@@ -73,9 +73,13 @@
   **不可满足**，需并行化改造后复评。
 - **并行化尝试（2026-08-27 追加）**：将 `p2_upm_materialize_dense` 计算并行化
   （`_n` 变体：分批并行算 (f,tile) 双线性 + 严格按序写）。1T/2T dense cache
-  SHA256 bit-identical，全部测试通过；但 `upm_persist` 仅 2.40s→2.26s(2T)。结论：
-  **稠密缓存物化主开销是顺序写 ~150MB(单 FILE\*)，非 compute** ⇒ 并行化 compute 收益甚微；
-  要消除该硬串行段需改写 `aio_upm_dense` 支持按 tile 偏移随机写（或单 IO 线程物化）。
+  SHA256 bit-identical，全部测试通过；但 `upm_persist` 仅 2.40s→2.26s(2T)。
+- **修正：并非磁盘 I/O 瓶颈**。`dd 150MB conv=fsync` 到同目录实测 **436 MB/s
+  （0.36s）**，磁盘很快 ⇒ `upm_persist` 非 disk-bound。其 ~2.1s 非 compute 开销来自
+  **预编译 `astro_image_io/astro_image_io.dll` 的逐元素 byte-copy 写路径**（每个 tile
+  逐元素 `bytes.insert(...)`×262144 次，串行；该库为预编译 .so，本树无对应 CMake
+  目标，无法用 phase2 源码优化）。⇒ 要消除该硬串行段需重建 aio 库（bulk fwrite）或
+  单 IO 线程物化；属源码可优化但在预编译库内的瓶颈，非磁盘/硬件限制。
 
 ## 6. 审计影响
 - **CON-010 = FAIL**（并行效率）；G2 并行门禁在 2C Linux **未达标** ⇒ 禁止启动 32R。
