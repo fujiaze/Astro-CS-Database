@@ -27,6 +27,12 @@
 - 2T 平均 CPU ≈ 107%（需求 ≥150%）。2T 基本未利用第二核。
 - 时相分解（2T，12×12）：control_sample=3.81s（≈1T，即 sampler 几乎未并行），
   upm_persist=4.53s（**串行 UPM 稠密缓存物化**），tiles_process=6.87s（积分 ~1.13x，缩放差）。
+- **差分结果/数值门禁：1T==2T 数据位级一致**（2026-08-27 复验，G2 必备产出）。
+  1T 与 2T 完整 mosaic 输出逐字节对比：signal/support 各 `Norder0/...` FITS 的
+  **DATASUM 完全一致**（如 Npix0 `3138625936`），即**科学数据逐字节相同**（积分+UPM+写盘
+  确定性成立）；文件整体 hash 仅因 `CHECKSUM`/`DATASUM` 卡片**注释里的时间戳
+  （16:06:31 vs 16:06:39，两次运行相隔 8s）**不同而不同，属元数据/伪装差异，非数值差异。
+  `upm_dense.cache` 亦 SHA256 bit-identical。⇒ 数值门禁（确定性）满足。
 
 ## 4. 过程中发现并修复的真实崩溃（独立于效率判定）
 - **原始 2T 运行 SIGSEGV**：`exit -11`，约 1.0s，`[sampler] read_tile_pair failed rc=1 frame=4 tile=1`
