@@ -54,6 +54,13 @@
   （`aio_hips_read_tile_f32`, cfitsio 预编译库，串行 2.12s）——**与采样器
   control_sample(1.85s 串行)是同一 cfitsio 读瓶颈**，需 CON-008 单 IO 线程/管道路径统一解决；
   rejection 2.07s 不缩放是另一独立受限源。
+- **Amdahl 界与不可满足性（2026-08-27 实测确证）**：合成数据 `N_B=6 chunk_px=262144
+  n_chunk=1`（每 tile 仅 1 chunk，**无跨 chunk 重复读**，hoist 读无收益）。积分
+  tiles_process=2.12s **串行 aio 读** + 2.07s **rejection(omp 像素, 实测 1T/2T 均≈2.03-2.07s
+  不缩放)**。⇒ 即便 rejection 完美 2×，Amdahl 上限 = 2.12 + 2.07/2 = 3.16s ⇒ 1.33x(<1.5x)；
+  而实测 rejection 不缩放 ⇒ 实际更差。**门禁(CPU≥150%/1T-2T≥1.5x/串行<1s且<1%)在当前
+  架构下不可满足**——2.12s 串行读(≥1s) + 1.85s 采样器串行 + upm_persist(诊断)均为 ≥1s
+  串行段。这是**真实的预发布质量缺陷**，应由审核人裁决规格冲突/是否放宽门禁。
 - **差分结果/数值门禁：1T==2T 数据位级一致**（2026-08-27 复验，G2 必备产出）。
   1T 与 2T 完整 mosaic 输出逐字节对比：signal/support 各 `Norder0/...` FITS 的
   **DATASUM 完全一致**（如 Npix0 `3138625936`），即**科学数据逐字节相同**（积分+UPM+写盘
