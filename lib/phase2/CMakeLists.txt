@@ -55,6 +55,9 @@ target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../astro_im
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../common)
 if(P2_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
     target_link_libraries(phase2 PUBLIC OpenMP::OpenMP_CXX)
+    # CON-004: 把 P2_ENABLE_OPENMP 作为编译宏定义（原为装饰性 option，源内 #if 恒假）。
+    # 仅 ON 且找到 OpenMP 时定义 => 源内 #if defined(P2_ENABLE_OPENMP) 才真正激活并行路径。
+    target_compile_definitions(phase2 PRIVATE P2_ENABLE_OPENMP=1)
 endif()
 
 enable_testing()
@@ -70,11 +73,15 @@ if(GTest_FOUND)
     target_link_libraries(phase2_execution_options PRIVATE phase2 GTest::gtest_main)
     add_executable(phase2_routing tests/routing_test.cpp)
     target_link_libraries(phase2_routing PRIVATE phase2 GTest::gtest_main)
+    add_executable(phase2_sampler_parallel tests/sampler_parallel_consistency_test.cpp)
+    target_link_libraries(phase2_sampler_parallel PRIVATE phase2 GTest::gtest_main
+        ${CMAKE_CURRENT_SOURCE_DIR}/../astro_image_io/astro_image_io.dll)
     include(GoogleTest)
     gtest_discover_tests(phase2_synthetic_gate DISCOVERY_MODE PRE_TEST)
     gtest_discover_tests(phase2_ivar_wiring DISCOVERY_MODE PRE_TEST)
     gtest_discover_tests(phase2_execution_options DISCOVERY_MODE PRE_TEST)
     gtest_discover_tests(phase2_routing DISCOVERY_MODE PRE_TEST)
+    gtest_discover_tests(phase2_sampler_parallel DISCOVERY_MODE PRE_TEST)
 endif()
 
 add_executable(astrocs-stage2 tools/stage2.cpp)

@@ -262,6 +262,8 @@ int main(int argc, char** argv) {
     sccfg.background_tolerance = cfg.background_tolerance;
     sccfg.background_neighbor_radius = cfg.background_neighbor_radius;
     sccfg.background_catalog_veto = cfg.background_catalog_veto;
+    // CON-004: 并行 worker 预算唯一来源 = ExecutionOptions (CON-002)
+    sccfg.cpu_workers = cfg.exec.cpu_workers;
     std::uint64_t n_obs = 0, n_ctrl = 0;
     char serr[512] = {0};
     P2SampleStats sstats{};
