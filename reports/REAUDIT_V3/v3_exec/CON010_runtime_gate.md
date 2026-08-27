@@ -62,6 +62,11 @@
   `#pragma omp parallel ... omp for schedule(static)` 已并行像素，但实测缩放到 2 核
   仅 ~1.1x（12×12：1T~7.8s→2T=6.87s）。原因应为逐像素读 `cal/support/frame_seq`
   与 per-thread `std::map` hist 的访存/缓存竞争，属内存带宽受限，非线程数不足。
+- **序列化源 4 —— 积分内"逐帧校准"段是串行（2026-08-27 新定位）**：`stage2.cpp:1245-1278`
+  的逐帧 `s` 循环（`aio_hips_read_tile_f32` + `p2_upm_calibrate_block` 校准 UPM 空间
+  项）在**调用线程**上、**先于** omp `rejection` 并行区执行；即每 chunk 先串行校准全部帧，
+  再并行 rejection。该串行段（含 tile 读 + 双线性校准，且 again 涉及 cfitsio 并发读安全）
+  是积分不随核数扩展的又一原因 ⇒ 需把校准并入并行/管道（或与 rejection 重叠）。
 - **采样器读被串行化**（§4 修复副作用）：control_sample 2T ≈ 1T，未并行。
 - **综合 Amdahl**：`upm_persist`(串行 ~30%) + 积分(仅 1.1x) + 采样器(未并行) ⇒ 2 核真实
   加速 ~1.02x，远低于 >=1.50x；且 `upm_persist` 的 >1s 串行段直接违反门禁。
