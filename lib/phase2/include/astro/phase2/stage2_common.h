@@ -106,3 +106,11 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg,
 P2UpmBuildConfig p2_stage2_make_upm_cfg(const P2Stage2Config& cfg,
                                         int target_order,
                                         const char* input_manifest_hash);
+
+// CON-007: ACR 块路由资格。acr_route=cpu/auto/cuda 只要满足科学/ivar 条件
+// 都必须进入 ACR 注册的 CPU/GPU launcher，不得因 route=cpu 直接绕到 legacy
+// 串行参考路径。weight_mode=2(ivar) 与 large_scale 仍必须走 CPU canonical path。
+bool p2_acr_block_eligible(const P2Stage2Config& cfg,
+                           bool acr_registered,
+                           int reject_method,
+                           bool large_scale_active);

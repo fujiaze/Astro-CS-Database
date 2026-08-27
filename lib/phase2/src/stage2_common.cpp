@@ -431,6 +431,19 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
     return true;
 }
 
+bool p2_acr_block_eligible(const P2Stage2Config& cfg,
+                           bool acr_registered,
+                           int reject_method,
+                           bool large_scale_active) {
+    // 只有 ACR 已注册、显式 sigma、非大尺度、非逐像素 ivar 时可进入 ACR 块。
+    // route=auto 在 Linux 无 CUDA 时同样落回同一 CPU ACR launcher（由调用方记录 fallback_reason）。
+    return acr_registered &&
+           reject_method == P2_REJECT_SIGMA &&
+           cfg.weight_mode != 2 &&
+           !large_scale_active &&
+           (cfg.acr_route == "cpu" || cfg.acr_route == "auto" || cfg.acr_route == "cuda");
+}
+
 P2UpmBuildConfig p2_stage2_make_upm_cfg(const P2Stage2Config& cfg,
                                         int target_order,
                                         const char* input_manifest_hash) {

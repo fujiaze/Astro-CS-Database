@@ -55,8 +55,28 @@ TEST(Phase2Routing, AcrCpuRouteStaysCpuNoSilentGpu) {
     P2Stage2Config cfg;
     std::string err;
     ASSERT_TRUE(p2_stage2_parse_config(production_config(), &cfg, &err)) << err;
-    // 生产默认 acr_route=cpu：在 Linux(无 CUDA, stub empty) 不应静默切到 GPU/cuda，
-    // 即 use_acr_block 条件 cfg.acr_route!="cpu" 不成立 => 走 CPU 串行参考路径（见 CON-007）。
-    const bool use_acr_block = (cfg.acr_route != "cpu");
-    EXPECT_FALSE(use_acr_block) << "acr_route=cpu 必须使 ACR 块不可达（保持 CPU 串行参考）";
+    // CON-007: 生产默认 weight_mode=ivar(2)，ACR kernel 与逐像素 ivar 不等价，
+    // 因此即使 acr_route=cpu 也必须走 CPU canonical path，不得进入 ACR 块。
+    const bool use_acr_block =
+        p2_acr_block_eligible(cfg, true, P2_REJECT_SIGMA, false);
+    EXPECT_FALSE(use_acr_block);
+}
+
+TEST(Phase2Routing, AcrCpuRouteEntersCpuAcrBlockForLegacyWeightMode) {
+    P2Stage2Config cfg;
+    std::string err;
+    ASSERT_TRUE(p2_stage2_parse_config(production_config(), &cfg, &err)) << err;
+    // 非 ivar 的显式 sigma 配置下，acr_route=cpu 必须允许进入 ACR 的 CPU launcher
+    // （CON-007 修复点：此前 route=cpu 被直接绕到 legacy 串行参考路径）。
+    cfg.weight_mode = 0;   // support×snr² legacy/ablation
+    EXPECT_TRUE(p2_acr_block_eligible(cfg, true, P2_REJECT_SIGMA, false));
+    // auto 在 Linux 无 CUDA 时同样落回同一 CPU ACR launcher（fallback_reason 由运行日志记录）。
+    cfg.acr_route = "auto";
+    EXPECT_TRUE(p2_acr_block_eligible(cfg, true, P2_REJECT_SIGMA, false));
+    // weight_mode=ivar 仍然禁止 ACR 块。
+    cfg.weight_mode = 2;
+    EXPECT_FALSE(p2_acr_block_eligible(cfg, true, P2_REJECT_SIGMA, false));
+    // large_scale 两遍仍保持 CPU canonical。
+    cfg.weight_mode = 0;
+    EXPECT_FALSE(p2_acr_block_eligible(cfg, true, P2_REJECT_SIGMA, true));
 }
