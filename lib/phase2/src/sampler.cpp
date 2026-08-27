@@ -29,6 +29,8 @@
 
 #if defined(P2_ENABLE_OPENMP) && defined(_OPENMP)
 #include <omp.h>
+#include <atomic>
+#include <thread>
 #endif
 
 #define NOMINMAX
@@ -299,6 +301,7 @@ P2SamplerConfig p2_sampler_default_config(void) {
     c.background_neighbor_radius = 2;
     c.background_catalog_veto = 1;
     c.control_k_corr = kControlCorrDefault;
+    c.cpu_workers = 0;                  // 0=auto：默认构建 P2_ENABLE_OPENMP=OFF => 实际串行(=1)
     return c;
 }
 
@@ -665,15 +668,28 @@ static int p2_sample_controls_impl(
 #if defined(_WIN32) && defined(_MSC_VER)
     __try {
 #endif
-    for (std::uint64_t c = 0; c < n_union; ++c) {
-        // xy / tile_buf 生命周期：每 714*64 规模检查
-        if (!coverage->union_cells) {
-            if (err && err_size) std::snprintf(err, err_size, "null union_cells at c=%llu", (unsigned long long)c);
-            for (std::uint64_t i = 0; i < n_frames; ++i) { if (sig[i]) aio_hips_close(sig[i]); if (sup[i]) aio_hips_close(sup[i]); if (ivr[i]) aio_hips_close(ivr[i]); }
-            return 1;
-        }
+    // ============ CON-004 parallel sampler first pass ============
+    // worker reader：serial 复用 setup 打开的共享句柄；并行每 worker 独立句柄
+    // （cfitsio 同句柄并发读非线程安全 => 禁跨线程共享；禁全局 critical(aio_read)）。
+    struct SamplerReader {
+        const char* const* paths = nullptr;
+        AioHipsDataset* const* shared_sig = nullptr;
+        AioHipsDataset* const* shared_sup = nullptr;
+        std::size_t n = 0;
+        bool own = false;
+        std::vector<AioHipsDataset*> csig, csup;
+        void init_shared(AioHipsDataset* const* s, AioHipsDataset* const* p, std::size_t n_) { shared_sig = s; shared_sup = p; n = n_; own = false; }
+        void init_own(const char* const* p, std::size_t n_) { paths = p; n = n_; own = true; csig.assign(n, nullptr); csup.assign(n, nullptr); }
+        AioHipsDataset* sig(std::size_t f) { if (!own) return shared_sig[f]; if (!csig[f]) csig[f] = aio_hips_open(paths[f], AIO_HIPS_RD_SIGNAL); return csig[f]; }
+        AioHipsDataset* sup(std::size_t f) { if (!own) return shared_sup[f]; if (!csup[f]) csup[f] = aio_hips_open(paths[f], AIO_HIPS_RD_SUPPORT); return csup[f]; }
+        void close_all() { if (!own) return; for (AioHipsDataset* p : csig) if (p) aio_hips_close(p); for (AioHipsDataset* p : csup) if (p) aio_hips_close(p); csig.clear(); csup.clear(); }
+    };
+
+    // per-cell body：串行与并行共用（杜绝双份漂移）。返回 0 或错误码(1=pairs resize OOM)。
+    auto pass1_cell = [&](std::uint64_t c, SamplerReader& rdr,
+                         std::uint64_t& cv, std::uint64_t& ci) -> int {
+        cv = 0; ci = 0;
         const std::uint64_t tile_ipix = coverage->union_cells[c].ipix;
-        // tile id 范围检查（32-hips 714 cells 应在 target_order 范围内）
         {
             const std::uint64_t npix = 12ULL * ((std::uint64_t)1 << (2u * (unsigned)coverage->target_order));
             if (tile_ipix >= npix) {
@@ -682,7 +698,7 @@ static int p2_sample_controls_impl(
                     const std::size_t idx = (std::size_t)c * grid * grid + (std::size_t)(gy * grid + gx);
                     if (idx < cells.size()) { cells[idx].tile = -1; }
                 }
-                continue;
+                return 0;
             }
         }
         std::vector<std::uint64_t> cov_frames;
@@ -691,20 +707,14 @@ static int p2_sample_controls_impl(
 
         std::vector<TilePair> pairs;
         if (!cov_frames.empty()) {
-            try { pairs.resize(cov_frames.size()); } catch (...) {
-                if (err && err_size) std::snprintf(err, err_size, "pairs resize failed at c=%llu", (unsigned long long)c);
-                std::fprintf(stderr, "[sampler] pairs resize failed at c=%llu\n", (unsigned long long)c); std::fflush(stderr);
-                for (std::uint64_t i = 0; i < n_frames; ++i) { if (sig[i]) aio_hips_close(sig[i]); if (sup[i]) aio_hips_close(sup[i]); if (ivr[i]) aio_hips_close(ivr[i]); }
-                return 1;
-            }
+            try { pairs.resize(cov_frames.size()); } catch (...) { return 1; }
             for (std::size_t fi = 0; fi < cov_frames.size(); ++fi) {
-                if (!sig[cov_frames[fi]] || !sup[cov_frames[fi]]) {
+                if (!rdr.sig(cov_frames[fi]) || !rdr.sup(cov_frames[fi])) {
                     std::fprintf(stderr, "[sampler] null dataset at frame %llu tile %llu\n", (unsigned long long)cov_frames[fi], (unsigned long long)tile_ipix); std::fflush(stderr);
                     continue;
                 }
-                const int rc = read_tile_pair(sig[cov_frames[fi]], sup[cov_frames[fi]], tile_ipix, &pairs[fi]);
+                const int rc = read_tile_pair(rdr.sig(cov_frames[fi]), rdr.sup(cov_frames[fi]), tile_ipix, &pairs[fi]);
                 if (rc != 0) {
-                    // tile 缺失/读取失败：该帧该 tile 无信号，early-continue（不崩）
                     pairs[fi].ok = false;
                     std::fprintf(stderr, "[sampler] read_tile_pair failed rc=%d frame=%llu tile=%llu\n", rc, (unsigned long long)cov_frames[fi], (unsigned long long)tile_ipix); std::fflush(stderr);
                 }
@@ -715,48 +725,35 @@ static int p2_sample_controls_impl(
             for (int gx = 0; gx < grid; ++gx) {
                 const int cx = gx * cell_side + cell_side / 2;
                 const int cy = gy * cell_side + cell_side / 2;
-                const std::uint64_t center_local =
-                    astrocs::healpix::xy_to_nested_local(
-                        (unsigned)cx, (unsigned)cy, (unsigned)kTileShift);
-                const std::uint64_t center_leaf =
-                    leaf_of_tile(tile_ipix, leaf_shift) + center_local;
+                const std::uint64_t center_local = astrocs::healpix::xy_to_nested_local((unsigned)cx, (unsigned)cy, (unsigned)kTileShift);
+                const std::uint64_t center_leaf = leaf_of_tile(tile_ipix, leaf_shift) + center_local;
                 double ra_deg = 0.0, dec_deg = 0.0;
-                astrocs::healpix::pix2ang_nest(
-                    1u << (unsigned)(coverage->target_order + leaf_shift),
-                    center_leaf, ra_deg, dec_deg);
+                astrocs::healpix::pix2ang_nest(1u << (unsigned)(coverage->target_order + leaf_shift), center_leaf, ra_deg, dec_deg);
 
                 CellStat cs;
                 cs.ra = ra_deg; cs.dec = dec_deg; cs.leaf = center_leaf;
                 cs.tile = (int)tile_ipix; cs.gx = gx; cs.gy = gy;
-                uint64_t local_veto = 0, local_insupp = 0;
+                std::uint64_t local_veto = 0, local_insupp = 0;
                 for (std::size_t fi = 0; fi < cov_frames.size(); ++fi) {
                     const std::uint64_t frame_id = cov_frames[fi];
                     const TilePair& tp = pairs[fi];
-                    // tile_buf 生命周期：读取失败或 support 空 → early-continue（不越界解引用）
                     if (!tp.ok || tp.signal.empty() || tp.support.empty() ||
                         tp.signal.size() < (size_t)kTileWidth * kTileWidth ||
                         tp.support.size() < (size_t)kTileWidth * kTileWidth) {
                         ++local_insupp;
                         cs.frames.push_back((int)frame_id);
-                        cs.m.push_back(0); cs.mad.push_back(0);
-                        cs.bfrac.push_back(0); cs.unc.push_back(0);
-                        cs.snr.push_back(0); cs.sup.push_back(0);
-                        cs.cvar.push_back(0); cs.civar.push_back(0);
-                        cs.n_total.push_back(0); cs.n_retained.push_back(0);
-                        cs.snr_avail.push_back(0); cs.qual.push_back(0);
+                        cs.m.push_back(0); cs.mad.push_back(0); cs.bfrac.push_back(0); cs.unc.push_back(0);
+                        cs.snr.push_back(0); cs.sup.push_back(0); cs.cvar.push_back(0); cs.civar.push_back(0);
+                        cs.n_total.push_back(0); cs.n_retained.push_back(0); cs.snr_avail.push_back(0); cs.qual.push_back(0);
                         cs.accepted.push_back(false); cs.reason.push_back(1);
                         continue;
                     }
-                    // xy 边界：cx/cy 由 gx*cell_side+side/2 构成，cell_side=512/grid=64，grid 默认 8 时 cx∈[32,480]，r=8 时 x∈[24,488] 全在 [0,512)；但若 cfg 被外层改大仍需边界拒绝
                     if (cx < 0 || cy < 0 || cx >= kTileWidth || cy >= kTileWidth) {
                         ++local_insupp;
                         cs.frames.push_back((int)frame_id);
-                        cs.m.push_back(0); cs.mad.push_back(0);
-                        cs.bfrac.push_back(0); cs.unc.push_back(0);
-                        cs.snr.push_back(0); cs.sup.push_back(0);
-                        cs.cvar.push_back(0); cs.civar.push_back(0);
-                        cs.n_total.push_back(0); cs.n_retained.push_back(0);
-                        cs.snr_avail.push_back(0); cs.qual.push_back(0);
+                        cs.m.push_back(0); cs.mad.push_back(0); cs.bfrac.push_back(0); cs.unc.push_back(0);
+                        cs.snr.push_back(0); cs.sup.push_back(0); cs.cvar.push_back(0); cs.civar.push_back(0);
+                        cs.n_total.push_back(0); cs.n_retained.push_back(0); cs.snr_avail.push_back(0); cs.qual.push_back(0);
                         cs.accepted.push_back(false); cs.reason.push_back(1);
                         continue;
                     }
@@ -768,16 +765,9 @@ static int p2_sample_controls_impl(
                         for (int dx = -r; dx <= r; ++dx) {
                             const int x = cx + dx;
                             const int y = cy + dy;
-                            if (x < 0 || y < 0 || x >= kTileWidth ||
-                                y >= kTileWidth)
-                                continue;
-                            const std::uint64_t z =
-                                astrocs::healpix::xy_to_nested_local(
-                                    (unsigned)x, (unsigned)y,
-                                    (unsigned)kTileShift);
-                            const std::uint64_t fi_idx =
-                                astrocs::healpix::nested_local_to_fits_index(
-                                    z, (unsigned)kTileShift, kTileWidth);
+                            if (x < 0 || y < 0 || x >= kTileWidth || y >= kTileWidth) continue;
+                            const std::uint64_t z = astrocs::healpix::xy_to_nested_local((unsigned)x, (unsigned)y, (unsigned)kTileShift);
+                            const std::uint64_t fi_idx = astrocs::healpix::nested_local_to_fits_index(z, (unsigned)kTileShift, kTileWidth);
                             if (fi_idx >= tp.signal.size() || fi_idx >= tp.support.size()) continue;
                             const float s = tp.signal[(size_t)fi_idx];
                             const float sp = tp.support[(size_t)fi_idx];
@@ -792,12 +782,9 @@ static int p2_sample_controls_impl(
                     if (n_total < cfg.min_samples) {
                         ++local_insupp;
                         cs.frames.push_back((int)frame_id);
-                        cs.m.push_back(0); cs.mad.push_back(0);
-                        cs.bfrac.push_back(0); cs.unc.push_back(0);
-                        cs.snr.push_back(0); cs.sup.push_back(0);
-                        cs.cvar.push_back(0); cs.civar.push_back(0);
-                        cs.n_total.push_back(n_total); cs.n_retained.push_back(0);
-                        cs.snr_avail.push_back(0); cs.qual.push_back(0);
+                        cs.m.push_back(0); cs.mad.push_back(0); cs.bfrac.push_back(0); cs.unc.push_back(0);
+                        cs.snr.push_back(0); cs.sup.push_back(0); cs.cvar.push_back(0); cs.civar.push_back(0);
+                        cs.n_total.push_back(n_total); cs.n_retained.push_back(0); cs.snr_avail.push_back(0); cs.qual.push_back(0);
                         cs.accepted.push_back(false); cs.reason.push_back(1);
                         continue;
                     }
@@ -807,42 +794,30 @@ static int p2_sample_controls_impl(
                         {
                             std::vector<double> dev;
                             dev.reserve(vals.size());
-                            for (double v : vals)
-                                dev.push_back(std::fabs(v - m0));
+                            for (double v : vals) dev.push_back(std::fabs(v - m0));
                             s0 = 1.4826 * median_of(std::move(dev));
                         }
                         std::vector<double> ret = vals;
                         for (int it = 0; it < cfg.background_clip_iters; ++it) {
                             std::vector<double> nr;
                             nr.reserve(ret.size());
-                            for (double v : ret)
-                                if (v <= m0 + cfg.background_clip_sigma * s0)
-                                    nr.push_back(v);
+                            for (double v : ret) if (v <= m0 + cfg.background_clip_sigma * s0) nr.push_back(v);
                             if ((int)nr.size() < cfg.min_samples) break;
                             const double nm = median_of(nr);
-                            if (std::fabs(nm - m0) <
-                                1e-12 * std::max(std::fabs(m0), 1e-12)) {
-                                ret = nr;
-                                break;
-                            }
+                            if (std::fabs(nm - m0) < 1e-12 * std::max(std::fabs(m0), 1e-12)) { ret = nr; break; }
                             m0 = nm;
                             ret = std::move(nr);
                             std::vector<double> dev2;
                             dev2.reserve(ret.size());
-                            for (double v : ret)
-                                dev2.push_back(std::fabs(v - m0));
-                            const double s1 =
-                                1.4826 * median_of(std::move(dev2));
+                            for (double v : ret) dev2.push_back(std::fabs(v - m0));
+                            const double s1 = 1.4826 * median_of(std::move(dev2));
                             if (s1 <= 0.0) break;
                             s0 = s1;
                         }
                         const double y = m0;
                         const double sigma = (s0 > 0.0) ? s0 : 1e-12;
                         int nbright = 0;
-                        for (double v : vals)
-                            if (v > y + cfg.background_contamination_sigma *
-                                            sigma)
-                                ++nbright;
+                        for (double v : vals) if (v > y + cfg.background_contamination_sigma * sigma) ++nbright;
                         const double bfrac = (double)nbright / (double)n_total;
                         const int n_retained = (int)ret.size();
                         cs.frames.push_back((int)frame_id);
@@ -850,12 +825,8 @@ static int p2_sample_controls_impl(
                         cs.mad.push_back(sigma);
                         cs.bfrac.push_back(bfrac);
                         const double n_ret = std::max((double)n_retained, 1.0);
-                        const double kcorr_f =
-                            (frames[frame_id].kcorr > 0.0)
-                                ? frames[frame_id].kcorr
-                                : cfg.control_k_corr;
-                        const double cvar =
-                            kcorr_f * kPiHalf * sigma * sigma / n_ret;
+                        const double kcorr_f = (frames[frame_id].kcorr > 0.0) ? frames[frame_id].kcorr : cfg.control_k_corr;
+                        const double cvar = kcorr_f * kPiHalf * sigma * sigma / n_ret;
                         cs.cvar.push_back(cvar);
                         cs.civar.push_back(cvar > 0.0 ? 1.0 / cvar : 0.0);
                         cs.unc.push_back(std::sqrt(cvar));
@@ -863,32 +834,20 @@ static int p2_sample_controls_impl(
                         cs.n_total.push_back(n_total);
                         cs.n_retained.push_back(n_retained);
                         int veto = 0;
-                        if (cfg.background_catalog_veto &&
-                            !frames[frame_id].snr.empty() &&
-                            frame_snr_med[frame_id] > 0.0) {
+                        if (cfg.background_catalog_veto && !frames[frame_id].snr.empty() && frame_snr_med[frame_id] > 0.0) {
                             const double thr = 10.0 * frame_snr_med[frame_id];
                             const double rad = 0.012;
-                            if (snr_idx[frame_id].any_above(
-                                    thr, ra_deg, dec_deg, rad))
-                                veto = 1;
+                            if (snr_idx[frame_id].any_above(thr, ra_deg, dec_deg, rad)) veto = 1;
                         }
                         double snr_val = 1.0;
                         int snr_avail = 0;
                         std::uint32_t qual = 0;
                         if (!frames[frame_id].snr.empty()) {
                             std::vector<double> near_snr;
-                            snr_idx[frame_id].query(
-                                ra_deg, dec_deg, cfg.snr_search_radius_deg,
-                                &near_snr, &qual);
-                            if (!near_snr.empty()) {
-                                snr_val = median_of(std::move(near_snr));
-                                snr_avail = 1;
-                            } else {
-                                snr_val = frame_snr_med_exact[frame_id];
-                            }
-                        } else {
-                            snr_val = 0.0;
-                        }
+                            snr_idx[frame_id].query(ra_deg, dec_deg, cfg.snr_search_radius_deg, &near_snr, &qual);
+                            if (!near_snr.empty()) { snr_val = median_of(std::move(near_snr)); snr_avail = 1; }
+                            else { snr_val = frame_snr_med_exact[frame_id]; }
+                        } else { snr_val = 0.0; }
                         cs.snr.push_back(snr_val);
                         cs.snr_avail.push_back(snr_avail);
                         cs.qual.push_back(qual);
@@ -899,17 +858,60 @@ static int p2_sample_controls_impl(
                 }
                 const std::size_t idx = (std::size_t)c * grid * grid + (std::size_t)(gy * grid + gx);
                 cells[idx] = std::move(cs);
-                sum_catalog_veto += local_veto;
-                sum_insufficient_support += local_insupp;
+                cv += local_veto;
+                ci += local_insupp;
             }
         }
-        ++progress;
-        if (progress % 100 == 0 || progress == n_union) {
-            const auto now = std::chrono::steady_clock::now();
-            double elapsed = std::chrono::duration<double>(now - t0).count();
-            std::fprintf(stderr, "[sampler] progress %llu/%llu tiles (%.1fs)\n",
-                (unsigned long long)progress, (unsigned long long)n_union, elapsed);
-            std::fflush(stderr);
+        return 0;
+    };
+
+    // worker 数：0=auto => hardware_concurrency；1 或非 OpenMP 构建 => 串行（默认行为不变）。
+    // 仅在 OpenMP 构建下计算/使用（避免 OFF 构建 unused 警告）。
+#if defined(P2_ENABLE_OPENMP) && !defined(_MSC_VER)
+    const int workers = (cfg.cpu_workers > 0) ? cfg.cpu_workers : (int)std::max(1u, std::thread::hardware_concurrency());
+    const bool par = (workers > 1);
+#endif
+
+#if defined(P2_ENABLE_OPENMP) && !defined(_MSC_VER)
+    if (par) {
+        std::atomic<int> pass1_fail{0};
+        #pragma omp parallel num_threads(workers)
+        {
+            SamplerReader rdr; rdr.init_own(hips_paths, n_frames);
+            #pragma omp for schedule(dynamic) reduction(+:sum_catalog_veto, sum_insufficient_support)
+            for (std::uint64_t c = 0; c < n_union; ++c) {
+                std::uint64_t cv = 0, ci = 0;
+                if (pass1_cell(c, rdr, cv, ci) != 0) { pass1_fail.store(1); continue; }
+                sum_catalog_veto += cv;
+                sum_insufficient_support += ci;
+            }
+            rdr.close_all();
+        }
+        if (pass1_fail.load()) {
+            if (err && err_size) std::snprintf(err, err_size, "pass1 pairs resize failed (parallel)");
+            for (std::uint64_t i = 0; i < n_frames; ++i) { if (sig[i]) aio_hips_close(sig[i]); if (sup[i]) aio_hips_close(sup[i]); if (ivr[i]) aio_hips_close(ivr[i]); }
+            return 1;
+        }
+    } else
+#endif
+    {
+        SamplerReader rdr; rdr.init_shared(sig.data(), sup.data(), n_frames);
+        for (std::uint64_t c = 0; c < n_union; ++c) {
+            std::uint64_t cv = 0, ci = 0;
+            if (pass1_cell(c, rdr, cv, ci) != 0) {
+                if (err && err_size) std::snprintf(err, err_size, "pairs resize failed at c=%llu", (unsigned long long)c);
+                for (std::uint64_t i = 0; i < n_frames; ++i) { if (sig[i]) aio_hips_close(sig[i]); if (sup[i]) aio_hips_close(sup[i]); if (ivr[i]) aio_hips_close(ivr[i]); }
+                return 1;
+            }
+            sum_catalog_veto += cv;
+            sum_insufficient_support += ci;
+            ++progress;
+            if (progress % 100 == 0 || progress == n_union) {
+                const auto now = std::chrono::steady_clock::now();
+                double elapsed = std::chrono::duration<double>(now - t0).count();
+                std::fprintf(stderr, "[sampler] progress %llu/%llu tiles (%.1fs)\n", (unsigned long long)progress, (unsigned long long)n_union, elapsed);
+                std::fflush(stderr);
+            }
         }
     }
 #if defined(_WIN32) && defined(_MSC_VER)
