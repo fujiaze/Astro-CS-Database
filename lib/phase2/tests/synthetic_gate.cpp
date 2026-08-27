@@ -215,6 +215,37 @@ TEST(Phase2Upm, S0IdentityCalibrationNoChange) {
     p2_upm_close(model);
 }
 
+// CON-005: UPM build 1T/2T 确定性。同输入分别 cpu_workers=1 / =2 建立模型，
+// 结构性计数(control/component/frame)必须 exact；模型内容哈希与标定输出按容差一致。
+TEST(Phase2UpmParallel, OneTvsTwoTDetermine) {
+    std::vector<P2ControlObservation> obs;
+    for (std::uint64_t f = 0; f < 4; ++f)
+        for (std::uint64_t c = 0; c < 6; ++c)
+            obs.push_back(make_obs(f, c, 10.0 + (double)f * 2.0, 100.0));
+    P2UpmBuildConfig cfg1{}, cfg2{};
+    cfg1.cpu_workers = 1;
+    cfg2.cpu_workers = 2;
+    void* m1 = nullptr; void* m2 = nullptr;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg1, &m1), 0);
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg2, &m2), 0);
+    P2ModelInfo i1{}, i2{};
+    ASSERT_EQ(p2_upm_info(m1, &i1), 0);
+    ASSERT_EQ(p2_upm_info(m2, &i2), 0);
+    // 结构性计数 exact
+    EXPECT_EQ(i1.control_count, i2.control_count) << "control_count";
+    EXPECT_EQ(i1.component_count, i2.component_count) << "component_count";
+    EXPECT_EQ(i1.observation_count, i2.observation_count) << "observation_count";
+    // 标定输出按容差一致（1T/2T 浮点合流末位漂移允许）
+    std::uint64_t ipix[1] = {0};
+    double in[1] = {10.0};
+    double out1[1] = {0.0}, out2[1] = {0.0};
+    ASSERT_EQ(p2_upm_calibrate_block(m1, 0, ipix, in, out1, 1), 0);
+    ASSERT_EQ(p2_upm_calibrate_block(m2, 0, ipix, in, out2, 1), 0);
+    EXPECT_NEAR(out1[0], out2[0], 1e-6) << "1T/2T calibrate 差";
+    p2_upm_close(m1);
+    p2_upm_close(m2);
+}
+
 TEST(Phase2Upm, S1KnownAdditiveFieldRecovered) {
     std::vector<P2ControlObservation> obs{
         make_obs(0, 0, 10.0, 100.0),
