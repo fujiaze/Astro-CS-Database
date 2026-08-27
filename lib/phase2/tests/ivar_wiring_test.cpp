@@ -128,6 +128,28 @@ std::string write_config(const std::vector<std::string>& dirs,
     return cfg;
 }
 
+std::string stage2_exe() {
+#ifdef _WIN32
+    return "astrocs-stage2.exe";
+#else
+    // 测试既可能在 build 目录运行，也可能在仓库根运行（如单独执行
+    // ./build/linux-openmp-on/phase2_ivar_wiring）。
+    for (const char* p : {"astrocs-stage2",
+                          "build/linux-openmp-on/astrocs-stage2",
+                          "build/linux-release/astrocs-stage2"}) {
+        if (std::filesystem::exists(p)) return p;
+    }
+    return "astrocs-stage2";
+#endif
+}
+
+// CON-006: 以固定 worker 数运行生产 stage2 CLI，用于 1T/2T 逐层差分。
+int run_stage2(const std::string& cfg, int workers) {
+    std::string cmd = stage2_exe() + " \"" + cfg + "\"";
+    if (workers > 0) cmd += " --cpu-workers " + std::to_string(workers);
+    return std::system(cmd.c_str());
+}
+
 std::vector<float> read_signal_tile(const std::string& hips) {
     // read_tile_f32 返回 FITS 顺序 buffer（一次读取，快速）
     AioHipsDataset* d = aio_hips_open(hips.c_str(), AIO_HIPS_RD_SIGNAL);
@@ -138,6 +160,21 @@ std::vector<float> read_signal_tile(const std::string& hips) {
     }
     if (aio_hips_read_tile_f32(d, kTile, out.data()) != 0) {
         ADD_FAILURE() << "read_tile_f32 failed: " << hips;
+        out.clear();
+    }
+    aio_hips_close(d);
+    return out;
+}
+
+std::vector<float> read_support_tile(const std::string& hips) {
+    AioHipsDataset* d = aio_hips_open(hips.c_str(), AIO_HIPS_RD_SUPPORT);
+    std::vector<float> out(kTileWidth * kTileWidth, 0.0f);
+    if (!d) {
+        ADD_FAILURE() << "aio_hips_open(support) failed: " << hips;
+        return out;
+    }
+    if (aio_hips_read_tile_f32(d, kTile, out.data()) != 0) {
+        ADD_FAILURE() << "read_support_tile_f32 failed: " << hips;
         out.clear();
     }
     aio_hips_close(d);
@@ -233,8 +270,7 @@ TEST(Phase2IvarWiring, WireProductionStage2PerFrameIvar) {
     const std::string out1 = tmp_dir() + "/out_abc.hips";
     std::filesystem::remove_all(out1);
     const std::string cfg1 = write_config(dirs, out1);
-    const int rc = std::system(
-        ("astrocs-stage2.exe \"" + cfg1 + "\"").c_str());
+    const int rc = run_stage2(cfg1, 1);
     ASSERT_EQ(rc, 0) << "stage2 (A,B,C) 运行失败 rc=" << rc;
     const auto got1 = read_signal_tile(out1);
     ASSERT_EQ(got1.size(), npix);
@@ -265,6 +301,35 @@ TEST(Phase2IvarWiring, WireProductionStage2PerFrameIvar) {
     }
     EXPECT_GT(n_checked, npix / 2);
 
+    // CON-006: stage2 逐 pixel integration 1T/2T 逐层差分。
+    // 同一合成输入分别 cpu_workers=1/=2 运行；signal/support 图层必须一致。
+    const std::string out1_2t = tmp_dir() + "/out_abc_2t.hips";
+    std::filesystem::remove_all(out1_2t);
+    const std::string cfg1_2t = write_config(dirs, out1_2t);
+    ASSERT_EQ(run_stage2(cfg1_2t, 2), 0);
+    const auto got1_2t = read_signal_tile(out1_2t);
+    const auto sup1 = read_support_tile(out1);
+    const auto sup1_2t = read_support_tile(out1_2t);
+    ASSERT_EQ(got1_2t.size(), npix);
+    ASSERT_EQ(sup1.size(), npix);
+    ASSERT_EQ(sup1_2t.size(), npix);
+    std::size_t n_sig_diff = 0, n_sup_diff = 0;
+    double max_sig_diff = 0.0, max_sup_diff = 0.0;
+    for (std::size_t p = 0; p < npix; ++p) {
+        const double ds = std::fabs((double)got1[p] - (double)got1_2t[p]);
+        const double du = std::fabs((double)sup1[p] - (double)sup1_2t[p]);
+        if (ds > 1e-4) ++n_sig_diff;
+        if (du > 1e-4) ++n_sup_diff;
+        max_sig_diff = std::max(max_sig_diff, ds);
+        max_sup_diff = std::max(max_sup_diff, du);
+    }
+    EXPECT_EQ(n_sig_diff, 0u)
+        << "CON-006: signal 图层 1T/2T 差数=" << n_sig_diff
+        << " max=" << max_sig_diff;
+    EXPECT_EQ(n_sup_diff, 0u)
+        << "CON-006: support 图层 1T/2T 差数=" << n_sup_diff
+        << " max=" << max_sup_diff;
+
     // WIRE-IVAR-004：把最后一帧（C）ivar 整体 ×4 后重跑，输出应变化；
     // 且 A/B 单独贡献的样本（C invalid 区域）不受影响。
     std::vector<std::vector<float>> ivars2 = ivars;
@@ -280,8 +345,7 @@ TEST(Phase2IvarWiring, WireProductionStage2PerFrameIvar) {
     const std::string out2 = tmp_dir() + "/out_abc_x4.hips";
     std::filesystem::remove_all(out2);
     const std::string cfg2 = write_config(dirs2, out2);
-    ASSERT_EQ(std::system(("astrocs-stage2.exe \"" + cfg2 + "\"").c_str()),
-              0);
+    ASSERT_EQ(run_stage2(cfg2, 1), 0);
     const auto got2 = read_signal_tile(out2);
     // C-invalid 区域（A/B 两帧）输出必须不变（C 权重变化不影响 A/B）
     std::size_t n_same = 0, n_diff = 0;
@@ -311,8 +375,7 @@ TEST(Phase2IvarWiring, WireProductionStage2PerFrameIvar) {
     const std::string out3 = tmp_dir() + "/out_cab.hips";
     std::filesystem::remove_all(out3);
     const std::string cfg3 = write_config(perm, out3);
-    ASSERT_EQ(std::system(("astrocs-stage2.exe \"" + cfg3 + "\"").c_str()),
-              0);
+    ASSERT_EQ(run_stage2(cfg3, 1), 0);
     const auto got3 = read_signal_tile(out3);
     std::size_t n_perm_diff = 0;
     double max_diff = 0.0;

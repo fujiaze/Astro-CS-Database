@@ -22,10 +22,14 @@
 #include "astro/compute/kernel_registry.hpp"
 #include "astro/compute/task_traits.hpp"
 #include "cuda_bridge_api.hpp"
+#if defined(P2_ENABLE_OPENMP)
+#include <omp.h>
+#endif
 
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <cstdio>
@@ -35,6 +39,7 @@
 #include <filesystem>
 #include <fstream>
 #include <map>
+#include <mutex>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -54,13 +59,15 @@ extern "C" {
 namespace {
 
 std::ofstream g_log;
+std::mutex g_log_mutex;
 
 void log(const std::string& msg) {
+    std::lock_guard<std::mutex> lock(g_log_mutex);
     std::fprintf(stdout, "[stage2] %s\n", msg.c_str());
     std::fflush(stdout);
     if (g_log.is_open()) { g_log << msg << "\n"; g_log.flush(); }
 }
-inline void log_flush() { std::fflush(stdout); if (g_log.is_open()) g_log.flush(); }
+inline void log_flush() { std::lock_guard<std::mutex> lock(g_log_mutex); std::fflush(stdout); if (g_log.is_open()) g_log.flush(); }
 
 
 // 帧级 SNR（Phase1 SNR Catalogue median；禁止重新检测星点）
@@ -594,15 +601,15 @@ int main(int argc, char** argv) {
     }
     log("[hips_write] product_begin ok, entering tile loop n_union=" + std::to_string(cov.n_union_cells)); log_flush();
 
-    std::uint64_t total_pixels = 0, total_rejected = 0, total_fallback = 0;
+    std::atomic<std::uint64_t> total_pixels{0}, total_rejected{0}, total_fallback{0};
     std::uint64_t large_scale_grown = 0;   // grow 新增拒绝样本数
-    std::uint64_t dbg_reject_px = 0, dbg_fallback_px = 0, dbg_zero_px = 0;
-    std::uint64_t underdetermined_px = 0;  // REJECTION_UNDERDETERMINED
-    std::uint64_t px_depth_0 = 0;  // mutually exclusive depth 诊断
+    std::atomic<std::uint64_t> dbg_reject_px{0}, dbg_fallback_px{0}, dbg_zero_px{0};
+    std::atomic<std::uint64_t> underdetermined_px{0};  // REJECTION_UNDERDETERMINED
+    std::atomic<std::uint64_t> px_depth_0{0};  // mutually exclusive depth 诊断
     std::map<std::uint32_t, std::uint64_t> reject_hist;  // 每像素拒绝样本数分布
     std::map<std::uint32_t, std::string> resolved_methods;  // nominal depth → semantic id
     // P7-2：overlap topology 诊断
-    std::uint64_t px_depth_1 = 0, px_depth_ge_2 = 0, px_integrated = 0;
+    std::atomic<std::uint64_t> px_depth_1{0}, px_depth_ge_2{0}, px_integrated{0};
     std::uint64_t tiles_written = 0;
     std::vector<std::uint8_t> valid(n_leaf);
     std::vector<float> fluxF(n_leaf), areaF(n_leaf);
@@ -1036,6 +1043,178 @@ int main(int argc, char** argv) {
         // 同布局 depth×chunk_pixels）；ivar_valid 按原 frame slot 记录。
         std::vector<float> ivarv((std::size_t)depth * chunk_pixels, 1.0f);
         std::vector<std::uint8_t> ivar_valid(depth, 0);
+        // CON-006: CPU reference 逐 pixel 处理 lambda（仅 !large_scale_active 时并行；
+        // large_scale 两遍先保持串行边界，避免 grow 缓冲跨线程覆盖）。
+        // 并行单位 = pixel；每 worker 独立 rejection scratch/source index/统计缓冲。
+#if defined(P2_ENABLE_OPENMP) && !defined(_MSC_VER)
+        auto process_cpu_pixel_parallel =
+            [&](std::uint64_t i, std::uint64_t p, std::uint64_t p0,
+                std::vector<double>& stack,
+                std::vector<double>& weights, std::vector<double>& support_v,
+                std::vector<std::uint8_t>& acc, std::vector<std::uint64_t>& fid_stack,
+                std::vector<std::uint8_t>& reasons, std::vector<std::uint32_t>& src_idx,
+                std::uint64_t& tl_local_ivar_used,
+                std::uint64_t& tl_local_snr_used,
+                std::uint64_t& tl_frame_snr_fallback,
+                std::map<std::uint32_t, std::uint64_t>& hist,
+                std::atomic<int>& fail) {
+                // 统一 EligibilityPolicy（与 ACR/compat 同一 collector；
+                // quality 为 control 级，像素级无 quality 数组 → nullptr）
+                P2EligibilityGatherInput gin{};
+                gin.values = cal.data();
+                gin.value_stride = chunk_pixels;
+                gin.value_dtype = 1;
+                gin.support = supv.data();
+                gin.support_stride = chunk_pixels;
+                gin.frame_ids = frame_seq.data();
+                gin.count = depth;
+                gin.pixel = (std::uint32_t)i;
+                gin.support_threshold = 0.0;
+                P2EligibilityGatherOutput gout{};
+                gout.values = stack.data();
+                gout.support = support_v.data();
+                gout.frame_ids = fid_stack.data();
+                gout.source_indices = src_idx.data();
+                std::uint32_t n_valid = 0;
+                gout.eligible_count = &n_valid;
+                if (p2_collect_candidate_stack(&gin, &gout) != 0) {
+                    log("eligibility gather failed");
+                    fail = 1;
+                    return;
+                }
+                if (cfg.weight_mode == 2) {
+                    for (std::uint32_t s = 0; s < n_valid; ++s) {
+                        const std::uint32_t orig = src_idx[s];
+                        if (orig < depth && ivar_valid[orig]) {
+                            const double iv = (double)ivarv[
+                                (std::size_t)orig * chunk_pixels + i];
+                            weights[s] = iv;
+                            ++tl_local_ivar_used;
+                        } else {
+                            weights[s] = support_v[s];
+                        }
+                    }
+                } else if (cfg.weight_mode == 0) {
+                    for (std::uint32_t s = 0; s < n_valid; ++s) {
+                        const std::uint32_t orig = src_idx[s];
+                        const std::uint64_t fid =
+                            frame_id_cache[frames[orig]];
+                        const int px = (int)(p % 512);
+                        const int py = (int)(p / 512);
+                        const auto key = std::make_tuple(
+                            fid, tile_ipix, px / 64, py / 64);
+                        const auto sit = local_snr_map.find(key);
+                        double snr_v;
+                        if (sit != local_snr_map.end()) {
+                            snr_v = sit->second;
+                            ++tl_local_snr_used;
+                        } else {
+                            snr_v = frame_snr[frames[orig]];
+                            ++tl_frame_snr_fallback;
+                        }
+                        weights[s] = support_v[s] * snr_v * snr_v;
+                    }
+                } else {
+                    std::fill(weights.begin(), weights.end(), 1.0);
+                }
+                if (p2_validate_candidate_weights(weights.data(), n_valid) != 0) {
+                    std::string wdiag = "candidate weight validation failed: tile=" + std::to_string(tile_ipix) + " p=" + std::to_string(p) + " n_valid=" + std::to_string(n_valid) + " weights=[";
+                    for (std::uint32_t wi = 0; wi < std::min<std::uint32_t>(n_valid, 8u); ++wi) wdiag += std::to_string(weights[wi]) + (wi+1<n_valid?",":"");
+                    wdiag += "]";
+                    log(wdiag); log_flush();
+                    std::fprintf(stderr, "[stage2] %s\n", wdiag.c_str()); std::fflush(stderr);
+                    std::string extra = " weight diag: mode=" + std::to_string(cfg.weight_mode) + " ivar_valid=[";
+                    for (std::uint32_t wi = 0; wi < std::min<std::uint32_t>(n_valid, 8u); ++wi) {
+                        const std::uint32_t orig = src_idx[wi];
+                        double supv_v = support_v[wi];
+                        std::string ivs = "n/a";
+                        if (orig < depth) {
+                            const std::uint64_t iv_i = (p >= p0) ? (p - p0) : 0;
+                            if (iv_i < chunk_pixels) {
+                                double ivv = (double)ivarv[(std::size_t)orig * chunk_pixels + iv_i];
+                                char ibuf[32]; std::snprintf(ibuf, sizeof(ibuf), "%.6g", ivv);
+                                ivs = ibuf;
+                                if (ivar_valid[orig]==0) ivs += "/no_ivar";
+                            }
+                        }
+                        extra += "(" + ivs + "/" + std::to_string(supv_v) + ")" + (wi+1<n_valid?",":"");
+                    }
+                    extra += "]";
+                    log(extra); std::fprintf(stderr, "[stage2] %s\n", extra.c_str()); std::fflush(stderr);
+                    fail = 1;
+                    return;
+                }
+                double signal_out = 0.0, support_out = 0.0;
+                int st = 1;
+                if (n_valid == 0) {
+                    ++dbg_zero_px;
+                    ++px_depth_0;
+                } else {
+                    if (n_valid == 1) ++px_depth_1;
+                    else ++px_depth_ge_2;
+                    P2CandidateStack cstack{};
+                    cstack.values = stack.data();
+                    cstack.weights = weights.data();
+                    cstack.frame_ids = fid_stack.data();
+                    cstack.count = n_valid;
+                    cstack.data_type = 1;
+                    P2RejectionDecision rdec{};
+                    rdec.reasons = reasons.data();
+                    if (p2_reject_stack_ex(&cstack, &rplan, &rdec) != 0) {
+                        log("reject kernel failed");
+                        fail = 1;
+                        return;
+                    }
+                    if (rdec.status != P2_STATUS_OK &&
+                        rdec.status != P2_STATUS_UNDERDETERMINED) {
+                        log("reject kernel invalid status=" +
+                            std::to_string(rdec.status));
+                        fail = 1;
+                        return;
+                    }
+                    for (std::uint32_t s = 0; s < n_valid; ++s) {
+                        acc[s] =
+                            (rdec.reasons[s] == P2_REASON_ACCEPTED ||
+                             rdec.reasons[s] == P2_REASON_UNDERDETERMINED)
+                                ? 1 : 0;
+                    }
+                    total_rejected +=
+                        rdec.rejected_low + rdec.rejected_high;
+                    ++hist[rdec.rejected_low + rdec.rejected_high];
+                    if (rdec.status == P2_STATUS_UNDERDETERMINED) {
+                        ++total_fallback;
+                        ++dbg_fallback_px;
+                        ++underdetermined_px;
+                    } else {
+                        ++px_integrated;
+                        ++dbg_reject_px;
+                    }
+                    P2PixelStack pi{};
+                    pi.values = stack.data();
+                    pi.weights = weights.data();
+                    pi.support = support_v.data();
+                    pi.accepted = acc.data();
+                    pi.count = n_valid;
+                    P2PixelResult pr{};
+                    p2_integrate_pixel(&pi, &pr);
+                    st = pr.status;
+                    signal_out = pr.signal;
+                    support_out = pr.support;
+                }
+                const bool ok = (st == 0);
+                valid[p] = ok ? 1 : 0;
+                const double area = ok ? support_out * A_cell : 0.0;
+                const double flux = ok ? signal_out * area : 0.0;
+                if (cfg.precision) {
+                    fluxD[p] = flux;
+                    areaD[p] = area;
+                } else {
+                    fluxF[p] = (float)flux;
+                    areaF[p] = (float)area;
+                }
+                if (ok) ++total_pixels;
+            };
+#endif
         for (std::uint64_t c = 0; c < n_chunk; ++c) {
             const std::uint64_t p0 = c * chunk_pixels;
             const std::uint64_t p1 =
@@ -1076,6 +1255,53 @@ int main(int argc, char** argv) {
                 for (std::uint64_t i = 0; i < cnt; ++i)
                     cal[(std::size_t)s * chunk_pixels + i] = out_v[i];
             }
+#if defined(P2_ENABLE_OPENMP) && !defined(_MSC_VER)
+        if (!large_scale_active && effective_cpu_workers(cfg.exec) > 1) {
+            const int workers = effective_cpu_workers(cfg.exec);
+            std::vector<std::map<std::uint32_t, std::uint64_t>>
+                per_thread_hist(workers);
+            std::vector<std::uint64_t> per_thread_ivar_used(workers, 0);
+            std::vector<std::uint64_t> per_thread_snr_used(workers, 0);
+            std::vector<std::uint64_t> per_thread_snr_fallback(workers, 0);
+            std::atomic<int> cpu_fail{0};
+            #pragma omp parallel num_threads(workers)
+            {
+                // 每 worker 独立 rejection scratch / source index / 统计 buffer；
+                // 禁止像素热循环创建 vector（depth 级小块复用）。
+                std::vector<double> stack(depth), weights(depth), support_v(depth);
+                std::vector<std::uint8_t> acc(depth);
+                std::vector<std::uint64_t> fid_stack(depth);
+                std::vector<std::uint8_t> reasons(depth);
+                std::vector<std::uint32_t> src_idx(depth);
+                const int tid = omp_get_thread_num();
+                #pragma omp for schedule(static)
+                for (std::uint64_t i = 0; i < cnt; ++i) {
+                    const std::uint64_t p = p0 + i;
+                    process_cpu_pixel_parallel(
+                        i, p, p0, stack, weights, support_v, acc,
+                        fid_stack, reasons, src_idx,
+                        per_thread_ivar_used[(std::size_t)tid],
+                        per_thread_snr_used[(std::size_t)tid],
+                        per_thread_snr_fallback[(std::size_t)tid],
+                        per_thread_hist[(std::size_t)tid], cpu_fail);
+                }
+            }
+            // 定序归并：thread id 固定顺序，map/计数合并 deterministic。
+            for (int t = 0; t < workers; ++t) {
+                local_ivar_used += per_thread_ivar_used[(std::size_t)t];
+                local_snr_used += per_thread_snr_used[(std::size_t)t];
+                frame_snr_fallback += per_thread_snr_fallback[(std::size_t)t];
+                for (const auto& kv : per_thread_hist[(std::size_t)t])
+                    reject_hist[kv.first] += kv.second;
+            }
+            if (cpu_fail.load() != 0) {
+                log("CON-006 CPU pixel parallel fatal");
+                p2_upm_close(model);
+                return 6;
+            }
+        } else
+#endif
+        {
             for (std::uint64_t i = 0; i < cnt; ++i) {
                 const std::uint64_t p = p0 + i;
                 // 统一 EligibilityPolicy（与 ACR/compat 同一 collector；
@@ -1293,6 +1519,7 @@ int main(int argc, char** argv) {
                 if (ok) ++total_pixels;
             }
         }
+        }
         // ----large_scale connected-component grow + 二次积分 ----
         // 两遍路径（large_scale_active 时）：所有 chunk 的逐像素 rejection
         // 已缓冲到 tile 级 per-frame low/high mask；此处先 grow 再积分，
@@ -1454,12 +1681,12 @@ int main(int argc, char** argv) {
         diag["controls_with_depth_1"] = ctrl_depth_1;
         diag["controls_with_depth_ge_2"] = ctrl_depth_ge_2;
         diag["tiles_written"] = tiles_written;
-        diag["output_pixels"] = total_pixels;
-        diag["rejected_samples"] = total_rejected;
-        diag["fallback_pixels"] = total_fallback;
-        diag["pixels_depth_0"] = px_depth_0;
-        diag["pixels_depth_1"] = px_depth_1;
-        diag["pixels_depth_ge_2"] = px_depth_ge_2;
+        diag["output_pixels"] = total_pixels.load();
+        diag["rejected_samples"] = total_rejected.load();
+        diag["fallback_pixels"] = total_fallback.load();
+        diag["pixels_depth_0"] = px_depth_0.load();
+        diag["pixels_depth_1"] = px_depth_1.load();
+        diag["pixels_depth_ge_2"] = px_depth_ge_2.load();
         diag["reject_normalization"] = cfg.reject_normalization;
         diag["reject_profile"] = cfg.reject_profile;
         diag["reject_group_level"] = (int)group_level;
@@ -1472,7 +1699,7 @@ int main(int argc, char** argv) {
         diag["large_scale_high_grow_radius_pixels"] =
             cfg.large_scale_high_grow_pixels;
         diag["large_scale_grown_samples"] = large_scale_grown;
-        diag["integrated_pixels"] = px_integrated;
+        diag["integrated_pixels"] = px_integrated.load();
         diag["quality_fallback_unknown"] = quality_unknown;
         diag["local_snr_used"] = local_snr_used;
         diag["frame_snr_median_fallback"] = frame_snr_fallback;
@@ -1482,8 +1709,8 @@ int main(int argc, char** argv) {
         diag["local_snr_unavailable_controls"] = local_snr_unavailable;
         diag["upm_sigma_floor"] = cfg.sigma_floor;
         diag["upm_support_power"] = cfg.support_power;
-        diag["zero_coverage_pixels"] = dbg_zero_px;
-        diag["underdetermined_pixels"] = underdetermined_px;
+        diag["zero_coverage_pixels"] = dbg_zero_px.load();
+        diag["underdetermined_pixels"] = underdetermined_px.load();
         diag["reject_method"] = cfg.reject_method;
         diag["reject_underdetermined_n"] = cfg.reject_underdetermined_n;
         nlohmann::json rm = nlohmann::json::object();
