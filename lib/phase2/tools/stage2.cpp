@@ -479,7 +479,8 @@ int main(int argc, char** argv) {
         log("[upm_persist] sparse saved, materializing dense cache..."); log_flush();
         const std::string cache = cfg.out_hips + "/upm_dense.cache";
         // 64-bit文件偏移诊断：714*32 规模下 offset 需 >2GB，fseek 必须为 fseeko/_fseeki64
-        if (p2_upm_materialize_dense(model, target_order, cache.c_str()) != 0) {
+        if (p2_upm_materialize_dense_n(model, target_order, cache.c_str(),
+                                        effective_cpu_workers(cfg.exec)) != 0) {
             const char* e = aio_upm_last_error();
             log(std::string("UPM dense materialize failed: ") + (e ? e : "(no detail)")); std::fprintf(stderr, "[stage2] UPM dense materialize failed: %s\n", e ? e : "(no detail)"); std::fflush(stderr); log_flush();
             // 保留已写部分供复盘，不删除；但返回 EC 便于调用方感知
