@@ -42,8 +42,11 @@
   都以 `value_stride=chunk_pixels`（`p2_collect_candidate_stack`，`:1086/:1332`）读取
   `cal[s*chunk_pixels+pixel]`（帧间步长≈2048KB）→ **深度内存级 cache-miss**，故 1T/2T 均
   ~4.1s 不缩放（内存受限）。修正需把 cal/supv/ivarv **转置为 pixel-major**（`i*depth+s`），
-  但该布局须**改写共享的 `p2_collect_candidate_stack`**（被 ACR/compat 复用）——
-  **非 stage2 内可封闭改动，风险高**。
+  但该布局须**改写共享的 `p2_collect_candidate_stack`**——其源码（`rejection.cpp:1208`
+  `vd[s*value_stride+pixel]`）**本质是 frame-major**（values 按帧分组），且被
+  `stage2.cpp` + **`acr_kernels.cpp:135`（ACR 内核）** + `synthetic_gate.cpp` 三方调用，
+  假设同一 frame-major 布局 ⇒ **非 stage2 内可封闭改动**；pixel-major 需新增独立
+  collector 函数或布局标志（不动 ACR），属**跨模块、更高风险**改动。
 - **差分结果/数值门禁：1T==2T 数据位级一致**（2026-08-27 复验，G2 必备产出）。
   1T 与 2T 完整 mosaic 输出逐字节对比：signal/support 各 `Norder0/...` FITS 的
   **DATASUM 完全一致**（如 Npix0 `3138625936`），即**科学数据逐字节相同**（积分+UPM+写盘
