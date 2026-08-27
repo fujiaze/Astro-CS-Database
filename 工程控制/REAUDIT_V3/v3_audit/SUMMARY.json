@@ -1,0 +1,17 @@
+{
+  "control_version": "V3",
+  "start_sha": "535e73879662346ee1f599d7a9cae96c6c23680d",
+  "candidate_sha": "da037926dae2c93e52519a0a291156cd5c2ddf49",
+  "checkpoint": "CP1",
+  "verdict": "G1_PASS_CP2_PARTIAL_COND006_BLOCKED",
+  "task_counts": { "PASS": 8, "BLOCKED": 1, "NOT_STARTED": 53 },
+  "finding_counts": { "P0": 3, "P1": 7, "P2": 16, "P3": 3 },
+  "blockers": [
+    { "task_id": "CON-006", "status": "BLOCKED",
+      "reason": "stage2 per-pixel integration 并行化复杂/困难：需 per-thread scratch(16 数组)+12 计数原子化+3 fatal 路径重构+large_scale 两遍分支，且 aio/kernel 线程安全未验证；单测无法可靠抓竞态(需 OMPT-TSan)。本会话自身与两次子代理委托均未能在安全验证前提下完成。详见 v3_exec/CON006_blocker.md。",
+      "evidence": "v3_exec/CON006_blocker.md" }
+  ],
+  "test_counts": {},
+  "build_counts": {},
+  "notes": "已完成 G1(CON-001/002/003)+G2 CON-004(sampler)/CON-005(UPM build+solve) 并全量验证(90 测试 80 PASS/0 FAIL, ON 并行; OFF/ON 双构建)。CON-006 记录为阻断项。剩余 G2 (CON-007..010)+G3-G8+Fatduck 待续。"
+}

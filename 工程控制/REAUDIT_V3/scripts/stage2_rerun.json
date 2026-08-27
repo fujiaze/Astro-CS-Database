@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "inputs": {
+    "hips": [
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel1_f01.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel1_f11.hips"
+    ],
+    "target_order": "auto"
+  },
+  "model": {
+    "control_grid_per_tile": 4,
+    "patch_radius_pixels": 2,
+    "min_samples": 5,
+    "snr_search_radius_deg": 0.05,
+    "robust_loss": "huber",
+    "snr_weight_mode": "snr2_normalized",
+    "huber_delta": 1.345,
+    "smoothing": 0,
+    "zero_anchor_weight": 0.001,
+    "sigma_floor": 0.001,
+    "support_power": 1
+  },
+  "integration": {
+    "precision": "fp32",
+    "memory_limit_mb": 12288,
+    "rejection": {
+      "method": "auto",
+      "profile": "wbpp_2_9_1",
+      "normalization": "astrocs_median_center_v1",
+      "underdetermined_n": 2,
+      "large_scale": {
+        "enabled": false,
+        "min_structure_pixels": 8,
+        "low_grow_radius_pixels": 2,
+        "high_grow_radius_pixels": 2
+      },
+      "robust_mad_clip": {
+        "lower_sigma": 4,
+        "upper_sigma": 3,
+        "max_iterations": 8
+      },
+      "winsorized_sigma": {
+        "lower_sigma": 4,
+        "upper_sigma": 3,
+        "max_iterations": 8
+      },
+      "averaged_sigma": {
+        "lower_sigma": 4,
+        "upper_sigma": 3,
+        "max_iterations": 8
+      },
+      "linear_fit": {
+        "lower": 5,
+        "upper": 3.5,
+        "max_iterations": 8
+      },
+      "generalized_esd": {
+        "alpha": 0.05,
+        "max_outliers": 10
+      },
+      "percentile": {
+        "low_fraction": 0.2,
+        "high_fraction": 0.1
+      },
+      "median_sigma": {
+        "lower_sigma": 4,
+        "upper_sigma": 3,
+        "max_iterations": 8
+      },
+      "minmax": {
+        "reject_low_count": 1,
+        "reject_high_count": 1,
+        "min_kept": 4
+      },
+      "rcr": {
+        "technique": "ss_median_dl"
+      }
+    },
+    "weight_mode": "auto",
+    "acr_route": "cpu"
+  },
+  "output": {
+    "hips": "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/audit_stage2_f01f11_rerun.mosaic.hips"
+  },
+  "diagnostics": {
+    "enabled": true
+  }
+}

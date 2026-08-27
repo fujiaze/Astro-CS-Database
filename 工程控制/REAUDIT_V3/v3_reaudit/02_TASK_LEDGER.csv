@@ -1,0 +1,63 @@
+task_id,gate,depends_on,scope,required_commit,required_push,checkpoint,status
+ID-001,G0,,repo identity,no,no,CP0,PASS
+ID-002,G0,ID-001,toolchain and host inventory,no,no,CP0,PASS
+ID-003,G0,ID-001,32R data manifest freeze,no,no,CP0,PASS
+CON-001,G1,CP0,production execution inventory,yes,yes,CP1,PASS
+CON-002,G1,CON-001,global worker budget contract,yes,yes,CP1,PASS
+CON-003,G1,CON-002,phase2 production route map and tests,yes,yes,CP1,PASS
+CON-004,G2,CP1,phase2 sampler parallel implementation,yes,yes,CP2,PASS
+CON-005,G2,CON-004,UPM build and solve parallel implementation,yes,yes,CP2,PASS
+CON-006,G2,CON-005,stage2 tile chunk integration parallel implementation,yes,yes,CP2,PASS
+CON-007,G2,CON-006,ACR CPU production dispatcher wiring,yes,yes,CP2,PASS
+CON-008,G2,CON-007,async IO bounded pipeline,yes,yes,CP2,IN_PROGRESS
+CON-009,G2,CON-008,parallel determinism and race tests,yes,yes,CP2,NOT_STARTED
+CON-010,G2,CON-009,2C Linux runtime gate,no,no,CP2,NOT_STARTED
+SCI-001,G3,CP2,science authority index,yes,yes,CP3,NOT_STARTED
+SCI-002,G3,SCI-001,noise snr variance ivar definition,yes,yes,CP3,NOT_STARTED
+SCI-003,G3,SCI-002,drizzle flux surface-brightness variance definition,yes,yes,CP3,NOT_STARTED
+SCI-004,G3,SCI-003,UPM model gauge weight robust-loss definition,yes,yes,CP3,NOT_STARTED
+SCI-005,G3,SCI-004,rejection integration definition,yes,yes,CP3,NOT_STARTED
+ALG-001,G3,SCI-005,noise and snr derivation,yes,yes,CP3,NOT_STARTED
+ALG-002,G3,ALG-001,drizzle derivation and complexity,yes,yes,CP3,NOT_STARTED
+ALG-003,G3,ALG-002,UPM derivation convergence and complexity,yes,yes,CP3,NOT_STARTED
+ALG-004,G3,ALG-003,rejection integration derivation,yes,yes,CP3,NOT_STARTED
+ORA-001,G3,ALG-004,scientific oracle suite,yes,yes,CP3,NOT_STARTED
+ARCH-001,G4,CP3,module and dataflow architecture,yes,yes,CP4,NOT_STARTED
+ARCH-002,G4,ARCH-001,serial parallel async GPU execution architecture,yes,yes,CP4,NOT_STARTED
+API-001,G4,ARCH-002,machine API extraction schema,yes,yes,CP4,NOT_STARTED
+API-002,G4,API-001,AIO calibration platesolve API semantics,yes,yes,CP4,NOT_STARTED
+API-003,G4,API-002,SNR drizzle HiPS API semantics,yes,yes,CP4,NOT_STARTED
+API-004,G4,API-003,phase2 UPM rejection integration API semantics,yes,yes,CP4,NOT_STARTED
+API-005,G4,API-004,ACR dispatcher backend API semantics,yes,yes,CP4,NOT_STARTED
+DOC-001,G4,API-005,public and scientific-core function documentation,yes,yes,CP4,NOT_STARTED
+CHK-001,G4,DOC-001,traceability checker repair,yes,yes,CP4,NOT_STARTED
+CHK-002,G4,CHK-001,API signature and semantic checker repair,yes,yes,CP4,NOT_STARTED
+CHK-003,G4,CHK-002,science unit and formula checker repair,yes,yes,CP4,NOT_STARTED
+CHK-004,G4,CHK-003,execution and config checker repair,yes,yes,CP4,NOT_STARTED
+CHK-005,G4,CHK-004,test build doc checker repair,yes,yes,CP4,NOT_STARTED
+CHK-006,G4,CHK-005,checker mutation gate,no,no,CP4,NOT_STARTED
+BLD-001,G5,CP4,root Linux build entry,yes,yes,CP5,NOT_STARTED
+BLD-002,G5,BLD-001,AIO fPIC and shared-library portability,yes,yes,CP5,NOT_STARTED
+BLD-003,G5,BLD-002,remove Windows-only Linux build leaks,yes,yes,CP5,NOT_STARTED
+BLD-004,G5,BLD-003,remove static and cmd linker defects,yes,yes,CP5,NOT_STARTED
+TST-001,G5,BLD-004,Linux clean Release and Debug builds,no,no,CP5,NOT_STARTED
+TST-002,G5,TST-001,unit module and contract tests,yes,yes,CP5,NOT_STARTED
+TST-003,G5,TST-002,ASan UBSan and race validation,yes,yes,CP5,NOT_STARTED
+TST-004,G5,TST-003,synthetic end-to-end CLI suite,yes,yes,CP5,NOT_STARTED
+TST-005,G5,TST-004,real 2-frame per-panel Linux mini pipeline,no,no,CP5,NOT_STARTED
+WIN-001,G6,CP5,Fatduck main sync and clean build,no,no,CP6,NOT_STARTED
+WIN-002,G6,WIN-001,Windows full tests and sanitizer equivalent,yes,yes,CP6,NOT_STARTED
+ACR-001,G6,WIN-002,CPU GPU Mixed route activation,yes,yes,CP6,NOT_STARTED
+ACR-002,G6,ACR-001,CPU GPU Mixed scientific equivalence,yes,yes,CP6,NOT_STARTED
+ACR-003,G6,ACR-002,GPU CPU utilization and fallback evidence,no,no,CP6,NOT_STARTED
+RUN-001,G7,CP6,historical A B export and build,no,no,CP7,NOT_STARTED
+RUN-002,G7,RUN-001,small representative A B C D gate,no,no,CP7,NOT_STARTED
+RUN-003,G7,RUN-002,32R A baseline once,no,no,CP7,NOT_STARTED
+RUN-004,G7,RUN-003,32R B baseline once,no,no,CP7,NOT_STARTED
+RUN-005,G7,RUN-004,32R C start-main once,no,no,CP7,NOT_STARTED
+RUN-006,G7,RUN-005,32R D candidate once,no,no,CP7,NOT_STARTED
+SEAM-001,G7,RUN-006,seam metrics and bootstrap,yes,yes,CP7,NOT_STARTED
+HIPS-001,G7,SEAM-001,HiPS browser locked review set,yes,yes,CP7,NOT_STARTED
+REL-001,G8,CP7,final traceability and findings closure,yes,yes,CP8,NOT_STARTED
+REL-002,G8,REL-001,final reproducibility audit,no,no,CP8,NOT_STARTED
+PKG-001,G8,REL-002,final whitelist audit package,no,no,CP8,NOT_STARTED

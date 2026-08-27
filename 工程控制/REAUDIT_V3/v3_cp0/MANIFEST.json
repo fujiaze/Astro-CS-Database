@@ -1,0 +1,88 @@
+{
+  "schema": "AstroCS-audit-manifest-v3",
+  "created_utc": "2026-08-27T12:28:10.334871+00:00",
+  "file_count": 16,
+  "total_bytes": 48959,
+  "files": [
+    {
+      "path": "00_READ_FIRST.md",
+      "size_bytes": 1384,
+      "sha256": "c59ea72e455d6e3e20fa22f7745095efadf98e4ece4c9accff27d8c044e02eb0"
+    },
+    {
+      "path": "BUILD_RESULTS.csv",
+      "size_bytes": 155,
+      "sha256": "4ff8290c3c6989462453d8c939db097daba5b897bcf9e1a7ba531115e0900ebe"
+    },
+    {
+      "path": "CHECKPOINT_RESULTS.csv",
+      "size_bytes": 1638,
+      "sha256": "31f3c3b3c6fa295be620319c06b84718dbd57bbd8c96c627340b1785561a1455"
+    },
+    {
+      "path": "COMMITS.csv",
+      "size_bytes": 110,
+      "sha256": "eecca40311d28c7c5dd4963f96e527da3a36c9e148e0f1e60ae955cc5025a95c"
+    },
+    {
+      "path": "EXTERNAL_WORKTREE_CHANGES.md",
+      "size_bytes": 842,
+      "sha256": "53cf2a310f83f2db31ab626b438113b855514f9c258e2d8b118258be30078f24"
+    },
+    {
+      "path": "FINDINGS.csv",
+      "size_bytes": 5041,
+      "sha256": "ed8da749d77968ddb7c7353ce7cd9c0df54544ae06641052515785a7f07bea6f"
+    },
+    {
+      "path": "GIT_STATE_CP0.txt",
+      "size_bytes": 325,
+      "sha256": "5ed8097ea8996de207720ea628ef2754f9ae41d7507aba030e8f6f0fa77e63d9"
+    },
+    {
+      "path": "LARGE_ARTIFACT_MANIFEST.csv",
+      "size_bytes": 9008,
+      "sha256": "d4415d82bcf45304a040590c15dc43434dcf2711efd0d8e6a87c42e1c2d46100"
+    },
+    {
+      "path": "PERF_RESULTS.csv",
+      "size_bytes": 283,
+      "sha256": "7d7e2294dbfa1a0f11f0fce372d25798f582c38c02f1b5f2949f50dc724a02f3"
+    },
+    {
+      "path": "SUMMARY.json",
+      "size_bytes": 398,
+      "sha256": "df5235da4fbc34526c79345f3cdd013571b1199a572010176a738ea84ee9c971"
+    },
+    {
+      "path": "TASK_LEDGER.csv",
+      "size_bytes": 4808,
+      "sha256": "29ca9daca12292d3ae0da2f1b72fe45aedf21adb2776e9167c60707b1f56d18f"
+    },
+    {
+      "path": "TEST_RESULTS.csv",
+      "size_bytes": 192,
+      "sha256": "ab84d51e85a1e6f37f0091b1945d1c2621e8c0e1ac02b04ff129ab44d73cb571"
+    },
+    {
+      "path": "TRACEABILITY.csv",
+      "size_bytes": 104,
+      "sha256": "088f1843bb3fbc33cf597ee9524c115ef768cd6dbbebb8b4386c020234cd1cb4"
+    },
+    {
+      "path": "data_manifest.csv",
+      "size_bytes": 22052,
+      "sha256": "04abb68bba95b1d261b19a27c46f56e51f85ae840e6554761471beb50759338a"
+    },
+    {
+      "path": "host_toolchain.json",
+      "size_bytes": 1332,
+      "sha256": "ef8207c99081cb662c4b22ad1690975e6d933d48afc6664cb949ab61673c6d5b"
+    },
+    {
+      "path": "identity.json",
+      "size_bytes": 1287,
+      "sha256": "488852b30e543ea99af4969f57807fe09ae400cf59e97f68c8a2abb6701a4ac2"
+    }
+  ]
+}

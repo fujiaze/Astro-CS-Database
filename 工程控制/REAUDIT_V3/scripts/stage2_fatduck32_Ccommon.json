@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "inputs": {
+    "hips": [
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel1_f01.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel1_f02.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel1_f03.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel1_f04.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel1_f05.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel1_f06.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel1_f07.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel1_f08.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel1_f09.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel1_f10.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel1_f11.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel2_f12.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel2_f13.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel2_f14.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel2_f15.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel2_f16.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel2_f17.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel2_f18.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel2_f19.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel2_f20.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel2_f21.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel2_f22.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel3_f23.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel3_f24.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel3_f25.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel3_f26.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel3_f27.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel3_f28.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel3_f29.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel3_f30.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel3_f31.hips",
+      "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/gc_R_panel3_f32.hips"
+    ],
+    "target_order": "auto"
+  },
+  "model": {
+    "control_grid_per_tile": 4,
+    "patch_radius_pixels": 2,
+    "min_samples": 5,
+    "snr_search_radius_deg": 0.05,
+    "robust_loss": "huber",
+    "snr_weight_mode": "snr2_normalized",
+    "huber_delta": 1.345,
+    "smoothing": 0,
+    "zero_anchor_weight": 0.001,
+    "sigma_floor": 0.001,
+    "support_power": 1
+  },
+  "integration": {
+    "precision": "fp32",
+    "memory_limit_mb": 12288,
+    "rejection": {
+      "method": "winsorized_sigma",
+      "low": 4.0,
+      "high": 3.0,
+      "max_iterations": 8,
+      "min_samples": 2
+    },
+    "weight_mode": "support_x_snr2",
+    "acr_route": "cpu"
+  },
+  "output": {
+    "hips": "F:/Astro dev/Astro CS Normalization Database/run/temp/p2_v7/gc/audit_stage2_32f_C_common.mosaic.hips"
+  },
+  "diagnostics": {
+    "enabled": true
+  }
+}

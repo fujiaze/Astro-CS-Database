@@ -1,0 +1,10 @@
+CP0 git-state evidence
+=== branches ===
+* main
+=== HEAD log -1 ===
+535e738 feat(pre-release): complete R70 AstroCS v20 pre-release science closure (all fixes from prerelease/v20-linux-closure squashed)
+=== status short ===
+## main...origin/main
+=== latest commit sha ===
+535e73879662346ee1f599d7a9cae96c6c23680d
+1787833640427
