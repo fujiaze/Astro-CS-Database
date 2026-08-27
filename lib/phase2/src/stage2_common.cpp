@@ -449,5 +449,6 @@ P2UpmBuildConfig p2_stage2_make_upm_cfg(const P2Stage2Config& cfg,
     mcfg.max_iterations = cfg.max_irls_iterations;
     mcfg.tolerance = cfg.tolerance;
     mcfg.target_order = target_order;
+    mcfg.cpu_workers = cfg.exec.cpu_workers;   // CON-005: UPM build 并行 worker 预算(CON-002 唯一来源)
     return mcfg;
 }

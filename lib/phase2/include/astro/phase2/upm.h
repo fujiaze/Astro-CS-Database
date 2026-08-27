@@ -85,6 +85,9 @@ typedef struct {
     int    use_ivar_weight;       // 默认 1
     double control_reliability;   // 默认 control reliability（默认 1.0）
     const char* input_manifest_hash;  // 输入稳定 manifest（可空；非空时参与模型 hash）
+    // CON-005 并行观察/聚合 worker 数（0=auto；1=串行默认）。仅 P2_ENABLE_OPENMP
+    // 且 >1 时并行 compute_raw/聚合；gauge/连通分量/收敛/归并保持固定顺序。
+    int    cpu_workers;          // 默认 0
 } P2UpmBuildConfig;
 
 // ===== 构建 / 持久化 / 求值 =====
