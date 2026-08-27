@@ -16,6 +16,28 @@
   - Document ownership/exception/cancel/flush/shutdown in ARCH docs.
   - Test read failure/write failure/queue full in production-like pipeline.
 
+## 2026-08-27 完成：生产型失败/队列/多 worker 测试 + 线程安全合同
+
+- Commit: `0ed8ed9590656c4a62b1e3419277071443cd2ffe`
+- Pushed origin/main: yes
+- 补齐 CON-008 规格第三条“测试模拟读取失败、写入失败、取消和队列满；
+  不得死锁或丢失错误码”：
+  - `lib/phase2/tests/async_io_test.cpp` 新增 `BoundedAsyncQueuePipeline` 套件：
+    `ReadFailureCancelsAndPropagatesNoDeadlock`、
+    `WriteFailureStopsProducerAndPreservesError`、
+    `BoundedQueueDeliversAllItemsInOrder`、
+    `MultiConsumerProcessesEachItemExactlyOnce`、
+    `CancelWakesBlockedConsumerNoDeadlock`。
+  - `astro/phase2/async_io.h` 在接口层注明 reader 线程安全约束。
+  - `docs/architecture/ASYNC_IO_CONTRACT.md` 置 PASS，新增第 9 节
+    “Reader 线程安全与生产接入结论”。
+- 验证：`phase2_async_io` 于 OpenMP OFF/ON 构建均 10/10 PASS；重复 15 次无 flake；
+  `phase2_routing`/`phase2_execution_options`/`phase2_ivar_wiring` 无回归。
+- 说明：AIO reader 线程安全约束未变，异步 I/O 的生产形态为“有界预取队列 +
+  单一 IO 线程 / 每 worker 独立 reader”；stage2/sampler 的实际接线作为
+  “待接入点”明确记录在 ASYNC_IO_CONTRACT.md 第 9 节，不伪造并发读安全。
+- Ledger: CON-008 -> PASS.
+
 ## 2026-08-27 第6轮尝试：AsyncTileReader 背景线程读取受阻
 
 - 尝试在 `BoundedAsyncQueue` 之上实现 `HipsAsyncTileReader`，每 worker 独立
