@@ -6,6 +6,7 @@
 
 #include "astro/phase2/upm.h"
 #include "astro/phase2/rejection.h"
+#include "astro/phase2/execution_options.h"
 
 #include <nlohmann/json.hpp>
 #include <cstdint>
@@ -13,6 +14,8 @@
 #include <vector>
 
 struct P2Stage2Config {
+    // CON-002 全局执行预算唯一来源（cpu/io workers、gpu route、deterministic、memory budget）。
+    astro::phase2::ExecutionOptions exec = astro::phase2::default_execution_options();
     std::vector<std::string> hips;
     std::string target_order_spec = "auto";
     int target_order = -1;

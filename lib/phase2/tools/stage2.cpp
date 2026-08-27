@@ -120,10 +120,9 @@ int main(int argc, char** argv) {
 #endif
     // 全局未捕获异常透出（将 0xC0000005/SEH 转为可读日志，而非 EC:-1）
     try {
-    if (argc != 2) {
+    if (argc < 2) {
         std::fprintf(stderr,
-                     "usage: astrocs-stage2 <stage2.json>\n"
-                     "只允许一个 JSON 配置路径参数。\n");
+                     "usage: astrocs-stage2 <stage2.json> [--cpu-workers N] [--io-workers N] [--gpu-route cpu|auto|cuda] [--deterministic 0|1]\n");
         return 2;
     }
     nlohmann::json j;
@@ -145,6 +144,18 @@ int main(int argc, char** argv) {
     if (!p2_stage2_parse_config(j, &cfg, &err)) {
         std::fprintf(stderr, "config error: %s\n", err.c_str());
         return 2;
+    }
+    // CON-002 CLI override of global worker budget (overrides config execution block)
+    for (int ai = 2; ai + 1 < argc; ai += 2) {
+        const std::string k = argv[ai];
+        const std::string v = argv[ai + 1];
+        try {
+            if (k == "--cpu-workers") { const int n = std::stoi(v); if (n < 1 || n > 1024) { std::fprintf(stderr, "invalid --cpu-workers\n"); return 2; } cfg.exec.cpu_workers = n; }
+            else if (k == "--io-workers") { const int n = std::stoi(v); if (n < 1 || n > 1024) { std::fprintf(stderr, "invalid --io-workers\n"); return 2; } cfg.exec.io_workers = n; }
+            else if (k == "--gpu-route") { if (v != "cpu" && v != "auto" && v != "cuda") { std::fprintf(stderr, "invalid --gpu-route\n"); return 2; } cfg.exec.gpu_route = v; }
+            else if (k == "--deterministic") { const int d = std::stoi(v); if (d != 0 && d != 1) { std::fprintf(stderr, "invalid --deterministic\n"); return 2; } cfg.exec.deterministic = (d == 1); }
+            else { std::fprintf(stderr, "unknown option: %s\n", k.c_str()); return 2; }
+        } catch (...) { std::fprintf(stderr, "bad value for %s\n", k.c_str()); return 2; }
     }
 
     // 日志：run/logs/phase2/<YYYYMMDD>/stage2.log
