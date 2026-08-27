@@ -34,6 +34,16 @@
   （采样器）1T=1.85s/2T=1.86s（**不随核数缩放**）、`tiles_process` 1T=4.19s/2T=4.11s
   （~1.02x）。⇒ 门禁失败**与 diagnostics 无关**，根因集中在**采样器串行**（stopgap mutex）
   与**积分不缩放**（内存受限 + 串行校准），二者为核心瓶颈。
+- **瓶颈实证（2026-08-27，并行校准负结果）**：我曾把积分串行"逐帧 UPM 校准"（源4）
+  当作主导串行段，并实现"Phase A 串行读 + Phase B 并行校准"（按帧 omp 并行 `calibrate_block`）。
+  实测 **tiles_process 反而 1T 4.19→4.39s（每 chunk 预分配 per-frame 缓冲 + omp fork 开销），
+  2T 仅 4.14s，无提升** ⇒ 已回退。**证明"逐帧校准"不是主导瓶颈**。
+  真正主导的是**积分 rejection 的跨步聚集**：`process_cpu_pixel_parallel` 与串行 rejection
+  都以 `value_stride=chunk_pixels`（`p2_collect_candidate_stack`，`:1086/:1332`）读取
+  `cal[s*chunk_pixels+pixel]`（帧间步长≈2048KB）→ **深度内存级 cache-miss**，故 1T/2T 均
+  ~4.1s 不缩放（内存受限）。修正需把 cal/supv/ivarv **转置为 pixel-major**（`i*depth+s`），
+  但该布局须**改写共享的 `p2_collect_candidate_stack`**（被 ACR/compat 复用）——
+  **非 stage2 内可封闭改动，风险高**。
 - **差分结果/数值门禁：1T==2T 数据位级一致**（2026-08-27 复验，G2 必备产出）。
   1T 与 2T 完整 mosaic 输出逐字节对比：signal/support 各 `Norder0/...` FITS 的
   **DATASUM 完全一致**（如 Npix0 `3138625936`），即**科学数据逐字节相同**（积分+UPM+写盘
