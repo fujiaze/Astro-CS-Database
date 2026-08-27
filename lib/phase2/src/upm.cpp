@@ -610,6 +610,10 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
             }
         }
         std::vector<double> w(n_obs);
+#if defined(P2_ENABLE_OPENMP) && !defined(_MSC_VER)
+        // CON-005: 逐 obs 独立 w 计算（per-obs 写 w[i] 不相交）
+        #pragma omp parallel for schedule(static)
+#endif
         for (std::uint64_t i = 0; i < n_obs; ++i) {
             const std::size_t ck = m->control_by_id[obs[i].control_id];
             // Huber 作用于标准化残差 z = r / sigma_eff。
@@ -627,6 +631,11 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         // 2. M 更新（固定 C）：每分量 gauge = 分量内最小 frame_id C=0 →
         // M 由该分量参考帧观测定义；参考帧未覆盖节点用全部帧（延拓）。
         double max_dM = 0.0;
+#if defined(P2_ENABLE_OPENMP) && !defined(_MSC_VER)
+        // CON-005: 逐 control 独立 M 更新（每 control 的 obs 聚合整块由单线程完成，
+        // 逐 k 写 M[k] 不相交；仅 max 归约 => 1T/2T 位精确）
+        #pragma omp parallel for schedule(static) reduction(max:max_dM)
+#endif
         for (std::size_t k = 0; k < m->controls.size(); ++k) {
             double num = 0.0, den = 0.0;
             const std::size_t comp = m->control_component[k];
@@ -674,9 +683,21 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         }
         // 3. C 更新（固定 M；逐帧 CG + 参考帧 gauge）
         double max_dC = 0.0;
-        for (const auto& kv : m->frame_index) {
-            const std::size_t f = kv.second;
-            if (kv.first ==
+        std::vector<std::uint64_t> fids;
+        fids.reserve(m->frame_index.size());
+        for (const auto& kv : m->frame_index) fids.push_back(kv.first);
+#if defined(P2_ENABLE_OPENMP) && !defined(_MSC_VER)
+        // CON-005: 逐 frame 独立 C 更新 + CG（每 frame 的 rhs/obs_w/C[f]/x 全 per-frame；
+        // cg_solve_frame 读只读共享 adj/K/lambda_s/anchor，写各 frame 自身；仅 max 归约）
+        #pragma omp parallel for schedule(static) reduction(max:max_dC)
+        for (std::size_t fi_ = 0; fi_ < fids.size(); ++fi_) {
+            const std::uint64_t frame_id = fids[fi_];
+#else
+        for (std::size_t fi_ = 0; fi_ < fids.size(); ++fi_) {
+            const std::uint64_t frame_id = fids[fi_];
+#endif
+            const std::size_t f = m->frame_index[frame_id];
+            if (frame_id ==
                 m->component_ref_frame[m->frame_component[f]]) {
                 // 该分量参考帧 gauge：C=0（每分量独立，非全局最小帧）
                 for (std::size_t k = 0; k < K; ++k) m->C[f][k] = 0.0;
