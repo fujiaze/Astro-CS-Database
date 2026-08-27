@@ -401,6 +401,29 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
         cfg->out_hips = j["output"]["hips"].get<std::string>();
         if (j.contains("diagnostics"))
             cfg->diagnostics = j["diagnostics"].value("enabled", true);
+        // CON-002 global worker budget contract (execution block)
+        if (j.contains("execution")) {
+            const auto& ex = j["execution"];
+            if (ex.contains("cpu_workers")) {
+                const int cw = ex.value("cpu_workers", 0);
+                if (cw < 0 || cw > 1024) { *err = "cpu_workers 必须在 0..1024 (0=auto)"; return false; }
+                cfg->exec.cpu_workers = cw;
+            }
+            if (ex.contains("io_workers")) {
+                const int iw = ex.value("io_workers", 0);
+                if (iw < 0 || iw > 1024) { *err = "io_workers 必须在 0..1024 (0=auto)"; return false; }
+                cfg->exec.io_workers = iw;
+            }
+            if (ex.contains("gpu_route")) {
+                const std::string gr = ex.value("gpu_route", std::string("auto"));
+                if (gr != "cpu" && gr != "auto" && gr != "cuda") { *err = "gpu_route 只支持 cpu/auto/cuda"; return false; }
+                cfg->exec.gpu_route = gr;
+            }
+            if (ex.contains("deterministic"))
+                cfg->exec.deterministic = ex.value("deterministic", true);
+            if (ex.contains("memory_budget_bytes"))
+                cfg->exec.memory_budget_bytes = ex.value("memory_budget_bytes", (std::uint64_t)0);
+        }
     } catch (const std::exception& e) {
         *err = std::string("config parse 失败: ") + e.what();
         return false;
