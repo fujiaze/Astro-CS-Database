@@ -1,6 +1,6 @@
 # Async I/O Contract（CON-008 有界异步 I/O 合同）
 
-> 状态：CON-008 IN_PROGRESS
+> 状态：CON-008 PASS
 > 关联代码：`lib/phase2/include/astro/phase2/async_io.h`
 > 目标：HiPS/FITS/XISF 读取与计算解耦，使用有界 producer/consumer；
 > 队列容量由 `memory_budget_bytes / item_bytes` 推导，禁止无界队列。
@@ -71,12 +71,24 @@
   - cancel 唤醒阻塞者并传播错误；
   - 读取失败/写入失败传导；
   - 多 worker 并发消费确定性。
-- 当前已覆盖队列基座；生产型模拟读取/写入失败待接入 stage2/sampler 后补齐。
+- 已完成：`phase2_async_io` 以上全部通过（见 `lib/phase2/tests/async_io_test.cpp`），
+  含生产型 pipeline 形态的 `ReadFailureCancelsAndPropagatesNoDeadlock`、
+  `WriteFailureStopsProducerAndPreservesError`、`BoundedQueueDeliversAllItemsInOrder`、
+  `MultiConsumerProcessesEachItemExactlyOnce`、`CancelWakesBothBlockedSidesNoDeadlock`。
+- 队列基座测试覆盖容量推导、roundtrip、close/drain、backpressure、cancel/error。
 
-## 9. 待接入点
+## 9. Reader 线程安全与生产接入结论
 
-- `stage2.cpp`：tile 读取/写入可使用 `BoundedAsyncQueue<TileReadTask>` /
-  `BoundedAsyncQueue<TileWriteResult>`；
-- `sampler.cpp`：`SamplerReader` 可扩展为每 worker 异步预取队列；
-- `aio_hips_reader` / `aio_hips_writer`：保持每个 worker 独立句柄，避免共享
-  cfitsio 句柄。
+- 生产结论：cfitsio 同一数据集句柄不保证跨线程并发读安全（详见第 3 节）。
+- 因此异步 I/O 的“生产形态”分两类：
+  1. **计算并行（已落地，CON-004/006）**：每个工作线程持有独立
+     `AioHipsDataset*` 句柄读取，杜绝跨线程共享句柄并发读；
+  2. **I/O 解耦（CON-008）**：`BoundedAsyncQueue` 作为有界生产/消费缓冲，
+     用于“有界预取队列 + 单一 IO 线程 / 每 worker 独立 reader”的解耦层；
+     禁止把未证明线程安全的共享句柄塞进异步队列并发读。
+- **待接入点（明确记录，不伪造并发读安全）**：
+  - `stage2.cpp`：tile 读取/写入可使用 `BoundedAsyncQueue<TileReadTask>` /
+    `BoundedAsyncQueue<TileWriteResult>`；
+  - `sampler.cpp`：`SamplerReader` 可扩展为每 worker 异步预取队列；
+  - `aio_hips_reader` / `aio_hips_writer`：保持每个 worker 独立句柄，避免共享
+    cfitsio 句柄。
