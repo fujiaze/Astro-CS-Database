@@ -47,6 +47,13 @@
   `stage2.cpp` + **`acr_kernels.cpp:135`（ACR 内核）** + `synthetic_gate.cpp` 三方调用，
   假设同一 frame-major 布局 ⇒ **非 stage2 内可封闭改动**；pixel-major 需新增独立
   collector 函数或布局标志（不动 ACR），属**跨模块、更高风险**改动。
+- **积分内部实测拆分（2026-08-27，计时插桩）**：`tiles_process`(1T)=4.19s 精确拆为
+  **fill(读 tile + UPM 校准 + 填充)=2.118s（串行, s-loop 单线程）** +
+  **rejection(omp 像素)=2.072s（不随核数缩放）**。⇒ 此前"逐帧校准"/"跨步聚集"均为
+  **联合主导**之一而非唯一；真正的主导是**fill 内的 aio tile 读**
+  （`aio_hips_read_tile_f32`, cfitsio 预编译库，串行 2.12s）——**与采样器
+  control_sample(1.85s 串行)是同一 cfitsio 读瓶颈**，需 CON-008 单 IO 线程/管道路径统一解决；
+  rejection 2.07s 不缩放是另一独立受限源。
 - **差分结果/数值门禁：1T==2T 数据位级一致**（2026-08-27 复验，G2 必备产出）。
   1T 与 2T 完整 mosaic 输出逐字节对比：signal/support 各 `Norder0/...` FITS 的
   **DATASUM 完全一致**（如 Npix0 `3138625936`），即**科学数据逐字节相同**（积分+UPM+写盘
