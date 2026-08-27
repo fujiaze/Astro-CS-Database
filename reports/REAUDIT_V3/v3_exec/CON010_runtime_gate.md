@@ -1,68 +1,61 @@
-# CON-010 2C Linux 运行门禁 —— 实测结论：FAIL（生产 CLI 2T 崩溃）
+# CON-010 2C Linux 运行门禁 —— 实测结论：FAIL（并行效率不达标）
 
 > 状态：CON-010 FAIL
-> 判定依据：CON-010 规格要求 2T `max_threads>=2` / 计算窗口平均 CPU `>=150%` /
-> `wall_1T/wall_2T>=1.50`；但本机 2 核 Linux 上 `cpu_workers=2` 生产 CLI 直接
-> **SIGSEGV**，无法测量任何 2T 指标 ⇒ 门禁不满足 ⇒ FAIL（代码缺陷，非外部阻塞）。
+> 判定：CON-010 要求 2T `max_threads>=2`、计算窗口平均 CPU `>=150%`、
+> `wall_1T/wall_2T>=1.50`、无 ≥1s 串行段、串行累计 <1%。
+> 本机 2 核 Linux 实测：2T `wall_1T/wall_2T≈1.02`、平均 CPU≈107% —— **两个关键阈值
+> 均不达标** ⇒ 门禁不满足 ⇒ FAIL（并行效率不足，非外部阻塞）。
+> 过程中另**发现并修复**一个真实崩溃（sampler 并行 AIO 读 SIGSEGV），见 §4。
 
 ## 1. 环境
-- 主机：Intel Xeon Gold 6148 @ 2.40GHz，**2 逻辑核**，3.6Gi RAM（可用 ~1.5Gi）。
-- 工具链：gcc 14.2 / clang 19.1.7；构建 `build/linux-openmp-on`
-  （`P2_ENABLE_OPENMP=ON`，阶段2 OpenMP 并行）。
-- 生产 CLI：`astrocs-stage2`（`run/temp/con010/synth6_config.json`）。
+- 主机：Intel Xeon Gold 6148@2.40GHz，**2 逻辑核**，3.6Gi RAM（可用 ~1.5Gi）。
+- 工具链：gcc 14.2 / clang 19.1.7；构建 `build/linux-openmp-on`（`P2_ENABLE_OPENMP=ON`）。
+- 生产 CLI：`astrocs-stage2`。
 
-## 2. 合成生产 CLI 工作负载（构造）
-- 因真实 2 帧面板配置（完整 rejection profile）在本机 >60s 且为真实 32R 数据，
-  改用**合成多 tile 输入**：`run/temp/con010/gen_synth_frames.cpp` 生成
-  N 帧 × M 叶 tile（signal/support/ivar 产品，叶级 NSIDE=512，帧间同 tile 集以形成
-  UPM 重叠）。使用 `weight_mode=ivar`、`rejection=none`、`fp32`。
-- 工作负载：6 帧 × 12 tile（每帧 12 个叶 tile，整块重叠）。
-- 生成器编译链接 `lib/astro_image_io/astro_image_io.dll`（Linux ELF .so）。
+## 2. 合成生产 CLI 工作负载
+- 真实 2 帧面板配置在本机 >60s（超出门禁上限），故按规格用**合成多 tile 输入**：
+  `run/temp/con010/gen_synth_frames.cpp` 生成 6 帧 × 12 叶 tile（signal/support/ivar，
+  叶级 NSIDE=512，帧间同 tile 集以形成 UPM 重叠）。`weight_mode=ivar`、`rejection=none`、fp32。
 
-## 3. 实测（measure.py：/proc/PID 采样，每 200ms Threads/RSS；stat utime+stime→CPU%）
-| 配置 | 结果 | wall | max_threads | 平均 CPU% | peak RSS |
-|---|---|---|---|---|---|
-| `cpu_workers=1` | exit 0，正常出图 | 12.0s | 2（主+内部） | 82.8% | 63 MB |
-| `cpu_workers=2` | **exit -11 (SIGSEGV)** | **1.00s** | 1（崩溃前） | 77.8%（崩溃前） | 10 MB |
+## 3. 实测（measure.py /proc/PID，每 200ms Threads/RSS；stat utime+stime→CPU%）
+| 配置 | 结果 | wall（2 次） | 平均 CPU% | peak RSS |
+|---|---|---|---|---|
+| `cpu_workers=1` | exit 0 | 8.42s / 8.22s | 94.6% | 63 MB |
+| `cpu_workers=2` | exit 0（修复后） | 8.22s / 8.02s | 106.9% | 78 MB |
 
-- 1T 正常：`[stage2] HiPS mosaic written: tiles=12 pixels=3145728`，`stage2 done in 12.0s`。
-- 2T 崩溃：`[sampler] read_tile_pair failed rc=1 frame=4 tile=1` 后立即 SIGSEGV。
+- `wall_1T/wall_2T = 8.32/8.12 ≈ 1.02`（需求 ≥1.50）。
+- 2T 平均 CPU ≈ 107%（需求 ≥150%）。2T 基本未利用第二核。
+- 时相分解（2T，12×12）：control_sample=3.81s（≈1T，即 sampler 几乎未并行），
+  upm_persist=4.53s（**串行 UPM 稠密缓存物化**），tiles_process=6.87s（积分 ~1.13x，缩放差）。
 
-## 4. 根因（TSan 定位 + 崩溃点）
-- `build/linux-tsan`（`-fsanitize=thread`，P2_ENABLE_OPENMP=ON）跑同负载：
-  ```
-  WARNING: ThreadSanitizer: data race ... sampler.cpp:881 in p2_sample_controls_impl._omp_fn.0
-  WARNING: ThreadSanitizer: data race ... stl_tree.h std::set::count (frames[i].tiles.count @ sampler.cpp:706)
-  ERROR: ThreadSanitizer: SEGV on unknown address 0x1 ... in _IO_fread
-  SUMMARY: ThreadSanitizer: SEGV in _IO_fread
-  ```
-- **SEGV 在 libc `_IO_fread`**：并行 worker 各自 `SamplerReader::init_own` 打开
-  独立 `AioHipsDataset*`（`aio_hips_open`），但底层 cfitsio **并发文件读取不是线程安全**；
-  `_IO_fread` 读到非法 FILE* 状态 → SIGSEGV（地址 0x1）。
-- 并行路径结构（`sampler.cpp`：`#pragma omp parallel num_threads(workers)`，
-  `rdr.init_own(hips_paths, n)` 每 worker 独立句柄，`#pragma omp for` 分发 union cell）。
-  每个 cell 在 `pass1_cell` 内对 `cov_frames` 逐帧 `read_tile_pair`。
-- 结论：破坏点是 **cfitsio / AIO 并发读的非线程安全**，而非 cell 写竞争或归约。
-  这正是 CON-008 progress note 明确记录的约束：*AIO 读取路径在非主线程/多线程并发下
-  不确定安全*；"若无法证明线程安全，异步 IO 只能作为‘有界预取队列 + 单一 IO 线程’
-  形态落地"。
+## 4. 过程中发现并修复的真实崩溃（独立于效率判定）
+- **原始 2T 运行 SIGSEGV**：`exit -11`，约 1.0s，`[sampler] read_tile_pair failed rc=1 frame=4 tile=1`
+  后崩溃。TSan（`-fsanitize=thread`）：`sampler.cpp:706 std::set::count` / `:881 _omp_fn.0`
+  竞态 + 真正崩溃 `SEGV in _IO_fread`。
+- **根因**：并行 worker 各自 `SamplerReader::init_own` 打开独立 `AioHipsDataset*`，
+  但底层 **cfitsio 并发文件读取（`_IO_fread`）在本机 gcc14 上非线程安全** ⇒ SIGSEGV。
+  每 worker 独立句柄无法规避（cfitsio 本身全局态非线程安全）。
+- **修复**（`lib/phase2/src/sampler.cpp`）：新增 `static std::mutex g_aio_mu;`，对
+  `aio_hips_open`（sig/sup 惰性开）与 `read_tile_pair`（`aio_hips_read_tile_f32`）
+  串行化，保留计算并行。修复后 2T 正常运行（无崩溃），全部既有测试通过：
+  81 passed / 0 failed（synthetic_gate），ivar_wiring(2T) PASS，async_io 10/10，
+  routing 4/4，execution_options 6/6。详见 §CON-008 合同（异步 IO 线程安全无法证明时
+  只能"单一 IO 线程"落地；此处取全局 mutex 串行化读）。
 
-## 5. 对审计的影响
-- **CON-010 = FAIL**：2T 生产运行崩溃，`max_threads/CPU>=150%/1T-2T>=1.50/串行段`
-  全部不可测量 ⇒ G2 并行门禁在 Linux 上**未达标**。
-- **CON-004（sampler 并行）需重审**：其 `init_own` 每 worker 独立句柄并不能规避
-  cfitsio 并发读崩溃。之前 Linux 上 `sampler_parallel_consistency_test` 因无真实 HiPS
-  而 SKIP，未实际覆盖并行多 tile 读；本次合成 6×12 实测首次真正触发并行读 → 崩溃。
-- **CP2 gate 阻断**：在修复并行读线程安全前，禁止进入 G3/G4，也禁止启动 32R。
+## 5. 待深究：并行效率为何不达标
+- **采样器读被串行化**（修复副作用）：control_sample 2T ≈ 1T，未并行。
+- **UPM 稠密缓存物化（upm_persist）串行**：占 ~30% 运行时间，Amdahl 硬性限制
+  理想加速约 1.5x；即便积分完美 2x 缩放也仅≈1.5x。实际积分缩放仅 ~1.13x。
+- 综合：2 核真实加速 ~1.02x，与 >=1.50x 差距大。需在 UP 缓存物化/积分像素循环
+  提高并行度（CON-007 并行效率）后方可复评。
 
-## 6. 修复方向（按 CON-008 合同）
-- 采用"**单一 IO 线程 + 有界预取队列**"（`BoundedAsyncQueue`，CON-008 已落地基座）：
-  worker 线程只做计算，cfitsio 调用集中在单一 IO 线程串行化，消除并发读 SEGV。
-- 或证明 cfitsio/`aio_hips_*` 并发读安全（本机 GCC 14 下不成立）。
+## 6. 审计影响
+- **CON-010 = FAIL**（并行效率）；G2 并行门禁在 2C Linux **未达标** ⇒ 禁止启动 32R。
+- **CON-004（sampler 并行）需重审**：其 `init_own` 每 worker 独立句柄无法规避
+  cfitsio 并发读崩溃；Linux 上 `sampler_parallel_consistency_test` 因无真实 HiPS 而
+  SKIP，本次合成 6×12 首次真实触发并行读 → 崩溃（现已随 §4 修复缓解）。
+- 后续：待 UPM/积分并行化提升后重测；在此之前 CON-010 维持 FAIL。
 
-## 7. 证据文件（run/temp，gitignored）
-- `run/temp/con010/gen_synth_frames.cpp`（生成器）
-- `run/temp/con010/synth_in6/`（6 帧合成输入）
-- `run/temp/con010/synth6_config.json`（stage2 配置）
-- `run/temp/con010/measure.py`（线程/CPU/RSS 采样）
-- `build/linux-tsan` TSan 运行日志：`/tmp/con010_tsan.log`
+## 7. 证据（run/temp，gitignored）
+- `gen_synth_frames.cpp`（生成器）、`synth_in6/`、`synth6_config.json`、`measure.py`。
+- `build/linux-tsan` TSan 日志：`/tmp/con010_tsan.log`；崩溃/修复日志在 `/tmp/con010_*`。
