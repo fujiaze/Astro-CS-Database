@@ -42,12 +42,27 @@
   routing 4/4，execution_options 6/6。详见 §CON-008 合同（异步 IO 线程安全无法证明时
   只能"单一 IO 线程"落地；此处取全局 mutex 串行化读）。
 
-## 5. 待深究：并行效率为何不达标
-- **采样器读被串行化**（修复副作用）：control_sample 2T ≈ 1T，未并行。
-- **UPM 稠密缓存物化（upm_persist）串行**：占 ~30% 运行时间，Amdahl 硬性限制
-  理想加速约 1.5x；即便积分完美 2x 缩放也仅≈1.5x。实际积分缩放仅 ~1.13x。
-- 综合：2 核真实加速 ~1.02x，与 >=1.50x 差距大。需在 UP 缓存物化/积分像素循环
-  提高并行度（CON-007 并行效率）后方可复评。
+## 5. 待深究：并行效率为何不达标（本轮深入结论）
+- **序列化源 1 —— UPM 稠密缓存物化（upm_persist）是硬串行段**：`p2_upm_materialize_dense`
+  逐 (f,tile) 计算双线性并 `aio_upm_dense_write_tile` 写盘。后者（`aio_upm.cpp:256-271`）
+  **强制 frame_index 单调递增 + 单 FILE\* 顺序 fwrite**，向 writer 传参需严格
+  (frame,tile) 序 ⇒ 无法直接并行写；`upm_persist` 实测 ~2.4s（12×12 时 ~4.5s），
+  直接违反"无串行段 >=1s"。并行化需：(a) 改写 writer 支持按 tile 偏移随机写，或
+  (b) 逐帧并行"计算"再按序"写"（保持语义不变，缓存 bit-identical）。
+- **序列化源 2 —— worker 数未贯穿到物化**：`stage2.cpp:482` 直接调
+  `p2_upm_materialize_dense`，未传 worker 数；`p2_upm_*` 为公开 API，改签名侵入大；
+  用 `omp_set_num_threads` 全局改线程数可能影响其它默认并行的 omp 区域 → 需谨慎。
+- **序列化源 3 —— 积分像素循环（tiles_process）内存受限**：`stage2.cpp:1287`
+  `#pragma omp parallel ... omp for schedule(static)` 已并行像素，但实测缩放到 2 核
+  仅 ~1.1x（12×12：1T~7.8s→2T=6.87s）。原因应为逐像素读 `cal/support/frame_seq`
+  与 per-thread `std::map` hist 的访存/缓存竞争，属内存带宽受限，非线程数不足。
+- **采样器读被串行化**（§4 修复副作用）：control_sample 2T ≈ 1T，未并行。
+- **综合 Amdahl**：`upm_persist`(串行 ~30%) + 积分(仅 1.1x) + 采样器(未并行) ⇒ 2 核真实
+  加速 ~1.02x，远低于 >=1.50x；且 `upm_persist` 的 >1s 串行段直接违反门禁。
+- **结论**：以当前架构（顺序化 dense writer + 内存受限积分 + 串行化采样器读），在
+  5-60s 合成工作负载上**无法满足**"平均CPU>=150% / 1T-2T>=1.5 / 无串行段>=1s /
+  串行累计<1%"。需先做主循环并行化改造（writer 偏移写或单 IO 线程队列 + 积存储/local
+  hist 降竞争 + worker 数贯穿）再复评——这是一项独立工程，非本轮可闭合。
 
 ## 6. 审计影响
 - **CON-010 = FAIL**（并行效率）；G2 并行门禁在 2C Linux **未达标** ⇒ 禁止启动 32R。
