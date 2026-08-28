@@ -1,6 +1,6 @@
 # Rejection Algorithms (ALG-REJ)
 
-> 上游 SCI: SCI-REJ-001..008  状态: DERIVED (T207 冻结, 2026-08-23)  模块: phase2/rejection
+> ID: ALG-REJ-001  范围: ALG-REJ-001..008  上游 SCI: SCI-REJ-001  状态: DERIVED (T207 冻结; V5 ALG-006 重验 2026-08-28)  模块: phase2/rejection
 
 ## 1 上游 SCI 与输入输出
 
@@ -60,9 +60,14 @@ function p2_reject(stack, plan):
 
 - O(n log n) 排序/ESD/RCR
 
-## 7 CPU/GPU
+## 7 CPU-only 后端策略（V5）
 
-- CPU per-pixel; GPU按pixel切分, 7方法逻辑等价, large_scale仅CPU.
+- 仅 CPU: 逐像素独立, worker pool（按 affinity）按像素行带并行, **禁止硬编码线程数**；7 方法逻辑与线程划分无关（每像素独立决策树）；large_scale 结构半径仅邻域读, 无跨像素写。
+
+## 5c SIMD 安全与取消点
+
+- 排序/median/MAD 为固定输入序选择(value tie-break frame_id 冻结)；ESD/RCR 迭代为固定序统计(逐像素局部数组)；7 方法阈值比较逐样本独立(SIMD 安全: 栈数组连续无别名)。
+- 取消点: 像素行带粒度检查; 取消时该行带 accepted 掩膜不写(整帧重做, 掩膜以帧为原子单元)。
 
 ## 8 参考实现/Oracle
 

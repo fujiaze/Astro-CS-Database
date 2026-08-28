@@ -1,6 +1,6 @@
 # Integration Algorithms (ALG-INT)
 
-> 上游 SCI: SCI-INT-001/002/004/008  状态: DERIVED (T208 冻结, 2026-08-23)  模块: phase2/integrate
+> ID: ALG-INT-001  范围: ALG-INT-001..003  上游 SCI: SCI-INT-001  状态: DERIVED (T208 冻结; V5 ALG-006 重验 2026-08-28)  模块: phase2/integrate
 
 ## 1 上游 SCI 与输入输出
 
@@ -58,9 +58,14 @@ function integrate_pixel(in, out):
 
 - O(k) 每像素, k=candidate数
 
-## 7 CPU/GPU
+## 7 CPU-only 后端策略（V5）
 
-- 像素并行无共享; GPU 按像素切分 vs/wsum 归约, signal确定性.
+- 仅 CPU: 像素独立无共享, worker pool（按 affinity）按像素行带并行, **禁止硬编码线程数**；signal 与线程划分无关（像素内固定候选序归约）。
+
+## 5c SIMD 安全与取消点
+
+- eligibility 判定与 `vs/wsum` 累加在单像素栈内(≤n_frames 元素, 连续无别名)；**候选索引固定序归约**(FP64, 禁重结合)——即逐像素串行语义, 并行仅在像素间；support=max 为选择非归约。
+- 取消点: 像素行带粒度; 取消时该行带 P2PixelResult 不写(以行带为原子单元)。
 
 ## 8 参考实现/Oracle
 
