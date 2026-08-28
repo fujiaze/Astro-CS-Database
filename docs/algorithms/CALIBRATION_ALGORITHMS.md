@@ -1,6 +1,6 @@
 # Calibration Algorithms (ALG-CAL)
 
-> 上游 SCI: SCI-CAL-001  状态: DERIVED (T200 冻结, 2026-08-23)  模块: calibration
+> ID: ALG-CAL-001  范围: ALG-CAL-001..004  上游 SCI: SCI-CAL-001  状态: DERIVED (T200 冻结; V5 ALG-001 重验 2026-08-28)  模块: calibration
 
 ## 1 上游 SCI 与输入输出
 
@@ -18,7 +18,7 @@ F3: dark_opt=1 && bias&&dark: cal = (raw − bias − K·(dark−bias)) / max(fl
 F4: master: generate_master sigma-clip 迭代: median/MAD→sigma=1.4826·MAD, 剔除 [median−sigma_low·σ, median+sigma_high·σ] 外，迭代 max_iter，合并 combine=mean/median
 ```
 
-来源: `calibrator.cpp:78-93,104-136,147-179` `master_generator.cpp:222-234`
+推导来源: **SCI-CAL-001 §5 连续定义的离散化**(F1–F4 与之一一对应);实现一致性锚(非推导依据): `calibrator.cpp:78-93,104-136,147-179` `master_generator.cpp:222-234`
 
 ## 3 伪代码
 
@@ -62,17 +62,27 @@ function generate_master(stack,n_frames,w,h,sigma_low/high,max_iter,combine):
 
 ## 5 确定性与归约
 
-- 逐像素独立，`parallel for schedule(static) num_threads(16)` 按行固定顺序，`nth_element` 局部排序不跨像素归约，确定性。
-- `generate_master` 每像素独立 sigma-clip，无跨像素归约。
+- 逐像素独立：线程数由运行时调度按**有效 CPU affinity 的 worker pool** 决定，**禁止硬编码线程数**（V5 硬约束）；静态按行分块，输出 bitwise 与线程数/分块无关。
+- `nth_element` 中位数为选择而非跨像素归约；`combine=mean` 的归约顺序**冻结为帧序升序串行累加**（FP32），与线程数无关；`generate_master` 每像素独立 sigma-clip，无跨像素归约。
+
+## 5a variance/mask 传播（ALG-001 检查点）
+
+- **variance 不在本层传播**（SCI-CAL §9 边界）：ivar 由 SCI-NOISE 独立估计；master 的样本方差仅用于 sigma-clip 判决，不写入输出。
+- **mask 传播**：输入 NaN → 输出 NaN（不产出伪有效值）；`bad_mask=1` 像素仅被 cosmetic 修复（ALG-CAL-004），不改变校准算术；`flat=NULL/dark=NULL` 的退化分支即 mask-free 路径。
+
+## 5b SIMD 安全条件与取消点
+
+- SIMD 安全：`in/out` 无别名（checked）、行连续、逐像素独立无跨像素归约；FP32/FP64 遵循 IEEE-754，**禁全局 fast-math/重结合**（确定性前提）；SIMD 变体仅经逐内核 benchmark 注册（V5 ABI，标量参考路径恒存在）。
+- 取消点：`generate_master` 按帧循环间检查 cancel（帧粒度）；`calibrate` 按行块检查（row-block 粒度）；取消时已写输出作废并返回 `AC_ERR_CANCEL`（语义随 API-003 冻结）。
 
 ## 6 时间/空间复杂度
 
 - `normalize_flat/calibrate`: O(n) 时间, O(n) 空间 (flat 原地)，单 pass
 - `generate_master`: O(n_frames·npix) 时间, O(n_frames) per-pixel 缓冲，空间 O(npix) 输出
 
-## 7 CPU/GPU 等价策略
+## 7 CPU-only 后端策略（V5：GPU/ACR 不在本轮，dormant）
 
-- 当前仅 CPU OpenMP；GPU 扩展时 `calibrate` 逐像素算术 `1:1` 等价，`generate_master` 的 median 需确定性并行 top-k 等价门，容差 `float32 1e-6`。
+- 仅 CPU：标量参考路径恒存在且为正确性基准；ISA 变体（SSE4/AVX/AVX2/AVX512）由逐内核 benchmark 自适应选择并经 ABI 注册，**无全局 `-march` 编译参数**；profile 缺失时 baseline 后端+动态 worker（保守不等于单线程）。
 
 ## 8 参考实现/Oracle
 
