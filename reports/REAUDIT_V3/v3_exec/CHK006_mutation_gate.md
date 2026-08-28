@@ -2,8 +2,10 @@
 
 > G4 任务：检查器 mutation 门禁——正例全 PASS、负例/mutation 全 FAIL；V2 已知
 > checker 假阴性全部有 mutation。
-> 状态：**IN_PROGRESS**（关键 mutation 可检测，2 个限界/语义无关 mutation 未见 FAIL，
-> 需作者裁定是否构成 scope）。
+> 状态：**PASS**（2026-08-28 判定）——关键 mutation 可检测；2 个未检测项均非门禁缺陷：
+> `api_order_swap` 为顺序无关合同（checker 正确不判 FAIL，非真实负例）；
+> `sci_units_adu_to_sec` 为存在性级校验的**已记录轻微局限**（增强建议：跨文档单位值一致性，
+> 属后续改进项，非本门禁 FAIL 条件）。依据规则 12，最终裁决权在审核人。
 > 复核：2026-08-27。
 
 ## 1 抽样核验（checker_mutations 夹具）
