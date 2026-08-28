@@ -28,6 +28,10 @@
 
 - `F_instr, F_syn`: ADU·px 或 e⁻（同尺度）；`r, location, S, sigma_residual`: dex (`log10` 比值)；`delta, sigma_mag`: mag；`scale, sigma_cal_rel`: 无量纲/相对误差（`sigma_cal_rel = ln10·sigma_residual`）；`qf` 无量纲标志。
 
+## 3a 坐标 frame
+
+光度定标**不做空间坐标变换**：参考星表为 Gaia DR3（ICRS/J2000，与 WCS 输出同系）；交叉匹配沿用 WCS 求解后的天球坐标（SCI-WCS），本层只工作在 flux/星等域；帧身份沿用 `frame_id`（DATA_SEMANTICS §5）。
+
 ## 4 输入有效域
 
 - 每颗星 `F_instr>0, F_syn>0` 有限值；饱和星（`psf_status!=0` 或 `qf & (SATURATED|HAS_SATURATED)!=0`）不进入匹配与定标，计 `rejected_quality`（`star_matcher.cpp:35-40`）。
@@ -85,6 +89,13 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 
 - FP64 对数空间；flux 比值不经 `ivar` 加权（ivar 不用于此层）；IRLS 收敛阈 `1e-6` dex，迭代上限 50。
 
+## 9a 专属问题回答（SCI-002 指定问题逐项）
+
+- **WCS frame/pixel convention**：不在本层处理；交叉匹配依赖 SCI-WCS 输出的 ICRS/J2000 坐标（§3a）。
+- **PSF 参数**：星点通量来自 PSF 拟合域（PSF.md），饱和判据 `psf_status/SATURATED` 决定剔除（§4）。
+- **aperture/flux/background**：`F_instr` 为仪器通量（ADU·px 或 e⁻ 同尺度）；无孔径背景扣除项——背景已在 PSF/测光上游处理；`F>0` 有限值为有效域，非有限显式拒绝（§8）。
+- **photometric scale 与不确定度**：`scale=10^{−location}`（IRLS/Tukey 稳健位置）；不确定度 `sigma_residual`（dex）→`sigma_mag`（mag）→`sigma_cal_rel`（相对）；`q_psf`/`sigma_residual` 禁止混为逐像素 ivar（§10）。
+
 ## 10 不可接受变化
 
 - 改变 `c=4.685`/`tol=1e-6`/`max_iter=50`/`mag_tolerance=3.0` 阈值而无 SCI 变更；
@@ -109,3 +120,16 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 - 实现: `lib/photometric_calib/cpp/src/star_matcher.cpp` (`location/S/scale, mag_tolerance, IRLS`), `lib/photometric_calib/cpp/src/pc_api.cpp` (`pc_calibrate_simple`)
 - 公开 API: `lib/photometric_calib/cpp/include/photometric_calib.h` (`pc_calibrate_simple, pc_calibrate_simple_with_gaia`)
 - 测试: `TST-PHOT-001` 合成零点、`TST-PHOT-INV-001` 鲁棒性、`TST-PHOT-FAIL-001` 饱和拒（新增/映射见 `docs/TRACEABILITY.csv`）
+
+## 14 Primary literature（引用定位声明）
+
+1. Tukey biweight `c=4.685`（95% 高斯渐近效率）：Mosteller & Tukey 1977, *Data Analysis and Regression*；定位经 [PMC6768164](https://pmc.ncbi.nlm.nih.gov/articles/PMC6768164/) 实证核对（"c=4.685 yields 95% asymptotic efficiency at the Gaussian"）。
+2. MAD→σ 换算 `1/0.6745`：标准正态 MAD 分位（Φ⁻¹(3/4)≈0.6745），教科书级恒等式，Project-defined 采纳。
+3. Gaia DR3 合成通量参考：Gaia Collaboration 星表发布文献——bibcode 级定位（未逐页核验），本合同仅消费星表数值，不转述其定标推导。
+
+## 15 Acceptance
+
+- §11 Oracle 全过：合成注入 `location≈log10 k`（rtol 1e-4）、20% 离群鲁棒门 `<0.1 dex`、S=0 退化门、NumPy 复算 rtol 1e-9；
+- §7 四不变量门全过（零点平移/尺度单调/鲁棒性/S=0）；
+- `tools/science_contract_lint.py` PASS；
+- 解析不变量→SYN-002 转换：已知 flux/background 星场、photometric scale 恢复、离群注入用例登记 SYN-002。
