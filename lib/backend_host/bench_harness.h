@@ -38,6 +38,25 @@ BenchResult bench_kernel(const astrocs_host_services_v1* host,
 /* 从 OK 候选中选 median 最小者; 无 OK 候选→空串。错误 backend 结构性不可胜出。 */
 std::string select_winner(const std::vector<BenchResult>& results);
 
+/* ── 候选生成(06 §3; 全部派生, 源码零硬编码核数/机器数值) ── */
+
+/* worker 候选: {1, 中位(≈物理核级), 全部有效 CPU} 去重升序; avail=3→{1,2,3} */
+std::vector<uint32_t> worker_candidates(uint32_t available_cpus);
+
+/* block 候选: 由 L2 字节与元素尺寸派生的几何序列(公比 4), 机器无关 */
+std::vector<uint64_t> block_candidates(uint64_t l2_bytes, uint64_t elt_size);
+
+struct MemoryReport {
+    double read_gbs = 0, write_gbs = 0, copy_gbs = 0, triad32_gbs = 0, triad64_gbs = 0;
+    uint64_t rss_delta_bytes = 0;
+};
+
+/* 内存带宽基线(06 §3 末段): read/write/copy/triad(FP32+FP64), median-of-reps */
+MemoryReport bench_memory(uint64_t n_elements, int reps);
+
+/* 采集当前进程 RSS 字节(资源指标) */
+uint64_t current_rss_bytes();
+
 }  // namespace astrocs::backend_host
 
 #endif  // ASTROCS_BENCH_HARNESS_H
