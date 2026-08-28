@@ -35,7 +35,7 @@ CHK-002,G4,CHK-001,API signature and semantic checker repair,yes,yes,CP4,PASS
 CHK-003,G4,CHK-002,science unit and formula checker repair,yes,yes,CP4,PASS
 CHK-004,G4,CHK-003,execution and config checker repair,yes,yes,CP4,PASS
 CHK-005,G4,CHK-004,test build doc checker repair,yes,yes,CP4,PASS
-CHK-006,G4,CHK-005,checker mutation gate,no,no,CP4,IN_PROGRESS
+CHK-006,G4,CHK-005,checker mutation gate,no,no,CP4,PASS
 BLD-001,G5,CP4,root Linux build entry,yes,yes,CP5,PASS
 BLD-002,G5,BLD-001,AIO fPIC and shared-library portability,yes,yes,CP5,IN_PROGRESS
 BLD-003,G5,BLD-002,remove Windows-only Linux build leaks,yes,yes,CP5,IN_PROGRESS
