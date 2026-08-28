@@ -35,7 +35,7 @@ CLI-003,CODE,CLI-002|VER-001,实现 config version run manifest 与验证命令,
 CLI-004,CODE,CLI-003|API-003,将 Phase1 作为进程内 API 接入 CLI,yes,yes,Linux,PASS
 CLI-005,CODE,CLI-003|API-004,将 Phase2 作为进程内 API 接入 CLI,yes,yes,Linux,PASS
 P3-001,CODE,API-005,实现 HiPS properties tile order frame 与安全读取,yes,yes,Linux,PASS
-P3-002,CODE,P3-001,实现输出 FITS WCS 和 pixel world 变换,yes,yes,Linux,NOT_STARTED
+P3-002,CODE,P3-001,实现输出 FITS WCS 和 pixel world 变换,yes,yes,Linux,PASS
 P3-003,CODE,P3-002,实现跨 tile 重采样 coverage mask 与单位语义,yes,yes,Linux,NOT_STARTED
 P3-004,CODE,P3-003,实现 FITS writer header provenance 与独立读取验证,yes,yes,Linux,NOT_STARTED
 CLI-006,CODE,CLI-003|P3-004,将 Phase3 作为进程内 API 接入 CLI,yes,yes,Linux,NOT_STARTED
