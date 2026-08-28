@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "verdict": "IN_PROGRESS",
+  "version": "X.Y.Z-alpha.N",
+  "final_commit": "",
+  "task_counts": {},
+  "finding_counts": {},
+  "build_counts": {},
+  "test_counts": {},
+  "resource_counts": {},
+  "linux_artifact_sha256": "",
+  "windows_artifact_sha256": "",
+  "windows_32r_run_id": "",
+  "external_release_review_required": true
+}

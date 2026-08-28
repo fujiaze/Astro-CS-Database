@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://astrocs.invalid/schemas/cli-event-v1.json",
+  "title": "AstroCS CLI JSONL event v1",
+  "type": "object",
+  "required": ["schema_version", "event_id", "run_id", "timestamp_utc", "sequence", "kind", "severity", "phase", "stage", "message"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "event_id": {"type": "string", "minLength": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "timestamp_utc": {"type": "string", "format": "date-time"},
+    "sequence": {"type": "integer", "minimum": 0},
+    "kind": {"enum": ["run_start", "stage_start", "progress", "backend", "resource", "artifact", "warning", "stage_end", "final"]},
+    "severity": {"enum": ["debug", "info", "warning", "error"]},
+    "phase": {"type": ["integer", "null"], "minimum": 1, "maximum": 3},
+    "stage": {"type": "string"},
+    "message": {"type": "string"}
+  },
+  "additionalProperties": true
+}
