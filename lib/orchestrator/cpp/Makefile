@@ -30,7 +30,13 @@ INCLUDES = -Iinclude \
 # -Wl,--stack,33554432: 设置 EXE 主线程栈为 32MB
 # (P13-002: nanoflann divideTree 递归在偏斜 3D 数据上深度可达数百层,
 #  DLL 中的代码使用调用线程的栈, -Wl,--stack 对 DLL 无效, 必须设置 EXE 栈)
+# BLD-003/004: 平台条件化 — Windows(MinGW) 用 -static + --stack;
+#   Linux 用 GNU ld 的 -Wl,-z,stacksize (32MB), 不支持 -static 全静态(依赖 glibc 动态解析)。
+ifeq ($(OS),Windows_NT)
 LDFLAGS = -static -Wl,--stack,33554432
+else
+LDFLAGS = -Wl,-z,stacksize=33554432
+endif
 
 SRC_DIR = src
 INCDIR = include
@@ -83,7 +89,7 @@ $(TARGET): $(SRCS) $(HEADERS)
 test_dll_loader: $(TEST_DLL_LOADER)
 
 $(TEST_DLL_LOADER): $(TEST_DIR)/test_dll_loader.cpp $(SRC_DIR)/dll_loader.cpp $(INCDIR)/dll_loader.h
-	@if not exist $(TEST_DIR) mkdir $(TEST_DIR)
+	@mkdir -p $(TEST_DIR)
 	$(CXX) $(CXXFLAGS) -o $@ $(TEST_DIR)/test_dll_loader.cpp $(SRC_DIR)/dll_loader.cpp $(INCLUDES) $(LDFLAGS) -lm
 
 # ============================================================================
@@ -92,7 +98,7 @@ $(TEST_DLL_LOADER): $(TEST_DIR)/test_dll_loader.cpp $(SRC_DIR)/dll_loader.cpp $(
 test_checkpoint: $(TEST_CHECKPOINT)
 
 $(TEST_CHECKPOINT): $(TEST_DIR)/test_checkpoint.cpp $(SRC_DIR)/checkpoint.cpp $(INCDIR)/checkpoint.h
-	@if not exist $(TEST_DIR) mkdir $(TEST_DIR)
+	@mkdir -p $(TEST_DIR)
 	$(CXX) $(CXXFLAGS) -o $@ $(TEST_DIR)/test_checkpoint.cpp $(SRC_DIR)/checkpoint.cpp $(INCLUDES) $(LDFLAGS) -lm
 
 # ============================================================================
@@ -101,7 +107,7 @@ $(TEST_CHECKPOINT): $(TEST_DIR)/test_checkpoint.cpp $(SRC_DIR)/checkpoint.cpp $(
 test_logger: $(TEST_LOGGER)
 
 $(TEST_LOGGER): $(TEST_DIR)/test_logger.cpp $(SRC_DIR)/logger.cpp $(INCDIR)/logger.h
-	@if not exist $(TEST_DIR) mkdir $(TEST_DIR)
+	@mkdir -p $(TEST_DIR)
 	$(CXX) $(CXXFLAGS) -o $@ $(TEST_DIR)/test_logger.cpp $(SRC_DIR)/logger.cpp $(INCLUDES) $(LDFLAGS) -lm
 
 # ============================================================================
@@ -125,9 +131,10 @@ $(TEST_ORCHESTRATOR_CLI): $(TEST_DIR)/test_orchestrator_cli.cpp \
                           $(INCDIR)/logger.h \
                           $(INCDIR)/cli_command.h \
                           $(INCDIR)/json_config.h
-	@if not exist $(TEST_DIR) mkdir $(TEST_DIR)
+	@mkdir -p $(TEST_DIR)
 	$(CXX) $(CXXFLAGS) -o $@ $(TEST_DIR)/test_orchestrator_cli.cpp \
 	    $(SRC_DIR)/orchestrator.cpp ../../common/healpix/healpix_core.cpp \
+	    ../../common/crypto/sha256.cpp \
 	    $(SRC_DIR)/dll_loader.cpp \
 	    $(SRC_DIR)/checkpoint.cpp $(SRC_DIR)/logger.cpp \
 	    $(SRC_DIR)/cli_command.cpp $(SRC_DIR)/json_config.cpp $(JSV_SRCS) \

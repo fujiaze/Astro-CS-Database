@@ -1429,7 +1429,7 @@ static bool build_spectrum_wl(void* gaia_dll, intptr_t client_handle,
     HMODULE gaia_h = static_cast<HMODULE>(gaia_dll);
     using get_params_fn = int (*)(GaiaClient*, int*, int*, int*);
     auto fn_get_params = reinterpret_cast<get_params_fn>(
-        reinterpret_cast<void*>(GetProcAddress(gaia_h, "gaia_client_get_spectrum_params")));
+        reinterpret_cast<void*>(DllLoader::get_proc_address(gaia_h, "gaia_client_get_spectrum_params")));
     if (!fn_get_params) {
         LOG_ERROR("orchestrator", "gaia_client_get_spectrum_params 函数未找到");
         return false;
@@ -1527,7 +1527,7 @@ bool Orchestrator::init_platesolve_env(std::string& error_msg) {
 
     // 1. 加载 gaia_client.dll (位于 lib/photometric_calib/cpp/)
     std::string gaia_dll_path = project_root_dir_ + "/lib/photometric_calib/cpp/gaia_client.dll";
-    HMODULE gaia_h = LoadLibraryExA(gaia_dll_path.c_str(), nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
+    HMODULE gaia_h = dll_loader_.load_library(gaia_dll_path);
     if (gaia_h == nullptr) {
         error_msg = "加载 gaia_client.dll 失败: " + gaia_dll_path;
         LOG_ERROR("orchestrator", "[PLATESOLVE] " + error_msg);
@@ -1538,7 +1538,7 @@ bool Orchestrator::init_platesolve_env(std::string& error_msg) {
 
     // 2. 加载 star_detector.dll (位于 lib/star_detector/)
     std::string sdet_dll_path = project_root_dir_ + "/lib/star_detector/star_detector.dll";
-    HMODULE sdet_h = LoadLibraryExA(sdet_dll_path.c_str(), nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
+    HMODULE sdet_h = dll_loader_.load_library(sdet_dll_path);
     if (sdet_h == nullptr) {
         error_msg = "加载 star_detector.dll 失败: " + sdet_dll_path;
         LOG_ERROR("orchestrator", "[PLATESOLVE] " + error_msg);
@@ -1552,7 +1552,7 @@ bool Orchestrator::init_platesolve_env(std::string& error_msg) {
     // gaia_data_dir 优先从 config 读取, 空时默认 project_root_dir_/GaiaDR3SP
     using gaia_create_ex_fn = GaiaClient* (*)(const char*, GaiaDbType);
     auto fn_gaia_create_ex = reinterpret_cast<gaia_create_ex_fn>(
-        reinterpret_cast<void*>(GetProcAddress(gaia_h, "gaia_client_create_ex")));
+        reinterpret_cast<void*>(dll_loader_.get_proc_address(gaia_h, "gaia_client_create_ex")));
     if (fn_gaia_create_ex == nullptr) {
         error_msg = "gaia_client_create_ex 函数未找到";
         LOG_ERROR("orchestrator", "[PLATESOLVE] " + error_msg);
@@ -1585,7 +1585,7 @@ bool Orchestrator::init_platesolve_env(std::string& error_msg) {
     // 4. 创建 StarDetector (使用默认参数, fitRadius=0 表示自动)
     using sdet_create_fn = StarDetectorHandle (*)(const SDetParams*);
     auto fn_sdet_create = reinterpret_cast<sdet_create_fn>(
-        reinterpret_cast<void*>(GetProcAddress(sdet_h, "sdet_create")));
+        reinterpret_cast<void*>(dll_loader_.get_proc_address(sdet_h, "sdet_create")));
     if (fn_sdet_create == nullptr) {
         error_msg = "sdet_create 函数未找到";
         LOG_ERROR("orchestrator", "[PLATESOLVE] " + error_msg);
@@ -1672,7 +1672,7 @@ void Orchestrator::cleanup_platesolve_env() {
     if (sdet_handle_ != 0 && star_detector_dll_handle_ != nullptr) {
         using sdet_destroy_fn = void (*)(StarDetectorHandle);
         auto fn_sdet_destroy = reinterpret_cast<sdet_destroy_fn>(
-            reinterpret_cast<void*>(GetProcAddress(static_cast<HMODULE>(star_detector_dll_handle_), "sdet_destroy")));
+            reinterpret_cast<void*>(dll_loader_.get_proc_address(static_cast<HMODULE>(star_detector_dll_handle_), "sdet_destroy")));
         if (fn_sdet_destroy) {
             fn_sdet_destroy(reinterpret_cast<StarDetectorHandle>(sdet_handle_));
         }
@@ -1683,7 +1683,7 @@ void Orchestrator::cleanup_platesolve_env() {
     if (gaia_client_handle_ != 0 && gaia_client_dll_handle_ != nullptr) {
         using gaia_destroy_fn = void (*)(GaiaClient*);
         auto fn_gaia_destroy = reinterpret_cast<gaia_destroy_fn>(
-            reinterpret_cast<void*>(GetProcAddress(static_cast<HMODULE>(gaia_client_dll_handle_), "gaia_client_destroy")));
+            reinterpret_cast<void*>(dll_loader_.get_proc_address(static_cast<HMODULE>(gaia_client_dll_handle_), "gaia_client_destroy")));
         if (fn_gaia_destroy) {
             fn_gaia_destroy(reinterpret_cast<GaiaClient*>(gaia_client_handle_));
         }
@@ -1692,11 +1692,11 @@ void Orchestrator::cleanup_platesolve_env() {
 
     // 4. 卸载 DLL
     if (star_detector_dll_handle_ != nullptr) {
-        FreeLibrary(static_cast<HMODULE>(star_detector_dll_handle_));
+        dll_loader_.free_library(static_cast<HMODULE>(star_detector_dll_handle_));
         star_detector_dll_handle_ = nullptr;
     }
     if (gaia_client_dll_handle_ != nullptr) {
-        FreeLibrary(static_cast<HMODULE>(gaia_client_dll_handle_));
+        dll_loader_.free_library(static_cast<HMODULE>(gaia_client_dll_handle_));
         gaia_client_dll_handle_ = nullptr;
     }
     platesolve_env_ready_ = false;
@@ -2152,15 +2152,15 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
                                double**, double**, float**, int**, float**, int**,
                                int*, const char**, int, float***);
     auto fn_sdet_ex = reinterpret_cast<sdet_ex_fn>(
-        reinterpret_cast<void*>(GetProcAddress(sdet_dll, "sdet_detect_ex")));
+        reinterpret_cast<void*>(dll_loader_.get_proc_address(sdet_dll, "sdet_detect_ex")));
     using sdet_ex_f64_fn = int (*)(StarDetectorHandle, const double*, int, int,
                                    double**, double**, float**, int**, float**, int**,
                                    int*, const char**, int, float***);
     auto fn_sdet_ex_f64 = reinterpret_cast<sdet_ex_f64_fn>(
-        reinterpret_cast<void*>(GetProcAddress(sdet_dll, "sdet_detect_ex_f64")));
+        reinterpret_cast<void*>(dll_loader_.get_proc_address(sdet_dll, "sdet_detect_ex_f64")));
     using sdet_free_fn = void (*)(double*, double*, float*, int*, float*, int*, float**, int);
     auto fn_sdet_free = reinterpret_cast<sdet_free_fn>(
-        reinterpret_cast<void*>(GetProcAddress(sdet_dll, "sdet_free_detect_ex")));
+        reinterpret_cast<void*>(dll_loader_.get_proc_address(sdet_dll, "sdet_free_detect_ex")));
     if (!fn_sdet_ex || !fn_sdet_ex_f64 || !fn_sdet_free) {
         LOG_ERROR("orchestrator", "[PSF] star_detector 函数指针获取失败");
         result.error_msg = "[PSF] star_detector 函数指针获取失败";

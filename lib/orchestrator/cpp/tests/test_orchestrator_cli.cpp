@@ -39,6 +39,10 @@
 #ifdef ERROR
 #undef ERROR
 #endif
+#else
+#include <sys/wait.h>   // WIFEXITED / WEXITSTATUS (POSIX exec 分支)
+#include <unistd.h>     // getpid (stderr 临时文件名)
+#include <cstdio>       // popen / pclose
 #endif
 
 #include "orchestrator.h"
@@ -228,6 +232,54 @@ ExecResult exec_with_stdin(const std::string& command_line,
 
     result.stdout_output = stdout_buf;
     result.stderr_output = stderr_buf;
+#else
+    // POSIX 实现 (BLD-003/TST-004): /bin/sh -c 执行, stdout/stderr 分别捕获。
+    // 与 Windows 分支语义一致: 捕获退出码 + stdout + stderr (stderr 经临时文件分离,
+    // 不能 2>&1 合并 — 测试对 stderr 有独立断言)。
+    (void)stdin_input;  // CLI 测试当前不用 stdin; 保留参数以对齐 Windows 分支签名
+    std::string cmd = command_line;
+    // /bin/sh 不搜索当前目录: 仅对第一个 token (exe 名) 加 ./ 前缀 — 与 Windows
+    // CreateProcess 的 CWD 语义对齐。不能因参数中含 '/' 而跳过 (如 "orchestrator.exe x/y.json")。
+    {
+        size_t sp = cmd.find(' ');
+        std::string exe_tok = (sp == std::string::npos) ? cmd : cmd.substr(0, sp);
+        std::string rest = (sp == std::string::npos) ? "" : cmd.substr(sp);
+        if (!exe_tok.empty() && exe_tok.find('/') == std::string::npos
+            && exe_tok.find('\\') == std::string::npos) {
+            exe_tok = "./" + exe_tok;
+        }
+        cmd = exe_tok + rest;
+    }
+    std::string err_file = "/tmp/astrocs_cli_test_stderr_" +
+                           std::to_string(::getpid()) + ".log";
+    cmd += " 2>" + err_file;
+    FILE* pipe = ::popen(cmd.c_str(), "r");
+    if (pipe == nullptr) {
+        result.stderr_output = "popen 失败: " + cmd;
+        std::remove(err_file.c_str());
+        return result;
+    }
+    char buffer[4096];
+    std::size_t n = 0;
+    while ((n = std::fread(buffer, 1, sizeof(buffer), pipe)) > 0) {
+        result.stdout_output.append(buffer, n);
+    }
+    int rc = ::pclose(pipe);
+    // pclose 返回 wait status; 正常退出时取低 8 位
+    result.exit_code = (rc == -1) ? -1
+                     : (WIFEXITED(rc) ? WEXITSTATUS(rc) : 128 + WTERMSIG(rc));
+    {
+        std::FILE* ef = std::fopen(err_file.c_str(), "r");
+        if (ef != nullptr) {
+            char eb[4096];
+            std::size_t en = 0;
+            while ((en = std::fread(eb, 1, sizeof(eb), ef)) > 0) {
+                result.stderr_output.append(eb, en);
+            }
+            std::fclose(ef);
+        }
+        std::remove(err_file.c_str());
+    }
 #endif
 
     return result;

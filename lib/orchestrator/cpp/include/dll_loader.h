@@ -92,6 +92,14 @@ public:
     // 设置线程数 (调用各模块的 set_num_threads)
     bool set_num_threads(ModuleId id, int n);
 
+    // 平台动态库加载原语 (Windows API 封装; 非 Windows 为占位 stub)。
+    // public static: 不触碰成员状态; orchestrator.cpp 的自由函数与成员函数均可调用。
+    // 供加载 5 模块集之外的扩展 DLL (gaia_client.dll / star_detector.dll 等) 复用,
+    // 避免 Windows API 直接泄漏进 Linux 构建。
+    static HMODULE load_library(const std::string& path);
+    static void* get_proc_address(HMODULE handle, const std::string& func_name);
+    static void free_library(HMODULE handle);
+
 private:
     std::map<ModuleId, ModuleInfo> modules_;
 
@@ -101,9 +109,6 @@ private:
     std::string get_module_name(ModuleId id) const;
 
     // Windows API 封装
-    HMODULE load_library(const std::string& path);
-    void* get_proc_address(HMODULE handle, const std::string& func_name);
-    void free_library(HMODULE handle);
     std::string get_last_error();
 };
 
