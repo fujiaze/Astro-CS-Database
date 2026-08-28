@@ -18,23 +18,22 @@
 | 测试目标 | 结果 | 备注 |
 |---|---|---|
 | `phase2_synthetic_gate` | **81 PASSED / 0 FAILED**（91 ran, 10 SKIPPED ≈ 33s） | SKIP 为环境相关 RealHips/Identity 用例 |
-| `phase2_execution_options` | 6 PASSED | ✓ |
-| `phase2_routing` | 4 PASSED | ✓ |
-| `phase2_ivar_wiring` | **1 FAILED** | `WireProductionStage2PerFrameIvar` 在 `ivar_wiring_test.cpp:274` |
-| `phase2_async_io_test` | 二进制未找到（`phase2_async_io_test` 命名不符） | 需核对实际 target 名 |
+| `phase2_execution_options` | **6 PASSED** | ✓ |
+| `phase2_routing` | **4 PASSED** | ✓ |
+| `phase2_ivar_wiring` | **1 PASSED** | ✓（从仓库根运行；先前 FAIL 系 CWD 误用） |
+| `phase2_async_io` | **10 PASSED** | ✓ |
 
-## 3 ivar_wiring 失败归因
+> 注：测试须从**仓库根**调用（`stage2_exe()` 用相对路径
+> `build/linux-openmp-on/astrocs-stage2` 解析 stage2；从 build 目录运行会因相对路径失效
+> 返回 rc=127）。从仓库根运行全部通过。
 
-- `ASSERT_EQ(rc,0)`（`:274`）失败，`stage2 (A,B,C) 运行失败 rc=32512`（= 127×256 ⇒ 子进程以
-  127 退出，即 **stage2 未找到/加载失败**），非逻辑断言失败。为**测试 harness 环境问题**
-  （`run_stage2` 路径/数据），非科学/代码逻辑 bug。
-- 已在干净代码树上复现（本会话仅改文档，未改 `lib/`）；属**预存环境问题**，待 TST-002 需
-  `FAIL=0` 时须修复 harness 或提供 stage2 可执行路径后复跑。
+## 3 结论
 
-## 4 结论
-
-- 构建可复现、核心 synthetic_gate 通过（81/0）；2 个轻量测试通过。
-- G5 基线记录：**BLD-001 缺根级入口**（真实缺口）；**TST-002 有 1 个环境性 FAIL**
-  （ivar_wiring/harness），需修复后重验。G5 任务暂置 NOT_STARTED（待完整门禁）。
+- **TST-002（phase2 模块）全绿**：synthetic_gate 81/0、ivar_wiring 1、execution_options 6、
+  routing 4、async_io 10，合计 **0 FAIL**（从仓库根运行）。先前报告中的 ivar_wiring FAIL
+  为**本会话调用 CWD 误用**（非代码/logic bug），已更正。
+- **BLD-001 真实缺口**：无根级可重复 Linux configure/build/test 入口；仅 phase2/acr 有
+  CMakeLists，且模块测试面广（drizzle/browser_qt/orchestrator 均有测试源码但**无统一 CMake
+  入口**）。
 - 工作区存在**非本会话**改动（`AGENTS.md` M、`evidence/` 删除、`traceability_check.json` M）——
   本会话未改、未提交，按规则不动 `AGENTS.md`。
