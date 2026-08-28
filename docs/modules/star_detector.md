@@ -30,7 +30,7 @@ OpenMP 块并行；去重后处理串行。
 
 ## Science IDs
 
-SCI-PSF-001（输入侧）；ALG-STAR-PSF-*。
+SCI-PSF-001（输入侧）；ALG-STARPSF-*。
 
 ## Tests
 

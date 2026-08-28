@@ -30,7 +30,7 @@ dynamic_psf DLL（PSF 拟合/评估）；PSF 块 [N,9] 契约。
 
 ## Science IDs
 
-SCI-PSF-001；ALG-STAR-PSF-*。
+SCI-PSF-001；ALG-STARPSF-*。
 
 ## Tests
 

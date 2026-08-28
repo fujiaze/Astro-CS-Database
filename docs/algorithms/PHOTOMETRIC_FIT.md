@@ -1,6 +1,6 @@
 # Photometric Fit Algorithms (ALG-PHOT)
 
-> 上游 SCI: SCI-PHOT-001  状态: DERIVED (T203 冻结, 2026-08-23)  模块: photometric_calib
+> ID: ALG-PHOT-001  范围: ALG-PHOT-001..002  上游 SCI: SCI-PHOT-001  状态: DERIVED (T203 冻结; V5 ALG-002 重验 2026-08-28)  模块: photometric_calib
 
 ## 1 上游 SCI 与输入输出
 
@@ -53,9 +53,14 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
 
 - O(n_ref log n_ref) 排序 + O(n_ref·iter) IRLS
 
-## 7 CPU/GPU
+## 7 CPU-only 后端策略（V5）
 
-- CPU 单线程；GPU 仅排序可加速，等价门 `location ≤1e-9 dex`。
+- 仅 CPU：IRLS 迭代为全样本顺序归约(样本序固定)，天然确定性；规模小(星数级)无并行收益，worker pool 可行但非必需；**禁止硬编码线程数**。
+
+## 5c SIMD 安全与取消点
+
+- `r_i=log10(F_i/F_syn,i)` 逐星独立(SIMD 安全: 数组连续无别名)；IRLS 加权均值 `Σw·r/Σw` 为**固定样本序归约**(FP64, 禁重结合)——顺序变化仅影响 <1ulp, 仍冻结顺序。
+- 取消点: IRLS 迭代间检查; 取消时返回未收敛状态不写 location/scale。
 
 ## 8 参考实现/Oracle
 

@@ -1,6 +1,6 @@
 # PSF Science (SCI-PSF)
 
-> ID: SCI-PSF-001  状态: FROZEN (T101 冻结, 2026-08-23)  上游: SCI-SCOPE-001  下游 ALG: ALG-STAR-PSF-001..  模块: dynamic_psf
+> ID: SCI-PSF-001  状态: FROZEN (T101 冻结, 2026-08-23)  上游: SCI-SCOPE-001  下游 ALG: ALG-STARPSF-001..  模块: dynamic_psf
 
 ## 1 目的与非目标
 
@@ -102,8 +102,8 @@ flux = 2πA·sxsy/3   (整平面延伸假设)
 
 ## 12 关联 ALG ID
 
-- `ALG-STAR-PSF-001` Moffat4 拟合（LM 7 参数）
-- `ALG-STAR-PSF-002` 几何常数（FWHM/通量）与 θ 消歧
+- `ALG-STARPSF-001` Moffat4 拟合（LM 7 参数）
+- `ALG-STARPSF-002` 几何常数（FWHM/通量）与 θ 消歧
 
 ## 13 追溯与测试
 
