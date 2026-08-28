@@ -22,6 +22,15 @@
 #include "sha256.h"
 
 #include "hardware_inspect.h"
+#include "profile_gen.h"
+
+#include "backend_loader.h"
+
+extern "C" {
+int astrocs_host_services_default_v1(astrocs_host_services_v1* out, void** state_out);
+void astrocs_host_services_destroy_state_v1(void* state);
+uint64_t astrocs_cpu_detect_features_v1(void);
+}
 
 #include "cancel_token.h"
 #include "exit_codes.h"
@@ -589,6 +598,87 @@ int dispatch(const Parsed& p) {
         std::fputs(kHelp, stdout);
         return astrocs::OK;
     }
+    if (joined == "benchmark cpu") {
+        const bool quick = p.flags.count("--quick") > 0;
+        const bool full = p.flags.count("--full") > 0;
+        if (quick == full) parse_fail("benchmark cpu requires exactly one of --quick|--full");
+        const std::string out_path = p.values.count("--output") ? p.values.at("--output")
+                                                                : "cpu_profile.json";
+        const std::string mode = quick ? "quick" : "full";
+        const std::string commit = ASTROCS_COMMIT_SHA;
+        const std::string json = astrocs::backend_host::generate_profile_json(
+            mode, ASTROCS_VERSION_STRING, commit, ASTROCS_COMMIT_SHA);
+        {
+            std::ofstream f(std::filesystem::u8path(out_path), std::ios::binary | std::ios::trunc);
+            if (!f) {
+                std::fprintf(stderr, "astrocs: cannot write profile '%s'\n", out_path.c_str());
+                return astrocs::IO;
+            }
+            f << json;
+        }
+        // 机器可读结果(stdout 简洁结果): 输出路径+verdict
+        try {
+            auto doc = nlohmann::json::parse(json);
+            std::printf("%s %s\n", out_path.c_str(),
+                        doc.value("verdict", "FAIL").c_str());
+        } catch (...) {
+            std::printf("%s\n", out_path.c_str());
+        }
+        ev.emit("artifact", "info", "benchmark", "cpu profile written",
+                {{"role", "cpu_profile"}, {"path", out_path}});
+        return astrocs::OK;
+    }
+    if (joined == "doctor") {
+        if (!p.flags.count("--json")) parse_fail("doctor requires --json");
+        const std::string hw = astrocs::backend_host::hardware_inspect_json_v1(ASTROCS_VERSION_STRING);
+        auto hwd = nlohmann::json::parse(hw);
+        astrocs_host_services_v1 host;
+        void* hstate = nullptr;
+        astrocs_host_services_default_v1(&host, &hstate);
+        astrocs_backend_api_v1 api{};
+        std::memset(&api, 0, sizeof(api));
+        const int grc = astrocs_backend_get_api_v1(ACS_ABI_VERSION_V1,
+                                                   sizeof(astrocs_host_services_v1), &host, &api);
+        nlohmann::json checks = nlohmann::json::array();
+        checks.push_back(nlohmann::json{
+            {"name", "baseline_selftest"},
+            {"status", (grc == ACS_OK && api.self_test &&
+                        api.self_test(&host) == ACS_OK) ? "pass" : "fail"}});
+        checks.push_back(nlohmann::json{
+            {"name", "hardware_sanity"},
+            {"status", (hwd.value("available_logical_cpus", 0u) >= 1 &&
+                        hwd.value("ram_bytes", 0ull) > 0) ? "pass" : "fail"}});
+        // shipped backend 核查(05 §7): 安全检测但不执行不支持指令——预检 manifest 内条目
+        std::ifstream mf("backends.manifest.json");
+        if (mf) {
+            std::stringstream mbuf; mbuf << mf.rdbuf();
+            std::vector<astrocs::backend_host::ManifestEntry> entries;
+            std::string merr;
+            astrocs::backend_host::parse_backends_manifest(mbuf.str(), &entries, &merr);
+            for (const auto& e : entries) {
+                std::string why;
+                auto pr = astrocs::backend_host::preflight_entry(
+                    ".", e, astrocs_cpu_detect_features_v1(), &why);
+                nlohmann::json ck;
+                ck["name"] = "backend_preflight:" + e.backend_id;
+                ck["status"] = pr.decision == astrocs::backend_host::LoadResult::OK
+                                   ? "pass" : "skipped";
+                ck["detail"] = why;
+                checks.push_back(ck);
+            }
+        } else {
+            checks.push_back(nlohmann::json{{"name", "backends_manifest"},
+                                            {"status", "pass"},
+                                            {"detail", "no shipped DSO (builtin baseline)"}});
+        }
+        bool all = true;
+        for (const auto& c : checks)
+            if (c.value("status", "") == "fail") all = false;
+        nlohmann::json doc = {{"schema_version", 1}, {"kind", "astrocs_doctor"},
+                              {"checks", checks}, {"verdict", all ? "PASS" : "FAIL"}};
+        std::printf("%s\n", doc.dump(2).c_str());
+        return all ? astrocs::OK : astrocs::SCIENCE;
+    }
     if (joined == "hardware inspect") {
         if (!p.flags.count("--json")) parse_fail("hardware inspect requires --json");
         std::fputs(astrocs::backend_host::hardware_inspect_json_v1(ASTROCS_VERSION_STRING).c_str(), stdout);
@@ -602,10 +692,6 @@ int dispatch(const Parsed& p) {
     if (joined == "test synthetic") {
         const std::string g = need_value(p, "--group");
         if (!kGroups.count(g)) parse_fail("invalid --group '" + g + "'");
-    }
-    if (joined == "benchmark cpu") {
-        const bool q = p.flags.count("--quick") > 0, full = p.flags.count("--full") > 0;
-        if (q == full) parse_fail("benchmark cpu requires exactly one of --quick|--full");
     }
     return cmd_stub(p, joined, ev);
 }
