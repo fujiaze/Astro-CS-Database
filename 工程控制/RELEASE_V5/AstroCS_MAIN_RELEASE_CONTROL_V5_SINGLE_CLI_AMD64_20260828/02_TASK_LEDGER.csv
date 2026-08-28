@@ -29,7 +29,7 @@ API-002,API,API-001|ARCH-002,定义 CLI 命令 JSON JSONL exit code schema,yes,y
 API-003,API,API-001|ALG-001|ALG-002|ALG-003,定义 Phase1 内部 API 全函数合同,yes,yes,Linux,PASS
 API-004,API,API-001|ALG-004|ALG-005|ALG-006,定义 Phase2 内部 API 全函数合同,yes,yes,Linux,PASS
 API-005,API,API-001|ALG-007|ARCH-005,定义 Phase3 HiPS FITS API 全函数合同,yes,yes,Linux,PASS
-CLI-001,CODE,API-002,建立 Windows Linux 单一 astrocs CLI 骨架,yes,yes,Linux,NOT_STARTED
+CLI-001,CODE,API-002,建立 Windows Linux 单一 astrocs CLI 骨架,yes,yes,Linux,PASS
 CLI-002,CODE,CLI-001,实现 JSON JSONL exit cancel crash 协议与 schema tests,yes,yes,Linux,NOT_STARTED
 CLI-003,CODE,CLI-002|VER-001,实现 config version run manifest 与验证命令,yes,yes,Linux,NOT_STARTED
 CLI-004,CODE,CLI-003|API-003,将 Phase1 作为进程内 API 接入 CLI,yes,yes,Linux,NOT_STARTED
