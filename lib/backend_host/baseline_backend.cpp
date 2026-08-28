@@ -3,9 +3,16 @@
 // kernel fn 科学实现属 ABI-003(当前返回 ACS_ERR_UNSUPPORTED, 注册结构先行)。
 // 编译合同: 本 TU 可 -fno-exceptions 编译; 边界函数 catch-all 证明异常不跨边界。
 #include "astrocs/common_abi_v1.h"
+#include "baseline_kernels.h"
 
+#include <atomic>
+#include <cmath>
+#include <functional>
 #include <cstdio>
 #include <cstring>
+#include <thread>
+#include <vector>
+#include <algorithm>
 
 #if !defined(ASTROCS_NO_EXCEPTIONS)
 #include <stdexcept>
@@ -13,33 +20,21 @@
 
 namespace {
 
-/* kernel 表(05 §5 粒度; science_contract_id 锚定 ALG 合同)
- * 实现状态: ABI-003 落地前 fn 恒 ACS_ERR_UNSUPPORTED(显式拒绝, 不静默)。 */
-acs_status k_stub(const astrocs_host_services_v1* host,
-                  const void* params, uint32_t params_bytes,
-                  const void* in, void* out) {
-    (void)params; (void)params_bytes; (void)in; (void)out;
-    if (host == nullptr || host->struct_size != sizeof(astrocs_host_services_v1) ||
-        host->abi_version != ACS_ABI_VERSION_V1)
-        return ACS_ERR_ABI_MISMATCH;
-    if (host->cancel.is_cancelled != nullptr && host->cancel.is_cancelled(host->cancel.user_data))
-        return ACS_ERR_CANCELLED;
-    return ACS_ERR_UNSUPPORTED;
-}
+#include "baseline_kernels_impl.inc"
 
 const astrocs_kernel_entry_v1 kKernels[] = {
-    {"ALG-001", "calibration-pixel-transform", "1.0.0", ACS_PRECISION_F32, ACS_DET_BITWISE, &k_stub},
-    {"ALG-004", "noise-snr-reductions",        "1.0.0", ACS_PRECISION_F64, ACS_DET_BITWISE, &k_stub},
-    {"ALG-002", "wcs-psf-batch",               "1.0.0", ACS_PRECISION_F64, ACS_DET_BITWISE, &k_stub},
-    {"ALG-005", "drizzle-overlap",             "1.0.0", ACS_PRECISION_F32, ACS_DET_FIXED_ORDER, &k_stub},
-    {"ALG-005", "drizzle-accumulate",          "1.0.0", ACS_PRECISION_F32, ACS_DET_FIXED_ORDER, &k_stub},
-    {"ALG-005", "drizzle-normalize",           "1.0.0", ACS_PRECISION_F32, ACS_DET_FIXED_ORDER, &k_stub},
-    {"ALG-006", "upm-spmv",                    "1.0.0", ACS_PRECISION_F64, ACS_DET_BITWISE, &k_stub},
-    {"ALG-006", "upm-residual",                "1.0.0", ACS_PRECISION_F64, ACS_DET_BITWISE, &k_stub},
-    {"ALG-006", "upm-weight-update",           "1.0.0", ACS_PRECISION_F64, ACS_DET_BITWISE, &k_stub},
-    {"ALG-008", "rejection-statistics",        "1.0.0", ACS_PRECISION_F32, ACS_DET_FIXED_ORDER, &k_stub},
-    {"ALG-009", "integration-accumulate",      "1.0.0", ACS_PRECISION_F32, ACS_DET_FIXED_ORDER, &k_stub},
-    {"ALG-P3-002", "hips-bulk-transform",      "1.0.0", ACS_PRECISION_F64, ACS_DET_BITWISE, &k_stub},
+    {"ALG-001", "calibration-pixel-transform", "1.0.0", ACS_PRECISION_F32, ACS_DET_BITWISE, &kernel_dispatch},
+    {"ALG-004", "noise-snr-reductions",        "1.0.0", ACS_PRECISION_F64, ACS_DET_BITWISE, &kernel_dispatch},
+    {"ALG-002", "wcs-psf-batch",               "1.0.0", ACS_PRECISION_F64, ACS_DET_BITWISE, &kernel_dispatch},
+    {"ALG-005", "drizzle-overlap",             "1.0.0", ACS_PRECISION_F32, ACS_DET_FIXED_ORDER, &kernel_dispatch},
+    {"ALG-005", "drizzle-accumulate",          "1.0.0", ACS_PRECISION_F32, ACS_DET_FIXED_ORDER, &kernel_dispatch},
+    {"ALG-005", "drizzle-normalize",           "1.0.0", ACS_PRECISION_F32, ACS_DET_FIXED_ORDER, &kernel_dispatch},
+    {"ALG-006", "upm-spmv",                    "1.0.0", ACS_PRECISION_F64, ACS_DET_BITWISE, &kernel_dispatch},
+    {"ALG-006", "upm-residual",                "1.0.0", ACS_PRECISION_F64, ACS_DET_BITWISE, &kernel_dispatch},
+    {"ALG-006", "upm-weight-update",           "1.0.0", ACS_PRECISION_F64, ACS_DET_BITWISE, &kernel_dispatch},
+    {"ALG-008", "rejection-statistics",        "1.0.0", ACS_PRECISION_F32, ACS_DET_FIXED_ORDER, &kernel_dispatch},
+    {"ALG-009", "integration-accumulate",      "1.0.0", ACS_PRECISION_F32, ACS_DET_FIXED_ORDER, &kernel_dispatch},
+    {"ALG-P3-002", "hips-bulk-transform",      "1.0.0", ACS_PRECISION_F64, ACS_DET_BITWISE, &kernel_dispatch},
 };
 
 /* self_test: handshake→allocator 往返(计数可验证)→cancel 读→budget 租借/归还→logger。
@@ -114,6 +109,9 @@ astrocs_backend_api_v1* backend_api() {
 
 extern "C" {
 
+/* 最近一次 kernel 调用的实际 worker 数(多线程观测辅助; 非科学接口) */
+uint32_t astrocs_baseline_last_workers_used(void);
+
 int astrocs_backend_get_api_v1(uint32_t host_abi_version,
                                uint32_t host_struct_size,
                                const astrocs_host_services_v1* host,
@@ -127,6 +125,10 @@ int astrocs_backend_get_api_v1(uint32_t host_abi_version,
         return ACS_ERR_ABI_MISMATCH;
     std::memcpy(out_api, backend_api(), sizeof(astrocs_backend_api_v1));
     return ACS_OK;
+}
+
+uint32_t astrocs_baseline_last_workers_used(void) {
+    return g_last_workers_used.load(std::memory_order_relaxed);
 }
 
 /* ABI 边界验证(05 §4 "异常不跨边界"的机制证明):
