@@ -32,7 +32,7 @@ API-005,API,API-001|ALG-007|ARCH-005,定义 Phase3 HiPS FITS API 全函数合同
 CLI-001,CODE,API-002,建立 Windows Linux 单一 astrocs CLI 骨架,yes,yes,Linux,PASS
 CLI-002,CODE,CLI-001,实现 JSON JSONL exit cancel crash 协议与 schema tests,yes,yes,Linux,PASS
 CLI-003,CODE,CLI-002|VER-001,实现 config version run manifest 与验证命令,yes,yes,Linux,PASS
-CLI-004,CODE,CLI-003|API-003,将 Phase1 作为进程内 API 接入 CLI,yes,yes,Linux,NOT_STARTED
+CLI-004,CODE,CLI-003|API-003,将 Phase1 作为进程内 API 接入 CLI,yes,yes,Linux,PASS
 CLI-005,CODE,CLI-003|API-004,将 Phase2 作为进程内 API 接入 CLI,yes,yes,Linux,NOT_STARTED
 P3-001,CODE,API-005,实现 HiPS properties tile order frame 与安全读取,yes,yes,Linux,NOT_STARTED
 P3-002,CODE,P3-001,实现输出 FITS WCS 和 pixel world 变换,yes,yes,Linux,NOT_STARTED

@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
+#include <sched.h>
 #include <filesystem>
 #include <fstream>
 #include <map>
@@ -23,14 +24,23 @@
 
 #include "hardware_inspect.h"
 #include "profile_gen.h"
+#include "p1_session.h"
+
+namespace astrocs {
+nlohmann::json g_phase1_session;
+inline std::string p1_last_error(acs_handle h) { return phase1::last_error(h); }
+}
 
 #include "backend_loader.h"
 
 extern "C" {
 int astrocs_host_services_default_v1(astrocs_host_services_v1* out, void** state_out);
 void astrocs_host_services_destroy_state_v1(void* state);
+void astrocs_host_state_set_budget_v1(void* state, uint32_t cpus, uint32_t max_workers,
+                                      astrocs_host_services_v1* out);
 uint64_t astrocs_cpu_detect_features_v1(void);
 }
+
 
 #include "cancel_token.h"
 #include "exit_codes.h"
@@ -404,7 +414,8 @@ int cmd_stub(const Parsed& p, const std::string& phase, astrocs::JsonlEmitter& e
 // run manifest v1 原子写(tmp+rename; ARCH-002 §5 单元): stub/not-wired/cancelled 恒 incomplete
 int write_run_manifest(const std::string& out_dir, astrocs::JsonlEmitter& ev, const std::string& status,
                        const std::string& summary, const std::string& config_path,
-                       const std::string& config_sha, const std::vector<int>& phases) {
+                       const std::string& config_sha, const std::vector<int>& phases,
+                       const nlohmann::json& artifacts = nlohmann::json::array()) {
     nlohmann::json m = {
         {"schema_version", "1"},
         {"kind", "astrocs_run_manifest"},
@@ -423,7 +434,7 @@ int write_run_manifest(const std::string& out_dir, astrocs::JsonlEmitter& ev, co
         {"cpu_profile_path", nullptr},
         {"cpu_profile_sha256", nullptr},
         {"phases", phases},
-        {"artifacts", nlohmann::json::array()},
+        {"artifacts", artifacts},
         {"status", status},
         {"started_utc", astrocs::iso8601_utc_now()},
         {"finished_utc", astrocs::iso8601_utc_now()},
@@ -505,6 +516,140 @@ int cmd_run_pipeline(const Parsed& p, astrocs::JsonlEmitter& ev) {
     std::fprintf(stderr, "astrocs: '%s' is declared by the CLI contract but not wired in this build "
                          "(see docs/api/CLI_PROTOCOL_V1.md)\n", p.join().c_str());
     return astrocs::ARGS;
+}
+
+// phase1 run: CLI-004 — 进程内调用 p1_session(无 shell-out); cancel/budget/monitor 注入
+static int cli_cancel_probe(void*) { return astrocs::is_cancelled() ? 1 : 0; }
+static void cli_session_log(void*, int level, const char* component, const char* msg) {
+    static const char* kLv[] = {"DEBUG", "INFO", "WARN", "ERROR"};
+    std::fprintf(stderr, "[astrocs:%s][%s] %s\n",
+                 kLv[level & 3], component ? component : "phase1", msg ? msg : "");
+}
+
+int cmd_phase1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
+    const std::string cfg = need_value(p, "--config");
+    std::ifstream f(std::filesystem::u8path(cfg), std::ios::binary);
+    if (!f) {
+        std::fprintf(stderr, "astrocs: config not found '%s'\n", cfg.c_str());
+        return astrocs::INPUT;
+    }
+    std::stringstream buf; buf << f.rdbuf();
+    const std::string cfg_text = buf.str();
+    bool ok = false;
+    const std::string cfg_sha = file_sha256(cfg, &ok);
+    if (!ok) return astrocs::INPUT;
+
+    // host services: cancel 桥接 CLI 信号; budget=有效 affinity(禁硬编码); monitor=logger→事件
+    astrocs_host_services_v1 host;
+    void* hstate = nullptr;
+    astrocs_host_services_default_v1(&host, &hstate);
+    host.cancel.is_cancelled = &cli_cancel_probe;
+    host.logger.log = &cli_session_log;
+    {
+        cpu_set_t set; CPU_ZERO(&set);
+        sched_getaffinity(0, sizeof(set), &set);
+        uint32_t n = 0;
+        for (int i = 0; i < CPU_SETSIZE; ++i)
+            if (CPU_ISSET(i, &set)) ++n;
+        if (n == 0) n = 1;
+        astrocs_host_state_set_budget_v1(hstate, n, n, &host);
+    }
+
+    acs_handle sess = nullptr;
+    acs_status rc = p1_session_create(&host, &sess);
+    if (rc != ACS_OK) return astrocs::INTERNAL;
+    const acs_span_u8 cfg_span{reinterpret_cast<uint8_t*>(const_cast<char*>(cfg_text.data())),
+                               static_cast<uint64_t>(cfg_text.size())};
+    rc = p1_session_validate(sess, cfg_span);
+    if (rc != ACS_OK) {
+        const std::string verr = astrocs::p1_last_error(sess);   // 先取, 后 destroy
+        p1_session_destroy(sess);
+        astrocs_host_services_destroy_state_v1(hstate);
+        std::fprintf(stderr, "astrocs: config invalid: %s\n", sanitize(verr).c_str());
+        // 04 §3: JSONL 模式下错误也须以 final 事件收尾(stdout 纯 JSON)
+        ev.emit_final(astrocs::ARGS, "config_invalid", nullptr, verr);
+        return astrocs::ARGS;                       // 04: 配置错 → 2
+    }
+    ev.stage("phase1_session", true);
+    // 测试钩子(非用户接口): 阶段间等待, 供取消/无子进程证明(与 run/stub 同语义)
+    if (const char* sleep_ms = std::getenv("ASTROCS_TEST_SLEEP_MS")) {
+        const long ms = std::strtol(sleep_ms, nullptr, 10);
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(ms);
+        while (std::chrono::steady_clock::now() < deadline) {
+            if (astrocs::is_cancelled()) {
+                ev.stage("phase1_session", false);
+                acs_span_u8 cm{};
+                if (p1_session_inspect(sess, &cm) == ACS_OK)
+                    host.allocator.free(host.allocator.user_data, cm.data);
+                p1_session_destroy(sess);
+                const int wrc = write_run_manifest(".", ev, "incomplete", "cancelled by user",
+                                                   cfg, cfg_sha, {1});
+                astrocs_host_services_destroy_state_v1(hstate);
+                if (wrc != astrocs::OK) return wrc;
+                ev.emit_final(astrocs::CANCELLED, "cancelled", nullptr, "cancelled by user");
+                std::fprintf(stderr, "astrocs: cancelled\n");
+                return astrocs::CANCELLED;             // 04: 取消 → 9
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        }
+    }
+    rc = p1_session_run(sess, cfg_span, 0);
+    ev.stage("phase1_session", false);
+    acs_span_u8 man{};
+    if (p1_session_inspect(sess, &man) == ACS_OK) {
+        try { astrocs::g_phase1_session = nlohmann::json::parse(std::string(
+                  reinterpret_cast<const char*>(man.data), static_cast<size_t>(man.count))); }
+        catch (...) {}
+        host.allocator.free(host.allocator.user_data, man.data);
+    }
+    nlohmann::json artifacts = nlohmann::json::array();
+    for (const auto& a : astrocs::g_phase1_session.value("artifacts", nlohmann::json::array())) {
+        const std::string ap = a.get<std::string>();
+        bool ok2 = false;
+        const std::string sha = file_sha256(ap, &ok2);
+        std::error_code ec;
+        const auto size = std::filesystem::file_size(std::filesystem::u8path(ap), ec);
+        artifacts.push_back({{"path", ap}, {"sha256", ok2 ? sha : ""},
+                             {"size_bytes", ec ? 0ULL : static_cast<unsigned long long>(size)}});
+    }
+    const std::string out_dir = [&] {
+        try { return nlohmann::json::parse(cfg_text).value("output_dir", std::string(".")); }
+        catch (...) { return std::string("."); }
+    }();
+    const std::string sess_err = astrocs::p1_last_error(sess);   // 先取, 后 destroy
+    p1_session_destroy(sess);
+
+    if (rc == ACS_ERR_CANCELLED) {
+        const int wrc = write_run_manifest(out_dir, ev, "incomplete", "cancelled by user",
+                                           cfg, cfg_sha, {1}, artifacts);
+        astrocs_host_services_destroy_state_v1(hstate);
+        if (wrc != astrocs::OK) return wrc;
+        ev.emit_final(astrocs::CANCELLED, "cancelled", nullptr, "cancelled by user");
+        std::fprintf(stderr, "astrocs: cancelled\n");
+        return astrocs::CANCELLED;                   // 04: 取消 → 9, manifest=incomplete
+    }
+    if (rc != ACS_OK) {
+        const std::string why = sess_err;
+        const bool input_err = astrocs::g_phase1_session.value("error_kind", std::string()) == "input" ||
+                               rc == ACS_ERR_PARAM;
+        astrocs_host_services_destroy_state_v1(hstate);
+        const int wrc = write_run_manifest(out_dir, ev, "incomplete", "phase1 failed: " + why,
+                                           cfg, cfg_sha, {1}, artifacts);
+        if (wrc != astrocs::OK) return wrc;
+        ev.emit_final(input_err ? astrocs::INPUT : (rc == ACS_ERR_IO ? astrocs::IO : astrocs::INTERNAL),
+                      "phase1_failed", nullptr, why);
+        std::fprintf(stderr, "astrocs: phase1 failed: %s\n", sanitize(why).c_str());
+        return input_err ? astrocs::INPUT
+                         : (rc == ACS_ERR_IO ? astrocs::IO : astrocs::INTERNAL);
+    }
+    const int wrc = write_run_manifest(out_dir, ev, "complete", "phase1 ok", cfg, cfg_sha, {1},
+                                       artifacts);
+    astrocs_host_services_destroy_state_v1(hstate);
+    if (wrc != astrocs::OK) return wrc;
+    ev.emit("resource", "info", "phase1", "frames processed",
+            {{"frames", astrocs::g_phase1_session.value("frames", 0)}});
+    ev.emit_final(astrocs::OK, "ok", nullptr, "phase1 complete");
+    return astrocs::OK;
 }
 
 // verify: 04 §3 — manifest→status→version→输入 hash→逐 artifact(存在→sha→size)
@@ -687,6 +832,7 @@ int dispatch(const Parsed& p) {
     if (joined == "config init")           return cmd_config_init(p, ev);
     if (joined == "config validate")       return cmd_config_validate(p, ev);
     if (joined == "config show-effective") return cmd_show_effective(p, ev);
+    if (joined == "phase1 run")            return cmd_phase1_run(p, ev);
     if (joined == "verify")                return cmd_verify(p, ev);
     if (joined == "run")                   return cmd_run_pipeline(p, ev);
     if (joined == "test synthetic") {
