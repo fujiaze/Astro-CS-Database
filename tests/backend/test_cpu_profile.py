@@ -20,6 +20,7 @@ def common_srcs():
             os.path.join(HOST, "cpu_features.cpp"),
             os.path.join(HOST, "hardware_inspect.cpp"),
             os.path.join(HOST, "backend_loader.cpp"),
+            os.path.join(HOST, "profile_gen.cpp"),
             os.path.join(REPO, "lib", "common", "crypto", "sha256.cpp"),
             f"-I{os.path.join(REPO, 'lib', 'common', 'crypto')}",
             f"-I{os.path.join(REPO, 'third_party')}", "-ldl"]
