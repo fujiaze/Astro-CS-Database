@@ -17,7 +17,7 @@ SCI-002,G3,SCI-001,noise snr variance ivar definition,yes,yes,CP3,PASS
 SCI-003,G3,SCI-002,drizzle flux surface-brightness variance definition,yes,yes,CP3,PASS
 SCI-004,G3,SCI-003,UPM model gauge weight robust-loss definition,yes,yes,CP3,PASS
 SCI-005,G3,SCI-004,rejection integration definition,yes,yes,CP3,PASS
-ALG-001,G3,SCI-005,noise and snr derivation,yes,yes,CP3,NOT_STARTED
+ALG-001,G3,SCI-005,noise and snr derivation,yes,yes,CP3,PASS
 ALG-002,G3,ALG-001,drizzle derivation and complexity,yes,yes,CP3,NOT_STARTED
 ALG-003,G3,ALG-002,UPM derivation convergence and complexity,yes,yes,CP3,NOT_STARTED
 ALG-004,G3,ALG-003,rejection integration derivation,yes,yes,CP3,NOT_STARTED
