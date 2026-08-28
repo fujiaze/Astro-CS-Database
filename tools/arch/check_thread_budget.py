@@ -14,6 +14,7 @@ REGISTERED = {
     "aio_pipeline_engine.cpp": "V5 迁移整改点: n_threads 改 host budget 注入(ABI-001 落地时收编)",
     "ac_api.cpp": "预算注入旧形态: n 来自 orchestrator set_num_threads(ARCH-003 host callback 取代)",
     "acr/examples": "ACR dormant 非生产路径(V5 不接入)",
+    "baseline_backend.cpp": "ABI-003: per-call worker std::thread 由 host budget 租借驱动(ARCH-004 §1; 无持久池)",
 }
 PATTERNS = {
     "std::thread": re.compile(r"std::thread\s*\(|std::thread\s+\w+"),
