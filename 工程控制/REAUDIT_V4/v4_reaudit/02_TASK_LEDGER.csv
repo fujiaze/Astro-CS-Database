@@ -1,9 +1,9 @@
 task_id,gate,depends_on,scope,required_commit,required_push,checkpoint,status
-C0-001,C0,,V4 control package authoring and self-validation,yes,yes,C0,NOT_STARTED
-C0-002,C0,C0-001,repo identity and origin/main freeze,yes,yes,C0,NOT_STARTED
-C0-003,C0,C0-002,toolchain and host inventory,yes,yes,C0,NOT_STARTED
-C0-004,C0,C0-002,V3 evidence carry-over registration,yes,yes,C0,NOT_STARTED
-C0-005,C0,C0-001,baseline ledger initialization check,yes,yes,C0,NOT_STARTED
+C0-001,C0,,V4 control package authoring and self-validation,yes,yes,C0,PASS
+C0-002,C0,C0-001,repo identity and origin/main freeze,yes,yes,C0,PASS
+C0-003,C0,C0-002,toolchain and host inventory,yes,yes,C0,PASS
+C0-004,C0,C0-002,V3 evidence carry-over registration,yes,yes,C0,PASS
+C0-005,C0,C0-001,baseline ledger initialization check,yes,yes,C0,PASS
 C1-001,C1,C0-005,machine checker: build_graph + config_contracts,yes,yes,C1,NOT_STARTED
 C1-002,C1,C0-005,machine checker: api_contracts + traceability,yes,yes,C1,NOT_STARTED
 C1-003,C1,C0-005,machine checker: doc_symbols + comments,yes,yes,C1,NOT_STARTED
