@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <fstream>
 
 #include "sha256.h"
 
@@ -93,6 +94,113 @@ std::string select_winner(const std::vector<BenchResult>& results) {
         if (!best || r.median_ns < best->median_ns) best = &r;
     }
     return best ? best->backend_id : std::string();
+}
+
+/* ── 候选生成与内存基线(06 §3) ── */
+
+std::vector<uint32_t> worker_candidates(uint32_t available_cpus) {
+    std::vector<uint32_t> c = {1u, (available_cpus + 1) / 2u, available_cpus};
+    std::sort(c.begin(), c.end());
+    c.erase(std::unique(c.begin(), c.end()), c.end());
+    return c;
+}
+
+std::vector<uint64_t> block_candidates(uint64_t l2_bytes, uint64_t elt_size) {
+    const uint64_t base = std::min<uint64_t>(
+        std::max<uint64_t>(l2_bytes / (elt_size * 8), 1024u), 1ull << 20);
+    std::vector<uint64_t> c;
+    for (uint64_t b = base / 16; b <= base * 4; b *= 4) c.push_back(std::max<uint64_t>(b, 1));
+    return c;
+}
+
+uint64_t current_rss_bytes() {
+#if defined(_WIN32)
+    return 0;
+#else
+    std::ifstream f("/proc/self/status");
+    std::string line;
+    while (std::getline(f, line))
+        if (line.rfind("VmRSS:", 0) == 0) {
+            long kb = 0;
+            if (std::sscanf(line.c_str(), "VmRSS: %ld kB", &kb) == 1)
+                return static_cast<uint64_t>(kb) * 1024ull;
+        }
+    return 0;
+#endif
+}
+
+MemoryReport bench_memory(uint64_t n, int reps) {
+    MemoryReport rep;
+    using Clock = std::chrono::steady_clock;
+    auto gbs = [](uint64_t bytes, double ns) {
+        return ns > 0 ? static_cast<double>(bytes) / (ns / 1e9) / 1e9 : 0.0;
+    };
+    auto med_ns = [](std::vector<double>& v) {
+        std::sort(v.begin(), v.end());
+        return v[v.size() / 2];
+    };
+    const uint64_t rss0 = current_rss_bytes();
+
+    std::vector<float> a(n), b(n), c(n);
+    std::vector<double> a64(n), b64(n), c64(n);
+    for (uint64_t i = 0; i < n; ++i) {
+        a[i] = static_cast<float>(i % 1024);
+        b[i] = static_cast<float>((i * 7) % 1024);
+        c[i] = 1.5f;
+        a64[i] = a[i];
+        b64[i] = b[i];
+        c64[i] = 1.5;
+    }
+
+    auto time_read = [&]() {                       // read: Σa
+        std::vector<double> t;
+        double acc = 0;
+        for (int r = 0; r < reps; ++r) {
+            const auto t0 = Clock::now();
+            for (uint64_t i = 0; i < n; ++i) acc += a[i];
+            const auto t1 = Clock::now();
+            t.push_back(std::chrono::duration<double, std::nano>(t1 - t0).count());
+        }
+        return med_ns(t) + (acc == 1234.5678 ? 1.0 : 0.0);   // 防 DCE(值恒真路径不触发)
+    };
+    auto time_write = [&](std::vector<float>& dst) {          // write: 填充
+        std::vector<double> t;
+        for (int r = 0; r < reps; ++r) {
+            const auto t0 = Clock::now();
+            for (uint64_t i = 0; i < n; ++i) dst[i] = 1.25f;
+            const auto t1 = Clock::now();
+            t.push_back(std::chrono::duration<double, std::nano>(t1 - t0).count());
+        }
+        return med_ns(t);
+    };
+    auto time_copy = [&](std::vector<float>& dst, const std::vector<float>& src) {  // copy
+        std::vector<double> t;
+        for (int r = 0; r < reps; ++r) {
+            const auto t0 = Clock::now();
+            for (uint64_t i = 0; i < n; ++i) dst[i] = src[i];
+            const auto t1 = Clock::now();
+            t.push_back(std::chrono::duration<double, std::nano>(t1 - t0).count());
+        }
+        return med_ns(t);
+    };
+    auto time_triad = [&](auto& A, const auto& B, const auto& C, double q, uint64_t bytes_moved) {
+        std::vector<double> t;
+        for (int r = 0; r < reps; ++r) {
+            const auto t0 = Clock::now();
+            for (uint64_t i = 0; i < n; ++i) A[i] = B[i] + q * C[i];
+            const auto t1 = Clock::now();
+            t.push_back(std::chrono::duration<double, std::nano>(t1 - t0).count());
+        }
+        return gbs(bytes_moved, med_ns(t));
+    };
+
+    rep.read_gbs = gbs(n * 4, time_read());
+    rep.write_gbs = gbs(n * 4, time_write(c));
+    rep.copy_gbs = gbs(n * 4 * 2, time_copy(b, a));
+    rep.triad32_gbs = time_triad(a, b, c, 3.0, n * 4 * 3);
+    rep.triad64_gbs = time_triad(a64, b64, c64, 3.0, n * 8 * 3);
+    rep.rss_delta_bytes = current_rss_bytes() > rss0 ? current_rss_bytes() - rss0 : 0;
+    return rep;
 }
 
 }  // namespace astrocs::backend_host
