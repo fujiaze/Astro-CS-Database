@@ -49,7 +49,7 @@ ISA-002,CPU,ISA-001,对已证明热点实现并验证 AVX backend,yes,yes,Linux,
 ISA-003,CPU,ISA-002,对已证明热点实现并验证 AVX2 FMA backend,yes,yes,Linux,NOT_STARTED
 ISA-004,CPU,ISA-003,对已证明热点实现并验证 AVX512 backend,yes,yes,Windows,NOT_STARTED
 ISA-005,CPU,ISA-004,仅对相关整数热点评估 BMI2 POPCNT 等路径,yes,yes,Windows,NOT_STARTED
-BENCH-001,BENCH,ABI-003,实现 affinity topology CPUID XCR0 hardware inspect,yes,yes,Linux,NOT_STARTED
+BENCH-001,BENCH,ABI-003,实现 affinity topology CPUID XCR0 hardware inspect,yes,yes,Linux,PASS
 BENCH-002,BENCH,BENCH-001|ISA-001|ISA-002|ISA-003|ISA-004|ISA-005,实现逐 backend 独立 Oracle 筛选和 benchmark harness,yes,yes,Linux,NOT_STARTED
 BENCH-003,BENCH,BENCH-002,实现内存基线与逐 kernel size precision worker block 测量,yes,yes,Linux,NOT_STARTED
 BENCH-004,BENCH,BENCH-003,实现稳健统计 选择 profile schema 缓存与失效,yes,yes,Linux,NOT_STARTED
