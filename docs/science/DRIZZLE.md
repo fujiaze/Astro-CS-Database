@@ -40,7 +40,15 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001):
     w_jp = a_jp / A_drop,j
     F_p  = Σ_j x_j · w_jp
     D_p  = Σ_j a_jp
-    S_p  = F_p / D_p                # 最终信号为 F/D
+    S_p  = F_p / D_p                # 最终信号为 F/D = 面亮度
+
+语义固定（SCI-003: flux vs surface-brightness 二选一）:
+  【输入 x_j = 源像素积分通量】(ADU/e⁻), 由天体面亮度场 B(Ω) 对像素积分:
+     x_j = ∫_{pixel_j} B(Ω) dΩ = B0 × A_pixel_j   (常数面亮度场 B0)
+  【输出 S_p = 面亮度】(ADU/px²); 因此 S_p = F/D 把通量按覆盖面积归一为面亮度。
+  【禁止】把"每像素常量 ADU"(常数通量 x_j=C 任意等值) 与"常量天空面亮度"
+  (B0 恒定 → x_j=B0×A_pixel_j 随像素面积变化) 混为一谈 —— 前者经 F/D 得 S_p=C/A_drop
+  ≠ C, 仅后者才满足"无空间调制"。常量场 oracle 应按**面亮度** B0 构造。
 
 方差传播 (SCI-DRZ-014):
     sumVarNum += v_j · w_jp²
@@ -69,7 +77,11 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001):
 ## 7 独立不变量
 
 - **通量守恒**：`Σ_p F_p` 在覆盖完全区等于 `Σ_j x_j·(a_jp/A_drop)` 的全域和（重建线性性）。
-- **常量场不变量**：常数输入 `x_j=C, v_j=V` 时 `S_p=C`，`variance_p=V·(Σ w_jp²/D_p²)` 量纲一致，无空间调制偏差。
+- **常量场不变量（面亮度语义，SCI-003 修正）**：常数**面亮度**场 `B(Ω)=B0` 时源像素通量
+  `x_j=B0×A_pixel_j`（随像素面积变化，**非每像素常量 ADU**），输出 `S_p=B0`（面亮度），
+  `variance_p=V·(Σ w_jp²/D_p²)` 量纲一致，无空间调制偏差。特例：对每像素常量 ADU
+  `x_j=C`，由 `S_p=F_p/D_p=(C/A_drop)` **≠ C**（随 A_drop 变化）——故"每像素常量 ADU ⇒ S=C"
+  不成立；常量场 oracle 必须按面亮度 B0 构造。
 - **零漏选不变量**：`candidate_oracle_test` 9003 例全枚举下 `false_negative=0`（12 face×边/角×RA跨0×极区×4 pixfrac×5 尺度×7 nside）。
 - **缩放律**：`x→αx` 时 `var→α²var`，`ivar→ivar/α²` 精确成立（`variance_propagation_test`）。
 
@@ -81,6 +93,7 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001):
 | RING ordering | 拒绝（HISS 统一 NESTED） | `drizzle:拒绝RING` |
 | 多通道图像 | 拒绝 | `drizzle:拒绝多通道` |
 | WCS 无效/尺度非法 | 拒绝 `compute_auto_nside` 失败 | `drizzle_engine.cpp:631` |
+| 源像素 NaN/Inf（值） | 经 `F_p=Σx_j·w_jp` 直接传播为 NaN/Inf，drizzle 层**不掩膜**；非有限值由下游积分 INVALID_INPUT 合同（SCI-INT）处理 | `spherical_overlap.cpp:192`（几何 NaN 才显式拒绝） |
 | 无覆盖/几何退化 | `NO_DATA`，不产伪信号 | `drizzleTiled` |
 | 微小交集 `max_angle<1e-3 rad` | 切平面面积近似保持 `w=overlap/drop_area` 一致 | `spherical_overlap.cpp:75` |
 | RA 跨0/极区/face边界 | `boundary_fallback` 保守 queryDisc，`false_negative=0` | `spherical_overlap` |
