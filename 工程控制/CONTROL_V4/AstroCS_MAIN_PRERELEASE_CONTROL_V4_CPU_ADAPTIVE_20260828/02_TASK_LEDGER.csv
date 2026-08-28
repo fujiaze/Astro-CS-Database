@@ -1,0 +1,55 @@
+task_id,phase,depends_on,scope,required_commit,required_push,preferred_host,status
+BASE-001,BASE,,freeze current main and classify V3 changes,no,no,Linux,NOT_STARTED
+GOV-001,BASE,BASE-001,update concise AGENTS node and profiling policy,yes,yes,Linux,NOT_STARTED
+BASE-002,BASE,GOV-001,current-main short build test baseline,no,no,Linux,NOT_STARTED
+SCI-001,SCI,BASE-002,science authority machine schema,yes,yes,Linux,NOT_STARTED
+SCI-002,SCI,SCI-001,calibration photometry astrometry PSF definitions,yes,yes,Linux,NOT_STARTED
+SCI-003,SCI,SCI-002,noise SNR variance ivar definitions,yes,yes,Linux,NOT_STARTED
+SCI-004,SCI,SCI-003,drizzle physical definition,yes,yes,Linux,NOT_STARTED
+SCI-005,SCI,SCI-004,UPM model gauge robust weight definition,yes,yes,Linux,NOT_STARTED
+SCI-006,SCI,SCI-005,rejection integration layer definitions,yes,yes,Linux,NOT_STARTED
+ALG-001,ALG,SCI-006,calibration photometry WCS PSF algorithms,yes,yes,Linux,NOT_STARTED
+ALG-002,ALG,ALG-001,noise SNR algorithm,yes,yes,Linux,NOT_STARTED
+ALG-003,ALG,ALG-002,drizzle algorithm,yes,yes,Linux,NOT_STARTED
+ALG-004,ALG,ALG-003,UPM algorithm,yes,yes,Linux,NOT_STARTED
+ALG-005,ALG,ALG-004,rejection integration algorithm,yes,yes,Linux,NOT_STARTED
+DOC-001,DOC,ALG-005,module dataflow and execution architecture,yes,yes,Linux,NOT_STARTED
+DOC-002,DOC,DOC-001,public and scientific-core API contracts,yes,yes,Linux,NOT_STARTED
+REV-001,REVIEW,DOC-002,science algorithm architecture API review capsule,no,no,Linux,NOT_STARTED
+QA-001,QA,DOC-002,machine contract schema and extractor,yes,yes,Linux,NOT_STARTED
+QA-002,QA,QA-001,semantic science API execution checkers,yes,yes,Linux,NOT_STARTED
+QA-003,QA,QA-002,checker mutation suite all-negative gate,yes,yes,Linux,NOT_STARTED
+CPU-001,CPU,BASE-002,CPU topology affinity cgroup feature detection,yes,yes,Linux,NOT_STARTED
+CPU-002,CPU,CPU-001,safe scalar and optional ISA variant registry,yes,yes,Linux,NOT_STARTED
+CPU-003,CPU,CPU-002,per-kernel worker ISA memory benchmark,yes,yes,Linux,NOT_STARTED
+CPU-004,CPU,CPU-003,autotune cache invalidation and runtime dispatch,yes,yes,Linux,NOT_STARTED
+MON-001,MON,BASE-002,cross-platform resource monitor wrapper,yes,yes,Linux,NOT_STARTED
+MON-002,MON,MON-001,CLI stage markers and utilization classifier,yes,yes,Linux,NOT_STARTED
+PAR-001,PAR,CPU-004|MON-002,AIO cfitsio safe bounded prefetch pipeline,yes,yes,Linux,NOT_STARTED
+PAR-002,PAR,PAR-001,sampler pure CPU parallel scaling,yes,yes,Linux,NOT_STARTED
+PAR-003,PAR,PAR-002,UPM race repair and pure CPU scaling,yes,yes,Linux,NOT_STARTED
+PAR-004,PAR,PAR-003,integration layout rejection pure CPU scaling,yes,yes,Linux,NOT_STARTED
+PAR-005,PAR,PAR-004,drizzle pure CPU scaling,yes,yes,Linux,NOT_STARTED
+PAR-006,PAR,PAR-005,stage1 heavy-kernel pure CPU scaling,yes,yes,Linux,NOT_STARTED
+PAR-007,PAR,PAR-006,remove production ACR routing and document dormant state,yes,yes,Linux,NOT_STARTED
+REV-002,REVIEW,PAR-007,CPU autotune monitor and parallel code review capsule,no,no,Linux,NOT_STARTED
+SYN-001,SYN,SCI-002|ALG-001,calibration photometry WCS PSF synthetic suite,yes,yes,Linux,NOT_STARTED
+SYN-002,SYN,SCI-003|ALG-002,noise SNR synthetic suite,yes,yes,Linux,NOT_STARTED
+SYN-003,SYN,SCI-004|ALG-003|PAR-005,drizzle synthetic suite,yes,yes,Linux,NOT_STARTED
+SYN-004,SYN,SCI-005|ALG-004|PAR-003,UPM synthetic suite,yes,yes,Linux,NOT_STARTED
+SYN-005,SYN,SCI-006|ALG-005|PAR-004,rejection integration synthetic suite,yes,yes,Linux,NOT_STARTED
+SYN-006,SYN,SYN-001|SYN-002|SYN-003|SYN-004|SYN-005,current-main synthetic CLI end-to-end,yes,yes,Linux,NOT_STARTED
+REV-003,REVIEW,SYN-006,synthetic oracle and test review capsule,no,no,Linux,NOT_STARTED
+LNX-001,LINUX,QA-003|PAR-007|SYN-006,Linux clean Release Debug builds,no,no,Linux,NOT_STARTED
+LNX-002,LINUX,LNX-001,ASan UBSan race and leak validation,yes,yes,Linux,NOT_STARTED
+LNX-003,LINUX,LNX-002,resource utilization and autotune gate,no,no,Linux,NOT_STARTED
+LNX-004,LINUX,LNX-003,small real-data auxiliary validation,no,no,Linux,NOT_STARTED
+WIN-001,WINDOWS,LNX-003,Fatduck sync exact main and clean build,no,no,Windows,NOT_STARTED
+WIN-002,WINDOWS,WIN-001,Windows CPU benchmark and dispatch selection,no,no,Windows,NOT_STARTED
+WIN-003,WINDOWS,WIN-002,Windows complete synthetic and sanitizer tests,yes,yes,Windows,NOT_STARTED
+WIN-004,WINDOWS,WIN-003,small real-data production gate,no,no,Windows,NOT_STARTED
+WIN-005,WINDOWS,WIN-004,current-candidate 32R once,no,no,Windows,NOT_STARTED
+WIN-006,WINDOWS,WIN-005,seam metrics HiPS and resource report,yes,yes,Windows,NOT_STARTED
+REV-004,REVIEW,WIN-006,Windows current-source 32R final review capsule,no,no,Windows,NOT_STARTED
+REL-001,RELEASE,WIN-006|REV-001|REV-002|REV-003|REV-004,regenerate traceability and close findings,yes,yes,Linux,NOT_STARTED
+REL-002,RELEASE,REL-001,final reproducibility and package,no,no,Linux,NOT_STARTED

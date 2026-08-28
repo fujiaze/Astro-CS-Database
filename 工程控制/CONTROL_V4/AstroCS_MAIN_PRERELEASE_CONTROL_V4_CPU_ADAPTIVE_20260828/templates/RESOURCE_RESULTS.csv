@@ -1,0 +1,2 @@
+run_id,task_id,host,commit_sha,stage,stage_kind,available_cpus,selected_workers,selected_variant,wall_s,cpu_core_avg,cpu_core_peak,memory_bw_ratio,io_read_mb_s,io_write_mb_s,peak_rss_mb,rss_trend_mb_per_min,swap_delta_mb,verdict,evidence_path
+
