@@ -142,8 +142,10 @@ class TestGolden(unittest.TestCase):
 
     # ── cancel → 9 ──
     def test_07_cancel_exit_9_no_fake_artifacts(self):
+        # phase2 run 已真接线(CLI-005)需会话配置; 取消语义改由 run 管线 stub-wait 证明(同钩子)
         env = {"ASTROCS_TEST_SLEEP_MS": "8000"}
-        p = subprocess.Popen([built(), "phase2", "run", "--config", self.cfg, "--events-jsonl"],
+        p = subprocess.Popen([built(), "run", "--phases", "1", "--config", self.cfg,
+                              "--events-jsonl"],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
                              env={**os.environ, **env})
         time.sleep(0.4)
@@ -166,8 +168,8 @@ class TestGolden(unittest.TestCase):
         self.assertIn("command='phase3 run'", r.stderr)
         self.assertIn("no credentials", r.stderr)
         self.assertNotIn(self.cfg, r.stderr, "crash report 不得含完整路径外泄")
-        # 非 events 模式同样 70(stub 命令; verify 已真实现, 走自身错误码)
-        r2 = run("doctor", env={"ASTROCS_TEST_CRASH": "1"})
+        # 非 events 模式同样 70(stub 命令; doctor/verify 已真实现, 走自身错误码)
+        r2 = run("phase3", "run", "--config", self.cfg, env={"ASTROCS_TEST_CRASH": "1"})
         self.assertEqual(r2.returncode, 70)
 
     # ── Unicode 路径 ──
