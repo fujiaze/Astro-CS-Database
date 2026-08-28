@@ -1,6 +1,6 @@
 # Noise / Variance / Ivar / SNR Science (SCI-NOISE)
 
-> ID: SCI-NOISE-001..015 (SNR-001..015)  状态: FROZEN (T104 冻结, 2026-08-23)  上游: SCI-SCOPE-001  下游 ALG: ALG-NOISE-001..  模块: snr_estimator (NoiseWeightModelV1)
+> ID: SCI-NOISE-001  范围: SCI-NOISE-001..015 (legacy SNR-001..015)  状态: FROZEN (T104 冻结, 2026-08-23)  上游: SCI-SCOPE-001  下游 ALG: ALG-NOISE-001..  模块: snr_estimator (NoiseWeightModelV1)
 
 ## 1 目的与非目标
 
@@ -27,6 +27,10 @@
 ## 3 物理量和单位
 
 - `x, σ_bg, √variance`: ADU（或 e⁻，同输入标度）；`variance`: ADU²；`ivar`: ADU⁻²；`a`: ADU², `b,c`: ADU²/pixel；`gain`: e-/ADU；`read_noise_e`: e-；`signal`: ADU；掩膜半径/坐标: pixel；`floor`: ADU²。
+
+## 3a 坐标 frame
+
+方差估计在**像素域**进行（8×8 patch 网格与平面场 `var(x,y)=a+b·x+c·y` 的 x,y 均为内部 0-based 像素坐标，GLOSSARY `pixel_coordinate`）；无 WCS/天球参与；帧身份沿用 `frame_id`（DATA_SEMANTICS §5），估计结果随帧 payload 唯一。
 
 ## 4 输入有效域
 
@@ -88,6 +92,14 @@ Gain/Readnoise 诊断模型 (仅 diagnostic, NOT FOR PRODUCTION):
 - `variance_floor=1e-12` 保证 `ivar` 有限；平面预测负值 clamp 至 floor。
 - 5σ 裁剪 ≤2 轮，避免过度剔除。
 
+## 9a 专属问题回答（SCI-003 指定问题逐项）
+
+- **signal/noise/blank sky**：`x`=校准后空背景像素值（ADU 同标度）；noise=空背景随机分量；blank sky 样本域=星点 `fixed conservative rmax` 掩膜 + 5σ≤2 轮裁剪后的合格 patch（§5）。
+- **SNR**：本合同不产出 SNR 图；SNR 由消费侧以 `signal/√variance` 构成，本层唯一产出为 `variance/ivar`（GLOSSARY `variance/ivar`）。
+- **variance/ivar**：`variance`=ADU²（平面场或全局兜底），`ivar=1/max(variance,floor)` 精确倒数（§7 量纲不变量）；零/负/NaN 条件：负平面预测 clamp 至 floor、`floor<=0` 回退 `1e-12`、非有限输入在参数域拒绝（§8）。
+- **Poisson+read noise**：`var_ADU=max(signal,0)/gain+(read_noise_e/gain)²` **仅诊断路径**（SNR-005 交叉验证），生产唯一基线为 empirical MAD（`source==0`，NO-01 P0，§10）。
+- **权重归一与适用域**：`ivar` 作为 Phase2 逐像素科学权重直接入加权（归一在消费侧 `Σw/Σ`），适用域=空背景随机分量；不含源泊松项/系统项/协方差（Drizzle 后相关见 UNCERTAINTY_AND_COVARIANCE.md）；`ivar=0` 显式表示不可用，禁止伪装（§7 空 support 不传播）。
+
 ## 10 不可接受变化
 
 - 将 `snr_noise_gain_variance` 结果融合至生产 `variance/ivar`（`source==0 empirical` 为唯一生产基线，即使 header 有 gain 亦不融合，`NO-01 P0`）；
@@ -116,3 +128,16 @@ Gain/Readnoise 诊断模型 (仅 diagnostic, NOT FOR PRODUCTION):
 - 实现: `lib/snr_estimator/cpp/src/noise_model.cpp` (`snr_noise_model_v1, _f64, _fill, _free, snr_noise_gain_variance, g_model_floor`), `lib/snr_estimator/cpp/include/snr_estimator.h`
 - 公开 API: `snr_noise_model_v1, snr_noise_model_v1_f64, snr_noise_model_v1_fill, snr_noise_model_v1_free, snr_noise_gain_variance, snr_noise_model_v1_default_config`
 - 测试: `TST-NOISE-001..015` (`noise_model_science_test.cpp`), `TST-NOISE-INV-*` 四门、不变量，`TST-NOISE-FAIL-*` 空 patch/NaN 拒绝（新增/映射见 `docs/TRACEABILITY.csv`）
+
+## 14 Primary literature（引用定位声明）
+
+1. Newberry, M. V. 1991, PASP, 103, 122（DOI 10.1086/132801，SCI-001 已核验原文存在性）：Poisson+读出噪声分解的 S/N 建模上下文——文章级定位，本合同 §5 诊断公式为 Project-defined，不引用其具体公式号。
+2. MAD→σ 换算 `1.482602218505602=1/Φ⁻¹(3/4)`：标准正态 MAD 分位恒等式（Φ⁻¹(3/4)≈0.674490），教科书级，Project-defined 采纳；与 SCI-PHOT 的 `0.6745` 同源。
+3. Tukey biweight 内点权重（`r_inliers` 复用）：SCI-PHOT §14/PMS 文献链，本层仅消费 QA 集合不重复估计。
+
+## 15 Acceptance
+
+- §11 Oracle 全过：Gaussian 5% 复现、Poisson 诊断 5% 交叉（仅诊断）、平面场 10% 恢复、四不变量门、Python 参考 rtol 1e-9；
+- §8 全部退化路径显式（无合格 patch/NaN/floor/gain≤0）；
+- `tools/science_contract_lint.py` PASS（15 节+claim ID+锚点）；
+- 解析不变量→SYN-003 转换：Gaussian/Poisson/常量/blank sky/outlier/small-N 用例、estimator bias 与 ivar 边界（零/负/NaN→ivar=0）登记 SYN-003。
