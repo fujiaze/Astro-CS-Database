@@ -1,6 +1,6 @@
 # Drizzle / Spherical Resampling Science (SCI-DRIZZLE)
 
-> ID: SCI-DRZ-001,014,015,016  状态: FROZEN (T105 冻结, 2026-08-23)  上游: SCI-SCOPE-001  下游 ALG: ALG-DRZ-001..  模块: healpix_drizzle
+> ID: SCI-DRZ-001  集合: SCI-DRZ-001,014,015,016  状态: FROZEN (T105 冻结, 2026-08-23)  上游: SCI-SCOPE-001  下游 ALG: ALG-DRZ-001..  模块: healpix_drizzle
 
 ## 1 目的与非目标
 
@@ -131,3 +131,30 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001):
 - 实现: `lib/healpix_db/healpix_drizzle/spherical_overlap.cpp` (40,573,773-931), `lib/healpix_db/healpix_drizzle/drizzle_engine.cpp` (100,736-762, sink finalize), `lib/astro_image_io/src/hips/aio_hips_writer.cpp` (finalize_tile)
 - 公开 API: `processPixelSharedTiled, compute_overlap_area_g_ctx, drizzleTiled, compute_auto_nside`
 - 测试: `TEST-DRZ-CAND-001` 9003例零漏选、`TEST-DRZ-VAR-001` 缩放律、常数场、`TargetGeomCache` 等价（`candidate_oracle_test.cpp, variance_propagation_test.cpp`）
+
+## 3a 坐标 frame
+
+- 天球：ICRS/J2000（与 WCS/Gaia 同系）；目标网格为 **HEALPix NESTED**，`nside=2^order`（GLOSSARY `healpix_ordering`）。
+- 面积量 `a_jp, A_drop, D` 以像素平面面积 px² 表达并在球面立体角等价下使用（§3）；源像素四角经 `pixelToSky`（SCI-WCS）映射为球面多边形。
+
+## 9a 专属问题回答（SCI-004 指定问题逐项）
+
+- **drizzle footprint**：源像素 j 的 footprint=四角球面多边形经 `half=0.5·pixfrac` 收缩后的 drop；`A_drop,j`=drop 内总面积，`a_jp`=源像素 j 与目标 p 的球面重叠面积（§2/§5）。
+- **pixfrac**：drop 收缩因子，有效域 `(0,1]`，非法值显式 `NO_DATA`（§4），不静默夹逼。
+- **surface brightness/flux**：输入 `x_j`=源像素积分通量，输出 `S_p=F_p/D_p`=面亮度；禁止把"每像素常量通量"与"常量天空面亮度"混为一谈（§5 语义固定，GLOSSARY `surface_brightness`）。
+- **support**：`D_p=Σ_j a_jp` 为目标像素覆盖面积；HiPS 产品 `support∈[0,1]`（覆盖度）语义冻结于 DATA_SEMANTICS §4，由 `D_p` 与目标像素面积归一导出。
+- **variance/covariance**：`variance_p=sumVarNum/D_p²`（§5，独立像素方差传播）；**不存完整协方差矩阵**——相邻像素相关性已文档化（UNCERTAINTY_AND_COVARIANCE.md），协方差产品为非目标（§1）。
+- **边界**：极区 `|dec|>45°` 保守 prune、`θ_q+radius>90°`/跨边界 `boundary_fallback`（§4a）；非法 `pixfrac`/`nside` 显式拒绝。
+
+## 14 Primary literature（引用定位声明）
+
+1. Fruchter, A. S. & Hook, R. N. 2002, PASP, 114, 144, "Drizzle: A Method for the Linear Reconstruction of Undersampled Images"（bibcode 2002PASP..114..144F，经 MultiDrizzle/DrizzlePac Handbook 与多篇文献引用核对；本合同 §5 为 Project-defined 球面实现，未逐式引用其公式号）。
+2. pixfrac 语义（drop 与像素之比、pixfrac=1 等价 overlap、缩小时权重场变化）：同上文献；实践语义另见 [DrizzlePac Handbook](https://www.stsci.edu/files/live/sites/www/files/home/scientific-community/software/drizzlepac/_documents/drizzlepac-handbook-v1.pdf)（STScI，节级定位）。
+3. HEALPix 网格：Górski et al. 2005, ApJ 622, 759（bibcode 2005ApJ...622..759G，文章级；NESTED/`nside=2^order` 语义见 DATA_SEMANTICS §2，逐式核验留 SCI-P3/ALG-007）。
+
+## 15 Acceptance
+
+- §11 Oracle 全过（常量场/解析场/方差传播/边界，以 §11 列门为准）；
+- §7 不变量门全过；
+- `tools/science_contract_lint.py` PASS（15 节+claim ID+锚点）；
+- 解析不变量→SYN-004 转换：常数/点源/梯度/旋转/亚像素 shift/pixfrac 扫描/tile boundary 用例，flux 或 brightness/support/variance/coverage 不变量全过（§15 SYN-004 数据与不变量表）。
