@@ -69,4 +69,5 @@
 - UPM：`astrocs-upm-v2` JSON（sparse）+ dense cache（checksum 校验）。
 - Manifest：`manifest.json` / `diagnostics.json` / `controls_accept.json`。
 
-详见 `reports/api_inventory.md`（V14 交付中的完整分类清单）。
+详见 `docs/architecture/api_inventory.csv`（API 机器单源清单，与 `check_api_contracts` 的
+`API_CONTRACTS.csv` 一致；完整分类清单）。
