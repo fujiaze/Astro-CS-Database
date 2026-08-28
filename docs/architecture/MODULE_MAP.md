@@ -12,11 +12,11 @@
 | snr_estimator | lib/snr_estimator | snr_estimator.dll | 三层噪声模型/ivar |
 | gaia_xpsd_client | lib/gaia_xpsd_client | gaia_client.dll | Gaia DR3 查询/缓存 |
 | healpix_drizzle | lib/healpix_db/healpix_drizzle | healpix_drizzle.dll | 球面 Drizzle/方差传播（active） |
-| healpix_browser_qt | lib/healpix_db/healpix_browser_qt | healpix_browser_qt.exe | HiPS 浏览器（optional） |
+| healpix_browser_qt | lib/healpix_db/healpix_browser_qt | healpix_browser_qt.exe（tool 分类，非发布） | HiPS 浏览器（optional） |
 | healpix_stack | lib/healpix_db/archive/legacy/healpix_stack | —（归档，不重建） | 稀疏堆栈/梯度（archived，不重建） |
-| phase2 | lib/phase2 | phase2.a + astrocs-stage2.exe | coverage/sampler/UPM/rejection/integration |
-| orchestrator | lib/orchestrator/cpp | orchestrator.exe | Phase1 编排 |
-| acr | lib/acr | lib/静态 + acr_cuda_bridge.dll | 异构计算抽象/调度 |
+| phase2 | lib/phase2 | phase2.a（静态库；V5 无独立 exe） | coverage/sampler/UPM/rejection/integration |
+| orchestrator | lib/orchestrator/cpp | （V5 迁移：编排并入 astrocs CLI pipeline driver，无独立 exe） | Phase1 编排（历史） |
+| acr | lib/acr | （V5 不接入；源码保留为配置守卫参考） | 异构计算抽象（dormant） |
 | tools | tools/（仓根 tools/，非 lib/） | 脚本 | 工程批处理、诊断、一致性检查 |
 
 ## 每个 shipping module 的详细文档
