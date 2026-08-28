@@ -1,6 +1,6 @@
 # Noise Estimation Algorithms (ALG-NOISE)
 
-> 上游 SCI: SCI-NOISE-001..015  状态: DERIVED (T204 冻结, 2026-08-23)  模块: snr_estimator/noise_model
+> ID: ALG-NOISE-001  范围: ALG-NOISE-001..003  上游 SCI: SCI-NOISE-001  状态: DERIVED (T204 冻结; V5 ALG-003 重验 2026-08-28)  模块: snr_estimator/noise_model
 
 ## 1 上游 SCI 与输入输出
 
@@ -54,9 +54,14 @@ function snr_noise_model_v1_free(model): g_model_floor.erase(model*)
 
 - O(pixels) mask+median; LS O(8×8)
 
-## 7 CPU/GPU
+## 7 CPU-only 后端策略（V5）
 
-- CPU patch并行；GPU 按patch切分等价门 1e-9。
+- 仅 CPU：patch 网格(8×8)间独立，worker pool（按 affinity）patch 级并行，**禁止硬编码线程数**；平面最小二乘(3 参数)为全控制点固定序归约(FP64, 禁重结合)。
+
+## 5c SIMD 安全与取消点
+
+- patch 内 MAD/median 为排序选择(固定输入序)；`fill` 阶段 `ivar=1/max(var,floor)` 逐像素独立(SIMD 安全: 数组连续无别名)；`g_model_floor` 指针 key 注册表为单线程资源(锁自由设计, 跨线程不共享写)。
+- 取消点: patch 网格按行带粒度检查; 取消时模型对象半成品作废(免费 `_free` 语义), 已写 fill 输出行带不回滚(调用方按返回码整帧重做)。
 
 ## 8 参考实现/Oracle
 
