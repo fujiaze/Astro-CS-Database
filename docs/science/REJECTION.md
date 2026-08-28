@@ -1,6 +1,6 @@
 # Rejection / Outlier Science (SCI-REJ)
 
-> ID: SCI-REJ-001..008 (RJ-001..008)  状态: FROZEN (T107 冻结, 2026-08-23)  上游: SCI-SCOPE-001  下游 ALG: ALG-REJ-001..008  模块: phase2 (rejection)
+> ID: SCI-REJ-001  范围: SCI-REJ-001..008 (legacy RJ-001..008)  状态: FROZEN (T107 冻结, 2026-08-23)  上游: SCI-SCOPE-001  下游 ALG: ALG-REJ-001..008  模块: phase2 (rejection)
 
 ## 1 目的与非目标
 
@@ -120,3 +120,29 @@ large_scale 结构生长:
 - 实现: `lib/phase2/src/rejection.cpp` (1,1051-1092,1501-1592,1859), `lib/phase2/include/astro/phase2/rejection.h` (76-154), `lib/phase2/src/integrate.cpp` (状态消费)
 - 公开 API: `p2_reject_plan_resolve, p2_reject, p2_large_scale_apply`
 - 测试: `synthetic_gate` (74/74)、`rejection_oracle_compare` (NIST)、`satellite_gate_build/controlled_rejection_truth` (注入门)
+
+## 3a 坐标 frame
+
+排异在**像素候选栈域**逐像素独立进行；每候选绑定 `frame_id`（DATA_SEMANTICS §5），排异决策不跨像素共享状态；无 WCS 参与（空间邻域仅 `large_scale` 结构半径，pixel 域，默认关闭）。
+
+## 9a 专属问题回答（SCI-006 指定问题逐项）
+
+- **统计假设**：Sigma/Winsorized/AveragedSigma=对称噪声+稳健 median/MAD 尺度；LinearFit=栈内随 n 的线性趋势+残差对称；GeneralizedESD=近似正态多离群检验（`alpha=0.05, max_outliers=10`）；percentile=小 N 无尺度估计时分位拒（`low 0.2/high 0.1, scale=|median|`）；minmax=极值拒（`min_kept=4`）；RCR=reject-clean-refine 迭代（官方 RCR 2.4.7 oracle 锚定）。
+- **阈值**：表驱动冻结锚点（`rejection.cpp:1`：sigma/winsorized/averaged 4.0/3.0/8；linear_fit 5.0/3.5/8；ESD alpha 0.05/max 10；percentile 0.2/0.1；minmax 1/1/4；large_scale 默认关闭）——**禁止用"效果好"定义**。
+- **自动选择可判定性**：`auto` 以 `nominal n` 唯一路由（n<6→percentile；6≤n≤15→winsorized；n>15→linear_fit，wbpp_2_9_1 profile），不依赖 per-pixel `n_eff` 重选（§7 阈值不变量）。
+- **small-N**：n<6 无稳健尺度意义 → percentile；单帧无排异（§1 非目标）。
+- **frame identity**：每候选携带 `frame_id[i]`；排异只置 `accepted[i]` 掩膜不合并样本，identity 全程保持（integration 侧可追溯，SCI-INT §9a）。
+
+## 14 Primary literature（引用定位声明）
+
+1. Generalized ESD：Rosner, B. 1983, Technometrics 25, 165——文章级定位（bibcode 1983Techno..25..165R，未逐页核验），alpha/max_outliers 语义为 Project-defined 采纳。
+2. winsorization 概念：Hoaglin, Mosteller & Tukey 1983, *Understanding Robust and Exploratory Data Analysis*——书籍级，未逐页核验。
+3. `wbpp_2_9_1` auto 路由与阈值表：**采纳自 WBPP 2.9.1 `bestRejectionMethod` 源码**（非学术文献；对齐记录见 docs/development/CONFIG_SCHEMA.md#51 与 docs/science/REJECTION.md#40）。
+4. RCR：官方 RCR 2.4.7 软件参考（项目 oracle 锚定 `official rcr 2.4.7`，见 tools/assemble_v17_review_pkg.py 文献映射），非论文引用。
+
+## 15 Acceptance
+
+- §11 Oracle 全过（以 §11 列门为准：各方法已知 inlier/outlier 注入的 reject set 解析一致）；
+- §7 阈值不变量/路由确定性门全过；
+- `tools/science_contract_lint.py` PASS；
+- 解析不变量→SYN-006 转换：卫星线/宇宙线/坏帧注入、small-N 分位、frame identity 保持、reject set 与 identity 解析可验用例登记 SYN-006。
