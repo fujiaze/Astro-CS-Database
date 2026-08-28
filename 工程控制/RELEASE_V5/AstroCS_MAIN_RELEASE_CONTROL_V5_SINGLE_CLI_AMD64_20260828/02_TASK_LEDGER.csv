@@ -52,7 +52,7 @@ ISA-005,CPU,ISA-004,仅对相关整数热点评估 BMI2 POPCNT 等路径,yes,yes
 BENCH-001,BENCH,ABI-003,实现 affinity topology CPUID XCR0 hardware inspect,yes,yes,Linux,PASS
 BENCH-002,BENCH,BENCH-001|ISA-001|ISA-002|ISA-003|ISA-004|ISA-005,实现逐 backend 独立 Oracle 筛选和 benchmark harness,yes,yes,Linux,PASS
 BENCH-003,BENCH,BENCH-002,实现内存基线与逐 kernel size precision worker block 测量,yes,yes,Linux,PASS
-BENCH-004,BENCH,BENCH-003,实现稳健统计 选择 profile schema 缓存与失效,yes,yes,Linux,NOT_STARTED
+BENCH-004,BENCH,BENCH-003,实现稳健统计 选择 profile schema 缓存与失效,yes,yes,Linux,PASS
 BENCH-005,BENCH,BENCH-004|CLI-003,接入 hardware benchmark doctor CLI 命令,yes,yes,Linux,NOT_STARTED
 MON-001,MON,CLI-001,实现 Linux Windows 进程 CPU memory IO thread telemetry,yes,yes,Linux,NOT_STARTED
 MON-002,MON,MON-001|CLI-007,实现 stage 标注 JSONL resource event 和摘要,yes,yes,Linux,NOT_STARTED

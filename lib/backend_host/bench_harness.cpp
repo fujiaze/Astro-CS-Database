@@ -203,4 +203,31 @@ MemoryReport bench_memory(uint64_t n, int reps) {
     return rep;
 }
 
+std::string select_with_noise_margin(const std::vector<BenchResult>& results,
+                                     const std::string& conservative_backend_id,
+                                     double margin_rel) {
+    const BenchResult* best = nullptr;
+    for (const auto& r : results) {
+        if (r.verdict != "OK") continue;
+        if (!best || r.median_ns < best->median_ns) best = &r;
+    }
+    if (!best) return {};
+    if (best->backend_id == conservative_backend_id) return conservative_backend_id;
+    // 保守路径存在且收益不足裕量 → 更保守(06 §4)
+    for (const auto& r : results)
+        if (r.backend_id == conservative_backend_id && r.verdict == "OK") {
+            const double gain = (r.median_ns - best->median_ns) / r.median_ns;
+            if (gain < margin_rel) return conservative_backend_id;
+        }
+    return best->backend_id;
+}
+
+NoProfilePolicy no_profile_policy(uint32_t available_cpus) {
+    NoProfilePolicy p;
+    p.backend_id = "baseline";
+    p.workers = available_cpus > 0 ? available_cpus : 1;   // ≥1; 可用≥2 时不得退 1(06 §6)
+    p.reason = "no_valid_profile";
+    return p;
+}
+
 }  // namespace astrocs::backend_host
