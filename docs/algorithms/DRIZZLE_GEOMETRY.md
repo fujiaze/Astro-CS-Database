@@ -1,6 +1,6 @@
 # Drizzle Geometry Algorithms (ALG-DRIZZLE)
 
-> 上游 SCI: SCI-DRZ-001..016  状态: DERIVED (T205 冻结, 2026-08-23)  模块: healpix_drizzle
+> ID: ALG-DRZ-001  范围: ALG-DRZ-001..016  上游 SCI: SCI-DRZ-001  状态: DERIVED (V5 ALG-004 重验 2026-08-28)  模块: healpix_drizzle
 
 ## 1 上游 SCI 与输入输出
 
@@ -60,9 +60,14 @@ function TargetGeomCache.get(target_ipix):
 
 - O(n_source·avg_candidates), avg≈3.5 (小图实测); cache hit 91.7% 降 geometry_builds.
 
-## 7 CPU/GPU
+## 7 CPU-only 后端策略（V5）
 
-- CPU OpenMP 按源帧tile; GPU 按candidate切分, 候选查询与S-H裁剪kernel化, false_negative=0 等价门。
+- 仅 CPU：球面候选查询与 S-H 裁剪按源帧/tile 粒度 worker pool（按 affinity）并行，**禁止硬编码线程数**；保守剪枝不变量（false_negative=0）与线程划分无关。
+
+## 5c SIMD 安全与取消点
+
+- 多边形重叠面积 `a_jp` 为逐 (源像素,目标) 候选独立算术(输入连续无别名, SIMD 安全)；`F_p/D_p/variance_p` 的 Σ 为**目标像素内固定候选序归约**(候选枚举序冻结, FP64, 禁重结合)——面积和 D_p 顺序变化仅 <1ulp, 仍冻结顺序。
+- 取消点: 源帧/tile 粒度检查; 取消时该帧输出不落盘, manifest 不登记(输出原子性以帧为最小单元)。
 
 ## 8 参考实现/Oracle
 
