@@ -1,6 +1,6 @@
 # UPM Solver Algorithms (ALG-UPM)
 
-> 上游 SCI: SCI-UPM-001..010, WEIGHT/PERSIST  状态: DERIVED (T206 冻结, 2026-08-23)  模块: phase2/upm
+> ID: ALG-UPM-001  范围: ALG-UPM-001..003  上游 SCI: SCI-UPM-001  状态: DERIVED (T206 冻结; V5 ALG-005 重验 2026-08-28)  模块: phase2/upm
 
 ## 1 上游 SCI 与输入输出
 
@@ -54,9 +54,14 @@ function p2_upm_build(observations, cfg):
 
 - IRLS O(iter·(obs+K log K)) K=controls
 
-## 7 CPU/GPU
+## 7 CPU-only 后端策略（V5）
 
-- 块级求值可GPU, 求解串行, dense/sparse 1e-12等价门。
+- 仅 CPU：IRLS 求解串行为确定性 reference；块级(C frame×control)求值可 worker pool（按 affinity, **禁止硬编码线程数**）, 控制索引固定顺序归约；dense/sparse 1e-12 等价门保留(实现自检, 非跨后端)。
+
+## 5c SIMD 安全与取消点
+
+- 残差/Huber 权重逐观测独立(SIMD 安全: 数组连续无别名)；加权法方程累加=**观测索引固定序归约**(FP64, 禁重结合)；弱零锚为固定行附加, 与并行无关。
+- 取消点: IRLS 迭代间检查; 取消时不写 Model/persist, 返回未完成状态(半成品 hash 不产生)——模型原子性以整模型为单元。
 
 ## 8 参考实现/Oracle
 
