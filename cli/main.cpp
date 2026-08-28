@@ -19,6 +19,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include "sha256.h"
+
 #include "cancel_token.h"
 #include "exit_codes.h"
 #include "jsonl.h"
@@ -198,26 +200,164 @@ int cmd_config_init(const Parsed& p, astrocs::JsonlEmitter& ev) {
     return astrocs::OK;
 }
 
-int cmd_config_validate(const Parsed& p, astrocs::JsonlEmitter& ev) {
-    const std::string path = need_value(p, "--config");
+std::string file_sha256(const std::string& u8path, bool* ok) {
+    std::ifstream f(std::filesystem::u8path(u8path), std::ios::binary);
+    if (!f) { if (ok) *ok = false; return {}; }
+    astrocs::crypto::Sha256 h;
+    char buf[65536];
+    while (f) {
+        f.read(buf, sizeof(buf));
+        h.update(buf, static_cast<std::size_t>(f.gcount()));
+    }
+    if (ok) *ok = true;
+    return h.final_hex();
+}
+
+// 本机 CPU 特征指纹(profile stale 判定; 非调度线程数, 不违反 ARCH-003/AGENTS 禁硬编码)
+std::string local_cpu_signature() {
+    const std::string seed =
+        "astrocs-cpu-amd64-hw=" + std::to_string(std::thread::hardware_concurrency());
+    return astrocs::crypto::sha256_hex(seed.data(), seed.size());
+}
+
+// pipeline_config.json v1 全量校验(合同: docs/api/MANIFEST_VERIFY_V1.md §1)
+// 返回 0 有效(doc 填充); 否则对应退出码, 诊断写 stderr。
+int validate_config_full(const std::string& path, nlohmann::json* doc_out) {
     std::ifstream f(std::filesystem::u8path(path), std::ios::binary);
     if (!f) {
         std::fprintf(stderr, "astrocs: config not found '%s'\n", path.c_str());
-        return astrocs::INPUT;   // 04: 输入缺失 → 3
+        return astrocs::INPUT;                       // 04: 输入缺失 → 3
     }
     std::stringstream buf; buf << f.rdbuf();
+    nlohmann::json doc;
     try {
-        auto doc = nlohmann::json::parse(buf.str());
-        if (!doc.is_object()) {
-            std::fprintf(stderr, "astrocs: config is not a JSON object\n");
-            return astrocs::INPUT;  // 04: 格式错 → 3
-        }
+        doc = nlohmann::json::parse(buf.str());
     } catch (const nlohmann::json::parse_error& e) {
         std::fprintf(stderr, "astrocs: config malformed JSON: %s\n", sanitize(e.what()).c_str());
-        return astrocs::INPUT;      // 04: 格式错 → 3
+        return astrocs::INPUT;                       // 04: 格式错 → 3
     }
+    if (!doc.is_object()) {
+        std::fprintf(stderr, "astrocs: config is not a JSON object\n");
+        return astrocs::INPUT;
+    }
+    static const std::set<std::string> kAllowedKeys = {"schema_version", "inputs",
+                                                       "output_dir", "phase3"};
+    for (auto it = doc.begin(); it != doc.end(); ++it) {
+        if (!kAllowedKeys.count(it.key())) {
+            std::fprintf(stderr, "astrocs: config has unknown key '%s'\n", it.key().c_str());
+            return astrocs::INPUT;                   // 防拼写静默忽略 → 3
+        }
+    }
+    if (!doc.contains("schema_version")) {
+        std::fprintf(stderr, "astrocs: config missing 'schema_version'\n");
+        return astrocs::INPUT;
+    }
+    if (!doc["schema_version"].is_string() || doc["schema_version"].get<std::string>() != "1") {
+        std::fprintf(stderr, "astrocs: config schema_version must be \"1\"\n");
+        return astrocs::ARGS;                        // 版本错=配置错 → 2
+    }
+    if (!doc.contains("inputs") || !doc["inputs"].is_object()) {
+        std::fprintf(stderr, "astrocs: config missing 'inputs' object\n");
+        return astrocs::INPUT;
+    }
+    for (const char* k : {"lights", "darks", "flats", "bias"}) {
+        auto it = doc["inputs"].find(k);
+        if (it == doc["inputs"].end() || !it->is_array()) {
+            std::fprintf(stderr, "astrocs: config inputs.%s must be an array\n", k);
+            return astrocs::INPUT;
+        }
+        for (const auto& e : *it) {
+            if (!e.is_string() || e.get<std::string>().empty()) {
+                std::fprintf(stderr, "astrocs: config inputs.%s has empty path\n", k);
+                return astrocs::INPUT;
+            }
+            std::error_code ec;
+            if (!std::filesystem::exists(std::filesystem::u8path(e.get<std::string>()), ec)) {
+                std::fprintf(stderr, "astrocs: config input not found '%s'\n",
+                             e.get<std::string>().c_str());
+                return astrocs::INPUT;
+            }
+        }
+    }
+    if (!doc.contains("output_dir") || !doc["output_dir"].is_string()) {
+        std::fprintf(stderr, "astrocs: config missing 'output_dir'\n");
+        return astrocs::INPUT;
+    }
+    std::error_code ec;
+    if (!std::filesystem::exists(std::filesystem::u8path(doc["output_dir"].get<std::string>()), ec)) {
+        std::fprintf(stderr, "astrocs: config output_dir not found\n");
+        return astrocs::INPUT;
+    }
+    *doc_out = std::move(doc);
+    return astrocs::OK;
+}
+
+int cmd_config_validate(const Parsed& p, astrocs::JsonlEmitter& ev) {
+    const std::string path = need_value(p, "--config");
+    nlohmann::json doc;
+    const int rc = validate_config_full(path, &doc);
+    if (rc != astrocs::OK) return rc;
     ev.emit("artifact", "info", "config", "validated", {{"role", "config"}, {"path", path}});
     std::printf("config OK\n");
+    return astrocs::OK;
+}
+
+// cpu profile 独立文件校验(分离原则): 结构(3)/stale(5) — profile hash 不与 config 混算
+int validate_cpu_profile(const std::string& path, nlohmann::json* prof_out) {
+    std::ifstream f(std::filesystem::u8path(path), std::ios::binary);
+    if (!f) {
+        std::fprintf(stderr, "astrocs: cpu profile not found '%s'\n", path.c_str());
+        return astrocs::INPUT;
+    }
+    std::stringstream buf; buf << f.rdbuf();
+    nlohmann::json prof;
+    try {
+        prof = nlohmann::json::parse(buf.str());
+    } catch (const nlohmann::json::parse_error& e) {
+        std::fprintf(stderr, "astrocs: cpu profile malformed JSON: %s\n", sanitize(e.what()).c_str());
+        return astrocs::INPUT;
+    }
+    if (!prof.is_object() || prof.value("kind", std::string()) != "astrocs_cpu_profile" ||
+        prof.value("schema_version", std::string()) != "1" || !prof.contains("kernels") ||
+        !prof["kernels"].is_object()) {
+        std::fprintf(stderr, "astrocs: cpu profile is not a v1 astrocs_cpu_profile document\n");
+        return astrocs::INPUT;
+    }
+    if (prof.value("cpu_signature", std::string()) != local_cpu_signature()) {
+        std::fprintf(stderr, "astrocs: cpu profile is stale (profile cpu_signature=%s, "
+                             "local=%s) — rerun 'astrocs benchmark cpu'\n",
+                     prof.value("cpu_signature", std::string()).c_str(),
+                     local_cpu_signature().c_str());
+        return astrocs::BACKEND;                     // 04: CPU 特征 → 5
+    }
+    *prof_out = std::move(prof);
+    return astrocs::OK;
+}
+
+// show-effective: config 与 profile 分别校验 → 合成 effective(--json 固定, 04 §1)
+int cmd_show_effective(const Parsed& p, astrocs::JsonlEmitter& ev) {
+    if (!p.flags.count("--json")) parse_fail("config show-effective requires --json");
+    const std::string cfg = need_value(p, "--config");
+    nlohmann::json doc;
+    int rc = validate_config_full(cfg, &doc);
+    if (rc != astrocs::OK) return rc;
+    nlohmann::json out = {
+        {"schema_version", "1"},
+        {"config", doc},
+        {"effective", {{"phases", doc.value("inputs", nlohmann::json::object()).contains("lights") &&
+                                            !doc["inputs"]["lights"].empty()
+                                        ? nlohmann::json({1, 2})
+                                        : nlohmann::json({3})}}},
+    };
+    if (p.values.count("--cpu-profile")) {
+        nlohmann::json prof;
+        rc = validate_cpu_profile(p.values.at("--cpu-profile"), &prof);
+        if (rc != astrocs::OK) return rc;
+        out["cpu_profile"] = prof;
+        bool ok = false;
+        out["effective"]["cpu_profile_sha256"] = file_sha256(p.values.at("--cpu-profile"), &ok);
+    }
+    std::printf("%s\n", out.dump().c_str());
     return astrocs::OK;
 }
 
@@ -250,6 +390,183 @@ int cmd_stub(const Parsed& p, const std::string& phase, astrocs::JsonlEmitter& e
     return astrocs::ARGS;
 }
 
+// run manifest v1 原子写(tmp+rename; ARCH-002 §5 单元): stub/not-wired/cancelled 恒 incomplete
+int write_run_manifest(const std::string& out_dir, astrocs::JsonlEmitter& ev, const std::string& status,
+                       const std::string& summary, const std::string& config_path,
+                       const std::string& config_sha, const std::vector<int>& phases) {
+    nlohmann::json m = {
+        {"schema_version", "1"},
+        {"kind", "astrocs_run_manifest"},
+        {"run_id", ev.run_id()},
+        {"astrocs_version", ASTROCS_VERSION_STRING},
+        {"platform", {{"os",
+#ifdef _WIN32
+                       "windows"
+#else
+                       "linux"
+#endif
+                       },
+                      {"arch", "amd64"}}},
+        {"config_path", config_path},
+        {"config_sha256", config_sha},
+        {"cpu_profile_path", nullptr},
+        {"cpu_profile_sha256", nullptr},
+        {"phases", phases},
+        {"artifacts", nlohmann::json::array()},
+        {"status", status},
+        {"started_utc", astrocs::iso8601_utc_now()},
+        {"finished_utc", astrocs::iso8601_utc_now()},
+        {"summary", summary},
+    };
+    std::error_code ec;
+    std::filesystem::create_directories(std::filesystem::u8path(out_dir), ec);
+    const std::string final_path = out_dir + "/astrocs_run_" + ev.run_id() + ".json";
+    const std::string tmp_path = final_path + ".tmp";
+    {
+        std::ofstream f(std::filesystem::u8path(tmp_path), std::ios::binary | std::ios::trunc);
+        if (!f) {
+            std::fprintf(stderr, "astrocs: cannot write run manifest '%s'\n", tmp_path.c_str());
+            return astrocs::IO;
+        }
+        f << m.dump(2) << "\n";
+        if (!f.good()) return astrocs::IO;
+    }
+    std::filesystem::rename(std::filesystem::u8path(tmp_path), std::filesystem::u8path(final_path), ec);
+    if (ec) {
+        std::fprintf(stderr, "astrocs: cannot finalize run manifest: %s\n", ec.message().c_str());
+        return astrocs::IO;
+    }
+    ev.emit("artifact", "info", "manifest", "run manifest written",
+            {{"role", "run_manifest"}, {"path", final_path},
+             {"sha256", [&]{ bool ok=false; return file_sha256(final_path, &ok); }() }});
+    // --events-jsonl 模式下 stdout 只能是 JSON 事件(04 §3): 路径已入 artifact 事件
+    if (!ev.enabled()) std::printf("%s\n", final_path.c_str());
+    return astrocs::OK;
+}
+
+int cmd_run_pipeline(const Parsed& p, astrocs::JsonlEmitter& ev) {
+    const std::string cfg = need_value(p, "--config");
+    nlohmann::json doc;
+    int rc = validate_config_full(cfg, &doc);
+    if (rc != astrocs::OK) return rc;
+    bool ok = false;
+    const std::string cfg_sha = file_sha256(cfg, &ok);
+    if (!ok) return astrocs::INPUT;
+    // --phases: 1|2|3 的非空升序无重复逗号子集(04 示例: 1,2,3) — 先于任何写操作
+    std::vector<int> phases;
+    int last = 0;
+    for (char c : p.values.at("--phases")) {
+        if (c == ',') continue;
+        if (c < '1' || c > '3') parse_fail("invalid --phases");
+        const int v = c - '0';
+        if (v <= last) parse_fail("invalid --phases (must be ascending, unique)");
+        last = v;
+        phases.push_back(v);
+    }
+    if (phases.empty() || phases.size() > 3) parse_fail("invalid --phases");
+    // 取消检查点(真实 sleep 钩子沿用 cmd_stub 语义; 内核取消点在 CODE 域接线)
+    const char* sleep_ms = std::getenv("ASTROCS_TEST_SLEEP_MS");
+    if (sleep_ms) {
+        const long ms = std::strtol(sleep_ms, nullptr, 10);
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(ms);
+        ev.stage("run_wait", true);
+        while (std::chrono::steady_clock::now() < deadline) {
+            if (astrocs::is_cancelled()) {
+                ev.stage("run_wait", false);
+                rc = write_run_manifest(doc.value("output_dir", "."), ev, "incomplete",
+                                        "cancelled by user", cfg, cfg_sha, phases);
+                if (rc != astrocs::OK) return rc;
+                ev.emit_final(astrocs::CANCELLED, "cancelled", nullptr, "cancelled by user");
+                std::fprintf(stderr, "astrocs: cancelled\n");
+                return astrocs::CANCELLED;               // 04: 取消 → 9, manifest=incomplete
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        }
+        ev.stage("run_wait", false);
+    }
+    if (std::getenv("ASTROCS_TEST_CRASH")) throw std::runtime_error("selftest-crash");
+    // not-wired: 科学 handler 未接线 — 恒 incomplete, 禁伪造 complete(§2 硬性)
+    rc = write_run_manifest(doc.value("output_dir", "."), ev, "incomplete", "not_wired",
+                            cfg, cfg_sha, phases);
+    if (rc != astrocs::OK) return rc;
+    ev.emit_final(astrocs::ARGS, "not_wired", nullptr,
+                  "command is declared by the CLI contract but science handlers are wired in later tasks");
+    std::fprintf(stderr, "astrocs: '%s' is declared by the CLI contract but not wired in this build "
+                         "(see docs/api/CLI_PROTOCOL_V1.md)\n", p.join().c_str());
+    return astrocs::ARGS;
+}
+
+// verify: 04 §3 — manifest→status→version→输入 hash→逐 artifact(存在→sha→size)
+int cmd_verify(const Parsed& p, astrocs::JsonlEmitter& ev) {
+    if (!p.flags.count("--json")) parse_fail("verify requires --json");
+    const std::string mp = need_value(p, "--run-manifest");
+    std::ifstream f(std::filesystem::u8path(mp), std::ios::binary);
+    if (!f) {
+        std::fprintf(stderr, "astrocs: run manifest not found '%s'\n", mp.c_str());
+        return astrocs::INPUT;
+    }
+    std::stringstream buf; buf << f.rdbuf();
+    nlohmann::json m;
+    try {
+        m = nlohmann::json::parse(buf.str());
+    } catch (const nlohmann::json::parse_error& e) {
+        std::fprintf(stderr, "astrocs: manifest malformed JSON: %s\n", sanitize(e.what()).c_str());
+        return astrocs::INPUT;
+    }
+    if (!m.is_object() || m.value("kind", std::string()) != "astrocs_run_manifest" ||
+        m.value("schema_version", std::string()) != "1") {
+        std::fprintf(stderr, "astrocs: not a v1 astrocs_run_manifest document\n");
+        return astrocs::INPUT;
+    }
+    if (m.value("status", std::string()) != "complete") {
+        std::fprintf(stderr, "astrocs: run manifest status='%s' (incomplete run cannot be verified)\n",
+                     m.value("status", std::string()).c_str());
+        return astrocs::INTEGRITY;                        // 04: 输出完整性/验证失败 → 8
+    }
+    if (m.value("astrocs_version", std::string()) != ASTROCS_VERSION_STRING) {
+        std::fprintf(stderr, "astrocs: manifest was produced by version '%s', this is '%s'\n",
+                     m.value("astrocs_version", std::string()).c_str(), ASTROCS_VERSION_STRING);
+        return astrocs::BACKEND;                          // 04 §5(换版本不可 verify 旧 run)
+    }
+    int checked = 1;
+    if (m.contains("config_path") && !m["config_path"].is_null()) {
+        bool ok = false;
+        const std::string cur = file_sha256(m["config_path"].get<std::string>(), &ok);
+        if (!ok) {
+            std::fprintf(stderr, "astrocs: config input no longer readable\n");
+            return astrocs::INPUT;
+        }
+        if (cur != m.value("config_sha256", std::string())) {
+            std::fprintf(stderr, "astrocs: config changed since the run (hash mismatch)\n");
+            return astrocs::INPUT;
+        }
+        ++checked;
+    }
+    for (const auto& a : m.value("artifacts", nlohmann::json::array())) {
+        const std::string apath = a.value("path", std::string());
+        std::error_code ec;
+        if (!std::filesystem::exists(std::filesystem::u8path(apath), ec)) {
+            std::fprintf(stderr, "astrocs: artifact missing '%s'\n", apath.c_str());
+            return astrocs::INPUT;
+        }
+        bool ok = false;
+        const std::string sha = file_sha256(apath, &ok);
+        if (!ok || sha != a.value("sha256", std::string())) {
+            std::fprintf(stderr, "astrocs: artifact sha256 mismatch '%s'\n", apath.c_str());
+            return astrocs::INTEGRITY;
+        }
+        const auto size = std::filesystem::file_size(std::filesystem::u8path(apath), ec);
+        if (ec || static_cast<unsigned long long>(size) != a.value("size_bytes", 0ULL)) {
+            std::fprintf(stderr, "astrocs: artifact size mismatch '%s'\n", apath.c_str());
+            return astrocs::INTEGRITY;
+        }
+        ++checked;
+    }
+    nlohmann::json out = {{"verify", "ok"}, {"checked", checked}, {"manifest", mp}};
+    std::printf("%s\n", out.dump().c_str());
+    return astrocs::OK;
+}
+
 int dispatch(const Parsed& p) {
     const std::string joined = p.join();
     const bool events = p.flags.count("--events-jsonl") > 0;
@@ -270,8 +587,11 @@ int dispatch(const Parsed& p) {
         std::fputs(kHelp, stdout);
         return astrocs::OK;
     }
-    if (joined == "config init")      return cmd_config_init(p, ev);
-    if (joined == "config validate")  return cmd_config_validate(p, ev);
+    if (joined == "config init")           return cmd_config_init(p, ev);
+    if (joined == "config validate")       return cmd_config_validate(p, ev);
+    if (joined == "config show-effective") return cmd_show_effective(p, ev);
+    if (joined == "verify")                return cmd_verify(p, ev);
+    if (joined == "run")                   return cmd_run_pipeline(p, ev);
     if (joined == "test synthetic") {
         const std::string g = need_value(p, "--group");
         if (!kGroups.count(g)) parse_fail("invalid --group '" + g + "'");
@@ -279,22 +599,6 @@ int dispatch(const Parsed& p) {
     if (joined == "benchmark cpu") {
         const bool q = p.flags.count("--quick") > 0, full = p.flags.count("--full") > 0;
         if (q == full) parse_fail("benchmark cpu requires exactly one of --quick|--full");
-    }
-    if (joined == "run") {
-        const std::string ph = need_value(p, "--phases");
-        // --phases: 1|2|3 的非空升序无重复逗号子集(04 示例: 1,2,3)
-        std::vector<std::string> parts;
-        std::string cur;
-        std::stringstream ss(ph);
-        while (std::getline(ss, cur, ',')) parts.push_back(cur);
-        if (parts.empty() || parts.size() > 3) parse_fail("invalid --phases '" + ph + "'");
-        int last = 0;
-        for (const auto& s : parts) {
-            if (s.size() != 1 || s[0] < '1' || s[0] > '3') parse_fail("invalid --phases '" + ph + "'");
-            int v = s[0] - '0';
-            if (v <= last) parse_fail("invalid --phases '" + ph + "' (must be ascending, unique)");
-            last = v;
-        }
     }
     return cmd_stub(p, joined, ev);
 }
