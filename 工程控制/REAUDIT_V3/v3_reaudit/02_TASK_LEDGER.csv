@@ -50,7 +50,7 @@ WIN-002,G6,WIN-001,Windows full tests and sanitizer equivalent,yes,yes,CP6,PASS
 ACR-001,G6,WIN-002,CPU GPU Mixed route activation,yes,yes,CP6,BLOCKED
 ACR-002,G6,ACR-001,CPU GPU Mixed scientific equivalence,yes,yes,CP6,BLOCKED
 ACR-003,G6,ACR-002,GPU CPU utilization and fallback evidence,no,no,CP6,BLOCKED
-RUN-001,G7,CP6,historical A B export and build,no,no,CP7,NOT_STARTED
+RUN-001,G7,CP6,historical A B export and build,no,no,CP7,PASS
 RUN-002,G7,RUN-001,small representative A B C D gate,no,no,CP7,NOT_STARTED
 RUN-003,G7,RUN-002,32R A baseline once,no,no,CP7,NOT_STARTED
 RUN-004,G7,RUN-003,32R B baseline once,no,no,CP7,NOT_STARTED
