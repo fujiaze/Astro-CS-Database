@@ -1,1 +1,2 @@
 checkpoint_id,required_tasks,checked_at_utc,commit,checker_command,checker_exit,status,evidence
+C0,BASE-001 GOV-001,2026-08-28T13:22Z,15720f5efb2a93aaf855f348ae49223e509c70a6,python3 tools/check_agents_gov.py,0,PASS,artifacts/prerelease_v5/BASE-001/ + capsules/GOV-001_15720f5efb2a.zip
