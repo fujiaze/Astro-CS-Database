@@ -44,7 +44,7 @@ CLI-008,CODE,CLI-007,从发布目标移除旧 Phase 与 benchmark 可执行入�
 ABI-001,CPU,API-001|ARCH-003,实现稳定 C ABI v1 host services kernel table selftest,yes,yes,Linux,PASS
 ABI-002,CPU,ABI-001,实现 manifest hash CPUID XGETBV 和安全 DLL SO loader,yes,yes,Linux,PASS
 ABI-003,CPU,ABI-002,实现无 AVX 要求的 baseline backend 与动态多线程,yes,yes,Linux,PASS
-ISA-001,CPU,ABI-003,对已证明热点实现并验证 SSE4.1 backend,yes,yes,Linux,NOT_STARTED
+ISA-001,CPU,ABI-003,对已证明热点实现并验证 SSE4.1 backend,yes,yes,Linux,PASS
 ISA-002,CPU,ISA-001,对已证明热点实现并验证 AVX backend,yes,yes,Linux,NOT_STARTED
 ISA-003,CPU,ISA-002,对已证明热点实现并验证 AVX2 FMA backend,yes,yes,Linux,NOT_STARTED
 ISA-004,CPU,ISA-003,对已证明热点实现并验证 AVX512 backend,yes,yes,Windows,NOT_STARTED

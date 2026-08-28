@@ -71,7 +71,8 @@ class TestAbiV1(unittest.TestCase):
 
     def test_04_kernel_table_contracts(self):
         """kernel 表锚定 05 §5: 12 条目+science_contract_id 全非空+precision 合法。"""
-        text = open(os.path.join(SRC, "baseline_backend.cpp"), encoding="utf-8").read()
+        text = (open(os.path.join(SRC, "backend_table.inc"), encoding="utf-8").read() +
+                open(os.path.join(SRC, "baseline_backend.cpp"), encoding="utf-8").read())
         for kid in ("calibration-pixel-transform", "noise-snr-reductions", "wcs-psf-batch",
                     "drizzle-overlap", "drizzle-accumulate", "drizzle-normalize",
                     "upm-spmv", "upm-residual", "upm-weight-update",
