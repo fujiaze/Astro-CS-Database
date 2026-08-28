@@ -40,7 +40,7 @@ BLD-001,G5,CP4,root Linux build entry,yes,yes,CP5,PASS
 BLD-002,G5,BLD-001,AIO fPIC and shared-library portability,yes,yes,CP5,NOT_STARTED
 BLD-003,G5,BLD-002,remove Windows-only Linux build leaks,yes,yes,CP5,NOT_STARTED
 BLD-004,G5,BLD-003,remove static and cmd linker defects,yes,yes,CP5,NOT_STARTED
-TST-001,G5,BLD-004,Linux clean Release and Debug builds,no,no,CP5,NOT_STARTED
+TST-001,G5,BLD-004,Linux clean Release and Debug builds,no,no,CP5,PASS
 TST-002,G5,TST-001,unit module and contract tests,yes,yes,CP5,NOT_STARTED
 TST-003,G5,TST-002,ASan UBSan and race validation,yes,yes,CP5,NOT_STARTED
 TST-004,G5,TST-003,synthetic end-to-end CLI suite,yes,yes,CP5,NOT_STARTED
