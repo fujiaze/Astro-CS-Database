@@ -26,12 +26,12 @@
 #include <sstream>
 #include <string>
 #include <vector>
-
-#if defined(P2_ENABLE_OPENMP) && defined(_OPENMP)
-#include <omp.h>
 #include <atomic>
 #include <mutex>
 #include <thread>
+
+#if defined(P2_ENABLE_OPENMP) && defined(_OPENMP)
+#include <omp.h>
 #endif
 
 #define NOMINMAX
