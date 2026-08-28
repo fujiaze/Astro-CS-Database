@@ -1,6 +1,6 @@
 # WCS / PlateSolve Algorithms (ALG-WCS)
 
-> 上游 SCI: SCI-WCS-001  状态: DERIVED (T202 冻结, 2026-08-23)  模块: plate_solve/cpp/ipv
+> ID: ALG-WCS-001  范围: ALG-WCS-001..002  上游 SCI: SCI-WCS-001  状态: DERIVED (T202 冻结; V5 ALG-002 重验 2026-08-28)  模块: plate_solve/cpp/ipv
 
 ## 1 上游 SCI 与输入输出
 
@@ -65,9 +65,14 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 
 - 匹配 O(n log n)；SIP O(order²·49) LS；空间 O(n_triangles)
 
-## 7 CPU/GPU 划分
+## 7 CPU-only 后端策略（V5）
 
-- CPU 单线程；GPU 仅 Gaia 查询加速（若有），WCS 求解仍 CPU，容差与确定性门 `≤1e-6 deg` 等价。
+- 仅 CPU：求解为逐星/逐帧独立算术，可经 worker pool（按 affinity）帧级并行，**禁止硬编码线程数**；Gaia 查询由 gaia_xpsd_client 网络 IO 主导，无计算瓶颈。
+
+## 5c SIMD 安全与取消点
+
+- CD/SIP 矩阵算术逐元素独立；最小二乘(7×7 grid AP/BP)为确定性顺序归约(样本序固定)——**禁止并行重结合**；FP64 全链路禁 fast-math。
+- 取消点: 按帧(星表行块)粒度检查; 取消时丢弃半成品 trans 并返回错误码(语义随 API 冻结)。
 
 ## 8 参考实现/Oracle
 

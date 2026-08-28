@@ -1,6 +1,6 @@
 # PSF Algorithms (ALG-PSF)
 
-> 上游 SCI: SCI-PSF-001  状态: DERIVED (T201 冻结, 2026-08-23)  模块: star_detector + dynamic_psf
+> ID: ALG-STARPSF-001  上游 SCI: SCI-PSF-001  状态: DERIVED (T201 冻结; V5 ALG-002 重验 2026-08-28)  模块: star_detector + dynamic_psf
 
 ## 1 上游 SCI 与输入输出
 
@@ -65,9 +65,14 @@ Batch deterministic: input order fixed, per-star independent, reduction none cro
 
 - O(pixels) 检测 + O(n_stars × iter × patch) 拟合；空间 O(patch) per thread
 
-## 7 CPU/GPU 划分
+## 7 CPU-only 后端策略（V5）
 
-- 当前 CPU OpenMP；GPU 划分按星批 `n_stars` 切分，每星独立 kernel，`FWHM/flux` 归约仅 per-star 标量，等价门 `max_abs ≤1e-6`。
+- 仅 CPU：逐星独立 LM 拟合，worker pool（按 affinity）按星批并行，**禁止硬编码线程数**；per-star 结果与线程调度无关（无跨星归约）。
+
+## 5c SIMD 安全与取消点
+
+- 同星窗口内逐像素 residual 为逐元素算术(SIMD 安全: 无别名/行连续)；LM 内的 normal-equation 累加为**该星内固定顺序归约**(窗口行序)，禁重结合；FP32/FP64 IEEE-754, 禁 fast-math。
+- 取消点: 按星批粒度检查; 取消时未完成星不写结果(调用方以 status 判别)。
 
 ## 8 参考实现/Oracle
 
