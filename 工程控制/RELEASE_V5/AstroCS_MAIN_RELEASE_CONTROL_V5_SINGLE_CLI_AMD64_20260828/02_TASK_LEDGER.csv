@@ -20,7 +20,7 @@ ALG-006,ALG,SCI-006,Rejection Integration 离散算法,yes,yes,Linux,PASS
 ALG-007,ALG,SCI-007,Phase3 order WCS 重采样 FITS 算法,yes,yes,Linux,PASS
 REV-001,REVIEW,ALG-001|ALG-002|ALG-003|ALG-004|ALG-005|ALG-006|ALG-007,生成全量 SCI ALG 异步审阅胶囊,no,no,Linux,PASS
 ARCH-001,ARCH,GOV-001,盘点生产入口 线程池 队列 ACR 和 Phase 数据流,yes,yes,Linux,PASS
-ARCH-002,ARCH,ARCH-001|ALG-001|ALG-002|ALG-003|ALG-004|ALG-005|ALG-006|ALG-007,冻结单一 CLI 与 Phase1 2 3 架构,yes,yes,Linux,NOT_STARTED
+ARCH-002,ARCH,ARCH-001|ALG-001|ALG-002|ALG-003|ALG-004|ALG-005|ALG-006|ALG-007,冻结单一 CLI 与 Phase1 2 3 架构,yes,yes,Linux,PASS
 ARCH-003,ARCH,ARCH-001,冻结纯 CPU backend ABI loader 和逐 kernel 调度,yes,yes,Linux,NOT_STARTED
 ARCH-004,ARCH,ARCH-002|ARCH-003,冻结全局 thread budget 串并行异步与取消架构,yes,yes,Linux,NOT_STARTED
 ARCH-005,ARCH,ALG-007|ARCH-002|ARCH-004,冻结 Phase3 HiPS 到 FITS 模块架构,yes,yes,Linux,NOT_STARTED
