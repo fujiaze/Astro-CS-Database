@@ -57,6 +57,21 @@ MemoryReport bench_memory(uint64_t n_elements, int reps);
 /* 采集当前进程 RSS 字节(资源指标) */
 uint64_t current_rss_bytes();
 
+/* 噪声裕量选择(06 §4): 候选收益 < margin_rel(相对 median)时选更保守者。
+ * 返回胜出 backend_id; 无 OK 候选返回空。margin_rel=0 等价 select_winner。 */
+std::string select_with_noise_margin(const std::vector<BenchResult>& results,
+                                     const std::string& conservative_backend_id,
+                                     double margin_rel);
+
+/* 无 profile 行为(06 §6): 只 baseline; workers=有效 affinity(≥1, 禁退化为 1 当可用≥2);
+ * reason=no_valid_profile。 */
+struct NoProfilePolicy {
+    std::string backend_id;   // 恒 "baseline"
+    uint32_t workers;         // = 有效 affinity CPU 数
+    const char* reason;       // "no_valid_profile"
+};
+NoProfilePolicy no_profile_policy(uint32_t available_cpus);
+
 }  // namespace astrocs::backend_host
 
 #endif  // ASTROCS_BENCH_HARNESS_H
