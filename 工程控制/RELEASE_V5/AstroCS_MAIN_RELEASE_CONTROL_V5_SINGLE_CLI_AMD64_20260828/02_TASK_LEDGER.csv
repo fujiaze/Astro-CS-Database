@@ -23,7 +23,7 @@ ARCH-001,ARCH,GOV-001,盘点生产入口 线程池 队列 ACR 和 Phase 数据�
 ARCH-002,ARCH,ARCH-001|ALG-001|ALG-002|ALG-003|ALG-004|ALG-005|ALG-006|ALG-007,冻结单一 CLI 与 Phase1 2 3 架构,yes,yes,Linux,PASS
 ARCH-003,ARCH,ARCH-001,冻结纯 CPU backend ABI loader 和逐 kernel 调度,yes,yes,Linux,PASS
 ARCH-004,ARCH,ARCH-002|ARCH-003,冻结全局 thread budget 串并行异步与取消架构,yes,yes,Linux,PASS
-ARCH-005,ARCH,ALG-007|ARCH-002|ARCH-004,冻结 Phase3 HiPS 到 FITS 模块架构,yes,yes,Linux,NOT_STARTED
+ARCH-005,ARCH,ALG-007|ARCH-002|ARCH-004,冻结 Phase3 HiPS 到 FITS 模块架构,yes,yes,Linux,PASS
 API-001,API,ARCH-002|ARCH-003|TRACE-001,定义公共类型 配置 error cancel ownership 和 ABI,yes,yes,Linux,NOT_STARTED
 API-002,API,API-001|ARCH-002,定义 CLI 命令 JSON JSONL exit code schema,yes,yes,Linux,NOT_STARTED
 API-003,API,API-001|ALG-001|ALG-002|ALG-003,定义 Phase1 内部 API 全函数合同,yes,yes,Linux,NOT_STARTED
