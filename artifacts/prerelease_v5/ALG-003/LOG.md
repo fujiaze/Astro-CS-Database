@@ -17,3 +17,9 @@ docs/algorithms/NOISE_ESTIMATION.md; 本日志。
 
 ## PASS 判定
 离散公式从 SCI-NOISE §5 推导(既有 12 节含数据布局/误差预算保留); 归约误差=固定序+禁重结合; 复杂度 O(pixels)/LS O(64); 并行性 patch 级无硬编码; SIMD 安全+取消点冻结。ALG-003 = PASS。
+
+## 流程违规与补正 (2026-08-28 同日)
+- 违规: 置 IN_PROGRESS 的 sed 使用了错误任务名("Noise UPM 离散算法 误差 复杂度 并行性"), 实际账本任务名为"Noise SNR 离散算法与归约误差", 未匹配→行停留 NOT_STARTED; 置 PASS 的 sed 匹配 IN_PROGRESS 亦未生效; commit 76e5383 内账本行为 NOT_STARTED(状态机违规: NOT_STARTED→PASS 直跳, 且工作 commit 未含状态更新)。
+- 约束: 已推送历史不可改写(AGENTS 禁破坏性 Git)。
+- 补正: 本补正 commit 将账本行置 PASS, 并在此公开披露违规; ALG-003 的测试/证据/胶囊(76e5383 时间点已生成)本身真实有效。
+- 教训入 memory: sed 改账本前必须先 grep 实际任务名并断言 grep 计数=1。
