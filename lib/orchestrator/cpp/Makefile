@@ -41,6 +41,13 @@ endif
 SRC_DIR = src
 INCDIR = include
 TEST_DIR = tests
+# BLD-004: 测试目录创建命令跨平台化 — make 在 Windows 走 cmd.exe、Linux 走 sh,
+# 'mkdir -p'(sh) 与 'if not exist ... mkdir'(cmd) 互不兼容, 按 OS 显式选择:
+ifeq ($(OS),Windows_NT)
+MKDIR_TESTDIR = cmd /c "if not exist $(TEST_DIR) mkdir $(TEST_DIR)"
+else
+MKDIR_TESTDIR = mkdir -p $(TEST_DIR)
+endif
 
 # 源文件列表 (Phase1 JSON 入口: 删除 cli_repl, 新增 json_config)
 SRCS = $(SRC_DIR)/main.cpp \
@@ -89,7 +96,7 @@ $(TARGET): $(SRCS) $(HEADERS)
 test_dll_loader: $(TEST_DLL_LOADER)
 
 $(TEST_DLL_LOADER): $(TEST_DIR)/test_dll_loader.cpp $(SRC_DIR)/dll_loader.cpp $(INCDIR)/dll_loader.h
-	@mkdir -p $(TEST_DIR)
+	@$(MKDIR_TESTDIR)
 	$(CXX) $(CXXFLAGS) -o $@ $(TEST_DIR)/test_dll_loader.cpp $(SRC_DIR)/dll_loader.cpp $(INCLUDES) $(LDFLAGS) -lm
 
 # ============================================================================
@@ -98,7 +105,7 @@ $(TEST_DLL_LOADER): $(TEST_DIR)/test_dll_loader.cpp $(SRC_DIR)/dll_loader.cpp $(
 test_checkpoint: $(TEST_CHECKPOINT)
 
 $(TEST_CHECKPOINT): $(TEST_DIR)/test_checkpoint.cpp $(SRC_DIR)/checkpoint.cpp $(INCDIR)/checkpoint.h
-	@mkdir -p $(TEST_DIR)
+	@$(MKDIR_TESTDIR)
 	$(CXX) $(CXXFLAGS) -o $@ $(TEST_DIR)/test_checkpoint.cpp $(SRC_DIR)/checkpoint.cpp $(INCLUDES) $(LDFLAGS) -lm
 
 # ============================================================================
@@ -107,7 +114,7 @@ $(TEST_CHECKPOINT): $(TEST_DIR)/test_checkpoint.cpp $(SRC_DIR)/checkpoint.cpp $(
 test_logger: $(TEST_LOGGER)
 
 $(TEST_LOGGER): $(TEST_DIR)/test_logger.cpp $(SRC_DIR)/logger.cpp $(INCDIR)/logger.h
-	@mkdir -p $(TEST_DIR)
+	@$(MKDIR_TESTDIR)
 	$(CXX) $(CXXFLAGS) -o $@ $(TEST_DIR)/test_logger.cpp $(SRC_DIR)/logger.cpp $(INCLUDES) $(LDFLAGS) -lm
 
 # ============================================================================
@@ -131,7 +138,7 @@ $(TEST_ORCHESTRATOR_CLI): $(TEST_DIR)/test_orchestrator_cli.cpp \
                           $(INCDIR)/logger.h \
                           $(INCDIR)/cli_command.h \
                           $(INCDIR)/json_config.h
-	@mkdir -p $(TEST_DIR)
+	@$(MKDIR_TESTDIR)
 	$(CXX) $(CXXFLAGS) -o $@ $(TEST_DIR)/test_orchestrator_cli.cpp \
 	    $(SRC_DIR)/orchestrator.cpp ../../common/healpix/healpix_core.cpp \
 	    ../../common/crypto/sha256.cpp \
