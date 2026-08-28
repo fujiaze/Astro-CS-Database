@@ -1,1 +1,2 @@
 capsule_id,task_id,commit_sha,path,sha256,size_bytes,review_scope,submitted_at_utc,review_status,review_findings
+CAP-VER-001,VER-001,9fe142e0970c8e3ef70a68368c21452d9348e281,artifacts/prerelease_v5/capsules/VER-001_9fe142e0970c.zip,19d5678173dece1f5cc7d1608d028fdbd1f78124b121c82fda37486cb96f7b53,19KB,version-source-docs-tests,2026-08-28T13:45Z,PENDING
