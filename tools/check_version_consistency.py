@@ -16,7 +16,7 @@ SELF_FIXTURE = os.path.join("tests", "version", "test_version_consistency.py")  
 EXEMPT = ("hips_version", "DatabaseVersion", "schema_version", "cap.version", "driver",
           "X.Y.Z", "MAJOR.MINOR.PATCH", "healpix", "cfitsio", "fitsio", "opencl", "example",
           "g++", "gcc", "cmake", "ninja", "mingw", "msys2", "siril", "wbpp", "pcl", "rcr",
-          "python", '"version":', "clang")
+          "python", '"version":', "clang", "ivoa")
 SKIP_DIRS = {".git", "build", "run", "reports", "archive", "testdata", "工程控制",
              "BASS DR3", "lib", "AstroCS.wiki", "tools", "__pycache__"}
 

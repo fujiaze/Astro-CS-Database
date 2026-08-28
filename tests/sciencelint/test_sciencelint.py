@@ -38,3 +38,17 @@ class TestSciLint(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+class TestAlgLint(unittest.TestCase):
+    def test_06_alg_doc_passes(self):
+        r = __import__("subprocess").run([sys.executable, os.path.join(REPO, "tools", "science_contract_lint.py"),
+                                          "--kind", "alg", "docs/algorithms/CALIBRATION_ALGORITHMS.md"],
+                                         capture_output=True, text=True, cwd=REPO)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("kind=alg files=1 sections=10", r.stdout)
+
+    def test_07_no_hardcoded_threads_mutation(self):
+        """V5 硬约束 mutation: 回填 num_threads(16) 硬编码必须被内容检查抓住(词法级)。"""
+        s = open(os.path.join(REPO, "docs/algorithms/CALIBRATION_ALGORITHMS.md"), encoding="utf-8").read()
+        self.assertNotIn("num_threads(", s, "算法文档不得出现硬编码线程数")
+        self.assertNotIn("GPU 扩展", s, "V5 为 CPU-only, 不得含 GPU 扩展路径")

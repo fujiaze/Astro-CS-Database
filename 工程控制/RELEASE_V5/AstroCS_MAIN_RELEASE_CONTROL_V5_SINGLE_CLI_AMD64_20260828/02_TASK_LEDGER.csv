@@ -11,7 +11,7 @@ SCI-004,SCI,DOC-001,Drizzle support flux covariance 科学合同与文献,yes,ye
 SCI-005,SCI,DOC-001,UPM 光度面 接缝 正则化科学合同,yes,yes,Linux,PASS
 SCI-006,SCI,DOC-001,Rejection Integration 科学合同与文献,yes,yes,Linux,PASS
 SCI-007,SCI,DOC-001,Phase3 HiPS 球面到平面 FITS 科学合同与文献,yes,yes,Linux,PASS
-ALG-001,ALG,SCI-001,Calibration 离散算法 误差 复杂度 并行性,yes,yes,Linux,NOT_STARTED
+ALG-001,ALG,SCI-001,Calibration 离散算法 误差 复杂度 并行性,yes,yes,Linux,PASS
 ALG-002,ALG,SCI-002,WCS PSF Photometry 离散算法,yes,yes,Linux,NOT_STARTED
 ALG-003,ALG,SCI-003,Noise SNR 离散算法与归约误差,yes,yes,Linux,NOT_STARTED
 ALG-004,ALG,SCI-004,Drizzle 离散算法与支持域,yes,yes,Linux,NOT_STARTED
