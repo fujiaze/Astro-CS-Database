@@ -58,8 +58,8 @@ int main() {
     check(api.kernel_count == 12, "kernel table 12 entries (05 §5)");
     check(std::strcmp(api.kernels[0].science_contract_id, "ALG-001") == 0, "kernel contract id");
     check(api.nested_parallel_allowed == 0, "no nested parallel");
-    check(api.kernels[0].fn(&host, nullptr, 0, nullptr, nullptr) == ACS_ERR_UNSUPPORTED,
-          "kernel stub explicit UNSUPPORTED (ABI-003 落地前)");
+    check(api.kernels[0].fn(&host, nullptr, 0, nullptr, nullptr) == ACS_ERR_PARAM,
+          "kernel null params explicit PARAM (ABI-003 baseline 实现后)");
 
     // ── self_test + allocator 可验证性 ──
     const long before_total = astrocs_host_state_alloc_total(state);
