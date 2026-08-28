@@ -76,3 +76,24 @@ function TargetGeomCache.get(target_ipix):
 
 - API: spherical_overlap.h: compute_overlap_area_g_ctx, drizzle_engine.h: drizzleTiled
 - TST: TEST-ALG-DRZ-* candidate/overlap/cache, UPMW-005 MC
+
+## 11 数据布局
+
+- 输入：源帧像素（+WCS）→ 四角 `Vec3` 单位向量（每顶点 16B，就地；`half=0.5·pixfrac` 收缩）。
+- 目标：NESTED leaf 4 角（nside≥256 用 `boundary4`，低 nside 自适应细分）→ 球面多边形 `vector<Vec3>`。
+- 缓冲三层（LRU geometry cache，容量 8192 target-ipix）：① 快速拒绝 `lim=max_angle+1.25·hp_res`；
+  ② 保守查询圆 `query_radius=max_angle+3.0·hp_res`；③ fast buffer `1.25·hp_res`。
+- 每 (drop, target) 交集：`a_jp` 面积、`w_jp=a_jp/A_drop,j` 标量；`TargetGeomCache::get_or_build`、
+  `run_target_cache` 显式缓存与清理。
+- 内存：单交集 O(顶点数≤8)，无整帧副本；缓存按 run generation 清空（`spherical_overlap.cpp:40,573,773-931`）。
+
+## 12 误差预算
+
+- 面积精度：球面 Sutherland–Hodgman + Girard，双精度修正，float 面积 **0.05%**（§9 冻结）；
+- arc-chord：`1e-6·hp_res` 近似（§9 冻结）；
+- 微小交集 `max_angle<1e-3 rad`：切平面近似保持 `w=overlap/drop_area` 一致（`spherical_overlap.cpp:75`）；
+- 候选保守性：查询半径 `3.0·hp_res` 对 `1.25·hp_res` 缓冲 → 零漏选（`candidate_oracle_test` 9003 例
+  `false_negative=0`；RA 跨 0 / 极区 / face 边界 / 4 pixfrac × 5 尺度 × 7 nside 全枚举）；
+- 缓存：LRU 8192 定点优化，运行期清空，科学等价 + 操作计数（`ALG-DRZ-GEOM-CACHE-001`）；
+- 排序：**几何面积误差(0.05%) ≪ 候选查询保守性(零漏选) ≪ 门禁容差**。各 F 步骤映射：
+  `F1`→`compute_overlap_area_g_ctx_cached`（`TEST-ALG-DRZ-*`）；`F6`→`spherical_overlap.cpp:75`。
