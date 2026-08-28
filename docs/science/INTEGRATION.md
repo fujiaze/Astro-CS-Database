@@ -1,6 +1,6 @@
 # Integration / Coaddition Science (SCI-INT)
 
-> ID: SCI-INT-001,002,004,008  状态: FROZEN (T108 冻结, 2026-08-23)  上游: SCI-SCOPE-001  下游 ALG: ALG-INT-001..  模块: phase2 (integrate)
+> ID: SCI-INT-001  集合: SCI-INT-001,002,004,008  状态: FROZEN (T108 冻结, 2026-08-23)  上游: SCI-SCOPE-001  下游 ALG: ALG-INT-001..  模块: phase2 (integrate)
 
 ## 1 目的与非目标
 
@@ -116,3 +116,27 @@
 - 实现: `lib/phase2/src/integrate.cpp` (10-79), `lib/phase2/include/astro/phase2/integrate.h` (P2PixelStack/Result, P2_INTEGRATE_*)
 - 公开 API: `p2_integrate_pixel, p2_validate_candidate_weights`
 - 测试: `TST-INT-001` 常量场、`TST-INT-ZERO` 零权重、`TST-INT-FAIL-*` 四态、支撑 `max` 门（新增/映射见 `docs/TRACEABILITY.csv`）
+
+## 3a 坐标 frame
+
+积分在**像素栈域**逐像素独立进行（每 `P2PixelStack` 一个位置）；无 WCS/重投影（天区重投影=SCI-DRIZZLE 非目标，§1）；候选携带 `frame_id`（DATA_SEMANTICS §5），聚合不丢失样本身份（n_used/权重可追溯）。
+
+## 9a 专属问题回答（SCI-006 指定问题逐项）
+
+- **integration 权重**：`weights[i]`=逐候选科学权重（可空=等权 1.0），来源为 SCI-NOISE ivar/SCI-UPM 权重链；本层不做权重策略（§1 非目标）。
+- **归一**：`signal=Σ_{valid,W>0} w_i·x_i / wsum`（wsum=权重归一）；`support`=canonical reducer `max(accepted support)`（禁止 mean/sum 二次聚合，§10）。
+- **mask/eligibility**：`valid(i)=accepted ∧ finite(x) ∧ (support>0) ∧ (w≥0)`；`accepted` 为排异层产物（SCI-REJ）；非法输入显式 `INVALID_INPUT`，无正权显式 `ALL_REJECTED/ZERO_VALID_WEIGHT`，禁止静默 0（§5 状态码）。
+- **frame identity**：聚合输出不携带逐样本身份，但 `n_accepted/n_used` 与 accepted 掩膜保证可追溯；重复 frame_id 由 UPM 构建层显式拒绝（DATA_SEMANTICS §5）。
+
+## 14 Primary literature（引用定位声明）
+
+1. 加权均值/逆方差聚合：教科书级（Project-defined，权重语义由 SCI-NOISE/SCI-UPM 冻结）。
+2. `support=max` canonical reducer：**Project-defined**（覆盖并集保守下界，§5 注释）；无外部公式。
+3. 无外部文献依赖；协方差不存矩阵（UNCERTAINTY_AND_COVARIANCE.md 文档化）。
+
+## 15 Acceptance
+
+- §11 Oracle 全过（以 §11 列门为准：状态码/权重归一/support reducer/NaN 拒）；
+- §7 不变量门全过；
+- `tools/science_contract_lint.py` PASS；
+- 解析不变量→SYN-006 转换：已知 inlier/outlier 栈、多权重组合、weighted result 解析值、identity 保持用例登记 SYN-006。
