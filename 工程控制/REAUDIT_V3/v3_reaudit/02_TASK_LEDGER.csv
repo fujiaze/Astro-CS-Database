@@ -22,19 +22,19 @@ ALG-002,G3,ALG-001,drizzle derivation and complexity,yes,yes,CP3,PASS
 ALG-003,G3,ALG-002,UPM derivation convergence and complexity,yes,yes,CP3,PASS
 ALG-004,G3,ALG-003,rejection integration derivation,yes,yes,CP3,PASS
 ORA-001,G3,ALG-004,scientific oracle suite,yes,yes,CP3,PASS
-ARCH-001,G4,CP3,module and dataflow architecture,yes,yes,CP4,NOT_STARTED
-ARCH-002,G4,ARCH-001,serial parallel async GPU execution architecture,yes,yes,CP4,NOT_STARTED
-API-001,G4,ARCH-002,machine API extraction schema,yes,yes,CP4,NOT_STARTED
-API-002,G4,API-001,AIO calibration platesolve API semantics,yes,yes,CP4,NOT_STARTED
-API-003,G4,API-002,SNR drizzle HiPS API semantics,yes,yes,CP4,NOT_STARTED
-API-004,G4,API-003,phase2 UPM rejection integration API semantics,yes,yes,CP4,NOT_STARTED
-API-005,G4,API-004,ACR dispatcher backend API semantics,yes,yes,CP4,NOT_STARTED
-DOC-001,G4,API-005,public and scientific-core function documentation,yes,yes,CP4,NOT_STARTED
-CHK-001,G4,DOC-001,traceability checker repair,yes,yes,CP4,NOT_STARTED
-CHK-002,G4,CHK-001,API signature and semantic checker repair,yes,yes,CP4,NOT_STARTED
-CHK-003,G4,CHK-002,science unit and formula checker repair,yes,yes,CP4,NOT_STARTED
-CHK-004,G4,CHK-003,execution and config checker repair,yes,yes,CP4,NOT_STARTED
-CHK-005,G4,CHK-004,test build doc checker repair,yes,yes,CP4,NOT_STARTED
+ARCH-001,G4,CP3,module and dataflow architecture,yes,yes,CP4,PASS
+ARCH-002,G4,ARCH-001,serial parallel async GPU execution architecture,yes,yes,CP4,PASS
+API-001,G4,ARCH-002,machine API extraction schema,yes,yes,CP4,PASS
+API-002,G4,API-001,AIO calibration platesolve API semantics,yes,yes,CP4,PASS
+API-003,G4,API-002,SNR drizzle HiPS API semantics,yes,yes,CP4,PASS
+API-004,G4,API-003,phase2 UPM rejection integration API semantics,yes,yes,CP4,PASS
+API-005,G4,API-004,ACR dispatcher backend API semantics,yes,yes,CP4,PASS
+DOC-001,G4,API-005,public and scientific-core function documentation,yes,yes,CP4,PASS
+CHK-001,G4,DOC-001,traceability checker repair,yes,yes,CP4,PASS
+CHK-002,G4,CHK-001,API signature and semantic checker repair,yes,yes,CP4,PASS
+CHK-003,G4,CHK-002,science unit and formula checker repair,yes,yes,CP4,PASS
+CHK-004,G4,CHK-003,execution and config checker repair,yes,yes,CP4,PASS
+CHK-005,G4,CHK-004,test build doc checker repair,yes,yes,CP4,PASS
 CHK-006,G4,CHK-005,checker mutation gate,no,no,CP4,NOT_STARTED
 BLD-001,G5,CP4,root Linux build entry,yes,yes,CP5,NOT_STARTED
 BLD-002,G5,BLD-001,AIO fPIC and shared-library portability,yes,yes,CP5,NOT_STARTED

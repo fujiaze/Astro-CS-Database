@@ -21,14 +21,14 @@
 |---|---|---|
 | `local_snr` | 区域级局部 SNR（有局部星点可得时） | `stage2.cpp:383-396`（`local_snr_map`） |
 | `frame_snr` | 整帧 Phase1 SNR 目录中位数（回退基准） | `stage2.cpp:74,250,402`（`frame_snr_medians`） |
-| `snr_available` | 该控制观测是否含真实可用局部 SNR | `stage2.cpp:387` |
+| snr_available | 该控制观测是否含真实可用局部 SNR | `stage2.cpp:387` |
 | `frame quality` | 每星点 Phase1 SNR 目录质量位（uint32 位掩码） | `sampler.cpp:145,259`（`quality`, `out_qual`） |
 | `kSnrCatalogMax` | SNR 目录质量槽上限 | `sampler.cpp:568` |
 | `w_snr` | SNR 权重因子 `= snr_v²` | 积分/排异权重 |
 
 ## 3 物理量和单位
 
-- `local_snr`、`frame_snr`：**无量纲**（SNR 倍率）；`snr_v²`：无量纲权重因子；
+- `local_snr`、`frame_snr`：**无量纲**（SNR 倍率）；snr_v²：无量纲权重因子；
 - `frame quality`：**uint32 位掩码**（星点目录质量位），非浮点标量；
 - 坐标：frame_id（无单位）、tile（HEALPix 级 11 分块）、8×8 区域 gx/gy（像素单元）。
 
@@ -60,14 +60,14 @@ for 每个控制星 s（半径内）:
 - **局部优先，整帧回退**：有局部星点的 cell 用 `local_snr`；无局部星点回退整帧 SNR 中位数；
 - **snr=1.0 不允许作为 unknown 伪装**：缺失走整帧 median 回退并计数
   `local_snr_unavailable`（stage2.cpp:380-389,400-405）；
-- **`snr_available` 位保留**：即使回退为整帧 median，`snr_available` 仍记录；
+- **snr_available 位保留**：即使回退为整帧 median，snr_available 仍记录；
 - **质量控制位为 OR 累积**（非均值/加权），表达"半径内任一惊星目录质量满足"的覆盖性语义；
 - **与 SCI-NOISE 区隔**：`variance/ivar` 为逐像素随机噪声权重；`local_snr/frame_snr` 为
   区域/帧级 SNR 倍率权重；二者**不混用**。
 
 ## 6 独立不变量
 
-- **局部优先不变量**：存在 `snr_available` 局部观测的 cell 优先用局部 SNR，不回退；
+- **局部优先不变量**：存在 snr_available 局部观测的 cell 优先用局部 SNR，不回退；
 - **无伪 unknown**：`snr=1.0` 不作为缺失标记（缺失→回退整帧 median 而非伪装 1.0）；
 - **量纲区隔**：SNR（无量纲）与 `variance/ivar`（ADU²/ADU⁻²）不混用；
 - **质量位非浮点**：`frame quality` 为位掩码，不参与算术权重，仅作覆盖性 OR。
