@@ -17,7 +17,7 @@ ALG-003,ALG,SCI-003,Noise SNR 离散算法与归约误差,yes,yes,Linux,PASS
 ALG-004,ALG,SCI-004,Drizzle 离散算法与支持域,yes,yes,Linux,PASS
 ALG-005,ALG,SCI-005,UPM 稀疏求解与接缝算法,yes,yes,Linux,PASS
 ALG-006,ALG,SCI-006,Rejection Integration 离散算法,yes,yes,Linux,PASS
-ALG-007,ALG,SCI-007,Phase3 order WCS 重采样 FITS 算法,yes,yes,Linux,NOT_STARTED
+ALG-007,ALG,SCI-007,Phase3 order WCS 重采样 FITS 算法,yes,yes,Linux,PASS
 REV-001,REVIEW,ALG-001|ALG-002|ALG-003|ALG-004|ALG-005|ALG-006|ALG-007,生成全量 SCI ALG 异步审阅胶囊,no,no,Linux,NOT_STARTED
 ARCH-001,ARCH,GOV-001,盘点生产入口 线程池 队列 ACR 和 Phase 数据流,yes,yes,Linux,NOT_STARTED
 ARCH-002,ARCH,ARCH-001|ALG-001|ALG-002|ALG-003|ALG-004|ALG-005|ALG-006|ALG-007,冻结单一 CLI 与 Phase1 2 3 架构,yes,yes,Linux,NOT_STARTED
