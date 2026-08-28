@@ -2,7 +2,7 @@ task_id,phase,depends_on,scope,required_commit,required_push,preferred_host,stat
 BASE-001,BASE,,冻结当前 main 身份与 V3 V4 风险清单,no,no,Linux,PASS
 GOV-001,BASE,BASE-001,合并精简 AGENTS 规则与连续执行状态机,yes,yes,Linux,PASS
 VER-001,DOC,GOV-001,建立 alpha 单一版本源与机器化同步检查,yes,yes,Linux,PASS
-TRACE-001,DOC,GOV-001,建立 SCI ALG ARCH API CODE TEST 追溯 schema 与检查器,yes,yes,Linux,NOT_STARTED
+TRACE-001,DOC,GOV-001,建立 SCI ALG ARCH API CODE TEST 追溯 schema 与检查器,yes,yes,Linux,PASS
 DOC-001,DOC,TRACE-001,冻结术语 单位 坐标 frame weight variance mask 词典,yes,yes,Linux,NOT_STARTED
 SCI-001,SCI,DOC-001,Calibration 科学合同与文献,yes,yes,Linux,NOT_STARTED
 SCI-002,SCI,DOC-001,WCS PSF Photometry 科学合同与文献,yes,yes,Linux,NOT_STARTED

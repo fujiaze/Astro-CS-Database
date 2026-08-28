@@ -1,1 +1,7 @@
 claim_id,science_doc,science_anchor,algorithm_doc,algorithm_anchor,architecture_doc,api_symbol,source_symbol,test_id,oracle_id,unit,precision_contract,status
+SCI-VER-001,docs/VERSIONING.md,1-唯一版本源,,,,,,,,dimensionless,版本串逐字符精确匹配,ACTIVE
+ALG-VER-001,docs/VERSIONING.md,1-唯一版本源,docs/VERSIONING.md,2-生成接口,,,,,,dimensionless,版本串逐字符精确匹配,ACTIVE
+ARCH-VER-001,docs/VERSIONING.md,1-唯一版本源,docs/VERSIONING.md,2-生成接口,docs/VERSIONING.md#3-同步矩阵,,,,,dimensionless,版本串逐字符精确匹配,ACTIVE
+API-VER-001,docs/VERSIONING.md,1-唯一版本源,docs/VERSIONING.md,2-生成接口,docs/VERSIONING.md#3-同步矩阵,tools/gen_version.py::build_report,,,,dimensionless,--version--json七字段合同,ACTIVE
+CODE-VER-001,docs/VERSIONING.md,1-唯一版本源,docs/VERSIONING.md,2-生成接口,docs/VERSIONING.md#3-同步矩阵,tools/gen_version.py::build_report,tools/gen_version.py,,,dimensionless,版本串逐字符精确匹配,ACTIVE
+TEST-VER-001,docs/VERSIONING.md,1-唯一版本源,docs/VERSIONING.md,2-生成接口,docs/VERSIONING.md#3-同步矩阵,tools/gen_version.py::build_report,tools/gen_version.py,tests/version/test_version_consistency.py,ORC-VER-001,dimensionless,5用例全过+schema校验,ACTIVE
