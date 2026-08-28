@@ -5,11 +5,18 @@
 
 ## 1 构建（TST-001 / BLD-001）
 
-- 目标构建成功：`cmake --build build/linux-openmp-on --target phase2_synthetic_gate
-  phase2_ivar_wiring phase2_execution_options -j4` → `[100%] Built`, exit 0（gcc 14.2, Release+OpenMP）。
-- **BLD-001（已提供+验证）**：新增根级 `build.sh`（配置+构建+测试入口）。`./build.sh Release`
-  全新 build 目录（P2_ENABLE_OPENMP=ON）→ 配置成功 → 构建 phase2+5 测试目标 → 从仓库根运行
-  → **5/5 PASS, FAIL=0, BLD-001_RESULT=OK**（exit 0）。日志 `run/logs/build_release.log`。
+- **BLD-001（已提供+验证）**：根级 `build.sh`（configure/build/test 入口）。`./build.sh Release`
+  全新 build 目录（P2_ENABLE_OPENMP=ON）→ 配置成功 → 构建 → 运行 → **5/5 PASS, FAIL=0,
+  BLD-001_RESULT=OK**（exit 0）。日志 `run/logs/build_release.log`。
+- **TST-001**：
+  - **Release**（`build/run-release`）：GNU 14.2.0；**0 error / 0 warning**；产物 `libphase2.a`
+    (1.25MB) + 5 测试二进制（phase2_synthetic_gate 2.2MB / ivar_wiring 1.05MB /
+    execution_options 754KB / routing 742KB / async_io 658KB）；`phase2_synthetic_gate`
+    SHA=`f7a1db38b971…`。
+  - **Debug**（`build/run-debug`）：GNU 14.2.0；**0 error / 0 warning**；构建+4/5 测试通过。
+  - **TST-001 结论**：Release+Debug 全链路构建成功、0 error、0 new warning ⇒ 判 **PASS**。
+  - **Debug 测试超时告警（TST-002 关注）**：Debug `phase2_synthetic_gate` 在内部 **60s 看门狗**
+    超时（Debug 较慢），Release 通过（≈33s）。属测试执行超时，非构建/logic 问题。
 - **sampler.cpp 构建修复**：`<atomic>/<mutex>/<thread>` 原仅在内嵌 `P2_ENABLE_OPENMP&&_OPENMP`
   守卫内包含，但 `std::mutex g_aio_mu`/`lock_guard` 无条件使用（line 164,169,691,692）。
   `P2_ENABLE_OPENMP` 默认 OFF（CMakeLists:18）⇒ 默认/非 OpenMP 构建无法编译（gcc 报
