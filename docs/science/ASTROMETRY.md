@@ -28,6 +28,11 @@
 
 - `x,y,xp,CRPIX`: pixel；`CD`: deg/pixel；`cd_inv`: pixel/arcsec；`SIP A/B/AP/BP`: `1/pixel^{i+j-1}`；`RA`: deg `[0,360)`, `Dec`: deg `[-90,90]`；`σ` 质心误差: pixel；`rms`: pixel/arcsec。
 
+## 3a 坐标 frame
+
+- 天球 frame：**ICRS/J2000**（Gaia DR3 星表同系）；`RA∈[0,360)`, `Dec∈[-90,90]`（GLOSSARY `ra_dec`）。
+- 像素约定：内部 0-based `x,y`，FITS 输出 1-based `xp=x+1`，`CRPIX` 1-based 恒为 `(w/2+0.5, h/2+0.5)`（§7 不变量）；FITS 输出执行 Y-up→Y-down 翻转（§5），`|det(CD)|` 不变。
+
 ## 4 输入有效域
 
 - 维度 `w>0,h>0`，星点列表非空；`CRPIX` 按 `w/2+0.5` 冻结；`trans.order` 2–3 阶；`NB_GRID=7` 用于逆向拟合。
@@ -84,6 +89,13 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 
 - FP64 全链路；`CD` 与 SIP 系数以 `double` 写入 FITS 头；`NB_GRID=7` 最小二乘拟合 `AP/BP`，残差 `rms_px` 写入诊断。
 
+## 9a 专属问题回答（SCI-002 指定问题逐项）
+
+- **WCS frame/pixel convention**：ICRS/J2000；CRPIX 1-based 冻结公式（§7）；`xp=x+1`；`CD` deg/px；SIP 系数单位 `1/px^{i+j-1}`；FITS 输出 Y-down 翻转（§5）。
+- **PSF 参数**：椭圆 Moffat4 七参数 `B,A,x0,y0,sx,sy,θ`，`FWHM≈1.230310·σ`，解析通量 `flux=2πA·sxsy/3`（PSF.md §2/§5），供星点建模与剔星。
+- **aperture/flux/background**：本链为 PSF 拟合通量域，非孔径测光；PSF 背景 `B` 在模型内联合拟合（dpsf §5）；aperture 孔径测光不在 SCI-002 范围，若引入必须新 claim 冻结。
+- **photometric scale 与不确定度**：`scale=10^{−location}`，`sigma_mag=2.5·sigma_residual`，`sigma_cal_rel=ln10·sigma_residual`（PHOTOMETRY.md §5/§3）；WCS 残差以 `rms_px` 诊断表达，不并入光度不确定度。
+
 ## 10 不可接受变化
 
 - 改变 `CRPIX` 冻结公式或 `1-based ↔ 0-based` 换算；
@@ -109,3 +121,16 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 - 实现: `lib/plate_solve/cpp/ipv/src/ipv_wcs.cpp` (`build_wcs, CRPIX, cd_inv, SIP A/B/AP/BP, Y-down`), `lib/plate_solve/cpp/ipv/src/ipv_entry.cpp` (`ipv_solve_from_detections_v1`), `lib/gaia_xpsd_client/src/gaia_client.c` (`polar_plane_intersects, bbox_intersects`)
 - 公开 API: `lib/plate_solve/cpp/ipv/include/ipv_api.h` (`ipv_solve_from_detections_v1`), `lib/plate_solve/cpp/ipv/include/ipv_wcs.h` (`build_wcs`)
 - 测试: `TST-WCS-001` Astropy 比对、`TST-WCS-INV-001` 往返/`TST-WCS-FAIL-001` 参数拒（新增/映射见 `docs/TRACEABILITY.csv`）
+
+## 14 Primary literature（引用定位声明）
+
+1. Greisen & Calabretta 2002, A&A 395, 1061（Paper I，DOI 10.1051/0004-6361:20021326，[A&A 全文](https://www.aanda.org/articles/aa/full/2002/45/aah3859/aah3859.right.html)）：WCS 关键词体系（CRPIX/CRVAL/CD）与广义坐标映射方法——文章级定位，TAN/SIP 公式号未逐式核验，不得以其覆盖本合同 §5。
+2. Calabretta & Greisen 2002, A&A 395, 1077（Paper II，[A&A 全文](https://www.aanda.org/articles/aa/full/2002/45/aah3860/aah3860.right.html)）：天球坐标实现与 TAN 投影——文章级定位（§5 TAN 语义为 Project-defined）。
+3. Shupe et al. 2005, ASPC 347, 491（SIP畸变约定，bibcode 2005ASPC..347..491S）：SIP A/B/AP/BP 来源——文章级定位（bibcode 级，未逐页核验）。
+
+## 15 Acceptance
+
+- §11 Oracle 全过：Astropy 前向/逆向 `‖Δx‖<1e-4 px`、往返 `<1e-6 px`、极区 `false_negative=0`；
+- §7 四不变量门全过（CRPIX/行列式/SIP 逆一致/极区保守）；
+- `tools/science_contract_lint.py` PASS（15 节+claim ID+锚点）；
+- 解析不变量→SYN-002 转换：已知 WCS 星场（解析 TAN+SIP 场）、往返不变量、RA wrap/极区用例登记 SYN-002；WCS roundtrip 亦入 SYN-007/009。

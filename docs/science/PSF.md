@@ -27,6 +27,10 @@
 
 - `I,A,B,residual_scale`: ADU；`r,dx,dy,σ,sx,sy,fwhm`: px；`θ`: rad；`Q,e,q_psf`: 无量纲；`flux`: ADU·px²（含解析积分常数）。
 
+## 3a 坐标 frame
+
+PSF 拟合在**像素域小窗口**内进行：相对坐标 `dx,dy=x−(cx+x0),y−(cy+y0)`；无 WCS/天球参与；窗口内像素沿用内部 0-based 约定（GLOSSARY `pixel_coordinate`）；结果回写由调用方（Astrometry/Photometry）关联天球 frame。
+
 ## 4 输入有效域
 
 - 图像 `uint16_t`/`float32`，维度 `w>0,h>0`，拟合窗口 `fitRadius` 使 `rect` 在图像内且面积 `rw*rh > 0`，否则返回 `DPSF_ERR_PARAM`（`dpsf_fit:433 empty rect`）。
@@ -76,6 +80,13 @@ flux = 2πA·sxsy/3   (整平面延伸假设)
 
 - FP64 拟合 LM 求解器 `lm_solve`（`dpsf_psf.cpp:98-182`），仅 7 参数 Moffat4 路径；`kTrimMeanToSigma=0.7316727929211932` 解析常数（`noise_model.cpp:35-37`）用于 `robust_residual_sigma`，仅 Gaussian 假设下有尺度意义。
 
+## 9a 专属问题回答（SCI-002 指定问题逐项）
+
+- **WCS frame/pixel convention**：不涉及；像素域窗口拟合（§3a），中心 `(cx+x0, cy+y0)` 供 Astrometry 质心域。
+- **PSF 参数**：七参数含义/单位见 §2/§3；`FWHM=1.230310·σ`（各向同性不变量 §7）；椭率一阶 `e,θ`。
+- **aperture/flux/background**：解析通量 `flux=2πA·sxsy/3`（β=4 整平面延伸假设，Project-defined 推导）；背景 `B` 模型内联合拟合，无独立孔径 annulus。
+- **photometric scale 与不确定度**：`q_psf=A/residual_scale` 为拟合质量代理，**不是 SNR/光度不确定度**（§1 非目标）；`robust_residual_sigma=residual_scale/0.7316728` 为高斯假设换算（10–90% trimmed mean）。
+
 ## 10 不可接受变化
 
 - 改变 Moffat β≠4 或 `FWHM_FACTOR` 而无 SCI 变更；
@@ -100,3 +111,16 @@ flux = 2πA·sxsy/3   (整平面延伸假设)
 - 实现: `lib/dynamic_psf/src/dpsf_psf.cpp` (`dpsf_fit/batch, lm_solve, MOFFAT4_FWHM_FACTOR, compute_trimmed_mad`), `lib/snr_estimator/cpp/src/noise_model.cpp:35-37`
 - 公开 API: `lib/dynamic_psf/include/dynamic_psf.h` (`dpsf_fit, dpsf_fit_batch`)
 - 测试: `TST-PSF-001` 解析一致性、`TST-PSF-INV-*` 三门、`TST-PSF-FAIL-*` 参数校验（新增/映射见 `docs/TRACEABILITY.csv`）
+
+## 14 Primary literature（引用定位声明）
+
+1. Moffat, A. F. J. 1969, A&A 3, 455（"A Theoretical Investigation of Focal Stellar Images"）：Moffat 轮廓 I(r)∝(1+r²/α²)^{−β} 来源——文章级定位（bibcode 1969A&A.....3..455M，未逐页核验）。
+2. β=4 解析通量 `flux=2πA·sxsy/3` 与 `FWHM/σ=1.230310`：**Project-defined derivation**（§5 对 (1+Q)^{−4} 解析积分，各向同性极限 πα²/3·A=2πAσ²/3 自洽），不引用外部公式号。
+3. trimmed-mean→σ 换算系数 `0.7316728`：高斯假设下 10–90% trimmed mean 的标准化常数（Project-defined 采纳，数值由高斯分位积分确定）。
+
+## 15 Acceptance
+
+- §11 Oracle 全过：FWHM 缩放不变量、解析/数值积分一致性、参数拒门；
+- §7/§8 全过；
+- `tools/science_contract_lint.py` PASS；
+- 解析不变量→SYN-002 转换：解析 PSF 星场（已知 A/σ/θ）、q_psf 边界、饱和标志用例登记 SYN-002。
