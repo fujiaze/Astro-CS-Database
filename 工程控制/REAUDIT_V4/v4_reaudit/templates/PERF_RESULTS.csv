@@ -1,1 +1,0 @@
-perf_id,task_id,platform,commit_sha,stage,route,workers,input_manifest_sha256,config_sha256,wall_s,user_s,sys_s,cpu_avg_percent,cpu_peak_percent,max_threads,peak_rss_kb,gpu_avg_percent,gpu_peak_percent,gpu_peak_mem_mb,speedup_vs_1t,serial_max_s,serial_fraction,status,evidence_path

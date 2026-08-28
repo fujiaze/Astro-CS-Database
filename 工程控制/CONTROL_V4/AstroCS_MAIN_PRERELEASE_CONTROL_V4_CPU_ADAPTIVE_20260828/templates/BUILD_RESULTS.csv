@@ -1,0 +1,2 @@
+build_id,task_id,host,platform,commit_sha,configuration,compiler,command,timeout_s,exit_code,warnings,errors,duration_s,status,summary_path
+

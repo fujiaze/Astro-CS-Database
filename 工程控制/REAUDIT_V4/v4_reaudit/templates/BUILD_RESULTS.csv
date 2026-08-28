@@ -1,1 +1,0 @@
-build_id,task_id,platform,commit_sha,configuration,compiler,command,timeout_s,exit_code,warnings,errors,duration_s,peak_rss_kb,status,log_path,log_sha256
