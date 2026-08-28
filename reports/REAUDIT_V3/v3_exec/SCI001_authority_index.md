@@ -2,7 +2,7 @@
 
 > G3 任务：建立唯一 SCI 文档索引；每个科学量只有一个权威定义，其他文档仅链接。
 > 判定：**PASS**（满足 CP3 "每个底层定义有唯一 SCI authority"）。
-> 复核：2026-08-27。机器门禁：`check_science_units` PASS（12 docs / 136 unit refs）、
+> 复核：2026-08-27。机器门禁：`check_science_units` PASS（13 docs / 138 unit refs）、
 > `check_traceability` PASS（67 行 / 断链 0 / symbols 13/13）。
 
 ## 1 索引表（科学量 → 唯一权威定义）
@@ -14,9 +14,9 @@
 | SCI-NOISE-001..015 | `docs/science/NOISE_MODEL.md` | noise_sigma / σ_bg | `σ_bg` | ADU | `1.4826022185·MAD`，Gaussian 假设 |
 | SCI-NOISE-001..015 | `docs/science/NOISE_MODEL.md` | variance | `variance` | ADU² | `a+b·x+c·y` 平面或 `σ_bg²`；floor `1e-12` |
 | SCI-NOISE-001..015 | `docs/science/NOISE_MODEL.md` | ivar | `ivar` | ADU⁻² | `=1/max(variance,floor)` |
-| SCI-NOISE-001..015 | `docs/science/NOISE_MODEL.md` | support | `support` | 0..1 | 拒绝权重 / 置信 |
-| SCI-NOISE-001..015 | `docs/science/NOISE_MODEL.md` | local_snr | — | SNR | 局部信噪比 |
-| SCI-NOISE-001..015 | `docs/science/NOISE_MODEL.md` | frame quality | `q_psf` 等 | 0..1 / QA | 帧质量；与逐像素 variance 区分 |
+| SCI-INT-001.. | `docs/science/INTEGRATION.md` | support | `support[i]`, `sup_max` | 无量纲 [0,1] | `max(accepted support)` canonical reducer |
+| SCI-CW-001..008 | `docs/science/CONTROL_WEIGHT_SNR.md` | local_snr / frame_snr | `local_snr`, `frame_snr` | 无量纲 (SNR) | 区域级优先, 整帧 median 回退 |
+| SCI-CW-001..008 | `docs/science/CONTROL_WEIGHT_SNR.md` | frame quality | `quality` | uint32 位掩码 | SNR 目录质量位, OR 累积 |
 | SCI-DRIZZLE | `docs/science/DRIZZLE.md` | drizzle flux / surface-brightness | 输入像素值 | ADU 或 ADU/pixel（二选一） | 见 DRIZZLE 语义 |
 | SCI-DRIZZLE | `docs/science/DRIZZLE.md` | pixfrac | — | 0..1 | 像素分配因子 |
 | SCI-DRIZZLE | `docs/science/DRIZZLE.md` | area factor | 面积 | pixel² | 球面像素面积 |
@@ -40,7 +40,7 @@
 
 ## 2 验证证据
 
-- `check_science_units.py --repo .` → `{"status":"PASS","docs":12,"unit_refs":136,"findings":[]}`。
+- `check_science_units.py --repo .` → `{"status":"PASS","docs":13,"unit_refs":138,"findings":[]}`。
 - `check_traceability.py --repo .` → `traceability: rows=67 ok=67 broken=0 symbols=13/13`。
 - 每个底层的量均落在**唯一** `docs/science/*.md` 权威文档，未发现同一量在两个以上文档互相独立定义（见 §3 唯一不冲突例外）。
 
