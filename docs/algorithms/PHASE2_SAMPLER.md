@@ -44,9 +44,9 @@ uncertainty      = sqrt(control_variance)   # SE(patch median)
 
 O(cells + catalogue log n)（dec 排序索引 + 帧 median 预计算）。
 
-## 并行模型
+## 并行模型（V5 重验 2026-08-28）
 
-默认串行（hotfix：`P2_ENABLE_OPENMP=OFF`，`0xC0000005` 回退；`CMakeLists` 硬禁用 `OpenMP_CXX_FOUND`，即使本机存在 `libgomp` 也不链接）；tile 级缓存保留（每 cell 覆盖帧的 `signal/support` 仅读一次，消除 `64×` 重读）与 `progress` 日志保留；`P2_ENABLE_OPENMP=ON` 可显式开启 `OpenMP` 并行（`cfitsio` 读 `critical(aio_read)` 串行化，仅实验）。
+默认串行为**确定性 reference**（Windows hotfix `0xC0000005` 回退历史, CMake 禁链接 OpenMP 为已知限制, 非 V5 硬编码）；`P2_ENABLE_OPENMP=ON` 实验并行保留——任何并行开启均按运行时 affinity 调度, **无硬编码线程数**；tile 级缓存与 progress 日志保留。串行→并行等价由 control 索引固定顺序保证（`critical(aio_read)` 串行化 IO）。
 
 ## 数值风险
 
@@ -54,5 +54,5 @@ MAD=0；patch 样本不足 → min_samples 拒绝。
 
 ## ID
 
-ALG-P2-SAMPLE-*；TEST-P2-SAMPLE-*；UPMW-004/005/007（median SE /
+ALG-P2SAMPLE-001..N；TEST-P2SAMPLE-*；UPMW-004/005/007（median SE /
 Drizzle 相关 MC / patch estimator vs truth）。
