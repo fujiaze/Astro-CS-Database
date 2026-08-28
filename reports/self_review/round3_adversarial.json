@@ -1,0 +1,38 @@
+{
+  "round": 3,
+  "kind": "adversarial",
+  "head": "V18R2",
+  "cases": [
+    {
+      "id": "ADV-01",
+      "attack": "polar 剪枝漏选极区星",
+      "result": "DISPROVED",
+      "evidence": "899/899 逐颗一致 + candidate oracle"
+    },
+    {
+      "id": "ADV-02",
+      "attack": "quick-reject dot 预判误拒边界 sliver",
+      "result": "DISPROVED",
+      "evidence": "安全余量 1e-9 rad；edge oracle 1e-19 尺度 PASS"
+    },
+    {
+      "id": "ADV-03",
+      "attack": "scratch 复用交叉污染",
+      "result": "BUG_FOUND_AND_FIXED",
+      "evidence": "clip_normals 未清空 → 修复；单帧 signal 5.6e-9"
+    },
+    {
+      "id": "ADV-04",
+      "attack": "spectrum 查询仍有 36GB 泄漏",
+      "result": "DISPROVED",
+      "evidence": "PHOTOMETRIC 17.8s→<1s；RSS 峰值 1.2GB"
+    },
+    {
+      "id": "ADV-05",
+      "attack": "omp 全局线程副作用",
+      "result": "DISPROVED",
+      "evidence": "parallel num_threads 子句"
+    }
+  ],
+  "verdict": "ROUND3_ADVERSARIAL=PASS"
+}
