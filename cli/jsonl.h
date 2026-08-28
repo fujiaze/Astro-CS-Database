@@ -43,6 +43,7 @@ public:
         : enabled_(enabled), run_id_(std::move(run_id)), phase_(std::move(phase)) {}
 
     bool enabled() const { return enabled_; }
+    const std::string& run_id() const { return run_id_; }
 
     // kind 基础事件(progress/resource/artifact/backend 由 extra 扩展; final 见 emit_final)
     void emit(const std::string& kind, const std::string& severity, const std::string& stage,
