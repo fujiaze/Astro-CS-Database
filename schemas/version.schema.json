@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "astrocs --version --json 输出合同 (schema v1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "prerelease", "commit", "dirty", "build_id", "abi_version", "cli_schema_version"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "MAJOR.MINOR.PATCH-alpha.N[+g<commit12>[.dirty]]，来自唯一版本源 VERSION",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+-alpha\\.[0-9]+(\\+g[0-9a-f]{12}(\\.dirty)?)?$"
+    },
+    "prerelease": { "type": "string", "const": "alpha" },
+    "commit": { "type": "string", "pattern": "^[0-9a-f]{12,40}$", "description": "构建时 HEAD 全量或 12 位 SHA" },
+    "dirty": { "type": "boolean", "description": "构建时工作树是否有未提交修改" },
+    "build_id": { "type": "string", "pattern": "^g[0-9a-f]{12}(|\\.dirty)$" },
+    "abi_version": { "type": "string", "description": "CPU backend C ABI 版本, 由 ABI-001 冻结; 冻结前为 0" },
+    "cli_schema_version": { "type": "string", "description": "CLI JSON/JSONL schema 版本, 由 API-002 冻结; 冻结前为 0" }
+  }
+}
