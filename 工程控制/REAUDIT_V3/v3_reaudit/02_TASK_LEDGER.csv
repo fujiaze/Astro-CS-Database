@@ -21,7 +21,7 @@ ALG-001,G3,SCI-005,noise and snr derivation,yes,yes,CP3,PASS
 ALG-002,G3,ALG-001,drizzle derivation and complexity,yes,yes,CP3,PASS
 ALG-003,G3,ALG-002,UPM derivation convergence and complexity,yes,yes,CP3,PASS
 ALG-004,G3,ALG-003,rejection integration derivation,yes,yes,CP3,PASS
-ORA-001,G3,ALG-004,scientific oracle suite,yes,yes,CP3,NOT_STARTED
+ORA-001,G3,ALG-004,scientific oracle suite,yes,yes,CP3,PASS
 ARCH-001,G4,CP3,module and dataflow architecture,yes,yes,CP4,NOT_STARTED
 ARCH-002,G4,ARCH-001,serial parallel async GPU execution architecture,yes,yes,CP4,NOT_STARTED
 API-001,G4,ARCH-002,machine API extraction schema,yes,yes,CP4,NOT_STARTED
