@@ -1,0 +1,8 @@
+risk_id,source,description,v5_verify_task,status,registered_evidence
+R0,BASE-001用户裁定,前会话自造'V4重审控制包'(020cdc9/ae64354)非用户物料已被移除;V4语义以用户上传的CPU_ADAPTIVE包(54任务)为准,BASE-001,CLOSED,artifacts/prerelease_v5/BASE-001/BASELINE.json
+R1,12_V3_V4_MIGRATION.md#1,Phase2历史全量运行约只使用0.7-0.9等效核心且性能门禁曾被豁免,PAR-001/PAR-007/MON-003/LNX-003,OPEN,当前SHA重验后关闭
+R2,12_V3_V4_MIGRATION.md#2,AIO曾有全局mutex与生产队列未接线风险,PAR-001/ARCH-001,OPEN,当前SHA重验后关闭
+R3,12_V3_V4_MIGRATION.md#3,sampler/UPM曾出现crash竞态或报告互相矛盾,PAR-002/PAR-003,OPEN,当前SHA重验后关闭
+R4,12_V3_V4_MIGRATION.md#4,science unit mutation未被checker捕获且Drizzle单位表述不冻结,DOCCHK-002/SCI-004,OPEN,当前SHA重验后关闭
+R5,12_V3_V4_MIGRATION.md#5,Windows历史报告曾忽略Error1或测试失败仍标PASS,WIN-002/WIN-005,OPEN,当前SHA重验后关闭
+R6,12_V3_V4_MIGRATION.md#6,接缝问题曾解决后因大范围梳理退化,SYN-008/WIN-008,OPEN,当前SHA重验后关闭

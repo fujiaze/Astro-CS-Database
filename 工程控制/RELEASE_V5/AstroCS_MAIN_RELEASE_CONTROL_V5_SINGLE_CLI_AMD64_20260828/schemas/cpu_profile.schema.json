@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://astrocs.invalid/schemas/cpu_profile-v1.json",
+  "title": "AstroCS CPU profile v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "created_at_utc", "mode", "hardware", "build", "memory_benchmark", "kernels", "verdict"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "created_at_utc": {"type": "string", "format": "date-time"},
+    "mode": {"enum": ["quick", "full"]},
+    "hardware": {
+      "type": "object",
+      "required": ["fingerprint", "architecture", "vendor", "family", "model", "stepping", "feature_bits", "xcr0", "available_logical_cpus", "affinity"],
+      "properties": {
+        "fingerprint": {"type": "string", "minLength": 16},
+        "architecture": {"const": "amd64"},
+        "vendor": {"type": "string"},
+        "family": {"type": "integer"},
+        "model": {"type": "integer"},
+        "stepping": {"type": "integer"},
+        "microcode": {"type": ["string", "null"]},
+        "feature_bits": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "xcr0": {"type": "string"},
+        "available_logical_cpus": {"type": "integer", "minimum": 1},
+        "affinity": {"type": "array", "items": {"type": "integer", "minimum": 0}, "minItems": 1, "uniqueItems": true},
+        "numa": {"type": "object"},
+        "memory_limit_bytes": {"type": ["integer", "null"], "minimum": 1}
+      },
+      "additionalProperties": true
+    },
+    "build": {
+      "type": "object",
+      "required": ["version", "commit", "cli_sha256", "abi_version", "backend_sha256"],
+      "properties": {
+        "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+-alpha\\.[0-9]+"},
+        "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "cli_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "abi_version": {"type": "integer", "minimum": 1},
+        "backend_sha256": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}
+      },
+      "additionalProperties": true
+    },
+    "memory_benchmark": {"type": "object"},
+    "kernels": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["kernel_id", "kernel_version", "precision", "size_class", "backend_id", "workers", "block_size", "oracle_status", "measurements"],
+        "properties": {
+          "kernel_id": {"type": "string"},
+          "kernel_version": {"type": "string"},
+          "precision": {"enum": ["fp32", "fp64"]},
+          "size_class": {"enum": ["small", "medium", "large"]},
+          "backend_id": {"type": "string"},
+          "workers": {"type": "integer", "minimum": 1},
+          "block_size": {"type": "integer", "minimum": 1},
+          "oracle_status": {"const": "PASS"},
+          "measurements": {"type": "object"}
+        },
+        "additionalProperties": true
+      }
+    },
+    "resource_summary": {"type": "object"},
+    "verdict": {"enum": ["PASS", "FAIL"]}
+  }
+}

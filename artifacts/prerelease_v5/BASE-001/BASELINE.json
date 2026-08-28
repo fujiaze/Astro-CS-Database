@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "task_id": "BASE-001",
+  "frozen_at_utc": "2026-08-28T13:05:00Z",
+  "controller_package": {
+    "name": "AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_ALPHA_20260828",
+    "zip_sha256": "4b4414645d8dab2a1bab53efb7ef910332cf6a3e990408a210c492ca24aa5fca",
+    "validate_control": "CONTROL_PASS tasks=98 files=37",
+    "expanded_at": "工程控制/RELEASE_V5/"
+  },
+  "git_identity": {
+    "head": "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+    "main": "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+    "origin_main": "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+    "branch": "main",
+    "remote": "github.com/fujiaze/Astro-CS-Database.git (https, 凭据经 git-credential 助手, 已脱敏)",
+    "single_worktree": true,
+    "force_push_used": false,
+    "history_rewritten": false
+  },
+  "host": {
+    "node": "vm-bj (Linux 开发节点)",
+    "os": "Debian 13 trixie, Linux 6.12.95+deb13-amd64, x86_64",
+    "cpu_cores": 2,
+    "mem_gb": 3.6,
+    "toolchain": "g++ 14.2.0 (Debian 14.2.0-19), GNU Make 4.4.1, python3 3.13.5, git 2.47.3"
+  },
+  "user_directives_registered": [
+    {
+      "directive": "删除前会话自造的'V4重审控制包', 使用用户上传的 AstroCS_MAIN_PRERELEASE_CONTROL_V4_CPU_ADAPTIVE_20260828 为唯一 V4 对照基准",
+      "executed_in_commit": "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+      "note": "自造包仅存在于 020cdc9/ae64354 引入的 工程控制/REAUDIT_V4/ 内(21+3文件, 无仓库其他影响面); 历史不重写, 当前树已移除。用户V4 zip (sha256 f41aacec3d85cf5ac205b78472e8657a0bbbb8b1e41cc511c904311da139ce0a) 解包至 工程控制/CONTROL_V4/, 54任务账本仅作继承对照, 执行账本为 V5 98任务"
+    }
+  ],
+  "prior_session_leftovers_in_working_tree": [
+    {"change": "evidence/QA-V19R7-A2-01..08/EVIDENCE_INDEX.md 删除 + reports/evidence/QA-V19R7-A2-01..08/ 新增", "attribution": "前会话按 AGENTS.md 目录规范将证据归位 reports/", "resolution": "原子 commit 归位提交"},
+    {"change": "self_review/round0..6 删除 + reports/self_review/ 新增", "attribution": "同上", "resolution": "原子 commit 归位提交"},
+    {"change": "reports/v19r2/evidence/quality/traceability_check.json rows 63->67", "attribution": "前会话重跑 checker 再生成", "resolution": "随归位 commit 提交"},
+    {"change": "AGENTS.md 113->51 行精简重写(未提交)", "attribution": "前会话精简协作规范", "resolution": "GOV-001 合并 V5 必需短块后随 GOV-001 commit 提交"},
+    {"change": "根目录未跟踪 zip/FATDUCK_ACCESS.md(含节点接入细节, 含敏感信息)", "attribution": "历史会话本地物料", "resolution": "保持未跟踪不入库, 以路径+sha256 在此登记"}
+  ],
+  "v4_implementation_inventory": {
+    "user_v4_execution_state": "54 任务全部 NOT_STARTED; 用户 V4 包此前从未进入仓库, 无任何执行痕迹",
+    "fake_v4_execution_state": "前会话自造包仅完成 C0 冻结类 5 任务(020cdc9/ae64354), 无产品代码改动, 已按用户指示移除",
+    "current_main_production_state": "V19R6R2 时代 lib/ 13 模块 + orchestrator 双入口 + DLL 运行时加载路径仍为现状, 单一 CLI/Phase3/CPU backend 均未实现, 待 V5 ARCH/API/CODE 任务正向实现"
+  }
+}
