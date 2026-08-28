@@ -1,6 +1,6 @@
 # Phase2 UPM (Control Photometry) Science (SCI-UPM)
 
-> ID: SCI-UPM-001..010, SCI-UPM-WEIGHT-001, SCI-UPM-PERSIST-001  状态: FROZEN (T106 冻结, 2026-08-23)  上游: SCI-SCOPE-001  下游 ALG: ALG-UPM-001..  模块: phase2 (upm/sampler)
+> ID: SCI-UPM-001  范围: SCI-UPM-001..010 + SCI-UPM-WEIGHT-001 + SCI-UPM-PERSIST-001  状态: FROZEN (T106 冻结, 2026-08-23)  上游: SCI-SCOPE-001  下游 ALG: ALG-UPM-001..  模块: phase2 (upm/sampler)
 
 ## 1 目的与非目标
 
@@ -120,3 +120,31 @@
 - 实现: `lib/phase2/src/upm.cpp` (1107-1123, 493-510), `lib/phase2/src/sampler.cpp` (250-364, 672), `lib/astro_image_io/src/aio_upm.cpp` (持久化)
 - 公开 API: `p2_upm_build, p2_upm_calibrate_block, p2_upm_raw_weight, p2_upm_open/save`
 - 测试: `TEST-UPMW-001..007, UPMW-001..007, UpmPersist*` (`synthetic_gate.cpp, control_median_mc_test.cpp`)
+
+## 3a 坐标 frame
+
+UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/天球参与；帧绑定唯一由稳定 `frame_id`（truncated-64 SHA-256，DATA_SEMANTICS §5）决定，容器索引仅实现细节；每连通分量参考帧=最小 `frame_id`（gauge 锚，§5）。
+
+## 9a 专属问题回答（SCI-005 指定问题逐项）
+
+- **观测方程**：`calibrated_f(p) = raw_f(p) − C_f(p)`，`C_f(p)`=帧 f 的加性校正场（8×8 control cell 双线性插值，§5）；**纯加性模型**（乘性尺度差已撤销，§1 非目标）；`raw`=校准前样本 patch median。
+- **控制点**：8×8 control cell；control estimator=patch median（非单 leaf）；`N_retained`=clipping 后保留样本数（非总数）。
+- **光度面 basis**：分块常数加性背景面——每帧每 control cell 一个自由度 `θ_f`，经双线性插值成连续场；自由度 = n_frames × n_control_points。
+- **正则化**：Huber IRLS 鲁棒求解 + control-ivar 感知权重 + **弱零锚** `zero_anchor_weight=0.001`（弱 Tikhonov/岭型锚定向全局零）。
+- **gauge/退化**：加性场对全局常数规范自由——以连通分量独立 gauge 固定（参考帧=最小 frame_id）；退化路径：无 ≥2 帧 clean 覆盖 → harmonic continuation 填单帧区；`control_ivar≤0/非有限` → `rc=2` 显式拒（§4）。
+- **接缝指标**：接缝=C_f 场跨帧差在 cell 边界的不连续残余；量化门槛**预冻结于 SYN-005**（已知低阶光度面+重叠图：参数恢复、残差、接缝降低且不破坏星 flux；本合同登记映射，禁止"视觉可接受"替代）。
+
+## 14 Primary literature（引用定位声明）
+
+1. **本合同为项目原创推导**（观测方程/光度面 basis/gauge/接缝语义均为 Project-defined，无外部公式依赖）。
+2. Huber IRLS：Huber, P. J. 1964, "Robust Estimation of a Location Parameter", Ann. Math. Statist. 35, 73——文章级定位（bibcode 1964AnMS...35...73H，未逐页核验），仅 robust 求解框架上下文。
+3. 弱零锚=弱 Tikhonov 正则：Tikhonov 解的正则化概念——教科书级，无公式引用。
+4. `k_corr=1.4`（MC 实测 1.3883，pixfrac=0.8，2000 次）：**项目自产 MC 证据**（`control_median_mc_test`），非外部文献。
+5. Tukey/MAD 常数：复用 SCI-002/SCI-003 文献链（PMC6768164 实证；Φ⁻¹(3/4) 恒等式）。
+
+## 15 Acceptance
+
+- §11 Oracle 全过（含 `control_median_mc_test` MC 一致性、gauge 唯一性、harmonic continuation 边界）；
+- §7 不变量门全过；
+- `tools/science_contract_lint.py` PASS（15 节+claim ID+锚点）；
+- 解析不变量→SYN-005 转换：已知低阶光度面恢复、重叠图 gauge/退化强度扫描、接缝指标预冻结门槛（SYN-005 数据与不变量表），参数恢复/残差/接缝降低且不破坏星 flux 全过。
