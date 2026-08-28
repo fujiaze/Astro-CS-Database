@@ -26,6 +26,10 @@
 
 - `raw/bias/dark/flat/cal`: ADU（同滤镜/增益下标度）；`t_expo`: s；`K`: 无量纲；`flat_norm`: 无量纲（median=1.0, floor 0.1）；`sigma`: 无量纲倍数（以 MAD 转 sigma）；像素坐标无量纲。
 
+## 3a 坐标 frame
+
+校准为逐像素独立算术，**无坐标变换、无 WCS 处理**：输入帧与输出 `cal` 为同一 frame identity（`frame_id` 定义见 `docs/contracts/DATA_SEMANTICS.md#5`，payload 变化才变）；像素坐标语义沿用词典 `pixel_coordinate`（内部 0-based）。
+
 ## 4 输入有效域
 
 - 维度: `w>0, h>0, n_frames>=1`；数组指针非空（空指针返回 `AC_ERR_PARAM`）。
@@ -80,6 +84,16 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
 - 中位数用 `std::nth_element` O(n)，MAD 转 sigma 系数 `1.4826`（高斯假设）。
 - 不传播母版方差至 `cal` 的方差项（ivar 由 `snr_estimator` 独立估计，见 NOISE_MODEL）。
 
+## 9a 专属问题回答（SCI-001 指定问题逐项）
+
+- **bias/dark/flat/pedestal**：bias=零曝光本底、dark=含 bias 的暗电流帧、flat=像素响应场；本合同**不加 pedestal**（`signal` 不自动加 pedestal，见 GLOSSARY/DATA_SEMANTICS §4）；`dark_opt=0` 语义下 bias 已含于 dark。
+- **曝光/gain**：曝光仅以 `K=t_light/t_dark` 比值进入暗场缩放，**不是增益校正**；gain 不在本层建模（非目标 §1），信号保持原 ADU 标度（GLOSSARY `adu`）。
+- **read noise**：校准层不建模、不传播；噪声建模归 `snr_estimator`（`docs/science/NOISE_MODEL.md`）。
+- **负值**：`raw−dark` 可为负，保留不 clamp（DATA_SEMANTICS §4 负值保留）。
+- **saturation**：FP32 饱和语义界定，不静默 clamp（§8 `t_light/t_dark` 行）。
+- **mask**：坏点掩膜为 `bad_mask`，极性 **1=坏点**（GLOSSARY `bad_mask`，实测 `lib/calibration/src/cosmetic_corrector.cpp#158`）。
+- **variance 传播**：本层不传播母版方差至 `cal`（§9）；ivar 由 `snr_estimator` 独立估计，产品位见 DATA_SEMANTICS §4a。
+
 ## 10 不可接受变化
 
 - 改变 `flat_norm` 的 `median=1.0` 或 `floor 0.1` 语义而无 SCI 冻结变更；
@@ -104,6 +118,20 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
 ## 13 追溯与测试
 
 - 权威文件: `docs/science/CALIBRATION.md` (SCI-CAL-001)
-- 实现: `lib/calibration/src/calibrator.cpp` (`normalize_flat, calibrate, calibrate_d`), `lib/calibration/src/master_generator.cpp` (`generate_master`), `lib/calibration/cpp/cosmetic_corrector.cpp`
+- 实现: `lib/calibration/src/calibrator.cpp` (`normalize_flat, calibrate, calibrate_d`), `lib/calibration/src/master_generator.cpp` (`generate_master`), `lib/calibration/src/cosmetic_corrector.cpp`
 - 公开 API: `lib/calibration/include/astro_calibration.h` (`ac_generate_master_bias/dark/flat, ac_calibrate_frame, ac_correct_frame` 及其 `_f64` 变体)
 - 测试: `TST-CAL-001` 常量场、`TST-CAL-INV-001` 幂等归一、`TST-CAL-FAIL-001` 参数校验（新增/映射见 `docs/TRACEABILITY.csv`）
+
+## 14 Primary literature（引用均已核对原文定位）
+
+1. Newberry, M. V. 1991, PASP, 103, 122, "Signal-to-Noise Considerations for Sky-Subtracted CCD Data"（DOI 10.1086/132801）。定位：全文 S/N 模型含 bias/dark/read-noise 分量。**本合同不引用其具体公式号**（原文公式映射未在本次核验范围内逐式确认）；§5 连续定义为 Project-defined derivation，文献仅作概念上下文，不得以其覆盖本合同。
+2. Janesick, J. R. 2001, *Scientific Charge-Coupled Devices*, SPIE Press Monograph PM83（ISBN 0-8194-3698-4），Ch.2 photon transfer（gain/read-noise 测量上下文；Ch.2 定位经 Janesick et al. 2004 EM-CCD 论文二次引用核对）。
+3. HST ACS Data Handbook §4.4 "Flat-Field Reference Files"（<https://hst-docs.stsci.edu/acsdhb/chapter-4-acs-data-processing-considerations/4-4-flat-field-reference-files>；URL 即节定位）：flat-field=像素响应校正、P-flat 结构与低频修正分离的实践上下文。
+
+## 15 Acceptance
+
+- §11 Oracle 全过（解析解 max_abs==0、NumPy FP32 rtol=1e-6/atol=1e-7）；
+- §7 四不变量门（常量场/空平场/幂等归一/确定性）全过；
+- 单位经 `tools/check_glossary.py`（GLOSSARY_PASS）且本文件无被禁 alias；
+- §9a 专属问题逐项有锚点回答，无 TBD/二选一（`tools/science_contract_lint.py` PASS）；
+- 解析不变量可转 SYN-001：常量场→SYN-001 constant/ramp 用例；NaN/饱和→SYN-001 invalid 边界用例（映射登记于 SYN-001 任务）。
