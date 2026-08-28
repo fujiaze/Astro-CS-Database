@@ -31,10 +31,10 @@ set(ASTROCS_VERSION_STRING "${BASE_VERSION}+g${GIT_COMMIT}${GIT_DIRTY_SUFFIX}")
 configure_file(version_generated.h.in version_generated.h @ONLY)
 
 add_executable(astrocs main.cpp ${CMAKE_CURRENT_BINARY_DIR}/version_generated.h)
-target_include_directories(astrocs PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(astrocs PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../third_party)
 target_compile_options(astrocs PRIVATE
-  $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-fno-exceptions>
-  $<$<CXX_COMPILER_ID:MSVC>:/W4;/EHs-c-;/utf-8>)
+  $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall;-Wextra>
+  $<$<CXX_COMPILER_ID:MSVC>:/W4;/EHsc;/utf-8>)
 
 # 发布安装规则: 恰一个 exe (04/CLI-001)
 install(TARGETS astrocs RUNTIME DESTINATION bin)
