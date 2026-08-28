@@ -7,11 +7,17 @@
 
 - 目标构建成功：`cmake --build build/linux-openmp-on --target phase2_synthetic_gate
   phase2_ivar_wiring phase2_execution_options -j4` → `[100%] Built`, exit 0（gcc 14.2, Release+OpenMP）。
-- **BLD-001 发现**：**无根级可重复 Linux configure/build/test 入口**。仅 `lib/phase2` 与
-  `lib/acr` 有 `CMakeLists.txt`（`project(astro_phase2)` / `project(...)`，单模块项目）；
-  其余模块（snr_estimator/healpix_db/orchestrator 等）无 CMake 目标；仓库无根 `CMakeLists`/
-  `Makefile`/`CMakePresets`/`build.sh`；v19 `BUILD_RELEASE.md` 仅给出 Windows `toolchain.ps1`。
-  ⇒ BLD-001 未满足（缺根级入口）。
+- **BLD-001（已提供+验证）**：新增根级 `build.sh`（配置+构建+测试入口）。`./build.sh Release`
+  全新 build 目录（P2_ENABLE_OPENMP=ON）→ 配置成功 → 构建 phase2+5 测试目标 → 从仓库根运行
+  → **5/5 PASS, FAIL=0, BLD-001_RESULT=OK**（exit 0）。日志 `run/logs/build_release.log`。
+- **sampler.cpp 构建修复**：`<atomic>/<mutex>/<thread>` 原仅在内嵌 `P2_ENABLE_OPENMP&&_OPENMP`
+  守卫内包含，但 `std::mutex g_aio_mu`/`lock_guard` 无条件使用（line 164,169,691,692）。
+  `P2_ENABLE_OPENMP` 默认 OFF（CMakeLists:18）⇒ 默认/非 OpenMP 构建无法编译（gcc 报
+  'mutex' in namespace 'std'）。修复：把标准头移出守卫无条件包含，仅保留 `<omp.h>` 在守卫内。
+  验证：非 OpenMP 全新 Release 构建成功；openmp-on 构建+全部 phase2 测试无回归。
+- **遗留**：仅 `lib/phase2` 与 `lib/acr` 有 `CMakeLists.txt`（单模块项目）；其余模块
+  （snr_estimator/healpix_db/orchestrator/browser_qt）测试源码存在但**无统一 CMake 入口**——
+  `build.sh` 现仅覆盖 phase2 CMake 模块；根级**全模块**入口为待办。
 
 ## 2 测试结果（TST-002）
 
@@ -32,8 +38,8 @@
 - **TST-002（phase2 模块）全绿**：synthetic_gate 81/0、ivar_wiring 1、execution_options 6、
   routing 4、async_io 10，合计 **0 FAIL**（从仓库根运行）。先前报告中的 ivar_wiring FAIL
   为**本会话调用 CWD 误用**（非代码/logic bug），已更正。
-- **BLD-001 真实缺口**：无根级可重复 Linux configure/build/test 入口；仅 phase2/acr 有
-  CMakeLists，且模块测试面广（drizzle/browser_qt/orchestrator 均有测试源码但**无统一 CMake
-  入口**）。
+- **BLD-001：已提供并验证**（根级 `build.sh`，`./build.sh Release` → 5/5 测试 PASS, FAIL=0）。
+  但 `build.sh` 现覆盖 phase2 CMake 模块；drizzle/browser_qt/orchestrator 测试源码存在但**无
+  统一 CMake 入口**（全模块根级入口待办）。
 - 工作区存在**非本会话**改动（`AGENTS.md` M、`evidence/` 删除、`traceability_check.json` M）——
   本会话未改、未提交，按规则不动 `AGENTS.md`。
