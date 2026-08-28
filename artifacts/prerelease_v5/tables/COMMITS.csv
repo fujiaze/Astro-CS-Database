@@ -1,1 +1,2 @@
 task_id,commit_sha,parent_sha,branch,subject,changed_files,test_ids,push_status,capsule_path,capsule_sha256,status
+BASE-001,f99e80d8574dd19b305312c0e66006cc01584a41,38951423450de1e01962c61ac2dd241a97331861,main,(BASE-001) 起点冻结与V3_V4风险登记,54,none,pushed,artifacts/prerelease_v5/capsules/BASE-001_f99e80d8574d.zip,9beb18893eab0be7eb5a711d29a0d26cc03847a8ac3092755f9cdcddfd3c82d7,PASS
