@@ -21,6 +21,8 @@
 
 #include "sha256.h"
 
+#include "hardware_inspect.h"
+
 #include "cancel_token.h"
 #include "exit_codes.h"
 #include "jsonl.h"
@@ -585,6 +587,11 @@ int dispatch(const Parsed& p) {
     }
     if (joined == "--help" || joined == "-h") {
         std::fputs(kHelp, stdout);
+        return astrocs::OK;
+    }
+    if (joined == "hardware inspect") {
+        if (!p.flags.count("--json")) parse_fail("hardware inspect requires --json");
+        std::fputs(astrocs::backend_host::hardware_inspect_json_v1(ASTROCS_VERSION_STRING).c_str(), stdout);
         return astrocs::OK;
     }
     if (joined == "config init")           return cmd_config_init(p, ev);
