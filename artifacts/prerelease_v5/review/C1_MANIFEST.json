@@ -1,0 +1,145 @@
+{
+  "checkpoint": "C1",
+  "scope": "VER-001 TRACE-001 DOC-001 + SCI-001..007 + ALG-001..007",
+  "review_packet": "REV-001",
+  "base_commit": "3791e6a662d6dde3fdb6b06fd2cb4afb5fe357fe",
+  "definition_chain": "SCI(合同)→ALG(离散算法) 全部 DERIVED/FROZEN 且 PASS",
+  "gates": {
+    "unittest": "21/21 OK",
+    "gov": "check_agents_gov 10/10",
+    "version": "VERSION_CONSISTENCY_PASS",
+    "glossary": "GLOSSARY_PASS 18/18",
+    "traceability": "TRACEABILITY_PASS",
+    "sci_lint": "15节×8",
+    "alg_lint": "10节×8"
+  },
+  "unresolved_science": 0,
+  "tasks": [
+    {
+      "task": "SCI-001",
+      "capsule": "SCI-001_cc64ba1a738f.zip",
+      "zip_sha256": "5ba5a36e158433acce4fce0fa33192f04239689bc83e7b17abc20baa6448d6eb",
+      "commit": "cc64ba1a738f148f631270c2383f89784b9506f0",
+      "generated_utc": null,
+      "scope": null,
+      "status": "PASS"
+    },
+    {
+      "task": "SCI-002",
+      "capsule": "SCI-002_805f13eede59.zip",
+      "zip_sha256": "1ac669505b63f869748fe2a315b3d20dcade9f5048d4abaff0f3877992ae7b2a",
+      "commit": "805f13eede59b335a441aeb359e9bd755df3591f",
+      "generated_utc": null,
+      "scope": null,
+      "status": "PASS"
+    },
+    {
+      "task": "SCI-003",
+      "capsule": "SCI-003_1823a1e9d0b2.zip",
+      "zip_sha256": "26b90009660ef751f268971461f3852364ffbee73349e7d0f89f79a6e1db0ded",
+      "commit": "1823a1e9d0b2eef55f755b3d18d04f702e4c57f3",
+      "generated_utc": null,
+      "scope": null,
+      "status": "PASS"
+    },
+    {
+      "task": "SCI-004",
+      "capsule": "SCI-004_084ee91a595d.zip",
+      "zip_sha256": "793d243c71b58f7af43cbd4b1299b1ba7240f904c19c8bb9913e4423ea0269d9",
+      "commit": "084ee91a595dcf47ce94a18d6d604b99e136b7fb",
+      "generated_utc": null,
+      "scope": null,
+      "status": "PASS"
+    },
+    {
+      "task": "SCI-005",
+      "capsule": "SCI-005_025bc9410baf.zip",
+      "zip_sha256": "f73c09c748a22dbda28fc93f592f4c4e079d55b96e33e9df258db32daa022897",
+      "commit": "025bc9410baf64a22e4f77fc90089bdd3fd5addb",
+      "generated_utc": null,
+      "scope": null,
+      "status": "PASS"
+    },
+    {
+      "task": "SCI-006",
+      "capsule": "SCI-006_43820f0f0da3.zip",
+      "zip_sha256": "37518c3dd5dc1adf000a5ba39df5b8cf5990a3ff43e955fbb45fae6f273acada",
+      "commit": "43820f0f0da360f97029faf5b2032a656ca56a2c",
+      "generated_utc": null,
+      "scope": null,
+      "status": "PASS"
+    },
+    {
+      "task": "SCI-007",
+      "capsule": "SCI-007_7895a584b6ce.zip",
+      "zip_sha256": "885bbb1cd997fc9457d1a5836778bdc61f97832494d3ba3ffa8d547cce6e3dfa",
+      "commit": "7895a584b6ce675066c95552153c96d643ab2548",
+      "generated_utc": null,
+      "scope": null,
+      "status": "PASS"
+    },
+    {
+      "task": "ALG-001",
+      "capsule": "ALG-001_199b21e21ea3.zip",
+      "zip_sha256": "82e73e306ea70bf599eb6ed2c664cc6a80c2874d0e374102e6a6aba99b6fb029",
+      "commit": "199b21e21ea300f2039b4c146ef0f73c7b31a5af",
+      "generated_utc": null,
+      "scope": null,
+      "status": "PASS"
+    },
+    {
+      "task": "ALG-002",
+      "capsule": "ALG-002_0d4c5b69b9c1.zip",
+      "zip_sha256": "324b2f952988fa033d1b1097a8a1f0d4f1e7140cf06b1c272ff0769b5fad860f",
+      "commit": "0d4c5b69b9c1cdf0b6e0085c9cf95f4c55f269d5",
+      "generated_utc": null,
+      "scope": null,
+      "status": "PASS"
+    },
+    {
+      "task": "ALG-003",
+      "capsule": "ALG-003_76e538373be2.zip",
+      "zip_sha256": "3258e2098b72af493464b4423c9f77f4acf9aaf21caa518cc300e79d4228c9dc",
+      "commit": "76e538373be283bf5c0bf74c5fb5a87179126c90",
+      "generated_utc": null,
+      "scope": null,
+      "status": "PASS"
+    },
+    {
+      "task": "ALG-004",
+      "capsule": "ALG-004_6f2f41390df8.zip",
+      "zip_sha256": "1cf32afcbc38a08e2a77d5417e3e5411e27febcd469860fef743de3791dae56f",
+      "commit": "6f2f41390df807219a14237d5bad0b2e7f2f2820",
+      "generated_utc": null,
+      "scope": null,
+      "status": "PASS"
+    },
+    {
+      "task": "ALG-005",
+      "capsule": "ALG-005_6feab667708a.zip",
+      "zip_sha256": "0b555d3325adf0d0f1f5ad698bd850a61d5661c71c34bad42a9af926d95adc7b",
+      "commit": "6feab667708a36ec57cd4ec89864bd9f90490031",
+      "generated_utc": null,
+      "scope": null,
+      "status": "PASS"
+    },
+    {
+      "task": "ALG-006",
+      "capsule": "ALG-006_26890d3e41f3.zip",
+      "zip_sha256": "b5be2ef34939fbeb197ba989b152e58e9f4e9eacfbf1580246a3d8cd7c027275",
+      "commit": "26890d3e41f3660a9747f924e82620be6769b3ae",
+      "generated_utc": null,
+      "scope": null,
+      "status": "PASS"
+    },
+    {
+      "task": "ALG-007",
+      "capsule": "ALG-007_489100029da8.zip",
+      "zip_sha256": "6112df1cd64a7b044f2d645a68603c6653c244360402dcb3804115952ac0ec88",
+      "commit": "489100029da87dec7b5b151da7f85ea0be325bec",
+      "generated_utc": null,
+      "scope": null,
+      "status": "PASS"
+    }
+  ]
+}
