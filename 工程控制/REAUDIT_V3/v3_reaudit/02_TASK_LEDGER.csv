@@ -45,8 +45,8 @@ TST-002,G5,TST-001,unit module and contract tests,yes,yes,CP5,IN_PROGRESS
 TST-003,G5,TST-002,ASan UBSan and race validation,yes,yes,CP5,IN_PROGRESS
 TST-004,G5,TST-003,synthetic end-to-end CLI suite,yes,yes,CP5,IN_PROGRESS
 TST-005,G5,TST-004,real 2-frame per-panel Linux mini pipeline,no,no,CP5,BLOCKED
-WIN-001,G6,CP5,Fatduck main sync and clean build,no,no,CP6,NOT_STARTED
-WIN-002,G6,WIN-001,Windows full tests and sanitizer equivalent,yes,yes,CP6,NOT_STARTED
+WIN-001,G6,CP5,Fatduck main sync and clean build,no,no,CP6,PASS
+WIN-002,G6,WIN-001,Windows full tests and sanitizer equivalent,yes,yes,CP6,PASS
 ACR-001,G6,WIN-002,CPU GPU Mixed route activation,yes,yes,CP6,BLOCKED
 ACR-002,G6,ACR-001,CPU GPU Mixed scientific equivalence,yes,yes,CP6,BLOCKED
 ACR-003,G6,ACR-002,GPU CPU utilization and fallback evidence,no,no,CP6,BLOCKED
