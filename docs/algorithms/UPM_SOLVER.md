@@ -14,7 +14,10 @@
 F1: w = quality·control_ivar (production) 或 qf·support^p·snr²/(1+snr²)/unc² (ablation)
     control_ivar=1/(k_corr·π/2·σ²/N_retained)
 F2: per-control归一化: w_norm = w / Σw · geometric_reliability
-F3: Huber IRLS: loss=0.5r² if |r|≤δ else δ|r|−0.5δ², δ=1.345·median_abs_r, iterative reweight + 弱零锚 + 平滑
+F3: Huber IRLS (标准无量纲残差, 对齐 upm.cpp:200-210,619-629):
+    z = r/sigma_eff; r = value − M − C; sigma_eff=max(|uncertainty|,sigma_floor)
+    loss(z)=0.5z² if |z|≤δ else δ(|z|−0.5δ);  w(z)=1 if |z|≤δ else δ/|z|
+    δ=1.345 (无量纲, 单位=sigma_eff), iterative reweight + 弱零锚 + 平滑
 F4: calibrated = raw − C(frame, leaf) 双线性 8×8
 F5: 連通分量 gauge = min frame_id per component, harmonic continuation 单帧区
 F6: hash = SHA256(C), persist: sparse json + dense cache materialize, 1e-12等价

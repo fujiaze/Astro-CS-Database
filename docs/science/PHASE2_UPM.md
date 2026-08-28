@@ -72,9 +72,9 @@
 
 ## 7 独立不变量
 
-- **常量场不变量**：`raw=C, C_f` 解为同一常数（弱零锚除外），全 control cell 同值。
+- **常量场不变量（SCI-004 gauge 对齐）**：常数**公共**输入（各帧同值 `raw_f=C`）时 `M=C`、`C_f=0`（每分量参考帧 gauge；弱零锚微调除外），全 control cell 无空间梯度——**不写 `C_f=C`**。仅当各帧存在独立零点差时 `C_f` 才吸收 per-frame offset（参考帧之外）。
 - **空 control 不传播**：无合格 control 时不产伪 `C_f`，显式 NO_DATA。
-- **Huber 对称性**：`Huber(delta=1.345)` 残差在小残差区等价 `L2`，大残差区 `L1`，位置估计对称。
+- **Huber 对称性（无量纲标准化）**：残差先标准化 `z=r/sigma_eff`，其中 `r=value−M−C`，`sigma_eff=max(|uncertainty|,sigma_floor)`；`Huber(δ=1.345)` 作用于无量纲 `z`：小残差区 `loss=0.5z²`(等价 L2)，大残差区 `loss=δ|z|−0.5δ²`(L1)，位置估计对称。δ=1.345 无量纲（单位=sigma_eff）。
 - **frame_id 绑定幂等**：`save→open` 后 `parameter_rows[index]` 重开值 `max_abs==0`（`dense/sparse 1e-12` 等价门）。
 - **k_corr 缩放**：`control_variance` 随 `k_corr` 线性缩放，`N_eff` 反比缩放。
 

@@ -46,7 +46,7 @@
 
 ## 3 冲突/歧义核对
 
-- **UPM gauge 措辞（SCI-004 相关，轻微/待复核）**：`PHASE2_UPM.md` §不变量写「常量场不变量：`raw=C`, `C_f` 解为同一常数……」，而 spec `03_TASK_SPECIFICATIONS.md` §SCI-004 要求「常量公共场进入 `M`、`C_f=0`；不得写 `C_f=C`」。两者 gauge 约定表述不同（spec 为绝对 gauge：常数公共场入 M、C_f=0；doc 为参考帧 gauge：参考帧 C=0）。该处**表述待审核人/作者厘清统一**，不构成数值门禁 FAIL（代码 `upm.cpp:631` 每分量 gauge=分量内最小 frame_id C=0，与 doc 参考帧约定一致）。
+- **UPM gauge 措辞（SCI-004 相关，已解决）**：`PHASE2_UPM.md` §7 原「`raw=C`, `C_f` 解为同一常数」已改为「常数**公共**输入 → `M=C`、`C_f=0`（每分量参考帧 gauge；不写 `C_f=C`）」；`UPM_SOLVER.md` F3 Huber 公式已对齐代码（`δ=1.345` 无量纲作用于 `z=r/sigma_eff`，非 `1.345·median_abs_r`）。证据：`upm.cpp:200-210,619-629,631`。
 - 逐像素 `variance`（SCI-NOISE）与 drizzle 后相邻像素协方差（UNCERTAINTY_AND_COVARIANCE）**量纲/语义分隔**，非冲突。
 
 ## 4 结论
