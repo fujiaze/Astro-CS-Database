@@ -1,10 +1,38 @@
 // lib/phase3_session/p3_output.cpp — 输出原子写/校验 (ALG-P3-004) — P3-004
 #include "p3_output.h"
 
+#if defined(_WIN32)
+// MSVC 无 unistd.h; 以 _ 前缀 CRT 提供 POSIX 文件操作为别名
+#include <io.h>
+#include <process.h>
+#include <direct.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#ifndef O_RDONLY
+#define O_RDONLY _O_RDONLY
+#endif
+#ifndef getpid
+#define getpid _getpid
+#endif
+#ifndef unlink
+#define unlink _unlink
+#endif
+#ifndef fsync
+#define fsync _commit
+#endif
+#ifndef close
+#define close _close
+#endif
+#ifndef open
+#define open _open
+#endif
+#else
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#endif
 
 #include <cerrno>
 #include <cmath>

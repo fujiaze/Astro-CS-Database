@@ -3,7 +3,11 @@
 
 #include <cstdio>
 #include <cstring>
+#if defined(_WIN32)
+#include "dirent_win.h"
+#else
 #include <dirent.h>
+#endif
 #include <sys/stat.h>
 
 #include <fstream>
