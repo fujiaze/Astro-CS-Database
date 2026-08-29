@@ -26,10 +26,12 @@
 #include "profile_gen.h"
 #include "p1_session.h"
 #include "p2_session.h"
+#include "p3_session.h"
 
 namespace astrocs {
 nlohmann::json g_phase1_session;
 nlohmann::json g_phase2_session;
+nlohmann::json g_phase3_session;
 inline std::string p1_last_error(acs_handle h) { return phase1::last_error(h); }
 }
 
@@ -648,6 +650,105 @@ int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     return astrocs::OK;
 }
 
+int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
+    const std::string cfg = need_value(p, "--config");
+    std::ifstream f(std::filesystem::u8path(cfg), std::ios::binary);
+    if (!f) {
+        std::fprintf(stderr, "astrocs: config not found '%s'\n", cfg.c_str());
+        return astrocs::INPUT;
+    }
+    std::stringstream buf; buf << f.rdbuf();
+    const std::string cfg_text = buf.str();
+    bool ok = false;
+    const std::string cfg_sha = file_sha256(cfg, &ok);
+    if (!ok) return astrocs::INPUT;
+    astrocs_host_services_v1 host;
+    void* hstate = nullptr;
+    astrocs_host_services_default_v1(&host, &hstate);
+    host.cancel.is_cancelled = &cli_cancel_probe;
+    host.logger.log = &cli_session_log;
+    {
+        cpu_set_t set; CPU_ZERO(&set);
+        sched_getaffinity(0, sizeof(set), &set);
+        uint32_t n = 0;
+        for (int i = 0; i < CPU_SETSIZE; ++i)
+            if (CPU_ISSET(i, &set)) ++n;
+        if (n == 0) n = 1;
+        astrocs_host_state_set_budget_v1(hstate, n, n, &host);
+    }
+    acs_handle sess = nullptr;
+    acs_status rc = p3_session_create(&host, &sess);
+    if (rc != ACS_OK) return astrocs::INTERNAL;
+    const acs_span_u8 cfg_span{reinterpret_cast<uint8_t*>(const_cast<char*>(cfg_text.data())),
+                               static_cast<uint64_t>(cfg_text.size())};
+    rc = p3_session_validate(sess, cfg_span);
+    if (rc != ACS_OK) {
+        const std::string verr = astrocs::phase3::last_error(sess);
+        p3_session_destroy(sess);
+        astrocs_host_services_destroy_state_v1(hstate);
+        std::fprintf(stderr, "astrocs: request invalid: %s\n", sanitize(verr).c_str());
+        ev.emit_final(astrocs::ARGS, "config_invalid", nullptr, verr);
+        return astrocs::ARGS;
+    }
+    ev.stage("phase3_session", true);
+    rc = p3_session_run(sess, cfg_span);
+    ev.stage("phase3_session", false);
+    acs_span_u8 res{};
+    if (p3_session_inspect(sess, &res) == ACS_OK) {
+        try { astrocs::g_phase3_session = nlohmann::json::parse(std::string(
+                  reinterpret_cast<const char*>(res.data), static_cast<size_t>(res.count))); }
+        catch (...) {}
+        host.allocator.free(host.allocator.user_data, res.data);
+    }
+    const std::string sess_err = astrocs::phase3::last_error(sess);
+    const std::string out_dir = [&] {
+        try { return nlohmann::json::parse(cfg_text).value("output_dir", std::string(".")); }
+        catch (...) { return std::string("."); }
+    }();
+    p3_session_destroy(sess);
+    if (rc == ACS_ERR_CANCELLED) {
+        const int wrc = write_run_manifest(out_dir, ev, "incomplete", "cancelled by user",
+                                           cfg, cfg_sha, {3});
+        astrocs_host_services_destroy_state_v1(hstate);
+        if (wrc != astrocs::OK) return wrc;
+        ev.emit_final(astrocs::CANCELLED, "cancelled", nullptr, "cancelled by user");
+        return astrocs::CANCELLED;
+    }
+    if (rc != ACS_OK) {
+        astrocs_host_services_destroy_state_v1(hstate);
+        const int wrc = write_run_manifest(out_dir, ev, "incomplete",
+                                           "phase3 failed: " + sess_err, cfg, cfg_sha, {3});
+        if (wrc != astrocs::OK) return wrc;
+        const bool input_err = astrocs::g_phase3_session.value("error_kind", std::string()) == "input";
+        const int exit_code = input_err ? astrocs::INPUT
+                              : (rc == ACS_ERR_PARAM) ? astrocs::ARGS
+                              : (rc == ACS_ERR_UNSUPPORTED) ? astrocs::SCIENCE
+                              : (rc == ACS_ERR_STATE) ? astrocs::SCIENCE
+                              : (rc == ACS_ERR_IO) ? astrocs::IO : astrocs::INTERNAL;
+        ev.emit_final(exit_code, "phase3_failed", nullptr, sess_err);
+        std::fprintf(stderr, "astrocs: phase3 failed: %s\n", sanitize(sess_err).c_str());
+        return exit_code;
+    }
+    const std::string opath = astrocs::g_phase3_session.value("output_fits_path", std::string());
+    nlohmann::json objects = nlohmann::json::array();
+    if (!opath.empty()) {
+        bool ok2 = false;
+        const std::string sha = file_sha256(opath, &ok2);
+        std::error_code ec;
+        const auto size = std::filesystem::file_size(std::filesystem::u8path(opath), ec);
+        objects.push_back({{"path", opath}, {"sha256", ok2 ? sha : ""},
+                           {"size_bytes", ec ? 0ULL : static_cast<unsigned long long>(size)}});
+    }
+    const int wrc = write_run_manifest(out_dir, ev, "complete", "phase3 ok", cfg, cfg_sha, {3}, objects);
+    astrocs_host_services_destroy_state_v1(hstate);
+    if (wrc != astrocs::OK) return wrc;
+    ev.emit("resource", "info", "phase3", "session summary",
+            {{"order_sel_used", astrocs::g_phase3_session.value("order_sel_used", -1)},
+             {"sampler_used", astrocs::g_phase3_session.value("sampler_used", std::string())}});
+    ev.emit_final(astrocs::OK, "ok", nullptr, "phase3 complete");
+    return astrocs::OK;
+}
+
 int cmd_phase1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     const std::string cfg = need_value(p, "--config");
     std::ifstream f(std::filesystem::u8path(cfg), std::ios::binary);
@@ -956,6 +1057,7 @@ int dispatch(const Parsed& p) {
     if (joined == "config show-effective") return cmd_show_effective(p, ev);
     if (joined == "phase1 run")            return cmd_phase1_run(p, ev);
     if (joined == "phase2 run")            return cmd_phase2_run(p, ev);
+    if (joined == "phase3 run")            return cmd_phase3_run(p, ev);
     if (joined == "verify")                return cmd_verify(p, ev);
     if (joined == "run")                   return cmd_run_pipeline(p, ev);
     if (joined == "test synthetic") {
