@@ -84,7 +84,10 @@ uint64_t xcr0_cached() {
 #if defined(__x86_64__)
     if (!__get_cpuid_count(1, 0, &eax, &ebx, &ecx, &edx) || !(ecx & (1u << 27))) return 0;
 #else
-    __cpuidex(1, 0, &eax, &ebx, &ecx, &edx);
+    int info[4];
+    __cpuidex(info, 1, 0);
+    ecx = static_cast<unsigned int>(info[2]);
+    edx = static_cast<unsigned int>(info[3]);
     if (!(ecx & (1u << 27))) return 0;
 #endif
     return read_xcr0_impl();

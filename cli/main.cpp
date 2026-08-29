@@ -55,6 +55,7 @@ uint64_t astrocs_cpu_detect_features_v1(void);
 #include "resource_events.h"
 
 #ifdef _WIN32
+#define NOMINMAX
 #include <windows.h>
 #endif
 

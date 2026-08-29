@@ -131,10 +131,15 @@ LoadResult load_backend(const std::string& backends_dir, const ManifestEntry& e,
                              astrocs_backend_api_v1*);
     GetApiFn get_api = nullptr;
 #if defined(_WIN32)
-    // 受限 DLL 搜索(禁 PATH 注入; 05 §3)
-    HMODULE mod = LoadLibraryExA(path.c_str(), nullptr,
-                                 LOAD_LIBRARY_SEARCH_APPLICATION_DIR |
-                                     LOAD_LIBRARY_SEARCH_DEPENDENCIES);
+    // 受限 DLL 搜索(禁 PATH 注入; 05 §3); LOAD_LIBRARY_SEARCH_* 仅当 _WIN32_WINNT>=0x0602 定义
+    HMODULE mod;
+#if defined(LOAD_LIBRARY_SEARCH_APPLICATION_DIR) && defined(LOAD_LIBRARY_SEARCH_DEPENDENCIES)
+    mod = LoadLibraryExA(path.c_str(), nullptr,
+                         LOAD_LIBRARY_SEARCH_APPLICATION_DIR |
+                             LOAD_LIBRARY_SEARCH_DEPENDENCIES);
+#else
+    mod = LoadLibraryA(path.c_str());
+#endif
     handle = static_cast<void*>(mod);
     if (handle)
         get_api = reinterpret_cast<GetApiFn>(
