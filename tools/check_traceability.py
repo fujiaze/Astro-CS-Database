@@ -28,7 +28,8 @@ CHAIN_COLS = {
     "TEST": ["science_doc", "science_anchor", "algorithm_doc", "algorithm_anchor", "architecture_doc", "api_symbol", "source_symbol", "test_id"],
 }
 CLAIM_RE = re.compile(r"^(SCI|ALG|ARCH|API|CODE|TEST)-([A-Z0-9]{2,8})-\d{3}$")
-ORC_RE = re.compile(r"^ORC-[A-Z0-9]{2,8}-\d{3}$")
+# oracle_id 两种合法形态: ORC-<DOM>-NNN (TRACE-001 主形态) 或 SYN-NNN (V5 独立合成 Oracle 实际稳定 ID, 见 08 §1/§SYN-00x)
+ORC_RE = re.compile(r"^(?:ORC-[A-Z0-9]{2,8}-\d{3}|SYN-\d{3})$")
 
 def symbol_exists(ref):
     """path::symbol => 文件存在且符号可见; 纯路径 => 存在。"""
