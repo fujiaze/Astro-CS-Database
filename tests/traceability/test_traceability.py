@@ -43,7 +43,7 @@ class TestTraceability(unittest.TestCase):
         r = __import__("subprocess").run([sys.executable, os.path.join(REPO, "tools", "check_traceability.py")],
                                          capture_output=True, text=True, cwd=REPO)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertIn("TRACEABILITY_PASS claims=6", r.stdout)
+        self.assertIn("TRACEABILITY_PASS claims=66", r.stdout)
 
     def test_02_delete_any_layer_ref_must_fail(self):
         """mutation: 删除任一层引用 → checker 必须失败。"""
