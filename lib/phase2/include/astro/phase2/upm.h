@@ -14,6 +14,7 @@
 // - sparse/dense 持久化与缓存 checksum 校验。
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
 #ifdef _WIN32

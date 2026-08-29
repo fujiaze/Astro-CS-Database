@@ -65,6 +65,10 @@ list(APPEND P2_SRCS
   ${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/src/hips/aio_hips_writer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/../lib/common/healpix/healpix_core.cpp)
 set_property(SOURCE ${P2_SRCS} PROPERTY COMPILE_OPTIONS "${ACS_WARN_SUPPRESS}")
+# sampler.cpp 用 C++ try/catch(...)/EHa 捕获结构化异常(原 __try/__except, MSVC 禁与对象展开混用)
+if(MSVC)
+  set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase2/src/sampler.cpp PROPERTIES COMPILE_OPTIONS "/EHa;${ACS_WARN_SUPPRESS}")
+endif()
 set_property(SOURCE ${P2_SRCS} PROPERTY INCLUDE_DIRECTORIES
   "${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase2/include;${CMAKE_CURRENT_SOURCE_DIR}/../lib/acr/include;${CMAKE_CURRENT_SOURCE_DIR}/../lib/acr;${CMAKE_CURRENT_SOURCE_DIR}/../lib/common;${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/include;${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/src;${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/third_party/cfitsio;${CMAKE_CURRENT_SOURCE_DIR}/../lib/acr/backends/cuda/bridge;${CMAKE_CURRENT_SOURCE_DIR}/../include;${CMAKE_CURRENT_SOURCE_DIR}/../third_party")
 set(CAL_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/../lib/calibration/src/calibrator.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/calibration/src/master_generator.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/calibration/src/cosmetic_corrector.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/calibration/src/dark_optimizer.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/calibration/src/ac_api.cpp)

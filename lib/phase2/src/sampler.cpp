@@ -183,7 +183,7 @@ int read_tile_pair(AioHipsDataset* sig, AioHipsDataset* sup,
 }
 
 #if defined(_WIN32) && defined(_MSC_VER)
-static int seh_filter(unsigned long code, const char* where, char* err, std::size_t err_size) {
+[[maybe_unused]] static int seh_filter(unsigned long code, const char* where, char* err, std::size_t err_size) {
     if (err && err_size) std::snprintf(err, err_size, "SEH 0x%08lX at %s (AV outside try/catch)", code, where ? where : "?");
     std::fprintf(stderr, "[sampler] SEH 0x%08lX at %s\n", code, where ? where : "?");
     std::fflush(stderr);
@@ -674,7 +674,9 @@ static int p2_sample_controls_impl(
     const auto t0 = std::chrono::steady_clock::now();
     std::uint64_t progress = 0;
 #if defined(_WIN32) && defined(_MSC_VER)
-    __try {
+    // MSVC: __try/__except(SEH) 与 C++ 对象展开互斥(C2712), 改用 C++ try/catch(...)+/EHa
+    // catch(...) 在 /EHa 下同样捕获结构化异常(AV), 保留崩溃保护意图。
+    try {
 #endif
     // ============ CON-004 parallel sampler first pass ============
     // worker reader：serial 复用 setup 打开的共享句柄；并行每 worker 独立句柄
@@ -923,8 +925,11 @@ static int p2_sample_controls_impl(
         }
     }
 #if defined(_WIN32) && defined(_MSC_VER)
-    } __except(seh_filter(GetExceptionCode(), "sampler first pass", err, err_size)) {
-        std::fprintf(stderr, "[sampler] SEH caught in first pass, err=%s\n", err ? err : "");
+    } catch (...) {
+        const unsigned long code = _exception_code();
+        if (err && err_size)
+            std::snprintf(err, err_size, "SEH 0x%08lX at %s (AV outside try/catch)", code, "sampler first pass");
+        std::fprintf(stderr, "[sampler] SEH 0x%08lX at %s\n", code, "sampler first pass");
         std::fflush(stderr);
         for (std::uint64_t i = 0; i < n_frames; ++i) { if (sig[i]) aio_hips_close(sig[i]); if (sup[i]) aio_hips_close(sup[i]); if (ivr[i]) aio_hips_close(ivr[i]); }
         return 1;
