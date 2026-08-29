@@ -1,0 +1,7 @@
+kernel,baseline_ns,bmi2_popcnt_variant_ns,bmi2_popcnt_instruction_count,decision
+calibration-pixel-transform,1303129,1173175,0,NOT_APPLICABLE(纯float,无位操作)
+noise-snr-reductions,34723353,-,0,NOT_APPLICABLE(median比较计数,非popcount)
+upm-spmv,2064430,-,0,NOT_APPLICABLE(gather型内存受限,非位操作)
+drizzle-accumulate,2603253,2529873,0,NOT_APPLICABLE(纯float)
+integration-accumulate,3892616,-,0,NOT_APPLICABLE(纯float)
+hips-bulk-transform,16999747,16933776,0,NOT_APPLICABLE(纯float,差异0.4%为噪声)
