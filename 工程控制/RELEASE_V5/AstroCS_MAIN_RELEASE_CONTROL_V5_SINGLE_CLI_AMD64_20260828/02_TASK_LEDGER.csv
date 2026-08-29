@@ -39,7 +39,7 @@ P3-002,CODE,P3-001,实现输出 FITS WCS 和 pixel world 变换,yes,yes,Linux,PA
 P3-003,CODE,P3-002,实现跨 tile 重采样 coverage mask 与单位语义,yes,yes,Linux,PASS
 P3-004,CODE,P3-003,实现 FITS writer header provenance 与独立读取验证,yes,yes,Linux,PASS
 CLI-006,CODE,CLI-003|P3-004,将 Phase3 作为进程内 API 接入 CLI,yes,yes,Linux,PASS
-CLI-007,CODE,CLI-004|CLI-005|CLI-006,实现统一 run phases 1 2 3 编排恢复与 artifact,yes,yes,Linux,NOT_STARTED
+CLI-007,CODE,CLI-004|CLI-005|CLI-006,实现统一 run phases 1 2 3 编排恢复与 artifact,yes,yes,Linux,IN_PROGRESS
 CLI-008,CODE,CLI-007,从发布目标移除旧 Phase 与 benchmark 可执行入口,yes,yes,Linux,NOT_STARTED
 ABI-001,CPU,API-001|ARCH-003,实现稳定 C ABI v1 host services kernel table selftest,yes,yes,Linux,PASS
 ABI-002,CPU,ABI-001,实现 manifest hash CPUID XGETBV 和安全 DLL SO loader,yes,yes,Linux,PASS
