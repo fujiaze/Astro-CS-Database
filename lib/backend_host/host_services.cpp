@@ -31,7 +31,10 @@ void* host_alloc(void* ud, uint64_t size, uint64_t align) {
 #ifdef _WIN32
     p = _aligned_malloc(static_cast<size_t>(size), static_cast<size_t>(align));
 #else
-    p = std::aligned_alloc(static_cast<size_t>(align), static_cast<size_t>(size));
+    // C11/POSIX: std::aligned_alloc 要求 size 是 align 的整数倍(如 align=16 时 size=229 非法)
+    // → 将 size 向上取整到 align 的倍数, 满足合同且释放方用 host_free(不依赖原始 size)。
+    const std::size_t alloc_sz = (static_cast<std::size_t>(size) + align - 1) & ~(align - 1);
+    p = std::aligned_alloc(static_cast<std::size_t>(align), alloc_sz);
 #endif
     if (p) {
         st->alloc_count.fetch_add(1);

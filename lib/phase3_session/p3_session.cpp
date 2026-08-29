@@ -101,7 +101,6 @@ static acs_status parse_request(SessionState* s, const acs_span_u8 req, json* ou
     }
     const double dec = doc["center"]["dec_deg"].get<double>();
     if (std::fabs(dec) < 5.0) { s->last_error = "|center.dec_deg| must be ≥ 5°"; return ACS_ERR_PARAM; }
-    const double ra = doc["center"]["ra_deg"].get<double>();
     const double scale = doc.value("scale_deg_per_px", 0.0);
     if (!(scale > 0.0)) { s->last_error = "scale_deg_per_px must be > 0"; return ACS_ERR_PARAM; }
     const int wpx = doc.value("width_px", 0);
@@ -151,7 +150,6 @@ acs_status p3_session_run(acs_handle h, const acs_span_u8 request_json) {
     const int hpx = doc.value("height_px", 0);
     const std::string sampler = doc.value("sampler", std::string("bilinear"));
     const std::string parity = doc.value("longitude_parity", std::string("east_left"));
-    const int max_tiles = doc.value("max_tiles", 1024);
 
     // WCS (P3-002)
     P3WcsDescriptor wcs{};
