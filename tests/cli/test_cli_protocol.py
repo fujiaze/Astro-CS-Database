@@ -144,12 +144,17 @@ class TestGolden(unittest.TestCase):
     def test_07_cancel_exit_9_no_fake_artifacts(self):
         # phase2 run 已真接线(CLI-005)需会话配置; 取消语义改由 run 管线 stub-wait 证明(同钩子)
         env = {"ASTROCS_TEST_SLEEP_MS": "8000"}
+        creationflags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
         p = subprocess.Popen([built(), "run", "--phases", "1", "--config", self.cfg,
                               "--events-jsonl"],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                             env={**os.environ, **env})
+                             env={**os.environ, **env}, creationflags=creationflags)
         time.sleep(0.4)
-        p.send_signal(signal.SIGINT if os.name != "nt" else signal.SIGINT)
+        if os.name == "nt":
+            # Windows: subprocess.send_signal 不支持 SIGINT; 经 SetConsoleCtrlHandler 接收控制台信号置取消
+            p.send_signal(signal.CTRL_BREAK_EVENT)
+        else:
+            p.send_signal(signal.SIGINT)
         out, err = p.communicate(timeout=15)
         self.assertEqual(p.returncode, 9, f"取消 → 9, 得 {p.returncode}; stderr={err[:200]}")
         events = jsonl_lines(out)
