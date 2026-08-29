@@ -83,6 +83,8 @@ int main(int argc, char** argv) {
         if (!write_frame_custom(dir + "/FIELD.hips", true, false)) return 3;
     } else if (mode == "--make-nan") {
         if (!write_frame_custom(dir + "/NAN.hips", false, true)) return 3;
+    } else if (mode == "--make-const") {
+        if (!write_frame(dir + "/CONST.hips", 2.5f)) return 3;
     } else {
         return 2;
     }
