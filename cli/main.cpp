@@ -7,7 +7,9 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
+#if !defined(_WIN32)
 #include <sched.h>
+#endif
 #include <filesystem>
 #include <fstream>
 #include <map>
@@ -69,6 +71,21 @@ static void emit_resource_summary(astrocs::JsonlEmitter&, const std::string&,
                                   std::size_t, const std::string&);
 static void emit_backend_event(astrocs::JsonlEmitter&, const std::string&, const std::string&,
                                const std::string&, uint32_t, uint32_t);
+
+// 主机可用并行预算(禁硬编码, 04/BENCH 规范): Linux 用 sched_getaffinity, Windows 用有效处理器数; 至少 1。
+static uint32_t cli_affinity_cpu_count() {
+#if defined(_WIN32)
+    unsigned int n = GetActiveProcessorCount(ALL_PROCESSOR_GROUPS);
+    return n == 0 ? 1u : static_cast<uint32_t>(n);
+#else
+    cpu_set_t set; CPU_ZERO(&set);
+    if (sched_getaffinity(0, sizeof(set), &set) != 0) return 1u;
+    uint32_t n = 0;
+    for (int i = 0; i < CPU_SETSIZE; ++i)
+        if (CPU_ISSET(i, &set)) ++n;
+    return n == 0 ? 1u : n;
+#endif
+}
 
 
 const char* kHelp =
@@ -542,12 +559,7 @@ int cmd_run_pipeline(const Parsed& p, astrocs::JsonlEmitter& ev) {
     host.cancel.is_cancelled = &cli_cancel_probe;
     host.logger.log = &cli_session_log;
     {
-        cpu_set_t set; CPU_ZERO(&set);
-        sched_getaffinity(0, sizeof(set), &set);
-        uint32_t n = 0;
-        for (int i = 0; i < CPU_SETSIZE; ++i)
-            if (CPU_ISSET(i, &set)) ++n;
-        if (n == 0) n = 1;
+        const uint32_t n = cli_affinity_cpu_count();
         astrocs_host_state_set_budget_v1(hstate, n, n, &host);
     }
     const std::string out_dir = doc.value("output_dir", std::string("."));
@@ -824,12 +836,7 @@ int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     host.cancel.is_cancelled = &cli_cancel_probe;
     host.logger.log = &cli_session_log;
     {
-        cpu_set_t set; CPU_ZERO(&set);
-        sched_getaffinity(0, sizeof(set), &set);
-        uint32_t n = 0;
-        for (int i = 0; i < CPU_SETSIZE; ++i)
-            if (CPU_ISSET(i, &set)) ++n;
-        if (n == 0) n = 1;
+        const uint32_t n = cli_affinity_cpu_count();
         astrocs_host_state_set_budget_v1(hstate, n, n, &host);
     }
     acs_handle sess = nullptr;
@@ -944,12 +951,7 @@ int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     host.cancel.is_cancelled = &cli_cancel_probe;
     host.logger.log = &cli_session_log;
     {
-        cpu_set_t set; CPU_ZERO(&set);
-        sched_getaffinity(0, sizeof(set), &set);
-        uint32_t n = 0;
-        for (int i = 0; i < CPU_SETSIZE; ++i)
-            if (CPU_ISSET(i, &set)) ++n;
-        if (n == 0) n = 1;
+        const uint32_t n = cli_affinity_cpu_count();
         astrocs_host_state_set_budget_v1(hstate, n, n, &host);
     }
     acs_handle sess = nullptr;
@@ -1045,12 +1047,7 @@ int cmd_phase1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     host.cancel.is_cancelled = &cli_cancel_probe;
     host.logger.log = &cli_session_log;
     {
-        cpu_set_t set; CPU_ZERO(&set);
-        sched_getaffinity(0, sizeof(set), &set);
-        uint32_t n = 0;
-        for (int i = 0; i < CPU_SETSIZE; ++i)
-            if (CPU_ISSET(i, &set)) ++n;
-        if (n == 0) n = 1;
+        const uint32_t n = cli_affinity_cpu_count();
         astrocs_host_state_set_budget_v1(hstate, n, n, &host);
     }
 

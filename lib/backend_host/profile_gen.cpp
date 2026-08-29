@@ -64,7 +64,11 @@ std::string generate_profile_json(const std::string& mode, const std::string& bu
     {
         std::time_t t = std::time(nullptr);
         std::tm tm{};
+#if defined(_MSC_VER)
+        gmtime_s(&tm, &t);
+#else
         gmtime_r(&t, &tm);
+#endif
         char ts[40];
         std::snprintf(ts, sizeof(ts), "%04d-%02d-%02dT%02d:%02d:%02dZ",
                       tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min,
