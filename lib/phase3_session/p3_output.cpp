@@ -3,6 +3,7 @@
 
 #if defined(_WIN32)
 // MSVC 无 unistd.h; 以 _ 前缀 CRT 提供 POSIX 文件操作为别名
+#include <windows.h>
 #include <io.h>
 #include <process.h>
 #include <direct.h>
@@ -71,7 +72,12 @@ uint32_t fdatasum(const void* buf, size_t n) {
 
 bool make_temp_path(const std::string& out, std::string* tmp) {
     char host[64] = {0};
+#if defined(_WIN32)
+    DWORD host_len = sizeof(host) - 1;
+    GetComputerNameA(host, &host_len);
+#else
     gethostname(host, sizeof(host) - 1);
+#endif
     *tmp = out + "." + std::to_string(::getpid()) + ".tmp";
     // 若 out 无目录, 用当前目录; tmp 与 out 同目录保证 rename 原子
     return true;
