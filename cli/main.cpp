@@ -49,6 +49,8 @@ uint64_t astrocs_cpu_detect_features_v1(void);
 #include "cancel_token.h"
 #include "exit_codes.h"
 #include "jsonl.h"
+#include "monitor.h"
+#include "resource_events.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -61,6 +63,12 @@ namespace {
 // CLI→host 的取消/日志桥接(定义于本 namespace 后段, 此处前向声明供 cmd_run_pipeline 使用)
 static int cli_cancel_probe(void*);
 static void cli_session_log(void*, int, const char*, const char*);
+// MON-002 资源/backend 事件发射(定义于后段, 前向声明供 cmd_run_pipeline 使用)
+static void emit_resource_summary(astrocs::JsonlEmitter&, const std::string&,
+                                  const astrocs::ProcessMonitor::Summary&, const std::string&,
+                                  std::size_t, const std::string&);
+static void emit_backend_event(astrocs::JsonlEmitter&, const std::string&, const std::string&,
+                               const std::string&, uint32_t, uint32_t);
 
 
 const char* kHelp =
@@ -97,7 +105,8 @@ struct Parsed {
 
 const std::set<std::string> kBoolFlags = {"--json", "--events-jsonl", "--quick", "--full"};
 const std::set<std::string> kValueFlags = {"--output", "--config", "--cpu-profile",
-                                           "--run-manifest", "--group", "--phases"};
+                                           "--run-manifest", "--group", "--phases",
+                                           "--resource-detail"};
 
 // 04 §1 命令树: 每条命令允许的旗标(严格白名单, 未知即 2)
 struct CmdRule { const char* path; std::vector<std::string> allowed; };
@@ -109,10 +118,10 @@ const CmdRule kRules[] = {
     {"benchmark cpu",               {"--quick", "--full", "--output"}},
     {"doctor",                      {"--json"}},
     {"test synthetic",              {"--group"}},
-    {"phase1 run",                  {"--config", "--cpu-profile", "--events-jsonl"}},
-    {"phase2 run",                  {"--config", "--cpu-profile", "--events-jsonl"}},
-    {"phase3 run",                  {"--config", "--cpu-profile", "--events-jsonl"}},
-    {"run",                         {"--phases", "--config", "--cpu-profile", "--events-jsonl"}},
+    {"phase1 run",                  {"--config", "--cpu-profile", "--events-jsonl", "--resource-detail"}},
+    {"phase2 run",                  {"--config", "--cpu-profile", "--events-jsonl", "--resource-detail"}},
+    {"phase3 run",                  {"--config", "--cpu-profile", "--events-jsonl", "--resource-detail"}},
+    {"run",                         {"--phases", "--config", "--cpu-profile", "--events-jsonl", "--resource-detail"}},
     {"verify",                      {"--run-manifest", "--json"}},
 };
 
@@ -483,6 +492,13 @@ int cmd_run_pipeline(const Parsed& p, astrocs::JsonlEmitter& ev) {
     bool ok = false;
     const std::string cfg_sha = file_sha256(cfg, &ok);
     if (!ok) return astrocs::INPUT;
+    // MON-002: --resource-detail summary|timeseries(07 §1); summary 默认强制。
+    std::string resource_detail = p.values.count("--resource-detail")
+                                      ? p.values.at("--resource-detail") : std::string("summary");
+    if (resource_detail != "summary" && resource_detail != "timeseries")
+        parse_fail("invalid --resource-detail (summary|timeseries)");
+    // MON-002: 进程监控(07 §1 强制): run 阶段采样, 摘要内嵌于 resource 事件。
+    astrocs::ProcessMonitor proc_mon(0.25);
     // --phases: 1|2|3 的非空升序无重复逗号子集(04 示例: 1,2,3) — 先于任何写操作
     std::vector<int> phases;
     int last = 0;
@@ -573,6 +589,15 @@ int cmd_run_pipeline(const Parsed& p, astrocs::JsonlEmitter& ev) {
             return astrocs::INTEGRITY;   // 04/07: 输出完整性/验证失败 → 8
         }
     }
+
+    // MON-002: 背景采样线程(进程 CPU/RSS 在 run 期间累计), 000 后 join; 禁硬编码。
+    std::atomic<bool> mon_stop{false};
+    std::thread mon_thread([&proc_mon, &mon_stop]() {
+        while (!mon_stop.load()) {
+            proc_mon.tick();
+            std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        }
+    });
 
     for (int phase : phases) {
         ev.stage(("run_phase" + std::to_string(phase)).c_str(), true);
@@ -690,6 +715,8 @@ int cmd_run_pipeline(const Parsed& p, astrocs::JsonlEmitter& ev) {
         ev.stage(("run_phase" + std::to_string(phase)).c_str(), false);
         if (!fail_reason.empty()) { fail_phase = phase; break; }
     }
+    mon_stop.store(true);
+    mon_thread.join();
     astrocs_host_services_destroy_state_v1(hstate);
 
     // 取消检查(任一阶段取消)
@@ -712,6 +739,13 @@ int cmd_run_pipeline(const Parsed& p, astrocs::JsonlEmitter& ev) {
     // (resume/hash-mismatch 校验移到 phase 循环之前执行)
     rc = write_run_manifest(out_dir, ev, "complete", "run ok", cfg, cfg_sha, phases, all_artifacts);
     if (rc != astrocs::OK) return rc;
+    // MON-002: 结束监控, 发射资源分层事件(07 §1 强制 summary) + backend 事件(07 §2 必采)。
+    const auto proc_summary = proc_mon.summary();
+    emit_resource_summary(ev, "pipeline", proc_summary, out_dir, proc_summary.n_samples,
+                          resource_detail);
+    // backend 选择: 从 config 读取(无则 baseline); workers 取 affinity(有效核)。禁硬编码。
+    emit_backend_event(ev, "pipeline", doc.value("backend", "baseline"), "ok",
+                       std::max(1u, proc_mon.n_cores_hint()), proc_mon.n_cores_hint());
     ev.emit("resource", "info", "pipeline", "run summary",
             {{"n_phases", phases.size()}, {"n_artifacts", all_artifacts.size()}});
     ev.emit_final(astrocs::OK, "ok", nullptr, "run complete");
@@ -724,6 +758,50 @@ static void cli_session_log(void*, int level, const char* component, const char*
     static const char* kLv[] = {"DEBUG", "INFO", "WARN", "ERROR"};
     std::fprintf(stderr, "[astrocs:%s][%s] %s\n",
                  kLv[level & 3], component ? component : "phase1", msg ? msg : "");
+}
+
+// MON-002: 发射资源分层事件(summary 强制; timeseries 详略受 --resource-detail 控制)。
+// summary 事件内嵌指标; 原始 timeseries 只记录留存路径+样本数(不内嵌几十 MB 数据)。
+static void emit_resource_summary(astrocs::JsonlEmitter& ev, const std::string& phase,
+                                  const astrocs::ProcessMonitor::Summary& s,
+                                  const std::string& raw_dir, std::size_t raw_n,
+                                  const std::string& detail) {
+    const auto p = astrocs::summarize(s);
+    nlohmann::json payload = {
+        {"n_samples", p.n_samples},
+        {"wall_seconds", p.wall_seconds},
+        {"avg_equivalent_cores", p.avg_equivalent_cores},
+        {"peak_equivalent_cores", p.peak_equivalent_cores},
+        {"peak_rss_bytes", p.peak_rss_bytes},
+        {"rss_slope_bytes_per_s", p.rss_slope_bytes_per_s},
+        {"total_read_bytes", p.total_read_bytes},
+        {"total_write_bytes", p.total_write_bytes},
+        {"total_ctx_switches", p.total_ctx_switches},
+        {"max_threads", p.max_threads},
+        {"sample_overhead_ms", p.sample_overhead_ms},
+        {"resource_detail", detail},
+        {"raw_dir", raw_dir},
+        {"raw_n", raw_n},
+    };
+    if (detail == "timeseries") {
+        payload["curve_points"] = nlohmann::json::array();
+        payload["downsample_max"] = astrocs::kDownsampleMax;
+    }
+    ev.emit("resource", "info", phase, "resource summary", payload);
+}
+
+// MON-002: backend 事件(backend_id/status); 反映所选 backend 与 worker 选择(07 §2 必采)。
+static void emit_backend_event(astrocs::JsonlEmitter& ev, const std::string& phase,
+                               const std::string& backend_id, const std::string& status,
+                               uint32_t workers_used, uint32_t available_cpus) {
+    ev.emit("backend", "info", phase, status,
+            {{"backend_id", backend_id}, {"workers_used", workers_used},
+             {"available_cpus", available_cpus}});
+}
+
+// MON-002: 无标注 >5s 区间判 P1(供 MON-003 gating; 本函数仅供测试与 stage 落地校验)。
+static bool is_stage_priority(const char* annotation, double wall_seconds) {
+    return astrocs::is_unannotated_priority(annotation, wall_seconds);
 }
 
 int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
