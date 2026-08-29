@@ -375,6 +375,7 @@ int validate_cpu_profile(const std::string& path, nlohmann::json* prof_out) {
 
 // show-effective: config 与 profile 分别校验 → 合成 effective(--json 固定, 04 §1)
 int cmd_show_effective(const Parsed& p, astrocs::JsonlEmitter& ev) {
+    (void)p; (void)ev;
     if (!p.flags.count("--json")) parse_fail("config show-effective requires --json");
     const std::string cfg = need_value(p, "--config");
     nlohmann::json doc;
@@ -403,6 +404,7 @@ int cmd_show_effective(const Parsed& p, astrocs::JsonlEmitter& ev) {
 // stub 命令(科学接线属 CODE/TST 域): 参数已按合同全量校验, 明示 not-wired。
 // 测试钩子(ASTROCS_TEST_SLEEP_MS / ASTROCS_TEST_CRASH=1)仅用于协议 golden 测试, 非用户接口。
 int cmd_stub(const Parsed& p, const std::string& phase, astrocs::JsonlEmitter& ev) {
+    (void)p;
     const char* sleep_ms = std::getenv("ASTROCS_TEST_SLEEP_MS");
     if (sleep_ms) {
         long ms = std::strtol(sleep_ms, nullptr, 10);
@@ -800,7 +802,7 @@ static void emit_backend_event(astrocs::JsonlEmitter& ev, const std::string& pha
 }
 
 // MON-002: 无标注 >5s 区间判 P1(供 MON-003 gating; 本函数仅供测试与 stage 落地校验)。
-static bool is_stage_priority(const char* annotation, double wall_seconds) {
+[[maybe_unused]] static bool is_stage_priority(const char* annotation, double wall_seconds) {
     return astrocs::is_unannotated_priority(annotation, wall_seconds);
 }
 
@@ -1151,6 +1153,7 @@ int cmd_phase1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
 
 // verify: 04 §3 — manifest→status→version→输入 hash→逐 artifact(存在→sha→size)
 int cmd_verify(const Parsed& p, astrocs::JsonlEmitter& ev) {
+    (void)ev;
     if (!p.flags.count("--json")) parse_fail("verify requires --json");
     const std::string mp = need_value(p, "--run-manifest");
     std::ifstream f(std::filesystem::u8path(mp), std::ios::binary);

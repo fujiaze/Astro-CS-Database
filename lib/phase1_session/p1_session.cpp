@@ -60,7 +60,7 @@ void ImageDeleter::operator()(AIOImageData* p) const { dispose_image(p); }
 // 为避免把整个 pipeline 翻译单元拖进 CLI, 释放经 std::free(与模块分配器 calloc 匹配)。
 void dispose_image(AIOImageData* p) { if (p) std::free(p); }
 
-acs_status map_aio_err(const char* what, std::string* err) {
+[[maybe_unused]] acs_status map_aio_err(const char* what, std::string* err) {
     if (err) *err = what;
     return ACS_ERR_IO;
 }
