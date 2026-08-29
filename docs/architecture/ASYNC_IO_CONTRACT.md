@@ -92,3 +92,22 @@
   - `sampler.cpp`：`SamplerReader` 可扩展为每 worker 异步预取队列；
   - `aio_hips_reader` / `aio_hips_writer`：保持每个 worker 独立句柄，避免共享
     cfitsio 句柄。
+
+## 10. PAR-001 运行时证明（I/O×compute overlap、无全局串行锁）
+
+> 状态：PAR-001 PASS（证 `BoundedAsyncQueue` 作 I/O×compute 解耦且非全局串行）
+> 关联测试：`tests/cli/test_parallel_queue.py`（6 用例）
+
+- **无全局串行锁**：`BoundedAsyncQueue` 每实例持有独立 `mutex_`/`condition_variable`；
+  是 per-queue 锁，非单一全局锁。header 无 `static std::mutex`/全局锁对象（test_06）。
+- **I/O×compute overlap**：生产者（模拟读 I/O，Tio/项）与消费者（compute，Tcmp/项）
+  并行。实测 N=20、Tio=4ms、Tcmp=2ms、2 消费者：串行估计 120ms，实测 81.5ms
+  （ratio 0.68，贴近 I/O 下界 80ms）→ 证明 compute 与 I/O overlap，未被全局串行
+  锁串行化（test_02、test_03）。
+- **有界背压**：容量 `max(1, budget/item_bytes)`；满时生产者阻塞，`size()≤capacity()`
+  不无界增长，可排空无死锁（test_01、test_03）。
+- **error/cancel**：生产错误→`cancel(reason)` 唤醒 push/pop 双方，消费者经
+  `error()`/`has_error()` 收到第一错误，无死锁；取消后不可恢复（test_04、test_05）。
+- **failure drain**：生产者错误后消费者排空剩余 + 收到错误标志，不静默吞错（test_04）。
+- **CPU compute 不被饿死**：I/O 生产者与 compute 消费者独立队列解耦，compute
+  全程推进（overlap 中 consumed=N 全部完成），无 writer 饿死 compute。
