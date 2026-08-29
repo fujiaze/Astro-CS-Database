@@ -17,6 +17,8 @@
 #if defined(__x86_64__)
 #include <cpuid.h>
 #include <x86intrin.h>
+#elif defined(_M_X64)
+#include <intrin.h>
 #endif
 
 #if defined(_WIN32)
@@ -61,15 +63,30 @@ std::string cpuinfo_field(const std::string& key) {
 }
 #endif
 
-__attribute__((target("xsave"))) static unsigned long long read_xcr0_impl() {
+#if defined(__x86_64__) || defined(_M_X64)
+/* OSXSAVE 探测后读取 XCR0(06 §2); 未启用返 0。GCC/Clang 用 __builtin_ia32_xgetbv(需 -mxsave),
+   MSVC 用 _xgetbv。 */
+#if defined(__GNUC__) || defined(__clang__)
+__attribute__((target("xsave")))
+#endif
+static unsigned long long read_xcr0_impl() {
+#if defined(__x86_64__)
     return __builtin_ia32_xgetbv(0);
+#else
+    return _xgetbv(0);
+#endif
 }
+#endif
 
 uint64_t xcr0_cached() {
-#if defined(__x86_64__)
-    // OSXSAVE 探测后读取 XCR0(06 §2); 未启用返 0
+#if defined(__x86_64__) || defined(_M_X64)
     unsigned int eax = 0, ebx = 0, ecx = 0, edx = 0;
+#if defined(__x86_64__)
     if (!__get_cpuid_count(1, 0, &eax, &ebx, &ecx, &edx) || !(ecx & (1u << 27))) return 0;
+#else
+    __cpuidex(1, 0, &eax, &ebx, &ecx, &edx);
+    if (!(ecx & (1u << 27))) return 0;
+#endif
     return read_xcr0_impl();
 #else
     return 0;
