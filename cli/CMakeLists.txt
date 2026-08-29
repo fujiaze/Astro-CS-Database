@@ -102,7 +102,8 @@ target_compile_options(astrocs PRIVATE
   $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall;-Wextra>
   $<$<CXX_COMPILER_ID:MSVC>:/W4;/EHsc;/utf-8>)
 # MSVC: 目标 Windows 10 → 启用 LoadLibraryEx LOAD_LIBRARY_SEARCH_* 与 GetActiveProcessorCount 等 API
-target_compile_definitions(astrocs PRIVATE $<$<CXX_COMPILER_ID:MSVC>:_WIN32_WINNT=0x0A00;NOMINMAX>)
+#       _USE_MATH_DEFINES 暴露 M_PI(POSIX)
+target_compile_definitions(astrocs PRIVATE $<$<CXX_COMPILER_ID:MSVC>:_WIN32_WINNT=0x0A00;NOMINMAX;_USE_MATH_DEFINES>)
 
 # 发布安装规则: 恰一个 exe (04/CLI-001)
 install(TARGETS astrocs RUNTIME DESTINATION bin)
