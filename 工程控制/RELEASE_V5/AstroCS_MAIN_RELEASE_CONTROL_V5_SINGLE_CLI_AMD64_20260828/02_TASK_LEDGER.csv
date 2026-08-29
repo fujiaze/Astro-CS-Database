@@ -69,7 +69,7 @@ PAR-007,PAR,PAR-001|PAR-002|PAR-003|PAR-004|PAR-005|PAR-006,消除嵌套过订�
 SYN-001,TEST,ALG-001|PAR-006|ABI-003,Calibration 独立合成 Oracle 全后端全线程,yes,yes,Linux,PASS
 SYN-002,TEST,ALG-002|PAR-006|ABI-003,WCS PSF Photometry 独立合成 Oracle,yes,yes,Linux,PASS
 SYN-003,TEST,ALG-003|PAR-006|ABI-003,Noise SNR 独立合成 Oracle,yes,yes,Linux,PASS
-SYN-004,TEST,ALG-004|PAR-004|ABI-003,Drizzle 独立合成 Oracle 与不变量,yes,yes,Linux,NOT_STARTED
+SYN-004,TEST,ALG-004|PAR-004|ABI-003,Drizzle 独立合成 Oracle 与不变量,yes,yes,Linux,PASS
 SYN-005,TEST,ALG-005|PAR-003|ABI-003,UPM 接缝 独立合成 Oracle,yes,yes,Linux,NOT_STARTED
 SYN-006,TEST,ALG-006|PAR-005|ABI-003,Rejection Integration 独立合成 Oracle,yes,yes,Linux,NOT_STARTED
 SYN-007,TEST,ALG-007|CLI-006|ABI-003,Phase3 HiPS FITS 独立合成 Oracle,yes,yes,Linux,NOT_STARTED
