@@ -79,8 +79,11 @@ set_property(SOURCE ${P3_SRCS} APPEND PROPERTY INCLUDE_DIRECTORIES
   "${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase3_session;${CMAKE_CURRENT_SOURCE_DIR}/../lib/common;${CMAKE_CURRENT_SOURCE_DIR}/../lib/common/healpix;${CMAKE_CURRENT_SOURCE_DIR}/../lib/common/crypto;${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/include;${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/src;${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/third_party/cfitsio;${CMAKE_CURRENT_SOURCE_DIR}/../include;${CMAKE_CURRENT_SOURCE_DIR}/../third_party")
 add_executable(astrocs main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/common/crypto/sha256.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/cpu_features.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/hardware_inspect.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/backend_loader.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/bench_harness.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/profile_gen.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/baseline_backend.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/host_services.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase1_session/p1_session.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase2_session/p2_session.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase3_session/p3_session.cpp ${P3_SRCS} ${P2_SRCS} ${AIO_SRCS} ${CFITSIO_SRCS} ${CAL_SRCS} ${CMAKE_CURRENT_BINARY_DIR}/version_generated.h)
 if(MSVC)
-  # gomp/m 为 Unix 库, MSVC 不用; z/zstd/lz4(压缩)由外部提供(vcpkg 或预置 MSVC 库)
-  target_link_libraries(astrocs PRIVATE z zstd lz4)
+  # gomp/m 为 Unix 库, MSVC 不用; zstd/lz4 在CLI走 fallback(HAS_* 未定义), 仅 cfitsio 需 zlib(z)。
+  # zlib: 使用 msys64/mingw64 的 zlib.h + libz.a(COFF); 可用 -DACS_ZLIB_ROOT=... 覆盖。
+  set(ACS_ZLIB_ROOT "C:/msys64/mingw64" CACHE PATH "MSVC zlib 根目录")
+  target_include_directories(astrocs PRIVATE "${ACS_ZLIB_ROOT}/include")
+  target_link_libraries(astrocs PRIVATE "${ACS_ZLIB_ROOT}/lib/libz.a")
 else()
   target_link_libraries(astrocs PRIVATE gomp z zstd lz4 m)
 endif()
