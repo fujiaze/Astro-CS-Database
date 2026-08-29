@@ -33,7 +33,8 @@ def run(*args, env=None):
     e = dict(os.environ)
     if env:
         e.update(env)
-    return subprocess.run([built(), *args], capture_output=True, text=True, timeout=60, env=e)
+    return subprocess.run([built(), *args], capture_output=True, text=True,
+                          encoding="utf-8", errors="replace", timeout=60, env=e)
 
 def jsonl_lines(stdout):
     return [json.loads(l) for l in stdout.splitlines() if l.strip()]
@@ -347,12 +348,16 @@ class TestManifestVerify(unittest.TestCase):
 
     def test_10_cancel_writes_incomplete_manifest(self):
         env = {"ASTROCS_TEST_SLEEP_MS": "8000"}
+        creationflags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
         p = subprocess.Popen([built(), "run", "--phases", "1,2", "--config", self.cfg,
                               "--events-jsonl"],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                             env={**os.environ, **env})
+                             env={**os.environ, **env}, creationflags=creationflags)
         time.sleep(0.4)
-        p.send_signal(signal.SIGINT)
+        if os.name == "nt":
+            p.send_signal(signal.CTRL_BREAK_EVENT)
+        else:
+            p.send_signal(signal.SIGINT)
         out, err = p.communicate(timeout=15)
         self.assertEqual(p.returncode, 9)
         events = [json.loads(l) for l in out.splitlines() if l.strip()]
