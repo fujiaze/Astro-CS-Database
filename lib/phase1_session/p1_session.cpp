@@ -66,6 +66,24 @@ void dispose_image(AIOImageData* p) { if (p) std::free(p); }
 }
 
 }  // namespace
+namespace {
+
+/* 读单帧; 失败→nullptr 并填 err */
+ImagePtr read_image(const std::string& path, std::string* err) {
+    AIOImageData* im = aio_read_fits(path.c_str());
+    if (!im) {
+        *err = "cannot read FITS: " + path;
+        return nullptr;
+    }
+    return ImagePtr(im);
+}
+
+int image_w(const AIOImageData* im) { return aio_get_geometry(im).width; }
+int image_h(const AIOImageData* im) { return aio_get_geometry(im).height; }
+float* image_px(const AIOImageData* im) { return aio_get_pixel_data(const_cast<AIOImageData*>(im)); }
+
+}  // namespace
+
 
 extern "C" {
 
@@ -127,23 +145,6 @@ acs_status p1_session_validate(acs_handle h, const acs_span_u8 config_json) {
     return ACS_OK;
 }
 
-namespace {
-
-/* 读单帧; 失败→nullptr 并填 err */
-ImagePtr read_image(const std::string& path, std::string* err) {
-    AIOImageData* im = aio_read_fits(path.c_str());
-    if (!im) {
-        *err = "cannot read FITS: " + path;
-        return nullptr;
-    }
-    return ImagePtr(im);
-}
-
-int image_w(const AIOImageData* im) { return aio_get_geometry(im).width; }
-int image_h(const AIOImageData* im) { return aio_get_geometry(im).height; }
-float* image_px(const AIOImageData* im) { return aio_get_pixel_data(const_cast<AIOImageData*>(im)); }
-
-}  // namespace
 
 acs_status p1_session_run(acs_handle h, const acs_span_u8 config_json, int async_io_depth) {
     auto* s = reinterpret_cast<SessionState*>(h);
