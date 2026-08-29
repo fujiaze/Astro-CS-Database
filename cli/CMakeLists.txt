@@ -100,6 +100,10 @@ endif()
 # vendored/per-lib includes(aio/calibration/cfitsio) — 只影响对应源
 set_property(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase2_session/p2_session.cpp APPEND PROPERTY INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase2/include")
 set_property(SOURCE ${AIO_SRCS} ${CFITSIO_SRCS} ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase1_session/p1_session.cpp PROPERTY INCLUDE_DIRECTORIES "${AIO_DIR}/include;${AIO_DIR}/third_party/cfitsio;${CMAKE_CURRENT_SOURCE_DIR}/../lib/calibration/include;${CMAKE_CURRENT_SOURCE_DIR}/../include;${CMAKE_CURRENT_SOURCE_DIR}/../third_party")
+# MSVC: 无 <unistd.h>; 为 cfitsio 纯 C 源提供 win_compat/unistd.h shim(用户 /I 先于系统搜索)
+if(MSVC)
+  set_property(SOURCE ${CFITSIO_SRCS} APPEND PROPERTY INCLUDE_DIRECTORIES "${AIO_DIR}/third_party/cfitsio/win_compat")
+endif()
 set_property(SOURCE ${CAL_SRCS} PROPERTY INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/../lib/calibration/include;${AIO_DIR}/include;${CMAKE_CURRENT_SOURCE_DIR}/../include")
 target_include_directories(astrocs PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../third_party ${CMAKE_CURRENT_SOURCE_DIR}/../lib/common/crypto ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase1_session ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase2_session ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase3_session ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 target_compile_options(astrocs PRIVATE
