@@ -968,8 +968,8 @@ int fits_write_file(const AIOImageData *image, const char *path) {
         return -1;
     }
 
-    char iobuf[1 << 20];
-    std::setvbuf(fp, iobuf, _IOFBF, sizeof(iobuf));
+    std::vector<char> iobuf(1 << 20);
+    std::setvbuf(fp, iobuf.data(), _IOFBF, iobuf.size());
 
     std::vector<char> header_buf;
     auto add_card = [&](const char *key, const char *value, const char *comment = "") {
