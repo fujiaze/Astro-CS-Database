@@ -111,4 +111,16 @@ std::string sha256_hex(const void* data, std::size_t len) {
     return s.final_hex();
 }
 
+std::string sha256_file(const char* path) {
+    Sha256 s;
+    FILE* f = std::fopen(path, "rb");
+    if (!f) return {};
+    unsigned char buf[64 * 1024];
+    size_t n;
+    while ((n = std::fread(buf, 1, sizeof(buf), f)) > 0)
+        s.update(buf, n);
+    std::fclose(f);
+    return s.final_hex();
+}
+
 } // namespace astrocs::crypto
