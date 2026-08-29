@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """ARCH-001: 从符号检索生成 PRODUCTION_EXECUTION_INVENTORY.csv (生成器, 可重跑)。"""
-import csv, os, re, subprocess, json, datetime
+import csv, os, re, fnmatch, subprocess, json, datetime
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUT = os.path.join(REPO, "docs", "architecture", "PRODUCTION_EXECUTION_INVENTORY.csv")
@@ -8,9 +8,33 @@ COLS = ["category", "symbol", "location", "classification", "production_reachabl
         "phase", "thread_model", "evidence", "risk_note"]
 
 def rg(pattern, roots, glob_="*.cpp", extra=None):
-    cmd = ["grep", "-rEn", pattern] + roots + ["--include=" + glob_, "--include=*.c", "--include=*.h", "--include=*.hpp"]
-    r = subprocess.run(cmd, cwd=REPO, capture_output=True, text=True)
-    return [l for l in r.stdout.splitlines() if l.strip() and "/archive/" not in l and "/third_party/" not in l]
+    """跨平台符号检索, 复刻原 grep -rEn <pattern> <roots> --include=<glob_> --include=*.c/.h/.hpp。
+    输出与 grep 同为 '<相对路径>:<行号>:<行内容>'; 确定性排序(按 路径+行号), 与 OS walk 顺序无关。
+    排除 /archive/ /third_party/(原 grep 在结果中过滤, 此处直接在遍历时跳过等价)。"""
+    inc = {glob_, "*.c", "*.h", "*.hpp"}
+    rx = re.compile(pattern)
+    out = []
+    for root in roots:
+        base = os.path.join(REPO, root)
+        for dirpath, dirnames, filenames in os.walk(base):
+            dirnames[:] = [d for d in dirnames if d not in ("archive", "third_party", ".git", "__pycache__")]
+            for fn in sorted(filenames):
+                if not any(fnmatch.fnmatch(fn, p) for p in inc):
+                    continue
+                full = os.path.join(dirpath, fn)
+                rel = os.path.relpath(full, REPO).replace(os.sep, "/")
+                if "/archive/" in rel or "/third_party/" in rel:
+                    continue
+                try:
+                    with open(full, "r", encoding="utf-8", errors="replace") as f:
+                        for ln, line in enumerate(f, 1):
+                            content = line.rstrip("\n").rstrip("\r")
+                            if rx.search(content):
+                                out.append(f"{rel}:{ln}:{content}")
+                except Exception:
+                    continue
+    out.sort(key=lambda l: (l.split(":", 1)[0], int(l.split(":", 1)[1].split(":", 1)[0])))
+    return [l for l in out if l.strip()]
 
 rows, notes = [], []
 def add(cat, sym, loc, cls, reach, phase, tm, ev, risk=""):

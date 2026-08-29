@@ -1,18 +1,14 @@
 category,symbol,location,classification,production_reachable,phase,thread_model,evidence,risk_note
-exe_target,healpix_browser_qt,lib/healpix_db/healpix_browser_qt/CMakeLists.txt,tool,no,-,非发布目标,lib/healpix_db/healpix_browser_qt/CMakeLists.txt:83,
-exe_target,browser_cli,lib/healpix_db/healpix_browser_qt/CMakeLists.txt,tool,no,-,非发布目标,lib/healpix_db/healpix_browser_qt/CMakeLists.txt:101,
-exe_target,test_healpix_math,lib/healpix_db/healpix_browser_qt/CMakeLists.txt,test,no,-,非发布目标,lib/healpix_db/healpix_browser_qt/CMakeLists.txt:130,
-exe_target,astrocs-stage2,lib/phase2/CMakeLists.txt,tool,no,-,非发布目标,lib/phase2/CMakeLists.txt:91,
-exe_target,calibrated_pair_diag,lib/phase2/CMakeLists.txt,tool,no,-,非发布目标,lib/phase2/CMakeLists.txt:99,
-exe_target,rejection_cli,lib/phase2/CMakeLists.txt,tool,no,-,非发布目标,lib/phase2/CMakeLists.txt:103,
-exe_target,acr_weighted_integration_benchmark,lib/acr/examples/weighted_integration/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/examples/weighted_integration/CMakeLists.txt:28,
 exe_target,acr_example_minimal,lib/acr/examples/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/examples/CMakeLists.txt:2,
 exe_target,acr_example_chunk,lib/acr/examples/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/examples/CMakeLists.txt:5,
-exe_target,acr-classic-runner,lib/acr/tools/acr_classic_runner/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/tools/acr_classic_runner/CMakeLists.txt:12,
-exe_target,acr-report,lib/acr/tools/acr_report/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/tools/acr_report/CMakeLists.txt:6,
-exe_target,acr-benchmark,lib/acr/tools/acr_benchmark/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/tools/acr_benchmark/CMakeLists.txt:7,
-exe_target,acr-status,lib/acr/tools/acr_status/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/tools/acr_status/CMakeLists.txt:7,
+exe_target,acr_weighted_integration_benchmark,lib/acr/examples/weighted_integration/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/examples/weighted_integration/CMakeLists.txt:28,
 exe_target,acr-benchmark-focused,lib/acr/qualification/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/qualification/CMakeLists.txt:109,
+exe_target,acr_test_classic,lib/acr/tests/classic/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/tests/classic/CMakeLists.txt:59,
+exe_target,acr_test_fault,lib/acr/tests/fault/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/tests/fault/CMakeLists.txt:15,
+exe_target,acr_test_sanitizer,lib/acr/tests/fault/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/tests/fault/CMakeLists.txt:32,
+exe_target,acr_test_sanitizer_actual,lib/acr/tests/fault/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/tests/fault/CMakeLists.txt:45,
+exe_target,acr_test_persistence,lib/acr/tests/fault/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/tests/fault/CMakeLists.txt:60,
+exe_target,acr_test_weighted_integration,lib/acr/tests/integration/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/tests/integration/CMakeLists.txt:4,
 exe_target,acr_test_focused_mixed,lib/acr/tests/unit/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/tests/unit/CMakeLists.txt:3,
 exe_target,acr_test_api,lib/acr/tests/unit/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/tests/unit/CMakeLists.txt:15,
 exe_target,acr_test_buffer,lib/acr/tests/unit/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/tests/unit/CMakeLists.txt:18,
@@ -39,12 +35,16 @@ exe_target,acr_test_mixed_route,lib/acr/tests/unit/CMakeLists.txt,tool,no,-,非�
 exe_target,acr_test_residency,lib/acr/tests/unit/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/tests/unit/CMakeLists.txt:257,
 exe_target,acr_test_cuda_bridge,lib/acr/tests/unit/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/tests/unit/CMakeLists.txt:267,
 exe_target,acr_test_cuda_bridge_chunk,lib/acr/tests/unit/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/tests/unit/CMakeLists.txt:279,
-exe_target,acr_test_fault,lib/acr/tests/fault/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/tests/fault/CMakeLists.txt:15,
-exe_target,acr_test_sanitizer,lib/acr/tests/fault/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/tests/fault/CMakeLists.txt:32,
-exe_target,acr_test_sanitizer_actual,lib/acr/tests/fault/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/tests/fault/CMakeLists.txt:45,
-exe_target,acr_test_persistence,lib/acr/tests/fault/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/tests/fault/CMakeLists.txt:60,
-exe_target,acr_test_weighted_integration,lib/acr/tests/integration/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/tests/integration/CMakeLists.txt:4,
-exe_target,acr_test_classic,lib/acr/tests/classic/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/tests/classic/CMakeLists.txt:59,
+exe_target,acr-benchmark,lib/acr/tools/acr_benchmark/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/tools/acr_benchmark/CMakeLists.txt:7,
+exe_target,acr-classic-runner,lib/acr/tools/acr_classic_runner/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/tools/acr_classic_runner/CMakeLists.txt:12,
+exe_target,acr-report,lib/acr/tools/acr_report/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/tools/acr_report/CMakeLists.txt:6,
+exe_target,acr-status,lib/acr/tools/acr_status/CMakeLists.txt,tool,no,-,非发布目标,lib/acr/tools/acr_status/CMakeLists.txt:7,
+exe_target,healpix_browser_qt,lib/healpix_db/healpix_browser_qt/CMakeLists.txt,tool,no,-,非发布目标,lib/healpix_db/healpix_browser_qt/CMakeLists.txt:83,
+exe_target,browser_cli,lib/healpix_db/healpix_browser_qt/CMakeLists.txt,tool,no,-,非发布目标,lib/healpix_db/healpix_browser_qt/CMakeLists.txt:101,
+exe_target,test_healpix_math,lib/healpix_db/healpix_browser_qt/CMakeLists.txt,test,no,-,非发布目标,lib/healpix_db/healpix_browser_qt/CMakeLists.txt:130,
+exe_target,astrocs-stage2,lib/phase2/CMakeLists.txt,tool,no,-,非发布目标,lib/phase2/CMakeLists.txt:91,
+exe_target,calibrated_pair_diag,lib/phase2/CMakeLists.txt,tool,no,-,非发布目标,lib/phase2/CMakeLists.txt:99,
+exe_target,rejection_cli,lib/phase2/CMakeLists.txt,tool,no,-,非发布目标,lib/phase2/CMakeLists.txt:103,
 openmp_kernel,weighted_integration_kernels.cpp,lib/acr/examples/weighted_integration/weighted_integration_kernels.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/acr/examples/weighted_integration/weighted_integration_kernels.cpp (1 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
 openmp_kernel,aio_fits.cpp,lib/astro_image_io/src/aio_fits.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/astro_image_io/src/aio_fits.cpp (1 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
 openmp_kernel,aio_pipeline_engine.cpp,lib/astro_image_io/src/aio_pipeline_engine.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/astro_image_io/src/aio_pipeline_engine.cpp (3 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
@@ -70,15 +70,36 @@ openmp_kernel,ipv_triangle.cpp,lib/plate_solve/cpp/ipv/src/ipv_triangle.cpp,prod
 openmp_kernel,snr_estimator.cpp,lib/snr_estimator/cpp/src/snr_estimator.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/snr_estimator/cpp/src/snr_estimator.cpp (10 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
 openmp_kernel,sdet_api.cpp,lib/star_detector/src/sdet_api.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/star_detector/src/sdet_api.cpp (12 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
 openmp_kernel,sdet_image.cpp,lib/star_detector/src/sdet_image.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/star_detector/src/sdet_image.cpp (21 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
-thread_creation,"LOG_INFO(""orchestrator"", ""可用线程数: "" + std::to_string(std::thr",lib/orchestrator/cpp/src/orchestrator.cpp:469,production,yes,-,std::async,lib/orchestrator/cpp/src/orchestrator.cpp:469,
-thread_creation,unsigned int hc = std::thread::hardware_concurrency();,lib/orchestrator/cpp/src/orchestrator.cpp:604,production,yes,-,std::async,lib/orchestrator/cpp/src/orchestrator.cpp:604,
-thread_creation,std::thread watchdog;,lib/orchestrator/cpp/src/orchestrator.cpp:5084,production,yes,-,std::thread 显式创建,lib/orchestrator/cpp/src/orchestrator.cpp:5084,登记于 EXECUTION_MODEL; watchdog/monitor 唯一豁免
-thread_creation,"watchdog = std::thread([this, name, timeout_sec]() {",lib/orchestrator/cpp/src/orchestrator.cpp:5091,production,yes,-,std::async,lib/orchestrator/cpp/src/orchestrator.cpp:5091,登记于 EXECUTION_MODEL; watchdog/monitor 唯一豁免
-thread_creation,std::thread worker_thread_;,lib/orchestrator/cpp/include/orchestrator.h:336,production,yes,-,std::thread 显式创建,lib/orchestrator/cpp/include/orchestrator.h:336,
-thread_creation,std::thread worker_thread_;,lib/orchestrator/cpp/include/resource_monitor.h:135,production,yes,-,std::thread 显式创建,lib/orchestrator/cpp/include/resource_monitor.h:135,
-thread_creation,std::vector<std::thread> threads;,lib/orchestrator/cpp/tests/test_logger.cpp:369,test,no,-,std::async,lib/orchestrator/cpp/tests/test_logger.cpp:369,
-thread_creation,std::thread stdout_thread([&]() {,lib/orchestrator/cpp/tests/test_orchestrator_cli.cpp:200,test,no,-,std::thread 显式创建,lib/orchestrator/cpp/tests/test_orchestrator_cli.cpp:200,
-thread_creation,std::thread stderr_thread([&]() {,lib/orchestrator/cpp/tests/test_orchestrator_cli.cpp:208,test,no,-,std::thread 显式创建,lib/orchestrator/cpp/tests/test_orchestrator_cli.cpp:208,
+thread_creation,unsigned n = std::thread::hardware_concurrency();,lib/acr/core/runtime.cpp:69,production,yes,-,std::async,lib/acr/core/runtime.cpp:69,
+thread_creation,"e.cpu = ""cpu-hw-"" + std::to_string(std::thread::hardware_con",lib/acr/examples/weighted_integration/weighted_integration_benchmark.cpp:222,production,yes,-,std::async,lib/acr/examples/weighted_integration/weighted_integration_benchmark.cpp:222,
+thread_creation,static_cast<int>(std::thread::hardware_concurrency());,lib/acr/examples/weighted_integration/weighted_integration_benchmark.cpp:224,production,yes,-,std::async,lib/acr/examples/weighted_integration/weighted_integration_benchmark.cpp:224,
+thread_creation,e.acr_cpu_workers = std::thread::hardware_concurrency();,lib/acr/examples/weighted_integration/weighted_integration_benchmark.cpp:225,production,yes,-,std::async,lib/acr/examples/weighted_integration/weighted_integration_benchmark.cpp:225,
+thread_creation,cpu.compute_units = static_cast<std::uint32_t>(std::thread::,lib/acr/profile/profile_reader.cpp:382,production,yes,-,std::async,lib/acr/profile/profile_reader.cpp:382,
+thread_creation,? static_cast<std::uint32_t>(std::thread::hardware_concurren,lib/acr/qualification/benchmark_driver.cpp:625,production,yes,-,std::async,lib/acr/qualification/benchmark_driver.cpp:625,
+thread_creation,if (hw_threads == 0) hw_threads = static_cast<std::uint32_t>,lib/acr/qualification/benchmarks/benchmark_common.hpp:170,production,yes,-,std::async,lib/acr/qualification/benchmarks/benchmark_common.hpp:170,
+thread_creation,auto hw = static_cast<std::uint32_t>(std::thread::hardware_c,lib/acr/qualification/benchmarks/thread_curve_benchmark.cpp:72,production,yes,-,std::async,lib/acr/qualification/benchmarks/thread_curve_benchmark.cpp:72,
+thread_creation,auto hw = static_cast<std::uint32_t>(std::thread::hardware_c,lib/acr/qualification/benchmarks/thread_curve_benchmark.cpp:100,production,yes,-,std::async,lib/acr/qualification/benchmarks/thread_curve_benchmark.cpp:100,
+thread_creation,f += std::to_string(std::thread::hardware_concurrency());,lib/acr/qualification/focused/focused_benchmark.cpp:77,production,yes,-,std::async,lib/acr/qualification/focused/focused_benchmark.cpp:77,
+thread_creation,if (cpu_cores == 0) cpu_cores = static_cast<std::uint32_t>(s,lib/acr/qualification/profile_generator.cpp:300,production,yes,-,std::async,lib/acr/qualification/profile_generator.cpp:300,
+thread_creation,"std::min<std::size_t>(16, std::thread::hardware_concurrency(",lib/acr/scheduler/dispatcher.cpp:476,production,yes,-,std::async,lib/acr/scheduler/dispatcher.cpp:476,
+thread_creation,std::thread::hardware_concurrency());,lib/acr/scheduler/dispatcher.cpp:1114,production,yes,-,std::async,lib/acr/scheduler/dispatcher.cpp:1114,
+thread_creation,: std::thread::hardware_concurrency());,lib/acr/scheduler/dispatcher.cpp:1133,production,yes,-,std::async,lib/acr/scheduler/dispatcher.cpp:1133,
+thread_creation,std::vector<std::thread> workers;,lib/acr/scheduler/dispatcher.cpp:1174,production,yes,-,std::async,lib/acr/scheduler/dispatcher.cpp:1174,
+thread_creation,std::vector<std::thread> ts;,lib/acr/tests/classic/e16_concurrency.cpp:40,test,no,-,std::async,lib/acr/tests/classic/e16_concurrency.cpp:40,
+thread_creation,std::vector<std::thread> ts;,lib/acr/tests/classic/e16_concurrency.cpp:132,test,no,-,std::async,lib/acr/tests/classic/e16_concurrency.cpp:132,
+thread_creation,std::vector<std::thread> ts;,lib/acr/tests/classic/e16_concurrency.cpp:188,test,no,-,std::async,lib/acr/tests/classic/e16_concurrency.cpp:188,
+thread_creation,std::vector<std::thread> ts;,lib/acr/tests/classic/e16_concurrency.cpp:223,test,no,-,std::async,lib/acr/tests/classic/e16_concurrency.cpp:223,
+thread_creation,"std::thread t([&ev, &ready]() {",lib/acr/tests/classic/e16_concurrency.cpp:264,test,no,-,std::thread 显式创建,lib/acr/tests/classic/e16_concurrency.cpp:264,
+thread_creation,std::vector<std::thread> ts;,lib/acr/tests/classic/e21_persistence_concurrency.cpp:112,test,no,-,std::async,lib/acr/tests/classic/e21_persistence_concurrency.cpp:112,
+thread_creation,std::vector<std::thread> ts;,lib/acr/tests/fault/lifecycle_smoke.cpp:68,test,no,-,std::async,lib/acr/tests/fault/lifecycle_smoke.cpp:68,
+thread_creation,std::vector<std::thread> workers;,lib/acr/tests/sanitizer/msvc_asan_main.cpp:55,test,no,-,std::async,lib/acr/tests/sanitizer/msvc_asan_main.cpp:55,
+thread_creation,std::vector<std::thread> readers;,lib/acr/tests/sanitizer/msvc_asan_main.cpp:102,test,no,-,std::async,lib/acr/tests/sanitizer/msvc_asan_main.cpp:102,
+thread_creation,std::vector<std::thread> readers;,lib/acr/tests/unit/test_kernel_registry.cpp:169,test,no,-,std::async,lib/acr/tests/unit/test_kernel_registry.cpp:169,
+thread_creation,std::vector<std::thread> threads;,lib/acr/tests/unit/test_utilization.cpp:33,test,no,-,std::async,lib/acr/tests/unit/test_utilization.cpp:33,
+thread_creation,std::thread ta_thread([&] {,lib/acr/tests/unit/test_work_pool.cpp:50,test,no,-,std::thread 显式创建,lib/acr/tests/unit/test_work_pool.cpp:50,
+thread_creation,std::vector<std::thread> workers;,lib/acr/tests/unit/test_work_pool.cpp:142,test,no,-,std::async,lib/acr/tests/unit/test_work_pool.cpp:142,
+thread_creation,std::thread b([&] {,lib/acr/tests/unit/test_work_pool.cpp:227,test,no,-,std::thread 显式创建,lib/acr/tests/unit/test_work_pool.cpp:227,
+thread_creation,std::vector<std::thread> workers;,lib/acr/tests/unit/test_work_pool.cpp:263,test,no,-,std::async,lib/acr/tests/unit/test_work_pool.cpp:263,
 thread_creation,* @param thread_count count of std::async threads,lib/healpix_db/healpix_drizzle/nanoflann.hpp:1407,production,yes,-,std::async,lib/healpix_db/healpix_drizzle/nanoflann.hpp:1407,
 thread_creation,right_future = std::async(,lib/healpix_db/healpix_drizzle/nanoflann.hpp:1433,production,yes,-,std::async,lib/healpix_db/healpix_drizzle/nanoflann.hpp:1433,
 thread_creation,*     build using `std::async` (unless NANOFLANN_NO_THREADS ,lib/healpix_db/healpix_drizzle/nanoflann.hpp:1811,production,yes,-,std::async,lib/healpix_db/healpix_drizzle/nanoflann.hpp:1811,
@@ -87,10 +108,18 @@ thread_creation,Base::n_thread_build_ = std::max(std::thread::hardware_concu,lib
 thread_creation,fut_ = std::async(,lib/healpix_db/healpix_drizzle/nanoflann.hpp:3883,production,yes,-,std::async,lib/healpix_db/healpix_drizzle/nanoflann.hpp:3883,
 thread_creation,"std::thread t1(worker, specA, refA, 20);",lib/healpix_db/healpix_drizzle/tests/concurrency_cache_test.cpp:136,test,no,-,std::thread 显式创建,lib/healpix_db/healpix_drizzle/tests/concurrency_cache_test.cpp:136,
 thread_creation,"std::thread t2(worker, specB, refB, 20);",lib/healpix_db/healpix_drizzle/tests/concurrency_cache_test.cpp:137,test,no,-,std::thread 显式创建,lib/healpix_db/healpix_drizzle/tests/concurrency_cache_test.cpp:137,
-thread_creation,const int workers = (cfg.cpu_workers > 0) ? cfg.cpu_workers ,lib/phase2/src/sampler.cpp:879,production,yes,-,std::async,lib/phase2/src/sampler.cpp:879,
-thread_creation,": (int)std::max(1u, std::thread::hardware_concurrency());",lib/phase2/src/upm.cpp:518,production,yes,-,std::async,lib/phase2/src/upm.cpp:518,
+thread_creation,std::thread worker_thread_;,lib/orchestrator/cpp/include/orchestrator.h:336,production,yes,-,std::thread 显式创建,lib/orchestrator/cpp/include/orchestrator.h:336,
+thread_creation,std::thread worker_thread_;,lib/orchestrator/cpp/include/resource_monitor.h:135,production,yes,-,std::thread 显式创建,lib/orchestrator/cpp/include/resource_monitor.h:135,
+thread_creation,"LOG_INFO(""orchestrator"", ""可用线程数: "" + std::to_string(std::thr",lib/orchestrator/cpp/src/orchestrator.cpp:469,production,yes,-,std::async,lib/orchestrator/cpp/src/orchestrator.cpp:469,
+thread_creation,unsigned int hc = std::thread::hardware_concurrency();,lib/orchestrator/cpp/src/orchestrator.cpp:604,production,yes,-,std::async,lib/orchestrator/cpp/src/orchestrator.cpp:604,
+thread_creation,std::thread watchdog;,lib/orchestrator/cpp/src/orchestrator.cpp:5084,production,yes,-,std::thread 显式创建,lib/orchestrator/cpp/src/orchestrator.cpp:5084,登记于 EXECUTION_MODEL; watchdog/monitor 唯一豁免
+thread_creation,"watchdog = std::thread([this, name, timeout_sec]() {",lib/orchestrator/cpp/src/orchestrator.cpp:5091,production,yes,-,std::async,lib/orchestrator/cpp/src/orchestrator.cpp:5091,登记于 EXECUTION_MODEL; watchdog/monitor 唯一豁免
+thread_creation,std::vector<std::thread> threads;,lib/orchestrator/cpp/tests/test_logger.cpp:369,test,no,-,std::async,lib/orchestrator/cpp/tests/test_logger.cpp:369,
+thread_creation,std::thread stdout_thread([&]() {,lib/orchestrator/cpp/tests/test_orchestrator_cli.cpp:200,test,no,-,std::thread 显式创建,lib/orchestrator/cpp/tests/test_orchestrator_cli.cpp:200,
+thread_creation,std::thread stderr_thread([&]() {,lib/orchestrator/cpp/tests/test_orchestrator_cli.cpp:208,test,no,-,std::thread 显式创建,lib/orchestrator/cpp/tests/test_orchestrator_cli.cpp:208,
 thread_creation,const unsigned hc = std::thread::hardware_concurrency();,lib/phase2/include/astro/phase2/execution_options.h:24,production,yes,-,std::async,lib/phase2/include/astro/phase2/execution_options.h:24,
-thread_creation,const unsigned h = std::thread::hardware_concurrency();,lib/phase2/tests/execution_options_test.cpp:12,test,no,-,std::async,lib/phase2/tests/execution_options_test.cpp:12,
+thread_creation,const int workers = (cfg.cpu_workers > 0) ? cfg.cpu_workers ,lib/phase2/src/sampler.cpp:881,production,yes,-,std::async,lib/phase2/src/sampler.cpp:881,
+thread_creation,": (int)std::max(1u, std::thread::hardware_concurrency());",lib/phase2/src/upm.cpp:518,production,yes,-,std::async,lib/phase2/src/upm.cpp:518,
 thread_creation,std::thread producer([&] {,lib/phase2/tests/async_io_test.cpp:59,test,no,-,std::thread 显式创建,lib/phase2/tests/async_io_test.cpp:59,
 thread_creation,std::thread producer([&] { pushed = q.push(1); });,lib/phase2/tests/async_io_test.cpp:90,test,no,-,std::thread 显式创建,lib/phase2/tests/async_io_test.cpp:90,
 thread_creation,std::thread reader([&] {,lib/phase2/tests/async_io_test.cpp:110,test,no,-,std::thread 显式创建,lib/phase2/tests/async_io_test.cpp:110,
@@ -102,36 +131,7 @@ thread_creation,std::thread writer([&] {,lib/phase2/tests/async_io_test.cpp:179,
 thread_creation,std::thread reader([&] {,lib/phase2/tests/async_io_test.cpp:192,test,no,-,std::thread 显式创建,lib/phase2/tests/async_io_test.cpp:192,
 thread_creation,std::vector<std::thread> workers;,lib/phase2/tests/async_io_test.cpp:200,test,no,-,std::async,lib/phase2/tests/async_io_test.cpp:200,
 thread_creation,std::thread consumer([&] { consumer_returned_null = (q.pop(),lib/phase2/tests/async_io_test.cpp:223,test,no,-,std::thread 显式创建,lib/phase2/tests/async_io_test.cpp:223,
-thread_creation,"e.cpu = ""cpu-hw-"" + std::to_string(std::thread::hardware_con",lib/acr/examples/weighted_integration/weighted_integration_benchmark.cpp:222,production,yes,-,std::async,lib/acr/examples/weighted_integration/weighted_integration_benchmark.cpp:222,
-thread_creation,static_cast<int>(std::thread::hardware_concurrency());,lib/acr/examples/weighted_integration/weighted_integration_benchmark.cpp:224,production,yes,-,std::async,lib/acr/examples/weighted_integration/weighted_integration_benchmark.cpp:224,
-thread_creation,e.acr_cpu_workers = std::thread::hardware_concurrency();,lib/acr/examples/weighted_integration/weighted_integration_benchmark.cpp:225,production,yes,-,std::async,lib/acr/examples/weighted_integration/weighted_integration_benchmark.cpp:225,
-thread_creation,"std::min<std::size_t>(16, std::thread::hardware_concurrency(",lib/acr/scheduler/dispatcher.cpp:476,production,yes,-,std::async,lib/acr/scheduler/dispatcher.cpp:476,
-thread_creation,std::thread::hardware_concurrency());,lib/acr/scheduler/dispatcher.cpp:1114,production,yes,-,std::async,lib/acr/scheduler/dispatcher.cpp:1114,
-thread_creation,: std::thread::hardware_concurrency());,lib/acr/scheduler/dispatcher.cpp:1133,production,yes,-,std::async,lib/acr/scheduler/dispatcher.cpp:1133,
-thread_creation,std::vector<std::thread> workers;,lib/acr/scheduler/dispatcher.cpp:1174,production,yes,-,std::async,lib/acr/scheduler/dispatcher.cpp:1174,
-thread_creation,unsigned n = std::thread::hardware_concurrency();,lib/acr/core/runtime.cpp:69,production,yes,-,std::async,lib/acr/core/runtime.cpp:69,
-thread_creation,? static_cast<std::uint32_t>(std::thread::hardware_concurren,lib/acr/qualification/benchmark_driver.cpp:625,production,yes,-,std::async,lib/acr/qualification/benchmark_driver.cpp:625,
-thread_creation,auto hw = static_cast<std::uint32_t>(std::thread::hardware_c,lib/acr/qualification/benchmarks/thread_curve_benchmark.cpp:72,production,yes,-,std::async,lib/acr/qualification/benchmarks/thread_curve_benchmark.cpp:72,
-thread_creation,auto hw = static_cast<std::uint32_t>(std::thread::hardware_c,lib/acr/qualification/benchmarks/thread_curve_benchmark.cpp:100,production,yes,-,std::async,lib/acr/qualification/benchmarks/thread_curve_benchmark.cpp:100,
-thread_creation,if (hw_threads == 0) hw_threads = static_cast<std::uint32_t>,lib/acr/qualification/benchmarks/benchmark_common.hpp:170,production,yes,-,std::async,lib/acr/qualification/benchmarks/benchmark_common.hpp:170,
-thread_creation,if (cpu_cores == 0) cpu_cores = static_cast<std::uint32_t>(s,lib/acr/qualification/profile_generator.cpp:300,production,yes,-,std::async,lib/acr/qualification/profile_generator.cpp:300,
-thread_creation,f += std::to_string(std::thread::hardware_concurrency());,lib/acr/qualification/focused/focused_benchmark.cpp:77,production,yes,-,std::async,lib/acr/qualification/focused/focused_benchmark.cpp:77,
-thread_creation,cpu.compute_units = static_cast<std::uint32_t>(std::thread::,lib/acr/profile/profile_reader.cpp:382,production,yes,-,std::async,lib/acr/profile/profile_reader.cpp:382,
-thread_creation,std::vector<std::thread> readers;,lib/acr/tests/unit/test_kernel_registry.cpp:169,test,no,-,std::async,lib/acr/tests/unit/test_kernel_registry.cpp:169,
-thread_creation,std::thread ta_thread([&] {,lib/acr/tests/unit/test_work_pool.cpp:50,test,no,-,std::thread 显式创建,lib/acr/tests/unit/test_work_pool.cpp:50,
-thread_creation,std::vector<std::thread> workers;,lib/acr/tests/unit/test_work_pool.cpp:142,test,no,-,std::async,lib/acr/tests/unit/test_work_pool.cpp:142,
-thread_creation,std::thread b([&] {,lib/acr/tests/unit/test_work_pool.cpp:227,test,no,-,std::thread 显式创建,lib/acr/tests/unit/test_work_pool.cpp:227,
-thread_creation,std::vector<std::thread> workers;,lib/acr/tests/unit/test_work_pool.cpp:263,test,no,-,std::async,lib/acr/tests/unit/test_work_pool.cpp:263,
-thread_creation,std::vector<std::thread> threads;,lib/acr/tests/unit/test_utilization.cpp:33,test,no,-,std::async,lib/acr/tests/unit/test_utilization.cpp:33,
-thread_creation,std::vector<std::thread> ts;,lib/acr/tests/fault/lifecycle_smoke.cpp:68,test,no,-,std::async,lib/acr/tests/fault/lifecycle_smoke.cpp:68,
-thread_creation,std::vector<std::thread> ts;,lib/acr/tests/classic/e21_persistence_concurrency.cpp:112,test,no,-,std::async,lib/acr/tests/classic/e21_persistence_concurrency.cpp:112,
-thread_creation,std::vector<std::thread> ts;,lib/acr/tests/classic/e16_concurrency.cpp:40,test,no,-,std::async,lib/acr/tests/classic/e16_concurrency.cpp:40,
-thread_creation,std::vector<std::thread> ts;,lib/acr/tests/classic/e16_concurrency.cpp:132,test,no,-,std::async,lib/acr/tests/classic/e16_concurrency.cpp:132,
-thread_creation,std::vector<std::thread> ts;,lib/acr/tests/classic/e16_concurrency.cpp:188,test,no,-,std::async,lib/acr/tests/classic/e16_concurrency.cpp:188,
-thread_creation,std::vector<std::thread> ts;,lib/acr/tests/classic/e16_concurrency.cpp:223,test,no,-,std::async,lib/acr/tests/classic/e16_concurrency.cpp:223,
-thread_creation,"std::thread t([&ev, &ready]() {",lib/acr/tests/classic/e16_concurrency.cpp:264,test,no,-,std::thread 显式创建,lib/acr/tests/classic/e16_concurrency.cpp:264,
-thread_creation,std::vector<std::thread> workers;,lib/acr/tests/sanitizer/msvc_asan_main.cpp:55,test,no,-,std::async,lib/acr/tests/sanitizer/msvc_asan_main.cpp:55,
-thread_creation,std::vector<std::thread> readers;,lib/acr/tests/sanitizer/msvc_asan_main.cpp:102,test,no,-,std::async,lib/acr/tests/sanitizer/msvc_asan_main.cpp:102,
+thread_creation,const unsigned h = std::thread::hardware_concurrency();,lib/phase2/tests/execution_options_test.cpp:12,test,no,-,std::async,lib/phase2/tests/execution_options_test.cpp:12,
 lock,kernel_registry.cpp,lib/acr/api/kernel_registry.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/acr/api/kernel_registry.cpp (3 sites),
 lock,acr_cuda_bridge_host.cpp,lib/acr/backends/cuda/bridge/acr_cuda_bridge_host.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/acr/backends/cuda/bridge/acr_cuda_bridge_host.cpp (25 sites),
 lock,runtime.cpp,lib/acr/core/runtime.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/acr/core/runtime.cpp (5 sites),
@@ -179,6 +179,10 @@ lock,stage2.cpp,lib/phase2/tools/stage2.cpp,production,yes,Phase1/2,mutex 保护
 lock,ipv_log.h,lib/plate_solve/cpp/ipv/include/ipv_log.h,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/plate_solve/cpp/ipv/include/ipv_log.h (4 sites),
 lock,sdet_log.cpp,lib/star_detector/src/sdet_log.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/star_detector/src/sdet_log.cpp (2 sites),
 queue,std::queue<int> q;,lib/calibration/src/cosmetic_corrector.cpp:71,production,yes,-,队列语义,lib/calibration/src/cosmetic_corrector.cpp:71,
+acr_boundary,"std::string acr_route = ""auto"";",lib/phase2/include/astro/phase2/stage2_common.h:95,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/include/astro/phase2/stage2_common.h:95,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
+acr_boundary,// CON-007: ACR 块路由资格。acr_route=cpu/auto/cuda 只要满足科学/ivar 条件,lib/phase2/include/astro/phase2/stage2_common.h:110,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/include/astro/phase2/stage2_common.h:110,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
+acr_boundary,"bool p2_acr_block_eligible(const P2Stage2Config& cfg,",lib/phase2/include/astro/phase2/stage2_common.h:113,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/include/astro/phase2/stage2_common.h:113,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
+acr_boundary,"bool acr_registered,",lib/phase2/include/astro/phase2/stage2_common.h:114,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/include/astro/phase2/stage2_common.h:114,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
 acr_boundary,"cfg->acr_route = in.value(""acr_route"", std::string(""auto""));",lib/phase2/src/stage2_common.cpp:391,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/src/stage2_common.cpp:391,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
 acr_boundary,"if (cfg->acr_route != ""auto"" && cfg->acr_route != ""cpu"") {",lib/phase2/src/stage2_common.cpp:392,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/src/stage2_common.cpp:392,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
 acr_boundary,"*err = ""acr_route 只支持 auto/cpu"";",lib/phase2/src/stage2_common.cpp:393,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/src/stage2_common.cpp:393,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
@@ -186,13 +190,6 @@ acr_boundary,"bool p2_acr_block_eligible(const P2Stage2Config& cfg,",lib/phase2/
 acr_boundary,"bool acr_registered,",lib/phase2/src/stage2_common.cpp:435,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/src/stage2_common.cpp:435,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
 acr_boundary,return acr_registered &&,lib/phase2/src/stage2_common.cpp:440,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/src/stage2_common.cpp:440,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
 acr_boundary,"(cfg.acr_route == ""cpu"" || cfg.acr_route == ""auto"" || cfg.ac",lib/phase2/src/stage2_common.cpp:444,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/src/stage2_common.cpp:444,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
-acr_boundary,"std::string acr_route = ""auto"";",lib/phase2/include/astro/phase2/stage2_common.h:95,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/include/astro/phase2/stage2_common.h:95,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
-acr_boundary,// CON-007: ACR 块路由资格。acr_route=cpu/auto/cuda 只要满足科学/ivar 条件,lib/phase2/include/astro/phase2/stage2_common.h:110,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/include/astro/phase2/stage2_common.h:110,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
-acr_boundary,"bool p2_acr_block_eligible(const P2Stage2Config& cfg,",lib/phase2/include/astro/phase2/stage2_common.h:113,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/include/astro/phase2/stage2_common.h:113,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
-acr_boundary,"bool acr_registered,",lib/phase2/include/astro/phase2/stage2_common.h:114,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/include/astro/phase2/stage2_common.h:114,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
-acr_boundary,const std::string requested_route = cfg.acr_route;,lib/phase2/tools/stage2.cpp:632,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/tools/stage2.cpp:632,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
-acr_boundary,std::string effective_route = cfg.acr_route;,lib/phase2/tools/stage2.cpp:633,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/tools/stage2.cpp:633,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
-acr_boundary,"p2_acr_block_eligible(cfg, acr_reg != nullptr,",lib/phase2/tools/stage2.cpp:745,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/tools/stage2.cpp:745,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
 acr_boundary,"""acr_route"":""cpu"",",lib/phase2/tests/routing_test.cpp:19,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/tests/routing_test.cpp:19,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
 acr_boundary,"EXPECT_EQ(cfg.acr_route, ""cpu"");",lib/phase2/tests/routing_test.cpp:35,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/tests/routing_test.cpp:35,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
 acr_boundary,// 因此即使 acr_route=cpu 也必须走 CPU canonical path，不得进入 ACR 块。,lib/phase2/tests/routing_test.cpp:59,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/tests/routing_test.cpp:59,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
@@ -203,6 +200,9 @@ acr_boundary,"cfg.acr_route = ""auto"";",lib/phase2/tests/routing_test.cpp:74,pr
 acr_boundary,"EXPECT_TRUE(p2_acr_block_eligible(cfg, true, P2_REJECT_SIGMA",lib/phase2/tests/routing_test.cpp:75,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/tests/routing_test.cpp:75,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
 acr_boundary,"EXPECT_FALSE(p2_acr_block_eligible(cfg, true, P2_REJECT_SIGM",lib/phase2/tests/routing_test.cpp:78,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/tests/routing_test.cpp:78,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
 acr_boundary,"EXPECT_FALSE(p2_acr_block_eligible(cfg, true, P2_REJECT_SIGM",lib/phase2/tests/routing_test.cpp:81,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/tests/routing_test.cpp:81,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
+acr_boundary,const std::string requested_route = cfg.acr_route;,lib/phase2/tools/stage2.cpp:632,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/tools/stage2.cpp:632,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
+acr_boundary,std::string effective_route = cfg.acr_route;,lib/phase2/tools/stage2.cpp:633,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/tools/stage2.cpp:633,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
+acr_boundary,"p2_acr_block_eligible(cfg, acr_reg != nullptr,",lib/phase2/tools/stage2.cpp:745,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/tools/stage2.cpp:745,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
 io_writer,aio_pipeline.h,lib/astro_image_io/include/aio_pipeline.h,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/astro_image_io/include/aio_pipeline.h,
 io_writer,astro_image_io.h,lib/astro_image_io/include/astro_image_io.h,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/astro_image_io/include/astro_image_io.h,
 io_writer,aio_api.cpp,lib/astro_image_io/src/aio_api.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/astro_image_io/src/aio_api.cpp,
@@ -216,3 +216,5 @@ io_writer,checkpoint.h,lib/orchestrator/cpp/include/checkpoint.h,production,yes,
 io_writer,checkpoint.cpp,lib/orchestrator/cpp/src/checkpoint.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/orchestrator/cpp/src/checkpoint.cpp,
 io_writer,orchestrator.cpp,lib/orchestrator/cpp/src/orchestrator.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/orchestrator/cpp/src/orchestrator.cpp,
 io_writer,test_checkpoint.cpp,lib/orchestrator/cpp/tests/test_checkpoint.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/orchestrator/cpp/tests/test_checkpoint.cpp,
+io_writer,p1_session.cpp,lib/phase1_session/p1_session.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/phase1_session/p1_session.cpp,
+io_writer,p3_output.cpp,lib/phase3_session/p3_output.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/phase3_session/p3_output.cpp,
