@@ -1,0 +1,7 @@
+op,baseline_ns,avx512_variant_ns,improvement_pct,decision
+calibration,1647903,1375030,+16.6,
+driz_accum,2573851,3110987,-20.9,
+hips,16948019,12017176,+29.1,NOT_SHIPPED(avx512无额外收益)
+integration,3918285,,,
+noise,35140511,,,
+spmv,1968970,,,

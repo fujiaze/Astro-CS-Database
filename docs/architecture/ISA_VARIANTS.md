@@ -50,6 +50,22 @@
 - 完整性: 测量工件 `artifacts/prerelease_v5/ISA-003/MEASUREMENTS.csv`。
 - 与 ISA-002"AVX NOT_SHIPPED"判读一致: AVX2+FMA 是受控热点的最优 SHIP 档; AVX(无FMA)被其严格主导。ISA-004(AVX512)/ISA-005(BMI2/POPCNT)属 Windows 域, 本机不评估。
 
+## 1.6 ISA-004 AVX512 复测与判定(2026-08-28, vm-bj)
+
+- vm-bj CPU 支持 AVX512(F/BW/VL/DQ/CD, `/proc/cpuinfo` 验证), 故按任务规则**可以**在 Linux 完整验证(规则只禁止"CPU 不支持时不验证就谎报 PASS", 本机支持→必须验证)。
+- 变体 `lib/backend_host/avx512_backend.cpp` → `avx512_backend.so`(`-mavx512f -mavx512bw -mavx512vl -mavx512dq`), 共享 impl/table 同源。
+- 能力证明(bidirectional): baseline 零 VEX(`BASELINE_OPCODE_PASS`); avx512 变体**含 15× %zmm**(512-bit=AVX512)+ vmovaps/vmovdqu8(EVEX 编码)。真 AVX512 变体成立。
+- 逐 kernel 复测(median, 多轮, best-of baseline), 与 avx2(SHIP) 对照:
+
+| kernel | baseline ns | avx512 变体 ns | 增益 | avx2 增益(ISA-003) | 决策 |
+|---|---|---|---|---|---|
+| calibration-pixel-transform | 1 574 602 | 1 514 723 | +3.8% | +11.7% | **NOT_SHIPPED**(远低于 avx2) |
+| hips-bulk-transform | 16 931 481 | 11 933 586 | +29.5% | +28.3% | **NOT_SHIPPED**(≈avx2 同档, 无额外收益) |
+| drizzle-accumulate | 2 555 247 | 3 129 703 | −22.5% | −14.0% | NOT_SHIPPED(变体更慢) |
+
+- **判定**: AVX512 在受控热点上**(a)** 无超越 AVX2+FMA 的收益(hips 同档 +29.5% vs +28.3%; calibration +3.8% 反而远低), **(b)** AVX512F 存在已知 downclock/功耗-频率风险(WIN-003 亦需检查)。按 05 §3 "capability 与热点对应; 无机械指令集堆砌" → 登记 **NOT_SHIPPED**(完整测量在案, 非空判定)。
+- 完整性: 测量工件 `artifacts/prerelease_v5/ISA-004/MEASUREMENTS.csv`。Windows(/arch:AVX512) FATDUCK 复验+downclock 检查仍在 WIN-003/WIN-00x 域; 本任务已提供 Linux 侧完整测量证据。
+
 ## 2 变体注册(05 §5 capability)
 
 - `lib/backend_host/avx2_backend.cpp` → `avx2_backend.so`(DSO, manifest: required=avx2+fma, sha256 实测入 backends.manifest.json); 预检(ABI-002)保证: 不支持 ISA 的主机绝不加载/执行。
