@@ -84,7 +84,7 @@ LNX-004,LINUX,LNX-003,运行 ASan UBSan TSan 可行集 静态分析和内存循�
 LNX-005,LINUX,LNX-004|VER-001,生成 Linux alpha amd64 发布包 SBOM manifest hash smoke test,yes,yes,Linux,PASS
 REV-002,REVIEW,LNX-005|DOCCHK-002,生成架构 API 核心代码 Oracle 与 Linux 异步审阅胶囊,no,no,Linux,REVIEW_PENDING
 WIN-001,WINDOWS,LNX-005,探测 Fatduck 同步相同 main SHA 与数据 manifest,no,no,Windows,PASS
-WIN-002,WINDOWS,WIN-001,MSVC amd64 clean Debug Release 构建零错误零失败,yes,yes,Windows,NOT_STARTED
+WIN-002,WINDOWS,WIN-001,MSVC amd64 clean Debug Release 构建零错误零失败,yes,yes,Windows,PASS
 WIN-003,WINDOWS,WIN-002|BENCH-005,运行 doctor 全 backend 安全加载与 full benchmark,yes,yes,Windows,NOT_STARTED
 WIN-004,WINDOWS,WIN-003|MON-004,运行全量 synthetic CLI contract 资源与内存门禁,yes,yes,Windows,NOT_STARTED
 WIN-005,WINDOWS,WIN-004,运行 Windows sanitizer 可用集 静态检查和跨平台数值合同,yes,yes,Windows,NOT_STARTED
