@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """CLI-006 集成测试: phase3 run 进程内生产路由(properties→WCS→采样→原子FITS写) — 无子进程/事件/错误映射/取消。"""
-import json, math, os, re, shutil, subprocess, tempfile, unittest
+import hashlib, json, math, os, re, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 EXE = os.path.join(REPO, "build", "cli", "astrocs")
@@ -142,6 +142,76 @@ class TestPhase3InProcess(unittest.TestCase):
             if not line.strip():
                 continue
             json.loads(line)   # 任何非 JSON 行都会抛异常 → 失败
+
+    def test_07_run_phases3_complete(self):
+        """CLI-007: run --phases 3 生产编排 → complete manifest + phase3_output artifact。"""
+        run_dir = os.path.join(self.tmp, "run7")
+        os.makedirs(run_dir, exist_ok=True)
+        rcfg = os.path.join(run_dir, "rcfg.json")
+        json.dump({
+            "schema_version": "1",
+            "inputs": {"lights": [], "darks": [], "flats": [], "bias": []},
+            "output_dir": run_dir,
+            "phase3": {
+                "source": {"hips_dir": self.hips},
+                "center": {"ra_deg": 210.0, "dec_deg": 34.0},
+                "scale_deg_per_px": 0.1,
+                "width_px": 40, "height_px": 30,
+                "projection": "TAN", "sampler": "nearest",
+                "longitude_parity": "east_left", "bitpix": -32,
+                "coverage_output": "mask", "max_tiles": 64,
+            },
+        }, open(rcfg, "w"))
+        r = self._run("run", "--phases", "3", "--config", rcfg, "--events-jsonl")
+        self.assertEqual(r.returncode, 0, r.stderr[-400:])
+        mf = [e for e in (json.loads(l) for l in r.stdout.splitlines() if l.strip())
+              if e["kind"] == "artifact" and e.get("role") == "run_manifest"][-1]
+        m = json.load(open(mf["path"], encoding="utf-8"))
+        self.assertEqual(m["status"], "complete")
+        self.assertEqual(m["phases"], [3])
+        arts = m.get("artifacts", [])
+        self.assertTrue(any(a["role"] == "phase3_output" and
+                            os.path.isfile(a["path"]) for a in arts),
+                        "run 的 manifest 必须记录 phase3_output artifact")
+
+    def test_08_run_resume_hash_mismatch(self):
+        """CLI-007: prior manifest artifact 磁盘 hash 不符 → run 退 8(不静默跳过验证)。"""
+        run_dir = os.path.join(self.tmp, "run8")
+        os.makedirs(run_dir, exist_ok=True)
+        stable = os.path.join(run_dir, "stable.fits")
+        with open(stable, "wb") as f:
+            f.write(b"ORIGINAL")
+        sha = hashlib.sha256(open(stable, "rb").read()).hexdigest()
+        rcfg = os.path.join(run_dir, "rcfg.json")
+        # 构造一个 prior complete manifest 记录 stable.fits 的原始 hash
+        json.dump({"schema_version": "1", "kind": "astrocs_run_manifest",
+                   "run_id": "abc123def456", "astrocs_version": "x",
+                   "platform": {"os": "linux", "arch": "amd64"},
+                   "config_path": rcfg,
+                   "config_sha256": "x", "phases": [3],
+                   "artifacts": [{"role": "phase3_output", "path": stable,
+                                  "sha256": sha, "size_bytes": 8}],
+                   "status": "complete", "started_utc": "", "finished_utc": ""},
+                  open(os.path.join(run_dir, "astrocs_run_prior.json"), "w"))
+        json.dump({
+            "schema_version": "1",
+            "inputs": {"lights": [], "darks": [], "flats": [], "bias": []},
+            "output_dir": run_dir,
+            "phase3": {
+                "source": {"hips_dir": self.hips},
+                "center": {"ra_deg": 210.0, "dec_deg": 34.0},
+                "scale_deg_per_px": 0.1,
+                "width_px": 40, "height_px": 30,
+                "projection": "TAN", "sampler": "nearest",
+                "coverage_output": "mask", "max_tiles": 64,
+            },
+        }, open(rcfg, "w"))
+        # 篡改 stable.fits → 磁盘 hash 与 prior 记录不符
+        with open(stable, "wb") as f:
+            f.write(b"TAMPERED!")
+        r = self._run("run", "--phases", "3", "--config", rcfg, "--events-jsonl")
+        self.assertEqual(r.returncode, 8, r.stderr[-300:])
+        self.assertIn("hash mismatch", r.stderr)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -274,15 +274,17 @@ class TestManifestVerify(unittest.TestCase):
         self.assertEqual(r.returncode, 2)
 
     def test_08_run_writes_incomplete_manifest(self):
+        # run 已是真实现: 用 config init 默认(空 inputs.lights + 无 phase3)跑 1,2,3,
+        # 阶段1 因空 input_lights 而失败 → 科学失败(4), 必写 "incomplete" manifest, 禁 "complete"。
         out = run("run", "--phases", "1,2,3", "--config", self.cfg, "--events-jsonl")
-        self.assertEqual(out.returncode, 2)  # not-wired
+        self.assertEqual(out.returncode, 4, out.stderr[-200:])  # 阶段配置/科学失败(非 not-wired 2)
         artifacts = [json.loads(l) for l in out.stdout.splitlines() if l.strip()]
         mf = [e for e in artifacts if e["kind"] == "artifact" and e.get("role") == "run_manifest"]
         self.assertTrue(mf, "run 必须写 manifest 事件")
         mpath = mf[-1]["path"]
         doc = json.loads(open(mpath, encoding="utf-8").read())
         self.assertEqual(doc["kind"], "astrocs_run_manifest")
-        self.assertEqual(doc["status"], "incomplete", "not-wired 禁止 complete")
+        self.assertEqual(doc["status"], "incomplete", "不完整运行禁止 complete")
         self.assertEqual(doc["platform"]["arch"], "amd64")
         self.assertEqual(doc["phases"], [1, 2, 3])
         self.assertEqual(doc["config_sha256"],

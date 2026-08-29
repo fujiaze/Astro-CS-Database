@@ -58,6 +58,11 @@ uint64_t astrocs_cpu_detect_features_v1(void);
 
 namespace {
 
+// CLI→host 的取消/日志桥接(定义于本 namespace 后段, 此处前向声明供 cmd_run_pipeline 使用)
+static int cli_cancel_probe(void*);
+static void cli_session_log(void*, int, const char*, const char*);
+
+
 const char* kHelp =
     "astrocs --version [--json]\n"
     "astrocs hardware inspect --json\n"
@@ -511,15 +516,206 @@ int cmd_run_pipeline(const Parsed& p, astrocs::JsonlEmitter& ev) {
         ev.stage("run_wait", false);
     }
     if (std::getenv("ASTROCS_TEST_CRASH")) throw std::runtime_error("selftest-crash");
-    // not-wired: 科学 handler 未接线 — 恒 incomplete, 禁伪造 complete(§2 硬性)
-    rc = write_run_manifest(doc.value("output_dir", "."), ev, "incomplete", "not_wired",
-                            cfg, cfg_sha, phases);
+    // ── real orchestrator: run requested phases in-process (no shell-out) ──
+    // 每个 phase 从 run config 派生自身 config 并驱动对应 session; 逐 phase 收集 artifact。
+    astrocs_host_services_v1 host;
+    void* hstate = nullptr;
+    astrocs_host_services_default_v1(&host, &hstate);
+    host.cancel.is_cancelled = &cli_cancel_probe;
+    host.logger.log = &cli_session_log;
+    {
+        cpu_set_t set; CPU_ZERO(&set);
+        sched_getaffinity(0, sizeof(set), &set);
+        uint32_t n = 0;
+        for (int i = 0; i < CPU_SETSIZE; ++i)
+            if (CPU_ISSET(i, &set)) ++n;
+        if (n == 0) n = 1;
+        astrocs_host_state_set_budget_v1(hstate, n, n, &host);
+    }
+    const std::string out_dir = doc.value("output_dir", std::string("."));
+    nlohmann::json all_artifacts = nlohmann::json::array();
+    std::string fail_reason;
+    int fail_phase = 0;
+
+    // resume / hash-mismatch: 校验 output_dir 中所有 prior astrocs_run_*.json 记录的 artifact 哈希链;
+    // 任一 prior artifact 磁盘 sha 与其记录不符 → 8(绝不静默跳过验证)→不进入新一轮运行。
+    {
+        bool mismatch = false;
+        std::error_code ec;
+        for (const auto& entry : std::filesystem::directory_iterator(std::filesystem::u8path(out_dir), ec)) {
+            const std::string fn = entry.path().filename().u8string();
+            if (!entry.is_regular_file() || fn.rfind("astrocs_run_", 0) != 0 || fn.size() <= 14 ||
+                fn.substr(fn.size() - 5) != ".json")
+                continue;
+            try {
+                std::ifstream pf(entry.path(), std::ios::binary);
+                nlohmann::json pm = nlohmann::json::parse(
+                    std::string(std::istreambuf_iterator<char>(pf), {}));
+                if (pm.value("kind", std::string()) != "astrocs_run_manifest") continue;
+                for (const auto& a : pm.value("artifacts", nlohmann::json::array())) {
+                    const std::string ap = a.value("path", std::string());
+                    if (ap.empty()) continue;
+                    if (!std::filesystem::exists(std::filesystem::u8path(ap), ec)) { mismatch = true; break; }
+                    bool ok = false; const std::string sha = file_sha256(ap, &ok);
+                    if (!ok || sha != a.value("sha256", std::string())) { mismatch = true; break; }
+                }
+            } catch (...) { mismatch = true; }
+            if (ec) { mismatch = false; ec.clear(); }   // 目录遍历错误不算哈希不匹配
+            if (mismatch) break;
+        }
+        if (mismatch) {
+            rc = write_run_manifest(out_dir, ev, "incomplete", "resume hash mismatch",
+                                    cfg, cfg_sha, phases);
+            if (rc != astrocs::OK) return rc;
+            ev.emit_final(astrocs::INTEGRITY, "resume_hash_mismatch", nullptr,
+                          "prior artifact hash mismatch");
+            std::fprintf(stderr, "astrocs: resume hash mismatch\n");
+            return astrocs::INTEGRITY;   // 04/07: 输出完整性/验证失败 → 8
+        }
+    }
+
+    for (int phase : phases) {
+        ev.stage(("run_phase" + std::to_string(phase)).c_str(), true);
+        nlohmann::json pdoc;
+        if (phase == 3) {
+            // run config 用 `phase3` 子对象承载 phase3 请求(03 CLI-006 冻结); 缺则失败
+            if (!doc.contains("phase3") || !doc["phase3"].is_object()) {
+                fail_reason = "run config missing 'phase3' object for --phases 3";
+                ev.stage("run_phase3", false);
+                break;
+            }
+            pdoc = doc["phase3"];
+            pdoc["output_dir"] = out_dir;
+        } else if (phase == 2) {
+            // phase2 需要 hips_paths + output_dir; run config 的 inputs.lights 映射为 hips_paths
+            if (!doc.contains("inputs") || !doc["inputs"].is_object() ||
+                !doc["inputs"].contains("lights")) {
+                fail_reason = "run config missing 'inputs.lights' for --phases 2";
+                ev.stage("run_phase2", false);
+                break;
+            }
+            pdoc = nlohmann::json::object();
+            pdoc["hips_paths"] = doc["inputs"]["lights"];
+            pdoc["output_dir"] = out_dir;
+        } else {  // phase 1
+            // phase1 需要 input_lights + output_dir(另有 master_* 可选); run config 的 inputs.lights 映射
+            if (!doc.contains("inputs") || !doc["inputs"].is_object() ||
+                !doc["inputs"].contains("lights")) {
+                fail_reason = "run config missing 'inputs.lights' for --phases 1";
+                ev.stage("run_phase1", false);
+                break;
+            }
+            pdoc = nlohmann::json::object();
+            pdoc["input_lights"] = doc["inputs"]["lights"];
+            pdoc["output_dir"] = out_dir;
+        }
+        const std::string ptext = pdoc.dump();
+        const acs_span_u8 span{reinterpret_cast<uint8_t*>(const_cast<char*>(ptext.data())),
+                               static_cast<uint64_t>(ptext.size())};
+
+        if (phase == 3) {
+            acs_handle s3 = nullptr;
+            if (p3_session_create(&host, &s3) != ACS_OK) { fail_reason = "p3_session_create"; ev.stage("run_phase3",false); break; }
+            acs_status r3 = p3_session_validate(s3, span);
+            if (r3 != ACS_OK) { fail_reason = astrocs::phase3::last_error(s3); p3_session_destroy(s3); ev.stage("run_phase3",false); break; }
+            r3 = p3_session_run(s3, span);
+            acs_span_u8 res{};
+            if (p3_session_inspect(s3, &res) == ACS_OK) {
+                try { astrocs::g_phase3_session = nlohmann::json::parse(std::string(
+                          reinterpret_cast<const char*>(res.data), static_cast<size_t>(res.count))); }
+                catch (...) {}
+                host.allocator.free(host.allocator.user_data, res.data);
+            }
+            const std::string serr = astrocs::phase3::last_error(s3);
+            p3_session_destroy(s3);
+            if (r3 != ACS_OK) { fail_reason = serr; ev.stage("run_phase3",false); break; }
+            const std::string op = astrocs::g_phase3_session.value("output_fits_path", std::string());
+            if (!op.empty()) {
+                bool sok = false; const std::string sha = file_sha256(op, &sok);
+                std::error_code ec2; const auto sz = std::filesystem::file_size(std::filesystem::u8path(op), ec2);
+                all_artifacts.push_back({{"role", "phase3_output"}, {"path", op},
+                                         {"sha256", sok ? sha : ""},
+                                         {"size_bytes", ec2 ? 0ULL : static_cast<unsigned long long>(sz)}});
+            }
+        } else if (phase == 2) {
+            acs_handle s2 = nullptr;
+            if (p2_session_create(&host, &s2) != ACS_OK) { fail_reason = "p2_session_create"; ev.stage("run_phase2",false); break; }
+            acs_status r2 = p2_session_validate(s2, span);
+            if (r2 != ACS_OK) { fail_reason = astrocs::phase2::last_error(s2); p2_session_destroy(s2); ev.stage("run_phase2",false); break; }
+            r2 = p2_session_run(s2, span);
+            acs_span_u8 man{};
+            if (p2_session_inspect(s2, &man) == ACS_OK) {
+                try { astrocs::g_phase2_session = nlohmann::json::parse(std::string(
+                          reinterpret_cast<const char*>(man.data), static_cast<size_t>(man.count))); }
+                catch (...) {}
+                host.allocator.free(host.allocator.user_data, man.data);
+            }
+            const std::string serr = astrocs::phase2::last_error(s2);
+            p2_session_destroy(s2);
+            if (r2 != ACS_OK) { fail_reason = serr; ev.stage("run_phase2",false); break; }
+            // 收集 phase2 artifacts(若有)
+            for (const auto& a : astrocs::g_phase2_session.value("artifacts", nlohmann::json::array())) {
+                const std::string ap = a.get<std::string>();
+                bool sok = false; const std::string sha = file_sha256(ap, &sok);
+                std::error_code ec2; const auto sz = std::filesystem::file_size(std::filesystem::u8path(ap), ec2);
+                all_artifacts.push_back({{"role", "phase2_output"}, {"path", ap},
+                                         {"sha256", sok ? sha : ""},
+                                         {"size_bytes", ec2 ? 0ULL : static_cast<unsigned long long>(sz)}});
+            }
+        } else {
+            acs_handle s1 = nullptr;
+            if (p1_session_create(&host, &s1) != ACS_OK) { fail_reason = "p1_session_create"; ev.stage("run_phase1",false); break; }
+            acs_status r1 = p1_session_validate(s1, span);
+            if (r1 != ACS_OK) { fail_reason = astrocs::phase1::last_error(s1); p1_session_destroy(s1); ev.stage("run_phase1",false); break; }
+            r1 = p1_session_run(s1, span, 0);
+            acs_span_u8 man{};
+            if (p1_session_inspect(s1, &man) == ACS_OK) {
+                try { astrocs::g_phase1_session = nlohmann::json::parse(std::string(
+                          reinterpret_cast<const char*>(man.data), static_cast<size_t>(man.count))); }
+                catch (...) {}
+                host.allocator.free(host.allocator.user_data, man.data);
+            }
+            const std::string serr = astrocs::phase1::last_error(s1);
+            p1_session_destroy(s1);
+            if (r1 != ACS_OK) { fail_reason = serr; ev.stage("run_phase1",false); break; }
+            for (const auto& a : astrocs::g_phase1_session.value("artifacts", nlohmann::json::array())) {
+                const std::string ap = a.get<std::string>();
+                bool sok = false; const std::string sha = file_sha256(ap, &sok);
+                std::error_code ec2; const auto sz = std::filesystem::file_size(std::filesystem::u8path(ap), ec2);
+                all_artifacts.push_back({{"role", "phase1_output"}, {"path", ap},
+                                         {"sha256", sok ? sha : ""},
+                                         {"size_bytes", ec2 ? 0ULL : static_cast<unsigned long long>(sz)}});
+            }
+        }
+        ev.stage(("run_phase" + std::to_string(phase)).c_str(), false);
+        if (!fail_reason.empty()) { fail_phase = phase; break; }
+    }
+    astrocs_host_services_destroy_state_v1(hstate);
+
+    // 取消检查(任一阶段取消)
+    if (astrocs::is_cancelled()) {
+        rc = write_run_manifest(out_dir, ev, "incomplete", "cancelled by user",
+                                cfg, cfg_sha, phases, all_artifacts);
+        if (rc != astrocs::OK) return rc;
+        ev.emit_final(astrocs::CANCELLED, "cancelled", nullptr, "cancelled by user");
+        return astrocs::CANCELLED;
+    }
+    if (!fail_reason.empty()) {
+        rc = write_run_manifest(out_dir, ev, "incomplete", "phase" + std::to_string(fail_phase) +
+                                " failed: " + fail_reason, cfg, cfg_sha, phases, all_artifacts);
+        if (rc != astrocs::OK) return rc;
+        ev.emit_final(astrocs::SCIENCE, "run_failed", nullptr, fail_reason);
+        std::fprintf(stderr, "astrocs: run failed: %s\n", sanitize(fail_reason).c_str());
+        return astrocs::SCIENCE;
+    }
+
+    // (resume/hash-mismatch 校验移到 phase 循环之前执行)
+    rc = write_run_manifest(out_dir, ev, "complete", "run ok", cfg, cfg_sha, phases, all_artifacts);
     if (rc != astrocs::OK) return rc;
-    ev.emit_final(astrocs::ARGS, "not_wired", nullptr,
-                  "command is declared by the CLI contract but science handlers are wired in later tasks");
-    std::fprintf(stderr, "astrocs: '%s' is declared by the CLI contract but not wired in this build "
-                         "(see docs/api/CLI_PROTOCOL_V1.md)\n", p.join().c_str());
-    return astrocs::ARGS;
+    ev.emit("resource", "info", "pipeline", "run summary",
+            {{"n_phases", phases.size()}, {"n_artifacts", all_artifacts.size()}});
+    ev.emit_final(astrocs::OK, "ok", nullptr, "run complete");
+    return astrocs::OK;
 }
 
 // phase1 run: CLI-004 — 进程内调用 p1_session(无 shell-out); cancel/budget/monitor 注入
