@@ -926,10 +926,10 @@ static int p2_sample_controls_impl(
     }
 #if defined(_WIN32) && defined(_MSC_VER)
     } catch (...) {
-        const unsigned long code = _exception_code();
+        // /EHa: catch(...) 亦捕获结构化异常(AV); _exception_code() 仅限 __except, 此处取不到 code
         if (err && err_size)
-            std::snprintf(err, err_size, "SEH 0x%08lX at %s (AV outside try/catch)", code, "sampler first pass");
-        std::fprintf(stderr, "[sampler] SEH 0x%08lX at %s\n", code, "sampler first pass");
+            std::snprintf(err, err_size, "SEH/C++ exception at %s (AV outside try/catch)", "sampler first pass");
+        std::fprintf(stderr, "[sampler] exception caught in first pass\n");
         std::fflush(stderr);
         for (std::uint64_t i = 0; i < n_frames; ++i) { if (sig[i]) aio_hips_close(sig[i]); if (sup[i]) aio_hips_close(sup[i]); if (ivr[i]) aio_hips_close(ivr[i]); }
         return 1;
