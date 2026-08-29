@@ -68,11 +68,11 @@ void dispose_image(AIOImageData* p) { if (p) std::free(p); }
 }  // namespace
 namespace {
 
-/* 读单帧; 失败→nullptr 并填 err */
+/* 读单帧; 失败→nullptr 并填 err。用 aio_read 自动探测: .fts/.fits → FITS, .xisf 校准母版 → XISF */
 ImagePtr read_image(const std::string& path, std::string* err) {
-    AIOImageData* im = aio_read_fits(path.c_str());
+    AIOImageData* im = aio_read(path.c_str());
     if (!im) {
-        *err = "cannot read FITS: " + path;
+        *err = "cannot read image: " + path;
         return nullptr;
     }
     return ImagePtr(im);
