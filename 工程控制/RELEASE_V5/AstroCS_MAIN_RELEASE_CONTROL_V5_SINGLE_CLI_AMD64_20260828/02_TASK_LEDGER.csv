@@ -46,7 +46,7 @@ ABI-002,CPU,ABI-001,实现 manifest hash CPUID XGETBV 和安全 DLL SO loader,ye
 ABI-003,CPU,ABI-002,实现无 AVX 要求的 baseline backend 与动态多线程,yes,yes,Linux,PASS
 ISA-001,CPU,ABI-003,对已证明热点实现并验证 SSE4.1 backend,yes,yes,Linux,PASS
 ISA-002,CPU,ISA-001,对已证明热点实现并验证 AVX backend,yes,yes,Linux,PASS
-ISA-003,CPU,ISA-002,对已证明热点实现并验证 AVX2 FMA backend,yes,yes,Linux,IN_PROGRESS
+ISA-003,CPU,ISA-002,对已证明热点实现并验证 AVX2 FMA backend,yes,yes,Linux,PASS
 ISA-004,CPU,ISA-003,对已证明热点实现并验证 AVX512 backend,yes,yes,Windows,NOT_STARTED
 ISA-005,CPU,ISA-004,仅对相关整数热点评估 BMI2 POPCNT 等路径,yes,yes,Windows,NOT_STARTED
 BENCH-001,BENCH,ABI-003,实现 affinity topology CPUID XCR0 hardware inspect,yes,yes,Linux,PASS
