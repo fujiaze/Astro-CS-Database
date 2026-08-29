@@ -96,6 +96,37 @@ uint64_t xcr0_cached() {
 #endif
 }
 
+#if defined(_M_X64)
+/* Windows/MSVC CPUID 身份(06 §2): vendor(leaf0 EBX+EDX+ECX) / brand(0x80000002-4) / family-model-stepping(leaf1) */
+static std::string cpu_vendor_msvc() {
+    int r[4]; __cpuidex(r, 0, 0);
+    char v[13] = {0};
+    std::memcpy(v, &r[1], 4);      // EBX
+    std::memcpy(v + 4, &r[3], 4);  // EDX
+    std::memcpy(v + 8, &r[2], 4);  // ECX
+    return std::string(v);
+}
+static std::string cpu_brand_msvc() {
+    char b[49] = {0};
+    for (unsigned int leaf = 0x80000002; leaf <= 0x80000004; ++leaf) {
+        int r[4]; __cpuidex(r, static_cast<int>(leaf), 0);
+        std::memcpy(b + (leaf - 0x80000002) * 16, r, 16);
+    }
+    std::string s(b);
+    while (!s.empty() && s.back() == ' ') s.pop_back();
+    return s;
+}
+static void cpu_family_model_msvc(int* fam, int* mod, int* step) {
+    int r[4]; __cpuidex(r, 1, 0);
+    const unsigned int eax = static_cast<unsigned int>(r[0]);
+    const int base = (eax >> 8) & 0xF, ext = (eax >> 20) & 0xFF;
+    const int bmod = (eax >> 4) & 0xF, emod = (eax >> 16) & 0xF;
+    *fam = (base == 0xF) ? base + ext : base;
+    *mod = (base == 0xF) ? ((emod << 4) | bmod) : bmod;
+    *step = static_cast<int>(eax & 0xF);
+}
+#endif
+
 uint64_t mem_total_bytes() {
 #if defined(_WIN32)
     MEMORYSTATUSEX s{};
@@ -158,8 +189,16 @@ std::string hardware_inspect_json_v1(const std::string& build_id) {
     std::sscanf(cpuinfo_field("model").c_str(), "%d", &model);
     std::sscanf(cpuinfo_field("stepping").c_str(), "%d", &stepping);
 #else
+#if defined(_M_X64)
+    const std::string vendor = cpu_vendor_msvc();
+    const std::string model_name = cpu_brand_msvc();
+    const std::string microcode;   // MSVC 侧无易得途径 → 空
+    int family = 0, model = 0, stepping = 0;
+    cpu_family_model_msvc(&family, &model, &stepping);
+#else
     const std::string vendor, model_name, microcode;
     int family = 0, model = 0, stepping = 0;
+#endif
 #endif
 
     const uint64_t feats = astrocs_cpu_detect_features_v1();
