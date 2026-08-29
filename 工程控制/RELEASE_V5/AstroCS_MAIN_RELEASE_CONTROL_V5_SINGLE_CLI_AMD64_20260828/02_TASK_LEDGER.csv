@@ -81,7 +81,7 @@ LNX-001,LINUX,DOCCHK-002|ISO-001|PAR-007,amd64 clean Debug Release 构建零错�
 LNX-002,LINUX,LNX-001|BENCH-005,运行 hardware quick benchmark profile fallback 与 ISA 安全测试,yes,yes,Linux,PASS
 LNX-003,LINUX,LNX-002|MON-004,运行全量小合成 CLI contract 和资源门禁,yes,yes,Linux,PASS
 LNX-004,LINUX,LNX-003,运行 ASan UBSan TSan 可行集 静态分析和内存循环,yes,yes,Linux,PASS
-LNX-005,LINUX,LNX-004|VER-001,生成 Linux alpha amd64 发布包 SBOM manifest hash smoke test,yes,yes,Linux,NOT_STARTED
+LNX-005,LINUX,LNX-004|VER-001,生成 Linux alpha amd64 发布包 SBOM manifest hash smoke test,yes,yes,Linux,PASS
 REV-002,REVIEW,LNX-005|DOCCHK-002,生成架构 API 核心代码 Oracle 与 Linux 异步审阅胶囊,no,no,Linux,NOT_STARTED
 WIN-001,WINDOWS,LNX-005,探测 Fatduck 同步相同 main SHA 与数据 manifest,no,no,Windows,NOT_STARTED
 WIN-002,WINDOWS,WIN-001,MSVC amd64 clean Debug Release 构建零错误零失败,yes,yes,Windows,NOT_STARTED
