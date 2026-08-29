@@ -35,6 +35,21 @@
 - 方法: tests/backend/kernel_bench_main.cpp, median-of-5 计时×2 轮, baseline 取最优(对变体最保守); 变体=avx2_backend.cpp(-mavx2 -mfma, 共享 baseline_kernels_impl.inc 同一源, **零复制漂移**)。
 - SHIP 阈值: ≥+10% 且方向稳定; REMEASURE 带宽±10% 内交 BENCH-005。
 
+## 1.5 ISA-003 AVX2+FMA 独立复测与 capability 登记(2026-08-28, vm-bj)
+
+- ISA-001 已 SHIP `avx2_backend.so`(AVX2+FMA, `-mavx2 -mfma`); ISA-003 独立复测确认该能力 **SHIP** 成立(不重复实现, 只复验+登记 capability)。
+- 能力证明: 反汇编含 **vfnmadd231ss**(FMA 指令, AVX2+FMA 定义特征)+ **34× ymm**(AVX2 256-bit); baseline 扫描零 VEX(`BASELINE_OPCODE_PASS`)。变体"真 AVX2+FMA"成立。
+- 逐 kernel 复测(median, 多轮, best-of baseline 对变体最保守):
+
+| kernel | baseline ns | avx2 变体 ns | 增益 | 决策 |
+|---|---|---|---|---|
+| calibration-pixel-transform | 1 516 920 | 1 340 050 | **+11.7%** | **SHIP(avx2)** |
+| hips-bulk-transform | 16 922 677 | 12 138 884 | **+28.3%** | **SHIP(avx2)** |
+| drizzle-accumulate | 2 608 074 | 2 974 195 | −14.0% | NOT_SHIPPED(变体更慢) |
+
+- 完整性: 测量工件 `artifacts/prerelease_v5/ISA-003/MEASUREMENTS.csv`。
+- 与 ISA-002"AVX NOT_SHIPPED"判读一致: AVX2+FMA 是受控热点的最优 SHIP 档; AVX(无FMA)被其严格主导。ISA-004(AVX512)/ISA-005(BMI2/POPCNT)属 Windows 域, 本机不评估。
+
 ## 2 变体注册(05 §5 capability)
 
 - `lib/backend_host/avx2_backend.cpp` → `avx2_backend.so`(DSO, manifest: required=avx2+fma, sha256 实测入 backends.manifest.json); 预检(ABI-002)保证: 不支持 ISA 的主机绝不加载/执行。
