@@ -72,7 +72,7 @@ SYN-003,TEST,ALG-003|PAR-006|ABI-003,Noise SNR 独立合成 Oracle,yes,yes,Linux
 SYN-004,TEST,ALG-004|PAR-004|ABI-003,Drizzle 独立合成 Oracle 与不变量,yes,yes,Linux,PASS
 SYN-005,TEST,ALG-005|PAR-003|ABI-003,UPM 接缝 独立合成 Oracle,yes,yes,Linux,PASS
 SYN-006,TEST,ALG-006|PAR-005|ABI-003,Rejection Integration 独立合成 Oracle,yes,yes,Linux,PASS
-SYN-007,TEST,ALG-007|CLI-006|ABI-003,Phase3 HiPS FITS 独立合成 Oracle,yes,yes,Linux,NOT_STARTED
+SYN-007,TEST,ALG-007|CLI-006|ABI-003,Phase3 HiPS FITS 独立合成 Oracle,yes,yes,Linux,PASS
 SYN-008,TEST,SYN-004|SYN-005|SYN-006,马赛克接缝 flux support 和低频残差专项,yes,yes,Linux,NOT_STARTED
 SYN-009,TEST,CLI-007|SYN-001|SYN-002|SYN-003|SYN-004|SYN-005|SYN-006|SYN-007,CLI Phase1 2 3 端到端合成 pipeline,yes,yes,Linux,NOT_STARTED
 DOCCHK-001,CHECK,API-002|API-003|API-004|API-005|CLI-008,机器核对文档函数名 签名 schema 命令与退出码,yes,yes,Linux,NOT_STARTED
