@@ -380,8 +380,8 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
     // 跨 tile 几何邻接（tile 边界 control cells 角距 < 阈值连接，
     // 使跨 tile 几何相邻区域的 correction 受同一平滑约束）
     {
-        // cell 中心间距（target order 像素尺度推导）
-        const double nside = (double)(1u << (unsigned)(cfg.target_order + 9));
+        // cell 中心间距（target order 像素尺度推导; 用 ldexp 避免 1u<<k 对 k>=32 的 UB）
+        const double nside = std::ldexp(1.0, cfg.target_order + 9);
         const double pix_rad = std::sqrt(4.0 * 3.141592653589793 /
                                          (12.0 * nside * nside));
         const double cell_dist_rad = (double)m->cell_side * pix_rad;

@@ -689,8 +689,12 @@ static int fits_read_file_cfitsio(const char *path, AIOImageData *out, bool head
     out->keyword_count = (int)hdr.keywords.size();
     if (out->keyword_count > 0) {
         out->keywords = (AIOFITSKeyword *)malloc(out->keyword_count * sizeof(AIOFITSKeyword));
-        std::memcpy(out->keywords, hdr.keywords.data(),
-                    out->keyword_count * sizeof(AIOFITSKeyword));
+        if (out->keywords) {
+            std::memcpy(out->keywords, hdr.keywords.data(),
+                        out->keyword_count * sizeof(AIOFITSKeyword));
+        } else {
+            out->keyword_count = 0;   // OOM 防护: 无关键字, 防 null 写
+        }
     } else {
         out->keywords = nullptr;
     }
@@ -828,7 +832,11 @@ int fits_read_file(const char *path, AIOImageData *out) {
     out->keyword_count = (int)hdr.keywords.size();
     if (out->keyword_count > 0) {
         out->keywords = (AIOFITSKeyword *)malloc(out->keyword_count * sizeof(AIOFITSKeyword));
-        std::memcpy(out->keywords, hdr.keywords.data(), out->keyword_count * sizeof(AIOFITSKeyword));
+        if (out->keywords) {
+            std::memcpy(out->keywords, hdr.keywords.data(), out->keyword_count * sizeof(AIOFITSKeyword));
+        } else {
+            out->keyword_count = 0;   // OOM 防护: 无关键字, 防 null 写
+        }
     } else {
         out->keywords = nullptr;
     }
@@ -882,7 +890,11 @@ int fits_read_header_only(const char *path, AIOImageData *out) {
     out->keyword_count = (int)hdr.keywords.size();
     if (out->keyword_count > 0) {
         out->keywords = (AIOFITSKeyword *)malloc(out->keyword_count * sizeof(AIOFITSKeyword));
-        std::memcpy(out->keywords, hdr.keywords.data(), out->keyword_count * sizeof(AIOFITSKeyword));
+        if (out->keywords) {
+            std::memcpy(out->keywords, hdr.keywords.data(), out->keyword_count * sizeof(AIOFITSKeyword));
+        } else {
+            out->keyword_count = 0;   // OOM 防护: 无关键字, 防 null 写
+        }
     } else {
         out->keywords = nullptr;
     }
