@@ -57,7 +57,7 @@ BENCH-005,BENCH,BENCH-004|CLI-003,接入 hardware benchmark doctor CLI 命令,ye
 MON-001,MON,CLI-001,实现 Linux Windows 进程 CPU memory IO thread telemetry,yes,yes,Linux,PASS
 MON-002,MON,MON-001|CLI-007,实现 stage 标注 JSONL resource event 和摘要,yes,yes,Linux,PASS
 MON-003,MON,MON-002|BENCH-004,实现 compute memory io mixed 利用率门禁和快速失败,yes,yes,Linux,PASS
-MON-004,MON,MON-003,实现重复 stage 内存斜率 泄漏和 OOM 预警门禁,yes,yes,Linux,NOT_STARTED
+MON-004,MON,MON-003,实现重复 stage 内存斜率 泄漏和 OOM 预警门禁,yes,yes,Linux,IN_PROGRESS
 ISO-001,PAR,CLI-008|ABI-003,证明 ACR GPU Mixed 在生产路由与发布包完全 dormant,yes,yes,Linux,NOT_STARTED
 PAR-001,PAR,MON-003|ARCH-004,修复 AIO 队列 全局锁 backpressure 和线程预算,yes,yes,Linux,NOT_STARTED
 PAR-002,PAR,MON-003|ARCH-004,修复 sampler 竞态 crash 生命周期与可扩展性,yes,yes,Linux,NOT_STARTED
