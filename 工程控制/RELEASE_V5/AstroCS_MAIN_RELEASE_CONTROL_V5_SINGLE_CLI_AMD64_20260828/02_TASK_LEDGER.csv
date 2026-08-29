@@ -64,7 +64,7 @@ PAR-002,PAR,MON-003|ARCH-004,修复 sampler 竞态 crash 生命周期与可扩�
 PAR-003,PAR,MON-003|ALG-005|ARCH-004,修复 UPM 稀疏计算竞态和 CPU 扩展性,yes,yes,Linux,PASS
 PAR-004,PAR,MON-003|ALG-004|ARCH-004,修复 Drizzle 重计算布局 归约和 CPU 扩展性,yes,yes,Linux,PASS
 PAR-005,PAR,MON-003|ALG-006|ARCH-004,修复 Rejection Integration 并行和确定性合同,yes,yes,Linux,PASS
-PAR-006,PAR,MON-003|ALG-001|ALG-002|ALG-003|ARCH-004,修复 Phase1 热点并行与资源利用,yes,yes,Linux,NOT_STARTED
+PAR-006,PAR,MON-003|ALG-001|ALG-002|ALG-003|ARCH-004,修复 Phase1 热点并行与资源利用,yes,yes,Linux,PASS
 PAR-007,PAR,PAR-001|PAR-002|PAR-003|PAR-004|PAR-005|PAR-006,消除嵌套过订阅并证明统一 thread budget,yes,yes,Linux,NOT_STARTED
 SYN-001,TEST,ALG-001|PAR-006|ABI-003,Calibration 独立合成 Oracle 全后端全线程,yes,yes,Linux,NOT_STARTED
 SYN-002,TEST,ALG-002|PAR-006|ABI-003,WCS PSF Photometry 独立合成 Oracle,yes,yes,Linux,NOT_STARTED

@@ -81,15 +81,21 @@ struct OpComputer {
                 vals.resize(frames);
                 for (uint32_t f = 0; f < frames; ++f)
                     vals[f] = p->in0.data[static_cast<size_t>(f) * N + i];
-                tmp = vals;
-                const float med = median_inplace(tmp);           // tmp 排序; 多重集同
-                for (uint32_t q = 0; q < frames; ++q)
-                    tmp[q] = std::fabs(tmp[q] - med);
-                const float mad_sigma = median_inplace(tmp) * 1.4826f;
                 if (is_noise) {
+                    // PAR-006: noise 只输出 med/mad, 不再用原值, 就地排序免一次 tmp 拷贝
+                    // 与一个 scratch vector; 中位数只依赖多重集(确定性不变, bitwise 等价)。
+                    const float med = median_inplace(vals);      // 就地; 多重集同
+                    for (uint32_t q = 0; q < frames; ++q)
+                        vals[q] = std::fabs(vals[q] - med);
+                    const float mad_sigma = median_inplace(vals) * 1.4826f;
                     p->out0.data[i] = med;
                     if (p->out1.data) p->out1.data[i] = mad_sigma;
                 } else {
+                    tmp = vals;
+                    const float med = median_inplace(tmp);       // tmp 排序; 多重集同
+                    for (uint32_t q = 0; q < frames; ++q)
+                        tmp[q] = std::fabs(tmp[q] - med);
+                    const float mad_sigma = median_inplace(tmp) * 1.4826f;
                     uint32_t cnt = 0;
                     for (uint32_t f = 0; f < frames; ++f)        // 原值(未排序)计数
                         if (std::fabs(vals[f] - med) > kf * mad_sigma) ++cnt;
