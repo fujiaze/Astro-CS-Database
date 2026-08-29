@@ -265,6 +265,10 @@ std::string hardware_inspect_json_v1(const std::string& build_id) {
         cli_hash = file_sha256_hex(exe);
         (void)ok;
     }
+#else
+    char exe[MAX_PATH] = {0};
+    const DWORD n = GetModuleFileNameA(NULL, exe, (DWORD)sizeof(exe));
+    if (n > 0 && n < sizeof(exe)) cli_hash = file_sha256_hex(exe);
 #endif
 
     long page = 4096;
