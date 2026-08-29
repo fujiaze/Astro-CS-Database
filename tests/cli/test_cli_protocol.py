@@ -160,16 +160,17 @@ class TestGolden(unittest.TestCase):
 
     # ── crash boundary → 70 ──
     def test_08_crash_boundary_70_sanitized(self):
-        r = run("phase3", "run", "--config", self.cfg, "--events-jsonl",
-                env={"ASTROCS_TEST_CRASH": "1"})
+        # test synthetic 是唯一仍走 cmd_stub 的命令(phase1/2/3 run 已是真实现);
+        # 其规则仅允许 --group(--events-jsonl 会被 flag 白名单拒绝)。
+        r = run("test", "synthetic", "--group", "calibration", env={"ASTROCS_TEST_CRASH": "1"})
         self.assertEqual(r.returncode, 70, "未捕获异常 → 70")
         self.assertIn("CRASH", r.stderr)
         self.assertRegex(r.stderr, r"run_id=[0-9a-f]{12}")
-        self.assertIn("command='phase3 run'", r.stderr)
+        self.assertIn("command='test synthetic'", r.stderr)
         self.assertIn("no credentials", r.stderr)
         self.assertNotIn(self.cfg, r.stderr, "crash report 不得含完整路径外泄")
-        # 非 events 模式同样 70(stub 命令; doctor/verify 已真实现, 走自身错误码)
-        r2 = run("phase3", "run", "--config", self.cfg, env={"ASTROCS_TEST_CRASH": "1"})
+        # 再次触发确认稳定(同一命令非 events 模式也 70)
+        r2 = run("test", "synthetic", "--group", "wcs_psf", env={"ASTROCS_TEST_CRASH": "1"})
         self.assertEqual(r2.returncode, 70)
 
     # ── Unicode 路径 ──
