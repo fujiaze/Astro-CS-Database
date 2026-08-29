@@ -52,10 +52,14 @@ list(FILTER CFITSIO_SRCS EXCLUDE REGEX "f77_wrap|drvrgsiftp|drvrsmem|smem|vms|wi
 list(LENGTH CFITSIO_SRCS _cfn)
 message(STATUS "ASTROCS_CFITSIO_n=${_cfn}")
 set_property(SOURCE ${CFITSIO_SRCS} PROPERTY COMPILE_OPTIONS "${ACS_WARN_SUPPRESS}")
-set(AIO_SRCS ${AIO_DIR}/src/aio_fits.cpp ${AIO_DIR}/src/aio_api.cpp ${AIO_DIR}/src/aio_log.cpp ${AIO_DIR}/src/aio_compressor.cpp)
+set(AIO_SRCS ${AIO_DIR}/src/aio_fits.cpp ${AIO_DIR}/src/aio_api.cpp ${AIO_DIR}/src/aio_log.cpp ${AIO_DIR}/src/aio_compressor.cpp ${AIO_DIR}/src/aio_xisf.cpp)
 # aio_api 需要完整 AIOImageData(src/aio_fits.h)
 set_property(SOURCE ${AIO_DIR}/src/aio_api.cpp APPEND PROPERTY INCLUDE_DIRECTORIES "${AIO_DIR}/src")
 set_property(SOURCE ${AIO_SRCS} PROPERTY COMPILE_OPTIONS "${ACS_WARN_SUPPRESS};-DAIO_ENABLE_FITS")
+# aio_read(自动探测 .xisf)在 aio_api.cpp; aio_read_xisf 在 aio_xisf.cpp —— 两者都需 XISF 开关
+set_property(SOURCE ${AIO_DIR}/src/aio_api.cpp APPEND PROPERTY COMPILE_OPTIONS "-DAIO_ENABLE_XISF")
+set_property(SOURCE ${AIO_DIR}/src/aio_xisf.cpp APPEND PROPERTY COMPILE_OPTIONS "-DAIO_ENABLE_XISF")
+set_property(SOURCE ${AIO_DIR}/src/aio_xisf.cpp APPEND PROPERTY INCLUDE_DIRECTORIES "${AIO_DIR}/src;${AIO_DIR}/include")
 file(GLOB P2_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase2/src/*.cpp)
 list(APPEND P2_SRCS
   ${CMAKE_CURRENT_SOURCE_DIR}/../lib/acr/api/kernel_registry.cpp
