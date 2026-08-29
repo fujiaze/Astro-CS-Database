@@ -3,6 +3,24 @@
 > ID: ARCH-ISA-001  状态: FROZEN (V5 ISA-001, 2026-08-28)  上游: ABI-003/05 §1-2  下游: BENCH-005(逐 kernel 选路)/ABI-002(manifest)
 > 原则(05 §1): 先 profile 证明热点→只为热点做变体→共享合同禁漂移→逐 kernel Oracle→无收益 NOT_SHIPPED 但须完整测量(见 artifacts/prerelease_v5/ISA-001/MEASUREMENTS.csv)。
 
+## 0 ISA-002 补充测量与决策(2026-08-28, vm-bj, AVX(无 FMA)变体)
+
+- 变体 `lib/backend_host/avx_backend.cpp` → `avx_backend.so`, TU 局部旗标 `-mavx`(无 -mfma/-mavx2), 共享 baseline_kernels_impl.inc/backend_table.inc 同源(零复制漂移)。
+- 逐 kernel 实测(median-of-5 × 3 轮, best-of baseline 对变体最保守):
+
+| kernel | baseline ns | avx 变体 ns | avx 增益 | avx2(SHIP,ISA-001) 增益 | 决策 |
+|---|---|---|---|---|---|
+| calibration-pixel-transform | 1 444 821 | 1 284 850 | **+11.1%** | **+20.7%** | **NOT_SHIPPED** |
+| hips-bulk-transform | 16 896 375 | 12 605 335 | **+25.4%** | **+28.2%** | **NOT_SHIPPED** |
+| drizzle-accumulate | 2 574 195 | 3 001 619 | −16.6% | −15.2% | NOT_SHIPPED |
+| noise-snr-reductions | — | — | — | — | NOT_SHIPPED(排序型) |
+| upm-spmv | — | — | — | — | NOT_SHIPPED(gather 型) |
+| integration-accumulate | — | — | — | — | NOT_SHIPPED |
+
+- **决定性判读**: AVX 是 AVX2+FMA 的严格子集(指令集子集)。vm-bj 支持 AVX2+FMA, 而已 SHIP 的 `avx2_backend.so` 在受控热点(calibration/hips)的增益(+20.7%/+28.2%)严格高于 AVX(+11.1%/+25.4%)。故 AVX 无独立收益, 登记 **NOT_SHIPPED**; 选路保持 calibration/hips→avx2(ISA-001), 不机械堆砌更低档变体。
+- 若未来主机仅支持 AVX 而无 AVX2, 应在该主机复测后再决定(本任务 vm-bj 已具备 AVX2, 无法证明"AVX-only 主机"的选路; 记录为边界)。
+- 完整性: 测量工件 `artifacts/prerelease_v5/ISA-002/MEASUREMENTS.csv`。
+
 ## 1 测量环境与结论(vm-bj, 2 vCPU, AVX2+FMA+AVX512F 实测)
 
 | kernel | baseline ns | avx2 变体 ns | 提升 | 决策 |
