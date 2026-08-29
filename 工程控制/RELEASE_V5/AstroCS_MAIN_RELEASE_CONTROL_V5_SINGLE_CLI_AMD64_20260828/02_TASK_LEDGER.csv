@@ -58,7 +58,7 @@ MON-001,MON,CLI-001,实现 Linux Windows 进程 CPU memory IO thread telemetry,y
 MON-002,MON,MON-001|CLI-007,实现 stage 标注 JSONL resource event 和摘要,yes,yes,Linux,PASS
 MON-003,MON,MON-002|BENCH-004,实现 compute memory io mixed 利用率门禁和快速失败,yes,yes,Linux,PASS
 MON-004,MON,MON-003,实现重复 stage 内存斜率 泄漏和 OOM 预警门禁,yes,yes,Linux,PASS
-ISO-001,PAR,CLI-008|ABI-003,证明 ACR GPU Mixed 在生产路由与发布包完全 dormant,yes,yes,Linux,IN_PROGRESS
+ISO-001,PAR,CLI-008|ABI-003,证明 ACR GPU Mixed 在生产路由与发布包完全 dormant,yes,yes,Linux,PASS
 PAR-001,PAR,MON-003|ARCH-004,修复 AIO 队列 全局锁 backpressure 和线程预算,yes,yes,Linux,NOT_STARTED
 PAR-002,PAR,MON-003|ARCH-004,修复 sampler 竞态 crash 生命周期与可扩展性,yes,yes,Linux,NOT_STARTED
 PAR-003,PAR,MON-003|ALG-005|ARCH-004,修复 UPM 稀疏计算竞态和 CPU 扩展性,yes,yes,Linux,NOT_STARTED
