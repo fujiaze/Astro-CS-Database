@@ -86,7 +86,7 @@ REV-002,REVIEW,LNX-005|DOCCHK-002,生成架构 API 核心代码 Oracle 与 Linux
 WIN-001,WINDOWS,LNX-005,探测 Fatduck 同步相同 main SHA 与数据 manifest,no,no,Windows,PASS
 WIN-002,WINDOWS,WIN-001,MSVC amd64 clean Debug Release 构建零错误零失败,yes,yes,Windows,PASS
 WIN-003,WINDOWS,WIN-002|BENCH-005,运行 doctor 全 backend 安全加载与 full benchmark,yes,yes,Windows,PASS
-WIN-004,WINDOWS,WIN-003|MON-004,运行全量 synthetic CLI contract 资源与内存门禁,yes,yes,Windows,NOT_STARTED
+WIN-004,WINDOWS,WIN-003|MON-004,运行全量 synthetic CLI contract 资源与内存门禁,yes,yes,Windows,PASS
 WIN-005,WINDOWS,WIN-004,运行 Windows sanitizer 可用集 静态检查和跨平台数值合同,yes,yes,Windows,NOT_STARTED
 WIN-006,WINDOWS,WIN-005,从 Fatduck testdata 冻结少量真实帧并通过代表链路,yes,yes,Windows,NOT_STARTED
 WIN-007,WINDOWS,WIN-006|SYN-008,当前候选银心 32R 唯一一次全流程和 32 32 contribution,yes,yes,Windows,NOT_STARTED
