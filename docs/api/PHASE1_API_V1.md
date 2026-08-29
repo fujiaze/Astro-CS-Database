@@ -7,8 +7,7 @@
 
 ```c
 /* 四段式: create→validate→run→inspect;opaque handle, owner=创建者 */
-acs_status p1_session_create(const acs_allocator*, const acs_logger*, const acs_cancel*,
-                             const acs_thread_budget*, acs_handle* out);          /* reentrant:yes; threadsafe:no(handle 级) */
+acs_status p1_session_create(const astrocs_host_services_v1* host, acs_handle* out);  /* host services 单结构注入(budget/cancel/logger/allocator) */
 acs_status p1_session_validate(acs_handle, const acs_span_u8 config_json);        /* 纯读; 无 IO; 幂等 */
 acs_status p1_session_run(acs_handle, const acs_span_u8 config_json,
                           int async_io_depth);                                    /* async_io_depth∈{0,1,2}(ARCH-004 §2); 取消点=帧粒度 */

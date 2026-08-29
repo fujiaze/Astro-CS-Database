@@ -17,7 +17,7 @@ astrocs test synthetic --group <all|calibration|wcs_psf|noise_snr|drizzle|upm|re
 astrocs phase1 run --config <path> [--cpu-profile <path>] [--events-jsonl]
 astrocs phase2 run --config <path> [--cpu-profile <path>] [--events-jsonl]
 astrocs phase3 run --config <path> [--cpu-profile <path>] [--events-jsonl]
-astrocs run --phases <1|2|3|1,2|1,2,3|2,3...> --config <path> [--cpu-profile] [--events-jsonl]
+astrocs run --phases <1|2|3|1,2|1,2,3> --config <path> [--cpu-profile <path>] [--events-jsonl]
 astrocs verify --run-manifest <path> --json
 ```
 

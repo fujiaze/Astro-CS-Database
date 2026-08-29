@@ -6,8 +6,7 @@
 ## 1 生命周期(与 p1/p2 session 同构)
 
 ```c
-acs_status p3_session_create(const acs_allocator*, const acs_logger*, const acs_cancel*,
-                             const acs_thread_budget*, acs_handle* out);
+acs_status p3_session_create(const astrocs_host_services_v1* host, acs_handle* out);
 acs_status p3_session_validate(acs_handle, const acs_span_u8 request_json);   /* 纯校验, 无 IO; 显式拒清单全查 */
 acs_status p3_session_run(acs_handle, const acs_span_u8 request_json);        /* 取消点=行带; fits 原子写 */
 acs_status p3_session_inspect(acs_handle, acs_span_u8* out_result_json);      /* host alloc, 调用方释放 */
