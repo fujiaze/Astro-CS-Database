@@ -17,15 +17,7 @@
 #include <vector>
 
 // 唯一 AIO HiPS reader（Phase1 冻结模块，只读使用）
-extern "C" {
-#include "aio_hips_reader.h"
-}
-
-extern "C" {
-
-namespace {
-
-std::map<std::string, std::string> parse_props(const char* text) {
+static std::map<std::string, std::string> parse_props(const char* text) {
     std::map<std::string, std::string> kv;
     if (!text) return kv;
     const char* p = text;
@@ -51,6 +43,17 @@ std::map<std::string, std::string> parse_props(const char* text) {
     }
     return kv;
 }
+
+extern "C" {
+
+
+#include "aio_hips_reader.h"
+}
+
+extern "C" {
+
+namespace {
+
 
 // 读取单帧 HiPS：校验兼容性并收集叶级 tile ipix（NESTED order=hips_order）
 int inspect_frame(const char* path, P2HipsInputInfo* info,
