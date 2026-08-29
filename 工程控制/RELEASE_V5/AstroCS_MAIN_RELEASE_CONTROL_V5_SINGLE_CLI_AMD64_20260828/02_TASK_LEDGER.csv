@@ -79,7 +79,7 @@ DOCCHK-001,CHECK,API-002|API-003|API-004|API-005|CLI-008,机器核对文档函�
 DOCCHK-002,CHECK,TRACE-001|SYN-001|SYN-002|SYN-003|SYN-004|SYN-005|SYN-006|SYN-007|SYN-008|SYN-009|DOCCHK-001,机器核对六层追溯和单位 mutation tests,yes,yes,Linux,PASS
 LNX-001,LINUX,DOCCHK-002|ISO-001|PAR-007,amd64 clean Debug Release 构建零错误零警告债,yes,yes,Linux,PASS
 LNX-002,LINUX,LNX-001|BENCH-005,运行 hardware quick benchmark profile fallback 与 ISA 安全测试,yes,yes,Linux,PASS
-LNX-003,LINUX,LNX-002|MON-004,运行全量小合成 CLI contract 和资源门禁,yes,yes,Linux,NOT_STARTED
+LNX-003,LINUX,LNX-002|MON-004,运行全量小合成 CLI contract 和资源门禁,yes,yes,Linux,PASS
 LNX-004,LINUX,LNX-003,运行 ASan UBSan TSan 可行集 静态分析和内存循环,yes,yes,Linux,NOT_STARTED
 LNX-005,LINUX,LNX-004|VER-001,生成 Linux alpha amd64 发布包 SBOM manifest hash smoke test,yes,yes,Linux,NOT_STARTED
 REV-002,REVIEW,LNX-005|DOCCHK-002,生成架构 API 核心代码 Oracle 与 Linux 异步审阅胶囊,no,no,Linux,NOT_STARTED
