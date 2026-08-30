@@ -1,0 +1,62 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "REL-003",
+  "status": "PASS",
+  "start_commit": "97f6ee8e04f5a1bf6cf715620106e24381c38e69",
+  "source_commit": "97f6ee8e04f5a1bf6cf715620106e24381c38e69",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "release",
+  "science_changed": false,
+  "files_changed": [
+    "scripts/package_audit.py",
+    "scripts/validate_audit.py",
+    "evidence/refactor/tasks/REL-003/TASK_RESULT.json",
+    "evidence/refactor/tasks/REL-003/logs/c01.log",
+    "evidence/refactor/tasks/REL-003/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 300,
+      "exit_code": 0,
+      "log_sha256": "5b421e4b6792769820ff23b0d79df4adcfac182448439bdce2b675f6117f71d7"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 300,
+      "exit_code": 0,
+      "log_sha256": "31bc6ea35fa154188a9fffc921fef3fcf3d462d842bd82fe4d83f11f648dc655"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-PACKAGE",
+      "description": "白名单打包 522 files (源码快照/L0-L2 文档/证据; 无 .git/build/testdata)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-VALIDATE",
+      "description": "validate_audit 解包重验 SHA 全过; 无禁止项",
+      "result": "PASS"
+    },
+    {
+      "id": "T-MANIFEST",
+      "description": "audit_manifest 含 commit/时间/每文件 SHA-256",
+      "result": "PASS"
+    },
+    {
+      "id": "T-TARBALL-SHA",
+      "description": "tarball SHA 668a88... 记录 (大产物 manifest+hash+路径)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "files": 522,
+    "commit": "97f6ee8",
+    "tarball_sha": "668a8820907c174f184027d107a83c79b5cd843694bbb4ba486b36a588b33486"
+  },
+  "findings": [
+    "REL-003: 白名单审核包完成(scripts/package_audit.py + validate_audit.py); 522 文件含当前 commit 源码快照/L0-L2 文档/机器一致性证据; 解包重验 SHA 全过; 无 .git/build/testdata; 大产物 manifest+SHA+生成命令"
+  ],
+  "created_utc": "2026-08-30T17:59:15Z"
+}
