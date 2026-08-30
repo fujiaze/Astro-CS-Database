@@ -29,11 +29,6 @@
 #include "p1_session.h"
 #include "p2_session.h"
 #include "p3_session.h"
-#include "aio_pipeline.h"
-#include "hp_drizzle_api.h"
-#include "aio_fits.h"
-#include "astro_image_io.h"
-#include "fitsio.h"
 
 namespace astrocs {
 nlohmann::json g_phase1_session;
@@ -63,6 +58,13 @@ uint64_t astrocs_cpu_detect_features_v1(void);
 #define NOMINMAX
 #include <windows.h>
 #endif
+
+// aio/cfitsio 头在 windows.h 之后包含(避免 cfitsio 宏与 winnt.h 冲突)
+#include "aio_pipeline.h"
+#include "hp_drizzle_api.h"
+#include "aio_fits.h"
+#include "astro_image_io.h"
+#include "fitsio.h"
 
 #include "version_generated.h"
 
