@@ -1,0 +1,62 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "P3-005",
+  "status": "PASS",
+  "start_commit": "0b8117e2ce3af1c062d4c0df947708a1bdcab22f",
+  "source_commit": "0b8117e2ce3af1c062d4c0df947708a1bdcab22f",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "lib/phase3_session/p3_output.cpp",
+    "tests/unit/p3_output_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/refactor/tasks/P3-005/TASK_RESULT.json",
+    "evidence/refactor/tasks/P3-005/logs/c01.log",
+    "evidence/refactor/tasks/P3-005/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "0d1490ea5f956d5239e94b7271db76b7e7e3ab4df8b8c2cd398ff64ff1f43d85"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "60517a568ff5d4cd470fc50f17aeefd63d7db419bbbafa3ec2e4eb463fd3b587"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-ATOMIC-WRITE",
+      "description": "FITS 原子写: sha256 64hex, coverage_ok=1, 无 tmp 残留",
+      "result": "PASS"
+    },
+    {
+      "id": "T-REOPEN",
+      "description": "独立重开 verify: dimensions/WCS/BUNIT/checksum/mask 一致 (reopen_ok=1)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-ORACLE",
+      "description": "pixel→sky→sample Oracle: WCS roundtrip 1e-4, 采样值=信号",
+      "result": "PASS"
+    },
+    {
+      "id": "T-PROVENANCE",
+      "description": "version/run_id 来自 provenance 非硬编码",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "fix1": "write_atomic 后调用 verify 置 reopen_ok",
+    "fix2": "verify 重算 sha256"
+  },
+  "findings": [
+    "P3-005: FITS 原子写+重开验证(dimensions/WCS/BUNIT/checksum/mask); 发现并修复两缺陷: (1) write_atomic 不调用 verify 置 reopen_ok → 补调; (2) verify 不重算 sha256 → 补算; 版本/run_id 来自 provenance(非硬编码); pixel→sky→sample Oracle roundtrip 精确"
+  ],
+  "created_utc": "2026-08-30T17:32:09Z"
+}
