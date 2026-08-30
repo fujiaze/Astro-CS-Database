@@ -150,3 +150,9 @@ target_include_directories(p1_hips_writer_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/include)
 target_link_libraries(p1_hips_writer_test PRIVATE astrocs_hips astrocs_aio)
 add_test(NAME p1_hips_writer COMMAND p1_hips_writer_test)
+
+add_executable(p1_ir_facade_test p1_ir_facade_test.cpp)
+target_include_directories(p1_ir_facade_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/calibration/include)
+target_link_libraries(p1_ir_facade_test PRIVATE astrocs_calibration OpenMP::OpenMP_CXX)
+add_test(NAME p1_ir_facade COMMAND p1_ir_facade_test)
