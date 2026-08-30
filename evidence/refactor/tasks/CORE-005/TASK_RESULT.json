@@ -1,0 +1,61 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "CORE-005",
+  "status": "PASS",
+  "start_commit": "c497a2849908da1383afb7dde574eb996dbf51e1",
+  "source_commit": "c497a2849908da1383afb7dde574eb996dbf51e1",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "include/astrocs/core/context.h",
+    "lib/core/src/context.cpp",
+    "tests/unit/core_context_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "CMakeLists.txt",
+    "evidence/refactor/tasks/CORE-005/TASK_RESULT.json",
+    "evidence/refactor/tasks/CORE-005/logs/c01.log",
+    "evidence/refactor/tasks/CORE-005/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "f8416b0077244633c0d57872bd10edb6b32304a2ed7550026843400c2a322546"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "f1b0ac0c625d5cf5198e9c392053040309ca7f819327bdf1d3a3ebf8c1dccbe5"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-UNIT",
+      "description": "core_context_test 6 组 PASS (log/budget lease/artifact store/cancel/checkpoint/metrics)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-NO-SINGLETON",
+      "description": "RunContext 实例化无 singleton/global scheduler",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "tests": 6,
+    "services": [
+      "logger",
+      "metrics",
+      "budget/lease",
+      "artifacts",
+      "cancel",
+      "checkpoint"
+    ]
+  },
+  "findings": [
+    "CORE-005 实现 RunContext(logger/metrics/thread budget+lease/artifact store/cancel/checkpoint); ThreadLease 由 Runtime 唯一授权, 模块只能经 context 访问服务; 无 singleton"
+  ],
+  "created_utc": "2026-08-30T16:14:37Z"
+}
