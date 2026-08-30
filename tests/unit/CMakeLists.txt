@@ -38,3 +38,8 @@ add_executable(core_logging_test core_logging_test.cpp)
 target_include_directories(core_logging_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 target_link_libraries(core_logging_test PRIVATE astrocs_core)
 add_test(NAME core_logging COMMAND core_logging_test)
+
+add_executable(io_adapter_test io_adapter_test.cpp)
+target_include_directories(io_adapter_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+target_link_libraries(io_adapter_test PRIVATE astrocs_io)
+add_test(NAME io_adapter COMMAND io_adapter_test)

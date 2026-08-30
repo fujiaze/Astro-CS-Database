@@ -1,0 +1,59 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "IO-001",
+  "status": "PASS",
+  "start_commit": "82185a051cb3236a4a5eec77f5d85b1973c45746",
+  "source_commit": "82185a051cb3236a4a5eec77f5d85b1973c45746",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "include/astrocs/io/io_adapter.h",
+    "lib/io/src/io_adapter.cpp",
+    "tests/unit/io_adapter_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "CMakeLists.txt",
+    "evidence/refactor/tasks/IO-001/TASK_RESULT.json",
+    "evidence/refactor/tasks/IO-001/logs/c01.log",
+    "evidence/refactor/tasks/IO-001/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "7cbf7a7a41d521d194a5c3fc1a26858ab575e4998c01fc89fc286fe8b84df696"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "4ebfd675b09f59f0d8a705fbf04e66e1b324f562fc64c688587716b867a0a4aa"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-UNIT",
+      "description": "io_adapter_test 7 组 PASS (commit/abort 清理/verify 拒/commit 无 begin 拒/file adapter/atomic_write/无 scheduler include)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-ATOMIC",
+      "description": "事务同目录临时文件 close/verify/rename 原子替换; 篡改临时文件被 verify 拒且 target 不污染",
+      "result": "PASS"
+    },
+    {
+      "id": "T-ISOLATION",
+      "description": "io_adapter.h 零引用 scheduler/phase1-3/calibration",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "tests": 7,
+    "io_isolation": true
+  },
+  "findings": [
+    "IO-001 实现 ArtifactTransaction(同目录临时文件 close/verify/rename; 篡改/长度不匹配拒; abort 清理; Windows rename 失败确定错误) + IoAdapter 接口/FileIoAdapter; io_adapter.h 不 include Runtime scheduler 或模块实现(依赖方向 core<-io)"
+  ],
+  "created_utc": "2026-08-30T16:23:08Z"
+}

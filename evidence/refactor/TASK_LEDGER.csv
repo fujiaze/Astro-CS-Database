@@ -21,8 +21,8 @@ CORE-005,G2,实现RunContext服务接口,CORE-001;CORE-002;ARCH-001,Linux,archit
 CORE-006,G2,实现统一DAG调度与线程租约,CORE-004;CORE-005,Linux,architecture,yes,yes,runtime scheduler; bounded queues; leases; backpressure,2核合成DAG并发; 无过订阅; 取消/失败传播; resource trace,PASS
 CORE-007,G2,实现checkpoint与幂等恢复,CORE-002;CORE-006,Linux,architecture,no,yes,checkpoint store; artifact commit boundary,故障注入后只重跑未提交节点; 不接受半成品,PASS
 CORE-008,G2,实现结构化日志指标运行trace,CORE-005;CORE-006,Linux,architecture,no,yes,JSONL events; metrics; run identity,stdout/stderr隔离; schema valid; 静态图可与trace比较,PASS
-IO-001,G3,建立I/O和ArtifactStore接口,CORE-002;CORE-005;BLD-001,Linux,architecture,no,yes,fits/hips adapters; artifact transaction,I/O不含pipeline; atomic write; fault injection tests,IN_PROGRESS
-IO-002,G3,修复AIO图像所有权和泄漏,IO-001;BAS-004,Linux,bugfix,no,yes,p1 ImageDeleter; all AIO image owners,统一aio_free_image_data RAII; ASan/LSan循环零泄漏,NOT_STARTED
+IO-001,G3,建立I/O和ArtifactStore接口,CORE-002;CORE-005;BLD-001,Linux,architecture,no,yes,fits/hips adapters; artifact transaction,I/O不含pipeline; atomic write; fault injection tests,PASS
+IO-002,G3,修复AIO图像所有权和泄漏,IO-001;BAS-004,Linux,bugfix,no,yes,p1 ImageDeleter; all AIO image owners,统一aio_free_image_data RAII; ASan/LSan循环零泄漏,IN_PROGRESS
 IO-003,G3,启用并验证CFITSIO可重入读取,IO-001;BLD-001,Linux,bugfix,yes,yes,CFITSIO build; doctor; worker-local handles,fits_is_reentrant=1; 独立open并发读压力测试; 禁止共享fitsfile*,NOT_STARTED
 IO-004,G3,移除Phase2全局读锁,IO-003;CORE-006,Linux,performance,yes,yes,sampler g_aio_mu; dataset ownership,worker-local reader; TSan/ASan; 数值一致; 锁等待证据清零,NOT_STARTED
 CPU-001,G3,实现CPU provider稳定C ABI,API-001;BLD-001;CORE-005,Linux+Windows,architecture,no,yes,backend ABI; loader; metadata,size/version/features/build-id校验; 坏DLL拒绝; baseline始终可用,NOT_STARTED
