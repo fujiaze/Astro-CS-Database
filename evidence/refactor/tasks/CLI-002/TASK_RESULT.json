@@ -1,0 +1,61 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "CLI-002",
+  "status": "PASS",
+  "start_commit": "bb2d9fcd885582bb2e329cf0c495c7303509b6da",
+  "source_commit": "bb2d9fcd885582bb2e329cf0c495c7303509b6da",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "docs/refactor/CLI_RUN_PRESET.md",
+    "tools/check_cli_run_preset.py",
+    "evidence/refactor/tasks/CLI-002/TASK_RESULT.json",
+    "evidence/refactor/tasks/CLI-002/logs/c01.log",
+    "evidence/refactor/tasks/CLI-002/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "70bb24644e56cf0c67cf478c75ea5c89a5d415bb6d495958015aa59b807e09dd"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "93e55cdac54ca6004603794308ae7f5b9fb9a8fe143e317f794b9b7eb7648861"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-PRESET",
+      "description": "run --phases 经 phases 列表 preset 调度, 每 phase 独立 session (p1/p2/p3)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-ARTIFACT",
+      "description": "逐 phase artifact 收集 → run manifest (哈希链)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-HASH-MISMATCH",
+      "description": "prior artifact sha 不符 → exit 8 (不静默跳过)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-EVENTS-JSONL",
+      "description": "--events-jsonl stdout 仅 JSON 事件",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "preset": "phases 列表",
+    "artifact_chain": "run manifest sha256"
+  },
+  "findings": [
+    "CLI-002: run preset/IR 驱动确认(phases 列表调度 3 session, 不手工顺序); 真实 Artifact 传递(逐 phase 收集+manifest 哈希链+resume 校验 hash-mismatch→8); events-jsonl 模式"
+  ],
+  "created_utc": "2026-08-30T17:38:12Z"
+}
