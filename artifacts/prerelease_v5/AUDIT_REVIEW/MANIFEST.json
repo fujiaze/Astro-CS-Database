@@ -1,8 +1,8 @@
 {
  "schema_version": 1,
- "package": "AstroCS-audit-b8ce36691e0b",
+ "package": "AstroCS-audit-db1244439893",
  "version": "0.9.0-alpha.1",
- "commit": "b8ce36691e0b6ef31a9a31814f711f09b48a2263",
+ "commit": "db12444398930f982d19b80a455d4db543c2b2fa",
  "files": [
   {
    "path": "00_READ_FIRST.md",
@@ -11,7 +11,7 @@
   },
   {
    "path": "BUILD_RESULTS.csv",
-   "sha256": "3ef8f4e2bac265ed49bfd473de0703e7dbe4aa59a4c16551ea34677e06c31728",
+   "sha256": "0d0118399fad3dd48b0c59bcf5ed86af34ddcb169dbd131f30b4b07a6df50928",
    "size": 440
   },
   {
@@ -21,8 +21,8 @@
   },
   {
    "path": "COMMITS.csv",
-   "sha256": "56de4e6b1dfea2cc7fa4f94482bef66dac7ef7658355c8c8259c53dd315d2e8b",
-   "size": 28749
+   "sha256": "e3f286dac825f7624139127e49ba20ba192049a32fbc984b859802650edad926",
+   "size": 29106
   },
   {
    "path": "CPU_PROFILE_RESULTS.csv",
@@ -31,7 +31,7 @@
   },
   {
    "path": "FINAL_REPORT.md",
-   "sha256": "e0b597c285917848336daf48e1adeae5011a85753d9364bb0e8a6926a432cf2b",
+   "sha256": "41136ab7db0911b708e8acdc39acf02aa21533bf034c7f8edc6ff924172001e5",
    "size": 1956
   },
   {
@@ -41,8 +41,8 @@
   },
   {
    "path": "LARGE_ARTIFACTS.csv",
-   "sha256": "f16838f5c6e59aa8f1484ed4c3c990882f4471920c6f6763d8e77f59a650f978",
-   "size": 96
+   "sha256": "13bdfb85907d590dbe230392cc13fa95640552f9bd17e9d34650eba890199027",
+   "size": 435
   },
   {
    "path": "RELEASE_ARTIFACTS.csv",
@@ -56,8 +56,8 @@
   },
   {
    "path": "REVIEW_CAPSULE_INDEX.csv",
-   "sha256": "30261cd66b71adaaf2c2512cc2980f199d59626b5b29d925e9cefb2f50018d94",
-   "size": 21174
+   "sha256": "f1a7d4053173477aaae67277144a55a2ee2ccd5c2932e8c69b8d9f6c37c1e719",
+   "size": 21421
   },
   {
    "path": "SCIENCE_CLAIMS.csv",
@@ -66,18 +66,18 @@
   },
   {
    "path": "SUMMARY.json",
-   "sha256": "30f15614af163eb1f03e66319f2501abfc8626d1e5e15d065d9869bfd895b89c",
+   "sha256": "48a0a2a6b0eba2beba02762859ad2b723373f28f5359c0b94eed5dfded6f356b",
    "size": 713
   },
   {
    "path": "TASK_LEDGER.csv",
-   "sha256": "7973e10b778ceb261f054fd0120d1721d99f03feab052b66da54005be928a432",
-   "size": 10098
+   "sha256": "66cdffd88473f420e0514991e681de706ad6a9f000042ff70d0982feac85f618",
+   "size": 10091
   },
   {
    "path": "TEST_RESULTS.csv",
-   "sha256": "9a3faadd61b9527cbffec46ba6f9b23cb55bb6c9fc3394c42c6353ec72df00d0",
-   "size": 973
+   "sha256": "c1b23a36dd2e909fc4f4206cd0517542c31fc0ed92ce9dbc6d07978ae269856b",
+   "size": 1224
   },
   {
    "path": "TRACEABILITY.csv",

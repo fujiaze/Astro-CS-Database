@@ -109,6 +109,8 @@ def main() -> int:
          "MSVC /analyze 0 errors + ASan suite", "300", "PASS", "reports/evidence/WIN005_verification.md"],
         ["TWN-006-P1", "WIN-006", "fatduck", commit, "phase1_realdata", "builtin", "CPU", "galactic-center-T4-R", "0",
          "astrocs phase1 run --config phase1_cfg.json (6 R frames + 3 xisf masters)", "4", "PASS", "reports/evidence/WIN006_verification.md"],
+        ["TWN-009", "WIN-009", "fatduck", commit, "win_alpha_pkg_smoke", "builtin", "CPU", "noprof", "0",
+         "unzip+ --version + doctor --json + SHA256SUMS all-True + phase1 run no-profile (omp threads=16)", "30", "PASS", "reports/evidence/WIN009_verification.md"],
     ]
     write_rows(SRC / "TEST_RESULTS.csv",
                ["test_id", "task_id", "host", "commit", "group", "backend", "workers", "seed", "contract_hash", "command_log", "duration_seconds", "status", "evidence"],
