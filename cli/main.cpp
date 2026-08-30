@@ -1368,6 +1368,9 @@ static int spawn_frame_from_fits(PipelineFrame** out, const std::string& path, s
     fits_close_file(fp, &status);
     *out = fr; return 0;
 }
+// LEG-001: CLI drizzle 降级为测试 wrapper (生产直连 Drizzle 已退出;
+// 生产路径 = phase2 run preset / phase1 run 生成校准帧 → phase2 组装)。
+// 本命令仅供测试/合成验证, 不手工重读 FITS header 作为生产入口。
 int cmd_drizzle(const Parsed& p, astrocs::JsonlEmitter& ev) {
     const std::string cfg = need_value(p, "--config");
     nlohmann::json doc; int rc = validate_config_full(cfg, &doc);
@@ -1377,7 +1380,22 @@ int cmd_drizzle(const Parsed& p, astrocs::JsonlEmitter& ev) {
     }
     const std::string out_dir = doc.value("output_dir", std::string("."));
     std::string hips_dir = out_dir + "/hips";
-    int nside = std::atoi(p.values.count("--nside") ? p.values.at("--nside").c_str() : "2048");
+    // LEG-001: nside 无硬编码 2048; 必须来自 config (scale 派生) 或 --nside 显式
+    if (!p.values.count("--nside") && !doc.contains("drizzle")) {
+        std::fprintf(stderr, "astrocs: drizzle 测试 wrapper 要求 --nside 显式或 config.drizzle.nside "
+                             "(生产用 phase2 run preset 从 scale 派生)\n");
+        return astrocs::ARGS;
+    }
+    int nside = 0;
+    if (p.values.count("--nside")) {
+        nside = std::atoi(p.values.at("--nside").c_str());
+    } else {
+        nside = doc.value("drizzle", nlohmann::json::object()).value("nside", 0);
+        if (nside <= 0) {
+            std::fprintf(stderr, "astrocs: drizzle wrapper config.drizzle.nside 缺失或非法\n");
+            return astrocs::ARGS;
+        }
+    }
     if (nside < 1 || (nside & (nside - 1)) != 0) { std::fprintf(stderr, "astrocs: --nside 必须是 2 的幂\n"); return astrocs::ARGS; }
     int nested = 1;                   // NESTED
     double pixfrac = p.values.count("--pixfrac") ? std::atof(p.values.at("--pixfrac").c_str()) : 0.8;
