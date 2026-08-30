@@ -1,0 +1,19 @@
+risk_id,severity,area,current_evidence,impact,mitigation_task,closure_evidence,status
+RISK-001,P0,Phase2 parallelism,p2_session cpu_workers=1,extreme runtime and idle CPU,P2-002,resource gate plus serial scan,OPEN
+RISK-002,P0,Phase3 parallelism,p3_session serial 2D loop,unpublishable heavy path,P3-003,parallel synthetic resource report,OPEN
+RISK-003,P0,memory ownership,p1 ImageDeleter only frees struct,pixel and keyword leaks,IO-002,ASan LSan loop report,OPEN
+RISK-004,P0,Phase1 truth,p1_session omits documented modules,false product claims and broken pipeline,P1-008,IR trace and artifact continuity,OPEN
+RISK-005,P0,Phase2 truth,p2_session omits rejection integration writer,false product claims and incomplete mosaic,P2-007,IR trace and science suite,OPEN
+RISK-006,P0,cross-phase pipeline,CLI phases do not pass outputs,data identity break,CLI-002,producer consumer hash trace,OPEN
+RISK-007,P0,Phase3 units,hardcoded Jy/beam and provenance,scientifically wrong FITS,P3-005,unit and provenance tests,OPEN
+RISK-008,P1,multiple schedulers,CLI orchestrator AIO stage2 coexist,unmaintainable and oversubscribed,LEG-002,call and link graph shows one runtime,OPEN
+RISK-009,P1,FITS concurrency,global sampler read mutex after SIGSEGV,serialized I/O and hidden ownership bug,IO-004,reentrant stress TSan no lock,OPEN
+RISK-010,P1,build quality,GLOB and blanket warning suppression,hidden source and diagnostics,BLD-001,explicit target graph and warning report,OPEN
+RISK-011,P1,ACR scope,old stage2 links ACR registry,violates frozen CPU release,LEG-004,production symbol scan,OPEN
+RISK-012,P1,documentation,multiple versions commits and entry claims,no trustworthy baseline,REL-002,final truth checks,OPEN
+RISK-013,P1,seam regression,known seam returned after broad cleanup,scientific mosaic defect,P2-003,seam synthetic plus 32R metrics,OPEN
+RISK-014,P1,rejection,auto method and satellite line behavior uncertain,artifact contamination,P2-005,rejection fixture matrix,OPEN
+RISK-015,P1,plate solve and photometry,no stable regression and prior integration failure,Phase1 incomplete or wrong,P1-004,WCS and flux regression reports,OPEN
+RISK-016,P1,benchmark,ISA and cores may be hardcoded,crash or poor performance,CPU-007,profile invalidation and fallback tests,OPEN
+RISK-017,P1,audit governance,task dependencies previously changed to pass,false readiness,REL-003,immutable ledger hash and audit validator,OPEN
+RISK-018,P2,Windows availability,remote node intermittent,delayed final verification,WIN-001,WAITING_WINDOWS state and continuous Linux work,OPEN

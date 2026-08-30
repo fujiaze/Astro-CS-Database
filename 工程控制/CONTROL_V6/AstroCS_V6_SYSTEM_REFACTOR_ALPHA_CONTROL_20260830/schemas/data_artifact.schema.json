@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://astrocs.local/schemas/data-artifact-v1.json",
+  "title": "AstroCS Data Artifact v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "artifact_id", "data_contract", "data_version", "scalar_type", "physical_unit", "coordinate", "shape", "invalids", "ownership", "storage", "provenance"],
+  "properties": {
+    "schema": {"const": "astrocs.artifact/v1"},
+    "artifact_id": {"type": "string", "pattern": "^artifact:[a-zA-Z0-9_.:-]+$"},
+    "data_contract": {"type": "string", "pattern": "^DATA-[A-Z0-9-]+$"},
+    "data_version": {"type": "string"},
+    "scalar_type": {"enum": ["u8", "u16", "i16", "u32", "f32", "f64", "struct", "catalog", "directory"]},
+    "physical_unit": {"type": "string", "minLength": 1},
+    "coordinate": {"type": "object", "required": ["frame"], "properties": {"frame": {"type": "string"}}, "additionalProperties": true},
+    "shape": {"type": "array", "items": {"type": "integer", "minimum": 0}},
+    "invalids": {"type": "object", "minProperties": 1},
+    "ownership": {"enum": ["borrowed", "shared", "unique", "persisted"]},
+    "storage": {"type": "object", "required": ["kind"], "properties": {"kind": {"enum": ["memory", "file", "directory"]}}, "additionalProperties": true},
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["run_id", "source_commit", "pipeline_sha256", "module_id", "module_build_id", "backend_id", "config_sha256", "input_sha256", "created_utc"],
+      "properties": {
+        "run_id": {"type": "string", "minLength": 1},
+        "source_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "pipeline_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "module_id": {"type": "string"},
+        "module_build_id": {"type": "string"},
+        "backend_id": {"type": "string"},
+        "config_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "input_sha256": {"type": "array", "items": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
+        "created_utc": {"type": "string", "format": "date-time"}
+      }
+    }
+  }
+}

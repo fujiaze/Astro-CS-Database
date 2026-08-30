@@ -1,0 +1,20 @@
+{
+  "schema": "astrocs.module/v1",
+  "module_id": "astrocs.phase3.resample",
+  "implementation_version": "0.10.0-alpha.1",
+  "api_version": "1.x",
+  "status": "EXPERIMENTAL",
+  "inputs": [{"name": "hips", "data_contract": "DATA-HIPS-001", "required": true, "multiplicity": "one"}],
+  "outputs": [{"name": "tile", "data_contract": "DATA-PLANAR-TILE-001", "required": true, "multiplicity": "many"}],
+  "config_schema": "astrocs.phase3.resample-config/v1",
+  "execution": {"class": "cpu_heavy", "parallel_model": "runtime_lease", "parallel_min_work": 65536, "determinism": "bounded_numeric", "cancellable": true, "checkpointable": true},
+  "memory": {"model": "O(tile_pixels + source_tiles)", "bounded": true, "spillable": false},
+  "contracts": {
+    "sci": ["SCI-P3-RESAMPLE-001"],
+    "alg": ["ALG-P3-RESAMPLE-001"],
+    "data": ["DATA-HIPS-001", "DATA-PLANAR-TILE-001"],
+    "api": ["API-P3-RESAMPLE-001"],
+    "mod": ["MOD-P3-RESAMPLE-001"],
+    "test": ["TEST-P3-RESAMPLE-001"]
+  }
+}
