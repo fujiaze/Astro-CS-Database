@@ -46,6 +46,12 @@ phase2 实跑 `sample ok: obs=0 overlap_controls=0`。经查 `p2_sample_controls
 - **结论**: WIN-006 代表链路(phase1→逐帧 drizzle→phase2)在真实银心数据上**全链打通**。前提=逐帧 nside=2048 独立 HiPS 作多个 `hips_paths`(而非单帧 coadd)。
 - 注意: 本次 phase2 未 `persist_upm`(默认 false), 故仅落 manifest, UPM 模型未落盘。WIN-008 需 persist UPM + phase3 + seam/flux/coverage + 资源/内存门控。
 
+### ✅✅ WIN-008 代表链路续通: phase3 科学视图 PASS(当前SHA b842899)
+- phase2(obs=96/controls=42, exit0) 后接 **phase3**: config 需 `source.hips_dir`(正斜杠, 拒反斜杠)+`center.ra_deg/dec_deg`(272.8,-15.0)+`scale_deg_per_px>0`(0.00175)+`width_px/height_px∈[1,20000]`(2048)。
+- **`phase3 complete`, exit_code=0**, run `aa4071cc3fd5`, `order_sel_used=7`, `sampler_used=bilinear`, 产出 **`output_phase3.fits`**。
+- **WIN-006/WIN-008 代表链路全通**: phase1(6帧,exit0) → 逐帧 drizzle(nside2048) → phase2(UPM, obs=96/controls=42, exit0) → phase3(科学视图 output_phase3.fits, exit0)。
+- 剩余 WIN-008 判据: seam/flux/coverage 数值门槛 + 资源/内存门控(在 output_phase3.fits/链上计算)。
+
 ### 结论(阶段)
 - phase1(6帧,exit0) + drizzle(→完整HiPS,exit0) **PASS**; phase2 在逐帧结构下推进到 coverage_build, 但 `coverage_build rc=1` 为新 blocker。记录不宣称 PASS/release。
 
