@@ -1,0 +1,53 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "CORE-001",
+  "status": "PASS",
+  "start_commit": "338eecc24f9c2eb226f567fb5559cee3942d7229",
+  "source_commit": "338eecc24f9c2eb226f567fb5559cee3942d7229",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "include/astrocs/core/contracts.h",
+    "tests/unit/core_contracts_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/refactor/tasks/CORE-001/TASK_RESULT.json",
+    "evidence/refactor/tasks/CORE-001/logs/c01.log",
+    "evidence/refactor/tasks/CORE-001/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "cc01e1af2e091e231de67dccbdd0875ff168e404131ee457aa5133378fa08c3b"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "30c5402a7833176a81ff11476e7d07f09ef37826b1c7031d60eecae2f5a36471"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-UNIT",
+      "description": "core_contracts_test 7 组测试全部 PASS (domains/result ok/error/void/cause/cancel/value_or)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-NO-EXIT",
+      "description": "Result 语义: 模块不 exit/abort; 错误经 Error 对象传播",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "tests": 7,
+    "error_domains": 8,
+    "exit_codes_mapped": 11
+  },
+  "findings": [
+    "CORE-001 实现公共 Result/Error/CancellationToken(纯头, include/astrocs/core/contracts.h); 8 error domains 稳定; nested cause 链; 单元测试 7 组 PASS; 与 cli/exit_codes.h 11 码映射一致"
+  ],
+  "created_utc": "2026-08-30T16:06:30Z"
+}
