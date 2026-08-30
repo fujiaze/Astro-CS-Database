@@ -33,3 +33,8 @@ add_executable(core_checkpoint_test core_checkpoint_test.cpp)
 target_include_directories(core_checkpoint_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 target_link_libraries(core_checkpoint_test PRIVATE astrocs_core)
 add_test(NAME core_checkpoint COMMAND core_checkpoint_test)
+
+add_executable(core_logging_test core_logging_test.cpp)
+target_include_directories(core_logging_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+target_link_libraries(core_logging_test PRIVATE astrocs_core)
+add_test(NAME core_logging COMMAND core_logging_test)

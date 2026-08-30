@@ -1,0 +1,54 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "CORE-008",
+  "status": "PASS",
+  "start_commit": "06b10d1a64e88944bc30a8e9f3a5d41066fea17c",
+  "source_commit": "06b10d1a64e88944bc30a8e9f3a5d41066fea17c",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "include/astrocs/core/logging.h",
+    "lib/core/src/logging.cpp",
+    "tests/unit/core_logging_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "CMakeLists.txt",
+    "evidence/refactor/tasks/CORE-008/TASK_RESULT.json",
+    "evidence/refactor/tasks/CORE-008/logs/c01.log",
+    "evidence/refactor/tasks/CORE-008/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "bf11f0ca4c6bb98ae917faaa2ba4534ce23005f7c1c9f4214aba286b5d6b7f92"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "e17d34b3266f57aeaf090813494751db35df04d74e850d4afb863a885e5d09d8"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-UNIT",
+      "description": "core_logging_test 5 组 PASS (emit/过滤/JSONL 格式/seq/指标聚合)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-JSONL",
+      "description": "结构化日志 JSONL 含 ts/level/component/event/message/seq/node/run/progress/wall_us",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "tests": 5,
+    "jsonl_fields": 10
+  },
+  "findings": [
+    "CORE-008 实现统一 Logger(级别过滤/UTC 时间戳/单调 seq/可注入 sink/JSONL 序列化 10 字段) + MetricsAggregator(count/sum/max/export); 模块只写结构化事件, 格式由 Runtime 决定"
+  ],
+  "created_utc": "2026-08-30T16:20:15Z"
+}
