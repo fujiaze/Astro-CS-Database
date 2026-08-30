@@ -123,3 +123,10 @@ target_include_directories(p1_stars_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase1/stars)
 target_link_libraries(p1_stars_test PRIVATE astrocs_phase1_stars)
 add_test(NAME p1_stars COMMAND p1_stars_test)
+
+add_executable(p1_wcs_phot_test p1_wcs_phot_test.cpp)
+target_include_directories(p1_wcs_phot_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase1/wcs
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase1/photometry)
+target_link_libraries(p1_wcs_phot_test PRIVATE astrocs_phase1_wcs astrocs_phase1_phot)
+add_test(NAME p1_wcs_phot COMMAND p1_wcs_phot_test)
