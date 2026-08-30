@@ -1,0 +1,60 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "LEG-001",
+  "status": "PASS",
+  "start_commit": "d93054c02b3fc46e19e1f614a9dee20338221527",
+  "source_commit": "d93054c02b3fc46e19e1f614a9dee20338221527",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "cli/main.cpp",
+    "evidence/refactor/tasks/LEG-001/TASK_RESULT.json",
+    "evidence/refactor/tasks/LEG-001/logs/c01.log",
+    "evidence/refactor/tasks/LEG-001/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "9f5892bec96740af01f08700e6fd45557d8a52b8e9ed4b9b95c674ac9d8d0082"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "80439365f83bb1fa651a53c62622112553155e6c92e8a91eee60cb6f42b55358"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-WRAPPER",
+      "description": "cmd_drizzle 标注测试 wrapper (生产入口=phase2 run preset)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-NO-2048",
+      "description": "nside 无 2048 硬编码残留; 需 --nside 显式或 config.drizzle.nside",
+      "result": "PASS"
+    },
+    {
+      "id": "T-GUIDE",
+      "description": "wrapper 引导: 缺 nside → 明确错误指向生产 preset",
+      "result": "PASS"
+    },
+    {
+      "id": "T-BUILD",
+      "description": "构建成功, --help 仍列 drizzle",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "legacy_exit": "CLI 直连 Drizzle 退出",
+    "nside_hardcode": 0
+  },
+  "findings": [
+    "LEG-001: CLI drizzle 降级测试 wrapper(不再作为生产直连入口); 不手工重读 FITS header 作为生产路径; nside=2048 硬编码移除(需显式/config 派生); 生产 Drizzle 经 phase2 run preset"
+  ],
+  "created_utc": "2026-08-30T17:43:55Z"
+}
