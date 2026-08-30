@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://astrocs.local/schemas/contract-index-v1.json",
+  "title": "AstroCS Contract Index v1",
+  "description": "DOC-001 合同 ID 注册表约束: 唯一 ID, owner, version, status, links, 无悬空引用。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "version", "contracts"],
+  "properties": {
+    "schema": { "const": "astrocs.contract-index/v1" },
+    "version": { "type": "string" },
+    "contracts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "type", "status", "owner", "version", "path"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^(SCI|ALG|DATA|ARCH|API|MOD|TEST|TST)-[A-Z0-9-]+$" },
+          "type": { "enum": ["SCI", "ALG", "DATA", "ARCH", "API", "MOD", "TEST"] },
+          "status": { "enum": ["ACTIVE", "DRAFT", "OBSOLETE", "CONFLICT", "DORMANT"] },
+          "owner": { "type": "string", "minLength": 1 },
+          "version": { "type": "string", "minLength": 1 },
+          "path": { "type": "string", "minLength": 1 },
+          "upstream": { "type": "array", "items": { "type": "string" } },
+          "downstream": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  }
+}
