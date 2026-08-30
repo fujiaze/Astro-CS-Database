@@ -130,3 +130,9 @@ target_include_directories(p1_wcs_phot_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase1/photometry)
 target_link_libraries(p1_wcs_phot_test PRIVATE astrocs_phase1_wcs astrocs_phase1_phot)
 add_test(NAME p1_wcs_phot COMMAND p1_wcs_phot_test)
+
+add_executable(p1_noise_test p1_noise_test.cpp)
+target_include_directories(p1_noise_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase1/noise)
+target_link_libraries(p1_noise_test PRIVATE astrocs_phase1_noise)
+add_test(NAME p1_noise COMMAND p1_noise_test)

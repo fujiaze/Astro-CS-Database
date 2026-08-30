@@ -1,0 +1,78 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "P1-005",
+  "status": "PASS",
+  "start_commit": "366b9f8cec49a39dade1d4c99e9a60223ffef343",
+  "source_commit": "366b9f8cec49a39dade1d4c99e9a60223ffef343",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "lib/phase1/noise/noise_model.h",
+    "lib/phase1/noise/noise_model.cpp",
+    "tests/unit/p1_noise_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "CMakeLists.txt",
+    "evidence/refactor/tasks/P1-005/TASK_RESULT.json",
+    "evidence/refactor/tasks/P1-005/logs/c01.log",
+    "evidence/refactor/tasks/P1-005/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "12c8c44c7bf289d8054c24251e5b5385bda878a0cd74b1736ff065c4be622022"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "19fa8502045a81dc743b1d1c376c82263e48a6544d26121d0aebc69fac1d397d"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-BLANK-SKY",
+      "description": "blank sky σ=10: variance≈100, ivar=1/variance, background≈100",
+      "result": "PASS"
+    },
+    {
+      "id": "T-MC-POISSON",
+      "description": "Poisson+read noise MC 固定 seed: 实测 variance ≈ 解析 signal*gain+read_noise² (15%)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-LOW-HIGH",
+      "description": "低信号 clamp 到 floor; 高信号大方差",
+      "result": "PASS"
+    },
+    {
+      "id": "T-NEGATIVE",
+      "description": "负值离群: MAD 稳健不受影响",
+      "result": "PASS"
+    },
+    {
+      "id": "T-GAIN-EDGES",
+      "description": "零 gain/无效 read noise → 显式无效; 有效时解析公式精确",
+      "result": "PASS"
+    },
+    {
+      "id": "T-IVAR-NOT-MIXED",
+      "description": "variance 与 ivar 反比不混",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "tests": 6,
+    "sci_constants": [
+      "kMadToSigma",
+      "kVarianceFloor"
+    ],
+    "mc_seed": "fixed"
+  },
+  "findings": [
+    "P1-005: NoiseModel 按 SCI-NOISE-001 公式(σ=1.4826·MAD, variance, ivar=1/variance, floor 1e-12); blank sky/低高信号/负值/零 gain/无效 read noise 全覆盖; Poisson MC 固定 seed 对照解析; variance 与 ivar 显式不混"
+  ],
+  "created_utc": "2026-08-30T16:58:20Z"
+}

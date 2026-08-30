@@ -187,6 +187,12 @@ target_include_directories(astrocs_phase1_phot PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/phase1/photometry ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(astrocs_phase1_phot PUBLIC astrocs_contracts)
 
+# phase1 noise (P1-005 SCI-NOISE-001)
+add_library(astrocs_phase1_noise STATIC lib/phase1/noise/noise_model.cpp)
+target_include_directories(astrocs_phase1_noise PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/phase1/noise ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(astrocs_phase1_noise PUBLIC astrocs_contracts)
+
 # phase1 stars (P1-003 StarDetector)
 add_library(astrocs_phase1_stars STATIC lib/phase1/stars/star_detector.cpp)
 target_include_directories(astrocs_phase1_stars PUBLIC
