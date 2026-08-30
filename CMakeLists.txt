@@ -45,9 +45,11 @@ add_library(astrocs_core STATIC
   lib/core/src/artifact.cpp
   lib/core/src/module.cpp
   lib/core/src/pipeline.cpp
-  lib/core/src/context.cpp)
+  lib/core/src/context.cpp
+  lib/core/src/scheduler.cpp)
 target_include_directories(astrocs_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(astrocs_core PUBLIC astrocs_contracts)
+target_link_libraries(astrocs_core PUBLIC astrocs_contracts Threads::Threads)
+find_package(Threads REQUIRED)
 
 # core/common: sha256/healpix (纯算法)
 add_library(astrocs_common STATIC

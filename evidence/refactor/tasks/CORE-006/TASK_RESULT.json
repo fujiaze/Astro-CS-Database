@@ -1,0 +1,53 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "CORE-006",
+  "status": "PASS",
+  "start_commit": "6389105a1865f7b10804926b6df34550d58f2902",
+  "source_commit": "6389105a1865f7b10804926b6df34550d58f2902",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "include/astrocs/core/scheduler.h",
+    "lib/core/src/scheduler.cpp",
+    "tests/unit/core_scheduler_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "CMakeLists.txt",
+    "evidence/refactor/tasks/CORE-006/TASK_RESULT.json"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "log_sha256": "0a1439a0a9eeb6cc50e4ca6ab30196d7738165330c4eaf9bdd3c93fd3bf7f860"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "e3709753bdf1b5baefcba870af701e3bbaff964b336c092a63a8860960d9fc26"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-UNIT",
+      "description": "core_scheduler_test 6 组 PASS (linear DAG/2 核并发/失败传播/取消传播/环拒/未知依赖拒)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-CONCURRENCY",
+      "description": "2 核 budget 独立节点并发验证(max_concurrent>=2 且总时长<串行)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "tests": 6,
+    "pool_workers": 2,
+    "concurrency_verified": true
+  },
+  "findings": [
+    "CORE-006 实现统一 DAG 调度器: 有界 worker 池(budget=min(requested,available_cpu)), 依赖就绪队列, 取消/失败传播, 环/未知依赖显式拒; 2 核并发验证通过; 唯一全局调度(ARCH-001)"
+  ],
+  "created_utc": "2026-08-30T16:16:47Z"
+}
