@@ -1,0 +1,8 @@
+p0_id,file:line,symbol,minimal_evidence,impact,risk_id,task_owner,status
+P0-001,lib/phase2_session/p2_session.cpp:154,sc.cpu_workers=1; p2_session 只到 coverage/sample/UPM/persist,静态: 唯一生产 sampler 入口 cpu_workers=1(合同注释自认 serial reference),Phase2 重计算单线程; 与资源硬约束冲突,RISK-001,P2-002,IN_PROGRESS
+P0-002,lib/phase3_session/p3_session.cpp:183-196,for(y){for(x)} 二维串行主循环; 注释 serial,"静态: 主循环无并行, 无线程注入",Phase3 球面→平面重采样低利用率,RISK-002,P3-003,IN_PROGRESS
+P0-003,lib/phase1_session/p1_session.cpp:53-58 ImageDeleter,ImageDeleter::operator() 只 std::free(p); 正式 aio_free_image_data() 释放 data/data_f64/keywords (aio_api.cpp:240-248),"静态所有权调用图: aio_read_fits 分配 data(malloc aio_fits.cpp:590)/keywords(:691); p1 dispose_image 仅 free(struct). 动态 ASan 复现受限: GCC14 -fpermissive 拒编 cfitsio 老代码, ASan 在 ptrace 环境 LSAN 不可用 → NOT_RUN",像素与关键字内存泄漏,RISK-003,IO-002,IN_PROGRESS
+P0-004,lib/phase1_session/p1_session.cpp,阶段序列仅 io_read→calibrate→cosmetic→io_write; PHASE1_API_V1 声称 Calibration→Star→PSF→PlateSolve→Photometry→SNR→Drizzle→HiPS,静态: session 无 star/psf/platesolve/photometry/snr/drizzle/hips 阶段; 差集=7 个缺失模块,用户看到的'完整 Phase1' 不存在,RISK-004,P1-008,IN_PROGRESS
+P0-005,lib/phase2_session/p2_session.cpp,session 缺 block/apply、rejection、integration、HiPS writer/verify,静态: 阶段清单 coverage/sample/upm/persist; 文档声称完整 Phase2,文档与生产行为不一致,RISK-005,P2-007,IN_PROGRESS
+P0-006,cli/main.cpp:625-745,"run --phases 顺序调用 p1/p2/p3_session; phase2 hips_paths 从 config inputs.lights 重建, 不消费 phase1 产物",静态: phase2 输入=config 而非 phase1 Artifact; 无 Artifact ID 绑定,"三命令连跑, 非真数据管道",RISK-006,CLI-002,IN_PROGRESS
+P0-007,lib/phase3_session/p3_session.cpp:213-239,software_version=0.1.0; run_id=phase3-run; BUNIT=Jy/beam; output_phase3.fits 硬编码,静态: provenance 假值+单位硬编码; output 名硬编码,错误科学语义与不可追溯产物,RISK-007,P3-005,IN_PROGRESS
