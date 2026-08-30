@@ -1,0 +1,67 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "DOC-002",
+  "status": "PASS",
+  "start_commit": "b891eda3876a4a86e364f021a7627fba6920db30",
+  "source_commit": "b891eda3876a4a86e364f021a7627fba6920db30",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "documentation",
+  "science_changed": false,
+  "files_changed": [
+    "REVIEW.md",
+    "docs/review/PIPELINE_OVERVIEW.md",
+    "docs/review/ARCHITECTURE_OVERVIEW.md",
+    "docs/review/RELEASE_STATUS.md",
+    "docs/review/CHANGE_REVIEW.md",
+    "tools/check_l0_docs.py",
+    "evidence/refactor/tasks/DOC-002/TASK_RESULT.json",
+    "evidence/refactor/tasks/DOC-002/logs/c01.log",
+    "evidence/refactor/tasks/DOC-002/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "f928abae1c8f7e3f70b1f8fc55ff24299a531c0513f86a712a9356432142e837"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "2cc56330095e3dc71985d58a0f0760ec1625e483d6f9bffa4aea5b95122d4eb4"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-L0-EXIST",
+      "description": "REVIEW.md + 5 份 review/ 顶层文档全部存在非空",
+      "result": "PASS"
+    },
+    {
+      "id": "T-LINKS",
+      "description": "REVIEW.md 链接全部 5 份 L0 文档",
+      "result": "PASS"
+    },
+    {
+      "id": "T-SUMMARY-ONLY",
+      "description": "L0 只汇总权威合同不抄完整公式 (简洁可审)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "l0_docs": 6,
+    "lines": [
+      "REVIEW.md 42",
+      "SCIENCE 76",
+      "PIPELINE 40",
+      "ARCHITECTURE 44",
+      "RELEASE 30",
+      "CHANGE 34"
+    ]
+  },
+  "findings": [
+    "DOC-002: L0 负责人审查文档完成(REVIEW.md 入口 + 5 份顶层文档: SCIENCE/PIPELINE/ARCHITECTURE/RELEASE_STATUS/CHANGE_REVIEW); 只汇总权威合同不重复维护; owner 只看 L0, 底层 Agent 维护 L1/L2/L3"
+  ],
+  "created_utc": "2026-08-30T17:50:13Z"
+}
