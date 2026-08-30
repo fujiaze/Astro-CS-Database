@@ -1,0 +1,59 @@
+{
+  "manifest_schema": "astrocs_v5_32r_manifest/1",
+  "candidate": {
+    "sha": "b842899eb8fb",
+    "version": "0.9.0-alpha.1+gb842899eb8fb",
+    "platform": "windows-amd64",
+    "cli": "astrocs.exe (win_rel/Release)",
+    "profile": "single-cli-phase1-2-3, pure-CPU adaptive backend, OpenMP off in win_rel build (serial/simd)",
+    "frost": "nside=2048, pixfrac=0.9, tile_width=512",
+    "build_sha": "b842899eb8fb",
+    "repo_head_at_manifest": "876296eb3266"
+  },
+  "dataset": {
+    "field": "Galaxy_Center_T4 (银心, 4500x3600, 180S)",
+    "frames": 32,
+    "per_panel": {
+      "panel1": 11,
+      "panel2": 11,
+      "panel3": 10
+    },
+    "masters": [
+      "masterBias_BIN-1_4500x3600",
+      "masterDark_BIN-1_4500x3600_EXPOSURE-180.00s",
+      "masterFlat_BIN-1_4500x3600_FILTER-Red_mono"
+    ]
+  },
+  "run": {
+    "phase1": {
+      "run_id": "529854867a21",
+      "status": "ok",
+      "frames": 32,
+      "exit": 0
+    },
+    "drizzle": {
+      "per_frame": true,
+      "nside": 2048,
+      "pixfrac": 0.9,
+      "hips_paths": 32
+    },
+    "phase2": {
+      "run_id": "4f885b8b8fd4",
+      "status": "ok",
+      "n_inputs": 32,
+      "n_obs": 529,
+      "overlap_controls": 47,
+      "exit": 0
+    },
+    "phase3": {
+      "run_id": "4e81f2e0dc96",
+      "status": "ok",
+      "output": "phase3_out/output_phase3.fits",
+      "exit": 0
+    }
+  },
+  "contribution": {
+    "frames_input": 32,
+    "frames_contributed": 32
+  }
+}
