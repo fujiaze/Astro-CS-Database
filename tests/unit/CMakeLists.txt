@@ -61,3 +61,10 @@ add_executable(cpu_abi_test cpu_abi_test.cpp)
 target_include_directories(cpu_abi_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 target_link_libraries(cpu_abi_test PRIVATE astrocs_cpu astrocs_contracts)
 add_test(NAME cpu_abi COMMAND cpu_abi_test)
+
+add_executable(cpu_lease_test cpu_lease_test.cpp)
+target_include_directories(cpu_lease_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/backend_host)
+target_link_libraries(cpu_lease_test PRIVATE astrocs_cpu astrocs_contracts Threads::Threads)
+add_test(NAME cpu_lease COMMAND cpu_lease_test)

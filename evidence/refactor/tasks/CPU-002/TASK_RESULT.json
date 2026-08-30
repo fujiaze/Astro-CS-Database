@@ -1,0 +1,67 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "CPU-002",
+  "status": "PASS",
+  "start_commit": "af6cb259ac95199becc43af8af28dd486dc95585",
+  "source_commit": "af6cb259ac95199becc43af8af28dd486dc95585",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "tests/unit/cpu_lease_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/refactor/tasks/CPU-002/TASK_RESULT.json",
+    "evidence/refactor/tasks/CPU-002/logs/c01.log",
+    "evidence/refactor/tasks/CPU-002/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "log_sha256": "3fa7498c262c06b06fc114a187026350b1af6df87a08f810c06a1c54254e101a"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "db9f4ee7001e927ae8d82d2b14e3caa6c829b033f6a304b250cd60a303ff5bc7"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-BASELINE",
+      "description": "baseline AMD64 加载 + handshake(struct_size/version)+ self_test",
+      "result": "PASS"
+    },
+    {
+      "id": "T-LEASE-MT",
+      "description": "heavy kernel 经 Runtime lease 多线程: workers=2(≤budget)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-DETERMINISM",
+      "description": "多线程结果与串行参考逐元素一致",
+      "result": "PASS"
+    },
+    {
+      "id": "T-BUDGET-DEGRADE",
+      "description": "预算 1 核时 workers 降级 1 且结果正确",
+      "result": "PASS"
+    },
+    {
+      "id": "T-NO-EXCEPTION",
+      "description": "ABI 边界异常不外泄 (boundary_probe)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "lease_workers": 2,
+    "budget_degrade_workers": 1,
+    "kernel": "ALG-001 calibration"
+  },
+  "findings": [
+    "CPU-002: baseline backend 仅 AMD64 基本能力; heavy kernel(calibration)经 host budget 全或无租借多线程执行(行带并行, Σactive≤max_workers, 失败减半, 串行兜底, 无持久池); 2 核 lease workers=2; 确定性逐元素校验; 1 核预算降级仍正确"
+  ],
+  "created_utc": "2026-08-30T16:37:14Z"
+}
