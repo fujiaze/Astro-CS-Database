@@ -180,3 +180,9 @@ target_include_directories(p2_block_plan_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase2/include)
 target_link_libraries(p2_block_plan_test PRIVATE astrocs_phase2)
 add_test(NAME p2_block_plan COMMAND p2_block_plan_test)
+
+add_executable(p2_rejection_test p2_rejection_test.cpp)
+target_include_directories(p2_rejection_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase2/include)
+target_link_libraries(p2_rejection_test PRIVATE astrocs_phase2)
+add_test(NAME p2_rejection COMMAND p2_rejection_test)
