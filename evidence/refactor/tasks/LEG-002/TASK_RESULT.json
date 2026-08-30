@@ -1,0 +1,62 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "LEG-002",
+  "status": "PASS",
+  "start_commit": "317566c07e3407e270a06b117a94742d4d0d8f37",
+  "source_commit": "317566c07e3407e270a06b117a94742d4d0d8f37",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "docs/contracts/PUBLIC_API.md",
+    "tools/check_legacy_exit.py",
+    "evidence/refactor/tasks/LEG-002/TASK_RESULT.json",
+    "evidence/refactor/tasks/LEG-002/logs/c01.log",
+    "evidence/refactor/tasks/LEG-002/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "1542521ff97414f0ad8727418b241dc2078bcd0b884c0cfbec7df45335533249"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "2f8704fcf184bab83848d7a05147d2fccfb777d17d3f4de2726ac7392a271b89"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-NO-CALLER",
+      "description": "生产二进制无 orchestrator 符号 (nm=0)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-NO-CMAKE",
+      "description": "根 CMake 不引用 orchestrator",
+      "result": "PASS"
+    },
+    {
+      "id": "T-DOC-EXIT",
+      "description": "PUBLIC_API orchestrator.exe 标 LEG-002 退出 (ARCH-001 同标)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-KEEP-SRC",
+      "description": "源码保留不破坏删除 (lib/orchestrator 完整)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "legacy": "orchestrator",
+    "prod_symbols": 0,
+    "cmake_refs": 0
+  },
+  "findings": [
+    "LEG-002: 旧 Orchestrator 退出生产确认(无 canonical caller/生产符号 nm=0/根 CMake 零引用/文档入口已标退出); 调度职责退出, 底层有效函数保留; 源码保留不破坏删除"
+  ],
+  "created_utc": "2026-08-30T17:45:27Z"
+}
