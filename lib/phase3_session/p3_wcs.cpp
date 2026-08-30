@@ -13,7 +13,13 @@ namespace {
 constexpr double kDeg = 180.0 / M_PI;
 constexpr double kRad = M_PI / 180.0;
 constexpr double kMinDecFromPole = 5.0;   // API §4: 中心距极点 ≥5°
-constexpr int kMaxSide = 20000;           // API §2: W/H ∈[1,20000]
+// 最大尺寸来自配置/资源合同 (PHASE3_API_V1 §2 默认 20000), 可被
+// 编译期配置覆盖; 不硬编码业务值 (P3-002: 最大尺寸来自资源/配置合同)。
+#ifndef ASTROCS_P3_MAX_SIDE
+constexpr int kMaxSide = 20000;
+#else
+constexpr int kMaxSide = ASTROCS_P3_MAX_SIDE;
+#endif
 
 void normalize_ra(double* ra) {
     *ra = std::fmod(*ra, 360.0);

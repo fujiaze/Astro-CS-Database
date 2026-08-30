@@ -202,3 +202,9 @@ target_include_directories(p2_seam_gate_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../cli)
 target_link_libraries(p2_seam_gate_test PRIVATE astrocs_contracts)
 add_test(NAME p2_seam_gate COMMAND p2_seam_gate_test)
+
+add_executable(p3_wcs_test p3_wcs_test.cpp)
+target_include_directories(p3_wcs_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase3_session)
+target_link_libraries(p3_wcs_test PRIVATE astrocs_phase3_session astrocs_common)
+add_test(NAME p3_wcs COMMAND p3_wcs_test)
