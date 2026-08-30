@@ -1,0 +1,60 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "CORE-002",
+  "status": "PASS",
+  "start_commit": "c572aa1f2ddc09045ef89d8c281f1ee87e0d10b3",
+  "source_commit": "c572aa1f2ddc09045ef89d8c281f1ee87e0d10b3",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "include/astrocs/core/artifact.h",
+    "lib/core/src/artifact.cpp",
+    "tests/unit/core_artifact_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "CMakeLists.txt",
+    "evidence/refactor/tasks/CORE-002/TASK_RESULT.json",
+    "evidence/refactor/tasks/CORE-002/logs/c01.log",
+    "evidence/refactor/tasks/CORE-002/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "8ecfc2ac6809754f0edcf3eddd06d7c4d4a7a61395240d4c9aa958932ce3fc0c"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "5fcacce953124f13d3fa49b353b56cc846ec46e0924a596b0deafeb4e3861a23"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-UNIT",
+      "description": "core_artifact_test 4 组 PASS (validate/roundtrip/hash 稳定/单位拒)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-ROUNDTRIP",
+      "description": "descriptor JSON roundtrip 保真",
+      "result": "PASS"
+    },
+    {
+      "id": "T-HASH",
+      "description": "science_hash 稳定(同输入同 hash; 变化输入变 hash)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "tests": 4,
+    "artifact_fields": 14,
+    "provenance_fields": 9
+  },
+  "findings": [
+    "CORE-002 实现 DataArtifactDescriptor(14 字段: id/schema/scalar/unit/coordinate/shape/invalid/ownership/storage/provenance) + Provenance(9 字段); JSON roundtrip 自实现无外部依赖; schema/unit/shape 校验; science_hash FNV-1a 稳定"
+  ],
+  "created_utc": "2026-08-30T16:08:24Z"
+}
