@@ -1,0 +1,5 @@
+lock_id,file:line,symbol,purpose,contention_scope,task_owner,resolution
+L-001,lib/phase2/src/sampler.cpp:164,g_aio_mu (std::mutex),cfitsio HiPS 读取串行化,所有 sampler worker,IO-004,压力测试通过后移除
+L-002,lib/phase2/tools/stage2.cpp:62,g_log_mutex,stage2 日志写串行,stage2 内部,LEG-004,"旧工具, 退役"
+L-003,lib/orchestrator/cpp/src/logger.cpp:50-173,mutex_,orchestrator 日志写,orchestrator 内部,LEG-002,"旧调度器, 退役"
+L-004,lib/orchestrator/cpp/src/orchestrator.cpp:391/5032/5076/5370,mutex_,stage 状态/watchdog 保护,orchestrator 内部,LEG-002,"旧调度器, 退役"
