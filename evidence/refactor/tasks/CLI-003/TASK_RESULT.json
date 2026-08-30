@@ -1,0 +1,64 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "CLI-003",
+  "status": "PASS",
+  "start_commit": "e5b84f3060a7cbb33573431826e8c8892154d011",
+  "source_commit": "e5b84f3060a7cbb33573431826e8c8892154d011",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "cli/main.cpp",
+    "evidence/refactor/tasks/CLI-003/TASK_RESULT.json",
+    "evidence/refactor/tasks/CLI-003/logs/c01.log",
+    "evidence/refactor/tasks/CLI-003/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "e7ef8280f8f454e82102c2f2f04b238e2b86cc32da07eb3373b97b4c110c1e72"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 300,
+      "exit_code": 0,
+      "log_sha256": "7d4aad60151529990948629c3acd92f5c38a1ae70a5125ec0d2100ad10894b47"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-TEST-SYNTHETIC",
+      "description": "test synthetic --group all: 7 组合成门全 PASS (calibration/wcs_psf/noise_snr/drizzle/upm/rejection/pipeline)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-BENCHMARK",
+      "description": "benchmark cpu --quick → cpu_profile.json PASS (真实执行)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-DOCTOR",
+      "description": "doctor --json → baseline_selftest pass (真实执行)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-GROUP-MAP",
+      "description": "group→测试二进制映射 7 组; ASTROCS_REPO 注入使源码读取测试可用",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "synthetic_groups": 7,
+    "wired_commands": [
+      "test synthetic",
+      "benchmark cpu",
+      "doctor"
+    ]
+  },
+  "findings": [
+    "CLI-003: test synthetic 从 stub 接通真实合成门(7 组映射到合成测试二进制, 全 PASS); benchmark cpu/doctor 真实执行验证; ASTROCS_REPO 注入修复源码读取测试; 无测试二进制时明确错误(非静默)"
+  ],
+  "created_utc": "2026-08-30T17:42:07Z"
+}

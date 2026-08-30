@@ -429,6 +429,8 @@ int cmd_show_effective(const Parsed& p, astrocs::JsonlEmitter& ev) {
 
 // stub 命令(科学接线属 CODE/TST 域): 参数已按合同全量校验, 明示 not-wired。
 // 测试钩子(ASTROCS_TEST_SLEEP_MS / ASTROCS_TEST_CRASH=1)仅用于协议 golden 测试, 非用户接口。
+int cmd_test_synthetic(const Parsed& p, const std::string& group, astrocs::JsonlEmitter& ev);  // CLI-003
+
 int cmd_stub(const Parsed& p, const std::string& phase, astrocs::JsonlEmitter& ev) {
     (void)p;
     const char* sleep_ms = std::getenv("ASTROCS_TEST_SLEEP_MS");
@@ -455,6 +457,65 @@ int cmd_stub(const Parsed& p, const std::string& phase, astrocs::JsonlEmitter& e
     std::fprintf(stderr, "astrocs: '%s' is declared by the CLI contract but not wired in this build "
                          "(see docs/api/CLI_PROTOCOL_V1.md)\n", phase.c_str());
     return astrocs::ARGS;
+}
+
+// ── CLI-003: test synthetic 接通真实合成门 ──
+// 运行 build 树内已编译的合成测试可执行文件 (路径: ASTROCS_TEST_BIN_DIR 或
+// <cwd>/build/root-cmake/tests/unit)。group → 测试二进制映射; 全部 exit 0 = PASS。
+// 无测试二进制 (非开发构建) → 明确错误 (可诊断, 非静默)。
+int cmd_test_synthetic(const Parsed& p, const std::string& group, astrocs::JsonlEmitter& ev) {
+    (void)p;
+    struct G { const char* group; const char* bin; };
+    static const G kMap[] = {
+        {"calibration",           "p1_calibration_test"},
+        {"wcs_psf",               "p1_stars_test"},
+        {"noise_snr",             "p1_noise_test"},
+        {"drizzle",               "p1_nside_test"},
+        {"upm",                   "p2_upm_synthetic_test"},
+        {"rejection_integration", "p2_output_semantics_test"},
+        {"pipeline",              "p1_ir_facade_test"},
+    };
+    std::vector<const char*> bins;
+    if (group == "all") {
+        for (const auto& g : kMap) bins.push_back(g.bin);
+    } else {
+        for (const auto& g : kMap)
+            if (group == g.group) bins.push_back(g.bin);
+    }
+    if (bins.empty()) {
+        ev.emit_final(astrocs::ARGS, "no_tests", nullptr,
+                      ("no synthetic tests for group '" + group + "'").c_str());
+        return astrocs::ARGS;
+    }
+    std::string bin_dir = std::getenv("ASTROCS_TEST_BIN_DIR")
+                              ? std::getenv("ASTROCS_TEST_BIN_DIR")
+                              : "build/root-cmake/tests/unit";
+    int failed = 0;
+    for (const char* b : bins) {
+        const std::string exe = bin_dir + "/" + b;
+        ev.stage(("test_" + std::string(b)).c_str(), true);
+        // 源码相对读取的测试 (p1_ir_facade/p2_ir_facade) 需要 ASTROCS_REPO;
+        // 默认设为调用方 cwd, 可用环境变量覆盖。
+        const char* repo_env = std::getenv("ASTROCS_REPO");
+        const std::string cmd = std::string("ASTROCS_REPO=") +
+                                (repo_env ? repo_env : ".") + " " + exe;
+        const int rc = std::system(cmd.c_str());
+        ev.stage(("test_" + std::string(b)).c_str(), rc == 0);
+        if (rc != 0) {
+            std::fprintf(stderr, "astrocs: synthetic test %s failed (rc=%d)\n", b, rc);
+            ++failed;
+        }
+    }
+    if (failed) {
+        ev.emit_final(astrocs::INTERNAL, "synthetic_failed", nullptr,
+                      ("synthetic tests failed: " + std::to_string(failed)).c_str());
+        return astrocs::INTERNAL;
+    }
+    ev.emit_final(astrocs::OK, "synthetic_ok", nullptr,
+                  ("synthetic tests passed (" + std::to_string(bins.size()) + ")").c_str());
+    std::fprintf(stderr, "astrocs: test synthetic %s: %zu tests PASS\n",
+                 group.c_str(), bins.size());
+    return astrocs::OK;
 }
 
 // run manifest v1 原子写(tmp+rename; ARCH-002 §5 单元): stub/not-wired/cancelled 恒 incomplete
@@ -1464,6 +1525,7 @@ int dispatch(const Parsed& p) {
     if (joined == "test synthetic") {
         const std::string g = need_value(p, "--group");
         if (!kGroups.count(g)) parse_fail("invalid --group '" + g + "'");
+        return cmd_test_synthetic(p, g, ev);
     }
     return cmd_stub(p, joined, ev);
 }
