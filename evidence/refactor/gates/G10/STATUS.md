@@ -15,3 +15,8 @@
 ## 处理策略 (AGENTS.md)
 Fatduck 离线不中止目标: 恢复后重试, 不放弃/降级/伪造。G10 不阻塞 Linux 任务;
 REL/G11 的 Linux 侧可验项继续。
+
+## WIN-001..006 任务登记 (2026-08-31)
+- WIN-001 Windows在线探测与MSVC构建 / WIN-002 CPU benchmark与provider / WIN-003 合成科学与资源
+- WIN-004 少量真实代表帧 / WIN-005 银心32R最终一次全链 / WIN-006 HiPS与Phase3视觉技术证据
+- 全部 WAITING_WINDOWS (Fatduck 离线); Linux 侧已完成 (G9 PASS)。
