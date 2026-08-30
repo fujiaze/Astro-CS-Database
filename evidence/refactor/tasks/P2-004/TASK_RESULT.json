@@ -1,0 +1,67 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "P2-004",
+  "status": "PASS",
+  "start_commit": "fab26511ee4d56b77bad222271f2a04f8548b0ad",
+  "source_commit": "fab26511ee4d56b77bad222271f2a04f8548b0ad",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "lib/phase2/src/block.cpp",
+    "tests/unit/p2_block_plan_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/refactor/tasks/P2-004/TASK_RESULT.json",
+    "evidence/refactor/tasks/P2-004/logs/c01.log",
+    "evidence/refactor/tasks/P2-004/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "b9d241cd6b91b7b56dc7c12a9afb7325ff18fa8eb09ffe299bce19ab3a66be85"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "a886a3f7d7e9efe8944c943bfcf41d41736b9b9ed66433c76ab4c6513280b3a5"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-BUDGET-FIT",
+      "description": "预算内: block_pixels=全量(小数据与 full reference 等价), 峰值<=limit",
+      "result": "PASS"
+    },
+    {
+      "id": "T-SHRINK",
+      "description": "超预算: 正常缩块不 swap; 峰值重算 <= budget (误差界)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-BOUNDARY",
+      "description": "边界: 零内存拒绝(status=1)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-DETERMINISM",
+      "description": "同输入同计划(确定性)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-NO-GLOBAL-CACHE",
+      "description": "极小预算: 必须缩块(不构造全局稠密 cache)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "fix": "block.cpp 缩块后重算 estimated_peak_bytes",
+    "no_global_cache": true
+  },
+  "findings": [
+    "P2-004: block plan 预算生成验证; 发现并修复缺陷: 缩块后 estimated_peak_bytes 未重算(保持旧峰值>预算) → 现重算=block_pixels*per_px+overhead 满足误差界; 预算内全量等价; 边界零内存拒; 无稠密全局 cache"
+  ],
+  "created_utc": "2026-08-30T17:17:42Z"
+}

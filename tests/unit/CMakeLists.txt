@@ -174,3 +174,9 @@ add_test(NAME p2_workers COMMAND p2_workers_test)
 add_executable(p2_upm_synthetic_test p2_upm_synthetic_test.cpp)
 target_link_libraries(p2_upm_synthetic_test PRIVATE astrocs_contracts)
 add_test(NAME p2_upm_synthetic COMMAND p2_upm_synthetic_test)
+
+add_executable(p2_block_plan_test p2_block_plan_test.cpp)
+target_include_directories(p2_block_plan_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase2/include)
+target_link_libraries(p2_block_plan_test PRIVATE astrocs_phase2)
+add_test(NAME p2_block_plan COMMAND p2_block_plan_test)
