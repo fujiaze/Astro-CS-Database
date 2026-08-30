@@ -22,8 +22,10 @@
 #include <map>
 #include <algorithm>
 
+// zstd 可选(与 aio_compressor/hiss_codec 一致): 编译时 -DHAS_ZSTD 启用, 否则 header 块不压缩
+#ifdef HAS_ZSTD
 #include <zstd.h>
-
+#endif
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -77,6 +79,7 @@ static FILE* hio_fopen_utf8(const char* path, const char* mode) {
 // ============================================================================
 
 // 压缩数据, 返回压缩后字节, 失败返回 0
+#ifdef HAS_ZSTD
 static size_t hio_zstd_compress(const void* src, size_t srcSize,
                                 std::vector<uint8_t>& out, int level) {
     size_t bound = ZSTD_compressBound(srcSize);
@@ -90,8 +93,19 @@ static size_t hio_zstd_compress(const void* src, size_t srcSize,
     out.resize(compSize);
     return compSize;
 }
+#else
+// 无 zstd: header 块不压缩(直接拷贝)
+static size_t hio_zstd_compress(const void* src, size_t srcSize,
+                                std::vector<uint8_t>& out, int level) {
+    (void)level;
+    const uint8_t* p = static_cast<const uint8_t*>(src);
+    out.assign(p, p + srcSize);
+    return srcSize;
+}
+#endif
 
 // 解压数据, 返回解压后字节, 失败返回 0
+#ifdef HAS_ZSTD
 static size_t hio_zstd_decompress(const void* src, size_t srcSize,
                                   void* dst, size_t dstCapacity) {
     size_t outSize = ZSTD_decompress(dst, dstCapacity, src, srcSize);
@@ -102,6 +116,15 @@ static size_t hio_zstd_decompress(const void* src, size_t srcSize,
     }
     return outSize;
 }
+#else
+// 无 zstd: 解压视为原样拷贝
+static size_t hio_zstd_decompress(const void* src, size_t srcSize,
+                                  void* dst, size_t dstCapacity) {
+    size_t n = srcSize < dstCapacity ? srcSize : dstCapacity;
+    memcpy(dst, src, n);
+    return n;
+}
+#endif
 
 // ============================================================================
 // JSON 辅助函数 (简单字符串操作, 无外部 JSON 库依赖)
