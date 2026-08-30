@@ -1,0 +1,65 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "REL-001",
+  "status": "PASS",
+  "start_commit": "8989c7f80b73182dd63f8bdf498a07f586ef5b0c",
+  "source_commit": "8989c7f80b73182dd63f8bdf498a07f586ef5b0c",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "release",
+  "science_changed": false,
+  "files_changed": [
+    "dist/astrocs-alpha/VERSION",
+    "dist/astrocs-alpha/LICENSE",
+    "dist/astrocs-alpha/README.txt",
+    "dist/astrocs-alpha/checksums.sha256",
+    "dist/astrocs-alpha/astrocs",
+    "tools/check_release_layout.py",
+    "evidence/refactor/tasks/REL-001/TASK_RESULT.json",
+    "evidence/refactor/tasks/REL-001/logs/c01.log",
+    "evidence/refactor/tasks/REL-001/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "b4722507eac6e183f7478577ec15c6f3d5b4e408855140cd47cb74f3f293f086"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "9fd51c64fdd54b6b3f7b920bd4bacedbdcf63d93b78ce9d221c709f58e675321"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-SINGLE-ENTRY",
+      "description": "发布布局单一用户入口 (astrocs 唯一可执行)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-FILES",
+      "description": "含 VERSION/LICENSE/README/checksums; 不含 build/testdata/history",
+      "result": "PASS"
+    },
+    {
+      "id": "T-CHECKSUM",
+      "description": "checksums.sha256 与二进制实际哈希一致",
+      "result": "PASS"
+    },
+    {
+      "id": "T-SMOKE",
+      "description": "干净目录 install/run smoke: --version g8989c7f + doctor selftest ok",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "binary_sha256": "5a0f4c0d86e278e23684b91b3cf912bbbcefe6b75a73f165b10970f2234283de",
+    "version": "0.10.0-alpha.1+g8989c7f"
+  },
+  "findings": [
+    "REL-001: 发布布局完成(单一用户入口 astrocs; VERSION/LICENSE/README/checksums; 无 build/testdata/history); 干净目录 smoke(--version 0.10.0-alpha.1+g8989c7f + doctor selftest ok); 发布包内 test synthetic 明确报无测试二进制(发布环境正常语义); CPU provider 内部组件, baseline 随包"
+  ],
+  "created_utc": "2026-08-30T17:56:24Z"
+}
