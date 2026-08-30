@@ -1,0 +1,67 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "G11-CONSISTENCY",
+  "status": "PASS",
+  "start_commit": "42d5dd788b229d282b3c024edb39736d11c74dcd",
+  "source_commit": "42d5dd788b229d282b3c024edb39736d11c74dcd",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "release",
+  "science_changed": false,
+  "files_changed": [
+    "tools/check_release_consistency.py",
+    "dist/astrocs-alpha/SBOM.json",
+    "evidence/refactor/tasks/REL-CONSISTENCY/TASK_RESULT.json",
+    "evidence/refactor/tasks/REL-CONSISTENCY/logs/c01.log",
+    "evidence/refactor/tasks/REL-CONSISTENCY/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "732c372e57b36502551fb12bde2cc999314f29cd77f8a6591e0d914415b8fcbb"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "9b6ece38cda642ded59711cdd5f8e4b3fa4954e3db1467727cffed2cb858b67d"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-VERSION",
+      "description": "VERSION 单源 0.10.0-alpha.1",
+      "result": "PASS"
+    },
+    {
+      "id": "T-CHECKSUMS",
+      "description": "发布布局 checksums 与文件一致",
+      "result": "PASS"
+    },
+    {
+      "id": "T-SBOM",
+      "description": "SBOM product/version/组件/entrypoint 对齐",
+      "result": "PASS"
+    },
+    {
+      "id": "T-NO-NOTVERIFIED",
+      "description": "无未登记 NOT VERIFIED (除 owner review)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-P0P1",
+      "description": "FINDINGS.csv 空 → P0/P1=0; V5 P0/P1 均已在 G4-G7 修复",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "version": "0.10.0-alpha.1",
+    "p0p1_open": 0,
+    "sbom_components": 8
+  },
+  "findings": [
+    "G11 一致性: VERSION/commit/build id/SBOM/checksums 一致(REL_CONSISTENCY_PASS); 审核包 validate_audit PASS + release layout PASS; P0/P1=0 (FINDINGS 空, V5 项已修复)"
+  ],
+  "created_utc": "2026-08-30T18:13:16Z"
+}
