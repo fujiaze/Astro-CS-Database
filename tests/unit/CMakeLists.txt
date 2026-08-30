@@ -56,3 +56,8 @@ target_include_directories(io_reentrant_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/third_party/cfitsio)
 target_link_libraries(io_reentrant_test PRIVATE astrocs_cfitsio z m)
 add_test(NAME io_reentrant COMMAND io_reentrant_test)
+
+add_executable(cpu_abi_test cpu_abi_test.cpp)
+target_include_directories(cpu_abi_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+target_link_libraries(cpu_abi_test PRIVATE astrocs_cpu astrocs_contracts)
+add_test(NAME cpu_abi COMMAND cpu_abi_test)
