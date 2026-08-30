@@ -55,11 +55,30 @@ def main():
                 caller_files.append(str(f.relative_to(REPO)))
     if engine_run_decl and caller_files:
         errors.append(f"PipelineEngine run API has callers: {caller_files} (LEG-003)")
+    # LEG-004: 旧 Stage2 工具 + ACR 隔离
+    # (a) 旧 stage2.cpp 工具不随根构建产出 (无安装产物)
+    stage2_built = (REPO / "build" / "root-cmake" / "astrocs-stage2").exists()
+    if stage2_built:
+        errors.append("astrocs-stage2 旧工具被生产构建产出 (LEG-004)")
+    # (b) ACR dormant: ASTROCS_ENABLE_ACR=OFF; 生产二进制 link map 无 acr
+    cmake = (REPO / "CMakeLists.txt").read_text(encoding="utf-8", errors="ignore")
+    if "ASTROCS_ENABLE_ACR" not in cmake:
+        errors.append("ACR option 缺失 (LEG-004)")
+    bin_path = REPO / "build" / "root-cmake" / "astrocs"
+    if bin_path.exists():
+        out = subprocess.run(["nm", str(bin_path)], capture_output=True, text=True).stdout.lower()
+        if "acr" in out:
+            errors.append("生产二进制含 ACR 符号 (LEG-004)")
+    # (c) 运行 module list 无 ACR (模块注册表)
+    for f in (REPO / "lib" / "phase2" / "src").glob("*.cpp"):
+        txt = f.read_text(encoding="utf-8", errors="ignore")
+        if "acr" in txt.lower() and "register_phase2_acr" in txt:
+            errors.append(f"ACR kernel 注册存在: {f.name} (LEG-004: 应 dormant 不注册)")                 if f.name != "acr_kernels.cpp" else None
     if errors:
         print("LEGACY_EXIT_VIOLATION:")
         for e in errors: print("  " + e)
         return 1
-    print("LEGACY_EXIT_PASS: 旧路径无生产符号/CMake/文档入口, 源码保留")
+    print("LEGACY_EXIT_PASS: 旧路径无生产符号/CMake/文档入口, 源码保留; ACR dormant 隔离")
     return 0
 
 if __name__ == "__main__":

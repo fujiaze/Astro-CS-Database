@@ -62,8 +62,8 @@ CLI-003,G7,接通test benchmark doctor命令,CLI-001;CPU-007;TEST-001,Linux+Wind
 LEG-001,G7,退出CLI直连Drizzle路径,P1-008;CLI-002,Linux,architecture,no,yes,direct drizzle command/header parsing,改为pipeline preset/test wrapper; 无重复WCS/I/O语义,PASS
 LEG-002,G7,退出旧Orchestrator生产路径,CLI-002;BAS-003,Linux+Windows,architecture,no,yes,orchestrator executable and run_stage graph,无生产引用/链接/文档; 必要兼容只读adapter有期限,PASS
 LEG-003,G7,退出AIO PipelineEngine调度职责,CLI-002;IO-001,Linux+Windows,architecture,no,yes,aio_pipeline_engine 5-stage scheduler,I/O target无runtime/stage dependency; omp hardcode清零,PASS
-LEG-004,G7,退出旧Stage2并隔离ACR,CLI-002;P2-007;BLD-001,Linux+Windows,architecture,no,yes,stage2 tool; ACR registry; build graph,canonical Phase2唯一; production link/symbol/module list无ACR,IN_PROGRESS
-DOC-002,G8,完成L0负责人审查文档,SCI-001;SCI-002;SCI-003;CLI-002,Linux,documentation,no,yes,REVIEW and five owner docs,简洁公式/图/风险/证据链接; 不复制底层定义,NOT_STARTED
+LEG-004,G7,退出旧Stage2并隔离ACR,CLI-002;P2-007;BLD-001,Linux+Windows,architecture,no,yes,stage2 tool; ACR registry; build graph,canonical Phase2唯一; production link/symbol/module list无ACR,PASS
+DOC-002,G8,完成L0负责人审查文档,SCI-001;SCI-002;SCI-003;CLI-002,Linux,documentation,no,yes,REVIEW and five owner docs,简洁公式/图/风险/证据链接; 不复制底层定义,IN_PROGRESS
 DOC-003,G8,完成每模块L2 README和合同链接,P1-008;P2-007;P3-006,Linux,documentation,no,yes,all production modules,职责/端口/单位/并发/内存/错误/测试/符号完整,NOT_STARTED
 DOC-004,G8,实现AST API与追溯矩阵检查,CORE-003;DOC-001;DOC-003,Linux,tooling,no,yes,Clang AST; exports; docs refs; tests,真实签名与API匹配; SCI到TEST无断链; negative fixtures失败,NOT_STARTED
 DOC-005,G8,实现静态Pipeline图与运行trace一致性检查,CORE-004;CORE-008;CLI-002,Linux,tooling,no,yes,IR graph; trace; artifacts; module versions,节点/边/端口/hash一致; 机器图纳入代码文档,NOT_STARTED

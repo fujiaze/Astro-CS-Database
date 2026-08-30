@@ -1,0 +1,61 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "LEG-004",
+  "status": "PASS",
+  "start_commit": "94512274508cdf1eb2200929399a912634872961",
+  "source_commit": "94512274508cdf1eb2200929399a912634872961",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "tools/check_legacy_exit.py",
+    "evidence/refactor/tasks/LEG-004/TASK_RESULT.json",
+    "evidence/refactor/tasks/LEG-004/logs/c01.log",
+    "evidence/refactor/tasks/LEG-004/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "e7aedef1a1988b38f72e775b0193cd5c893f760741177f05044b01ffa3dc1f4b"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "960ea183c5abe3b2ded9666467b848e34dfc424d493e47c28665a033b56d6552"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-STAGE2-EXIT",
+      "description": "旧 stage2.cpp 工具不随根构建产出 (astrocs-stage2 未产出)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-ACR-DORMANT",
+      "description": "ASTROCS_ENABLE_ACR=OFF 默认; 生产 link map 无 ACR 符号(0)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-NO-MODULE",
+      "description": "运行 module list 无 ACR 注册 (acr_kernels 仅 dormant 树)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-KEEP-FUNCS",
+      "description": "stage2_common 生产共享函数保留 (非旧工具删除)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "acr_prod_symbols": 0,
+    "stage2_tool_built": false,
+    "acr_option": "OFF default"
+  },
+  "findings": [
+    "LEG-004: 旧 Stage2 工具退出(不随生产构建产出, 无安装产物); ACR 隔离 dormant(ASTROCS_ENABLE_ACR=OFF, 生产 link map acr=0, 运行 module list 无 ACR); stage2_common 生产共享函数保留(不删除有效底层)"
+  ],
+  "created_utc": "2026-08-30T17:47:49Z"
+}
