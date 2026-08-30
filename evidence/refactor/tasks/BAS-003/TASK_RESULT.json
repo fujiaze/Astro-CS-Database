@@ -1,0 +1,68 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "BAS-003",
+  "status": "PASS",
+  "start_commit": "debeb0a326c9a1650c2de39bfec3a0f332165f10",
+  "source_commit": "debeb0a326c9a1650c2de39bfec3a0f332165f10",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "evidence",
+  "science_changed": false,
+  "files_changed": [
+    "evidence/refactor/tasks/BAS-003/SCHEDULER_INVENTORY.csv",
+    "evidence/refactor/tasks/BAS-003/SERIAL_HEAVY_FINDINGS.csv",
+    "evidence/refactor/tasks/BAS-003/GLOBAL_LOCKS.csv",
+    "evidence/refactor/tasks/BAS-003/TASK_RESULT.json",
+    "evidence/refactor/tasks/BAS-003/logs/c01.log",
+    "evidence/refactor/tasks/BAS-003/logs/c02.log",
+    "evidence/refactor/tasks/BAS-003/logs/c03.log",
+    "evidence/refactor/tasks/BAS-003/logs/c04.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "61018e73e07676cc02b575d10080273485938dbcce9fd19c4a5dd5bf05b7feda"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "a23bbb8ebee4ebfd7247f0cccc984049496cfe6892426c51815e24385233e7a5"
+    },
+    {
+      "command_id": "c03",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "bbae797abb376acebaf284e62bd9b96dd62546c721b79078b81f97309ab5b723"
+    },
+    {
+      "command_id": "c04",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "5fb7c9a9416b1ae616a1397b4a57438c3ba36d119a43aea4f59fedaa1a5f0dcc"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-SCAN",
+      "description": "rg 线程/锁扫描命中分类完成",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "scheduler_owners": 15,
+    "serial_findings": 5,
+    "global_locks": 4,
+    "p2_workers1_lines": 1,
+    "p3_serial_loops": 1
+  },
+  "findings": [
+    "F1: 生产可达调度器共 6 处: CLI run 顺序 + AIO engine omp16 + sampler omp/1 + upm omp + calibration omp + backend per-call threads —— 违反'唯一 Runtime 调度'",
+    "F2: p2_session sampler 固定 cpu_workers=1 (生产) —— P0-001 直接证据",
+    "F3: p3_session 二维串行主循环 —— P0-002 直接证据",
+    "F4: sampler g_aio_mu 全局锁 —— P1-006 直接证据",
+    "F5: AIO engine omp_set_num_threads(16) 硬编码 —— P1-003 直接证据"
+  ],
+  "created_utc": "2026-08-30T15:25:51Z"
+}

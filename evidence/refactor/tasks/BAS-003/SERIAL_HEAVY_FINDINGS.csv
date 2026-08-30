@@ -1,0 +1,6 @@
+finding_id,file:line,description,p0_ref,risk_id,task_owner,impact
+S-001,lib/phase2_session/p2_session.cpp:154,sampler cpu_workers=1 固定串行,P0-001,RISK-001,P2-002,"重计算采样单线程, 与资源硬约束冲突"
+S-002,lib/phase3_session/p3_session.cpp:183-196,二维串行主循环(球面→平面重采样),P0-002,RISK-002,P3-003,P3 生产重采样低利用率
+S-003,lib/phase2/src/sampler.cpp:164-169,g_aio_mu 全局读锁串行化所有 HiPS I/O,P1-006,RISK-009,IO-004,worker 在 I/O 处串行等待
+S-004,lib/astro_image_io/src/aio_pipeline_engine.cpp:433,omp_set_num_threads(16) 硬编码默认线程,P1-003,RISK-010,LEG-003,I/O 层自建调度 + 过订阅
+S-005,lib/backend_host/baseline_kernels_impl.inc:38,per-call std::thread 每次调用新建,P1-008,-,CPU-002,缺乏统一 worker pool

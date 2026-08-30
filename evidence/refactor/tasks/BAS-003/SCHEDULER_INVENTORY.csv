@@ -1,0 +1,16 @@
+owner,scope,thread_creation_site,budget_source,nesting,production_reachable,task_owner
+cli/main.cpp,run --phases,std::thread mon_thread (L618),"monitor sampling thread, 1 thread, not compute",none,YES(生产),P1-001/CLI-001
+cli/main.cpp,run --phases,顺序调用 p1/p2/p3_session (L625-745),无统一调度; session 各自内部顺序 stage,n/a,YES(生产),P0-006/CLI-002
+cli/main.cpp,cmd_drizzle,直接 hp_drizzle_run_hips (L1335),"无调度, 直呼内核",n/a,YES(生产),P1-005/LEG-001
+lib/astro_image_io/src/aio_pipeline_engine.cpp,run_batch,omp_set_num_threads(n_threads=16 default) (L433) + #pragma omp parallel for,I/O 层内置 5-stage 调度器; OpenMP team 由引擎自建,omp nested none,"YES(生产, 符号在 astrocs)",P1-003/LEG-003
+lib/orchestrator/cpp/src/orchestrator.cpp,全局 stage 调度,硬件并发(std::thread::hardware_concurrency L469/L604) + watchdog thread,旧全局 scheduler + DllLoader,未知,"NO(文档称退役, exe 在仓库)",P1-002/LEG-002
+lib/phase2_session/p2_session.cpp,run,sc.cpu_workers=1 (L154); uc.cpu_workers=budget.max_workers (L194),sampler 固定1 worker; block 用 budget,none,YES(生产),P0-001/P2-002
+lib/phase2/src/sampler.cpp,sample,g_aio_mu 全局锁包 HiPS 打开/读取 (L164/169/693-694),所有 worker 在 I/O 处串行等待,cfitsio 读锁,YES(生产),P1-006/IO-004
+lib/phase2/src/sampler.cpp,sample,#pragma omp parallel num_threads(workers) (L888),workers=0 auto→hardware_concurrency; 默认构建 P2_ENABLE_OPENMP=OFF 串行,omp team 自建,"YES(生产, 条件编译)",P0-001/P2-002
+lib/phase2/src/upm.cpp,UPM build,#pragma omp parallel num_threads(cworkers) (L524/615/637/692/1359),OpenMP 自建 team; cworkers=0→hardware_concurrency,omp nested none,"YES(生产, 条件编译)",P2-003
+lib/phase2/src/acr_kernels.cpp,ACR kernels,#pragma omp parallel num_threads(cpu_workers) (L218),ACR kernel 内自建 OpenMP team,omp nested none,"YES(生产, 条件编译)",LEG-004
+lib/calibration/src/calibrator.cpp,calibrate,#pragma omp parallel for (L87/117/126/160/169),calibration OpenMP 自建 team,omp nested none,YES(生产),P1-002
+lib/calibration/src/ac_api.cpp,ac_calibrate_frame,omp_set_num_threads(n) (L125),显式设置 OpenMP 线程数,omp nested none,YES(生产),P1-002
+lib/backend_host/baseline_kernels_impl.inc,backend kernels,std::vector<std::thread> ths (L38),"per-call std::thread worker, 数量由 host budget 决定",none,YES(生产),CPU-002
+lib/phase3_session/p3_session.cpp,run,二维 for(y){for(x)} 串行 (L183-196),P3 球面→平面重采样显式单线程,n/a,"YES(生产, prototype)",P0-002/P3-003
+lib/phase2/tools/stage2.cpp,old stage2,#pragma omp parallel num_threads(workers) (L1288) + g_log_mutex (L62-70),"旧完整 Phase2 工具, 含 ACR 接线",omp team 自建,"NO(文档称退役, target 可构建)",P1-004/LEG-004
