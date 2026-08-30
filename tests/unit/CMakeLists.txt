@@ -103,3 +103,10 @@ target_include_directories(cpu_profile_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/backend_host)
 target_link_libraries(cpu_profile_test PRIVATE astrocs_cpu astrocs_contracts)
 add_test(NAME cpu_profile COMMAND cpu_profile_test)
+
+add_executable(cpu_monitor_test cpu_monitor_test.cpp)
+target_include_directories(cpu_monitor_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli)
+target_link_libraries(cpu_monitor_test PRIVATE astrocs_contracts Threads::Threads)
+add_test(NAME cpu_monitor COMMAND cpu_monitor_test)
