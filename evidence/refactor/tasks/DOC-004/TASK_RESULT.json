@@ -1,0 +1,55 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "DOC-004",
+  "status": "PASS",
+  "start_commit": "b63958b217dd1dfe30dfd6073ead1ac134fd02ad",
+  "source_commit": "b63958b217dd1dfe30dfd6073ead1ac134fd02ad",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "documentation",
+  "science_changed": false,
+  "files_changed": [
+    "tools/check_ast_api.py",
+    "evidence/refactor/tasks/DOC-004/TASK_RESULT.json",
+    "evidence/refactor/tasks/DOC-004/logs/c01.log",
+    "evidence/refactor/tasks/DOC-004/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "f4feec5a0e90addbba752bd249b0de75747c5a6e56a535e3bb417c6acfceab08"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "b19024587b0000f13359aa7034f6e629c535e893b1a03e6ab985e70410766c89"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-AST-SYMBOLS",
+      "description": "clang AST dump 3 核心头 public 符号与声明一致 (参数/cv/noexcept 基线)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-TRACE-MATRIX",
+      "description": "TRACE-001 六层追溯矩阵检查器可运行 (SCI→ALG→ARCH→API→CODE→TEST)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-VISIBILITY",
+      "description": "visibility/ownership 经 AST 记录与头注释对比",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "headers_checked": 3,
+    "tool": "clang AST dump json"
+  },
+  "findings": [
+    "DOC-004: Clang AST 输出 public symbols 与 API 头声明一致(3 核心头: contracts/artifact/io_adapter; 参数数/cv/noexcept/visibility 基线); 追溯矩阵检查器(check_traceability TRACE-001 六层)可运行"
+  ],
+  "created_utc": "2026-08-30T17:53:15Z"
+}

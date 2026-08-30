@@ -65,8 +65,8 @@ LEG-003,G7,退出AIO PipelineEngine调度职责,CLI-002;IO-001,Linux+Windows,arc
 LEG-004,G7,退出旧Stage2并隔离ACR,CLI-002;P2-007;BLD-001,Linux+Windows,architecture,no,yes,stage2 tool; ACR registry; build graph,canonical Phase2唯一; production link/symbol/module list无ACR,PASS
 DOC-002,G8,完成L0负责人审查文档,SCI-001;SCI-002;SCI-003;CLI-002,Linux,documentation,no,yes,REVIEW and five owner docs,简洁公式/图/风险/证据链接; 不复制底层定义,PASS
 DOC-003,G8,完成每模块L2 README和合同链接,P1-008;P2-007;P3-006,Linux,documentation,no,yes,all production modules,职责/端口/单位/并发/内存/错误/测试/符号完整,PASS
-DOC-004,G8,实现AST API与追溯矩阵检查,CORE-003;DOC-001;DOC-003,Linux,tooling,no,yes,Clang AST; exports; docs refs; tests,真实签名与API匹配; SCI到TEST无断链; negative fixtures失败,IN_PROGRESS
-DOC-005,G8,实现静态Pipeline图与运行trace一致性检查,CORE-004;CORE-008;CLI-002,Linux,tooling,no,yes,IR graph; trace; artifacts; module versions,节点/边/端口/hash一致; 机器图纳入代码文档,NOT_STARTED
+DOC-004,G8,实现AST API与追溯矩阵检查,CORE-003;DOC-001;DOC-003,Linux,tooling,no,yes,Clang AST; exports; docs refs; tests,真实签名与API匹配; SCI到TEST无断链; negative fixtures失败,PASS
+DOC-005,G8,实现静态Pipeline图与运行trace一致性检查,CORE-004;CORE-008;CLI-002,Linux,tooling,no,yes,IR graph; trace; artifacts; module versions,节点/边/端口/hash一致; 机器图纳入代码文档,IN_PROGRESS
 QA-001,G8,清零生产编译警告抑制和高风险警告,BLD-001;LEG-004,Linux+Windows,quality,no,yes,CMake warning flags; -w /w; compiler warnings,项目源码无全局禁警告; 警告基线为空或逐项批准,NOT_STARTED
 QA-002,G8,建立串行与硬编码静态禁令,DOC-004;CORE-006,Linux,tooling,no,yes,workers=1; thread literals; direct omp; serial hot loops; ISA flags,production heavy path零违规; allowlist仅短I/O且有理由,NOT_STARTED
 QA-003,G8,完成Sanitizer与线程安全验证,IO-002;IO-004;P1-009;P2-008;P3-006,Linux,quality,yes,yes,ASan; UBSan; LSan; TSan targeted,无泄漏/UAF/race/UB; suppressions逐项来源和期限,NOT_STARTED
