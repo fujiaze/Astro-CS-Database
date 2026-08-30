@@ -1,0 +1,150 @@
+{
+  "schema": "astrocs.build-target-graph/v1",
+  "generated_utc": "2026-08-30T15:24:13Z",
+  "source_commit": "4b1b948e3b3710cbd7e84030fbb1a363128f0da2",
+  "build_command": "cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=-w ../../cli && make -j2 astrocs",
+  "build_rc": 0,
+  "targets": [
+    {
+      "target": "astrocs",
+      "kind": "EXEC",
+      "cmake": "cli/CMakeLists.txt",
+      "sources": [
+        "cli/main.cpp",
+        "lib/backend_host/cpu_features.cpp",
+        "lib/backend_host/hardware_inspect.cpp",
+        "lib/backend_host/backend_loader.cpp",
+        "lib/backend_host/bench_harness.cpp",
+        "lib/backend_host/profile_gen.cpp",
+        "lib/backend_host/baseline_backend.cpp",
+        "lib/backend_host/host_services.cpp",
+        "lib/phase1_session/p1_session.cpp",
+        "lib/phase2_session/p2_session.cpp",
+        "lib/phase3_session/p3_session.cpp"
+      ],
+      "links": [
+        "gomp",
+        "z",
+        "zstd",
+        "lz4",
+        "m"
+      ],
+      "production": true,
+      "notes": [
+        "file(GLOB) P2_SRCS/P3_SRCS/HISS_SRCS",
+        "blanket -w warning suppression",
+        "links ACR kernel_registry.cpp + device_executor.cpp",
+        "OpenMP in calibration sources"
+      ]
+    },
+    {
+      "target": "phase2",
+      "kind": "STATIC",
+      "cmake": "lib/phase2/CMakeLists.txt",
+      "sources": [
+        "lib/phase2/src/upm.cpp",
+        "stage2_common.cpp",
+        "rejection.cpp",
+        "coverage.cpp",
+        "sampler.cpp",
+        "block.cpp",
+        "integrate.cpp",
+        "acr_kernels.cpp",
+        "async_io.cpp",
+        "../acr/api/kernel_registry.cpp",
+        "../acr/scheduler/device_executor.cpp"
+      ],
+      "links": [],
+      "production": false,
+      "notes": [
+        "P2_ENABLE_OPENMP default OFF (hotfix serial sampler)",
+        "ACR registry linked"
+      ]
+    },
+    {
+      "target": "astrocs-stage2",
+      "kind": "EXEC",
+      "cmake": "lib/phase2/CMakeLists.txt",
+      "sources": [
+        "lib/phase2/tools/stage2.cpp"
+      ],
+      "links": [
+        "phase2",
+        "astro_image_io.dll"
+      ],
+      "production": false,
+      "notes": [
+        "old full Phase2 CLI (1762 lines) with ACR registry; docs say retired but still buildable"
+      ]
+    },
+    {
+      "target": "calibrated_pair_diag",
+      "kind": "EXEC",
+      "cmake": "lib/phase2/CMakeLists.txt",
+      "sources": [
+        "lib/phase2/tools/calibrated_pair_diag.cpp"
+      ],
+      "links": [
+        "phase2",
+        "astro_image_io.dll"
+      ],
+      "production": false,
+      "notes": []
+    },
+    {
+      "target": "rejection_cli",
+      "kind": "EXEC",
+      "cmake": "lib/phase2/CMakeLists.txt",
+      "sources": [
+        "lib/phase2/tools/rejection_cli.cpp"
+      ],
+      "links": [
+        "phase2"
+      ],
+      "production": false,
+      "notes": []
+    },
+    {
+      "target": "orchestrator",
+      "kind": "EXEC",
+      "cmake": "lib/orchestrator/cpp/Makefile (legacy, no CMake)",
+      "sources": [
+        "lib/orchestrator/cpp/src/orchestrator.cpp (5405 lines)"
+      ],
+      "links": [
+        "legacy DLL loader"
+      ],
+      "production": false,
+      "notes": [
+        "old global scheduler; no CMake target; orchestrator.exe committed to repo"
+      ]
+    },
+    {
+      "target": "aio_pipeline_engine",
+      "kind": "OBJECT-in-astrocs",
+      "cmake": "cli/CMakeLists.txt HISS_SRCS",
+      "sources": [
+        "lib/astro_image_io/src/aio_pipeline_engine.cpp (524 lines)"
+      ],
+      "links": [],
+      "production": true,
+      "notes": [
+        "5-stage scheduler compiled INTO production astrocs (nm: aio_pipeline_engine_* symbols)",
+        "omp_set_num_threads(16 default) + #pragma omp parallel for"
+      ]
+    },
+    {
+      "target": "acr tree",
+      "kind": "many STATIC/EXEC",
+      "cmake": "lib/acr/CMakeLists.txt",
+      "sources": [
+        "lib/acr/**"
+      ],
+      "links": [],
+      "production": false,
+      "notes": [
+        "dormant per constraints but registry symbols reachable from production astrocs"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "BAS-002",
+  "status": "PASS",
+  "start_commit": "4b1b948e3b3710cbd7e84030fbb1a363128f0da2",
+  "source_commit": "4b1b948e3b3710cbd7e84030fbb1a363128f0da2",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "evidence",
+  "science_changed": false,
+  "files_changed": [
+    "evidence/refactor/tasks/BAS-002/BUILD_TARGET_GRAPH.json",
+    "evidence/refactor/tasks/BAS-002/BUILD_TARGET_GRAPH.dot",
+    "evidence/refactor/tasks/BAS-002/PRODUCTION_ENTRY_INVENTORY.csv",
+    "evidence/refactor/tasks/BAS-002/TASK_RESULT.json",
+    "evidence/refactor/tasks/BAS-002/logs/c01.log",
+    "evidence/refactor/tasks/BAS-002/logs/c02.log",
+    "evidence/refactor/tasks/BAS-002/logs/c03.log",
+    "evidence/refactor/tasks/BAS-002/logs/c04.log",
+    "evidence/refactor/tasks/BAS-002/logs/c05.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "895bbef1a217b72c301f35ce898ea43efeed5e4e29dbd898620cca4f907be9b2"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 3000,
+      "exit_code": 0,
+      "log_sha256": "51ad90895718f2783ee2cf8f5d3ad75ac71e33b9086bad177414892aac8158fc"
+    },
+    {
+      "command_id": "c03",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "5fcacce953124f13d3fa49b353b56cc846ec46e0924a596b0deafeb4e3861a23"
+    },
+    {
+      "command_id": "c04",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "24805deef76959fb3616b1bfaeacf1e002bf0b2ba515ca17ef0e9e61d555caa5"
+    },
+    {
+      "command_id": "c05",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "a2e93a7d520f31723c087e0422fbd90da32aeeb92c16195005cf7495bc9b00d5"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-CLEAN-BUILD",
+      "description": "clean GCC Release configure+build astrocs",
+      "result": "PASS"
+    },
+    {
+      "id": "T-SYMBOL-ACR",
+      "description": "nm scan: ACR kernel_registry/device_executor symbols present in production astrocs",
+      "result": "FINDING"
+    },
+    {
+      "id": "T-SYMBOL-ENGINE",
+      "description": "nm scan: aio_pipeline_engine_* symbols present in production astrocs",
+      "result": "FINDING"
+    },
+    {
+      "id": "T-ENTRY-MAIN",
+      "description": "single main() entry confirmed",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "astrocs_size_bytes": 4173072,
+    "build_rc": 0,
+    "targets": 8,
+    "entries": 9
+  },
+  "findings": [
+    "F1: cli/CMakeLists.txt 使用 file(GLOB) 拉取 P2/P3/HISS 源 + 目录级 -w 告警抑制 + 链接 ACR kernel_registry/device_executor => P1-007/BLD-001 对象",
+    "F2: aio_pipeline_engine(5-stage调度)符号在生产 astrocs 内, omp_set_num_threads(16) => P1-003/LEG-003 对象",
+    "F3: CLI drizzle 命令手工解析 FITS 头并直呼 hp_drizzle_run_hips => P1-005/LEG-001 对象",
+    "F4: orchestrator/astrocs-stage2 无 CMake target 但源码与 exe 存在, 文档宣称退役 => LEG-002/LEG-004 对象",
+    "F5: doctor 未调用 fits_is_reentrant() => IO-003 对象",
+    "F6: CLI run --phases 顺序调用 session 不传递 Artifact ID => P0-006/CLI-002 对象"
+  ],
+  "created_utc": "2026-08-30T15:24:44Z"
+}
