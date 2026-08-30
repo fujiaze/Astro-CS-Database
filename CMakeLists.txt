@@ -178,6 +178,13 @@ target_include_directories(astrocs_cpu PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/crypto)
 target_link_libraries(astrocs_cpu PUBLIC astrocs_contracts astrocs_common)
 
+# phase1 stars (P1-003 StarDetector)
+add_library(astrocs_phase1_stars STATIC lib/phase1/stars/star_detector.cpp)
+target_include_directories(astrocs_phase1_stars PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/phase1/stars
+  ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(astrocs_phase1_stars PUBLIC astrocs_contracts)
+
 # phases sessions (facade, 后续迁移为 preset)
 add_library(astrocs_phase1_session STATIC lib/phase1_session/p1_session.cpp)
 target_include_directories(astrocs_phase1_session PUBLIC

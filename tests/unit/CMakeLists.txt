@@ -117,3 +117,9 @@ target_include_directories(p1_calibration_test PRIVATE
 target_link_libraries(p1_calibration_test PRIVATE astrocs_calibration OpenMP::OpenMP_CXX)
 find_package(OpenMP QUIET)
 add_test(NAME p1_calibration COMMAND p1_calibration_test)
+
+add_executable(p1_stars_test p1_stars_test.cpp)
+target_include_directories(p1_stars_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase1/stars)
+target_link_libraries(p1_stars_test PRIVATE astrocs_phase1_stars)
+add_test(NAME p1_stars COMMAND p1_stars_test)
