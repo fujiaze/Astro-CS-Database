@@ -1,0 +1,58 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "P1-001",
+  "status": "PASS",
+  "start_commit": "f65fcc98fbe71e986d4f8f18f6d6457efced7ae6",
+  "source_commit": "f65fcc98fbe71e986d4f8f18f6d6457efced7ae6",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "docs/refactor/P1_SYMBOL_MAP.md",
+    "tools/check_p1_symbol_map.py",
+    "evidence/refactor/tasks/P1-001/TASK_RESULT.json",
+    "evidence/refactor/tasks/P1-001/logs/c01.log",
+    "evidence/refactor/tasks/P1-001/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "e4725fe6b0a82e232ba3578b01d5878d6cf56159e799fece831c8f1181e35feb"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "76282fa984a7c0bcd85a2b0e03643d27d03cc305eb3dd73008acf55c4bcab5a0"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-MAP",
+      "description": "5 个 p1_session API 全映射到模块/端口/合同",
+      "result": "PASS"
+    },
+    {
+      "id": "T-SCI-REG",
+      "description": "7 个 SCI-* 合同全部登记 INDEX.yaml",
+      "result": "PASS"
+    },
+    {
+      "id": "T-BLOCKER",
+      "description": "未映射旧能力=0 (无 blocker)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "old_apis": 5,
+    "modules": 13,
+    "sci_registered": 7,
+    "blockers": 0
+  },
+  "findings": [
+    "P1-001: 建 old-symbol→module-ID→I/O→SCI/ALG/DATA/TEST 映射表(5 API/13 模块/7 SCI); 校验工具确认无未映射旧能力(blockers=0); adapter 只转换数据与错误不复制算法"
+  ],
+  "created_utc": "2026-08-30T16:48:11Z"
+}
