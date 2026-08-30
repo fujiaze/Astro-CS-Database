@@ -72,6 +72,8 @@ add_library(astrocs_cfitsio STATIC ${ASTROCS_CFITSIO_SOURCES})
 target_include_directories(astrocs_cfitsio PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/third_party/cfitsio)
 target_compile_options(astrocs_cfitsio PRIVATE -w)
+# IO-003: CFITSIO 显式 reentrant 构建 (fits_is_reentrant() 必须返回 1)
+target_compile_definitions(astrocs_cfitsio PRIVATE _REENTRANT)
 
 # io/astro_image_io: 图像/HiPS I/O adapter (aio_pipeline* 保留待 LEG-003 退出)
 add_library(astrocs_aio STATIC

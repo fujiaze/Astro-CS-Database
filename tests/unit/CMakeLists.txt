@@ -50,3 +50,9 @@ target_include_directories(io_ownership_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/include)
 target_link_libraries(io_ownership_test PRIVATE astrocs_aio astrocs_core)
 add_test(NAME io_ownership COMMAND io_ownership_test)
+
+add_executable(io_reentrant_test io_reentrant_test.cpp)
+target_include_directories(io_reentrant_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/third_party/cfitsio)
+target_link_libraries(io_reentrant_test PRIVATE astrocs_cfitsio z m)
+add_test(NAME io_reentrant COMMAND io_reentrant_test)
