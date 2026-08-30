@@ -11,7 +11,9 @@
 // - 返回 AC_OK(0) 成功，负数表示错误
 
 #include "../include/astro_calibration.h"
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 #include <cstring>
 #include <vector>
 
@@ -122,7 +124,11 @@ AC_API int ac_correct_frame(
 }
 
 AC_API void ac_set_num_threads(int n) {
+#ifdef _OPENMP
     if (n > 0) omp_set_num_threads(n);
+#else
+    (void)n;  // 串行构建: 线程数由 backend 管理 (AGENTS.md 禁 workers=1 生产)
+#endif
 }
 
 AC_API const char* ac_version() {

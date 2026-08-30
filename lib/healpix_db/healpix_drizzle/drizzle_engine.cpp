@@ -19,7 +19,9 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -1633,7 +1635,11 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     auto tStart = std::chrono::high_resolution_clock::now();
 
     // 5. OpenMP 并行 Drizzle (: 线程数来自配置, static 调度, 不预分配 4M 桶)
+#ifdef _OPENMP
     int num_threads = (config.threads > 0) ? config.threads : omp_get_max_threads();
+#else
+    int num_threads = (config.threads > 0) ? config.threads : 1;  // 串行退化 (clang 无 libomp)
+#endif
     // 不再调用全局 omp_set_num_threads（会改变进程后续
     // 阶段的全局 OpenMP 行为）；线程数经 parallel 子句局部限定。
     std::vector<std::unordered_map<uint64_t, TileAccumulatorT<Scalar>>> threadTiles(num_threads);
@@ -1664,7 +1670,11 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     #pragma omp parallel for schedule(static) num_threads(num_threads) \
         reduction(+:nSourcePixels,prof_geom_s,prof_wcs_s)
     for (int y = 0; y < img.height; y++) {
+#ifdef _OPENMP
         int tid = omp_get_thread_num();
+#else
+        int tid = 0;  // 串行退化
+#endif
         auto& tileMap = threadTiles[tid];
 
         // 每线程 target-ipix geometry cache 随 run generation 切换
