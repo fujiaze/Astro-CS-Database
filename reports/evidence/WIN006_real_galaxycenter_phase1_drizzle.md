@@ -34,6 +34,14 @@ phase2 实跑 `sample ok: obs=0 overlap_controls=0`。经查 `p2_sample_controls
 - 明确 phase2 `upm`/投影/STF 配置后重试。
 > 更可能正解: **drizzle 每帧单独 HiPS + phase2 用多个 hips_paths**, 使 phase2 看到 6 个独立观测并形成 overlap_controls = 32R/接缝的前提。
 
+### 逐帧实验(已试, 推进一档)
+- 逐帧 drizzle(每帧独立 HiPS, nside=256, 6 个 `hips_paths`) → phase2 **过了 config 校验**(n_inputs=6, 不再 `obs=0`)。
+- 但下一档 blocker: **`coverage_build rc=1`**(phase2 首阶段 coverage)。6 个逐帧 nside=256 HiPS 的 MOC union 失败(单帧 4500×3600 只覆盖一小块, 逐帧 MOC 过小/分布散, coverage_build 无法 union)。
+- 说明: 逐帧结构解决了「观测模型=每帧一 HiPS」的 obs=0, 但**帧间 MOC union/覆盖连续性**是新问题(需覆盖重叠/更大 nside, 或 coverage_build 对稀疏帧的处理)。
+
+### 结论(阶段)
+- phase1(6帧,exit0) + drizzle(→完整HiPS,exit0) **PASS**; phase2 在逐帧结构下推进到 coverage_build, 但 `coverage_build rc=1` 为新 blocker。记录不宣称 PASS/release。
+
 ## 5. 结论
 - production 链在真实银心数据上 phase1+drizzle 全通(核心场景达成)。
 - phase2 UPM(obs=0)为真实 blocker, 留在 WIN-006/WIN-008 范畴; 记录不宣称 PASS, 不宣称 release。
