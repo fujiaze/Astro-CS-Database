@@ -1,0 +1,60 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "DOC-003",
+  "status": "PASS",
+  "start_commit": "8e7b2c95df76d265650191652a3bdb989ee2ef8b",
+  "source_commit": "8e7b2c95df76d265650191652a3bdb989ee2ef8b",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "documentation",
+  "science_changed": false,
+  "files_changed": [
+    "lib/phase1/stars/README.md",
+    "lib/phase1/wcs/README.md",
+    "lib/phase1/photometry/README.md",
+    "lib/phase1/noise/README.md",
+    "lib/phase3_session/README.md",
+    "tools/check_module_readmes.py",
+    "evidence/refactor/tasks/DOC-003/TASK_RESULT.json",
+    "evidence/refactor/tasks/DOC-003/logs/c01.log",
+    "evidence/refactor/tasks/DOC-003/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "ca83ac2b751b3ce64b5407e2edc6219bb9c0a852928628a6945a83dab7e5c3d9"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "7397e5493acbba75b56a5cdb98d6305e529edc867f3888296d59a9d208182da5"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-README-EXIST",
+      "description": "5 模块 README 存在 (stars/wcs/photometry/noise/phase3_session)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-LINKS",
+      "description": "每 README 链接合同 ID + header + source + test (文件存在)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-NO-FORMULA",
+      "description": "不抄完整公式 (摘要式, 权威指向 SCI/ALG 合同)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "module_readmes": 5,
+    "linked_refs": 13
+  },
+  "findings": [
+    "DOC-003: 每模块 L2 README 完成(5 模块: phase1 stars/wcs/photometry/noise + phase3_session); 模板链接合同/真实 header/source/test, 不抄完整公式; owner 只看 L0, 底层 Agent 维护 L2"
+  ],
+  "created_utc": "2026-08-30T17:51:35Z"
+}
