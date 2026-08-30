@@ -1,7 +1,7 @@
 {
  "schema_version": 1,
  "version": "0.9.0-alpha.1",
- "commit": "ec7a8cdc15661da4d225d75a435b40e4daca71fd",
+ "commit": "8e7c7a3a992b2862ac359ceaf2011d6295c6538a",
  "verdict": "RELEASE_NOT_READY_BLOCKED",
  "blockers": [
   "WIN-006: phase2/3 真实数据链缺生产 HIPS 构建命令(详见 reports/evidence/WIN006_verification.md)",
@@ -22,5 +22,5 @@
   "PASS": 5
  },
  "resource_counts": {},
- "note": "当前现状审核包: 87 PASS, 2 BLOCKED, 8 NOT_STARTED, 1 REVIEW_PENDING; 非发布就绪, 仅供外部审阅当前进展与阻塞项。"
+ "note": "当前现状审核包: `88` PASS, `2` BLOCKED, `7` NOT_STARTED, `1` REVIEW_PENDING; 非发布就绪, 仅供外部审阅当前进展与阻塞项。"
 }
