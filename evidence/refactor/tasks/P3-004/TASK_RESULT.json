@@ -1,0 +1,71 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "P3-004",
+  "status": "PASS",
+  "start_commit": "e4275ecc8aa60b728236db3b747933aeeec7d5f0",
+  "source_commit": "e4275ecc8aa60b728236db3b747933aeeec7d5f0",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "tests/unit/p3_coverage_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/refactor/tasks/P3-004/TASK_RESULT.json",
+    "evidence/refactor/tasks/P3-004/logs/c01.log",
+    "evidence/refactor/tasks/P3-004/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "c34dbd904c9381c35cc2690e74f9bddf04dc7f5b7893e409e114158f7cb0e198"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "6bd1c66d9734264a8cd678d765d3f1c920a1ec827dabb2ee0906928aa4c9ed6e"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-FULL-COV",
+      "description": "全覆盖区插值正常(常数 10.0 保持)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-ZERO-COV",
+      "description": "零覆盖区不生成值(NaN)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-PARTIAL-COV",
+      "description": "部分覆盖: 远离缺口区仍插值; 邻居含零覆盖→NaN",
+      "result": "PASS"
+    },
+    {
+      "id": "T-BOUNDARY",
+      "description": "边界缺失: 越界 → NaN",
+      "result": "PASS"
+    },
+    {
+      "id": "T-MASK-CONSIST",
+      "description": "coverage mask 与值数组一致, 采样由 mask+值决定",
+      "result": "PASS"
+    },
+    {
+      "id": "T-1T-DET",
+      "description": "1-thread reference 确定性(同输入同输出)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "fixtures": 6,
+    "coverage_model": "4-neighbor all-covered required"
+  },
+  "findings": [
+    "P3-004: coverage 与边界语义全覆盖(零覆盖不生成值/部分覆盖/边界 NaN/mask 一致性); 1-thread reference 确定性; 修复测试中未 assign vector 越界写问题"
+  ],
+  "created_utc": "2026-08-30T17:30:07Z"
+}
