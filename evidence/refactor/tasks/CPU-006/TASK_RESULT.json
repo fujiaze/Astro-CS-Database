@@ -1,0 +1,61 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "CPU-006",
+  "status": "PASS",
+  "start_commit": "fef908c4cfea12e91ec40965981ca2825bd0a196",
+  "source_commit": "fef908c4cfea12e91ec40965981ca2825bd0a196",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "tests/unit/cpu_bench_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/refactor/tasks/CPU-006/TASK_RESULT.json",
+    "evidence/refactor/tasks/CPU-006/logs/c01.log",
+    "evidence/refactor/tasks/CPU-006/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "log_sha256": "a84284e49b3ff488f73f53139191d72d7ed0da57e1d8b8c8b3a485c9edfd4015"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "994077a207cbb748b05b46c6879ce739ca3b5a9a1f9d26eb1dd009c9807d3aa1"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-ORACLE-GATE",
+      "description": "ORACLE_FAIL 候选结构性不胜出; 无 OK 候选→空",
+      "result": "PASS"
+    },
+    {
+      "id": "T-WINNER",
+      "description": "select_winner 取 median 最小 OK 候选",
+      "result": "PASS"
+    },
+    {
+      "id": "T-CANDIDATES",
+      "description": "worker 候选 {1,中位,全部} 派生无硬编码; block 候选 L2 派生几何序列",
+      "result": "PASS"
+    },
+    {
+      "id": "T-STATISTICS",
+      "description": "median 对 outlier 稳健(known input 验证)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "checks": 6,
+    "candidate_derivation": "machine-independent"
+  },
+  "findings": [
+    "CPU-006: benchmark 顺序链(能力探测→Oracle→warmup→计时→median/MAD→选择)由 harness 实现; Oracle 门保证速度不能使错误路径胜出; worker/block 候选全派生无硬编码; median 稳健统计验证; select_winner 语义验证"
+  ],
+  "created_utc": "2026-08-30T16:41:59Z"
+}
