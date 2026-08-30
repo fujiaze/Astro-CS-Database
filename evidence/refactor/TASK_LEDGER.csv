@@ -49,8 +49,8 @@ P2-004,G5,迁移BlockPlan与校正应用,P2-003;CORE-006,Linux,architecture,yes,
 P2-005,G5,迁移Rejection与Integration,P2-004;CPU-007,Linux,architecture,yes,yes,sigma/winsor/linear-fit/ESD/RCR selection; integration,选择规则可追溯; cosmic/streak fixtures; weight语义明确,PASS
 P2-006,G5,迁移Phase2 HiPS writer与verify,P2-005;IO-001,Linux,architecture,yes,yes,mosaic/support/weight/UPM/rejection products,所有diagnostic artifact登记; HiPS验证; 原子提交,PASS
 P2-007,G5,组装Canonical Phase2 Pipeline,P2-002;P2-003;P2-004;P2-005;P2-006,Linux,architecture,yes,yes,phase2 preset and session facade,文档链真实执行; static graph=trace; ACR=OFF可完整运行,PASS
-P2-008,G5,完成Phase2科学与资源门,P2-007;CPU-008,Linux,test,yes,yes,synthetic seam/rejection/integration; small overlap,无接缝回退/黑洞/条纹; CPU或带宽门通过; 无单线程重计算,IN_PROGRESS
-P3-001,G6,隔离现有Phase3原型,SCI-003;BLD-001,Linux,architecture,no,yes,phase3_session prototype; production registry,标PROTOTYPE; 不注册生产preset; 移除错误已实现宣称,NOT_STARTED
+P2-008,G5,完成Phase2科学与资源门,P2-007;CPU-008,Linux,test,yes,yes,synthetic seam/rejection/integration; small overlap,无接缝回退/黑洞/条纹; CPU或带宽门通过; 无单线程重计算,PASS
+P3-001,G6,隔离现有Phase3原型,SCI-003;BLD-001,Linux,architecture,no,yes,phase3_session prototype; production registry,标PROTOTYPE; 不注册生产preset; 移除错误已实现宣称,IN_PROGRESS
 P3-002,G6,实现Phase3 WCS与输出计划,P3-001;DATA-001;CORE-004,Linux,architecture,no,yes,source properties; output WCS; dimensions; units,不硬编码Jy/beam; WCS roundtrip; size/overflow/bounds validation,NOT_STARTED
 P3-003,G6,实现并行tile resample,P3-002;CORE-006;CPU-007,Linux,architecture,yes,yes,sphere-to-plane tile scheduler; kernels,2D串行循环退出生产; deterministic tiles; CPU resource gate,NOT_STARTED
 P3-004,G6,实现coverage与边界语义,P3-003;SCI-003,Linux,architecture,yes,yes,missing pixels; RA wrap; poles; interpolation support,constant sphere/impulse/edge fixtures; no fabricated valid data,NOT_STARTED
