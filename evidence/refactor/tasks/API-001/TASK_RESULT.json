@@ -1,0 +1,63 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "API-001",
+  "status": "PASS",
+  "start_commit": "a858df3f31462f9eaaa29566e468860f0c502280",
+  "source_commit": "a858df3f31462f9eaaa29566e468860f0c502280",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "contract",
+  "science_changed": false,
+  "files_changed": [
+    "docs/contracts/API-001.md",
+    "evidence/refactor/tasks/API-001/TASK_RESULT.json",
+    "evidence/refactor/tasks/API-001/logs/c01.log",
+    "evidence/refactor/tasks/API-001/logs/c02.log",
+    "evidence/refactor/tasks/API-001/logs/c03.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "cdaac7952e394748c5af184f070d3fe5d7272fafc79b996a8b1e960cd6cb9d6a"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "bbae797abb376acebaf284e62bd9b96dd62546c721b79078b81f97309ab5b723"
+    },
+    {
+      "command_id": "c03",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "1eea2d8b803424b41d227bb764567a1ad53119c5890769a8ac4476dbbf3cdb28"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-API",
+      "description": "API-001 冻结分层/错误模型/C ABI 规则/生命周期/机器输出",
+      "result": "PASS"
+    },
+    {
+      "id": "T-EXIT",
+      "description": "cli/exit_codes.h 11 码唯一源确认",
+      "result": "PASS"
+    },
+    {
+      "id": "T-CONTRACT-GRAPH",
+      "description": "contract graph PASS 不回归",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "exit_codes": 11,
+    "api_csv_lines": 423,
+    "error_domains": 8
+  },
+  "findings": [
+    "API-001 冻结公共 API 分层(C++/C ABI)与错误模型(11 退出码+8 error domains); 现有 API_CONTRACTS.csv 423 行作为 AST 锁定基线; exception 不跨 C ABI"
+  ],
+  "created_utc": "2026-08-30T15:44:16Z"
+}
