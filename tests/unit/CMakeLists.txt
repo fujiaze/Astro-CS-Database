@@ -8,3 +8,8 @@ add_executable(core_artifact_test core_artifact_test.cpp)
 target_include_directories(core_artifact_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 target_link_libraries(core_artifact_test PRIVATE astrocs_core)
 add_test(NAME core_artifact COMMAND core_artifact_test)
+
+add_executable(core_module_test core_module_test.cpp)
+target_include_directories(core_module_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+target_link_libraries(core_module_test PRIVATE astrocs_core)
+add_test(NAME core_module COMMAND core_module_test)

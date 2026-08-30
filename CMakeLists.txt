@@ -41,7 +41,9 @@ target_include_directories(astrocs_contracts INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/include)
 
 # core contracts impl (CORE-002 artifact)
-add_library(astrocs_core STATIC lib/core/src/artifact.cpp)
+add_library(astrocs_core STATIC
+  lib/core/src/artifact.cpp
+  lib/core/src/module.cpp)
 target_include_directories(astrocs_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(astrocs_core PUBLIC astrocs_contracts)
 

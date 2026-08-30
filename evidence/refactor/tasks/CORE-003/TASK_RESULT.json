@@ -1,0 +1,64 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "CORE-003",
+  "status": "PASS",
+  "start_commit": "3e98a22dead98ccce21571479b76f97e4c0a7baf",
+  "source_commit": "3e98a22dead98ccce21571479b76f97e4c0a7baf",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "include/astrocs/core/module.h",
+    "lib/core/src/module.cpp",
+    "tests/unit/core_module_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "CMakeLists.txt",
+    "evidence/refactor/tasks/CORE-003/TASK_RESULT.json",
+    "evidence/refactor/tasks/CORE-003/logs/c01.log",
+    "evidence/refactor/tasks/CORE-003/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "8a7302215eaa13d187b7c35c9252affd5659ee04fe295602f21405c82d447d76"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "5fcacce953124f13d3fa49b353b56cc846ec46e0924a596b0deafeb4e3861a23"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-UNIT",
+      "description": "core_module_test 4 组 PASS (register/duplicate 拒/非法模块拒/find+export)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-DUPLICATE",
+      "description": "重复模块 ID 显式拒绝",
+      "result": "PASS"
+    },
+    {
+      "id": "T-INDEX",
+      "description": "machine index JSON 导出",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "tests": 4,
+    "registry_checks": [
+      "duplicate",
+      "abi",
+      "namespace",
+      "ports"
+    ]
+  },
+  "findings": [
+    "CORE-003 实现 ModuleDescriptor(模块唯一/版本/ABI/端口/config/执行类/SCI-ALG-DATA-API-TEST 引用) + ModuleRegistry(duplicate 拒/ABI 校验/端口合同校验/machine index 导出)"
+  ],
+  "created_utc": "2026-08-30T16:09:35Z"
+}
