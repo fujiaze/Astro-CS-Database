@@ -1,0 +1,61 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "P2-002",
+  "status": "PASS",
+  "start_commit": "f056f9178a760848ebb81619c36f1fe63f496d6c",
+  "source_commit": "f056f9178a760848ebb81619c36f1fe63f496d6c",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "tests/unit/p2_workers_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/refactor/tasks/P2-002/TASK_RESULT.json",
+    "evidence/refactor/tasks/P2-002/logs/c01.log",
+    "evidence/refactor/tasks/P2-002/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "b9739e87aa9d23e0e0785a38321224c4573af1746c915f26b0a98267aeaa7663"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "8cb472a4241a177320f2b45f9ca0ba39f14ed0d4463cbeda582617f1fd9e6cb6"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-HEAVY-NO-1",
+      "description": "heavy gate(available>=2,wall>=5s): selected_workers=1 → SingleThreaded 拒; =2 通过",
+      "result": "PASS"
+    },
+    {
+      "id": "T-CPUWORKERS-DEFAULT",
+      "description": "默认 cpu_workers=0(auto) 非 1; 生产无 cpu_workers=1 硬编码(扫描空)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-CONFIG-RANGE",
+      "description": "cpu_workers 值域 0..1024 校验: -1 拒, 2 接受, 1 解析(参考用)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-DET-THRESHOLD",
+      "description": "gate 阈值公式确定(同输入同值 0.80*min)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "heavy_gate": "SingleThreaded at workers<2",
+    "production_workers1_hardcode": 0
+  },
+  "findings": [
+    "P2-002: 生产 heavy 禁 workers=1 门禁验证(SingleThreaded 拒); 生产无 cpu_workers=1 硬编码(仅测试用 1T 参考); cpu_workers 传递/值域校验; 1T/2T 确定性测试既有(synthetic_gate CON-005 + sampler_parallel_consistency) 依赖 Fatduck 真实 HiPS 验证"
+  ],
+  "created_utc": "2026-08-30T17:13:47Z"
+}
