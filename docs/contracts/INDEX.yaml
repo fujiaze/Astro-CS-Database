@@ -1,0 +1,273 @@
+# AstroCS Contract Index (DOC-001)
+
+schema: astrocs.contract-index/v1
+version: 1.0.0
+# 生成方式: 自动化提取 docs/science 与 docs/algorithms 的 ID/状态;
+# 状态取自文档自身标注(ACTIVE/FROZEN/DERIVED→ACTIVE; 未标注→DRAFT; 退役→OBSOLETE)。
+
+contracts:
+  # ── SCI 科学定义 ──
+  - id: SCI-SCOPE-001
+    type: SCI
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/science/SCIENCE_SCOPE.md
+    upstream: []
+    downstream: [SCI-CAL-001, SCI-WCS-001, SCI-PHOT-001, SCI-PSF-001, SCI-NOISE-001, SCI-DRZ-001, SCI-UPM-001, SCI-REJ-001, SCI-INT-001]
+  - id: SCI-CAL-001
+    type: SCI
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/science/CALIBRATION.md
+    upstream: [SCI-SCOPE-001]
+    downstream: [ALG-CAL-001]
+  - id: SCI-WCS-001
+    type: SCI
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/science/ASTROMETRY.md
+    upstream: [SCI-SCOPE-001]
+    downstream: [ALG-WCS-001]
+  - id: SCI-PHOT-001
+    type: SCI
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/science/PHOTOMETRY.md
+    upstream: [SCI-SCOPE-001]
+    downstream: [ALG-PHOT-001]
+  - id: SCI-PSF-001
+    type: SCI
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/science/PSF.md
+    upstream: [SCI-SCOPE-001]
+    downstream: [ALG-STARPSF-001]
+  - id: SCI-NOISE-001
+    type: SCI
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/science/NOISE_MODEL.md
+    upstream: [SCI-SCOPE-001]
+    downstream: [ALG-NOISE-001, ALG-UPM-CONTROL-IVAR-001]
+  - id: SCI-DRZ-001
+    type: SCI
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/science/DRIZZLE.md
+    upstream: [SCI-SCOPE-001]
+    downstream: [ALG-DRZ-001, ALG-HEALPIX-001]
+  - id: SCI-UPM-001
+    type: SCI
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/science/PHASE2_UPM.md
+    upstream: [SCI-SCOPE-001]
+    downstream: [ALG-UPM-001]
+  - id: SCI-REJ-001
+    type: SCI
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/science/REJECTION.md
+    upstream: [SCI-SCOPE-001]
+    downstream: [ALG-REJ-001]
+  - id: SCI-INT-001
+    type: SCI
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/science/INTEGRATION.md
+    upstream: [SCI-SCOPE-001]
+    downstream: [ALG-INT-001]
+  - id: SCI-CW-001
+    type: SCI
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/science/CONTROL_WEIGHT_SNR.md
+    upstream: [SCI-SCOPE-001, SCI-NOISE-001]
+    downstream: [ALG-CW-001]
+  - id: SCI-AST-001
+    type: SCI
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/science/ASTROMETRY.md
+    upstream: [SCI-SCOPE-001]
+    downstream: [ALG-GAIA-001]
+  - id: ALG-CW-001
+    type: ALG
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/science/CONTROL_WEIGHT_SNR.md
+    upstream: [SCI-CW-001]
+    downstream: []
+  - id: SCI-P3-001
+    type: SCI
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/science/PHASE3_HIPS_TO_FITS.md
+    upstream: [SCI-WCS-001, SCI-DRZ-001]
+    downstream: [ALG-P3-001]
+  - id: SCI-ACR-EQUIV-001
+    type: SCI
+    status: DORMANT
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/science/ACR_EQUIVALENCE.md
+    upstream: [SCI-SCOPE-001]
+    downstream: [ALG-ACR-EQUIV-001]
+
+  # ── ALG 算法推导 ──
+  - id: ALG-CAL-001
+    type: ALG
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/algorithms/CALIBRATION_ALGORITHMS.md
+    upstream: [SCI-CAL-001]
+    downstream: []
+  - id: ALG-WCS-001
+    type: ALG
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/algorithms/PLATESOLVE.md
+    upstream: [SCI-WCS-001]
+    downstream: []
+  - id: ALG-PHOT-001
+    type: ALG
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/algorithms/PHOTOMETRIC_FIT.md
+    upstream: [SCI-PHOT-001]
+    downstream: []
+  - id: ALG-STARPSF-001
+    type: ALG
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/algorithms/STAR_PSF_ALGORITHMS.md
+    upstream: [SCI-PSF-001]
+    downstream: []
+  - id: ALG-NOISE-001
+    type: ALG
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/algorithms/NOISE_ESTIMATION.md
+    upstream: [SCI-NOISE-001]
+    downstream: []
+  - id: ALG-DRZ-001
+    type: ALG
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/algorithms/DRIZZLE_GEOMETRY.md
+    upstream: [SCI-DRZ-001]
+    downstream: []
+  - id: ALG-UPM-001
+    type: ALG
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/algorithms/UPM_SOLVER.md
+    upstream: [SCI-UPM-001]
+    downstream: []
+  - id: ALG-UPM-CONTROL-IVAR-001
+    type: ALG
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/algorithms/PHASE2_SAMPLER.md
+    upstream: [SCI-NOISE-001, SCI-CW-001]
+    downstream: []
+  - id: ALG-REJ-001
+    type: ALG
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/algorithms/REJECTION_ALGORITHMS.md
+    upstream: [SCI-REJ-001]
+    downstream: []
+  - id: ALG-INT-001
+    type: ALG
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/algorithms/INTEGRATION_ALGORITHMS.md
+    upstream: [SCI-INT-001]
+    downstream: []
+  - id: ALG-P3-001
+    type: ALG
+    status: DRAFT
+    owner: AstroCS
+    version: 0.1.0
+    path: docs/algorithms/PHASE3_RESAMPLE.md
+    upstream: [SCI-P3-001]
+    downstream: []
+  - id: ALG-HEALPIX-001
+    type: ALG
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/algorithms/HEALPIX_MAPPING.md
+    upstream: [SCI-DRZ-001]
+    downstream: []
+  - id: ALG-GAIA-001
+    type: ALG
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/algorithms/GAIA_QUERY.md
+    upstream: [SCI-AST-001]
+    downstream: []
+  - id: ALG-ACR-EQUIV-001
+    type: ALG
+    status: DORMANT
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/algorithms/ACR_EQUIVALENCE.md
+    upstream: [SCI-ACR-EQUIV-001]
+    downstream: []
+
+  # ── DATA 数据语义 ──
+  - id: DATA-SEMANTICS-001
+    type: DATA
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/contracts/DATA_SEMANTICS.md
+    upstream: []
+    downstream: []
+
+  # ── API 接口 ──
+  - id: API-CONTRACTS-001
+    type: API
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/contracts/API_CONTRACTS.csv
+    upstream: []
+    downstream: []
+
+  # ── MOD 模块 ──
+  - id: MOD-PHASE2-001
+    type: MOD
+    status: DRAFT
+    owner: AstroCS
+    version: 0.1.0
+    path: lib/phase2/CMakeLists.txt
+    upstream: []
+    downstream: []

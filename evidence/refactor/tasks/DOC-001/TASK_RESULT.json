@@ -1,0 +1,72 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "DOC-001",
+  "status": "PASS",
+  "start_commit": "ecc805d478c8fd5d9ef242216085db7b26d4df8f",
+  "source_commit": "ecc805d478c8fd5d9ef242216085db7b26d4df8f",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "documentation",
+  "science_changed": false,
+  "files_changed": [
+    "docs/contracts/INDEX.yaml",
+    "schemas/contract_index.schema.json",
+    "tools/check_contract_graph.py",
+    "tests/contracts/test_contract_graph_negative.py",
+    "evidence/refactor/tasks/DOC-001/TASK_RESULT.json",
+    "evidence/refactor/tasks/DOC-001/logs/c01.log",
+    "evidence/refactor/tasks/DOC-001/logs/c02.log",
+    "evidence/refactor/tasks/DOC-001/logs/c03.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "1eea2d8b803424b41d227bb764567a1ad53119c5890769a8ac4476dbbf3cdb28"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "1e9b7fef8b15b85631a2d4053b4b71e04e4f26b1ecaebced76c4bdc63cbc3635"
+    },
+    {
+      "command_id": "c03",
+      "timeout_seconds": 30,
+      "exit_code": 0,
+      "log_sha256": "f0d3bf08e723baa789193c98e16c2e882846cb8670f37a7f13849c6a96d82649"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-CONTRACT-GRAPH",
+      "description": "check_contract_graph.py CONTRACT_GRAPH_PASS contracts=32",
+      "result": "PASS"
+    },
+    {
+      "id": "T-NEGATIVE",
+      "description": "5 negative fixtures (悬空/重复/OBSOLETE依赖/非法ID/缺路径) 全部被抓",
+      "result": "PASS"
+    },
+    {
+      "id": "T-SCHEMA",
+      "description": "contract_index.schema.json JSON 合法",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "contracts_registered": 32,
+    "sci": 13,
+    "alg": 13,
+    "data": 1,
+    "api": 1,
+    "mod": 1,
+    "actives": 29,
+    "drafts": 2,
+    "dormant": 2
+  },
+  "findings": [
+    "现有 docs/science + docs/algorithms 的 ID/状态已自动化登记; Phase3 相关 ALG-P3-001 标 DRAFT(未实现); ACR 相关标 DORMANT(不参与生产)"
+  ],
+  "created_utc": "2026-08-30T15:35:05Z"
+}
