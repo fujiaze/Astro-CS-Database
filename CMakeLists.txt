@@ -40,6 +40,11 @@ target_include_directories(astrocs_contracts INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/include)
 
+# core contracts impl (CORE-002 artifact)
+add_library(astrocs_core STATIC lib/core/src/artifact.cpp)
+target_include_directories(astrocs_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(astrocs_core PUBLIC astrocs_contracts)
+
 # core/common: sha256/healpix (纯算法)
 add_library(astrocs_common STATIC
   lib/common/crypto/sha256.cpp
@@ -201,7 +206,7 @@ target_include_directories(astrocs PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/healpix
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/phase2/include)
 target_link_libraries(astrocs PRIVATE
-  astrocs_contracts astrocs_common astrocs_cfitsio astrocs_aio astrocs_hips
+  astrocs_contracts astrocs_core astrocs_common astrocs_cfitsio astrocs_aio astrocs_hips
   astrocs_calibration astrocs_phase2 astrocs_drizzle astrocs_cpu
   astrocs_phase1_session astrocs_phase2_session astrocs_phase3_session
   ${CMAKE_DL_LIBS} m z)

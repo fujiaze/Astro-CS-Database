@@ -3,3 +3,8 @@ add_executable(core_contracts_test core_contracts_test.cpp)
 target_include_directories(core_contracts_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 target_link_libraries(core_contracts_test PRIVATE astrocs_contracts)
 add_test(NAME core_contracts COMMAND core_contracts_test)
+
+add_executable(core_artifact_test core_artifact_test.cpp)
+target_include_directories(core_artifact_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+target_link_libraries(core_artifact_test PRIVATE astrocs_core)
+add_test(NAME core_artifact COMMAND core_artifact_test)
