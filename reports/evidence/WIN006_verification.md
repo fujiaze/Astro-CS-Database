@@ -2,6 +2,8 @@
 
 结论: **进行中(IN_PROGRESS)**。phase1(真实校准) 已 PASS; 输入 hash manifest 已生成; 修复 2 处真实 Bug。phase2/3 链需生产 HIPS 构建, 当前 CLI 无该命令(见 §5 遗留)。
 
+> **2026-08-30 更新**: 用户确认 **phase2/3 真实数据链记录为 BLOCKED** 并继续其它任务。blocker = 缺生产 HIPS 构建命令(HIPS 仅测试 fixture 可造); phase1 真实校准里程碑已达成。WIN-006 ledger → **BLOCKED**。
+
 ## 1. 判据(03 L150)
 > 从本机数据选三板块少量 R 帧+masters; hash manifest; 跑代表链路并自动监控; contribution、science/接缝/资源/内存全 PASS 才可 32R。
 
