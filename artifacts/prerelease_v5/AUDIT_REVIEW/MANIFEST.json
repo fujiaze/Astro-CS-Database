@@ -1,8 +1,8 @@
 {
  "schema_version": 1,
- "package": "AstroCS-audit-ec7a8cdc1566",
+ "package": "AstroCS-audit-8e7c7a3a992b",
  "version": "0.9.0-alpha.1",
- "commit": "ec7a8cdc15661da4d225d75a435b40e4daca71fd",
+ "commit": "8e7c7a3a992b2862ac359ceaf2011d6295c6538a",
  "files": [
   {
    "path": "00_READ_FIRST.md",
@@ -11,7 +11,7 @@
   },
   {
    "path": "BUILD_RESULTS.csv",
-   "sha256": "a708366233cdd4a17bf128378080e2bfa5a14344db36ae03c57adb043bb4b902",
+   "sha256": "383f4dd924cfdc3f85938884be121696e0c26218424be674b3f83a2620b6865d",
    "size": 440
   },
   {
@@ -31,8 +31,8 @@
   },
   {
    "path": "FINAL_REPORT.md",
-   "sha256": "b63abe0d015ab8212150168ffdd1c925f3c8449b272ff2ac9cba27c96a841c9d",
-   "size": 1956
+   "sha256": "debc1b405c99575045fd074a5cac1a9fc3e7c9baa7738da0f5e51912bc3615de",
+   "size": 3201
   },
   {
    "path": "FINDINGS.csv",
@@ -66,8 +66,8 @@
   },
   {
    "path": "SUMMARY.json",
-   "sha256": "8659f980bc64701206e764ecc42bd271a9b1169434ea1e8d093565ba1184f378",
-   "size": 713
+   "sha256": "e371ac201af2b053b48e2764f897f3d69c6c6e23e1636b45ba38f0ef4803fb19",
+   "size": 721
   },
   {
    "path": "TASK_LEDGER.csv",
@@ -76,13 +76,28 @@
   },
   {
    "path": "TEST_RESULTS.csv",
-   "sha256": "e76c33b59cae2702634db79cf5a4f410f6498fd6aa40e3c3deb0012f11b1c04a",
+   "sha256": "56e3d131a57414eabb441825542a944d660dde67229a1ea10de9b75d6d3994b6",
    "size": 1224
   },
   {
    "path": "TRACEABILITY.csv",
    "sha256": "50dfcc67b672b4ee869e807b023d2009f5294c8a3196da57514dc65528c741ac",
    "size": 15449
+  },
+  {
+   "path": "reports/evidence/AUDIT_PACKAGE_SUMMARY.md",
+   "sha256": "f22873e5f45a1f03210c06859659deaec8b41b552520823f7386c60e071ddf96",
+   "size": 1956
+  },
+  {
+   "path": "reports/evidence/LINUX_ALPHA_SUITE_verification.md",
+   "sha256": "53f5d77829b3f6d00b0d60df821518ddd6874c34288f8799f8e7e254cc2b1d21",
+   "size": 2265
+  },
+  {
+   "path": "reports/evidence/PAR002_blocker.md",
+   "sha256": "938d3fa108106aa0c486b9a26122141daa3dcb4ae704a8ac67f6212f1b531521",
+   "size": 5057
   },
   {
    "path": "reports/evidence/WIN004_verification.md",
@@ -98,6 +113,11 @@
    "path": "reports/evidence/WIN006_verification.md",
    "sha256": "0dbfff4879eea7e22d502b9750978f7f01438bed3640bd30d5b11b731a07d3dd",
    "size": 3644
+  },
+  {
+   "path": "reports/evidence/WIN009_verification.md",
+   "sha256": "2824fda03ea6b87c90e13f8fd503e31d9cfb37cd867d9710a2f93981ecf05908",
+   "size": 2545
   },
   {
    "path": "control/01_PRODUCT_ARCHITECTURE.md",

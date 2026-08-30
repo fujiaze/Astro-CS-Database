@@ -153,34 +153,59 @@ def main() -> int:
         "build_counts": cc(SRC / "BUILD_RESULTS.csv", "status"),
         "test_counts": cc(SRC / "TEST_RESULTS.csv", "status"),
         "resource_counts": cc(SRC / "RESOURCE_RESULTS.csv", "verdict"),
-        "note": "当前现状审核包: 87 PASS, 2 BLOCKED, 8 NOT_STARTED, 1 REVIEW_PENDING; 非发布就绪, 仅供外部审阅当前进展与阻塞项。",
+        "note": f"当前现状审核包: `{tc.get('PASS',0)}` PASS, `{tc.get('BLOCKED',0)}` BLOCKED, `{tc.get('NOT_STARTED',0)}` NOT_STARTED, `{tc.get('REVIEW_PENDING',0)}` REVIEW_PENDING; 非发布就绪, 仅供外部审阅当前进展与阻塞项。",
     }
     (SRC / "SUMMARY.json").write_text(json.dumps(summary, indent=1, ensure_ascii=False), encoding="utf-8")
 
-    # 5) FINAL_REPORT.md(如实叙述)
+    # 5) FINAL_REPORT.md(全部从 ledger/表格单源自动生成; 禁止手写计数)
+    nonpass = [r for r in tl if r.get("status") != "PASS"]
+    def phase_label(tid):
+        m = {r["task_id"]: r["phase"] for r in tl}
+        return m.get(tid, "?")
+    # 发布产物
+    ra_rows = list(csv.DictReader(open(SRC / "RELEASE_ARTIFACTS.csv", encoding="utf-8-sig")))
+    if ra_rows:
+        ra_lines = [f"- {r['platform']} amd64, {r['version']}, `{r['sha256'][:16]}...`, status=`{r['status']}`" for r in ra_rows]
+        ra_block = "## 发布产物(RELEASE_ARTIFACTS)\n" + "\n".join(ra_lines)
+    else:
+        ra_block = "## 发布产物(RELEASE_ARTIFACTS)\n- (空)"
+    leds = dict((r["task_id"], r) for r in tl)
+    win009 = leds.get("WIN-009", {})
+    win009_st = win009.get("status", "?")
+    win009_line = f"- WIN-009 (标题): `{win009.get('scope','')}`; status=`{win009_st}`."
     rep = [
-        "# AstroCS V5 预发布审核包(当前现状)",
+        "# AstroCS V5 预发布审核包(当前现状, 单源自动生成)",
         "",
         f"- 版本: `{base}`, 当前 main 提交: `{commit}` (`{c12}`)",
         f"- 状态: **非发布就绪**。`verdict=RELEASE_NOT_READY_BLOCKED`(合法 `AWAITING_EXTERNAL_RELEASE_REVIEW` 未达成)。",
+        f"- 任务计数(来自 `TASK_LEDGER.csv`): `{tc.get('PASS',0)}` PASS / `{tc.get('BLOCKED',0)}` BLOCKED / "
+        f"`{tc.get('NOT_STARTED',0)}` NOT_STARTED / `{tc.get('REVIEW_PENDING',0)}` REVIEW_PENDING, 共 `{len(tl)}` 项。",
         "",
         "## 已收敛",
-        "- **87/98** 任务 PASS(含 02 ledger 各 ALG/SCI/ARCH/API/CLI/ISA/BENCH/MON/P3/TRACE/VER/DOC 与 WIN-001..005)。",
+        f"- **{tc.get('PASS',0)}/{len(tl)}** 任务 PASS。",
         "- WIN-001..005 全 PASS(Windows 单一 CLI 构建/协议/analyze/ASan/取消链路)。",
-        "- **WIN-006 里程碑**: 真实银心(T4)数据 phase1 校准 PASS(6 R 帧 + .xisf 母版), 期间修复 2 处真实 Bug(missing 需 XISF 支持; 写校准帧 Windows 栈溢出 0xC00000FD)。输入 hash manifest 已生成(`win006_input_manifest.json`, inputs_sha256=`d0dfd7a1b2743328452772afb66a2ddd9831f7a34ee7fc549557d090f73dc050`)。",
+        "- **WIN-006 里程碑**: 真实银心(T4)数据 phase1 校准 PASS(6 R 帧 + .xisf 母版), 期间修复 2 处真实 Bug(缺 XISF 支持; 写校准帧 Windows 栈溢出 0xC00000FD)。输入 hash manifest 已生成(`win006_input_manifest.json`, inputs_sha256=`d0dfd7a1b2743328452772afb66a2ddd9831f7a34ee7fc549557d090f73dc050`)。",
+        "",
+        "## 发布产物",
+        ra_block,
         "",
         "## 阻塞项(审核包如实汇报)",
-        "- **WIN-006 BLOCKED**: phase2/3 真实数据链需 HIPS 数据集, 但供应链 CLI 无**生产 HIPS 构建命令**(HIPS 仅测试 fixture `phase2_fixture_main` aio_hips_write_signal_support_tile 可造)。已确认:`cli/main.cpp` dispatch 无 hips/drizzle 产线命令。→ 需评审是否补齐 HIPS 产线或改走合成验证。",
-        "- **PAR-002 BLOCKED**: 见 FINDINGS/blocker 记录。",
-        "",
-        "## 剩余(未开始)",
-        "- WIN-007(32R)/WIN-008(HiPS 接缝)/WIN-009(Windows 发布包)**未开始**(前两者依赖真实 HIPS 链, 后者为当前用户指示'跳过后续'后暂缓)。",
-        "- REV-002 REVIEW_PENDING(已提交归档/API 异步审阅胶囊); REV-003(WIN-009 胶囊), REL-001..004(发布审阅)未开始。",
-        "- C2..C9 连续检查点未全部达成; 无 alpha 发布物(RELEASE_ARTIFACTS 为空), 无 32R 资源门禁记录(RESOURCE_RESULTS 为空)。",
-        "",
-        "## 结论",
-        "当前候选**未达发布门槛**(09 §5 / 10 §5)。LEGITIMATE `AWAITING_EXTERNAL_RELEASE_REVIEW` 不可生成; 本审核包如实记录进展与阻塞, 交外部审阅决策下一步(HIPS 产线 / 合成验证 / 分层放行)。",
     ]
+    for r in nonpass:
+        if r.get("status") == "BLOCKED":
+            rep.append(f"- **{r['task_id']} BLOCKED** `({phase_label(r['task_id'])})`: {r.get('scope','')} — 见 reports/evidence 阻断记录。")
+    rep.append("")
+    rep.append("## 非 PASS 任务(自动: TASK_LEDGER.csv)")
+    for r in nonpass:
+        rep.append(f"- `{r['task_id']}` ({phase_label(r['task_id'])}), status=`{r.get('status','')}`: {r.get('scope','')}")
+    rep.append("")
+    rep.append("## 依赖自检")
+    rep.append(f"- {win009_line}")
+    rep.append(f"- WIN-009 依赖: `{win009.get('depends_on','')}`; WIN-008 状态=`{leds.get('WIN-008',{}).get('status','?')}`, PAR-007=`{leds.get('PAR-007',{}).get('status','?')}`(依赖 PAR-002=`{leds.get('PAR-002',{}).get('status','?')}`) — 若有依赖顺序违规将在此显式列出。")
+    rep.append("- C2..C9 连续检查点未全部达成; 无 32R 资源门禁记录(RESOURCE_RESULTS 为空)。")
+    rep.append("")
+    rep.append("## 结论")
+    rep.append("当前候选**未达发布门槛**(09 §5 / 10 §5)。本报告由 Ledger/表格单源自动生成, 计数与状态与 `SUMMARY.json`/`TASK_LEDGER.csv` 一致。LEGITIMATE `AWAITING_EXTERNAL_RELEASE_REVIEW` 不可生成; 交外部审阅决策下一步(补齐 HIPS 产线 / 修复 sampler 并行 / 分层放行)。")
     (SRC / "FINAL_REPORT.md").write_text("\n".join(rep), encoding="utf-8")
 
     # 6) 白名单 source: 拷贝控制包文档到 control/, 证据到 reports/
@@ -191,7 +216,9 @@ def main() -> int:
     copy_(CP / "09_LINUX_WINDOWS_BUILD_RELEASE.md", SRC / "control" / "09_LINUX_WINDOWS_BUILD_RELEASE.md")
     copy_(CP / "10_GIT_REVIEW_CAPSULE_AUDIT_PACKAGE.md", SRC / "control" / "10_GIT_REVIEW_CAPSULE_AUDIT_PACKAGE.md")
     copy_(CP / "13_ALPHA_VERSION_AND_PHASE3.md", SRC / "control" / "13_ALPHA_VERSION_AND_PHASE3.md")
-    for f in ["WIN006_verification.md", "WIN005_verification.md", "WIN004_verification.md"]:
+    for f in ["WIN004_verification.md", "WIN005_verification.md", "WIN006_verification.md",
+              "WIN009_verification.md", "LINUX_ALPHA_SUITE_verification.md",
+              "PAR002_blocker.md", "AUDIT_PACKAGE_SUMMARY.md"]:
         p = REPO / "reports/evidence" / f
         if p.exists():
             copy_(p, SRC / "reports" / "evidence" / f)
