@@ -1,0 +1,56 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "P1-006",
+  "status": "PASS",
+  "start_commit": "a63a66aef9cd855da5070f6b7282f3c14abf5059",
+  "source_commit": "a63a66aef9cd855da5070f6b7282f3c14abf5059",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "tests/unit/p1_nside_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/refactor/tasks/P1-006/TASK_RESULT.json",
+    "evidence/refactor/tasks/P1-006/logs/c01.log",
+    "evidence/refactor/tasks/P1-006/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "7d52232eba75df5546cab093d665c9813fe2330c6a6c3f49d90a734ce65e646d"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "202873ebccca984bac8f740eda321d03a3ef9f43aa67b4a296d729f07f7b4fa3"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-NSIDE-DERIV",
+      "description": "scale→order→nside 派生链: 派生分辨率<=scale; 不同 scale→不同 nside; 无 2048 硬编码",
+      "result": "PASS"
+    },
+    {
+      "id": "T-RES-FORMULA",
+      "description": "pixel_resolution_arcsec 解析公式核对(1e-9); nside↔order 互转",
+      "result": "PASS"
+    },
+    {
+      "id": "T-RA-WRAP",
+      "description": "RA wrap(359.9↔0.1)不破裂; ang2pix roundtrip 一致",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "derivation": "512<<order from scale",
+    "hardcoded_2048": 0
+  },
+  "findings": [
+    "P1-006: NSIDE 由 scale_deg_per_px 经 p3_order_select 派生(512·2^order, 无 2048 硬编码); 像素分辨率解析公式验证; RA wrap/ang2pix roundtrip; 不同 scale→不同 nside 证明派生有效"
+  ],
+  "created_utc": "2026-08-30T17:01:09Z"
+}

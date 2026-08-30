@@ -136,3 +136,11 @@ target_include_directories(p1_noise_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase1/noise)
 target_link_libraries(p1_noise_test PRIVATE astrocs_phase1_noise)
 add_test(NAME p1_noise COMMAND p1_noise_test)
+
+add_executable(p1_nside_test p1_nside_test.cpp)
+target_include_directories(p1_nside_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/common/healpix
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase3_session)
+target_link_libraries(p1_nside_test PRIVATE astrocs_common astrocs_phase3_session astrocs_hips astrocs_contracts)
+add_test(NAME p1_nside COMMAND p1_nside_test)
