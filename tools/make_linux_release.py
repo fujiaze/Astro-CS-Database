@@ -9,7 +9,7 @@
       ├─ backends.manifest.json    (05 §7; builtin baseline 无 shipped DSO → 空 backend 表)
       ├─ SBOM.spdx.json            (SPDX 2.3, 包名 alpha)
       ├─ LICENSES/                 (第三方/自有许可证; 本包 CLI 静态自带 libs → 标注来源)
-      ├─ VERSION                    (0.9.0-alpha.1+g<commit12>)
+      ├─ VERSION                    (0.10.0-alpha.1+g<commit12>)
       └─ SHA256SUMS                (除自身外全文件 hash; tar.zst 外层另附 .sha256)
 用法: python3 tools/make_linux_release.py --bin <astrocs> --out <outdir> [--tar-gz]
 """
@@ -51,7 +51,7 @@ def main() -> int:
     if not os.path.isfile(args.bin):
         print(f"ERR: binary not found {args.bin}", file=sys.stderr)
         return 2
-    base = open(VERSION_FILE, encoding="utf-8").read().strip() if os.path.isfile(VERSION_FILE) else "0.9.0-alpha.1"
+    base = open(VERSION_FILE, encoding="utf-8").read().strip() if os.path.isfile(VERSION_FILE) else "0.10.0-alpha.1"
     commit = git("rev-parse", "HEAD")
     c12 = commit[:12]
     pkg_version = f"{base}+g{c12}"

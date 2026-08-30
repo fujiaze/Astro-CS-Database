@@ -1,0 +1,89 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "VER-001",
+  "status": "PASS",
+  "start_commit": "8d89088e7b252f8c69f1194b54130d776d6719bc",
+  "source_commit": "8d89088e7b252f8c69f1194b54130d776d6719bc",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "VERSION",
+    "cli/CMakeLists.txt",
+    "docs/VERSIONING.md",
+    "tests/backend/profile_gen_main.cpp",
+    "tests/backend/test_cpu_profile.py",
+    "tests/quality/test_linux_release.py",
+    "tests/version/test_version_consistency.py",
+    "tools/make_linux_release.py",
+    "tools/make_windows_release.py",
+    "evidence/refactor/tasks/VER-001/TASK_RESULT.json",
+    "evidence/refactor/tasks/VER-001/logs/c01.log",
+    "evidence/refactor/tasks/VER-001/logs/c02.log",
+    "evidence/refactor/tasks/VER-001/logs/c03.log",
+    "evidence/refactor/tasks/VER-001/logs/c04.log",
+    "evidence/refactor/tasks/VER-001/logs/c05.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "3029802ad1bb20b08e31e2f6f53a2bfbac648ae23d037495e00a514e6d8d447d"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "400416ea824c4d4449224e085fb3ba8e03c68e4f50745d21ad76cb1a17284e3b"
+    },
+    {
+      "command_id": "c03",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "1585e367a875c5379ca4a1ad3d5ee24c3d7250c5a014d8b89f6c432debeba368"
+    },
+    {
+      "command_id": "c04",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "f50c1f4909ba8c20b0d5d5a5c4424f083479920734083aeb975a817c495bc815"
+    },
+    {
+      "command_id": "c05",
+      "timeout_seconds": 1800,
+      "exit_code": 0,
+      "log_sha256": "07b4bf9089a2ada264e0caf2f7529ef9ecfbddb614aaa6a9db384e8fee049714"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-CONSISTENCY",
+      "description": "check_version_consistency.py PASS base=0.10.0-alpha.1",
+      "result": "PASS"
+    },
+    {
+      "id": "T-UNIT",
+      "description": "tests.version.test_version_consistency 5/5 OK",
+      "result": "PASS"
+    },
+    {
+      "id": "T-BINARY",
+      "description": "clean rebuild; astrocs --version = 0.10.0-alpha.1+g<commit>",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "target_version": "0.10.0-alpha.1",
+    "binary_version": "0.10.0-alpha.1",
+    "version_literals_removed": [
+      "cli/CMakeLists.txt BASE_VERSION 内嵌",
+      "tools/make_*_release.py fallback",
+      "docs/VERSIONING.md"
+    ]
+  },
+  "findings": [
+    "VERSION 为唯一源; CMake file(READ VERSION); 测试 fixture 期望值同步更新; 外部修改 test_bench_cli.py 未触碰"
+  ],
+  "created_utc": "2026-08-30T15:31:48Z"
+}

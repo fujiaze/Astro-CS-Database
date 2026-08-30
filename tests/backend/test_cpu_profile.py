@@ -46,7 +46,7 @@ class TestCpuProfile(unittest.TestCase):
         assert r2.returncode == 0, r2.stderr
         open(cls.hw, "w", encoding="utf-8").write(r2.stdout)
         r3 = subprocess.run([cls.gen, "--out", cls.profile, "--mode", "quick",
-                             "--version", "0.9.0-alpha.1", "--commit", COMMIT,
+                             "--version", "0.10.0-alpha.1", "--commit", COMMIT,
                              "--backend-sha", "0"], capture_output=True, text=True, timeout=300)
         assert r3.returncode == 0, r3.stderr
 

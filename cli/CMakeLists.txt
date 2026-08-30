@@ -14,8 +14,11 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-# 版本单源: VERSION + git commit → X.Y.Z-alpha.N+g<hash12>[.dirty] (tools/gen_version.py 同式)
-set(BASE_VERSION "0.9.0-alpha.1")
+# 版本单源: 根 VERSION 文件为唯一权威 (tools/gen_version.py 同式读取)
+# VER-001: BASE_VERSION 从 VERSION 文件读取, 不再内嵌字面量, 防止版本漂移
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/../VERSION BASE_VERSION)
+string(STRIP "${BASE_VERSION}" BASE_VERSION)
+# VERSION + git commit → X.Y.Z-alpha.N+g<hash12>[.dirty] (tools/gen_version.py 同式)
 execute_process(
   COMMAND git rev-parse HEAD
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
