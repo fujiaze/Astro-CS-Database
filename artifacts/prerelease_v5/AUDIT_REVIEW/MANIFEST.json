@@ -1,0 +1,138 @@
+{
+ "schema_version": 1,
+ "package": "AstroCS-audit-b8ce36691e0b",
+ "version": "0.9.0-alpha.1",
+ "commit": "b8ce36691e0b6ef31a9a31814f711f09b48a2263",
+ "files": [
+  {
+   "path": "00_READ_FIRST.md",
+   "sha256": "475c0bcc85773236336854e050c038617672c6126bea8864dbc42bcdc095d96f",
+   "size": 3965
+  },
+  {
+   "path": "BUILD_RESULTS.csv",
+   "sha256": "3ef8f4e2bac265ed49bfd473de0703e7dbe4aa59a4c16551ea34677e06c31728",
+   "size": 440
+  },
+  {
+   "path": "CHECKPOINTS.csv",
+   "sha256": "23ed7c84203332b3e59357d856831566bc8244660a94a7930fcf4c2d9c132f90",
+   "size": 884
+  },
+  {
+   "path": "COMMITS.csv",
+   "sha256": "56de4e6b1dfea2cc7fa4f94482bef66dac7ef7658355c8c8259c53dd315d2e8b",
+   "size": 28749
+  },
+  {
+   "path": "CPU_PROFILE_RESULTS.csv",
+   "sha256": "81e30b94c90c448401dc3961550eafc2fb3bf157f51dba0e12fb1b6c65263ffb",
+   "size": 226
+  },
+  {
+   "path": "FINAL_REPORT.md",
+   "sha256": "e0b597c285917848336daf48e1adeae5011a85753d9364bb0e8a6926a432cf2b",
+   "size": 1956
+  },
+  {
+   "path": "FINDINGS.csv",
+   "sha256": "d48112e42cc8b0ae2f55fb51c81090b1ce80a50d165fa26f2a6d8cb57eed31df",
+   "size": 132
+  },
+  {
+   "path": "LARGE_ARTIFACTS.csv",
+   "sha256": "f16838f5c6e59aa8f1484ed4c3c990882f4471920c6f6763d8e77f59a650f978",
+   "size": 96
+  },
+  {
+   "path": "RELEASE_ARTIFACTS.csv",
+   "sha256": "3f57f828b5e10c9eab6b596464f153801fcfeb7ff2a781baa42c86fba70c2515",
+   "size": 114
+  },
+  {
+   "path": "RESOURCE_RESULTS.csv",
+   "sha256": "277ea5575718f7034b6ce5ab8bd9284c2bbd47437440f87444ba8da90f5557f0",
+   "size": 298
+  },
+  {
+   "path": "REVIEW_CAPSULE_INDEX.csv",
+   "sha256": "30261cd66b71adaaf2c2512cc2980f199d59626b5b29d925e9cefb2f50018d94",
+   "size": 21174
+  },
+  {
+   "path": "SCIENCE_CLAIMS.csv",
+   "sha256": "fcb6dd8c110d38d9b8c6575c586fa73edd919c54de2e5d21034868100134d0fc",
+   "size": 132
+  },
+  {
+   "path": "SUMMARY.json",
+   "sha256": "30f15614af163eb1f03e66319f2501abfc8626d1e5e15d065d9869bfd895b89c",
+   "size": 713
+  },
+  {
+   "path": "TASK_LEDGER.csv",
+   "sha256": "7973e10b778ceb261f054fd0120d1721d99f03feab052b66da54005be928a432",
+   "size": 10098
+  },
+  {
+   "path": "TEST_RESULTS.csv",
+   "sha256": "9a3faadd61b9527cbffec46ba6f9b23cb55bb6c9fc3394c42c6353ec72df00d0",
+   "size": 973
+  },
+  {
+   "path": "TRACEABILITY.csv",
+   "sha256": "50dfcc67b672b4ee869e807b023d2009f5294c8a3196da57514dc65528c741ac",
+   "size": 15449
+  },
+  {
+   "path": "reports/evidence/WIN004_verification.md",
+   "sha256": "1b752eb8d6438104974533ad43e955055d936335a1f490a43d6875fa44642417",
+   "size": 3103
+  },
+  {
+   "path": "reports/evidence/WIN005_verification.md",
+   "sha256": "71c3881113c5ef1b76719e6a666165b0a05ab8bbf04df4e5684dc4fa9e63b364",
+   "size": 3830
+  },
+  {
+   "path": "reports/evidence/WIN006_verification.md",
+   "sha256": "0dbfff4879eea7e22d502b9750978f7f01438bed3640bd30d5b11b731a07d3dd",
+   "size": 3644
+  },
+  {
+   "path": "control/01_PRODUCT_ARCHITECTURE.md",
+   "sha256": "949c46939b306e3801640c6c365fac1f4ec97aaec72b23d854a6ecdebd43bd0c",
+   "size": 3079
+  },
+  {
+   "path": "control/03_TASK_DETAILS.md",
+   "sha256": "60f50453463458aa67072c550565a37f959fbcb8351c1a5e2a51f29d6acec672",
+   "size": 20327
+  },
+  {
+   "path": "control/04_CLI_COMMAND_AND_PROTOCOL_CONTRACT.md",
+   "sha256": "17040e7be4b631e627ba0b35fd4f551b2f3df7a86bcb12c6bbcd253d8a03e7d6",
+   "size": 3318
+  },
+  {
+   "path": "control/05_CPU_BACKEND_ABI_AND_PACKAGING.md",
+   "sha256": "3b698f33ea40b10acc7df32efad277154c46ab6d999a28c3ae286a6574171f06",
+   "size": 3769
+  },
+  {
+   "path": "control/09_LINUX_WINDOWS_BUILD_RELEASE.md",
+   "sha256": "2589ad9141cfe26e0a02a1f6b80947299aa1b7676a2f0d2b2d3257cb2c201e02",
+   "size": 2814
+  },
+  {
+   "path": "control/10_GIT_REVIEW_CAPSULE_AUDIT_PACKAGE.md",
+   "sha256": "2f6214bf1a056549a9bc2b1a81d6461fec7b306744f4a568088318b071a59c8e",
+   "size": 2732
+  },
+  {
+   "path": "control/13_ALPHA_VERSION_AND_PHASE3.md",
+   "sha256": "27e335b2d55f201b3ffff9b94d5666d6d316b618463b77a53e7ea09fd66ad70f",
+   "size": 4765
+  }
+ ]
+}
