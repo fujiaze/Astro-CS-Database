@@ -1,1 +1,2 @@
 artifact_id,platform,arch,version,commit,path,size_bytes,sha256,manifest_sha256,sbom_sha256,smoke_test_id,status
+RA-WIN-009-ALPHA,Windows,amd64,0.9.0-alpha.1,ef0858c55a42,C:/Users/fujia/Astro-CS-Database/artifacts/prerelease_v5/win_pkg/AstroCS-Windows-amd64-0.9.0-alpha.1.zip,1287262,ab269d93d5878f165a45b7b5b3bde56546711aaf8c2c76f1c2e72da8803ebf13,0cdb82bf986e970dab86ec181736c2d273a3d2089d77a8f952f757e28557dbbf,f802ed4a83785de6c9ba59e508908cc5b4dc26539020023931b158641eff03b2,win-alpha-smoke-doctor-sha256-noprof-multithread,PASS
