@@ -83,7 +83,7 @@ WIN-003,G10,Windows合成科学与资源验证,WIN-001;WIN-002;LNX-003,Windows,v
 WIN-004,G10,Windows少量真实代表帧验证,WIN-003;LNX-005,Windows,validation,yes,yes,one hashed R per panel plus masters,Phase1 outputs; Phase2 overlaps; Phase3 sample; diagnostic artifacts,NOT_STARTED
 WIN-005,G10,Windows银心32R最终一次全链,WIN-004;DOC-002,Windows,validation,yes,yes,11+11+10 R; final candidate; monitor,全部输入贡献; P1 to P2 artifact identity; HiPS/support/UPM/rejection; resource gates,NOT_STARTED
 WIN-006,G10,HiPS与Phase3视觉技术证据,WIN-005;P3-006,Windows,validation,yes,yes,locked viewer state; seam/holes/stripes/streaks; planar FITS,预览与数值seam metrics; WCS/FITS verify; 生成owner review清单,NOT_STARTED
-REL-001,G11,生成双平台Alpha发布产物,LNX-005;WIN-006;QA-005,Linux+Windows,release,no,yes,Linux amd64; Windows amd64; providers; configs; licenses,版本0.10.0-alpha.1; reproducible metadata; install/run smoke,IN_PROGRESS
-REL-002,G11,完成最终文档真相校验,DOC-002;DOC-003;DOC-004;DOC-005;REL-001,Linux,release,no,yes,L0-L3; version; pipeline; APIs; status,无旧入口/旧版本/假实现; owner文档链接到现场证据,NOT_STARTED
+REL-001,G11,生成双平台Alpha发布产物,LNX-005;WIN-006;QA-005,Linux+Windows,release,no,yes,Linux amd64; Windows amd64; providers; configs; licenses,版本0.10.0-alpha.1; reproducible metadata; install/run smoke,PASS
+REL-002,G11,完成最终文档真相校验,DOC-002;DOC-003;DOC-004;DOC-005;REL-001,Linux,release,no,yes,L0-L3; version; pipeline; APIs; status,无旧入口/旧版本/假实现; owner文档链接到现场证据,IN_PROGRESS
 REL-003,G11,生成白名单审核包,REL-001;REL-002,Linux,release,no,yes,source snapshot; changed docs; evidence summaries; previews; manifests,validate_audit PASS; source/evidence/artifact commit一致; 无大文件历史数据build,NOT_STARTED
 REL-004,G11,负责人最终视觉与发布决策,REL-003,Owner,release,no,no,HiPS locked views; release status; known limits,负责人明确APPROVE或REJECT; Agent不得代签,NOT_STARTED
