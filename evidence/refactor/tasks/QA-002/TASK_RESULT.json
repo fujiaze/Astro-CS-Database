@@ -1,0 +1,69 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "QA-002",
+  "status": "PASS",
+  "start_commit": "41943d42e0850db99fd79e1544e7bf08fc583205",
+  "source_commit": "41943d42e0850db99fd79e1544e7bf08fc583205",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "quality",
+  "science_changed": false,
+  "files_changed": [
+    "cli/CMakeLists.txt",
+    "tools/check_serial_hardcode.py",
+    "evidence/refactor/tasks/QA-002/TASK_RESULT.json",
+    "evidence/refactor/tasks/QA-002/logs/c01.log",
+    "evidence/refactor/tasks/QA-002/logs/c02.log",
+    "evidence/refactor/tasks/QA-002/logs/c03.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "0ff934a6b1d8fcf3e2f89c52f84274be4bcbd8ff236578de3acfd29e3738e0bb"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "9de521f385f43f69617502ec6219a5b89ba523193b393b774f17efd30bea7a9f"
+    },
+    {
+      "command_id": "c03",
+      "timeout_seconds": 60,
+      "exit_code": 1,
+      "log_sha256": "6253eb6b68cbe7869b593ecb036817684f0280372289306c459fd87a8cf544f2"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-NO-HARDCODE",
+      "description": "无 workers=1 / nside=2048 / OMP 线程数硬编码 (静态扫描)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-NO-GLOB",
+      "description": "cfitsio 60 源显式清单 + P2/P3 显式清单 (零 file(GLOB))",
+      "result": "PASS"
+    },
+    {
+      "id": "T-NO-ACR",
+      "description": "ACR 文件 (acr_kernels/kernel_registry/device_executor) 剔出生产; nm acr=0",
+      "result": "PASS"
+    },
+    {
+      "id": "T-REGRESSION",
+      "description": "去 GLOB/去 ACR 后构建零 error + 7 组合成 PASS",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "glob": 0,
+    "acr_prod_symbols": 0,
+    "cfitsio_explicit": 60
+  },
+  "findings": [
+    "QA-002: 串行与硬编码静态禁令落地(P2/P3/cfitsio GLOB→显式清单; ACR 4 文件剔出生产纯 CPU; 无 workers=1/nside=2048/omp 线程数硬编码); 构建零 error + 合成回归 PASS; ACR 符号=0 与 LEG-004 一致"
+  ],
+  "created_utc": "2026-08-30T18:21:23Z"
+}

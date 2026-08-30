@@ -50,8 +50,68 @@ file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/version_generated.h
   "#define ASTROCS_COMMIT_SHA \"${GIT_COMMIT_FULL}\"\n")
 
 set(AIO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io)
-file(GLOB CFITSIO_SRCS ${AIO_DIR}/third_party/cfitsio/*.c)
-list(FILTER CFITSIO_SRCS EXCLUDE REGEX "f77_wrap|drvrgsiftp|drvrsmem|smem|vms|windumpexts|iter_[abc]|cookbook|speed_test|fpack|funpack|fitscopy|listhead|liststruc|imcopy|imarith|tabcompile|sortcol|tabselect")
+# QA-002: cfitsio 60 源显式清单 (禁 GLOB)
+set(CFITSIO_SRCS
+  ${AIO_DIR}/third_party/cfitsio/buffers.c
+  ${AIO_DIR}/third_party/cfitsio/cfileio.c
+  ${AIO_DIR}/third_party/cfitsio/checksum.c
+  ${AIO_DIR}/third_party/cfitsio/drvrfile.c
+  ${AIO_DIR}/third_party/cfitsio/drvrmem.c
+  ${AIO_DIR}/third_party/cfitsio/drvrnet.c
+  ${AIO_DIR}/third_party/cfitsio/editcol.c
+  ${AIO_DIR}/third_party/cfitsio/edithdu.c
+  ${AIO_DIR}/third_party/cfitsio/eval_f.c
+  ${AIO_DIR}/third_party/cfitsio/eval_l.c
+  ${AIO_DIR}/third_party/cfitsio/eval_y.c
+  ${AIO_DIR}/third_party/cfitsio/fits_hcompress.c
+  ${AIO_DIR}/third_party/cfitsio/fits_hdecompress.c
+  ${AIO_DIR}/third_party/cfitsio/fitscore.c
+  ${AIO_DIR}/third_party/cfitsio/getcol.c
+  ${AIO_DIR}/third_party/cfitsio/getcolb.c
+  ${AIO_DIR}/third_party/cfitsio/getcold.c
+  ${AIO_DIR}/third_party/cfitsio/getcole.c
+  ${AIO_DIR}/third_party/cfitsio/getcoli.c
+  ${AIO_DIR}/third_party/cfitsio/getcolj.c
+  ${AIO_DIR}/third_party/cfitsio/getcolk.c
+  ${AIO_DIR}/third_party/cfitsio/getcoll.c
+  ${AIO_DIR}/third_party/cfitsio/getcols.c
+  ${AIO_DIR}/third_party/cfitsio/getcolsb.c
+  ${AIO_DIR}/third_party/cfitsio/getcolui.c
+  ${AIO_DIR}/third_party/cfitsio/getcoluj.c
+  ${AIO_DIR}/third_party/cfitsio/getcoluk.c
+  ${AIO_DIR}/third_party/cfitsio/getkey.c
+  ${AIO_DIR}/third_party/cfitsio/group.c
+  ${AIO_DIR}/third_party/cfitsio/grparser.c
+  ${AIO_DIR}/third_party/cfitsio/histo.c
+  ${AIO_DIR}/third_party/cfitsio/imcompress.c
+  ${AIO_DIR}/third_party/cfitsio/iraffits.c
+  ${AIO_DIR}/third_party/cfitsio/modkey.c
+  ${AIO_DIR}/third_party/cfitsio/pliocomp.c
+  ${AIO_DIR}/third_party/cfitsio/putcol.c
+  ${AIO_DIR}/third_party/cfitsio/putcolb.c
+  ${AIO_DIR}/third_party/cfitsio/putcold.c
+  ${AIO_DIR}/third_party/cfitsio/putcole.c
+  ${AIO_DIR}/third_party/cfitsio/putcoli.c
+  ${AIO_DIR}/third_party/cfitsio/putcolj.c
+  ${AIO_DIR}/third_party/cfitsio/putcolk.c
+  ${AIO_DIR}/third_party/cfitsio/putcoll.c
+  ${AIO_DIR}/third_party/cfitsio/putcols.c
+  ${AIO_DIR}/third_party/cfitsio/putcolsb.c
+  ${AIO_DIR}/third_party/cfitsio/putcolu.c
+  ${AIO_DIR}/third_party/cfitsio/putcolui.c
+  ${AIO_DIR}/third_party/cfitsio/putcoluj.c
+  ${AIO_DIR}/third_party/cfitsio/putcoluk.c
+  ${AIO_DIR}/third_party/cfitsio/putkey.c
+  ${AIO_DIR}/third_party/cfitsio/quantize.c
+  ${AIO_DIR}/third_party/cfitsio/region.c
+  ${AIO_DIR}/third_party/cfitsio/ricecomp.c
+  ${AIO_DIR}/third_party/cfitsio/scalnull.c
+  ${AIO_DIR}/third_party/cfitsio/simplerng.c
+  ${AIO_DIR}/third_party/cfitsio/swapproc.c
+  ${AIO_DIR}/third_party/cfitsio/wcssub.c
+  ${AIO_DIR}/third_party/cfitsio/wcsutil.c
+  ${AIO_DIR}/third_party/cfitsio/zcompress.c
+  ${AIO_DIR}/third_party/cfitsio/zuncompress.c)
 list(LENGTH CFITSIO_SRCS _cfn)
 message(STATUS "ASTROCS_CFITSIO_n=${_cfn}")
 set_property(SOURCE ${CFITSIO_SRCS} PROPERTY COMPILE_OPTIONS "${ACS_WARN_SUPPRESS}")
@@ -63,11 +123,17 @@ set_property(SOURCE ${AIO_SRCS} PROPERTY COMPILE_OPTIONS "${ACS_WARN_SUPPRESS};-
 set_property(SOURCE ${AIO_DIR}/src/aio_api.cpp APPEND PROPERTY COMPILE_OPTIONS "-DAIO_ENABLE_XISF")
 set_property(SOURCE ${AIO_DIR}/src/aio_xisf.cpp APPEND PROPERTY COMPILE_OPTIONS "-DAIO_ENABLE_XISF")
 set_property(SOURCE ${AIO_DIR}/src/aio_xisf.cpp APPEND PROPERTY INCLUDE_DIRECTORIES "${AIO_DIR}/src;${AIO_DIR}/include")
-file(GLOB P2_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase2/src/*.cpp)
-list(APPEND P2_SRCS
-  ${CMAKE_CURRENT_SOURCE_DIR}/../lib/acr/api/kernel_registry.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase2/src/cuda_bridge_stub.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/../lib/acr/scheduler/device_executor.cpp
+# QA-002: P2 显式清单 (禁 GLOB); ACR 文件 (acr_kernels/kernel_registry/device_executor/cuda_bridge_stub)
+# 不编入生产 (LEG-004 ACR dormant, 生产仅纯 CPU)
+set(P2_SRCS
+  ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase2/src/async_io.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase2/src/block.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase2/src/coverage.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase2/src/integrate.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase2/src/rejection.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase2/src/sampler.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase2/src/stage2_common.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase2/src/upm.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/src/hips/aio_hips_reader.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/src/aio_upm.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/src/hips/aio_hips_writer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/../lib/common/healpix/healpix_core.cpp)
@@ -104,7 +170,12 @@ if(MSVC)
 else()
   set_source_files_properties(${CAL_SRCS} PROPERTIES COMPILE_OPTIONS "-fopenmp")
 endif()
-file(GLOB P3_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase3_session/*.cpp)
+# QA-002: P3 显式清单 (禁 GLOB)
+set(P3_SRCS
+  ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase3_session/hips_properties.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase3_session/p3_output.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase3_session/p3_resample.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase3_session/p3_wcs.cpp)
 # QA-001: P3 生产源已去 -w 抑制 (警告清零)
 set_property(SOURCE ${P3_SRCS} APPEND PROPERTY INCLUDE_DIRECTORIES
   "${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase3_session;${CMAKE_CURRENT_SOURCE_DIR}/../lib/common;${CMAKE_CURRENT_SOURCE_DIR}/../lib/common/healpix;${CMAKE_CURRENT_SOURCE_DIR}/../lib/common/crypto;${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/include;${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/src;${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/third_party/cfitsio;${CMAKE_CURRENT_SOURCE_DIR}/../include;${CMAKE_CURRENT_SOURCE_DIR}/../third_party")
