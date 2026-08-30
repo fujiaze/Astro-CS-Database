@@ -68,3 +68,10 @@ target_include_directories(cpu_lease_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/backend_host)
 target_link_libraries(cpu_lease_test PRIVATE astrocs_cpu astrocs_contracts Threads::Threads)
 add_test(NAME cpu_lease COMMAND cpu_lease_test)
+
+add_executable(cpu_features_test cpu_features_test.cpp)
+target_include_directories(cpu_features_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/backend_host)
+target_link_libraries(cpu_features_test PRIVATE astrocs_cpu astrocs_contracts)
+add_test(NAME cpu_features COMMAND cpu_features_test)
