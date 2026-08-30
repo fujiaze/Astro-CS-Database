@@ -116,12 +116,10 @@ def main() -> int:
                ["test_id", "task_id", "host", "commit", "group", "backend", "workers", "seed", "contract_hash", "command_log", "duration_seconds", "status", "evidence"],
                test_rows)
 
-    # 3) RESOURCE_RESULTS / RELEASE_ARTIFACTS 如实留空(未跑32R资源门禁/未产alpha包)
+    # 3) RESOURCE_RESULTS 及 CPU_PROFILE_RESULTS 如实留空(未跑32R资源门禁 / 无完整profile表)
+    #    RELEASE_ARTIFACTS.csv 保留 TAB 实际登记(2026-08-30 已登记 pasL PASS Linux+Windows alpha), 不覆盖。
     write_rows(SRC / "RESOURCE_RESULTS.csv",
                ["run_id", "task_id", "host", "commit", "phase", "stage", "stage_kind", "wall_seconds", "available_cpus", "selected_workers", "avg_equivalent_cores", "max_active_threads", "avg_cpu_gate", "memory_peak_bytes", "memory_slope_bytes_per_iteration", "io_read_bytes", "io_write_bytes", "iowait_fraction", "memory_bandwidth_fraction", "verdict", "diagnosis", "evidence"],
-               [])
-    write_rows(SRC / "RELEASE_ARTIFACTS.csv",
-               ["artifact_id", "platform", "arch", "version", "commit", "path", "size_bytes", "sha256", "manifest_sha256", "sbom_sha256", "smoke_test_id", "status"],
                [])
     write_rows(SRC / "CPU_PROFILE_RESULTS.csv",
                ["profile_id", "task_id", "host", "commit", "hardware_fingerprint", "kernel", "precision", "size_class", "backend", "isa", "workers", "block_size", "median_seconds", "mad_seconds", "speedup_vs_one_worker", "oracle_status", "resource_status", "profile_path", "profile_sha256", "status"],

@@ -1,7 +1,7 @@
 {
  "schema_version": 1,
  "version": "0.9.0-alpha.1",
- "commit": "db12444398930f982d19b80a455d4db543c2b2fa",
+ "commit": "ec7a8cdc15661da4d225d75a435b40e4daca71fd",
  "verdict": "RELEASE_NOT_READY_BLOCKED",
  "blockers": [
   "WIN-006: phase2/3 真实数据链缺生产 HIPS 构建命令(详见 reports/evidence/WIN006_verification.md)",

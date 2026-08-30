@@ -1,6 +1,6 @@
 # AstroCS V5 预发布审核包(当前现状)
 
-- 版本: `0.9.0-alpha.1`, 当前 main 提交: `db12444398930f982d19b80a455d4db543c2b2fa` (`db1244439893`)
+- 版本: `0.9.0-alpha.1`, 当前 main 提交: `ec7a8cdc15661da4d225d75a435b40e4daca71fd` (`ec7a8cdc1566`)
 - 状态: **非发布就绪**。`verdict=RELEASE_NOT_READY_BLOCKED`(合法 `AWAITING_EXTERNAL_RELEASE_REVIEW` 未达成)。
 
 ## 已收敛
