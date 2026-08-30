@@ -96,3 +96,10 @@ target_include_directories(cpu_bench_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/backend_host)
 target_link_libraries(cpu_bench_test PRIVATE astrocs_cpu astrocs_contracts)
 add_test(NAME cpu_bench COMMAND cpu_bench_test)
+
+add_executable(cpu_profile_test cpu_profile_test.cpp)
+target_include_directories(cpu_profile_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/backend_host)
+target_link_libraries(cpu_profile_test PRIVATE astrocs_cpu astrocs_contracts)
+add_test(NAME cpu_profile COMMAND cpu_profile_test)
