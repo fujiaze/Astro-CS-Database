@@ -110,3 +110,10 @@ target_include_directories(cpu_monitor_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../cli)
 target_link_libraries(cpu_monitor_test PRIVATE astrocs_contracts Threads::Threads)
 add_test(NAME cpu_monitor COMMAND cpu_monitor_test)
+
+add_executable(p1_calibration_test p1_calibration_test.cpp)
+target_include_directories(p1_calibration_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/calibration/include)
+target_link_libraries(p1_calibration_test PRIVATE astrocs_calibration OpenMP::OpenMP_CXX)
+find_package(OpenMP QUIET)
+add_test(NAME p1_calibration COMMAND p1_calibration_test)

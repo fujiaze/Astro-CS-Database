@@ -1,0 +1,70 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "P1-002",
+  "status": "PASS",
+  "start_commit": "fe92b6e5c018ea888febc9b6f0faf1624078ce7e",
+  "source_commit": "fe92b6e5c018ea888febc9b6f0faf1624078ce7e",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "tests/unit/p1_calibration_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/refactor/tasks/P1-002/TASK_RESULT.json",
+    "evidence/refactor/tasks/P1-002/logs/c01.log",
+    "evidence/refactor/tasks/P1-002/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "96402a8fbaba4cea8029ba1bf04145fc34fd9c26a59137bfc842085981d990f3"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "03b10299b880b844a8604be8a7a6464083bbff07955aa1a997c7eac03274013f"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-STD",
+      "description": "标准模式 constant+gradient flat (light-dark)/max(flat,0.1) 逐像素一致",
+      "result": "PASS"
+    },
+    {
+      "id": "T-DARKOPT",
+      "description": "暗场优化 (light-bias-k*(dark-bias))/flat 逐像素一致",
+      "result": "PASS"
+    },
+    {
+      "id": "T-NEGATIVE",
+      "description": "负结果像素正确",
+      "result": "PASS"
+    },
+    {
+      "id": "T-NAN",
+      "description": "NaN 输入传播正确",
+      "result": "PASS"
+    },
+    {
+      "id": "T-F64",
+      "description": "f64 模式(u16 域) double 精度逐像素一致(<1e-9)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "cases": 5,
+    "precision_modes": [
+      "f32",
+      "f64"
+    ],
+    "domain": "u16"
+  },
+  "findings": [
+    "P1-002: synthetic fixtures 解析公式逐像素比较(standard/darkopt/negative/NaN/f64); 发现 calibrator.cpp 含 OpenMP 硬编码(omp_set_num_threads+pragma omp), 违反控制包禁令, 已登记 LEG 任务处理(不在本任务范围)"
+  ],
+  "created_utc": "2026-08-30T16:50:04Z"
+}
