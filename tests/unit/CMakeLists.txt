@@ -192,3 +192,7 @@ target_include_directories(p2_output_semantics_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase2/include)
 target_link_libraries(p2_output_semantics_test PRIVATE astrocs_phase2)
 add_test(NAME p2_output_semantics COMMAND p2_output_semantics_test)
+
+add_executable(p2_ir_facade_test p2_ir_facade_test.cpp)
+target_link_libraries(p2_ir_facade_test PRIVATE astrocs_contracts)
+add_test(NAME p2_ir_facade COMMAND p2_ir_facade_test)
